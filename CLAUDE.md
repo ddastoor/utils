@@ -54,62 +54,77 @@ Wayland) and **mobile browsers** (Android Chrome, iPhone Safari).
 sub-tabs.** The menu shows category headings and a search box purely as navigation aids.
 Platform is PC + mobile unless marked **PC**. Tab ids are the URL hash (`#/<id>`).
 
+Final list agreed with the owner: **103 tabs — 96 PC + mobile, 7 PC only**.
+
 **Images**
-| id | Tab | Engine |
+| id | Tab | Platform | Engine |
+|---|---|---|---|
+| `image` | Image Editor | both | own C wasm `imgproc` + MozJPEG/WebP/OxiPNG (jSquash) |
+| `batch` | Batch Images | **PC** | `imgproc` resize + jSquash + zip.js |
+| `heic` | HEIC → JPG | both | libheif (C++ → wasm, libheif-js) + jSquash |
+| `passport` | Passport Photo | both | MediaPipe face landmarks + selfie multiclass segmentation + `imgproc` guided filter |
+| `formphoto` | Photo & Signature Resizer | both | presets for Indian exam/job portals (px + KB limits), `imgproc` + MozJPEG |
+| `bgremove` | Background Remover | both | MediaPipe segmentation + guided filter → transparent PNG / colour / blur |
+| `cartoon` | Cartoonizer | both | `imgproc` classic filters + Magenta arbitrary style transfer (TF.js) |
+| `redact` | Blur & Redact | both | MediaPipe face detector + manual boxes |
+| `watermark` | Watermark | both | canvas text/logo watermark |
+| `caption` | Text on Image | both | canvas captions / meme text |
+| `collage` | Collage Maker | both | canvas photo grid |
+| `exif` | EXIF / Photo Info | both | own EXIF parser; strip metadata |
+| `scanner` | Doc Scanner | both | `imgproc` page detection, warp, enhance + pdf-lib |
+| `ocr` | OCR | both | Tesseract (C++ → wasm), English + Hindi |
+
+**Documents** (engines: pdf-lib + PDF.js; QPDF 12 wasm for unlock/protect)
+| id | Tab | Platform |
 |---|---|---|
-| `image` | Image Editor | own C wasm `imgproc` + MozJPEG/WebP/OxiPNG (jSquash) |
-| `batch` | Batch Images (**PC**) | `imgproc` resize + jSquash + zip.js |
-| `heic` | HEIC → JPG | libheif (C++ → wasm, libheif-js) + jSquash |
-| `passport` | Passport Photo | MediaPipe face landmarks + selfie multiclass segmentation + `imgproc` guided filter |
-| `cartoon` | Cartoonizer | `imgproc` classic filters + Magenta arbitrary style transfer (TF.js) |
-| `redact` | Blur & Redact | MediaPipe face detector + manual boxes |
-| `watermark` | Watermark | canvas text/logo watermark |
-| `caption` | Text on Image | canvas captions / meme text |
-| `collage` | Collage Maker | canvas photo grid |
-| `scanner` | Doc Scanner | `imgproc` page detection, warp, enhance + pdf-lib |
-| `ocr` | OCR | Tesseract (C++ → wasm), English + Hindi |
+| `pdf-merge` | Merge PDF | both |
+| `pdf-split` | Split PDF | both |
+| `pdf-organize` | Organize PDF (reorder/rotate/delete) | both |
+| `img2pdf` | Images → PDF | both |
+| `pdf2img` | PDF → Images | both |
+| `pdf-compress` | Compress PDF | both |
+| `pdf-sign` | Sign PDF | both |
+| `pdf-fill` | Fill PDF Form | both |
+| `pdf-unlock` | Unlock PDF (known password) | both |
+| `pdf-protect` | Protect PDF (AES-256) | both |
+| `pdf2text` | PDF → Text | both |
+| `pdf-pagenum` | PDF Page Numbers | both |
+| `pdf-watermark` | PDF Watermark | both |
+| `epub` | PDF → EPUB (Kindle) | **PC** |
+| `sheet` | CSV / Excel Viewer & Converter | **PC** |
+| `markdown` | Markdown Editor | both |
 
-**Documents**
-| `pdf-merge` Merge PDF · `pdf-split` Split PDF · `pdf-organize` Organize PDF (reorder/rotate/delete) ·
-`img2pdf` Images → PDF · `pdf2img` PDF → Images · `pdf-compress` Compress PDF · `pdf-sign` Sign PDF ·
-`pdf-fill` Fill PDF Form · `epub` PDF → EPUB (**PC**) · `sheet` CSV / Excel Viewer & Converter (**PC**) |
-Engines: pdf-lib + PDF.js (+ jSquash for compression); EPUB = PDF.js + own layout analysis + fflate;
-sheets = own CSV parser + own minimal XLSX reader/writer.
+**Security**: `pgp` OpenPGP · `sodium` Sodium Encrypt · `sharelink` Encrypted Share Link (ciphertext in the
+URL `#fragment`, never sent to a server) · `hash` Hash / Checksum · `password` Password Generator ·
+`passphrase` Passphrase Generator — all both.
 
-**Security**
-`pgp` OpenPGP · `sodium` Sodium Encrypt · `hash` Hash / Checksum · `password` Password Generator ·
-`passphrase` Passphrase Generator
+**Media**: `video` Video Compressor (both) · `audio` Audio Recorder (both) · `tts` Text-to-Speech (both) ·
+`ffmpeg` FFmpeg (**PC**) · `screencast` Screencast (**PC**) · `screenshot` Screenshot (**PC**) ·
+`youtube` YouTube Clip (**PC**)
 
-**Media**
-`video` Video Compressor (WebCodecs + mediabunny) · `audio` Audio Recorder · `tts` Text-to-Speech
-(on-device voices only) · `ffmpeg` FFmpeg (**PC**) · `screencast` Screencast (**PC**) ·
-`screenshot` Screenshot (**PC**) · `youtube` YouTube Clip (**PC**)
+**Calculators** (all both): `calc` Scientific · `units` Unit Converter · `dates` Date Calculator ·
+`emi` EMI · `gst` GST · `sip` SIP · `fd` FD / RD · `percent` Percentage · `words` Number to Words ·
+`timezone` Time Zone Converter · `bmi` BMI · `calories` Calorie (BMR/TDEE) · `duedate` Pregnancy Due Date ·
+`tip` Tip & Bill Splitter · `fuel` Fuel Cost · `gpa` GPA · `base` Number Base Converter · `roman` Roman Numerals
 
-**Calculators**
-`calc` Scientific Calculator · `units` Unit Converter · `dates` Date Calculator · `emi` EMI Calculator ·
-`gst` GST Calculator · `sip` SIP Calculator · `fd` FD / RD Calculator · `percent` Percentage Calculator ·
-`words` Number to Words (lakh/crore + international) · `timezone` Time Zone Converter · `bmi` BMI Calculator ·
-`calories` Calorie (BMR/TDEE) Calculator · `duedate` Pregnancy Due Date · `tip` Tip & Bill Splitter ·
-`fuel` Fuel Cost Calculator · `gpa` GPA Calculator · `base` Number Base Converter · `roman` Roman Numerals
+**Text & Dev** (all both): `wordcount` · `case` · `lines` · `replace` · `diff` · `json` · `regex` · `base64` ·
+`urlenc` · `epoch` · `uuid` · `color` · `jwt` · `fancy` · `emoji` · `morse` · `lorem`
 
-**Text & Dev**
-`wordcount` Word Counter · `case` Case Converter · `lines` Line Tools (sort/dedupe/trim/reverse) ·
-`replace` Find & Replace · `diff` Text Diff · `json` JSON Formatter · `base64` Base64 · `urlenc` URL Encoder ·
-`epoch` Epoch Converter · `uuid` UUID Generator · `color` Color Converter · `jwt` JWT Decoder ·
-`fancy` Fancy Text · `emoji` Emoji & Symbols · `morse` Morse Code · `lorem` Lorem Ipsum
-
-**Codes & Files**
-`qr` QR Generator · `barcode` Barcode Generator · `scan` QR & Barcode Scanner (zxing-cpp wasm) ·
+**Codes & Files** (all both): `qr` QR Generator · `barcode` Barcode Generator · `scan` QR & Barcode Scanner ·
 `zip` Create Zip · `unzip` Extract Archive
 
-**Everyday**
-`stopwatch` Stopwatch · `countdown` Countdown Timer · `pomodoro` Pomodoro · `interval` Interval Timer ·
-`dice` Dice Roller · `coin` Coin Flip · `rng` Random Number · `picker` List Picker · `teams` Team Splitter
+**Everyday** (all both): `stopwatch` · `countdown` · `pomodoro` · `interval` · `dice` · `coin` · `rng` ·
+`picker` · `teams`
 
-**Device**
-`webcam` Webcam Test · `mic` Microphone Test · `speaker` Speaker Test · `keyboard` Keyboard Test ·
-`pixels` Dead Pixel Test · `touch` Touch Test · `screen` Screen Info · `level` Bubble Level ·
-`compass` Compass · `soundmeter` Sound Meter · `ruler` Ruler
+**Device** (all both): `webcam` · `mic` · `speaker` · `keyboard` · `pixels` · `touch` · `screen` · `level` ·
+`compass` · `soundmeter` · `ruler` (level/compass need phone motion sensors; PCs show "no sensor").
+
+Rejected by the owner: Typing Speed Test, Tuner, Metronome, Discount Calculator, Unit Price Compare.
+Not added because a PC-only tool already covers them: Video Trimmer, Video → MP3, Audio Cutter (FFmpeg),
+Image Converter (Batch Images). Optional "nice to have" ideas not requested: GIF maker, screenshot
+beautifier, palette extractor, image compare, tone generator, white noise, pace calculator, recipe scaler,
+breathing guide, ICS creator, TOTP, subnet/chmod calculators, YAML↔JSON, cron explainer, SVG optimiser,
+favicon generator.
 
 The owner's original items b) "YouTube clip creator" and h) "YouTube downloader" are merged into
 **YouTube Clip** (agreed — they are the same job).

@@ -29,12 +29,25 @@
     "@jsquash/oxipng": "^2.3.0",
     "@jsquash/webp": "^1.5.0",
     "@mediapipe/tasks-vision": "^1.2.3",
+    "@neslinesli93/qpdf-wasm": "^0.3.1",
     "@tensorflow/tfjs-backend-cpu": "^4.22.0",
     "@tensorflow/tfjs-backend-webgl": "^4.22.0",
     "@tensorflow/tfjs-converter": "^4.22.0",
     "@tensorflow/tfjs-core": "^4.22.0",
+    "@tesseract.js-data/eng": "^1.0.0",
+    "@tesseract.js-data/hin": "^1.0.0",
+    "@zip.js/zip.js": "^2.25.0",
     "fflate": "^0.8.3",
+    "libarchive.js": "^2.0.2",
+    "libheif-js": "^1.23.5",
+    "lucide-static": "^1.73.0",
+    "markdown-it": "^15.0.3",
+    "mediabunny": "^1.66.0",
     "openpgp": "^6.3.2",
-    "pdfjs-dist": "^6.5.438"
+    "pdf-lib": "^1.17.1",
+    "pdfjs-dist": "^6.5.438",
+    "tesseract.js": "^7.0.0",
+    "tesseract.js-core": "^7.0.0",
+    "zxing-wasm": "^3.1.7"
   }
 }
