@@ -5,6 +5,22 @@ gave, every design decision made on their behalf, and the exact procedures to re
 deploy the app. Read it fully before changing anything. Keep it updated in the same commit as any change
 that affects it.
 
+> ## ⚠️ STANDING RULE #1 — WebAssembly first (owner; permanent; applies to every line of new code)
+> The owner has had to repeat this several times. **Check this rule before choosing ANY engine, library or
+> algorithm for ANY tool — new or existing — without waiting to be reminded.**
+> 1. **First choice, always:** build our own WebAssembly module from the **latest stable upstream open-source
+>    source** (C/C++, or Rust/Zig/other compiled code) — the correct, official project source, verified by
+>    checksum/signature — or from our own C (`wasm/`). Use it for the algorithms and all heavy loops.
+> 2. Only if (1) is genuinely impossible or impractical: the upstream project's **official** wasm build, then a
+>    widely used third-party wasm build of the same upstream source.
+> 3. Only if no compiled implementation exists or can practically be built: a JavaScript/TypeScript library.
+> 4. **Whatever is used is vendored, pinned and served from this site. Never a CDN, never fetched at runtime.**
+> 5. Every choice below tier 1 is written down with the reason in §3a — the "why not our own wasm" column.
+>    Before adding a dependency, write the tier and the reason in the commit message too.
+> 6. TypeScript only builds UI, formats output and does trivial glue (see the compute rule in §7). Pixel loops,
+>    parsers, codecs, maths, search, diff, compression, crypto → wasm.
+> 7. Existing tier-2/3/4 components are on the audit list in §3a; replace them with our own builds when practical.
+
 ---
 
 ## 1. What this is
@@ -30,9 +46,9 @@ Wayland) and **mobile browsers** (Android Chrome, iPhone Safari).
 4. **Each utility is its own tab.** Tools are **PC + mobile** unless the owner explicitly said PC only.
    PC-only tools are hidden on mobile.
 5. **Responsive UI** that works on phone and desktop.
-6. **Implementation preference order:**
-   1. Our own WebAssembly modules compiled from proper open-source **C/C++** source (own code, or the
-      upstream library's source).
+6. **Implementation preference order — see STANDING RULE #1 at the top (WebAssembly first, always):**
+   1. Our own WebAssembly modules compiled from the latest proper open-source **C/C++** (or other compiled)
+      source (own code, or the upstream library's source).
    2. Otherwise a widely used, safe, OSI-licensed library, vendored (copied into the build) and pinned.
    Personal use only, so copyleft (GPL/LGPL/AGPL) is acceptable.
 7. Use the **most standard / modern / hardened** approach for each tool.
@@ -483,6 +499,23 @@ JavaScript-only components (no C/C++ equivalent exists for the job):
 | mediabunny (MPL-2.0) | MP4 muxing around the browser's hardware WebCodecs encoders | video |
 | semver (ISC) | tiny logic library | semver |
 
+**Audit list (STANDING RULE #1, item 7)** — components not yet on tier 1 and what replaces them. Work through it
+whenever a tool that uses one is touched; move rows to the engine table above when done.
+| Component (current tier) | Replace with (own wasm build from upstream source) | Status |
+|---|---|---|
+| jSquash MozJPEG / libwebp / OxiPNG (3) | own builds of mozjpeg (C), libwebp (C), oxipng (Rust → wasm32) | planned |
+| libheif-js (3) | own build of libheif + libde265 (C++) | planned |
+| tesseract.js-core (3) | own build of Tesseract 5 + Leptonica (C/C++) | planned |
+| zxing-wasm (3) | own build of zxing-cpp (C++) | planned |
+| libarchive.js (3) | own build of libarchive (C) | planned |
+| ffmpeg.wasm core (3) | own build of FFmpeg (C) — large; keep until the rest are done | later |
+| zip.js (4) | own C: deflate (zlib/miniz) + WinZip AES (AES-CTR + HMAC-SHA1 + PBKDF2) in `crypto.wasm` | planned |
+| mediabunny (4) | minimp4 (C, CC0) muxer around WebCodecs | planned |
+| semver (4) | own C semver parser/comparator | planned |
+| own TS parsers: EXIF reader/stripper (`src/lib/exif.ts`), X.509 DER, hex/log viewers, search ranking | port to C (`wasm/`) | EXIF: in progress |
+Staying on tier 2 (official upstream wasm, fine): MuPDF, SQLite, MediaPipe Tasks. Staying JS (no compiled
+equivalent, reasons above): OpenPGP.js, Mermaid, Prettier, sql-formatter, TensorFlow.js.
+
 ### Approved data APIs (connect-src allowlist)
 Add a host here and to the CSP `connect-src` in `index.html` (and the allowlist in `tests/e2e/no-external.e2e.mjs`)
 only when a tool needs live data and the owner has accepted that tool. **Approved:**
@@ -653,6 +686,8 @@ deployment is refused for a branch, allow it under **Settings → Environments �
 Deployment branches**.
 
 ## 8. Adding a new tool (checklist)
+0. **Apply STANDING RULE #1 first** (top of this file): for every engine/library/algorithm the tool needs, pick
+   our own wasm build from upstream source unless impossible; record the tier and reason in §3a.
 1. Create `src/tools/<id>.ts` exporting `mount(root)`; use helpers from `src/ui.ts`.
 2. Register it in `src/registry.ts` (id, title, desc, category, icon, rich keywords, `platform`: 'both' unless
    the owner says PC only, or it genuinely needs phone hardware → 'mobile'). Add search cases.
