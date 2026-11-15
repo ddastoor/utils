@@ -1,10 +1,16 @@
 {
   "name": "utils",
   "version": "1.0.0",
-  "description": "A stateless, client-side utilities web app hosted on GitHub Pages. Every tool runs in the browser, and no files leave the device.",
-  "main": "index.js",
+  "description": "Private, in-browser utilities. Files never leave your device.",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "prepare": "node scripts/vendor.mjs && node scripts/gen-icons.mjs",
+    "predev": "node scripts/vendor.mjs && node scripts/gen-icons.mjs",
+    "dev": "vite",
+    "prebuild": "node scripts/vendor.mjs && node scripts/gen-icons.mjs",
+    "build": "vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "test": "node tests/search.test.mjs"
   },
   "repository": {
     "type": "git",
@@ -12,7 +18,7 @@
   },
   "keywords": [],
   "author": "",
-  "license": "ISC",
+  "license": "SEE LICENSES.md",
   "bugs": {
     "url": "https://github.com/ddastoor/utils/issues"
   },
@@ -29,7 +35,6 @@
     "@jsquash/oxipng": "^2.3.0",
     "@jsquash/webp": "^1.5.0",
     "@mediapipe/tasks-vision": "^1.2.3",
-    "@neslinesli93/qpdf-wasm": "^0.3.1",
     "@sqlite.org/sqlite-wasm": "^3.54.1-build1",
     "@tensorflow/tfjs-backend-cpu": "^4.22.0",
     "@tensorflow/tfjs-backend-webgl": "^4.22.0",
@@ -38,24 +43,21 @@
     "@tesseract.js-data/eng": "^1.0.0",
     "@tesseract.js-data/hin": "^1.0.0",
     "@zip.js/zip.js": "^2.25.0",
-    "bcryptjs": "^3.0.3",
     "fflate": "^0.8.3",
-    "js-yaml": "^5.5.0",
     "libarchive.js": "^2.0.2",
     "libheif-js": "^1.23.5",
     "lucide-static": "^1.73.0",
-    "markdown-it": "^15.0.3",
     "mediabunny": "^1.66.0",
     "mermaid": "^12.3.0",
+    "mupdf": "^1.28.6",
     "openpgp": "^6.3.2",
-    "pdf-lib": "^1.17.1",
-    "pdfjs-dist": "^6.5.438",
     "prettier": "^3.10.1",
     "semver": "^7.8.6",
-    "smol-toml": "^1.9.1",
     "sql-formatter": "^15.9.0",
     "tesseract.js": "^7.0.0",
     "tesseract.js-core": "^7.0.0",
     "zxing-wasm": "^3.1.7"
-  }
+  },
+  "private": true,
+  "type": "module"
 }

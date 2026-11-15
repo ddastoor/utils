@@ -1,0 +1,20 @@
+// TEMPORARY placeholder — replaced by the real implementation.
+import { note, type Mount } from '../ui';
+const stub = () => note('This tool is being built.', 'info');
+export const wordcount: Mount = (root) => { root.append(stub()); };
+export const caseConv: Mount = (root) => { root.append(stub()); };
+export const lines: Mount = (root) => { root.append(stub()); };
+export const replace: Mount = (root) => { root.append(stub()); };
+export const diff: Mount = (root) => { root.append(stub()); };
+export const json: Mount = (root) => { root.append(stub()); };
+export const regex: Mount = (root) => { root.append(stub()); };
+export const base64: Mount = (root) => { root.append(stub()); };
+export const urlenc: Mount = (root) => { root.append(stub()); };
+export const epoch: Mount = (root) => { root.append(stub()); };
+export const uuid: Mount = (root) => { root.append(stub()); };
+export const color: Mount = (root) => { root.append(stub()); };
+export const jwt: Mount = (root) => { root.append(stub()); };
+export const fancy: Mount = (root) => { root.append(stub()); };
+export const emoji: Mount = (root) => { root.append(stub()); };
+export const morse: Mount = (root) => { root.append(stub()); };
+export const lorem: Mount = (root) => { root.append(stub()); };

@@ -58,9 +58,18 @@ Wayland) and **mobile browsers** (Android Chrome, iPhone Safari).
   swipeable tab rows at the top (active tab scrolled into view). PC-only utilities are hidden on mobile.
 - Clicking a category opens the utility last used in that category this session (or its first one).
 - A search box in the header jumps straight to any utility (Enter = top match).
+- **New utilities:** whenever the owner accepts a new utility, place it in the most fitting existing category,
+  or create a new, well-named category for it (update `CATEGORIES` in `src/registry.ts` and this file).
+  Give it rich search keywords (synonyms, everyday phrasing, file extensions, common misspellings) and add
+  queries for it to `tests/search.test.mjs`.
 Platform is PC + mobile unless marked **PC**. Tab ids are the URL hash (`#/<id>`).
 
-Final list agreed with the owner: **131 tabs — 88 PC + mobile, 43 PC only**.
+Final list agreed with the owner: **131 tabs — 84 PC + mobile, 44 PC only, 3 Mobile only**.
+
+**Platform model (owner rule):** every tool is exactly one of **PC + mobile** (`'both'`), **PC only** (`'pc'`,
+hidden on phones) or **Mobile only** (`'mobile'`, hidden on desktops) — the `platform` field in
+`src/registry.ts`. Mobile only = needs phone hardware: `level` Bubble Level, `compass` Compass, `touch` Touch
+Test. `keyboard` Keyboard Test is PC only (physical keyboard). Opening a hidden tool by URL shows an explanation.
 
 **Images**
 | id | Tab | Platform | Engine |
@@ -136,7 +145,7 @@ Glob Tester. Left out: API client (CORS/CSP), DNS/WHOIS/ping/port scan (need net
 `picker` · `teams`
 
 **Device** (all both): `webcam` · `mic` · `speaker` · `keyboard` · `pixels` · `touch` · `screen` · `level` ·
-`compass` · `soundmeter` · `ruler` (level/compass need phone motion sensors; PCs show "no sensor").
+`compass` · `soundmeter` · `ruler` — `keyboard` is **PC only**; `level`, `compass`, `touch` are **Mobile only**.
 
 Rejected by the owner: Typing Speed Test, Tuner, Metronome, Discount Calculator, Unit Price Compare.
 Not added because a PC-only tool already covers them: Video Trimmer, Video → MP3, Audio Cutter (FFmpeg),
@@ -313,10 +322,17 @@ Inputs: two "Copy video URL at current time" links (start/end) **or** one URL + 
    works in Termux on Android).
 Direct download from a static page is impossible (CORS + YouTube stream protection).
 
-### Linux X11 vs Wayland
-No web API exposes it (Chrome's UA says `X11; Linux` on both) and it is not needed: Chrome uses PipeWire
-+ xdg-desktop-portal on Wayland. Capture tools show a Linux help panel (check
-`chrome://flags/#enable-webrtc-pipewire-capturer`, xdg-desktop-portal + backend installed).
+### Linux X11 vs Wayland (owner requirement: auto-detect)
+No web API reports the display server and Chrome's UA says `X11; Linux` on both, so `src/linux.ts` detects it:
+1. **Passive** (instant): Wayland never tells clients their global window position, so Chrome reports
+   `screenX == screenY == 0` there. Non-zero position ⇒ **X11** (or Chrome under XWayland, which behaves as X11).
+   Zero ⇒ **Wayland (likely)** — a maximised X11 window at the top-left corner can also be 0,0.
+2. **Active** (one click, "Confirm"): open a tiny popup, `moveTo(120, 120)`, read its `screenX`. X11 honours
+   the move; Wayland ignores it. Result is kept in memory for the session only.
+Used by Screencast, Screenshot and YouTube Clip: they show "Detected: X11 / Wayland", and on Wayland explain that
+the desktop portal (GNOME/KDE) shows its own picker after Chrome's, keep the capture alive for repeated shots
+(avoids repeated portal prompts), and show the right minimise shortcut. If capture fails on Wayland they point
+to `chrome://flags/#enable-webrtc-pipewire-capturer` and the `xdg-desktop-portal` packages.
 
 ---
 
@@ -487,7 +503,8 @@ Deployment branches**.
 
 ## 8. Adding a new tool (checklist)
 1. Create `src/tools/<id>.ts` exporting `mount(root)`; use helpers from `src/ui.ts`.
-2. Register it in `src/registry.ts` (id, title, desc, category, icon, keywords, `pc: true` only if the owner says PC only).
+2. Register it in `src/registry.ts` (id, title, desc, category, icon, rich keywords, `platform`: 'both' unless
+   the owner says PC only, or it genuinely needs phone hardware → 'mobile'). Add search cases.
 3. Heavy dependencies: dynamic-import inside the tool; vendor runtime files via `scripts/vendor.mjs`;
    never load from a CDN; keep the CSP intact.
 4. Add a smoke test in `tests/e2e.mjs`, update §2/§3 of this file, commit, push.

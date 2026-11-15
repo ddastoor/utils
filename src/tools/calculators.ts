@@ -1,0 +1,20 @@
+// TEMPORARY placeholder — replaced by the real implementation.
+import { note, type Mount } from '../ui';
+const stub = () => note('This tool is being built.', 'info');
+export const units: Mount = (root) => { root.append(stub()); };
+export const dates: Mount = (root) => { root.append(stub()); };
+export const emi: Mount = (root) => { root.append(stub()); };
+export const gst: Mount = (root) => { root.append(stub()); };
+export const sip: Mount = (root) => { root.append(stub()); };
+export const fd: Mount = (root) => { root.append(stub()); };
+export const percent: Mount = (root) => { root.append(stub()); };
+export const words: Mount = (root) => { root.append(stub()); };
+export const timezone: Mount = (root) => { root.append(stub()); };
+export const bmi: Mount = (root) => { root.append(stub()); };
+export const calories: Mount = (root) => { root.append(stub()); };
+export const duedate: Mount = (root) => { root.append(stub()); };
+export const tip: Mount = (root) => { root.append(stub()); };
+export const fuel: Mount = (root) => { root.append(stub()); };
+export const gpa: Mount = (root) => { root.append(stub()); };
+export const base: Mount = (root) => { root.append(stub()); };
+export const roman: Mount = (root) => { root.append(stub()); };

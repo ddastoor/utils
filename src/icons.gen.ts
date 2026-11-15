@@ -2,7 +2,9 @@
 export const ICONS: Record<string, string> = {
   Activity: "<path d=\"M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2\" />",
   AlarmClock: "<circle cx=\"12\" cy=\"13\" r=\"8\" /><path d=\"M12 9v4l2 2\" /><path d=\"M5 3 2 6\" /><path d=\"m22 6-3-3\" /><path d=\"M6.38 18.7 4 21\" /><path d=\"M17.64 18.67 20 21\" />",
+  ArrowDown: "<path d=\"M12 5v14\" /><path d=\"m19 12-7 7-7-7\" />",
   ArrowLeftRight: "<path d=\"M8 3 4 7l4 4\" /><path d=\"M4 7h16\" /><path d=\"m16 21 4-4-4-4\" /><path d=\"M20 17H4\" />",
+  ArrowUp: "<path d=\"m5 12 7-7 7 7\" /><path d=\"M12 19V5\" />",
   Asterisk: "<path d=\"M12 5v14\" /><path d=\"m18.065 8.496-12.125 7\" /><path d=\"m5.94 8.504 12.125 7\" />",
   AudioLines: "<path d=\"M2 10v3\" /><path d=\"M6 6v11\" /><path d=\"M10 3v18\" /><path d=\"M14 8v7\" /><path d=\"M18 5v13\" /><path d=\"M22 10v3\" />",
   AudioWaveform: "<path d=\"M2 13a2 2 0 0 0 2-2V7a2 2 0 0 1 4 0v13a2 2 0 0 0 4 0V4a2 2 0 0 1 4 0v13a2 2 0 0 0 4 0v-4a2 2 0 0 1 2-2\" />",
