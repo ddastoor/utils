@@ -60,3 +60,21 @@ export function zipEntries(path) {
   for (let i = 0; i < n; i++) { const nl = b.readUInt16LE(o + 28), xl = b.readUInt16LE(o + 30), cl = b.readUInt16LE(o + 32); names.push(b.toString('utf8', o + 46, o + 46 + nl)); o += 46 + nl + xl + cl; }
   return names;
 }
+
+/** Mean RGBA of normalised regions [x0,y0,x1,y1] (0..1) of an image file, decoded in the page. */
+export async function regionMeans(page, path, regions) {
+  const b64 = readFileSync(path).toString('base64');
+  return page.evaluate(async ({ b64, regions }) => {
+    const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+    const bmp = await createImageBitmap(new Blob([bytes]));
+    const c = new OffscreenCanvas(bmp.width, bmp.height), g = c.getContext('2d');
+    g.drawImage(bmp, 0, 0);
+    return regions.map(([x0, y0, x1, y1]) => {
+      const X = Math.floor(x0 * bmp.width), Y = Math.floor(y0 * bmp.height), W = Math.max(1, Math.floor((x1 - x0) * bmp.width)), H = Math.max(1, Math.floor((y1 - y0) * bmp.height));
+      const d = g.getImageData(X, Y, W, H).data, s = [0, 0, 0, 0];
+      for (let i = 0; i < d.length; i += 4) for (let k = 0; k < 4; k++) s[k] += d[i + k];
+      return s.map((v) => v / (d.length / 4));
+    });
+  }, { b64, regions });
+}
+export const lum = (m) => 0.299 * m[0] + 0.587 * m[1] + 0.114 * m[2];

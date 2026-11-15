@@ -563,3 +563,7 @@ details summary { cursor: pointer; font-weight: 600; color: var(--accent); paddi
 .kv { display: grid; grid-template-columns: minmax(110px, max-content) 1fr; gap: 6px 16px; font-size: 14px; }
 .kv dt { color: var(--muted); } .kv dd { margin: 0; overflow-wrap: anywhere; }
 .exif-thumb { max-width: 100%; max-height: 260px; border-radius: 10px; display: block; margin: 0 auto; }
+.collage-strip { display: flex; flex-direction: column; gap: 6px; }
+.collage-item { display: flex; align-items: center; gap: 8px; padding: 4px 8px; border: 1px solid var(--border); border-radius: 10px; min-width: 0; }
+.collage-item .file-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.collage-n { font-weight: 700; color: var(--muted); width: 1.5em; text-align: center; }
