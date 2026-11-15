@@ -3,3 +3,4 @@ dist/
 public/vendor/
 .DS_Store
 *.log
+wasm/**/.build/

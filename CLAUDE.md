@@ -29,6 +29,15 @@ Wayland) and **mobile browsers** (Android Chrome, iPhone Safari).
    2. Otherwise a widely used, safe, OSI-licensed library, vendored (copied into the build) and pinned.
    Personal use only, so copyleft (GPL/LGPL/AGPL) is acceptable.
 7. Use the **most standard / modern / hardened** approach for each tool.
+8. **Every tool works on Windows and Linux** (Chrome; X11 and Wayland) and every non-PC-only tool also
+   works on the owner's **mobile browser** (Android Chrome and iPhone Safari). Do not rely on a
+   Chrome-only API in a mobile tool without a Safari fallback.
+9. **The mobile UI must look good**, not just work: mobile-first layouts, ≥44 px touch targets, single
+   column, sticky bottom action bar for the main action, no horizontal scroll, safe-area insets.
+   Check every mobile tool at 390×844 with a screenshot before calling it done.
+10. **Search**: every tab has relevant keywords (`keywords` in the registry). A search box (home screen +
+    sidebar; `/` or Ctrl+K focuses it on PC) ranks tabs by title and keywords; pressing **Enter opens the
+    top match immediately**.
 
 ### Owner's answers to open questions
 - Passport photo: owner lives in **India** → Indian presets first.
