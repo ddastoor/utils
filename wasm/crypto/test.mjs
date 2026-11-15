@@ -5,7 +5,7 @@ import crypto from 'node:crypto';
 import zlib from 'node:zlib';
 import { fileURLToPath } from 'node:url';
 
-const wasmPath = fileURLToPath(new URL('../../public/wasm/crypto.wasm', import.meta.url));
+const wasmPath = fileURLToPath(new URL('../../src/wasm/bin/crypto.wasm', import.meta.url));
 const mod = new WebAssembly.Module(readFileSync(wasmPath));
 let mem;
 const wasi = {};

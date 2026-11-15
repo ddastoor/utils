@@ -3,7 +3,7 @@
 // 'mobile' (phone only, hidden on desktop).
 import type { Mount } from './ui';
 
-export type CatId = 'images' | 'documents' | 'security' | 'media' | 'calculators' | 'text' | 'software' | 'codes' | 'everyday' | 'device';
+export type CatId = 'images' | 'documents' | 'security' | 'media' | 'calculators' | 'math' | 'text' | 'software' | 'codes' | 'everyday' | 'device';
 
 export type Platform = 'both' | 'pc' | 'mobile';
 export interface Category { id: CatId; title: string; icon: string }
@@ -24,6 +24,7 @@ export const CATEGORIES: Category[] = [
   { id: 'security', title: 'Security', icon: 'ShieldCheck' },
   { id: 'media', title: 'Media', icon: 'Clapperboard' },
   { id: 'calculators', title: 'Calculators', icon: 'Calculator' },
+  { id: 'math', title: 'Math & Science', icon: 'Sigma' },
   { id: 'text', title: 'Text', icon: 'LetterText' },
   { id: 'software', title: 'Software', icon: 'SquareTerminal' },
   { id: 'codes', title: 'Codes & Files', icon: 'QrCode' },
@@ -48,6 +49,12 @@ const swMisc = () => import('./tools/software/misc');
 const codes = () => import('./tools/codes');
 const files = () => import('./tools/archive');
 const every = () => import('./tools/everyday');
+const math = () => import('./tools/math');
+const fin = () => import('./tools/finance2');
+const docgen = () => import('./tools/docgen');
+const swRef = () => import('./tools/software/ref');
+const swBits = () => import('./tools/software/bits');
+const swWeb = () => import('./tools/software/web');
 const dev = () => import('./tools/device');
 
 export const TOOLS: Tool[] = [
@@ -94,6 +101,9 @@ export const TOOLS: Tool[] = [
   t('ocr', 'OCR', 'Extract text from an image (English, Hindi).', 'images', 'ScanText',
     'copy text from image, copy text from photo, extract text from image, text from photo, extract text from photo, handwriting, ocr, text recognition, extract text, image to text, copy text, tesseract, hindi, english, read',
     () => import('./tools/ocr').then((m) => m.mount)),
+  t('signature', 'Signature Maker', 'Draw your signature and save a transparent PNG.', 'images', 'PenLine',
+    'signature, sign, draw signature, transparent signature, signature png, autograph, handwritten, e signature image',
+    () => import('./tools/signature').then((m) => m.mount)),
 
   // ---------------------------------------------------------------- Documents
   t('pdf-merge', 'Merge PDF', 'Combine several PDFs into one.', 'documents', 'Merge',
@@ -130,6 +140,15 @@ export const TOOLS: Tool[] = [
     () => import('./tools/sheet').then((m) => m.mount), 'pc'),
   t('markdown', 'Markdown Editor', 'Write Markdown with live preview; export HTML or PDF.', 'documents', 'NotebookPen',
     'markdown, md, editor, preview, html, notes, readme, print', () => import('./tools/markdown').then((m) => m.mount)),
+  t('invoice', 'GST Invoice', 'Create a GST invoice and save it as PDF.', 'documents', 'ReceiptText',
+    'invoice, gst invoice, bill generator, invoice generator, invoice maker, bill, billing, tax invoice, gstin, hsn, sac, freelancer, quotation, estimate, pdf',
+    () => docgen().then((m) => m.invoice)),
+  t('rent', 'Rent Receipt', 'Monthly rent receipts for HRA claims.', 'documents', 'House',
+    'rent receipt, hra, house rent, landlord, tenant, receipt, income tax, pan, revenue stamp',
+    () => docgen().then((m) => m.rent)),
+  t('resume', 'Resume Builder', 'Fill a form and get a clean PDF resume.', 'documents', 'FileUser',
+    'resume, cv, cv maker, resume maker, curriculum vitae, biodata, job application, pdf resume',
+    () => docgen().then((m) => m.resume)),
 
   // ---------------------------------------------------------------- Security
   t('pgp', 'OpenPGP', 'Keys, encrypt, decrypt, sign and verify (GnuPG compatible).', 'security', 'KeyRound',
@@ -159,6 +178,16 @@ export const TOOLS: Tool[] = [
   t('tts', 'Text-to-Speech', 'Read text aloud with on-device voices.', 'media', 'AudioLines',
     'tts, speech, read aloud, voice, speak, narrate, text to speech',
     () => import('./tools/tts').then((m) => m.mount)),
+  t('noise', 'Noise Remover', 'Remove background noise from voice recordings.', 'media', 'AudioWaveform',
+    'noise, denoise, noise removal, noise remover, noise reduction, remove noise, clean audio, hiss, background noise, rnnoise, voice',
+    () => import('./tools/noise').then((m) => m.mount)),
+  t('pitch', 'Pitch & Speed', 'Change tempo or pitch of audio independently.', 'media', 'Gauge',
+    'pitch, speed, tempo, slow down song, slow down audio, speed up audio, slow down, speed up, transpose, key change, time stretch, practice, playback rate',
+    () => import('./tools/pitch').then((m) => m.mount)),
+  t('slideshow', 'Slideshow Maker', 'Photos + music → MP4 video.', 'media', 'GalleryHorizontal',
+    'slideshow, photos to video, images to video, music video, montage, mp4, reel',
+    () => import('./tools/slideshow').then((m) => m.mount)),
+
   t('ffmpeg', 'FFmpeg', 'Convert, trim, extract audio, compress — FFmpeg in your browser.', 'media', 'Clapperboard',
     'mp4 to mp3, wav to mp4, video to audio, mkv to mp4, mov to mp4, webm to mp4, avi to mp4, mp3 to wav, audio converter, video converter, ffmpeg, convert, video, audio, mp4, mp3, wav, extract audio, trim, cut, gif, mkv, webm, mov, flac, ogg, remux',
     () => import('./tools/ffmpeg').then((m) => m.mount), 'pc'),
@@ -227,6 +256,41 @@ export const TOOLS: Tool[] = [
   t('roman', 'Roman Numerals', 'Convert to and from Roman numerals.', 'calculators', 'ScrollText',
     'roman, numerals, convert, mcmxc, latin',
     () => calcs().then((m) => m.roman)),
+  t('prepay', 'Loan Prepayment', 'Interest and months saved by prepaying a loan.', 'calculators', 'BanknoteArrowDown',
+    'prepayment, part payment, part prepayment, foreclosure, loan prepayment, interest saved, tenure reduction',
+    () => fin().then((m) => m.prepay)),
+  t('ppf', 'PPF Calculator', 'Public Provident Fund maturity.', 'calculators', 'Landmark',
+    'ppf, public provident fund, 15 years, tax free, maturity, india', () => fin().then((m) => m.ppf)),
+  t('epf', 'EPF Calculator', 'Employee Provident Fund corpus at retirement.', 'calculators', 'Briefcase',
+    'epf, pf, provident fund, employee, retirement, corpus, uan, india', () => fin().then((m) => m.epf)),
+  t('nps', 'NPS Calculator', 'National Pension System corpus and pension.', 'calculators', 'Umbrella',
+    'nps, national pension system, pension, annuity, retirement, india', () => fin().then((m) => m.nps)),
+  t('inflation', 'Inflation Calculator', 'Future cost and today\'s value of money.', 'calculators', 'TrendingDown',
+    'inflation, future value, present value, purchasing power, cost of living, real return', () => fin().then((m) => m.inflation)),
+  t('sleep', 'Sleep Cycle', 'Best times to wake up or go to bed.', 'calculators', 'Moon',
+    'sleep, sleep calculator, when to wake up, when to sleep, bedtime calculator, bedtime, wake up, sleep cycle, 90 minutes, rem, alarm', () => fin().then((m) => m.sleep)),
+  t('bodyfat', 'Body Fat', 'Body fat % (US Navy method).', 'calculators', 'PersonStanding',
+    'body fat, fat percentage, navy method, waist, neck, fitness', () => fin().then((m) => m.bodyfat)),
+  t('idealweight', 'Ideal Weight', 'Ideal body weight by several formulas.', 'calculators', 'Weight',
+    'ideal weight, healthy weight, devine, robinson, miller, hamwi, height', () => fin().then((m) => m.idealweight)),
+  t('coords', 'Coordinates Converter', 'Decimal ⇄ DMS and distance between points.', 'calculators', 'MapPin',
+    'coordinates, latitude, longitude, gps, dms, degrees minutes seconds, distance, haversine, bearing', () => fin().then((m) => m.coords)),
+
+  // ---------------------------------------------------------------- Math & Science
+  t('graph', 'Graphing Calculator', 'Plot functions; zoom and pan.', 'math', 'ChartSpline',
+    'graph, plot, function, graphing calculator, y=, curve, desmos, sine wave, parabola', () => math().then((m) => m.graph)),
+  t('equation', 'Equation Solver', 'Linear, quadratic, cubic and simultaneous equations.', 'math', 'Variable',
+    'equation, solve, quadratic, cubic, linear, simultaneous, system of equations, roots, x', () => math().then((m) => m.equation)),
+  t('stats', 'Statistics', 'Mean, median, mode, std dev, regression.', 'math', 'ChartColumn',
+    'statistics, mean, median, mode, average, standard deviation, variance, regression, correlation, quartile', () => math().then((m) => m.stats)),
+  t('matrix', 'Matrix Calculator', 'Add, multiply, invert, determinant.', 'math', 'Grid3x3',
+    'matrix, determinant, inverse, transpose, multiply, linear algebra, rank', () => math().then((m) => m.matrix)),
+  t('fraction', 'Fraction Calculator', 'Exact fraction arithmetic.', 'math', 'Divide',
+    'fraction, numerator, denominator, simplify, mixed number, decimal to fraction', () => math().then((m) => m.fraction)),
+  t('primes', 'Prime / LCM / GCD', 'Prime factors, LCM, GCD, prime check.', 'math', 'Sigma',
+    'prime, factorization, lcm, gcd, hcf, divisors, prime factors, is prime', () => math().then((m) => m.primes)),
+  t('periodic', 'Periodic Table', 'Interactive table of elements.', 'math', 'Atom',
+    'periodic table, elements, chemistry, atomic number, atomic mass, electron configuration', () => math().then((m) => m.periodic)),
 
   // ---------------------------------------------------------------- Text
   t('wordcount', 'Word Counter', 'Words, characters, sentences, reading time.', 'text', 'WholeWord',
@@ -321,6 +385,44 @@ export const TOOLS: Tool[] = [
     'semver, version, range, caret, tilde, npm, compare, bump', () => swMisc().then((m) => m.semver), 'pc'),
   t('glob', 'Glob Tester', 'Test glob patterns against paths.', 'software', 'FolderSearch',
     'glob, pattern, wildcard, gitignore, minimatch, path, match', () => swMisc().then((m) => m.glob), 'pc'),
+  t('graphviz', 'Graphviz (DOT)', 'Render DOT graphs to SVG/PNG.', 'software', 'Share2',
+    'graphviz, dot, graph, diagram, digraph, network, render, svg', () => import('./tools/software/graphviz').then((m) => m.mount), 'pc'),
+  t('python', 'Python Scratchpad', 'Run Python (MicroPython) in the browser.', 'software', 'FileCode',
+    'python, micropython, script, run code, repl, scratchpad, py', () => import('./tools/software/python').then((m) => m.mount), 'pc'),
+  t('totp', 'TOTP / 2FA Codes', 'Generate one-time codes from a 2FA secret.', 'software', 'ShieldEllipsis',
+    'totp, 2fa, otp, one time password, authenticator, mfa, google authenticator, hotp, secret', () => swNet().then((m) => m.totp), 'pc'),
+  t('pwstrength', 'Password Strength', 'Estimate how hard a password is to crack.', 'software', 'ShieldQuestion',
+    'password strength, how strong is my password, password checker, is my password safe, zxcvbn, crack time, entropy, weak password, check password', () => swNet().then((m) => m.pwstrength), 'pc'),
+  t('jsonschema', 'JSON Schema', 'Validate JSON against a schema; infer a schema.', 'software', 'FileCheck',
+    'json schema, validate, validator, draft 2020-12, infer schema, generate schema, ajv', () => swData().then((m) => m.jsonschema), 'pc'),
+  t('bitwise', 'Bitwise Calculator', 'AND, OR, XOR, shifts with a bit view.', 'software', 'ToggleRight',
+    'bitwise, and, or, xor, not, shift, bits, mask, flags, binary', () => swBits().then((m) => m.bitwise), 'pc'),
+  t('ieee754', 'IEEE-754 Inspector', 'How floats and doubles are stored.', 'software', 'Microchip',
+    'ieee 754, float to binary, double to binary, float to hex, float, double, floating point, mantissa, exponent, nan, precision, float32, float64', () => swBits().then((m) => m.ieee754), 'pc'),
+  t('contrast', 'Contrast Checker', 'WCAG colour contrast ratio.', 'software', 'Contrast',
+    'contrast, wcag, accessibility, a11y, color contrast, aa, aaa', () => swWeb().then((m) => m.contrast), 'pc'),
+  t('baseenc', 'Base32 / Base58 / Ascii85', 'Encode and decode binary-to-text formats.', 'software', 'FileDigit',
+    'base32, base58, ascii85, base85, base16, encode, decode, bitcoin address', () => swBits().then((m) => m.baseenc), 'pc'),
+  t('bindecode', 'Protobuf / MsgPack / CBOR', 'Decode binary messages without a schema.', 'software', 'Binary',
+    'protobuf, protocol buffers, msgpack, messagepack, cbor, decode, binary, wire format', () => swBits().then((m) => m.bindecode), 'pc'),
+  t('httpstatus', 'HTTP Status Codes', 'What every HTTP status code means.', 'software', 'Server',
+    'http status, status code, 404, 500, 301, 429, response code, rest', () => swRef().then((m) => m.httpstatus), 'pc'),
+  t('mime', 'MIME Types', 'File extension ⇄ MIME type lookup.', 'software', 'FileType2',
+    'mime type, content type, media type, extension, application/json', () => swRef().then((m) => m.mime), 'pc'),
+  t('ports', 'Port Numbers', 'Well-known TCP/UDP ports.', 'software', 'Cable',
+    'port, ports, tcp, udp, well known ports, 443, 22, 5432, firewall', () => swRef().then((m) => m.ports), 'pc'),
+  t('ascii', 'ASCII Table', 'ASCII codes in dec, hex, oct, binary.', 'software', 'Table2',
+    'ascii, ascii table, character codes, control characters, hex, decimal', () => swRef().then((m) => m.ascii), 'pc'),
+  t('keycode', 'Key Codes', 'Inspect keyboard events (key, code, keyCode).', 'software', 'Command',
+    'keycode, key code, event.key, event.code, keyboard event, javascript', () => swRef().then((m) => m.keycode), 'pc'),
+  t('gradient', 'CSS Gradient', 'Build linear/radial gradients.', 'software', 'Blend',
+    'css gradient, linear gradient, radial gradient, background, colors', () => swWeb().then((m) => m.gradient), 'pc'),
+  t('shadow', 'CSS Box Shadow', 'Design box shadows visually.', 'software', 'SquareDashed',
+    'box shadow, css shadow, drop shadow, elevation', () => swWeb().then((m) => m.shadow), 'pc'),
+  t('svgo', 'SVG Optimizer', 'Minify SVG files.', 'software', 'PenTool',
+    'svg, optimize, minify, svgo, compress svg, clean svg', () => swWeb().then((m) => m.svgo), 'pc'),
+  t('patch', 'Patch Applier', 'Apply a unified diff to text.', 'software', 'FileDiff',
+    'patch, diff, unified diff, apply patch, git diff', () => swMisc().then((m) => m.patch), 'pc'),
 
   // ---------------------------------------------------------------- Codes & Files
   t('qr', 'QR Generator', 'QR codes for links, Wi-Fi, UPI, contacts…', 'codes', 'QrCode',

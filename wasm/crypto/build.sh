@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Builds public/wasm/crypto.wasm = libsodium (stable) + glue.c + hashes.c as a WASI reactor.
+# Builds src/wasm/bin/crypto.wasm = libsodium (stable) + glue.c + hashes.c as a WASI reactor.
 #
 #   ZIG=/path/to/zig wasm/crypto/build.sh
 #
@@ -58,7 +58,7 @@ $ZIG cc --target=wasm32-wasi -mexec-model=reactor -O3 -flto \
   "$HERE/glue.c" "$HERE/hashes.c" "$WORK/prefix/lib/libsodium.a" \
   $EXPORTS -Wl,--strip-all -Wl,-z,stack-size=1048576 \
   -Wl,--max-memory=4294901760 \
-  -o "$ROOT/public/wasm/crypto.wasm"
+  -o "$ROOT/src/wasm/bin/crypto.wasm"
 
-ls -l "$ROOT/public/wasm/crypto.wasm"
-sha256sum "$ROOT/public/wasm/crypto.wasm"
+ls -l "$ROOT/src/wasm/bin/crypto.wasm"
+sha256sum "$ROOT/src/wasm/bin/crypto.wasm"

@@ -1,7 +1,9 @@
 import type { Tool } from './registry';
 
 const norm = (s: string) => s.toLowerCase().normalize('NFKD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9+#.%/ -]+/g, ' ').replace(/\s+/g, ' ').trim();
-const STOP = new Set(['to', 'from', 'on', 'of', 'a', 'an', 'the', 'for', 'my', 'in', 'into', 'with', 'and', 'or', 'how', 'i', 'me', 'want', 'make', 'do', 'online', 'free', 'tool', 'app']);
+const STOP = new Set(['to', 'from', 'on', 'of', 'a', 'an', 'the', 'for', 'my', 'in', 'into', 'with', 'and', 'or', 'how', 'i', 'me', 'want', 'make', 'do', 'online', 'free', 'tool', 'app', 'is', 'it', 'what', 'which', 'can', 'should', 'by']);
+/** Crude stemmer so 'removal'~'remove', 'generator'~'generate', 'photos'~'photo'. */
+const stem = (w: string) => (w.length > 4 ? w.replace(/(ations?|ings?|ors?|ers?|ed|es|s|al|ion|ment)$/, '').replace(/e$/, '') : w);
 const words = (s: string) => s.split(/[\s/-]+/).filter(Boolean);
 
 /** Damerau-Levenshtein distance with early exit (only small distances matter). */
@@ -25,14 +27,15 @@ function dist(a: string, b: string, max: number): number {
   return prev[n];
 }
 
-interface Index { t: Tool; title: string; titleWords: string[]; kws: string[]; kwWords: string[]; desc: string }
+interface Index { t: Tool; title: string; titleWords: string[]; kws: string[]; kwWords: string[]; stems: Set<string>; desc: string }
 const cache = new WeakMap<Tool[], Index[]>();
 function index(tools: Tool[]): Index[] {
   let ix = cache.get(tools);
   if (!ix) {
     ix = tools.map((t) => {
       const title = norm(t.title), kws = t.kw.map(norm);
-      return { t, title, titleWords: words(title), kws, kwWords: [...new Set(kws.flatMap(words))], desc: norm(t.desc) };
+      const kwWords = [...new Set(kws.flatMap(words))], titleWords = words(title);
+      return { t, title, titleWords, kws, kwWords, stems: new Set([...titleWords, ...kwWords].map(stem)), desc: norm(t.desc) };
     });
     cache.set(tools, ix);
   }
@@ -56,6 +59,7 @@ function wordScore(w: string, x: Index): number {
     else if (w.length >= 4 && kw.includes(w)) s = Math.max(s, 20);
   }
   if (s) return s;
+  if (w.length > 4 && x.stems.has(stem(w))) return 50;
   // typo tolerance: 1 edit for words of 4+ letters, 2 edits for 8+
   if (w.length >= 4) {
     const max = w.length >= 8 ? 2 : 1;
