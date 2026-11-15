@@ -26,8 +26,9 @@ STANDING RULE #1 is at the top of `CLAUDE.md`; audit list is in CLAUDE.md §3a.
       `m_strip` (JPEG/PNG/WebP), `m_jpeg_set_dpi`.
 - [x] `src/wasm/metacore.ts`; exif.ts / imgio.ts (setJpegDpi, sniff) use it; `tests/unit/exif.test.mjs` (25 checks
       incl. fuzzing); CLAUDE.md §3a + §5.1c updated. OxiPNG effort now scales with image size (12 MP PNG 31 s → 3 s).
-- [ ] textcore.c: `t_search` (port src/search.ts: Damerau-Levenshtein, stemming, stop words, scoring) and
-      `t_wordfreq` (UTF-8 tokenise + count; also used by Word Counter "top words" and Photo Dictionary).
+- [x] textcore `search.c`: tool search ranking in C (t_search_build/query/free); src/search.ts only normalises;
+      parity with the old TS ranking verified on ~1,800 queries; main.ts awaits `initSearch()`.
+- [ ] textcore `t_wordfreq` (UTF-8 tokenise + count; also used by Word Counter "top words" and Photo Dictionary).
 - [ ] crypto (glue.c): `u_shuffle`/`u_sample` via `randombytes_uniform` (Line Tools shuffle currently uses
       Math.random — fix), everyday `shuffleWith`/rng unique sampling, UUID v4/v7, Sodium header write/parse
       (src/lib/sodium-format.ts).

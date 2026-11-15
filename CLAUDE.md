@@ -518,7 +518,7 @@ whenever a tool that uses one is touched; move rows to the engine table above wh
 | zip.js (4) | own C: deflate (zlib/miniz) + WinZip AES (AES-CTR + HMAC-SHA1 + PBKDF2) in `crypto.wasm` | planned |
 | mediabunny (4) | minimp4 (C, CC0) muxer around WebCodecs | planned |
 | semver (4) | own C semver parser/comparator | planned |
-| own TS parsers: X.509 DER, hex/log viewers, search ranking | port to C (`wasm/`) | EXIF/strip/DPI/sniff: **done** (metacore); search: next |
+| own TS parsers: X.509 DER, hex/log viewers | port to C (`wasm/`) when those tools are built | EXIF/strip/DPI/sniff **done** (metacore); search ranking **done** (textcore `search.c`, identical rankings verified) |
 Staying on tier 2 (official upstream wasm, fine): MuPDF, SQLite, MediaPipe Tasks. Staying JS (no compiled
 equivalent, reasons above): OpenPGP.js, Mermaid, Prettier, sql-formatter, TensorFlow.js.
 

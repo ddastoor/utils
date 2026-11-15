@@ -5,7 +5,21 @@ import wasmUrl from './bin/textcore.wasm?url';
 export type DiffOp = { kind: 'eq' | 'del' | 'ins'; a: number; b: number };
 
 export function bindTextcore(e: any) {
+  const enc = new TextEncoder();
+  const putStr = (str: string) => { const b = enc.encode(str); const p = e.t_malloc(b.length + 1); new Uint8Array(e.memory.buffer, p, b.length).set(b); return [p, b.length] as const; };
   return {
+    /** Build a search index from records [id, title, keywords[], description] (already normalised, ASCII). */
+    searchBuild(recs: Array<[string, string, string[], string]>): number {
+      const clean = (x: string) => x.replace(/[\t\n|]/g, ' ');
+      const [p, n] = putStr(recs.map(([id, t, k, d]) => [clean(id), clean(t), k.map(clean).join('|'), clean(d)].join('\t')).join('\n'));
+      try { return e.t_search_build(p, n); } finally { e.t_free(p); }
+    },
+    /** Ranked record numbers for a normalised query. */
+    searchQuery(index: number, q: string, max = 64): number[] {
+      const [p, n] = putStr(q), o = e.t_malloc(max * 4);
+      try { const k = e.t_search_query(index, p, n, o, max); return Array.from(new Int32Array(e.memory.buffer, o, k)); } finally { e.t_free(p); e.t_free(o); }
+    },
+    searchFree: (index: number) => e.t_search_free(index),
     /** Diff two token sequences (strings compared exactly). */
     diff(A: string[], B: string[], maxD = 0): DiffOp[] | null {
       const ids = new Map<string, number>();

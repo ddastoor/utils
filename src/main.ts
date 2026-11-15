@@ -1,6 +1,6 @@
 import './styles.css';
 import { CATEGORIES, TOOLS, TOOL_BY_ID, type Tool, type CatId } from './registry';
-import { searchTools } from './search';
+import { searchTools, initSearch } from './search';
 import { h, ic, clear, errMsg, toast, type Cleanup } from './ui';
 import { isMobile } from './platform';
 import { favs, isFav, toggleFav, onFavChange } from './favorites';
@@ -210,6 +210,7 @@ onFavChange(() => {
 // ------------------------------------------------------------------ search
 let hits: Tool[] = [];
 let sel = 0;
+const searchReady = initSearch(); // textcore.wasm (search ranking in C) — tiny, loads at start-up
 function renderResults() {
   const q = searchInput.value;
   hits = searchTools(visible, q).slice(0, 12);
@@ -229,11 +230,11 @@ function pick(t: Tool) {
   searchInput.blur();
   location.hash = `#/${t.id}`;
 }
-searchInput.addEventListener('input', () => { sel = 0; renderResults(); });
+searchInput.addEventListener('input', async () => { sel = 0; await searchReady; renderResults(); });
 searchInput.addEventListener('focus', () => { if (searchInput.value) renderResults(); });
 searchInput.addEventListener('blur', () => setTimeout(() => (results.hidden = true), 120));
-searchInput.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') { e.preventDefault(); if (!hits.length) renderResults(); if (hits[sel]) pick(hits[sel]); }
+searchInput.addEventListener('keydown', async (e) => {
+  if (e.key === 'Enter') { e.preventDefault(); await searchReady; if (!hits.length) renderResults(); if (hits[sel]) pick(hits[sel]); }
   else if (e.key === 'ArrowDown') { e.preventDefault(); sel = Math.min(sel + 1, hits.length - 1); renderResults(); }
   else if (e.key === 'ArrowUp') { e.preventDefault(); sel = Math.max(sel - 1, 0); renderResults(); }
   else if (e.key === 'Escape') { searchInput.value = ''; results.hidden = true; searchInput.blur(); }
