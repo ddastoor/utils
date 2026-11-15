@@ -16,7 +16,7 @@ export const mount: Mount = async (root, ctx) => {
   let turns = 0, fh = false, fv = false, straighten = 0;
   const adj: Record<string, number> = {};
   let fmt: Fmt = 'jpeg', quality = 82, mode: 'quality' | 'size' = 'quality', targetKB = 200;
-  let outW = 0, outH = 0, lockRatio = true;
+  let lockRatio = true;
   const canvas = h('canvas', { class: 'ed-canvas' });
   const crop$ = cropBox(canvas);
   const sizeInfo = h('div', { class: 'muted small' });
@@ -40,7 +40,7 @@ export const mount: Mount = async (root, ctx) => {
     });
   };
   const fullDims = () => { if (!orig) return [0, 0]; const t = turns % 2; const W = t ? orig.height : orig.width, H = t ? orig.width : orig.height; const c = crop$.active ? crop$.rect(W, H) : { w: W, h: H }; return [Math.round(c.w), Math.round(c.h)]; };
-  const syncDims = () => { const [W, H] = fullDims(); outW = W; outH = H; wI.value = String(W); hI.value = String(H); };
+  const syncDims = () => { const [W, H] = fullDims(); wI.value = String(W); hI.value = String(H); };
 
   const exportImg = async (): Promise<Img> => {
     if (!orig) throw new Error('Open a photo first.');
@@ -110,10 +110,9 @@ export const mount: Mount = async (root, ctx) => {
     actions(
       button('Save', async () => downloadBlob(await encode(), outName()), { variant: 'primary', icon: 'Download' }),
       ctx.isMobile ? button('Share', async () => shareOrDownload(await encode(), outName()), { icon: 'Share2' }) : null,
-      button('Check size', async () => { await encode(); }, { icon: 'Scale' })),
+      button(ctx.isMobile ? 'Size' : 'Check size', async () => { await encode(); }, { icon: 'Scale', title: 'Check output size' })),
   );
   renderQ();
   root.append(card(null, input$.el), editor);
   return () => { input$.dispose(); cancelAnimationFrame(raf); };
 };
-void ((x: unknown) => x)(stack);
