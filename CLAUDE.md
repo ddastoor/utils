@@ -52,7 +52,7 @@ Wayland) and **mobile browsers** (Android Chrome, iPhone Safari).
 
 **Rules from the owner:**
 - **Two levels of tabs.** Level 1 = **category tabs** (Images, Documents, Security, Media, Calculators,
-  Text & Dev, Codes & Files, Everyday, Device). Level 2 = inside the selected category, **one tab per
+  Text, Software, Codes & Files, Everyday, Device). Level 2 = inside the selected category, **one tab per
   utility**. Never merge two utilities into one utility tab (no sub-tabs inside a utility).
 - PC: two horizontal tab bars above the content (utility bar wraps). Mobile: two sticky, horizontally
   swipeable tab rows at the top (active tab scrolled into view). PC-only utilities are hidden on mobile.
@@ -60,7 +60,7 @@ Wayland) and **mobile browsers** (Android Chrome, iPhone Safari).
 - A search box in the header jumps straight to any utility (Enter = top match).
 Platform is PC + mobile unless marked **PC**. Tab ids are the URL hash (`#/<id>`).
 
-Final list agreed with the owner: **103 tabs — 96 PC + mobile, 7 PC only**.
+Final list agreed with the owner: **131 tabs — 88 PC + mobile, 43 PC only**.
 
 **Images**
 | id | Tab | Platform | Engine |
@@ -113,8 +113,21 @@ URL `#fragment`, never sent to a server) · `hash` Hash / Checksum · `password`
 `timezone` Time Zone Converter · `bmi` BMI · `calories` Calorie (BMR/TDEE) · `duedate` Pregnancy Due Date ·
 `tip` Tip & Bill Splitter · `fuel` Fuel Cost · `gpa` GPA · `base` Number Base Converter · `roman` Roman Numerals
 
-**Text & Dev** (all both): `wordcount` · `case` · `lines` · `replace` · `diff` · `json` · `regex` · `base64` ·
-`urlenc` · `epoch` · `uuid` · `color` · `jwt` · `fancy` · `emoji` · `morse` · `lorem`
+**Text** (all both): `wordcount` Word Counter · `case` Case Converter · `lines` Line Tools · `replace` Find &
+Replace · `diff` Text Diff · `fancy` Fancy Text · `emoji` Emoji & Symbols · `morse` Morse Code · `lorem` Lorem Ipsum
+
+**Software** — owner rule: **every Software tool is PC only.** Moved here from the old "Text & Dev": `json` JSON
+Formatter · `regex` Regex Tester · `base64` Base64 · `urlenc` URL Encoder · `epoch` Epoch Converter · `uuid` UUID
+Generator · `color` Color Converter · `jwt` JWT Decoder. New: `sqlite` SQLite Playground (official SQLite wasm) ·
+`jq` jq Playground (jq C source → wasm) · `yaml` YAML ⇄ JSON ⇄ TOML (js-yaml, smol-toml) · `xml` XML Formatter /
+XPath · `json2types` JSON → Types (TS/Go/Rust/Java/Python) · `jsondiff` JSON Diff · `sqlfmt` SQL Formatter
+(sql-formatter) · `prettier` Code Formatter (Prettier standalone) · `mockdata` Mock Data Generator · `mdtable`
+Markdown Table · `cidr` Subnet / CIDR (IPv4+IPv6) · `chmod` chmod Calculator · `x509` Certificate Decoder (own
+DER parser) · `sshkey` SSH Key Generator (Ed25519, OpenSSH format, libsodium) · `hmac` HMAC Generator · `pwhash`
+Password Hash Tool (Argon2id/bcrypt/PBKDF2) · `apikey` API Key Generator · `curl` cURL Converter · `cron` Cron
+Explainer · `escape` String Escape · `unicode` Unicode Inspector · `hexview` Hex Viewer · `logview` Log Viewer ·
+`mermaid` Mermaid Diagrams · `sla` SLA / Uptime · `transfer` Data Transfer · `semver` Semver Checker · `glob`
+Glob Tester. Left out: API client (CORS/CSP), DNS/WHOIS/ping/port scan (need network), cloud cost calculators.
 
 **Codes & Files** (all both): `qr` QR Generator · `barcode` Barcode Generator · `scan` QR & Barcode Scanner ·
 `zip` Create Zip · `unzip` Extract Archive
@@ -306,6 +319,49 @@ No web API exposes it (Chrome's UA says `X11; Linux` on both) and it is not need
 `chrome://flags/#enable-webrtc-pipewire-capturer`, xdg-desktop-portal + backend installed).
 
 ---
+
+## 3a. Engine policy (owner rule) and engine inventory
+
+**Rule:** for every utility, prefer a WebAssembly engine compiled from open-source **C/C++** (or another
+compiled language) over a JavaScript library. Order of preference:
+1. Our own wasm build from the upstream C/C++ source (source verified by checksum/signature).
+2. The upstream project's **official** wasm build (e.g. SQLite's, Artifex's MuPDF).
+3. A widely used wasm build by a third party.
+4. A JavaScript library — **only when no C/C++/compiled implementation exists** for that job. Record why.
+Simple UI logic (calculators, timers, text tools) is plain TypeScript. Everything is vendored and served
+from this site — **nothing is loaded from the internet at runtime**. Never violate a licence: record every
+third-party component and its licence in §6. Because of AGPL (MuPDF) and GPL (FFmpeg) the repository must
+stay **public** (the source of the deployed site is then available to every user, satisfying both).
+
+| Engine | Language → wasm | Built by | Used by |
+|---|---|---|---|
+| libsodium 1.0.20 + own MD5/SHA-1/SHA-3/CRC-32 + OpenBSD bcrypt | C | **us** (`wasm/crypto`) | sodium, sharelink, hash, passwords, sshkey, hmac, pwhash, apikey, random tools |
+| imgproc (adjustments, resize, filters, matting, warp, doc enhance) | C (own code) | **us** (`wasm/imgproc`) | image tools, scanner, passport, cartoon |
+| jq 1.8.2 (+ oniguruma) | C | **us** (`wasm/jq`) | jq |
+| cmark-gfm (GitHub Flavored Markdown) | C | **us** (`wasm/markdown`) | markdown |
+| libyaml 0.2.5 + toml++ 3 | C / C++ | **us** (`wasm/formats`) | yaml |
+| MuPDF 1.28 | C | Artifex (official `mupdf` npm) | all PDF tools, PDF → EPUB |
+| SQLite 3.54 | C | SQLite project (official `@sqlite.org/sqlite-wasm`) | sqlite |
+| FFmpeg | C | ffmpeg.wasm project | ffmpeg |
+| MozJPEG, libwebp, OxiPNG | C / Rust | jSquash (Squoosh codecs) | image encoders |
+| libheif + libde265 | C++ | libheif-js | heic |
+| Tesseract 5 | C++ | tesseract.js-core | ocr |
+| zxing-cpp | C++ | zxing-wasm | qr, barcode, scan |
+| libarchive | C | libarchive.js | unzip |
+| MediaPipe Tasks (TFLite) | C++ | Google (official) | passport, bgremove, redact |
+| Browser-native C++ (WebCodecs, WebCrypto, Web Speech, MediaRecorder) | — | the browser | video, tts, screencast, pbkdf2 |
+
+JavaScript-only components (no C/C++ equivalent exists for the job):
+| Library | Why JS | Used by |
+|---|---|---|
+| OpenPGP.js 6 (LGPL-3.0) | the audited browser OpenPGP implementation; C alternatives (GnuPG, RNP+Botan) are not built or audited for wasm | pgp |
+| Mermaid (MIT) | Mermaid exists only as JavaScript | mermaid |
+| Prettier standalone (MIT) | no compiled formatter covers JS/TS/CSS/HTML/YAML/Markdown/GraphQL together | prettier |
+| sql-formatter (MIT) | no C/C++ SQL pretty-printer library | sqlfmt |
+| TensorFlow.js (Apache-2.0) | runs the Magenta style-transfer graph on the GPU via WebGL | cartoon (neural) |
+| zip.js (BSD-3) | AES-256 zip *creation*; libarchive's wasm build has no crypto | zip |
+| mediabunny (MPL-2.0) | MP4 muxing around the browser's hardware WebCodecs encoders | video |
+| semver (ISC) | tiny logic library | semver |
 
 ## 4. Architecture
 
