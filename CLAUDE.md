@@ -361,7 +361,18 @@ how common they are in English, **rarest (hardest) first**, leaving out common w
   lacks. Data is sharded by word prefix and served from this site; the phone fetches only the shards it needs.
   Prepared at build time by a script with SHA-256-pinned sources (never fetched from another host at runtime).
   Attribution shown in the tool.
-- Frequency list: **wordfreq** English data (CC-BY-SA 4.0), shipped as a compact table.
+- **Online fallback (owner request):** a word **not found in the bundled dictionary** is looked up online — only
+  then, and only that single word (the photo and the rest of the text never leave the phone). Providers in order:
+  Wikimedia's Wiktionary REST definition endpoint, then the Free Dictionary API (see §3a "Approved data APIs").
+  Rules: lookups run in parallel with a ~5 s timeout each, at most ~25 per photo, results cached in memory for the
+  session only; definitions arrive as HTML snippets and are rendered as **plain text** (parsed with DOMParser,
+  `textContent` only — never `innerHTML`). A word found online is marked "from Wiktionary online" on its card. If
+  neither the local dictionary nor the APIs know the word (OCR misread, a name), it is dropped from the top 20 and
+  the next-rarest word takes its place; such words are listed in a collapsed "Not found" line so nothing is hidden.
+  Offline / API down → a short note, local results still shown. A setting "Look up missing words online" (on by
+  default) lets the owner turn it off.
+- Frequency list: **wordfreq** English data (CC-BY-SA 4.0), shipped as a compact table. Words absent from it count
+  as rarest, so they are the candidates that trigger online lookups.
 - Output: cards "word · part of speech · pronunciation", 1–3 senses each with an example, serif reading font; tap a
   word to see all senses; tap a word in the recognised text to look it up; copy/share the list.
 - Tests: e2e with a real photographed page fixture (known rare words expected in the top 20, "the"/"and" absent);
@@ -473,8 +484,15 @@ JavaScript-only components (no C/C++ equivalent exists for the job):
 | semver (ISC) | tiny logic library | semver |
 
 ### Approved data APIs (connect-src allowlist)
-None yet. Add a host here and to the CSP `connect-src` in `index.html` only when a tool needs live data and the
-owner has accepted that tool. Candidate tools offered to the owner: currency converter (frankfurter.app, ECB rates),
+Add a host here and to the CSP `connect-src` in `index.html` (and the allowlist in `tests/e2e/no-external.e2e.mjs`)
+only when a tool needs live data and the owner has accepted that tool. **Approved:**
+| Host | Used by | What is sent | Why |
+|---|---|---|---|
+| `en.wiktionary.org` (Wikimedia REST: `/api/rest_v1/page/definition/<word>`) | `photodict` | one word | online fallback for words missing from the bundled dictionary (owner request) |
+| `api.dictionaryapi.dev` (Free Dictionary API: `/api/v2/entries/en/<word>`) | `photodict` | one word | second fallback if Wiktionary has no entry or is down |
+Both are free, need no key or account, send CORS headers, set no cookies we read. Hosts go into the CSP when the
+tool ships. e2e tests never hit them: Playwright `page.route` serves recorded responses (the dev sandbox cannot
+reach them anyway). Candidate tools offered to the owner: currency converter (frankfurter.app, ECB rates),
 weather (Open-Meteo), IP/network info, clock-accuracy check (network time).
 
 ## 4. Architecture
