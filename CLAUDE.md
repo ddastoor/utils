@@ -365,6 +365,9 @@ Inputs: two "Copy video URL at current time" links (start/end) **or** one URL + 
    --merge-output-format mp4 URL` with copy button (original quality; needs yt-dlp + ffmpeg locally;
    works in Termux on Android).
 Direct download from a static page is impossible (CORS + YouTube stream protection).
+**Owner-approved (explicitly):** this is the ONLY tool allowed an online dependency, and only to YouTube's embedded
+player (`frame-src https://www.youtube-nocookie.com`; `connect-src` stays `'self'`, so our scripts never contact
+YouTube). The player is driven via postMessage (no YouTube script in our page). Both methods ship.
 
 ### Linux X11 vs Wayland (owner requirement: auto-detect)
 No web API reports the display server and Chrome's UA says `X11; Linux` on both, so `src/linux.ts` detects it:

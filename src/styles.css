@@ -451,3 +451,26 @@ details summary { cursor: pointer; font-weight: 600; color: var(--accent); paddi
 .swatch { flex: 1; height: 96px; border-radius: 12px; border: 1px solid var(--border); }
 .color-picker { width: 64px; height: 64px; border: 0; padding: 0; background: none; cursor: pointer; }
 @media (max-width: 760px) { .case-row { grid-template-columns: 1fr auto; } .case-name { grid-column: 1 / -1; } }
+
+/* ------------------------------------------------------------------ everyday */
+.timer-display { font-size: clamp(44px, 12vw, 88px); font-weight: 700; text-align: center; font-variant-numeric: tabular-nums; letter-spacing: -.02em; padding: 10px 0; }
+.timer-display.big { font-size: clamp(56px, 16vw, 112px); }
+.timer-display.done { color: var(--err); animation: pulse 1s ease-in-out infinite; }
+@keyframes pulse { 50% { opacity: .35; } }
+.center-row { justify-content: center; }
+.laps { display: flex; flex-direction: column; gap: 4px; max-height: 50vh; overflow: auto; }
+.lap { display: grid; grid-template-columns: 1fr auto auto; gap: 16px; padding: 6px 4px; border-bottom: 1px solid var(--border); }
+.phase-label { text-align: center; font-weight: 700; font-size: 18px; text-transform: uppercase; letter-spacing: .06em; }
+.phase-label.work { color: var(--err); } .phase-label.rest { color: var(--ok); } .phase-label.prep { color: var(--warn); }
+.chip-btn { border: 1px solid var(--border); cursor: pointer; min-height: 34px; }
+.dice-row { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; padding: 10px 0; }
+.die { font-size: 64px; line-height: 1; min-width: 64px; text-align: center; font-weight: 700; }
+.die.rolled { animation: roll .35s ease-out; }
+@keyframes roll { from { transform: rotate(-200deg) scale(.6); opacity: .2; } }
+.coin { margin: 10px auto; width: 150px; height: 150px; border-radius: 50%; display: grid; place-items: center; font-size: 26px; font-weight: 800; background: linear-gradient(135deg, #fde68a, #f59e0b); color: #78350f; box-shadow: inset 0 -6px 0 rgb(0 0 0 / 15%); }
+.coin.flip { animation: flip .6s ease-out; }
+@keyframes flip { from { transform: rotateY(720deg) scale(.8); } }
+.rng-out { word-break: break-word; }
+.pick-out { display: flex; flex-direction: column; gap: 6px; font-size: 22px; font-weight: 700; }
+.pick-item { display: flex; gap: 10px; }
+.teams { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
