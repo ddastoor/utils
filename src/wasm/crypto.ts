@@ -1,5 +1,6 @@
 // Typed wrapper around public/wasm/crypto.wasm (our libsodium build + own hashes).
 import { instantiateWasi, memIO, type WasiInstance } from './wasi';
+import wasmUrl from './bin/crypto.wasm?url';
 
 let inst: Promise<Sodium> | null = null;
 export const sodium = () => (inst ||= load());
@@ -20,7 +21,7 @@ export interface Sodium {
 }
 
 async function load(): Promise<Sodium> {
-  const x = await instantiateWasi(new URL(`${import.meta.env.BASE_URL}wasm/crypto.wasm`, location.href).href);
+  const x = await instantiateWasi(wasmUrl);
   const e = x.exports, io = memIO(x);
   if (e.u_init() < 0) throw new Error('libsodium failed to initialise');
   const SB = e.u_ss_statebytes(), AB = e.u_ss_abytes(), TAG_FINAL = e.u_ss_tag_final();
