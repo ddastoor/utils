@@ -3,6 +3,7 @@
 import { imgproc, type Img } from '../wasm/imgproc';
 import { isIOS } from '../platform';
 import { readExif } from './exif';
+import { metacore } from '../wasm/metacore';
 
 let worker: Worker | null = null, seq = 0;
 const pend = new Map<number, { res: (v: any) => void; rej: (e: Error) => void }>();
@@ -31,20 +32,11 @@ export async function encodeToSize(img: Img, fmt: 'jpeg' | 'webp', maxBytes: num
   return { blob: new Blob([r.buf], { type: MIME[fmt] }), quality: r.quality, tooBig: r.tooBig };
 }
 
-const sniff = (b: Uint8Array) => {
-  const s = new TextDecoder().decode(b.subarray(4, 12));
-  if (/ftyp(heic|heix|hevc|hevx|mif1|msf1|heim|heis|avif)/.test(s)) return /avif/.test(s) ? 'avif' : 'heic';
-  if (b[0] === 0xff && b[1] === 0xd8) return 'jpeg';
-  if (b[0] === 0x89 && b[1] === 0x50) return 'png';
-  if (new TextDecoder().decode(b.subarray(8, 12)) === 'WEBP') return 'webp';
-  return 'other';
-};
-
 /** Decode an image file to RGBA, honouring EXIF orientation. */
 export async function loadImg(file: Blob): Promise<Img> {
-  const head = new Uint8Array(await file.slice(0, 64).arrayBuffer());
-  const kind = sniff(head);
-  if (kind === 'heic') {
+  const head = new Uint8Array(await file.slice(0, 64 * 1024).arrayBuffer());
+  const kind = (await metacore()).sniff(head).type; // own C header sniffing
+  if (kind === 'heic' || kind === 'avif') {
     const buf = await file.arrayBuffer();
     return call<Img>({ op: 'decode', buf, kind: 'heic' }, [buf]); // libheif applies the irot/imir transforms
   }
@@ -70,17 +62,9 @@ export async function loadImg(file: Blob): Promise<Img> {
   throw new Error('This image format is not supported by your browser.');
 }
 
-/** Set JFIF pixel density (DPI) in a JPEG — print shops and forms read it. Inserts a JFIF APP0 if missing. */
+/** Set JFIF pixel density (DPI) in a JPEG — print shops and forms read it (metacore.wasm). */
 export async function setJpegDpi(blob: Blob, dpi: number): Promise<Blob> {
-  const b = new Uint8Array(await blob.arrayBuffer());
-  if (b[0] !== 0xff || b[1] !== 0xd8) return blob;
-  if (b[2] === 0xff && b[3] === 0xe0 && String.fromCharCode(...b.subarray(6, 10)) === 'JFIF') {
-    const o = b.slice(); o[13] = 1; o[14] = dpi >> 8; o[15] = dpi & 255; o[16] = dpi >> 8; o[17] = dpi & 255;
-    return new Blob([o], { type: 'image/jpeg' });
-  }
-  const app0 = new Uint8Array([0xff, 0xe0, 0, 16, 0x4a, 0x46, 0x49, 0x46, 0, 1, 2, 1, dpi >> 8, dpi & 255, dpi >> 8, dpi & 255, 0, 0]);
-  const o = new Uint8Array(b.length + app0.length); o.set(b.subarray(0, 2)); o.set(app0, 2); o.set(b.subarray(2), 2 + app0.length);
-  return new Blob([o], { type: 'image/jpeg' });
+  return new Blob([(await metacore()).jpegDpi(new Uint8Array(await blob.arrayBuffer()), dpi) as BlobPart], { type: 'image/jpeg' });
 }
 
 /** Draw an Img into a canvas element (for previews). */

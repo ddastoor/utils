@@ -14,8 +14,7 @@ continues from "Next steps" without asking the owner anything already decided.
 calculators (27), math & science (7), text (9) + json/regex/base64/urlenc/epoch/uuid/color/jwt, codes (qr, barcode,
 scan), archive (zip, unzip), everyday (9), device (11), **Image Editor** (`tests/e2e/image-editor.e2e.mjs`, 28 checks).
 
-**Written, e2e suite still to write:** `heic` (src/tools/heic.ts), `exif` (src/tools/images.ts), `batch`
-(src/tools/batch.ts).
+Also done + own e2e suite: `heic` (11 checks), `exif` (18), `batch` (12, PC only).
 
 **Stubs ("This tool is being built")**: every other tool — see "Queue".
 
@@ -25,9 +24,8 @@ STANDING RULE #1 is at the top of `CLAUDE.md`; audit list is in CLAUDE.md §3a.
       TS loops for flip/rot90/crop/homography/orient removed; unit tests added (45 checks).
 - [x] metacore.c (new module, `wasm/metacore/`, built → `src/wasm/bin/metacore.wasm`): `m_sniff`, `m_exif_json`,
       `m_strip` (JPEG/PNG/WebP), `m_jpeg_set_dpi`.
-- [ ] `src/wasm/metacore.ts` (`bindMetacore(e)` + `metacore()` loader); switch `src/lib/exif.ts` (readExif,
-      stripMetadata) and `src/lib/imgio.ts` (setJpegDpi, sniff) to it; `tests/unit/metacore.test.mjs` on real
-      fixtures (port tests/unit/exif.test.mjs to pass the bound module); add metacore to CLAUDE.md §3a/§5.
+- [x] `src/wasm/metacore.ts`; exif.ts / imgio.ts (setJpegDpi, sniff) use it; `tests/unit/exif.test.mjs` (25 checks
+      incl. fuzzing); CLAUDE.md §3a + §5.1c updated. OxiPNG effort now scales with image size (12 MP PNG 31 s → 3 s).
 - [ ] textcore.c: `t_search` (port src/search.ts: Damerau-Levenshtein, stemming, stop words, scoring) and
       `t_wordfreq` (UTF-8 tokenise + count; also used by Word Counter "top words" and Photo Dictionary).
 - [ ] crypto (glue.c): `u_shuffle`/`u_sample` via `randombytes_uniform` (Line Tools shuffle currently uses
@@ -40,7 +38,7 @@ STANDING RULE #1 is at the top of `CLAUDE.md`; audit list is in CLAUDE.md §3a.
   copying into wasm costs more than the loop.
 
 ## Queue (in order) — each: implement → own e2e suite with real fixtures → screenshot at 390×844 → commit + push
-1. Finish audit above; e2e suites for heic, exif, batch.
+1. Finish audit above (textcore search/wordfreq, crypto shuffle/uuid/header, mathcore workdays/matpow/colour).
 2. Image tools: watermark, caption, collage (`src/tools/canvas-tools.ts`), signature, redact (MediaPipe face
    detector), formphoto (Indian exam presets), scanner (imgproc detect/warp/enhance → PDF), ocr (Tesseract eng+hin),
    passport (36 presets in src/lib/passport-specs.ts, MediaPipe landmarks + segmentation + guided filter, camera,

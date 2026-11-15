@@ -50,3 +50,13 @@ export async function decodeInPage(page, path, points = []) {
     return { width: bmp.width, height: bmp.height, mean: s.map((v) => v / n), px };
   }, { b64, points });
 }
+
+/** Names of the entries in a .zip (central directory). */
+export function zipEntries(path) {
+  const b = readFileSync(path);
+  let e = b.length - 22; while (e >= 0 && b.readUInt32LE(e) !== 0x06054b50) e--;
+  if (e < 0) return null;
+  const n = b.readUInt16LE(e + 10); let o = b.readUInt32LE(e + 16); const names = [];
+  for (let i = 0; i < n; i++) { const nl = b.readUInt16LE(o + 28), xl = b.readUInt16LE(o + 30), cl = b.readUInt16LE(o + 32); names.push(b.toString('utf8', o + 46, o + 46 + nl)); o += 46 + nl + xl + cl; }
+  return names;
+}

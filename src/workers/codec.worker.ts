@@ -25,7 +25,9 @@ async function decodeHeic(buf: ArrayBuffer): Promise<Img> {
 async function encode(img: Img, fmt: 'jpeg' | 'webp' | 'png', quality: number, opts: any = {}): Promise<ArrayBuffer> {
   if (fmt === 'jpeg') return encodeJpeg(asImageData(img), { quality, progressive: true, optimize_coding: true, ...opts });
   if (fmt === 'webp') return encodeWebp(asImageData(img), { quality, method: 4, ...opts });
-  return optimisePng(asImageData(img), { level: opts.level ?? 2, interlace: false });
+  // OxiPNG effort scales with size so a 12 MP photo doesn't take half a minute: level 2 ≤ 2 MP, 1 ≤ 6 MP, else 0.
+  const px = img.width * img.height;
+  return optimisePng(asImageData(img), { level: opts.level ?? (px <= 2e6 ? 2 : px <= 6e6 ? 1 : 0), interlace: false });
 }
 
 self.onmessage = async (ev: MessageEvent<any>) => {

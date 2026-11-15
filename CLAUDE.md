@@ -477,7 +477,8 @@ stay **public** (the source of the deployed site is then available to every user
 | Engine | Language → wasm | Built by | Used by |
 |---|---|---|---|
 | libsodium 1.0.20 + own MD5/SHA-1/SHA-3/CRC-32 + OpenBSD bcrypt | C | **us** (`wasm/crypto`) | sodium, sharelink, hash, passwords, sshkey, hmac, pwhash, apikey, random tools |
-| imgproc (adjustments, resize, filters, matting, warp, doc enhance) | C (own code) | **us** (`wasm/imgproc`) | image tools, scanner, passport, cartoon |
+| imgproc (adjustments, resize, lossless orient/crop, filters, matting, warp + homography, doc enhance) | C (own code) | **us** (`wasm/imgproc`) | image tools, scanner, passport, cartoon |
+| metacore (EXIF → JSON, lossless metadata strip JPEG/PNG/WebP, JPEG DPI, image sniffing) | C (own code) | **us** (`wasm/metacore`) | exif, image loading, passport/formphoto DPI |
 | jq 1.8.2 (+ oniguruma) | C | **us** (`wasm/jq`) | jq |
 | cmark-gfm (GitHub Flavored Markdown) | C | **us** (`wasm/markdown`) | markdown |
 | libyaml 0.2.5 + toml++ 3 | C / C++ | **us** (`wasm/formats`) | yaml |
@@ -517,7 +518,7 @@ whenever a tool that uses one is touched; move rows to the engine table above wh
 | zip.js (4) | own C: deflate (zlib/miniz) + WinZip AES (AES-CTR + HMAC-SHA1 + PBKDF2) in `crypto.wasm` | planned |
 | mediabunny (4) | minimp4 (C, CC0) muxer around WebCodecs | planned |
 | semver (4) | own C semver parser/comparator | planned |
-| own TS parsers: EXIF reader/stripper (`src/lib/exif.ts`), X.509 DER, hex/log viewers, search ranking | port to C (`wasm/`) | EXIF: in progress |
+| own TS parsers: X.509 DER, hex/log viewers, search ranking | port to C (`wasm/`) | EXIF/strip/DPI/sniff: **done** (metacore); search: next |
 Staying on tier 2 (official upstream wasm, fine): MuPDF, SQLite, MediaPipe Tasks. Staying JS (no compiled
 equivalent, reasons above): OpenPGP.js, Mermaid, Prettier, sql-formatter, TensorFlow.js.
 
@@ -607,6 +608,12 @@ detection), arbitrary-length base conversion, Roman numerals, number→words (In
 (EMI, amortisation, SIP, FD/RD, PPF, EPF, NPS, prepayment), health (BMI, BMR, body fat, ideal weight), haversine.
 `wasm/mathcore/build.sh` (exports every `API m_*` function). TS wrapper: `src/wasm/mathcore.ts` (`bindMathcore`
 works in the browser and in Node tests). Tests: `tests/unit/mathcore.test.mjs` (~150 known-answer checks).
+
+### 5.1c metacore → `src/wasm/bin/metacore.wasm`
+Own C (`wasm/metacore/metacore.c`): `m_sniff`, `m_exif_json` (bounds-checked TIFF/IFD walker, depth ≤ 4, ≤ 512 entries),
+`m_strip` (JPEG keeps JFIF + ICC; PNG drops eXIf/tEXt/zTXt/iTXt/tIME; WebP drops EXIF/XMP and fixes VP8X flags + RIFF
+size), `m_jpeg_set_dpi`. TS wrapper `src/wasm/metacore.ts`; display shaping in `src/lib/exif.ts`. Tests:
+`tests/unit/exif.test.mjs` (real files, synthetic WebP, fuzzed/truncated inputs must never trap).
 
 **Rebuild everything we compile ourselves:** `ZIG=/path/to/zig wasm/build-all.sh` (builds each module, then runs
 the unit tests).
