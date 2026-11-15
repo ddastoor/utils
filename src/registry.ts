@@ -371,7 +371,7 @@ export const TOOLS: Tool[] = [
   t('cron', 'Cron Explainer', 'Explain cron expressions and list next runs.', 'software', 'CalendarClock',
     'cron, crontab, schedule, expression, next run, quartz, kubernetes cronjob', () => swMisc().then((m) => m.cron), 'pc'),
   t('escape', 'String Escape', 'Escape/unescape JSON, Java/C, SQL, shell, HTML, regex.', 'software', 'Quote',
-    'escape, unescape, string, json, java, sql, shell, html, regex, quotes', () => swMisc().then((m) => m.escape), 'pc'),
+    'escape, unescape, string, json, java, sql, shell escaping, html, regex, quotes', () => swMisc().then((m) => m.escape), 'pc'),
   t('unicode', 'Unicode Inspector', 'Code points; find invisible and look-alike characters.', 'software', 'Search',
     'unicode, code point, invisible, zero width, homoglyph, utf8, utf16, character, bom, nbsp', () => swMisc().then((m) => m.unicode), 'pc'),
   t('hexview', 'Hex Viewer', 'Hex dump any file; detect file type.', 'software', 'Binary',
