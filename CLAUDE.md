@@ -169,7 +169,14 @@ wasm) · `python` (MicroPython C → wasm) · `totp` · `pwstrength` (zxcvbn) ·
 **Speech to Text** (`stt`, Media, both): whisper.cpp (C/C++, MIT) built by us to wasm + Whisper English
 models (MIT): `ggml-base.en-q5_1` (60 MB, default on phones) and `ggml-small.en-q5_1` (190 MB, default on PC),
 from huggingface.co/ggerganov/whisper.cpp, SHA-256 pinned in `scripts/assets.json`. Record or upload → transcript
-+ .srt/.vtt. Not live dictation (no threads on GitHub Pages). Text-to-Speech remains the on-device Web Speech tool.
++ .srt/.vtt. Not live dictation (no threads on GitHub Pages).
+
+**Text-to-Speech** (`tts`) — owner asked for the best-quality option; decision: **Kokoro-82M** (Apache-2.0,
+`onnx-community/Kokoro-82M-v1.0-ONNX`, q8 model ≈ 90 MB, SHA-256 pinned) on ONNX Runtime Web (C++ → wasm, WebGPU when
+available) via kokoro-js / transformers.js (Apache-2.0) with espeak-ng phonemizer (C → wasm, GPL-3.0) — default
+"Natural voice", ~20 US/UK voices, speed control, WAV download. Second engine "System voice": Web Speech API limited
+to `localService` voices (includes Indian English voices on Windows/Android/iOS). Claude's own app voice was
+considered and rejected: proprietary cloud service (online, needs an account) — violates the hard requirements.
 
 Removed by the owner from batch 3: Spin the Wheel, Tambola/Housie, Secret Santa, Scoreboard.
 
