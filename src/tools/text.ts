@@ -4,6 +4,7 @@
 import { h, card, field, input, textarea, button, segmented, toggle, select, clear, stack, row, note, copy, outputBox, downloadBlob, filePicker, readBytes, slider, type Mount } from '../ui';
 import { textcore, type DiffOp, type bindTextcore } from '../wasm/textcore';
 import { sodium, toB64, fromB64 } from '../wasm/crypto';
+import { mathcore } from '../wasm/mathcore';
 
 const fmt = (n: number) => n.toLocaleString('en-IN');
 
@@ -427,23 +428,10 @@ function hexToRgb(hex: string) { const m = /^#?([0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]
 const rgbToHex = (r: number, g: number, b: number) => '#' + [r, g, b].map((x) => Math.round(clamp(x, 0, 255)).toString(16).padStart(2, '0')).join('');
 function rgbToHsl(r: number, g: number, b: number) { r /= 255; g /= 255; b /= 255; const mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2; let hh = 0, s = 0; if (mx !== mn) { const d = mx - mn; s = l > 0.5 ? d / (2 - mx - mn) : d / (mx + mn); hh = mx === r ? (g - b) / d + (g < b ? 6 : 0) : mx === g ? (b - r) / d + 2 : (r - g) / d + 4; hh *= 60; } return [hh, s * 100, l * 100]; }
 function hslToRgb(hh: number, s: number, l: number) { s /= 100; l /= 100; const k = (n: number) => (n + hh / 30) % 12, a = s * Math.min(l, 1 - l); const f = (n: number) => l - a * Math.max(-1, Math.min(k(n) - 3, 9 - k(n), 1)); return [f(0) * 255, f(8) * 255, f(4) * 255]; }
-const lin = (c: number) => { c /= 255; return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4; };
-const delin = (c: number) => 255 * (c <= 0.0031308 ? 12.92 * c : 1.055 * c ** (1 / 2.4) - 0.055);
-function rgbToOklch(r: number, g: number, b: number) {
-  const [R, G, B] = [lin(r), lin(g), lin(b)];
-  const l = Math.cbrt(0.4122214708 * R + 0.5363325363 * G + 0.0514459929 * B), m = Math.cbrt(0.2119034982 * R + 0.6806995451 * G + 0.1073969566 * B), s = Math.cbrt(0.0883024619 * R + 0.2817188376 * G + 0.6299787005 * B);
-  const L = 0.2104542553 * l + 0.793617785 * m - 0.0040720468 * s, a = 1.9779984951 * l - 2.428592205 * m + 0.4505937099 * s, bb = 0.0259040371 * l + 0.7827717662 * m - 0.808675766 * s;
-  return [L * 100, Math.hypot(a, bb), ((Math.atan2(bb, a) * 180) / Math.PI + 360) % 360];
-}
-function oklchToRgb(L: number, C: number, H: number) {
-  const a = C * Math.cos((H * Math.PI) / 180), b = C * Math.sin((H * Math.PI) / 180), Lr = L / 100;
-  const l = (Lr + 0.3963377774 * a + 0.2158037573 * b) ** 3, m = (Lr - 0.1055613458 * a - 0.0638541728 * b) ** 3, s = (Lr - 0.0894841775 * a - 1.291485548 * b) ** 3;
-  return [delin(4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s), delin(-1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s), delin(-0.0041960863 * l - 0.7034186147 * m + 1.707614701 * s)];
-}
-export const relLum = (r: number, g: number, b: number) => 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
-export const contrastRatio = (a: number[], b: number[]) => { const [x, y] = [relLum(a[0], a[1], a[2]), relLum(b[0], b[1], b[2])].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
-export const colorFns = { hexToRgb, rgbToHex, rgbToHsl, hslToRgb, rgbToOklch, oklchToRgb };
-export const color: Mount = (root) => {
+/** Colour maths runs in mathcore.wasm (own C); hex parsing/formatting is string glue. */
+export const colorFns = { hexToRgb, rgbToHex };
+export const color: Mount = async (root) => {
+  const { rgbToHsl, hslToRgb, rgbToOklch, oklchToRgb, contrast: contrastRatio } = await mathcore();
   let rgb = [79, 70, 229];
   const picker = h('input', { type: 'color', class: 'color-picker' });
   const hex = input({ attrs: { class: 'input mono' } }), rgbI = input({ attrs: { class: 'input mono' } }), hsl = input({ attrs: { class: 'input mono' } }), ok = input({ attrs: { class: 'input mono' } });

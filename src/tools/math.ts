@@ -228,15 +228,15 @@ export const matrix: Mount = async (root) => {
   const sq = (m: Mat) => { if (m.length !== m[0].length) throw new Error('Needs a square matrix.'); return m; };
   root.append(card(null, stack(h('div', { class: 'grid2' }, field('Matrix A (rows on lines)', A), field('Matrix B', B)),
     h('div', { class: 'row' },
-      op('A + B', () => { const a = parseMat(A.value), b = parseMat(B.value); if (a.length !== b.length || a[0].length !== b[0].length) throw new Error('Same size needed.'); return a.map((r, i) => r.map((x, j) => x + b[i][j])); }),
-      op('A − B', () => { const a = parseMat(A.value), b = parseMat(B.value); if (a.length !== b.length || a[0].length !== b[0].length) throw new Error('Same size needed.'); return a.map((r, i) => r.map((x, j) => x - b[i][j])); }),
+      op('A + B', () => m.matadd(parseMat(A.value), parseMat(B.value), 1)),
+      op('A − B', () => m.matadd(parseMat(A.value), parseMat(B.value), -1)),
       op('A × B', () => mul(parseMat(A.value), parseMat(B.value))),
       op('det(A)', () => fmtNum(m.det(sq(parseMat(A.value))))),
       op('A⁻¹', () => { const r = m.inverse(sq(parseMat(A.value))); if (!r) throw new Error('Matrix is singular (no inverse).'); return r; }),
-      op('Aᵀ', () => { const a = parseMat(A.value); return a[0].map((_, j) => a.map((r) => r[j])); }),
+      op('Aᵀ', () => m.transpose(parseMat(A.value))),
       op('rank(A)', () => String(m.rank(parseMat(A.value)))),
-      op('trace(A)', () => fmtNum(sq(parseMat(A.value)).reduce((s, r, i) => s + r[i], 0))),
-      op('Aⁿ', () => { const a = sq(parseMat(A.value)); const n = parseInt(pw.value); if (!(n >= 1 && n <= 50)) throw new Error('n between 1 and 50'); let r = a; for (let i = 1; i < n; i++) r = mul(r, a); return r; }),
+      op('trace(A)', () => fmtNum(m.trace(sq(parseMat(A.value))))),
+      op('Aⁿ', () => { const a = sq(parseMat(A.value)); const n = parseInt(pw.value); if (!(n >= 0 && n <= 1000)) throw new Error('n between 0 and 1000'); return m.matpow(a, n); }),
       h('span', { class: 'muted small' }, 'n ='), pw))),
     card('Result', out, button('Copy', () => copy(out.textContent || ''), { small: true, icon: 'Copy' })));
 };

@@ -97,4 +97,22 @@ export default async (t, { load, wasm }) => {
   t.near(m.bodyfat(true, 175, 38, 85, 0), 16.9, 0.2, 'body fat navy');
   t.near(m.idealWeight(true, 170).devine, 65.98, 0.05, 'Devine');
   const hv = m.haversine(28.6139, 77.209, 19.076, 72.8777); t.near(hv.km, 1148, 3, 'Delhi→Mumbai km');
+  // matrices (C): add/sub, transpose, trace, power by squaring vs naive products
+  const A = [[1, 2], [3, 4]], B = [[5, 6], [7, 8]];
+  t.eq(m.matadd(A, B), [[6, 8], [10, 12]], 'A + B'); t.eq(m.matadd(A, B, -1), [[-4, -4], [-4, -4]], 'A − B');
+  t.throws(() => m.matadd(A, [[1, 2, 3]]), 'size mismatch rejected');
+  t.eq(m.transpose([[1, 2, 3], [4, 5, 6]]), [[1, 4], [2, 5], [3, 6]], 'transpose 2×3');
+  t.eq(m.trace([[2, 9, 9], [9, 3, 9], [9, 9, 4]]), 9, 'trace');
+  t.eq(m.matpow(A, 0), [[1, 0], [0, 1]], 'A⁰ = I'); t.eq(m.matpow(A, 1), A, 'A¹ = A');
+  let naive = A; for (let i = 1; i < 7; i++) naive = m.matmul(naive, A);
+  t.eq(m.matpow(A, 7), naive, 'A⁷ by squaring = repeated product');
+  t.eq(m.matpow([[1, 1], [1, 0]], 30)[0][1], 832040, 'Fibonacci F(30) via [[1,1],[1,0]]³⁰');
+  // weekdays (closed form) vs brute force over many ranges incl. negative day numbers (before 1970)
+  const brute = (a, b) => { let n = 0; for (let d = a; d <= b; d++) { const g = new Date(d * 86400000).getUTCDay(); if (g && g !== 6) n++; } return n; };
+  let wdOk = true, seed = 3;
+  for (let i = 0; i < 400; i++) { seed = (seed * 48271) % 2147483647; const a = (seed % 40000) - 20000, len = (seed >> 7) % 900 - 5; if (m.weekdays(a, a + len) !== brute(a, a + len)) { wdOk = false; t.ok(false, `weekdays(${a}, ${a + len})`); break; } }
+  t.ok(wdOk, 'weekdays closed form = brute force (400 random ranges, ±55 years)');
+  const day = (s) => Date.UTC(...s.split('-').map((x, i) => +x - (i === 1 ? 1 : 0))) / 86400000;
+  t.eq(m.weekdays(day('2026-01-01'), day('2026-12-31')), 261, '2026 has 261 weekdays');
+  t.eq(m.weekdays(day('2026-11-14'), day('2026-11-15')), 0, 'a weekend has no weekdays');
 };

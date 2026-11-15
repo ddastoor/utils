@@ -51,6 +51,32 @@ export function bindMathcore(e: any) {
       const n = A.length;
       return withF64(n * n, (pa) => withF64(n * n, (po) => (e.m_inverse(pa, n, po) ? Array.from({ length: n }, (_, r) => f64(po + r * n * 8, n)) : null)), A.flat());
     },
+    /** A + sign·B (same shape). */
+    matadd(A: number[][], B: number[][], sign = 1): number[][] {
+      const r = A.length, c = A[0].length;
+      if (B.length !== r || B[0].length !== c) throw new Error('Same size needed.');
+      return withF64(r * c, (pa) => withF64(r * c, (pb) => withF64(r * c, (po) => { e.m_matadd(pa, pb, r * c, sign, po); return Array.from({ length: r }, (_, i) => f64(po + i * c * 8, c)); }), B.flat()), A.flat());
+    },
+    transpose(A: number[][]): number[][] {
+      const r = A.length, c = A[0].length;
+      return withF64(r * c, (pa) => withF64(r * c, (po) => { e.m_transpose(pa, r, c, po); return Array.from({ length: c }, (_, i) => f64(po + i * r * 8, r)); }), A.flat());
+    },
+    trace(A: number[][]): number { const n = A.length; return withF64(n * n, (pa) => e.m_trace(pa, n), A.flat()); },
+    /** A^p (square A, 0 ≤ p ≤ 1e6) by repeated squaring. */
+    matpow(A: number[][], p: number): number[][] {
+      const n = A.length;
+      return withF64(n * n, (pa) => withF64(n * n, (po) => { e.m_matpow(pa, n, p, po); return Array.from({ length: n }, (_, i) => f64(po + i * n * 8, n)); }), A.flat());
+    },
+    /** Mon–Fri days in the inclusive range [a, b] of day numbers (days since 1970-01-01). */
+    weekdays: (a: number, b: number) => e.m_weekdays(a, b) as number,
+    /** Colour conversions (sRGB 0–255, HSL deg/%/%, OKLCH %/C/deg). */
+    rgbToHsl: (r: number, g: number, b: number) => withF64(3, (o) => { e.m_color(0, r, g, b, o); return f64(o, 3); }),
+    hslToRgb: (h: number, s: number, l: number) => withF64(3, (o) => { e.m_color(1, h, s, l, o); return f64(o, 3); }),
+    rgbToOklch: (r: number, g: number, b: number) => withF64(3, (o) => { e.m_color(2, r, g, b, o); return f64(o, 3); }),
+    oklchToRgb: (L: number, C: number, H: number) => withF64(3, (o) => { e.m_color(3, L, C, H, o); return f64(o, 3); }),
+    relLum: (r: number, g: number, b: number) => withF64(1, (o) => { e.m_color(4, r, g, b, o); return f64(o, 1)[0]; }),
+    /** WCAG 2 contrast ratio. */
+    contrast: (a: number[], b: number[]) => e.m_contrast(a[0], a[1], a[2], b[0], b[1], b[2]) as number,
     matmul(A: number[][], B: number[][]): number[][] {
       const r1 = A.length, c1 = A[0].length, c2 = B[0].length;
       if (B.length !== c1) throw new Error('Columns of A must equal rows of B.');

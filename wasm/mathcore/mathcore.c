@@ -774,3 +774,84 @@ API void m_haversine(double lat1, double lon1, double lat2, double lon2, double 
     double y = sin(dLon) * cos(lat2 * d), x = cos(lat1 * d) * sin(lat2 * d) - sin(lat1 * d) * cos(lat2 * d) * cos(dLon);
     out[1] = fmod(atan2(y, x) / d + 360, 360);
 }
+
+/* ======================================================================== matrices (more) */
+/* out = A + sign·B (same shape) */
+API void m_matadd(const double *A, const double *B, int n, double sign, double *out) { for (int i = 0; i < n; i++) out[i] = A[i] + sign * B[i]; }
+API void m_transpose(const double *A, int rows, int cols, double *out) { for (int r = 0; r < rows; r++) for (int c = 0; c < cols; c++) out[c * rows + r] = A[r * cols + c]; }
+API double m_trace(const double *A, int n) { double s = 0; for (int i = 0; i < n; i++) s += A[i * n + i]; return s; }
+/* A^p for square A (p ≥ 0) by repeated squaring. */
+API void m_matpow(const double *A, int n, int p, double *out) {
+    size_t sz = sizeof(double) * n * n;
+    double *base = malloc(sz), *tmp = malloc(sz);
+    memcpy(base, A, sz);
+    for (int i = 0; i < n * n; i++) out[i] = (i / n == i % n) ? 1 : 0;
+    while (p > 0) {
+        if (p & 1) { m_matmul(out, n, n, base, n, tmp); memcpy(out, tmp, sz); }
+        p >>= 1;
+        if (p) { m_matmul(base, n, n, base, n, tmp); memcpy(base, tmp, sz); }
+    }
+    free(base); free(tmp);
+}
+
+/* ======================================================================== calendar */
+/* Mon–Fri days in the inclusive day range [a, b] (days since 1970-01-01, which was a Thursday). Closed form. */
+static int64_t wd_before(int64_t d) { /* weekdays in [0, d) relative to epoch, d may be negative */
+    int64_t w = d >= 0 ? d / 7 : -((-d + 6) / 7), r = d - w * 7; /* 0 ≤ r < 7 */
+    int64_t n = w * 5;
+    for (int64_t k = 0; k < r; k++) { int dow = (int)((k + 4) % 7); if (dow != 0 && dow != 6) n++; }
+    return n;
+}
+API double m_weekdays(double a, double b) {
+    int64_t lo = (int64_t)a, hi = (int64_t)b;
+    if (hi < lo) return 0;
+    return (double)(wd_before(hi + 1) - wd_before(lo));
+}
+
+/* ======================================================================== colour */
+static double lin(double c) { c /= 255; return c <= 0.04045 ? c / 12.92 : pow((c + 0.055) / 1.055, 2.4); }
+static double delin(double c) { return 255 * (c <= 0.0031308 ? 12.92 * c : 1.055 * pow(c, 1 / 2.4) - 0.055); }
+/* op 0 RGB→HSL, 1 HSL→RGB, 2 RGB→OKLCH (L in %, C, H°), 3 OKLCH→RGB, 4 relative luminance (WCAG) → out[0]. */
+API void m_color(int op, double x, double y, double z, double *out) {
+    if (op == 0) {
+        double r = x / 255, g = y / 255, b = z / 255, mx = fmax(r, fmax(g, b)), mn = fmin(r, fmin(g, b)), l = (mx + mn) / 2, h = 0, s = 0;
+        if (mx != mn) {
+            double d = mx - mn;
+            s = l > 0.5 ? d / (2 - mx - mn) : d / (mx + mn);
+            h = mx == r ? (g - b) / d + (g < b ? 6 : 0) : mx == g ? (b - r) / d + 2 : (r - g) / d + 4;
+            h *= 60;
+        }
+        out[0] = h; out[1] = s * 100; out[2] = l * 100;
+    } else if (op == 1) {
+        double h = x, s = y / 100, l = z / 100, a = s * fmin(l, 1 - l);
+        for (int i = 0; i < 3; i++) {
+            int n = i == 0 ? 0 : i == 1 ? 8 : 4;
+            double k = fmod(n + h / 30, 12);
+            if (k < 0) k += 12;
+            out[i] = (l - a * fmax(-1, fmin(fmin(k - 3, 9 - k), 1))) * 255;
+        }
+    } else if (op == 2) {
+        double R = lin(x), G = lin(y), B = lin(z);
+        double l = cbrt(0.4122214708 * R + 0.5363325363 * G + 0.0514459929 * B), m = cbrt(0.2119034982 * R + 0.6806995451 * G + 0.1073969566 * B),
+               s = cbrt(0.0883024619 * R + 0.2817188376 * G + 0.6299787005 * B);
+        double L = 0.2104542553 * l + 0.793617785 * m - 0.0040720468 * s, a = 1.9779984951 * l - 2.428592205 * m + 0.4505937099 * s,
+               bb = 0.0259040371 * l + 0.7827717662 * m - 0.808675766 * s;
+        out[0] = L * 100; out[1] = hypot(a, bb); out[2] = fmod(atan2(bb, a) * 180 / M_PI + 360, 360);
+    } else if (op == 3) {
+        double a = y * cos(z * M_PI / 180), b = y * sin(z * M_PI / 180), Lr = x / 100;
+        double l = pow(Lr + 0.3963377774 * a + 0.2158037573 * b, 3), m = pow(Lr - 0.1055613458 * a - 0.0638541728 * b, 3), s = pow(Lr - 0.0894841775 * a - 1.291485548 * b, 3);
+        out[0] = delin(4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s);
+        out[1] = delin(-1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s);
+        out[2] = delin(-0.0041960863 * l - 0.7034186147 * m + 1.707614701 * s);
+    } else if (op == 4) {
+        out[0] = 0.2126 * lin(x) + 0.7152 * lin(y) + 0.0722 * lin(z);
+    }
+
+}
+/* WCAG 2 contrast ratio between two sRGB colours (1..21). */
+API double m_contrast(double r1, double g1, double b1, double r2, double g2, double b2) {
+    double a[1], b[1];
+    m_color(4, r1, g1, b1, a); m_color(4, r2, g2, b2, b);
+    double hi = fmax(a[0], b[0]), lo = fmin(a[0], b[0]);
+    return (hi + 0.05) / (lo + 0.05);
+}

@@ -65,7 +65,8 @@ function ymd(a: Date, b: Date) {
   if (m < 0) { y--; m += 12; }
   return { y, m, d };
 }
-export const dates: Mount = (root) => {
+export const dates: Mount = async (root) => {
+  const mc = await mathcore();
   let mode = 'diff';
   const body = h('div', { class: 'stack' });
   const render = () => {
@@ -79,7 +80,8 @@ export const dates: Mount = (root) => {
       const a = parseD(v.a), b = parseD(v.b);
       const days = Math.round(Math.abs(b.getTime() - a.getTime()) / DAY) + (v.incl === 'yes' ? 1 : 0);
       const { y, m, d } = ymd(a, b);
-      let wd = 0; for (let t = Math.min(a.getTime(), b.getTime()); t <= Math.max(a.getTime(), b.getTime()) - (v.incl === 'yes' ? 0 : DAY); t += DAY) { const g = new Date(t).getUTCDay(); if (g && g !== 6) wd++; }
+      const d0 = Math.round(Math.min(a.getTime(), b.getTime()) / DAY), d1 = Math.round(Math.max(a.getTime(), b.getTime()) / DAY) - (v.incl === 'yes' ? 0 : 1);
+      const wd = mc.weekdays(d0, d1); // closed form in mathcore.wasm
       return { big: [['Days', fmtN(days, 0)], ['Years, months, days', `${y}y ${m}m ${d}d`]], rows: [['Weeks', `${Math.floor(days / 7)} weeks ${days % 7} days`], ['Weekdays (Mon–Fri)', fmtN(wd, 0)], ['Hours', fmtN(days * 24, 0)], ['Minutes', fmtN(days * 1440, 0)]] };
     });
     else if (mode === 'add') calcForm(body, [

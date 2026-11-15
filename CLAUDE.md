@@ -519,7 +519,15 @@ whenever a tool that uses one is touched; move rows to the engine table above wh
 | zip.js (4) | own C: deflate (zlib/miniz) + WinZip AES (AES-CTR + HMAC-SHA1 + PBKDF2) in `crypto.wasm` | planned |
 | mediabunny (4) | minimp4 (C, CC0) muxer around WebCodecs | planned |
 | semver (4) | own C semver parser/comparator | planned |
-| own TS parsers: X.509 DER, hex/log viewers | port to C (`wasm/`) when those tools are built | EXIF/strip/DPI/sniff **done** (metacore); search ranking **done** (textcore `search.c`, identical rankings verified) |
+| own TS parsers for future tools: X.509 DER, hex/log viewers | write them in C from the start | EXIF/strip/DPI/sniff **done** (metacore); search ranking **done** (textcore `search.c`, identical rankings verified) |
+**Audit of our own TypeScript (done Nov 2026, owner request "convert everything you can"):** moved to C — image
+geometry (orient/crop/homography → imgproc), EXIF/strip/DPI/sniff (→ metacore), search ranking + word frequency
+(→ textcore), shuffles/sampling/UUIDs/USODIUM1 header (→ crypto), matrix add/sub/transpose/trace/power, working
+days, colour spaces + WCAG contrast (→ mathcore). **Deliberately left in TypeScript** (record new cases here):
+browser-native engines that are already compiled C++ (JSON.parse, RegExp, Intl.Segmenter/Collator/DateTimeFormat,
+String case mapping, canvas, WebCrypto, Date); string formatting/parsing of user input (hex colour, matrix text,
+dates); per-animation-frame loops over ≤ 4k samples (audio meter RMS/peak, waveform and graph grid drawing) where
+copying into wasm costs more than the loop; Damerau-Levenshtein etc. are all in C now.
 Staying on tier 2 (official upstream wasm, fine): MuPDF, SQLite, MediaPipe Tasks. Staying JS (no compiled
 equivalent, reasons above): OpenPGP.js, Mermaid, Prettier, sql-formatter, TensorFlow.js.
 
