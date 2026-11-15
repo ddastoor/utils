@@ -1,5 +1,6 @@
 // Small shared helpers for image tools: input widget (pick/drop/paste/camera), flips, 90° rotations, crop.
-import { h, filePicker, toast } from '../ui';
+import { h, filePicker, toast, button, downloadBlob, shareOrDownload, fmtBytes } from '../ui';
+import { zipFiles } from './zip';
 import type { Img } from '../wasm/imgproc';
 import { loadImg } from './imgio';
 
@@ -20,36 +21,6 @@ export function imageInput(onImage: (img: Img, file: File) => void, opts: { labe
   };
   addEventListener('paste', onPaste);
   return { el: h('div', { class: 'stack' }, picker, busy), dispose: () => removeEventListener('paste', onPaste) };
-}
-
-export function flipH(img: Img): Img {
-  const { width: w, height: hh } = img, src = new Uint32Array(img.data.buffer, img.data.byteOffset, w * hh), out = new Uint32Array(w * hh);
-  for (let y = 0; y < hh; y++) for (let x = 0; x < w; x++) out[y * w + x] = src[y * w + (w - 1 - x)];
-  return { data: new Uint8ClampedArray(out.buffer), width: w, height: hh };
-}
-export function flipV(img: Img): Img {
-  const { width: w, height: hh } = img, src = new Uint32Array(img.data.buffer, img.data.byteOffset, w * hh), out = new Uint32Array(w * hh);
-  for (let y = 0; y < hh; y++) out.set(src.subarray((hh - 1 - y) * w, (hh - y) * w), y * w);
-  return { data: new Uint8ClampedArray(out.buffer), width: w, height: hh };
-}
-/** Exact 90° rotation (k quarter turns clockwise). */
-export function rot90(img: Img, k: number): Img {
-  k = ((k % 4) + 4) % 4;
-  if (!k) return img;
-  const { width: w, height: hh } = img, src = new Uint32Array(img.data.buffer, img.data.byteOffset, w * hh);
-  const W = k % 2 ? hh : w, H = k % 2 ? w : hh, out = new Uint32Array(W * H);
-  for (let y = 0; y < hh; y++) for (let x = 0; x < w; x++) {
-    const v = src[y * w + x];
-    if (k === 1) out[x * W + (hh - 1 - y)] = v; else if (k === 2) out[(hh - 1 - y) * W + (w - 1 - x)] = v; else out[(w - 1 - x) * W + y] = v;
-  }
-  return { data: new Uint8ClampedArray(out.buffer), width: W, height: H };
-}
-export function crop(img: Img, x: number, y: number, w: number, hh: number): Img {
-  x = Math.max(0, Math.round(x)); y = Math.max(0, Math.round(y));
-  w = Math.max(1, Math.min(img.width - x, Math.round(w))); hh = Math.max(1, Math.min(img.height - y, Math.round(hh)));
-  const out = new Uint8ClampedArray(w * hh * 4);
-  for (let r = 0; r < hh; r++) out.set(img.data.subarray(((y + r) * img.width + x) * 4, ((y + r) * img.width + x + w) * 4), r * w * 4);
-  return { data: out, width: w, height: hh };
 }
 
 /** Interactive crop box over a canvas. Returns crop rect in canvas pixel units. aspect = w/h or 0 for free. */
@@ -97,4 +68,35 @@ export function cropBox(canvas: HTMLCanvasElement, onChange?: () => void) {
     rect(W: number, H: number) { return { x: r.x * W, y: r.y * H, w: r.w * W, h: r.h * H }; },
     get active() { return enabled && (r.w < 0.999 || r.h < 0.999); },
   };
+}
+
+/** A list of produced files (thumbnail, name, size, per-file download/share) + "Download all (.zip)". */
+export function resultList(opts: { zipName: () => string; isMobile?: boolean }) {
+  const items: Array<{ name: string; blob: Blob; url: string }> = [];
+  const listEl = h('div', { class: 'result-list' });
+  const allBtn = h('div', { class: 'row' });
+  const el = h('div', { class: 'stack' }, listEl, allBtn);
+  const renderAll = () => {
+    allBtn.replaceChildren(...(items.length > 1 ? [button(`Download all (${items.length}) as .zip`, async () => downloadBlob(await zipFiles(items), opts.zipName()), { icon: 'FolderArchive', variant: 'primary' })] : []));
+  };
+  return {
+    el,
+    add(name: string, blob: Blob, note = '') {
+      const url = URL.createObjectURL(blob);
+      items.push({ name, blob, url });
+      listEl.append(h('div', { class: 'result-row' },
+        blob.type.startsWith('image/') ? h('img', { src: url, alt: '', class: 'result-thumb', loading: 'lazy' }) : null,
+        h('div', { class: 'result-meta' }, h('div', { class: 'file-name' }, name), h('div', { class: 'muted small' }, `${fmtBytes(blob.size)}${note ? ' · ' + note : ''}`)),
+        button('', () => (opts.isMobile ? shareOrDownload(blob, name) : downloadBlob(blob, name)), { icon: opts.isMobile ? 'Share2' : 'Download', small: true, title: `Save ${name}` })));
+      renderAll();
+    },
+    clear() { for (const i of items) URL.revokeObjectURL(i.url); items.length = 0; listEl.replaceChildren(); allBtn.replaceChildren(); },
+    get items() { return items; },
+  };
+}
+
+/** Pixel dimensions without a full decode where the browser can (falls back to decoding). */
+export async function imageInfoOf(file: Blob): Promise<{ width: number; height: number } | null> {
+  try { const b = await createImageBitmap(file, { imageOrientation: 'from-image' } as any); const r = { width: b.width, height: b.height }; b.close(); return r; }
+  catch { try { const i = await loadImg(file); return { width: i.width, height: i.height }; } catch { return null; } }
 }

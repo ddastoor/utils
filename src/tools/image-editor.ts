@@ -3,7 +3,7 @@
 import { h, card, field, input, button, segmented, toggle, slider, clear, stack, note, actions, fmtBytes, baseName, downloadBlob, shareOrDownload, type Mount } from '../ui';
 import { imgprocDirect, imgproc, type Img, type Adjust } from '../wasm/imgproc';
 import { encodeImg, encodeToSize, previewOf, paint, EXT, type Fmt } from '../lib/imgio';
-import { imageInput, flipH, flipV, rot90, crop, cropBox } from '../lib/imgtools';
+import { imageInput, cropBox } from '../lib/imgtools';
 
 const ADJ: Array<[keyof Adjust | 'sharpen', string, number, number, number]> = [
   ['exposure', 'Exposure', -2, 2, 0.05], ['bright', 'Brightness', -1, 1, 0.01], ['contrast', 'Contrast', -1, 1, 0.01], ['highlights', 'Highlights', -1, 1, 0.01], ['shadows', 'Shadows', -1, 1, 0.01],
@@ -23,8 +23,10 @@ export const mount: Mount = async (root, ctx) => {
   const editor = h('div', { class: 'stack', hidden: true });
   const wI = input({ type: 'number', min: 1 }), hI = input({ type: 'number', min: 1 });
 
-  /** geometric pipeline (no crop) on any image */
-  const geo = (img: Img) => { let r = rot90(img, turns); if (fh) r = flipH(r); if (fv) r = flipV(r); return r; };
+  /** quarter turns + flips as EXIF-style orientation codes, applied losslessly in imgproc.wasm */
+  const ROT = [1, 6, 3, 8];
+  const geoOps = () => [ROT[turns], fh ? 2 : 1, fv ? 4 : 1].filter((o) => o !== 1);
+  const geo = (img: Img) => geoOps().reduce((r, o) => ip.orient(r, o), img);
   let base: Img | null = null; // preview-size image after geometry
   const rebuildBase = () => { if (!orig) return; base = geo(previewOf(orig, ctx.isMobile ? 1200 : 1600)); render(); };
   let raf = 0;
@@ -44,8 +46,9 @@ export const mount: Mount = async (root, ctx) => {
 
   const exportImg = async (): Promise<Img> => {
     if (!orig) throw new Error('Open a photo first.');
-    let img = geo(orig);
-    if (crop$.active) { const c = crop$.rect(img.width, img.height); img = crop(img, c.x, c.y, c.w, c.h); }
+    let img = orig;
+    for (const o of geoOps()) img = await imgproc('orient', img, o);
+    if (crop$.active) { const c = crop$.rect(img.width, img.height); img = await imgproc('crop', img, c.x, c.y, c.w, c.h); }
     if (straighten) img = await imgproc('rotate', img, straighten, img.width, img.height, 0);
     const W = +wI.value || img.width, H = +hI.value || img.height;
     if (W !== img.width || H !== img.height) img = await imgproc('resize', img, W, H);

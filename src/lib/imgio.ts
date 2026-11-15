@@ -1,6 +1,6 @@
 // Image input/output: decode any photo (incl. HEIC, EXIF orientation, very large images), encode with
 // MozJPEG / WebP / OxiPNG in a worker, target-size search, JPEG DPI metadata.
-import type { Img } from '../wasm/imgproc';
+import { imgproc, type Img } from '../wasm/imgproc';
 import { isIOS } from '../platform';
 import { readExif } from './exif';
 
@@ -65,22 +65,9 @@ export async function loadImg(file: Blob): Promise<Img> {
     const buf = await file.arrayBuffer();
     const orientation = kind === 'jpeg' ? (await readExif(file)).orientation || 1 : 1;
     const img = await call<Img>({ op: 'decode', buf, kind }, [buf]);
-    return orientation === 1 ? img : orient(img, orientation);
+    return orientation === 1 ? img : imgproc('orient', img, orientation); // lossless transform in imgproc.wasm
   }
   throw new Error('This image format is not supported by your browser.');
-}
-
-/** Apply an EXIF orientation (2–8) in JS — only used on the rare wasm-decode path. */
-async function orient(img: Img, o: number): Promise<Img> {
-  const { width: w, height: h, data } = img;
-  const swap = o >= 5;
-  const W = swap ? h : w, H = swap ? w : h, out = new Uint8ClampedArray(W * H * 4);
-  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
-    let X = x, Y = y;
-    switch (o) { case 2: X = w - 1 - x; break; case 3: X = w - 1 - x; Y = h - 1 - y; break; case 4: Y = h - 1 - y; break; case 5: X = y; Y = x; break; case 6: X = h - 1 - y; Y = x; break; case 7: X = h - 1 - y; Y = w - 1 - x; break; case 8: X = y; Y = w - 1 - x; break; }
-    out.set(data.subarray((y * w + x) * 4, (y * w + x) * 4 + 4), (Y * W + X) * 4);
-  }
-  return { data: out, width: W, height: H };
 }
 
 /** Set JFIF pixel density (DPI) in a JPEG — print shops and forms read it. Inserts a JFIF APP0 if missing. */

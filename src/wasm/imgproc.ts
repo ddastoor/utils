@@ -25,6 +25,14 @@ export function bindImgproc(e: any) {
     grayscale: (img: Img) => inplace(img, (p) => e.p_grayscale(p, n(img))),
     invert: (img: Img) => inplace(img, (p) => e.p_invert(p, n(img))),
     resize: (img: Img, w: number, h: number) => into(img, Math.max(1, Math.round(w)), Math.max(1, Math.round(h)), (s, d) => e.p_resize(s, img.width, img.height, d, Math.max(1, Math.round(w)), Math.max(1, Math.round(h)))),
+    /** Lossless EXIF-style orientation transform (1–8): 2 flip H, 3 180°, 4 flip V, 5 transpose, 6 90° CW, 7 transverse, 8 90° CCW. */
+    orient: (img: Img, o: number): Img => (o >= 2 && o <= 8 ? into(img, o >= 5 ? img.height : img.width, o >= 5 ? img.width : img.height, (s, d) => e.p_orient(s, img.width, img.height, d, o)) : img),
+    /** Exact pixel crop (clamped to the image). */
+    crop(img: Img, x: number, y: number, w: number, h: number): Img {
+      x = Math.min(img.width - 1, Math.max(0, Math.round(x))); y = Math.min(img.height - 1, Math.max(0, Math.round(y)));
+      w = Math.max(1, Math.min(img.width - x, Math.round(w))); h = Math.max(1, Math.min(img.height - y, Math.round(h)));
+      return into(img, w, h, (s, d) => e.p_crop(s, img.width, img.height, d, x, y, w, h));
+    },
     blur: (img: Img, sigma: number) => inplace(img, (p) => e.p_blur(p, img.width, img.height, sigma)),
     sharpen: (img: Img, amount: number, sigma = 1.2) => inplace(img, (p) => e.p_sharpen(p, img.width, img.height, amount, sigma)),
     /** Rotate by any angle into a w×h canvas (default: same size → crops corners). fill = 0xAABBGGRR little-endian RGBA. */
@@ -55,32 +63,14 @@ export function bindImgproc(e: any) {
     },
     /** Perspective-correct the quad (TL,TR,BR,BL in source px) into a w×h image. */
     warp(img: Img, corners: number[], w: number, h: number): Img {
-      const H = homography([[0, 0], [w, 0], [w, h], [0, h]], [[corners[0], corners[1]], [corners[2], corners[3]], [corners[4], corners[5]], [corners[6], corners[7]]]);
-      const hp = e.p_malloc(36); new Float32Array(mem(), hp, 9).set(H);
-      try { return into(img, w, h, (s, d) => e.p_warp(s, img.width, img.height, d, w, h, hp)); } finally { e.p_free(hp); }
+      const qp = e.p_malloc(32); new Float32Array(mem(), qp, 8).set(corners.slice(0, 8));
+      try { return into(img, w, h, (s, d) => { if (!e.p_warp_quad(s, img.width, img.height, d, w, h, qp)) throw new Error('Those corners do not form a usable page outline.'); }); } finally { e.p_free(qp); }
     },
     docEnhance: (img: Img, mode: 0 | 1 | 2) => inplace(img, (p) => e.p_doc_enhance(p, img.width, img.height, mode)),
     histogram(img: Img) { const s = put(img.data), o = e.p_malloc(4096); try { e.p_histogram(s, n(img), o); return new Uint32Array(mem().slice(o, o + 4096)); } finally { e.p_free(s); e.p_free(o); } },
   };
 }
 export type Imgproc = ReturnType<typeof bindImgproc>;
-
-/** 3×3 homography mapping points `from` → `to` (4 correspondences), row-major, h33 = 1. */
-export function homography(from: number[][], to: number[][]): number[] {
-  const A: number[][] = [], b: number[] = [];
-  for (let i = 0; i < 4; i++) {
-    const [x, y] = from[i], [u, v] = to[i];
-    A.push([x, y, 1, 0, 0, 0, -u * x, -u * y]); b.push(u);
-    A.push([0, 0, 0, x, y, 1, -v * x, -v * y]); b.push(v);
-  }
-  // Gaussian elimination (8×8)
-  for (let c = 0; c < 8; c++) {
-    let p = c; for (let r = c + 1; r < 8; r++) if (Math.abs(A[r][c]) > Math.abs(A[p][c])) p = r;
-    [A[c], A[p]] = [A[p], A[c]]; [b[c], b[p]] = [b[p], b[c]];
-    for (let r = 0; r < 8; r++) if (r !== c) { const f = A[r][c] / A[c][c]; for (let k = c; k < 8; k++) A[r][k] -= f * A[c][k]; b[r] -= f * b[c]; }
-  }
-  return [...b.map((v, i) => v / A[i][i]), 1];
-}
 
 // ------------------------------------------------------------------ worker client (browser)
 let worker: Worker | null = null, seq = 0;

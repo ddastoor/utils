@@ -188,6 +188,34 @@ API void p_rotate(const uint8_t *src, int w, int h, uint8_t *dst, int dw, int dh
     }
 }
 
+/* Lossless geometry. EXIF orientation semantics (o = 1..8): 2 flip H, 3 rotate 180, 4 flip V, 5 transpose,
+   6 rotate 90 CW, 7 transverse, 8 rotate 90 CCW. dst is w×h for o<5, h×w for o>=5. */
+API void p_orient(const uint32_t *src, int w, int h, uint32_t *dst, int o) {
+    int W = o >= 5 ? h : w;
+    for (int y = 0; y < h; y++) {
+        const uint32_t *row = src + (size_t)y * w;
+        for (int x = 0; x < w; x++) {
+            int X = x, Y = y;
+            switch (o) {
+                case 2: X = w - 1 - x; break;
+                case 3: X = w - 1 - x; Y = h - 1 - y; break;
+                case 4: Y = h - 1 - y; break;
+                case 5: X = y; Y = x; break;
+                case 6: X = h - 1 - y; Y = x; break;
+                case 7: X = h - 1 - y; Y = w - 1 - x; break;
+                case 8: X = y; Y = w - 1 - x; break;
+                default: break;
+            }
+            dst[(size_t)Y * W + X] = row[x];
+        }
+    }
+}
+/* Copy the rectangle (x,y,cw,ch) — caller clamps it to the image. */
+API void p_crop(const uint32_t *src, int w, int h, uint32_t *dst, int x, int y, int cw, int ch) {
+    (void)h;
+    for (int r = 0; r < ch; r++) memcpy(dst + (size_t)r * cw, src + (size_t)(y + r) * w + x, (size_t)cw * 4);
+}
+
 /* ======================================================================== artistic filters */
 /* Separable bilateral approximation (edge-preserving smoothing), applied `iters` times. */
 API void p_bilateral(uint8_t *px, int w, int h, int radius, float sigma_s, float sigma_r, int iters) {
@@ -464,6 +492,35 @@ API int p_detect_quad(const uint8_t *rgba, int w, int h, float *out) {
     return conf;
 }
 /* Perspective warp: H (row-major 3x3) maps destination (x,y,1) to source coordinates. */
+API void p_warp(const uint8_t *src, int sw, int sh, uint8_t *dst, int dw, int dh, const float *H);
+/* 3×3 homography (row-major, h33 = 1) mapping the dw×dh output rectangle onto the quad q = TL,TR,BR,BL (x,y pairs).
+   8×8 linear system solved by Gaussian elimination with partial pivoting (double precision). Returns 0 if singular. */
+static int quad_homography(const float *q, int dw, int dh, float *H) {
+    double A[8][9];
+    const double from[4][2] = {{0, 0}, {dw, 0}, {dw, dh}, {0, dh}};
+    for (int i = 0; i < 4; i++) {
+        double x = from[i][0], y = from[i][1], u = q[i * 2], v = q[i * 2 + 1];
+        double r0[9] = {x, y, 1, 0, 0, 0, -u * x, -u * y, u}, r1[9] = {0, 0, 0, x, y, 1, -v * x, -v * y, v};
+        memcpy(A[i * 2], r0, sizeof r0); memcpy(A[i * 2 + 1], r1, sizeof r1);
+    }
+    for (int c = 0; c < 8; c++) {
+        int p = c;
+        for (int r = c + 1; r < 8; r++) if (fabs(A[r][c]) > fabs(A[p][c])) p = r;
+        if (fabs(A[p][c]) < 1e-12) return 0;
+        if (p != c) for (int k = 0; k < 9; k++) { double t = A[c][k]; A[c][k] = A[p][k]; A[p][k] = t; }
+        for (int r = 0; r < 8; r++) if (r != c) { double f = A[r][c] / A[c][c]; for (int k = c; k < 9; k++) A[r][k] -= f * A[c][k]; }
+    }
+    for (int i = 0; i < 8; i++) H[i] = (float)(A[i][8] / A[i][i]);
+    H[8] = 1;
+    return 1;
+}
+/* Perspective-correct the quad (TL,TR,BR,BL in source px) into a dw×dh image. Returns 0 on a degenerate quad. */
+API int p_warp_quad(const uint8_t *src, int sw, int sh, uint8_t *dst, int dw, int dh, const float *quad) {
+    float H[9];
+    if (!quad_homography(quad, dw, dh, H)) return 0;
+    p_warp(src, sw, sh, dst, dw, dh, H);
+    return 1;
+}
 API void p_warp(const uint8_t *src, int sw, int sh, uint8_t *dst, int dw, int dh, const float *H) {
     for (int y = 0; y < dh; y++) for (int x = 0; x < dw; x++) {
         float X = x + 0.5f, Y = y + 0.5f, z = H[6] * X + H[7] * Y + H[8];

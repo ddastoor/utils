@@ -5,6 +5,11 @@ gave, every design decision made on their behalf, and the exact procedures to re
 deploy the app. Read it fully before changing anything. Keep it updated in the same commit as any change
 that affects it.
 
+> ## ▶ RESUME POINT: `docs/RESUME.md`
+> Owner rule: `docs/RESUME.md` is the sync point for when a session stops (usage limit, reset). **Read it right after
+> this file and continue from its "Next steps". Update it in every commit that changes status, and push often** —
+> the owner may be cut off at any moment and must be able to come back and continue without losing anything.
+
 > ## ⚠️ STANDING RULE #1 — WebAssembly first (owner; permanent; applies to every line of new code)
 > The owner has had to repeat this several times. **Check this rule before choosing ANY engine, library or
 > algorithm for ANY tool — new or existing — without waiting to be reminded.**

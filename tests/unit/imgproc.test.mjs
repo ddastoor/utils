@@ -1,6 +1,6 @@
 // imgproc.wasm on synthetic images with known answers.
 export default async (t, { load, wasm }) => {
-  const { bindImgproc, homography } = await load('/src/wasm/imgproc.ts');
+  const { bindImgproc } = await load('/src/wasm/imgproc.ts');
   const ip = bindImgproc(await wasm('imgproc'));
   const img = (w, h, f) => { const d = new Uint8ClampedArray(w * h * 4); for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { const [r, g, b, a = 255] = f(x, y); d.set([r, g, b, a], (y * w + x) * 4); } return { data: d, width: w, height: h }; };
   const px = (im, x, y) => Array.from(im.data.slice((y * im.width + x) * 4, (y * im.width + x) * 4 + 4));
@@ -42,7 +42,22 @@ export default async (t, { load, wasm }) => {
   const want = [60, 40, 340, 40, 340, 260, 60, 260];
   t.ok(q.corners.every((v, i) => Math.abs(v - want[i]) < 6), `corners near truth ${q.corners.map((v) => v.toFixed(0))}`);
   const flat = ip.warp(page, want, 280, 220); t.ok(mean(flat) > 220, 'warp extracts the page');
-  const H = homography([[0, 0], [1, 0], [1, 1], [0, 1]], [[0, 0], [2, 0], [2, 2], [0, 2]]); t.ok(Math.abs(H[0] - 2) < 1e-9 && Math.abs(H[4] - 2) < 1e-9, 'homography scale');
+  // warp of an axis-aligned quad = exact crop + scale (homography solved in C)
+  const ramp = img(40, 40, (x, y) => [x * 6, y * 6, 0, 255]);
+  const sub = ip.warp(ramp, [10, 10, 30, 10, 30, 30, 10, 30], 20, 20);
+  t.ok(Math.abs(px(sub, 0, 0)[0] - 63) <= 4 && Math.abs(px(sub, 19, 19)[1] - 177) <= 4, `warp quad → exact sub-image (${px(sub, 0, 0)}, ${px(sub, 19, 19)})`);
+  t.throws(() => ip.warp(ramp, [5, 5, 5, 5, 5, 5, 5, 5], 10, 10), 'degenerate quad rejected');
+  // lossless orientation transforms (EXIF 1–8) and crop
+  const o = img(3, 2, (x, y) => [x * 100, y * 100, 7, 255]); // pixel (x,y) encodes its own coordinates
+  const at = (im, x, y) => { const p = px(im, x, y); return [p[0] / 100, p[1] / 100]; };
+  const o6 = ip.orient(o, 6); t.eq([o6.width, o6.height], [2, 3], 'orient 6 swaps dims'); t.eq(at(o6, 1, 0), [0, 0], 'orient 6 (90° CW): top-left → top-right'); t.eq(at(o6, 0, 2), [2, 1], 'orient 6: bottom-right → bottom-left');
+  const o8 = ip.orient(o, 8); t.eq(at(o8, 0, 2), [0, 0], 'orient 8 (90° CCW): top-left → bottom-left');
+  const o3 = ip.orient(o, 3); t.eq(at(o3, 0, 0), [2, 1], 'orient 3 (180°)');
+  t.eq(at(ip.orient(o, 2), 0, 0), [2, 0], 'orient 2 flips horizontally'); t.eq(at(ip.orient(o, 4), 0, 0), [0, 1], 'orient 4 flips vertically');
+  t.eq(at(ip.orient(o, 5), 1, 2), [2, 1], 'orient 5 transposes'); t.eq(at(ip.orient(o, 7), 0, 0), [2, 1], 'orient 7 transverse');
+  const four = [6, 6, 6, 6].reduce((im, k) => ip.orient(im, k), o); t.eq(Array.from(four.data), Array.from(o.data), 'four quarter turns = identity');
+  t.ok(ip.orient(o, 1) === o, 'orient 1 is a no-op');
+  const c = ip.crop(o, 1, 1, 5, 5); t.eq([c.width, c.height], [2, 1], 'crop clamps to image'); t.eq(at(c, 0, 0), [1, 1], 'crop origin');
   const lit = img(200, 150, (x) => [120 + x / 2, 120 + x / 2, 120 + x / 2]);
   const clean = ip.docEnhance(lit, 0); t.ok(Math.abs(px(clean, 5, 75)[0] - px(clean, 195, 75)[0]) < 25, 'doc enhance flattens uneven lighting');
   const bw = ip.docEnhance(img(100, 100, (x, y) => ((x > 40 && x < 60 && y > 40 && y < 60) ? [30, 30, 30] : [220, 220, 220])), 2);

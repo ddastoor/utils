@@ -555,3 +555,11 @@ details summary { cursor: pointer; font-weight: 600; color: var(--accent); paddi
 .crop-n { left: calc(50% - 11px); top: -11px; cursor: ns-resize; } .crop-s { left: calc(50% - 11px); bottom: -11px; cursor: ns-resize; }
 .crop-e { right: -11px; top: calc(50% - 11px); cursor: ew-resize; } .crop-w { left: -11px; top: calc(50% - 11px); cursor: ew-resize; }
 .adj-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 6px 20px; margin-bottom: 8px; }
+.result-list { display: flex; flex-direction: column; gap: 8px; }
+.result-row { display: flex; align-items: center; gap: 12px; padding: 8px; border: 1px solid var(--border); border-radius: 10px; min-width: 0; }
+.result-thumb { width: 56px; height: 56px; object-fit: cover; border-radius: 8px; background: var(--checker); flex: none; }
+.result-meta { flex: 1; min-width: 0; }
+.result-meta .file-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.kv { display: grid; grid-template-columns: minmax(110px, max-content) 1fr; gap: 6px 16px; font-size: 14px; }
+.kv dt { color: var(--muted); } .kv dd { margin: 0; overflow-wrap: anywhere; }
+.exif-thumb { max-width: 100%; max-height: 260px; border-radius: 10px; display: block; margin: 0 auto; }
