@@ -474,3 +474,37 @@ details summary { cursor: pointer; font-weight: 600; color: var(--accent); paddi
 .pick-out { display: flex; flex-direction: column; gap: 6px; font-size: 22px; font-weight: 700; }
 .pick-item { display: flex; gap: 10px; }
 .teams { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
+
+/* ------------------------------------------------------------------ device */
+.cam-wrap { background: #000; border-radius: 12px; overflow: hidden; display: flex; justify-content: center; margin-bottom: 12px; }
+.cam-video { width: 100%; max-height: 60vh; object-fit: contain; }
+.wave { width: 100%; height: 120px; display: block; background: var(--surface-2); border-radius: 10px; margin: 10px 0; }
+.meter { height: 14px; border-radius: 999px; background: var(--surface-3); overflow: hidden; }
+.meter > span { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--ok), var(--warn), var(--err)); transition: width .05s; }
+.spk-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+.kb { display: flex; flex-direction: column; gap: 5px; padding: 12px; border-radius: 12px; background: var(--surface-2); outline: none; min-width: 760px; }
+.kb:focus { box-shadow: 0 0 0 3px var(--accent-soft); }
+.kb-row { display: flex; gap: 5px; }
+.kb-key { flex: 1 1 0; min-width: 0; height: 42px; border-radius: 7px; background: var(--surface); border: 1px solid var(--border); display: grid; place-items: center; font-size: 12px; font-weight: 600; transition: background .05s; }
+.kb-Backspace, .kb-Tab, .kb-CapsLock, .kb-Enter { flex-grow: 1.8; } .kb-ShiftLeft, .kb-ShiftRight { flex-grow: 2.4; } .kb-Space { flex-grow: 6; }
+.kb-key.hit { background: var(--ok-soft); border-color: var(--ok); color: var(--ok); }
+.kb-key.down { background: var(--accent); color: var(--accent-ink); }
+.pixel-panel { position: fixed; inset: 0; z-index: 1000; cursor: pointer; display: grid; place-items: center; }
+.pixel-hint { background: rgb(0 0 0 / 60%); color: #fff; padding: 10px 16px; border-radius: 999px; font-size: 14px; }
+.swatches { display: flex; gap: 6px; } .swatches span { width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--border); }
+.touch-canvas { width: 100%; height: 60vh; display: block; touch-action: none; background: var(--surface-2); border-radius: 12px; }
+.vial { position: relative; width: 260px; height: 260px; margin: 10px auto; border-radius: 50%; background: radial-gradient(circle, color-mix(in srgb, var(--ok) 15%, var(--surface-2)), var(--surface-2)); border: 2px solid var(--border); display: grid; place-items: center; overflow: hidden; }
+.vial-ring { position: absolute; width: 56px; height: 56px; border-radius: 50%; border: 2px dashed var(--faint); }
+.bubble { width: 44px; height: 44px; border-radius: 50%; background: color-mix(in srgb, var(--warn) 70%, white); box-shadow: inset -6px -6px 12px rgb(0 0 0 / 15%); transition: transform .08s linear; }
+.bubble.level { background: color-mix(in srgb, var(--ok) 80%, white); }
+.dial-wrap { display: grid; place-items: center; padding: 20px 0; }
+.dial { position: relative; width: 260px; height: 260px; border-radius: 50%; border: 3px solid var(--border); background: var(--surface-2); display: grid; place-items: center; transition: transform .1s linear; }
+.dial span { position: absolute; font-weight: 800; font-size: 20px; } .dial .dial-N { color: var(--err); }
+.dial-needle { width: 6px; height: 120px; border-radius: 3px; background: linear-gradient(var(--err) 50%, var(--faint) 50%); }
+.db { font-size: 56px; }
+.ruler-wrap { overflow: hidden; }
+.ruler { position: relative; height: 80px; border-bottom: 2px solid var(--text); background: color-mix(in srgb, #fde68a 35%, var(--surface)); border-radius: 6px 6px 0 0; }
+.tick { position: absolute; bottom: 0; width: 1px; height: 14px; background: var(--text); }
+.tick.mid { height: 24px; } .tick.major { height: 38px; }
+.tick b { position: absolute; bottom: 42px; left: -6px; font-size: 12px; }
+.card-outline { border: 2px dashed var(--accent); border-radius: 10px; display: grid; place-items: center; color: var(--accent); font-weight: 700; max-width: 100%; }

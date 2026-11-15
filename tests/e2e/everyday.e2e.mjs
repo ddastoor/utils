@@ -1,0 +1,23 @@
+export default async ({ base, page: newPage, ok }) => {
+  const page = await newPage();
+  const go = async (r) => { await page.goto(base + '#/' + r); await page.waitForSelector('.tool-body > *', { timeout: 15000 }); };
+  await go('stopwatch'); await page.getByRole('button', { name: 'Start' }).click(); await page.waitForTimeout(1200);
+  await page.getByRole('button', { name: 'Lap' }).click(); await page.getByRole('button', { name: 'Stop' }).click();
+  const sw = await page.locator('.timer-display').textContent();
+  ok(/^00:01\.\d\d$/.test(sw), `stopwatch ran ~1 s (${sw})`); ok((await page.locator('.lap').count()) === 1, 'stopwatch lap recorded');
+  await go('countdown'); await page.locator('input[type=number]').nth(1).fill('0'); await page.locator('input[type=number]').nth(2).fill('2');
+  ok((await page.locator('.timer-display').textContent()) === '00:02', 'countdown set to 2 s');
+  await page.getByRole('button', { name: 'Start' }).click(); await page.waitForSelector('.timer-display.done', { timeout: 5000 });
+  ok(true, 'countdown reached zero and alarmed');
+  await go('pomodoro'); ok((await page.locator('.timer-display').textContent()) === '25:00' && /Focus/i.test(await page.locator('.phase-label').textContent()), 'pomodoro 25:00 focus');
+  await go('interval'); await page.locator('.chip-btn', { hasText: 'Tabata' }).click();
+  ok((await page.locator('.timer-display').textContent()) === '00:10', 'interval prep 10 s');
+  await go('dice'); ok((await page.locator('.die').count()) === 2, 'two dice rolled');
+  await go('coin'); await page.getByRole('button', { name: 'Flip' }).click(); ok(/Heads|Tails/.test(await page.locator('.coin').textContent()), 'coin flipped');
+  await go('rng'); const nums = (await page.locator('.rng-out').textContent()).split(', ').map(Number); ok(nums.length === 1 && nums[0] >= 1 && nums[0] <= 100, 'random number in range');
+  await page.locator('input[type=number]').nth(2).fill('10'); await page.getByText('No repeats').click(); await page.getByRole('button', { name: 'Generate' }).click();
+  const uniq = (await page.locator('.rng-out').textContent()).split(', '); ok(new Set(uniq).size === 10, '10 unique numbers');
+  await go('picker'); await page.getByRole('button', { name: 'Pick' }).click(); ok(['Pizza', 'Biryani', 'Dosa', 'Paneer tikka', 'Pasta'].includes((await page.locator('.pick-item').textContent()).trim()), 'picked from list');
+  await go('teams'); ok((await page.locator('.teams .card').count()) === 2, 'two teams'); ok(/Team 1 \(4\)/.test(await page.locator('.teams').innerText()), 'balanced teams of 4');
+  ok(!page.errors.length, 'no console errors ' + page.errors.join(' | '));
+};
