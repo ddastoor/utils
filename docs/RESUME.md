@@ -10,6 +10,17 @@ Start a new Claude Code session on the same repository (claude.ai/code or the Cl
 > Continue building SuperTools. Check out branch `claude/exciting-bohr-b9yfwc` (keep committing and pushing to that
 > branch — I allow it), read CLAUDE.md and docs/RESUME.md, and carry on from "Next steps".
 
+## Moving to a local machine (owner is moving to Kubuntu, Nov 2026)
+```bash
+git clone https://github.com/ddastoor/utils.git && cd utils && git checkout claude/exciting-bohr-b9yfwc
+npm ci                                   # Node 22; runs vendor + icon generation
+npm i -g playwright@1.63.0 && npx playwright install chromium   # e2e browser
+export NODE_PATH="$(npm root -g)"        # tests load the global playwright
+npm test && npm run build && node tests/e2e.mjs
+```
+Zig for our wasm modules: CLAUDE.md §5 (pip ziglang 0.17.1). Start Claude Code in the folder with `claude`, or with
+`claude remote-control` to steer it from the phone app. Pending owner decision: docs/IDEAS.md (new-tab candidates).
+
 ## Status (last updated with the commit that touched this file — see `git log -1 -- docs/RESUME.md`)
 
 **Branch:** `claude/exciting-bohr-b9yfwc` (push here only). Site: https://ddastoor.github.io/utils/
