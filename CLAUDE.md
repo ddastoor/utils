@@ -177,6 +177,14 @@ available) via kokoro-js / transformers.js (Apache-2.0) with espeak-ng phonemize
 "Natural voice", ~20 US/UK voices, speed control, WAV download. Second engine "System voice": Web Speech API limited
 to `localService` voices (includes Indian English voices on Windows/Android/iOS). Claude's own app voice was
 considered and rejected: proprietary cloud service (online, needs an account) — violates the hard requirements.
+Owner-confirmed TTS requirements: input = text area **or** uploaded .txt/.md; output = play + **MP3 download**
+(LAME, C → wasm, built by us); **voices: US female/male, UK female/male, Indian English female/male**; **speed
+slider 0.5×–2×** (model-side speed, natural pitch). Voices: US/UK = Kokoro (`af_*`, `am_*`, `bf_*`, `bm_*`);
+Indian English = Piper `en_US-l2arctic-medium` (VITS ONNX, 77 MB, CC BY-NC 4.0 — personal use OK) speakers from
+native Hindi speakers: female `SVBI` (id 2), `TNI` (id 9); male `ASI` (id 10), `RRBI` (id 19). System voices remain a
+play-only extra (browsers can't capture speechSynthesis audio for MP3).
+Speech to Text accent requirement: very good on US, UK and **especially Indian English** → Whisper small.en default
+plus a "names & terms" hint box fed to Whisper's initial prompt.
 
 Removed by the owner from batch 3: Spin the Wheel, Tambola/Housie, Secret Santa, Scoreboard.
 
