@@ -1,4 +1,4 @@
-# utils — project spec & runbook
+# SuperTools — project spec & runbook
 
 This file is the **single source of truth** for this repository. It records every requirement the owner
 gave, every design decision made on their behalf, and the exact procedures to rebuild, extend, test and
@@ -9,7 +9,8 @@ that affects it.
 
 ## 1. What this is
 
-A personal **utilities web app**: one static single-page app (SPA) hosted on **GitHub Pages**
+**SuperTools** (owner-chosen name; repo `ddastoor/utils`) — a personal **utilities web app**: one static
+single-page app (SPA) hosted on **GitHub Pages**
 (`https://ddastoor.github.io/utils/`), used from **desktop browsers** (Chrome on Windows and Linux, X11 or
 Wayland) and **mobile browsers** (Android Chrome, iPhone Safari).
 
@@ -40,6 +41,8 @@ Wayland) and **mobile browsers** (Android Chrome, iPhone Safari).
     top match immediately**.
 
 ### Owner's answers to open questions
+- App name: **SuperTools** (title, header brand, `document.title` suffix).
+- Commit and push **each tool as soon as it works** — never batch many finished tools into one push.
 - Passport photo: owner lives in **India** → Indian presets first.
 - No offline/installable app — **all online** (plain website).
 - OpenPGP: **GnuPG-compatible** (v4 Curve25519 keys). Decryption accepts both v4 and RFC 9580 v6 input,

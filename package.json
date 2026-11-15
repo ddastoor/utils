@@ -11,7 +11,8 @@
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "test": "node tests/search.test.mjs",
-    "docs": "node scripts/gen-toollist.mjs"
+    "docs": "node scripts/gen-toollist.mjs",
+    "test:e2e": "node tests/security.e2e.mjs"
   },
   "repository": {
     "type": "git",

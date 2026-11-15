@@ -25,7 +25,7 @@ const view = h('main', { class: 'view', id: 'view' });
 const app = document.getElementById('app')!;
 app.append(
   h('header', { class: 'topbar' },
-    h('a', { class: 'brand', href: '#/', 'aria-label': 'Utils home' }, h('span', { class: 'brand-mark' }, ic('LayoutGrid')), h('span', { class: 'brand-name' }, 'Utils')),
+    h('a', { class: 'brand', href: '#/', 'aria-label': 'SuperTools home' }, h('span', { class: 'brand-mark' }, ic('Zap')), h('span', { class: 'brand-name' }, 'SuperTools')),
     search,
     h('span', { class: 'privacy', title: 'Everything runs in your browser. Files never leave your device.' }, ic('ShieldCheck'), h('span', null, 'Private · on-device'))),
   h('div', { class: 'navwrap' }, catBar, toolBar),
@@ -63,7 +63,7 @@ async function show(tool: Tool) {
   current = tool;
   lastInCat.set(tool.cat, tool.id);
   renderTabs(tool);
-  document.title = `${tool.title} · Utils`;
+  document.title = `${tool.title} · SuperTools`;
 
   const body = h('div', { class: 'tool-body' }, h('div', { class: 'loading' }, h('span', { class: 'spinner' }), 'Loading…'));
   clear(view).append(

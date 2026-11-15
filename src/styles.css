@@ -314,3 +314,16 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: 14px; }
   .thumbs { grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); }
 }
 @media (hover: none) { .tab:hover { background: none; color: var(--muted); } .tab.on:hover { background: var(--accent); color: var(--accent-ink); } .tab-tool.on:hover { background: var(--accent-soft); color: var(--accent); } }
+
+/* ------------------------------------------------------------------ security tools */
+.pw-wrap { display: flex; gap: 8px; align-items: center; }
+.pw-wrap .input { flex: 1; }
+.pwrow { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface-2); }
+.pw { flex: 1; font-family: var(--mono); font-size: 15px; word-break: break-all; user-select: all; }
+.pill { display: inline-flex; padding: 4px 12px; border-radius: 999px; font-size: 13px; font-weight: 600; background: var(--surface-2); }
+.pill-ok { background: var(--ok-soft); color: var(--ok); }
+.pill-warn { background: var(--warn-soft); color: var(--warn); }
+.pill-err { background: var(--err-soft); color: var(--err); }
+.chips-select { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 0 12px; }
+.tbl tr.match td, .tbl tr.match th { background: var(--ok-soft); }
+.hashval { word-break: break-all; }

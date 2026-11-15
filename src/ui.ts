@@ -36,6 +36,12 @@ export function h(tag: string, props?: Props | null, ...children: Child[]): HTML
   return el;
 }
 
+/** Attach accessors/methods to an element (Object.assign would flatten getters into plain values). */
+export function extend<E extends object, X extends object>(el: E, extra: X): E & X {
+  Object.defineProperties(el, Object.getOwnPropertyDescriptors(extra));
+  return el as E & X;
+}
+
 export const $ = <T extends Element = HTMLElement>(sel: string, root: ParentNode = document) => root.querySelector(sel) as T | null;
 export const clear = (el: Element) => { el.replaceChildren(); return el; };
 export const ic = (name: string, cls = '') => h('span', { class: `ic ${cls}`, 'aria-hidden': 'true', html: icon(name) });
@@ -64,6 +70,13 @@ export function button(label: string, onClick: (e: MouseEvent) => any, o: BtnOpt
     title: o.title || (label ? null : o.icon), 'aria-label': label || o.title || o.icon,
     disabled: o.disabled,
   }, o.icon ? ic(o.icon) : null, label ? h('span', null, label) : null);
+  extend(b, {
+    setLabel(text: string) {
+      const span = b.querySelector(':scope > span:not(.ic)');
+      if (span) span.textContent = text;
+      b.setAttribute('aria-label', text);
+    },
+  });
   b.addEventListener('click', async (e) => {
     if (b.classList.contains('busy')) return;
     const r = onClick(e);
@@ -72,11 +85,15 @@ export function button(label: string, onClick: (e: MouseEvent) => any, o: BtnOpt
       try { await r; } catch (err) { toast(errMsg(err), 'err'); console.error(err); } finally { b.classList.remove('busy'); b.disabled = false; }
     }
   });
-  return b;
+  return b as HTMLButtonElement & { setLabel(text: string): void };
 }
 
 export function field(label: string, control: Node, hint?: Child) {
-  return h('label', { class: 'field' }, h('span', { class: 'field-label' }, label), control, hint ? h('span', { class: 'field-hint' }, hint) : null);
+  // Only real form controls go inside <label>; wrapping buttons would steal their names and clicks.
+  const native = control instanceof HTMLInputElement || control instanceof HTMLSelectElement || control instanceof HTMLTextAreaElement;
+  const tag = native ? 'label' : 'div';
+  return h(tag, { class: 'field', role: native ? null : 'group', 'aria-label': native ? null : label },
+    h('span', { class: 'field-label' }, label), control, hint ? h('span', { class: 'field-hint' }, hint) : null);
 }
 
 export function input(o: { type?: string; value?: string | number; placeholder?: string; min?: number; max?: number; step?: number | string; onInput?: (v: string, el: HTMLInputElement) => void; onChange?: (v: string, el: HTMLInputElement) => void; attrs?: Props } = {}) {
@@ -108,7 +125,7 @@ export function toggle(label: string, checked: boolean, onChange?: (v: boolean) 
   cb.checked = checked;
   if (onChange) cb.addEventListener('change', () => onChange(cb.checked));
   const el = h('label', { class: 'switch' }, cb, h('span', { class: 'switch-track' }), h('span', { class: 'switch-label' }, label));
-  return Object.assign(el, { get checked() { return cb.checked; }, set checked(v: boolean) { cb.checked = v; } });
+  return extend(el, { get checked() { return cb.checked; }, set checked(v: boolean) { cb.checked = v; } });
 }
 
 /** Choice chips (a radio group) — for options inside a tool. */
@@ -122,7 +139,7 @@ export function segmented<T extends string>(options: Array<[T, string]>, value: 
     }, l)));
   };
   render();
-  return Object.assign(el, { get value() { return cur; }, set value(v: T) { cur = v; render(); } });
+  return extend(el, { get value() { return cur; }, set value(v: T) { cur = v; render(); } });
 }
 
 export function slider(o: { label: string; min: number; max: number; step?: number; value: number; unit?: string; fmt?: (v: number) => string; onInput?: (v: number) => void; onChange?: (v: number) => void }) {
@@ -135,7 +152,7 @@ export function slider(o: { label: string; min: number; max: number; step?: numb
   const reset = () => { r.value = String(o.value); out.textContent = fmt(o.value); o.onInput?.(o.value); o.onChange?.(o.value); };
   out.addEventListener('dblclick', reset);
   const el = h('div', { class: 'slider' }, h('div', { class: 'slider-head' }, h('span', null, o.label), out), r);
-  return Object.assign(el, {
+  return extend(el, {
     get value() { return +r.value; },
     set value(v: number) { r.value = String(v); out.textContent = fmt(v); },
     reset,
@@ -146,7 +163,7 @@ export function progress() {
   const bar = h('div', { class: 'progress-bar' });
   const label = h('div', { class: 'progress-label' });
   const el = h('div', { class: 'progress', hidden: true }, h('div', { class: 'progress-track' }, bar), label);
-  return Object.assign(el, {
+  return extend(el, {
     set(frac: number | null, text = '') {
       el.hidden = false;
       el.classList.toggle('indeterminate', frac == null);
@@ -161,7 +178,7 @@ export function progress() {
 export function outputBox(o: { rows?: number; mono?: boolean; placeholder?: string } = {}) {
   const ta = textarea({ rows: o.rows || 6, readonly: true, mono: o.mono, placeholder: o.placeholder });
   const el = h('div', { class: 'outbox' }, ta, button('', () => copy(ta.value), { icon: 'Copy', small: true, title: 'Copy' }));
-  return Object.assign(el, { get value() { return ta.value; }, set value(v: string) { ta.value = v; }, ta });
+  return extend(el, { get value() { return ta.value; }, set value(v: string) { ta.value = v; }, ta });
 }
 
 // ------------------------------------------------------------------ files
@@ -184,7 +201,7 @@ export function filePicker(o: PickOpts) {
     const fs = [...(e.dataTransfer?.files || [])];
     if (fs.length) o.onFiles(o.multiple ? fs : fs.slice(0, 1));
   });
-  return Object.assign(el, { open: () => inp.click() });
+  return extend(el, { open: () => inp.click() });
 }
 
 /** Opens the system file chooser directly (for "Add more" buttons). */
