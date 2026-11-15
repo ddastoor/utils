@@ -28,10 +28,9 @@ STANDING RULE #1 is at the top of `CLAUDE.md`; audit list is in CLAUDE.md §3a.
       incl. fuzzing); CLAUDE.md §3a + §5.1c updated. OxiPNG effort now scales with image size (12 MP PNG 31 s → 3 s).
 - [x] textcore `search.c`: tool search ranking in C (t_search_build/query/free); src/search.ts only normalises;
       parity with the old TS ranking verified on ~1,800 queries; main.ts awaits `initSearch()`.
-- [ ] textcore `t_wordfreq` (UTF-8 tokenise + count; also used by Word Counter "top words" and Photo Dictionary).
-- [ ] crypto (glue.c): `u_shuffle`/`u_sample` via `randombytes_uniform` (Line Tools shuffle currently uses
-      Math.random — fix), everyday `shuffleWith`/rng unique sampling, UUID v4/v7, Sodium header write/parse
-      (src/lib/sodium-format.ts).
+- [x] textcore `wordfreq.c` (`t_wordfreq`: count + stop words + top-K) — Word Counter uses it; Photo Dictionary will.
+- [x] crypto glue.c: `u_shuffle_idx`, `u_sample`, `u_uuid` (v4/v7), `u_sh_write`/`u_sh_parse` (USODIUM1 header).
+      `Math.random` is gone from the app (Line Tools shuffle, Lorem); everyday picker/teams/rng use C sampling.
 - [ ] mathcore.c: working days between dates (calculators.ts loops day by day), matrix power + trace (math.ts),
       colour-space conversions + contrast ratio (text.ts colorFns/contrastRatio).
 - Left in TS on purpose (record in CLAUDE.md): browser-native engines (JSON, RegExp, Intl, canvas, WebCrypto) are

@@ -2,14 +2,14 @@
 // Unicode-aware work (segmentation, case mapping, collation, regex, JSON) uses the browser's native engines;
 // algorithmic work (diff) runs in textcore.wasm.
 import { h, card, field, input, textarea, button, segmented, toggle, select, clear, stack, row, note, copy, outputBox, downloadBlob, filePicker, readBytes, slider, type Mount } from '../ui';
-import { textcore, type DiffOp } from '../wasm/textcore';
+import { textcore, type DiffOp, type bindTextcore } from '../wasm/textcore';
 import { sodium, toB64, fromB64 } from '../wasm/crypto';
 
 const fmt = (n: number) => n.toLocaleString('en-IN');
 
 // ================================================================== Word counter
-const STOP = new Set('a an the and or but if of to in on at by for with from as is are was were be been it its this that these those i you he she we they them his her our your their not no yes do does did so than then there here what which who whom how when where why all any each into over under about after before up down out just also can will would should could may might must have has had my me us'.split(' '));
-export function textStats(s: string) {
+/** Counts via the browser's Unicode segmenter; keyword frequency ranking runs in textcore.wasm (own C). */
+export function textStats(s: string, tc?: ReturnType<typeof bindTextcore>) {
   const seg = (g: 'word' | 'grapheme' | 'sentence') => [...new Intl.Segmenter(undefined, { granularity: g }).segment(s)];
   const words = seg('word').filter((x: any) => x.isWordLike).map((x) => x.segment);
   const graphemes = seg('grapheme').length;
@@ -17,18 +17,17 @@ export function textStats(s: string) {
   const sentences = seg('sentence').filter((x) => x.segment.trim()).length;
   const paragraphs = s.split(/\n\s*\n/).filter((p) => p.trim()).length;
   const lines = s ? s.split('\n').length : 0;
-  const freq = new Map<string, number>();
-  for (const w of words) { const k = w.toLowerCase(); if (k.length > 2 && !STOP.has(k) && !/^\d+$/.test(k)) freq.set(k, (freq.get(k) || 0) + 1); }
-  const top = [...freq].sort((a, b) => b[1] - a[1]).slice(0, 10);
+  const top = tc ? tc.wordFreq(words.map((w) => w.toLowerCase()), 10, { stop: true, numbers: true, minLen: 3 }) : [];
   return { words: words.length, graphemes, noSpaces, sentences, paragraphs, lines, top, avgWord: words.length ? words.reduce((a, w) => a + [...w].length, 0) / words.length : 0 };
 }
-export const wordcount: Mount = (root) => {
+export const wordcount: Mount = async (root) => {
+  const tc = await textcore();
   const ta = textarea({ rows: 10, placeholder: 'Type or paste text…' });
   const big = h('div', { class: 'big-results' });
   const more = h('div', { class: 'kv' });
   const kw = h('div', { class: 'chips' });
   const run = () => {
-    const s = textStats(ta.value);
+    const s = textStats(ta.value, tc);
     const mins = (wpm: number) => { const m = s.words / wpm; return m < 1 ? `${Math.max(1, Math.round(m * 60))} sec` : `${Math.round(m)} min`; };
     clear(big).append(...([['Words', fmt(s.words)], ['Characters', fmt(s.graphemes)], ['Sentences', fmt(s.sentences)], ['Reading time', s.words ? mins(238) : '—']] as Array<[string, string]>)
       .map(([l, v]) => h('div', { class: 'big-result' }, h('span', { class: 'big-label' }, l), h('span', { class: 'big-value' }, v))));
@@ -70,7 +69,8 @@ export const caseConv: Mount = (root) => {
 };
 
 // ================================================================== Line tools
-export const lines: Mount = (root) => {
+export const lines: Mount = async (root) => {
+  const na = await sodium();
   const ta = textarea({ rows: 10, value: 'banana\napple\n  cherry  \napple\n\nBanana\n10\n9', mono: true });
   const out = outputBox({ rows: 10, mono: true });
   const o = { trim: true, empty: true, dedupe: true, ci: false, sort: 'az', reverse: false, number: false, prefix: '', suffix: '' };
@@ -84,7 +84,7 @@ export const lines: Mount = (root) => {
     if (o.dedupe) { const seen = new Set<string>(); ls = ls.filter((l) => { const k = o.ci ? l.toLowerCase() : l; if (seen.has(k)) return false; seen.add(k); return true; }); }
     if (o.sort === 'az') ls.sort(coll.compare); else if (o.sort === 'za') ls.sort((a, b) => coll.compare(b, a));
     else if (o.sort === 'len') ls.sort((a, b) => a.length - b.length || coll.compare(a, b));
-    else if (o.sort === 'shuffle') { for (let i = ls.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [ls[i], ls[j]] = [ls[j], ls[i]]; } }
+    else if (o.sort === 'shuffle') ls = na.shuffle(ls); // fair CSPRNG shuffle (crypto.wasm)
     if (o.reverse) ls.reverse();
     ls = ls.map((l, i) => `${o.number ? `${i + 1}. ` : ''}${o.prefix}${l}${o.suffix}`);
     out.value = ls.join('\n');
@@ -264,12 +264,13 @@ export const morse: Mount = (root) => {
 
 // ================================================================== Lorem ipsum
 const LOREM = 'lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod tempor incididunt ut labore et dolore magna aliqua ut enim ad minim veniam quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur excepteur sint occaecat cupidatat non proident sunt in culpa qui officia deserunt mollit anim id est laborum'.split(' ');
-export const lorem: Mount = (root) => {
+export const lorem: Mount = async (root) => {
+  const na = await sodium();
   let unit = 'p', n = 3, classic = true;
   const out = outputBox({ rows: 12 });
-  const pick = () => LOREM[Math.floor(Math.random() * LOREM.length)];
-  const sentence = () => { const w = Array.from({ length: 8 + Math.floor(Math.random() * 10) }, pick); w[0] = w[0][0].toUpperCase() + w[0].slice(1); return w.join(' ') + '.'; };
-  const para = () => Array.from({ length: 4 + Math.floor(Math.random() * 4) }, sentence).join(' ');
+  const pick = () => LOREM[na.uniform(LOREM.length)];
+  const sentence = () => { const w = Array.from({ length: 8 + na.uniform(10) }, pick); w[0] = w[0][0].toUpperCase() + w[0].slice(1); return w.join(' ') + '.'; };
+  const para = () => Array.from({ length: 4 + na.uniform(4) }, sentence).join(' ');
   const run = () => {
     let s = unit === 'p' ? Array.from({ length: n }, para).join('\n\n') : unit === 's' ? Array.from({ length: n }, sentence).join(' ') : Array.from({ length: n }, pick).join(' ');
     if (classic) s = 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. ' + s.replace(/^[A-Z][a-z]+/, (w) => w.toLowerCase());
@@ -404,9 +405,7 @@ export const uuid: Mount = async (root) => {
   const out = outputBox({ rows: 8, mono: true });
   const check = input({ placeholder: 'Paste a UUID to inspect', attrs: { class: 'input mono', spellcheck: 'false' } });
   const info = h('div');
-  const v7 = () => { const b = na.random(16); const t = BigInt(Date.now()); for (let i = 0; i < 6; i++) b[i] = Number((t >> BigInt(8 * (5 - i))) & 0xffn); b[6] = (b[6] & 0x0f) | 0x70; b[8] = (b[8] & 0x3f) | 0x80; const x = [...b].map((v) => v.toString(16).padStart(2, '0')).join(''); return `${x.slice(0, 8)}-${x.slice(8, 12)}-${x.slice(12, 16)}-${x.slice(16, 20)}-${x.slice(20)}`; };
-  const v4 = () => { const b = na.random(16); b[6] = (b[6] & 0x0f) | 0x40; b[8] = (b[8] & 0x3f) | 0x80; const x = [...b].map((v) => v.toString(16).padStart(2, '0')).join(''); return `${x.slice(0, 8)}-${x.slice(8, 12)}-${x.slice(12, 16)}-${x.slice(16, 20)}-${x.slice(20)}`; };
-  const gen = () => { out.value = Array.from({ length: n }, () => { let u = ver === 'v7' ? v7() : v4(); if (!hyph) u = u.replace(/-/g, ''); return upper ? u.toUpperCase() : u; }).join('\n'); };
+  const gen = () => { out.value = Array.from({ length: n }, () => { let u = na.uuid(ver === 'v7' ? 7 : 4); if (!hyph) u = u.replace(/-/g, ''); return upper ? u.toUpperCase() : u; }).join('\n'); };
   check.addEventListener('input', () => {
     clear(info);
     const m = /^([0-9a-f]{8})-?([0-9a-f]{4})-?([0-9a-f]{4})-?([0-9a-f]{4})-?([0-9a-f]{12})$/i.exec(check.value.trim());

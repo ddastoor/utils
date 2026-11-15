@@ -476,10 +476,11 @@ stay **public** (the source of the deployed site is then available to every user
 
 | Engine | Language → wasm | Built by | Used by |
 |---|---|---|---|
-| libsodium 1.0.20 + own MD5/SHA-1/SHA-3/CRC-32 + OpenBSD bcrypt | C | **us** (`wasm/crypto`) | sodium, sharelink, hash, passwords, sshkey, hmac, pwhash, apikey, random tools |
+| libsodium 1.0.20 + own MD5/SHA-1/SHA-3/CRC-32 + OpenBSD bcrypt + own CSPRNG helpers (shuffle, sampling, UUID v4/v7) + USODIUM1 header | C | **us** (`wasm/crypto`) | sodium, sharelink, hash, passwords, sshkey, hmac, pwhash, apikey, random tools, uuid, line shuffle |
 | imgproc (adjustments, resize, lossless orient/crop, filters, matting, warp + homography, doc enhance) | C (own code) | **us** (`wasm/imgproc`) | image tools, scanner, passport, cartoon |
 | metacore (EXIF → JSON, lossless metadata strip JPEG/PNG/WebP, JPEG DPI, image sniffing) | C (own code) | **us** (`wasm/metacore`) | exif, image loading, passport/formphoto DPI |
 | jq 1.8.2 (+ oniguruma) | C | **us** (`wasm/jq`) | jq |
+| textcore: Myers diff, tool-search ranking, word frequency | C (own code) | **us** (`wasm/textcore`) | diff, search box, word counter, photodict |
 | cmark-gfm (GitHub Flavored Markdown) | C | **us** (`wasm/markdown`) | markdown |
 | libyaml 0.2.5 + toml++ 3 | C / C++ | **us** (`wasm/formats`) | yaml |
 | MuPDF 1.28 | C | Artifex (official `mupdf` npm) | all PDF tools, PDF → EPUB |

@@ -126,3 +126,65 @@ EXPORT void u_hash_final(hash_ctx *h, uint8_t *out) {
     }
     sodium_free(h); /* sodium_free zeroes the memory */
 }
+
+/* ------------------------------------------------------------------ fair randomness helpers (libsodium CSPRNG) */
+/* Uniform random permutation of 0..n-1 (Fisher–Yates with unbiased randombytes_uniform). */
+EXPORT void u_shuffle_idx(uint32_t *idx, uint32_t n) {
+    for (uint32_t i = 0; i < n; i++) idx[i] = i;
+    for (uint32_t i = n; i > 1; i--) { uint32_t j = randombytes_uniform(i), t = idx[i - 1]; idx[i - 1] = idx[j]; idx[j] = t; }
+}
+/* count values in [0, span) (span 0 = 2^32). unique: no repeats (count ≤ span). Returns 0, or -1 if impossible. */
+EXPORT int u_sample(uint32_t span, uint32_t count, int unique, uint32_t *out) {
+    if (unique && span && count > span) return -1;
+    if (unique && span && span <= (1u << 20) && count > span / 16) {
+        /* partial Fisher–Yates over the whole range (dense draws) */
+        uint32_t *all = malloc(sizeof(uint32_t) * span);
+        if (!all) return -1;
+        for (uint32_t i = 0; i < span; i++) all[i] = i;
+        for (uint32_t i = 0; i < count; i++) { uint32_t j = i + randombytes_uniform(span - i), t = all[i]; all[i] = all[j]; all[j] = t; out[i] = all[i]; }
+        free(all);
+        return 0;
+    }
+    for (uint32_t i = 0; i < count; i++) {
+        for (;;) {
+            uint32_t v = span ? randombytes_uniform(span) : randombytes_random();
+            int dup = 0;
+            if (unique) for (uint32_t k = 0; k < i; k++) if (out[k] == v) { dup = 1; break; }
+            if (!dup) { out[i] = v; break; }
+        }
+    }
+    return 0;
+}
+/* RFC 9562 UUID: version 4 (random) or 7 (48-bit Unix ms timestamp + random). Writes 16 bytes. */
+EXPORT void u_uuid(int version, double unix_ms, uint8_t *b) {
+    randombytes_buf(b, 16);
+    if (version == 7) {
+        uint64_t t = (uint64_t)unix_ms;
+        for (int i = 0; i < 6; i++) b[i] = (uint8_t)(t >> (8 * (5 - i)));
+        b[6] = (b[6] & 0x0f) | 0x70;
+    } else b[6] = (b[6] & 0x0f) | 0x40;
+    b[8] = (b[8] & 0x3f) | 0x80;
+}
+
+/* ------------------------------------------------------------------ "USODIUM1" container header (docs/sodium-format.md) */
+#define SH_LEN 61
+static void put32le(uint8_t *p, uint32_t v) { p[0] = (uint8_t)v; p[1] = (uint8_t)(v >> 8); p[2] = (uint8_t)(v >> 16); p[3] = (uint8_t)(v >> 24); }
+static uint32_t get32le(const uint8_t *p) { return (uint32_t)p[0] | (uint32_t)p[1] << 8 | (uint32_t)p[2] << 16 | (uint32_t)p[3] << 24; }
+EXPORT int u_sh_len(void) { return SH_LEN; }
+EXPORT void u_sh_write(uint32_t ops, uint32_t mem_kib, uint32_t chunk, const uint8_t *salt16, const uint8_t *ss_header24, uint8_t *out) {
+    memcpy(out, "USODIUM1", 8);
+    out[8] = 2; /* Argon2id v1.3 */
+    put32le(out + 9, ops); put32le(out + 13, mem_kib); put32le(out + 17, chunk);
+    memcpy(out + 21, salt16, 16); memcpy(out + 37, ss_header24, 24);
+}
+/* Returns 0 ok, -1 not a USODIUM1 file, -2 unsupported KDF, -3 parameters out of range (damaged).
+   params[0..2] = ops, mem KiB, chunk; salt (16) and secretstream header (24) copied out. */
+EXPORT int u_sh_parse(const uint8_t *in, uint32_t n, uint32_t *params, uint8_t *salt16, uint8_t *ss_header24) {
+    if (n < SH_LEN || memcmp(in, "USODIUM1", 8)) return -1;
+    if (in[8] != 2) return -2;
+    uint32_t ops = get32le(in + 9), mem = get32le(in + 13), chunk = get32le(in + 17);
+    if (ops < 1 || ops > 20 || mem < 8 || mem > 4u * 1024 * 1024 || chunk < 1 || chunk > (1u << 24)) return -3;
+    params[0] = ops; params[1] = mem; params[2] = chunk;
+    memcpy(salt16, in + 21, 16); memcpy(ss_header24, in + 37, 24);
+    return 0;
+}

@@ -16,12 +16,25 @@ export interface Sodium {
   hasher(alg: HashAlg): { update(b: Uint8Array): void; final(): Uint8Array };
   pushStream(key: Uint8Array): { header: Uint8Array; push(m: Uint8Array, final: boolean): Uint8Array; dispose(): void };
   pullStream(key: Uint8Array, header: Uint8Array): { pull(c: Uint8Array): { m: Uint8Array; final: boolean } | null; dispose(): void };
-  bcrypt?: never;
+  /** Uniformly random permutation of 0..n-1 (Fisher–Yates in C with randombytes_uniform). */
+  permutation(n: number): Uint32Array;
+  /** Shuffled copy of an array. */
+  shuffle<T>(arr: readonly T[]): T[];
+  /** count values in [0, span) — unique = no repeats. */
+  sample(span: number, count: number, unique?: boolean): number[];
+  /** RFC 9562 UUID string, version 4 or 7. */
+  uuid(version: 4 | 7, unixMs?: number): string;
+  /** USODIUM1 container header (61 bytes) — written and parsed in C. */
+  sodiumHeader: { len: number; write(h: SodiumHeader): Uint8Array; parse(b: Uint8Array): SodiumHeader };
   raw: WasiInstance;
 }
+export interface SodiumHeader { ops: number; memKiB: number; chunk: number; salt: Uint8Array; header: Uint8Array }
 
 async function load(): Promise<Sodium> {
-  const x = await instantiateWasi(wasmUrl);
+  return bindSodium(await instantiateWasi(wasmUrl));
+}
+/** Environment-neutral binding (browser + Node unit tests). */
+export function bindSodium(x: WasiInstance): Sodium {
   const e = x.exports, io = memIO(x);
   if (e.u_init() < 0) throw new Error('libsodium failed to initialise');
   const SB = e.u_ss_statebytes(), AB = e.u_ss_abytes(), TAG_FINAL = e.u_ss_tag_final();
@@ -36,6 +49,40 @@ async function load(): Promise<Sodium> {
     raw: x,
     random(n) { const p = io.alloc(n); e.u_random(p, n); const r = io.get(p, n); io.free(p); return r; },
     uniform: (upper) => e.u_uniform(upper) >>> 0,
+    permutation(n) {
+      const p = io.alloc(Math.max(1, n) * 4);
+      try { e.u_shuffle_idx(p, n); return new Uint32Array(x.memory.buffer.slice(p, p + n * 4)); } finally { io.free(p); }
+    },
+    shuffle(arr) { return Array.from(this.permutation(arr.length), (i) => arr[i]); },
+    sample(span, count, unique = false) {
+      const p = io.alloc(Math.max(1, count) * 4);
+      try {
+        if (e.u_sample(span >>> 0, count, unique ? 1 : 0, p) !== 0) throw new Error(`Only ${span} unique numbers exist in that range`);
+        return Array.from(new Uint32Array(x.memory.buffer, p, count));
+      } finally { io.free(p); }
+    },
+    uuid(version, unixMs = Date.now()) {
+      const p = io.alloc(16);
+      try { e.u_uuid(version, unixMs, p); const h = toHex(io.get(p, 16)); return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`; } finally { io.free(p); }
+    },
+    sodiumHeader: {
+      len: e.u_sh_len(),
+      write(h) {
+        const o = io.alloc(61);
+        try { withBytes([h.salt, h.header], (sp, hp) => e.u_sh_write(h.ops, h.memKiB, h.chunk, sp, hp, o)); return io.get(o, 61); } finally { io.free(o); }
+      },
+      parse(b) {
+        const prm = io.alloc(12), sa = io.alloc(16), hd = io.alloc(24);
+        try {
+          const rc = withBytes([b], (bp) => e.u_sh_parse(bp, b.length, prm, sa, hd));
+          if (rc === -1) throw new Error('Not a Sodium Encrypt file (missing USODIUM1 header).');
+          if (rc === -2) throw new Error('Unsupported key-derivation algorithm.');
+          if (rc === -3) throw new Error('Header parameters are out of range — the file is damaged.');
+          const v = new Uint32Array(x.memory.buffer, prm, 3);
+          return { ops: v[0], memKiB: v[1], chunk: v[2], salt: io.get(sa, 16), header: io.get(hd, 24) };
+        } finally { io.free(prm); io.free(sa); io.free(hd); }
+      },
+    },
     pwhash(pw, salt, ops, memKiB, outLen = 32) {
       const out = io.alloc(outLen);
       try {

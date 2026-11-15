@@ -20,6 +20,17 @@ export function bindTextcore(e: any) {
       try { const k = e.t_search_query(index, p, n, o, max); return Array.from(new Int32Array(e.memory.buffer, o, k)); } finally { e.t_free(p); e.t_free(o); }
     },
     searchFree: (index: number) => e.t_search_free(index),
+    /** Top-k [token, count] by frequency (count desc, then first appearance). Tokens should be segmented and
+     *  lower-cased by the caller. Options: drop English stop words / pure numbers / words shorter than minLen. */
+    wordFreq(tokens: string[], k = 10, o: { stop?: boolean; numbers?: boolean; minLen?: number } = {}): Array<[string, number]> {
+      if (!tokens.length) return [];
+      const [p, n] = putStr(tokens.map((x) => x.replace(/\n/g, ' ')).join('\n')), out = e.t_malloc(k * 8);
+      const flags = (o.stop ? 1 : 0) | (o.numbers ? 2 : 0) | ((Math.min(255, o.minLen || 0)) << 8);
+      try {
+        const r = e.t_wordfreq(p, n, flags, out, k), v = new Int32Array(e.memory.buffer, out, r * 2);
+        return Array.from({ length: r }, (_, i) => [tokens[v[i * 2]], v[i * 2 + 1]] as [string, number]);
+      } finally { e.t_free(p); e.t_free(out); }
+    },
     /** Diff two token sequences (strings compared exactly). */
     diff(A: string[], B: string[], maxD = 0): DiffOp[] | null {
       const ids = new Map<string, number>();

@@ -1,6 +1,6 @@
 // Runs Argon2id, secretstream encryption and hashing off the main thread.
 import { sodium, HASH_ALGS, type HashAlg, toHex } from '../wasm/crypto';
-import { MAGIC, CHUNK, HEADER_LEN, parseHeader, writeHeader } from '../lib/sodium-format';
+import { MAGIC, CHUNK, HEADER_LEN } from '../lib/sodium-format';
 
 type Msg =
   | { id: number; op: 'encrypt'; data: Blob; password: Uint8Array; ops: number; memKiB: number }
@@ -32,7 +32,7 @@ self.onmessage = async (ev: MessageEvent<Msg>) => {
       const key = na.pwhash(msg.password, salt, msg.ops, msg.memKiB);
       const s = na.pushStream(key);
       key.fill(0);
-      const parts: BlobPart[] = [writeHeader({ ops: msg.ops, memKiB: msg.memKiB, chunk: CHUNK, salt, header: s.header }) as BlobPart];
+      const parts: BlobPart[] = [na.sodiumHeader.write({ ops: msg.ops, memKiB: msg.memKiB, chunk: CHUNK, salt, header: s.header }) as BlobPart];
       const size = msg.data.size;
       let off = 0;
       do {
@@ -47,7 +47,7 @@ self.onmessage = async (ev: MessageEvent<Msg>) => {
     }
     if (msg.op === 'decrypt') {
       const head = new Uint8Array(await msg.data.slice(0, HEADER_LEN).arrayBuffer());
-      const h = parseHeader(head);
+      const h = na.sodiumHeader.parse(head);
       progress(0, 'Deriving key with Argon2id…');
       const key = na.pwhash(msg.password, h.salt, h.ops, h.memKiB);
       const s = na.pullStream(key, h.header);

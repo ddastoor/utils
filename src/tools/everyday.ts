@@ -181,8 +181,7 @@ export const rng: Mount = async (root) => {
     const span = b - a + 1;
     if (span > 2 ** 32) { out.textContent = 'Range too large'; return; }
     if (unique && c > span) { out.textContent = `Only ${span} unique numbers exist in that range`; return; }
-    const seen = new Set<number>(), vals: number[] = [];
-    while (vals.length < c) { const v = a + na.uniform(span); if (unique && seen.has(v)) continue; seen.add(v); vals.push(v); }
+    const vals = na.sample(span === 2 ** 32 ? 0 : span, c, unique).map((v) => a + v); // CSPRNG sampling in crypto.wasm
     if (sort) vals.sort((x, y) => x - y);
     out.textContent = vals.join(', ');
   };
@@ -192,7 +191,7 @@ export const rng: Mount = async (root) => {
 };
 
 const items = (s: string) => s.split(/\n|,/).map((x) => x.trim()).filter(Boolean);
-export function shuffleWith<T>(arr: T[], uniform: (n: number) => number) { const a = arr.slice(); for (let i = a.length - 1; i > 0; i--) { const j = uniform(i + 1); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+
 
 export const picker: Mount = async (root) => {
   const na = await sodium();
@@ -202,7 +201,7 @@ export const picker: Mount = async (root) => {
   const pick = () => {
     const list = items(ta.value), k = Math.min(list.length, Math.max(1, +n.value || 1));
     if (!list.length) { out.textContent = 'Add some items first'; return; }
-    clear(out).append(...shuffleWith(list, (x) => na.uniform(x)).slice(0, k).map((x, i) => h('div', { class: 'pick-item' }, k > 1 ? h('span', { class: 'muted' }, `${i + 1}.`) : null, x)));
+    clear(out).append(...na.shuffle(list).slice(0, k).map((x, i) => h('div', { class: 'pick-item' }, k > 1 ? h('span', { class: 'muted' }, `${i + 1}.`) : null, x)));
   };
   root.append(card(null, field('Items', ta), field('How many to pick', n)), card('Winner', out), h('div', { class: 'actions' }, button('Pick', pick, { variant: 'primary', icon: 'ListChecks' })));
 };
@@ -214,7 +213,7 @@ export const teams: Mount = async (root) => {
   const k = input({ type: 'number', value: 2, min: 1 });
   const out = h('div', { class: 'teams' });
   const split = () => {
-    const names = shuffleWith(items(ta.value), (x) => na.uniform(x));
+    const names = na.shuffle(items(ta.value));
     if (!names.length) return;
     const nTeams = mode === 'count' ? Math.max(1, Math.min(names.length, +k.value || 2)) : Math.max(1, Math.ceil(names.length / Math.max(1, +k.value || 2)));
     const teamsArr: string[][] = Array.from({ length: nTeams }, () => []);
