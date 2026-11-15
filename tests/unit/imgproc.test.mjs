@@ -69,4 +69,15 @@ export default async (t, { load, wasm }) => {
     const out = f(); t.ok(out.width === 96 && maxDiff(out, photo) > 10, `${name} transforms the image`);
   }
   const h = ip.histogram(solid); t.eq([h[10], h[256 + 200], h[512 + 90]], [1500, 1500, 1500], 'histogram counts');
+  // alpha bounding box + ink extraction (signature tool)
+  const sig = img(50, 30, (x, y) => (x >= 10 && x < 20 && y >= 5 && y < 12 ? [0, 0, 0, 255] : [0, 0, 0, 0]));
+  t.eq(ip.alphaBBox(sig), { x: 10, y: 5, w: 10, h: 7 }, 'alpha bounding box');
+  t.eq(ip.alphaBBox(img(5, 5, () => [0, 0, 0, 0])).w, 0, 'empty → w = 0');
+  // paper with a light→dark lighting gradient and dark ink strokes: only the ink becomes opaque
+  const paper = img(120, 80, (x, y) => { const base = 235 - x * 0.6; const ink = (y > 35 && y < 42 && x > 20 && x < 100) || (x > 55 && x < 60 && y > 10 && y < 70); return ink ? [30, 30, 60, 255] : [base, base, base - 5, 255]; });
+  const ink = ip.inkToAlpha(paper, 0x0b2a8a);
+  t.ok(px(ink, 40, 38)[3] > 230 && px(ink, 57, 20)[3] > 230, 'ink strokes opaque');
+  t.ok(px(ink, 5, 5)[3] < 10 && px(ink, 115, 75)[3] < 10, 'paper transparent at both ends of the lighting gradient');
+  t.eq(px(ink, 40, 38).slice(0, 3), [0x0b, 0x2a, 0x8a], 'ink recoloured');
+  t.eq(ip.inkToAlpha(paper, 0, true).data[(38 * 120 + 40) * 4], 30, 'keep original ink colour');
 };

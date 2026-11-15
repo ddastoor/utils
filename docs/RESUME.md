@@ -15,7 +15,8 @@ calculators (27), math & science (7), text (9) + json/regex/base64/urlenc/epoch/
 scan), archive (zip, unzip), everyday (9), device (11), **Image Editor** (`tests/e2e/image-editor.e2e.mjs`, 28 checks).
 
 Also done + own e2e suite: `heic` (11 checks), `exif` (18), `batch` (12, PC only), `watermark` (12), `caption` (11),
-`collage` (14) — src/tools/canvas-tools.ts; Anton font (OFL) self-hosted via @fontsource/anton.
+`collage` (14) — src/tools/canvas-tools.ts; `signature` (15; imgproc p_alpha_bbox + p_ink_to_alpha; OFL fonts
+Great Vibes / Dancing Script / Caveat self-hosted); Anton font (OFL) self-hosted via @fontsource/anton.
 
 **Stubs ("This tool is being built")**: every other tool — see "Queue".
 
@@ -40,7 +41,7 @@ STANDING RULE #1 is at the top of `CLAUDE.md`; audit list is in CLAUDE.md §3a.
 
 ## Queue (in order) — each: implement → own e2e suite with real fixtures → screenshot at 390×844 → commit + push
 1. (Audit done.) Continue image tools below.
-2. Image tools: signature, redact (MediaPipe face
+2. Image tools: redact (MediaPipe face
    detector), formphoto (Indian exam presets), scanner (imgproc detect/warp/enhance → PDF), ocr (Tesseract eng+hin),
    passport (36 presets in src/lib/passport-specs.ts, MediaPipe landmarks + segmentation + guided filter, camera,
    print sheet, KB target, DPI), bgremove, cartoon (classic imgproc + Magenta TF.js). Models need

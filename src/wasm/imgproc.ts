@@ -33,6 +33,10 @@ export function bindImgproc(e: any) {
       w = Math.max(1, Math.min(img.width - x, Math.round(w))); h = Math.max(1, Math.min(img.height - y, Math.round(h)));
       return into(img, w, h, (s, d) => e.p_crop(s, img.width, img.height, d, x, y, w, h));
     },
+    /** Bounding box {x,y,w,h} of pixels whose alpha > thr (w = 0 if fully transparent). */
+    alphaBBox(img: Img, thr = 8) { const s = put(img.data), o = e.p_malloc(16); try { e.p_alpha_bbox(s, img.width, img.height, thr, o); const r = new Int32Array(mem(), o, 4); return { x: r[0], y: r[1], w: r[2], h: r[3] }; } finally { e.p_free(s); e.p_free(o); } },
+    /** Photo of ink on paper → transparent ink (colour rgb 0xRRGGBB, or keep the ink's own colour). */
+    inkToAlpha: (img: Img, rgb = 0x0b2a8a, keepColor = false, strength = 1) => inplace(img, (p) => e.p_ink_to_alpha(p, img.width, img.height, rgb >>> 0, keepColor ? 1 : 0, strength)),
     blur: (img: Img, sigma: number) => inplace(img, (p) => e.p_blur(p, img.width, img.height, sigma)),
     sharpen: (img: Img, amount: number, sigma = 1.2) => inplace(img, (p) => e.p_sharpen(p, img.width, img.height, amount, sigma)),
     /** Rotate by any angle into a w×h canvas (default: same size → crops corners). fill = 0xAABBGGRR little-endian RGBA. */

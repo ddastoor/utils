@@ -653,6 +653,7 @@ npm packages (pinned in `package-lock.json`) are bundled by Vite or copied to `p
 | @zip.js/zip.js | BSD-3-Clause | Zip, Batch Images |
 | libarchive.js | MIT (libarchive BSD) | Zip extract |
 | @fontsource/anton (Anton font) | OFL-1.1 | Text on Image (meme style), Watermark |
+| @fontsource/great-vibes, /dancing-script, /caveat | OFL-1.1 | Signature Maker (typed signatures) |
 
 Models committed under `public/models/` (download URLs for refresh):
 - `face_landmarker.task` — https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task (Apache-2.0)

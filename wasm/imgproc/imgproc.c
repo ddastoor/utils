@@ -216,6 +216,44 @@ API void p_crop(const uint32_t *src, int w, int h, uint32_t *dst, int x, int y, 
     for (int r = 0; r < ch; r++) memcpy(dst + (size_t)r * cw, src + (size_t)(y + r) * w + x, (size_t)cw * 4);
 }
 
+/* Bounding box of pixels with alpha > thr. out = x, y, w, h (w = 0 if none). */
+API void p_alpha_bbox(const uint8_t *px, int w, int h, int thr, int32_t *out) {
+    int x0 = w, y0 = h, x1 = -1, y1 = -1;
+    for (int y = 0; y < h; y++) {
+        const uint8_t *row = px + (size_t)y * w * 4;
+        for (int x = 0; x < w; x++) if (row[x * 4 + 3] > thr) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+    }
+    if (x1 < 0) { out[0] = out[1] = out[2] = out[3] = 0; return; }
+    out[0] = x0; out[1] = y0; out[2] = x1 - x0 + 1; out[3] = y1 - y0 + 1;
+}
+/* Photo of ink on paper → transparent "ink" layer. Paper brightness is estimated locally (large blur of a max
+   filter, as in doc enhance) so shadows/uneven light do not become ink. alpha = smoothstep of darkness relative to
+   the local paper level; colour = rgb (0xRRGGBB) or the original ink colour if keep_color. */
+API void p_ink_to_alpha(uint8_t *px, int w, int h, uint32_t rgb, int keep_color, float strength) {
+    int n = w * h;
+    float *l = malloc(sizeof(float) * n), *bg = malloc(sizeof(float) * n);
+    for (int i = 0; i < n; i++) l[i] = 0.299f * px[i * 4] + 0.587f * px[i * 4 + 1] + 0.114f * px[i * 4 + 2];
+    /* local paper level: separable max filter (radius ~ 1.5% of size) then box blur */
+    int r = (w > h ? w : h) / 64 + 2;
+    float *tmp = malloc(sizeof(float) * n);
+    for (int y = 0; y < h; y++) for (int x = 0; x < w; x++) { float m = 0; for (int k = -r; k <= r; k++) { int xx = x + k; if (xx >= 0 && xx < w && l[y * w + xx] > m) m = l[y * w + xx]; } tmp[y * w + x] = m; }
+    for (int y = 0; y < h; y++) for (int x = 0; x < w; x++) { float m = 0; for (int k = -r; k <= r; k++) { int yy = y + k; if (yy >= 0 && yy < h && tmp[yy * w + x] > m) m = tmp[yy * w + x]; } bg[y * w + x] = m; }
+    for (int y = 0; y < h; y++) { float s = 0; int c = 0; for (int x = -r; x < w + r; x++) { if (x + r < w) { s += bg[y * w + x + r]; c++; } if (x - r - 1 >= 0) { s -= bg[y * w + x - r - 1]; c--; } if (x >= 0 && x < w) tmp[y * w + x] = s / (c ? c : 1); } }
+    for (int x = 0; x < w; x++) { float s = 0; int c = 0; for (int y = -r; y < h + r; y++) { if (y + r < h) { s += tmp[(y + r) * w + x]; c++; } if (y - r - 1 >= 0) { s -= tmp[(y - r - 1) * w + x]; c--; } if (y >= 0 && y < h) bg[y * w + x] = s / (c ? c : 1); } }
+    uint8_t R = (rgb >> 16) & 255, G = (rgb >> 8) & 255, B = rgb & 255;
+    for (int i = 0; i < n; i++) {
+        float paper = bg[i] < 40 ? 40 : bg[i];
+        float d = (paper - l[i]) / paper; /* 0 = paper, 1 = black */
+        float lo = 0.10f / strength, hi = 0.45f / strength;
+        float t = (d - lo) / (hi - lo); t = t < 0 ? 0 : t > 1 ? 1 : t;
+        float a = t * t * (3 - 2 * t);
+        uint8_t *p = px + (size_t)i * 4;
+        if (!keep_color) { p[0] = R; p[1] = G; p[2] = B; }
+        p[3] = (uint8_t)(a * 255 + 0.5f);
+    }
+    free(l); free(bg); free(tmp);
+}
+
 /* ======================================================================== artistic filters */
 /* Separable bilateral approximation (edge-preserving smoothing), applied `iters` times. */
 API void p_bilateral(uint8_t *px, int w, int h, int radius, float sigma_s, float sigma_r, int iters) {
