@@ -330,6 +330,9 @@ export const TOOLS: Tool[] = [
     'morse, code, sos, dots, dashes, telegraph', () => text().then((m) => m.morse)),
   t('lorem', 'Lorem Ipsum', 'Placeholder text generator.', 'text', 'Text',
     'lorem ipsum, placeholder, dummy text, filler', () => text().then((m) => m.lorem)),
+  t('photodict', 'Photo Dictionary', 'Photograph a page; get the hardest words with their dictionary meanings.', 'text', 'BookOpenText',
+    'photo dictionary, dictionary, meaning, meanings, define, definition, vocabulary, vocab, difficult words, hard words, rare words, word meaning, kindle, newspaper, book page, camera dictionary, scan words, look up words, lookup, glossary, english words, learn words, dictonary, meening',
+    () => import('./tools/photodict').then((m) => m.mount), 'mobile'),
 
   // ---------------------------------------------------------------- Software (all PC only)
   t('sqlite', 'SQLite Playground', 'Open a .db or CSV, run SQL, export results.', 'software', 'Database',

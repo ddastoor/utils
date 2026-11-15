@@ -2,7 +2,7 @@
 
 Generated from `src/registry.ts` by `npm run docs` — do not edit by hand.
 
-**175 tabs** in 11 categories — 108 PC + mobile, 64 PC only, 3 mobile only.
+**176 tabs** in 11 categories — 108 PC + mobile, 64 PC only, 4 mobile only.
 
 ## Images (15)
 
@@ -119,7 +119,7 @@ Generated from `src/registry.ts` by `npm run docs` — do not edit by hand.
 | `primes` | Prime / LCM / GCD | PC + mobile | Prime factors, LCM, GCD, prime check. | prime, factorization, lcm, gcd, hcf, divisors, prime factors, is prime |
 | `periodic` | Periodic Table | PC + mobile | Interactive table of elements. | periodic table, elements, chemistry, atomic number, atomic mass, electron configuration |
 
-## Text (9)
+## Text (10)
 
 | id | Tab | Platform | What it does | Search keywords |
 |---|---|---|---|---|
@@ -132,6 +132,7 @@ Generated from `src/registry.ts` by `npm run docs` — do not edit by hand.
 | `emoji` | Emoji & Symbols | PC + mobile | Search and copy emoji and symbols. | emoji, symbols, characters, special characters, copy, arrows, currency, math |
 | `morse` | Morse Code | PC + mobile | Text ⇄ Morse, with sound. | morse, code, sos, dots, dashes, telegraph |
 | `lorem` | Lorem Ipsum | PC + mobile | Placeholder text generator. | lorem ipsum, placeholder, dummy text, filler |
+| `photodict` | Photo Dictionary | **Mobile only** | Photograph a page; get the hardest words with their dictionary meanings. | photo dictionary, dictionary, meaning, meanings, define, definition, vocabulary, vocab, … |
 
 ## Software (56)
 

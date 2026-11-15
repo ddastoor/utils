@@ -78,14 +78,14 @@ Wayland) and **mobile browsers** (Android Chrome, iPhone Safari).
 Platform is PC + mobile unless marked **PC**. Tab ids are the URL hash (`#/<id>`).
 
 **The authoritative, always-current list is `docs/TOOLS.md`, generated from `src/registry.ts` (`npm run docs`).**
-Current total: **175 tabs in 11 categories — 108 PC + mobile, 64 PC only, 3 Mobile only** (regenerate with
+Current total: **176 tabs in 11 categories — 108 PC + mobile, 64 PC only, 4 Mobile only** (regenerate with
 `npm run docs` after every registry change; the owner asked for the registry to always be noted).
 The per-category notes below record decisions; when they disagree with the registry, the registry wins.
 
 **Platform model (owner rule):** every tool is exactly one of **PC + mobile** (`'both'`), **PC only** (`'pc'`,
 hidden on phones) or **Mobile only** (`'mobile'`, hidden on desktops) — the `platform` field in
 `src/registry.ts`. Mobile only = needs phone hardware: `level` Bubble Level, `compass` Compass, `touch` Touch
-Test. `keyboard` Keyboard Test is PC only (physical keyboard). Opening a hidden tool by URL shows an explanation.
+Test, plus `photodict` Photo Dictionary (owner said mobile only — phone camera). `keyboard` Keyboard Test is PC only (physical keyboard). Opening a hidden tool by URL shows an explanation.
 
 **Images**
 | id | Tab | Platform | Engine |
@@ -138,8 +138,9 @@ URL `#fragment`, never sent to a server) · `hash` Hash / Checksum · `password`
 `timezone` Time Zone Converter · `bmi` BMI · `calories` Calorie (BMR/TDEE) · `duedate` Pregnancy Due Date ·
 `tip` Tip & Bill Splitter · `fuel` Fuel Cost · `gpa` GPA · `base` Number Base Converter · `roman` Roman Numerals
 
-**Text** (all both): `wordcount` Word Counter · `case` Case Converter · `lines` Line Tools · `replace` Find &
-Replace · `diff` Text Diff · `fancy` Fancy Text · `emoji` Emoji & Symbols · `morse` Morse Code · `lorem` Lorem Ipsum
+**Text** (all both except `photodict`): `wordcount` Word Counter · `case` Case Converter · `lines` Line Tools · `replace` Find &
+Replace · `diff` Text Diff · `fancy` Fancy Text · `emoji` Emoji & Symbols · `morse` Morse Code · `lorem` Lorem Ipsum ·
+`photodict` **Photo Dictionary (Mobile only, owner request — see §3)**
 
 **Software** — owner rule: **every Software tool is PC only.** Moved here from the old "Text & Dev": `json` JSON
 Formatter · `regex` Regex Tester · `base64` Base64 · `urlenc` URL Encoder · `epoch` Epoch Converter · `uuid` UUID
@@ -339,6 +340,32 @@ corners; perspective correction; enhance modes (Colour clean, Grey, B/W adaptive
 ### OCR
 Tesseract LSTM, languages English and Hindi (bundled `.traineddata.gz`). Image upload, camera, or paste
 from clipboard; optional pre-clean (doc enhance). Copy text / download `.txt`.
+
+### Photo Dictionary (`photodict`, Text, **Mobile only** — owner request, owner chose the name)
+Owner's words: photograph text (Kindle screen, newspaper, book) with the phone camera → OCR it → sort the words by
+how common they are in English, **rarest (hardest) first**, leaving out common words ("and", "the", …) → show at most
+**20 words**, each with its **dictionary meaning underneath in a nice, readable font**.
+- Input: back camera (`capture="environment"`; live viewfinder via getUserMedia with a "Snap" button) or a photo from
+  the gallery; Kindle/phone-screen photos get a pre-clean (moiré/glare: `imgproc` doc enhance, grey mode).
+- OCR: the existing Tesseract English engine (same vendored files as the OCR tool).
+- Word ranking (compute in own C, `textcore` wasm): tokenise, fold case, strip possessives/hyphen breaks, lemmatise
+  ("running" → run, "geese" → goose: rule-based + exception lists), drop stop words, numbers, single letters and
+  OCR junk (not in the dictionary), drop the most common words (Zipf frequency ≥ ~4.5) → sort by general-English
+  frequency ascending (wordfreq Zipf scores), tie-break by count in the photo → top 20. Capitalised words that are
+  only names (not in the dictionary) are skipped.
+- Dictionary: the owner asked for "the most comprehensive open-source American Oxford English dictionary". **The
+  Oxford dictionaries (OED, Oxford American, Lexico) are proprietary — not open source — so they cannot be bundled.**
+  Decision: **English Wiktionary** (machine-readable extraction from kaikki.org / wiktextract; CC-BY-SA 4.0 + GFDL)
+  — the largest open English dictionary, with US spellings, parts of speech, IPA pronunciation, usage labels and
+  examples — trimmed to English entries; fallback **Open English WordNet** (CC-BY 4.0) for any word Wiktionary
+  lacks. Data is sharded by word prefix and served from this site; the phone fetches only the shards it needs.
+  Prepared at build time by a script with SHA-256-pinned sources (never fetched from another host at runtime).
+  Attribution shown in the tool.
+- Frequency list: **wordfreq** English data (CC-BY-SA 4.0), shipped as a compact table.
+- Output: cards "word · part of speech · pronunciation", 1–3 senses each with an example, serif reading font; tap a
+  word to see all senses; tap a word in the recognised text to look it up; copy/share the list.
+- Tests: e2e with a real photographed page fixture (known rare words expected in the top 20, "the"/"and" absent);
+  unit tests for tokenising, lemmatising and ranking.
 
 ### FFmpeg (PC)
 ffmpeg.wasm single-threaded core (GitHub Pages cannot send COOP/COEP headers, and the owner refused a

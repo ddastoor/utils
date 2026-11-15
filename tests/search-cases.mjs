@@ -81,6 +81,7 @@ export default [
   ['emoji', 'emoji'], ['symbols', 'emoji'], ['special characters', 'emoji'],
   ['morse', 'morse'], ['morse code', 'morse'],
   ['lorem ipsum', 'lorem'], ['placeholder text', 'lorem'],
+  ['photo dictionary', 'photodict'], ['word meaning', 'photodict'], ['difficult words', 'photodict'], ['vocabulary', 'photodict'], ['dictonary', 'photodict'], ['define words from photo', 'photodict'],
 
   // Software
   ['json', 'json'], ['json formatter', 'json'], ['pretty json', 'json'], ['validate json', 'json'],
