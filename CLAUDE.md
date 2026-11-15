@@ -1,0 +1,407 @@
+# utils — project spec & runbook
+
+This file is the **single source of truth** for this repository. It records every requirement the owner
+gave, every design decision made on their behalf, and the exact procedures to rebuild, extend, test and
+deploy the app. Read it fully before changing anything. Keep it updated in the same commit as any change
+that affects it.
+
+---
+
+## 1. What this is
+
+A personal **utilities web app**: one static single-page app (SPA) hosted on **GitHub Pages**
+(`https://ddastoor.github.io/utils/`), used from **desktop browsers** (Chrome on Windows and Linux, X11 or
+Wayland) and **mobile browsers** (Android Chrome, iPhone Safari).
+
+### Hard requirements (from the owner — do not violate)
+1. **Static and stateless.** No backend, no login, no accounts, no analytics, no cookies, nothing saved
+   between visits (no localStorage/IndexedDB of user data, no service worker, **no PWA / offline install**).
+2. **No online dependencies.** Every script, WebAssembly module, ML model, font and icon is served from
+   this site. No CDNs. The page's Content-Security-Policy blocks contacting any other host. The only
+   allowed exception is the YouTube tool, which must talk to YouTube (embedded `youtube-nocookie.com`).
+3. **User files never leave the device.** All processing happens in the browser.
+4. **Each utility is its own tab.** Tools are **PC + mobile** unless the owner explicitly said PC only.
+   PC-only tools are hidden on mobile.
+5. **Responsive UI** that works on phone and desktop.
+6. **Implementation preference order:**
+   1. Our own WebAssembly modules compiled from proper open-source **C/C++** source (own code, or the
+      upstream library's source).
+   2. Otherwise a widely used, safe, OSI-licensed library, vendored (copied into the build) and pinned.
+   Personal use only, so copyleft (GPL/LGPL/AGPL) is acceptable.
+7. Use the **most standard / modern / hardened** approach for each tool.
+
+### Owner's answers to open questions
+- Passport photo: owner lives in **India** → Indian presets first.
+- No offline/installable app — **all online** (plain website).
+- OpenPGP: **GnuPG-compatible** (v4 Curve25519 keys). Decryption accepts both v4 and RFC 9580 v6 input,
+  so a future GnuPG that adopts RFC 9580 keeps working with this tool.
+- "Use your best discretion" for everything else; "leave out the things you suggested leaving out".
+
+---
+
+## 2. Tool list
+
+**Rule from the owner: every utility is its own top-level tab — never merge utilities into one tab with
+sub-tabs.** The menu shows category headings and a search box purely as navigation aids.
+Platform is PC + mobile unless marked **PC**. Tab ids are the URL hash (`#/<id>`).
+
+**Images**
+| id | Tab | Engine |
+|---|---|---|
+| `image` | Image Editor | own C wasm `imgproc` + MozJPEG/WebP/OxiPNG (jSquash) |
+| `batch` | Batch Images (**PC**) | `imgproc` resize + jSquash + zip.js |
+| `heic` | HEIC → JPG | libheif (C++ → wasm, libheif-js) + jSquash |
+| `passport` | Passport Photo | MediaPipe face landmarks + selfie multiclass segmentation + `imgproc` guided filter |
+| `cartoon` | Cartoonizer | `imgproc` classic filters + Magenta arbitrary style transfer (TF.js) |
+| `redact` | Blur & Redact | MediaPipe face detector + manual boxes |
+| `watermark` | Watermark | canvas text/logo watermark |
+| `caption` | Text on Image | canvas captions / meme text |
+| `collage` | Collage Maker | canvas photo grid |
+| `scanner` | Doc Scanner | `imgproc` page detection, warp, enhance + pdf-lib |
+| `ocr` | OCR | Tesseract (C++ → wasm), English + Hindi |
+
+**Documents**
+| `pdf-merge` Merge PDF · `pdf-split` Split PDF · `pdf-organize` Organize PDF (reorder/rotate/delete) ·
+`img2pdf` Images → PDF · `pdf2img` PDF → Images · `pdf-compress` Compress PDF · `pdf-sign` Sign PDF ·
+`pdf-fill` Fill PDF Form · `epub` PDF → EPUB (**PC**) · `sheet` CSV / Excel Viewer & Converter (**PC**) |
+Engines: pdf-lib + PDF.js (+ jSquash for compression); EPUB = PDF.js + own layout analysis + fflate;
+sheets = own CSV parser + own minimal XLSX reader/writer.
+
+**Security**
+`pgp` OpenPGP · `sodium` Sodium Encrypt · `hash` Hash / Checksum · `password` Password Generator ·
+`passphrase` Passphrase Generator
+
+**Media**
+`video` Video Compressor (WebCodecs + mediabunny) · `audio` Audio Recorder · `tts` Text-to-Speech
+(on-device voices only) · `ffmpeg` FFmpeg (**PC**) · `screencast` Screencast (**PC**) ·
+`screenshot` Screenshot (**PC**) · `youtube` YouTube Clip (**PC**)
+
+**Calculators**
+`calc` Scientific Calculator · `units` Unit Converter · `dates` Date Calculator · `emi` EMI Calculator ·
+`gst` GST Calculator · `sip` SIP Calculator · `fd` FD / RD Calculator · `percent` Percentage Calculator ·
+`words` Number to Words (lakh/crore + international) · `timezone` Time Zone Converter · `bmi` BMI Calculator ·
+`calories` Calorie (BMR/TDEE) Calculator · `duedate` Pregnancy Due Date · `tip` Tip & Bill Splitter ·
+`fuel` Fuel Cost Calculator · `gpa` GPA Calculator · `base` Number Base Converter · `roman` Roman Numerals
+
+**Text & Dev**
+`wordcount` Word Counter · `case` Case Converter · `lines` Line Tools (sort/dedupe/trim/reverse) ·
+`replace` Find & Replace · `diff` Text Diff · `json` JSON Formatter · `base64` Base64 · `urlenc` URL Encoder ·
+`epoch` Epoch Converter · `uuid` UUID Generator · `color` Color Converter · `jwt` JWT Decoder ·
+`fancy` Fancy Text · `emoji` Emoji & Symbols · `morse` Morse Code · `lorem` Lorem Ipsum
+
+**Codes & Files**
+`qr` QR Generator · `barcode` Barcode Generator · `scan` QR & Barcode Scanner (zxing-cpp wasm) ·
+`zip` Create Zip · `unzip` Extract Archive
+
+**Everyday**
+`stopwatch` Stopwatch · `countdown` Countdown Timer · `pomodoro` Pomodoro · `interval` Interval Timer ·
+`dice` Dice Roller · `coin` Coin Flip · `rng` Random Number · `picker` List Picker · `teams` Team Splitter
+
+**Device**
+`webcam` Webcam Test · `mic` Microphone Test · `speaker` Speaker Test · `keyboard` Keyboard Test ·
+`pixels` Dead Pixel Test · `touch` Touch Test · `screen` Screen Info · `level` Bubble Level ·
+`compass` Compass · `soundmeter` Sound Meter · `ruler` Ruler
+
+The owner's original items b) "YouTube clip creator" and h) "YouTube downloader" are merged into
+**YouTube Clip** (agreed — they are the same job).
+
+### Deliberately left out (owner agreed)
+Currency converter/live rates, cloud speech-to-text, notes/to-do (needs state), income-tax calculator
+(rules change yearly), speed test, IP lookup, weather, translation, maps, URL shortener.
+
+---
+
+## 3. Per-tool requirements and design
+
+### Image Editor
+Upload → edit → **Save** downloads the file. Crop (free + aspect presets), rotate 90°, flip, straighten,
+resize, brightness, contrast, exposure, saturation, vibrance, hue, temperature, tint, sharpen.
+**Reduce file size**: MozJPEG / WebP / PNG (OxiPNG) with quality slider, live output size, and a
+**target size** mode (binary search on quality, e.g. "under 200 KB"). Strip EXIF/GPS. Share button on
+mobile (Web Share) so iPhone users can save to Photos. Large photos (>16 MP) are processed in wasm
+memory, not canvas (iOS canvas limit).
+
+### Passport Photo (India first)
+Camera (webcam / phone front or back camera, self-timer, face guide overlay) or upload. Background → pure
+white via MediaPipe `selfie_multiclass_256x256` mask refined by `imgproc` guided filter at full
+resolution. Auto-framing from MediaPipe face landmarks (chin, eyes, crown estimate). Output JPEG at
+300 dpi with DPI metadata, optional max-KB target, and a 4×6 in / A4 print sheet with copies.
+Presets (India first):
+- Indian passport (Passport Seva): 35×45 mm (face 70–80% of height)
+- Indian visa / OCI (VFS, US-style): 51×51 mm (2×2 in)
+- Indian online form photo (e.g. exam/job portals): 3.5×4.5 cm, often 20–50 KB
+- PAN card: 25×35 mm (213×213 px online scan uses 3.5×2.5 cm)
+- US passport/visa 2×2 in; UK/Schengen 35×45 mm; Canada 50×70 mm; China 33×48 mm; Custom
+Note shown to user: some agencies reject digitally altered photos; lighting on the face matters.
+Wayland/X11 is irrelevant for cameras.
+
+### Cartoonizer ("Prisma-like")
+Two engines:
+- **Classic** (own C, instant): Cartoon (edge-preserving smoothing + XDoG ink lines + k-means colour
+  quantisation), Oil paint (Kuwahara), Watercolour, Pencil sketch (B/W + colour), Comic/halftone.
+- **Neural style transfer**: Magenta *arbitrary image stylization* (Apache-2.0) via TF.js (WebGL
+  backend, CPU fallback). Built-in styles are **procedurally generated** artwork textures created at
+  runtime (no copyrighted art shipped); the user can also upload any painting as the style. Strength
+  slider blends with the original.
+
+### OpenPGP
+Generate key pair (name, email, passphrase) → download armored public/private keys. Encrypt file
+(to one or more public keys, optional signing), decrypt (+ verify), detached sign, verify, clearsign
+text, symmetric (passphrase) encrypt/decrypt. Binary or ASCII-armored output.
+**Profile: GnuPG-compatible** — v4 keys, Ed25519 (sign) + Curve25519 (encrypt), AES-256, SHA-512,
+SEIPDv1 with MDC, iterated+salted S2K for passphrases (GnuPG cannot read Argon2 S2K yet).
+Decryption accepts v4 and v6 (RFC 9580, AEAD/OCB, Argon2) input.
+
+### Sodium Encrypt (libsodium, symmetric only)
+Files **and** typed text. Argon2id (`crypto_pwhash`) derives a key; data encrypted with
+`crypto_secretstream_xchacha20poly1305` in 64 KiB chunks (authenticated, detects truncation/reordering,
+constant memory). Strength presets: Interactive (ops 2, 64 MiB), Moderate (ops 3, 256 MiB, default on
+PC), Sensitive (ops 4, 1 GiB, PC only). Parameters stored in the header. Text output is Base64.
+**File format** (all integers little-endian) — see `docs/sodium-format.md` and the reference decryptor
+`tools/sodium_decrypt.py` (PyNaCl), so files are never locked to this app:
+```
+magic   8 bytes  "USODIUM1"
+alg     1 byte   2 = Argon2id13
+ops     4 bytes  opslimit
+mem     4 bytes  memlimit in KiB
+chunk   4 bytes  plaintext chunk size (65536)
+salt   16 bytes
+header 24 bytes  secretstream header
+then ciphertext chunks: each = chunk plaintext + 17 bytes; last chunk carries TAG_FINAL
+```
+The 41..61-byte header (everything before the first chunk) is also used as additional data? — No: AD is
+empty; integrity of parameters is implicit because wrong parameters derive a wrong key and the first
+chunk fails to authenticate.
+
+### Hash / Checksum
+Algorithms: MD5, SHA-1 (legacy, labelled), SHA-256, SHA-512, SHA3-256, SHA3-512, BLAKE2b-256,
+BLAKE2b-512, CRC-32. Streaming (large files), progress, paste an expected checksum to verify, compare
+two files, hash typed text.
+
+### Passwords
+Random passwords (length, sets, exclude look-alikes, require each set) and diceware passphrases
+(EFF large wordlist, 7776 words, CC-BY 3.0, `public/data/eff_large_wordlist.txt`). Shows entropy bits.
+Randomness from libsodium `randombytes_uniform` (→ `crypto.getRandomValues`).
+
+### Zip
+Create zip (optional AES-256 password, WinZip AE-2 format) from multiple files; extract zip (incl.
+AES/ZipCrypto passwords) and 7z/rar/tar/gz/bz2/xz via libarchive. Download single entries or all.
+
+### QR Codes
+Generate: text, URL, Wi-Fi (WPA/WEP/none), UPI payment link (`upi://pay?pa=…&pn=…&am=…`), email, phone,
+SMS, contact card. Error-correction level, size, colours, PNG/SVG download. Scan: camera (back camera
+on phones) or image upload.
+
+### Calculator
+Sub-tabs: **Scientific** (own parser: + − × ÷ ^ √ ∛ ! nPr nCr %, sin/cos/tan + inverses + hyperbolic,
+ln, log10, log2, exp, abs, π, e, DEG/RAD, ANS, memory M+/M−/MR/MC, keyboard input, history for the
+session), **Units** (length, mass, temperature, area, volume, speed, data, time, pressure, energy,
+cooking), **Dates** (difference, add/subtract, age, weekday), **Finance – India** (EMI + amortisation,
+GST add/remove at 5/12/18/28%, SIP, FD/RD compound, percentage, number to words in lakh/crore and
+international), **Time zones** (convert a time between zones via `Intl`).
+
+### Text & Dev
+Word/char/line/reading-time counts; case conversion (UPPER, lower, Title, Sentence, camel, snake, kebab);
+sort/dedupe/trim/reverse lines; find & replace (regex); diff two texts (Myers line + word diff);
+JSON format/minify/validate with error position; Base64, URL, HTML-entity, hex encode/decode;
+Unix epoch ↔ date; UUID v4/v7; colour converter (HEX/RGB/HSL/OKLCH) with picker; JWT decode (no verify).
+
+### Audio Recorder
+Record mic (MediaRecorder), live level meter + waveform, play back, trim start/end on the waveform,
+download as original (WebM/Opus or M4A) or WAV.
+
+### PDF Toolkit
+Merge, split (ranges / every page), reorder (drag thumbnails), rotate, delete pages, images → PDF
+(page size A4/Letter/fit, margins), PDF → images (PNG/JPEG at chosen DPI), **compress** (recompress
+embedded images with MozJPEG at a chosen max resolution/quality; "rasterise" mode for scans; "target
+size" mode tries levels until the file is under the limit).
+
+### Doc Scanner
+Camera or upload; automatic page detection (own C: Otsu + largest component + corners) with draggable
+corners; perspective correction; enhance modes (Colour clean, Grey, B/W adaptive threshold); multi-page
+→ PDF (A4/Letter/fit) or JPEGs.
+
+### OCR
+Tesseract LSTM, languages English and Hindi (bundled `.traineddata.gz`). Image upload, camera, or paste
+from clipboard; optional pre-clean (doc enhance). Copy text / download `.txt`.
+
+### FFmpeg (PC)
+ffmpeg.wasm single-threaded core (GitHub Pages cannot send COOP/COEP headers, and the owner refused a
+service worker). Presets: convert video/audio formats, extract audio (copy or re-encode), remove audio,
+trim (stream copy or precise), compress (CRF / target size), resize, fps, rotate/flip, crop, video → GIF,
+merge audio+video, normalise loudness, speed, extract frames, **audio → MP4** (audio-only M4A, still image,
+or animated waveform), plus a raw-arguments box. Limits: ~2 GB files; re-encoding is ~10–20× slower than
+native.
+
+### PDF → EPUB (PC)
+Kindle Paperwhite now, Scribe later. Requirements: preserve **page breaks**; detect **columns** in technical
+PDFs, split them vertically, extract text and figures per column in reading order, and label sections
+**"Page N · Column K"**. Pipeline per page: PDF.js text items (positions, font size) → render page →
+mask text → connected "ink" regions = figures (raster + vector diagrams, tables) cropped as images →
+recursive XY-cut on whitespace for columns (handles full-width title/abstract above two columns) →
+paragraphs (line spacing), de-hyphenation, heading detection by font size, header/footer/page-number
+removal (repeated across pages) → one XHTML file per PDF page. Fallbacks: garbled text (bad ToUnicode)
+or math-heavy column → that column as image; scanned page → page image. Modes: Reflow (default) and
+Column images. EPUB 3 + NCX (EPUB 2 fallback), validated with epubcheck in development, compatible with
+Send-to-Kindle. Image width presets: Paperwhite 1236 px / Scribe 1860 px; greyscale option.
+
+### Screencast (PC)
+Chrome on Windows/Linux. Modes: whole screen / window / tab via Chrome's picker; **rectangle**: pick a
+screen, then drag a rectangle on the live preview (a web page cannot draw on the desktop), frames are
+cropped in real time. Audio: tab audio; Windows system audio when sharing the entire screen; on Linux pick
+the "Monitor of …" PipeWire/PulseAudio input; optional mic mix. Start/Pause/Stop, timer, MP4 output
+(H.264/AAC via MediaRecorder; WebM fallback), long recordings stream to disk via File System Access.
+
+### Screenshot (PC)
+Modes: full screen, window, tab, region. Flow: choose mode → Chrome picker (own tab excluded) → choose
+delay → **Arm** → a tiny always-on-top countdown window (Document Picture-in-Picture) appears → owner
+minimises the browser (Win+↓ / Super+H) → capture after the delay or via "Snap now" (PiP hides itself
+first) → preview, crop, save PNG/JPEG. The share stays alive for repeated shots.
+A web page **cannot** silently screenshot, minimise the browser, or detect the active window.
+
+### YouTube Clip (PC)
+Inputs: two "Copy video URL at current time" links (start/end) **or** one URL + start + end.
+1. **Record in browser**: embeds `youtube-nocookie.com` player (postMessage API, no YouTube script in our
+   page), the user shares *this tab* once; Region Capture (`CropTarget`) crops to the player; the player
+   seeks to start, plays, and recording stops at end → MP4. Real-time; ads may appear; some videos block
+   embedding.
+2. **yt-dlp command**: exact `yt-dlp --download-sections "*START-END" -f "bv*[ext=mp4]+ba[ext=m4a]/b[ext=mp4]"
+   --merge-output-format mp4 URL` with copy button (original quality; needs yt-dlp + ffmpeg locally;
+   works in Termux on Android).
+Direct download from a static page is impossible (CORS + YouTube stream protection).
+
+### Linux X11 vs Wayland
+No web API exposes it (Chrome's UA says `X11; Linux` on both) and it is not needed: Chrome uses PipeWire
++ xdg-desktop-portal on Wayland. Capture tools show a Linux help panel (check
+`chrome://flags/#enable-webrtc-pipewire-capturer`, xdg-desktop-portal + backend installed).
+
+---
+
+## 4. Architecture
+
+- **Vite + TypeScript, no UI framework.** Small DOM helper `h()` in `src/ui.ts`.
+- **Hash routing** (`#/pgp`) — GitHub Pages has no SPA fallback. Vite `base: './'` so the site works under
+  `/utils/`.
+- Each tool lives in `src/tools/<id>.ts` (or a folder) and exports `mount(root: HTMLElement): Cleanup | void`.
+  Tools are **lazy-loaded** with dynamic `import()` so a phone only downloads what it opens.
+- Registry: `src/tools/registry.ts` (id, title, group, icon, `pcOnly`, loader).
+- Layout: desktop = sidebar grouped by category + content; mobile = home grid of tiles + top bar with back.
+  PC-only tools hidden when `isMobile()` (`src/platform.ts`).
+- **CSP** in `index.html` `<meta http-equiv="Content-Security-Policy">`: `default-src 'self'`,
+  `script-src 'self' 'wasm-unsafe-eval'`, `worker-src 'self' blob:`, `connect-src 'self' blob: data:`,
+  `img-src 'self' blob: data:`, `media-src 'self' blob: mediastream:`, `style-src 'self' 'unsafe-inline'`,
+  `frame-src https://www.youtube-nocookie.com`, `object-src 'none'`.
+- Our wasm modules are WASI "reactor" modules (no Emscripten); `src/wasm/wasi.ts` is a tiny shim
+  (`random_get` → `crypto.getRandomValues`, `fd_write` → console, everything else ENOSYS).
+
+### Directory map
+```
+index.html                 app entry (CSP, root element)
+src/main.ts                shell: router, nav, home grid
+src/ui.ts                  DOM helpers & widgets (file picker/drop, sliders, progress, download, toast)
+src/platform.ts            mobile / capability detection
+src/wasm/                  loaders for our wasm (wasi.ts, imgproc.ts, crypto.ts)
+src/tools/                 one module per tool
+src/styles.css             all styles (light/dark via prefers-color-scheme)
+wasm/crypto/               libsodium glue + own hash C sources + build.sh
+wasm/imgproc/              own image-processing C source + build.sh
+wasm/tools/                verify-minisign.mjs
+public/wasm/*.wasm         COMMITTED build outputs of our wasm modules
+public/models/             COMMITTED ML models (see §6)
+public/data/               COMMITTED data files (EFF wordlist, …)
+public/vendor/             GENERATED by scripts/vendor.mjs from node_modules (gitignored)
+scripts/vendor.mjs         copies vendored runtime files (ffmpeg core, mediapipe wasm, tesseract, …)
+tools/sodium_decrypt.py    reference decryptor for the Sodium format
+docs/                      format specs
+.github/workflows/pages.yml  build + deploy to GitHub Pages
+```
+
+---
+
+## 5. Building our WebAssembly modules
+
+Toolchain: **Zig** (its `zig cc` is clang + bundled wasi-libc). Install without root:
+```bash
+python3 -m pip download ziglang==0.17.1 --no-deps -d /tmp/zig
+python3 -m zipfile -e /tmp/zig/ziglang-*.whl /tmp/zig/x && chmod +x /tmp/zig/x/ziglang/zig
+export ZIG=/tmp/zig/x/ziglang/zig
+```
+
+### 5.1 libsodium → `public/wasm/crypto.wasm`
+Source: the libsodium **stable** tarball vendored inside the crates.io crate `libsodium-sys-stable`
+(crates.io is reachable from restricted sandboxes; github.com/download.libsodium.org may not be).
+It is **verified with minisign** against libsodium's official public key
+`RWQf6LRCGA9i53mlYecO4IzT51TGPpvWucNSCh1CBM0QTaLn73Y7GFO3` before use.
+```bash
+ZIG=/path/to/zig wasm/crypto/build.sh      # downloads crate, verifies signature, builds, writes public/wasm/crypto.wasm
+```
+The script: fetch `https://static.crates.io/crates/libsodium-sys-stable/libsodium-sys-stable-<ver>.crate`,
+extract `LATEST.tar.gz` + `.minisig`, run `node wasm/tools/verify-minisign.mjs`, `./configure
+--host=wasm32-wasi --disable-ssp --disable-shared --without-pthreads` with `CC="zig cc --target=wasm32-wasi"`,
+`make`, then link `libsodium.a` + `glue.c` + `hashes.c` as a reactor (`-mexec-model=reactor`) exporting only
+the functions listed in `glue.c`. To upgrade libsodium: bump the crate version in `build.sh`, rebuild,
+run the self-test (`node wasm/crypto/test.mjs`), commit the new wasm.
+Last built from: libsodium **1.0.20-stable** (tarball signed 2025-04-05, crate 1.22.3).
+
+### 5.2 Image processing → `public/wasm/imgproc.wasm`
+Own C (`wasm/imgproc/imgproc.c`). `wasm/imgproc/build.sh` compiles with
+`zig cc --target=wasm32-wasi -O3 -msimd128 -mexec-model=reactor`. Test: `node wasm/imgproc/test.mjs`.
+
+---
+
+## 6. Vendored third-party code and models
+
+npm packages (pinned in `package-lock.json`) are bundled by Vite or copied to `public/vendor/` by
+`scripts/vendor.mjs` (runs automatically before `dev` and `build`).
+
+| Package | Licence | Used by |
+|---|---|---|
+| openpgp | LGPL-3.0 | OpenPGP |
+| @ffmpeg/ffmpeg, @ffmpeg/util, @ffmpeg/core | MIT / GPL-2.0+ (core) | FFmpeg |
+| pdfjs-dist | Apache-2.0 | PDF Toolkit, PDF→EPUB |
+| pdf-lib | MIT | PDF Toolkit, Doc Scanner |
+| fflate | MIT | EPUB zip |
+| @jsquash/jpeg (MozJPEG), /webp, /oxipng | Apache-2.0 (+ codec licences) | image encoders |
+| @mediapipe/tasks-vision | Apache-2.0 | Passport |
+| @tensorflow/tfjs-* | Apache-2.0 | Cartoonizer style transfer |
+| tesseract.js, tesseract.js-core, @tesseract.js-data/eng, /hin | Apache-2.0 / MIT | OCR |
+| zxing-wasm | MIT (zxing-cpp Apache-2.0) | QR |
+| @zip.js/zip.js | BSD-3-Clause | Zip, Batch Images |
+| libarchive.js | MIT (libarchive BSD) | Zip extract |
+
+Models committed under `public/models/` (download URLs for refresh):
+- `face_landmarker.task` — https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task (Apache-2.0)
+- `selfie_multiclass_256x256.tflite` — https://storage.googleapis.com/mediapipe-models/image_segmenter/selfie_multiclass_256x256/float32/latest/selfie_multiclass_256x256.tflite (Apache-2.0)
+- `style/predictor`, `style/transformer` — Magenta arbitrary style transfer, converted from the legacy
+  TF.js format at https://storage.googleapis.com/magentadata/js/checkpoints/style/arbitrary/{predictor,transformer}/
+  (`tensorflowjs_model.pb` + `weights_manifest.json` + shards) to `model.json` by `scripts/convert_magenta.py`
+  (Apache-2.0).
+
+Rejected: `@jspawn/ghostscript-wasm` (unmaintained 2022 single-maintainer build of Ghostscript; safety).
+
+---
+
+## 7. Develop, test, deploy
+
+```bash
+npm ci
+npm run dev        # http://localhost:5173  (vendor files copied first)
+npm run build      # → dist/
+npm run preview    # serve dist/
+```
+Testing uses the pre-installed Playwright Chromium (`require('playwright')`), flags
+`--use-fake-ui-for-media-stream --use-fake-device-for-media-stream --auto-select-desktop-capture-source=Entire screen`
+for camera/screen tools. `tests/e2e.mjs` opens every tab and runs a smoke test; also check the console
+for CSP violations.
+
+**Deploy:** `.github/workflows/pages.yml` builds and publishes on push to `main` or the working branch.
+One-time setup by the owner: GitHub → repo **Settings → Pages → Source: GitHub Actions**. If the
+deployment is refused for a branch, allow it under **Settings → Environments → github-pages →
+Deployment branches**.
+
+## 8. Adding a new tool (checklist)
+1. Create `src/tools/<id>.ts` exporting `mount(root)`; use helpers from `src/ui.ts`.
+2. Register it in `src/tools/registry.ts` (title, group, icon, `pcOnly` only if the owner says PC only).
+3. Heavy dependencies: dynamic-import inside the tool; vendor runtime files via `scripts/vendor.mjs`;
+   never load from a CDN; keep the CSP intact.
+4. Add a smoke test in `tests/e2e.mjs`, update §2/§3 of this file, commit, push.
