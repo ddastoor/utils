@@ -2,7 +2,7 @@
 
 Generated from `src/registry.ts` by `npm run docs` — do not edit by hand.
 
-**174 tabs** in 11 categories — 108 PC + mobile, 63 PC only, 3 mobile only.
+**175 tabs** in 11 categories — 108 PC + mobile, 64 PC only, 3 mobile only.
 
 ## Images (15)
 
@@ -133,7 +133,7 @@ Generated from `src/registry.ts` by `npm run docs` — do not edit by hand.
 | `morse` | Morse Code | PC + mobile | Text ⇄ Morse, with sound. | morse, code, sos, dots, dashes, telegraph |
 | `lorem` | Lorem Ipsum | PC + mobile | Placeholder text generator. | lorem ipsum, placeholder, dummy text, filler |
 
-## Software (55)
+## Software (56)
 
 | id | Tab | Platform | What it does | Search keywords |
 |---|---|---|---|---|
@@ -173,6 +173,7 @@ Generated from `src/registry.ts` by `npm run docs` — do not edit by hand.
 | `transfer` | Data Transfer Calculator | **PC only** | Size, bandwidth and transfer time. | bandwidth, transfer time, download time, mbps, gbps, throughput, data size |
 | `semver` | Semver Checker | **PC only** | Check version ranges, compare and bump versions. | semver, version, range, caret, tilde, npm, compare, bump |
 | `glob` | Glob Tester | **PC only** | Test glob patterns against paths. | glob, pattern, wildcard, gitignore, minimatch, path, match |
+| `terminal` | Linux Terminal | **PC only** | BusyBox shell with an in-browser filesystem (upload/download files). | linux, terminal, shell, busybox, bash, command line, cli, console, … |
 | `graphviz` | Graphviz (DOT) | **PC only** | Render DOT graphs to SVG/PNG. | graphviz, dot, graph, diagram, digraph, network, render, svg |
 | `python` | Python Scratchpad | **PC only** | Run Python (MicroPython) in the browser. | python, micropython, script, run code, repl, scratchpad, py |
 | `totp` | TOTP / 2FA Codes | **PC only** | Generate one-time codes from a 2FA secret. | totp, 2fa, otp, one time password, authenticator, mfa, google authenticator, hotp, … |
