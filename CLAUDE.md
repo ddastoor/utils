@@ -188,7 +188,8 @@ plus a "names & terms" hint box fed to Whisper's initial prompt.
 
 Removed by the owner from batch 3: Spin the Wheel, Tambola/Housie, Secret Santa, Scoreboard.
 
-Rejected by the owner: Typing Speed Test, Tuner, Metronome, Discount Calculator, Unit Price Compare.
+Rejected by the owner: Typing Speed Test, Tuner, Metronome, Discount Calculator, Unit Price Compare, News Shorts
+(hourly AI news summaries — considered via GitHub Actions + llama.cpp; owner declined).
 Not added because a PC-only tool already covers them: Video Trimmer, Video → MP3, Audio Cutter (FFmpeg),
 Image Converter (Batch Images). Optional "nice to have" ideas not requested: GIF maker, screenshot
 beautifier, palette extractor, image compare, tone generator, white noise, pace calculator, recipe scaler,
