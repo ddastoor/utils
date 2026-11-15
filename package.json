@@ -10,9 +10,10 @@
     "build": "vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
-    "test": "node tests/search.test.mjs && node tests/expr.test.mjs",
+    "test": "node tests/unit.mjs",
     "docs": "node scripts/gen-toollist.mjs",
-    "test:e2e": "node tests/security.e2e.mjs && node tests/pgp.e2e.mjs && node tests/calc.e2e.mjs && node tests/no-external.e2e.mjs"
+    "test:e2e": "node tests/e2e.mjs",
+    "test:all": "npm run build && node tests/unit.mjs && node tests/e2e.mjs"
   },
   "repository": {
     "type": "git",

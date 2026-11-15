@@ -1,24 +1,27 @@
 import { h, card, field, input, textarea, button, segmented, clear, stack, row, note, copy, type Mount } from '../ui';
-import { compile, fmtNum, gcd as gcdNum } from '../lib/expr';
+import { mathcore, fmtNum, type Complex } from '../wasm/mathcore';
 import { ELEMENTS, CATEGORY_COLORS } from '../lib/elements';
 
 // ================================================================== Graphing calculator
 const COLORS = ['#4f46e5', '#e11d48', '#059669', '#d97706', '#0891b2', '#7c3aed'];
-export const graph: Mount = (root, ctx) => {
+export const graph: Mount = async (root, ctx) => {
+  const m = await mathcore();
   const fns: Array<{ src: string; on: boolean }> = [{ src: 'sin(x)', on: true }, { src: 'x^2/4 - 1', on: true }];
   let cx = 0, cy = 0, scale = 50; // px per unit
   let deg = false;
   const canvas = h('canvas', { class: 'graph-canvas' });
   const readout = h('div', { class: 'graph-readout muted small' });
   const list = h('div', { class: 'stack' });
-  const compiled: Array<((x: number) => number) | null> = [];
+  type Ex = ReturnType<typeof m.compile>;
+  const compiled: Array<Ex | null> = [];
 
   const recompile = () => {
+    compiled.forEach((c) => c?.free());
     compiled.length = 0;
     fns.forEach((f, i) => {
       const inp = list.querySelectorAll<HTMLInputElement>('.fn-input')[i];
-      try { const c = compile(f.src.replace(/^\s*y\s*=/, ''), { deg }, ['x']); compiled.push((x) => c({ x })); inp?.classList.remove('bad'); }
-      catch { compiled.push(null); inp?.classList.add('bad'); }
+      try { if (!f.src.trim()) throw 0; compiled.push(m.compile(f.src.replace(/^\s*y\s*=/, ''), deg)); inp?.classList.remove('bad'); }
+      catch { compiled.push(null); inp?.classList.toggle('bad', !!f.src.trim()); }
     });
     draw();
   };
@@ -62,9 +65,9 @@ export const graph: Mount = (root, ctx) => {
       if (!f || !fns[i].on) return;
       g.strokeStyle = COLORS[i % COLORS.length]; g.lineWidth = 2.2; g.beginPath();
       let pen = false, lastY = NaN;
+      const ys = f.range(x0, 1 / scale, W + 1); // one wasm call per curve
       for (let px = 0; px <= W; px += 1) {
-        const x = x0 + px / scale;
-        let y: number; try { y = f(x); } catch { y = NaN; }
+        const y = ys[px];
         const py = H / 2 - (y - cy) * scale;
         if (!isFinite(y) || Math.abs(py) > H * 20 || (pen && Math.abs(py - lastY) > H * 2)) { pen = false; lastY = py; continue; }
         if (pen) g.lineTo(px, py); else g.moveTo(px, py);
@@ -83,7 +86,7 @@ export const graph: Mount = (root, ctx) => {
   canvas.addEventListener('pointermove', (e) => {
     const r = canvas.getBoundingClientRect();
     const mx = cx + (e.clientX - r.left - r.width / 2) / scale, my = cy - (e.clientY - r.top - r.height / 2) / scale;
-    readout.textContent = `x = ${fmtNum(mx, 5)}, y = ${fmtNum(my, 5)}` + compiled.map((f, i) => (f && fns[i].on ? `  ·  f${i + 1}(x) = ${fmtNum(f(mx), 6)}` : '')).join('');
+    readout.textContent = `x = ${fmtNum(mx, 5)}, y = ${fmtNum(my, 5)}` + compiled.map((f, i) => (f && fns[i].on ? `  ·  f${i + 1}(x) = ${fmtNum(f.eval(mx), 6)}` : '')).join('');
     const prev = pointers.get(e.pointerId);
     if (!prev) return;
     if (pointers.size === 1) { cx -= (e.clientX - prev.x) / scale; cy += (e.clientY - prev.y) / scale; }
@@ -109,39 +112,13 @@ export const graph: Mount = (root, ctx) => {
     note(ctx.isMobile ? 'Drag to pan, pinch to zoom.' : 'Drag to pan, scroll to zoom. Use x as the variable; implicit multiplication works (2x, 3sin(x)).'),
   );
   renderList();
-  return () => ro.disconnect();
+  return () => { ro.disconnect(); compiled.forEach((c) => c?.free()); };
 };
 
 // ================================================================== Equation solver
-type C = { re: number; im: number };
-const cfmt = (z: C) => (Math.abs(z.im) < 1e-12 ? fmtNum(z.re) : `${Math.abs(z.re) < 1e-12 ? '' : fmtNum(z.re) + ' '}${z.im < 0 ? '−' : Math.abs(z.re) < 1e-12 ? '' : '+'} ${fmtNum(Math.abs(z.im))}i`.trim());
-function cubicRoots(a: number, b: number, c: number, d: number): C[] {
-  // depressed cubic via Cardano with complex arithmetic fallback (trigonometric for 3 real roots)
-  b /= a; c /= a; d /= a;
-  const p = c - (b * b) / 3, q = (2 * b * b * b) / 27 - (b * c) / 3 + d, sh = -b / 3;
-  const disc = (q * q) / 4 + (p * p * p) / 27;
-  if (Math.abs(disc) < 1e-14) {
-    const u = Math.cbrt(-q / 2);
-    return [{ re: 2 * u + sh, im: 0 }, { re: -u + sh, im: 0 }, { re: -u + sh, im: 0 }];
-  }
-  if (disc < 0) {
-    const r = Math.sqrt(-(p * p * p) / 27), phi = Math.acos(Math.max(-1, Math.min(1, -q / (2 * r)))), m = 2 * Math.cbrt(r);
-    return [0, 1, 2].map((k) => ({ re: m * Math.cos((phi + 2 * Math.PI * k) / 3) + sh, im: 0 }));
-  }
-  const u = Math.cbrt(-q / 2 + Math.sqrt(disc)), v = Math.cbrt(-q / 2 - Math.sqrt(disc));
-  return [{ re: u + v + sh, im: 0 }, { re: -(u + v) / 2 + sh, im: (Math.sqrt(3) / 2) * (u - v) }, { re: -(u + v) / 2 + sh, im: -(Math.sqrt(3) / 2) * (u - v) }];
-}
-function solveLinearSystem(A: number[][], b: number[]): number[] | null {
-  const n = A.length, M = A.map((r, i) => [...r, b[i]]);
-  for (let c = 0; c < n; c++) {
-    let p = c; for (let r = c + 1; r < n; r++) if (Math.abs(M[r][c]) > Math.abs(M[p][c])) p = r;
-    if (Math.abs(M[p][c]) < 1e-12) return null;
-    [M[c], M[p]] = [M[p], M[c]];
-    for (let r = 0; r < n; r++) if (r !== c) { const f = M[r][c] / M[c][c]; for (let k = c; k <= n; k++) M[r][k] -= f * M[c][k]; }
-  }
-  return M.map((r, i) => r[n] / r[i]);
-}
-export const equation: Mount = (root) => {
+const cfmt = (z: Complex) => (Math.abs(z.im) < 1e-12 ? fmtNum(z.re) : `${Math.abs(z.re) < 1e-12 ? '' : fmtNum(z.re) + ' '}${z.im < 0 ? '−' : Math.abs(z.re) < 1e-12 ? '' : '+'} ${fmtNum(Math.abs(z.im))}i`.trim());
+export const equation: Mount = async (root) => {
+  const m = await mathcore();
   let mode = 'any';
   const body = h('div', { class: 'stack' });
   const out = h('div', { class: 'stack' });
@@ -153,20 +130,8 @@ export const equation: Mount = (root) => {
       const lo = num(-100), hi = num(100);
       body.append(field('Equation in x (use = or just an expression = 0)', eq), h('div', { class: 'grid2' }, field('Search from', lo), field('to', hi)),
         button('Solve', () => {
-          const [l, r] = eq.value.split('=');
-          const fl = compile(l, {}, ['x']), fr = r !== undefined ? compile(r, {}, ['x']) : () => 0;
-          const f = (x: number) => fl({ x }) - fr({ x });
-          const a = parseFloat(lo.value), b = parseFloat(hi.value), N = 20000, roots: number[] = [];
-          let px = a, pf = f(a);
-          for (let i = 1; i <= N; i++) {
-            const x = a + ((b - a) * i) / N, fx = f(x);
-            if (isFinite(pf) && isFinite(fx)) {
-              if (pf === 0) roots.push(px);
-              else if (pf * fx < 0) { let u = px, w = x, fu = pf; for (let k = 0; k < 100; k++) { const m = (u + w) / 2, fm = f(m); if (fu * fm <= 0) w = m; else { u = m; fu = fm; } } const rt = (u + w) / 2; if (Math.abs(f(rt)) < 1e-6 * (1 + Math.abs(fl({ x: rt })))) roots.push(rt); }
-            }
-            px = x; pf = fx;
-          }
-          const uniq = roots.filter((r, i) => i === 0 || Math.abs(r - roots[i - 1]) > 1e-7);
+          const ex = m.compile(eq.value);
+          const uniq = (() => { try { return ex.roots(parseFloat(lo.value), parseFloat(hi.value)); } finally { ex.free(); } })();
           clear(out).append(card('Real solutions', uniq.length ? h('div', { class: 'big-results' }, uniq.slice(0, 20).map((r, i) => h('button', { class: 'big-result', type: 'button', onclick: () => copy(fmtNum(r)) }, h('span', { class: 'big-label' }, `x${uniq.length > 1 ? i + 1 : ''}`), h('span', { class: 'big-value' }, fmtNum(r, 10))))) : note('No real solution found in that range.', 'warn')));
         }, { variant: 'primary', icon: 'Variable' }));
     } else if (mode === 'quad' || mode === 'cubic') {
@@ -177,14 +142,14 @@ export const equation: Mount = (root) => {
         button('Solve', () => {
           const v = ins.map((x) => parseFloat(x.value));
           if (v.some((x) => !isFinite(x)) || v[0] === 0) throw new Error('Coefficient a must be a non-zero number.');
-          let roots: C[];
+          let roots: Complex[];
           if (mode === 'quad') {
             const [a, b, c] = v, D = b * b - 4 * a * c;
-            roots = D >= 0 ? [{ re: (-b + Math.sqrt(D)) / (2 * a), im: 0 }, { re: (-b - Math.sqrt(D)) / (2 * a), im: 0 }] : [{ re: -b / (2 * a), im: Math.sqrt(-D) / (2 * a) }, { re: -b / (2 * a), im: -Math.sqrt(-D) / (2 * a) }];
+            roots = m.quadratic(a, b, c);
             clear(out).append(card('Roots', h('div', { class: 'big-results' }, roots.map((r, i) => h('div', { class: 'big-result' }, h('span', { class: 'big-label' }, `x${i + 1}`), h('span', { class: 'big-value' }, cfmt(r))))),
               h('div', { class: 'kv' }, h('span', null, 'Discriminant'), h('span', null, fmtNum(D)), h('span', null, 'Vertex'), h('span', null, `(${fmtNum(-b / (2 * a))}, ${fmtNum(c - (b * b) / (4 * a))})`))));
           } else {
-            roots = cubicRoots(v[0], v[1], v[2], v[3]);
+            roots = m.cubic(v[0], v[1], v[2], v[3]);
             clear(out).append(card('Roots', h('div', { class: 'big-results' }, roots.map((r, i) => h('div', { class: 'big-result' }, h('span', { class: 'big-label' }, `x${i + 1}`), h('span', { class: 'big-value' }, cfmt(r)))))));
           }
         }, { variant: 'primary', icon: 'Variable' }));
@@ -205,7 +170,7 @@ export const equation: Mount = (root) => {
       body.append(segmented([['2', '2 unknowns'], ['3', '3 unknowns'], ['4', '4 unknowns']], '2', (v) => { n = +v; build(); }), h('div', { class: 'scroll-x' }, grid),
         button('Solve', () => {
           const A = cells.map((r) => r.slice(0, n).map((x) => parseFloat(x.value))), b = cells.map((r) => parseFloat(r[n].value));
-          const s = solveLinearSystem(A, b);
+          const s = m.solveLinear(A, b);
           clear(out).append(card('Solution', s ? h('div', { class: 'big-results' }, s.map((v, i) => h('div', { class: 'big-result' }, h('span', { class: 'big-label' }, 'xyzw'[i]), h('span', { class: 'big-value' }, fmtNum(v))))) : note('No unique solution (the equations are dependent or inconsistent).', 'warn')));
         }, { variant: 'primary', icon: 'Variable' }));
       build();
@@ -217,8 +182,8 @@ export const equation: Mount = (root) => {
 
 // ================================================================== Statistics
 const parseNums = (s: string) => s.split(/[\s,;]+/).map((x) => x.trim()).filter(Boolean).map(Number).filter((x) => isFinite(x));
-function quantile(sorted: number[], q: number) { const pos = (sorted.length - 1) * q, lo = Math.floor(pos), hi = Math.ceil(pos); return sorted[lo] + (sorted[hi] - sorted[lo]) * (pos - lo); }
-export const stats: Mount = (root) => {
+export const stats: Mount = async (root) => {
+  const m = await mathcore();
   const ta = textarea({ rows: 6, value: '12, 15, 15, 18, 21, 24, 24, 24, 30', placeholder: 'Numbers separated by commas, spaces or new lines' });
   const xy = textarea({ rows: 5, value: '', placeholder: 'Optional regression: one "x, y" pair per line' });
   const out = h('div', { class: 'stack' });
@@ -226,26 +191,18 @@ export const stats: Mount = (root) => {
     clear(out);
     const xs = parseNums(ta.value);
     if (xs.length) {
-      const n = xs.length, s = [...xs].sort((a, b) => a - b), sum = xs.reduce((a, b) => a + b, 0), mean = sum / n;
-      const ss = xs.reduce((a, x) => a + (x - mean) ** 2, 0), varP = ss / n, varS = n > 1 ? ss / (n - 1) : NaN;
-      const freq = new Map<number, number>(); xs.forEach((x) => freq.set(x, (freq.get(x) || 0) + 1));
-      const maxF = Math.max(...freq.values()), modes = [...freq].filter(([, f]) => f === maxF && maxF > 1).map(([v]) => v);
-      const q1 = quantile(s, 0.25), q3 = quantile(s, 0.75), sd = Math.sqrt(varP);
-      const skew = sd ? xs.reduce((a, x) => a + ((x - mean) / sd) ** 3, 0) / n : NaN;
-      const rows: Array<[string, number | string]> = [['Count', n], ['Sum', sum], ['Min', s[0]], ['Max', s[n - 1]], ['Range', s[n - 1] - s[0]], ['Q1 (25%)', q1], ['Q3 (75%)', q3], ['IQR', q3 - q1],
-        ['Variance (population)', varP], ['Variance (sample)', varS], ['Std dev (sample)', Math.sqrt(varS)], ['Geometric mean', xs.every((x) => x > 0) ? Math.exp(xs.reduce((a, x) => a + Math.log(x), 0) / n) : NaN],
-        ['Harmonic mean', xs.every((x) => x > 0) ? n / xs.reduce((a, x) => a + 1 / x, 0) : NaN], ['Skewness', skew], ['Sorted', s.map((x) => fmtNum(x)).join(', ')]];
+      const s = m.stats(xs);
+      const rows: Array<[string, number | string]> = [['Count', s.count], ['Sum', s.sum], ['Min', s.min], ['Max', s.max], ['Range', s.range], ['Q1 (25%)', s.q1], ['Q3 (75%)', s.q3], ['IQR', s.iqr],
+        ['Variance (population)', s.varP], ['Variance (sample)', s.varS], ['Std dev (sample)', s.sdS], ['Geometric mean', s.geomean], ['Harmonic mean', s.harmmean], ['Skewness', s.skew], ['Sorted', s.sorted.map((x) => fmtNum(x)).join(', ')]];
       out.append(card('Summary',
-        h('div', { class: 'big-results' }, ...([['Mean', fmtNum(mean)], ['Median', fmtNum(quantile(s, 0.5))], ['Mode', modes.length ? modes.map((m) => fmtNum(m)).join(', ') : 'none'], ['Std dev (population)', fmtNum(sd)]] as Array<[string, string]>).map(([l, v]) => h('button', { class: 'big-result', type: 'button', onclick: () => copy(v) }, h('span', { class: 'big-label' }, l), h('span', { class: 'big-value' }, v)))),
+        h('div', { class: 'big-results' }, ...([['Mean', fmtNum(s.mean)], ['Median', fmtNum(s.median)], ['Mode', s.modes.length ? s.modes.map((x) => fmtNum(x)).join(', ') : 'none'], ['Std dev (population)', fmtNum(s.sdP)]] as Array<[string, string]>).map(([l, v]) => h('button', { class: 'big-result', type: 'button', onclick: () => copy(v) }, h('span', { class: 'big-label' }, l), h('span', { class: 'big-value' }, v)))),
         h('div', { class: 'kv' }, rows.flatMap(([l, v]) => [h('span', null, l), h('span', null, typeof v === 'number' ? fmtNum(v) : v)]))));
     }
     const pairs = xy.value.split('\n').map((l) => parseNums(l)).filter((p) => p.length >= 2);
     if (pairs.length >= 2) {
-      const n = pairs.length, mx = pairs.reduce((a, p) => a + p[0], 0) / n, my = pairs.reduce((a, p) => a + p[1], 0) / n;
-      let sxy = 0, sxx = 0, syy = 0; pairs.forEach(([x, y]) => { sxy += (x - mx) * (y - my); sxx += (x - mx) ** 2; syy += (y - my) ** 2; });
-      const m = sxy / sxx, c = my - m * mx, r = sxy / Math.sqrt(sxx * syy);
-      out.append(card('Linear regression', h('div', { class: 'big-results' }, h('div', { class: 'big-result' }, h('span', { class: 'big-label' }, 'Best-fit line'), h('span', { class: 'big-value' }, `y = ${fmtNum(m, 6)}x ${c < 0 ? '−' : '+'} ${fmtNum(Math.abs(c), 6)}`))),
-        h('div', { class: 'kv' }, h('span', null, 'Correlation r'), h('span', null, fmtNum(r, 6)), h('span', null, 'R²'), h('span', null, fmtNum(r * r, 6)), h('span', null, 'Pairs'), h('span', null, String(n)))));
+      const r = m.regress(pairs.map((p) => p[0]), pairs.map((p) => p[1]));
+      out.append(card('Linear regression', h('div', { class: 'big-results' }, h('div', { class: 'big-result' }, h('span', { class: 'big-label' }, 'Best-fit line'), h('span', { class: 'big-value' }, `y = ${fmtNum(r.slope, 6)}x ${r.intercept < 0 ? '−' : '+'} ${fmtNum(Math.abs(r.intercept), 6)}`))),
+        h('div', { class: 'kv' }, h('span', null, 'Correlation r'), h('span', null, fmtNum(r.r, 6)), h('span', null, 'R²'), h('span', null, fmtNum(r.r * r.r, 6)), h('span', null, 'Pairs'), h('span', null, String(pairs.length)))));
     }
   };
   ta.addEventListener('input', run); xy.addEventListener('input', run);
@@ -261,31 +218,9 @@ const parseMat = (s: string): Mat => {
   return m;
 };
 const matStr = (m: Mat) => m.map((r) => r.map((x) => fmtNum(Math.abs(x) < 1e-12 ? 0 : x, 8)).join('\t')).join('\n');
-function det(m: Mat): number {
-  const n = m.length; const a = m.map((r) => [...r]); let d = 1;
-  for (let c = 0; c < n; c++) {
-    let p = c; for (let r = c + 1; r < n; r++) if (Math.abs(a[r][c]) > Math.abs(a[p][c])) p = r;
-    if (Math.abs(a[p][c]) < 1e-14) return 0;
-    if (p !== c) { [a[p], a[c]] = [a[c], a[p]]; d = -d; }
-    d *= a[c][c];
-    for (let r = c + 1; r < n; r++) { const f = a[r][c] / a[c][c]; for (let k = c; k < n; k++) a[r][k] -= f * a[c][k]; }
-  }
-  return d;
-}
-function inverse(m: Mat): Mat {
-  const n = m.length; const a = m.map((r, i) => [...r, ...Array.from({ length: n }, (_, j) => (i === j ? 1 : 0))]);
-  for (let c = 0; c < n; c++) {
-    let p = c; for (let r = c + 1; r < n; r++) if (Math.abs(a[r][c]) > Math.abs(a[p][c])) p = r;
-    if (Math.abs(a[p][c]) < 1e-14) throw new Error('Matrix is singular (no inverse).');
-    [a[p], a[c]] = [a[c], a[p]];
-    const pv = a[c][c]; for (let k = 0; k < 2 * n; k++) a[c][k] /= pv;
-    for (let r = 0; r < n; r++) if (r !== c) { const f = a[r][c]; for (let k = 0; k < 2 * n; k++) a[r][k] -= f * a[c][k]; }
-  }
-  return a.map((r) => r.slice(n));
-}
-const mul = (a: Mat, b: Mat): Mat => { if (a[0].length !== b.length) throw new Error('Columns of A must equal rows of B.'); return a.map((r) => b[0].map((_, j) => r.reduce((s, x, k) => s + x * b[k][j], 0))); };
-function rank(m: Mat) { const a = m.map((r) => [...r]); let rk = 0; const rows = a.length, cols = a[0].length; for (let c = 0; c < cols && rk < rows; c++) { let p = rk; for (let r = rk + 1; r < rows; r++) if (Math.abs(a[r][c]) > Math.abs(a[p][c])) p = r; if (Math.abs(a[p][c]) < 1e-10) continue; [a[p], a[rk]] = [a[rk], a[p]]; for (let r = rk + 1; r < rows; r++) { const f = a[r][c] / a[rk][c]; for (let k = c; k < cols; k++) a[r][k] -= f * a[rk][k]; } rk++; } return rk; }
-export const matrix: Mount = (root) => {
+export const matrix: Mount = async (root) => {
+  const m = await mathcore();
+  const mul = (a: Mat, b: Mat) => m.matmul(a, b);
   const A = textarea({ rows: 4, mono: true, value: '2 1 0\n1 3 1\n0 1 4' }), B = textarea({ rows: 4, mono: true, value: '1 0 0\n0 1 0\n0 0 1' });
   const out = h('pre', { class: 'mat-out' });
   const pw = input({ type: 'number', value: 2 });
@@ -296,52 +231,26 @@ export const matrix: Mount = (root) => {
       op('A + B', () => { const a = parseMat(A.value), b = parseMat(B.value); if (a.length !== b.length || a[0].length !== b[0].length) throw new Error('Same size needed.'); return a.map((r, i) => r.map((x, j) => x + b[i][j])); }),
       op('A − B', () => { const a = parseMat(A.value), b = parseMat(B.value); if (a.length !== b.length || a[0].length !== b[0].length) throw new Error('Same size needed.'); return a.map((r, i) => r.map((x, j) => x - b[i][j])); }),
       op('A × B', () => mul(parseMat(A.value), parseMat(B.value))),
-      op('det(A)', () => fmtNum(det(sq(parseMat(A.value))))),
-      op('A⁻¹', () => inverse(sq(parseMat(A.value)))),
+      op('det(A)', () => fmtNum(m.det(sq(parseMat(A.value))))),
+      op('A⁻¹', () => { const r = m.inverse(sq(parseMat(A.value))); if (!r) throw new Error('Matrix is singular (no inverse).'); return r; }),
       op('Aᵀ', () => { const a = parseMat(A.value); return a[0].map((_, j) => a.map((r) => r[j])); }),
-      op('rank(A)', () => String(rank(parseMat(A.value)))),
+      op('rank(A)', () => String(m.rank(parseMat(A.value)))),
       op('trace(A)', () => fmtNum(sq(parseMat(A.value)).reduce((s, r, i) => s + r[i], 0))),
-      op('Aⁿ', () => { let a = sq(parseMat(A.value)); const n = parseInt(pw.value); if (!(n >= 1 && n <= 50)) throw new Error('n between 1 and 50'); let r = a; for (let i = 1; i < n; i++) r = mul(r, a); return r; }),
+      op('Aⁿ', () => { const a = sq(parseMat(A.value)); const n = parseInt(pw.value); if (!(n >= 1 && n <= 50)) throw new Error('n between 1 and 50'); let r = a; for (let i = 1; i < n; i++) r = mul(r, a); return r; }),
       h('span', { class: 'muted small' }, 'n ='), pw))),
     card('Result', out, button('Copy', () => copy(out.textContent || ''), { small: true, icon: 'Copy' })));
 };
 
-// ================================================================== Fractions (exact, BigInt)
-type Q = { n: bigint; d: bigint };
-const bgcd = (a: bigint, b: bigint): bigint => { a = a < 0n ? -a : a; b = b < 0n ? -b : b; while (b) [a, b] = [b, a % b]; return a; };
-const Qn = (n: bigint, d = 1n): Q => { if (d === 0n) throw new Error('Division by zero'); if (d < 0n) { n = -n; d = -d; } const g = bgcd(n, d) || 1n; return { n: n / g, d: d / g }; };
-const qadd = (a: Q, b: Q) => Qn(a.n * b.d + b.n * a.d, a.d * b.d), qsub = (a: Q, b: Q) => Qn(a.n * b.d - b.n * a.d, a.d * b.d);
-const qmul = (a: Q, b: Q) => Qn(a.n * b.n, a.d * b.d), qdiv = (a: Q, b: Q) => Qn(a.n * b.d, a.d * b.n);
-function qpow(a: Q, e: Q): Q { if (e.d !== 1n) throw new Error('Only whole-number powers keep fractions exact.'); let k = e.n, r = Qn(1n); const base = k < 0n ? qdiv(Qn(1n), a) : a; k = k < 0n ? -k : k; if (k > 1000n) throw new Error('Power too large'); for (let i = 0n; i < k; i++) r = qmul(r, base); return r; }
-function parseFrac(src: string): Q {
-  const s = src.replace(/×/g, '*').replace(/÷/g, '/').replace(/−/g, '-');
-  let i = 0;
-  const ws = () => { while (s[i] === ' ') i++; };
-  const num = (): Q => {
-    ws();
-    if (s[i] === '(') { i++; const v = expr(); ws(); if (s[i] !== ')') throw new Error('Missing )'); i++; return v; }
-    if (s[i] === '-') { i++; const v = factor(); return Qn(-v.n, v.d); }
-    const m = /^(\d+)(?:\.(\d+))?/.exec(s.slice(i)); if (!m) throw new Error(`Unexpected "${s[i] ?? 'end'}"`);
-    i += m[0].length;
-    let q = m[2] ? Qn(BigInt(m[1] + m[2]), 10n ** BigInt(m[2].length)) : Qn(BigInt(m[1]));
-    // mixed number "1 1/2"
-    const mixed = /^\s+(\d+)\/(\d+)/.exec(s.slice(i));
-    if (mixed && !m[2]) { i += mixed[0].length; q = qadd(q, Qn(BigInt(mixed[1]), BigInt(mixed[2]))); }
-    return q;
-  };
-  const factor = (): Q => { const b = num(); ws(); if (s[i] === '^') { i++; return qpow(b, factor()); } return b; };
-  const term = (): Q => { let v = factor(); for (;;) { ws(); if (s[i] === '*') { i++; v = qmul(v, factor()); } else if (s[i] === '/') { i++; v = qdiv(v, factor()); } else return v; } };
-  const expr = (): Q => { let v = term(); for (;;) { ws(); if (s[i] === '+') { i++; v = qadd(v, term()); } else if (s[i] === '-') { i++; v = qsub(v, term()); } else return v; } };
-  const v = expr(); ws(); if (i < s.length) throw new Error(`Unexpected "${s[i]}"`); return v;
-}
-export const fraction: Mount = (root) => {
+// ================================================================== Fractions (exact, mathcore int64 with overflow checks)
+export const fraction: Mount = async (root) => {
+  const m = await mathcore();
   const ex = input({ value: '3/4 + 5/6 × 2 1/2', attrs: { spellcheck: 'false' } });
   const out = h('div', { class: 'big-results' });
   const err = h('div');
   const run = () => {
     clear(out); clear(err);
     try {
-      const q = parseFrac(ex.value);
+      const q = m.fraction(ex.value);
       const whole = q.n / q.d, rem = (q.n < 0n ? -q.n : q.n) % q.d;
       const items: Array<[string, string]> = [['Fraction', q.d === 1n ? String(q.n) : `${q.n}/${q.d}`], ['Mixed number', q.d === 1n || whole === 0n ? (q.d === 1n ? String(q.n) : `${q.n}/${q.d}`) : `${whole} ${rem}/${q.d}`], ['Decimal', fmtNum(Number(q.n) / Number(q.d), 14)]];
       out.append(...items.map(([l, v]) => h('button', { class: 'big-result', type: 'button', onclick: () => copy(v) }, h('span', { class: 'big-label' }, l), h('span', { class: 'big-value' }, v))));
@@ -353,58 +262,31 @@ export const fraction: Mount = (root) => {
 };
 
 // ================================================================== Primes / LCM / GCD (BigInt)
-function modpow(b: bigint, e: bigint, m: bigint) { let r = 1n; b %= m; while (e > 0n) { if (e & 1n) r = (r * b) % m; b = (b * b) % m; e >>= 1n; } return r; }
-export function isPrime(n: bigint): boolean {
-  if (n < 2n) return false;
-  for (const p of [2n, 3n, 5n, 7n, 11n, 13n, 17n, 19n, 23n, 29n, 31n, 37n]) { if (n === p) return true; if (n % p === 0n) return false; }
-  let d = n - 1n, s = 0; while (!(d & 1n)) { d >>= 1n; s++; }
-  for (const a of [2n, 3n, 5n, 7n, 11n, 13n, 17n, 19n, 23n, 29n, 31n, 37n]) { // deterministic for n < 3.3e24
-    let x = modpow(a, d, n); if (x === 1n || x === n - 1n) continue;
-    let comp = true; for (let r = 1; r < s; r++) { x = (x * x) % n; if (x === n - 1n) { comp = false; break; } }
-    if (comp) return false;
-  }
-  return true;
-}
-function rho(n: bigint): bigint {
-  if (n % 2n === 0n) return 2n;
-  for (let c = 1n; ; c++) {
-    let x = 2n, y = 2n, d = 1n;
-    const f = (v: bigint) => (v * v + c) % n;
-    while (d === 1n) { x = f(x); y = f(f(y)); d = bgcd(x > y ? x - y : y - x, n); }
-    if (d !== n) return d;
-  }
-}
-export function factorize(n: bigint): bigint[] {
-  if (n < 2n) return [];
-  const out: bigint[] = [];
-  for (const p of [2n, 3n, 5n, 7n, 11n, 13n]) while (n % p === 0n) { out.push(p); n /= p; }
-  const stack = n > 1n ? [n] : [];
-  while (stack.length) { const m = stack.pop()!; if (isPrime(m)) out.push(m); else { const d = rho(m); stack.push(d, m / d); } }
-  return out.sort((a, b) => (a < b ? -1 : 1));
-}
-export const primes: Mount = (root) => {
+export const primes: Mount = async (root) => {
+  const m = await mathcore();
   const inp = input({ value: '360, 84, 1001', attrs: { spellcheck: 'false' } });
   const out = h('div', { class: 'stack' });
   const run = () => {
     clear(out);
+    const MAX = 2n ** 64n - 1n;
     const ns = inp.value.split(/[\s,;]+/).filter(Boolean).map((x) => { try { return BigInt(x.replace(/_/g, '')); } catch { return null; } }).filter((x): x is bigint => x !== null && x > 0n);
     if (!ns.length) return;
+    if (ns.some((n) => n > MAX)) { out.append(note('Numbers up to 18,446,744,073,709,551,615 (64-bit) are supported.', 'warn')); return; }
     if (ns.length > 1) {
-      const g = ns.reduce((a, b) => bgcd(a, b)), l = ns.reduce((a, b) => (a / bgcd(a, b)) * b);
+      const g = ns.reduce((a, b) => m.gcd(a, b)), l = ns.reduce((a, b) => (a === 0n || b === 0n ? 0n : m.lcm(a, b)));
       out.append(h('div', { class: 'big-results' }, h('div', { class: 'big-result' }, h('span', { class: 'big-label' }, 'GCD / HCF'), h('span', { class: 'big-value' }, String(g))), h('div', { class: 'big-result' }, h('span', { class: 'big-label' }, 'LCM'), h('span', { class: 'big-value' }, String(l)))));
     }
     out.append(card(null, h('div', { class: 'kv' }, ns.slice(0, 20).flatMap((n) => {
-      const f = n < 10n ** 30n ? factorize(n) : [];
+      const f = m.factor(n);
       const grouped = [...f.reduce((m, p) => m.set(p, (m.get(p) || 0) + 1), new Map<bigint, number>())].map(([p, k]) => (k > 1 ? `${p}^${k}` : `${p}`)).join(' × ');
-      let next = n + 1n; while (!isPrime(next)) next++;
-      return [h('strong', null, String(n)), h('span', null, isPrime(n) ? 'Prime ✓' : n === 1n ? '1 (neither prime nor composite)' : `${grouped}  ·  next prime ${next}`)];
+      const next = m.nextPrime(n);
+      return [h('strong', null, String(n)), h('span', null, m.isPrime(n) ? 'Prime ✓' : n === 1n ? '1 (neither prime nor composite)' : `${grouped}  ·  next prime ${next}`)];
     }))));
   };
   inp.addEventListener('input', run);
-  root.append(card(null, field('Numbers (one or more)', inp, 'Prime check (Miller–Rabin, exact up to 3·10²⁴), factorisation (Pollard rho), GCD and LCM of all numbers.')), out);
+  root.append(card(null, field('Numbers (one or more)', inp, 'Exact 64-bit prime test (deterministic Miller–Rabin), factorisation (Pollard rho), GCD and LCM — computed in mathcore.wasm.')), out);
   run();
 };
-void gcdNum;
 
 // ================================================================== Periodic table
 export const periodic: Mount = (root) => {

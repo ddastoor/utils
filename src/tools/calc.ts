@@ -1,7 +1,9 @@
 import { h, card, button, clear, copy, type Mount } from '../ui';
-import { evaluate, fmtNum } from '../lib/expr';
+import { mathcore, fmtNum } from '../wasm/mathcore';
 
-export const mount: Mount = (root, ctx) => {
+export const mount: Mount = async (root, ctx) => {
+  const m = await mathcore();
+  const evaluate = (src: string, env: { ans: number }, o: { deg: boolean }) => m.evaluate(src, { deg: o.deg, ans: env.ans });
   let deg = true, second = false, ans = 0, mem = 0, justEvaluated = false;
   const history: Array<[string, string]> = [];
 

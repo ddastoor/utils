@@ -486,6 +486,18 @@ the functions listed in `glue.c`. To upgrade libsodium: bump the crate version i
 run the self-test (`node wasm/crypto/test.mjs`), commit the new wasm.
 Last built from: libsodium **1.0.20-stable** (tarball signed 2025-04-05, crate 1.22.3).
 
+### 5.1b mathcore → `src/wasm/bin/mathcore.wasm`
+Own C (`wasm/mathcore/mathcore.c`, ~700 lines): expression compiler + bytecode VM (also evaluates whole plot ranges
+in one call), root finding, quadratic/cubic, det/inverse/matmul/rank/linear solve, statistics + regression,
+64-bit primes (deterministic Miller–Rabin) and Pollard-rho factorisation, exact fractions (int64 with overflow
+detection), arbitrary-length base conversion, Roman numerals, number→words (Indian + international), finance
+(EMI, amortisation, SIP, FD/RD, PPF, EPF, NPS, prepayment), health (BMI, BMR, body fat, ideal weight), haversine.
+`wasm/mathcore/build.sh` (exports every `API m_*` function). TS wrapper: `src/wasm/mathcore.ts` (`bindMathcore`
+works in the browser and in Node tests). Tests: `tests/unit/mathcore.test.mjs` (~150 known-answer checks).
+
+**Rebuild everything we compile ourselves:** `ZIG=/path/to/zig wasm/build-all.sh` (builds each module, then runs
+the unit tests).
+
 ### 5.2 Image processing → `src/wasm/bin/imgproc.wasm`
 Own C (`wasm/imgproc/imgproc.c`). `wasm/imgproc/build.sh` compiles with
 `zig cc --target=wasm32-wasi -O3 -msimd128 -mexec-model=reactor`. Test: `node wasm/imgproc/test.mjs`.
@@ -532,10 +544,25 @@ npm run dev        # http://localhost:5173  (vendor files copied first)
 npm run build      # → dist/
 npm run preview    # serve dist/
 ```
-Testing uses the pre-installed Playwright Chromium (`require('playwright')`), flags
-`--use-fake-ui-for-media-stream --use-fake-device-for-media-stream --auto-select-desktop-capture-source=Entire screen`
-for camera/screen tools. `tests/e2e.mjs` opens every tab and runs a smoke test; also check the console
-for CSP violations.
+**Tests (fast and parallel — owner requirement):**
+```bash
+npm test                 # node tests/unit.mjs — all unit suites concurrently in one process (~1 s)
+npm run build && npm run test:e2e   # node tests/e2e.mjs — one Chromium, suites run concurrently (~15 s)
+node tests/unit.mjs mathcore        # filter by file name; same for e2e
+E2E_CONCURRENCY=8 node tests/e2e.mjs
+```
+- `tests/unit/*.test.mjs` export `default async (t, { load, wasm })`; `t.ok/eq/near/throws`; `load()` = Vite SSR
+  import of any `src/` module; `wasm(name)` instantiates `src/wasm/bin/<name>.wasm` with a WASI shim.
+- `tests/e2e/*.e2e.mjs` export `default async ({ base, page, ok, download, tmp, devices })`; `page(opts)` makes an
+  isolated context (console errors collected in `page.errors`).
+- Every tool must have e2e coverage of its main flow with known answers; every wasm module must have unit tests.
+- `no-external.e2e.mjs` visits every route on desktop + phone (sharded) and fails on any request to another host,
+  any CSP violation or any page error.
+- `tests/shoot.mjs <dir> <routes> [desktop|mobile|both]` takes screenshots for visual checks (phone = iPhone 13).
+Playwright is the pre-installed global one (no `playwright install`); CI runs build + unit tests.
+
+**Compute rule (owner):** algorithms and loops run in WebAssembly (own C where practical); TypeScript only builds
+UI, formats output and does trivial glue arithmetic (unit factors, a single multiplication, Date/Intl handling).
 
 **Deploy:** `.github/workflows/pages.yml` builds and publishes on push to `main` or the working branch.
 One-time setup by the owner: GitHub → repo **Settings → Pages → Source: GitHub Actions**. If the

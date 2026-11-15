@@ -1,0 +1,120 @@
+// Typed wrapper around mathcore.wasm (own C: wasm/mathcore/mathcore.c).
+// `bindMathcore(exports)` is environment-neutral so Node unit tests can use it too.
+import { instantiateWasi } from './wasi';
+import wasmUrl from './bin/mathcore.wasm?url';
+
+export type Complex = { re: number; im: number };
+export interface Stats { count: number; sum: number; mean: number; median: number; min: number; max: number; range: number; q1: number; q3: number; iqr: number; varP: number; varS: number; sdP: number; sdS: number; geomean: number; harmmean: number; skew: number; sorted: number[]; modes: number[] }
+
+export function bindMathcore(e: any) {
+  const mem = () => e.memory.buffer as ArrayBuffer;
+  const enc = new TextEncoder(), dec = new TextDecoder();
+  const withStr = <T>(s: string, f: (p: number, n: number) => T): T => {
+    const b = enc.encode(s); const p = e.m_malloc(b.length + 1);
+    new Uint8Array(mem(), p, b.length + 1).set([...b, 0]);
+    try { return f(p, b.length); } finally { e.m_free(p); }
+  };
+  const withF64 = <T>(n: number, f: (p: number) => T, init?: ArrayLike<number>): T => {
+    const p = e.m_malloc(Math.max(1, n) * 8);
+    if (init) new Float64Array(mem(), p, n).set(init);
+    try { return f(p); } finally { e.m_free(p); }
+  };
+  const f64 = (p: number, n: number) => Array.from(new Float64Array(mem(), p, n));
+  const cstr = (p: number) => { const m = new Uint8Array(mem()); let q = p; while (m[q]) q++; return dec.decode(m.subarray(p, q)); };
+  const err = () => cstr(e.m_error());
+
+  /** A compiled expression; call free() when done (handles are limited). */
+  class Expr {
+    constructor(public h: number) {}
+    eval(x = 0, ans = 0, y = 0) { return e.m_expr_eval(this.h, x, y, 0, 0, ans) as number; }
+    range(x0: number, dx: number, n: number): Float64Array { return withF64(n, (p) => { e.m_expr_eval_range(this.h, x0, dx, n, p); return new Float64Array(mem().slice(p, p + n * 8)); }); }
+    roots(a: number, b: number, samples = 20000, max = 50) { return withF64(max, (p) => f64(p, e.m_find_roots(this.h, a, b, samples, p, max))); }
+    uses(v: 'x' | 'y' | 'z' | 't' | 'ans') { return !!e.m_expr_uses(this.h, ['x', 'y', 'z', 't', 'ans'].indexOf(v)); }
+    free() { e.m_expr_free(this.h); }
+  }
+
+  return {
+    compile(src: string, deg = false): Expr {
+      const h = withStr(src, (p, n) => e.m_expr_compile(p, n, deg ? 1 : 0));
+      if (!h) throw new Error(err());
+      return new Expr(h);
+    },
+    /** one-shot evaluation */
+    evaluate(src: string, opts: { deg?: boolean; x?: number; ans?: number } = {}) {
+      const ex = this.compile(src, opts.deg);
+      try { return ex.eval(opts.x ?? 0, opts.ans ?? 0); } finally { ex.free(); }
+    },
+    quadratic(a: number, b: number, c: number): Complex[] { return withF64(4, (p) => { e.m_quadratic(a, b, c, p); const r = f64(p, 4); return [{ re: r[0], im: r[1] }, { re: r[2], im: r[3] }]; }); },
+    cubic(a: number, b: number, c: number, d: number): Complex[] { return withF64(6, (p) => { e.m_cubic(a, b, c, d, p); const r = f64(p, 6); return [0, 1, 2].map((k) => ({ re: r[2 * k], im: r[2 * k + 1] })); }); },
+    det(A: number[][]) { const n = A.length; return withF64(n * n, (p) => e.m_det(p, n) as number, A.flat()); },
+    inverse(A: number[][]): number[][] | null {
+      const n = A.length;
+      return withF64(n * n, (pa) => withF64(n * n, (po) => (e.m_inverse(pa, n, po) ? Array.from({ length: n }, (_, r) => f64(po + r * n * 8, n)) : null)), A.flat());
+    },
+    matmul(A: number[][], B: number[][]): number[][] {
+      const r1 = A.length, c1 = A[0].length, c2 = B[0].length;
+      if (B.length !== c1) throw new Error('Columns of A must equal rows of B.');
+      return withF64(r1 * c1, (pa) => withF64(c1 * c2, (pb) => withF64(r1 * c2, (po) => { e.m_matmul(pa, r1, c1, pb, c2, po); return Array.from({ length: r1 }, (_, r) => f64(po + r * c2 * 8, c2)); }), B.flat()), A.flat());
+    },
+    rank(A: number[][]) { return withF64(A.length * A[0].length, (p) => e.m_rank(p, A.length, A[0].length) as number, A.flat()); },
+    solveLinear(A: number[][], b: number[]): number[] | null { const n = A.length; return withF64(n * n, (pa) => withF64(n, (pb) => withF64(n, (px) => (e.m_solve_linear(pa, pb, n, px) ? f64(px, n) : null)), b), A.flat()); },
+    stats(xs: number[]): Stats {
+      const n = xs.length;
+      return withF64(n, (px) => withF64(17, (po) => {
+        e.m_stats(px, n, po);
+        const o = f64(po, 17), sorted = f64(px, n);
+        const modes = withF64(Math.max(1, n), (pm) => f64(pm, e.m_modes(px, n, pm, n)));
+        const k = ['count', 'sum', 'mean', 'median', 'min', 'max', 'range', 'q1', 'q3', 'iqr', 'varP', 'varS', 'sdP', 'sdS', 'geomean', 'harmmean', 'skew'];
+        return Object.assign(Object.fromEntries(k.map((name, i) => [name, o[i]])), { sorted, modes }) as unknown as Stats;
+      }), xs);
+    },
+    regress(x: number[], y: number[]) { const n = x.length; return withF64(n, (px) => withF64(n, (py) => withF64(3, (po) => { e.m_regress(px, py, n, po); const [slope, intercept, r] = f64(po, 3); return { slope, intercept, r }; }), y), x); },
+    isPrime: (n: bigint) => !!e.m_is_prime(BigInt.asUintN(64, n)),
+    factor(n: bigint): bigint[] { const p = e.m_malloc(64 * 8); try { const k = e.m_factor(BigInt.asUintN(64, n), p); return Array.from(new BigUint64Array(mem(), p, k)); } finally { e.m_free(p); } },
+    gcd: (a: bigint, b: bigint) => e.m_gcd(a, b) as bigint,
+    lcm: (a: bigint, b: bigint) => e.m_lcm(a, b) as bigint,
+    nextPrime: (n: bigint) => e.m_next_prime(n) as bigint,
+    fraction(src: string): { n: bigint; d: bigint } {
+      const p = e.m_malloc(16);
+      try {
+        const ok = withStr(src, (s, len) => e.m_frac_eval(s, len, p));
+        if (!ok) throw new Error(err());
+        const v = new BigInt64Array(mem(), p, 2);
+        return { n: v[0], d: v[1] };
+      } finally { e.m_free(p); }
+    },
+    baseConvert(src: string, from: number, to: number): string | null {
+      const cap = src.length * 6 + 16, out = e.m_malloc(cap);
+      try { const n = withStr(src, (p, len) => e.m_base_convert(p, len, from, to, out, cap)); return n < 0 ? null : cstr(out); } finally { e.m_free(out); }
+    },
+    toRoman(n: number) { const p = e.m_malloc(32); try { return e.m_to_roman(n, p) ? cstr(p) : null; } finally { e.m_free(p); } },
+    fromRoman(s: string) { const v = withStr(s.trim(), (p, n) => e.m_from_roman(p, n)) as number; return v || null; },
+    words(n: bigint, indian: boolean) { const p = e.m_malloc(1024); try { e.m_words(n, indian ? 1 : 0, p, 1024); return cstr(p); } finally { e.m_free(p); } },
+    emi: (P: number, annual: number, months: number) => e.m_emi(P, annual, months) as number,
+    amortizeYearly(P: number, annual: number, months: number) { const max = 100; return withF64(max * 3, (p) => { const y = e.m_amortize_yearly(P, annual, months, p, max); const r = f64(p, y * 3); return Array.from({ length: y }, (_, i) => ({ principal: r[i * 3], interest: r[i * 3 + 1], balance: r[i * 3 + 2] })); }); },
+    sip(amount: number, annual: number, years: number, stepup: number, lump: boolean) { return withF64(2, (p) => { e.m_sip(amount, annual, years, stepup, lump ? 1 : 0, p); const [invested, value] = f64(p, 2); return { invested, value }; }); },
+    fd(amount: number, annual: number, years: number, comp: number, rd: boolean) { return withF64(2, (p) => { e.m_fd(amount, annual, years, comp, rd ? 1 : 0, p); const [invested, value] = f64(p, 2); return { invested, value }; }); },
+    ppf: (yearly: number, annual: number, years: number) => e.m_ppf(yearly, annual, years) as number,
+    epf(basic: number, age: number, retire: number, balance: number, inc: number, annual: number) { return withF64(2, (p) => { e.m_epf(basic, age, retire, balance, inc, annual, p); const [corpus, contrib] = f64(p, 2); return { corpus, contrib }; }); },
+    nps(monthly: number, age: number, annual: number, annuityPct: number, annuityRate: number) { return withF64(4, (p) => { e.m_nps(monthly, age, annual, annuityPct, annuityRate, p); const [corpus, pension, lump, invested] = f64(p, 4); return { corpus, pension, lump, invested }; }); },
+    prepay(P: number, annual: number, months: number, pp: number, when: number, yearly: boolean, keepTenure: boolean) { return withF64(5, (p) => { e.m_prepay(P, annual, months, pp, when, yearly ? 1 : 0, keepTenure ? 1 : 0, p); const [emi, baseInterest, interest, monthsTaken, newEmi] = f64(p, 5); return { emi, baseInterest, interest, monthsTaken, newEmi }; }); },
+    bmi: (kg: number, m: number) => e.m_bmi(kg, m) as number,
+    bmr: (male: boolean, kg: number, cm: number, age: number) => e.m_bmr(male ? 1 : 0, kg, cm, age) as number,
+    bodyfat: (male: boolean, h: number, neck: number, waist: number, hip: number) => e.m_bodyfat(male ? 1 : 0, h, neck, waist, hip) as number,
+    idealWeight(male: boolean, cm: number) { return withF64(4, (p) => { e.m_idealweight(male ? 1 : 0, cm, p); const [devine, robinson, miller, hamwi] = f64(p, 4); return { devine, robinson, miller, hamwi }; }); },
+    haversine(lat1: number, lon1: number, lat2: number, lon2: number) { return withF64(2, (p) => { e.m_haversine(lat1, lon1, lat2, lon2, p); const [km, bearing] = f64(p, 2); return { km, bearing }; }); },
+  };
+}
+export type Mathcore = ReturnType<typeof bindMathcore>;
+
+let inst: Promise<Mathcore> | null = null;
+export const mathcore = () => (inst ||= instantiateWasi(wasmUrl).then((x) => bindMathcore(x.exports)));
+
+/** Display formatting (presentation only): up to 12 significant digits, no float noise. */
+export function fmtNum(x: number, sig = 12): string {
+  if (!isFinite(x)) return isNaN(x) ? 'Error' : x > 0 ? '∞' : '−∞';
+  if (x === 0) return '0';
+  const a = Math.abs(x);
+  if (a >= 1e15 || a < 1e-9) return x.toExponential(sig - 3).replace(/\.?0+e/, 'e').replace('e+', 'e');
+  return String(parseFloat(x.toPrecision(sig)));
+}

@@ -1,5 +1,6 @@
 import { h, card, field, input, select, segmented, button, clear, stack, copy, note, type Mount } from '../ui';
 import { calcForm, fmtINR, fmtN, need, today } from '../lib/form';
+import { mathcore } from '../wasm/mathcore';
 
 // ------------------------------------------------------------------ Unit converter
 const UNITS: Record<string, { label: string; units: Record<string, number | [(x: number) => number, (x: number) => number]> }> = {
@@ -108,11 +109,8 @@ export const dates: Mount = (root) => {
 };
 
 // ------------------------------------------------------------------ EMI
-export function emiCalc(P: number, annual: number, months: number) {
-  const r = annual / 1200;
-  return r === 0 ? P / months : (P * r * Math.pow(1 + r, months)) / (Math.pow(1 + r, months) - 1);
-}
-export const emi: Mount = (root) => {
+export const emi: Mount = async (root) => {
+  const m = await mathcore();
   calcForm(root, [
     { key: 'p', label: 'Loan amount', value: 2500000, unit: '₹' },
     { key: 'r', label: 'Interest rate', value: 8.5, unit: '% p.a.', step: 0.05 },
@@ -121,14 +119,8 @@ export const emi: Mount = (root) => {
   ], (v) => {
     need(v.p, v.r, v.n);
     const months = Math.round(v.unit === 'y' ? v.n * 12 : v.n);
-    const e = emiCalc(v.p, v.r, months), total = e * months, interest = total - v.p;
-    // yearly amortisation
-    let bal = v.p; const rows: Node[] = [];
-    for (let y = 1; y <= Math.ceil(months / 12); y++) {
-      let pi = 0, ii = 0;
-      for (let m = 0; m < 12 && (y - 1) * 12 + m < months; m++) { const i = bal * v.r / 1200; ii += i; pi += e - i; bal -= e - i; }
-      rows.push(h('tr', null, h('td', null, `Year ${y}`), h('td', { class: 'num' }, fmtINR(pi)), h('td', { class: 'num' }, fmtINR(ii)), h('td', { class: 'num' }, fmtINR(Math.max(0, bal)))));
-    }
+    const e = m.emi(v.p, v.r, months), total = e * months, interest = total - v.p;
+    const rows = m.amortizeYearly(v.p, v.r, months).map((y, i) => h('tr', null, h('td', null, `Year ${i + 1}`), h('td', { class: 'num' }, fmtINR(y.principal)), h('td', { class: 'num' }, fmtINR(y.interest)), h('td', { class: 'num' }, fmtINR(y.balance))));
     const pp = (v.p / total) * 100;
     return {
       big: [['Monthly EMI', fmtINR(Math.round(e))], ['Total interest', fmtINR(Math.round(interest))], ['Total payment', fmtINR(Math.round(total))]],
@@ -158,7 +150,8 @@ export const gst: Mount = (root) => {
 };
 
 // ------------------------------------------------------------------ SIP
-export const sip: Mount = (root) => {
+export const sip: Mount = async (root) => {
+  const m = await mathcore();
   calcForm(root, [
     { key: 'mode', label: 'Investment', type: 'seg', value: 'sip', options: [['sip', 'Monthly SIP'], ['lump', 'Lumpsum']] },
     { key: 'amt', label: 'Amount', value: 10000, unit: '₹' },
@@ -167,19 +160,14 @@ export const sip: Mount = (root) => {
     { key: 'step', label: 'Annual step-up (SIP)', value: 0, unit: '%' },
   ], (v) => {
     need(v.amt, v.r, v.y);
-    let invested = 0, value = 0;
-    if (v.mode === 'lump') { invested = v.amt; value = v.amt * Math.pow(1 + v.r / 100, v.y); }
-    else {
-      const i = v.r / 1200; // nominal monthly rate — the convention used by Indian SIP calculators (AMFI, Groww)
-      let m = v.amt;
-      for (let k = 0; k < v.y * 12; k++) { if (k && k % 12 === 0) m *= 1 + (v.step || 0) / 100; value = (value + m) * (1 + i); invested += m; }
-    }
+    const { invested, value } = m.sip(v.amt, v.r, v.y, v.step || 0, v.mode === 'lump'); // nominal r/12 — the AMFI/Groww convention
     return { big: [['Maturity value', fmtINR(Math.round(value))], ['Invested', fmtINR(Math.round(invested))], ['Gains', fmtINR(Math.round(value - invested))]], rows: [['Wealth multiple', `${fmtN(value / invested, 2)}×`]] };
   });
 };
 
 // ------------------------------------------------------------------ FD / RD
-export const fd: Mount = (root) => {
+export const fd: Mount = async (root) => {
+  const m = await mathcore();
   calcForm(root, [
     { key: 'kind', label: 'Deposit', type: 'seg', value: 'fd', options: [['fd', 'Fixed deposit'], ['rd', 'Recurring deposit']] },
     { key: 'amt', label: 'Amount (FD) / monthly instalment (RD)', value: 100000, unit: '₹' },
@@ -189,10 +177,7 @@ export const fd: Mount = (root) => {
   ], (v) => {
     need(v.amt, v.r, v.y);
     const n = parseInt(v.comp), r = v.r / 100;
-    const grow = (P: number, t: number) => (n === 0 ? P * (1 + r * t) : P * Math.pow(1 + r / n, n * t));
-    let invested, value;
-    if (v.kind === 'fd') { invested = v.amt; value = grow(v.amt, v.y); }
-    else { const months = Math.round(v.y * 12); invested = v.amt * months; value = 0; for (let k = 0; k < months; k++) value += grow(v.amt, (months - k) / 12); }
+    const { invested, value } = m.fd(v.amt, v.r, v.y, n, v.kind === 'rd');
     return { big: [['Maturity value', fmtINR(Math.round(value))], ['Interest earned', fmtINR(Math.round(value - invested))], ['Invested', fmtINR(Math.round(invested))]], rows: [['Effective annual yield', n ? `${fmtN((Math.pow(1 + r / n, n) - 1) * 100, 3)}%` : `${v.r}% (simple)`]] };
   });
 };
@@ -217,29 +202,8 @@ export const percent: Mount = (root) => {
 };
 
 // ------------------------------------------------------------------ Number to words
-const ONES = ['', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve', 'thirteen', 'fourteen', 'fifteen', 'sixteen', 'seventeen', 'eighteen', 'nineteen'];
-const TENS = ['', '', 'twenty', 'thirty', 'forty', 'fifty', 'sixty', 'seventy', 'eighty', 'ninety'];
-const two = (n: number) => (n < 20 ? ONES[n] : TENS[Math.floor(n / 10)] + (n % 10 ? '-' + ONES[n % 10] : ''));
-const three = (n: number) => [n >= 100 ? ONES[Math.floor(n / 100)] + ' hundred' : '', n % 100 ? two(n % 100) : ''].filter(Boolean).join(' and ');
-export function wordsIndian(n: bigint): string {
-  if (n === 0n) return 'zero';
-  const parts: string[] = [];
-  const units: Array<[bigint, string]> = [[10n ** 7n, 'crore'], [10n ** 5n, 'lakh'], [1000n, 'thousand']];
-  const crores = n / 10n ** 7n;
-  if (crores > 0n) { parts.push(`${crores >= 100n ? wordsIndian(crores) : two(Number(crores))} crore`); n %= 10n ** 7n; }
-  for (const [u, name] of units.slice(1)) { const q = n / u; if (q > 0n) { parts.push(`${two(Number(q))} ${name}`); n %= u; } }
-  if (n > 0n) parts.push(three(Number(n)));
-  return parts.join(' ');
-}
-export function wordsIntl(n: bigint): string {
-  if (n === 0n) return 'zero';
-  const names = ['', 'thousand', 'million', 'billion', 'trillion', 'quadrillion', 'quintillion'];
-  const parts: string[] = [];
-  let i = 0;
-  while (n > 0n) { const c = Number(n % 1000n); if (c) parts.unshift(`${three(c)}${names[i] ? ' ' + names[i] : ''}`); n /= 1000n; i++; }
-  return parts.join(' ');
-}
-export const words: Mount = (root) => {
+export const words: Mount = async (root) => {
+  const m = await mathcore();
   calcForm(root, [
     { key: 'n', label: 'Amount', type: 'text', value: '1234567.50', placeholder: 'e.g. 125000' },
     { key: 'sys', label: 'System', type: 'seg', value: 'in', options: [['in', 'Indian (lakh, crore)'], ['intl', 'International (million)']] },
@@ -248,14 +212,16 @@ export const words: Mount = (root) => {
     const s = String(v.n).replace(/[,\s₹$]/g, '');
     if (!/^\d+(\.\d{1,2})?$/.test(s)) throw new Error('Enter a positive number with up to 2 decimals.');
     const [ip, fp = ''] = s.split('.');
+    if (ip.length > 19) throw new Error('Number too large.');
     const int = BigInt(ip), paise = parseInt((fp + '00').slice(0, 2));
-    const w = v.sys === 'in' ? wordsIndian(int) : wordsIntl(int);
+    const indian = v.sys === 'in';
     const cap = (x: string) => x.replace(/\b\w+/g, (w) => (w === 'and' ? w : w[0].toUpperCase() + w.slice(1)));
-    let text = cap(w);
-    if (v.cur === 'inr') text = `Rupees ${cap(w)}${paise ? ` and ${cap(two(paise))} Paise` : ''} Only`;
-    else if (v.cur === 'usd') text = `${cap(w)} Dollars${paise ? ` and ${cap(two(paise))} Cents` : ''} Only`;
-    else if (paise) text = `${cap(w)} point ${fp.split('').map((d) => ONES[+d] || 'zero').join(' ')}`;
-    const grouped = v.sys === 'in' ? Number(int).toLocaleString('en-IN') : Number(int).toLocaleString('en-US');
+    const w = cap(m.words(int, indian)), pw = cap(m.words(BigInt(paise), indian));
+    let text = w;
+    if (v.cur === 'inr') text = `Rupees ${w}${paise ? ` and ${pw} Paise` : ''} Only`;
+    else if (v.cur === 'usd') text = `${w} Dollars${paise ? ` and ${pw} Cents` : ''} Only`;
+    else if (fp) text = `${w} point ${fp.split('').map((d) => (d === '0' ? 'zero' : m.words(BigInt(d), true))).join(' ')}`;
+    const grouped = indian ? Number(int).toLocaleString('en-IN') : Number(int).toLocaleString('en-US');
     return { big: [['In words', text]], rows: [['Digits', grouped + (fp ? '.' + fp : '')]] };
   });
 };
@@ -290,7 +256,8 @@ export const timezone: Mount = (root) => {
 };
 
 // ------------------------------------------------------------------ BMI
-export const bmi: Mount = (root) => {
+export const bmi: Mount = async (root) => {
+  const m = await mathcore();
   calcForm(root, [
     { key: 'sys', label: 'Units', type: 'seg', value: 'm', options: [['m', 'Metric'], ['i', 'Imperial']] },
     { key: 'h', label: 'Height (cm or inches)', value: 170 },
@@ -299,7 +266,7 @@ export const bmi: Mount = (root) => {
   ], (v) => {
     need(v.h, v.w);
     const hm = v.sys === 'm' ? v.h / 100 : v.h * 0.0254, kg = v.sys === 'm' ? v.w : v.w * 0.45359237;
-    const b = kg / (hm * hm);
+    const b = m.bmi(kg, hm);
     const cuts = v.asian === 'asian' ? [18.5, 23, 25] : [18.5, 25, 30];
     const cat = b < cuts[0] ? 'Underweight' : b < cuts[1] ? 'Normal' : b < cuts[2] ? 'Overweight' : 'Obese';
     const lo = cuts[0] * hm * hm, hi = cuts[1] * hm * hm;
@@ -309,7 +276,8 @@ export const bmi: Mount = (root) => {
 };
 
 // ------------------------------------------------------------------ Calories
-export const calories: Mount = (root) => {
+export const calories: Mount = async (root) => {
+  const m = await mathcore();
   calcForm(root, [
     { key: 'sex', label: 'Sex', type: 'seg', value: 'm', options: [['m', 'Male'], ['f', 'Female']] },
     { key: 'age', label: 'Age', value: 30, unit: 'years' },
@@ -318,7 +286,7 @@ export const calories: Mount = (root) => {
     { key: 'act', label: 'Activity', type: 'select', value: '1.375', options: [['1.2', 'Sedentary (little exercise)'], ['1.375', 'Light (1–3 days/week)'], ['1.55', 'Moderate (3–5 days/week)'], ['1.725', 'Active (6–7 days/week)'], ['1.9', 'Very active (physical job)']] },
   ], (v) => {
     need(v.age, v.h, v.w);
-    const bmr = 10 * v.w + 6.25 * v.h - 5 * v.age + (v.sex === 'm' ? 5 : -161); // Mifflin–St Jeor
+    const bmr = m.bmr(v.sex === 'm', v.w, v.h, v.age); // Mifflin–St Jeor (mathcore)
     const tdee = bmr * parseFloat(v.act);
     return { big: [['Maintenance (TDEE)', `${fmtN(tdee, 0)} kcal/day`], ['BMR', `${fmtN(bmr, 0)} kcal/day`]], rows: [['Mild weight loss (−0.25 kg/wk)', `${fmtN(tdee - 275, 0)} kcal`], ['Weight loss (−0.5 kg/wk)', `${fmtN(tdee - 550, 0)} kcal`], ['Weight gain (+0.25 kg/wk)', `${fmtN(tdee + 275, 0)} kcal`], ['Formula', 'Mifflin–St Jeor']] };
   });
@@ -397,54 +365,44 @@ export const gpa: Mount = (root) => {
 };
 
 // ------------------------------------------------------------------ Number base
-export const base: Mount = (root) => {
+export const base: Mount = async (root) => {
+  const m = await mathcore();
   const bases: Array<[number, string]> = [[2, 'Binary'], [8, 'Octal'], [10, 'Decimal'], [16, 'Hexadecimal'], [36, 'Base 36']];
   const inputs = new Map<number, HTMLInputElement>();
   const custom = input({ type: 'number', value: 3, min: 2, max: 36 });
   const customOut = input({ attrs: { spellcheck: 'false' } });
-  let value = 255n;
-  const toStr = (v: bigint, b: number) => (v < 0n ? '-' + (-v).toString(b) : v.toString(b)).toUpperCase();
-  const parse = (s: string, b: number) => {
-    let t = s.trim().replace(/[_\s]/g, '').toLowerCase(), neg = false;
-    if (t.startsWith('-')) { neg = true; t = t.slice(1); }
-    t = t.replace(/^0[xob]/, '');
-    if (!t) throw 0;
-    let v = 0n;
-    for (const ch of t) { const d = parseInt(ch, 36); if (isNaN(d) || d >= b) throw 0; v = v * BigInt(b) + BigInt(d); }
-    return neg ? -v : v;
+  let value = '255', valueBase = 10; // canonical value kept as digits in some base (arbitrary precision in wasm)
+  const cb = () => Math.min(36, Math.max(2, parseInt(custom.value) || 2));
+  const sync = (except?: HTMLInputElement) => {
+    for (const [b, el] of inputs) if (el !== except) el.value = m.baseConvert(value, valueBase, b) ?? '';
+    if (customOut !== except) customOut.value = m.baseConvert(value, valueBase, cb()) ?? '';
   };
-  const sync = (except?: number) => {
-    for (const [b, el] of inputs) if (b !== except) el.value = toStr(value, b);
-    const cb = Math.min(36, Math.max(2, parseInt(custom.value) || 2));
-    if (except !== -1) customOut.value = toStr(value, cb);
-  };
+  const onEdit = (el: HTMLInputElement, b: () => number) => el.addEventListener('input', () => {
+    const ok = el.value.trim() && m.baseConvert(el.value, b(), 10) !== null;
+    el.classList.toggle('bad', !ok);
+    if (ok) { value = el.value; valueBase = b(); sync(el); }
+  });
   for (const [b] of bases) {
     const el = input({ attrs: { spellcheck: 'false', inputmode: b === 10 ? 'numeric' : 'text' } });
     el.classList.add('mono');
-    el.addEventListener('input', () => { try { value = parse(el.value, b); el.classList.remove('bad'); sync(b); } catch { el.classList.add('bad'); } });
+    onEdit(el, () => b);
     inputs.set(b, el);
   }
+  onEdit(customOut, cb);
   custom.addEventListener('input', () => sync());
-  customOut.addEventListener('input', () => { try { value = parse(customOut.value, Math.min(36, Math.max(2, parseInt(custom.value) || 2))); sync(-1); } catch { /* ignore */ } });
   root.append(card(null, stack(...bases.map(([b, n]) => field(`${n} (base ${b})`, inputs.get(b)!)), h('div', { class: 'grid2' }, field('Custom base', custom), field('Value in custom base', customOut)))),
-    note('Arbitrary precision (BigInt). Prefixes 0x, 0o, 0b are accepted.'));
+    note('Arbitrary precision (mathcore.wasm). Prefixes 0x, 0o, 0b and _ separators are accepted.'));
   sync();
 };
 
 // ------------------------------------------------------------------ Roman numerals
-const ROMAN: Array<[number, string]> = [[1000, 'M'], [900, 'CM'], [500, 'D'], [400, 'CD'], [100, 'C'], [90, 'XC'], [50, 'L'], [40, 'XL'], [10, 'X'], [9, 'IX'], [5, 'V'], [4, 'IV'], [1, 'I']];
-export function toRoman(n: number) { let s = ''; for (const [v, r] of ROMAN) while (n >= v) { s += r; n -= v; } return s; }
-export function fromRoman(s: string) {
-  const t = s.toUpperCase().trim();
-  if (!/^M{0,3}(CM|CD|D?C{0,3})(XC|XL|L?X{0,3})(IX|IV|V?I{0,3})$/.test(t) || !t) throw new Error('Not a valid Roman numeral (1–3999).');
-  let n = 0, i = 0;
-  for (const [v, r] of ROMAN) while (t.startsWith(r, i)) { n += v; i += r.length; }
-  return n;
-}
-export const roman: Mount = (root) => {
+export const roman: Mount = async (root) => {
+  const m = await mathcore();
   calcForm(root, [{ key: 'x', label: 'Number (1–3999) or Roman numeral', type: 'text', value: '2026' }], (v) => {
     const s = String(v.x).trim();
-    if (/^\d+$/.test(s)) { const n = +s; if (n < 1 || n > 3999) throw new Error('Roman numerals cover 1–3999.'); return { big: [['Roman', toRoman(n)]] }; }
-    return { big: [['Number', String(fromRoman(s))]] };
+    if (/^\d+$/.test(s)) { const r = m.toRoman(+s); if (!r) throw new Error('Roman numerals cover 1–3999.'); return { big: [['Roman', r]] }; }
+    const n = m.fromRoman(s);
+    if (!n) throw new Error('Not a valid Roman numeral (1–3999).');
+    return { big: [['Number', String(n)]] };
   });
 };
