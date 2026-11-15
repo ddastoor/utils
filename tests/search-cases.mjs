@@ -194,4 +194,5 @@ export default [
   ['box shadow', 'shadow'], ['css shadow', 'shadow'],
   ['svg optimizer', 'svgo'], ['minify svg', 'svgo'],
   ['apply patch', 'patch'], ['patch', 'patch'],
+  ['speech to text', 'stt'], ['transcribe audio', 'stt'], ['voice to text', 'stt'], ['whisper', 'stt'], ['make subtitles', 'stt'],
 ];

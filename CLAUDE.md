@@ -166,6 +166,11 @@ Builder (HTML → browser "Save as PDF"). Images: `signature` Signature Maker. S
 wasm) · `python` (MicroPython C → wasm) · `totp` · `pwstrength` (zxcvbn) · `jsonschema` · `bitwise` · `ieee754` ·
 `contrast` · `baseenc` · `bindecode` · `httpstatus` · `mime` · `ports` · `ascii` · `keycode` · `gradient` · `shadow` ·
 `svgo` · `patch`.
+**Speech to Text** (`stt`, Media, both): whisper.cpp (C/C++, MIT) built by us to wasm + Whisper English
+models (MIT): `ggml-base.en-q5_1` (60 MB, default on phones) and `ggml-small.en-q5_1` (190 MB, default on PC),
+from huggingface.co/ggerganov/whisper.cpp, SHA-256 pinned in `scripts/assets.json`. Record or upload → transcript
++ .srt/.vtt. Not live dictation (no threads on GitHub Pages). Text-to-Speech remains the on-device Web Speech tool.
+
 Removed by the owner from batch 3: Spin the Wheel, Tambola/Housie, Secret Santa, Scoreboard.
 
 Rejected by the owner: Typing Speed Test, Tuner, Metronome, Discount Calculator, Unit Price Compare.
