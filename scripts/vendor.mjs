@@ -24,7 +24,6 @@ const copies = [
   [['@tesseract.js-data', 'hin', '4.0.0_best_int', 'hin.traineddata.gz'], ['tesseract', 'lang', 'hin.traineddata.gz']],
   [['libarchive.js', 'dist', 'worker-bundle.js'], ['libarchive', 'worker-bundle.js']],
   [['libarchive.js', 'dist', 'libarchive.wasm'], ['libarchive', 'libarchive.wasm']],
-  [['zxing-wasm', 'dist', 'full', 'zxing_full.wasm'], ['zxing', 'zxing_full.wasm']],
 ];
 
 rmSync(out(), { recursive: true, force: true });

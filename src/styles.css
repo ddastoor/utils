@@ -508,3 +508,15 @@ details summary { cursor: pointer; font-weight: 600; color: var(--accent); paddi
 .tick.mid { height: 24px; } .tick.major { height: 38px; }
 .tick b { position: absolute; bottom: 42px; left: -6px; font-size: 12px; }
 .card-outline { border: 2px dashed var(--accent); border-radius: 10px; display: grid; place-items: center; color: var(--accent); font-weight: 700; max-width: 100%; }
+
+/* ------------------------------------------------------------------ codes & files */
+.code-preview { display: flex; justify-content: center; align-items: center; min-height: 200px; padding: 12px; background: var(--checker); border-radius: 12px; margin-bottom: 12px; }
+.code-preview svg { max-width: 100%; height: auto; max-height: 320px; width: min(320px, 100%); }
+.color-picker.sm { width: 44px; height: 44px; }
+.scan-wrap { position: relative; border-radius: 12px; overflow: hidden; background: #000; aspect-ratio: 4 / 3; }
+.scan-video { width: 100%; height: 100%; object-fit: cover; display: block; }
+.scan-frame { position: absolute; inset: 18%; border: 3px solid rgb(255 255 255 / 85%); border-radius: 16px; box-shadow: 0 0 0 999px rgb(0 0 0 / 30%); pointer-events: none; }
+.scan-text { font-family: var(--mono); word-break: break-all; white-space: pre-wrap; margin-bottom: 8px; }
+.file-list { display: flex; flex-direction: column; max-height: 50vh; overflow: auto; }
+.file-row { display: grid; grid-template-columns: 1fr auto auto; gap: 10px; align-items: center; padding: 6px 2px; border-bottom: 1px solid var(--border); }
+.file-name { word-break: break-all; font-size: 14px; }

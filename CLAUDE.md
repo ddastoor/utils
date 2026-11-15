@@ -18,9 +18,14 @@ Wayland) and **mobile browsers** (Android Chrome, iPhone Safari).
 1. **Static and stateless.** No backend, no login, no accounts, no analytics, no cookies, no service worker,
    **no PWA / offline install**. Nothing is saved between visits **except the owner-requested Favorites list**
    (tool ids in `localStorage` key `supertools.favorites.v1`, `src/favorites.ts`; never leaves the browser).
-2. **No online dependencies.** Every script, WebAssembly module, ML model, font and icon is served from
-   this site. No CDNs. The page's Content-Security-Policy blocks contacting any other host. The only
-   allowed exception is the YouTube tool, which must talk to YouTube (embedded `youtube-nocookie.com`).
+2. **No online *code* dependencies (owner clarification).** Every library, script, WebAssembly module, ML model,
+   font and icon is embedded in / served from this site — WebAssembly first, else a locally hosted open-source JS
+   library. Never a CDN or remote script. **Fetching *data* from a public online API is allowed** (e.g. network
+   time, daylight-saving info, exchange rates) when a tool needs live information. Enforcement: CSP keeps
+   `script-src`/`style-src`/`font-src`/`worker-src` to `'self'`; `connect-src` = `'self'` + an explicit allowlist of
+   approved data-API hosts (listed in `index.html` and §3a "Approved data APIs"); the YouTube Clip tool may embed
+   `youtube-nocookie.com` (`frame-src`). `tests/e2e/no-external.e2e.mjs` fails on any code from another host and on
+   any request to a non-allowlisted host.
 3. **User files never leave the device.** All processing happens in the browser.
 4. **Each utility is its own tab.** Tools are **PC + mobile** unless the owner explicitly said PC only.
    PC-only tools are hidden on mobile.
@@ -425,6 +430,11 @@ JavaScript-only components (no C/C++ equivalent exists for the job):
 | zip.js (BSD-3) | AES-256 zip *creation*; libarchive's wasm build has no crypto | zip |
 | mediabunny (MPL-2.0) | MP4 muxing around the browser's hardware WebCodecs encoders | video |
 | semver (ISC) | tiny logic library | semver |
+
+### Approved data APIs (connect-src allowlist)
+None yet. Add a host here and to the CSP `connect-src` in `index.html` only when a tool needs live data and the
+owner has accepted that tool. Candidate tools offered to the owner: currency converter (frankfurter.app, ECB rates),
+weather (Open-Meteo), IP/network info, clock-accuracy check (network time).
 
 ## 4. Architecture
 
