@@ -10,7 +10,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
-    "test": "node tests/search.test.mjs",
+    "test": "node tests/search.test.mjs && node tests/expr.test.mjs",
     "docs": "node scripts/gen-toollist.mjs",
     "test:e2e": "node tests/security.e2e.mjs && node tests/pgp.e2e.mjs"
   },
