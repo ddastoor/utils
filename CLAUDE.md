@@ -227,12 +227,14 @@ Camera (webcam / phone front or back camera, self-timer, face guide overlay) or 
 white via MediaPipe `selfie_multiclass_256x256` mask refined by `imgproc` guided filter at full
 resolution. Auto-framing from MediaPipe face landmarks (chin, eyes, crown estimate). Output JPEG at
 300 dpi with DPI metadata, optional max-KB target, and a 4×6 in / A4 print sheet with copies.
-Presets (India first):
-- Indian passport (Passport Seva): 35×45 mm (face 70–80% of height)
-- Indian visa / OCI (VFS, US-style): 51×51 mm (2×2 in)
-- Indian online form photo (e.g. exam/job portals): 3.5×4.5 cm, often 20–50 KB
-- PAN card: 25×35 mm (213×213 px online scan uses 3.5×2.5 cm)
-- US passport/visa 2×2 in; UK/Schengen 35×45 mm; Canada 50×70 mm; China 33×48 mm; Custom
+Presets — **owner request: as many countries as possible, with background-colour rules, not just sizes.**
+Data lives in `src/lib/passport-specs.ts` (36 presets: India ×4 first, then Americas, Europe, Asia-Pacific,
+Middle East & Africa). Each preset records print size (mm), head height (chin-to-crown, mm) where published,
+**required background colour** (+ accepted alternatives; the tool fills exactly that colour — e.g. UK = cream or
+light grey, France = light blue/grey and *white is forbidden*, most others white), digital upload limits (px, KB)
+where published, and notes. Custom size + background picker (white, off-white, light grey, cream, light blue, blue,
+red). Only rules known with confidence are included; the UI tells users to confirm with the official site.
+Unit test checks every preset is well-formed.
 Note shown to user: some agencies reject digitally altered photos; lighting on the face matters.
 Wayland/X11 is irrelevant for cameras.
 
