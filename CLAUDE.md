@@ -191,6 +191,17 @@ play-only extra (browsers can't capture speechSynthesis audio for MP3).
 Speech to Text accent requirement: very good on US, UK and **especially Indian English** → Whisper small.en default
 plus a "names & terms" hint box fed to Whisper's initial prompt.
 
+**Batch 4 (owner-requested):**
+- **`bc` console** — PC only, shown **inside the Scientific Calculator tab** next to the keypad calculator (owner's
+  explicit request; phones show only the keypad). Engine: BusyBox's `bc` (Gavin Howard's bc, arbitrary precision,
+  `-l` maths library) from our BusyBox wasm build.
+- **Linux Terminal** (`terminal`, Software, **PC only — owner confirmed explicitly**): BusyBox (C, GPL-2.0) compiled by us to wasm32-wasi; an
+  in-memory WASI filesystem shared by every command; our own shell layer (pipes via buffers, `> >> <`, `&& || ;`,
+  variables, `cd pwd export history`, globbing) runs one applet per WASI instance (wasm cannot fork, so BusyBox
+  `ash` itself is not used). Upload button → files into the FS; file browser with download. Applets limited to
+  those that need only filesystem/stdio (plus shimmed clock/random); no process, network, mount, tty/full-screen
+  apps.
+
 Removed by the owner from batch 3: Spin the Wheel, Tambola/Housie, Secret Santa, Scoreboard.
 
 Rejected by the owner: Typing Speed Test, Tuner, Metronome, Discount Calculator, Unit Price Compare, News Shorts
@@ -518,7 +529,7 @@ the unit tests).
 
 ### 5.2 Image processing → `src/wasm/bin/imgproc.wasm`
 Own C (`wasm/imgproc/imgproc.c`). `wasm/imgproc/build.sh` compiles with
-`zig cc --target=wasm32-wasi -O3 -msimd128 -mexec-model=reactor`. Test: `node wasm/imgproc/test.mjs`.
+`zig cc --target=wasm32-wasi -O3 -msimd128 -mexec-model=reactor`. TS wrapper `src/wasm/imgproc.ts` (`bindImgproc`; `imgproc(op, ...)` runs ops in `src/workers/imgproc.worker.ts`). Tests: `tests/unit/imgproc.test.mjs` (synthetic images, known answers). Ops: adjust (tone LUT + temp/tint/hue/sat/vibrance), Lanczos-3 resize (premultiplied), Gaussian blur, unsharp mask, rotate, bilateral, cartoon (XDoG + k-means), Kuwahara, sketch, watercolour, halftone, pixelate/blur rect, guided-filter alpha + composite, page detection, perspective warp, document enhance (colour/grey/B&W), histogram.
 
 ---
 
