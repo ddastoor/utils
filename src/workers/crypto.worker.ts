@@ -32,7 +32,7 @@ self.onmessage = async (ev: MessageEvent<Msg>) => {
       const key = na.pwhash(msg.password, salt, msg.ops, msg.memKiB);
       const s = na.pushStream(key);
       key.fill(0);
-      const parts: BlobPart[] = [writeHeader({ ops: msg.ops, memKiB: msg.memKiB, chunk: CHUNK, salt, header: s.header })];
+      const parts: BlobPart[] = [writeHeader({ ops: msg.ops, memKiB: msg.memKiB, chunk: CHUNK, salt, header: s.header }) as BlobPart];
       const size = msg.data.size;
       let off = 0;
       do {
