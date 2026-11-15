@@ -20,12 +20,17 @@ await check('sip', /₹50,45,/, 'SIP 10k @12% 15y (≈ ₹50.4 L)');
 await check('fd', /₹1,41,4/, 'FD 1L @7% 5y quarterly');
 await check('fuel', /₹2,450/, 'Fuel 350km 15kmpl ₹105');
 await check('tip', /₹660/, 'Tip split');
+await check('ppf', /₹40,68,2/, 'PPF 1.5L/yr @7.1% 15y');
+await check('coords', /1,1[45]\d\.\d+ km/, 'Delhi→Mumbai distance ~1,150 km');
+await check('inflation', /₹3,20,7/, 'Inflation 1L @6% 20y');
+await check('prepay', /₹/, 'Prepayment renders');
+await check('idealweight', /kg/, 'Ideal weight renders');
 await page.goto(base + '#/base'); await page.waitForSelector('input.mono');
 ok((await page.locator('input.mono').nth(3).inputValue()) === 'FF', 'Base: 255 → FF');
 await page.goto(base + '#/calc'); await page.waitForSelector('.calc-expr');
 await page.locator('.calc-expr').fill('2^10 + sin(30)'); await page.keyboard.press('Enter');
 ok((await page.locator('.calc-expr').inputValue()) === '1024.5', 'Scientific: 2^10 + sin(30°) = 1024.5');
-for (const r of ['units', 'dates', 'percent', 'timezone', 'calories', 'duedate', 'gpa']) {
+for (const r of ['units', 'dates', 'percent', 'timezone', 'calories', 'duedate', 'gpa', 'epf', 'nps', 'sleep', 'bodyfat']) {
   await page.goto(base + '#/' + r); await page.waitForTimeout(250);
   ok(await page.locator('.note-warn').count() === 0 && await page.locator('.tool-body').innerText().then((t) => !/being built/.test(t)), `${r} renders without warnings`);
 }
