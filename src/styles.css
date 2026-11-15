@@ -355,3 +355,29 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: 14px; }
   .calc-key.fn { font-size: 14px; }
   .calc-pad { gap: 6px; }
 }
+
+/* ------------------------------------------------------------------ form calculators */
+.form-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px; }
+.with-unit { display: flex; align-items: center; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); }
+.with-unit .input { border: 0; box-shadow: none !important; }
+.with-unit:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.unit { padding: 0 12px; color: var(--muted); font-size: 14px; white-space: nowrap; }
+.big-results { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; margin-bottom: 14px; }
+.big-result { display: flex; flex-direction: column; gap: 2px; text-align: left; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--border); background: var(--surface-2); cursor: pointer; }
+.big-result:first-child { background: var(--accent-soft); border-color: color-mix(in srgb, var(--accent) 35%, transparent); }
+.big-label { font-size: 12.5px; color: var(--muted); font-weight: 600; }
+.big-value { font-size: 24px; font-weight: 700; font-variant-numeric: tabular-nums; word-break: break-word; }
+.calc-extra { margin-top: 14px; }
+.bar { height: 10px; border-radius: 999px; background: var(--surface-3); overflow: hidden; display: flex; }
+.bar > span { display: block; height: 100%; }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 13px; color: var(--muted); margin-top: 8px; }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
+@media (max-width: 760px) { .form-grid { grid-template-columns: 1fr 1fr; gap: 12px; } .big-value { font-size: 21px; } }
+@media (max-width: 400px) { .form-grid { grid-template-columns: 1fr; } }
+.pct-row { display: grid; grid-template-columns: 1fr 1fr 1.4fr; gap: 12px; align-items: end; }
+.pct-row .big-result { min-height: var(--tap); }
+.gpa-row { display: grid; grid-template-columns: 1fr 1fr auto; gap: 10px; align-items: end; }
+details.mt { margin-top: 14px; }
+details summary { cursor: pointer; font-weight: 600; color: var(--accent); padding: 6px 0; }
+.input.bad { border-color: var(--err); box-shadow: 0 0 0 3px var(--err-soft); }
+@media (max-width: 760px) { .pct-row { grid-template-columns: 1fr 1fr; } .pct-row .big-result { grid-column: 1 / -1; } }

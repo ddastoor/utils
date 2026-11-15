@@ -5,7 +5,7 @@ export type Cleanup = () => void;
 export interface ToolCtx { isMobile: boolean; signal: AbortSignal }
 export type Mount = (root: HTMLElement, ctx: ToolCtx) => void | Cleanup | Promise<void | Cleanup>;
 
-type Child = Node | string | number | null | undefined | false | Child[];
+export type Child = Node | string | number | null | undefined | false | Child[];
 type Props = Record<string, any>;
 
 function append(el: Node, c: Child) {
