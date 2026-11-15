@@ -426,3 +426,28 @@ details summary { cursor: pointer; font-weight: 600; color: var(--accent); paddi
   .tile { min-height: 58px; padding: 10px 40px 10px 10px; }
 }
 @media (min-width: 761px) { .tabs-cat { flex-wrap: wrap; row-gap: 6px; } }
+
+/* ------------------------------------------------------------------ text & dev tools */
+.case-row { display: grid; grid-template-columns: 140px 1fr auto; gap: 10px; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--border); }
+.case-row:last-child { border-bottom: 0; }
+.case-name { font-size: 13px; color: var(--muted); font-weight: 600; }
+.case-val { word-break: break-word; font-size: 14.5px; }
+.fancy-val { font-size: 18px; }
+.dl-wrap { font-family: var(--mono); font-size: 13px; border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: auto; max-height: 60vh; }
+.dl { display: flex; gap: 8px; padding: 1px 10px; white-space: pre-wrap; word-break: break-word; }
+.dl-sign { width: 12px; flex: none; color: var(--muted); }
+.dl-ins { background: var(--ok-soft); } .dl-ins .dl-sign { color: var(--ok); }
+.dl-del { background: var(--err-soft); text-decoration: line-through; text-decoration-color: color-mix(in srgb, var(--err) 50%, transparent); } .dl-del .dl-sign { color: var(--err); }
+.dw-wrap { white-space: pre-wrap; word-break: break-word; line-height: 1.7; padding: 10px; border: 1px solid var(--border); border-radius: var(--radius-sm); }
+.dw-ins { background: var(--ok-soft); color: var(--ok); border-radius: 3px; }
+.dw-del { background: var(--err-soft); color: var(--err); text-decoration: line-through; border-radius: 3px; }
+.emoji-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(44px, 1fr)); gap: 4px; }
+.emoji-cell { font-size: 24px; height: 44px; border: 0; border-radius: 8px; background: none; cursor: pointer; }
+.emoji-cell:hover { background: var(--surface-2); }
+.regex-row { display: grid; grid-template-columns: 1fr 120px; gap: 10px; }
+.regex-hl { white-space: pre-wrap; word-break: break-word; padding: 10px; background: var(--surface-2); border-radius: var(--radius-sm); margin-bottom: 10px; line-height: 1.7; }
+.regex-hl mark { background: color-mix(in srgb, #f59e0b 35%, transparent); color: inherit; border-radius: 3px; padding: 0 1px; }
+.color-top { display: flex; gap: 14px; align-items: center; }
+.swatch { flex: 1; height: 96px; border-radius: 12px; border: 1px solid var(--border); }
+.color-picker { width: 64px; height: 64px; border: 0; padding: 0; background: none; cursor: pointer; }
+@media (max-width: 760px) { .case-row { grid-template-columns: 1fr auto; } .case-name { grid-column: 1 / -1; } }
