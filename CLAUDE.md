@@ -50,8 +50,14 @@ Wayland) and **mobile browsers** (Android Chrome, iPhone Safari).
 
 ## 2. Tool list
 
-**Rule from the owner: every utility is its own top-level tab — never merge utilities into one tab with
-sub-tabs.** The menu shows category headings and a search box purely as navigation aids.
+**Rules from the owner:**
+- **Two levels of tabs.** Level 1 = **category tabs** (Images, Documents, Security, Media, Calculators,
+  Text & Dev, Codes & Files, Everyday, Device). Level 2 = inside the selected category, **one tab per
+  utility**. Never merge two utilities into one utility tab (no sub-tabs inside a utility).
+- PC: two horizontal tab bars above the content (utility bar wraps). Mobile: two sticky, horizontally
+  swipeable tab rows at the top (active tab scrolled into view). PC-only utilities are hidden on mobile.
+- Clicking a category opens the utility last used in that category this session (or its first one).
+- A search box in the header jumps straight to any utility (Enter = top match).
 Platform is PC + mobile unless marked **PC**. Tab ids are the URL hash (`#/<id>`).
 
 Final list agreed with the owner: **103 tabs — 96 PC + mobile, 7 PC only**.
@@ -309,8 +315,8 @@ No web API exposes it (Chrome's UA says `X11; Linux` on both) and it is not need
 - Each tool lives in `src/tools/<id>.ts` (or a folder) and exports `mount(root: HTMLElement): Cleanup | void`.
   Tools are **lazy-loaded** with dynamic `import()` so a phone only downloads what it opens.
 - Registry: `src/tools/registry.ts` (id, title, group, icon, `pcOnly`, loader).
-- Layout: desktop = sidebar grouped by category + content; mobile = home grid of tiles + top bar with back.
-  PC-only tools hidden when `isMobile()` (`src/platform.ts`).
+- Layout: header (title + search) → category tab bar → utility tab bar → tool content. Same structure on
+  mobile with swipeable sticky rows. PC-only tools hidden when `isMobile()` (`src/platform.ts`).
 - **CSP** in `index.html` `<meta http-equiv="Content-Security-Policy">`: `default-src 'self'`,
   `script-src 'self' 'wasm-unsafe-eval'`, `worker-src 'self' blob:`, `connect-src 'self' blob: data:`,
   `img-src 'self' blob: data:`, `media-src 'self' blob: mediastream:`, `style-src 'self' 'unsafe-inline'`,
@@ -425,7 +431,7 @@ Deployment branches**.
 
 ## 8. Adding a new tool (checklist)
 1. Create `src/tools/<id>.ts` exporting `mount(root)`; use helpers from `src/ui.ts`.
-2. Register it in `src/tools/registry.ts` (title, group, icon, `pcOnly` only if the owner says PC only).
+2. Register it in `src/registry.ts` (id, title, desc, category, icon, keywords, `pc: true` only if the owner says PC only).
 3. Heavy dependencies: dynamic-import inside the tool; vendor runtime files via `scripts/vendor.mjs`;
    never load from a CDN; keep the CSP intact.
 4. Add a smoke test in `tests/e2e.mjs`, update §2/§3 of this file, commit, push.
