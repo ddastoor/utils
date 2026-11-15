@@ -164,7 +164,7 @@ Generated from `src/registry.ts` by `npm run docs` — do not edit by hand.
 | `apikey` | API Key Generator | **PC only** | Random secrets as hex, base64url, prefixed tokens. | api key, secret, token, random, hex, base64url, generate, jwt secret |
 | `curl` | cURL Converter | **PC only** | curl command → fetch, Python, Go, Node. | curl to python, curl to fetch, curl to go, curl to node, curl to axios, curl, convert, fetch, … |
 | `cron` | Cron Explainer | **PC only** | Explain cron expressions and list next runs. | cron, crontab, schedule, expression, next run, quartz, kubernetes cronjob |
-| `escape` | String Escape | **PC only** | Escape/unescape JSON, Java/C, SQL, shell, HTML, regex. | escape, unescape, string, json, java, sql, shell, html, … |
+| `escape` | String Escape | **PC only** | Escape/unescape JSON, Java/C, SQL, shell, HTML, regex. | escape, unescape, string, json, java, sql, shell escaping, html, … |
 | `unicode` | Unicode Inspector | **PC only** | Code points; find invisible and look-alike characters. | unicode, code point, invisible, zero width, homoglyph, utf8, utf16, character, … |
 | `hexview` | Hex Viewer | **PC only** | Hex dump any file; detect file type. | hex, hexdump, binary, bytes, file type, magic number, inspect |
 | `logview` | Log Viewer | **PC only** | Filter logs by level/regex; parse JSON logs. | logs, log viewer, filter, grep, json logs, level, error, timestamp |

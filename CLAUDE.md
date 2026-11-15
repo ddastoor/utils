@@ -78,7 +78,8 @@ Wayland) and **mobile browsers** (Android Chrome, iPhone Safari).
 Platform is PC + mobile unless marked **PC**. Tab ids are the URL hash (`#/<id>`).
 
 **The authoritative, always-current list is `docs/TOOLS.md`, generated from `src/registry.ts` (`npm run docs`).**
-Current total: **173 tabs in 11 categories — 107 PC + mobile, 63 PC only, 3 Mobile only.**
+Current total: **175 tabs in 11 categories — 108 PC + mobile, 64 PC only, 3 Mobile only** (regenerate with
+`npm run docs` after every registry change; the owner asked for the registry to always be noted).
 The per-category notes below record decisions; when they disagree with the registry, the registry wins.
 
 **Platform model (owner rule):** every tool is exactly one of **PC + mobile** (`'both'`), **PC only** (`'pc'`,
@@ -584,6 +585,14 @@ E2E_CONCURRENCY=8 node tests/e2e.mjs
   import of any `src/` module; `wasm(name)` instantiates `src/wasm/bin/<name>.wasm` with a WASI shim.
 - `tests/e2e/*.e2e.mjs` export `default async ({ base, page, ok, download, tmp, devices })`; `page(opts)` makes an
   isolated context (console errors collected in `page.errors`).
+- **Owner rule (bulletproof testing):** besides the whole-app suites (`shell`, `layout`, `no-external`), **every
+  utility tab has its own independent e2e suite** (`tests/e2e/<tool-or-group>.e2e.mjs`), all suites run in parallel,
+  and every wasm module has unit tests. Use **real media files** wherever possible: real photos with EXIF/GPS
+  (public-domain samples from scikit-image / Pillow test data), real HEIC (pillow-heif test files), real PDFs incl.
+  encrypted ones (PDF library test corpora), real audio/video (generated with the Playwright-bundled ffmpeg at
+  `/opt/pw-browsers/ffmpeg-*`), a real face via Chromium's `--use-file-for-fake-video-capture` (passport, webcam),
+  and speech produced by our own TTS for the STT round trip. Fixtures live in `tests/fixtures/` (committed, small;
+  `tests/fixtures/README.md` records each file's source and licence).
 - Every tool must have e2e coverage of its main flow with known answers; every wasm module must have unit tests.
 - `no-external.e2e.mjs` visits every route on desktop + phone (sharded) and fails on any request to another host,
   any CSP violation or any page error.
