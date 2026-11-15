@@ -3,7 +3,7 @@
 // One preview server + one browser; each suite gets its own isolated context; suites run concurrently.
 import { preview } from 'vite';
 import { createRequire } from 'node:module';
-import { readdirSync, mkdtempSync } from 'node:fs';
+import { readdirSync, mkdtempSync, rmSync } from 'node:fs';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { dirname, join } from 'node:path';
 import { tmpdir, cpus } from 'node:os';
@@ -45,6 +45,7 @@ async function runOne(f) {
 }
 await Promise.all(Array.from({ length: Math.min(CONCURRENCY, files.length) }, async () => { while (queue.length) await runOne(queue.shift()); }));
 await browser.close(); server.httpServer.close();
+if (!process.env.E2E_KEEP) rmSync(tmp, { recursive: true, force: true }); // downloads; E2E_KEEP=1 keeps them
 let failed = 0, total = 0;
 for (const r of results.sort((a, b) => a.f.localeCompare(b.f))) {
   total += r.passed + r.fails.length; failed += r.fails.length;

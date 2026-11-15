@@ -4,6 +4,12 @@ Owner rule: this file is the hand-off point if a session stops (usage limit, con
 pushed with **every** commit. A new session reads `CLAUDE.md` (spec + standing rules), then this file, then
 continues from "Next steps" without asking the owner anything already decided.
 
+## How to resume in a NEW session (owner instructions)
+Start a new Claude Code session on the same repository (claude.ai/code or the Claude app → New session → repo
+`ddastoor/utils`, same environment) and send:
+> Continue building SuperTools. Check out branch `claude/exciting-bohr-b9yfwc` (keep committing and pushing to that
+> branch — I allow it), read CLAUDE.md and docs/RESUME.md, and carry on from "Next steps".
+
 ## Status (last updated with the commit that touched this file — see `git log -1 -- docs/RESUME.md`)
 
 **Branch:** `claude/exciting-bohr-b9yfwc` (push here only). Site: https://ddastoor.github.io/utils/
@@ -41,7 +47,11 @@ STANDING RULE #1 is at the top of `CLAUDE.md`; audit list is in CLAUDE.md §3a.
 
 ## Queue (in order) — each: implement → own e2e suite with real fixtures → screenshot at 390×844 → commit + push
 1. (Audit done.) Continue image tools below.
-2. Image tools: redact (MediaPipe face
+2. **Next up: Blur & Redact** (`redact`): MediaPipe FaceDetector (blaze_face_short_range, run on the whole image
+   + overlapping tiles for small faces in group photos, NMS merge in imgproc C), manual boxes, pixelate/blur/black
+   bar (imgproc p_pixelate_rect / p_blur_rect). Models are NOT committed: add `scripts/assets.json` (url, sha256
+   pinned on first fetch, dest under public/models/, gitignored) + `scripts/fetch-assets.mjs`, run from prebuild/
+   predev and CI. storage.googleapis.com is reachable from the sandbox. Then the remaining image tools: redact (MediaPipe face
    detector), formphoto (Indian exam presets), scanner (imgproc detect/warp/enhance → PDF), ocr (Tesseract eng+hin),
    passport (36 presets in src/lib/passport-specs.ts, MediaPipe landmarks + segmentation + guided filter, camera,
    print sheet, KB target, DPI), bgremove, cartoon (classic imgproc + Magenta TF.js). Models need
