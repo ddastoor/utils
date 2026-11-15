@@ -1,29 +1,32 @@
 import './styles.css';
 import { CATEGORIES, TOOLS, TOOL_BY_ID, type Tool, type CatId } from './registry';
 import { searchTools } from './search';
-import { h, ic, clear, errMsg, type Cleanup } from './ui';
+import { h, ic, clear, errMsg, toast, type Cleanup } from './ui';
 import { isMobile } from './platform';
+import { favs, isFav, toggleFav, onFavChange } from './favorites';
 
 const available = (t: Tool) => t.platform === 'both' || (t.platform === 'pc') !== isMobile;
 const visible = TOOLS.filter(available);
 const toolsIn = (cat: CatId) => visible.filter((t) => t.cat === cat);
 const cats = CATEGORIES.filter((c) => toolsIn(c.id).length);
-const lastInCat = new Map<CatId, string>(); // in-memory only (stateless app)
+const favTools = () => favs().map((id) => TOOL_BY_ID.get(id)).filter((t): t is Tool => !!t && available(t));
+
+/** What the two tab rows show. 'all' = home, 'fav' = favourites, or a category id. */
+type Section = 'all' | 'fav' | CatId;
+type Route = { kind: 'home' } | { kind: 'section'; section: Section } | { kind: 'tool'; tool: Tool; from?: 'fav' };
 
 // ------------------------------------------------------------------ layout
 const searchInput = h('input', {
-  class: 'search-input', type: 'search', placeholder: isMobile ? 'Search tools…' : 'Search tools…  ( / )',
+  class: 'search-input', type: 'search', placeholder: isMobile ? 'Search 170+ tools…' : 'Search tools…  ( / )',
   'aria-label': 'Search tools', autocomplete: 'off', enterkeyhint: 'go', spellcheck: 'false',
 });
 const results = h('div', { class: 'search-results', role: 'listbox', hidden: true });
-const search = h('div', { class: 'search' }, h('span', { class: 'search-ic', html: '' }, ic('Search')), searchInput, results);
-
+const search = h('div', { class: 'search' }, h('span', { class: 'search-ic' }, ic('Search')), searchInput, results);
 const catBar = h('nav', { class: 'tabs tabs-cat', role: 'tablist', 'aria-label': 'Categories' });
 const toolBar = h('nav', { class: 'tabs tabs-tool', role: 'tablist', 'aria-label': 'Tools' });
 const view = h('main', { class: 'view', id: 'view' });
 
-const app = document.getElementById('app')!;
-app.append(
+document.getElementById('app')!.append(
   h('header', { class: 'topbar' },
     h('a', { class: 'brand', href: '#/', 'aria-label': 'SuperTools home' }, h('span', { class: 'brand-mark' }, ic('Zap')), h('span', { class: 'brand-name' }, 'SuperTools')),
     search,
@@ -32,46 +35,123 @@ app.append(
   view,
 );
 
-// ------------------------------------------------------------------ tabs
-let current: Tool | null = null;
-let cleanup: Cleanup | null = null;
-let abort: AbortController | null = null;
+// ------------------------------------------------------------------ tab rows
+let lastSection: Section = 'all';
+const lastInSection = new Map<Section, string>(); // in-memory only
 
-function renderTabs(active: Tool) {
-  clear(catBar).append(...cats.map((c) => h('button', {
-    class: ['tab', c.id === active.cat && 'on'], role: 'tab', 'aria-selected': String(c.id === active.cat),
-    onclick: () => go(lastInCat.get(c.id) || toolsIn(c.id)[0].id),
-  }, ic(c.icon), h('span', null, c.title))));
-  clear(toolBar).append(...toolsIn(active.cat).map((t) => h('a', {
-    class: ['tab', 'tab-tool', t.id === active.id && 'on'], role: 'tab', href: `#/${t.id}`, 'aria-selected': String(t.id === active.id),
-  }, ic(t.icon), h('span', null, t.title))));
-  for (const bar of [catBar, toolBar]) {
-    const on = bar.querySelector<HTMLElement>('.on');
-    if (on) {
-      // keep the active tab in view on swipeable rows (phones) without moving the page
-      const left = on.offsetLeft - (bar.clientWidth - on.offsetWidth) / 2;
-      bar.scrollTo({ left, behavior: 'instant' as ScrollBehavior });
-    }
-  }
+function centerActive(bar: HTMLElement) {
+  const on = bar.querySelector<HTMLElement>('.on');
+  if (on) bar.scrollTo({ left: on.offsetLeft - (bar.clientWidth - on.offsetWidth) / 2, behavior: 'instant' as ScrollBehavior });
 }
 
-async function show(tool: Tool) {
-  if (current?.id === tool.id) return;
+function renderTabs(section: Section, activeTool?: Tool) {
+  const favCount = favTools().length;
+  const sectionTab = (id: Section, title: string, icon: string, extra?: string) => h('a', {
+    class: ['tab', id === section && 'on', id === 'fav' && 'tab-fav'], role: 'tab', 'aria-selected': String(id === section),
+    href: id === 'all' ? '#/' : `#/c/${id}`,
+  }, ic(icon), h('span', null, title), extra ? h('span', { class: 'tab-count' }, extra) : null);
+  clear(catBar).append(
+    sectionTab('all', 'All', 'LayoutGrid'),
+    sectionTab('fav', 'Favorites', 'Star', favCount ? String(favCount) : undefined),
+    ...cats.map((c) => sectionTab(c.id, c.title, c.icon)),
+  );
+  const list = section === 'all' ? [] : section === 'fav' ? favTools() : toolsIn(section);
+  toolBar.hidden = !list.length;
+  clear(toolBar).append(...list.map((t) => h('a', {
+    class: ['tab', 'tab-tool', t.id === activeTool?.id && 'on'], role: 'tab', 'aria-selected': String(t.id === activeTool?.id),
+    href: section === 'fav' ? `#/${t.id}?from=fav` : `#/${t.id}`,
+  }, ic(t.icon), h('span', null, t.title))));
+  centerActive(catBar); centerActive(toolBar);
+}
+
+// ------------------------------------------------------------------ star button & tiles
+function starButton(t: Tool, cls = 'star') {
+  const b = h('button', { type: 'button', class: [cls, isFav(t.id) && 'on'], 'aria-pressed': String(isFav(t.id)), title: isFav(t.id) ? 'Remove from favorites' : 'Add to favorites' }, ic('Star'));
+  b.addEventListener('click', (e) => {
+    e.preventDefault(); e.stopPropagation();
+    const on = toggleFav(t.id);
+    toast(on ? `★ ${t.title} added to Favorites` : `${t.title} removed from Favorites`, on ? 'ok' : 'info', 1800);
+  });
+  return b;
+}
+
+function tile(t: Tool, from?: 'fav') {
+  return h('a', { class: 'tile', href: `#/${t.id}${from ? '?from=fav' : ''}` },
+    h('span', { class: 'tile-ic' }, ic(t.icon)),
+    h('span', { class: 'tile-text' }, h('strong', null, t.title, t.platform !== 'both' ? h('span', { class: 'badge' }, t.platform === 'pc' ? 'PC' : 'Mobile') : null), h('small', null, t.desc)),
+    starButton(t, 'star tile-star'));
+}
+
+function favEmpty() {
+  return h('div', { class: 'empty' }, h('span', { class: 'empty-ic' }, ic('Star')), h('strong', null, 'No favorites yet'),
+    h('p', { class: 'muted' }, 'Tap the ☆ star on any tool (on its page or its card) to pin it here for quick access. Favorites are saved only in this browser.'));
+}
+
+// ------------------------------------------------------------------ views
+let current: Route = { kind: 'home' };
+let cleanup: Cleanup | null = null;
+let abort: AbortController | null = null;
+let currentTool: Tool | null = null;
+
+function teardown() {
   try { cleanup?.(); } catch (e) { console.error(e); }
   abort?.abort();
-  cleanup = null;
-  current = tool;
-  lastInCat.set(tool.cat, tool.id);
-  renderTabs(tool);
+  cleanup = null; abort = null; currentTool = null;
+}
+
+function showHome() {
+  teardown();
+  lastSection = 'all';
+  renderTabs('all');
+  document.title = 'SuperTools';
+  const fv = favTools();
+  clear(view).append(
+    h('section', { class: 'home-hero' },
+      h('h1', null, 'SuperTools'),
+      h('p', { class: 'muted' }, `${visible.length} private tools that run entirely in your browser. Browse by category, search, or star your favorites.`)),
+    h('section', { class: 'home-sec' }, h('h2', { class: 'sec-title' }, ic('Star'), 'Favorites'), fv.length ? h('div', { class: 'tiles' }, fv.map((t) => tile(t, 'fav'))) : favEmpty()),
+    ...cats.map((c) => h('section', { class: 'home-sec' },
+      h('h2', { class: 'sec-title' }, ic(c.icon), h('a', { href: `#/c/${c.id}` }, c.title), h('span', { class: 'sec-count' }, String(toolsIn(c.id).length))),
+      h('div', { class: 'tiles' }, toolsIn(c.id).map((t) => tile(t))))),
+  );
+  window.scrollTo({ top: 0 });
+}
+
+function showSection(section: Section) {
+  if (section === 'all') { showHome(); return; }
+  teardown();
+  lastSection = section;
+  renderTabs(section);
+  const cat = CATEGORIES.find((c) => c.id === section);
+  const title = section === 'fav' ? 'Favorites' : cat!.title;
+  document.title = `${title} · SuperTools`;
+  const list = section === 'fav' ? favTools() : toolsIn(section);
+  clear(view).append(
+    h('div', { class: 'tool-head' }, h('div', { class: 'tool-head-ic' }, ic(section === 'fav' ? 'Star' : cat!.icon)),
+      h('div', null, h('h1', { class: 'tool-title' }, title), h('p', { class: 'tool-desc' }, section === 'fav' ? 'Your starred tools.' : `${list.length} tools`))),
+    list.length ? h('div', { class: 'tiles' }, list.map((t) => tile(t, section === 'fav' ? 'fav' : undefined))) : favEmpty(),
+  );
+  window.scrollTo({ top: 0 });
+}
+
+async function showTool(tool: Tool, from?: 'fav') {
+  const section: Section = from === 'fav' && isFav(tool.id) ? 'fav' : tool.cat;
+  if (currentTool?.id === tool.id) { renderTabs(section, tool); return; }
+  teardown();
+  currentTool = tool;
+  lastSection = section;
+  lastInSection.set(section, tool.id);
+  renderTabs(section, tool);
   document.title = `${tool.title} · SuperTools`;
 
   const body = h('div', { class: 'tool-body' }, h('div', { class: 'loading' }, h('span', { class: 'spinner' }), 'Loading…'));
   clear(view).append(
     h('div', { class: 'tool-head' },
       h('div', { class: 'tool-head-ic' }, ic(tool.icon)),
-      h('div', null,
+      h('div', { class: 'tool-head-text' },
         h('h1', { class: 'tool-title' }, tool.title, tool.platform !== 'both' ? h('span', { class: 'badge' }, tool.platform === 'pc' ? 'PC only' : 'Mobile only') : null),
-        h('p', { class: 'tool-desc' }, tool.desc))),
+        h('p', { class: 'tool-desc' }, tool.desc)),
+      starButton(tool, 'star head-star')),
     body,
   );
   window.scrollTo({ top: 0 });
@@ -85,32 +165,47 @@ async function show(tool: Tool) {
   abort = ac;
   try {
     const mount = await tool.load();
-    if (current !== tool) return;
+    if (currentTool !== tool) return;
     clear(body);
     const r = await mount(body, { isMobile, signal: ac.signal });
-    if (current !== tool) { if (typeof r === 'function') r(); return; }
+    if (currentTool !== tool) { if (typeof r === 'function') r(); return; }
     if (typeof r === 'function') cleanup = r;
   } catch (e) {
     console.error(e);
-    if (current === tool) clear(body).append(h('div', { class: 'note note-err' }, ic('TriangleAlert'), h('div', null, `Could not load this tool: ${errMsg(e)}`)));
+    if (currentTool === tool) clear(body).append(h('div', { class: 'note note-err' }, ic('TriangleAlert'), h('div', null, `Could not load this tool: ${errMsg(e)}`)));
   }
 }
 
+function parse(): Route {
+  const raw = decodeURIComponent(location.hash.replace(/^#\/?/, ''));
+  const [path, query = ''] = raw.split('?');
+  if (!path) return { kind: 'home' };
+  const m = /^c\/(\w+)$/.exec(path);
+  if (m) {
+    const s = m[1] as Section;
+    if (s === 'fav' || s === 'all' || cats.some((c) => c.id === s)) return { kind: 'section', section: s };
+    return { kind: 'home' };
+  }
+  const tool = TOOL_BY_ID.get(path);
+  if (tool) return { kind: 'tool', tool, from: /(^|&)from=fav/.test(query) ? 'fav' : undefined };
+  return { kind: 'home' };
+}
+
 function route() {
-  const id = decodeURIComponent(location.hash.replace(/^#\/?/, '').split(/[?&]/)[0]);
-  const tool = TOOL_BY_ID.get(id);
-  if (tool) show(tool); // unavailable tools show an explanation instead of the tool
-  else go(visible[0].id, true);
+  current = parse();
+  if (current.kind === 'home') showHome();
+  else if (current.kind === 'section') showSection(current.section);
+  else showTool(current.tool, current.from);
 }
-
-export function go(id: string, replace = false) {
-  const url = `#/${id}`;
-  if (location.hash === url) { route(); return; }
-  if (replace) { history.replaceState(null, '', url); route(); }
-  else location.hash = url;
-}
-
 window.addEventListener('hashchange', route);
+
+onFavChange(() => {
+  // refresh counts, tab rows and any visible star buttons / lists
+  if (current.kind === 'tool') {
+    renderTabs(lastSection === 'fav' && !isFav(current.tool.id) ? current.tool.cat : lastSection, current.tool);
+    document.querySelectorAll<HTMLElement>('.head-star').forEach((b) => { const on = isFav(current.kind === 'tool' ? current.tool.id : ''); b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on)); });
+  } else route();
+});
 
 // ------------------------------------------------------------------ search
 let hits: Tool[] = [];
@@ -125,14 +220,14 @@ function renderResults() {
     return h('button', {
       class: ['result', i === sel && 'sel'], role: 'option', 'aria-selected': String(i === sel),
       onmousedown: (e: Event) => e.preventDefault(), onclick: () => pick(t),
-    }, ic(t.icon), h('span', { class: 'result-text' }, h('strong', null, t.title), h('small', null, `${cat.title} · ${t.desc}`)));
+    }, ic(t.icon), h('span', { class: 'result-text' }, h('strong', null, t.title, isFav(t.id) ? ' ★' : ''), h('small', null, `${cat.title} · ${t.desc}`)));
   }) : [h('div', { class: 'result-empty' }, 'No matching tool')]));
 }
 function pick(t: Tool) {
   searchInput.value = '';
   results.hidden = true;
   searchInput.blur();
-  go(t.id);
+  location.hash = `#/${t.id}`;
 }
 searchInput.addEventListener('input', () => { sel = 0; renderResults(); });
 searchInput.addEventListener('focus', () => { if (searchInput.value) renderResults(); });

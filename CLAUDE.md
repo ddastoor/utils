@@ -15,8 +15,9 @@ single-page app (SPA) hosted on **GitHub Pages**
 Wayland) and **mobile browsers** (Android Chrome, iPhone Safari).
 
 ### Hard requirements (from the owner — do not violate)
-1. **Static and stateless.** No backend, no login, no accounts, no analytics, no cookies, nothing saved
-   between visits (no localStorage/IndexedDB of user data, no service worker, **no PWA / offline install**).
+1. **Static and stateless.** No backend, no login, no accounts, no analytics, no cookies, no service worker,
+   **no PWA / offline install**. Nothing is saved between visits **except the owner-requested Favorites list**
+   (tool ids in `localStorage` key `supertools.favorites.v1`, `src/favorites.ts`; never leaves the browser).
 2. **No online dependencies.** Every script, WebAssembly module, ML model, font and icon is served from
    this site. No CDNs. The page's Content-Security-Policy blocks contacting any other host. The only
    allowed exception is the YouTube tool, which must talk to YouTube (embedded `youtube-nocookie.com`).
@@ -59,8 +60,12 @@ Wayland) and **mobile browsers** (Android Chrome, iPhone Safari).
   utility**. Never merge two utilities into one utility tab (no sub-tabs inside a utility).
 - PC: two horizontal tab bars above the content (utility bar wraps). Mobile: two sticky, horizontally
   swipeable tab rows at the top (active tab scrolled into view). PC-only utilities are hidden on mobile.
-- Clicking a category opens the utility last used in that category this session (or its first one).
+- Clicking a category shows that category's tool cards; its utility tabs fill the second row.
 - A search box in the header jumps straight to any utility (Enter = top match).
+- **Browse + favorites (owner request):** the category row starts with **All** (`#/`, home: favorites + every
+  category with tool cards) and **★ Favorites** (`#/c/fav`), then one tab per category (`#/c/<cat>` = card grid of
+  that category). Every tool page and card has a ☆ star toggle; starred tools appear in Favorites (count badge on
+  the tab). Tool URLs: `#/<toolId>` (`?from=fav` keeps the Favorites row active).
 - **New utilities:** whenever the owner accepts a new utility, place it in the most fitting existing category,
   or create a new, well-named category for it (update `CATEGORIES` in `src/registry.ts` and this file).
   Give it rich search keywords (synonyms, everyday phrasing, file extensions, common misspellings) and add
