@@ -11,3 +11,4 @@ export const sla: Mount = (root) => { root.append(stub()); };
 export const transfer: Mount = (root) => { root.append(stub()); };
 export const semver: Mount = (root) => { root.append(stub()); };
 export const glob: Mount = (root) => { root.append(stub()); };
+export const patch: Mount = (root) => { root.append(stub()); };

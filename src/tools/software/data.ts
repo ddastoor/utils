@@ -11,3 +11,4 @@ export const sqlfmt: Mount = (root) => { root.append(stub()); };
 export const prettier: Mount = (root) => { root.append(stub()); };
 export const mockdata: Mount = (root) => { root.append(stub()); };
 export const mdtable: Mount = (root) => { root.append(stub()); };
+export const jsonschema: Mount = (root) => { root.append(stub()); };

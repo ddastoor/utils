@@ -9,3 +9,5 @@ export const hmac: Mount = (root) => { root.append(stub()); };
 export const pwhash: Mount = (root) => { root.append(stub()); };
 export const apikey: Mount = (root) => { root.append(stub()); };
 export const curl: Mount = (root) => { root.append(stub()); };
+export const totp: Mount = (root) => { root.append(stub()); };
+export const pwstrength: Mount = (root) => { root.append(stub()); };
