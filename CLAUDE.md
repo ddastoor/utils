@@ -13,6 +13,9 @@ that affects it.
 > ## ⚠️ STANDING RULE #1 — WebAssembly first (owner; permanent; applies to every line of new code)
 > The owner has had to repeat this several times. **Check this rule before choosing ANY engine, library or
 > algorithm for ANY tool — new or existing — without waiting to be reminded.**
+> **Owner clarification (Nov 16 2026): WebAssembly is a *very, very important preference*, not an absolute mandate.**
+> If something cannot practically be built into WebAssembly, use an existing open-source JavaScript library
+> (vendored and served from this site, never a CDN) — and record why in §3a. Don't stall a tool over it.
 > 1. **First choice, always:** build our own WebAssembly module from the **latest stable upstream open-source
 >    source** (C/C++, or Rust/Zig/other compiled code) — the correct, official project source, verified by
 >    checksum/signature — or from our own C (`wasm/`). Use it for the algorithms and all heavy loops.
