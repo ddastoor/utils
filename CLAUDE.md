@@ -221,7 +221,7 @@ Formatter · `regex` Regex Tester · `base64` Base64 · `urlenc` URL Encoder · 
 Generator · `color` Color Converter · `jwt` JWT Decoder. New: `sqlite` SQLite Playground (official SQLite wasm) ·
 `jq` jq Playground (jq C source → wasm) · `yaml` YAML ⇄ JSON ⇄ TOML (js-yaml, smol-toml) · `xml` XML Formatter /
 XPath · `json2types` JSON → Types (TS/Go/Rust/Java/Python) · `jsondiff` JSON Diff · `sqlfmt` SQL Formatter
-(sql-formatter) · `prettier` Code Formatter (Prettier standalone) · `mockdata` Mock Data Generator · `mdtable`
+(sqlformat, Rust → devcore-sqlfmt.wasm) · `prettier` Code Formatter (Prettier standalone) · `mockdata` Mock Data Generator · `mdtable`
 Markdown Table · `cidr` Subnet / CIDR (IPv4+IPv6) · `chmod` chmod Calculator · `x509` Certificate Decoder (own
 DER parser) · `sshkey` SSH Key Generator (Ed25519, OpenSSH format, libsodium) · `hmac` HMAC Generator · `pwhash`
 Password Hash Tool (Argon2id/bcrypt/PBKDF2) · `apikey` API Key Generator · `curl` cURL Converter · `cron` Cron
@@ -741,7 +741,6 @@ JavaScript-only components (no C/C++ equivalent exists for the job):
 | OpenPGP.js 6 (LGPL-3.0) | the audited browser OpenPGP implementation; C alternatives (GnuPG, RNP+Botan) are not built or audited for wasm | pgp |
 | Mermaid 12 (MIT) | Mermaid exists only as JavaScript; `securityLevel: 'strict'` (labels sanitised), bundled by Vite | mermaid |
 | Prettier standalone (MIT) | no compiled formatter covers JS/TS/CSS/HTML/YAML/Markdown/GraphQL together | prettier |
-| sql-formatter (MIT) | no C/C++ SQL pretty-printer library | sqlfmt |
 | TensorFlow.js (Apache-2.0) | runs the Magenta style-transfer graph on the GPU via WebGL; its **wasm backend** (XNNPACK, C++ → wasm, tier 2 official build) is the CPU path | cartoon (neural) |
 | zip.js (BSD-3) | AES-256 zip *creation*; libarchive's wasm build has no crypto | zip |
 | mediabunny (MPL-2.0) | MP4 muxing around the browser's hardware WebCodecs encoders; cutting audio without re-encoding (packet copy) | video, audio |
@@ -770,7 +769,7 @@ String case mapping, canvas, WebCrypto, Date); string formatting/parsing of user
 dates); per-animation-frame loops over ≤ 4k samples (audio meter RMS/peak, waveform and graph grid drawing) where
 copying into wasm costs more than the loop; Damerau-Levenshtein etc. are all in C now.
 Staying on tier 2 (official upstream wasm, fine): MuPDF, SQLite, MediaPipe Tasks. Staying JS (no compiled
-equivalent, reasons above): OpenPGP.js, Mermaid, Prettier, sql-formatter, TensorFlow.js.
+equivalent, reasons above): OpenPGP.js, Mermaid, Prettier, TensorFlow.js. (sql-formatter replaced by our Rust sqlformat build, Nov 2026.)
 
 ### Approved data APIs (connect-src allowlist)
 Add a host here and to the CSP `connect-src` in `index.html` (and the allowlist in `tests/e2e/no-external.e2e.mjs`)

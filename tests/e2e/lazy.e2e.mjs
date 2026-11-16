@@ -25,6 +25,9 @@ const AT_OPEN = {
   semver: [/devcore-semver/, 'the sample range is checked as you type (devcore-semver, 0.16 MB)'],
   glob: [/devcore-glob/, 'the sample patterns are matched as you type (devcore-glob, 0.65 MB)'],
   patch: [/devcore-patch/, 'the patch is applied as you type (devcore-patch, 0.11 MB)'],
+  sqlfmt: [/devcore-sqlfmt/, 'the sample query is formatted live (devcore-sqlfmt, 0.22 MB)'],
+  baseenc: [/devcore-enc/, 'the sample text is encoded live (devcore-enc, 0.16 MB)'],
+  bindecode: [/devcore-bin/, 'the sample message is decoded live (devcore-bin, 0.25 MB)'],
   mermaid: [/mermaid|cytoscape|katex|dagre|elk/i, 'the sample diagram is the main view (Mermaid, loaded as JS chunks)'],
 };
 const HEAVY = /\.wasm$|\/vendor\/|\/models\/|\/data\/|\.(ttf|otf|woff2?)$/;

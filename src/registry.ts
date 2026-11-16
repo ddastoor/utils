@@ -347,7 +347,7 @@ export const TOOLS: Tool[] = [
     'go struct from json, struct from json, json to go, json to rust, json to java, json to python, json to typescript, interface, go struct, rust struct, java class, python dataclass, pydantic, types, schema', () => swData().then((m) => m.json2types), 'pc'),
   t('jsondiff', 'JSON Diff', 'Structural diff of two JSON documents.', 'software', 'GitCompare',
     'json diff, compare json, difference, structural, patch', () => swData().then((m) => m.jsondiff), 'pc'),
-  t('sqlfmt', 'SQL Formatter', 'Format SQL for many dialects.', 'software', 'TextQuote',
+  t('sqlfmt', 'SQL Formatter', 'Format SQL queries: keywords, indentation, one statement per block.', 'software', 'TextQuote',
     'sql, format, beautify, pretty, postgres, mysql, bigquery, snowflake, tsql', () => swData().then((m) => m.sqlfmt), 'pc'),
   t('prettier', 'Code Formatter', 'Prettier for JS/TS/CSS/HTML/YAML/Markdown/GraphQL.', 'software', 'Wand',
     'prettier, format, beautify, javascript, typescript, css, scss, html, yaml, markdown, graphql, json', () => swData().then((m) => m.prettier), 'pc'),

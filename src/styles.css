@@ -844,3 +844,10 @@ details summary { cursor: pointer; font-weight: 600; color: var(--accent); paddi
 .mermaid-view { overflow: auto; min-height: 120px; background: #fff; border-radius: 10px; padding: 12px; }
 .mermaid-view svg { max-width: 100%; height: auto; }
 .chmod-grid input { width: 20px; height: 20px; }
+.bitgrid { display: flex; flex-wrap: wrap; gap: 3px; }
+.bitgrid .bit { width: 26px; height: 32px; border: 1px solid var(--border); border-radius: 5px; background: var(--surface); font: 600 13px ui-monospace, monospace; cursor: pointer; padding: 0; }
+.bitgrid .bit:nth-child(8n) { margin-right: 8px; }
+.bitgrid .bit.on { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.ieee-bits { font-size: 15px; word-break: break-all; letter-spacing: .5px; }
+.ieee-bits .b-sign { color: var(--err); font-weight: 700; } .ieee-bits .b-exp { color: var(--ok); font-weight: 700; margin: 0 4px; } .ieee-bits .b-man { color: var(--accent); }
+.bin-out { max-height: 60vh; overflow: auto; }
