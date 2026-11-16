@@ -61,9 +61,7 @@ STANDING RULE #1 is at the top of `CLAUDE.md`; audit list is in CLAUDE.md §3a.
 
 ## Queue (in order) — each: implement → own e2e suite with real fixtures → screenshot at 390×844 → commit + push
 1. (Audit done.) Continue image tools below.
-2. **Linux Terminal DONE** (130 BusyBox applets, all tested; see CLAUDE.md §2). **Next up: bc console** inside the
-   Scientific Calculator tab on PC (reuse src/workers/terminal.worker.ts: run `bc -lq` with the session's lines,
-   show only the new output). Then, in order: (imgproc detect/warp/enhance → PDF via MuPDF),
+2. **Linux Terminal DONE** (130 BusyBox applets, all tested; see CLAUDE.md §2). bc console DONE (12 e2e checks). **Next up: OCR, then Passport Photo, Background Remover, Cartoonizer**; Then, in order: (imgproc detect/warp/enhance → PDF via MuPDF),
    ocr (Tesseract eng+hin), passport (36 presets in src/lib/passport-specs.ts; MediaPipe landmarks + selfie
    segmentation + imgproc guided filter; camera, print sheet, KB target, DPI), bgremove, cartoon (classic imgproc
    + Magenta TF.js). Models: add entries to scripts/assets.json and pin with `fetch-assets.mjs --pin <name>`.

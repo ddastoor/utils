@@ -220,7 +220,9 @@ plus a "names & terms" hint box fed to Whisper's initial prompt.
 **Batch 4 (owner-requested):**
 - **`bc` console** — PC only, shown **inside the Scientific Calculator tab** next to the keypad calculator (owner's
   explicit request; phones show only the keypad). Engine: BusyBox's `bc` (Gavin Howard's bc, arbitrary precision,
-  `-l` maths library) from our BusyBox wasm build.
+  `-l` maths library) from our BusyBox wasm build — **BUILT** (`src/tools/bc-console.ts`, runs in the terminal worker;
+  each Enter replays the session through `bc -lq` so variables/functions persist and shows only the new output;
+  errors shown without breaking the session; e2e `tests/e2e/bc-console.e2e.mjs`).
 - **Linux Terminal — owner instructions (Nov 16 2026):** include **as many BusyBox applets as possible**; when an
   applet needs a syscall WASI lacks, look for a browser-side shim that covers it (e.g. exec/fork → run another
   BusyBox instance on the same in-memory FS via a host import; identity → /etc/passwd in the FS; uname/nproc/df →

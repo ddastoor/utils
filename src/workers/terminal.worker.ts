@@ -33,6 +33,7 @@ self.onmessage = async (e: MessageEvent<any>) => {
       flush();
       return reply(m.id, { code, prompt: s.prompt(), cwd: s.cwd, ms: performance.now() - t0 });
     }
+    if (m.op === 'capture') { const r = s.capture(m.line); return reply(m.id, r); }
     if (m.op === 'complete') return reply(m.id, { items: complete(s, m.text) });
     if (m.op === 'ls') return reply(m.id, { path: VFS.join(m.path || s.cwd), items: s.vfs.list(m.path || s.cwd) });
     if (m.op === 'read') { const b = s.vfs.readFile(m.path, s.cwd); return reply(m.id, { bytes: b }, [b.buffer]); }

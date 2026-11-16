@@ -1,5 +1,6 @@
 import { h, card, button, clear, copy, type Mount } from '../ui';
 import { mathcore, fmtNum } from '../wasm/mathcore';
+import { bcConsole } from './bc-console';
 
 export const mount: Mount = async (root, ctx) => {
   const m = await mathcore();
@@ -93,6 +94,10 @@ export const mount: Mount = async (root, ctx) => {
       pad),
     card('History', h('div', { class: 'row' }, button('Copy result', () => copy(exprIn.value), { small: true, icon: 'Copy' }), button('Clear history', () => { history.length = 0; renderHist(); }, { small: true, variant: 'ghost' })), histEl),
   ));
+  // PC only (owner request): the bc console sits in this tab, beside the keypad calculator
+  const bc = ctx.isMobile ? null : bcConsole();
+  if (bc) root.append(bc.el);
   refresh();
   if (!ctx.isMobile) exprIn.focus();
+  return () => bc?.dispose();
 };
