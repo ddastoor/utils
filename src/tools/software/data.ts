@@ -5,7 +5,7 @@ import { debounce } from './devui';
 export { xml, json2types, jsondiff, mdtable, mockdata } from './data2';
 export { yaml, jsonschema } from './data3';
 const stub = () => note('This tool is being built.', 'info');
-export const sqlite: Mount = (root) => { root.append(stub()); };
+export { sqlite } from './sqlite';
 export const jq: Mount = (root) => { root.append(stub()); };
 export const sqlfmt: Mount = (root) => {
   let indent = 2, upper = true, lines = 1, inline = false, fmt: Devcore | null = null;

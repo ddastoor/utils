@@ -729,7 +729,7 @@ stay **public** (the source of the deployed site is then available to every user
 | libyaml 0.2.5 + toml++ 3 | C / C++ | **us** (`wasm/formats`) | yaml |
 | MuPDF 1.28 | C | Artifex (official `mupdf` npm) | all PDF tools, PDF → EPUB |
 | ONNX Runtime Web 1.31 (CPU/WebAssembly, SIMD) | C++ | Microsoft (official `onnxruntime-web`; tier 2 — a build of ORT from source is impractical: huge C++ tree with protobuf/abseil/Eigen and Emscripten-specific glue) | tts (Kokoro, Piper) |
-| SQLite 3.54 | C | SQLite project (official `@sqlite.org/sqlite-wasm`) | sqlite |
+| SQLite 3.54 | C | SQLite project (official `@sqlite.org/sqlite-wasm`), run in `src/workers/sqlite.worker.ts` (terminated on leave) | sqlite |
 | FFmpeg | C | ffmpeg.wasm project | ffmpeg |
 | MozJPEG, libwebp, OxiPNG | C / Rust | jSquash (Squoosh codecs) | image encoders |
 | libheif + libde265 | C++ | libheif-js | heic |

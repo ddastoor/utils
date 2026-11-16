@@ -184,11 +184,13 @@ export function outputBox(o: { rows?: number; mono?: boolean; placeholder?: stri
 
 // ------------------------------------------------------------------ files
 
-export interface PickOpts { accept?: string; multiple?: boolean; label?: string; hint?: string; capture?: 'user' | 'environment'; onFiles: (files: File[]) => void; compact?: boolean }
+export interface PickOpts { accept?: string; multiple?: boolean; label?: string; hint?: string; capture?: 'user' | 'environment'; onFiles: (files: File[]) => void | Promise<unknown>; compact?: boolean }
 export function filePicker(o: PickOpts) {
   const inp = h('input', { type: 'file', accept: o.accept, multiple: o.multiple, hidden: true });
   if (o.capture) inp.setAttribute('capture', o.capture);
-  inp.addEventListener('change', () => { if (inp.files?.length) o.onFiles([...inp.files]); inp.value = ''; });
+  // errors from the handler (sync or async) are shown like a button's, not left as uncaught page errors
+  const call = (fs: File[]) => { try { const r = o.onFiles(fs); if (r && typeof (r as any).then === 'function') (r as Promise<unknown>).catch((err) => { toast(errMsg(err), 'err'); console.error(err); }); } catch (err) { toast(errMsg(err), 'err'); console.error(err); } };
+  inp.addEventListener('change', () => { if (inp.files?.length) call([...inp.files]); inp.value = ''; });
   const el = h('div', { class: ['drop', o.compact && 'drop-compact'], tabindex: '0', role: 'button' },
     ic('Upload', 'drop-ic'),
     h('div', { class: 'drop-text' }, h('strong', null, o.label || (o.multiple ? 'Choose files' : 'Choose a file')), h('span', { class: 'drop-hint' }, o.hint || 'or drop here')),
@@ -200,7 +202,7 @@ export function filePicker(o: PickOpts) {
   el.addEventListener('drop', (e) => {
     e.preventDefault(); el.classList.remove('over');
     const fs = [...(e.dataTransfer?.files || [])];
-    if (fs.length) o.onFiles(o.multiple ? fs : fs.slice(0, 1));
+    if (fs.length) call(o.multiple ? fs : fs.slice(0, 1));
   });
   return extend(el, { open: () => inp.click() });
 }
