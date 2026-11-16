@@ -61,6 +61,14 @@ the 47 Software stub tabs (each with its own suite) first, then ask about potent
 - Router: same tab + changed own hash parameters → re-mounted (`?from=` ignored).
 
 ## 5. Traps already found
+- **zig's wasm32-wasi libc** (single-threaded): an implicitly declared function gets the wrong wasm signature and traps
+  at run time (force-include prototypes — wasm/graphviz/compat.h); the main thread's musl thread list is unlinked, so
+  `pthread_key_delete` loops forever (wasm/python/wasi_start.c); the process starts in "/" whatever PWD says; zig cc
+  rejects some linker flags (`--stack-first`, `--allow-multiple-definition`). C++ throw → `cxxabi_stubs.c` (abort).
+- Graphviz keeps pointers to the strings passed to it and can leave a pending job after an error: copy the strings and
+  use a fresh GVC context per call (wasm/graphviz/glue.c).
+- Under the full parallel e2e run (8 suites at once) mermaid, noise, resume and stt can miss a timing/accuracy check;
+  re-run those suites alone before chasing a bug.
 - Playwright **drops files whose path is not ASCII** in `setInputFiles` — pass `{ name, mimeType, buffer }` objects.
 - Playwright `fill()` is extremely slow with very long multi-line text (10,000 lines) — set `value` in `evaluate` and
   dispatch `input`.

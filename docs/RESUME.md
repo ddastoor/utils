@@ -154,7 +154,10 @@ Dictionary), Codes & Files (5), Everyday (9), Device (11), Linux Terminal + bc c
    wasm/zxcvbn); xml, json2types, jsondiff (devcore-jsondiff: json-patch), mdtable, mockdata (data2.ts); yaml, jsonschema (data3.ts; wasm/formats); prettier (prettier.ts, JS); sqlite (sqlite.ts + src/workers/sqlite.worker.ts, official SQLite wasm); jq (data.ts; wasm/jq = jq 1.8.2 C + oniguruma built by us, glue `jq_run` with an input callback so `input`/`inputs` work, `$ARGS`; e2e compares every output with the native /usr/bin/jq); graphviz (graphviz.ts; wasm/graphviz = Graphviz 14.1.2 + Expat built by us, in a worker with Stop; SVG shown as an inert <img>).** (47/47) devcore = one Rust crate (wasm/devcore), one small wasm per tab via Cargo features
    (`devcore-<feature>.wasm`; cron gets zone offsets from the browser's Intl through `env.tz_offset`); unit suite
    `tests/unit/devcore.test.mjs` (92). python (python.ts; wasm/python = CPython 3.14.8 built by us with zig — real Python 3 with its standard library instead of the planned MicroPython; worker, Stop, stdin, files in/out). **All 47 Software tabs built.**
-   Next: full unit + e2e run, then ask the owner about docs/potentials.md.
+   **Full run (16 Nov 2026, after the last tab):** unit 3531/3531 (32 suites); e2e 3576/3583 in 188 suites with all
+   suites in parallel — the 7 misses (mermaid 4, noise 1 timeout, resume 1, stt Indian-English WER 28 % > 20 %) all pass
+   when the suite runs alone (CPU contention; Piper's random sampling for the STT round trip). **Every original tab is
+   built.** Next: the owner picks which `docs/potentials.md` ideas to build (asked in chat); build none until then.
    Test-only Python packages now also: `pip install --user bcrypt argon2-cffi zxcvbn requests` (checks skip if missing).
    Bugs fixed on the way: String Escape split emoji into a broken surrogate (😀 → "\ud83d" only); Patch Applier kept the
    previous result on screen when a new patch failed, TOTP's otpauth account line vanished on the next tick, Mock Data made new random rows when only the output format changed, **errors thrown by any file picker's handler
