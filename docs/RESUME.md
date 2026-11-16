@@ -19,7 +19,7 @@ export NODE_PATH="$(npm root -g)"        # tests load the global playwright
 npm test && npm run build && node tests/e2e.mjs
 ```
 Zig for our wasm modules: CLAUDE.md §5 (pip ziglang 0.17.1). Start Claude Code in the folder with `claude`, or with
-`claude remote-control` to steer it from the phone app. Pending owner decision: docs/IDEAS.md (new-tab candidates).
+`claude remote-control` to steer it from the phone app. Pending owner decision: docs/potentials.md + docs/IDEAS.md (new-tab candidates) — remind the owner.
 
 ## Status (last updated with the commit that touched this file — see `git log -1 -- docs/RESUME.md`)
 
@@ -93,8 +93,11 @@ Dictionary), Codes & Files (5), Everyday (9), Device (11), Linux Terminal + bc c
    rest listed in CLAUDE.md §2.
 3. Audit list replacements (own builds of mozjpeg/libwebp/oxipng, libheif, tesseract, zxing-cpp, libarchive,
    zip AES in crypto.wasm, minimp4) — CLAUDE.md §3a.
-4. Pending owner decision: docs/IDEAS.md (new-tab candidates from other GitHub projects) — build nothing from it until
-   the owner picks.
+4. **REMIND THE OWNER (owner request, 16 Nov 2026):** `docs/potentials.md` lists 15 new-tab ideas from GitHub projects
+   (Image to SVG, Photo Upscaler, Make PDF Searchable, Document Converter, Vocal Remover, GIF Maker, AVIF/JPEG XL,
+   age Encrypt, Shamir Secret Split, Spell Checker, BPM & Key, Chess, DuckDB SQL, Ruff/Biome, Offline Translation).
+   Ask the owner which to build **when step 1 (per-tab suites) is finished, before starting step 2**, and at the start
+   of any new session. Build nothing from it (or from the older `docs/IDEAS.md`) until the owner picks.
 
 ## Environment notes for a fresh container
 - Zig is NOT persistent: reinstall per CLAUDE.md §5 (`pip download ziglang==0.17.1`, unzip, `export ZIG=…`).

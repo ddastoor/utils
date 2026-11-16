@@ -10,6 +10,11 @@ that affects it.
 > this file and continue from its "Next steps". Update it in every commit that changes status, and push often** —
 > the owner may be cut off at any moment and must be able to come back and continue without losing anything.
 
+> ## 🔔 Owner reminder: `docs/potentials.md`
+> The owner asked (Nov 16 2026) to be **reminded** about the new-tab ideas in `docs/potentials.md` (and the older
+> `docs/IDEAS.md`). Ask the owner which to build when the per-tab test work is finished, and at the start of a new
+> session. Build none of them until the owner picks.
+
 > ## ⚠️ STANDING RULE #1 — WebAssembly first (owner; permanent; applies to every line of new code)
 > The owner has had to repeat this several times. **Check this rule before choosing ANY engine, library or
 > algorithm for ANY tool — new or existing — without waiting to be reminded.**
