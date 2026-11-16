@@ -8,7 +8,7 @@ set -euo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"; ROOT="$(cd "$HERE/../.." && pwd)"
 cd "$HERE"
 rm -f "$ROOT/src/wasm/bin/devcore.wasm"
-for f in cidr cron semver glob patch sqlfmt x509 enc bin hex; do
+for f in cidr cron semver glob patch sqlfmt x509 enc bin hex jsondiff; do
   cargo build --release --locked --target wasm32-wasip1 --no-default-features --features "$f"
   cp target/wasm32-wasip1/release/devcore.wasm "$ROOT/src/wasm/bin/devcore-$f.wasm"
   ls -l "$ROOT/src/wasm/bin/devcore-$f.wasm"

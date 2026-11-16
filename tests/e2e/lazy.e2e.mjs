@@ -30,6 +30,7 @@ const AT_OPEN = {
   bindecode: [/devcore-bin/, 'the sample message is decoded live (devcore-bin, 0.25 MB)'],
   contrast: [/mathcore/, 'the ratio of the sample colours is shown at once (mathcore, small engine)'],
   apikey: [/keys-[\w-]+\.wasm/, 'sample keys are generated at once (keys.wasm, 0.38 MB)'],
+  jsondiff: [/devcore-jsondiff/, 'the sample documents are compared at once (devcore-jsondiff, 0.17 MB)'],
   mermaid: [/mermaid|cytoscape|katex|dagre|elk/i, 'the sample diagram is the main view (Mermaid, loaded as JS chunks)'],
 };
 const HEAVY = /\.wasm$|\/vendor\/|\/models\/|\/data\/|\.(ttf|otf|woff2?)$/;

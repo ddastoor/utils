@@ -876,3 +876,6 @@ details summary { cursor: pointer; font-weight: 600; color: var(--accent); paddi
 .zx-seq { display: flex; flex-wrap: wrap; gap: 6px; }
 .zx-part { display: flex; flex-direction: column; padding: 6px 10px; border-radius: 8px; background: var(--surface-2); border: 1px solid var(--border); }
 .zx-part small { color: var(--muted); font-size: 11px; } .zx-bruteforce { border-style: dashed; }
+.jd-tbl tr.jd-add td { background: var(--ok-soft); } .jd-tbl tr.jd-del td { background: color-mix(in srgb, var(--err) 12%, transparent); } .jd-tbl tr.jd-chg td { background: color-mix(in srgb, var(--warn) 14%, transparent); }
+.md-grid td, .md-grid th { padding: 4px; } .md-grid tr.hdr .md-cell { font-weight: 700; } .md-cell { min-width: 90px; }
+.mock-row { flex-wrap: nowrap; } .mock-row > * { min-width: 0; flex: 1; } .mock-row > .btn { flex: none; }

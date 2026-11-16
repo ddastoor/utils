@@ -197,3 +197,24 @@ pub fn find(input: &[u8]) -> R {
     }
     js(json!({ "hits": hits, "more": hits.len() == max }))
 }
+
+// ------------------------------------------------------------------ JSON diff (RFC 6902 patch) and patch apply
+#[cfg(feature = "jsondiff")]
+fn parse_json(label: &str, t: &str) -> Result<Value, String> {
+    serde_json::from_str(t).map_err(|e| format!("{label}: {} (line {}, column {})", e.to_string().split(" at line").next().unwrap_or(""), e.line(), e.column()))
+}
+#[cfg(feature = "jsondiff")]
+pub fn jsondiff(input: &[u8]) -> R {
+    let a = arg(input)?;
+    let (l, r) = (parse_json("Left", s(&a, "a"))?, parse_json("Right", s(&a, "b"))?);
+    let p = json_patch::diff(&l, &r);
+    js(json!({ "equal": l == r, "patch": serde_json::to_value(&p).unwrap(), "count": p.0.len() }))
+}
+#[cfg(feature = "jsondiff")]
+pub fn jsonpatch(input: &[u8]) -> R {
+    let a = arg(input)?;
+    let mut doc = parse_json("Document", s(&a, "doc"))?;
+    let p: json_patch::Patch = serde_json::from_value(parse_json("Patch", s(&a, "patch"))?).map_err(|e| format!("Not an RFC 6902 patch: {e}"))?;
+    json_patch::patch(&mut doc, &p).map_err(|e| format!("The patch does not apply: {e}"))?;
+    js(json!({ "result": doc }))
+}

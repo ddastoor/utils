@@ -123,6 +123,7 @@ export const ICONS: Record<string, string> = {
   IdCard: "<path d=\"M13 19a4 4 0 00-8 0\" /><path d=\"M16 10h2\" /><path d=\"M16 14h2\" /><circle cx=\"9\" cy=\"12\" r=\"3\" /><rect x=\"2\" y=\"5\" width=\"20\" height=\"14\" rx=\"2\" />",
   Image: "<rect width=\"18\" height=\"18\" x=\"3\" y=\"3\" rx=\"2\" ry=\"2\" /><circle cx=\"9\" cy=\"9\" r=\"2\" /><path d=\"m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21\" />",
   Images: "<path d=\"m22 11-1.296-1.296a2.4 2.4 0 0 0-3.408 0L11 16\" /><path d=\"M4 8a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2\" /><circle cx=\"13\" cy=\"7\" r=\"1\" fill=\"currentColor\" /><rect x=\"8\" y=\"2\" width=\"14\" height=\"14\" rx=\"2\" />",
+  Import: "<path d=\"M12 3v12\" /><path d=\"m8 11 4 4 4-4\" /><path d=\"M8 5H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-4\" />",
   Indent: "<path d=\"M21 5H11\" /><path d=\"M21 12H11\" /><path d=\"M21 19H11\" /><path d=\"m3 8 4 4-4 4\" />",
   IndianRupee: "<path d=\"m14 20-8-8h4c5.333 0 5.333-8 0-8\" /><path d=\"M6 4h12\" /><path d=\"M6 8h12\" />",
   Infinity: "<path d=\"M6 16c5 0 7-8 12-8a4 4 0 0 1 0 8c-5 0-7-8-12-8a4 4 0 1 0 0 8\" />",

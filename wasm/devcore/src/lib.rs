@@ -59,6 +59,10 @@ pub unsafe extern "C" fn dc_call(op: *const u8, op_n: usize, inp: *const u8, in_
         "sqlfmt" => misc::sqlfmt(input),
         "hexdump" => misc::hexdump(input),
         "find" => misc::find(input),
+        #[cfg(feature = "jsondiff")]
+        "jsondiff" => misc::jsondiff(input),
+        #[cfg(feature = "jsondiff")]
+        "jsonpatch" => misc::jsonpatch(input),
         #[cfg(feature = "x509")]
         "x509" => x509::run(input),
         #[cfg(feature = "bin")]

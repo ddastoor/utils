@@ -11,8 +11,8 @@ export default async (t, { load, wasm }) => {
   // one module per tab: route each op to its own build (devcore-<feature>.wasm)
   let zone = 'UTC';
   const mods = {};
-  for (const g of ['cidr', 'cron', 'semver', 'glob', 'patch', 'sqlfmt', 'x509', 'enc', 'bin', 'hex']) mods[g] = bindDevcore(await wasm(`devcore-${g}`, g === 'cron' ? tzImports(() => zone) : {}));
-  const grp = (op) => (op.startsWith('enc:') || op.startsWith('dec:') ? 'enc' : op.startsWith('bin:') ? 'bin' : op === 'hexdump' || op === 'find' ? 'hex' : op);
+  for (const g of ['cidr', 'cron', 'semver', 'glob', 'patch', 'sqlfmt', 'x509', 'enc', 'bin', 'hex', 'jsondiff']) mods[g] = bindDevcore(await wasm(`devcore-${g}`, g === 'cron' ? tzImports(() => zone) : {}));
+  const grp = (op) => (op.startsWith('enc:') || op.startsWith('dec:') ? 'enc' : op.startsWith('bin:') ? 'bin' : op === 'hexdump' || op === 'find' ? 'hex' : op === 'jsonpatch' ? 'jsondiff' : op);
   const d = {
     json: (op, a) => { if (op === 'cron') zone = a.tz || 'UTC'; return mods[grp(op)].json(op, a); }, text: (op, a) => mods[grp(op)].text(op, a), bytesJson: (op, b) => mods[grp(op)].bytesJson(op, b),
     encode: (alg, b) => mods.enc.encode(alg, b), decode: (alg, t) => mods.enc.decode(alg, t), hexdump: (...a) => mods.hex.hexdump(...a), find: (...a) => mods.hex.find(...a),
@@ -144,4 +144,15 @@ export default async (t, { load, wasm }) => {
   t.eq(d.find(E.encode('abcabcab'), E.encode('ab')), { hits: [0, 3, 6], more: false }, 'find all');
   t.eq(d.find(E.encode('abcabcab'), E.encode('ab'), 1, 1), { hits: [3], more: true }, 'find from offset, capped');
   t.eq(d.find(E.encode('aaa'), E.encode('aa')).hits, [0, 1], 'overlapping hits');
+  // ---- JSON diff (RFC 6902): applying the diff to the left document must give the right one
+  const L = { name: 'Asha', age: 30, tags: ['a', 'b'], addr: { city: 'Pune', pin: '411001' }, x: null };
+  const Rt = { name: 'Asha K', tags: ['a', 'b', 'c'], addr: { city: 'Mumbai', pin: '411001' }, x: null, new: true };
+  const df = d.json('jsondiff', { a: JSON.stringify(L), b: JSON.stringify(Rt) });
+  t.ok(!df.equal && df.count >= 4 && df.patch.some((o) => o.op === 'remove' && o.path === '/age') && df.patch.some((o) => o.op === 'replace' && o.path === '/addr/city' && o.value === 'Mumbai'), `diff: ${JSON.stringify(df.patch)}`);
+  const canon = (v) => (Array.isArray(v) ? v.map(canon) : v && typeof v === 'object' ? Object.fromEntries(Object.keys(v).sort().map((k) => [k, canon(v[k])])) : v);
+  t.eq(canon(d.json('jsonpatch', { doc: JSON.stringify(L), patch: JSON.stringify(df.patch) }).result), canon(Rt), 'apply(diff(a, b), a) = b (key order aside)');
+  t.eq(d.json('jsondiff', { a: '{"a":1,"b":2}', b: '{"b":2,"a":1}' }).equal, true, 'key order does not matter');
+  t.ok(/line 2, column/.test(err(() => d.json('jsondiff', { a: '{\n "a": }', b: '{}' }))), 'parse error with line and column');
+  t.eq(d.json('jsonpatch', { doc: '{"a":[1,2]}', patch: '[{"op":"add","path":"/a/-","value":3},{"op":"test","path":"/a/0","value":1}]' }).result, { a: [1, 2, 3] }, 'RFC 6902 add to array end + test');
+  t.ok(/does not apply/.test(err(() => d.json('jsonpatch', { doc: '{"a":1}', patch: '[{"op":"test","path":"/a","value":2}]' }))), 'failing test op refused');
 };

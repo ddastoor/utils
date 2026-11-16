@@ -151,15 +151,14 @@ Dictionary), Codes & Files (5), Everyday (9), Device (11), Linux Terminal + bc c
    shared `refTable` filter); cidr, chmod, x509 (net.ts); cron, semver, glob, patch, hexview, escape, unicode, logview,
    sla, transfer, mermaid (misc.ts); bitwise, ieee754, baseenc, bindecode (bits.ts); sqlfmt (data.ts); contrast, gradient, shadow, svgo (web.ts; svgo =
    our Rust build of OXVG, wasm/svgo); hmac, totp, pwhash, sshkey, apikey, curl, pwstrength (net.ts; wasm/keys +
-   wasm/zxcvbn).** (35/47) devcore = one Rust crate (wasm/devcore), one small wasm per tab via Cargo features
+   wasm/zxcvbn); xml, json2types, jsondiff (devcore-jsondiff: json-patch), mdtable, mockdata (data2.ts).** (40/47) devcore = one Rust crate (wasm/devcore), one small wasm per tab via Cargo features
    (`devcore-<feature>.wasm`; cron gets zone offsets from the browser's Intl through `env.tz_offset`); unit suite
-   `tests/unit/devcore.test.mjs` (92). **Still to build (12):** sqlite (official
-   wasm), jq (own C build from upstream), yaml, xml, json2types, jsondiff, prettier (JS, §3a), mockdata, mdtable,
-   jsonschema (data.ts), graphviz, python.
+   `tests/unit/devcore.test.mjs` (92). **Still to build (7):** sqlite (official
+   wasm), jq (own C build from upstream), yaml, prettier (JS, §3a), jsonschema (data.ts), graphviz, python.
    Next: data.ts tabs (Rust modules planned for jsonschema and yaml/toml), then graphviz + MicroPython.
    Test-only Python packages now also: `pip install --user bcrypt argon2-cffi zxcvbn requests` (checks skip if missing).
    Bugs fixed on the way: String Escape split emoji into a broken surrogate (😀 → "\ud83d" only); Patch Applier kept the
-   previous result on screen when a new patch failed, TOTP's otpauth account line vanished on the next tick, and added a newline that broke "No newline at end of file" patches;
+   previous result on screen when a new patch failed, TOTP's otpauth account line vanished on the next tick, Mock Data made new random rows when only the output format changed, and added a newline that broke "No newline at end of file" patches;
    the device time zone showed as "Asia/Calcutta" and India was listed twice in the Time Zone converter (src/lib/tz.ts).
    sql-formatter (JS) replaced by our Rust sqlformat build (tier 1).
 3. Audit list replacements (own builds of mozjpeg/libwebp/oxipng, libheif, tesseract, zxing-cpp, libarchive,
