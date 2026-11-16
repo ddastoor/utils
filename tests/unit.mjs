@@ -48,6 +48,10 @@ if (isMainThread) {
     for (const i of WebAssembly.Module.imports(mod)) if (i.module === 'wasi_snapshot_preview1') w[i.name] = () => 52;
     w.random_get = (p, n) => { crypto.getRandomValues(new Uint8Array(memory.buffer, p, n)); return 0; };
     w.proc_exit = (c) => { throw new Error('exit ' + c); };
+    // same as the browser shim (src/wasm/wasi.ts): a real clock and an empty environment
+    w.clock_time_get = (_id, _prec, out) => { new DataView(memory.buffer).setBigUint64(out, BigInt(Date.now()) * 1000000n, true); return 0; };
+    w.environ_sizes_get = (a, b) => { const dv = new DataView(memory.buffer); dv.setUint32(a, 0, true); dv.setUint32(b, 0, true); return 0; };
+    w.environ_get = () => 0;
     const inst = await WebAssembly.instantiate(mod, { wasi_snapshot_preview1: w });
     memory = inst.exports.memory;
     inst.exports._initialize?.();

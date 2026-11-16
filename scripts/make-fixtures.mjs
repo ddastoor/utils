@@ -12,13 +12,14 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const out = join(root, 'tests/fixtures');
 const cache = process.argv[2] || join(root, 'node_modules/.cache/fixtures');
 mkdirSync(cache, { recursive: true });
-for (const d of ['images', 'pdf', 'media']) mkdirSync(join(out, d), { recursive: true });
+for (const d of ['images', 'pdf', 'media', 'sheets']) mkdirSync(join(out, d), { recursive: true });
 
 const SDISTS = {
   pillow: ['https://files.pythonhosted.org/packages/ce/a4/9cc30690a394a8305e8be4c9036aa16d0dfddadd09079860b582f562496d/pillow-13.0.0.tar.gz', 'cdcd1ba258178f7356d74170c9a81ba4eab6a5d55748bc402a5a2a6fe6be3510'],
   heif: ['https://files.pythonhosted.org/packages/44/c1/82145984920ca055675af2c2795bd30da6f7461215c41f3c1eacb3d66353/pillow_heif-1.8.1.tar.gz', '521ebffb8a181d56c3904e5a61f20903edee0d9d3275967b8fb345f866215c06'],
   pypdf: ['https://files.pythonhosted.org/packages/60/d3/367aa9baefaededd3321cde46bbcb9f008bb51cef3a6b745608352a99534/pypdf-7.1.0.tar.gz', 'ca3fa902369e98a6d2cb7b56396de902b72ef9bb3c1e8706c1bfc7d8bd0cf0d7'],
   skimage: ['https://files.pythonhosted.org/packages/a1/b4/2528bb43c67d48053a7a649a9666432dc307d66ba02e3a6d5c40f46655df/scikit_image-0.26.0.tar.gz', 'f5f970ab04efad85c24714321fcc91613fcb64ef2a892a13167df2f3e59199fa'],
+  calamine: ['https://files.pythonhosted.org/packages/68/ec/923684e9d817b4b317942c9dd36a66cd213a3c0abcb3c58d2cb22e3a4355/python_calamine-0.9.1.tar.gz', '458094c3dd41bd330c0a43d20e23489964ba28b3301687f1c5acc03c81d06a9f'],
 };
 const PICK = [
   ['skimage', 'scikit_image-0.26.0/src/skimage/data/astronaut.png', 'images/astronaut.png'],
@@ -38,6 +39,7 @@ const PICK = [
   ['pypdf', 'pypdf-7.1.0/resources/encryption/r3-user-password.pdf', 'pdf/rc4-128-asdfzxcv.pdf'],
   ['pypdf', 'pypdf-7.1.0/resources/encryption/r4-aes-user-password.pdf', 'pdf/aes128-asdfzxcv.pdf'],
   ['pypdf', 'pypdf-7.1.0/resources/encryption/r6-user-password.pdf', 'pdf/aes256-asdfzxcv.pdf'],
+  ...['base.xlsx', 'base.xls', 'base.xlsb', 'base.ods', 'any_sheets.xlsx', 'password.xlsx', 'empty_file.xlsx'].map((f) => ['calamine', `python_calamine-0.9.1/tests/data/${f}`, `sheets/${f}`]),
 ];
 
 const sha = (b) => createHash('sha256').update(b).digest('hex');

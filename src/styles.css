@@ -740,3 +740,14 @@ details summary { cursor: pointer; font-weight: 600; color: var(--accent); paddi
 .dg-row-tools { display: flex; flex-direction: column; gap: 2px; }
 .ok-text { color: #15803d; } .err-text { color: #b91c1c; }
 @media (max-width: 900px) { .dg-layout { grid-template-columns: 1fr; } .dg-layout > .card:last-child { position: static; max-height: none; } }
+
+/* CSV / Excel viewer */
+.sheet-bar { align-items: flex-end; gap: 12px; } .sheet-bar > .input { max-width: 320px; }
+.sheet-wrap { overflow: auto; max-height: 65vh; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); }
+.sheet-table { border-collapse: separate; border-spacing: 0; font: 13px/1.35 system-ui, sans-serif; }
+.sheet-table th, .sheet-table td { border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); padding: 3px 8px; white-space: pre; max-width: 420px; overflow: hidden; text-overflow: ellipsis; }
+.sheet-table thead th { position: sticky; top: 0; background: var(--surface-2); color: var(--muted); font-weight: 600; z-index: 2; }
+.sheet-table .rn { position: sticky; left: 0; background: var(--surface-2); color: var(--muted); text-align: right; z-index: 1; }
+.sheet-table thead .rn { z-index: 3; }
+.sheet-table td.num { text-align: right; font-variant-numeric: tabular-nums; }
+.sheet-table tr.hdr td { font-weight: 600; background: color-mix(in srgb, var(--accent) 8%, var(--surface)); }

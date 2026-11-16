@@ -5,3 +5,4 @@ public/vendor/
 *.log
 wasm/**/.build/
 public/models/
+wasm/sheet/target/

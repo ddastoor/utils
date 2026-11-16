@@ -185,7 +185,7 @@ Classic / Modern (two columns) / Compact, A4 or Letter, photo, repeatable jobs /
 | `pdf-pagenum` | PDF Page Numbers | both |
 | `pdf-watermark` | PDF Watermark | both |
 | `epub` | PDF → EPUB (Kindle) | **PC** |
-| `sheet` | CSV / Excel Viewer & Converter | **PC** |
+| `sheet` | CSV / Excel Viewer & Converter | **PC** — **BUILT** (sheet.wasm; open xlsx/xlsm/xlsb/xls/ods/csv/tsv/json, sheet tabs incl. hidden, separator override, filter, export CSV (BOM) / TSV / JSON / XLSX; e2e 17) |
 | `markdown` | Markdown Editor | both — **BUILT** (cmark-gfm wasm; live preview, toolbar + Ctrl+B/I/K, .md open/save, standalone .html, print of the preview only; e2e 23) |
 
 **Security**: `pgp` OpenPGP · `sodium` Sodium Encrypt · `sharelink` Encrypted Share Link (ciphertext in the
@@ -589,6 +589,7 @@ stay **public** (the source of the deployed site is then available to every user
 | BusyBox 1.38.0 (130 applets) + compat shims | C | **us** (`wasm/busybox`) | terminal, bc console |
 | jq 1.8.2 (+ oniguruma) | C | **us** (`wasm/jq`) | jq |
 | textcore: Myers diff, tool-search ranking, word frequency, rare-word ranking (tokeniser, lemmatiser, wordfreq hash table) | C (own code) | **us** (`wasm/textcore`) | diff, search box, word counter, photodict |
+| sheet: calamine 0.38 (read .xlsx .xlsm .xlsb .xls .ods) + rust_xlsxwriter 0.102 (write .xlsx) + csv 1 + serde_json | Rust | **us** (`wasm/sheet`, crates.io sources verified by `Cargo.lock`, target wasm32-wasip1) | sheet |
 | cmark-gfm 0.29.0.gfm.13 (GitHub Flavored Markdown) | C | **us** (`wasm/markdown`, source from the PyPI `cmarkgfm` sdist, SHA-256 pinned) | markdown |
 | libyaml 0.2.5 + toml++ 3 | C / C++ | **us** (`wasm/formats`) | yaml |
 | MuPDF 1.28 | C | Artifex (official `mupdf` npm) | all PDF tools, PDF → EPUB |
@@ -740,6 +741,17 @@ patches: spawn() → host import, ed's `open(f, 0)`, stat function pointers; zig
 `-mexception-handling -mllvm -wasm-enable-sjlj`), LLVM `ar` and `wasm-ld`; final link done by the script (BusyBox's
 trylink loses `main`, which WASI's `_start` only references weakly). Adding an applet: put it in `applets.cfg`, rebuild,
 add a case to `tests/unit/terminal-applets.test.mjs` (the suite refuses untested applets).
+
+### 5.1f sheet → `src/wasm/bin/sheet.wasm` (Rust)
+`wasm/sheet/build.sh` = `cargo build --release --locked --target wasm32-wasip1` (needs `rustup target add wasm32-wasip1`;
+Rust 1.97 is installed in the sandbox; crates.io is reachable). Plain exported functions + JSON, no wasm-bindgen
+(`wasm32-unknown-unknown` pulled wasm-bindgen in through zip → getrandom; on wasip1 getrandom uses WASI `random_get`).
+Exports `sheet_read`, `csv_read` (delimiter sniffing over the first 50 lines), `xlsx_write` (bold frozen header +
+autofilter, numeric text → numbers except leading-zero codes, column widths), `csv_write`. Dates → ISO text; Excel
+time-only cells → `hh:mm:ss`; ODS durations → `h:mm:ss`; encrypted workbooks and empty files get clear messages;
+hidden sheets flagged. Imports only WASI random/clock/environ/fd_write/proc_exit (the browser shim and the unit
+harness both implement a real clock). ~1.4 MB, loaded only by the PC-only `sheet` tab. Tests `tests/unit/sheet.test.mjs`
+(33, real files from python-calamine's test data in `tests/fixtures/sheets/`).
 
 ### 5.1e markdown → `src/wasm/bin/markdown.wasm`
 `ZIG=… wasm/markdown/build.sh`: downloads the `cmarkgfm` 2025.10.22 sdist from PyPI (SHA-256 `5bec6100…`), which vendors

@@ -1,0 +1,25 @@
+[package]
+name = "sheet"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "SuperTools spreadsheet engine: calamine (read xlsx/xls/xlsb/ods) + rust_xlsxwriter (write xlsx) + csv, for wasm32"
+
+[lib]
+crate-type = ["cdylib"]
+path = "src/lib.rs"
+
+[dependencies]
+calamine = { version = "=0.38.0", default-features = false, features = ["dates"] }
+rust_xlsxwriter = { version = "=0.102.0", default-features = false }
+csv = "1"
+chrono = { version = "0.4", default-features = false }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[profile.release]
+opt-level = "s"
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true
