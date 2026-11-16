@@ -24,4 +24,4 @@ export const sqlfmt: Mount = (root) => {
     note('Formats standard SQL (works for PostgreSQL, MySQL, SQLite, SQL Server and Oracle queries); comments and strings are kept as written.', 'info'));
   run();
 };
-export const prettier: Mount = (root) => { root.append(stub()); };
+export { prettier } from './prettier';
