@@ -15,7 +15,7 @@ const CONCURRENCY = Number(process.env.E2E_CONCURRENCY || Math.min(10, Math.max(
 const t0 = performance.now();
 const server = await preview({ root: join(here, '..'), preview: { port: 0 }, logLevel: 'error' });
 const base = server.resolvedUrls.local[0];
-const browser = await chromium.launch({ args: ['--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream'] });
+const browser = await chromium.launch({ args: ['--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream', '--auto-accept-this-tab-capture'] });
 const tmp = mkdtempSync(join(tmpdir(), 'supertools-e2e-'));
 
 const files = readdirSync(join(here, 'e2e')).filter((f) => f.endsWith('.e2e.mjs') && f.includes(filter)).sort();

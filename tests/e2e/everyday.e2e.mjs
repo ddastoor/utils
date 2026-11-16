@@ -20,6 +20,6 @@ export default async ({ base, page: newPage, ok }) => {
   await page.locator('input[type=number]').nth(2).fill('10'); await page.getByText('No repeats').click(); await page.getByRole('button', { name: 'Generate' }).click();
   const uniq = (await page.locator('.rng-out').textContent()).split(', '); ok(new Set(uniq).size === 10, '10 unique numbers');
   await go('picker'); await page.getByRole('button', { name: 'Pick' }).click(); ok(['Pizza', 'Biryani', 'Dosa', 'Paneer tikka', 'Pasta'].includes((await page.locator('.pick-item').textContent()).trim()), 'picked from list');
-  await go('teams'); ok((await page.locator('.teams .card').count()) === 2, 'two teams'); ok(/Team 1 \(4\)/.test(await page.locator('.teams').innerText()), 'balanced teams of 4');
+  await go('teams'); await page.locator('.teams .card').nth(1).waitFor({ timeout: 15000 }); ok((await page.locator('.teams .card').count()) === 2, 'two teams'); ok(/Team 1 \(4\)/.test(await page.locator('.teams').innerText()), 'balanced teams of 4');
   ok(!page.errors.length, 'no console errors ' + page.errors.join(' | '));
 };

@@ -196,7 +196,7 @@ URL `#fragment`, never sent to a server) · `hash` Hash / Checksum · `password`
 
 **Media**: `video` Video Compressor (both, **BUILT**) · `audio` Audio Recorder (both, **BUILT**) · `tts` Text-to-Speech (both) ·
 `ffmpeg` FFmpeg (**PC**, **BUILT**) · `screencast` Screencast (**PC**, **BUILT**) · `screenshot` Screenshot (**PC**, **BUILT**) ·
-`youtube` YouTube Clip (**PC**)
+`youtube` YouTube Clip (**PC**, **BUILT**)
 
 **Calculators** (all both): `calc` Scientific · `units` Unit Converter · `dates` Date Calculator ·
 `emi` EMI · `gst` GST · `sip` SIP · `fd` FD / RD · `percent` Percentage · `words` Number to Words ·
@@ -630,19 +630,25 @@ it). A web page cannot screenshot silently, minimise the browser or see the acti
 Tests: full-size PNG, JPEG, cropped PNG = 84 %, clipboard PNG, 3 s delay, PiP "Snap now" (< 1.5 s) and "Cancel",
 gallery, stop sharing.
 
-### YouTube Clip (PC)
-Inputs: two "Copy video URL at current time" links (start/end) **or** one URL + start + end.
-1. **Record in browser**: embeds `youtube-nocookie.com` player (postMessage API, no YouTube script in our
-   page), the user shares *this tab* once; Region Capture (`CropTarget`) crops to the player; the player
-   seeks to start, plays, and recording stops at end → MP4. Real-time; ads may appear; some videos block
-   embedding.
-2. **yt-dlp command**: exact `yt-dlp --download-sections "*START-END" -f "bv*[ext=mp4]+ba[ext=m4a]/b[ext=mp4]"
-   --merge-output-format mp4 URL` with copy button (original quality; needs yt-dlp + ffmpeg locally;
-   works in Termux on Android).
-Direct download from a static page is impossible (CORS + YouTube stream protection).
-**Owner-approved (explicitly):** this is the ONLY tool allowed an online dependency, and only to YouTube's embedded
-player (`frame-src https://www.youtube-nocookie.com`; `connect-src` stays `'self'`, so our scripts never contact
-YouTube). The player is driven via postMessage (no YouTube script in our page). Both methods ship.
+### YouTube Clip (PC) — BUILT (`src/tools/youtube.ts`; e2e `tests/e2e/youtube.e2e.mjs` 13)
+Inputs: "Two links" (YouTube's Share → Start at… / right-click → "Copy video URL at current time" at the start and
+at the end) or "One link + times" (1:02, 1:02:03, 62, 1m2s). Links: watch?v=, youtu.be, shorts/, live/, embed/,
+m./music. hosts, `t=` / `start=` / `#t=`; different videos and end ≤ start are refused.
+1. **yt-dlp command** (original quality): `yt-dlp --download-sections "*START-END" -f "bv*[ext=mp4]+ba[ext=m4a]/b[ext=mp4]"
+   --merge-output-format mp4 -o "%(title)s [start-end].%(ext)s" URL`, optional `--force-keyframes-at-cuts` (exact) or
+   `-x --audio-format mp3` (sound only); install hints for Windows (winget), Linux (pipx) and Android (Termux).
+2. **Record in this browser**: nothing is requested from YouTube until "Load the player"; then the privacy-enhanced
+   `youtube-nocookie.com/embed/ID?enablejsapi=1&start=…` player (owner-approved `frame-src`; `connect-src` stays
+   'self'; no YouTube script in our page). It is driven with the IFrame API's postMessage protocol ("listening"
+   handshake → onReady/infoDelivery with currentTime/playerState; commands mute, seekTo, playVideo, pauseVideo,
+   unMute); embedding errors 101/150/152 are explained. "Record clip": the owner shares THIS tab (preferCurrentTab),
+   Region Capture (`CropTarget.fromElement(player)` + `track.cropTo`) crops to the player, the player seeks to the
+   start (muted), then records until the player reports the end time; remuxed with mediabunny; Download. If
+   something other than this tab is shared, the result says it is NOT cropped.
+Tests: link/time parsing known answers, exact yt-dlp command, sound-only, refusals, nothing loaded before "Load the
+player"; recording with a routed fake player (Playwright serves youtube-nocookie.com): commands received, 2→5 s ≈ 3 s.
+Headless Chromium's display capture is a synthetic monitor, so Region Capture itself cannot run in the tests (the
+reported crop state is checked).
 
 ### Linux X11 vs Wayland (owner requirement: auto-detect)
 No web API reports the display server and Chrome's UA says `X11; Linux` on both, so `src/linux.ts` detects it:

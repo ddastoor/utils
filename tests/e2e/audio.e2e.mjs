@@ -52,18 +52,25 @@ export default async ({ base, page: newPage, ok, info, download, tmp }) => {
 
   // ---- 1. record the fake microphone for ~2.5 s
   ok(await page.getByRole('button', { name: 'Record' }).isEnabled(), 'Record button ready');
+  // wall-clock times of each click, so the check holds even on a busy machine
+  const now = () => page.evaluate(() => performance.now());
   await page.getByRole('button', { name: 'Record' }).click();
   await page.getByText('Recording…').waitFor({ timeout: 10000 });
+  const tStart = await now();
   await page.waitForTimeout(1200);
   await page.getByRole('button', { name: 'Pause' }).click();
+  const tPause = await now();
   await page.waitForTimeout(700);
   ok(await page.getByText('Paused').isVisible(), 'pause');
   await page.getByRole('button', { name: 'Resume' }).click();
+  const tResume = await now();
   await page.waitForTimeout(1300);
   await page.getByRole('button', { name: 'Stop' }).click();
+  const tStop = await now();
   await page.getByText(/^Recording: \d/).waitFor({ timeout: 15000 });
   const recSecs = +(/Recording: ([\d.]+) s/.exec(await page.getByText(/^Recording: \d/).textContent())[1]);
-  ok(recSecs > 2 && recSecs < 3.5, `recorded ≈ 2.5 s without the paused part (${recSecs} s)`);
+  const expect = (tStop - tStart - (tResume - tPause)) / 1000;
+  ok(Math.abs(recSecs - expect) < 0.7 && recSecs < (tStop - tStart) / 1000 - 0.3, `recorded ≈ ${expect.toFixed(1)} s without the paused part (${recSecs} s)`);
   ok(await page.locator('canvas.wave').isVisible(), 'waveform editor shown');
 
   const mp3 = await save(), m = mp3Frames(readFileSync(mp3)), dm = await decode(mp3);
