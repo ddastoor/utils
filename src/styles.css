@@ -751,3 +751,10 @@ details summary { cursor: pointer; font-weight: 600; color: var(--accent); paddi
 .sheet-table thead .rn { z-index: 3; }
 .sheet-table td.num { text-align: right; font-variant-numeric: tabular-nums; }
 .sheet-table tr.hdr td { font-weight: 600; background: color-mix(in srgb, var(--accent) 8%, var(--surface)); }
+
+/* PDF → EPUB preview */
+.epub-preview { max-height: 70vh; overflow: auto; font-family: Georgia, serif; line-height: 1.5; padding: 0 8px; }
+.epub-preview .pgno { font: 12px system-ui, sans-serif; color: var(--muted); border-bottom: 1px solid var(--border); margin: 18px 0 8px; }
+.epub-preview h4.col { font: 600 12px system-ui, sans-serif; color: var(--accent); margin: 14px 0 4px; }
+.epub-preview .fig { text-align: center; } .epub-preview img { max-width: 100%; max-height: 360px; }
+.epub-report { border-collapse: collapse; font-size: 13px; } .epub-report th, .epub-report td { border: 1px solid var(--border); padding: 3px 10px; text-align: left; }

@@ -36,6 +36,7 @@ const PICK = [
   ['pypdf', 'pypdf-7.1.0/resources/two-different-pages.pdf', 'pdf/two-different-pages.pdf'],
   ['pypdf', 'pypdf-7.1.0/resources/side-by-side-subfig.pdf', 'pdf/side-by-side-subfig.pdf'],
   ['pypdf', 'pypdf-7.1.0/resources/jpeg.pdf', 'pdf/jpeg.pdf'],
+  ['pypdf', 'pypdf-7.1.0/resources/Seige_of_Vicksburg_Sample_OCR.pdf', 'pdf/vicksburg-ocr.pdf'],
   ['pypdf', 'pypdf-7.1.0/resources/encryption/r3-user-password.pdf', 'pdf/rc4-128-asdfzxcv.pdf'],
   ['pypdf', 'pypdf-7.1.0/resources/encryption/r4-aes-user-password.pdf', 'pdf/aes128-asdfzxcv.pdf'],
   ['pypdf', 'pypdf-7.1.0/resources/encryption/r6-user-password.pdf', 'pdf/aes256-asdfzxcv.pdf'],

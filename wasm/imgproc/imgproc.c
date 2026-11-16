@@ -706,3 +706,50 @@ API void p_expand(const uint8_t *src, int n, int comps, uint8_t *dst) {
         else { d[0] = s[0]; d[1] = s[1]; d[2] = s[2]; d[3] = s[3]; }
     }
 }
+
+/* ======================================================================== figure regions (PDF → EPUB) */
+/* Ink (luma < thr) on a rendered page after blanking the text boxes `skip` (n × [x, y, w, h] px): dilate by `dil` px,
+ * label 8-connected components, return their boxes (x, y, w, h) with area ≥ min_area, at most `max`. */
+API int p_ink_regions(const uint8_t *px, int w, int h, int thr, const float *skip, int nskip, int dil, int min_area, int32_t *out, int max) {
+    int n = w * h;
+    uint8_t *m = calloc(n, 1), *d = calloc(n, 1);
+    int32_t *cs = malloc(sizeof(int32_t) * (w + 1)), *stack = malloc(sizeof(int32_t) * n);
+    if (!m || !d || !cs || !stack) { free(m); free(d); free(cs); free(stack); return 0; }
+    for (int i = 0; i < n; i++) { const uint8_t *p = px + (size_t)i * 4; m[i] = (77 * p[0] + 150 * p[1] + 29 * p[2]) >> 8 < thr; }
+    for (int k = 0; k < nskip; k++) {
+        int x0 = (int)skip[k * 4], y0 = (int)skip[k * 4 + 1], x1 = (int)(skip[k * 4] + skip[k * 4 + 2] + 1), y1 = (int)(skip[k * 4 + 1] + skip[k * 4 + 3] + 1);
+        if (x0 < 0) x0 = 0; if (y0 < 0) y0 = 0; if (x1 > w) x1 = w; if (y1 > h) y1 = h;
+        for (int y = y0; y < y1; y++) for (int x = x0; x < x1; x++) m[y * w + x] = 0;
+    }
+    /* dilation: horizontal then vertical box max via running sums */
+    uint8_t *t = calloc(n, 1);
+    for (int y = 0; y < h; y++) {
+        cs[0] = 0; for (int x = 0; x < w; x++) cs[x + 1] = cs[x] + m[y * w + x];
+        for (int x = 0; x < w; x++) { int a = x - dil < 0 ? 0 : x - dil, b = x + dil + 1 > w ? w : x + dil + 1; t[y * w + x] = cs[b] - cs[a] > 0; }
+    }
+    int32_t *cv = malloc(sizeof(int32_t) * (h + 1));
+    for (int x = 0; x < w; x++) {
+        cv[0] = 0; for (int y = 0; y < h; y++) cv[y + 1] = cv[y] + t[y * w + x];
+        for (int y = 0; y < h; y++) { int a = y - dil < 0 ? 0 : y - dil, b = y + dil + 1 > h ? h : y + dil + 1; d[y * w + x] = cv[b] - cv[a] > 0; }
+    }
+    free(t); free(cv);
+    int k = 0;
+    for (int s = 0; s < n && k < max; s++) {
+        if (d[s] != 1) continue;
+        int top = 0, x0 = w, y0 = h, x1 = -1, y1 = -1; stack[top++] = s; d[s] = 2;
+        while (top) {
+            int i = stack[--top], x = i % w, y = i / w;
+            if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y;
+            for (int dy = -1; dy <= 1; dy++) for (int dx = -1; dx <= 1; dx++) {
+                int xx = x + dx, yy = y + dy; if (xx < 0 || yy < 0 || xx >= w || yy >= h) continue;
+                int j = yy * w + xx; if (d[j] == 1) { d[j] = 2; stack[top++] = j; }
+            }
+        }
+        /* undo the dilation margin */
+        x0 += dil; y0 += dil; x1 -= dil; y1 -= dil;
+        if (x1 < x0 || y1 < y0) continue;
+        if ((x1 - x0 + 1) * (y1 - y0 + 1) >= min_area) { out[k * 4] = x0; out[k * 4 + 1] = y0; out[k * 4 + 2] = x1 - x0 + 1; out[k * 4 + 3] = y1 - y0 + 1; k++; }
+    }
+    free(m); free(d); free(cs); free(stack);
+    return k;
+}

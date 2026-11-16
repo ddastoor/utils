@@ -15,6 +15,8 @@ generates media with the project's own ffmpeg.wasm and Chromium). Used only by t
 | images/exif_gps.jpg, images/flower.jpg | Pillow 13.0.0 test images (real EXIF / GPS) | Pillow (MIT-CMU) |
 | images/pug.heic, images/xiaomi.heic | pillow-heif 1.8.1 test images (real HEIC photos) | pillow-heif test data (BSD-3) |
 | pdf/crazyones.pdf, form.pdf, two-different-pages.pdf, side-by-side-subfig.pdf, jpeg.pdf | pypdf 7.1.0 test resources | pypdf test data (BSD-3) |
+| pdf/vicksburg-ocr.pdf | pypdf 7.1.0 test resource (scanned book pages with an OCR text layer, running headers) | pypdf test data (BSD-3; public-domain book) |
+| pdf/two-column-paper.pdf | `node scripts/make-paper-pdf.mjs`: original text, two columns, figure (chelsea.png), running header/footer | CC0 (text), CC0 (image) |
 | pdf/rc4-128-asdfzxcv.pdf, aes128-asdfzxcv.pdf, aes256-asdfzxcv.pdf | pypdf 7.1.0 encryption tests (user password `asdfzxcv`) | pypdf test data (BSD-3) |
 | images/book-page.jpg | `node scripts/make-page-photo.mjs`: original paragraph written for this project, set in Literata (OFL), then "photographed" (tilt, keystone, uneven light, shadow, blur, noise, JPEG) | CC0 (text), OFL (font) |
 | sheets/base.{xlsx,xls,xlsb,ods}, any_sheets.xlsx, password.xlsx, empty_file.xlsx | python-calamine 0.9.1 test data (real Excel / LibreOffice files) | MIT |

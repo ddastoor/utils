@@ -184,7 +184,7 @@ Classic / Modern (two columns) / Compact, A4 or Letter, photo, repeatable jobs /
 | `pdf2text` | PDF → Text | both |
 | `pdf-pagenum` | PDF Page Numbers | both |
 | `pdf-watermark` | PDF Watermark | both |
-| `epub` | PDF → EPUB (Kindle) | **PC** |
+| `epub` | PDF → EPUB (Kindle) | **PC** — **BUILT** (see §3) |
 | `sheet` | CSV / Excel Viewer & Converter | **PC** — **BUILT** (sheet.wasm; open xlsx/xlsm/xlsb/xls/ods/csv/tsv/json, sheet tabs incl. hidden, separator override, filter, export CSV (BOM) / TSV / JSON / XLSX; e2e 17) |
 | `markdown` | Markdown Editor | both — **BUILT** (cmark-gfm wasm; live preview, toolbar + Ctrl+B/I/K, .md open/save, standalone .html, print of the preview only; e2e 23) |
 
@@ -514,8 +514,22 @@ merge audio+video, normalise loudness, speed, extract frames, **audio → MP4** 
 or animated waveform), plus a raw-arguments box. Limits: ~2 GB files; re-encoding is ~10–20× slower than
 native.
 
-### PDF → EPUB (PC)
-Kindle Paperwhite now, Scribe later. Requirements: preserve **page breaks**; detect **columns** in technical
+### PDF → EPUB (PC) — BUILT (`src/tools/epub/epub.ts`, engine `src/lib/pdf2epub.ts`; e2e `tests/e2e/epub.e2e.mjs` 28)
+As built: MuPDF structured text (lines with font size/weight; raster image blocks) → pieces of a justified line on
+the same baseline are joined → running headers/footers = top/bottom-10 % lines whose first 12 letters repeat on ≥ 40 %
+of pages (page numbers and OCR slips like "VICKSBUEG" still match) + bare page numbers → figures = raster images
+(except a full-page scan under an OCR layer) ∪ ink found outside the text boxes on a 1.5 px/pt render (imgproc
+`p_ink_regions`: dilation + connected components) → reading order + columns by XY-cut (textcore `t_xycut`: vertical
+gutters first so a column is read top to bottom; otherwise one split at the widest horizontal gap, recursively; first
+vertical split numbers columns) → paragraphs by the page's line pitch, indents, short last lines and font-size changes
+after a sentence end; headings by size (≥ 1.18 × body) or short bold lines; de-hyphenation (keeps "e-reader") → one
+XHTML per PDF page (`page-break-before`), "Page N · Column K" labels, figures cropped from a render where a column is
+as wide as the screen (Paperwhite 1236 px / Scribe 1860 px), greyscale MozJPEG by default; pages with no text →
+full-page picture; garbled text (private-use / U+FFFD) → that column as a picture; "Columns as pictures" mode.
+EPUB 3 (nav + NCX, `dcterms:modified`, urn:uuid), mimetype stored first, zipped with fflate. Tests: a generated
+two-column paper (`scripts/make-paper-pdf.mjs`) and pypdf's OCR'd Vicksburg pages; every XHTML parsed as XML in the
+browser and the EPUB re-opened by MuPDF. (epubcheck is Java and not available offline here.)
+Original notes: Kindle Paperwhite now, Scribe later. Requirements: preserve **page breaks**; detect **columns** in technical
 PDFs, split them vertically, extract text and figures per column in reading order, and label sections
 **"Page N · Column K"**. Pipeline per page: PDF.js text items (positions, font size) → render page →
 mask text → connected "ink" regions = figures (raster + vector diagrams, tables) cropped as images →
@@ -588,7 +602,7 @@ stay **public** (the source of the deployed site is then available to every user
 | metacore (EXIF → JSON, lossless metadata strip JPEG/PNG/WebP, JPEG DPI, image sniffing) | C (own code) | **us** (`wasm/metacore`) | exif, image loading, passport/formphoto DPI |
 | BusyBox 1.38.0 (130 applets) + compat shims | C | **us** (`wasm/busybox`) | terminal, bc console |
 | jq 1.8.2 (+ oniguruma) | C | **us** (`wasm/jq`) | jq |
-| textcore: Myers diff, tool-search ranking, word frequency, rare-word ranking (tokeniser, lemmatiser, wordfreq hash table) | C (own code) | **us** (`wasm/textcore`) | diff, search box, word counter, photodict |
+| textcore: Myers diff, tool-search ranking, word frequency, rare-word ranking (tokeniser, lemmatiser, wordfreq hash table), XY-cut reading order | C (own code) | **us** (`wasm/textcore`) | diff, search box, word counter, photodict |
 | sheet: calamine 0.38 (read .xlsx .xlsm .xlsb .xls .ods) + rust_xlsxwriter 0.102 (write .xlsx) + csv 1 + serde_json | Rust | **us** (`wasm/sheet`, crates.io sources verified by `Cargo.lock`, target wasm32-wasip1) | sheet |
 | cmark-gfm 0.29.0.gfm.13 (GitHub Flavored Markdown) | C | **us** (`wasm/markdown`, source from the PyPI `cmarkgfm` sdist, SHA-256 pinned) | markdown |
 | libyaml 0.2.5 + toml++ 3 | C / C++ | **us** (`wasm/formats`) | yaml |

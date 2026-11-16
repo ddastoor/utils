@@ -23,6 +23,16 @@ export function bindImgproc(e: any) {
   return {
     adjust: (img: Img, a: Adjust) => inplace(img, (p) => e.p_adjust(p, n(img), a.bright ?? 0, a.contrast ?? 0, a.exposure ?? 0, a.gamma ?? 1, a.sat ?? 0, a.vib ?? 0, a.hue ?? 0, a.temp ?? 0, a.tint ?? 0, a.highlights ?? 0, a.shadows ?? 0)),
     grayscale: (img: Img) => inplace(img, (p) => e.p_grayscale(p, n(img))),
+    /** Boxes {x, y, w, h} of ink (luma < thr) outside the `skip` boxes, dilated by `dil` px, area ≥ minArea. */
+    inkRegions(img: Img, skip: Array<[number, number, number, number]>, o: { thr?: number; dil?: number; minArea?: number; max?: number } = {}) {
+      const max = o.max ?? 256, s = put(img.data), k = e.p_malloc(Math.max(1, skip.length) * 16), out = e.p_malloc(max * 16);
+      try {
+        new Float32Array(mem(), k, skip.length * 4).set(skip.flat());
+        const c = e.p_ink_regions(s, img.width, img.height, o.thr ?? 200, k, skip.length, o.dil ?? 6, o.minArea ?? 900, out, max);
+        const r = new Int32Array(mem(), out, c * 4);
+        return Array.from({ length: c }, (_, i) => ({ x: r[i * 4], y: r[i * 4 + 1], w: r[i * 4 + 2], h: r[i * 4 + 3] }));
+      } finally { e.p_free(s); e.p_free(k); e.p_free(out); }
+    },
     /** Grey / grey+alpha / RGB / RGBA samples (e.g. a MuPDF pixmap) → RGBA image. */
     expand: (samples: Uint8Array | Uint8ClampedArray, w: number, h: number, comps: number): Img => {
       const s = put(samples), d = e.p_malloc(w * h * 4);
