@@ -79,7 +79,6 @@ export ZIG=/tmp/zig/x/ziglang/zig
 ## 7. Limits (usage / session time)
 - Commit + push at least every ~45 minutes, with RESUME.md saying exactly what is half-done.
 - If a usage limit is close, schedule a `send_later` to this session for just after the reset time.
-- The previous session scheduled **three one-shot check-ins on 17 Nov 2026 at 03:00, 05:00 and 07:00 IST**: each starts a
-  fresh session that does nothing if the branch had a commit in the last 90 minutes (a session is still working) or if
-  RESUME.md shows the Everyday + Device suites are done; otherwise it continues that work. They disable themselves after
-  firing.
+- **No scheduled check-ins exist** (creating them was blocked by the session's permission check on 16 Nov 2026). If a
+  session stops (usage limit, time limit), its pushed work is safe; the owner starts a new session with the standard
+  message in RESUME.md ("Continue building SuperTools…"), or the session schedules its own `send_later` before a limit.
