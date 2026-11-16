@@ -631,3 +631,11 @@ details summary { cursor: pointer; font-weight: 600; color: var(--accent); paddi
 .pp-video { width: 100%; display: block; transform: scaleX(-1); }
 .pp-oval { position: absolute; left: 50%; top: 46%; width: 42%; height: 66%; transform: translate(-50%, -50%); border: 3px dashed rgb(255 255 255 / 85%); border-radius: 50%; box-shadow: 0 0 0 9999px rgb(0 0 0 / 30%); pointer-events: none; }
 .pp-count { position: absolute; inset: 0; display: grid; place-items: center; font-size: 96px; font-weight: 800; color: #fff; text-shadow: 0 2px 12px #000; pointer-events: none; }
+
+/* Cartoonizer: effect / style tiles with live thumbnails */
+.fx-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; }
+.fx-tile { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 4px 4px 6px; min-height: 44px; border-radius: 12px;
+  border: 2px solid transparent; background: var(--surface-2); color: inherit; font: inherit; font-size: 13px; cursor: pointer; }
+.fx-tile.on { border-color: var(--accent); }
+.fx-tile canvas { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 8px; display: block; background: var(--border); }
+@media (max-width: 640px) { .fx-grid { grid-template-columns: repeat(3, 1fr); } }

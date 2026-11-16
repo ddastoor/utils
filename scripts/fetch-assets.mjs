@@ -8,6 +8,7 @@ import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { convert } from './convert-magenta.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const listPath = join(root, 'scripts/assets.json');
@@ -15,6 +16,7 @@ const list = JSON.parse(readFileSync(listPath, 'utf8'));
 const args = process.argv.slice(2), pin = args.includes('--pin'), only = args.filter((a) => !a.startsWith('--'));
 const sha = (f) => new Promise((res, rej) => { const h = createHash('sha256'); createReadStream(f).on('data', (d) => h.update(d)).on('end', () => res(h.digest('hex'))).on('error', rej); });
 let changed = false, failed = 0;
+const fetchedDirs = new Set();
 for (const [name, a] of Object.entries(list)) {
   if (name.startsWith('_') || (only.length && !only.includes(name))) continue;
   const dest = join(root, 'public/models', name);
@@ -29,7 +31,15 @@ for (const [name, a] of Object.entries(list)) {
     a.sha256 = got; a.size = size; changed = true;
   } else if (got !== a.sha256) { console.log(`\n✗ ${name}: SHA-256 mismatch (got ${got}, want ${a.sha256})`); failed++; continue; }
   renameSync(tmp, dest);
+  fetchedDirs.add(dirname(dest));
   console.log(`ok (${(size / 1e6).toFixed(1)} MB)`);
+}
+// legacy TF.js graphs (Magenta style transfer) → current graph-model model.json, rebuilt when its files changed
+for (const [name, a] of Object.entries(list)) {
+  if (a.convert !== 'magenta' || (only.length && !only.includes(name))) continue;
+  const dir = dirname(join(root, 'public/models', name));
+  if (!existsSync(join(dir, 'tensorflowjs_model.pb'))) continue;
+  if (fetchedDirs.has(dir) || !existsSync(join(dir, 'model.json'))) { const r = convert(dir); console.log(`converted ${name} → model.json (${r.nodes} nodes)`); }
 }
 if (changed) writeFileSync(listPath, JSON.stringify(list, null, 2) + '\n');
 process.exit(failed ? 1 : 0);

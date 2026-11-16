@@ -120,7 +120,7 @@ Test, plus `photodict` Photo Dictionary (owner said mobile only — phone camera
 | `passport` | Passport Photo | both | MediaPipe Face Landmarker (eyes/chin/tilt) + selfie multiclass (person mask, crown via `p_mask_top`) → layout to head-height / eye-height rules (`src/lib/passport.ts`) → crop region only at full res → guided-filter matte + required colour → one homography warp (`p_warp_quad_fill`) → 300 dpi JPEG, digital-upload JPEG (px/KB limits), 4×6 in / A4 sheets |
 | `formphoto` | Photo & Signature Resizer | both | presets (`src/lib/form-specs.ts`: IBPS/SBI/RBI, SSC, UPSC, NTA, PAN — px + KB ranges, all editable, "confirm with the notification"), face auto-framing (BlazeFace), paper clean-up (`imgproc` ink), Lanczos resize, MozJPEG best quality ≤ max, JPEG comment padding up to the min (`metacore` `m_jpeg_pad`), DPI |
 | `bgremove` | Background Remover | both | MediaPipe selfie-multiclass (6 categories) → person mask in C (`p_person_mask`: hair+skin+clothes, accessories only next to the person) → `imgproc` guided-filter matte at full res → transparent PNG / colour / blur / another photo (`p_composite_img`) |
-| `cartoon` | Cartoonizer | both | `imgproc` classic filters + Magenta arbitrary style transfer (TF.js) |
+| `cartoon` | Cartoonizer | both | `imgproc` filters (DoG lines, k-means, Kuwahara, dodge, halftone) + Magenta arbitrary style transfer (TF.js: WebGL → wasm XNNPACK → CPU) |
 | `redact` | Blur & Redact | both | MediaPipe BlazeFace on the whole photo + multi-scale square tiles (small faces in group photos), NMS + pixelate/blur/fill in `imgproc`; manual boxes; tap a box to keep it visible |
 | `watermark` | Watermark | both | canvas text/logo watermark |
 | `caption` | Text on Image | both | canvas captions / meme text |
@@ -299,14 +299,27 @@ Unit test checks every preset is well-formed.
 Note shown to user: some agencies reject digitally altered photos; lighting on the face matters.
 Wayland/X11 is irrelevant for cameras.
 
-### Cartoonizer ("Prisma-like")
-Two engines:
-- **Classic** (own C, instant): Cartoon (edge-preserving smoothing + XDoG ink lines + k-means colour
-  quantisation), Oil paint (Kuwahara), Watercolour, Pencil sketch (B/W + colour), Comic/halftone.
-- **Neural style transfer**: Magenta *arbitrary image stylization* (Apache-2.0) via TF.js (WebGL
-  backend, CPU fallback). Built-in styles are **procedurally generated** artwork textures created at
-  runtime (no copyrighted art shipped); the user can also upload any painting as the style. Strength
-  slider blends with the original.
+### Cartoonizer ("Prisma-like") — BUILT (`src/tools/cartoon.ts`, e2e `tests/e2e/cartoon.e2e.mjs`, 37 checks)
+Two engines, picked with a "Filters | AI art styles" switch; tiles show live thumbnails of the user's photo / the style.
+- **Filters** (own C in `imgproc.wasm`, instant): Cartoon (bilateral smoothing → DoG edge lines (Winnemöller, τ≈0.985)
+  → k-means colours; settings: colours, ink lines, smoothing), Oil paint (Kuwahara; brush size), Watercolour (abstraction
+  + pigment pooling at wash edges + paper fibres; no settings), Pencil sketch and Colour pencil (colour dodge + graphite
+  shading in dark areas; stroke softness), Comic (posterise + 45° halftone dots + DoG lines; dot size). XDoG thresholding
+  was dropped: it inked every pixel darker than ~75 % grey (black blobs), DoG lines ink only real edges.
+  Filter sizes are tuned for ≤ 1000 px and scale with larger images (`scale` arg in C), so the full-size save
+  (≤ 4000 px PC, ≤ 2400 px phone) looks like the 1200 / 900 px preview (e2e: 2400 px save vs preview, mean diff < 20).
+- **AI art styles**: Magenta *arbitrary image stylization* (Ghiasi et al. 2017, Apache-2.0) on TF.js 4.22 in a worker
+  (`src/workers/style.worker.ts`, wrapper `src/lib/style-transfer.ts`). Backend order: **WebGL** (GPU via
+  OffscreenCanvas; `WEBGL_CONV_IM2COL` off — im2col of the last 9×9 conv needs a 13033² texture) → **WebAssembly**
+  (`@tensorflow/tfjs-backend-wasm`, XNNPACK C++ → wasm, SIMD; files in `public/vendor/tfjs/`) → CPU. Software WebGL
+  (SwiftShader/llvmpipe, e.g. headless or no GPU driver) is detected and skipped: WebAssembly is ~15× faster there.
+  `#/cartoon?backend=wasm|webgl|cpu` forces one (diagnostic; the e2e suite checks WebGL and WebAssembly give the same
+  picture, mean diff < 4). 8 built-in styles are **drawn procedurally at run time** (`src/lib/style-art.ts`, canvas 2D,
+  deterministic PRNG — Night swirls, Mosaic, Stained glass, Cubist, Ink wash, Impressionist, Flames, Pop art; no
+  copyrighted art shipped); "Use your own painting as the style" adds any image. **Strength** (default 70 %) blends the
+  style vector with the photo's own (Magenta's interpolation; 0 % ≈ the photo). Size 512 / 1024 / 1600 px on PC
+  (1024 default on a real GPU, 512 on CPU paths), 512 / 768 on phones; the result is saved as shown (JPEG).
+  "Hold to compare" shows the original. Measured: 512 px ≈ 6 s on WebAssembly (sandbox CPU).
 
 ### OpenPGP
 Generate key pair (name, email, passphrase) → download armored public/private keys. Encrypt file
@@ -531,7 +544,7 @@ JavaScript-only components (no C/C++ equivalent exists for the job):
 | Mermaid (MIT) | Mermaid exists only as JavaScript | mermaid |
 | Prettier standalone (MIT) | no compiled formatter covers JS/TS/CSS/HTML/YAML/Markdown/GraphQL together | prettier |
 | sql-formatter (MIT) | no C/C++ SQL pretty-printer library | sqlfmt |
-| TensorFlow.js (Apache-2.0) | runs the Magenta style-transfer graph on the GPU via WebGL | cartoon (neural) |
+| TensorFlow.js (Apache-2.0) | runs the Magenta style-transfer graph on the GPU via WebGL; its **wasm backend** (XNNPACK, C++ → wasm, tier 2 official build) is the CPU path | cartoon (neural) |
 | zip.js (BSD-3) | AES-256 zip *creation*; libarchive's wasm build has no crypto | zip |
 | mediabunny (MPL-2.0) | MP4 muxing around the browser's hardware WebCodecs encoders | video |
 | semver (ISC) | tiny logic library | semver |
@@ -685,7 +698,7 @@ npm packages (pinned in `package-lock.json`) are bundled by Vite or copied to `p
 | fflate | MIT | EPUB zip |
 | @jsquash/jpeg (MozJPEG), /webp, /oxipng | Apache-2.0 (+ codec licences) | image encoders |
 | @mediapipe/tasks-vision | Apache-2.0 | Passport |
-| @tensorflow/tfjs-* | Apache-2.0 | Cartoonizer style transfer |
+| @tensorflow/tfjs-core, -converter, -backend-webgl, -backend-wasm (XNNPACK wasm), -backend-cpu | Apache-2.0 | Cartoonizer style transfer |
 | tesseract.js, tesseract.js-core, @tesseract.js-data/eng, /fra, /spa, /deu | Apache-2.0 / MIT | OCR |
 | zxing-wasm | MIT (zxing-cpp Apache-2.0) | QR |
 | @zip.js/zip.js | BSD-3-Clause | Zip, Batch Images |
@@ -704,10 +717,12 @@ Current entries (all Apache-2.0, Google MediaPipe, versioned URLs `…/float16|f
 MediaPipe runtime: `src/lib/mediapipe.ts` (FilesetResolver → `vendor/mediapipe`, models via `document.baseURI`);
 BlazeFace runs on the CPU delegate (XNNPACK; as fast as WebGL for a tiny model, no GPU stalls), larger models try
 GPU then fall back to CPU.
-- `style/predictor`, `style/transformer` — Magenta arbitrary style transfer, converted from the legacy
-  TF.js format at https://storage.googleapis.com/magentadata/js/checkpoints/style/arbitrary/{predictor,transformer}/
-  (`tensorflowjs_model.pb` + `weights_manifest.json` + shards) to `model.json` by `scripts/convert_magenta.py`
-  (Apache-2.0).
+- `magenta/{predictor,transformer}/…` (9.6 + 7.8 MB, Apache-2.0) — Magenta arbitrary style transfer (cartoon). Upstream
+  only has the legacy TF.js format (`tensorflowjs_model.pb` GraphDef + `weights_manifest.json` + shards, from
+  https://storage.googleapis.com/magentadata/js/checkpoints/style/arbitrary/…), which TF.js ≥ 1.0 cannot load. Each file
+  is SHA-256 pinned; the `.pb` entry has `"convert": "magenta"`, so `fetch-assets.mjs` then runs
+  `scripts/convert-magenta.mjs` (our dependency-free protobuf reader → GraphDef JSON → `model.json`, graph-model
+  format; weights untouched). Verified: strength 0 reproduces the photo; WebGL = WebAssembly output.
 
 Rejected: `@jspawn/ghostscript-wasm` (unmaintained 2022 single-maintainer build of Ghostscript; safety).
 

@@ -3,7 +3,7 @@
  * All images are interleaved RGBA8, row-major, no padding. Functions work in place unless they take src/dst.
  *
  * Sections: tone & colour adjustment · resampling (Lanczos-3) · blur/sharpen · rotation · artistic filters
- * (bilateral, cartoon/XDoG/k-means, Kuwahara oil paint, pencil sketch, watercolour, halftone) · redaction
+ * (bilateral, cartoon/DoG lines/k-means, Kuwahara oil paint, pencil sketch, watercolour, halftone) · redaction
  * (pixelate/blur rect) · matting (guided filter, compositing) · documents (page detection, perspective warp,
  * enhancement / adaptive threshold) · utilities (histogram, grayscale).
  */
@@ -349,19 +349,16 @@ API void p_bilateral(uint8_t *px, int w, int h, int radius, float sigma_s, float
 
 static float *luma_f(const uint8_t *px, int n) { float *l = malloc(sizeof(float) * n); for (int i = 0; i < n; i++) l[i] = 0.299f * px[i * 4] + 0.587f * px[i * 4 + 1] + 0.114f * px[i * 4 + 2]; return l; }
 
-/* XDoG ink lines: returns per-pixel darkness 0..1 */
-static float *xdog(const uint8_t *px, int w, int h, float sigma, float k, float p, float eps, float phi) {
+/* Edge lines (Winnemöller DoG): D = G_sigma - tau * G_k*sigma on luminance 0..1. Flat areas give D > 0 (no ink); the dark
+   side of an edge gives D < 0 → darkness 1 - (1 + tanh(phi * D)). Only real edges get ink, whatever the brightness. */
+static float *dog_lines(const uint8_t *px, int w, int h, float sigma, float tau, float phi) {
     int n = w * h;
-    float *a = luma_f(px, n), *b = malloc(sizeof(float) * n), *e = malloc(sizeof(float) * n);
+    float *a = luma_f(px, n), *b = malloc(sizeof(float) * n);
     for (int i = 0; i < n; i++) { a[i] /= 255.0f; b[i] = a[i]; }
-    gauss_f(a, w, h, 1, sigma); gauss_f(b, w, h, 1, sigma * k);
-    for (int i = 0; i < n; i++) {
-        float d = (1 + p) * a[i] - p * b[i];
-        float v = d >= eps ? 1.0f : 1.0f + tanhf(phi * (d - eps));
-        e[i] = 1.0f - CLAMP(v, 0.0f, 1.0f);
-    }
-    free(a); free(b);
-    return e;
+    gauss_f(a, w, h, 1, sigma); gauss_f(b, w, h, 1, sigma * 1.6f);
+    for (int i = 0; i < n; i++) { float d = a[i] - tau * b[i]; a[i] = d >= 0 ? 0.0f : CLAMP(-tanhf(phi * d), 0.0f, 1.0f); }
+    free(b);
+    return a;
 }
 
 /* k-means colour quantisation (k ≤ 32) on a subsample, then nearest-centre mapping. */
@@ -386,10 +383,15 @@ static void kmeans_quantize(uint8_t *px, int n, int k) {
     }
 }
 
+/* Filter scale: 1 = tuned for a ~1000 px image; sigmas and radii grow with it so a 4000 px save looks like the preview. */
+static float fscale(float s) { return s < 0.25f ? 0.25f : s > 6 ? 6 : s; }
+static int srad(float r, float s) { int v = (int)(r * fscale(s) + 0.5f); return v < 1 ? 1 : v > 31 ? 31 : v; }
+
 /* Cartoon: smooth (bilateral) → quantise colours → multiply XDoG ink lines. */
-API void p_cartoon(uint8_t *px, int w, int h, int colors, float edge_strength, int smooth) {
-    float *e = xdog(px, w, h, 1.2f, 1.6f, 20.0f, 0.75f, 12.0f);
-    p_bilateral(px, w, h, 5, 4.0f, 28.0f, smooth < 1 ? 1 : smooth);
+API void p_cartoon(uint8_t *px, int w, int h, int colors, float edge_strength, int smooth, float scale) {
+    float s = fscale(scale);
+    p_bilateral(px, w, h, srad(5, s), 4.0f * s, 28.0f, smooth < 1 ? 1 : smooth);
+    float *e = dog_lines(px, w, h, 1.0f * s, 0.985f, 60.0f);
     kmeans_quantize(px, w * h, colors);
     for (int i = 0; i < w * h; i++) { float m = 1 - e[i] * edge_strength; for (int c = 0; c < 3; c++) px[i * 4 + c] = u8(px[i * 4 + c] * m); }
     free(e);
@@ -432,6 +434,7 @@ API void p_sketch(uint8_t *px, int w, int h, float sigma, int color) {
     for (int i = 0; i < n; i++) {
         float d = inv[i] >= 254.5f ? 255 : fminf(255, g[i] * 255 / (255 - inv[i]));
         d = 255 - (255 - d) * 1.35f;                          /* deepen strokes */
+        d *= 0.5f + 0.5f * fminf(1.0f, g[i] / 110.0f);        /* graphite shading in dark areas (dodge alone turns them white) */
         uint8_t *p = px + i * 4;
         if (color) { float t = d / 255.0f; for (int c = 0; c < 3; c++) p[c] = u8(p[c] * 0.35f * t + d * 0.65f * t + 255 * 0 ); }
         else p[0] = p[1] = p[2] = u8(d);
@@ -440,24 +443,29 @@ API void p_sketch(uint8_t *px, int w, int h, float sigma, int color) {
 }
 
 /* Watercolour: strong edge-preserving smoothing, soft quantisation, darkened edges and paper grain. */
-API void p_watercolor(uint8_t *px, int w, int h) {
-    float *e = xdog(px, w, h, 2.0f, 1.6f, 12.0f, 0.8f, 6.0f);
-    p_bilateral(px, w, h, 7, 6.0f, 40.0f, 3);
-    kmeans_quantize(px, w * h, 18);
-    p_blur(px, w, h, 1.2f);
-    uint32_t seed = 99;
+API void p_watercolor(uint8_t *px, int w, int h, float scale) {
+    float s = fscale(scale);
+    p_bilateral(px, w, h, srad(5, s), 4.0f * s, 32.0f, 2);
+    kmeans_quantize(px, w * h, 20);
+    float *e = dog_lines(px, w, h, 1.0f * s, 0.985f, 50.0f);  /* pigment pooling where washes meet */
+    gauss_f(e, w, h, 1, 0.8f * s);
+    p_blur(px, w, h, 0.9f * s);                                  /* softly bleeding wet edges */
+    /* paper: low-frequency fibres (blurred noise) + fine grain */
+    float *paper = malloc(sizeof(float) * w * h); uint32_t seed = 99;
+    for (int i = 0; i < w * h; i++) { seed = seed * 1664525u + 1013904223u; paper[i] = (seed >> 24) / 255.0f - 0.5f; }
+    gauss_f(paper, w, h, 1, 1.5f * s);
     for (int i = 0; i < w * h; i++) {
-        seed = seed * 1664525u + 1013904223u; float grain = ((seed >> 24) / 255.0f - 0.5f) * 10;
-        float m = 1 - e[i] * 0.35f;
-        for (int c = 0; c < 3; c++) px[i * 4 + c] = u8((px[i * 4 + c] * 0.9f + 25) * m + grain);
+        float m = 1 - e[i] * 0.6f, t = 1 + paper[i] * 0.5f;
+        /* thin the paint toward white (transparent washes), keep the hue */
+        for (int c = 0; c < 3; c++) px[i * 4 + c] = u8(255 - (255 - (px[i * 4 + c] * m)) * 0.85f * t);
     }
-    free(e);
+    free(e); free(paper);
 }
 
 /* Comic halftone: posterised colour + dot screen on the shadows + ink lines. */
-API void p_halftone(uint8_t *px, int w, int h, int cell) {
+API void p_halftone(uint8_t *px, int w, int h, int cell, float scale) {
     if (cell < 3) cell = 3;
-    float *e = xdog(px, w, h, 1.0f, 1.6f, 25.0f, 0.7f, 15.0f);
+    float *e = dog_lines(px, w, h, 1.0f * fscale(scale), 0.98f, 80.0f);
     float *l = luma_f(px, w * h);
     kmeans_quantize(px, w * h, 8);
     for (int y = 0; y < h; y++) for (int x = 0; x < w; x++) {

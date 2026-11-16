@@ -51,11 +51,11 @@ export function bindImgproc(e: any) {
     /** Rotate by any angle into a w×h canvas (default: same size → crops corners). fill = 0xAABBGGRR little-endian RGBA. */
     rotate: (img: Img, deg: number, w = img.width, h = img.height, fill = 0) => into(img, w, h, (s, d) => e.p_rotate(s, img.width, img.height, d, w, h, deg, fill >>> 0)),
     bilateral: (img: Img, radius = 5, sigmaS = 4, sigmaR = 30, iters = 2) => inplace(img, (p) => e.p_bilateral(p, img.width, img.height, radius, sigmaS, sigmaR, iters)),
-    cartoon: (img: Img, colors = 12, edge = 0.9, smooth = 2) => inplace(img, (p) => e.p_cartoon(p, img.width, img.height, colors, edge, smooth)),
+    cartoon: (img: Img, colors = 12, edge = 0.9, smooth = 2, scale = 1) => inplace(img, (p) => e.p_cartoon(p, img.width, img.height, colors, edge, smooth, scale)),
     kuwahara: (img: Img, r = 5) => inplace(img, (p) => e.p_kuwahara(p, img.width, img.height, r)),
     sketch: (img: Img, sigma = 8, color = false) => inplace(img, (p) => e.p_sketch(p, img.width, img.height, sigma, color ? 1 : 0)),
-    watercolor: (img: Img) => inplace(img, (p) => e.p_watercolor(p, img.width, img.height)),
-    halftone: (img: Img, cell = 6) => inplace(img, (p) => e.p_halftone(p, img.width, img.height, cell)),
+    watercolor: (img: Img, scale = 1) => inplace(img, (p) => e.p_watercolor(p, img.width, img.height, scale)),
+    halftone: (img: Img, cell = 6, scale = 1) => inplace(img, (p) => e.p_halftone(p, img.width, img.height, cell, scale)),
     pixelateRect: (img: Img, x: number, y: number, w: number, h: number, block: number) => inplace(img, (p) => e.p_pixelate_rect(p, img.width, img.height, x | 0, y | 0, w | 0, h | 0, block | 0)),
     blurRect: (img: Img, x: number, y: number, w: number, h: number, sigma: number) => inplace(img, (p) => e.p_blur_rect(p, img.width, img.height, x | 0, y | 0, w | 0, h | 0, sigma)),
     /** Full-resolution alpha (Uint8Array w*h) from a low-res probability mask using a guided filter. */

@@ -28,5 +28,88 @@
     ],
     "sha256": "c6748b1253a99067ef71f7e26ca71096cd449baefa8f101900ea23016507e0e0",
     "size": 16371837
+  },
+  "magenta/predictor/tensorflowjs_model.pb": {
+    "url": "https://storage.googleapis.com/magentadata/js/checkpoints/style/arbitrary/predictor/tensorflowjs_model.pb",
+    "license": "Apache-2.0",
+    "usedBy": [
+      "cartoon"
+    ],
+    "convert": "magenta",
+    "sha256": "1ec29feea8b5ee72e5215cedfb41d04cac75d3107e16db67fbeca4192ff9abc6",
+    "size": 68644
+  },
+  "magenta/predictor/weights_manifest.json": {
+    "url": "https://storage.googleapis.com/magentadata/js/checkpoints/style/arbitrary/predictor/weights_manifest.json",
+    "license": "Apache-2.0",
+    "usedBy": [
+      "cartoon"
+    ],
+    "sha256": "4781b7c9a4e8efaab75d0124d3f38261427e33ba9b652a7c9712227135a1af24",
+    "size": 27560
+  },
+  "magenta/predictor/group1-shard1of3": {
+    "url": "https://storage.googleapis.com/magentadata/js/checkpoints/style/arbitrary/predictor/group1-shard1of3",
+    "license": "Apache-2.0",
+    "usedBy": [
+      "cartoon"
+    ],
+    "sha256": "f1ec7ee668b807f5096577e2f792cae90427d1adbeec1f25ef505231963d0438",
+    "size": 4194304
+  },
+  "magenta/predictor/group1-shard2of3": {
+    "url": "https://storage.googleapis.com/magentadata/js/checkpoints/style/arbitrary/predictor/group1-shard2of3",
+    "license": "Apache-2.0",
+    "usedBy": [
+      "cartoon"
+    ],
+    "sha256": "f002340b9aa4d6b2bb2a503d9329ea75d3a5d07692a20b9f4eff3a7b3a91b620",
+    "size": 4194304
+  },
+  "magenta/predictor/group1-shard3of3": {
+    "url": "https://storage.googleapis.com/magentadata/js/checkpoints/style/arbitrary/predictor/group1-shard3of3",
+    "license": "Apache-2.0",
+    "usedBy": [
+      "cartoon"
+    ],
+    "sha256": "27a64dfb5c0cba35f409d840dfa18e0a68ff5787354fe84d053b07c1a3b2861b",
+    "size": 1155736
+  },
+  "magenta/transformer/tensorflowjs_model.pb": {
+    "url": "https://storage.googleapis.com/magentadata/js/checkpoints/style/arbitrary/transformer/tensorflowjs_model.pb",
+    "license": "Apache-2.0",
+    "usedBy": [
+      "cartoon"
+    ],
+    "convert": "magenta",
+    "sha256": "289fc262cef7a3da5346d56a99bded22cb479e19f2cc4af8218213438038687e",
+    "size": 80584
+  },
+  "magenta/transformer/weights_manifest.json": {
+    "url": "https://storage.googleapis.com/magentadata/js/checkpoints/style/arbitrary/transformer/weights_manifest.json",
+    "license": "Apache-2.0",
+    "usedBy": [
+      "cartoon"
+    ],
+    "sha256": "a33994cb7a6d474407083f2e01e2108655e95a9b2c81a6527e7b76513182ae5b",
+    "size": 10228
+  },
+  "magenta/transformer/group1-shard1of2": {
+    "url": "https://storage.googleapis.com/magentadata/js/checkpoints/style/arbitrary/transformer/group1-shard1of2",
+    "license": "Apache-2.0",
+    "usedBy": [
+      "cartoon"
+    ],
+    "sha256": "d1a7e5511765b5384e7ccdd0765954c1aff127bc6372533da5740347dd3dab6b",
+    "size": 4194304
+  },
+  "magenta/transformer/group1-shard2of2": {
+    "url": "https://storage.googleapis.com/magentadata/js/checkpoints/style/arbitrary/transformer/group1-shard2of2",
+    "license": "Apache-2.0",
+    "usedBy": [
+      "cartoon"
+    ],
+    "sha256": "b96885a5c98ec24862459003f5576d24bf8d3c1e6c1cf86e3b4d28190b14d015",
+    "size": 3621336
   }
 }

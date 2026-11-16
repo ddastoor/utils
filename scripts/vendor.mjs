@@ -24,6 +24,8 @@ const copies = [
   ...['eng', 'fra', 'spa', 'deu'].map((l) => [['@tesseract.js-data', l, '4.0.0_best_int', `${l}.traineddata.gz`], ['tesseract', 'lang', `${l}.traineddata.gz`]]),
   [['libarchive.js', 'dist', 'worker-bundle.js'], ['libarchive', 'worker-bundle.js']],
   [['libarchive.js', 'dist', 'libarchive.wasm'], ['libarchive', 'libarchive.wasm']],
+  // TF.js WebAssembly backend (XNNPACK, C++ → wasm): the CPU path for the Cartoonizer's style transfer when WebGL is missing
+  ...['tfjs-backend-wasm.wasm', 'tfjs-backend-wasm-simd.wasm'].map((f) => [['@tensorflow', 'tfjs-backend-wasm', 'dist', f], ['tfjs', f]]),
 ];
 
 rmSync(out(), { recursive: true, force: true });

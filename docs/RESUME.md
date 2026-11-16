@@ -37,6 +37,8 @@ auto-framing, paper clean-up, JPEG padding to the minimum via metacore m_jpeg_pa
 `heic` (11 checks), `exif` (18), `batch` (12, PC only), `watermark` (12), `caption` (11),
 `collage` (14) — src/tools/canvas-tools.ts; `signature` (15; imgproc p_alpha_bbox + p_ink_to_alpha; OFL fonts
 Great Vibes / Dancing Script / Caveat self-hosted); Anton font (OFL) self-hosted via @fontsource/anton.
+`ocr` (10), `bgremove` (11), `passport` (19), `cartoon` (37; Magenta models fetched + converted by
+`scripts/fetch-assets.mjs` → `scripts/convert-magenta.mjs`). **Images category complete (15/15).** `bc` console (12).
 
 **Stubs ("This tool is being built")**: every other tool — see "Queue".
 
@@ -63,7 +65,8 @@ STANDING RULE #1 is at the top of `CLAUDE.md`; audit list is in CLAUDE.md §3a.
 1. (Audit done.) Continue image tools below.
 2. **Linux Terminal DONE** (130 BusyBox applets, all tested; see CLAUDE.md §2). bc console DONE (12 e2e checks). OCR DONE (owner: English, French, Spanish, German — no Hindi; 10 e2e checks).
    Background Remover DONE (11 e2e). Passport Photo DONE (19 e2e; webcam on PC / phone camera; busy backgrounds replaced by the
-   preset colour). **Next: Cartoonizer**, then Photo Dictionary; Then, in order: (imgproc detect/warp/enhance → PDF via MuPDF),
+   preset colour). Cartoonizer DONE (37 e2e: 6 filters in imgproc C with DoG lines, Magenta AI styles on TF.js WebGL → wasm,
+   legacy model converter scripts/convert-magenta.mjs). **All Images tools are done. Next: Photo Dictionary**; then, in order: (imgproc detect/warp/enhance → PDF via MuPDF),
    ocr (Tesseract eng+hin), passport (36 presets in src/lib/passport-specs.ts; MediaPipe landmarks + selfie
    segmentation + imgproc guided filter; camera, print sheet, KB target, DPI), bgremove, cartoon (classic imgproc
    + Magenta TF.js). Models: add entries to scripts/assets.json and pin with `fetch-assets.mjs --pin <name>`.
