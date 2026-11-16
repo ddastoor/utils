@@ -9,6 +9,9 @@ const workers = new Set<Worker>();
 /** Run `fn` when the user leaves the current tool (one entry per key; re-registering replaces it). */
 export function onLeave(key: string, fn: Release) { releases.set(key, fn); }
 
+/** Release one key now (e.g. a Stop button that terminates a worker). */
+export function releaseNow(key: string) { const f = releases.get(key); if (f) { releases.delete(key); f(); } }
+
 /** Track a worker: it is terminated when the user leaves the tool; `onEnd` lets the owner forget its handle. */
 export function trackWorker(w: Worker, key: string, onEnd?: () => void): Worker {
   workers.add(w);

@@ -27,6 +27,7 @@ const AT_OPEN = {
   patch: [/devcore-patch/, 'the patch is applied as you type (devcore-patch, 0.11 MB)'],
   sqlfmt: [/devcore-sqlfmt/, 'the sample query is formatted live (devcore-sqlfmt, 0.22 MB)'],
   jq: [/\/jq-[^/]*\.wasm|\/jq\.wasm/, 'the sample filter runs live as you type (jq.wasm, 0.96 MB)'],
+  graphviz: [/graphviz-[^/]*\.wasm|graphviz\.worker/, 'the sample graph is drawn at once (graphviz.wasm, 1.6 MB, in a worker)'],
   baseenc: [/devcore-enc/, 'the sample text is encoded live (devcore-enc, 0.16 MB)'],
   bindecode: [/devcore-bin/, 'the sample message is decoded live (devcore-bin, 0.25 MB)'],
   contrast: [/mathcore/, 'the ratio of the sample colours is shown at once (mathcore, small engine)'],

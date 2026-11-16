@@ -714,6 +714,7 @@ stay **public** (the source of the deployed site is then available to every user
 | metacore (EXIF → JSON, lossless metadata strip JPEG/PNG/WebP, JPEG DPI, image sniffing) | C (own code) | **us** (`wasm/metacore`) | exif, image loading, passport/formphoto DPI |
 | BusyBox 1.38.0 (130 applets) + compat shims | C | **us** (`wasm/busybox`) | terminal, bc console |
 | jq 1.8.2 (+ oniguruma) | C | **us** (`wasm/jq`) | jq |
+| Graphviz 14.1.2 (cgraph, gvc, dot/neato/fdp/sfdp/circo/twopi/osage/patchwork, core renderers) + Expat 2.9.0 | C / C++ | **us** (`wasm/graphviz`, 1.6 MB / 0.54 MB gz, run in `src/workers/graphviz.worker.ts`) | graphviz |
 | audio: **LAME 4.0** libmp3lame (MP3 encoder) + own C (WAV writer, waveform peaks, levels, gain/fades, Kaiser windowed-sinc resampler, WSOLA time stretch, tempo × pitch) | C | **us** (`wasm/audio`) | audio (and tts, stt, noise, pitch) |
 | rnnoise: Xiph **RNNoise 0.2** (+ default model) + glue (48 kHz frames, latency compensation, wet/dry mix, VAD) | C | **us** (`wasm/rnnoise`) | noise |
 | espeak: **eSpeak NG 1.52.0** (+ English phoneme tables and dictionary compiled from the same release, linked in, served to its fopen/stat from memory) + glue (IPA for Kokoro, piper-phonemize-style sentences) | C | **us** (`wasm/espeak`) | tts (stt hints later) |
@@ -970,6 +971,17 @@ bundled oniguruma, decNumber and libjq, and links `glue.c` as a reactor (`jq_run
 flags = -r -c -s -n -S --tab -j -a -R -e; one input source shared by the main loop and `input`/`inputs` through
 `jq_set_input_cb`; `$ARGS` built like main.c; exit codes 0 / 2 bad input / 3 compile / 5 runtime, halt_error's code).
 ~0.96 MB. Wrapper `src/wasm/jq.ts`; unit `tests/unit/jq.test.mjs` (35); e2e compares outputs with the native jq.
+
+### 5.1l graphviz → `src/wasm/bin/graphviz.wasm`
+`ZIG=… wasm/graphviz/build.sh` (also needs cmake, bison, flex and a host C/C++ compiler): `graphviz_14.1.2.orig.tar.bz2` and
+`expat_2.9.0.orig.tar.gz` from the Ubuntu archive (SHA-256 from the signed .dsc files). A **native** CMake configure + build
+of gvc and the core/dot/neato plugins generates the bison/flex sources and gives the exact source list; those files are
+compiled unmodified for wasm32-wasi with our `config.h`, `expat_config.h`, `compat.h` (force-included: prototypes wasi-libc
+lacks — an implicit declaration gets the wrong wasm signature and traps) and `fstreamshim.h` (VPSC's debug log stream);
+`cxxabi_stubs.c` (throw = abort; flockfile no-op). Plugins are linked statically (`lt_preloaded_symbols`). Glue
+`gv_render(src, engine, format)` makes a **fresh GVC context per call** (an error could leave a pending job that later
+wrote to stdout) and keeps its own copies of the strings (Graphviz keeps pointers after the call). No FreeType/Pango:
+text is measured with Graphviz's built-in metrics. Unit `tests/unit/graphviz.test.mjs` (32).
 
 ### 5.1e markdown → `src/wasm/bin/markdown.wasm`
 `ZIG=… wasm/markdown/build.sh`: downloads the `cmarkgfm` 2025.10.22 sdist from PyPI (SHA-256 `5bec6100…`), which vendors
