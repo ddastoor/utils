@@ -10,3 +10,4 @@ wasm/devcore/target/
 wasm/svgo/target/
 wasm/keys/target/
 wasm/zxcvbn/target/
+wasm/formats/target/

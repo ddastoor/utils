@@ -31,6 +31,8 @@ const AT_OPEN = {
   contrast: [/mathcore/, 'the ratio of the sample colours is shown at once (mathcore, small engine)'],
   apikey: [/keys-[\w-]+\.wasm/, 'sample keys are generated at once (keys.wasm, 0.38 MB)'],
   jsondiff: [/devcore-jsondiff/, 'the sample documents are compared at once (devcore-jsondiff, 0.17 MB)'],
+  yaml: [/formats-yaml/, 'the sample YAML is converted live (formats-yaml, 0.42 MB)'],
+  jsonschema: [/formats-schema/, 'the sample is validated at once (formats-schema, 2.7 MB)'],
   mermaid: [/mermaid|cytoscape|katex|dagre|elk/i, 'the sample diagram is the main view (Mermaid, loaded as JS chunks)'],
 };
 const HEAVY = /\.wasm$|\/vendor\/|\/models\/|\/data\/|\.(ttf|otf|woff2?)$/;

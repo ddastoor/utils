@@ -219,7 +219,7 @@ Replace · `diff` Text Diff · `fancy` Fancy Text · `emoji` Emoji & Symbols · 
 **Software** — owner rule: **every Software tool is PC only.** Moved here from the old "Text & Dev": `json` JSON
 Formatter · `regex` Regex Tester · `base64` Base64 · `urlenc` URL Encoder · `epoch` Epoch Converter · `uuid` UUID
 Generator · `color` Color Converter · `jwt` JWT Decoder. New: `sqlite` SQLite Playground (official SQLite wasm) ·
-`jq` jq Playground (jq C source → wasm) · `yaml` YAML ⇄ JSON ⇄ TOML (js-yaml, smol-toml) · `xml` XML Formatter /
+`jq` jq Playground (jq C source → wasm) · `yaml` YAML ⇄ JSON ⇄ TOML (our Rust formats-yaml.wasm) · `xml` XML Formatter /
 XPath · `json2types` JSON → Types (TS/Go/Rust/Java/Python) · `jsondiff` JSON Diff · `sqlfmt` SQL Formatter
 (sqlformat, Rust → devcore-sqlfmt.wasm) · `prettier` Code Formatter (Prettier standalone) · `mockdata` Mock Data Generator · `mdtable`
 Markdown Table · `cidr` Subnet / CIDR (IPv4+IPv6) · `chmod` chmod Calculator · `x509` Certificate Decoder (own
@@ -723,6 +723,7 @@ stay **public** (the source of the deployed site is then available to every user
 | svgo: **OXVG 0.0.9** (Rust port of SVGO's plugins; lightningcss for `<style>`) | Rust | **us** (`wasm/svgo`, crates.io via `Cargo.lock`, opt-level z, 4.9 MB / 1.3 MB gz, loaded with the first SVG) | svgo |
 | keys: RustCrypto **hmac, md-5, sha1, sha2, sha3, argon2, bcrypt, pbkdf2, scrypt, ssh-key** (OpenSSH Ed25519, bcrypt-pbkdf + AES-256-CTR) | Rust | **us** (`wasm/keys`, 0.38 MB; tests: RFC 2104/2202/4231/4226/6238/6070 vectors) | hmac, totp, pwhash, sshkey, apikey |
 | zxcvbn 3.1.1 (Rust port of Dropbox's estimator + its word lists) | Rust | **us** (`wasm/zxcvbn`, 2.2 MB, loaded with the first password; scores checked against the Python reference) | pwstrength |
+| formats: **serde_yaml_ng** (unsafe-libyaml = libyaml translated to Rust), **toml**, **jsonschema** 0.61 (no network/file resolvers) + own schema inference | Rust | **us** (`wasm/formats`, two modules: formats-yaml 0.42 MB, formats-schema 2.7 MB) | yaml, jsonschema |
 | devcore: ipnet (CIDR), croner + chrono (cron; zone offsets from the browser's Intl via an `env.tz_offset` import, so no tz database), nodejs-semver (+ own strict SemVer check), globset, data-encoding + bs58 + own Ascii85/Z85, own protobuf wire decoder, rmpv (MessagePack), ciborium (CBOR), x509-parser + sha1/sha2, diffy (patch), sqlformat, own hex dump | Rust | **us** (`wasm/devcore`, crates.io via `Cargo.lock`, wasm32-wasip1; one `dc_call(op, input)` entry; **one module per tab** via Cargo features → `devcore-<feature>.wasm`, 67–650 KB) | cidr, x509, cron, semver, glob, patch, sqlfmt, hexview, baseenc, bindecode |
 | cmark-gfm 0.29.0.gfm.13 (GitHub Flavored Markdown) | C | **us** (`wasm/markdown`, source from the PyPI `cmarkgfm` sdist, SHA-256 pinned) | markdown |
 | libyaml 0.2.5 + toml++ 3 | C / C++ | **us** (`wasm/formats`) | yaml |

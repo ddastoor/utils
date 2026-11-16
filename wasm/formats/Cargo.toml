@@ -1,0 +1,28 @@
+[package]
+name = "formats"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "SuperTools config-format engine for wasm32: YAML / JSON / TOML conversion and JSON Schema validation"
+
+[lib]
+crate-type = ["cdylib"]
+path = "src/lib.rs"
+
+[dependencies]
+jsonschema = { version = "0.61.2", optional = true, default-features = false }
+serde = "1.0.229"
+serde_json = { version = "1", features = ["preserve_order"] }
+serde_yaml_ng = { version = "0.10.0", optional = true }
+toml = { version = "1.2.1", optional = true, features = ["preserve_order"] }
+
+[features]
+yaml = ["dep:serde_yaml_ng", "dep:toml"]
+schema = ["dep:jsonschema"]
+
+[profile.release]
+opt-level = "s"
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true
