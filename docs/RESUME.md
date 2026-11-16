@@ -37,7 +37,7 @@ auto-framing, paper clean-up, JPEG padding to the minimum via metacore m_jpeg_pa
 `heic` (11 checks), `exif` (18), `batch` (12, PC only), `watermark` (12), `caption` (11),
 `collage` (14) — src/tools/canvas-tools.ts; `signature` (15; imgproc p_alpha_bbox + p_ink_to_alpha; OFL fonts
 Great Vibes / Dancing Script / Caveat self-hosted); Anton font (OFL) self-hosted via @fontsource/anton.
-`ocr` (10), `bgremove` (11), `passport` (19), `cartoon` (37; Magenta models fetched + converted by
+`photodict` (43 e2e + 56 unit), `ocr` (10), `bgremove` (11), `passport` (19), `cartoon` (37; Magenta models fetched + converted by
 `scripts/fetch-assets.mjs` → `scripts/convert-magenta.mjs`). **Images category complete (15/15).** `bc` console (12).
 
 **Stubs ("This tool is being built")**: every other tool — see "Queue".
@@ -66,14 +66,16 @@ STANDING RULE #1 is at the top of `CLAUDE.md`; audit list is in CLAUDE.md §3a.
 2. **Linux Terminal DONE** (130 BusyBox applets, all tested; see CLAUDE.md §2). bc console DONE (12 e2e checks). OCR DONE (owner: English, French, Spanish, German — no Hindi; 10 e2e checks).
    Background Remover DONE (11 e2e). Passport Photo DONE (19 e2e; webcam on PC / phone camera; busy backgrounds replaced by the
    preset colour). Cartoonizer DONE (37 e2e: 6 filters in imgproc C with DoG lines, Magenta AI styles on TF.js WebGL → wasm,
-   legacy model converter scripts/convert-magenta.mjs). **All Images tools are done. Next: Photo Dictionary**; then, in order: (imgproc detect/warp/enhance → PDF via MuPDF),
+   legacy model converter scripts/convert-magenta.mjs). **All Images tools are done.** Photo Dictionary DONE (43 e2e + 56 unit;
+   data in public/data/dict built by scripts/build-dict.mjs from kaikki.org + wordfreq; CSP now allows the two
+   approved dictionary APIs). **Next: PDF/document tools (item 4)**; then, in order: (imgproc detect/warp/enhance → PDF via MuPDF),
    ocr (Tesseract eng+hin), passport (36 presets in src/lib/passport-specs.ts; MediaPipe landmarks + selfie
    segmentation + imgproc guided filter; camera, print sheet, KB target, DPI), bgremove, cartoon (classic imgproc
    + Magenta TF.js). Models: add entries to scripts/assets.json and pin with `fetch-assets.mjs --pin <name>`.
    (Done: Blur & Redact; pinned model fetching via scripts/assets.json + scripts/fetch-assets.mjs.)
-3. Photo Dictionary (`photodict`, mobile only) — design in CLAUDE.md §3 (Wiktionary via kaikki.org + Open English
-   WordNet, wordfreq, online fallback Wiktionary REST → dictionaryapi.dev, CSP connect-src hosts added when it ships).
-   kaikki.org is NOT reachable from the dev sandbox yet → ask the owner to allow the host (environment network).
+3. ~~Photo Dictionary~~ DONE (see CLAUDE.md §3 "As built"). kaikki.org was added to the environment allowlist (owner
+   approved the prompt). To refresh the dictionary: `node --max-old-space-size=10000 scripts/build-dict.mjs` (streams
+   3.4 GB; ~1 min with a local copy via `--kaikki file`), review meta.json, commit public/data/dict.
 4. PDF/document tools on MuPDF (merge, split, organize, img2pdf, pdf2img, compress, sign, fill, unlock, protect,
    pdf2text, pagenum, watermark), markdown (own cmark-gfm wasm), epub (PC), sheet (PC), invoice/rent/resume.
 5. Media: video (WebCodecs + muxer), audio recorder, TTS (Kokoro + Piper L2-ARCTIC Indian voices, own LAME MP3

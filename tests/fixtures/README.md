@@ -16,6 +16,7 @@ generates media with the project's own ffmpeg.wasm and Chromium). Used only by t
 | images/pug.heic, images/xiaomi.heic | pillow-heif 1.8.1 test images (real HEIC photos) | pillow-heif test data (BSD-3) |
 | pdf/crazyones.pdf, form.pdf, two-different-pages.pdf, side-by-side-subfig.pdf, jpeg.pdf | pypdf 7.1.0 test resources | pypdf test data (BSD-3) |
 | pdf/rc4-128-asdfzxcv.pdf, aes128-asdfzxcv.pdf, aes256-asdfzxcv.pdf | pypdf 7.1.0 encryption tests (user password `asdfzxcv`) | pypdf test data (BSD-3) |
+| images/book-page.jpg | `node scripts/make-page-photo.mjs`: original paragraph written for this project, set in Literata (OFL), then "photographed" (tilt, keystone, uneven light, shadow, blur, noise, JPEG) | CC0 (text), OFL (font) |
 | media/clip.mp4 | ffmpeg.wasm: testsrc2 640×360 3 s + 440 Hz, H.264/AAC | generated |
 | media/clip.webm | same, VP8/Vorbis | generated |
 | media/tone.wav, tone.mp3, noisy-tone.wav | ffmpeg.wasm sine (+ white noise) | generated |

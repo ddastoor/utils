@@ -157,7 +157,7 @@ async function showTool(tool: Tool, from?: 'fav') {
   window.scrollTo({ top: 0 });
 
   if (!available(tool)) {
-    const msg = tool.platform === 'pc' ? 'This tool is available on desktop browsers only.' : 'This tool needs a phone (it uses motion sensors or a touchscreen).';
+    const msg = tool.platform === 'pc' ? 'This tool is available on desktop browsers only.' : 'This tool is made for phones (it uses the phone’s camera, motion sensors or touchscreen) — open it on your phone.';
     clear(body).append(h('div', { class: 'note note-warn' }, ic(tool.platform === 'pc' ? 'Monitor' : 'Smartphone'), h('div', null, msg)));
     return;
   }

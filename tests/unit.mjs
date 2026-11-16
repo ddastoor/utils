@@ -5,6 +5,12 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { dirname, join } from 'node:path';
 import { cpus } from 'node:os';
+import { setFlagsFromString } from 'node:v8';
+
+// Node 22 bug: its WASI functions are V8 "fast API calls"; uvwasi allocations inside one can start a garbage
+// collection, and V8 then crashes walking the stack (SIGSEGV in InnerPointerToCodeCache, seen in busybox.test under
+// heap pressure). Plain API calls are GC-safe; the flag is process-wide, so it covers every worker.
+if (isMainThread) setFlagsFromString('--no-turbo-fast-api-calls');
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = join(here, '..');
@@ -33,7 +39,8 @@ if (isMainThread) {
   process.exit(failed ? 1 : 0);
 } else {
   const { createServer } = await import('vite');
-  const vite = await createServer({ root, server: { middlewareMode: true, hmr: false, ws: false }, logLevel: 'error', optimizeDeps: { noDiscovery: true, include: [] } });
+  // no file watcher: tests only import modules; a watcher holds hundreds of fds (public/data/dict) for nothing
+  const vite = await createServer({ root, server: { middlewareMode: true, hmr: false, ws: false, watch: null }, logLevel: 'error', optimizeDeps: { noDiscovery: true, include: [] } });
   async function wasm(name) {
     const mod = await WebAssembly.compile(readFileSync(join(root, 'src/wasm/bin', `${name}.wasm`)));
     let memory;

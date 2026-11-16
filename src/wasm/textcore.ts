@@ -3,6 +3,8 @@ import { instantiateWasi } from './wasi';
 import wasmUrl from './bin/textcore.wasm?url';
 
 export type DiffOp = { kind: 'eq' | 'del' | 'ins'; a: number; b: number };
+/** w: word as written (lower case), b: base form when w is unknown, z: Zipf×10 (−1 unknown), n: count, c: 1 = looks like a name */
+export type RareWord = { w: string; b: string; z: number; n: number; c: 0 | 1 };
 
 export function bindTextcore(e: any) {
   const enc = new TextEncoder();
@@ -30,6 +32,20 @@ export function bindTextcore(e: any) {
         const r = e.t_wordfreq(p, n, flags, out, k), v = new Int32Array(e.memory.buffer, out, r * 2);
         return Array.from({ length: r }, (_, i) => [tokens[v[i * 2]], v[i * 2 + 1]] as [string, number]);
       } finally { e.t_free(p); e.t_free(out); }
+    },
+    /** Load the English frequency table (public/data/dict/freq.txt). Returns the number of words. */
+    freqLoad(text: string): number { const [p, n] = putStr(text); try { return e.t_freq_load(p, n); } finally { e.t_free(p); } },
+    /** Zipf × 10 of a lower-case word (−1 = not in the table). */
+    freqGet(word: string): number { const [p, n] = putStr(word); try { return e.t_freq_get(p, n); } finally { e.t_free(p); } },
+    /** Candidate hard words in OCR text, rarest first (see wasm/textcore/rare.c). maxZ = Zipf × 10 cut-off. */
+    rare(text: string, maxZ = 45): RareWord[] {
+      const [p, n] = putStr(text);
+      let cap = n * 6 + 1024, o = e.t_malloc(cap);
+      try {
+        let k = e.t_rare(p, n, maxZ, o, cap);
+        if (k >= cap) { e.t_free(o); cap = k + 1; o = e.t_malloc(cap); k = e.t_rare(p, n, maxZ, o, cap); }
+        return JSON.parse(new TextDecoder().decode(new Uint8Array(e.memory.buffer, o, k)));
+      } finally { e.t_free(p); e.t_free(o); }
     },
     /** Diff two token sequences (strings compared exactly). */
     diff(A: string[], B: string[], maxD = 0): DiffOp[] | null {

@@ -7,6 +7,12 @@ export default async ({ base, page: newPage, ok, devices }) => {
   const origin = new URL(base).origin;
   const routes = ['', ...['all', 'fav', ...CATEGORIES.map((c) => c.id)].map((c) => `c/${c}`), ...TOOLS.map((t) => t.id)];
   const SHARDS = 6;
+  // approved data APIs (CLAUDE.md §3a) are the only other hosts the CSP lets scripts contact; code stays 'self'
+  const APPROVED = ['https://en.wiktionary.org', 'https://api.dictionaryapi.dev'];
+  const pol = await (async () => { const p = await newPage(); await p.goto(base); const c = await p.locator('meta[http-equiv="Content-Security-Policy"]').getAttribute('content'); await p.close(); return Object.fromEntries(c.split(';').map((d) => d.trim().split(/\s+/)).map(([k, ...v]) => [k, v])); })();
+  const hosts = (pol['connect-src'] || []).filter((v) => /^https?:/.test(v));
+  ok(hosts.length === APPROVED.length && hosts.every((h) => APPROVED.includes(h)), `CSP connect-src allows only the approved data APIs (${hosts.join(' ')})`);
+  for (const d of ['script-src', 'style-src', 'font-src', 'worker-src', 'default-src']) ok((pol[d] || []).every((v) => !/^https?:/.test(v)), `CSP ${d} allows no other host (${(pol[d] || []).join(' ')})`);
   await Promise.all([['desktop', { viewport: { width: 1366, height: 900 } }], ['mobile', devices['iPhone 13']]].flatMap(([name, profile]) =>
     Array.from({ length: SHARDS }, async (_, k) => {
       const page = await newPage(profile);

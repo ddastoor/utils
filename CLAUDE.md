@@ -404,7 +404,33 @@ Tesseract 5 LSTM (tesseract.js-core wasm), **languages English, French, Spanish,
 `cacheMethod: 'none'` so models are never stored in IndexedDB (stateless). Image upload, camera, or paste from
 clipboard; optional pre-clean (imgproc doc enhance, grey); low-confidence words highlighted; copy / download `.txt`.
 
-### Photo Dictionary (`photodict`, Text, **Mobile only** — owner request, owner chose the name)
+### Photo Dictionary (`photodict`, Text, **Mobile only** — owner request, owner chose the name) — BUILT
+(`src/tools/photodict.ts`, engine `src/lib/dictionary.ts`, ranking `wasm/textcore/rare.c`; e2e `tests/e2e/photodict.e2e.mjs`
+43 checks on a photographed-page fixture; unit `tests/unit/rare.test.mjs` 56 checks.) **As built:**
+- Data (`public/data/dict/`, **committed**, 38 MB raw / 11 MB gzip, rebuilt by hand with `node scripts/build-dict.mjs`):
+  `freq.txt` = wordfreq 3.1.1 `large_en` (311,698 words, Zipf×10 buckets; wheel SHA-256 pinned from PyPI);
+  `<xx>.json` / `<xxx>.json` = English Wiktionary entries from kaikki.org (streamed, ~3.4 GB JSONL; SHA-256 + date of the
+  input recorded in `meta.json`, which also lists the shard files and the 3-letter `split` prefixes) for every word
+  wordfreq knows + the lemmas their forms point to (145,851 words, 1,305 shards ≤ 370 KB). Kept per entry: part of
+  speech, US IPA, ≤ 5 senses (current before obsolete/archaic, usage labels, one short example), form-of links
+  ("geese" → goose, "colour" → color). Proper names, affixes, symbols, phrases are left out. Committed because kaikki
+  updates the file in place (a pinned hash would break every build) — regenerate deliberately.
+  (kaikki.org was added to this environment's network allowlist for the build; it is never contacted at run time.)
+- Ranking (C): tokens (Latin letters, ’ apostrophes, hyphens; possessives stripped; a line-break hyphen is joined when
+  a half is not a word or the joined word is at least as common, tolerating OCR noise at the margin), lemmas for
+  unknown regular inflections (−s/−es/−ies/−ed/−ing/−er/−est/−ly, doubled consonants, one level of recursion), stop
+  words and tokens < 3 letters or mixed with digits dropped, names = always capitalised + capitalised mid-sentence.
+  Candidates with Zipf < 4.5, rarest first (unknown to wordfreq = rarest), then count, then first appearance.
+- Lookup (TS): bundled entry → if it is only an inflection, its lemma's card with the note ("plural of goose"); an
+  inflection of a common word ("rode" → ride) is skipped as common; capitalised names not in the bundle are skipped
+  ("Names skipped" list); others go online (≤ 25 per photo, rarest first, 5 s timeout, session cache).
+- UI: "Use camera" (back camera viewfinder + Snap; sticky bottom bar on phones) or "Choose a photo"; "Photo of a
+  screen" adds a moiré blur; document clean-up always; cards in **Literata** (OFL, self-hosted) with rarity, part of
+  speech · IPA, senses + examples, "More meanings"; Not found / Names skipped lists; recognised text with every word
+  tappable (lookup card, works for common words too); "Share list" (Web Share, else copy); attribution line.
+- Not built from the original notes: the Open English WordNet fallback — the bundle already covers every word wordfreq
+  knows and rarer words go online (WordNet's GitHub releases are also unreachable from the dev sandbox).
+**Original design notes:**
 Owner's words: photograph text (Kindle screen, newspaper, book) with the phone camera → OCR it → sort the words by
 how common they are in English, **rarest (hardest) first**, leaving out common words ("and", "the", …) → show at most
 **20 words**, each with its **dictionary meaning underneath in a nice, readable font**.
@@ -523,7 +549,7 @@ stay **public** (the source of the deployed site is then available to every user
 | metacore (EXIF → JSON, lossless metadata strip JPEG/PNG/WebP, JPEG DPI, image sniffing) | C (own code) | **us** (`wasm/metacore`) | exif, image loading, passport/formphoto DPI |
 | BusyBox 1.38.0 (130 applets) + compat shims | C | **us** (`wasm/busybox`) | terminal, bc console |
 | jq 1.8.2 (+ oniguruma) | C | **us** (`wasm/jq`) | jq |
-| textcore: Myers diff, tool-search ranking, word frequency | C (own code) | **us** (`wasm/textcore`) | diff, search box, word counter, photodict |
+| textcore: Myers diff, tool-search ranking, word frequency, rare-word ranking (tokeniser, lemmatiser, wordfreq hash table) | C (own code) | **us** (`wasm/textcore`) | diff, search box, word counter, photodict |
 | cmark-gfm (GitHub Flavored Markdown) | C | **us** (`wasm/markdown`) | markdown |
 | libyaml 0.2.5 + toml++ 3 | C / C++ | **us** (`wasm/formats`) | yaml |
 | MuPDF 1.28 | C | Artifex (official `mupdf` npm) | all PDF tools, PDF → EPUB |
@@ -581,8 +607,9 @@ only when a tool needs live data and the owner has accepted that tool. **Approve
 |---|---|---|---|
 | `en.wiktionary.org` (Wikimedia REST: `/api/rest_v1/page/definition/<word>`) | `photodict` | one word | online fallback for words missing from the bundled dictionary (owner request) |
 | `api.dictionaryapi.dev` (Free Dictionary API: `/api/v2/entries/en/<word>`) | `photodict` | one word | second fallback if Wiktionary has no entry or is down |
-Both are free, need no key or account, send CORS headers, set no cookies we read. Hosts go into the CSP when the
-tool ships. e2e tests never hit them: Playwright `page.route` serves recorded responses (the dev sandbox cannot
+Both are free, need no key or account, send CORS headers, set no cookies we read. **Live in the CSP since the Photo
+Dictionary shipped** (`connect-src 'self' blob: data: https://en.wiktionary.org https://api.dictionaryapi.dev`);
+`no-external.e2e.mjs` asserts that connect-src lists exactly these hosts and that no code directive allows any host. e2e tests never hit them: Playwright `page.route` serves recorded responses (the dev sandbox cannot
 reach them anyway). Candidate tools offered to the owner: currency converter (frankfurter.app, ECB rates),
 weather (Open-Meteo), IP/network info, clock-accuracy check (network time).
 
@@ -705,6 +732,11 @@ npm packages (pinned in `package-lock.json`) are bundled by Vite or copied to `p
 | libarchive.js | MIT (libarchive BSD) | Zip extract |
 | @fontsource/anton (Anton font) | OFL-1.1 | Text on Image (meme style), Watermark |
 | @fontsource/great-vibes, /dancing-script, /caveat | OFL-1.1 | Signature Maker (typed signatures) |
+| @fontsource/literata (Literata, Google's reading typeface) | OFL-1.1 | Photo Dictionary cards |
+
+**Data files committed in `public/data/`**: EFF large wordlist (CC-BY 3.0); `dict/` — English Wiktionary via
+wiktextract/kaikki.org (CC-BY-SA 4.0 + GFDL, Wiktionary contributors) and wordfreq 3.1.1 English frequencies (CC-BY-SA
+4.0, Robyn Speer). Attribution is shown in the Photo Dictionary.
 
 **Models are not committed** (too large for git). `scripts/assets.json` lists each model's URL, pinned SHA-256,
 size, licence and users; `scripts/fetch-assets.mjs` downloads them into `public/models/` (curl, retries) and refuses
@@ -736,6 +768,10 @@ npm run dev        # http://localhost:5173  (vendor files copied first)
 npm run build      # → dist/
 npm run preview    # serve dist/
 ```
+**Node bug workaround (unit tests):** `tests/unit.mjs` sets `--no-turbo-fast-api-calls` — Node 22's WASI functions are
+V8 fast API calls, and a uvwasi allocation inside one can start a GC that crashes V8 (SIGSEGV seen in `busybox.test`).
+The Vite SSR loader in the harness runs without a file watcher (`server.watch: null`).
+
 **Tests (fast and parallel — owner requirement):**
 ```bash
 npm test                 # node tests/unit.mjs — all unit suites concurrently in one process (~1 s)
