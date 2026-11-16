@@ -194,7 +194,7 @@ Classic / Modern (two columns) / Compact, A4 or Letter, photo, repeatable jobs /
 URL `#fragment`, never sent to a server) · `hash` Hash / Checksum · `password` Password Generator ·
 `passphrase` Passphrase Generator — all both.
 
-**Media**: `video` Video Compressor (both) · `audio` Audio Recorder (both, **BUILT**) · `tts` Text-to-Speech (both) ·
+**Media**: `video` Video Compressor (both, **BUILT**) · `audio` Audio Recorder (both, **BUILT**) · `tts` Text-to-Speech (both) ·
 `ffmpeg` FFmpeg (**PC**) · `screencast` Screencast (**PC**) · `screenshot` Screenshot (**PC**) ·
 `youtube` YouTube Clip (**PC**)
 
@@ -435,6 +435,21 @@ LAME 4.0 wasm: 64/128/192/320 kbps CBR or VBR V2, with the LAME/Info tag), **WAV
 fixed; WAV/FLAC originals keep their real sample rate). Volume/fade changes need MP3 or WAV (explained in a toast).
 `recorder()`, `waveEditor()`, `savePanel()` and `copyTrim()` are reused by Noise Remover, Pitch & Speed and STT.
 
+### Video Compressor — BUILT (`src/tools/video.ts`; e2e `tests/e2e/video.e2e.mjs` 16)
+Engine: the browser's own encoders/decoders through **WebCodecs** (compiled C++ in the browser, hardware where
+available) + **mediabunny** for demux/mux (MP4 out, fast-start). A pure-wasm encoder (x264/libaom/ffmpeg.wasm) is
+10–50× slower on phones and needs no less code; WebCodecs is the standard, hardware-accelerated path, so it is the
+engine here (§3a). Open MP4/MOV/WebM/MKV → info (size, length, resolution, fps, codecs, bitrates) + preview.
+"By quality" (High/Medium/Small = 0.10/0.06/0.035 bits per pixel per frame, AV1 × 0.65, never above 90 % of the
+original bitrate) or "To a size" (WhatsApp 16 MB, Email 25 MB, Discord 10 MB, 8/50 MB, custom): bitrate = target ×
+0.96 / duration − sound; if the encoder overshoots it re-runs up to twice at a scaled bitrate; impossible targets are
+explained. Resolution caps by the short side (2160…240p, even sizes), fps cap 30/24, H.264 (plays everywhere) or AV1
+(offered only if the browser can encode it). Sound: kept by packet copy when MP4 accepts it (AAC/MP3/Opus — no quality
+loss; Chromium on Linux has no AAC encoder), re-encoded (64 kbps) or removed; Vorbis from WebM is re-encoded. Result:
+size + % saved, player, Download/Share; cancel. Tests: clip.mp4 (H.264/AAC) → smaller, avc1 + mp4a copied, 640×360,
+3 s, decoded frame at 1 s matches the original; 240p no sound (426×240, 1 track); 150 KB target; impossible target;
+AV1 (av01) frame match; WebM VP8/Vorbis → H.264 + re-encoded sound; phone layout.
+
 ### Noise Remover — BUILT (`src/tools/noise.ts`, worker `src/workers/noise.worker.ts`; e2e `tests/e2e/noise.e2e.mjs` 11)
 **Xiph RNNoise 0.2** (recurrent network trained on speech + noise, C, BSD-3) built by us → `rnnoise.wasm` (5.6 MB, the
 default model's weights; fetched only when the tab cleans something). Pipeline in one worker: our audio.wasm resamples
@@ -647,7 +662,7 @@ stay **public** (the source of the deployed site is then available to every user
 | zxing-cpp | C++ | zxing-wasm | qr, barcode, scan |
 | libarchive | C | libarchive.js | unzip |
 | MediaPipe Tasks (TFLite) | C++ | Google (official) | passport, bgremove, redact |
-| Browser-native C++ (WebCodecs, WebCrypto, Web Speech, MediaRecorder) | — | the browser | video, tts, screencast, pbkdf2 |
+| Browser-native C++ (WebCodecs, WebCrypto, Web Speech, MediaRecorder) | — | the browser | video (H.264/AV1 encode + decode, hardware-accelerated), audio recorder, tts, screencast, pbkdf2 |
 
 JavaScript-only components (no C/C++ equivalent exists for the job):
 | Library | Why JS | Used by |
