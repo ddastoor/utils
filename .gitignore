@@ -7,3 +7,4 @@ wasm/**/.build/
 public/models/
 wasm/sheet/target/
 wasm/devcore/target/
+wasm/svgo/target/

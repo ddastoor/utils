@@ -851,3 +851,17 @@ details summary { cursor: pointer; font-weight: 600; color: var(--accent); paddi
 .ieee-bits { font-size: 15px; word-break: break-all; letter-spacing: .5px; }
 .ieee-bits .b-sign { color: var(--err); font-weight: 700; } .ieee-bits .b-exp { color: var(--ok); font-weight: 700; margin: 0 4px; } .ieee-bits .b-man { color: var(--accent); }
 .bin-out { max-height: 60vh; overflow: auto; }
+.err-text { color: var(--err); font-weight: 600; }
+.link-btn { background: none; border: 0; padding: 0; color: var(--accent); text-decoration: underline; cursor: pointer; font: inherit; }
+.color-in { flex-wrap: nowrap; } .color-in .input { min-width: 0; }
+.color-picker.sm { width: 44px; height: 44px; padding: 0; border: 1px solid var(--border); border-radius: 8px; background: none; flex: none; }
+.contrast-ratio { font-size: 40px; }
+.contrast-preview { border-radius: 12px; padding: 16px 20px; border: 1px solid var(--border); }
+.contrast-preview p { margin: 6px 0; } .contrast-preview .cp-large { font-size: 24px; font-weight: 600; } .contrast-preview .cp-small { font-size: 13px; }
+.grad-preview { height: 220px; border-radius: 12px; border: 1px solid var(--border); }
+.stop-row { align-items: center; flex-wrap: nowrap; } .num-sm { width: 80px; }
+.shadow-stage { display: grid; place-items: center; padding: 60px 20px; border-radius: 12px; }
+.shadow-box { width: 220px; height: 140px; }
+.css-out { background: var(--surface-2); padding: 10px 12px; border-radius: 8px; }
+.svg-compare figure { margin: 0; text-align: center; } .svg-compare img { max-width: 100%; max-height: 260px; background: repeating-conic-gradient(#ddd 0 25%, #fff 0 50%) 0 0 / 16px 16px; border-radius: 8px; }
+.svg-code { max-height: 300px; overflow: auto; }

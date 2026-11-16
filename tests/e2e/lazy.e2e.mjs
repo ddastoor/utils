@@ -28,6 +28,7 @@ const AT_OPEN = {
   sqlfmt: [/devcore-sqlfmt/, 'the sample query is formatted live (devcore-sqlfmt, 0.22 MB)'],
   baseenc: [/devcore-enc/, 'the sample text is encoded live (devcore-enc, 0.16 MB)'],
   bindecode: [/devcore-bin/, 'the sample message is decoded live (devcore-bin, 0.25 MB)'],
+  contrast: [/mathcore/, 'the ratio of the sample colours is shown at once (mathcore, small engine)'],
   mermaid: [/mermaid|cytoscape|katex|dagre|elk/i, 'the sample diagram is the main view (Mermaid, loaded as JS chunks)'],
 };
 const HEAVY = /\.wasm$|\/vendor\/|\/models\/|\/data\/|\.(ttf|otf|woff2?)$/;

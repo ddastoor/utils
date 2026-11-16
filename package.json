@@ -67,7 +67,6 @@
     "openpgp": "^6.3.2",
     "prettier": "^3.10.1",
     "semver": "^7.8.6",
-    "sql-formatter": "^15.9.0",
     "tesseract.js": "^7.0.0",
     "tesseract.js-core": "^7.0.0",
     "unicode-emoji-json": "^0.9.0",
