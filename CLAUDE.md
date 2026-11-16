@@ -318,7 +318,8 @@ Removed by the owner from batch 3: Spin the Wheel, Tambola/Housie, Secret Santa,
 Rejected by the owner: Typing Speed Test, Tuner, Metronome, Discount Calculator, Unit Price Compare, News Shorts
 (hourly AI news summaries — considered via GitHub Actions + llama.cpp; owner declined), Local AI / LLM tab and
 Key-Sentence Summariser (in-browser llama.cpp/WebLLM with ~1.7B model — owner declined), Wallpapers (photo
-wallpapers via Wikimedia Commons/NASA, or a procedural generator — owner declined).
+wallpapers via Wikimedia Commons/NASA, or a procedural generator — owner declined), and from `docs/potentials.md` (Nov 16 2026): Chess Board + Analysis (Stockfish),
+Python/JS Linter & Formatter (Ruff/Biome), Offline Translation (Mozilla Bergamot).
 Not added because a PC-only tool already covers them: Video Trimmer, Video → MP3, Audio Cutter (FFmpeg),
 Image Converter (Batch Images). Optional "nice to have" ideas not requested: GIF maker, screenshot
 beautifier, palette extractor, image compare, tone generator, white noise, pace calculator, recipe scaler,

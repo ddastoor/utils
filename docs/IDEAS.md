@@ -25,10 +25,10 @@ after the owner picks it (then follow CLAUDE.md §8 and STANDING RULE #1). "Own 
 GIF Maker (gifski AGPL Rust / gifsicle GPL C) · Image Compare (odiff/pixelmatch maths in imgproc) · eBook → PDF /
 reader (MuPDF: EPUB/MOBI/FB2/CBZ) · Secret Splitter — Shamir (dsprenkels/sss, MIT, C) · Sign & Verify files —
 Minisign (ISC, C, on libsodium) · Braille Translator (liblouis LGPL C, Bharati Braille) · Units Calculator (numbat,
-Apache/MIT Rust) · Molecule Viewer (RDKit MinimalLib, BSD) · Chess Analyzer (Stockfish GPL, lite single-thread) ·
+Apache/MIT Rust) · Molecule Viewer (RDKit MinimalLib, BSD) · ~~Chess Analyzer (Stockfish)~~ (owner removed, 16 Nov) ·
 Sheet Music Viewer (Verovio LGPL C++) · 3D Model Viewer/Converter (assimp BSD + occt-import-js LGPL; new "CAD & 3D"
 category) · DWG/DXF Viewer (LibreDWG GPL C) · Typst Editor (Apache Rust; fonts must be vendored) · Regex Generator
-(grex Apache Rust, PC) · Python Lint & Format (ruff MIT Rust, PC; or add clang-format/gofmt/ruff to Code Formatter) ·
+(grex Apache Rust, PC) · ~~Python Lint & Format (ruff)~~ (owner removed, 16 Nov) ·
 Parquet / DuckDB SQL (duckdb-wasm MIT, PC; extensions must be self-hosted) · Font Converter & Subsetter (google/woff2
 MIT + harfbuzz hb-subset MIT, PC) · Mouse Test (PC), Gamepad Test, Refresh-Rate Test (own code, Device).
 Lower: D2 diagrams, audio → MIDI (basic-pitch), loudness meter (libebur128), FIGlet, KeePass viewer.
