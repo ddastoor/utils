@@ -1,0 +1,81 @@
+// Equation Solver (#/equation): any f(x) = g(x) (sign changes, touching roots, none), quadratics (real, double,
+// complex; discriminant, vertex), cubics, simultaneous 2/3/4 unknowns (unique, dependent), and every bad input shown
+// as a message (no page errors).
+const close = (a, b, tol = 1e-8) => Math.abs(a - b) <= tol * (1 + Math.abs(b));
+export default async ({ base, page: newPage, ok, devices }) => {
+  const page = await newPage(); await page.goto(`${base}#/equation`);
+  const mode = (m) => page.getByRole('radio', { name: m, exact: true }).click();
+  const solve = () => page.locator('.card').first().getByRole('button', { name: 'Solve' }).click();
+  const vals = async () => (await page.locator('.big-value').allTextContents()).map((s) => s.trim());
+  const warn = async () => ((await page.locator('.note-warn').count()) ? (await page.locator('.note-warn').first().textContent()).trim() : '');
+  const fieldIn = (l) => page.locator('.field').filter({ has: page.locator('.field-label', { hasText: l }) }).locator('input').first();
+  const any = async (eq, lo = -100, hi = 100) => { await fieldIn('Equation in x').fill(eq); await fieldIn('Search from').fill(String(lo)); await fieldIn(/^to$/).fill(String(hi)); await solve(); return (await vals()).map(Number); };
+  await fieldIn('Equation in x').waitFor();
+  let r = await any('x^3 - 2x = 1');
+  ok(r.length === 3 && close(r[0], -1) && close(r[1], (1 - Math.sqrt(5)) / 2) && close(r[2], (1 + Math.sqrt(5)) / 2), `x³ − 2x = 1 → −1, (1 ± √5)/2 (${r})`);
+  r = await any('sin(x) = 0.5', 0, 10);
+  ok(r.length === 4 && [1, 5, 13, 17].every((k, i) => close(r[i], (k * Math.PI) / 6)), `sin x = ½ on [0, 10] → π/6, 5π/6, 13π/6, 17π/6 (${r})`);
+  r = await any('(x - 1/3)^2');
+  ok(r.length === 1 && close(r[0], 1 / 3, 1e-6), `touching root (x − ⅓)² = 0 → ⅓ (${r})`);
+  r = await any('2^x = 10');
+  ok(r.length === 1 && close(r[0], Math.log2(10)), `2ˣ = 10 → log₂ 10 (${r})`);
+  r = await any('e^x = 3x');
+  ok(r.length === 2 && r.every((x) => close(Math.exp(x), 3 * x, 1e-7)), `eˣ = 3x has two roots (${r})`);
+  await any('x^2 = -1');
+  ok(/No real solution/.test(await warn()), 'x² = −1: no real solution');
+  await any('tan(x) = 1e9', 1.5, 1.6); ok(true, 'steep functions do not hang');
+  await any('1/(x-2)');
+  ok(/No real solution/.test(await warn()), '1/(x − 2): the pole is not reported as a root');
+  await any('x^^2');
+  ok(/./.test(await warn()) && !(await page.locator('.big-value').count()), `bad equation → message (${await warn()})`);
+  await any('x = 1', 5, 2);
+  ok(/below "to"/.test(await warn()), 'search range from > to refused');
+  await fieldIn('Equation in x').fill(''); await solve();
+  ok(/Type an equation/.test(await warn()), 'empty equation refused');
+
+  await mode('Quadratic');
+  const coef = async (vs) => { const ins = page.locator('.form-grid input'); for (let i = 0; i < vs.length; i++) await ins.nth(i).fill(String(vs[i])); await solve(); };
+  const kv = async (l) => page.evaluate((l) => { const s = [...document.querySelectorAll('.kv > span')]; const i = s.findIndex((e) => e.textContent === l); return i >= 0 ? s[i + 1].textContent : null; }, l);
+  await coef([1, -3, 2]);
+  ok((await vals()).sort().join(',') === '1,2' && await kv('Discriminant') === '1' && await kv('Vertex') === '(1.5, -0.25)', `x² − 3x + 2 → 1, 2; D = 1; vertex (1.5, −0.25)`);
+  await coef([1, 2, 5]);
+  ok((await vals()).sort().join(' | ') === '-1 + 2i | -1 − 2i' && await kv('Discriminant') === '-16', `x² + 2x + 5 → −1 ± 2i (${(await vals()).join(' | ')})`);
+  await coef([1, -2, 1]);
+  ok((await vals()).join(',') === '1,1' && await kv('Discriminant') === '0', 'double root 1, 1');
+  await coef([2, 0, -8]);
+  ok((await vals()).map(Number).sort((a, b) => a - b).join(',') === '-2,2', '2x² − 8 → ±2');
+  await coef([1, 0, 4]);
+  ok((await vals()).sort().join(' | ') === '2i | − 2i' || (await vals()).sort().join(' | ').replace(/\s+/g, ' ') === '− 2i | 2i', `x² + 4 → ±2i (${(await vals()).join(' | ')})`);
+  await coef([1e-9 * 0, 1, 1]);
+  ok(/non-zero/.test(await warn()) && !page.errors.length, 'a = 0 → message, no page error');
+  await coef(['', 1, 1]);
+  ok(/non-zero number/.test(await warn()), 'empty a → message');
+
+  await mode('Cubic');
+  await coef([1, -6, 11, -6]);
+  ok((await vals()).map(Number).sort((a, b) => a - b).join(',') === '1,2,3', `x³ − 6x² + 11x − 6 → 1, 2, 3 (${await vals()})`);
+  await coef([1, 0, 0, -1]);
+  const cr = await vals();
+  ok(cr.includes('1') && cr.some((s) => /^-0\.5 \+ 0\.866025403784i$/.test(s)) && cr.some((s) => /^-0\.5 − 0\.866025403784i$/.test(s)), `x³ − 1 → 1, −½ ± (√3/2)i (${cr.join(' | ')})`);
+  await coef([2, -4, -22, 24]);
+  ok((await vals()).map(Number).sort((a, b) => a - b).every((x, i) => close(x, [-3, 1, 4][i])), `2x³ − 4x² − 22x + 24 → −3, 1, 4 (${await vals()})`);
+  await coef([1, -3, 3, -1]);
+  ok((await vals()).map(Number).every((x) => close(x, 1, 1e-5)), `(x − 1)³ → 1 (triple) (${await vals()})`);
+
+  await mode('Simultaneous (linear)');
+  const sys = async (rows) => { const c = page.locator('.eq-cell'); let k = 0; for (const r of rows) for (const v of r) await c.nth(k++).fill(String(v)); await solve(); return vals(); };
+  ok((await sys([[2, 3, 8], [1, -1, -1]])).join(',') === '1,2', '2x + 3y = 8, x − y = −1 → (1, 2)');
+  ok((await sys([[1, 2, 3], [2, 4, 6]])).length === 0 && /No unique solution/.test(await warn()), 'dependent equations → no unique solution');
+  ok((await sys([[1, 1, 1], [1, 1, 2]])).length === 0 && /No unique solution/.test(await warn()), 'inconsistent equations → no unique solution');
+  await page.getByRole('radio', { name: '3 unknowns', exact: true }).click();
+  ok((await sys([[1, 1, 1, 6], [0, 2, 5, -4], [2, 5, -1, 27]])).join(',') === '5,3,-2', 'three unknowns → (5, 3, −2)');
+  await page.getByRole('radio', { name: '4 unknowns', exact: true }).click();
+  const A = [[2, 1, -1, 3], [1, -2, 4, 1], [3, 1, 1, -1], [1, 1, 1, 1]], X = [1, -2, 3, 0.5];
+  ok((await sys(A.map((r) => [...r, r.reduce((s, a, i) => s + a * X[i], 0)]))).map(Number).every((x, i) => close(x, X[i], 1e-9)), `four unknowns → (1, −2, 3, 0.5)`);
+  await page.locator('.eq-cell').first().fill(''); await solve();
+  ok(/Fill in every coefficient/.test(await warn()), 'empty coefficient → message');
+  ok(!page.errors.length, `no page errors ${page.errors.join(' | ')}`);
+  const ph = await newPage(devices['iPhone 13']); await ph.goto(`${base}#/equation`); await ph.locator('input').first().waitFor();
+  await ph.getByRole('radio', { name: 'Simultaneous (linear)', exact: true }).click(); await ph.getByRole('radio', { name: '4 unknowns', exact: true }).click();
+  ok(await ph.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'phone: no horizontal page scroll, even with 4 unknowns');
+};

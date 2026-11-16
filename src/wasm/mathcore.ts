@@ -98,9 +98,10 @@ export function bindMathcore(e: any) {
     regress(x: number[], y: number[]) { const n = x.length; return withF64(n, (px) => withF64(n, (py) => withF64(3, (po) => { e.m_regress(px, py, n, po); const [slope, intercept, r] = f64(po, 3); return { slope, intercept, r }; }), y), x); },
     isPrime: (n: bigint) => !!e.m_is_prime(BigInt.asUintN(64, n)),
     factor(n: bigint): bigint[] { const p = e.m_malloc(64 * 8); try { const k = e.m_factor(BigInt.asUintN(64, n), p); return Array.from(new BigUint64Array(mem(), p, k)); } finally { e.m_free(p); } },
-    gcd: (a: bigint, b: bigint) => e.m_gcd(a, b) as bigint,
-    lcm: (a: bigint, b: bigint) => e.m_lcm(a, b) as bigint,
-    nextPrime: (n: bigint) => e.m_next_prime(n) as bigint,
+    // wasm i64 results come back signed: read them as unsigned 64-bit (values ≥ 2^63 would otherwise be negative)
+    gcd: (a: bigint, b: bigint) => BigInt.asUintN(64, e.m_gcd(a, b) as bigint),
+    lcm: (a: bigint, b: bigint) => BigInt.asUintN(64, e.m_lcm(a, b) as bigint),
+    nextPrime: (n: bigint) => BigInt.asUintN(64, e.m_next_prime(n) as bigint),
     fraction(src: string): { n: bigint; d: bigint } {
       const p = e.m_malloc(16);
       try {

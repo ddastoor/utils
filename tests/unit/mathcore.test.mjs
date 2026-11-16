@@ -22,6 +22,21 @@ export default async (t, { load, wasm }) => {
   t.eq(ev('sinx', { x: 2 }), fmtNum(Math.sin(2)), 'sinx implicit');
   t.eq(ev('ans*2', { ans: 21 }), '42', 'ans');
   t.eq(ev('x^2 = 9', { x: 3 }), '0', 'equation compiles to lhs-rhs');
+  { // roots: sign changes, touching (double) roots off the sampling grid, no false roots
+    const R = (src, a = -100, b = 100) => { const e = m.compile(src); try { return e.roots(a, b); } finally { e.free(); } };
+    const r1 = R('x^3 - 2x = 1'); t.ok(r1.length === 3 && Math.abs(r1[0] + 1) < 1e-9 && Math.abs(r1[1] - (1 - Math.sqrt(5)) / 2) < 1e-9 && Math.abs(r1[2] - (1 + Math.sqrt(5)) / 2) < 1e-9, `x³ − 2x = 1 → −1, (1 ± √5)/2 (${r1})`);
+    const r2 = R('(x - 1/3)^2'); t.ok(r2.length === 1 && Math.abs(r2[0] - 1 / 3) < 1e-6, `touching root (x − 1/3)² → 1/3 (${r2})`);
+    const r3 = R('(x - 0.7)^2 * (x + 2.2)'); t.ok(r3.length === 2 && Math.abs(r3[0] + 2.2) < 1e-9 && Math.abs(r3[1] - 0.7) < 1e-6, `double + single root (${r3})`);
+    t.eq(String(m.nextPrime(2n ** 64n - 1n)), '0', 'next prime above 2^64 − 1 → 0 (out of range), not 2');
+    t.eq(String(m.nextPrime(18446744073709551556n)), '18446744073709551557', 'next prime just below 2^64');
+    t.eq(String(m.gcd(18446744073709551557n * 1n, 18446744073709551557n)), '18446744073709551557', 'gcd above 2^63 read unsigned');
+    t.eq(String(m.lcm(9223372036854775809n, 1n)), '9223372036854775809', 'lcm above 2^63 read unsigned');
+    t.eq(R('x^2 + 1').length, 0, 'x² + 1: no real root');
+    t.eq(R('x^2 + 1e-6').length, 0, 'x² + 10⁻⁶: no false touching root');
+    t.eq(R('1/x').length, 0, '1/x: the pole is not a root');
+    const r4 = R('sin(x) = 0.5', 0, 10); t.ok(r4.length === 4 && [Math.PI / 6, 5 * Math.PI / 6, 13 * Math.PI / 6, 17 * Math.PI / 6].every((v, i) => Math.abs(r4[i] - v) < 1e-9), `sin x = 0.5 on [0, 10] (${r4})`);
+    const r5 = R('cos(x) - 1', -1, 13); t.ok(r5.length === 3 && Math.abs(r5[0]) < 1e-6 && Math.abs(r5[1] - 2 * Math.PI) < 1e-6 && Math.abs(r5[2] - 4 * Math.PI) < 1e-6, `cos x = 1 (touching) → 0, 2π, 4π (${r5})`);
+  }
   for (const bad of ['1+', '(2', 'foo(2)', '2**', '', 'sin(', '3 $ 4', 'log(1,2,3)']) t.throws(() => m.evaluate(bad), `rejects "${bad}"`);
   // plotting range
   const sq = m.compile('x^2'); const r = sq.range(-2, 1, 5); t.eq(Array.from(r), [4, 1, 0, 1, 4], 'range eval'); t.ok(sq.uses('x'), 'uses x'); sq.free();
@@ -67,6 +82,9 @@ export default async (t, { load, wasm }) => {
   const fd = m.fraction('0.125'); t.eq([fd.n, fd.d], [1n, 8n], 'decimal → exact fraction');
   const fp = m.fraction('(2/3)^-2'); t.eq([fp.n, fp.d], [9n, 4n], 'negative power');
   t.throws(() => m.fraction('1/0'), 'fraction division by zero');
+  for (const [e, n, d] of [['1/3 ÷ 2/3', 1n, 2n], ['1/3 / 2/3', 1n, 2n], ['3/4 × 2/3', 1n, 2n], ['2/3^2', 2n, 9n], ['1 / 3 / 2', 1n, 6n], ['1/2/3', 1n, 6n], ['6/4', 3n, 2n], ['1/0.5', 2n, 1n], ['2 1/2 ÷ 1/2', 5n, 1n], ['-3/4 ÷ 3/8', -2n, 1n]]) {
+    const q = m.fraction(e); t.eq([q.n, q.d], [n, d], `fraction literal: ${e} = ${n}/${d}`);
+  }
   t.throws(() => m.fraction('2^(1/2)'), 'fractional power rejected');
   t.throws(() => m.fraction('99999999999999999 * 99999999999999999'), 'overflow detected');
   // --- bases, roman, words

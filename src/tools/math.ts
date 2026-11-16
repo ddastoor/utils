@@ -123,23 +123,28 @@ export const equation: Mount = async (root) => {
   const body = h('div', { class: 'stack' });
   const out = h('div', { class: 'stack' });
   const num = (v: string | number) => input({ type: 'number', value: v });
+  /** run a Solve handler; problems are shown under the form instead of escaping as page errors */
+  const safe = (f: () => void) => () => { try { f(); } catch (e: any) { clear(out).append(note(e?.message || String(e), 'warn')); } };
   const render = () => {
     clear(body); clear(out);
     if (mode === 'any') {
       const eq = input({ value: 'x^3 - 2x = 1', attrs: { spellcheck: 'false' } });
       const lo = num(-100), hi = num(100);
       body.append(field('Equation in x (use = or just an expression = 0)', eq), h('div', { class: 'grid2' }, field('Search from', lo), field('to', hi)),
-        button('Solve', () => {
+        button('Solve', safe(() => {
+          if (!eq.value.trim()) throw new Error('Type an equation, e.g. x^2 = 2.');
+          const a = parseFloat(lo.value), b = parseFloat(hi.value);
+          if (!isFinite(a) || !isFinite(b) || a >= b) throw new Error('The search range needs two numbers, "from" below "to".');
           const ex = m.compile(eq.value);
-          const uniq = (() => { try { return ex.roots(parseFloat(lo.value), parseFloat(hi.value)); } finally { ex.free(); } })();
+          const uniq = (() => { try { return ex.roots(a, b); } finally { ex.free(); } })();
           clear(out).append(card('Real solutions', uniq.length ? h('div', { class: 'big-results' }, uniq.slice(0, 20).map((r, i) => h('button', { class: 'big-result', type: 'button', onclick: () => copy(fmtNum(r)) }, h('span', { class: 'big-label' }, `x${uniq.length > 1 ? i + 1 : ''}`), h('span', { class: 'big-value' }, fmtNum(r, 10))))) : note('No real solution found in that range.', 'warn')));
-        }, { variant: 'primary', icon: 'Variable' }));
+        }), { variant: 'primary', icon: 'Variable' }));
     } else if (mode === 'quad' || mode === 'cubic') {
       const names = mode === 'quad' ? ['a', 'b', 'c'] : ['a', 'b', 'c', 'd'];
       const vals = mode === 'quad' ? [1, -3, 2] : [1, -6, 11, -6];
       const ins = names.map((n, i) => num(vals[i]));
       body.append(h('p', { class: 'muted' }, mode === 'quad' ? 'ax² + bx + c = 0' : 'ax³ + bx² + cx + d = 0'), h('div', { class: 'form-grid' }, ins.map((x, i) => field(names[i], x))),
-        button('Solve', () => {
+        button('Solve', safe(() => {
           const v = ins.map((x) => parseFloat(x.value));
           if (v.some((x) => !isFinite(x)) || v[0] === 0) throw new Error('Coefficient a must be a non-zero number.');
           let roots: Complex[];
@@ -152,7 +157,7 @@ export const equation: Mount = async (root) => {
             roots = m.cubic(v[0], v[1], v[2], v[3]);
             clear(out).append(card('Roots', h('div', { class: 'big-results' }, roots.map((r, i) => h('div', { class: 'big-result' }, h('span', { class: 'big-label' }, `x${i + 1}`), h('span', { class: 'big-value' }, cfmt(r)))))));
           }
-        }, { variant: 'primary', icon: 'Variable' }));
+        }), { variant: 'primary', icon: 'Variable' }));
     } else {
       let n = 2;
       const grid = h('div');
@@ -168,11 +173,12 @@ export const equation: Mount = async (root) => {
         }));
       };
       body.append(segmented([['2', '2 unknowns'], ['3', '3 unknowns'], ['4', '4 unknowns']], '2', (v) => { n = +v; build(); }), h('div', { class: 'scroll-x' }, grid),
-        button('Solve', () => {
+        button('Solve', safe(() => {
           const A = cells.map((r) => r.slice(0, n).map((x) => parseFloat(x.value))), b = cells.map((r) => parseFloat(r[n].value));
+          if ([...A.flat(), ...b].some((x) => !isFinite(x))) throw new Error('Fill in every coefficient (use 0 for a missing term).');
           const s = m.solveLinear(A, b);
           clear(out).append(card('Solution', s ? h('div', { class: 'big-results' }, s.map((v, i) => h('div', { class: 'big-result' }, h('span', { class: 'big-label' }, 'xyzw'[i]), h('span', { class: 'big-value' }, fmtNum(v))))) : note('No unique solution (the equations are dependent or inconsistent).', 'warn')));
-        }, { variant: 'primary', icon: 'Variable' }));
+        }), { variant: 'primary', icon: 'Variable' }));
       build();
     }
   };
@@ -181,7 +187,9 @@ export const equation: Mount = async (root) => {
 };
 
 // ================================================================== Statistics
-const parseNums = (s: string) => s.split(/[\s,;]+/).map((x) => x.trim()).filter(Boolean).map(Number).filter((x) => isFinite(x));
+/** plain decimal numbers only (1, -2.5, .5, 3e1); anything else (0x10, Infinity, words) is ignored */
+const NUM = /^[+-]?(\d+\.?\d*|\.\d+)(e[+-]?\d+)?$/i;
+const parseNums = (s: string) => s.split(/[\s,;]+/).filter((x) => NUM.test(x)).map(Number).filter((x) => isFinite(x));
 export const stats: Mount = async (root) => {
   const m = await mathcore();
   const ta = textarea({ rows: 6, value: '12, 15, 15, 18, 21, 24, 24, 24, 30', placeholder: 'Numbers separated by commas, spaces or new lines' });
@@ -195,8 +203,8 @@ export const stats: Mount = async (root) => {
       const rows: Array<[string, number | string]> = [['Count', s.count], ['Sum', s.sum], ['Min', s.min], ['Max', s.max], ['Range', s.range], ['Q1 (25%)', s.q1], ['Q3 (75%)', s.q3], ['IQR', s.iqr],
         ['Variance (population)', s.varP], ['Variance (sample)', s.varS], ['Std dev (sample)', s.sdS], ['Geometric mean', s.geomean], ['Harmonic mean', s.harmmean], ['Skewness', s.skew], ['Sorted', s.sorted.map((x) => fmtNum(x)).join(', ')]];
       out.append(card('Summary',
-        h('div', { class: 'big-results' }, ...([['Mean', fmtNum(s.mean)], ['Median', fmtNum(s.median)], ['Mode', s.modes.length ? s.modes.map((x) => fmtNum(x)).join(', ') : 'none'], ['Std dev (population)', fmtNum(s.sdP)]] as Array<[string, string]>).map(([l, v]) => h('button', { class: 'big-result', type: 'button', onclick: () => copy(v) }, h('span', { class: 'big-label' }, l), h('span', { class: 'big-value' }, v)))),
-        h('div', { class: 'kv' }, rows.flatMap(([l, v]) => [h('span', null, l), h('span', null, typeof v === 'number' ? fmtNum(v) : v)]))));
+        h('div', { class: 'big-results' }, ...([['Mean', fmtNum(s.mean)], ['Median', fmtNum(s.median)], ['Mode', s.modes.length ? s.modes.map((x) => fmtNum(x)).join(', ') : 'none'], ['Std dev (population)', isNaN(s.sdP) ? '—' : fmtNum(s.sdP)]] as Array<[string, string]>).map(([l, v]) => h('button', { class: 'big-result', type: 'button', onclick: () => copy(v) }, h('span', { class: 'big-label' }, l), h('span', { class: 'big-value' }, v)))),
+        h('div', { class: 'kv' }, rows.flatMap(([l, v]) => [h('span', null, l), h('span', null, typeof v === 'number' ? (isNaN(v) ? '—' : fmtNum(v)) : v)]))));
     }
     const pairs = xy.value.split('\n').map((l) => parseNums(l)).filter((p) => p.length >= 2);
     if (pairs.length >= 2) {
@@ -273,14 +281,15 @@ export const primes: Mount = async (root) => {
     if (!ns.length) return;
     if (ns.some((n) => n > MAX)) { out.append(note('Numbers up to 18,446,744,073,709,551,615 (64-bit) are supported.', 'warn')); return; }
     if (ns.length > 1) {
-      const g = ns.reduce((a, b) => m.gcd(a, b)), l = ns.reduce((a, b) => (a === 0n || b === 0n ? 0n : m.lcm(a, b)));
+      // gcd in wasm; the LCM can outgrow 64 bits, so it is built exactly as l / gcd(l, b) × b (gcd(l, b) = gcd(b, l mod b), both ≤ 64 bits)
+      const g = ns.reduce((a, b) => m.gcd(a, b)), l = ns.reduce((a, b) => (a / (a > MAX ? m.gcd(b, a % b) : m.gcd(a, b))) * b);
       out.append(h('div', { class: 'big-results' }, h('div', { class: 'big-result' }, h('span', { class: 'big-label' }, 'GCD / HCF'), h('span', { class: 'big-value' }, String(g))), h('div', { class: 'big-result' }, h('span', { class: 'big-label' }, 'LCM'), h('span', { class: 'big-value' }, String(l)))));
     }
     out.append(card(null, h('div', { class: 'kv' }, ns.slice(0, 20).flatMap((n) => {
       const f = m.factor(n);
       const grouped = [...f.reduce((m, p) => m.set(p, (m.get(p) || 0) + 1), new Map<bigint, number>())].map(([p, k]) => (k > 1 ? `${p}^${k}` : `${p}`)).join(' × ');
       const next = m.nextPrime(n);
-      return [h('strong', null, String(n)), h('span', null, m.isPrime(n) ? 'Prime ✓' : n === 1n ? '1 (neither prime nor composite)' : `${grouped}  ·  next prime ${next}`)];
+      return [h('strong', null, String(n)), h('span', null, m.isPrime(n) ? 'Prime ✓' : n === 1n ? '1 (neither prime nor composite)' : `${grouped}  ·  next prime ${next ? String(next) : 'above 2⁶⁴ (out of range)'}`)];
     }))));
   };
   inp.addEventListener('input', run);

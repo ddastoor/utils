@@ -334,10 +334,23 @@ API int m_find_roots(int h, double a, double b, int samples, double *out, int ma
     Prog *pr = progs[h - 1];
     double v[NVARS] = {0, 0, 0, 0, 0};
     int count = 0;
-    v[0] = a; double px = a, pf = run(pr, v);
+    v[0] = a; double px = a, pf = run(pr, v), ppx = NAN, ppf = NAN;
     for (int i = 1; i <= samples && count < maxroots; i++) {
         double x = a + (b - a) * i / samples;
         v[0] = x; double fx = run(pr, v);
+        /* touching root (even multiplicity, e.g. (x − 1/3)² = 0): no sign change, but |f| has a local minimum near 0 at
+           the middle sample. Minimise |f| on [ppx, x] by ternary search; keep it only if f is (numerically) zero there. */
+        if (isfinite(ppf) && isfinite(pf) && isfinite(fx) && pf != 0 && fx != 0 && (ppf < 0) == (pf < 0) && (pf < 0) == (fx < 0)
+            && fabs(pf) < fabs(ppf) && fabs(pf) <= fabs(fx)) {
+            double u = ppx, w = x;
+            for (int k = 0; k < 200; k++) {
+                double m1 = u + (w - u) / 3, m2 = w - (w - u) / 3;
+                v[0] = m1; double f1 = fabs(run(pr, v)); v[0] = m2; double f2 = fabs(run(pr, v));
+                if (f1 < f2) w = m2; else u = m1;
+            }
+            double r = 0.5 * (u + w); v[0] = r; double fr = run(pr, v);
+            if (fabs(fr) <= 1e-12 * (1 + fabs(ppf) + fabs(fx)) && (!count || fabs(out[count - 1] - r) > 1e-6)) out[count++] = r;
+        }
         if (isfinite(pf) && isfinite(fx)) {
             if (pf == 0) { if (!count || fabs(out[count - 1] - px) > 1e-9) out[count++] = px; }
             else if ((pf < 0) != (fx < 0) && fx != 0) {
@@ -349,7 +362,7 @@ API int m_find_roots(int h, double a, double b, int samples, double *out, int ma
                 if (fabs(fr) < 1e-6 * (1 + scale) && (!count || fabs(out[count - 1] - r) > 1e-9)) out[count++] = r;
             }
         }
-        px = x; pf = fx;
+        ppx = px; ppf = pf; px = x; pf = fx;
     }
     if (count < maxroots) { v[0] = b; if (run(pr, v) == 0 && (!count || fabs(out[count - 1] - b) > 1e-9)) out[count++] = b; }
     return count;
@@ -526,7 +539,8 @@ API int m_factor(uint64_t n, uint64_t *out) {
     qsort(out, k, sizeof(uint64_t), cmpu);
     return k;
 }
-API uint64_t m_next_prime(uint64_t n) { if (n < 2) return 2; uint64_t c = n + 1; while (!m_is_prime(c)) { c++; if (!c) return 0; } return c; }
+/* 0 when the next prime is above 2^64 − 1 (n + 1 wraps to 0) */
+API uint64_t m_next_prime(uint64_t n) { if (n < 2) return 2; uint64_t c = n + 1; while (c && !m_is_prime(c)) c++; return c; }
 
 /* ======================================================================== exact fractions (int64 with overflow checks) */
 typedef struct { int64_t n, d; } Q;
@@ -555,12 +569,20 @@ static Q fnum(FP *f) {
     int dec = 0;
     if (f->s[f->i] == '.') { dec = 1; f->i++; while (f->s[f->i] >= '0' && f->s[f->i] <= '9') { fp = addc(mulc(fp, 10), f->s[f->i] - '0'); fd = mulc(fd, 10); f->i++; } }
     Q q = qmake(addc(mulc(ip, fd), fp), fd);
+    /* "2/3" written without spaces is one fraction, binding tighter than × and ÷ (1/3 ÷ 2/3 = 1/2, as people mean it);
+       not when a power follows ("2/3^2" stays 2 ÷ 3²) or the denominator is a decimal */
+    if (!dec && f->s[f->i] == '/' && f->s[f->i + 1] >= '0' && f->s[f->i + 1] <= '9') {
+        int k = f->i + 1; int64_t den = 0;
+        while (f->s[k] >= '0' && f->s[k] <= '9') { den = addc(mulc(den, 10), f->s[k] - '0'); k++; }
+        int j = k; while (f->s[j] == ' ') j++;
+        if (f->s[k] != '.' && f->s[j] != '^') { f->i = k; return qmake(ip, den); }
+    }
     /* mixed number "1 1/2" */
     if (!dec) {
         int j = f->i; while (f->s[j] == ' ') j++;
         if (j > f->i && f->s[j] >= '0' && f->s[j] <= '9') {
-            int k = j; int64_t a = 0, b = 0; while (f->s[k] >= '0' && f->s[k] <= '9') { a = a * 10 + (f->s[k] - '0'); k++; }
-            if (f->s[k] == '/' && f->s[k + 1] >= '0' && f->s[k + 1] <= '9') { k++; while (f->s[k] >= '0' && f->s[k] <= '9') { b = b * 10 + (f->s[k] - '0'); k++; } f->i = k; q = qadd(q, qmake(a, b)); }
+            int k = j; int64_t a = 0, b = 0; while (f->s[k] >= '0' && f->s[k] <= '9') { a = addc(mulc(a, 10), f->s[k] - '0'); k++; }
+            if (f->s[k] == '/' && f->s[k + 1] >= '0' && f->s[k + 1] <= '9') { k++; while (f->s[k] >= '0' && f->s[k] <= '9') { b = addc(mulc(b, 10), f->s[k] - '0'); k++; } f->i = k; q = qadd(q, qmake(a, b)); }
         }
     }
     return q;

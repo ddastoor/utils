@@ -879,9 +879,10 @@ Last built from: libsodium **1.0.20-stable** (tarball signed 2025-04-05, crate 1
 
 ### 5.1b mathcore → `src/wasm/bin/mathcore.wasm`
 Own C (`wasm/mathcore/mathcore.c`, ~700 lines): expression compiler + bytecode VM (also evaluates whole plot ranges
-in one call), root finding, quadratic/cubic, det/inverse/matmul/rank/linear solve, statistics + regression,
+in one call; "a ± b%" = percentage of the running total), root finding (sign changes + touching/double roots by
+minimising |f|), quadratic/cubic, det/inverse/matmul/rank/linear solve, statistics + regression,
 64-bit primes (deterministic Miller–Rabin) and Pollard-rho factorisation, exact fractions (int64 with overflow
-detection), arbitrary-length base conversion, Roman numerals, number→words (Indian + international), finance
+detection; "2/3" without spaces is one fraction, so 1/3 ÷ 2/3 = 1/2), arbitrary-length base conversion, Roman numerals, number→words (Indian + international), finance
 (EMI, amortisation, SIP, FD/RD, PPF, EPF, NPS, prepayment), health (BMI, BMR, body fat, ideal weight), haversine.
 `wasm/mathcore/build.sh` (exports every `API m_*` function). TS wrapper: `src/wasm/mathcore.ts` (`bindMathcore`
 works in the browser and in Node tests). Tests: `tests/unit/mathcore.test.mjs` (~150 known-answer checks).
