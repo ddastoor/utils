@@ -865,3 +865,14 @@ details summary { cursor: pointer; font-weight: 600; color: var(--accent); paddi
 .css-out { background: var(--surface-2); padding: 10px 12px; border-radius: 8px; }
 .svg-compare figure { margin: 0; text-align: center; } .svg-compare img { max-width: 100%; max-height: 260px; background: repeating-conic-gradient(#ddd 0 25%, #fff 0 50%) 0 0 / 16px 16px; border-radius: 8px; }
 .svg-code { max-height: 300px; overflow: auto; }
+.pw-row { flex-wrap: nowrap; } .pw-row .input { flex: 1; min-width: 0; }
+.otp-code { font-size: 48px; font-weight: 700; text-align: center; letter-spacing: 2px; margin: 8px 0; }
+.randomart { font-size: 13px; line-height: 1.15; margin: 10px 0 0; }
+.strength-meter { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin: 12px 0 6px; }
+.strength-meter span { height: 8px; border-radius: 4px; background: var(--surface-3); }
+.strength-meter.s0 span:nth-child(-n+1) { background: var(--err); } .strength-meter.s1 span:nth-child(-n+1) { background: var(--err); }
+.strength-meter.s2 span:nth-child(-n+2) { background: var(--warn); } .strength-meter.s3 span:nth-child(-n+3) { background: var(--ok); } .strength-meter.s4 span { background: var(--ok); }
+.strength-label { font-weight: 700; }
+.zx-seq { display: flex; flex-wrap: wrap; gap: 6px; }
+.zx-part { display: flex; flex-direction: column; padding: 6px 10px; border-radius: 8px; background: var(--surface-2); border: 1px solid var(--border); }
+.zx-part small { color: var(--muted); font-size: 11px; } .zx-bruteforce { border-style: dashed; }

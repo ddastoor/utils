@@ -3,7 +3,7 @@ import { h, clear, note } from '../../ui';
 export const kvRows = (rows: Array<[string, string | Node | null | undefined]>) =>
   h('div', { class: 'kv' }, rows.filter(([, v]) => v != null && v !== '').flatMap(([k, v]) => [h('span', null, k), h('span', { class: 'mono' }, v as any)]));
 /** Run `f`, put its result (or the error as a warning) into `box`. */
-export function show(box: HTMLElement, f: () => Node | Node[] | null) {
+export function show(box: HTMLElement, f: () => Node | Array<Node | string> | null) {
   try { const r = f(); clear(box); if (r) box.append(...(Array.isArray(r) ? r : [r])); }
   catch (e: any) { clear(box).append(note(e?.message || String(e), 'warn')); }
 }

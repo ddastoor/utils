@@ -40,7 +40,7 @@ async function runOne(f) {
     async download(page, click) { const d = page.waitForEvent('download', { timeout: Number(process.env.E2E_DL_TIMEOUT || 90000) }); await click(); const dl = await d; const p = join(tmp, `${Date.now()}-${dl.suggestedFilename()}`); await dl.saveAs(p); return p; },
   };
   try { await (await import(pathToFileURL(join(here, 'e2e', f)).href)).default(ctx); }
-  catch (e) { fails.push(`crashed: ${e.message.split('\n')[0]}`); }
+  catch (e) { fails.push(`crashed: ${e.message.split('\n')[0]}${process.env.E2E_STACK ? `\n${(e.stack || '').split('\n').filter((l) => l.includes('.e2e.mjs')).join('\n')}` : ''}`); }
   for (const c of contexts) await c.close().catch(() => {});
   results.push({ f, fails, infos, passed, ms: performance.now() - s0 });
 }

@@ -1,0 +1,21 @@
+[package]
+name = "zxcvbn-wasm"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "SuperTools password strength: zxcvbn (Rust port of Dropbox's estimator) for wasm32"
+
+[lib]
+crate-type = ["cdylib"]
+path = "src/lib.rs"
+
+[dependencies]
+serde_json = "1"
+zxcvbn = { version = "3.1.1", default-features = false, features = ["custom_wasm_env"] }
+
+[profile.release]
+opt-level = "s"
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true
