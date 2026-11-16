@@ -6,3 +6,4 @@ public/vendor/
 wasm/**/.build/
 public/models/
 wasm/sheet/target/
+wasm/devcore/target/
