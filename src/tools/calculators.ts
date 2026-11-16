@@ -58,12 +58,18 @@ export const units: Mount = (root) => {
 const DAY = 86400000;
 const parseD = (s: string) => { const [y, m, d] = s.split('-').map(Number); return new Date(Date.UTC(y, m - 1, d)); };
 const fmtD = (d: Date) => d.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
+const dim = (y: number, m: number) => new Date(Date.UTC(y, m + 1, 0)).getUTCDate();
+/** a + n calendar months, clamped to the month's last day (31 Jan + 1 month = 28/29 Feb), as Excel EDATE / java.time */
+function addMonths(a: Date, n: number) {
+  const t = a.getUTCFullYear() * 12 + a.getUTCMonth() + n, y = Math.floor(t / 12), m = t - y * 12;
+  return new Date(Date.UTC(y, m, Math.min(a.getUTCDate(), dim(y, m))));
+}
+/** whole years + months from the earlier date (month-end clamped), then the remaining days — never negative */
 function ymd(a: Date, b: Date) {
-  let [s, e] = a <= b ? [a, b] : [b, a];
-  let y = e.getUTCFullYear() - s.getUTCFullYear(), m = e.getUTCMonth() - s.getUTCMonth(), d = e.getUTCDate() - s.getUTCDate();
-  if (d < 0) { m--; d += new Date(Date.UTC(e.getUTCFullYear(), e.getUTCMonth(), 0)).getUTCDate(); }
-  if (m < 0) { y--; m += 12; }
-  return { y, m, d };
+  const [s, e] = a <= b ? [a, b] : [b, a];
+  let n = (e.getUTCFullYear() - s.getUTCFullYear()) * 12 + e.getUTCMonth() - s.getUTCMonth();
+  if (addMonths(s, n) > e) n--;
+  return { y: Math.floor(n / 12), m: n % 12, d: Math.round((e.getTime() - addMonths(s, n).getTime()) / DAY) };
 }
 export const dates: Mount = async (root) => {
   const mc = await mathcore();
@@ -89,21 +95,23 @@ export const dates: Mount = async (root) => {
       { key: 'op', label: 'Operation', type: 'seg', value: '+', options: [['+', 'Add'], ['-', 'Subtract']] },
       { key: 'y', label: 'Years', value: 0 }, { key: 'm', label: 'Months', value: 0 }, { key: 'w', label: 'Weeks', value: 0 }, { key: 'd', label: 'Days', value: 30 },
     ], (v) => {
-      const s = v.op === '-' ? -1 : 1, a = parseD(v.a);
-      const r = new Date(Date.UTC(a.getUTCFullYear() + s * (v.y || 0), a.getUTCMonth() + s * (v.m || 0), a.getUTCDate() + s * ((v.d || 0) + 7 * (v.w || 0))));
+      if (!v.a) throw new Error('Pick a start date.');
+      const s = v.op === '-' ? -1 : 1, a = addMonths(parseD(v.a), s * (12 * (v.y || 0) + (v.m || 0))); // months first, clamped to the month end
+      const r = new Date(a.getTime() + s * ((v.d || 0) + 7 * (v.w || 0)) * DAY);
       return { big: [['Result', fmtD(r)]], rows: [['ISO date', r.toISOString().slice(0, 10)]] };
     });
     else calcForm(body, [
       { key: 'dob', label: 'Date of birth', type: 'date', value: '1990-01-01' },
       { key: 'on', label: 'Age on', type: 'date', value: today() },
     ], (v) => {
+      if (!v.dob || !v.on) throw new Error('Pick both dates.');
       const a = parseD(v.dob), b = parseD(v.on);
       if (b < a) throw new Error('The "age on" date is before the birth date.');
       const { y, m, d } = ymd(a, b);
-      let next = new Date(Date.UTC(b.getUTCFullYear(), a.getUTCMonth(), a.getUTCDate()));
-      if (next < b) next = new Date(Date.UTC(b.getUTCFullYear() + 1, a.getUTCMonth(), a.getUTCDate()));
+      let next = addMonths(a, (b.getUTCFullYear() - a.getUTCFullYear()) * 12); // 29 Feb birthdays fall on 28 Feb in other years
+      if (next < b) next = addMonths(a, (b.getUTCFullYear() + 1 - a.getUTCFullYear()) * 12);
       const days = Math.round((b.getTime() - a.getTime()) / DAY);
-      return { big: [['Age', `${y} years ${m} months ${d} days`]], rows: [['Born on', fmtD(a)], ['Total days', fmtN(days, 0)], ['Total weeks', fmtN(Math.floor(days / 7), 0)], ['Next birthday', `${fmtD(next)} (in ${Math.round((next.getTime() - b.getTime()) / DAY)} days)`]] };
+      return { big: [['Age', `${y} years ${m} months ${d} days`]], rows: [['Born on', fmtD(a)], ['Total days', fmtN(days, 0)], ['Total weeks', fmtN(Math.floor(days / 7), 0)], ['Next birthday', `${fmtD(next)} (${((n) => (n ? `in ${n} day${n === 1 ? '' : 's'}` : 'today'))(Math.round((next.getTime() - b.getTime()) / DAY))})`]] };
     });
   };
   root.append(card(null, segmented([['diff', 'Days between dates'], ['add', 'Add / subtract'], ['age', 'Age']], mode, (v) => { mode = v; render(); })), body);
@@ -247,13 +255,19 @@ export const timezone: Mount = (root) => {
   ], (v) => {
     if (!v.date || !v.time) throw new Error('Pick a date and time.');
     const [y, mo, d] = v.date.split('-').map(Number), [hh, mm] = v.time.split(':').map(Number);
-    let utc = Date.UTC(y, mo - 1, d, hh, mm);
-    utc -= zoneOffset(v.from, new Date(utc)) * 60000;
-    utc -= (zoneOffset(v.from, new Date(utc)) - zoneOffset(v.from, new Date(utc))) * 60000;
-    const at = new Date(utc);
+    // wall-clock time in `from` → instant. Try the offsets in force 14 h before and after; keep those that read back as
+    // the same wall time. Two = the hour repeated when clocks go back (earlier one, as java.time); none = the hour
+    // skipped when clocks go forward (moved forward by the gap, as java.time).
+    const wall = Date.UTC(y, mo - 1, d, hh, mm), offAt = (t: number) => zoneOffset(v.from, new Date(t));
+    const cands = [...new Set([offAt(wall - 14 * 3600000), offAt(wall + 14 * 3600000)])].map((o) => wall - o * 60000);
+    const valid = cands.filter((t) => t + offAt(t) * 60000 === wall).sort((p, q) => p - q);
+    const at = new Date(valid[0] ?? cands[0]);
+    const zoneName = v.from.replace(/_/g, ' ');
+    const clockNote = valid.length > 1 ? `This time happens twice in ${zoneName} (clocks go back); the first one is used.`
+      : !valid.length ? `This time does not exist in ${zoneName} (clocks go forward); it is read as ${new Intl.DateTimeFormat('en-IN', { timeZone: v.from, hour: '2-digit', minute: '2-digit', hour12: true }).format(at)}.` : '';
     const fmt = (z: string) => new Intl.DateTimeFormat('en-IN', { timeZone: z, weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true }).format(at);
     const off = (z: string) => { const o = zoneOffset(z, at); return `UTC${o >= 0 ? '+' : '−'}${String(Math.floor(Math.abs(o) / 60)).padStart(2, '0')}:${String(Math.abs(o) % 60).padStart(2, '0')}`; };
-    return { rows: [...new Set([v.from, ...ZONES])].map((z) => [`${z.replace(/_/g, ' ')} (${off(z)})`, fmt(z)] as [string, string]) };
+    return { rows: [...(clockNote ? [['Note', clockNote] as [string, string]] : []), ...[...new Set([v.from, ...ZONES])].map((z) => [`${z.replace(/_/g, ' ')} (${off(z)})`, fmt(z)] as [string, string])] };
   });
 };
 
@@ -300,6 +314,8 @@ export const duedate: Mount = (root) => {
     { key: 'lmp', label: 'First day of last period (LMP)', type: 'date', value: new Date(Date.now() - 70 * DAY).toISOString().slice(0, 10) },
     { key: 'cycle', label: 'Cycle length', value: 28, unit: 'days' },
   ], (v) => {
+    if (!v.lmp) throw new Error('Pick the first day of the last period.');
+    if (isFinite(v.cycle) && (v.cycle < 20 || v.cycle > 45)) throw new Error('Cycle length is usually 20–45 days.');
     const lmp = parseD(v.lmp), adj = (v.cycle || 28) - 28;
     const due = new Date(lmp.getTime() + (280 + adj) * DAY);
     const todayD = parseD(today());
