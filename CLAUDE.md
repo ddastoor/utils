@@ -233,7 +233,7 @@ Batch 3 (accepted): **Math & Science** category (new): `graph` Graphing Calculat
 Solver · `stats` Statistics · `matrix` Matrix · `fraction` Fraction · `primes` Prime/LCM/GCD · `periodic` Periodic
 Table. Calculators: `prepay` Loan Prepayment · `ppf` · `epf` · `nps` · `inflation` · `sleep` Sleep Cycle · `bodyfat` ·
 `idealweight` · `coords` Coordinates. Media: `noise` Noise Remover (RNNoise, own wasm, **BUILT**) · `pitch` Pitch & Speed (own C WSOLA, **BUILT**)
-· `slideshow` Slideshow Maker (WebCodecs). Documents: `invoice` GST Invoice · `rent` Rent Receipt · `resume` Resume
+· `slideshow` Slideshow Maker (WebCodecs, **BUILT**). Documents: `invoice` GST Invoice · `rent` Rent Receipt · `resume` Resume
 Builder (HTML → browser "Save as PDF"). Images: `signature` Signature Maker. Software (PC): `graphviz` (Graphviz C →
 wasm) · `python` (MicroPython C → wasm) · `totp` · `pwstrength` (zxcvbn) · `jsonschema` · `bitwise` · `ieee754` ·
 `contrast` · `baseenc` · `bindecode` · `httpstatus` · `mime` · `ports` · `ascii` · `keycode` · `gradient` · `shadow` ·
@@ -449,6 +449,17 @@ loss; Chromium on Linux has no AAC encoder), re-encoded (64 kbps) or removed; Vo
 size + % saved, player, Download/Share; cancel. Tests: clip.mp4 (H.264/AAC) → smaller, avc1 + mp4a copied, 640×360,
 3 s, decoded frame at 1 s matches the original; 240p no sound (426×240, 1 track); 150 KB target; impossible target;
 AV1 (av01) frame match; WebM VP8/Vorbis → H.264 + re-encoded sound; phone layout.
+
+### Slideshow Maker — BUILT (`src/tools/slideshow.ts`; e2e `tests/e2e/slideshow.e2e.mjs` 15)
+Photos (our loader: HEIC, EXIF orientation, downscaled to the output size) + optional music → MP4. Frames composed
+on an OffscreenCanvas at 30 fps: crossfade (≤ 0.8 s, fade in/out from black), gentle zoom/pan (Ken Burns, on by
+default), "Fill" (cover) or "Fit" with a blurred background (a 24 px copy stretched — works on Safari without
+`ctx.filter`); shapes 16:9 / 9:16 (phones default) / 1:1 / 4:5 at 1080p or 720p; 1–10 s per photo or "fit to the
+music". WebCodecs via mediabunny `CanvasSource` (H.264, else VP9/AV1, QUALITY_HIGH, key frame every 2 s); music looped
+or cut to the length with 0.4 s fade-in / ≤ 2.5 s fade-out (our audio.wasm), AAC or Opus (no AAC encoder on Linux
+Chromium). Reorder (◀ ▶), remove, live preview with music, progress + cancel, Download/Share. Tests: 3 real photos +
+660 Hz MP3 → H.264 1280×720, 6 s, music track; the photo on screen at 1/3/5 s is the right one (diff 6–11 vs 57–75 for
+the others); reorder; 9:16 → 720×1280; fit to music → 2 s; music frequency; phone defaults to 9:16.
 
 ### Noise Remover — BUILT (`src/tools/noise.ts`, worker `src/workers/noise.worker.ts`; e2e `tests/e2e/noise.e2e.mjs` 11)
 **Xiph RNNoise 0.2** (recurrent network trained on speech + noise, C, BSD-3) built by us → `rnnoise.wasm` (5.6 MB, the
