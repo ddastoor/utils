@@ -68,6 +68,8 @@ export function cropBox(canvas: HTMLCanvasElement, onChange?: () => void) {
     el: wrap,
     setEnabled(v: boolean) { enabled = v; if (v && r.w === 1 && r.h === 1) { r = { x: 0.08, y: 0.08, w: 0.84, h: 0.84 }; fitAspect(); } apply(); },
     setAspect(a: number) { aspect = a; fitAspect(); apply(); onChange?.(); },
+    /** Place the box (normalised 0..1) — clamped to the image. */
+    setRect(n: { x: number; y: number; w: number; h: number }) { enabled = true; const w = Math.min(1, n.w), hh = Math.min(1, n.h); r = { x: Math.max(0, Math.min(1 - w, n.x)), y: Math.max(0, Math.min(1 - hh, n.y)), w, h: hh }; apply(); onChange?.(); },
     reset() { r = { x: 0, y: 0, w: 1, h: 1 }; enabled = false; apply(); },
     /** crop rect in source pixels for an image of size W×H */
     rect(W: number, H: number) { return { x: r.x * W, y: r.y * H, w: r.w * W, h: r.h * H }; },

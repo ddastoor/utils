@@ -241,3 +241,23 @@ API int m_jpeg_set_dpi(const uint8_t *b, int n, uint8_t *out, int dpi) {
     memcpy(out, b, 2); memcpy(out + 2, app0, 18); memcpy(out + 20, b + 2, n - 2);
     return n + 18;
 }
+
+/* ------------------------------------------------------------------ JPEG minimum size (exam portals reject tiny files)
+   Inserts COM (comment) segments of zero bytes right after SOI so the file reaches `target` bytes without touching
+   the picture. out must hold max(n, target) + 4 bytes. Returns the new length, n if already big enough, 0 if not JPEG. */
+API int m_jpeg_pad(const uint8_t *b, int n, uint8_t *out, int target) {
+    if (!is_jpeg(b, n)) return 0;
+    if (n >= target) { memcpy(out, b, n); return n; }
+    int need = target - n, w = 0;
+    out[w++] = 0xff; out[w++] = 0xd8;
+    while (need > 0) {
+        int body = need - 4; /* marker (2) + length (2) */
+        if (body < 0) body = 0;
+        if (body > 65533) body = 65533;
+        out[w++] = 0xff; out[w++] = 0xfe; out[w++] = (uint8_t)((body + 2) >> 8); out[w++] = (uint8_t)(body + 2);
+        memset(out + w, 0, body); w += body;
+        need -= body + 4;
+    }
+    memcpy(out + w, b + 2, n - 2); w += n - 2;
+    return w;
+}

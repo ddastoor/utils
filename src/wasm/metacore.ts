@@ -13,7 +13,7 @@ export function bindMetacore(e: any) {
   };
   return {
     sniff(b: Uint8Array): { type: ImageType; width: number; height: number } {
-      const head = b.subarray(0, Math.min(b.length, 1 << 16));
+      const head = b.subarray(0, Math.min(b.length, 1 << 20)); // JPEG metadata (ICC, XMP, padding) can precede the frame header
       return withBytes(head, 0, (s) => {
         const o = e.m_malloc(12);
         try { e.m_sniff(s, head.length, o); const r = new Int32Array(e.memory.buffer, o, 3); return { type: IMAGE_TYPES[r[0]] || 'unknown', width: r[1], height: r[2] }; } finally { e.m_free(o); }
@@ -39,6 +39,11 @@ export function bindMetacore(e: any) {
     /** JPEG with JFIF density set to dpi (inserts a JFIF header if missing); input unchanged if not a JPEG. */
     jpegDpi(b: Uint8Array, dpi: number): Uint8Array {
       return withBytes(b, 18, (s, d) => { const n = e.m_jpeg_set_dpi(s, b.length, d, dpi); return n > 0 ? new Uint8Array(e.memory.buffer.slice(d, d + n)) : b; });
+    },
+    /** Pad a JPEG with comment segments up to `minBytes` (picture untouched); unchanged if already big enough. */
+    jpegPad(b: Uint8Array, minBytes: number): Uint8Array {
+      const extra = Math.max(0, minBytes - b.length) + 8;
+      return withBytes(b, extra, (s, d) => { const n = e.m_jpeg_pad(s, b.length, d, minBytes); return n > 0 ? new Uint8Array(e.memory.buffer.slice(d, d + n)) : b; });
     },
   };
 }

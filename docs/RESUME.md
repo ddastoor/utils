@@ -31,7 +31,8 @@ Zig for our wasm modules: CLAUDE.md §5 (pip ziglang 0.17.1). Start Claude Code 
 calculators (27), math & science (7), text (9) + json/regex/base64/urlenc/epoch/uuid/color/jwt, codes (qr, barcode,
 scan), archive (zip, unzip), everyday (9), device (11), **Image Editor** (`tests/e2e/image-editor.e2e.mjs`, 28 checks).
 
-Also done + own e2e suite: `redact` (14; MediaPipe BlazeFace + tiles, real portrait + generated 6-face group photo),
+Also done + own e2e suite: `formphoto` (14; IBPS/SSC/UPSC/NTA/PAN presets in src/lib/form-specs.ts, face
+auto-framing, paper clean-up, JPEG padding to the minimum via metacore m_jpeg_pad), `redact` (14; MediaPipe BlazeFace + tiles, real portrait + generated 6-face group photo),
 `heic` (11 checks), `exif` (18), `batch` (12, PC only), `watermark` (12), `caption` (11),
 `collage` (14) — src/tools/canvas-tools.ts; `signature` (15; imgproc p_alpha_bbox + p_ink_to_alpha; OFL fonts
 Great Vibes / Dancing Script / Caveat self-hosted); Anton font (OFL) self-hosted via @fontsource/anton.
@@ -59,8 +60,7 @@ STANDING RULE #1 is at the top of `CLAUDE.md`; audit list is in CLAUDE.md §3a.
 
 ## Queue (in order) — each: implement → own e2e suite with real fixtures → screenshot at 390×844 → commit + push
 1. (Audit done.) Continue image tools below.
-2. **Next up: Photo & Signature Resizer** (`formphoto`, Indian exam/job presets — only well-known specs; UI says
-   confirm with the official notification). Then, in order: scanner (imgproc detect/warp/enhance → PDF via MuPDF),
+2. **Next up: Doc Scanner** (`scanner`). Then, in order: (imgproc detect/warp/enhance → PDF via MuPDF),
    ocr (Tesseract eng+hin), passport (36 presets in src/lib/passport-specs.ts; MediaPipe landmarks + selfie
    segmentation + imgproc guided filter; camera, print sheet, KB target, DPI), bgremove, cartoon (classic imgproc
    + Magenta TF.js). Models: add entries to scripts/assets.json and pin with `fetch-assets.mjs --pin <name>`.
