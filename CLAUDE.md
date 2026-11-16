@@ -10,6 +10,10 @@ that affects it.
 > this file and continue from its "Next steps". Update it in every commit that changes status, and push often** —
 > the owner may be cut off at any moment and must be able to come back and continue without losing anything.
 
+> ## 📒 Also read `docs/HANDOFF.md` (after RESUME.md)
+> The owner's latest wishes from chat, how the e2e suites are written (helpers, locators), traps already found, machine
+> setup and the plan for usage/time limits. Keep it current.
+
 > ## 🔔 Owner reminder: `docs/potentials.md`
 > The owner asked (Nov 16 2026) to be **reminded** about the new-tab ideas in `docs/potentials.md` (and the older
 > `docs/IDEAS.md`). Ask the owner which to build when the per-tab test work is finished, and at the start of a new
