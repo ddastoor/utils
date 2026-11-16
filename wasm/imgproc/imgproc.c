@@ -254,6 +254,34 @@ API void p_ink_to_alpha(uint8_t *px, int w, int h, uint32_t rgb, int keep_color,
     free(l); free(bg); free(tmp);
 }
 
+/* Fill a rectangle with a solid colour (0xAABBGGRR little-endian RGBA, as in p_rotate). */
+API void p_fill_rect(uint8_t *px, int w, int h, int rx, int ry, int rw, int rh, uint32_t rgba) {
+    int x0 = rx < 0 ? 0 : rx, y0 = ry < 0 ? 0 : ry, x1 = rx + rw > w ? w : rx + rw, y1 = ry + rh > h ? h : ry + rh;
+    for (int y = y0; y < y1; y++) for (int x = x0; x < x1; x++) memcpy(px + ((size_t)y * w + x) * 4, &rgba, 4);
+}
+/* Greedy non-maximum suppression. boxes = n × (x, y, w, h, score) floats. Keeps boxes in descending score order,
+   dropping any whose IoU with a kept box exceeds iou_thr or where one box lies mostly (> contain_thr of the smaller
+   area) inside the other. Writes kept indices to keep; returns how many. */
+API int p_nms(const float *boxes, int n, float iou_thr, float contain_thr, int32_t *keep) {
+    int *order = malloc(sizeof(int) * (n ? n : 1)), k = 0;
+    for (int i = 0; i < n; i++) order[i] = i;
+    for (int i = 1; i < n; i++) { int v = order[i], j = i - 1; while (j >= 0 && boxes[order[j] * 5 + 4] < boxes[v * 5 + 4]) { order[j + 1] = order[j]; j--; } order[j + 1] = v; }
+    for (int a = 0; a < n; a++) {
+        const float *A = boxes + order[a] * 5;
+        int drop = 0;
+        for (int b = 0; b < k && !drop; b++) {
+            const float *B = boxes + keep[b] * 5;
+            float ix = fmaxf(0, fminf(A[0] + A[2], B[0] + B[2]) - fmaxf(A[0], B[0])), iy = fmaxf(0, fminf(A[1] + A[3], B[1] + B[3]) - fmaxf(A[1], B[1]));
+            float inter = ix * iy, ua = A[2] * A[3], ub = B[2] * B[3], uni = ua + ub - inter;
+            float small = fminf(ua, ub);
+            if ((uni > 0 && inter / uni > iou_thr) || (small > 0 && inter / small > contain_thr)) drop = 1; /* either box mostly inside the other */
+        }
+        if (!drop) keep[k++] = order[a];
+    }
+    free(order);
+    return k;
+}
+
 /* ======================================================================== artistic filters */
 /* Separable bilateral approximation (edge-preserving smoothing), applied `iters` times. */
 API void p_bilateral(uint8_t *px, int w, int h, int radius, float sigma_s, float sigma_r, int iters) {

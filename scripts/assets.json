@@ -1,0 +1,32 @@
+{
+  "_comment": "ML models fetched into public/models/ by scripts/fetch-assets.mjs (not committed). SHA-256 pinned; licence recorded per entry.",
+  "mediapipe/blaze_face_short_range.tflite": {
+    "url": "https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_short_range/float16/1/blaze_face_short_range.tflite",
+    "license": "Apache-2.0",
+    "usedBy": [
+      "redact",
+      "passport"
+    ],
+    "sha256": "b4578f35940bf5a1a655214a1cce5cab13eba73c1297cd78e1a04c2380b0152f",
+    "size": 229746
+  },
+  "mediapipe/face_landmarker.task": {
+    "url": "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",
+    "license": "Apache-2.0",
+    "usedBy": [
+      "passport"
+    ],
+    "sha256": "64184e229b263107bc2b804c6625db1341ff2bb731874b0bcc2fe6544e0bc9ff",
+    "size": 3758596
+  },
+  "mediapipe/selfie_multiclass_256x256.tflite": {
+    "url": "https://storage.googleapis.com/mediapipe-models/image_segmenter/selfie_multiclass_256x256/float32/1/selfie_multiclass_256x256.tflite",
+    "license": "Apache-2.0",
+    "usedBy": [
+      "passport",
+      "bgremove"
+    ],
+    "sha256": "c6748b1253a99067ef71f7e26ca71096cd449baefa8f101900ea23016507e0e0",
+    "size": 16371837
+  }
+}

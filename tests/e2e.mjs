@@ -31,12 +31,13 @@ async function runOne(f) {
       const p = await c.newPage();
       p.errors = [];
       p.on('pageerror', (e) => p.errors.push(e.message));
-      p.on('console', (m) => { if (m.type() === 'error' && !/Wrong password|Could not decrypt|expected-error/.test(m.text())) p.errors.push(m.text()); });
+      // MediaPipe's wasm prints glog/TFLite info lines ("INFO: …", "I1116 …", "W1116 …") to stderr → console.error; not errors
+      p.on('console', (m) => { if (m.type() === 'error' && !/Wrong password|Could not decrypt|expected-error/.test(m.text()) && !/^(INFO: |[IW]\d{4} )/.test(m.text())) p.errors.push(m.text()); });
       return p;
     },
     ok(cond, msg) { if (cond) passed++; else fails.push(msg); },
     info(msg) { infos.push(msg); },
-    async download(page, click) { const d = page.waitForEvent('download'); await click(); const dl = await d; const p = join(tmp, `${Date.now()}-${dl.suggestedFilename()}`); await dl.saveAs(p); return p; },
+    async download(page, click) { const d = page.waitForEvent('download', { timeout: 90000 }); await click(); const dl = await d; const p = join(tmp, `${Date.now()}-${dl.suggestedFilename()}`); await dl.saveAs(p); return p; },
   };
   try { await (await import(pathToFileURL(join(here, 'e2e', f)).href)).default(ctx); }
   catch (e) { fails.push(`crashed: ${e.message.split('\n')[0]}`); }

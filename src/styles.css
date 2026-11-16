@@ -573,3 +573,9 @@ details summary { cursor: pointer; font-weight: 600; color: var(--accent); paddi
 .sig-hint { position: absolute; left: 8%; bottom: calc(26% - 22px); font-size: 12px; color: #9aa1ae; pointer-events: none; }
 .sig-typed { font-size: clamp(40px, 9vw, 72px); background: #fff; border-radius: 12px; padding: 12px 20px; min-height: 1.6em; overflow-wrap: anywhere; line-height: 1.4; }
 .sig-photo { background: var(--checker); }
+.redact-layer { position: absolute; inset: 0; }
+.redact-wrap.drawing .redact-layer { cursor: crosshair; touch-action: none; }
+.redact-box { position: absolute; border: 2px solid #22c55e; background: transparent; border-radius: 6px; padding: 0; cursor: pointer; min-width: 0; min-height: 0; }
+.redact-box.face { border-color: #f59e0b; }
+.redact-box.off { border-style: dashed; border-color: #94a3b8; }
+.redact-box.ghost { border: 2px dashed #fff; box-shadow: 0 0 0 1px #000; pointer-events: none; }

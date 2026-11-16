@@ -10,7 +10,12 @@ export function imageInput(onImage: (img: Img, file: File) => void, opts: { labe
   const handle = async (files: File[]) => {
     for (const f of files) {
       busy.textContent = `Opening ${f.name}…`;
-      try { onImage(await loadImg(f), f); } catch (e: any) { toast(`${f.name}: ${e.message}`, 'err'); }
+      try {
+        onImage(await loadImg(f), f);
+        // once a photo is open, shrink the big drop zone so the photo sits higher on phones
+        picker.classList.add('drop-compact');
+        const strong = picker.querySelector('strong'); if (strong) strong.textContent = opts.multiple ? 'Add more photos' : 'Choose another photo';
+      } catch (e: any) { toast(`${f.name}: ${e.message}`, 'err'); }
     }
     busy.textContent = '';
   };

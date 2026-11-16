@@ -46,7 +46,7 @@ export default async ({ base, page: newPage, ok, download, devices }) => {
   // photo of ink on paper
   await page.getByRole('radio', { name: 'From photo' }).click();
   await page.locator('input[type=file]').setInputFiles(F('text.png'));
-  await page.waitForFunction(() => document.querySelector('.sig-photo')?.width > 100, null, { timeout: 30000 });
+  await page.waitForFunction(() => document.querySelector('.sig-photo')?.width === 448, null, { timeout: 60000 }); // a blank canvas is already 300 px wide
   const pp = await download(page, () => page.getByRole('button', { name: 'Save PNG (transparent)' }).click());
   const ppi = imageInfo(pp), pd = await decodeInPage(page, pp);
   ok(ppi.type === 'png' && ppi.width <= 448 && ppi.width > 100, `photo → PNG ${ppi.width}×${ppi.height} (colour type ${ppi.colorType})`);

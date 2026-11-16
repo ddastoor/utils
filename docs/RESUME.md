@@ -31,7 +31,8 @@ Zig for our wasm modules: CLAUDE.md §5 (pip ziglang 0.17.1). Start Claude Code 
 calculators (27), math & science (7), text (9) + json/regex/base64/urlenc/epoch/uuid/color/jwt, codes (qr, barcode,
 scan), archive (zip, unzip), everyday (9), device (11), **Image Editor** (`tests/e2e/image-editor.e2e.mjs`, 28 checks).
 
-Also done + own e2e suite: `heic` (11 checks), `exif` (18), `batch` (12, PC only), `watermark` (12), `caption` (11),
+Also done + own e2e suite: `redact` (14; MediaPipe BlazeFace + tiles, real portrait + generated 6-face group photo),
+`heic` (11 checks), `exif` (18), `batch` (12, PC only), `watermark` (12), `caption` (11),
 `collage` (14) — src/tools/canvas-tools.ts; `signature` (15; imgproc p_alpha_bbox + p_ink_to_alpha; OFL fonts
 Great Vibes / Dancing Script / Caveat self-hosted); Anton font (OFL) self-hosted via @fontsource/anton.
 
@@ -58,12 +59,9 @@ STANDING RULE #1 is at the top of `CLAUDE.md`; audit list is in CLAUDE.md §3a.
 
 ## Queue (in order) — each: implement → own e2e suite with real fixtures → screenshot at 390×844 → commit + push
 1. (Audit done.) Continue image tools below.
-2. **Next up: Blur & Redact** (`redact`): MediaPipe FaceDetector (blaze_face_short_range, run on the whole image
-   + overlapping tiles for small faces in group photos, NMS merge in imgproc C), manual boxes, pixelate/blur/black
-   bar (imgproc p_pixelate_rect / p_blur_rect). Models are NOT committed: add `scripts/assets.json` (url, sha256
-   pinned on first fetch, dest under public/models/, gitignored) + `scripts/fetch-assets.mjs`, run from prebuild/
-   predev and CI. storage.googleapis.com is reachable from the sandbox. Then the remaining image tools: redact (MediaPipe face
-   detector), formphoto (Indian exam presets), scanner (imgproc detect/warp/enhance → PDF), ocr (Tesseract eng+hin),
+2. **Next up: Photo & Signature Resizer** (`formphoto`, Indian exam presets — only well-known specs, UI says confirm
+   with the notification), then the remaining image tools: (Blur & Redact DONE; model fetching DONE:
+   scripts/assets.json + scripts/fetch-assets.mjs, run by predev/prebuild/CI) — detector), formphoto (Indian exam presets), scanner (imgproc detect/warp/enhance → PDF), ocr (Tesseract eng+hin),
    passport (36 presets in src/lib/passport-specs.ts, MediaPipe landmarks + segmentation + guided filter, camera,
    print sheet, KB target, DPI), bgremove, cartoon (classic imgproc + Magenta TF.js). Models need
    `scripts/assets.json` (SHA-256 pinned) + a fetch script.

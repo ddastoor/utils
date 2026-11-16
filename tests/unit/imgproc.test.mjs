@@ -80,4 +80,11 @@ export default async (t, { load, wasm }) => {
   t.ok(px(ink, 5, 5)[3] < 10 && px(ink, 115, 75)[3] < 10, 'paper transparent at both ends of the lighting gradient');
   t.eq(px(ink, 40, 38).slice(0, 3), [0x0b, 0x2a, 0x8a], 'ink recoloured');
   t.eq(ip.inkToAlpha(paper, 0, true).data[(38 * 120 + 40) * 4], 30, 'keep original ink colour');
+  // fill + NMS (Blur & Redact)
+  const fr = ip.fillRect(img(10, 10, () => [200, 200, 200, 255]), 2, 3, 4, 2, [1, 2, 3, 255]);
+  t.eq([px(fr, 2, 3), px(fr, 5, 4), px(fr, 6, 3)[0], px(fr, 2, 5)[0]], [[1, 2, 3, 255], [1, 2, 3, 255], 200, 200], 'fillRect fills exactly the rectangle');
+  t.eq(ip.fillRect(img(4, 4, () => [9, 9, 9, 255]), -5, -5, 100, 100).data[0], 0, 'fillRect clamps to the image');
+  const keep = ip.nms([[0, 0, 10, 10, 0.9], [1, 1, 10, 10, 0.8], [50, 50, 10, 10, 0.7], [2, 2, 4, 4, 0.95], [100, 0, 5, 5, 0.1]], 0.3, 0.6);
+  t.eq(keep, [3, 2, 4], 'NMS: highest first; overlapping and contained boxes dropped; distant ones kept');
+  t.eq(ip.nms([]), [], 'NMS of nothing');
 };

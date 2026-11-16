@@ -37,6 +37,15 @@ export function bindImgproc(e: any) {
     alphaBBox(img: Img, thr = 8) { const s = put(img.data), o = e.p_malloc(16); try { e.p_alpha_bbox(s, img.width, img.height, thr, o); const r = new Int32Array(mem(), o, 4); return { x: r[0], y: r[1], w: r[2], h: r[3] }; } finally { e.p_free(s); e.p_free(o); } },
     /** Photo of ink on paper → transparent ink (colour rgb 0xRRGGBB, or keep the ink's own colour). */
     inkToAlpha: (img: Img, rgb = 0x0b2a8a, keepColor = false, strength = 1) => inplace(img, (p) => e.p_ink_to_alpha(p, img.width, img.height, rgb >>> 0, keepColor ? 1 : 0, strength)),
+    /** Solid fill (r, g, b, a 0–255). */
+    fillRect: (img: Img, x: number, y: number, w: number, h: number, rgba: [number, number, number, number] = [0, 0, 0, 255]) =>
+      inplace(img, (p) => e.p_fill_rect(p, img.width, img.height, x | 0, y | 0, Math.ceil(w), Math.ceil(h), ((rgba[3] << 24) | (rgba[2] << 16) | (rgba[1] << 8) | rgba[0]) >>> 0)),
+    /** Non-maximum suppression over [x, y, w, h, score] boxes → indices kept (highest score first). */
+    nms(boxes: number[][], iou = 0.3, contain = 0.7): number[] {
+      const n = boxes.length, bp = e.p_malloc(Math.max(1, n) * 20), kp = e.p_malloc(Math.max(1, n) * 4);
+      try { new Float32Array(mem(), bp, n * 5).set(boxes.flatMap((b) => b.slice(0, 5))); const k = e.p_nms(bp, n, iou, contain, kp); return Array.from(new Int32Array(mem(), kp, k)); }
+      finally { e.p_free(bp); e.p_free(kp); }
+    },
     blur: (img: Img, sigma: number) => inplace(img, (p) => e.p_blur(p, img.width, img.height, sigma)),
     sharpen: (img: Img, amount: number, sigma = 1.2) => inplace(img, (p) => e.p_sharpen(p, img.width, img.height, amount, sigma)),
     /** Rotate by any angle into a w×h canvas (default: same size → crops corners). fill = 0xAABBGGRR little-endian RGBA. */
