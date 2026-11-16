@@ -20,8 +20,8 @@ const copies = [
     [['tesseract.js-core', `${n}.wasm`], ['tesseract', 'core', `${n}.wasm`]],
     [['tesseract.js-core', `${n}.js`], ['tesseract', 'core', `${n}.js`]],
   ]),
-  [['@tesseract.js-data', 'eng', '4.0.0_best_int', 'eng.traineddata.gz'], ['tesseract', 'lang', 'eng.traineddata.gz']],
-  [['@tesseract.js-data', 'hin', '4.0.0_best_int', 'hin.traineddata.gz'], ['tesseract', 'lang', 'hin.traineddata.gz']],
+  // OCR languages (owner: English, French, Spanish, German — Tesseract 4 "best_int" LSTM models)
+  ...['eng', 'fra', 'spa', 'deu'].map((l) => [['@tesseract.js-data', l, '4.0.0_best_int', `${l}.traineddata.gz`], ['tesseract', 'lang', `${l}.traineddata.gz`]]),
   [['libarchive.js', 'dist', 'worker-bundle.js'], ['libarchive', 'worker-bundle.js']],
   [['libarchive.js', 'dist', 'libarchive.wasm'], ['libarchive', 'libarchive.wasm']],
 ];

@@ -127,7 +127,7 @@ Test, plus `photodict` Photo Dictionary (owner said mobile only — phone camera
 | `collage` | Collage Maker | both | canvas photo grid |
 | `exif` | EXIF / Photo Info | both | own EXIF parser; strip metadata |
 | `scanner` | Doc Scanner | both | `imgproc` page detection (convexity/area check → falls back to whole photo), draggable corners, homography warp, enhance; PDF via MuPDF (`src/lib/pdf.ts`, JPEG pages embedded as-is) or JPEGs |
-| `ocr` | OCR | both | Tesseract (C++ → wasm), English + Hindi |
+| `ocr` | OCR | both | Tesseract (C++ → wasm), English, French, Spanish, German |
 
 **Documents** (engines: pdf-lib + PDF.js; QPDF 12 wasm for unlock/protect)
 | id | Tab | Platform |
@@ -382,8 +382,10 @@ corners; perspective correction; enhance modes (Colour clean, Grey, B/W adaptive
 → PDF (A4/Letter/fit) or JPEGs.
 
 ### OCR
-Tesseract LSTM, languages English and Hindi (bundled `.traineddata.gz`). Image upload, camera, or paste
-from clipboard; optional pre-clean (doc enhance). Copy text / download `.txt`.
+Tesseract 5 LSTM (tesseract.js-core wasm), **languages English, French, Spanish, German** (owner decision Nov 16 2026:
+"don't bother about Hindi"; `@tesseract.js-data/{eng,fra,spa,deu}` 4.0.0_best_int, MIT, vendored) + "Mixed" (all four).
+`cacheMethod: 'none'` so models are never stored in IndexedDB (stateless). Image upload, camera, or paste from
+clipboard; optional pre-clean (imgproc doc enhance, grey); low-confidence words highlighted; copy / download `.txt`.
 
 ### Photo Dictionary (`photodict`, Text, **Mobile only** — owner request, owner chose the name)
 Owner's words: photograph text (Kindle screen, newspaper, book) with the phone camera → OCR it → sort the words by
@@ -680,7 +682,7 @@ npm packages (pinned in `package-lock.json`) are bundled by Vite or copied to `p
 | @jsquash/jpeg (MozJPEG), /webp, /oxipng | Apache-2.0 (+ codec licences) | image encoders |
 | @mediapipe/tasks-vision | Apache-2.0 | Passport |
 | @tensorflow/tfjs-* | Apache-2.0 | Cartoonizer style transfer |
-| tesseract.js, tesseract.js-core, @tesseract.js-data/eng, /hin | Apache-2.0 / MIT | OCR |
+| tesseract.js, tesseract.js-core, @tesseract.js-data/eng, /fra, /spa, /deu | Apache-2.0 / MIT | OCR |
 | zxing-wasm | MIT (zxing-cpp Apache-2.0) | QR |
 | @zip.js/zip.js | BSD-3-Clause | Zip, Batch Images |
 | libarchive.js | MIT (libarchive BSD) | Zip extract |

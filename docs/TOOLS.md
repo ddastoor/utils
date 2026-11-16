@@ -21,7 +21,7 @@ Generated from `src/registry.ts` by `npm run docs` — do not edit by hand.
 | `collage` | Collage Maker | PC + mobile | Combine photos into a grid. | collage, grid, combine, merge photos, layout, montage, side by side |
 | `exif` | EXIF / Photo Info | PC + mobile | See hidden photo details (camera, date, GPS) and strip them. | gps from photo, photo details, camera info, exif, metadata, gps, location, camera, … |
 | `scanner` | Doc Scanner | PC + mobile | Photograph documents, straighten and clean them, save as PDF. | scan, scanner, document, camscanner, paper, receipt, perspective, crop, … |
-| `ocr` | OCR | PC + mobile | Extract text from an image (English, Hindi). | copy text from image, copy text from photo, extract text from image, text from photo, extract text from photo, handwriting, ocr, text recognition, … |
+| `ocr` | OCR | PC + mobile | Extract text from an image (English, French, Spanish, German). | copy text from image, copy text from photo, extract text from image, text from photo, extract text from photo, handwriting, ocr, text recognition, … |
 | `signature` | Signature Maker | PC + mobile | Draw your signature and save a transparent PNG. | signature, sign, draw signature, transparent signature, signature png, autograph, handwritten, e signature image |
 
 ## Documents (19)
