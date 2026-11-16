@@ -197,7 +197,7 @@ export const percent: Mount = (root) => {
   root.append(...rows.map(([label, f, da, db]) => {
     const a = input({ type: 'number', value: da }), b = input({ type: 'number', value: db });
     const out = h('div', { class: 'pct-out' });
-    const run = () => { const x = parseFloat(a.value), y = parseFloat(b.value); out.textContent = isFinite(x) && isFinite(y) ? f(x, y) : '—'; };
+    const run = () => { const x = parseFloat(a.value), y = parseFloat(b.value), r = isFinite(x) && isFinite(y) ? f(x, y) : '—'; out.textContent = r.includes('—') ? '—' : r; }; // e.g. ÷ 0 → no '—%'
     a.addEventListener('input', run); b.addEventListener('input', run); run();
     return card(label, h('div', { class: 'pct-row' }, field('A', a), field('B', b), h('button', { class: 'big-result', type: 'button', onclick: () => copy(out.textContent || '') }, h('span', { class: 'big-label' }, 'Answer'), h('span', { class: 'big-value' }, out))));
   }));

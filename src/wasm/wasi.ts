@@ -4,7 +4,8 @@
 
 export interface WasiInstance { exports: any; memory: WebAssembly.Memory }
 
-export async function instantiateWasi(url: string): Promise<WasiInstance> {
+/** `extra`: more import modules (e.g. { env: { w_progress } }) next to wasi_snapshot_preview1. */
+export async function instantiateWasi(url: string, extra: WebAssembly.Imports = {}): Promise<WasiInstance> {
   const res = await fetch(url);
   if (!res.ok) throw new Error(`Could not load ${url}`);
   const module = await WebAssembly.compileStreaming(res).catch(async () => WebAssembly.compile(await (await fetch(url)).arrayBuffer()));
@@ -41,7 +42,7 @@ export async function instantiateWasi(url: string): Promise<WasiInstance> {
   wasi.environ_get = () => 0;
   wasi.args_sizes_get = wasi.environ_sizes_get;
   wasi.args_get = () => 0;
-  const instance = await WebAssembly.instantiate(module, { wasi_snapshot_preview1: wasi });
+  const instance = await WebAssembly.instantiate(module, { ...extra, wasi_snapshot_preview1: wasi });
   const exports: any = instance.exports;
   memory = exports.memory;
   exports._initialize?.();

@@ -1,0 +1,73 @@
+/tmp/claude-0/-home-user-utils/25b9d8ec-fb6d-52d0-a976-6f673e92b747/scratchpad/dl/whisper/whisper-rs-sys-0.15.0/whisper.cpp/src/whisper.cpp:3250:23: error: implicit instantiation of undefined template 'std::basic_ofstream<char>'
+ 3250 |         std::ofstream outFile("log_mel_spectrogram.json");
+      |                       ^
+/tmp/claude-0/-home-user-utils/25b9d8ec-fb6d-52d0-a976-6f673e92b747/scratchpad/tools/zigpkg/ziglang/lib/libcxx/include/__fwd/fstream.h:26:7: note: template is declared here
+   26 | class basic_ofstream;
+      |       ^
+/tmp/claude-0/-home-user-utils/25b9d8ec-fb6d-52d0-a976-6f673e92b747/scratchpad/dl/whisper/whisper-rs-sys-0.15.0/whisper.cpp/src/whisper.cpp:3632:16: error: implicit instantiation of undefined template 'std::basic_ifstream<char>'
+ 3632 |     auto fin = std::ifstream(path_model, std::ios::binary);
+      |                ^
+/tmp/claude-0/-home-user-utils/25b9d8ec-fb6d-52d0-a976-6f673e92b747/scratchpad/tools/zigpkg/ziglang/lib/libcxx/include/__fwd/fstream.h:24:7: note: template is declared here
+   24 | class basic_ifstream;
+      |       ^
+/tmp/claude-0/-home-user-utils/25b9d8ec-fb6d-52d0-a976-6f673e92b747/scratchpad/dl/whisper/whisper-rs-sys-0.15.0/whisper.cpp/src/whisper.cpp:3645:12: error: implicit instantiation of undefined template 'std::basic_ifstream<char>'
+ 3645 |         fin->read((char *)output, read_size);
+      |            ^
+/tmp/claude-0/-home-user-utils/25b9d8ec-fb6d-52d0-a976-6f673e92b747/scratchpad/tools/zigpkg/ziglang/lib/libcxx/include/__fwd/fstream.h:24:7: note: template is declared here
+   24 | class basic_ifstream;
+      |       ^
+/tmp/claude-0/-home-user-utils/25b9d8ec-fb6d-52d0-a976-6f673e92b747/scratchpad/dl/whisper/whisper-rs-sys-0.15.0/whisper.cpp/src/whisper.cpp:3651:19: error: implicit instantiation of undefined template 'std::basic_ifstream<char>'
+ 3651 |         return fin->eof();
+      |                   ^
+/tmp/claude-0/-home-user-utils/25b9d8ec-fb6d-52d0-a976-6f673e92b747/scratchpad/tools/zigpkg/ziglang/lib/libcxx/include/__fwd/fstream.h:24:7: note: template is declared here
+   24 | class basic_ifstream;
+      |       ^
+/tmp/claude-0/-home-user-utils/25b9d8ec-fb6d-52d0-a976-6f673e92b747/scratchpad/dl/whisper/whisper-rs-sys-0.15.0/whisper.cpp/src/whisper.cpp:3649:18: error: assigning to 'bool (*)(void *)' from incompatible type '(lambda at /tmp/claude-0/-home-user-utils/25b9d8ec-fb6d-52d0-a976-6f673e92b747/scratchpad/dl/whisper/whisper-rs-sys-0.15.0/whisper.cpp/src/whisper.cpp:3649:18)'
+ 3649 |     loader.eof = [](void * ctx) {
+      |                  ^~~~~~~~~~~~~~~~
+ 3650 |         std::ifstream * fin = (std::ifstream*)ctx;
+      |         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ 3651 |         return fin->eof();
+      |         ~~~~~~~~~~~~~~~~~~
+ 3652 |     };
+      |     ~
+/tmp/claude-0/-home-user-utils/25b9d8ec-fb6d-52d0-a976-6f673e92b747/scratchpad/dl/whisper/whisper-rs-sys-0.15.0/whisper.cpp/src/whisper.cpp:3656:12: error: implicit instantiation of undefined template 'std::basic_ifstream<char>'
+ 3656 |         fin->close();
+      |            ^
+/tmp/claude-0/-home-user-utils/25b9d8ec-fb6d-52d0-a976-6f673e92b747/scratchpad/tools/zigpkg/ziglang/lib/libcxx/include/__fwd/fstream.h:24:7: note: template is declared here
+   24 | class basic_ifstream;
+      |       ^
+/tmp/claude-0/-home-user-utils/25b9d8ec-fb6d-52d0-a976-6f673e92b747/scratchpad/dl/whisper/whisper-rs-sys-0.15.0/whisper.cpp/src/whisper.cpp:4726:16: error: implicit instantiation of undefined template 'std::basic_ifstream<char>'
+ 4726 |     auto fin = std::ifstream(path_model, std::ios::binary);
+      |                ^
+/tmp/claude-0/-home-user-utils/25b9d8ec-fb6d-52d0-a976-6f673e92b747/scratchpad/tools/zigpkg/ziglang/lib/libcxx/include/__fwd/fstream.h:24:7: note: template is declared here
+   24 | class basic_ifstream;
+      |       ^
+/tmp/claude-0/-home-user-utils/25b9d8ec-fb6d-52d0-a976-6f673e92b747/scratchpad/dl/whisper/whisper-rs-sys-0.15.0/whisper.cpp/src/whisper.cpp:4738:12: error: implicit instantiation of undefined template 'std::basic_ifstream<char>'
+ 4738 |         fin->read((char *)output, read_size);
+      |            ^
+/tmp/claude-0/-home-user-utils/25b9d8ec-fb6d-52d0-a976-6f673e92b747/scratchpad/tools/zigpkg/ziglang/lib/libcxx/include/__fwd/fstream.h:24:7: note: template is declared here
+   24 | class basic_ifstream;
+      |       ^
+/tmp/claude-0/-home-user-utils/25b9d8ec-fb6d-52d0-a976-6f673e92b747/scratchpad/dl/whisper/whisper-rs-sys-0.15.0/whisper.cpp/src/whisper.cpp:4744:19: error: implicit instantiation of undefined template 'std::basic_ifstream<char>'
+ 4744 |         return fin->eof();
+      |                   ^
+/tmp/claude-0/-home-user-utils/25b9d8ec-fb6d-52d0-a976-6f673e92b747/scratchpad/tools/zigpkg/ziglang/lib/libcxx/include/__fwd/fstream.h:24:7: note: template is declared here
+   24 | class basic_ifstream;
+      |       ^
+/tmp/claude-0/-home-user-utils/25b9d8ec-fb6d-52d0-a976-6f673e92b747/scratchpad/dl/whisper/whisper-rs-sys-0.15.0/whisper.cpp/src/whisper.cpp:4742:18: error: assigning to 'bool (*)(void *)' from incompatible type '(lambda at /tmp/claude-0/-home-user-utils/25b9d8ec-fb6d-52d0-a976-6f673e92b747/scratchpad/dl/whisper/whisper-rs-sys-0.15.0/whisper.cpp/src/whisper.cpp:4742:18)'
+ 4742 |     loader.eof = [](void * ctx) {
+      |                  ^~~~~~~~~~~~~~~~
+ 4743 |         std::ifstream * fin = (std::ifstream*)ctx;
+      |         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ 4744 |         return fin->eof();
+      |         ~~~~~~~~~~~~~~~~~~
+ 4745 |     };
+      |     ~
+/tmp/claude-0/-home-user-utils/25b9d8ec-fb6d-52d0-a976-6f673e92b747/scratchpad/dl/whisper/whisper-rs-sys-0.15.0/whisper.cpp/src/whisper.cpp:4749:12: error: implicit instantiation of undefined template 'std::basic_ifstream<char>'
+ 4749 |         fin->close();
+      |            ^
+/tmp/claude-0/-home-user-utils/25b9d8ec-fb6d-52d0-a976-6f673e92b747/scratchpad/tools/zigpkg/ziglang/lib/libcxx/include/__fwd/fstream.h:24:7: note: template is declared here
+   24 | class basic_ifstream;
+      |       ^
+11 errors generated.

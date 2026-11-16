@@ -1,6 +1,6 @@
 // Speech fixtures for Noise Remover / Speech to Text / TTS tests (real recordings, small):
 //   speech/librispeech-1.flac  LibriSpeech test sample (CC BY 4.0, via huggingface.co/datasets/Narsil/asr_dummy),
-//                              "Mister Quilter is the apostle of the middle classes and we are glad to welcome his gospel."
+//                              LibriSpeech test-clean 1089-134686-0000 ("He hoped there would be stew for dinner, …")
 //   speech/jfk.flac            JFK inaugural address excerpt (public domain, via huggingface.co/datasets/Xenova/
 //                              transformers.js-docs), converted to 16 kHz mono FLAC with our ffmpeg.wasm
 //   speech/noisy-speech.wav    librispeech-1 at 16 kHz + white noise at 5 dB SNR (seeded), 16-bit mono
