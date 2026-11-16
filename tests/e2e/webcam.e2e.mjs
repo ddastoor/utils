@@ -12,7 +12,7 @@ export default async (ctx) => {
   const rows = () => page.evaluate(() => { const s = [...document.querySelectorAll('.kv > span')].map((e) => e.textContent); const o = {}; for (let i = 0; i + 1 < s.length; i += 2) o[s[i]] = s[i + 1]; return o; });
   ok(await page.evaluate(() => window.__gumCalls.length) === 0 && await page.locator('.kv').count() === 0, 'nothing requested before "Start camera"');
   await btn('Start camera').click();
-  await page.waitForFunction(() => document.querySelector('video').videoWidth > 0, null, { timeout: 10000 });
+  await page.waitForFunction(() => document.querySelector('video').videoWidth > 0, null, { timeout: 10000 }); await page.locator('.kv').waitFor();
   let r = await rows(), vw = await page.evaluate(() => [document.querySelector('video').videoWidth, document.querySelector('video').videoHeight]);
   const nCams = await page.evaluate(async () => (await navigator.mediaDevices.enumerateDevices()).filter((d) => d.kind === 'videoinput').length);
   ok(r.Resolution === `${vw[0]} × ${vw[1]}` && r.Resolution === '640 × 480', `resolution row = the video's size (${r.Resolution})`);
@@ -57,7 +57,7 @@ export default async (ctx) => {
   page.errors.splice(errs0).forEach((e) => { if (!/Start the camera first/.test(e)) page.errors.push(e); });
   // Chromium's own fake capture device (real getUserMedia path)
   await page.evaluate(() => (window.__realGum = true)); await btn('Start camera').click();
-  await page.waitForFunction(() => document.querySelector('video').videoWidth > 0, null, { timeout: 10000 });
+  await page.waitForFunction(() => document.querySelector('video').videoWidth > 0, null, { timeout: 10000 }); await page.locator('.kv').waitFor();
   r = await rows(); ok(/fake/i.test(r.Camera) && r.Resolution === await page.evaluate(() => `${document.querySelector('video').videoWidth} × ${document.querySelector('video').videoHeight}`), `real capture device: label "${r.Camera}", ${r.Resolution}`);
   ok(await page.locator('select').evaluate((s) => s.options.length) === nCams && await page.locator('select').inputValue() !== '', 'camera list filled and the active camera selected');
   ok(!page.errors.length, `no page errors ${page.errors.join(' | ')}`);

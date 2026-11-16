@@ -74,7 +74,7 @@ Dictionary), Codes & Files (5), Everyday (9), Device (11), Linux Terminal + bc c
 "Text & Dev" (8). **129 of 176 tabs built.** Every own wasm module has unit tests (3240 checks passing).
 
 ## Next steps (in order)
-1. **Per-tab e2e suites for the early tabs (owner, Nov 16: "extensive test cases for each utility").** Audit: 47 tabs had
+1. **DONE (16 Nov 2026) — Per-tab e2e suites for the early tabs (owner, Nov 16: "extensive test cases for each utility").** Audit: 47 tabs had
    their own suite; ~80 early tabs were only covered by 7 shared smoke suites (calculators, math, text, security, codes,
    everyday, device). One thorough suite per tab with independent known answers (re-implemented formulas, published
    figures, boundaries, invalid input, phone width) — helper `tests/lib/calc.mjs`.
@@ -144,13 +144,16 @@ Dictionary), Codes & Files (5), Everyday (9), Device (11), Linux Terminal + bc c
    Sound Meter showed −150 dB for silence, Start twice left two microphone streams and two loops running, and stacked
    one error message per click; Ruler's card outline was squeezed by the phone's screen edge (wrong aspect → wrong
    calibration) — now drawn upright when the card is wider than the screen.
-   **Per-tab suites are complete for every built tab.** (Full `node tests/e2e.mjs` run: in progress at this commit.)
+   **Per-tab suites are complete for every built tab.** Full run (16 Nov, 141 suites, concurrency 8): 2882/2886 —
+   the 4 misses were load timing (webcam test read the info table before it was drawn → test now waits for it; noise
+   and resume timed out under load, both pass alone: 11/11, 7/7). Unit tests 3270/3270.
 2. **Software (PC only, 47 tabs left)**, each with its own suite from the start, wasm first: sqlite (official wasm),
    jq (own build of jq 1.8.2 exists), yaml (own libyaml + toml++), graphviz (own build), python (MicroPython), and the
    rest listed in CLAUDE.md §2.
 3. Audit list replacements (own builds of mozjpeg/libwebp/oxipng, libheif, tesseract, zxing-cpp, libarchive,
    zip AES in crypto.wasm, minimp4) — CLAUDE.md §3a.
-4. **REMIND THE OWNER (owner request, 16 Nov 2026):** `docs/potentials.md` lists 53 new-tab ideas + 7 upgrades from
+4. **← NEXT: REMIND THE OWNER (owner request, 16 Nov 2026) — step 1 is finished, so ask now and wait for the pick
+   before starting step 2:** `docs/potentials.md` lists 53 new-tab ideas + 7 upgrades from
    open-source projects (round 1: Image to SVG, Upscaler, Searchable PDF, Pandoc, Vocal Remover, GIF, AVIF/JXL, age, Shamir,
    Spell Checker, BPM & Key, DuckDB; round 2: Auto Subtitles, Audiobook, PDF Compare, PDF Tables → Excel, Video Face
    Blur, Label Sheets, Music Tags, Duplicate Photos, Excalidraw, LaTeX, Circuit Simulator, Sky Map, Chart Maker,
