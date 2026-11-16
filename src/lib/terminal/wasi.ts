@@ -1,7 +1,7 @@
 // WASI preview 1 host for running BusyBox (our wasm32-wasi build) against the in-memory VFS. Synchronous: run it
 // inside a Web Worker (browsers only allow synchronous instantiation of large modules off the main thread) or Node.
 // Implements exactly the 30 calls BusyBox imports plus a few more; anything else → ENOSYS.
-import { VFS, E, FsError, newFile, type Node, type FileNode, type DirNode } from './vfs';
+import { VFS, E, FsError, newFile, type Node, type FileNode, type DirNode, type DevNode } from './vfs';
 
 export class ProcExit extends Error { constructor(public code: number) { super(`exit ${code}`); } }
 /** Thrown from inside a syscall to stop the program: output limit (like SIGPIPE) or time limit. */
@@ -11,7 +11,8 @@ type FD =
   | { t: 'in'; data: Uint8Array; pos: number }
   | { t: 'out'; write: (b: Uint8Array) => void }
   | { t: 'file'; node: FileNode; pos: number; append: boolean; path: string }
-  | { t: 'dir'; node: DirNode; path: string; preopen?: string };
+  | { t: 'dir'; node: DirNode; path: string; preopen?: string }
+  | { t: 'dev'; node: DevNode };
 
 export interface RunOpts {
   args: string[]; env: Record<string, string>; vfs: VFS; cwd: string;
@@ -24,11 +25,13 @@ export interface RunOpts {
   onStdinUsed?: (n: number) => void;
   /** stdout/stderr are a terminal (isatty → colours, columns) — false for pipes and redirects */
   tty?: boolean;
+  /** debugging: called for every syscall that returns an error */
+  trace?: (name: string, args: any[], errno: number) => void;
   /** extra import modules, e.g. { supertools: { spawn } } */
-  extraImports?: (ctx: { mem: () => DataView; bytes: () => Uint8Array; str: (p: number, n?: number) => string }) => Record<string, Record<string, Function>>;
+  extraImports?: (ctx: { mem: () => DataView; bytes: () => Uint8Array; str: (p: number, n?: number) => string; stdinRest: () => Uint8Array; stdinUse: (n: number) => void }) => Record<string, Record<string, Function>>;
 }
 const FT = { unknown: 0, char: 2, dir: 3, file: 4, symlink: 7 } as const;
-const ftOf = (n: Node) => (n.kind === 'dir' ? FT.dir : n.kind === 'symlink' ? FT.symlink : FT.file);
+const ftOf = (n: Node) => (n.kind === 'dir' ? FT.dir : n.kind === 'symlink' ? FT.symlink : n.kind === 'dev' ? FT.char : FT.file);
 const ALL_RIGHTS = 0x1fffffffn;
 const enc = new TextEncoder(), dec = new TextDecoder();
 
@@ -50,10 +53,33 @@ export function runWasi(module: WebAssembly.Module, o: RunOpts): number {
   const argv = o.args.map((a) => enc.encode(a + '\0'));
   const envv = Object.entries(o.env).map(([k, v]) => enc.encode(`${k}=${v}\0`));
   const fd = (n: number) => fds[n];
-  const pathOf = (dirfd: number, p: string) => { const d = fd(dirfd); if (!d || d.t !== 'dir') throw new FsError(E.BADF); return p.startsWith('/') ? p : VFS.join(d.path, p); };
+  // wasi-libc resolves every path through the preopen it found at start-up (fd 3 = "/"). Programs such as unzip
+  // move their own files onto fd 3 (dup2/renumber); keep resolving fd-3-relative paths through "/" regardless.
+  const pathOf = (dirfd: number, p: string) => {
+    const d = fd(dirfd);
+    const base = d && d.t === 'dir' ? d.path : dirfd === 3 ? '/' : null;
+    if (base === null) throw new FsError(E.BADF);
+    return p.startsWith('/') ? p : VFS.join(base, p);
+  };
+  const origFds = fds.slice(0, 3);
+  const devRead = (d: DevNode, len: number): Uint8Array | number => {
+    if (d.dev === 'zero' || d.dev === 'full') return new Uint8Array(len);
+    if (d.dev === 'random') { const b = new Uint8Array(len); for (let i = 0; i < len; i += 65536) crypto.getRandomValues(b.subarray(i, Math.min(len, i + 65536))); return b; }
+    if (d.dev === 'stdin') { const f = origFds[0] as { data: Uint8Array; pos: number }; const c = f.data.subarray(f.pos, f.pos + len); f.pos += c.length; return c; }
+    return new Uint8Array(0);
+  };
+  const devWrite = (d: DevNode, data: Uint8Array): number => {
+    if (d.dev === 'full') return E.NOSPC ?? 51;
+    if (d.dev === 'stdout' || d.dev === 'stderr') (origFds[d.dev === 'stdout' ? 1 : 2] as { write: (b: Uint8Array) => void }).write(data);
+    return 0;
+  };
+  let curName = '';
   const wrap = (f: (...a: any[]) => number | void) => (...a: any[]) => {
     check();
-    try { return f(...a) ?? 0; } catch (e) { if (e instanceof FsError) return e.errno; throw e; }
+    let r: number;
+    try { r = (f(...a) ?? 0) as number; } catch (e) { if (e instanceof FsError) r = e.errno; else throw e; }
+    if (r && o.trace) o.trace(curName, a, r);
+    return r;
   };
   const filestat = (p: number, n: Node) => {
     const v = mem();
@@ -103,7 +129,7 @@ export function runWasi(module: WebAssembly.Module, o: RunOpts): number {
     fd_fdstat_get: wrap((n: number, p: number) => {
       const f = fd(n); if (!f) return E.BADF;
       const v = mem();
-      v.setUint8(p, f.t === 'dir' ? FT.dir : f.t === 'file' ? FT.file : f.t === 'out' && o.tty ? FT.char : FT.unknown);
+      v.setUint8(p, f.t === 'dir' ? FT.dir : f.t === 'file' ? FT.file : f.t === 'dev' ? FT.char : f.t === 'out' && o.tty ? FT.char : FT.unknown);
       v.setUint16(p + 2, f.t === 'file' && f.append ? 1 : 0, true);
       v.setBigUint64(p + 8, ALL_RIGHTS, true); v.setBigUint64(p + 16, ALL_RIGHTS, true);
     }),
@@ -112,7 +138,7 @@ export function runWasi(module: WebAssembly.Module, o: RunOpts): number {
     fd_prestat_dir_name: wrap((n: number, p: number, len: number) => { const f = fd(n); if (!f || f.t !== 'dir' || !f.preopen) return E.BADF; bytes().set(enc.encode(f.preopen).subarray(0, len), p); }),
     fd_filestat_get: wrap((n: number, p: number) => {
       const f = fd(n); if (!f) return E.BADF;
-      if (f.t === 'file' || f.t === 'dir') filestat(p, f.node);
+      if (f.t === 'file' || f.t === 'dir' || f.t === 'dev') filestat(p, f.node);
       else { const v = mem(); for (let i = 0; i < 64; i += 8) v.setBigUint64(p + i, 0n, true); v.setUint8(p + 16, FT.char); v.setBigUint64(p + 24, 1n, true); }
     }),
     fd_filestat_set_size: wrap((n: number, size: bigint) => { const f = fd(n); if (!f || f.t !== 'file') return E.BADF; vfs.resize(f.node, Number(size)); }),
@@ -125,6 +151,7 @@ export function runWasi(module: WebAssembly.Module, o: RunOpts): number {
         if (f.t === 'in') { chunk = f.data.subarray(f.pos, f.pos + len); f.pos += chunk.length; }
         else if (f.t === 'file') { chunk = vfs.read(f.node, f.pos, len); f.pos += chunk.length; }
         else if (f.t === 'dir') return E.ISDIR;
+        else if (f.t === 'dev') { const r = devRead(f.node, len); if (typeof r === 'number') return r; chunk = r; }
         else return E.BADF;
         bytes().set(chunk, p); total += chunk.length;
         if (chunk.length < len) break;
@@ -144,6 +171,7 @@ export function runWasi(module: WebAssembly.Module, o: RunOpts): number {
         const data = bytes().slice(p, p + len);
         if (f.t === 'out') f.write(data);
         else if (f.t === 'file') { if (f.append) f.pos = f.node.size; vfs.write(f.node, f.pos, data); f.pos += len; }
+        else if (f.t === 'dev') { const r = devWrite(f.node, data); if (r) return r; }
         else return E.BADF;
         total += len;
       }
@@ -157,6 +185,7 @@ export function runWasi(module: WebAssembly.Module, o: RunOpts): number {
     }),
     fd_seek: wrap((n: number, off: bigint, whence: number, p: number) => {
       const f = fd(n); if (!f) return E.BADF;
+      if (f.t === 'dev') { mem().setBigUint64(p, 0n, true); return; }
       if (f.t !== 'file') return E.SPIPE;
       const base = whence === 0 ? 0 : whence === 1 ? f.pos : f.node.size;
       const np = base + Number(off); if (np < 0) return E.INVAL;
@@ -190,7 +219,8 @@ export function runWasi(module: WebAssembly.Module, o: RunOpts): number {
       }
       if ((oflags & 2) && node.kind !== 'dir') return E.NOTDIR;
       if (node.kind === 'symlink') return E.LOOP;
-      if (node.kind === 'dir') { fds.push({ t: 'dir', node, path }); }
+      if (node.kind === 'dev') fds.push({ t: 'dev', node });
+      else if (node.kind === 'dir') { fds.push({ t: 'dir', node, path }); }
       else { if (oflags & 8) vfs.resize(node, 0); fds.push({ t: 'file', node, pos: 0, append: !!(fdflags & 1), path }); }
       mem().setUint32(out, fds.length - 1, true);
     }),
@@ -224,10 +254,15 @@ export function runWasi(module: WebAssembly.Module, o: RunOpts): number {
       dir.entries.set(name, n); n.nlink++;
     }),
   };
-  const imports: WebAssembly.Imports = { wasi_snapshot_preview1: new Proxy(w as any, { get: (t, k: string) => t[k] || (() => E.NOSYS) }) };
-  if (o.extraImports) Object.assign(imports, o.extraImports({ mem, bytes, str }));
+  if (o.trace) for (const k of Object.keys(w)) { const f = w[k]; w[k] = (...a: any[]) => { curName = k; return f(...a); }; }
+  const imports: WebAssembly.Imports = {
+    wasi_snapshot_preview1: new Proxy(w as any, { get: (t, k: string) => t[k] || ((...a: any[]) => { o.trace?.(String(k), a, E.NOSYS); return E.NOSYS; }) }),
+    supertools: { spawn: () => 127, ncpu: () => 1 }, // defaults; the shell supplies real ones via extraImports
+  };
+  const inFd = fds[0] as { data: Uint8Array; pos: number };
+  if (o.extraImports) Object.assign(imports, o.extraImports({ mem, bytes, str, stdinRest: () => inFd.data.subarray(inFd.pos), stdinUse: (n) => { inFd.pos += n; } }));
   inst = new WebAssembly.Instance(module, imports);
-  const stdinFd = fds[0] as { pos: number };
+  const stdinFd = inFd;
   try { (inst.exports._start as Function)(); return 0; }
   catch (e) {
     if (e instanceof ProcExit) return e.code;

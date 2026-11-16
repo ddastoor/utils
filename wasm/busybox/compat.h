@@ -46,7 +46,27 @@ int sigsuspend(const sigset_t *);
 int kill(pid_t, int);
 #endif
 
-/* ---- processes */
+/* ---- processes (spawn/exec run another BusyBox instance via the terminal host; see wasi_stubs.c) */
+pid_t bb_wasi_spawn(char **argv);
+char *getlogin(void);
+int getlogin_r(char *, size_t);
+int gethostname(char *, size_t);
+int sethostname(const char *, size_t);
+int setpriority(int, id_t, int);
+int getpriority(int, id_t);
+void sync(void);
+int flock(int, int);
+#ifndef LOCK_SH
+#define LOCK_SH 1
+#define LOCK_EX 2
+#define LOCK_NB 4
+#define LOCK_UN 8
+#endif
+#ifndef PRIO_PROCESS
+#define PRIO_PROCESS 0
+#define PRIO_PGRP 1
+#define PRIO_USER 2
+#endif
 pid_t fork(void);
 pid_t vfork(void);
 int execv(const char *, char *const[]);
@@ -107,6 +127,7 @@ int setrlimit(int, const struct rlimit *);
 #endif
 
 /* ---- clocks */
+void tzset(void);
 int settimeofday(const void *, const void *);
 int clock_settime(clockid_t, const struct timespec *);
 
@@ -149,3 +170,19 @@ struct winsize { unsigned short ws_row, ws_col, ws_xpixel, ws_ypixel; };
 
 /* ---- CPU affinity (nproc) */
 int sched_getaffinity(pid_t, size_t, void *);
+
+/* ---- functions whose WASI libc versions are missing or wrong for us: renamed to our implementations */
+#include <sys/utsname.h>
+#include <sys/stat.h>
+#define uname bb_uname       /* sysname/nodename/machine describing the browser terminal */
+int bb_uname(struct utsname *);
+#define chmod bb_chmod       /* permissions are not stored by the in-browser filesystem: accepted, no effect */
+#define fchmod bb_fchmod
+#define fchmodat bb_fchmodat
+#define lchmod bb_lchmod
+int bb_chmod(const char *, mode_t);
+int bb_fchmod(int, mode_t);
+int bb_fchmodat(int, const char *, mode_t, int);
+int bb_lchmod(const char *, mode_t);
+#define realpath bb_realpath /* wasi-libc's realpath mishandles ".." after the cwd */
+char *bb_realpath(const char *, char *);

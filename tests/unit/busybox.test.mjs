@@ -20,7 +20,7 @@ export default async (t, { root }) => {
       const { openSync, closeSync } = await import('node:fs');
       const fin = openSync(inF, 'r'), fout = openSync(outF, 'w');
       const w = new WASI({ version: 'preview1', args, env: { PWD: pwd, HOME: '/', TZ: 'UTC' }, preopens: { '/': dir }, stdin: fin, stdout: fout, stderr: fout, returnOnExit: true });
-      const code = w.start(await WebAssembly.instantiate(mod, w.getImportObject()));
+      const code = w.start(await WebAssembly.instantiate(mod, { ...w.getImportObject(), supertools: { spawn: () => 127, ncpu: () => 2 } }));
       for (const f of [fin, fout]) try { closeSync(f); } catch { /* the program may have closed it */ }
       return { out: rd(outF, 'utf8'), code };
     };

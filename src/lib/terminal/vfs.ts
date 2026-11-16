@@ -1,12 +1,14 @@
 // In-memory POSIX-like filesystem for the Linux Terminal (shared by every BusyBox instance and the shell).
 // Files, directories, symlinks and hard links; nanosecond timestamps; no permissions (single user).
-export type Node = FileNode | DirNode | LinkNode;
+export type Node = FileNode | DirNode | LinkNode | DevNode;
 interface Base { ino: number; nlink: number; atime: bigint; mtime: bigint; ctime: bigint }
 export interface FileNode extends Base { kind: 'file'; data: Uint8Array; size: number }
 export interface DirNode extends Base { kind: 'dir'; entries: Map<string, Node>; parent: DirNode | null }
 export interface LinkNode extends Base { kind: 'symlink'; target: string }
+/** Character devices: null, zero, urandom/random, full, stdin/stdout/stderr (aliases of the program's fds 0-2). */
+export interface DevNode extends Base { kind: 'dev'; dev: 'null' | 'zero' | 'random' | 'full' | 'stdin' | 'stdout' | 'stderr' }
 
-export const E = { OK: 0, BADF: 8, EXIST: 20, FBIG: 22, INVAL: 28, ISDIR: 31, LOOP: 32, NAMETOOLONG: 37, NOENT: 44, NOSYS: 52, NOTDIR: 54, NOTEMPTY: 55, NOTSUP: 58, PERM: 63, SPIPE: 70, XDEV: 75, NOTCAPABLE: 76 } as const;
+export const E = { OK: 0, BADF: 8, EXIST: 20, FBIG: 22, INVAL: 28, ISDIR: 31, LOOP: 32, NAMETOOLONG: 37, NOENT: 44, NOSPC: 51, NOSYS: 52, NOTDIR: 54, NOTEMPTY: 55, NOTSUP: 58, PERM: 63, SPIPE: 70, XDEV: 75, NOTCAPABLE: 76 } as const;
 export class FsError extends Error { constructor(public errno: number, msg = '') { super(msg || `errno ${errno}`); } }
 
 const now = () => BigInt(Math.round((performance.timeOrigin + performance.now()) * 1e6));
@@ -63,6 +65,7 @@ export class VFS {
   tryLookup(path: string, cwd = '/', follow = true): Node | null { try { return this.lookup(path, cwd, follow); } catch { return null; } }
 
   mkdir(path: string, cwd = '/'): DirNode {
+    if (!VFS.parts(path, cwd).length) throw new FsError(E.EXIST); // mkdir("/") → EEXIST, as on Linux (mkdir -p relies on it)
     const { dir, name } = this.parentOf(path, cwd);
     if (dir.entries.has(name)) throw new FsError(E.EXIST);
     const d = newDir(dir); dir.entries.set(name, d); dir.mtime = now();
@@ -90,6 +93,7 @@ export class VFS {
   readFile(path: string, cwd = '/'): Uint8Array {
     const n = this.lookup(path, cwd);
     if (n.kind === 'dir') throw new FsError(E.ISDIR);
+    if (n.kind === 'dev') return n.dev === 'zero' ? new Uint8Array(1 << 20) : n.dev === 'random' ? crypto.getRandomValues(new Uint8Array(65536)) : new Uint8Array(0); // shell redirects read a bounded chunk
     if (n.kind !== 'file') throw new FsError(E.INVAL);
     return n.data.slice(0, n.size);
   }
@@ -98,6 +102,7 @@ export class VFS {
     if (dir.entries.has(name)) throw new FsError(E.EXIST);
     dir.entries.set(name, { kind: 'symlink', target, ...base() });
   }
+  mknod(path: string, dev: DevNode['dev']) { const { dir, name } = this.parentOf(path); dir.entries.set(name, { kind: 'dev', dev, ...base() }); }
   /** Bytes [off, off+len) of a file. */
   read(f: FileNode, off: number, len: number) { f.atime = now(); return f.data.subarray(Math.min(off, f.size), Math.min(off + len, f.size)); }
   write(f: FileNode, off: number, data: Uint8Array) {

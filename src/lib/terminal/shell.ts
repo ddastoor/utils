@@ -121,9 +121,10 @@ type Node =
   | { k: 'if'; cond: Node; then: Node; els?: Node; redirs: Redir[] }
   | { k: 'while' | 'until'; cond: Node; body: Node; redirs: Redir[] }
   | { k: 'for'; name: string; items: Word[] | null; body: Node; redirs: Redir[] }
-  | { k: 'group'; body: Node; sub: boolean; redirs: Redir[] };
+  | { k: 'group'; body: Node; sub: boolean; redirs: Redir[] }
+  | { k: 'case'; word: Word; arms: Array<{ pats: Word[]; body: Node }>; redirs: Redir[] };
 
-const KW = new Set(['if', 'then', 'elif', 'else', 'fi', 'for', 'in', 'do', 'done', 'while', 'until', '{', '}', '!']);
+const KW = new Set(['if', 'then', 'elif', 'else', 'fi', 'for', 'in', 'do', 'done', 'while', 'until', 'case', 'esac', '{', '}', '!']);
 const plain = (w: Word) => (w.every((s) => s.t === 'lit' && !s.q) ? w.map((s) => (s as any).v).join('') : null);
 
 export function parse(src: string): Node {
@@ -136,7 +137,7 @@ export function parse(src: string): Node {
   const list = (stop: string[]): Node => {
     const items: Node[] = [];
     skipNl();
-    while (p < t.length && !stop.some(isKw) && !(peek()?.k === 'op' && (peek() as any).v === ')')) {
+    while (p < t.length && !stop.some(isKw) && !(peek()?.k === 'op' && [')', ';;'].includes((peek() as any).v))) {
       items.push(andOr());
       const x = peek();
       if (x?.k === 'op' && (x.v === ';' || x.v === '&')) p++;
@@ -193,6 +194,25 @@ export function parse(src: string): Node {
       skipNl(); expectKw('do'); const body = list(['done']); expectKw('done');
       return { k: 'for', name, items, body, redirs: redirs() };
     }
+    if (isKw('case')) {
+      p++; const wt = t[p++]; if (wt?.k !== 'w') throw new Error('syntax error: case needs a word');
+      skipNlOnly(); expectKw('in'); skipNl();
+      const arms: Array<{ pats: Word[]; body: Node }> = [];
+      while (!isKw('esac')) {
+        if (p >= t.length) throw new Error("syntax error: expected 'esac'");
+        if (peek()?.k === 'op' && (peek() as any).v === '(') p++;
+        const pats: Word[] = [];
+        for (;;) { const x = t[p++]; if (x?.k !== 'w') throw new Error('syntax error in case pattern'); pats.push(x.w); if (peek()?.k === 'op' && (peek() as any).v === '|') { p++; continue; } break; }
+        if (!(peek()?.k === 'op' && (peek() as any).v === ')')) throw new Error("syntax error: expected ')' in case");
+        p++;
+        const body = list(['esac']);
+        if (peek()?.k === 'op' && (peek() as any).v === ';;') p++;
+        skipNl();
+        arms.push({ pats, body });
+      }
+      expectKw('esac');
+      return { k: 'case', word: wt.w, arms, redirs: redirs() };
+    }
     if (isKw('{')) { p++; const body = list(['}']); expectKw('}'); return { k: 'group', body, sub: false, redirs: redirs() }; }
     if (peek()?.k === 'op' && (peek() as any).v === '(') { p++; const body = list([]); if (!(peek()?.k === 'op' && (peek() as any).v === ')')) throw new Error("syntax error: expected ')'"); p++; return { k: 'group', body, sub: true, redirs: redirs() }; }
     const c: Simple = { k: 'cmd', assigns: [], words: [], redirs: [] };
@@ -219,11 +239,12 @@ export function parse(src: string): Node {
 }
 
 // ---------------------------------------------------------------- glob
-export function globToRegex(g: string) {
+export function globToRegex(g: string, anyChar = false) {
   let r = '^';
   for (let i = 0; i < g.length; i++) {
     const c = g[i];
-    if (c === '*') r += '[^/]*'; else if (c === '?') r += '[^/]';
+    if (c === '\\' && i + 1 < g.length) { r += g[++i].replace(/[.*+?^${}()|[\]\\/]/g, '\\$&'); continue; }
+    if (c === '*') r += anyChar ? '.*' : '[^/]*'; else if (c === '?') r += anyChar ? '.' : '[^/]';
     else if (c === '[') { const j = g.indexOf(']', i + 2); if (j < 0) { r += '\\['; continue; } let cls = g.slice(i + 1, j); if (cls[0] === '!') cls = '^' + cls.slice(1); r += `[${cls.replace(/\\/g, '\\\\')}]`; i = j; }
     else r += c.replace(/[.+^${}()|\\]/g, '\\$&');
   }
@@ -312,6 +333,16 @@ export class Shell {
         const save = { cwd: this.cwd, vars: new Map(this.vars), exported: new Set(this.exported) };
         try { return this.exec(n.body, io2); } catch (e) { if (e instanceof ExitSignal) return e.code; throw e; }
         finally { this.cwd = save.cwd; this.vars = save.vars; this.exported = save.exported; }
+      });
+      case 'case': return this.withRedirs(n.redirs, io, (io2) => {
+        const v = this.expand(n.word, true).join('');
+        for (const arm of n.arms) {
+          for (const pw of arm.pats) {
+            const pat = pw.map((sg) => (sg.t === 'lit' ? (sg.q ? sg.v.replace(/[*?[\]\\]/g, '\\$&') : sg.v) : this.expand([sg], true).join('').replace(/[*?[\]\\]/g, '\\$&'))).join('');
+            if (globToRegex(pat, true).test(v)) return this.exec(arm.body, io2);
+          }
+        }
+        return 0;
       });
       case 'cmd': return this.simple(n, io);
     }
@@ -551,7 +582,10 @@ export class Shell {
         args: argv, env, vfs: this.vfs, cwd: this.cwd, stdin: data, stdout: io.out, stderr: io.err, tty: !!io.tty,
         maxOutput: io.pipe ? 32 * 1024 * 1024 : 64 * 1024 * 1024,
         onStdinUsed: (n) => { if (io.stdin) io.stdin.data = data.subarray(n); },
-        extraImports: (m) => ({ supertools: { spawn: (argvPtr: number, argc: number) => this.spawnFromWasm(m, argvPtr, argc, env, io) } }),
+        extraImports: (m) => ({ supertools: {
+          spawn: (argvPtr: number, argc: number, envp: number, inherit: number) => this.spawnFromWasm(m, argvPtr, argc, envp, !!inherit, env, io),
+          ncpu: () => (typeof navigator !== 'undefined' && navigator.hardwareConcurrency) || 4,
+        } }),
       });
       return code;
     } catch (e) {
@@ -560,16 +594,26 @@ export class Shell {
       throw e;
     }
   }
-  /** Host side of BusyBox's exec/spawn (xargs, find -exec, env, time…): run the program as another instance. */
-  private spawnFromWasm(m: { mem: () => DataView; str: (p: number) => string }, argvPtr: number, argc: number, env: Record<string, string>, io: any): number {
+  /** Host side of BusyBox's exec/spawn (xargs, find -exec, env, nice, nohup, flock…): run the program as another
+   *  BusyBox instance (or a shell builtin) on the same filesystem; returns its exit status. exec() passes the
+   *  remaining stdin through (inherit) and its own environment (envp). */
+  private spawnFromWasm(m: { mem: () => DataView; str: (p: number) => string; stdinRest: () => Uint8Array; stdinUse: (n: number) => void }, argvPtr: number, argc: number, envp: number, inherit: boolean, env: Record<string, string>, io: any): number {
     const v = m.mem(), args: string[] = [];
     for (let i = 0; i < argc; i++) args.push(m.str(v.getUint32(argvPtr + i * 4, true)));
     if (!args.length) return 127;
-    const b = this.builtin(args[0], args, { ...io, stdin: null });
-    if (b !== null) return b;
-    if (!this.applets.has(args[0].split('/').pop()!)) { io.err(enc.encode(`${args[0]}: not found\n`)); return 127; }
-    args[0] = args[0].split('/').pop()!;
-    return this.runApplet(args, env, { ...io, stdin: null });
+    let childEnv = env;
+    if (envp) { childEnv = {}; for (let i = 0; ; i++) { const p = v.getUint32(envp + i * 4, true); if (!p) break; const kv = m.str(p), eq = kv.indexOf('='); if (eq > 0) childEnv[kv.slice(0, eq)] = kv.slice(eq + 1); } }
+    const stdin = inherit ? { data: m.stdinRest() } : null;
+    const before = stdin?.data.length ?? 0;
+    const sub = { ...io, stdin, tty: io.tty };
+    let code: number;
+    const name = args[0].split('/').pop()!;
+    const b = BUILTINS.has(name) ? this.builtin(name, [name, ...args.slice(1)], sub) : null;
+    if (b !== null) code = b;
+    else if (!this.applets.has(name)) { io.err(enc.encode(`${args[0]}: No such file or directory\n`)); return 127; }
+    else { args[0] = name; code = this.runApplet(args, childEnv, sub); }
+    if (stdin) m.stdinUse(before - stdin.data.length);
+    return code;
   }
   /** tar -z/-j/-J/-a: BusyBox would fork a compressor; build the pipeline ourselves instead. */
   private tarCompression(words: string[], assigns: Array<[string, string]>, io: any): number | null {

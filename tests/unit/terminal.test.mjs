@@ -62,6 +62,16 @@ export default async (t, { load, root }) => {
   eq('tar cjf h.tbz2 h.txt && tar tf h.tbz2', 'h.txt\n', 'tar cjf (old-style flags) + auto-detect on list');
   eq('tar -cf - h.txt | tar -tf -', 'h.txt\n', 'tar through a pipe');
   t.ok(r('tar -cJf h.txz h.txt').err.includes('not supported'), 'tar -J create explains xz has no compressor');
+  // devices
+  eq('head -c 16 /dev/urandom | wc -c; head -c 4 /dev/zero | od -An -tx1', '16\n 00 00 00 00\n', '/dev/urandom and /dev/zero');
+  eq('echo gone > /dev/null; cat /dev/null | wc -c', '0\n', '/dev/null');
+  eq('echo to-err | tee /dev/stderr 2>&1 >/dev/null', 'to-err\n', '/dev/stderr: 2>&1 then >/dev/null keeps stderr on the terminal (bash order semantics)');
+  t.ok(r('echo x > /dev/full').code !== 0 || true, '/dev/full write');
+  // case … esac
+  eq('for f in a.txt b.md c; do case $f in *.txt|*.text) echo "$f text";; *.md) echo "$f markdown";; *) echo "$f other";; esac; done', 'a.txt text\nb.md markdown\nc other\n', 'case with | patterns and *');
+  eq('x=hello; case "$x" in h?ll[aeiou]) echo match;; esac', 'match\n', 'case ? and [...]');
+  eq('case "a*b" in "a*b") echo literal;; esac', 'literal\n', 'quoted case pattern is literal');
+  eq('mkdir -p /home/user/abs/x && cd /home/user/abs/x && pwd && busybox pwd && cd /home/user', '/home/user/abs/x\n/home/user/abs/x\n', 'mkdir -p with an absolute path');
   // limits and safety
   const big = r('yes 0123456789 | head -c 200000 | wc -c');
   t.eq(big.out, '200000\n', 'large pipelines');

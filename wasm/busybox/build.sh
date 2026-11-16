@@ -41,6 +41,11 @@ sed -i '/^# CONFIG_LFS is not set$/d' .config; echo CONFIG_LFS=y >> .config
 yes "" | make oldconfig >/dev/null 2>&1 || true   # yes(1) gets SIGPIPE when make finishes
 
 cp "$HERE/wasi_stubs.c" libbb/; echo "lib-y += wasi_stubs.o" >> libbb/Kbuild.src
+# spawn(): no vfork in WASI — hand the argv to the terminal host (runs another instance, returns a fake pid)
+sed -i '/^pid_t FAST_FUNC spawn(char \*\*argv)$/,/^{$/ s/^{$/{\n#ifdef __wasi__\n\treturn bb_wasi_spawn(argv);\n#endif/' libbb/vfork_daemon_rexec.c
+grep -q bb_wasi_spawn libbb/vfork_daemon_rexec.c
+# ed opens files with open(file, 0) assuming O_RDONLY == 0 (it is not in WASI)
+sed -i 's/fd = open(file, 0);/fd = open(file, O_RDONLY);/' editors/ed.c
 make -j"$(nproc)" CC="$W/zigcc" AR="$W/zigar" LD="$W/zigld" HOSTCC=gcc SKIP_STRIP=y busybox_unstripped >/dev/null
 "$W/zigcc" -c -mexception-handling "$HERE/sjlj_tag.s" -o "$W/sjlj_tag.o"
 # BusyBox's trylink drops main (WASI's _start only references it weakly) — link ourselves with appletlib.o first

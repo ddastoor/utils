@@ -16,7 +16,8 @@ export function listApplets(busybox: WebAssembly.Module): string[] {
 
 export function bootSystem(busybox: WebAssembly.Module, io: ShellIO, applets = listApplets(busybox)): Shell {
   const vfs = new VFS();
-  for (const d of ['/home/user', '/tmp', '/etc', '/bin', '/usr/bin', '/root', '/var/tmp']) vfs.mkdirp(d);
+  for (const d of ['/home/user', '/tmp', '/etc', '/bin', '/usr/bin', '/root', '/var/tmp', '/dev']) vfs.mkdirp(d);
+  for (const [n, d] of [['null', 'null'], ['zero', 'zero'], ['urandom', 'random'], ['random', 'random'], ['full', 'full'], ['stdin', 'stdin'], ['stdout', 'stdout'], ['stderr', 'stderr']] as const) vfs.mknod(`/dev/${n}`, d);
   vfs.writeFile('/etc/passwd', enc.encode('user:x:0:0:SuperTools user:/home/user:/bin/sh\n'));
   vfs.writeFile('/etc/group', enc.encode('user:x:0:user\n'));
   vfs.writeFile('/etc/hostname', enc.encode('supertools\n'));
