@@ -1,6 +1,6 @@
 // Create Zip (#/zip): files (text, Unicode name, 300 KB random) zipped and checked with Python's zipfile (names,
 // bytes, CRC, deflate vs store), AES-256 checked with pyzipper (right and wrong password), file removal, name, checks.
-import { writeFileSync } from 'node:fs';
+import { writeFileSync, readFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
 import { join } from 'node:path';
@@ -9,8 +9,10 @@ export default async ({ base, page: newPage, ok, info, download, tmp, devices })
   const page = await newPage(); await page.goto(`${base}#/zip`);
   const a = join(tmp, 'notes.txt'), b = join(tmp, 'नमस्ते.txt'), c = join(tmp, 'data.bin'), d = join(tmp, 'extra.txt');
   writeFileSync(a, 'hello zip\n'.repeat(1000)); writeFileSync(b, 'नमस्ते दुनिया'); writeFileSync(c, randomBytes(300 * 1024)); writeFileSync(d, 'remove me');
-  await page.locator('input[type=file]:not([webkitdirectory])').first().setInputFiles([a, b, c, d]);
-  ok(/4 files/.test(await page.locator('.file-list').textContent()), 'four files listed');
+  // Playwright drops files whose *path* is not ASCII, so pass them as buffers (names kept)
+  await page.locator('.drop input[type=file]').setInputFiles([a, b, c, d].map((f) => ({ name: f.split('/').pop(), mimeType: 'application/octet-stream', buffer: readFileSync(f) })));
+  await page.waitForFunction(() => /4 files/.test(document.querySelector('.file-list')?.textContent || ''));
+  ok(true, 'four files listed');
   await page.locator('.file-row').filter({ hasText: 'extra.txt' }).getByRole('button', { name: 'Remove' }).click();
   ok(/3 files/.test(await page.locator('.file-list').textContent()), 'remove a file');
   await page.getByLabel('Zip file name').fill('my files');

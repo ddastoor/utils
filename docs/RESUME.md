@@ -110,15 +110,15 @@ Dictionary), Codes & Files (5), Everyday (9), Device (11), Linux Terminal + bc c
    future; Epoch clock was blank for 250 ms; password boxes in Sodium/Share Link had no accessible name; Share Link's "New
    message" did nothing (the router kept a tab when only its own hash parameters changed — now re-mounted, ?from= ignored);
    Hash "two files identical" compared by DOM position.
-   **Codes & Files (in progress, Nov 16 night):** qr (19 ✓, round trip through the Scanner tab via tests/e2e/_scanback.mjs),
-   scan (10 ✓, fake camera via a canvas stream), unzip (24 ✓, fixtures built with Python tarfile/pyzipper/py7zr) pass;
-   **barcode** crashes after 29 checks (a `.note-warn` wait near the "letters in EAN-13" step — make every
-   `textContent()` in an ok() message conditional) and **zip** cannot add files in the test (the file input locator:
-   filePicker's input is hidden inside `.drop`; use `page.locator('.drop input[type=file]')` or the drop zone).
-   Fixed in the app tonight: vCard values now escape ; , \ and new lines; AES zip without a password says "Wrong or
-   missing password" (was zip.js's "File contains encrypted entry"). Test-only Python packages: `pip install --user
-   pynacl pyzipper py7zr` (suites skip those checks with a note when missing).
-   **Remaining after that:** stopwatch, countdown, pomodoro, interval, dice, coin, rng, picker, teams · webcam, mic, speaker, keyboard, pixels, touch,
+   Codes & Files (5/5): qr (19, every payload read back by the Scanner tab — tests/e2e/_scanback.mjs), barcode (32, all
+   12 symbologies round-trip), scan (10, two codes per picture, fake live camera), zip (14, checked with Python zipfile and
+   pyzipper AES), unzip (24, zip/AES/tar.gz/bz2/xz/7z fixtures built with Python). Test-only Python packages: `pip install
+   --user pynacl pyzipper py7zr` (those checks are skipped with a note when missing). Note: Playwright drops files whose
+   *path* is not ASCII — pass such files as buffers.
+   Fixed: vCard values escape ; , \ and new lines; AES zip without a password says "Wrong or missing password"; **button
+   handlers that throw synchronously now show the message** (they escaped as uncaught page errors before — e.g. barcode
+   "Nothing to save yet").
+   **Remaining:** stopwatch, countdown, pomodoro, interval, dice, coin, rng, picker, teams · webcam, mic, speaker, keyboard, pixels, touch,
    screen, level, compass, soundmeter, ruler.
 2. **Software (PC only, 47 tabs left)**, each with its own suite from the start, wasm first: sqlite (official wasm),
    jq (own build of jq 1.8.2 exists), yaml (own libyaml + toml++), graphviz (own build), python (MicroPython), and the

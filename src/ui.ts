@@ -79,7 +79,8 @@ export function button(label: string, onClick: (e: MouseEvent) => any, o: BtnOpt
   });
   b.addEventListener('click', async (e) => {
     if (b.classList.contains('busy')) return;
-    const r = onClick(e);
+    let r: any;
+    try { r = onClick(e); } catch (err) { toast(errMsg(err), 'err'); console.error(err); return; } // synchronous handlers report like async ones
     if (r && typeof r.then === 'function') {
       b.classList.add('busy'); b.disabled = true;
       try { await r; } catch (err) { toast(errMsg(err), 'err'); console.error(err); } finally { b.classList.remove('busy'); b.disabled = false; }
