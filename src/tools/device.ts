@@ -31,6 +31,7 @@ export const webcam: Mount = (root) => {
   };
   devSel.addEventListener('change', start);
   const snap = async () => {
+    if (!video.videoWidth) throw new Error('Start the camera first.');
     const c = h('canvas'); c.width = video.videoWidth; c.height = video.videoHeight;
     const g = c.getContext('2d')!; if (mirror) { g.translate(c.width, 0); g.scale(-1, 1); } g.drawImage(video, 0, 0);
     downloadBlob(await canvasToBlob(c, 'image/jpeg', 0.92), `webcam-${Date.now()}.jpg`);
@@ -135,36 +136,48 @@ export const keyboard: Mount = (root) => {
   const tested = h('div', { class: 'muted' });
   const down = (e: KeyboardEvent) => {
     if (!kb.contains(document.activeElement) && document.activeElement !== kb) return;
-    e.preventDefault();
+    e.preventDefault(); e.stopPropagation(); // the app's own shortcuts (/ and Ctrl+K → search) must not steal the focus
     const k = keys.get(e.code); k?.classList.add('down', 'hit');
     clear(last).append(...([['key', JSON.stringify(e.key)], ['code', e.code], ['keyCode', String(e.keyCode)], ['location', String(e.location)], ['modifiers', [e.ctrlKey && 'Ctrl', e.shiftKey && 'Shift', e.altKey && 'Alt', e.metaKey && 'Meta'].filter(Boolean).join(' + ') || 'none'], ['repeat', String(e.repeat)]] as Array<[string, string]>).flatMap(([a, b]) => [h('span', null, a), h('code', null, b)]));
     tested.textContent = `${[...keys.values()].filter((x) => x.classList.contains('hit')).length} of ${keys.size} keys tested`;
   };
   const up = (e: KeyboardEvent) => keys.get(e.code)?.classList.remove('down');
-  addEventListener('keydown', down); addEventListener('keyup', up);
+  addEventListener('keydown', down, true); addEventListener('keyup', up, true); // capture: runs before document listeners
   root.append(note('Click the keyboard below, then press keys. Keys turn green once they register; stuck keys stay highlighted.'), card(null, h('div', { class: 'scroll-x' }, kb), tested), card('Last key event', last),
     h('div', { class: 'actions' }, button('Reset', () => { keys.forEach((k) => k.classList.remove('hit', 'down')); tested.textContent = ''; kb.focus(); }, { icon: 'RotateCcw' })));
   setTimeout(() => kb.focus(), 50);
-  return () => { removeEventListener('keydown', down); removeEventListener('keyup', up); };
+  return () => { removeEventListener('keydown', down, true); removeEventListener('keyup', up, true); };
 };
 
 // ------------------------------------------------------------------ Dead pixel test
 export const pixels: Mount = (root) => {
   const COLORS = ['#000000', '#ffffff', '#ff0000', '#00ff00', '#0000ff', '#808080', '#ffff00', '#00ffff', '#ff00ff'];
+  let close: (() => void) | null = null;
   const start = async () => {
+    close?.();
     let i = 0;
     const panel = h('div', { class: 'pixel-panel', style: { background: COLORS[0] } }, h('div', { class: 'pixel-hint' }, 'Tap / click or press → for next colour · Esc to exit'));
     document.body.append(panel);
-    const next = () => { i = (i + 1) % COLORS.length; panel.style.background = COLORS[i]; panel.firstElementChild!.remove(); };
-    const close = () => { panel.remove(); removeEventListener('keydown', key); if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); };
-    const key = (e: KeyboardEvent) => { if (e.key === 'Escape') close(); else if (['ArrowRight', ' ', 'Enter'].includes(e.key)) next(); else if (e.key === 'ArrowLeft') { i = (i + COLORS.length - 2) % COLORS.length; next(); } };
-    panel.addEventListener('click', next);
+    const show = () => { panel.style.background = COLORS[i]; panel.firstElementChild?.remove(); };
+    const key = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') close?.();
+      else if (['ArrowRight', ' ', 'Enter'].includes(e.key)) { e.preventDefault(); i = (i + 1) % COLORS.length; show(); }
+      else if (e.key === 'ArrowLeft') { i = (i + COLORS.length - 1) % COLORS.length; show(); }
+    };
+    // not { once: true }: entering full screen fires this event too, and the exit must still close the panel
+    const fs = () => { if (!document.fullscreenElement) close?.(); };
+    close = () => {
+      close = null; panel.remove(); removeEventListener('keydown', key); document.removeEventListener('fullscreenchange', fs);
+      if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+    };
+    panel.addEventListener('click', () => { i = (i + 1) % COLORS.length; show(); });
     addEventListener('keydown', key);
-    document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement) close(); }, { once: true });
+    document.addEventListener('fullscreenchange', fs);
     try { await panel.requestFullscreen(); } catch { /* iOS: fixed panel still covers the page */ }
   };
   root.append(card(null, stack(h('p', null, 'Fills the screen with solid colours (black, white, red, green, blue, grey, yellow, cyan, magenta). Look closely for dots that stay a different colour — dead (always dark) or stuck (always lit) pixels — and for uneven backlight on black.'),
     h('div', { class: 'swatches' }, COLORS.map((c) => h('span', { style: { background: c } }))))), h('div', { class: 'actions' }, button('Start full-screen test', start, { variant: 'primary', icon: 'Maximize' })));
+  return () => close?.(); // leaving the tab (e.g. the phone's Back button) must not leave the panel over the app
 };
 
 // ------------------------------------------------------------------ Touch test (mobile)
@@ -189,6 +202,8 @@ export const touch: Mount = (root) => {
   root.append(card(null, canvas, info), h('div', { class: 'actions' }, button('Clear', () => { canvas.getContext('2d')!.clearRect(0, 0, canvas.width, canvas.height); maxTouches = 0; info.textContent = 'Draw with one or more fingers'; }, { icon: 'Eraser' })),
     note(`This device reports up to ${navigator.maxTouchPoints || 0} simultaneous touch points. Draw lines across every edge to find dead zones.`));
   requestAnimationFrame(resize);
+  addEventListener('resize', resize); // rotating the phone: keep the canvas at the real pixel size (no stretched lines)
+  return () => removeEventListener('resize', resize);
 };
 
 // ------------------------------------------------------------------ Screen info
