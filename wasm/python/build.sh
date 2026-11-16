@@ -1,0 +1,61 @@
+#!/usr/bin/env bash
+# Builds src/wasm/bin/python.wasm (CPython 3.14.8, PSF licence) for wasm32-wasi with zig, and src/wasm/bin/python314.zip
+# (its standard library, precompiled .pyc, plus the tzdata time-zone package). Sources: the Ubuntu archive's
+# python3.14_3.14.8.orig.tar.xz and zlib 1.3.2 (SHA-256 from the signed .dsc files; python.org/github are not reachable
+# from the sandbox) and tzdata 2026.6 from PyPI (SHA-256 published by PyPI).
+# Steps: native CPython (the "build Python" a cross build needs) → zlib for wasm → CPython's own WASI configure
+# (Tools/wasm/wasi/config.site + config.site.extra) with zig cc → make. wasi_start.c links zig's single-threaded
+# libc main thread into its own thread list (else pthread_key_delete loops forever at exit) and starts in $PWD.
+# Upstream sources unmodified.
+#   ZIG=/path/to/zig wasm/python/build.sh          (≈ 10 min on 4 cores; needs a host C compiler, make, xz)
+set -euo pipefail
+HERE="$(cd "$(dirname "$0")" && pwd)"; ROOT="$(cd "$HERE/../.." && pwd)"
+: "${ZIG:?set ZIG to the zig binary}"
+WORK="${WORK:-/tmp/python-build}"; mkdir -p "$WORK"; cd "$WORK"
+PY=python3.14_3.14.8.orig.tar.xz; PYSHA=c2215904f02b175596dc49351585104f4bc20341e1c47378b26a2c274360ce73
+ZL=zlib_1.3.dfsg+really1.3.2.orig.tar.gz; ZLSHA=7b6903eb019983987b7112eccf90f1703f1c6c0e0cede36564bf611d19ca579d
+TZ=tzdata-2026.6-py2.py3-none-any.whl; TZSHA=0a10eec6e13ef16b627fabed9a5f2ba61a62b1c67f327305f4e7e412a70b4aec
+[ -f "$PY" ] || curl -fsSL --retry 4 -o "$PY" "https://archive.ubuntu.com/ubuntu/pool/main/p/python3.14/$PY"
+[ -f "$ZL" ] || curl -fsSL --retry 4 -o "$ZL" "https://archive.ubuntu.com/ubuntu/pool/main/z/zlib/$ZL"
+[ -f "$TZ" ] || curl -fsSL --retry 4 -o "$TZ" "https://files.pythonhosted.org/packages/0a/66/9a06c2227fedfd4919f0eaaa8b94377d9730882a7e4f95823c9a331ab5e1/$TZ"
+printf '%s  %s\n%s  %s\n%s  %s\n' "$PYSHA" "$PY" "$ZLSHA" "$ZL" "$TZSHA" "$TZ" | sha256sum -c -
+rm -rf Python-3.14.8 zsrc zlib native wasi zipsrc tz && tar xJf "$PY" && mkdir zsrc zlib native wasi tz && tar xzf "$ZL" -C zsrc
+S="$WORK/Python-3.14.8"; J=$(nproc)
+# 1. native build Python
+(cd native && "$S/configure" -q && make -j"$J" -s >/dev/null)
+# 2. zlib for wasm32-wasi
+ZD=$(ls -d zsrc/*/)
+for f in adler32 compress crc32 deflate gzclose gzlib gzread gzwrite infback inffast inflate inftrees trees uncompr zutil; do
+  "$ZIG" cc --target=wasm32-wasi -O2 -D_LARGEFILE64_SOURCE=1 -DHAVE_UNISTD_H -c "$ZD$f.c" -o "zlib/$f.o"; done
+"$ZIG" ar rcs zlib/libz.a zlib/*.o; cp "$ZD/zlib.h" "$ZD/zconf.h" zlib/
+"$ZIG" cc --target=wasm32-wasi -O2 -c "$HERE/wasi_start.c" -o wasi_start.o
+# 3. zig wrappers (zig rejects --stack-first, which only changes the memory layout)
+cat > zcc <<W
+#!/bin/sh
+for a do shift; case "\$a" in -Wl,--stack-first) ;; *) set -- "\$@" "\$a";; esac; done
+exec "$ZIG" cc --target=wasm32-wasi "\$@"
+W
+printf '#!/bin/sh\nexec "%s" ar "$@"\n' "$ZIG" > zar; printf '#!/bin/sh\nexec "%s" ranlib "$@"\n' "$ZIG" > zranlib; chmod +x zcc zar zranlib
+cat "$S/Tools/wasm/wasi/config.site-wasm32-wasi" "$HERE/config.site.extra" > config.site
+# 4. CPython for wasm32-wasi
+(cd wasi && CONFIG_SITE="$WORK/config.site" CC="$WORK/zcc" AR="$WORK/zar" RANLIB="$WORK/zranlib" CFLAGS="-O2 -Wno-date-time" \
+  LDFLAGS="-Wl,--strip-all" ZLIB_CFLAGS="-I$WORK/zlib" ZLIB_LIBS="$WORK/zlib/libz.a" PKG_CONFIG_PATH= PKG_CONFIG_LIBDIR=/nonexistent \
+  LIBS="$WORK/wasi_start.o" "$S/configure" -q --host=wasm32-wasip1 --build=x86_64-pc-linux-gnu --with-build-python="$WORK/native/python" \
+  --prefix=/ --disable-test-modules && make -j"$J" -s >/dev/null)
+cp wasi/python.wasm "$ROOT/src/wasm/bin/python.wasm"
+# 5. standard library zip: .pyc only (compiled by the same CPython version), without tests, IDLE, Tk, venv, ensurepip…
+cp -r "$S/Lib" zipsrc && cp wasi/build/lib.wasi-wasm32-3.14/_sysconfig* zipsrc/
+(cd tz && python3 -m zipfile -e "../$TZ" . && cp -r tzdata ../zipsrc/)
+(cd zipsrc && rm -rf test idlelib tkinter turtledemo ensurepip venv pydoc_data __phello__ site-packages turtle.py sqlite3 dbm curses \
+  && find . -type d \( -name tests -o -name __pycache__ \) -prune -exec rm -rf {} + \
+  && "$WORK/native/python" -m compileall -q -b --invalidation-mode unchecked-hash . && find . -name '*.py' -delete \
+  && "$WORK/native/python" -c "
+import zipfile, os
+z = zipfile.ZipFile('$ROOT/src/wasm/bin/python314.zip', 'w', zipfile.ZIP_DEFLATED, compresslevel=9)
+for r, ds, fs in os.walk('.'):
+    ds.sort()
+    for f in sorted(fs):
+        p = os.path.join(r, f)[2:]; i = zipfile.ZipInfo(p, (2026, 1, 1, 0, 0, 0)); i.compress_type = zipfile.ZIP_DEFLATED
+        z.writestr(i, open(p, 'rb').read(), compresslevel=9)
+z.close()")
+ls -la "$ROOT/src/wasm/bin/python.wasm" "$ROOT/src/wasm/bin/python314.zip"

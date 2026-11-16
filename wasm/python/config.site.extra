@@ -1,0 +1,15 @@
+# Added to CPython's Tools/wasm/wasi/config.site-wasm32-wasi for our zig-based build: zig's wasi-libc headers declare
+# these functions but the libc has no implementation (link fails), and there is no networking in a browser tab.
+py_cv_module__socket=n/a
+ac_cv_func_getaddrinfo=no
+ac_cv_header_sys_epoll_h=no
+ac_cv_func_epoll_create=no
+ac_cv_func_epoll_create1=no
+ac_cv_func_setgroups=no
+ac_cv_func_timerfd_create=no
+ac_cv_header_sys_timerfd_h=no
+ac_cv_func_textdomain=no
+ac_cv_func_bindtextdomain=no
+ac_cv_func_dcgettext=no
+ac_cv_header_libintl_h=no
+ac_cv_lib_intl_textdomain=no

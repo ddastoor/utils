@@ -885,3 +885,5 @@ details summary { cursor: pointer; font-weight: 600; color: var(--accent); paddi
 .gv-view { overflow: auto; min-height: 160px; max-height: 70vh; background: #fff; border-radius: 10px; padding: 12px; }
 .gv-view.fit .gv-img { max-width: 100%; height: auto; }
 .gv-img { display: block; margin: 0 auto; }
+.py-out { min-height: 200px; max-height: 60vh; overflow: auto; margin: 8px 0; padding: 12px; border-radius: 10px; background: var(--code-bg, #0f172a); color: #e2e8f0; font: 13px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; white-space: pre-wrap; word-break: break-word; }
+.py-stderr { color: #fca5a5; }

@@ -113,7 +113,12 @@ export function runWasi(module: WebAssembly.Module, o: RunOpts): number {
       let wait = 0n;
       for (let i = 0; i < n; i++) {
         const s = inP + i * 48;
-        if (v.getUint8(s + 8) === 0) { const to = v.getBigUint64(s + 24, true), abs = v.getUint16(s + 40, true) & 1; const d = abs ? to - nowNs() : to; if (d > wait) wait = d; }
+        if (v.getUint8(s + 8) === 0) {
+          // clock subscription: id at +16 (0 realtime, else monotonic), timeout at +24, flags at +40 (1 = absolute)
+          const id = v.getUint32(s + 16, true), to = v.getBigUint64(s + 24, true), abs = v.getUint16(s + 40, true) & 1;
+          const now = id === 0 ? nowNs() : BigInt(Math.round(performance.now() * 1e6));
+          const d = abs ? to - now : to; if (d > wait) wait = d;
+        }
       }
       const end = performance.now() + Math.min(Number(wait) / 1e6, tl);
       while (performance.now() < end) check();

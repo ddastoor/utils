@@ -74,7 +74,7 @@ Platform: "both" = PC + mobile.
 | # | Upgrade | Project | Notes | Status |
 |---|---|---|---|---|
 | U1 | **Hindi voices** in Text-to-Speech | Piper `hi_IN` voices (pratham, rohan) | same Piper engine already on the site; dataset licence is non-commercial (personal use is fine). The owner skipped Hindi for OCR, so ask first. | waiting |
-| U2 | **"Full Python"** option in the planned Python tab | Pyodide (MPL-2.0, official CPython wasm) | numpy / pandas / matplotlib beside the small MicroPython engine; ≈ 10–30 MB, loaded only when chosen | waiting |
+| U2 | **"Full Python"** option in the planned Python tab | Pyodide (MPL-2.0, official CPython wasm) | numpy / pandas / matplotlib beside the built-in CPython 3.14 (standard library only); ≈ 10–30 MB, loaded only when chosen | waiting |
 | U3 | **Video Stabilizer** | vid.stab (GPL) inside our own FFmpeg build | possible only after the own-FFmpeg build on the §3a audit list | waiting |
 
 ## Round 3 — open-source projects from anywhere (not only GitHub)

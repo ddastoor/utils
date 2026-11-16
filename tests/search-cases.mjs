@@ -177,7 +177,7 @@ export default [
   ['prime factors', 'primes'], ['lcm', 'primes'], ['gcd', 'primes'], ['hcf', 'primes'],
   ['periodic table', 'periodic'], ['elements', 'periodic'],
   ['graphviz', 'graphviz'], ['dot graph', 'graphviz'],
-  ['python', 'python'], ['run python', 'python'], ['micropython', 'python'],
+  ['python', 'python'], ['run python', 'python'], ['micropython', 'python'], ['cpython', 'python'], ['pyhton', 'python'], ['python script', 'python'],
   ['totp', 'totp'], ['2fa code', 'totp'], ['authenticator', 'totp'],
   ['password strength', 'pwstrength'], ['how strong is my password', 'pwstrength'],
   ['json schema', 'jsonschema'], ['validate against schema', 'jsonschema'],

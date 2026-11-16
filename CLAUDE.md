@@ -244,7 +244,7 @@ Table. Calculators: `prepay` Loan Prepayment · `ppf` · `epf` · `nps` · `infl
 `idealweight` · `coords` Coordinates. Media: `noise` Noise Remover (RNNoise, own wasm, **BUILT**) · `pitch` Pitch & Speed (own C WSOLA, **BUILT**)
 · `slideshow` Slideshow Maker (WebCodecs, **BUILT**). Documents: `invoice` GST Invoice · `rent` Rent Receipt · `resume` Resume
 Builder (HTML → browser "Save as PDF"). Images: `signature` Signature Maker. Software (PC): `graphviz` (Graphviz C →
-wasm) · `python` (MicroPython C → wasm) · `totp` · `pwstrength` (zxcvbn) · `jsonschema` · `bitwise` · `ieee754` ·
+wasm) · `python` (CPython 3.14 C → wasm32-wasi, built by us) · `totp` · `pwstrength` (zxcvbn) · `jsonschema` · `bitwise` · `ieee754` ·
 `contrast` · `baseenc` · `bindecode` · `httpstatus` · `mime` · `ports` · `ascii` · `keycode` · `gradient` · `shadow` ·
 `svgo` · `patch`.
 **Speech to Text** (`stt`, Media, both) — **BUILT** (`src/tools/stt.ts`, worker `src/workers/stt.worker.ts`; e2e
@@ -714,6 +714,7 @@ stay **public** (the source of the deployed site is then available to every user
 | metacore (EXIF → JSON, lossless metadata strip JPEG/PNG/WebP, JPEG DPI, image sniffing) | C (own code) | **us** (`wasm/metacore`) | exif, image loading, passport/formphoto DPI |
 | BusyBox 1.38.0 (130 applets) + compat shims | C | **us** (`wasm/busybox`) | terminal, bc console |
 | jq 1.8.2 (+ oniguruma) | C | **us** (`wasm/jq`) | jq |
+| CPython 3.14.8 (+ zlib 1.3.2; stdlib as .pyc in python314.zip with tzdata 2026.6) | C | **us** (`wasm/python`, python.wasm 7 MB + python314.zip 5.4 MB, loaded on the first Run; run by our WASI host `src/lib/terminal/wasi.ts` in `src/workers/python.worker.ts`) | python |
 | Graphviz 14.1.2 (cgraph, gvc, dot/neato/fdp/sfdp/circo/twopi/osage/patchwork, core renderers) + Expat 2.9.0 | C / C++ | **us** (`wasm/graphviz`, 1.6 MB / 0.54 MB gz, run in `src/workers/graphviz.worker.ts`) | graphviz |
 | audio: **LAME 4.0** libmp3lame (MP3 encoder) + own C (WAV writer, waveform peaks, levels, gain/fades, Kaiser windowed-sinc resampler, WSOLA time stretch, tempo × pitch) | C | **us** (`wasm/audio`) | audio (and tts, stt, noise, pitch) |
 | rnnoise: Xiph **RNNoise 0.2** (+ default model) + glue (48 kHz frames, latency compensation, wet/dry mix, VAD) | C | **us** (`wasm/rnnoise`) | noise |
@@ -982,6 +983,18 @@ lacks — an implicit declaration gets the wrong wasm signature and traps) and `
 `gv_render(src, engine, format)` makes a **fresh GVC context per call** (an error could leave a pending job that later
 wrote to stdout) and keeps its own copies of the strings (Graphviz keeps pointers after the call). No FreeType/Pango:
 text is measured with Graphviz's built-in metrics. Unit `tests/unit/graphviz.test.mjs` (32).
+
+### 5.1m python → `src/wasm/bin/python.wasm` + `python314.zip`
+`ZIG=… wasm/python/build.sh` (≈ 10 min; host C compiler, make, xz): CPython 3.14.8 and zlib 1.3.2 from the Ubuntu archive
+and tzdata 2026.6 from PyPI (all SHA-256 pinned). A native CPython is built first (the cross build's "build Python"),
+then CPython's **own** WASI configuration (`Tools/wasm/wasi/config.site-wasm32-wasi` + our `config.site.extra`: no
+socket module; functions zig's wasi-libc declares but lacks) with zig cc (a wrapper drops `--stack-first`, which zig
+rejects). `wasi_start.c` (linked in through LIBS, constructors): links the main thread into musl's thread list — zig's
+single-threaded libc leaves it NULL and `pthread_key_delete` then loops forever at interpreter exit — and `chdir($PWD)`
+(wasi-libc starts in "/"). Upstream sources unmodified. The stdlib is compiled to .pyc by the same CPython version and
+zipped without tests/IDLE/Tk/venv/ensurepip/sqlite3/curses (+ tzdata for zoneinfo); CPython finds `/lib/python314.zip`
+on its default path. Our WASI host's `poll_oneoff` now honours the clock id (time.sleep uses absolute monotonic
+deadlines). Unit `tests/unit/python.test.mjs` (17); e2e compares sample outputs with the host's python3.
 
 ### 5.1e markdown → `src/wasm/bin/markdown.wasm`
 `ZIG=… wasm/markdown/build.sh`: downloads the `cmarkgfm` 2025.10.22 sdist from PyPI (SHA-256 `5bec6100…`), which vendors

@@ -152,7 +152,7 @@ Generated from `src/registry.ts` by `npm run docs` — do not edit by hand.
 | `xml` | XML Formatter / XPath | **PC only** | Pretty-print XML and evaluate XPath. | xml, xpath, format, pretty, beautify, minify, validate, soap, … |
 | `json2types` | JSON → Types | **PC only** | Generate TypeScript, Go, Rust, Java or Python types. | go struct from json, struct from json, json to go, json to rust, json to java, json to python, json to typescript, interface, … |
 | `jsondiff` | JSON Diff | **PC only** | Structural diff of two JSON documents. | json diff, compare json, difference, structural, patch |
-| `sqlfmt` | SQL Formatter | **PC only** | Format SQL for many dialects. | sql, format, beautify, pretty, postgres, mysql, bigquery, snowflake, … |
+| `sqlfmt` | SQL Formatter | **PC only** | Format SQL queries: keywords, indentation, one statement per block. | sql, format, beautify, pretty, postgres, mysql, bigquery, snowflake, … |
 | `prettier` | Code Formatter | **PC only** | Prettier for JS/TS/CSS/HTML/YAML/Markdown/GraphQL. | prettier, format, beautify, javascript, typescript, css, scss, html, … |
 | `mockdata` | Mock Data Generator | **PC only** | Fake rows as JSON, CSV or SQL inserts. | mock, fake, test data, faker, seed, json, csv, sql insert, … |
 | `mdtable` | Markdown Table | **PC only** | Build Markdown tables from a grid or CSV. | markdown table, table generator, csv to markdown, readme, github |
@@ -176,7 +176,7 @@ Generated from `src/registry.ts` by `npm run docs` — do not edit by hand.
 | `glob` | Glob Tester | **PC only** | Test glob patterns against paths. | glob, pattern, wildcard, gitignore, minimatch, path, match |
 | `terminal` | Linux Terminal | **PC only** | BusyBox shell with an in-browser filesystem (upload/download files). | linux, terminal, shell, busybox, bash, command line, cli, console, … |
 | `graphviz` | Graphviz (DOT) | **PC only** | Render DOT graphs to SVG/PNG. | graphviz, dot, graph, diagram, digraph, network, render, svg |
-| `python` | Python Scratchpad | **PC only** | Run Python (MicroPython) in the browser. | python, micropython, script, run code, repl, scratchpad, py |
+| `python` | Python Scratchpad | **PC only** | Run Python 3.14 (CPython) in the browser. | python, python3, cpython, micropython, script, run code, run python online, repl, … |
 | `totp` | TOTP / 2FA Codes | **PC only** | Generate one-time codes from a 2FA secret. | totp, 2fa, otp, one time password, authenticator, mfa, google authenticator, hotp, … |
 | `pwstrength` | Password Strength | **PC only** | Estimate how hard a password is to crack. | password strength, how strong is my password, password checker, is my password safe, zxcvbn, crack time, entropy, weak password, … |
 | `jsonschema` | JSON Schema | **PC only** | Validate JSON against a schema; infer a schema. | json schema, validate, validator, draft 2020-12, infer schema, generate schema, ajv |
