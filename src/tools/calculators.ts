@@ -268,7 +268,7 @@ export const bmi: Mount = async (root) => {
   ], (v) => {
     need(v.h, v.w);
     const hm = v.sys === 'm' ? v.h / 100 : v.h * 0.0254, kg = v.sys === 'm' ? v.w : v.w * 0.45359237;
-    const b = m.bmi(kg, hm);
+    const b = Math.round(m.bmi(kg, hm) * 10) / 10; // categorise the BMI as shown (one decimal): 76.8 kg at 1.60 m is 30.0, not 29.999…
     const cuts = v.asian === 'asian' ? [18.5, 23, 25] : [18.5, 25, 30];
     const cat = b < cuts[0] ? 'Underweight' : b < cuts[1] ? 'Normal' : b < cuts[2] ? 'Overweight' : 'Obese';
     const lo = cuts[0] * hm * hm, hi = cuts[1] * hm * hm;

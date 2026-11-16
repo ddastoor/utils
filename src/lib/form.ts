@@ -51,7 +51,12 @@ export function calcForm(root: HTMLElement, fields: FieldDef[], compute: (v: Rec
 const inr = new Intl.NumberFormat('en-IN', { maximumFractionDigits: 2 });
 const intl = new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 });
 /** Indian digit grouping (12,34,567.89) */
-export const fmtINR = (n: number, cur = true) => (isFinite(n) ? `${cur ? '₹' : ''}${inr.format(n)}` : '—');
+/** −0 and amounts that round to 0 print as "₹0"; a negative amount prints as "−₹1,234" */
+export const fmtINR = (n: number, cur = true) => {
+  if (!isFinite(n)) return '—';
+  const s = inr.format(Math.abs(n)), neg = n < 0 && /[1-9]/.test(s);
+  return `${neg ? '−' : ''}${cur ? '₹' : ''}${s}`;
+};
 export const fmtN = (n: number, d = 2) => (isFinite(n) ? new Intl.NumberFormat('en-US', { maximumFractionDigits: d }).format(n) : '—');
 export const fmtIntl = (n: number) => (isFinite(n) ? intl.format(n) : '—');
 export const need = (...xs: number[]) => { if (xs.some((x) => !isFinite(x))) throw new Error('Fill in all the numbers.'); };

@@ -68,33 +68,33 @@ STANDING RULE #1 is at the top of `CLAUDE.md`; audit list is in CLAUDE.md §3a.
   compiled C++ already; per-animation-frame tiny loops (audio meter RMS over 2048 samples, graph grid drawing) —
   copying into wasm costs more than the loop.
 
-## Queue (in order) — each: implement → own e2e suite with real fixtures → screenshot at 390×844 → commit + push
-1. (Audit done.) Continue image tools below.
-2. **Linux Terminal DONE** (130 BusyBox applets, all tested; see CLAUDE.md §2). bc console DONE (12 e2e checks). OCR DONE (owner: English, French, Spanish, German — no Hindi; 10 e2e checks).
-   Background Remover DONE (11 e2e). Passport Photo DONE (19 e2e; webcam on PC / phone camera; busy backgrounds replaced by the
-   preset colour). Cartoonizer DONE (37 e2e: 6 filters in imgproc C with DoG lines, Magenta AI styles on TF.js WebGL → wasm,
-   legacy model converter scripts/convert-magenta.mjs). **All Images tools are done.** Photo Dictionary DONE (43 e2e + 56 unit;
-   data in public/data/dict built by scripts/build-dict.mjs from kaikki.org + wordfreq; CSP now allows the two
-   approved dictionary APIs). PDF core tabs DONE on MuPDF: merge, split, organize, img2pdf, pdf2img, pdf2text, pagenum,
-   watermark (own e2e suite each). Unlock, Protect, Compress, Sign, Fill DONE — **all 13 PDF tabs done**. Markdown Editor DONE (own cmark-gfm wasm, 25 unit + 23 e2e). GST Invoice / Rent Receipt / Resume Builder DONE (HTML → PDF with MuPDF via an in-memory EPUB; 20 + 10 + 7 e2e; mathcore m_invoice + m_gstin_valid, 19 unit). CSV / Excel DONE (own Rust wasm: calamine + rust_xlsxwriter, 33 unit + 17 e2e). PDF → EPUB DONE (XY-cut in textcore, ink regions in imgproc; 11 unit + 27 e2e). **Documents category complete (19/19).** **Media:** Audio Recorder DONE (own audio.wasm = LAME 4.0 + own C; 38 unit + 21 e2e), Pitch & Speed DONE (11 e2e), Noise Remover DONE (own RNNoise 0.2 wasm; 10 unit + 11 e2e; speech fixtures in tests/fixtures/speech), Video Compressor DONE (WebCodecs + mediabunny; 16 e2e), Slideshow Maker DONE (15 e2e), FFmpeg DONE (PC; 22 e2e), Screencast DONE (PC; 13 e2e; src/linux.ts X11/Wayland), Screenshot DONE (PC; 12 e2e), YouTube Clip DONE (PC; 13 e2e), Text-to-Speech DONE (own eSpeak NG 1.52 wasm + ORT Web; Kokoro US/UK + Piper Indian English; 40 unit + 13 e2e). Speech to Text DONE (own whisper.cpp 1.8.3 wasm; base.en + small.en (split parts); 11 e2e incl. TTS round trips). **Media category complete (11/11).**
-**Owner asked (Nov 16) for extensive tests per utility.** Audit: 47 tabs had their own suite, ~80 early tabs were only in 7 shared smoke suites (calculators, math, text, security, codes, everyday, device). Work in progress: one thorough suite per tab with independent known answers (tests/lib/calc.mjs helper). Written: emi, gst, sip, fd, percent, tip, fuel, words, roman (found + fixed: Percentage showed "—%" on ÷0; all 9 pass). **Next:** per-tab suites for the remaining ~70 early tabs, then Software (47 PC tabs, each with its own suite from the start), then Software (47 PC tabs) (MuPDF; AES-256 via
-   saveToBuffer `encrypt=aes-256,user-password=…`), then markdown, invoice/rent/resume, epub, sheet; then, in order: (imgproc detect/warp/enhance → PDF via MuPDF),
-   ocr (Tesseract eng+hin), passport (36 presets in src/lib/passport-specs.ts; MediaPipe landmarks + selfie
-   segmentation + imgproc guided filter; camera, print sheet, KB target, DPI), bgremove, cartoon (classic imgproc
-   + Magenta TF.js). Models: add entries to scripts/assets.json and pin with `fetch-assets.mjs --pin <name>`.
-   (Done: Blur & Redact; pinned model fetching via scripts/assets.json + scripts/fetch-assets.mjs.)
-3. ~~Photo Dictionary~~ DONE (see CLAUDE.md §3 "As built"). kaikki.org was added to the environment allowlist (owner
-   approved the prompt). To refresh the dictionary: `node --max-old-space-size=10000 scripts/build-dict.mjs` (streams
-   3.4 GB; ~1 min with a local copy via `--kaikki file`), review meta.json, commit public/data/dict.
-4. PDF/document tools on MuPDF (merge, split, organize, img2pdf, pdf2img, compress, sign, fill, unlock, protect,
-   pdf2text, pagenum, watermark), markdown (own cmark-gfm wasm), epub (PC), sheet (PC), invoice/rent/resume.
-5. Media: video (WebCodecs + muxer), audio recorder, TTS (Kokoro + Piper L2-ARCTIC Indian voices, own LAME MP3
-   wasm, 0.5–2×), STT (own whisper.cpp wasm, small.en/base.en, hint box), noise (RNNoise), pitch (own C WSOLA),
-   slideshow, ffmpeg (PC), screencast, screenshot, youtube (PC; `src/linux.ts` X11/Wayland detection).
-6. Software (PC only, ~47): jq, yaml (libyaml + toml++), sqlite, graphviz, python (MicroPython), terminal
-   (BusyBox 1.38.0 → wasm32-wasi + own shell layer + WASI FS), bc console inside the calc tab (PC), and the rest.
-7. Audit list replacements (own builds of mozjpeg/libwebp/oxipng, libheif, tesseract, zxing-cpp, libarchive,
-   zip AES in crypto.wasm, minimp4).
+## Done so far (details in CLAUDE.md §2/§3)
+Images (15), Documents (19), Media (11), Security (6), Calculators (27), Math & Science (7), Text (10 incl. Photo
+Dictionary), Codes & Files (5), Everyday (9), Device (11), Linux Terminal + bc console, Software tabs moved from the old
+"Text & Dev" (8). **129 of 176 tabs built.** Every own wasm module has unit tests (3240 checks passing).
+
+## Next steps (in order)
+1. **Per-tab e2e suites for the early tabs (owner, Nov 16: "extensive test cases for each utility").** Audit: 47 tabs had
+   their own suite; ~80 early tabs were only covered by 7 shared smoke suites (calculators, math, text, security, codes,
+   everyday, device). One thorough suite per tab with independent known answers (re-implemented formulas, published
+   figures, boundaries, invalid input, phone width) — helper `tests/lib/calc.mjs`.
+   **Written and passing (20):** emi, gst, sip, fd, percent, tip, fuel, words, roman, ppf, inflation, prepay, epf, nps,
+   bodyfat, idealweight, coords, bmi, calories, sleep.
+   Bugs found and fixed so far: Percentage showed "—%" on ÷0; BMI exactly on a cut-off (76.8 kg at 1.60 m = 30.0) was
+   put in the lower category (float 29.999…) — now categorised as displayed; "₹-0" for a zero amount (NPS lump sum with
+   a 100 % annuity) — `fmtINR` now prints ₹0, and negatives as "−₹1,234".
+   **Remaining:** units, dates, timezone, duedate, gpa, base, calc · graph, equation, stats, matrix, fraction, primes,
+   periodic · wordcount, case, lines, replace, diff, fancy, emoji, morse, lorem · json, regex, base64, urlenc, epoch,
+   uuid, color, jwt · sodium, sharelink, hash, password, passphrase · qr, barcode, scan, zip, unzip · stopwatch,
+   countdown, pomodoro, interval, dice, coin, rng, picker, teams · webcam, mic, speaker, keyboard, pixels, touch,
+   screen, level, compass, soundmeter, ruler.
+2. **Software (PC only, 47 tabs left)**, each with its own suite from the start, wasm first: sqlite (official wasm),
+   jq (own build of jq 1.8.2 exists), yaml (own libyaml + toml++), graphviz (own build), python (MicroPython), and the
+   rest listed in CLAUDE.md §2.
+3. Audit list replacements (own builds of mozjpeg/libwebp/oxipng, libheif, tesseract, zxing-cpp, libarchive,
+   zip AES in crypto.wasm, minimp4) — CLAUDE.md §3a.
+4. Pending owner decision: docs/IDEAS.md (new-tab candidates from other GitHub projects) — build nothing from it until
+   the owner picks.
 
 ## Environment notes for a fresh container
 - Zig is NOT persistent: reinstall per CLAUDE.md §5 (`pip download ziglang==0.17.1`, unzip, `export ZIG=…`).
