@@ -69,7 +69,7 @@ STANDING RULE #1 is at the top of `CLAUDE.md`; audit list is in CLAUDE.md §3a.
    legacy model converter scripts/convert-magenta.mjs). **All Images tools are done.** Photo Dictionary DONE (43 e2e + 56 unit;
    data in public/data/dict built by scripts/build-dict.mjs from kaikki.org + wordfreq; CSP now allows the two
    approved dictionary APIs). PDF core tabs DONE on MuPDF: merge, split, organize, img2pdf, pdf2img, pdf2text, pagenum,
-   watermark (own e2e suite each). Unlock, Protect, Compress, Sign, Fill DONE — **all 13 PDF tabs done**. **Next: markdown (own cmark-gfm wasm), invoice/rent/resume (docgen), sheet (PC), epub (PC)** (MuPDF; AES-256 via
+   watermark (own e2e suite each). Unlock, Protect, Compress, Sign, Fill DONE — **all 13 PDF tabs done**. Markdown Editor DONE (own cmark-gfm wasm, 25 unit + 23 e2e). **Next: invoice/rent/resume (docgen), sheet (PC), epub (PC)** (MuPDF; AES-256 via
    saveToBuffer `encrypt=aes-256,user-password=…`), then markdown, invoice/rent/resume, epub, sheet; then, in order: (imgproc detect/warp/enhance → PDF via MuPDF),
    ocr (Tesseract eng+hin), passport (36 presets in src/lib/passport-specs.ts; MediaPipe landmarks + selfie
    segmentation + imgproc guided filter; camera, print sheet, KB target, DPI), bgremove, cartoon (classic imgproc

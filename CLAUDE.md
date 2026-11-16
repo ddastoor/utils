@@ -169,7 +169,7 @@ MuPDF widgets with appearance regeneration; optional flatten (`bake`); "type any
 | `pdf-watermark` | PDF Watermark | both |
 | `epub` | PDF → EPUB (Kindle) | **PC** |
 | `sheet` | CSV / Excel Viewer & Converter | **PC** |
-| `markdown` | Markdown Editor | both |
+| `markdown` | Markdown Editor | both — **BUILT** (cmark-gfm wasm; live preview, toolbar + Ctrl+B/I/K, .md open/save, standalone .html, print of the preview only; e2e 23) |
 
 **Security**: `pgp` OpenPGP · `sodium` Sodium Encrypt · `sharelink` Encrypted Share Link (ciphertext in the
 URL `#fragment`, never sent to a server) · `hash` Hash / Checksum · `password` Password Generator ·
@@ -572,7 +572,7 @@ stay **public** (the source of the deployed site is then available to every user
 | BusyBox 1.38.0 (130 applets) + compat shims | C | **us** (`wasm/busybox`) | terminal, bc console |
 | jq 1.8.2 (+ oniguruma) | C | **us** (`wasm/jq`) | jq |
 | textcore: Myers diff, tool-search ranking, word frequency, rare-word ranking (tokeniser, lemmatiser, wordfreq hash table) | C (own code) | **us** (`wasm/textcore`) | diff, search box, word counter, photodict |
-| cmark-gfm (GitHub Flavored Markdown) | C | **us** (`wasm/markdown`) | markdown |
+| cmark-gfm 0.29.0.gfm.13 (GitHub Flavored Markdown) | C | **us** (`wasm/markdown`, source from the PyPI `cmarkgfm` sdist, SHA-256 pinned) | markdown |
 | libyaml 0.2.5 + toml++ 3 | C / C++ | **us** (`wasm/formats`) | yaml |
 | MuPDF 1.28 | C | Artifex (official `mupdf` npm) | all PDF tools, PDF → EPUB |
 | SQLite 3.54 | C | SQLite project (official `@sqlite.org/sqlite-wasm`) | sqlite |
@@ -723,6 +723,13 @@ patches: spawn() → host import, ed's `open(f, 0)`, stat function pointers; zig
 `-mexception-handling -mllvm -wasm-enable-sjlj`), LLVM `ar` and `wasm-ld`; final link done by the script (BusyBox's
 trylink loses `main`, which WASI's `_start` only references weakly). Adding an applet: put it in `applets.cfg`, rebuild,
 add a case to `tests/unit/terminal-applets.test.mjs` (the suite refuses untested applets).
+
+### 5.1e markdown → `src/wasm/bin/markdown.wasm`
+`ZIG=… wasm/markdown/build.sh`: downloads the `cmarkgfm` 2025.10.22 sdist from PyPI (SHA-256 `5bec6100…`), which vendors
+cmark-gfm 0.29.0.gfm.13 (latest upstream) plus its CMake-generated headers (`generated/unix`), and links all of
+`src/*.c` (minus the CLI) + `extensions/*.c` + `glue.c` (`md_html(src, len, flags, &outlen)`: GFM tables,
+strikethrough, autolinks, tag filter, task lists, footnotes; flags = smart punctuation, hard breaks; raw HTML and
+unsafe URLs always suppressed). TS wrapper `src/wasm/markdown.ts`; tests `tests/unit/markdown.test.mjs` (25).
 
 **Rebuild everything we compile ourselves:** `ZIG=/path/to/zig wasm/build-all.sh` (builds each module, then runs
 the unit tests).
