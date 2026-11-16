@@ -72,6 +72,9 @@ the 47 Software stub tabs (each with its own suite) first, then ask about potent
 - Fake clock (`page.clock.install` → `pauseAt` → `runFor`/`fastForward`): rAF-driven displays show the last *frame*
   (16 ms steps) — run a little past a boundary (e.g. `runFor(1100)` for "1 s later"). `fastForward` fires a due timer
   only once, so walk multi-phase timers one phase at a time.
+- `E2E_STACK=1 node tests/e2e.mjs <suite>` prints the suite's line number when it crashes.
+- A test that runs a child process against an HTTP server living in the test process must spawn it asynchronously
+  (a synchronous child deadlocks the server).
 - `page.goto` to the URL the page is already on (same hash) does not re-mount the tab — go to another tab first.
 - Orientation events (level, compass) reach listeners only when the context has the `accelerometer`, `gyroscope`,
   `magnetometer` permissions. Real multi-touch: CDP `Input.dispatchTouchEvent` (synthetic PointerEvents break
@@ -83,7 +86,7 @@ the 47 Software stub tabs (each with its own suite) first, then ask about potent
 The environment "utils" has a setup script (added 16 Nov 2026) that installs `pynacl pyzipper py7zr` (pip --user),
 Zig 0.17.1 at `/tmp/zig/x/ziglang/zig` and runs `npm ci`; the variable `ZIG` points at Zig. If a machine lacks them, run:
 ```bash
-python3 -m pip install --user -q pynacl pyzipper py7zr
+python3 -m pip install --user -q pynacl pyzipper py7zr bcrypt argon2-cffi zxcvbn requests
 python3 -m pip download -q ziglang==0.17.1 --no-deps -d /tmp/zig && python3 -m zipfile -e /tmp/zig/ziglang-0.17.1-*.whl /tmp/zig/x && chmod +x /tmp/zig/x/ziglang/zig
 export ZIG=/tmp/zig/x/ziglang/zig
 ```

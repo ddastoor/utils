@@ -290,7 +290,7 @@ export function parseCurl(cmd: string): CurlReq {
       case '-X': case '--request': r.method = next().toUpperCase(); break;
       case '-H': case '--header': { const hv = next(), k = hv.indexOf(':'); if (k > 0) r.headers.push([hv.slice(0, k).trim(), hv.slice(k + 1).trim()]); break; }
       case '-d': case '--data': case '--data-ascii': case '--data-raw': case '--data-binary': data.push(next()); break;
-      case '--data-urlencode': { const dv = next(), k = dv.indexOf('='); data.push(k >= 0 ? `${dv.slice(0, k)}=${encodeURIComponent(dv.slice(k + 1))}` : encodeURIComponent(dv)); break; }
+      case '--data-urlencode': { const dv = next(), k = dv.indexOf('='); const enc = (x: string) => encodeURIComponent(x).replace(/%20/g, '+'); data.push(k >= 0 ? `${dv.slice(0, k)}=${enc(dv.slice(k + 1))}` : enc(dv)); break; } // spaces as + like curl
       case '--json': data.push(next()); r.headers.push(['Content-Type', 'application/json'], ['Accept', 'application/json']); break;
       case '-F': case '--form': { const fv = next(), k = fv.indexOf('='); r.form.push([fv.slice(0, k), fv.slice(k + 1)]); break; }
       case '-u': case '--user': r.user = next(); break;
@@ -329,9 +329,9 @@ export function curlTo(lang: string, r: CurlReq): string {
   if (lang === 'python') {
     const L = ['import requests', ''];
     if (hs.length) L.push(`headers = {\n${hs.map(([k, v]) => `    ${pyq(k)}: ${pyq(v)},`).join('\n')}\n}`);
-    if (isJson) L.push(`json_data = ${JSON.stringify(JSON.parse(r.body!), null, 4).replace(/\btrue\b/g, 'True').replace(/\bfalse\b/g, 'False').replace(/\bnull\b/g, 'None')}`); else if (r.body !== null) L.push(`data = ${pyq(r.body)}`);
+    if (r.body !== null) L.push(`data = ${pyq(r.body)}`); // the exact bytes curl sends (json= would re-serialise and break signatures)
     if (r.form.length) L.push(`files = {\n${r.form.map(([k, v]) => `    ${pyq(k)}: ${v.startsWith('@') ? `open(${pyq(v.slice(1))}, "rb")` : `(None, ${pyq(v)})`},`).join('\n')}\n}`);
-    const args = [pyq(r.url), hs.length && 'headers=headers', isJson && 'json=json_data', !isJson && r.body !== null && 'data=data', r.form.length && 'files=files', r.insecure && 'verify=False', !r.follow && r.method !== 'GET' ? null : null].filter(Boolean);
+    const args = [pyq(r.url), hs.length && 'headers=headers', r.body !== null && 'data=data.encode()', r.form.length && 'files=files', r.insecure && 'verify=False', !r.follow && r.method !== 'GET' ? null : null].filter(Boolean);
     L.push('', `response = requests.request(${pyq(r.method)}, ${args.join(', ')}${r.follow ? '' : ', allow_redirects=False'})`, 'print(response.status_code, response.text)');
     return L.join('\n');
   }
