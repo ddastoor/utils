@@ -1,0 +1,43 @@
+// jq.wasm (jq 1.8.2 from the official source, built by us): examples from the jq 1.8 manual with their documented
+// outputs, CLI flags (-r -c -s -n -S -j -R -e, --arg/--argjson), regex (oniguruma), dates, errors and exit codes.
+export default async (t, { load, wasm }) => {
+  const { bindJq } = await load('/src/wasm/jq.ts');
+  const jq = bindJq(await wasm('jq'));
+  const c = (f, i, o = {}) => jq.run(f, i, { compact: true, ...o }).output.trimEnd();
+  t.eq(c('.foo', '{"foo": 42, "bar": "less interesting data"}'), '42', 'manual: .foo');
+  t.eq(c('.[0]', '[{"name":"JSON", "good":true}, {"name":"XML", "good":false}]'), '{"name":"JSON","good":true}', 'manual: .[0]');
+  t.eq(c('.[]', '[{"name":"JSON", "good":true}, {"name":"XML", "good":false}]'), '{"name":"JSON","good":true}\n{"name":"XML","good":false}', 'manual: .[] iterates');
+  t.eq(c('{user, title: .titles[]}', '{"user":"stedolan","titles":["JQ Primer", "More JQ"]}'), '{"user":"stedolan","title":"JQ Primer"}\n{"user":"stedolan","title":"More JQ"}', 'manual: object construction with a generator');
+  t.eq(c('map(select(. >= 2))', '[1,5,3,0,7]'), '[5,3,7]', 'manual: map(select(...))');
+  t.eq(c('group_by(.foo)', '[{"foo":1, "bar":10}, {"foo":3, "bar":100}, {"foo":1, "bar":1}]'), '[[{"foo":1,"bar":10},{"foo":1,"bar":1}],[{"foo":3,"bar":100}]]', 'manual: group_by');
+  t.eq(c('reduce .[] as $item (0; . + $item)', '[1,2,3,4,5]'), '15', 'manual: reduce');
+  t.eq(c('[paths]', '[1,[[],{"a":2}]]'), '[[0],[1],[1,0],[1,1],[1,1,"a"]]', 'manual: paths');
+  t.eq(c('test("a b c # spaces are ignored"; "ix")', '"xabcd ABC"'), 'true', 'manual: test() with x and i flags (oniguruma)');
+  t.eq(c('[ match("(?<x>a)?b"; "g") | .captures[0].name ]', '"ab b"'), '["x","x"]', 'named captures');
+  t.eq(c('sub("(?<x>[a-z]+)"; "<\\(.x)>"; "g")', '"abc 123 def"'), '"<abc> 123 <def>"', 'sub with a named capture');
+  t.eq(c('@base64, @uri, @csv, @sh', '["a b","c,d"]', { raw: true }), 'WyJhIGIiLCJjLGQiXQ==\n%5B%22a%20b%22%2C%22c%2Cd%22%5D\n"a b","c,d"\n\'a b\' \'c,d\'', 'formats @base64 @uri @csv @sh with -r');
+  t.eq(c('todate, (.|strftime("%Y-%m-%dT%H:%M:%SZ"))', '1425599621'), '"2015-03-05T23:53:41Z"\n"2015-03-05T23:53:41Z"', 'manual: todate / strftime');
+  t.eq(c('"2015-03-05T23:51:47Z" | fromdate', 'null'), '1425599507', 'manual: fromdate');
+  t.eq(c('$foo', 'null', { args: { foo: 'bar' } }), '"bar"', '--arg foo bar');
+  t.eq(c('$n + 1', 'null', { args: { n: 41 } }), '42', '--argjson n 41');
+  t.eq(c('.', '1 2 3', { slurp: true }), '[1,2,3]', '-s slurps several inputs');
+  t.eq(c('[inputs]', '1 2 3', { nullInput: true }), '[1,2,3]', '-n with inputs');
+  t.eq(c('.', '{"b":1,"a":{"d":1,"c":2}}', { sortKeys: true }), '{"a":{"c":2,"d":1},"b":1}', '-S sort keys');
+  t.eq(jq.run('.[]', '["a","b"]', { raw: true, join: true }).output, 'ab', '-j joins without new lines');
+  t.eq(c('.', 'line one\nline two', { rawInput: true }), '"line one"\n"line two"', '-R raw lines');
+  t.eq(c('split("\\n") | length', 'a\nb\nc', { rawInput: true, slurp: true }), '3', '-Rs whole text');
+  t.eq(jq.run('.', '{"a":[1,2]}').output, '{\n  "a": [\n    1,\n    2\n  ]\n}\n', 'pretty output with 2 spaces (jq default)');
+  t.eq(jq.run('.', '{"a":1}', { tab: true }).output, '{\n\t"a": 1\n}\n', '--tab');
+  t.eq(jq.run('.', '"é"', { ascii: true }).output.trim(), '"\\u00e9"', '-a ASCII output');
+  t.eq(c('1e1000, 100000000000000000001', 'null'), '1E+1000\n100000000000000000001', 'big number literals kept exactly (decNumber, as jq 1.8 prints them)');
+  let r = jq.run('.a.b', '{"a": 5}'); t.ok(r.code === 5 && /Cannot index number with string/.test(r.error), `runtime error, exit 5 (${r.error})`);
+  r = jq.run('.[', '{}'); t.ok(r.code === 3 && /syntax error/.test(r.error), `compile error, exit 3 (${r.error.split('\n')[0]})`);
+  r = jq.run('.', '{"a": 1'); t.ok(r.code === 2 && /input/.test(r.error), `bad JSON input → error (${r.error})`);
+  r = jq.run('error("custom")', 'null'); t.ok(r.code === 5 && /custom/.test(r.error), 'error() message');
+  r = jq.run('"bye\\n" | halt_error(1)', 'null'); t.ok(r.code === 1 && /bye/.test(r.error), 'halt_error exit code');
+  t.eq([jq.run('.a', '{"a": false}', { exitStatus: true }).code, jq.run('.a', '{"a": 1}', { exitStatus: true }).code, jq.run('empty', '1', { exitStatus: true }).code], [1, 0, 4], '-e exit status');
+  t.eq(c('[limit(3; range(10))], first(range(5;10)), ([.[] | tostring] | join("-"))', '[1,2]'), '[0,1,2]\n5\n"1-2"', 'limit, first, join');
+  t.eq(c('getpath(["a","b"]), (to_entries | map("\\(.key)=\\(.value|tostring)") | join("&")), (with_entries(.value |= tostring) | keys)', '{"a":{"b":1},"c":2}'), '1\n"a={\\"b\\":1}&c=2"\n["a","c"]', 'getpath, to_entries, with_entries');
+  const many = JSON.stringify(Array.from({ length: 20000 }, (_, i) => ({ id: i, even: i % 2 === 0 })));
+  t.eq(c('map(select(.even)) | length', many), '10000', '20,000-element input');
+};

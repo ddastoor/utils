@@ -963,6 +963,14 @@ Imports: WASI + `env.w_progress` (`instantiateWasi(url, extra)` takes extra impo
 **Big models:** `scripts/assets.json` entries with `"split": N` are verified, then stored as `<name>.0 … .k` (≤ N bytes)
 + `<name>.parts.json` (sha256, size, part sizes) and the whole file removed, so no deployed file exceeds 100 MB.
 
+### 5.1k jq → `src/wasm/bin/jq.wasm`
+`ZIG=… wasm/jq/build.sh`: downloads `jq_1.8.2.orig.tar.gz` from the Ubuntu archive (github.com is blocked in the sandbox;
+SHA-256 `71b8d6e8…`), configures with a zig cc wrapper (`-D_WASI_EMULATED_SIGNAL/PROCESS_CLOCKS/MMAN`), builds the
+bundled oniguruma, decNumber and libjq, and links `glue.c` as a reactor (`jq_run(filter, input, len, flags, args_json)`:
+flags = -r -c -s -n -S --tab -j -a -R -e; one input source shared by the main loop and `input`/`inputs` through
+`jq_set_input_cb`; `$ARGS` built like main.c; exit codes 0 / 2 bad input / 3 compile / 5 runtime, halt_error's code).
+~0.96 MB. Wrapper `src/wasm/jq.ts`; unit `tests/unit/jq.test.mjs` (35); e2e compares outputs with the native jq.
+
 ### 5.1e markdown → `src/wasm/bin/markdown.wasm`
 `ZIG=… wasm/markdown/build.sh`: downloads the `cmarkgfm` 2025.10.22 sdist from PyPI (SHA-256 `5bec6100…`), which vendors
 cmark-gfm 0.29.0.gfm.13 (latest upstream) plus its CMake-generated headers (`generated/unix`), and links all of
