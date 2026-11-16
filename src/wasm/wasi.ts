@@ -1,5 +1,6 @@
 // Minimal WASI shim for our own reactor modules (built with `zig cc --target=wasm32-wasi`).
-// Only randomness and stderr are real; every other syscall reports ENOSYS. No files, no network.
+// Only randomness, the clock and stderr are real; there are no files (fd_prestat_get: EBADF = no pre-opened
+// directories) and every other syscall reports ENOSYS. No network.
 
 export interface WasiInstance { exports: any; memory: WebAssembly.Memory }
 
@@ -29,6 +30,8 @@ export async function instantiateWasi(url: string): Promise<WasiInstance> {
     if (text.trim()) (fd === 2 ? console.warn : console.log)('[wasm]', text.trimEnd());
     return 0;
   };
+  // "no (more) pre-opened directories" is EBADF; wasi-libc's start-up aborts on any other error
+  wasi.fd_prestat_get = () => 8;
   wasi.proc_exit = (code) => { throw new Error(`wasm exited with code ${code}`); };
   wasi.clock_time_get = (_id, _prec, out) => {
     new DataView(memory.buffer).setBigUint64(out, BigInt(Math.round(performance.timeOrigin + performance.now())) * 1_000_000n, true);

@@ -47,6 +47,7 @@ if (isMainThread) {
     const w = {};
     for (const i of WebAssembly.Module.imports(mod)) if (i.module === 'wasi_snapshot_preview1') w[i.name] = () => 52;
     w.random_get = (p, n) => { crypto.getRandomValues(new Uint8Array(memory.buffer, p, n)); return 0; };
+    w.fd_prestat_get = () => 8; // EBADF: no pre-opened directories (as in src/wasm/wasi.ts)
     w.proc_exit = (c) => { throw new Error('exit ' + c); };
     // same as the browser shim (src/wasm/wasi.ts): a real clock and an empty environment
     w.clock_time_get = (_id, _prec, out) => { new DataView(memory.buffer).setBigUint64(out, BigInt(Date.now()) * 1000000n, true); return 0; };

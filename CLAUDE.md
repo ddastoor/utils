@@ -194,7 +194,7 @@ Classic / Modern (two columns) / Compact, A4 or Letter, photo, repeatable jobs /
 URL `#fragment`, never sent to a server) · `hash` Hash / Checksum · `password` Password Generator ·
 `passphrase` Passphrase Generator — all both.
 
-**Media**: `video` Video Compressor (both, **BUILT**) · `audio` Audio Recorder (both, **BUILT**) · `tts` Text-to-Speech (both) ·
+**Media**: `video` Video Compressor (both, **BUILT**) · `audio` Audio Recorder (both, **BUILT**) · `tts` Text-to-Speech (both, **BUILT**) ·
 `ffmpeg` FFmpeg (**PC**, **BUILT**) · `screencast` Screencast (**PC**, **BUILT**) · `screenshot` Screenshot (**PC**, **BUILT**) ·
 `youtube` YouTube Clip (**PC**, **BUILT**)
 
@@ -243,18 +243,26 @@ models (MIT): `ggml-base.en-q5_1` (60 MB, default on phones) and `ggml-small.en-
 from huggingface.co/ggerganov/whisper.cpp, SHA-256 pinned in `scripts/assets.json`. Record or upload → transcript
 + .srt/.vtt. Not live dictation (no threads on GitHub Pages).
 
-**Text-to-Speech** (`tts`) — owner asked for the best-quality option; decision: **Kokoro-82M** (Apache-2.0,
-`onnx-community/Kokoro-82M-v1.0-ONNX`, q8 model ≈ 90 MB, SHA-256 pinned) on ONNX Runtime Web (C++ → wasm, WebGPU when
-available) via kokoro-js / transformers.js (Apache-2.0) with espeak-ng phonemizer (C → wasm, GPL-3.0) — default
-"Natural voice", ~20 US/UK voices, speed control, WAV download. Second engine "System voice": Web Speech API limited
-to `localService` voices (includes Indian English voices on Windows/Android/iOS). Claude's own app voice was
-considered and rejected: proprietary cloud service (online, needs an account) — violates the hard requirements.
-Owner-confirmed TTS requirements: input = text area **or** uploaded .txt/.md; output = play + **MP3 download**
-(LAME, C → wasm, built by us); **voices: US female/male, UK female/male, Indian English female/male**; **speed
-slider 0.5×–2×** (model-side speed, natural pitch). Voices: US/UK = Kokoro (`af_*`, `am_*`, `bf_*`, `bm_*`);
-Indian English = Piper `en_US-l2arctic-medium` (VITS ONNX, 77 MB, CC BY-NC 4.0 — personal use OK) speakers from
-native Hindi speakers: female `SVBI` (id 2), `TNI` (id 9); male `ASI` (id 10), `RRBI` (id 19). System voices remain a
-play-only extra (browsers can't capture speechSynthesis audio for MP3).
+**Text-to-Speech** (`tts`) — **BUILT** (`src/tools/tts.ts`, worker `src/workers/tts.worker.ts`, front ends
+`src/lib/kokoro.ts` + `src/lib/piper.ts`; unit `espeak.test.mjs` 14 + `tts-text.test.mjs` 26; e2e `tts.e2e.mjs` 13).
+Owner asked for the best quality: **Kokoro-82M** (Apache-2.0, `onnx-community/Kokoro-82M-v1.0-ONNX` q8, 92 MB, commit
+pinned + SHA-256) for US (Heart, Bella, Nicole, Sarah, Michael, Fenrir, Puck) and British (Emma, Isabella, George,
+Fable) voices at 24 kHz; **Indian English** = Piper `en_US-l2arctic-medium` (VITS, 77 MB, CC BY-NC 4.0 — personal use)
+speakers SVBI (2) and TNI (9) female, ASI (10) and RRBI (19) male, 22.05 kHz. Phonemes: **our own eSpeak NG 1.52.0
+wasm** (`wasm/espeak`, English data linked in) — Kokoro: kokoro-js's text normalisation (money, years, times,
+decimals, ranges, titles) and phoneme fix-ups ported to TS (+ eSpeak 1.52's "kəkˈɔːɹoʊ" form), punctuation kept around
+eSpeak segments, the model's 115-symbol vocabulary, chunks ≤ 510 tokens, style row = token count; Piper: piper-phonemize
+logic (clause punctuation, one sentence per line, `^ _ … _ $` ids, length_scale = 1/speed, 0.2 s sentence silence).
+Networks on **ONNX Runtime Web 1.31** (official Microsoft wasm build, one thread — no cross-origin isolation on
+GitHub Pages), models streamed with progress, audio sent back sentence by sentence and scheduled gap-free (first
+sound after the first sentence). Speed 0.5–2× (model-side, natural pitch). Text box or .txt/.md (markdown stripped).
+**MP3** (our LAME, 96 kbps) or WAV; Stop. "System voices": Web Speech on-device English voices, play only (browsers
+cannot capture them). Measured in the sandbox: Kokoro ≈ 0.4× real time incl. the first model load, Piper ≈ 0.8×.
+Not yet: WebGPU for Kokoro (ORT's 29 MB JSEP build) — would make it several times faster on PCs with a GPU.
+Claude's own app voice was considered and rejected: proprietary cloud service — violates the hard requirements.
+Tests: Kokoro 24 kHz mono, plausible length and energy, female median F0 > male + 40 Hz (Heart vs Michael), British
+voice, 2× speed ≈ half the length, Piper 22.05 kHz with female above male pitch, MP3 frames, sentence progress, stop,
+markdown → text.
 Speech to Text accent requirement: very good on US, UK and **especially Indian English** → Whisper small.en default
 plus a "names & terms" hint box fed to Whisper's initial prompt.
 
@@ -686,11 +694,13 @@ stay **public** (the source of the deployed site is then available to every user
 | jq 1.8.2 (+ oniguruma) | C | **us** (`wasm/jq`) | jq |
 | audio: **LAME 4.0** libmp3lame (MP3 encoder) + own C (WAV writer, waveform peaks, levels, gain/fades, Kaiser windowed-sinc resampler, WSOLA time stretch, tempo × pitch) | C | **us** (`wasm/audio`) | audio (and tts, stt, noise, pitch) |
 | rnnoise: Xiph **RNNoise 0.2** (+ default model) + glue (48 kHz frames, latency compensation, wet/dry mix, VAD) | C | **us** (`wasm/rnnoise`) | noise |
+| espeak: **eSpeak NG 1.52.0** (+ English phoneme tables and dictionary compiled from the same release, linked in, served to its fopen/stat from memory) + glue (IPA for Kokoro, piper-phonemize-style sentences) | C | **us** (`wasm/espeak`) | tts (stt hints later) |
 | textcore: Myers diff, tool-search ranking, word frequency, rare-word ranking (tokeniser, lemmatiser, wordfreq hash table), XY-cut reading order | C (own code) | **us** (`wasm/textcore`) | diff, search box, word counter, photodict |
 | sheet: calamine 0.38 (read .xlsx .xlsm .xlsb .xls .ods) + rust_xlsxwriter 0.102 (write .xlsx) + csv 1 + serde_json | Rust | **us** (`wasm/sheet`, crates.io sources verified by `Cargo.lock`, target wasm32-wasip1) | sheet |
 | cmark-gfm 0.29.0.gfm.13 (GitHub Flavored Markdown) | C | **us** (`wasm/markdown`, source from the PyPI `cmarkgfm` sdist, SHA-256 pinned) | markdown |
 | libyaml 0.2.5 + toml++ 3 | C / C++ | **us** (`wasm/formats`) | yaml |
 | MuPDF 1.28 | C | Artifex (official `mupdf` npm) | all PDF tools, PDF → EPUB |
+| ONNX Runtime Web 1.31 (CPU/WebAssembly, SIMD) | C++ | Microsoft (official `onnxruntime-web`; tier 2 — a build of ORT from source is impractical: huge C++ tree with protobuf/abseil/Eigen and Emscripten-specific glue) | tts (Kokoro, Piper) |
 | SQLite 3.54 | C | SQLite project (official `@sqlite.org/sqlite-wasm`) | sqlite |
 | FFmpeg | C | ffmpeg.wasm project | ffmpeg |
 | MozJPEG, libwebp, OxiPNG | C / Rust | jSquash (Squoosh codecs) | image encoders |
@@ -898,6 +908,17 @@ Debian's repack of upstream 0.2 incl. the trained model, SHA-256 `db2718ee…` f
 the `OPUS_CLEAR` macro that upstream's generic (non-x86/NEON) path includes but does not ship. Wrapper
 `src/wasm/rnnoise.ts`.
 
+### 5.1i espeak → `src/wasm/bin/espeak.wasm`
+`ZIG=… wasm/espeak/build.sh` (also needs gcc, make, autoconf, automake, libtool, pkg-config): downloads
+`espeak-ng_1.52.0+dfsg.orig.tar.gz` from the Ubuntu archive (SHA-256 `d2a886ba…` from the signed .dsc); a **native**
+build compiles `phontab/phonindex/phondata/intonations` and `en_dict`; a Python step turns them + `lang/gmw/en(-US)`
+into C arrays (`espeak_data.c`, voice paths lower-cased as eSpeak looks them up); `memfs.h` (force-included) sends
+`fopen` to `es_fopen` and the build points `GetFileLength`'s `stat` at `es_stat` — both served from memory with musl's
+`fmemopen`; `tmpnam` is stubbed (WASI has none); our `config.h`. Glue: `es_init` (voice gmw/en-us), `es_voice`,
+`es_phonemes(text, 0|1)` (mode 1 = `TranslateClauseWithTerminator`, as piper-phonemize). ~1.2 MB. **WASI note:** this is
+the first module that links wasi-libc's pre-open scan: `fd_prestat_get` must answer EBADF (8), not ENOSYS, or start-up
+aborts with exit 71 — fixed in `src/wasm/wasi.ts` and the unit harness.
+
 ### 5.1e markdown → `src/wasm/bin/markdown.wasm`
 `ZIG=… wasm/markdown/build.sh`: downloads the `cmarkgfm` 2025.10.22 sdist from PyPI (SHA-256 `5bec6100…`), which vendors
 cmark-gfm 0.29.0.gfm.13 (latest upstream) plus its CMake-generated headers (`generated/unix`), and links all of
@@ -935,6 +956,7 @@ npm packages (pinned in `package-lock.json`) are bundled by Vite or copied to `p
 | @fontsource/anton (Anton font) | OFL-1.1 | Text on Image (meme style), Watermark |
 | @fontsource/great-vibes, /dancing-script, /caveat | OFL-1.1 | Signature Maker (typed signatures) |
 | @fontsource/literata (Literata, Google's reading typeface) | OFL-1.1 | Photo Dictionary cards |
+| onnxruntime-web 1.31.1 | MIT | Text-to-Speech (Kokoro, Piper) |
 | mediabunny | MPL-2.0 | Video Compressor, Audio Recorder (cut without re-encoding) |
 | @expo-google-fonts/noto-sans (Noto Sans TTF: regular, bold, italic) | OFL-1.1 (package MIT) | PDFs made by GST Invoice, Rent Receipt, Resume Builder |
 
