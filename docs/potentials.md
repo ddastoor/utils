@@ -113,6 +113,21 @@ Platform: "both" = PC + mobile.
 | 50 | **Packet Capture Viewer**: open .pcap/.pcapng files with Wireshark's own dissectors | Wiregasm (Wireshark → wasm, GPL) | official-community wasm build | PC (Software) | waiting |
 | 51 | **Scratch for Kids**: block programming, save/open .sb3 files | Scratch GUI (MIT Scratch Foundation, BSD-3) | JavaScript, self-hosted | PC / tablet | waiting |
 
+### Asked about by the owner (16 Nov 2026)
+| # | New tab | Open-source project | Engine | Platform | Status |
+|---|---|---|---|---|---|
+| 54 | **Diagram Editor**: flowcharts, org charts, network / UML / BPMN diagrams, floor plans; open and save `.drawio` files, export PNG / SVG (PDF via our MuPDF if the web build's PDF export needs a server) | the real draw.io web app (`jgraph/drawio`), self-hosted — not a clone | JavaScript (mxGraph) — no compiled diagram editor exists (tier 4, record in §3a); runs in an iframe page with its own CSP, driven by draw.io's embed (postMessage) protocol so files stay on the device; cloud integrations and browser storage switched off; the no-external test must see zero outside requests | PC (works on tablets) | waiting |
+
+**Legal notes for #54 (checked 16 Nov 2026, primary sources):** the repository's `LICENSE` file is the plain Apache
+License 2.0 and its README says "The source code in this repository is licensed under the Apache License 2.0" and even
+suggests publishing a fork on GitHub Pages. (A secondary source claims a 2024 switch to a "JGraph Adapted Apache
+License"; the current LICENSE file does not show it. Re-read the LICENSE of the exact pinned version before vendoring.)
+Conditions: ship the Apache licence, mark modified files, keep notices; **trademarks** — do not use the draw.io name or
+logo as our tab's name/branding or imply endorsement (the tab is "Diagram Editor"; the credits may say where the code
+comes from, which Apache §6 allows); the icon/stencil restriction only concerns Atlassian products; vendor only shape
+libraries whose licences allow redistribution. Overlaps #21 (Excalidraw, sketch style) and the planned Mermaid tab
+(text → diagram); draw.io is the formal drag-and-drop editor.
+
 ### Need the owner's approval of a new data-API host (like the dictionary APIs)
 | # | New tab | Data source | What is sent | Status |
 |---|---|---|---|---|
