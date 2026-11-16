@@ -103,11 +103,14 @@ Dictionary), Codes & Files (5), Everyday (9), Device (11), Linux Terminal + bc c
    rest listed in CLAUDE.md §2.
 3. Audit list replacements (own builds of mozjpeg/libwebp/oxipng, libheif, tesseract, zxing-cpp, libarchive,
    zip AES in crypto.wasm, minimp4) — CLAUDE.md §3a.
-4. **REMIND THE OWNER (owner request, 16 Nov 2026):** `docs/potentials.md` lists 29 new-tab ideas + 3 upgrades from
-   GitHub projects (round 1: Image to SVG, Upscaler, Searchable PDF, Pandoc, Vocal Remover, GIF, AVIF/JXL, age, Shamir,
+4. **REMIND THE OWNER (owner request, 16 Nov 2026):** `docs/potentials.md` lists 53 new-tab ideas + 7 upgrades from
+   open-source projects (round 1: Image to SVG, Upscaler, Searchable PDF, Pandoc, Vocal Remover, GIF, AVIF/JXL, age, Shamir,
    Spell Checker, BPM & Key, DuckDB; round 2: Auto Subtitles, Audiobook, PDF Compare, PDF Tables → Excel, Video Face
    Blur, Label Sheets, Music Tags, Duplicate Photos, Excalidraw, LaTeX, Circuit Simulator, Sky Map, Chart Maker,
-   Certificate Maker, WireGuard, Code Runner, Breach Check; upgrades: Hindi TTS, Pyodide, Video Stabilizer). The owner
+   Certificate Maker, WireGuard, Code Runner, Breach Check; upgrades: Hindi TTS, Pyodide, Video Stabilizer; round 3: Aadhaar/e-Invoice QR verifier, DIGIPIN, PDF signatures,
+   phone numbers, calendars, DjVu, metadata remover, steghide, RAW, ImageMagick, panorama, favicon, SoX, MIDI, Anki,
+   PARI/GP, OpenSCAD, Kiwix, ESP flasher, webR, Wiregasm, Scratch, Open Food Facts, Open Library; upgrades JBIG2,
+   unpaper, GMP, PROJ). The owner
    removed Chess, Ruff/Biome and Offline Translation — never suggest them again.
    Ask the owner which to build **when step 1 (per-tab suites) is finished, before starting step 2**, and at the start
    of any new session. Build nothing from it (or from the older `docs/IDEAS.md`) until the owner picks.
