@@ -194,7 +194,7 @@ Classic / Modern (two columns) / Compact, A4 or Letter, photo, repeatable jobs /
 URL `#fragment`, never sent to a server) · `hash` Hash / Checksum · `password` Password Generator ·
 `passphrase` Passphrase Generator — all both.
 
-**Media**: `video` Video Compressor (both) · `audio` Audio Recorder (both) · `tts` Text-to-Speech (both) ·
+**Media**: `video` Video Compressor (both) · `audio` Audio Recorder (both, **BUILT**) · `tts` Text-to-Speech (both) ·
 `ffmpeg` FFmpeg (**PC**) · `screencast` Screencast (**PC**) · `screenshot` Screenshot (**PC**) ·
 `youtube` YouTube Clip (**PC**)
 
@@ -424,9 +424,19 @@ sort/dedupe/trim/reverse lines; find & replace (regex); diff two texts (Myers li
 JSON format/minify/validate with error position; Base64, URL, HTML-entity, hex encode/decode;
 Unix epoch ↔ date; UUID v4/v7; colour converter (HEX/RGB/HSL/OKLCH) with picker; JWT decode (no verify).
 
-### Audio Recorder
-Record mic (MediaRecorder), live level meter + waveform, play back, trim start/end on the waveform,
-download as original (WebM/Opus or M4A) or WAV.
+### Audio Recorder — BUILT (`src/tools/audio.ts`, shared UI `src/lib/audioui.ts`; e2e `tests/e2e/audio.e2e.mjs` 21)
+Record the mic (MediaRecorder: Opus/WebM, AAC/M4A on Safari; 128 kbps) with pause/resume, big timer, live level meter
+with clip mark and a scrolling waveform; microphone picker; "voice clean-up" (browser echo/noise/AGC) on by default,
+optional stereo; Screen Wake Lock while recording (phones). Or open any audio/video file the browser can decode.
+Waveform trim editor (peaks from audio.wasm; drag either edge, or type Start/End seconds; "Whole recording"), play
+the selection with a playhead. Clean up: normalise (loudest point to −1 dB) and 0.3 s fades. Save as **MP3** (own
+LAME 4.0 wasm: 64/128/192/320 kbps CBR or VBR V2, with the LAME/Info tag), **WAV** 16-bit (own C), or **Original**
+(the recorded codec cut by packet copy with mediabunny — no re-encoding, and MediaRecorder's missing duration is
+fixed; WAV/FLAC originals keep their real sample rate). Volume/fade changes need MP3 or WAV (explained in a toast).
+`recorder()`, `waveEditor()`, `savePanel()` and `copyTrim()` are reused by Noise Remover, Pitch & Speed and STT.
+Tests: fake microphone (pause excluded from the length), and a generated 440 Hz / silence / 880 Hz stereo WAV:
+exact 1.00 s trims, the 880 Hz part found by zero crossings, channel levels kept, MP3 decoded by the browser,
+normalise peak −1 dB, fade envelope.
 
 ### PDF Toolkit
 Merge, split (ranges / every page), reorder (drag thumbnails), rotate, delete pages, images → PDF
@@ -604,6 +614,7 @@ stay **public** (the source of the deployed site is then available to every user
 | metacore (EXIF → JSON, lossless metadata strip JPEG/PNG/WebP, JPEG DPI, image sniffing) | C (own code) | **us** (`wasm/metacore`) | exif, image loading, passport/formphoto DPI |
 | BusyBox 1.38.0 (130 applets) + compat shims | C | **us** (`wasm/busybox`) | terminal, bc console |
 | jq 1.8.2 (+ oniguruma) | C | **us** (`wasm/jq`) | jq |
+| audio: **LAME 4.0** libmp3lame (MP3 encoder) + own C (WAV writer, waveform peaks, levels, gain/fades, Kaiser windowed-sinc resampler, WSOLA time stretch, tempo × pitch) | C | **us** (`wasm/audio`) | audio (and tts, stt, noise, pitch) |
 | textcore: Myers diff, tool-search ranking, word frequency, rare-word ranking (tokeniser, lemmatiser, wordfreq hash table), XY-cut reading order | C (own code) | **us** (`wasm/textcore`) | diff, search box, word counter, photodict |
 | sheet: calamine 0.38 (read .xlsx .xlsm .xlsb .xls .ods) + rust_xlsxwriter 0.102 (write .xlsx) + csv 1 + serde_json | Rust | **us** (`wasm/sheet`, crates.io sources verified by `Cargo.lock`, target wasm32-wasip1) | sheet |
 | cmark-gfm 0.29.0.gfm.13 (GitHub Flavored Markdown) | C | **us** (`wasm/markdown`, source from the PyPI `cmarkgfm` sdist, SHA-256 pinned) | markdown |
@@ -628,7 +639,7 @@ JavaScript-only components (no C/C++ equivalent exists for the job):
 | sql-formatter (MIT) | no C/C++ SQL pretty-printer library | sqlfmt |
 | TensorFlow.js (Apache-2.0) | runs the Magenta style-transfer graph on the GPU via WebGL; its **wasm backend** (XNNPACK, C++ → wasm, tier 2 official build) is the CPU path | cartoon (neural) |
 | zip.js (BSD-3) | AES-256 zip *creation*; libarchive's wasm build has no crypto | zip |
-| mediabunny (MPL-2.0) | MP4 muxing around the browser's hardware WebCodecs encoders | video |
+| mediabunny (MPL-2.0) | MP4 muxing around the browser's hardware WebCodecs encoders; cutting audio without re-encoding (packet copy) | video, audio |
 | semver (ISC) | tiny logic library | semver |
 
 **Audit list (STANDING RULE #1, item 7)** — components not yet on tier 1 and what replaces them. Work through it
@@ -800,6 +811,15 @@ hidden sheets flagged. Imports only WASI random/clock/environ/fd_write/proc_exit
 harness both implement a real clock). ~1.4 MB, loaded only by the PC-only `sheet` tab. Tests `tests/unit/sheet.test.mjs`
 (33, real files from python-calamine's test data in `tests/fixtures/sheets/`).
 
+### 5.1g audio → `src/wasm/bin/audio.wasm`
+`ZIG=… wasm/audio/build.sh`: downloads `lame_4.0.orig.tar.gz` from the Ubuntu archive (lame.sourceforge.io is not
+reachable from the sandbox; SHA-256 `3df5124d…` from Ubuntu's signed `lame_4.0-1.dsc`; LAME 4.0 = upstream release
+of 2026-07-11), uses our `wasm/audio/lame-config.h` (from LAME's own configure run as a cross build), compiles
+`libmp3lame/*.c` (no frontend, decoder, NASM or SSE) + `audio.c` with `-O2 -msimd128`, exports every `API a_*`.
+~257 KB. TS wrapper `src/wasm/audio.ts` (`bindAudio`), worker `src/workers/audio.worker.ts`, client
+`src/lib/audio-client.ts` (`audio(op, …)`, tracked worker). Tests `tests/unit/audio.test.mjs` (38: WAV bytes, peaks,
+resampler pass band + alias rejection, WSOLA tempo/pitch by zero crossings, MP3 frame chain + Info/Xing tag).
+
 ### 5.1e markdown → `src/wasm/bin/markdown.wasm`
 `ZIG=… wasm/markdown/build.sh`: downloads the `cmarkgfm` 2025.10.22 sdist from PyPI (SHA-256 `5bec6100…`), which vendors
 cmark-gfm 0.29.0.gfm.13 (latest upstream) plus its CMake-generated headers (`generated/unix`), and links all of
@@ -837,6 +857,7 @@ npm packages (pinned in `package-lock.json`) are bundled by Vite or copied to `p
 | @fontsource/anton (Anton font) | OFL-1.1 | Text on Image (meme style), Watermark |
 | @fontsource/great-vibes, /dancing-script, /caveat | OFL-1.1 | Signature Maker (typed signatures) |
 | @fontsource/literata (Literata, Google's reading typeface) | OFL-1.1 | Photo Dictionary cards |
+| mediabunny | MPL-2.0 | Video Compressor, Audio Recorder (cut without re-encoding) |
 | @expo-google-fonts/noto-sans (Noto Sans TTF: regular, bold, italic) | OFL-1.1 (package MIT) | PDFs made by GST Invoice, Rent Receipt, Resume Builder |
 
 **Data files committed in `public/data/`**: EFF large wordlist (CC-BY 3.0); `dict/` — English Wiktionary via

@@ -37,7 +37,7 @@ async function runOne(f) {
     },
     ok(cond, msg) { if (cond) passed++; else fails.push(msg); },
     info(msg) { infos.push(msg); },
-    async download(page, click) { const d = page.waitForEvent('download', { timeout: 90000 }); await click(); const dl = await d; const p = join(tmp, `${Date.now()}-${dl.suggestedFilename()}`); await dl.saveAs(p); return p; },
+    async download(page, click) { const d = page.waitForEvent('download', { timeout: Number(process.env.E2E_DL_TIMEOUT || 90000) }); await click(); const dl = await d; const p = join(tmp, `${Date.now()}-${dl.suggestedFilename()}`); await dl.saveAs(p); return p; },
   };
   try { await (await import(pathToFileURL(join(here, 'e2e', f)).href)).default(ctx); }
   catch (e) { fails.push(`crashed: ${e.message.split('\n')[0]}`); }
