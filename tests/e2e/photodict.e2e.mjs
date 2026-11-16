@@ -45,6 +45,7 @@ export default async ({ base, page: newPage, ok, info, devices }) => {
   const page = await newPage(phone), log = [];
   await mockApis(page, log);
   await page.goto(base + '#/photodict');
+  await page.getByRole('button', { name: 'Use camera' }).waitFor();
   ok(await page.getByRole('button', { name: 'Use camera' }).isVisible(), 'phone: camera button shown');
   ok(await page.getByRole('button', { name: 'Share list' }).isHidden(), 'no Share button before there are results');
   await page.locator('input[type=file]').first().setInputFiles(F('book-page.jpg'));

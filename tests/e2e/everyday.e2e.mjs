@@ -1,10 +1,12 @@
 export default async ({ base, page: newPage, ok }) => {
   const page = await newPage();
   const go = async (r) => { await page.goto(base + '#/' + r); await page.waitForSelector('.tool-body > *', { timeout: 15000 }); };
-  await go('stopwatch'); await page.getByRole('button', { name: 'Start' }).click(); await page.waitForTimeout(1200);
+  // the stopwatch must match real elapsed time (measured here, so a busy machine cannot make it flaky)
+  await go('stopwatch'); const t0 = Date.now(); await page.getByRole('button', { name: 'Start' }).click(); await page.waitForTimeout(1200);
   await page.getByRole('button', { name: 'Lap' }).click(); await page.getByRole('button', { name: 'Stop' }).click();
-  const sw = await page.locator('.timer-display').textContent();
-  ok(/^00:01\.\d\d$/.test(sw), `stopwatch ran ~1 s (${sw})`); ok((await page.locator('.lap').count()) === 1, 'stopwatch lap recorded');
+  const real = (Date.now() - t0) / 1000, sw = await page.locator('.timer-display').textContent();
+  const shown = (([m, s]) => +m * 60 + +s)(sw.split(':'));
+  ok(/^\d\d:\d\d\.\d\d$/.test(sw) && shown >= 1.1 && shown <= real + 0.05, `stopwatch shows the elapsed time (${sw}, real ≤ ${real.toFixed(2)} s)`); ok((await page.locator('.lap').count()) === 1, 'stopwatch lap recorded');
   await go('countdown'); await page.locator('input[type=number]').nth(1).fill('0'); await page.locator('input[type=number]').nth(2).fill('2');
   ok((await page.locator('.timer-display').textContent()) === '00:02', 'countdown set to 2 s');
   await page.getByRole('button', { name: 'Start' }).click(); await page.waitForSelector('.timer-display.done', { timeout: 5000 });

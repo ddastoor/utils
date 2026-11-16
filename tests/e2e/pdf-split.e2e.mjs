@@ -1,0 +1,43 @@
+// Split PDF (#/pdf-split): ranges → one PDF per range (zip when several), every page, every N pages, bad ranges.
+import { readFileSync, writeFileSync } from 'node:fs';
+import { unzipSync } from 'fflate';
+import { pdfInfo } from '../lib/pdfcheck.mjs';
+const P = (n) => new URL(`../fixtures/pdf/${n}`, import.meta.url).pathname;
+export default async ({ base, page: newPage, ok, download, tmp, devices }) => {
+  const page = await newPage();
+  await page.goto(base + '#/pdf-split');
+  await page.locator('input[type=file]').first().setInputFiles(P('two-different-pages.pdf'));
+  await page.getByText('two-different-pages.pdf: 2 pages').waitFor();
+  const split = () => download(page, () => page.getByRole('button', { name: 'Split', exact: true }).click());
+  const unzip = (p) => Object.entries(unzipSync(new Uint8Array(readFileSync(p)))).map(([n, b]) => { const f = `${tmp}/${Date.now()}-${n}`; writeFileSync(f, b); return [n, f]; });
+  await page.getByPlaceholder('e.g. 1-3, 5, 8-').fill('2');
+  const one = await split(), i1 = await pdfInfo(one);
+  ok(/p2\.pdf$/.test(one) && i1.pages === 1 && i1.list[0].text.trim() === '2', `one range → one PDF with page 2 (${one.split('/').pop()})`);
+  await page.getByPlaceholder('e.g. 1-3, 5, 8-').fill('2, 1-2');
+  const z = unzip(await split());
+  ok(z.length === 2, `two ranges → zip of two PDFs (${z.map((x) => x[0]).join(', ')})`);
+  const a = await pdfInfo(z.find((x) => /p2\.pdf$/.test(x[0]))[1]), b = await pdfInfo(z.find((x) => /p1-2\.pdf$/.test(x[0]))[1]);
+  ok(a.pages === 1 && b.pages === 2 && b.list[0].text.trim() === '1', 'each range has the right pages');
+  await page.getByPlaceholder('e.g. 1-3, 5, 8-').fill('3');
+  await page.getByRole('button', { name: 'Split', exact: true }).click();
+  ok(await page.getByText('outside 1–2').count() >= 1, 'out-of-range page refused with a clear message');
+  await page.getByRole('radio', { name: 'Every page' }).click();
+  const z2 = unzip(await split());
+  ok(z2.length === 2 && (await pdfInfo(z2[0][1])).pages === 1, 'every page → one PDF per page');
+  // a 5-page PDF made by merging, then every 2 pages → 3 files (2, 2, 1)
+  const m = await import('mupdf'), src = m.Document.openDocument(readFileSync(P('two-different-pages.pdf')), 'application/pdf').asPDF(), out = new m.PDFDocument();
+  for (let k = 0; k < 5; k++) out.graftPage(-1, src, k % 2);
+  const five = `${tmp}/five.pdf`; writeFileSync(five, out.saveToBuffer('compress').asUint8Array());
+  await page.locator('input[type=file]').first().setInputFiles(five);
+  await page.getByText('five.pdf: 5 pages').waitFor();
+  await page.getByRole('radio', { name: 'Every N pages' }).click();
+  const z3 = unzip(await split()), counts = await Promise.all(z3.map(async ([, f]) => (await pdfInfo(f)).pages));
+  ok(counts.sort().join(',') === '1,2,2', `every 2 pages → 2 + 2 + 1 (${counts.join(',')})`);
+  const real = page.errors.filter((e) => !/is outside 1–2/.test(e));
+  ok(real.length === 0, `no unexpected page errors: ${real.join(' | ')}`);
+  const phone = await newPage({ ...devices['iPhone 13'] });
+  await phone.goto(base + '#/pdf-split');
+  await phone.locator('input[type=file]').first().setInputFiles(P('crazyones.pdf'));
+  await phone.getByText('crazyones.pdf: 1 page').waitFor();
+  ok(await phone.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'phone: no horizontal scroll');
+};

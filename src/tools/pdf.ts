@@ -1,11 +1,293 @@
-// TEMPORARY placeholder — replaced by the real implementation.
-import { note, type Mount } from '../ui';
-const stub = () => note('This tool is being built.', 'info');
-export const merge: Mount = (root) => { root.append(stub()); };
-export const split: Mount = (root) => { root.append(stub()); };
-export const organize: Mount = (root) => { root.append(stub()); };
-export const img2pdf: Mount = (root) => { root.append(stub()); };
-export const pdf2img: Mount = (root) => { root.append(stub()); };
-export const pdf2text: Mount = (root) => { root.append(stub()); };
-export const pagenum: Mount = (root) => { root.append(stub()); };
-export const watermark: Mount = (root) => { root.append(stub()); };
+// Core PDF tabs on MuPDF (official C → wasm build): merge, split, organize, images → PDF, PDF → images, PDF → text,
+// page numbers, watermark. Everything stays in the browser.
+import { h, card, field, stack, note, actions, button, segmented, slider, toggle, input, select, progress, copy, toast, errMsg, filePicker, downloadBlob, shareOrDownload, fmtBytes, type Mount } from '../ui';
+import { mupdf, imagesToPdf, savePdf, stampPage, pageGeom, pageThumb, renderPage, textWidth, parseRanges, pdfString, isLatin1, type ImagePage } from '../lib/pdf';
+import { pdfInput, savePdfFile, stem, type LoadedPdf } from '../lib/pdfui';
+import { zipFiles } from '../lib/zip';
+import { resultList } from '../lib/imgtools';
+import { loadImg, encodeImg } from '../lib/imgio';
+import { readExif } from '../lib/exif';
+
+const plural = (n: number, w: string) => `${n} ${w}${n === 1 ? '' : 's'}`;
+/** A new PDF made of pages [doc, index] in order. */
+async function pagesToPdf(parts: Array<[LoadedPdf['doc'], number]>) {
+  const m = await mupdf(), out = new m.PDFDocument();
+  for (const [d, i] of parts) out.graftPage(-1, d, i);
+  return savePdf(out);
+}
+
+// ------------------------------------------------------------------ Merge
+export const merge: Mount = (root, ctx) => {
+  const files: LoadedPdf[] = [];
+  const list = h('ol', { class: 'pdf-list' });
+  const info = h('div', { class: 'muted small' });
+  const render = () => {
+    list.replaceChildren(...files.map((f, i) => h('li', { class: 'pdf-row' },
+      h('div', { class: 'pdf-row-name' }, h('strong', null, f.name), h('span', { class: 'muted small' }, ` · ${plural(f.pages, 'page')} · ${fmtBytes(f.bytes.length)}`)),
+      h('div', { class: 'row' },
+        button('', () => { [files[i - 1], files[i]] = [files[i], files[i - 1]]; render(); }, { icon: 'ArrowUp', small: true, variant: 'ghost', title: `Move ${f.name} up`, disabled: i === 0 }),
+        button('', () => { [files[i + 1], files[i]] = [files[i], files[i + 1]]; render(); }, { icon: 'ArrowDown', small: true, variant: 'ghost', title: `Move ${f.name} down`, disabled: i === files.length - 1 }),
+        button('', () => { files.splice(i, 1); render(); }, { icon: 'X', small: true, variant: 'ghost', title: `Remove ${f.name}` })))));
+    const total = files.reduce((a, f) => a + f.pages, 0);
+    info.textContent = files.length ? `${plural(files.length, 'file')}, ${plural(total, 'page')} in total` : '';
+  };
+  const inp = pdfInput({ multiple: true, label: 'Choose PDFs to merge', onLoad: (fs) => { files.push(...fs); render(); } });
+  root.append(card(null, inp.el, list, info, note('Files are merged in this order. Protected PDFs are opened with their password; the result has no password.')),
+    actions(button('Merge PDFs', async () => {
+      if (files.length < 2) throw new Error('Choose at least two PDFs.');
+      const bytes = await pagesToPdf(files.flatMap((f) => Array.from({ length: f.pages }, (_, i) => [f.doc, i] as [LoadedPdf['doc'], number])));
+      info.textContent = `Merged: ${plural(files.reduce((a, f) => a + f.pages, 0), 'page')}, ${fmtBytes(bytes.length)}`;
+      await savePdfFile(bytes, 'merged.pdf', ctx.isMobile);
+    }, { variant: 'primary', icon: 'Merge' })));
+};
+
+// ------------------------------------------------------------------ Split
+export const split: Mount = (root, ctx) => {
+  let f: LoadedPdf | null = null, mode: 'ranges' | 'each' | 'chunks' = 'ranges', spec = '', n = 2;
+  const info = h('div', { class: 'muted small' }), body = h('div', { class: 'stack', hidden: true });
+  const rangeIn = input({ placeholder: 'e.g. 1-3, 5, 8-', onInput: (v) => (spec = v) });
+  const rangeBox = field('Page ranges (each range becomes one PDF)', rangeIn, 'Use commas between ranges; “8-” means page 8 to the end.');
+  const chunkBox = slider({ label: 'Pages per file', min: 1, max: 50, value: n, onInput: (v) => (n = v) }); chunkBox.hidden = true;
+  const inp = pdfInput({ onLoad: ([x]) => { f = x; body.hidden = false; info.textContent = `${x.name}: ${plural(x.pages, 'page')}`; } });
+  body.append(segmented([['ranges', 'Ranges'], ['each', 'Every page'], ['chunks', 'Every N pages']], mode, (v) => { mode = v; rangeBox.hidden = v !== 'ranges'; chunkBox.hidden = v !== 'chunks'; }), rangeBox, chunkBox);
+  root.append(card(null, inp.el, info, body), actions(button('Split', async () => {
+    if (!f) throw new Error('Choose a PDF first.');
+    const groups = mode === 'each' ? Array.from({ length: f.pages }, (_, i) => [i])
+      : mode === 'chunks' ? Array.from({ length: Math.ceil(f.pages / n) }, (_, k) => Array.from({ length: Math.min(n, f!.pages - k * n) }, (_, j) => k * n + j))
+      : parseRanges(spec, f.pages);
+    const s = stem(f.name), label = (g: number[]) => (g.length === 1 ? `p${g[0] + 1}` : `p${g[0] + 1}-${g[g.length - 1] + 1}`);
+    const outs = await Promise.all(groups.map(async (g) => ({ name: `${s}-${label(g)}.pdf`, blob: new Blob([await pagesToPdf(g.map((i) => [f!.doc, i])) as BlobPart], { type: 'application/pdf' }) })));
+    info.textContent = `${plural(outs.length, 'file')} made`;
+    if (outs.length === 1) return ctx.isMobile ? shareOrDownload(outs[0].blob, outs[0].name) : downloadBlob(outs[0].blob, outs[0].name);
+    const zip = await zipFiles(outs);
+    return ctx.isMobile ? shareOrDownload(zip, `${s}-split.zip`) : downloadBlob(zip, `${s}-split.zip`);
+  }, { variant: 'primary', icon: 'Split' })));
+};
+
+// ------------------------------------------------------------------ Organize (reorder / rotate / delete)
+export const organize: Mount = (root, ctx) => {
+  let f: LoadedPdf | null = null;
+  type P = { src: number; rot: number; thumb: HTMLCanvasElement };
+  let order: P[] = [], all: P[] = [];
+  const grid = h('div', { class: 'pdf-grid' }), info = h('div', { class: 'muted small' });
+  let dragFrom = -1;
+  const render = () => {
+    grid.replaceChildren(...order.map((p, i) => {
+      p.thumb.style.transform = `rotate(${p.rot}deg)${p.rot % 180 ? ' scale(0.72)' : ''}`; // turned pages must still fit the 3:4 tile
+      const tile = h('div', { class: 'pdf-tile', draggable: 'true', 'data-src': String(p.src + 1) },
+        h('div', { class: 'pdf-tile-img' }, p.thumb),
+        h('div', { class: 'pdf-tile-label' }, `${i + 1}`, p.src !== i ? h('span', { class: 'muted' }, ` (was ${p.src + 1})`) : null),
+        h('div', { class: 'pdf-tile-tools' },
+          button('', () => { order.splice(i - 1, 0, ...order.splice(i, 1)); render(); }, { icon: 'ArrowLeft', small: true, variant: 'ghost', title: `Move page ${i + 1} earlier`, disabled: i === 0 }),
+          button('', () => { p.rot = (p.rot + 270) % 360; render(); }, { icon: 'RotateCcw', small: true, variant: 'ghost', title: `Rotate page ${i + 1} left` }),
+          button('', () => { p.rot = (p.rot + 90) % 360; render(); }, { icon: 'RotateCw', small: true, variant: 'ghost', title: `Rotate page ${i + 1} right` }),
+          button('', () => { order.splice(i, 1); render(); }, { icon: 'Trash2', small: true, variant: 'ghost', title: `Delete page ${i + 1}` }),
+          button('', () => { order.splice(i + 1, 0, ...order.splice(i, 1)); render(); }, { icon: 'ArrowRight', small: true, variant: 'ghost', title: `Move page ${i + 1} later`, disabled: i === order.length - 1 })));
+      tile.addEventListener('dragstart', () => (dragFrom = i));
+      tile.addEventListener('dragover', (e) => e.preventDefault());
+      tile.addEventListener('drop', (e) => { e.preventDefault(); if (dragFrom >= 0 && dragFrom !== i) { order.splice(i, 0, ...order.splice(dragFrom, 1)); render(); } dragFrom = -1; });
+      return tile;
+    }));
+    info.textContent = f ? `${plural(order.length, 'page')}${f.pages - order.length ? ` (${f.pages - order.length} deleted)` : ''}` : '';
+  };
+  const inp = pdfInput({ onLoad: async ([x]) => {
+    f = x; order = [];
+    for (let i = 0; i < x.pages; i++) order.push({ src: i, rot: 0, thumb: await pageThumb(x.doc, i, 160) });
+    all = order.slice(); render();
+  } });
+  root.append(card(null, inp.el, info), card(null, grid, note(ctx.isMobile ? 'Use the arrows to move pages.' : 'Drag pages to reorder them, or use the arrows.')),
+    actions(button('Save PDF', async () => {
+      if (!f) throw new Error('Choose a PDF first.');
+      if (!order.length) throw new Error('All pages were deleted.');
+      const m = await mupdf(), out = new m.PDFDocument();
+      order.forEach((p) => out.graftPage(-1, f!.doc, p.src));
+      order.forEach((p, i) => {
+        if (!p.rot) return;
+        const o = out.loadPage(i).getObject(), r = o.getInheritable('Rotate');
+        o.put('Rotate', ((r.isNumber() ? r.asNumber() : 0) + p.rot) % 360);
+      });
+      await savePdfFile(savePdf(out), `${stem(f.name)}-organized.pdf`, ctx.isMobile);
+    }, { variant: 'primary', icon: 'Download' }), button('Reset', () => { order = all.map((p) => Object.assign(p, { rot: 0 })); render(); }, { variant: 'ghost', icon: 'Undo2' })));
+};
+
+// ------------------------------------------------------------------ Images → PDF
+export const img2pdf: Mount = (root, ctx) => {
+  const items: Array<{ name: string; page: ImagePage; url: string }> = [];
+  let size = 'a4', margin = 10;
+  const list = h('div', { class: 'pdf-grid' }), info = h('div', { class: 'muted small' }), busy = progress();
+  const render = () => {
+    list.replaceChildren(...items.map((it, i) => h('div', { class: 'pdf-tile' },
+      h('div', { class: 'pdf-tile-img' }, h('img', { src: it.url, alt: it.name })),
+      h('div', { class: 'pdf-tile-label' }, `${i + 1}. ${it.name}`),
+      h('div', { class: 'pdf-tile-tools' },
+        button('', () => { items.splice(i - 1, 0, ...items.splice(i, 1)); render(); }, { icon: 'ArrowLeft', small: true, variant: 'ghost', title: `Move ${it.name} earlier`, disabled: i === 0 }),
+        button('', () => { URL.revokeObjectURL(it.url); items.splice(i, 1); render(); }, { icon: 'Trash2', small: true, variant: 'ghost', title: `Remove ${it.name}` }),
+        button('', () => { items.splice(i + 1, 0, ...items.splice(i, 1)); render(); }, { icon: 'ArrowRight', small: true, variant: 'ghost', title: `Move ${it.name} later`, disabled: i === items.length - 1 })))));
+    info.textContent = items.length ? plural(items.length, 'image') : '';
+  };
+  const add = async (fs: File[]) => {
+    let k = 0;
+    for (const file of fs) {
+      busy.set(k++ / fs.length, `Reading ${file.name}…`);
+      try {
+        const img = await loadImg(file);
+        // JPEG (upright) and PNG are embedded unchanged; anything else (HEIC, WebP, rotated JPEG) becomes a JPEG
+        const t = file.type || '', upright = t === 'image/jpeg' ? ((await readExif(file)).orientation || 1) === 1 : t === 'image/png';
+        const bytes = upright ? new Uint8Array(await file.arrayBuffer()) : new Uint8Array(await (await encodeImg(img, 'jpeg', 90)).arrayBuffer());
+        items.push({ name: file.name, page: { bytes, width: img.width, height: img.height }, url: URL.createObjectURL(new Blob([bytes as BlobPart])) });
+      } catch (e) { toast(`${file.name}: ${errMsg(e)}`, 'err'); }
+    }
+    busy.done(); render();
+  };
+  const marginBox = slider({ label: 'Margin', min: 0, max: 30, value: margin, unit: ' mm', onInput: (v) => (margin = v) });
+  root.append(
+    card(null, h('div', { class: 'stack' }, filePicker({ accept: 'image/*,.heic,.heif', multiple: true, label: 'Choose images', hint: 'JPG, PNG, HEIC, WebP… (add more any time)', onFiles: add }), busy, info), list),
+    card('Page', stack(
+      segmented([['a4', 'A4'], ['letter', 'Letter'], ['fit', 'Fit to image']], size, (v) => { size = v; marginBox.hidden = v === 'fit'; }),
+      marginBox, note('Each image gets its own page, turned to landscape when the image is wide. JPEG and PNG files are embedded without re-compression.'))),
+    actions(button('Make PDF', async () => {
+      if (!items.length) throw new Error('Add some images first.');
+      const bytes = await imagesToPdf(items.map((i) => i.page), { size, margin: (margin * 72) / 25.4, dpi: 150 });
+      info.textContent = `PDF: ${plural(items.length, 'page')}, ${fmtBytes(bytes.length)}`;
+      await savePdfFile(bytes, 'images.pdf', ctx.isMobile);
+    }, { variant: 'primary', icon: 'FileInput' })));
+};
+
+// ------------------------------------------------------------------ PDF → images
+export const pdf2img: Mount = (root, ctx) => {
+  let f: LoadedPdf | null = null, dpi = 150, fmt: 'jpeg' | 'png' = 'jpeg', spec = '';
+  const info = h('div', { class: 'muted small' }), prog = progress();
+  const results = resultList({ zipName: () => `${f ? stem(f.name) : 'pages'}-images.zip`, isMobile: ctx.isMobile });
+  const inp = pdfInput({ onLoad: ([x]) => { f = x; results.clear(); info.textContent = `${x.name}: ${plural(x.pages, 'page')}`; } });
+  root.append(card(null, inp.el, info),
+    card('Options', stack(
+      field('Resolution', segmented([['72', '72 dpi (screen)'], ['150', '150 dpi'], ['300', '300 dpi (print)']], String(dpi), (v) => (dpi = +v))),
+      field('Format', segmented([['jpeg', 'JPG'], ['png', 'PNG']], fmt, (v) => (fmt = v))),
+      field('Pages', input({ placeholder: 'All pages (or e.g. 1-3, 7)', onInput: (v) => (spec = v) })))),
+    actions(button('Convert', async () => {
+      if (!f) throw new Error('Choose a PDF first.');
+      results.clear();
+      const pages = spec.trim() ? parseRanges(spec, f.pages).flat() : Array.from({ length: f.pages }, (_, i) => i);
+      const s = stem(f.name);
+      for (const [k, i] of pages.entries()) {
+        prog.set(k / pages.length, `Page ${i + 1}…`);
+        const pix = await renderPage(f.doc, i, dpi / 72, false);
+        const bytes = fmt === 'png' ? pix.asPNG() : pix.asJPEG(88);
+        results.add(`${s}-p${i + 1}.${fmt === 'png' ? 'png' : 'jpg'}`, new Blob([bytes.slice() as BlobPart], { type: fmt === 'png' ? 'image/png' : 'image/jpeg' }), `${pix.getWidth()}×${pix.getHeight()}`);
+        pix.destroy?.();
+        await new Promise((r) => setTimeout(r));
+      }
+      prog.done();
+    }, { variant: 'primary', icon: 'FileOutput' })),
+    card(null, results.el));
+};
+
+// ------------------------------------------------------------------ PDF → text
+export const pdf2text: Mount = (root, ctx) => {
+  let f: LoadedPdf | null = null, layout = false, marks = true;
+  const out = h('textarea', { class: 'input textarea', rows: 16, 'aria-label': 'Extracted text', spellcheck: 'false' }) as HTMLTextAreaElement;
+  const info = h('div', { class: 'muted small' });
+  const run = () => {
+    if (!f) return;
+    const parts: string[] = []; let empty = 0;
+    for (let i = 0; i < f.pages; i++) {
+      const st = f.doc.loadPage(i).toStructuredText(layout ? 'preserve-whitespace' : 'dehyphenate');
+      const t = st.asText().replace(/\s+$/g, ''); st.destroy?.();
+      if (!t.trim()) empty++;
+      parts.push(marks ? `--- Page ${i + 1} ---\n${t}` : t);
+    }
+    out.value = parts.join('\n\n');
+    info.replaceChildren(`${plural(f.pages, 'page')} · ${out.value.length.toLocaleString()} characters`,
+      empty === f.pages ? h('div', { class: 'note note-warn' }, 'No text layer: this looks like a scanned PDF. Use PDF → Images, then the OCR tool.') : '');
+  };
+  const inp = pdfInput({ onLoad: ([x]) => { f = x; run(); } });
+  root.append(card(null, inp.el),
+    card('Options', stack(toggle('Keep the page layout (spacing, columns)', layout, (v) => { layout = v; run(); }), toggle('Mark page breaks', marks, (v) => { marks = v; run(); }))),
+    card('Text', out, info, h('div', { class: 'row' },
+      button('Copy', () => copy(out.value), { small: true, icon: 'Copy' }),
+      button('Download .txt', () => (ctx.isMobile ? shareOrDownload : downloadBlob)(new Blob([out.value], { type: 'text/plain;charset=utf-8' }), `${f ? stem(f.name) : 'text'}.txt`), { small: true, icon: 'Download' }))));
+};
+
+// ------------------------------------------------------------------ Page numbers
+type Pos = 'bc' | 'br' | 'bl' | 'tc' | 'tr' | 'tl';
+export const pagenum: Mount = (root, ctx) => {
+  let f: LoadedPdf | null = null, pos: Pos = 'bc', format = 'n', start = 1, skipFirst = false, size = 11, marginMm = 10;
+  const info = h('div', { class: 'muted small' });
+  const inp = pdfInput({ onLoad: ([x]) => { f = x; info.textContent = `${x.name}: ${plural(x.pages, 'page')}`; } });
+  const FORMATS: Array<[string, string]> = [['n', '1, 2, 3'], ['page', 'Page 1'], ['pageof', 'Page 1 of 9'], ['slash', '1 / 9'], ['dash', '– 1 –']];
+  const label = (n: number, total: number) => ({ n: `${n}`, page: `Page ${n}`, pageof: `Page ${n} of ${total}`, slash: `${n} / ${total}`, dash: `– ${n} –` } as Record<string, string>)[format];
+  root.append(card(null, inp.el, info),
+    card('Options', stack(
+      field('Position', select<Pos>([['bc', 'Bottom centre'], ['br', 'Bottom right'], ['bl', 'Bottom left'], ['tc', 'Top centre'], ['tr', 'Top right'], ['tl', 'Top left']], pos, (v) => (pos = v))),
+      field('Style', select(FORMATS, format, (v) => (format = v))),
+      field('First number', input({ type: 'number', value: start, min: 0, onInput: (v) => (start = Math.max(0, Math.round(+v || 0))) })),
+      toggle('Skip the first page (cover)', skipFirst, (v) => (skipFirst = v)),
+      slider({ label: 'Text size', min: 7, max: 24, value: size, unit: ' pt', onInput: (v) => (size = v) }),
+      slider({ label: 'Distance from the edge', min: 4, max: 30, value: marginMm, unit: ' mm', onInput: (v) => (marginMm = v) }))),
+    actions(button('Add page numbers', async () => {
+      if (!f) throw new Error('Choose a PDF first.');
+      const m = await mupdf(), doc = m.Document.openDocument(f.bytes, 'application/pdf').asPDF()!;
+      if (f.password !== undefined) doc.authenticatePassword(f.password);
+      const numbered = Array.from({ length: f.pages }, (_, i) => i).filter((i) => !(skipFirst && i === 0));
+      const total = numbered.length + start - 1, mg = (marginMm * 72) / 25.4;
+      for (const [k, i] of numbered.entries()) {
+        const text = label(start + k, total), w = await textWidth(text, size);
+        await stampPage(doc, i, (W, H) => {
+          const x = pos[1] === 'c' ? (W - w) / 2 : pos[1] === 'r' ? W - mg - w : mg;
+          const y = pos[0] === 'b' ? mg : H - mg - size * 0.75;
+          return `BT /STF ${size} Tf 0 g ${x.toFixed(2)} ${y.toFixed(2)} Td ${pdfString(text)} Tj ET`;
+        }, { font: true });
+      }
+      await savePdfFile(savePdf(doc, f.password !== undefined ? 'encrypt=none' : ''), `${stem(f.name)}-numbered.pdf`, ctx.isMobile);
+    }, { variant: 'primary', icon: 'ListOrdered' })));
+};
+
+// ------------------------------------------------------------------ Watermark
+export const watermark: Mount = (root, ctx) => {
+  let f: LoadedPdf | null = null, text = 'CONFIDENTIAL', opacity = 25, colour = 'grey', angle = 'diag', tile = false, scale = 100;
+  const info = h('div', { class: 'muted small' });
+  const inp = pdfInput({ onLoad: ([x]) => { f = x; info.textContent = `${x.name}: ${plural(x.pages, 'page')}`; } });
+  const RGB: Record<string, [number, number, number]> = { grey: [0.45, 0.45, 0.45], red: [0.8, 0.1, 0.1], blue: [0.1, 0.25, 0.75], black: [0, 0, 0] };
+  root.append(card(null, inp.el, info),
+    card('Watermark', stack(
+      field('Text', input({ value: text, onInput: (v) => (text = v) })),
+      field('Colour', segmented([['grey', 'Grey'], ['red', 'Red'], ['blue', 'Blue'], ['black', 'Black']], colour, (v) => (colour = v))),
+      field('Direction', segmented([['diag', 'Diagonal'], ['flat', 'Horizontal']], angle, (v) => (angle = v))),
+      slider({ label: 'Opacity', min: 5, max: 80, value: opacity, unit: ' %', onInput: (v) => (opacity = v) }),
+      slider({ label: 'Size', min: 30, max: 200, value: scale, unit: ' %', onInput: (v) => (scale = v) }),
+      toggle('Repeat across the page (tiled)', tile, (v) => (tile = v)))),
+    actions(button('Add watermark', async () => {
+      if (!f) throw new Error('Choose a PDF first.');
+      if (!text.trim()) throw new Error('Type the watermark text.');
+      const m = await mupdf(), doc = m.Document.openDocument(f.bytes, 'application/pdf').asPDF()!;
+      if (f.password !== undefined) doc.authenticatePassword(f.password);
+      const [r, g, b] = RGB[colour], a = angle === 'diag' ? Math.PI / 4 : 0, c = Math.cos(a), s = Math.sin(a);
+      // Latin text is drawn as real (vector) text in Helvetica; other scripts as a transparent PNG made by the browser
+      const vector = isLatin1(text);
+      let img: any = null, imgAspect = 1;
+      if (!vector) {
+        const cv = new OffscreenCanvas(10, 10), cx = cv.getContext('2d')!; const fs = 160;
+        cx.font = `bold ${fs}px system-ui, sans-serif`; const tw = Math.ceil(cx.measureText(text).width) + 40;
+        const big = new OffscreenCanvas(tw, Math.round(fs * 1.4)), bx = big.getContext('2d')!;
+        bx.font = cx.font; bx.fillStyle = `rgb(${r * 255},${g * 255},${b * 255})`; bx.textBaseline = 'middle'; bx.fillText(text, 20, big.height / 2);
+        img = doc.addImage(new m.Image(new Uint8Array(await (await big.convertToBlob({ type: 'image/png' })).arrayBuffer())));
+        imgAspect = big.width / big.height;
+      }
+      for (let i = 0; i < f.pages; i++) {
+        const geo = pageGeom(f.doc.loadPage(i)), base = Math.min(geo.W, geo.H);
+        const size = (tile ? base / 18 : base / Math.max(6, text.length * 0.62)) * (scale / 100);
+        const w = vector ? await textWidth(text, size) : size * 1.4 * imgAspect;
+        await stampPage(doc, i, (W, H) => {
+          const one = (x: number, y: number) => vector
+            ? `q ${c.toFixed(4)} ${s.toFixed(4)} ${(-s).toFixed(4)} ${c.toFixed(4)} ${x.toFixed(2)} ${y.toFixed(2)} cm BT /STF ${size.toFixed(2)} Tf ${r} ${g} ${b} rg ${(-w / 2).toFixed(2)} ${(-size * 0.35).toFixed(2)} Td ${pdfString(text)} Tj ET Q`
+            : `q ${c.toFixed(4)} ${s.toFixed(4)} ${(-s).toFixed(4)} ${c.toFixed(4)} ${x.toFixed(2)} ${y.toFixed(2)} cm ${w.toFixed(2)} 0 0 ${(size * 1.4).toFixed(2)} ${(-w / 2).toFixed(2)} ${(-size * 0.7).toFixed(2)} cm /STIM Do Q`;
+          if (!tile) return one(W / 2, H / 2);
+          const ops: string[] = [], dx = w + size * 2, dy = size * 3.5;
+          for (let y = dy / 2, row = 0; y < H + dy; y += dy, row++) for (let x = (row % 2 ? dx / 2 : 0); x < W + dx; x += dx) ops.push(one(x, y));
+          return ops.join('\n');
+        }, { font: vector, opacity: opacity / 100, images: img ? { STIM: img } : undefined });
+      }
+      await savePdfFile(savePdf(doc, f.password !== undefined ? 'encrypt=none' : ''), `${stem(f.name)}-watermarked.pdf`, ctx.isMobile);
+    }, { variant: 'primary', icon: 'Droplet' })));
+};
+

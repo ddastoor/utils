@@ -17,7 +17,7 @@ export default async ({ base, page: newPage, ok, devices }) => {
   ok((await page.locator('.pixel-panel').count()) === 1, 'dead-pixel panel opens'); await page.keyboard.press('Escape');
   ok((await page.locator('.pixel-panel').count()) === 0, 'dead-pixel panel closes');
   await go('ruler'); await page.waitForSelector('.tick.major', { timeout: 5000 }).catch(() => {}); ok((await page.locator('.tick.major').count()) >= 5, 'ruler ticks drawn');
-  await go('level'); ok(/needs a phone/.test(await page.locator('.tool-body').innerText()), 'level is mobile-only on desktop');
+  await go('level'); ok(/made for phones/.test(await page.locator('.tool-body').innerText()), 'level is mobile-only on desktop');
   ok(!page.errors.length, 'desktop: no console errors ' + page.errors.join(' | '));
 
   const phone = await newPage({ ...devices['Pixel 7'], permissions: ['accelerometer', 'gyroscope', 'magnetometer'] });

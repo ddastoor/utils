@@ -68,7 +68,9 @@ STANDING RULE #1 is at the top of `CLAUDE.md`; audit list is in CLAUDE.md §3a.
    preset colour). Cartoonizer DONE (37 e2e: 6 filters in imgproc C with DoG lines, Magenta AI styles on TF.js WebGL → wasm,
    legacy model converter scripts/convert-magenta.mjs). **All Images tools are done.** Photo Dictionary DONE (43 e2e + 56 unit;
    data in public/data/dict built by scripts/build-dict.mjs from kaikki.org + wordfreq; CSP now allows the two
-   approved dictionary APIs). **Next: PDF/document tools (item 4)**; then, in order: (imgproc detect/warp/enhance → PDF via MuPDF),
+   approved dictionary APIs). PDF core tabs DONE on MuPDF: merge, split, organize, img2pdf, pdf2img, pdf2text, pagenum,
+   watermark (own e2e suite each). **Next: pdf-compress, pdf-sign, pdf-fill, pdf-unlock, pdf-protect** (MuPDF; AES-256 via
+   saveToBuffer `encrypt=aes-256,user-password=…`), then markdown, invoice/rent/resume, epub, sheet; then, in order: (imgproc detect/warp/enhance → PDF via MuPDF),
    ocr (Tesseract eng+hin), passport (36 presets in src/lib/passport-specs.ts; MediaPipe landmarks + selfie
    segmentation + imgproc guided filter; camera, print sheet, KB target, DPI), bgremove, cartoon (classic imgproc
    + Magenta TF.js). Models: add entries to scripts/assets.json and pin with `fetch-assets.mjs --pin <name>`.

@@ -129,7 +129,16 @@ Test, plus `photodict` Photo Dictionary (owner said mobile only — phone camera
 | `scanner` | Doc Scanner | both | `imgproc` page detection (convexity/area check → falls back to whole photo), draggable corners, homography warp, enhance; PDF via MuPDF (`src/lib/pdf.ts`, JPEG pages embedded as-is) or JPEGs |
 | `ocr` | OCR | both | Tesseract (C++ → wasm), English, French, Spanish, German |
 
-**Documents** (engines: pdf-lib + PDF.js; QPDF 12 wasm for unlock/protect)
+**Documents** (engine: **MuPDF 1.28**, Artifex's official C → wasm build, for every PDF tab — merge/split via `graftPage`,
+rotation via `/Rotate`, rendering, text, stamping, AES-256 encrypt/decrypt in `saveToBuffer`; pdf-lib / PDF.js / QPDF are
+not used. Shared code: `src/lib/pdf.ts` (open with password, save, `pageGeom` visual-coordinate matrix for /Rotate 0/90/
+180/270, `stampPage` (own Resources copy, original content wrapped in q…Q), Helvetica text width, WinAnsi (Windows-1252)
+encoding, `parseRanges`), `src/lib/pdfui.ts` (picker that asks for the password of protected files). **BUILT** (each with
+its own e2e suite; outputs re-opened in Node with MuPDF by `tests/lib/pdfcheck.mjs` — page counts, order, rotation, text,
+rendered pixels): `pdf-merge` (10), `pdf-split` (8), `pdf-organize` (10), `img2pdf` (9: upright JPEG/PNG embedded
+byte-for-byte, other formats or EXIF-rotated JPEGs re-encoded), `pdf2img` (7), `pdf2text` (8: scanned PDF → OCR hint),
+`pdf-pagenum` (11: text read back, pixel position incl. a /Rotate 90 page), `pdf-watermark` (10: vector Helvetica text,
+non-Latin text as a PNG image, opacity via ExtGState, tiled).
 | id | Tab | Platform |
 |---|---|---|
 | `pdf-merge` | Merge PDF | both |
@@ -720,8 +729,7 @@ npm packages (pinned in `package-lock.json`) are bundled by Vite or copied to `p
 |---|---|---|
 | openpgp | LGPL-3.0 | OpenPGP |
 | @ffmpeg/ffmpeg, @ffmpeg/util, @ffmpeg/core | MIT / GPL-2.0+ (core) | FFmpeg |
-| pdfjs-dist | Apache-2.0 | PDF Toolkit, PDF→EPUB |
-| pdf-lib | MIT | PDF Toolkit, Doc Scanner |
+| mupdf (Artifex, official wasm) | AGPL-3.0 | all PDF tools, Doc Scanner PDF output |
 | fflate | MIT | EPUB zip |
 | @jsquash/jpeg (MozJPEG), /webp, /oxipng | Apache-2.0 (+ codec licences) | image encoders |
 | @mediapipe/tasks-vision | Apache-2.0 | Passport |
