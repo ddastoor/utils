@@ -8,7 +8,7 @@ import { isMobile } from '../platform';
 
 // ------------------------------------------------------------------ shared
 function passwordField(label: string, placeholder = 'Password') {
-  const inp = input({ type: 'password', placeholder, attrs: { autocomplete: 'new-password' } });
+  const inp = input({ type: 'password', placeholder, attrs: { autocomplete: 'new-password', 'aria-label': label } }); // the field wraps a div, so name the input itself (screen readers)
   const eye = button('', () => { inp.type = inp.type === 'password' ? 'text' : 'password'; }, { icon: 'Eye', small: true, title: 'Show / hide' });
   return { el: field(label, h('div', { class: 'pw-wrap' }, inp, eye)), inp };
 }
@@ -163,11 +163,11 @@ export const hash: Mount = (root) => {
       if (kind === 'text') show('Text', await hashBlob(new Blob([text.value]), algs));
       else {
         if (!files.length) throw new Error('Choose a file first.');
-        for (const f of files) show(`${f.name} · ${fmtBytes(f.size)}`, await hashBlob(f, algs, (p, t) => prog.set(p, `${f.name}: ${t}`)));
-        if (files.length === 2) {
-          const [a, b] = [...results.querySelectorAll('.hashval')].map((x) => x.textContent);
-          results.prepend(note(a === results.querySelectorAll('.hashval')[algs.length]?.textContent ? 'The two files are identical.' : 'The two files differ.', a ? 'info' : 'info'));
-          void b;
+        const all: Array<Record<string, string>> = [];
+        for (const f of files) { const r = await hashBlob(f, algs, (p, t) => prog.set(p, `${f.name}: ${t}`)); all.push(r); show(`${f.name} · ${fmtBytes(f.size)}`, r); }
+        if (files.length === 2) { // same size and every chosen digest equal
+          const same = files[0].size === files[1].size && algs.every((a) => all[0][a] === all[1][a]);
+          results.prepend(note(same ? 'The two files are identical.' : 'The two files differ.', same ? 'ok' : 'warn'));
         }
       }
       prog.done();

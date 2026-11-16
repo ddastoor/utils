@@ -84,7 +84,10 @@ Dictionary), Codes & Files (5), Everyday (9), Device (11), Linux Terminal + bc c
    equation, stats, matrix, fraction, primes, periodic — 153 checks. Text (9/9): wordcount, case, lines, replace, diff
    (minimal edits = LCS, rebuilds both texts), fancy (no unassigned code points), emoji, morse (playback timing), lorem.
    Developer tabs (8/8, PC only; shared `tests/e2e/_pconly.mjs` checks the phone note): json, regex, base64, urlenc,
-   epoch, uuid, color, jwt — 117 checks.
+   epoch, uuid, color, jwt — 117 checks. Security (5/5): sodium (USODIUM1 header fields, 5-chunk file, tamper/truncate,
+   and the independent PyNaCl reference decryptor `tools/sodium_decrypt.py` opening our output — needs `pip install
+   pynacl`, otherwise that check is skipped with a note), sharelink (fragment never sent), hash (9 algorithms vs Node and
+   test vectors, 3 MB file), password (χ² uniformity), passphrase (EFF list) — 64 checks.
    Bugs found and fixed so far: Percentage showed "—%" on ÷0; BMI exactly on a cut-off (76.8 kg at 1.60 m = 30.0) was
    put in the lower category (float 29.999…) — now categorised as displayed; "₹-0" for a zero amount (NPS lump sum with
    a 100 % annuity) — `fmtINR` now prints ₹0, and negatives as "−₹1,234"; Date Calculator gave negative days (31 Jan → 1 Mar
@@ -104,8 +107,10 @@ Dictionary), Codes & Files (5), Everyday (9), Device (11), Linux Terminal + bc c
    bad input; Epoch showed 1970 for an empty box; JSON Formatter rounded big numbers (12345678901234567890 → …000; now
    kept exactly with JSON.rawJSON) and gave no line/column for "Unexpected token" errors (now found by a prefix search);
    Regex Tester said "1000 matches" for 5,000; Color accepted rgb(300, −20, …) unclamped; JWT now flags "nbf" in the
-   future; Epoch clock was blank for 250 ms.
-   **Remaining:** sodium, sharelink, hash, password, passphrase · qr, barcode, scan, zip, unzip · stopwatch,
+   future; Epoch clock was blank for 250 ms; password boxes in Sodium/Share Link had no accessible name; Share Link's "New
+   message" did nothing (the router kept a tab when only its own hash parameters changed — now re-mounted, ?from= ignored);
+   Hash "two files identical" compared by DOM position.
+   **Remaining:** qr, barcode, scan, zip, unzip · stopwatch,
    countdown, pomodoro, interval, dice, coin, rng, picker, teams · webcam, mic, speaker, keyboard, pixels, touch,
    screen, level, compass, soundmeter, ruler.
 2. **Software (PC only, 47 tabs left)**, each with its own suite from the start, wasm first: sqlite (official wasm),

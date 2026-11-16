@@ -90,6 +90,7 @@ function favEmpty() {
 
 // ------------------------------------------------------------------ views
 let current: Route = { kind: 'home' };
+let currentKey = ''; // the tool's hash without ?from= (see showTool)
 let cleanup: Cleanup | null = null;
 let abort: AbortController | null = null;
 let currentTool: Tool | null = null;
@@ -138,7 +139,10 @@ function showSection(section: Section) {
 
 async function showTool(tool: Tool, from?: 'fav') {
   const section: Section = from === 'fav' && isFav(tool.id) ? 'fav' : tool.cat;
-  if (currentTool?.id === tool.id) { renderTabs(section, tool); return; }
+  // same tab: keep it, unless its own parameters changed (e.g. #/sharelink?d=… → #/sharelink "New message"); ?from= only picks the tab row
+  const key = location.hash.replace(/([?&])from=[^&]*&?/, '$1').replace(/[?&]$/, '');
+  if (currentTool?.id === tool.id && key === currentKey) { renderTabs(section, tool); return; }
+  currentKey = key;
   teardown();
   currentTool = tool;
   lastSection = section;
