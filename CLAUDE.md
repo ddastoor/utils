@@ -195,7 +195,7 @@ URL `#fragment`, never sent to a server) · `hash` Hash / Checksum · `password`
 `passphrase` Passphrase Generator — all both.
 
 **Media**: `video` Video Compressor (both, **BUILT**) · `audio` Audio Recorder (both, **BUILT**) · `tts` Text-to-Speech (both) ·
-`ffmpeg` FFmpeg (**PC**) · `screencast` Screencast (**PC**) · `screenshot` Screenshot (**PC**) ·
+`ffmpeg` FFmpeg (**PC**, **BUILT**) · `screencast` Screencast (**PC**) · `screenshot` Screenshot (**PC**) ·
 `youtube` YouTube Clip (**PC**)
 
 **Calculators** (all both): `calc` Scientific · `units` Unit Converter · `dates` Date Calculator ·
@@ -562,13 +562,24 @@ how common they are in English, **rarest (hardest) first**, leaving out common w
 - Tests: e2e with a real photographed page fixture (known rare words expected in the top 20, "the"/"and" absent);
   unit tests for tokenising, lemmatising and ranking.
 
-### FFmpeg (PC)
-ffmpeg.wasm single-threaded core (GitHub Pages cannot send COOP/COEP headers, and the owner refused a
-service worker). Presets: convert video/audio formats, extract audio (copy or re-encode), remove audio,
-trim (stream copy or precise), compress (CRF / target size), resize, fps, rotate/flip, crop, video → GIF,
-merge audio+video, normalise loudness, speed, extract frames, **audio → MP4** (audio-only M4A, still image,
-or animated waveform), plus a raw-arguments box. Limits: ~2 GB files; re-encoding is ~10–20× slower than
-native.
+### FFmpeg (PC) — BUILT (`src/tools/ffmpeg.ts`; e2e `tests/e2e/ffmpeg.e2e.mjs` 22)
+ffmpeg.wasm 0.12 single-threaded core = **FFmpeg 5.1.4** (libx264/x265, libvpx, LAME, Opus, Vorbis, Theora, WebP,
+freetype/libass, zimg; GitHub Pages cannot send COOP/COEP, so no multi-threaded core; no service worker) in its own
+worker, loaded on first use (≈ 31 MB) and terminated when the tab is left. Inputs are **mounted with WORKERFS** (read
+in place, not copied into memory); FFmpeg probes the streams on open. 16 tasks, each building an argument list shown
+as the equivalent command line with the real file names (copyable; "Edit as arguments" switches to the raw box):
+convert (MP4/MOV H.264+AAC, WebM **VP8**+Opus, MKV copy, MP3, M4A, WAV, FLAC, OGG Opus, GIF), extract audio (copy
+into the right container, or MP3/WAV), remove audio, trim (fast copy with the MP4 edit list, or exact re-encode;
+`-ss` + `-t`), compress (CRF 18–35, speed preset), resize (`scale=-2:H,setsar=1`), fps, rotate/flip, centre crop to a
+shape, GIF (palettegen/paletteuse), add audio to video, EBU R128 loudness (−16 LUFS), speed (setpts + chained atempo),
+frames (PNG/JPEG → zip), audio → MP4 (picture + sound with `-t` = probed length, animated waveform, or M4A), own
+arguments (in1.ext / in2.ext, last word = output). Non-zero exit = failure: FFmpeg's own error line is shown and the
+log opens. Stop = terminate the worker. **Known limits of this core:** libvpx-vp9 and libx265 wait forever for
+threads (so presets use VP8/x264 and the raw box warns); FFmpeg 5.1 ignores input `-to` and `-shortest` with a looped
+picture (handled with `-t`). Replacing it with our own build of current FFmpeg stays on the §3a audit list.
+Tests: clip.mp4/tone.wav/tone.mp3 → WebM plays, AAC copy, MP3 440 Hz, no-sound copy, fast trim ≈ 1 s and exact 1.00 s,
+426×240, rotate 360×640, square crop, GIF89a 320 px, 2× = 1.5 s, 3 frames zipped, merge 660 Hz, raw hflip, bad filter
+reported, loudness changed, waveform 1280×720, picture + sound 2 s.
 
 ### PDF → EPUB (PC) — BUILT (`src/tools/epub/epub.ts`, engine `src/lib/pdf2epub.ts`; e2e `tests/e2e/epub.e2e.mjs` 27)
 As built: MuPDF structured text (lines with font size/weight; raster image blocks) → pieces of a justified line on

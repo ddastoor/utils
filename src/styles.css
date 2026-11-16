@@ -787,3 +787,8 @@ details summary { cursor: pointer; font-weight: 600; color: var(--accent); paddi
 .ss-btns .btn { min-width: 32px; min-height: 32px; }
 .ss-preview { max-width: 100%;  display: block; margin: 0 auto; border-radius: 10px; background: #000; }
 @media (max-width: 720px) { .ss-btns .btn { min-width: 40px; min-height: 40px; } }
+/* ffmpeg */
+.ff-info { white-space: pre-wrap; word-break: break-word; margin: 0; font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+.ff-log { max-height: 320px; overflow: auto; font: 12px/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background: var(--surface-2); padding: 10px; border-radius: 8px; white-space: pre-wrap; }
+.ff-out { border-top: 1px solid var(--border); padding-top: 10px; }
+.ff-media { max-width: 100%; max-height: 360px; display: block; margin-top: 8px; border-radius: 8px; background: #000; }
