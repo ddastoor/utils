@@ -147,13 +147,14 @@ Dictionary), Codes & Files (5), Everyday (9), Device (11), Linux Terminal + bc c
    **Per-tab suites are complete for every built tab.** Full run (16 Nov, 141 suites, concurrency 8): 2882/2886 —
    the 4 misses were load timing (webcam test read the info table before it was drawn → test now waits for it; noise
    and resume timed out under load, both pass alone: 11/11, 7/7). Unit tests 3270/3270.
-2. **Software (PC only, 47 tabs left)**, each with its own suite from the start, wasm first: sqlite (official wasm),
+2. **← NOW: Software (PC only, 47 tabs left)**, each with its own suite from the start, wasm first: sqlite (official wasm),
    jq (own build of jq 1.8.2 exists), yaml (own libyaml + toml++), graphviz (own build), python (MicroPython), and the
    rest listed in CLAUDE.md §2.
 3. Audit list replacements (own builds of mozjpeg/libwebp/oxipng, libheif, tesseract, zxing-cpp, libarchive,
    zip AES in crypto.wasm, minimp4) — CLAUDE.md §3a.
-4. **← NEXT: REMIND THE OWNER (owner request, 16 Nov 2026) — step 1 is finished, so ask now and wait for the pick
-   before starting step 2:** `docs/potentials.md` lists 53 new-tab ideas + 7 upgrades from
+4. **Owner decision (16 Nov 2026, after step 1): "Finish all the original apps before asking me about potentials.md."**
+   So: build every remaining original tab (step 2: the 47 Software stubs, each with its own suite) first; only then
+   remind the owner and ask which ideas to build: `docs/potentials.md` lists 53 new-tab ideas + 7 upgrades from
    open-source projects (round 1: Image to SVG, Upscaler, Searchable PDF, Pandoc, Vocal Remover, GIF, AVIF/JXL, age, Shamir,
    Spell Checker, BPM & Key, DuckDB; round 2: Auto Subtitles, Audiobook, PDF Compare, PDF Tables → Excel, Video Face
    Blur, Label Sheets, Music Tags, Duplicate Photos, Excalidraw, LaTeX, Circuit Simulator, Sky Map, Chart Maker,

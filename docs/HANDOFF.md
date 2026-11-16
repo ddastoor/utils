@@ -25,7 +25,8 @@ this file = the owner's latest wishes, how the tests are written, and the traps 
 Own e2e suites now exist for **Calculators 27/27, Math & Science 7/7, Text 9/9, the 8 developer tabs (json, regex,
 base64, urlenc, epoch, uuid, color, jwt), Security 5/5 (+pgp), Codes & Files 5/5**, plus all tabs built since Media.
 **Update (same night, later session):** Everyday 9/9 and Device 11/11 suites written too — **every built tab now has its
-own suite**. Next: remind the owner (above) and wait for their pick, then the 47 Software tabs. ~45 app bugs were found and fixed by the new suites — list in RESUME.md "Next steps" item 1.
+own suite**. **Owner (later that night): "Finish all the original apps before asking me about potentials.md"** → build
+the 47 Software stub tabs (each with its own suite) first, then ask about potentials.md. ~45 app bugs were found and fixed by the new suites — list in RESUME.md "Next steps" item 1.
 
 ## 3. How the suites are written (conventions)
 - Run one suite: `npm run build && node tests/e2e.mjs <name>.e2e` (filter = substring of the file name). All:
