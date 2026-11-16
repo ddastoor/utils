@@ -34,6 +34,8 @@ export const ICONS: Record<string, string> = {
   CaseSensitive: "<path d=\"m2 16 4.039-9.69a.5.5 0 0 1 .923 0L11 16\" /><path d=\"M22 9v7\" /><path d=\"M3.304 13h6.392\" /><circle cx=\"18.5\" cy=\"12.5\" r=\"3.5\" />",
   ChartColumn: "<path d=\"M3 3v16a2 2 0 0 0 2 2h16\" /><path d=\"M18 17V9\" /><path d=\"M13 17V5\" /><path d=\"M8 17v-3\" />",
   ChartSpline: "<path d=\"M3 3v16a2 2 0 0 0 2 2h16\" /><path d=\"M7 16c.5-2 1.5-7 4-7 2 0 2 3 4 3 2.5 0 4.5-5 5-7\" />",
+  ChevronLeft: "<path d=\"m15 18-6-6 6-6\" />",
+  ChevronRight: "<path d=\"m9 18 6-6-6-6\" />",
   Circle: "<circle cx=\"12\" cy=\"12\" r=\"10\" />",
   CircleCheck: "<circle cx=\"12\" cy=\"12\" r=\"10\" /><path d=\"m16 9-5.5 5.5L8 12\" />",
   Clapperboard: "<path d=\"m12.296 3.464 3.02 3.956\" /><path d=\"M20.2 6 3 11l-.9-2.4c-.3-1.1.3-2.2 1.3-2.5l13.5-4c1.1-.3 2.2.3 2.5 1.3z\" /><path d=\"M3 11h18v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z\" /><path d=\"m6.18 5.276 3.1 3.899\" />",

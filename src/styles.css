@@ -684,3 +684,15 @@ details summary { cursor: pointer; font-weight: 600; color: var(--accent); paddi
   .pdf-row-name { flex: 1 1 100%; }
   .pdf-row > .row { margin-left: auto; }
 }
+
+/* Sign / Fill PDF: page stage with draggable items */
+.pdfs-nav { align-items: center; justify-content: center; }
+.pdfs-wrap { position: relative; width: 100%; max-width: 900px; margin: 0 auto; }
+.pdfs-canvas { width: 100%; height: auto; display: block; background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,.25); }
+.pdfs-layer { position: absolute; inset: 0; }
+.pdfs-item { position: absolute; touch-action: none; display: flex; align-items: center; gap: 2px; }
+.pdfs-sig { flex-direction: column; align-items: flex-start; cursor: move; outline: 1.5px dashed var(--accent); outline-offset: 2px; }
+.pdfs-sig img { width: 100%; display: block; pointer-events: none; }
+.pdfs-date { font: 11px Helvetica, Arial, sans-serif; color: #000; pointer-events: none; }
+.pdfs-pad { width: 100%; height: 180px; background: #fff; border: 1px solid var(--border); border-radius: 12px; touch-action: none; display: block; }
+.pdfs-textbox { min-width: 120px; max-width: 60vw; font: 13px Helvetica, Arial, sans-serif; padding: 2px 6px; min-height: 32px; background: rgba(255, 255, 210, .92); border: 1px solid var(--accent); border-radius: 6px; color: #000; }

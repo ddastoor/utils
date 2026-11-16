@@ -145,7 +145,13 @@ syntax), `pdf-compress` (14: every image XObject except masks is decoded by MuPD
 resized (Lanczos) in imgproc.wasm to the level's dpi of the largest page, re-encoded with MozJPEG (grey stays grey) and
 kept only if ≥ 8 % smaller; fonts subset; `garbage=deduplicate`. Levels Light 220/84 · Recommended 150/72 · Strong
 110/60 · Extreme 80/48 (dpi / quality); Target size tries them in order; Scanned pages = one JPEG per page at the exact
-page size (text layer lost, warned). Nothing is downloaded when the file cannot get smaller).
+page size (text layer lost, warned). Nothing is downloaded when the file cannot get smaller), `pdf-sign` (12: draw
+(pressure-aware strokes from the Signature Maker), type (OFL handwriting fonts) or photo (paper removed by imgproc
+`inkToAlpha`) → trimmed transparent PNG placed as an image XObject with soft mask; tap/click to place, drag, size, date
+dd/mm/yyyy, every page; "not a cryptographic digital signature" note), `pdf-fill` (15: AcroForm fields — text, multi-line,
+checkbox, radio groups (on-states from the appearance dictionary), combo/list boxes, read-only shown locked — set through
+MuPDF widgets with appearance regeneration; optional flatten (`bake`); "type anywhere" text boxes for PDFs without fields
+(Latin script); tests build a richer form with `tests/lib/makeform.mjs`). **All 13 PDF tabs done.**
 | id | Tab | Platform |
 |---|---|---|
 | `pdf-merge` | Merge PDF | both |

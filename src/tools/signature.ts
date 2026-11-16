@@ -9,9 +9,9 @@ import { imgproc, type Img } from '../wasm/imgproc';
 import { encodeImg } from '../lib/imgio';
 import { imageInput } from '../lib/imgtools';
 
-const HAND_FONTS: Array<[string, string, string]> = [['Great Vibes', 'Elegant', greatVibes], ['Dancing Script', 'Flowing', dancing], ['Caveat', 'Casual', caveat]];
+export const HAND_FONTS: Array<[string, string, string]> = [['Great Vibes', 'Elegant', greatVibes], ['Dancing Script', 'Flowing', dancing], ['Caveat', 'Casual', caveat]];
 let handReady: Promise<void> | null = null;
-const loadHandFonts = () => (handReady ||= Promise.all(HAND_FONTS.map(async ([fam, , url]) => {
+export const loadHandFonts = () => (handReady ||= Promise.all(HAND_FONTS.map(async ([fam, , url]) => {
   try { const f = new FontFace(fam, `url(${url})`); await f.load(); document.fonts.add(f); } catch { /* system fallback */ }
 })).then(() => undefined));
 const INKS: Array<[string, string]> = [['#0b2a8a', 'Blue'], ['#111111', 'Black'], ['#7a1020', 'Maroon']];
@@ -40,7 +40,7 @@ export function renderStrokes(strokes: Stroke[], w: number, hh: number, scale: n
 }
 
 /** Trim to the ink (alpha bounding box) plus padding, in wasm. */
-async function trim(img: Img, padFrac = 0.06): Promise<Img> {
+export async function trim(img: Img, padFrac = 0.06): Promise<Img> {
   const b = await imgproc('alphaBBox', img, 8);
   if (!b.w) throw new Error('Nothing to save yet — sign first.');
   const pad = Math.round(Math.max(b.w, b.h) * padFrac);
