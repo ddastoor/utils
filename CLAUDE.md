@@ -238,10 +238,21 @@ Builder (HTML → browser "Save as PDF"). Images: `signature` Signature Maker. S
 wasm) · `python` (MicroPython C → wasm) · `totp` · `pwstrength` (zxcvbn) · `jsonschema` · `bitwise` · `ieee754` ·
 `contrast` · `baseenc` · `bindecode` · `httpstatus` · `mime` · `ports` · `ascii` · `keycode` · `gradient` · `shadow` ·
 `svgo` · `patch`.
-**Speech to Text** (`stt`, Media, both): whisper.cpp (C/C++, MIT) built by us to wasm + Whisper English
-models (MIT): `ggml-base.en-q5_1` (60 MB, default on phones) and `ggml-small.en-q5_1` (190 MB, default on PC),
-from huggingface.co/ggerganov/whisper.cpp, SHA-256 pinned in `scripts/assets.json`. Record or upload → transcript
-+ .srt/.vtt. Not live dictation (no threads on GitHub Pages).
+**Speech to Text** (`stt`, Media, both) — **BUILT** (`src/tools/stt.ts`, worker `src/workers/stt.worker.ts`; e2e
+`tests/e2e/stt.e2e.mjs` 11). Engine: **whisper.cpp 1.8.3 built by us** (`wasm/whisper`, single thread, WebAssembly SIMD,
+~1.2 MB) + OpenAI Whisper English models (MIT) from huggingface.co/ggerganov/whisper.cpp (commit-pinned, SHA-256):
+"Accurate" `ggml-small.en-q5_1` (190 MB, served as 3 parts < 95 MB; default on PC; chosen for Indian, UK and US accents)
+and "Fast" `ggml-base.en-q5_1` (60 MB; default on phones). Record (browser voice clean-up on) or open any audio/video →
+mono 16 kHz by our audio.wasm in the worker → the model is streamed straight into wasm memory (download %), whisper's
+own progress via an `env.w_progress` import; "names and terms" box = Whisper's initial prompt (verified: invented
+names come out as typed); optional beam search (5); editable transcript, timestamped segments (click to play from
+there), Copy / .txt / .srt / .vtt. Stop = terminate the worker. Not live dictation (no threads on GitHub Pages).
+Measured in the sandbox (one thread): base.en ≈ 1.7 s of work per second of audio (11 s clip in 19 s), small.en ≈
+6× (10 s in 66 s) — the encoder always processes a 30 s window, so short clips cost the same as 30 s.
+Tests: JFK clip (public domain) word for word with base.en; LibriSpeech 1089-134686-0000 with small.en (WER ≤ 10 %);
+round trips through our own TTS — Indian English (Piper SVBI) with small.en WER ≤ 20 % (observed ~12 %; Piper's
+sampling makes each run differ), base.en reported (11–28 % seen), US English (Kokoro Michael) WER ≤ 15 % (0 %);
+hint-box spellings; .srt/.vtt/.txt; segments; stop.
 
 **Text-to-Speech** (`tts`) — **BUILT** (`src/tools/tts.ts`, worker `src/workers/tts.worker.ts`, front ends
 `src/lib/kokoro.ts` + `src/lib/piper.ts`; unit `espeak.test.mjs` 14 + `tts-text.test.mjs` 26; e2e `tts.e2e.mjs` 13).
@@ -695,6 +706,7 @@ stay **public** (the source of the deployed site is then available to every user
 | audio: **LAME 4.0** libmp3lame (MP3 encoder) + own C (WAV writer, waveform peaks, levels, gain/fades, Kaiser windowed-sinc resampler, WSOLA time stretch, tempo × pitch) | C | **us** (`wasm/audio`) | audio (and tts, stt, noise, pitch) |
 | rnnoise: Xiph **RNNoise 0.2** (+ default model) + glue (48 kHz frames, latency compensation, wet/dry mix, VAD) | C | **us** (`wasm/rnnoise`) | noise |
 | espeak: **eSpeak NG 1.52.0** (+ English phoneme tables and dictionary compiled from the same release, linked in, served to its fopen/stat from memory) + glue (IPA for Kokoro, piper-phonemize-style sentences) | C | **us** (`wasm/espeak`) | tts (stt hints later) |
+| whisper: **whisper.cpp 1.8.3** + ggml CPU backend (upstream unmodified) + own threadshim.h (std::mutex/std::thread/fstream for zig's thread-less libc++), backend-reg.cpp (static CPU-only registry), cxxabi_stubs.c (throw = abort), glue.cpp | C / C++ | **us** (`wasm/whisper`) | stt |
 | textcore: Myers diff, tool-search ranking, word frequency, rare-word ranking (tokeniser, lemmatiser, wordfreq hash table), XY-cut reading order | C (own code) | **us** (`wasm/textcore`) | diff, search box, word counter, photodict |
 | sheet: calamine 0.38 (read .xlsx .xlsm .xlsb .xls .ods) + rust_xlsxwriter 0.102 (write .xlsx) + csv 1 + serde_json | Rust | **us** (`wasm/sheet`, crates.io sources verified by `Cargo.lock`, target wasm32-wasip1) | sheet |
 | cmark-gfm 0.29.0.gfm.13 (GitHub Flavored Markdown) | C | **us** (`wasm/markdown`, source from the PyPI `cmarkgfm` sdist, SHA-256 pinned) | markdown |
@@ -918,6 +930,21 @@ into C arrays (`espeak_data.c`, voice paths lower-cased as eSpeak looks them up)
 `es_phonemes(text, 0|1)` (mode 1 = `TranslateClauseWithTerminator`, as piper-phonemize). ~1.2 MB. **WASI note:** this is
 the first module that links wasi-libc's pre-open scan: `fd_prestat_get` must answer EBADF (8), not ENOSYS, or start-up
 aborts with exit 71 — fixed in `src/wasm/wasi.ts` and the unit harness.
+
+### 5.1j whisper → `src/wasm/bin/whisper.wasm`
+`ZIG=… wasm/whisper/build.sh`: downloads the `whisper-rs-sys` 0.15.0 crate from static.crates.io (it vendors whisper.cpp
+1.8.3 + ggml; SHA-256 `6986c0fe…` = crates.io's published checksum; github.com is blocked in the sandbox) and compiles the
+upstream sources **unmodified**: ggml core + CPU backend (generic + `arch/wasm/quants.c` SIMD), whisper.cpp, and our
+`backend-reg.cpp` instead of ggml-backend-reg.cpp (which needs dlopen + std::filesystem). zig's libc++ for
+single-threaded wasm32-wasi has no threads or file streams: `threadshim.h` (force-included) adds a no-op `std::mutex`,
+a `std::thread` that runs its work at once (whisper.cpp joins workers right away; one thread is used anyway) and
+FILE*-based `std::ifstream/ofstream` (opening fails in the browser; we load models from memory). `-fwasm-exceptions`
+crashes clang here, so C++ is built with `-fexceptions` and `cxxabi_stubs.c` makes `throw` report and abort (only fatal
+paths throw). `-D_WASI_EMULATED_SIGNAL` + `-lwasi-emulated-signal`; max memory 4 GiB − 64 KiB; 8 MiB stack. Glue:
+`w_load(buf, len)`, `w_transcribe(pcm, n, prompt, beam, &len)` → JSON segments (t0/t1 in centiseconds), `w_unload`.
+Imports: WASI + `env.w_progress` (`instantiateWasi(url, extra)` takes extra import modules now).
+**Big models:** `scripts/assets.json` entries with `"split": N` are verified, then stored as `<name>.0 … .k` (≤ N bytes)
++ `<name>.parts.json` (sha256, size, part sizes) and the whole file removed, so no deployed file exceeds 100 MB.
 
 ### 5.1e markdown → `src/wasm/bin/markdown.wasm`
 `ZIG=… wasm/markdown/build.sh`: downloads the `cmarkgfm` 2025.10.22 sdist from PyPI (SHA-256 `5bec6100…`), which vendors
