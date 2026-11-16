@@ -436,7 +436,8 @@ SMS, contact card. Error-correction level, size, colours, PNG/SVG download. Scan
 on phones) or image upload.
 
 ### Calculator
-Sub-tabs: **Scientific** (own parser: + − × ÷ ^ √ ∛ ! nPr nCr %, sin/cos/tan + inverses + hyperbolic,
+Sub-tabs: **Scientific** (own parser: + − × ÷ ^ √ ∛ ! nPr nCr %; "a + b%" / "a − b%" add or take off b % of a like phone/Google
+calculators (200 + 10% = 220), b% elsewhere = b/100; sin/cos/tan + inverses + hyperbolic,
 ln, log10, log2, exp, abs, π, e, DEG/RAD, ANS, memory M+/M−/MR/MC, keyboard input, history for the
 session), **Units** (length, mass, temperature, area, volume, speed, data, time, pressure, energy,
 cooking), **Dates** (difference, add/subtract, age, weekday), **Finance – India** (EMI + amortisation,

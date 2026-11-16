@@ -22,7 +22,7 @@ API void m_free(void *p) { free(p); }
 
 /* ======================================================================== expressions */
 
-enum { OP_NUM, OP_VAR, OP_ADD, OP_SUB, OP_MUL, OP_DIV, OP_POW, OP_NEG, OP_FACT, OP_PCT, OP_CALL };
+enum { OP_NUM, OP_VAR, OP_ADD, OP_SUB, OP_MUL, OP_DIV, OP_POW, OP_NEG, OP_FACT, OP_PCT, OP_CALL, OP_ADDP, OP_SUBP };
 typedef struct { uint8_t op, arg, nargs; double v; } Ins;
 typedef struct { Ins *code; int n, cap; int deg; } Prog;
 
@@ -202,7 +202,13 @@ static void term(P *ps) {
 }
 static void expr(P *ps) {
     term(ps);
-    while (!ps->err && (is_op(ps, '+') || is_op(ps, '-'))) { char op = pk(ps)->op; ps->p++; term(ps); Ins in = {op == '+' ? OP_ADD : OP_SUB, 0, 0, 0}; emit(ps, in); }
+    /* "a + b%" / "a − b%" add or take off b percent of a (as phone, Google and Windows calculators: 200 + 10% = 220);
+       b% anywhere else is b/100 (50% × 30 = 15). Only a term that ends in a bare % counts. */
+    while (!ps->err && (is_op(ps, '+') || is_op(ps, '-'))) {
+        char op = pk(ps)->op; ps->p++; term(ps);
+        int pct = !ps->err && ps->pr->n && ps->pr->code[ps->pr->n - 1].op == OP_PCT;
+        Ins in = {pct ? (op == '+' ? OP_ADDP : OP_SUBP) : (op == '+' ? OP_ADD : OP_SUB), 0, 0, 0}; emit(ps, in);
+    }
 }
 
 /* Compile; returns handle 1..MAXPROG or 0 (see m_error). An "a = b" equation compiles to a - b. */
@@ -274,6 +280,8 @@ static double run(Prog *pr, const double *vars) {
         case OP_NEG: st[sp - 1] = -st[sp - 1]; break;
         case OP_FACT: st[sp - 1] = factorial(st[sp - 1]); break;
         case OP_PCT: st[sp - 1] /= 100.0; break;
+        case OP_ADDP: sp--; st[sp - 1] += st[sp - 1] * st[sp]; break;
+        case OP_SUBP: sp--; st[sp - 1] -= st[sp - 1] * st[sp]; break;
         case OP_CALL:
             if (in->nargs == 2) { sp--; st[sp - 1] = call_fn(in->arg, 2, st[sp - 1], st[sp], pr->deg); }
             else st[sp - 1] = call_fn(in->arg, 1, st[sp - 1], 0, pr->deg);

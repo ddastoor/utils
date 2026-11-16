@@ -79,15 +79,17 @@ Dictionary), Codes & Files (5), Everyday (9), Device (11), Linux Terminal + bc c
    everyday, device). One thorough suite per tab with independent known answers (re-implemented formulas, published
    figures, boundaries, invalid input, phone width) — helper `tests/lib/calc.mjs`.
    **Written and passing (26):** emi, gst, sip, fd, percent, tip, fuel, words, roman, ppf, inflation, prepay, epf, nps,
-   bodyfat, idealweight, coords, bmi, calories, sleep, units, dates, timezone, duedate, gpa, base.
+   bodyfat, idealweight, coords, bmi, calories, sleep, units, dates, timezone, duedate, gpa, base, calc (77 checks).
+   **All 27 Calculators tabs have their own suite.**
    Bugs found and fixed so far: Percentage showed "—%" on ÷0; BMI exactly on a cut-off (76.8 kg at 1.60 m = 30.0) was
    put in the lower category (float 29.999…) — now categorised as displayed; "₹-0" for a zero amount (NPS lump sum with
    a 100 % annuity) — `fmtINR` now prints ₹0, and negatives as "−₹1,234"; Date Calculator gave negative days (31 Jan → 1 Mar
    = "1m −2d") and "31 Jan + 1 month" = 3 Mar — now month-end clamped like java.time/Excel EDATE (1m 1d, 28 Feb), 29 Feb
    birthdays fall on 28 Feb; Time Zone converter's DST correction was a no-op (03:30 just after the New York spring
    change came out an hour off) — now tries the offsets either side, notes skipped/repeated hours; Due Date showed
-   "Invalid Date" for an empty LMP and accepted any cycle length (now 20–45 days).
-   **Remaining:** calc (scientific) · graph, equation, stats, matrix, fraction, primes,
+   "Invalid Date" for an empty LMP and accepted any cycle length (now 20–45 days); Scientific: "200 + 10%" gave 200.1 —
+   mathcore now treats a trailing bare % after + / − as a percentage of the running total (220), like phone calculators.
+   **Remaining:** graph, equation, stats, matrix, fraction, primes,
    periodic · wordcount, case, lines, replace, diff, fancy, emoji, morse, lorem · json, regex, base64, urlenc, epoch,
    uuid, color, jwt · sodium, sharelink, hash, password, passphrase · qr, barcode, scan, zip, unzip · stopwatch,
    countdown, pomodoro, interval, dice, coin, rng, picker, teams · webcam, mic, speaker, keyboard, pixels, touch,
