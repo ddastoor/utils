@@ -147,12 +147,19 @@ Dictionary), Codes & Files (5), Everyday (9), Device (11), Linux Terminal + bc c
    **Per-tab suites are complete for every built tab.** Full run (16 Nov, 141 suites, concurrency 8): 2882/2886 —
    the 4 misses were load timing (webcam test read the info table before it was drawn → test now waits for it; noise
    and resume timed out under load, both pass alone: 11/11, 7/7). Unit tests 3270/3270.
-2. **← NOW: Software (PC only, 47 tabs left)** — progress: **built + own suite: httpstatus, mime, ports, ascii, keycode
-   (src/tools/software/ref.ts, shared `refTable` filter)**. Plan: Rust module `wasm/devcore` (crates.io, like sheet.wasm)
-   for cidr, cron, semver, glob, base32/58/85, protobuf/msgpack/cbor, x509, patch, sqlformat, hexdump; separate Rust
-   modules for jsonschema, zxcvbn (pwstrength), yaml/toml; jq from upstream C; graphviz + MicroPython last., each with its own suite from the start, wasm first: sqlite (official wasm),
-   jq (own build of jq 1.8.2 exists), yaml (own libyaml + toml++), graphviz (own build), python (MicroPython), and the
-   rest listed in CLAUDE.md §2.
+2. **← NOW: Software (PC only, 47 tabs)** — **built + own suite (24): httpstatus, mime, ports, ascii, keycode (ref.ts,
+   shared `refTable` filter); cidr, chmod, x509 (net.ts); cron, semver, glob, patch, hexview, escape, unicode, logview,
+   sla, transfer, mermaid (misc.ts).** devcore = one Rust crate (wasm/devcore), one small wasm per tab via Cargo features
+   (`devcore-<feature>.wasm`; cron gets zone offsets from the browser's Intl through `env.tz_offset`); unit suite
+   `tests/unit/devcore.test.mjs` (92). **Still to build (23):** bitwise, ieee754, baseenc, bindecode (bits.ts; devcore-enc
+   and devcore-bin exist), contrast, gradient, shadow, svgo (web.ts), sqlfmt (devcore-sqlfmt exists), sqlite (official
+   wasm), jq (own C build from upstream), yaml, xml, json2types, jsondiff, prettier (JS, §3a), mockdata, mdtable,
+   jsonschema (data.ts), sshkey, hmac, pwhash, apikey, curl, totp, pwstrength (net.ts), graphviz, python.
+   Next Rust module: `wasm/keys` (RustCrypto: hmac, totp, argon2/bcrypt/pbkdf2 PHC hashes, ssh-key Ed25519 OpenSSH with
+   passphrase) for hmac/totp/pwhash/sshkey/apikey; separate modules for jsonschema, zxcvbn (pwstrength), yaml/toml.
+   Bugs fixed on the way: String Escape split emoji into a broken surrogate (😀 → "\ud83d" only); Patch Applier kept the
+   previous result on screen when a new patch failed, and added a newline that broke "No newline at end of file" patches;
+   the device time zone showed as "Asia/Calcutta" and India was listed twice in the Time Zone converter (src/lib/tz.ts).
 3. Audit list replacements (own builds of mozjpeg/libwebp/oxipng, libheif, tesseract, zxing-cpp, libarchive,
    zip AES in crypto.wasm, minimp4) — CLAUDE.md §3a.
 4. **Owner decision (16 Nov 2026, after step 1): "Finish all the original apps before asking me about potentials.md."**
