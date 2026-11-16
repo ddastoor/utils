@@ -207,6 +207,9 @@ export const touch: Mount = (root) => {
 };
 
 // ------------------------------------------------------------------ Screen info
+// Chromium's ICU still reports some zones by their old names (India → "Asia/Calcutta"); show the current IANA name.
+const ZONE_RENAMES: Record<string, string> = { 'Asia/Calcutta': 'Asia/Kolkata', 'Asia/Katmandu': 'Asia/Kathmandu', 'Asia/Saigon': 'Asia/Ho_Chi_Minh', 'Asia/Rangoon': 'Asia/Yangon', 'Europe/Kiev': 'Europe/Kyiv', 'Asia/Dacca': 'Asia/Dhaka', 'Asia/Thimbu': 'Asia/Thimphu' };
+const modernZone = (z: string) => ZONE_RENAMES[z] || z;
 export const screen_: Mount = (root) => {
   const out = h('div');
   const measureHz = () => new Promise<number>((res) => { let n = 0; const t0 = performance.now(); const f = () => { if (++n < 60) requestAnimationFrame(f); else res(Math.round((n * 1000) / (performance.now() - t0))); }; requestAnimationFrame(f); });
@@ -222,13 +225,14 @@ export const screen_: Mount = (root) => {
         ['Colour depth', `${screen.colorDepth}-bit`], ['Colour gamut', mm('(color-gamut: rec2020)') ? 'Rec. 2020' : mm('(color-gamut: p3)') ? 'Display P3' : 'sRGB'], ['HDR', mm('(dynamic-range: high)') ? 'Yes' : 'No'], ['Refresh rate (measured)', `~${hz} Hz`],
         ['Orientation', (screen.orientation as any)?.type || '—'], ['Dark mode', mm('(prefers-color-scheme: dark)') ? 'On' : 'Off'], ['Touch points', String(navigator.maxTouchPoints || 0)]])),
       card('Browser & device', kv([['Browser', uad?.brands ? uad.brands.filter((b: any) => !/Not/.test(b.brand)).map((b: any) => `${b.brand} ${b.version}`).join(', ') : navigator.userAgent], ['Platform', ua.platform ? `${ua.platform} ${ua.platformVersion || ''}` : navigator.platform], ['Model', ua.model || '—'],
-        ['CPU threads', String(navigator.hardwareConcurrency || '—')], ['Memory (approx.)', (navigator as any).deviceMemory ? `${(navigator as any).deviceMemory} GB+` : '—'], ['Language', navigator.language], ['Time zone', Intl.DateTimeFormat().resolvedOptions().timeZone], ['WebGPU', 'gpu' in navigator ? 'Available' : 'No'], ['User agent', navigator.userAgent]])),
+        ['CPU threads', String(navigator.hardwareConcurrency || '—')], ['Memory (approx.)', (navigator as any).deviceMemory ? `${(navigator as any).deviceMemory} GB+` : '—'], ['Language', navigator.language], ['Time zone', modernZone(Intl.DateTimeFormat().resolvedOptions().timeZone)], ['WebGPU', 'gpu' in navigator ? 'Available' : 'No'], ['User agent', navigator.userAgent]])),
     );
   };
-  addEventListener('resize', render);
+  const dark = matchMedia('(prefers-color-scheme: dark)');
+  addEventListener('resize', render); dark.addEventListener('change', render);
   root.append(out);
   render();
-  return () => removeEventListener('resize', render);
+  return () => { removeEventListener('resize', render); dark.removeEventListener('change', render); };
 };
 export { screen_ as screen };
 
@@ -238,6 +242,7 @@ async function motionPermission(): Promise<boolean> {
   if (D && typeof D.requestPermission === 'function') { try { return (await D.requestPermission()) === 'granted'; } catch { return false; } }
   return true;
 }
+const deg1 = (v: number) => `${(Math.abs(v) < 0.05 ? 0 : v).toFixed(1)}°`; // never "-0.0°"
 export const level: Mount = (root) => {
   let zb = 0, zg = 0, b = 0, g = 0, got = false;
   const bubble = h('div', { class: 'bubble' });
@@ -247,10 +252,10 @@ export const level: Mount = (root) => {
   const on = (e: DeviceOrientationEvent) => {
     if (e.beta == null || e.gamma == null) return;
     got = true; b = e.beta; g = e.gamma;
-    const x = Math.max(-45, Math.min(45, g - zg)), y = Math.max(-45, Math.min(45, b - zb));
-    bubble.style.transform = `translate(${(-x / 45) * 100}px, ${(-y / 45) * 100}px)`;
-    const tilt = Math.hypot(x, y);
-    readout.textContent = `${x.toFixed(1)}° · ${y.toFixed(1)}°`;
+    const dx = g - zg, dy = b - zb, x = Math.max(-45, Math.min(45, dx)), y = Math.max(-45, Math.min(45, dy));
+    bubble.style.transform = `translate(${(-x / 45) * 100}px, ${(-y / 45) * 100}px)`; // the bubble stops at the rim…
+    const tilt = Math.hypot(dx, dy);
+    readout.textContent = `${deg1(dx)} · ${deg1(dy)}`; // …the reading does not
     bubble.classList.toggle('level', tilt < 0.6);
   };
   const start = async () => {
@@ -266,7 +271,7 @@ export const level: Mount = (root) => {
 
 // ------------------------------------------------------------------ Compass (mobile)
 export const compass: Mount = (root) => {
-  let got = false;
+  let got = false, rot = 0;
   const dial = h('div', { class: 'dial' }, ...['N', 'E', 'S', 'W'].map((d, i) => h('span', { class: `dial-${d}`, style: { transform: `rotate(${i * 90}deg) translateY(-112px) rotate(${-i * 90}deg)` } }, d)), h('div', { class: 'dial-needle' }));
   const readout = h('div', { class: 'big-value center' }, '—');
   const status = h('div');
@@ -277,8 +282,9 @@ export const compass: Mount = (root) => {
     else if (e.absolute && e.alpha != null) heading = (360 - e.alpha) % 360; // Android absolute (magnetic north)
     if (heading == null) return;
     got = true;
-    dial.style.transform = `rotate(${-heading}deg)`;
-    readout.textContent = `${Math.round(heading)}° ${card8(heading)}`;
+    rot += ((-heading - rot) % 360 + 540) % 360 - 180; // shortest turn: 359° → 1° moves 2°, not a full spin back
+    dial.style.transform = `rotate(${rot}deg)`;
+    readout.textContent = `${Math.round(heading) % 360}° ${card8(heading)}`; // 359.6° → "0° N", not "360° N"
   };
   const evt = 'ondeviceorientationabsolute' in window ? 'deviceorientationabsolute' : 'deviceorientation';
   const start = async () => {
@@ -301,7 +307,9 @@ export const soundmeter: Mount = (root) => {
   const hist = h('canvas', { class: 'wave' });
   const series: number[] = [];
   const level = (db: number) => (db < 40 ? 'Quiet room' : db < 60 ? 'Conversation' : db < 75 ? 'Busy street' : db < 90 ? 'Loud — limit exposure' : 'Very loud — hearing risk');
+  const status = h('div');
   const start = async () => {
+    clear(status); cancelAnimationFrame(raf); stopStream(stream); stream = null; // Start again: one stream, one loop
     try {
       stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } });
       ctx ||= new AudioContext();
@@ -310,7 +318,7 @@ export const soundmeter: Mount = (root) => {
       const loop = () => {
         an.getFloatTimeDomainData(buf);
         let s = 0; for (const v of buf) s += v * v;
-        const db = 20 * Math.log10(Math.sqrt(s / buf.length) + 1e-12) + offset;
+        const db = Math.max(0, 20 * Math.log10(Math.sqrt(s / buf.length) + 1e-12) + offset); // digital silence → 0 dB, not −150
         if (isFinite(db)) { min = Math.min(min, db); max = Math.max(max, db); sum += db; n++; series.push(db); if (series.length > 300) series.shift(); }
         big.textContent = `${db.toFixed(0)} dB`; stats.textContent = `${level(db)} · min ${min.toFixed(0)} · avg ${(sum / n).toFixed(0)} · max ${max.toFixed(0)}`;
         const W = (hist.width = hist.clientWidth * devicePixelRatio), H = (hist.height = hist.clientHeight * devicePixelRatio), g = hist.getContext('2d')!;
@@ -319,9 +327,9 @@ export const soundmeter: Mount = (root) => {
         raf = requestAnimationFrame(loop);
       };
       loop();
-    } catch (e) { root.append(permErr(e)); }
+    } catch (e) { status.append(permErr(e)); }
   };
-  root.append(card(null, big, stats, hist), card('Calibration', slider({ label: 'Offset (adjust to match a reference meter)', min: 60, max: 120, value: offset, unit: ' dB', onInput: (v) => (offset = v) })),
+  root.append(card(null, big, stats, hist, status), card('Calibration', slider({ label: 'Offset (adjust to match a reference meter)', min: 60, max: 120, value: offset, unit: ' dB', onInput: (v) => (offset = v) })),
     h('div', { class: 'actions' }, button('Start', start, { variant: 'primary', icon: 'Gauge' }), button('Reset stats', () => { min = Infinity; max = -Infinity; sum = 0; n = 0; series.length = 0; }, { icon: 'RotateCcw' })),
     note('Phone and laptop microphones are not calibrated instruments; readings are approximate (±5–10 dB).'));
   return () => { cancelAnimationFrame(raf); stopStream(stream); ctx?.close(); };
@@ -343,11 +351,15 @@ export const ruler: Mount = (root) => {
       const major = unit === 'cm' ? i % 10 === 0 : i % 16 === 0, mid = unit === 'cm' ? i % 5 === 0 : i % 8 === 0;
       rulerEl.append(h('span', { class: `tick ${major ? 'major' : mid ? 'mid' : ''}`, style: { left: `${i * step}px` } }, major ? h('b', null, String(unit === 'cm' ? i / 10 : i / 16)) : null));
     }
-    cardBox.style.width = `${85.6 * pxPerMm}px`; cardBox.style.height = `${53.98 * pxPerMm}px`;
+    // A card (85.6 mm) is wider than a phone held upright: draw it upright there so it is never squeezed by the screen
+    // edge (a squeezed outline would make the user calibrate to the wrong size).
+    const avail = cardBox.parentElement?.clientWidth || Infinity, upright = 85.6 * pxPerMm > avail;
+    cardBox.style.width = `${(upright ? 53.98 : 85.6) * pxPerMm}px`; cardBox.style.height = `${(upright ? 85.6 : 53.98) * pxPerMm}px`;
+    cardBox.textContent = upright ? 'Card (upright)' : 'Card';
   };
   const cal = slider({ label: 'Calibration', min: 2, max: 8, step: 0.005, value: pxPerMm, fmt: (v) => `${v.toFixed(3)} px/mm`, onInput: (v) => { pxPerMm = v; draw(); } });
   root.append(card(null, h('div', { class: 'ruler-wrap' }, rulerEl)), card(null, field('Units', segmented([['cm', 'Centimetres'], ['in', 'Inches']], unit, (v) => { unit = v; draw(); }))),
-    card('Calibrate with a bank/ID card', stack(h('p', { class: 'muted' }, 'Hold any standard card (credit, debit, Aadhaar PVC, driving licence — 85.6 × 54 mm) against the screen and drag the slider until the outline matches it exactly.'), cardBox, cal)),
+    card('Calibrate with a bank/ID card', stack(h('p', { class: 'muted' }, 'Hold any standard card (credit, debit, Aadhaar PVC, driving licence — 85.6 × 54 mm) against the screen and drag the slider until the outline matches it exactly. On a phone, hold the card upright and match its long edge.'), cardBox, cal)),
     note('Calibration is kept only while this tab is open.'));
   requestAnimationFrame(draw);
   addEventListener('resize', draw);

@@ -24,9 +24,8 @@ this file = the owner's latest wishes, how the tests are written, and the traps 
 ## 2. Status at hand-off (commit 5f87b87)
 Own e2e suites now exist for **Calculators 27/27, Math & Science 7/7, Text 9/9, the 8 developer tabs (json, regex,
 base64, urlenc, epoch, uuid, color, jwt), Security 5/5 (+pgp), Codes & Files 5/5**, plus all tabs built since Media.
-**Remaining:** Everyday (stopwatch, countdown, pomodoro, interval, dice, coin, rng, picker, teams) and Device (webcam, mic,
-speaker, keyboard, pixels, touch, screen, level, compass, soundmeter, ruler). Then: remind the owner (above), then the
-47 Software tabs. ~45 app bugs were found and fixed by the new suites — list in RESUME.md "Next steps" item 1.
+**Update (same night, later session):** Everyday 9/9 and Device 11/11 suites written too — **every built tab now has its
+own suite**. Next: remind the owner (above) and wait for their pick, then the 47 Software tabs. ~45 app bugs were found and fixed by the new suites — list in RESUME.md "Next steps" item 1.
 
 ## 3. How the suites are written (conventions)
 - Run one suite: `npm run build && node tests/e2e.mjs <name>.e2e` (filter = substring of the file name). All:
@@ -36,7 +35,11 @@ speaker, keyboard, pixels, touch, screen, level, compass, soundmeter, ruler). Th
   **and console errors**.
 - Helpers: `tests/lib/calc.mjs` (`calc(page)`: `set(label, v)`, `seg(label, option)`, `pick(label, value)`, `big(label)`,
   `row(label)`, `rows()`, `warn()`; `num()`, `inr()`), `tests/e2e/_pconly.mjs` (PC-only tab shows the desktop note on a
-  phone), `tests/e2e/_scanback.mjs` (read codes in an image with the Scanner tab), `tests/lib/pdfcheck.mjs` (PDFs).
+  phone), `tests/e2e/_scanback.mjs` (read codes in an image with the Scanner tab), `tests/lib/pdfcheck.mjs` (PDFs), `tests/e2e/_phone.mjs` (`phoneLayout(ctx, id, { ready, buttons, before })`: 390×844, no
+  horizontal scroll, buttons ≥ 44 px, no page errors), `_mobileonly.mjs` (Mobile-only tab shows the note on a desktop),
+  `_stats.mjs` (`chiUniform(counts)`, p = 1e-4 limit), `_phases.mjs` (Pomodoro/Interval under the fake clock),
+  `_media.mjs` (`fakeMedia` init script: canvas camera + oscillator microphone, `window.__gumError`, `__tracks`;
+  `allStopped`, `trackAudioContexts`).
 - Independent answers: re-implement the formula/rule in the test (see emi, prepay, epf, coords, stats, matrix suites),
   use Node's crypto for hashes, Python for archives (`zipfile`, `tarfile`, `pyzipper`, `py7zr`) and the reference
   decryptor `tools/sodium_decrypt.py` (PyNaCl); randomness → chi-square (password suite); timers → `page.clock`.
@@ -65,6 +68,14 @@ speaker, keyboard, pixels, touch, screen, level, compass, soundmeter, ruler). Th
 - Camera: replace `navigator.mediaDevices.getUserMedia` with a canvas `captureStream()` (scan suite).
 - Debugging a page by hand: `npx vite preview --port 4173 &` and a scratch script using
   `createRequire('/home/user/utils/tests/e2e.mjs')('playwright')`.
+- Fake clock (`page.clock.install` → `pauseAt` → `runFor`/`fastForward`): rAF-driven displays show the last *frame*
+  (16 ms steps) — run a little past a boundary (e.g. `runFor(1100)` for "1 s later"). `fastForward` fires a due timer
+  only once, so walk multi-phase timers one phase at a time.
+- `page.goto` to the URL the page is already on (same hash) does not re-mount the tab — go to another tab first.
+- Orientation events (level, compass) reach listeners only when the context has the `accelerometer`, `gyroscope`,
+  `magnetometer` permissions. Real multi-touch: CDP `Input.dispatchTouchEvent` (synthetic PointerEvents break
+  `setPointerCapture`).
+- `element.style.left/transform` read back with 6 significant digits — compare with a relative tolerance.
 - V8 JSON errors: "Unexpected token" messages have no position (JSON tab finds it by prefix search).
 
 ## 6. Machine setup

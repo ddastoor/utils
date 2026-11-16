@@ -1060,6 +1060,11 @@ E2E_CONCURRENCY=8 node tests/e2e.mjs
   and speech produced by our own TTS for the STT round trip. Fixtures live in `tests/fixtures/` (committed, small;
   `tests/fixtures/README.md` records each file's source and licence).
 - Every tool must have e2e coverage of its main flow with known answers; every wasm module must have unit tests.
+  **Status (16 Nov 2026): every built tab has its own suite** (`tests/e2e/<id>.e2e.mjs`). Shared helpers: `_phone.mjs`
+  (phone layout), `_pconly.mjs` / `_mobileonly.mjs` (platform notes), `_stats.mjs` (χ² for random tools), `_phases.mjs`
+  (fake-clock timers), `_media.mjs` (fake camera/microphone), `_scanback.mjs`, `tests/lib/calc.mjs`, `tests/lib/pdfcheck.mjs`.
+  Timers use Playwright's fake clock; device tabs use fake media streams, CDP touches and dispatched orientation events
+  (see `docs/HANDOFF.md` §3–5).
 - `no-external.e2e.mjs` visits every route on desktop + phone (sharded) and fails on any request to another host,
   any CSP violation or any page error.
 - `tests/shoot.mjs <dir> <routes> [desktop|mobile|both]` takes screenshots for visual checks (phone = iPhone 13).

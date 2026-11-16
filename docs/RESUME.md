@@ -128,16 +128,23 @@ Dictionary), Codes & Files (5), Everyday (9), Device (11), Linux Terminal + bc c
    negative fields were subtracted, and the tab title stayed "00:00 · Countdown" after pausing/leaving; Interval presets
    did not move the sliders, and Rest 0 s still counted (and beeped through) empty rest phases; Coin's Reset kept the
    heads/tails style; Team Splitter left the old teams on screen for an empty list.
-   Device (in progress): webcam (23; fake camera = red|blue canvas stream → mirrored/unmirrored snapshot pixels), mic (22;
+   Device (11/11): webcam (23; fake camera = red|blue canvas stream → mirrored/unmirrored snapshot pixels), mic (22;
    Web Audio oscillator as the microphone → meter = peak, 5 s recording decoded back to 440 Hz), speaker (28; every
    connection to the speakers mirrored into per-channel analysers → Left/Right/Both channel energy, tone frequency by
-   zero crossings), keyboard (22), pixels (19), touch (17; real touches via CDP Input.dispatchTouchEvent) — helpers
-   `_media.mjs` (fakeMedia, allStopped, trackAudioContexts). Fixed: Webcam "Snapshot" before starting threw "Encoding
-   failed"; Keyboard Test lost focus to the search box on "/" and Ctrl+K (the app's shortcuts ran first — so those keys
-   could never be tested); Dead Pixel panel was not closed when full screen was left by the browser (its once-listener
-   was used up by *entering* full screen) and stayed over the app after Back/leaving the tab; Touch Test canvas was not
-   resized after rotating the phone (stretched strokes).
-   **Remaining:** screen, level, compass, soundmeter, ruler.
+   zero crossings), keyboard (22), pixels (19), touch (17; real touches via CDP Input.dispatchTouchEvent), screen (16),
+   level (23), compass (17), soundmeter (15; reading = 20·log10(A/√2) + offset for a known amplitude), ruler (17) —
+   helpers `_media.mjs` (fakeMedia, allStopped, trackAudioContexts). Orientation events only reach the page when the
+   context has the sensor permissions (`accelerometer`, `gyroscope`, `magnetometer`).
+   Fixed: Webcam "Snapshot" before starting threw "Encoding failed"; Keyboard Test lost focus to the search box on "/"
+   and Ctrl+K (the app's shortcuts ran first — those keys could never be tested); Dead Pixel panel was not closed when
+   full screen was left by the browser (its once-listener was used up by *entering* full screen) and stayed over the app
+   after Back/leaving the tab; Touch Test canvas was not resized after rotating the phone; Screen Info showed India as
+   "Asia/Calcutta" (now current IANA names) and did not follow a dark-mode switch; Bubble Level clamped the *reading* at
+   45° and showed "−0.0°"; Compass showed "360° N" for 359.6° and its dial spun ~360° the long way when crossing north;
+   Sound Meter showed −150 dB for silence, Start twice left two microphone streams and two loops running, and stacked
+   one error message per click; Ruler's card outline was squeezed by the phone's screen edge (wrong aspect → wrong
+   calibration) — now drawn upright when the card is wider than the screen.
+   **Per-tab suites are complete for every built tab.** (Full `node tests/e2e.mjs` run: in progress at this commit.)
 2. **Software (PC only, 47 tabs left)**, each with its own suite from the start, wasm first: sqlite (official wasm),
    jq (own build of jq 1.8.2 exists), yaml (own libyaml + toml++), graphviz (own build), python (MicroPython), and the
    rest listed in CLAUDE.md §2.
