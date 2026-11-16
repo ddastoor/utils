@@ -823,3 +823,24 @@ details summary { cursor: pointer; font-weight: 600; color: var(--accent); paddi
 .ref-tbl tr.grp th { background: var(--surface-2); color: var(--text); font-size: 13px; position: static; }
 .ref-tbl td.mono { white-space: nowrap; }
 .keycode-big { font-size: clamp(48px, 10vw, 96px); font-weight: 700; text-align: center; padding: 8px 0; word-break: break-all; }
+.cron-desc { font-size: 17px; font-weight: 600; margin: 0 0 10px; }
+.glob-list { display: flex; flex-direction: column; gap: 2px; }
+.glob-row { display: grid; grid-template-columns: 24px 1fr auto; gap: 8px; padding: 4px 6px; border-radius: 6px; }
+.glob-row.m { background: var(--ok-soft); } .glob-row.n { color: var(--muted); }
+.glob-mark { font-weight: 700; } .glob-row.m .glob-mark { color: var(--ok); }
+.ok-text { color: var(--ok); font-weight: 600; }
+.hexdump { font-size: 13px; line-height: 1.45; margin: 0; white-space: pre; }
+.out-pre { white-space: pre-wrap; margin: 0; font-size: 13px; }
+.logview { font-size: 12.5px; line-height: 1.45; max-height: 70vh; overflow: auto; }
+.logline { display: grid; grid-template-columns: 56px 1fr; gap: 8px; white-space: pre-wrap; word-break: break-all; padding: 0 4px; border-left: 3px solid transparent; }
+.logline .ln { color: var(--faint); text-align: right; user-select: none; }
+.logline.lv-fatal, .logline.lv-error { border-left-color: var(--err); background: color-mix(in srgb, var(--err) 8%, transparent); }
+.logline.lv-warn { border-left-color: var(--warn); background: color-mix(in srgb, var(--warn) 8%, transparent); }
+.logline.lv-debug, .logline.lv-trace { color: var(--muted); }
+.logline mark { background: color-mix(in srgb, var(--warn) 45%, transparent); color: inherit; border-radius: 2px; }
+.chip-btn.off { opacity: .45; text-decoration: line-through; }
+.utbl td.uchar { font-size: 20px; text-align: center; }
+.utbl tr.flag td { background: color-mix(in srgb, var(--warn) 14%, transparent); }
+.mermaid-view { overflow: auto; min-height: 120px; background: #fff; border-radius: 10px; padding: 12px; }
+.mermaid-view svg { max-width: 100%; height: auto; }
+.chmod-grid input { width: 20px; height: 20px; }

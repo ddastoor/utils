@@ -7,8 +7,17 @@ import { mkdtempSync, writeFileSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 export default async (t, { load, wasm }) => {
-  const { bindDevcore } = await load('/src/wasm/devcore.ts');
-  const d = bindDevcore(await wasm('devcore'));
+  const { bindDevcore, tzImports } = await load('/src/wasm/devcore.ts');
+  // one module per tab: route each op to its own build (devcore-<feature>.wasm)
+  let zone = 'UTC';
+  const mods = {};
+  for (const g of ['cidr', 'cron', 'semver', 'glob', 'patch', 'sqlfmt', 'x509', 'enc', 'bin', 'hex']) mods[g] = bindDevcore(await wasm(`devcore-${g}`, g === 'cron' ? tzImports(() => zone) : {}));
+  const grp = (op) => (op.startsWith('enc:') || op.startsWith('dec:') ? 'enc' : op.startsWith('bin:') ? 'bin' : op === 'hexdump' || op === 'find' ? 'hex' : op);
+  const d = {
+    json: (op, a) => { if (op === 'cron') zone = a.tz || 'UTC'; return mods[grp(op)].json(op, a); }, text: (op, a) => mods[grp(op)].text(op, a), bytesJson: (op, b) => mods[grp(op)].bytesJson(op, b),
+    encode: (alg, b) => mods.enc.encode(alg, b), decode: (alg, t) => mods.enc.decode(alg, t), hexdump: (...a) => mods.hex.hexdump(...a), find: (...a) => mods.hex.find(...a),
+  };
+  t.ok(/unknown op/.test((() => { try { mods.cidr.json('cron', {}); } catch (e) { return e.message; } })()), 'each module only has its own ops');
   const err = (f) => { try { f(); return null; } catch (e) { return e.message; } };
   // ---- CIDR
   let c = d.json('cidr', { input: '192.168.1.130/26' });
@@ -132,4 +141,7 @@ export default async (t, { load, wasm }) => {
   // ---- hex dump
   t.eq(d.hexdump(E.encode('Hello, World!\n\x00\x01ABC'), 0, 16), '00000000  48 65 6c 6c 6f 2c 20 57  6f 72 6c 64 21 0a 00 01  |Hello, World!...|\n00000010  41 42 43                                          |ABC|\n', 'hex dump like hexdump -C');
   t.eq(d.hexdump(E.encode('AB'), 4096, 8).slice(0, 8), '00001000', 'hex dump offset');
+  t.eq(d.find(E.encode('abcabcab'), E.encode('ab')), { hits: [0, 3, 6], more: false }, 'find all');
+  t.eq(d.find(E.encode('abcabcab'), E.encode('ab'), 1, 1), { hits: [3], more: true }, 'find from offset, capped');
+  t.eq(d.find(E.encode('aaa'), E.encode('aa')).hits, [0, 1], 'overlapping hits');
 };

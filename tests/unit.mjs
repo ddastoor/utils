@@ -41,7 +41,7 @@ if (isMainThread) {
   const { createServer } = await import('vite');
   // no file watcher: tests only import modules; a watcher holds hundreds of fds (public/data/dict) for nothing
   const vite = await createServer({ root, server: { middlewareMode: true, hmr: false, ws: false, watch: null }, logLevel: 'error', optimizeDeps: { noDiscovery: true, include: [] } });
-  async function wasm(name) {
+  async function wasm(name, extra = {}) {
     const mod = await WebAssembly.compile(readFileSync(join(root, 'src/wasm/bin', `${name}.wasm`)));
     let memory;
     const w = {};
@@ -53,7 +53,7 @@ if (isMainThread) {
     w.clock_time_get = (_id, _prec, out) => { new DataView(memory.buffer).setBigUint64(out, BigInt(Date.now()) * 1000000n, true); return 0; };
     w.environ_sizes_get = (a, b) => { const dv = new DataView(memory.buffer); dv.setUint32(a, 0, true); dv.setUint32(b, 0, true); return 0; };
     w.environ_get = () => 0;
-    const inst = await WebAssembly.instantiate(mod, { wasi_snapshot_preview1: w });
+    const inst = await WebAssembly.instantiate(mod, { wasi_snapshot_preview1: w, ...extra });
     memory = inst.exports.memory;
     inst.exports._initialize?.();
     return inst.exports;

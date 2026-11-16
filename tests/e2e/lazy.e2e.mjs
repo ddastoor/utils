@@ -20,6 +20,12 @@ const AT_OPEN = {
   caption: [/anton/, 'the meme font is used by the first preview (Anton, 18 KB)'],
   watermark: [/anton/, 'the watermark font is used by the first preview (Anton, 18 KB)'],
   signature: [/great-vibes|dancing-script|caveat/, 'typed-signature styles are previewed at once (3 fonts, 113 KB)'],
+  cidr: [/devcore-cidr/, 'the sample block is calculated as you type (devcore-cidr, 0.14 MB)'],
+  cron: [/devcore-cron/, 'the sample schedule is explained and its next runs listed (devcore-cron, 0.17 MB)'],
+  semver: [/devcore-semver/, 'the sample range is checked as you type (devcore-semver, 0.16 MB)'],
+  glob: [/devcore-glob/, 'the sample patterns are matched as you type (devcore-glob, 0.65 MB)'],
+  patch: [/devcore-patch/, 'the patch is applied as you type (devcore-patch, 0.11 MB)'],
+  mermaid: [/mermaid|cytoscape|katex|dagre|elk/i, 'the sample diagram is the main view (Mermaid, loaded as JS chunks)'],
 };
 const HEAVY = /\.wasm$|\/vendor\/|\/models\/|\/data\/|\.(ttf|otf|woff2?)$/;
 const BUDGET = 400 * 1024; // decoded bytes a tab may download at open (its own JS + CSS), apart from AT_OPEN tabs

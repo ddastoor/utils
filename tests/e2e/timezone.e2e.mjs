@@ -29,6 +29,9 @@ export default async ({ base, page: newPage, ok, devices }) => {
   ok(row(r, 'UTC')[1] === await fmt(Date.UTC(2026, 9, 25, 0, 30), 'UTC'), 'London 01:30 on the autumn change → first occurrence (BST)');
   await c.set('Time', '');
   ok(/Pick a date and time/.test(await c.warn()), 'missing time refused');
+  await page.goto(`${base}#/epoch`); await page.goto(`${base}#/timezone`); await page.locator('select').first().waitFor();
+  const zs = await page.locator('select').first().evaluate((s) => [s.value, [...s.options].filter((o) => /Kolkata|Calcutta/.test(o.value)).map((o) => o.value)]);
+  ok(zs[0] === 'Asia/Kolkata' && JSON.stringify(zs[1]) === '["Asia/Kolkata"]', `device zone shown as Asia/Kolkata, India listed once (${JSON.stringify(zs)}) — was Asia/Calcutta + Asia/Kolkata`);
   ok(!page.errors.length, `no page errors ${page.errors.join(' | ')}`);
   const ph = await newPage(devices['iPhone 13']); await ph.goto(`${base}#/timezone`); await ph.locator('.kv').waitFor();
   ok(await ph.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'phone: no horizontal scroll');

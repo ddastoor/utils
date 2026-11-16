@@ -1,27 +1,58 @@
 //! cron (croner), semver (node-semver rules), glob (globset), unified-diff patch (diffy), SQL formatting (sqlformat),
 //! hex dump.
+#![allow(unused_imports)]
 use crate::{arg, js, s, R};
 use serde_json::{json, Value};
 
 // ------------------------------------------------------------------ cron: {expr, tz, from (unix ms), count, seconds}
+/// The time zone of the page: offsets come from the browser (Intl) through the `env.tz_offset` import, so no tz database
+/// is compiled in (chrono-tz would add ~0.9 MB).
+#[cfg(feature = "cron")]
+mod host_tz {
+    use chrono::{FixedOffset, LocalResult, NaiveDate, NaiveDateTime, Offset, TimeZone};
+    #[link(wasm_import_module = "env")]
+    extern "C" { fn tz_offset(utc_ms: f64) -> i32; }
+    #[derive(Clone, Copy, Debug)]
+    pub struct HostTz;
+    fn at(utc: &NaiveDateTime) -> FixedOffset { let m = unsafe { tz_offset(utc.and_utc().timestamp_millis() as f64) }; FixedOffset::east_opt(m * 60).unwrap_or(FixedOffset::east_opt(0).unwrap()) }
+    impl TimeZone for HostTz {
+        type Offset = FixedOffset;
+        fn from_offset(_: &FixedOffset) -> Self { HostTz }
+        fn offset_from_local_date(&self, local: &NaiveDate) -> LocalResult<FixedOffset> { self.offset_from_local_datetime(&local.and_hms_opt(0, 0, 0).unwrap()) }
+        fn offset_from_local_datetime(&self, local: &NaiveDateTime) -> LocalResult<FixedOffset> {
+            // the offsets in force 14 h either side; keep those that read back as this wall time (two = repeated hour, none = skipped hour)
+            let d = chrono::Duration::hours(14);
+            let mut c: Vec<FixedOffset> = vec![at(&(*local - d)), at(&(*local + d))];
+            c.dedup_by_key(|o| o.local_minus_utc());
+            let mut ok: Vec<FixedOffset> = c.into_iter().filter(|o| at(&(*local - chrono::Duration::seconds(o.local_minus_utc() as i64))).local_minus_utc() == o.local_minus_utc()).collect();
+            ok.sort_by_key(|o| -o.local_minus_utc()); // larger offset = earlier instant
+            match ok.len() { 0 => LocalResult::None, 1 => LocalResult::Single(ok[0]), _ => LocalResult::Ambiguous(ok[0], ok[1]) }
+        }
+        fn offset_from_utc_date(&self, utc: &NaiveDate) -> FixedOffset { at(&utc.and_hms_opt(0, 0, 0).unwrap()) }
+        fn offset_from_utc_datetime(&self, utc: &NaiveDateTime) -> FixedOffset { at(utc) }
+    }
+}
+
+// ------------------------------------------------------------------ cron: {expr, from (unix ms), count}; zone = env.tz_offset
+#[cfg(feature = "cron")]
 pub fn cron(input: &[u8]) -> R {
     use croner::parser::{CronParser, Seconds};
+    use chrono::TimeZone;
     let a = arg(input)?;
     let expr = s(&a, "expr").trim();
     if expr.is_empty() { return Err("Enter a cron expression, e.g. */15 * * * *".into()); }
     let c = CronParser::builder().seconds(Seconds::Optional).build().parse(expr).map_err(|e| format!("{e}"))?;
-    let tz: chrono_tz::Tz = s(&a, "tz").parse().unwrap_or(chrono_tz::UTC);
     let from = a.get("from").and_then(|v| v.as_i64()).unwrap_or(0);
     let n = a.get("count").and_then(|v| v.as_u64()).unwrap_or(10).min(100) as usize;
-    let start = chrono::DateTime::from_timestamp_millis(from).ok_or("bad start time")?.with_timezone(&tz);
-    let next: Vec<Value> = c.iter_after(start).take(n).map(|t| json!({ "iso": t.to_rfc3339(), "ms": t.timestamp_millis() })).collect();
-    let fields = expr.split_whitespace().count();
-    js(json!({ "description": c.describe(), "next": next, "fields": fields }))
+    let start = host_tz::HostTz.timestamp_millis_opt(from).single().ok_or("bad start time")?;
+    let next: Vec<Value> = c.iter_after(start).take(n).map(|t| json!({ "ms": t.timestamp_millis() })).collect();
+    js(json!({ "description": c.describe(), "next": next, "fields": expr.split_whitespace().count() }))
 }
 
 // ------------------------------------------------------------------ semver: {versions:[...], range, inc}
 /// Strict SemVer 2.0.0 syntax (semver.org grammar; a leading "v" allowed like node-semver). The parser crate is looser
 /// ("1.2.3.4", "01.2.3", "1.2.3abc" would be accepted), so versions are checked here first.
+#[cfg(feature = "semver")]
 fn strict(v: &str) -> bool {
     let v = v.strip_prefix('v').unwrap_or(v);
     let (rest, build) = match v.split_once('+') { Some((a, b)) => (a, Some(b)), None => (v, None) };
@@ -33,6 +64,7 @@ fn strict(v: &str) -> bool {
         && pre.map_or(true, |p| p.split('.').all(|i| ident(i) && (!i.bytes().all(|c| c.is_ascii_digit()) || num(i))))
         && build.map_or(true, |b| b.split('.').all(ident))
 }
+#[cfg(feature = "semver")]
 pub fn semver(input: &[u8]) -> R {
     use nodejs_semver::{Range, Version};
     let a = arg(input)?;
@@ -65,6 +97,7 @@ pub fn semver(input: &[u8]) -> R {
 }
 
 // ------------------------------------------------------------------ glob: {patterns:[...], paths:[...], caseInsensitive, dot}
+#[cfg(feature = "glob")]
 pub fn glob(input: &[u8]) -> R {
     use globset::GlobBuilder;
     let a = arg(input)?;
@@ -92,6 +125,7 @@ pub fn glob(input: &[u8]) -> R {
 }
 
 // ------------------------------------------------------------------ patch: {original, patch, reverse}
+#[cfg(feature = "patch")]
 pub fn patch(input: &[u8]) -> R {
     let a = arg(input)?;
     let orig = s(&a, "original"); let p = s(&a, "patch");
@@ -109,12 +143,12 @@ pub fn patch(input: &[u8]) -> R {
     let patch = if a.get("reverse").and_then(|v| v.as_bool()).unwrap_or(false) { patch.reverse() } else { patch };
     let hunks = patch.hunks().len();
     let (add, del) = patch.hunks().iter().flat_map(|h| h.lines()).fold((0, 0), |(a, d), l| match l { diffy::Line::Insert(_) => (a + 1, d), diffy::Line::Delete(_) => (a, d + 1), _ => (a, d) });
-    let mut base = orig.to_string(); if !base.is_empty() && !base.ends_with('\n') { base.push('\n'); }
-    let out = diffy::apply(&base, &patch).map_err(|e| format!("The patch does not apply: {e}"))?;
+    let out = diffy::apply(orig, &patch).map_err(|e| format!("The patch does not apply: {e}"))?;
     js(json!({ "result": out, "hunks": hunks, "added": add, "removed": del, "files": files.max(1), "original": patch.original(), "modified": patch.modified() }))
 }
 
 // ------------------------------------------------------------------ SQL formatting: {sql, indent (spaces, 0 = tab), uppercase, lines}
+#[cfg(feature = "sqlfmt")]
 pub fn sqlfmt(input: &[u8]) -> R {
     use sqlformat::{format, FormatOptions, Indent, QueryParams};
     let a = arg(input)?;
@@ -147,4 +181,19 @@ pub fn hexdump(input: &[u8]) -> R {
     }
     let _ = Value::Null;
     Ok(o.into_bytes())
+}
+
+// ------------------------------------------------------------------ find: [u32 from][u32 max hits][u32 needle len][needle][haystack] → JSON offsets
+pub fn find(input: &[u8]) -> R {
+    if input.len() < 12 { return Err("bad find input".into()); }
+    let from = u32::from_le_bytes(input[0..4].try_into().unwrap()) as usize;
+    let max = u32::from_le_bytes(input[4..8].try_into().unwrap()) as usize;
+    let n = u32::from_le_bytes(input[8..12].try_into().unwrap()) as usize;
+    if n == 0 || input.len() < 12 + n { return Err("empty search".into()); }
+    let (needle, hay) = (&input[12..12 + n], &input[12 + n..]);
+    let mut hits = Vec::new(); let mut i = from;
+    while i + n <= hay.len() && hits.len() < max {
+        match hay[i..].iter().position(|&b| b == needle[0]) { None => break, Some(k) => { i += k; if i + n <= hay.len() && &hay[i..i + n] == needle { hits.push(i); } i += 1; } }
+    }
+    js(json!({ "hits": hits, "more": hits.len() == max }))
 }

@@ -1,4 +1,5 @@
 import { h, card, field, input, select, segmented, button, clear, stack, copy, note, type Mount } from '../ui';
+import { localZone, modernZone } from '../lib/tz';
 import { calcForm, fmtINR, fmtN, need, today } from '../lib/form';
 import { mathcore } from '../wasm/mathcore';
 
@@ -245,8 +246,8 @@ function zoneOffset(zone: string, at: Date) {
 }
 export const timezone: Mount = (root) => {
   const all = (Intl as any).supportedValuesOf ? (Intl as any).supportedValuesOf('timeZone') as string[] : ZONES;
-  const local = Intl.DateTimeFormat().resolvedOptions().timeZone;
-  const opts = [...new Set([local, ...ZONES, ...all])].map((z) => [z, z.replace(/_/g, ' ')] as [string, string]);
+  const local = localZone(); // "Asia/Kolkata", not ICU's old "Asia/Calcutta" (India was listed twice)
+  const opts = [...new Set([local, ...ZONES, ...all].map(modernZone))].map((z) => [z, z.replace(/_/g, ' ')] as [string, string]);
   const now = new Date();
   calcForm(root, [
     { key: 'date', label: 'Date', type: 'date', value: today() },

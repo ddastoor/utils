@@ -1,6 +1,7 @@
 // Device tests and phone sensors. Everything uses standard browser APIs on the device; nothing leaves it.
 import { h, card, field, button, segmented, toggle, slider, select, clear, stack, note, downloadBlob, canvasToBlob, type Mount } from '../ui';
 import { isIOS } from '../platform';
+import { modernZone } from '../lib/tz';
 
 const stopStream = (s?: MediaStream | null) => s?.getTracks().forEach((t) => t.stop());
 const kv = (rows: Array<[string, string]>) => h('div', { class: 'kv' }, rows.flatMap(([k, v]) => [h('span', null, k), h('span', null, v)]));
@@ -207,9 +208,6 @@ export const touch: Mount = (root) => {
 };
 
 // ------------------------------------------------------------------ Screen info
-// Chromium's ICU still reports some zones by their old names (India → "Asia/Calcutta"); show the current IANA name.
-const ZONE_RENAMES: Record<string, string> = { 'Asia/Calcutta': 'Asia/Kolkata', 'Asia/Katmandu': 'Asia/Kathmandu', 'Asia/Saigon': 'Asia/Ho_Chi_Minh', 'Asia/Rangoon': 'Asia/Yangon', 'Europe/Kiev': 'Europe/Kyiv', 'Asia/Dacca': 'Asia/Dhaka', 'Asia/Thimbu': 'Asia/Thimphu' };
-const modernZone = (z: string) => ZONE_RENAMES[z] || z;
 export const screen_: Mount = (root) => {
   const out = h('div');
   const measureHz = () => new Promise<number>((res) => { let n = 0; const t0 = performance.now(); const f = () => { if (++n < 60) requestAnimationFrame(f); else res(Math.round((n * 1000) / (performance.now() - t0))); }; requestAnimationFrame(f); });

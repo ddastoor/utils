@@ -7,7 +7,7 @@ const stub = () => note('This tool is being built.', 'info');
 
 // ------------------------------------------------------------------ Subnet / CIDR
 export const cidr: Mount = async (root) => {
-  const dc = await devcore();
+  const dc = await devcore('cidr');
   const inp = input({ value: '192.168.1.10/24', attrs: { class: 'input mono', spellcheck: 'false', 'aria-label': 'Address' } });
   const split = select<string>([['', 'Don’t split']], '');
   const out = h('div');
@@ -100,7 +100,8 @@ export const x509: Mount = async (root) => {
   let dcP: ReturnType<typeof devcore> | null = null;
   const fmt = (s: number) => new Date(s * 1000).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'UTC' }) + ' UTC';
   const render = async (bytes: Uint8Array) => {
-    const dc = await (dcP ||= devcore());
+    if (!bytes.length) { clear(out).append(note('Paste a PEM certificate (or a chain, or a CSR) or choose a .pem / .crt / .cer / .der / .csr file.', 'info')); return; } // engine loads with the first certificate
+    const dc = await (dcP ||= devcore('x509'));
     show(out, () => {
       if (!bytes.length) return note('Paste a PEM certificate (or a chain, or a CSR) or choose a .pem / .crt / .cer / .der / .csr file.', 'info');
       const r = dc.bytesJson('x509', bytes);

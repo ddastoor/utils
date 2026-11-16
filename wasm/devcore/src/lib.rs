@@ -4,10 +4,14 @@
 use serde_json::{json, Value};
 use std::cell::RefCell;
 
+#[cfg(feature = "bin")]
 mod bin;
+#[cfg(feature = "cidr")]
 mod cidr;
+#[cfg(feature = "enc")]
 mod enc;
 mod misc;
+#[cfg(feature = "x509")]
 mod x509;
 
 thread_local! { static OUT: RefCell<Vec<u8>> = RefCell::new(Vec::new()); }
@@ -29,8 +33,11 @@ pub extern "C" fn dc_out_ptr() -> *const u8 { OUT.with(|o| o.borrow().as_ptr()) 
 pub extern "C" fn dc_out_len() -> usize { OUT.with(|o| o.borrow().len()) }
 
 pub type R = Result<Vec<u8>, String>;
+#[allow(dead_code)]
 pub fn js(v: Value) -> R { Ok(serde_json::to_vec(&v).unwrap()) }
+#[allow(dead_code)]
 pub fn arg(input: &[u8]) -> Result<Value, String> { serde_json::from_slice(input).map_err(|e| format!("bad input: {e}")) }
+#[allow(dead_code)]
 pub fn s<'a>(v: &'a Value, k: &str) -> &'a str { v.get(k).and_then(|x| x.as_str()).unwrap_or("") }
 
 #[no_mangle]
@@ -38,18 +45,31 @@ pub unsafe extern "C" fn dc_call(op: *const u8, op_n: usize, inp: *const u8, in_
     let op = std::str::from_utf8(std::slice::from_raw_parts(op, op_n)).unwrap_or("");
     let input = if in_n == 0 { &[][..] } else { std::slice::from_raw_parts(inp, in_n) };
     let r: R = match op {
+        #[cfg(feature = "cidr")]
         "cidr" => cidr::run(input),
+        #[cfg(feature = "cron")]
         "cron" => misc::cron(input),
+        #[cfg(feature = "semver")]
         "semver" => misc::semver(input),
+        #[cfg(feature = "glob")]
         "glob" => misc::glob(input),
+        #[cfg(feature = "patch")]
         "patch" => misc::patch(input),
+        #[cfg(feature = "sqlfmt")]
         "sqlfmt" => misc::sqlfmt(input),
         "hexdump" => misc::hexdump(input),
+        "find" => misc::find(input),
+        #[cfg(feature = "x509")]
         "x509" => x509::run(input),
+        #[cfg(feature = "bin")]
         "bin:protobuf" => bin::protobuf(input),
+        #[cfg(feature = "bin")]
         "bin:msgpack" => bin::msgpack(input),
+        #[cfg(feature = "bin")]
         "bin:cbor" => bin::cbor(input),
+        #[cfg(feature = "enc")]
         _ if op.starts_with("enc:") => enc::encode(&op[4..], input),
+        #[cfg(feature = "enc")]
         _ if op.starts_with("dec:") => enc::decode(&op[4..], input),
         _ => Err(format!("unknown op {op}")),
     };
@@ -58,4 +78,5 @@ pub unsafe extern "C" fn dc_call(op: *const u8, op_n: usize, inp: *const u8, in_
     code
 }
 
+#[allow(dead_code)]
 pub fn ok_json() -> Value { json!({}) }

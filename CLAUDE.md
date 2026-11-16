@@ -720,7 +720,7 @@ stay **public** (the source of the deployed site is then available to every user
 | whisper: **whisper.cpp 1.8.3** + ggml CPU backend (upstream unmodified) + own threadshim.h (std::mutex/std::thread/fstream for zig's thread-less libc++), backend-reg.cpp (static CPU-only registry), cxxabi_stubs.c (throw = abort), glue.cpp | C / C++ | **us** (`wasm/whisper`) | stt |
 | textcore: Myers diff, tool-search ranking, word frequency, rare-word ranking (tokeniser, lemmatiser, wordfreq hash table), XY-cut reading order | C (own code) | **us** (`wasm/textcore`) | diff, search box, word counter, photodict |
 | sheet: calamine 0.38 (read .xlsx .xlsm .xlsb .xls .ods) + rust_xlsxwriter 0.102 (write .xlsx) + csv 1 + serde_json | Rust | **us** (`wasm/sheet`, crates.io sources verified by `Cargo.lock`, target wasm32-wasip1) | sheet |
-| devcore: ipnet (CIDR), croner + chrono-tz (cron), nodejs-semver (+ own strict SemVer check), globset, data-encoding + bs58 + own Ascii85/Z85, own protobuf wire decoder, rmpv (MessagePack), ciborium (CBOR), x509-parser + sha1/sha2, diffy (patch), sqlformat, own hex dump | Rust | **us** (`wasm/devcore`, crates.io via `Cargo.lock`, wasm32-wasip1; one `dc_call(op, input)` entry; ~2.2 MB) | cidr, x509, cron, semver, glob, patch, sqlfmt, hexview, baseenc, bindecode |
+| devcore: ipnet (CIDR), croner + chrono (cron; zone offsets from the browser's Intl via an `env.tz_offset` import, so no tz database), nodejs-semver (+ own strict SemVer check), globset, data-encoding + bs58 + own Ascii85/Z85, own protobuf wire decoder, rmpv (MessagePack), ciborium (CBOR), x509-parser + sha1/sha2, diffy (patch), sqlformat, own hex dump | Rust | **us** (`wasm/devcore`, crates.io via `Cargo.lock`, wasm32-wasip1; one `dc_call(op, input)` entry; **one module per tab** via Cargo features → `devcore-<feature>.wasm`, 67–650 KB) | cidr, x509, cron, semver, glob, patch, sqlfmt, hexview, baseenc, bindecode |
 | cmark-gfm 0.29.0.gfm.13 (GitHub Flavored Markdown) | C | **us** (`wasm/markdown`, source from the PyPI `cmarkgfm` sdist, SHA-256 pinned) | markdown |
 | libyaml 0.2.5 + toml++ 3 | C / C++ | **us** (`wasm/formats`) | yaml |
 | MuPDF 1.28 | C | Artifex (official `mupdf` npm) | all PDF tools, PDF → EPUB |
@@ -739,7 +739,7 @@ JavaScript-only components (no C/C++ equivalent exists for the job):
 | Library | Why JS | Used by |
 |---|---|---|
 | OpenPGP.js 6 (LGPL-3.0) | the audited browser OpenPGP implementation; C alternatives (GnuPG, RNP+Botan) are not built or audited for wasm | pgp |
-| Mermaid (MIT) | Mermaid exists only as JavaScript | mermaid |
+| Mermaid 12 (MIT) | Mermaid exists only as JavaScript; `securityLevel: 'strict'` (labels sanitised), bundled by Vite | mermaid |
 | Prettier standalone (MIT) | no compiled formatter covers JS/TS/CSS/HTML/YAML/Markdown/GraphQL together | prettier |
 | sql-formatter (MIT) | no C/C++ SQL pretty-printer library | sqlfmt |
 | TensorFlow.js (Apache-2.0) | runs the Magenta style-transfer graph on the GPU via WebGL; its **wasm backend** (XNNPACK, C++ → wasm, tier 2 official build) is the CPU path | cartoon (neural) |
@@ -814,7 +814,8 @@ Owner: "make the full site faster, more responsive and memory efficient — load
    in `AT_OPEN` in the test): our three small engines (mathcore/crypto/textcore ≤ 115 KB: live results as you
    type), invoice/rent/resume (MuPDF + Noto Sans: the live PDF preview is the main view), markdown (cmark-gfm,
    sample preview), terminal (BusyBox: the shell is ready at once), qr/barcode (zxing-cpp: drawn as you type),
-   caption/watermark/signature (fonts of the first preview). Adding to that list needs a reason in the test.
+   caption/watermark/signature (fonts of the first preview), cidr/cron/semver/glob/patch (their devcore-<tab>.wasm: the
+   sample is computed live), mermaid (the sample diagram). Adding to that list needs a reason in the test.
    Examples of deferral: bc console starts BusyBox on its first Enter; Image Editor instantiates imgproc with
    the first photo; CSV/Excel loads sheet.wasm with the first file; Photo Dictionary loads the word list and
    Literata while OCR runs; PDF tabs load MuPDF when a PDF is chosen.
