@@ -16,8 +16,11 @@ export const payload = {
     if (o.note) p.set('tn', o.note);
     return `upi://pay?${p.toString().replace(/\+/g, '%20')}`;
   },
-  vcard: (o: { first: string; last: string; phone: string; email: string; org: string; url: string }) =>
-    ['BEGIN:VCARD', 'VERSION:3.0', `N:${o.last};${o.first};;;`, `FN:${`${o.first} ${o.last}`.trim()}`, o.org && `ORG:${o.org}`, o.phone && `TEL;TYPE=CELL:${o.phone}`, o.email && `EMAIL:${o.email}`, o.url && `URL:${o.url}`, 'END:VCARD'].filter(Boolean).join('\n'),
+  // vCard 3.0 text values escape \ ; , and new lines (RFC 2426 §4), so "Tata Sons; Mumbai" stays one field
+  vcard: (o: { first: string; last: string; phone: string; email: string; org: string; url: string }) => {
+    const v = (s: string) => s.replace(/([\\;,])/g, '\\$1').replace(/\r?\n/g, '\\n');
+    return ['BEGIN:VCARD', 'VERSION:3.0', `N:${v(o.last)};${v(o.first)};;;`, `FN:${v(`${o.first} ${o.last}`.trim())}`, o.org && `ORG:${v(o.org)}`, o.phone && `TEL;TYPE=CELL:${o.phone}`, o.email && `EMAIL:${o.email}`, o.url && `URL:${o.url}`, 'END:VCARD'].filter(Boolean).join('\n');
+  },
   email: (o: { to: string; subject: string; body: string }) => `mailto:${o.to}${o.subject || o.body ? '?' + new URLSearchParams({ ...(o.subject ? { subject: o.subject } : {}), ...(o.body ? { body: o.body } : {}) }).toString().replace(/\+/g, '%20') : ''}`,
   sms: (o: { phone: string; msg: string }) => `SMSTO:${o.phone}:${o.msg}`,
   tel: (o: { phone: string }) => `tel:${o.phone.replace(/\s+/g, '')}`,

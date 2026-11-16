@@ -75,7 +75,7 @@ export const unzip: Mount = (root) => {
     const files = entries.filter((e) => !e.dir);
     const save = async (e: Entry) => {
       try { downloadBlob(await e.get(), e.path.split('/').pop() || 'file'); }
-      catch (err: any) { throw new Error(/password/i.test(err?.message || '') ? 'Wrong or missing password.' : err?.message || String(err)); }
+      catch (err: any) { throw new Error(/password|encrypt/i.test(err?.message || '') ? 'Wrong or missing password.' : err?.message || String(err)); } // zip.js: "File contains encrypted entry"
     };
     out.append(card(`${files.length} files · ${fmtBytes(files.reduce((a, e) => a + e.size, 0))}`, h('div', { class: 'file-list' }, files.slice(0, 2000).map((e) => h('div', { class: 'file-row' },
       h('span', { class: 'file-name' }, e.path), h('span', { class: 'muted small' }, fmtBytes(e.size)), button('', () => save(e), { icon: 'Download', small: true, variant: 'ghost', title: 'Download' }))))),
