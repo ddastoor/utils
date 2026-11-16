@@ -152,6 +152,23 @@ dd/mm/yyyy, every page; "not a cryptographic digital signature" note), `pdf-fill
 checkbox, radio groups (on-states from the appearance dictionary), combo/list boxes, read-only shown locked — set through
 MuPDF widgets with appearance regeneration; optional flatten (`bake`); "type anywhere" text boxes for PDFs without fields
 (Latin script); tests build a richer form with `tests/lib/makeform.mjs`). **All 13 PDF tabs done.**
+
+**Document generators** (`src/tools/docgen.ts`) — `invoice` GST Invoice (20), `rent` Rent Receipt (10), `resume` Resume
+Builder (7) — **BUILT**. Engine `src/lib/htmlpdf.ts`: the filled HTML template + CSS + images + self-hosted **Noto Sans**
+TTFs (OFL, `@expo-google-fonts/noto-sans`, vendored to `public/vendor/fonts/`; covers Latin, Greek, Cyrillic,
+**Devanagari** and **₹**) are zipped into an in-memory EPUB, laid out by MuPDF's HTML engine (HarfBuzz shaping), written
+page by page with `DocumentWriter('pdf')`, fonts subset (~55 KB files), optional "Page i of n". Why EPUB: mupdf.js has
+no Story API and `openDocument` cannot load fonts from outside the document; MuPDF's FreeType reads TTF but not WOFF.
+MuPDF ignores CSS page breaks and % column widths: each array element of the body is its own chapter (= new page),
+and two-column layouts use widths in points. The preview is the real PDF rendered by MuPDF. "Save details / Load
+details" keep a JSON file on the user's device (nothing stored in the browser). GST maths in mathcore
+(`m_invoice`: integer paise, half-up per line; CGST+SGST same state, CGST+UTGST in Chandigarh / DNH&DD / Lakshadweep /
+A&N / Ladakh, IGST otherwise; rates incl. 0.1/0.25/1.5/7.5/40 %; optional rupee round-off) and `m_gstin_valid` (GSTN
+mod-36 check character); amount in words = `m_words` (lakh/crore). Invoice: Tax invoice / Proforma / Quotation / Bill of
+supply, GSTIN check auto-fills the state, place of supply, reverse charge, per-rate tax summary, bank details, UPI
+pay QR (zxing-wasm), logo and signature images, accent colour. Rent receipt: one per month (exact month ends), three
+per A4 page with cut lines, landlord PAN warning above ₹1 lakh/year, revenue-stamp box for cash above ₹5,000. Resume:
+Classic / Modern (two columns) / Compact, A4 or Letter, photo, repeatable jobs / education / projects.
 | id | Tab | Platform |
 |---|---|---|
 | `pdf-merge` | Merge PDF | both |
@@ -761,6 +778,7 @@ npm packages (pinned in `package-lock.json`) are bundled by Vite or copied to `p
 | @fontsource/anton (Anton font) | OFL-1.1 | Text on Image (meme style), Watermark |
 | @fontsource/great-vibes, /dancing-script, /caveat | OFL-1.1 | Signature Maker (typed signatures) |
 | @fontsource/literata (Literata, Google's reading typeface) | OFL-1.1 | Photo Dictionary cards |
+| @expo-google-fonts/noto-sans (Noto Sans TTF: regular, bold, italic) | OFL-1.1 (package MIT) | PDFs made by GST Invoice, Rent Receipt, Resume Builder |
 
 **Data files committed in `public/data/`**: EFF large wordlist (CC-BY 3.0); `dict/` — English Wiktionary via
 wiktextract/kaikki.org (CC-BY-SA 4.0 + GFDL, Wiktionary contributors) and wordfreq 3.1.1 English frequencies (CC-BY-SA

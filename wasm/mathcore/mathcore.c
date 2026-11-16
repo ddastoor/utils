@@ -855,3 +855,44 @@ API double m_contrast(double r1, double g1, double b1, double r2, double g2, dou
     double hi = fmax(a[0], b[0]), lo = fmin(a[0], b[0]);
     return (hi + 0.05) / (lo + 0.05);
 }
+
+/* ======================================================================== India: GST invoices */
+/* Money is kept in integer paise; every rounding is half away from zero, per line (as invoices are printed). */
+static int64_t paise(double rupees) { double p = rupees * 100.0; return (int64_t)(p < 0 ? p - 0.5 : p + 0.5); }
+static int64_t rdiv(int64_t num, int64_t den) { return num >= 0 ? (num + den / 2) / den : -((-num + den / 2) / den); }
+
+/* lines: n × [qty, rate (₹), discount %, gst %]. intra = 1: CGST + SGST/UTGST (half each), 0: IGST.
+ * out_lines: n × [taxable, cgst, sgst, igst] in paise. out: [taxable, cgst, sgst, igst, total, roundoff, grand] paise.
+ * GST % is taken in hundredths (0.25 % = 25) so rates like 0.1 / 0.25 / 1.5 / 7.5 are exact. */
+API void m_invoice(const double *lines, int n, int intra, int roundoff, int64_t *out_lines, int64_t *out) {
+    int64_t T = 0, C = 0, S = 0, I = 0;
+    for (int i = 0; i < n; i++) {
+        double qty = lines[i * 4], rate = lines[i * 4 + 1], disc = lines[i * 4 + 2], g = lines[i * 4 + 3];
+        int64_t gross = paise(qty * rate), d = paise(qty * rate * disc / 100.0), taxable = gross - d;
+        int64_t g100 = (int64_t)(g * 100.0 + 0.5); /* rate in hundredths of a percent */
+        int64_t c = 0, s = 0, ig = 0;
+        if (intra) { c = rdiv(taxable * g100, 20000); s = c; } else ig = rdiv(taxable * g100, 10000);
+        out_lines[i * 4] = taxable; out_lines[i * 4 + 1] = c; out_lines[i * 4 + 2] = s; out_lines[i * 4 + 3] = ig;
+        T += taxable; C += c; S += s; I += ig;
+    }
+    int64_t total = T + C + S + I, grand = roundoff ? rdiv(total, 100) * 100 : total;
+    out[0] = T; out[1] = C; out[2] = S; out[3] = I; out[4] = total; out[5] = grand - total; out[6] = grand;
+}
+
+/* GSTIN: 2-digit state code + 10-char PAN + entity number + 'Z' + check character (mod-36 Luhn variant used by GSTN). */
+API int m_gstin_valid(const char *g, int len) {
+    static const char *cs = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    if (len != 15) return 0;
+    int st = (g[0] - '0') * 10 + (g[1] - '0');
+    if (g[0] < '0' || g[0] > '9' || g[1] < '0' || g[1] > '9' || st < 1 || st > 99) return 0;
+    for (int i = 2; i < 7; i++) if (g[i] < 'A' || g[i] > 'Z') return 0;          /* PAN: 5 letters */
+    for (int i = 7; i < 11; i++) if (g[i] < '0' || g[i] > '9') return 0;        /*      4 digits */
+    if (g[11] < 'A' || g[11] > 'Z') return 0;                                   /*      1 letter */
+    int sum = 0;
+    for (int i = 0; i < 14; i++) {
+        const char *p = strchr(cs, g[i]); if (!p || !g[i]) return 0;
+        int v = (int)(p - cs) * (i % 2 ? 2 : 1);
+        sum += v / 36 + v % 36;
+    }
+    return cs[(36 - sum % 36) % 36] == g[14];
+}

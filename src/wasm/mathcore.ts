@@ -128,6 +128,21 @@ export function bindMathcore(e: any) {
     bmr: (male: boolean, kg: number, cm: number, age: number) => e.m_bmr(male ? 1 : 0, kg, cm, age) as number,
     bodyfat: (male: boolean, h: number, neck: number, waist: number, hip: number) => e.m_bodyfat(male ? 1 : 0, h, neck, waist, hip) as number,
     idealWeight(male: boolean, cm: number) { return withF64(4, (p) => { e.m_idealweight(male ? 1 : 0, cm, p); const [devine, robinson, miller, hamwi] = f64(p, 4); return { devine, robinson, miller, hamwi }; }); },
+    /** GST invoice maths in integer paise. lines: [qty, rate ₹, discount %, GST %]. Returns rupees. */
+    invoice(lines: Array<[number, number, number, number]>, intra: boolean, roundoff: boolean) {
+      const n = lines.length, lp = e.m_malloc(Math.max(1, n) * 32), op = e.m_malloc(Math.max(1, n) * 32), tp = e.m_malloc(56);
+      try {
+        new Float64Array(mem(), lp, n * 4).set(lines.flat());
+        e.m_invoice(lp, n, intra ? 1 : 0, roundoff ? 1 : 0, op, tp);
+        const L = new BigInt64Array(mem(), op, n * 4), t = new BigInt64Array(mem(), tp, 7), r = (x: bigint) => Number(x) / 100;
+        return {
+          lines: Array.from({ length: n }, (_, i) => ({ taxable: r(L[i * 4]), cgst: r(L[i * 4 + 1]), sgst: r(L[i * 4 + 2]), igst: r(L[i * 4 + 3]) })),
+          taxable: r(t[0]), cgst: r(t[1]), sgst: r(t[2]), igst: r(t[3]), total: r(t[4]), roundoff: r(t[5]), grand: r(t[6]),
+        };
+      } finally { e.m_free(lp); e.m_free(op); e.m_free(tp); }
+    },
+    /** GSTIN format + check character. */
+    gstinValid: (g: string) => !!withStr(g.trim().toUpperCase(), (p, n) => e.m_gstin_valid(p, n)),
     haversine(lat1: number, lon1: number, lat2: number, lon2: number) { return withF64(2, (p) => { e.m_haversine(lat1, lon1, lat2, lon2, p); const [km, bearing] = f64(p, 2); return { km, bearing }; }); },
   };
 }

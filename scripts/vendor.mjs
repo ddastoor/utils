@@ -24,6 +24,10 @@ const copies = [
   ...['eng', 'fra', 'spa', 'deu'].map((l) => [['@tesseract.js-data', l, '4.0.0_best_int', `${l}.traineddata.gz`], ['tesseract', 'lang', `${l}.traineddata.gz`]]),
   [['libarchive.js', 'dist', 'worker-bundle.js'], ['libarchive', 'worker-bundle.js']],
   [['libarchive.js', 'dist', 'libarchive.wasm'], ['libarchive', 'libarchive.wasm']],
+  // Noto Sans (OFL; Latin, Greek, Cyrillic, Devanagari, ₹) TTFs for documents made by MuPDF (invoice, rent receipt,
+  // resume): MuPDF's FreeType reads TTF, not WOFF
+  ...[['400Regular', 'NotoSans_400Regular'], ['700Bold', 'NotoSans_700Bold'], ['400Regular_Italic', 'NotoSans_400Regular_Italic']]
+    .map(([dir, f]) => [['@expo-google-fonts', 'noto-sans', dir, `${f}.ttf`], ['fonts', `${f}.ttf`]]),
   // TF.js WebAssembly backend (XNNPACK, C++ → wasm): the CPU path for the Cartoonizer's style transfer when WebGL is missing
   ...['tfjs-backend-wasm.wasm', 'tfjs-backend-wasm-simd.wasm'].map((f) => [['@tensorflow', 'tfjs-backend-wasm', 'dist', f], ['tfjs', f]]),
 ];
