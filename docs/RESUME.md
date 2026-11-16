@@ -62,7 +62,8 @@ STANDING RULE #1 is at the top of `CLAUDE.md`; audit list is in CLAUDE.md §3a.
 ## Queue (in order) — each: implement → own e2e suite with real fixtures → screenshot at 390×844 → commit + push
 1. (Audit done.) Continue image tools below.
 2. **Linux Terminal DONE** (130 BusyBox applets, all tested; see CLAUDE.md §2). bc console DONE (12 e2e checks). OCR DONE (owner: English, French, Spanish, German — no Hindi; 10 e2e checks).
-   Background Remover DONE (11 e2e). **Next up: Passport Photo, then Cartoonizer**, then Photo Dictionary; Then, in order: (imgproc detect/warp/enhance → PDF via MuPDF),
+   Background Remover DONE (11 e2e). Passport Photo DONE (19 e2e; webcam on PC / phone camera; busy backgrounds replaced by the
+   preset colour). **Next: Cartoonizer**, then Photo Dictionary; Then, in order: (imgproc detect/warp/enhance → PDF via MuPDF),
    ocr (Tesseract eng+hin), passport (36 presets in src/lib/passport-specs.ts; MediaPipe landmarks + selfie
    segmentation + imgproc guided filter; camera, print sheet, KB target, DPI), bgremove, cartoon (classic imgproc
    + Magenta TF.js). Models: add entries to scripts/assets.json and pin with `fetch-assets.mjs --pin <name>`.

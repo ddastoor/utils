@@ -621,3 +621,13 @@ details summary { cursor: pointer; font-weight: 600; color: var(--accent); paddi
 .ocr-low { position: absolute; background: rgb(245 158 11 / 25%); outline: 1px solid rgb(245 158 11 / 70%); border-radius: 2px; pointer-events: auto; }
 .ocr-text { font-size: 15px; line-height: 1.5; }
 .swatch { width: 40px; height: 40px; border-radius: 50%; border: 2px solid var(--border); cursor: pointer; }
+/* ------------------------------------------------------------------ passport */
+.pp-stage { display: flex; justify-content: center; background: var(--checker); border-radius: 12px; padding: 12px; }
+.pp-out { box-shadow: 0 2px 10px rgb(0 0 0 / 25%); max-height: 56vh; }
+.bg-chip { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 6px 12px; border-radius: 999px; border: 1px solid var(--border); background: var(--card, #fff); cursor: pointer; font: inherit; color: var(--text); }
+.bg-chip.on { border-color: var(--accent, #4f46e5); box-shadow: 0 0 0 2px var(--accent, #4f46e5) inset; }
+.bg-dot { width: 18px; height: 18px; border-radius: 50%; border: 1px solid rgb(0 0 0 / 25%); }
+.pp-cam { position: relative; max-width: 560px; border-radius: 12px; overflow: hidden; background: #000; }
+.pp-video { width: 100%; display: block; transform: scaleX(-1); }
+.pp-oval { position: absolute; left: 50%; top: 46%; width: 42%; height: 66%; transform: translate(-50%, -50%); border: 3px dashed rgb(255 255 255 / 85%); border-radius: 50%; box-shadow: 0 0 0 9999px rgb(0 0 0 / 30%); pointer-events: none; }
+.pp-count { position: absolute; inset: 0; display: grid; place-items: center; font-size: 96px; font-weight: 800; color: #fff; text-shadow: 0 2px 12px #000; pointer-events: none; }

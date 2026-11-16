@@ -69,6 +69,16 @@ export function bindImgproc(e: any) {
       const a = put(alpha);
       try { return inplace(img, (p) => e.p_composite(p, img.width, img.height, a, rgb >>> 0, blur, keepAlpha ? 1 : 0)); } finally { e.p_free(a); }
     },
+    /** First row (from the top) where the mask is set across ≥⅓ of columns x0..x1 (crown above a face), or -1. */
+    maskTop(mask: Uint8Array, w: number, h: number, x0: number, x1: number, thr = 128): number {
+      const mp = e.p_malloc(mask.length); try { new Uint8Array(mem(), mp, mask.length).set(mask); return e.p_mask_top(mp, w, h, Math.round(x0), Math.round(x1), thr); } finally { e.p_free(mp); }
+    },
+    /** warp() with a fill colour [r,g,b] outside the source. */
+    warpFill(img: Img, corners: number[], w: number, h: number, rgb: [number, number, number]): Img {
+      const qp = e.p_malloc(32); new Float32Array(mem(), qp, 8).set(corners.slice(0, 8));
+      const fill = ((255 << 24) | (rgb[2] << 16) | (rgb[1] << 8) | rgb[0]) >>> 0;
+      try { return into(img, w, h, (s, d) => { if (!e.p_warp_quad_fill(s, img.width, img.height, d, w, h, qp, fill)) throw new Error('Could not map the photo.'); }); } finally { e.p_free(qp); }
+    },
     /** Person mask (0..255) from 6 selfie-multiclass confidence planes (concatenated Float32, w×h each). */
     personMask(cats: Float32Array, w: number, h: number, r = 6): Uint8Array {
       const cp = e.p_malloc(cats.length * 4), op = e.p_malloc(w * h);

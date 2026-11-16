@@ -310,6 +310,15 @@ API void p_person_mask(const float *cats, int w, int h, int r, uint8_t *out) {
     free(core); free(tmp); free(near);
 }
 
+/* Top-most row (searching downward) where the mask exceeds thr in at least a third of the columns x0..x1:
+   the crown (top of hair) above a detected face. Returns -1 if none. */
+API int p_mask_top(const uint8_t *mask, int w, int h, int x0, int x1, int thr) {
+    if (x0 < 0) x0 = 0; if (x1 > w) x1 = w; if (x1 <= x0) return -1;
+    int need = (x1 - x0) / 3 + 1;
+    for (int y = 0; y < h; y++) { int c = 0; for (int x = x0; x < x1; x++) if (mask[y * w + x] > thr) c++; if (c >= need) return y; }
+    return -1;
+}
+
 /* ======================================================================== artistic filters */
 /* Separable bilateral approximation (edge-preserving smoothing), applied `iters` times. */
 API void p_bilateral(uint8_t *px, int w, int h, int radius, float sigma_s, float sigma_r, int iters) {
@@ -625,6 +634,16 @@ API int p_warp_quad(const uint8_t *src, int sw, int sh, uint8_t *dst, int dw, in
     float H[9];
     if (!quad_homography(quad, dw, dh, H)) return 0;
     p_warp(src, sw, sh, dst, dw, dh, H);
+    return 1;
+}
+/* Same, with an explicit fill colour (0xAABBGGRR) for areas outside the source. */
+API int p_warp_quad_fill(const uint8_t *src, int sw, int sh, uint8_t *dst, int dw, int dh, const float *quad, uint32_t fill) {
+    float H[9];
+    if (!quad_homography(quad, dw, dh, H)) return 0;
+    for (int y = 0; y < dh; y++) for (int x = 0; x < dw; x++) {
+        float X = x + 0.5f, Y = y + 0.5f, z = H[6] * X + H[7] * Y + H[8];
+        sample_bilinear(src, sw, sh, (H[0] * X + H[1] * Y + H[2]) / z - 0.5f, (H[3] * X + H[4] * Y + H[5]) / z - 0.5f, dst + ((size_t)y * dw + x) * 4, fill);
+    }
     return 1;
 }
 API void p_warp(const uint8_t *src, int sw, int sh, uint8_t *dst, int dw, int dh, const float *H) {

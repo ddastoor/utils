@@ -7,6 +7,7 @@ export interface PhotoSpec {
   id: string; country: string; doc: string; region: 'India' | 'Americas' | 'Europe' | 'Asia-Pacific' | 'Middle East & Africa';
   w: number; h: number;                 // print size, mm
   head?: [number, number];              // chin-to-crown, mm
+  eyes?: [number, number];              // eye line above the bottom edge, mm (where the rule is published)
   bg: BgSpec;
   bgAlt?: BgSpec[];                     // other accepted backgrounds
   digital?: { minPx?: [number, number]; maxPx?: [number, number]; exactPx?: [number, number]; minKB?: number; maxKB?: number; square?: boolean };
@@ -32,7 +33,7 @@ export const SPECS: PhotoSpec[] = [
   { id: 'in-form', country: 'India', doc: 'Exam / job form photo (typical)', region: 'India', w: 35, h: 45, head: [25, 34], bg: BG.white, bgAlt: [BG.light], digital: { minKB: 20, maxKB: 50 }, notes: 'Many portals (SSC, IBPS, state PSCs) ask 3.5×4.5 cm, 20–50 KB JPEG — check the notification. Use Photo & Signature Resizer for exact portal presets.' },
 
   // ---------------------------------------------------------------- Americas
-  { id: 'us-passport', country: 'United States', doc: 'Passport & Visa (DS-160)', region: 'Americas', w: 51, h: 51, head: [25, 35], bg: BG.white, bgAlt: [BG.offWhite], digital: { minPx: [600, 600], maxPx: [1200, 1200], maxKB: 240, square: true }, notes: 'Eyes 28–35 mm from the bottom. No glasses. Visa upload: square JPEG 600–1200 px, ≤240 KB.' },
+  { id: 'us-passport', country: 'United States', doc: 'Passport & Visa (DS-160)', region: 'Americas', w: 51, h: 51, head: [25, 35], eyes: [28, 35], bg: BG.white, bgAlt: [BG.offWhite], digital: { minPx: [600, 600], maxPx: [1200, 1200], maxKB: 240, square: true }, notes: 'Eyes 28–35 mm from the bottom. No glasses. Visa upload: square JPEG 600–1200 px, ≤240 KB.' },
   { id: 'ca-passport', country: 'Canada', doc: 'Passport', region: 'Americas', w: 50, h: 70, head: [31, 36], bg: BG.white, bgAlt: [BG.light], notes: 'Plain white or light-coloured background with uniform lighting.' },
   { id: 'ca-visa', country: 'Canada', doc: 'Visa / PR / citizenship (IRCC)', region: 'Americas', w: 35, h: 45, head: [31, 36], bg: BG.white, bgAlt: [BG.light] },
 

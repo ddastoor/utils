@@ -117,7 +117,7 @@ Test, plus `photodict` Photo Dictionary (owner said mobile only — phone camera
 | `image` | Image Editor | both | own C wasm `imgproc` + MozJPEG/WebP/OxiPNG (jSquash) |
 | `batch` | Batch Images | **PC** | `imgproc` resize + jSquash + zip.js |
 | `heic` | HEIC → JPG | both | libheif (C++ → wasm, libheif-js) + jSquash |
-| `passport` | Passport Photo | both | MediaPipe face landmarks + selfie multiclass segmentation + `imgproc` guided filter |
+| `passport` | Passport Photo | both | MediaPipe Face Landmarker (eyes/chin/tilt) + selfie multiclass (person mask, crown via `p_mask_top`) → layout to head-height / eye-height rules (`src/lib/passport.ts`) → crop region only at full res → guided-filter matte + required colour → one homography warp (`p_warp_quad_fill`) → 300 dpi JPEG, digital-upload JPEG (px/KB limits), 4×6 in / A4 sheets |
 | `formphoto` | Photo & Signature Resizer | both | presets (`src/lib/form-specs.ts`: IBPS/SBI/RBI, SSC, UPSC, NTA, PAN — px + KB ranges, all editable, "confirm with the notification"), face auto-framing (BlazeFace), paper clean-up (`imgproc` ink), Lanczos resize, MozJPEG best quality ≤ max, JPEG comment padding up to the min (`metacore` `m_jpeg_pad`), DPI |
 | `bgremove` | Background Remover | both | MediaPipe selfie-multiclass (6 categories) → person mask in C (`p_person_mask`: hair+skin+clothes, accessories only next to the person) → `imgproc` guided-filter matte at full res → transparent PNG / colour / blur / another photo (`p_composite_img`) |
 | `cartoon` | Cartoonizer | both | `imgproc` classic filters + Magenta arbitrary style transfer (TF.js) |
@@ -280,7 +280,11 @@ mobile (Web Share) so iPhone users can save to Photos. Large photos (>16 MP) are
 memory, not canvas (iOS canvas limit).
 
 ### Passport Photo (India first)
-Camera (webcam / phone front or back camera, self-timer, face guide overlay) or upload. Background → pure
+Camera (owner, Nov 16 2026: **on phones use the phone's camera, on PC use the webcam** — one "Use camera" button opens
+the live camera with getUserMedia on both: phone front/selfie camera by default + "Switch camera" for the back camera;
+PC webcam; oval face guide, 3-second timer, selfie view un-mirrored) or upload (on phones the picker also offers the
+camera, `capture=user`). **Busy real-world backgrounds (house, furniture, walls, people) are fully replaced** by the
+preset's required colour (segmentation + guided-filter matte), never just lightened. Background → pure
 white via MediaPipe `selfie_multiclass_256x256` mask refined by `imgproc` guided filter at full
 resolution. Auto-framing from MediaPipe face landmarks (chin, eyes, crown estimate). Output JPEG at
 300 dpi with DPI metadata, optional max-KB target, and a 4×6 in / A4 print sheet with copies.
