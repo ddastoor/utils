@@ -819,3 +819,7 @@ details summary { cursor: pointer; font-weight: 600; color: var(--accent); paddi
 .stt-seg { display: flex; gap: 10px; text-align: left; background: none; border: 0; padding: 6px 8px; border-radius: 6px; cursor: pointer; color: inherit; font: inherit; min-height: 36px; }
 .stt-seg:hover { background: var(--surface-2); }
 .stt-t { font: 12px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color: var(--muted); padding-top: 3px; min-width: 44px; }
+/* software reference tables */
+.ref-tbl tr.grp th { background: var(--surface-2); color: var(--text); font-size: 13px; position: static; }
+.ref-tbl td.mono { white-space: nowrap; }
+.keycode-big { font-size: clamp(48px, 10vw, 96px); font-weight: 700; text-align: center; padding: 8px 0; word-break: break-all; }

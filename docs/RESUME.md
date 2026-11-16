@@ -147,7 +147,10 @@ Dictionary), Codes & Files (5), Everyday (9), Device (11), Linux Terminal + bc c
    **Per-tab suites are complete for every built tab.** Full run (16 Nov, 141 suites, concurrency 8): 2882/2886 —
    the 4 misses were load timing (webcam test read the info table before it was drawn → test now waits for it; noise
    and resume timed out under load, both pass alone: 11/11, 7/7). Unit tests 3270/3270.
-2. **← NOW: Software (PC only, 47 tabs left)**, each with its own suite from the start, wasm first: sqlite (official wasm),
+2. **← NOW: Software (PC only, 47 tabs left)** — progress: **built + own suite: httpstatus, mime, ports, ascii, keycode
+   (src/tools/software/ref.ts, shared `refTable` filter)**. Plan: Rust module `wasm/devcore` (crates.io, like sheet.wasm)
+   for cidr, cron, semver, glob, base32/58/85, protobuf/msgpack/cbor, x509, patch, sqlformat, hexdump; separate Rust
+   modules for jsonschema, zxcvbn (pwstrength), yaml/toml; jq from upstream C; graphviz + MicroPython last., each with its own suite from the start, wasm first: sqlite (official wasm),
    jq (own build of jq 1.8.2 exists), yaml (own libyaml + toml++), graphviz (own build), python (MicroPython), and the
    rest listed in CLAUDE.md §2.
 3. Audit list replacements (own builds of mozjpeg/libwebp/oxipng, libheif, tesseract, zxing-cpp, libarchive,
