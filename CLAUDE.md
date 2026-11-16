@@ -232,7 +232,7 @@ Glob Tester. Left out: API client (CORS/CSP), DNS/WHOIS/ping/port scan (need net
 Batch 3 (accepted): **Math & Science** category (new): `graph` Graphing Calculator · `equation` Equation
 Solver · `stats` Statistics · `matrix` Matrix · `fraction` Fraction · `primes` Prime/LCM/GCD · `periodic` Periodic
 Table. Calculators: `prepay` Loan Prepayment · `ppf` · `epf` · `nps` · `inflation` · `sleep` Sleep Cycle · `bodyfat` ·
-`idealweight` · `coords` Coordinates. Media: `noise` Noise Remover (RNNoise) · `pitch` Pitch & Speed (own C WSOLA)
+`idealweight` · `coords` Coordinates. Media: `noise` Noise Remover (RNNoise) · `pitch` Pitch & Speed (own C WSOLA, **BUILT**)
 · `slideshow` Slideshow Maker (WebCodecs). Documents: `invoice` GST Invoice · `rent` Rent Receipt · `resume` Resume
 Builder (HTML → browser "Save as PDF"). Images: `signature` Signature Maker. Software (PC): `graphviz` (Graphviz C →
 wasm) · `python` (MicroPython C → wasm) · `totp` · `pwstrength` (zxcvbn) · `jsonschema` · `bitwise` · `ieee754` ·
@@ -434,6 +434,13 @@ LAME 4.0 wasm: 64/128/192/320 kbps CBR or VBR V2, with the LAME/Info tag), **WAV
 (the recorded codec cut by packet copy with mediabunny — no re-encoding, and MediaRecorder's missing duration is
 fixed; WAV/FLAC originals keep their real sample rate). Volume/fade changes need MP3 or WAV (explained in a toast).
 `recorder()`, `waveEditor()`, `savePanel()` and `copyTrim()` are reused by Noise Remover, Pitch & Speed and STT.
+
+### Pitch & Speed — BUILT (`src/tools/pitch.ts`; e2e `tests/e2e/pitch.e2e.mjs` 11)
+Open any audio/video file → speed 0.5–2× (keeps pitch: WSOLA, own C) and pitch −12…+12 semitones (keeps length:
+WSOLA by tempo/ratio then Kaiser windowed-sinc resampling by 1/ratio), processed in the audio worker 350 ms after a
+slider moves; presets (Practice 75 %, Half speed, 1.25×, Podcast 1.5×, ±1 tone, Nightcore, Slowed, Deep voice,
+Chipmunk); result on the waveform editor (trim, play); MP3 192 kbps default / WAV. Tests: 440 Hz stereo WAV →
+1.5× = 1.333 s at 440 Hz, +7 st = 659.3 Hz, Deep voice −5 st with the length kept, MP3 length, stereo balance.
 Tests: fake microphone (pause excluded from the length), and a generated 440 Hz / silence / 880 Hz stereo WAV:
 exact 1.00 s trims, the 880 Hz part found by zero crossings, channel levels kept, MP3 decoded by the browser,
 normalise peak −1 dB, fade envelope.
