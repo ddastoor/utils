@@ -59,12 +59,12 @@ STANDING RULE #1 is at the top of `CLAUDE.md`; audit list is in CLAUDE.md §3a.
 
 ## Queue (in order) — each: implement → own e2e suite with real fixtures → screenshot at 390×844 → commit + push
 1. (Audit done.) Continue image tools below.
-2. **Next up: Photo & Signature Resizer** (`formphoto`, Indian exam presets — only well-known specs, UI says confirm
-   with the notification), then the remaining image tools: (Blur & Redact DONE; model fetching DONE:
-   scripts/assets.json + scripts/fetch-assets.mjs, run by predev/prebuild/CI) — detector), formphoto (Indian exam presets), scanner (imgproc detect/warp/enhance → PDF), ocr (Tesseract eng+hin),
-   passport (36 presets in src/lib/passport-specs.ts, MediaPipe landmarks + segmentation + guided filter, camera,
-   print sheet, KB target, DPI), bgremove, cartoon (classic imgproc + Magenta TF.js). Models need
-   `scripts/assets.json` (SHA-256 pinned) + a fetch script.
+2. **Next up: Photo & Signature Resizer** (`formphoto`, Indian exam/job presets — only well-known specs; UI says
+   confirm with the official notification). Then, in order: scanner (imgproc detect/warp/enhance → PDF via MuPDF),
+   ocr (Tesseract eng+hin), passport (36 presets in src/lib/passport-specs.ts; MediaPipe landmarks + selfie
+   segmentation + imgproc guided filter; camera, print sheet, KB target, DPI), bgremove, cartoon (classic imgproc
+   + Magenta TF.js). Models: add entries to scripts/assets.json and pin with `fetch-assets.mjs --pin <name>`.
+   (Done: Blur & Redact; pinned model fetching via scripts/assets.json + scripts/fetch-assets.mjs.)
 3. Photo Dictionary (`photodict`, mobile only) — design in CLAUDE.md §3 (Wiktionary via kaikki.org + Open English
    WordNet, wordfreq, online fallback Wiktionary REST → dictionaryapi.dev, CSP connect-src hosts added when it ships).
    kaikki.org is NOT reachable from the dev sandbox yet → ask the owner to allow the host (environment network).
