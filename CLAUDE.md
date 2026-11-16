@@ -195,7 +195,7 @@ URL `#fragment`, never sent to a server) · `hash` Hash / Checksum · `password`
 `passphrase` Passphrase Generator — all both.
 
 **Media**: `video` Video Compressor (both, **BUILT**) · `audio` Audio Recorder (both, **BUILT**) · `tts` Text-to-Speech (both) ·
-`ffmpeg` FFmpeg (**PC**, **BUILT**) · `screencast` Screencast (**PC**, **BUILT**) · `screenshot` Screenshot (**PC**) ·
+`ffmpeg` FFmpeg (**PC**, **BUILT**) · `screencast` Screencast (**PC**, **BUILT**) · `screenshot` Screenshot (**PC**, **BUILT**) ·
 `youtube` YouTube Clip (**PC**)
 
 **Calculators** (all both): `calc` Scientific · `units` Unit Converter · `dates` Date Calculator ·
@@ -619,12 +619,16 @@ sharing ends. Recordings kept in memory are remuxed by mediabunny (packet copy) 
 X11/Wayland note from `src/linux.ts`. Tests (Chromium's fake picker): MP4 H.264 ≈ 2.2 s; pause not counted; area =
 half the screen; WebM with a finite duration; microphone track; streaming to a (stubbed) file.
 
-### Screenshot (PC)
-Modes: full screen, window, tab, region. Flow: choose mode → Chrome picker (own tab excluded) → choose
-delay → **Arm** → a tiny always-on-top countdown window (Document Picture-in-Picture) appears → owner
-minimises the browser (Win+↓ / Super+H) → capture after the delay or via "Snap now" (PiP hides itself
-first) → preview, crop, save PNG/JPEG. The share stays alive for repeated shots.
-A web page **cannot** silently screenshot, minimise the browser, or detect the active window.
+### Screenshot (PC) — BUILT (`src/tools/screenshot.ts`; e2e `tests/e2e/screenshot.e2e.mjs` 12)
+Share once (Chrome's picker: screen, window or tab; own tab excluded; optional mouse pointer) → "Take screenshot"
+now or after 3/5/10 s. With a delay, a small always-on-top **Document Picture-in-Picture** window counts down with
+"Snap now" and "Cancel" (the owner minimises the browser: Win+↓ / Super+H); it closes itself 250 ms before the
+frame is grabbed. The frame is read at full resolution (MediaStreamTrackProcessor → VideoFrame; `<video>` fallback).
+Editor: crop box (shared `cropBox`), **PNG** (our OxiPNG), **JPEG** (our MozJPEG, q 90), **Copy** to the clipboard
+(PNG); gallery of this visit's shots (click to reopen). The share stays alive for more shots ("Stop sharing" ends
+it). A web page cannot screenshot silently, minimise the browser or see the active window (said in the tab).
+Tests: full-size PNG, JPEG, cropped PNG = 84 %, clipboard PNG, 3 s delay, PiP "Snap now" (< 1.5 s) and "Cancel",
+gallery, stop sharing.
 
 ### YouTube Clip (PC)
 Inputs: two "Copy video URL at current time" links (start/end) **or** one URL + start + end.

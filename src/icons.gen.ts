@@ -150,6 +150,7 @@ export const ICONS: Record<string, string> = {
   Minimize2: "<path d=\"m14 10 7-7\" /><path d=\"M20 10h-6V4\" /><path d=\"m3 21 7-7\" /><path d=\"M4 14h6v6\" />",
   Minus: "<path d=\"M5 12h14\" />",
   Monitor: "<rect width=\"20\" height=\"14\" x=\"2\" y=\"3\" rx=\"2\" /><line x1=\"8\" x2=\"16\" y1=\"21\" y2=\"21\" /><line x1=\"12\" x2=\"12\" y1=\"17\" y2=\"21\" />",
+  MonitorOff: "<path d=\"M12 17v4\" /><path d=\"M17 17H4a2 2 0 0 1-2-2V5a2 2 0 0 1 1.184-1.826\" /><path d=\"m2 2 20 20\" /><path d=\"M8 21h8\" /><path d=\"M8.656 3H20a2 2 0 0 1 2 2v10a2 2 0 0 1-.293 1.042\" />",
   MonitorPlay: "<path d=\"M15.033 9.44a.647.647 0 0 1 0 1.12l-4.065 2.352a.645.645 0 0 1-.968-.56V7.648a.645.645 0 0 1 .967-.56z\" /><path d=\"M12 17v4\" /><path d=\"M8 21h8\" /><rect x=\"2\" y=\"3\" width=\"20\" height=\"14\" rx=\"2\" />",
   MonitorSmartphone: "<path d=\"M18 8V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h8\" /><path d=\"M10 19v-3.96 3.15\" /><path d=\"M7 19h5\" /><rect width=\"6\" height=\"10\" x=\"16\" y=\"12\" rx=\"2\" />",
   MonitorUp: "<path d=\"m9 10 3-3 3 3\" /><path d=\"M12 13V7\" /><rect width=\"20\" height=\"14\" x=\"2\" y=\"3\" rx=\"2\" /><path d=\"M12 17v4\" /><path d=\"M8 21h8\" />",
