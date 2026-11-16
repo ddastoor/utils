@@ -195,6 +195,7 @@ export function waveEditor(o: { onChange?: () => void } = {}) {
       return Array.from({ length: buf.numberOfChannels }, (_, i) => buf!.getChannelData(i).slice(a, b));
     },
     stop() { stopPlay(); },
+    setRange(a: number, b: number) { setSel(a, b); },
     dispose() { stopPlay(); ro.disconnect(); ctx?.close().catch(() => {}); ctx = null; },
   };
 }

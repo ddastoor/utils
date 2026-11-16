@@ -23,3 +23,6 @@ generates media with the project's own ffmpeg.wasm and Chromium). Used only by t
 | media/clip.mp4 | ffmpeg.wasm: testsrc2 640×360 3 s + 440 Hz, H.264/AAC | generated |
 | media/clip.webm | same, VP8/Vorbis | generated |
 | media/tone.wav, tone.mp3, noisy-tone.wav | ffmpeg.wasm sine (+ white noise) | generated |
+| speech/librispeech-1.flac | LibriSpeech test-clean sample via huggingface.co/datasets/Narsil/asr_dummy (SHA-256 pinned): "Mister Quilter is the apostle of the middle classes and we are glad to welcome his gospel." | CC BY 4.0 (LibriSpeech, Panayotov et al.) |
+| speech/jfk.flac | JFK inaugural address excerpt via huggingface.co/datasets/Xenova/transformers.js-docs (pinned), 16 kHz mono FLAC (our ffmpeg.wasm): "And so my fellow Americans, ask not what your country can do for you, ask what you can do for your country." | public domain (US government work) |
+| speech/noisy-speech.wav | librispeech-1 + seeded white noise at 5 dB SNR, 16 kHz mono (`node scripts/make-speech-fixtures.mjs`) | CC BY 4.0 (derived) |

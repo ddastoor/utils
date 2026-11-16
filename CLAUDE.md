@@ -232,7 +232,7 @@ Glob Tester. Left out: API client (CORS/CSP), DNS/WHOIS/ping/port scan (need net
 Batch 3 (accepted): **Math & Science** category (new): `graph` Graphing Calculator · `equation` Equation
 Solver · `stats` Statistics · `matrix` Matrix · `fraction` Fraction · `primes` Prime/LCM/GCD · `periodic` Periodic
 Table. Calculators: `prepay` Loan Prepayment · `ppf` · `epf` · `nps` · `inflation` · `sleep` Sleep Cycle · `bodyfat` ·
-`idealweight` · `coords` Coordinates. Media: `noise` Noise Remover (RNNoise) · `pitch` Pitch & Speed (own C WSOLA, **BUILT**)
+`idealweight` · `coords` Coordinates. Media: `noise` Noise Remover (RNNoise, own wasm, **BUILT**) · `pitch` Pitch & Speed (own C WSOLA, **BUILT**)
 · `slideshow` Slideshow Maker (WebCodecs). Documents: `invoice` GST Invoice · `rent` Rent Receipt · `resume` Resume
 Builder (HTML → browser "Save as PDF"). Images: `signature` Signature Maker. Software (PC): `graphviz` (Graphviz C →
 wasm) · `python` (MicroPython C → wasm) · `totp` · `pwstrength` (zxcvbn) · `jsonschema` · `bitwise` · `ieee754` ·
@@ -435,6 +435,17 @@ LAME 4.0 wasm: 64/128/192/320 kbps CBR or VBR V2, with the LAME/Info tag), **WAV
 fixed; WAV/FLAC originals keep their real sample rate). Volume/fade changes need MP3 or WAV (explained in a toast).
 `recorder()`, `waveEditor()`, `savePanel()` and `copyTrim()` are reused by Noise Remover, Pitch & Speed and STT.
 
+### Noise Remover — BUILT (`src/tools/noise.ts`, worker `src/workers/noise.worker.ts`; e2e `tests/e2e/noise.e2e.mjs` 11)
+**Xiph RNNoise 0.2** (recurrent network trained on speech + noise, C, BSD-3) built by us → `rnnoise.wasm` (5.6 MB, the
+default model's weights; fetched only when the tab cleans something). Pipeline in one worker: our audio.wasm resamples
+to 48 kHz → RNNoise in 10 ms frames (its 2-frame latency removed, so the output lines up with the input) → back to
+the file's rate. Strength = wet/dry mix (0 % = original), voice-activity share reported, A/B button ("Hear the
+original"), waveform trim, MP3/WAV. Open a file or record (recorder with the browser's own noise suppression off).
+Test: LibriSpeech sample + seeded white noise at 5 dB SNR (`tests/fixtures/speech/`, `scripts/make-speech-fixtures.mjs`)
+→ SNR against the clean reference rises from 5.6 to 11.6 dB; strength 0 reproduces the input; 3.00 s trim; MP3;
+microphone path; phone layout. Unit `tests/unit/rnnoise.test.mjs` (10: white noise −20 dB+, speech kept within 6 dB,
+pauses −15 dB+, zero lag, mix, stereo).
+
 ### Pitch & Speed — BUILT (`src/tools/pitch.ts`; e2e `tests/e2e/pitch.e2e.mjs` 11)
 Open any audio/video file → speed 0.5–2× (keeps pitch: WSOLA, own C) and pitch −12…+12 semitones (keeps length:
 WSOLA by tempo/ratio then Kaiser windowed-sinc resampling by 1/ratio), processed in the audio worker 350 ms after a
@@ -622,6 +633,7 @@ stay **public** (the source of the deployed site is then available to every user
 | BusyBox 1.38.0 (130 applets) + compat shims | C | **us** (`wasm/busybox`) | terminal, bc console |
 | jq 1.8.2 (+ oniguruma) | C | **us** (`wasm/jq`) | jq |
 | audio: **LAME 4.0** libmp3lame (MP3 encoder) + own C (WAV writer, waveform peaks, levels, gain/fades, Kaiser windowed-sinc resampler, WSOLA time stretch, tempo × pitch) | C | **us** (`wasm/audio`) | audio (and tts, stt, noise, pitch) |
+| rnnoise: Xiph **RNNoise 0.2** (+ default model) + glue (48 kHz frames, latency compensation, wet/dry mix, VAD) | C | **us** (`wasm/rnnoise`) | noise |
 | textcore: Myers diff, tool-search ranking, word frequency, rare-word ranking (tokeniser, lemmatiser, wordfreq hash table), XY-cut reading order | C (own code) | **us** (`wasm/textcore`) | diff, search box, word counter, photodict |
 | sheet: calamine 0.38 (read .xlsx .xlsm .xlsb .xls .ods) + rust_xlsxwriter 0.102 (write .xlsx) + csv 1 + serde_json | Rust | **us** (`wasm/sheet`, crates.io sources verified by `Cargo.lock`, target wasm32-wasip1) | sheet |
 | cmark-gfm 0.29.0.gfm.13 (GitHub Flavored Markdown) | C | **us** (`wasm/markdown`, source from the PyPI `cmarkgfm` sdist, SHA-256 pinned) | markdown |
@@ -826,6 +838,13 @@ of 2026-07-11), uses our `wasm/audio/lame-config.h` (from LAME's own configure r
 ~257 KB. TS wrapper `src/wasm/audio.ts` (`bindAudio`), worker `src/workers/audio.worker.ts`, client
 `src/lib/audio-client.ts` (`audio(op, …)`, tracked worker). Tests `tests/unit/audio.test.mjs` (38: WAV bytes, peaks,
 resampler pass band + alias rejection, WSOLA tempo/pitch by zero crossings, MP3 frame chain + Info/Xing tag).
+
+### 5.1h rnnoise → `src/wasm/bin/rnnoise.wasm`
+`ZIG=… wasm/rnnoise/build.sh`: `rnnoise_0.2+ds.orig.tar.xz` from the Ubuntu archive (xiph.org is blocked in the sandbox;
+Debian's repack of upstream 0.2 incl. the trained model, SHA-256 `db2718ee…` from the signed .dsc; model version
+`0b50c45` checked), the library sources from upstream's Makefile.am + `glue.c`; `wasm/rnnoise/os_support.h` supplies
+the `OPUS_CLEAR` macro that upstream's generic (non-x86/NEON) path includes but does not ship. Wrapper
+`src/wasm/rnnoise.ts`.
 
 ### 5.1e markdown → `src/wasm/bin/markdown.wasm`
 `ZIG=… wasm/markdown/build.sh`: downloads the `cmarkgfm` 2025.10.22 sdist from PyPI (SHA-256 `5bec6100…`), which vendors
