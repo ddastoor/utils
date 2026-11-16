@@ -60,7 +60,7 @@ Platform: "both" = PC + mobile.
 |---|---|---|---|---|---|---|
 | 19 | **Music Tag Editor**: title, artist, album, cover art for MP3 / M4A / FLAC / OGG | TagLib (C++, LGPL-2.1 / MPL-1.1) | own wasm build (taglib-wasm, MIT bindings, shows it works) | < 1 MB | both | waiting |
 | 20 | **Duplicate Photo Finder**: find exact and near-duplicate photos to clean up a gallery | perceptual hashing (dHash/pHash, the method used by imagededup / dupeGuru) | own C in imgproc | none | both (folder picker on PC, multi-select on phones) | waiting |
-| 21 | **Whiteboard / Sketch Diagrams**: hand-drawn style diagrams, export PNG/SVG, open/save .excalidraw files | Excalidraw (MIT) | JavaScript only — no compiled equivalent (record in §3a); collaboration off | ≈ 2–3 MB | PC | waiting |
+| 21 | **Whiteboard / Sketch Diagrams** (owner: keep): hand-drawn style diagrams, export PNG/SVG, open/save .excalidraw files | Excalidraw (MIT) | JavaScript only — no compiled equivalent (record in §3a); collaboration off | ≈ 2–3 MB | PC | waiting |
 | 22 | **LaTeX Editor**: write LaTeX, get a PDF, fully offline | BusyTeX (TeX Live → WebAssembly; pdfTeX / XeTeX / LuaTeX) | own build from upstream; a curated package set hosted here (no package server) | large (≈ 175 MB with packages) | PC | waiting |
 | 23 | **Circuit Simulator**: build electronic circuits and watch current flow (students, hobbyists) | Falstad / Sharp CircuitJS1 (GPL-2.0) | JavaScript (Java compiled with GWT) — no compiled equivalent | ≈ 2 MB | PC (works on tablets) | waiting |
 | 24 | **Sky Map / Planetarium**: point the phone at the sky to name stars and planets | Stellarium Web Engine (AGPL-3.0, C) | official C source → wasm; star catalogue subset hosted here | tens of MB | both (sensors on phones) | waiting |
@@ -126,7 +126,8 @@ Conditions: ship the Apache licence, mark modified files, keep notices; **tradem
 logo as our tab's name/branding or imply endorsement (the tab is "Diagram Editor"; the credits may say where the code
 comes from, which Apache §6 allows); the icon/stencil restriction only concerns Atlassian products; vendor only shape
 libraries whose licences allow redistribution. Overlaps #21 (Excalidraw, sketch style) and the planned Mermaid tab
-(text → diagram); draw.io is the formal drag-and-drop editor.
+(text → diagram); draw.io is the formal drag-and-drop editor. **Owner (16 Nov 2026): keep #21 Excalidraw as well** — they
+are separate candidates, not alternatives.
 
 ### Need the owner's approval of a new data-API host (like the dictionary APIs)
 | # | New tab | Data source | What is sent | Status |

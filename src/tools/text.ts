@@ -301,13 +301,30 @@ export const lorem: Mount = async (root) => {
 };
 
 // ================================================================== JSON (Software)
-function jsonError(src: string, e: any) {
-  const m = /position (\d+)/.exec(e.message) || /column (\d+)/.exec(e.message);
-  let msg = e.message;
-  if (m) { const pos = +m[1]; const before = src.slice(0, pos); const line = before.split('\n').length, col = pos - before.lastIndexOf('\n'); msg = `${e.message.replace(/ in JSON at.*/, '')} — line ${line}, column ${col}`; }
-  return msg;
+/** Where the JSON breaks. V8 gives "at position N" for most errors but not for "Unexpected token …": then the longest
+ *  prefix the native parser still accepts as unfinished is found by binary search (valid prefixes are prefix-closed). */
+export function jsonErrorAt(src: string, msg: string) {
+  const m = /position (\d+)/.exec(msg);
+  if (m) return +m[1];
+  if (/Unexpected end of JSON input/.test(msg)) return src.length;
+  // a prefix is "unfinished" when it parses, or its error is at (or past) its own end
+  const unfinished = (L: number) => { try { JSON.parse(src.slice(0, L)); return true; } catch (e: any) { const p = /position (\d+)/.exec(e.message); return /Unexpected end of JSON input|Unterminated string/.test(e.message) || (!!p && +p[1] >= L); } };
+  let lo = 0, hi = src.length;
+  while (lo < hi) { const mid = (lo + hi + 1) >> 1; if (unfinished(mid)) lo = mid; else hi = mid - 1; }
+  return lo;
 }
-const sortKeys = (v: any): any => (Array.isArray(v) ? v.map(sortKeys) : v && typeof v === 'object' ? Object.fromEntries(Object.keys(v).sort().map((k) => [k, sortKeys(v[k])])) : v);
+function jsonError(src: string, e: any) {
+  const pos = jsonErrorAt(src, e.message), before = src.slice(0, pos);
+  const line = before.split('\n').length, col = pos - before.lastIndexOf('\n');
+  const tok = /^(Unexpected token '.+?'),\s/s.exec(e.message);
+  const what = tok ? tok[1] : e.message.replace(/ in JSON at.*/s, '');
+  return `${what} — line ${line}, column ${col}`;
+}
+// numbers keep their exact text (12345678901234567890 would otherwise become …000; 0.1000000000000000055 → 0.1)
+const RAW = typeof (JSON as any).rawJSON === 'function';
+const keepNumbers = RAW ? (_k: string, v: any, ctx?: { source?: string }) => (typeof v === 'number' && ctx?.source !== undefined ? (JSON as any).rawJSON(ctx.source) : v) : undefined;
+const isRaw = (v: any) => RAW && (JSON as any).isRawJSON(v);
+const sortKeys = (v: any): any => (isRaw(v) ? v : Array.isArray(v) ? v.map(sortKeys) : v && typeof v === 'object' ? Object.fromEntries(Object.keys(v).sort().map((k) => [k, sortKeys(v[k])])) : v);
 export const json: Mount = (root) => {
   const ta = textarea({ rows: 12, mono: true, value: '{"name":"SuperTools","tools":173,"tags":["private","wasm"],"nested":{"b":2,"a":1}}' });
   const out = outputBox({ rows: 14, mono: true });
@@ -315,7 +332,7 @@ export const json: Mount = (root) => {
   let indent = '2', sorted = false;
   const run = (minify = false) => {
     try {
-      let v = JSON.parse(ta.value);
+      let v = JSON.parse(ta.value, keepNumbers as any);
       if (sorted) v = sortKeys(v);
       out.value = minify ? JSON.stringify(v) : JSON.stringify(v, null, indent === 'tab' ? '\t' : +indent);
       clear(status).append(note(`Valid JSON · ${out.value.length.toLocaleString()} characters`, 'ok'));
@@ -341,11 +358,13 @@ export const regex: Mount = (root) => {
     let re: RegExp;
     try { re = new RegExp(pat.value, flags.value.includes('g') ? flags.value : flags.value + 'g'); pat.classList.remove('bad'); }
     catch (e: any) { pat.classList.add('bad'); groups.append(note(e.message, 'err')); return; }
-    const s = text.value, ms = [...s.matchAll(re)].slice(0, 1000);
+    const s = text.value, ms: RegExpMatchArray[] = [];
+    let total = 0;
+    for (const m of s.matchAll(re)) { if (ms.length < 1000) ms.push(m); if (++total >= 1000000) break; } // count everything, highlight the first 1,000
     let last = 0;
     for (const m of ms) { hl.append(s.slice(last, m.index), h('mark', { class: m[0] ? null : 'empty' }, m[0] || '∅')); last = m.index! + m[0].length; }
     hl.append(s.slice(last));
-    groups.append(note(`${ms.length} match${ms.length === 1 ? '' : 'es'}`, ms.length ? 'ok' : 'info'));
+    groups.append(note(`${total.toLocaleString('en-US')}${total >= 1000000 ? '+' : ''} match${total === 1 ? '' : 'es'}${total > ms.length ? ` (first ${ms.length.toLocaleString('en-US')} highlighted, ${Math.min(200, ms.length)} in the table)` : ''}`, total ? 'ok' : 'info'));
     if (ms.length) groups.append( h('div', { class: 'scroll-x' }, h('table', { class: 'tbl' }, h('thead', null, h('tr', null, h('th', null, '#'), h('th', null, 'Match'), h('th', null, 'Index'), ...Array.from({ length: Math.max(0, ...ms.map((m) => m.length - 1)) }, (_, i) => h('th', null, `$${i + 1}`)))),
         h('tbody', null, ms.slice(0, 200).map((m, i) => h('tr', null, h('td', null, String(i + 1)), h('td', { class: 'mono' }, m[0]), h('td', null, String(m.index)), ...m.slice(1).map((g) => h('td', { class: 'mono' }, g ?? '—'))))))));
     repOut.value = rep.value ? s.replace(new RegExp(pat.value, flags.value), rep.value) : '';
@@ -399,7 +418,8 @@ export const urlenc: Mount = (root) => {
 // ================================================================== Epoch (Software)
 export const epoch: Mount = (root) => {
   const now = h('div', { class: 'big-value mono' });
-  const tick = setInterval(() => { now.textContent = String(Math.floor(Date.now() / 1000)); }, 250);
+  const upd = () => { now.textContent = String(Math.floor(Date.now() / 1000)); };
+  upd(); const tick = setInterval(upd, 250);
   const ts = input({ value: String(Math.floor(Date.now() / 1000)), attrs: { class: 'input mono', inputmode: 'numeric' } });
   const dt = input({ type: 'datetime-local' });
   const out = h('div', { class: 'kv' });
@@ -466,7 +486,7 @@ export const color: Mount = async (root) => {
   const nums = (s: string) => (s.match(/-?\d*\.?\d+/g) || []).map(Number);
   picker.addEventListener('input', () => { rgb = hexToRgb(picker.value)!; sync(); });
   hex.addEventListener('input', () => { const v = hexToRgb(hex.value); hex.classList.toggle('bad', !v); if (v) { rgb = v; sync(hex); } });
-  rgbI.addEventListener('input', () => { const v = nums(rgbI.value); if (v.length >= 3) { rgb = v.slice(0, 3); sync(rgbI); } });
+  rgbI.addEventListener('input', () => { const v = nums(rgbI.value); if (v.length >= 3) { rgb = v.slice(0, 3).map((x) => clamp(x, 0, 255)); sync(rgbI); } });
   hsl.addEventListener('input', () => { const v = nums(hsl.value); if (v.length >= 3) { rgb = hslToRgb(v[0], v[1], v[2]); sync(hsl); } });
   ok.addEventListener('input', () => { const v = nums(ok.value); if (v.length >= 3) { rgb = oklchToRgb(v[0], v[1], v[2]); sync(ok); } });
   root.append(card(null, h('div', { class: 'color-top' }, swatch, picker)), card(null, h('div', { class: 'grid2' }, field('HEX', hex), field('RGB', rgbI), field('HSL', hsl), field('OKLCH', ok))), card('Accessibility', info));
@@ -488,9 +508,10 @@ export const jwt: Mount = (root) => {
       const hb = outputBox({ rows: 5, mono: true }); hb.value = JSON.stringify(header, null, 2);
       const pb = outputBox({ rows: 10, mono: true }); pb.value = JSON.stringify(payload, null, 2);
       const times = ['iat', 'nbf', 'exp'].filter((k) => typeof payload[k] === 'number').flatMap((k) => [h('span', null, k), h('span', null, `${new Date(payload[k] * 1000).toLocaleString('en-IN')}`)]);
-      const expired = typeof payload.exp === 'number' && payload.exp * 1000 < Date.now();
+      const expired = typeof payload.exp === 'number' && payload.exp * 1000 < Date.now(), early = typeof payload.nbf === 'number' && payload.nbf * 1000 > Date.now();
       out.append(card('Header', hb), card('Payload', pb, times.length ? h('div', { class: 'kv' }, times) : null),
         typeof payload.exp === 'number' ? note(expired ? 'This token has EXPIRED.' : 'Token is not expired.', expired ? 'err' : 'ok') : null as any,
+        early ? note('This token is NOT VALID YET (its "nbf" time is in the future).', 'warn') : null as any,
         note('Decoded only — the signature is NOT verified (that needs the secret or public key).', 'warn'));
     } catch { out.append(note('Could not decode — not a valid JWT.', 'err')); }
   };

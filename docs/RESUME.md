@@ -83,6 +83,8 @@ Dictionary), Codes & Files (5), Everyday (9), Device (11), Linux Terminal + bc c
    **All 27 Calculators tabs have their own suite.** Math & Science (7/7): graph (canvas pixels, pan/zoom, readout),
    equation, stats, matrix, fraction, primes, periodic — 153 checks. Text (9/9): wordcount, case, lines, replace, diff
    (minimal edits = LCS, rebuilds both texts), fancy (no unassigned code points), emoji, morse (playback timing), lorem.
+   Developer tabs (8/8, PC only; shared `tests/e2e/_pconly.mjs` checks the phone note): json, regex, base64, urlenc,
+   epoch, uuid, color, jwt — 117 checks.
    Bugs found and fixed so far: Percentage showed "—%" on ÷0; BMI exactly on a cut-off (76.8 kg at 1.60 m = 30.0) was
    put in the lower category (float 29.999…) — now categorised as displayed; "₹-0" for a zero amount (NPS lump sum with
    a 100 % annuity) — `fmtINR` now prints ₹0, and negatives as "−₹1,234"; Date Calculator gave negative days (31 Jan → 1 Mar
@@ -99,9 +101,11 @@ Dictionary), Codes & Files (5), Everyday (9), Device (11), Linux Terminal + bc c
    was case-sensitive (no country flags found); "e-mail" counted as 2 words; Title Case left a final small word lower
    case; code cases kept punctuation ("hello,World!") and did not split acronyms; Sentence case lost "I" and capitalised
    after "i.e."; Regex Tester's highlight dropped the character after an empty match; Base64 "download file" threw on
-   bad input; Epoch showed 1970 for an empty box.
-   **Remaining:** json, regex, base64, urlenc, epoch,
-   uuid, color, jwt · sodium, sharelink, hash, password, passphrase · qr, barcode, scan, zip, unzip · stopwatch,
+   bad input; Epoch showed 1970 for an empty box; JSON Formatter rounded big numbers (12345678901234567890 → …000; now
+   kept exactly with JSON.rawJSON) and gave no line/column for "Unexpected token" errors (now found by a prefix search);
+   Regex Tester said "1000 matches" for 5,000; Color accepted rgb(300, −20, …) unclamped; JWT now flags "nbf" in the
+   future; Epoch clock was blank for 250 ms.
+   **Remaining:** sodium, sharelink, hash, password, passphrase · qr, barcode, scan, zip, unzip · stopwatch,
    countdown, pomodoro, interval, dice, coin, rng, picker, teams · webcam, mic, speaker, keyboard, pixels, touch,
    screen, level, compass, soundmeter, ruler.
 2. **Software (PC only, 47 tabs left)**, each with its own suite from the start, wasm first: sqlite (official wasm),
