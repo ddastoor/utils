@@ -119,7 +119,7 @@ Test, plus `photodict` Photo Dictionary (owner said mobile only — phone camera
 | `heic` | HEIC → JPG | both | libheif (C++ → wasm, libheif-js) + jSquash |
 | `passport` | Passport Photo | both | MediaPipe face landmarks + selfie multiclass segmentation + `imgproc` guided filter |
 | `formphoto` | Photo & Signature Resizer | both | presets (`src/lib/form-specs.ts`: IBPS/SBI/RBI, SSC, UPSC, NTA, PAN — px + KB ranges, all editable, "confirm with the notification"), face auto-framing (BlazeFace), paper clean-up (`imgproc` ink), Lanczos resize, MozJPEG best quality ≤ max, JPEG comment padding up to the min (`metacore` `m_jpeg_pad`), DPI |
-| `bgremove` | Background Remover | both | MediaPipe segmentation + guided filter → transparent PNG / colour / blur |
+| `bgremove` | Background Remover | both | MediaPipe selfie-multiclass (6 categories) → person mask in C (`p_person_mask`: hair+skin+clothes, accessories only next to the person) → `imgproc` guided-filter matte at full res → transparent PNG / colour / blur / another photo (`p_composite_img`) |
 | `cartoon` | Cartoonizer | both | `imgproc` classic filters + Magenta arbitrary style transfer (TF.js) |
 | `redact` | Blur & Redact | both | MediaPipe BlazeFace on the whole photo + multi-scale square tiles (small faces in group photos), NMS + pixelate/blur/fill in `imgproc`; manual boxes; tap a box to keep it visible |
 | `watermark` | Watermark | both | canvas text/logo watermark |

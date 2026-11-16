@@ -69,6 +69,17 @@ export function bindImgproc(e: any) {
       const a = put(alpha);
       try { return inplace(img, (p) => e.p_composite(p, img.width, img.height, a, rgb >>> 0, blur, keepAlpha ? 1 : 0)); } finally { e.p_free(a); }
     },
+    /** Person mask (0..255) from 6 selfie-multiclass confidence planes (concatenated Float32, w×h each). */
+    personMask(cats: Float32Array, w: number, h: number, r = 6): Uint8Array {
+      const cp = e.p_malloc(cats.length * 4), op = e.p_malloc(w * h);
+      try { new Float32Array(mem(), cp, cats.length).set(cats); e.p_person_mask(cp, w, h, r, op); return new Uint8Array(mem().slice(op, op + w * h)); }
+      finally { e.p_free(cp); e.p_free(op); }
+    },
+    /** Foreground over a same-size background image using an alpha mask. */
+    compositeImg(img: Img, alpha: Uint8Array, bg: Img): Img {
+      const a = put(alpha), b = put(bg.data);
+      try { return inplace(img, (p) => e.p_composite_img(p, img.width, img.height, a, b)); } finally { e.p_free(a); e.p_free(b); }
+    },
     detectQuad(img: Img): { corners: number[]; confidence: number } {
       const s = put(img.data), o = e.p_malloc(32);
       try { const c = e.p_detect_quad(s, img.width, img.height, o); return { corners: Array.from(new Float32Array(mem(), o, 8)), confidence: c }; }

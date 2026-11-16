@@ -91,4 +91,16 @@ export default async (t, { load, wasm }) => {
   const scanLike = img(200, 120, (x, y) => ((y % 12 < 3 && x > 20 && x < 180 && y > 10) || (x < 40 && y > 100) ? [20, 20, 20, 255] : [235, 235, 235, 255]));
   const dq = ip.detectQuad(scanLike);
   t.ok(dq.confidence === 0 || Math.abs(dq.corners[4] - dq.corners[0]) > 100, `degenerate page outline rejected (conf ${dq.confidence})`);
+  // person mask from selfie-multiclass planes: accessories count only next to the person
+  {
+    const w = 40, hh = 10, n = w * hh, cats = new Float32Array(n * 6);
+    for (let i = 0; i < n; i++) { const x = i % w; cats[i] = 1; if (x >= 10 && x < 20) { cats[i] = 0; cats[4 * n + i] = 1; } if (x === 20 || x === 21) { cats[i] = 0.4; cats[5 * n + i] = 0.6; } if (x >= 34) { cats[i] = 0.4; cats[5 * n + i] = 0.6; } }
+    const m = ip.personMask(cats, w, hh, 3);
+    t.ok(m[5 * w + 15] > 250, 'clothes → person');
+    t.ok(m[5 * w + 20] > 120, 'accessory touching the person is kept');
+    t.ok(m[5 * w + 37] < 20, 'accessory far from the person (e.g. a flag) is dropped');
+    t.ok(m[5 * w + 2] < 5, 'background stays background');
+    const bgc = ip.compositeImg(img(4, 1, () => [200, 0, 0, 255]), new Uint8Array([255, 0, 128, 0]), img(4, 1, () => [0, 0, 200, 255]));
+    t.eq([px(bgc, 0, 0).slice(0, 3), px(bgc, 1, 0).slice(0, 3), px(bgc, 2, 0)[0]], [[200, 0, 0], [0, 0, 200], 100], 'compositeImg blends by alpha');
+  }
 };

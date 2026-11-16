@@ -282,6 +282,34 @@ API int p_nms(const float *boxes, int n, float iou_thr, float contain_thr, int32
     return k;
 }
 
+/* Composite the foreground (alpha 0..255) over a background image of the same size: out = fg·a + bg·(1−a). */
+API void p_composite_img(uint8_t *rgba, int w, int h, const uint8_t *alpha, const uint8_t *bg) {
+    size_t n = (size_t)w * h;
+    for (size_t i = 0; i < n; i++) {
+        int a = alpha[i];
+        for (int k = 0; k < 3; k++) rgba[i * 4 + k] = (uint8_t)((rgba[i * 4 + k] * a + bg[i * 4 + k] * (255 - a) + 127) / 255);
+        rgba[i * 4 + 3] = 255;
+    }
+}
+
+/* Person mask from MediaPipe selfie-multiclass confidences (6 planes w×h: background, hair, body skin, face skin,
+   clothes, others/accessories). Person = hair + skin + clothes; "others" counts only near the person (a dilation of
+   radius r), so glasses/hats/bags are kept while background objects the model calls "accessory" are dropped. */
+API void p_person_mask(const float *cats, int w, int h, int r, uint8_t *out) {
+    int n = w * h;
+    const float *hair = cats + n, *body = cats + 2 * n, *face = cats + 3 * n, *cloth = cats + 4 * n, *other = cats + 5 * n;
+    float *core = malloc(sizeof(float) * n), *tmp = malloc(sizeof(float) * n), *near = malloc(sizeof(float) * n);
+    for (int i = 0; i < n; i++) core[i] = hair[i] + body[i] + face[i] + cloth[i];
+    for (int y = 0; y < h; y++) for (int x = 0; x < w; x++) { float m = 0; for (int k = -r; k <= r; k++) { int xx = x + k; if (xx >= 0 && xx < w && core[y * w + xx] > m) m = core[y * w + xx]; } tmp[y * w + x] = m; }
+    for (int y = 0; y < h; y++) for (int x = 0; x < w; x++) { float m = 0; for (int k = -r; k <= r; k++) { int yy = y + k; if (yy >= 0 && yy < h && tmp[yy * w + x] > m) m = tmp[yy * w + x]; } near[y * w + x] = m; }
+    for (int i = 0; i < n; i++) {
+        float nb = near[i] > 0.5f ? 1.0f : near[i] * 2.0f;
+        float v = core[i] + other[i] * nb;
+        out[i] = u8(CLAMP(v, 0.0f, 1.0f) * 255.0f);
+    }
+    free(core); free(tmp); free(near);
+}
+
 /* ======================================================================== artistic filters */
 /* Separable bilateral approximation (edge-preserving smoothing), applied `iters` times. */
 API void p_bilateral(uint8_t *px, int w, int h, int radius, float sigma_s, float sigma_r, int iters) {
