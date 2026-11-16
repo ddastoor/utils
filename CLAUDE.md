@@ -138,7 +138,10 @@ its own e2e suite; outputs re-opened in Node with MuPDF by `tests/lib/pdfcheck.m
 rendered pixels): `pdf-merge` (10), `pdf-split` (8), `pdf-organize` (10), `img2pdf` (9: upright JPEG/PNG embedded
 byte-for-byte, other formats or EXIF-rotated JPEGs re-encoded), `pdf2img` (7), `pdf2text` (8: scanned PDF → OCR hint),
 `pdf-pagenum` (11: text read back, pixel position incl. a /Rotate 90 page), `pdf-watermark` (10: vector Helvetica text,
-non-Latin text as a PNG image, opacity via ExtGState, tiled).
+non-Latin text as a PNG image, opacity via ExtGState, tiled), `pdf-unlock` (12: AES-256/AES-128/RC4 inputs → no password;
+owner-only restrictions removed too), `pdf-protect` (13: AES-256 V5 R6, permission bits print/copy/edit, permissions
+password (random if empty), re-protecting replaces the old password; passwords cannot contain commas — MuPDF's option
+syntax).
 | id | Tab | Platform |
 |---|---|---|
 | `pdf-merge` | Merge PDF | both |
