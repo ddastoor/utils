@@ -81,7 +81,8 @@ Dictionary), Codes & Files (5), Everyday (9), Device (11), Linux Terminal + bc c
    **Written and passing (26):** emi, gst, sip, fd, percent, tip, fuel, words, roman, ppf, inflation, prepay, epf, nps,
    bodyfat, idealweight, coords, bmi, calories, sleep, units, dates, timezone, duedate, gpa, base, calc (77 checks).
    **All 27 Calculators tabs have their own suite.** Math & Science (7/7): graph (canvas pixels, pan/zoom, readout),
-   equation, stats, matrix, fraction, primes, periodic — 153 checks.
+   equation, stats, matrix, fraction, primes, periodic — 153 checks. Text (9/9): wordcount, case, lines, replace, diff
+   (minimal edits = LCS, rebuilds both texts), fancy (no unassigned code points), emoji, morse (playback timing), lorem.
    Bugs found and fixed so far: Percentage showed "—%" on ÷0; BMI exactly on a cut-off (76.8 kg at 1.60 m = 30.0) was
    put in the lower category (float 29.999…) — now categorised as displayed; "₹-0" for a zero amount (NPS lump sum with
    a 100 % annuity) — `fmtINR` now prints ₹0, and negatives as "−₹1,234"; Date Calculator gave negative days (31 Jan → 1 Mar
@@ -93,8 +94,13 @@ Dictionary), Codes & Files (5), Everyday (9), Device (11), Linux Terminal + bc c
    Equation Solver threw uncaught errors on bad input (now messages) and missed touching roots like (x − ⅓)² (C root
    finder now minimises |f|); Fractions read "1/3 ÷ 2/3" as 1/18 (now ½: "2/3" is one fraction); Primes showed LCM 0
    beyond 64 bits (now exact), "next prime 2" after 2⁶⁴ − 1, and negative GCD/LCM/next prime above 2⁶³ (wasm i64 read
-   signed); Statistics showed "Error" for undefined values (now —) and accepted "0x10" as data.
-   **Remaining:** wordcount, case, lines, replace, diff, fancy, emoji, morse, lorem · json, regex, base64, urlenc, epoch,
+   signed); Statistics showed "Error" for undefined values (now —) and accepted "0x10" as data; Morse playback had 9-unit
+   word gaps (standard 7); Lorem ipsum gave n+1 sentences / n+8 words and a lower-case sentence after "elit."; emoji search
+   was case-sensitive (no country flags found); "e-mail" counted as 2 words; Title Case left a final small word lower
+   case; code cases kept punctuation ("hello,World!") and did not split acronyms; Sentence case lost "I" and capitalised
+   after "i.e."; Regex Tester's highlight dropped the character after an empty match; Base64 "download file" threw on
+   bad input; Epoch showed 1970 for an empty box.
+   **Remaining:** json, regex, base64, urlenc, epoch,
    uuid, color, jwt · sodium, sharelink, hash, password, passphrase · qr, barcode, scan, zip, unzip · stopwatch,
    countdown, pomodoro, interval, dice, coin, rng, picker, teams · webcam, mic, speaker, keyboard, pixels, touch,
    screen, level, compass, soundmeter, ruler.

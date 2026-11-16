@@ -12,7 +12,15 @@ const fmt = (n: number) => n.toLocaleString('en-IN');
 /** Counts via the browser's Unicode segmenter; keyword frequency ranking runs in textcore.wasm (own C). */
 export function textStats(s: string, tc?: ReturnType<typeof bindTextcore>) {
   const seg = (g: 'word' | 'grapheme' | 'sentence') => [...new Intl.Segmenter(undefined, { granularity: g }).segment(s)];
-  const words = seg('word').filter((x: any) => x.isWordLike).map((x) => x.segment);
+  // word-like segments joined by a single hyphen count as one word ("e-mail", "well-known"), as in Word and Docs
+  const words: string[] = [];
+  const ws = seg('word') as any[];
+  for (let i = 0; i < ws.length; i++) {
+    if (!ws[i].isWordLike) continue;
+    let w = ws[i].segment;
+    while (i + 2 < ws.length && /^[-‐]$/.test(ws[i + 1].segment) && ws[i + 2].isWordLike) { w += ws[i + 1].segment + ws[i + 2].segment; i += 2; }
+    words.push(w);
+  }
   const graphemes = seg('grapheme').length;
   const noSpaces = seg('grapheme').filter((x) => !/^\s+$/.test(x.segment)).length;
   const sentences = seg('sentence').filter((x) => x.segment.trim()).length;
@@ -41,15 +49,20 @@ export const wordcount: Mount = async (root) => {
 };
 
 // ================================================================== Case converter
-const wordsOf = (s: string) => s.replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/[_\-.]+/g, ' ').split(/\s+/).filter(Boolean);
+/** words for code-style cases: split at camelCase humps and acronyms (XMLHttpRequest → XML Http Request), drop punctuation */
+const wordsOf = (s: string) => s.replace(/(\p{Ll}|\p{N})(\p{Lu})/gu, '$1 $2').replace(/(\p{Lu}+)(\p{Lu}\p{Ll})/gu, '$1 $2').split(/[^\p{L}\p{N}]+/u).filter(Boolean);
+const cap = (w: string) => w.charAt(0).toLocaleUpperCase() + w.slice(1);
 const SMALL = new Set('a an and as at but by for if in nor of on or per the to vs via'.split(' '));
 export const CASES: Array<[string, (s: string) => string]> = [
   ['UPPER CASE', (s) => s.toLocaleUpperCase()],
   ['lower case', (s) => s.toLocaleLowerCase()],
-  ['Title Case', (s) => s.toLocaleLowerCase().replace(/[\p{L}\p{N}']+/gu, (w, i) => (i > 0 && SMALL.has(w) ? w : w[0].toLocaleUpperCase() + w.slice(1)))],
-  ['Sentence case', (s) => s.toLocaleLowerCase().replace(/(^\s*|[.!?]\s+)(\p{L})/gu, (_, p, c) => p + c.toLocaleUpperCase())],
-  ['camelCase', (s) => wordsOf(s).map((w, i) => (i ? w[0].toUpperCase() + w.slice(1).toLowerCase() : w.toLowerCase())).join('')],
-  ['PascalCase', (s) => wordsOf(s).map((w) => w[0].toUpperCase() + w.slice(1).toLowerCase()).join('')],
+  // small words stay lower case except first, last and after : — (Chicago style)
+  ['Title Case', (s) => { const low = s.toLocaleLowerCase(), ws = [...low.matchAll(/[\p{L}\p{N}']+/gu)], last = ws.length - 1;
+    return low.replace(/[\p{L}\p{N}']+/gu, (w, off) => { const k = ws.findIndex((m) => m.index === off), prev = low.slice(0, off).trimEnd(); return k > 0 && k < last && SMALL.has(w) && !/[:—–]$/.test(prev) ? w : cap(w); }); }],
+  // a full stop after a lone letter is an abbreviation (i.e., e.g., U.S.), not the end of a sentence
+  ['Sentence case', (s) => s.toLocaleLowerCase().replace(/(^\s*|(?<!(?:^|[\s.])\p{L})[.!?]\s+)(\p{L})/gu, (_, p, c) => p + c.toLocaleUpperCase()).replace(/\bi\b(?![.'’]?\p{L})|\bi(?=['’](m|ll|ve|d)\b)/gu, 'I')],
+  ['camelCase', (s) => wordsOf(s).map((w, i) => (i ? cap(w.toLocaleLowerCase()) : w.toLocaleLowerCase())).join('')],
+  ['PascalCase', (s) => wordsOf(s).map((w) => cap(w.toLocaleLowerCase())).join('')],
   ['snake_case', (s) => wordsOf(s).map((w) => w.toLowerCase()).join('_')],
   ['kebab-case', (s) => wordsOf(s).map((w) => w.toLowerCase()).join('-')],
   ['CONSTANT_CASE', (s) => wordsOf(s).map((w) => w.toUpperCase()).join('_')],
@@ -216,7 +229,7 @@ export const emoji: Mount = async (root) => {
     clear(body);
     if (kind === 'emoji') {
       for (const g of data) {
-        const items = g.emojis.filter((e) => !t || e.name.includes(t));
+        const items = g.emojis.filter((e) => { const n = e.name.toLowerCase(); return !t || t.split(/\s+/).every((w) => n.includes(w)); }); // case-insensitive, all words ("flag india")
         if (items.length) body.append(card(g.name, h('div', { class: 'emoji-grid' }, items.map((e) => cell(e.emoji, e.name)))));
       }
     } else {
@@ -252,7 +265,7 @@ export const morse: Mount = (root) => {
     osc.frequency.value = 650; g.gain.value = 0; osc.connect(g).connect(ctx.destination); osc.start();
     for (const ch of code) {
       if (ch === '.' || ch === '-') { const d = ch === '.' ? unit : 3 * unit; g.gain.setValueAtTime(0.4, t); g.gain.setValueAtTime(0, t + d); t += d + unit; }
-      else if (ch === ' ') t += 2 * unit; else if (ch === '/') t += 4 * unit;
+      else if (ch === ' ') t += 2 * unit; else if (ch === '/') t += 2 * unit; // gaps: symbol 1, letter 1+2 = 3, word " / " 1+2+2+2 = 7 units
     }
     osc.stop(t + 0.1);
   };
@@ -272,9 +285,13 @@ export const lorem: Mount = async (root) => {
   const pick = () => LOREM[na.uniform(LOREM.length)];
   const sentence = () => { const w = Array.from({ length: 8 + na.uniform(10) }, pick); w[0] = w[0][0].toUpperCase() + w[0].slice(1); return w.join(' ') + '.'; };
   const para = () => Array.from({ length: 4 + na.uniform(4) }, sentence).join(' ');
+  const OPEN = 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.', OPEN_W = OPEN.replace(/[,.]/g, '').toLowerCase().split(' ');
+  /** exactly n paragraphs / sentences / words; "classic" makes the first sentence (or first words) the usual opening */
   const run = () => {
-    let s = unit === 'p' ? Array.from({ length: n }, para).join('\n\n') : unit === 's' ? Array.from({ length: n }, sentence).join(' ') : Array.from({ length: n }, pick).join(' ');
-    if (classic) s = 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. ' + s.replace(/^[A-Z][a-z]+/, (w) => w.toLowerCase());
+    let s: string;
+    if (unit === 'w') { const w = Array.from({ length: n }, (_, i) => (classic && i < OPEN_W.length ? OPEN_W[i] : pick())); w[0] = w[0][0].toUpperCase() + w[0].slice(1); s = w.join(' ') + '.'; }
+    else if (unit === 's') s = Array.from({ length: n }, (_, i) => (classic && !i ? OPEN : sentence())).join(' ');
+    else s = Array.from({ length: n }, (_, i) => (classic && !i ? para().replace(/^[^.]*\./, OPEN) : para())).join('\n\n');
     out.value = s;
   };
   root.append(card(null, stack(segmented([['p', 'Paragraphs'], ['s', 'Sentences'], ['w', 'Words']], unit, (v) => { unit = v; run(); }),
@@ -326,7 +343,7 @@ export const regex: Mount = (root) => {
     catch (e: any) { pat.classList.add('bad'); groups.append(note(e.message, 'err')); return; }
     const s = text.value, ms = [...s.matchAll(re)].slice(0, 1000);
     let last = 0;
-    for (const m of ms) { hl.append(s.slice(last, m.index), h('mark', null, m[0] || '∅')); last = m.index! + m[0].length; if (!m[0]) last++; }
+    for (const m of ms) { hl.append(s.slice(last, m.index), h('mark', { class: m[0] ? null : 'empty' }, m[0] || '∅')); last = m.index! + m[0].length; }
     hl.append(s.slice(last));
     groups.append(note(`${ms.length} match${ms.length === 1 ? '' : 'es'}`, ms.length ? 'ok' : 'info'));
     if (ms.length) groups.append( h('div', { class: 'scroll-x' }, h('table', { class: 'tbl' }, h('thead', null, h('tr', null, h('th', null, '#'), h('th', null, 'Match'), h('th', null, 'Index'), ...Array.from({ length: Math.max(0, ...ms.map((m) => m.length - 1)) }, (_, i) => h('th', null, `$${i + 1}`)))),
@@ -353,7 +370,7 @@ export const base64: Mount = (root) => {
   inp.addEventListener('input', run);
   root.append(card(null, stack(segmented([['enc', 'Encode'], ['dec', 'Decode']], mode, (v) => { mode = v; run(); }), toggle('URL-safe alphabet (-_ no padding)', false, (v) => { url = v; run(); }), field('Input', inp))), status, card('Output', out),
     card('Files', stack(filePicker({ compact: true, label: 'File → Base64 / data URL', onFiles: async ([f]) => { const b = await readBytes(f); out.value = `data:${f.type || 'application/octet-stream'};base64,${toB64(b)}`; } }),
-      button('Base64 → download file', () => { const s = inp.value.trim().replace(/^data:[^,]*,/, ''); downloadBlob(new Blob([fromB64(s) as BlobPart]), 'decoded.bin'); }, { icon: 'Download', small: true }))));
+      button('Base64 → download file', () => { const s = inp.value.trim().replace(/^data:[^,]*,/, ''); let b: Uint8Array; try { b = fromB64(s); } catch { clear(status).append(note('Not valid Base64 — nothing to download.', 'warn')); return; } downloadBlob(new Blob([b as BlobPart]), 'decoded.bin'); }, { icon: 'Download', small: true }))));
   run();
 };
 
@@ -392,7 +409,7 @@ export const epoch: Mount = (root) => {
     if (isNaN(d.getTime())) { clear(out).append(h('span', null, 'Invalid'), h('span', null, '—')); return; }
     clear(out).append(...([['Seconds', String(Math.floor(ms / 1000))], ['Milliseconds', String(ms)], ['UTC', d.toUTCString()], ['ISO 8601', d.toISOString()], ['Local', d.toLocaleString('en-IN', { dateStyle: 'full', timeStyle: 'long' })], ['Relative', rel(ms)]] as Array<[string, string]>).flatMap(([k, v]) => [h('span', null, k), h('span', { class: 'mono' }, v)]));
   };
-  ts.addEventListener('input', () => { const n = Number(ts.value.trim()); show(Math.abs(n) > 1e11 ? n : n * 1000); }); // auto-detect ms vs s
+  ts.addEventListener('input', () => { const t = ts.value.trim(); if (!t) { clear(out); return; } const n = Number(t); show(Math.abs(n) > 1e11 ? n : n * 1000); }); // auto-detect ms vs s
   dt.addEventListener('input', () => { const ms = new Date(dt.value).getTime(); ts.value = String(Math.floor(ms / 1000)); show(ms); });
   root.append(card('Current Unix time', now), card(null, h('div', { class: 'grid2' }, field('Timestamp (seconds or ms)', ts), field('…or pick a date & time', dt))), card('Converted', out));
   show(Date.now());
