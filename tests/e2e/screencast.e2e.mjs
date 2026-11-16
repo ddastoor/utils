@@ -1,0 +1,65 @@
+// Screencast (#/screencast, PC): getDisplayMedia (Chromium's fake picker picks the screen) → MediaRecorder → remuxed
+// file. Checks length (pause excluded), area crop size, WebM with a real duration, mic track, streaming to a file.
+import { readFileSync } from 'node:fs';
+import { mp4Info } from './video.e2e.mjs';
+
+export default async ({ base, page: newPage, ok, info, download }) => {
+  const page = await newPage({ viewport: { width: 1280, height: 900 } });
+  await page.addInitScript(() => { // stand-in for the save dialog: count what would be written to disk
+    window.showSaveFilePicker = async (o) => ({ name: o.suggestedName, createWritable: async () => ({ write: async (d) => { window.__written = (window.__written || 0) + d.size; }, close: async () => { window.__closed = true; } }) });
+  });
+  await page.goto(`${base}#/screencast`);
+  const btn = (name) => page.locator('.actions').getByRole('button', { name, exact: true });
+  const recordFor = async (ms, mid, done = /^Recorded /) => { await btn('Start recording').click(); await page.getByText(/^Recording ·/).waitFor({ timeout: 15000 }); if (mid) await mid(); else await page.waitForTimeout(ms); await btn('Stop').click(); await page.getByText(done).first().waitFor({ timeout: 30000 }); };
+  const meta = (path) => page.evaluate(async (b64) => {
+    const v = document.createElement('video'); v.muted = true; v.src = URL.createObjectURL(new Blob([Uint8Array.from(atob(b64), (c) => c.charCodeAt(0))]));
+    await new Promise((r, j) => { v.onloadedmetadata = r; v.onerror = () => j(new Error('cannot play')); });
+    return { duration: v.duration, w: v.videoWidth, h: v.videoHeight };
+  }, readFileSync(path).toString('base64'));
+
+  ok(await page.getByText(/Detected: (X11|Wayland)/).isVisible(), 'Linux display server shown (X11 / Wayland)');
+  await page.getByText('3-second countdown').click(); // off for the test
+  await recordFor(2200);
+  const f1 = await download(page, () => btn('Download').click()), m1 = await meta(f1), i1 = /\.mp4$/.test(f1) ? mp4Info(readFileSync(f1)) : null;
+  ok(/\.mp4$/.test(f1) && i1?.video?.codec === 'avc1', `MP4 with H.264 (${i1?.video?.codec}, ${f1.split('/').pop()})`);
+  ok(m1.duration > 1.9 && m1.duration < 3.3 && m1.w > 0, `about 2.2 s recorded, has a duration (${m1.duration.toFixed(2)} s, ${m1.w}×${m1.h})`);
+
+  // pause is not counted
+  await recordFor(0, async () => { await page.waitForTimeout(1000); await btn('Pause').click(); await page.waitForTimeout(1200); await btn('Resume').click(); await page.waitForTimeout(1000); });
+  const m2 = await meta(await download(page, () => btn('Download').click()));
+  ok(Math.abs(m2.duration - 2) < 0.5, `pause left out (${m2.duration.toFixed(2)} s for 2 s recorded + 1.2 s paused)`);
+
+  // area: drag the middle of the preview
+  await page.getByRole('radio', { name: 'An area (rectangle)' }).click();
+  ok(await btn('Start recording').isDisabled(), 'area mode: Start waits for an area');
+  const v = page.locator('.sc-preview');
+  await page.evaluate(() => scrollBy(0, document.querySelector('.sc-preview').getBoundingClientRect().top - 260)); // below the sticky bars
+  const b = await v.boundingBox();
+  const vs = await v.evaluate((el) => [el.videoWidth, el.videoHeight]);
+  const sc = Math.min(b.width / vs[0], b.height / vs[1]), ox = (b.width - vs[0] * sc) / 2, oy = (b.height - vs[1] * sc) / 2;
+  await page.mouse.move(b.x + ox + vs[0] * sc * 0.25, b.y + oy + vs[1] * sc * 0.25); await page.mouse.down();
+  await page.mouse.move(b.x + ox + vs[0] * sc * 0.75, b.y + oy + vs[1] * sc * 0.75, { steps: 5 }); await page.mouse.up();
+  ok(await page.locator('.sc-sel').isVisible(), 'area drawn on the preview');
+  await recordFor(1500);
+  const m3 = await meta(await download(page, () => btn('Download').click()));
+  ok(Math.abs(m3.w - vs[0] / 2) <= 6 && Math.abs(m3.h - vs[1] / 2) <= 6, `recorded only the area: ${m3.w}×${m3.h} of ${vs[0]}×${vs[1]}`);
+
+  // WebM: remuxed so it has a real duration (raw MediaRecorder WebM reports Infinity)
+  await page.getByRole('radio', { name: 'Screen, window or tab' }).click();
+  await page.getByRole('combobox', { name: /^Format/ }).selectOption('webm');
+  await page.getByText('Add my microphone').click();
+  await recordFor(1500);
+  const f4 = await download(page, () => btn('Download').click()), m4 = await meta(f4);
+  ok(/\.webm$/.test(f4) && readFileSync(f4).readUInt32BE(0) === 0x1a45dfa3, 'WebM file');
+  ok(Number.isFinite(m4.duration) && Math.abs(m4.duration - 1.5) < 0.5, `WebM has a duration (${m4.duration})`);
+  const hasAudio = await page.evaluate(async () => { const v = document.querySelector('.vid-prev'); return v.mozHasAudio || v.webkitAudioDecodedByteCount > 0 || (v.audioTracks ? v.audioTracks.length > 0 : true); });
+  ok(hasAudio, 'microphone mixed in (audio track present)');
+
+  // straight to a file
+  await page.getByText('Save straight to a file while recording').click();
+  await recordFor(1500, null, /^Saved screencast-/);
+  const w = await page.evaluate(() => [window.__written, window.__closed]);
+  ok(w[0] > 5000 && w[1] === true, `streamed to the file while recording (${w[0]} bytes, closed)`);
+  ok(await page.getByText(/Saved straight to screencast-/).isVisible(), 'saved message');
+  ok(!page.errors.length, `no page errors ${page.errors.slice(0, 3).join(' | ')}`);
+};

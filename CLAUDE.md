@@ -195,7 +195,7 @@ URL `#fragment`, never sent to a server) · `hash` Hash / Checksum · `password`
 `passphrase` Passphrase Generator — all both.
 
 **Media**: `video` Video Compressor (both, **BUILT**) · `audio` Audio Recorder (both, **BUILT**) · `tts` Text-to-Speech (both) ·
-`ffmpeg` FFmpeg (**PC**, **BUILT**) · `screencast` Screencast (**PC**) · `screenshot` Screenshot (**PC**) ·
+`ffmpeg` FFmpeg (**PC**, **BUILT**) · `screencast` Screencast (**PC**, **BUILT**) · `screenshot` Screenshot (**PC**) ·
 `youtube` YouTube Clip (**PC**)
 
 **Calculators** (all both): `calc` Scientific · `units` Unit Converter · `dates` Date Calculator ·
@@ -607,12 +607,17 @@ or math-heavy column → that column as image; scanned page → page image. Mode
 Column images. EPUB 3 + NCX (EPUB 2 fallback), validated with epubcheck in development, compatible with
 Send-to-Kindle. Image width presets: Paperwhite 1236 px / Scribe 1860 px; greyscale option.
 
-### Screencast (PC)
-Chrome on Windows/Linux. Modes: whole screen / window / tab via Chrome's picker; **rectangle**: pick a
-screen, then drag a rectangle on the live preview (a web page cannot draw on the desktop), frames are
-cropped in real time. Audio: tab audio; Windows system audio when sharing the entire screen; on Linux pick
-the "Monitor of …" PipeWire/PulseAudio input; optional mic mix. Start/Pause/Stop, timer, MP4 output
-(H.264/AAC via MediaRecorder; WebM fallback), long recordings stream to disk via File System Access.
+### Screencast (PC) — BUILT (`src/tools/screencast.ts`; e2e `tests/e2e/screencast.e2e.mjs` 13)
+Chrome on Windows/Linux. "Screen, window or tab" (Chrome's picker; own tab excluded; surface switching allowed) or
+"An area": choose a screen, drag a rectangle on the live preview (a page cannot draw on the desktop); the rectangle is
+cut from every frame live with WebCodecs `VideoFrame` `visibleRect` (MediaStreamTrackProcessor → Generator; canvas
+`captureStream` fallback). Sound: the tab/screen's shared audio (Windows: system audio with "Entire screen"; Linux:
+choose the "Monitor of …" input), optional microphone mixed in with Web Audio. MediaRecorder: MP4 H.264 (+ AAC where
+the browser has it, else Opus) or WebM VP9/Opus, 8 Mbit/s, 30/60/15 fps; 3-second countdown, pause/resume, stops when
+sharing ends. Recordings kept in memory are remuxed by mediabunny (packet copy) so they get a duration/seek index;
+"Save straight to a file while recording" streams chunks to disk with File System Access (long recordings).
+X11/Wayland note from `src/linux.ts`. Tests (Chromium's fake picker): MP4 H.264 ≈ 2.2 s; pause not counted; area =
+half the screen; WebM with a finite duration; microphone track; streaming to a (stubbed) file.
 
 ### Screenshot (PC)
 Modes: full screen, window, tab, region. Flow: choose mode → Chrome picker (own tab excluded) → choose
@@ -642,7 +647,7 @@ No web API reports the display server and Chrome's UA says `X11; Linux` on both,
    Zero ⇒ **Wayland (likely)** — a maximised X11 window at the top-left corner can also be 0,0.
 2. **Active** (one click, "Confirm"): open a tiny popup, `moveTo(120, 120)`, read its `screenX`. X11 honours
    the move; Wayland ignores it. Result is kept in memory for the session only.
-Used by Screencast, Screenshot and YouTube Clip: they show "Detected: X11 / Wayland", and on Wayland explain that
+Implemented in `src/linux.ts` (`linuxBanner()`). Used by Screencast, Screenshot and YouTube Clip: they show "Detected: X11 / Wayland", and on Wayland explain that
 the desktop portal (GNOME/KDE) shows its own picker after Chrome's, keep the capture alive for repeated shots
 (avoids repeated portal prompts), and show the right minimise shortcut. If capture fails on Wayland they point
 to `chrome://flags/#enable-webrtc-pipewire-capturer` and the `xdg-desktop-portal` packages.
