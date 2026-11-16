@@ -2,15 +2,23 @@
 // precision bc with the -l maths library) from our own BusyBox WebAssembly build, run in the terminal worker.
 // bc keeps variables and functions across lines: each Enter replays the session and shows only the new output.
 import { h, card, button, clear, copy } from '../ui';
+import { trackWorker } from '../lifecycle';
 
 export function bcConsole() {
-  const worker = new Worker(new URL('../workers/terminal.worker.ts', import.meta.url), { type: 'module' });
+  // BusyBox (≈ 0.5 MB) loads on the first Enter, not when the calculator opens
+  let worker: Worker | null = null;
+  const getWorker = () => {
+    if (!worker) {
+      worker = trackWorker(new Worker(new URL('../workers/terminal.worker.ts', import.meta.url), { type: 'module' }), 'bc-worker', () => { worker = null; for (const r of pend.values()) r({ out: '', err: 'bc stopped' }); pend.clear(); });
+      worker.onmessage = (e) => { if (e.data.type === 'reply') { pend.get(e.data.id)?.(e.data); pend.delete(e.data.id); } };
+    }
+    return worker;
+  };
   let seq = 0, prevOut = '', busy = false;
   const lines: string[] = [], hist: string[] = [];
   let hpos = 0;
   const pend = new Map<number, (r: any) => void>();
-  worker.onmessage = (e) => { if (e.data.type === 'reply') { pend.get(e.data.id)?.(e.data); pend.delete(e.data.id); } };
-  const call = (op: string, data: any) => new Promise<any>((res) => { const id = ++seq; pend.set(id, res); worker.postMessage({ id, op, ...data }); });
+  const call = (op: string, data: any) => new Promise<any>((res) => { const id = ++seq; pend.set(id, res); getWorker().postMessage({ id, op, ...data }); });
   const out = h('pre', { class: 'bc-out', 'aria-live': 'polite', 'aria-label': 'bc output' });
   const inp = h('input', { class: 'input mono bc-in', 'aria-label': 'bc input', placeholder: 'e.g.  scale=50; 4*a(1)    or    2^256', spellcheck: 'false', autocomplete: 'off' }) as HTMLInputElement;
   const add = (cls: string, text: string) => { out.append(h('div', { class: cls }, text)); out.scrollTop = out.scrollHeight; };
@@ -39,5 +47,5 @@ export function bcConsole() {
     out, inp,
     h('div', { class: 'row' }, button('Copy last answer', () => copy((out.querySelector('.bc-a:last-of-type')?.textContent) || ''), { small: true, icon: 'Copy' }),
       button('Clear session', () => { lines.length = 0; prevOut = ''; clear(out); inp.focus(); }, { small: true, variant: 'ghost', icon: 'Eraser' })));
-  return { el, dispose: () => worker.terminate() };
+  return { el, dispose: () => { worker?.terminate(); worker = null; } };
 }

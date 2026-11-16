@@ -1,5 +1,6 @@
 // Proves the site makes no requests to any other host (all pages, desktop + phone) and has no CSP violations.
 import { createServer } from 'vite';
+import { readdirSync, readFileSync } from 'node:fs';
 export default async ({ base, page: newPage, ok, devices }) => {
   const vs = await createServer({ server: { middlewareMode: true }, logLevel: 'error', optimizeDeps: { noDiscovery: true, include: [] } });
   const { TOOLS, CATEGORIES } = await vs.ssrLoadModule('/src/registry.ts');
@@ -13,6 +14,10 @@ export default async ({ base, page: newPage, ok, devices }) => {
   const hosts = (pol['connect-src'] || []).filter((v) => /^https?:/.test(v));
   ok(hosts.length === APPROVED.length && hosts.every((h) => APPROVED.includes(h)), `CSP connect-src allows only the approved data APIs (${hosts.join(' ')})`);
   for (const d of ['script-src', 'style-src', 'font-src', 'worker-src', 'default-src']) ok((pol[d] || []).every((v) => !/^https?:/.test(v)), `CSP ${d} allows no other host (${(pol[d] || []).join(' ')})`);
+  // no analytics/telemetry endpoint survives in the built code (MediaPipe's usage logger is removed in vite.config.ts)
+  const TELEMETRY = /odml\.pa\.googleapis\.com|google-analytics\.com|googletagmanager\.com|play\.googleapis\.com\/log/;
+  const leaks = readdirSync('dist/assets').filter((f) => /\.(m?js)$/.test(f) && TELEMETRY.test(readFileSync(`dist/assets/${f}`, 'utf8')));
+  ok(!leaks.length, `no telemetry endpoint in the built code (${leaks.join(' ')})`);
   await Promise.all([['desktop', { viewport: { width: 1366, height: 900 } }], ['mobile', devices['iPhone 13']]].flatMap(([name, profile]) =>
     Array.from({ length: SHARDS }, async (_, k) => {
       const page = await newPage(profile);

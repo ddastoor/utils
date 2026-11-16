@@ -5,13 +5,13 @@ import type { Img } from '../wasm/imgproc';
 import { loadImg } from './imgio';
 
 /** File picker that also accepts pasted images (Ctrl+V). Calls onImage with the decoded image. */
-export function imageInput(onImage: (img: Img, file: File) => void, opts: { label?: string; multiple?: boolean; capture?: 'user' | 'environment' } = {}) {
+export function imageInput(onImage: (img: Img, file: File) => void | Promise<void>, opts: { label?: string; multiple?: boolean; capture?: 'user' | 'environment' } = {}) {
   const busy = h('div', { class: 'muted small' });
   const handle = async (files: File[]) => {
     for (const f of files) {
       busy.textContent = `Opening ${f.name}…`;
       try {
-        onImage(await loadImg(f), f);
+        await onImage(await loadImg(f), f);
         // once a photo is open, shrink the big drop zone so the photo sits higher on phones
         picker.classList.add('drop-compact');
         const strong = picker.querySelector('strong'); if (strong) strong.textContent = opts.multiple ? 'Add more photos' : 'Choose another photo';

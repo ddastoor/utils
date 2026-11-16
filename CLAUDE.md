@@ -69,6 +69,8 @@ Wayland) and **mobile browsers** (Android Chrome, iPhone Safari).
 10. **Search**: every tab has relevant keywords (`keywords` in the registry). A search box (home screen +
     sidebar; `/` or Ctrl+K focuses it on PC) ranks tabs by title and keywords; pressing **Enter opens the
     top match immediately**.
+11. **Lazy dependencies per tab (owner, Nov 16 2026):** a tab's engines, models, data and fonts are fetched from
+    this site only when that tab is used, and released when it is left — see §4 "Lazy dependencies".
 
 ### Owner's answers to open questions
 - App name: **SuperTools** (title, header brand, `document.title` suffix).
@@ -514,7 +516,7 @@ merge audio+video, normalise loudness, speed, extract frames, **audio → MP4** 
 or animated waveform), plus a raw-arguments box. Limits: ~2 GB files; re-encoding is ~10–20× slower than
 native.
 
-### PDF → EPUB (PC) — BUILT (`src/tools/epub/epub.ts`, engine `src/lib/pdf2epub.ts`; e2e `tests/e2e/epub.e2e.mjs` 28)
+### PDF → EPUB (PC) — BUILT (`src/tools/epub/epub.ts`, engine `src/lib/pdf2epub.ts`; e2e `tests/e2e/epub.e2e.mjs` 27)
 As built: MuPDF structured text (lines with font size/weight; raster image blocks) → pieces of a justified line on
 the same baseline are joined → running headers/footers = top/bottom-10 % lines whose first 12 letters repeat on ≥ 40 %
 of pages (page numbers and OCR slips like "VICKSBUEG" still match) + bare page numbers → figures = raster images
@@ -684,10 +686,41 @@ weather (Open-Meteo), IP/network info, clock-accuracy check (network time).
 - Our wasm modules are WASI "reactor" modules (no Emscripten); `src/wasm/wasi.ts` is a tiny shim
   (`random_get` → `crypto.getRandomValues`, `fd_write` → console, everything else ENOSYS).
 
+### Lazy dependencies per tab + release on leave (owner rule, Nov 16 2026)
+Owner: "make the full site faster, more responsive and memory efficient — load dependencies from the site's host
+**per app/tab, only when the user selects that tab**". Rules (enforced by `tests/e2e/lazy.e2e.mjs`):
+1. **The shell loads no engine.** Home and category pages fetch only `index.html`, the entry JS/CSS and icons
+   (≈ 156 KB): no `.wasm`, `vendor/`, `models/`, `data/` or font file. The search box's engine (textcore.wasm, own
+   instance via `newTextcore()`) loads when the box is first focused/typed in (`ensureSearch()` in `src/main.ts`).
+2. **Opening a tab loads only that tab's code** (its dynamic-import chunk, < 400 KB). Engines, models, data files,
+   fonts and workers load on **first use** — a file chosen, a button pressed, the first Enter — never at module
+   load and never at mount, except where the tab's first view needs them. Allowed at open (listed with the reason
+   in `AT_OPEN` in the test): our three small engines (mathcore/crypto/textcore ≤ 115 KB: live results as you
+   type), invoice/rent/resume (MuPDF + Noto Sans: the live PDF preview is the main view), markdown (cmark-gfm,
+   sample preview), terminal (BusyBox: the shell is ready at once), qr/barcode (zxing-cpp: drawn as you type),
+   caption/watermark/signature (fonts of the first preview). Adding to that list needs a reason in the test.
+   Examples of deferral: bc console starts BusyBox on its first Enter; Image Editor instantiates imgproc with
+   the first photo; CSV/Excel loads sheet.wasm with the first file; Photo Dictionary loads the word list and
+   Literata while OCR runs; PDF tabs load MuPDF when a PDF is chosen.
+3. **Release on leave** (`src/lifecycle.ts`): engine loaders register `onLeave(key, release)`; workers are created
+   through `trackWorker(worker, key, onEnd)`. `main.ts` `teardown()` calls `releaseAll()` on every navigation:
+   workers are terminated (imgproc, codec, crypto, style-transfer, OCR, bc), cached wasm instances are dropped
+   (textcore, mathcore, metacore, markdown, sheet, sodium, imgproc direct), MediaPipe tasks are `close()`d,
+   dictionary tables/shards and PDF fonts are dropped. Pending calls of a released worker are dropped silently
+   (the tab is gone; no stray error toast). Coming back re-creates them (HTTP cache makes it fast).
+   `globalThis.__supertoolsLive()` → `{ workers, resources }` (used by the test: 0 after leaving).
+4. **Limitation:** libraries that load into the main thread as ES modules stay in memory until the page reloads
+   (the browser never unloads an imported module): MuPDF (its wasm heap), zxing-cpp, the MediaPipe runtime,
+   libheif, OpenPGP.js. Their *data* is released; only the code/heap stays. Moving MuPDF into a worker (so it can
+   be terminated) is a possible later improvement.
+5. New tools: put every heavy import behind a function called on first use; create workers with `trackWorker`;
+   register caches with `onLeave`; never start work in `mount` that the first view does not show.
+
 ### Directory map
 ```
 index.html                 app entry (CSP, root element)
 src/main.ts                shell: router, nav, home grid
+src/lifecycle.ts           onLeave / trackWorker / releaseAll: free a tab's workers + engines when it is left
 src/ui.ts                  DOM helpers & widgets (file picker/drop, sliders, progress, download, toast)
 src/platform.ts            mobile / capability detection
 src/wasm/                  loaders for our wasm (wasi.ts, imgproc.ts, crypto.ts)
@@ -818,6 +851,9 @@ Current entries (all Apache-2.0, Google MediaPipe, versioned URLs `…/float16|f
 - `mediapipe/blaze_face_short_range.tflite` (0.2 MB) — redact (and passport framing)
 - `mediapipe/face_landmarker.task` (3.8 MB) — passport
 - `mediapipe/selfie_multiclass_256x256.tflite` (16.4 MB) — passport, bgremove
+**MediaPipe telemetry removed:** tasks-vision ≥ 1.2 has a usage logger that POSTs to `odml.pa.googleapis.com` every
+60 s and on `close()`; `vite.config.ts` (`noMediapipeTelemetry`) turns its flush into a no-op at build time and fails
+the build if that code changes shape; `no-external.e2e.mjs` checks no telemetry host is left in `dist/`.
 MediaPipe runtime: `src/lib/mediapipe.ts` (FilesetResolver → `vendor/mediapipe`, models via `document.baseURI`);
 BlazeFace runs on the CPU delegate (XNNPACK; as fast as WebGL for a tiny model, no GPU stalls), larger models try
 GPU then fall back to CPU.
@@ -883,6 +919,7 @@ Deployment branches**.
 1. Create `src/tools/<id>.ts` exporting `mount(root)`; use helpers from `src/ui.ts`.
 2. Register it in `src/registry.ts` (id, title, desc, category, icon, rich keywords, `platform`: 'both' unless
    the owner says PC only, or it genuinely needs phone hardware → 'mobile'). Add search cases.
-3. Heavy dependencies: dynamic-import inside the tool; vendor runtime files via `scripts/vendor.mjs`;
-   never load from a CDN; keep the CSP intact.
+3. Heavy dependencies: dynamic-import inside the tool **on first use** (not at mount — §4 "Lazy dependencies");
+   workers via `trackWorker`, caches via `onLeave` (`src/lifecycle.ts`); vendor runtime files via
+   `scripts/vendor.mjs`; never load from a CDN; keep the CSP intact. `tests/e2e/lazy.e2e.mjs` checks every tab.
 4. Add a smoke test in `tests/e2e.mjs`, update §2/§3 of this file, commit, push.

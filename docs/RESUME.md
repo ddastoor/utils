@@ -40,6 +40,13 @@ Great Vibes / Dancing Script / Caveat self-hosted); Anton font (OFL) self-hosted
 `photodict` (43 e2e + 56 unit), `ocr` (10), `bgremove` (11), `passport` (19), `cartoon` (37; Magenta models fetched + converted by
 `scripts/fetch-assets.mjs` → `scripts/convert-magenta.mjs`). **Images category complete (15/15).** `bc` console (12).
 
+**Lazy dependencies per tab (owner request, Nov 16 2026) — DONE:** shell loads no engine (home ≈ 156 KB), search
+engine loads on first use, every tab loads only its own chunk and fetches engines/models/data/fonts on first use,
+workers + engine instances are released on leave (`src/lifecycle.ts`). Rule + allow-list: CLAUDE.md §4 "Lazy
+dependencies"; test `tests/e2e/lazy.e2e.mjs` (every tab, desktop + phone). Every new tool must follow it.
+Found on the way: MediaPipe's built-in usage logger (Google telemetry) — removed at build time (CLAUDE.md §6); test
+helper `renderGrey` read a detached wasm-heap view under load (now copies).
+
 **Stubs ("This tool is being built")**: every other tool — see "Queue".
 
 ## In flight: WASM-first audit (owner: "scan everything you've coded and convert to WebAssembly")
@@ -69,7 +76,7 @@ STANDING RULE #1 is at the top of `CLAUDE.md`; audit list is in CLAUDE.md §3a.
    legacy model converter scripts/convert-magenta.mjs). **All Images tools are done.** Photo Dictionary DONE (43 e2e + 56 unit;
    data in public/data/dict built by scripts/build-dict.mjs from kaikki.org + wordfreq; CSP now allows the two
    approved dictionary APIs). PDF core tabs DONE on MuPDF: merge, split, organize, img2pdf, pdf2img, pdf2text, pagenum,
-   watermark (own e2e suite each). Unlock, Protect, Compress, Sign, Fill DONE — **all 13 PDF tabs done**. Markdown Editor DONE (own cmark-gfm wasm, 25 unit + 23 e2e). GST Invoice / Rent Receipt / Resume Builder DONE (HTML → PDF with MuPDF via an in-memory EPUB; 20 + 10 + 7 e2e; mathcore m_invoice + m_gstin_valid, 19 unit). CSV / Excel DONE (own Rust wasm: calamine + rust_xlsxwriter, 33 unit + 17 e2e). PDF → EPUB DONE (XY-cut in textcore, ink regions in imgproc; 11 unit + 28 e2e). **Documents category complete (19/19).** **Next: Media** (video, audio, tts, stt, noise, pitch, slideshow, ffmpeg, screencast, screenshot, youtube), then Software (47 PC tabs) (MuPDF; AES-256 via
+   watermark (own e2e suite each). Unlock, Protect, Compress, Sign, Fill DONE — **all 13 PDF tabs done**. Markdown Editor DONE (own cmark-gfm wasm, 25 unit + 23 e2e). GST Invoice / Rent Receipt / Resume Builder DONE (HTML → PDF with MuPDF via an in-memory EPUB; 20 + 10 + 7 e2e; mathcore m_invoice + m_gstin_valid, 19 unit). CSV / Excel DONE (own Rust wasm: calamine + rust_xlsxwriter, 33 unit + 17 e2e). PDF → EPUB DONE (XY-cut in textcore, ink regions in imgproc; 11 unit + 27 e2e). **Documents category complete (19/19).** **Next: Media** (video, audio, tts, stt, noise, pitch, slideshow, ffmpeg, screencast, screenshot, youtube), then Software (47 PC tabs) (MuPDF; AES-256 via
    saveToBuffer `encrypt=aes-256,user-password=…`), then markdown, invoice/rent/resume, epub, sheet; then, in order: (imgproc detect/warp/enhance → PDF via MuPDF),
    ocr (Tesseract eng+hin), passport (36 presets in src/lib/passport-specs.ts; MediaPipe landmarks + selfie
    segmentation + imgproc guided filter; camera, print sheet, KB target, DPI), bgremove, cartoon (classic imgproc

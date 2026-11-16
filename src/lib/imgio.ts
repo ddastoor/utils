@@ -4,12 +4,13 @@ import { imgproc, type Img } from '../wasm/imgproc';
 import { isIOS } from '../platform';
 import { readExif } from './exif';
 import { metacore } from '../wasm/metacore';
+import { trackWorker } from '../lifecycle';
 
 let worker: Worker | null = null, seq = 0;
 const pend = new Map<number, { res: (v: any) => void; rej: (e: Error) => void }>();
 function call<T>(msg: any, transfer: Transferable[] = []): Promise<T> {
   if (!worker) {
-    worker = new Worker(new URL('../workers/codec.worker.ts', import.meta.url), { type: 'module' });
+    worker = trackWorker(new Worker(new URL('../workers/codec.worker.ts', import.meta.url), { type: 'module' }), 'codec-worker', () => { pend.clear(); worker = null; });
     worker.onmessage = (e) => { const p = pend.get(e.data.id); if (!p) return; pend.delete(e.data.id); e.data.error ? p.rej(new Error(e.data.error)) : p.res(e.data.result); };
     worker.onerror = (e) => { for (const p of pend.values()) p.rej(new Error(e.message || 'Codec worker failed')); pend.clear(); worker = null; };
   }

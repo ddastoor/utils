@@ -2,6 +2,7 @@
 // `imgproc()` runs it in a Web Worker so heavy filters never freeze the page.
 import { instantiateWasi } from './wasi';
 import wasmUrl from './bin/imgproc.wasm?url';
+import { onLeave, trackWorker } from '../lifecycle';
 
 export interface Img { data: Uint8ClampedArray; width: number; height: number }
 export interface Adjust { bright?: number; contrast?: number; exposure?: number; gamma?: number; sat?: number; vib?: number; hue?: number; temp?: number; tint?: number; highlights?: number; shadows?: number }
@@ -128,7 +129,7 @@ type Ops = Omit<Imgproc, never>;
 /** Call any imgproc op in the worker: await imgproc('cartoon', img, 12, 0.9, 2) */
 export function imgproc<K extends keyof Ops>(op: K, ...args: Parameters<Ops[K]>): Promise<ReturnType<Ops[K]>> {
   if (!worker) {
-    worker = new Worker(new URL('../workers/imgproc.worker.ts', import.meta.url), { type: 'module' });
+    worker = trackWorker(new Worker(new URL('../workers/imgproc.worker.ts', import.meta.url), { type: 'module' }), 'imgproc-worker', () => { pending.clear(); worker = null; });
     worker.onmessage = (e) => { const p = pending.get(e.data.id); if (!p) return; pending.delete(e.data.id); e.data.error ? p.reject(new Error(e.data.error)) : p.resolve(e.data.result); };
     worker.onerror = (e) => { for (const p of pending.values()) p.reject(new Error(e.message || 'Image worker failed')); pending.clear(); worker = null; };
   }
@@ -138,5 +139,5 @@ export function imgproc<K extends keyof Ops>(op: K, ...args: Parameters<Ops[K]>)
 }
 let direct: Promise<Imgproc> | null = null;
 /** Same-thread binding for tiny, latency-sensitive ops (e.g. live preview on small images). */
-export const imgprocDirect = () => (direct ||= instantiateWasi(wasmUrl).then((x) => bindImgproc(x.exports)));
+export const imgprocDirect = () => { if (!direct) { direct = instantiateWasi(wasmUrl).then((x) => bindImgproc(x.exports)); onLeave('imgproc-direct', () => (direct = null)); } return direct; };
 export const toImageData = (img: Img) => new ImageData(new Uint8ClampedArray(img.data), img.width, img.height);

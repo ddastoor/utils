@@ -1,9 +1,10 @@
 // Typed wrapper around public/wasm/crypto.wasm (our libsodium build + own hashes).
 import { instantiateWasi, memIO, type WasiInstance } from './wasi';
 import wasmUrl from './bin/crypto.wasm?url';
+import { onLeave } from '../lifecycle';
 
 let inst: Promise<Sodium> | null = null;
-export const sodium = () => (inst ||= load());
+export const sodium = () => { if (!inst) { inst = load(); onLeave('sodium', () => (inst = null)); } return inst; };
 
 export const HASH_ALGS = ['MD5', 'SHA-1', 'SHA-256', 'SHA-512', 'SHA3-256', 'SHA3-512', 'BLAKE2b-256', 'BLAKE2b-512', 'CRC-32'] as const;
 export type HashAlg = (typeof HASH_ALGS)[number];

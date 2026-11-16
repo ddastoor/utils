@@ -1,6 +1,7 @@
 // Wrapper for sheet.wasm (Rust, built by us: calamine + rust_xlsxwriter + csv). JSON crosses the boundary.
 import { instantiateWasi } from './wasi';
 import wasmUrl from './bin/sheet.wasm?url';
+import { onLeave } from '../lifecycle';
 
 export type Cell = string | number | boolean | null;
 export interface Sheet { name: string; rows: Cell[][]; error?: string; hidden?: boolean }
@@ -28,4 +29,4 @@ export function bindSheet(e: any) {
   };
 }
 let inst: Promise<ReturnType<typeof bindSheet>> | null = null;
-export const sheetEngine = () => (inst ||= instantiateWasi(wasmUrl).then((x) => bindSheet(x.exports)));
+export const sheetEngine = () => { if (!inst) { inst = instantiateWasi(wasmUrl).then((x) => bindSheet(x.exports)); onLeave('sheetEngine', () => (inst = null)); } return inst; };

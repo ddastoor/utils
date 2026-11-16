@@ -1,6 +1,7 @@
 // OCR engine: Tesseract 5 LSTM (C++ → WebAssembly, tesseract.js-core), all models served
 // from this site (public/vendor/tesseract). Languages (owner): English, French, Spanish, German. cacheMethod 'none': models are never stored in IndexedDB (stateless app).
 import type { Worker as TWorker } from 'tesseract.js';
+import { onLeave } from '../lifecycle';
 
 export type OcrLang = 'eng' | 'fra' | 'spa' | 'deu' | 'eng+fra+spa+deu';
 const at = (p: string) => new URL(p, document.baseURI).href;
@@ -20,6 +21,7 @@ export async function ocrWorker(langs: OcrLang): Promise<TWorker> {
     logger: (m: any) => progressCb?.(m.progress ?? 0, m.status || ''),
   });
   current = { langs, w };
+  onLeave('ocr-worker', () => { const c = current; current = null; c?.w.then((x) => x.terminate()).catch(() => {}); });
   return w;
 }
 

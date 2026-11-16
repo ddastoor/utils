@@ -1,12 +1,13 @@
 // Main-thread side of the neural style engine (src/workers/style.worker.ts). One worker per page, created on first use.
 import { imgprocDirect, type Img } from '../wasm/imgproc';
+import { trackWorker } from '../lifecycle';
 
 let worker: Worker | null = null, seq = 0, ready: Promise<string> | null = null;
 const pend = new Map<number, { res: (v: any) => void; rej: (e: Error) => void }>();
 
 function call(op: string, data: any = {}, transfer: Transferable[] = []): Promise<any> {
   if (!worker) {
-    worker = new Worker(new URL('../workers/style.worker.ts', import.meta.url), { type: 'module' });
+    worker = trackWorker(new Worker(new URL('../workers/style.worker.ts', import.meta.url), { type: 'module' }), 'style-worker', () => { worker = null; ready = null; pend.clear(); });
     worker.onmessage = (e) => { const m = e.data, p = pend.get(m.id); if (!p) return; pend.delete(m.id); m.error ? p.rej(new Error(m.error)) : p.res(m); };
     worker.onerror = (e) => { for (const p of pend.values()) p.rej(new Error(e.message || 'Style engine crashed')); pend.clear(); };
   }
@@ -43,4 +44,4 @@ export async function stylize(img: Img, vector: Float32Array, strength: number, 
   return { img: out, ms: r.ms };
 }
 
-export function disposeStyleEngine() { worker?.terminate(); worker = null; ready = null; for (const p of pend.values()) p.rej(new Error('closed')); pend.clear(); }
+export function disposeStyleEngine() { worker?.terminate(); worker = null; ready = null; pend.clear(); }

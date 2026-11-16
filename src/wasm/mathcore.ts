@@ -2,6 +2,7 @@
 // `bindMathcore(exports)` is environment-neutral so Node unit tests can use it too.
 import { instantiateWasi } from './wasi';
 import wasmUrl from './bin/mathcore.wasm?url';
+import { onLeave } from '../lifecycle';
 
 export type Complex = { re: number; im: number };
 export interface Stats { count: number; sum: number; mean: number; median: number; min: number; max: number; range: number; q1: number; q3: number; iqr: number; varP: number; varS: number; sdP: number; sdS: number; geomean: number; harmmean: number; skew: number; sorted: number[]; modes: number[] }
@@ -149,7 +150,7 @@ export function bindMathcore(e: any) {
 export type Mathcore = ReturnType<typeof bindMathcore>;
 
 let inst: Promise<Mathcore> | null = null;
-export const mathcore = () => (inst ||= instantiateWasi(wasmUrl).then((x) => bindMathcore(x.exports)));
+export const mathcore = () => { if (!inst) { inst = instantiateWasi(wasmUrl).then((x) => bindMathcore(x.exports)); onLeave('mathcore', () => (inst = null)); } return inst; };
 
 /** Display formatting (presentation only): up to 12 significant digits, no float noise. */
 export function fmtNum(x: number, sig = 12): string {

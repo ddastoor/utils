@@ -1,6 +1,7 @@
 import './styles.css';
 import { CATEGORIES, TOOLS, TOOL_BY_ID, type Tool, type CatId } from './registry';
 import { searchTools, initSearch } from './search';
+import { releaseAll } from './lifecycle';
 import { h, ic, clear, errMsg, toast, type Cleanup } from './ui';
 import { isMobile } from './platform';
 import { favs, isFav, toggleFav, onFavChange } from './favorites';
@@ -97,6 +98,7 @@ function teardown() {
   try { cleanup?.(); } catch (e) { console.error(e); }
   abort?.abort();
   cleanup = null; abort = null; currentTool = null;
+  releaseAll(); // workers, wasm instances, models and caches of the tool we are leaving (src/lifecycle.ts)
 }
 
 function showHome() {
@@ -210,7 +212,9 @@ onFavChange(() => {
 // ------------------------------------------------------------------ search
 let hits: Tool[] = [];
 let sel = 0;
-const searchReady = initSearch(); // textcore.wasm (search ranking in C) — tiny, loads at start-up
+// the search engine (textcore.wasm, ranking in C) loads the first time the search box is used, not at start-up
+let searchReady: Promise<void> | null = null;
+const ensureSearch = () => (searchReady ||= initSearch().catch((e) => { searchReady = null; throw e; }));
 function renderResults() {
   const q = searchInput.value;
   hits = searchTools(visible, q).slice(0, 12);
@@ -230,11 +234,11 @@ function pick(t: Tool) {
   searchInput.blur();
   location.hash = `#/${t.id}`;
 }
-searchInput.addEventListener('input', async () => { sel = 0; await searchReady; renderResults(); });
-searchInput.addEventListener('focus', () => { if (searchInput.value) renderResults(); });
+searchInput.addEventListener('input', async () => { sel = 0; await ensureSearch(); renderResults(); });
+searchInput.addEventListener('focus', () => { ensureSearch().then(() => { if (searchInput.value) renderResults(); }); });
 searchInput.addEventListener('blur', () => setTimeout(() => (results.hidden = true), 120));
 searchInput.addEventListener('keydown', async (e) => {
-  if (e.key === 'Enter') { e.preventDefault(); await searchReady; if (!hits.length) renderResults(); if (hits[sel]) pick(hits[sel]); }
+  if (e.key === 'Enter') { e.preventDefault(); await ensureSearch(); if (!hits.length) renderResults(); if (hits[sel]) pick(hits[sel]); }
   else if (e.key === 'ArrowDown') { e.preventDefault(); sel = Math.min(sel + 1, hits.length - 1); renderResults(); }
   else if (e.key === 'ArrowUp') { e.preventDefault(); sel = Math.max(sel - 1, 0); renderResults(); }
   else if (e.key === 'Escape') { searchInput.value = ''; results.hidden = true; searchInput.blur(); }

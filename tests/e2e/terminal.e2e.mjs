@@ -30,6 +30,8 @@ export default async ({ base, page: newPage, ok, download, devices }) => {
   // Tab completion and history
   await page.locator('.term-in').fill('ech');
   await page.locator('.term-in').press('Tab');
+  // completion is answered by the shell worker: wait for it
+  await page.waitForFunction(() => document.querySelector('.term-in').value === 'echo ', null, { timeout: 5000 }).catch(() => {});
   ok((await page.locator('.term-in').inputValue()) === 'echo ', 'Tab completes the command name');
   await page.locator('.term-in').fill('');
   await page.locator('.term-in').press('ArrowUp');

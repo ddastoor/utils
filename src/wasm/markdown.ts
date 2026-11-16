@@ -2,6 +2,7 @@
 // rendered (cmark's safe mode) and unsafe link schemes are dropped, so the HTML can be shown in the page.
 import { instantiateWasi } from './wasi';
 import wasmUrl from './bin/markdown.wasm?url';
+import { onLeave } from '../lifecycle';
 
 export interface MdOptions { smart?: boolean; hardBreaks?: boolean; footnotes?: boolean }
 export function bindMarkdown(e: any) {
@@ -19,4 +20,4 @@ export function bindMarkdown(e: any) {
   };
 }
 let inst: Promise<ReturnType<typeof bindMarkdown>> | null = null;
-export const markdown = () => (inst ||= instantiateWasi(wasmUrl).then((x) => bindMarkdown(x.exports)));
+export const markdown = () => { if (!inst) { inst = instantiateWasi(wasmUrl).then((x) => bindMarkdown(x.exports)); onLeave('markdown', () => (inst = null)); } return inst; };

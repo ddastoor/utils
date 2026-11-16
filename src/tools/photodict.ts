@@ -42,7 +42,6 @@ export function wordCard(c: WordCard, open = false): HTMLElement {
 }
 
 export const mount: Mount = (root, ctx) => {
-  loadFonts();
   let online = true, screen = false, last: Result | null = null, busy = false;
   const thumb = h('canvas', { class: 'pd-thumb', 'aria-label': 'Your photo' });
   const prog = progress();
@@ -64,7 +63,7 @@ export const mount: Mount = (root, ctx) => {
       if (L > 3000) work = await imgproc('resize', work, Math.round((work.width * 3000) / L), Math.round((work.height * 3000) / L));
       if (screen) work = await imgproc('blur', work, 1.1);
       work = await imgproc('docEnhance', work, 1);
-      ranker().catch(() => {}); // load the word list while OCR runs
+      ranker().catch(() => {}); loadFonts(); // word list + reading font load while OCR runs
       const r = await recognize(new ImageData(new Uint8ClampedArray(work.data), work.width, work.height), 'eng', (p, s) => prog.set(s.includes('recogn') ? p : null, s.includes('recogn') ? `Reading the page… ${Math.round(p * 100)} %` : 'Loading the text engine…'));
       if (!r.text.trim()) { prog.done(); status.textContent = 'No text found. Hold the phone straight over the page, in good light, and try again.'; return; }
       showText(r.text);

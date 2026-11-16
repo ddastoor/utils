@@ -1,5 +1,6 @@
 // Promise wrapper around the crypto worker.
 import type { HashAlg } from '../wasm/crypto';
+import { trackWorker } from '../lifecycle';
 
 let worker: Worker | null = null;
 let seq = 0;
@@ -7,7 +8,7 @@ const pending = new Map<number, { resolve: (v: any) => void; reject: (e: Error) 
 
 function w() {
   if (!worker) {
-    worker = new Worker(new URL('../workers/crypto.worker.ts', import.meta.url), { type: 'module' });
+    worker = trackWorker(new Worker(new URL('../workers/crypto.worker.ts', import.meta.url), { type: 'module' }), 'crypto-worker', () => { pending.clear(); worker = null; });
     worker.onmessage = (e) => {
       const m = e.data, p = pending.get(m.id);
       if (!p) return;

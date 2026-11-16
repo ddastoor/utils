@@ -1,7 +1,8 @@
 // Photo Dictionary engine: rank the words of a recognised page (textcore.wasm, own C), look each up in the bundled
 // English Wiktionary (public/data/dict/<xx>.json, built by scripts/build-dict.mjs) and, only for words the bundle
 // lacks, online (Wiktionary REST, then the Free Dictionary API — one word per request, nothing else is sent).
-import { textcore, type RareWord } from '../wasm/textcore';
+import { newTextcore, type RareWord } from '../wasm/textcore';
+import { onLeave } from '../lifecycle';
 
 export interface Sense { g: string; t?: string; x?: string }
 export interface Entry { p: string; i?: string; s?: Sense[]; l?: string; f?: string; w?: string }
@@ -32,10 +33,11 @@ const dictMeta = () => (meta ||= fetch(dataUrl('meta.json')).then((r) => (r.ok ?
   .then((m: any): Meta => ({ split: m.split || [], files: Array.isArray(m.files) ? new Set(m.files) : null }))
   .catch(() => { meta = null; return { split: [], files: null }; }));
 
-let freqReady: Promise<Awaited<ReturnType<typeof textcore>>> | null = null;
+let freqReady: Promise<Awaited<ReturnType<typeof newTextcore>>> | null = null;
 /** textcore with the frequency table loaded (≈ 2.6 MB text, fetched once per page). */
 export const ranker = () => (freqReady ||= (async () => {
-  const tc = await textcore();
+  onLeave('dictionary', () => { freqReady = null; shards.clear(); });
+  const tc = await newTextcore();
   const r = await fetch(dataUrl('freq.txt'));
   if (!r.ok) throw new Error('Could not load the word list.');
   tc.freqLoad(await r.text());

@@ -24,7 +24,7 @@ export function rowsToJson(rows: Cell[][], header: boolean): string {
 }
 
 export const mount: Mount = async (root) => {
-  const sh = await sheetEngine();
+  let sh!: Awaited<ReturnType<typeof sheetEngine>>; // loaded with the first file (1.4 MB)
   let book: Book | null = null, idx = 0, name = 'data', header = true, numbers = true, filter = '', raw: Uint8Array | null = null, delim = '';
   const info = h('div', { class: 'muted small', 'aria-live': 'polite' });
   const tabs = h('div', { class: 'row sheet-tabs' });
@@ -58,6 +58,7 @@ export const mount: Mount = async (root) => {
   const parseCsv = () => { book = sh.csv(raw!, delim); delimBox.hidden = false; info.textContent = ''; drawTabs(); render(); };
   const open = async (f: File) => {
     try {
+      sh = await sheetEngine();
       const bytes = new Uint8Array(await f.arrayBuffer()), ext = (f.name.split('.').pop() || '').toLowerCase();
       name = baseName(f.name); idx = 0; raw = null; delimBox.hidden = true;
       if (ext === 'json') book = jsonToBook(new TextDecoder().decode(bytes), name);

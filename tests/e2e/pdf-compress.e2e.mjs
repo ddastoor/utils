@@ -18,7 +18,8 @@ export default async ({ base, page: newPage, ok, info, download, devices }) => {
   ok(i1.pages === 1 && /Your Chapter/.test(i1.list[0].text), 'text layer kept');
   ok(images(f1).every((im) => im.w <= 1754 && /DCT/.test(im.filter)), 'images at most 150 dpi of the page, JPEG');
   const [a, b] = [await renderGrey(src, 0, 0.5), await renderGrey(f1, 0, 0.5)];
-  ok(Math.abs(a.mean(0.1, 0.25, 0.9, 0.55) - b.mean(0.1, 0.25, 0.9, 0.55)) < 6, 'figures look the same');
+  const ma = a.mean(0.1, 0.25, 0.9, 0.55), mb = b.mean(0.1, 0.25, 0.9, 0.55);
+  ok(Math.abs(ma - mb) < 6, `figures look the same (mean grey ${ma.toFixed(1)} vs ${mb.toFixed(1)}, ${a.w}×${a.h} vs ${b.w}×${b.h})`);
   ok(/−\d+ %/.test(await page.locator('.note').filter({ hasText: '→' }).textContent()), 'result shows the saving');
   await page.getByRole('radio', { name: 'Extreme' }).click();
   const s2 = statSync(await go()).size;

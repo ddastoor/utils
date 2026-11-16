@@ -3,6 +3,7 @@
 // as PDF pages, then fonts are subset. Used by GST Invoice, Rent Receipt and Resume Builder.
 import { zipSync, strToU8 } from 'fflate';
 import { mupdf, savePdf, stampPage, textWidth, pdfString } from './pdf';
+import { onLeave } from '../lifecycle';
 
 export const esc = (s: unknown) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
 export const PAGE: Record<string, [number, number]> = { a4: [595.28, 841.89], letter: [612, 792] };
@@ -11,7 +12,7 @@ const FONT_FILES = { r: 'NotoSans_400Regular', b: 'NotoSans_700Bold', i: 'NotoSa
 const fontCache = new Map<string, Promise<Uint8Array>>();
 const font = (k: keyof typeof FONT_FILES) => {
   let p = fontCache.get(k);
-  if (!p) { p = fetch(new URL(`vendor/fonts/${FONT_FILES[k]}.ttf`, document.baseURI).href).then((r) => { if (!r.ok) throw new Error('Could not load the document fonts.'); return r.arrayBuffer(); }).then((b) => new Uint8Array(b)); fontCache.set(k, p); p.catch(() => fontCache.delete(k)); }
+  if (!p) { onLeave('doc-fonts', () => fontCache.clear()); p = fetch(new URL(`vendor/fonts/${FONT_FILES[k]}.ttf`, document.baseURI).href).then((r) => { if (!r.ok) throw new Error('Could not load the document fonts.'); return r.arrayBuffer(); }).then((b) => new Uint8Array(b)); fontCache.set(k, p); p.catch(() => fontCache.delete(k)); }
   return p;
 };
 

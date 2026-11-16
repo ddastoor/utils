@@ -11,7 +11,7 @@ const ADJ: Array<[keyof Adjust | 'sharpen', string, number, number, number]> = [
 ];
 
 export const mount: Mount = async (root, ctx) => {
-  const ip = await imgprocDirect();
+  let ip!: Awaited<ReturnType<typeof imgprocDirect>>; // loaded with the first photo
   let orig: Img | null = null, name = 'image';
   let turns = 0, fh = false, fv = false, straighten = 0;
   const adj: Record<string, number> = {};
@@ -69,7 +69,8 @@ export const mount: Mount = async (root, ctx) => {
   };
   const outName = () => `${name}-edited.${EXT[fmt]}`;
 
-  const input$ = imageInput((img, file) => {
+  const input$ = imageInput(async (img, file) => {
+    ip = await imgprocDirect();
     orig = img; name = baseName(file.name); turns = 0; fh = fv = false; straighten = 0;
     for (const k of Object.keys(adj)) delete adj[k];
     sliders.forEach((s) => s.reset()); straightenSlider.value = 0;

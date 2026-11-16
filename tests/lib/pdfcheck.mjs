@@ -23,7 +23,9 @@ export async function renderGrey(path, page = 0, scale = 1, password) {
   const doc = m.Document.openDocument(readFileSync(path), 'application/pdf');
   if (password !== undefined) doc.authenticatePassword(password);
   const pix = doc.loadPage(page).toPixmap(m.Matrix.scale(scale, scale), m.ColorSpace.DeviceGray, false, true);
-  const w = pix.getWidth(), h = pix.getHeight(), d = pix.getPixels(), st = pix.getStride();
+  // copy: getPixels() is a view into the wasm heap, which a later render can grow (detaching the view)
+  const w = pix.getWidth(), h = pix.getHeight(), d = pix.getPixels().slice(), st = pix.getStride();
+  pix.destroy?.();
   const at = (x, y) => d[y * st + x];
   const dark = (x0, y0, x1, y1, thr = 160) => { let n = 0, k = 0; for (let y = Math.floor(y0 * h); y < Math.floor(y1 * h); y++) for (let x = Math.floor(x0 * w); x < Math.floor(x1 * w); x++) { n++; if (at(x, y) < thr) k++; } return n ? k / n : 0; };
   const mean = (x0, y0, x1, y1) => { let n = 0, s = 0; for (let y = Math.floor(y0 * h); y < Math.floor(y1 * h); y++) for (let x = Math.floor(x0 * w); x < Math.floor(x1 * w); x++) { n++; s += at(x, y); } return n ? s / n : 0; };

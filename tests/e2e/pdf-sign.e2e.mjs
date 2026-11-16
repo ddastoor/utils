@@ -34,6 +34,8 @@ export default async ({ base, page: newPage, ok, download, tmp, devices }) => {
   // drag it to the bottom right
   const cb2 = await stageBox(), sb = await page.locator('.pdfs-sig').boundingBox();
   await page.mouse.move(sb.x + 10, sb.y + 10); await page.mouse.down(); await page.mouse.move(cb2.x + cb2.width * 0.62 + 10, cb2.y + cb2.height * 0.8 + 10, { steps: 8 }); await page.mouse.up();
+  // the overlay must have followed the pointer before saving
+  await page.waitForFunction(([x, y]) => { const r = document.querySelector('.pdfs-sig').getBoundingClientRect(); return Math.abs(r.left - x) < 4 && Math.abs(r.top - y) < 4; }, [cb2.x + cb2.width * 0.62, cb2.y + cb2.height * 0.8], { timeout: 10000 }).catch(() => {});
   const g2 = await renderGrey(await save(), 0, 1);
   ok(g2.dark(0.6, 0.78, 0.98, 0.95, 200) > o.dark(0.6, 0.78, 0.98, 0.95, 200) + 0.01 && g2.dark(0.06, 0.06, 0.38, 0.2, 200) < o.dark(0.06, 0.06, 0.38, 0.2, 200) + 0.003, 'dragged signature lands bottom right');
   // typed signature + date
@@ -51,8 +53,10 @@ export default async ({ base, page: newPage, ok, download, tmp, devices }) => {
     return [...new Uint8Array(await (await c.convertToBlob({ type: 'image/jpeg', quality: 0.9 })).arrayBuffer())];
   }));
   await page.getByRole('radio', { name: 'Photo' }).click();
+  const srcBefore = await page.locator('.pdfs-sig img').getAttribute('src');
   await page.locator('input[type=file]').nth(1).setInputFiles({ name: 'sig.jpg', mimeType: 'image/jpeg', buffer: photo });
-  await page.waitForTimeout(800);
+  // wait until the photo signature replaced the drawn one (paper removal runs in the imgproc worker)
+  await page.waitForFunction((s) => document.querySelector('.pdfs-sig img')?.getAttribute('src') !== s, srcBefore, { timeout: 30000 });
   ok(sigImages(await save()).some((x) => x.smask), 'signature from a photo: paper removed (transparent)');
   // every page
   await page.locator('input[type=file]').first().setInputFiles(P('two-different-pages.pdf'));

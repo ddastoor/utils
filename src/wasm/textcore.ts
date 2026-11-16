@@ -1,6 +1,7 @@
 // Wrapper for textcore.wasm (own C): Myers diff over token ids.
 import { instantiateWasi } from './wasi';
 import wasmUrl from './bin/textcore.wasm?url';
+import { onLeave } from '../lifecycle';
 
 export type DiffOp = { kind: 'eq' | 'del' | 'ins'; a: number; b: number };
 /** w: word as written (lower case), b: base form when w is unknown, z: Zipf×10 (−1 unknown), n: count, c: 1 = looks like a name */
@@ -76,4 +77,6 @@ export function bindTextcore(e: any) {
   };
 }
 let inst: Promise<ReturnType<typeof bindTextcore>> | null = null;
-export const textcore = () => (inst ||= instantiateWasi(wasmUrl).then((x) => bindTextcore(x.exports)));
+/** A separate instance (the search box keeps its own, so tools can release theirs). */
+export const newTextcore = () => instantiateWasi(wasmUrl).then((x) => bindTextcore(x.exports));
+export const textcore = () => { if (!inst) { inst = instantiateWasi(wasmUrl).then((x) => bindTextcore(x.exports)); onLeave('textcore', () => (inst = null)); } return inst; };

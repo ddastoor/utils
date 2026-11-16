@@ -1,12 +1,12 @@
 // Tool search. Ranking runs in textcore.wasm (own C: wasm/textcore/search.c); this file only normalises text with
 // the browser's Unicode tables (lower-case, strip accents) and maps results back to tools.
 import type { Tool } from './registry';
-import { textcore, type bindTextcore } from './wasm/textcore';
+import type { bindTextcore } from './wasm/textcore';
 
 type Engine = ReturnType<typeof bindTextcore>;
 let engine: Engine | null = null;
-/** Load the wasm engine (called at app start; search returns [] until it is ready, which takes a few ms). */
-export const initSearch = async () => { engine ||= await textcore(); };
+/** Load the wasm engine on first use of the search box (its own instance: tools release theirs when left). */
+export const initSearch = async () => { engine ||= await (await import('./wasm/textcore')).newTextcore(); };
 /** For Node unit tests: supply an engine bound with bindTextcore(). */
 export const setSearchEngine = (e: Engine) => { engine = e; };
 
