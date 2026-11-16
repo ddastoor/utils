@@ -39,8 +39,8 @@ export const stopwatch: Mount = (root) => {
   const elapsed = () => acc + (running ? performance.now() - start : 0);
   const tick = () => { disp.textContent = clock(elapsed(), true); if (running) raf = requestAnimationFrame(tick); };
   const startStop = button('Start', () => {
-    if (running) { acc += performance.now() - start; running = false; wl.off(); }
-    else { start = performance.now(); running = true; wl.on(); tick(); }
+    if (running) { acc += performance.now() - start; running = false; wl.off(); cancelAnimationFrame(raf); tick(); } // show the exact stopped time, not the last frame's
+    else { start = performance.now(); running = true; wl.on(); cancelAnimationFrame(raf); tick(); } // one frame loop only, even after a quick Reset → Start
     startStop.setLabel(running ? 'Stop' : 'Start');
   }, { variant: 'primary', icon: 'Play' });
   const lap = button('Lap', () => {
@@ -61,17 +61,19 @@ export const countdown: Mount = (root) => {
   const disp = display('big');
   const wl = wakeLock();
   const hI = input({ type: 'number', value: 0, min: 0 }), mI = input({ type: 'number', value: 5, min: 0 }), sI = input({ type: 'number', value: 0, min: 0 });
-  const total = () => ((+hI.value || 0) * 3600 + (+mI.value || 0) * 60 + (+sI.value || 0)) * 1000;
+  const baseTitle = document.title;
+  const num = (el: HTMLInputElement) => Math.max(0, +el.value || 0); // negative or empty fields count as 0
+  const total = () => Math.round((num(hI) * 3600 + num(mI) * 60 + num(sI)) * 1000);
   const tick = () => {
     const left = running ? endAt - performance.now() : remaining;
     disp.textContent = clock(Math.ceil(left / 1000) * 1000);
-    document.title = running ? `${clock(Math.ceil(left / 1000) * 1000)} · Countdown` : document.title;
-    if (running && left <= 0) { running = false; remaining = 0; wl.off(); beep(4); disp.classList.add('done'); go.setLabel('Start'); return; }
+    document.title = running ? `${clock(Math.ceil(left / 1000) * 1000)} · Countdown` : disp.classList.contains('done') ? 'Time’s up · Countdown' : baseTitle;
+    if (running && left <= 0) { running = false; remaining = 0; wl.off(); beep(4); disp.classList.add('done'); go.setLabel('Start'); document.title = 'Time’s up · Countdown'; return; }
     if (running) raf = requestAnimationFrame(tick);
   };
   const go = button('Start', () => {
-    if (running) { remaining = endAt - performance.now(); running = false; wl.off(); }
-    else { if (remaining <= 0) remaining = total(); endAt = performance.now() + remaining; running = true; disp.classList.remove('done'); wl.on(); tick(); }
+    if (running) { remaining = endAt - performance.now(); running = false; wl.off(); tick(); }
+    else { if (remaining <= 0) remaining = total(); if (remaining <= 0) return; endAt = performance.now() + remaining; running = true; disp.classList.remove('done'); wl.on(); cancelAnimationFrame(raf); tick(); }
     go.setLabel(running ? 'Pause' : 'Start');
   }, { variant: 'primary', icon: 'Play' });
   const reset = () => { running = false; remaining = total(); wl.off(); disp.classList.remove('done'); go.setLabel('Start'); tick(); };
@@ -80,7 +82,7 @@ export const countdown: Mount = (root) => {
   root.append(card(null, disp, h('div', { class: 'actions inline center-row' }, go, button('Reset', reset, { icon: 'RotateCcw' }))),
     card('Set time', h('div', { class: 'form-grid' }, field('Hours', hI), field('Minutes', mI), field('Seconds', sI)), presets), note('Keep this tab open; the screen stays awake while the timer runs (where supported).'));
   tick();
-  return () => { cancelAnimationFrame(raf); wl.off(); };
+  return () => { cancelAnimationFrame(raf); wl.off(); if (document.title.endsWith('· Countdown')) document.title = baseTitle; };
 };
 
 // ------------------------------------------------------------------ Pomodoro & Interval share a phase engine
@@ -104,7 +106,7 @@ function phaseTimer(root: HTMLElement, phases: () => Array<{ name: string; ms: n
   };
   const go = button('Start', () => {
     if (running) { left = endAt - performance.now(); running = false; wl.off(); }
-    else { if (left <= 0) left = cur().ms; endAt = performance.now() + left; running = true; wl.on(); show(); }
+    else { if (left <= 0) left = cur().ms; endAt = performance.now() + left; running = true; wl.on(); cancelAnimationFrame(raf); show(); }
     go.setLabel(running ? 'Pause' : 'Start');
   }, { variant: 'primary', icon: 'Play' });
   const reset = () => { running = false; i = 0; left = cur().ms; wl.off(); go.setLabel('Start'); show(); };
@@ -128,14 +130,15 @@ export const pomodoro: Mount = (root) => {
 
 export const interval: Mount = (root) => {
   const o = { work: 40, rest: 20, rounds: 8, prep: 10 };
-  const phases = () => [{ name: 'Get ready', ms: o.prep * 1000, cls: 'prep' }, ...Array.from({ length: o.rounds }, (_, k) => [{ name: `Work · round ${k + 1}`, ms: o.work * 1000, cls: 'work' }, ...(k < o.rounds - 1 ? [{ name: 'Rest', ms: o.rest * 1000, cls: 'rest' }] : [])]).flat()];
+  const phases = () => [{ name: 'Get ready', ms: o.prep * 1000, cls: 'prep' }, ...Array.from({ length: o.rounds }, (_, k) => [{ name: `Work · round ${k + 1}`, ms: o.work * 1000, cls: 'work' }, ...(k < o.rounds - 1 && o.rest > 0 ? [{ name: 'Rest', ms: o.rest * 1000, cls: 'rest' }] : [])]).flat()];
   let t: ReturnType<typeof phaseTimer>;
-  const preset = (w: number, r: number, n: number) => { o.work = w; o.rest = r; o.rounds = n; t.reset(); };
+  const preset = (w: number, r: number, n: number) => { o.work = w; o.rest = r; o.rounds = n; sw.value = w; sr.value = r; sn.value = n; t.reset(); };
+  const sw = slider({ label: 'Work', min: 5, max: 300, value: o.work, unit: ' s', onChange: (v) => { o.work = v; t.reset(); } });
+  const sr = slider({ label: 'Rest', min: 0, max: 180, value: o.rest, unit: ' s', onChange: (v) => { o.rest = v; t.reset(); } });
+  const sn = slider({ label: 'Rounds', min: 1, max: 30, value: o.rounds, onChange: (v) => { o.rounds = v; t.reset(); } });
   const settings = card('Settings', h('div', { class: 'stack' },
     h('div', { class: 'chips' }, h('button', { class: 'chip chip-btn', type: 'button', onclick: () => preset(20, 10, 8) }, 'Tabata 20/10 ×8'), h('button', { class: 'chip chip-btn', type: 'button', onclick: () => preset(40, 20, 8) }, 'HIIT 40/20 ×8'), h('button', { class: 'chip chip-btn', type: 'button', onclick: () => preset(60, 30, 6) }, '60/30 ×6')),
-    slider({ label: 'Work', min: 5, max: 300, value: o.work, unit: ' s', onChange: (v) => { o.work = v; t.reset(); } }),
-    slider({ label: 'Rest', min: 0, max: 180, value: o.rest, unit: ' s', onChange: (v) => { o.rest = v; t.reset(); } }),
-    slider({ label: 'Rounds', min: 1, max: 30, value: o.rounds, onChange: (v) => { o.rounds = v; t.reset(); } })));
+    sw, sr, sn));
   t = phaseTimer(root, phases, [settings]);
   return t.cleanup;
 };
@@ -167,7 +170,7 @@ export const coin: Mount = async (root) => {
     face.textContent = isH ? 'Heads' : 'Tails'; face.className = `coin flip ${isH ? 'heads' : 'tails'}`;
     stats.textContent = `Heads ${heads} · Tails ${tails}`;
   };
-  root.append(card(null, face, stats), h('div', { class: 'actions' }, button('Flip', flip, { variant: 'primary', icon: 'Coins' }), button('Reset', () => { heads = tails = 0; stats.textContent = ''; face.textContent = '?'; }, { icon: 'RotateCcw' })));
+  root.append(card(null, face, stats), h('div', { class: 'actions' }, button('Flip', flip, { variant: 'primary', icon: 'Coins' }), button('Reset', () => { heads = tails = 0; stats.textContent = ''; face.textContent = '?'; face.className = 'coin'; }, { icon: 'RotateCcw' })));
 };
 
 export const rng: Mount = async (root) => {
@@ -214,7 +217,7 @@ export const teams: Mount = async (root) => {
   const out = h('div', { class: 'teams' });
   const split = () => {
     const names = na.shuffle(items(ta.value));
-    if (!names.length) return;
+    if (!names.length) { clear(out).append(note('Add some names first.', 'warn')); return; }
     const nTeams = mode === 'count' ? Math.max(1, Math.min(names.length, +k.value || 2)) : Math.max(1, Math.ceil(names.length / Math.max(1, +k.value || 2)));
     const teamsArr: string[][] = Array.from({ length: nTeams }, () => []);
     names.forEach((x, i) => teamsArr[i % nTeams].push(x));

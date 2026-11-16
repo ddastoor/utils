@@ -118,8 +118,17 @@ Dictionary), Codes & Files (5), Everyday (9), Device (11), Linux Terminal + bc c
    Fixed: vCard values escape ; , \ and new lines; AES zip without a password says "Wrong or missing password"; **button
    handlers that throw synchronously now show the message** (they escaped as uncaught page errors before — e.g. barcode
    "Nothing to save yet").
-   **Remaining:** stopwatch, countdown, pomodoro, interval, dice, coin, rng, picker, teams · webcam, mic, speaker, keyboard, pixels, touch,
-   screen, level, compass, soundmeter, ruler.
+   Everyday (9/9): stopwatch (19), countdown (30), pomodoro (26), interval (18) — all under Playwright's fake clock
+   (`page.clock` install/pauseAt/runFor/fastForward), phases walked one by one with beeps counted; dice (21), coin (15),
+   rng (27), picker (16), teams (15) — χ² uniformity (`tests/e2e/_stats.mjs`, p = 1e-4 limit), ranges, no-repeat rules.
+   Shared helpers: `_phone.mjs` (390×844 layout + ≥ 44 px buttons), `_mobileonly.mjs`, `_phases.mjs`.
+   Fixed: Stopwatch's Stop showed the last animation frame's time (≤ 16 ms stale, 3.734 s → "03.72"; laps were right);
+   Reset → Start (or Pause → Start) before the next frame left **two frame loops** running in Stopwatch/Countdown/
+   Pomodoro/Interval — the orphan kept beeping after leaving the tab; Countdown with 0 s alarmed at once on Start,
+   negative fields were subtracted, and the tab title stayed "00:00 · Countdown" after pausing/leaving; Interval presets
+   did not move the sliders, and Rest 0 s still counted (and beeped through) empty rest phases; Coin's Reset kept the
+   heads/tails style; Team Splitter left the old teams on screen for an empty list.
+   **Remaining:** webcam, mic, speaker, keyboard, pixels, touch, screen, level, compass, soundmeter, ruler.
 2. **Software (PC only, 47 tabs left)**, each with its own suite from the start, wasm first: sqlite (official wasm),
    jq (own build of jq 1.8.2 exists), yaml (own libyaml + toml++), graphviz (own build), python (MicroPython), and the
    rest listed in CLAUDE.md §2.
