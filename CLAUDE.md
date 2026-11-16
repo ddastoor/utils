@@ -123,7 +123,7 @@ Test, plus `photodict` Photo Dictionary (owner said mobile only — phone camera
 | `caption` | Text on Image | both | canvas captions / meme text |
 | `collage` | Collage Maker | both | canvas photo grid |
 | `exif` | EXIF / Photo Info | both | own EXIF parser; strip metadata |
-| `scanner` | Doc Scanner | both | `imgproc` page detection, warp, enhance + pdf-lib |
+| `scanner` | Doc Scanner | both | `imgproc` page detection (convexity/area check → falls back to whole photo), draggable corners, homography warp, enhance; PDF via MuPDF (`src/lib/pdf.ts`, JPEG pages embedded as-is) or JPEGs |
 | `ocr` | OCR | both | Tesseract (C++ → wasm), English + Hindi |
 
 **Documents** (engines: pdf-lib + PDF.js; QPDF 12 wasm for unlock/protect)

@@ -87,4 +87,8 @@ export default async (t, { load, wasm }) => {
   const keep = ip.nms([[0, 0, 10, 10, 0.9], [1, 1, 10, 10, 0.8], [50, 50, 10, 10, 0.7], [2, 2, 4, 4, 0.95], [100, 0, 5, 5, 0.1]], 0.3, 0.6);
   t.eq(keep, [3, 2, 4], 'NMS: highest first; overlapping and contained boxes dropped; distant ones kept');
   t.eq(ip.nms([]), [], 'NMS of nothing');
+  // page detection falls back to the whole image when the outline is degenerate (text scan without paper edges)
+  const scanLike = img(200, 120, (x, y) => ((y % 12 < 3 && x > 20 && x < 180 && y > 10) || (x < 40 && y > 100) ? [20, 20, 20, 255] : [235, 235, 235, 255]));
+  const dq = ip.detectQuad(scanLike);
+  t.ok(dq.confidence === 0 || Math.abs(dq.corners[4] - dq.corners[0]) > 100, `degenerate page outline rejected (conf ${dq.confidence})`);
 };

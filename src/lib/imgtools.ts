@@ -107,3 +107,37 @@ export async function imageInfoOf(file: Blob): Promise<{ width: number; height: 
   try { const b = await createImageBitmap(file, { imageOrientation: 'from-image' } as any); const r = { width: b.width, height: b.height }; b.close(); return r; }
   catch { try { const i = await loadImg(file); return { width: i.width, height: i.height }; } catch { return null; } }
 }
+
+/** Four draggable corner handles (TL, TR, BR, BL; normalised 0..1) over a canvas, with an outline. */
+export function quadEditor(canvas: HTMLCanvasElement, onChange?: (q: number[]) => void) {
+  let q = [0, 0, 1, 0, 1, 1, 0, 1];
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('class', 'quad-svg'); svg.setAttribute('viewBox', '0 0 1000 1000'); svg.setAttribute('preserveAspectRatio', 'none');
+  const poly = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+  poly.setAttribute('class', 'quad-poly'); svg.append(poly);
+  const names = ['Top-left', 'Top-right', 'Bottom-right', 'Bottom-left'];
+  const handles = names.map((n, i) => h('span', { class: 'quad-h', role: 'slider', 'aria-label': `${n} corner`, tabindex: '0', 'data-i': String(i) }));
+  const wrap = h('div', { class: 'crop-wrap quad-wrap' }, canvas, svg, ...handles);
+  const apply = () => {
+    poly.setAttribute('points', [0, 1, 2, 3].map((i) => `${q[i * 2] * 1000},${q[i * 2 + 1] * 1000}`).join(' '));
+    handles.forEach((hd, i) => Object.assign(hd.style, { left: `${q[i * 2] * 100}%`, top: `${q[i * 2 + 1] * 100}%` }));
+  };
+  let drag = -1;
+  for (const hd of handles) {
+    hd.addEventListener('pointerdown', (e) => { drag = +hd.dataset.i!; hd.setPointerCapture(e.pointerId); e.preventDefault(); });
+    hd.addEventListener('pointermove', (e) => {
+      if (drag < 0) return;
+      const r = canvas.getBoundingClientRect();
+      q[drag * 2] = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)); q[drag * 2 + 1] = Math.min(1, Math.max(0, (e.clientY - r.top) / r.height));
+      apply(); onChange?.(q.slice());
+    });
+    hd.addEventListener('pointerup', () => { drag = -1; });
+    hd.addEventListener('keydown', (e) => {
+      const i = +hd.dataset.i!, d = e.shiftKey ? 0.02 : 0.005, k = { ArrowLeft: [-d, 0], ArrowRight: [d, 0], ArrowUp: [0, -d], ArrowDown: [0, d] }[e.key];
+      if (!k) return;
+      e.preventDefault(); q[i * 2] = Math.min(1, Math.max(0, q[i * 2] + k[0])); q[i * 2 + 1] = Math.min(1, Math.max(0, q[i * 2 + 1] + k[1])); apply(); onChange?.(q.slice());
+    });
+  }
+  apply();
+  return { el: wrap, get quad() { return q.slice(); }, set quad(v: number[]) { q = v.slice(); apply(); } };
+}

@@ -553,6 +553,18 @@ API int p_detect_quad(const uint8_t *rgba, int w, int h, float *out) {
         for (int k = 0; k < 4; k++) { out[k * 2] = (idx[k] % sw + 0.5f) / s; out[k * 2 + 1] = (idx[k] / sw + 0.5f) / s; }
         conf = (int)(100.0f * bestSize / (sw * sh)); if (bestBorder > (sw + sh) / 2) conf /= 3; if (conf > 100) conf = 100; if (conf < 1) conf = 1;
     }
+    if (conf) {
+        /* sanity: the outline must be convex and cover a real part of the photo, else fall back to the whole image */
+        float area = 0; int sign = 0, convex = 1;
+        for (int k = 0; k < 4; k++) {
+            float x0 = out[k * 2], y0 = out[k * 2 + 1], x1 = out[((k + 1) % 4) * 2], y1 = out[((k + 1) % 4) * 2 + 1], x2 = out[((k + 2) % 4) * 2], y2 = out[((k + 2) % 4) * 2 + 1];
+            area += x0 * y1 - x1 * y0;
+            float cr = (x1 - x0) * (y2 - y1) - (y1 - y0) * (x2 - x1);
+            int sg = cr > 0 ? 1 : cr < 0 ? -1 : 0;
+            if (sg) { if (sign && sg != sign) convex = 0; sign = sg; }
+        }
+        if (!convex || fabsf(area) / 2 < 0.2f * w * h) conf = 0;
+    }
     if (!conf) { out[0] = 0; out[1] = 0; out[2] = w; out[3] = 0; out[4] = w; out[5] = h; out[6] = 0; out[7] = h; }
     free(small); free(g); free(lab); free(stack);
     return conf;
