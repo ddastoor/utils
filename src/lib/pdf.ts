@@ -4,7 +4,7 @@ let mu: Promise<MuPDF> | null = null;
 export const mupdf = () => (mu ||= import('mupdf'));
 
 export const PAGE_SIZES: Record<string, [number, number] | null> = { a4: [595.28, 841.89], letter: [612, 792], legal: [612, 1008], fit: null };
-export interface ImagePage { bytes: Uint8Array; width: number; height: number } // JPEG/PNG bytes + pixel size
+export interface ImagePage { bytes: Uint8Array; width: number; height: number; pt?: [number, number] } // JPEG/PNG bytes + pixel size (+ exact page size in points for 'fit')
 
 /** Build a PDF with one image per page. JPEG/PNG data is embedded as-is (no re-compression). size 'fit' = page is
  *  exactly the image at `dpi`; otherwise the image is centred inside the margins (points, 72 per inch). */
@@ -15,7 +15,7 @@ export async function imagesToPdf(pages: ImagePage[], o: { size?: string; margin
     const ref = doc.addImage(new m.Image(p.bytes));
     const res = doc.addObject({ XObject: { [`I${i}`]: ref } });
     let W: number, H: number, dw: number, dh: number, x: number, y: number;
-    if (!size) { W = dw = (p.width * 72) / dpi; H = dh = (p.height * 72) / dpi; x = y = 0; }
+    if (!size) { W = dw = p.pt ? p.pt[0] : (p.width * 72) / dpi; H = dh = p.pt ? p.pt[1] : (p.height * 72) / dpi; x = y = 0; }
     else {
       [W, H] = size;
       if (o.landscapeAuto !== false && p.width > p.height) [W, H] = [H, W];

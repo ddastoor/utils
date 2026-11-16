@@ -23,6 +23,11 @@ export function bindImgproc(e: any) {
   return {
     adjust: (img: Img, a: Adjust) => inplace(img, (p) => e.p_adjust(p, n(img), a.bright ?? 0, a.contrast ?? 0, a.exposure ?? 0, a.gamma ?? 1, a.sat ?? 0, a.vib ?? 0, a.hue ?? 0, a.temp ?? 0, a.tint ?? 0, a.highlights ?? 0, a.shadows ?? 0)),
     grayscale: (img: Img) => inplace(img, (p) => e.p_grayscale(p, n(img))),
+    /** Grey / grey+alpha / RGB / RGBA samples (e.g. a MuPDF pixmap) → RGBA image. */
+    expand: (samples: Uint8Array | Uint8ClampedArray, w: number, h: number, comps: number): Img => {
+      const s = put(samples), d = e.p_malloc(w * h * 4);
+      try { e.p_expand(s, w * h, comps, d); return { data: take(d, w * h * 4), width: w, height: h }; } finally { e.p_free(s); e.p_free(d); }
+    },
     invert: (img: Img) => inplace(img, (p) => e.p_invert(p, n(img))),
     resize: (img: Img, w: number, h: number) => into(img, Math.max(1, Math.round(w)), Math.max(1, Math.round(h)), (s, d) => e.p_resize(s, img.width, img.height, d, Math.max(1, Math.round(w)), Math.max(1, Math.round(h)))),
     /** Lossless EXIF-style orientation transform (1–8): 2 flip H, 3 180°, 4 flip V, 5 transpose, 6 90° CW, 7 transverse, 8 90° CCW. */

@@ -141,7 +141,11 @@ byte-for-byte, other formats or EXIF-rotated JPEGs re-encoded), `pdf2img` (7), `
 non-Latin text as a PNG image, opacity via ExtGState, tiled), `pdf-unlock` (12: AES-256/AES-128/RC4 inputs → no password;
 owner-only restrictions removed too), `pdf-protect` (13: AES-256 V5 R6, permission bits print/copy/edit, permissions
 password (random if empty), re-protecting replaces the old password; passwords cannot contain commas — MuPDF's option
-syntax).
+syntax), `pdf-compress` (14: every image XObject except masks is decoded by MuPDF, expanded to RGBA (`p_expand`) and
+resized (Lanczos) in imgproc.wasm to the level's dpi of the largest page, re-encoded with MozJPEG (grey stays grey) and
+kept only if ≥ 8 % smaller; fonts subset; `garbage=deduplicate`. Levels Light 220/84 · Recommended 150/72 · Strong
+110/60 · Extreme 80/48 (dpi / quality); Target size tries them in order; Scanned pages = one JPEG per page at the exact
+page size (text layer lost, warned). Nothing is downloaded when the file cannot get smaller).
 | id | Tab | Platform |
 |---|---|---|
 | `pdf-merge` | Merge PDF | both |

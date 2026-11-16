@@ -694,3 +694,15 @@ API void p_doc_enhance(uint8_t *px, int w, int h, int mode) {
     }
     free(small); free(bg); free(dil);
 }
+
+/* ======================================================================== channel expansion */
+/* Grey (1), grey+alpha (2) or RGB (3) samples → RGBA (used to feed PDF images to the resizer / encoders). */
+API void p_expand(const uint8_t *src, int n, int comps, uint8_t *dst) {
+    for (int i = 0; i < n; i++) {
+        const uint8_t *s = src + (size_t)i * comps; uint8_t *d = dst + (size_t)i * 4;
+        if (comps == 1) { d[0] = d[1] = d[2] = s[0]; d[3] = 255; }
+        else if (comps == 2) { d[0] = d[1] = d[2] = s[0]; d[3] = s[1]; }
+        else if (comps == 3) { d[0] = s[0]; d[1] = s[1]; d[2] = s[2]; d[3] = 255; }
+        else { d[0] = s[0]; d[1] = s[1]; d[2] = s[2]; d[3] = s[3]; }
+    }
+}

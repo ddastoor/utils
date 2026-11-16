@@ -103,4 +103,9 @@ export default async (t, { load, wasm }) => {
     const bgc = ip.compositeImg(img(4, 1, () => [200, 0, 0, 255]), new Uint8Array([255, 0, 128, 0]), img(4, 1, () => [0, 0, 200, 255]));
     t.eq([px(bgc, 0, 0).slice(0, 3), px(bgc, 1, 0).slice(0, 3), px(bgc, 2, 0)[0]], [[200, 0, 0], [0, 0, 200], 100], 'compositeImg blends by alpha');
   }
+  // expand: grey / grey+alpha / RGB → RGBA
+  const ex1 = ip.expand(new Uint8Array([10, 200]), 2, 1, 1), ex2 = ip.expand(new Uint8Array([7, 99]), 1, 1, 2), ex3 = ip.expand(new Uint8Array([1, 2, 3, 4, 5, 6]), 2, 1, 3);
+  t.eq(Array.from(ex1.data), [10, 10, 10, 255, 200, 200, 200, 255], 'expand grey → RGBA');
+  t.eq(Array.from(ex2.data), [7, 7, 7, 99], 'expand grey+alpha → RGBA');
+  t.eq(Array.from(ex3.data), [1, 2, 3, 255, 4, 5, 6, 255], 'expand RGB → RGBA');
 };
