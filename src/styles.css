@@ -595,3 +595,23 @@ details summary { cursor: pointer; font-weight: 600; color: var(--accent); paddi
 .scan-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 @media (max-width: 700px) { .scan-grid { grid-template-columns: 1fr; } }
 .scan-out { background: #fff; }
+/* ------------------------------------------------------------------ Linux Terminal */
+.term-layout { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 14px; align-items: start; }
+.term { background: #15171c; color: #dcdfe4; border-radius: 12px; padding: 12px 14px; height: min(68vh, 640px); overflow: auto; font: 13.5px/1.45 ui-monospace, "Cascadia Mono", "DejaVu Sans Mono", Menlo, Consolas, monospace; cursor: text; border: 2px solid transparent; }
+.term.over { border-color: #61afef; }
+.term-out { margin: 0; white-space: pre-wrap; word-break: break-word; font: inherit; color: inherit; background: none; }
+.term-line { display: flex; align-items: baseline; }
+.term-line.busy { opacity: .45; }
+.term-prompt, .term-prompt-echo { color: #98c379; white-space: pre; }
+.term-in { flex: 1; min-width: 0; background: transparent; border: 0; outline: 0; color: inherit; font: inherit; padding: 0; caret-color: #e5c07b; }
+.term-err { color: #ff8f8f; }
+.term-note { color: #7f848e; }
+.term-status { min-height: 1.4em; margin-top: 4px; }
+.term-side { display: flex; flex-direction: column; gap: 8px; max-height: min(72vh, 680px); overflow: auto; }
+.term-path { word-break: break-all; color: var(--muted); }
+.term-files { display: flex; flex-direction: column; gap: 2px; }
+.term-file-row { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 6px; }
+.term-file { text-align: left; background: none; border: 0; padding: 4px 6px; border-radius: 6px; cursor: pointer; color: var(--text); font: 13px/1.3 ui-monospace, Menlo, Consolas, monospace; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.term-file:hover { background: var(--hover, rgb(0 0 0 / 6%)); }
+.term-file.dir { font-weight: 600; }
+@media (max-width: 900px) { .term-layout { grid-template-columns: 1fr; } }

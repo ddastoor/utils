@@ -70,6 +70,7 @@ export default async ({ base, page: newPage, ok, info, download, devices }) => {
 
   const phone = await newPage({ ...devices['iPhone 13'] });
   await phone.goto(base + '#/scanner');
+  await phone.waitForSelector('input[type=file]', { state: 'attached', timeout: 20000 });
   ok(await phone.locator('input[type=file][capture=environment]').count() === 1, 'phone: opens the back camera');
   ok(await phone.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'phone: no horizontal scroll');
 };

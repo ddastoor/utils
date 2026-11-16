@@ -116,7 +116,8 @@ export default async (t, { load, root }) => {
   C('realpath', 'realpath dd/../c0', '/home/user/w/c0\n');
   C(['link', 'stat'], 'link c0 hl && cat hl && stat -c %h c0', 'copy2\n');
   C('unlink', 'unlink hl && [ ! -e hl ] && echo gone', 'gone\n');
-  C('stat', "printf 12345 > st && stat -c '%s %F' st", '5 regular file\n');
+  C('stat', "printf 12345 > st && stat -c '%s %F %A %U' st", '5 regular file -rw-r--r-- user\n');
+  C('ls', 'mkdir -p lsd && ls -ld lsd st', (o) => /^drwxr-xr-x\s+\d+ user\s+user .* lsd$/m.test(o) && /^-rw-r--r--\s+\d+ user\s+user\s+5 .* st$/m.test(o), 'ls -l shows Linux-style permissions and owners');
   C('truncate', 'truncate -s 3 st && stat -c %s st', '3\n');
   C('du', 'mkdir du && printf 1234567890 > du/f && du -s du', (o) => /^\d+\s+du\n$/.test(o));
   C('find', "mkdir -p fx/a && printf 1 > fx/a/x.txt && printf 2 > fx/y.txt && find fx -name '*.txt' | sort", 'fx/a/x.txt\nfx/y.txt\n');

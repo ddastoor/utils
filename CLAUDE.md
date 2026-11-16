@@ -227,12 +227,24 @@ plus a "names & terms" hint box fed to Whisper's initial prompt.
   host values) and include it; **every included applet must have its own passing test case**. Be very thorough with
   testing for this app and for all apps. Leave out only what cannot work in a browser tab (networking, mount,
   process lists, full-screen tty apps).
-- **Linux Terminal** (`terminal`, Software, **PC only — owner confirmed explicitly**): BusyBox (C, GPL-2.0) compiled by us to wasm32-wasi; an
-  in-memory WASI filesystem shared by every command; our own shell layer (pipes via buffers, `> >> <`, `&& || ;`,
-  variables, `cd pwd export history`, globbing) runs one applet per WASI instance (wasm cannot fork, so BusyBox
-  `ash` itself is not used). Upload button → files into the FS; file browser with download. Applets limited to
-  those that need only filesystem/stdio (plus shimmed clock/random); no process, network, mount, tty/full-screen
-  apps.
+- **Linux Terminal** (`terminal`, Software, **PC only — owner confirmed explicitly**) — **BUILT** (see below).
+  BusyBox 1.38.0 (C, GPL-2.0) compiled by us to wasm32-wasi (`wasm/busybox/build.sh` → `src/wasm/bin/busybox.wasm`,
+  ~525 KB, **130 applets**); runs in a Web Worker (`src/workers/terminal.worker.ts`). Runtime (`src/lib/terminal/`):
+  `vfs.ts` in-memory FS (files, dirs, symlinks, hard links, /dev/null|zero|urandom|random|full|stdin|stdout|stderr),
+  `wasi.ts` our WASI preview-1 host (output cap = SIGPIPE stand-in, 60 s per-program limit, tty vs pipe, stdin
+  consumption tracking, fd-3 preopen fallback, `supertools.spawn`/`ncpu` host imports), `shell.ts` our shell (quoting,
+  `$VAR ${…:-…} $(…) \`…\` $((…))`, globbing, pipes run stage by stage, all redirects incl. here-docs/strings,
+  `&& || ;`, if/elif/else, for, while, until, case, `{ }`, `( )`, builtins cd pwd export unset read history clear type
+  which help source sh exit break continue, `tar -z/-j` turned into pipelines), `system.ts` boot (/home/user, /etc/passwd
+  + group, /bin symlinks for every applet). BusyBox shims (`wasm/busybox/compat.h`, `wasi_stubs.c`): exec/spawn → host
+  runs another instance on the same FS (xargs, find -exec, env, nice, nohup, flock); identity (user, uid 0, host
+  "supertools"); uname; nproc; chmod accepted without effect (WASI cannot store permissions); stat adds 755/644 bits;
+  own realpath; dup2 via fd_renumber; setjmp/longjmp via wasm exception handling. UI (`src/tools/software/terminal.ts`):
+  colour output, history, Tab completion, Ctrl+L, multi-line paste runs as a script, drag-drop upload, file panel with
+  **Upload**, per-file **Download**, folder download as .tar, click-to-cd. Left out (cannot work in a browser tab):
+  networking, mount, process lists (ps/top/kill), full-screen tty apps (vi, less, top). Tests:
+  `tests/unit/terminal-applets.test.mjs` (**every applet has a known-answer case; the suite fails if one is added
+  without**), `terminal.test.mjs` (shell), `busybox.test.mjs` (raw module under Node WASI), `tests/e2e/terminal.e2e.mjs`.
 
 Removed by the owner from batch 3: Spin the Wheel, Tambola/Housie, Secret Santa, Scoreboard.
 
@@ -488,6 +500,7 @@ stay **public** (the source of the deployed site is then available to every user
 | libsodium 1.0.20 + own MD5/SHA-1/SHA-3/CRC-32 + OpenBSD bcrypt + own CSPRNG helpers (shuffle, sampling, UUID v4/v7) + USODIUM1 header | C | **us** (`wasm/crypto`) | sodium, sharelink, hash, passwords, sshkey, hmac, pwhash, apikey, random tools, uuid, line shuffle |
 | imgproc (adjustments, resize, lossless orient/crop, filters, matting, warp + homography, doc enhance) | C (own code) | **us** (`wasm/imgproc`) | image tools, scanner, passport, cartoon |
 | metacore (EXIF → JSON, lossless metadata strip JPEG/PNG/WebP, JPEG DPI, image sniffing) | C (own code) | **us** (`wasm/metacore`) | exif, image loading, passport/formphoto DPI |
+| BusyBox 1.38.0 (130 applets) + compat shims | C | **us** (`wasm/busybox`) | terminal, bc console |
 | jq 1.8.2 (+ oniguruma) | C | **us** (`wasm/jq`) | jq |
 | textcore: Myers diff, tool-search ranking, word frequency | C (own code) | **us** (`wasm/textcore`) | diff, search box, word counter, photodict |
 | cmark-gfm (GitHub Flavored Markdown) | C | **us** (`wasm/markdown`) | markdown |
@@ -632,6 +645,14 @@ Own C (`wasm/metacore/metacore.c`): `m_sniff`, `m_exif_json` (bounds-checked TIF
 `m_strip` (JPEG keeps JFIF + ICC; PNG drops eXIf/tEXt/zTXt/iTXt/tIME; WebP drops EXIF/XMP and fixes VP8X flags + RIFF
 size), `m_jpeg_set_dpi`. TS wrapper `src/wasm/metacore.ts`; display shaping in `src/lib/exif.ts`. Tests:
 `tests/unit/exif.test.mjs` (real files, synthetic WebP, fuzzed/truncated inputs must never trap).
+
+### 5.1d BusyBox → `src/wasm/bin/busybox.wasm`
+`ZIG=… wasm/busybox/build.sh`: downloads `busybox_1.38.0.orig.tar.bz2` from the Ubuntu archive (busybox.net is not
+reachable from the sandbox) and checks SHA-256 `34f9ea6f…` (from Ubuntu's .dsc); `make allnoconfig` + `applets.cfg`;
+patches: spawn() → host import, ed's `open(f, 0)`, stat function pointers; zig cc wrappers (compat.h pre-included,
+`-mexception-handling -mllvm -wasm-enable-sjlj`), LLVM `ar` and `wasm-ld`; final link done by the script (BusyBox's
+trylink loses `main`, which WASI's `_start` only references weakly). Adding an applet: put it in `applets.cfg`, rebuild,
+add a case to `tests/unit/terminal-applets.test.mjs` (the suite refuses untested applets).
 
 **Rebuild everything we compile ourselves:** `ZIG=/path/to/zig wasm/build-all.sh` (builds each module, then runs
 the unit tests).

@@ -184,10 +184,10 @@ int bb_uname(struct utsname *u) {
 	strcpy(u->version, "#1 SuperTools BusyBox in WebAssembly"); strcpy(u->machine, "wasm32");
 	return 0;
 }
-int bb_chmod(const char *p, mode_t m) { (void)m; struct stat st; return stat(p, &st); }
-int bb_fchmod(int fd, mode_t m) { (void)m; struct stat st; return fstat(fd, &st); }
+int bb_chmod(const char *p, mode_t m) { (void)m; struct stat st; return bb_stat(p, &st); }
+int bb_fchmod(int fd, mode_t m) { (void)m; struct stat st; return bb_fstat(fd, &st); }
 int bb_fchmodat(int d, const char *p, mode_t m, int f) { (void)d; (void)f; return bb_chmod(p, m); }
-int bb_lchmod(const char *p, mode_t m) { (void)m; struct stat st; return lstat(p, &st); }
+int bb_lchmod(const char *p, mode_t m) { (void)m; struct stat st; return bb_lstat(p, &st); }
 char *bb_realpath(const char *path, char *resolved) {
 	char buf[PATH_MAX * 2], out[PATH_MAX], link[PATH_MAX];
 	int loops = 0;
@@ -222,3 +222,23 @@ restart:
 	strcpy(resolved, out);
 	return resolved;
 }
+
+/* ---- permission bits for stat results (see compat.h) */
+#undef stat
+#undef lstat
+#undef fstat
+#undef fstatat
+static int perms(int r, struct stat *b) {
+	if (r == 0) {
+		mode_t t = b->st_mode & S_IFMT;
+		b->st_mode = t | (t == S_IFDIR ? 0755 : t == S_IFLNK ? 0777 : t == S_IFCHR ? 0666 : 0644);
+		b->st_uid = 0; b->st_gid = 0;
+		if (!b->st_blocks) b->st_blocks = (b->st_size + 511) / 512;
+		if (!b->st_blksize) b->st_blksize = 4096;
+	}
+	return r;
+}
+int bb_stat(const char *p, struct stat *b) { return perms(stat(p, b), b); }
+int bb_lstat(const char *p, struct stat *b) { return perms(lstat(p, b), b); }
+int bb_fstat(int f, struct stat *b) { return perms(fstat(f, b), b); }
+int bb_fstatat(int d, const char *p, struct stat *b, int fl) { return perms(fstatat(d, p, b, fl), b); }

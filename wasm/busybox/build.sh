@@ -46,6 +46,8 @@ sed -i '/^pid_t FAST_FUNC spawn(char \*\*argv)$/,/^{$/ s/^{$/{\n#ifdef __wasi__\
 grep -q bb_wasi_spawn libbb/vfork_daemon_rexec.c
 # ed opens files with open(file, 0) assuming O_RDONLY == 0 (it is not in WASI)
 sed -i 's/fd = open(file, 0);/fd = open(file, O_RDONLY);/' editors/ed.c
+# stat/lstat used as function pointers bypass compat.h's function-like macros → point them at our wrappers
+sed -i -E 's/\? stat : lstat\)/? bb_stat : bb_lstat)/; s/\? lstat : stat\)/? bb_lstat : bb_stat)/' coreutils/cp.c coreutils/stat.c libbb/recursive_action.c libbb/copy_file.c
 make -j"$(nproc)" CC="$W/zigcc" AR="$W/zigar" LD="$W/zigld" HOSTCC=gcc SKIP_STRIP=y busybox_unstripped >/dev/null
 "$W/zigcc" -c -mexception-handling "$HERE/sjlj_tag.s" -o "$W/sjlj_tag.o"
 # BusyBox's trylink drops main (WASI's _start only references it weakly) — link ourselves with appletlib.o first

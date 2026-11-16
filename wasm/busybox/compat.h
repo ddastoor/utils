@@ -186,3 +186,14 @@ int bb_fchmodat(int, const char *, mode_t, int);
 int bb_lchmod(const char *, mode_t);
 #define realpath bb_realpath /* wasi-libc's realpath mishandles ".." after the cwd */
 char *bb_realpath(const char *, char *);
+
+/* ---- stat: WASI reports only the file type; add conventional permission bits so ls -l looks like Linux
+   (directories 0755, files 0644, symlinks 0777, devices 0666). Function-like macros leave "struct stat" alone. */
+int bb_stat(const char *, struct stat *);
+int bb_lstat(const char *, struct stat *);
+int bb_fstat(int, struct stat *);
+int bb_fstatat(int, const char *, struct stat *, int);
+#define stat(p, b) bb_stat(p, b)
+#define lstat(p, b) bb_lstat(p, b)
+#define fstat(f, b) bb_fstat(f, b)
+#define fstatat(d, p, b, f) bb_fstatat(d, p, b, f)

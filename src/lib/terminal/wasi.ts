@@ -131,7 +131,9 @@ export function runWasi(module: WebAssembly.Module, o: RunOpts): number {
       const v = mem();
       v.setUint8(p, f.t === 'dir' ? FT.dir : f.t === 'file' ? FT.file : f.t === 'dev' ? FT.char : f.t === 'out' && o.tty ? FT.char : FT.unknown);
       v.setUint16(p + 2, f.t === 'file' && f.append ? 1 : 0, true);
-      v.setBigUint64(p + 8, ALL_RIGHTS, true); v.setBigUint64(p + 16, ALL_RIGHTS, true);
+      // wasi-libc's isatty() = character device without seek/tell rights
+      const rights = f.t === 'out' || f.t === 'in' || f.t === 'dev' ? ALL_RIGHTS & ~(4n | 32n) : ALL_RIGHTS;
+      v.setBigUint64(p + 8, rights, true); v.setBigUint64(p + 16, rights, true);
     }),
     fd_fdstat_set_flags: wrap((n: number, flags: number) => { const f = fd(n); if (!f) return E.BADF; if (f.t === 'file') f.append = !!(flags & 1); }),
     fd_prestat_get: wrap((n: number, p: number) => { const f = fd(n); if (!f || f.t !== 'dir' || !f.preopen) return E.BADF; mem().setUint8(p, 0); mem().setUint32(p + 4, enc.encode(f.preopen).length, true); }),
