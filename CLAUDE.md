@@ -22,29 +22,54 @@ that affects it.
 > ## ⚠️ STANDING RULE #1 — WebAssembly first (owner; permanent; applies to every line of new code)
 > The owner has had to repeat this several times. **Check this rule before choosing ANY engine, library or
 > algorithm for ANY tool — new or existing — without waiting to be reminded.**
-> **Owner, 17 Nov 2026 (final wording — replaces the older "our own build first" rule):** "Existing tested WebAssembly
-> builds from other people are preferred. If they are not there, then build the WebAssembly module yourself from
-> open-source source code. If that's not possible in the existing framework, or for the features that are needed, then
-> you may use JS or TS — make a note of it."
+> **Owner, 17 Nov 2026 (latest wording — replaces the two earlier ones, which ranked "our own build" and "someone
+> else's build" one above the other):** "WebAssembly modules are always preferred. They are the first choice for
+> functionality, library code. First you try and build out a WebAssembly module yourself from open-source code out
+> there with open-source licences — it should be all legal. If that's not possible, then use existing WebAssembly
+> modules out there, which are tried and tested. You can use existing modules first and then try and build it out
+> yourself — either one is fine, either approach is fine, but WebAssembly is first. In fact, even try and build out
+> WebAssembly modules from JavaScript or TypeScript code if you can, if it's possible and fits in nicely with the
+> utility that you're building. If that's not possible, only then use JavaScript / TypeScript libraries as is. Also
+> remember to host all these libraries in the app: library code should not be pulled in at runtime, it should
+> statically be part of the app, whether it's JavaScript libraries or TypeScript modules."
 > **The order:**
-> 1. **An existing, tried-and-tested WebAssembly build made by someone else** — the upstream project's official wasm
->    build or a widely used, maintained third-party build, at its **latest stable version** ("latest and greatest").
-> 2. **If no such build exists** (or it lacks what the tool needs): **build the WebAssembly module ourselves** from the
->    latest stable upstream open-source source (C/C++, Rust, Zig…; verified by checksum/signature), or from our own C
->    (`wasm/`).
-> 3. **Only if neither is possible** in this framework or for the features needed: an open-source JavaScript/TypeScript
->    library — **and write the reason down in §3a** (the owner asked for a note every time). Don't stall a tool over it.
+> 1. **A WebAssembly module — by either route, whichever suits the tool better** (quality, features, size, upkeep):
+>    - **built by us** from the latest stable open-source source (C/C++, Rust, Zig…; source verified by checksum or
+>      signature; licences respected) or from our own C / Rust (`wasm/`); or
+>    - **an existing, tried-and-tested WebAssembly build made by someone else** — the upstream project's official
+>      build or a widely used, maintained one, at its latest stable version.
+>    It is fine to start with an existing build and replace it with our own later, or the other way round.
+> 2. **The functionality exists only as JavaScript / TypeScript:** first try to make a WebAssembly module out of it
+>    (port it to Rust or C, or compile it) — when that is possible and fits the utility.
+> 3. **Only when neither works:** use the open-source JavaScript / TypeScript library as it is — **and write the reason
+>    down in §3a** (the owner asked for a note every time). Don't stall a tool over it.
 > Always:
-> - Open-source licences only; everything is vendored, pinned and served from this site. **Never a CDN, never fetched
->   at runtime.** Record the licence in §6.
-> - Before adding a dependency, write the choice (existing wasm / own wasm / JS) and the reason in the commit message.
+> - **Everything is hosted in the app** — WebAssembly modules, JavaScript / TypeScript libraries, models, fonts, data:
+>   vendored, pinned and served from this site. **Never a CDN, never library code fetched at runtime.**
+> - Open-source licences only, and legal: record the licence of every component in §6.
+> - Before adding a dependency, write the choice (own wasm / existing wasm / wasm made from JS / JS as is) and the
+>   reason in the commit message.
 > - TypeScript only builds UI, formats output and does trivial glue (see the compute rule in §7). Pixel loops,
 >   parsers, codecs, maths, search, diff, compression, crypto → wasm.
-> - Third-party wasm builds already in use (jSquash codecs, libheif-js, tesseract.js-core, zxing-wasm, libarchive.js,
->   ffmpeg.wasm, MuPDF, SQLite, ONNX Runtime, MediaPipe) are what the owner prefers — keep them at their latest stable
->   versions. Our own builds that already exist and work (crypto, imgproc, BusyBox, jq, Graphviz, CPython, …) stay.
+> - What is already in use stays, at its latest stable version: third-party builds (jSquash codecs, libheif-js,
+>   tesseract.js-core, zxing-wasm, libarchive.js, ffmpeg.wasm, MuPDF, SQLite, ONNX Runtime, MediaPipe) and our own
+>   builds (crypto, imgproc, BusyBox, jq, Graphviz, CPython, devcore, formats, …).
 > - The owner's to-do list (`todo.md`) has a standing item: sweep the code again and move as much JS/TS as possible
 >   into WebAssembly modules, where doable.
+
+> ## ⚠️ STANDING RULE #2 — Test extensively, fix, test again (owner, 17 Nov 2026; permanent; every utility)
+> **Owner:** "For whatever utility you write, make extensive tests and test them. If those tests find bugs, then fix
+> the bugs and test again. If the test cases are broken, then fix the test and test again."
+> - **Every utility gets extensive tests, written with it:** unit tests for its engine (every wasm module) and its own
+>   e2e suite for the tab (`tests/e2e/<id>.e2e.mjs`) — known answers, and wherever one exists an **independent
+>   reference** (the native tool, another implementation, a published test vector, a real file) rather than our own
+>   output copied into the test. Details and helpers: §7.
+> - **Run them. A red test is a question — which side is wrong?** If the code is wrong: fix the bug, run again. If the
+>   test is wrong (a slip in the expectation, a race, a stale selector): fix the test, run again. Repeat until green.
+> - **Never get to green by weakening a check**, skipping a test or deleting a case that shows a real bug.
+> - A bug found any other way (a probe, the owner, a review) gets a test that would have caught it, in the same commit.
+> - Before every push: `npm test` and the complete `npm run build && node tests/e2e.mjs`. Record what was found and
+>   fixed in `docs/BUGHUNT.md`.
 
 > ## 📝 Owner's to-do list: `todo.md` (the owner calls it "to do")
 > Created 17 Nov 2026. When the owner says "add … to to do" or "what's on to do", it means this file. Items are done
@@ -76,11 +101,14 @@ Wayland) and **mobile browsers** (Android Chrome, iPhone Safari).
    PC-only tools are hidden on mobile.
 5. **Responsive UI** that works on phone and desktop.
 6. **Implementation preference order — see STANDING RULE #1 at the top (WebAssembly first, always):**
-   1. An existing tried-and-tested WebAssembly build by someone else (official or widely used, latest stable).
-   2. If there is none: our own WebAssembly module compiled from the latest proper open-source **C/C++** (or other
-      compiled) source, or from our own C.
-   3. Only if neither is possible: a widely used, safe, OSI-licensed JavaScript/TypeScript library, vendored and
+   1. A WebAssembly module: our own build from the latest proper open-source **C/C++/Rust** (or other compiled)
+      source or from our own code, **or** an existing tried-and-tested build by someone else (official or widely
+      used, latest stable) — either route is fine.
+   2. Functionality that exists only as JavaScript/TypeScript: make a WebAssembly module out of it when that is
+      possible and fits the tool.
+   3. Only if neither works: a widely used, safe, OSI-licensed JavaScript/TypeScript library as it is, vendored and
       pinned — with the reason noted in §3a.
+   Everything — wasm, JS, TS — is hosted in the app; no library code is pulled in at runtime.
    Personal use only, so copyleft (GPL/LGPL/AGPL) is acceptable.
 7. Use the **most standard / modern / hardened** approach for each tool.
 8. **Every tool works on Windows and Linux** (Chrome; X11 and Wayland) and every non-PC-only tool also
@@ -747,14 +775,16 @@ to `chrome://flags/#enable-webrtc-pipewire-capturer` and the `xdg-desktop-portal
 
 ## 3a. Engine policy (owner rule) and engine inventory
 
-**Rule (owner, final wording 17 Nov 2026 — STANDING RULE #1):** for every utility, prefer a WebAssembly engine over a
+**Rule (owner, latest wording 17 Nov 2026 — STANDING RULE #1):** for every utility, prefer a WebAssembly engine over a
 JavaScript library. Order of preference:
-1. An existing, tried-and-tested WebAssembly build by someone else: the upstream project's **official** wasm build
-   (e.g. SQLite's, Artifex's MuPDF) or a widely used third-party build, at its latest stable version.
-2. If none exists (or it lacks what the tool needs): our own wasm build from the upstream C/C++/Rust source (source
-   verified by checksum/signature) or from our own C.
-3. A JavaScript/TypeScript library — **only when neither is possible** in this framework or for the features needed.
-   **Record why** (table "JavaScript-only components" below).
+1. A WebAssembly module, by either route (both are fine — choose per tool): our own wasm build from the upstream
+   C/C++/Rust source (source verified by checksum/signature) or from our own C / Rust; or an existing,
+   tried-and-tested build by someone else — the upstream project's **official** wasm build (e.g. SQLite's, Artifex's
+   MuPDF) or a widely used third-party build, at its latest stable version.
+2. Functionality that exists only as JavaScript/TypeScript: make a WebAssembly module out of it (a port to Rust / C,
+   or compiling it) when that is possible and fits the tool.
+3. A JavaScript/TypeScript library as it is — **only when neither works** in this framework or for the features
+   needed. **Record why** (table "JavaScript-only components" below).
 Simple UI logic (calculators, timers, text tools) is plain TypeScript. Everything is vendored and served
 from this site — **nothing is loaded from the internet at runtime**. Never violate a licence: record every
 third-party component and its licence in §6. Because of AGPL (MuPDF) and GPL (FFmpeg) the repository must
@@ -805,8 +835,8 @@ JavaScript-only components (no C/C++ equivalent exists for the job):
 | zip.js (BSD-3) | AES-256 zip *creation*; libarchive's wasm build has no crypto | zip |
 | mediabunny (MPL-2.0) | MP4 muxing around the browser's hardware WebCodecs encoders; cutting audio without re-encoding (packet copy) | video, audio |
 
-**Audit list (STANDING RULE #1)** — since the owner's 17 Nov 2026 clarification, third-party WebAssembly
-builds are the preferred choice and stay as they are (jSquash MozJPEG/libwebp/OxiPNG, libheif-js, tesseract.js-core, zxing-wasm,
+**Audit list (STANDING RULE #1)** — by the owner's 17 Nov 2026 wording, third-party WebAssembly
+builds are as good a choice as our own and stay as they are (jSquash MozJPEG/libwebp/OxiPNG, libheif-js, tesseract.js-core, zxing-wasm,
 libarchive.js, the ffmpeg.wasm core): **no replacement needed, just keep them at the latest stable version** (the
 ffmpeg.wasm core is FFmpeg 5.1.4 and cannot run libvpx-vp9/libx265 single-threaded — a newer wasm build of FFmpeg, ours or
 someone else's, would be an upgrade, not an obligation). What remains optional is moving **JavaScript** components to
@@ -1178,8 +1208,11 @@ Deployment branches**.
 
 ## 8. Adding a new tool (checklist)
 0. **Apply STANDING RULE #1 first** (top of this file): for every engine/library/algorithm the tool needs, pick
-   an existing tried-and-tested WebAssembly build first, else our own wasm build from upstream source, else (only if
-   neither is possible) JS/TS; record the choice and reason in §3a.
+   a WebAssembly module (our own build from open-source source, or an existing tried-and-tested build — either is
+   fine), else make a wasm module out of the JS/TS code where that is possible, else (only then) JS/TS as it is;
+   record the choice and reason in §3a. Everything is hosted in the app.
+0b. **Apply STANDING RULE #2 throughout:** extensive tests are written with the tool (unit + its own e2e suite,
+   independent references where they exist); run, fix the bug or the test, run again until green.
 1. Create `src/tools/<id>.ts` exporting `mount(root)`; use helpers from `src/ui.ts`.
 2. Register it in `src/registry.ts` (id, title, desc, category, icon, rich keywords, `platform`: 'both' unless
    the owner says PC only, or it genuinely needs phone hardware → 'mobile'). Add search cases.
