@@ -23,8 +23,8 @@ export function hint(stderr: string): string {
     const mod = full.split('.')[0];
     return `“${mod}” is not part of Python's standard library, and this tab cannot install packages (no pip). A module of your own must be added under “Files for the program” as ${mod}.py.`;
   }
-  if (/^EOFError: EOF when reading a line/.test(last)) return 'The program asked for more input than the Input box holds — give it one line for every input().';
-  if (/^MemoryError/.test(last)) return 'The program needed more memory than a browser tab can give Python (about 2 GB).';
+  if (/^EOFError: EOF when reading a line$/.test(last)) return 'The program asked for more input than the Input box holds — give it one line for every input().';
+  if (/^MemoryError(:|$)/.test(last)) return 'The program needed more memory than a browser tab can give Python (about 2 GB).';
   if (/^RuntimeError: can't start new thread/.test(last)) return 'Threads cannot start here: in a browser tab Python runs on one thread. asyncio works.';
   if (/^RecursionError: Stack overflow/.test(last)) return 'Calls were nested more deeply than a browser tab allows. Recursion in plain Python can go deeper (sys.setrecursionlimit); recursion that passes through built-in functions such as sorted, repr, json or lru_cache stops at a few hundred levels here.';
   m = /^(?:OSError|PermissionError|NotImplementedError|AttributeError): .*(wasi does not support processes|module 'os' has no attribute '(?:system|fork|popen|exec\w*|spawn\w*|kill)')/.exec(last);

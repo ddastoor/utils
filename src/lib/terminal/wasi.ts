@@ -235,7 +235,9 @@ export function runWasi(module: WebAssembly.Module, o: RunOpts): number {
     path_open: wrap((dirfd: number, lookup: number, pp: number, pl: number, oflags: number, _rb: bigint, _ri: bigint, fdflags: number, out: number) => {
       const path = pathOf(dirfd, str(pp, pl));
       const follow = !!(lookup & 1);
-      let node = vfs.tryLookup(path, '/', follow);
+      // "not there" may be created below; any other failure (a file where a folder should be, a symlink loop) is the answer
+      let node: Node | null = null;
+      try { node = vfs.lookup(path, '/', follow); } catch (e) { if (!(e instanceof FsError) || e.errno !== E.NOENT) throw e; }
       if (node && (oflags & 1) && (oflags & 4)) return E.EXIST;
       if (!node) {
         if (!(oflags & 1)) return E.NOENT;

@@ -5,13 +5,17 @@
 export interface ZoneMoment { offset: number; isdst: boolean; other: number; name: string }
 
 /**
- * `abbr`: tzdata's own abbreviations for this zone — "19800/0=IST …" (offset/isdst=name, newest first) from
- * src/lib/tzabbr.json (scripts/make-tzabbr.py). With it the names and the daylight flag are tzdata's, as desktop
- * CPython and its zoneinfo module give them ("+04" for Dubai, where Intl says "GST"); without it they are Intl's.
+ * `abbr`: this zone's entry of src/lib/tzabbr.json (scripts/make-tzabbr.py) — tzdata's own abbreviations,
+ * "19800/0=IST …" (offset/isdst=name, newest first), and after a "|" the periods "start:end:isdst:name,…" in which
+ * the rule used here (daylight time = the larger of the year's two offsets; the newest name for that offset) is
+ * wrong. With it the names and the daylight flag are tzdata's, as desktop CPython and its zoneinfo module give them
+ * ("+04" for Dubai, where Intl says "GST"); without it they are Intl's.
  */
 export function zoneInfo(zone: string = Intl.DateTimeFormat().resolvedOptions().timeZone, abbr = '') {
   const exact = new Map<string, string>(), byOffset = new Map<number, [boolean, string]>();
-  for (const e of abbr.split(' ')) {
+  const [list, periods = ''] = abbr.split('|');
+  const odd = periods ? periods.split(',').map((p) => { const [a, b, d, ...n] = p.split(':'); return { from: +a, to: +b, isdst: d === '1', name: n.join(':') }; }) : [];
+  for (const e of list.split(' ')) {
     const m = /^(-?\d+)\/([01])=(.+)$/.exec(e); if (!m) continue;
     exact.set(`${m[1]}/${m[2]}`, m[3]); if (!byOffset.has(+m[1])) byOffset.set(+m[1], [m[2] === '1', m[3]]);
   }
@@ -58,6 +62,7 @@ export function zoneInfo(zone: string = Intl.DateTimeFormat().resolvedOptions().
     let isdst = dst !== std && offset === dst;
     // tzdata knows better which of a zone's two offsets is "daylight" (Dublin: winter time is the daylight one)
     if (exact.size && !exact.has(`${offset}/${isdst ? 1 : 0}`)) { const o = byOffset.get(offset); if (o) isdst = o[0]; }
+    for (const p of odd) if (utc >= p.from && utc < p.to) return { offset, isdst: p.isdst, other: offset === std ? dst : std, name: p.name };
     return { offset, isdst, other: offset === std ? dst : std, name: nameAt(utc, offset, isdst) };
   };
 }
