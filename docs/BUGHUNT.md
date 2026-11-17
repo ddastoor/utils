@@ -145,8 +145,8 @@ Areas with a shared review: the app shell (router, search, favorites, platform h
 | `color` | Color Converter | PC only | dev-data2 | ✓ | 7 | 34 | alpha kept (8-digit hex); rgb % / exponents, hsl turn / rad / grad, oklch L 0–1, oklab, hwb, names; colours outside sRGB mapped as CSS Color 4 (was rgb(-1065, …)); wrong input marked; exact round trips over all 16.7 M colours; vs colorsys + Chrome's CSS engine |
 | `jwt` | JWT Decoder | PC only | dev-data2 | ✓ | 7 | 33 | Bearer / quotes / wrapped; JWE; null, list, text, non-UTF-8 payloads; 20-digit claims not rounded; exp as string / ms; alg none; damaged signature; UTC + local + relative times; vs PyJWT |
 | `sqlite` | SQLite Playground | PC only | data-engines |  |  |  |  |
-| `jq` | jq Playground | PC only | data-engines |  |  |  |  |
-| `yaml` | YAML ⇄ JSON ⇄ TOML | PC only | data-engines |  |  |  |  |
+| `jq` | jq Playground | PC only | data-engines | ✓ | 16 | 4951 | runs in a worker (10 s limit, Stop, 16 MB output stop, restart after out of memory); glue follows jq's main.c with jq's own input reader: messages with input.json:N, exit status of the last input, halt, debug / stderr, input_filename, -r -a; memory 2 GB and given back; reference = native jq 1.8.2 for 4,903 cases (unit) and 192 typed into the page |
+| `yaml` | YAML ⇄ JSON ⇄ TOML | PC only | data-engines | ✓ | 21 | 1933 | own value model + own JSON / YAML / TOML writers: numbers keep every digit, YAML output quotes what YAML 1.1 parsers misread (no, y, 1_000, 1:30, dates), .inf / .nan and TOML dates travel, TOML refuses what 64 bits cannot hold; notes for keys written twice; outputs read back by PyYAML, ruamel.yaml and tomllib (1,750 texts), 393 texts written by other programs read correctly |
 | `xml` | XML Formatter / XPath | PC only | dev-data2 | ✓ | 9 | 45 | own Rust formatter moves white space only: declaration, DOCTYPE, entities, &#10;, nbsp and padded text were lost or rewritten; <parsererror> element; xml: and default-namespace prefixes in XPath; ISO-8859-1 / UTF-16 files; 74 documents compared by Chrome's parser |
 | `json2types` | JSON → Types | PC only | dev-data2 | ✓ | 10 | 110 | own Rust generator; every output compiled by tsc, go, rustc, javac, python for 36 samples: root lists / values as aliases, colliding and reserved names, shadowed type names, one-file Java, Python kw_only and kept keys, keys Go cannot tag, uint64 / BigInteger, plurals |
 | `jsondiff` | JSON Diff | PC only | dev-data2 | ✓ | 5 | 70 | own Rust diff on the lossless reader: lists aligned by equal elements and by id (one removal was N changes); numbers by value and never rounded; duplicate keys; empty sides; Swap; rows carry both values; 400 random pairs with two appliers |
@@ -177,7 +177,7 @@ Areas with a shared review: the app shell (router, search, favorites, platform h
 | `python` | Python Scratchpad | PC only | data-engines |  |  |  |  |
 | `totp` | TOTP / 2FA Codes | PC only | net | ✓ | 6 | 63 | e2e 11→49 + 25 unit; RFC 4226/6238 |
 | `pwstrength` | Password Strength | PC only | net | ✓ | 6 | 95 | e2e 13→32 + 76 unit (new); 304 passwords vs Python zxcvbn |
-| `jsonschema` | JSON Schema | PC only | data-engines |  |  |  |  |
+| `jsonschema` | JSON Schema | PC only | data-engines | ✓ | 14 | 5431 | exact numbers and IDN formats switched on; inference no longer crashes on non-ASCII text and adds a format only when the validator accepts every example; plain messages (unknown $schema, $ref elsewhere, schema not valid at …), first 200 of N problems, formats not checked are named; reference = python-jsonschema verdicts for 5,338 pairs over five drafts, formats and patterns by hand against the RFCs / ECMA 262 |
 | `bitwise` | Bitwise Calculator | PC only | bitswebref | ✓ | 6 | 40 | rotate ≥ width wrapped, shift ≥ width, B overflow note, + / spaces, outputs paste back, unused boxes off; vs BigInt, random operands |
 | `ieee754` | IEEE-754 Inspector | PC only | bitswebref | ✓ | 5 | 45 | float32 ties (no double rounding) vs exact rationals; 1e-1000000 froze the page; stale result on bad input; too large / too small notes |
 | `contrast` | Contrast Checker | PC only | bitswebref | ✓ | 3 | 31 | see-through colours blended; a fix for every failing pair (white/black fallback); rgb() / hsl() / names; 40 random pairs vs formula |
@@ -474,4 +474,25 @@ Four engines were written in Rust for this (STANDING RULE #1) — `wasm/devcore/
 - **Markdown Table (6):** any tab character forced tab-separated reading (a tab inside a quoted CSV cell broke the
   rows); a line break in a cell vanished from the editor; a table pasted with text around it took the following
   lines as rows; CJK and emoji cells were padded as one column wide; 3,000 rows made every keystroke slow.
+
+### Software › data-engine tabs (17 Nov 2026, in progress) — jq, yaml, jsonschema done; python, sqlite, sqlfmt, prettier, graphviz open
+Method for these: the engine's native counterpart or an independent implementation is the reference, in bulk.
+- **jq** (16 bugs; unit 35 → 4,957, e2e 23 → 52). Reference: the native jq 1.8.2 command line, built from the same
+  tarball — stdout, stderr and exit status for 4,903 filter × option × input cases (`tests/fixtures/jq/reference.json`).
+  A filter that never ends froze the tab and left a broken engine (now a worker: 10-second limit, Stop, output stop at
+  16 MB, a fresh engine after running out of memory); `-r -a` printed raw UTF-8; the exit status stuck at 5; halt did
+  not stop later inputs; `input_filename` / `input_line_number` / `debug` / `stderr` / `$JQ_BUILD_CONFIGURATION` did
+  not work; messages lacked the input position; the command line shown did not give the same output with -c + Tab
+  indent; long output froze the box; memory ceiling 1 GB → 2 GB and given back after a huge run.
+- **yaml** (21 bugs; unit 20 → 1,922, e2e 19 → 50). References: PyYAML (YAML 1.1), ruamel.yaml (YAML 1.2) and tomllib
+  read all 1,750 outputs as the data that went in; 393 texts written by those libraries, tomli_w, toml and real files
+  are read correctly. Numbers were pushed through 64-bit floats (JSON → JSON lossy, JSON → TOML rounded silently, YAML
+  integers beyond 64 bits an error); JSON → YAML left `no`, `y`, `1_000`, `1:30`, `2026-01-01` unquoted; .inf / .nan
+  were refused or silently became null; TOML → TOML turned dates into strings; TOML output was badly laid out; keys
+  written twice vanished silently; Swap could wipe the input.
+- **jsonschema** (14 bugs; unit 12 → 5,413, e2e 9 → 39). Reference: python-jsonschema's verdicts for 5,338 schema /
+  data pairs over Draft 4, 6, 7, 2019-09 and 2020-12; formats and patterns checked by hand against the RFCs and
+  ECMA 262. "Make a schema" crashed on some non-ASCII text and wrote formats its own example failed; numbers were
+  compared as floats; idn-email / idn-hostname were never checked; "200 problems" when there were more; jargon
+  messages (unknown `$schema`, `$ref` elsewhere); the shared JSON reader said "nothing is open here" for `"b": }`.
 

@@ -37,9 +37,11 @@ what those suites missed.
   security-codes, images1, images2, pdf, docs2, audio, video, terminal, everyday-device, + the app shell.
 - **Progress:** see the tracker; fixed-bug summary is appended here area by area.
 - After the hunt: ask the owner which `docs/potentials.md` ideas to build (build none until picked).
-- **Owner, 17 Nov 2026 (engine rule, final wording — CLAUDE.md STANDING RULE #1):** 1) an existing tested WebAssembly
-  build by someone else is preferred; 2) if there is none, build the wasm module ourselves from open-source code; 3) JS/TS
-  only if neither is possible — with a note in CLAUDE.md §3a.
+- **Owner, 17 Nov 2026 — three standing rules at the top of CLAUDE.md:** #1 WebAssembly first (our own build from
+  open-source code or an existing tried-and-tested build, either is fine; JS/TS-only code is made into wasm where
+  possible; only then JS/TS as it is, noted in §3a; everything hosted in the app). #2 Extensive tests for every
+  utility: test, fix the bug or the test, test again. #3 Commit and push regularly and often — do not wait for the
+  complete test run or for the whole utility.
 - **Owner's to-do list: `todo.md`** ("to do"). First item (17 Nov 2026): a JS/TS → WebAssembly sweep.
   **Owner, 17 Nov 2026: do NOT start to-do items on your own** — after this hunt, show the owner the items and ask
   which ones to do.
@@ -68,6 +70,15 @@ what those suites missed.
   Verified at that commit: unit 4567/4567 (39 suites, 12 runs in a row); complete e2e 4,580 checks in 188 suites, all
   passing (mermaid, resume and one mdtable timing check only when re-run alone — CPU contention, as before).
   For the reference generator: `pip install --user pyjwt lxml tzdata` (the tests themselves only read its JSON).
+- **Area `data-engines` in progress (17 Nov 2026):** done — **jq** (worker with stop / time limit / output stop; glue
+  follows jq's main.c; native jq 1.8.2 as the reference for 4,903 cases), **yaml** (own value model and writers:
+  digits kept, YAML 1.1-safe quoting, dates / .inf / .nan travel; PyYAML, ruamel.yaml and tomllib read every output),
+  **jsonschema** (exact numbers, IDN formats, safe inference, plain messages; python-jsonschema verdicts for 5,338
+  pairs). Still open in this area: **python, sqlite, sqlfmt, prettier, graphviz**.
+  Running total: **50 of 176 tabs reviewed, 315 bugs fixed, 14,389 checks added** (+ shell).
+  References are regenerated with `scripts/make-jq-reference.mjs` (needs a native jq 1.8.2: build it from the tarball
+  `wasm/jq/build.sh` downloads), `scripts/make-formats-reference.py` and `scripts/make-jsonschema-reference.py`
+  (`pip install pyyaml ruamel.yaml tomli_w toml jsonschema`); the tests only read their JSON.
 - **The five first-wave reviewers left their probe scripts** in the scratchpad (`review/<area>/*.mjs`, areas misc,
   bitswebref, dev-data2, data-engines, calc-core): copy them to `own/<area>/`, point them at the preview
   (`sed -i 's#localhost:4180#localhost:4173#'`, `../probe.mjs` → `own/probe.mjs`) and run them one by one — they print
