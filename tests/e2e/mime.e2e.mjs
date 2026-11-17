@@ -1,5 +1,7 @@
 // MIME Types (#/mime, PC only): known extension ⇄ type pairs (IANA / WHATWG as browsers use them), every row well formed
-// (type/subtype), no extension listed twice with different types, search by extension, by type and by words, phone note.
+// (type/subtype), no extension listed twice with different types, search by extension, by type and by words, the
+// exact extension comes first (".ts" before ".tsv"), wrong-but-common names find the right row (image/jpg,
+// application/javascript, audio/mp3), subtitles / notebooks / JSON Lines listed, no match, phone note.
 import { pcOnlyOnPhone } from './_pconly.mjs';
 const KNOWN = { html: 'text/html', css: 'text/css', js: 'text/javascript', mjs: 'text/javascript', json: 'application/json', pdf: 'application/pdf', png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg',
   gif: 'image/gif', webp: 'image/webp', avif: 'image/avif', svg: 'image/svg+xml', mp3: 'audio/mpeg', mp4: 'video/mp4', webm: 'video/webm', wav: 'audio/wav', ogg: 'audio/ogg', zip: 'application/zip',
@@ -24,6 +26,12 @@ export default async (ctx) => {
   r = await s('font'); ok(r.length >= 4 && r.every((x) => /font/i.test(x.join(' '))), `"font" → the font types (${r.length})`);
   r = await s('iphone'); ok(r.some((x) => x[0] === '.heic'), '"iphone" finds HEIC');
   r = await s('form'); ok(r.some((x) => x[1] === 'multipart/form-data') && r.some((x) => x[1] === 'application/x-www-form-urlencoded'), 'form encodings listed');
+  const more = { jsonl: 'application/x-ndjson', ndjson: 'application/x-ndjson', vtt: 'text/vtt', srt: 'application/x-subrip', mpeg: 'video/mpeg', mpg: 'video/mpeg', ipynb: 'application/x-ipynb+json', torrent: 'application/x-bittorrent', eot: 'application/vnd.ms-fontobject', wmv: 'video/x-ms-wmv', parquet: 'application/vnd.apache.parquet', php: 'application/x-httpd-php' };
+  const bad2 = Object.entries(more).filter(([e, t]) => map[e] !== t).map(([e]) => e); ok(!bad2.length, `${Object.keys(more).length} more file types (subtitles, notebooks, JSON Lines, MPEG …) ${bad2.join(', ')}`);
+  for (const [query, first] of [['.ts', '.ts'], ['ts', '.ts'], ['.js', '.js .mjs .cjs'], ['js', '.js .mjs .cjs'], ['json', '.json'], ['.PNG', '.png'], ['mp4', '.mp4 .m4v'], ['jsonl', '.ndjson .jsonl'], ['text/plain', '.txt .text .log'], ['htm', '.html .htm']]) { r = await s(query); ok(r[0]?.[0] === first, `"${query}": the exact match ${first} comes first (${r[0]?.[0]})`); }
+  for (const [query, ext] of [['image/jpg', '.jpg .jpeg .jfif'], ['application/javascript', '.js .mjs .cjs'], ['audio/mp3', '.mp3'], ['text/xml', '.xml'], ['image/x-icon', '.ico'], ['application/x-zip-compressed', '.zip'], ['text/yaml', '.yaml .yml'], ['favicon', '.ico']]) { r = await s(query); ok(r.length >= 1 && r[0][0] === ext, `"${query}" (not the registered name) finds ${ext}`); }
+  r = await s('zzzz'); ok(r.length === 0 && /^Nothing matches “zzzz”/.test(await page.locator('.card .muted').first().textContent()), 'no match is said in words');
+  r = await s(''); ok(r.length >= 115, 'clearing the search shows everything again');
   ok(/Content-Type/.test(await page.locator('.note').first().textContent()), 'note about the Content-Type header');
   ok(!page.errors.length, `no page errors ${page.errors.join(' | ')}`);
   await pcOnlyOnPhone(ctx, 'mime');

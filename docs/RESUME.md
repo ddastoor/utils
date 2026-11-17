@@ -49,12 +49,19 @@ what those suites missed.
   independent reference (real curl, GNU chmod, OpenSSL, Python ipaddress / cryptography / hashlib / zxcvbn, RFC vectors).
 - **Area `misc` done too** (cron, semver, glob, patch, hexview, escape, unicode, logview, sla, transfer, mermaid): 59
   bugs, 350 checks; three engines replaced by our own Rust (npm-exact semver, Unicode glob, GNU-like patch).
-  Running total: **21 of 176 tabs reviewed, 110 bugs fixed, 942 checks added** (+ shell).
+- **Area `bitswebref` done too** (bitwise, ieee754, baseenc, bindecode, httpstatus, mime, ports, ascii, keycode,
+  contrast, gradient, shadow, svgo): 63 bugs, 500 checks. Biggest: SVG Optimizer refused every file with a DOCTYPE,
+  its Safe mode did nothing and some optimised drawings looked different (now every result is rendered and compared,
+  with a safe fallback); the binary decoder's CBOR / MessagePack readers are now our own Rust; files ≥ 8 MiB trapped
+  the Base32/64 engine; float32 rounding on ties; Key Codes was a keyboard trap.
+  Running total: **34 of 176 tabs reviewed, 173 bugs fixed, 1,442 checks added** (+ shell).
+- **Found while here, for later areas:** the Color Converter (`color`, area text) also drops the alpha of an 8-digit
+  hex silently (`hexToRgb` in `src/tools/text.ts`) — check it there.
 - **The five first-wave reviewers left their probe scripts** in the scratchpad (`review/<area>/*.mjs`, areas misc,
   bitswebref, dev-data2, data-engines, calc-core): copy them to `own/<area>/`, point them at the preview
   (`sed -i 's#localhost:4180#localhost:4173#'`, `../probe.mjs` → `own/probe.mjs`) and run them one by one — they print
   tool-vs-reference comparisons that show the bugs. (If the scratchpad is gone, review those areas from the source.)
-- **Next steps (in this order, one area at a time, commit + push after each):** bitswebref → dev-data2 →
+- **Next steps (in this order, one area at a time, commit + push after each):** dev-data2 →
   data-engines → calc-core → calc2-math → text → security-codes → images1 → images2 → pdf → docs2 → audio → video →
   terminal → everyday-device (areas = column "Area" in `docs/BUGHUNT.md`; `node scripts/bughunt.mjs status` lists the
   tabs still open). For each tab: read the source + suite, probe the built site (`npx vite preview --port 4173`, helper

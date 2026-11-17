@@ -1,5 +1,6 @@
 // Port Numbers (#/ports, PC only): IANA assignments for well-known services (independent list), every port 0–65535, no port
-// listed twice, sorted, search by number / name / protocol, the port-range note, phone note.
+// listed twice, sorted, search by number / name / protocol, the exact port comes first ("80" before 8080), the kind
+// of service finds its ports (database, email, vpn, k8s, mssql), more everyday ports, no match, port-range note, phone note.
 import { pcOnlyOnPhone } from './_pconly.mjs';
 const KNOWN = { 21: 'FTP', 22: 'SSH', 23: 'Telnet', 25: 'SMTP', 53: 'DNS', 80: 'HTTP', 110: 'POP3', 123: 'NTP', 143: 'IMAP', 161: 'SNMP', 389: 'LDAP', 443: 'HTTPS', 445: 'SMB', 465: 'SMTPS', 587: 'Submission',
   993: 'IMAPS', 995: 'POP3S', 1433: 'SQL Server', 3306: 'MySQL', 3389: 'RDP', 5432: 'PostgreSQL', 5900: 'VNC', 6379: 'Redis', 27017: 'MongoDB', 51820: 'WireGuard', 1883: 'MQTT', 5353: 'mDNS', 9418: 'Git' };
@@ -21,6 +22,15 @@ export default async (ctx) => {
   r = await s('mail tls'); ok(['465', '993', '995'].every((p) => r.some((x) => x[0] === p) || true) && r.length >= 1, `"mail tls" finds encrypted mail ports (${r.map((x) => x[0])})`);
   r = await s('3389'); ok(r.length === 1 && r[0][2] === 'RDP', '"3389" → RDP');
   r = await s('udp'); ok(r.length >= 15 && r.every((x) => x[1].includes('UDP')), `"udp" → only UDP ports (${r.length})`);
+  for (const [query, first] of [['80', '80'], ['22', '22'], ['443', '443'], ['53', '53'], ['http', '80'], ['ssh', '22'], ['8080', '8080']]) { r = await s(query); ok(r[0]?.[0] === first, `"${query}": port ${first} comes first (${r.slice(0, 4).map((x) => x[0])})`); }
+  for (const [query, must] of [['database', ['1433', '1521', '3306', '5432', '6379', '9042', '27017']], ['db', ['3306', '5432', '27017']], ['email', ['25', '110', '143', '465', '587', '993', '995']], ['vpn', ['500', '1194', '1701', '1723', '4500', '51820']], ['k8s', ['2379', '6443', '10250']], ['mssql', ['1433', '1434']],
+    ['postgres', ['5432']], ['cache', ['6379', '11211']], ['remote desktop', ['3389', '5900']], ['game', ['19132', '25565']], ['monitoring', ['161', '514', '9090']], ['queue', ['1883', '5672', '9092']]]) {
+    r = await s(query); const got = r.map((x) => x[0]); ok(must.every((p2) => got.includes(p2)), `"${query}" finds ${must.join(', ')} (${got.join(', ') || 'nothing'})`); }
+  const extra = { 43: 'WHOIS', 1935: 'RTMP', 3128: 'Squid', 5601: 'Kibana', 5985: 'WinRM', 6667: 'IRC', 8888: 'Jupyter', 9042: 'Cassandra', 15672: 'RabbitMQ management', 50051: 'gRPC', 4317: 'OTLP gRPC', 8200: 'Vault' };
+  r = await s(''); const bad3 = Object.entries(extra).filter(([p2, n]) => r.find((x) => x[0] === p2)?.[2] !== n).map(([p2]) => p2); ok(!bad3.length && r.length >= 115, `${Object.keys(extra).length} more everyday ports listed (${r.length} rows) ${bad3.join(', ')}`);
+  r = await s('zzzz'); ok(r.length === 0 && /^Nothing matches “zzzz”/.test(await page.locator('.card .muted').first().textContent()), 'no match is said in words');
+  r = await s('65536'); ok(r.length === 0, 'no port 65536');
+  await q.fill('');
   ok(/49152–65535/.test(await page.locator('.note').first().textContent()), 'note explains the port ranges');
   ok(!page.errors.length, `no page errors ${page.errors.join(' | ')}`);
   await pcOnlyOnPhone(ctx, 'ports');

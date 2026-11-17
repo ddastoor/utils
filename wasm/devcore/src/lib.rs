@@ -70,7 +70,9 @@ pub unsafe extern "C" fn dc_call(op: *const u8, op_n: usize, inp: *const u8, in_
         #[cfg(feature = "x509")]
         "x509" => x509::run(input),
         #[cfg(feature = "bin")]
-        "bin:protobuf" => bin::protobuf(input),
+        "bin:protobuf" => bin::protobuf(input, false),
+        #[cfg(feature = "bin")]
+        "bin:protobuf+sint" => bin::protobuf(input, true),
         #[cfg(feature = "bin")]
         "bin:msgpack" => bin::msgpack(input),
         #[cfg(feature = "bin")]

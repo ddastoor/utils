@@ -33,6 +33,7 @@ export default async ({ base, page: newPage, ok, info, download, devices }) => {
 
   // A/B toggle shows the original
   await page.getByRole('button', { name: 'Hear the original' }).click();
+  await page.getByText('Showing the ORIGINAL').waitFor({ timeout: 10000 }).catch(() => {}); // the waveform is redrawn first (audio worker), then the line appears
   ok(await page.getByText('Showing the ORIGINAL').isVisible(), 'A/B: original shown');
   await page.getByRole('button', { name: 'Hear the cleaned audio' }).click();
 

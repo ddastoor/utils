@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Builds src/wasm/bin/devcore-<feature>.wasm from wasm/devcore (Rust): one small module per tab, so a tab downloads
 # only its own engine. Crates from crates.io, verified by Cargo.lock (--locked): ipnet, croner (+ chrono; zone offsets
-# come from the browser through env.tz_offset), nodejs-semver, globset, data-encoding, bs58, rmpv, ciborium,
-# x509-parser, sha1/sha2, diffy, sqlformat, serde_json. Target wasm32-wasip1.
+# come from the browser through env.tz_offset), regex-lite (our semver port), data-encoding, bs58,
+# x509-parser, sha1/sha2, sqlformat, serde_json; glob, patch and the binary decoders are our own code. Target wasm32-wasip1.
 #   wasm/devcore/build.sh        (needs: rustup target add wasm32-wasip1)
 set -euo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"; ROOT="$(cd "$HERE/../.." && pwd)"

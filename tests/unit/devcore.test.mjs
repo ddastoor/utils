@@ -307,6 +307,55 @@ export default async (t, { load, wasm }) => {
   t.eq(D.decode(d.decode('crockford', 'csqpyrk1e8')), 'foobar', 'Crockford decode (lower case)');
   t.eq(d.encode('base64url', Uint8Array.from([0xfb, 0xff])), '-_8', 'Base64url without padding');
   t.ok(err(() => d.decode('base58', '0OIl')), 'Base58 rejects 0 O I l');
+  // ---- encodings against Python's base64 module and spec implementations of Base58 / Crockford (scripts/make-enc-reference.py)
+  {
+    const ref = JSON.parse(readFileSync(new URL('../fixtures/enc/reference.json', import.meta.url), 'utf8')).rows;
+    const hx = (b) => Buffer.from(b).toString('hex');
+    const ALG = ['base16', 'base32', 'base32hex', 'crockford', 'base58', 'base58check', 'ascii85', 'z85', 'base64', 'base64url'];
+    for (const alg of ALG) {
+      const rows = ref.filter((r) => r[alg] !== null);
+      const encBad = rows.filter((r) => d.encode(alg, Buffer.from(r.hex, 'hex')) !== r[alg]);
+      t.eq(encBad.slice(0, 3).map((r) => r.hex), [], `${alg}: ${rows.length} random values encode as the reference does`);
+      const decBad = rows.filter((r) => { try { return hx(d.decode(alg, r[alg])) !== r.hex; } catch { return true; } });
+      t.eq(decBad.slice(0, 3).map((r) => r[alg]), [], `${alg}: the reference text decodes back to the bytes`);
+    }
+    // text as people paste it: no padding, lower case, wrapped lines, spaces
+    const messy = (s, i) => s.replace(/=+$/, '').replace(/(.{7})/g, i % 2 ? '$1\n' : '$1 ');
+    for (const alg of ['base32', 'base32hex', 'base64', 'base64url']) {
+      const bad = ref.filter((r, i) => { try { return hx(d.decode(alg, messy(alg.startsWith('base32') && i % 3 === 0 ? r[alg].toLowerCase() : r[alg], i))) !== r.hex; } catch { return true; } });
+      t.eq(bad.length, 0, `${alg}: unpadded, wrapped${alg.startsWith('base32') ? ', lower-case' : ''} text decodes (${ref.length} values)`);
+    }
+    t.eq(ref.filter((r) => hx(d.decode('base64', r.base64url)) !== r.hex || hx(d.decode('base64url', r.base64)) !== r.hex).length, 0, 'Base64 and Base64url read each other’s alphabet');
+    t.eq(ref.filter((r) => hx(d.decode('base16', r.hex.replace(/(..)/g, '$1:').slice(0, -1))) !== r.hex || hx(d.decode('base16', r.hex.replace(/(..)/g, '0x$1, '))) !== r.hex || hx(d.decode('base16', r.hex.replace(/(..)/g, '\\x$1'))) !== r.hex).length, 0, 'hex with colons, 0x.., and \\x.. decodes');
+    t.eq(ref.filter((r) => hx(d.decode('crockford', r.crockford.toLowerCase().replace(/(.{4})/g, '$1-'))) !== r.hex).length, 0, 'Crockford: lower case with hyphens decodes');
+    t.eq(ref.filter((r) => hx(d.decode('ascii85', `<~${r.ascii85.replace(/(.{20})/g, '$1\n')}~>`)) !== r.hex).length, 0, 'Ascii85: <~ ~> frame and line breaks');
+  }
+  { // 9 MiB + 3 bytes: data-encoding refuses 8 MiB and more on a 32-bit target, so long inputs go through in pieces
+    const n = (9 << 20) + 3, big = new Uint8Array(n); for (let i = 0; i < n; i++) big[i] = (i * 2654435761) >>> 24;
+    const node = { base64: Buffer.from(big).toString('base64'), base64url: Buffer.from(big).toString('base64url'), base16: Buffer.from(big).toString('hex').toUpperCase() };
+    for (const alg of ['base64', 'base64url', 'base16', 'base32', 'base32hex', 'crockford', 'ascii85']) {
+      const s2 = d.encode(alg, big), back = d.decode(alg, s2);
+      t.ok(back.length === n && Buffer.compare(Buffer.from(back), Buffer.from(big)) === 0 && (!node[alg] || node[alg] === s2), `${alg}: a 9 MiB file encodes${node[alg] ? ' exactly as Node does' : ''} and decodes back`);
+    }
+  }
+  const dh = (alg, s) => Buffer.from(d.decode(alg, s)).toString('hex');
+  t.eq([dh('base32', 'MZXW6'), dh('base32', 'mzxw6ytboi'), dh('base32', 'MZXW6YQ'), dh('base32', 'MZ XW 6Y TB OI =='), dh('base32', 'MZXW6===MZXW6===')], ['666f6f', '666f6f626172', '666f6f62', '666f6f626172', '666f6f666f6f'], 'Base32: padding is optional (TOTP secrets, spaced groups, joined blocks)');
+  t.eq(dh('base32hex', 'CPNMU'), '666f6f', 'Base32hex without padding');
+  t.eq([dh('base32', 'MR======'), dh('base32', 'MZXW7==='), dh('base64', 'Zh==')], ['64', '666f6f', '66'], 'non-zero spare bits are accepted (as Python and most tools do)');
+  t.ok(/missing or extra/.test(err(() => d.decode('base32', 'M'))) && /missing or extra/.test(err(() => d.decode('base32', 'MZX'))) && /missing or extra/.test(err(() => d.decode('base64', 'Zm9vY'))), 'impossible lengths are explained');
+  t.ok(/'0' is not a character/.test(err(() => d.decode('base32', '0ZXW6==='))) && /'!' is not/.test(err(() => d.decode('base64', 'Zm9!'))) && /'é' is not/.test(err(() => d.decode('base32', 'MZé'))), 'the wrong character is named');
+  t.eq([dh('base64', 'Zg==Zg=='), dh('base64', 'Zm9v\r\nYmFy'), dh('base64', '===='), dh('base64url', '+/8=')], ['6666', '666f6f626172', '', 'fbff'], 'Base64: joined blocks, CRLF, only padding, mixed alphabet');
+  t.eq(dh('base64', 'data:text/plain;base64,Zm9v'), '666f6f', 'Base64: the header of a data: URL is skipped');
+  t.ok(/not Base64/.test(err(() => d.decode('base64', 'data:text/plain,hello'))), 'a data: URL without ;base64 is refused with the reason');
+  t.eq([dh('base16', '0x66'), dh('base16', '66:6f'), dh('base16', '0x6, 0xf'), dh('base16', '550e8400-e29b-41d4-a716-446655440000'), dh('base16', '0X666F6F'), dh('base16', 'DE AD\tBE\nEF')], ['66', '666f', '060f', '550e8400e29b41d4a716446655440000', '666f6f', 'deadbeef'], 'hex: 0x, colons, single prefixed digits, a UUID, tabs and newlines');
+  t.ok(/two digits per byte/.test(err(() => d.decode('base16', '6'))) && /'g' is not/.test(err(() => d.decode('base16', '6g'))), 'hex errors in plain words');
+  t.eq(dh('crockford', 'CSQPYRK1E8='), '666f6f626172', 'Crockford: stray padding ignored');
+  t.ok(/'U' is not/.test(err(() => d.decode('crockford', 'CSQPYRKUE8'))), 'Crockford has no U');
+  t.ok(/'é'/.test(err(() => d.decode('z85', 'Hélo'))), 'Z85 names a non-ASCII character as typed');
+  t.eq([dh('ascii85', '<~~>'), dh('ascii85', 'z'), dh('ascii85', '!!'), dh('ascii85', 's8W-!')], ['', '00000000', '00', 'ffffffff'], 'Ascii85 edge cases');
+  t.ok(/overflows/.test(err(() => d.decode('ascii85', 's8W-"'))) && /inside a group/.test(err(() => d.decode('ascii85', '!!z'))) && /at least 2/.test(err(() => d.decode('ascii85', '!'))), 'Ascii85 errors');
+  t.eq(['base16', 'base32', 'base32hex', 'crockford', 'base58', 'ascii85', 'z85', 'base64', 'base64url'].map((a) => d.encode(a, new Uint8Array(0))), Array(9).fill(''), 'nothing in → nothing out (every encoding)');
+  t.eq([d.encode('base58check', new Uint8Array(0)), dh('base58check', '3QJmnh'), dh('base58', '111')], ['3QJmnh', '', '000000'], 'Base58Check of nothing; Base58 of only 1s');
   // ---- binary decoders
   const pb = d.bytesJson('bin:protobuf', Uint8Array.from([0x08, 0x96, 0x01, 0x12, 0x07, 0x74, 0x65, 0x73, 0x74, 0x69, 0x6e, 0x67, 0x1a, 0x03, 0x08, 0x96, 0x01]));
   t.eq(pb.text, '1: 150\n2: "testing"\n3 {\n  1: 150\n}\n', 'protobuf: varint 150, string, nested message (protobuf docs)');
@@ -318,6 +367,84 @@ export default async (t, { load, wasm }) => {
   t.eq(['00', '1a000f4240', '3903e7', 'f93c00', 'fb3ff199999999999a', 'f4', 'f6', '4401020304', '6449455446', 'c074323031332d30332d32315432303a30343a30305a'].map(cbor),
     ['0', '1000000', '-1000', '1.0', '1.1', 'false', 'null', "h'01020304'", '"IETF"', '0("2013-03-21T20:04:00Z")'], 'CBOR RFC 8949 Appendix A examples');
   t.eq(cbor('a26161016162820203').replace(/\s+/g, ' '), '{ "a": 1, "b": [ 2, 3 ] }', 'CBOR map with array');
+  // ---- binary decoders against cbor2, msgpack and google.protobuf (scripts/make-bin-reference.py)
+  {
+    const ref = JSON.parse(readFileSync(new URL('../fixtures/bin/reference.json', import.meta.url), 'utf8'));
+    for (const fmt of ['cbor', 'msgpack', 'protobuf']) {
+      const bad = ref[fmt].filter((r) => { try { const o = d.bytesJson(`bin:${fmt}`, Buffer.from(r.hex, 'hex')); return o.text !== r.text || o.count !== r.count || o.error !== null; } catch { return true; } });
+      t.eq(bad.slice(0, 2).map((r) => r.hex.slice(0, 80)), [], `${fmt}: ${ref[fmt].length} random messages decode to the reference text`);
+      // cutting a message anywhere must give an error or a shorter dump — never a trap, never invented data
+      let trapped = 0, n = 0;
+      for (const r of ref[fmt].slice(0, 40)) { const b = Buffer.from(r.hex, 'hex'); for (let k = 1; k < Math.min(b.length, 60); k += 3) { n++; try { d.bytesJson(`bin:${fmt}`, b.subarray(0, k)); } catch (e) { if (/unreachable|out of bounds|RuntimeError/.test(String(e))) trapped++; } } }
+      t.eq(trapped, 0, `${fmt}: ${n} truncated messages never trap the engine`);
+    }
+  }
+  const bin = (fmt, hex) => { try { const o = d.bytesJson(`bin:${fmt}`, Uint8Array.from(Buffer.from(hex.replace(/\s/g, ''), 'hex'))); return o.error ? `${o.text}!! ${o.error}` : o.text; } catch (e) { return `ERR ${e.message}`; } };
+  // RFC 8949 Appendix A, the whole table (our layout puts array / map members on their own lines)
+  const flat = (s) => s.trim().replace(/\n\s*/g, ' ').replace(/([[{]) /g, '$1').replace(/(?<=[^_]) (?=[\]}])/g, '');
+  const A = [['00', '0'], ['01', '1'], ['0a', '10'], ['17', '23'], ['1818', '24'], ['1819', '25'], ['1864', '100'], ['1903e8', '1000'], ['1a000f4240', '1000000'], ['1b000000e8d4a51000', '1000000000000'],
+    ['1bffffffffffffffff', '18446744073709551615'], ['c249010000000000000000', '18446744073709551616'], ['3bffffffffffffffff', '-18446744073709551616'], ['c349010000000000000000', '-18446744073709551617'],
+    ['20', '-1'], ['29', '-10'], ['3863', '-100'], ['3903e7', '-1000'], ['f90000', '0.0'], ['f98000', '-0.0'], ['f93c00', '1.0'], ['fb3ff199999999999a', '1.1'], ['f93e00', '1.5'], ['f97bff', '65504.0'],
+    ['fa47c35000', '100000.0'], ['fa7f7fffff', '3.4028234663852886e+38'], ['fb7e37e43c8800759c', '1.0e+300'], ['f90001', '5.960464477539063e-8'], ['f90400', '0.00006103515625'], ['f9c400', '-4.0'],
+    ['fbc010666666666666', '-4.1'], ['f97c00', 'Infinity'], ['f97e00', 'NaN'], ['f9fc00', '-Infinity'], ['fa7f800000', 'Infinity'], ['fa7fc00000', 'NaN'], ['faff800000', '-Infinity'],
+    ['fb7ff0000000000000', 'Infinity'], ['fb7ff8000000000000', 'NaN'], ['fbfff0000000000000', '-Infinity'], ['f4', 'false'], ['f5', 'true'], ['f6', 'null'], ['f7', 'undefined'], ['f0', 'simple(16)'], ['f8ff', 'simple(255)'],
+    ['c074323031332d30332d32315432303a30343a30305a', '0("2013-03-21T20:04:00Z")'], ['c11a514b67b0', '1(1363896240) / 2013-03-21T20:04:00Z /'], ['c1fb41d452d9ec200000', '1(1363896240.5) / 2013-03-21T20:04:00.500Z /'],
+    ['d74401020304', "23(h'01020304')"], ['d818456449455446', "24(h'6449455446')"], ['d82076687474703a2f2f7777772e6578616d706c652e636f6d', '32("http://www.example.com")'],
+    ['40', "h''"], ['4401020304', "h'01020304'"], ['60', '""'], ['6161', '"a"'], ['6449455446', '"IETF"'], ['62225c', '"\\"\\\\"'], ['62c3bc', '"ü"'], ['63e6b0b4', '"水"'], ['64f0908591', '"𐅑"'],
+    ['80', '[]'], ['83010203', '[1, 2, 3]'], ['8301820203820405', '[1, [2, 3], [4, 5]]'], ['98190102030405060708090a0b0c0d0e0f101112131415161718181819', `[${Array.from({ length: 25 }, (_, i) => i + 1).join(', ')}]`],
+    ['a0', '{}'], ['a201020304', '{1: 2, 3: 4}'], ['a26161016162820203', '{"a": 1, "b": [2, 3]}'], ['826161a161626163', '["a", {"b": "c"}]'], ['a56161614161626142616361436164614461656145', '{"a": "A", "b": "B", "c": "C", "d": "D", "e": "E"}'],
+    ['5f42010243030405ff', "(_ h'0102', h'030405')"], ['7f657374726561646d696e67ff', '(_ "strea", "ming")'], ['9fff', '[_ ]'], ['9f018202039f0405ffff', '[_ 1, [2, 3], [_ 4, 5]]'], ['9f01820203820405ff', '[_ 1, [2, 3], [4, 5]]'],
+    ['83018202039f0405ff', '[1, [2, 3], [_ 4, 5]]'], ['83019f0203ff820405', '[1, [_ 2, 3], [4, 5]]'], ['9f0102030405060708090a0b0c0d0e0f101112131415161718181819ff', `[_ ${Array.from({ length: 25 }, (_, i) => i + 1).join(', ')}]`],
+    ['bf61610161629f0203ffff', '{_ "a": 1, "b": [_ 2, 3]}'], ['826161bf61626163ff', '["a", {_ "b": "c"}]'], ['bf6346756ef563416d7421ff', '{_ "Fun": true, "Amt": -2}']];
+  t.eq(A.filter(([h, w]) => flat(bin('cbor', h)) !== w).map(([h, w]) => `${h} → ${flat(bin('cbor', h))} ≠ ${w}`), [], `CBOR: all ${A.length} examples of RFC 8949 Appendix A`);
+  t.eq(bin('cbor', '83 01 82 02 03 a1 61 61 f5'), '[\n  1,\n  [\n    2,\n    3\n  ],\n  {\n    "a": true\n  }\n]\n', 'CBOR layout: one member per line, two spaces per level');
+  t.eq([bin('cbor', 'c2581900112233445566778899aabbccddeeff001122334455667788').trim(), bin('cbor', 'c24105').trim(), bin('cbor', 'c340').trim(), bin('cbor', 'c26161').trim()],
+    ['420114521374899418442343030677428126341162808803827545992', '5', '-1', '2("a")'], 'CBOR bignums of any length are shown as numbers (a tag 2 around text stays a tag)');
+  t.eq([bin('cbor', 'f6f7'), bin('cbor', 'a1f701').replace(/\s+/g, ' '), bin('cbor', '5fff'), bin('cbor', 'bfff'), bin('cbor', 'd9d9f7a0')], ['null\n\nundefined\n', '{ undefined: 1 } ', '(_ )\n', '{_ }\n', '55799({})\n'], 'CBOR: undefined is not null; empty indefinite items; self-described tag');
+  t.eq(['18', '1c', '62c328', '817f', 'f818', 'ff', '5f6161ff', 'c2', '3f', '9f01'].map((h) => bin('cbor', h)), [
+    'ERR Not valid CBOR: the data ends in the middle of the value that starts at byte 0', 'ERR Not valid CBOR: byte 0x1c at 0 is not valid CBOR (a reserved length code)', 'ERR Not valid CBOR: the text string at byte 0 is not valid UTF-8',
+    'ERR Not valid CBOR: the data ends in the middle of the value that starts at byte 1', 'ERR Not valid CBOR: simple value 24 at byte 0 must be written in one byte', 'ERR Not valid CBOR: unexpected break (0xff) at byte 0',
+    'ERR Not valid CBOR: the chunk at byte 1 of the indefinite-length string at byte 0 is not a byte string', 'ERR Not valid CBOR: the data ends at byte 1, where another value should start', 'ERR Not valid CBOR: byte 0x3f at 0 is not valid CBOR (a reserved length code)',
+    'ERR Not valid CBOR: the data ends in the middle of the value that starts at byte 0'], 'CBOR errors say what is wrong and where, in plain words');
+  t.eq(bin('cbor', '01 02 ff'), '1\n\n2\n!! Not valid CBOR: unexpected break (0xff) at byte 2', 'CBOR: the values before a bad one are still shown');
+  t.ok(/deeper than 100/.test(bin('cbor', '81'.repeat(300) + '01')) && /deeper than 100/.test(bin('msgpack', '91'.repeat(3000) + '01')) && bin('cbor', '81'.repeat(90) + '01').length > 4000, 'deep nesting is refused at 100 levels (90 levels decode)');
+  t.eq(bin('cbor', '5b ffffffffffffffff'), 'ERR Not valid CBOR: the byte string at byte 0 says 18446744073709551615 bytes but only 0 remain', 'CBOR: an impossible length is refused without allocating');
+  t.ok(/h'(00){256}…' \/ 300 bytes, first 256 shown \//.test(bin('cbor', '59012c' + '00'.repeat(300))), 'long byte strings are cut in the dump, with their length');
+  // MessagePack: every format byte family (spec), by hand
+  const M = [['00', '0'], ['7f', '127'], ['ff', '-1'], ['e0', '-32'], ['cc80', '128'], ['cdffff', '65535'], ['ce00010000', '65536'], ['cfffffffffffffffff', '18446744073709551615'], ['d080', '-128'], ['d18000', '-32768'],
+    ['d280000000', '-2147483648'], ['d38000000000000000', '-9223372036854775808'], ['c0', 'null'], ['c2', 'false'], ['c3', 'true'], ['ca3fc00000', '1.5'], ['ca3dcccccd', '0.1'], ['cb3ff0000000000000', '1.0'],
+    ['cb7e37e43c8800759c', '1.0e+300'], ['cb7ff8000000000000', 'NaN'], ['cb7ff0000000000000', 'Infinity'], ['cbfff0000000000000', '-Infinity'], ['cb8000000000000000', '-0.0'], ['a0', '""'], ['a161', '"a"'],
+    ['d90161', '"a"'], ['da000161', '"a"'], ['db0000000161', '"a"'], ['a3610a22', '"a\\n\\""'], ['a17f', '"\\u007f"'], ['a2c328', '<invalid UTF-8, 2 bytes: c328>'], ['c400', '<bin 0 bytes>'], ['c4030102ff', '<bin 3 bytes: 0102ff>'],
+    ['c50001aa', '<bin 1 byte: aa>'], ['c600000001aa', '<bin 1 byte: aa>'], ['d40105', '<ext type 1, 1 byte: 05>'], ['d5020102', '<ext type 2, 2 bytes: 0102>'], ['c7000a', '<ext type 10, 0 bytes>'], ['c703f6010203', '<ext type -10, 3 bytes: 010203>'],
+    ['d6ff5a4af700', '<timestamp 2018-01-02T03:05:36Z>'], ['d6ff00000000', '<timestamp 1970-01-01T00:00:00Z>'], ['d6ffffffffff', '<timestamp 2106-02-07T06:28:15Z>'], ['d7ff0ee6b28000000001', '<timestamp 1970-01-01T00:00:01.062500Z>'],
+    ['c70cff3b9ac9ffffffffffffffffff', '<timestamp 1969-12-31T23:59:59.999999999Z>'], ['c70cffffffffff0000000000000000', '<timestamp invalid: 4294967295 nanoseconds>'], ['c70cff000000007fffffffffffffff', '<timestamp 9223372036854775807 s (outside the calendar range)>'],
+    ['90', '[]'], ['80', '{}'], ['dc0000', '[]'], ['dd00000000', '[]'], ['de0000', '{}'], ['df00000000', '{}'], ['920102', '[1, 2]'], ['8101a161', '{1: "a"}'], ['81c0c0', '{null: null}'], ['81920102a161', '{[1, 2]: "a"}'], ['dc00020102', '[1, 2]']];
+  t.eq(M.filter(([h, w]) => flat(bin('msgpack', h)) !== w).map(([h, w]) => `${h} → ${flat(bin('msgpack', h))} ≠ ${w}`), [], `MessagePack: ${M.length} values covering every format byte`);
+  t.eq(['c1', '92c1c1', '93', 'd9ff', 'c6ffffffff', 'dd7fffffff', ''].map((h) => bin('msgpack', h)), ['ERR Not valid MessagePack: byte 0xc1 at 0 is never used in MessagePack', 'ERR Not valid MessagePack: byte 0xc1 at 1 is never used in MessagePack',
+    'ERR Not valid MessagePack: the data ends at byte 1, where another value should start', 'ERR Not valid MessagePack: the string at byte 0 says 255 bytes but only 0 remain', 'ERR Not valid MessagePack: the bin at byte 0 says 4294967295 bytes but only 0 remain',
+    'ERR Not valid MessagePack: the data ends at byte 5, where another value should start', '(nothing to decode)'], 'MessagePack errors (0xc1 is not nil), impossible lengths, nothing in');
+  t.eq(bin('msgpack', '01 a161 c1'), '1\n\n"a"\n!! Not valid MessagePack: byte 0xc1 at 3 is never used in MessagePack', 'MessagePack: the values before a bad one are still shown');
+  // protobuf: readings that used to be wrong
+  const pbx = (hex, op = 'bin:protobuf') => { try { const o = d.bytesJson(op, Uint8Array.from(Buffer.from(hex.replace(/\s/g, ''), 'hex'))); return o.error ? `${o.text}!! ${o.error}` : o.text; } catch (e) { return `ERR ${e.message}`; } };
+  const lenp = (n) => { const o = []; while (n > 127) { o.push((n & 127) | 128); n >>>= 7; } o.push(n); return Buffer.from(o).toString('hex'); }, hx = (s) => Buffer.from(s).toString('hex');
+  const fox = '0a' + lenp(43) + hx('The quick brown fox jumps over the lazy dog');
+  t.eq(pbx('1a' + lenp(fox.length / 2) + fox), '3 {  # or the text "\\n+The quick brown fox jumps over the laz…"\n  1: "The quick brown fox jumps over the lazy dog"\n}\n', 'protobuf: a message whose bytes are also text with a control character is shown as the message (the other reading noted)');
+  t.eq(pbx('0a2a2228' + hx('0123456789012345678901234567890123456789')), '1 {  # or the text "\\"(01234567890123456789012345678901234567…"\n  4: "0123456789012345678901234567890123456789"\n}\n', 'protobuf: text that is also a message holding a string → message, with the other reading noted');
+  t.eq([pbx('0a024869'), pbx('0a023830'), pbx('0a03666f6f')], ['1: "Hi"  # could also be a nested message\n', '1: "80"  # could also be a nested message\n', '1: "foo"\n'], 'protobuf: short text that happens to parse (Hi, 80) stays text, and says so');
+  t.eq([pbx('0801'), pbx('0801', 'bin:protobuf+sint'), pbx('08ffffffffffffffffff01'), pbx('08ffffffffffffffffff01', 'bin:protobuf+sint')], ['1: 1\n', '1: 1  # sint -1\n', '1: 18446744073709551615  # int64 -1\n', '1: 18446744073709551615  # int64 -1, sint -9223372036854775808\n'], 'protobuf: zigzag readings only on request');
+  t.eq([pbx('09000000000000f03f'), pbx('090100000000000000'), pbx('09ffffffffffffef7f'), pbx('0d0000803f'), pbx('0dffff7f7f'), pbx('0d01000000')], ['1: 0x3ff0000000000000  # fixed64 4607182418800017408, double 1.0\n', '1: 0x0000000000000001  # fixed64 1, double 5.0e-324\n',
+    '1: 0x7fefffffffffffff  # fixed64 9218868437227405311, double 1.7976931348623157e+308\n', '1: 0x3f800000  # fixed32 1065353216, float 1.0\n', '1: 0x7f7fffff  # fixed32 2139095039, float 3.4028235e+38\n', '1: 0x00000001  # fixed32 1, float 1.0e-45\n'], 'protobuf: doubles and floats in the shortest exact digits');
+  t.eq([pbx('3206038e029ea705'), pbx('0a03010203'), pbx('0a0208c8')], ['6: 0x038e029ea705  # 6 bytes; as packed varints: 3, 270, 86942\n', '1: 0x010203  # 3 bytes; as packed varints: 1, 2, 3\n', '1: 0x08c8  # 2 bytes\n'], 'protobuf: bytes that are a run of varints are also read as a packed field');
+  t.eq([pbx('0b08011a036162630c'), pbx('0a00'), pbx('0a020a00'), pbx('f8ffffff0f01'), pbx('')], ['1 {  # group\n  1: 1\n  3: "abc"\n}\n', '1: ""\n', '1 {\n  1: ""\n}\n', '536870911: 1\n', '(empty message)'], 'protobuf: groups, empty fields, the largest field number, nothing in');
+  t.eq(['088080808080808080808001', '0b0801', '0c', '0e', '00', 'f8ffffffff0101', '1205', '12ffffffffffffffffff01', '0d0102'].map((h) => pbx(h)), ['ERR Not a valid protobuf message: the varint at byte 1 is longer than 10 bytes', 'ERR Not a valid protobuf message: group 1 is not closed',
+    'ERR Not a valid protobuf message: unexpected end-group 1 at byte 0', 'ERR Not a valid protobuf message: invalid wire type 6 at byte 0', 'ERR Not a valid protobuf message: field number 0 at byte 0', 'ERR Not a valid protobuf message: field number 8589934591 at byte 0 is above the limit 536870911',
+    'ERR Not a valid protobuf message: field 2 at byte 0 says 5 bytes but only 0 remain', 'ERR Not a valid protobuf message: field 2 at byte 0 says 18446744073709551615 bytes but only 0 remain', 'ERR Not a valid protobuf message: the data ends inside the fixed32 of field 1 at byte 0'], 'protobuf errors');
+  t.eq(pbx('089601 12'), '1: 150\n!! Not a valid protobuf message: the data ends inside the varint that starts at byte 4', 'protobuf: the fields before a bad one are still shown');
+  for (const n of [500, 5000, 60000]) { // deep nesting used to overflow the stack and leave the engine unusable
+    let b = Buffer.from('0801', 'hex'); for (let i = 0; i < n; i++) b = Buffer.concat([Buffer.from('0a' + lenp(b.length), 'hex'), b]);
+    const o = d.bytesJson('bin:protobuf', b), g = pbx('23'.repeat(n));
+    t.ok(o.count === 1 && o.text.length < 40000 && /deeper than 100 levels/.test(g) && pbx('0801') === '1: 1\n', `protobuf: ${n} nested messages / ${n} open groups are handled (output ${o.text.length} chars) and the engine keeps working`);
+  }
   // ---- patch (compared with GNU patch when available)
   const orig = 'one\ntwo\nthree\nfour\nfive\n';
   const diff = '--- a.txt\n+++ b.txt\n@@ -1,5 +1,5 @@\n one\n-two\n+TWO\n three\n four\n-five\n+5\n';

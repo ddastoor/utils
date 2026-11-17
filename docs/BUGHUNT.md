@@ -178,19 +178,19 @@ Areas with a shared review: the app shell (router, search, favorites, platform h
 | `totp` | TOTP / 2FA Codes | PC only | net | ✓ | 6 | 63 | e2e 11→49 + 25 unit; RFC 4226/6238 |
 | `pwstrength` | Password Strength | PC only | net | ✓ | 6 | 95 | e2e 13→32 + 76 unit (new); 304 passwords vs Python zxcvbn |
 | `jsonschema` | JSON Schema | PC only | data-engines |  |  |  |  |
-| `bitwise` | Bitwise Calculator | PC only | bitswebref |  |  |  |  |
-| `ieee754` | IEEE-754 Inspector | PC only | bitswebref |  |  |  |  |
-| `contrast` | Contrast Checker | PC only | bitswebref |  |  |  |  |
-| `baseenc` | Base32 / Base58 / Ascii85 | PC only | bitswebref |  |  |  |  |
-| `bindecode` | Protobuf / MsgPack / CBOR | PC only | bitswebref |  |  |  |  |
-| `httpstatus` | HTTP Status Codes | PC only | bitswebref |  |  |  |  |
-| `mime` | MIME Types | PC only | bitswebref |  |  |  |  |
-| `ports` | Port Numbers | PC only | bitswebref |  |  |  |  |
-| `ascii` | ASCII Table | PC only | bitswebref |  |  |  |  |
-| `keycode` | Key Codes | PC only | bitswebref |  |  |  |  |
-| `gradient` | CSS Gradient | PC only | bitswebref |  |  |  |  |
-| `shadow` | CSS Box Shadow | PC only | bitswebref |  |  |  |  |
-| `svgo` | SVG Optimizer | PC only | bitswebref |  |  |  |  |
+| `bitwise` | Bitwise Calculator | PC only | bitswebref | ✓ | 6 | 40 | rotate ≥ width wrapped, shift ≥ width, B overflow note, + / spaces, outputs paste back, unused boxes off; vs BigInt, random operands |
+| `ieee754` | IEEE-754 Inspector | PC only | bitswebref | ✓ | 5 | 45 | float32 ties (no double rounding) vs exact rationals; 1e-1000000 froze the page; stale result on bad input; too large / too small notes |
+| `contrast` | Contrast Checker | PC only | bitswebref | ✓ | 3 | 31 | see-through colours blended; a fix for every failing pair (white/black fallback); rgb() / hsl() / names; 40 random pairs vs formula |
+| `baseenc` | Base32 / Base58 / Ascii85 | PC only | bitswebref | ✓ | 9 | 98 | ≥ 8 MiB trapped the engine; Base58 froze on files; unpadded / spaced / 0x / data: input; file in Decode; vs Python base64 (147 values × 10) |
+| `bindecode` | Protobuf / MsgPack / CBOR | PC only | bitswebref | ✓ | 15 | 87 | own CBOR + MessagePack readers; deep nesting broke the tab; undefined, simple, bignums, floats, 0xc1; vs cbor2 / msgpack / protobuf (480 messages) |
+| `httpstatus` | HTTP Status Codes | PC only | bitswebref | ✓ | 2 | 19 | everyday words and old names find the code; nginx / Cloudflare / Laravel codes marked unofficial |
+| `mime` | MIME Types | PC only | bitswebref | ✓ | 2 | 25 | exact extension first; image/jpg & co find the row; 17 more types |
+| `ports` | Port Numbers | PC only | bitswebref | ✓ | 2 | 25 | exact port first; database / email / vpn / k8s find their ports; 27 more ports |
+| `ascii` | ASCII Table | PC only | bitswebref | ✓ | 3 | 23 | newline / enter / ^C found; caret names; filter kept and focus not stolen by the Latin-1 switch |
+| `keycode` | Key Codes | PC only | bitswebref | ✓ | 4 | 10 | keyboard trap removed (Tab, Enter / Space on buttons), browser keys left alone, AltGr |
+| `gradient` | CSS Gradient | PC only | bitswebref | ✓ | 4 | 20 | transparency kept, stop goes into the widest gap, positions brought into range, only live controls enabled |
+| `shadow` | CSS Box Shadow | PC only | bitswebref | ✓ | 1 | 18 | see-through colour refused with reason; presets, layer tabs, extremes |
+| `svgo` | SVG Optimizer | PC only | bitswebref | ✓ | 7 | 59 | DOCTYPE files refused; Safe mode did nothing; deep nesting broke the engine; every result rendered and compared, safe fallback; .svgz / UTF-16 / Latin-1; 130 hazard drawings |
 | `patch` | Patch Applier | PC only | misc | ✓ | 10 | 56 | e2e 10→24 + 42 unit; own reader/applier vs GNU patch (150 random patches) |
 
 ## codes
@@ -352,3 +352,55 @@ tier 2 — the crates in use were wrong for the job; nothing moved to JavaScript
   1020 × 3 px PNG; an empty box showed Mermaid's internal message.
 - Test runner: a suite that fails in the parallel e2e run is re-run once alone (media / timing suites are sensitive
   to 8 browsers on 4 cores); it counts as failed only if it fails both times.
+
+### Software › bits, reference and web-design tabs (17 Nov 2026) — bitwise, ieee754, baseenc, bindecode, httpstatus, mime, ports, ascii, keycode, contrast, gradient, shadow, svgo
+Method: the earlier reviewer's probe scripts re-run one by one + own code review, then bulk comparison with
+references: BigInt, exact rational rounding (Python `fractions`), Python `base64`, `cbor2`, `msgpack`,
+`google.protobuf`, the WCAG formula, a browser raster of every optimised SVG. 63 bugs, 500 new checks (e2e for the 13
+tabs 170 → 504; unit +165: devcore 266 → 348, new `svgo.test.mjs` 32 and `bitsweb.test.mjs` 51).
+- **SVG Optimizer (7)** — the most serious group. (1) Any file with a `<!DOCTYPE …>` line (most Inkscape, Illustrator,
+  Graphviz and matplotlib exports) was refused: "XML with DTD detected". Now read, including entities declared in the
+  DOCTYPE. (2) "Safe mode" changed nothing: OXVG's own `Jobs::safe()` still inlines styles, collapses groups and
+  rewrites paths. Safe mode is now our own short list (drop DOCTYPE / XML declaration / comments / metadata / editor
+  data, tidy attributes, shorten colours, sort attributes). (3) The full optimisation changes how some drawings look
+  (group opacity collapsed onto children, CSS selectors that depend on the structure, SMIL-revealed elements, tiny
+  viewBoxes, zero-length round caps — 13 of 130 hazard drawings). **Every result is now rendered next to its original
+  and compared** (`sv_diff` in svgo.wasm: 3 × 3 neighbourhood match, so anti-aliasing counts as nothing; thresholds
+  calibrated on 630 real icons); if it differs, the safe result is used and the card says so. (4) 500 nested groups
+  overflowed the wasm stack and left the engine broken until the tab was reopened → refused above 256 levels, and a
+  trapped instance is replaced. (5) UTF-16, Latin-1 and .svgz files were read as UTF-8. (6) XML that is not SVG gave
+  an empty "result". (7) A result could be larger than the original (re-printed CSS) → the original is kept.
+  No unit suite existed for svgo.wasm; `tests/fixtures/svg/hazards.json` (130 drawings) now drives unit + e2e.
+- **Protobuf / MsgPack / CBOR (15):** the CBOR and MessagePack readers are now our own Rust (`wasm/devcore/src/bin.rs`;
+  ciborium and rmpv dropped): `undefined` was shown as `null`, simple values and bignums over 16 bytes were refused,
+  MessagePack's unused byte 0xc1 read as nil, 1.0 printed as `1`, 1e300 as 301 digits, `inf`, errors as Rust debug
+  text (`Semantic(None, "invalid type: …")`). Protobuf: 5,000 nested messages or 100 KB of `#` (open groups) overflowed
+  the stack — "memory access out of bounds", then every later decode failed → nesting limit 100, bytes shown beyond
+  it. A nested message whose bytes are also text was shown as the text; every odd varint carried a "sint" comment
+  (now a switch); field numbers above 2^29 − 1 accepted; DEL / C1 characters printed raw. UI: the values before a bad
+  byte are shown with the reason; hex as C arrays / `\x` escapes / single digits; a chosen file survived no input
+  switch. Checked against cbor2, msgpack and google.protobuf on 480 random messages, RFC 8949 Appendix A (all 81).
+- **Base32 / Base58 / Ascii85 (9):** files of 8 MiB and more trapped the engine ("unreachable": data-encoding asserts
+  `len <= usize::MAX / 512` on 32-bit targets) → encoded and decoded in pieces. Base58 of a 60 KB file froze the page
+  for 10 s (quadratic) → limited to 10,000 bytes with the reason. Decoding refused what people paste: Base32 without
+  padding (every TOTP secret), spaced groups, `0x66, 0x6f`, `66:6f`, data: URLs. A file chosen in Decode mode was
+  decoded as the text "(file: …)". Long results are shown cut, Copy / Download give all. 147 values × 10 encodings
+  equal Python's base64 module and spec implementations of Base58 / Crockford.
+- **IEEE-754 (5):** float32 was rounded through a double first, which lands on the wrong float for decimals on or
+  next to a tie (`1.0000000596046447753906251` → 3F800000 instead of 3F800001; 20 such cases in the fixture) → exact
+  BigInt comparison of the neighbours. `1e-1000000` froze the page (million-digit BigInt). A non-number left the
+  previous result on screen. Overflow to Infinity / underflow to 0 were not explained.
+- **Bitwise (6):** rotating by the width or more did nothing (ROL 9 in 8 bits), a fractional count threw, B outside
+  the width gave no note, `+5` and `0b1100 1010` were refused while the Binary row printed exactly that form, NOT and
+  shifts needed a valid B, an empty count meant 0.
+- **Contrast (3):** `#00000080` on white read 21 : 1 (alpha dropped) → blended as it appears; saturated colours got no
+  fix suggestion although white or black passes; rgb() / hsl() / names were refused.
+- **Gradient (4) / Shadow (1):** transparency in a typed colour was dropped silently; 150 % stayed in the box; every
+  added stop was the same colour at 100 %; the angle slider was live for radial gradients.
+- **Key Codes (4):** the tab was a keyboard trap — Tab never left it, Enter / Space on a focused button were
+  recorded instead of pressing it, F5 / Ctrl+R / Ctrl+L were blocked. AltGr showed as Ctrl + Alt.
+- **Reference tables (9):** searches by everyday words found nothing ("email", "database", "k8s", "newline", "enter",
+  "unauthorised", "payload", `image/jpg`); the exact port / extension / character was not first ("80" listed 1080
+  before… ); the ASCII filter was lost and the focus stolen by the Latin-1 switch; nginx / Cloudflare codes,
+  27 ports and 17 file types added.
+

@@ -4,14 +4,16 @@ import { h, card, input, clear, note, copy, toggle, button, type Mount } from '.
 
 type Row = string[];
 /** A searchable table: every whitespace-separated word of the query must appear in the row (case-insensitive). */
-function refTable(root: HTMLElement, o: { head: string[]; rows: Row[]; placeholder: string; mono?: number[]; intro?: Node; rowClass?: (r: Row) => string; group?: (r: Row) => string }) {
-  const q = input({ type: 'search', placeholder: o.placeholder, attrs: { 'aria-label': 'Filter' } });
+function refTable(root: HTMLElement, o: { head: string[]; rows: Row[]; placeholder: string; mono?: number[]; intro?: Node; rowClass?: (r: Row) => string; group?: (r: Row) => string; query?: string; exact?: (r: Row) => string[]; focus?: boolean; alias?: (r: Row) => string }) {
+  const q = input({ type: 'search', placeholder: o.placeholder, value: o.query || '', attrs: { 'aria-label': 'Filter' } });
   const count = h('div', { class: 'muted' });
   const body = h('tbody');
-  const hay = o.rows.map((r) => `${r.join(' \u0001 ')} \u0001 ${o.group?.(r) || ''}`.toLowerCase());
+  const hay = o.rows.map((r) => `${r.join(' \u0001 ')} \u0001 ${o.group?.(r) || ''} \u0001 ${o.alias?.(r) || ''}`.toLowerCase()); // alias = other words people search by (not shown)
   const render = () => {
     const words = q.value.toLowerCase().split(/\s+/).filter(Boolean);
-    const hits = o.rows.filter((_, i) => words.every((w) => hay[i].includes(w)));
+    let hits = o.rows.filter((_, i) => words.every((w) => hay[i].includes(w)));
+    // "80" should show port 80 before 8080 and 1080: rows whose key is exactly the query come first (order otherwise kept)
+    if (words.length === 1 && o.exact && !o.group) { const w = words[0].replace(/^\./, ''), top = hits.filter((r) => o.exact!(r).includes(w)); if (top.length) hits = [...top, ...hits.filter((r) => !top.includes(r))]; }
     let lastGroup = '';
     clear(body).append(...hits.flatMap((r) => {
       const out: HTMLElement[] = [];
@@ -20,12 +22,12 @@ function refTable(root: HTMLElement, o: { head: string[]; rows: Row[]; placehold
       out.push(h('tr', { class: o.rowClass?.(r) || null }, r.map((c, j) => h('td', { class: o.mono?.includes(j) ? 'mono' : null }, c))));
       return out;
     }));
-    count.textContent = words.length ? `${hits.length} of ${o.rows.length} match` : `${o.rows.length} entries`;
+    count.textContent = words.length ? (hits.length ? `${hits.length} of ${o.rows.length} match` : `Nothing matches “${q.value.trim()}” (${o.rows.length} entries)`) : `${o.rows.length} entries`;
   };
   q.addEventListener('input', render);
   root.append(card(null, q, count), o.intro || '', card(null, h('div', { class: 'scroll-x' }, h('table', { class: 'tbl ref-tbl' }, h('thead', null, h('tr', null, o.head.map((x) => h('th', null, x)))), body))));
   render();
-  setTimeout(() => q.focus(), 0);
+  if (o.focus !== false) setTimeout(() => q.focus(), 0);
   return { q, render };
 }
 
@@ -93,14 +95,33 @@ const HTTP: Array<[number, string, string, string]> = [
   [508, 'Loop Detected', 'WebDAV: an infinite loop was detected.', 'RFC 5842'],
   [510, 'Not Extended', 'Obsoleted (historic).', 'RFC 2774'],
   [511, 'Network Authentication Required', 'Log in to the network first (captive portal Wi-Fi).', 'RFC 6585'],
-];
+  // not in the IANA registry, but seen in logs every day
+  [419, 'Page Expired', 'Laravel: the CSRF token is missing or expired.', 'unofficial (Laravel)'],
+  [444, 'No Response', 'nginx closed the connection without sending a response (in access logs only).', 'unofficial (nginx)'],
+  [499, 'Client Closed Request', 'nginx: the client went away before the server answered (in access logs only).', 'unofficial (nginx)'],
+  [520, 'Web Server Returned an Unknown Error', 'Cloudflare: the origin sent an empty or unexpected response.', 'unofficial (Cloudflare)'],
+  [521, 'Web Server Is Down', 'Cloudflare: the origin refused the connection.', 'unofficial (Cloudflare)'],
+  [522, 'Connection Timed Out', 'Cloudflare: could not reach the origin (TCP handshake timed out).', 'unofficial (Cloudflare)'],
+  [523, 'Origin Is Unreachable', 'Cloudflare: no route to the origin (DNS or routing problem).', 'unofficial (Cloudflare)'],
+  [524, 'A Timeout Occurred', 'Cloudflare: connected to the origin, but it did not answer in time.', 'unofficial (Cloudflare)'],
+  [525, 'SSL Handshake Failed', 'Cloudflare: the TLS handshake with the origin failed.', 'unofficial (Cloudflare)'],
+  [526, 'Invalid SSL Certificate', 'Cloudflare: the origin\'s certificate could not be validated.', 'unofficial (Cloudflare)'],
+].sort((a, b) => (a[0] as number) - (b[0] as number)) as Array<[number, string, string, string]>;
 export const HTTP_CODES = HTTP;
+/** Other names and spellings people search by (older RFC names, British spelling, everyday words). */
+const HTTP_ALIAS: Record<number, string> = {
+  200: 'success fine', 201: 'post created', 204: 'empty', 301: 'seo moved', 302: 'moved temporarily', 304: 'etag cached', 400: 'malformed invalid',
+  401: 'unauthorised unauthenticated not logged in login token expired', 403: 'permission denied access denied not allowed', 404: 'missing page not found broken link',
+  405: 'wrong method', 408: 'timed out', 409: 'duplicate already exists', 413: 'payload too large request entity too large upload too big', 414: 'request-uri too long url too long',
+  415: 'wrong content type', 416: 'requested range not satisfiable', 422: 'unprocessable entity validation failed', 429: 'throttled throttling quota rate limit',
+  500: 'crash exception bug', 502: 'upstream proxy nginx', 503: 'overloaded down maintenance unavailable', 504: 'upstream timed out proxy nginx', 499: 'cancelled aborted',
+};
 const httpClass = (c: number) => ['', 'Informational', 'Success', 'Redirection', 'Client error', 'Server error'][Math.floor(c / 100)];
 export const httpstatus: Mount = (root) => {
   refTable(root, {
     head: ['Code', 'Name', 'Meaning', 'Spec'], mono: [0], placeholder: 'Search: 404, redirect, rate limit, 5xx…',
     rows: HTTP.map(([c, n, d, s]) => [String(c), n, d, s]), group: (r) => `${r[0][0]}xx · ${httpClass(+r[0])}`,
-    rowClass: (r) => `http-${r[0][0]}xx`,
+    rowClass: (r) => `http-${r[0][0]}xx${r[3].startsWith('unofficial') ? ' http-unofficial' : ''}`, alias: (r) => HTTP_ALIAS[+r[0]] || '',
   });
 };
 
@@ -139,14 +160,26 @@ const MIME: Array<[string, string, string]> = [
   ['asc', 'application/pgp-keys', 'Armored OpenPGP key (application/pgp-signature for signatures)'], ['gpg pgp', 'application/pgp-encrypted', 'OpenPGP encrypted data'],
   ['glb', 'model/gltf-binary', '3D model (glTF binary)'], ['gltf', 'model/gltf+json', '3D model (glTF JSON)'], ['stl', 'model/stl', '3D printing model'], ['obj', 'model/obj', 'Wavefront 3D model'],
   ['kml', 'application/vnd.google-earth.kml+xml', 'Google Earth KML'], ['gpx', 'application/gpx+xml', 'GPS track'], ['geojson', 'application/geo+json', 'GeoJSON'],
+  ['mpeg mpg', 'video/mpeg', 'MPEG video'], ['wmv', 'video/x-ms-wmv', 'Windows Media video'], ['flv', 'video/x-flv', 'Flash video'], ['aif aiff', 'audio/aiff', 'AIFF audio'], ['wma', 'audio/x-ms-wma', 'Windows Media audio'],
+  ['vtt', 'text/vtt', 'WebVTT subtitles'], ['srt', 'application/x-subrip', 'SubRip subtitles'], ['eot', 'application/vnd.ms-fontobject', 'Embedded OpenType font (old Internet Explorer)'],
+  ['torrent', 'application/x-bittorrent', 'BitTorrent file'], ['php', 'application/x-httpd-php', 'PHP source'], ['ipynb', 'application/x-ipynb+json', 'Jupyter notebook'], ['parquet', 'application/vnd.apache.parquet', 'Apache Parquet table'],
+  ['ps eps', 'application/postscript', 'PostScript'], ['jsx', 'text/jsx', 'React JSX source'], ['tsx', 'text/tsx', 'React TSX source'], ['proto', 'text/x-protobuf', 'Protocol Buffers schema'],
   ['', 'multipart/form-data', 'HTML form upload with files'], ['', 'application/x-www-form-urlencoded', 'HTML form (default encoding)'], ['', 'text/event-stream', 'Server-sent events'],
-  ['', 'application/problem+json', 'API error details (RFC 9457)'], ['', 'application/graphql-response+json', 'GraphQL response'], ['', 'application/x-ndjson', 'Newline-delimited JSON'],
+  ['', 'application/problem+json', 'API error details (RFC 9457)'], ['', 'application/graphql-response+json', 'GraphQL response'], ['ndjson jsonl', 'application/x-ndjson', 'Newline-delimited JSON / JSON Lines (application/jsonl also seen)'],
 ];
 export const MIME_TYPES = MIME;
+/** Wrong-but-common and older names for the same type. */
+const MIME_ALIAS: Record<string, string> = {
+  'image/jpeg': 'image/jpg image/pjpeg photo', 'text/javascript': 'application/javascript application/x-javascript', 'application/xml': 'text/xml', 'audio/wav': 'audio/x-wav audio/wave',
+  'image/vnd.microsoft.icon': 'image/x-icon favicon', 'application/gzip': 'application/x-gzip', 'application/zip': 'application/x-zip-compressed', 'audio/mpeg': 'audio/mp3',
+  'application/x-ndjson': 'application/jsonl application/json-lines', 'application/yaml': 'text/yaml application/x-yaml text/x-yaml', 'video/mp4': 'movie', 'text/plain': 'text file',
+  'application/pdf': 'acrobat', 'application/vnd.ms-excel': 'spreadsheet', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'spreadsheet excel',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'word', 'application/vnd.openxmlformats-officedocument.presentationml.presentation': 'powerpoint slides',
+};
 export const mime: Mount = (root) => {
   refTable(root, {
     head: ['Extension', 'MIME type', 'What it is'], mono: [0, 1], placeholder: 'Search: .docx, image/webp, video, font…',
-    rows: MIME.map(([e, t, d]) => [e ? e.split(' ').map((x) => `.${x}`).join(' ') : '—', t, d]),
+    rows: MIME.map(([e, t, d]) => [e ? e.split(' ').map((x) => `.${x}`).join(' ') : '—', t, d]), exact: (r) => [...r[0].split(' ').map((x) => x.slice(1)), r[1]], alias: (r) => MIME_ALIAS[r[1]] || '',
     intro: note('Servers should send the type in the Content-Type header; browsers guess ("sniff") only when it is missing. Add "; charset=utf-8" to text types.', 'info'),
   });
 };
@@ -175,12 +208,27 @@ const PORTS: Array<[string, string, string, string]> = [
   ['8883', 'TCP', 'MQTT over TLS', ''], ['9000', 'TCP', 'Various', 'PHP-FPM, SonarQube, MinIO'], ['9090', 'TCP', 'Prometheus', ''], ['9092', 'TCP', 'Kafka', ''], ['9100', 'TCP', 'Printer / node_exporter', 'Raw printing (JetDirect); Prometheus node exporter'],
   ['9200', 'TCP', 'Elasticsearch', 'HTTP API'], ['9418', 'TCP', 'Git', 'git:// protocol'], ['10250', 'TCP', 'Kubelet', 'Kubernetes node agent'], ['11211', 'TCP/UDP', 'Memcached', ''],
   ['25565', 'TCP', 'Minecraft', 'Java edition server'], ['27017', 'TCP', 'MongoDB', ''], ['51820', 'UDP', 'WireGuard', 'Default listen port'],
+  ['43', 'TCP', 'WHOIS', 'Domain registration lookup'], ['1434', 'UDP', 'SQL Server Browser', 'Finds named SQL Server instances'], ['1935', 'TCP', 'RTMP', 'Live video streaming'], ['2380', 'TCP', 'etcd peer', 'etcd cluster traffic'],
+  ['3100', 'TCP', 'Loki', 'Grafana Loki log store'], ['3128', 'TCP', 'Squid', 'HTTP proxy'], ['4200', 'TCP', 'Angular', 'Angular dev server'], ['4317', 'TCP', 'OTLP gRPC', 'OpenTelemetry collector'], ['4318', 'TCP', 'OTLP HTTP', 'OpenTelemetry collector'],
+  ['4500', 'UDP', 'IPsec NAT-T', 'IPsec through NAT'], ['5044', 'TCP', 'Beats', 'Logstash Beats input'], ['5601', 'TCP', 'Kibana', ''], ['5984', 'TCP', 'CouchDB', ''], ['5985', 'TCP', 'WinRM', 'Windows Remote Management (HTTP)'],
+  ['5986', 'TCP', 'WinRM TLS', 'Windows Remote Management (HTTPS)'], ['6667', 'TCP', 'IRC', 'Internet Relay Chat'], ['8086', 'TCP', 'InfluxDB', ''], ['8200', 'TCP', 'Vault', 'HashiCorp Vault'], ['8500', 'TCP', 'Consul', 'HashiCorp Consul'],
+  ['8888', 'TCP', 'Jupyter', 'Jupyter notebook default'], ['9042', 'TCP', 'Cassandra', 'CQL native protocol'], ['9093', 'TCP', 'Alertmanager', 'Prometheus Alertmanager'], ['15672', 'TCP', 'RabbitMQ management', 'Web console'],
+  ['19132', 'UDP', 'Minecraft Bedrock', 'Bedrock edition server'], ['32400', 'TCP', 'Plex', 'Plex media server'], ['33060', 'TCP', 'MySQL X', 'MySQL X protocol'], ['50051', 'TCP', 'gRPC', 'Common gRPC default'],
+].sort((a, b) => +a[0] - +b[0]) as Array<[string, string, string, string]>;
+/** Search words that are not in the visible columns: the kind of service and everyday names. */
+const PORT_ALIAS: Array<[RegExp, string]> = [
+  [/^(SQL Server|SQL Server Browser|Oracle|MySQL|MySQL X|PostgreSQL|MongoDB|Redis|Cassandra|CouchDB|InfluxDB|Elasticsearch|Memcached|etcd)$/, 'database db datastore'], [/^SQL Server/, 'mssql microsoft sql'],
+  [/^PostgreSQL$/, 'postgres psql pg'], [/^(Redis|Memcached)$/, 'cache'], [/^(SMTP|SMTPS|Submission|POP3|POP3S|IMAP|IMAPS)$/, 'email e-mail mail'], [/Kube|etcd/, 'k8s kubernetes'],
+  [/^(OpenVPN|WireGuard|IKE|IPsec NAT-T|L2TP|PPTP)$/, 'vpn'], [/^(HTTP|HTTPS|HTTP alt|HTTPS alt)$/, 'web website browser'], [/^(RDP|VNC|SSH|Telnet|WinRM|WinRM TLS)$/, 'remote access login'],
+  [/^(AMQP|MQTT|MQTT over TLS|Kafka|RabbitMQ management)$/, 'queue message broker messaging'], [/^(Prometheus|Alertmanager|Loki|Kibana|Beats|OTLP gRPC|OTLP HTTP|SNMP|Syslog)$/, 'monitoring logs metrics observability'],
+  [/^(Minecraft|Minecraft Bedrock)$/, 'game gaming'], [/^(SMB|NFS|FTP|FTPS|TFTP|rsync|NetBIOS-SSN)$/, 'file sharing files transfer'], [/^(DNS|mDNS|DNS over TLS\/QUIC)$/, 'name resolution domain'],
+  [/^(Dev server|Vite|Angular|Jupyter|HTTP alt)$/, 'localhost development'],
 ];
 export const PORT_LIST = PORTS;
 export const ports: Mount = (root) => {
   refTable(root, {
     head: ['Port', 'Protocol', 'Service', 'Notes'], mono: [0], placeholder: 'Search: 22, ssh, database, mail, udp…',
-    rows: PORTS, intro: note('0–1023 are well-known (system) ports, 1024–49151 registered, 49152–65535 dynamic/private (used for outgoing connections).', 'info'),
+    rows: PORTS, exact: (r) => [r[0], r[2].toLowerCase()], alias: (r) => PORT_ALIAS.filter(([re]) => re.test(r[2])).map((x) => x[1]).join(' '), intro: note('0–1023 are well-known (system) ports, 1024–49151 registered, 49152–65535 dynamic/private (used for outgoing connections).', 'info'),
   });
 };
 
@@ -190,15 +238,20 @@ const CTRL = ['NUL Null', 'SOH Start of heading', 'STX Start of text', 'ETX End 
   'DC1 Device control 1 (XON)', 'DC2 Device control 2', 'DC3 Device control 3 (XOFF)', 'DC4 Device control 4', 'NAK Negative acknowledge', 'SYN Synchronous idle', 'ETB End of block',
   'CAN Cancel', 'EM End of medium', 'SUB Substitute (Ctrl+Z)', 'ESC Escape \\e', 'FS File separator', 'GS Group separator', 'RS Record separator', 'US Unit separator'];
 const ENT: Record<number, string> = { 34: '&quot;', 38: '&amp;', 39: '&#39;', 60: '&lt;', 62: '&gt;', 160: '&nbsp;', 169: '&copy;', 174: '&reg;', 176: '&deg;', 177: '&plusmn;', 215: '&times;', 247: '&divide;' };
+/** Everyday names of control characters (the table shows the standard ones). */
+const ASCII_ALIAS: Record<number, string> = { 0: 'zero terminator \\0', 8: 'erase', 9: 'tab indent', 10: 'newline new line enter linefeed unix line ending', 13: 'enter return windows line ending crlf', 27: 'esc ansi', 32: 'blank whitespace', 127: 'rubout' };
 export function asciiRow(c: number): Row {
   const ch = c < 32 ? CTRL[c].split(' ')[0] : c === 32 ? 'Space' : c === 127 ? 'DEL' : c >= 128 && c < 160 ? '(C1 control)' : String.fromCharCode(c);
-  const desc = c < 32 ? CTRL[c].split(' ').slice(1).join(' ') : c === 32 ? 'Space' : c === 127 ? 'Delete' : c === 160 ? 'No-break space' : c >= 128 && c < 160 ? 'C1 control (Windows-1252 differs)' : c >= 48 && c <= 57 ? 'Digit' : /[A-Z]/.test(ch) ? 'Upper-case letter' : /[a-z]/.test(ch) ? 'Lower-case letter' : c > 127 ? 'Latin-1 character' : 'Punctuation / symbol';
+  const caret = (ch2: string, d: string) => (/Ctrl\+/.test(d) ? d.replace(/\(Ctrl\+(.)\)/, `(Ctrl+$1, ^$1)`) : `${d} (^${ch2})`); // every control code has a caret name: ^@ ^A … ^_ and ^?
+  const desc = c < 32 ? caret(String.fromCharCode(c + 64), CTRL[c].split(' ').slice(1).join(' ')) : c === 32 ? 'Space' : c === 127 ? 'Delete (^?)' : c === 160 ? 'No-break space' : c >= 128 && c < 160 ? 'C1 control (Windows-1252 differs)' : c >= 48 && c <= 57 ? 'Digit' : /[A-Z]/.test(ch) ? 'Upper-case letter' : /[a-z]/.test(ch) ? 'Lower-case letter' : c > 127 ? 'Latin-1 character' : 'Punctuation / symbol';
   return [String(c), c.toString(16).toUpperCase().padStart(2, '0'), c.toString(8).padStart(3, '0'), c.toString(2).padStart(8, '0'), ch, ENT[c] || (c >= 32 && c !== 127 && !(c >= 128 && c < 160) ? `&#${c};` : ''), desc];
 }
 export const ascii: Mount = (root) => {
-  let ext = false;
+  let ext = false, tbl: ReturnType<typeof refTable> | null = null;
   const host = h('div');
-  const draw = () => { clear(host); refTable(host, { head: ['Dec', 'Hex', 'Oct', 'Binary', 'Char', 'HTML', 'Description'], mono: [0, 1, 2, 3, 4, 5], placeholder: 'Search: 65, 0x41, A, tab, newline…', rows: Array.from({ length: ext ? 256 : 128 }, (_, i) => asciiRow(i)).map((r) => [...r.slice(0, 1), `0x${r[1]}`, ...r.slice(2)]) }); };
+  // the filter text survives the Latin-1 switch; a single typed character finds itself first ("a" → row 97, not every row with an a)
+  const draw = () => { const query = tbl?.q.value || '', first = !tbl; clear(host); tbl = refTable(host, { focus: first, head: ['Dec', 'Hex', 'Oct', 'Binary', 'Char', 'HTML', 'Description'], mono: [0, 1, 2, 3, 4, 5], placeholder: 'Search: 65, 0x41, A, tab, newline…', query,
+    exact: (r) => [r[0], r[1].toLowerCase(), r[4].toLowerCase()], alias: (r) => ASCII_ALIAS[+r[0]] || '', rows: Array.from({ length: ext ? 256 : 128 }, (_, i) => asciiRow(i)).map((r) => [...r.slice(0, 1), `0x${r[1]}`, ...r.slice(2)]) }); };
   root.append(card(null, toggle('Include Latin-1 (128–255)', false, (v) => { ext = v; draw(); })), host);
   draw();
 };
@@ -208,12 +261,18 @@ export const keycode: Mount = (root) => {
   const big = h('div', { class: 'keycode-big mono' }, '—'), sub = h('div', { class: 'muted center' }, 'Press any key');
   const tbl = h('tbody'), hist = h('tbody');
   const fields = (e: KeyboardEvent): Array<[string, string]> => [['event.key', JSON.stringify(e.key)], ['event.code', e.code || '""'], ['event.keyCode (legacy)', String(e.keyCode)], ['event.which (legacy)', String(e.which)],
-    ['event.location', `${e.location} (${['standard', 'left', 'right', 'numpad'][e.location] || '?'})`], ['Modifiers', [e.ctrlKey && 'Ctrl', e.shiftKey && 'Shift', e.altKey && 'Alt', e.metaKey && 'Meta'].filter(Boolean).join(' + ') || 'none'],
+    ['event.location', `${e.location} (${['standard', 'left', 'right', 'numpad'][e.location] || '?'})`], ['Modifiers', (e.getModifierState?.('AltGraph') ? ['AltGr', e.shiftKey && 'Shift', e.metaKey && 'Meta'] : [e.ctrlKey && 'Ctrl', e.shiftKey && 'Shift', e.altKey && 'Alt', e.metaKey && 'Meta']).filter(Boolean).join(' + ') || 'none'],
     ['event.repeat', String(e.repeat)], ['event.isComposing', String(e.isComposing)], ['getModifierState("CapsLock")', String(e.getModifierState?.('CapsLock') ?? false)]];
   const onKey = (e: KeyboardEvent) => {
     const tgt = e.target as HTMLElement;
     if (tgt && /^(INPUT|TEXTAREA|SELECT)$/.test(tgt.tagName)) return; // typing in the search box etc.
-    e.preventDefault(); e.stopPropagation(); // capture phase: the app's own shortcuts (/, Ctrl+K) must not fire here
+    e.stopPropagation(); // capture phase: the app's own shortcuts (/, Ctrl+K) must not fire here
+    // The key is shown, but the browser keeps its own keys: Tab still moves the focus (no keyboard trap), F5 / Ctrl+R
+    // still reload, Ctrl+L / Ctrl+T / Ctrl+W, the F-keys and Alt+arrows work. Everything else (letters, Space, arrows,
+    // Backspace, '/') is held back so the page does not scroll or go back while keys are tried out.
+    const browsers = e.key === 'Tab' || /^F\d{1,2}$/.test(e.key) || ((e.ctrlKey || e.metaKey) && !['k', 'K', 's', 'S', 'p', 'P', 'f', 'F'].includes(e.key)) || (e.altKey && /^Arrow|^Home$/.test(e.key));
+    const pressing = (e.key === 'Enter' || e.key === ' ') && !!tgt?.closest?.('button, a[href], summary, [role="button"], [role="tab"]'); // a focused button must stay usable from the keyboard
+    if (!browsers && !pressing) e.preventDefault();
     big.textContent = e.key === ' ' ? 'Space' : e.key.length === 1 ? e.key : e.key;
     sub.textContent = `code ${e.code} · keyCode ${e.keyCode}`;
     clear(tbl).append(...fields(e).map(([k, v]) => h('tr', null, h('td', null, k), h('td', { class: 'mono' }, v, ' ', h('button', { type: 'button', class: 'btn btn-ghost btn-sm', onclick: () => copy(v) }, 'Copy')))));

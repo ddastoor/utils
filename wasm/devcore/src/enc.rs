@@ -4,6 +4,22 @@ use crate::R;
 use data_encoding::{Encoding, Specification, BASE32, BASE32HEX, BASE64, BASE64URL_NOPAD, HEXUPPER_PERMISSIVE};
 use sha2::{Digest, Sha256};
 
+/// data-encoding refuses inputs of 8 MiB and more on a 32-bit target (it asserts len <= usize::MAX / 512), so long
+/// inputs go through in pieces: whole blocks of every base (3 and 5 bytes in; 2, 4 and 8 characters out).
+const ENC_PIECE: usize = 15 << 18;
+const DEC_PIECE: usize = 8 << 19;
+fn enc_big(e: &Encoding, d: &[u8]) -> String {
+    let mut o = String::new();
+    for c in d.chunks(ENC_PIECE) { o.push_str(&e.encode(c)); }
+    o
+}
+fn dec_big(e: &Encoding, s: &str) -> Result<Vec<u8>, data_encoding::DecodeError> {
+    let mut out = Vec::new();
+    for (i, c) in s.as_bytes().chunks(DEC_PIECE).enumerate() {
+        out.extend(e.decode(c).map_err(|mut x| { x.position += i * DEC_PIECE; x })?);
+    }
+    Ok(out)
+}
 fn crockford() -> Encoding {
     let mut s = Specification::new();
     s.symbols.push_str("0123456789ABCDEFGHJKMNPQRSTVWXYZ");
@@ -51,6 +67,7 @@ fn z85_enc(d: &[u8]) -> Result<String, String> {
     Ok(o)
 }
 fn z85_dec(s: &str) -> Result<Vec<u8>, String> {
+    if let Some(c) = s.chars().find(|c| !c.is_ascii()) { return Err(format!("invalid Z85 character '{c}'")); }
     let s: Vec<u8> = s.bytes().filter(|b| !b.is_ascii_whitespace()).collect();
     if s.len() % 5 != 0 { return Err(format!("Z85 text must be a multiple of 5 characters (this is {})", s.len())); }
     let mut out = Vec::new();
@@ -66,25 +83,64 @@ fn check(d: &[u8]) -> [u8; 4] { let h = Sha256::digest(Sha256::digest(d)); [h[0]
 
 pub fn encode(alg: &str, d: &[u8]) -> R {
     let t = match alg {
-        "base16" => HEXUPPER_PERMISSIVE.encode(d), "base32" => BASE32.encode(d), "base32hex" => BASE32HEX.encode(d), "crockford" => crockford().encode(d),
+        "base16" => enc_big(&HEXUPPER_PERMISSIVE, d), "base32" => enc_big(&BASE32, d), "base32hex" => enc_big(&BASE32HEX, d), "crockford" => enc_big(&crockford(), d),
         "base58" => bs58::encode(d).into_string(), "base58check" => { let mut v = d.to_vec(); v.extend_from_slice(&check(d)); bs58::encode(v).into_string() }
-        "ascii85" => a85_enc(d), "z85" => z85_enc(d)?, "base64" => BASE64.encode(d), "base64url" => BASE64URL_NOPAD.encode(d),
+        "ascii85" => a85_enc(d), "z85" => z85_enc(d)?, "base64" => enc_big(&BASE64, d), "base64url" => enc_big(&BASE64URL_NOPAD, d),
         _ => return Err(format!("unknown encoding {alg}")),
     };
     Ok(t.into_bytes())
 }
+/// Hex as people paste it: "66 6f", "66:6f:6f", "0x66, 0x6f", "\\x66\\x6f", "0x666f6f" — separators and prefixes go;
+/// a prefixed single digit ("0x6") counts as one byte.
+fn hex_clean(text: &str) -> String {
+    let mut o = String::new();
+    for tok in text.split(|c: char| c.is_whitespace() || matches!(c, ',' | ':' | ';' | '-')) {
+        if tok.is_empty() { continue; }
+        for (i, part) in tok.split("\\x").enumerate() {
+            let (p, pre) = match part.strip_prefix("0x").or_else(|| part.strip_prefix("0X")) { Some(r) => (r, true), None => (part, i > 0) };
+            if p.is_empty() { continue; }
+            if pre && p.len() % 2 == 1 { o.push('0'); }
+            o.push_str(p);
+        }
+    }
+    o
+}
+/// data-encoding's error in plain words, naming the character that is wrong.
+fn why(x: data_encoding::DecodeError, s: &str) -> String {
+    match x.kind {
+        data_encoding::DecodeKind::Symbol => match s.get(x.position..).and_then(|t| t.chars().next()) { Some(c) => format!("'{c}' is not a character of this encoding"), None => "invalid character".into() },
+        data_encoding::DecodeKind::Length => format!("{} characters cannot be whole bytes (one is missing or extra)", s.chars().count()),
+        k => format!("{k}"),
+    }
+}
+/// RFC 4648 Base32 / Base64 families, read leniently: white space ignored, padding optional, non-zero spare bits
+/// accepted, and several padded blocks one after another (as `cat a.b64 b.b64` gives) are joined.
+fn seg_dec(e: &Encoding, clean: &str) -> Result<Vec<u8>, String> {
+    let mut out = Vec::new();
+    for seg in clean.split('=') { if !seg.is_empty() { out.extend(dec_big(e, seg).map_err(|x| why(x, seg))?); } }
+    Ok(out)
+}
+fn nopad(symbols: &str, lower: bool) -> Encoding {
+    let mut s = Specification::new(); s.symbols.push_str(symbols); s.check_trailing_bits = false;
+    if lower { s.translate.from.push_str(&symbols.to_lowercase()); s.translate.to.push_str(symbols); }
+    s.encoding().unwrap()
+}
 pub fn decode(alg: &str, d: &[u8]) -> R {
     let text = std::str::from_utf8(d).map_err(|_| "input is not text")?;
     let clean: String = text.chars().filter(|c| !c.is_whitespace()).collect();
-    let de = |e: &Encoding, s: &str| e.decode(s.as_bytes()).map_err(|e| format!("{e}"));
     match alg {
-        "base16" => de(&HEXUPPER_PERMISSIVE, &clean),
-        "base32" => de(&BASE32, &clean.to_uppercase()), "base32hex" => de(&BASE32HEX, &clean.to_uppercase()), "crockford" => de(&crockford(), &clean),
+        "base16" => { let h = hex_clean(text); dec_big(&HEXUPPER_PERMISSIVE, &h).map_err(|x| if x.kind == data_encoding::DecodeKind::Length { "hex needs two digits per byte (one digit is missing or extra)".to_string() } else { why(x, &h) }) }
+        "base32" => seg_dec(&nopad("ABCDEFGHIJKLMNOPQRSTUVWXYZ234567", true), &clean),
+        "base32hex" => seg_dec(&nopad("0123456789ABCDEFGHIJKLMNOPQRSTUV", true), &clean),
+        "crockford" => { let c = clean.trim_end_matches('=').replace('-', ""); dec_big(&crockford(), &c).map_err(|x| why(x, &c)) }
         "base58" => bs58::decode(&clean).into_vec().map_err(|e| format!("{e}")),
         "base58check" => { let v = bs58::decode(&clean).into_vec().map_err(|e| format!("{e}"))?; if v.len() < 4 { return Err("too short for Base58Check".into()); } let (p, c) = v.split_at(v.len() - 4); if check(p) != c { return Err("Base58Check checksum does not match".into()); } Ok(p.to_vec()) }
         "ascii85" => a85_dec(text), "z85" => z85_dec(text),
-        "base64" => { let mut s = clean.replace('-', "+").replace('_', "/"); while s.len() % 4 != 0 { s.push('='); } de(&BASE64, &s) }
-        "base64url" => { let s = clean.trim_end_matches('=').replace('+', "-").replace('/', "_"); de(&BASE64URL_NOPAD, &s) }
+        "base64" | "base64url" => {
+            // one reader for both alphabets; the header of a data: URL is skipped
+            let body = if clean.starts_with("data:") { clean.split_once(";base64,").map(|x| x.1).ok_or("this data: URL is not Base64 (it has no \";base64,\")")? } else { &clean[..] };
+            seg_dec(&nopad("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_", false), &body.replace('+', "-").replace('/', "_"))
+        }
         _ => Err(format!("unknown encoding {alg}")),
     }
 }

@@ -134,3 +134,18 @@ export ZIG=/tmp/zig/x/ziglang/zig
   only the shell suites had run and broke Hash / Sodium Encrypt / Share Link on the live site (an engine-lifecycle change
   that misbehaved inside Web Workers). Shared modules (`src/lifecycle.ts`, `src/ui.ts`, `src/main.ts`, `src/wasm/wasi.ts`)
   are used by every tab and also run inside workers, where there is no `document` and no router.
+- **Limits of 32-bit wasm show up only with big inputs:** `data-encoding` asserts `len <= usize::MAX / 512`, so Base64
+  of an 8 MiB file trapped ("unreachable"). Try every file tool with a file of 8–10 MB and one of 64 MB+.
+- **Recursion = stack overflow = a broken instance.** Any recursive parser or visitor in wasm (protobuf nesting, CBOR,
+  MessagePack, SVG groups) needs a depth limit; after a trap the module's memory is in an unknown state and every later
+  call fails, so the JS wrapper must drop the instance (`resetSvgo()` in `src/wasm/svgo.ts` is the pattern).
+- **An optimiser must be checked by its output, not trusted:** OXVG's "safe" preset was not safe and its default preset
+  changes 13 of 130 hazard drawings. The SVG tab now rasterises original and result and compares them (`sv_diff`,
+  thresholds calibrated on 630 real icons at 256 px: plain mean differences up to 2.7 levels are harmless colour
+  rounding; real changes show as > 0.4 % of pixels differing by more than 48 after a 3 × 3 neighbourhood match).
+- **A waitForFunction that matches the previous state is a silent pass/fail lottery:** wait for text that only the new
+  result can contain (a byte count, a file name), never for "a note exists". An idle machine is faster than the page.
+- **`outputBox()` already has its own Copy icon** — adding a "Copy" button next to it gives two buttons with the same
+  name (strict-mode failures in tests, and they can copy different things when the display is cut).
+- **Keyboard handlers on `window` (Key Codes, Keyboard Test):** never `preventDefault` Tab, F-keys or Ctrl/Meta
+  shortcuts, and let Enter / Space through when a button or link has the focus — otherwise the tab is a keyboard trap.
