@@ -181,7 +181,7 @@ const cUnesc = (s: string) => s.replace(/\\(u\{[0-9a-fA-F]+\}|u[0-9a-fA-F]{4}|U[
   if (/^[0-7]+$/.test(e)) return String.fromCharCode(parseInt(e, 8));
   return ({ n: '\n', r: '\r', t: '\t', b: '\b', f: '\f', v: '\v', a: '\x07', e: '\x1b' } as Record<string, string>)[e] ?? e;
 });
-const HTML_ENT: Record<string, string> = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: '\u00a0', copy: '©', reg: '®', trade: '™', hellip: '…', mdash: '—', ndash: '–', rsquo: '’', lsquo: '‘', rdquo: '”', ldquo: '“', euro: '€', pound: '£', rupee: '₹', deg: '°', times: '×', divide: '÷' };
+const HTML_ENT: Record<string, string> = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: '\u00a0', copy: '©', reg: '®', trade: '™', hellip: '…', mdash: '—', ndash: '–', rsquo: '’', lsquo: '‘', rdquo: '”', ldquo: '“', euro: '€', pound: '£', deg: '°', times: '×', divide: '÷' };
 /** JSON string contents → text. A whole quoted JSON string ("…") is read as such; otherwise the escapes are decoded and
  *  everything else is kept as typed (bare quotes, real line breaks and tabs too — JSON.parse would refuse those). */
 function jsonUnesc(s: string): string {

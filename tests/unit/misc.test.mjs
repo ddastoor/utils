@@ -30,7 +30,7 @@ export default async (t, { load }) => {
   t.eq(E.shell.e("it's $HOME"), "'it'\\''s $HOME'", 'shell: single quotes'); t.eq(E.shell.u(`'a b'\\''c' "d \\"e\\" $x" f\\ g`), `a b'c d "e" $x f g`, 'shell unescape: single + double quotes + backslash');
   t.ok(/Unclosed single quote/.test(err(() => E.shell.u("'abc"))) && /Unclosed double quote/.test(err(() => E.shell.u('"abc'))), 'shell unescape: unclosed quotes named');
   t.eq(E.html.e(`<a href="x">Tom & 'Jerry'</a>`), '&lt;a href=&quot;x&quot;&gt;Tom &amp; &#39;Jerry&#39;&lt;/a&gt;', 'HTML escape');
-  t.eq(E.html.u('&lt;b&gt; &amp;amp; &#8377;500 &#x1F600; &copy; &rupee; &nosuchentity; &'), '<b> &amp; ₹500 😀 © ₹ &nosuchentity; &', 'HTML unescape: named, decimal, hex; unknown entities and a bare & are left alone');
+  t.eq(E.html.u('&lt;b&gt; &amp;amp; &#8377;500 &#x1F600; &copy; &rupee; &nosuchentity; &'), '<b> &amp; ₹500 😀 © &rupee; &nosuchentity; &', 'HTML unescape: named, decimal, hex; unknown entities and a bare & are left alone');
   t.ok(/not a character/.test(err(() => E.html.u('&#x110000;'))) && /not a character/.test(err(() => E.html.u('&#xD800;'))), 'HTML unescape: code points beyond U+10FFFF / surrogates → message (used to be "Invalid code point")');
   t.eq(E.regex.e('a.b*c?(d)[e]{f}|g^h$i\\j/k+'), 'a\\.b\\*c\\?\\(d\\)\\[e\\]\\{f\\}\\|g\\^h\\$i\\\\j\\/k\\+', 'regex escape: every metacharacter');
   t.ok(new RegExp(`^${E.regex.e('1+1=2 (really?) [yes] $5.00')}$`).test('1+1=2 (really?) [yes] $5.00'), 'an escaped text matches itself as a regular expression');

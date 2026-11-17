@@ -21,7 +21,8 @@ export default async (ctx) => {
   ok(!bad.length, `shell quoting survives a real /bin/sh (printf %s 'quoted') ${bad}`);
   ok(await esc('sql', "O'Reilly") === "'O''Reilly'", 'SQL doubles single quotes');
   ok(await esc('html', '<a href="x">Tom & Jerry\'s</a>') === '&lt;a href=&quot;x&quot;&gt;Tom &amp; Jerry&#39;s&lt;/a&gt;', 'HTML entities');
-  ok(await esc('html', '&lt;b&gt; &amp;amp; &#8377; &#x20B9; &rupee; &copy; &unknown;', 'Unescape') === '<b> &amp; ₹ ₹ ₹ © &unknown;', 'HTML unescape: named, decimal, hex; unknown kept');
+  ok(await esc('html', '&lt;b&gt; &amp;amp; &#8377; &#x20B9; &rupee; &copy; &unknown;', 'Unescape') === '<b> &amp; ₹ ₹ &rupee; © &unknown;', 'HTML unescape: named, decimal, hex; unknown names kept ("&rupee;" is not an HTML entity — it used to be invented)');
+  ok(await esc('html', '&eacute;&ntilde;&hearts;&frac12;&rarr;&alpha;&Omega;&nbsp;&shy;&zwj;&NotEqualTilde;&apos;', 'Unescape') === 'éñ♥½→αΩ\u00a0\u00ad\u200d≂̸\'', 'HTML unescape knows every named entity (&eacute; &hearts; &frac12; &rarr; … were left undecoded: the table had 24 names)');
   ok(new RegExp(await esc('regex', '1+1=2? (yes) [a]')).test('1+1=2? (yes) [a]') && !new RegExp(await esc('regex', 'a.c')).test('abc'), 'regex escape matches literally');
   const csvOut = await esc('csv', 'a,b\n"c"'); ok(csvOut === '"a,b\n""c"""' && execFileSync('python3', ['-c', 'import csv,sys; sys.stdout.write(next(csv.reader(sys.stdin, strict=True))[0])'], { input: csvOut + '\n' }).toString() === 'a,b\n"c"', 'CSV field read back by Python csv');
   ok(await esc('csv', 'plain') === 'plain', 'CSV: plain fields not quoted');
