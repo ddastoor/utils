@@ -4,7 +4,8 @@ import wasmUrl from './bin/sheet.wasm?url';
 import { onLeave } from '../lifecycle';
 
 export type Cell = string | number | boolean | null;
-export interface Sheet { name: string; rows: Cell[][]; error?: string; hidden?: boolean }
+/** types: what each column can be stored as in a database without loss, judged from every row but the first. */
+export interface Sheet { name: string; rows: Cell[][]; types?: Array<'INTEGER' | 'REAL' | 'TEXT'>; error?: string; hidden?: boolean }
 export interface Book { sheets: Sheet[]; delimiter?: string }
 
 export function bindSheet(e: any) {

@@ -41,4 +41,29 @@ export default async (t, { load, wasm, root }) => {
   t.eq(sh.read(sh.xlsx(book)).sheets[0].rows[1], ['Asha', '1234.5', '007'], 'without conversion everything stays as typed');
   const big = { sheets: [{ name: 'Big', rows: Array.from({ length: 20000 }, (_, i) => [i, `row ${i}`, i * 1.5]) }] };
   t.eq(sh.read(sh.xlsx(big)).sheets[0].rows[19999], [19999, 'row 19999', 29998.5], '20,000-row round trip');
+
+  // ---- column types for a database import: only what loses nothing (every row but the header decides)
+  const types = (csv) => sh.csv(enc(csv)).sheets[0].types;
+  t.eq(types(`id,pin,phone,amount,big,mix,dec,exp,empty,date,neg,flt17,long
+1,011001,+919876543210,10.5,1234567890123456789,5,0.5,1e3,,2026-11-17,-5,0.30000000000000004,3.141592653589793238
+2,400001,9876543210,7,9007199254740993,x,.5,2.5E-3,,2026-01-01,0,1.0,2.5
+`), ['INTEGER', 'TEXT', 'TEXT', 'REAL', 'INTEGER', 'TEXT', 'REAL', 'REAL', 'TEXT', 'TEXT', 'INTEGER', 'REAL', 'TEXT'],
+  'whole numbers INTEGER (also beyond 2^53), decimals REAL; PIN codes with a leading zero, +91… numbers, mixed columns, dates, empty columns and decimals longer than a double stay TEXT');
+  const one = (v) => types(`h\n"${v}"\n`)[0];        // quoted, so that "1,5" is one cell
+  const INT = ['0', '7', '-7', '9223372036854775807', '-9223372036854775808', ' 12 ', '1000000'];
+  const REAL = ['1.5', '-0.25', '.5', '5.', '0.0', '-0', '1e3', '1E3', '1e+5', '12e-1', '2.5e-3', '1.7976931348623157e308', '5e-324', '0.1', '100.0', '9007199254740992.0', '1e22'];
+  const TEXT = ['007', '00', '-07', '+5', '+1.5', '00.5', '9223372036854775808', '99999999999999999999', '9007199254740993.0', '0.1234567890123456789', '1e999', '1e-999', '1,5', '1 000', '1_000', '0x10', 'NaN', 'inf', 'Infinity', '-', '.', 'e5', '1e', '1e+', '1.2.3', '१२', '12abc', '1-2', '2026-11-17', '12:30', '₹5', '5%', 'true', '1e1000000'];
+  t.eq(INT.map(one), INT.map(() => 'INTEGER'), `INTEGER: ${INT.join('  ')}`);
+  t.eq(REAL.map(one), REAL.map(() => 'REAL'), `REAL: ${REAL.join('  ')}`);
+  t.eq(TEXT.map(one), TEXT.map(() => 'TEXT'), `TEXT: ${TEXT.join('  ')}`);
+  for (const v of REAL) t.ok(Number(v) === Number(v) && Number.isFinite(Number(v)), `REAL "${v}" is a finite number in JavaScript too`);
+  t.eq(types('a,b\n1\n2,3,4\n'), ['INTEGER', 'INTEGER', 'INTEGER'], 'ragged rows: as many types as the longest row has cells');
+  t.eq([types('a,b,c\n'), types(''), types('a\n\n \n')], [['TEXT', 'TEXT', 'TEXT'], [], ['TEXT']], 'a header alone, an empty file, empty cells only: TEXT');
+  t.eq(types('n\n1\n2.5\n3\n'), ['REAL'], 'whole numbers and decimals in one column: REAL');
+  t.eq(types('n\n1\n\n3\n'), ['INTEGER'], 'empty cells do not change the type');
+  const typed = sh.read(sh.xlsx({ sheets: [{ name: 'T', rows: [['n', 'f', 's', 'b', 'mixed', 'bigf'], [1, 1.5, 'a', true, 1, 1e300], [2, 2, 'b', false, 'x', 2]] }] }, { numbers: false })).sheets[0];
+  t.eq(typed.types, ['INTEGER', 'REAL', 'TEXT', 'INTEGER', 'TEXT', 'REAL'], 'typed cells of a workbook: whole numbers and booleans INTEGER, other numbers REAL, anything mixed with text TEXT');
+  t.eq(sh.read(F('base.xlsx')).sheets[0].types.length, sh.read(F('base.xlsx')).sheets[0].rows.reduce((a, r) => Math.max(a, r.length), 0), 'a real workbook: one type per column');
+  { const t0 = performance.now(), big = 'id,code,amount\n' + Array.from({ length: 200000 }, (_, i) => `${i},${String(i).padStart(6, '0')},${i / 4}`).join('\n');
+    t.ok(JSON.stringify(types(big)) === '["INTEGER","TEXT","REAL"]' && performance.now() - t0 < 5000, `200,000 rows typed in ${Math.round(performance.now() - t0)} ms`); }
 };

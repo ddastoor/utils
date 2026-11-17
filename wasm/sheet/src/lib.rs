@@ -48,7 +48,60 @@ fn iso_duration(s: &str) -> String {
     format!("{}{:02}:{:02}:{:02}", if s.starts_with('-') { "-" } else { "" }, h as u64, m as u64, sec.round() as u64)
 }
 
-/// Spreadsheet file → JSON { sheets: [{ name, rows: [[cell…]…] }] }. Returns output length, or −1 (error JSON).
+/// Is this text a whole number as a database would print it back: no plus sign, no leading zeros, within 64 bits?
+fn int_text(t: &str) -> bool {
+    let d = t.strip_prefix('-').unwrap_or(t);
+    !d.is_empty() && d.bytes().all(|b| b.is_ascii_digit()) && (d == "0" && !t.starts_with('-') || !d.starts_with('0')) && t.parse::<i64>().is_ok()
+}
+
+/// (negative, significant digits without leading / trailing zeros, power of ten of the last digit) of a decimal
+/// number such as "-12.50", ".5", "1e-3", "3.0000000000000004e-1"; None if it is not one. Leading zeros are refused
+/// ("007", "00.5" are codes, not numbers) unless the whole part is a single 0.
+fn decimal(t: &str) -> Option<(bool, String, i64)> {
+    let (neg, rest) = match t.strip_prefix('-') { Some(r) => (true, r), None => (false, t) };
+    let (mant, exp) = match rest.find(['e', 'E']) {
+        Some(i) => { let e = &rest[i + 1..]; let e2 = e.strip_prefix('+').unwrap_or(e); if e2.is_empty() || e2.len() > 6 || !e2.strip_prefix('-').unwrap_or(e2).bytes().all(|b| b.is_ascii_digit()) || e2 == "-" { return None; } (&rest[..i], e2.parse::<i64>().ok()?) }
+        None => (rest, 0),
+    };
+    let (whole, frac) = match mant.find('.') { Some(i) => (&mant[..i], &mant[i + 1..]), None => (mant, "") };
+    if whole.is_empty() && frac.is_empty() || !whole.bytes().chain(frac.bytes()).all(|b| b.is_ascii_digit()) || mant.matches('.').count() > 1 { return None; }
+    if whole.len() > 1 && whole.starts_with('0') { return None; }
+    let all = format!("{whole}{frac}");
+    let digits = all.trim_start_matches('0').trim_end_matches('0').to_string();
+    let trailing = (all.len() - all.trim_end_matches('0').len()) as i64;
+    Some(if digits.is_empty() { (neg, digits, 0) } else { (neg, digits, exp - frac.len() as i64 + trailing) })
+}
+
+/// Is this text a number that a double holds exactly as written (so that nothing is lost by storing it as REAL)?
+fn real_text(t: &str) -> bool {
+    let Some(want) = decimal(t) else { return false };
+    match t.parse::<f64>() { Ok(f) if f.is_finite() => decimal(&format!("{f:e}")) == Some(want), _ => false }
+}
+
+/// What each column can be stored as in a database without losing anything, looking at every row but the first
+/// (the header): "INTEGER" — whole numbers within 64 bits, written without a plus sign or leading zeros; "REAL" —
+/// numbers a double holds exactly as written; otherwise "TEXT" (PIN codes, phone numbers with +, IDs of 20 digits,
+/// 1e999, dates, words). Empty cells do not count; a column of nothing but empty cells is TEXT. White space around
+/// a value is ignored for the decision.
+fn col_types(rows: &[Value]) -> Vec<&'static str> {
+    let width = rows.iter().map(|r| r.as_array().map_or(0, |a| a.len())).max().unwrap_or(0);
+    let (mut int, mut real, mut any) = (vec![true; width], vec![true; width], vec![false; width]);
+    for row in rows.iter().skip(1) {
+        for (c, v) in row.as_array().map(|a| a.as_slice()).unwrap_or(&[]).iter().enumerate() {
+            match v {
+                Value::Null => continue,
+                Value::String(s) => { let t = s.trim(); if t.is_empty() { continue; } if !int_text(t) { int[c] = false; if !real_text(t) { real[c] = false; } } }
+                Value::Bool(_) => {}
+                Value::Number(n) => if !(n.is_i64() || n.as_f64().is_some_and(|f| f.fract() == 0.0 && f.abs() <= 9007199254740992.0)) { int[c] = false; },
+                _ => { int[c] = false; real[c] = false; }
+            }
+            any[c] = true;
+        }
+    }
+    (0..width).map(|c| if !any[c] { "TEXT" } else if int[c] { "INTEGER" } else if real[c] { "REAL" } else { "TEXT" }).collect()
+}
+
+/// Spreadsheet file → JSON { sheets: [{ name, rows: [[cell…]…], types }] }. Returns output length, or −1 (error JSON).
 #[no_mangle] pub extern "C" fn sheet_read(p: *const u8, n: usize) -> i32 {
     let data = input(p, n).to_vec();
     if data.is_empty() { return err("The file is empty.".into()); }
@@ -72,7 +125,8 @@ fn iso_duration(s: &str) -> String {
                     while matches!(cells.last(), Some(Value::Null)) { cells.pop(); }
                     rows.push(Value::Array(cells));
                 }
-                sheets.push(json!({ "name": name, "rows": rows, "hidden": hidden.contains(&name) }));
+                let types = col_types(&rows);
+                sheets.push(json!({ "name": name, "rows": rows, "types": types, "hidden": hidden.contains(&name) }));
             }
             Err(e) => sheets.push(json!({ "name": name, "rows": [], "error": e.to_string() })),
         }
@@ -94,7 +148,7 @@ fn sniff(text: &[u8]) -> u8 {
     best.0
 }
 
-/// CSV text → JSON { sheets: [{ name: "CSV", rows }], delimiter }. delim 0 = detect.
+/// CSV text → JSON { sheets: [{ name: "CSV", rows, types }], delimiter }. delim 0 = detect.
 #[no_mangle] pub extern "C" fn csv_read(p: *const u8, n: usize, delim: u8) -> i32 {
     let mut text = input(p, n);
     if text.starts_with(&[0xef, 0xbb, 0xbf]) { text = &text[3..]; } // UTF-8 BOM
@@ -107,7 +161,8 @@ fn sniff(text: &[u8]) -> u8 {
             Err(e) => return err(format!("CSV error: {e}")),
         }
     }
-    set_out(json!({ "sheets": [{ "name": "CSV", "rows": rows }], "delimiter": (d as char).to_string() }).to_string().into_bytes())
+    let types = col_types(&rows);
+    set_out(json!({ "sheets": [{ "name": "CSV", "rows": rows, "types": types }], "delimiter": (d as char).to_string() }).to_string().into_bytes())
 }
 
 #[derive(Deserialize)] struct SheetIn { name: String, rows: Vec<Vec<Value>> }
