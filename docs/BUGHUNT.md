@@ -174,7 +174,7 @@ Areas with a shared review: the app shell (router, search, favorites, platform h
 | `glob` | Glob Tester | PC only | misc | ✓ | 2 | 44 | e2e 16→39 + 21 unit; own Unicode-aware matcher vs Python glob.translate (420 patterns) |
 | `terminal` | Linux Terminal | PC only | terminal |  |  |  |  |
 | `graphviz` | Graphviz (DOT) | PC only | data-engines |  |  |  |  |
-| `python` | Python Scratchpad | PC only | data-engines |  |  |  |  |
+| `python` | Python Scratchpad | PC only | data-engines | ✓ | 18 | 313 | native CPython 3.14.8 is the reference for 69 programs (stdout + stderr byte for byte); recursion through C code ends in RecursionError instead of killing the run, lru_cache in Python (cached recursion as deep as on a desktop), local time with tzdata's names and flags, socket stand-in + asyncio, pbkdf2_hmac; output pane survives 300,000 lines (92 s → 1.4 s), shows output during long computations, \r / colours / the answers to input(); hints for errors particular to the tab |
 | `totp` | TOTP / 2FA Codes | PC only | net | ✓ | 6 | 63 | e2e 11→49 + 25 unit; RFC 4226/6238 |
 | `pwstrength` | Password Strength | PC only | net | ✓ | 6 | 95 | e2e 13→32 + 76 unit (new); 304 passwords vs Python zxcvbn |
 | `jsonschema` | JSON Schema | PC only | data-engines | ✓ | 14 | 5431 | exact numbers and IDN formats switched on; inference no longer crashes on non-ASCII text and adds a format only when the validator accepts every example; plain messages (unknown $schema, $ref elsewhere, schema not valid at …), first 200 of N problems, formats not checked are named; reference = python-jsonschema verdicts for 5,338 pairs over five drafts, formats and patterns by hand against the RFCs / ECMA 262 |
@@ -475,7 +475,7 @@ Four engines were written in Rust for this (STANDING RULE #1) — `wasm/devcore/
   rows); a line break in a cell vanished from the editor; a table pasted with text around it took the following
   lines as rows; CJK and emoji cells were padded as one column wide; 3,000 rows made every keystroke slow.
 
-### Software › data-engine tabs (17 Nov 2026, in progress) — jq, yaml, jsonschema done; python, sqlite, sqlfmt, prettier, graphviz open
+### Software › data-engine tabs (17 Nov 2026, in progress) — jq, yaml, jsonschema, python done; sqlite, sqlfmt, prettier, graphviz open
 Method for these: the engine's native counterpart or an independent implementation is the reference, in bulk.
 - **jq** (16 bugs; unit 35 → 4,957, e2e 23 → 52). Reference: the native jq 1.8.2 command line, built from the same
   tarball — stdout, stderr and exit status for 4,903 filter × option × input cases (`tests/fixtures/jq/reference.json`).
@@ -495,4 +495,21 @@ Method for these: the engine's native counterpart or an independent implementati
   ECMA 262. "Make a schema" crashed on some non-ASCII text and wrote formats its own example failed; numbers were
   compared as floats; idn-email / idn-hostname were never checked; "200 problems" when there were more; jargon
   messages (unknown `$schema`, `$ref` elsewhere); the shared JSON reader said "nothing is open here" for `"b": }`.
-
+- **python** (18 bugs; unit 17 → 201 + 61 for the new output model, e2e 20 → 88). Reference: **native CPython 3.14.8**
+  (the build's own build-Python) — 69 programs must print the same stdout and stderr, byte for byte
+  (`tests/fixtures/python/reference.json`); local time against the zone files inside the build (51 zones × 575
+  moments); a second, cell-by-cell terminal for the output model (3,000 random streams).
+  Engine: recursion through C code (`__repr__`, `__eq__`, json, pickle, sorted(key=…), lru_cache — 11 ways) killed
+  the run with the browser's "Maximum call stack size exceeded" → a guard that ends in RecursionError; a cached
+  recursive function stopped at 241 levels → lru_cache is the Python wrapper, recursion limit 2000; local time was
+  UTC → the browser's zone, with tzdata's names and daylight flags; `import socket` failed and with it asyncio and
+  twenty other modules → stand-in + an event loop without sockets; help("if") and shelve were missing;
+  hashlib.pbkdf2_hmac did not exist; open("file.csv/x") said "No such file" instead of "Not a directory".
+  Page: 300,000 printed lines froze the tab for 92 s (now 1.4 s; only the end stays on screen, Copy / Save give all);
+  text printed before a long computation appeared only afterwards; \r progress lines, \b spinners and colour codes
+  were shown raw; the answer to input() was not shown, so prompt and output ran together; the 32 MB note never
+  appeared; after one failed download Python could not be loaded until the page was reloaded; a data file called
+  main.py was silently replaced by the program; Ctrl+Z did not undo an inserted Tab. New: hints under the status
+  (missing package, module that cannot work here, input ran out, memory, threads, nesting depth), Save output,
+  "All as .zip", Enter keeps the indentation.
+  Left as it is: sqlite3, bz2, lzma, ssl, ctypes, tkinter / turtle are not in the build (each has a hint).

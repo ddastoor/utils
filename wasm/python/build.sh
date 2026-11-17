@@ -76,3 +76,7 @@ for r, ds, fs in os.walk('.'):
         z.writestr(i, open(p, 'rb').read(), compresslevel=9)
 z.close()")
 ls -la "$ROOT/src/wasm/bin/python.wasm" "$ROOT/src/wasm/bin/python314.zip"
+# 6. things made from this build — run them after every rebuild and commit their output:
+#    python3 scripts/make-tzabbr.py                              (src/lib/tzabbr.json: zone names of the tzdata in the zip)
+#    "$WORK/native/python" scripts/make-python-reference.py     (tests/fixtures/python/reference.json: native CPython's answers)
+echo "now run: python3 scripts/make-tzabbr.py && $WORK/native/python scripts/make-python-reference.py"

@@ -74,11 +74,18 @@ what those suites missed.
   follows jq's main.c; native jq 1.8.2 as the reference for 4,903 cases), **yaml** (own value model and writers:
   digits kept, YAML 1.1-safe quoting, dates / .inf / .nan travel; PyYAML, ruamel.yaml and tomllib read every output),
   **jsonschema** (exact numbers, IDN formats, safe inference, plain messages; python-jsonschema verdicts for 5,338
-  pairs). Still open in this area: **python, sqlite, sqlfmt, prettier, graphviz**.
-  Running total: **50 of 176 tabs reviewed, 315 bugs fixed, 14,389 checks added** (+ shell).
+  pairs), **python** (recursion guard for the browser's two stacks, lru_cache in Python, local time with tzdata's
+  names, socket stand-in + asyncio, pbkdf2_hmac; new output pane that survives floods and shows \r / colours / the
+  answers to input(); native CPython 3.14.8 as the reference for 69 programs — details in CLAUDE.md §5.1m).
+  Still open in this area: **sqlite, sqlfmt, prettier, graphviz**.
+  Running total: **51 of 176 tabs reviewed, 333 bugs fixed, 14,702 checks added** (+ shell).
+  Python build tree for quick rebuilds (lost when the container is reclaimed; `wasm/python/build.sh` recreates it in
+  ≈ 10 min): `/tmp/pyb3` (`native/python` = the reference interpreter; `rezip.sh` rebuilds only python314.zip).
+  After any rebuild: `python3 scripts/make-tzabbr.py` and `<native python> scripts/make-python-reference.py`.
   References are regenerated with `scripts/make-jq-reference.mjs` (needs a native jq 1.8.2: build it from the tarball
   `wasm/jq/build.sh` downloads), `scripts/make-formats-reference.py` and `scripts/make-jsonschema-reference.py`
   (`pip install pyyaml ruamel.yaml tomli_w toml jsonschema`); the tests only read their JSON.
+  **Ideas that came up and are NOT started (ask the owner):** build sqlite3, bz2 and lzma into the Python tab.
 - **The five first-wave reviewers left their probe scripts** in the scratchpad (`review/<area>/*.mjs`, areas misc,
   bitswebref, dev-data2, data-engines, calc-core): copy them to `own/<area>/`, point them at the preview
   (`sed -i 's#localhost:4180#localhost:4173#'`, `../probe.mjs` → `own/probe.mjs`) and run them one by one — they print

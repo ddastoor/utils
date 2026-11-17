@@ -813,7 +813,7 @@ stay **public** (the source of the deployed site is then available to every user
 | metacore (EXIF → JSON, lossless metadata strip JPEG/PNG/WebP, JPEG DPI, image sniffing) | C (own code) | **us** (`wasm/metacore`) | exif, image loading, passport/formphoto DPI |
 | BusyBox 1.38.0 (130 applets) + compat shims | C | **us** (`wasm/busybox`) | terminal, bc console |
 | jq 1.8.2 (+ oniguruma) | C | **us** (`wasm/jq`) | jq |
-| CPython 3.14.8 (+ zlib 1.3.2; stdlib as .pyc in python314.zip with tzdata 2026.6) | C | **us** (`wasm/python`, python.wasm 7 MB + python314.zip 5.4 MB, loaded on the first Run; run by our WASI host `src/lib/terminal/wasi.ts` in `src/workers/python.worker.ts`) | python |
+| CPython 3.14.8 (+ zlib 1.3.2; stdlib as .pyc in python314.zip with tzdata 2026.6) **+ our changes** (§5.1m: recursion guard for a browser's two stacks, lru_cache in Python, pbkdf2_hmac fallback, socket stand-in + asyncio loop without sockets, local time from the host) | C | **us** (`wasm/python`, python.wasm 7 MB + python314.zip 5.4 MB, loaded on the first Run; run by our WASI host `src/lib/terminal/wasi.ts` in `src/workers/python.worker.ts`) | python |
 | Graphviz 14.1.2 (cgraph, gvc, dot/neato/fdp/sfdp/circo/twopi/osage/patchwork, core renderers) + Expat 2.9.0 | C / C++ | **us** (`wasm/graphviz`, 1.6 MB / 0.54 MB gz, run in `src/workers/graphviz.worker.ts`) | graphviz |
 | audio: **LAME 4.0** libmp3lame (MP3 encoder) + own C (WAV writer, waveform peaks, levels, gain/fades, Kaiser windowed-sinc resampler, WSOLA time stretch, tempo × pitch) | C | **us** (`wasm/audio`) | audio (and tts, stt, noise, pitch) |
 | rnnoise: Xiph **RNNoise 0.2** (+ default model) + glue (48 kHz frames, latency compensation, wet/dry mix, VAD) | C | **us** (`wasm/rnnoise`) | noise |
@@ -878,6 +878,9 @@ fields, a JWT's three parts (`atob` + `TextDecoder`), percent-escapes (the brows
 and `TextDecoder` do the work; the Windows-1252 fallback is a per-run retry), Markdown table layout and the assembly of
 mock rows (random numbers from crypto.wasm) — is string glue around browser-native or wasm engines and stays in TS;
 the Regex Tester is the browser's own RegExp, run in a worker (`src/workers/regex.worker.ts`) so it can be stopped.
+Nov 2026 (Python Scratchpad): `src/lib/termtext.ts` (what a terminal would show for the program's output: display
+code that feeds the DOM), `src/lib/python-hints.ts` (one sentence per known error), `src/lib/tzinfo.ts` (the browser's
+Intl answering the C library's questions about local time; the zone table it uses is data made by a script) stay in TS.
 Third-party WebAssembly builds in use (accepted, see above): MuPDF, SQLite, MediaPipe Tasks, ONNX Runtime, jSquash, libheif-js, tesseract.js-core, zxing-wasm, libarchive.js, ffmpeg.wasm. Staying JS (no compiled
 equivalent, reasons above): OpenPGP.js, Mermaid, Prettier, TensorFlow.js. (sql-formatter replaced by our Rust sqlformat build, Nov 2026.)
 
@@ -1097,10 +1100,50 @@ then CPython's **own** WASI configuration (`Tools/wasm/wasi/config.site-wasm32-w
 socket module; functions zig's wasi-libc declares but lacks) with zig cc (a wrapper drops `--stack-first`, which zig
 rejects). `wasi_start.c` (linked in through LIBS, constructors): links the main thread into musl's thread list — zig's
 single-threaded libc leaves it NULL and `pthread_key_delete` then loops forever at interpreter exit — and `chdir($PWD)`
-(wasi-libc starts in "/"). Upstream sources unmodified. The stdlib is compiled to .pyc by the same CPython version and
-zipped without tests/IDLE/Tk/venv/ensurepip/sqlite3/curses (+ tzdata for zoneinfo); CPython finds `/lib/python314.zip`
+(wasi-libc starts in "/"). Upstream sources unmodified apart from the changes listed below. The stdlib is compiled to .pyc by the same CPython version and
+zipped without tests/IDLE/Tk/venv/ensurepip/sqlite3/curses (+ tzdata for zoneinfo, + `wasm/python/lib/*.py`); CPython finds `/lib/python314.zip`
 on its default path. Our WASI host's `poll_oneoff` now honours the clock id (time.sleep uses absolute monotonic
-deadlines). Unit `tests/unit/python.test.mjs` (17); e2e compares sample outputs with the host's python3.
+deadlines).
+**Our changes to CPython (Nov 2026 bug hunt; all in `wasm/python/`, applied by build.sh):**
+- `stack-guard.patch` (ceval / pystate headers): CPython 3.14 watches the address of the C stack, but WebAssembly has
+  two stacks and the browser's own (≈ 1 MB, unreachable from wasm) overflows first — "Maximum call stack size
+  exceeded" killed the run. Every recursion check site now pads the linear-memory stack (`SUPERTOOLS_STACK_PAD=512`,
+  eval loop `SUPERTOOLS_EVAL_PAD=384`, budget `SUPERTOOLS_C_STACK=580000`), so nested C calls end in Python's own
+  `RecursionError: Stack overflow` (measured in Chromium: `__repr__` / `__eq__` ≈ 300 levels, json / repr of nested
+  lists ≈ 1,000, pickle ≈ 460, sorted(key=…) ≈ 140; plain Python recursion, generators and deepcopy are not limited).
+- `patch-stdlib.py` (on the copy of Lib/ that is zipped): **functools.lru_cache / cache use the pure-Python wrapper**
+  (through the C one a cached recursive function stopped at 241 levels; now it nests no C calls) — and
+  `lib/sitecustomize.py` starts every program with **recursion limit 2000** (the wrapper costs a frame per level, so
+  memoised recursion reaches the depth it reaches on a desktop); **hashlib.pbkdf2_hmac** has CPython 3.11's Python
+  fallback again (CPython ≥ 3.12 takes it from OpenSSL only; no OpenSSL here; `scrypt` stays absent).
+- `lib/_socket.py` (stand-in: constants and helpers exist, opening a connection raises OSError "there is no network
+  here") — without it `import socket` failed and with it asyncio, doctest, pdb, logging.handlers, email.utils,
+  http.client, urllib.request; `lib/_supertools_asyncio.py` + `sitecustomize.py`: an asyncio event loop without
+  sockets and threads (to_thread / run_in_executor run inline). `pydoc_data` (help("if")) and `dbm.dumb` (shelve) are
+  kept in the zip.
+- **Local time:** wasi-libc has no time-zone database. `wasi_start.c` renames `localtime_r` / `mktime`
+  (`-Dlocaltime_r=supertools_localtime_r …`) to versions that ask the host (`supertools.tz_info` import, answered by
+  `src/lib/tzinfo.ts`): the offset at a moment comes from the browser's Intl; tzdata's abbreviation and daylight flag
+  from **`src/lib/tzabbr.json`** (`python3 scripts/make-tzabbr.py`, generated from the tzdata inside python314.zip:
+  per zone "offset/isdst=NAME …" newest first, plus the periods in which the simple rule — daylight = the larger of
+  the year's two offsets — is wrong, e.g. Moscow 2011, Lisbon 1996). The Python worker fetches the table with the
+  interpreter. **Run make-tzabbr.py again after every rebuild of python314.zip with another tzdata.**
+- Absent, with a hint in the tab (`src/lib/python-hints.ts`): sqlite3, bz2, lzma, ctypes, curses, readline, ssl,
+  tkinter, turtle, mmap, fcntl, termios, pwd, grp, resource, syslog, venv, ensurepip (the unit suite checks that this
+  list is exactly what fails to import); threads, processes, the network.
+**The tab (`src/tools/software/python.ts`, worker `src/workers/python.worker.ts`):** output pane `src/lib/termtext.ts`
+(a text model + a view drawn once per frame: \r / \b / ESC[K / clears / ANSI colours as a terminal shows them; the
+last 600,000 characters on screen, of one line at most 200,000; Copy and Save output give everything); the worker
+sends every write at once at a human pace, a flood in pieces a millisecond apart, and what is waiting at any system
+call (`onCall`); stdin is handed over a line at a time and a line that answers a prompt is echoed (`stdinLines`,
+`onStdinRead`); limits 32 MB of output / 30 minutes (`onAbort`); hints for errors particular to the tab; Enter keeps
+the indentation; "All as .zip" for written files.
+**Tests:** `tests/unit/python.test.mjs` (201) — 69 programs (`tests/fixtures/python/cases/*.py`: language, standard
+library, uncaught errors, input, files, asyncio, local time in 20 zones) must print what **native CPython 3.14.8**
+prints, byte for byte on stdout and stderr (`tests/fixtures/python/reference.json`, made with the build's own native
+interpreter: `$WORK/native/python scripts/make-python-reference.py`); local time against the zone files inside the
+build for 51 zones × 575 moments; nested-call table; RFC 6070; host options; hints. `tests/unit/termtext.test.mjs`
+(61, incl. 3,000 random streams against a cell-by-cell terminal). e2e `tests/e2e/python.e2e.mjs` (88).
 
 ### 5.1e markdown → `src/wasm/bin/markdown.wasm`
 `ZIG=… wasm/markdown/build.sh`: downloads the `cmarkgfm` 2025.10.22 sdist from PyPI (SHA-256 `5bec6100…`), which vendors
