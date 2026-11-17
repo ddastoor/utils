@@ -1,0 +1,3593 @@
+{
+"source": "zxcvbn (Python port) 4.5.0",
+"passwords": [
+{
+"p": "password",
+"g": "3",
+"s": 0,
+"k": [
+"dictionary"
+],
+"t": [
+"password"
+]
+},
+{
+"p": "P@ssw0rd",
+"g": "17",
+"s": 0,
+"k": [
+"dictionary"
+],
+"t": [
+"P@ssw0rd"
+]
+},
+{
+"p": "123456",
+"g": "2",
+"s": 0,
+"k": [
+"dictionary"
+],
+"t": [
+"123456"
+]
+},
+{
+"p": "qwerty",
+"g": "5",
+"s": 0,
+"k": [
+"dictionary"
+],
+"t": [
+"qwerty"
+]
+},
+{
+"p": "asdfghjkl",
+"g": "233",
+"s": 0,
+"k": [
+"dictionary"
+],
+"t": [
+"asdfghjkl"
+]
+},
+{
+"p": "iloveyou",
+"g": "48",
+"s": 0,
+"k": [
+"dictionary"
+],
+"t": [
+"iloveyou"
+]
+},
+{
+"p": "abc123",
+"g": "14",
+"s": 0,
+"k": [
+"dictionary"
+],
+"t": [
+"abc123"
+]
+},
+{
+"p": "Tr0ub4dor&3",
+"g": "100000000001",
+"s": 4,
+"k": [
+"bruteforce"
+],
+"t": [
+"Tr0ub4dor&3"
+]
+},
+{
+"p": "correcthorsebatterystaple",
+"g": "273500327700640",
+"s": 4,
+"k": [
+"dictionary",
+"dictionary",
+"dictionary",
+"dictionary"
+],
+"t": [
+"correct",
+"horse",
+"battery",
+"staple"
+]
+},
+{
+"p": "aaaaaaaaaa",
+"g": "121",
+"s": 0,
+"k": [
+"repeat"
+],
+"t": [
+"aaaaaaaaaa"
+]
+},
+{
+"p": "19/11/1988",
+"g": "42341",
+"s": 1,
+"k": [
+"date"
+],
+"t": [
+"19/11/1988"
+]
+},
+{
+"p": "abcdefgh",
+"g": "33",
+"s": 0,
+"k": [
+"sequence"
+],
+"t": [
+"abcdefgh"
+]
+},
+{
+"p": "Mumbai2026",
+"g": "93187200",
+"s": 2,
+"k": [
+"dictionary",
+"date"
+],
+"t": [
+"Mumbai",
+"2026"
+]
+},
+{
+"p": "xK9#mQ2$vL7!",
+"g": "1000000000001",
+"s": 4,
+"k": [
+"bruteforce"
+],
+"t": [
+"xK9#mQ2$vL7!"
+]
+},
+{
+"p": "dragon",
+"g": "11",
+"s": 0,
+"k": [
+"dictionary"
+],
+"t": [
+"dragon"
+]
+},
+{
+"p": "zxcvbnm",
+"g": "40",
+"s": 0,
+"k": [
+"dictionary"
+],
+"t": [
+"zxcvbnm"
+]
+},
+{
+"p": "Th1s1sMyP@ss",
+"g": "832000000",
+"s": 3,
+"k": [
+"dictionary",
+"bruteforce",
+"dictionary"
+],
+"t": [
+"Th1s",
+"1sMy",
+"P@ss"
+]
+},
+{
+"p": "ilovechai",
+"g": "31939694",
+"s": 2,
+"k": [
+"dictionary",
+"dictionary"
+],
+"t": [
+"ilove",
+"chai"
+]
+},
+{
+"p": "q8T!vR2#nZ5&wL",
+"g": "100000000000001",
+"s": 4,
+"k": [
+"bruteforce"
+],
+"t": [
+"q8T!vR2#nZ5&wL"
+]
+},
+{
+"p": "1234567890",
+"g": "25",
+"s": 0,
+"k": [
+"dictionary"
+],
+"t": [
+"1234567890"
+]
+},
+{
+"p": "TRUSTNO1",
+"g": "73",
+"s": 0,
+"k": [
+"dictionary"
+],
+"t": [
+"TRUSTNO1"
+]
+},
+{
+"p": "SUNSHINE1",
+"g": "11245",
+"s": 1,
+"k": [
+"dictionary"
+],
+"t": [
+"SUNSHINE1"
+]
+},
+{
+"p": "AB12CD34",
+"g": "44415",
+"s": 1,
+"k": [
+"dictionary"
+],
+"t": [
+"AB12CD34"
+]
+},
+{
+"p": "MH12AB1234",
+"g": "100010000",
+"s": 3,
+"k": [
+"bruteforce",
+"dictionary"
+],
+"t": [
+"MH12AB",
+"1234"
+]
+},
+{
+"p": "aaaaaaab",
+"g": "11848",
+"s": 1,
+"k": [
+"repeat",
+"bruteforce"
+],
+"t": [
+"aaaaaaa",
+"b"
+]
+},
+{
+"p": "1111112",
+"g": "11100",
+"s": 1,
+"k": [
+"dictionary",
+"bruteforce"
+],
+"t": [
+"111111",
+"2"
+]
+},
+{
+"p": "zzzzzzzy",
+"g": "11848",
+"s": 1,
+"k": [
+"repeat",
+"bruteforce"
+],
+"t": [
+"zzzzzzz",
+"y"
+]
+},
+{
+"p": "trustno1",
+"g": "37",
+"s": 0,
+"k": [
+"dictionary"
+],
+"t": [
+"trustno1"
+]
+},
+{
+"p": "sunshine1",
+"g": "5623",
+"s": 1,
+"k": [
+"dictionary"
+],
+"t": [
+"sunshine1"
+]
+},
+{
+"p": "PASSWORD",
+"g": "5",
+"s": 0,
+"k": [
+"dictionary"
+],
+"t": [
+"PASSWORD"
+]
+},
+{
+"p": "Password",
+"g": "5",
+"s": 0,
+"k": [
+"dictionary"
+],
+"t": [
+"Password"
+]
+},
+{
+"p": "PASSWORd",
+"g": "17",
+"s": 0,
+"k": [
+"dictionary"
+],
+"t": [
+"PASSWORd"
+]
+},
+{
+"p": "pAsSwOrD",
+"g": "325",
+"s": 0,
+"k": [
+"dictionary"
+],
+"t": [
+"pAsSwOrD"
+]
+},
+{
+"p": "passworD",
+"g": "5",
+"s": 0,
+"k": [
+"dictionary"
+],
+"t": [
+"passworD"
+]
+},
+{
+"p": "letmein",
+"g": "17",
+"s": 0,
+"k": [
+"dictionary"
+],
+"t": [
+"letmein"
+]
+},
+{
+"p": "LETMEIN",
+"g": "33",
+"s": 0,
+"k": [
+"dictionary"
+],
+"t": [
+"LETMEIN"
+]
+},
+{
+"p": "Letmein1",
+"g": "1371",
+"s": 1,
+"k": [
+"dictionary"
+],
+"t": [
+"Letmein1"
+]
+},
+{
+"p": "LETMEIN1!",
+"g": "20000",
+"s": 1,
+"k": [
+"dictionary",
+"bruteforce"
+],
+"t": [
+"LETMEIN",
+"1!"
+]
+},
+{
+"p": "monkey123",
+"g": "7752",
+"s": 1,
+"k": [
+"dictionary"
+],
+"t": [
+"monkey123"
+]
+},
+{
+"p": "MONKEY123",
+"g": "15000",
+"s": 1,
+"k": [
+"dictionary",
+"sequence"
+],
+"t": [
+"MONKEY",
+"123"
+]
+},
+{
+"p": "qwertyuiop",
+"g": "23",
+"s": 0,
+"k": [
+"dictionary"
+],
+"t": [
+"qwertyuiop"
+]
+},
+{
+"p": "QWERTYUIOP",
+"g": "45",
+"s": 0,
+"k": [
+"dictionary"
+],
+"t": [
+"QWERTYUIOP"
+]
+},
+{
+"p": "1qaz2wsx",
+"g": "29",
+"s": 0,
+"k": [
+"dictionary"
+],
+"t": [
+"1qaz2wsx"
+]
+},
+{
+"p": "1QAZ2WSX",
+"g": "57",
+"s": 0,
+"k": [
+"dictionary"
+],
+"t": [
+"1QAZ2WSX"
+]
+},
+{
+"p": "zaq12wsx",
+"g": "481",
+"s": 0,
+"k": [
+"dictionary"
+],
+"t": [
+"zaq12wsx"
+]
+},
+{
+"p": "!QAZ2wsx",
+"g": "346082",
+"s": 1,
+"k": [
+"dictionary"
+],
+"t": [
+"!QAZ2wsx"
+]
+},
+{
+"p": "qazwsxedc",
+"g": "239",
+"s": 0,
+"k": [
+"dictionary"
+],
+"t": [
+"qazwsxedc"
+]
+},
+{
+"p": "mnbvcxz",
+"g": "79",
+"s": 0,
+"k": [
+"dictionary"
+],
+"t": [
+"mnbvcxz"
+]
+},
+{
+"p": "poiuytrewq",
+"g": "45",
+"s": 0,
+"k": [
+"dictionary"
+],
+"t": [
+"poiuytrewq"
+]
+},
+{
+"p": "asdf;lkj",
+"g": "676144",
+"s": 1,
+"k": [
+"dictionary",
+"spatial"
+],
+"t": [
+"asdf",
+";lkj"
+]
+},
+{
+"p": "147258369",
+"g": "427",
+"s": 0,
+"k": [
+"dictionary"
+],
+"t": [
+"147258369"
+]
+},
+{
+"p": "159753",
+"g": "69",
+"s": 0,
+"k": [
+"dictionary"
+],
+"t": [
+"159753"
+]
+},
+{
+"p": "abcabcabc",
+"g": "40",
+"s": 0,
+"k": [
+"repeat"
+],
+"t": [
+"abcabcabc"
+]
+},
+{
+"p": "abcabcabcabc",
+"g": "53",
+"s": 0,
+"k": [
+"repeat"
+],
+"t": [
+"abcabcabcabc"
+]
+},
+{
+"p": "abababab",
+"g": "37",
+"s": 0,
+"k": [
+"repeat"
+],
+"t": [
+"abababab"
+]
+},
+{
+"p": "121212",
+"g": "28",
+"s": 0,
+"k": [
+"repeat"
+],
+"t": [
+"121212"
+]
+},
+{
+"p": "112233",
+"g": "57",
+"s": 0,
+"k": [
+"dictionary"
+],
+"t": [
+"112233"
+]
+},
+{
+"p": "aabbcc",
+"g": "7331",
+"s": 1,
+"k": [
+"dictionary"
+],
+"t": [
+"aabbcc"
+]
+},
+{
+"p": "1q2w3e4r",
+"g": "193",
+"s": 0,
+"k": [
+"dictionary"
+],
+"t": [
+"1q2w3e4r"
+]
+},
+{
+"p": "1q2w3e4r5t",
+"g": "291",
+"s": 0,
+"k": [
+"dictionary"
+],
+"t": [
+"1q2w3e4r5t"
+]
+},
+{
+"p": "zxcvbn",
+"g": "58",
+"s": 0,
+"k": [
+"dictionary"
+],
+"t": [
+"zxcvbn"
+]
+},
+{
+"p": "ZXCVBN",
+"g": "115",
+"s": 0,
+"k": [
+"dictionary"
+],
+"t": [
+"ZXCVBN"
+]
+},
+{
+"p": "Zxcvbn1",
+"g": "12508",
+"s": 1,
+"k": [
+"dictionary",
+"bruteforce"
+],
+"t": [
+"Zxcvbn",
+"1"
+]
+},
+{
+"p": "batman",
+"g": "43",
+"s": 0,
+"k": [
+"dictionary"
+],
+"t": [
+"batman"
+]
+},
+{
+"p": "superman",
+"g": "27",
+"s": 0,
+"k": [
+"dictionary"
+],
+"t": [
+"superman"
+]
+},
+{
+"p": "Superman1",
+"g": "5175",
+"s": 1,
+"k": [
+"dictionary"
+],
+"t": [
+"Superman1"
+]
+},
+{
+"p": "S3cur1ty",
+"g": "3777",
+"s": 1,
+"k": [
+"dictionary"
+],
+"t": [
+"S3cur1ty"
+]
+},
+{
+"p": "p4ssw0rd",
+"g": "9",
+"s": 0,
+"k": [
+"dictionary"
+],
+"t": [
+"p4ssw0rd"
+]
+},
+{
+"p": "pa$$word",
+"g": "5",
+"s": 0,
+"k": [
+"dictionary"
+],
+"t": [
+"pa$$word"
+]
+},
+{
+"p": "passw0rd!",
+"g": "11100",
+"s": 1,
+"k": [
+"dictionary",
+"bruteforce"
+],
+"t": [
+"passw0rd",
+"!"
+]
+},
+{
+"p": "admin",
+"g": "716",
+"s": 0,
+"k": [
+"dictionary"
+],
+"t": [
+"admin"
+]
+},
+{
+"p": "administrator",
+"g": "3371",
+"s": 1,
+"k": [
+"dictionary"
+],
+"t": [
+"administrator"
+]
+},
+{
+"p": "root",
+"g": "1538",
+"s": 1,
+"k": [
+"dictionary"
+],
+"t": [
+"root"
+]
+},
+{
+"p": "toor",
+"g": "3075",
+"s": 1,
+"k": [
+"dictionary"
+],
+"t": [
+"toor"
+]
+},
+{
+"p": "changeme",
+"g": "659",
+"s": 0,
+"k": [
+"dictionary"
+],
+"t": [
+"changeme"
+]
+},
+{
+"p": "welcome",
+"g": "113",
+"s": 0,
+"k": [
+"dictionary"
+],
+"t": [
+"welcome"
+]
+},
+{
+"p": "Welcome1",
+"g": "1541",
+"s": 1,
+"k": [
+"dictionary"
+],
+"t": [
+"Welcome1"
+]
+},
+{
+"p": "Welcome@123",
+"g": "4490000",
+"s": 2,
+"k": [
+"dictionary",
+"bruteforce"
+],
+"t": [
+"Welcome",
+"@123"
+]
+},
+{
+"p": "India@123",
+"g": "12930000",
+"s": 2,
+"k": [
+"dictionary",
+"bruteforce"
+],
+"t": [
+"India",
+"@123"
+]
+},
+{
+"p": "india123",
+"g": "6622",
+"s": 1,
+"k": [
+"dictionary"
+],
+"t": [
+"india123"
+]
+},
+{
+"p": "Bharat@2024",
+"g": "511048000",
+"s": 3,
+"k": [
+"dictionary",
+"bruteforce",
+"sequence"
+],
+"t": [
+"Bharat@",
+"2",
+"024"
+]
+},
+{
+"p": "Delhi#2025",
+"g": "759152559",
+"s": 3,
+"k": [
+"dictionary",
+"bruteforce",
+"spatial"
+],
+"t": [
+"Delhi",
+"#",
+"2025"
+]
+},
+{
+"p": "Kolkata1",
+"g": "238272",
+"s": 1,
+"k": [
+"dictionary",
+"bruteforce"
+],
+"t": [
+"Kolkata",
+"1"
+]
+},
+{
+"p": "chennai2023",
+"g": "63870400",
+"s": 2,
+"k": [
+"dictionary",
+"date"
+],
+"t": [
+"chennai",
+"2023"
+]
+},
+{
+"p": "Bangalore!",
+"g": "228196",
+"s": 1,
+"k": [
+"dictionary",
+"bruteforce"
+],
+"t": [
+"Bangalore",
+"!"
+]
+},
+{
+"p": "hyderabad",
+"g": "4832",
+"s": 1,
+"k": [
+"dictionary"
+],
+"t": [
+"hyderabad"
+]
+},
+{
+"p": "pune411001",
+"g": "175210000",
+"s": 3,
+"k": [
+"bruteforce",
+"date"
+],
+"t": [
+"pune",
+"411001"
+]
+},
+{
+"p": "rahul123",
+"g": "1161700",
+"s": 2,
+"k": [
+"dictionary",
+"sequence"
+],
+"t": [
+"rahul",
+"123"
+]
+},
+{
+"p": "Priya@1995",
+"g": "100010000",
+"s": 3,
+"k": [
+"bruteforce",
+"regex"
+],
+"t": [
+"Priya@",
+"1995"
+]
+},
+{
+"p": "amit1990",
+"g": "1010000",
+"s": 2,
+"k": [
+"bruteforce",
+"regex"
+],
+"t": [
+"amit",
+"1990"
+]
+},
+{
+"p": "sachin10",
+"g": "761100",
+"s": 1,
+"k": [
+"dictionary",
+"sequence"
+],
+"t": [
+"sachin",
+"10"
+]
+},
+{
+"p": "dhoni07",
+"g": "5480600",
+"s": 2,
+"k": [
+"dictionary",
+"bruteforce"
+],
+"t": [
+"dhoni",
+"07"
+]
+},
+{
+"p": "kohli18",
+"g": "6926000",
+"s": 2,
+"k": [
+"dictionary",
+"bruteforce"
+],
+"t": [
+"kohl",
+"i18"
+]
+},
+{
+"p": "viratkohli",
+"g": "10000000001",
+"s": 3,
+"k": [
+"bruteforce"
+],
+"t": [
+"viratkohli"
+]
+},
+{
+"p": "Sachin@Tendulkar",
+"g": "9931460800",
+"s": 3,
+"k": [
+"dictionary",
+"dictionary",
+"dictionary"
+],
+"t": [
+"Sa",
+"chin@",
+"Tendulkar"
+]
+},
+{
+"p": "9876543210",
+"g": "81",
+"s": 0,
+"k": [
+"sequence"
+],
+"t": [
+"9876543210"
+]
+},
+{
+"p": "9811122233",
+"g": "837600",
+"s": 1,
+"k": [
+"sequence",
+"dictionary"
+],
+"t": [
+"98",
+"11122233"
+]
+},
+{
+"p": "01012000",
+"g": "761",
+"s": 0,
+"k": [
+"dictionary"
+],
+"t": [
+"01012000"
+]
+},
+{
+"p": "15081947",
+"g": "25551",
+"s": 1,
+"k": [
+"date"
+],
+"t": [
+"15081947"
+]
+},
+{
+"p": "26011950",
+"g": "24456",
+"s": 1,
+"k": [
+"date"
+],
+"t": [
+"26011950"
+]
+},
+{
+"p": "1947-08-15",
+"g": "102201",
+"s": 1,
+"k": [
+"date"
+],
+"t": [
+"1947-08-15"
+]
+},
+{
+"p": "2026-11-17",
+"g": "29201",
+"s": 1,
+"k": [
+"date"
+],
+"t": [
+"2026-11-17"
+]
+},
+{
+"p": "31/12/1999",
+"g": "29201",
+"s": 1,
+"k": [
+"date"
+],
+"t": [
+"31/12/1999"
+]
+},
+{
+"p": "12-25-2001",
+"g": "29201",
+"s": 1,
+"k": [
+"date"
+],
+"t": [
+"12-25-2001"
+]
+},
+{
+"p": "1.1.2001",
+"g": "29201",
+"s": 1,
+"k": [
+"date"
+],
+"t": [
+"1.1.2001"
+]
+},
+{
+"p": "19880101",
+"g": "10586",
+"s": 1,
+"k": [
+"date"
+],
+"t": [
+"19880101"
+]
+},
+{
+"p": "jan2020",
+"g": "144128",
+"s": 1,
+"k": [
+"dictionary",
+"repeat"
+],
+"t": [
+"jan",
+"2020"
+]
+},
+{
+"p": "March2021",
+"g": "4127200",
+"s": 2,
+"k": [
+"dictionary",
+"date"
+],
+"t": [
+"March",
+"2021"
+]
+},
+{
+"p": "summer2024",
+"g": "1017400",
+"s": 2,
+"k": [
+"dictionary",
+"date"
+],
+"t": [
+"summer",
+"2024"
+]
+},
+{
+"p": "Winter2019!",
+"g": "74410000",
+"s": 2,
+"k": [
+"dictionary",
+"bruteforce"
+],
+"t": [
+"Winter",
+"2019!"
+]
+},
+{
+"p": "football1",
+"g": "2255",
+"s": 1,
+"k": [
+"dictionary"
+],
+"t": [
+"football1"
+]
+},
+{
+"p": "baseball",
+"g": "13",
+"s": 0,
+"k": [
+"dictionary"
+],
+"t": [
+"baseball"
+]
+},
+{
+"p": "iloveyou2",
+"g": "4061",
+"s": 1,
+"k": [
+"dictionary"
+],
+"t": [
+"iloveyou2"
+]
+},
+{
+"p": "princess1",
+"g": "6319",
+"s": 1,
+"k": [
+"dictionary"
+],
+"t": [
+"princess1"
+]
+},
+{
+"p": "qwerty123",
+"g": "220",
+"s": 0,
+"k": [
+"dictionary"
+],
+"t": [
+"qwerty123"
+]
+},
+{
+"p": "1234qwer",
+"g": "87",
+"s": 0,
+"k": [
+"dictionary"
+],
+"t": [
+"1234qwer"
+]
+},
+{
+"p": "abcd1234",
+"g": "222",
+"s": 0,
+"k": [
+"dictionary"
+],
+"t": [
+"abcd1234"
+]
+},
+{
+"p": "a1b2c3d4",
+"g": "715",
+"s": 0,
+"k": [
+"dictionary"
+],
+"t": [
+"a1b2c3d4"
+]
+},
+{
+"p": "aaaa",
+"g": "49",
+"s": 0,
+"k": [
+"repeat"
+],
+"t": [
+"aaaa"
+]
+},
+{
+"p": "bbbbbbbb",
+"g": "97",
+"s": 0,
+"k": [
+"repeat"
+],
+"t": [
+"bbbbbbbb"
+]
+},
+{
+"p": "abcdefghijklmnopqrstuvwxyz",
+"g": "105",
+"s": 0,
+"k": [
+"sequence"
+],
+"t": [
+"abcdefghijklmnopqrstuvwxyz"
+]
+},
+{
+"p": "zyxwvutsr",
+"g": "73",
+"s": 0,
+"k": [
+"sequence"
+],
+"t": [
+"zyxwvutsr"
+]
+},
+{
+"p": "0123456789",
+"g": "41",
+"s": 0,
+"k": [
+"sequence"
+],
+"t": [
+"0123456789"
+]
+},
+{
+"p": "9876543210a",
+"g": "11760",
+"s": 1,
+"k": [
+"sequence",
+"bruteforce"
+],
+"t": [
+"9876543210",
+"a"
+]
+},
+{
+"p": "13579",
+"g": "21",
+"s": 0,
+"k": [
+"sequence"
+],
+"t": [
+"13579"
+]
+},
+{
+"p": "2468",
+"g": "41",
+"s": 0,
+"k": [
+"sequence"
+],
+"t": [
+"2468"
+]
+},
+{
+"p": "24680",
+"g": "4547",
+"s": 1,
+"k": [
+"dictionary"
+],
+"t": [
+"24680"
+]
+},
+{
+"p": "97531",
+"g": "41",
+"s": 0,
+"k": [
+"sequence"
+],
+"t": [
+"97531"
+]
+},
+{
+"p": "azazaz",
+"g": "304",
+"s": 0,
+"k": [
+"repeat"
+],
+"t": [
+"azazaz"
+]
+},
+{
+"p": "xyzxyz",
+"g": "159",
+"s": 0,
+"k": [
+"repeat"
+],
+"t": [
+"xyzxyz"
+]
+},
+{
+"p": "q",
+"g": "12",
+"s": 0,
+"k": [
+"bruteforce"
+],
+"t": [
+"q"
+]
+},
+{
+"p": "w",
+"g": "12",
+"s": 0,
+"k": [
+"bruteforce"
+],
+"t": [
+"w"
+]
+},
+{
+"p": "qq",
+"g": "25",
+"s": 0,
+"k": [
+"repeat"
+],
+"t": [
+"qq"
+]
+},
+{
+"p": "ab",
+"g": "9",
+"s": 0,
+"k": [
+"sequence"
+],
+"t": [
+"ab"
+]
+},
+{
+"p": "abc",
+"g": "13",
+"s": 0,
+"k": [
+"sequence"
+],
+"t": [
+"abc"
+]
+},
+{
+"p": "xyz",
+"g": "79",
+"s": 0,
+"k": [
+"sequence"
+],
+"t": [
+"xyz"
+]
+},
+{
+"p": "1",
+"g": "12",
+"s": 0,
+"k": [
+"bruteforce"
+],
+"t": [
+"1"
+]
+},
+{
+"p": "12",
+"g": "9",
+"s": 0,
+"k": [
+"sequence"
+],
+"t": [
+"12"
+]
+},
+{
+"p": "123",
+"g": "13",
+"s": 0,
+"k": [
+"sequence"
+],
+"t": [
+"123"
+]
+},
+{
+"p": "1234",
+"g": "8",
+"s": 0,
+"k": [
+"dictionary"
+],
+"t": [
+"1234"
+]
+},
+{
+"p": "12345",
+"g": "7",
+"s": 0,
+"k": [
+"dictionary"
+],
+"t": [
+"12345"
+]
+},
+{
+"p": "correct",
+"g": "1141",
+"s": 1,
+"k": [
+"dictionary"
+],
+"t": [
+"correct"
+]
+},
+{
+"p": "horse",
+"g": "702",
+"s": 0,
+"k": [
+"dictionary"
+],
+"t": [
+"horse"
+]
+},
+{
+"p": "battery",
+"g": "2198",
+"s": 1,
+"k": [
+"dictionary"
+],
+"t": [
+"battery"
+]
+},
+{
+"p": "staple",
+"g": "6468",
+"s": 1,
+"k": [
+"dictionary"
+],
+"t": [
+"staple"
+]
+},
+{
+"p": "purple-monkey-dishwasher",
+"g": "414639100000000",
+"s": 4,
+"k": [
+"dictionary",
+"bruteforce",
+"dictionary"
+],
+"t": [
+"purple",
+"-monkey-",
+"dishwasher"
+]
+},
+{
+"p": "this",
+"g": "9",
+"s": 0,
+"k": [
+"dictionary"
+],
+"t": [
+"this"
+]
+},
+{
+"p": "is",
+"g": "7",
+"s": 0,
+"k": [
+"dictionary"
+],
+"t": [
+"is"
+]
+},
+{
+"p": "a",
+"g": "12",
+"s": 0,
+"k": [
+"bruteforce"
+],
+"t": [
+"a"
+]
+},
+{
+"p": "long",
+"g": "83",
+"s": 0,
+"k": [
+"dictionary"
+],
+"t": [
+"long"
+]
+},
+{
+"p": "sentence",
+"g": "1373",
+"s": 1,
+"k": [
+"dictionary"
+],
+"t": [
+"sentence"
+]
+},
+{
+"p": "to.be.or.not.to.be",
+"g": "300000000100000000",
+"s": 4,
+"k": [
+"bruteforce",
+"dictionary",
+"bruteforce"
+],
+"t": [
+"to.be.or.",
+"not",
+".to.be"
+]
+},
+{
+"p": "IAmTheWalrus1967",
+"g": "1298920000000",
+"s": 4,
+"k": [
+"bruteforce",
+"dictionary",
+"dictionary",
+"regex"
+],
+"t": [
+"IAm",
+"The",
+"Walrus",
+"1967"
+]
+},
+{
+"p": "MyD0gAteMyH0mework",
+"g": "116480000010000",
+"s": 4,
+"k": [
+"bruteforce",
+"dictionary"
+],
+"t": [
+"MyD0gAteMy",
+"H0mework"
+]
+},
+{
+"p": "neverGonnaGiveYouUp",
+"g": "6381280000000",
+"s": 4,
+"k": [
+"dictionary",
+"dictionary",
+"dictionary",
+"bruteforce"
+],
+"t": [
+"never",
+"Gonna",
+"Give",
+"YouUp"
+]
+},
+{
+"p": "Tm9wZU5vcGU=",
+"g": "1000000000001",
+"s": 4,
+"k": [
+"bruteforce"
+],
+"t": [
+"Tm9wZU5vcGU="
+]
+},
+{
+"p": "5f4dcc3b5aa765d61d8327deb882cf99",
+"g": "36000000000000000000000100000000",
+"s": 4,
+"k": [
+"bruteforce",
+"sequence",
+"bruteforce"
+],
+"t": [
+"5f4dcc3b5aa",
+"765",
+"d61d8327deb882cf99"
+]
+},
+{
+"p": "d41d8cd98f00b204e9800998ecf8427e",
+"g": "1937895970000000000000000",
+"s": 4,
+"k": [
+"bruteforce",
+"dictionary",
+"bruteforce",
+"date",
+"bruteforce"
+],
+"t": [
+"d",
+"41d8cd98f00b",
+"204e",
+"980099",
+"8ecf8427e"
+]
+},
+{
+"p": "0xDEADBEEF",
+"g": "1137030400",
+"s": 3,
+"k": [
+"bruteforce",
+"dictionary",
+"dictionary"
+],
+"t": [
+"0x",
+"DEAD",
+"BEEF"
+]
+},
+{
+"p": "deadbeef",
+"g": "874192",
+"s": 1,
+"k": [
+"dictionary",
+"dictionary"
+],
+"t": [
+"dead",
+"beef"
+]
+},
+{
+"p": "cafebabe",
+"g": "6971920",
+"s": 2,
+"k": [
+"dictionary",
+"dictionary"
+],
+"t": [
+"cafe",
+"babe"
+]
+},
+{
+"p": "c0ffee",
+"g": "297",
+"s": 0,
+"k": [
+"dictionary"
+],
+"t": [
+"c0ffee"
+]
+},
+{
+"p": "C0FFEE!!",
+"g": "69200",
+"s": 1,
+"k": [
+"dictionary",
+"repeat"
+],
+"t": [
+"C0FFEE",
+"!!"
+]
+},
+{
+"p": "xXx_dragon_xXx",
+"g": "30100000000",
+"s": 4,
+"k": [
+"bruteforce",
+"dictionary",
+"bruteforce"
+],
+"t": [
+"xXx_",
+"dragon",
+"_xXx"
+]
+},
+{
+"p": "jK8!pQ2@",
+"g": "100000001",
+"s": 2,
+"k": [
+"bruteforce"
+],
+"t": [
+"jK8!pQ2@"
+]
+},
+{
+"p": "rT5$wE9#",
+"g": "100000001",
+"s": 2,
+"k": [
+"bruteforce"
+],
+"t": [
+"rT5$wE9#"
+]
+},
+{
+"p": "aZ3%bY7^cX1&",
+"g": "1000000000001",
+"s": 4,
+"k": [
+"bruteforce"
+],
+"t": [
+"aZ3%bY7^cX1&"
+]
+},
+{
+"p": "7hG$2kL!9mN@",
+"g": "1000000000001",
+"s": 4,
+"k": [
+"bruteforce"
+],
+"t": [
+"7hG$2kL!9mN@"
+]
+},
+{
+"p": "Vq8#Lm2$Zx5!",
+"g": "1000000000001",
+"s": 4,
+"k": [
+"bruteforce"
+],
+"t": [
+"Vq8#Lm2$Zx5!"
+]
+},
+{
+"p": "e7Yb!Qr4",
+"g": "100000001",
+"s": 2,
+"k": [
+"bruteforce"
+],
+"t": [
+"e7Yb!Qr4"
+]
+},
+{
+"p": "wP9z",
+"g": "10001",
+"s": 1,
+"k": [
+"bruteforce"
+],
+"t": [
+"wP9z"
+]
+},
+{
+"p": "kR2mT8vX",
+"g": "100000001",
+"s": 2,
+"k": [
+"bruteforce"
+],
+"t": [
+"kR2mT8vX"
+]
+},
+{
+"p": "nF4jH7sD2a",
+"g": "10000000001",
+"s": 3,
+"k": [
+"bruteforce"
+],
+"t": [
+"nF4jH7sD2a"
+]
+},
+{
+"p": "4vT9xK2mQ7rL8nW3",
+"g": "10000000000000001",
+"s": 4,
+"k": [
+"bruteforce"
+],
+"t": [
+"4vT9xK2mQ7rL8nW3"
+]
+},
+{
+"p": "zQ9vX2mK7rT4nL8wP3yB6",
+"g": "1000000000000000000001",
+"s": 4,
+"k": [
+"bruteforce"
+],
+"t": [
+"zQ9vX2mK7rT4nL8wP3yB6"
+]
+},
+{
+"p": "hunter2",
+"g": "8037",
+"s": 1,
+"k": [
+"dictionary"
+],
+"t": [
+"hunter2"
+]
+},
+{
+"p": "Hunter2",
+"g": "11628",
+"s": 1,
+"k": [
+"dictionary",
+"bruteforce"
+],
+"t": [
+"Hunter",
+"2"
+]
+},
+{
+"p": "hunter22",
+"g": "15000",
+"s": 1,
+"k": [
+"dictionary",
+"repeat"
+],
+"t": [
+"hunter",
+"22"
+]
+},
+{
+"p": "opensesame",
+"g": "9188",
+"s": 1,
+"k": [
+"dictionary"
+],
+"t": [
+"opensesame"
+]
+},
+{
+"p": "open",
+"g": "304",
+"s": 0,
+"k": [
+"dictionary"
+],
+"t": [
+"open"
+]
+},
+{
+"p": "sesame",
+"g": "1281",
+"s": 1,
+"k": [
+"dictionary"
+],
+"t": [
+"sesame"
+]
+},
+{
+"p": "shadow",
+"g": "18",
+"s": 0,
+"k": [
+"dictionary"
+],
+"t": [
+"shadow"
+]
+},
+{
+"p": "master",
+"g": "19",
+"s": 0,
+"k": [
+"dictionary"
+],
+"t": [
+"master"
+]
+},
+{
+"p": "mustang",
+"g": "21",
+"s": 0,
+"k": [
+"dictionary"
+],
+"t": [
+"mustang"
+]
+},
+{
+"p": "access",
+"g": "79",
+"s": 0,
+"k": [
+"dictionary"
+],
+"t": [
+"access"
+]
+},
+{
+"p": "michael",
+"g": "5",
+"s": 0,
+"k": [
+"dictionary"
+],
+"t": [
+"michael"
+]
+},
+{
+"p": "jennifer",
+"g": "7",
+"s": 0,
+"k": [
+"dictionary"
+],
+"t": [
+"jennifer"
+]
+},
+{
+"p": "jordan23",
+"g": "196",
+"s": 0,
+"k": [
+"dictionary"
+],
+"t": [
+"jordan23"
+]
+},
+{
+"p": "harley",
+"g": "39",
+"s": 0,
+"k": [
+"dictionary"
+],
+"t": [
+"harley"
+]
+},
+{
+"p": "ranger",
+"g": "50",
+"s": 0,
+"k": [
+"dictionary"
+],
+"t": [
+"ranger"
+]
+},
+{
+"p": "buster",
+"g": "42",
+"s": 0,
+"k": [
+"dictionary"
+],
+"t": [
+"buster"
+]
+},
+{
+"p": "soccer",
+"g": "44",
+"s": 0,
+"k": [
+"dictionary"
+],
+"t": [
+"soccer"
+]
+},
+{
+"p": "hockey",
+"g": "51",
+"s": 0,
+"k": [
+"dictionary"
+],
+"t": [
+"hockey"
+]
+},
+{
+"p": "george",
+"g": "17",
+"s": 0,
+"k": [
+"dictionary"
+],
+"t": [
+"george"
+]
+},
+{
+"p": "andrew",
+"g": "36",
+"s": 0,
+"k": [
+"dictionary"
+],
+"t": [
+"andrew"
+]
+},
+{
+"p": "charlie",
+"g": "46",
+"s": 0,
+"k": [
+"dictionary"
+],
+"t": [
+"charlie"
+]
+},
+{
+"p": "thomas",
+"g": "11",
+"s": 0,
+"k": [
+"dictionary"
+],
+"t": [
+"thomas"
+]
+},
+{
+"p": "robert",
+"g": "4",
+"s": 0,
+"k": [
+"dictionary"
+],
+"t": [
+"robert"
+]
+},
+{
+"p": "daniel",
+"g": "13",
+"s": 0,
+"k": [
+"dictionary"
+],
+"t": [
+"daniel"
+]
+},
+{
+"p": "matthew",
+"g": "26",
+"s": 0,
+"k": [
+"dictionary"
+],
+"t": [
+"matthew"
+]
+},
+{
+"p": "joshua",
+"g": "39",
+"s": 0,
+"k": [
+"dictionary"
+],
+"t": [
+"joshua"
+]
+},
+{
+"p": "amanda",
+"g": "41",
+"s": 0,
+"k": [
+"dictionary"
+],
+"t": [
+"amanda"
+]
+},
+{
+"p": "jessica",
+"g": "27",
+"s": 0,
+"k": [
+"dictionary"
+],
+"t": [
+"jessica"
+]
+},
+{
+"p": "ashley",
+"g": "64",
+"s": 0,
+"k": [
+"dictionary"
+],
+"t": [
+"ashley"
+]
+},
+{
+"p": "nicole",
+"g": "69",
+"s": 0,
+"k": [
+"dictionary"
+],
+"t": [
+"nicole"
+]
+},
+{
+"p": "elizabeth",
+"g": "6",
+"s": 0,
+"k": [
+"dictionary"
+],
+"t": [
+"elizabeth"
+]
+},
+{
+"p": "samantha",
+"g": "91",
+"s": 0,
+"k": [
+"dictionary"
+],
+"t": [
+"samantha"
+]
+},
+{
+"p": "smith",
+"g": "2",
+"s": 0,
+"k": [
+"dictionary"
+],
+"t": [
+"smith"
+]
+},
+{
+"p": "johnson",
+"g": "3",
+"s": 0,
+"k": [
+"dictionary"
+],
+"t": [
+"johnson"
+]
+},
+{
+"p": "williams",
+"g": "4",
+"s": 0,
+"k": [
+"dictionary"
+],
+"t": [
+"williams"
+]
+},
+{
+"p": "patel",
+"g": "520",
+"s": 0,
+"k": [
+"dictionary"
+],
+"t": [
+"patel"
+]
+},
+{
+"p": "sharma",
+"g": "5547",
+"s": 1,
+"k": [
+"dictionary"
+],
+"t": [
+"sharma"
+]
+},
+{
+"p": "singh",
+"g": "1101",
+"s": 1,
+"k": [
+"dictionary"
+],
+"t": [
+"singh"
+]
+},
+{
+"p": "kumar",
+"g": "4371",
+"s": 1,
+"k": [
+"dictionary"
+],
+"t": [
+"kumar"
+]
+},
+{
+"p": "gupta",
+"g": "5859",
+"s": 1,
+"k": [
+"dictionary"
+],
+"t": [
+"gupta"
+]
+},
+{
+"p": "qwErTy",
+"g": "85",
+"s": 0,
+"k": [
+"dictionary"
+],
+"t": [
+"qwErTy"
+]
+},
+{
+"p": "QwErTy123",
+"g": "8980",
+"s": 1,
+"k": [
+"dictionary"
+],
+"t": [
+"QwErTy123"
+]
+},
+{
+"p": "AsDfGh",
+"g": "1641",
+"s": 1,
+"k": [
+"dictionary"
+],
+"t": [
+"AsDfGh"
+]
+},
+{
+"p": "zXcVbN",
+"g": "2338",
+"s": 1,
+"k": [
+"dictionary"
+],
+"t": [
+"zXcVbN"
+]
+},
+{
+"p": "PaSsWoRd123",
+"g": "42400",
+"s": 1,
+"k": [
+"dictionary",
+"sequence"
+],
+"t": [
+"PaSsWoRd",
+"123"
+]
+},
+{
+"p": "lEtMeIn",
+"g": "1009",
+"s": 1,
+"k": [
+"dictionary"
+],
+"t": [
+"lEtMeIn"
+]
+},
+{
+"p": "aBcDeF",
+"g": "1000001",
+"s": 1,
+"k": [
+"bruteforce"
+],
+"t": [
+"aBcDeF"
+]
+},
+{
+"p": "tHiSiSaTeSt",
+"g": "546400000",
+"s": 3,
+"k": [
+"dictionary",
+"bruteforce",
+"dictionary"
+],
+"t": [
+"tHiS",
+"iSa",
+"TeSt"
+]
+},
+{
+"p": "p@$$w0rd",
+"g": "17",
+"s": 0,
+"k": [
+"dictionary"
+],
+"t": [
+"p@$$w0rd"
+]
+},
+{
+"p": "l3tm3in",
+"g": "33",
+"s": 0,
+"k": [
+"dictionary"
+],
+"t": [
+"l3tm3in"
+]
+},
+{
+"p": "m0nk3y",
+"g": "61",
+"s": 0,
+"k": [
+"dictionary"
+],
+"t": [
+"m0nk3y"
+]
+},
+{
+"p": "dr@g0n",
+"g": "41",
+"s": 0,
+"k": [
+"dictionary"
+],
+"t": [
+"dr@g0n"
+]
+},
+{
+"p": "5h4d0w",
+"g": "137",
+"s": 0,
+"k": [
+"dictionary"
+],
+"t": [
+"5h4d0w"
+]
+},
+{
+"p": "ch4rl13",
+"g": "361",
+"s": 0,
+"k": [
+"dictionary"
+],
+"t": [
+"ch4rl13"
+]
+},
+{
+"p": "b@tm@n",
+"g": "85",
+"s": 0,
+"k": [
+"dictionary"
+],
+"t": [
+"b@tm@n"
+]
+},
+{
+"p": "$up3rm@n",
+"g": "209",
+"s": 0,
+"k": [
+"dictionary"
+],
+"t": [
+"$up3rm@n"
+]
+},
+{
+"p": "tr0ub4d0ur",
+"g": "47621",
+"s": 1,
+"k": [
+"dictionary"
+],
+"t": [
+"tr0ub4d0ur"
+]
+},
+{
+"p": "qw3rty",
+"g": "9",
+"s": 0,
+"k": [
+"dictionary"
+],
+"t": [
+"qw3rty"
+]
+},
+{
+"p": "aaaaaa1",
+"g": "6922",
+"s": 1,
+"k": [
+"dictionary"
+],
+"t": [
+"aaaaaa1"
+]
+},
+{
+"p": "aaaaaaa2",
+"g": "11848",
+"s": 1,
+"k": [
+"repeat",
+"bruteforce"
+],
+"t": [
+"aaaaaaa",
+"2"
+]
+},
+{
+"p": "abcabc1",
+"g": "11100",
+"s": 1,
+"k": [
+"repeat",
+"bruteforce"
+],
+"t": [
+"abcabc",
+"1"
+]
+},
+{
+"p": "wwwwww",
+"g": "73",
+"s": 0,
+"k": [
+"repeat"
+],
+"t": [
+"wwwwww"
+]
+},
+{
+"p": "zzzzzzzzzzzz",
+"g": "145",
+"s": 0,
+"k": [
+"repeat"
+],
+"t": [
+"zzzzzzzzzzzz"
+]
+},
+{
+"p": "000000",
+"g": "35",
+"s": 0,
+"k": [
+"dictionary"
+],
+"t": [
+"000000"
+]
+},
+{
+"p": "111111",
+"g": "9",
+"s": 0,
+"k": [
+"dictionary"
+],
+"t": [
+"111111"
+]
+},
+{
+"p": "999999",
+"g": "73",
+"s": 0,
+"k": [
+"repeat"
+],
+"t": [
+"999999"
+]
+},
+{
+"p": "0000000000",
+"g": "121",
+"s": 0,
+"k": [
+"repeat"
+],
+"t": [
+"0000000000"
+]
+},
+{
+"p": "1010101010",
+"g": "86",
+"s": 0,
+"k": [
+"repeat"
+],
+"t": [
+"1010101010"
+]
+},
+{
+"p": "123123123",
+"g": "40",
+"s": 0,
+"k": [
+"repeat"
+],
+"t": [
+"123123123"
+]
+},
+{
+"p": "321321321",
+"g": "184",
+"s": 0,
+"k": [
+"repeat"
+],
+"t": [
+"321321321"
+]
+},
+{
+"p": "456456",
+"g": "63",
+"s": 0,
+"k": [
+"repeat"
+],
+"t": [
+"456456"
+]
+},
+{
+"p": "789789789",
+"g": "94",
+"s": 0,
+"k": [
+"repeat"
+],
+"t": [
+"789789789"
+]
+},
+{
+"p": "abcdefg1",
+"g": "5655",
+"s": 1,
+"k": [
+"dictionary"
+],
+"t": [
+"abcdefg1"
+]
+},
+{
+"p": "bcdefgh",
+"g": "183",
+"s": 0,
+"k": [
+"sequence"
+],
+"t": [
+"bcdefgh"
+]
+},
+{
+"p": "cdefghi",
+"g": "183",
+"s": 0,
+"k": [
+"sequence"
+],
+"t": [
+"cdefghi"
+]
+},
+{
+"p": "lmnop",
+"g": "131",
+"s": 0,
+"k": [
+"sequence"
+],
+"t": [
+"lmnop"
+]
+},
+{
+"p": "rstuvw",
+"g": "157",
+"s": 0,
+"k": [
+"sequence"
+],
+"t": [
+"rstuvw"
+]
+},
+{
+"p": "34567",
+"g": "51",
+"s": 0,
+"k": [
+"sequence"
+],
+"t": [
+"34567"
+]
+},
+{
+"p": "87654",
+"g": "101",
+"s": 0,
+"k": [
+"sequence"
+],
+"t": [
+"87654"
+]
+},
+{
+"p": "hgfedcba",
+"g": "417",
+"s": 0,
+"k": [
+"sequence"
+],
+"t": [
+"hgfedcba"
+]
+},
+{
+"p": "fedcba",
+"g": "313",
+"s": 0,
+"k": [
+"sequence"
+],
+"t": [
+"fedcba"
+]
+},
+{
+"p": "13579bdf",
+"g": "17800",
+"s": 1,
+"k": [
+"sequence",
+"sequence"
+],
+"t": [
+"13579",
+"bdf"
+]
+},
+{
+"p": "acegik",
+"g": "25",
+"s": 0,
+"k": [
+"sequence"
+],
+"t": [
+"acegik"
+]
+},
+{
+"p": "~!@#$%^&*()_+",
+"g": "10369",
+"s": 1,
+"k": [
+"spatial"
+],
+"t": [
+"~!@#$%^&*()_+"
+]
+},
+{
+"p": "~~~~~~~~",
+"g": "97",
+"s": 0,
+"k": [
+"repeat"
+],
+"t": [
+"~~~~~~~~"
+]
+},
+{
+"p": "!!!!!!!!",
+"g": "97",
+"s": 0,
+"k": [
+"repeat"
+],
+"t": [
+"!!!!!!!!"
+]
+},
+{
+"p": "!@#$%^",
+"g": "4321",
+"s": 1,
+"k": [
+"spatial"
+],
+"t": [
+"!@#$%^"
+]
+},
+{
+"p": "()()()()",
+"g": "213",
+"s": 0,
+"k": [
+"repeat"
+],
+"t": [
+"()()()()"
+]
+},
+{
+"p": "------",
+"g": "73",
+"s": 0,
+"k": [
+"repeat"
+],
+"t": [
+"------"
+]
+},
+{
+"p": "......",
+"g": "73",
+"s": 0,
+"k": [
+"repeat"
+],
+"t": [
+"......"
+]
+},
+{
+"p": ",./;'[]",
+"g": "5632457",
+"s": 2,
+"k": [
+"spatial"
+],
+"t": [
+",./;'[]"
+]
+},
+{
+"p": "<>?:\"{}",
+"g": "10000001",
+"s": 2,
+"k": [
+"bruteforce"
+],
+"t": [
+"<>?:\"{}"
+]
+},
+{
+"p": "`1234567890-=",
+"g": "5185",
+"s": 1,
+"k": [
+"spatial"
+],
+"t": [
+"`1234567890-="
+]
+},
+{
+"p": "Ω≈ç√∫˜µ≤",
+"g": "100000001",
+"s": 2,
+"k": [
+"bruteforce"
+],
+"t": [
+"Ω≈ç√∫˜µ≤"
+]
+},
+{
+"p": "пароль",
+"g": "1000001",
+"s": 1,
+"k": [
+"bruteforce"
+],
+"t": [
+"пароль"
+]
+},
+{
+"p": "пароль123",
+"g": "100010000",
+"s": 3,
+"k": [
+"bruteforce",
+"sequence"
+],
+"t": [
+"пароль",
+"123"
+]
+},
+{
+"p": "密码",
+"g": "101",
+"s": 0,
+"k": [
+"bruteforce"
+],
+"t": [
+"密码"
+]
+},
+{
+"p": "パスワード",
+"g": "100001",
+"s": 1,
+"k": [
+"bruteforce"
+],
+"t": [
+"パスワード"
+]
+},
+{
+"p": "नमस्ते123",
+"g": "100010000",
+"s": 3,
+"k": [
+"bruteforce",
+"sequence"
+],
+"t": [
+"नमस्ते",
+"123"
+]
+},
+{
+"p": "contraseña",
+"g": "47088000",
+"s": 2,
+"k": [
+"dictionary",
+"bruteforce"
+],
+"t": [
+"contras",
+"eña"
+]
+},
+{
+"p": "motdepasse",
+"g": "7395",
+"s": 1,
+"k": [
+"dictionary"
+],
+"t": [
+"motdepasse"
+]
+},
+{
+"p": "passwört",
+"g": "1230000",
+"s": 2,
+"k": [
+"dictionary",
+"bruteforce"
+],
+"t": [
+"pass",
+"wört"
+]
+},
+{
+"p": "café1234",
+"g": "1010000",
+"s": 2,
+"k": [
+"bruteforce",
+"dictionary"
+],
+"t": [
+"café",
+"1234"
+]
+},
+{
+"p": "naïve2020",
+"g": "40410000",
+"s": 2,
+"k": [
+"bruteforce",
+"repeat"
+],
+"t": [
+"naïve",
+"2020"
+]
+},
+{
+"p": "İstanbul34",
+"g": "2920000000",
+"s": 3,
+"k": [
+"bruteforce",
+"dictionary",
+"bruteforce"
+],
+"t": [
+"İs",
+"tanb",
+"ul34"
+]
+},
+{
+"p": "sdDz",
+"g": "10001",
+"s": 1,
+"k": [
+"bruteforce"
+],
+"t": [
+"sdDz"
+]
+},
+{
+"p": "BRMBS",
+"g": "100001",
+"s": 1,
+"k": [
+"bruteforce"
+],
+"t": [
+"BRMBS"
+]
+},
+{
+"p": "7hbTLK",
+"g": "1000001",
+"s": 1,
+"k": [
+"bruteforce"
+],
+"t": [
+"7hbTLK"
+]
+},
+{
+"p": "9p$Z8wq",
+"g": "10000001",
+"s": 2,
+"k": [
+"bruteforce"
+],
+"t": [
+"9p$Z8wq"
+]
+},
+{
+"p": "M*rEvy*m",
+"g": "100000001",
+"s": 2,
+"k": [
+"bruteforce"
+],
+"t": [
+"M*rEvy*m"
+]
+},
+{
+"p": "qjjlpq#wp",
+"g": "1000000001",
+"s": 3,
+"k": [
+"bruteforce"
+],
+"t": [
+"qjjlpq#wp"
+]
+},
+{
+"p": "LvMQjjvSSs",
+"g": "10000000001",
+"s": 3,
+"k": [
+"bruteforce"
+],
+"t": [
+"LvMQjjvSSs"
+]
+},
+{
+"p": "G!XovY$N!AR",
+"g": "100000000001",
+"s": 4,
+"k": [
+"bruteforce"
+],
+"t": [
+"G!XovY$N!AR"
+]
+},
+{
+"p": "bXVy3T25aDKH",
+"g": "1000000000001",
+"s": 4,
+"k": [
+"bruteforce"
+],
+"t": [
+"bXVy3T25aDKH"
+]
+},
+{
+"p": "w#wp$HwLlQgyO",
+"g": "10000000000001",
+"s": 4,
+"k": [
+"bruteforce"
+],
+"t": [
+"w#wp$HwLlQgyO"
+]
+},
+{
+"p": "!TK$g1VuB@!l8y",
+"g": "100000000000001",
+"s": 4,
+"k": [
+"bruteforce"
+],
+"t": [
+"!TK$g1VuB@!l8y"
+]
+},
+{
+"p": "sDj8P445JeEPYzo",
+"g": "1000000000000001",
+"s": 4,
+"k": [
+"bruteforce"
+],
+"t": [
+"sDj8P445JeEPYzo"
+]
+},
+{
+"p": "sbdsN7Qc1WF0W5W!",
+"g": "10000000000000001",
+"s": 4,
+"k": [
+"bruteforce"
+],
+"t": [
+"sbdsN7Qc1WF0W5W!"
+]
+},
+{
+"p": "2gz%lofOxGvH#BRdcG",
+"g": "1000000000000000001",
+"s": 4,
+"k": [
+"bruteforce"
+],
+"t": [
+"2gz%lofOxGvH#BRdcG"
+]
+},
+{
+"p": "Z1m#@kv!M&uzPGgUpwHK",
+"g": "100000000000000000001",
+"s": 4,
+"k": [
+"bruteforce"
+],
+"t": [
+"Z1m#@kv!M&uzPGgUpwHK"
+]
+},
+{
+"p": "I&PB$$Blp%Yhfrn2C0Dy@IMH",
+"g": "820800000000000100000000",
+"s": 4,
+"k": [
+"bruteforce",
+"dictionary",
+"bruteforce"
+],
+"t": [
+"I&PB$$Blp%Yhfrn2",
+"C0Dy",
+"@IMH"
+]
+},
+{
+"p": "RMUHGQ*6O!NEO9JL5QfW5Od#oxJQ",
+"g": "10000000000000000000000000000",
+"s": 4,
+"k": [
+"bruteforce"
+],
+"t": [
+"RMUHGQ*6O!NEO9JL5QfW5Od#oxJQ"
+]
+},
+{
+"p": "b2!BmkD3!r&na#YkUG*Q@FJ&paI*GrAu",
+"g": "100000000000000000000000000000000",
+"s": 4,
+"k": [
+"bruteforce"
+],
+"t": [
+"b2!BmkD3!r&na#YkUG*Q@FJ&paI*GrAu"
+]
+},
+{
+"p": "dIgrB&5zK4!nUJtSdk4av5#R2gFHK!oBGAEE7Z@E",
+"g": "10000000000000000000000000000000000000000",
+"s": 4,
+"k": [
+"bruteforce"
+],
+"t": [
+"dIgrB&5zK4!nUJtSdk4av5#R2gFHK!oBGAEE7Z@E"
+]
+},
+{
+"p": "lIj!9H#fbA2X@3g47h3@nwQ#5#10Yn#ihwUwWKBVHYlns$j9u",
+"g": "3000000000000000000000000000000000000000000000000",
+"s": 4,
+"k": [
+"bruteforce",
+"dictionary",
+"bruteforce"
+],
+"t": [
+"lIj!9H#fbA2X@3g4",
+"7h3",
+"@nwQ#5#10Yn#ihwUwWKBVHYlns$j9u"
+]
+},
+{
+"p": "phw48rhGHMlvn6Q#ScpgrmHjxI3*NE#mb$ch!O#rmPA%3jLsOr*W8Nht5SdlWnQ2",
+"g": "10000000000000000000000000000000000000000000000000000000000000000",
+"s": 4,
+"k": [
+"bruteforce"
+],
+"t": [
+"phw48rhGHMlvn6Q#ScpgrmHjxI3*NE#mb$ch!O#rmPA%3jLsOr*W8Nht5SdlWnQ2"
+]
+},
+{
+"p": "correct horse battery staple correct horse",
+"g": "110963718792928000000000000000000",
+"s": 4,
+"k": [
+"dictionary",
+"bruteforce",
+"dictionary",
+"bruteforce",
+"dictionary",
+"bruteforce",
+"dictionary"
+],
+"t": [
+"correct",
+" horse ",
+"battery",
+" staple ",
+"correct",
+" ",
+"horse"
+]
+},
+{
+"p": "q8T!vR2#nZ5&wL9@xK4$",
+"g": "100000000000000000001",
+"s": 4,
+"k": [
+"bruteforce"
+],
+"t": [
+"q8T!vR2#nZ5&wL9@xK4$"
+]
+},
+{
+"p": "the quick brown fox jumps over the lazy dog",
+"g": "900000000000000000100000000000000000000",
+"s": 4,
+"k": [
+"dictionary",
+"bruteforce",
+"dictionary",
+"bruteforce",
+"dictionary",
+"bruteforce"
+],
+"t": [
+"the",
+" quick ",
+"brown",
+" fox jumps ",
+"over",
+" the lazy dog"
+]
+}
+],
+"userInputs": [
+{
+"p": "Ravindra1987!",
+"inputs": [
+"Ravindra",
+"Kulkarni"
+],
+"g": "10010000",
+"s": 2
+},
+{
+"p": "kulkarni@home",
+"inputs": [
+"Ravindra",
+"Kulkarni"
+],
+"g": "10010000",
+"s": 2
+},
+{
+"p": "asha.verma",
+"inputs": [
+"asha",
+"verma",
+"example"
+],
+"g": "10010000",
+"s": 2
+},
+{
+"p": "Acme2026",
+"inputs": [
+"acme"
+],
+"g": "740000",
+"s": 1
+},
+{
+"p": "supertools",
+"inputs": [
+"supertools"
+],
+"g": "2",
+"s": 0
+},
+{
+"p": "SuperTools!",
+"inputs": [
+"supertools"
+],
+"g": "11210",
+"s": 1
+}
+]
+}

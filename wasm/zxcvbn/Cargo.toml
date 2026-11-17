@@ -13,6 +13,12 @@ path = "src/lib.rs"
 serde_json = "1"
 zxcvbn = { version = "3.1.1", default-features = false, features = ["custom_wasm_env"] }
 
+# Two fixes to the zxcvbn crate (see zxcvbn-fixes.patch; build.sh downloads the crate, checks its SHA-256 and applies it):
+# all-caps tokens with a digit scored 0 variations (TRUSTNO1 = "2 guesses"), and a run of equal characters was merged
+# into the following sequence ("aaaaaaab" = one sequence).
+[patch.crates-io]
+zxcvbn = { path = "target/patched/zxcvbn-3.1.1" }
+
 [profile.release]
 opt-level = "s"
 lto = true

@@ -1,6 +1,7 @@
 //! Subnet / CIDR calculator. Input JSON {"input": "...", "split": <new prefix, optional>}.
 //! Accepts 10.1.2.3/24, 10.1.2.3 255.255.255.0, 10.1.2.3/255.255.255.0, a bare address, IPv6 2001:db8::1/48, and ranges
-//! "a - b" (→ the smallest list of CIDR blocks covering exactly that range).
+//! "a - b" / "a to b" (→ the smallest list of CIDR blocks covering exactly that range). Also read: wildcard masks
+//! (10.1.2.3 0.0.0.255), [bracketed] IPv6, an IPv6 zone (fe80::1%eth0, dropped), en/em dashes in ranges.
 use crate::{arg, js, s, R};
 use ipnet::{IpNet, Ipv4AddrRange, Ipv4Net, Ipv4Subnets, Ipv6Net, Ipv6Subnets};
 use serde_json::{json, Value};
@@ -8,8 +9,15 @@ use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 
 fn mask_to_prefix(m: Ipv4Addr) -> Result<u8, String> {
     let v = u32::from(m);
-    if v.leading_ones() + v.trailing_zeros() != 32 { return Err(format!("{m} is not a valid netmask (the 1-bits must be contiguous)")); }
-    Ok(v.leading_ones() as u8)
+    if v.leading_ones() + v.trailing_zeros() == 32 { return Ok(v.leading_ones() as u8); }
+    // a wildcard (inverse) mask as routers and ACLs write it: 0.0.0.255 = /24
+    if v.leading_zeros() + v.trailing_ones() == 32 { return Ok(v.leading_zeros() as u8); }
+    Err(format!("{m} is not a valid netmask (the 1-bits must be contiguous)"))
+}
+/// An address as people paste it: [2001:db8::1], fe80::1%eth0 (zone name dropped — it names an interface, not a network).
+fn clean(a: &str) -> &str {
+    let a = a.trim().trim_start_matches('[').trim_end_matches(']');
+    if a.contains(':') { a.split('%').next().unwrap_or(a) } else { a }
 }
 
 fn parse(inp: &str) -> Result<(IpAddr, u8), String> {
@@ -17,10 +25,13 @@ fn parse(inp: &str) -> Result<(IpAddr, u8), String> {
     if t.is_empty() { return Err("Enter an address, e.g. 192.168.1.10/24".into()); }
     let (a, p) = if let Some((a, p)) = t.split_once('/') { (a.trim(), Some(p.trim())) }
         else if let Some((a, p)) = t.split_once(char::is_whitespace) { (a.trim(), Some(p.trim())) } else { (t, None) };
+    let a = clean(a);
+    if a.is_empty() { return Err("The address before the / is missing".into()); }
     let addr: IpAddr = a.parse().map_err(|_| format!("\"{a}\" is not an IPv4 or IPv6 address"))?;
     let max = if addr.is_ipv4() { 32 } else { 128 };
     let prefix = match p {
         None => max,
+        Some("") => return Err("The prefix length after the / is missing (e.g. /24)".into()),
         Some(p) if p.contains('.') => {
             if !addr.is_ipv4() { return Err("A dotted netmask only works with IPv4".into()); }
             mask_to_prefix(p.parse().map_err(|_| format!("\"{p}\" is not a netmask"))?)?
@@ -36,6 +47,8 @@ fn kind4(a: Ipv4Addr) -> &'static str {
     else if o[0] == 10 || (o[0] == 172 && (16..=31).contains(&o[1])) || (o[0] == 192 && o[1] == 168) { "Private (RFC 1918)" }
     else if o[0] == 100 && (64..=127).contains(&o[1]) { "Carrier-grade NAT (100.64.0.0/10)" }
     else if o[0] == 169 && o[1] == 254 { "Link-local (169.254.0.0/16)" }
+    else if o[0] == 192 && o[1] == 0 && o[2] == 0 { "IETF protocol assignments (192.0.0.0/24)" }
+    else if o[0] == 192 && o[1] == 88 && o[2] == 99 { "6to4 relay anycast, deprecated (192.88.99.0/24)" }
     else if (o[0] == 192 && o[1] == 0 && o[2] == 2) || (o[0] == 198 && o[1] == 51 && o[2] == 100) || (o[0] == 203 && o[1] == 0 && o[2] == 113) { "Documentation (RFC 5737)" }
     else if o[0] == 198 && (o[1] == 18 || o[1] == 19) { "Benchmarking (198.18.0.0/15)" }
     else if a.is_multicast() { "Multicast (224.0.0.0/4)" } else if a.is_broadcast() { "Limited broadcast" }
@@ -46,6 +59,8 @@ fn kind6(a: Ipv6Addr) -> &'static str {
     if a.is_unspecified() { "Unspecified (::)" } else if a.is_loopback() { "Loopback (::1)" }
     else if s[0] & 0xffc0 == 0xfe80 { "Link-local (fe80::/10)" } else if s[0] & 0xfe00 == 0xfc00 { "Unique local (fc00::/7)" }
     else if s[0] & 0xff00 == 0xff00 { "Multicast (ff00::/8)" } else if s[0] == 0x2001 && s[1] == 0x0db8 { "Documentation (2001:db8::/32)" }
+    else if s[0] == 0x3fff && s[1] & 0xf000 == 0 { "Documentation (3fff::/20)" } else if s[0] == 0x2001 && s[1] == 0 { "Teredo tunnelling (2001::/32)" }
+    else if s[0] == 0x0100 && s[1] == 0 && s[2] == 0 && s[3] == 0 { "Discard-only (100::/64)" }
     else if a.to_ipv4_mapped().is_some() { "IPv4-mapped (::ffff:0:0/96)" } else if s[0] == 0x2002 { "6to4 (2002::/16)" }
     else if s[0] == 0x0064 && s[1] == 0xff9b { "NAT64 (64:ff9b::/96)" } else if s[0] & 0xe000 == 0x2000 { "Global unicast (2000::/3)" } else { "Reserved" }
 }
@@ -101,7 +116,9 @@ fn v6(addr: Ipv6Addr, p: u8, split: Option<u8>) -> Result<Value, String> {
 }
 
 fn range(a: &str, b: &str) -> Result<Value, String> {
-    let (x, y): (IpAddr, IpAddr) = (a.trim().parse().map_err(|_| format!("\"{}\" is not an address", a.trim()))?, b.trim().parse().map_err(|_| format!("\"{}\" is not an address", b.trim()))?);
+    let (a, b) = (clean(a), clean(b));
+    if a.is_empty() || b.is_empty() { return Err("A range needs two addresses: first - last".into()); }
+    let (x, y): (IpAddr, IpAddr) = (a.parse().map_err(|_| format!("\"{a}\" is not an address (a range is: first address - last address)"))?, b.parse().map_err(|_| format!("\"{b}\" is not an address (a range is: first address - last address)"))?);
     let blocks: Vec<String> = match (x, y) {
         (IpAddr::V4(x), IpAddr::V4(y)) => { if x > y { return Err("The range end is before its start".into()); } Ipv4Subnets::new(x, y, 0).map(|n| n.to_string()).collect() }
         (IpAddr::V6(x), IpAddr::V6(y)) => { if x > y { return Err("The range end is before its start".into()); } Ipv6Subnets::new(x, y, 0).map(|n| n.to_string()).collect() }
@@ -114,9 +131,10 @@ fn range(a: &str, b: &str) -> Result<Value, String> {
 
 pub fn run(input: &[u8]) -> R {
     let a = arg(input)?;
-    let t = s(&a, "input").trim().to_string();
+    let t = s(&a, "input").trim().replace(['\u{2013}', '\u{2014}', '\u{2212}'], "-"); // en dash, em dash, minus sign (pasted ranges)
+    let t = if let Some((x, y)) = t.split_once(" to ") { format!("{x} - {y}") } else { t };
     let split = a.get("split").and_then(|v| v.as_u64()).map(|v| v.min(255) as u8);
-    if let Some((x, y)) = t.split_once(" - ").or_else(|| if !t.contains(':') { t.split_once('-') } else { None }) {
+    if let Some((x, y)) = t.split_once(" - ").or_else(|| if !t.contains('/') { t.split_once('-') } else { None }) { // (no address contains a "-")
         return js(range(x, y)?);
     }
     let (addr, p) = parse(&t)?;

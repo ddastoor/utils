@@ -44,6 +44,19 @@ what those suites missed.
 - **Owner, 17 Nov 2026:** "increase test coverage significantly for each app/utility" — every tab's suite must grow in
   this pass (tracker column T), not only the tabs where a bug was found.
 - **Shell + whole-app results so far:** see "Bug hunt log" at the end of the tracker.
+- **Done so far (17 Nov 2026):** app shell + whole-app sweep (10 fixes); **area `net` — all 10 tabs** (cidr, chmod, x509,
+  sshkey, hmac, pwhash, apikey, curl, totp, pwstrength): 51 bugs fixed, 592 checks added, each pinned against an
+  independent reference (real curl, GNU chmod, OpenSSL, Python ipaddress / cryptography / hashlib / zxcvbn, RFC vectors).
+- **Next steps (in this order, one area at a time, commit + push after each):** misc → bitswebref → dev-data2 →
+  data-engines → calc-core → calc2-math → text → security-codes → images1 → images2 → pdf → docs2 → audio → video →
+  terminal → everyday-device (areas = column "Area" in `docs/BUGHUNT.md`; `node scripts/bughunt.mjs status` lists the
+  tabs still open). For each tab: read the source + suite, probe the built site (`npx vite preview --port 4173`, helper
+  `scratchpad/own/probe.mjs` — recreate it from `tests/e2e.mjs` if the scratchpad is gone), compare with an independent
+  reference, fix, add checks to its suite (and a unit suite for its engine), tick the tracker.
+- **Do NOT fan out a dozen reviewer sub-agents at once:** twelve in parallel used up the owner's 5-hour usage limit in
+  one go (17 Nov). Work through the areas one by one in the main session.
+- Reviewer reports that exist only for `net` (scratchpad `review/net/REPORT.md`, now fully handled). The other areas
+  have no report — review them directly.
 
 ## Status (last updated with the commit that touched this file — see `git log -1 -- docs/RESUME.md`)
 

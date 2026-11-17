@@ -215,6 +215,7 @@ h1, h2, h3 { margin: 0; line-height: 1.25; }
 .slider { display: flex; flex-direction: column; gap: 4px; }
 .slider-head { display: flex; justify-content: space-between; font-size: 13.5px; font-weight: 600; color: var(--muted); }
 .slider-val { color: var(--text); font-variant-numeric: tabular-nums; cursor: pointer; }
+.slider.disabled { opacity: .5; }
 .range { width: 100%; height: 28px; accent-color: var(--accent); margin: 0; }
 
 .drop {

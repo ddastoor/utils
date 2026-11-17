@@ -154,14 +154,14 @@ Areas with a shared review: the app shell (router, search, favorites, platform h
 | `prettier` | Code Formatter | PC only | data-engines |  |  |  |  |
 | `mockdata` | Mock Data Generator | PC only | dev-data2 |  |  |  |  |
 | `mdtable` | Markdown Table | PC only | dev-data2 |  |  |  |  |
-| `cidr` | Subnet / CIDR Calculator | PC only | net |  |  |  |  |
-| `chmod` | chmod Calculator | PC only | net |  |  |  |  |
-| `x509` | Certificate Decoder | PC only | net |  |  |  |  |
-| `sshkey` | SSH Key Generator | PC only | net |  |  |  |  |
-| `hmac` | HMAC Generator | PC only | net |  |  |  |  |
-| `pwhash` | Password Hash Tool | PC only | net |  |  |  |  |
-| `apikey` | API Key Generator | PC only | net |  |  |  |  |
-| `curl` | cURL Converter | PC only | net |  |  |  |  |
+| `cidr` | Subnet / CIDR Calculator | PC only | net | ✓ | 3 | 74 | e2e 15→43 + 46 unit; 300 cases vs Python ipaddress |
+| `chmod` | chmod Calculator | PC only | net | ✓ | 3 | 26 | e2e 13→39; 800 modes + 1,152 expressions vs real chmod |
+| `x509` | Certificate Decoder | PC only | net | ✓ | 10 | 66 | e2e 16→45 + 37 unit; fixtures vs OpenSSL |
+| `sshkey` | SSH Key Generator | PC only | net | ✓ | 2 | 58 | e2e 16→34 + 40 unit; keys from another tool |
+| `hmac` | HMAC Generator | PC only | net | ✓ | 4 | 55 | e2e 10→30 + 35 unit; streaming, RFC 4231 |
+| `pwhash` | Password Hash Tool | PC only | net | ✓ | 3 | 51 | e2e 15→31 + 36 unit |
+| `apikey` | API Key Generator | PC only | net | ✓ | 2 | 15 | e2e 11→26 |
+| `curl` | cURL Converter | PC only | net | ✓ | 12 | 89 | e2e 10→22 (35 commands vs real curl) + 77 unit (new) |
 | `cron` | Cron Explainer | PC only | misc |  |  |  |  |
 | `escape` | String Escape | PC only | misc |  |  |  |  |
 | `unicode` | Unicode Inspector | PC only | misc |  |  |  |  |
@@ -175,8 +175,8 @@ Areas with a shared review: the app shell (router, search, favorites, platform h
 | `terminal` | Linux Terminal | PC only | terminal |  |  |  |  |
 | `graphviz` | Graphviz (DOT) | PC only | data-engines |  |  |  |  |
 | `python` | Python Scratchpad | PC only | data-engines |  |  |  |  |
-| `totp` | TOTP / 2FA Codes | PC only | net |  |  |  |  |
-| `pwstrength` | Password Strength | PC only | net |  |  |  |  |
+| `totp` | TOTP / 2FA Codes | PC only | net | ✓ | 6 | 63 | e2e 11→49 + 25 unit; RFC 4226/6238 |
+| `pwstrength` | Password Strength | PC only | net | ✓ | 6 | 95 | e2e 13→32 + 76 unit (new); 304 passwords vs Python zxcvbn |
 | `jsonschema` | JSON Schema | PC only | data-engines |  |  |  |  |
 | `bitwise` | Bitwise Calculator | PC only | bitswebref |  |  |  |  |
 | `ieee754` | IEEE-754 Inspector | PC only | bitswebref |  |  |  |  |
@@ -256,3 +256,56 @@ Areas with a shared review: the app shell (router, search, favorites, platform h
    table cells 40 px, preset chips 34 px, DEG 22 px) — now ≥ 44 px on touch screens.
 10. An engine that finished loading after its tab was left stayed in memory until the next tab (Resume's fonts) — now
     released at once; a worker replaced under the same key stayed counted as alive.
+11. **Regression made by fix 10, found and fixed the same day:** the "released at once when no tab is open" rule also
+    applied inside Web Workers (a separate copy of `src/lifecycle.ts` that the router never talks to), so an engine
+    loaded in a worker was dropped the moment it was created — Hash, Sodium Encrypt and Share Link stopped working on
+    the deployed site between commit 277b640 and the next push. Only the page is ever "idle" now
+    (`typeof document !== 'undefined'`); pinned by `tests/unit/lifecycle.test.mjs` (12 checks). Lesson: run the
+    complete `node tests/e2e.mjs` before every push, not only the suites of the area being worked on.
+
+### Software › network & security tabs (17 Nov 2026) — cidr, chmod, x509, sshkey, hmac, pwhash, apikey, curl, totp, pwstrength
+Method: an independent reviewer's report (22 written findings) + its probe scripts re-run on the fixed build + own review.
+Every fix is pinned by a test against an independent reference (real `curl`, GNU `chmod`, OpenSSL, Python `ipaddress` /
+`cryptography` / `hashlib` / `argon2-cffi` / `zxcvbn`, Node `crypto`, RFC vectors). 51 bugs, 592 new checks.
+- **cURL Converter (12):** `$'…'` escapes (`\uXXXX`, `\xHH`, octal) from Chrome/Firefox "Copy as cURL" were not decoded;
+  Chrome's "Copy as cURL (cmd)" (carets) gave garbage; short options with an attached value (`-XPOST`, `-uuser:pw`,
+  `-sSLk`) were dropped; an unknown option, a pipe or a redirect replaced the URL; `-d @file` sent the text "@file";
+  JSON bodies were re-serialised (bytes changed, big numbers lost); `-I`, `-T`, `--oauth2-bearer` ignored; URLs without a
+  scheme; `-F` forms missing from Go / raw HTTP; repeated headers collapsed; Python output a syntax error for some
+  bodies; `-u` with non-ASCII. Parser rewritten in `src/lib/curl.ts` (TypeScript for now — no tested WebAssembly curl
+  parser exists; on the to-do sweep). 35 commands are run through real curl against a local server and compared with
+  the generated Node / Python (and 10 Go) programs.
+- **Password Strength (6):** the estimator stopped at 2^64 ("10^19.3 guesses", "57 years" for every long password);
+  four bugs in the zxcvbn crate, fixed by `wasm/zxcvbn/zxcvbn-fixes.patch`: ALL-CAPS words with a digit = "2 guesses"
+  (TRUSTNO1), a repeat + one character counted as a "sequence" (aaaaaaab), a single character counted as a l33t
+  dictionary word ("1" = a film title), keyboard walks 13 % too low per turn (average degree divided in integers);
+  the breakdown printed the password's pieces in clear while the box was hidden (now dots until "Show").
+- **Certificate Decoder (10):** P-521 shown as 528-bit, DSA 2048 as 2088-bit, RSA-PSS as "rsassa-pss 2160-bit"; DSA /
+  PSS / SHA-3 signature names missing; "expires in 0 days" five hours before expiry, "EXPIRED 1 day ago" after two hours
+  (now minutes / hours / days / years, "no expiry date" for 31 Dec 9999); PEM files with a BOM, in UTF-16 (PowerShell),
+  indented (YAML), quoted, with a Latin-1 preamble or stored with literal `\n` (JSON / .env) were refused; `.p7b`
+  bundles said "not a certificate" (the certificates inside are now shown); an empty file said nothing; lone public
+  keys are decoded (type, size, pin).
+- **TOTP (6):** `otpauth://hotp` links shown as time-based codes; 10-digit codes wrong one time in three (32-bit
+  overflow); `period=0` / `digits=abc` gave "NaN digits" and kept the previous link's code on screen; upper-case links
+  refused; secrets of a length authenticator apps accept (or with a zero-width space from copy-paste) refused; "Copy
+  code" copied "———".
+- **HMAC (4):** a 40 MB file froze the page for 11 s (now streamed in 4 MB pieces through a new chunked engine call —
+  48 MB in under 1 s, longest stall < 0.2 s); signatures written as Stripe's `t=…,v1=…`, `v1=`, with colons, `0x`,
+  quotes or padded Base64url did not match; a one-character Base64 key showed the browser's raw `atob` error; hex keys
+  with `0x` / colons refused.
+- **chmod (3):** the "Symbolic command" left out setuid / setgid / sticky; valid chmod syntax was refused (`g=u`, `X`,
+  `u+r-w`); `+w` without u/g/o silently differs from the real chmod (umask) — now explained. New "folder" switch
+  (X, "=" keeping setuid/setgid, ls -l letter).
+- **Password Hash (3):** a `$pbkdf2-sha1$` hash said "No match" for the right password and every verification error was
+  "No match"; scrypt `log2(N)` 16384 wrapped to 0 (a hash with no work factor), 0 iterations / decimals accepted;
+  hashes needing 4 GiB or bcrypt cost 31 crashed or froze the engine.
+- **Subnet / CIDR (3):** the range printed in the result title (en dash) could not be pasted back; an IPv6 range
+  without spaces was refused; the split choice stayed active for ranges. Also new: wildcard masks, `%zone`, `[…]`,
+  "a to b", more special-purpose blocks named.
+- **SSH Key (2):** "Inspect a key" refused private keys not wrapped at exactly 70 columns, and ECDSA keys; a pasted
+  list of keys showed only the first. Now Ed25519 / RSA / ECDSA / DSA, encrypted keys, authorized_keys and
+  known_hosts lines, MD5 fingerprints.
+- **API Key (2):** every keystroke in the prefix box threw the keys away and made new ones; the "Random bytes" slider
+  looked active but did nothing for the GitHub style.
+- Test runner: `node tests/e2e.mjs a b c` and `node tests/unit.mjs a b` now take several filters.

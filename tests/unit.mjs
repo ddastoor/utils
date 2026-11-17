@@ -1,5 +1,5 @@
 // Fast, truly parallel unit tests: suites are spread over worker threads (one per CPU core); each worker owns one
-// Vite SSR loader and runs its share of suites. Usage: node tests/unit.mjs [filter]
+// Vite SSR loader and runs its share of suites. Usage: node tests/unit.mjs [filter …] (several = any of them)
 import { Worker, isMainThread, parentPort, workerData } from 'node:worker_threads';
 import { readdirSync, readFileSync } from 'node:fs';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -16,9 +16,9 @@ const here = dirname(fileURLToPath(import.meta.url));
 const root = join(here, '..');
 
 if (isMainThread) {
-  const filter = process.argv[2] || '';
+  const filters = process.argv.slice(2).flatMap((a) => a.split(',')).filter((a) => a && !a.startsWith('--'));
   const t0 = performance.now();
-  const files = readdirSync(join(here, 'unit')).filter((f) => f.endsWith('.test.mjs') && f.includes(filter)).sort();
+  const files = readdirSync(join(here, 'unit')).filter((f) => f.endsWith('.test.mjs') && (!filters.length || filters.some((x) => f.includes(x)))).sort();
   // heaviest suites first, round-robin over workers
   const weight = (f) => readFileSync(join(here, 'unit', f)).length;
   const sorted = [...files].sort((a, b) => weight(b) - weight(a));

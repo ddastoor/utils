@@ -20,10 +20,21 @@ export type DevGroup = keyof typeof URLS;
 /** cron's time zone: offsets for the zone named here come from the browser's Intl (no tz database in the wasm). */
 let zone = 'UTC';
 export const setZone = (z: string) => { zone = z; };
+// The engine asks for an offset thousands of times while it searches (a schedule inside a daylight-saving gap: 180,000
+// calls for 25 runs). Building an Intl.DateTimeFormat costs ~50 µs, so one formatter per zone is kept, and the answer is
+// remembered per quarter of an hour (every zone changes its offset on a quarter-hour boundary).
+const fmts = new Map<string, Intl.DateTimeFormat>(), offs = new Map<string, Map<number, number>>();
+const QUARTER = 900000;
 export function zoneOffsetMinutes(z: string, ms: number) {
-  const p = new Intl.DateTimeFormat('en-US', { timeZone: z, hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' }).formatToParts(new Date(ms));
-  const g = (t: string) => +p.find((x) => x.type === t)!.value;
-  return Math.round((Date.UTC(g('year'), g('month') - 1, g('day'), g('hour'), g('minute'), g('second')) - Math.floor(ms / 1000) * 1000) / 60000);
+  const bucket = Math.floor(ms / QUARTER);
+  let m = offs.get(z); if (!m) offs.set(z, (m = new Map()));
+  const hit = m.get(bucket); if (hit !== undefined) return hit;
+  let f = fmts.get(z); if (!f) fmts.set(z, (f = new Intl.DateTimeFormat('en-US', { timeZone: z, hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' })));
+  const t = bucket * QUARTER, p = f.formatToParts(new Date(t)), g = (k: string) => +p.find((x) => x.type === k)!.value;
+  const v = Math.round((Date.UTC(g('year'), g('month') - 1, g('day'), g('hour'), g('minute'), g('second')) - t) / 60000);
+  if (m.size > 100000) m.clear();
+  m.set(bucket, v);
+  return v;
 }
 export const tzImports = (getZone: () => string) => ({ env: { tz_offset: (ms: number) => zoneOffsetMinutes(getZone(), ms) } });
 

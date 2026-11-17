@@ -45,8 +45,16 @@ pub fn cron(input: &[u8]) -> R {
     let from = a.get("from").and_then(|v| v.as_i64()).unwrap_or(0);
     let n = a.get("count").and_then(|v| v.as_u64()).unwrap_or(10).min(100) as usize;
     let start = host_tz::HostTz.timestamp_millis_opt(from).single().ok_or("bad start time")?;
-    let next: Vec<Value> = c.iter_after(start).take(n).map(|t| json!({ "ms": t.timestamp_millis() })).collect();
-    js(json!({ "description": c.describe(), "next": next, "fields": expr.split_whitespace().count() }))
+    // A date that never comes (30 February, 31 April): croner would search day by day to the year 5000 — seconds of
+    // work — and return nothing. Look at the next 30 years of dates first (covers every leap-year / weekday combination).
+    let fields = expr.split_whitespace().count();
+    let possible = {
+        use chrono::Datelike;
+        let (p, d0) = (&c.pattern, start.date_naive());
+        (0..366 * 30).filter_map(|i| d0.checked_add_days(chrono::Days::new(i))).any(|d| p.year_match(d.year()).unwrap_or(false) && p.month_match(d.month()).unwrap_or(false) && p.day_match(d.year(), d.month(), d.day(), croner::Weekday::from_days_from_sunday(d.weekday().num_days_from_sunday())).unwrap_or(false))
+    };
+    let next: Vec<Value> = if possible || fields == 7 { c.iter_after(start).take(n).map(|t| json!({ "ms": t.timestamp_millis() })).collect() } else { Vec::new() };
+    js(json!({ "description": c.describe(), "next": next, "fields": fields, "never": next.is_empty() }))
 }
 
 // ------------------------------------------------------------------ semver: {versions:[...], range, inc}

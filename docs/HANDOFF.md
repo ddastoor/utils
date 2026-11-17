@@ -113,3 +113,24 @@ export ZIG=/tmp/zig/x/ziglang/zig
 - **No scheduled check-ins exist** (creating them was blocked by the session's permission check on 16 Nov 2026). If a
   session stops (usage limit, time limit), its pushed work is safe; the owner starts a new session with the standard
   message in RESUME.md ("Continue building SuperTools…"), or the session schedules its own `send_later` before a limit.
+
+## Bug hunt — lessons so far (17 Nov 2026)
+- **Usage limit:** 12 reviewer sub-agents in parallel exhausted the owner's 5-hour limit before most had written a
+  report. Review area by area in the main session; at most one helper at a time, and only for a narrow question.
+- **What finds bugs fastest:** compare the tab with an independent reference in bulk (hundreds of cases), not with a few
+  hand-picked examples: real `curl` against a local server, GNU `chmod` + `stat`, `openssl x509 -text`, Python
+  `ipaddress` / `cryptography` / `hashlib` / `argon2-cffi` / `zxcvbn`, Node `crypto`, RFC appendices. Seeded generators
+  live in `scripts/make-*-reference.py`; their JSON output is committed under `tests/fixtures/` so the tests stay
+  hermetic.
+- **Third-party engines have bugs too:** the zxcvbn crate needed four fixes (`wasm/zxcvbn/zxcvbn-fixes.patch`, applied
+  to the checksum-verified crate at build time). Check a port against its reference implementation before trusting it.
+- **Traps in the tests:** Playwright's `setInputFiles` cannot open a path with non-ASCII characters in this sandbox's
+  C locale — pass `{ name, mimeType, buffer }`; run bash with `LC_ALL=C.UTF-8` when it must decode `\uXXXX`;
+  `console.log` inside a unit suite shows only its first line — write debug output to a file.
+- **Runner:** `node tests/e2e.mjs cidr chmod. x509` and `node tests/unit.mjs keys devcore` take several filters
+  (`chmod.` = the whole name, so `chmod` does not also pick another suite).
+- **Run the COMPLETE e2e suite before every push** (`npm run build && node tests/e2e.mjs`, about 8 minutes; run nothing
+  else heavy meanwhile — cargo builds or extra browsers make the media suites time out). Commit 277b640 was pushed after
+  only the shell suites had run and broke Hash / Sodium Encrypt / Share Link on the live site (an engine-lifecycle change
+  that misbehaved inside Web Workers). Shared modules (`src/lifecycle.ts`, `src/ui.ts`, `src/main.ts`, `src/wasm/wasi.ts`)
+  are used by every tab and also run inside workers, where there is no `document` and no router.

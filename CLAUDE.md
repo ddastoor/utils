@@ -739,8 +739,8 @@ stay **public** (the source of the deployed site is then available to every user
 | textcore: Myers diff, tool-search ranking, word frequency, rare-word ranking (tokeniser, lemmatiser, wordfreq hash table), XY-cut reading order | C (own code) | **us** (`wasm/textcore`) | diff, search box, word counter, photodict |
 | sheet: calamine 0.38 (read .xlsx .xlsm .xlsb .xls .ods) + rust_xlsxwriter 0.102 (write .xlsx) + csv 1 + serde_json | Rust | **us** (`wasm/sheet`, crates.io sources verified by `Cargo.lock`, target wasm32-wasip1) | sheet |
 | svgo: **OXVG 0.0.9** (Rust port of SVGO's plugins; lightningcss for `<style>`) | Rust | **us** (`wasm/svgo`, crates.io via `Cargo.lock`, opt-level z, 4.9 MB / 1.3 MB gz, loaded with the first SVG) | svgo |
-| keys: RustCrypto **hmac, md-5, sha1, sha2, sha3, argon2, bcrypt, pbkdf2, scrypt, ssh-key** (OpenSSH Ed25519, bcrypt-pbkdf + AES-256-CTR) | Rust | **us** (`wasm/keys`, 0.38 MB; tests: RFC 2104/2202/4231/4226/6238/6070 vectors) | hmac, totp, pwhash, sshkey, apikey |
-| zxcvbn 3.1.1 (Rust port of Dropbox's estimator + its word lists) | Rust | **us** (`wasm/zxcvbn`, 2.2 MB, loaded with the first password; scores checked against the Python reference) | pwstrength |
+| keys: RustCrypto **hmac, md-5, sha1, sha2, sha3, argon2, bcrypt, pbkdf2, scrypt, ssh-key** (OpenSSH Ed25519 generation), **aes + ctr + bcrypt-pbkdf** and our own OpenSSH wire reader (inspect Ed25519 / RSA / ECDSA / DSA keys, encrypted private keys, authorized_keys / known_hosts lines), streaming HMAC (`k_mac_begin/update/end`), lenient Base32 for TOTP secrets | Rust | **us** (`wasm/keys`, 0.38 MB; tests: RFC 2104/2202/4231/4226/6238/6070 vectors) | hmac, totp, pwhash, sshkey, apikey |
+| zxcvbn 3.1.1 (Rust port of Dropbox's estimator + its word lists) **+ our four fixes** (`wasm/zxcvbn/zxcvbn-fixes.patch`, applied by build.sh to the SHA-256-checked crate: ALL-CAPS words with a digit, repeats taken for sequences, single-character l33t words, keyboard-walk degree divided in integers) | Rust | **us** (`wasm/zxcvbn`, 2.2 MB, loaded with the first password; guesses + scores equal the Python reference for 304 passwords — `tests/unit/zxcvbn.test.mjs`) | pwstrength |
 | formats: **serde_yaml_ng** (unsafe-libyaml = libyaml translated to Rust), **toml**, **jsonschema** 0.61 (no network/file resolvers) + own schema inference | Rust | **us** (`wasm/formats`, two modules: formats-yaml 0.42 MB, formats-schema 2.7 MB) | yaml, jsonschema |
 | devcore: ipnet (CIDR), croner + chrono (cron; zone offsets from the browser's Intl via an `env.tz_offset` import, so no tz database), nodejs-semver (+ own strict SemVer check), globset, data-encoding + bs58 + own Ascii85/Z85, own protobuf wire decoder, rmpv (MessagePack), ciborium (CBOR), x509-parser + sha1/sha2, diffy (patch), sqlformat, own hex dump | Rust | **us** (`wasm/devcore`, crates.io via `Cargo.lock`, wasm32-wasip1; one `dc_call(op, input)` entry; **one module per tab** via Cargo features → `devcore-<feature>.wasm`, 67–650 KB) | cidr, x509, cron, semver, glob, patch, sqlfmt, hexview, baseenc, bindecode |
 | cmark-gfm 0.29.0.gfm.13 (GitHub Flavored Markdown) | C | **us** (`wasm/markdown`, source from the PyPI `cmarkgfm` sdist, SHA-256 pinned) | markdown |
@@ -760,6 +760,7 @@ stay **public** (the source of the deployed site is then available to every user
 JavaScript-only components (no C/C++ equivalent exists for the job):
 | Library | Why JS | Used by |
 |---|---|---|
+| own `src/lib/curl.ts` (shell word splitting for bash and cmd.exe, curl option table, code generators) | no tried-and-tested WebAssembly build of a curl command-line parser exists (curl's own parser is tied to libcurl and its tool's globals); it is string parsing of one short line and code templating. A Rust port into devcore is on the to-do sweep (`todo.md`) | curl |
 | OpenPGP.js 6 (LGPL-3.0) | the audited browser OpenPGP implementation; C alternatives (GnuPG, RNP+Botan) are not built or audited for wasm | pgp |
 | Mermaid 12 (MIT) | Mermaid exists only as JavaScript; `securityLevel: 'strict'` (labels sanitised), bundled by Vite | mermaid |
 | Prettier standalone (MIT) | no compiled formatter covers JS/TS/CSS/HTML/YAML/Markdown/GraphQL together | prettier |
@@ -778,6 +779,7 @@ WebAssembly where a route exists:
 | zip.js (AES-256 zip creation) | own C: deflate (zlib/miniz) + WinZip AES (AES-CTR + HMAC-SHA1 + PBKDF2) in `crypto.wasm` | optional |
 | mediabunny (MP4/WebM mux + demux around WebCodecs) | minimp4 (C, CC0) muxer around WebCodecs | optional |
 | semver (npm, used only by tests now — the Semver tab runs nodejs-semver in devcore.wasm) | — | done |
+| `src/lib/curl.ts` (cURL command parser, Nov 2026) | Rust module in devcore (`devcore-curl.wasm`) | to do (`todo.md` item 1) |
 | own TS parsers for future tools | write them in C/Rust from the start | EXIF/strip/DPI/sniff **done** (metacore); search ranking **done** (textcore `search.c`, identical rankings verified) |
 **Audit of our own TypeScript (done Nov 2026, owner request "convert everything you can"):** moved to C — image
 geometry (orient/crop/homography → imgproc), EXIF/strip/DPI/sniff (→ metacore), search ranking + word frequency
@@ -1095,7 +1097,7 @@ The Vite SSR loader in the harness runs without a file watcher (`server.watch: n
 ```bash
 npm test                 # node tests/unit.mjs — all unit suites concurrently in one process (~1 s)
 npm run build && npm run test:e2e   # node tests/e2e.mjs — one Chromium, suites run concurrently (~15 s)
-node tests/unit.mjs mathcore        # filter by file name; same for e2e
+node tests/unit.mjs mathcore keys   # filter by file name (several = any of them); same for e2e: node tests/e2e.mjs cidr chmod.
 E2E_CONCURRENCY=8 node tests/e2e.mjs
 ```
 - `tests/unit/*.test.mjs` export `default async (t, { load, wasm })`; `t.ok/eq/near/throws`; `load()` = Vite SSR

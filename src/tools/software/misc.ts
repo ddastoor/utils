@@ -30,11 +30,13 @@ export const cron: Mount = async (root) => {
     const fmt = (ms: number, zone: string) => new Date(ms).toLocaleString('en-IN', { timeZone: zone, weekday: 'short', day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', second: parts.length >= 6 ? '2-digit' : undefined, hour12: false });
     const rel = (ms: number) => { const m = Math.round((ms - Date.now()) / 60000); return m < 60 ? `in ${m} min` : m < 1440 * 2 ? `in ${Math.round(m / 60)} h` : `in ${Math.round(m / 1440)} days`; };
     return [card('Meaning', h('p', { class: 'cron-desc' }, r.description), parts.length ? table(['Field', 'Value', 'Allowed'], parts.map((p, i) => [names[i] || '?', p, ranges[i] || ''])) : ''),
-      card(`Next ${r.next.length} runs (${tz.value})`, table(['When', 'ISO 8601 (UTC)', ''], r.next.map((n: any) => [fmt(n.ms, tz.value), new Date(n.ms).toISOString().replace('.000Z', 'Z'), rel(n.ms)]), 'tbl cron-next'))];
+      r.next.length ? card(`Next ${r.next.length} run${r.next.length === 1 ? '' : 's'} (${tz.value})`, table(['When', 'ISO 8601 (UTC)', ''], r.next.map((n: any) => [fmt(n.ms, tz.value), new Date(n.ms).toISOString().replace('.000Z', 'Z'), rel(n.ms)]), 'tbl cron-next'),
+        r.next.length < +count.value ? note(`Only ${r.next.length} run${r.next.length === 1 ? '' : 's'} left — the schedule ends after that.`, 'info') : '')
+        : card('Next runs', note('This schedule never runs: no such date or time comes up (for example 30 February or 31 April, or a year that has passed).', 'warn'))];
   });
   expr.addEventListener('input', debounce(run, 150)); tz.addEventListener('change', run); count.addEventListener('change', run);
   root.append(card(null, field('Cron expression (5 fields, or 6 with seconds first)', expr), h('div', { class: 'grid2' }, field('Time zone', tz), field('How many runs', count)),
-    chips([['* * * * *', 'every minute'], ['*/5 * * * *', 'every 5 min'], ['0 * * * *', 'hourly'], ['0 9 * * 1-5', '9 am weekdays'], ['30 18 * * 5', 'Fri 6:30 pm'], ['0 0 1 * *', 'monthly'], ['0 0 L * *', 'last day of month'], ['0 10 * * 1#1', 'first Monday'], ['@daily', '@daily'], ['0 */30 * * * *', 'every 30 s (6 fields)']], (v) => { expr.value = v; run(); })),
+    chips([['* * * * *', 'every minute'], ['*/5 * * * *', 'every 5 min'], ['0 * * * *', 'hourly'], ['0 9 * * 1-5', '9 am weekdays'], ['30 18 * * 5', 'Fri 6:30 pm'], ['0 0 1 * *', 'monthly'], ['0 0 L * *', 'last day of month'], ['0 10 * * 1#1', 'first Monday'], ['@daily', '@daily'], ['*/30 * * * * *', 'every 30 s (6 fields)']], (v) => { expr.value = v; run(); })),
   out, note('Standard Vixie/POSIX cron: if both day-of-month and day-of-week are set, a day matching EITHER runs the job. Times are computed for the chosen time zone, including daylight-saving changes.', 'info'));
   run();
 };
@@ -119,7 +121,12 @@ const MAGIC: Array<[number, number[] | string, string]> = [
 export function sniff(b: Uint8Array): string {
   for (const [off, sig, name] of MAGIC) {
     const bytes = typeof sig === 'string' ? [...sig].map((c) => c.charCodeAt(0)) : sig;
-    if (b.length >= off + bytes.length && bytes.every((x, i) => b[off + i] === x)) return name;
+    if (b.length >= off + bytes.length && bytes.every((x, i) => b[off + i] === x)) {
+      // two-letter signatures also start ordinary text ("BMW …", "MZ…"): ask for the header fields that follow them
+      if (name === 'BMP image' && !(b.length >= 14 && b[6] === 0 && b[7] === 0 && b[8] === 0 && b[9] === 0)) continue;
+      if (name === 'Windows executable (PE/DOS)' && b.length < 64) continue;
+      return name;
+    }
   }
   const sample = b.subarray(0, 4096); let bin = 0; for (const x of sample) if (x === 0 || (x < 9) || (x > 13 && x < 32)) bin++;
   return !sample.length ? 'Empty file' : bin === 0 ? 'Text (no binary bytes in the first 4 KB)' : 'Unknown binary data';
@@ -144,7 +151,7 @@ export const hexview: Mount = async (root) => {
     clear(info).append(kvRows([['File', name], ['Size', `${fmtBytes(data.length)} (${data.length.toLocaleString('en-IN')} bytes)`], ['Detected type', sniff(data)], ['First bytes', [...data.subarray(0, 8)].map((x) => x.toString(16).padStart(2, '0')).join(' ')]]));
     render();
   };
-  const go = () => { const v = gotoI.value.trim(); const n = /^0x/i.test(v) ? parseInt(v, 16) : parseInt(v, 10); if (!Number.isFinite(n) || n < 0 || n >= data.length) throw new Error(`Offset must be between 0 and ${data.length - 1}`); page = Math.floor(n / PAGE); render(); hits.textContent = `Offset ${n} (0x${n.toString(16)}) is on page ${page + 1}`; };
+  const go = () => { if (!data.length) throw new Error('Open a file first'); const v = gotoI.value.trim().replace(/[,_\s]/g, ''); const n = /^0x[0-9a-f]+$/i.test(v) ? parseInt(v, 16) : /^[0-9a-f]+h$/i.test(v) ? parseInt(v, 16) : /^\d+$/.test(v) ? parseInt(v, 10) : NaN; if (!Number.isFinite(n) || n < 0 || n >= data.length) throw new Error(`Offset must be a number from 0 to ${(data.length - 1).toLocaleString('en-IN')} (0x${(data.length - 1).toString(16)}), e.g. 416 or 0x1A0`); page = Math.floor(n / PAGE); render(); hits.textContent = `Offset ${n} (0x${n.toString(16)}) is on page ${page + 1}`; };
   const find = () => {
     if (!dc || !data.length) throw new Error('Open a file first');
     let needle: Uint8Array;
@@ -164,21 +171,68 @@ export const hexview: Mount = async (root) => {
 
 // ------------------------------------------------------------------ String escape
 type Esc = [string, string, (s: string) => string, (s: string) => string];
-const cEsc = (s: string, uni: boolean) => [...s].map((c) => { const m: Record<string, string> = { '\\': '\\\\', '"': '\\"', '\n': '\\n', '\r': '\\r', '\t': '\\t', '\b': '\\b', '\f': '\\f', '\0': '\\0' }; if (m[c]) return m[c]; const cp = c.codePointAt(0)!; if (cp < 32 || cp === 127) return `\\u${cp.toString(16).padStart(4, '0')}`; if (uni && cp > 126) return cp > 0xffff ? String.fromCodePoint(cp).split('').map((u) => `\\u${u.charCodeAt(0).toString(16).padStart(4, '0')}`).join('') : `\\u${cp.toString(16).padStart(4, '0')}`; return c; }).join('');
-const cUnesc = (s: string) => s.replace(/\\(u\{[0-9a-fA-F]+\}|u[0-9a-fA-F]{4}|x[0-9a-fA-F]{2}|[0-7]{1,3}|.)/gs, (_, e: string) => {
-  if (e[0] === 'u') return e[1] === '{' ? String.fromCodePoint(parseInt(e.slice(2, -1), 16)) : String.fromCharCode(parseInt(e.slice(1), 16));
-  if (e[0] === 'x') return String.fromCharCode(parseInt(e.slice(1), 16));
+const cEsc = (s: string, uni: boolean) => [...s].map((c, i, all) => { const m: Record<string, string> = { '\\': '\\\\', '"': '\\"', '\n': '\\n', '\r': '\\r', '\t': '\\t', '\b': '\\b', '\f': '\\f', '\0': '\\0' };
+  if (c === '\0' && /[0-9]/.test(all[i + 1] || '')) return uni ? '\\u0000' : '\\000'; // "\0" + "1" would read as the octal escape \01
+  if (m[c]) return m[c]; const cp = c.codePointAt(0)!; if (cp < 32 || cp === 127) return `\\u${cp.toString(16).padStart(4, '0')}`; if (uni && cp > 126) return cp > 0xffff ? String.fromCodePoint(cp).split('').map((u) => `\\u${u.charCodeAt(0).toString(16).padStart(4, '0')}`).join('') : `\\u${cp.toString(16).padStart(4, '0')}`; return c; }).join('');
+const cUnesc = (s: string) => s.replace(/\\(u\{[0-9a-fA-F]+\}|u[0-9a-fA-F]{4}|U[0-9a-fA-F]{8}|x[0-9a-fA-F]{2}|[0-7]{1,3}|.)/gs, (_, e: string) => {
+  if (e[0] === 'U' && e.length === 9) return String.fromCodePoint(parseInt(e.slice(1), 16)); // C / Python \U0001F44D
+  if (e[0] === 'u' && e.length > 1) return e[1] === '{' ? String.fromCodePoint(parseInt(e.slice(2, -1), 16)) : String.fromCharCode(parseInt(e.slice(1), 16));
+  if (e[0] === 'x' && e.length === 3) return String.fromCharCode(parseInt(e.slice(1), 16));
   if (/^[0-7]+$/.test(e)) return String.fromCharCode(parseInt(e, 8));
   return ({ n: '\n', r: '\r', t: '\t', b: '\b', f: '\f', v: '\v', a: '\x07', e: '\x1b' } as Record<string, string>)[e] ?? e;
 });
 const HTML_ENT: Record<string, string> = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: '\u00a0', copy: '©', reg: '®', trade: '™', hellip: '…', mdash: '—', ndash: '–', rsquo: '’', lsquo: '‘', rdquo: '”', ldquo: '“', euro: '€', pound: '£', rupee: '₹', deg: '°', times: '×', divide: '÷' };
+/** JSON string contents → text. A whole quoted JSON string ("…") is read as such; otherwise the escapes are decoded and
+ *  everything else is kept as typed (bare quotes, real line breaks and tabs too — JSON.parse would refuse those). */
+function jsonUnesc(s: string): string {
+  const t = s.trim();
+  if (t.length >= 2 && t.startsWith('"') && t.endsWith('"')) { try { const v = JSON.parse(t); if (typeof v === 'string') return v; } catch { /* not one whole string: decode leniently */ } }
+  const map: Record<string, string> = { '"': '"', '\\': '\\', '/': '/', b: '\b', f: '\f', n: '\n', r: '\r', t: '\t' };
+  let o = '';
+  for (let i = 0; i < s.length; i++) {
+    if (s[i] !== '\\') { o += s[i]; continue; }
+    const c = s[++i];
+    if (c === undefined) throw new Error('a backslash at the very end has nothing to escape');
+    if (c === 'u') { const hx = s.slice(i + 1, i + 5); if (!/^[0-9a-fA-F]{4}$/.test(hx)) throw new Error(`\\u needs four hex digits (found "\\u${hx}")`); o += String.fromCharCode(parseInt(hx, 16)); i += 4; }
+    else if (c in map) o += map[c];
+    else throw new Error(`"\\${c}" is not a JSON escape (allowed: \\" \\\\ \\/ \\b \\f \\n \\r \\t \\uXXXX)`);
+  }
+  return o;
+}
+/** One shell word → its text: '…' is literal, "…" keeps everything but \$ \` \" \\ (and a backslash-newline), a bare
+ *  backslash escapes the next character. */
+function shellUnesc(s: string): string {
+  let o = '', i = 0; const t = s.trim();
+  while (i < t.length) {
+    const c = t[i];
+    if (c === "'") { const j = t.indexOf("'", i + 1); if (j < 0) throw new Error('Unclosed single quote'); o += t.slice(i + 1, j); i = j + 1; }
+    else if (c === '"') {
+      let j = i + 1;
+      for (; j < t.length && t[j] !== '"'; j++) { if (t[j] === '\\' && j + 1 < t.length && '$`"\\\n'.includes(t[j + 1])) { j++; if (t[j] !== '\n') o += t[j]; } else o += t[j]; }
+      if (j >= t.length) throw new Error('Unclosed double quote');
+      i = j + 1;
+    } else if (c === '\\') { o += t[i + 1] ?? ''; i += 2; }
+    else { o += c; i++; }
+  }
+  return o;
+}
+/** Every named HTML entity, decoded by the browser's own parser in an inert document (nothing is rendered or run);
+ *  the short table is the fallback where there is no DOM (unit tests). */
+const entCache = new Map<string, string>();
+function htmlEntity(m: string, name: string): string {
+  if (name[0] === '#') { const cp = name[1].toLowerCase() === 'x' ? parseInt(name.slice(2), 16) : parseInt(name.slice(1), 10); if (!(cp >= 0 && cp <= 0x10ffff) || (cp >= 0xd800 && cp <= 0xdfff)) throw new Error(`${m} is not a character (code points end at U+10FFFF)`); return String.fromCodePoint(cp); }
+  if (typeof DOMParser === 'undefined') return HTML_ENT[name] ?? HTML_ENT[name.toLowerCase()] ?? m;
+  let v = entCache.get(name);
+  if (v === undefined) { v = new DOMParser().parseFromString(`<!doctype html><body>&${name};`, 'text/html').body.textContent ?? m; entCache.set(name, v); }
+  return v;
+}
 const ESCAPES: Esc[] = [
-  ['json', 'JSON string', (s) => JSON.stringify(s).slice(1, -1), (s) => JSON.parse(`"${s.replace(/(^|[^\\])"/g, '$1\\"').replace(/\n/g, '\\n')}"`)],
+  ['json', 'JSON string', (s) => JSON.stringify(s).slice(1, -1), jsonUnesc],
   ['js', 'JavaScript / Java / C (\\uXXXX for non-ASCII)', (s) => cEsc(s, true), cUnesc],
   ['c', 'C / Python (keep Unicode)', (s) => cEsc(s, false), cUnesc],
   ['sql', 'SQL string literal (\'\' doubling)', (s) => `'${s.replace(/'/g, "''")}'`, (s) => s.replace(/^'|'$/g, '').replace(/''/g, "'")],
-  ['shell', 'Shell (POSIX single quotes)', (s) => `'${s.replace(/'/g, `'\\''`)}'`, (s) => { let o = '', i = 0; const t = s.trim(); while (i < t.length) { if (t[i] === "'") { const j = t.indexOf("'", i + 1); if (j < 0) throw new Error('Unclosed single quote'); o += t.slice(i + 1, j); i = j + 1; } else if (t[i] === '\\') { o += t[i + 1] ?? ''; i += 2; } else if (t[i] === '"') { const j = t.indexOf('"', i + 1); if (j < 0) throw new Error('Unclosed double quote'); o += t.slice(i + 1, j).replace(/\\([$`"\\])/g, '$1'); i = j + 1; } else { o += t[i++]; } } return o; }],
-  ['html', 'HTML / XML entities', (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;'), (s) => s.replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, (m, e: string) => e[0] === '#' ? String.fromCodePoint(e[1].toLowerCase() === 'x' ? parseInt(e.slice(2), 16) : parseInt(e.slice(1), 10)) : HTML_ENT[e.toLowerCase()] ?? m)],
+  ['shell', 'Shell (POSIX single quotes)', (s) => `'${s.replace(/'/g, `'\\''`)}'`, shellUnesc],
+  ['html', 'HTML / XML entities', (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;'), (s) => s.replace(/&(#x[0-9a-f]+|#\d+|[a-z][a-z0-9]*);/gi, htmlEntity)],
   ['regex', 'Regular expression (literal match)', (s) => s.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&'), (s) => s.replace(/\\([.*+?^${}()|[\]\\/])/g, '$1')],
   ['csv', 'CSV field (RFC 4180)', (s) => (/[",\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s), (s) => (/^".*"$/s.test(s) ? s.slice(1, -1).replace(/""/g, '"') : s)],
   ['url', 'URL component (percent-encoding)', encodeURIComponent, decodeURIComponent],
@@ -208,7 +262,9 @@ const CATS: Array<[RegExp, string]> = [[/^\p{Lu}$/u, 'Letter, uppercase'], [/^\p
   [/^\p{Sm}$/u, 'Symbol, math'], [/^\p{Sc}$/u, 'Symbol, currency'], [/^\p{Sk}$/u, 'Symbol, modifier'], [/^\p{So}$/u, 'Symbol, other'], [/^\p{Zs}$/u, 'Separator, space'], [/^\p{Zl}$/u, 'Separator, line'], [/^\p{Zp}$/u, 'Separator, paragraph'], [/^\p{Cc}$/u, 'Control'], [/^\p{Cf}$/u, 'Format (invisible)'], [/^\p{Co}$/u, 'Private use'], [/^\p{Cn}$/u, 'Unassigned']];
 /** Latin look-alikes from other scripts (Unicode confusables subset that matters for spoofing). */
 const LOOKALIKE: Record<string, string> = { 'а': 'a', 'е': 'e', 'о': 'o', 'р': 'p', 'с': 'c', 'у': 'y', 'х': 'x', 'і': 'i', 'ј': 'j', 'ѕ': 's', 'ԁ': 'd', 'ɡ': 'g', 'һ': 'h', 'ԛ': 'q', 'ԝ': 'w', 'А': 'A', 'В': 'B', 'Е': 'E', 'К': 'K', 'М': 'M', 'Н': 'H', 'О': 'O', 'Р': 'P', 'С': 'C', 'Т': 'T', 'Х': 'X', 'У': 'Y', 'І': 'I', 'Ѕ': 'S', 'Ј': 'J',
-  'ο': 'o', 'α': 'a', 'ν': 'v', 'ρ': 'p', 'ι': 'i', 'κ': 'k', 'Α': 'A', 'Β': 'B', 'Ε': 'E', 'Ζ': 'Z', 'Η': 'H', 'Ι': 'I', 'Κ': 'K', 'Μ': 'M', 'Ν': 'N', 'Ο': 'O', 'Ρ': 'P', 'Τ': 'T', 'Υ': 'Y', 'Χ': 'X', '０': '0', '１': '1', 'ℓ': 'l', 'ⅼ': 'l', '‐': '-', '−': '-', '–': '-', '—': '-', '‘': "'", '’': "'", '“': '"', '”': '"', '…': '...' };
+  'ο': 'o', 'α': 'a', 'ν': 'v', 'ρ': 'p', 'ι': 'i', 'κ': 'k', 'Α': 'A', 'Β': 'B', 'Ε': 'E', 'Ζ': 'Z', 'Η': 'H', 'Ι': 'I', 'Κ': 'K', 'Μ': 'M', 'Ν': 'N', 'Ο': 'O', 'Ρ': 'P', 'Τ': 'T', 'Υ': 'Y', 'Χ': 'X', '０': '0', '１': '1', 'ℓ': 'l', 'ⅼ': 'l' };
+/** Typographic punctuation: ordinary in prose (not suspicious), but it breaks code, CSV and command lines. */
+const TYPO: Record<string, string> = { '‐': '-', '‑': '-', '‒': '-', '−': '-', '–': '-', '—': '-', '‘': "'", '’': "'", '‚': "'", '“': '"', '”': '"', '„': '"', '«': '"', '»': '"', '…': '...', '′': "'", '″': '"' };
 export function charInfo(ch: string) {
   const cp = ch.codePointAt(0)!;
   const utf8 = [...new TextEncoder().encode(ch)].map((b) => b.toString(16).toUpperCase().padStart(2, '0')).join(' ');
@@ -217,7 +273,8 @@ export function charInfo(ch: string) {
   const script = SCRIPT_RE.find(([, re]) => re.test(ch))?.[0] || (/^\p{Script=Common}$/u.test(ch) ? 'Common' : /^\p{Script=Inherited}$/u.test(ch) ? 'Inherited' : '');
   const name = INVISIBLE[cp] || SPACES[cp] || '';
   const flag = INVISIBLE[cp] ? 'invisible' : SPACES[cp] && cp > 0x20 ? 'unusual space' : LOOKALIKE[ch] ? `looks like “${LOOKALIKE[ch]}”` : cp >= 0xe000 && cp <= 0xf8ff ? 'private use' : /^\p{Cc}$/u.test(ch) && !SPACES[cp] ? 'control character' : '';
-  return { cp: `U+${cp.toString(16).toUpperCase().padStart(4, '0')}`, dec: cp, utf8, utf16, cat, script, name, flag };
+  const typo = TYPO[ch] ? `typographic (plain: ${TYPO[ch]})` : '';
+  return { cp: `U+${cp.toString(16).toUpperCase().padStart(4, '0')}`, dec: cp, utf8, utf16, cat, script, name, flag, typo };
 }
 export const unicode: Mount = (root) => {
   const ta = textarea({ rows: 5, value: 'pаypal.com\u200b — café ₹500 👍🏽 नमस्ते' });
@@ -230,14 +287,17 @@ export const unicode: Mount = (root) => {
     clear(sum).append(kvRows([['Characters (code points)', String(cps.length)], ['Graphemes (what you see)', String(graphemes)], ['UTF-16 units (JS .length)', String(s.length)], ['UTF-8 bytes', String(new TextEncoder().encode(s).length)],
       ['Scripts', scripts.join(', ') || '—'], ['NFC = NFD?', s.normalize('NFC') === s.normalize('NFD') ? 'yes' : `no (NFC ${[...s.normalize('NFC')].length}, NFD ${[...s.normalize('NFD')].length} code points)`]]),
       flagged.length ? note(`${flagged.length} suspicious character${flagged.length === 1 ? '' : 's'}: ${[...new Set(flagged.map((f) => `${f.cp} ${f.name || f.c} (${f.flag})`))].slice(0, 8).join('; ')}`, 'warn') : note('No invisible or look-alike characters found.', 'ok'),
-      scripts.length > 1 && scripts.includes('Latin') && flagged.some((f) => f.flag.startsWith('looks like')) ? note('Mixed scripts with look-alike letters — a common trick in fake web addresses (homograph attack).', 'err') : '');
-    clear(tbody).append(...infos.slice(0, 2000).map((i) => h('tr', { class: i.flag ? 'flag' : null }, h('td', { class: 'uchar' }, i.flag === 'invisible' || /^\p{C}|\p{Z}$/u.test(i.c) ? '·' : i.c), h('td', { class: 'mono' }, i.cp), h('td', { class: 'mono' }, i.utf8), h('td', { class: 'mono' }, i.utf16), h('td', null, i.cat), h('td', null, i.script), h('td', null, [i.name, i.flag].filter(Boolean).join(' · ')))));
+      scripts.length > 1 && scripts.includes('Latin') && flagged.some((f) => f.flag.startsWith('looks like')) ? note('Mixed scripts with look-alike letters — a common trick in fake web addresses (homograph attack).', 'err') : '',
+      infos.some((i) => i.typo) ? note(`${infos.filter((i) => i.typo).length} typographic quote / dash / ellipsis character${infos.filter((i) => i.typo).length === 1 ? '' : 's'} (fine in prose; “Plain quotes & dashes” turns them into ' " - for code or CSV).`, 'info') : '');
+    clear(tbody).append(...infos.slice(0, 2000).map((i) => h('tr', { class: i.flag ? 'flag' : null }, h('td', { class: 'uchar' }, i.flag === 'invisible' || /^\p{C}|\p{Z}$/u.test(i.c) ? '·' : i.c), h('td', { class: 'mono' }, i.cp), h('td', { class: 'mono' }, i.utf8), h('td', { class: 'mono' }, i.utf16), h('td', null, i.cat), h('td', null, i.script), h('td', null, [i.name, i.flag, i.typo].filter(Boolean).join(' · ')))));
+    clear(out); if (infos.length > 2000) out.append(note(`The table lists the first 2,000 of ${infos.length.toLocaleString('en-IN')} characters; the summary and the buttons cover all of them.`, 'info'));
   };
   const clean = (f: (s: string) => string) => () => { ta.value = f(ta.value); run(); };
   ta.addEventListener('input', run);
   root.append(card(null, field('Text', ta), h('div', { class: 'row' },
     button('Remove invisible', clean((s) => [...s].filter((c) => !INVISIBLE[c.codePointAt(0)!]).join('')), { small: true }),
     button('Replace look-alikes', clean((s) => [...s].map((c) => LOOKALIKE[c] ?? c).join('')), { small: true }),
+    button('Plain quotes & dashes', clean((s) => [...s].map((c) => TYPO[c] ?? c).join('')), { small: true }),
     button('Normalise spaces', clean((s) => s.replace(/[\u00a0\u1680\u2000-\u200a\u202f\u205f\u3000]/g, ' ')), { small: true }),
     button('NFC', clean((s) => s.normalize('NFC')), { small: true }), button('NFKC', clean((s) => s.normalize('NFKC')), { small: true }), button('Copy', () => copy(ta.value), { small: true, icon: 'Copy' }))),
   card('Summary', sum), card('Characters', h('div', { class: 'scroll-x' }, h('table', { class: 'tbl utbl' }, h('thead', null, h('tr', null, ['Char', 'Code point', 'UTF-8', 'UTF-16', 'Category', 'Script', 'Name / note'].map((x) => h('th', null, x)))), tbody))), out);
@@ -246,20 +306,43 @@ export const unicode: Mount = (root) => {
 
 // ------------------------------------------------------------------ Log viewer
 const LEVELS = ['FATAL', 'ERROR', 'WARN', 'INFO', 'DEBUG', 'TRACE'] as const;
-const LV_RE = /\b(FATAL|CRITICAL|CRIT|EMERG|ALERT|ERROR|ERR|SEVERE|WARNING|WARN|NOTICE|INFO|INFORMATION|DEBUG|DBG|TRACE|VERBOSE)\b/i;
+const LV_WORDS = 'FATAL|CRITICAL|CRIT|EMERG|ALERT|ERROR|ERR|SEVERE|WARNING|WARN|NOTICE|INFO|INFORMATION|DEBUG|DBG|TRACE|VERBOSE';
+const LV_UPPER = new RegExp(`\\b(${LV_WORDS})\\b`);                                                      // an upper-case level word: "2026-11-17 ERROR …", "[WARN]"
+const LV_MARKED = new RegExp(`(?:^|[\\s\\[<(|])(?:level|lvl|severity)\\s*[=:]\\s*"?(${LV_WORDS})\\b|[\\[<(](${LV_WORDS})[\\]>)]|^\\s*(${LV_WORDS})\\s*[:|\\]-]`, 'i'); // level=warn, [info], "error: …"
+const norm = (m: string) => { const u = m.toUpperCase(); return /FATAL|CRIT|EMERG|ALERT/.test(u) ? 'FATAL' : /ERR|SEVERE/.test(u) ? 'ERROR' : /WARN/.test(u) ? 'WARN' : /INFO|NOTICE/.test(u) ? 'INFO' : /DEBUG|DBG/.test(u) ? 'DEBUG' : /TRACE|VERBOSE/.test(u) ? 'TRACE' : ''; };
+/** The level of one log line. A level word counts when it is written as a level — in capitals near the start, or marked
+ *  (level=warn, [info], "error: …") — not when the word merely appears in the message ("user info updated", "GET /errors"). */
 export function levelOf(line: string): string {
-  let m: string | undefined;
-  if (line.trimStart().startsWith('{')) { try { const j = JSON.parse(line); m = String(j.level ?? j.lvl ?? j.severity ?? j.loglevel ?? j['log.level'] ?? ''); if (/^\d+$/.test(m)) m = +m >= 60 ? 'FATAL' : +m >= 50 ? 'ERROR' : +m >= 40 ? 'WARN' : +m >= 30 ? 'INFO' : +m >= 20 ? 'DEBUG' : 'TRACE'; } catch { /* not JSON */ } }
-  m ||= LV_RE.exec(line)?.[1] || (/^[EWIDV]\/\w/.test(line) ? { E: 'ERROR', W: 'WARN', I: 'INFO', D: 'DEBUG', V: 'TRACE' }[line[0]] : '');
-  const u = (m || '').toUpperCase();
-  return /FATAL|CRIT|EMERG|ALERT/.test(u) ? 'FATAL' : /ERR|SEVERE/.test(u) ? 'ERROR' : /WARN/.test(u) ? 'WARN' : /INFO|NOTICE/.test(u) ? 'INFO' : /DEBUG|DBG/.test(u) ? 'DEBUG' : /TRACE|VERBOSE/.test(u) ? 'TRACE' : '';
+  if (line.trimStart().startsWith('{')) {
+    try {
+      const j = JSON.parse(line); let m = String(j.level ?? j.lvl ?? j.severity ?? j.loglevel ?? j['log.level'] ?? j.levelname ?? '');
+      // numbers: pino / bunyan use 10–60; syslog severities are 0–7 (0 emergency … 3 error, 4 warning, 6 info, 7 debug)
+      if (/^\d+$/.test(m)) m = +m >= 60 ? 'FATAL' : +m >= 50 ? 'ERROR' : +m >= 40 ? 'WARN' : +m >= 30 ? 'INFO' : +m >= 20 ? 'DEBUG' : +m >= 10 ? 'TRACE' : +m <= 2 ? 'FATAL' : +m === 3 ? 'ERROR' : +m === 4 ? 'WARN' : +m <= 6 ? 'INFO' : 'DEBUG';
+      if (m) return norm(m);
+    } catch { /* not JSON */ }
+  }
+  const head = line.slice(0, 160), mk = LV_MARKED.exec(head);
+  const m = LV_UPPER.exec(head)?.[1] || (mk ? mk[1] || mk[2] || mk[3] : '') || (/^[EWIDV]\/\w/.test(line) ? ({ E: 'ERROR', W: 'WARN', I: 'INFO', D: 'DEBUG', V: 'TRACE' } as Record<string, string>)[line[0]] : '');
+  return norm(m || '');
+}
+/** Levels for a whole file: a line without a level that continues the entry before it (a stack trace, an indented
+ *  detail line) takes that entry's level, so "ERROR only" keeps the traces and "hide DEBUG" hides all of a debug dump. */
+export function levelsOf(all: string[]): string[] {
+  const out: string[] = []; let prev = '';
+  for (const line of all) {
+    let l = levelOf(line);
+    if (!l && prev && /^(\s+\S|Caused by:|Traceback \(most recent call last\)|\.\.\. \d+ more|[\w.$]+(Error|Exception)\b)/.test(line)) l = prev;
+    else if (line.trim()) prev = l;
+    out.push(l);
+  }
+  return out;
 }
 export const logview: Mount = (root) => {
   let all: string[] = [], lv: string[] = [], show = new Set<string>([...LEVELS, '']), useRe = false, invert = false, pretty = true, limit = 2000;
   const q = input({ type: 'search', placeholder: 'Filter text (or a regular expression)', attrs: { 'aria-label': 'Filter', class: 'input mono' } });
   const ta = textarea({ rows: 6, mono: true, placeholder: 'Paste log lines here, or open a .log file' });
   const counts = h('div', { class: 'chips' }), list = h('div', { class: 'logview mono' }), status = h('div', { class: 'muted' }), more = h('div');
-  const load = (text: string) => { all = text.split(/\r?\n/); if (all[all.length - 1] === '') all.pop(); lv = all.map(levelOf); limit = 2000; render(); };
+  const load = (text: string) => { all = text.split(/\r?\n/); if (all[all.length - 1] === '') all.pop(); lv = levelsOf(all); limit = 2000; render(); };
   const fmtJson = (line: string) => { try { const j = JSON.parse(line); const t = j.time ?? j.timestamp ?? j.ts ?? j['@timestamp'] ?? ''; const m = j.msg ?? j.message ?? j.event ?? ''; const rest = Object.entries(j).filter(([k]) => !['time', 'timestamp', 'ts', '@timestamp', 'msg', 'message', 'event', 'level', 'lvl', 'severity'].includes(k)).map(([k, v]) => `${k}=${typeof v === 'string' ? v : JSON.stringify(v)}`).join(' '); return `${typeof t === 'number' ? new Date(t > 1e12 ? t : t * 1000).toISOString() : t} ${m} ${rest}`.trim(); } catch { return line; } };
   const render = () => {
     let re: RegExp | null = null; clear(status);
@@ -304,8 +387,10 @@ export const sla: Mount = (root) => {
     if (!(p >= 0 && p <= 100) || pct.value === '') { clear(out).append(note('Availability must be between 0 and 100 %.', 'warn')); }
     else clear(out).append(kvRows([...PERIODS.map(([l, s]) => [l, fmtDur(s * (1 - p / 100))] as [string, string]), ['Nines', p >= 100 ? '∞' : (-Math.log10(1 - p / 100)).toFixed(2)]]));
     const sec = +down.value * +unit.value, span = +per.value;
-    clear(out2).append(sec >= 0 && down.value !== '' ? kvRows([['Availability', `${Math.max(0, 100 * (1 - sec / span)).toFixed(4).replace(/\.?0+$/, '')} %`]]) : note('Enter the downtime.', 'warn'));
-    const cs = comps.value.split(/[,\s]+/).filter(Boolean).map(Number);
+    // enough decimals to tell the value from 100 %: one second a year is 99.999997 %, not "100 %"
+    const avail = (x: number) => { const a = Math.max(0, 100 * (1 - x)); let d = 4; while (d < 12 && x > 0 && +a.toFixed(d) >= 100) d++; return `${a.toFixed(d).replace(/(\.\d*?)0+$/, '$1').replace(/\.$/, '')} %`; };
+    clear(out2).append(sec >= 0 && down.value !== '' ? [kvRows([['Availability', avail(sec / span)]]), sec > span ? note('The downtime is longer than the period.', 'warn') : ''] as any : note('Enter the downtime.', 'warn'));
+    const cs = comps.value.split(/[,;\s]+/).filter(Boolean).map((x) => Number(x.replace(/%$/, '')));
     if (!cs.length || cs.some((x) => !(x >= 0 && x <= 100))) { clear(out3).append(note('List the components’ availabilities, e.g. 99.9, 99.95', 'warn')); return; }
     const series = cs.reduce((a, x) => a * (x / 100), 1) * 100, parallel = (1 - cs.reduce((a, x) => a * (1 - x / 100), 1)) * 100;
     const f = (x: number) => `${x.toFixed(6).replace(/\.?0+$/, '')} %`;

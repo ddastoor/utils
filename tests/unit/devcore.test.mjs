@@ -45,6 +45,111 @@ export default async (t, { load, wasm }) => {
   t.ok(/before its start/.test(err(() => d.json('cidr', { input: '10.0.0.9 - 10.0.0.1' }))), 'reversed range refused');
   t.ok(/not an IPv4 or IPv6/.test(err(() => d.json('cidr', { input: '300.1.1.1/24' }))), '300.1.1.1 refused');
   t.ok(/too long/.test(err(() => d.json('cidr', { input: '1.2.3.4/33' }))), '/33 refused');
+  // ---- bug hunt, Nov 2026: 300+ networks, ranges and splits against Python's ipaddress module (tests/fixtures/cidr/reference.json)
+  {
+    const ref = JSON.parse(readFileSync(new URL('../fixtures/cidr/reference.json', import.meta.url), 'utf8')), bad = [];
+    for (const w of ref.v4) { const r = d.json('cidr', { input: w.in }); for (const k of ['cidr', 'netmask', 'wildcard', 'broadcast', 'first', 'last', 'total', 'usable', 'integer', 'reverse', 'isNetwork']) if (r[k] !== w[k]) bad.push(`${w.in} ${k}: ${r[k]} ≠ ${w[k]}`); }
+    t.ok(ref.v4.length >= 140 && !bad.length, `${ref.v4.length} IPv4 networks (every prefix length, all special blocks): network, masks, broadcast, hosts, integer, PTR name = Python ipaddress ${bad.slice(0, 4).join(' | ')}`);
+    bad.length = 0;
+    for (const w of ref.v6) { const r = d.json('cidr', { input: w.in }); for (const k of ['address', 'expanded', 'cidr', 'first', 'last', 'total', 'reverse', 'isNetwork']) if (r[k] !== w[k] && !(k === 'expanded' && w[k].includes('.'))) bad.push(`${w.in} ${k}: ${r[k]} ≠ ${w[k]}`); }
+    t.ok(ref.v6.length >= 95 && !bad.length, `${ref.v6.length} IPv6 networks: RFC 5952 short form, expanded form, first/last, 2^n counts, ip6.arpa name = Python ipaddress ${bad.slice(0, 4).join(' | ')}`);
+    bad.length = 0;
+    for (const w of ref.ranges) { const r = d.json('cidr', { input: `${w.a} - ${w.b}` }); if (r.total !== w.total || JSON.stringify(r.blocks) !== JSON.stringify(w.blocks)) bad.push(`${w.a} - ${w.b}: ${r.blocks.length} blocks, total ${r.total} (want ${w.blocks.length}, ${w.total})`); }
+    t.ok(ref.ranges.length >= 70 && !bad.length, `${ref.ranges.length} ranges (IPv4 + IPv6, incl. the whole address space) → the same CIDR blocks as ipaddress.summarize_address_range ${bad.slice(0, 3).join(' | ')}`);
+    bad.length = 0;
+    for (const w of ref.splits) {
+      const r = d.json('cidr', { input: w.in, split: w.split }).subnets;
+      if (r.count !== w.count || JSON.stringify(r.list.map((x) => x.cidr)) !== JSON.stringify(w.list.slice(0, 1024))) bad.push(`${w.in} → /${w.split}`);
+      if (w.firstLast && (JSON.stringify(r.list.map((x) => [x.first, x.last])) !== JSON.stringify(w.firstLast) || r.list.some((x) => x.hosts !== w.hosts))) bad.push(`${w.in} → /${w.split} hosts`);
+    }
+    t.ok(ref.splits.length >= 12 && !bad.length, `${ref.splits.length} subnet splits (to /31, /32, IPv6 /128): same subnets, first/last host and host counts ${bad.join(' | ')}`);
+  }
+  // ---- X.509 (devcore-x509.wasm): fixtures made with OpenSSL, compared with what OpenSSL reports (tests/fixtures/x509/expected.json)
+  {
+    const x = mods.x509, fx = (f) => readFileSync(new URL(`../fixtures/x509/${f}`, import.meta.url)), exp = JSON.parse(fx('expected.json').toString());
+    const dec = (b) => x.bytesJson('x509', b instanceof Uint8Array ? b : Buffer.from(b)), rfc2253 = (subj) => subj.split(', ').reverse().join(',');
+    const KEY = { 'ca.pem': ['RSA', 2048], 'leaf.pem': ['EC', 256], 'ed25519.pem': ['Ed25519', 256], 'p521.pem': ['EC', 521], 'pss.pem': ['RSA-PSS', 2048], 'forever.pem': ['EC', 256], 'expired.pem': ['EC', 256], 'utf8.pem': ['RSA', 2048] };
+    const SIG = { sha256WithRSAEncryption: /sha256WithRSAEncryption/i, sha384WithRSAEncryption: /sha384WithRSAEncryption/i, ED25519: /ed25519/i, 'ecdsa-with-SHA256': /ecdsa-with-SHA256/i, rsassaPss: /RSASSA-PSS/i };
+    const bad = [];
+    for (const [f, w] of Object.entries(exp).filter(([f]) => f.endsWith('.pem'))) {
+      const c = dec(fx(f)).items[0];
+      const got = { sha256: c.sha256, sha1: c.sha1, serial: c.serial.replace(/:/g, '').replace(/^00(?=.)/, ''), notBefore: c.notBefore, notAfter: c.notAfter, subject: rfc2253(c.subject), issuer: rfc2253(c.issuer), ca: c.isCA, size: c.size };
+      for (const k of Object.keys(got)) if (String(got[k]) !== String(k === 'serial' ? w[k].replace(/^0+(?=.)/, '') : w[k]) && !(k === 'serial' && got[k].replace(/^0+/, '') === w[k].replace(/^0+/, ''))) bad.push(`${f} ${k}: ${got[k]} ≠ ${w[k]}`);
+      if (c.key.type !== KEY[f][0] || c.key.bits !== KEY[f][1] || (w.bits && c.key.bits !== w.bits)) bad.push(`${f} key: ${c.key.type} ${c.key.bits}`);
+      if (!SIG[w.sigAlg]?.test(c.sigAlg)) bad.push(`${f} signature: ${c.sigAlg} (openssl: ${w.sigAlg})`);
+      if (c.kind !== 'certificate' || c.selfSigned !== (w.subject === w.issuer)) bad.push(`${f} kind/selfSigned`);
+    }
+    t.ok(Object.keys(exp).length >= 9 && !bad.length, `8 certificates (RSA, RSA-PSS, P-256, P-521, Ed25519, UTF-8 names, year 9999, expired in 2002): fingerprints, serial, dates, names, key type and size, signature, CA flag = OpenSSL ${bad.slice(0, 5).join(' | ')}`);
+    const leaf = dec(fx('leaf.pem')).items[0];
+    t.eq(leaf.sans, ['DNS:example.in', 'DNS:*.example.in', 'IP:192.0.2.7', 'IP:2001:db8::7', 'email:admin@example.in', 'URI:https://example.in/id'], 'subject alternative names: DNS, wildcard, IPv4, IPv6, e-mail, URI');
+    t.eq([leaf.cn, leaf.version, leaf.isCA, leaf.selfSigned, leaf.key.curve], ['example.in', 3, false, false, 'P-256'], 'leaf: common name, v3, not a CA, not self-signed, curve');
+    const e = leaf.extensions, names = Object.keys(e);
+    t.ok(e['Basic Constraints (critical)'] === 'CA: no' && /Digital Signature/.test(e['Key Usage (critical)']) && /Key Encipherment/.test(e['Key Usage (critical)']) && e['Extended Key Usage'] === 'TLS Web Server Authentication, TLS Web Client Authentication', `key usage + extended key usage (${e['Key Usage (critical)']})`);
+    t.ok(/OCSP – URI:http:\/\/ocsp\.example\.in/.test(e['Authority Information Access']) && /CA Issuers – URI:http:\/\/example\.in\/ca\.crt/.test(e['Authority Information Access']) && e['CRL Distribution Points'] === 'URI:http://crl.example.in/ca.crl' && /Domain Validated/.test(e['Certificate Policies']), 'AIA (OCSP + CA issuers), CRL distribution point, DV policy');
+    t.ok(names.includes('Subject Key Identifier') && names.includes('Authority Key Identifier') && /^([0-9A-F]{2}:){19}[0-9A-F]{2}$/.test(e['Subject Key Identifier']), 'key identifiers');
+    const ca = dec(fx('ca.pem')).items[0]; t.ok(ca.isCA && ca.selfSigned && /CA: yes, path length ≤ 1/.test(ca.extensions['Basic Constraints (critical)']) && e['Authority Key Identifier'] === ca.extensions['Subject Key Identifier'], 'CA: path length, and the leaf\'s authority key id = the CA\'s subject key id');
+    t.eq(dec(fx('utf8.pem')).items[0].cn, 'Zoë’s café', 'UTF-8 common name');
+    // other containers
+    t.eq(dec(fx('leaf.der')).items[0].sha256, exp['leaf.pem'].sha256, 'DER file');
+    const chain = dec(fx('chain.pem')).items; t.eq(chain.map((c) => c.cn), ['example.in', 'SuperTools Test Root'], 'PEM chain: both certificates, in order');
+    for (const f of ['chain.p7b', 'chain.der.p7b']) { const it = dec(fx(f)).items; t.eq(it.map((c) => [c.kind, c.sha256]), [['certificate', exp['leaf.pem'].sha256], ['certificate', exp['ca.pem'].sha256]], `${f}: the certificates inside a PKCS #7 bundle (used to be "not a certificate")`); }
+    const csr = dec(fx('request.csr')).items[0]; t.eq([csr.kind, csr.cn, csr.key.type, csr.key.bits, csr.sans, rfc2253(csr.subject)], ['csr', 'csr.example.in', 'RSA', 2048, ['DNS:csr.example.in', 'DNS:www.csr.example.in'], exp['request.csr'].subject], 'certificate request: subject, key, requested names');
+    const pk = dec(fx('leaf.pub.pem')).items[0]; t.eq([pk.kind, pk.key.type, pk.key.bits, pk.sha256.replace(/:/g, '').toLowerCase(), pk.pin], ['pubkey', 'EC', 256, exp['leaf.pem'].spkiSha256, exp['leaf.pem'].pin], 'a lone public key: type, size, SHA-256 of the SPKI and its Base64 pin = openssl pkey | sha256');
+    // PEM as people have it
+    const pem = fx('leaf.pem').toString(), want = exp['leaf.pem'].sha256, forms = {
+      'UTF-8 BOM': Buffer.concat([Buffer.from([0xef, 0xbb, 0xbf]), Buffer.from(pem)]), 'UTF-16LE with BOM (PowerShell >)': Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from(pem, 'utf16le')]), 'UTF-16BE with BOM': Buffer.concat([Buffer.from([0xfe, 0xff]), Buffer.from(pem, 'utf16le').swap16()]),
+      'UTF-16LE without BOM': Buffer.from(pem, 'utf16le'), 'CRLF line ends': pem.replace(/\n/g, '\r\n'), 'indented (YAML / Kubernetes secret)': pem.replace(/^/gm, '    '), 'quoted e-mail ("> ")': pem.replace(/^/gm, '> '), 'tabs and trailing spaces': pem.replace(/^/gm, '\t').replace(/$/gm, '  '),
+      'literal \\n (JSON / .env value)': JSON.stringify(pem), 'inside a JSON object': JSON.stringify({ cert: pem, note: 'x' }), 'JSON value without a final newline': JSON.stringify({ cert: pem.trimEnd() }), 'all on one line': pem.replace(/\n/g, ' ').trim(), 'no final newline': pem.trimEnd(), 'one long Base64 line': pem.replace(/\n(?!-----)/g, '').replace('-----BEGIN CERTIFICATE-----', '-----BEGIN CERTIFICATE-----\n'),
+      'text before and after (openssl s_client output)': `depth=0 CN = example.in\nverify return:1\n---\nCertificate chain\n 0 s:CN = example.in\n${pem}---\nServer certificate\n`, 'Latin-1 text before': Buffer.concat([Buffer.from('Soci\xe9t\xe9 G\xe9n\xe9rale\n', 'latin1'), Buffer.from(pem)]),
+      'blank lines inside': pem.replace(/\n/g, '\n\n'), 'TRUSTED CERTIFICATE label': null };
+    for (const [name, v] of Object.entries(forms)) if (v) t.eq((() => { try { return dec(v).items[0].sha256; } catch (er) { return er.message; } })(), want, `PEM read: ${name}`);
+    // messages
+    t.ok(/has no -----END line/.test(err(() => dec(pem.split('\n').slice(0, 10).join('\n')))), 'cut-off PEM → "has no -----END line"');
+    t.ok(/not valid Base64/.test(err(() => dec('-----BEGIN CERTIFICATE-----\n!!!!\n-----END CERTIFICATE-----'))), 'PEM with a damaged body → "not valid Base64"');
+    t.ok(/Not an X\.509 certificate/.test(err(() => dec('-----BEGIN CERTIFICATE-----\nMIIBhello\n-----END CERTIFICATE-----'))), 'valid Base64 that is not a certificate');
+    t.ok(/closed by -----END/.test(err(() => dec(pem.replace('END CERTIFICATE', 'END X509 CRL')))), 'BEGIN / END labels that do not match');
+    t.ok(/Not a certificate or certificate request/.test(err(() => dec(Buffer.from([1, 2, 3, 4, 5])))) && /Paste a certificate/.test(err(() => dec(Buffer.alloc(0)))), 'random bytes / nothing');
+    const pk8 = dec('-----BEGIN PRIVATE KEY-----\nMC4CAQAwBQYDK2VwBCIEIAABAgMEBQYHCAkKCwwNDg8QERITFBUWFxgZGhscHR4f\n-----END PRIVATE KEY-----').items[0]; t.eq([pk8.kind, pk8.label, pk8.private], ['other', 'PRIVATE KEY', true], 'a private key is recognised and not decoded');
+    t.eq(dec('-----BEGIN X509 CRL-----\nMAA=\n-----END X509 CRL-----').items[0].private, false, 'other block types are named, not flagged as private');
+    const mixed = dec(`${pem}\n-----BEGIN PRIVATE KEY-----\nMC4CAQAwBQYDK2VwBCIEIAABAgMEBQYHCAkKCwwNDg8QERITFBUWFxgZGhscHR4f\n-----END PRIVATE KEY-----\n${fx('ca.pem')}`).items; t.eq(mixed.map((m) => m.kind), ['certificate', 'other', 'certificate'], 'certificate + key + CA in one file (a typical fullchain bundle)');
+    // robustness: every truncation and many bit flips of a DER certificate give an answer or a message — never a crash
+    const der = fx('leaf.der'); let traps = 0;
+    for (let n = 0; n < der.length; n += 7) { try { dec(der.subarray(0, n)); } catch (er) { if (!/Not a certificate|Paste a certificate|PKCS/.test(er.message)) traps++; } }
+    for (let i = 0; i < 400; i++) { const b = Buffer.from(der); b[(i * 131) % b.length] ^= 1 << (i % 8); try { dec(b); } catch (er) { if (/unreachable|RuntimeError|memory/.test(er.message)) traps++; } }
+    for (const f of ['chain.der.p7b']) { const p7 = fx(f); for (let n = 0; n < p7.length; n += 13) { try { dec(p7.subarray(0, n)); } catch (er) { if (/unreachable|RuntimeError|memory/.test(er.message)) traps++; } } }
+    t.eq(traps, 0, 'truncated and bit-flipped certificates / bundles never crash the engine');
+  }
+  // forms people paste
+  t.eq(d.json('cidr', { input: '10.1.2.3 0.0.0.255' }).cidr, '10.1.2.0/24', 'wildcard (inverse) mask 0.0.0.255 = /24');
+  t.eq(d.json('cidr', { input: '172.16.5.4/0.0.15.255' }).cidr, '172.16.0.0/20', 'wildcard mask after a slash');
+  t.eq([d.json('cidr', { input: '10.1.2.3 255.255.255.255' }).prefix, d.json('cidr', { input: '10.1.2.3 0.0.0.0' }).prefix], [32, 0], '255.255.255.255 and 0.0.0.0 are read as netmasks (/32, /0)');
+  t.ok(/not a valid netmask/.test(err(() => d.json('cidr', { input: '10.0.0.1 0.255.0.255' }))), 'a mask with holes is still refused');
+  t.eq(d.json('cidr', { input: '[2001:db8::1]/64' }).cidr, '2001:db8::/64', 'bracketed IPv6');
+  t.eq(d.json('cidr', { input: 'fe80::a00:27ff:fe4e:66a1%eth0/64' }).cidr, 'fe80::/64', 'IPv6 zone (%eth0) dropped');
+  t.eq(d.json('cidr', { input: 'fe80::1%12' }).address, 'fe80::1', 'numeric zone dropped');
+  t.eq(d.json('cidr', { input: '192.168.1.10 – 192.168.1.20' }).blocks, d.json('cidr', { input: '192.168.1.10 - 192.168.1.20' }).blocks, 'en dash in a range (as the result title prints it)');
+  t.eq(d.json('cidr', { input: '192.168.1.10—192.168.1.20' }).total, '11', 'em dash without spaces');
+  t.eq(d.json('cidr', { input: '10.0.0.1 to 10.0.0.4' }).blocks, ['10.0.0.1/32', '10.0.0.2/31', '10.0.0.4/32'], '"a to b" range');
+  t.eq(d.json('cidr', { input: '2001:db8::1 - 2001:db8::4' }).blocks, ['2001:db8::1/128', '2001:db8::2/127', '2001:db8::4/128'], 'IPv6 range');
+  t.eq(d.json('cidr', { input: '  10.0.0.0/8  ' }).cidr, '10.0.0.0/8', 'spaces around the input');
+  t.eq(d.json('cidr', { input: '10.0.0.0 / 8' }).cidr, '10.0.0.0/8', 'spaces around the slash');
+  t.eq(d.json('cidr', { input: '2001:DB8::ABCD/64' }).address, '2001:db8::abcd', 'upper-case IPv6 → lower case (RFC 5952)');
+  t.eq(d.json('cidr', { input: '::ffff:192.0.2.128' }).v4, '192.0.2.128', 'IPv4-mapped address shows its IPv4 part');
+  t.eq(d.json('cidr', { input: '10.0.0.1' }).mapped6, '::ffff:10.0.0.1', 'IPv4 → mapped IPv6 form');
+  // messages
+  for (const [inp, re] of [['', /Enter an address/], ['/24', /address before the \/ is missing/], ['10.0.0.1/', /prefix length after the \/ is missing/], ['10.0.0.1/abc', /not a prefix length/], ['10.0.0.1/-1', /not a prefix length/], ['10.0.0/24', /not an IPv4 or IPv6/], ['10.0.0.256', /not an IPv4/],
+    ['2001:db8::/129', /too long for IPv6 \(max \/128\)/], ['2001:db8::1 255.255.0.0', /only works with IPv4/], ['example.com', /not an IPv4 or IPv6/], ['10.0.0.1 - ', /two addresses/], ['10.0.0.1 - 2001:db8::1', /same IP version/], ['10.0.0.1 - banana', /"banana" is not an address/],
+    ['192.168.001.010/24', /not an IPv4/], ['1.2.3.4.5', /not an IPv4/], ['::1::2', /not an IPv4 or IPv6/], ['10.0.0.0/24/25', /not a prefix length/]]) t.ok(re.test(err(() => d.json('cidr', { input: inp }))), `"${inp}" → ${re.source.replace(/\\/g, '')}`);
+  // special blocks
+  t.eq(['192.0.0.8', '192.88.99.1', '198.19.255.255', '0.1.2.3', '255.255.255.255', '240.0.0.1', '239.255.255.250', '172.15.255.255', '192.167.1.1', '100.63.255.255', '100.128.0.0', '169.253.1.1'].map((a) => d.json('cidr', { input: a }).kind.split(' (')[0]),
+    ['IETF protocol assignments', '6to4 relay anycast, deprecated', 'Benchmarking', '"This network"', 'Limited broadcast', 'Reserved', 'Multicast', 'Public', 'Public', 'Public', 'Public', 'Public'], 'IPv4 special blocks and their neighbours just outside');
+  t.eq(['2001::1', '3fff::1', '100::1', '2002:c000:204::1', '64:ff9b::1', '::', '::1', 'fec0::1', 'fc00::1', 'fdff::1', 'fe00::1', 'febf::1', 'ff00::1', '2000::1', '3fff:1000::1', '4000::1'].map((a) => d.json('cidr', { input: a }).kind.split(' (')[0]),
+    ['Teredo tunnelling', 'Documentation', 'Discard-only', '6to4', 'NAT64', 'Unspecified', 'Loopback', 'Reserved', 'Unique local', 'Unique local', 'Reserved', 'Link-local', 'Multicast', 'Global unicast', 'Global unicast', 'Reserved'], 'IPv6 special blocks and their edges');
+  t.eq(['0.0.0.0', '127.255.255.255', '128.0.0.0', '191.255.255.255', '192.0.0.0', '223.255.255.255', '224.0.0.0', '239.255.255.255', '240.0.0.0'].map((a) => d.json('cidr', { input: a }).class[0]).join(''), 'AABBCCDDE', 'class boundaries');
+  c = d.json('cidr', { input: '192.168.1.10/24' }); t.eq([c.binary, c.maskBinary, c.hex], ['11000000.10101000.00000001.00001010', '11111111.11111111.11111111.00000000', '0xC0A8010A'], 'binary, mask in binary, hex');
+  t.ok(/between \/24 and \/32/.test(err(() => d.json('cidr', { input: '10.0.0.0/24', split: 33 }))) && /between \/64 and \/128/.test(err(() => d.json('cidr', { input: '2001:db8::/64', split: 200 }))), 'split beyond /32 or /128 refused');
+  t.eq(d.json('cidr', { input: '10.0.0.0/24', split: 24 }).subnets.count, '1', 'split to the same prefix = 1 subnet');
+
   // ---- cron: compare with a brute-force minute search in UTC
   const brute = (min, hr, dom, mon, dow, from, n) => {
     const out = []; let tm = Math.floor(from / 60000) * 60000 + 60000;

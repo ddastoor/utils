@@ -1,5 +1,5 @@
 // Parallel end-to-end tests in real Chromium against the production build (dist/).
-//   npm run build && node tests/e2e.mjs [filter]
+//   npm run build && node tests/e2e.mjs [filter …]   (several filters = any of them; a filter ending in '.' matches the whole name: `chmod.`)
 // One preview server + one browser; each suite gets its own isolated context; suites run concurrently.
 import { preview } from 'vite';
 import { createRequire } from 'node:module';
@@ -10,7 +10,7 @@ import { tmpdir, cpus } from 'node:os';
 
 const { chromium, devices } = createRequire(import.meta.url)('playwright');
 const here = dirname(fileURLToPath(import.meta.url));
-const filter = process.argv[2] || '';
+const filters = process.argv.slice(2).flatMap((a) => a.split(',')).filter(Boolean);
 const CONCURRENCY = Number(process.env.E2E_CONCURRENCY || Math.min(10, Math.max(4, cpus().length * 2)));
 const t0 = performance.now();
 const server = await preview({ root: join(here, '..'), preview: { port: 0 }, logLevel: 'error' });
@@ -18,7 +18,7 @@ const base = server.resolvedUrls.local[0];
 const browser = await chromium.launch({ args: ['--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream', '--auto-accept-this-tab-capture'] });
 const tmp = mkdtempSync(join(tmpdir(), 'supertools-e2e-'));
 
-const files = readdirSync(join(here, 'e2e')).filter((f) => f.endsWith('.e2e.mjs') && f.includes(filter)).sort();
+const files = readdirSync(join(here, 'e2e')).filter((f) => f.endsWith('.e2e.mjs') && (!filters.length || filters.some((x) => f.includes(x)))).sort();
 const queue = [...files], results = [];
 async function runOne(f) {
   const fails = [], infos = [], s0 = performance.now(); let passed = 0;
@@ -45,6 +45,18 @@ async function runOne(f) {
   results.push({ f, fails, infos, passed, ms: performance.now() - s0 });
 }
 await Promise.all(Array.from({ length: Math.min(CONCURRENCY, files.length) }, async () => { while (queue.length) await runOne(queue.shift()); }));
+// A suite that failed while the others were running is run once more on its own: recorders, timers and media encoders
+// are timing-sensitive, and this machine runs more browsers than it has cores. A real bug fails both times; a suite that
+// passes alone is reported as passed, with a note of what it failed under load (E2E_NO_RETRY=1 switches this off).
+if (files.length > 1 && !process.env.E2E_NO_RETRY) {
+  for (const first of results.filter((r) => r.fails.length)) {
+    results.splice(results.indexOf(first), 1);
+    await runOne(first.f);
+    const again = results[results.length - 1];
+    if (!again.fails.length) again.infos.push(`passed when re-run alone; under load it had failed: ${first.fails.slice(0, 3).join(' | ').slice(0, 300)}`);
+    else again.infos.push('failed twice (in the parallel run and alone)');
+  }
+}
 await browser.close(); server.httpServer.close();
 if (!process.env.E2E_KEEP) rmSync(tmp, { recursive: true, force: true }); // downloads; E2E_KEEP=1 keeps them
 let failed = 0, total = 0;

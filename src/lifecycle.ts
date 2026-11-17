@@ -6,7 +6,11 @@ type Release = () => void;
 const releases = new Map<string, Release>();
 const workers = new Set<Worker>();
 
-let idle = true; // no tool is open (home, category and favourites pages)
+// No tool is open (home, category and favourites pages). Only the page has this notion: inside a Web Worker this module
+// is a separate copy that the router never talks to, so there it is never "idle" — a worker's engines live exactly as
+// long as the worker, which the page terminates when the tab is left. (With `true` here every engine loaded inside a
+// worker was released the moment it was created: Hash, Sodium Encrypt and Share Link stopped working.)
+let idle = typeof document !== 'undefined';
 /** The router says whether a tool is open. While none is, anything that registers is released at once. */
 export function setIdle(v: boolean) { idle = v; }
 

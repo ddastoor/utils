@@ -12,6 +12,9 @@ path = "src/lib.rs"
 [dependencies]
 argon2 = { version = "0.5", features = ["std"] }
 bcrypt = "0.19.3"
+aes = "0.8"
+bcrypt-pbkdf = "0.10"
+ctr = "0.9"
 data-encoding = "2.11.1"
 getrandom = "0.2"
 hmac = "0.12"
