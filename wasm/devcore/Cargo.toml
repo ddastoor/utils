@@ -3,7 +3,7 @@ name = "devcore"
 version = "0.1.0"
 edition = "2021"
 publish = false
-description = "SuperTools developer-tool engine for wasm32: CIDR, cron, semver, glob, base encodings, binary decoders, X.509, patch, SQL formatting, hex dump"
+description = "SuperTools developer-tool engine for wasm32: CIDR, cron, semver, glob, base encodings, binary decoders, X.509, patch, SQL formatting, hex dump, JSON formatter / diff / types, XML formatter"
 
 [lib]
 crate-type = ["cdylib"]
@@ -22,6 +22,8 @@ serde_json = { version = "1", features = ["preserve_order"] }
 sha1 = { version = "0.11.0", optional = true }
 sha2 = { version = "0.11.1", optional = true }
 sqlformat = { version = "0.5.0", optional = true }
+unicode-general-category = { version = "1", optional = true }
+unicode-ident = { version = "1", optional = true }
 x509-parser = { version = "0.18.1", optional = true }
 
 [features]
@@ -37,6 +39,9 @@ enc = ["dep:data-encoding", "dep:bs58", "dep:sha2"]
 bin = ["dep:chrono"]
 hex = []
 jsondiff = ["dep:json-patch"]
+json = []
+xml = []
+j2t = ["dep:unicode-ident", "dep:unicode-general-category"]
 
 [profile.release]
 opt-level = "s"

@@ -28,7 +28,7 @@ export default async (t, { load, wasm }) => {
   const bold = x.FANCY.find(([n]) => n === 'Bold')[1]('Ab1'); t.eq(bold, '𝐀𝐛𝟏', 'bold unicode');
   t.eq(x.FANCY.find(([n]) => n === 'Upside down')[1]('hi'), 'ᴉɥ', 'upside down');
   // colour
-  const { hexToRgb, rgbToHex } = x.colorFns;
+  const { hexToRgb, rgbToHex } = await load('/src/lib/color.ts');
   const { bindMathcore } = await load('/src/wasm/mathcore.ts');
   const mc = bindMathcore(await wasm('mathcore'));
   const { rgbToHsl, hslToRgb, rgbToOklch, oklchToRgb } = mc;

@@ -549,7 +549,7 @@ export default async (t, { load, wasm }) => {
   // ---- JSON diff (RFC 6902): applying the diff to the left document must give the right one
   const L = { name: 'Asha', age: 30, tags: ['a', 'b'], addr: { city: 'Pune', pin: '411001' }, x: null };
   const Rt = { name: 'Asha K', tags: ['a', 'b', 'c'], addr: { city: 'Mumbai', pin: '411001' }, x: null, new: true };
-  const df = d.json('jsondiff', { a: JSON.stringify(L), b: JSON.stringify(Rt) });
+  const df = d.json('jsondiff', { a: JSON.stringify(L), b: JSON.stringify(Rt) }); df.patch = JSON.parse(df.patch); // the patch comes as pretty-printed text (see devdata.test.mjs for the diff engine)
   t.ok(!df.equal && df.count >= 4 && df.patch.some((o) => o.op === 'remove' && o.path === '/age') && df.patch.some((o) => o.op === 'replace' && o.path === '/addr/city' && o.value === 'Mumbai'), `diff: ${JSON.stringify(df.patch)}`);
   const canon = (v) => (Array.isArray(v) ? v.map(canon) : v && typeof v === 'object' ? Object.fromEntries(Object.keys(v).sort().map((k) => [k, canon(v[k])])) : v);
   t.eq(canon(d.json('jsonpatch', { doc: JSON.stringify(L), patch: JSON.stringify(df.patch) }).result), canon(Rt), 'apply(diff(a, b), a) = b (key order aside)');

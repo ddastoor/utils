@@ -149,3 +149,23 @@ export ZIG=/tmp/zig/x/ziglang/zig
   name (strict-mode failures in tests, and they can copy different things when the display is cut).
 - **Keyboard handlers on `window` (Key Codes, Keyboard Test):** never `preventDefault` Tab, F-keys or Ctrl/Meta
   shortcuts, and let Enter / Space through when a button or link has the focus — otherwise the tab is a keyboard trap.
+- **A "formatter" that parses and prints again changes the data.** JSON.parse → JSON.stringify reorders integer-like
+  keys, drops duplicate keys and rounds numbers; DOMParser → serialiser drops the DOCTYPE, expands entities and (with
+  indentation) trims text. A formatter must work on the text: tokens stay byte-for-byte, only layout white space moves
+  (`wasm/devcore/src/jsonfmt.rs`, `xmlfmt.rs`). Test it that way: token streams equal, a second run changes nothing.
+- **Generated code must be compiled in the suite**, not eyeballed: `tests/e2e/json2types.e2e.mjs` builds every output
+  with tsc / go / cargo / javac / python and round-trips the sample (one invocation per language; Go packages and Rust
+  modules per sample; caches in the OS temp folder). It found ten classes of code that did not compile.
+- **Invisible characters in source:** `\u202e`, `\u2028`, `\ufeff` typed as escapes can arrive in a written file as
+  the raw characters (a raw U+2028 ends a regex literal; rustc refuses raw bidi marks). After writing a test or source
+  file that mentions them, check: `python3 -c "import re,sys; print(re.findall('[\u200b-\u200f\u202a-\u202e\u2028\u2029\ufeff]', open(sys.argv[1], encoding='utf-8').read()))" <file>`.
+- **Playwright's fake clock:** `page.clock.install()` lets time run; use `pauseAt()` when a check needs a fixed
+  "now". Under an installed clock `performance.getEntriesByType('resource')` is empty — ask
+  `__supertoolsLive().resources` instead to see which engine a tab loaded.
+- **Round-trip tests need the reference's own limits:** Go's `omitempty` cannot tell null / {} / [] from absent,
+  serde refuses duplicate keys, encoding/json has no tag for keys with a comma, a quote or a combining mark, Chrome's
+  canvas clips out-of-gamut colours while CSS Color 4 maps them. Encode each such limit as an explicit exception list
+  in the test, with the reason.
+- **Text precision is a testable property:** HSL needs 1 decimal and OKLCH 2 / 5 / 2 decimals for every 8-bit colour
+  to come back exactly — found by running the whole RGB cube (22 s in Node), not by choosing "enough" digits.
+

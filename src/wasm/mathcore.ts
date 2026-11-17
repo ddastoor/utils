@@ -75,6 +75,8 @@ export function bindMathcore(e: any) {
     hslToRgb: (h: number, s: number, l: number) => withF64(3, (o) => { e.m_color(1, h, s, l, o); return f64(o, 3); }),
     rgbToOklch: (r: number, g: number, b: number) => withF64(3, (o) => { e.m_color(2, r, g, b, o); return f64(o, 3); }),
     oklchToRgb: (L: number, C: number, H: number) => withF64(3, (o) => { e.m_color(3, L, C, H, o); return f64(o, 3); }),
+    /** OKLCH → sRGB with the gamut mapping of CSS Color 4 for colours outside sRGB (chroma reduced, clipped within a just-noticeable difference). */
+    oklchToRgbFit: (L: number, C: number, H: number) => withF64(5, (o) => { e.m_color(5, L, C, H, o); const v = f64(o, 5); return { rgb: [v[0], v[1], v[2]] as number[], fitted: v[3] === 1, chroma: v[4] }; }),
     relLum: (r: number, g: number, b: number) => withF64(1, (o) => { e.m_color(4, r, g, b, o); return f64(o, 1)[0]; }),
     /** WCAG 2 contrast ratio. */
     contrast: (a: number[], b: number[]) => e.m_contrast(a[0], a[1], a[2], b[0], b[1], b[2]) as number,

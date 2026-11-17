@@ -136,24 +136,24 @@ Areas with a shared review: the app shell (router, search, favorites, platform h
 ## software
 | id | Tab | Platform | Area | R | B | T | Notes |
 |---|---|---|---|---|---|---|---|
-| `json` | JSON Formatter | PC only | dev-data2 |  |  |  |  |
-| `regex` | Regex Tester | PC only | dev-data2 |  |  |  |  |
-| `base64` | Base64 | PC only | dev-data2 |  |  |  |  |
-| `urlenc` | URL Encoder | PC only | dev-data2 |  |  |  |  |
-| `epoch` | Epoch Converter | PC only | dev-data2 |  |  |  |  |
-| `uuid` | UUID Generator | PC only | dev-data2 |  |  |  |  |
-| `color` | Color Converter | PC only | dev-data2 |  |  |  |  |
-| `jwt` | JWT Decoder | PC only | dev-data2 |  |  |  |  |
+| `json` | JSON Formatter | PC only | dev-data2 | ✓ | 7 | 68 | own lossless Rust formatter: member order, duplicate keys and number spelling kept (JSON.stringify moved "10" first, dropped duplicates, rewrote 1.0 / 1e5); duplicate-key warning; a worded message + line / column + Show it for every mistake; no stale output; Minify stays; BOM; deep nesting |
+| `regex` | Regex Tester | PC only | dev-data2 | ✓ | 4 | 18 | matching in a worker: a runaway pattern is stopped after 2 s (it froze the tab); flag mistakes named; named groups in the table; a million matches counted |
+| `base64` | Base64 | PC only | dev-data2 | ✓ | 8 | 33 | on devcore-enc: data: URLs, %3D, extra padding, zero-width characters accepted; binary results recognised, shown as hex, saved under the right name; Download no longer decodes the plain text in Encode; 30 MB file 21 s → 4 s; vs Python base64 |
+| `urlenc` | URL Encoder | PC only | dev-data2 | ✓ | 7 | 65 | + is a space only in queries (mailto:user+tag, tel:+91 broke); lenient decoding (Windows-1252, stray %) instead of '⚠ URI malformed'; full URL without double encoding, IPv6, Punycode (= Node's URL); parts from the URL itself; vs Python quote |
+| `epoch` | Epoch Converter | PC only | dev-data2 | ✓ | 6 | 45 | µs / ns recognised, separators, 1.7e9, ISO and dd/mm/yyyy dates, unit shown and selectable, picker in step, no NaN; 120 instants vs Python in 3 time zones |
+| `uuid` | UUID Generator | PC only | dev-data2 | ✓ | 5 | 36 | v7 strictly increasing (crypto.wasm, RFC 9562 method 2); switches rewrite the same IDs; inspector: braces / urn, nil / max, v1 / v6 time, clock sequence, node; vs Python uuid |
+| `color` | Color Converter | PC only | dev-data2 | ✓ | 7 | 34 | alpha kept (8-digit hex); rgb % / exponents, hsl turn / rad / grad, oklch L 0–1, oklab, hwb, names; colours outside sRGB mapped as CSS Color 4 (was rgb(-1065, …)); wrong input marked; exact round trips over all 16.7 M colours; vs colorsys + Chrome's CSS engine |
+| `jwt` | JWT Decoder | PC only | dev-data2 | ✓ | 7 | 33 | Bearer / quotes / wrapped; JWE; null, list, text, non-UTF-8 payloads; 20-digit claims not rounded; exp as string / ms; alg none; damaged signature; UTC + local + relative times; vs PyJWT |
 | `sqlite` | SQLite Playground | PC only | data-engines |  |  |  |  |
 | `jq` | jq Playground | PC only | data-engines |  |  |  |  |
 | `yaml` | YAML ⇄ JSON ⇄ TOML | PC only | data-engines |  |  |  |  |
-| `xml` | XML Formatter / XPath | PC only | dev-data2 |  |  |  |  |
-| `json2types` | JSON → Types | PC only | dev-data2 |  |  |  |  |
-| `jsondiff` | JSON Diff | PC only | dev-data2 |  |  |  |  |
+| `xml` | XML Formatter / XPath | PC only | dev-data2 | ✓ | 9 | 45 | own Rust formatter moves white space only: declaration, DOCTYPE, entities, &#10;, nbsp and padded text were lost or rewritten; <parsererror> element; xml: and default-namespace prefixes in XPath; ISO-8859-1 / UTF-16 files; 74 documents compared by Chrome's parser |
+| `json2types` | JSON → Types | PC only | dev-data2 | ✓ | 10 | 110 | own Rust generator; every output compiled by tsc, go, rustc, javac, python for 36 samples: root lists / values as aliases, colliding and reserved names, shadowed type names, one-file Java, Python kw_only and kept keys, keys Go cannot tag, uint64 / BigInteger, plurals |
+| `jsondiff` | JSON Diff | PC only | dev-data2 | ✓ | 5 | 70 | own Rust diff on the lossless reader: lists aligned by equal elements and by id (one removal was N changes); numbers by value and never rounded; duplicate keys; empty sides; Swap; rows carry both values; 400 random pairs with two appliers |
 | `sqlfmt` | SQL Formatter | PC only | data-engines |  |  |  |  |
 | `prettier` | Code Formatter | PC only | data-engines |  |  |  |  |
-| `mockdata` | Mock Data Generator | PC only | dev-data2 |  |  |  |  |
-| `mdtable` | Markdown Table | PC only | dev-data2 |  |  |  |  |
+| `mockdata` | Mock Data Generator | PC only | dev-data2 | ✓ | 10 | 47 | ranges beyond 32 bits, swapped / unreadable ranges explained, dd/mm/yyyy dates (threw 'Invalid time value'), id start, fine-grained decimals, duplicate / empty / __proto__ names, quoted SQL names (run in SQLite), word-count limit, no fields |
+| `mdtable` | Markdown Table | PC only | dev-data2 | ✓ | 6 | 28 | separator found by the sheet engine (a tab in a quoted cell forced TSV); <br> for line breaks, also in the editor; table inside other text; CJK / emoji widths; 3,000 rows; output read by cmark-gfm |
 | `cidr` | Subnet / CIDR Calculator | PC only | net | ✓ | 3 | 74 | e2e 15→43 + 46 unit; 300 cases vs Python ipaddress |
 | `chmod` | chmod Calculator | PC only | net | ✓ | 3 | 26 | e2e 13→39; 800 modes + 1,152 expressions vs real chmod |
 | `x509` | Certificate Decoder | PC only | net | ✓ | 10 | 66 | e2e 16→45 + 37 unit; fixtures vs OpenSSL |
@@ -403,4 +403,75 @@ tabs 170 → 504; unit +165: devcore 266 → 348, new `svgo.test.mjs` 32 and `bi
   "unauthorised", "payload", `image/jpg`); the exact port / extension / character was not first ("80" listed 1080
   before… ); the ASCII filter was lost and the focus stolen by the Latin-1 switch; nginx / Cloudflare codes,
   27 ports and 17 file types added.
+
+### Software › JSON, text-format and small developer tabs (17 Nov 2026) — json, regex, base64, urlenc, epoch, uuid, color, jwt, xml, json2types, jsondiff, mockdata, mdtable
+Method: the earlier reviewer's probe scripts re-run + own code review, then comparison with independent
+implementations: `JSON.parse` / `JSON.stringify`, Python (`base64`, `urllib.parse`, `datetime` + `zoneinfo`, `uuid`,
+`colorsys`, PyJWT, lxml), Node's WHATWG `URL`, Chrome's own CSS and XML parsers, cmark-gfm, SQLite, and the real
+compilers (tsc, go, rustc, javac, python) for generated code. 91 bugs, 632 new checks (e2e for the 13 tabs 166 → 481;
+new unit suite `devdata.test.mjs` 309; reference data `tests/fixtures/devdata/reference.json`,
+`scripts/make-devdata-reference.py`).
+Four engines were written in Rust for this (STANDING RULE #1) — `wasm/devcore/src/jsonfmt.rs`, `jsondiff.rs`,
+`xmlfmt.rs`, `j2t.rs` — because the JavaScript they replace could not be made correct:
+- **JSON Formatter (7):** `JSON.parse` → `JSON.stringify` is not a formatter: it moved keys such as "10" and "2" to the
+  front of their object, dropped duplicate keys, and rewrote numbers (1.0 → 1, 1e5 → 100000, 12345678901234567890 →
+  12345678901234567000). The new formatter changes white space only, points out duplicate keys, says what is wrong in
+  words with line and column ("Trailing comma before }", "Keys must be in double quotes", "JSON has no undefined")
+  and selects the spot; the old result no longer stays under an error; Minify stays on while typing; a BOM is skipped;
+  600 nested brackets give a message. It accepts exactly what `JSON.parse` accepts (1,200 mutated documents).
+- **JSON Diff (5):** lists were compared index by index — removing the first of 1,000 elements showed 1,000 changes.
+  Lists are now aligned by equal elements (longest common subsequence) and, between those, records by their `id`.
+  Numbers are compared by value (1 = 1.0 = 1e0) and never rounded (two 20-digit ids that differ in the last digit
+  were "equal"); duplicate keys are reported; an empty side is named; the table carries both values as written.
+  400 random pairs: the patch applied by two independent appliers gives the right document.
+- **XML Formatter (9):** re-serialising the browser's DOM lost the XML declaration and DOCTYPE, expanded entities
+  (`&w;`, `&#169;`), turned `&#10;` in an attribute into a real line break, and — worst — trimmed text: a lone space,
+  a no-break space or "  padded  " disappeared, and sentences with inline elements were broken over lines. The new
+  formatter re-indents only elements whose children are all elements; everything else is byte-for-byte as typed.
+  74 documents: Chrome's parser sees the same document before and after. Also: a document containing an element
+  named `<parsererror>` was reported as broken; `xml:lang` in XPath was "unresolvable"; a default namespace made
+  every XPath return nothing without a word (now explained, prefix `d:` bound); ISO-8859-1 and UTF-16 files were
+  read as UTF-8 (é → �) — now decoded as declared, and the download's declaration is corrected to UTF-8.
+- **JSON → Types (10):** the output is now compiled by the real tools for 36 awkward samples. Before: a top-level list
+  became an invented `{ value: … }` wrapper the sample did not fit; `user_id` and `userId` gave two fields with one
+  name (Go, Rust, Java, Python: does not compile); reserved words (`class`, `type`, `self`, `yield`) were used as
+  names; a key `list` / `string` / `option` produced types that shadow `List`, `String`, `Option`; Java had several
+  `public record`s in one file; Python put fields with defaults before fields without and renamed keys so
+  `Order(**data)` failed; Go tags were written for keys encoding/json cannot tag (comma, quote, combining marks —
+  the field silently never matched); 18446744073709551615 was typed `int64`; "statuses" → `Statuse`. All fixed;
+  Go and Rust round-trip every sample; what cannot be expressed is said in a note.
+- **Regex Tester (4):** a pattern that backtracks without end (`(a+)+$`) froze the tab for good — matching now runs in
+  a worker that is ended after 2 s with an explanation. Wrong flags are named ("Flag g is given twice"), named groups
+  label their columns, counting stops at a million.
+- **Base64 (8):** refused what people paste (data: URLs, `%3D`, extra padding, zero-width characters); a binary
+  result gave "not valid Base64"; the status of a previous file stayed; "Base64 → download" decoded the plain text
+  when the tab was in Encode; a 30 MB file took 21 s and put 42 MB into a text box (now 4 s, the box shows the first
+  200,000 characters, Copy / Download give all). Now on devcore-enc; decoded files are recognised (PNG, PDF, ZIP …).
+- **URL Encoder (7):** Decode turned every `+` into a space (`mailto:user+tag@…`, `tel:+91…`, `/c++/`); malformed
+  input put "⚠ URI malformed" into the result; "Encode full URL" encoded `%20` again (`%2520`), the brackets of an
+  IPv6 host and non-Latin host names (now Punycode — equal to Node's URL parser); the parts table was built from the
+  decoded text, so `a=%26%3D` became three broken parameters; half a surrogate pair threw.
+- **Epoch (6):** microseconds and nanoseconds were read as milliseconds (year 55,000), `1,700,000,000` and ISO dates
+  were refused, the picker never followed the box and clearing it wrote "NaN". Now the unit is found from the number
+  of digits (and can be chosen), 19-digit nanoseconds lose nothing, dd/mm/yyyy is read day first. 120 instants and
+  40 local dates equal Python's in Asia/Kolkata, America/St_Johns and Pacific/Chatham.
+- **UUID (5):** version-7 UUIDs made in the same millisecond came out in random order — the point of v7 is that they
+  sort. `u_uuid` in crypto.wasm now follows RFC 9562 §6.2 method 2 (20,000 in one millisecond strictly increasing,
+  clock steps back tolerated). Uppercase / Hyphens made new UUIDs instead of rewriting the shown ones; the inspector
+  refused `{…}` and `urn:uuid:`, called the nil UUID "v0", and showed no time for v1 / v6.
+- **Color Converter (7):** an 8-digit hex lost its alpha; `rgb(100% 0% 0%)`, `rgb(1e2, …)`, `hsl(0.5turn …)` and
+  `oklch(0.628 …)` were misread by a "take the first three numbers" reader; a colour outside sRGB showed
+  `rgb(-1065, 214, -288)`; nothing marked a wrong entry; whole-number HSL / OKLCH did not give the same colour back.
+  Now a real CSS colour reader (`src/lib/color.ts`), CSS Color 4 gamut mapping in mathcore, and texts precise enough
+  that **all 16,777,216 colours** round-trip; Chrome's CSS engine paints every printed text as the same colour.
+- **JWT (7):** "Bearer …" and wrapped tokens were refused; a `null` payload crashed; 20-digit claims were rounded;
+  encrypted tokens (JWE) gave "not a valid JWT"; `exp` as a string or in milliseconds was ignored; `alg: none` was not
+  flagged; times had no UTC or relative form.
+- **Mock Data (10):** whole-number ranges wider than 32 bits gave one value; `from` > `to`, text in a number box and
+  dates such as 16/11/2026 produced NaN / null or threw "Invalid time value"; a non-integer id start counted 1.5,
+  2.5 …; decimals over a wide range were multiples of 1,000; two fields with one name or a field called `__proto__`
+  lost a column; SQL names with spaces or reserved words were not quoted; a word count of 3,000,000 froze the tab.
+- **Markdown Table (6):** any tab character forced tab-separated reading (a tab inside a quoted CSV cell broke the
+  rows); a line break in a cell vanished from the editor; a table pasted with text around it took the following
+  lines as rows; CJK and emoji cells were padded as one column wide; 3,000 rows made every keystroke slow.
 

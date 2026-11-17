@@ -841,7 +841,18 @@ API double m_weekdays(double a, double b) {
 /* ======================================================================== colour */
 static double lin(double c) { c /= 255; return c <= 0.04045 ? c / 12.92 : pow((c + 0.055) / 1.055, 2.4); }
 static double delin(double c) { return 255 * (c <= 0.0031308 ? 12.92 * c : 1.055 * pow(c, 1 / 2.4) - 0.055); }
-/* op 0 RGB→HSL, 1 HSL→RGB, 2 RGB→OKLCH (L in %, C, H°), 3 OKLCH→RGB, 4 relative luminance (WCAG) → out[0]. */
+API void m_color(int op, double x, double y, double z, double *out);
+static double clip255(double v) { return v != v || v < 0 ? 0 : v > 255 ? 255 : v; }
+static int gamut_ok(const double *rgb) { for (int i = 0; i < 3; i++) if (!(rgb[i] >= -1e-6 && rgb[i] <= 255 + 1e-6)) return 0; return 1; }
+/* Distance in OKLab (deltaEOK) between an sRGB colour and the OKLCH colour (L in %, C, H°). */
+static double delta_ok(const double *rgb, double L, double C, double H) {
+    double p[3];
+    m_color(2, rgb[0], rgb[1], rgb[2], p);
+    double a1 = p[1] * cos(p[2] * M_PI / 180), b1 = p[1] * sin(p[2] * M_PI / 180), a2 = C * cos(H * M_PI / 180), b2 = C * sin(H * M_PI / 180), dl = (p[0] - L) / 100;
+    return sqrt(dl * dl + (a1 - a2) * (a1 - a2) + (b1 - b2) * (b1 - b2));
+}
+/* op 0 RGB→HSL, 1 HSL→RGB, 2 RGB→OKLCH (L in %, C, H°), 3 OKLCH→RGB, 4 relative luminance (WCAG) → out[0],
+   5 OKLCH→RGB fitted into sRGB (out needs 5 doubles). */
 API void m_color(int op, double x, double y, double z, double *out) {
     if (op == 0) {
         double r = x / 255, g = y / 255, b = z / 255, mx = fmax(r, fmax(g, b)), mn = fmin(r, fmin(g, b)), l = (mx + mn) / 2, h = 0, s = 0;
@@ -875,8 +886,37 @@ API void m_color(int op, double x, double y, double z, double *out) {
         out[2] = delin(-0.0041960863 * l - 0.7034186147 * m + 1.707614701 * s);
     } else if (op == 4) {
         out[0] = 0.2126 * lin(x) + 0.7152 * lin(y) + 0.0722 * lin(z);
+    } else if (op == 5) {
+        /* OKLCH → sRGB for a colour that may lie outside sRGB: the gamut mapping of CSS Color 4 (section 13.2).
+           Lightness and hue are kept and the chroma is reduced by bisection; at each step the colour is also tried
+           clipped to sRGB, and the clipped colour is taken as soon as it is closer than a just-noticeable difference
+           (0.02 in OKLab) — so a colour that is outside only by the rounding of its text is simply clipped.
+           out[0..2] = RGB within 0..255, out[3] = 1 when the colour was outside sRGB, out[4] = the chroma of the result. */
+        double L = x < 0 ? 0 : x > 100 ? 100 : x, C = y < 0 || y != y ? 0 : y, H = z, o[3], lab[3];
+        const double JND = 0.02, EPS = 0.0001;
+        out[3] = 0; out[4] = C;
+        if (L >= 100) { out[0] = out[1] = out[2] = 255; out[3] = C > 0; out[4] = 0; return; }
+        if (L <= 0) { out[0] = out[1] = out[2] = 0; out[3] = C > 0; out[4] = 0; return; }
+        m_color(3, L, C, H, o);
+        if (gamut_ok(o)) { for (int i = 0; i < 3; i++) out[i] = clip255(o[i]); return; }
+        out[3] = 1;
+        double clipped[3], lo = 0, hi = C; int lo_in = 1;
+        for (int i = 0; i < 3; i++) clipped[i] = clip255(o[i]);
+        if (delta_ok(clipped, L, C, H) >= JND) {
+            while (hi - lo > EPS) {
+                double chroma = (lo + hi) / 2;
+                m_color(3, L, chroma, H, o);
+                if (lo_in && gamut_ok(o)) { lo = chroma; continue; }
+                for (int i = 0; i < 3; i++) clipped[i] = clip255(o[i]);
+                double E = delta_ok(clipped, L, chroma, H);
+                if (E < JND) { if (JND - E < EPS) break; lo_in = 0; lo = chroma; }
+                else hi = chroma;
+            }
+        }
+        for (int i = 0; i < 3; i++) out[i] = clipped[i];
+        m_color(2, clipped[0], clipped[1], clipped[2], lab);
+        out[4] = lab[1];
     }
-
 }
 /* WCAG 2 contrast ratio between two sRGB colours (1..21). */
 API double m_contrast(double r1, double g1, double b1, double r2, double g2, double b2) {

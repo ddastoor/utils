@@ -468,6 +468,43 @@ sort/dedupe/trim/reverse lines; find & replace (regex); diff two texts (Myers li
 JSON format/minify/validate with error position; Base64, URL, HTML-entity, hex encode/decode;
 Unix epoch ↔ date; UUID v4/v7; colour converter (HEX/RGB/HSL/OKLCH) with picker; JWT decode (no verify).
 
+**As built after the Nov 2026 bug hunt** (Software, PC only; `src/tools/text.ts` json + regex, `src/tools/software/dev1.ts`
+base64 / urlenc / epoch / uuid / color / jwt, `src/tools/software/data2.ts` xml / json2types / jsondiff / mdtable / mockdata;
+unit `tests/unit/devdata.test.mjs`, references `tests/fixtures/devdata/reference.json`):
+- `json`: the formatter changes white space only (devcore-json): member order, duplicate keys (pointed out) and the
+  spelling of numbers and strings are kept; indent 2 / 4 / tab, minify, sort keys; a worded message with line, column and
+  "Show it" for every mistake; accepts exactly what JSON.parse accepts.
+- `regex`: the browser's RegExp in a worker, ended after 2 s (runaway patterns); flag mistakes named; named groups.
+- `base64` (devcore-enc): text or file ⇄ Base64 / URL-safe / data: URL; decoding takes messy input (no padding, line
+  breaks, %3D, data: URLs); binary results are recognised by their first bytes, shown as hex and saved under a fitting
+  name; long output is cut on screen only.
+- `urlenc`: component (optionally form style), whole URL (the browser's URL parser: no double encoding, Punycode), lenient
+  decode (Windows-1252 escapes, stray %, "+" = space only in queries, "Decode again" for double encoding); URL parts.
+- `epoch`: seconds / ms / µs / ns by the number of digits or chosen; group separators, fractions, 1.7e9; ISO 8601,
+  RFC 2822 and dd/mm/yyyy [hh:mm[:ss]] (day first) dates; says how the input was read; picker in step both ways.
+- `uuid`: v4 / v7 (v7 strictly increasing); the switches rewrite the shown IDs; inspector: version, variant, time of
+  v1 / v6 / v7, clock sequence, node, nil / max; accepts braces, urn:uuid:, no hyphens.
+- `color`: every box reads any CSS colour (hex 3 / 4 / 6 / 8, rgb(), hsl(), hwb(), oklch(), oklab(), names; alpha kept,
+  Opacity slider); OKLCH outside sRGB is mapped as CSS Color 4 §13.2 (mathcore `m_color` op 5) with a note; printed
+  HSL (1 decimal) and OKLCH (2 / 5 / 2 decimals) give every 8-bit colour back exactly (all 16.7 M checked once).
+- `jwt`: "Bearer …", quotes and wrapped tokens; claims printed losslessly (devcore-json); iat / nbf / exp / auth_time in
+  UTC, local time and words; expired / not valid yet / never expires; exp as a string or in milliseconds noted; alg
+  none, empty or damaged signature, JWE (5 parts), payloads that are not objects or not JSON.
+- `xml`: devcore-xml lays out elements that contain only elements and leaves everything else as typed (declaration,
+  DOCTYPE, entities, CDATA, text, xml:space); the browser's DOMParser checks well-formedness and runs XPath (prefixes
+  from the document, `xml:` and `d:` for the default namespace); files are decoded as they declare (BOM / encoding=).
+- `json2types` (devcore-j2t): root lists and plain values are type aliases; Go and Rust map every key exactly (tags,
+  serde rename; keys encoding/json cannot tag are marked); Java = one public record with the others nested; Java and
+  Python keep keys that are valid names and rename the rest with a comment; optional vs nullable; int64 / uint64 /
+  float / BigInteger from the digits; type names never shadow built-ins; notes say what the reader must know.
+- `jsondiff` (devcore-jsondiff): RFC 6902 patch + table of rows with both values; lists aligned by equal elements and
+  by `id`; numbers by value, never rounded; Swap; download.
+- `mdtable`: grid editor ⇄ GFM table; imports CSV / TSV / semicolons (separator found by sheet.wasm) or a Markdown
+  table (also inside other text); `<br>` for line breaks; padding by display width (CJK, emoji = 2); the editor shows
+  the first 200 rows of a big table.
+- `mockdata`: 22 field types (India-first); ranges validated and explained (swapped, not a number, dates as
+  yyyy-mm-dd or dd/mm/yyyy); 53-bit uniform integers; unique column names; quoted SQL names; same rows in every format.
+
 ### Audio Recorder — BUILT (`src/tools/audio.ts`, shared UI `src/lib/audioui.ts`; e2e `tests/e2e/audio.e2e.mjs` 21)
 Record the mic (MediaRecorder: Opus/WebM, AAC/M4A on Safari; 128 kbps) with pause/resume, big timer, live level meter
 with clip mark and a scrolling waveform; microphone picker; "voice clean-up" (browser echo/noise/AGC) on by default,
@@ -725,7 +762,7 @@ stay **public** (the source of the deployed site is then available to every user
 
 | Engine | Language → wasm | Built by | Used by |
 |---|---|---|---|
-| libsodium 1.0.20 + own MD5/SHA-1/SHA-3/CRC-32 + OpenBSD bcrypt + own CSPRNG helpers (shuffle, sampling, UUID v4/v7) + USODIUM1 header | C | **us** (`wasm/crypto`) | sodium, sharelink, hash, passwords, sshkey, hmac, pwhash, apikey, random tools, uuid, line shuffle |
+| libsodium 1.0.20 + own MD5/SHA-1/SHA-3/CRC-32 + OpenBSD bcrypt + own CSPRNG helpers (shuffle, sampling, UUID v4/v7 — v7 values always increase: RFC 9562 §6.2 method 2, a random step inside one millisecond, clock steps back of up to 10 s tolerated) + USODIUM1 header | C | **us** (`wasm/crypto`) | sodium, sharelink, hash, passwords, sshkey, hmac, pwhash, apikey, random tools, uuid, line shuffle |
 | imgproc (adjustments, resize, lossless orient/crop, filters, matting, warp + homography, doc enhance) | C (own code) | **us** (`wasm/imgproc`) | image tools, scanner, passport, cartoon |
 | metacore (EXIF → JSON, lossless metadata strip JPEG/PNG/WebP, JPEG DPI, image sniffing) | C (own code) | **us** (`wasm/metacore`) | exif, image loading, passport/formphoto DPI |
 | BusyBox 1.38.0 (130 applets) + compat shims | C | **us** (`wasm/busybox`) | terminal, bc console |
@@ -742,7 +779,7 @@ stay **public** (the source of the deployed site is then available to every user
 | keys: RustCrypto **hmac, md-5, sha1, sha2, sha3, argon2, bcrypt, pbkdf2, scrypt, ssh-key** (OpenSSH Ed25519 generation), **aes + ctr + bcrypt-pbkdf** and our own OpenSSH wire reader (inspect Ed25519 / RSA / ECDSA / DSA keys, encrypted private keys, authorized_keys / known_hosts lines), streaming HMAC (`k_mac_begin/update/end`), lenient Base32 for TOTP secrets | Rust | **us** (`wasm/keys`, 0.38 MB; tests: RFC 2104/2202/4231/4226/6238/6070 vectors) | hmac, totp, pwhash, sshkey, apikey |
 | zxcvbn 3.1.1 (Rust port of Dropbox's estimator + its word lists) **+ our four fixes** (`wasm/zxcvbn/zxcvbn-fixes.patch`, applied by build.sh to the SHA-256-checked crate: ALL-CAPS words with a digit, repeats taken for sequences, single-character l33t words, keyboard-walk degree divided in integers) | Rust | **us** (`wasm/zxcvbn`, 2.2 MB, loaded with the first password; guesses + scores equal the Python reference for 304 passwords — `tests/unit/zxcvbn.test.mjs`) | pwstrength |
 | formats: **serde_yaml_ng** (unsafe-libyaml = libyaml translated to Rust), **toml**, **jsonschema** 0.61 (no network/file resolvers) + own schema inference | Rust | **us** (`wasm/formats`, two modules: formats-yaml 0.42 MB, formats-schema 2.7 MB) | yaml, jsonschema |
-| devcore: ipnet (CIDR), croner + chrono (cron; zone offsets from the browser's Intl via an `env.tz_offset` import, so no tz database), **own port of npm's semver** (`semver_npm.rs`: the package's range / comparator / inc logic with its own regular expressions on regex-lite — the nodejs-semver crate gave different answers), **own Unicode-aware glob matcher** (`globm`; globset matches bytes), **own unified-diff reader / applier** (`patchm`: offsets, white space, fuzz, like GNU patch; diffy refused most real patches), data-encoding + bs58 + own Ascii85/Z85 (long inputs go through data-encoding in pieces: it refuses 8 MiB and more on a 32-bit target), **own protobuf, MessagePack and CBOR readers** (`bin.rs`; rmpv and ciborium could not show CBOR `undefined` / simple values / long bignums or MessagePack's unused 0xc1, and reported errors as Rust debug text), x509-parser + sha1/sha2 (+ own PEM / PKCS #7 reader), sqlformat, own hex dump + search | Rust | **us** (`wasm/devcore`, crates.io via `Cargo.lock`, wasm32-wasip1; one `dc_call(op, input)` entry; **one module per tab** via Cargo features → `devcore-<feature>.wasm`, 67–650 KB) | cidr, x509, cron, semver, glob, patch, sqlfmt, hexview, baseenc, bindecode |
+| devcore: ipnet (CIDR), croner + chrono (cron; zone offsets from the browser's Intl via an `env.tz_offset` import, so no tz database), **own port of npm's semver** (`semver_npm.rs`: the package's range / comparator / inc logic with its own regular expressions on regex-lite — the nodejs-semver crate gave different answers), **own Unicode-aware glob matcher** (`globm`; globset matches bytes), **own unified-diff reader / applier** (`patchm`: offsets, white space, fuzz, like GNU patch; diffy refused most real patches), data-encoding + bs58 + own Ascii85/Z85 (long inputs go through data-encoding in pieces: it refuses 8 MiB and more on a 32-bit target), **own protobuf, MessagePack and CBOR readers** (`bin.rs`; rmpv and ciborium could not show CBOR `undefined` / simple values / long bignums or MessagePack's unused 0xc1, and reported errors as Rust debug text), x509-parser + sha1/sha2 (+ own PEM / PKCS #7 reader), sqlformat, own hex dump + search, **own lossless JSON reader / formatter** (`jsonfmt.rs`: changes white space only — member order, duplicate keys and number spelling kept; worded errors with line / column; JSON.parse → JSON.stringify reordered keys, dropped duplicates and rounded big numbers), **own JSON diff** (`jsondiff.rs`, RFC 6902 on that reader: lists aligned by equal elements (LCS) and records by `id`, numbers by value and never rounded), **own XML formatter** (`xmlfmt.rs`: re-indents elements that hold only elements, everything else byte-for-byte — declaration, DOCTYPE, entities, CDATA, text; the DOM round trip lost or rewrote all of these), **own JSON → types generator** (`j2t.rs`: TypeScript / Go / Rust serde / Java records / Python dataclasses; the e2e suite compiles its output with tsc, go, rustc, javac and python; crates unicode-ident (MIT / Apache-2.0 + Unicode-3.0) for Python identifiers and unicode-general-category (Apache-2.0) for what Go's struct tags accept) | Rust | **us** (`wasm/devcore`, crates.io via `Cargo.lock`, wasm32-wasip1; one `dc_call(op, input)` entry; **one module per tab** via Cargo features → `devcore-<feature>.wasm`, 67–650 KB) | cidr, x509, cron, semver, glob, patch, sqlfmt, hexview, baseenc, bindecode, base64 (devcore-enc), json + jwt (devcore-json), jsondiff, xml, json2types (devcore-j2t) |
 | cmark-gfm 0.29.0.gfm.13 (GitHub Flavored Markdown) | C | **us** (`wasm/markdown`, source from the PyPI `cmarkgfm` sdist, SHA-256 pinned) | markdown |
 | libyaml 0.2.5 + toml++ 3 | C / C++ | **us** (`wasm/formats`) | yaml |
 | MuPDF 1.28 | C | Artifex (official `mupdf` npm) | all PDF tools, PDF → EPUB |
@@ -789,6 +826,12 @@ browser-native engines that are already compiled C++ (JSON.parse, RegExp, Intl.S
 String case mapping, canvas, WebCrypto, Date); string formatting/parsing of user input (hex colour, matrix text,
 dates); per-animation-frame loops over ≤ 4k samples (audio meter RMS/peak, waveform and graph grid drawing) where
 copying into wasm costs more than the loop; Damerau-Levenshtein etc. are all in C now.
+Nov 2026 (small developer tabs, `src/tools/software/dev1.ts`, `data2.ts`, `src/lib/color.ts`): reading what a person typed — a
+timestamp or date (`parseStamp`), a CSS colour (`parseColor`; the maths and the gamut mapping are in mathcore), a UUID's
+fields, a JWT's three parts (`atob` + `TextDecoder`), percent-escapes (the browser's `URL` parser, `encodeURIComponent`
+and `TextDecoder` do the work; the Windows-1252 fallback is a per-run retry), Markdown table layout and the assembly of
+mock rows (random numbers from crypto.wasm) — is string glue around browser-native or wasm engines and stays in TS;
+the Regex Tester is the browser's own RegExp, run in a worker (`src/workers/regex.worker.ts`) so it can be stopped.
 Third-party WebAssembly builds in use (accepted, see above): MuPDF, SQLite, MediaPipe Tasks, ONNX Runtime, jSquash, libheif-js, tesseract.js-core, zxing-wasm, libarchive.js, ffmpeg.wasm. Staying JS (no compiled
 equivalent, reasons above): OpenPGP.js, Mermaid, Prettier, TensorFlow.js. (sql-formatter replaced by our Rust sqlformat build, Nov 2026.)
 
@@ -835,7 +878,8 @@ Owner: "make the full site faster, more responsive and memory efficient — load
    type), invoice/rent/resume (MuPDF + Noto Sans: the live PDF preview is the main view), markdown (cmark-gfm,
    sample preview), terminal (BusyBox: the shell is ready at once), qr/barcode (zxing-cpp: drawn as you type),
    caption/watermark/signature (fonts of the first preview), cidr/cron/semver/glob/patch (their devcore-<tab>.wasm: the
-   sample is computed live), mermaid (the sample diagram). Adding to that list needs a reason in the test.
+   sample is computed live), json/jwt/xml/json2types/jsondiff/base64 (their devcore module: the sample is formatted,
+   decoded, compared or converted at once), mermaid (the sample diagram). Adding to that list needs a reason in the test.
    Examples of deferral: bc console starts BusyBox on its first Enter; Image Editor instantiates imgproc with
    the first photo; CSV/Excel loads sheet.wasm with the first file; Photo Dictionary loads the word list and
    Literata while OCR runs; PDF tabs load MuPDF when a PDF is chosen.
@@ -909,7 +953,8 @@ in one call; "a ± b%" = percentage of the running total), root finding (sign ch
 minimising |f|), quadratic/cubic, det/inverse/matmul/rank/linear solve, statistics + regression,
 64-bit primes (deterministic Miller–Rabin) and Pollard-rho factorisation, exact fractions (int64 with overflow
 detection; "2/3" without spaces is one fraction, so 1/3 ÷ 2/3 = 1/2), arbitrary-length base conversion, Roman numerals, number→words (Indian + international), finance
-(EMI, amortisation, SIP, FD/RD, PPF, EPF, NPS, prepayment), health (BMI, BMR, body fat, ideal weight), haversine.
+(EMI, amortisation, SIP, FD/RD, PPF, EPF, NPS, prepayment), health (BMI, BMR, body fat, ideal weight), haversine,
+colour (RGB ⇄ HSL ⇄ OKLCH, WCAG luminance / contrast, and `m_color` op 5: OKLCH → sRGB with the CSS Color 4 gamut mapping).
 `wasm/mathcore/build.sh` (exports every `API m_*` function). TS wrapper: `src/wasm/mathcore.ts` (`bindMathcore`
 works in the browser and in Node tests). Tests: `tests/unit/mathcore.test.mjs` (~150 known-answer checks).
 

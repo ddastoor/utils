@@ -54,15 +54,24 @@ what those suites missed.
   its Safe mode did nothing and some optimised drawings looked different (now every result is rendered and compared,
   with a safe fallback); the binary decoder's CBOR / MessagePack readers are now our own Rust; files ≥ 8 MiB trapped
   the Base32/64 engine; float32 rounding on ties; Key Codes was a keyboard trap.
-  Running total: **34 of 176 tabs reviewed, 173 bugs fixed, 1,442 checks added** (+ shell).
-- **Found while here, for later areas:** the Color Converter (`color`, area text) also drops the alpha of an 8-digit
-  hex silently (`hexToRgb` in `src/tools/text.ts`) — check it there.
+- **Area `dev-data2` done too** (json, regex, base64, urlenc, epoch, uuid, color, jwt, xml, json2types, jsondiff,
+  mockdata, mdtable): 91 bugs, 632 checks. Four engines written in Rust because the JS could not be made correct:
+  a lossless JSON formatter (JSON.stringify reordered keys, dropped duplicates, rounded big numbers), a JSON diff
+  that aligns lists, an XML formatter that moves white space only (the DOM round trip trimmed text and lost the
+  DOCTYPE), and a JSON → types generator whose output is compiled by tsc / go / rustc / javac / python in the suite.
+  Also: v7 UUIDs strictly increasing (crypto.wasm), CSS Color 4 gamut mapping (mathcore), regex matching in a worker
+  with a time limit. The small tabs moved from `src/tools/text.ts` to `src/tools/software/dev1.ts`; colour reading
+  is `src/lib/color.ts`.
+  Running total: **47 of 176 tabs reviewed, 264 bugs fixed, 2,074 checks added** (+ shell).
+  Verified at that commit: unit 4567/4567 (39 suites, 12 runs in a row); complete e2e 4,580 checks in 188 suites, all
+  passing (mermaid, resume and one mdtable timing check only when re-run alone — CPU contention, as before).
+  For the reference generator: `pip install --user pyjwt lxml tzdata` (the tests themselves only read its JSON).
 - **The five first-wave reviewers left their probe scripts** in the scratchpad (`review/<area>/*.mjs`, areas misc,
   bitswebref, dev-data2, data-engines, calc-core): copy them to `own/<area>/`, point them at the preview
   (`sed -i 's#localhost:4180#localhost:4173#'`, `../probe.mjs` → `own/probe.mjs`) and run them one by one — they print
   tool-vs-reference comparisons that show the bugs. (If the scratchpad is gone, review those areas from the source.)
-- **Next steps (in this order, one area at a time, commit + push after each):** dev-data2 →
-  data-engines → calc-core → calc2-math → text → security-codes → images1 → images2 → pdf → docs2 → audio → video →
+- **Next steps (in this order, one area at a time, commit + push after each):**
+  data-engines (sqlite, jq, yaml, sqlfmt, prettier, graphviz, python, jsonschema …) → calc-core → calc2-math → text → security-codes → images1 → images2 → pdf → docs2 → audio → video →
   terminal → everyday-device (areas = column "Area" in `docs/BUGHUNT.md`; `node scripts/bughunt.mjs status` lists the
   tabs still open). For each tab: read the source + suite, probe the built site (`npx vite preview --port 4173`, helper
   `scratchpad/own/probe.mjs` — recreate it from `tests/e2e.mjs` if the scratchpad is gone), compare with an independent
@@ -202,7 +211,7 @@ Dictionary), Codes & Files (5), Everyday (9), Device (11), Linux Terminal + bc c
    shared `refTable` filter); cidr, chmod, x509 (net.ts); cron, semver, glob, patch, hexview, escape, unicode, logview,
    sla, transfer, mermaid (misc.ts); bitwise, ieee754, baseenc, bindecode (bits.ts); sqlfmt (data.ts); contrast, gradient, shadow, svgo (web.ts; svgo =
    our Rust build of OXVG, wasm/svgo); hmac, totp, pwhash, sshkey, apikey, curl, pwstrength (net.ts; wasm/keys +
-   wasm/zxcvbn); xml, json2types, jsondiff (devcore-jsondiff: json-patch), mdtable, mockdata (data2.ts); yaml, jsonschema (data3.ts; wasm/formats); prettier (prettier.ts, JS); sqlite (sqlite.ts + src/workers/sqlite.worker.ts, official SQLite wasm); jq (data.ts; wasm/jq = jq 1.8.2 C + oniguruma built by us, glue `jq_run` with an input callback so `input`/`inputs` work, `$ARGS`; e2e compares every output with the native /usr/bin/jq); graphviz (graphviz.ts; wasm/graphviz = Graphviz 14.1.2 + Expat built by us, in a worker with Stop; SVG shown as an inert <img>).** (47/47) devcore = one Rust crate (wasm/devcore), one small wasm per tab via Cargo features
+   wasm/zxcvbn); xml, json2types, jsondiff, mdtable, mockdata (data2.ts; since 17 Nov on our own Rust engines devcore-xml / -j2t / -jsondiff); base64, urlenc, epoch, uuid, color, jwt (dev1.ts; moved out of text.ts); yaml, jsonschema (data3.ts; wasm/formats); prettier (prettier.ts, JS); sqlite (sqlite.ts + src/workers/sqlite.worker.ts, official SQLite wasm); jq (data.ts; wasm/jq = jq 1.8.2 C + oniguruma built by us, glue `jq_run` with an input callback so `input`/`inputs` work, `$ARGS`; e2e compares every output with the native /usr/bin/jq); graphviz (graphviz.ts; wasm/graphviz = Graphviz 14.1.2 + Expat built by us, in a worker with Stop; SVG shown as an inert <img>).** (47/47) devcore = one Rust crate (wasm/devcore), one small wasm per tab via Cargo features
    (`devcore-<feature>.wasm`; cron gets zone offsets from the browser's Intl through `env.tz_offset`); unit suite
    `tests/unit/devcore.test.mjs` (92). python (python.ts; wasm/python = CPython 3.14.8 built by us with zig — real Python 3 with its standard library instead of the planned MicroPython; worker, Stop, stdin, files in/out). **All 47 Software tabs built.**
    **Full run (16 Nov 2026, after the last tab):** unit 3531/3531 (32 suites); e2e 3576/3583 in 188 suites with all

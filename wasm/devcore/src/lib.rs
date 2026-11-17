@@ -10,6 +10,12 @@ mod bin;
 mod cidr;
 #[cfg(feature = "enc")]
 mod enc;
+#[cfg(feature = "j2t")]
+mod j2t;
+#[cfg(feature = "jsondiff")]
+mod jsondiff;
+#[cfg(any(feature = "json", feature = "jsondiff", feature = "j2t"))]
+mod jsonfmt;
 mod misc;
 #[cfg(feature = "semver")]
 mod semver_npm;
@@ -17,6 +23,8 @@ mod semver_npm;
 mod semver_re;
 #[cfg(feature = "x509")]
 mod x509;
+#[cfg(feature = "xml")]
+mod xmlfmt;
 
 thread_local! { static OUT: RefCell<Vec<u8>> = RefCell::new(Vec::new()); }
 
@@ -64,11 +72,12 @@ pub unsafe extern "C" fn dc_call(op: *const u8, op_n: usize, inp: *const u8, in_
         "hexdump" => misc::hexdump(input),
         "find" => misc::find(input),
         #[cfg(feature = "jsondiff")]
-        "jsondiff" => misc::jsondiff(input),
+        "jsondiff" => jsondiff::run(input),
         #[cfg(feature = "jsondiff")]
         "jsonpatch" => misc::jsonpatch(input),
         #[cfg(feature = "x509")]
         "x509" => x509::run(input),
+
         #[cfg(feature = "bin")]
         "bin:protobuf" => bin::protobuf(input, false),
         #[cfg(feature = "bin")]
@@ -77,6 +86,12 @@ pub unsafe extern "C" fn dc_call(op: *const u8, op_n: usize, inp: *const u8, in_
         "bin:msgpack" => bin::msgpack(input),
         #[cfg(feature = "bin")]
         "bin:cbor" => bin::cbor(input),
+        #[cfg(feature = "json")]
+        _ if op.starts_with("jsonfmt:") => jsonfmt::run(&op[8..], input),
+        #[cfg(feature = "xml")]
+        _ if op.starts_with("xmlfmt:") => xmlfmt::run(&op[7..], input),
+        #[cfg(feature = "j2t")]
+        _ if op.starts_with("j2t:") => j2t::run(&op[4..], input),
         #[cfg(feature = "enc")]
         _ if op.starts_with("enc:") => enc::encode(&op[4..], input),
         #[cfg(feature = "enc")]

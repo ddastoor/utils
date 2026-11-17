@@ -1,4 +1,4 @@
-// Text tools + Software tools that live in the text module.
+// One quick check per text tab and per small developer tab (each also has its own, thorough suite).
 export default async ({ base, page: newPage, ok }) => {
   const page = await newPage();
   const go = async (r) => { await page.goto(base + '#/' + r); await page.waitForSelector('.tool-body > *', { timeout: 15000 }); };
@@ -23,8 +23,8 @@ export default async ({ base, page: newPage, ok }) => {
   ok((await page.locator('.outbox textarea').inputValue()).includes('\n  "name": "SuperTools"'), 'json format');
   await page.locator('textarea').first().fill('{"a": 1,}');
   ok(/line 1, column/.test(await page.locator('.note-err').innerText()), 'json error position');
-  await go('regex'); ok((await page.locator('.regex-hl mark').count()) === 2, 'regex: 2 matches highlighted');
-  await go('base64'); ok((await page.locator('.outbox textarea').first().inputValue()) === 'SGVsbG8sIOCkqOCkruCkuOCljeCkpOClhyDwn5GL', 'base64 utf-8');
+  await go('regex'); ok(await page.waitForFunction(() => document.querySelectorAll('.regex-hl mark').length === 2, null, { timeout: 8000 }).then(() => true, () => false), 'regex: 2 matches highlighted (matching runs in a worker)');
+  await go('base64'); ok(await page.waitForFunction(() => document.querySelector('textarea[aria-label="Output"]')?.value === 'SGVsbG8sIOCkqOCkruCkuOCljeCkpOClhyDwn5GL', null, { timeout: 8000 }).then(() => true, () => false), 'base64 utf-8');
   await go('urlenc'); ok((await page.locator('.tbl td').allTextContents()).includes('chai & samosa'.replace(' & ', ' ')) || (await page.locator('.kv').count()) > 0, 'url parts');
   await go('epoch'); await page.locator('input.mono').fill('0');
   ok(/1970-01-01T00:00:00.000Z/.test(await page.locator('.kv').innerText()), 'epoch 0');
@@ -32,8 +32,8 @@ export default async ({ base, page: newPage, ok }) => {
   await page.getByRole('radio', { name: 'v7 (time-ordered)' }).click();
   const v7 = (await page.locator('.outbox textarea').inputValue()).split('\n')[0];
   await page.locator('input.mono').last().fill(v7);
-  ok(/v7/.test(await page.locator('.kv').last().innerText()), 'uuid v7 generated and inspected');
+  ok(/7 — time-ordered/.test(await page.locator('.kv').last().innerText()), 'uuid v7 generated and inspected');
   await go('color'); ok((await page.locator('input.mono').first().inputValue()) === '#4f46e5', 'color hex');
-  await go('jwt'); ok(/SuperTools/.test(await page.locator('.outbox textarea').nth(1).inputValue()), 'jwt payload decoded');
+  await go('jwt'); await page.getByLabel('Payload').waitFor(); ok(/SuperTools/.test(await page.getByLabel('Payload').inputValue()), 'jwt payload decoded');
   ok(!page.errors.length, 'no console errors ' + page.errors.join(' | '));
 };

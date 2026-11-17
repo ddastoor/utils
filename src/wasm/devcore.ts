@@ -11,10 +11,13 @@ import encUrl from './bin/devcore-enc.wasm?url';
 import binUrl from './bin/devcore-bin.wasm?url';
 import hexUrl from './bin/devcore-hex.wasm?url';
 import jsondiffUrl from './bin/devcore-jsondiff.wasm?url';
+import jsonUrl from './bin/devcore-json.wasm?url';
+import xmlUrl from './bin/devcore-xml.wasm?url';
+import j2tUrl from './bin/devcore-j2t.wasm?url';
 import { onLeave } from '../lifecycle';
 
 /** One small module per tab (Cargo features) — a tab downloads only its own engine. */
-const URLS = { cidr: cidrUrl, cron: cronUrl, semver: semverUrl, glob: globUrl, patch: patchUrl, sqlfmt: sqlfmtUrl, x509: x509Url, enc: encUrl, bin: binUrl, hex: hexUrl, jsondiff: jsondiffUrl };
+const URLS = { cidr: cidrUrl, cron: cronUrl, semver: semverUrl, glob: globUrl, patch: patchUrl, sqlfmt: sqlfmtUrl, x509: x509Url, enc: encUrl, bin: binUrl, hex: hexUrl, jsondiff: jsondiffUrl, json: jsonUrl, xml: xmlUrl, j2t: j2tUrl };
 export type DevGroup = keyof typeof URLS;
 
 /** cron's time zone: offsets for the zone named here come from the browser's Intl (no tz database in the wasm). */

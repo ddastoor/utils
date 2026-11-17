@@ -4,7 +4,7 @@
 // engines are released when the tab is left (src/lifecycle.ts).
 import { createServer } from 'vite';
 
-// Our three small engines (own C, ≤ 115 KB each) may load when a tab that uses them opens: calculators, random
+// Our three small engines (own C, ≤ 120 KB each) may load when a tab that uses them opens: calculators, random
 // pickers and text tools show live results from the first keystroke.
 const SMALL_ENGINE = /assets\/(mathcore|crypto|textcore)-[\w-]+\.wasm$/;
 // Tabs whose first view needs a bigger file at open, with the reason. Every other engine, model, data file and
@@ -34,7 +34,12 @@ const AT_OPEN = {
   apikey: [/keys-[\w-]+\.wasm/, 'sample keys are generated at once (keys.wasm, 0.38 MB)'],
   hmac: [/keys-[\w-]+\.wasm/, 'the sample message is signed live as you type (keys.wasm, 0.38 MB)'],
   totp: [/keys-[\w-]+\.wasm/, 'the sample secret shows its current code at once (keys.wasm, 0.38 MB)'],
-  jsondiff: [/devcore-jsondiff/, 'the sample documents are compared at once (devcore-jsondiff, 0.17 MB)'],
+  jsondiff: [/devcore-jsondiff/, 'the sample documents are compared at once (devcore-jsondiff, 0.22 MB)'],
+  json: [/devcore-json-/, 'the sample is formatted at once (devcore-json, 0.13 MB)'],
+  jwt: [/devcore-json-/, 'the sample token is shown decoded at once; its claims are printed without rounding (devcore-json, 0.13 MB)'],
+  xml: [/devcore-xml/, 'the sample document is formatted at once (devcore-xml, 0.08 MB)'],
+  json2types: [/devcore-j2t/, 'the types for the sample are shown at once (devcore-j2t, 0.23 MB)'],
+  base64: [/devcore-enc/, 'the sample text is encoded live (devcore-enc, 0.16 MB)'],
   yaml: [/formats-yaml/, 'the sample YAML is converted live (formats-yaml, 0.42 MB)'],
   jsonschema: [/formats-schema/, 'the sample is validated at once (formats-schema, 2.7 MB)'],
   mermaid: [/mermaid|cytoscape|katex|dagre|elk/i, 'the sample diagram is the main view (Mermaid, loaded as JS chunks)'],

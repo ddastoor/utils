@@ -3,30 +3,10 @@
 import { h, card, field, input, select, segmented, toggle, slider, clear, note, copy, button, filePicker, fmtBytes, downloadBlob, type Mount } from '../../ui';
 import { mathcore } from '../../wasm/mathcore';
 import { svgo, resetSvgo, type Svgo } from '../../wasm/svgo';
-import { colorFns } from '../text';
+import { cssColor, hexA, over, hexToRgb, rgbToHex, type Rgba } from '../../lib/color';
 import { kvRows } from './devui';
 
-const { hexToRgb, rgbToHex } = colorFns;
-export type Rgba = [number, number, number, number];
-let cctx: CanvasRenderingContext2D | null = null;
-/** Any colour the browser's CSS parser understands (#rgb, #rrggbbaa, rgb(), hsl(), names) → [r, g, b, alpha 0–1];
- *  null if it is not a colour. Hex is read here; everything else by a canvas (it keeps the old fill for bad input). */
-export function cssColor(text: string): Rgba | null {
-  const t = text.trim(); if (!t) return null;
-  const hx = /^#?([0-9a-f]{3,4}|[0-9a-f]{6}|[0-9a-f]{8})$/i.exec(t);
-  if (hx) { let x = hx[1]; if (x.length <= 4) x = [...x].map((c) => c + c).join(''); const n = [0, 2, 4, 6].map((i) => parseInt(x.slice(i, i + 2) || 'ff', 16)); return [n[0], n[1], n[2], n[3] / 255]; }
-  if (!/^[a-z]/i.test(t)) return null;
-  cctx ||= document.createElement('canvas').getContext('2d'); if (!cctx) return null;
-  cctx.fillStyle = '#010203'; cctx.fillStyle = t; const one = String(cctx.fillStyle); cctx.fillStyle = '#030201'; cctx.fillStyle = t;
-  if (one !== String(cctx.fillStyle)) return null;
-  if (one[0] === '#') { const v = hexToRgb(one)!; return [v[0], v[1], v[2], 1]; }
-  const m = /^rgba?\((\d+), (\d+), (\d+)(?:, ([\d.]+))?\)$/.exec(one);
-  return m ? [+m[1], +m[2], +m[3], m[4] === undefined ? 1 : +m[4]] : null;
-}
-/** #rrggbb, or #rrggbbaa when the colour is not opaque. */
-export const hexA = (c: number[]) => rgbToHex(c[0], c[1], c[2]) + ((c[3] ?? 1) < 1 ? Math.round((c[3] ?? 1) * 255).toString(16).padStart(2, '0') : '');
-/** `top` painted over an opaque `under` (ordinary alpha compositing). */
-export const over = (top: Rgba, under: number[]): [number, number, number] => [0, 1, 2].map((i) => Math.round(top[i] * top[3] + under[i] * (1 - top[3]))) as [number, number, number];
+export { cssColor, hexA, over, type Rgba };
 /** Colour picker + text box. The text box takes any CSS colour; `alpha` says whether a see-through colour is usable here. */
 const colorInput = (value: string, label: string, onChange: (css: string) => void, alpha = false) => {
   const pick = h('input', { type: 'color', class: 'color-picker sm', value: value.slice(0, 7), 'aria-label': `${label} picker` });

@@ -109,7 +109,7 @@ fn hex_clean(text: &str) -> String {
 fn why(x: data_encoding::DecodeError, s: &str) -> String {
     match x.kind {
         data_encoding::DecodeKind::Symbol => match s.get(x.position..).and_then(|t| t.chars().next()) { Some(c) => format!("'{c}' is not a character of this encoding"), None => "invalid character".into() },
-        data_encoding::DecodeKind::Length => format!("{} characters cannot be whole bytes (one is missing or extra)", s.chars().count()),
+        data_encoding::DecodeKind::Length => { let n = s.chars().count(); format!("{n} character{} cannot be whole bytes (one is missing or extra)", if n == 1 { "" } else { "s" }) }
         k => format!("{k}"),
     }
 }

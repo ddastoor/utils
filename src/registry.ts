@@ -44,6 +44,7 @@ const sec = () => import('./tools/security');
 const calcs = () => import('./tools/calculators');
 const text = () => import('./tools/text');
 const swData = () => import('./tools/software/data');
+const swDev1 = () => import('./tools/software/dev1');
 const swNet = () => import('./tools/software/net');
 const swMisc = () => import('./tools/software/misc');
 const codes = () => import('./tools/codes');
@@ -311,17 +312,17 @@ export const TOOLS: Tool[] = [
   t('regex', 'Regex Tester', 'Test regular expressions with live highlighting.', 'software', 'Regex',
     'regex, regular expression, pattern, match, test, groups', () => text().then((m) => m.regex), 'pc'),
   t('base64', 'Base64', 'Encode/decode Base64 text or files.', 'software', 'FileDigit',
-    'base64, encode, decode, data url', () => text().then((m) => m.base64), 'pc'),
+    'base64, encode, decode, data url', () => swDev1().then((m) => m.base64), 'pc'),
   t('urlenc', 'URL Encoder', 'Percent-encode or decode URLs; inspect query strings.', 'software', 'Link2',
-    'percent encoding, urlencode, urldecode, url, encode, decode, percent, query string, uri', () => text().then((m) => m.urlenc), 'pc'),
+    'percent encoding, urlencode, urldecode, url, encode, decode, percent, query string, uri', () => swDev1().then((m) => m.urlenc), 'pc'),
   t('epoch', 'Epoch Converter', 'Unix timestamp ⇄ date.', 'software', 'Clock',
-    'timestamp to date, date to timestamp, unix time, epoch, unix, timestamp, time, date, milliseconds, iso', () => text().then((m) => m.epoch), 'pc'),
+    'timestamp to date, date to timestamp, unix time, epoch, unix, timestamp, time, date, milliseconds, iso', () => swDev1().then((m) => m.epoch), 'pc'),
   t('uuid', 'UUID Generator', 'UUID v4 and v7.', 'software', 'Hash',
-    'uuid, guid, unique id, v4, v7, random id', () => text().then((m) => m.uuid), 'pc'),
+    'uuid, guid, unique id, v4, v7, random id', () => swDev1().then((m) => m.uuid), 'pc'),
   t('color', 'Color Converter', 'HEX, RGB, HSL, OKLCH with a picker.', 'software', 'Pipette',
-    'hex to rgb, rgb to hex, hsl to hex, color, colour, hex, rgb, hsl, oklch, picker, convert, css', () => text().then((m) => m.color), 'pc'),
+    'hex to rgb, rgb to hex, hsl to hex, color, colour, hex, rgb, hsl, oklch, picker, convert, css', () => swDev1().then((m) => m.color), 'pc'),
   t('jwt', 'JWT Decoder', 'Decode JSON Web Tokens.', 'software', 'KeySquare',
-    'jwt, token, decode, json web token, bearer, claims', () => text().then((m) => m.jwt), 'pc'),
+    'jwt, token, decode, json web token, bearer, claims', () => swDev1().then((m) => m.jwt), 'pc'),
   t('fancy', 'Fancy Text', 'Stylish Unicode text for bios and posts.', 'text', 'Sparkles',
     'fancy text, unicode, font, bold, italic, cursive, instagram, bio, stylish', () => text().then((m) => m.fancy)),
   t('emoji', 'Emoji & Symbols', 'Search and copy emoji and symbols.', 'text', 'Smile',

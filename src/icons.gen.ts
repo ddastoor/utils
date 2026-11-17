@@ -255,6 +255,7 @@ export const ICONS: Record<string, string> = {
   Undo: "<path d=\"M3 7v6h6\" /><path d=\"M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13\" />",
   Undo2: "<path d=\"M9 14 4 9l5-5\" /><path d=\"M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5a5.5 5.5 0 0 1-5.5 5.5H11\" />",
   Upload: "<path d=\"M12 3v12\" /><path d=\"m17 8-5-5-5 5\" /><path d=\"M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4\" />",
+  User: "<path d=\"M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2\" /><circle cx=\"12\" cy=\"7\" r=\"4\" />",
   Users: "<path d=\"M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2\" /><path d=\"M16 3.128a4 4 0 0 1 0 7.744\" /><path d=\"M22 21v-2a4 4 0 0 0-3-3.87\" /><circle cx=\"9\" cy=\"7\" r=\"4\" />",
   Variable: "<path d=\"M8 21s-4-3-4-9 4-9 4-9\" /><path d=\"M16 3s4 3 4 9-4 9-4 9\" /><line x1=\"15\" x2=\"9\" y1=\"9\" y2=\"15\" /><line x1=\"9\" x2=\"15\" y1=\"9\" y2=\"15\" />",
   Vault: "<rect width=\"18\" height=\"18\" x=\"3\" y=\"3\" rx=\"2\" /><circle cx=\"7.5\" cy=\"7.5\" r=\".5\" fill=\"currentColor\" /><path d=\"m7.9 7.9 2.7 2.7\" /><circle cx=\"16.5\" cy=\"7.5\" r=\".5\" fill=\"currentColor\" /><path d=\"m13.4 10.6 2.7-2.7\" /><circle cx=\"7.5\" cy=\"16.5\" r=\".5\" fill=\"currentColor\" /><path d=\"m7.9 16.1 2.7-2.7\" /><circle cx=\"16.5\" cy=\"16.5\" r=\".5\" fill=\"currentColor\" /><path d=\"m13.4 13.4 2.7 2.7\" /><circle cx=\"12\" cy=\"12\" r=\"2\" />",

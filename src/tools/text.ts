@@ -1,10 +1,12 @@
-// Text tools + developer tools that share this module.
+// Text tools + the JSON formatter and the regex tester (the other small developer tabs are in software/dev1.ts).
 // Unicode-aware work (segmentation, case mapping, collation, regex, JSON) uses the browser's native engines;
 // algorithmic work (diff) runs in textcore.wasm.
-import { h, card, field, input, textarea, button, segmented, toggle, select, clear, stack, row, note, copy, outputBox, downloadBlob, filePicker, readBytes, slider, type Mount } from '../ui';
+import { h, card, field, input, textarea, button, segmented, toggle, select, clear, stack, row, note, copy, outputBox, downloadBlob, slider, type Mount } from '../ui';
 import { textcore, type DiffOp, type bindTextcore } from '../wasm/textcore';
-import { sodium, toB64, fromB64 } from '../wasm/crypto';
-import { mathcore } from '../wasm/mathcore';
+import { sodium } from '../wasm/crypto';
+import { devcore, type Devcore } from '../wasm/devcore';
+import { trackWorker, releaseNow } from '../lifecycle';
+import type { RegexReq, RegexRes } from '../workers/regex.worker';
 
 const fmt = (n: number) => n.toLocaleString('en-IN');
 
@@ -301,222 +303,115 @@ export const lorem: Mount = async (root) => {
 };
 
 // ================================================================== JSON (Software)
-/** Where the JSON breaks. V8 gives "at position N" for most errors but not for "Unexpected token …": then the longest
- *  prefix the native parser still accepts as unfinished is found by binary search (valid prefixes are prefix-closed). */
-export function jsonErrorAt(src: string, msg: string) {
-  const m = /position (\d+)/.exec(msg);
-  if (m) return +m[1];
-  if (/Unexpected end of JSON input/.test(msg)) return src.length;
-  // a prefix is "unfinished" when it parses, or its error is at (or past) its own end
-  const unfinished = (L: number) => { try { JSON.parse(src.slice(0, L)); return true; } catch (e: any) { const p = /position (\d+)/.exec(e.message); return /Unexpected end of JSON input|Unterminated string/.test(e.message) || (!!p && +p[1] >= L); } };
-  let lo = 0, hi = src.length;
-  while (lo < hi) { const mid = (lo + hi + 1) >> 1; if (unfinished(mid)) lo = mid; else hi = mid - 1; }
-  return lo;
+/** One JSON problem from the formatter engine ({ message, line, column, pos }), as a sentence. */
+export function jsonProblem(e: any): { text: string; pos: number | null } {
+  try { const m = JSON.parse(String(e?.message ?? e)); if (m && typeof m.message === 'string') return { text: `${m.message} — line ${m.line}, column ${m.column}`, pos: m.pos }; } catch { /* not from the engine */ }
+  return { text: String(e?.message ?? e), pos: null };
 }
-function jsonError(src: string, e: any) {
-  const pos = jsonErrorAt(src, e.message), before = src.slice(0, pos);
-  const line = before.split('\n').length, col = pos - before.lastIndexOf('\n');
-  const tok = /^(Unexpected token '.+?'),\s/s.exec(e.message);
-  const what = tok ? tok[1] : e.message.replace(/ in JSON at.*/s, '');
-  return `${what} — line ${line}, column ${col}`;
-}
-// numbers keep their exact text (12345678901234567890 would otherwise become …000; 0.1000000000000000055 → 0.1)
-const RAW = typeof (JSON as any).rawJSON === 'function';
-const keepNumbers = RAW ? (_k: string, v: any, ctx?: { source?: string }) => (typeof v === 'number' && ctx?.source !== undefined ? (JSON as any).rawJSON(ctx.source) : v) : undefined;
-const isRaw = (v: any) => RAW && (JSON as any).isRawJSON(v);
-const sortKeys = (v: any): any => (isRaw(v) ? v : Array.isArray(v) ? v.map(sortKeys) : v && typeof v === 'object' ? Object.fromEntries(Object.keys(v).sort().map((k) => [k, sortKeys(v[k])])) : v);
+interface JsonFmt { out: string; values: number; objects: number; arrays: number; keys: number; depth: number; duplicates: Array<{ key: string; line: number }> }
 export const json: Mount = (root) => {
   const ta = textarea({ rows: 12, mono: true, value: '{"name":"SuperTools","tools":173,"tags":["private","wasm"],"nested":{"b":2,"a":1}}' });
   const out = outputBox({ rows: 14, mono: true });
   const status = h('div');
-  let indent = '2', sorted = false;
-  const run = (minify = false) => {
+  let indent = '2', sorted = false, mini = false, dc: Devcore | null = null, seq = 0;
+  // The formatter is our Rust engine: it changes white space only. (JSON.parse → JSON.stringify moved keys such as
+  // "2" and "10" to the front of their object, dropped duplicate keys and rewrote numbers like 1.0 or 1e5.)
+  const run = async () => {
+    const id = ++seq; dc ||= await devcore('json'); if (id !== seq) return;
+    clear(status);
     try {
-      let v = JSON.parse(ta.value, keepNumbers as any);
-      if (sorted) v = sortKeys(v);
-      out.value = minify ? JSON.stringify(v) : JSON.stringify(v, null, indent === 'tab' ? '\t' : +indent);
-      clear(status).append(note(`Valid JSON · ${out.value.length.toLocaleString()} characters`, 'ok'));
-    } catch (e: any) { clear(status).append(note(jsonError(ta.value, e), 'err')); }
+      const r = dc.bytesJson<JsonFmt>(`jsonfmt:${mini ? 0 : indent === 'tab' ? -1 : +indent}:${sorted ? 1 : 0}`, new TextEncoder().encode(ta.value));
+      out.value = r.out;
+      const n = (k: number, w: string) => `${k.toLocaleString('en-IN')} ${w}${k === 1 ? '' : 's'}`;
+      status.append(note(`Valid JSON · ${n(r.out.length, 'character')}${r.objects + r.arrays ? ` · ${n(r.keys, 'key')} in ${n(r.objects, 'object')}, ${n(r.arrays, 'array')}, ${n(r.depth, 'level')} deep` : ''}`, 'ok'));
+      if (r.duplicates.length) status.append(note(`${n(r.duplicates.length, 'duplicate key')}: ${r.duplicates.slice(0, 5).map((d) => `${JSON.stringify(d.key)} (line ${d.line})`).join(', ')}${r.duplicates.length > 5 ? ' …' : ''}. They are kept as written, but most programs read only the last one.`, 'warn'));
+    } catch (e: any) {
+      out.value = ''; // no old result under an error
+      const pr = jsonProblem(e);
+      status.append(note(h('span', null, pr.text, pr.pos === null ? '' : [' ', h('button', { type: 'button', class: 'link-btn', onclick: () => { ta.focus(); ta.setSelectionRange(pr.pos!, Math.min(ta.value.length, pr.pos! + 1)); } }, 'Show it')]), 'err'));
+    }
   };
-  ta.addEventListener('input', () => run());
-  root.append(card(null, stack(field('JSON', ta), h('div', { class: 'row' }, segmented([['2', '2 spaces'], ['4', '4 spaces'], ['tab', 'Tabs']], indent, (v) => { indent = v; run(); }), toggle('Sort keys', false, (v) => { sorted = v; run(); })))), status, card('Output', out),
-    h('div', { class: 'actions' }, button('Format', () => run(), { variant: 'primary', icon: 'Braces' }), button('Minify', () => run(true), { icon: 'Minimize2' }), button('Download', () => downloadBlob(new Blob([out.value], { type: 'application/json' }), 'data.json'), { icon: 'Download' })));
-  run();
+  ta.addEventListener('input', () => { void run(); });
+  root.append(card(null, stack(field('JSON', ta), h('div', { class: 'row' }, segmented([['2', '2 spaces'], ['4', '4 spaces'], ['tab', 'Tabs']], indent, (v) => { indent = v; mini = false; void run(); }), toggle('Sort keys', false, (v) => { sorted = v; void run(); })))), status, card('Output', out),
+    h('div', { class: 'actions' }, button('Format', () => { mini = false; return run(); }, { variant: 'primary', icon: 'Braces' }), button('Minify', () => { mini = true; return run(); }, { icon: 'Minimize2' }),
+      button('Download', () => { if (!out.value) throw new Error('Nothing to save — fix the JSON first'); downloadBlob(new Blob([out.value], { type: 'application/json' }), 'data.json'); }, { icon: 'Download' })));
+  void run();
 };
 
 // ================================================================== Regex tester (Software)
+/** Why a flags text is not usable, or null. (The browser's own message for a bad flag names neither the flag nor the rule.) */
+export function flagsError(f: string): string | null {
+  const bad = [...f].find((c) => !'dgimsuvy'.includes(c));
+  if (bad) return `“${bad}” is not a flag. The flags are g i m s u v y d.`;
+  const twice = [...f].find((c, i) => f.indexOf(c) !== i);
+  if (twice) return `Flag ${twice} is given twice.`;
+  if (f.includes('u') && f.includes('v')) return 'Flags u and v cannot be used together (v includes u).';
+  return null;
+}
+/** The names of the capture groups of `pattern`, by group number (index 0 = group 1); '' for an unnamed group. */
+export function groupNames(pattern: string): string[] {
+  const out: string[] = []; let inClass = false;
+  for (let i = 0; i < pattern.length; i++) {
+    const c = pattern[i];
+    if (c === '\\') { i++; continue; }
+    if (inClass) { if (c === ']') inClass = false; continue; }
+    if (c === '[') { inClass = true; continue; }
+    if (c !== '(') continue;
+    if (pattern[i + 1] !== '?') { out.push(''); continue; }
+    const m = /^\(\?<([^>=!][^>]*)>/.exec(pattern.slice(i));
+    if (m) out.push(m[1]);
+  }
+  return out;
+}
+/** How long one run may take before the worker is ended (a pattern that backtracks without end never finishes). */
+const REGEX_LIMIT_MS = 2000;
 export const regex: Mount = (root) => {
-  const pat = input({ value: '(\\d{3})-(\\d{4})', attrs: { spellcheck: 'false', class: 'input mono' } });
-  const flags = input({ value: 'g', attrs: { spellcheck: 'false', class: 'input mono' } });
+  const pat = input({ value: '(\\d{3})-(\\d{4})', attrs: { spellcheck: 'false', class: 'input mono', 'aria-label': 'Pattern' } });
+  const flags = input({ value: 'g', attrs: { spellcheck: 'false', class: 'input mono', 'aria-label': 'Flags' } });
   const text = textarea({ rows: 6, value: 'Call 555-1234 or 555-9876 today.' });
-  const rep = input({ placeholder: 'Replacement (optional, $1 for groups)', attrs: { spellcheck: 'false' } });
+  const rep = input({ placeholder: 'Replacement (optional, $1 for groups)', attrs: { spellcheck: 'false', 'aria-label': 'Replacement' } });
   const hl = h('div', { class: 'regex-hl' });
   const groups = h('div');
   const repOut = outputBox({ rows: 4 });
-  const run = () => {
+  let worker: Worker | null = null, seq = 0, timer = 0;
+  const stop = () => { clearTimeout(timer); if (worker) { releaseNow('regex'); worker = null; } };
+  const show = (r: RegexRes, s: string) => {
     clear(groups); clear(hl);
-    let re: RegExp;
-    try { re = new RegExp(pat.value, flags.value.includes('g') ? flags.value : flags.value + 'g'); pat.classList.remove('bad'); }
-    catch (e: any) { pat.classList.add('bad'); groups.append(note(e.message, 'err')); return; }
-    const s = text.value, ms: RegExpMatchArray[] = [];
-    let total = 0;
-    for (const m of s.matchAll(re)) { if (ms.length < 1000) ms.push(m); if (++total >= 1000000) break; } // count everything, highlight the first 1,000
+    if (r.error) { groups.append(note(r.error, 'err')); hl.textContent = s; repOut.value = ''; return; }
+    const ms = r.matches!, total = r.total!;
     let last = 0;
-    for (const m of ms) { hl.append(s.slice(last, m.index), h('mark', { class: m[0] ? null : 'empty' }, m[0] || '∅')); last = m.index! + m[0].length; }
+    for (const m of ms) { hl.append(s.slice(last, m.index), h('mark', { class: m.text ? null : 'empty' }, m.text || '∅')); last = m.index + m.text.length; }
     hl.append(s.slice(last));
-    groups.append(note(`${total.toLocaleString('en-US')}${total >= 1000000 ? '+' : ''} match${total === 1 ? '' : 'es'}${total > ms.length ? ` (first ${ms.length.toLocaleString('en-US')} highlighted, ${Math.min(200, ms.length)} in the table)` : ''}`, total ? 'ok' : 'info'));
-    if (ms.length) groups.append( h('div', { class: 'scroll-x' }, h('table', { class: 'tbl' }, h('thead', null, h('tr', null, h('th', null, '#'), h('th', null, 'Match'), h('th', null, 'Index'), ...Array.from({ length: Math.max(0, ...ms.map((m) => m.length - 1)) }, (_, i) => h('th', null, `$${i + 1}`)))),
-        h('tbody', null, ms.slice(0, 200).map((m, i) => h('tr', null, h('td', null, String(i + 1)), h('td', { class: 'mono' }, m[0]), h('td', null, String(m.index)), ...m.slice(1).map((g) => h('td', { class: 'mono' }, g ?? '—'))))))));
-    repOut.value = rep.value ? s.replace(new RegExp(pat.value, flags.value), rep.value) : '';
+    groups.append(note(`${total.toLocaleString('en-US')}${total >= 1000000 ? '+' : ''} match${total === 1 ? '' : 'es'}${total > ms.length ? ` (first ${ms.length.toLocaleString('en-US')} highlighted, ${Math.min(200, ms.length)} in the table)` : ms.length > 200 ? ' (first 200 in the table)' : ''}`, total ? 'ok' : 'info'));
+    const ng = Math.max(0, ...ms.map((m) => m.groups.length)), names = groupNames(pat.value);
+    if (ms.length) groups.append(h('div', { class: 'scroll-x' }, h('table', { class: 'tbl' }, h('thead', null, h('tr', null, h('th', null, '#'), h('th', null, 'Match'), h('th', null, 'Index'), ...Array.from({ length: ng }, (_, i) => h('th', null, `$${i + 1}${names[i] ? ` ${names[i]}` : ''}`)))),
+      h('tbody', null, ms.slice(0, 200).map((m, i) => h('tr', null, h('td', null, String(i + 1)), h('td', { class: 'mono' }, m.text), h('td', null, String(m.index)), ...Array.from({ length: ng }, (_, j) => h('td', { class: 'mono' }, m.groups[j] ?? '—'))))))));
+    repOut.value = r.replaced ?? '';
   };
-  [pat, flags, text, rep].forEach((x) => x.addEventListener('input', run));
+  const run = () => {
+    const fe = flagsError(flags.value); flags.classList.toggle('bad', !!fe);
+    let pe: string | null = null;
+    if (!fe) { try { new RegExp(pat.value, flags.value); } catch (e: any) { pe = String(e.message).replace(/^Invalid regular expression: /, ''); } }
+    pat.classList.toggle('bad', !!pe);
+    if (fe || pe) { stop(); seq++; show({ id: 0, error: fe || pe! }, text.value); return; }
+    const id = ++seq, s = text.value;
+    if (!worker) {
+      worker = trackWorker(new Worker(new URL('../workers/regex.worker.ts', import.meta.url), { type: 'module' }), 'regex', () => { worker = null; });
+      worker.onmessage = (ev: MessageEvent<RegexRes>) => { if (ev.data.id !== seq) return; clearTimeout(timer); show(ev.data, text.value); };
+    }
+    clearTimeout(timer);
+    timer = window.setTimeout(() => {
+      if (id !== seq) return;
+      stop();
+      show({ id, error: `Stopped after ${REGEX_LIMIT_MS / 1000} seconds: this pattern takes too long on this text. Nested repeats such as (a+)+ or (.*)* make the engine try a huge number of ways to match — rewrite the pattern without them.` }, s);
+    }, REGEX_LIMIT_MS);
+    worker.postMessage({ id, pattern: pat.value, flags: flags.value, text: s, replacement: rep.value ? rep.value : null } satisfies RegexReq);
+  };
+  let deb = 0; const runD = () => { clearTimeout(deb); deb = window.setTimeout(run, 60); };
+  [pat, flags, text, rep].forEach((x) => x.addEventListener('input', runD));
   root.append(card(null, stack(h('div', { class: 'regex-row' }, field('Pattern', pat), field('Flags', flags)), field('Test text', text))), card('Matches', hl, groups), card('Replace', rep, repOut),
-    note('Uses the browser\'s JavaScript (ECMAScript) regex engine. Flags: g i m s u y d v.'));
+    note('Uses the browser\'s JavaScript (ECMAScript) regex engine, run off the page so a runaway pattern cannot freeze it. Flags: g i m s u v y d. Without g, Replace changes only the first match.'));
   run();
-};
-
-// ================================================================== Base64 (Software)
-export const base64: Mount = (root) => {
-  const inp = textarea({ rows: 6, value: 'Hello, नमस्ते 👋', placeholder: 'Text or Base64' });
-  const out = outputBox({ rows: 6, mono: true });
-  let mode: 'enc' | 'dec' = 'enc', url = false;
-  const status = h('div');
-  const run = () => {
-    clear(status);
-    try { out.value = mode === 'enc' ? toB64(new TextEncoder().encode(inp.value), url) : new TextDecoder('utf-8', { fatal: true }).decode(fromB64(inp.value)); }
-    catch { out.value = ''; status.append(note(mode === 'dec' ? 'Not valid Base64 text (or the result is binary — use the file option).' : 'Could not encode.', 'warn')); }
-  };
-  inp.addEventListener('input', run);
-  root.append(card(null, stack(segmented([['enc', 'Encode'], ['dec', 'Decode']], mode, (v) => { mode = v; run(); }), toggle('URL-safe alphabet (-_ no padding)', false, (v) => { url = v; run(); }), field('Input', inp))), status, card('Output', out),
-    card('Files', stack(filePicker({ compact: true, label: 'File → Base64 / data URL', onFiles: async ([f]) => { const b = await readBytes(f); out.value = `data:${f.type || 'application/octet-stream'};base64,${toB64(b)}`; } }),
-      button('Base64 → download file', () => { const s = inp.value.trim().replace(/^data:[^,]*,/, ''); let b: Uint8Array; try { b = fromB64(s); } catch { clear(status).append(note('Not valid Base64 — nothing to download.', 'warn')); return; } downloadBlob(new Blob([b as BlobPart]), 'decoded.bin'); }, { icon: 'Download', small: true }))));
-  run();
-};
-
-// ================================================================== URL encoder (Software)
-export const urlenc: Mount = (root) => {
-  const inp = textarea({ rows: 4, value: 'https://example.com/search?q=chai & samosa&city=मुंबई#top' });
-  const out = outputBox({ rows: 4, mono: true });
-  const parts = h('div');
-  let mode = 'component';
-  const run = () => {
-    try {
-      out.value = mode === 'component' ? encodeURIComponent(inp.value) : mode === 'uri' ? encodeURI(inp.value) : decodeURIComponent(inp.value.replace(/\+/g, ' '));
-    } catch (e: any) { out.value = '⚠ ' + e.message; }
-    clear(parts);
-    try {
-      const u = new URL(mode === 'decode' ? out.value : inp.value);
-      parts.append(card('URL parts', h('div', { class: 'kv' }, ...([['Protocol', u.protocol], ['Host', u.host], ['Path', decodeURIComponent(u.pathname)], ['Hash', u.hash]] as Array<[string, string]>).flatMap(([k, v]) => [h('span', null, k), h('span', { class: 'mono' }, v || '—')])),
-        [...u.searchParams].length ? h('table', { class: 'tbl' }, h('thead', null, h('tr', null, h('th', null, 'Param'), h('th', null, 'Value'))), h('tbody', null, [...u.searchParams].map(([k, v]) => h('tr', null, h('td', { class: 'mono' }, k), h('td', { class: 'mono' }, v))))) : null));
-    } catch { /* not a URL */ }
-  };
-  inp.addEventListener('input', run);
-  root.append(card(null, stack(segmented([['component', 'Encode component'], ['uri', 'Encode full URL'], ['decode', 'Decode']], mode, (v) => { mode = v; run(); }), field('Input', inp))), card('Output', out), parts);
-  run();
-};
-
-// ================================================================== Epoch (Software)
-export const epoch: Mount = (root) => {
-  const now = h('div', { class: 'big-value mono' });
-  const upd = () => { now.textContent = String(Math.floor(Date.now() / 1000)); };
-  upd(); const tick = setInterval(upd, 250);
-  const ts = input({ value: String(Math.floor(Date.now() / 1000)), attrs: { class: 'input mono', inputmode: 'numeric' } });
-  const dt = input({ type: 'datetime-local' });
-  const out = h('div', { class: 'kv' });
-  const rel = (ms: number) => { const d = (ms - Date.now()) / 1000, a = Math.abs(d); const u: Array<[number, string]> = [[31536000, 'year'], [2592000, 'month'], [86400, 'day'], [3600, 'hour'], [60, 'minute'], [1, 'second']]; const [s, n] = u.find(([s]) => a >= s) || [1, 'second']; return new Intl.RelativeTimeFormat('en', { numeric: 'auto' }).format(Math.round(d / s), n as any); };
-  const show = (ms: number) => {
-    const d = new Date(ms);
-    if (isNaN(d.getTime())) { clear(out).append(h('span', null, 'Invalid'), h('span', null, '—')); return; }
-    clear(out).append(...([['Seconds', String(Math.floor(ms / 1000))], ['Milliseconds', String(ms)], ['UTC', d.toUTCString()], ['ISO 8601', d.toISOString()], ['Local', d.toLocaleString('en-IN', { dateStyle: 'full', timeStyle: 'long' })], ['Relative', rel(ms)]] as Array<[string, string]>).flatMap(([k, v]) => [h('span', null, k), h('span', { class: 'mono' }, v)]));
-  };
-  ts.addEventListener('input', () => { const t = ts.value.trim(); if (!t) { clear(out); return; } const n = Number(t); show(Math.abs(n) > 1e11 ? n : n * 1000); }); // auto-detect ms vs s
-  dt.addEventListener('input', () => { const ms = new Date(dt.value).getTime(); ts.value = String(Math.floor(ms / 1000)); show(ms); });
-  root.append(card('Current Unix time', now), card(null, h('div', { class: 'grid2' }, field('Timestamp (seconds or ms)', ts), field('…or pick a date & time', dt))), card('Converted', out));
-  show(Date.now());
-  return () => clearInterval(tick);
-};
-
-// ================================================================== UUID (Software)
-export const uuid: Mount = async (root) => {
-  const na = await sodium();
-  let ver = 'v4', n = 5, upper = false, hyph = true;
-  const out = outputBox({ rows: 8, mono: true, label: 'UUIDs' });
-  const check = input({ placeholder: 'Paste a UUID to inspect', attrs: { class: 'input mono', spellcheck: 'false' } });
-  const info = h('div');
-  const gen = () => { out.value = Array.from({ length: n }, () => { let u = na.uuid(ver === 'v7' ? 7 : 4); if (!hyph) u = u.replace(/-/g, ''); return upper ? u.toUpperCase() : u; }).join('\n'); };
-  check.addEventListener('input', () => {
-    clear(info);
-    const m = /^([0-9a-f]{8})-?([0-9a-f]{4})-?([0-9a-f]{4})-?([0-9a-f]{4})-?([0-9a-f]{12})$/i.exec(check.value.trim());
-    if (!m) { if (check.value.trim()) info.append(note('Not a valid UUID.', 'warn')); return; }
-    const version = parseInt(m[3][0], 16);
-    const rows: Array<[string, string]> = [['Version', `v${version}`], ['Variant', (parseInt(m[4][0], 16) & 0xc) === 0x8 ? 'RFC 9562' : 'other']];
-    if (version === 7) rows.push(['Timestamp', new Date(parseInt(m[1] + m[2], 16)).toISOString()]);
-    info.append(h('div', { class: 'kv' }, rows.flatMap(([k, v]) => [h('span', null, k), h('span', { class: 'mono' }, v)])));
-  });
-  root.append(card(null, stack(segmented([['v4', 'v4 (random)'], ['v7', 'v7 (time-ordered)']], ver, (v) => { ver = v; gen(); }), slider({ label: 'How many', min: 1, max: 100, value: n, onInput: (v) => { n = v; gen(); } }),
-    h('div', { class: 'row' }, toggle('Uppercase', false, (v) => { upper = v; gen(); }), toggle('Hyphens', true, (v) => { hyph = v; gen(); })))), card(null, out), card('Inspect', check, info),
-    h('div', { class: 'actions' }, button('Generate', gen, { variant: 'primary', icon: 'RefreshCw' }), button('Copy all', () => copy(out.value), { icon: 'Copy' })));
-  gen();
-};
-
-// ================================================================== Color converter (Software)
-const clamp = (x: number, a = 0, b = 1) => Math.min(b, Math.max(a, x));
-function hexToRgb(hex: string) { const m = /^#?([0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i.exec(hex.trim()); if (!m) return null; let s = m[1]; if (s.length === 3) s = [...s].map((c) => c + c).join(''); return [0, 2, 4].map((i) => parseInt(s.slice(i, i + 2), 16)); }
-const rgbToHex = (r: number, g: number, b: number) => '#' + [r, g, b].map((x) => Math.round(clamp(x, 0, 255)).toString(16).padStart(2, '0')).join('');
-function rgbToHsl(r: number, g: number, b: number) { r /= 255; g /= 255; b /= 255; const mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2; let hh = 0, s = 0; if (mx !== mn) { const d = mx - mn; s = l > 0.5 ? d / (2 - mx - mn) : d / (mx + mn); hh = mx === r ? (g - b) / d + (g < b ? 6 : 0) : mx === g ? (b - r) / d + 2 : (r - g) / d + 4; hh *= 60; } return [hh, s * 100, l * 100]; }
-function hslToRgb(hh: number, s: number, l: number) { s /= 100; l /= 100; const k = (n: number) => (n + hh / 30) % 12, a = s * Math.min(l, 1 - l); const f = (n: number) => l - a * Math.max(-1, Math.min(k(n) - 3, 9 - k(n), 1)); return [f(0) * 255, f(8) * 255, f(4) * 255]; }
-/** Colour maths runs in mathcore.wasm (own C); hex parsing/formatting is string glue. */
-export const colorFns = { hexToRgb, rgbToHex };
-export const color: Mount = async (root) => {
-  const { rgbToHsl, hslToRgb, rgbToOklch, oklchToRgb, contrast: contrastRatio } = await mathcore();
-  let rgb = [79, 70, 229];
-  const picker = h('input', { type: 'color', class: 'color-picker', 'aria-label': 'Pick a colour' });
-  const hex = input({ attrs: { class: 'input mono' } }), rgbI = input({ attrs: { class: 'input mono' } }), hsl = input({ attrs: { class: 'input mono' } }), ok = input({ attrs: { class: 'input mono' } });
-  const swatch = h('div', { class: 'swatch' });
-  const info = h('div', { class: 'kv' });
-  const sync = (except?: HTMLInputElement) => {
-    const [r, g, b] = rgb, hx = rgbToHex(r, g, b), [hh, s, l] = rgbToHsl(r, g, b), [L, C, H] = rgbToOklch(r, g, b);
-    if (except !== hex) hex.value = hx;
-    if (except !== rgbI) rgbI.value = `rgb(${rgb.map(Math.round).join(', ')})`;
-    if (except !== hsl) hsl.value = `hsl(${Math.round(hh)} ${Math.round(s)}% ${Math.round(l)}%)`;
-    if (except !== ok) ok.value = `oklch(${L.toFixed(1)}% ${C.toFixed(3)} ${H.toFixed(1)})`;
-    picker.value = hx; swatch.style.background = hx;
-    clear(info).append(h('span', null, 'Contrast vs white'), h('span', null, `${contrastRatio(rgb, [255, 255, 255]).toFixed(2)} : 1`), h('span', null, 'Contrast vs black'), h('span', null, `${contrastRatio(rgb, [0, 0, 0]).toFixed(2)} : 1`));
-  };
-  const nums = (s: string) => (s.match(/-?\d*\.?\d+/g) || []).map(Number);
-  picker.addEventListener('input', () => { rgb = hexToRgb(picker.value)!; sync(); });
-  hex.addEventListener('input', () => { const v = hexToRgb(hex.value); hex.classList.toggle('bad', !v); if (v) { rgb = v; sync(hex); } });
-  rgbI.addEventListener('input', () => { const v = nums(rgbI.value); if (v.length >= 3) { rgb = v.slice(0, 3).map((x) => clamp(x, 0, 255)); sync(rgbI); } });
-  hsl.addEventListener('input', () => { const v = nums(hsl.value); if (v.length >= 3) { rgb = hslToRgb(v[0], v[1], v[2]); sync(hsl); } });
-  ok.addEventListener('input', () => { const v = nums(ok.value); if (v.length >= 3) { rgb = oklchToRgb(v[0], v[1], v[2]); sync(ok); } });
-  root.append(card(null, h('div', { class: 'color-top' }, swatch, picker)), card(null, h('div', { class: 'grid2' }, field('HEX', hex), field('RGB', rgbI), field('HSL', hsl), field('OKLCH', ok))), card('Accessibility', info));
-  sync();
-};
-
-// ================================================================== JWT (Software)
-export const jwt: Mount = (root) => {
-  const sample = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IlN1cGVyVG9vbHMiLCJpYXQiOjE3MDAwMDAwMDAsImV4cCI6MTgwMDAwMDAwMH0.signature';
-  const ta = textarea({ rows: 5, mono: true, value: sample });
-  const out = h('div', { class: 'stack' });
-  const run = () => {
-    clear(out);
-    const parts = ta.value.trim().split('.');
-    if (parts.length < 2) { out.append(note('A JWT has three dot-separated parts.', 'warn')); return; }
-    try {
-      const dec = (s: string) => JSON.parse(new TextDecoder().decode(fromB64(s)));
-      const header = dec(parts[0]), payload = dec(parts[1]);
-      const hb = outputBox({ rows: 5, mono: true }); hb.value = JSON.stringify(header, null, 2);
-      const pb = outputBox({ rows: 10, mono: true }); pb.value = JSON.stringify(payload, null, 2);
-      const times = ['iat', 'nbf', 'exp'].filter((k) => typeof payload[k] === 'number').flatMap((k) => [h('span', null, k), h('span', null, `${new Date(payload[k] * 1000).toLocaleString('en-IN')}`)]);
-      const expired = typeof payload.exp === 'number' && payload.exp * 1000 < Date.now(), early = typeof payload.nbf === 'number' && payload.nbf * 1000 > Date.now();
-      out.append(card('Header', hb), card('Payload', pb, times.length ? h('div', { class: 'kv' }, times) : null),
-        typeof payload.exp === 'number' ? note(expired ? 'This token has EXPIRED.' : 'Token is not expired.', expired ? 'err' : 'ok') : null as any,
-        early ? note('This token is NOT VALID YET (its "nbf" time is in the future).', 'warn') : null as any,
-        note('Decoded only — the signature is NOT verified (that needs the secret or public key).', 'warn'));
-    } catch { out.append(note('Could not decode — not a valid JWT.', 'err')); }
-  };
-  ta.addEventListener('input', run);
-  root.append(card(null, field('JWT', ta)), out);
-  run();
+  return () => { clearTimeout(timer); clearTimeout(deb); };
 };
 void select; void row;

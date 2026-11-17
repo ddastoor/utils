@@ -155,14 +155,34 @@ EXPORT int u_sample(uint32_t span, uint32_t count, int unique, uint32_t *out) {
     }
     return 0;
 }
-/* RFC 9562 UUID: version 4 (random) or 7 (48-bit Unix ms timestamp + random). Writes 16 bytes. */
+/* RFC 9562 UUID: version 4 (random) or 7 (48-bit Unix ms timestamp + 74 random bits). Writes 16 bytes.
+   Version 7 values made by one instance always increase (RFC 9562 section 6.2, method 2 "monotonic random"):
+   within one millisecond - or when the clock steps back by up to 10 s - the 74 random bits of the previous value
+   get a random step added (carrying into the timestamp if they ever overflow), so a batch sorts in the order it
+   was made. A clock that was set back by more than 10 s starts afresh from the new time. */
+static uint64_t u7_ms, u7_hi, u7_lo; /* last timestamp, rand_a (12 bits), rand_b (62 bits) */
+static int u7_have;
 EXPORT void u_uuid(int version, double unix_ms, uint8_t *b) {
     randombytes_buf(b, 16);
     if (version == 7) {
-        uint64_t t = (uint64_t)unix_ms;
+        const uint64_t LO = (1ULL << 62) - 1;
+        uint64_t t = unix_ms > 0 ? (unix_ms < 281474976710655.0 ? (uint64_t)unix_ms : 0xffffffffffffULL) : 0, hi, lo;
+        if (u7_have && t <= u7_ms && u7_ms - t <= 10000) {
+            t = u7_ms; hi = u7_hi; lo = u7_lo + 1 + (uint64_t)randombytes_random();
+            if (lo > LO) { lo &= LO; if (++hi > 0xfff) { hi = 0; t++; } }
+        } else {
+            hi = ((uint64_t)(b[6] & 0x0f) << 8) | b[7];
+            lo = 0; for (int i = 8; i < 16; i++) lo = (lo << 8) | b[i];
+            lo &= LO;
+        }
+        u7_have = 1; u7_ms = t; u7_hi = hi; u7_lo = lo;
         for (int i = 0; i < 6; i++) b[i] = (uint8_t)(t >> (8 * (5 - i)));
-        b[6] = (b[6] & 0x0f) | 0x70;
-    } else b[6] = (b[6] & 0x0f) | 0x40;
+        b[6] = (uint8_t)(0x70 | (hi >> 8)); b[7] = (uint8_t)hi;
+        for (int i = 0; i < 8; i++) b[8 + i] = (uint8_t)(lo >> (8 * (7 - i)));
+        b[8] = (b[8] & 0x3f) | 0x80;
+        return;
+    }
+    b[6] = (b[6] & 0x0f) | 0x40;
     b[8] = (b[8] & 0x3f) | 0x80;
 }
 
