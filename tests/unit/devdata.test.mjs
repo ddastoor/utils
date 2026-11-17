@@ -48,7 +48,7 @@ export default async (t, { load, wasm, root }) => {
     t.eq(fmt('\ufeff{"a":1}', 0).out, '{"a":1}', 'a byte-order mark in front is skipped');
     // errors: message, line, column and the position to select
     const E = [
-      ['', /empty/, 1, 1, 0], ['   ', /empty/, 1, 4, 3], ['{"a":', /ends where a value should be/, 1, 6, 5], ['{"a":1,}', /Trailing comma before }/, 1, 8, 7], ['[1,2,]', /Trailing comma before ]/, 1, 6, 5],
+      ['', /empty/, 1, 1, 0], ['   ', /empty/, 1, 4, 3], ['{"a":', /ends where a value should be/, 1, 6, 5], ['{"a": }', /^A value is missing after the colon$/, 1, 7, 6], ['{"a": 1,\n "b": }', /^A value is missing after the colon$/, 2, 7, 15], ['{"a":1,}', /Trailing comma before }/, 1, 8, 7], ['[1,2,]', /Trailing comma before ]/, 1, 6, 5],
       ["{'a':1}", /double quotes/, 1, 2, 1], ['{a:1}', /keys must be in double quotes/, 1, 2, 1], ['{"a" 1}', /Expected : after the key/, 1, 6, 5], ['{"a":1 "b":2}', /comma is missing/, 1, 8, 7],
       ['[1 2]', /Expected , or ]/, 1, 4, 3], ['[1,,2]', /Two commas in a row/, 1, 4, 3], ['{"a":tru}', /“tru” is not a JSON value/, 1, 6, 5], ['[True]', /lower case/, 1, 2, 1], ['[None]', /null/, 1, 2, 1],
       ['[undefined]', /no undefined/, 1, 2, 1], ['[NaN]', /NaN or Infinity/, 1, 2, 1], ['[01]', /leading zeros/, 1, 2, 1], ['[1.]', /decimal point must be followed/, 1, 3, 2], ['[.5]', /digit before the decimal point/, 1, 2, 1],

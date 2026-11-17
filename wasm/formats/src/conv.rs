@@ -11,7 +11,7 @@
 //!     (PyYAML, Ruby, older Go) and YAML 1.2 parsers alike; floats are written as 1.0e+21 for the same reason;
 //!   - TOML output: tables and arrays of tables as sections, short arrays on one line, multi-line strings as '''…'''.
 use crate::jsonfmt::{self, Node};
-use crate::{e, el, s, R};
+use crate::{e, el, s, BLANK, R};
 use serde_json::{json, Value};
 use std::collections::HashMap;
 use std::fmt::Write;
@@ -77,8 +77,6 @@ fn from_json(n: &Node, notes: &mut Notes) -> V {
         }
     }
 }
-/// White space that makes a text "empty" (not Unicode spaces such as U+00A0: those are content).
-const BLANK: [char; 4] = [' ', '\t', '\r', '\n'];
 fn read_json(t: &str, notes: &mut Notes) -> Result<Vec<V>, Value> {
     if t.trim_matches(BLANK).is_empty() { return Ok(vec![]); }
     let p = jsonfmt::parse(t).map_err(|x| el(format!("JSON: {}", x.message), x.line, x.column))?;

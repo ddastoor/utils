@@ -47,18 +47,39 @@ export const jsonschema: Mount = (root) => {
   let fp: ReturnType<typeof formats> | null = null;
   const schema = textarea({ rows: 14, mono: true, value: JSON.stringify({ $schema: 'https://json-schema.org/draft/2020-12/schema', title: 'Customer', type: 'object', required: ['name', 'email', 'mobile'], properties: { name: { type: 'string', minLength: 2 }, email: { type: 'string', format: 'email' }, mobile: { type: 'string', pattern: '^[6-9][0-9]{9}$' }, age: { type: 'integer', minimum: 18 }, city: { enum: ['Pune', 'Mumbai', 'Delhi'] } }, additionalProperties: false }, null, 2) });
   const data = textarea({ rows: 14, mono: true, value: JSON.stringify({ name: 'Asha', email: 'asha.example.com', mobile: '5123456789', age: 17, city: 'Pune', nickname: 'A' }, null, 2) });
+  schema.setAttribute('aria-label', 'Schema'); data.setAttribute('aria-label', 'Data');
   const out = h('div');
+  // a lone surrogate (half an emoji, from a broken paste) cannot be sent to the engine: it becomes U+FFFD
+  const wf = (x: string) => ((x as any).toWellFormed ? (x as any).toWellFormed() as string : x);
+  const N = (n: number) => n.toLocaleString('en-IN');
+  let runs = 0, problems = '';
   const run = async () => {
-    const f = await (fp ||= formats('schema')); clear(out);
+    const f = await (fp ||= formats('schema')); clear(out); problems = '';
     try {
-      const r = f.call('validate', { schema: schema.value, data: data.value });
-      out.append(note(r.valid ? 'Valid ✓ — the data matches the schema.' : `${r.errors.length} problem${r.errors.length === 1 ? '' : 's'}`, r.valid ? 'ok' : 'err'), h('div', { class: 'muted' }, `Draft: ${r.draft}`));
-      if (!r.valid) out.append(h('div', { class: 'scroll-x' }, h('table', { class: 'tbl schema-errs' }, h('thead', null, h('tr', null, h('th', null, 'Where'), h('th', null, 'Problem'), h('th', null, 'Rule'))), h('tbody', null, r.errors.map((x: any) => h('tr', null, h('td', { class: 'mono' }, x.path || '(root)'), h('td', null, x.message), h('td', { class: 'mono muted' }, x.schemaPath)))))));
+      const r = f.call('validate', { schema: wf(schema.value), data: wf(data.value) });
+      const listed = r.errors.length, total = r.total as number;
+      out.append(note(r.valid ? 'Valid ✓ — the data matches the schema.' : `${r.more ? 'More than ' : ''}${N(total)} problem${total === 1 ? '' : 's'}${total > listed ? ` — the first ${listed} are listed` : ''}`, r.valid ? 'ok' : 'err'), h('div', { class: 'muted' }, `Checked as ${r.draft}`));
+      for (const n of r.notes as string[]) out.append(note(n, 'info'));
+      if (!r.valid) {
+        problems = r.errors.map((x: any) => `${x.path || '(root)'}\t${x.message}\t${x.schemaPath}`).join('\n');
+        out.append(h('div', { class: 'scroll-x' }, h('table', { class: 'tbl schema-errs' }, h('thead', null, h('tr', null, h('th', null, 'Where'), h('th', null, 'Problem'), h('th', null, 'Rule'))), h('tbody', null, r.errors.map((x: any) => h('tr', null, h('td', { class: 'mono' }, x.path || '(root)'), h('td', null, x.message), h('td', { class: 'mono muted' }, x.schemaPath)))))),
+          h('div', { class: 'row' }, button('Copy problems', () => copy(problems), { small: true, icon: 'Copy' })));
+      }
     } catch (e: any) { out.append(note(`${e.message}${where(e)}`, 'warn')); }
+    out.dataset.runs = String(++runs);   // the e2e suite waits for it
   };
-  const infer = async () => { const f = await (fp ||= formats('schema')); schema.value = JSON.stringify(f.call('infer', { data: data.value }).schema, null, 2); await run(); };
-  [schema, data].forEach((x) => x.addEventListener('input', debounce(run, 250)));
-  root.append(h('div', { class: 'grid2' }, card('Schema', schema, filePicker({ accept: '.json', label: 'Open schema', onFiles: async ([x]) => { schema.value = await x.text(); run(); } })), card('Data (JSON)', data, filePicker({ accept: '.json', label: 'Open data', onFiles: async ([x]) => { data.value = await x.text(); run(); } }), button('Make a schema from this data', infer, { small: true, icon: 'Wand' }))),
-    card('Result', out), note('Drafts 4, 6, 7, 2019-09 and 2020-12 (from "$schema"); formats such as email, date-time, uri and uuid are checked. $ref to other files or URLs is not fetched.', 'info'));
-  run();
+  const later = debounce(run, 250);
+  const infer = async () => {
+    const f = await (fp ||= formats('schema'));
+    schema.value = JSON.stringify(f.call('infer', { data: wf(data.value) }).schema, null, 2);   // broken data: the button shows the message
+    later.cancel(); await run();
+  };
+  for (const x of [schema, data]) {
+    x.addEventListener('input', later);
+    // Ctrl+Enter (⌘ on a Mac): check now, without waiting for the pause after typing
+    x.addEventListener('keydown', (e) => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); later.cancel(); void run(); } });
+  }
+  root.append(h('div', { class: 'grid2' }, card('Schema', schema, filePicker({ accept: '.json', label: 'Open schema', onFiles: async ([x]) => { schema.value = await x.text(); later.cancel(); await run(); } })), card('Data (JSON)', data, filePicker({ accept: '.json', label: 'Open data', onFiles: async ([x]) => { data.value = await x.text(); later.cancel(); await run(); } }), button('Make a schema from this data', infer, { small: true, icon: 'Wand' }))),
+    card('Result', out), note('Draft 4, 6, 7, 2019-09 and 2020-12 (from "$schema"). Formats such as email, date-time, uri and uuid are checked; numbers are compared exactly, however large; "pattern" follows the regular expressions of JavaScript. A $ref to another file or web address is not fetched. The data is checked a moment after you stop typing — Ctrl+Enter checks at once.', 'info'));
+  void run();
 };

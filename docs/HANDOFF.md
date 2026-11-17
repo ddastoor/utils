@@ -133,11 +133,16 @@ export ZIG=/tmp/zig/x/ziglang/zig
   `console.log` inside a unit suite shows only its first line — write debug output to a file.
 - **Runner:** `node tests/e2e.mjs cidr chmod. x509` and `node tests/unit.mjs keys devcore` take several filters
   (`chmod.` = the whole name, so `chmod` does not also pick another suite).
-- **Run the COMPLETE e2e suite before every push** (`npm run build && node tests/e2e.mjs`, about 8 minutes; run nothing
-  else heavy meanwhile — cargo builds or extra browsers make the media suites time out). Commit 277b640 was pushed after
-  only the shell suites had run and broke Hash / Sodium Encrypt / Share Link on the live site (an engine-lifecycle change
-  that misbehaved inside Web Workers). Shared modules (`src/lifecycle.ts`, `src/ui.ts`, `src/main.ts`, `src/wasm/wasi.ts`)
-  are used by every tab and also run inside workers, where there is no `document` and no router.
+- **Push often (owner, 17 Nov 2026 — CLAUDE.md STANDING RULE #3):** commit and push after every meaningful step; do
+  NOT wait for the complete e2e run or for the whole utility. Before a push: `npm run build` passes and the suites of
+  what was touched have been run. The COMPLETE e2e suite (`npm run build && node tests/e2e.mjs`, about 10 minutes; run
+  nothing heavy beside it — cargo, tsc, probes make timing checks fail) runs at the end of each area; its fixes are
+  pushed as their own commit.
+  One lesson stays: a push goes live (GitHub Pages deploys the branch). Commit 277b640 changed the engine life cycle,
+  was pushed after only the shell suites had run and broke Hash / Sodium Encrypt / Share Link on the live site. So when
+  a **shared module** changes (`src/lifecycle.ts`, `src/ui.ts`, `src/main.ts`, `src/wasm/wasi.ts`, a worker client),
+  run at least `shell every-tab lazy no-external` and the suites of the tabs that use it before that push, and the
+  complete run right after.
 - **Limits of 32-bit wasm show up only with big inputs:** `data-encoding` asserts `len <= usize::MAX / 512`, so Base64
   of an 8 MiB file trapped ("unreachable"). Try every file tool with a file of 8–10 MB and one of 64 MB+.
 - **Recursion = stack overflow = a broken instance.** Any recursive parser or visitor in wasm (protobuf nesting, CBOR,

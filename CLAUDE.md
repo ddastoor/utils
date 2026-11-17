@@ -68,8 +68,21 @@ that affects it.
 >   test is wrong (a slip in the expectation, a race, a stale selector): fix the test, run again. Repeat until green.
 > - **Never get to green by weakening a check**, skipping a test or deleting a case that shows a real bug.
 > - A bug found any other way (a probe, the owner, a review) gets a test that would have caught it, in the same commit.
-> - Before every push: `npm test` and the complete `npm run build && node tests/e2e.mjs`. Record what was found and
->   fixed in `docs/BUGHUNT.md`.
+> - Run the tests of what was touched as the work goes on; the complete suites (`npm test`, then
+>   `npm run build && node tests/e2e.mjs`) at the end of each area. **Pushing does not wait for them** (STANDING
+>   RULE #3). Record what was found and fixed in `docs/BUGHUNT.md`.
+
+> ## ⚠️ STANDING RULE #3 — Commit and push regularly and often (owner, 17 Nov 2026; permanent)
+> **Owner:** "Commit and push regularly and often. Don't wait for the entire test suite to get over or the entire
+> utility to get over."
+> - Commit **and push** after every meaningful step — an engine fix, a rebuilt wasm module, a new test file, a page
+>   change, a docs update — not once per finished utility and not only after the complete e2e run. The owner can be
+>   cut off at any moment (usage limit, session reset) and must not lose work.
+> - What a push needs: the project builds (`npm run build`) and the tests of the files just touched have been run.
+>   Work that is not finished is pushed too — say so in the commit message ("in progress: …") and in
+>   `docs/RESUME.md`.
+> - The complete suites still run at the end of each area; what they find is fixed and pushed as its own commit.
+> - Push to the working branch only (see the session's branch rule); never force-push.
 
 > ## 📝 Owner's to-do list: `todo.md` (the owner calls it "to do")
 > Created 17 Nov 2026. When the owner says "add … to to do" or "what's on to do", it means this file. Read it at the
@@ -126,7 +139,9 @@ Wayland) and **mobile browsers** (Android Chrome, iPhone Safari).
 
 ### Owner's answers to open questions
 - App name: **SuperTools** (title, header brand, `document.title` suffix).
-- Commit and push **each tool as soon as it works** — never batch many finished tools into one push.
+- Commit and push **each tool as soon as it works** — never batch many finished tools into one push. (17 Nov 2026:
+  more often still — see STANDING RULE #3: push after every meaningful step, without waiting for the whole utility or
+  the complete test run.)
 - Passport photo: owner lives in **India** → Indian presets first.
 - No offline/installable app — **all online** (plain website).
 - OpenPGP: **GnuPG-compatible** (v4 Curve25519 keys). Decryption accepts both v4 and RFC 9580 v6 input,

@@ -161,18 +161,132 @@ export default async (t, { load, wasm, root }) => {
     t.ok(!got.ERR && same(typedFromJson(got), c.typed, kind === 'toml' || !!c.unordered), `${kind.toUpperCase()} text ${i} written by ${c.by}: read as the data it stands for (${JSON.stringify(c.text).slice(0, 90)} → ${JSON.stringify(got).slice(0, 90)})`);
   });
 
-  // ---- JSON Schema
-  const S = JSON.stringify({ $schema: 'https://json-schema.org/draft/2020-12/schema', type: 'object', required: ['name', 'email', 'age'], properties: { name: { type: 'string', minLength: 2 }, email: { type: 'string', format: 'email' }, age: { type: 'integer', minimum: 18 }, tags: { type: 'array', items: { type: 'string' }, uniqueItems: true }, address: { $ref: '#/$defs/addr' } }, additionalProperties: false, $defs: { addr: { type: 'object', required: ['pin'], properties: { pin: { type: 'string', pattern: '^[1-9][0-9]{5}$' } } } } });
-  const val = (data, schema = S) => sc.call('validate', { schema, data: JSON.stringify(data) });
+  // ================================================================ JSON Schema
+  const D = { 4: 'http://json-schema.org/draft-04/schema#', 6: 'http://json-schema.org/draft-06/schema#', 7: 'http://json-schema.org/draft-07/schema#', 2019: 'https://json-schema.org/draft/2019-09/schema', 2020: 'https://json-schema.org/draft/2020-12/schema' };
+  const S = JSON.stringify({ $schema: D[2020], type: 'object', required: ['name', 'email', 'age'], properties: { name: { type: 'string', minLength: 2 }, email: { type: 'string', format: 'email' }, age: { type: 'integer', minimum: 18 }, tags: { type: 'array', items: { type: 'string' }, uniqueItems: true }, address: { $ref: '#/$defs/address' } }, additionalProperties: false, $defs: { address: { type: 'object', properties: { pin: { type: 'string', pattern: '^[1-9][0-9]{5}$' } } } } });
+  const vraw = (schema, data) => sc.call('validate', { schema, data });
+  const val = (data, schema = S) => vraw(typeof schema === 'string' ? schema : JSON.stringify(schema), JSON.stringify(data));
+  const serr = (f) => { const x = err(f); return x ? `${x.message}${x.line ? ` @${x.line}:${x.column}` : ''}` : 'no error'; };
+  /** One schema, many documents → "Yn…" (Y valid, n not valid). */
+  const yn = (schema, datas) => sc.call('verdicts', { schema: JSON.stringify(schema), datas: datas.map((d) => JSON.stringify(d)) }).valid.map((x) => (x ? 'Y' : 'n')).join('');
+
+  // ---- known answers
   t.eq(val({ name: 'Asha', email: 'asha@example.in', age: 30, tags: ['a', 'b'], address: { pin: '411001' } }).valid, true, 'valid document');
   const rs = val({ name: 'A', email: 'not-an-email', age: 17.5, tags: ['a', 'a'], address: { pin: '011001' }, extra: 1 });
-  const paths = rs.errors.map((x) => x.path).sort();
-  t.ok(!rs.valid && ['/address/pin', '/age', '/email', '/name', '/tags'].every((p) => paths.includes(p)) && rs.errors.some((x) => /extra/.test(x.message)), `every problem reported with its path (${paths.join(' ')})`);
-  t.ok(rs.errors.some((x) => /is not a "email"/.test(x.message) || /email/.test(x.message)), 'format "email" is checked');
-  t.eq(val({ name: 'Asha', email: 'a@b.in' }).errors.map((x) => x.message).some((m) => /"age" is a required property/.test(m)), true, 'missing required property');
-  t.eq(val({ a: 1 }, JSON.stringify({ $schema: 'http://json-schema.org/draft-07/schema#', properties: { a: { exclusiveMinimum: 1 } } })).valid, false, 'draft-07 exclusiveMinimum as a number');
-  t.ok(/schema itself is invalid/.test(err(() => val({}, JSON.stringify({ type: 'nope' })))?.message), 'invalid schema reported');
-  const inf = sc.call('infer', { data: JSON.stringify({ id: 1, name: 'Asha', email: 'asha@example.in', price: 12.5, when: '2026-11-16T10:00:00Z', items: [{ sku: 'A', qty: 1 }, { sku: 'B' }], tags: [] }) }).schema;
-  t.eq([inf.type, inf.properties.id.type, inf.properties.price.type, inf.properties.email.format, inf.properties.when.format, inf.properties.items.items.required], ['object', 'integer', 'number', 'email', 'date-time', ['sku']], 'inferred schema: types, formats, required only where always present');
-  t.eq(val(JSON.parse('{"id":1,"name":"Asha","email":"asha@example.in","price":12.5,"when":"2026-11-16T10:00:00Z","items":[{"sku":"A","qty":1},{"sku":"B"}],"tags":[]}'), JSON.stringify(inf)).valid, true, 'the sample validates against its inferred schema');
+  t.eq(rs.errors.map((x) => [x.path, x.message, x.schemaPath]).sort(), [
+    ['', "Additional properties are not allowed ('extra' was unexpected)", '/additionalProperties'],
+    ['/address/pin', '"011001" does not match "^[1-9][0-9]{5}$"', '/$defs/address/properties/pin/pattern'],
+    ['/age', '17.5 is less than the minimum of 18', '/properties/age/minimum'],
+    ['/age', '17.5 is not of type "integer"', '/properties/age/type'],
+    ['/email', '"not-an-email" does not have the format "email"', '/properties/email/format'],
+    ['/name', '"A" is shorter than 2 characters', '/properties/name/minLength'],
+    ['/tags', '["a","a"] has non-unique elements', '/properties/tags/uniqueItems'],
+  ], 'every problem with where it is (JSON pointer), what is wrong and which rule of the schema says so');
+  t.eq([rs.valid, rs.total, rs.more, rs.draft], [false, 7, false, 'Draft 2020-12'], 'the result says how many problems there are and which draft was used');
+  t.eq(val({ name: 'Asha', email: 'a@b.in' }).errors.map((x) => x.message), ['"age" is a required property'], 'a missing required property');
+  t.eq([val({}, {}).draft, val({}, { $schema: D[7] }).draft, val({}, { $schema: D[4] }).draft, val({}, { $schema: D[6] }).draft, val({}, { $schema: D[2019] }).draft, val({}, { $schema: 'http://json-schema.org/draft-07/schema' }).draft],
+    ['Draft 2020-12 (the schema has no "$schema" line, so the newest draft is used)', 'Draft 7', 'Draft 4', 'Draft 6', 'Draft 2019-09', 'Draft 7'], 'the draft comes from "$schema" (with or without the # at its end); without one the newest is used and said');
+  let big = val(Array(500).fill('x'), { type: 'array', items: { type: 'integer' } });
+  t.eq([big.valid, big.errors.length, big.total, big.more, big.errors[199].path], [false, 200, 500, false, '/199'], '500 problems: the first 200 are listed and the total is given (was: "200 problems")');
+  big = val(Array(6000).fill('x'), { type: 'array', items: { type: 'integer' } });
+  t.eq([big.errors.length, big.total, big.more], [200, 5000, true], 'counting stops at 5000 problems ("more than")');
+  const long = val({ a: 'x'.repeat(5000) }, { type: 'string' }).errors[0].message;
+  t.ok(long.length < 450 && long.includes(' … ') && long.endsWith('is not of type "string"'), `a message that quotes a huge value is cut in the middle (${long.length} characters)`);
+  // boolean schemas, true / false as documents
+  t.eq([vraw('true', '{"a":1}').valid, vraw('false', '1').valid, vraw('false', '1').errors[0].message, vraw('{}', 'null').valid], [true, false, 'False schema does not allow 1', true], 'the schemas true, false and {}');
+
+  // ---- drafts: what a keyword means depends on the draft
+  t.eq([yn({ $schema: D[4], type: 'number', minimum: 5, exclusiveMinimum: true }, [5, 6, 4]), yn({ $schema: D[6], exclusiveMinimum: 5 }, [5, 6]), yn({ $schema: D[4], type: 'integer' }, [1, 2]), sc.call('verdicts', { schema: JSON.stringify({ $schema: D[4], type: 'integer' }), datas: ['1.0', '1'] }).valid, sc.call('verdicts', { schema: JSON.stringify({ $schema: D[7], type: 'integer' }), datas: ['1.0', '1.5', '1e2'] }).valid],
+    ['nYn', 'nY', 'YY', [false, true], [true, false, true]], 'exclusiveMinimum is true / false in Draft 4 and a number later; 1.0 is an integer from Draft 6 on, not in Draft 4');
+  t.eq([yn({ $schema: D[4], const: 1 }, [2, 1]), yn({ $schema: D[6], const: 1 }, [2, 1]), yn({ $schema: D[6], if: { const: 1 }, then: { const: 2 } }, [1]), yn({ $schema: D[7], if: { const: 1 }, then: { const: 2 } }, [1, 3])], ['YY', 'nY', 'Y', 'nY'], 'const exists from Draft 6, if / then from Draft 7 (ignored before)');
+  t.eq([yn({ $schema: D[7], definitions: { s: { type: 'string' } }, properties: { a: { $ref: '#/definitions/s', maxLength: 1 } } }, [{ a: 'long' }, { a: 5 }]), yn({ $schema: D[2019], $defs: { s: { type: 'string' } }, properties: { a: { $ref: '#/$defs/s', maxLength: 1 } } }, [{ a: 'long' }, { a: 'x' }])], ['Yn', 'nY'], 'keywords next to $ref are ignored up to Draft 7 and apply from 2019-09');
+  t.eq([yn({ $schema: D[2020], prefixItems: [{ type: 'string' }, { type: 'integer' }], items: { type: 'boolean' } }, [['a', 1, true], ['a', 'b'], ['a', 1, 2]]), yn({ $schema: D[2019], items: [{ type: 'string' }], additionalItems: false }, [['a'], ['a', 1]]), yn({ $schema: D[2020], prefixItems: [{ type: 'string' }], unevaluatedItems: false }, [['a'], ['a', 1]])], ['Ynn', 'Yn', 'Yn'], 'tuples: prefixItems + items (2020-12), items as a list + additionalItems (before), unevaluatedItems');
+  t.eq([yn({ $schema: D[2019], allOf: [{ properties: { a: {} } }], properties: { b: {} }, unevaluatedProperties: false }, [{ a: 1, b: 2 }, { a: 1, c: 3 }]), yn({ $schema: D[2019], dependentRequired: { card: ['cvv'] } }, [{ card: 1 }, { card: 1, cvv: 2 }, {}]), yn({ $schema: D[7], dependencies: { card: ['cvv'], x: { required: ['y'] } } }, [{ card: 1 }, { x: 1 }, { x: 1, y: 1 }])], ['Yn', 'nYY', 'nnY'], 'unevaluatedProperties, dependentRequired (2019-09) and dependencies (Draft 7)');
+  t.eq([yn({ $schema: D[2020], $ref: '#/$defs/node', $defs: { node: { type: 'object', required: ['v'], properties: { v: { type: 'integer' }, kids: { type: 'array', items: { $ref: '#/$defs/node' } } }, additionalProperties: false } } }, [{ v: 1, kids: [{ v: 2, kids: [{ v: 3 }] }] }, { v: 1, kids: [{ v: 2, kids: [{ v: 'x' }] }] }]), yn({ $schema: D[2020], $defs: { a: { $anchor: 'pos', type: 'integer', minimum: 1 } }, properties: { n: { $ref: '#pos' } } }, [{ n: 1 }, { n: 0 }]), yn({ $schema: D[2020], $id: 'https://example.com/tree', $dynamicAnchor: 'node', type: 'object', properties: { children: { type: 'array', items: { $dynamicRef: '#node' } } } }, [{ children: [{}] }, { children: [1] }]), yn({ $schema: D[7], definitions: { 'a/b': { type: 'integer' }, 'c~d': { type: 'string' } }, properties: { x: { $ref: '#/definitions/a~1b' }, y: { $ref: '#/definitions/c~0d' } } }, [{ x: 1, y: 's' }, { x: '1' }, { y: 1 }])],
+    ['Yn', 'Yn', 'Yn', 'Ynn'], 'references: a recursive tree, $anchor, $dynamicRef, ~1 and ~0 in a pointer');
+
+  // ---- numbers are compared exactly (not as 64-bit floats)
+  t.eq([yn({ multipleOf: 0.01 }, [19.99, 0.07, 1.001, 4.35, 0.1]), yn({ multipleOf: 0.1 }, [0.3, 0.7, 0.25]), sc.call('verdicts', { schema: '{"multipleOf":3}', datas: ['9', '10', '9.0', '1e300', '3e300'] }).valid], ['YYnYY', 'YYn', [true, false, true, false, true]], 'multipleOf with decimals (19.99 is 1999 × 0.01) and with huge numbers (1e300 is not a multiple of 3)');
+  t.eq([sc.call('verdicts', { schema: '{"type":"integer","maximum":9007199254740993}', datas: ['9007199254740993', '9007199254740994', '9007199254740992'] }).valid, sc.call('verdicts', { schema: '{"const":12345678901234567890123}', datas: ['12345678901234567890123', '12345678901234567890124'] }).valid, sc.call('verdicts', { schema: '{"maximum":1e400}', datas: ['1e399', '1e401'] }).valid, sc.call('verdicts', { schema: '{"uniqueItems":true}', datas: ['[1, 1.0]', '[12345678901234567890123, 12345678901234567890124]', '[1, true]', '[{"a":1,"b":2},{"b":2,"a":1}]'] }).valid],
+    [[true, false, true], [true, false], [true, false], [false, true, true, false]], 'integers beyond 2^53 and numbers beyond 1e308 are told apart; 1 and 1.0 are the same number, 1 and true are not');
+  t.eq([yn({ const: 1 }, [1, true]), yn({ const: 0 }, [0, false, null, '']), yn({ enum: [1, '1', null] }, [1, '1', null, 'x', 0]), yn({ type: 'number' }, [1, 1.5, '1']), yn({ type: ['string', 'null'] }, ['a', null, 1]), yn({ minLength: 2, maxLength: 2 }, ['😀😀', '😀', 'abc'])], ['Yn', 'Ynnn', 'YYYnn', 'YYn', 'YYn', 'Ynn'], 'const / enum compare by JSON value; "number" accepts integers; string length counts characters (an emoji is one)');
+
+  // ---- formats, checked by hand against the RFCs (Y valid, n not valid)
+  const FM = [
+    ['email', ['a@b.co', 'asha.rao+tag@example.in', 'a@b', '"quoted"@x.y', 'a@[127.0.0.1]', 'a.b.co', '@b.co', 'a@', 'a b@c.d', 'a@@b.c', 'a@b..c', '.a@b.c', 'a.@b.c', 'ü@b.co', 'a@-b.co'], 'YYYYYnnnnnnnnnn'],
+    ['idn-email', ['a@b.co', 'ü@b.co', 'आ@उदाहरण.भारत', 'nope', 'a b@c.d'], 'YYYnn'],
+    ['date', ['2026-02-28', '2024-02-29', '0000-01-01', '9999-12-31', '2026-02-29', '2026-02-30', '2026-13-01', '2026-00-10', '2026-1-5', '2026-11-17T10:00:00Z', '20261117', '2026-11-31'], 'YYYYnnnnnnnn'],
+    ['date-time', ['2026-11-17T10:30:00Z', '2026-11-17t10:30:00z', '2026-11-17T10:30:00+05:30', '2026-11-17T10:30:00.123456789-08:00', '2026-11-17T23:59:60Z', '2026-11-17 10:30:00Z', '2026-11-17T10:30:00', '2026-11-17T24:00:00Z', '2026-11-17T10:30Z', '2026-02-30T10:30:00Z', '2026-11-17T10:30:00+24:00', '2026-11-17'], 'YYYYYnnnnnnn'],
+    ['time', ['10:30:00Z', '10:30:00+05:30', '10:30:00.5Z', '23:59:60Z', '10:30:00', '25:00:00Z', '10:30Z', '10:60:00Z'], 'YYYYnnnn'],
+    ['duration', ['P1D', 'PT1H30M', 'P1Y2M3DT4H5M6S', 'P1W', 'PT0S', 'P', 'PT', '3 days', 'P1DT', '1D', 'P1.5D'], 'YYYYYnnnnnn'],
+    ['uri', ['https://x.y/z', 'http://x', 'mailto:a@b.co', 'urn:isbn:0451450523', 'file:///etc/hosts', 'http://[::1]:80/', 'HTTP://X.Y', 'not a uri', '//x.y', '/path', 'http://x y', 'http://%zz', 'https://x.y/é', 'x'], 'YYYYYYYnnnnnnn'],
+    ['uri-reference', ['https://x.y/z', '/path', '../a', '#frag', '?q=1', '', 'a b', '\\\\bad', 'xé'], 'YYYYYYnnn'],
+    ['iri', ['https://x.y/é', 'http://उदाहरण.भारत/', 'not an iri', '/rel'], 'YYnn'],
+    ['uri-template', ['/x/{id}', 'http://x.y/{?q,lang}', '/plain', '/x/{id'], 'YYYn'],
+    ['uuid', ['123e4567-e89b-12d3-a456-426614174000', '123E4567-E89B-12D3-A456-426614174000', '00000000-0000-0000-0000-000000000000', '123e4567', '123e4567e89b12d3a456426614174000', 'g23e4567-e89b-12d3-a456-426614174000', '{123e4567-e89b-12d3-a456-426614174000}'], 'YYYnnnn'],
+    ['ipv4', ['192.168.1.1', '0.0.0.0', '255.255.255.255', '256.1.1.1', '1.2.3', '1.2.3.4.5', '01.2.3.4', '1.2.3.4 ', '0x7f.0.0.1'], 'YYYnnnnnn'],
+    ['ipv6', ['::1', '2001:db8::8a2e:370:7334', '::ffff:192.168.1.1', '::', '12345::', '1::2::3', 'fe80::1%eth0', '2001:db8:0:0:0:0:0:0:1'], 'YYYYnnnn'],
+    ['hostname', ['example.com', 'a-b.example.in', 'localhost', 'xn--p1ai', '-bad-.com', 'a_b.com', 'a..b', 'x'.repeat(64) + '.com', ''], 'YYYYnnnnn'],
+    ['idn-hostname', ['उदाहरण.भारत', 'example.com', '-x-.com', 'a b.com'], 'YYnn'],
+    ['regex', ['^a+$', '(?<n>x)\\k<n>', '\\p{L}+', '(?=x)', '((', '[a-', '*a', 'a{2,1}'], 'YYYYnnnn'],
+    ['json-pointer', ['', '/a/b', '/a~0b/c~1d', 'a/b', '/a~2', '/~'], 'YYYnnn'],
+    ['relative-json-pointer', ['0', '1/a', '2#', '/a', '-1', '01'], 'YYYnnn'],
+  ];
+  for (const [f, datas, want] of FM) t.eq(yn({ $schema: D[2020], format: f }, datas), want, `format "${f}": ${datas.map((d, i) => `${JSON.stringify(d).slice(0, 30)} ${want[i] === 'Y' ? 'ok' : 'refused'}`).join(', ').slice(0, 300)}`);
+  t.eq([yn({ format: 'email' }, [1, null, [], {}, true]), yn({ $schema: D[7], format: 'uuid' }, ['nope']), yn({ $schema: D[7], format: 'duration' }, ['3 days']), yn({ $schema: D[4], format: 'json-pointer' }, ['a/b']), yn({ format: 'phone-number' }, ['x'])], ['YYYYY', 'Y', 'Y', 'Y', 'Y'], 'a format says nothing about values that are not strings; formats a draft does not have, and unknown ones, are not checked');
+  t.eq([val('nope', { $schema: D[7], format: 'uuid' }).notes, val('x', { properties: { a: { format: 'phone' }, b: { format: 'email' } }, examples: [{ format: 'in-data' }] }).notes, val('x', { format: 'email' }).notes],
+    [['Not checked: format "uuid" (part of JSON Schema from Draft 2019-09 on).'], ['Not checked: format "phone" (not a format this validator knows).'], []], 'formats that are not checked are named in a note (not those inside examples / enum / const / default)');
+
+  // ---- patterns are ECMA 262 regular expressions (the browser's rules), not Python's or PCRE's
+  for (const [p, datas, want, what] of [
+    ['^\\d+$', ['123', '१२३', '12a'], 'Ynn', '\\d is 0-9 only'], ['^\\p{L}+$', ['héllo', 'क', 'hello1'], 'YYn', '\\p{L} letters'], ['^\\w+$', ['abc_1', 'é'], 'Yn', '\\w is ASCII'],
+    ['^a$', ['a', 'a\n', '\na'], 'Ynn', '$ is the very end (no trailing line break)'], ['^(?=.*\\d)(?=.*[a-z]).{6,}$', ['abc123', 'abcdef', '12345'], 'Ynn', 'lookahead'], ['^(a)\\1$', ['aa', 'ab'], 'Yn', 'back-reference'],
+    ['a', ['xax', 'b'], 'Yn', 'not anchored: found anywhere'], ['^.$', ['😀', 'ab'], 'Yn', '. is one character, an emoji too'], ['^[\\u0900-\\u097F]+$', ['नमस्ते', 'namaste'], 'Yn', '\\u escapes'],
+    ['^\\s*$', ['  \t  ', 'x'], 'Yn', '\\s includes Unicode spaces'], ['^(?<y>\\d{4})-(?<m>\\d{2})$', ['2026-11', '2026-1'], 'Yn', 'named groups'], ['\\bword\\b', ['a word here', 'swordfish'], 'Yn', '\\b'],
+  ]) t.eq(yn({ pattern: p }, datas), want, `pattern ${JSON.stringify(p)}: ${what}`);
+  t.ok(/^The schema itself is not valid at \/pattern: "\(\(" does not have the format "regex"$/.test(serr(() => val('x', { pattern: '((' }))), `a broken pattern is reported as a problem of the schema (${serr(() => val('x', { pattern: '((' }))})`);
+
+  // ---- messages about the two boxes and the schema
+  t.eq([serr(() => vraw('', '1')), serr(() => vraw('{}', '  \n')), serr(() => vraw('{"type": "string",}', '1')), serr(() => vraw('{}', '{"a": 1,\n "b": }')), serr(() => vraw('{}', 'hello'))],
+    ['Schema: nothing here yet — paste a JSON Schema, or make one from the data', 'Data: nothing here yet — paste the JSON to check', 'Schema: Trailing comma before } — remove the last comma @1:19', 'Data: A value is missing after the colon @2:7', 'Data: “hello” is not a JSON value — text must be in double quotes @1:1'],
+    'empty boxes and JSON mistakes: which box, what, line and column (the wording of the JSON Formatter tab)');
+  t.eq([serr(() => vraw('[1]', '1')), serr(() => vraw('"x"', '1')), serr(() => vraw('5', '1')), serr(() => vraw('null', '1'))], ['a list', 'a text', 'a number', 'null'].map((k) => `Schema: a JSON Schema is an object (or just true / false) — this is ${k}`), 'a schema that is not an object');
+  t.eq([serr(() => val(1, { type: 'strng' })), serr(() => val(1, { minimum: '5' })), serr(() => val(1, { properties: { a: { required: 'a' } } })), serr(() => val(1, { $schema: D[2020], items: [{ type: 'string' }] }))],
+    ['The schema itself is not valid at /type: "strng" is not valid under any of the schemas listed in the \'anyOf\' keyword', 'The schema itself is not valid at /minimum: "5" is not of type "number"', 'The schema itself is not valid at /properties/a/required: "a" is not of type "array"', 'The schema itself is not valid at /items: [{"type":"string"}] is not of types "boolean", "object"'],
+    'a schema that breaks the rules of its draft: the place in the schema is named');
+  t.ok(/^The "\$schema" of this schema is "http:\/\/json-schema\.org\/draft-03\/schema#" — this tab knows Draft 4, 6, 7, 2019-09 and 2020-12/.test(serr(() => val(1, { $schema: 'http://json-schema.org/draft-03/schema#' }))) && /is "https:\/\/example\.com\/my-meta"/.test(serr(() => val(1, { $schema: 'https://example.com/my-meta' }))), `an unknown "$schema" (was: "Unknown meta-schema … Custom meta-schemas must be registered in the registry") — ${serr(() => val(1, { $schema: 'https://example.com/my-meta' })).slice(0, 90)}`);
+  for (const ref of ['https://example.com/schemas/address.json', 'file:///etc/passwd', 'other.json#/x']) t.ok(serr(() => val({}, { properties: { a: { $ref: ref } } })).startsWith(`A "$ref" points to another file or web address (${ref.split('#')[0]}`) && /This tab fetches nothing: put that schema under "\$defs"/.test(serr(() => val({}, { properties: { a: { $ref: ref } } }))), `$ref to ${ref}: nothing is fetched, and the message says what to do (was: "is not present in a registry and retrieving it failed: \`resolve-http\` feature …")`);
+  t.eq(serr(() => val({}, { $ref: '#/definitions/missing' })), 'A "$ref" points to "#/definitions/missing", which does not exist in this schema.', 'a $ref that points to nothing');
+  t.eq(yn({ $ref: '#/$defs/a', $defs: { a: { $ref: '#/$defs/b' }, b: { $ref: '#/$defs/a' } } }, [1]), 'Y', 'two $refs that point at each other do not hang the tab');
+  t.ok(/nested deeper than 128 levels/.test(serr(() => vraw('{"properties":{"a":'.repeat(150) + '{}' + '}}'.repeat(150), '1'))) && val(1, {}).valid, 'a schema nested 300 deep is refused with a plain message, and the engine goes on working');
+  let nt = vraw('{"type":"object","type":"array"}', '{"a":1,"a":2}');
+  t.ok(nt.valid === false && nt.notes.length === 2 && /^Schema: the key "type" is there twice \(line 1\) — the last one counts\.$/.test(nt.notes[0]) && /^Data: the key "a" is there twice/.test(nt.notes[1]), `a key written twice in the schema or the data is pointed out (${nt.notes.join(' | ')})`);
+  t.eq([serr(() => vraw('{}', '"\\ud800"')), vraw('{"maxLength":1}', '"\\ud83d\\ude00"').valid, vraw('﻿{"type":"integer"}', '﻿5').valid], ['Data: a lone surrogate escape (half of an emoji, such as \\ud83d without its second half) is not a character @1:8', true, true], 'a lone surrogate escape is explained; a byte-order mark in front is skipped');
+
+  // ---- a schema made from an example
+  const infer = (data) => sc.call('infer', { data: typeof data === 'string' ? data : JSON.stringify(data) }).schema;
+  const inf = infer({ id: 1, name: 'Asha', email: 'asha@example.in', price: 12.5, when: '2026-11-16T10:00:00Z', day: '2026-11-16', site: 'https://example.in/a', key: '123e4567-e89b-12d3-a456-426614174000', items: [{ sku: 'A', qty: 1 }, { sku: 'B' }], tags: [], none: null, ok: true });
+  t.eq(inf, { $schema: D[2020], type: 'object', properties: { id: { type: 'integer' }, name: { type: 'string' }, email: { type: 'string', format: 'email' }, price: { type: 'number' }, when: { type: 'string', format: 'date-time' }, day: { type: 'string', format: 'date' }, site: { type: 'string', format: 'uri' }, key: { type: 'string', format: 'uuid' }, items: { type: 'array', items: { type: 'object', properties: { sku: { type: 'string' }, qty: { type: 'integer' } }, required: ['sku'], additionalProperties: false } }, tags: { type: 'array' }, none: { type: 'null' }, ok: { type: 'boolean' } }, required: ['id', 'name', 'email', 'price', 'when', 'day', 'site', 'key', 'items', 'tags', 'none', 'ok'], additionalProperties: false },
+    'inferred schema: types, formats, required = the keys every example has, the items of a list merged');
+  t.eq([infer('[1, 2.5, "a", null]').items.type, infer('[1, 2]').items.type, infer('{"a": 1.0}').properties.a.type, infer('12345678901234567890123').type, infer('"x"'), infer('[]')], [['number', 'string', 'null'], 'integer', 'number', 'integer', { $schema: D[2020], type: 'string' }, { $schema: D[2020], type: 'array' }], 'mixed lists give a list of types; 1.0 is a number, a 23-digit integer an integer; plain values and empty lists work');
+  // a format goes in only when the validator itself accepts the example: the made schema always accepts its example
+  const tricky = { badDate: '2026-13-45', zero: '0000-00-00', feb: '2026-02-30', dt: '2026-11-17T25:61:00Z', dtNoZone: '2026-11-17T10:30:00', notEmail: '@foo.bar', dots: 'a@b..c', spaceMail: 'first last@x.y', uni: 'ü@b.co', uri1: 'http://[bad', uri2: 'https://x.y/é', uuidish: 'GGGGGGGG-e89b-12d3-a456-426614174000', dates: ['2026-01-01', '2026-13-01'], mails: ['a@b.co', 'nope'], good: ['2026-01-01', '2026-12-31'] };
+  const ti = infer(tricky);
+  t.ok(Object.entries(ti.properties).every(([k, v]) => k === 'good' ? v.items.format === 'date' : !v.format && !v.items?.format) && val(tricky, ti).valid, 'look-alikes get no format (2026-13-45, @foo.bar, http://[bad, a list with one bad date) — was: a schema that refused the very example it was made from');
+  for (const sneaky of ['2026-11-17T10:30 – meeting', 'abcd-efghiTabcdefgéxx', '2026-11-17T10:30:0é and more', '1234-67890T23456789😀x', 'é'.repeat(18), 'x@é', 'éééé-éé-é']) { const sch = err(() => infer({ note: sneaky })); t.ok(!(sch instanceof Error) && val({ note: sneaky }, infer({ note: sneaky })).valid, `text with non-ASCII letters where a date-time has its zone (${JSON.stringify(sneaky).slice(0, 40)}) no longer crashes the engine`); }
+  const r2 = rng(99); let okDocs = 0;
+  for (let i = 0; i < 300; i++) { const d = makeDoc(r2); let good = false; try { good = vraw(JSON.stringify(sc.call('infer', { data: d.json }).schema), d.json).valid; } catch { /* counted as a failure */ } if (good) okDocs++; else t.ok(false, `the schema made from ${d.json.slice(0, 120)} does not accept it`); }
+  t.eq(okDocs, 300, '300 random documents: each one is valid against the schema made from it');
+  t.eq([serr(() => infer('')), serr(() => infer('{"a":')), sc.call('infer', { data: '{"a":1,"a":"x"}' }).notes.length], ['Data: nothing here yet — paste the JSON to check', 'Data: The text ends where a value should be @1:6', 1], 'making a schema from nothing or from broken JSON says so; a key written twice is noted');
+
+  // ---- an independent validator as the reference: python-jsonschema's verdicts (scripts/make-jsonschema-reference.py)
+  const JREF = JSON.parse(readFileSync(join(root, 'tests/fixtures/formats/jsonschema.json'), 'utf8'));
+  let pairs = 0;
+  for (const c of JREF) {
+    if (c.invalid) { t.ok(/^The schema itself is not valid/.test(serr(() => vraw(JSON.stringify(c.schema), '1'))), `${c.name}: a schema python-jsonschema refuses is refused here too`); continue; }
+    const got = sc.call('verdicts', { schema: JSON.stringify(c.schema), datas: c.cases.map(([d]) => d) }).valid;
+    pairs += c.cases.length;
+    c.cases.forEach(([d, want], i) => t.ok(got[i] === want, `${c.name}: ${d.slice(0, 80)} is ${want ? 'valid' : 'not valid'} for python-jsonschema, ${got[i] ? 'valid' : 'not valid'} here — schema ${JSON.stringify(c.schema).slice(0, 200)}`));
+  }
+  t.ok(JREF.length > 700 && pairs > 5000, `reference: ${JREF.length} schemas, ${pairs} schema / data pairs across Draft 4, 6, 7, 2019-09 and 2020-12`);
 };

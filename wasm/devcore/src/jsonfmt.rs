@@ -49,6 +49,8 @@ impl<'a> P<'a> {
                     self.ws();
                     if self.b.get(self.i) != Some(&b':') { let at = self.i; return self.err(&format!("Expected : after the key, found {}", self.found(at)), at); }
                     self.i += 1;
+                    self.ws();
+                    if self.b.get(self.i) == Some(&b'}') { return self.err("A value is missing after the colon", self.i); }
                     let v = self.value(depth + 1)?; m.push((key, v));
                     self.ws();
                     match self.b.get(self.i).copied() {
