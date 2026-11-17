@@ -1,0 +1,23 @@
+{
+  "sample": {
+    "store": "Pune",
+    "orders": [
+      { "id": 101, "customer": "Asha", "items": [{ "sku": "TEA", "qty": 2, "price": 120 }, { "sku": "MUG", "qty": 1, "price": 250 }], "paid": true },
+      { "id": 102, "customer": "Ravi", "items": [{ "sku": "TEA", "qty": 5, "price": 120 }], "paid": false },
+      { "id": 103, "customer": "Meera", "items": [{ "sku": "JAM", "qty": 3, "price": 90 }, { "sku": "TEA", "qty": 1, "price": 120 }], "paid": true }
+    ]
+  },
+  "filter": ".orders | map({id, total: (.items | map(.qty * .price) | add)})",
+  "args": "name=Ravi",
+  "examples": [
+    [".orders[] | {id, customer}", "Pick fields"],
+    ["[.orders[] | select(.paid) | .customer]", "Filter (select)"],
+    [".orders | map({id, total: (.items | map(.qty * .price) | add)})", "Compute totals"],
+    ["[.orders[].items[]] | group_by(.sku) | map({sku: .[0].sku, qty: (map(.qty) | add)})", "Group and sum"],
+    [".orders | sort_by(-(.items | length)) | .[0].customer", "Sort"],
+    ["[paths(scalars) | map(tostring) | join(\".\")]", "All paths"],
+    [".orders[] | [.id, .customer, .paid] | @csv", "CSV rows (use Raw output)"],
+    [".orders[] | select(.customer == $name)", "--arg $name"],
+    ["to_entries | map(\"\\(.key): \\(.value | type)\") | .[]", "Keys and types"]
+  ]
+}

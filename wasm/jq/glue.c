@@ -1,24 +1,47 @@
-// SuperTools jq glue: run a jq program over input text like the jq command line, from WebAssembly.
-// jq_run(filter, input, flags, args_json) → 0 ok / 2 compile error / 5 runtime error; output (or error text) in jq_out.
+// SuperTools jq glue: run a jq program over input text exactly like the jq command line
+//   jq <flags> [--arg / --argjson …] '<filter>' input.json
+// from WebAssembly. It follows jq 1.8.2's own src/main.c step by step — the same input reader (jq_util_input, so
+// `input`, `inputs`, `input_filename`, `input_line_number` and the "at input.json:3" positions in messages work), the
+// same messages and the same exit status: 0 ok, 2 system, 3 the filter does not compile, 5 error (a filter error or
+// input that is not JSON), 1 / 4 with -e, halt_error's own code. What main.c writes to stdout is in jq_out, what it
+// writes to stderr in jq_err.
 // flags: 1 -r raw output, 2 -c compact, 4 -s slurp, 8 -n null input, 16 -S sort keys, 32 --tab, 64 -j join,
 //        128 -a ASCII output, 256 -R raw input, 512 -e (exit status from the last output)
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
+#include <stdio.h>
+#include <errno.h>
 #include "jq.h"
 #include "jv.h"
+#include "config_opts.inc"
 #define EXPORT __attribute__((visibility("default")))
+enum { JQ_OK = 0, JQ_OK_NULL_KIND = -1, JQ_ERROR_SYSTEM = 2, JQ_ERROR_COMPILE = 3, JQ_OK_NO_OUTPUT = -4, JQ_ERROR_UNKNOWN = 5 };   // main.c
+enum { RAW_OUTPUT = 1, COMPACT = 2, SLURP = 4, PROVIDE_NULL = 8, SORTED_OUTPUT = 16, TAB = 32, RAW_NO_LF = 64, ASCII_OUTPUT = 128, RAW_INPUT = 256, EXIT_STATUS = 512 };
+#define INPUT_NAME "input.json"
 
-static char *buf; static size_t len, cap;
+static char *buf; static size_t len, cap;                       // stdout
 static void put(const char *s, size_t n) { if (len + n + 1 > cap) { cap = (len + n + 1) * 2; buf = realloc(buf, cap); } memcpy(buf + len, s, n); len += n; buf[len] = 0; }
-static void puts_(const char *s) { put(s, strlen(s)); }
-static char *errs; static size_t elen, ecap;
-static void eput(const char *s) { size_t n = strlen(s); if (elen + n + 2 > ecap) { ecap = (elen + n + 2) * 2; errs = realloc(errs, ecap); } memcpy(errs + elen, s, n); elen += n; errs[elen++] = '\n'; errs[elen] = 0; }
+static char *errs; static size_t elen, ecap;                    // stderr
+static void eput(const char *s, size_t n) { if (elen + n + 1 > ecap) { ecap = (elen + n + 1) * 2; errs = realloc(errs, ecap); } memcpy(errs + elen, s, n); elen += n; errs[elen] = 0; }
+static void eline(const char *a, const char *b, const char *c) { eput(a, strlen(a)); eput(b, strlen(b)); eput(c, strlen(c)); eput("\n", 1); }
+// compile errors and other messages jq reports through its error callback (main.c's default prints them to stderr)
 static void err_cb(void *data, jv msg) {
   (void)data;
-  if (jv_get_kind(msg) == JV_KIND_STRING) eput(jv_string_value(msg));
-  else { jv s = jv_dump_string(jv_copy(msg), 0); eput(jv_string_value(s)); jv_free(s); }
+  if (jv_get_kind(msg) == JV_KIND_STRING) eline(jv_string_value(msg), "", "");
+  else { jv s = jv_dump_string(jv_copy(msg), 0); eline(jv_string_value(s), "", ""); jv_free(s); }
   jv_free(msg);
+}
+// `debug` → ["DEBUG:",value] on stderr; `stderr` → the string as it is, anything else as compact JSON (main.c)
+static void debug_cb(void *data, jv input) {
+  (void)data;
+  jv s = jv_dump_string(JV_ARRAY(jv_string("DEBUG:"), input), 0); eline(jv_string_value(s), "", ""); jv_free(s);
+}
+static void stderr_cb(void *data, jv input) {
+  (void)data;
+  if (jv_get_kind(input) == JV_KIND_STRING) eput(jv_string_value(input), (size_t)jv_string_length_bytes(jv_copy(input)));
+  else { jv s = jv_dump_string(jv_copy(input), 0); eput(jv_string_value(s), strlen(jv_string_value(s))); jv_free(s); }
+  jv_free(input);
 }
 EXPORT void *jq_alloc(uint32_t n) { return malloc(n ? n : 1); }
 EXPORT void jq_dealloc(void *p) { free(p); }
@@ -27,85 +50,116 @@ EXPORT uint32_t jq_out_len(void) { return (uint32_t)len; }
 EXPORT const char *jq_err(void) { return errs ? errs : ""; }
 EXPORT uint32_t jq_err_len(void) { return (uint32_t)elen; }
 
-static int dumpflags;
-static int last_truthy = -1;
-static void eput2(const char *a, const char *b) { size_t n = strlen(a) + strlen(b) + 1; char *t = malloc(n); strcpy(t, a); strcat(t, b); eput(t); free(t); }
-
-// Input source shared by the main loop and jq's `input`/`inputs` builtins (as jq_util_input does for the CLI).
-static struct { const char *s; uint32_t n, pos; int flags, done, bad; jv_parser *p; } in;
-static jv next_input(jq_state *jq, void *data) {
-  (void)jq; (void)data;
-  if (in.done || in.bad) return jv_invalid();
-  int f = in.flags;
-  if (f & 256) {                                    // -R: lines as strings, or the whole text with -s
-    if (f & 4) { in.done = 1; return jv_string_sized(in.s, (int)in.n); }
-    if (in.pos >= in.n) { in.done = 1; return jv_invalid(); }
-    uint32_t e = in.pos; while (e < in.n && in.s[e] != '\n') e++;
-    jv r = jv_string_sized(in.s + in.pos, (int)(e - in.pos)); in.pos = e + 1; return r;
-  }
-  if (f & 4) {                                      // -s: every value in one array
-    in.done = 1; jv a = jv_array(), v;
-    while (jv_is_valid(v = jv_parser_next(in.p))) a = jv_array_append(a, v);
-    if (jv_invalid_has_msg(jv_copy(v))) { jv m = jv_invalid_get_msg(v); eput2("jq: parse error (input): ", jv_string_value(m)); jv_free(m); jv_free(a); in.bad = 1; return jv_invalid(); }
-    jv_free(v); return a;
-  }
-  jv v = jv_parser_next(in.p);
-  if (jv_is_valid(v)) return v;
-  if (jv_invalid_has_msg(jv_copy(v))) { jv m = jv_invalid_get_msg(v); eput2("jq: parse error (input): ", jv_string_value(m)); jv_free(m); in.bad = 1; return jv_invalid(); }
-  jv_free(v); in.done = 1; return jv_invalid();
+// jq's input reader opens its files with fopen(); build.sh compiles jq with fopen → jq_mem_fopen (memfile.h), and the
+// only file there is, input.json, is the text the page passed in.
+static const char *in_text; static size_t in_len; static FILE *in_file;
+FILE *jq_mem_fopen(const char *name, const char *mode) {
+  if (strcmp(name, INPUT_NAME) || !in_text || in_file) { errno = ENOENT; return NULL; }
+  return in_file = fmemopen((void *)in_text, in_len, mode);
 }
+int jq_mem_fclose(FILE *f) { if (f == in_file) in_file = NULL; return fclose(f); }
+static void open_err(void *data, const char *fname) { (void)data; eline("jq: error: Could not open file ", fname, ": No such file or directory"); }
 
-static int process(jq_state *jq, jv value, int flags) {
-  int ret = 0;
+// A filter such as repeat(1) or recurse without an end produces output for ever: stop once this much has been written.
+#define OUT_MAX (16u << 20)
+static int over;
+
+static int process(jq_state *jq, jv value, int dumpopts, int options) {
+  int ret = JQ_OK_NO_OUTPUT;
   jq_start(jq, value, 0);
-  jv r;
-  while (jv_is_valid(r = jq_next(jq))) {
-    last_truthy = !(jv_get_kind(r) == JV_KIND_NULL || jv_get_kind(r) == JV_KIND_FALSE);
-    if ((flags & 1) && jv_get_kind(r) == JV_KIND_STRING) { int l = jv_string_length_bytes(jv_copy(r)); put(jv_string_value(r), (size_t)l); jv_free(r); }
-    else { jv s = jv_dump_string(r, dumpflags); puts_(jv_string_value(s)); jv_free(s); }
-    if (!(flags & 64)) put("\n", 1);
+  jv result;
+  while (jv_is_valid(result = jq_next(jq))) {
+    if ((options & RAW_OUTPUT) && jv_get_kind(result) == JV_KIND_STRING) {
+      if (options & ASCII_OUTPUT) { jv s = jv_dump_string(jv_copy(result), JV_PRINT_ASCII); put(jv_string_value(s), strlen(jv_string_value(s))); jv_free(s); }
+      else put(jv_string_value(result), (size_t)jv_string_length_bytes(jv_copy(result)));
+      ret = JQ_OK;
+      jv_free(result);
+    } else {
+      ret = (jv_get_kind(result) == JV_KIND_FALSE || jv_get_kind(result) == JV_KIND_NULL) ? JQ_OK_NULL_KIND : JQ_OK;
+      jv s = jv_dump_string(result, dumpopts); put(jv_string_value(s), strlen(jv_string_value(s))); jv_free(s);
+    }
+    if (!(options & RAW_NO_LF)) put("\n", 1);
+    if (len > OUT_MAX) { over = 1; return ret; }
   }
-  if (jq_halted(jq)) {
-    jv code = jq_get_exit_code(jq), msg = jq_get_error_message(jq);
-    if (jv_get_kind(msg) == JV_KIND_STRING) eput(jv_string_value(msg));   // halt_error: the string goes to stderr as-is
-    else if (jv_is_valid(msg) && jv_get_kind(msg) != JV_KIND_NULL) { jv s = jv_dump_string(jv_copy(msg), 0); eput(jv_string_value(s)); jv_free(s); }
-    ret = jv_get_kind(code) == JV_KIND_NUMBER ? (int)jv_number_value(code) : (jv_is_valid(code) ? 5 : 0);
-    jv_free(code); jv_free(msg); jv_free(r);
-    return ret ? ret : -1;
+  if (jq_halted(jq)) {                                          // `halt` or `halt_error`
+    jv exit_code = jq_get_exit_code(jq);
+    if (!jv_is_valid(exit_code)) ret = JQ_OK;
+    else if (jv_get_kind(exit_code) == JV_KIND_NUMBER) ret = (int)jv_number_value(exit_code);
+    else ret = JQ_ERROR_UNKNOWN;
+    jv_free(exit_code);
+    jv msg = jq_get_error_message(jq);
+    if (jv_get_kind(msg) == JV_KIND_STRING) eput(jv_string_value(msg), (size_t)jv_string_length_bytes(jv_copy(msg)));   // no prefix, no new line
+    else if (jv_get_kind(msg) == JV_KIND_NULL) { }
+    else if (jv_is_valid(msg)) { jv s = jv_dump_string(jv_copy(msg), 0); eline(jv_string_value(s), "", ""); jv_free(s); }
+    jv_free(msg);
+  } else if (jv_invalid_has_msg(jv_copy(result))) {             // an error nobody caught
+    jv msg = jv_invalid_get_msg(jv_copy(result));
+    jv pos = jq_util_input_get_position(jq);
+    eput("jq: error (at ", 14); eput(jv_string_value(pos), strlen(jv_string_value(pos)));
+    if (jv_get_kind(msg) == JV_KIND_STRING) eline("): ", jv_string_value(msg), "");
+    else { msg = jv_dump_string(msg, 0); eline(") (not a string): ", jv_string_value(msg), ""); }
+    ret = JQ_ERROR_UNKNOWN;
+    jv_free(pos); jv_free(msg);
   }
-  if (jv_invalid_has_msg(jv_copy(r))) {
-    jv m = jv_invalid_get_msg(jv_copy(r));
-    if (jv_get_kind(m) == JV_KIND_STRING) eput2("jq: error: ", jv_string_value(m));
-    else { jv s = jv_dump_string(jv_copy(m), 0); eput2("jq: error (not a string): ", jv_string_value(s)); jv_free(s); }
-    jv_free(m); jv_free(r);
-    return 5;
-  }
-  jv_free(r);
-  return 0;
+  jv_free(result);
+  return ret;
 }
-EXPORT int jq_run(const char *filter, const char *input, uint32_t ilen, int flags, const char *args_json) {
-  len = 0; elen = 0; if (buf) buf[0] = 0; if (errs) errs[0] = 0; last_truthy = -1;
-  dumpflags = (flags & 2) ? 0 : ((flags & 32) ? JV_PRINT_TAB | JV_PRINT_PRETTY : JV_PRINT_INDENT_FLAGS(2));
-  if (flags & 16) dumpflags |= JV_PRINT_SORTED;
-  if (flags & 128) dumpflags |= JV_PRINT_ASCII;
+EXPORT int jq_run(const char *filter, const char *input, uint32_t ilen, int options, const char *args_json) {
+  len = 0; elen = 0; if (buf) buf[0] = 0; if (errs) errs[0] = 0; over = 0;
+  int ret = JQ_OK_NO_OUTPUT, last_result = -1;
+  // on the command line the later of -c and --tab wins; the page lists -c first, so here Compact wins as well
+  int dumpopts = (options & COMPACT) ? 0 : (options & TAB) ? JV_PRINT_TAB | JV_PRINT_PRETTY : JV_PRINT_INDENT_FLAGS(2);
+  if (options & SORTED_OUTPUT) dumpopts |= JV_PRINT_SORTED;
+  if (options & ASCII_OUTPUT) dumpopts |= JV_PRINT_ASCII;
+  if (options & RAW_NO_LF) options |= RAW_OUTPUT;               // -j implies -r
   jq_state *jq = jq_init();
-  if (!jq) { eput("jq: out of memory"); return 2; }
+  if (!jq) { eline("jq: error: out of memory", "", ""); return JQ_ERROR_SYSTEM; }
   jq_set_error_cb(jq, err_cb, NULL);
-  jv args = (args_json && *args_json) ? jv_parse(args_json) : jv_object();
-  if (!jv_is_valid(args)) { jv_free(args); args = jv_object(); }
-  jv ARGS = JV_OBJECT(jv_string("positional"), jv_array(), jv_string("named"), jv_copy(args));   // $ARGS, as main.c
-  args = jv_object_set(args, jv_string("ARGS"), ARGS);
-  if (!jq_compile_args(jq, filter, args)) { jq_teardown(&jq); if (!elen) eput("jq: compile error"); return 3; }
-  in.s = input; in.n = ilen; in.pos = 0; in.flags = flags; in.done = 0; in.bad = 0;
-  in.p = (flags & 256) ? NULL : jv_parser_new(0);
-  if (in.p) jv_parser_set_buf(in.p, input, (int)ilen, 0);
-  jq_set_input_cb(jq, next_input, NULL);
-  int ret = 0;
-  if (flags & 8) ret = process(jq, jv_null(), flags);
-  else { jv v; while (jv_is_valid(v = next_input(jq, NULL))) { int r = process(jq, v, flags); if (r) { ret = r; if (r != 5) break; } } jv_free(v); }
-  if (in.bad && !ret) ret = 2;
+  jq_set_attr(jq, jv_string("JQ_LIBRARY_PATH"), JV_ARRAY(jv_string("~/.jq"), jv_string("$ORIGIN/../lib/jq"), jv_string("$ORIGIN/../lib")));
+  jq_set_attr(jq, jv_string("JQ_ORIGIN"), jv_string("."));
+  jq_set_attr(jq, jv_string("PROGRAM_ORIGIN"), jv_string("."));
+  jv named = (args_json && *args_json) ? jv_parse(args_json) : jv_object();
+  if (jv_get_kind(named) != JV_KIND_OBJECT) { jv_free(named); named = jv_object(); }
+  jv ARGS = JV_OBJECT(jv_string("positional"), jv_array(), jv_string("named"), jv_copy(named));
+  named = jv_object_set(named, jv_string("ARGS"), ARGS);
+  if (!jv_object_has(jv_copy(named), jv_string("JQ_BUILD_CONFIGURATION")))
+    named = jv_object_set(named, jv_string("JQ_BUILD_CONFIGURATION"), jv_string(JQ_CONFIG));
+  if (!jq_compile_args(jq, filter, named)) { jq_teardown(&jq); if (!elen) eline("jq: error: the filter does not compile", "", ""); return JQ_ERROR_COMPILE; }
+
+  in_text = input; in_len = ilen;
+  jq_util_input_state *st = jq_util_input_init(open_err, NULL);
+  jq_util_input_set_parser(st, (options & RAW_INPUT) ? NULL : jv_parser_new(0), (options & SLURP) ? 1 : 0);
+  jq_set_input_cb(jq, jq_util_input_next_input_cb, st);
+  jq_set_debug_cb(jq, debug_cb, NULL);
+  jq_set_stderr_cb(jq, stderr_cb, NULL);
+  jq_util_input_add_input(st, INPUT_NAME);
+
+  if (options & PROVIDE_NULL) ret = process(jq, jv_null(), dumpopts, options);
+  else {
+    jv value;
+    while (jq_util_input_errors(st) == 0 && (jv_is_valid((value = jq_util_input_next_input(st))) || jv_invalid_has_msg(jv_copy(value)))) {
+      if (jv_is_valid(value)) {
+        ret = process(jq, value, dumpopts, options);
+        if (ret <= 0 && ret != JQ_OK_NO_OUTPUT) last_result = (ret != JQ_OK_NULL_KIND);
+        if (jq_halted(jq) || over) break;
+        continue;
+      }
+      jv msg = jv_invalid_get_msg(value);                       // the input is not JSON
+      ret = JQ_ERROR_UNKNOWN;
+      eline("jq: parse error: ", jv_string_value(msg), "");
+      jv_free(msg);
+      break;
+    }
+  }
+  if (jq_util_input_errors(st) != 0) ret = JQ_ERROR_SYSTEM;
+  if (over) { eline("jq: stopped after 16 MB of output - this filter may never end (repeat, recurse or range without a limit)", "", ""); ret = JQ_ERROR_UNKNOWN; }
+  jq_util_input_free(&st);
   jq_teardown(&jq);
-  if (in.p) { jv_parser_free(in.p); in.p = NULL; }
-  if (ret == 0 && (flags & 512)) ret = last_truthy == 1 ? 0 : last_truthy == 0 ? 1 : 4;
-  return ret < 0 ? 0 : ret;
+  if (in_file) { fclose(in_file); in_file = NULL; }             // a run that ended before the end of the input (halt, parse error, output limit)
+  in_text = NULL;
+  if (options & EXIT_STATUS) {
+    if (ret != JQ_OK_NO_OUTPUT) return ret < 0 ? -ret : ret;
+    return last_result == -1 ? 4 : last_result == 0 ? 1 : 0;
+  }
+  return ret > 0 ? ret : 0;
 }
