@@ -94,11 +94,12 @@ let currentKey = ''; // the tool's hash without ?from= (see showTool)
 let cleanup: Cleanup | null = null;
 let abort: AbortController | null = null;
 let currentTool: Tool | null = null;
+let nav = 0; // bumped on every navigation: a tool whose code arrives after the user moved on (even back to the same tool) is not mounted
 
 function teardown() {
   try { cleanup?.(); } catch (e) { console.error(e); }
   abort?.abort();
-  cleanup = null; abort = null; currentTool = null;
+  cleanup = null; abort = null; currentTool = null; nav++;
   releaseAll(); // workers, wasm instances, models and caches of the tool we are leaving (src/lifecycle.ts)
 }
 
@@ -157,7 +158,7 @@ async function showTool(tool: Tool, from?: 'fav') {
       h('div', { class: 'tool-head-text' },
         h('h1', { class: 'tool-title' }, tool.title, tool.platform !== 'both' ? h('span', { class: 'badge' }, tool.platform === 'pc' ? 'PC only' : 'Mobile only') : null),
         h('p', { class: 'tool-desc' }, tool.desc)),
-      starButton(tool, 'star head-star')),
+      available(tool) ? starButton(tool, 'star head-star') : null), // a tool hidden on this device could never show up in its Favorites
     body,
   );
   window.scrollTo({ top: 0 });
@@ -169,21 +170,27 @@ async function showTool(tool: Tool, from?: 'fav') {
   }
   const ac = new AbortController();
   abort = ac;
+  const my = nav;
   try {
     const mount = await tool.load();
-    if (currentTool !== tool) return;
+    if (my !== nav) return;
     clear(body);
     const r = await mount(body, { isMobile, signal: ac.signal });
-    if (currentTool !== tool) { if (typeof r === 'function') r(); return; }
+    if (my !== nav) { if (typeof r === 'function') r(); return; }
     if (typeof r === 'function') cleanup = r;
   } catch (e) {
     console.error(e);
-    if (currentTool === tool) clear(body).append(h('div', { class: 'note note-err' }, ic('TriangleAlert'), h('div', null, `Could not load this tool: ${errMsg(e)}`)));
+    // a failed download of the tool's code is remembered by the browser for this page, so "try again" = reload (same tab reopens)
+    if (my === nav) clear(body).append(h('div', { class: 'note note-err' }, ic('TriangleAlert'), h('div', null,
+      h('div', null, `Could not load this tool: ${errMsg(e)}`),
+      h('div', { class: 'muted' }, 'Check your internet connection, then try again.'),
+      h('button', { type: 'button', class: 'btn btn-secondary btn-sm', onclick: () => location.reload() }, 'Try again'))));
   }
 }
 
 function parse(): Route {
-  const raw = decodeURIComponent(location.hash.replace(/^#\/?/, ''));
+  let raw = location.hash.replace(/^#\/?/, '');
+  try { raw = decodeURIComponent(raw); } catch { /* a malformed %-sequence (hand-edited or cut-off link): use it as typed → home */ }
   const [path, query = ''] = raw.split('?');
   if (!path) return { kind: 'home' };
   const m = /^c\/(\w+)$/.exec(path);
@@ -222,7 +229,7 @@ const ensureSearch = () => (searchReady ||= initSearch().catch((e) => { searchRe
 function renderResults() {
   const q = searchInput.value;
   hits = searchTools(visible, q).slice(0, 12);
-  sel = Math.min(sel, Math.max(0, hits.length - 1));
+  sel = Math.max(0, Math.min(sel, hits.length - 1));
   results.hidden = !q.trim();
   clear(results).append(...(hits.length ? hits.map((t, i) => {
     const cat = CATEGORIES.find((c) => c.id === t.cat)!;
@@ -232,9 +239,9 @@ function renderResults() {
     }, ic(t.icon), h('span', { class: 'result-text' }, h('strong', null, t.title, isFav(t.id) ? ' ★' : ''), h('small', null, `${cat.title} · ${t.desc}`)));
   }) : [h('div', { class: 'result-empty' }, 'No matching tool')]));
 }
+function closeSearch() { searchInput.value = ''; hits = []; sel = 0; results.hidden = true; }
 function pick(t: Tool) {
-  searchInput.value = '';
-  results.hidden = true;
+  closeSearch();
   searchInput.blur();
   location.hash = `#/${t.id}`;
 }
@@ -242,10 +249,11 @@ searchInput.addEventListener('input', async () => { sel = 0; await ensureSearch(
 searchInput.addEventListener('focus', () => { ensureSearch().then(() => { if (searchInput.value) renderResults(); }); });
 searchInput.addEventListener('blur', () => setTimeout(() => (results.hidden = true), 120));
 searchInput.addEventListener('keydown', async (e) => {
-  if (e.key === 'Enter') { e.preventDefault(); await ensureSearch(); if (!hits.length) renderResults(); if (hits[sel]) pick(hits[sel]); }
-  else if (e.key === 'ArrowDown') { e.preventDefault(); sel = Math.min(sel + 1, hits.length - 1); renderResults(); }
+  if (e.isComposing) return; // Enter that confirms an IME composition is not "open the top match"
+  if (e.key === 'Enter') { e.preventDefault(); await ensureSearch(); renderResults(); if (hits[sel]) pick(hits[sel]); } // always rank what is in the box now
+  else if (e.key === 'ArrowDown') { e.preventDefault(); sel = Math.max(0, Math.min(sel + 1, hits.length - 1)); renderResults(); }
   else if (e.key === 'ArrowUp') { e.preventDefault(); sel = Math.max(sel - 1, 0); renderResults(); }
-  else if (e.key === 'Escape') { searchInput.value = ''; results.hidden = true; searchInput.blur(); }
+  else if (e.key === 'Escape') { closeSearch(); searchInput.blur(); }
 });
 document.addEventListener('keydown', (e) => {
   const tgt = e.target as HTMLElement;
@@ -255,6 +263,13 @@ document.addEventListener('keydown', (e) => {
     searchInput.focus();
     searchInput.select();
   }
+});
+
+// A file dropped beside a drop zone must not make the browser open it in place of the app (losing the work in the tab).
+for (const type of ['dragover', 'drop'] as const) window.addEventListener(type, (e) => {
+  if (e.defaultPrevented || !e.dataTransfer || ![...e.dataTransfer.types].includes('Files')) return; // a drop zone took it / not a file
+  e.preventDefault();
+  if (type === 'dragover') e.dataTransfer.dropEffect = 'none';
 });
 
 route();

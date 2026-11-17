@@ -146,7 +146,7 @@ export function segmented<T extends string>(options: Array<[T, string]>, value: 
 export function slider(o: { label: string; min: number; max: number; step?: number; value: number; unit?: string; fmt?: (v: number) => string; onInput?: (v: number) => void; onChange?: (v: number) => void }) {
   const fmt = o.fmt || ((v: number) => `${+v.toFixed(2)}${o.unit || ''}`);
   const out = h('output', { class: 'slider-val' }, fmt(o.value));
-  const r = h('input', { type: 'range', class: 'range', min: o.min, max: o.max, step: o.step ?? 1 });
+  const r = h('input', { type: 'range', class: 'range', min: o.min, max: o.max, step: o.step ?? 1, 'aria-label': o.label });
   r.value = String(o.value);
   r.addEventListener('input', () => { out.textContent = fmt(+r.value); o.onInput?.(+r.value); });
   r.addEventListener('change', () => o.onChange?.(+r.value));
@@ -211,10 +211,11 @@ export function filePicker(o: PickOpts) {
 export function pickFiles(accept: string, multiple = false): Promise<File[]> {
   return new Promise((resolve) => {
     const inp = h('input', { type: 'file', accept, multiple, hidden: true });
-    inp.addEventListener('change', () => resolve([...(inp.files || [])]));
+    const done = (fs: File[]) => { resolve(fs); inp.remove(); };
+    inp.addEventListener('change', () => done([...(inp.files || [])]));
+    inp.addEventListener('cancel', () => done([])); // dialog dismissed: resolve (empty) so the calling button is not left busy forever
     document.body.appendChild(inp);
     inp.click();
-    setTimeout(() => inp.remove(), 60_000);
   });
 }
 

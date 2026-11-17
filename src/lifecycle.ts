@@ -14,6 +14,7 @@ export function releaseNow(key: string) { const f = releases.get(key); if (f) { 
 
 /** Track a worker: it is terminated when the user leaves the tool; `onEnd` lets the owner forget its handle. */
 export function trackWorker(w: Worker, key: string, onEnd?: () => void): Worker {
+  releaseNow(key); // a worker already tracked under this key (e.g. one its tool stopped by hand) is ended and forgotten first
   workers.add(w);
   onLeave(key, () => { w.terminate(); workers.delete(w); onEnd?.(); });
   return w;

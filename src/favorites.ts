@@ -8,7 +8,7 @@ function load(): string[] {
   if (cache) return cache;
   try {
     const v = JSON.parse(localStorage.getItem(KEY) || '[]');
-    cache = Array.isArray(v) ? v.filter((x) => typeof x === 'string') : [];
+    cache = Array.isArray(v) ? [...new Set(v.filter((x): x is string => typeof x === 'string'))] : [];
   } catch { cache = []; }
   return cache;
 }
