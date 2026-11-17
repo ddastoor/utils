@@ -5,8 +5,16 @@
 # from the sandbox) and tzdata 2026.6 from PyPI (SHA-256 published by PyPI).
 # Steps: native CPython (the "build Python" a cross build needs) → zlib for wasm → CPython's own WASI configure
 # (Tools/wasm/wasi/config.site + config.site.extra) with zig cc → make. wasi_start.c links zig's single-threaded
-# libc main thread into its own thread list (else pthread_key_delete loops forever at exit) and starts in $PWD.
-# Upstream sources unmodified.
+# libc main thread into its own thread list (else pthread_key_delete loops forever at exit), starts in $PWD and
+# supplies local time (wasi-libc has no time zones: the host answers from the browser's Intl).
+# One patch to the upstream sources, stack-guard.patch: CPython 3.14 limits C recursion by the address of the stack in
+# wasm memory, but what runs out in a browser is the engine's own call stack (about 1 MB, invisible to C) — memoised
+# recursion 500 deep, a runaway __repr__ or JSON nested 2000 deep ended in "Maximum call stack size exceeded" instead
+# of a RecursionError. The patch makes every function that checks the limit reserve SUPERTOOLS_STACK_PAD bytes (the
+# interpreter loop SUPERTOOLS_EVAL_PAD more), so the visible stack counts nested calls, and sets the budget
+# SUPERTOOLS_C_STACK (overridable at start-up with the environment variable of the same name). The three numbers were
+# measured in Chrome (tests/e2e/python.e2e.mjs keeps the table): every recursion path stops with a RecursionError at
+# 55–75 % of the depth at which the engine's stack would overflow.
 #   ZIG=/path/to/zig wasm/python/build.sh          (≈ 10 min on 4 cores; needs a host C compiler, make, xz)
 set -euo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"; ROOT="$(cd "$HERE/../.." && pwd)"
@@ -20,6 +28,10 @@ TZ=tzdata-2026.6-py2.py3-none-any.whl; TZSHA=0a10eec6e13ef16b627fabed9a5f2ba61a6
 [ -f "$TZ" ] || curl -fsSL --retry 4 -o "$TZ" "https://files.pythonhosted.org/packages/0a/66/9a06c2227fedfd4919f0eaaa8b94377d9730882a7e4f95823c9a331ab5e1/$TZ"
 printf '%s  %s\n%s  %s\n%s  %s\n' "$PYSHA" "$PY" "$ZLSHA" "$ZL" "$TZSHA" "$TZ" | sha256sum -c -
 rm -rf Python-3.14.8 zsrc zlib native wasi zipsrc tz && tar xJf "$PY" && mkdir zsrc zlib native wasi tz && tar xzf "$ZL" -C zsrc
+(cd Python-3.14.8 && patch -p1 --no-backup-if-mismatch < "$HERE/stack-guard.patch")
+GUARD="-DSUPERTOOLS_STACK_PAD=512 -DSUPERTOOLS_EVAL_PAD=384 -DSUPERTOOLS_C_STACK=580000"
+# local time comes from the host (wasi-libc has no time zones): see wasi_start.c
+LOCALTIME="-Dlocaltime_r=supertools_localtime_r -Dmktime=supertools_mktime"
 S="$WORK/Python-3.14.8"; J=$(nproc)
 # 1. native build Python
 (cd native && "$S/configure" -q && make -j"$J" -s >/dev/null)
@@ -41,12 +53,13 @@ cat "$S/Tools/wasm/wasi/config.site-wasm32-wasi" "$HERE/config.site.extra" > con
 (cd wasi && CONFIG_SITE="$WORK/config.site" CC="$WORK/zcc" AR="$WORK/zar" RANLIB="$WORK/zranlib" CFLAGS="-O2 -Wno-date-time" \
   LDFLAGS="-Wl,--strip-all" ZLIB_CFLAGS="-I$WORK/zlib" ZLIB_LIBS="$WORK/zlib/libz.a" PKG_CONFIG_PATH= PKG_CONFIG_LIBDIR=/nonexistent \
   LIBS="$WORK/wasi_start.o" "$S/configure" -q --host=wasm32-wasip1 --build=x86_64-pc-linux-gnu --with-build-python="$WORK/native/python" \
-  --prefix=/ --disable-test-modules && make -j"$J" -s >/dev/null)
+  --prefix=/ --disable-test-modules && make -j"$J" -s EXTRA_CFLAGS="$GUARD $LOCALTIME" >/dev/null)
 cp wasi/python.wasm "$ROOT/src/wasm/bin/python.wasm"
 # 5. standard library zip: .pyc only (compiled by the same CPython version), without tests, IDLE, Tk, venv, ensurepip…
+#    (pydoc_data stays: help("if"), help("LISTS") and the other topics need it)
 cp -r "$S/Lib" zipsrc && cp wasi/build/lib.wasi-wasm32-3.14/_sysconfig* zipsrc/
 (cd tz && python3 -m zipfile -e "../$TZ" . && cp -r tzdata ../zipsrc/)
-(cd zipsrc && rm -rf test idlelib tkinter turtledemo ensurepip venv pydoc_data __phello__ site-packages turtle.py sqlite3 dbm curses \
+(cd zipsrc && rm -rf test idlelib tkinter turtledemo ensurepip venv __phello__ site-packages turtle.py sqlite3 dbm curses \
   && find . -type d \( -name tests -o -name __pycache__ \) -prune -exec rm -rf {} + \
   && "$WORK/native/python" -m compileall -q -b --invalidation-mode unchecked-hash . && find . -name '*.py' -delete \
   && "$WORK/native/python" -c "

@@ -1,0 +1,140 @@
+--- a/Include/internal/pycore_pystate.h
++++ b/Include/internal/pycore_pystate.h
+@@ -324,8 +324,25 @@
+ }
+ #endif
+ 
+-static inline uintptr_t
++/* SuperTools (wasm/python/stack-guard.patch). CPython 3.14 notices deep C recursion by looking at the address of the
++   stack. A WebAssembly program has two stacks: the one in its memory, which this address belongs to, and the engine's
++   own call stack, which is the one that runs out — in a browser after about 1 MB — and which C code cannot see. So
++   every function that makes a recursion check reserves SUPERTOOLS_STACK_PAD bytes of the visible stack: its depth
++   then counts nested checked calls, and Py_C_STACK_SIZE (ceval.c) is the budget that stops them in time. The check
++   functions are force-inlined so that the bytes land in the frame of the function that is recursing. */
++#if defined(__wasi__) && defined(SUPERTOOLS_STACK_PAD)
++extern void *volatile supertools_stack_sink;     /* wasm/python/wasi_start.c */
++#  define SUPERTOOLS_ALWAYS_INLINE __attribute__((always_inline))
++#else
++#  define SUPERTOOLS_ALWAYS_INLINE
++#endif
++
++static inline SUPERTOOLS_ALWAYS_INLINE uintptr_t
+ _Py_get_machine_stack_pointer(void) {
++#if defined(__wasi__) && defined(SUPERTOOLS_STACK_PAD)
++    char supertools_pad[SUPERTOOLS_STACK_PAD];
++    supertools_stack_sink = supertools_pad;      /* the address escapes: the compiler cannot shrink the array */
++#endif
+ #if _Py__has_builtin(__builtin_frame_address) || defined(__GNUC__)
+     return (uintptr_t)__builtin_frame_address(0);
+ #elif defined(_MSC_VER)
+@@ -337,7 +354,7 @@
+ #endif
+ }
+ 
+-static inline intptr_t
++static inline SUPERTOOLS_ALWAYS_INLINE intptr_t
+ _Py_RecursionLimit_GetMargin(PyThreadState *tstate)
+ {
+     _PyThreadStateImpl *_tstate = (_PyThreadStateImpl *)tstate;
+--- a/Include/internal/pycore_ceval.h
++++ b/Include/internal/pycore_ceval.h
+@@ -197,7 +197,7 @@
+ 
+ /* --- _Py_EnterRecursiveCall() ----------------------------------------- */
+ 
+-static inline int _Py_MakeRecCheck(PyThreadState *tstate)  {
++static inline SUPERTOOLS_ALWAYS_INLINE int _Py_MakeRecCheck(PyThreadState *tstate)  {
+     uintptr_t here_addr = _Py_get_machine_stack_pointer();
+     _PyThreadStateImpl *_tstate = (_PyThreadStateImpl *)tstate;
+     // Overflow if stack pointer is between soft limit and the base of the hardware stack.
+@@ -219,12 +219,12 @@
+ int _Py_CheckRecursiveCallPy(
+     PyThreadState *tstate);
+ 
+-static inline int _Py_EnterRecursiveCallTstate(PyThreadState *tstate,
++static inline SUPERTOOLS_ALWAYS_INLINE int _Py_EnterRecursiveCallTstate(PyThreadState *tstate,
+                                                const char *where) {
+     return (_Py_MakeRecCheck(tstate) && _Py_CheckRecursiveCall(tstate, where));
+ }
+ 
+-static inline int _Py_EnterRecursiveCall(const char *where) {
++static inline SUPERTOOLS_ALWAYS_INLINE int _Py_EnterRecursiveCall(const char *where) {
+     PyThreadState *tstate = _PyThreadState_GET();
+     return _Py_EnterRecursiveCallTstate(tstate, where);
+ }
+@@ -235,7 +235,7 @@
+ 
+ PyAPI_FUNC(void) _Py_InitializeRecursionLimits(PyThreadState *tstate);
+ 
+-static inline int _Py_ReachedRecursionLimit(PyThreadState *tstate)  {
++static inline SUPERTOOLS_ALWAYS_INLINE int _Py_ReachedRecursionLimit(PyThreadState *tstate)  {
+     uintptr_t here_addr = _Py_get_machine_stack_pointer();
+     _PyThreadStateImpl *_tstate = (_PyThreadStateImpl *)tstate;
+     assert(_tstate->c_stack_hard_limit != 0);
+--- a/Include/ceval.h
++++ b/Include/ceval.h
+@@ -59,6 +59,19 @@
+ 
+ PyAPI_FUNC(int) Py_EnterRecursiveCall(const char *where);
+ PyAPI_FUNC(void) Py_LeaveRecursiveCall(void);
++#if defined(__wasi__) && defined(SUPERTOOLS_STACK_PAD)
++/* SuperTools (wasm/python/stack-guard.patch, explained in pycore_pystate.h): the caller of the function reserves
++   the padding. */
++extern void *volatile supertools_stack_sink;
++static inline __attribute__((always_inline)) int
++supertools_enter_recursive_call(const char *where)
++{
++    char supertools_pad[SUPERTOOLS_STACK_PAD];
++    supertools_stack_sink = supertools_pad;
++    return Py_EnterRecursiveCall(where);
++}
++#  define Py_EnterRecursiveCall(where) supertools_enter_recursive_call(where)
++#endif
+ 
+ PyAPI_FUNC(const char *) PyEval_GetFuncName(PyObject *);
+ PyAPI_FUNC(const char *) PyEval_GetFuncDesc(PyObject *);
+--- a/Python/ceval.c
++++ b/Python/ceval.c
+@@ -382,6 +382,21 @@
+ #  define Py_C_STACK_SIZE 4000000
+ #endif
+ 
++#if defined(__wasi__) && defined(SUPERTOOLS_STACK_PAD)
++/* SuperTools (wasm/python/stack-guard.patch, explained in pycore_pystate.h): the budget of visible stack that keeps
++   nested calls within the engine's own call stack. SUPERTOOLS_C_STACK is the size measured for a browser worker; the
++   page may give another one in the environment (it measures how deep this browser can go) — only at start-up. */
++static uintptr_t
++supertools_c_stack_size(void)
++{
++    const char *e = getenv("SUPERTOOLS_C_STACK");
++    long n = e ? atol(e) : 0;
++    return (n >= 100000 && n <= 16000000) ? (uintptr_t)n : (uintptr_t)SUPERTOOLS_C_STACK;
++}
++#  undef Py_C_STACK_SIZE
++#  define Py_C_STACK_SIZE supertools_c_stack_size()
++#endif
++
+ #if defined(__EMSCRIPTEN__)
+ 
+ // Temporary workaround to make `pthread_getattr_np` work on Emscripten.
+@@ -1165,6 +1180,12 @@
+ #endif
+     _PyEntryFrame entry;
+ 
++#if defined(__wasi__) && defined(SUPERTOOLS_EVAL_PAD)
++    /* SuperTools (wasm/python/stack-guard.patch): the interpreter loop is by far the largest frame of a call chain;
++       it counts for more. */
++    char supertools_eval_pad[SUPERTOOLS_EVAL_PAD];
++    supertools_stack_sink = supertools_eval_pad;
++#endif
+     if (_Py_EnterRecursiveCallTstate(tstate, "")) {
+         assert(frame->owner != FRAME_OWNED_BY_INTERPRETER);
+         _PyEval_FrameClearAndPop(tstate, frame);
+@@ -3551,6 +3572,7 @@
+ /* Implement Py_EnterRecursiveCall() and Py_LeaveRecursiveCall() as functions
+    for the limited API. */
+ 
++#undef Py_EnterRecursiveCall       /* SuperTools: Include/ceval.h wraps the name for its callers */
+ int Py_EnterRecursiveCall(const char *where)
+ {
+     return _Py_EnterRecursiveCall(where);

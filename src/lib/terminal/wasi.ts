@@ -2,6 +2,7 @@
 // inside a Web Worker (browsers only allow synchronous instantiation of large modules off the main thread) or Node.
 // Implements exactly the 30 calls BusyBox imports plus a few more; anything else → ENOSYS.
 import { VFS, E, FsError, newFile, type Node, type FileNode, type DirNode, type DevNode } from './vfs';
+import { zoneInfo } from '../tzinfo';
 
 export class ProcExit extends Error { constructor(public code: number) { super(`exit ${code}`); } }
 /** Thrown from inside a syscall to stop the program: output limit (like SIGPIPE) or time limit. */
@@ -27,6 +28,8 @@ export interface RunOpts {
   tty?: boolean;
   /** debugging: called for every syscall that returns an error */
   trace?: (name: string, args: any[], errno: number) => void;
+  /** IANA time zone for programs that ask the host about local time (supertools.tz_info); default: this machine's */
+  timeZone?: string;
   /** extra import modules, e.g. { supertools: { spawn } } */
   extraImports?: (ctx: { mem: () => DataView; bytes: () => Uint8Array; str: (p: number, n?: number) => string; stdinRest: () => Uint8Array; stdinUse: (n: number) => void }) => Record<string, Record<string, Function>>;
 }
@@ -36,6 +39,7 @@ const ALL_RIGHTS = 0x1fffffffn;
 const enc = new TextEncoder(), dec = new TextDecoder();
 
 export function runWasi(module: WebAssembly.Module, o: RunOpts): number {
+  let zone: ReturnType<typeof zoneInfo> | null = null;
   const vfs = o.vfs, maxOut = o.maxOutput ?? 16 * 1024 * 1024, t0 = performance.now(), tl = o.timeLimit ?? 60000;
   let outBytes = 0;
   const limit = (n: number) => { outBytes += n; if (outBytes > maxOut) throw new Abort('output', 141); };
@@ -264,7 +268,13 @@ export function runWasi(module: WebAssembly.Module, o: RunOpts): number {
   if (o.trace) for (const k of Object.keys(w)) { const f = w[k]; w[k] = (...a: any[]) => { curName = k; return f(...a); }; }
   const imports: WebAssembly.Imports = {
     wasi_snapshot_preview1: new Proxy(w as any, { get: (t, k: string) => t[k] || ((...a: any[]) => { o.trace?.(String(k), a, E.NOSYS); return E.NOSYS; }) }),
-    supertools: { spawn: () => 127, ncpu: () => 1 }, // defaults; the shell supplies real ones via extraImports
+    // defaults; the shell supplies real spawn / ncpu via extraImports. tz_info: local time for programs built on
+    // wasi-libc, which has no time zones (wasm/python/wasi_start.c) — answered from Intl, the zone made on first use
+    supertools: { spawn: () => 127, ncpu: () => 1, tz_info: (secs: bigint, local: number, out: number, name: number, cap: number) => {
+      const z = (zone ||= zoneInfo(o.timeZone))(Number(secs), !!local), dv = mem();
+      dv.setInt32(out, z.offset, true); dv.setInt32(out + 4, z.isdst ? 1 : 0, true); dv.setInt32(out + 8, z.other, true);
+      const b = enc.encode(z.name).subarray(0, Math.max(0, cap - 1)); bytes().set(b, name); dv.setUint8(name + b.length, 0);
+    } },
   };
   const inFd = fds[0] as { data: Uint8Array; pos: number };
   if (o.extraImports) Object.assign(imports, o.extraImports({ mem, bytes, str, stdinRest: () => inFd.data.subarray(inFd.pos), stdinUse: (n) => { inFd.pos += n; } }));
