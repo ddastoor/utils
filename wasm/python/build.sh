@@ -56,10 +56,13 @@ cat "$S/Tools/wasm/wasi/config.site-wasm32-wasi" "$HERE/config.site.extra" > con
   --prefix=/ --disable-test-modules && make -j"$J" -s EXTRA_CFLAGS="$GUARD $LOCALTIME" >/dev/null)
 cp wasi/python.wasm "$ROOT/src/wasm/bin/python.wasm"
 # 5. standard library zip: .pyc only (compiled by the same CPython version), without tests, IDLE, Tk, venv, ensurepip…
-#    (pydoc_data stays: help("if"), help("LISTS") and the other topics need it)
+#    (pydoc_data stays: help("if"), help("LISTS") and the other topics need it; dbm.dumb stays: shelve needs it)
 cp -r "$S/Lib" zipsrc && cp wasi/build/lib.wasi-wasm32-3.14/_sysconfig* zipsrc/
+# our own additions (wasm/python/lib): a no-network stand-in for _socket (so that socket, asyncio, doctest, logging.handlers,
+# email.utils, urllib.request … import), an asyncio event loop that needs no sockets or threads, sitecustomize
+cp "$HERE"/lib/*.py zipsrc/
 (cd tz && python3 -m zipfile -e "../$TZ" . && cp -r tzdata ../zipsrc/)
-(cd zipsrc && rm -rf test idlelib tkinter turtledemo ensurepip venv __phello__ site-packages turtle.py sqlite3 dbm curses \
+(cd zipsrc && rm -rf test idlelib tkinter turtledemo ensurepip venv __phello__ site-packages turtle.py sqlite3 dbm/sqlite3.py dbm/gnu.py dbm/ndbm.py curses \
   && find . -type d \( -name tests -o -name __pycache__ \) -prune -exec rm -rf {} + \
   && "$WORK/native/python" -m compileall -q -b --invalidation-mode unchecked-hash . && find . -name '*.py' -delete \
   && "$WORK/native/python" -c "
