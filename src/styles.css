@@ -887,7 +887,11 @@ details summary { cursor: pointer; font-weight: 600; color: var(--accent); paddi
 .gv-view.fit .gv-img { max-width: 100%; height: auto; }
 .gv-img { display: block; margin: 0 auto; }
 .py-out { min-height: 200px; max-height: 60vh; overflow: auto; margin: 8px 0; padding: 12px; border-radius: 10px; background: var(--code-bg, #0f172a); color: #e2e8f0; font: 13px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; white-space: pre-wrap; word-break: break-word; }
-.py-stderr { color: #fca5a5; }
+.py-out:focus-visible { outline: 2px solid var(--accent, #6366f1); outline-offset: 2px; }
+.term-err { color: #fca5a5; }
+.term-in { color: #86efac; }
+.term-note, .term-cut { color: #94a3b8; font-style: italic; }
+.term-cut { margin-bottom: 6px; }
 
 /* Touch targets ≥ 44 px on touch screens (owner rule §1.9). Desktop keeps the compact sizes. Sweep: scratch sweep.mjs /
    tests/e2e/touch-targets.e2e.mjs measures every visible control of every phone tab. */

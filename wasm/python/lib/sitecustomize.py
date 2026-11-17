@@ -1,8 +1,15 @@
 """SuperTools: runs when the interpreter starts (wasm/python/lib, added to python314.zip by build.sh).
 
-One job: the first time a program imports asyncio, give it an event loop that works without sockets and threads
-(_supertools_asyncio). Nothing is imported here until then, so starting Python costs nothing extra."""
+Two jobs:
+1. The first time a program imports asyncio, give it an event loop that works without sockets and threads
+   (_supertools_asyncio). Nothing is imported here until then, so starting Python costs nothing extra.
+2. The recursion limit starts at 2000, not 1000. In this build functools.lru_cache / cache is the Python wrapper
+   (wasm/python/patch-stdlib.py), which adds one Python frame to every level of a cached recursive function; with
+   2000 such a function reaches the depth it reaches on a desktop (just under 1000). Plain Python recursion uses no
+   C stack in CPython 3.14, so the higher limit costs nothing; sys.setrecursionlimit() works as always."""
 import sys
+
+sys.setrecursionlimit(2000)
 
 class _AsyncioHook:
     def find_spec(self, name, path=None, target=None):

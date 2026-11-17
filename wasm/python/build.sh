@@ -61,6 +61,7 @@ cp -r "$S/Lib" zipsrc && cp wasi/build/lib.wasi-wasm32-3.14/_sysconfig* zipsrc/
 # our own additions (wasm/python/lib): a no-network stand-in for _socket (so that socket, asyncio, doctest, logging.handlers,
 # email.utils, urllib.request … import), an asyncio event loop that needs no sockets or threads, sitecustomize
 cp "$HERE"/lib/*.py zipsrc/
+python3 "$HERE/patch-stdlib.py" zipsrc
 (cd tz && python3 -m zipfile -e "../$TZ" . && cp -r tzdata ../zipsrc/)
 (cd zipsrc && rm -rf test idlelib tkinter turtledemo ensurepip venv __phello__ site-packages turtle.py sqlite3 dbm/sqlite3.py dbm/gnu.py dbm/ndbm.py curses \
   && find . -type d \( -name tests -o -name __pycache__ \) -prune -exec rm -rf {} + \

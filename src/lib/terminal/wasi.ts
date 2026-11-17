@@ -24,12 +24,22 @@ export interface RunOpts {
   timeLimit?: number;
   /** told how many stdin bytes the program consumed (so `while read …; do cmd; done < f` leaves the rest) */
   onStdinUsed?: (n: number) => void;
+  /** hand stdin over one line per read, as a terminal does (a program that asks a question gets one answer), and
+   *  tell the caller what each read took (an empty chunk = end of input) — used to echo answers after prompts */
+  stdinLines?: boolean;
+  onStdinRead?: (chunk: Uint8Array) => void;
+  /** called at every system call — a blocked worker's only chance to send what it has buffered */
+  onCall?: () => void;
   /** stdout/stderr are a terminal (isatty → colours, columns) — false for pipes and redirects */
   tty?: boolean;
   /** debugging: called for every syscall that returns an error */
   trace?: (name: string, args: any[], errno: number) => void;
   /** IANA time zone for programs that ask the host about local time (supertools.tz_info); default: this machine's */
   timeZone?: string;
+  /** tzdata's abbreviations for that zone (an entry of src/lib/tzabbr.json); without it the names are Intl's */
+  timeZoneNames?: string;
+  /** told why the program was stopped by a limit, before runWasi returns its exit code (141 output, 124 time) */
+  onAbort?: (reason: 'output' | 'time') => void;
   /** extra import modules, e.g. { supertools: { spawn } } */
   extraImports?: (ctx: { mem: () => DataView; bytes: () => Uint8Array; str: (p: number, n?: number) => string; stdinRest: () => Uint8Array; stdinUse: (n: number) => void }) => Record<string, Record<string, Function>>;
 }
@@ -79,7 +89,7 @@ export function runWasi(module: WebAssembly.Module, o: RunOpts): number {
   };
   let curName = '';
   const wrap = (f: (...a: any[]) => number | void) => (...a: any[]) => {
-    check();
+    check(); o.onCall?.();
     let r: number;
     try { r = (f(...a) ?? 0) as number; } catch (e) { if (e instanceof FsError) r = e.errno; else throw e; }
     if (r && o.trace) o.trace(curName, a, r);
@@ -159,13 +169,17 @@ export function runWasi(module: WebAssembly.Module, o: RunOpts): number {
       let total = 0;
       for (const [p, len] of iovs(iov, cnt)) {
         let chunk: Uint8Array;
-        if (f.t === 'in') { chunk = f.data.subarray(f.pos, f.pos + len); f.pos += chunk.length; }
+        if (f.t === 'in') {
+          let end = Math.min(f.data.length, f.pos + len);
+          if (o.stdinLines) { const nl = f.data.indexOf(10, f.pos); if (nl >= 0 && nl + 1 < end) end = nl + 1; }
+          chunk = f.data.subarray(f.pos, end); f.pos = end; o.onStdinRead?.(chunk);
+        }
         else if (f.t === 'file') { chunk = vfs.read(f.node, f.pos, len); f.pos += chunk.length; }
         else if (f.t === 'dir') return E.ISDIR;
         else if (f.t === 'dev') { const r = devRead(f.node, len); if (typeof r === 'number') return r; chunk = r; }
         else return E.BADF;
         bytes().set(chunk, p); total += chunk.length;
-        if (chunk.length < len) break;
+        if (chunk.length < len || (f.t === 'in' && o.stdinLines)) break;
       }
       mem().setUint32(nread, total, true);
     }),
@@ -271,7 +285,7 @@ export function runWasi(module: WebAssembly.Module, o: RunOpts): number {
     // defaults; the shell supplies real spawn / ncpu via extraImports. tz_info: local time for programs built on
     // wasi-libc, which has no time zones (wasm/python/wasi_start.c) — answered from Intl, the zone made on first use
     supertools: { spawn: () => 127, ncpu: () => 1, tz_info: (secs: bigint, local: number, out: number, name: number, cap: number) => {
-      const z = (zone ||= zoneInfo(o.timeZone))(Number(secs), !!local), dv = mem();
+      const z = (zone ||= zoneInfo(o.timeZone, o.timeZoneNames))(Number(secs), !!local), dv = mem();
       dv.setInt32(out, z.offset, true); dv.setInt32(out + 4, z.isdst ? 1 : 0, true); dv.setInt32(out + 8, z.other, true);
       const b = enc.encode(z.name).subarray(0, Math.max(0, cap - 1)); bytes().set(b, name); dv.setUint8(name + b.length, 0);
     } },
@@ -283,7 +297,7 @@ export function runWasi(module: WebAssembly.Module, o: RunOpts): number {
   try { (inst.exports._start as Function)(); return 0; }
   catch (e) {
     if (e instanceof ProcExit) return e.code;
-    if (e instanceof Abort) { o.stderr(enc.encode(e.reason === 'time' ? '\n[stopped: time limit reached]\n' : '')); return e.code; }
+    if (e instanceof Abort) { o.onAbort?.(e.reason as 'output' | 'time'); o.stderr(enc.encode(e.reason === 'time' ? '\n[stopped: time limit reached]\n' : '')); return e.code; }
     throw e;
   } finally { o.onStdinUsed?.(stdinFd.pos); }
 }
