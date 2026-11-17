@@ -11,6 +11,10 @@ mod cidr;
 #[cfg(feature = "enc")]
 mod enc;
 mod misc;
+#[cfg(feature = "semver")]
+mod semver_npm;
+#[cfg(feature = "semver")]
+mod semver_re;
 #[cfg(feature = "x509")]
 mod x509;
 

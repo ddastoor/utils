@@ -57,51 +57,44 @@ pub fn cron(input: &[u8]) -> R {
     js(json!({ "description": c.describe(), "next": next, "fields": fields, "never": next.is_empty() }))
 }
 
-// ------------------------------------------------------------------ semver: {versions:[...], range, inc}
-/// Strict SemVer 2.0.0 syntax (semver.org grammar; a leading "v" allowed like node-semver). The parser crate is looser
-/// ("1.2.3.4", "01.2.3", "1.2.3abc" would be accepted), so versions are checked here first.
-#[cfg(feature = "semver")]
-fn strict(v: &str) -> bool {
-    let v = v.strip_prefix('v').unwrap_or(v);
-    let (rest, build) = match v.split_once('+') { Some((a, b)) => (a, Some(b)), None => (v, None) };
-    let (core, pre) = match rest.split_once('-') { Some((a, b)) => (a, Some(b)), None => (rest, None) };
-    let num = |x: &str| !x.is_empty() && x.bytes().all(|c| c.is_ascii_digit()) && (x == "0" || !x.starts_with('0'));
-    let ident = |x: &str| !x.is_empty() && x.bytes().all(|c| c.is_ascii_alphanumeric() || c == b'-');
-    let parts: Vec<&str> = core.split('.').collect();
-    parts.len() == 3 && parts.iter().all(|p| num(p))
-        && pre.map_or(true, |p| p.split('.').all(|i| ident(i) && (!i.bytes().all(|c| c.is_ascii_digit()) || num(i))))
-        && build.map_or(true, |b| b.split('.').all(ident))
-}
+// ------------------------------------------------------------------ semver: {versions:[...], range, prerelease, preid}
+/// npm's rules, by our port of the `semver` package (semver_npm.rs).
 #[cfg(feature = "semver")]
 pub fn semver(input: &[u8]) -> R {
-    use nodejs_semver::{Range, Version};
+    use crate::semver_npm::{Range, Ver};
+    use std::cmp::Ordering;
     let a = arg(input)?;
     let range_s = s(&a, "range").trim();
-    let range = if range_s.is_empty() { None } else { Some(Range::parse(range_s).map_err(|_| format!("\"{range_s}\" is not a valid range"))?) };
     let pre = a.get("prerelease").and_then(|v| v.as_bool()).unwrap_or(false);
-    let mut good: Vec<Version> = Vec::new(); let mut rows = Vec::new();
+    let range = if range_s.is_empty() { None } else { Some(Range::parse(range_s, pre).map_err(|_| format!("\"{range_s}\" is not a valid range"))?) };
+    let mut good: Vec<(String, Ver)> = Vec::new(); let mut rows = Vec::new();
     for raw in a.get("versions").and_then(|v| v.as_array()).cloned().unwrap_or_default() {
         let t = raw.as_str().unwrap_or("").trim().to_string(); if t.is_empty() { continue; }
-        match Version::parse(&t).ok().filter(|_| strict(&t)).ok_or(()) {
+        match Ver::parse(&t) {
             Ok(v) => {
-                let sat = range.as_ref().map(|r| v.satisfies_with_prerelease(r, pre));
-                rows.push(json!({ "input": t, "valid": true, "version": v.to_string(), "satisfies": sat, "prerelease": v.is_prerelease() }));
-                good.push(v);
+                let sat = range.as_ref().map(|r| r.test(&v));
+                rows.push(json!({ "input": t, "valid": true, "version": v.version(), "satisfies": sat, "prerelease": !v.pre.is_empty() }));
+                good.push((t, v));
             }
-            Err(_) => rows.push(json!({ "input": t, "valid": false })),
+            Err(e) => rows.push(json!({ "input": t, "valid": false, "why": e })),
         }
     }
-    let mut sorted = good.clone(); sorted.sort();
-    let max = range.as_ref().and_then(|r| good.iter().filter(|v| v.satisfies_with_prerelease(r, pre)).max()).map(|v| v.to_string());
-    let min = range.as_ref().and_then(|r| good.iter().filter(|v| v.satisfies_with_prerelease(r, pre)).min()).map(|v| v.to_string());
-    let bumps = good.first().map(|v| {
+    let mut sorted: Vec<&Ver> = good.iter().map(|g| &g.1).collect(); sorted.sort_by(|x, y| x.compare_build(y));
+    // maxSatisfying / minSatisfying: the first of equal versions wins, as in the package
+    let pick = |want: Ordering| -> Option<String> {
+        let r = range.as_ref()?; let mut best: Option<&(String, Ver)> = None;
+        for g in good.iter().filter(|g| r.test(&g.1)) { if best.map_or(true, |b| g.1.compare(&b.1) == want) { best = Some(g); } }
+        best.map(|b| b.1.version())
+    };
+    let (max, min) = (pick(Ordering::Greater), pick(Ordering::Less));
+    let bumps = good.first().map(|(_, v)| {
         let id = s(&a, "preid"); let id = if id.is_empty() { None } else { Some(id) };
         let mut o = serde_json::Map::new();
-        for k in ["major", "minor", "patch", "premajor", "preminor", "prepatch", "prerelease"] { o.insert(k.into(), v.inc(k, id, None).map(|x| x.to_string().into()).unwrap_or(Value::Null)); }
+        for k in ["major", "minor", "patch", "premajor", "preminor", "prepatch", "prerelease"] { let mut n = v.clone(); o.insert(k.into(), n.inc(k, id).map(|_| n.version().into()).unwrap_or(Value::Null)); }
         Value::Object(o)
     });
-    let range_info = range.as_ref().map(|r| json!({ "normalized": r.to_string(), "min": r.min_version().map(|v| v.to_string()) }));
-    js(json!({ "rows": rows, "sorted": sorted.iter().map(|v| v.to_string()).collect::<Vec<_>>(), "max": max, "min": min, "bumps": bumps, "range": range_info }))
+    let range_info = range.as_ref().map(|r| json!({ "normalized": r.formatted(), "min": r.min_version().map(|v| v.version()) }));
+    js(json!({ "rows": rows, "sorted": sorted.iter().map(|v| v.with_build()).collect::<Vec<_>>(), "max": max, "min": min, "bumps": bumps, "range": range_info }))
 }
 
 // ------------------------------------------------------------------ glob: {patterns:[...], paths:[...], caseInsensitive, dot}

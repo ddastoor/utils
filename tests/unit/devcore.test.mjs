@@ -188,6 +188,60 @@ export default async (t, { load, wasm }) => {
   t.eq(sv('', ['1.2.4-beta.1'], { preid: 'beta' }).bumps.prerelease, '1.2.4-beta.2', 'prerelease bump');
   t.eq(sv('', ['1.2', 'a.b.c', '1.2.3.4', '01.2.3', '1.2.3-', '1.2.3abc', '1.2.3-01', 'v1.2.3', '1.2.3-rc.1+build.5']).rows.map((x) => x.valid), [false, false, false, false, false, false, false, true, true], 'strict SemVer validity (same as node-semver valid())');
   t.ok(/not a valid range/.test(err(() => sv('>>1', ['1.0.0']))), 'bad range refused');
+
+  // ---- bug hunt, Nov 2026: our port of npm's semver against the package itself (node_modules/semver, the reference)
+  {
+    const { createRequire } = await import('node:module'); const npm = createRequire(import.meta.url)('semver');
+    const V = ['0.0.0', '0.0.0-0', '0.0.1', '0.0.2', '0.0.3', '0.1.0', '0.1.2', '0.2.0', '0.2.3', '0.2.5', '0.3.0', '1.0.0', '1.0.0-0', '1.0.0-alpha', '1.0.0-alpha.1', '1.0.0-alpha.beta', '1.0.0-beta', '1.0.0-beta.2', '1.0.0-beta.11', '1.0.0-rc.1', '1.0.1', '1.1.0', '1.2.0', '1.2.3-alpha.3', '1.2.3-alpha.7', '1.2.3-beta.1',
+      '1.2.3-rc.1+build', '1.2.3', '1.2.3+build.5', 'v1.2.3', '1.2.4-0', '1.2.4', '1.2.9', '1.3.0-beta.1', '1.3.0', '1.9.9', '1.10.0', '2.0.0-0', '2.0.0-rc.1', '2.0.0', '2.1.0', '2.4.0', '2.5.0', '2.9.9', '3.0.0-alpha', '3.0.0', '3.4.5-alpha.9', '3.4.5', '5.0.0', '6.0.0', '7.2.3', '7.2.4', '8.0.0', '10.0.0', '1.0.0-0A', '1.0.0-x.7.z.92',
+      '1.0.0-beta+exp.sha.5114f85', '1.2.3-alpha-beta', '1.2.3--1', '99999.99999.99999', '0.0.0-alpha', '4.5.6-pre.2', '4.5.6'];
+    const R = ['', '*', 'x', 'X', '1', '1.x', '1.X', '1.*', '1.2', '1.2.x', '1.2.3', '=1.2.3', 'v1.2.3', '=v1.2.3', '^1.2.3', '^1.2', '^1', '^1.x', '^0.2.3', '^0.2', '^0.0.3', '^0.0', '^0', '^0.0.x', '^1.2.3-beta.1', '^0.0.3-beta', '^0.2.3-rc.1', '~1.2.3', '~1.2', '~1', '~0.2.3', '~0.2', '~0', '~1.2.3-beta.2', '~>1.2.3', '~> 1.2', '~ 1.2.3', '^ 1.2.3',
+      '>1', '>1.2', '>1.2.3', '>=1', '>=1.2', '>=1.2.3', '<1', '<1.2', '<1.2.3', '<=1', '<=1.2', '<=1.2.3', '>1.x', '>=1.x', '<2.x', '<=2.x', '>1.2.x', '<=1.2.x', '>=1.2.0 <2', '>=1.2.3 <2.0.0', '> 1.2.3 < 2', '>= 1.2.3 <= 1.2.9', '>1.2.3 <1.2.3', '>=1.2.3 <=1.2.3', '>=1.2.3 <=1.2.3-beta', '1.2.3 1.2.4', '1.2.3 1.2.3', '1.2.3 >=1',
+      '1.2.3 - 2.3.4', '1.2 - 2.3.4', '1.2.3 - 2.3', '1.2.3 - 2', '1 - 2', '1.0.0 - 1.0.0', '1.2.3-alpha.3 - 1.2.3', '1.2.3 - 1.2.4-beta', 'x - 2', '1 - x', '1.x - 2.x', '5.0.0 - 7.2.3', '1.x || 2.x', '1.x || >=2.5.0 || 5.0.0 - 7.2.3', '^1.2.3 || ^2', '>=1 <2 || 3', '1 ||', '|| 1', '||', '1 || *', '<0.0.0-0 || 1', '<1 || >3',
+      '>1.2.3-alpha.3', '>=1.2.3-alpha.3 <1.2.3', '>=1.0.0-0', '>=0.0.0', '>=0.0.0-0', '<0.0.0', '<0.0.0-0', '>=1.2.3-0 <1.2.4', '*-0', '1.2.3-beta.1', '1.2.3+build', '^1.2.3+build.9', '>=1.2.3+abc <2+def', '1.2.x+build', '~1.2.3-0', '^0.0.0', '~0.0.0', '^0.0.0-0', '^1.0.0-0', '>= 1', '<   2', '>=1.2.3   <2', '\t>=1.2.3\n<2 ',
+      '>=1.2.3 , <2', '1.2.3 - ', ' - 1.2.3', '^01.2.3', '>01.02.03', 'x.2.3', '1.x.3', '*.2', '>>1', '=>1', '1.2.3.4', 'banana', '^', '~', '>', '<', '>=', '=', '!1.2.3', '1.2.3 ||| 1.2.4', '1.2.3-', '^1.2.3-', '1.2.3 -2', '1.2.3- 2', '>= ^1.2.3', '^~1.2.3', '~^1.2.3', '>1.2.3 <', '1.2.3 >', '^1.2.3 ~1.2.5', '~1.2.3 ^1.2', '>=1.2 <1.3 >=1.2.5',
+      '^9007199254740991.0.0', '9007199254740992.0.0', '>=9007199254740991.0.0', '1.2.3 - 9007199254740991', 'x.x.x', '1.x.x', '*.*.*', '1.*.*', '>*', '<*', '>=*', '<=*', '=*', '=1', '=1.2', '==1.2.3', 'V1.2.3', '>v1', '> v1.2', '>=v1.2.3 <v2', '1.2.3 || banana', 'latest', '1.2.3-alpha.01', '^1.2.3-alpha.x', '1.2.3-x', '>1.2.3-x'];
+    const diffs = { satisfies: [], valid: [], norm: [], minv: [], maxs: [] }; let pairs = 0;
+    for (const incl of [false, true]) for (const range of R) {
+      const want = npm.validRange(range, { includePrerelease: incl }); let got;
+      try { got = d.json('semver', { range, versions: V, prerelease: incl }); } catch { got = null; }
+      if (range.trim() === '') { // the tab treats an empty box as "no range" — compare "*" semantics through an explicit star below
+        continue;
+      }
+      if ((want === null) !== (got === null)) { diffs.valid.push(`${JSON.stringify(range)} incl=${incl}: npm ${want === null ? 'invalid' : 'valid'}, ours ${got === null ? 'invalid' : 'valid'}`); continue; }
+      if (want === null) continue;
+      if (got.range.normalized !== want) diffs.norm.push(`${JSON.stringify(range)} incl=${incl}: npm ${JSON.stringify(want)}, ours ${JSON.stringify(got.range.normalized)}`);
+      const mv = npm.minVersion(range, { includePrerelease: incl }); if ((mv ? mv.version : null) !== got.range.min) diffs.minv.push(`${JSON.stringify(range)} incl=${incl}: npm ${mv && mv.version}, ours ${got.range.min}`);
+      V.forEach((v, i) => { pairs++; const w = npm.satisfies(v, range, { includePrerelease: incl }); if (got.rows[i].satisfies !== w) diffs.satisfies.push(`${v} in ${JSON.stringify(range)} incl=${incl}: npm ${w}, ours ${got.rows[i].satisfies}`); });
+      const mx = npm.maxSatisfying(V, range, { includePrerelease: incl }), mn = npm.minSatisfying(V, range, { includePrerelease: incl }), cl = (x) => (x === null ? null : npm.clean(x));
+      if (cl(mx) !== got.max || cl(mn) !== got.min) diffs.maxs.push(`${JSON.stringify(range)} incl=${incl}: npm max ${mx} min ${mn}, ours max ${got.max} min ${got.min}`);
+    }
+    if (process.env.SEMVER_DEBUG) (await import('node:fs')).writeFileSync(process.env.SEMVER_DEBUG, JSON.stringify(diffs, null, 1));
+    t.ok(pairs > 20000 && !diffs.satisfies.length, `satisfies(): ${pairs.toLocaleString('en-IN')} version × range pairs (${R.length} ranges, with and without "include pre-releases") = npm semver ${npm.SEMVER_SPEC_VERSION ? '' : ''}${diffs.satisfies.length ? `— ${diffs.satisfies.length} differ: ${diffs.satisfies.slice(0, 4).join(' | ')}` : ''}`);
+    t.ok(!diffs.valid.length, `the same ranges are valid / invalid as in npm semver ${diffs.valid.slice(0, 5).join(' | ')}`);
+    t.ok(!diffs.norm.length, `"Means" (the normalised range) = npm validRange() ${diffs.norm.slice(0, 4).join(' | ')}`);
+    t.ok(!diffs.minv.length, `"Lowest possible" = npm minVersion() ${diffs.minv.slice(0, 4).join(' | ')}`);
+    t.ok(!diffs.maxs.length, `highest / lowest listed match = npm maxSatisfying() / minSatisfying() ${diffs.maxs.slice(0, 4).join(' | ')}`);
+    // the cases the old engine got wrong
+    t.eq(sat('>1.2.3 <1.2.3', ['1.0.0', '1.2.3', '2.0.0']), [false, false, false], 'a range nothing can satisfy matches nothing (it used to match everything)');
+    t.eq(sat('1.2.3 1.2.4', ['1.2.3', '1.2.4']), [false, false], 'two different exact versions in one set match nothing (used to match both)');
+    t.ok(/not a valid range/.test(err(() => sv('^01.2.3', ['1.2.3']))) && /not a valid range/.test(err(() => sv('x.2.3', ['1.2.3']))) && /not a valid range/.test(err(() => sv('1.2.3 - ', ['1.2.3']))), 'ranges npm refuses are refused (^01.2.3, x.2.3, "1.2.3 - ")');
+    t.eq(sv('1.x', ['1.0.0-alpha', '1.5.0-rc.1', '2.0.0-0'], { prerelease: true }).rows.map((x) => x.satisfies), [true, true, false], '"include pre-releases": 1.x takes 1.0.0-alpha and 1.5.0-rc.1, not 2.0.0-0');
+    // versions: validity, cleaned form, order
+    const VV = [...V, '1.2', 'a.b.c', '1.2.3.4', '01.2.3', '1.02.3', '1.2.03', '1.2.3-', '1.2.3abc', '1.2.3-01', '1.2.3-0', '1.2.3-a.01', '1.2.3-a..b', '1.2.3+', '1.2.3+a..b', '1.2.3-+', '=1.2.3', ' 1.2.3 ', 'V1.2.3', 'vv1.2.3', '1.2.3-é', '9007199254740991.0.0', '9007199254740992.0.0', '0.0.9007199254740991', '1.2.3-9007199254740993', '1.2.3-00', '-1.2.3', '1.-2.3', '1,2,3', '1.2.3-a_b', '1.2.3+a_b', `1.2.3-${'a'.repeat(250)}`, `1.2.3-${'a'.repeat(260)}`, '1.2.3-rc.1+build.5', '1.2.3-0123', '1.2.3-0123a', '1.2.3--', '1.2.3----RC-SNAPSHOT.12.9.1--.12+788', '1.0.0+0.build.1-rc.10000aaa-kk-0.1'];
+    const vr = sv('', VV).rows, vbad = VV.filter((v, i) => { const w = npm.valid(v.trim()); const row = vr.find((x) => x.input === v.trim()); return v.trim() ? (w === null) !== !row.valid || (w !== null && row.version !== w) : false; });
+    t.ok(!vbad.length, `${VV.length} version strings: valid / not valid and the cleaned form = npm valid() ${vbad.slice(0, 6).map((x) => JSON.stringify(x)).join(' ')}`);
+    const okV = VV.map((v) => v.trim()).filter((v) => npm.valid(v)), ours = sv('', okV).sorted.map((x) => x.replace(/\+.*$/, '')), theirs = npm.sort([...okV]).map((v) => npm.clean(v) ?? new npm.SemVer(v).version);
+    t.eq(ours, theirs, `${okV.length} versions sorted = npm sort() (pre-release identifiers: numbers before words, numbers by value)`);
+    // bumps: every release type × pre-release id × many starting versions
+    const bbad = [];
+    for (const v of ['1.2.3', '1.2.3-0', '1.2.3-beta', '1.2.3-beta.1', '1.2.3-beta.1.2', '1.2.3-rc.9', '1.2.3-alpha.beta', '0.0.0', '0.0.0-0', '1.0.0-0', '1.1.0-0', '1.0.1-0', '2.0.0-rc.1', '1.2.3+build.1', '1.2.3-beta.5+build', '1.2.0-beta', '1.0.0-x.7.z.92', '1.2.3-1.2.3', '1.2.3-a.b.c', '9.9.9-rc', '1.2.3-beta.x'])
+      for (const preid of ['', 'beta', 'rc', 'alpha', 'beta.1', 'x', '0', '01', 'a b', 'é', 'next-major']) {
+        const got = (() => { try { return sv('', [v], { preid }).bumps; } catch (e) { return { error: e.message }; } })();
+        for (const k of ['major', 'minor', 'patch', 'premajor', 'preminor', 'prepatch', 'prerelease']) { const w = npm.inc(v, k, {}, preid || undefined); if ((got[k] ?? null) !== w) bbad.push(`${v} ${k} preid=${JSON.stringify(preid)}: npm ${w}, ours ${got[k]}`); }
+      }
+    t.ok(!bbad.length, `next versions: 21 versions × 7 kinds of bump × 11 pre-release ids = npm inc() ${bbad.slice(0, 5).join(' | ')} ${bbad.length > 5 ? `(+${bbad.length - 5})` : ''}`);
+  }
   // ---- glob
   const gl = (patterns, paths, o = {}) => d.json('glob', { patterns, paths, ...o }).rows.map((x) => x.match);
   t.eq(gl(['*.js'], ['a.js', 'src/a.js', 'a.ts']), [true, false, false], '* does not cross /');

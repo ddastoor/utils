@@ -23,7 +23,7 @@ export default async (ctx) => {
   ok(await pre.textContent() === dump(buf.subarray(16 * 4096, 17 * 4096), 16 * 4096, 16) && /Offset 68096 \(0x10a00\) is on page 17/.test(await page.locator('.tool-body').textContent()), 'go to 0x10A00 → page 17 (offsets above 64 KB)');
   await go.fill('69999'); await page.getByRole('button', { name: 'Go', exact: true }).click(); ok(await pre.textContent() === dump(buf.subarray(17 * 4096), 17 * 4096, 16), 'last (partial) page');
   await go.fill('70000'); await page.getByRole('button', { name: 'Go', exact: true }).click(); await page.waitForTimeout(100);
-  ok(/between 0 and 69999/.test(await page.locator('.toast').last().textContent()), 'offset past the end refused');
+  ok(/from 0 to 69,999 \(0x1116f\)/.test(await page.locator('.toast').last().textContent()), 'offset past the end refused');
   const q = page.locator('input[aria-label=Find]');
   await q.fill('NEEDLE'); await page.getByRole('button', { name: 'Find', exact: true }).click();
   let msg = await page.locator('.card .muted').filter({ hasText: 'match' }).textContent();
@@ -34,7 +34,7 @@ export default async (ctx) => {
   msg = await page.locator('.card .muted').filter({ hasText: /match|Not found/ }).textContent();
   ok(msg.startsWith(`${expect.length} match`) && msg.includes(`0x${expect[0].toString(16)}`), `hex search "${hx}": ${expect.length} hits, first at 0x${expect[0].toString(16)} (${msg.slice(0, 60)})`);
   await q.fill('zz'); await page.getByRole('button', { name: 'Find', exact: true }).click(); await page.waitForTimeout(100); ok(/pairs of hex digits/.test(await page.locator('.toast').last().textContent()), 'bad hex refused');
-  page.errors.splice(0, page.errors.length, ...page.errors.filter((e) => !/between 0 and|pairs of hex/.test(e)));
+  page.errors.splice(0, page.errors.length, ...page.errors.filter((e) => !/between 0 and|Offset must be|pairs of hex/.test(e)));
   await page.getByRole('radio', { name: '8', exact: true }).click(); ok((await pre.textContent()).split('\n')[0] === dump(buf.subarray(expect[0] - (expect[0] % 4096), expect[0] - (expect[0] % 4096) + 8), expect[0] - (expect[0] % 4096), 8).trim(), '8 bytes per line');
   await page.getByRole('radio', { name: '32', exact: true }).click(); ok((await pre.textContent()).split('\n')[0].length === dump(Buffer.alloc(32), 0, 32).split('\n')[0].length, '32 bytes per line');
   // file types

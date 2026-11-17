@@ -308,7 +308,7 @@ export const unicode: Mount = (root) => {
 const LEVELS = ['FATAL', 'ERROR', 'WARN', 'INFO', 'DEBUG', 'TRACE'] as const;
 const LV_WORDS = 'FATAL|CRITICAL|CRIT|EMERG|ALERT|ERROR|ERR|SEVERE|WARNING|WARN|NOTICE|INFO|INFORMATION|DEBUG|DBG|TRACE|VERBOSE';
 const LV_UPPER = new RegExp(`\\b(${LV_WORDS})\\b`);                                                      // an upper-case level word: "2026-11-17 ERROR …", "[WARN]"
-const LV_MARKED = new RegExp(`(?:^|[\\s\\[<(|])(?:level|lvl|severity)\\s*[=:]\\s*"?(${LV_WORDS})\\b|[\\[<(](${LV_WORDS})[\\]>)]|^\\s*(${LV_WORDS})\\s*[:|\\]-]`, 'i'); // level=warn, [info], "error: …"
+const LV_MARKED = new RegExp(`(?:^|[\\s\\[<(|])(?:level|lvl|severity)\\s*[=:]\\s*"?(${LV_WORDS})\\b|[\\[<(](${LV_WORDS})[\\]>)]|(?:^|\\s)(${LV_WORDS}):(?=\\s|$)|^\\s*(${LV_WORDS})\\s*[|\\]-]`, 'i'); // level=warn, [info], "error: …", "… notice: …"
 const norm = (m: string) => { const u = m.toUpperCase(); return /FATAL|CRIT|EMERG|ALERT/.test(u) ? 'FATAL' : /ERR|SEVERE/.test(u) ? 'ERROR' : /WARN/.test(u) ? 'WARN' : /INFO|NOTICE/.test(u) ? 'INFO' : /DEBUG|DBG/.test(u) ? 'DEBUG' : /TRACE|VERBOSE/.test(u) ? 'TRACE' : ''; };
 /** The level of one log line. A level word counts when it is written as a level — in capitals near the start, or marked
  *  (level=warn, [info], "error: …") — not when the word merely appears in the message ("user info updated", "GET /errors"). */
@@ -322,7 +322,7 @@ export function levelOf(line: string): string {
     } catch { /* not JSON */ }
   }
   const head = line.slice(0, 160), mk = LV_MARKED.exec(head);
-  const m = LV_UPPER.exec(head)?.[1] || (mk ? mk[1] || mk[2] || mk[3] : '') || (/^[EWIDV]\/\w/.test(line) ? ({ E: 'ERROR', W: 'WARN', I: 'INFO', D: 'DEBUG', V: 'TRACE' } as Record<string, string>)[line[0]] : '');
+  const m = LV_UPPER.exec(head)?.[1] || (mk ? mk[1] || mk[2] || mk[3] || mk[4] : '') || (/^[EWIDV]\/\w/.test(line) ? ({ E: 'ERROR', W: 'WARN', I: 'INFO', D: 'DEBUG', V: 'TRACE' } as Record<string, string>)[line[0]] : '');
   return norm(m || '');
 }
 /** Levels for a whole file: a line without a level that continues the entry before it (a stack trace, an indented
@@ -389,7 +389,7 @@ export const sla: Mount = (root) => {
     const sec = +down.value * +unit.value, span = +per.value;
     // enough decimals to tell the value from 100 %: one second a year is 99.999997 %, not "100 %"
     const avail = (x: number) => { const a = Math.max(0, 100 * (1 - x)); let d = 4; while (d < 12 && x > 0 && +a.toFixed(d) >= 100) d++; return `${a.toFixed(d).replace(/(\.\d*?)0+$/, '$1').replace(/\.$/, '')} %`; };
-    clear(out2).append(sec >= 0 && down.value !== '' ? [kvRows([['Availability', avail(sec / span)]]), sec > span ? note('The downtime is longer than the period.', 'warn') : ''] as any : note('Enter the downtime.', 'warn'));
+    clear(out2).append(...(sec >= 0 && down.value !== '' ? [kvRows([['Availability', avail(sec / span)]]), sec > span ? note('The downtime is longer than the period.', 'warn') : ''] : [note('Enter the downtime.', 'warn')]));
     const cs = comps.value.split(/[,;\s]+/).filter(Boolean).map((x) => Number(x.replace(/%$/, '')));
     if (!cs.length || cs.some((x) => !(x >= 0 && x <= 100))) { clear(out3).append(note('List the components’ availabilities, e.g. 99.9, 99.95', 'warn')); return; }
     const series = cs.reduce((a, x) => a * (x / 100), 1) * 100, parallel = (1 - cs.reduce((a, x) => a * (1 - x / 100), 1)) * 100;
