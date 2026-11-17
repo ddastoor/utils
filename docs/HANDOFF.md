@@ -21,6 +21,12 @@ this file = the owner's latest wishes, how the tests are written, and the traps 
   or time" banner means this session's machine/time is used up (the fix is a new session — work is safe in Git); the
   previous session started this one with `create_session` and stopped itself so two sessions never edit the branch.
 
+- **17 Nov 2026:** asked for a second, exhaustive bug hunt over every tab ("don't leave out any app") with many more
+  test cases — tracker `docs/BUGHUNT.md`, method in RESUME.md. The same day the owner **relaxed the engine rule**: "I'm
+  okay if you use the latest and greatest WebAssembly, even if it's somebody else's, as long as it's WebAssembly… build
+  it yourself if you can from open-source code… If you can't, then you can use JavaScript or TypeScript" (CLAUDE.md
+  STANDING RULE #1 rewritten; third-party wasm builds no longer need replacing).
+
 ## 2. Status at hand-off (commit 5f87b87)
 Own e2e suites now exist for **Calculators 27/27, Math & Science 7/7, Text 9/9, the 8 developer tabs (json, regex,
 base64, urlenc, epoch, uuid, color, jwt), Security 5/5 (+pgp), Codes & Files 5/5**, plus all tabs built since Media.

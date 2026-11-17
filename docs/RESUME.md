@@ -21,6 +21,26 @@ npm test && npm run build && node tests/e2e.mjs
 Zig for our wasm modules: CLAUDE.md §5 (pip ziglang 0.17.1). Start Claude Code in the folder with `claude`, or with
 `claude remote-control` to steer it from the phone app. Pending owner decision: docs/potentials.md + docs/IDEAS.md (new-tab candidates) — remind the owner.
 
+## ▶ NOW (17 Nov 2026): second-pass bug hunt over ALL 176 tabs — tracker `docs/BUGHUNT.md`
+Owner: "Go through all the apps, search for bugs, write extensive more test cases for every single app, squash all bugs
+— **don't leave out any app**." Every original tab is built (176/176, each with its own e2e suite); this pass looks for
+what those suites missed.
+- **Tracker:** `docs/BUGHUNT.md` — one row per tab (R reviewed · B bugs fixed · T checks added). Update it with
+  `node scripts/bughunt.mjs set <id>[,<id>] R=✓ B=<n> T=<n> N="note"`; `node scripts/bughunt.mjs status` lists open tabs.
+  A tab is done only when R is ticked. Bugs found are listed per tab in the Notes column and summarised below.
+- **Method:** (1) an independent reviewer per area (fresh sub-agent, read-only) reads the source + suite and tries to
+  break each tab in a served copy of the build; every finding is re-verified before fixing; (2) a sweep of all tabs on
+  desktop + phone (page errors, horizontal scroll, touch targets < 44 px, controls without an accessible name, every
+  button pressed in the default state, workers released on leave); (3) each confirmed bug fixed in the app and pinned by
+  a new check in that tab's suite; (4) full `npm test` + `node tests/e2e.mjs` at the end of each area; commit + push per area.
+- **Areas** (column "Area" in the tracker): net, misc, bitswebref, dev-data2, data-engines, calc-core, calc2-math, text,
+  security-codes, images1, images2, pdf, docs2, audio, video, terminal, everyday-device, + the app shell.
+- **Progress:** see the tracker; fixed-bug summary is appended here area by area.
+- After the hunt: ask the owner which `docs/potentials.md` ideas to build (build none until picked).
+- **Owner, 17 Nov 2026 (engine rule relaxed — CLAUDE.md STANDING RULE #1):** an existing tried-and-tested WebAssembly
+  build (even somebody else's, latest version) is as good as our own build; JS/TS only when no WebAssembly route works.
+  The old "replace third-party wasm with our own builds" list is no longer an obligation.
+
 ## Status (last updated with the commit that touched this file — see `git log -1 -- docs/RESUME.md`)
 
 **Branch:** `claude/exciting-bohr-b9yfwc` (push here only). Site: https://ddastoor.github.io/utils/

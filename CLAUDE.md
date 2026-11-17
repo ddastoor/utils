@@ -22,21 +22,27 @@ that affects it.
 > ## ⚠️ STANDING RULE #1 — WebAssembly first (owner; permanent; applies to every line of new code)
 > The owner has had to repeat this several times. **Check this rule before choosing ANY engine, library or
 > algorithm for ANY tool — new or existing — without waiting to be reminded.**
-> **Owner clarification (Nov 16 2026): WebAssembly is a *very, very important preference*, not an absolute mandate.**
-> If something cannot practically be built into WebAssembly, use an existing open-source JavaScript library
-> (vendored and served from this site, never a CDN) — and record why in §3a. Don't stall a tool over it.
-> 1. **First choice, always:** build our own WebAssembly module from the **latest stable upstream open-source
->    source** (C/C++, or Rust/Zig/other compiled code) — the correct, official project source, verified by
->    checksum/signature — or from our own C (`wasm/`). Use it for the algorithms and all heavy loops.
-> 2. Only if (1) is genuinely impossible or impractical: the upstream project's **official** wasm build, then a
->    widely used third-party wasm build of the same upstream source.
-> 3. Only if no compiled implementation exists or can practically be built: a JavaScript/TypeScript library.
-> 4. **Whatever is used is vendored, pinned and served from this site. Never a CDN, never fetched at runtime.**
-> 5. Every choice below tier 1 is written down with the reason in §3a — the "why not our own wasm" column.
->    Before adding a dependency, write the tier and the reason in the commit message too.
-> 6. TypeScript only builds UI, formats output and does trivial glue (see the compute rule in §7). Pixel loops,
+> **Owner clarification (17 Nov 2026 — replaces the stricter "our own build first" wording):** "I'm okay if you use the
+> latest and greatest WebAssembly, even if it's somebody else's, as long as it's WebAssembly. First preference:
+> WebAssembly — use somebody's tried and tested WebAssembly, or build it yourself from open-source code with open-source
+> licences. If you can't, then you can use JavaScript or TypeScript."
+> 1. **First choice, always: WebAssembly.** Either (a) an existing **tried-and-tested** wasm build — the upstream
+>    project's official one or a widely used, maintained third-party build of the upstream source, at its latest stable
+>    version — or (b) our own build from the **latest stable upstream open-source source** (C/C++, Rust, Zig…; verified
+>    by checksum/signature) or from our own C (`wasm/`). (a) and (b) rank equally: pick whichever is more robust and
+>    practical for that tool. Use it for the algorithms and all heavy loops.
+> 2. Only if no WebAssembly route exists or can practically be built: an open-source JavaScript/TypeScript library —
+>    and record why in §3a. Don't stall a tool over it (owner, 16 Nov 2026: a very, very important preference, not an
+>    absolute mandate).
+> 3. **Whatever is used is open source, vendored, pinned and served from this site. Never a CDN, never fetched at
+>    runtime.** Record the licence in §6.
+> 4. Before adding a dependency, write the choice (existing wasm / own wasm / JS) and the reason in the commit message.
+> 5. TypeScript only builds UI, formats output and does trivial glue (see the compute rule in §7). Pixel loops,
 >    parsers, codecs, maths, search, diff, compression, crypto → wasm.
-> 7. Existing tier-2/3/4 components are on the audit list in §3a; replace them with our own builds when practical.
+> 6. Existing third-party wasm builds (jSquash codecs, libheif-js, tesseract.js-core, zxing-wasm, libarchive.js,
+>    ffmpeg.wasm, MuPDF, SQLite, ONNX Runtime, MediaPipe) are **fine as they are** — keep them at their latest stable
+>    versions; replacing them with our own builds is no longer required. The §3a list only tracks **JavaScript**
+>    components for which a WebAssembly route exists.
 
 ---
 
@@ -64,9 +70,9 @@ Wayland) and **mobile browsers** (Android Chrome, iPhone Safari).
    PC-only tools are hidden on mobile.
 5. **Responsive UI** that works on phone and desktop.
 6. **Implementation preference order — see STANDING RULE #1 at the top (WebAssembly first, always):**
-   1. Our own WebAssembly modules compiled from the latest proper open-source **C/C++** (or other compiled)
-      source (own code, or the upstream library's source).
-   2. Otherwise a widely used, safe, OSI-licensed library, vendored (copied into the build) and pinned.
+   1. WebAssembly: an existing tried-and-tested wasm build (latest stable) **or** our own module compiled from the
+      latest proper open-source **C/C++** (or other compiled) source — either is fine.
+   2. Otherwise a widely used, safe, OSI-licensed JavaScript/TypeScript library, vendored (copied into the build) and pinned.
    Personal use only, so copyleft (GPL/LGPL/AGPL) is acceptable.
 7. Use the **most standard / modern / hardened** approach for each tool.
 8. **Every tool works on Windows and Linux** (Chrome; X11 and Wayland) and every non-PC-only tool also
@@ -696,12 +702,12 @@ to `chrome://flags/#enable-webrtc-pipewire-capturer` and the `xdg-desktop-portal
 
 ## 3a. Engine policy (owner rule) and engine inventory
 
-**Rule:** for every utility, prefer a WebAssembly engine compiled from open-source **C/C++** (or another
-compiled language) over a JavaScript library. Order of preference:
-1. Our own wasm build from the upstream C/C++ source (source verified by checksum/signature).
-2. The upstream project's **official** wasm build (e.g. SQLite's, Artifex's MuPDF).
-3. A widely used wasm build by a third party.
-4. A JavaScript library — **only when no C/C++/compiled implementation exists** for that job. Record why.
+**Rule (owner, updated 17 Nov 2026 — STANDING RULE #1):** for every utility, prefer a WebAssembly engine over a
+JavaScript library. Order of preference:
+1. WebAssembly — any of: the upstream project's **official** wasm build (e.g. SQLite's, Artifex's MuPDF), a widely
+   used, tried-and-tested wasm build by a third party (latest stable), or our own wasm build from the upstream
+   C/C++/Rust source (source verified by checksum/signature). These rank equally; choose the most robust and practical.
+2. A JavaScript/TypeScript library — **only when no WebAssembly route exists or can practically be built**. Record why.
 Simple UI logic (calculators, timers, text tools) is plain TypeScript. Everything is vendored and served
 from this site — **nothing is loaded from the internet at runtime**. Never violate a licence: record every
 third-party component and its licence in §6. Because of AGPL (MuPDF) and GPL (FFmpeg) the repository must
@@ -730,7 +736,7 @@ stay **public** (the source of the deployed site is then available to every user
 | cmark-gfm 0.29.0.gfm.13 (GitHub Flavored Markdown) | C | **us** (`wasm/markdown`, source from the PyPI `cmarkgfm` sdist, SHA-256 pinned) | markdown |
 | libyaml 0.2.5 + toml++ 3 | C / C++ | **us** (`wasm/formats`) | yaml |
 | MuPDF 1.28 | C | Artifex (official `mupdf` npm) | all PDF tools, PDF → EPUB |
-| ONNX Runtime Web 1.31 (CPU/WebAssembly, SIMD) | C++ | Microsoft (official `onnxruntime-web`; tier 2 — a build of ORT from source is impractical: huge C++ tree with protobuf/abseil/Eigen and Emscripten-specific glue) | tts (Kokoro, Piper) |
+| ONNX Runtime Web 1.31 (CPU/WebAssembly, SIMD) | C++ | Microsoft (official `onnxruntime-web` wasm build) | tts (Kokoro, Piper) |
 | SQLite 3.54 | C | SQLite project (official `@sqlite.org/sqlite-wasm`), run in `src/workers/sqlite.worker.ts` (terminated on leave) | sqlite |
 | FFmpeg | C | ffmpeg.wasm project | ffmpeg |
 | MozJPEG, libwebp, OxiPNG | C / Rust | jSquash (Squoosh codecs) | image encoders |
@@ -750,22 +756,19 @@ JavaScript-only components (no C/C++ equivalent exists for the job):
 | TensorFlow.js (Apache-2.0) | runs the Magenta style-transfer graph on the GPU via WebGL; its **wasm backend** (XNNPACK, C++ → wasm, tier 2 official build) is the CPU path | cartoon (neural) |
 | zip.js (BSD-3) | AES-256 zip *creation*; libarchive's wasm build has no crypto | zip |
 | mediabunny (MPL-2.0) | MP4 muxing around the browser's hardware WebCodecs encoders; cutting audio without re-encoding (packet copy) | video, audio |
-| semver (ISC) | tiny logic library | semver |
 
-**Audit list (STANDING RULE #1, item 7)** — components not yet on tier 1 and what replaces them. Work through it
-whenever a tool that uses one is touched; move rows to the engine table above when done.
-| Component (current tier) | Replace with (own wasm build from upstream source) | Status |
+**Audit list (STANDING RULE #1, item 6)** — since the owner's 17 Nov 2026 clarification, third-party WebAssembly
+builds are accepted as they are (jSquash MozJPEG/libwebp/OxiPNG, libheif-js, tesseract.js-core, zxing-wasm,
+libarchive.js, the ffmpeg.wasm core): **no replacement needed, just keep them at the latest stable version** (the
+ffmpeg.wasm core is FFmpeg 5.1.4 and cannot run libvpx-vp9/libx265 single-threaded — a newer wasm build of FFmpeg, ours or
+someone else's, would be an upgrade, not an obligation). What remains optional is moving **JavaScript** components to
+WebAssembly where a route exists:
+| JavaScript component | Possible WebAssembly route | Status |
 |---|---|---|
-| jSquash MozJPEG / libwebp / OxiPNG (3) | own builds of mozjpeg (C), libwebp (C), oxipng (Rust → wasm32) | planned |
-| libheif-js (3) | own build of libheif + libde265 (C++) | planned |
-| tesseract.js-core (3) | own build of Tesseract 5 + Leptonica (C/C++) | planned |
-| zxing-wasm (3) | own build of zxing-cpp (C++) | planned |
-| libarchive.js (3) | own build of libarchive (C) | planned |
-| ffmpeg.wasm core (3) | own build of FFmpeg (C) — large; keep until the rest are done | later |
-| zip.js (4) | own C: deflate (zlib/miniz) + WinZip AES (AES-CTR + HMAC-SHA1 + PBKDF2) in `crypto.wasm` | planned |
-| mediabunny (4) | minimp4 (C, CC0) muxer around WebCodecs | planned |
-| semver (4) | own C semver parser/comparator | planned |
-| own TS parsers for future tools: X.509 DER, hex/log viewers | write them in C from the start | EXIF/strip/DPI/sniff **done** (metacore); search ranking **done** (textcore `search.c`, identical rankings verified) |
+| zip.js (AES-256 zip creation) | own C: deflate (zlib/miniz) + WinZip AES (AES-CTR + HMAC-SHA1 + PBKDF2) in `crypto.wasm` | optional |
+| mediabunny (MP4/WebM mux + demux around WebCodecs) | minimp4 (C, CC0) muxer around WebCodecs | optional |
+| semver (npm, used only by tests now — the Semver tab runs nodejs-semver in devcore.wasm) | — | done |
+| own TS parsers for future tools | write them in C/Rust from the start | EXIF/strip/DPI/sniff **done** (metacore); search ranking **done** (textcore `search.c`, identical rankings verified) |
 **Audit of our own TypeScript (done Nov 2026, owner request "convert everything you can"):** moved to C — image
 geometry (orient/crop/homography → imgproc), EXIF/strip/DPI/sniff (→ metacore), search ranking + word frequency
 (→ textcore), shuffles/sampling/UUIDs/USODIUM1 header (→ crypto), matrix add/sub/transpose/trace/power, working
@@ -774,7 +777,7 @@ browser-native engines that are already compiled C++ (JSON.parse, RegExp, Intl.S
 String case mapping, canvas, WebCrypto, Date); string formatting/parsing of user input (hex colour, matrix text,
 dates); per-animation-frame loops over ≤ 4k samples (audio meter RMS/peak, waveform and graph grid drawing) where
 copying into wasm costs more than the loop; Damerau-Levenshtein etc. are all in C now.
-Staying on tier 2 (official upstream wasm, fine): MuPDF, SQLite, MediaPipe Tasks. Staying JS (no compiled
+Third-party WebAssembly builds in use (accepted, see above): MuPDF, SQLite, MediaPipe Tasks, ONNX Runtime, jSquash, libheif-js, tesseract.js-core, zxing-wasm, libarchive.js, ffmpeg.wasm. Staying JS (no compiled
 equivalent, reasons above): OpenPGP.js, Mermaid, Prettier, TensorFlow.js. (sql-formatter replaced by our Rust sqlformat build, Nov 2026.)
 
 ### Approved data APIs (connect-src allowlist)
@@ -1118,7 +1121,8 @@ Deployment branches**.
 
 ## 8. Adding a new tool (checklist)
 0. **Apply STANDING RULE #1 first** (top of this file): for every engine/library/algorithm the tool needs, pick
-   our own wasm build from upstream source unless impossible; record the tier and reason in §3a.
+   WebAssembly (an existing tried-and-tested build, or our own from upstream source); JS/TS only if neither is
+   practical; record the choice and reason in §3a.
 1. Create `src/tools/<id>.ts` exporting `mount(root)`; use helpers from `src/ui.ts`.
 2. Register it in `src/registry.ts` (id, title, desc, category, icon, rich keywords, `platform`: 'both' unless
    the owner says PC only, or it genuinely needs phone hardware → 'mobile'). Add search cases.
