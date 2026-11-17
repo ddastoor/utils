@@ -20,6 +20,10 @@ toml = { version = "1.2.1", optional = true, features = ["preserve_order"] }
 yaml = ["dep:serde_yaml_ng", "dep:toml"]
 schema = ["dep:jsonschema"]
 
+# wasm/devcore/src/jsonfmt.rs is compiled into this crate too; its `feature = "json"` parts belong to devcore only
+[lints.rust]
+unexpected_cfgs = { level = "allow" }
+
 [profile.release]
 opt-level = "s"
 lto = true

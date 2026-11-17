@@ -8,22 +8,38 @@ const EXT: Record<string, string> = { json: 'json', yaml: 'yaml', toml: 'toml' }
 export const yaml: Mount = async (root) => {
   const f = await formats('yaml');
   let from = 'yaml', to = 'json', indent = 2;
+  const NAME: Record<string, string> = { yaml: 'YAML', json: 'JSON', toml: 'TOML' };
   const src = textarea({ rows: 14, mono: true, value: `# Kubernetes-style example\napiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: chai-shop\n  labels: &labels\n    app: chai\n    tier: web\nspec:\n  replicas: 3\n  selector:\n    matchLabels: *labels\n  template:\n    spec:\n      containers:\n        - name: web\n          image: "chai-shop:1.4.2"\n          ports:\n            - containerPort: 8080\n          env:\n            - { name: CITY, value: Pune }\n` });
-  const out = outputBox({ rows: 16, mono: true }), status = h('div');
+  src.setAttribute('aria-label', 'Input');
+  // a plain read-only box: the Copy button below is the one way to copy (outputBox would add a second one)
+  const out = textarea({ rows: 16, mono: true, readonly: true }); out.setAttribute('aria-label', 'Output');
+  const status = h('div');
   const run = () => {
     clear(status);
-    try { const r = f.call('convert', { text: src.value, from, to, indent }); out.value = r.out; status.append(note(`Valid ${from.toUpperCase()}${r.documents > 1 ? ` · ${r.documents} documents (combined into a list)` : ''}`, 'ok')); }
-    catch (e: any) { out.value = ''; status.append(note(`${e.message}${where(e)}`, 'warn')); }
+    // a lone surrogate (half an emoji, from a broken paste) cannot be sent to the engine: it becomes U+FFFD
+    const text = (src.value as any).toWellFormed ? (src.value as any).toWellFormed() as string : src.value;
+    try {
+      const r = f.call('convert', { text, from, to, indent });
+      out.value = r.out;
+      if (r.documents === 0) { status.append(note(`Nothing to convert yet — type or paste ${NAME[from]}, or open a file.`, 'info')); return; }
+      const docs = r.documents > 1 ? ` · ${r.documents} documents (${to === 'json' ? 'combined into a list' : 'separated by ---'})` : '';
+      status.append(note(`Valid ${NAME[from]}${docs}`, 'ok'));
+      for (const n of r.notes as string[]) status.append(note(n, 'info'));
+    } catch (e: any) { out.value = ''; status.append(note(`${e.message}${where(e)}`, 'warn')); }
   };
-  const detect = (name: string, text: string) => (/\.ya?ml$/i.test(name) ? 'yaml' : /\.toml$/i.test(name) ? 'toml' : /\.json$/i.test(name) ? 'json' : /^\s*[{[]/.test(text) ? 'json' : /^\s*\[[\w.]+\]\s*$|^\s*\w+\s*=/m.test(text) ? 'toml' : 'yaml');
+  const detect = (name: string, text: string) => (/\.ya?ml$/i.test(name) ? 'yaml' : /\.toml$/i.test(name) ? 'toml' : /\.(json|jsonc|map|webmanifest)$/i.test(name) ? 'json' : /^\s*[{[]/.test(text) ? 'json' : /^\s*\[\[?[\w."' -]+\]\]?\s*(#.*)?$|^\s*[\w."'-]+\s*=/m.test(text) ? 'toml' : 'yaml');
   const fromSeg = segmented([['yaml', 'YAML'], ['json', 'JSON'], ['toml', 'TOML']], from, (v) => { from = v; run(); });
-  const toSeg = segmented([['json', 'JSON'], ['yaml', 'YAML'], ['toml', 'TOML']], to, (v) => { to = v; run(); });
+  const toSeg = segmented([['json', 'JSON'], ['yaml', 'YAML'], ['toml', 'TOML']], to, (v) => { to = v; indentField.hidden = to !== 'json'; run(); });
+  const indentField = field('JSON indent', segmented([['2', '2'], ['4', '4'], ['0', 'Minify']], '2', (v) => { indent = +v; run(); }));
   src.addEventListener('input', debounce(run, 150));
-  root.append(card(null, field('From', fromSeg), field('To', toSeg), field('JSON indent', segmented([['2', '2'], ['4', '4'], ['0', 'Minify']], '2', (v) => { indent = +v; run(); }))),
+  const need = (what: string) => { if (!out.value) throw new Error(`Nothing to ${what} yet`); };
+  root.append(card(null, field('From', fromSeg), field('To', toSeg), indentField),
     card('Input', src, filePicker({ accept: '.yaml,.yml,.json,.toml,text/*', label: 'Open a file', onFiles: async ([file]) => { src.value = await file.text(); from = detect(file.name, src.value); fromSeg.value = from; run(); } }), status),
-    card('Output', out, h('div', { class: 'row' }, button('Copy', () => copy(out.value), { small: true, icon: 'Copy' }), button('Download', () => downloadBlob(new Blob([out.value], { type: 'text/plain' }), `converted.${EXT[to]}`), { small: true, icon: 'Download' }),
-      button('Swap', () => { src.value = out.value; [from, to] = [to, from]; fromSeg.value = from; toSeg.value = to; run(); }, { small: true, icon: 'ArrowUpDown' }))),
-    note('YAML 1.2: anchors (&a / *a) and merge keys (<<) are expanded; comments are not kept in other formats. TOML has no null and needs key = value pairs at the top.', 'info'));
+    card('Output', out, h('div', { class: 'row' }, button('Copy', () => { need('copy'); return copy(out.value); }, { small: true, icon: 'Copy' }),
+      button('Download', () => { need('save'); downloadBlob(new Blob([out.value], { type: 'text/plain' }), `converted.${EXT[to]}`); }, { small: true, icon: 'Download' }),
+      // Swap puts the output in the input box: with no output it would wipe what was typed
+      button('Swap', () => { need('swap'); src.value = out.value; [from, to] = [to, from]; fromSeg.value = from; toSeg.value = to; indentField.hidden = to !== 'json'; run(); }, { small: true, icon: 'ArrowUpDown' }))),
+    note('Numbers keep every digit (JSON 12345678901234567890 or 1.10 are not rounded). YAML: anchors (&a / *a) and merge keys (<<) are expanded, comments are not kept. YAML output puts quotes around text that some YAML program would read as something else — no, yes, on, y, 1_000, 1:30, 2026-01-01. TOML has no null, holds 64-bit numbers and needs key = value pairs at the top.', 'info'));
   run();
 };
 

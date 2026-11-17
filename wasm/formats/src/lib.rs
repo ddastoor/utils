@@ -1,5 +1,6 @@
-//! SuperTools config formats (wasm32-wasip1). Built twice (Cargo features): formats-yaml.wasm (YAML ⇄ JSON ⇄ TOML with
-//! serde_yaml_ng — unsafe-libyaml, a Rust translation of libyaml — and toml) and formats-schema.wasm (jsonschema).
+//! SuperTools config formats (wasm32-wasip1). Built twice (Cargo features): formats-yaml.wasm (YAML ⇄ JSON ⇄ TOML: the
+//! parsers serde_yaml_ng — unsafe-libyaml, a Rust translation of libyaml — and toml, our lossless JSON reader, and
+//! our own writers for the three formats, see conv.rs) and formats-schema.wasm (jsonschema).
 //! Entry point: f_call(op, json) → JSON; errors come back as {"error": "...", "line": n, "column": n}.
 #![allow(dead_code)]
 use serde_json::{json, Value};
@@ -19,71 +20,13 @@ fn parse_json(label: &str, t: &str) -> Result<Value, Value> {
     serde_json::from_str(t).map_err(|x| el(format!("{label}: {}", x.to_string().split(" at line").next().unwrap_or("")), x.line(), x.column()))
 }
 
-// ------------------------------------------------------------------ YAML / JSON / TOML
+// ------------------------------------------------------------------ YAML / JSON / TOML (conv.rs)
+// The JSON reader is the one of the JSON Formatter tab (same messages, numbers and duplicate keys kept as written).
 #[cfg(feature = "yaml")]
-mod conv {
-    use super::*;
-    fn yaml_err(x: serde_yaml_ng::Error) -> Value {
-        match x.location() { Some(l) => el(x.to_string().split(" at line").next().unwrap_or("").to_string(), l.line(), l.column()), None => e(x.to_string()) }
-    }
-    /// YAML text → JSON values (one per document). Anchors/aliases are resolved and `<<` merge keys applied.
-    pub fn read_yaml(t: &str) -> Result<Vec<Value>, Value> {
-        use serde::Deserialize;
-        let mut docs = Vec::new();
-        for d in serde_yaml_ng::Deserializer::from_str(t) {
-            let mut y = serde_yaml_ng::Value::deserialize(d).map_err(yaml_err)?;
-            y.apply_merge().map_err(yaml_err)?;
-            if matches!(y, serde_yaml_ng::Value::Null) && t.trim().is_empty() { continue; }
-            docs.push(yaml_to_json(y)?);
-        }
-        Ok(docs)
-    }
-    fn yaml_to_json(y: serde_yaml_ng::Value) -> Result<Value, Value> {
-        use serde_yaml_ng::Value as Y;
-        Ok(match y {
-            Y::Null => Value::Null, Y::Bool(b) => Value::Bool(b), Y::String(s) => Value::String(s),
-            Y::Number(n) => if let Some(i) = n.as_i64() { json!(i) } else if let Some(u) = n.as_u64() { json!(u) } else { let f = n.as_f64().unwrap_or(0.0); if f.is_finite() { json!(f) } else { return Err(e("JSON has no Infinity or NaN (.inf / .nan in the YAML)")) } },
-            Y::Sequence(s) => Value::Array(s.into_iter().map(yaml_to_json).collect::<Result<_, _>>()?),
-            Y::Mapping(m) => { let mut o = serde_json::Map::new(); for (k, v) in m { let key = match k { Y::String(s) => s, Y::Number(n) => n.to_string(), Y::Bool(b) => b.to_string(), Y::Null => "null".into(), other => return Err(e(format!("JSON keys must be text; this YAML uses a {} as a key", match other { Y::Sequence(_) => "list", Y::Mapping(_) => "map", _ => "tagged value" }))) }; o.insert(key, yaml_to_json(v)?); } Value::Object(o) }
-            Y::Tagged(t) => yaml_to_json(t.value)?,
-        })
-    }
-    fn toml_to_json(v: toml::Value) -> Value {
-        match v {
-            toml::Value::String(s) => Value::String(s), toml::Value::Integer(i) => json!(i), toml::Value::Float(f) => json!(f), toml::Value::Boolean(b) => Value::Bool(b),
-            toml::Value::Datetime(d) => Value::String(d.to_string()), toml::Value::Array(a) => Value::Array(a.into_iter().map(toml_to_json).collect()),
-            toml::Value::Table(t) => Value::Object(t.into_iter().map(|(k, v)| (k, toml_to_json(v))).collect()),
-        }
-    }
-    fn json_to_toml(v: &Value, path: &str) -> Result<toml::Value, Value> {
-        Ok(match v {
-            Value::Null => return Err(e(format!("TOML has no null — the value at {} is null", if path.is_empty() { "the top" } else { path }))),
-            Value::Bool(b) => toml::Value::Boolean(*b), Value::String(s) => toml::Value::String(s.clone()),
-            Value::Number(n) => if let Some(i) = n.as_i64() { toml::Value::Integer(i) } else { toml::Value::Float(n.as_f64().unwrap_or(0.0)) },
-            Value::Array(a) => toml::Value::Array(a.iter().enumerate().map(|(i, x)| json_to_toml(x, &format!("{path}[{i}]"))).collect::<Result<_, _>>()?),
-            Value::Object(o) => { let mut t = toml::map::Map::new(); for (k, x) in o { t.insert(k.clone(), json_to_toml(x, &if path.is_empty() { k.clone() } else { format!("{path}.{k}") })?); } toml::Value::Table(t) }
-        })
-    }
-    pub fn convert(a: &Value) -> R {
-        let (t, from, to) = (s(a, "text"), s(a, "from"), s(a, "to"));
-        let indent = a.get("indent").and_then(|x| x.as_u64()).unwrap_or(2) as usize;
-        let docs: Vec<Value> = match from {
-            "json" => { if t.trim().is_empty() { vec![] } else { vec![parse_json("JSON", t)?] } }
-            "yaml" => read_yaml(t)?,
-            "toml" => { let v: toml::Value = toml::from_str(t).map_err(|x| { let (l, c) = x.span().map(|sp| { let pre = &t[..sp.start.min(t.len())]; (pre.matches('\n').count() + 1, sp.start - pre.rfind('\n').map(|i| i + 1).unwrap_or(0) + 1) }).unwrap_or((0, 0)); el(x.message().to_string(), l, c) })?; vec![toml_to_json(v)] }
-            _ => return Err(e("unknown input format")),
-        };
-        let multi = docs.len() > 1;
-        let value = if multi { Value::Array(docs.clone()) } else { docs.into_iter().next().unwrap_or(Value::Null) };
-        let out = match to {
-            "json" => { let mut buf = Vec::new(); let ind = " ".repeat(indent); let f = serde_json::ser::PrettyFormatter::with_indent(ind.as_bytes()); let mut ser = serde_json::Serializer::with_formatter(&mut buf, f); serde::Serialize::serialize(&value, &mut ser).map_err(|x| e(x.to_string()))?; if indent == 0 { serde_json::to_string(&value).unwrap() } else { String::from_utf8(buf).unwrap() } }
-            "yaml" => { if multi { value.as_array().unwrap().iter().map(|d| serde_yaml_ng::to_string(d).unwrap()).collect::<Vec<_>>().join("---\n") } else { serde_yaml_ng::to_string(&value).map_err(|x| e(x.to_string()))? } }
-            "toml" => { let tv = json_to_toml(&value, "")?; match tv { toml::Value::Table(t) => toml::to_string_pretty(&t).map_err(|x| e(x.to_string()))?, _ => return Err(e("TOML needs a table (key = value pairs) at the top, not a list or a single value")) } }
-            _ => return Err(e("unknown output format")),
-        };
-        Ok(json!({ "out": out, "documents": if multi { value.as_array().unwrap().len() } else { 1 } }))
-    }
-}
+#[path = "../../devcore/src/jsonfmt.rs"]
+mod jsonfmt;
+#[cfg(feature = "yaml")]
+mod conv;
 
 // ------------------------------------------------------------------ JSON Schema
 #[cfg(feature = "schema")]
