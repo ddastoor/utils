@@ -61,9 +61,9 @@ export function bindDevcore(e: any) {
     encode: (alg: string, b: Uint8Array): string => dec.decode(raw(`enc:${alg}`, b)),
     decode: (alg: string, text: string): Uint8Array => raw(`dec:${alg}`, enc.encode(text)),
     /** offsets of `needle` in `hay` from `from` (at most `max`) */
-    find(hay: Uint8Array, needle: Uint8Array, from = 0, max = 1000): { hits: number[]; more: boolean } {
+    find(hay: Uint8Array, needle: Uint8Array, from = 0, max = 1000, ignoreCase = false): { hits: number[]; more: boolean } {
       const b = new Uint8Array(12 + needle.length + hay.length), v = new DataView(b.buffer);
-      v.setUint32(0, from, true); v.setUint32(4, max, true); v.setUint32(8, needle.length, true); b.set(needle, 12); b.set(hay, 12 + needle.length);
+      v.setUint32(0, from, true); v.setUint32(4, (max | (ignoreCase ? 0x80000000 : 0)) >>> 0, true); v.setUint32(8, needle.length, true); b.set(needle, 12); b.set(hay, 12 + needle.length);
       return JSON.parse(dec.decode(raw('find', b)));
     },
     hexdump(b: Uint8Array, offset = 0, width = 16): string {

@@ -97,7 +97,7 @@ export const patch: Mount = async (root) => {
     if (!diff.value.trim()) { return note('Paste a unified diff (from git diff or diff -u).', 'info'); }
     const r = dc.json('patch', { original: orig.value, patch: diff.value, reverse });
     res.value = r.result;
-    return note(`Applied ${r.hunks} hunk${r.hunks === 1 ? '' : 's'}: +${r.added} −${r.removed} lines${r.files > 1 ? ' (only the first file of this multi-file diff is used)' : ''}.`, 'ok');
+    return [note(`Applied ${r.hunks} hunk${r.hunks === 1 ? '' : 's'}: +${r.added} −${r.removed} lines${r.file ? ` (${r.file})` : ''}.`, 'ok'), ...(r.notes as string[]).map((n) => note(n[0].toUpperCase() + n.slice(1) + '.', 'info'))];
   });
   [orig, diff].forEach((x) => x.addEventListener('input', debounce(run, 150)));
   const loader = (ta: HTMLTextAreaElement, label: string, setName = false) => filePicker({ label, onFiles: async ([f]) => { ta.value = await f.text(); if (setName) name = f.name; run(); } });
@@ -108,15 +108,15 @@ export const patch: Mount = async (root) => {
 
 // ------------------------------------------------------------------ Hex viewer
 const MAGIC: Array<[number, number[] | string, string]> = [
-  [0, [0x89, 0x50, 0x4e, 0x47], 'PNG image'], [0, [0xff, 0xd8, 0xff], 'JPEG image'], [0, 'GIF8', 'GIF image'], [8, 'WEBP', 'WebP image'], [4, 'ftypheic', 'HEIC image'], [4, 'ftypavif', 'AVIF image'],
-  [4, 'ftyp', 'MP4 / MOV / M4A (ISO media)'], [0, '%PDF', 'PDF document'], [0, [0x50, 0x4b, 0x03, 0x04], 'ZIP archive (also .docx/.xlsx/.jar/.apk/.epub)'], [0, [0x1f, 0x8b], 'gzip'],
+  [0, [0x89, 0x50, 0x4e, 0x47], 'PNG image'], [0, [0xff, 0xd8, 0xff], 'JPEG image'], [0, 'GIF8', 'GIF image'], [8, 'WEBP', 'WebP image'], [4, 'ftypheic', 'HEIC image'], [4, 'ftypheix', 'HEIC image'], [4, 'ftypmif1', 'HEIF image'], [4, 'ftypmsf1', 'HEIF image sequence'], [4, 'ftypavif', 'AVIF image'],
+  [4, 'ftyp', 'MP4 / MOV / M4A (ISO media)'], [0, '%PDF', 'PDF document'], [0, [0x50, 0x4b, 0x03, 0x04], 'ZIP archive (also .docx/.xlsx/.jar/.apk/.epub)'], [0, [0x50, 0x4b, 0x05, 0x06], 'ZIP archive (empty)'], [0, [0x1f, 0x8b], 'gzip'],
   [0, 'BZh', 'bzip2'], [0, [0xfd, 0x37, 0x7a, 0x58, 0x5a, 0x00], 'XZ'], [0, [0x28, 0xb5, 0x2f, 0xfd], 'Zstandard'], [0, [0x37, 0x7a, 0xbc, 0xaf, 0x27, 0x1c], '7-Zip archive'], [0, 'Rar!', 'RAR archive'],
   [257, 'ustar', 'tar archive'], [0, [0x7f, 0x45, 0x4c, 0x46], 'ELF executable (Linux)'], [0, 'MZ', 'Windows executable (PE/DOS)'], [0, [0xcf, 0xfa, 0xed, 0xfe], 'Mach-O executable (macOS)'],
   [0, [0x00, 0x61, 0x73, 0x6d], 'WebAssembly module'], [0, 'SQLite format 3', 'SQLite database'], [0, 'RIFF', 'RIFF (WAV / AVI / WebP)'], [0, 'ID3', 'MP3 audio (ID3 tag)'], [0, [0xff, 0xfb], 'MP3 audio'],
   [0, 'fLaC', 'FLAC audio'], [0, 'OggS', 'Ogg (Vorbis / Opus)'], [0, [0x1a, 0x45, 0xdf, 0xa3], 'Matroska / WebM'], [0, [0xd0, 0xcf, 0x11, 0xe0], 'MS Office 97–2003 (OLE)'], [0, '{\\rtf', 'RTF document'],
   [0, [0x49, 0x49, 0x2a, 0x00], 'TIFF (little-endian)'], [0, [0x4d, 0x4d, 0x00, 0x2a], 'TIFF (big-endian)'], [0, 'BM', 'BMP image'], [0, [0x00, 0x00, 0x01, 0x00], 'ICO icon'], [0, 'wOF2', 'WOFF2 font'], [0, 'wOFF', 'WOFF font'],
-  [0, [0x00, 0x01, 0x00, 0x00], 'TrueType font'], [0, 'OTTO', 'OpenType font'], [0, '-----BEGIN', 'PEM (certificate / key)'], [0, [0xef, 0xbb, 0xbf], 'UTF-8 text with BOM'], [0, [0xff, 0xfe], 'UTF-16 LE text (BOM)'], [0, [0xfe, 0xff], 'UTF-16 BE text (BOM)'],
-  [0, '<?xml', 'XML'], [0, '<svg', 'SVG image'], [0, '#!', 'Script (shebang)'], [0, [0xca, 0xfe, 0xba, 0xbe], 'Java class / Mach-O fat binary'], [0, 'USODIUM1', 'Sodium Encrypt file (SuperTools)'],
+  [0, [0x00, 0x01, 0x00, 0x00], 'TrueType font'], [0, 'OTTO', 'OpenType font'], [0, '-----BEGIN', 'PEM (certificate / key)'], [0, [0xef, 0xbb, 0xbf], 'UTF-8 text with BOM'], [0, [0xff, 0xfe, 0x00, 0x00], 'UTF-32 LE text (BOM)'], [0, [0x00, 0x00, 0xfe, 0xff], 'UTF-32 BE text (BOM)'], [0, [0xff, 0xfe], 'UTF-16 LE text (BOM)'], [0, [0xfe, 0xff], 'UTF-16 BE text (BOM)'],
+  [0, '<?xml', 'XML'], [0, '<svg', 'SVG image'], [0, '<!DOCTYPE html', 'HTML document'], [0, '<!doctype html', 'HTML document'], [0, '<html', 'HTML document'], [0, '#!', 'Script (shebang)'], [0, [0xca, 0xfe, 0xba, 0xbe], 'Java class / Mach-O fat binary'], [0, 'USODIUM1', 'Sodium Encrypt file (SuperTools)'],
 ];
 export function sniff(b: Uint8Array): string {
   for (const [off, sig, name] of MAGIC) {
@@ -128,8 +128,10 @@ export function sniff(b: Uint8Array): string {
       return name;
     }
   }
-  const sample = b.subarray(0, 4096); let bin = 0; for (const x of sample) if (x === 0 || (x < 9) || (x > 13 && x < 32)) bin++;
-  return !sample.length ? 'Empty file' : bin === 0 ? 'Text (no binary bytes in the first 4 KB)' : 'Unknown binary data';
+  // an MPEG audio frame without an ID3 tag: 11 sync bits, then a valid version / layer / bit-rate / sample-rate field
+  if (b.length >= 4 && b[0] === 0xff && (b[1] & 0xe0) === 0xe0 && (b[1] & 0x18) !== 0x08 && (b[1] & 0x06) !== 0 && (b[2] & 0xf0) !== 0xf0 && (b[2] & 0x0c) !== 0x0c) return 'MP3 / MPEG audio';
+  const sample = b.subarray(0, 4096); let bin = 0, esc = 0; for (const x of sample) { if (x === 0x1b) esc++; else if (x === 0 || (x < 9) || (x > 13 && x < 32)) bin++; }
+  return !sample.length ? 'Empty file' : bin === 0 ? (esc ? 'Text with terminal escape codes (no other binary bytes in the first 4 KB)' : 'Text (no binary bytes in the first 4 KB)') : 'Unknown binary data';
 }
 export const hexview: Mount = async (root) => {
   let data: Uint8Array = new Uint8Array(0), name = '', page = 0, width = 16, dc: Devcore | null = null;
@@ -137,35 +139,46 @@ export const hexview: Mount = async (root) => {
   const pre = h('pre', { class: 'hexdump mono' }), info = h('div'), nav = h('div', { class: 'row' });
   const gotoI = input({ placeholder: '0x1A0 or 416', attrs: { class: 'input mono', 'aria-label': 'Go to offset' } });
   const q = input({ placeholder: 'text, or hex like 50 4B 03 04', attrs: { class: 'input mono', 'aria-label': 'Find' } });
-  let hexMode = false; const hits = h('div', { class: 'muted' });
+  let hexMode = false, ignoreCase = false, found: number[] = [], foundLen = 0, cur = -1, mark = -1; const hits = h('div', { class: 'muted' });
   const pages = () => Math.max(1, Math.ceil(data.length / PAGE));
   const render = () => {
     if (!dc) return;
     const start = page * PAGE;
-    pre.textContent = data.length ? dc.hexdump(data.subarray(start, start + PAGE), start, width) : '';
+    const text = data.length ? dc.hexdump(data.subarray(start, start + PAGE), start, width) : '';
+    // rows that hold the current match (or the offset just jumped to) are marked
+    const rows = new Set<number>(); const add = (from: number, len: number) => { for (let o = Math.max(from, start); o < Math.min(from + len, start + PAGE); o += 1) rows.add(Math.floor((o - start) / width)); };
+    if (cur >= 0) add(found[cur], foundLen); if (mark >= 0) add(mark, 1);
+    clear(pre); if (!rows.size) pre.textContent = text; else pre.append(...text.split('\n').flatMap((l, i, all) => [rows.has(i) ? h('mark', { class: 'hexhit' }, l) : l, i < all.length - 1 ? '\n' : '']));
+    pre.querySelector('mark')?.scrollIntoView?.({ block: 'nearest' });
     clear(nav).append(button('◀ Prev', () => { page = Math.max(0, page - 1); render(); }, { small: true, disabled: page === 0 }), h('span', { class: 'muted' }, `Page ${page + 1} of ${pages()} · bytes ${start.toLocaleString('en-IN')}–${Math.min(data.length, start + PAGE).toLocaleString('en-IN')}`),
       button('Next ▶', () => { page = Math.min(pages() - 1, page + 1); render(); }, { small: true, disabled: page >= pages() - 1 }));
   };
   const open = async (bytes: Uint8Array, n: string) => {
-    dc ||= await devcore('hex'); data = bytes; name = n; page = 0;
+    dc ||= await devcore('hex'); data = bytes; name = n; page = 0; found = []; cur = -1; mark = -1; hits.textContent = ''; nextB.hidden = true; // (the match line of the previous file must not stay)
     clear(info).append(kvRows([['File', name], ['Size', `${fmtBytes(data.length)} (${data.length.toLocaleString('en-IN')} bytes)`], ['Detected type', sniff(data)], ['First bytes', [...data.subarray(0, 8)].map((x) => x.toString(16).padStart(2, '0')).join(' ')]]));
     render();
   };
-  const go = () => { if (!data.length) throw new Error('Open a file first'); const v = gotoI.value.trim().replace(/[,_\s]/g, ''); const n = /^0x[0-9a-f]+$/i.test(v) ? parseInt(v, 16) : /^[0-9a-f]+h$/i.test(v) ? parseInt(v, 16) : /^\d+$/.test(v) ? parseInt(v, 10) : NaN; if (!Number.isFinite(n) || n < 0 || n >= data.length) throw new Error(`Offset must be a number from 0 to ${(data.length - 1).toLocaleString('en-IN')} (0x${(data.length - 1).toString(16)}), e.g. 416 or 0x1A0`); page = Math.floor(n / PAGE); render(); hits.textContent = `Offset ${n} (0x${n.toString(16)}) is on page ${page + 1}`; };
+  const go = () => { if (!data.length) throw new Error('Open a file first'); const v = gotoI.value.trim().replace(/[,_\s]/g, ''); const n = /^0x[0-9a-f]+$/i.test(v) ? parseInt(v, 16) : /^[0-9a-f]+h$/i.test(v) ? parseInt(v, 16) : /^\d+$/.test(v) ? parseInt(v, 10) : NaN; if (!Number.isFinite(n) || n < 0 || n >= data.length) throw new Error(`Offset must be a number from 0 to ${(data.length - 1).toLocaleString('en-IN')} (0x${(data.length - 1).toString(16)}), e.g. 416 or 0x1A0`); page = Math.floor(n / PAGE); mark = n; cur = -1; render(); hits.textContent = `Offset ${n} (0x${n.toString(16)}) is on page ${page + 1} (row marked)`; };
   const find = () => {
     if (!dc || !data.length) throw new Error('Open a file first');
     let needle: Uint8Array;
     if (hexMode) { const hx = q.value.replace(/[\s,]|0x/gi, ''); if (!/^([0-9a-f]{2})+$/i.test(hx)) throw new Error('Hex search needs pairs of hex digits, e.g. 50 4B 03 04'); needle = Uint8Array.from(hx.match(/../g)!.map((x) => parseInt(x, 16))); }
     else needle = new TextEncoder().encode(q.value);
     if (!needle.length) throw new Error('Type something to find');
-    const r = dc.find(data, needle, 0, 1000);
-    if (!r.hits.length) { hits.textContent = 'Not found'; return; }
-    page = Math.floor(r.hits[0] / PAGE); render();
-    hits.textContent = `${r.hits.length}${r.more ? '+' : ''} match${r.hits.length === 1 ? '' : 'es'} at ${r.hits.slice(0, 20).map((x) => `0x${x.toString(16)}`).join(', ')}${r.hits.length > 20 ? ', …' : ''}`;
+    const r = dc.find(data, needle, 0, 1000, ignoreCase && !hexMode);
+    found = r.hits; foundLen = needle.length; mark = -1; nextB.hidden = found.length < 2;
+    if (!r.hits.length) { cur = -1; render(); hits.textContent = 'Not found'; return; }
+    summary = `${r.hits.length}${r.more ? '+' : ''} match${r.hits.length === 1 ? '' : 'es'} at ${r.hits.slice(0, 20).map((x) => `0x${x.toString(16)}`).join(', ')}${r.hits.length > 20 ? ', …' : ''}`;
+    showHit(0);
   };
+  let summary = '';
+  const showHit = (i: number) => { cur = i; page = Math.floor(found[i] / PAGE); render(); hits.textContent = found.length > 1 ? `${summary} — showing match ${i + 1} (0x${found[i].toString(16)}, page ${page + 1})` : summary; };
+  const nextB = button('Next match', () => showHit((cur + 1) % found.length), { small: true }); nextB.hidden = true;
+  gotoI.addEventListener('keydown', (e) => { if (e.key === 'Enter') goB.click(); }); q.addEventListener('keydown', (e) => { if (e.key === 'Enter') findB.click(); });
+  const goB = button('Go', go, { small: true }), findB = button('Find', find, { small: true, icon: 'Search' });
   root.append(card(null, filePicker({ label: 'Open any file', onFiles: async ([f]) => open(await readBytes(f), f.name) }), info),
-    card(null, h('div', { class: 'grid2' }, field('Go to offset', h('div', { class: 'row' }, gotoI, button('Go', go, { small: true }))), field('Find', h('div', { class: 'row' }, q, button('Find', find, { small: true, icon: 'Search' })))),
-      h('div', { class: 'row' }, segmented([['text', 'Text'], ['hex', 'Hex bytes']], 'text', (v) => (hexMode = v === 'hex')), segmented([['16', '16 bytes/line'], ['8', '8'], ['32', '32']], '16', (v) => { width = +v; render(); })), hits),
+    card(null, h('div', { class: 'grid2' }, field('Go to offset', h('div', { class: 'row' }, gotoI, goB)), field('Find', h('div', { class: 'row' }, q, findB, nextB))),
+      h('div', { class: 'row' }, segmented([['text', 'Text'], ['hex', 'Hex bytes']], 'text', (v) => (hexMode = v === 'hex')), toggle('Ignore case (text)', false, (v) => { ignoreCase = v; }), segmented([['16', '16 bytes/line'], ['8', '8'], ['32', '32']], '16', (v) => { width = +v; render(); })), hits),
     card(null, nav, h('div', { class: 'scroll-x' }, pre)), note('The file is read on this device only.', 'info'));
 };
 
@@ -173,10 +186,14 @@ export const hexview: Mount = async (root) => {
 type Esc = [string, string, (s: string) => string, (s: string) => string];
 const cEsc = (s: string, uni: boolean) => [...s].map((c, i, all) => { const m: Record<string, string> = { '\\': '\\\\', '"': '\\"', '\n': '\\n', '\r': '\\r', '\t': '\\t', '\b': '\\b', '\f': '\\f', '\0': '\\0' };
   if (c === '\0' && /[0-9]/.test(all[i + 1] || '')) return uni ? '\\u0000' : '\\000'; // "\0" + "1" would read as the octal escape \01
-  if (m[c]) return m[c]; const cp = c.codePointAt(0)!; if (cp < 32 || cp === 127) return `\\u${cp.toString(16).padStart(4, '0')}`; if (uni && cp > 126) return cp > 0xffff ? String.fromCodePoint(cp).split('').map((u) => `\\u${u.charCodeAt(0).toString(16).padStart(4, '0')}`).join('') : `\\u${cp.toString(16).padStart(4, '0')}`; return c; }).join('');
-const cUnesc = (s: string) => s.replace(/\\(u\{[0-9a-fA-F]+\}|u[0-9a-fA-F]{4}|U[0-9a-fA-F]{8}|x[0-9a-fA-F]{2}|[0-7]{1,3}|.)/gs, (_, e: string) => {
-  if (e[0] === 'U' && e.length === 9) return String.fromCodePoint(parseInt(e.slice(1), 16)); // C / Python \U0001F44D
-  if (e[0] === 'u' && e.length > 1) return e[1] === '{' ? String.fromCodePoint(parseInt(e.slice(2, -1), 16)) : String.fromCharCode(parseInt(e.slice(1), 16));
+  if (m[c]) return m[c]; const cp = c.codePointAt(0)!;
+  // other control characters: \uXXXX for JavaScript / Java; three octal digits for C and Python (C refuses \u0007, and \x1b would swallow hex digits after it)
+  if (cp < 32 || cp === 127) return uni ? `\\u${cp.toString(16).padStart(4, '0')}` : `\\${cp.toString(8).padStart(3, '0')}`; if (uni && cp > 126) return cp > 0xffff ? String.fromCodePoint(cp).split('').map((u) => `\\u${u.charCodeAt(0).toString(16).padStart(4, '0')}`).join('') : `\\u${cp.toString(16).padStart(4, '0')}`; return c; }).join('');
+const cp2s = (cp: number, as: string) => { if (!(cp <= 0x10ffff)) throw new Error(`${as} is beyond the last Unicode character (U+10FFFF)`); return String.fromCodePoint(cp); };
+const cUnesc = (s: string) => s.replace(/\\(u\{[0-9a-fA-F]+\}|u[0-9a-fA-F]{4}|U[0-9a-fA-F]{8}|x[0-9a-fA-F]{2}|[0-7]{1,3}|\r?\n|.)/gs, (all, e: string) => {
+  if (e === '\n' || e === '\r\n') return ''; // a backslash at the end of a line joins it to the next (C, Python, shell)
+  if (e[0] === 'U' && e.length === 9) return cp2s(parseInt(e.slice(1), 16), all); // C / Python \U0001F44D
+  if (e[0] === 'u' && e.length > 1) return e[1] === '{' ? cp2s(parseInt(e.slice(2, -1), 16), all) : String.fromCharCode(parseInt(e.slice(1), 16));
   if (e[0] === 'x' && e.length === 3) return String.fromCharCode(parseInt(e.slice(1), 16));
   if (/^[0-7]+$/.test(e)) return String.fromCharCode(parseInt(e, 8));
   return ({ n: '\n', r: '\r', t: '\t', b: '\b', f: '\f', v: '\v', a: '\x07', e: '\x1b' } as Record<string, string>)[e] ?? e;
@@ -205,7 +222,12 @@ function shellUnesc(s: string): string {
   let o = '', i = 0; const t = s.trim();
   while (i < t.length) {
     const c = t[i];
-    if (c === "'") { const j = t.indexOf("'", i + 1); if (j < 0) throw new Error('Unclosed single quote'); o += t.slice(i + 1, j); i = j + 1; }
+    if (c === '$' && t[i + 1] === "'") { // $'…' (bash ANSI-C quoting): backslash escapes inside, \' does not end it
+      let j = i + 2; while (j < t.length && t[j] !== "'") j += t[j] === '\\' ? 2 : 1;
+      if (j >= t.length) throw new Error("Unclosed $'…' quote");
+      o += cUnesc(t.slice(i + 2, j)); i = j + 1;
+    }
+    else if (c === "'") { const j = t.indexOf("'", i + 1); if (j < 0) throw new Error('Unclosed single quote'); o += t.slice(i + 1, j); i = j + 1; }
     else if (c === '"') {
       let j = i + 1;
       for (; j < t.length && t[j] !== '"'; j++) { if (t[j] === '\\' && j + 1 < t.length && '$`"\\\n'.includes(t[j + 1])) { j++; if (t[j] !== '\n') o += t[j]; } else o += t[j]; }
@@ -216,23 +238,30 @@ function shellUnesc(s: string): string {
   }
   return o;
 }
-/** Every named HTML entity, decoded by the browser's own parser in an inert document (nothing is rendered or run);
- *  the short table is the fallback where there is no DOM (unit tests). */
+/** Character references as a browser reads them (HTML5): every named entity, numbers with or without the closing
+ *  semicolon, the Windows-1252 quirks (&#150; = –), U+FFFD for impossible numbers. Each "&…" piece is decoded by the
+ *  browser's own parser in an inert document (nothing is rendered or run); the short table is the fallback where
+ *  there is no DOM (unit tests). */
 const entCache = new Map<string, string>();
-function htmlEntity(m: string, name: string): string {
-  if (name[0] === '#') { const cp = name[1].toLowerCase() === 'x' ? parseInt(name.slice(2), 16) : parseInt(name.slice(1), 10); if (!(cp >= 0 && cp <= 0x10ffff) || (cp >= 0xd800 && cp <= 0xdfff)) throw new Error(`${m} is not a character (code points end at U+10FFFF)`); return String.fromCodePoint(cp); }
-  if (typeof DOMParser === 'undefined') return HTML_ENT[name] ?? HTML_ENT[name.toLowerCase()] ?? m;
-  let v = entCache.get(name);
-  if (v === undefined) { v = new DOMParser().parseFromString(`<!doctype html><body>&${name};`, 'text/html').body.textContent ?? m; entCache.set(name, v); }
-  return v;
+function htmlUnesc(s: string): string {
+  return s.replace(/&(?:#[xX]?[0-9a-fA-F]+|[A-Za-z][A-Za-z0-9]*);?/g, (ref) => {
+    if (typeof DOMParser === 'undefined') {
+      const name = ref.replace(/^&|;$/g, '');
+      if (name[0] === '#') { const cp = /^#x/i.test(name) ? parseInt(name.slice(2), 16) : parseInt(name.slice(1), 10); return cp > 0 && cp <= 0x10ffff && !(cp >= 0xd800 && cp <= 0xdfff) ? String.fromCodePoint(cp) : '�'; }
+      return ref.endsWith(';') ? HTML_ENT[name] ?? HTML_ENT[name.toLowerCase()] ?? ref : ref;
+    }
+    let v = entCache.get(ref);
+    if (v === undefined) { v = new DOMParser().parseFromString(`<!doctype html><body>${ref}`, 'text/html').body.textContent ?? ref; if (entCache.size > 5000) entCache.clear(); entCache.set(ref, v); }
+    return v;
+  });
 }
 const ESCAPES: Esc[] = [
   ['json', 'JSON string', (s) => JSON.stringify(s).slice(1, -1), jsonUnesc],
   ['js', 'JavaScript / Java / C (\\uXXXX for non-ASCII)', (s) => cEsc(s, true), cUnesc],
   ['c', 'C / Python (keep Unicode)', (s) => cEsc(s, false), cUnesc],
-  ['sql', 'SQL string literal (\'\' doubling)', (s) => `'${s.replace(/'/g, "''")}'`, (s) => s.replace(/^'|'$/g, '').replace(/''/g, "'")],
+  ['sql', 'SQL string literal (\'\' doubling)', (s) => `'${s.replace(/'/g, "''")}'`, (s) => { const m = /^(\s*)'([\s\S]*)'(\s*)$/.exec(s); return (m ? m[1] + m[2] + m[3] : s).replace(/''/g, "'"); }],
   ['shell', 'Shell (POSIX single quotes)', (s) => `'${s.replace(/'/g, `'\\''`)}'`, shellUnesc],
-  ['html', 'HTML / XML entities', (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;'), (s) => s.replace(/&(#x[0-9a-f]+|#\d+|[a-z][a-z0-9]*);/gi, htmlEntity)],
+  ['html', 'HTML / XML entities', (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;'), htmlUnesc],
   ['regex', 'Regular expression (literal match)', (s) => s.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&'), (s) => s.replace(/\\([.*+?^${}()|[\]\\/])/g, '$1')],
   ['csv', 'CSV field (RFC 4180)', (s) => (/[",\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s), (s) => (/^".*"$/s.test(s) ? s.slice(1, -1).replace(/""/g, '"') : s)],
   ['url', 'URL component (percent-encoding)', encodeURIComponent, decodeURIComponent],
@@ -255,7 +284,8 @@ const INVISIBLE: Record<number, string> = { 0x00ad: 'SOFT HYPHEN', 0x034f: 'COMB
   0x202a: 'LEFT-TO-RIGHT EMBEDDING', 0x202b: 'RIGHT-TO-LEFT EMBEDDING', 0x202c: 'POP DIRECTIONAL FORMATTING', 0x202d: 'LEFT-TO-RIGHT OVERRIDE', 0x202e: 'RIGHT-TO-LEFT OVERRIDE', 0x2060: 'WORD JOINER', 0x2061: 'FUNCTION APPLICATION', 0x2062: 'INVISIBLE TIMES', 0x2063: 'INVISIBLE SEPARATOR', 0x2064: 'INVISIBLE PLUS',
   0x2066: 'LEFT-TO-RIGHT ISOLATE', 0x2067: 'RIGHT-TO-LEFT ISOLATE', 0x2068: 'FIRST STRONG ISOLATE', 0x2069: 'POP DIRECTIONAL ISOLATE', 0x3164: 'HANGUL FILLER', 0xfeff: 'ZERO WIDTH NO-BREAK SPACE (BOM)', 0xffa0: 'HALFWIDTH HANGUL FILLER' };
 const SPACES: Record<number, string> = { 0x09: 'TAB', 0x0a: 'LINE FEED', 0x0d: 'CARRIAGE RETURN', 0x20: 'SPACE', 0xa0: 'NO-BREAK SPACE', 0x1680: 'OGHAM SPACE MARK', 0x2000: 'EN QUAD', 0x2001: 'EM QUAD', 0x2002: 'EN SPACE', 0x2003: 'EM SPACE', 0x2004: 'THREE-PER-EM SPACE', 0x2005: 'FOUR-PER-EM SPACE', 0x2006: 'SIX-PER-EM SPACE', 0x2007: 'FIGURE SPACE', 0x2008: 'PUNCTUATION SPACE', 0x2009: 'THIN SPACE', 0x200a: 'HAIR SPACE', 0x2028: 'LINE SEPARATOR', 0x2029: 'PARAGRAPH SEPARATOR', 0x202f: 'NARROW NO-BREAK SPACE', 0x205f: 'MEDIUM MATHEMATICAL SPACE', 0x3000: 'IDEOGRAPHIC SPACE' };
-const SCRIPTS = ['Latin', 'Cyrillic', 'Greek', 'Devanagari', 'Bengali', 'Tamil', 'Telugu', 'Gujarati', 'Gurmukhi', 'Kannada', 'Malayalam', 'Oriya', 'Arabic', 'Hebrew', 'Han', 'Hiragana', 'Katakana', 'Hangul', 'Thai', 'Armenian', 'Georgian', 'Cherokee'];
+const SCRIPTS = ['Latin', 'Cyrillic', 'Greek', 'Devanagari', 'Bengali', 'Tamil', 'Telugu', 'Gujarati', 'Gurmukhi', 'Kannada', 'Malayalam', 'Oriya', 'Arabic', 'Hebrew', 'Han', 'Hiragana', 'Katakana', 'Hangul', 'Thai', 'Armenian', 'Georgian', 'Cherokee',
+  'Sinhala', 'Khmer', 'Thaana', 'Tibetan', 'Ethiopic', 'Lao', 'Myanmar', 'Mongolian', 'Syriac', 'Nko', 'Tifinagh', 'Bopomofo', 'Braille', 'Ol_Chiki', 'Meetei_Mayek', 'Limbu', 'Lepcha', 'Javanese', 'Balinese', 'Tagalog', 'Coptic', 'Glagolitic', 'Gothic', 'Runic', 'Ogham', 'Canadian_Aboriginal', 'Yi', 'Vai', 'Adlam', 'Hanifi_Rohingya', 'Chakma', 'Brahmi', 'Kaithi', 'Sharada', 'Grantha', 'Modi', 'Takri', 'Newa', 'Egyptian_Hieroglyphs', 'Cuneiform', 'Phoenician', 'Old_Italic', 'Deseret', 'Osage'];
 const SCRIPT_RE = SCRIPTS.map((s) => [s, new RegExp(`^\\p{Script=${s}}$`, 'u')] as const);
 const CATS: Array<[RegExp, string]> = [[/^\p{Lu}$/u, 'Letter, uppercase'], [/^\p{Ll}$/u, 'Letter, lowercase'], [/^\p{Lt}$/u, 'Letter, titlecase'], [/^\p{Lm}$/u, 'Letter, modifier'], [/^\p{Lo}$/u, 'Letter, other'], [/^\p{Mn}$/u, 'Mark, nonspacing (combining)'], [/^\p{Mc}$/u, 'Mark, spacing'], [/^\p{Me}$/u, 'Mark, enclosing'],
   [/^\p{Nd}$/u, 'Number, digit'], [/^\p{Nl}$/u, 'Number, letter'], [/^\p{No}$/u, 'Number, other'], [/^\p{Pc}$/u, 'Punctuation, connector'], [/^\p{Pd}$/u, 'Punctuation, dash'], [/^\p{Ps}$/u, 'Punctuation, open'], [/^\p{Pe}$/u, 'Punctuation, close'], [/^\p{Pi}$/u, 'Punctuation, initial quote'], [/^\p{Pf}$/u, 'Punctuation, final quote'], [/^\p{Po}$/u, 'Punctuation, other'],
@@ -271,22 +301,57 @@ export function charInfo(ch: string) {
   const utf16 = [...ch].length ? Array.from({ length: ch.length }, (_, i) => ch.charCodeAt(i).toString(16).toUpperCase().padStart(4, '0')).join(' ') : '';
   const cat = CATS.find(([re]) => re.test(ch))?.[1] || '';
   const script = SCRIPT_RE.find(([, re]) => re.test(ch))?.[0] || (/^\p{Script=Common}$/u.test(ch) ? 'Common' : /^\p{Script=Inherited}$/u.test(ch) ? 'Inherited' : '');
-  const name = INVISIBLE[cp] || SPACES[cp] || '';
-  const flag = INVISIBLE[cp] ? 'invisible' : SPACES[cp] && cp > 0x20 ? 'unusual space' : LOOKALIKE[ch] ? `looks like “${LOOKALIKE[ch]}”` : cp >= 0xe000 && cp <= 0xf8ff ? 'private use' : /^\p{Cc}$/u.test(ch) && !SPACES[cp] ? 'control character' : '';
+  const name0 = INVISIBLE[cp] || SPACES[cp] || '';
+  // letters that are only another way of writing an ASCII letter or digit: fullwidth ｐ, mathematical 𝐩, letter-like ℓ, Roman numeral ⅼ
+  const compat = (cp >= 0xff01 && cp <= 0xff5e) || (cp >= 0x1d400 && cp <= 0x1d7ff) || (cp >= 0x2100 && cp <= 0x214f) || (cp >= 0x2160 && cp <= 0x217f) ? ch.normalize('NFKC') : '';
+  const tag = cp >= 0xe0020 && cp <= 0xe007e ? String.fromCharCode(cp - 0xe0000) : '';   // "tag" characters: an invisible copy of ASCII (used to hide text)
+  const vs = (cp >= 0xfe00 && cp <= 0xfe0f) || (cp >= 0xe0100 && cp <= 0xe01ef);       // variation selectors (normal after an emoji or a symbol)
+  const hidden = INVISIBLE[cp] || tag || cp === 0xe0001 || cp === 0xe007f || cp === 0x2800 || cp === 0x17b4 || cp === 0x17b5 || (cp >= 0x180b && cp <= 0x180f) || /^\p{Cf}$/u.test(ch);
+  const flag = hidden ? 'invisible' : SPACES[cp] && cp > 0x20 ? 'unusual space' : LOOKALIKE[ch] ? `looks like “${LOOKALIKE[ch]}”` : compat && /^[A-Za-z0-9]$/.test(compat) && compat !== ch ? `looks like “${compat}”` : cp >= 0xe000 && cp <= 0xf8ff ? 'private use' : /^\p{Cc}$/u.test(ch) && !SPACES[cp] ? 'control character' : '';
   const typo = TYPO[ch] ? `typographic (plain: ${TYPO[ch]})` : '';
-  return { cp: `U+${cp.toString(16).toUpperCase().padStart(4, '0')}`, dec: cp, utf8, utf16, cat, script, name, flag, typo };
+  const name = name0 || (tag ? `TAG ${tag === ' ' ? 'SPACE' : `“${tag}”`} (hidden copy of an ASCII character)` : cp === 0xe0001 ? 'LANGUAGE TAG' : cp === 0xe007f ? 'CANCEL TAG' : cp === 0x2800 ? 'BRAILLE PATTERN BLANK' : vs ? 'VARIATION SELECTOR' : flag === 'invisible' ? 'FORMAT CHARACTER' : '');
+  return { cp: `U+${cp.toString(16).toUpperCase().padStart(4, '0')}`, dec: cp, utf8, utf16, cat, script, name, flag, typo, vs, tag };
+}
+/** What the characters mean where they stand. A flag from charInfo() is dropped when the character is doing its normal job:
+ *  a joiner inside an emoji (👨‍👩‍👧) or in a script that needs it (क्‍ष, می‌خواهم); a Cyrillic or Greek look-alike in a word
+ *  that is all Cyrillic or Greek (ordinary Russian) — it stays for a word that mixes scripts ("pаypal"), or that is made
+ *  only of look-alikes in a text that also has Latin words. A variation selector is flagged only after a plain letter. */
+export function inspect(text: string) {
+  const infos = [...text].map((c) => ({ c, ...charInfo(c) }));
+  const isLetter = (c: string) => /^[\p{L}\p{M}\p{N}]$/u.test(c), pict = (c: string) => /^\p{Extended_Pictographic}$/u.test(c);
+  // words = runs of letters / marks / digits (joiners inside a word belong to it)
+  const word: number[] = []; let w = 0;
+  infos.forEach((x, i) => { const inside = isLetter(x.c) || ((x.dec === 0x200c || x.dec === 0x200d) && i > 0 && isLetter(infos[i - 1].c)); if (!inside) w++; word[i] = inside ? w : -1; });
+  const words = new Map<number, number[]>(); word.forEach((id, i) => { if (id >= 0) (words.get(id) || words.set(id, []).get(id)!).push(i); });
+  const hasLatinWord = [...words.values()].some((ix) => ix.length >= 2 && ix.every((i) => infos[i].script === 'Latin'));
+  for (const ix of words.values()) {
+    const letters = ix.filter((i) => /^\p{L}$/u.test(infos[i].c));
+    const latin = letters.some((i) => infos[i].script === 'Latin' && !infos[i].flag), alike = letters.filter((i) => infos[i].flag.startsWith('looks like'));
+    const spoof = alike.length && (latin || (hasLatinWord && alike.length === letters.length && letters.length >= 3));
+    if (!spoof) for (const i of alike) if (infos[i].script === 'Cyrillic' || infos[i].script === 'Greek') infos[i].flag = '';
+  }
+  infos.forEach((x, i) => {
+    const prev = infos[i - 1], next = infos[i + 1];
+    if (x.dec === 0x200d && prev && next && (pict(prev.c) || prev.vs || (prev.dec >= 0x1f3fb && prev.dec <= 0x1f3ff)) && pict(next.c)) { x.flag = ''; x.name = 'ZERO WIDTH JOINER (joins an emoji sequence)'; }
+    else if ((x.dec === 0x200d || x.dec === 0x200c) && prev && /^[\p{L}\p{M}]$/u.test(prev.c) && !['Latin', 'Cyrillic', 'Greek', 'Common', ''].includes(prev.script === 'Inherited' ? infos[i - 2]?.script ?? '' : prev.script)) { x.flag = ''; x.name += ' (normal in this script)'; }
+    if (x.vs) { const base = prev && !/^[\p{L}\p{N}]$/u.test(prev.c) || (prev && /^[0-9#*]$/.test(prev.c) && next?.dec === 0x20e3) || (prev && !['Latin', 'Cyrillic', 'Greek'].includes(prev.script) && /^\p{L}$/u.test(prev.c)); x.flag = base ? '' : 'invisible'; }
+  });
+  // hidden text spelled with tag characters
+  const smuggled = infos.filter((x) => x.tag).map((x) => x.tag).join('');
+  return { infos, smuggled };
 }
 export const unicode: Mount = (root) => {
   const ta = textarea({ rows: 5, value: 'pаypal.com\u200b — café ₹500 👍🏽 नमस्ते' });
   const sum = h('div'), tbody = h('tbody'), out = h('div');
   const run = () => {
     const s = ta.value, cps = [...s], graphemes = [...new Intl.Segmenter('en', { granularity: 'grapheme' }).segment(s)].length;
-    const infos = cps.map((c) => ({ c, ...charInfo(c) }));
+    const { infos, smuggled } = inspect(s);
     const scripts = [...new Set(infos.map((i) => i.script).filter((x) => x && x !== 'Common' && x !== 'Inherited'))];
     const flagged = infos.filter((i) => i.flag);
     clear(sum).append(kvRows([['Characters (code points)', String(cps.length)], ['Graphemes (what you see)', String(graphemes)], ['UTF-16 units (JS .length)', String(s.length)], ['UTF-8 bytes', String(new TextEncoder().encode(s).length)],
       ['Scripts', scripts.join(', ') || '—'], ['NFC = NFD?', s.normalize('NFC') === s.normalize('NFD') ? 'yes' : `no (NFC ${[...s.normalize('NFC')].length}, NFD ${[...s.normalize('NFD')].length} code points)`]]),
       flagged.length ? note(`${flagged.length} suspicious character${flagged.length === 1 ? '' : 's'}: ${[...new Set(flagged.map((f) => `${f.cp} ${f.name || f.c} (${f.flag})`))].slice(0, 8).join('; ')}`, 'warn') : note('No invisible or look-alike characters found.', 'ok'),
+      smuggled ? note(`Hidden text spelled with invisible “tag” characters: “${smuggled.slice(0, 200)}” — a known way to smuggle instructions into text that looks clean.`, 'err') : '',
       scripts.length > 1 && scripts.includes('Latin') && flagged.some((f) => f.flag.startsWith('looks like')) ? note('Mixed scripts with look-alike letters — a common trick in fake web addresses (homograph attack).', 'err') : '',
       infos.some((i) => i.typo) ? note(`${infos.filter((i) => i.typo).length} typographic quote / dash / ellipsis character${infos.filter((i) => i.typo).length === 1 ? '' : 's'} (fine in prose; “Plain quotes & dashes” turns them into ' " - for code or CSV).`, 'info') : '');
     clear(tbody).append(...infos.slice(0, 2000).map((i) => h('tr', { class: i.flag ? 'flag' : null }, h('td', { class: 'uchar' }, i.flag === 'invisible' || /^\p{C}|\p{Z}$/u.test(i.c) ? '·' : i.c), h('td', { class: 'mono' }, i.cp), h('td', { class: 'mono' }, i.utf8), h('td', { class: 'mono' }, i.utf16), h('td', null, i.cat), h('td', null, i.script), h('td', null, [i.name, i.flag, i.typo].filter(Boolean).join(' · ')))));
@@ -295,8 +360,9 @@ export const unicode: Mount = (root) => {
   const clean = (f: (s: string) => string) => () => { ta.value = f(ta.value); run(); };
   ta.addEventListener('input', run);
   root.append(card(null, field('Text', ta), h('div', { class: 'row' },
-    button('Remove invisible', clean((s) => [...s].filter((c) => !INVISIBLE[c.codePointAt(0)!]).join('')), { small: true }),
-    button('Replace look-alikes', clean((s) => [...s].map((c) => LOOKALIKE[c] ?? c).join('')), { small: true }),
+    // only what is flagged where it stands: an emoji keeps its joiners, Persian its ZWNJ, Russian its letters
+    button('Remove invisible', clean((s) => inspect(s).infos.filter((i) => i.flag !== 'invisible').map((i) => i.c).join('')), { small: true }),
+    button('Replace look-alikes', clean((s) => inspect(s).infos.map((i) => (i.flag.startsWith('looks like') ? /“(.*)”/.exec(i.flag)![1] : i.c)).join('')), { small: true }),
     button('Plain quotes & dashes', clean((s) => [...s].map((c) => TYPO[c] ?? c).join('')), { small: true }),
     button('Normalise spaces', clean((s) => s.replace(/[\u00a0\u1680\u2000-\u200a\u202f\u205f\u3000]/g, ' ')), { small: true }),
     button('NFC', clean((s) => s.normalize('NFC')), { small: true }), button('NFKC', clean((s) => s.normalize('NFKC')), { small: true }), button('Copy', () => copy(ta.value), { small: true, icon: 'Copy' }))),
@@ -312,15 +378,23 @@ const LV_MARKED = new RegExp(`(?:^|[\\s\\[<(|])(?:level|lvl|severity)\\s*[=:]\\s
 const norm = (m: string) => { const u = m.toUpperCase(); return /FATAL|CRIT|EMERG|ALERT/.test(u) ? 'FATAL' : /ERR|SEVERE/.test(u) ? 'ERROR' : /WARN/.test(u) ? 'WARN' : /INFO|NOTICE/.test(u) ? 'INFO' : /DEBUG|DBG/.test(u) ? 'DEBUG' : /TRACE|VERBOSE/.test(u) ? 'TRACE' : ''; };
 /** The level of one log line. A level word counts when it is written as a level — in capitals near the start, or marked
  *  (level=warn, [info], "error: …") — not when the word merely appears in the message ("user info updated", "GET /errors"). */
-export function levelOf(line: string): string {
+/** Colour codes that terminals understand (ESC [ … m and friends) — removed before a line is read or shown. */
+export const stripAnsi = (s: string) => (s.includes('\x1b') ? s.replace(/\x1b\[[0-9;?]*[ -/]*[@-~]|\x1b\][^\x07\x1b]*(?:\x07|\x1b\\)|\x1b[@-Z\\-_]/g, '') : s);
+export function levelOf(raw: string): string {
+  const line = stripAnsi(raw);
   if (line.trimStart().startsWith('{')) {
     try {
-      const j = JSON.parse(line); let m = String(j.level ?? j.lvl ?? j.severity ?? j.loglevel ?? j['log.level'] ?? j.levelname ?? '');
+      const j = JSON.parse(line); let m = String(j.level ?? j.lvl ?? j.severity ?? j.loglevel ?? j['log.level'] ?? j.log?.level ?? j.levelname ?? '');
       // numbers: pino / bunyan use 10–60; syslog severities are 0–7 (0 emergency … 3 error, 4 warning, 6 info, 7 debug)
       if (/^\d+$/.test(m)) m = +m >= 60 ? 'FATAL' : +m >= 50 ? 'ERROR' : +m >= 40 ? 'WARN' : +m >= 30 ? 'INFO' : +m >= 20 ? 'DEBUG' : +m >= 10 ? 'TRACE' : +m <= 2 ? 'FATAL' : +m === 3 ? 'ERROR' : +m === 4 ? 'WARN' : +m <= 6 ? 'INFO' : 'DEBUG';
       if (m) return norm(m);
     } catch { /* not JSON */ }
   }
+  // formats that mark the level with one letter or a number
+  const one = (c: string) => ({ F: 'FATAL', E: 'ERROR', W: 'WARN', I: 'INFO', D: 'DEBUG', V: 'TRACE' } as Record<string, string>)[c] || '';
+  let x = /^\d\d-\d\d \d\d:\d\d:\d\d\.\d+\s+\d+\s+\d+ ([VDIWEF]) /.exec(line); if (x) return one(x[1]);            // Android logcat -v threadtime
+  x = /^([IWEF])\d{4} \d\d:\d\d:\d\d\.\d+ /.exec(line); if (x) return one(x[1]);                                    // glog / klog (Kubernetes): W1117 10:00:00.000000 …
+  x = /^<(\d{1,3})>/.exec(line); if (x) { const sev = +x[1] % 8; return sev <= 2 ? 'FATAL' : sev === 3 ? 'ERROR' : sev === 4 ? 'WARN' : sev <= 6 ? 'INFO' : 'DEBUG'; } // syslog <priority>: facility × 8 + severity
   const head = line.slice(0, 160), mk = LV_MARKED.exec(head);
   const m = LV_UPPER.exec(head)?.[1] || (mk ? mk[1] || mk[2] || mk[3] || mk[4] : '') || (/^[EWIDV]\/\w/.test(line) ? ({ E: 'ERROR', W: 'WARN', I: 'INFO', D: 'DEBUG', V: 'TRACE' } as Record<string, string>)[line[0]] : '');
   return norm(m || '');
@@ -342,18 +416,20 @@ export const logview: Mount = (root) => {
   const q = input({ type: 'search', placeholder: 'Filter text (or a regular expression)', attrs: { 'aria-label': 'Filter', class: 'input mono' } });
   const ta = textarea({ rows: 6, mono: true, placeholder: 'Paste log lines here, or open a .log file' });
   const counts = h('div', { class: 'chips' }), list = h('div', { class: 'logview mono' }), status = h('div', { class: 'muted' }), more = h('div');
-  const load = (text: string) => { all = text.split(/\r?\n/); if (all[all.length - 1] === '') all.pop(); lv = levelsOf(all); limit = 2000; render(); };
+  const load = (text: string) => { all = text.split(/\r?\n/).map(stripAnsi); if (all[all.length - 1] === '') all.pop(); lv = levelsOf(all); limit = 2000; render(); };
   const fmtJson = (line: string) => { try { const j = JSON.parse(line); const t = j.time ?? j.timestamp ?? j.ts ?? j['@timestamp'] ?? ''; const m = j.msg ?? j.message ?? j.event ?? ''; const rest = Object.entries(j).filter(([k]) => !['time', 'timestamp', 'ts', '@timestamp', 'msg', 'message', 'event', 'level', 'lvl', 'severity'].includes(k)).map(([k, v]) => `${k}=${typeof v === 'string' ? v : JSON.stringify(v)}`).join(' '); return `${typeof t === 'number' ? new Date(t > 1e12 ? t : t * 1000).toISOString() : t} ${m} ${rest}`.trim(); } catch { return line; } };
   const render = () => {
     let re: RegExp | null = null; clear(status);
     if (q.value) { try { re = useRe ? new RegExp(q.value, 'i') : new RegExp(q.value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i'); q.classList.remove('bad'); } catch { q.classList.add('bad'); status.textContent = 'Invalid regular expression'; return; } }
     const idx: number[] = [];
-    for (let i = 0; i < all.length; i++) { if (!show.has(lv[i])) continue; const hit = !re || re.test(all[i]); if (hit !== invert) idx.push(i); }
+    // the filter looks at the line as it is shown (the readable form of a JSON line) and at the raw line; "Hide matches" needs something to hide
+    const shown = (i: number) => (pretty && all[i].trimStart().startsWith('{') ? fmtJson(all[i]) : all[i]);
+    for (let i = 0; i < all.length; i++) { if (!show.has(lv[i])) continue; if (!re) { idx.push(i); continue; } const hit = re.test(all[i]) || (pretty && all[i].trimStart().startsWith('{') && re.test(shown(i))); if (hit !== invert) idx.push(i); }
     const c: Record<string, number> = {}; lv.forEach((l) => (c[l || 'OTHER'] = (c[l || 'OTHER'] || 0) + 1));
     clear(counts).append(...[...LEVELS, ''].map((l) => { const k = l || 'OTHER'; const on = show.has(l); return h('button', { type: 'button', class: `chip chip-btn lv-${k.toLowerCase()} ${on ? 'on' : 'off'}`, 'aria-pressed': String(on), onclick: () => { on ? show.delete(l) : show.add(l); render(); } }, `${k} ${c[k] || 0}`); }));
     status.textContent = `${idx.length.toLocaleString('en-IN')} of ${all.length.toLocaleString('en-IN')} lines`;
     clear(list).append(...idx.slice(0, limit).map((i) => {
-      const text = pretty && all[i].trimStart().startsWith('{') ? fmtJson(all[i]) : all[i];
+      const text = shown(i);
       const row = h('div', { class: `logline lv-${(lv[i] || 'other').toLowerCase()}` }, h('span', { class: 'ln' }, String(i + 1)));
       if (re && !invert) { const g = new RegExp(re.source, 'gi'); let last = 0, m: RegExpExecArray | null; const span = h('span'); while ((m = g.exec(text)) && m[0]) { span.append(text.slice(last, m.index), h('mark', null, m[0])); last = m.index + m[0].length; } span.append(text.slice(last)); row.append(span); }
       else row.append(h('span', null, text));
@@ -371,9 +447,16 @@ export const logview: Mount = (root) => {
 // ------------------------------------------------------------------ SLA / uptime
 const PERIODS: Array<[string, number]> = [['Per day', 86400], ['Per week', 604800], ['Per month (30.44 days)', 2629746], ['Per quarter', 7889238], ['Per year (365.24 days)', 31556952]];
 export function fmtDur(sec: number) {
-  if (sec <= 0) return '0 s';
-  const d = Math.floor(sec / 86400), hh = Math.floor((sec % 86400) / 3600), m = Math.floor((sec % 3600) / 60), s = sec % 60;
-  return [d && `${d} d`, hh && `${hh} h`, m && `${m} min`, (s || (!d && !hh && !m)) && `${+s.toFixed(s < 10 && !d && !hh && !m ? 2 : 1)} s`].filter(Boolean).join(' ');
+  if (!(sec > 0)) return '0 s';
+  if (!isFinite(sec)) return 'never (too long to state)';
+  if (sec < 0.1) return sec < 1e-3 ? `${+(sec * 1e6).toPrecision(3)} µs` : `${+(sec * 1000).toPrecision(3)} ms`;
+  // round the whole duration first, then split it: rounding the seconds part alone gave "1 min 60 s" and "23 h 59 min 60 s"
+  const unit = sec < 10 ? 100 : 10, t = Math.round(sec * unit); // in 1/unit seconds (hundredths below 10 s, tenths above)
+  const whole = Math.floor(t / unit), frac = (t % unit) / unit;
+  const y = Math.floor(whole / 31556952), rest = whole - y * 31556952;
+  const d = Math.floor(rest / 86400), hh = Math.floor((rest % 86400) / 3600), m = Math.floor((rest % 3600) / 60), s = (rest % 60) + frac;
+  if (y) return [`${y.toLocaleString('en-IN')} year${y === 1 ? '' : 's'}`, d && `${d} d`, y < 100 && hh && `${hh} h`].filter(Boolean).join(' ');
+  return [d && `${d} d`, hh && `${hh} h`, m && `${m} min`, (s || (!d && !hh && !m)) && `${+s.toFixed(2)} s`].filter(Boolean).join(' ');
 }
 export const sla: Mount = (root) => {
   const pct = input({ value: '99.9', type: 'number', step: 'any', attrs: { 'aria-label': 'Availability %' } });
@@ -412,11 +495,17 @@ export const transfer: Mount = (root) => {
   const time = input({ value: '10', type: 'number', step: 'any', attrs: { 'aria-label': 'Time' } }), tu = select([['1', 'seconds'], ['60', 'minutes'], ['3600', 'hours']], '60');
   let overhead = 0;
   const out = h('div'), out2 = h('div');
+  const num = (v: number, max = 3) => v.toLocaleString('en-IN', { maximumFractionDigits: max });
+  // a value in the unit people expect (MB/s, GB, Mbit/s) while it reads well there, else in a smaller or larger one — never "0 MB/s"
+  const scaled = (v: number, units: Array<[string, number]>, prefer: number) => { let k = prefer; while (k > 0 && v / units[k][1] < 1) k--; while (k < units.length - 1 && v / units[k][1] >= 100000) k++; return `${num(v / units[k][1])} ${units[k][0]}`; };
+  const BYTES_S: Array<[string, number]> = [['B/s', 1], ['kB/s', 1e3], ['MB/s', 1e6], ['GB/s', 1e9]], BYTES: Array<[string, number]> = [['B', 1], ['kB', 1e3], ['MB', 1e6], ['GB', 1e9], ['TB', 1e12], ['PB', 1e15]], BITS_S: Array<[string, number]> = [['bit/s', 1], ['kbit/s', 1e3], ['Mbit/s', 1e6], ['Gbit/s', 1e9]];
   const run = () => {
+    const filled = (x: HTMLInputElement) => x.value.trim() !== '' && isFinite(+x.value);
     const bits = +size.value * SIZE_U.find((u) => u[0] === su.value)![1] * 8, bps = +rate.value * RATE_U.find((u) => u[0] === ru.value)![1] * (1 - overhead / 100);
-    clear(out).append(bits >= 0 && bps > 0 ? kvRows([['Transfer time', fmtDur(bits / bps)], ['Seconds', (bits / bps).toLocaleString('en-IN', { maximumFractionDigits: 2 })], ['Effective speed', `${(bps / 8e6).toLocaleString('en-IN', { maximumFractionDigits: 3 })} MB/s`], ['Per day at this speed', `${(bps * 86400 / 8e9).toLocaleString('en-IN', { maximumFractionDigits: 2 })} GB`]]) : note('Enter a size and a speed above zero.', 'warn'));
-    const secs = +time.value * +tu.value;
-    clear(out2).append(bits >= 0 && secs > 0 ? kvRows([['Speed needed', `${(bits / secs / (1 - overhead / 100) / 1e6).toLocaleString('en-IN', { maximumFractionDigits: 3 })} Mbit/s`], ['= MB/s', `${(bits / secs / (1 - overhead / 100) / 8e6).toLocaleString('en-IN', { maximumFractionDigits: 3 })} MB/s`]]) : note('Enter a time above zero.', 'warn'));
+    const okSize = filled(size) && bits >= 0 && isFinite(bits);
+    clear(out).append(okSize && filled(rate) && bps > 0 && isFinite(bps) ? kvRows([['Transfer time', fmtDur(bits / bps)], ['Seconds', bits / bps < 0.01 && bits > 0 ? (bits / bps).toPrecision(3) : num(bits / bps, 2)], ['Effective speed', scaled(bps / 8, BYTES_S, 2)], ['Per day at this speed', scaled(bps * 86400 / 8, BYTES, 3)]]) : note('Enter a size and a speed above zero.', 'warn'));
+    const secs = +time.value * +tu.value, need = bits / secs / (1 - overhead / 100);
+    clear(out2).append(okSize && filled(time) && secs > 0 && isFinite(need) ? kvRows([['Speed needed', scaled(need, BITS_S, 2)], ['= MB/s', scaled(need / 8, BYTES_S, 2)]]) : note(okSize ? 'Enter a time above zero.' : 'Enter a size first.', 'warn'));
   };
   [size, rate, time].forEach((x) => x.addEventListener('input', run)); [su, ru, tu].forEach((x) => x.addEventListener('change', run));
   root.append(card('Size', h('div', { class: 'grid2' }, field('Amount', size), field('Unit', su)), chips([['4.7 GB', 'DVD 4.7 GB'], ['25 GB', 'Blu-ray 25 GB'], ['700 MB', 'CD 700 MB'], ['1 TB', '1 TB disk']], (v) => { const [n, u] = v.split(' '); size.value = n; su.value = u; run(); })),
@@ -446,6 +535,7 @@ export const mermaid: Mount = (root) => {
     const id = `mmd-${++n}`, my = n;
     const m = await get();
     m.initialize({ startOnLoad: false, securityLevel: 'strict', theme, fontFamily: 'system-ui, sans-serif' });
+    if (!ta.value.trim()) { if (my === n) clear(status).append(note('Type Mermaid code, or pick an example above.', 'info')); return; }
     try {
       await m.parse(ta.value);
       const { svg } = await m.render(id, ta.value);
@@ -455,9 +545,15 @@ export const mermaid: Mount = (root) => {
   };
   const png = async () => {
     if (!svgText) throw new Error('Nothing to save yet');
-    const svgEl = view.querySelector('svg')!; const r = svgEl.getBoundingClientRect(), scale = 2;
-    const img = new Image(); img.src = `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(svgText)))}`; await img.decode();
-    const c = h('canvas'); c.width = Math.ceil(r.width * scale); c.height = Math.ceil(r.height * scale);
+    // the diagram's own size (its viewBox), not the size it happens to have on screen: a wide diagram is squeezed into the
+    // card (a 23,000-unit-wide flowchart came out as a 1020 × 3 px picture); at most 2×, at most 8,000 px on the long side
+    const doc = new DOMParser().parseFromString(svgText, 'image/svg+xml'), el = doc.documentElement, box = view.querySelector('svg')!.getBoundingClientRect();
+    const vb = (el.getAttribute('viewBox') || '').split(/[\s,]+/).map(Number), w = vb[2] > 0 ? vb[2] : box.width, hgt = vb[3] > 0 ? vb[3] : box.height;
+    const scale = Math.min(2, 8000 / Math.max(w, hgt));
+    el.setAttribute('width', String(w)); el.setAttribute('height', String(hgt)); (el as unknown as SVGElement).style.maxWidth = '';
+    const img = new Image(); img.src = `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(new XMLSerializer().serializeToString(el))))}`;
+    try { await img.decode(); } catch { throw new Error('This diagram is too large to turn into a picture — download the SVG instead.'); }
+    const c = h('canvas'); c.width = Math.max(1, Math.ceil(w * scale)); c.height = Math.max(1, Math.ceil(hgt * scale));
     const g = c.getContext('2d')!; g.fillStyle = theme === 'dark' ? '#1f2020' : '#ffffff'; g.fillRect(0, 0, c.width, c.height); g.drawImage(img, 0, 0, c.width, c.height);
     c.toBlob((b) => b && downloadBlob(b, 'diagram.png'), 'image/png');
   };

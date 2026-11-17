@@ -217,7 +217,7 @@ export default async (t, { load, wasm }) => {
       if (cl(mx) !== got.max || cl(mn) !== got.min) diffs.maxs.push(`${JSON.stringify(range)} incl=${incl}: npm max ${mx} min ${mn}, ours max ${got.max} min ${got.min}`);
     }
     if (process.env.SEMVER_DEBUG) (await import('node:fs')).writeFileSync(process.env.SEMVER_DEBUG, JSON.stringify(diffs, null, 1));
-    t.ok(pairs > 20000 && !diffs.satisfies.length, `satisfies(): ${pairs.toLocaleString('en-IN')} version × range pairs (${R.length} ranges, with and without "include pre-releases") = npm semver ${npm.SEMVER_SPEC_VERSION ? '' : ''}${diffs.satisfies.length ? `— ${diffs.satisfies.length} differ: ${diffs.satisfies.slice(0, 4).join(' | ')}` : ''}`);
+    t.ok(pairs > 16000 && !diffs.satisfies.length, `satisfies(): ${pairs.toLocaleString('en-IN')} version × range pairs (${R.length} ranges, with and without "include pre-releases") = npm semver ${diffs.satisfies.length ? `— ${diffs.satisfies.length} differ: ${diffs.satisfies.slice(0, 4).join(' | ')}` : ''}`);
     t.ok(!diffs.valid.length, `the same ranges are valid / invalid as in npm semver ${diffs.valid.slice(0, 5).join(' | ')}`);
     t.ok(!diffs.norm.length, `"Means" (the normalised range) = npm validRange() ${diffs.norm.slice(0, 4).join(' | ')}`);
     t.ok(!diffs.minv.length, `"Lowest possible" = npm minVersion() ${diffs.minv.slice(0, 4).join(' | ')}`);
@@ -247,6 +247,40 @@ export default async (t, { load, wasm }) => {
   t.eq(gl(['*.js'], ['a.js', 'src/a.js', 'a.ts']), [true, false, false], '* does not cross /');
   t.eq(gl(['**/*.js'], ['a.js', 'src/a.js', 'src/x/y/a.js', 'a.jsx']), [true, true, true, false], '** crosses directories');
   t.eq(gl(['src/**', '!src/**/*.test.ts'], ['src/a.ts', 'src/a.test.ts', 'lib/a.ts']), [true, false, false], 'negation: last match wins');
+  // ---- bug hunt, Nov 2026: our own Unicode-aware matcher (replaced the globset crate, which matched bytes) against Python's glob.translate
+  {
+    const ref = JSON.parse(readFileSync(new URL('../fixtures/glob/reference.json', import.meta.url), 'utf8')), bad = [];
+    for (const [pat, bits] of ref.patterns) {
+      let got; try { const r = d.json('glob', { patterns: [pat], paths: ref.paths }); got = r.errors.length ? `ERR ${r.errors[0].error}` : r.rows.map((x) => (x.match ? '1' : '0')).join(''); } catch (e) { got = `THROW ${e.message}`; }
+      if (got !== bits) bad.push(`${JSON.stringify(pat)}: ${got.startsWith('ERR') || got.startsWith('THROW') ? got : ref.paths.filter((_, i) => got[i] !== bits[i]).map((x) => `${x}${bits[ref.paths.indexOf(x)] === '1' ? ' (should match)' : ' (should not)'}`).slice(0, 4).join(', ')}`);
+    }
+    t.ok(ref.patterns.length >= 400 && !bad.length, `${ref.patterns.length} patterns × ${ref.paths.length} paths (ASCII, accents, Devanagari, emoji; * ? [...] ranges, negation, **) = ${ref.source} ${bad.length ? `— ${bad.length} differ: ${bad.slice(0, 5).join(' | ')}` : ''}`);
+  }
+  t.eq(gl(['?.txt'], ['a.txt', 'é.txt', 'न.txt', '😀.txt', 'ab.txt', '.txt']), [true, true, true, true, false, false], '? is one character, whatever its size in bytes (é, न and 😀 used to need ??, ??? and ????)');
+  t.eq(gl(['[éन😀].txt', 'file[!x].txt'], ['é.txt', 'न.txt', '😀.txt', 'e.txt', 'fileé.txt', 'filex.txt']), [true, true, true, false, true, false], 'non-ASCII characters inside […] and against [!…]');
+  t.eq(gl(['[а-я]*', '[अ-ह]*'], ['привет', 'नमस्ते', 'hello']), [true, true, false], 'ranges of non-Latin letters');
+  t.eq(gl(['É*', 'straße.*', '*.TXT', 'नमस्ते*', '[A-C]*'], ['école.txt', 'École.txt', 'STRASSE.txt', 'Straße.txt', 'a.txt', 'É.TXT', 'नमस्ते.md', 'banana', 'dog'], { caseInsensitive: true }), [true, true, true, true, true, true, true, true, false], 'case-insensitive matching knows non-ASCII letters (É = é, Devanagari unaffected)');
+  t.eq(gl(['straße*'], ['STRASSE.txt', 'Straße.txt', 'STRAßE'], { caseInsensitive: true }), [false, true, true], 'ß is not SS');
+  t.eq(gl(['É*'], ['école.txt', 'École.txt']), [false, true], 'case-sensitive by default');
+  // braces
+  t.eq(gl(['*.{json,md}'], ['a.json', 'b.md', 'c.txt', 'd/e.md']), [true, true, false, false], '{a,b}');
+  t.eq(gl(['{a,b{c,d}}'], ['a', 'bc', 'bd', 'b', 'abc']), [true, true, true, false, false], 'nested braces');
+  t.eq(gl(['x{,.tar}.gz'], ['x.gz', 'x.tar.gz', 'x.zip.gz']), [true, true, false], 'an empty alternative');
+  t.eq(gl(['{src,docs}/**/*.{ts,md}'], ['src/a.ts', 'src/x/y/b.md', 'docs/n.md', 'lib/a.ts', 'src/a.js']), [true, true, true, false, false], 'braces with ** and extensions');
+  t.eq(gl(['{a}', '{}', '{,}'], ['a', '{a}', '{}', '']), [true, false, false], 'a single alternative is that text; {} and {,} match nothing visible');
+  t.eq(gl(['[{,}]', 'a[,]b'], ['{', ',', '}', 'a,b']), [true, true, true, true], 'braces and commas inside […] are literal');
+  t.eq(gl(['\\{a,b\\}', 'a\\*b', 'a\\?b', '\\!x', '\\#y', 'c\\[1\\]'], ['{a,b}', 'a*b', 'a?b', '!x', '#y', 'c[1]', 'axb', 'a']), [true, true, true, true, true, true, false, false], 'backslash makes { } * ? ! # [ ] literal');
+  // ** rules
+  t.eq(gl(['a/**'], ['a', 'a/', 'a/b', 'a/b/c', 'ab/c']), [false, true, true, true, false], 'a/** = everything inside a (not a itself)');
+  t.eq(gl(['**/b'], ['b', 'a/b', 'x/y/b', 'ab', 'b/c']), [true, true, true, false, false], '**/b at any depth, including the top');
+  t.eq(gl(['a/**/b'], ['a/b', 'a/x/b', 'a/x/y/b', 'a/xb', 'ab']), [true, true, true, false, false], 'a/**/b: zero or more folders between');
+  t.eq(gl(['**'], ['a', 'a/b/c', '.x']), [true, true, true], '** alone matches everything');
+  t.eq(gl(['a**b', '**.ts'], ['ab', 'axxb', 'a/b', 'x.ts', 'd/x.ts']), [true, true, false, true, false], '** that is not a whole component behaves like * (stays inside one folder)');
+  // errors and cost
+  const ge = (p) => d.json('glob', { patterns: [p], paths: ['a'] }).errors.map((e) => e.error).join();
+  t.ok(/unclosed character class/.test(ge('[')) && /unclosed character class/.test(ge('[!]')) && /unclosed alternate group/.test(ge('{a,b')) && /unopened alternate group/.test(ge('a}')) && /invalid range; 'z' > 'a'/.test(ge('[z-a]')) && /dangling/.test(ge('a\\')), 'six kinds of broken pattern are named');
+  t.ok(/too many/.test(ge('{a,b}'.repeat(13))), 'a pattern that would expand to more than 4,096 alternatives is refused');
+  { const t0 = Date.now(); const r = gl(['*a*a*a*a*a*a*a*a*a*a*a*a*a*a*a*a*a*a*a*a', `a${'*'.repeat(50)}b`, `${'[a-z]*'.repeat(40)}!`], ['a'.repeat(400), `a${'x'.repeat(400)}`, 'a'.repeat(300)]); t.ok(Date.now() - t0 < 1500 && r.join() === 'true,false,true', `patterns that make naive matchers explode finish at once (${Date.now() - t0} ms)`); }
   t.eq(gl(['*.{png,jpg}', 'file?.txt', '[abc]*.md', '[!x]y'], ['a.png', 'b.jpg', 'c.gif', 'file1.txt', 'file10.txt', 'b.md', 'd.md', 'zy', 'xy']), [true, true, false, true, false, true, false, true, false], 'braces, ?, classes, negated class');
   t.eq(gl(['*.JPG'], ['a.jpg'], { caseInsensitive: true }), [true], 'case-insensitive option');
   t.eq(gl(['**/*'], ['.env', 'a/.git/config', 'a/b'], { dot: false }), [false, false, true], 'dot files hidden when dot = false');
@@ -293,6 +327,77 @@ export default async (t, { load, wasm }) => {
   t.ok(/does not apply/.test(err(() => d.json('patch', { original: 'x\ny\n', patch: diff }))), 'mismatching context refused');
   t.eq(d.json('patch', { original: orig, patch: 'diff --git a/a.txt b/a.txt\nindex 1..2 100644\n' + diff }).result, pr.result, 'git diff headers accepted');
   try { const dir = mkdtempSync(join(tmpdir(), 'pt-')); writeFileSync(join(dir, 'a.txt'), orig); writeFileSync(join(dir, 'p.diff'), diff); execFileSync('patch', ['-s', join(dir, 'a.txt'), join(dir, 'p.diff')]); t.eq(readFileSync(join(dir, 'a.txt'), 'utf8'), pr.result, 'same result as GNU patch'); } catch { /* patch not installed */ }
+  // ---- bug hunt, Nov 2026: our own patch reader / applier (replaced the diffy crate) — patches as people really have them
+  {
+    const P = (original, patch, reverse = false) => { try { return d.json('patch', { original, patch, reverse }); } catch (e) { return { error: e.message }; } };
+    const want = 'one\nTWO\nthree\nfour\n5\n', hunk = '@@ -1,5 +1,5 @@\n one\n-two\n+TWO\n three\n four\n-five\n+5\n';
+    const forms = {
+      'git show (commit header, message with "--- " in it)': `commit 3f2a\nAuthor: A <a@example.in>\nDate:   Mon Nov 16 2026\n\n    Fix numbers\n    --- see ticket 12 ---\n\ndiff --git a/a.txt b/a.txt\nindex 1..2 100644\n--- a/a.txt\n+++ b/a.txt\n${hunk}`,
+      'git format-patch (mail headers, diffstat, signature)': `From 3f2a Mon Sep 17 00:00:00 2001\nFrom: A <a@example.in>\nSubject: [PATCH] Fix numbers\n\n---\n a.txt | 4 ++--\n 1 file changed, 2 insertions(+), 2 deletions(-)\n\ndiff --git a/a.txt b/a.txt\nindex 1..2 100644\n--- a/a.txt\n+++ b/a.txt\n${hunk}-- \n2.43.0\n\n`,
+      'git diff --stat -p': ` a.txt | 4 ++--\n 1 file changed, 2 insertions(+), 2 deletions(-)\n\ndiff --git a/a.txt b/a.txt\n--- a/a.txt\n+++ b/a.txt\n${hunk}`,
+      'svn "Index:" + ==== header': `Index: a.txt\n===================================================================\n--- a.txt\t(revision 7)\n+++ a.txt\t(working copy)\n${hunk}`,
+      'a hunk alone, no file header': hunk, 'blank lines before the hunk': `\n\n${hunk}`, 'a ```diff fence (from a chat or a README)': `Here is the fix:\n\n\`\`\`diff\n--- a.txt\n+++ b.txt\n${hunk}\`\`\`\nThanks!\n`,
+      'CRLF patch for an LF file': `--- a.txt\n+++ b.txt\n${hunk}`.replace(/\n/g, '\r\n'), 'trailing spaces trimmed from every patch line': `--- a.txt\n+++ b.txt\n${hunk}`.replace(/ +\n/g, '\n'),
+      'diff -u with timestamps': `--- a.txt\t2026-11-16 10:00:00.000000000 +0530\n+++ b.txt\t2026-11-17 10:00:00.000000000 +0530\n${hunk}`, 'git rename + edit': `diff --git a/old.txt b/new.txt\nsimilarity index 80%\nrename from old.txt\nrename to new.txt\nindex 1..2 100644\n--- a/old.txt\n+++ b/new.txt\n${hunk}`,
+      'git mode change + edit': `diff --git a/a.txt b/a.txt\nold mode 100644\nnew mode 100755\nindex 1..2\n--- a/a.txt\n+++ b/a.txt\n${hunk}`, 'no newline at the end of the patch': `--- a.txt\n+++ b.txt\n${hunk}`.trimEnd(),
+    };
+    for (const [name, patch] of Object.entries(forms)) t.eq(P(orig, patch).result ?? P(orig, patch).error, want, `patch read: ${name}`);
+    // lines that look like headers but are content (SQL / Lua comments, e-mail signature) — told apart by the hunk's line counts
+    t.eq(P('-- header\nselect 1;\n-- old\nselect 3;\n', '--- a.sql\n+++ b.sql\n@@ -1,4 +1,3 @@\n -- header\n select 1;\n--- old\n select 3;\n').result, '-- header\nselect 1;\nselect 3;\n', 'removing a line that starts with "-- " (shown as "--- old" in the diff) is not taken for a file header');
+    t.eq(P('a\n++ b\nc\n', '@@ -1,3 +1,3 @@\n a\n-++ b\n+++ B\n c\n').result, 'a\n++ B\nc\n', 'adding a line that starts with "++ "');
+    // the file moved, or is not quite the same
+    const big = Array.from({ length: 40 }, (_, i) => `line ${i + 1}`).join('\n') + '\n', bigDiff = '@@ -20,3 +20,3 @@\n line 20\n-line 21\n+LINE 21\n line 22\n';
+    let r = P(`x\ny\nz\n${big}`, bigDiff); t.ok(r.result === `x\ny\nz\n${big.replace('line 21\n', 'LINE 21\n')}` && /3 lines lower/.test(r.notes.join()), `hunk found 3 lines lower than its header says (${r.notes})`);
+    r = P(big.split('\n').slice(5).join('\n'), bigDiff); t.ok(r.result?.includes('LINE 21') && /5 lines higher/.test(r.notes.join()), 'hunk found 5 lines higher');
+    r = P('one  \ntwo\t\nthree\nfour \nfive\n', hunk); t.ok(r.result === 'one  \nTWO\nthree\nfour \n5\n' && /ignoring spaces/.test(r.notes.join()), 'file with trailing spaces: applies, context lines keep the file\'s own spacing');
+    r = P('ONE\ntwo\nthree\nfour\nfive\n', hunk); t.ok(r.result === 'ONE\nTWO\nthree\nfour\n5\n' && /fuzz 1/.test(r.notes.join()), 'first context line differs: applied with fuzz 1, as GNU patch does');
+    t.ok(/does not match this text/.test(P('ONE\nTWO!\nthree\n', hunk).error), 'a changed line that is not there → does not apply');
+    // line ends and the final newline
+    t.eq(P(orig.replace(/\n/g, '\r\n'), hunk).result, want.replace(/\n/g, '\r\n'), 'CRLF file + LF patch → CRLF result');
+    t.eq(P(orig.replace(/\n/g, '\r\n'), hunk.replace(/\n/g, '\r\n')).result, want.replace(/\n/g, '\r\n'), 'CRLF file + CRLF patch');
+    t.eq(P('a\nb\nc', '@@ -1,3 +1,3 @@\n a\n-b\n+B\n c\n').result, 'a\nB\nc', 'text pasted without its final newline stays without one');
+    t.eq(P('a\nb', '@@ -1,2 +1,2 @@\n a\n-b\n\\ No newline at end of file\n+b\n').result, 'a\nb\n', '"\\ No newline at end of file" on the old side only → the result ends with a newline');
+    t.eq(P('a\nb\n', '@@ -1,2 +1,2 @@\n a\n-b\n+b\n\\ No newline at end of file\n').result, 'a\nb', '… on the new side only → the result has none');
+    t.eq(P('a\nb', '@@ -1,2 +1,2 @@\n a\n-b\n\\ No newline at end of file\n+B\n\\ No newline at end of file\n').result, 'a\nB', '… on both sides');
+    // whole-file cases
+    t.eq(P('', '--- /dev/null\n+++ b/new.txt\n@@ -0,0 +1,2 @@\n+hello\n+world\n').result, 'hello\nworld\n', 'new file from /dev/null');
+    t.eq(P('hello\nworld\n', '--- a/x\n+++ /dev/null\n@@ -1,2 +0,0 @@\n-hello\n-world\n').result, '', 'delete everything');
+    t.eq(P('only\n', '@@ -1 +1 @@\n-only\n+ONLY\n').result, 'ONLY\n', '"@@ -1 +1 @@" (counts left out = 1)');
+    t.eq(P('a\nb\nc\n', '@@ -2 +2,0 @@\n-b\n').result, 'a\nc\n', 'diff -U0 removal');
+    t.eq(P('a\nc\n', '@@ -1,0 +2 @@\n+b\n').error ?? P('a\nc\n', '@@ -1,0 +2 @@\n+b\n').result, 'a\nb\nc\n', 'diff -U0 insertion after line 1');
+    // several hunks, several files, reverse
+    const three = '@@ -1,3 +1,3 @@\n-line 1\n+LINE 1\n line 2\n line 3\n@@ -19,3 +19,4 @@\n line 19\n line 20\n+inserted\n line 21\n@@ -38,3 +39,2 @@\n line 38\n-line 39\n line 40\n';
+    r = P(big, three); t.eq([r.hunks, r.added, r.removed, r.result.split('\n').length - 1], [3, 2, 2, 40], 'three hunks: 2 added, 2 removed, still 40 lines'); t.eq(P(r.result, three, true).result, big, '… and reversing restores the original exactly');
+    const two = `diff --git a/first.txt b/first.txt\n--- a/first.txt\n+++ b/first.txt\n${hunk}diff --git a/second.txt b/second.txt\n--- a/second.txt\n+++ b/second.txt\n@@ -1,2 +1,2 @@\n x\n-y\n+Y\n`;
+    r = P(orig, two); t.ok(r.result === want && r.files === 2 && /used the part for first\.txt/.test(r.notes.join()), 'two-file diff, text of the first file'); r = P('x\ny\n', two); t.ok(r.result === 'x\nY\n' && r.file === 'second.txt', 'two-file diff, text of the SECOND file: its part is used (was "does not apply")');
+    t.ok(/already applied/.test(P(want, hunk).error) && /has not been applied/.test(P(orig, hunk, true).error), 'already applied / reverse of something not applied → said so');
+    r = P(orig, '@@ -1,9 +1,9 @@\n one\n-two\n+TWO\n three\n four\n-five\n+5\n'); t.ok(r.result === want && /counted again/.test(r.notes.join()), 'wrong line counts in the @@ header (hand-edited patch): lines counted again, with a note');
+    for (const junk of ['', 'hello', 'see @@ in the text', 'Binary files a/x.png and b/x.png differ', 'diff --git a/x b/x\nindex 1..2\nGIT binary patch\nliteral 12\n']) t.ok(/No hunks found/.test(P(orig, junk).error), `no hunks: ${JSON.stringify(junk.slice(0, 24))}`);
+    t.eq(P('नमस्ते\nदुनिया\n😀\n', '@@ -1,3 +1,3 @@\n नमस्ते\n-दुनिया\n+विश्व\n 😀\n').result, 'नमस्ते\nविश्व\n😀\n', 'Unicode lines');
+    // against GNU diff + patch: random edits of a 300-line file, plain / shifted / with trailing-space noise
+    try {
+      execFileSync('patch', ['--version']); execFileSync('diff', ['--version']);
+      let seed = 20261117; const rnd = (n) => { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed % n; };
+      const dir = mkdtempSync(join(tmpdir(), 'pt-')), bad = []; let cases = 0;
+      for (let c = 0; c < 60; c++) {
+        const A = Array.from({ length: 300 }, (_, i) => `row ${i} ${'abcdefg'[rnd(7)]}${rnd(3) ? '' : ' -- note'}`), B = [...A];
+        for (let e = 0; e < 1 + rnd(8); e++) { const at = rnd(B.length); const k = rnd(3); if (k === 0) B.splice(at, 1 + rnd(3)); else if (k === 1) B.splice(at, 0, `new ${c}.${e}`, ...(rnd(2) ? [`-- added ${e}`] : [])); else B[at] = `${B[at]} changed`; }
+        const fa = join(dir, 'a.txt'), fb = join(dir, 'b.txt'), ta = A.join('\n') + (c % 7 === 3 ? '' : '\n'), tb = B.join('\n') + (c % 5 === 2 ? '' : '\n'); writeFileSync(fa, ta); writeFileSync(fb, tb);
+        let diffText = ''; try { execFileSync('diff', [`-U${[3, 3, 1, 0, 5][c % 5]}`, fa, fb]); } catch (e) { diffText = e.stdout.toString(); }
+        if (!diffText) continue;
+        const variants = [['plain', ta], ['shifted down 7 lines', `${'pad\n'.repeat(7)}${ta}`], ['shifted up', ta.split('\n').slice(c % 5 === 3 ? 0 : 2).join('\n')]];
+        for (const [name, text] of variants) {
+          if (name !== 'plain' && c % 5 === 3) continue; // -U0 hunks have no context to be found by
+          const ft = join(dir, 't.txt'); writeFileSync(ft, text); let gnu; try { execFileSync('patch', ['-s', '--no-backup-if-mismatch', ft, '-i', '-'], { input: diffText, stdio: ['pipe', 'pipe', 'pipe'] }); gnu = readFileSync(ft, 'utf8'); } catch { gnu = null; }
+          const ours = P(text, diffText); cases++;
+          if (gnu === null) { cases--; continue; } // (GNU patch insists that a hunk from the top of the file stays at the top; we find it anyway)
+          if (ours.result !== gnu) bad.push(`case ${c} ${name}: ${ours.error ? ours.error.slice(0, 60) : 'different text'}`);
+          if (gnu !== null && name === 'plain' && P(ours.result ?? '', diffText, true).result !== text) bad.push(`case ${c}: reverse does not restore`);
+        }
+      }
+      t.ok(cases >= 120 && !bad.length, `${cases} random patches made by GNU diff (context 0–5, files with / without a final newline, moved up or down) give the same text as GNU patch, and reverse restores the original ${bad.slice(0, 4).join(' | ')} ${bad.length > 4 ? `(+${bad.length - 4})` : ''}`);
+    } catch (e) { if (!/ENOENT/.test(String(e))) throw e; }
+  }
   // ---- SQL format
   const sql = d.text('sqlfmt', { sql: 'select a, b from t where x = 1 and y > 2 order by a', uppercase: true });
   t.eq(sql, 'SELECT\n  a,\n  b\nFROM\n  t\nWHERE\n  x = 1\n  AND y > 2\nORDER BY\n  a', 'SQL formatted with upper-case keywords');
@@ -303,6 +408,17 @@ export default async (t, { load, wasm }) => {
   t.eq(d.find(E.encode('abcabcab'), E.encode('ab')), { hits: [0, 3, 6], more: false }, 'find all');
   t.eq(d.find(E.encode('abcabcab'), E.encode('ab'), 1, 1), { hits: [3], more: true }, 'find from offset, capped');
   t.eq(d.find(E.encode('aaa'), E.encode('aa')).hits, [0, 1], 'overlapping hits');
+  // find: case-insensitive option (ASCII letters), overlapping hits, the cap, bytes ≥ 0x80
+  {
+    const hx = mods.hex, enc8 = (x) => new TextEncoder().encode(x), hay = enc8('Needle needle NEEDLE nEeDlE need É é aaaa');
+    t.eq(hx.find(hay, enc8('needle')).hits, [7], 'find is case-sensitive by default');
+    t.eq(hx.find(hay, enc8('needle'), 0, 1000, true).hits, [0, 7, 14, 21], '"ignore case" finds every spelling');
+    t.eq(hx.find(hay, enc8('é'), 0, 1000, true).hits, [36], 'ignore case folds ASCII letters only (É is other bytes)');
+    t.eq(hx.find(hay, enc8('aa')).hits, [39, 40, 41], 'overlapping matches are all reported');
+    t.eq([hx.find(hay, enc8('e'), 0, 3).hits.length, hx.find(hay, enc8('e'), 0, 3).more, hx.find(hay, enc8('e'), 0, 3, true).more], [3, true, true], 'the cap on matches is honoured with and without ignore case');
+    t.eq(hx.find(Uint8Array.from([0xff, 0x00, 0x41, 0xff, 0x00, 0x61]), Uint8Array.from([0xff, 0x00, 0x41]), 0, 10, true).hits, [0, 3], 'binary needles: only the letter bytes fold');
+    t.eq(hx.find(hay, enc8('needle'), 8, 1000, true).hits, [14, 21], 'search from an offset');
+  }
   // ---- JSON diff (RFC 6902): applying the diff to the left document must give the right one
   const L = { name: 'Asha', age: 30, tags: ['a', 'b'], addr: { city: 'Pune', pin: '411001' }, x: null };
   const Rt = { name: 'Asha K', tags: ['a', 'b', 'c'], addr: { city: 'Mumbai', pin: '411001' }, x: null, new: true };

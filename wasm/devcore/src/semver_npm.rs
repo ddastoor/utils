@@ -303,7 +303,8 @@ impl Range {
         if out.len() > 1 { out.retain(|c| !c.value.is_empty()); }
         Ok(out)
     }
-    pub fn formatted(&self) -> String { self.set.iter().map(|comps| comps.iter().map(|c| js_trim(&c.value).to_string()).collect::<Vec<_>>().join(" ")).collect::<Vec<_>>().join("||") }
+    /// `validRange()`: the range as the package prints it ("*" when it allows everything)
+    pub fn formatted(&self) -> String { let f = self.set.iter().map(|comps| comps.iter().map(|c| js_trim(&c.value).to_string()).collect::<Vec<_>>().join(" ")).collect::<Vec<_>>().join("||"); if f.is_empty() { "*".into() } else { f } }
     pub fn test(&self, v: &Ver) -> bool { self.set.iter().any(|set| self.test_set(set, v)) }
     fn test_set(&self, set: &[Comp], v: &Ver) -> bool {
         if !set.iter().all(|c| c.test(v)) { return false; }

@@ -25,6 +25,7 @@ export default async (ctx) => {
   const flat = ROWS.flat(), lab = labels.flat();
   const bad = Object.entries(want).filter(([c, l]) => lab[flat.indexOf(c)] !== l);
   ok(!bad.length, `key labels (${bad.map(([c, l]) => `${c}: "${lab[flat.indexOf(c)]}" ≠ "${l}"`).join(', ') || 'all right'})`);
+  await page.waitForFunction(() => document.activeElement?.classList.contains('kb'), null, { timeout: 5000 }).catch(() => {}); // the tab focuses the keyboard a moment after it is drawn
   ok(await page.evaluate(() => document.activeElement.classList.contains('kb')), 'the keyboard has focus on open');
   await page.keyboard.press('KeyA');
   let e = await last(); ok(e.key === '"a"' && e.code === 'KeyA' && e.keyCode === '65' && e.location === '0' && e.modifiers === 'none' && e.repeat === 'false', `A: key "a", code KeyA, keyCode 65 (${JSON.stringify(e)})`);

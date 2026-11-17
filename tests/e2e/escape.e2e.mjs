@@ -35,6 +35,26 @@ export default async (ctx) => {
   await esc('shell', "'unclosed", 'Unescape'); ok(/Unclosed single quote/.test(await page.locator('.note-warn').textContent()), 'unclosed shell quote → message');
   await esc('html', 'x < y'); await page.getByRole('button', { name: 'Swap' }).click(); await page.waitForTimeout(100);
   ok(await src.inputValue() === 'x &lt; y' && await out.inputValue() === 'x < y', 'Swap moves the output in and flips the direction');
+  // ---- bug hunt, Nov 2026
+  const un = (kind, s2) => esc(kind, s2, 'Unescape'), warnNow = async () => (await page.locator('.tool-body .note-warn').allTextContents()).join(' | ');
+  ok(await un('json', 'say ""hi"" \\u0041\\n') === 'say ""hi"" A\n' && await un('json', 'C:\\\\dir\\\\"x"') === 'C:\\dir\\"x"' && await un('json', 'real\ttab') === 'real\ttab', 'JSON unescape accepts bare quotes, an escaped backslash before a quote, real tabs (each used to fail with "Unexpected token" / "Bad control character")');
+  ok(await un('json', '"whole\\nstring"') === 'whole\nstring', 'a whole quoted JSON string loses its quotes');
+  await un('json', 'bad \\x41'); ok(/is not a JSON escape/.test(await warnNow()) && await out.inputValue() === '', 'an escape JSON does not have (\\x41) is named');
+  ok(await esc('c', 'bell\x07 esc\x1b') === 'bell\\007 esc\\033' && await esc('js', 'bell\x07') === 'bell\\u0007', 'C / Python escape writes control characters as octal (\\u0007 is not valid C); JavaScript keeps \\uXXXX');
+  ok(await esc('c', 'a\x001') === 'a\\0001' && await un('c', 'a\\0001') === 'a\x001', 'a NUL before a digit is written \\000 so that it reads back as NUL + digit');
+  ok(await un('c', '\\U0001F44D \\x41\\101 ab\\\ncd') === '👍 AA abcd', 'C unescape: \\U with eight digits, \\x, octal, backslash-newline joins lines');
+  await un('js', '\\u{110000}'); ok(/beyond the last Unicode character/.test(await warnNow()), '\\u{110000} → a clear message');
+  ok(await un('shell', "$'a\\nb\\tc' \"d \\\"e\\\"\" f\\ g") === 'a\nb\tc d "e" f g', "shell unescape: $'…', \\\" inside double quotes (it used to say \"Unclosed double quote\"), backslash-space");
+  ok(await un('html', 'caf&eacute; &rarr; &hearts; &frac12; &#65 &lt &#150; &#x110000;') === 'café → ♥ ½ A < – \ufffd', 'HTML unescape as a browser does it: every named entity, references without the semicolon, &#150; = –, impossible numbers = U+FFFD');
+  ok(await un('html', '<b>&amp;</b> stays text: &lt;script&gt;') === '<b>&</b> stays text: <script>' && !page.errors.length, 'tags in the input are text, nothing is run');
+  ok(await un('sql', "'it''s'\n") === "it's\n" && await esc('sql', "O'Reilly") === "'O''Reilly'", 'SQL: quotes doubled / undoubled, also when a newline follows the closing quote');
+  ok(await esc('regex', '1+1=2 (really?) [yes] $5.00') === '1\\+1=2 \\(really\\?\\) \\[yes\\] \\$5\\.00' && await esc('csv', 'say "hi", ok') === '"say ""hi"", ok"' && await esc('url', 'a b&c/₹') === 'a%20b%26c%2F%E2%82%B9', 'regex, CSV and URL escapes');
+  await un('url', '%E0%A4%A'); ok(/Cannot unescape/.test(await warnNow()) && await out.inputValue() === '', 'a cut-off %-sequence → message, empty output');
+  // every format: escape then unescape gives the text back (awkward texts)
+  const texts = ['He said "Namaste" — it\'s 5\\6\n\tnext', '<a href="x?a=1&b=2">O\'Reilly</a>', '100% $HOME `ls` !x', 'नमस्ते 👍🏽 café', 'a,b;"c"\nd', '\\\\server\\share\\', '{"k":"v"}', 'tab\there', ''];
+  const rt = []; for (const k of ['json', 'js', 'c', 'sql', 'shell', 'html', 'regex', 'csv', 'url']) for (const t2 of texts) { const e2 = await esc(k, t2); const back = await un(k, e2); if (back !== t2) rt.push(`${k}: ${JSON.stringify(t2).slice(0, 24)}`); }
+  ok(!rt.length, `9 formats × ${texts.length} awkward texts: escape → unescape gives the text back ${rt.slice(0, 5).join(' | ')}`);
+  const kinds = await fmt.locator('option').allTextContents(); ok(kinds.length === 9, `nine formats offered (${kinds.length})`);
   ok(!page.errors.length, `no page errors ${page.errors.join(' | ')}`);
   await pcOnlyOnPhone(ctx, 'escape');
 };

@@ -47,7 +47,14 @@ what those suites missed.
 - **Done so far (17 Nov 2026):** app shell + whole-app sweep (10 fixes); **area `net` — all 10 tabs** (cidr, chmod, x509,
   sshkey, hmac, pwhash, apikey, curl, totp, pwstrength): 51 bugs fixed, 592 checks added, each pinned against an
   independent reference (real curl, GNU chmod, OpenSSL, Python ipaddress / cryptography / hashlib / zxcvbn, RFC vectors).
-- **Next steps (in this order, one area at a time, commit + push after each):** misc → bitswebref → dev-data2 →
+- **Area `misc` done too** (cron, semver, glob, patch, hexview, escape, unicode, logview, sla, transfer, mermaid): 59
+  bugs, 350 checks; three engines replaced by our own Rust (npm-exact semver, Unicode glob, GNU-like patch).
+  Running total: **21 of 176 tabs reviewed, 110 bugs fixed, 942 checks added** (+ shell).
+- **The five first-wave reviewers left their probe scripts** in the scratchpad (`review/<area>/*.mjs`, areas misc,
+  bitswebref, dev-data2, data-engines, calc-core): copy them to `own/<area>/`, point them at the preview
+  (`sed -i 's#localhost:4180#localhost:4173#'`, `../probe.mjs` → `own/probe.mjs`) and run them one by one — they print
+  tool-vs-reference comparisons that show the bugs. (If the scratchpad is gone, review those areas from the source.)
+- **Next steps (in this order, one area at a time, commit + push after each):** bitswebref → dev-data2 →
   data-engines → calc-core → calc2-math → text → security-codes → images1 → images2 → pdf → docs2 → audio → video →
   terminal → everyday-device (areas = column "Area" in `docs/BUGHUNT.md`; `node scripts/bughunt.mjs status` lists the
   tabs still open). For each tab: read the source + suite, probe the built site (`npx vite preview --port 4173`, helper

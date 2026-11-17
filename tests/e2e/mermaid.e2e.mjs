@@ -29,6 +29,18 @@ export default async (ctx) => {
   const box = await svg.boundingBox();
   ok(Math.abs(png.w - Math.ceil(box.width * 2)) <= 2 && png.colours > 2, `PNG at 2× (${png.w}×${png.h}, ${png.colours} colours)`);
   ok([...hosts].every((h) => h === new URL(base).host), `nothing loaded from other hosts (${[...hosts]})`);
+  // ---- bug hunt, Nov 2026: a wide diagram is exported at its own size (it came out 1020 × 3 px); empty box; many kinds of error
+  const pngSize = async () => { const f2 = await download(page, () => page.getByRole('button', { name: 'Download PNG' }).click()); const b = readFileSync(f2); return [b.readUInt32BE(16), b.readUInt32BE(20), b.length]; };
+  await ta.fill('flowchart LR\n' + Array.from({ length: 60 }, (_, i) => `  n${i} --> n${i + 1}`).join('\n')); await page.waitForFunction(() => document.querySelector('.mermaid-view svg')?.textContent.includes('n60'), null, { timeout: 20000 });
+  const [pw, ph, pbytes] = await pngSize(); ok(pw >= 6000 && pw <= 8000 && ph >= 20 && pbytes > 20000, `a 61-box left-to-right flowchart: PNG ${pw} × ${ph} px, ${Math.round(pbytes / 1024)} KB (readable; capped at 8,000 px)`);
+  await ta.fill('flowchart TD\n  A["नमस्ते 😀 café ₹500"] --> B["a & b < c"]'); await page.waitForFunction(() => document.querySelector('.mermaid-view svg')?.textContent.includes('नमस्ते'), null, { timeout: 20000 });
+  ok((await page.locator('.mermaid-view svg').textContent()).includes('a & b < c') && (await pngSize())[2] > 3000, 'Unicode and & < in labels render and export');
+  await ta.fill(''); await page.waitForTimeout(600); ok(/Type Mermaid code, or pick an example/.test(await page.locator('.tool-body .note-info').first().textContent()) && await page.locator('.tool-body .note-warn').count() === 0, 'empty box → a prompt, not "No diagram type detected…"');
+  const errs = []; for (const [src, re] of [['nonsense', /No diagram type detected/], ['flowchart LR\n  A --> ', /Parse error on line/], ['graph TD\n A[unclosed', /Parse error/], ['sequenceDiagram\n  A->>', /Parse error/]]) { await ta.fill(src); await page.waitForFunction(() => document.querySelector('.tool-body .note-warn'), null, { timeout: 10000 }).catch(() => {}); if (!re.test(await page.locator('.tool-body .note-warn').first().textContent().catch(() => ''))) errs.push(src); await ta.fill(''); await page.waitForTimeout(450); }
+  ok(!errs.length && await page.evaluate(() => document.querySelectorAll('body > [id^="dmmd"], body > svg').length) === 0, `four kinds of broken diagram each get Mermaid's message, and nothing is left behind in the page ${errs.join(' | ')}`);
+  for (const [kind, text] of [['Sequence', 'Tap "Pay"'], ['ER diagram', 'CUSTOMER'], ['Gantt', 'Release plan'], ['Class', 'Animal']]) { await page.locator('.chip-btn', { hasText: kind }).click(); await page.waitForFunction((t) => document.querySelector('.mermaid-view svg')?.textContent.includes(t), text, { timeout: 20000 }); const [w2, h2] = await pngSize(); if (!(w2 > 200 && h2 > 100)) ok(false, `${kind} PNG ${w2}×${h2}`); }
+  ok(true, 'Sequence, ER, Gantt and Class examples render and export as PNG');
+  page.errors.splice(0, page.errors.length, ...page.errors.filter((e) => !/Parse error|No diagram type|Lexer error/.test(e)));
   ok(!page.errors.length, `no page errors ${page.errors.join(' | ')}`);
   await pcOnlyOnPhone(ctx, 'mermaid');
 };

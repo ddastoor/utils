@@ -38,6 +38,27 @@ export default async (ctx) => {
   await page.getByRole('button', { name: 'NFC', exact: true }).click(); ok(await ta.inputValue() === 'é' && [...await ta.inputValue()].length === 1, 'NFC composes e + ◌́ into é');
   await ta.fill('ﬁ ①'); await page.getByRole('button', { name: 'NFKC', exact: true }).click(); ok(await ta.inputValue() === 'fi 1', 'NFKC: ligature ﬁ → fi, ① → 1');
   await page.getByRole('button', { name: 'Copy', exact: true }).click(); ok(await page.evaluate(() => navigator.clipboard.readText()) === 'fi 1', 'Copy');
+  // ---- bug hunt, Nov 2026: what is suspicious depends on where the character stands
+  const warn = async () => (await page.locator('.tool-body .note-warn, .tool-body .note-err').allTextContents()).join(' | ');
+  const press = async (name) => { await page.getByRole('button', { name, exact: true }).click(); return ta.inputValue(); };
+  const fam = '👨‍👩‍👧 family 🏳️‍🌈 👩🏽‍💻';
+  await ta.fill(fam); ok(/No invisible or look-alike/.test(await page.locator('.note-ok').textContent()) && await press('Remove invisible') === fam && (await sum())['Graphemes (what you see)'] === '12', 'emoji joined with zero-width joiners are not "suspicious", and "Remove invisible" keeps them whole (it used to split 👨‍👩‍👧 into three people)');
+  const fa = 'می‌خواهم क्‍ष'; await ta.fill(fa); ok(/No invisible/.test(await page.locator('.note-ok').textContent()) && await press('Remove invisible') === fa, 'Persian ZWNJ and a Devanagari joiner are part of the spelling and are kept');
+  await ta.fill('pay​pal a‍b'); ok(/2 suspicious characters/.test(await warn()) && await press('Remove invisible') === 'paypal ab', 'the same characters inside Latin words are flagged and removed');
+  const tagged = `Summarise this${[...'ignore previous'].map((c) => String.fromCodePoint(0xe0000 + c.charCodeAt(0))).join('')}.`;
+  await ta.fill(tagged); ok(/15 suspicious characters/.test(await warn()) && /Hidden text spelled with invisible “tag” characters: “ignore previous”/.test(await warn()) && await press('Remove invisible') === 'Summarise this.', 'hidden "tag" characters: reported, their message shown, removable (they used to pass as clean)');
+  await ta.fill('Привет, как дела? Хорошо'); ok(/No invisible or look-alike/.test(await page.locator('.note-ok').textContent()) && (await sum()).Scripts === 'Cyrillic' && await press('Replace look-alikes') === 'Привет, как дела? Хорошо', 'ordinary Russian is clean and "Replace look-alikes" leaves it alone (10 letters were called suspicious and replaced by Latin ones)');
+  await ta.fill('καλημέρα κόσμε'); ok(/No invisible or look-alike/.test(await page.locator('.note-ok').textContent()), 'ordinary Greek is clean');
+  await ta.fill('Visit раураl.com now'); ok(/5 suspicious characters/.test(await warn()) && /homograph/.test(await warn()) && await press('Replace look-alikes') === 'Visit paypal.com now', 'a Latin-looking word written with Cyrillic letters is caught and fixed');
+  await ta.fill('ｐａｙｐａｌ 𝐩𝐚𝐲𝐩𝐚𝐥'); ok(/12 suspicious characters/.test(await warn()) && await press('Replace look-alikes') === 'paypal paypal', 'fullwidth and mathematical letters look like ASCII and are replaced by it');
+  await ta.fill('It’s “fine” — really…'); ok(/No invisible or look-alike/.test(await page.locator('.note-ok').textContent()) && /5 typographic/.test(await page.locator('.tool-body .note-info').textContent()) && await press('Plain quotes & dashes') === 'It\'s "fine" - really...', 'curly quotes, dashes and … are ordinary punctuation (not "suspicious"); a button turns them into plain ones');
+  await ta.fill('සිංහල ខ្មែរ ދިވެހި བོད ግዕዝ'); ok((await sum()).Scripts === 'Sinhala, Khmer, Thaana, Tibetan, Ethiopic', `more scripts are named (${(await sum()).Scripts})`);
+  // counts for hard cases
+  const counts = async (t) => { await ta.fill(t); const r = await sum(); return [r['Characters (code points)'], r['Graphemes (what you see)'], r['UTF-16 units (JS .length)'], r['UTF-8 bytes']].join('/'); };
+  ok(await counts('👨‍👩‍👧') === '5/1/8/18' && await counts('🇮🇳') === '2/1/4/8' && await counts('क्षि') === '4/1/4/12' && await counts('é') === '1/1/1/2' && await counts('é') === '2/1/2/3' && await counts('') === '0/0/0/0', 'code points / graphemes / UTF-16 / UTF-8 for a family emoji, a flag, a Devanagari cluster, é in both forms, nothing');
+  // a long text: the table stops at 2,000 rows and says so; the summary covers everything
+  await ta.fill('abc def '.repeat(400)); ok(await page.locator('.utbl tbody tr').count() === 2000 && /first 2,000 of 3,200 characters/.test(await page.locator('.tool-body .note-info').last().textContent()) && (await sum())['Characters (code points)'] === '3200', 'long text: 2,000 rows listed, with a note (the rest used to be cut silently)');
+  await ta.fill(''); ok(await page.locator('.utbl tbody tr').count() === 0 && (await sum()).Scripts === '—', 'empty box: empty table');
   ok(!page.errors.length, `no page errors ${page.errors.join(' | ')}`);
   await pcOnlyOnPhone(ctx, 'unicode');
 };

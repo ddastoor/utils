@@ -899,3 +899,4 @@ details summary { cursor: pointer; font-weight: 600; color: var(--accent); paddi
   .tool-body button, .tool-body [role=button], .tool-body a.btn, .tool-body select, .tool-body input:not([type=checkbox]):not([type=radio]):not([type=hidden]) { min-height: var(--tap); }
   .tool-body button { min-width: var(--tap); }
 }
+.hexdump mark.hexhit { background: color-mix(in srgb, var(--accent) 28%, transparent); color: inherit; border-radius: 3px; }
