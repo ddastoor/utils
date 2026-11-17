@@ -1,7 +1,7 @@
 import './styles.css';
 import { CATEGORIES, TOOLS, TOOL_BY_ID, type Tool, type CatId } from './registry';
 import { searchTools, initSearch } from './search';
-import { releaseAll } from './lifecycle';
+import { releaseAll, setIdle } from './lifecycle';
 import { h, ic, clear, errMsg, toast, type Cleanup } from './ui';
 import { isMobile } from './platform';
 import { favs, isFav, toggleFav, onFavChange } from './favorites';
@@ -104,7 +104,7 @@ function teardown() {
 }
 
 function showHome() {
-  teardown();
+  teardown(); setIdle(true);
   lastSection = 'all';
   renderTabs('all');
   document.title = 'SuperTools';
@@ -123,7 +123,7 @@ function showHome() {
 
 function showSection(section: Section) {
   if (section === 'all') { showHome(); return; }
-  teardown();
+  teardown(); setIdle(true);
   lastSection = section;
   renderTabs(section);
   const cat = CATEGORIES.find((c) => c.id === section);
@@ -144,7 +144,7 @@ async function showTool(tool: Tool, from?: 'fav') {
   const key = location.hash.replace(/([?&])from=[^&]*&?/, '$1').replace(/[?&]$/, '');
   if (currentTool?.id === tool.id && key === currentKey) { renderTabs(section, tool); return; }
   currentKey = key;
-  teardown();
+  teardown(); setIdle(!available(tool));
   currentTool = tool;
   lastSection = section;
   lastInSection.set(section, tool.id);

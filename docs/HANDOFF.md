@@ -21,11 +21,13 @@ this file = the owner's latest wishes, how the tests are written, and the traps 
   or time" banner means this session's machine/time is used up (the fix is a new session — work is safe in Git); the
   previous session started this one with `create_session` and stopped itself so two sessions never edit the branch.
 
-- **17 Nov 2026:** asked for a second, exhaustive bug hunt over every tab ("don't leave out any app") with many more
-  test cases — tracker `docs/BUGHUNT.md`, method in RESUME.md. The same day the owner **relaxed the engine rule**: "I'm
-  okay if you use the latest and greatest WebAssembly, even if it's somebody else's, as long as it's WebAssembly… build
-  it yourself if you can from open-source code… If you can't, then you can use JavaScript or TypeScript" (CLAUDE.md
-  STANDING RULE #1 rewritten; third-party wasm builds no longer need replacing).
+- **17 Nov 2026:** asked for a second, exhaustive bug hunt over every tab ("don't leave out any app") and to
+  "increase test coverage significantly for each app/utility" — tracker `docs/BUGHUNT.md`, method in RESUME.md.
+- **17 Nov 2026 — engine rule, final wording** (CLAUDE.md STANDING RULE #1): "Existing tested WebAssembly builds from other
+  people are preferred. If they are not there, build the WebAssembly module yourself from open-source source code. If
+  that's not possible in the existing framework, or for the features needed, then use JS or TS — make a note."
+- **17 Nov 2026 — `todo.md`** is the owner's to-do list (the owner calls it "to do"). First item: sweep the code again
+  and move as much JS/TS as possible into WebAssembly modules, where doable.
 
 ## 2. Status at hand-off (commit 5f87b87)
 Own e2e suites now exist for **Calculators 27/27, Math & Science 7/7, Text 9/9, the 8 developer tabs (json, regex,

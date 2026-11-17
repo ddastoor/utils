@@ -48,8 +48,12 @@ export const ic = (name: string, cls = '') => h('span', { class: `ic ${cls}`, 'a
 
 // ------------------------------------------------------------------ layout
 
-export const card = (title: string | null, ...children: Child[]) =>
-  h('section', { class: 'card' }, title ? h('h3', { class: 'card-title' }, title) : null, ...children);
+export const card = (title: string | null, ...children: Child[]) => {
+  const el = h('section', { class: 'card' }, title ? h('h3', { class: 'card-title' }, title) : null, ...children);
+  // a bare text box placed straight in a titled card ("SQL", "Formatted", "Output") takes the card's title as its accessible name
+  if (title) for (const t of el.querySelectorAll(':scope > textarea, :scope > .outbox > textarea, :scope > input.input')) if (!t.getAttribute('aria-label')) t.setAttribute('aria-label', title);
+  return el;
+};
 export const row = (...children: Child[]) => h('div', { class: 'row' }, ...children);
 export const stack = (...children: Child[]) => h('div', { class: 'stack' }, ...children);
 export const grid2 = (...children: Child[]) => h('div', { class: 'grid2' }, ...children);
@@ -93,6 +97,10 @@ export function field(label: string, control: Node, hint?: Child) {
   // Only real form controls go inside <label>; wrapping buttons would steal their names and clicks.
   const native = control instanceof HTMLInputElement || control instanceof HTMLSelectElement || control instanceof HTMLTextAreaElement;
   const tag = native ? 'label' : 'div';
+  if (!native && control instanceof Element) { // e.g. an output box, or a password box with its eye button: name the text box itself too
+    const inner = control.querySelectorAll('textarea, input:not([type=hidden]):not([type=checkbox]):not([type=radio]):not([type=file])');
+    if (inner.length === 1 && !inner[0].getAttribute('aria-label')) inner[0].setAttribute('aria-label', label);
+  }
   return h(tag, { class: 'field', role: native ? null : 'group', 'aria-label': native ? null : label },
     h('span', { class: 'field-label' }, label), control, hint ? h('span', { class: 'field-hint' }, hint) : null);
 }
@@ -176,8 +184,9 @@ export function progress() {
 }
 
 /** Read-only output with copy button. */
-export function outputBox(o: { rows?: number; mono?: boolean; placeholder?: string } = {}) {
+export function outputBox(o: { rows?: number; mono?: boolean; placeholder?: string; label?: string } = {}) {
   const ta = textarea({ rows: o.rows || 6, readonly: true, mono: o.mono, placeholder: o.placeholder });
+  if (o.label) ta.setAttribute('aria-label', o.label);
   const el = h('div', { class: 'outbox' }, ta, button('', () => copy(ta.value), { icon: 'Copy', small: true, title: 'Copy' }));
   return extend(el, { get value() { return ta.value; }, set value(v: string) { ta.value = v; }, ta });
 }

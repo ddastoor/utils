@@ -231,7 +231,7 @@ export const matrix: Mount = async (root) => {
   const mul = (a: Mat, b: Mat) => m.matmul(a, b);
   const A = textarea({ rows: 4, mono: true, value: '2 1 0\n1 3 1\n0 1 4' }), B = textarea({ rows: 4, mono: true, value: '1 0 0\n0 1 0\n0 0 1' });
   const out = h('pre', { class: 'mat-out' });
-  const pw = input({ type: 'number', value: 2 });
+  const pw = input({ type: 'number', value: 2, attrs: { 'aria-label': 'Power n' } });
   const op = (label: string, f: () => string | Mat) => button(label, () => { try { const r = f(); out.textContent = typeof r === 'string' ? r : matStr(r); } catch (e: any) { out.textContent = '⚠ ' + e.message; } }, { small: true });
   const sq = (m: Mat) => { if (m.length !== m[0].length) throw new Error('Needs a square matrix.'); return m; };
   root.append(card(null, stack(h('div', { class: 'grid2' }, field('Matrix A (rows on lines)', A), field('Matrix B', B)),

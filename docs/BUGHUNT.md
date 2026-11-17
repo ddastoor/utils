@@ -239,3 +239,20 @@ Areas with a shared review: the app shell (router, search, favorites, platform h
 | PC-only / Mobile-only hiding (src/platform.ts) |  |  |  |  |
 | lifecycle / lazy loading |  |  |  |  |
 | shared widgets (src/ui.ts), styles, dark mode |  |  |  |  |
+
+## Bug hunt log (what was found and fixed, newest area last)
+
+### App shell + whole-app sweep (17 Nov 2026) — `tests/e2e/shell.e2e.mjs` 17 → 63 checks, new `tests/e2e/every-tab.e2e.mjs` (7 checks over 284 tab views, 1,487 button presses)
+1. A malformed %-sequence in the address (`#/%`, a cut-off link) threw "URI malformed": blank page when loaded directly.
+2. Enter in an empty search box reopened the previous top match; Enter that confirms an IME composition is now ignored.
+3. Slow tab → another tab → back before the first finished loading mounted the tool twice and leaked its worker.
+4. A cancelled file dialog left its button busy for ever (Terminal "Upload", GST Invoice / Rent / Resume "Load details").
+5. A file dropped beside a drop zone made the browser open the file in place of the app (work in the tab lost).
+6. A tab whose code failed to download stayed dead until a manual reload — now a clear message + "Try again".
+7. Duplicates in stored favorites were shown twice; tools hidden on this device offered a star that did nothing visible.
+8. Sliders (29 tabs) had no accessible name; bare text boxes in ~30 tabs had none either (now named from their card /
+   field); colour picker, matrix power, UUID / Lorem / Prettier boxes named.
+9. Phone: 67 tabs had touch targets under 44 px (segmented buttons 38 px, small buttons 36 px, sliders 28 px, periodic
+   table cells 40 px, preset chips 34 px, DEG 22 px) — now ≥ 44 px on touch screens.
+10. An engine that finished loading after its tab was left stayed in memory until the next tab (Resume's fonts) — now
+    released at once; a worker replaced under the same key stayed counted as alive.

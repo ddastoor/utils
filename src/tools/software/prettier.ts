@@ -18,7 +18,8 @@ const LANGS: Record<string, { parser: string; plugins: () => Promise<any[]>; ext
 const BY_EXT: Record<string, string> = { js: 'js', mjs: 'js', cjs: 'js', jsx: 'js', ts: 'ts', tsx: 'ts', mts: 'ts', css: 'css', scss: 'scss', html: 'html', htm: 'html', json: 'json', yaml: 'yaml', yml: 'yaml', md: 'markdown', markdown: 'markdown', graphql: 'graphql', gql: 'graphql', vue: 'vue' };
 export const prettier: Mount = (root) => {
   let lang = 'js', width = 80, tab = 2, useTabs = false, semi = true, single = false, trailing = 'all', live = false, name = '';
-  const src = textarea({ rows: 14, mono: true, value: LANGS.js.sample }), out = outputBox({ rows: 18, mono: true }), status = h('div');
+  const src = textarea({ rows: 14, mono: true, value: LANGS.js.sample }), out = outputBox({ rows: 18, mono: true, label: 'Formatted code' }), status = h('div');
+  src.setAttribute('aria-label', 'Code');
   let core: Promise<any> | null = null;
   const run = async () => {
     clear(status);

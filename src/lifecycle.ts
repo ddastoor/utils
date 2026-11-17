@@ -6,8 +6,16 @@ type Release = () => void;
 const releases = new Map<string, Release>();
 const workers = new Set<Worker>();
 
+let idle = true; // no tool is open (home, category and favourites pages)
+/** The router says whether a tool is open. While none is, anything that registers is released at once. */
+export function setIdle(v: boolean) { idle = v; }
+
 /** Run `fn` when the user leaves the current tool (one entry per key; re-registering replaces it). */
-export function onLeave(key: string, fn: Release) { releases.set(key, fn); }
+export function onLeave(key: string, fn: Release) {
+  // an engine that finished loading after its tab was left (slow download) has no user any more: free it straight away
+  if (idle) { try { fn(); } catch (e) { console.warn('release failed', e); } return; }
+  releases.set(key, fn);
+}
 
 /** Release one key now (e.g. a Stop button that terminates a worker). */
 export function releaseNow(key: string) { const f = releases.get(key); if (f) { releases.delete(key); f(); } }

@@ -37,9 +37,13 @@ what those suites missed.
   security-codes, images1, images2, pdf, docs2, audio, video, terminal, everyday-device, + the app shell.
 - **Progress:** see the tracker; fixed-bug summary is appended here area by area.
 - After the hunt: ask the owner which `docs/potentials.md` ideas to build (build none until picked).
-- **Owner, 17 Nov 2026 (engine rule relaxed — CLAUDE.md STANDING RULE #1):** an existing tried-and-tested WebAssembly
-  build (even somebody else's, latest version) is as good as our own build; JS/TS only when no WebAssembly route works.
-  The old "replace third-party wasm with our own builds" list is no longer an obligation.
+- **Owner, 17 Nov 2026 (engine rule, final wording — CLAUDE.md STANDING RULE #1):** 1) an existing tested WebAssembly
+  build by someone else is preferred; 2) if there is none, build the wasm module ourselves from open-source code; 3) JS/TS
+  only if neither is possible — with a note in CLAUDE.md §3a.
+- **Owner's to-do list: `todo.md`** ("to do"). First item (17 Nov 2026): a JS/TS → WebAssembly sweep, after this hunt.
+- **Owner, 17 Nov 2026:** "increase test coverage significantly for each app/utility" — every tab's suite must grow in
+  this pass (tracker column T), not only the tabs where a bug was found.
+- **Shell + whole-app results so far:** see "Bug hunt log" at the end of the tracker.
 
 ## Status (last updated with the commit that touched this file — see `git log -1 -- docs/RESUME.md`)
 

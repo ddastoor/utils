@@ -887,3 +887,14 @@ details summary { cursor: pointer; font-weight: 600; color: var(--accent); paddi
 .gv-img { display: block; margin: 0 auto; }
 .py-out { min-height: 200px; max-height: 60vh; overflow: auto; margin: 8px 0; padding: 12px; border-radius: 10px; background: var(--code-bg, #0f172a); color: #e2e8f0; font: 13px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; white-space: pre-wrap; word-break: break-word; }
 .py-stderr { color: #fca5a5; }
+
+/* Touch targets ≥ 44 px on touch screens (owner rule §1.9). Desktop keeps the compact sizes. Sweep: scratch sweep.mjs /
+   tests/e2e/touch-targets.e2e.mjs measures every visible control of every phone tab. */
+@media (pointer: coarse), (max-width: 640px) {
+  .btn-sm, .seg-btn { min-height: var(--tap); }
+  .btn-sm.btn-icon { width: var(--tap); }
+  .btn-icon, .seg-btn { min-width: var(--tap); }
+  .range { height: var(--tap); }
+  .tool-body button, .tool-body [role=button], .tool-body a.btn, .tool-body select, .tool-body input:not([type=checkbox]):not([type=radio]):not([type=hidden]) { min-height: var(--tap); }
+  .tool-body button { min-width: var(--tap); }
+}

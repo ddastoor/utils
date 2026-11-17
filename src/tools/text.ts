@@ -281,7 +281,7 @@ const LOREM = 'lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiu
 export const lorem: Mount = async (root) => {
   const na = await sodium();
   let unit = 'p', n = 3, classic = true;
-  const out = outputBox({ rows: 12 });
+  const out = outputBox({ rows: 12, label: 'Generated text' });
   const pick = () => LOREM[na.uniform(LOREM.length)];
   const sentence = () => { const w = Array.from({ length: 8 + na.uniform(10) }, pick); w[0] = w[0][0].toUpperCase() + w[0].slice(1); return w.join(' ') + '.'; };
   const para = () => Array.from({ length: 4 + na.uniform(4) }, sentence).join(' ');
@@ -440,7 +440,7 @@ export const epoch: Mount = (root) => {
 export const uuid: Mount = async (root) => {
   const na = await sodium();
   let ver = 'v4', n = 5, upper = false, hyph = true;
-  const out = outputBox({ rows: 8, mono: true });
+  const out = outputBox({ rows: 8, mono: true, label: 'UUIDs' });
   const check = input({ placeholder: 'Paste a UUID to inspect', attrs: { class: 'input mono', spellcheck: 'false' } });
   const info = h('div');
   const gen = () => { out.value = Array.from({ length: n }, () => { let u = na.uuid(ver === 'v7' ? 7 : 4); if (!hyph) u = u.replace(/-/g, ''); return upper ? u.toUpperCase() : u; }).join('\n'); };
@@ -470,7 +470,7 @@ export const colorFns = { hexToRgb, rgbToHex };
 export const color: Mount = async (root) => {
   const { rgbToHsl, hslToRgb, rgbToOklch, oklchToRgb, contrast: contrastRatio } = await mathcore();
   let rgb = [79, 70, 229];
-  const picker = h('input', { type: 'color', class: 'color-picker' });
+  const picker = h('input', { type: 'color', class: 'color-picker', 'aria-label': 'Pick a colour' });
   const hex = input({ attrs: { class: 'input mono' } }), rgbI = input({ attrs: { class: 'input mono' } }), hsl = input({ attrs: { class: 'input mono' } }), ok = input({ attrs: { class: 'input mono' } });
   const swatch = h('div', { class: 'swatch' });
   const info = h('div', { class: 'kv' });
