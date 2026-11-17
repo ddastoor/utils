@@ -54,8 +54,8 @@ that affects it.
 > - What is already in use stays, at its latest stable version: third-party builds (jSquash codecs, libheif-js,
 >   tesseract.js-core, zxing-wasm, libarchive.js, ffmpeg.wasm, MuPDF, SQLite, ONNX Runtime, MediaPipe) and our own
 >   builds (crypto, imgproc, BusyBox, jq, Graphviz, CPython, devcore, formats, …).
-> - The owner's to-do list (`todo.md`) has a standing item: sweep the code again and move as much JS/TS as possible
->   into WebAssembly modules, where doable.
+> - The owner's to-do list (`todo.md`) has an item for it: sweep the code again and move as much JS/TS as possible
+>   into WebAssembly modules, where doable — **only when the owner picks that item** (see the to-do note below).
 
 > ## ⚠️ STANDING RULE #2 — Test extensively, fix, test again (owner, 17 Nov 2026; permanent; every utility)
 > **Owner:** "For whatever utility you write, make extensive tests and test them. If those tests find bugs, then fix
@@ -72,8 +72,9 @@ that affects it.
 >   fixed in `docs/BUGHUNT.md`.
 
 > ## 📝 Owner's to-do list: `todo.md` (the owner calls it "to do")
-> Created 17 Nov 2026. When the owner says "add … to to do" or "what's on to do", it means this file. Items are done
-> only when the owner asks or when the current work is finished — read it at the start of a session and keep it current.
+> Created 17 Nov 2026. When the owner says "add … to to do" or "what's on to do", it means this file. Read it at the
+> start of a session and keep it current. **Never start an item on your own (owner, 17 Nov 2026):** when the current
+> work is finished, show the owner the open items and ask which ones to do — then do only those.
 
 ---
 

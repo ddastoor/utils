@@ -40,7 +40,9 @@ what those suites missed.
 - **Owner, 17 Nov 2026 (engine rule, final wording — CLAUDE.md STANDING RULE #1):** 1) an existing tested WebAssembly
   build by someone else is preferred; 2) if there is none, build the wasm module ourselves from open-source code; 3) JS/TS
   only if neither is possible — with a note in CLAUDE.md §3a.
-- **Owner's to-do list: `todo.md`** ("to do"). First item (17 Nov 2026): a JS/TS → WebAssembly sweep, after this hunt.
+- **Owner's to-do list: `todo.md`** ("to do"). First item (17 Nov 2026): a JS/TS → WebAssembly sweep.
+  **Owner, 17 Nov 2026: do NOT start to-do items on your own** — after this hunt, show the owner the items and ask
+  which ones to do.
 - **Owner, 17 Nov 2026:** "increase test coverage significantly for each app/utility" — every tab's suite must grow in
   this pass (tracker column T), not only the tabs where a bug was found.
 - **Shell + whole-app results so far:** see "Bug hunt log" at the end of the tracker.

@@ -27,7 +27,11 @@ this file = the owner's latest wishes, how the tests are written, and the traps 
   people are preferred. If they are not there, build the WebAssembly module yourself from open-source source code. If
   that's not possible in the existing framework, or for the features needed, then use JS or TS — make a note."
 - **17 Nov 2026 — `todo.md`** is the owner's to-do list (the owner calls it "to do"). First item: sweep the code again
-  and move as much JS/TS as possible into WebAssembly modules, where doable.
+  and move as much JS/TS as possible into WebAssembly modules, where doable. **The owner (17 Nov 2026): "Don't start
+  doing the todo.md on your own. At some point, show me the items and ask me which ones to build out."**
+- **17 Nov 2026 — two standing rules, now at the top of CLAUDE.md:** #1 WebAssembly first (our own build or an existing
+  tried-and-tested one — either is fine; JS/TS-only code is made into wasm where possible; only then JS/TS as it is;
+  everything hosted in the app). #2 Extensive tests for every utility: test, fix the bug or the test, test again.
 
 ## 2. Status at hand-off (commit 5f87b87)
 Own e2e suites now exist for **Calculators 27/27, Math & Science 7/7, Text 9/9, the 8 developer tabs (json, regex,
