@@ -27,13 +27,21 @@ that affects it.
 > modules already out there. Famous ones, good ones. After that, if that's not available, then try and build out
 > your own WebAssembly modules from open source code. And after that, if that's not doable, then use existing
 > JavaScript or TypeScript libraries."
+> **Owner, 18 Nov 2026 (added the same day):** "Just remember that in this preference, the WebAssembly modules that
+> are out there should only be used if it satisfies all the conditions and feature requests that I asked for per
+> utility. If it doesn't, then build out our own WebAssembly module."
 > **The order:**
 > 1. **An existing, tried-and-tested WebAssembly module that is already out there** — a famous, good one: the
 >    upstream project's official build (SQLite's, Artifex's MuPDF, Microsoft's ONNX Runtime, Google's MediaPipe) or a
 >    widely used, maintained build by someone else (jSquash codecs, libheif-js, tesseract.js-core, zxing-wasm,
->    libarchive.js, ffmpeg.wasm), at its latest stable version. **Look for one first, every time.**
-> 2. **No such module exists (or it cannot do what the tool needs): build our own WebAssembly module from
->    open-source code** — the latest stable open-source source (C/C++, Rust, Zig…; source verified by checksum or
+>    libarchive.js, ffmpeg.wasm), at its latest stable version. **Look for one first, every time — and use it only
+>    if it satisfies ALL the conditions and feature requests the owner gave for that utility** (the hard
+>    requirements of §1 — hosted in the app, no CDN, no runtime downloads from elsewhere, user data stays on the
+>    device, lazy per tab, the platforms asked for — the tool's own requirements in §2 / §3, an open-source
+>    licence, and the tab's test suite, which encodes those requirements). A module that falls short on any of
+>    them is not used: go to step 2.
+> 2. **No such module exists, or the ones that exist do not satisfy everything asked for: build our own WebAssembly
+>    module from open-source code** — the latest stable open-source source (C/C++, Rust, Zig…; source verified by checksum or
 >    signature; licences respected) or our own C / Rust on top of it (`wasm/`). Functionality that exists only as
 >    JavaScript / TypeScript belongs here too: make a WebAssembly module out of it (port it, or compile it) when
 >    that is possible and fits the utility (owner, 17 Nov 2026).
@@ -116,8 +124,8 @@ Wayland) and **mobile browsers** (Android Chrome, iPhone Safari).
 5. **Responsive UI** that works on phone and desktop.
 6. **Implementation preference order — see STANDING RULE #1 at the top (WebAssembly first, always):**
    1. An existing, tried-and-tested WebAssembly module (a famous, good one: the upstream project's official build
-      or a widely used one, latest stable).
-   2. If there is none: our own WebAssembly build from the latest proper open-source **C/C++/Rust** (or other
+      or a widely used one, latest stable) — only if it satisfies every condition and feature asked for the tool.
+   2. If there is none, or none satisfies everything: our own WebAssembly build from the latest proper open-source **C/C++/Rust** (or other
       compiled) source or our own code on top of it — also for functionality that exists only as
       JavaScript/TypeScript, when a port is possible and fits the tool.
    3. Only if that is not doable: a widely used, safe, OSI-licensed JavaScript/TypeScript library as it is, vendored
@@ -795,8 +803,9 @@ to `chrome://flags/#enable-webrtc-pipewire-capturer` and the `xdg-desktop-portal
 JavaScript library. Order of preference:
 1. An existing, tried-and-tested WebAssembly module that is already out there (a famous, good one) — the upstream
    project's **official** wasm build (e.g. SQLite's, Artifex's MuPDF) or a widely used third-party build, at its
-   latest stable version. Look for one first.
-2. If there is none: our own wasm build from open-source code — the upstream C/C++/Rust source (verified by
+   latest stable version. Look for one first; **use it only if it satisfies all the conditions and feature requests
+   the owner gave for that utility**.
+2. If there is none, or none satisfies everything asked for: our own wasm build from open-source code — the upstream C/C++/Rust source (verified by
    checksum/signature) or our own C / Rust on top of it; functionality that exists only as JavaScript/TypeScript is
    made into a WebAssembly module here (a port to Rust / C, or compiling it) when that is possible and fits the tool.
 3. A JavaScript/TypeScript library as it is — **only when that is not doable** in this framework or for the features
@@ -1267,7 +1276,8 @@ Deployment branches**.
 
 ## 8. Adding a new tool (checklist)
 0. **Apply STANDING RULE #1 first** (top of this file): for every engine/library/algorithm the tool needs, pick
-   an existing tried-and-tested WebAssembly module first (look for one); if there is none, our own WebAssembly build
+   an existing tried-and-tested WebAssembly module first (look for one; it must satisfy everything the owner asked
+   for the tool); if there is none or none fits, our own WebAssembly build
    from open-source code (also a port of JS/TS-only functionality where that is possible); only if that is not
    doable, a JS/TS library as it is; record the choice and reason in §3a. Everything is hosted in the app.
 0b. **Apply STANDING RULE #2 throughout:** extensive tests are written with the tool (unit + its own e2e suite,

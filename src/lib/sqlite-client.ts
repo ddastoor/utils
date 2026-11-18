@@ -2,7 +2,8 @@
 import { trackWorker } from '../lifecycle';
 let worker: Worker | null = null, seq = 0;
 const pending = new Map<number, { res: (v: any) => void; rej: (e: Error) => void }>();
-export function sql<T = any>(op: 'open' | 'exec' | 'schema' | 'importRows' | 'exportDb', ...args: any[]): Promise<T> {
+export type SqlOp = 'open' | 'exec' | 'schema' | 'importSheet' | 'exportDb' | 'exportResult' | 'inTransaction';
+export function sql<T = any>(op: SqlOp, ...args: any[]): Promise<T> {
   if (!worker) {
     worker = trackWorker(new Worker(new URL('../workers/sqlite.worker.ts', import.meta.url), { type: 'module' }), 'sqlite-worker', () => { pending.clear(); worker = null; });
     worker.onmessage = (e) => { const p = pending.get(e.data.id); if (!p) return; pending.delete(e.data.id); e.data.error ? p.rej(new Error(e.data.error)) : p.res(e.data.result); };

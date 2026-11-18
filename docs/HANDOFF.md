@@ -30,7 +30,8 @@ this file = the owner's latest wishes, how the tests are written, and the traps 
   and move as much JS/TS as possible into WebAssembly modules, where doable. **The owner (17 Nov 2026): "Don't start
   doing the todo.md on your own. At some point, show me the items and ask me which ones to build out."**
 - **17 Nov 2026 — two standing rules, now at the top of CLAUDE.md:** #1 WebAssembly first (**order settled by the owner on
-  18 Nov 2026**: first an existing tried-and-tested WebAssembly module, a famous good one; if there is none, our own
+  18 Nov 2026**: first an existing tried-and-tested WebAssembly module, a famous good one — used only if it
+  satisfies everything the owner asked for that utility; if there is none or none fits, our own
   build from open-source code — also ports of JS/TS-only functionality where possible; only then a JS/TS library as
   it is; everything hosted in the app). #2 Extensive tests for every utility: test, fix the bug or the test, test again.
 

@@ -38,11 +38,20 @@ what those suites missed.
 - **Progress:** see the tracker; fixed-bug summary is appended here area by area.
 - After the hunt: ask the owner which `docs/potentials.md` ideas to build (build none until picked).
 - **Owner — three standing rules at the top of CLAUDE.md:** #1 WebAssembly first, **order settled on 18 Nov 2026**:
-  (1) an existing tried-and-tested WebAssembly module (a famous, good one) — look for one first; (2) if there is
-  none, our own WebAssembly build from open-source code (also ports of JS/TS-only functionality where possible);
+  (1) an existing tried-and-tested WebAssembly module (a famous, good one) — look for one first, and use it **only
+  if it satisfies every condition and feature the owner asked for that utility**; (2) if there is none or none
+  fits, our own WebAssembly build from open-source code (also ports of JS/TS-only functionality where possible);
   (3) only if that is not doable, a JS/TS library as it is, noted in §3a; everything hosted in the app. #2 Extensive tests for every
   utility: test, fix the bug or the test, test again. #3 Commit and push regularly and often — do not wait for the
   complete test run or for the whole utility.
+- **Owner, 18 Nov 2026 — a task that comes BEFORE more new tabs:** "for all the apps that you've done a bug hunt for
+  up till now, that is the 51 of them, see if you can replace the handwritten WebAssembly ones with already existing
+  WebAssembly modules out there, but only if the WebAssembly modules out there fit all the requirements that I've
+  asked you for. And then continue on the new apps for the bug hunt and test cases." Result and reasons per module:
+  `docs/WASM-AUDIT.md` (created by that audit).
+- **SQLite Playground is half done** (rewritten engine `src/lib/sqlite-engine.ts`, worker, page; reference generator
+  `scripts/make-sqlite-reference.py` written but not yet run; `tests/e2e/sqlite.e2e.mjs` is still the old suite and
+  will fail until rewritten; unit suite `tests/unit/sqlite.test.mjs` not written yet). Finish it right after the audit.
 - **Owner's to-do list: `todo.md`** ("to do"). First item (17 Nov 2026): a JS/TS → WebAssembly sweep.
   **Owner, 17 Nov 2026: do NOT start to-do items on your own** — after this hunt, show the owner the items and ask
   which ones to do.
