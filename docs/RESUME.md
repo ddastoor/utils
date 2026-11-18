@@ -37,9 +37,10 @@ what those suites missed.
   security-codes, images1, images2, pdf, docs2, audio, video, terminal, everyday-device, + the app shell.
 - **Progress:** see the tracker; fixed-bug summary is appended here area by area.
 - After the hunt: ask the owner which `docs/potentials.md` ideas to build (build none until picked).
-- **Owner, 17 Nov 2026 — three standing rules at the top of CLAUDE.md:** #1 WebAssembly first (our own build from
-  open-source code or an existing tried-and-tested build, either is fine; JS/TS-only code is made into wasm where
-  possible; only then JS/TS as it is, noted in §3a; everything hosted in the app). #2 Extensive tests for every
+- **Owner — three standing rules at the top of CLAUDE.md:** #1 WebAssembly first, **order settled on 18 Nov 2026**:
+  (1) an existing tried-and-tested WebAssembly module (a famous, good one) — look for one first; (2) if there is
+  none, our own WebAssembly build from open-source code (also ports of JS/TS-only functionality where possible);
+  (3) only if that is not doable, a JS/TS library as it is, noted in §3a; everything hosted in the app. #2 Extensive tests for every
   utility: test, fix the bug or the test, test again. #3 Commit and push regularly and often — do not wait for the
   complete test run or for the whole utility.
 - **Owner's to-do list: `todo.md`** ("to do"). First item (17 Nov 2026): a JS/TS → WebAssembly sweep.
