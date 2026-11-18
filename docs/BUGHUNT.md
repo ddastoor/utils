@@ -513,3 +513,20 @@ Method for these: the engine's native counterpart or an independent implementati
   (missing package, module that cannot work here, input ran out, memory, threads, nesting depth), Save output,
   "All as .zip", Enter keeps the indentation.
   Left as it is: sqlite3, bz2, lzma, ssl, ctypes, tkinter / turtle are not in the build (each has a hint).
+
+### WebAssembly audit of the first 51 tabs (owner, 18 Nov 2026) — `docs/WASM-AUDIT.md`
+Could an existing, tried-and-tested WebAssembly module replace one we wrote, while meeting every requirement of the
+tab? Candidates were searched on the npm registry (with download counts) and the serious ones run against our own
+reference cases.
+- **Replaced: `hmac`** — our Rust glue in keys.wasm → **hash-wasm 4.13.0** (MIT, 10.8 M downloads a month). Suites
+  re-run: new `tests/unit/hmac.test.mjs` (48: RFC 2104 / 2202 / 4231 vectors, 6,272 combinations against OpenSSL,
+  1 MB in pieces of 1 MB … 1 byte), keys 174, e2e hmac / totp / pwhash / sshkey / apikey, lazy, shell, no-external.
+- **Kept, with the failed requirement written down:** jq (jq-wasm: local time fails, endless filters cannot be
+  stopped), python (Pyodide: 9 of 50 reference programs differ, fatal stack overflow), xml (libxml2 rewrites what
+  the tab must leave as typed), json (dprint accepts what is not JSON; no minify / sort / duplicate keys), svgo,
+  pwstrength, pwhash (hash-wasm has no PHC strings for scrypt / PBKDF2), yaml, and the modules for which no
+  WebAssembly package exists at all (semver, cron, CIDR, X.509, glob, patch, encodings, binary decoders, JSON diff,
+  JSON → types, JSON Schema, UUIDs, colour maths).
+- **Open choice for the owner:** Mermaid → Merman (Rust port, five months old, ~19 MB) — recommendation: not yet.
+- **Found on the way:** our jq build shows local time as UTC → to fix.
+- From the 52nd tab on, each tab's entry in `docs/WASM-AUDIT.md` is written before its bug hunt (owner's order of work).

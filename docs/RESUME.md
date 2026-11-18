@@ -47,8 +47,15 @@ what those suites missed.
 - **Owner, 18 Nov 2026 — a task that comes BEFORE more new tabs:** "for all the apps that you've done a bug hunt for
   up till now, that is the 51 of them, see if you can replace the handwritten WebAssembly ones with already existing
   WebAssembly modules out there, but only if the WebAssembly modules out there fit all the requirements that I've
-  asked you for. And then continue on the new apps for the bug hunt and test cases." Result and reasons per module:
-  `docs/WASM-AUDIT.md` (created by that audit).
+  asked you for. And then continue on the new apps for the bug hunt and test cases." **DONE (18 Nov 2026):**
+  `docs/WASM-AUDIT.md` — one replacement (HMAC Generator → hash-wasm 4.13, suites re-run), 50 tabs keep their engine
+  with the reason per tab; one open choice for the owner (Mermaid → Merman, recommendation: not yet).
+- **Owner, 18 Nov 2026 — order of work for every tab from the 52nd on:** (1) check whether a WebAssembly module we
+  wrote can be replaced by an existing one under STANDING RULE #1 and write the tab's entry in `docs/WASM-AUDIT.md`
+  (candidates already noted there: hash-wasm for `hash`, libsodium-wrappers for the sodium tabs, @hpcc-js/wasm-graphviz,
+  @vscode/diff, …); (2) hunt bugs; (3) extensive tests; (4) fix, re-test; (5) next tab. "Keep going."
+- **Found during the audit, still to fix:** our jq build shows local time as UTC (`localtime`, `strflocaltime`) —
+  give it the host time-zone support CPython got (`-Dlocaltime_r=…`, `supertools.tz_info`), with tests.
 - **SQLite Playground is half done** (rewritten engine `src/lib/sqlite-engine.ts`, worker, page; reference generator
   `scripts/make-sqlite-reference.py` written but not yet run; `tests/e2e/sqlite.e2e.mjs` is still the old suite and
   will fail until rewritten; unit suite `tests/unit/sqlite.test.mjs` not written yet). Finish it right after the audit.

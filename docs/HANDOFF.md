@@ -29,6 +29,13 @@ this file = the owner's latest wishes, how the tests are written, and the traps 
 - **17 Nov 2026 — `todo.md`** is the owner's to-do list (the owner calls it "to do"). First item: sweep the code again
   and move as much JS/TS as possible into WebAssembly modules, where doable. **The owner (17 Nov 2026): "Don't start
   doing the todo.md on your own. At some point, show me the items and ask me which ones to build out."**
+- **18 Nov 2026 — audit + order of work per tab:** the owner had the 51 hunted tabs audited for handwritten
+  WebAssembly that an existing module could replace (`docs/WASM-AUDIT.md`: HMAC → hash-wasm; everything else kept,
+  reason per tab) and set the order for every later tab: **(1) existing-module check, entry in WASM-AUDIT.md →
+  (2) bugs → (3) extensive tests → (4) fix and re-test → next tab.** A replacement always means re-running the
+  tab's suites. How candidates are found: `curl "https://registry.npmjs.org/-/v1/search?text=<topic>%20wasm&size=60"`
+  (`downloads.monthly`), keep packages that name both the topic and WebAssembly, then run the serious ones against
+  our own reference cases in a scratch folder.
 - **17 Nov 2026 — two standing rules, now at the top of CLAUDE.md:** #1 WebAssembly first (**order settled by the owner on
   18 Nov 2026**: first an existing tried-and-tested WebAssembly module, a famous good one — used only if it
   satisfies everything the owner asked for that utility; if there is none or none fits, our own

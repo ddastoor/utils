@@ -30,6 +30,12 @@ that affects it.
 > **Owner, 18 Nov 2026 (added the same day):** "Just remember that in this preference, the WebAssembly modules that
 > are out there should only be used if it satisfies all the conditions and feature requests that I asked for per
 > utility. If it doesn't, then build out our own WebAssembly module."
+> **Owner, 18 Nov 2026 (bug hunt, from the 52nd tab on — the order of work per tab):** "first see if any WebAssembly
+> module that you wrote can be replaced by an existing one out there using the rules that you mentioned, and then find
+> bugs and then write extensive test cases, solve the bugs as you've been doing, and then move on to the next app."
+> → every tab gets its entry in `docs/WASM-AUDIT.md` (our module → candidates → check → decision) **before** its bug
+> hunt; a replacement means running that tab's suites again. The first 51 tabs are audited there (one replacement:
+> the HMAC Generator → hash-wasm).
 > **The order:**
 > 1. **An existing, tried-and-tested WebAssembly module that is already out there** — a famous, good one: the
 >    upstream project's official build (SQLite's, Artifex's MuPDF, Microsoft's ONNX Runtime, Google's MediaPipe) or a
@@ -860,6 +866,10 @@ JavaScript-only components (no C/C++ equivalent exists for the job):
 | TensorFlow.js (Apache-2.0) | runs the Magenta style-transfer graph on the GPU via WebGL; its **wasm backend** (XNNPACK, C++ → wasm, tier 2 official build) is the CPU path | cartoon (neural) |
 | zip.js (BSD-3) | AES-256 zip *creation*; libarchive's wasm build has no crypto | zip |
 | mediabunny (MPL-2.0) | MP4 muxing around the browser's hardware WebCodecs encoders; cutting audio without re-encoding (packet copy) | video, audio |
+
+**Audit of handwritten WebAssembly against existing modules (owner, 18 Nov 2026): `docs/WASM-AUDIT.md`** — per tab: our
+module, the existing candidates (version, downloads), what failed or passed, the decision. Kept current as the bug hunt
+moves on.
 
 **Audit list (STANDING RULE #1)** — by the owner's 18 Nov 2026 wording, existing tried-and-tested WebAssembly
 builds are the first choice and stay as they are (jSquash MozJPEG/libwebp/OxiPNG, libheif-js, tesseract.js-core, zxing-wasm,
