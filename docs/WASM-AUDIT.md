@@ -12,13 +12,16 @@ bugs and then write extensive test cases, solve the bugs as you've been doing, a
 So this file has two parts: the audit of the first 51 tabs (done), and a running log for every tab after them (one
 entry per tab, written **before** its bug hunt starts).
 
-## The rule being applied (STANDING RULE #1, CLAUDE.md)
-1. An existing, tried-and-tested, well-known WebAssembly module — **only if it satisfies every condition and feature
-   the owner asked for that utility** (hosted in the app, no CDN, no run-time downloads from elsewhere, data stays on
-   the device, lazy per tab, open-source licence, the tab's requirements in CLAUDE.md §2 / §3, and the tab's test
-   suite, which encodes those requirements).
-2. Otherwise our own WebAssembly module from open-source code.
-3. Otherwise an existing JavaScript / TypeScript library, with the reason in CLAUDE.md §3a.
+## The rule being applied (STANDING RULE #1, CLAUDE.md — as it stands after the owner's tweak)
+1. An existing, tried-and-tested, well-known WebAssembly module. If it covers everything asked for the utility: use
+   it. **If it covers only part: still use it for that part**, and add the missing features beside it — (a) a
+   supplementary WebAssembly module of our own, (b) an existing JS / TS library, (c) our own JS / TS. The hard
+   requirements (hosted in the app, no CDN, no run-time downloads from elsewhere, data stays on the device, lazy per
+   tab, an open-source licence) are not "features": a module that breaks one is not used.
+2. No such module at all: our own WebAssembly module from open-source code.
+3. Not doable: an existing JavaScript / TypeScript library, with the reason in CLAUDE.md §3a; our own JS / TS last.
+The first audit below was made under the morning's wording ("use it only if it satisfies all"); the **second pass**
+further down applies the tweak.
 
 ## How candidates were found and judged
 - **Search:** the npm registry's search API per topic (`<topic> wasm`, `<topic> webassembly`, `<topic> rust`), kept
@@ -32,8 +35,9 @@ entry per tab, written **before** its bug hunt starts).
 
 ## Result for the first 51 tabs
 
-**One module replaced, 50 tabs keep their engine.** Replaced: the HMAC Generator's engine (our Rust glue in
-keys.wasm → `hash-wasm`). The table lists every tab; "—" under candidate means the search found no WebAssembly
+**First audit (rule as it stood that morning: "only if it satisfies all"): one module replaced, 50 tabs keep their
+engine.** Replaced: the HMAC Generator's engine (our Rust glue in keys.wasm → `hash-wasm`). **The second pass further
+down, made after the owner's tweak, moved two more tabs (TOTP, Password Hash) onto hash-wasm.** The table lists every tab; "—" under candidate means the search found no WebAssembly
 package for the job at all.
 
 ### Tabs whose engine is a WebAssembly module we built
@@ -41,8 +45,8 @@ package for the job at all.
 | Tab | Our module | Existing candidate (monthly downloads) | What happened when it was checked | Decision |
 |---|---|---|---|---|
 | `hmac` | keys.wasm (RustCrypto hmac + our streaming glue) | **hash-wasm 4.13.0** (10.8 M; MIT; C → wasm, embedded, no eval) | All eight algorithms, streaming, key and message of any length: equal to OpenSSL in 6,272 combinations and to the RFC 2104 / 2202 / 4231 vectors; bundled into a 57 KB chunk, nothing fetched at run time | **Replaced** (commit "HMAC Generator: engine replaced by hash-wasm"). Re-run: unit hmac 48 + keys 174, e2e hmac 30, totp 49, pwhash 31, sshkey 34, apikey 26, lazy 549, shell 63, no-external 43 |
-| `pwhash` | keys.wasm (argon2, bcrypt, pbkdf2, scrypt + PHC strings) | hash-wasm 4.13.0 | Argon2 and bcrypt give encoded hashes and can verify; **scrypt and PBKDF2 return a bare digest**: no PHC string, no verification of a pasted hash (the tab must make and check `$scrypt$…`, `$pbkdf2-sha256$…`, and PBKDF2-SHA1 hashes made elsewhere), no worded refusals for parameters a tab cannot run | Keep ours |
-| `totp` | keys.wasm (HOTP / TOTP, lenient Base32, otpauth) | @xet/totp-wasm (67) | Not established; hash-wasm has no Base32 or OTP | Keep ours |
+| `pwhash` | keys.wasm (argon2, bcrypt, pbkdf2, scrypt + PHC strings) | hash-wasm 4.13.0 | Argon2 and bcrypt give encoded hashes and can verify; **scrypt and PBKDF2 return a bare digest**: no PHC string, no verification of a pasted hash (the tab must make and check `$scrypt$…`, `$pbkdf2-sha256$…`, and PBKDF2-SHA1 hashes made elsewhere), no worded refusals for parameters a tab cannot run | ~~Keep ours~~ → **second pass: hash-wasm + our supplement** (below) |
+| `totp` | keys.wasm (HOTP / TOTP, lenient Base32, otpauth) | @xet/totp-wasm (67) | Not established; hash-wasm has no Base32 or OTP | ~~Keep ours~~ → **second pass: hash-wasm's HMAC + our supplement** (below) |
 | `sshkey` | keys.wasm (ssh-key crate + our OpenSSH wire reader) | ssh-keygen-wasm (112; Go), @ai-ecoverse/wasix-openssh (4,845; needs the WASIX runtime) | Not established; neither inspects pasted keys | Keep ours |
 | `apikey` | keys.wasm | — | — | Keep ours |
 | `jq` | jq.wasm (jq 1.8.2 + oniguruma, built by us) | **jq-wasm 3.0.0-jq-1.8.2** (678 k) | 4,841 of our 4,903 reference cases equal to the native jq; fails: `strflocaltime` ("unknown system failure"), `mktime` wrong outside the 32-bit range, a made-up environment (`env.HOME` = /home/web_user), no way to stop an endless filter or cap its output | Keep ours. Found on the way: our build shows local time as UTC (`localtime`, `strflocaltime`) — to fix with the host time-zone support CPython got |
@@ -74,8 +78,8 @@ package for the job at all.
 
 Count check: 31 tabs in the first table and 20 in the second = 51.
 
-### For the owner — one open choice (nothing changed yet)
-**Mermaid Diagrams → Merman?** Merman is a Rust re-implementation of Mermaid compiled to WebAssembly
+### Mermaid Diagrams → Merman? (decided for now: no — the owner left such calls to Claude's judgement)
+**The candidate:** Merman is a Rust re-implementation of Mermaid compiled to WebAssembly
 (`@mermanjs/web` 0.10.0, MIT / Apache-2.0, targets Mermaid 12.3). Checked on 18 Nov 2026 with its Node build: all
 seven samples of the tab and 13 further diagram types rendered, quickly (2–300 ms). Against it:
 - it is **five months old** (first alpha June 2026, version 0.10) — not yet "tried and tested";
@@ -84,20 +88,71 @@ seven samples of the tab and 13 further diagram types rendered, quickly (2–300
 - size: about **19 MB** unpacked for the browser package against 2.2 MB that the tab loads today;
 - syntax errors come without a line ("Unexpected character at 24" against Mermaid's "Parse error on line 3"), and
   its documentation leaves making the SVG safe for the page to the host (Mermaid's `securityLevel: 'strict'` does it).
-My recommendation: keep Mermaid for now and look again when Merman reaches 1.0. Say the word and I switch it and
-re-run the tab's suite.
+Decision: keep Mermaid for now and look again when Merman reaches 1.0 (the owner can overrule this with a word; the
+switch would re-run the tab's suite).
 
-## Candidates already noted for tabs that come later (to be checked when each tab is reached)
-| Tab(s) | Our module | Candidate to check first |
+## Second pass — the owner's tweak of 18 Nov 2026
+
+**Owner:** "if the existing wasm module out there already exists but does not cover all the features i ask for in a
+utility, then still use that, but use the remaining 2 points in the rule for the additional features not covered in
+the existing wasm, as in a) build out an additional supplementary wasm module for the extra missing features b) use
+existing JS/TS c) build your own js/ts … do another pass for all the existing 52 apps first and for the remaining
+apps." And: "use your best judgement.. but always try to do wasm-first in any case".
+
+The first audit above asked "does the module satisfy everything?". This pass asks "does it cover part, and can the
+rest be added beside it?". How the line is drawn (Claude's judgement, as the owner allowed): a module that **lacks a
+feature** is used and supplemented; a module that gives **wrong results or crashes** on something the tab needs,
+inside itself where nothing beside it can reach, is not — the tab keeps a WebAssembly engine of ours.
+
+### What changed in the 52 tabs
+| Tab | Before | Now | Supplement for what the module lacks | Tests re-run |
+|---|---|---|---|---|
+| `hmac` | keys.wasm (ours) | **hash-wasm** (all of it) | — | unit hmac 48; e2e hmac 30 |
+| `totp` | keys.wasm (ours) | **hash-wasm** for the HMAC (SHA-1 / 256 / 512) | (a) our keys.wasm: lenient Base32 secrets, counters, RFC 4226 truncation | unit totp 36 (RFC 4226 / 6238 + 600 random cases against an independent implementation); e2e totp 49 |
+| `pwhash` | keys.wasm (ours: RustCrypto argon2, bcrypt, scrypt, pbkdf2) | **hash-wasm** for Argon2id / i / d, bcrypt, scrypt, PBKDF2 — hashing and checking | (a) our keys.wasm: checked parameters with worded refusals, random salts, PHC strings for scrypt and PBKDF2 (hash-wasm gives bare digests), the reader of pasted hashes, Argon2 version 1.0 hashes (hash-wasm reads only 1.3) | unit pwhash 92 (Argon2 reference vectors incl. 1.0, Openwall bcrypt, RFC 6070, RFC 7914, 48 OpenSSL-made hashes); e2e pwhash 31 (argon2-cffi, bcrypt, hashlib) |
+| `sqlite` (tab 52) | official SQLite wasm | unchanged — already the upstream project's own build | (a) sheet.wasm (ours) for CSV import / export; TypeScript around SQLite's own API | (the tab's hunt is in progress) |
+
+keys.wasm lost its bcrypt, scrypt, pbkdf2, hmac and sha3 crates (0.38 → 0.31 MB) and is now only the supplement
+plus the OpenSSH and API-key code, for which no WebAssembly module exists.
+
+### Re-checked under the tweak and kept — with the evidence
+| Tab | Existing module | Why it is a fault inside the module, not a missing feature |
 |---|---|---|
-| `hash` | crypto.wasm (own MD5 / SHA-1 / SHA-3 / CRC-32 + libsodium) | hash-wasm (covers MD5, SHA-1, SHA-2, SHA-3, BLAKE2b, CRC-32, streaming) |
-| `sodium`, `sharelink`, `password`, `passphrase` | crypto.wasm (libsodium built by us) | libsodium-wrappers / -sumo 0.8.4 (the libsodium project's own wasm build) |
-| `graphviz` | graphviz.wasm (built by us) | @hpcc-js/wasm-graphviz 1.30.0 |
-| `diff` | textcore.wasm (Myers) | @vscode/diff |
-| `sqlfmt`, `prettier` | devcore-sqlfmt.wasm; Prettier (JS) | dprint plugins, @wasm-fmt/* |
-| `markdown` | markdown.wasm (cmark-gfm built by us) | existing cmark-gfm / comrak / pulldown-cmark wasm builds |
-| `terminal` | busybox.wasm (built by us) | existing BusyBox wasm builds |
-| audio / video tabs | audio.wasm (LAME), rnnoise.wasm, whisper.wasm, espeak.wasm | lamejs-wasm builds, @jitsi/rnnoise-wasm, whisper.cpp's own wasm, espeak-ng wasm builds |
+| `jq` | jq-wasm 3.0.0 (678 k) | On 72 date / environment filters run in two time zones it differs from the native jq 1.8.2 on 10–11: **every `strftime` / `strflocaltime` with `%Z` ends in "unknown system failure"**, `%z` prints `+0000` in local time, `strptime` and far-past dates give other numbers, `$ENV` is a made-up Emscripten environment. These are built-in functions of the jq language: a module beside it cannot answer for them — only a second complete jq could, which is what we have. Our build now passes 891 local-time cases against the native jq in 27 zones (it answered in UTC before; found by this audit) |
+| `python` | Pyodide 314.0.8 (3.47 M) | Missing parts could be supplied (its own tzdata, hashlib and pydoc packages hosted here, a dbm module). What cannot: **a fatal "Maximum call stack size exceeded" that kills the interpreter** on `@cache fib(900)` and on nested `__repr__` / `__eq__` / json / pickle / sorted(key=…) calls — programs that run on a desktop and end in a clean RecursionError in our build — and C-library zone names ("UTC+0530" where CPython says "IST"). Memoised recursion is in every tutorial; a tab that dies on it is a step back from the 18 bugs fixed in the hunt |
+| `curl` | curlconverter 4.12.0 (241 k; its shell parser is tree-sitter-bash compiled to WebAssembly) | Run through the tab's own acceptance test (35 commands, the real curl as ground truth, the generated programs executed against a local server): **Node 25 / 35, Python 25 / 35, Go 7 / 12**. Wrong, not missing: JSON bodies re-serialised (other bytes than curl sends), `12345678901234567890` rounded to `…67000`, `-d @file` sent with its line ends or as the literal text "@body.json", `--data-urlencode name@file` sent empty, non-ASCII `-u` crashes the generated program; and no Windows cmd syntax ("Copy as cURL (cmd)") at all. Using only its parser would add 1.55 MB for a syntax tree whose words our code would still have to evaluate, next to our own splitter that must stay for cmd. The WebAssembly route for this tab is a Rust port of `src/lib/curl.ts` — item 1 of `todo.md`, for the owner to pick |
+| `xml` | libxml2-wasm 0.7.2 (1.77 M), xmllint-wasm 5.3.0 (3.28 M) | The tab already parses and runs XPath with libxml2 — Chrome's own XML parser is libxml2, native and with nothing to download. What a WebAssembly copy would add is its serialiser, which rewrites what the tab must leave as typed (adds a declaration, lower-cases the encoding, changes quotes, `<b></b>` → `<b/>`, expands `&#169;`): the losses the hunt fixed. Formatting cannot be half libxml2 and half ours |
+| `json`, `jwt` | @dprint/json 0.26.0 (253 k) | It is a code-style formatter, not a pretty-printer: `{"a":1,"b":[1,2,3]}` comes back on one line (`{ "a": 1, "b": [1, 2, 3] }`), comments and trailing commas are accepted and kept, `'a'` and `NaN` pass. The tab's core — expand / minify strict JSON — is not in it |
+| `mdtable` | markdown-table-formatter 2.1.0 (180 k) | Its WebAssembly engine was first published on **1 Nov 2026** (versions 1.x were JavaScript) — 17 days old, and packaged as a Node command-line tool. Not tried and tested yet; look again later |
+| `mermaid` | Merman 0.10.0 (84.5 k) | Five months old, a re-implementation, about 19 MB (see above). Mermaid 12 stays; look again at Merman 1.0 |
+| `svgo`, `pwstrength`, `json2types`, `cron`, `baseenc`, `bindecode`, `yaml`, … | packages with 100–3,000 downloads a month, or none | Not established modules (rule step 1 needs a tried-and-tested one); several are plain bindings to the very crates we build |
+
+## Candidates for the tabs still to be hunted (survey of 18 Nov 2026)
+Checked one by one when each tab is reached — module first, then bugs, tests, fixes. Monthly downloads in brackets.
+| Tab(s) | Ours today | Existing module(s) to try first |
+|---|---|---|
+| `graphviz` | graphviz.wasm (our build of Graphviz 14.1.2) | **@viz-js/viz 3.31.0** (1.79 M), **@hpcc-js/wasm-graphviz 1.30.0** (1.36 M) |
+| `hash` | crypto.wasm (own MD5 / SHA-1 / SHA-3 / CRC-32 + libsodium) | **hash-wasm** (already in the app: MD5, SHA-1, SHA-2, SHA-3, BLAKE2b, CRC-32, streaming) |
+| `sodium`, `sharelink`, `password`, `passphrase`, random tools | crypto.wasm (libsodium 1.0.20 built by us) | **libsodium-wrappers / -sumo** (the libsodium project's own WebAssembly build) |
+| `audio`, `tts`, `stt`, `noise`, `pitch` (MP3 output) | audio.wasm (LAME 4.0 built by us) | **@mediabunny/mp3-encoder 1.66.0** (10.4 M; LAME, from the muxer project already in the app) |
+| `noise` | rnnoise.wasm (RNNoise 0.2 built by us) | **@jitsi/rnnoise-wasm 0.2.1** (304 k), @shiguredo/rnnoise-wasm (105 k) |
+| `pitch` | audio.wasm (own WSOLA) | **signalsmith-stretch 1.3.2** (229 k; MIT), rubberband-wasm 3.3.0 (16.6 k; GPL) |
+| `tts` (phonemes) | espeak.wasm (eSpeak NG 1.52 built by us) | espeak-ng 1.0.2 (32 k), the phonemizer package kokoro-js uses |
+| `stt` | whisper.wasm (whisper.cpp 1.8.3 built by us) | Whisper on ONNX Runtime (already in the app) through transformers.js; sherpa-onnx 2.0.1 (422 k) |
+| `video`, `slideshow`, `screencast` (AAC where the browser has no encoder) | — (Opus is used instead) | **@mediabunny/aac-encoder 1.66.0** (10.7 M) |
+| `diff` | textcore.wasm (own Myers) | **@vscode/diff** 0.0.2-0 (622 k; VS Code's algorithm) |
+| `zip` | zip.js (JavaScript) | **7z-wasm 1.2.0** (360 k; 7-Zip itself, writes AES-256), libarchive.js 2.0.2 (already in the app for extraction; now also creates) |
+| `prettier` | Prettier (JavaScript) | @biomejs/wasm-web (Prettier-compatible for JS / TS / JSON / CSS), dprint plugins (@dprint/typescript 474 k, @dprint/markdown 1.31 M, @dprint/toml 1.25 M) — the rest stays with Prettier |
+| `image`, `batch`, `formphoto`, … (resize, filters) | imgproc.wasm (own C) | @jsquash/resize (same family as our codecs), wasm-vips, @imagemagick/magick-wasm |
+| `scanner` | imgproc.wasm (own page detection + warp) | scanic 1.8.0 (144 k), OpenCV builds |
+| `exif` | metacore.wasm (own C) | @uswriting/exiftool 1.0.9 (27.8 k; ExifTool) |
+| `sheet` | sheet.wasm (calamine + rust_xlsxwriter built by us) | @ironcalc/wasm-xlsx 0.9.1 (96 k) |
+| `markdown` | markdown.wasm (cmark-gfm built by us) | gfm-wasm 1.0.1 (1.5 k; cmark-gfm) — not established; md4c / Discord builds are other dialects |
+| `sqlfmt` | devcore-sqlfmt.wasm (sqlformat crate built by us) | none found (sql-formatter is JavaScript) |
+| `terminal`, `bc` console | busybox.wasm (BusyBox 1.38 built by us) | none found (coreutils builds for the WASIX runtime only) |
+| `pgp` | OpenPGP.js (JavaScript) | none found |
+| `calc`, calculators, Math & Science | mathcore.wasm (own C) | none found |
+| already existing modules, to keep current | MuPDF, SQLite, ONNX Runtime, MediaPipe, jSquash, libheif-js, tesseract.js-core, zxing-wasm, libarchive.js, ffmpeg.wasm, hash-wasm | — |
 
 ## Log for tabs after the first 51
 One entry per tab, written before its bug hunt: our module → candidates → check → decision.

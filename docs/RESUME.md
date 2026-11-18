@@ -50,19 +50,27 @@ what those suites missed.
   asked you for. And then continue on the new apps for the bug hunt and test cases." **DONE (18 Nov 2026):**
   `docs/WASM-AUDIT.md` — one replacement (HMAC Generator → hash-wasm 4.13, suites re-run), 50 tabs keep their engine
   with the reason per tab; one open choice for the owner (Mermaid → Merman, recommendation: not yet).
-- **Owner, 18 Nov 2026 (third message) — TWEAK to rule #1 + a SECOND PASS, to do before anything else:** an
-  existing wasm module that does not cover all the features of a utility is **still used**; the missing features
-  are added beside it — (a) a supplementary wasm module of our own, (b) an existing JS/TS library, (c) our own
-  JS/TS. "do another pass for all the existing 52 apps first and for the remaining apps.. then write all the tests
-  and continue the bug hunt". The first audit used the older wording ("only if it satisfies all"), so its "keep
-  ours" decisions are being re-opened one by one: see "Second pass" in `docs/WASM-AUDIT.md` for what is switched,
-  what is in progress and what waits for the owner.
+- **Owner, 18 Nov 2026 (third message) — TWEAK to rule #1 + a SECOND PASS:** an existing wasm module that does not
+  cover all the features of a utility is **still used**; the missing features are added beside it — (a) a
+  supplementary wasm module of our own, (b) an existing JS/TS library, (c) our own JS/TS. Then: "use your best
+  judgement.. but always try to do wasm-first in any case". **Second pass over the 52 hunted tabs: DONE (18 Nov
+  2026)** — `docs/WASM-AUDIT.md` "Second pass": `hmac`, `totp` and `pwhash` now run on **hash-wasm** (keys.wasm is
+  the supplement: Base32 / HOTP truncation, PHC strings and checks, Argon2 1.0, plus OpenSSH and API keys); jq
+  (jq-wasm), python (Pyodide), curl (curlconverter), xml (libxml2-wasm), json (dprint), mdtable, mermaid (Merman)
+  were re-checked and keep their engine, each with the evidence (faults inside the module, or a module that is days
+  or months old). The same file lists the **candidates for the 124 tabs still to be hunted** (graphviz →
+  @viz-js/viz / @hpcc-js/wasm-graphviz, hash → hash-wasm, sodium tabs → libsodium-wrappers, MP3 →
+  @mediabunny/mp3-encoder, noise → @jitsi/rnnoise-wasm, pitch → signalsmith-stretch, diff → @vscode/diff, zip →
+  7z-wasm, …): each is tried when its tab is reached.
 - **Owner, 18 Nov 2026 — order of work for every tab from the 52nd on:** (1) check whether a WebAssembly module we
   wrote can be replaced by an existing one under STANDING RULE #1 and write the tab's entry in `docs/WASM-AUDIT.md`
   (candidates already noted there: hash-wasm for `hash`, libsodium-wrappers for the sodium tabs, @hpcc-js/wasm-graphviz,
   @vscode/diff, …); (2) hunt bugs; (3) extensive tests; (4) fix, re-test; (5) next tab. "Keep going."
-- **Found during the audit, still to fix:** our jq build shows local time as UTC (`localtime`, `strflocaltime`) —
-  give it the host time-zone support CPython got (`-Dlocaltime_r=…`, `supertools.tz_info`), with tests.
+- **Found during the audit and fixed:** our jq build showed local time as UTC → `wasm/jq/hosttz.c` + the shared
+  `tzInfoImport` (891 reference cases from the native jq 1.8.2 in 27 zones; Python's `time.mktime` on clock-change
+  nights corrected by the same host code).
+- **NEXT:** finish the SQLite Playground (tab 52: reference from the native SQLite, unit + e2e suites), then
+  `sqlfmt`, `prettier`, `graphviz` (candidate modules first), then the areas calc-core → … as listed above.
 - **SQLite Playground is half done** (rewritten engine `src/lib/sqlite-engine.ts`, worker, page; reference generator
   `scripts/make-sqlite-reference.py` written but not yet run; `tests/e2e/sqlite.e2e.mjs` is still the old suite and
   will fail until rewritten; unit suite `tests/unit/sqlite.test.mjs` not written yet). Finish it right after the audit.
