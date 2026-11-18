@@ -3,7 +3,7 @@ name = "keys"
 version = "0.1.0"
 edition = "2021"
 publish = false
-description = "SuperTools key & hash engine for wasm32: HMAC, TOTP/HOTP, Argon2id/bcrypt/PBKDF2/scrypt PHC hashes, OpenSSH Ed25519 keys"
+description = "SuperTools supplement to hash-wasm for wasm32: Base32 / HOTP codes, PHC strings and checks for password hashes, Argon2 v1.0, OpenSSH keys, API keys"
 
 [lib]
 crate-type = ["cdylib"]
@@ -11,22 +11,17 @@ path = "src/lib.rs"
 
 [dependencies]
 argon2 = { version = "0.5", features = ["std"] }
-bcrypt = "0.19.3"
 aes = "0.8"
 bcrypt-pbkdf = "0.10"
 ctr = "0.9"
 data-encoding = "2.11.1"
 getrandom = "0.2"
-hmac = "0.12"
 md-5 = "0.10"
 password-hash = "0.5"
-pbkdf2 = { version = "0.12", features = ["simple"] }
 rand_core = { version = "0.6", features = ["getrandom"] }
-scrypt = "0.11"
 serde_json = "1"
 sha1 = "0.10"
 sha2 = "0.10"
-sha3 = "0.10"
 ssh-key = { version = "0.6.7", default-features = false, features = ["alloc", "std", "ed25519", "encryption", "getrandom", "rand_core"] }
 
 [profile.release]

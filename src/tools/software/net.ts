@@ -249,7 +249,7 @@ export function parseOtpauth(uri: string) {
     digits: whole('digits', 6, 6, 10), period: whole('period', 30, 1, 86400), counter: whole('counter', 0, 0, Number.MAX_SAFE_INTEGER) };
 }
 export const totp: Mount = (root) => {
-  let kp: Promise<Keys> | null = null, alg = 'sha1', digits = 6, period = 30, timer: any = 0, counter: number | null = null, linkBad = false; // counter: set by an otpauth://hotp link; linkBad: the link box holds a link that could not be read
+  let kp: Promise<Keys> | null = null, otp: Promise<typeof import('../../lib/totp')> | null = null, ticks = 0, alg = 'sha1', digits = 6, period = 30, timer: any = 0, counter: number | null = null, linkBad = false; // counter: set by an otpauth://hotp link; linkBad: the link box holds a link that could not be read
   const sec = secretInput('Secret (Base32)', ''), uri = input({ placeholder: 'otpauth://totp/Example:me@example.com?secret=…&issuer=Example', attrs: { class: 'input mono', 'aria-label': 'otpauth link' } });
   const code = h('div', { class: 'otp-code mono' }, '— — —'), bar = h('div', { class: 'meter' }, h('span')), side = h('div', { class: 'muted center' }), info = h('div'), linkInfo = h('div');
   const algSel = select([['sha1', 'SHA-1 (most apps)'], ['sha256', 'SHA-256'], ['sha512', 'SHA-512']], alg, (v) => { alg = v; tick(); });
@@ -259,23 +259,32 @@ export const totp: Mount = (root) => {
   const nextBtn = button('Next code (counter + 1)', () => { if (counter !== null) { counter++; tick(); } }, { small: true });
   nextBtn.hidden = true;
   const tick = async () => {
-    const k = await (kp ||= keys()); clear(info);
-    if (linkBad) { code.textContent = '— — —'; side.textContent = ''; nextBtn.hidden = true; return; } // never a code from the previous link under a link that failed
-    if (!sec.input.value.trim()) { code.textContent = '— — —'; side.textContent = 'Enter a secret or paste an otpauth:// link'; return; }
+    const id = ++ticks;
+    code.setAttribute('aria-busy', 'true');   // the code on screen may be the previous one until this tick has answered
     try {
-      nextBtn.hidden = counter === null; bar.hidden = counter !== null;
-      if (counter !== null) { // counter-based (HOTP, RFC 4226): the code belongs to a counter, not to the clock
-        const r = k.call('totp', { secret: sec.input.value, alg, digits, counter });
+      const k = await (kp ||= keys());
+      if (id !== ticks) return;
+      clear(info);
+      if (linkBad) { code.textContent = '— — —'; side.textContent = ''; nextBtn.hidden = true; return; } // never a code from the previous link under a link that failed
+      if (!sec.input.value.trim()) { code.textContent = '— — —'; side.textContent = 'Enter a secret or paste an otpauth:// link'; return; }
+      try {
+        nextBtn.hidden = counter === null; bar.hidden = counter !== null;
+        const lib = await (otp ||= import('../../lib/totp'));   // hash-wasm's HMAC + our Base32 / truncation
+        if (counter !== null) { // counter-based (HOTP, RFC 4226): the code belongs to a counter, not to the clock
+          const r = await lib.totp(k, { secret: sec.input.value, alg, digits, counter });
+          if (id !== ticks) return;
+          code.textContent = r.code.replace(/(\d{3})(?=\d)/g, '$1 ');
+          side.textContent = `Counter-based (HOTP) code for counter ${counter} — it does not change with time`;
+          return;
+        }
+        if (!(period >= 1) || !Number.isInteger(period)) throw new Error('The period must be a whole number of seconds');
+        const r = await lib.totp(k, { secret: sec.input.value, alg, digits, period, t: Math.floor(Date.now() / 1000) });
+        if (id !== ticks) return; // a newer tick (another secret, another setting) has answered meanwhile
         code.textContent = r.code.replace(/(\d{3})(?=\d)/g, '$1 ');
-        side.textContent = `Counter-based (HOTP) code for counter ${counter} — it does not change with time`;
-        return;
-      }
-      if (!(period >= 1) || !Number.isInteger(period)) throw new Error('The period must be a whole number of seconds');
-      const r = k.call('totp', { secret: sec.input.value, alg, digits, period, t: Math.floor(Date.now() / 1000) });
-      code.textContent = r.code.replace(/(\d{3})(?=\d)/g, '$1 ');
-      (bar.firstChild as HTMLElement).style.width = `${(100 * r.remaining) / period}%`;
-      side.textContent = `${r.remaining} s left · previous ${r.prev} · next ${r.next}`;
-    } catch (e: any) { code.textContent = '— — —'; side.textContent = ''; info.append(note(e.message, 'warn')); }
+        (bar.firstChild as HTMLElement).style.width = `${(100 * r.remaining!) / period}%`;
+        side.textContent = `${r.remaining} s left · previous ${r.prev} · next ${r.next}`;
+      } catch (e: any) { if (id !== ticks) return; code.textContent = '— — —'; side.textContent = ''; info.append(note(e.message, 'warn')); }
+    } finally { if (id === ticks) code.setAttribute('aria-busy', 'false'); }
   };
   uri.addEventListener('input', () => {
     clear(linkInfo); const wasBad = linkBad; linkBad = false;
@@ -293,12 +302,12 @@ export const totp: Mount = (root) => {
     card('Current code', code, bar, side, info, nextBtn, button('Copy code', () => { const c = code.textContent!.replace(/\s/g, ''); if (!/^\d+$/.test(c)) throw new Error('There is no code to copy yet'); return copy(c); }, { small: true, icon: 'Copy' })),
     note('Codes are computed on this device (RFC 6238). Use this to test or recover your own 2FA setup — anyone with the secret can make your codes, so keep it private.', 'warn'));
   timer = setInterval(tick, 1000); tick();
-  return () => clearInterval(timer);
+  return () => { clearInterval(timer); ticks++; };
 };
 
 // ------------------------------------------------------------------ Password hash tool
 export const pwhash: Mount = (root) => {
-  let alg = 'argon2id', kp: Promise<Keys> | null = null;
+  let alg = 'argon2id', kp: Promise<Keys> | null = null, lib: Promise<typeof import('../../lib/pwhash')> | null = null;   // hash-wasm + our supplement, loaded with the first hash
   const pw = secretInput('Password', '', 'new-password');
   const params = h('div');
   const P: Record<string, Record<string, number>> = { argon2id: { m: 19456, t: 2, p: 1 }, argon2i: { m: 19456, t: 2, p: 1 }, bcrypt: { cost: 12 }, 'pbkdf2-sha256': { iterations: 600000 }, 'pbkdf2-sha512': { iterations: 210000 }, scrypt: { logn: 17, r: 8, p: 1 } };
@@ -309,8 +318,8 @@ export const pwhash: Mount = (root) => {
   const hashIn = input({ placeholder: '$argon2id$v=19$… / $2b$12$… / $pbkdf2-sha256$… / $scrypt$…', attrs: { class: 'input mono', 'aria-label': 'Hash to check' } });
   const vpw = secretInput('Password to check'), vres = h('div');
   root.append(card('Create a hash', field('Algorithm', select([['argon2id', 'Argon2id (recommended)'], ['argon2i', 'Argon2i'], ['bcrypt', 'bcrypt'], ['scrypt', 'scrypt'], ['pbkdf2-sha256', 'PBKDF2-SHA256'], ['pbkdf2-sha512', 'PBKDF2-SHA512']], alg, (v) => { alg = v; drawParams(); })),
-    params, field('Password', pw), button('Hash', async () => { if (!pw.input.value) throw new Error('Enter a password'); const k = await (kp ||= keys()); const t0 = performance.now(); out.value = k.call('hash', { alg, password: pw.input.value, ...vals }).hash; took.textContent = `Took ${Math.round(performance.now() - t0)} ms on this device (a random salt is used each time).`; }, { variant: 'primary', icon: 'Lock' }), out, took),
-  card('Check a password against a hash', field('Hash', hashIn), field('Password', vpw), button('Check', async () => { const k = await (kp ||= keys()); show(vres, () => { const r = k.call('verify', { password: vpw.input.value, hash: hashIn.value }); return note(r.ok ? `Match ✓ (${r.scheme})` : `No match (${r.scheme})`, r.ok ? 'ok' : 'err'); }); }, { icon: 'ShieldCheck' }), vres),
+    params, field('Password', pw), button('Hash', async () => { if (!pw.input.value) throw new Error('Enter a password'); const k = await (kp ||= keys()), L = await (lib ||= import('../../lib/pwhash')); const t0 = performance.now(); out.value = await L.hashPassword(k, { alg, password: pw.input.value, ...vals }); took.textContent = `Took ${Math.round(performance.now() - t0)} ms on this device (a random salt is used each time).`; }, { variant: 'primary', icon: 'Lock' }), out, took),
+  card('Check a password against a hash', field('Hash', hashIn), field('Password', vpw), button('Check', async () => { const k = await (kp ||= keys()), L = await (lib ||= import('../../lib/pwhash')); let r: { ok: boolean; scheme: string } | null = null, bad: any = null; try { r = await L.verifyPassword(k, vpw.input.value, hashIn.value); } catch (e) { bad = e; } show(vres, () => { if (bad) throw bad; return note(r!.ok ? `Match ✓ (${r!.scheme})` : `No match (${r!.scheme})`, r!.ok ? 'ok' : 'err'); }); }, { icon: 'ShieldCheck' }), vres),
   note('Defaults follow OWASP’s 2023+ guidance: Argon2id 19 MiB × 2 iterations, bcrypt cost 12, PBKDF2-SHA256 600,000 iterations, scrypt N = 2^17. Output uses the standard PHC string format (bcrypt: $2b$).', 'info'));
   drawParams();
 };

@@ -158,8 +158,8 @@ Areas with a shared review: the app shell (router, search, favorites, platform h
 | `chmod` | chmod Calculator | PC only | net | ✓ | 3 | 26 | e2e 13→39; 800 modes + 1,152 expressions vs real chmod |
 | `x509` | Certificate Decoder | PC only | net | ✓ | 10 | 66 | e2e 16→45 + 37 unit; fixtures vs OpenSSL |
 | `sshkey` | SSH Key Generator | PC only | net | ✓ | 2 | 58 | e2e 16→34 + 40 unit; keys from another tool |
-| `hmac` | HMAC Generator | PC only | net | ✓ | 4 | 55 | e2e 10→30 + 35 unit; streaming, RFC 4231 |
-| `pwhash` | Password Hash Tool | PC only | net | ✓ | 3 | 51 | e2e 15→31 + 36 unit |
+| `hmac` | HMAC Generator | PC only | net | ✓ | 4 | 68 | e2e 10→30 + 35 unit; streaming, RFC 4231; e2e 10→30; unit 48 (RFC 2104 / 2202 / 4231, 6,272 combinations vs OpenSSL); engine = hash-wasm since the audit |
+| `pwhash` | Password Hash Tool | PC only | net | ✓ | 3 | 107 | e2e 15→31 + 36 unit; e2e 15→31; unit 92 (Argon2 reference vectors incl. version 1.0, Openwall bcrypt, RFC 6070, RFC 7914, 48 OpenSSL-made hashes); engine = hash-wasm + our supplement (PHC strings, checks, Argon2 1.0) |
 | `apikey` | API Key Generator | PC only | net | ✓ | 2 | 15 | e2e 11→26 |
 | `curl` | cURL Converter | PC only | net | ✓ | 12 | 89 | e2e 10→22 (35 commands vs real curl) + 77 unit (new) |
 | `cron` | Cron Explainer | PC only | misc | ✓ | 3 | 27 | e2e 17→40 + unit; never-running + DST-gap freeze |
@@ -175,7 +175,7 @@ Areas with a shared review: the app shell (router, search, favorites, platform h
 | `terminal` | Linux Terminal | PC only | terminal |  |  |  |  |
 | `graphviz` | Graphviz (DOT) | PC only | data-engines |  |  |  |  |
 | `python` | Python Scratchpad | PC only | data-engines | ✓ | 18 | 313 | native CPython 3.14.8 is the reference for 69 programs (stdout + stderr byte for byte); recursion through C code ends in RecursionError instead of killing the run, lru_cache in Python (cached recursion as deep as on a desktop), local time with tzdata's names and flags, socket stand-in + asyncio, pbkdf2_hmac; output pane survives 300,000 lines (92 s → 1.4 s), shows output during long computations, \r / colours / the answers to input(); hints for errors particular to the tab |
-| `totp` | TOTP / 2FA Codes | PC only | net | ✓ | 6 | 63 | e2e 11→49 + 25 unit; RFC 4226/6238 |
+| `totp` | TOTP / 2FA Codes | PC only | net | ✓ | 6 | 74 | e2e 11→49 + 25 unit; RFC 4226/6238; e2e 11→49; unit 36 (RFC 4226 / 6238, 600 random cases vs an independent implementation); HMAC = hash-wasm, Base32 + truncation = our supplement |
 | `pwstrength` | Password Strength | PC only | net | ✓ | 6 | 95 | e2e 13→32 + 76 unit (new); 304 passwords vs Python zxcvbn |
 | `jsonschema` | JSON Schema | PC only | data-engines | ✓ | 14 | 5431 | exact numbers and IDN formats switched on; inference no longer crashes on non-ASCII text and adds a format only when the validator accepts every example; plain messages (unknown $schema, $ref elsewhere, schema not valid at …), first 200 of N problems, formats not checked are named; reference = python-jsonschema verdicts for 5,338 pairs over five drafts, formats and patterns by hand against the RFCs / ECMA 262 |
 | `bitwise` | Bitwise Calculator | PC only | bitswebref | ✓ | 6 | 40 | rotate ≥ width wrapped, shift ≥ width, B overflow note, + / spaces, outputs paste back, unused boxes off; vs BigInt, random operands |

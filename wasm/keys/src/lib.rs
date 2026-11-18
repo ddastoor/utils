@@ -1,6 +1,8 @@
 //! SuperTools key & hash engine (wasm32-wasip1). One entry point like devcore: k_call(op, json) → JSON.
-//! RustCrypto crates: hmac + md-5/sha1/sha2/sha3, argon2, bcrypt, pbkdf2, scrypt (PHC strings), ssh-key (OpenSSH Ed25519,
-//! bcrypt-pbkdf + AES-256-CTR passphrase protection). Randomness = WASI random_get → crypto.getRandomValues.
+//! What the tabs' existing WebAssembly engine (hash-wasm: HMAC, Argon2, bcrypt, scrypt, PBKDF2) has no part for:
+//! Base32 secrets and HOTP truncation, PHC strings and checked parameters for password hashes, Argon2 version 1.0
+//! hashes (RustCrypto argon2), OpenSSH keys (ssh-key: Ed25519, bcrypt-pbkdf + AES-256-CTR passphrase protection and
+//! our own reader of the wire format), API keys. Randomness = WASI random_get → crypto.getRandomValues.
 use serde_json::{json, Value};
 use std::cell::RefCell;
 
@@ -23,26 +25,9 @@ fn int(v: &Value, k: &str, d: u64, min: u64, max: u64, label: &str) -> Result<u6
 const GIB: u64 = 1 << 30; // most a hash may need in a browser tab
 fn hex(b: &[u8]) -> String { b.iter().map(|x| format!("{x:02x}")).collect() }
 
-// ------------------------------------------------------------------ HMAC
-// One enum over the eight HMACs (used by HOTP / TOTP here; the HMAC Generator tab uses hash-wasm, src/lib/hmac.ts).
-macro_rules! mac_enum { ($($v:ident, $t:ty, $name:literal;)*) => {
-    enum MacState { $($v(hmac::Hmac<$t>)),* }
-    impl MacState {
-        fn new(alg: &str, key: &[u8]) -> Result<Self, String> { use hmac::Mac; Ok(match alg { $($name => MacState::$v(<hmac::Hmac<$t>>::new_from_slice(key).map_err(|e| e.to_string())?),)* _ => return Err(format!("unknown algorithm {alg}")) }) }
-        fn update(&mut self, d: &[u8]) { use hmac::Mac; match self { $(MacState::$v(h) => h.update(d)),* } }
-        fn finish(self) -> Vec<u8> { use hmac::Mac; match self { $(MacState::$v(h) => h.finalize().into_bytes().to_vec()),* } }
-    }
-} }
-mac_enum! { Md5, md5::Md5, "md5"; Sha1, sha1::Sha1, "sha1"; Sha224, sha2::Sha224, "sha224"; Sha256, sha2::Sha256, "sha256"; Sha384, sha2::Sha384, "sha384"; Sha512, sha2::Sha512, "sha512"; Sha3_256, sha3::Sha3_256, "sha3-256"; Sha3_512, sha3::Sha3_512, "sha3-512"; }
-fn mac(alg: &str, key: &[u8], msg: &[u8]) -> Result<Vec<u8>, String> { let mut m = MacState::new(alg, key)?; m.update(msg); Ok(m.finish()) }
-
 // ------------------------------------------------------------------ HOTP / TOTP (RFC 4226 / 6238)
-fn hotp(alg: &str, key: &[u8], counter: u64, digits: u32) -> Result<String, String> {
-    let h = mac(alg, key, &counter.to_be_bytes())?;
-    let o = (h[h.len() - 1] & 0x0f) as usize;
-    let bin = ((h[o] as u32 & 0x7f) << 24) | ((h[o + 1] as u32) << 16) | ((h[o + 2] as u32) << 8) | h[o + 3] as u32;
-    Ok(format!("{:0width$}", bin as u64 % 10u64.pow(digits), width = digits as usize)) // u64: 10^10 does not fit in 32 bits
-}
+// The HMAC itself is hash-wasm's (src/lib/totp.ts); this module supplies what that library has no part for: reading
+// the Base32 secret as authenticator apps do, the counters of a moment, and the code from an HMAC value.
 /// The Base32 secret as authenticator apps read it: any case, spaces / dashes / invisible characters ignored, padding
 /// optional, and — like Google Authenticator — a last group of any length (left-over bits are dropped).
 fn secret(a: &Value) -> Result<Vec<u8>, String> {
@@ -58,96 +43,134 @@ fn secret(a: &Value) -> Result<Vec<u8>, String> {
     if out.is_empty() { return Err("The secret is too short (at least two Base32 characters)".into()); }
     Ok(out)
 }
-fn op_totp(a: &Value) -> R {
+/// What to sign: the key and, as 8-byte big-endian messages, the counter of now (and the one before and after it).
+fn op_totp_plan(a: &Value) -> R {
     let key = secret(a)?;
-    let (alg, digits, period, t) = (match s(a, "alg") { "" => "sha1", x => x }, n(a, "digits", 6) as u32, n(a, "period", 30).max(1), n(a, "t", 0));
+    let (digits, period, t) = (n(a, "digits", 6) as u32, n(a, "period", 30).max(1), n(a, "t", 0));
     if !(6..=10).contains(&digits) { return Err("Digits must be 6 to 10".into()); }
-    if a.get("counter").is_some() { let c = n(a, "counter", 0); return Ok(json!({ "code": hotp(alg, &key, c, digits)?, "counter": c })); }
+    let msg = |c: u64| hex(&c.to_be_bytes());
+    let key64 = data_encoding::BASE64.encode(&key);
+    if a.get("counter").is_some() { let c = n(a, "counter", 0); return Ok(json!({ "key": key64, "keyBytes": key.len(), "digits": digits, "msgs": [msg(c)], "counter": c, "hotp": true })); }
     let c = t / period;
-    Ok(json!({ "code": hotp(alg, &key, c, digits)?, "prev": hotp(alg, &key, c.saturating_sub(1), digits)?, "next": hotp(alg, &key, c + 1, digits)?, "counter": c, "remaining": period - t % period, "keyBytes": key.len() }))
+    Ok(json!({ "key": key64, "keyBytes": key.len(), "digits": digits, "msgs": [msg(c), msg(c.saturating_sub(1)), msg(c + 1)], "counter": c, "remaining": period - t % period, "hotp": false }))
+}
+/// RFC 4226 §5.3 dynamic truncation: the HMAC values (hex) → the codes.
+fn op_hotp_codes(a: &Value) -> R {
+    let digits = n(a, "digits", 6) as u32;
+    if !(6..=10).contains(&digits) { return Err("Digits must be 6 to 10".into()); }
+    let mut codes = Vec::new();
+    for m in a.get("macs").and_then(|x| x.as_array()).ok_or("macs missing")? {
+        let h = data_encoding::HEXLOWER_PERMISSIVE.decode(m.as_str().unwrap_or("").as_bytes()).map_err(|e| e.to_string())?;
+        if h.len() < 20 { return Err("HMAC value too short".into()); }
+        let o = (h[h.len() - 1] & 0x0f) as usize;
+        let bin = ((h[o] as u32 & 0x7f) << 24) | ((h[o + 1] as u32) << 16) | ((h[o + 2] as u32) << 8) | h[o + 3] as u32;
+        codes.push(format!("{:0width$}", bin as u64 % 10u64.pow(digits), width = digits as usize)); // u64: 10^10 does not fit in 32 bits
+    }
+    Ok(json!({ "codes": codes }))
 }
 
 // ------------------------------------------------------------------ password hashes (PHC strings)
-fn op_hash(a: &Value) -> R {
-    let pw = s(a, "password").as_bytes();
-    let out = match s(a, "alg") {
-        "argon2id" | "argon2i" | "argon2d" => {
-            use argon2::{password_hash::{PasswordHasher, SaltString}, Algorithm, Argon2, Params, Version};
-            let alg = match s(a, "alg") { "argon2i" => Algorithm::Argon2i, "argon2d" => Algorithm::Argon2d, _ => Algorithm::Argon2id };
+// Argon2, bcrypt, scrypt and PBKDF2 are computed by hash-wasm (src/lib/pwhash.ts). This module supplies what that
+// library does not have: checked parameters with worded refusals, random salts, PHC strings for scrypt and PBKDF2
+// (hash-wasm returns their bare digests), reading a pasted hash, and Argon2 hashes of the kinds hash-wasm does not
+// read (version 1.0 — "v=16" or no version — and hashes with keyid / data).
+const B64NP: data_encoding::Encoding = data_encoding::BASE64_NOPAD;
+fn op_hash_plan(a: &Value) -> R {
+    let salt = data_encoding::BASE64.encode(&rand_bytes(16));
+    match s(a, "alg") {
+        alg @ ("argon2id" | "argon2i" | "argon2d") => {
             let (m, t, par) = (int(a, "m", 19456, 8, GIB / 1024, "Memory (KiB)")?, int(a, "t", 2, 1, 1000, "Iterations")?, int(a, "p", 1, 1, 64, "Parallelism")?);
             if m < 8 * par { return Err(format!("Memory must be at least 8 KiB per lane ({} KiB for parallelism {par})", 8 * par)); }
-            let p = Params::new(m as u32, t as u32, par as u32, None).map_err(|e| e.to_string())?;
-            let salt = SaltString::generate(&mut rand_core::OsRng);
-            Argon2::new(alg, Version::V0x13, p).hash_password(pw, &salt).map_err(|e| e.to_string())?.to_string()
+            Ok(json!({ "kind": "argon2", "variant": alg, "m": m, "t": t, "p": par, "len": 32, "salt": salt }))
         }
-        "bcrypt" => { if pw.len() > 72 { return Err("bcrypt only uses the first 72 bytes of a password — this one is longer".into()); } bcrypt::hash(pw, int(a, "cost", 12, 4, 18, "Cost")? as u32).map_err(|e| e.to_string())? }
-        "pbkdf2-sha256" | "pbkdf2-sha512" => {
-            use pbkdf2::{password_hash::{PasswordHasher, SaltString}, Algorithm, Params, Pbkdf2};
-            let alg = if s(a, "alg") == "pbkdf2-sha512" { Algorithm::Pbkdf2Sha512 } else { Algorithm::Pbkdf2Sha256 };
-            let salt = SaltString::generate(&mut rand_core::OsRng);
-            Pbkdf2.hash_password_customized(pw, Some(alg.ident()), None, Params { rounds: int(a, "iterations", 600_000, 1, 50_000_000, "Iterations")? as u32, output_length: 32 }, &salt).map_err(|e| e.to_string())?.to_string()
+        "bcrypt" => {
+            if n(a, "password_len", 0) > 72 { return Err("bcrypt only uses the first 72 bytes of a password — this one is longer".into()); }
+            Ok(json!({ "kind": "bcrypt", "cost": int(a, "cost", 12, 4, 18, "Cost")?, "salt": salt }))
         }
+        alg @ ("pbkdf2-sha256" | "pbkdf2-sha512") => Ok(json!({ "kind": "pbkdf2", "id": alg, "hash": &alg[7..], "iterations": int(a, "iterations", 600_000, 1, 50_000_000, "Iterations")?, "len": 32, "salt": salt })),
         "scrypt" => {
-            use scrypt::{password_hash::{PasswordHasher, SaltString}, Params, Scrypt};
-            let salt = SaltString::generate(&mut rand_core::OsRng);
             let (logn, r, par) = (int(a, "logn", 17, 1, 24, "log2(N)")?, int(a, "r", 8, 1, 64, "Block size r")?, int(a, "p", 1, 1, 16, "Parallelism")?);
             if (128 * r) << logn > GIB { return Err(format!("N = 2^{logn} with r = {r} needs {} MiB of memory — more than a browser tab can use (log2(N) is the exponent: 17 means N = 131072)", ((128 * r) << logn) >> 20)); }
-            let p = Params::new(logn as u8, r as u32, par as u32, 32).map_err(|e| e.to_string())?;
-            Scrypt.hash_password_customized(pw, None, None, p, &salt).map_err(|e| e.to_string())?.to_string()
+            Ok(json!({ "kind": "scrypt", "logn": logn, "n": 1u64 << logn, "r": r, "p": par, "len": 32, "salt": salt }))
         }
-        x => return Err(format!("unknown algorithm {x}")),
-    };
-    Ok(json!({ "hash": out }))
+        x => Err(format!("unknown algorithm {x}")),
+    }
 }
-fn op_verify(a: &Value) -> R {
-    let (pw, h) = (s(a, "password").as_bytes(), s(a, "hash").trim());
+/// The PHC string of a PBKDF2 or scrypt digest (as RustCrypto's and passlib's: salt and hash in Base64 without padding).
+fn op_hash_format(a: &Value) -> R {
+    let plan = a.get("plan").ok_or("plan missing")?;
+    let (salt, raw) = (data_encoding::BASE64.decode(s(plan, "salt").as_bytes()).map_err(|e| e.to_string())?, data_encoding::BASE64.decode(s(a, "raw").as_bytes()).map_err(|e| e.to_string())?);
+    let (salt, raw) = (B64NP.encode(&salt), B64NP.encode(&raw));
+    Ok(json!({ "hash": match s(plan, "kind") {
+        "pbkdf2" => format!("${}$i={},l={}${salt}${raw}", s(plan, "id"), n(plan, "iterations", 0), n(plan, "len", 32)),
+        "scrypt" => format!("$scrypt$ln={},r={},p={}${salt}${raw}", n(plan, "logn", 0), n(plan, "r", 8), n(plan, "p", 1)),
+        x => return Err(format!("no PHC form for {x}")),
+    } }))
+}
+/// A pasted hash → which engine checks it and with what; hashes that would freeze or crash the tab are refused here.
+fn op_verify_plan(a: &Value) -> R {
+    let h = s(a, "hash").trim();
     if h.is_empty() { return Err("Paste the hash to check".into()); }
-    let (scheme, ok) = if h.starts_with("$2a$") || h.starts_with("$2b$") || h.starts_with("$2y$") || h.starts_with("$2x$") {
+    if h.starts_with("$2a$") || h.starts_with("$2b$") || h.starts_with("$2y$") || h.starts_with("$2x$") {
         let cost: u32 = h.get(4..6).and_then(|c| c.parse().ok()).unwrap_or(0);
         if cost > 18 { return Err(format!("This bcrypt hash has cost {cost} — checking it would freeze the page for minutes")); }
-        ("bcrypt", bcrypt::verify(pw, h).map_err(|e| format!("Not a valid bcrypt hash: {e}"))?)
-    } else {
-        use password_hash::{Error, PasswordHash, PasswordVerifier};
-        let ph = PasswordHash::new(h).map_err(|e| format!("Not a recognised hash (PHC string like $argon2id$… or bcrypt $2b$…): {e}"))?;
-        let id = ph.algorithm.as_str().to_string();
-        let dec = |k: &str| ph.params.get_decimal(k).map(u64::from);
-        // "the password is wrong" and "this hash cannot be checked" are different answers
-        let verdict = |r: Result<(), Error>| match r { Ok(()) => Ok(true), Err(Error::Password) => Ok(false), Err(e) => Err(format!("This hash cannot be checked: {e}")) };
-        let ok = match id.as_str() {
-            "argon2id" | "argon2i" | "argon2d" => {
-                if dec("m").unwrap_or(0) > GIB / 1024 { return Err(format!("This Argon2 hash needs {} MiB of memory — more than a browser tab can use", dec("m").unwrap_or(0) >> 10)); }
-                verdict(argon2::Argon2::default().verify_password(pw, &ph))?
-            }
-            "pbkdf2-sha256" | "pbkdf2-sha512" => verdict(pbkdf2::Pbkdf2.verify_password(pw, &ph))?,
-            "pbkdf2-sha1" | "pbkdf2" => { // PBKDF2-HMAC-SHA1 (legacy): $pbkdf2-sha1$i=…,l=…$salt$hash or $pbkdf2$…
-                let (salt, want) = (ph.salt.ok_or("This hash has no salt")?, ph.hash.ok_or("This hash has no hash value")?);
-                let mut sb = [0u8; 64]; let salt = salt.decode_b64(&mut sb).map_err(|e| format!("This hash cannot be checked: {e}"))?;
-                let it = dec("i").unwrap_or(1000);
-                if it == 0 || it > 50_000_000 { return Err("This hash's iteration count is out of range".into()); }
-                let mut out = vec![0u8; want.len()];
-                pbkdf2::pbkdf2_hmac::<sha1::Sha1>(pw, salt, it as u32, &mut out);
-                out.iter().zip(want.as_bytes()).fold(0u8, |d, (x, y)| d | (x ^ y)) == 0
-            }
-            "scrypt" => {
-                let (ln, r) = (dec("ln").unwrap_or(0), dec("r").unwrap_or(8));
-                if ln > 24 || r > 64 || (128 * r) << ln > GIB { return Err(format!("This scrypt hash (N = 2^{ln}, r = {r}) needs more memory than a browser tab can use")); }
-                verdict(scrypt::Scrypt.verify_password(pw, &ph))?
-            }
-            x => return Err(format!("Unsupported hash scheme ${x}$")),
-        };
-        (if id.starts_with("argon2") { "argon2" } else if id.starts_with("pbkdf2") { "pbkdf2" } else { "scrypt" }, ok)
-    };
-    Ok(json!({ "ok": ok, "scheme": scheme }))
-}
-/// Raw PBKDF2 (hex) for matching other systems: {password, salt (text), iterations, len, alg}
-fn op_pbkdf2_raw(a: &Value) -> R {
-    let (pw, salt, it, len) = (s(a, "password").as_bytes(), s(a, "salt").as_bytes(), n(a, "iterations", 600_000) as u32, n(a, "len", 32) as usize);
-    let mut out = vec![0u8; len.clamp(1, 256)];
-    match s(a, "alg") {
-        "sha1" => pbkdf2::pbkdf2_hmac::<sha1::Sha1>(pw, salt, it, &mut out), "sha512" => pbkdf2::pbkdf2_hmac::<sha2::Sha512>(pw, salt, it, &mut out),
-        _ => pbkdf2::pbkdf2_hmac::<sha2::Sha256>(pw, salt, it, &mut out),
+        if h.len() != 60 { return Err(format!("Not a valid bcrypt hash: it has {} characters, a bcrypt hash has 60", h.chars().count())); }
+        if h.as_bytes()[6] != b'$' || cost < 4 || !h[7..].bytes().all(|c| c == b'.' || c == b'/' || c.is_ascii_alphanumeric()) { return Err("Not a valid bcrypt hash: after $2b$ come a two-digit cost (04–31), \"$\" and 53 characters of . / 0–9 A–Z a–z".into()); }
+        return Ok(json!({ "scheme": "bcrypt", "engine": "bcrypt", "hash": h }));
     }
-    Ok(json!({ "hex": hex(&out) }))
+    use password_hash::PasswordHash;
+    let ph = PasswordHash::new(h).map_err(|e| format!("Not a recognised hash (PHC string like $argon2id$… or bcrypt $2b$…): {e}"))?;
+    let id = ph.algorithm.as_str().to_string();
+    let dec = |k: &str| ph.params.get_decimal(k).map(u64::from);
+    let parts = || -> Result<(String, String), String> {
+        let (salt, want) = (ph.salt.ok_or("This hash has no salt")?, ph.hash.ok_or("This hash has no hash value")?);
+        let mut sb = [0u8; 64]; let salt = salt.decode_b64(&mut sb).map_err(|e| format!("This hash cannot be checked: {e}"))?;
+        Ok((data_encoding::BASE64.encode(salt), data_encoding::BASE64.encode(want.as_bytes())))
+    };
+    match id.as_str() {
+        "argon2id" | "argon2i" | "argon2d" => {
+            if dec("m").unwrap_or(0) > GIB / 1024 { return Err(format!("This Argon2 hash needs {} MiB of memory — more than a browser tab can use", dec("m").unwrap_or(0) >> 10)); }
+            // hash-wasm reads version 1.3 (v=19) with the parameters m, t, p; everything else Argon2 allows is ours
+            let plain = ph.version == Some(19) && ph.params.iter().all(|(k, _)| matches!(k.as_str(), "m" | "t" | "p"));
+            Ok(json!({ "scheme": "argon2", "engine": if plain { "argon2" } else { "own" }, "hash": h }))
+        }
+        "pbkdf2-sha256" | "pbkdf2-sha512" | "pbkdf2-sha1" | "pbkdf2" => {
+            let sha1 = id == "pbkdf2-sha1" || id == "pbkdf2"; // PBKDF2-HMAC-SHA1 (legacy): $pbkdf2-sha1$i=…,l=…$salt$hash or $pbkdf2$…
+            let it = dec("i").unwrap_or(if sha1 { 1000 } else { 600_000 });
+            if it == 0 || it > 50_000_000 { return Err("This hash's iteration count is out of range".into()); }
+            let (salt, want) = parts()?;
+            Ok(json!({ "scheme": "pbkdf2", "engine": "pbkdf2", "hashFn": if sha1 { "sha1" } else { &id[7..] }, "iterations": it, "salt": salt, "want": want }))
+        }
+        "scrypt" => {
+            let (ln, r, par) = (dec("ln").unwrap_or(0), dec("r").unwrap_or(8), dec("p").unwrap_or(1));
+            if ln > 24 || r > 64 || (128 * r) << ln > GIB { return Err(format!("This scrypt hash (N = 2^{ln}, r = {r}) needs more memory than a browser tab can use")); }
+            if ln == 0 || r == 0 || par == 0 || par > 1024 { return Err("This hash cannot be checked: its scrypt parameters (ln, r, p) are missing or zero".into()); }
+            let (salt, want) = parts()?;
+            Ok(json!({ "scheme": "scrypt", "engine": "scrypt", "n": 1u64 << ln, "r": r, "p": par, "salt": salt, "want": want }))
+        }
+        x => Err(format!("Unsupported hash scheme ${x}$")),
+    }
+}
+/// Argon2 hashes hash-wasm does not read (version 1.0, keyid / data): RustCrypto's argon2.
+fn op_verify_own(a: &Value) -> R {
+    use password_hash::{Error, PasswordHash, PasswordVerifier};
+    let ph = PasswordHash::new(s(a, "hash").trim()).map_err(|e| format!("Not a recognised hash (PHC string like $argon2id$… or bcrypt $2b$…): {e}"))?;
+    let pw = s(a, "password").as_bytes();
+    if ph.version.is_none() {
+        // a hash without "v=" is from before the field existed: version 1.0 (the crate's verifier would assume 1.3)
+        let cannot = |e: String| format!("This hash cannot be checked: {e}");
+        let alg = argon2::Algorithm::try_from(ph.algorithm).map_err(|e| cannot(e.to_string()))?;
+        let params = argon2::Params::try_from(&ph).map_err(|e| cannot(e.to_string()))?;
+        let (salt, want) = (ph.salt.ok_or("This hash has no salt")?, ph.hash.ok_or("This hash has no hash value")?);
+        let mut sb = [0u8; 64]; let salt = salt.decode_b64(&mut sb).map_err(|e| cannot(e.to_string()))?;
+        let mut out = vec![0u8; want.len()];
+        argon2::Argon2::new(alg, argon2::Version::V0x10, params).hash_password_into(pw, salt, &mut out).map_err(|e| cannot(e.to_string()))?;
+        return Ok(json!({ "ok": out.iter().zip(want.as_bytes()).fold(0u8, |d, (x, y)| d | (x ^ y)) == 0, "scheme": "argon2" }));
+    }
+    match argon2::Argon2::default().verify_password(pw, &ph) {
+        Ok(()) => Ok(json!({ "ok": true, "scheme": "argon2" })), Err(Error::Password) => Ok(json!({ "ok": false, "scheme": "argon2" })),
+        Err(e) => Err(format!("This hash cannot be checked: {e}")),
+    }
 }
 
 // ------------------------------------------------------------------ OpenSSH keys
@@ -286,7 +309,7 @@ fn op_crc_check(a: &Value) -> R { let k = s(a, "body"); if k.len() < 7 { return 
 pub unsafe extern "C" fn k_call(op: *const u8, op_n: usize, inp: *const u8, in_n: usize) -> i32 {
     let op = std::str::from_utf8(std::slice::from_raw_parts(op, op_n)).unwrap_or("");
     let a: Value = serde_json::from_slice(if in_n == 0 { b"{}" } else { std::slice::from_raw_parts(inp, in_n) }).unwrap_or(Value::Null);
-    let r = match op { "totp" => op_totp(&a), "hash" => op_hash(&a), "verify" => op_verify(&a), "pbkdf2" => op_pbkdf2_raw(&a), "sshkey" => op_sshkey(&a), "sshinfo" => op_sshinfo(&a), "apikey" => op_apikey(&a), "crc" => op_crc_check(&a), _ => Err(format!("unknown op {op}")) };
+    let r = match op { "totp_plan" => op_totp_plan(&a), "hotp_codes" => op_hotp_codes(&a), "hash_plan" => op_hash_plan(&a), "hash_format" => op_hash_format(&a), "verify_plan" => op_verify_plan(&a), "verify_own" => op_verify_own(&a), "sshkey" => op_sshkey(&a), "sshinfo" => op_sshinfo(&a), "apikey" => op_apikey(&a), "crc" => op_crc_check(&a), _ => Err(format!("unknown op {op}")) };
     let (code, v) = match r { Ok(v) => (0, v), Err(e) => (-1, json!({ "error": e })) };
     OUT.with(|o| *o.borrow_mut() = serde_json::to_vec(&v).unwrap());
     code
