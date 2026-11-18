@@ -192,21 +192,22 @@ export function sigMatches(pasted: string, r: { hex: string; base64: string; bas
   }) || pasted.replace(/[\s:]/g, '').replace(/^0x/i, '').toLowerCase() === r.hex; // hex typed in groups: "ab cd ef …"
 }
 export const hmac: Mount = (root) => {
-  let alg = 'sha256', keyFmt = 'text', kp: Promise<Keys> | null = null, runId = 0;
+  let alg = 'sha256', keyFmt = 'text', lib: Promise<typeof import('../../lib/hmac')> | null = null, runId = 0;
   const key = secretInput('Secret key', 'my-webhook-secret'), msg = textarea({ rows: 6, mono: true, value: '{"event":"payment.captured","amount":49900}' });
   const out = h('div'), expect = input({ placeholder: 'Paste a signature to compare (hex or Base64; "sha256=" prefix allowed)', attrs: { class: 'input mono', 'aria-label': 'Expected signature' } });
   let file: File | null = null;
   const CHUNK = 4 << 20;
   const run = async () => {
-    const id = ++runId, k = await (kp ||= keys());
+    const id = ++runId;
     let r: { hex: string; base64: string; base64url: string; bytes: number };
     try {
-      const m = k.mac(alg, toBytes(key.input.value, keyFmt));
+      const m = await (await (lib ||= import('../../lib/hmac'))).mac(alg, toBytes(key.input.value, keyFmt)); // hash-wasm, loaded with the tab's first signature
+      if (id !== runId) return;
       if (file) { // streamed in 4 MB pieces: a large file neither freezes the page nor has to fit in memory twice
         const f = file;
         for (let o = 0; o < f.size; o += CHUNK) {
           const part = new Uint8Array(await f.slice(o, o + CHUNK).arrayBuffer());
-          if (id !== runId) return; // a newer run (other key, other file) has taken over the engine
+          if (id !== runId) return; // a newer run (other key, other file) has taken over
           m.update(part);
           if (f.size > 8 * CHUNK) clear(out).append(note(`Signing ${f.name}… ${Math.round((100 * Math.min(o + CHUNK, f.size)) / f.size)} %`, 'info'));
         }

@@ -32,7 +32,6 @@ const AT_OPEN = {
   bindecode: [/devcore-bin/, 'the sample message is decoded live (devcore-bin, 0.25 MB)'],
   contrast: [/mathcore/, 'the ratio of the sample colours is shown at once (mathcore, small engine)'],
   apikey: [/keys-[\w-]+\.wasm/, 'sample keys are generated at once (keys.wasm, 0.38 MB)'],
-  hmac: [/keys-[\w-]+\.wasm/, 'the sample message is signed live as you type (keys.wasm, 0.38 MB)'],
   totp: [/keys-[\w-]+\.wasm/, 'the sample secret shows its current code at once (keys.wasm, 0.38 MB)'],
   jsondiff: [/devcore-jsondiff/, 'the sample documents are compared at once (devcore-jsondiff, 0.22 MB)'],
   json: [/devcore-json-/, 'the sample is formatted at once (devcore-json, 0.13 MB)'],

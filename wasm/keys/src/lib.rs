@@ -21,11 +21,10 @@ fn int(v: &Value, k: &str, d: u64, min: u64, max: u64, label: &str) -> Result<u6
     }
 }
 const GIB: u64 = 1 << 30; // most a hash may need in a browser tab
-fn b64(v: &Value, k: &str) -> Result<Vec<u8>, String> { data_encoding::BASE64.decode(s(v, k).as_bytes()).map_err(|e| format!("{k}: {e}")) }
 fn hex(b: &[u8]) -> String { b.iter().map(|x| format!("{x:02x}")).collect() }
 
 // ------------------------------------------------------------------ HMAC
-// One enum over the eight HMACs, so a message can be fed in pieces (files are streamed in chunks, never copied whole).
+// One enum over the eight HMACs (used by HOTP / TOTP here; the HMAC Generator tab uses hash-wasm, src/lib/hmac.ts).
 macro_rules! mac_enum { ($($v:ident, $t:ty, $name:literal;)*) => {
     enum MacState { $($v(hmac::Hmac<$t>)),* }
     impl MacState {
@@ -36,33 +35,6 @@ macro_rules! mac_enum { ($($v:ident, $t:ty, $name:literal;)*) => {
 } }
 mac_enum! { Md5, md5::Md5, "md5"; Sha1, sha1::Sha1, "sha1"; Sha224, sha2::Sha224, "sha224"; Sha256, sha2::Sha256, "sha256"; Sha384, sha2::Sha384, "sha384"; Sha512, sha2::Sha512, "sha512"; Sha3_256, sha3::Sha3_256, "sha3-256"; Sha3_512, sha3::Sha3_512, "sha3-512"; }
 fn mac(alg: &str, key: &[u8], msg: &[u8]) -> Result<Vec<u8>, String> { let mut m = MacState::new(alg, key)?; m.update(msg); Ok(m.finish()) }
-fn mac_json(d: &[u8]) -> Value { json!({ "hex": hex(d), "base64": data_encoding::BASE64.encode(d), "base64url": data_encoding::BASE64URL_NOPAD.encode(d), "bytes": d.len() }) }
-thread_local! { static MAC: RefCell<Option<MacState>> = const { RefCell::new(None) }; }
-/// Streaming HMAC over raw bytes: k_mac_begin(alg, key) → k_mac_update(chunk)… → k_mac_end() (JSON in the output buffer).
-#[no_mangle]
-pub unsafe extern "C" fn k_mac_begin(alg: *const u8, alg_n: usize, key: *const u8, key_n: usize) -> i32 {
-    let alg = std::str::from_utf8(std::slice::from_raw_parts(alg, alg_n)).unwrap_or("");
-    match MacState::new(alg, if key_n == 0 { &[] } else { std::slice::from_raw_parts(key, key_n) }) {
-        Ok(m) => { MAC.with(|c| *c.borrow_mut() = Some(m)); 0 }
-        Err(e) => { MAC.with(|c| *c.borrow_mut() = None); OUT.with(|o| *o.borrow_mut() = serde_json::to_vec(&json!({ "error": e })).unwrap()); -1 }
-    }
-}
-#[no_mangle]
-pub unsafe extern "C" fn k_mac_update(p: *const u8, n: usize) -> i32 {
-    if n == 0 { return 0; }
-    MAC.with(|c| match c.borrow_mut().as_mut() { Some(m) => { m.update(std::slice::from_raw_parts(p, n)); 0 } None => -1 })
-}
-#[no_mangle]
-pub extern "C" fn k_mac_end() -> i32 {
-    let v = MAC.with(|c| c.borrow_mut().take()).map(|m| mac_json(&m.finish()));
-    let code = if v.is_some() { 0 } else { -1 };
-    OUT.with(|o| *o.borrow_mut() = serde_json::to_vec(&v.unwrap_or_else(|| json!({ "error": "no HMAC in progress" }))).unwrap());
-    code
-}
-fn op_hmac(a: &Value) -> R {
-    let d = mac(s(a, "alg"), &b64(a, "key")?, &b64(a, "msg")?)?;
-    Ok(mac_json(&d))
-}
 
 // ------------------------------------------------------------------ HOTP / TOTP (RFC 4226 / 6238)
 fn hotp(alg: &str, key: &[u8], counter: u64, digits: u32) -> Result<String, String> {
@@ -314,7 +286,7 @@ fn op_crc_check(a: &Value) -> R { let k = s(a, "body"); if k.len() < 7 { return 
 pub unsafe extern "C" fn k_call(op: *const u8, op_n: usize, inp: *const u8, in_n: usize) -> i32 {
     let op = std::str::from_utf8(std::slice::from_raw_parts(op, op_n)).unwrap_or("");
     let a: Value = serde_json::from_slice(if in_n == 0 { b"{}" } else { std::slice::from_raw_parts(inp, in_n) }).unwrap_or(Value::Null);
-    let r = match op { "hmac" => op_hmac(&a), "totp" => op_totp(&a), "hash" => op_hash(&a), "verify" => op_verify(&a), "pbkdf2" => op_pbkdf2_raw(&a), "sshkey" => op_sshkey(&a), "sshinfo" => op_sshinfo(&a), "apikey" => op_apikey(&a), "crc" => op_crc_check(&a), _ => Err(format!("unknown op {op}")) };
+    let r = match op { "totp" => op_totp(&a), "hash" => op_hash(&a), "verify" => op_verify(&a), "pbkdf2" => op_pbkdf2_raw(&a), "sshkey" => op_sshkey(&a), "sshinfo" => op_sshinfo(&a), "apikey" => op_apikey(&a), "crc" => op_crc_check(&a), _ => Err(format!("unknown op {op}")) };
     let (code, v) = match r { Ok(v) => (0, v), Err(e) => (-1, json!({ "error": e })) };
     OUT.with(|o| *o.borrow_mut() = serde_json::to_vec(&v).unwrap());
     code

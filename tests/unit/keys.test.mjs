@@ -1,6 +1,6 @@
-// keys.wasm (Rust, RustCrypto, built by us): RFC test vectors — HMAC (RFC 2104/2202/4231), HOTP (RFC 4226 Appendix D),
+// keys.wasm (Rust, RustCrypto, built by us): RFC test vectors — HOTP (RFC 4226 Appendix D),
 // TOTP (RFC 6238 Appendix B for SHA-1/256/512), PBKDF2 (RFC 6070), bcrypt (OpenBSD/Openwall vector), Argon2/scrypt/PBKDF2
-// PHC round trips, OpenSSH Ed25519 keys (round trip, passphrase), API key formats, streaming HMAC against Node crypto,
+// PHC round trips, OpenSSH Ed25519 keys (round trip, passphrase), API key formats,
 // pasted-signature matching (GitHub, Stripe, Shopify header forms).
 import { readFileSync } from 'node:fs';
 import { createHash, pbkdf2Sync, scryptSync } from 'node:crypto';
@@ -9,14 +9,6 @@ export default async (t, { load, wasm }) => {
   const k = bindKeys(await wasm('keys'));
   const B = (s) => Buffer.from(s).toString('base64');
   const err = (f) => { try { f(); return null; } catch (e) { return e.message; } };
-  const hm = (alg, key, msg) => k.call('hmac', { alg, key: B(key), msg: B(msg) }).hex;
-  t.eq(hm('md5', 'Jefe', 'what do ya want for nothing?'), '750c783e6ab0b503eaa86e310a5db738', 'HMAC-MD5 (RFC 2104)');
-  t.eq(hm('sha1', 'Jefe', 'what do ya want for nothing?'), 'effcdf6ae5eb2fa2d27416d5f184df9c259a7c79', 'HMAC-SHA1 (RFC 2202 case 2)');
-  t.eq(hm('sha256', 'Jefe', 'what do ya want for nothing?'), '5bdcc146bf60754e6a042426089575c75a003f089d2739839dec58b964ec3843', 'HMAC-SHA256 (RFC 4231 case 2)');
-  t.eq(hm('sha512', 'Jefe', 'what do ya want for nothing?'), '164b7a7bfcf819e2e395fbe73b56e0a387bd64222e831fd610270cd7ea2505549758bf75c05a994a6d034f65f8f0e6fdcaeab1a34d4a6b4b636e070a38bce737', 'HMAC-SHA512 (RFC 4231 case 2)');
-  const big = Buffer.alloc(131, 0xaa).toString('binary');
-  t.eq(k.call('hmac', { alg: 'sha256', key: Buffer.alloc(131, 0xaa).toString('base64'), msg: B('Test Using Larger Than Block-Size Key - Hash Key First') }).hex, '60e431591ee0b67f0d8a26aacbf5b77f8e0bc6213728c5140546040f0ee37f54', 'HMAC-SHA256 with a key longer than the block (RFC 4231 case 6)');
-  void big;
   const sec = (s) => Buffer.from(s).toString('base64'); // not used: TOTP takes Base32
   void sec;
   const b32 = (s) => { const a = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567'; let bits = '', o = ''; for (const c of Buffer.from(s)) bits += c.toString(2).padStart(8, '0'); for (let i = 0; i < bits.length; i += 5) o += a[parseInt(bits.slice(i, i + 5).padEnd(5, '0'), 2)]; return o; };
@@ -122,26 +114,7 @@ export default async (t, { load, wasm }) => {
     t.ok(/"\*" is not allowed/.test(err(() => code('GEZD*NBV'))) && !/O, I, L or B/.test(err(() => code('GEZD*NBV'))), 'another character → message without the hint');
     t.ok(/too short/.test(err(() => code('A'))) && /Enter the secret/.test(err(() => code(' - = '))), 'one character / nothing but separators');
   }
-  // ---- streaming HMAC (k_mac_begin / update / end): files are fed in pieces
-  {
-    const { createHmac, randomBytes } = await import('node:crypto');
-    const algs = [['md5', 'md5'], ['sha1', 'sha1'], ['sha224', 'sha224'], ['sha256', 'sha256'], ['sha384', 'sha384'], ['sha512', 'sha512'], ['sha3-256', 'sha3-256'], ['sha3-512', 'sha3-512']], bad = [];
-    const data = randomBytes(1_000_003), key = randomBytes(77);
-    for (const [alg, node] of algs) for (const chunk of [1_000_003, 65536, 4099, 64, 63]) {
-      const m = k.mac(alg, key); for (let o = 0; o < data.length && (chunk > 100 || o < 20000); o += chunk) m.update(data.subarray(o, o + chunk));
-      const r = m.end(), want = createHmac(node, key).update(chunk > 100 ? data : data.subarray(0, Math.ceil(20000 / chunk) * chunk)).digest();
-      if (r.hex !== want.toString('hex') || r.base64 !== want.toString('base64') || r.base64url !== want.toString('base64url') || r.bytes !== want.length) bad.push(`${alg}/${chunk}`);
-    }
-    t.ok(!bad.length, `8 algorithms × 5 chunk sizes over 1 MB of random data = Node crypto (hex, Base64, Base64url, length) ${bad.join(' ')}`);
-    let m = k.mac('sha256', new Uint8Array(0)); t.eq(m.end().hex, createHmac('sha256', '').update('').digest('hex'), 'empty key + empty message');
-    m = k.mac('sha256', key); m.update(new Uint8Array(0)); m.update(Buffer.from('a')); m.update(new Uint8Array(0)); t.eq(m.end().hex, createHmac('sha256', key).update('a').digest('hex'), 'empty chunks are harmless');
-    t.ok(/unknown algorithm/.test(err(() => k.mac('sha999', key))), 'unknown algorithm refused');
-    t.ok(/no HMAC in progress/.test(err(() => k.mac('sha256', key).end() && k.mac('sha256', key) && (() => { const x = k.mac('sha256', key); x.end(); x.end(); })())), 'ending twice is an error, not a crash');
-    const a1 = k.mac('sha256', Buffer.from('one')); a1.update(Buffer.from('partial')); const b1 = k.mac('sha512', Buffer.from('two')); b1.update(Buffer.from('msg'));
-    t.eq(b1.end().hex, createHmac('sha512', 'two').update('msg').digest('hex'), 'starting a new HMAC replaces an unfinished one');
-    t.eq(k.mac('sha256', Buffer.from('Jefe')).end && (() => { const x = k.mac('sha256', Buffer.from('Jefe')); x.update(Buffer.from('what do ya want ')); x.update(Buffer.from('for nothing?')); return x.end().hex; })(), '5bdcc146bf60754e6a042426089575c75a003f089d2739839dec58b964ec3843', 'RFC 4231 test case 2, fed in two pieces');
-    t.eq(k.call('hmac', { alg: 'sha256', key: B('Jefe'), msg: B('what do ya want for nothing?') }).hex, '5bdcc146bf60754e6a042426089575c75a003f089d2739839dec58b964ec3843', 'the one-shot call still agrees');
-  }
+  t.ok(/unknown operation|unknown op/i.test(err(() => k.call('hmac', { alg: 'sha256', key: '', msg: '' }))) && !('mac' in k), 'HMAC is no longer part of this module (the HMAC tab uses hash-wasm: tests/unit/hmac.test.mjs)');
   // ---- pasted signatures (sigMatches): what webhook senders put in their headers
   {
     const { sigMatches } = await load('/src/tools/software/net.ts');
