@@ -30,29 +30,46 @@ that affects it.
 > **Owner, 18 Nov 2026 (added the same day):** "Just remember that in this preference, the WebAssembly modules that
 > are out there should only be used if it satisfies all the conditions and feature requests that I asked for per
 > utility. If it doesn't, then build out our own WebAssembly module."
+> **Owner, 18 Nov 2026 (third message that day — a tweak that REPLACES the "use it only if it satisfies all" part
+> of the sentence above):** "one more tweak to the webassembly first rule... if the existing wasm module out there
+> already exists but does not cover all the features i ask for in a utility, then still use that, but use the
+> remaining 2 points in the rule for the additional features not covered in the existing wasm, as in a) build out an
+> additional supplementary wasm module for the extra missing features b) use existing JS/TS c) build your own js/ts..
+> note this in claude.md and do another pass for all the existing 52 apps first and for the remaining apps.. then
+> write all the tests and continue the bug hunt and extensive test cases..."
 > **Owner, 18 Nov 2026 (bug hunt, from the 52nd tab on — the order of work per tab):** "first see if any WebAssembly
 > module that you wrote can be replaced by an existing one out there using the rules that you mentioned, and then find
 > bugs and then write extensive test cases, solve the bugs as you've been doing, and then move on to the next app."
 > → every tab gets its entry in `docs/WASM-AUDIT.md` (our module → candidates → check → decision) **before** its bug
-> hunt; a replacement means running that tab's suites again. The first 51 tabs are audited there (one replacement:
-> the HMAC Generator → hash-wasm).
-> **The order:**
+> hunt; a replacement means running that tab's suites again.
+> **The order (as it stands after the tweak):**
 > 1. **An existing, tried-and-tested WebAssembly module that is already out there** — a famous, good one: the
 >    upstream project's official build (SQLite's, Artifex's MuPDF, Microsoft's ONNX Runtime, Google's MediaPipe) or a
 >    widely used, maintained build by someone else (jSquash codecs, libheif-js, tesseract.js-core, zxing-wasm,
->    libarchive.js, ffmpeg.wasm), at its latest stable version. **Look for one first, every time — and use it only
->    if it satisfies ALL the conditions and feature requests the owner gave for that utility** (the hard
->    requirements of §1 — hosted in the app, no CDN, no runtime downloads from elsewhere, user data stays on the
->    device, lazy per tab, the platforms asked for — the tool's own requirements in §2 / §3, an open-source
->    licence, and the tab's test suite, which encodes those requirements). A module that falls short on any of
->    them is not used: go to step 2.
-> 2. **No such module exists, or the ones that exist do not satisfy everything asked for: build our own WebAssembly
->    module from open-source code** — the latest stable open-source source (C/C++, Rust, Zig…; source verified by checksum or
->    signature; licences respected) or our own C / Rust on top of it (`wasm/`). Functionality that exists only as
->    JavaScript / TypeScript belongs here too: make a WebAssembly module out of it (port it, or compile it) when
->    that is possible and fits the utility (owner, 17 Nov 2026).
+>    libarchive.js, ffmpeg.wasm, hash-wasm), at its latest stable version. **Look for one first, every time.**
+>    - **It covers everything asked for the utility → use it.**
+>    - **It exists but does not cover all the features asked for → STILL use it for what it covers, and add the
+>      missing features beside it, in this order:**
+>      **(a)** an additional, supplementary WebAssembly module of our own for the missing features (from open-source
+>      code or our own C / Rust); **(b)** if that is not doable, an existing JS / TS library; **(c)** if there is
+>      none, our own JS / TS.
+>    - What is NOT a "missing feature": the hard requirements of §1 (hosted in the app, no CDN, no runtime downloads
+>      from elsewhere, user data stays on the device, lazy per tab, the platforms asked for) and an open-source
+>      licence. A module that breaks one of those is not used at all.
+>    - *Claude's reading of a case the owner's words do not cover (owner to confirm; listed per tab in
+>      `docs/WASM-AUDIT.md`):* a module that gives **wrong results or crashes** on something the utility needs, where
+>      nothing placed beside it can put that right (the fault is inside the engine), has a defect, not a missing
+>      feature. It is written down with the evidence and put to the owner; until the owner decides, the utility
+>      keeps the engine whose tests pass.
+> 2. **No such module exists at all: build our own WebAssembly module from open-source code** — the latest stable
+>    open-source source (C/C++, Rust, Zig…; source verified by checksum or signature; licences respected) or our own
+>    C / Rust on top of it (`wasm/`). Functionality that exists only as JavaScript / TypeScript belongs here too: make
+>    a WebAssembly module out of it (port it, or compile it) when that is possible and fits the utility (owner,
+>    17 Nov 2026).
 > 3. **Only when that is not doable either:** use an existing open-source JavaScript / TypeScript library as it is —
->    **and write the reason down in §3a** (the owner asked for a note every time). Don't stall a tool over it.
+>    **and write the reason down in §3a** (the owner asked for a note every time); our own JS / TS comes last. Don't
+>    stall a tool over it.
+> **Every replacement or addition of an engine means running that tab's suites again** (owner, 18 Nov 2026).
 > Still in force from the owner's 17 Nov 2026 wording: "WebAssembly modules are always preferred. They are the first
 > choice for functionality, library code. … it should be all legal. … Also remember to host all these libraries in
 > the app: library code should not be pulled in at runtime, it should statically be part of the app, whether it's
@@ -130,8 +147,10 @@ Wayland) and **mobile browsers** (Android Chrome, iPhone Safari).
 5. **Responsive UI** that works on phone and desktop.
 6. **Implementation preference order — see STANDING RULE #1 at the top (WebAssembly first, always):**
    1. An existing, tried-and-tested WebAssembly module (a famous, good one: the upstream project's official build
-      or a widely used one, latest stable) — only if it satisfies every condition and feature asked for the tool.
-   2. If there is none, or none satisfies everything: our own WebAssembly build from the latest proper open-source **C/C++/Rust** (or other
+      or a widely used one, latest stable). If it does not cover every feature asked for the tool it is still used,
+      and the missing features are added beside it: (a) a supplementary WebAssembly module of our own, (b) an
+      existing JS/TS library, (c) our own JS/TS (owner, 18 Nov 2026).
+   2. If there is none at all: our own WebAssembly build from the latest proper open-source **C/C++/Rust** (or other
       compiled) source or our own code on top of it — also for functionality that exists only as
       JavaScript/TypeScript, when a port is possible and fits the tool.
    3. Only if that is not doable: a widely used, safe, OSI-licensed JavaScript/TypeScript library as it is, vendored
@@ -809,9 +828,11 @@ to `chrome://flags/#enable-webrtc-pipewire-capturer` and the `xdg-desktop-portal
 JavaScript library. Order of preference:
 1. An existing, tried-and-tested WebAssembly module that is already out there (a famous, good one) — the upstream
    project's **official** wasm build (e.g. SQLite's, Artifex's MuPDF) or a widely used third-party build, at its
-   latest stable version. Look for one first; **use it only if it satisfies all the conditions and feature requests
-   the owner gave for that utility**.
-2. If there is none, or none satisfies everything asked for: our own wasm build from open-source code — the upstream C/C++/Rust source (verified by
+   latest stable version. Look for one first. **If it does not cover every feature asked for the utility it is
+   still used for what it covers**, and the missing features are added beside it: (a) a supplementary WebAssembly
+   module of our own, (b) an existing JS/TS library, (c) our own JS/TS (owner's tweak of 18 Nov 2026). A module
+   that breaks a hard requirement of §1 or has no open-source licence is not used.
+2. If there is none at all: our own wasm build from open-source code — the upstream C/C++/Rust source (verified by
    checksum/signature) or our own C / Rust on top of it; functionality that exists only as JavaScript/TypeScript is
    made into a WebAssembly module here (a port to Rust / C, or compiling it) when that is possible and fits the tool.
 3. A JavaScript/TypeScript library as it is — **only when that is not doable** in this framework or for the features
@@ -1288,10 +1309,12 @@ Deployment branches**.
 
 ## 8. Adding a new tool (checklist)
 0. **Apply STANDING RULE #1 first** (top of this file): for every engine/library/algorithm the tool needs, pick
-   an existing tried-and-tested WebAssembly module first (look for one; it must satisfy everything the owner asked
-   for the tool); if there is none or none fits, our own WebAssembly build
+   an existing tried-and-tested WebAssembly module first (look for one; if it covers only part of what the owner
+   asked for the tool, use it for that part and add the rest beside it: a supplementary WebAssembly module of our
+   own → an existing JS/TS library → our own JS/TS); if there is none at all, our own WebAssembly build
    from open-source code (also a port of JS/TS-only functionality where that is possible); only if that is not
-   doable, a JS/TS library as it is; record the choice and reason in §3a. Everything is hosted in the app.
+   doable, a JS/TS library as it is; record the choice and reason in §3a and the tab's entry in
+   `docs/WASM-AUDIT.md`. Everything is hosted in the app.
 0b. **Apply STANDING RULE #2 throughout:** extensive tests are written with the tool (unit + its own e2e suite,
    independent references where they exist); run, fix the bug or the test, run again until green.
 1. Create `src/tools/<id>.ts` exporting `mount(root)`; use helpers from `src/ui.ts`.

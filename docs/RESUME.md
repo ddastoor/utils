@@ -50,6 +50,13 @@ what those suites missed.
   asked you for. And then continue on the new apps for the bug hunt and test cases." **DONE (18 Nov 2026):**
   `docs/WASM-AUDIT.md` — one replacement (HMAC Generator → hash-wasm 4.13, suites re-run), 50 tabs keep their engine
   with the reason per tab; one open choice for the owner (Mermaid → Merman, recommendation: not yet).
+- **Owner, 18 Nov 2026 (third message) — TWEAK to rule #1 + a SECOND PASS, to do before anything else:** an
+  existing wasm module that does not cover all the features of a utility is **still used**; the missing features
+  are added beside it — (a) a supplementary wasm module of our own, (b) an existing JS/TS library, (c) our own
+  JS/TS. "do another pass for all the existing 52 apps first and for the remaining apps.. then write all the tests
+  and continue the bug hunt". The first audit used the older wording ("only if it satisfies all"), so its "keep
+  ours" decisions are being re-opened one by one: see "Second pass" in `docs/WASM-AUDIT.md` for what is switched,
+  what is in progress and what waits for the owner.
 - **Owner, 18 Nov 2026 — order of work for every tab from the 52nd on:** (1) check whether a WebAssembly module we
   wrote can be replaced by an existing one under STANDING RULE #1 and write the tab's entry in `docs/WASM-AUDIT.md`
   (candidates already noted there: hash-wasm for `hash`, libsodium-wrappers for the sodium tabs, @hpcc-js/wasm-graphviz,
