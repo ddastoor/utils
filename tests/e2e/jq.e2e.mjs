@@ -155,5 +155,29 @@ export default async (ctx) => {
   await page.goto(`${base}#/jq`); ok(await idle() && await out.inputValue() === S.o, 'coming back: the sample is filtered again');
   const errs = page.errors.filter((e) => !/Nothing to save yet/.test(e));   // the empty Download above: reported as a toast and logged
   ok(!errs.length, `no page errors ${errs.join(' | ')}`);
+
+  // ---- local time is the browser's zone (was UTC for everybody): the native jq 1.8.2 with TZ=<zone> is the reference
+  // (tests/fixtures/jq/localtime.json); the table of zone names is fetched only when a filter mentions local time
+  {
+    const LT = JSON.parse(readFileSync(new URL('../fixtures/jq/localtime.json', import.meta.url), 'utf8')).cases;
+    for (const zone of ['Asia/Kolkata', 'America/New_York', 'Asia/Dubai', 'Australia/Lord_Howe']) {
+      const p = await newPage({ timezoneId: zone }); const tables = []; p.on('request', (r) => { if (/tzabbr/.test(r.url())) tables.push(r.url()); });
+      await p.goto(`${base}#/jq`);
+      const f = p.getByRole('textbox', { name: 'Filter', exact: true }), o = p.getByRole('textbox', { name: 'Output', exact: true });
+      const wait = () => until(p, () => document.querySelector('textarea[aria-label="Output"]')?.dataset.busy === '0', null, 15000);
+      await wait(); await p.locator('label.switch', { hasText: 'Null input' }).click(); await p.locator('label.switch', { hasText: 'Compact' }).click();
+      await setValue(f, '1700000000 | todate'); await f.press('Enter'); await wait();
+      ok(await o.inputValue() === '"2023-11-14T22:13:20Z"\n' && tables.length === 0, `${zone}: a filter without local time does not fetch the table of zone names (${tables.length})`);
+      const bad = [];
+      for (const c of LT.filter((c) => c.z === zone && c.s === 0)) {
+        await setValue(f, c.f); await f.press('Enter'); await wait();
+        const got = await o.inputValue(); if (got !== c.o) bad.push(`${c.f.slice(0, 50)} → ${got.slice(0, 120)} (native ${c.o.slice(0, 120)})`);
+      }
+      ok(!bad.length, `${zone}: ${LT.filter((c) => c.z === zone && c.s === 0).length} local-time filters show what the native jq prints in that zone ${bad.slice(0, 2).join(' ‖ ')}`);
+      ok(tables.length === 1 && new URL(tables[0]).origin === new URL(base).origin, `${zone}: the zone names were fetched once, from this site (${tables.length})`);
+      ok(!p.errors.length, `${zone}: no page errors ${p.errors.join(' | ')}`);
+      await p.close();
+    }
+  }
   await pcOnlyOnPhone(ctx, 'jq');
 };

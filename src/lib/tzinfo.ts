@@ -53,16 +53,74 @@ export function zoneInfo(zone: string = Intl.DateTimeFormat().resolvedOptions().
     }
     return n;
   };
-  /** `local` = false: `secs` is a moment (UTC). true: `secs` is a wall-clock reading in this zone (what mktime has). */
-  return (secs: number, local = false): ZoneMoment => {
-    if (!Number.isFinite(secs) || Math.abs(secs) > 8.64e12) return { offset: 0, isdst: false, other: 0, name: 'UTC' };
-    let utc = secs;
-    if (local) { const first = offsetAt(secs - offsetAt(secs)); utc = secs - (offsetAt(secs - first) === first ? first : offsetAt(secs - first)); }
+  /** What the zone shows at the moment `utc`. */
+  const at = (utc: number): ZoneMoment => {
     const offset = offsetAt(utc), [std, dst] = yearOffsets(utc);
     let isdst = dst !== std && offset === dst;
     // tzdata knows better which of a zone's two offsets is "daylight" (Dublin: winter time is the daylight one)
     if (exact.size && !exact.has(`${offset}/${isdst ? 1 : 0}`)) { const o = byOffset.get(offset); if (o) isdst = o[0]; }
-    for (const p of odd) if (utc >= p.from && utc < p.to) return { offset, isdst: p.isdst, other: offset === std ? dst : std, name: p.name };
-    return { offset, isdst, other: offset === std ? dst : std, name: nameAt(utc, offset, isdst) };
+    for (const p of odd) if (utc >= p.from && utc < p.to) return { offset, isdst: p.isdst, other: otherOf(utc, offset, std, dst, p.isdst), name: p.name };
+    return { offset, isdst, other: otherOf(utc, offset, std, dst, isdst), name: nameAt(utc, offset, isdst) };
+  };
+  // The offset mktime() uses when the caller's daylight flag disagrees with the calendar (glibc: "look for a
+  // neighbouring time with the right flag and use its offset … else assume one-hour daylight time"): the year's
+  // other offset; if the year has only one, that of the nearest year within 17 that has two; else an hour away.
+  const otherOf = (utc: number, offset: number, std: number, dst: number, isdst: boolean): number => {
+    if (std !== dst) return offset === std ? dst : std;
+    for (let d = 1; d <= 17; d++) for (const sign of [-1, 1]) {
+      const [s2, d2] = yearOffsets(utc + sign * d * 31556952);
+      if (s2 !== d2) return isdst ? s2 : d2;
+    }
+    return isdst ? offset - 3600 : offset + 3600;
+  };
+  // glibc's mktime() remembers the offset of its last answer and starts its next search from there, so what a
+  // reading that exists twice (clocks moved back) means depends on the conversions before it — as on the desktop
+  let guess = 0;
+  /**
+   * `local` = false: `secs` is a moment (UTC). true: `secs` is a wall-clock reading in this zone (what mktime has):
+   * the answer's `offset` is the one to subtract from the reading (glibc's search: start from the remembered offset,
+   * correct at most six times; a reading that does not exist — clocks moved forward — settles on the daylight side,
+   * so 02:30 on such a night becomes 03:30), `isdst` and `name` describe the moment it lands on.
+   */
+  return (secs: number, local = false): ZoneMoment => {
+    if (!Number.isFinite(secs) || Math.abs(secs) > 8.64e12) return { offset: 0, isdst: false, other: 0, name: 'UTC' };
+    if (!local) return at(secs);
+    let t = secs + guess, t1 = t, t2 = t, m = at(t);
+    for (let probes = 6; ; probes--) {
+      const dt = secs - (t + m.offset);
+      if (!dt) break;
+      // going round in circles between two moments: the reading does not exist. glibc stops on the daylight side;
+      // that is the later moment (zone files differ on which side Dublin's "daylight" is, the later moment does not)
+      if (probes === 0 || (t === t1 && t !== t2 && t > t2)) break;
+      t1 = t2; t2 = t; t += dt; m = at(t);
+    }
+    guess = t - secs;
+    const off = secs - t;
+    if (off === m.offset) return m;
+    // a reading that does not exist: `offset` is the one from before the change (subtracting it lands after the
+    // gap), so the flag and the "other" offset describe that side — mktime() swaps them when the caller's daylight
+    // flag asks for the other reading (glibc: "preferring a time whose tm_isdst differs from the requested value")
+    return { offset: off, isdst: at(secs - m.offset).isdst, other: m.offset, name: m.name };
   };
 }
+
+/**
+ * The `supertools.tz_info(seconds, is_local, out[3], name, cap)` import of a WebAssembly module whose C library has
+ * no time zones (wasm/python/wasi_start.c, wasm/jq/hosttz.c): writes { seconds east of UTC, daylight time?, the
+ * year's other offset } to `out` and the zone's abbreviation to `name`. `buffer`: the module's memory (it can grow,
+ * so it is asked for on every call); `zone`: the IANA zone and its tzabbr.json entry, re-read when they change.
+ */
+export function tzInfoImport(buffer: () => ArrayBufferLike, zone: () => { zone?: string; abbr?: string; run?: number } = () => ({})) {
+  let key = '', z: ReturnType<typeof zoneInfo> | null = null;
+  const enc = new TextEncoder();
+  return (secs: bigint, local: number, out: number, name: number, cap: number): void => {
+    // `run`: a number that changes with every program run — a new run starts like a new process (nothing remembered)
+    const want = zone(), k = `${want.zone ?? ''}|${want.abbr ?? ''}|${want.run ?? 0}`;
+    if (!z || k !== key) { z = zoneInfo(want.zone, want.abbr); key = k; }
+    const m = z(Number(secs), !!local), buf = buffer(), dv = new DataView(buf);
+    dv.setInt32(out, m.offset, true); dv.setInt32(out + 4, m.isdst ? 1 : 0, true); dv.setInt32(out + 8, m.other, true);
+    const b = enc.encode(m.name).subarray(0, Math.max(0, cap - 1));
+    new Uint8Array(buf).set(b, name); dv.setUint8(name + b.length, 0);
+  };
+}
+

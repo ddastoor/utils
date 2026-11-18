@@ -37,6 +37,9 @@ that affects it.
 > additional supplementary wasm module for the extra missing features b) use existing JS/TS c) build your own js/ts..
 > note this in claude.md and do another pass for all the existing 52 apps first and for the remaining apps.. then
 > write all the tests and continue the bug hunt and extensive test cases..."
+> **Owner, 18 Nov 2026 (right after the tweak):** "regarding my latest prompt about the wasm-first preference, use your
+> best judgement.. but always try to do wasm-first in any case" — so: where the words above do not settle a case,
+> Claude decides, writes the reason in `docs/WASM-AUDIT.md`, and leans towards WebAssembly every time.
 > **Owner, 18 Nov 2026 (bug hunt, from the 52nd tab on — the order of work per tab):** "first see if any WebAssembly
 > module that you wrote can be replaced by an existing one out there using the rules that you mentioned, and then find
 > bugs and then write extensive test cases, solve the bugs as you've been doing, and then move on to the next app."
@@ -56,11 +59,10 @@ that affects it.
 >    - What is NOT a "missing feature": the hard requirements of §1 (hosted in the app, no CDN, no runtime downloads
 >      from elsewhere, user data stays on the device, lazy per tab, the platforms asked for) and an open-source
 >      licence. A module that breaks one of those is not used at all.
->    - *Claude's reading of a case the owner's words do not cover (owner to confirm; listed per tab in
->      `docs/WASM-AUDIT.md`):* a module that gives **wrong results or crashes** on something the utility needs, where
->      nothing placed beside it can put that right (the fault is inside the engine), has a defect, not a missing
->      feature. It is written down with the evidence and put to the owner; until the owner decides, the utility
->      keeps the engine whose tests pass.
+>    - *Claude's judgement (the owner left such cases to it; listed per tab in `docs/WASM-AUDIT.md`):* a module that
+>      gives **wrong results or crashes** on something the utility needs, where nothing placed beside it can put
+>      that right (the fault is inside the engine), has a defect, not a missing feature. It is written down with
+>      the evidence, and the utility keeps — or gets — a WebAssembly engine of our own whose tests pass.
 > 2. **No such module exists at all: build our own WebAssembly module from open-source code** — the latest stable
 >    open-source source (C/C++, Rust, Zig…; source verified by checksum or signature; licences respected) or our own
 >    C / Rust on top of it (`wasm/`). Functionality that exists only as JavaScript / TypeScript belongs here too: make
@@ -1121,7 +1123,21 @@ SHA-256 `71b8d6e8…`), configures with a zig cc wrapper (`-D_WASI_EMULATED_SIGN
 bundled oniguruma, decNumber and libjq, and links `glue.c` as a reactor (`jq_run(filter, input, len, flags, args_json)`:
 flags = -r -c -s -n -S --tab -j -a -R -e; one input source shared by the main loop and `input`/`inputs` through
 `jq_set_input_cb`; `$ARGS` built like main.c; exit codes 0 / 2 bad input / 3 compile / 5 runtime, halt_error's code).
-~0.96 MB. Wrapper `src/wasm/jq.ts`; unit `tests/unit/jq.test.mjs` (35); e2e compares outputs with the native jq.
+~0.96 MB. Wrapper `src/wasm/jq.ts`; e2e compares outputs with the native jq.
+**Local time:** wasi-libc has no time zones, so `localtime` and `strflocaltime` answered in UTC. `wasm/jq/hosttz.c`
+(the same mechanism as CPython's, §5.1m): jq is compiled with `-Dlocaltime_r=supertools_localtime_r
+-Dmktime=supertools_mktime -Dtimegm=supertools_timegm`; the first two ask the host (`supertools.tz_info`, answered by
+`tzInfoImport` in `src/lib/tzinfo.ts`: the browser's zone through Intl, tzdata's abbreviations from
+`src/lib/tzabbr.json`, fetched by the jq worker the first time a filter mentions local time); the third names the UTC
+zone "GMT" for `%Z`, as glibc — and so the jq command line — does. The host resolves a wall-clock reading as glibc's
+mktime does: it starts from the offset of its last answer (a reading that exists twice therefore depends on the
+conversions before it, as on the desktop; a new run starts clean), and a reading that does not exist lands after the
+gap (02:30 → 03:30; with an explicit daylight flag, on the side the flag does not name). Limits: abbreviations before
+1970 are outside the table (the offset is printed, "+0553" where tzdata says "LMT").
+**Tests:** `tests/unit/jq.test.mjs` (4,990): the jq manual's examples, **the native jq 1.8.2** for 4,903 filter ×
+option × input cases (`tests/fixtures/jq/reference.json`, `scripts/make-jq-reference.mjs`) and for **891 local-time
+cases in 27 zones** (`tests/fixtures/jq/localtime.json`, `JQ=/path/to/jq-1.8.2/jq node scripts/make-jq-localtime.mjs`);
+e2e `tests/e2e/jq.e2e.mjs` (68, four browser time zones).
 
 ### 5.1l graphviz → `src/wasm/bin/graphviz.wasm`
 `ZIG=… wasm/graphviz/build.sh` (also needs cmake, bison, flex and a host C/C++ compiler): `graphviz_14.1.2.orig.tar.bz2` and

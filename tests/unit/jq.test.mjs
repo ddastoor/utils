@@ -8,7 +8,11 @@ import { join } from 'node:path';
 import { createHash } from 'node:crypto';
 export default async (t, { load, wasm, root }) => {
   const { bindJq } = await load('/src/wasm/jq.ts');
-  const jq = bindJq(await wasm('jq'));
+  // local time is the host's answer (supertools.tz_info): the zone is chosen per test, UTC for the main reference
+  const { tzInfoImport } = await load('/src/lib/tzinfo.ts');
+  const zoneNames = JSON.parse(readFileSync(join(root, 'src/lib/tzabbr.json'), 'utf8')), tz = { zone: 'UTC', names: true, run: 0 };   // run: a new number = a new process (the native jq ran once per case)
+  const engine = async () => { let e; e = await wasm('jq', { supertools: { tz_info: tzInfoImport(() => e.memory.buffer, () => ({ zone: tz.zone, abbr: tz.names ? zoneNames[tz.zone] || '' : '', run: tz.run })) } }); return e; };
+  const jq = bindJq(await engine());
   const c = (f, i, o = {}) => jq.run(f, i, { compact: true, ...o }).output.trimEnd();
   t.eq(c('.foo', '{"foo": 42, "bar": "less interesting data"}'), '42', 'manual: .foo');
   t.eq(c('.[0]', '[{"name":"JSON", "good":true}, {"name":"XML", "good":false}]'), '{"name":"JSON","good":true}', 'manual: .[0]');
@@ -77,13 +81,40 @@ export default async (t, { load, wasm, root }) => {
   r = jq.run('.[', '{}'); t.eq(r.error, 'jq: error: syntax error, unexpected end of file at <top-level>, line 1, column 2:\n    .[\n     ^\njq: 1 compile error', 'syntax error text with the caret under the place');
   t.eq([jq.run('.', '', {}).output, jq.run('.', '', { slurp: true, compact: true }).output, jq.run('.', '', { rawInput: true }).output, jq.run('.', '', { rawInput: true, slurp: true }).output], ['', '[]\n', '', '""\n'], 'empty input: nothing, [] with -s, nothing with -R, "" with -Rs');
   t.eq(jq.run('.', 'a\r\nb\r\n', { rawInput: true, compact: true }).output, '"a\\r"\n"b\\r"\n', '-R keeps the carriage return of Windows line ends (as jq does)');
+  // ---- local time: the native jq 1.8.2 with TZ=<zone> (scripts/make-jq-localtime.mjs) — `localtime`, `strflocaltime`
+  // (%Z, %z and every other field), wall-clock readings that do not exist or exist twice, moments around changes of
+  // the clocks, 27 zones. Our build asks the host; it used to answer in UTC for everybody.
+  {
+    const LT = JSON.parse(readFileSync(join(root, 'tests/fixtures/jq/localtime.json'), 'utf8'));
+    t.eq(LT.jq, 'jq-1.8.2', 'local-time reference made with the native jq 1.8.2');
+    const byZone = new Map(); let n = 0;
+    for (const c of LT.cases) {
+      tz.zone = c.z; tz.run++;
+      const g = jq.run(c.f, 'null', { nullInput: true, compact: true });
+      const ok = g.output === c.o && g.code === c.s && g.error.replace(/\s+$/, '') === c.e.replace(/\s+$/, '');
+      if (!byZone.has(c.z)) byZone.set(c.z, []);
+      if (!ok) byZone.get(c.z).push(`${c.f.slice(0, 60)} → got ${g.code} ${JSON.stringify((g.output || g.error).slice(0, 300))}, native ${c.s} ${JSON.stringify((c.o || c.e).slice(0, 300))}`);
+      n++;
+    }
+    for (const [z, bad] of byZone) t.ok(!bad.length, `local time in ${z}: ${LT.cases.filter((c) => c.z === z).length} filters as the native jq prints them${bad.length ? ` — ${bad.length} differ: ${bad.slice(0, 2).join(' ‖ ')}` : ''}`);
+    t.ok(n >= 880, `${n} local-time cases were run`);
+    tz.zone = 'Asia/Kolkata';
+    t.eq(jq.run('1700000000 | strflocaltime("%H:%M %Z %z"), (localtime | mktime), (localtime | .[3:5])', 'null', { nullInput: true, compact: true, raw: true }).output, '03:43 IST +0530\n1700019800\n[3,43]\n', 'India: 03:43 IST +0530 (was 22:13 UTC +0000)');
+    tz.names = false;
+    t.eq(jq.run('1700000000 | strflocaltime("%H:%M %Z %z")', 'null', { nullInput: true, raw: true }).output, '03:43 IST +0530\n', 'without the table of zone names the browser\'s own name is used');
+    tz.zone = 'Asia/Kathmandu';
+    t.eq(jq.run('1700000000 | strflocaltime("%H:%M %Z %z")', 'null', { nullInput: true, raw: true }).output, '03:58 +0545 +0545\n', 'a zone without an abbreviation is named by its offset');
+    tz.zone = 'Not/AZone';
+    t.eq(jq.run('1700000000 | strflocaltime("%H:%M %Z %z")', 'null', { nullInput: true, raw: true }).output, '22:13 UTC +0000\n', 'an unknown zone falls back to UTC');
+    tz.zone = 'UTC'; tz.names = true;
+  }
   // ---- what the tab adds: a filter that never ends is stopped after 16 MB of output
   r = jq.run('repeat(1)', 'null', { compact: true });
   t.ok(r.code === 5 && r.output.length > 16 << 20 && r.output.length < (16 << 20) + 64 && /stopped after 16 MB of output/.test(r.error) && r.output.startsWith('1\n1\n'), `repeat(1) stops after 16 MB of output (${r.output.length} bytes, exit ${r.code})`);
   r = jq.run('range(1; 4)', 'null', { compact: true }); t.eq([r.output, r.code, r.error], ['1\n2\n3\n', 0, ''], 'the next run starts clean (output, messages and status reset)');
   r = jq.run('"x" * 2000000 | length', 'null'); t.eq(r.output, '2000000\n', 'a 2 MB string built inside the filter');
   // ---- no memory is kept from run to run
-  const e = await wasm('jq'), j2 = bindJq(e);
+  const e = await engine(), j2 = bindJq(e);
   const doc = JSON.stringify(Array.from({ length: 300 }, (_, i) => ({ id: i, tags: ['a', 'b'], name: 'n' + i })));
   const mix = () => { j2.run('map(select(.id % 2 == 0)) | length', doc, {}); j2.run('.[] | .a.b.c', doc, {}); j2.run('.[', doc, {}); j2.run('.', '{"a":', {}); j2.run('[inputs] | add', '1 2 3', { nullInput: true }); j2.run('.', 'x\ny', { rawInput: true, slurp: true }); j2.run('halt_error', '"bye"', {}); j2.run('$a', 'null', { args: { a: [1, 2] } }); };
   for (let i = 0; i < 40; i++) mix();

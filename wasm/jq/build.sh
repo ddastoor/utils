@@ -17,8 +17,10 @@ CC="$WORK/zcc" AR="$ZIG ar" RANLIB="$ZIG ranlib" CFLAGS="-O2" ./configure --host
 make -C vendor/oniguruma -j8 >/dev/null
 make src/builtin.inc src/config_opts.inc src/version.h >/dev/null
 # memfile.h: fopen() in jq's input reader → glue.c's jq_mem_fopen (the input text, served from memory)
-make -j8 libjq.la CFLAGS="-O2 -include $HERE/memfile.h" >/dev/null
-$ZIG cc --target=wasm32-wasi -mexec-model=reactor -O2 -flto -I src -D_WASI_EMULATED_SIGNAL "$HERE/glue.c" .libs/libjq.a vendor/oniguruma/src/.libs/libonig.a \
+# hosttz.c: local time from the host (wasi-libc has no time zones) — jq's localtime_r / mktime / timegm calls go there
+TZDEF="-Dlocaltime_r=supertools_localtime_r -Dmktime=supertools_mktime -Dtimegm=supertools_timegm"
+make -j8 libjq.la CFLAGS="-O2 -include $HERE/memfile.h $TZDEF" >/dev/null
+$ZIG cc --target=wasm32-wasi -mexec-model=reactor -O2 -flto -I src -D_WASI_EMULATED_SIGNAL "$HERE/glue.c" "$HERE/hosttz.c" .libs/libjq.a vendor/oniguruma/src/.libs/libonig.a \
   -lwasi-emulated-signal -lwasi-emulated-process-clocks -lwasi-emulated-mman \
   $(for f in jq_alloc jq_dealloc jq_out jq_out_len jq_err jq_err_len jq_run; do printf -- '-Wl,--export=%s ' $f; done) \
   -Wl,--strip-all -Wl,-z,stack-size=4194304 -Wl,--max-memory=2147418112 -o "$ROOT/src/wasm/bin/jq.wasm"
