@@ -14,7 +14,12 @@
 
 /** A value as the page shows it: NULL, a whole number, text, a big whole number, a real (as text), a blob (hex of its first bytes). */
 export type Cell = null | number | string | { i: string } | { r: string } | { b: string; n: number };
-export interface StmtResult { sql: string; columns: string[]; rows: Cell[][]; total: number; kept: number; changed: number; ms: number; readonly: boolean }
+export interface StmtResult {
+  sql: string; columns: string[]; rows: Cell[][]; total: number; kept: number; ms: number; readonly: boolean;
+  /** INSERT / UPDATE / DELETE / REPLACE (also behind WITH): `changed` = the rows the statement itself changed — what
+   *  sqlite3_changes() and other tools' "rows affected" give; rows changed by its triggers or cascades are not counted */
+  dml: boolean; changed: number;
+}
 export interface RunResult {
   results: StmtResult[];
   /** the statement that failed (1-based, counted over the statements that exist) and where in the script it starts */
@@ -41,7 +46,7 @@ const lead = (s: string) => {
   for (;;) {
     const t = s.replace(/^[\s;]+/, '');
     const u = t.startsWith('--') ? t.slice(t.indexOf('\n') < 0 ? t.length : t.indexOf('\n') + 1) : t.startsWith('/*') ? t.slice(t.indexOf('*/') < 0 ? t.length : t.indexOf('*/') + 2) : t;
-    if (u === s) return s.trimEnd();
+    if (u === s) return s.replace(/[\s;]+$/, '');
     s = u;
   }
 };
@@ -92,7 +97,6 @@ export function makeEngine(S: any, o: { csvWrite?: (rows: Array<Array<string | n
     const started = performance.now();
     let stopped = false;
     if (max > 0) c.sqlite3_progress_handler(d.pointer, 20000, () => (performance.now() - started > max ? ((stopped = true), 1) : 0), 0);
-    const changes = () => Number(c.sqlite3_total_changes64(d.pointer));
     const stack = w.scopedAllocPush();
     try {
       const [pSql, len] = w.scopedAllocCString(sql, true), ppStmt = w.scopedAllocPtr(), pzTail = w.scopedAllocPtr();
@@ -117,7 +121,7 @@ export function makeEngine(S: any, o: { csvWrite?: (rows: Array<Array<string | n
         if (tail <= p) break;                                // cannot happen: SQLite always moves on
         left -= tail - p; p = tail;
         if (!st) continue;                                   // white space, comments, an empty statement
-        const t0 = performance.now(), n = c.sqlite3_column_count(st), before = changes(), readonly = !!c.sqlite3_stmt_readonly(st);
+        const t0 = performance.now(), n = c.sqlite3_column_count(st), readonly = !!c.sqlite3_stmt_readonly(st), dml = !readonly && /^(insert|update|delete|replace|with)\b/i.test(lead(piece));
         const columns: string[] = []; for (let i = 0; i < n; i++) columns.push(c.sqlite3_column_name(st, i));
         const rows: Cell[][] = [], raw: Raw[][] = [];
         let total = 0, step = 0, msg = '';
@@ -130,7 +134,7 @@ export function makeEngine(S: any, o: { csvWrite?: (rows: Array<Array<string | n
                 if (ty === c.SQLITE_INTEGER) { const v = c.sqlite3_column_int64(st, i) as bigint; r[i] = v >= -9007199254740991n && v <= 9007199254740991n ? Number(v) : v; }
                 else if (ty === c.SQLITE_FLOAT) r[i] = new Real(c.sqlite3_column_double(st, i), c.sqlite3_column_text(st, i));
                 else if (ty === c.SQLITE_TEXT) r[i] = c.sqlite3_column_text(st, i);
-                else if (ty === c.SQLITE_BLOB) r[i] = c.sqlite3_column_js(st, i) as Uint8Array;
+                else if (ty === c.SQLITE_BLOB) r[i] = (c.sqlite3_column_js(st, i) as Uint8Array | null) ?? new Uint8Array(0);   // an empty blob (x'') comes back as null from the binding — it is a blob, not NULL
                 else r[i] = null;
               }
               raw.push(r); if (total < limit) rows.push(r.map(wire));
@@ -140,7 +144,7 @@ export function makeEngine(S: any, o: { csvWrite?: (rows: Array<Array<string | n
           if (step !== c.SQLITE_DONE) msg = c.sqlite3_errmsg(d.pointer) as string;
         } finally { c.sqlite3_finalize(st); }
         if (step !== c.SQLITE_DONE) { fail(stopped ? `stopped after ${Math.round(max / 1000)} s — the statement was still running (the time limit is next to Run)` : msg, start, piece); break; }
-        results.push({ sql: lead(piece), columns, rows, total, kept: raw.length, changed: changes() - before, ms: performance.now() - t0, readonly });
+        results.push({ sql: lead(piece), columns, rows, total, kept: raw.length, dml, changed: dml ? Number(c.sqlite3_changes64(d.pointer)) : 0, ms: performance.now() - t0, readonly });
         kept.push({ columns, raw });
       }
     } finally {
@@ -167,7 +171,9 @@ export function makeEngine(S: any, o: { csvWrite?: (rows: Array<Array<string | n
         x.count = Number(all(`SELECT count(*) FROM ${quoteId(sch)}.${quoteId(name)}`)[0][0]);
       } catch (e: any) {
         const m = plain(e), mod = /no such module: (\S+)/.exec(m);
-        x.error = mod ? `needs the module “${mod[1]}”, which this build of SQLite does not have` : m;
+        // a full-text table of the old kinds (fts3 / fts4) keeps its rows in an ordinary table that can still be read
+        const rowsIn = mod && /^fts[34]$/i.test(mod[1]) && list.some(([s2, n2]) => s2 === sch && n2 === `${name}_content`) ? ` — its rows can be read from the table “${name}_content”` : '';
+        x.error = mod ? `needs the module “${mod[1]}”, which this build of SQLite does not have${rowsIn}` : m;
       }
       out.push(x);
     }
@@ -194,12 +200,24 @@ export function makeEngine(S: any, o: { csvWrite?: (rows: Array<Array<string | n
       if (typeof v === 'boolean') return v ? 1 : 0;
       if (typeof v === 'number') return v;
       const s = String(v).trim(); if (!s) return null;
-      return t === 'INTEGER' && s.replace('-', '').length > 15 ? BigInt(s) : Number(s);
+      if (t === 'INTEGER' && /^-?\d{16,19}$/.test(s)) { const big = BigInt(s); if (big >= -(2n ** 63n) && big < 2n ** 63n) return big; }
+      // never lose a cell: what is not a decimal number after all ("0x1F", "n/a") is stored as the text it is
+      return /^[+-]?(\d+\.?\d*|\.\d+)(e[+-]?\d+)?$/i.test(s) && Number.isFinite(Number(s)) ? Number(s) : String(v);
     };
     d.savepoint(() => {
       d.exec(`CREATE TABLE ${quoteId(name)} (${columns.map((col, i) => `${quoteId(col)} ${ty[i]}`).join(', ')})`);
       const st = d.prepare(`INSERT INTO ${quoteId(name)} VALUES (${columns.map(() => '?').join(', ')})`);
-      try { for (let r = 1; r < rows.length; r++) { const row = rows[r]; st.bind(ty.map((t, i) => value(row[i], t))).stepReset(); } } finally { st.finalize(); }
+      try {
+        for (let r = 1; r < rows.length; r++) {
+          const row = rows[r];
+          ty.forEach((t, i) => {
+            const v = value(row[i], t);
+            // the binding sends every whole-valued number as a 64-bit integer: one beyond that range (1e20) would wrap round
+            if (typeof v === 'number' && !Number.isSafeInteger(v)) c.sqlite3_bind_double(st.pointer, i + 1, v); else st.bind(i + 1, v);
+          });
+          st.stepReset();
+        }
+      } finally { st.finalize(); }
     });
     return { table: name, renamed: name !== table, columns, types: ty, rows: rows.length - 1 };
   }

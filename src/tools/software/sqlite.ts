@@ -69,9 +69,9 @@ export const sqlite: Mount = (root) => {
       h('div', { class: 'muted mono sql-head' }, r.sql.length > 160 ? `${r.sql.slice(0, 160)}…` : r.sql),
       r.columns.length ? [
         h('div', { class: 'scroll-x sql-result' }, h('table', { class: 'tbl' }, h('thead', null, h('tr', null, r.columns.map((c) => h('th', null, c)))), h('tbody', null, r.rows.map((row) => h('tr', null, row.map(cell)))))),
-        h('div', { class: 'muted sql-foot' }, `${plural(r.total, 'row')}${r.total > r.rows.length ? ` (the first ${n(r.rows.length)} are shown)` : ''}${r.changed ? ` · ${plural(r.changed, 'row')} changed` : ''} · ${r.ms.toFixed(1)} ms${r.total > r.kept ? ` · CSV and JSON hold the first ${n(r.kept)} rows` : ''}`),
+        h('div', { class: 'muted sql-foot' }, `${plural(r.total, 'row')}${r.total > r.rows.length ? ` (the first ${n(r.rows.length)} are shown)` : ''}${r.dml ? ` · ${plural(r.changed, 'row')} changed` : ''} · ${r.ms.toFixed(1)} ms${r.total > r.kept ? ` · CSV and JSON hold the first ${n(r.kept)} rows` : ''}`),
         h('div', { class: 'row' }, button('CSV', () => save(i, 'csv'), { small: true, icon: 'Download', title: r.total > r.rows.length ? `All ${n(r.kept)} rows as CSV` : 'This result as CSV' }), button('JSON', () => save(i, 'json'), { small: true, icon: 'Download', title: r.total > r.rows.length ? `All ${n(r.kept)} rows as JSON` : 'This result as JSON' }))]
-        : h('div', { class: 'muted sql-foot' }, `OK${r.changed ? ` · ${plural(r.changed, 'row')} changed` : ''} · ${r.ms.toFixed(1)} ms`))));
+        : h('div', { class: 'muted sql-foot' }, `OK${r.dml ? ` · ${plural(r.changed, 'row')} changed` : ''} · ${r.ms.toFixed(1)} ms`))));
     if (res.error) {
       const e = res.error;
       out.append(note([h('b', null, `Statement ${e.statement} (line ${e.line}, column ${e.column}): `), e.message, '.', h('div', { class: 'mono sql-head' }, e.sql.length > 200 ? `${e.sql.slice(0, 200)}…` : e.sql),
@@ -89,13 +89,18 @@ export const sqlite: Mount = (root) => {
       const had = await sql<SchemaObject[]>('schema');
       if (had.length) keep = { bytes: await sql<Uint8Array>('exportDb'), name: fileName };
     }
-    const r = await load(); opened = true; fileName = name; undo = keep;
+    const r = await load(); opened = true; fileName = name; undo = keep; drawUndo();
     clear(out);
     const s = await refreshSchema(), views = s.filter((o) => o.type === 'view').length;
-    say([`${what}${s.length ? `: ${plural(s.length - views, 'table')}${views ? `, ${plural(views, 'view')}` : ''}` : ''}. `, r && r.note ? `${r.note} ` : '',
-      keep ? button('Bring back the previous database', () => guard(async () => {
-        const u = undo!; undo = null; await sql('open', u.bytes); fileName = u.name; clear(out); await refreshSchema(); say('The previous database is back.');
-      }), { small: true, icon: 'Undo2' }) : ''], r && r.note ? 'warn' : 'ok');
+    say([`${what}${s.length ? `: ${plural(s.length - views, 'table')}${views ? `, ${plural(views, 'view')}` : ''}` : ''}. `, r && r.note ? `${r.note} ` : '', keep ? 'The database that was open before can be brought back (button above).' : ''], r && r.note ? 'warn' : 'ok');
+  };
+  /** The way back stays on the page until it is used or the next replacement takes its place — not only until the next Run. */
+  const undoBox = h('span');
+  const drawUndo = () => {
+    clear(undoBox);
+    if (undo) undoBox.append(button(`Bring back the previous database (${undo.name})`, () => guard(async () => {
+      const u = undo!; undo = null; drawUndo(); await sql('open', u.bytes); fileName = u.name; clear(out); await refreshSchema(); say(`The previous database (${u.name}) is back.`);
+    }), { small: true, icon: 'Undo2' }));
   };
 
   const importFile = (f: File) => guard(async () => {
@@ -128,7 +133,7 @@ export const sqlite: Mount = (root) => {
       await ensure(); const b = await sql<Uint8Array>('exportDb'), open = await sql<boolean>('inTransaction');
       downloadBlob(new Blob([b as BlobPart], { type: 'application/vnd.sqlite3' }), /\.(db|sqlite3?|db3)$/i.test(fileName) ? fileName : `${baseName(fileName)}.sqlite`);
       say(`Saved ${fileName} (${fmtBytes(b.length)}).${open ? ' A transaction is open: the file holds its changes although they are not committed.' : ''}`, open ? 'warn' : 'ok');
-    }), { icon: 'Download' })),
+    }), { icon: 'Download' }), undoBox),
     filePicker({ accept: '.db,.sqlite,.sqlite3,.db3', label: 'Open a SQLite file', onFiles: ([f]) => guard(async () => {
       const b = await readBytes(f);
       try { await replace(`Opened ${f.name} (${fmtBytes(b.length)})`, () => sql('open', b), f.name); } catch (e: any) { throw new Error(`${f.name}: ${e.message} ${opened ? 'The database that was open is still open.' : ''}`); }

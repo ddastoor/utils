@@ -157,4 +157,13 @@ Checked one by one when each tab is reached — module first, then bugs, tests, 
 ## Log for tabs after the first 51
 One entry per tab, written before its bug hunt: our module → candidates → check → decision.
 
-*(entries follow as the hunt goes on)*
+### 52. `sqlite` — SQLite Playground (18 Nov 2026)
+- **Engine today:** the SQLite project's own WebAssembly build (`@sqlite.org/sqlite-wasm` 3.54) — already rule step 1.
+- **Our parts beside it:** `src/lib/sqlite-engine.ts` (TypeScript calling SQLite's C API: it is the glue the official
+  build expects its users to write) and **sheet.wasm** (ours) for reading CSV / workbooks and writing CSV.
+- **Could an existing module replace a part of ours?** CSV: SQLite's own CSV virtual table is not in the official
+  build; no established CSV WebAssembly package turned up (search of 18 Nov: @nteract/sift-csv 11 k, a parser for
+  one product). Workbooks: see the `sheet` tab's entry when it is reached (@ironcalc/wasm-xlsx to try).
+- **Decision:** nothing to replace. Hunt: 22 bugs, unit 0 → 106 (native SQLite as reference), e2e 14 → 63.
+
+*(further entries follow as the hunt goes on)*

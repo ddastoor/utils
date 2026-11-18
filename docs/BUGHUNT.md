@@ -144,7 +144,7 @@ Areas with a shared review: the app shell (router, search, favorites, platform h
 | `uuid` | UUID Generator | PC only | dev-data2 | ✓ | 5 | 36 | v7 strictly increasing (crypto.wasm, RFC 9562 method 2); switches rewrite the same IDs; inspector: braces / urn, nil / max, v1 / v6 time, clock sequence, node; vs Python uuid |
 | `color` | Color Converter | PC only | dev-data2 | ✓ | 7 | 34 | alpha kept (8-digit hex); rgb % / exponents, hsl turn / rad / grad, oklch L 0–1, oklab, hwb, names; colours outside sRGB mapped as CSS Color 4 (was rgb(-1065, …)); wrong input marked; exact round trips over all 16.7 M colours; vs colorsys + Chrome's CSS engine |
 | `jwt` | JWT Decoder | PC only | dev-data2 | ✓ | 7 | 33 | Bearer / quotes / wrapped; JWE; null, list, text, non-UTF-8 payloads; 20-digit claims not rounded; exp as string / ms; alg none; damaged signature; UTC + local + relative times; vs PyJWT |
-| `sqlite` | SQLite Playground | PC only | data-engines |  |  |  |  |
+| `sqlite` | SQLite Playground | PC only | data-engines | ✓ | 22 | 155 | official SQLite wasm; engine drives its C API: SQLite's own parser cuts scripts, error line / column, values keep their type (exact big integers, reals as SQLite writes them, blobs), own-changes count, time limit, files checked before replacing + undo, WAL, imports with types from sheet.wasm (leading zeros, long ids, every sheet), exports of all kept rows; reference = native SQLite (160 statements unit; 12 queries, 3,000-row CSV / JSON and the downloaded file e2e) |
 | `jq` | jq Playground | PC only | data-engines | ✓ | 17 | 5860 | runs in a worker (10 s limit, Stop, 16 MB output stop, restart after out of memory); glue follows jq's main.c with jq's own input reader: messages with input.json:N, exit status of the last input, halt, debug / stderr, input_filename, -r -a; memory 2 GB and given back; reference = native jq 1.8.2 for 4,903 cases (unit) and 192 typed into the page; runs in a worker (10 s limit, Stop, 16 MB output stop, restart after out of memory); glue follows jq's main.c with jq's own input reader: messages with input.json:N, exit status of the last input, halt, debug / stderr, input_filename, -r -a; memory 2 GB and given back; local time (localtime, strflocaltime, %Z %z) is the browser's zone, was UTC (host answers supertools.tz_info, wasm/jq/hosttz.c); reference = native jq 1.8.2 for 4,903 cases + 891 local-time cases in 27 zones (unit) and 192 + 4 zones (e2e) |
 | `yaml` | YAML ⇄ JSON ⇄ TOML | PC only | data-engines | ✓ | 21 | 1933 | own value model + own JSON / YAML / TOML writers: numbers keep every digit, YAML output quotes what YAML 1.1 parsers misread (no, y, 1_000, 1:30, dates), .inf / .nan and TOML dates travel, TOML refuses what 64 bits cannot hold; notes for keys written twice; outputs read back by PyYAML, ruamel.yaml and tomllib (1,750 texts), 393 texts written by other programs read correctly |
 | `xml` | XML Formatter / XPath | PC only | dev-data2 | ✓ | 9 | 45 | own Rust formatter moves white space only: declaration, DOCTYPE, entities, &#10;, nbsp and padded text were lost or rewritten; <parsererror> element; xml: and default-namespace prefixes in XPath; ISO-8859-1 / UTF-16 files; 74 documents compared by Chrome's parser |
@@ -537,3 +537,20 @@ reference cases.
   (unit) and four browser time zones (e2e). The shared host code now resolves wall-clock readings as glibc's mktime
   does (a reading that does not exist lands after the gap; an explicit daylight flag picks the other side) — this
   also corrected Python's `time.mktime` on such nights (13 new zone runs against native CPython 3.14.8).
+- **sqlite** (22 bugs; unit 0 → 106, e2e 14 → 63). Reference: the **native SQLite** (Python's sqlite3) — 160
+  statements with the type of every value, the reported changes and every error text; in the browser, 12 queries
+  (900+ cells) and the 3,000-row CSV / JSON against it, and the downloaded database read back by it.
+  Values: integers beyond 2^53 were rounded, 1.0 was shown as 1, an empty blob as NULL, blobs as "[object …]".
+  Scripts: statements were cut by our own splitter (a trigger body broke it) → SQLite's own parser; errors said only
+  "Statement 2" → line and column; "rows changed" included trigger changes and showed the previous statement's count
+  for a change that matched nothing; a statement that never ended froze the tab for good → time limit.
+  Files: a write-ahead-log database could not be opened; a file that was not a database closed the one that was open
+  and left a raw toast → checked first, reason in the status line; replacing a database could not be undone (and
+  the first version of the undo button vanished with the next Run); the download was always "database.sqlite" and
+  said nothing about an open transaction; an open transaction went unnoticed.
+  Imports: leading zeros lost (PIN codes, phone numbers), 19-digit ids rounded, 1e20 in a REAL column wrapped round
+  to an unrelated integer (the binding sends whole-valued numbers as 64-bit integers), "0x1F" read as 31, repeated
+  or empty column names failed, non-ASCII table names became "_", only the first sheet of a workbook was read.
+  Exports: CSV / JSON held only the 2,000 rows on screen, numbers went through JavaScript's.
+  Tables panel: storage tables of full-text tables listed as tables, one unreadable object (fts4, a broken view)
+  emptied the whole list, names with quotes could not be shown; a console warning for every failed statement.

@@ -6,6 +6,8 @@ import wasmUrl from '@sqlite.org/sqlite-wasm/sqlite3.wasm?url';
 import { makeEngine } from '../lib/sqlite-engine';
 import { sheetEngine } from '../wasm/sheet';
 
+// SQLite's JavaScript layer writes a console warning for every statement that fails; the tab shows the error itself
+(globalThis as any).sqlite3ApiConfig = { warn: () => {}, error: () => {}, log: () => {}, debug: () => {} };
 let engine: ReturnType<typeof makeEngine> | null = null, sheet: Awaited<ReturnType<typeof sheetEngine>> | null = null;
 const init = async () => (engine ||= makeEngine(await (sqlite3InitModule as any)({ locateFile: () => wasmUrl, print: () => {}, printErr: () => {} }), { csvWrite: (rows) => sheet!.csvWrite(rows) }));
 const ops: Record<string, (...a: any[]) => any> = {

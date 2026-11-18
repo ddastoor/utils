@@ -69,11 +69,11 @@ what those suites missed.
 - **Found during the audit and fixed:** our jq build showed local time as UTC → `wasm/jq/hosttz.c` + the shared
   `tzInfoImport` (891 reference cases from the native jq 1.8.2 in 27 zones; Python's `time.mktime` on clock-change
   nights corrected by the same host code).
-- **NEXT:** finish the SQLite Playground (tab 52: reference from the native SQLite, unit + e2e suites), then
-  `sqlfmt`, `prettier`, `graphviz` (candidate modules first), then the areas calc-core → … as listed above.
-- **SQLite Playground is half done** (rewritten engine `src/lib/sqlite-engine.ts`, worker, page; reference generator
-  `scripts/make-sqlite-reference.py` written but not yet run; `tests/e2e/sqlite.e2e.mjs` is still the old suite and
-  will fail until rewritten; unit suite `tests/unit/sqlite.test.mjs` not written yet). Finish it right after the audit.
+- **NEXT:** `sqlfmt`, `prettier`, `graphviz` (rest of the data-engines area; for each: the existing-module check
+  first — graphviz → @viz-js/viz / @hpcc-js/wasm-graphviz, prettier → Biome / dprint — then bugs, tests, fixes), the
+  complete `npm test` + `node tests/e2e.mjs` for the area, then calc-core → … as listed above.
+- **SQLite Playground (tab 52): DONE** — 22 bugs, unit 106 (native SQLite as reference), e2e 63; CLAUDE.md §3
+  "SQLite Playground".
 - **Owner's to-do list: `todo.md`** ("to do"). First item (17 Nov 2026): a JS/TS → WebAssembly sweep.
   **Owner, 17 Nov 2026: do NOT start to-do items on your own** — after this hunt, show the owner the items and ask
   which ones to do.

@@ -584,6 +584,37 @@ unit `tests/unit/devdata.test.mjs`, references `tests/fixtures/devdata/reference
 - `mockdata`: 22 field types (India-first); ranges validated and explained (swapped, not a number, dates as
   yyyy-mm-dd or dd/mm/yyyy); 53-bit uniform integers; unique column names; quoted SQL names; same rows in every format.
 
+### SQLite Playground (PC) — as built after the Nov 2026 bug hunt
+(`src/tools/software/sqlite.ts`, engine `src/lib/sqlite-engine.ts`, worker `src/workers/sqlite.worker.ts`; unit
+`tests/unit/sqlite.test.mjs` 106, e2e `tests/e2e/sqlite.e2e.mjs` 63.) Engine: the **official SQLite WebAssembly build**
+(`@sqlite.org/sqlite-wasm`, SQLite 3.54: FTS5, JSON, maths, R-tree; no FTS3/4) in a worker; `sqlite-engine.ts` drives its
+C API and also runs under Node, where the unit suite holds it to **the native SQLite** (Python's `sqlite3`):
+`tests/fixtures/sqlite/reference.json` = 32 scripts, 160 statements with the type of every value, the rows each data
+change reports and every error text (`python3 scripts/make-sqlite-reference.py`, which also writes the fixture
+databases and CSV files).
+- **A script** is cut into statements by SQLite's own parser (`sqlite3_prepare_v3` + its tail pointer): semicolons in
+  strings, comments and trigger bodies never split one. An error names the statement, its line and column, and nothing
+  after it runs; lines that start with a dot get "that is a command of the sqlite3 program".
+- **Values keep their type:** INTEGER beyond 2^53 exact, REAL in SQLite's own writing (`1.0`, `1.0e+300`, `Inf`), NULL
+  beside empty text, blobs by their first bytes and length (an empty blob is a blob, not NULL).
+- **"N rows changed"** = the statement's own changes (`sqlite3_changes64`, what other tools call rows affected), shown
+  for every INSERT / UPDATE / DELETE / REPLACE — also 0; trigger and cascade changes are not added.
+- **Limits:** 2,000 rows on screen, up to 1,000,000 kept for CSV / JSON (CSV by sheet.wasm, RFC 4180, BOM; JSON with
+  exact numbers); a time limit (10 s – 10 min, a progress handler) ends a statement that never finishes and leaves the
+  database as it was; one action at a time (a second one is told to wait).
+- **Files:** checked before they replace anything (not a database / text / workbook / damaged → the reason, and the
+  open database stays); write-ahead-log files open with a note; a replaced database that held something can be brought
+  back once (the button stays until used). The download keeps the file's name and warns when a transaction is open.
+- **Imports** (CSV, TSV, semicolons, .xlsx / .xls / .ods — every sheet with rows becomes a table): sheet.wasm says
+  what each column can be stored as without loss (`types`): codes with leading zeros and numbers no REAL can hold
+  stay TEXT, long ids are exact INTEGERs; repeated or empty column names, taken or reserved table names are made
+  usable; any name is only ever a quoted name. Numbers beyond the 64-bit range are bound as REAL (the binding would
+  wrap them round).
+- **Tables panel:** tables, virtual tables, views with columns, keys, generated columns, indexes, triggers and row
+  counts, attached and temporary databases too; storage tables of FTS5 / R-tree hidden; an object that cannot be read
+  (a module this build lacks, a view on a dropped column) is listed with the reason. "Show rows" quotes any name.
+- An open transaction after a run is pointed out with COMMIT / ROLLBACK buttons.
+
 ### Audio Recorder — BUILT (`src/tools/audio.ts`, shared UI `src/lib/audioui.ts`; e2e `tests/e2e/audio.e2e.mjs` 21)
 Record the mic (MediaRecorder: Opus/WebM, AAC/M4A on Safari; 128 kbps) with pause/resume, big timer, live level meter
 with clip mark and a scrolling waveform; microphone picker; "voice clean-up" (browser echo/noise/AGC) on by default,

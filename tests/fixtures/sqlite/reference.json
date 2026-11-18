@@ -1,0 +1,4302 @@
+{
+"sqlite": "3.53.1",
+"cases": [
+{
+"name": "storage classes and how values are written",
+"statements": [
+{
+"sql": "SELECT 1, 1.0, '1', x'01', NULL, typeof(1), typeof(1.0), typeof('1'), typeof(x'01'), typeof(NULL)",
+"parts": [
+{
+"columns": [
+"1",
+"1.0",
+"'1'",
+"x'01'",
+"NULL",
+"typeof(1)",
+"typeof(1.0)",
+"typeof('1')",
+"typeof(x'01')",
+"typeof(NULL)"
+],
+"rows": [
+[
+{
+"i": "1"
+},
+{
+"r": "1.0"
+},
+"1",
+{
+"b": "01"
+},
+null,
+"integer",
+"real",
+"text",
+"blob",
+"null"
+]
+]
+}
+]
+},
+{
+"sql": "SELECT 9223372036854775807, -9223372036854775808, 9007199254740993, -9007199254740993, 9223372036854775807 + 1, 9223372036854775808",
+"parts": [
+{
+"columns": [
+"9223372036854775807",
+"-9223372036854775808",
+"9007199254740993",
+"-9007199254740993",
+"9223372036854775807 + 1",
+"9223372036854775808"
+],
+"rows": [
+[
+{
+"i": "9223372036854775807"
+},
+{
+"i": "-9223372036854775808"
+},
+{
+"i": "9007199254740993"
+},
+{
+"i": "-9007199254740993"
+},
+{
+"r": "9.223372036854776e+18"
+},
+{
+"r": "9.223372036854776e+18"
+}
+]
+]
+}
+]
+},
+{
+"sql": "SELECT 0.1 + 0.2, 1e300, 1e-300, 1.5e300 * 1e10, -1e999, 5e-324, 1.7976931348623157e308, 100.0, 1e15, 1e16, 123456789012345678.0, -0.0, 2.5e-5",
+"parts": [
+{
+"columns": [
+"0.1 + 0.2",
+"1e300",
+"1e-300",
+"1.5e300 * 1e10",
+"-1e999",
+"5e-324",
+"1.7976931348623157e308",
+"100.0",
+"1e15",
+"1e16",
+"123456789012345678.0",
+"-0.0",
+"2.5e-5"
+],
+"rows": [
+[
+{
+"r": "0.30000000000000004"
+},
+{
+"r": "1e+300"
+},
+{
+"r": "1e-300"
+},
+{
+"r": "inf"
+},
+{
+"r": "-inf"
+},
+{
+"r": "5e-324"
+},
+{
+"r": "1.7976931348623157e+308"
+},
+{
+"r": "100.0"
+},
+{
+"r": "1000000000000000.0"
+},
+{
+"r": "1e+16"
+},
+{
+"r": "1.2345678901234568e+17"
+},
+{
+"r": "-0.0"
+},
+{
+"r": "2.5e-05"
+}
+]
+]
+}
+]
+},
+{
+"sql": "SELECT 10 / 4, 10 / 4.0, 10 % 4, -7 / 2, -7 % 2, 7 / 0, 7.0 / 0, 7 % 0, 1 << 62, ~5, 6 & 3, 6 | 3, -(-9223372036854775807 - 1)",
+"parts": [
+{
+"columns": [
+"10 / 4",
+"10 / 4.0",
+"10 % 4",
+"-7 / 2",
+"-7 % 2",
+"7 / 0",
+"7.0 / 0",
+"7 % 0",
+"1 << 62",
+"~5",
+"6 & 3",
+"6 | 3",
+"-(-9223372036854775807 - 1)"
+],
+"rows": [
+[
+{
+"i": "2"
+},
+{
+"r": "2.5"
+},
+{
+"i": "2"
+},
+{
+"i": "-3"
+},
+{
+"i": "-1"
+},
+null,
+null,
+null,
+{
+"i": "4611686018427387904"
+},
+{
+"i": "-6"
+},
+{
+"i": "2"
+},
+{
+"i": "7"
+},
+{
+"r": "9.223372036854776e+18"
+}
+]
+]
+}
+]
+},
+{
+"sql": "SELECT '' AS empty, ' ' AS space, 'a' || 'b', 'it''s', \"double\" FROM (SELECT 1 AS \"double\")",
+"parts": [
+{
+"columns": [
+"empty",
+"space",
+"'a' || 'b'",
+"'it''s'",
+"double"
+],
+"rows": [
+[
+"",
+" ",
+"ab",
+"it's",
+{
+"i": "1"
+}
+]
+]
+}
+]
+},
+{
+"sql": "SELECT x'', x'00ff10', zeroblob(3), length(x'00ff10'), hex(x'00ff10'), unhex('00FF'), typeof(zeroblob(0)), length(randomblob(16)), x'0102030405060708090a0b0c0d0e0f1011121314'",
+"parts": [
+{
+"columns": [
+"x''",
+"x'00ff10'",
+"zeroblob(3)",
+"length(x'00ff10')",
+"hex(x'00ff10')",
+"unhex('00FF')",
+"typeof(zeroblob(0))",
+"length(randomblob(16))",
+"x'0102030405060708090a0b0c0d0e0f1011121314'"
+],
+"rows": [
+[
+{
+"b": ""
+},
+{
+"b": "00ff10"
+},
+{
+"b": "000000"
+},
+{
+"i": "3"
+},
+"00FF10",
+{
+"b": "00ff"
+},
+"blob",
+{
+"i": "16"
+},
+{
+"b": "0102030405060708090a0b0c0d0e0f1011121314"
+}
+]
+]
+}
+]
+},
+{
+"sql": "SELECT CAST('12abc' AS INTEGER), CAST('abc' AS INTEGER), CAST(3.99 AS INTEGER), CAST(-3.99 AS INTEGER), CAST('1e3' AS REAL), CAST(5 AS TEXT), CAST(5.0 AS TEXT), CAST(x'414243' AS TEXT), CAST('é' AS BLOB), CAST(1e30 AS INTEGER), CAST('9223372036854775808' AS INTEGER), CAST(' 12 ' AS NUMERIC), CAST('0x10' AS INTEGER)",
+"parts": [
+{
+"columns": [
+"CAST('12abc' AS INTEGER)",
+"CAST('abc' AS INTEGER)",
+"CAST(3.99 AS INTEGER)",
+"CAST(-3.99 AS INTEGER)",
+"CAST('1e3' AS REAL)",
+"CAST(5 AS TEXT)",
+"CAST(5.0 AS TEXT)",
+"CAST(x'414243' AS TEXT)",
+"CAST('é' AS BLOB)",
+"CAST(1e30 AS INTEGER)",
+"CAST('9223372036854775808' AS INTEGER)",
+"CAST(' 12 ' AS NUMERIC)",
+"CAST('0x10' AS INTEGER)"
+],
+"rows": [
+[
+{
+"i": "12"
+},
+{
+"i": "0"
+},
+{
+"i": "3"
+},
+{
+"i": "-3"
+},
+{
+"r": "1000.0"
+},
+"5",
+"5.0",
+"ABC",
+{
+"b": "c3a9"
+},
+{
+"i": "9223372036854775807"
+},
+{
+"i": "9223372036854775807"
+},
+{
+"i": "12"
+},
+{
+"i": "0"
+}
+]
+]
+}
+]
+},
+{
+"sql": "SELECT 1 = 1.0, '1' = 1, 1 < '1', x'41' > 'A', NULL = NULL, NULL IS NULL, 1 IS NOT 2, 'a' < 'B', 'a' < 'b' COLLATE NOCASE, 'A' = 'a' COLLATE NOCASE, 2 BETWEEN 1 AND 3, 5 IN (1, 5), NULL IN (1, NULL), 3 NOT IN (1, 2)",
+"parts": [
+{
+"columns": [
+"1 = 1.0",
+"'1' = 1",
+"1 < '1'",
+"x'41' > 'A'",
+"NULL = NULL",
+"NULL IS NULL",
+"1 IS NOT 2",
+"'a' < 'B'",
+"'a' < 'b' COLLATE NOCASE",
+"'A' = 'a' COLLATE NOCASE",
+"2 BETWEEN 1 AND 3",
+"5 IN (1, 5)",
+"NULL IN (1, NULL)",
+"3 NOT IN (1, 2)"
+],
+"rows": [
+[
+{
+"i": "1"
+},
+{
+"i": "0"
+},
+{
+"i": "1"
+},
+{
+"i": "1"
+},
+null,
+{
+"i": "1"
+},
+{
+"i": "1"
+},
+{
+"i": "0"
+},
+{
+"i": "1"
+},
+{
+"i": "1"
+},
+{
+"i": "1"
+},
+{
+"i": "1"
+},
+null,
+{
+"i": "1"
+}
+]
+]
+}
+]
+}
+]
+},
+{
+"name": "column affinity and STRICT tables",
+"statements": [
+{
+"sql": "CREATE TABLE a (i INTEGER, r REAL, t TEXT, n NUMERIC, b BLOB, x)",
+"parts": [
+{
+"columns": [],
+"rows": []
+}
+]
+},
+{
+"sql": "INSERT INTO a VALUES ('12', '12', 12, '12.50', '12', '12'), (1.0, 1, 1.0, '1e3', 1.0, 1.0), ('abc', 'abc', x'4142', 'abc', 'abc', 'abc'), (9007199254740993, 9007199254740993, 9007199254740993, '9007199254740993', NULL, 9007199254740993), ('007', '007', 7, '007', '007', '007'), (3.0, 3, 3.5, 3.0, 3.0, 3.0)",
+"parts": [
+{
+"columns": [],
+"rows": [],
+"changed": 6
+}
+]
+},
+{
+"sql": "SELECT i, typeof(i), r, typeof(r), t, typeof(t), n, typeof(n), b, typeof(b), x, typeof(x) FROM a",
+"parts": [
+{
+"columns": [
+"i",
+"typeof(i)",
+"r",
+"typeof(r)",
+"t",
+"typeof(t)",
+"n",
+"typeof(n)",
+"b",
+"typeof(b)",
+"x",
+"typeof(x)"
+],
+"rows": [
+[
+{
+"i": "12"
+},
+"integer",
+{
+"r": "12.0"
+},
+"real",
+"12",
+"text",
+{
+"r": "12.5"
+},
+"real",
+"12",
+"text",
+"12",
+"text"
+],
+[
+{
+"i": "1"
+},
+"integer",
+{
+"r": "1.0"
+},
+"real",
+"1.0",
+"text",
+{
+"i": "1000"
+},
+"integer",
+{
+"r": "1.0"
+},
+"real",
+{
+"r": "1.0"
+},
+"real"
+],
+[
+"abc",
+"text",
+"abc",
+"text",
+{
+"b": "4142"
+},
+"blob",
+"abc",
+"text",
+"abc",
+"text",
+"abc",
+"text"
+],
+[
+{
+"i": "9007199254740993"
+},
+"integer",
+{
+"r": "9007199254740992.0"
+},
+"real",
+"9007199254740993",
+"text",
+{
+"i": "9007199254740993"
+},
+"integer",
+null,
+"null",
+{
+"i": "9007199254740993"
+},
+"integer"
+],
+[
+{
+"i": "7"
+},
+"integer",
+{
+"r": "7.0"
+},
+"real",
+"7",
+"text",
+{
+"i": "7"
+},
+"integer",
+"007",
+"text",
+"007",
+"text"
+],
+[
+{
+"i": "3"
+},
+"integer",
+{
+"r": "3.0"
+},
+"real",
+"3.5",
+"text",
+{
+"i": "3"
+},
+"integer",
+{
+"r": "3.0"
+},
+"real",
+{
+"r": "3.0"
+},
+"real"
+]
+]
+}
+]
+},
+{
+"sql": "CREATE TABLE s (id INTEGER PRIMARY KEY, name TEXT NOT NULL, amount REAL, any ANY) STRICT",
+"parts": [
+{
+"columns": [],
+"rows": []
+}
+]
+},
+{
+"sql": "INSERT INTO s VALUES (1, 'a', 2, 'x'), (2, 'b', 2.5, 7)",
+"parts": [
+{
+"columns": [],
+"rows": [],
+"changed": 2
+}
+]
+},
+{
+"sql": "SELECT id, name, amount, typeof(amount), \"any\", typeof(\"any\") FROM s",
+"parts": [
+{
+"columns": [
+"id",
+"name",
+"amount",
+"typeof(amount)",
+"any",
+"typeof(\"any\")"
+],
+"rows": [
+[
+{
+"i": "1"
+},
+"a",
+{
+"r": "2.0"
+},
+"real",
+"x",
+"text"
+],
+[
+{
+"i": "2"
+},
+"b",
+{
+"r": "2.5"
+},
+"real",
+{
+"i": "7"
+},
+"integer"
+]
+]
+}
+]
+},
+{
+"sql": "INSERT INTO s VALUES (3, 'c', 'not a number', NULL)",
+"parts": [],
+"error": "cannot store TEXT value in REAL column s.amount"
+}
+]
+},
+{
+"name": "text functions",
+"statements": [
+{
+"sql": "SELECT length('नमस्ते'), length('😀'), octet_length('😀'), upper('straße é'), lower('ÀB'), substr('नमस्ते दुनिया', 2, 4), substr('abcdef', -3), substr('abcdef', 2), instr('banana', 'nan'), replace('a-b-c', '-', '+'), trim('  x  ') || '|', ltrim('xxyx', 'x'), rtrim('abc...', '.'), unicode('₹'), char(8377, 65, 128512)",
+"parts": [
+{
+"columns": [
+"length('नमस्ते')",
+"length('😀')",
+"octet_length('😀')",
+"upper('straße é')",
+"lower('ÀB')",
+"substr('नमस्ते दुनिया', 2, 4)",
+"substr('abcdef', -3)",
+"substr('abcdef', 2)",
+"instr('banana', 'nan')",
+"replace('a-b-c', '-', '+')",
+"trim('  x  ') || '|'",
+"ltrim('xxyx', 'x')",
+"rtrim('abc...', '.')",
+"unicode('₹')",
+"char(8377, 65, 128512)"
+],
+"rows": [
+[
+{
+"i": "6"
+},
+{
+"i": "1"
+},
+{
+"i": "4"
+},
+"STRAßE é",
+"Àb",
+"मस्त",
+"def",
+"bcdef",
+{
+"i": "3"
+},
+"a+b+c",
+"x|",
+"yx",
+"abc",
+{
+"i": "8377"
+},
+"₹A😀"
+]
+]
+}
+]
+},
+{
+"sql": "SELECT printf('%5d|%-5d|%05.1f|%x|%X|%c|%s|%%|%10.3e|%,d|%q|%Q|%w', 42, 42, 3.14159, 255, 255, 'A', NULL, 12345.678, 1234567, 'it''s', 'it''s', 'a\"b'), format('%.2f', 2.675), format('%d', '12abc'), format('%s', 1.0), format('%!.15g', 0.1), format('%lld', 9223372036854775807)",
+"parts": [
+{
+"columns": [
+"printf('%5d|%-5d|%05.1f|%x|%X|%c|%s|%%|%10.3e|%,d|%q|%Q|%w', 42, 42, 3.14159, 255, 255, 'A', NULL, 12345.678, 1234567, 'it''s', 'it''s', 'a\"b')",
+"format('%.2f', 2.675)",
+"format('%d', '12abc')",
+"format('%s', 1.0)",
+"format('%!.15g', 0.1)",
+"format('%lld', 9223372036854775807)"
+],
+"rows": [
+[
+"   42|42   |003.1|ff|FF|A||%| 1.235e+04|1,234,567|it''s|'it''s'|a\"\"b",
+"2.67",
+"12",
+"1.0",
+"0.1",
+"9223372036854775807"
+]
+]
+}
+]
+},
+{
+"sql": "SELECT 'abc' LIKE 'A%', 'abc' LIKE 'a_c', 'a%c' LIKE 'a\\%c' ESCAPE '\\', 'ÉCOLE' LIKE 'école', 'abc' GLOB 'a*', 'abc' GLOB 'A*', 'abc' GLOB '[a-c]??'",
+"parts": [
+{
+"columns": [
+"'abc' LIKE 'A%'",
+"'abc' LIKE 'a_c'",
+"'a%c' LIKE 'a\\%c' ESCAPE '\\'",
+"'ÉCOLE' LIKE 'école'",
+"'abc' GLOB 'a*'",
+"'abc' GLOB 'A*'",
+"'abc' GLOB '[a-c]??'"
+],
+"rows": [
+[
+{
+"i": "1"
+},
+{
+"i": "1"
+},
+{
+"i": "1"
+},
+{
+"i": "0"
+},
+{
+"i": "1"
+},
+{
+"i": "0"
+},
+{
+"i": "1"
+}
+]
+]
+}
+]
+},
+{
+"sql": "SELECT quote('it''s'), quote(1.5), quote(NULL), quote(x'00ff'), hex('नम'), concat('a', 1, NULL, 2.5), concat_ws('-', 'a', NULL, 'b'), 'x' || 1 || 2.0 || NULL, coalesce(NULL, NULL, 'c'), ifnull(NULL, 5), nullif(1, 1), iif(1 > 2, 'y', 'n'), likely(1), typeof(concat(NULL))",
+"parts": [
+{
+"columns": [
+"quote('it''s')",
+"quote(1.5)",
+"quote(NULL)",
+"quote(x'00ff')",
+"hex('नम')",
+"concat('a', 1, NULL, 2.5)",
+"concat_ws('-', 'a', NULL, 'b')",
+"'x' || 1 || 2.0 || NULL",
+"coalesce(NULL, NULL, 'c')",
+"ifnull(NULL, 5)",
+"nullif(1, 1)",
+"iif(1 > 2, 'y', 'n')",
+"likely(1)",
+"typeof(concat(NULL))"
+],
+"rows": [
+[
+"'it''s'",
+"1.5",
+"NULL",
+"X'00FF'",
+"E0A4A8E0A4AE",
+"a12.5",
+"a-b",
+null,
+"c",
+{
+"i": "5"
+},
+null,
+"n",
+{
+"i": "1"
+},
+"text"
+]
+]
+}
+]
+},
+{
+"sql": "SELECT group_concat(w, '/'), string_agg(w, ', '), min(w), max(w), count(*), count(DISTINCT lower(w)) FROM (SELECT 'pear' AS w UNION ALL SELECT 'Apple' UNION ALL SELECT 'apple' UNION ALL SELECT 'fig')",
+"parts": [
+{
+"columns": [
+"group_concat(w, '/')",
+"string_agg(w, ', ')",
+"min(w)",
+"max(w)",
+"count(*)",
+"count(DISTINCT lower(w))"
+],
+"rows": [
+[
+"pear/Apple/apple/fig",
+"pear, Apple, apple, fig",
+"Apple",
+"pear",
+{
+"i": "4"
+},
+{
+"i": "3"
+}
+]
+]
+}
+]
+},
+{
+"sql": "SELECT w FROM (SELECT 'pear' AS w UNION ALL SELECT 'Apple' UNION ALL SELECT 'apple' UNION ALL SELECT 'fig' UNION ALL SELECT 'Éclair' UNION ALL SELECT '10' UNION ALL SELECT '9') ORDER BY w",
+"parts": [
+{
+"columns": [
+"w"
+],
+"rows": [
+[
+"10"
+],
+[
+"9"
+],
+[
+"Apple"
+],
+[
+"apple"
+],
+[
+"fig"
+],
+[
+"pear"
+],
+[
+"Éclair"
+]
+]
+}
+]
+},
+{
+"sql": "SELECT w FROM (SELECT 'pear' AS w UNION ALL SELECT 'Apple' UNION ALL SELECT 'apple' UNION ALL SELECT 'fig') ORDER BY w COLLATE NOCASE DESC, w",
+"parts": [
+{
+"columns": [
+"w"
+],
+"rows": [
+[
+"pear"
+],
+[
+"fig"
+],
+[
+"Apple"
+],
+[
+"apple"
+]
+]
+}
+]
+},
+{
+"sql": "SELECT unistr('caf\\u00e9 \\+01F600'), unistr_quote('a' || char(10) || 'b')",
+"parts": [
+{
+"columns": [
+"unistr('caf\\u00e9 \\+01F600')",
+"unistr_quote('a' || char(10) || 'b')"
+],
+"rows": [
+[
+"café 😀",
+"unistr('a\\u000ab')"
+]
+]
+}
+]
+}
+]
+},
+{
+"name": "numbers and maths",
+"statements": [
+{
+"sql": "SELECT abs(-5), abs(-5.5), round(2.5), round(-2.5), round(2.675, 2), round(1234.5678, -2), round(5), sign(-3), max(1, 2.0, '3'), min(1, 2.0, '3'), total(NULL), sum(NULL), 5 / 2 * 2.0, 2 + 3 * 4, (2 + 3) * 4, -2 * -3, 7 - -2, +5",
+"parts": [
+{
+"columns": [
+"abs(-5)",
+"abs(-5.5)",
+"round(2.5)",
+"round(-2.5)",
+"round(2.675, 2)",
+"round(1234.5678, -2)",
+"round(5)",
+"sign(-3)",
+"max(1, 2.0, '3')",
+"min(1, 2.0, '3')",
+"total(NULL)",
+"sum(NULL)",
+"5 / 2 * 2.0",
+"2 + 3 * 4",
+"(2 + 3) * 4",
+"-2 * -3",
+"7 - -2",
+"+5"
+],
+"rows": [
+[
+{
+"i": "5"
+},
+{
+"r": "5.5"
+},
+{
+"r": "3.0"
+},
+{
+"r": "-3.0"
+},
+{
+"r": "2.67"
+},
+{
+"r": "1235.0"
+},
+{
+"r": "5.0"
+},
+{
+"i": "-1"
+},
+"3",
+{
+"i": "1"
+},
+{
+"r": "0.0"
+},
+null,
+{
+"r": "4.0"
+},
+{
+"i": "14"
+},
+{
+"i": "20"
+},
+{
+"i": "6"
+},
+{
+"i": "9"
+},
+{
+"i": "5"
+}
+]
+]
+}
+]
+},
+{
+"sql": "SELECT round(sqrt(2), 12), round(pow(2, 0.5), 12), power(2, 10), round(exp(1), 12), round(ln(10), 12), round(log10(1000), 12), round(log(2, 8), 12), round(log2(8), 12), round(pi(), 12), round(sin(1), 12), round(cos(1), 12), round(atan2(1, 2), 12), round(degrees(pi()), 9), round(radians(180), 12), ceil(2.1), ceiling(-2.1), floor(-2.5), trunc(-2.7), mod(7, 3), mod(7.5, 2)",
+"parts": [
+{
+"columns": [
+"round(sqrt(2), 12)",
+"round(pow(2, 0.5), 12)",
+"power(2, 10)",
+"round(exp(1), 12)",
+"round(ln(10), 12)",
+"round(log10(1000), 12)",
+"round(log(2, 8), 12)",
+"round(log2(8), 12)",
+"round(pi(), 12)",
+"round(sin(1), 12)",
+"round(cos(1), 12)",
+"round(atan2(1, 2), 12)",
+"round(degrees(pi()), 9)",
+"round(radians(180), 12)",
+"ceil(2.1)",
+"ceiling(-2.1)",
+"floor(-2.5)",
+"trunc(-2.7)",
+"mod(7, 3)",
+"mod(7.5, 2)"
+],
+"rows": [
+[
+{
+"r": "1.414213562373"
+},
+{
+"r": "1.414213562373"
+},
+{
+"r": "1024.0"
+},
+{
+"r": "2.718281828459"
+},
+{
+"r": "2.302585092994"
+},
+{
+"r": "3.0"
+},
+{
+"r": "3.0"
+},
+{
+"r": "3.0"
+},
+{
+"r": "3.14159265359"
+},
+{
+"r": "0.841470984808"
+},
+{
+"r": "0.540302305868"
+},
+{
+"r": "0.463647609001"
+},
+{
+"r": "180.0"
+},
+{
+"r": "3.14159265359"
+},
+{
+"r": "3.0"
+},
+{
+"r": "-2.0"
+},
+{
+"r": "-3.0"
+},
+{
+"r": "-2.0"
+},
+{
+"r": "1.0"
+},
+{
+"r": "1.5"
+}
+]
+]
+}
+]
+},
+{
+"sql": "SELECT sum(x), total(x), avg(x), min(x), max(x), count(x), count(*), group_concat(x), median(x), percentile(x, 25) FROM (SELECT 1 AS x UNION ALL SELECT 2.5 UNION ALL SELECT NULL UNION ALL SELECT 4 UNION ALL SELECT 10)",
+"parts": [
+{
+"columns": [
+"sum(x)",
+"total(x)",
+"avg(x)",
+"min(x)",
+"max(x)",
+"count(x)",
+"count(*)",
+"group_concat(x)",
+"median(x)",
+"percentile(x, 25)"
+],
+"rows": [
+[
+{
+"r": "17.5"
+},
+{
+"r": "17.5"
+},
+{
+"r": "4.375"
+},
+{
+"i": "1"
+},
+{
+"i": "10"
+},
+{
+"i": "4"
+},
+{
+"i": "5"
+},
+"1,2.5,4,10",
+{
+"r": "3.25"
+},
+{
+"r": "2.125"
+}
+]
+]
+}
+]
+},
+{
+"sql": "SELECT sum(9223372036854775807) + 0, typeof(sum(1)), typeof(sum(1.0)), typeof(total(1)), typeof(avg(2)), 9223372036854775807 * 2, 4611686018427387904 + 4611686018427387904, 3000000000 * 3000000000, typeof(3000000000 * 3000000000)",
+"parts": [
+{
+"columns": [
+"sum(9223372036854775807) + 0",
+"typeof(sum(1))",
+"typeof(sum(1.0))",
+"typeof(total(1))",
+"typeof(avg(2))",
+"9223372036854775807 * 2",
+"4611686018427387904 + 4611686018427387904",
+"3000000000 * 3000000000",
+"typeof(3000000000 * 3000000000)"
+],
+"rows": [
+[
+{
+"i": "9223372036854775807"
+},
+"integer",
+"real",
+"real",
+"real",
+{
+"r": "1.8446744073709552e+19"
+},
+{
+"r": "9.223372036854776e+18"
+},
+{
+"i": "9000000000000000000"
+},
+"integer"
+]
+]
+}
+]
+},
+{
+"sql": "SELECT 0x10, 0xFFFFFFFFFFFFFFFF, 1_000_000, 1e3, .5, 5., 1.e2, typeof(1e3), typeof(0x10)",
+"parts": [
+{
+"columns": [
+"0x10",
+"0xFFFFFFFFFFFFFFFF",
+"1_000_000",
+"1e3",
+".5",
+"5.",
+"1.e2",
+"typeof(1e3)",
+"typeof(0x10)"
+],
+"rows": [
+[
+{
+"i": "16"
+},
+{
+"i": "-1"
+},
+{
+"i": "1000000"
+},
+{
+"r": "1000.0"
+},
+{
+"r": "0.5"
+},
+{
+"r": "5.0"
+},
+{
+"r": "100.0"
+},
+"real",
+"integer"
+]
+]
+}
+]
+},
+{
+"sql": "SELECT sqrt(-1), ln(0), ln(-1), 1e308 * 10, -1e308 * 10, pow(0, 0), acos(2), typeof(1e308 * 10), 0.0 / 0.0, typeof(0.0 / 0.0)",
+"parts": [
+{
+"columns": [
+"sqrt(-1)",
+"ln(0)",
+"ln(-1)",
+"1e308 * 10",
+"-1e308 * 10",
+"pow(0, 0)",
+"acos(2)",
+"typeof(1e308 * 10)",
+"0.0 / 0.0",
+"typeof(0.0 / 0.0)"
+],
+"rows": [
+[
+null,
+null,
+null,
+{
+"r": "inf"
+},
+{
+"r": "-inf"
+},
+{
+"r": "1.0"
+},
+null,
+"real",
+null,
+"null"
+]
+]
+}
+]
+}
+]
+},
+{
+"name": "dates and times",
+"statements": [
+{
+"sql": "SELECT date('2026-11-17'), date('2026-11-17', '+1 month'), date('2026-01-31', '+1 month'), date('2024-02-29', '+1 year'), date('2026-11-17', 'start of month', '+1 month', '-1 day'), date('2026-11-17', 'weekday 0'), date('2026-11-17', '-7 days', 'start of year'), time('18:30'), time('18:30:15.789'), datetime('2026-11-17 18:30', '+90 minutes'), datetime('2026-11-17T18:30:00Z'), datetime('2026-11-17 18:30:00+05:30')",
+"parts": [
+{
+"columns": [
+"date('2026-11-17')",
+"date('2026-11-17', '+1 month')",
+"date('2026-01-31', '+1 month')",
+"date('2024-02-29', '+1 year')",
+"date('2026-11-17', 'start of month', '+1 month', '-1 day')",
+"date('2026-11-17', 'weekday 0')",
+"date('2026-11-17', '-7 days', 'start of year')",
+"time('18:30')",
+"time('18:30:15.789')",
+"datetime('2026-11-17 18:30', '+90 minutes')",
+"datetime('2026-11-17T18:30:00Z')",
+"datetime('2026-11-17 18:30:00+05:30')"
+],
+"rows": [
+[
+"2026-11-17",
+"2026-12-17",
+"2026-03-03",
+"2025-03-01",
+"2026-11-30",
+"2026-11-22",
+"2026-01-01",
+"18:30:00",
+"18:30:15",
+"2026-11-17 20:00:00",
+"2026-11-17 18:30:00",
+"2026-11-17 13:00:00"
+]
+]
+}
+]
+},
+{
+"sql": "SELECT strftime('%Y-%m-%d %H:%M:%S %j %w %W %u %s', '2026-11-17 18:30:15'), strftime('%d/%m/%Y', '2026-01-26'), strftime('%f', '2026-01-01 00:00:01.5'), strftime('%e|%k|%l|%p|%P|%R|%T|%F|%G-W%V|%U', '2026-11-07 06:05:04'), julianday('2026-11-17 12:00'), unixepoch('2026-11-17 00:00:00'), unixepoch('2026-11-17 00:00:00.5', 'subsec'), datetime(1750000000, 'unixepoch'), datetime(2461000.5), date(1750000000, 'unixepoch', '+05:30'), date('2026-02-30'), date('garbage'), date('2026-13-01')",
+"parts": [
+{
+"columns": [
+"strftime('%Y-%m-%d %H:%M:%S %j %w %W %u %s', '2026-11-17 18:30:15')",
+"strftime('%d/%m/%Y', '2026-01-26')",
+"strftime('%f', '2026-01-01 00:00:01.5')",
+"strftime('%e|%k|%l|%p|%P|%R|%T|%F|%G-W%V|%U', '2026-11-07 06:05:04')",
+"julianday('2026-11-17 12:00')",
+"unixepoch('2026-11-17 00:00:00')",
+"unixepoch('2026-11-17 00:00:00.5', 'subsec')",
+"datetime(1750000000, 'unixepoch')",
+"datetime(2461000.5)",
+"date(1750000000, 'unixepoch', '+05:30')",
+"date('2026-02-30')",
+"date('garbage')",
+"date('2026-13-01')"
+],
+"rows": [
+[
+"2026-11-17 18:30:15 321 2 46 2 1794940215",
+"26/01/2026",
+"01.500",
+" 7| 6| 6|AM|am|06:05|06:05:04|2026-11-07|2026-W45|44",
+{
+"r": "2461362.0"
+},
+{
+"i": "1794873600"
+},
+{
+"r": "1794873600.5"
+},
+"2025-06-15 15:06:40",
+"2025-11-21 00:00:00",
+"2025-06-15",
+"2026-03-02",
+null,
+null
+]
+]
+}
+]
+},
+{
+"sql": "SELECT timediff('2026-11-17', '2000-02-29'), timediff('2026-01-01 00:00', '2026-01-01 12:30:15.5'), julianday('2026-11-17') - julianday('2026-01-01'), CAST(julianday('2027-10-29') - julianday('2026-11-16') AS INTEGER), strftime('%Y', '0001-01-01'), date('9999-12-31', '+1 day'), date('2026-11-17', '+1 months', '+1 years', '-1 days'), datetime('2026-03-29 01:30', 'utc') IS NOT NULL",
+"parts": [
+{
+"columns": [
+"timediff('2026-11-17', '2000-02-29')",
+"timediff('2026-01-01 00:00', '2026-01-01 12:30:15.5')",
+"julianday('2026-11-17') - julianday('2026-01-01')",
+"CAST(julianday('2027-10-29') - julianday('2026-11-16') AS INTEGER)",
+"strftime('%Y', '0001-01-01')",
+"date('9999-12-31', '+1 day')",
+"date('2026-11-17', '+1 months', '+1 years', '-1 days')",
+"datetime('2026-03-29 01:30', 'utc') IS NOT NULL"
+],
+"rows": [
+[
+"+0026-08-19 00:00:00.000",
+"-0000-00-00 12:30:15.500",
+{
+"r": "320.0"
+},
+{
+"i": "347"
+},
+"0001",
+null,
+"2027-12-16",
+{
+"i": "1"
+}
+]
+]
+}
+]
+}
+]
+},
+{
+"name": "aggregates, GROUP BY, window functions",
+"statements": [
+{
+"sql": "CREATE TABLE sales (id INTEGER PRIMARY KEY, city TEXT, month TEXT, amount REAL, qty INT)",
+"parts": [
+{
+"columns": [],
+"rows": []
+}
+]
+},
+{
+"sql": "INSERT INTO sales (city, month, amount, qty) VALUES ('Pune', '2026-01', 1200.5, 3), ('Pune', '2026-02', 800, 2), ('Mumbai', '2026-01', 2500, 5), ('Mumbai', '2026-02', 2700.25, 6), ('Chennai', '2026-01', 400, 1), ('Chennai', '2026-02', NULL, 0), ('Delhi', '2026-02', 950, 2)",
+"parts": [
+{
+"columns": [],
+"rows": [],
+"changed": 7
+}
+]
+},
+{
+"sql": "SELECT city, count(*) AS n, count(amount), sum(amount), round(avg(amount), 2), min(amount), max(qty), total(qty) FROM sales GROUP BY city HAVING count(*) > 1 ORDER BY sum(amount) DESC NULLS LAST",
+"parts": [
+{
+"columns": [
+"city",
+"n",
+"count(amount)",
+"sum(amount)",
+"round(avg(amount), 2)",
+"min(amount)",
+"max(qty)",
+"total(qty)"
+],
+"rows": [
+[
+"Mumbai",
+{
+"i": "2"
+},
+{
+"i": "2"
+},
+{
+"r": "5200.25"
+},
+{
+"r": "2600.13"
+},
+{
+"r": "2500.0"
+},
+{
+"i": "6"
+},
+{
+"r": "11.0"
+}
+],
+[
+"Pune",
+{
+"i": "2"
+},
+{
+"i": "2"
+},
+{
+"r": "2000.5"
+},
+{
+"r": "1000.25"
+},
+{
+"r": "800.0"
+},
+{
+"i": "3"
+},
+{
+"r": "5.0"
+}
+],
+[
+"Chennai",
+{
+"i": "2"
+},
+{
+"i": "1"
+},
+{
+"r": "400.0"
+},
+{
+"r": "400.0"
+},
+{
+"r": "400.0"
+},
+{
+"i": "1"
+},
+{
+"r": "1.0"
+}
+]
+]
+}
+]
+},
+{
+"sql": "SELECT month, group_concat(city, ', ' ORDER BY city), sum(qty) FILTER (WHERE amount > 500), json_group_array(qty ORDER BY qty DESC) FROM sales GROUP BY month ORDER BY month",
+"parts": [
+{
+"columns": [
+"month",
+"group_concat(city, ', ' ORDER BY city)",
+"sum(qty) FILTER (WHERE amount > 500)",
+"json_group_array(qty ORDER BY qty DESC)"
+],
+"rows": [
+[
+"2026-01",
+"Chennai, Mumbai, Pune",
+{
+"i": "8"
+},
+"[5,3,1]"
+],
+[
+"2026-02",
+"Chennai, Delhi, Mumbai, Pune",
+{
+"i": "10"
+},
+"[6,2,2,0]"
+]
+]
+}
+]
+},
+{
+"sql": "SELECT city, month, amount, sum(amount) OVER (PARTITION BY city ORDER BY month) AS running, rank() OVER (ORDER BY amount DESC NULLS LAST) AS rk, dense_rank() OVER (ORDER BY qty DESC) AS dr, row_number() OVER (PARTITION BY month ORDER BY amount DESC NULLS LAST) AS rn, lag(amount) OVER (PARTITION BY city ORDER BY month) AS prev, lead(qty, 1, -1) OVER (ORDER BY id) AS nxt, ntile(3) OVER (ORDER BY id) AS third, first_value(city) OVER w, round(avg(amount) OVER (ORDER BY id ROWS BETWEEN 1 PRECEDING AND 1 FOLLOWING), 3), percent_rank() OVER (ORDER BY qty), round(cume_dist() OVER (ORDER BY qty), 4) FROM sales WINDOW w AS (PARTITION BY month ORDER BY amount DESC NULLS LAST) ORDER BY id",
+"parts": [
+{
+"columns": [
+"city",
+"month",
+"amount",
+"running",
+"rk",
+"dr",
+"rn",
+"prev",
+"nxt",
+"third",
+"first_value(city) OVER w",
+"round(avg(amount) OVER (ORDER BY id ROWS BETWEEN 1 PRECEDING AND 1 FOLLOWING), 3)",
+"percent_rank() OVER (ORDER BY qty)",
+"round(cume_dist() OVER (ORDER BY qty), 4)"
+],
+"rows": [
+[
+"Pune",
+"2026-01",
+{
+"r": "1200.5"
+},
+{
+"r": "1200.5"
+},
+{
+"i": "3"
+},
+{
+"i": "3"
+},
+{
+"i": "2"
+},
+null,
+{
+"i": "2"
+},
+{
+"i": "1"
+},
+"Mumbai",
+{
+"r": "1000.25"
+},
+{
+"r": "0.6666666666666666"
+},
+{
+"r": "0.7143"
+}
+],
+[
+"Pune",
+"2026-02",
+{
+"r": "800.0"
+},
+{
+"r": "2000.5"
+},
+{
+"i": "5"
+},
+{
+"i": "4"
+},
+{
+"i": "3"
+},
+{
+"r": "1200.5"
+},
+{
+"i": "5"
+},
+{
+"i": "1"
+},
+"Mumbai",
+{
+"r": "1500.167"
+},
+{
+"r": "0.3333333333333333"
+},
+{
+"r": "0.5714"
+}
+],
+[
+"Mumbai",
+"2026-01",
+{
+"r": "2500.0"
+},
+{
+"r": "2500.0"
+},
+{
+"i": "2"
+},
+{
+"i": "2"
+},
+{
+"i": "1"
+},
+null,
+{
+"i": "6"
+},
+{
+"i": "1"
+},
+"Mumbai",
+{
+"r": "2000.083"
+},
+{
+"r": "0.8333333333333334"
+},
+{
+"r": "0.8571"
+}
+],
+[
+"Mumbai",
+"2026-02",
+{
+"r": "2700.25"
+},
+{
+"r": "5200.25"
+},
+{
+"i": "1"
+},
+{
+"i": "1"
+},
+{
+"i": "1"
+},
+{
+"r": "2500.0"
+},
+{
+"i": "1"
+},
+{
+"i": "2"
+},
+"Mumbai",
+{
+"r": "1866.75"
+},
+{
+"r": "1.0"
+},
+{
+"r": "1.0"
+}
+],
+[
+"Chennai",
+"2026-01",
+{
+"r": "400.0"
+},
+{
+"r": "400.0"
+},
+{
+"i": "6"
+},
+{
+"i": "5"
+},
+{
+"i": "3"
+},
+null,
+{
+"i": "0"
+},
+{
+"i": "2"
+},
+"Mumbai",
+{
+"r": "1550.125"
+},
+{
+"r": "0.16666666666666666"
+},
+{
+"r": "0.2857"
+}
+],
+[
+"Chennai",
+"2026-02",
+null,
+{
+"r": "400.0"
+},
+{
+"i": "7"
+},
+{
+"i": "6"
+},
+{
+"i": "4"
+},
+{
+"r": "400.0"
+},
+{
+"i": "2"
+},
+{
+"i": "3"
+},
+"Mumbai",
+{
+"r": "675.0"
+},
+{
+"r": "0.0"
+},
+{
+"r": "0.1429"
+}
+],
+[
+"Delhi",
+"2026-02",
+{
+"r": "950.0"
+},
+{
+"r": "950.0"
+},
+{
+"i": "4"
+},
+{
+"i": "4"
+},
+{
+"i": "2"
+},
+null,
+{
+"i": "-1"
+},
+{
+"i": "3"
+},
+"Mumbai",
+{
+"r": "950.0"
+},
+{
+"r": "0.3333333333333333"
+},
+{
+"r": "0.5714"
+}
+]
+]
+}
+]
+},
+{
+"sql": "SELECT DISTINCT city FROM sales ORDER BY 1 DESC LIMIT 2 OFFSET 1",
+"parts": [
+{
+"columns": [
+"city"
+],
+"rows": [
+[
+"Mumbai"
+],
+[
+"Delhi"
+]
+]
+}
+]
+},
+{
+"sql": "SELECT city, amount FROM sales ORDER BY amount IS NULL, amount DESC, city LIMIT 3",
+"parts": [
+{
+"columns": [
+"city",
+"amount"
+],
+"rows": [
+[
+"Mumbai",
+{
+"r": "2700.25"
+}
+],
+[
+"Mumbai",
+{
+"r": "2500.0"
+}
+],
+[
+"Pune",
+{
+"r": "1200.5"
+}
+]
+]
+}
+]
+},
+{
+"sql": "SELECT count(*), sum(amount), avg(qty), max(city), min(month), group_concat(DISTINCT month) FROM sales WHERE city = 'Nowhere'",
+"parts": [
+{
+"columns": [
+"count(*)",
+"sum(amount)",
+"avg(qty)",
+"max(city)",
+"min(month)",
+"group_concat(DISTINCT month)"
+],
+"rows": [
+[
+{
+"i": "0"
+},
+null,
+null,
+null,
+null,
+null
+]
+]
+}
+]
+},
+{
+"sql": "SELECT CASE WHEN amount IS NULL THEN 'none' WHEN amount >= 2000 THEN 'big' WHEN amount >= 900 THEN 'mid' ELSE 'small' END AS size, count(*) FROM sales GROUP BY 1 ORDER BY 2 DESC, 1",
+"parts": [
+{
+"columns": [
+"size",
+"count(*)"
+],
+"rows": [
+[
+"big",
+{
+"i": "2"
+}
+],
+[
+"mid",
+{
+"i": "2"
+}
+],
+[
+"small",
+{
+"i": "2"
+}
+],
+[
+"none",
+{
+"i": "1"
+}
+]
+]
+}
+]
+}
+]
+},
+{
+"name": "joins, subqueries, compound queries, CTEs",
+"statements": [
+{
+"sql": "CREATE TABLE c (id INTEGER PRIMARY KEY, name TEXT, city TEXT); CREATE TABLE o (id INTEGER PRIMARY KEY, cid INT, total REAL)",
+"parts": [
+{
+"columns": [],
+"rows": []
+},
+{
+"columns": [],
+"rows": []
+}
+]
+},
+{
+"sql": "INSERT INTO c VALUES (1, 'Asha', 'Pune'), (2, 'Ravi', 'Mumbai'), (3, 'Meera', NULL), (4, 'Kabir', 'Delhi')",
+"parts": [
+{
+"columns": [],
+"rows": [],
+"changed": 4
+}
+]
+},
+{
+"sql": "INSERT INTO o VALUES (101, 1, 450.5), (102, 1, 120), (103, 2, 980), (104, 9, 60), (105, NULL, 10)",
+"parts": [
+{
+"columns": [],
+"rows": [],
+"changed": 5
+}
+]
+},
+{
+"sql": "SELECT c.name, o.id, o.total FROM c JOIN o ON o.cid = c.id ORDER BY o.id",
+"parts": [
+{
+"columns": [
+"name",
+"id",
+"total"
+],
+"rows": [
+[
+"Asha",
+{
+"i": "101"
+},
+{
+"r": "450.5"
+}
+],
+[
+"Asha",
+{
+"i": "102"
+},
+{
+"r": "120.0"
+}
+],
+[
+"Ravi",
+{
+"i": "103"
+},
+{
+"r": "980.0"
+}
+]
+]
+}
+]
+},
+{
+"sql": "SELECT c.name, count(o.id), coalesce(sum(o.total), 0) FROM c LEFT JOIN o ON o.cid = c.id GROUP BY c.id ORDER BY c.id",
+"parts": [
+{
+"columns": [
+"name",
+"count(o.id)",
+"coalesce(sum(o.total), 0)"
+],
+"rows": [
+[
+"Asha",
+{
+"i": "2"
+},
+{
+"r": "570.5"
+}
+],
+[
+"Ravi",
+{
+"i": "1"
+},
+{
+"r": "980.0"
+}
+],
+[
+"Meera",
+{
+"i": "0"
+},
+{
+"i": "0"
+}
+],
+[
+"Kabir",
+{
+"i": "0"
+},
+{
+"i": "0"
+}
+]
+]
+}
+]
+},
+{
+"sql": "SELECT c.name, o.id FROM c RIGHT JOIN o ON o.cid = c.id ORDER BY o.id",
+"parts": [
+{
+"columns": [
+"name",
+"id"
+],
+"rows": [
+[
+"Asha",
+{
+"i": "101"
+}
+],
+[
+"Asha",
+{
+"i": "102"
+}
+],
+[
+"Ravi",
+{
+"i": "103"
+}
+],
+[
+null,
+{
+"i": "104"
+}
+],
+[
+null,
+{
+"i": "105"
+}
+]
+]
+}
+]
+},
+{
+"sql": "SELECT c.id, o.id FROM c FULL OUTER JOIN o ON o.cid = c.id ORDER BY c.id NULLS LAST, o.id",
+"parts": [
+{
+"columns": [
+"id",
+"id"
+],
+"rows": [
+[
+{
+"i": "1"
+},
+{
+"i": "101"
+}
+],
+[
+{
+"i": "1"
+},
+{
+"i": "102"
+}
+],
+[
+{
+"i": "2"
+},
+{
+"i": "103"
+}
+],
+[
+{
+"i": "3"
+},
+null
+],
+[
+{
+"i": "4"
+},
+null
+],
+[
+null,
+{
+"i": "104"
+}
+],
+[
+null,
+{
+"i": "105"
+}
+]
+]
+}
+]
+},
+{
+"sql": "SELECT count(*) FROM c CROSS JOIN o",
+"parts": [
+{
+"columns": [
+"count(*)"
+],
+"rows": [
+[
+{
+"i": "20"
+}
+]
+]
+}
+]
+},
+{
+"sql": "SELECT name FROM c WHERE id IN (SELECT cid FROM o WHERE total > 100) ORDER BY name",
+"parts": [
+{
+"columns": [
+"name"
+],
+"rows": [
+[
+"Asha"
+],
+[
+"Ravi"
+]
+]
+}
+]
+},
+{
+"sql": "SELECT name, (SELECT max(total) FROM o WHERE o.cid = c.id) AS best FROM c WHERE EXISTS (SELECT 1 FROM o WHERE o.cid = c.id) ORDER BY best DESC",
+"parts": [
+{
+"columns": [
+"name",
+"best"
+],
+"rows": [
+[
+"Ravi",
+{
+"r": "980.0"
+}
+],
+[
+"Asha",
+{
+"r": "450.5"
+}
+]
+]
+}
+]
+},
+{
+"sql": "SELECT name FROM c WHERE city IS NULL UNION SELECT 'z' UNION ALL SELECT name FROM c WHERE id < 3 ORDER BY 1",
+"parts": [
+{
+"columns": [
+"name"
+],
+"rows": [
+[
+"Asha"
+],
+[
+"Meera"
+],
+[
+"Ravi"
+],
+[
+"z"
+]
+]
+}
+]
+},
+{
+"sql": "SELECT id FROM c INTERSECT SELECT cid FROM o",
+"parts": [
+{
+"columns": [
+"id"
+],
+"rows": [
+[
+{
+"i": "1"
+}
+],
+[
+{
+"i": "2"
+}
+]
+]
+}
+]
+},
+{
+"sql": "SELECT id FROM c EXCEPT SELECT cid FROM o ORDER BY 1 DESC",
+"parts": [
+{
+"columns": [
+"id"
+],
+"rows": [
+[
+{
+"i": "4"
+}
+],
+[
+{
+"i": "3"
+}
+]
+]
+}
+]
+},
+{
+"sql": "WITH RECURSIVE n(x) AS (SELECT 1 UNION ALL SELECT x + 1 FROM n WHERE x < 10), f(i, a, b) AS (SELECT 1, 0, 1 UNION ALL SELECT i + 1, b, a + b FROM f WHERE i < 90) SELECT (SELECT sum(x) FROM n), (SELECT group_concat(x) FROM n WHERE x % 2), (SELECT b FROM f ORDER BY i DESC LIMIT 1)",
+"parts": [
+{
+"columns": [
+"(SELECT sum(x) FROM n)",
+"(SELECT group_concat(x) FROM n WHERE x % 2)",
+"(SELECT b FROM f ORDER BY i DESC LIMIT 1)"
+],
+"rows": [
+[
+{
+"i": "55"
+},
+"1,3,5,7,9",
+{
+"i": "2880067194370816120"
+}
+]
+]
+}
+]
+},
+{
+"sql": "WITH t AS MATERIALIZED (SELECT cid, sum(total) AS s FROM o GROUP BY cid) SELECT c.name, t.s FROM t JOIN c ON c.id = t.cid ORDER BY t.s",
+"parts": [
+{
+"columns": [
+"name",
+"s"
+],
+"rows": [
+[
+"Asha",
+{
+"r": "570.5"
+}
+],
+[
+"Ravi",
+{
+"r": "980.0"
+}
+]
+]
+}
+]
+},
+{
+"sql": "VALUES (1, 'a'), (2, 'b'), (3, NULL)",
+"parts": [
+{
+"columns": [
+"column1",
+"column2"
+],
+"rows": [
+[
+{
+"i": "1"
+},
+"a"
+],
+[
+{
+"i": "2"
+},
+"b"
+],
+[
+{
+"i": "3"
+},
+null
+]
+]
+}
+]
+},
+{
+"sql": "SELECT column1 AS n, column2 AS s FROM (VALUES (3, 'c'), (1, 'a')) ORDER BY n",
+"parts": [
+{
+"columns": [
+"n",
+"s"
+],
+"rows": [
+[
+{
+"i": "1"
+},
+"a"
+],
+[
+{
+"i": "3"
+},
+"c"
+]
+]
+}
+]
+},
+{
+"sql": "SELECT a.name, b.name FROM c a, c b WHERE a.id < b.id AND a.city IS NOT b.city ORDER BY 1, 2 LIMIT 4",
+"parts": [
+{
+"columns": [
+"name",
+"name"
+],
+"rows": [
+[
+"Asha",
+"Kabir"
+],
+[
+"Asha",
+"Meera"
+],
+[
+"Asha",
+"Ravi"
+],
+[
+"Meera",
+"Kabir"
+]
+]
+}
+]
+}
+]
+},
+{
+"name": "data changes: counts, UPSERT, RETURNING, triggers, foreign keys, transactions",
+"statements": [
+{
+"sql": "PRAGMA foreign_keys = ON",
+"parts": [
+{
+"columns": [],
+"rows": []
+}
+]
+},
+{
+"sql": "CREATE TABLE p (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT UNIQUE, n INT DEFAULT 0, at TEXT DEFAULT '2026-01-01', CHECK (n >= 0))",
+"parts": [
+{
+"columns": [],
+"rows": []
+}
+]
+},
+{
+"sql": "CREATE TABLE ch (id INTEGER PRIMARY KEY, pid INT REFERENCES p(id) ON DELETE CASCADE, v TEXT)",
+"parts": [
+{
+"columns": [],
+"rows": []
+}
+]
+},
+{
+"sql": "CREATE TABLE log (what TEXT)",
+"parts": [
+{
+"columns": [],
+"rows": []
+}
+]
+},
+{
+"sql": "CREATE TRIGGER t1 AFTER UPDATE OF n ON p BEGIN INSERT INTO log VALUES (old.name || ': ' || old.n || ' -> ' || new.n); END",
+"parts": [
+{
+"columns": [],
+"rows": []
+}
+]
+},
+{
+"sql": "INSERT INTO p (name, n) VALUES ('a', 1), ('b', 2), ('c', 3)",
+"parts": [
+{
+"columns": [],
+"rows": [],
+"changed": 3
+}
+]
+},
+{
+"sql": "INSERT INTO p (name) VALUES ('d') RETURNING id, name, n, at",
+"parts": [
+{
+"columns": [
+"id",
+"name",
+"n",
+"at"
+],
+"rows": [
+[
+{
+"i": "4"
+},
+"d",
+{
+"i": "0"
+},
+"2026-01-01"
+]
+],
+"changed": 1
+}
+]
+},
+{
+"sql": "INSERT INTO p (name, n) VALUES ('a', 10) ON CONFLICT (name) DO UPDATE SET n = n + excluded.n RETURNING *",
+"parts": [
+{
+"columns": [
+"id",
+"name",
+"n",
+"at"
+],
+"rows": [
+[
+{
+"i": "1"
+},
+"a",
+{
+"i": "11"
+},
+"2026-01-01"
+]
+],
+"changed": 1
+}
+]
+},
+{
+"sql": "INSERT OR IGNORE INTO p (name) VALUES ('b'), ('e')",
+"parts": [
+{
+"columns": [],
+"rows": [],
+"changed": 1
+}
+]
+},
+{
+"sql": "REPLACE INTO p (id, name, n) VALUES (2, 'b2', 20)",
+"parts": [
+{
+"columns": [],
+"rows": [],
+"changed": 1
+}
+]
+},
+{
+"sql": "UPDATE p SET n = n * 2 WHERE n > 2",
+"parts": [
+{
+"columns": [],
+"rows": [],
+"changed": 3
+}
+]
+},
+{
+"sql": "UPDATE p SET n = n WHERE 0",
+"parts": [
+{
+"columns": [],
+"rows": [],
+"changed": 0
+}
+]
+},
+{
+"sql": "INSERT INTO ch VALUES (1, 1, 'x'), (2, 1, 'y'), (3, 3, 'z')",
+"parts": [
+{
+"columns": [],
+"rows": [],
+"changed": 3
+}
+]
+},
+{
+"sql": "DELETE FROM p WHERE id = 1",
+"parts": [
+{
+"columns": [],
+"rows": [],
+"changed": 1
+}
+]
+},
+{
+"sql": "SELECT (SELECT count(*) FROM ch), (SELECT group_concat(what, '; ') FROM log), (SELECT seq FROM sqlite_sequence WHERE name = 'p'), changes(), last_insert_rowid()",
+"parts": [
+{
+"columns": [
+"(SELECT count(*) FROM ch)",
+"(SELECT group_concat(what, '; ') FROM log)",
+"(SELECT seq FROM sqlite_sequence WHERE name = 'p')",
+"changes()",
+"last_insert_rowid()"
+],
+"rows": [
+[
+{
+"i": "1"
+},
+"a: 1 -> 11; a: 11 -> 22; b2: 20 -> 40; c: 3 -> 6",
+{
+"i": "7"
+},
+{
+"i": "1"
+},
+{
+"i": "3"
+}
+]
+]
+}
+]
+},
+{
+"sql": "BEGIN",
+"parts": [
+{
+"columns": [],
+"rows": []
+}
+]
+},
+{
+"sql": "DELETE FROM p",
+"parts": [
+{
+"columns": [],
+"rows": [],
+"changed": 4
+}
+]
+},
+{
+"sql": "SELECT count(*) FROM p",
+"parts": [
+{
+"columns": [
+"count(*)"
+],
+"rows": [
+[
+{
+"i": "0"
+}
+]
+]
+}
+]
+},
+{
+"sql": "ROLLBACK",
+"parts": [
+{
+"columns": [],
+"rows": []
+}
+]
+},
+{
+"sql": "SELECT id, name, n FROM p ORDER BY id",
+"parts": [
+{
+"columns": [
+"id",
+"name",
+"n"
+],
+"rows": [
+[
+{
+"i": "2"
+},
+"b2",
+{
+"i": "40"
+}
+],
+[
+{
+"i": "3"
+},
+"c",
+{
+"i": "6"
+}
+],
+[
+{
+"i": "4"
+},
+"d",
+{
+"i": "0"
+}
+],
+[
+{
+"i": "7"
+},
+"e",
+{
+"i": "0"
+}
+]
+]
+}
+]
+},
+{
+"sql": "SAVEPOINT s1; INSERT INTO p (name) VALUES ('tmp'); ROLLBACK TO s1; RELEASE s1",
+"parts": [
+{
+"columns": [],
+"rows": []
+},
+{
+"columns": [],
+"rows": [],
+"changed": 1
+},
+{
+"columns": [],
+"rows": []
+},
+{
+"columns": [],
+"rows": []
+}
+]
+},
+{
+"sql": "UPDATE p SET n = n + 1 RETURNING id, n",
+"parts": [
+{
+"columns": [
+"id",
+"n"
+],
+"rows": [
+[
+{
+"i": "2"
+},
+{
+"i": "41"
+}
+],
+[
+{
+"i": "3"
+},
+{
+"i": "7"
+}
+],
+[
+{
+"i": "4"
+},
+{
+"i": "1"
+}
+],
+[
+{
+"i": "7"
+},
+{
+"i": "1"
+}
+]
+],
+"changed": 4
+}
+]
+},
+{
+"sql": "DELETE FROM p WHERE id > 100",
+"parts": [
+{
+"columns": [],
+"rows": [],
+"changed": 0
+}
+]
+},
+{
+"sql": "WITH big AS (SELECT id FROM p WHERE n > 5) DELETE FROM p WHERE id IN (SELECT id FROM big)",
+"parts": [
+{
+"columns": [],
+"rows": []
+}
+]
+},
+{
+"sql": "INSERT INTO ch VALUES (9, 999, 'orphan')",
+"parts": [],
+"error": "FOREIGN KEY constraint failed"
+}
+]
+},
+{
+"name": "constraint errors",
+"statements": [
+{
+"sql": "CREATE TABLE u (id INTEGER PRIMARY KEY, name TEXT NOT NULL UNIQUE, n INT CHECK (n > 0))",
+"parts": [
+{
+"columns": [],
+"rows": []
+}
+]
+},
+{
+"sql": "INSERT INTO u VALUES (1, 'a', 1)",
+"parts": [
+{
+"columns": [],
+"rows": [],
+"changed": 1
+}
+]
+},
+{
+"sql": "INSERT INTO u VALUES (2, 'a', 1)",
+"parts": [],
+"error": "UNIQUE constraint failed: u.name"
+}
+]
+},
+{
+"name": "NOT NULL error",
+"statements": [
+{
+"sql": "CREATE TABLE u (id INTEGER PRIMARY KEY, name TEXT NOT NULL)",
+"parts": [
+{
+"columns": [],
+"rows": []
+}
+]
+},
+{
+"sql": "INSERT INTO u (id) VALUES (1)",
+"parts": [],
+"error": "NOT NULL constraint failed: u.name"
+}
+]
+},
+{
+"name": "CHECK error",
+"statements": [
+{
+"sql": "CREATE TABLE u (n INT CHECK (n > 0))",
+"parts": [
+{
+"columns": [],
+"rows": []
+}
+]
+},
+{
+"sql": "INSERT INTO u VALUES (5), (-1)",
+"parts": [],
+"error": "CHECK constraint failed: n > 0"
+}
+]
+},
+{
+"name": "syntax error after good statements",
+"statements": [
+{
+"sql": "SELECT 1",
+"parts": [
+{
+"columns": [
+"1"
+],
+"rows": [
+[
+{
+"i": "1"
+}
+]
+]
+}
+]
+},
+{
+"sql": "SELECT 2;",
+"parts": [
+{
+"columns": [
+"2"
+],
+"rows": [
+[
+{
+"i": "2"
+}
+]
+]
+}
+]
+},
+{
+"sql": "SELEC 3",
+"parts": [],
+"error": "near \"SELEC\": syntax error"
+}
+]
+},
+{
+"name": "unknown table",
+"statements": [
+{
+"sql": "SELECT * FROM nowhere",
+"parts": [],
+"error": "no such table: nowhere"
+}
+]
+},
+{
+"name": "unknown column",
+"statements": [
+{
+"sql": "CREATE TABLE t (a)",
+"parts": [
+{
+"columns": [],
+"rows": []
+}
+]
+},
+{
+"sql": "SELECT b FROM t",
+"parts": [],
+"error": "no such column: b"
+}
+]
+},
+{
+"name": "unknown function",
+"statements": [
+{
+"sql": "SELECT nosuchfunction(1)",
+"parts": [],
+"error": "no such function: nosuchfunction"
+}
+]
+},
+{
+"name": "wrong number of arguments",
+"statements": [
+{
+"sql": "SELECT substr()",
+"parts": [],
+"error": "wrong number of arguments to function substr()"
+}
+]
+},
+{
+"name": "incomplete statement",
+"statements": [
+{
+"sql": "SELECT (1 + ",
+"parts": [],
+"error": "incomplete input"
+}
+]
+},
+{
+"name": "unterminated string",
+"statements": [
+{
+"sql": "SELECT 'abc",
+"parts": [],
+"error": "unrecognized token: \"'abc\""
+}
+]
+},
+{
+"name": "table exists",
+"statements": [
+{
+"sql": "CREATE TABLE t (a)",
+"parts": [
+{
+"columns": [],
+"rows": []
+}
+]
+},
+{
+"sql": "CREATE TABLE t (b)",
+"parts": [],
+"error": "table t already exists"
+}
+]
+},
+{
+"name": "too many values",
+"statements": [
+{
+"sql": "CREATE TABLE t (a, b)",
+"parts": [
+{
+"columns": [],
+"rows": []
+}
+]
+},
+{
+"sql": "INSERT INTO t VALUES (1, 2, 3)",
+"parts": [],
+"error": "table t has 2 columns but 3 values were supplied"
+}
+]
+},
+{
+"name": "ambiguous column",
+"statements": [
+{
+"sql": "CREATE TABLE a (id); CREATE TABLE b (id)",
+"parts": [
+{
+"columns": [],
+"rows": []
+},
+{
+"columns": [],
+"rows": []
+}
+]
+},
+{
+"sql": "SELECT id FROM a, b",
+"parts": [],
+"error": "ambiguous column name: id"
+}
+]
+},
+{
+"name": "misuse of aggregate",
+"statements": [
+{
+"sql": "SELECT sum(1) + max(sum(2))",
+"parts": [],
+"error": "misuse of aggregate function sum()"
+}
+]
+},
+{
+"name": "error: REGEXP has no function behind it",
+"statements": [
+{
+"sql": "SELECT 'a' REGEXP 'a'",
+"parts": [],
+"error": "no such function: REGEXP"
+}
+]
+},
+{
+"name": "error: no column list after a table alias",
+"statements": [
+{
+"sql": "SELECT * FROM (VALUES (3, 'c'), (1, 'a')) AS v(n, s) ORDER BY n",
+"parts": [],
+"error": "near \"(\": syntax error"
+}
+]
+},
+{
+"name": "error: malformed JSON",
+"statements": [
+{
+"sql": "SELECT json('[1,2,')",
+"parts": [],
+"error": "malformed JSON"
+}
+]
+},
+{
+"name": "error: sum() of integers overflows",
+"statements": [
+{
+"sql": "SELECT 1",
+"parts": [
+{
+"columns": [
+"1"
+],
+"rows": [
+[
+{
+"i": "1"
+}
+]
+]
+}
+]
+},
+{
+"sql": "SELECT sum(x) FROM (SELECT 9223372036854775807 AS x UNION ALL SELECT 1)",
+"parts": [],
+"error": "integer overflow"
+}
+]
+},
+{
+"name": "division of text",
+"statements": [
+{
+"sql": "SELECT 'abc' / 2, 'abc' + 1, '3 apples' * 2, '0x10' + 0, NULL + 1, '1e2' + 0, ' 5 ' + 0, '5abc' = 5",
+"parts": [
+{
+"columns": [
+"'abc' / 2",
+"'abc' + 1",
+"'3 apples' * 2",
+"'0x10' + 0",
+"NULL + 1",
+"'1e2' + 0",
+"' 5 ' + 0",
+"'5abc' = 5"
+],
+"rows": [
+[
+{
+"i": "0"
+},
+{
+"i": "1"
+},
+{
+"i": "6"
+},
+{
+"i": "0"
+},
+null,
+{
+"r": "100.0"
+},
+{
+"i": "5"
+},
+{
+"i": "0"
+}
+]
+]
+}
+]
+}
+]
+},
+{
+"name": "JSON",
+"statements": [
+{
+"sql": "SELECT json('{\"a\": [1, 2.50, \"x\", null, true], \"b\": {\"c\": 9007199254740993}}'), json_extract('{\"a\": [1, 2.5, \"x\"]}', '$.a[1]', '$.a[2]', '$.a[9]'), '{\"a\": {\"b\": [10, 20]}}' -> 'a' -> 'b' ->> 1, '{\"a\": \"text\"}' ->> 'a', '{\"a\": \"text\"}' -> 'a', json_type('{\"a\": 1.5}', '$.a'), json_valid('{'), json_array_length('[1, [2, 3]]'), json_quote('it''s \"q\"')",
+"parts": [
+{
+"columns": [
+"json('{\"a\": [1, 2.50, \"x\", null, true], \"b\": {\"c\": 9007199254740993}}')",
+"json_extract('{\"a\": [1, 2.5, \"x\"]}', '$.a[1]', '$.a[2]', '$.a[9]')",
+"'{\"a\": {\"b\": [10, 20]}}' -> 'a' -> 'b' ->> 1",
+"'{\"a\": \"text\"}' ->> 'a'",
+"'{\"a\": \"text\"}' -> 'a'",
+"json_type('{\"a\": 1.5}', '$.a')",
+"json_valid('{')",
+"json_array_length('[1, [2, 3]]')",
+"json_quote('it''s \"q\"')"
+],
+"rows": [
+[
+"{\"a\":[1,2.50,\"x\",null,true],\"b\":{\"c\":9007199254740993}}",
+"[2.5,\"x\",null]",
+{
+"i": "20"
+},
+"text",
+"\"text\"",
+"real",
+{
+"i": "0"
+},
+{
+"i": "2"
+},
+"\"it's \\\"q\\\"\""
+]
+]
+}
+]
+},
+{
+"sql": "SELECT json_object('name', 'Asha', 'age', 31, 'tags', json_array('a', 'b'), 'n', NULL, 'f', 1.0), json_array(1, 2.5, 'x', NULL, json('[1]')), json_insert('{\"a\": 1}', '$.b', 2), json_set('{\"a\": 1}', '$.a', 'x'), json_replace('{\"a\": 1}', '$.z', 0), json_remove('{\"a\": 1, \"b\": 2}', '$.a'), json_patch('{\"a\": 1, \"b\": 2}', '{\"b\": null, \"c\": 3}'), json_pretty('{\"a\":[1,2]}')",
+"parts": [
+{
+"columns": [
+"json_object('name', 'Asha', 'age', 31, 'tags', json_array('a', 'b'), 'n', NULL, 'f', 1.0)",
+"json_array(1, 2.5, 'x', NULL, json('[1]'))",
+"json_insert('{\"a\": 1}', '$.b', 2)",
+"json_set('{\"a\": 1}', '$.a', 'x')",
+"json_replace('{\"a\": 1}', '$.z', 0)",
+"json_remove('{\"a\": 1, \"b\": 2}', '$.a')",
+"json_patch('{\"a\": 1, \"b\": 2}', '{\"b\": null, \"c\": 3}')",
+"json_pretty('{\"a\":[1,2]}')"
+],
+"rows": [
+[
+"{\"name\":\"Asha\",\"age\":31,\"tags\":[\"a\",\"b\"],\"n\":null,\"f\":1.0}",
+"[1,2.5,\"x\",null,[1]]",
+"{\"a\":1,\"b\":2}",
+"{\"a\":\"x\"}",
+"{\"a\":1}",
+"{\"b\":2}",
+"{\"a\":1,\"c\":3}",
+"{\n    \"a\": [\n        1,\n        2\n    ]\n}"
+]
+]
+}
+]
+},
+{
+"sql": "SELECT key, value, type, atom, fullkey FROM json_each('{\"a\": 1, \"b\": [2, 3], \"c\": \"x\", \"d\": null, \"e\": 1.5}')",
+"parts": [
+{
+"columns": [
+"key",
+"value",
+"type",
+"atom",
+"fullkey"
+],
+"rows": [
+[
+"a",
+{
+"i": "1"
+},
+"integer",
+{
+"i": "1"
+},
+"$.a"
+],
+[
+"b",
+"[2,3]",
+"array",
+null,
+"$.b"
+],
+[
+"c",
+"x",
+"text",
+"x",
+"$.c"
+],
+[
+"d",
+null,
+"null",
+null,
+"$.d"
+],
+[
+"e",
+{
+"r": "1.5"
+},
+"real",
+{
+"r": "1.5"
+},
+"$.e"
+]
+]
+}
+]
+},
+{
+"sql": "SELECT fullkey, type, value FROM json_tree('{\"a\": {\"b\": [1, {\"c\": true}]}}') WHERE type NOT IN ('object', 'array') ORDER BY id",
+"parts": [
+{
+"columns": [
+"fullkey",
+"type",
+"value"
+],
+"rows": [
+[
+"$.a.b[0]",
+"integer",
+{
+"i": "1"
+}
+],
+[
+"$.a.b[1].c",
+"true",
+{
+"i": "1"
+}
+]
+]
+}
+]
+},
+{
+"sql": "SELECT json_group_array(x), json_group_object('k' || x, x * x) FROM (SELECT 1 AS x UNION ALL SELECT 2 UNION ALL SELECT 3)",
+"parts": [
+{
+"columns": [
+"json_group_array(x)",
+"json_group_object('k' || x, x * x)"
+],
+"rows": [
+[
+"[1,2,3]",
+"{\"k1\":1,\"k2\":4,\"k3\":9}"
+]
+]
+}
+]
+},
+{
+"sql": "SELECT json_extract('{\"big\": 12345678901234567890, \"s\": \"\\u00e9\\ud83d\\ude00\"}', '$.big', '$.s'), typeof(json_extract('{\"n\": 5}', '$.n')), typeof(json_extract('{\"n\": 5.0}', '$.n')), json_valid('[1,2,'), json_valid('{\"a\": [1, 2]}')",
+"parts": [
+{
+"columns": [
+"json_extract('{\"big\": 12345678901234567890, \"s\": \"\\u00e9\\ud83d\\ude00\"}', '$.big', '$.s')",
+"typeof(json_extract('{\"n\": 5}', '$.n'))",
+"typeof(json_extract('{\"n\": 5.0}', '$.n'))",
+"json_valid('[1,2,')",
+"json_valid('{\"a\": [1, 2]}')"
+],
+"rows": [
+[
+"[12345678901234567890,\"\\u00e9\\ud83d\\ude00\"]",
+"integer",
+"real",
+{
+"i": "0"
+},
+{
+"i": "1"
+}
+]
+]
+}
+]
+}
+]
+},
+{
+"name": "full-text search and R-tree",
+"statements": [
+{
+"sql": "CREATE VIRTUAL TABLE docs USING fts5(title, body)",
+"parts": [
+{
+"columns": [],
+"rows": []
+}
+]
+},
+{
+"sql": "INSERT INTO docs VALUES ('Chai recipes', 'Masala chai with ginger and cardamom'), ('Coffee guide', 'Filter coffee from Chennai, strong and sweet'), ('Tea gardens', 'Darjeeling and Assam tea gardens; chai stalls everywhere')",
+"parts": [
+{
+"columns": [],
+"rows": [],
+"changed": 3
+}
+]
+},
+{
+"sql": "SELECT title FROM docs WHERE docs MATCH 'chai' ORDER BY rank",
+"parts": [
+{
+"columns": [
+"title"
+],
+"rows": [
+[
+"Chai recipes"
+],
+[
+"Tea gardens"
+]
+]
+}
+]
+},
+{
+"sql": "SELECT title, snippet(docs, 1, '[', ']', '…', 4) FROM docs WHERE docs MATCH 'body: gardens OR coffee' ORDER BY rowid",
+"parts": [
+{
+"columns": [
+"title",
+"snippet(docs, 1, '[', ']', '…', 4)"
+],
+"rows": [
+[
+"Coffee guide",
+"Filter [coffee] from Chennai…"
+],
+[
+"Tea gardens",
+"…tea [gardens]; chai stalls…"
+]
+]
+}
+]
+},
+{
+"sql": "SELECT (SELECT count(*) FROM docs WHERE docs MATCH 'cha*'), (SELECT count(*) FROM docs WHERE docs MATCH '\"filter coffee\"'), (SELECT highlight(docs, 0, '<', '>') FROM docs WHERE docs MATCH 'title: tea')",
+"parts": [
+{
+"columns": [
+"(SELECT count(*) FROM docs WHERE docs MATCH 'cha*')",
+"(SELECT count(*) FROM docs WHERE docs MATCH '\"filter coffee\"')",
+"(SELECT highlight(docs, 0, '<', '>') FROM docs WHERE docs MATCH 'title: tea')"
+],
+"rows": [
+[
+{
+"i": "2"
+},
+{
+"i": "1"
+},
+"<Tea> gardens"
+]
+]
+}
+]
+},
+{
+"sql": "CREATE VIRTUAL TABLE boxes USING rtree(id, minx, maxx, miny, maxy)",
+"parts": [
+{
+"columns": [],
+"rows": []
+}
+]
+},
+{
+"sql": "INSERT INTO boxes VALUES (1, 0, 10, 0, 10), (2, 5, 15, 5, 15), (3, 100, 110, 100, 110)",
+"parts": [
+{
+"columns": [],
+"rows": [],
+"changed": 3
+}
+]
+},
+{
+"sql": "SELECT id FROM boxes WHERE minx <= 12 AND maxx >= 8 AND miny <= 12 AND maxy >= 8 ORDER BY id",
+"parts": [
+{
+"columns": [
+"id"
+],
+"rows": [
+[
+{
+"i": "1"
+}
+],
+[
+{
+"i": "2"
+}
+]
+]
+}
+]
+},
+{
+"sql": "SELECT name FROM pragma_table_list WHERE schema = 'main' AND type = 'shadow' AND name LIKE 'docs%' ORDER BY name",
+"parts": [
+{
+"columns": [
+"name"
+],
+"rows": [
+[
+"docs_config"
+],
+[
+"docs_content"
+],
+[
+"docs_data"
+],
+[
+"docs_docsize"
+],
+[
+"docs_idx"
+]
+]
+}
+]
+}
+]
+},
+{
+"name": "views, indexes, generated columns, pragmas, schema changes",
+"statements": [
+{
+"sql": "CREATE TABLE item (id INTEGER PRIMARY KEY, name TEXT, price REAL, qty INT, total REAL GENERATED ALWAYS AS (price * qty) VIRTUAL, code TEXT AS (upper(substr(name, 1, 3))) STORED)",
+"parts": [
+{
+"columns": [],
+"rows": []
+}
+]
+},
+{
+"sql": "INSERT INTO item (name, price, qty) VALUES ('tea', 120.5, 2), ('mug', 250, 1), ('jam', 90, 4)",
+"parts": [
+{
+"columns": [],
+"rows": [],
+"changed": 3
+}
+]
+},
+{
+"sql": "CREATE INDEX item_name ON item (name COLLATE NOCASE); CREATE UNIQUE INDEX item_code ON item (code); CREATE INDEX item_expr ON item (price * qty) WHERE qty > 1",
+"parts": [
+{
+"columns": [],
+"rows": []
+},
+{
+"columns": [],
+"rows": []
+},
+{
+"columns": [],
+"rows": []
+}
+]
+},
+{
+"sql": "CREATE VIEW costly AS SELECT name, total FROM item WHERE total > 240 ORDER BY total DESC",
+"parts": [
+{
+"columns": [],
+"rows": []
+}
+]
+},
+{
+"sql": "SELECT name, total, typeof(total) FROM costly",
+"parts": [
+{
+"columns": [
+"name",
+"total",
+"typeof(total)"
+],
+"rows": [
+[
+"jam",
+{
+"r": "360.0"
+},
+"real"
+],
+[
+"mug",
+{
+"r": "250.0"
+},
+"real"
+],
+[
+"tea",
+{
+"r": "241.0"
+},
+"real"
+]
+]
+}
+]
+},
+{
+"sql": "SELECT * FROM item",
+"parts": [
+{
+"columns": [
+"id",
+"name",
+"price",
+"qty",
+"total",
+"code"
+],
+"rows": [
+[
+{
+"i": "1"
+},
+"tea",
+{
+"r": "120.5"
+},
+{
+"i": "2"
+},
+{
+"r": "241.0"
+},
+"TEA"
+],
+[
+{
+"i": "2"
+},
+"mug",
+{
+"r": "250.0"
+},
+{
+"i": "1"
+},
+{
+"r": "250.0"
+},
+"MUG"
+],
+[
+{
+"i": "3"
+},
+"jam",
+{
+"r": "90.0"
+},
+{
+"i": "4"
+},
+{
+"r": "360.0"
+},
+"JAM"
+]
+]
+}
+]
+},
+{
+"sql": "SELECT name, type, pk, \"notnull\", dflt_value, hidden FROM pragma_table_xinfo('item')",
+"parts": [
+{
+"columns": [
+"name",
+"type",
+"pk",
+"notnull",
+"dflt_value",
+"hidden"
+],
+"rows": [
+[
+"id",
+"INTEGER",
+{
+"i": "1"
+},
+{
+"i": "0"
+},
+null,
+{
+"i": "0"
+}
+],
+[
+"name",
+"TEXT",
+{
+"i": "0"
+},
+{
+"i": "0"
+},
+null,
+{
+"i": "0"
+}
+],
+[
+"price",
+"REAL",
+{
+"i": "0"
+},
+{
+"i": "0"
+},
+null,
+{
+"i": "0"
+}
+],
+[
+"qty",
+"INT",
+{
+"i": "0"
+},
+{
+"i": "0"
+},
+null,
+{
+"i": "0"
+}
+],
+[
+"total",
+"REAL",
+{
+"i": "0"
+},
+{
+"i": "0"
+},
+null,
+{
+"i": "2"
+}
+],
+[
+"code",
+"TEXT",
+{
+"i": "0"
+},
+{
+"i": "0"
+},
+null,
+{
+"i": "3"
+}
+]
+]
+}
+]
+},
+{
+"sql": "SELECT name, \"unique\", origin, partial FROM pragma_index_list('item') ORDER BY name",
+"parts": [
+{
+"columns": [
+"name",
+"unique",
+"origin",
+"partial"
+],
+"rows": [
+[
+"item_code",
+{
+"i": "1"
+},
+"c",
+{
+"i": "0"
+}
+],
+[
+"item_expr",
+{
+"i": "0"
+},
+"c",
+{
+"i": "1"
+}
+],
+[
+"item_name",
+{
+"i": "0"
+},
+"c",
+{
+"i": "0"
+}
+]
+]
+}
+]
+},
+{
+"sql": "SELECT type, name, tbl_name FROM sqlite_schema ORDER BY name",
+"parts": [
+{
+"columns": [
+"type",
+"name",
+"tbl_name"
+],
+"rows": [
+[
+"view",
+"costly",
+"costly"
+],
+[
+"table",
+"item",
+"item"
+],
+[
+"index",
+"item_code",
+"item"
+],
+[
+"index",
+"item_expr",
+"item"
+],
+[
+"index",
+"item_name",
+"item"
+]
+]
+}
+]
+},
+{
+"sql": "ALTER TABLE item ADD COLUMN note TEXT DEFAULT 'none'; ALTER TABLE item RENAME COLUMN qty TO quantity; ALTER TABLE item RENAME TO items",
+"parts": [
+{
+"columns": [],
+"rows": []
+},
+{
+"columns": [],
+"rows": []
+},
+{
+"columns": [],
+"rows": []
+}
+]
+},
+{
+"sql": "SELECT name, quantity, note, total FROM items ORDER BY id",
+"parts": [
+{
+"columns": [
+"name",
+"quantity",
+"note",
+"total"
+],
+"rows": [
+[
+"tea",
+{
+"i": "2"
+},
+"none",
+{
+"r": "241.0"
+}
+],
+[
+"mug",
+{
+"i": "1"
+},
+"none",
+{
+"r": "250.0"
+}
+],
+[
+"jam",
+{
+"i": "4"
+},
+"none",
+{
+"r": "360.0"
+}
+]
+]
+}
+]
+},
+{
+"sql": "DROP VIEW costly; ALTER TABLE items DROP COLUMN note",
+"parts": [
+{
+"columns": [],
+"rows": []
+},
+{
+"columns": [],
+"rows": []
+}
+]
+},
+{
+"sql": "SELECT group_concat(name) FROM pragma_table_info('items')",
+"parts": [
+{
+"columns": [
+"group_concat(name)"
+],
+"rows": [
+[
+"id,name,price,quantity"
+]
+]
+}
+]
+},
+{
+"sql": "PRAGMA user_version = 7; PRAGMA user_version",
+"parts": [
+{
+"columns": [],
+"rows": []
+},
+{
+"columns": [
+"user_version"
+],
+"rows": [
+[
+{
+"i": "7"
+}
+]
+]
+}
+]
+},
+{
+"sql": "PRAGMA integrity_check",
+"parts": [
+{
+"columns": [
+"integrity_check"
+],
+"rows": [
+[
+"ok"
+]
+]
+}
+]
+},
+{
+"sql": "EXPLAIN QUERY PLAN SELECT * FROM items WHERE name = 'tea'",
+"parts": [
+{
+"columns": [
+"id",
+"parent",
+"notused",
+"detail"
+],
+"rows": [
+[
+{
+"i": "2"
+},
+{
+"i": "0"
+},
+{
+"i": "216"
+},
+"SCAN items"
+]
+]
+}
+]
+},
+{
+"sql": "CREATE TEMP TABLE scratch (x); INSERT INTO scratch VALUES (1); SELECT count(*) FROM temp.scratch",
+"parts": [
+{
+"columns": [],
+"rows": []
+},
+{
+"columns": [],
+"rows": [],
+"changed": 1
+},
+{
+"columns": [
+"count(*)"
+],
+"rows": [
+[
+{
+"i": "1"
+}
+]
+]
+}
+]
+},
+{
+"sql": "SELECT name FROM pragma_function_list WHERE name IN ('json_extract', 'sqrt', 'fts5', 'rtreecheck', 'unhex', 'median') GROUP BY name ORDER BY name",
+"parts": [
+{
+"columns": [
+"name"
+],
+"rows": [
+[
+"fts5"
+],
+[
+"json_extract"
+],
+[
+"median"
+],
+[
+"rtreecheck"
+],
+[
+"sqrt"
+],
+[
+"unhex"
+]
+]
+}
+]
+}
+]
+},
+{
+"name": "one text with comments, strings holding semicolons, a trigger body and blank statements",
+"statements": [
+{
+"sql": "-- a comment; with a semicolon\nCREATE TABLE t (a TEXT, b INT)",
+"parts": [
+{
+"columns": [],
+"rows": []
+}
+]
+},
+{
+"sql": "/* block ; comment\n   over lines */ INSERT INTO t VALUES ('x;y', 1), ('it''s; fine', 2), ('--not a comment', 3), ('/* nor this */', 4)",
+"parts": [
+{
+"columns": [],
+"rows": []
+}
+]
+},
+{
+"sql": ";;  ;",
+"parts": []
+},
+{
+"sql": "CREATE TRIGGER tr AFTER INSERT ON t BEGIN UPDATE t SET b = b + 100 WHERE a = new.a; SELECT 1; END",
+"parts": [
+{
+"columns": [],
+"rows": []
+}
+]
+},
+{
+"sql": "INSERT INTO t VALUES ('new', 5)",
+"parts": [
+{
+"columns": [],
+"rows": [],
+"changed": 1
+}
+]
+},
+{
+"sql": "SELECT a, b FROM t ORDER BY rowid -- trailing comment",
+"parts": [
+{
+"columns": [
+"a",
+"b"
+],
+"rows": [
+[
+"x;y",
+{
+"i": "1"
+}
+],
+[
+"it's; fine",
+{
+"i": "2"
+}
+],
+[
+"--not a comment",
+{
+"i": "3"
+}
+],
+[
+"/* nor this */",
+{
+"i": "4"
+}
+],
+[
+"new",
+{
+"i": "105"
+}
+]
+]
+}
+]
+},
+{
+"sql": "SELECT 'last'  /* no semicolon at the end */",
+"parts": [
+{
+"columns": [
+"'last'  /* no semicolon at the end */"
+],
+"rows": [
+[
+"last"
+]
+]
+}
+]
+}
+]
+},
+{
+"name": "names that need quoting",
+"statements": [
+{
+"sql": "CREATE TABLE \"we\"\"ird\" (\"a b\" INT, \"select\" TEXT, \"नाम\" TEXT, [bracket col] INT, `tick` INT)",
+"parts": [
+{
+"columns": [],
+"rows": []
+}
+]
+},
+{
+"sql": "INSERT INTO \"we\"\"ird\" VALUES (1, 's', 'आशा', 2, 3)",
+"parts": [
+{
+"columns": [],
+"rows": [],
+"changed": 1
+}
+]
+},
+{
+"sql": "SELECT \"a b\", \"select\", \"नाम\", [bracket col], `tick`, \"a b\" + 1 AS \"sum, with comma\", 'x' AS \"\" FROM \"we\"\"ird\"",
+"parts": [
+{
+"columns": [
+"a b",
+"select",
+"नाम",
+"bracket col",
+"tick",
+"sum, with comma",
+""
+],
+"rows": [
+[
+{
+"i": "1"
+},
+"s",
+"आशा",
+{
+"i": "2"
+},
+{
+"i": "3"
+},
+{
+"i": "2"
+},
+"x"
+]
+]
+}
+]
+},
+{
+"sql": "SELECT 1 AS a, 2 AS a, 3 AS A, 4 AS \"a:1\"",
+"parts": [
+{
+"columns": [
+"a",
+"a",
+"A",
+"a:1"
+],
+"rows": [
+[
+{
+"i": "1"
+},
+{
+"i": "2"
+},
+{
+"i": "3"
+},
+{
+"i": "4"
+}
+]
+]
+}
+]
+},
+{
+"sql": "CREATE TABLE sqlitedata (z); CREATE TABLE \"back\\slash\" (y); INSERT INTO sqlitedata VALUES (1)",
+"parts": [
+{
+"columns": [],
+"rows": []
+},
+{
+"columns": [],
+"rows": []
+},
+{
+"columns": [],
+"rows": [],
+"changed": 1
+}
+]
+},
+{
+"sql": "SELECT name FROM sqlite_schema WHERE type = 'table' ORDER BY name",
+"parts": [
+{
+"columns": [
+"name"
+],
+"rows": [
+[
+"back\\slash"
+],
+[
+"sqlitedata"
+],
+[
+"we\"ird"
+]
+]
+}
+]
+}
+]
+}
+]
+}
