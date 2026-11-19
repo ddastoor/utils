@@ -93,6 +93,60 @@ function biomeEngine(mod: { Workspace: new () => any }) {
  *  entities of markup are left out — s == &quot;a&quot; may come back as s == 'a'. */
 const letters = (s: string) => s.replace(/&(?:quot|apos|amp|lt|gt);/g, '').replace(/[^A-Za-z\u00C0-\uFFFF]+/g, '').toLowerCase();
 
+// Elements a browser lays out as blocks (or does not show): white space between two of them is not shown.
+const BLOCKS = new Set('address article aside blockquote body details dialog div dl fieldset figcaption figure footer form h1 h2 h3 h4 h5 h6 head header hgroup hr html li link main menu meta nav noscript ol p pre script search section style table template title ul'.split(' '));
+const VOID = new Set('area base br col embed hr img input link meta param source track wbr'.split(' '));
+const RAW_TEXT = new Set(['script', 'style', 'textarea', 'title']);
+
+/** The markup plugin lays out the children of every element, but at the top of a text it leaves elements that touch
+ *  on one line ("</section><footer>…", "</template><script>"): a pasted fragment would come back as it went. Where
+ *  two elements touch at the top level and one of them is a block — in a Vue file every top-level element is — a
+ *  line break is put between them before the plugin sees the text; a browser shows the same page (white space next
+ *  to a block is not shown). Text whose tags do not pair up (omitted end tags) is returned untouched. */
+export function rootBreaks(text: string, vue: boolean): string {
+  const n = text.length;
+  let i = 0, depth = 0, out = '', last = 0;
+  let end = -1, endBlock = false;                                    // where a top-level element has just ended; was it a block?
+  const ended = (at: number, block: boolean) => { end = at; endBlock = block; };
+  const breakAt = (at: number, block: boolean) => { if (end === at && (block || endBlock)) { out += `${text.slice(last, at)}\n`; last = at; } };
+  while (i < n) {
+    const lt = text.indexOf('<', i);
+    if (lt < 0) break;
+    if (text.startsWith('<!--', lt)) {
+      const e = text.indexOf('-->', lt + 4); if (e < 0) return text;
+      if (depth === 0) { breakAt(lt, false); ended(e + 3, endBlock && end === lt); }   // a comment shows nothing: what stood before it still counts
+      i = e + 3; continue;
+    }
+    if (text[lt + 1] === '!' || text[lt + 1] === '?') {                // <!doctype …>, <?xml …?>
+      const e = text.indexOf('>', lt); if (e < 0) return text;
+      if (depth === 0) ended(e + 1, true);
+      i = e + 1; continue;
+    }
+    const m = /^<(\/?)([A-Za-z][^\s/>]*)/.exec(text.slice(lt, lt + 100));
+    if (!m) { i = lt + 1; continue; }                                 // a "<" that starts no tag
+    let e = lt + m[0].length, quote = '';
+    for (; e < n; e++) { const c = text[e]; if (quote) { if (c === quote) quote = ''; } else if (c === '"' || c === "'") quote = c; else if (c === '>') break; }
+    if (e >= n) return text;
+    const name = m[2].toLowerCase(), block = vue || BLOCKS.has(name);
+    if (m[1]) {                                                       // an end tag
+      if (--depth < 0) return text;
+      if (depth === 0) ended(e + 1, block);
+      i = e + 1; continue;
+    }
+    if (depth === 0) breakAt(lt, block);
+    if (VOID.has(name) || text[e - 1] === '/') { if (depth === 0) ended(e + 1, block); i = e + 1; continue; }
+    // text that is not markup: a script, a style sheet …; in a Vue file every top-level block but the template
+    if (vue ? depth === 0 && name !== 'template' : RAW_TEXT.has(name)) {
+      const close = new RegExp(`</${name.replace(/[^\w-]/g, '\\$&')}\\s*>`, 'ig'); close.lastIndex = e + 1;
+      if (!close.exec(text)) return text;
+      if (depth === 0) ended(close.lastIndex, block);
+      i = close.lastIndex; continue;
+    }
+    depth++; i = e + 1;
+  }
+  return depth === 0 ? out + text.slice(last) : text;
+}
+
 export function makeFormatter(load: Loaders) {
   let biome: ReturnType<typeof biomeEngine> | null = null;
   const dprint: Partial<Record<'json' | 'markup', DprintFormatter>> = {};
@@ -158,8 +212,14 @@ export function makeFormatter(load: Loaders) {
     });
     f.setConfig({ lineWidth: o.printWidth, indentWidth: o.tabWidth, useTabs: o.useTabs, newLineKind: 'lf' },
       { quotes: 'double', scriptFormatter: 'biome', scriptIndent: false, styleIndent: false, 'html.scriptIndent': true, 'html.styleIndent': true, doctypeKeywordCase: 'ignore' });
+    const path = lang === 'vue' ? 'file.vue' : 'file.html', why = (e: unknown) => new Refused(String((e as Error)?.message ?? e).split('\n')[0].replace(/^syntax error '?/, '').replace(/'? at line (\d+), column (\d+)$/, ' (line $1, column $2)'));
     let out: string;
-    try { out = f.formatText({ filePath: lang === 'vue' ? 'file.vue' : 'file.html', fileText: text }); } catch (e) { throw new Refused(String((e as Error)?.message ?? e).split('\n')[0].replace(/^syntax error '?/, '').replace(/'? at line (\d+), column (\d+)$/, ' (line $1, column $2)')); } finally { f.setHostFormatter(undefined); }
+    try {
+      try { out = f.formatText({ filePath: path, fileText: rootBreaks(text, lang === 'vue') }); } catch {
+        // the place in a message must be a place in the text as it was typed
+        try { out = f.formatText({ filePath: path, fileText: text }); } catch (e) { throw why(e); }
+      }
+    } finally { f.setHostFormatter(undefined); }
     // the seam between two engines is ours: nothing but layout may have changed across it
     if (letters(out) !== letters(text)) throw new Refused('its result did not hold the same text');
     if (left) notes.push(`${left === 1 ? 'One expression of the template was' : `${left} expressions of the template were`} left as typed.`);

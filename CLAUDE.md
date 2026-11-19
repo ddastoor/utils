@@ -314,7 +314,7 @@ Formatter · `regex` Regex Tester · `base64` Base64 · `urlenc` URL Encoder · 
 Generator · `color` Color Converter · `jwt` JWT Decoder. New: `sqlite` SQLite Playground (official SQLite wasm) ·
 `jq` jq Playground (jq C source → wasm) · `yaml` YAML ⇄ JSON ⇄ TOML (our Rust formats-yaml.wasm) · `xml` XML Formatter /
 XPath · `json2types` JSON → Types (TS/Go/Rust/Java/Python) · `jsondiff` JSON Diff · `sqlfmt` SQL Formatter
-(our own formatter, Rust → devcore-sqlfmt.wasm) · `prettier` Code Formatter (Prettier standalone) · `mockdata` Mock Data Generator · `mdtable`
+(our own formatter, Rust → devcore-sqlfmt.wasm) · `prettier` Code Formatter (Biome's official wasm, dprint's JSON and markup plugins; Prettier for Markdown and as the fallback — §3) · `mockdata` Mock Data Generator · `mdtable`
 Markdown Table · `cidr` Subnet / CIDR (IPv4+IPv6) · `chmod` chmod Calculator · `x509` Certificate Decoder (own
 DER parser) · `sshkey` SSH Key Generator (Ed25519, OpenSSH format, libsodium) · `hmac` HMAC Generator · `pwhash`
 Password Hash Tool (Argon2id/bcrypt/PBKDF2) · `apikey` API Key Generator · `curl` cURL Converter · `cron` Cron
@@ -659,6 +659,49 @@ keywords — nothing else.**
   tokens of each dialect; 4,000 broken texts. e2e: what the tab shows is read by the **native SQLite**, **sqlglot**
   and **sqlparse** (`tests/lib/sqlfmt_check.py`; the last two are skipped with a note where they are not installed).
 
+### Code Formatter (PC) — as built after the Nov 2026 bug hunt
+(`src/tools/software/prettier.ts`, engines `src/lib/codefmt.ts` in `src/workers/codefmt.worker.ts`, page side
+`src/lib/codefmt-client.ts`; unit `tests/unit/codefmt.test.mjs` 205, e2e `tests/e2e/prettier.e2e.mjs` 85; the tab's id
+stays `prettier`.) Ten languages. **Which engine formats which** was decided by evidence (`docs/WASM-AUDIT.md`,
+tab 54): every candidate's results were read again by a parser that belongs to none of them, on hazard texts and on
+real files.
+| Language | Engine | Beside it |
+|---|---|---|
+| JS / JSX, TS / TSX, CSS, SCSS, YAML, GraphQL | **Biome's official WebAssembly build** (`@biomejs/wasm-web`, 70 MB / 18 MB over the wire) | Prettier when Biome cannot read the text |
+| JSON | **`@dprint/json`** (0.66 MB) — the one formatter that leaves every number as typed (Biome and Prettier respell `1.50`, `1E+10`) | Prettier for text it refuses |
+| HTML, Vue | **`dprint-plugin-markup`** (markup_fmt, 2 MB) for the markup; scripts, styles, template expressions and JSON blocks go to Biome / `@dprint/json` through the plugin's host callback | Prettier for omitted end tags, a Pug template, a Less block |
+| Markdown | **Prettier** (JavaScript) — Biome's and dprint's Markdown formatters change what a document renders to | — |
+- **Our glue at the seam** (`markup()` in `src/lib/codefmt.ts`): a Vue expression is formatted with semicolons and
+  without trailing commas; a handler of several statements stays as typed (Vue needs the `;`, and over lines inside an
+  attribute it reads worse); nothing with a double quote goes back into a double-quoted attribute; `let <pattern> = 0`
+  (the variables of a slot or `v-for`, as the plugin wraps them) must come back on one line or the expression is left
+  as typed; attributes of plain HTML (`style="…"`, `onclick="…"`) stay as typed, so a page without `<script>` /
+  `<style>` never needs Biome; **`rootBreaks`** puts touching top-level elements on their own lines where a block is
+  involved (the plugin leaves `</section><footer>` and `</template><script>` on one line); **the letters guard** — a
+  markup result that does not hold the same letters as the input is not used (Prettier formats instead).
+- **Fallback:** a refusal by the language's engine → Prettier formats, and the tab says so with the engine's reason
+  and place ("Biome, the formatter for CSS, could not read this text — … (line 1, column 4) — so Prettier formatted
+  it"). If Prettier cannot read it either, its message with the code frame is shown. An engine that cannot be fetched
+  is an error, never a silent switch. Vue through Prettier with "Semicolons" off keeps the semicolons when a handler
+  has several statements (Prettier would write `@click="a = 1⏎ b()"`, which Vue cannot compile) and says so.
+- **Lazy:** nothing is fetched before the first Format; then the worker and only the engine the language needs
+  (JSON: the JSON plugin; plain HTML: the markup plugin; Markdown: Prettier's two chunks). TypeScript text is tried
+  as `.ts`, `.tsx` and `.d.ts` (a file's name decides which first). Biome's `tailwindDirectives` is on for CSS and
+  off for SCSS (it breaks `@forward … as x-*`); parameter decorators are allowed.
+- **The tab:** language (a typed text survives the switch; only a sample is replaced), Open a file (by extension —
+  .mjs .cjs .jsx .tsx .mts .cts .d.ts .jsonc .json5 .yml .markdown .gql .htm …), print width 40–160, indent, semicolons,
+  quotes, trailing commas with a line that says what they mean for the chosen language, Format (Ctrl+Enter), Format
+  as you type (a slow answer cannot overwrite a newer one), Copy, Download (the file's own name, or
+  `formatted.<ext>`). Markdown: lines are not re-wrapped and code fences are left alone.
+- **Known limits (recorded, not hidden):** Biome refuses custom properties holding `[ … ]` / `{ … }` and old IE hacks
+  (→ Prettier, which adds a `;` inside `--x: {a:b}`); a YAML flow list whose `]` stands in column 1 (→ Prettier); in
+  Vue a `<i18n lang="json">` block is left as typed; a result formatted by Prettier may change once more when
+  formatted again (the second time the WebAssembly engine can read it). Prettier's own Markdown faults remain (a list
+  followed by a line that holds one space; tabs in a list's code block).
+- **To update an engine:** bump the package, `node scripts/make-codefmt-layout.mjs`, **read the diff** of
+  `tests/fixtures/codefmt/layout.json`, run both suites. The independent readers are `tests/lib/codefmt-check.mjs`
+  (each allowance named where it is made); the engines for Node are `tests/lib/codefmt-node.mjs`.
+
 ### Audio Recorder — BUILT (`src/tools/audio.ts`, shared UI `src/lib/audioui.ts`; e2e `tests/e2e/audio.e2e.mjs` 21)
 Record the mic (MediaRecorder: Opus/WebM, AAC/M4A on Safari; 128 kbps) with pause/resume, big timer, live level meter
 with clip mark and a scrolling waveform; microphone picker; "voice clean-up" (browser echo/noise/AGC) on by default,
@@ -945,6 +988,8 @@ stay **public** (the source of the deployed site is then available to every user
 | hash-wasm 4.13.0 (hand-tuned C → wasm, one small binary per algorithm, embedded in the package; streaming; HMAC over any of its hashes; Argon2, bcrypt, scrypt, PBKDF2) | C | Dani Biró (`hash-wasm` npm, ~10 M downloads a month) — wrappers `src/lib/hmac.ts`, `src/lib/totp.ts`, `src/lib/pwhash.ts`; only the algorithms a tab uses are bundled into its chunk, loaded with the tab's first result | hmac (all of it), totp (the HMAC), pwhash (Argon2id / i / d, bcrypt, scrypt, PBKDF2) — replaced RustCrypto builds of ours in Nov 2026 (`docs/WASM-AUDIT.md`) |
 | ONNX Runtime Web 1.31 (CPU/WebAssembly, SIMD) | C++ | Microsoft (official `onnxruntime-web` wasm build) | tts (Kokoro, Piper) |
 | SQLite 3.54 | C | SQLite project (official `@sqlite.org/sqlite-wasm`), run in `src/workers/sqlite.worker.ts` (terminated on leave) | sqlite |
+| Biome 2.6.8 (formatter for JS / JSX / TS / TSX, CSS, SCSS, YAML, GraphQL; 70 MB) | Rust | Biome project (official `@biomejs/wasm-web`), run in `src/workers/codefmt.worker.ts` (terminated on leave) | prettier (Code Formatter) |
+| dprint plugins: `@dprint/json` 0.26 and `dprint-plugin-markup` 0.28 (markup_fmt) — the JSON and HTML / Vue engines of `deno fmt` — behind the host `@dprint/formatter` 0.6 (JavaScript, 40 KB) | Rust | dprint project / g-plane (the plugins are published as WebAssembly: that is how dprint runs them) | prettier (Code Formatter) |
 | FFmpeg | C | ffmpeg.wasm project | ffmpeg |
 | MozJPEG, libwebp, OxiPNG | C / Rust | jSquash (Squoosh codecs) | image encoders |
 | libheif + libde265 | C++ | libheif-js | heic |
@@ -960,7 +1005,7 @@ JavaScript-only components (no C/C++ equivalent exists for the job):
 | own `src/lib/curl.ts` (shell word splitting for bash and cmd.exe, curl option table, code generators) | no tried-and-tested WebAssembly build of a curl command-line parser exists (curl's own parser is tied to libcurl and its tool's globals); it is string parsing of one short line and code templating. A Rust port into devcore is on the to-do sweep (`todo.md`) | curl |
 | OpenPGP.js 6 (LGPL-3.0) | the audited browser OpenPGP implementation; C alternatives (GnuPG, RNP+Botan) are not built or audited for wasm | pgp |
 | Mermaid 12 (MIT) | Mermaid exists only as JavaScript; `securityLevel: 'strict'` (labels sanitised), bundled by Vite | mermaid |
-| Prettier standalone (MIT) | no compiled formatter covers JS/TS/CSS/HTML/YAML/Markdown/GraphQL together | prettier |
+| Prettier 3 standalone (MIT) | Markdown: both WebAssembly Markdown formatters (Biome's, dprint's) change what a document renders to (`docs/WASM-AUDIT.md`, tab 54). And the fallback for text the WebAssembly engines of the other nine languages cannot read (owner's tweak: (b) an existing JS library for what the module does not cover); each parser is fetched only then | prettier |
 | TensorFlow.js (Apache-2.0) | runs the Magenta style-transfer graph on the GPU via WebGL; its **wasm backend** (XNNPACK, C++ → wasm, tier 2 official build) is the CPU path | cartoon (neural) |
 | zip.js (BSD-3) | AES-256 zip *creation*; libarchive's wasm build has no crypto | zip |
 | mediabunny (MPL-2.0) | MP4 muxing around the browser's hardware WebCodecs encoders; cutting audio without re-encoding (packet copy) | video, audio |
@@ -999,8 +1044,8 @@ the Regex Tester is the browser's own RegExp, run in a worker (`src/workers/rege
 Nov 2026 (Python Scratchpad): `src/lib/termtext.ts` (what a terminal would show for the program's output: display
 code that feeds the DOM), `src/lib/python-hints.ts` (one sentence per known error), `src/lib/tzinfo.ts` (the browser's
 Intl answering the C library's questions about local time; the zone table it uses is data made by a script) stay in TS.
-Third-party WebAssembly builds in use (accepted, see above): MuPDF, SQLite, MediaPipe Tasks, ONNX Runtime, jSquash, libheif-js, tesseract.js-core, zxing-wasm, libarchive.js, ffmpeg.wasm, hash-wasm. Staying JS (no compiled
-equivalent, reasons above): OpenPGP.js, Mermaid, Prettier, TensorFlow.js. (sql-formatter was replaced by a build of the sqlformat crate, and that in Nov 2026 by our own Rust formatter: `docs/WASM-AUDIT.md`, tab 53.)
+Third-party WebAssembly builds in use (accepted, see above): MuPDF, SQLite, MediaPipe Tasks, ONNX Runtime, jSquash, libheif-js, tesseract.js-core, zxing-wasm, libarchive.js, ffmpeg.wasm, hash-wasm, Biome, the dprint JSON and markup plugins. Staying JS (no compiled
+equivalent, reasons above): OpenPGP.js, Mermaid, TensorFlow.js; Prettier for Markdown and as the Code Formatter's fallback. (sql-formatter was replaced by a build of the sqlformat crate, and that in Nov 2026 by our own Rust formatter: `docs/WASM-AUDIT.md`, tab 53.)
 
 ### Approved data APIs (connect-src allowlist)
 Add a host here and to the CSP `connect-src` in `index.html` (and the allowlist in `tests/e2e/no-external.e2e.mjs`)
@@ -1317,6 +1362,10 @@ npm packages (pinned in `package-lock.json`) are bundled by Vite or copied to `p
 | onnxruntime-web 1.31.1 | MIT | Text-to-Speech (Kokoro, Piper) |
 | hash-wasm 4.13.0 | MIT | HMAC Generator, TOTP, Password Hash Tool |
 | mediabunny | MPL-2.0 | Video Compressor, Audio Recorder (cut without re-encoding) |
+| @biomejs/wasm-web 2.6.8 (Biome's official WebAssembly build) | MIT OR Apache-2.0 | Code Formatter |
+| @dprint/formatter 0.6.0, @dprint/json 0.26.0, dprint-plugin-markup 0.28.0 (markup_fmt) | MIT | Code Formatter |
+| prettier 3 | MIT | Code Formatter (Markdown; fallback) |
+| *test only (devDependencies, not shipped):* typescript-classic (= typescript 5.9.3), postcss, postcss-scss, parse5, graphql, marked, @vue/compiler-sfc, yaml | Apache-2.0 / MIT / ISC | independent readers of the Code Formatter's suites |
 | @expo-google-fonts/noto-sans (Noto Sans TTF: regular, bold, italic) | OFL-1.1 (package MIT) | PDFs made by GST Invoice, Rent Receipt, Resume Builder |
 
 **Data files committed in `public/data/`**: EFF large wordlist (CC-BY 3.0); `dict/` — English Wiktionary via

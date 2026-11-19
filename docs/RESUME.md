@@ -69,30 +69,19 @@ what those suites missed.
 - **Found during the audit and fixed:** our jq build showed local time as UTC → `wasm/jq/hosttz.c` + the shared
   `tzInfoImport` (891 reference cases from the native jq 1.8.2 in 27 zones; Python's `time.mktime` on clock-change
   nights corrected by the same host code).
-- **NEXT:** `prettier`, `graphviz` (rest of the data-engines area; for each: the existing-module check first —
-  graphviz → @viz-js/viz / @hpcc-js/wasm-graphviz, prettier → Biome / dprint — then bugs, tests, fixes), the
-  complete `npm test` + `node tests/e2e.mjs` for the area, then calc-core → … as listed above.
-- **Code Formatter (tab 54, `prettier`): IN PROGRESS (19 Nov 2026) — step 1, the existing-module check.** Nothing
-  in the repository has changed for it yet. Findings so far (scratch scripts, lost if the container is reclaimed —
-  the method is what matters): Prettier has no WebAssembly build. Established WebAssembly formatters:
-  **Biome's official build** `@biomejs/wasm-web` 2.6.8 (75 k downloads a month; MIT / Apache-2.0; **70 MB, 18 MB
-  gzipped**; one module for every language) and the **dprint plugins** (the engines of `deno fmt`: `@dprint/typescript`
-  503 k a month, 4.9 MB; `@dprint/json`, `@dprint/markdown` 1.4 M; `dprint-plugin-malva` CSS / SCSS,
-  `dprint-plugin-markup` HTML / Vue, `dprint-plugin-yaml`, `dprint-plugin-graphql`; host `@dprint/formatter` 1.5 M).
-  Test: 423 real JS / TS files (this repository's `src`, `tests`, `scripts` + files from node_modules, 5.6 MB) are
-  formatted and the TypeScript 5.9 parser compares the program before and after (tree without layout, brackets,
-  quote style; all comments): **Prettier 423 same; Biome 423 same, 397 byte-identical to Prettier; dprint 411 same**
-  (the other 12 gain braces around a nested loop — same meaning) **after** its import sorting and brace insertion
-  are switched off (by default it reorders imports: 302 of 423 differ), and 66 of its results change when formatted
-  again (it keeps some of the input's line breaks; Prettier 15, Biome 17). JSON: Biome 250 of 254 identical to
-  Prettier (needs `json.parser.allowComments` for tsconfig files), dprint 120. YAML: Biome 21 of 21. CSS: Biome and
-  dprint 128 of 160 identical, meaning kept. Markdown: Biome and dprint also reformat the code inside fences.
-  Biome returns nothing for `.vue`. **Direction:** Biome's official build for the languages its formatter is mature
-  in (JS / JSX / TS / TSX, JSON, CSS, GraphQL — and YAML, SCSS, HTML, Markdown where the per-language tests pass),
-  in a tracked worker, loaded with the first Format; a dprint plugin or Prettier for what is left (rule: (b) an
-  existing JS library for features the module does not cover). To decide per language: a checker that is
-  independent of all three formatters (TypeScript parser, PostCSS, a YAML parser, cmark-gfm, an HTML parser,
-  graphql-js) over real files + hazards; then the tab, the suites, `docs/WASM-AUDIT.md` entry 54.
+- **NEXT:** `graphviz` (the last tab of the data-engines area: the existing-module check first — `@viz-js/viz`,
+  `@hpcc-js/wasm-graphviz` against our build — then bugs, tests, fixes), then the complete `npm test` +
+  `npm run build && node tests/e2e.mjs` for the area, then calc-core → … as listed above.
+- **Code Formatter (tab 54, `prettier`): DONE (19 Nov 2026).** Engines by evidence (`docs/WASM-AUDIT.md` entry 54;
+  CLAUDE.md §3 "Code Formatter"): **Biome's official wasm** for JS / TS / CSS / SCSS / YAML / GraphQL, **`@dprint/json`**
+  for JSON, **`dprint-plugin-markup`** (+ Biome for what stands inside) for HTML and Vue, **Prettier** for Markdown and
+  as the fallback. 13 bugs; unit `tests/unit/codefmt.test.mjs` 205, e2e `tests/e2e/prettier.e2e.mjs` 85.
+  To change or update an engine: `node scripts/make-codefmt-layout.mjs`, read the diff of
+  `tests/fixtures/codefmt/layout.json`, run both suites. The readers the suites rest on: `tests/lib/codefmt-check.mjs`.
+  **For the owner to know (said in the final report too):** Biome's module is 70 MB (18 MB over the wire, fetched
+  with the first Format of one of its languages); `dist/` is now about 705 MB of GitHub Pages' 1 GB. A module of
+  3–6 MB could be built by us from the same Biome crates if the size ever hurts (not done: the official build
+  exists and covers everything — rule order).
 - **SQL Formatter (tab 53): DONE (19 Nov 2026)** — the sqlformat crate changed the meaning of SQL and no established
   WebAssembly SQL formatter exists, so the tab has **our own formatter** now (`wasm/devcore/src/sqlfmt.rs`; CLAUDE.md
   §3 "SQL Formatter"; `docs/WASM-AUDIT.md` entry 53). 24 bugs, unit 113, e2e 49. To change its layout: edit the
@@ -139,7 +128,7 @@ what those suites missed.
   answers to input(); native CPython 3.14.8 as the reference for 69 programs — details in CLAUDE.md §5.1m).
   Still open in this area: **prettier, graphviz** (sqlite and sqlfmt done since).
   Running total: **51 of 176 tabs reviewed, 333 bugs fixed, 14,702 checks added** (+ shell).
-  After `sqlite` and `sqlfmt` (19 Nov 2026): **53 of 176 tabs reviewed, 380 bugs fixed, 15,992 checks added**.
+  After `sqlite`, `sqlfmt` and `prettier` (19 Nov 2026): **54 of 176 tabs reviewed, 393 bugs fixed, 16,274 checks added**.
   Python build tree for quick rebuilds (lost when the container is reclaimed; `wasm/python/build.sh` recreates it in
   ≈ 10 min): `/tmp/pyb3` (`native/python` = the reference interpreter; `rezip.sh` rebuilds only python314.zip).
   After any rebuild: `python3 scripts/make-tzabbr.py` and `<native python> scripts/make-python-reference.py`.

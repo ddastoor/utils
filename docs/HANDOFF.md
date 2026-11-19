@@ -187,3 +187,21 @@ export ZIG=/tmp/zig/x/ziglang/zig
 - **Text precision is a testable property:** HSL needs 1 decimal and OKLCH 2 / 5 / 2 decimals for every 8-bit colour
   to come back exactly — found by running the whole RGB cube (22 s in Node), not by choosing "enough" digits.
 
+- **Choosing between existing engines (Code Formatter, 19 Nov 2026):** do not trust a README or a compatibility
+  percentage — run every candidate over hazard texts *and* real files and let a parser that belongs to none of them
+  read the result (`tests/lib/codefmt-check.mjs`). That is how dprint's TypeScript plugin (invalid JavaScript for one
+  input), its YAML plugin (data changed) and three Markdown / HTML formatters (rendering changed) were found out, and
+  how Biome's young YAML formatter earned its place (654 real files, none changed). Real files on this machine:
+  `~/.cargo/registry` (YAML, Markdown, TS), `/opt/google-cloud-sdk` (YAML, HTML), node_modules, Python's and Ruby's
+  docs; Vue sources come from npm tarballs (primevue 3, element-ui). `plugins.dprint.dev` is blocked here — dprint
+  plugins are on npm (`@dprint/json`, `dprint-plugin-markup` …).
+- **The reader must be stricter than the formatter, but not wrong:** every allowance in a reader has to be a rule of
+  the language (Sass: `$a -$b` subtracts, `1 -2` is a list — sass-lang.com says so, my first guess said otherwise;
+  CSS: `1px+2px` is two numbers; a `<text>` in SVG is the only place where white space shows). When all three
+  formatters "fail" the same check, the check is the suspect; when one fails alone, it is the formatter.
+- **Two engines joined by glue need a guard at the seam** (markup_fmt handing Vue expressions to Biome): a cheap
+  invariant checked on every result (same letters in, same letters out) turns an unknown seam bug into a fallback.
+- **Node 22 imports `src/lib/*.ts` directly** (type stripping) when the file holds only erasable syntax — scripts and
+  e2e suites can run the app's pure modules without Vite (`tests/lib/codefmt-node.mjs`).
+- **Opening a file in an e2e test:** the tab reads the file before it starts work, so the notes of the previous result
+  are still there — take them away first (`openFile` in `tests/e2e/prettier.e2e.mjs`) or the wait matches the old state.

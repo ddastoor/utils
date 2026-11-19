@@ -308,10 +308,9 @@ function sameMarkdown(a, b) {
 
 // ───────────────────────────────────────────────────────────── HTML
 // Elements a browser lays out as blocks (or does not show): white space next to their tags is not shown.
-const BLOCK = new Set(('html head body div p ul ol li dl dt dd table thead tbody tfoot tr td th caption colgroup col h1 h2 h3 h4 h5 h6 section article aside nav header footer main figure figcaption blockquote pre form fieldset legend address hr details summary dialog menu title meta link base script style noscript option optgroup br center hgroup search source track param area template slot iframe video audio picture canvas '
-  + 'svg math').split(' '));
+const BLOCK = new Set('html head body div p ul ol li dl dt dd table thead tbody tfoot tr td th caption colgroup col h1 h2 h3 h4 h5 h6 section article aside nav header footer main figure figcaption blockquote pre form fieldset legend address hr details summary dialog menu title meta link base script style noscript option optgroup br center hgroup search source track param area template slot'.split(' '));
 // … and elements laid out as a box in the line: white space just inside their tags is not shown
-const BOX = new Set('button select textarea label text'.split(' '));
+const BOX = new Set('button select textarea label picture video audio iframe canvas object'.split(' '));
 const RAW = new Set(['pre', 'textarea', 'listing', 'plaintext', 'xmp']);
 const JS_TYPE = /^(|module|(text|application)\/(javascript|ecmascript|babel|jsx))$/i, JSON_TYPE = /json$|^importmap$|^speculationrules$/i;
 const attr = (n, name) => (n.attrs || []).find((a) => a.name === name)?.value;
@@ -324,18 +323,21 @@ function domStream(root, { vue = false } = {}) {
     if (n.nodeName === '#comment') { out.push(`<!--${/^\[if\b/.test(n.data) ? n.data.replace(/\s+/g, '') : n.data.replace(/\s+/g, ' ').trim()}-->`); return; }
     if (n.nodeName === '#documentType') { out.push(`<!doctype ${n.name} ${n.publicId} ${n.systemId}>`); return; }
     if (!n.tagName) { (n.childNodes || []).forEach((c) => walk(c, inSvg)); return; }
-    const tag = n.tagName, svg = inSvg || tag === 'svg' || tag === 'math';
-    // in a drawing and in a formula white space shows only inside a run of text
-    const run = inSvg === 'text' || (svg && tag === 'text') ? 'text' : svg;
-    const block = (!inSvg && BLOCK.has(tag)) || (svg && run !== 'text') ;
+    const tag = n.tagName;
+    // B: a block — white space next to its tags, outside and inside, does not show. X: a box in the line — white
+    // space just inside its tags does not show. I: part of the line. In a drawing or a formula (svg, math) only a
+    // run of text (<text>) shows white space, and the drawing itself is a box in the line.
+    const foreign = tag === 'svg' || tag === 'math';
+    const run = inSvg === 'text' || (inSvg && tag === 'text') ? 'text' : (inSvg || foreign);
+    const mark = foreign && !inSvg ? 'X' : inSvg ? (inSvg === 'text' ? 'I' : 'B') : BLOCK.has(tag) ? 'B' : BOX.has(tag) ? 'X' : 'I';
     const attrs = (n.attrs || []).map((a) => `${a.name}=${attrValue(tag, a.name, a.value)}`).sort().join(' ');
-    out.push(`${block ? 'B' : BOX.has(tag) ? 'X' : 'I'}<${tag}${attrs ? ` ${attrs}` : ''}>`);
+    out.push(`${mark}<${tag}${attrs ? ` ${attrs}` : ''}>`);
     const raw = () => (n.childNodes || []).map((c) => c.value ?? '').join('');
     if (tag === 'script') { const type = attr(n, 'type') ?? ''; out.push(JS_TYPE.test(type) ? `js:${embedded(raw(), attr(n, 'lang') === 'ts' ? 'ts' : 'js')}` : JSON_TYPE.test(type) ? `json:${embeddedJson(raw())}` : `raw:${raw().trim()}`); }
     else if (tag === 'style') out.push(`css:${embeddedCss(raw(), attr(n, 'lang') === 'scss')}`);
     else if (RAW.has(tag)) out.push(`raw:${serialize(n)}`);
     else (n.content?.childNodes || n.childNodes || []).forEach((c) => walk(c, tag === 'foreignObject' ? false : run));
-    out.push(`${block ? 'B' : BOX.has(tag) ? 'X' : 'I'}</${tag}>`);
+    out.push(`${mark}</${tag}>`);
   };
   walk(root, false);
   // white space that does not show: at the ends, next to a block's tags, just inside a box's tags

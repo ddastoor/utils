@@ -151,7 +151,7 @@ Areas with a shared review: the app shell (router, search, favorites, platform h
 | `json2types` | JSON → Types | PC only | dev-data2 | ✓ | 10 | 110 | own Rust generator; every output compiled by tsc, go, rustc, javac, python for 36 samples: root lists / values as aliases, colliding and reserved names, shadowed type names, one-file Java, Python kw_only and kept keys, keys Go cannot tag, uint64 / BigInteger, plurals |
 | `jsondiff` | JSON Diff | PC only | dev-data2 | ✓ | 5 | 70 | own Rust diff on the lossless reader: lists aligned by equal elements and by id (one removal was N changes); numbers by value and never rounded; duplicate keys; empty sides; Swap; rows carry both values; 400 random pairs with two appliers |
 | `sqlfmt` | SQL Formatter | PC only | data-engines | ✓ | 24 | 146 | our own formatter (Rust, devcore-sqlfmt.wasm) replaces the sqlformat crate, which changed the meaning of SQL (WASM-AUDIT 53): dialect-aware tokenizer (standard, PostgreSQL, MySQL, SQLite, SQL Server, Oracle; auto-detect), keywords change case only where they are keywords, layout of CTEs / MERGE / windows / DDL / blocks, scripts without semicolons, a guard that re-reads its own result; unit 113 (independent reader, SQLite engine, 10,752 names, layout record), e2e 49 (native SQLite, sqlglot, sqlparse read what the tab shows) |
-| `prettier` | Code Formatter | PC only | data-engines |  |  |  |  |
+| `prettier` | Code Formatter | PC only | data-engines | ✓ | 13 | 282 | engines changed (WASM-AUDIT 54): Biome's official wasm (JS/TS/CSS/SCSS/YAML/GraphQL), @dprint/json, dprint-plugin-markup + Biome (HTML, Vue); Prettier for Markdown and as fallback. Independent readers per language (TypeScript parser, PostCSS, yaml, marked + cmark-gfm, parse5, graphql-js, Vue compiler); 140 hazard sections x 8 option sets; typed text survives a language switch; stale results; Markdown fences; Vue ts scripts and handlers; JSON numbers as typed; worker |
 | `mockdata` | Mock Data Generator | PC only | dev-data2 | ✓ | 10 | 47 | ranges beyond 32 bits, swapped / unreadable ranges explained, dd/mm/yyyy dates (threw 'Invalid time value'), id start, fine-grained decimals, duplicate / empty / __proto__ names, quoted SQL names (run in SQLite), word-count limit, no fields |
 | `mdtable` | Markdown Table | PC only | dev-data2 | ✓ | 6 | 28 | separator found by the sheet engine (a tab in a quoted cell forced TSV); <br> for line breaks, also in the editor; table inside other text; CJK / emoji widths; 3,000 rows; output read by cmark-gfm |
 | `cidr` | Subnet / CIDR Calculator | PC only | net | ✓ | 3 | 74 | e2e 15→43 + 46 unit; 300 cases vs Python ipaddress |
@@ -475,7 +475,7 @@ Four engines were written in Rust for this (STANDING RULE #1) — `wasm/devcore/
   rows); a line break in a cell vanished from the editor; a table pasted with text around it took the following
   lines as rows; CJK and emoji cells were padded as one column wide; 3,000 rows made every keystroke slow.
 
-### Software › data-engine tabs (17 Nov 2026, in progress) — jq, yaml, jsonschema, python, sqlite, sqlfmt done; prettier, graphviz open
+### Software › data-engine tabs (17 Nov 2026, in progress) — jq, yaml, jsonschema, python, sqlite, sqlfmt, prettier done; graphviz open
 Method for these: the engine's native counterpart or an independent implementation is the reference, in bulk.
 - **jq** (16 bugs; unit 35 → 4,957, e2e 23 → 52). Reference: the native jq 1.8.2 command line, built from the same
   tarball — stdout, stderr and exit status for 4,903 filter × option × input cases (`tests/fixtures/jq/reference.json`).
@@ -578,3 +578,33 @@ reference cases.
   `go delete`, a BEGIN after a complete statement, FETCH FIRST / START WITH / FOR UPDATE at the start of a line and
   MySQL's `USE INDEX` were not stable or taken for statements; 20,000 open brackets asked for 400 MB (indentation is
   capped at 50 levels); the copy icon of the output box gave only what the box shows (`outputBox({ text })`).
+- **prettier** — Code Formatter (13 bugs; unit 0 → 205, e2e 8 → 85). **Engines changed** (STANDING RULE #1,
+  `docs/WASM-AUDIT.md` tab 54): Prettier (JavaScript) for everything → Biome's official WebAssembly build (JS / JSX,
+  TS / TSX, CSS, SCSS, YAML, GraphQL), `@dprint/json` (JSON), `dprint-plugin-markup` with Biome behind it (HTML, Vue);
+  Prettier stays for Markdown and as the fallback. References: parsers that belong to none of the formatters
+  (`tests/lib/codefmt-check.mjs` — TypeScript 5.9's parser, PostCSS, eemeli's yaml, marked and cmark-gfm, parse5,
+  graphql-js, the Vue compiler; JSON by its tokens), on 140 hazard sections × 8 option sets and on real files
+  (2,700 during the choice; 230 of this repository in the unit suite); the e2e suite reads what the tab shows the
+  same way and compares it with the engines run in Node.
+  What the tab did wrong: (1) choosing another language **threw away the text that had been typed** (it was
+  replaced by a sample); (2) with "Format as you type" a slow answer for an older text could overwrite the answer
+  for the newer one; (3) Markdown: the code inside a ```` ```markdown ```` fence was rewritten (somebody's example);
+  (4) Vue: a `<script lang="ts">` was silently left unformatted (its parser was never loaded); (5) Vue with
+  "Semicolons" off: `@click="a = 1; b()"` became `a = 1⏎ b()`, which Vue cannot compile; (6) JSON: numbers were
+  respelled (`1.50` → `1.5`, `1E+10` → `1e10`, `1e-07` → `1e-7`); (7) formatting ran on the page itself — a large
+  file froze the tab (now a worker); (8) after another language was chosen the download kept the opened file's name
+  (`style.css` for SCSS); (9) Copy and Download with nothing formatted copied / saved an empty text; (10) a file
+  without an extension was refused as ".Makefile files are not supported"; (11) `.jsonc`, `.json5`, `.mts`, `.cts`,
+  `.d.ts` texts, `.graphqls` were not accepted; (12) an empty box was "Already formatted"; (13) a parser's message
+  lost its line breaks (the code frame ran together in one line).
+  Found in the candidates while choosing (none of it ships): dprint's TypeScript plugin prints
+  `for (var i = (0 in []); ;)` without its brackets and adds braces; its YAML plugin drops blank lines of a `|+`
+  scalar and regroups tagged values; its Markdown plugin empties code blocks of blank lines and indentation;
+  Biome's Markdown formatter makes tight lists loose, its HTML and Vue formatters add white space that shows.
+  Found by the new suites in our own glue before it shipped: the markup plugin could not take its wrapper off a
+  long slot pattern (`let { … } =⏎ 0` ended up in the attribute); a handler of several statements was laid out over
+  lines; `s == &quot;a&quot;` tripped the letters guard; a declaration file (`const x: T;`) was refused; the place
+  in a refusal was counted in the prepared text, not the typed one; a fragment pasted on one line came back on one
+  line (`rootBreaks`).
+  Known and recorded, not fixed (they sit in Prettier, the fallback): `--x: {a:b}` gets a `;`; two Markdown
+  constructions (a list followed by a line holding one space; tabs in a list's code block).

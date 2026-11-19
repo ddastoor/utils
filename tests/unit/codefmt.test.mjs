@@ -26,7 +26,7 @@ const PRETTIER_INSTEAD = {
 const NOBODY = { html: ['optional tags and void elements'] };
 
 export default async (t, { load, wasm, root }) => {
-  const { makeFormatter, ENGINE, DEFAULTS } = await load('/src/lib/codefmt.ts');
+  const { makeFormatter, ENGINE, DEFAULTS, rootBreaks } = await load('/src/lib/codefmt.ts');
   const F = makeFormatter(loaders);
   const fmt = (lang, text, o, name) => F.format(lang, text, o, name);
   const readerLang = (lang, title) => (lang === 'ts' && /TSX/.test(title) ? 'tsx' : lang);
@@ -240,6 +240,30 @@ export default async (t, { load, wasm, root }) => {
   t.ok((await html('<!DOCTYPE html><title>t</title>')).startsWith('<!DOCTYPE html>') && (await html('<!doctype html><title>t</title>')).startsWith('<!doctype html>'), 'HTML: the doctype keeps its case');
   const optional = await fmt('html', '<ul><li>one<li>two</ul>');
   t.ok(optional.engine === 'prettier' && optional.instead.of === 'markup' && /<li>one<\/li>/.test(optional.text), 'HTML with omitted end tags: Prettier formats it');
+
+  // a pasted fragment: elements that touch at the top level are put on lines of their own where a block is involved
+  for (const [text, want] of [
+    ['<p>a</p><p>b</p>', '<p>a</p>\n<p>b</p>'],
+    ['<p>a</p><span>b</span><div>c</div><b>d</b>', '<p>a</p>\n<span>b</span>\n<div>c</div>\n<b>d</b>'],
+    ['<b>a</b><i>b</i><button>c</button><img src=x>', '<b>a</b><i>b</i><button>c</button><img src=x>'],            // inline neighbours: a break would show
+    ['<p>a</p> <p>b</p>text<p>c</p>', '<p>a</p> <p>b</p>text<p>c</p>'],                                              // nothing touches (text needs no help)
+    ['<!doctype html><title>t</title><p>x</p>', '<!doctype html>\n<title>t</title>\n<p>x</p>'],
+    ['<p>a</p><!-- c --><p>b</p><!-- d --><i>e</i>', '<p>a</p>\n<!-- c -->\n<p>b</p>\n<!-- d -->\n<i>e</i>'],
+    ['<i>a</i><!-- c --><i>b</i>', '<i>a</i><!-- c --><i>b</i>'],
+    ['<div><p>a</p><p>b</p></div><div>c</div>', '<div><p>a</p><p>b</p></div>\n<div>c</div>'],                           // only the top level: the plugin does the rest
+    ['<script>if (a < b) x = "<p></p><p>"</script><p>a</p>', '<script>if (a < b) x = "<p></p><p>"</script>\n<p>a</p>'],
+    ['<textarea><p></textarea><div title="a>b"></div><hr><br/><p>x</p>', '<textarea><p></textarea>\n<div title="a>b"></div>\n<hr>\n<br/>\n<p>x</p>'],
+    ['<ul><li>a<li>b</ul><p>c</p>', '<ul><li>a<li>b</ul><p>c</p>'],                                                  // tags that do not pair up: untouched
+    ['<p>a</p></div><p>b</p>', '<p>a</p></div><p>b</p>'],
+    ['<p>a</p><p title="x', '<p>a</p><p title="x'],
+  ]) t.eq(rootBreaks(text, false), want, `top-level blocks: ${text}`);
+  t.eq(rootBreaks('<template><p>a</p><p>b</p></template><script>let a = "</template><x>"</script><style>a{}</style><i18n>{"a":"<b>"}</i18n>', true), '<template><p>a</p><p>b</p></template>\n<script>let a = "</template><x>"</script>\n<style>a{}</style>\n<i18n>{"a":"<b>"}</i18n>', 'Vue: every top-level block on its own line; what stands inside script, style and custom blocks is not markup');
+  t.eq(rootBreaks('<template><template #a><input><br></template></template><script setup>x</script>', true), '<template><template #a><input><br></template></template>\n<script setup>x</script>', 'Vue: nested templates and void elements are counted');
+  t.eq((await fmt('html', '<h1>T</h1><p>a</p><ul><li>a</li><li>b</li></ul>')).text, '<h1>T</h1>\n<p>a</p>\n<ul>\n  <li>a</li>\n  <li>b</li>\n</ul>\n', 'HTML: a fragment written on one line is laid out');
+  t.eq((await fmt('vue', '<template><p>a</p><p>b</p></template><script>let a</script><style>a{b:c}</style>')).text, '<template>\n  <p>a</p>\n  <p>b</p>\n</template>\n<script>\nlet a;\n</script>\n<style>\na {\n  b: c;\n}\n</style>\n', 'Vue: a file written on one line is laid out');
+  let place = ''; try { await fmt('html', '<p>a</p><div><b>x</div><p>c</p>'); } catch (e) { place = e.message; }
+  const refusedPlace = await fmt('html', '<p>a</p><p>b</p><ul><li>one<li>two</ul>');
+  t.ok(/\(line 1, column \d+\)$/.test(refusedPlace.instead.why), `a refusal names the place in the text as typed, not as prepared — ${refusedPlace.instead.why}`);
 
   // ── 10. refusals and errors
   const hack = await fmt('css', 'a{*zoom:1;color:red}');
