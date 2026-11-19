@@ -6,6 +6,7 @@ import { UNITS, convert, convertAll, belowAbsoluteZero, fmtUnit, plainUnit } fro
 import { DAY, parseD, isoD, fmtD, addDays, daysBetween, ymd, addSpan, nextBirthday, plural } from '../lib/dates';
 import { emiPlan, sipPlan, fdPlan, gstSplit, span } from '../lib/finance';
 import { pctAnswer, type PctOp } from '../lib/percent';
+import { inWords } from '../lib/words';
 
 // ------------------------------------------------------------------ Unit converter
 // table, arithmetic and number formatting: src/lib/units.ts (exact definitions, held to GNU Units by the unit suite)
@@ -217,20 +218,8 @@ export const words: Mount = async (root) => {
     { key: 'sys', label: 'System', type: 'seg', value: 'in', options: [['in', 'Indian (lakh, crore)'], ['intl', 'International (million)']] },
     { key: 'cur', label: 'Currency', type: 'seg', value: 'inr', options: [['inr', 'Rupees'], ['usd', 'Dollars'], ['none', 'Plain number']] },
   ], (v) => {
-    const s = String(v.n).replace(/[,\s₹$]/g, '');
-    if (!/^\d+(\.\d{1,2})?$/.test(s)) throw new Error('Enter a positive number with up to 2 decimals.');
-    const [ip, fp = ''] = s.split('.');
-    if (ip.length > 19) throw new Error('Number too large.');
-    const int = BigInt(ip), paise = parseInt((fp + '00').slice(0, 2));
-    const indian = v.sys === 'in';
-    const cap = (x: string) => x.replace(/\b\w+/g, (w) => (w === 'and' ? w : w[0].toUpperCase() + w.slice(1)));
-    const w = cap(m.words(int, indian)), pw = cap(m.words(BigInt(paise), indian));
-    let text = w;
-    if (v.cur === 'inr') text = `Rupees ${w}${paise ? ` and ${pw} Paise` : ''} Only`;
-    else if (v.cur === 'usd') text = `${w} Dollars${paise ? ` and ${pw} Cents` : ''} Only`;
-    else if (fp) text = `${w} point ${fp.split('').map((d) => (d === '0' ? 'zero' : m.words(BigInt(d), true))).join(' ')}`;
-    const grouped = indian ? Number(int).toLocaleString('en-IN') : Number(int).toLocaleString('en-US');
-    return { big: [['In words', text]], rows: [['Digits', grouped + (fp ? '.' + fp : '')]] };
+    const w = inWords(m, v.n, v.sys === 'in', v.cur);
+    return { big: [['In words', w.text]], rows: [['Digits', w.digits]] };
   });
 };
 

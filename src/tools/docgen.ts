@@ -6,15 +6,12 @@ import { h, card, field, stack, note, actions, button, segmented, toggle, input,
 import { htmlToPdf, pdfPreview, esc } from '../lib/htmlpdf';
 import { mathcore } from '../wasm/mathcore';
 import { loadImg, encodeImg, previewOf } from '../lib/imgio';
+import { rupeesInWords } from '../lib/words';
 
 // ------------------------------------------------------------------ shared
 type Obj = Record<string, any>;
 const money = (n: number) => new Intl.NumberFormat('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
-const cap = (s: string) => s.replace(/\b\w/g, (c) => c.toUpperCase());
-async function inWords(amount: number) {
-  const mc = await mathcore(), r = Math.floor(Math.round(amount * 100) / 100), p = Math.round((amount - r) * 100);
-  return `Rupees ${cap(mc.words(BigInt(r), true))}${p ? ` and ${cap(mc.words(BigInt(p), true))} Paise` : ''} Only`;
-}
+const inWords = async (amount: number) => rupeesInWords(await mathcore(), amount); // the same sentence as the Number to Words tab
 const fmtDate = (iso: string) => { if (!iso) return ''; const [y, mo, d] = iso.split('-'); return `${d}/${mo}/${y}`; };
 const todayIso = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
 const ACCENTS: Array<[string, string]> = [['#1f3a8a', 'Navy'], ['#0f766e', 'Teal'], ['#7c2d12', 'Brown'], ['#111827', 'Black'], ['#6d28d9', 'Violet']];

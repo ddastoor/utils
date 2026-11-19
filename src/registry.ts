@@ -231,7 +231,7 @@ export const TOOLS: Tool[] = [
     'percent, percentage, increase, decrease, change, marks, discount, percent of, what percent, percentage change, growth, hike, increment, markup, sale price, percent off, salary hike, reverse percentage, percent difference, appraisal, per cent',
     () => calcs().then((m) => m.percent)),
   t('words', 'Number to Words', 'Amount in words — lakh/crore or million.', 'calculators', 'IndianRupee',
-    'number to words, amount in words, cheque, lakh, crore, rupees, million, spell',
+    'number to words, amount in words, cheque, check, lakh, crore, rupees, paise, dollars, million, billion, spell, spell out a number, figures to words, rupees in words, write amount, numbers in english, demand draft',
     () => calcs().then((m) => m.words)),
   t('timezone', 'Time Zone Converter', 'Convert a time between cities.', 'calculators', 'Globe',
     'ist to pst, ist to est, utc to ist, est to ist, pst to ist, gmt to ist, time zone, timezone, world clock, ist, utc, gmt, pst, est, convert time, meeting',

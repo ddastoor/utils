@@ -88,7 +88,7 @@ Areas with a shared review: the app shell (router, search, favorites, platform h
 | `sip` | SIP Calculator | PC + mobile | calc-core | ✓ | 10 | 75 | nothing to replace (WASM-AUDIT 61); held to a month-by-month reference in mpmath (1,430 plans, 180 lump sums) + numpy-financial fv; refusals with reasons; no more freeze on absurd periods; figures add up as shown; instalments row |
 | `fd` | FD / RD Calculator | PC + mobile | calc-core | ✓ | 11 | 144 | nothing to replace (WASM-AUDIT 62); held to mpmath (1,100 deposits, 1,000 recurring deposits) + the banks' RD formula + exact decimal yields; refusals with reasons; no freeze; engine growth() keeps 15 digits over 1,200 periods; shared roundDec (7.1225 → 7.123) with its own unit suite |
 | `percent` | Percentage Calculator | PC + mobile | calc-core | ✓ | 9 | 94 | nothing to replace (WASM-AUDIT 63); exact decimals: one division of whole numbers, held to Python's fractions (841 pairs × 6); tiny answers never 0; % change by |A| with the right sign; reasons where there is no answer; copy plain digits |
-| `words` | Number to Words | PC + mobile | calc-core |  |  |  |  |
+| `words` | Number to Words | PC + mobile | calc-core | ✓ | 10 | 188 | nothing to replace (WASM-AUDIT 64); held to num2words (1,598 numbers, both systems); 'and' before a last part below a hundred; singular paisa / dollar / cent; plain numbers with any decimals and a sign; all 19 digits in Digits; lenient reading of ₹ Rs INR /-; shared with invoice and rent receipt |
 | `timezone` | Time Zone Converter | PC + mobile | calc-core |  |  |  |  |
 | `bmi` | BMI Calculator | PC + mobile | calc-core |  |  |  |  |
 | `calories` | Calorie Calculator | PC + mobile | calc-core |  |  |  |  |
@@ -768,4 +768,18 @@ reference cases.
   numbers; (7) a dash without a reason when B or A is 0; (8) a click copied "1,399.3" with its comma, and copied the
   dash when there was no answer; (9) 10²³ was written as 24 digits. Answers have ten digits like the Unit Converter
   (`fmtUnit`), a real minus sign, "+" only before an increase; the copy is plain digits.
+- **words** — Number to Words (10 bugs; unit 0 → 144, e2e 18 → 62 — two of them loops over 123 and 94 numbers).
+  Nothing to replace (`docs/WASM-AUDIT.md` tab 64). Reference: **num2words** (`en_IN` for lakh and crore, `en` for
+  millions; `scripts/make-words-reference.py`) for 1,598 whole numbers up to 10¹⁹. What was wrong: (1) **"One Lakh
+  One"** — British and Indian English join a last part below a hundred with "and" ("One Lakh and One", "One Thousand
+  and Fifty", "One Crore and One"): the engine differed from num2words on 323 of the 1,598 numbers in lakh and crore
+  and on 269 in millions; the invoice and the rent receipt, which use the same engine, said it the same way;
+  (2) **"One Dollars"**, "One Cents" and "One Paise" (one paisa); (3) ₹0.05 was "Rupees Zero and Five Paise Only" —
+  now "Five Paise Only"; (4) a plain number with more than two decimals was refused (3.14159); (5) a negative plain
+  number was refused (now "Minus Twelve"); (6) **the "Digits" row lost the digits beyond 2⁵³** — 9,999,999,999,999,999,999
+  was shown as 10,000,000,000,000,000,000; (7) ".5", "12.", "Rs. 500", "INR 500", "500/-" and "+500" were refused;
+  (8) every refusal said "Enter a positive number with up to 2 decimals" whatever was wrong; (9) "Digits" showed
+  12,34,567.5 beside "Fifty Paise"; (10) in the invoice and the rent receipt an amount ending in half a paisa could
+  lose it (the shared `rupeesInWords` reads the amount as it is written). Refusals now say what is wrong (not a
+  number, written with an exponent, three decimals, a minus sign on money, more than 19 digits).
 

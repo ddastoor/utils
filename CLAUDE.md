@@ -596,6 +596,14 @@ open while the numbers change; `fmtINR` writes paise with both digits (₹12.10)
   two decimals keeps its digits); beyond 2^53 plain doubles. Ten significant digits (`fmtUnit`), tiny and huge
   answers as × 10ⁿ, never rounded to 0; a reason under the card where there is no answer (B = 0, a change from 0);
   a click copies plain digits.
+- `words` (`src/lib/words.ts`; unit `tests/unit/words.test.mjs` 144, e2e 62): whole numbers below 10¹⁹ in words by
+  mathcore `m_words` — lakh / crore ("one lakh crore" beyond) or million … quintillion, with "and" as British and
+  Indian English place it (inside a group of hundreds, and before a last part below a hundred: "One Lakh and One") —
+  held to **num2words** (`pip install num2words --no-deps`, `python3 scripts/make-words-reference.py`). Sentences:
+  "Rupees … and … Paise Only" (one paisa; under a rupee "Five Paise Only"), "… Dollars and … Cents Only" (one dollar,
+  one cent), or a plain number (any sign, up to 30 decimals read digit by digit). Around the amount ₹ $ Rs. INR USD,
+  digit commas, spaces, a leading + and a closing "/-" are accepted. "Digits" groups with BigInt (all 19 digits).
+  `rupeesInWords()` of the same file words the totals of the GST Invoice and the Rent Receipt.
 - Number formatting shared by the calculators (`src/lib/form.ts`, unit `tests/unit/moneyfmt.test.mjs` 79):
   `roundDec(x, d)` rounds a number as it is written with 15 digits, half away from zero (7.1225 → 7.123, 1.005 →
   1.01; Intl and toFixed round the binary value down) and leaves numbers that need more than 15 digits alone;

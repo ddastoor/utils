@@ -371,3 +371,12 @@ One entry per tab, written before its bug hunt: our module → candidates → ch
 - **Decision:** nothing to replace; stays TypeScript (recorded in CLAUDE.md §3a "Deliberately left in TypeScript").
   Held to **Python's fractions** on the typed text for 841 pairs × 6 questions.
 
+### 64. `words` — Number to Words (19 Nov 2026)
+- **Ours:** mathcore (own C): `m_words` — a whole number below 2⁶⁴ in English words, with lakh and crore or with
+  million and billion. The sentence around it (`src/lib/words.ts`) is string glue.
+- **Candidates:** WebAssembly — none (nothing in the registry spells numbers out as a WebAssembly module).
+  JavaScript: `number-to-words`, `to-words` (Indian system too), `written-number`. Python: **num2words**, the
+  reference library — used here as the reference of the tests, not shipped.
+- **Decision:** nothing to replace; the engine stays our C. Held to **num2words** (`en` and `en_IN`) for 1,598 whole
+  numbers up to 10¹⁹ — which showed the one thing it did differently: no "and" before a last part below a hundred.
+

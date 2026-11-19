@@ -87,7 +87,7 @@ Generated from `src/registry.ts` by `npm run docs` — do not edit by hand.
 | `sip` | SIP Calculator | PC + mobile | Mutual fund SIP / lumpsum returns. | sip, mutual fund, investment, returns, lumpsum, compound, wealth |
 | `fd` | FD / RD Calculator | PC + mobile | Fixed and recurring deposit maturity. | fd, rd, fixed deposit, recurring deposit, bank, interest, maturity, compound |
 | `percent` | Percentage Calculator | PC + mobile | X% of Y, % change, what percent, discount, the whole from a part. | percent, percentage, increase, decrease, change, marks, discount, percent of, … |
-| `words` | Number to Words | PC + mobile | Amount in words — lakh/crore or million. | number to words, amount in words, cheque, lakh, crore, rupees, million, spell |
+| `words` | Number to Words | PC + mobile | Amount in words — lakh/crore or million. | number to words, amount in words, cheque, check, lakh, crore, rupees, paise, … |
 | `timezone` | Time Zone Converter | PC + mobile | Convert a time between cities. | ist to pst, ist to est, utc to ist, est to ist, pst to ist, gmt to ist, time zone, timezone, … |
 | `bmi` | BMI Calculator | PC + mobile | Body mass index. | bmi, body mass index, weight, height, health, obesity |
 | `calories` | Calorie Calculator | PC + mobile | BMR and daily calories (TDEE). | calories, bmr, tdee, diet, maintenance, weight loss, metabolism |

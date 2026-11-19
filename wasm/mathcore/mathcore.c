@@ -812,6 +812,9 @@ static void three(char *o, int *k, int cap, int n) {
     if (n % 100) two(o, k, cap, n % 100);
 }
 static void sep(char *o, int *k, int cap) { if (*k) cat(o, k, cap, " "); }
+/* the last group (below a thousand): after larger groups a part below a hundred is joined with "and" — "one lakh and
+ * one", "one thousand and fifty" — as "five hundred and sixty-seven" is inside a group (British and Indian usage) */
+static void last(char *o, int *k, int cap, int n) { if (*k && n < 100) cat(o, k, cap, " and "); else sep(o, k, cap); three(o, k, cap, n); }
 /* Indian (lakh/crore) when indian=1, else international. Lower-case words. Returns length. */
 API int m_words(uint64_t n, int indian, char *out, int cap) {
     int k = 0; out[0] = 0;
@@ -827,12 +830,13 @@ API int m_words(uint64_t n, int indian, char *out, int cap) {
         if (lakh) { sep(out, &k, cap); two(out, &k, cap, lakh); cat(out, &k, cap, " lakh"); }
         int th = (int)(n / 1000); n %= 1000;
         if (th) { sep(out, &k, cap); two(out, &k, cap, th); cat(out, &k, cap, " thousand"); }
-        if (n) { sep(out, &k, cap); three(out, &k, cap, (int)n); }
+        if (n) last(out, &k, cap, (int)n);
     } else {
         static const char *NAMES[] = {"", " thousand", " million", " billion", " trillion", " quadrillion", " quintillion"};
         int groups[7], g = 0;
         while (n) { groups[g++] = (int)(n % 1000); n /= 1000; }
-        for (int i = g - 1; i >= 0; i--) if (groups[i]) { sep(out, &k, cap); three(out, &k, cap, groups[i]); cat(out, &k, cap, NAMES[i]); }
+        for (int i = g - 1; i > 0; i--) if (groups[i]) { sep(out, &k, cap); three(out, &k, cap, groups[i]); cat(out, &k, cap, NAMES[i]); }
+        if (groups[0]) last(out, &k, cap, groups[0]);
     }
     return k;
 }

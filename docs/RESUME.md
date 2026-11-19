@@ -83,8 +83,10 @@ what those suites missed.
   **`gst` (tab 60) is DONE** (6 bugs; whole paise in mathcore `m_gst`, held to Python's decimal; "Other" rate).
   **`sip` (tab 61) is DONE** (10 bugs; `sipPlan`, held to mpmath + numpy-financial's fv). **`fd` (tab 62) is
   DONE** (11 bugs; `fdPlan`, mathcore `growth()`, `roundDec` in the shared formatters). **`percent` (tab 63) is
-  DONE** (9 bugs; `src/lib/percent.ts`: exact decimals, held to Python's fractions). **NEXT: `words`**, then
-  `timezone`, `bmi`, `calories`, `duedate`, `tip`, `fuel`, `gpa`, `base`, `roman`; per tab: the
+  DONE** (9 bugs; `src/lib/percent.ts`: exact decimals, held to Python's fractions). **`words` (tab 64) is DONE**
+  (10 bugs; `src/lib/words.ts`, "and" rule in mathcore `m_words`, held to num2words — `pip install num2words
+  --no-deps`). **NEXT: `timezone`**, then `bmi`, `calories`, `duedate`, `tip`, `fuel`, `gpa`, `base`, `roman`;
+  per tab: the
   existing-module check with its entry in `docs/WASM-AUDIT.md` first (the survey of entry 56 covers calculators:
   no tried-and-tested WebAssembly calculator exists), then bugs, tests, fixes. Reference tools at hand: mpmath
   (`pip install mpmath`), Python's `decimal` / `fractions` / `datetime` / `zoneinfo`.
