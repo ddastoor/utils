@@ -319,3 +319,10 @@ One entry per tab, written before its bug hunt: our module → candidates → ch
 - **Decision:** nothing to replace. A library would bring its own table, and the table is the whole tab; ours is
   now the exact definitions, held to **GNU Units 2.23** for every pair of units (3,222 conversions).
 
+### 58. `dates` — Date Calculator (19 Nov 2026)
+- **Ours:** the calendar is the browser's `Date` (compiled code); `src/lib/dates.ts` is the glue around it (month
+  ends, spans, birthdays — "Date / Intl handling" under the compute rule) and mathcore counts the weekdays (own C).
+- **Candidates:** WebAssembly — none (chrono and jiff are Rust crates, not published as tried-and-tested
+  WebAssembly modules; nothing in the registry). JavaScript: date-fns 4.4 (482 M a month), temporal-polyfill (30 M).
+- **Decision:** nothing to replace. Held to **Python's datetime and calendar** for 6,985 cases over the years 1 to 9999.
+

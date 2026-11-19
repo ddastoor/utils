@@ -3,6 +3,7 @@ import { localZone, modernZone } from '../lib/tz';
 import { calcForm, fmtINR, fmtN, need, today } from '../lib/form';
 import { mathcore } from '../wasm/mathcore';
 import { UNITS, convert, convertAll, belowAbsoluteZero, fmtUnit, plainUnit } from '../lib/units';
+import { DAY, parseD, isoD, fmtD, addDays, daysBetween, ymd, addSpan, nextBirthday, plural } from '../lib/dates';
 
 // ------------------------------------------------------------------ Unit converter
 // table, arithmetic and number formatting: src/lib/units.ts (exact definitions, held to GNU Units by the unit suite)
@@ -43,22 +44,8 @@ export const units: Mount = (root) => {
 };
 
 // ------------------------------------------------------------------ Dates
-const DAY = 86400000;
-const parseD = (s: string) => { const [y, m, d] = s.split('-').map(Number); return new Date(Date.UTC(y, m - 1, d)); };
-const fmtD = (d: Date) => d.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
-const dim = (y: number, m: number) => new Date(Date.UTC(y, m + 1, 0)).getUTCDate();
-/** a + n calendar months, clamped to the month's last day (31 Jan + 1 month = 28/29 Feb), as Excel EDATE / java.time */
-function addMonths(a: Date, n: number) {
-  const t = a.getUTCFullYear() * 12 + a.getUTCMonth() + n, y = Math.floor(t / 12), m = t - y * 12;
-  return new Date(Date.UTC(y, m, Math.min(a.getUTCDate(), dim(y, m))));
-}
-/** whole years + months from the earlier date (month-end clamped), then the remaining days — never negative */
-function ymd(a: Date, b: Date) {
-  const [s, e] = a <= b ? [a, b] : [b, a];
-  let n = (e.getUTCFullYear() - s.getUTCFullYear()) * 12 + e.getUTCMonth() - s.getUTCMonth();
-  if (addMonths(s, n) > e) n--;
-  return { y: Math.floor(n / 12), m: n % 12, d: Math.round((e.getTime() - addMonths(s, n).getTime()) / DAY) };
-}
+// calendar arithmetic: src/lib/dates.ts (held to Python's datetime by the unit suite)
+const pickD = (s: string, what: string) => { const d = parseD(s); if (!d) throw new Error(s ? `${what}: a date from the year 1 to 9999, please.` : `Pick ${what === 'Both' ? 'both dates' : `the ${what.toLowerCase()}`}.`); return d; };
 export const dates: Mount = async (root) => {
   const mc = await mathcore();
   let mode = 'diff';
@@ -71,35 +58,38 @@ export const dates: Mount = async (root) => {
       { key: 'incl', label: 'Count end date', type: 'seg', value: 'no', options: [['no', 'No'], ['yes', 'Yes (+1 day)']] },
     ], (v) => {
       if (!v.a || !v.b) throw new Error('Pick both dates.');
-      const a = parseD(v.a), b = parseD(v.b);
-      const days = Math.round(Math.abs(b.getTime() - a.getTime()) / DAY) + (v.incl === 'yes' ? 1 : 0);
-      const { y, m, d } = ymd(a, b);
-      const d0 = Math.round(Math.min(a.getTime(), b.getTime()) / DAY), d1 = Math.round(Math.max(a.getTime(), b.getTime()) / DAY) - (v.incl === 'yes' ? 0 : 1);
+      const a0 = pickD(v.a, 'From'), b0 = pickD(v.b, 'To'), incl = v.incl === 'yes';
+      const [a, b] = a0 <= b0 ? [a0, b0] : [b0, a0];
+      const days = daysBetween(a, b) + (incl ? 1 : 0);
+      // with the end date counted, the span runs to the day after it: 1 Jan – 31 Jan is 31 days and one month
+      const { y, m, d } = ymd(a, incl ? addDays(b, 1) : b);
+      const d0 = Math.round(a.getTime() / DAY), d1 = Math.round(b.getTime() / DAY) - (incl ? 0 : 1);
       const wd = mc.weekdays(d0, d1); // closed form in mathcore.wasm
-      return { big: [['Days', fmtN(days, 0)], ['Years, months, days', `${y}y ${m}m ${d}d`]], rows: [['Weeks', `${Math.floor(days / 7)} weeks ${days % 7} days`], ['Weekdays (Mon–Fri)', fmtN(wd, 0)], ['Hours', fmtN(days * 24, 0)], ['Minutes', fmtN(days * 1440, 0)]] };
+      return { big: [['Days', fmtN(days, 0)], ['Years, months, days', `${y}y ${m}m ${d}d`]], rows: [['Weeks', `${plural(Math.floor(days / 7), 'week')} ${plural(days % 7, 'day')}`], ['Weekdays (Mon–Fri)', fmtN(wd, 0)], ['Hours', fmtN(days * 24, 0)], ['Minutes', fmtN(days * 1440, 0)],
+        ['From', fmtD(a)], ['To', fmtD(b)]], extra: a0 > b0 ? note('"From" is the later date — the span is counted from the earlier one.', 'info') : undefined };
     });
     else if (mode === 'add') calcForm(body, [
       { key: 'a', label: 'Start date', type: 'date', value: today() },
       { key: 'op', label: 'Operation', type: 'seg', value: '+', options: [['+', 'Add'], ['-', 'Subtract']] },
       { key: 'y', label: 'Years', value: 0 }, { key: 'm', label: 'Months', value: 0 }, { key: 'w', label: 'Weeks', value: 0 }, { key: 'd', label: 'Days', value: 30 },
     ], (v) => {
-      if (!v.a) throw new Error('Pick a start date.');
-      const s = v.op === '-' ? -1 : 1, a = addMonths(parseD(v.a), s * (12 * (v.y || 0) + (v.m || 0))); // months first, clamped to the month end
-      const r = new Date(a.getTime() + s * ((v.d || 0) + 7 * (v.w || 0)) * DAY);
-      return { big: [['Result', fmtD(r)]], rows: [['ISO date', r.toISOString().slice(0, 10)]] };
+      const a = pickD(v.a, 'Start date');
+      const nz = (x: number) => (Number.isNaN(x) || x === undefined ? 0 : x);          // an empty box counts as 0
+      const r = addSpan(a, v.op === '-' ? -1 : 1, nz(v.y), nz(v.m), nz(v.w), nz(v.d));    // months first, clamped to the month end
+      const n = daysBetween(a, r);
+      return { big: [['Result', fmtD(r)]], rows: [['ISO date', isoD(r)], ['That is', n === 0 ? 'the same day' : `${plural(Math.abs(n), 'day')} ${n > 0 ? 'later' : 'earlier'}`]] };
     });
     else calcForm(body, [
       { key: 'dob', label: 'Date of birth', type: 'date', value: '1990-01-01' },
       { key: 'on', label: 'Age on', type: 'date', value: today() },
     ], (v) => {
       if (!v.dob || !v.on) throw new Error('Pick both dates.');
-      const a = parseD(v.dob), b = parseD(v.on);
+      const a = pickD(v.dob, 'Date of birth'), b = pickD(v.on, 'Age on');
       if (b < a) throw new Error('The "age on" date is before the birth date.');
-      const { y, m, d } = ymd(a, b);
-      let next = addMonths(a, (b.getUTCFullYear() - a.getUTCFullYear()) * 12); // 29 Feb birthdays fall on 28 Feb in other years
-      if (next < b) next = addMonths(a, (b.getUTCFullYear() + 1 - a.getUTCFullYear()) * 12);
-      const days = Math.round((b.getTime() - a.getTime()) / DAY);
-      return { big: [['Age', `${y} years ${m} months ${d} days`]], rows: [['Born on', fmtD(a)], ['Total days', fmtN(days, 0)], ['Total weeks', fmtN(Math.floor(days / 7), 0)], ['Next birthday', `${fmtD(next)} (${((n) => (n ? `in ${n} day${n === 1 ? '' : 's'}` : 'today'))(Math.round((next.getTime() - b.getTime()) / DAY))})`]] };
+      const { y, m, d } = ymd(a, b), next = nextBirthday(a, b), days = daysBetween(a, b), wait = daysBetween(b, next);
+      const leapDay = a.getUTCMonth() === 1 && a.getUTCDate() === 29 && next.getUTCDate() === 28;
+      return { big: [['Age', `${plural(y, 'year')} ${plural(m, 'month')} ${plural(d, 'day')}`]], rows: [['Born on', fmtD(a)], ['Total months', `${fmtN(12 * y + m, 0)} and ${plural(d, 'day')}`], ['Total weeks', `${fmtN(Math.floor(days / 7), 0)} and ${plural(days % 7, 'day')}`], ['Total days', fmtN(days, 0)],
+        ['Next birthday', `${fmtD(next)} (${wait ? `in ${plural(wait, 'day')}` : 'today'}${leapDay ? '; 29 February is kept on the 28th in other years' : ''})`], ['Turning', String(daysBetween(a, next) === 0 ? 0 : ymd(a, next).y)]] };
     });
   };
   root.append(card(null, segmented([['diff', 'Days between dates'], ['add', 'Add / subtract'], ['age', 'Age']], mode, (v) => { mode = v; render(); })), body);
@@ -304,9 +294,9 @@ export const duedate: Mount = (root) => {
   ], (v) => {
     if (!v.lmp) throw new Error('Pick the first day of the last period.');
     if (isFinite(v.cycle) && (v.cycle < 20 || v.cycle > 45)) throw new Error('Cycle length is usually 20–45 days.');
-    const lmp = parseD(v.lmp), adj = (v.cycle || 28) - 28;
+    const lmp = pickD(v.lmp, 'First day of last period'), adj = (v.cycle || 28) - 28;
     const due = new Date(lmp.getTime() + (280 + adj) * DAY);
-    const todayD = parseD(today());
+    const todayD = parseD(today())!;
     const ga = Math.floor((todayD.getTime() - lmp.getTime()) / DAY) - adj;
     const tri = ga < 98 ? 'First trimester' : ga < 196 ? 'Second trimester' : 'Third trimester';
     return { big: [['Estimated due date', fmtD(due)], ['Today', ga >= 0 && ga < 300 ? `${Math.floor(ga / 7)} weeks ${ga % 7} days — ${tri}` : '—']], rows: [['Estimated conception', fmtD(new Date(lmp.getTime() + (14 + adj) * DAY))], ['End of first trimester', fmtD(new Date(lmp.getTime() + (97 + adj) * DAY))], ['End of second trimester', fmtD(new Date(lmp.getTime() + (195 + adj) * DAY))]] };

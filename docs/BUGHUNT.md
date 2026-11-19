@@ -82,7 +82,7 @@ Areas with a shared review: the app shell (router, search, favorites, platform h
 |---|---|---|---|---|---|---|---|
 | `calc` | Scientific Calculator | PC + mobile | calc-core | ✓ | 21 | 308 | engine kept (WASM-AUDIT 56: no tried-and-tested wasm calculator); reference mpmath at 50 digits for 3,005 expressions; exact round angles, whole numbers digit for digit, exact chaining through Ans, refusals with reasons |
 | `units` | Unit Converter | PC + mobile | calc-core | ✓ | 6 | 118 | no engine to replace (WASM-AUDIT 57); exact definitions held to GNU Units 2.23 (3,222 conversions); small results keep their digits; metric and US kitchen measures; Indian area units |
-| `dates` | Date Calculator | PC + mobile | calc-core |  |  |  |  |
+| `dates` | Date Calculator | PC + mobile | calc-core | ✓ | 7 | 40 | nothing to replace (WASM-AUDIT 58); held to Python's datetime (6,985 cases, years 1–9999); today() is the local date; years 0–99; end date counted in y-m-d; refusals |
 | `emi` | EMI Calculator | PC + mobile | calc-core |  |  |  |  |
 | `gst` | GST Calculator | PC + mobile | calc-core |  |  |  |  |
 | `sip` | SIP Calculator | PC + mobile | calc-core |  |  |  |  |
@@ -679,4 +679,16 @@ reference cases.
   on the result copied "1,609.344" with its thousands separator (text to a spreadsheet); (5) a temperature below
   absolute zero was converted without a word; (6) a fuel economy of 0 gave "—" without a reason. Added: quintal,
   cent, guntha, ground, UK pint and fluid ounce, cubic inch, torr, kgf/cm², and the quantity Angle.
+- **dates** — Date Calculator (7 bugs; unit 0 → 22, e2e 40 → 58). Nothing to replace (`docs/WASM-AUDIT.md` tab 58).
+  Reference: **Python's datetime and calendar** (`scripts/make-dates-reference.py`): 1,700 spans (days; weekdays
+  counted one by one; years-months-days found by trying month after month), 4,191 additions of months, 594 mixed
+  additions, 500 birthdays, over the years 1 to 9999. What was wrong: (1) **"today" was the date in UTC** — in India
+  every date box started on yesterday's date until 05:30 in the morning (also in the Time Zone and Due Date tabs,
+  which share the helper); (2) **the years 0 to 99 were read as 1900 to 1999** (Date.UTC does that): 31 Dec 99 →
+  1 Jan 100 was not one day; (3) with "Count end date" the days grew by one but the years-months-days did not
+  (1 – 31 January: 31 days, yet "0y 0m 30d"); (4) one and a half months, or any fraction, was added as nonsense
+  without a word; (5) a result beyond the calendar was shown as "Invalid Date"; (6) "1 years 1 months 1 days" and
+  "51 weeks 1 days"; (7) with the dates the other way round nothing said that "From" was the later one.
+  Added: the two dates in words, "N days later / earlier", total months, the age the next birthday brings, and for
+  29 February birthdays the day that is counted.
 

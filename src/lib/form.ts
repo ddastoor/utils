@@ -36,7 +36,7 @@ export function calcForm(root: HTMLElement, fields: FieldDef[], compute: (v: Rec
     if (f.type === 'select') ctl = select(f.options, f.value, set);
     else if (f.type === 'seg') ctl = segmented(f.options, f.value, set);
     else if (f.type === 'text') ctl = input({ value: f.value, placeholder: f.placeholder, onInput: set });
-    else if (f.type === 'date' || f.type === 'time') ctl = input({ type: f.type, value: f.value, onInput: set });
+    else if (f.type === 'date' || f.type === 'time') { const inp = input({ type: f.type, value: f.value, onInput: set }); if (f.type === 'date') { inp.min = '0001-01-01'; inp.max = '9999-12-31'; } ctl = inp; }
     else {
       const inp = input({ type: 'number', value: f.value, step: f.step ?? 'any', min: f.min, max: f.max, onInput: (v) => set(v === '' ? NaN : parseFloat(v)) });
       ctl = f.unit ? h('div', { class: 'with-unit' }, inp, h('span', { class: 'unit' }, f.unit)) : inp;
@@ -60,4 +60,5 @@ export const fmtINR = (n: number, cur = true) => {
 export const fmtN = (n: number, d = 2) => (isFinite(n) ? new Intl.NumberFormat('en-US', { maximumFractionDigits: d }).format(n) : '—');
 export const fmtIntl = (n: number) => (isFinite(n) ? intl.format(n) : '—');
 export const need = (...xs: number[]) => { if (xs.some((x) => !isFinite(x))) throw new Error('Fill in all the numbers.'); };
-export const today = () => new Date().toISOString().slice(0, 10);
+/** today's date where the reader is, as yyyy-mm-dd (the UTC date is yesterday's in India until 05:30) */
+export const today = () => { const n = new Date(); return `${String(n.getFullYear()).padStart(4, '0')}-${String(n.getMonth() + 1).padStart(2, '0')}-${String(n.getDate()).padStart(2, '0')}`; };

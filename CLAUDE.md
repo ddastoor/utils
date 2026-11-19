@@ -549,6 +549,15 @@ torr, energy, power, angle, fuel economy); every factor is the exact definition 
 values with all digits, tiny ones as 9.094947018 × 10⁻¹³ — never 0), a click copies the plain number; notes for
 temperatures below absolute zero and a fuel economy of 0.
 
+**Date Calculator as built after the Nov 2026 bug hunt** (`src/lib/dates.ts` + `dates` in `src/tools/calculators.ts`; unit
+`tests/unit/dates.test.mjs` 22 — 6,985 cases of **Python's datetime**, `scripts/make-dates-reference.py`; e2e 58): dates
+are UTC midnights of the proleptic Gregorian calendar for the years 1 to 9999 (read with `setUTCFullYear`: `Date.UTC`
+takes the years 0 – 99 for 1900 – 1999); **today is the reader's local date** (`today()` in `src/lib/form.ts`, shared by
+every calculator with a date box); months are added with the day held back to the month's end and a span is the
+opposite of adding (31 Jan → 28 Feb is one month); "Count end date" counts it in days, weeks and years-months-days
+alike; whole numbers only in Add / subtract, results outside the calendar are refused; Age gives total months, the
+next birthday (29 February on the 28th in other years, said so) and the age it brings.
+
 **Scientific Calculator as built after the Nov 2026 bug hunt** (`src/tools/calc.ts`, text helpers `src/lib/calc-text.ts`,
 engine `wasm/mathcore` `m_expr_*`; unit `tests/unit/calc.test.mjs` 243 — 3,005 answers of **mpmath at 50 digits** and
 Python's exact integers, `scripts/make-calc-reference.py` (needs `pip install mpmath`) → `tests/fixtures/calc/reference.json`;
