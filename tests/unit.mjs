@@ -41,8 +41,10 @@ if (isMainThread) {
   const { createServer } = await import('vite');
   // no file watcher: tests only import modules; a watcher holds hundreds of fds (public/data/dict) for nothing
   const vite = await createServer({ root, server: { middlewareMode: true, hmr: false, ws: false, watch: null }, logLevel: 'error', optimizeDeps: { noDiscovery: true, include: [] } });
+  const compiled = new Map();   // a suite that wants a fresh instance per case (graphviz) compiles the module once
   async function wasm(name, extra = {}) {
-    const mod = await WebAssembly.compile(readFileSync(join(root, 'src/wasm/bin', `${name}.wasm`)));
+    if (!compiled.has(name)) compiled.set(name, WebAssembly.compile(readFileSync(join(root, 'src/wasm/bin', `${name}.wasm`))));
+    const mod = await compiled.get(name);
     let memory;
     const w = {};
     for (const i of WebAssembly.Module.imports(mod)) if (i.module === 'wasi_snapshot_preview1') w[i.name] = () => 52;

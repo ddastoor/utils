@@ -1,9 +1,9 @@
-// graphviz.wasm (Graphviz 14.1.2 + Expat, our build): every layout engine runs; SVG/JSON/plain/xdot/canon outputs are
+// graphviz.wasm (Graphviz 16.1.0 + Expat, our build): every layout engine runs; SVG/JSON/plain/xdot/canon outputs are
 // well-formed and agree with the graph (node/edge counts, labels, HTML-like labels, clusters, rankdir order, ports,
 // record shapes); attribute defaults; errors (syntax, unknown engine/format) are reported without breaking the next call.
 export default async (t, { load, wasm }) => {
   const { bindGraphviz, ENGINES } = await load('src/wasm/graphviz.ts');
-  const gv = bindGraphviz(await wasm('graphviz'));
+  const gv = bindGraphviz(await wasm('graphviz', { supertools: { text_width: () => -1 } }));   // -1: Graphviz's own font tables
   const g = 'digraph G { a -> b -> c; a -> c; b [label="Bee"]; }';
   for (const e of ENGINES) {
     const r = gv.render(g, e, 'svg');

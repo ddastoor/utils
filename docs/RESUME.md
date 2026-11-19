@@ -69,9 +69,26 @@ what those suites missed.
 - **Found during the audit and fixed:** our jq build showed local time as UTC → `wasm/jq/hosttz.c` + the shared
   `tzInfoImport` (891 reference cases from the native jq 1.8.2 in 27 zones; Python's `time.mktime` on clock-change
   nights corrected by the same host code).
-- **NEXT:** `graphviz` (the last tab of the data-engines area: the existing-module check first — `@viz-js/viz`,
-  `@hpcc-js/wasm-graphviz` against our build — then bugs, tests, fixes), then the complete `npm test` +
-  `npm run build && node tests/e2e.mjs` for the area, then calc-core → … as listed above.
+- **IN PROGRESS: `graphviz` (tab 55, the last tab of the data-engines area).** Done and pushed so far (19 Nov):
+  the existing-module check (Viz.js 3.31 and @hpcc-js/wasm-graphviz 1.30 both trap on valid graphs — an upstream
+  Graphviz bug in `storeline()`, labels.c: a label whose first line is empty leaves a text span uninitialised; native
+  dot survives it, WebAssembly does not; nothing beside the module can put that right → we keep our own build);
+  **our build is now Graphviz 16.1.0** from the official release (gitlab.com, SHA-256 in `wasm/graphviz/build.sh`) with
+  `storeline.patch`, `qsort.c` (glibc's stable merge sort) and `rand.c` (glibc's rand) so it draws what `dot` draws on
+  Linux — against the native 16.1.0 on the 457 graph files of the Graphviz sources: dot, neato, circo, osage and
+  patchwork identical on every file, twopi 451, sfdp 359, fdp 242 (the rest differ in the last digits of libm), no
+  crash in any engine; text measured by the browser (`supertools.text_width` import → the worker's canvas), several
+  graphs in one text, a graph's own `layout=` attribute, line numbers of the whole text; new worker (fresh instance
+  per drawing), client (newest text wins, slow layout ended), page (stale drawing dimmed and not downloadable, PNG
+  size limits, file decoding, messages tidied, Go to line). The old suites pass on it (unit 32, e2e 23).
+  **Still to do for the tab:** `scripts/make-graphviz-reference.mjs` + fixtures (`tests/fixtures/graphviz/`: graphs
+  from the Graphviz sources, EPL-1.0, + hazard graphs; hashes of native dot's output per graph × engine), the new
+  unit suite (native equality, fresh and reused instances, multi-graph, charset, measuring host, glibc rand values,
+  `src/lib/graphviz-text.ts`), the new e2e suite, `docs/WASM-AUDIT.md` entry 55, CLAUDE.md (§3a row, §5.1l, a §3
+  section), `docs/BUGHUNT.md` + tracker row, `tests/fixtures/README.md`. The native reference tool is
+  `$WORK/native/cmd/dot/dot_static` after `ZIG=… wasm/graphviz/build.sh` (WORK defaults to /tmp/graphviz-build).
+- **NEXT after graphviz:** the complete `npm test` + `npm run build && node tests/e2e.mjs` for the data-engines
+  area, then calc-core → … as listed above.
 - **Code Formatter (tab 54, `prettier`): DONE (19 Nov 2026).** Engines by evidence (`docs/WASM-AUDIT.md` entry 54;
   CLAUDE.md §3 "Code Formatter"): **Biome's official wasm** for JS / TS / CSS / SCSS / YAML / GraphQL, **`@dprint/json`**
   for JSON, **`dprint-plugin-markup`** (+ Biome for what stands inside) for HTML and Vue, **Prettier** for Markdown and

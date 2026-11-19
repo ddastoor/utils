@@ -1,0 +1,18 @@
+Graphviz (14.1.2 and 16.1.0 alike): a label whose first line is empty ("\n\nTitle") leaves the first text span
+half-initialised. storeline() takes the span array from gv_recalloc(NULL, 1, 2, …), which zeroes only the bytes
+beyond the "old" first element; for an empty line neither textspan_size() nor anything else then sets span->layout
+and span->free_layout, and free_textspan() later calls free_layout through whatever the memory held. Natively the
+memory is usually zero and nothing happens (valgrind: "Conditional jump or move depends on uninitialised value(s)
+at free_textspan (labels.c:197)"); in WebAssembly the call traps ("table index is out of bounds"), so valid graphs —
+records with rankdir, the "crazy" example — could not be drawn. Found in the Nov 2026 bug hunt; worth reporting
+upstream (gitlab.com/graphviz/graphviz).
+--- a/lib/common/labels.c
++++ b/lib/common/labels.c
+@@ -31,6 +31,7 @@
+     lp->u.txt.span = gv_recalloc(lp->u.txt.span, oldsz, oldsz + 1,
+                                  sizeof(textspan_t));
+     span = &lp->u.txt.span[lp->u.txt.nspans];
++    *span = (textspan_t){0};
+     span->str = line;
+     span->just = terminator;
+     if (line && line[0]) {

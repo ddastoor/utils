@@ -4,11 +4,17 @@
 
 export interface WasiInstance { exports: any; memory: WebAssembly.Memory }
 
-/** `extra`: more import modules (e.g. { env: { w_progress } }) next to wasi_snapshot_preview1. */
-export async function instantiateWasi(url: string, extra: WebAssembly.Imports = {}): Promise<WasiInstance> {
+/** Fetch and compile a module once; `instantiateWasiModule` then makes as many instances of it as are wanted. */
+export async function compileWasi(url: string): Promise<WebAssembly.Module> {
   const res = await fetch(url);
   if (!res.ok) throw new Error(`Could not load ${url}`);
-  const module = await WebAssembly.compileStreaming(res).catch(async () => WebAssembly.compile(await (await fetch(url)).arrayBuffer()));
+  return WebAssembly.compileStreaming(res).catch(async () => WebAssembly.compile(await (await fetch(url)).arrayBuffer()));
+}
+/** `extra`: more import modules (e.g. { env: { w_progress } }) next to wasi_snapshot_preview1. */
+export async function instantiateWasi(url: string, extra: WebAssembly.Imports = {}): Promise<WasiInstance> {
+  return instantiateWasiModule(await compileWasi(url), extra);
+}
+export async function instantiateWasiModule(module: WebAssembly.Module, extra: WebAssembly.Imports = {}): Promise<WasiInstance> {
   let memory: WebAssembly.Memory;
   const wasi: Record<string, (...a: number[]) => number> = {};
   for (const imp of WebAssembly.Module.imports(module)) {

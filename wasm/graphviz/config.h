@@ -1,4 +1,4 @@
-/* Graphviz config.h for wasm32-wasi (our build; replaces the one CMake writes for the host). */
+/* Graphviz config.h for wasm32-wasi (our build; replaces the one configure writes for the host). */
 #define HAVE_GETOPT_H
 #define HAVE_DRAND48
 #define HAVE_MEMRCHR
@@ -9,4 +9,4 @@
 #define BROWSER "none"
 #define DEFAULT_DPI 96
 #define GVPLUGIN_CONFIG_FILE "config8"
-#define PACKAGE_VERSION "14.1.2"
+#define PACKAGE_VERSION "16.1.0"
