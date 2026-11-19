@@ -11,7 +11,7 @@ export interface TextCounts { words: number; chars: number; noSpace: number; sen
 
 const enc = new TextEncoder(), dec = new TextDecoder();
 export function bindTextkit(e: any) {
-  const call = (fn: 'tk_stats' | 'tk_case' | 'tk_line_lengths', text: string) => {
+  const call = (fn: 'tk_stats' | 'tk_case' | 'tk_line_lengths' | 'tk_clusters', text: string) => {
     const b = enc.encode(text), p = e.tk_alloc(b.length);
     new Uint8Array(e.memory.buffer, p, b.length).set(b);
     try { e[fn](p, b.length); return JSON.parse(dec.decode(new Uint8Array(e.memory.buffer, e.tk_out_ptr(), e.tk_out_len()))); } finally { e.tk_free(p, b.length); }
@@ -22,6 +22,8 @@ export function bindTextkit(e: any) {
     cases: (text: string): string[] => call('tk_case', text),
     /** The number of characters (as the Word Counter counts them) of each of `lines` (none may hold a line break). */
     lineLengths: (lines: string[]): number[] => (lines.length ? call('tk_line_lengths', lines.join('\n')) : []),
+    /** The characters a reader sees (an emoji with its skin tone, a letter with its marks), in order. */
+    clusters: (text: string): string[] => { if (!text) return []; const lens = call('tk_clusters', text) as number[]; let at = 0; return lens.map((n) => text.slice(at, (at += n))); },
   };
 }
 export type Textkit = ReturnType<typeof bindTextkit>;

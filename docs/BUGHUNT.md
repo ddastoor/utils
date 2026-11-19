@@ -127,7 +127,7 @@ Areas with a shared review: the app shell (router, search, favorites, platform h
 | `lines` | Line Tools | PC + mobile | text | ✓ | 10 | 102 | linetools.ts; held to GNU sort/awk/sed on 400 lists; 0 → 9 sort; shuffle stays put; engines lazy |
 | `replace` | Find & Replace | PC + mobile | text | ✓ | 9 | 77 | worker + 5 s limit; Unicode whole words; ^ $ per line; \n in replacement; held to Python re on 226 searches |
 | `diff` | Text Diff | PC + mobile | text | ✓ | 9 | 65 | engine → similar crate (textkit-diff.wasm); line numbers, marked changes, folds, unified diff; held to GNU diff -d and GNU patch |
-| `fancy` | Fancy Text | PC + mobile | text |  |  |  |  |
+| `fancy` | Fancy Text | PC + mobile | text | ✓ | 10 | 118 | characters by textkit.wasm (emoji, Hindi stay whole); digits/brackets turn; tap a row to copy; long texts; alphabets held to Unicode's names |
 | `emoji` | Emoji & Symbols | PC + mobile | text |  |  |  |  |
 | `morse` | Morse Code | PC + mobile | text |  |  |  |  |
 | `lorem` | Lorem Ipsum | PC + mobile | text |  |  |  |  |
@@ -1139,3 +1139,27 @@ Reference for the five finance tabs: **mpmath at 60 digits** (`scripts/make-fina
   Added: **Copy as patch / Download .diff** — a unified diff that GNU `patch` applies (the Patch tab reads it too);
   "The texts differ only in the line break at the end"; a note when the time limit (2 s) ended the search for the
   shortest diff.
+
+- **`fancy` (tab 95, 10 bugs; the three styles that work character by character now take their characters from
+  textkit.wasm; unit `tests/unit/fancy.test.mjs` 81, e2e 51 — before: 12 e2e checks and 2 unit checks).**
+  1. **Upside down scrambled emoji and Hindi:** the text was reversed code point by code point, so 🇮🇳 came out as
+     🇳🇮 (another country's flag), a thumbs-up lost its skin tone, and Hindi vowel signs landed on other letters.
+  2. Upside down left digits as they were: "69" came out as "96" (6 and 9 must change into each other), 2, 3, 4,
+     5 and 7 stayed upright.
+  3. … and brackets: "(hi)" came out as ")ᴉɥ(" — every pair opened where it should close.
+  4. **Strikethrough and Underline broke emoji:** a mark was put after every code point — between a hand and its
+     skin tone, between the members of a family, after every Hindi vowel sign (six marks on नमस्ते's three
+     characters).
+  5. **"Styles — tap to copy" and a tap did nothing:** only the small button at the end of a row copied.
+  6. All eighteen copy buttons had the same name, "Copy" (a screen reader read "Copy" eighteen times).
+  7. Circled left digits plain ("Ⓡⓞⓞⓜ 12"); Unicode has ⓪ ① … ⑨.
+  8. An accented letter stayed plain in the middle of styled ones ("𝐜𝐚𝐟é"); it takes the style now and keeps its
+     accent.
+  9. The text box had one line: a pasted text of several lines lost its line breaks.
+  10. **A long text froze the tab:** eighteen rows of 20,000 styled characters took 1.5 s to draw at every key,
+      200,000 characters two minutes. A row shows the first 2,000 characters now (the tab says so) and Copy styles
+      the whole text; a keystroke at the end of 200,000 characters takes a few milliseconds.
+  Also: "Bubble squares" is called **Squared** (the characters are squares, not bubbles); line breaks are kept in
+  every style; nothing is fetched until a text has an emoji or another script than Latin (then textkit.wasm, which
+  tells its characters apart); a failed download is said, the fifteen table styles stay, and the next change tries
+  again.

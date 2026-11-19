@@ -435,6 +435,7 @@ details summary { cursor: pointer; font-weight: 600; color: var(--accent); paddi
 /* ------------------------------------------------------------------ text & dev tools */
 .case-row { display: grid; grid-template-columns: 140px 1fr auto; gap: 10px; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--border); }
 .case-row:last-child { border-bottom: 0; }
+.fancy-row { cursor: pointer; } .fancy-row:hover { background: var(--surface-2); } /* the whole row copies */
 .case-name { font-size: 13px; color: var(--muted); font-weight: 600; }
 .case-val { word-break: break-word; overflow-wrap: anywhere; white-space: pre-wrap; font-size: 14.5px; max-height: 14.5em; overflow-y: auto; min-width: 0; } /* line breaks of the text are kept; a long result scrolls in its row */
 .fancy-val { font-size: 18px; }

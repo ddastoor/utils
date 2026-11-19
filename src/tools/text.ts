@@ -10,6 +10,7 @@ import { processLines, summary, type LineOptions, type LineDeps, type SortMode }
 import { plan, countText, type FindOptions, type Plan } from '../lib/findreplace';
 import { textdiff, type Textdiff, type DiffRow, type LineDiff, type SpanDiff } from '../wasm/textdiff';
 import { foldRows, lineSummary, spanSummary, APPROX, MAX_ROWS, MAX_SPAN_CHARS } from '../lib/textdiff';
+import { FANCY, FANCY_SHOWN, BY_CHARACTER, needsEngine, plainClusters, fancyRow, type Split } from '../lib/fancy';
 import { sodium } from '../wasm/crypto';
 import { devcore, type Devcore } from '../wasm/devcore';
 import { trackWorker, releaseNow } from '../lifecycle';
@@ -233,43 +234,39 @@ export const diff: Mount = (root) => {
 };
 
 // ================================================================== Fancy text
-const ranges = (upper: number, lower: number, digit?: number, exc: Record<string, string> = {}) => (s: string) => [...s].map((c) => {
-  if (exc[c]) return exc[c];
-  const k = c.codePointAt(0)!;
-  if (k >= 65 && k <= 90) return String.fromCodePoint(upper + k - 65);
-  if (k >= 97 && k <= 122) return String.fromCodePoint(lower + k - 97);
-  if (digit && k >= 48 && k <= 57) return String.fromCodePoint(digit + k - 48);
-  return c;
-}).join('');
-const mapChars = (from: string, to: string[]) => (s: string) => [...s].map((c) => { const i = from.indexOf(c); return i >= 0 ? to[i] : c; }).join('');
-const az = 'abcdefghijklmnopqrstuvwxyz';
-export const FANCY: Array<[string, (s: string) => string]> = [
-  ['Bold', ranges(0x1d400, 0x1d41a, 0x1d7ce)],
-  ['Italic', ranges(0x1d434, 0x1d44e, undefined, { h: 'ℎ' })],
-  ['Bold italic', ranges(0x1d468, 0x1d482)],
-  ['Script', ranges(0x1d49c, 0x1d4b6, undefined, { B: 'ℬ', E: 'ℰ', F: 'ℱ', H: 'ℋ', I: 'ℐ', L: 'ℒ', M: 'ℳ', R: 'ℛ', e: 'ℯ', g: 'ℊ', o: 'ℴ' })],
-  ['Bold script', ranges(0x1d4d0, 0x1d4ea)],
-  ['Fraktur', ranges(0x1d504, 0x1d51e, undefined, { C: 'ℭ', H: 'ℌ', I: 'ℑ', R: 'ℜ', Z: 'ℨ' })],
-  ['Double-struck', ranges(0x1d538, 0x1d552, 0x1d7d8, { C: 'ℂ', H: 'ℍ', N: 'ℕ', P: 'ℙ', Q: 'ℚ', R: 'ℝ', Z: 'ℤ' })],
-  ['Sans-serif', ranges(0x1d5a0, 0x1d5ba, 0x1d7e2)],
-  ['Sans bold', ranges(0x1d5d4, 0x1d5ee, 0x1d7ec)],
-  ['Sans italic', ranges(0x1d608, 0x1d622)],
-  ['Monospace', ranges(0x1d670, 0x1d68a, 0x1d7f6)],
-  ['Circled', ranges(0x24b6, 0x24d0)],
-  ['Fullwidth', (s) => [...s].map((c) => { const k = c.codePointAt(0)!; return k >= 33 && k <= 126 ? String.fromCodePoint(k + 0xfee0) : c === ' ' ? '　' : c; }).join('')],
-  ['Small caps', mapChars(az, [...'ᴀʙᴄᴅᴇꜰɢʜɪᴊᴋʟᴍɴᴏᴘǫʀꜱᴛᴜᴠᴡxʏᴢ'])],
-  ['Upside down', (s) => [...mapChars(az + 'ABCDEFGHIJKLMNOPQRSTUVWXYZ.,!?', [...'ɐqɔpǝɟƃɥᴉɾʞlɯuodbɹsʇnʌʍxʎz∀ꓭƆꓷƎℲ⅁HIſꓘ⅂WNOԀꝹꓤSꓕՈɅMX⅄Z˙\'¡¿'])(s)].reverse().join('')],
-  ['Strikethrough', (s) => [...s].map((c) => c + '̶').join('')],
-  ['Underline', (s) => [...s].map((c) => c + '̲').join('')],
-  ['Bubble squares', ranges(0x1f130, 0x1f130)],
-];
+// The styles are tables (src/lib/fancy.ts); this lists them. Three styles work character by character (a mark under
+// every character, the text turned upside down): the characters of a text with emoji or another script than Latin
+// are told apart by textkit.wasm, fetched with the first such text.
 export const fancy: Mount = (root) => {
-  const inp = input({ value: 'SuperTools', placeholder: 'Type something…' });
-  const list = h('div', { class: 'stack' });
-  const run = () => clear(list).append(...FANCY.map(([n, f]) => { const v = f(inp.value); return h('div', { class: 'case-row' }, h('span', { class: 'case-name' }, n), h('span', { class: 'case-val fancy-val' }, v), button('', () => copy(v), { icon: 'Copy', small: true, variant: 'ghost', title: 'Copy' })); }));
-  inp.addEventListener('input', run);
-  root.append(card(null, inp), card('Styles — tap to copy', list), note('These are Unicode characters, so they paste anywhere (Instagram, WhatsApp, X). Screen readers may read them oddly.'));
-  run();
+  const inp = textarea({ rows: 2, value: 'SuperTools', placeholder: 'Type something…' }); inp.setAttribute('aria-label', 'Text to style');
+  const cells = FANCY.map(() => h('span', { class: 'case-val fancy-val' }));
+  /** the splitter for the text in the box: null while the engine it needs is not there */
+  let split: Split | null = plainClusters, kit: Split | null = null, seq = 0, gone = false;
+  const styled = (i: number): string => { const [name, f] = FANCY[i]; return inp.value && (split || !BY_CHARACTER.has(name)) ? f(inp.value, split ?? plainClusters) : ''; };
+  const copyRow = (i: number) => { const v = styled(i); if (v) copy(v); };
+  // a tap anywhere on a row copies it; the button says which style it copies
+  const list = h('div', { class: 'stack' }, FANCY.map(([name], i) => { const row = h('div', { class: 'case-row fancy-row', title: `Copy ${name}` }, h('span', { class: 'case-name' }, name), cells[i], button('', (e) => { e.stopPropagation(); copyRow(i); }, { icon: 'Copy', small: true, variant: 'ghost', title: `Copy ${name}` })); row.onclick = () => copyRow(i); return row; }));
+  const cutNote = h('p', { class: 'muted small', hidden: true }, `A long text is shown up to its first ${FANCY_SHOWN.toLocaleString('en-IN')} characters — Copy gives all of it.`);
+  const problem = h('div', { class: 'stack' });
+  // without the engine a long text is cut for the screen between two code points (what is copied is never cut)
+  const draw = () => { const text = inp.value; FANCY.forEach(([name, f], i) => { cells[i].textContent = !split && BY_CHARACTER.has(name) ? '' : fancyRow(name, f, text, split ?? ((s) => Array.from(s))); }); cutNote.hidden = text.length <= FANCY_SHOWN; };
+  const run = async () => {
+    const my = ++seq;
+    if (!needsEngine(inp.value)) { split = plainClusters; problem.replaceChildren(); draw(); return; }
+    if (!kit) {
+      split = null; draw(); // the table styles at once; the three others when the engine is there
+      try { const k = await textkit(); kit = k.clusters; } catch {
+        if (!gone && my === seq) problem.replaceChildren(note('The part that tells emoji and other scripts apart could not be loaded, so Upside down, Strikethrough and Underline are empty — check your connection. It is tried again with the next change.', 'warn'));
+        return;
+      }
+      if (gone || my !== seq) return; // a newer text is on its way through here
+    }
+    split = kit; problem.replaceChildren(); draw();
+  };
+  inp.addEventListener('input', () => void run());
+  root.append(card(null, inp), card('Styles — tap to copy', list, cutNote, problem), note('These are Unicode characters, so they paste anywhere (Instagram, WhatsApp, X). Screen readers may read them oddly, and a search will not find the words.'));
+  void run();
+  return () => { gone = true; };
 };
 
 // ================================================================== Emoji & symbols

@@ -6,9 +6,6 @@ export default async (t, { load, wasm }) => {
   t.eq(x.toMorse('SOS Help'), '... --- ... / .... . .-.. .--.', 'to morse');
   t.eq(x.fromMorse('... --- ... / .... . .-.. .--.'), 'SOS HELP', 'from morse');
   t.eq(x.fromMorse(x.toMorse('Hello, World 2026!')), 'HELLO, WORLD 2026!', 'morse round trip');
-  // fancy
-  const bold = x.FANCY.find(([n]) => n === 'Bold')[1]('Ab1'); t.eq(bold, '𝐀𝐛𝟏', 'bold unicode');
-  t.eq(x.FANCY.find(([n]) => n === 'Upside down')[1]('hi'), 'ᴉɥ', 'upside down');
   // colour
   const { hexToRgb, rgbToHex } = await load('/src/lib/color.ts');
   const { bindMathcore } = await load('/src/wasm/mathcore.ts');

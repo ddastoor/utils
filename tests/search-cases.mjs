@@ -85,6 +85,7 @@ export default [
   ['find and replace', 'replace'], ['replace text', 'replace'], ['search and replace', 'replace'], ['replace all', 'replace'], ['regex replace', 'replace'],
   ['diff', 'diff'], ['compare text', 'diff'], ['compare two texts', 'diff'], ['what changed', 'diff'], ['diff checker', 'diff'], ['find differences', 'diff'],
   ['fancy text', 'fancy'], ['instagram font', 'fancy'], ['stylish text', 'fancy'],
+  ['upside down text', 'fancy'], ['strikethrough', 'fancy'], ['bold text', 'fancy'], ['small caps', 'fancy'], ['font generator', 'fancy'], ['flip text', 'fancy'], ['cursive', 'fancy'],
   ['emoji', 'emoji'], ['symbols', 'emoji'], ['special characters', 'emoji'],
   ['morse', 'morse'], ['morse code', 'morse'],
   ['lorem ipsum', 'lorem'], ['placeholder text', 'lorem'],

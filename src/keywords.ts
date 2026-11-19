@@ -100,7 +100,7 @@ export const KEYWORDS: Record<string, string> = {
   'uuid': 'uuid, guid, unique id, v4, v7, random id',
   'color': 'hex to rgb, rgb to hex, hsl to hex, color, colour, hex, rgb, hsl, oklch, picker, convert, css',
   'jwt': 'jwt, token, decode, json web token, bearer, claims',
-  'fancy': 'fancy text, unicode, font, bold, italic, cursive, instagram, bio, stylish',
+  'fancy': 'fancy text, unicode, font, fonts, bold, italic, cursive, script, fraktur, gothic, double struck, monospace, circled, bubble, squared, fullwidth, wide, small caps, upside down, flip text, strikethrough, strike, underline, instagram, whatsapp, bio, stylish, cool text, text styles, font generator',
   'emoji': 'emoji, symbols, characters, special characters, copy, arrows, currency, math',
   'morse': 'morse, code, sos, dots, dashes, telegraph',
   'lorem': 'lorem ipsum, placeholder, dummy text, filler',

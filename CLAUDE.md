@@ -969,6 +969,35 @@ the `similar` crate, §5.1o; wrapper `src/wasm/textdiff.ts`; unit `tests/unit/te
   it may not be the shortest. Texts above 20,000 characters are compared when the typing pauses. The sample pair is
   compared as the tab opens (so the module is fetched at open — on the lazy test's list).
 
+### Fancy Text — as built after the Nov 2026 bug hunt
+(`fancy` in `src/tools/text.ts`, the styles `src/lib/fancy.ts`, characters by textkit.wasm `tk_clusters` — §5.1o; unit
+`tests/unit/fancy.test.mjs` 81, e2e `tests/e2e/fancy.e2e.mjs` 51; reference `python3 scripts/make-fancy-reference.py`
+→ `tests/fixtures/fancy/reference.json`.)
+Eighteen styles of the text in the box (several lines; line breaks are kept): Bold, Italic, Bold italic, Script, Bold
+script, Fraktur, Double-struck, Sans-serif, Sans bold, Sans italic, Monospace, Circled, Fullwidth, Small caps, Upside
+down, Strikethrough, Underline, Squared.
+- **The alphabets are tables** — the characters Unicode names for each style (Mathematical Alphanumeric Symbols, with
+  the letters that block leaves out taken from Letterlike Symbols: ℎ, ℬ ℰ ℱ ℋ ℐ ℒ ℳ ℛ ℯ ℊ ℴ, ℭ ℌ ℑ ℜ ℨ, ℂ ℍ ℕ ℙ ℚ ℝ ℤ);
+  digits where Unicode has them (bold, double-struck, sans, sans bold, monospace, circled ⓪ ① … ⑨, fullwidth). The
+  reference of the tests looks every character up **by its name** in the Unicode Character Database. An accented
+  Latin letter is opened into letter + accent (`normalize('NFD')`), takes the style and keeps the accent; what has no
+  styled form (Hindi, emoji, ß, Greek) stays as it is. Small caps: Unicode's small capital letters (x has none; q is
+  ǫ, as the real small capital Q is missing from most fonts).
+- **Three styles work character by character** (`BY_CHARACTER`): Strikethrough (U+0336) and Underline (U+0332) put one
+  mark after every character a reader sees — not inside an emoji sequence, not after each vowel sign; a line break
+  gets none. Upside down: the characters in reverse order (so the last line comes first), each turned over — letters,
+  digits (6 ↔ 9, 0 and 8 stay), `. , ! ? ' " & _ ;` and brackets, which change places.
+  **Characters are told apart by textkit.wasm** (`tk_clusters`: extended grapheme clusters of Unicode 17.0, the ones
+  the Word Counter counts) — fetched with the first text that goes beyond Latin letters with accents, everyday
+  punctuation and currency signs (`needsEngine`); such a plain text is cut without the engine (`plainClusters`: a
+  letter with the accents behind it, exactly what the engine gives — the unit suite compares them). Nothing is
+  fetched as the tab opens. If the download fails, the fifteen table styles are there, the three rows are empty, a
+  note says why, and the next change tries again.
+- **The tab:** a tap anywhere on a row copies it; every copy button is named after its style ("Copy Fraktur"). A row
+  shows the style of the first 2,000 characters of a long text (`shownPart`: cut between two characters; Upside down
+  shows the end of the text, as its result begins with it) and the tab says so; Copy styles the whole text. A
+  keystroke at the end of 200,000 characters takes a few milliseconds.
+
 ### SQLite Playground (PC) — as built after the Nov 2026 bug hunt
 (`src/tools/software/sqlite.ts`, engine `src/lib/sqlite-engine.ts`, worker `src/workers/sqlite.worker.ts`; unit
 `tests/unit/sqlite.test.mjs` 106, e2e `tests/e2e/sqlite.e2e.mjs` 63.) Engine: the **official SQLite WebAssembly build**
@@ -1407,7 +1436,7 @@ stay **public** (the source of the deployed site is then available to every user
 | whisper: **whisper.cpp 1.8.3** + ggml CPU backend (upstream unmodified) + own threadshim.h (std::mutex/std::thread/fstream for zig's thread-less libc++), backend-reg.cpp (static CPU-only registry), cxxabi_stubs.c (throw = abort), glue.cpp | C / C++ | **us** (`wasm/whisper`) | stt |
 | geo: Charles Karney's **geodesic.c 2.2** (GeographicLib's geodesic routines in C, MIT; the two files unmodified from the PROJ 9.9.0 release) + glue (inverse problem on WGS-84, half-way point, the haversine great circle for comparison) | C | **us** (`wasm/geo`, 36 KB, loaded by the Coordinates tab only; no tried-and-tested WebAssembly geodesic module exists: `docs/WASM-AUDIT.md`, tab 82) | coords |
 | textcore: tool-search ranking, rare-word ranking (tokeniser, lemmatiser, wordfreq hash table), XY-cut reading order | C (own code) | **us** (`wasm/textcore`) | search box, photodict, epub |
-| textkit: **unicode-segmentation 1.13.3** (the Rust ecosystem's UAX #29 implementation, Unicode 17.0, MIT / Apache-2.0: extended grapheme clusters, sentence boundaries) + our counting rules: words as a word limit counts them, abbreviations and initials, lines and paragraphs, keywords (Snowball's stop words); **the Case Converter's thirteen conversions** (`case.rs`: Title Case is a port of the Python package `titlecase` 2.4.1 — Gruber's rules, MIT; the code cases cut words as npm's `change-case` does; case mapping by Rust's standard library) | Rust | **us** (`wasm/textkit`, crates.io via `Cargo.lock`, two modules by Cargo features: **textkit.wasm** 216 KB — fetched with the Word Counter's first text and with the Case Converter — and **textkit-diff.wasm** 0.69 MB = the **`similar` crate 3.2.1** (Apache-2.0: Myers in linear space with a time limit, line / word / grapheme diffs, inline changes, unified diffs) + our glue, fetched by the Text Diff only; the existing module — ICU4X's official build — is one file of 20 MB: `docs/WASM-AUDIT.md`, tab 90) | wordcount, case, lines ("By length"); diff (textkit-diff) |
+| textkit: **unicode-segmentation 1.13.3** (the Rust ecosystem's UAX #29 implementation, Unicode 17.0, MIT / Apache-2.0: extended grapheme clusters, sentence boundaries) + our counting rules: words as a word limit counts them, abbreviations and initials, lines and paragraphs, keywords (Snowball's stop words); **the Case Converter's thirteen conversions** (`case.rs`: Title Case is a port of the Python package `titlecase` 2.4.1 — Gruber's rules, MIT; the code cases cut words as npm's `change-case` does; case mapping by Rust's standard library) | Rust | **us** (`wasm/textkit`, crates.io via `Cargo.lock`, two modules by Cargo features: **textkit.wasm** 217 KB — fetched with the Word Counter's first text, with the Case Converter, and with the first Fancy Text that has an emoji or another script — and **textkit-diff.wasm** 0.69 MB = the **`similar` crate 3.2.1** (Apache-2.0: Myers in linear space with a time limit, line / word / grapheme diffs, inline changes, unified diffs) + our glue, fetched by the Text Diff only; the existing module — ICU4X's official build — is one file of 20 MB: `docs/WASM-AUDIT.md`, tab 90) | wordcount, case, lines ("By length"), fancy (characters); diff (textkit-diff) |
 | sheet: calamine 0.38 (read .xlsx .xlsm .xlsb .xls .ods) + rust_xlsxwriter 0.102 (write .xlsx) + csv 1 + serde_json | Rust | **us** (`wasm/sheet`, crates.io sources verified by `Cargo.lock`, target wasm32-wasip1) | sheet |
 | svgo: **OXVG 0.0.9** (Rust port of SVGO's plugins; lightningcss for `<style>`) + our glue: DOCTYPE / entities allowed, nesting limit 256, **our own safe preset** (OXVG's `Jobs::safe()` is not safe), `sv_diff` (do two rasters look alike? — the tab renders every result next to its original and falls back to the safe result when the full optimisation changed the picture) | Rust | **us** (`wasm/svgo`, crates.io via `Cargo.lock`, opt-level z, 4.9 MB / 1.3 MB gz, loaded with the first SVG; unit `tests/unit/svgo.test.mjs`, hazard drawings `tests/fixtures/svg/hazards.json`) | svgo |
 | keys — the **supplement** to hash-wasm for the key tabs (owner's tweak of 18 Nov 2026: what the existing module does not cover): lenient Base32 secrets, HOTP counters and truncation; checked parameters, random salts, PHC strings for scrypt / PBKDF2 and the reader of pasted hashes; RustCrypto **argon2** for Argon2 version 1.0 hashes (v=16 or no version, keyid / data), which hash-wasm does not read; RustCrypto **ssh-key** (OpenSSH Ed25519 generation), **aes + ctr + bcrypt-pbkdf** and our own OpenSSH wire reader (inspect Ed25519 / RSA / ECDSA / DSA keys, encrypted private keys, authorized_keys / known_hosts lines); API keys | Rust | **us** (`wasm/keys`, 0.31 MB; no existing WebAssembly module makes or reads OpenSSH key files) | totp, pwhash (with hash-wasm); sshkey, apikey |
@@ -1486,6 +1515,9 @@ them (`docs/WASM-AUDIT.md`, tab 93: the same dialect as the Regex Tester); the s
 Nov 2026 (Line Tools): `src/lib/linetools.ts` — split, trim, a `Set` for duplicates, reading a leading number, and
 `Array.sort` on the browser's `Intl.Collator` (compiled ICU, in the reader's language: `docs/WASM-AUDIT.md`, tab 92);
 the shuffle is crypto.wasm's and the line lengths are textkit.wasm's.
+Nov 2026 (Fancy Text): `src/lib/fancy.ts` — the tables (which character stands for which: data, nothing to
+compute) and `String.prototype.normalize` (the browser's ICU) for accented letters; the characters of a text with emoji
+or another script are told apart by textkit.wasm (`docs/WASM-AUDIT.md`, tab 95).
 Nov 2026 (Case Converter): nothing — the conversions are textkit.wasm's; `src/lib/caseconv.ts` holds the row names,
 the tooltips and the cut of a long result for the screen.
 Nov 2026 (Word Counter): the words of Thai, Lao, Khmer and Burmese stretches are cut by the browser's `Intl.Segmenter`
@@ -1855,7 +1887,8 @@ text); `approx` = the time limit ended the search. Wrapper `src/wasm/textdiff.ts
 `{ words, chars, noSpace, sentences, paragraphs, lines, wordChars, bytes, top: [[word, count], …] }`; `tk_alloc` /
 `tk_free`. The rules are those of §3 "Word Counter". `src/case.rs` (~260 lines): `tk_case(text, len)` → a JSON array
 of the thirteen conversions of §3 "Case Converter", in the order of `CASE_NAMES` (`src/lib/caseconv.ts`). `tk_line_lengths(text, len)`
-→ a JSON array: the characters of every line (Line Tools, "By length"). Speed: plain ASCII is counted without the segmenter (between
+→ a JSON array: the characters of every line (Line Tools, "By length"). `tk_clusters(text, len)` → a JSON array: the length in
+UTF-16 units of every character a reader sees, in order (Fancy Text cuts its own string with them). Speed: plain ASCII is counted without the segmenter (between
 two ASCII characters there is always a cluster boundary, except inside CR LF); a stretch around other characters
 goes to the crate. No imports beyond the WASI start-up. Wrapper `src/wasm/textkit.ts` (`bindTextkit`, `textkit()`).
 **To update:** `cargo update -p unicode-segmentation` in `wasm/textkit`, build, run `node tests/unit.mjs wordcount`

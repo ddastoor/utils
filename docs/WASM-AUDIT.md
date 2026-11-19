@@ -652,3 +652,30 @@ One entry per tab, written before its bug hunt: our module → candidates → ch
   original into the changed text with the module's unified diff (over 100 patches, final line breaks included);
   characters: the fewest changes the longest common subsequence allows on 400 random pairs; 100,000 lines with two
   changes in 0.2 s and 18 MB. The old routine left textcore.wasm (38 → 34 KB).
+
+### 95. `fancy` — Fancy Text (19 Nov 2026)
+- **Ours before:** no WebAssembly; tables of Unicode characters in TypeScript, and the styles that work character
+  by character (Upside down, Strikethrough, Underline) walked the text code point by code point.
+- **Candidates:** there is no WebAssembly module for "fancy text". What exists on npm (`unicode-text-styles`,
+  `weird-fonts`, `fancy-text-generator`, `to-unicode`, `unicode-text-decorator` — looked up in the registry) are
+  small JavaScript tables of the same kind as ours; none is an established library (their download counts could
+  not be read from this sandbox).
+- **What needs an engine here:** one thing — telling apart **the characters a reader sees** (extended grapheme
+  clusters: an emoji with its skin tone, a flag, a family, a Hindi conjunct with its vowel sign). The old tab got
+  this wrong (bugs 1 and 4). Two compiled engines can do it: the browser's `Intl.Segmenter` (ICU — what it knows
+  depends on the browser's version: the rule that makes a Hindi conjunct one character came with Unicode 15.1 in
+  2023, so a browser on an older ICU cuts it in two) and **textkit.wasm**, which already carries
+  `unicode-segmentation` (Unicode 17.0) for the Word Counter.
+- **Decision (WebAssembly first):** the clusters come from **textkit.wasm** — a new export, `tk_clusters` (15 lines
+  of Rust on the crate; the module grew by 1.4 KB to 217 KB), so the tab cuts a text the same way in every browser,
+  and the same way the Word Counter counts it. A text that holds only Latin letters with their accents, everyday
+  punctuation and currency signs needs no rules at all (a letter with the accents behind it; `plainClusters`, held
+  to the engine on thousands of random texts), so the module is fetched **with the first text that has an emoji or
+  another script** — nothing at open. **Left in TypeScript:** the tables themselves (data: which character stands
+  for which — there is nothing to compute) and `String.prototype.normalize` (the browser's ICU) to open an accented
+  letter into letter + accent.
+- **Evidence:** the fourteen alphabets equal the characters the Unicode Character Database **names** for them
+  (`scripts/make-fancy-reference.py`: "MATHEMATICAL BOLD CAPITAL A" … looked up by name with Python's
+  `unicodedata`), the holes filled from Letterlike Symbols; NFKC of thirteen styles gives the plain text back;
+  `tk_clusters` equals ICU 78.3 (Unicode 17.0) on texts in ten scripts; the suites of the Word Counter, the Case
+  Converter, the Line Tools and the Text Diff were run again after the rebuild (all green).

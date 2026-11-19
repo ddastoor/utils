@@ -7,6 +7,7 @@
 //!     { words, chars, noSpace, sentences, paragraphs, lines, wordChars, bytes, top: [[word, count], …] }
 //!   tk_case(text, len)  → 0, JSON: the thirteen conversions of the Case Converter (case.rs)
 //!   tk_line_lengths(text, len) → 0, JSON: the characters of every line (Line Tools, "By length")
+//!   tk_clusters(text, len) → 0, JSON: the length in UTF-16 units of every character a reader sees (Fancy Text)
 //!   tk_diff(a, lenA, b, lenB, mode, limit_ms) → 0, JSON: the differences of two texts (diff.rs)
 // the module for the Text Diff (feature "diff") is built without the counting code below
 #![cfg_attr(not(feature = "text"), allow(dead_code, unused_imports))]
@@ -296,6 +297,23 @@ fn stats(text: &str) -> String {
     let text = String::from_utf8_lossy(std::slice::from_raw_parts(p, n));
     let mut out = String::from("[");
     for (i, line) in text.split('\n').enumerate() { if i > 0 { out.push(','); } out.push_str(&characters(line).0.to_string()); }
+    out.push(']');
+    OUT.with(|o| *o.borrow_mut() = out.into_bytes());
+    0
+}
+
+/// The characters a reader sees (extended grapheme clusters, as the Word Counter counts them): a JSON array with the
+/// length of each in UTF-16 units, in order — the page cuts its own string with them. For the Fancy Text styles that
+/// work character by character (a mark under every character, the text turned upside down).
+#[cfg(feature = "text")] #[no_mangle] pub unsafe extern "C" fn tk_clusters(p: *const u8, n: usize) -> i32 {
+    let text = String::from_utf8_lossy(std::slice::from_raw_parts(p, n));
+    let mut out = String::with_capacity(text.len() * 2 + 2);
+    out.push('[');
+    for (i, g) in text.graphemes(true).enumerate() {
+        if i > 0 { out.push(','); }
+        let units: usize = g.chars().map(char::len_utf16).sum();
+        if units < 10 { out.push((b'0' + units as u8) as char); } else { out.push_str(&units.to_string()); }
+    }
     out.push(']');
     OUT.with(|o| *o.borrow_mut() = out.into_bytes());
     0
