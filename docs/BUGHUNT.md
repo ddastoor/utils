@@ -90,9 +90,9 @@ Areas with a shared review: the app shell (router, search, favorites, platform h
 | `percent` | Percentage Calculator | PC + mobile | calc-core | ✓ | 9 | 94 | nothing to replace (WASM-AUDIT 63); exact decimals: one division of whole numbers, held to Python's fractions (841 pairs × 6); tiny answers never 0; % change by |A| with the right sign; reasons where there is no answer; copy plain digits |
 | `words` | Number to Words | PC + mobile | calc-core | ✓ | 10 | 188 | nothing to replace (WASM-AUDIT 64); held to num2words (1,598 numbers, both systems); 'and' before a last part below a hundred; singular paisa / dollar / cent; plain numbers with any decimals and a sign; all 19 digits in Digits; lenient reading of ₹ Rs INR /-; shared with invoice and rent receipt |
 | `timezone` | Time Zone Converter | PC + mobile | calc-core | ✓ | 6 | 106 | nothing to replace (WASM-AUDIT 65: the browser's zone database); held to Python's zoneinfo (2,288 offsets, 3,095 readings around clock changes); offsets with seconds; years 1–99; a To zone among all zones; the year shown; renamed zones; difference in words |
-| `bmi` | BMI Calculator | PC + mobile | calc-core |  |  |  |  |
-| `calories` | Calorie Calculator | PC + mobile | calc-core |  |  |  |  |
-| `duedate` | Pregnancy Due Date | PC + mobile | calc-core |  |  |  |  |
+| `bmi` | BMI Calculator | PC + mobile | calc-core | ✓ | 6 | 45 | nothing to replace (WASM-AUDIT 66–68); exact fractions for 1,141 people; healthy range = exactly the weights classed Normal; feet + inches + pounds in their own boxes; inputs checked |
+| `calories` | Calorie Calculator | PC + mobile | calc-core | ✓ | 2 | 24 | Mifflin–St Jeor in exact decimals for 588 people; inputs checked; loss targets under 1,200 / 1,500 kcal marked too low with a note |
+| `duedate` | Pregnancy Due Date | PC + mobile | calc-core | ✓ | 5 | 41 | Python's datetime for 1,255 pregnancies; today is the local date; past-due and future periods said in words; whole cycles only; days to go |
 | `tip` | Tip & Bill Splitter | PC + mobile | calc-core |  |  |  |  |
 | `fuel` | Fuel Cost Calculator | PC + mobile | calc-core |  |  |  |  |
 | `gpa` | GPA Calculator | PC + mobile | calc-core |  |  |  |  |
@@ -796,4 +796,26 @@ reference cases.
   difference between the two zones in words ("New York is 10 hours 30 minutes behind Kolkata"). Dates are taken from
   2 January 0001 to 30 December 9999 (a day inside the calendar in every zone). Known and reported by the suite: the
   browser's database can be older than the reference (Morocco's 2026 dates in this Chromium).
+- **bmi** — BMI Calculator (6 bugs; unit `health.test.mjs` 0 → 47 for the three health tabs, e2e 10 → 33).
+  Nothing to replace (`docs/WASM-AUDIT.md` tabs 66 – 68). Reference: exact fractions of the typed numbers, the one
+  decimal that is shown by decimal rounding, the classes by both sets of cut-offs — 1,141 people — and the healthy
+  range of 43 heights found by trying every tenth of a kilogram or pound. What was wrong: (1) a height of 0 gave
+  **"BMI — · Obese"**; (2) nothing was checked: a negative weight was "Underweight", 1.7 typed as centimetres an
+  obese BMI of 235,294; (3) **the "healthy weight range" ended on a weight the tab itself called overweight** — at
+  170 cm it said 53.5 – 66.5 kg, and 66.5 kg is BMI 23.0, overweight by the Indian cut-off (and 53.4 kg, which is
+  Normal, was left out): the range is now exactly the weights classed Normal; (4) **Imperial asked for the height
+  in inches alone and kept the metric numbers in the boxes** (170 in, 68 lb → BMI 1.7): now feet and inches and
+  pounds, in boxes of their own; (5) in Imperial the healthy range was still in kilograms; (6) 30.0 was written
+  "30". Added: "Your weight is 1.7 kg above it / within that range".
+- **calories** — Calorie Calculator (2 bugs; e2e 9 → 24). Reference: the Mifflin–St Jeor equation in exact decimals
+  for 588 people. What was wrong: (1) nothing was checked — a weight of 0, a negative weight or an age of 0 gave a
+  daily need all the same; (2) **loss targets far below what is safe were offered as plans** (a small woman of 60:
+  "Weight loss: 716 kcal"): targets under 1,200 kcal (women) / 1,500 kcal (men) are marked "too low" and a note says
+  why. Added: a +0.5 kg a week row. The formula is for adults: ages 15 – 110.
+- **duedate** — Pregnancy Due Date (5 bugs; e2e 14 → 29). Reference: Python's datetime for 1,255 pregnancies (due
+  date, conception, trimester ends, days completed, days to go). What was wrong: (1) **the example started from the
+  date in UTC** — a day early in India until 05:30; (2) six weeks past the due date, or with a period still to come,
+  "Today" was a dash without a word; (3) a cycle of 28.5 days gave "9 weeks 6.5 days"; (4) in the first days of a
+  long cycle the count was negative and shown as a dash; (5) a period in the year 9999 gave "Invalid Date". Added:
+  "To go: 210 days (30 weeks 0 days)", "Due today", "7 days past the due date".
 

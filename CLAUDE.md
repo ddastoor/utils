@@ -612,8 +612,18 @@ open while the numbers change; `fmtINR` writes paise with both digits (₹12.10)
   java.time do — with a note; `modernZone`: 21 renamed zones under their current names (not the merely linked ones:
   Europe/Bratislava stays). Held to **Python's zoneinfo** (`python3 scripts/make-tz-reference.py`; leave out zones
   whose pre-1970 history depends on the distribution's "backzone" build — Europe/Amsterdam).
+- Health (`src/lib/health.ts`; unit `tests/unit/health.test.mjs` 47; reference `python3 scripts/make-health-reference.py`):
+  `bmi` (e2e 33) — metric (cm, kg) or imperial (feet + inches, lb) in boxes of their own; the BMI is shown with one
+  decimal (decimal rounding) and classed by that number, Asian-Indian (18.5 / 23 / 25) or WHO (18.5 / 25 / 30); the
+  healthy weight range is exactly the weights the tab classes Normal (both ends, steps of 0.1 kg or lb) and the
+  tab says how far the weight is from it; height 50 – 300 cm, weight 2 – 700 kg. `calories` (e2e 24) —
+  Mifflin–St Jeor (10·kg + 6.25·cm − 5·years + 5 / − 161) × activity; targets ± 275 and ± 550 kcal (7,700 kcal a
+  kilogram); a target under 1,200 kcal (women) / 1,500 kcal (men) is marked "too low" with a note; ages 15 – 110,
+  100 – 250 cm, 20 – 400 kg. `duedate` (e2e 29) — Naegele's rule: first day of the last period + 280 days +
+  (cycle − 28); a whole cycle of 20 – 45 days (empty = 28); weeks completed today (the reader's local date),
+  trimesters to 13 weeks 6 days and 27 weeks 6 days, days to go.
 - Number formatting shared by the calculators (`src/lib/form.ts`, unit `tests/unit/moneyfmt.test.mjs` 79):
-  `roundDec(x, d)` rounds a number as it is written with 15 digits, half away from zero (7.1225 → 7.123, 1.005 →
+  `roundDec(x, d)` (in `src/lib/round.ts`, no DOM) rounds a number as it is written with 15 digits, half away from zero (7.1225 → 7.123, 1.005 →
   1.01; Intl and toFixed round the binary value down) and leaves numbers that need more than 15 digits alone;
   `fmtN`, `fmtIntl` and `fmtINR` use it.
 

@@ -89,9 +89,9 @@ Generated from `src/registry.ts` by `npm run docs` — do not edit by hand.
 | `percent` | Percentage Calculator | PC + mobile | X% of Y, % change, what percent, discount, the whole from a part. | percent, percentage, increase, decrease, change, marks, discount, percent of, … |
 | `words` | Number to Words | PC + mobile | Amount in words — lakh/crore or million. | number to words, amount in words, cheque, check, lakh, crore, rupees, paise, … |
 | `timezone` | Time Zone Converter | PC + mobile | Convert a time between any two zones, with the world's cities beside it. | ist to pst, ist to est, utc to ist, est to ist, pst to ist, gmt to ist, time zone, timezone, … |
-| `bmi` | BMI Calculator | PC + mobile | Body mass index. | bmi, body mass index, weight, height, health, obesity |
-| `calories` | Calorie Calculator | PC + mobile | BMR and daily calories (TDEE). | calories, bmr, tdee, diet, maintenance, weight loss, metabolism |
-| `duedate` | Pregnancy Due Date | PC + mobile | Estimated due date and week. | pregnancy, due date, lmp, conception, weeks, trimester, baby |
+| `bmi` | BMI Calculator | PC + mobile | Body mass index, with Indian and WHO cut-offs and your healthy weight range. | bmi, body mass index, weight, height, health, obesity, overweight, underweight, … |
+| `calories` | Calorie Calculator | PC + mobile | BMR and daily calories (TDEE). | calories, bmr, tdee, diet, maintenance, weight loss, metabolism, how many calories, … |
+| `duedate` | Pregnancy Due Date | PC + mobile | Estimated due date and week. | pregnancy, due date, lmp, conception, weeks, trimester, baby, edd, … |
 | `tip` | Tip & Bill Splitter | PC + mobile | Split a bill with tip among people. | tip, split bill, restaurant, share, divide, friends |
 | `fuel` | Fuel Cost Calculator | PC + mobile | Trip fuel cost and mileage. | fuel, petrol, diesel, mileage, trip cost, kmpl, mpg, distance |
 | `gpa` | GPA Calculator | PC + mobile | GPA / CGPA from grades and credits; CGPA to %. | cgpa to percentage, sgpa to percentage, gpa, cgpa, sgpa, grades, credits, percentage, … |

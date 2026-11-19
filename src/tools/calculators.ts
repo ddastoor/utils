@@ -7,6 +7,7 @@ import { DAY, parseD, isoD, fmtD, addDays, daysBetween, ymd, addSpan, nextBirthd
 import { emiPlan, sipPlan, fdPlan, gstSplit, span } from '../lib/finance';
 import { pctAnswer, type PctOp } from '../lib/percent';
 import { inWords } from '../lib/words';
+import { bmiOf, feetInches, calorieNeeds, dueDate, ACTIVITY, LB, type Bmi } from '../lib/health';
 
 // ------------------------------------------------------------------ Unit converter
 // table, arithmetic and number formatting: src/lib/units.ts (exact definitions, held to GNU Units by the unit suite)
@@ -258,21 +259,27 @@ export const timezone: Mount = (root) => {
 // ------------------------------------------------------------------ BMI
 export const bmi: Mount = async (root) => {
   const m = await mathcore();
+  const metric = (v: Record<string, any>) => v.sys === 'm', imperial = (v: Record<string, any>) => v.sys === 'i';
   calcForm(root, [
     { key: 'sys', label: 'Units', type: 'seg', value: 'm', options: [['m', 'Metric'], ['i', 'Imperial']] },
-    { key: 'h', label: 'Height (cm or inches)', value: 170 },
-    { key: 'w', label: 'Weight (kg or lb)', value: 68 },
+    { key: 'cm', label: 'Height (cm)', value: 170, show: metric },
+    { key: 'ft', label: 'Height (feet)', value: 5, show: imperial },
+    { key: 'inch', label: 'and inches', value: 7, show: imperial },
+    { key: 'kg', label: 'Weight (kg)', value: 68, show: metric },
+    { key: 'lb', label: 'Weight (lb)', value: 150, show: imperial },
     { key: 'asian', label: 'Cut-offs', type: 'seg', value: 'asian', options: [['asian', 'Asian / Indian'], ['who', 'WHO international']] },
   ], (v) => {
-    need(v.h, v.w);
-    const hm = v.sys === 'm' ? v.h / 100 : v.h * 0.0254, kg = v.sys === 'm' ? v.w : v.w * 0.45359237;
-    const b = Math.round(m.bmi(kg, hm) * 10) / 10; // categorise the BMI as shown (one decimal): 76.8 kg at 1.60 m is 30.0, not 29.999…
-    const cuts = v.asian === 'asian' ? [18.5, 23, 25] : [18.5, 25, 30];
-    const cat = b < cuts[0] ? 'Underweight' : b < cuts[1] ? 'Normal' : b < cuts[2] ? 'Overweight' : 'Obese';
-    const lo = cuts[0] * hm * hm, hi = cuts[1] * hm * hm;
-    return { big: [['BMI', fmtN(b, 1)], ['Category', cat]], rows: [['Healthy weight range', `${fmtN(lo, 1)} – ${fmtN(hi, 1)} kg`], ['Cut-offs used', `<${cuts[0]} under · <${cuts[1]} normal · <${cuts[2]} over · ≥${cuts[2]} obese`]] };
+    let b: Bmi;
+    if (v.sys === 'm') { need(v.cm, v.kg); b = bmiOf(m, v.cm / 100, v.kg, v.asian); }
+    else { if (!isFinite(v.ft) && !isFinite(v.inch)) need(NaN); need(v.lb); b = bmiOf(m, feetInches(v.ft, v.inch), v.lb * LB, v.asian, 'lb'); }
+    const c = b.cuts, n1 = (x: number) => fmtN(x, 1);
+    return {
+      big: [['BMI', b.shown.toFixed(1)], ['Category', b.category]],
+      rows: [['Healthy weight range', `${n1(b.lo)} – ${n1(b.hi)} ${b.unit}`], ['Your weight is', b.off === 0 ? 'within that range' : `${n1(Math.abs(b.off))} ${b.unit} ${b.off > 0 ? 'above' : 'below'} it`],
+        ['Cut-offs used', `<${c[0]} under · <${c[1]} normal · <${c[2]} over · ≥${c[2]} obese`]],
+    };
   });
-  root.append(note('BMI is a screening number, not a diagnosis. Indian guidelines use lower cut-offs (23 / 25).'));
+  root.append(note('BMI is a screening number for adults, not a diagnosis; it does not tell muscle from fat. Indian guidelines use lower cut-offs (23 / 25).'));
 };
 
 // ------------------------------------------------------------------ Calories
@@ -283,29 +290,32 @@ export const calories: Mount = async (root) => {
     { key: 'age', label: 'Age', value: 30, unit: 'years' },
     { key: 'h', label: 'Height', value: 170, unit: 'cm' },
     { key: 'w', label: 'Weight', value: 70, unit: 'kg' },
-    { key: 'act', label: 'Activity', type: 'select', value: '1.375', options: [['1.2', 'Sedentary (little exercise)'], ['1.375', 'Light (1–3 days/week)'], ['1.55', 'Moderate (3–5 days/week)'], ['1.725', 'Active (6–7 days/week)'], ['1.9', 'Very active (physical job)']] },
+    { key: 'act', label: 'Activity', type: 'select', value: '1.375', options: ACTIVITY },
   ], (v) => {
     need(v.age, v.h, v.w);
-    const bmr = m.bmr(v.sex === 'm', v.w, v.h, v.age); // Mifflin–St Jeor (mathcore)
-    const tdee = bmr * parseFloat(v.act);
-    return { big: [['Maintenance (TDEE)', `${fmtN(tdee, 0)} kcal/day`], ['BMR', `${fmtN(bmr, 0)} kcal/day`]], rows: [['Mild weight loss (−0.25 kg/wk)', `${fmtN(tdee - 275, 0)} kcal`], ['Weight loss (−0.5 kg/wk)', `${fmtN(tdee - 550, 0)} kcal`], ['Weight gain (+0.25 kg/wk)', `${fmtN(tdee + 275, 0)} kcal`], ['Formula', 'Mifflin–St Jeor']] };
+    const c = calorieNeeds(m, v.sex === 'm', v.age, v.h, v.w, parseFloat(v.act)), k = (x: number) => `${fmtN(x, 0)} kcal`; // Mifflin–St Jeor (mathcore)
+    return {
+      big: [['Maintenance (TDEE)', `${k(c.tdee)}/day`], ['BMR', `${k(c.bmr)}/day`]],
+      rows: [...c.targets.map((t) => [t.label, `${k(t.kcal)}${t.low ? ' — too low' : ''}`] as [string, string]), ['Formula', 'Mifflin–St Jeor']],
+      notes: c.targets.some((t) => t.low) ? [`Eating less than about ${fmtN(c.floor, 0)} kcal a day is not advised for ${v.sex === 'm' ? 'men' : 'women'} without a doctor's supervision — aim for a slower loss.`] : [],
+    };
   });
 };
 
 // ------------------------------------------------------------------ Due date
 export const duedate: Mount = (root) => {
+  const now = today();
   calcForm(root, [
-    { key: 'lmp', label: 'First day of last period (LMP)', type: 'date', value: new Date(Date.now() - 70 * DAY).toISOString().slice(0, 10) },
+    { key: 'lmp', label: 'First day of last period (LMP)', type: 'date', value: isoD(addDays(parseD(now)!, -70)) },
     { key: 'cycle', label: 'Cycle length', value: 28, unit: 'days' },
   ], (v) => {
-    if (!v.lmp) throw new Error('Pick the first day of the last period.');
-    if (isFinite(v.cycle) && (v.cycle < 20 || v.cycle > 45)) throw new Error('Cycle length is usually 20–45 days.');
-    const lmp = pickD(v.lmp, 'First day of last period'), adj = (v.cycle || 28) - 28;
-    const due = new Date(lmp.getTime() + (280 + adj) * DAY);
-    const todayD = parseD(today())!;
-    const ga = Math.floor((todayD.getTime() - lmp.getTime()) / DAY) - adj;
-    const tri = ga < 98 ? 'First trimester' : ga < 196 ? 'Second trimester' : 'Third trimester';
-    return { big: [['Estimated due date', fmtD(due)], ['Today', ga >= 0 && ga < 300 ? `${Math.floor(ga / 7)} weeks ${ga % 7} days — ${tri}` : '—']], rows: [['Estimated conception', fmtD(new Date(lmp.getTime() + (14 + adj) * DAY))], ['End of first trimester', fmtD(new Date(lmp.getTime() + (97 + adj) * DAY))], ['End of second trimester', fmtD(new Date(lmp.getTime() + (195 + adj) * DAY))]] };
+    const d = dueDate(v.lmp, v.cycle, today()), wd = (n: number) => `${plural(Math.floor(n / 7), 'week')} ${plural(n % 7, 'day')}`;
+    const todayText = d.days === null ? 'That day is still to come' : d.toGo < -14 ? `The due date was ${plural(-d.toGo, 'day')} ago` : `${wd(d.days)} — ${d.trimester}`;
+    return {
+      big: [['Estimated due date', fmtD(d.due)], ['Today', todayText]],
+      rows: [...(d.days !== null && d.toGo >= -14 ? [['To go', d.toGo > 0 ? `${plural(d.toGo, 'day')} (${wd(d.toGo)})` : d.toGo === 0 ? 'Due today' : `${plural(-d.toGo, 'day')} past the due date`] as [string, string]] : []),
+        ['Estimated conception', fmtD(d.conception)], ['End of first trimester', fmtD(d.firstEnds)], ['End of second trimester', fmtD(d.secondEnds)]],
+    };
   });
   root.append(note('Naegele\'s rule estimate. Only ~4% of babies arrive on the due date — your doctor\'s scan dating takes precedence.'));
 };

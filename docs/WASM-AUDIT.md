@@ -390,3 +390,13 @@ One entry per tab, written before its bug hunt: our module → candidates → ch
   2037) and 3,095 wall-clock readings around 353 clock changes — to the second, in Node (the same tzdata) and by
   sample in Chromium.
 
+### 66 – 68. `bmi`, `calories`, `duedate` — BMI, Calorie and Pregnancy Due Date calculators (19 Nov 2026)
+- **Ours:** mathcore (own C): `m_bmi` (kg / m²) and `m_bmr` (the Mifflin–St Jeor equation); the due date is calendar
+  arithmetic on the browser's `Date` (`src/lib/dates.ts`). What each tab refuses and how it reads its boxes is
+  `src/lib/health.ts` (glue).
+- **Candidates:** WebAssembly — none (one formula each; nothing in the registry). JavaScript: small single-purpose
+  packages with a few hundred downloads a month.
+- **Decision:** nothing to replace. Held to exact fractions and decimals (BMI: 1,141 people and 43 healthy ranges
+  found by trying every tenth of a kilogram or pound; calories: 588 people) and to **Python's datetime** (1,255
+  pregnancies) — `scripts/make-health-reference.py`.
+
