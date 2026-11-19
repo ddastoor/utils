@@ -2,6 +2,8 @@ import { h, card, field, input, textarea, button, segmented, clear, stack, row, 
 import { readFunction, clampScale, clampCentre, zoomAbout, tickStep, ticks, tickLabel, type View } from '../lib/graph';
 import { mathcore, fmtNum } from '../wasm/mathcore';
 import { quadratic, cubic, linear, complexText, type Root } from '../lib/equations';
+import { readNumbers, readPairs, someOf, lineText } from '../lib/stats';
+import { roundDec } from '../lib/round';
 import { ELEMENTS, CATEGORY_COLORS } from '../lib/elements';
 
 // ================================================================== Graphing calculator
@@ -254,28 +256,39 @@ export const equation: Mount = async (root) => {
 /** plain decimal numbers only (1, -2.5, .5, 3e1); anything else (0x10, Infinity, words) is ignored */
 const NUM = /^[+-]?(\d+\.?\d*|\.\d+)(e[+-]?\d+)?$/i;
 const parseNums = (s: string) => s.split(/[\s,;]+/).filter((x) => NUM.test(x)).map(Number).filter((x) => isFinite(x));
+const SORTED_SHOWN = 1000;
 export const stats: Mount = async (root) => {
   const m = await mathcore();
   const ta = textarea({ rows: 6, value: '12, 15, 15, 18, 21, 24, 24, 24, 30', placeholder: 'Numbers separated by commas, spaces or new lines' });
   const xy = textarea({ rows: 5, value: '', placeholder: 'Optional regression: one "x, y" pair per line' });
   const out = h('div', { class: 'stack' });
+  const n = (v: number) => (Number.isNaN(v) ? '—' : fmtNum(v).replace(/^-/, '−'));
+  const tile = (l: string, v: string) => h('button', { class: 'big-result', type: 'button', title: 'Copy', onclick: () => copy(v.replace(/−/g, '-')) }, h('span', { class: 'big-label' }, l), h('span', { class: 'big-value' }, v));
   const run = () => {
     clear(out);
-    const xs = parseNums(ta.value);
+    const data = readNumbers(ta.value), xs = data.values;
+    const left = data.skipped.length ? note(`Left out — not ${data.skipped.length === 1 ? 'a number' : 'numbers'}: ${someOf(data.skipped)}`, 'warn') : null;
     if (xs.length) {
-      const s = m.stats(xs);
-      const rows: Array<[string, number | string]> = [['Count', s.count], ['Sum', s.sum], ['Min', s.min], ['Max', s.max], ['Range', s.range], ['Q1 (25%)', s.q1], ['Q3 (75%)', s.q3], ['IQR', s.iqr],
-        ['Variance (population)', s.varP], ['Variance (sample)', s.varS], ['Std dev (sample)', s.sdS], ['Geometric mean', s.geomean], ['Harmonic mean', s.harmmean], ['Skewness', s.skew], ['Sorted', s.sorted.map((x) => fmtNum(x)).join(', ')]];
+      const s = m.stats(xs), neg = s.min < 0;
+      const rows: Array<[string, string]> = [['Count', s.count.toLocaleString('en-IN')], ['Sum', n(s.sum)], ['Min', n(s.min)], ['Max', n(s.max)], ['Range', n(s.range)], ['Q1 (25%)', n(s.q1)], ['Q3 (75%)', n(s.q3)], ['IQR', n(s.iqr)],
+        ['Variance (population)', n(s.varP)], ['Variance (sample)', n(s.varS)], ['Std dev (sample)', n(s.sdS)], ['Geometric mean', n(s.geomean)], ['Harmonic mean', n(s.harmmean)], ['Skewness (population)', n(roundDec(s.skew, 10) + 0)], // a pure number of ordinary size: ten decimals, so that evenly spread data show 0 and not 5 × 10⁻¹⁶
+        ['Sorted', s.sorted.slice(0, SORTED_SHOWN).map(n).join(', ') + (s.sorted.length > SORTED_SHOWN ? ` … and ${(s.sorted.length - SORTED_SHOWN).toLocaleString('en-IN')} more` : '')]];
+      const why = [xs.length === 1 ? 'One number: the sample variance and standard deviation need two.' : '', neg ? 'The geometric and the harmonic mean are for numbers above 0 — there is a negative one.' : s.min === 0 ? 'With a 0 among the numbers the geometric and the harmonic mean are 0.' : '',
+        s.count > 1 && Number.isNaN(s.skew) ? 'All the numbers are equal: no skewness.' : ''].filter(Boolean);
       out.append(card('Summary',
-        h('div', { class: 'big-results' }, ...([['Mean', fmtNum(s.mean)], ['Median', fmtNum(s.median)], ['Mode', s.modes.length ? s.modes.map((x) => fmtNum(x)).join(', ') : 'none'], ['Std dev (population)', isNaN(s.sdP) ? '—' : fmtNum(s.sdP)]] as Array<[string, string]>).map(([l, v]) => h('button', { class: 'big-result', type: 'button', onclick: () => copy(v) }, h('span', { class: 'big-label' }, l), h('span', { class: 'big-value' }, v)))),
-        h('div', { class: 'kv' }, rows.flatMap(([l, v]) => [h('span', null, l), h('span', null, typeof v === 'number' ? (isNaN(v) ? '—' : fmtNum(v)) : v)]))));
-    }
-    const pairs = xy.value.split('\n').map((l) => parseNums(l)).filter((p) => p.length >= 2);
-    if (pairs.length >= 2) {
-      const r = m.regress(pairs.map((p) => p[0]), pairs.map((p) => p[1]));
-      out.append(card('Linear regression', h('div', { class: 'big-results' }, h('div', { class: 'big-result' }, h('span', { class: 'big-label' }, 'Best-fit line'), h('span', { class: 'big-value' }, `y = ${fmtNum(r.slope, 6)}x ${r.intercept < 0 ? '−' : '+'} ${fmtNum(Math.abs(r.intercept), 6)}`))),
-        h('div', { class: 'kv' }, h('span', null, 'Correlation r'), h('span', null, fmtNum(r.r, 6)), h('span', null, 'R²'), h('span', null, fmtNum(r.r * r.r, 6)), h('span', null, 'Pairs'), h('span', null, String(pairs.length)))));
-    }
+        h('div', { class: 'big-results' }, tile('Mean', n(s.mean)), tile('Median', n(s.median)), tile('Mode', s.modes.length ? s.modes.slice(0, 20).map(n).join(', ') + (s.modes.length > 20 ? ' …' : '') : 'none'), tile('Std dev (population)', n(s.sdP))),
+        h('div', { class: 'kv' }, rows.flatMap(([l, v]) => [h('span', null, l), h('span', null, v)])), ...why.map((w) => note(w)), left,
+        h('p', { class: 'muted small' }, 'Quartiles by linear interpolation between the sorted values (Excel\'s QUARTILE.INC, NumPy\'s default). Mode: the values that occur most often, when anything repeats.')));
+    } else out.append(card('Summary', note(ta.value.trim() ? 'No numbers among what was typed.' : 'Type some numbers — separated by commas, spaces or new lines.', ta.value.trim() ? 'warn' : undefined), left));
+    const pairs = readPairs(xy.value), k = pairs.x.length, problems = pairs.problems.slice(0, 5).map((p) => note(p, 'warn'));
+    if (pairs.problems.length > 5) problems.push(note(`… and ${pairs.problems.length - 5} more lines left out.`, 'warn'));
+    if (k >= 2) {
+      const r = m.regress(pairs.x, pairs.y), flat = Number.isNaN(r.slope);
+      out.append(card('Linear regression', flat ? note('All the x values are equal: the points stand above each other, and no line y = ax + b fits them.', 'warn')
+        : h('div', { class: 'big-results' }, tile('Best-fit line', lineText(r.slope, r.intercept, (v) => fmtNum(v, 6)))),
+        h('div', { class: 'kv' }, h('span', null, 'Correlation r'), h('span', null, Number.isNaN(r.r) ? '—' : fmtNum(r.r, 6).replace(/^-/, '−')), h('span', null, 'R²'), h('span', null, Number.isNaN(r.r) ? '—' : fmtNum(r.r * r.r, 6)), h('span', null, 'Pairs'), h('span', null, k.toLocaleString('en-IN'))),
+        !flat && Number.isNaN(r.r) ? note('All the y values are equal: the line is level, and a correlation is not defined.') : null, ...problems));
+    } else if (k === 1 || problems.length) out.append(card('Linear regression', k === 1 ? note('One pair — a line needs at least two.', 'warn') : null, ...problems));
   };
   ta.addEventListener('input', run); xy.addEventListener('input', run);
   root.append(card(null, stack(field('Data', ta), field('x, y pairs (optional)', xy))), out);

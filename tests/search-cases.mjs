@@ -189,6 +189,7 @@ export default [
   ['as the crow flies', 'coords'], ['distance between two points', 'coords'], ['nautical miles', 'coords'], ['midpoint', 'coords'], ['wgs84', 'coords'], ['vincenty', 'coords'], ['haversine', 'coords'],
   ['graph', 'graph'], ['plot function', 'graph'], ['graphing calculator', 'graph'],
   ['solve for x', 'equation'], ['quadratic formula', 'equation'], ['find roots', 'equation'], ['system of equations', 'equation'], ['cubic equation', 'equation'], ['discriminant', 'equation'], ['complex roots', 'equation'],
+  ['standard deviation calculator', 'stats'], ['quartile', 'stats'], ['best fit line', 'stats'], ['correlation coefficient', 'stats'], ['geometric mean', 'stats'], ['descriptive statistics', 'stats'],
   ['function plotter', 'graph'], ['draw graph', 'graph'], ['parabola', 'graph'], ['desmos', 'graph'], ['f(x)', 'graph'], ['sine wave', 'graph'],
   ['quadratic equation', 'equation'], ['solve equation', 'equation'], ['simultaneous equations', 'equation'],
   ['statistics', 'stats'], ['standard deviation', 'stats'], ['mean median mode', 'stats'],

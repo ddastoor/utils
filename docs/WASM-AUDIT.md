@@ -491,3 +491,15 @@ One entry per tab, written before its bug hunt: our module → candidates → ch
   the nearest double bit for bit, 400 quadratics, 300 cubics built from chosen roots, 300 linear systems (one
   solution as fractions / none / infinitely many with the rank), 20 equations in x.
 
+### 85. `stats` — Statistics (19 Nov 2026)
+- **Ours:** mathcore (own C): `m_stats` (count, sum, mean, median, quartiles, variances, deviations, geometric and
+  harmonic mean, skewness), `m_modes`, `m_regress` (least-squares line, Pearson's r).
+- **Candidates:** WebAssembly — none tried and tested for descriptive statistics of a typed list (numerical stacks
+  such as NumPy / SciPy through Pyodide are 10 MB and more; `@stdlib` ships a few WebAssembly kernels for BLAS-like
+  loops, not these statistics). JavaScript: `simple-statistics` (1.3 million downloads a month), `jstat`, `mathjs`
+  — plain double-precision sums, the same fault ours had (10¹⁶ + 1 − 10¹⁶ = 0).
+- **Decision:** nothing to replace; the engine got exact summation (Shewchuk's algorithm, as Python's `math.fsum`),
+  deviations in a power-of-two unit, and the corrections for the rounded mean. Held to the exact values of the
+  doubles (Python's `fractions`), cross-checked with Python's `statistics` module for 262 of 320 data sets —
+  `scripts/make-stats-reference.py`.
+

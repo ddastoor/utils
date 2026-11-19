@@ -113,7 +113,7 @@ Areas with a shared review: the app shell (router, search, favorites, platform h
 |---|---|---|---|---|---|---|---|
 | `graph` | Graphing Calculator | PC + mobile | calc2-math | ✓ | 11 | 96 | nothing to replace (WASM-AUDIT 83); FROZEN TAB on deep zoom fixed (zoom limits, counted grid lines); engine m_expr_plot tells jumps and poles from steep curves (1000x was not drawn, floor had connectors); reasons under the boxes, x = 2 vertical line, zoom about cursor / fingers, keys, 'undefined' readout |
 | `equation` | Equation Solver | PC + mobile | calc2-math | ✓ | 14 | 93 | engine kept + exact fractions on BigInt (WASM-AUDIT 84): kind of every answer exact — (x−1.1)² showed two roots, (x−1)²(x−10⁶) a complex pair; Kahan's quadratic/cubic in mathcore; linear systems: none vs infinitely many, small-unit systems no longer 'unsolvable'; identities, other letters, 50-root cap said; live + Enter; reference fractions + mpmath |
-| `stats` | Statistics | PC + mobile | calc2-math |  |  |  |  |
+| `stats` | Statistics | PC + mobile | calc2-math | ✓ | 12 | 46 | nothing to replace (WASM-AUDIT 85); exact sums (fsum) — 1e16+1−1e16 was 0; skewness corrected for the rounded mean; extremes scaled; left-out pieces named, real minus read; reasons for every —; regression without 'Error'; reference fractions + Python statistics |
 | `matrix` | Matrix Calculator | PC + mobile | calc2-math |  |  |  |  |
 | `fraction` | Fraction Calculator | PC + mobile | calc2-math |  |  |  |  |
 | `primes` | Prime / LCM / GCD | PC + mobile | calc2-math |  |  |  |  |
@@ -956,4 +956,14 @@ Reference for the five finance tabs: **mpmath at 60 digits** (`scripts/make-fina
   solution" is told from "infinitely many" with the rank; the engine's quadratic and cubic are Kahan's (scaled, no
   cube roots of differences); identities, missing x, other letters, two = signs, fifty roots and coarse steps each
   get their sentence; radians / degrees; live answers, Enter, the grid keeps what was typed.
+- **stats** — Statistics (12 bugs; unit 0 → 27, e2e 14 → 27). The sum of 10¹⁶, 1, −10¹⁶ was 0 (and the mean 0):
+  sums are exact now (`fsum` in mathcore); the skewness of numbers with a large offset (10⁹ + a few) was right to
+  seven digits only — the rounding of the mean is taken out of the squares and the cubes; data of 10³⁰⁰ gave no
+  skewness and data of 10⁻³⁰⁰ a deviation of 0 (deviations are scaled by a power of two). "−3" with a real minus
+  sign, and anything else that is not a number, was left out without a word (now read, or named: "Left out — not
+  numbers: abc, 12x"); with a 0 among the numbers the geometric and harmonic mean showed "—" (they are 0), and no
+  "—" had a reason; evenly spread decimals showed a skewness of 5 × 10⁻¹⁶. Regression: points above each other
+  gave "y = Errorx + Error", a level line a correlation of "Error"; a line with three numbers was taken as a pair
+  and a line with one passed over, both silently. An empty box left an empty page; the sorted list grew without
+  limit. The tab now says how its quartiles are worked out.
 

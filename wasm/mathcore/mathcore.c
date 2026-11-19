@@ -652,20 +652,74 @@ API int m_solve_linear(const double *A, const double *b, int n, double *x) {
 /* ======================================================================== statistics */
 static int cmpd(const void *a, const void *b) { double x = *(const double *)a, y = *(const double *)b; return (x > y) - (x < y); }
 static double quantile(const double *s, int n, double q) { double pos = (n - 1) * q; int lo = (int)floor(pos), hi = (int)ceil(pos); return s[lo] + (s[hi] - s[lo]) * (pos - lo); }
-/* Sorts xs in place. out[17]: count sum mean median min max range q1 q3 iqr varP varS sdP sdS geomean harmmean skew */
+/* The sum of doubles as if added with unlimited precision and rounded once (Shewchuk's algorithm, as Python's
+   math.fsum): 1e16 + 1 - 1e16 is 1, not 0. `get(i)` = the i-th term. */
+typedef double (*term_fn)(const double *v, double c, int i);
+static double t_plain(const double *v, double c, int i) { (void)c; return v[i]; }
+static double t_sq(const double *v, double c, int i) { (void)c; return v[i] * v[i]; }
+static double t_cube(const double *v, double c, int i) { (void)c; return v[i] * v[i] * v[i]; }
+static double t_log(const double *v, double c, int i) { (void)c; return log(v[i]); }
+static double t_inv(const double *v, double c, int i) { (void)c; return 1 / v[i]; }
+static double fsum(const double *v, int n, term_fn get, double c) {
+    int cap = 32, m = 0; double *p = malloc(cap * sizeof(double)), special = 0;
+    for (int i = 0; i < n; i++) {
+        double x = get(v, c, i); int k = 0;
+        if (!isfinite(x)) { special += x; continue; }
+        for (int j = 0; j < m; j++) {
+            double y = p[j], hi, lo;
+            if (fabs(x) < fabs(y)) { double t = x; x = y; y = t; }
+            hi = x + y; lo = y - (hi - x);
+            if (lo != 0) p[k++] = lo;
+            x = hi;
+        }
+        if (k >= cap) { cap *= 2; p = realloc(p, cap * sizeof(double)); }
+        p[k] = x; m = k + 1;
+    }
+    double hi = 0;
+    if (special != 0 || special != special) { free(p); return special; }
+    if (m > 0) {
+        int k = m - 1; double lo = 0; hi = p[k];
+        while (k > 0) { double x = hi, y = p[--k]; hi = x + y; lo = y - (hi - x); if (lo != 0) break; }
+        /* half-way cases: round to even needs the sign of what is left below */
+        if (k > 0 && ((lo < 0 && p[k - 1] < 0) || (lo > 0 && p[k - 1] > 0))) { double y = lo * 2, x = hi + y; if (y == x - hi) hi = x; }
+    }
+    free(p);
+    return hi;
+}
+/* v[i] - c for all i, divided by the power of two (2^*k) that brings the largest of them into [0.5, 1) */
+static double *dev_scaled(const double *v, int n, double c, int *k) {
+    double *d = malloc((n > 0 ? n : 1) * sizeof(double)), top = 0;
+    for (int i = 0; i < n; i++) { d[i] = v[i] - c; if (fabs(d[i]) > top) top = fabs(d[i]); }
+    *k = 0; if (top > 0 && isfinite(top)) frexp(top, k);
+    for (int i = 0; i < n; i++) d[i] = ldexp(d[i], -*k);
+    return d;
+}
+/* Sorts xs in place. out[17]: count sum mean median min max range q1 q3 iqr varP varS sdP sdS geomean harmmean skew.
+   Sums are exact (fsum); the squares are taken about the rounded mean and corrected for its rounding
+   (ss = sum d^2 - (sum d)^2 / n). Quartiles: linear interpolation between the sorted values at (n - 1)·q — Excel's
+   QUARTILE.INC, NumPy's default. Skewness: of the population (m3 / m2^1.5). Geometric and harmonic mean: 0 when a
+   value is 0, none (NaN) when one is negative — as Python's statistics module. */
 API void m_stats(double *xs, int n, double *out) {
     for (int i = 0; i < 17; i++) out[i] = NAN;
     if (n <= 0) { out[0] = 0; return; }
     qsort(xs, n, sizeof(double), cmpd);
-    double sum = 0; for (int i = 0; i < n; i++) sum += xs[i];
-    double mean = sum / n, ss = 0, s3 = 0, lg = 0, inv = 0; int allpos = 1;
-    for (int i = 0; i < n; i++) { double d = xs[i] - mean; ss += d * d; if (xs[i] <= 0) allpos = 0; else { lg += log(xs[i]); inv += 1 / xs[i]; } }
-    double varp = ss / n, sdp = sqrt(varp);
-    for (int i = 0; i < n; i++) { double z = sdp ? (xs[i] - mean) / sdp : 0; s3 += z * z * z; }
+    double sum = fsum(xs, n, t_plain, 0), mean = sum / n;
+    /* the distances from the mean, in units of a power of two that brings the largest near 1: their squares and
+       cubes then neither overflow (data of 1e300) nor vanish (1e-300), and the skewness does not care for the unit */
+    int k; double *d = dev_scaled(xs, n, mean, &k);
+    /* the mean is a rounded number, so the distances are all off by the same little e = (sum d) / n: taken out of the
+       squares (sum (d - e)^2 = sum d^2 - n e^2) and of the cubes (sum d^3 - 3e sum d^2 + 3e^2 sum d - n e^3) */
+    double e1 = fsum(d, n, t_plain, 0), e = e1 / n, raw2 = fsum(d, n, t_sq, 0), ss = raw2 - e1 * e;
+    if (ss < 0) ss = 0;
+    double m2 = ss / n, s3 = (fsum(d, n, t_cube, 0) - 3 * e * raw2 + 3 * e * e * e1 - n * e * e * e) / n;
+    free(d);
+    double varp = ldexp(m2, 2 * k), sdp = ldexp(sqrt(m2), k);
     out[0] = n; out[1] = sum; out[2] = mean; out[3] = quantile(xs, n, 0.5); out[4] = xs[0]; out[5] = xs[n - 1]; out[6] = xs[n - 1] - xs[0];
     out[7] = quantile(xs, n, 0.25); out[8] = quantile(xs, n, 0.75); out[9] = out[8] - out[7];
-    out[10] = varp; out[11] = n > 1 ? ss / (n - 1) : NAN; out[12] = sdp; out[13] = n > 1 ? sqrt(ss / (n - 1)) : NAN;
-    out[14] = allpos ? exp(lg / n) : NAN; out[15] = allpos ? n / inv : NAN; out[16] = sdp ? s3 / n : NAN;
+    out[10] = varp; out[11] = n > 1 ? ldexp(ss / (n - 1), 2 * k) : NAN; out[12] = sdp; out[13] = n > 1 ? ldexp(sqrt(ss / (n - 1)), k) : NAN;
+    if (xs[0] > 0) { out[14] = exp(fsum(xs, n, t_log, 0) / n); out[15] = n / fsum(xs, n, t_inv, 0); }
+    else if (xs[0] == 0) { out[14] = 0; out[15] = 0; }
+    out[16] = m2 > 0 ? s3 / (m2 * sqrt(m2)) : NAN;
 }
 /* sorted input → modes (values occurring most often, only if > 1 time). Returns count. */
 API int m_modes(const double *s, int n, double *out, int maxout) {
@@ -675,12 +729,19 @@ API int m_modes(const double *s, int n, double *out, int maxout) {
     for (int i = 0; i < n && cnt < maxout;) { int j = i; while (j < n && s[j] == s[i]) j++; if (j - i == best) out[cnt++] = s[i]; i = j; }
     return cnt;
 }
-/* out[3]: slope, intercept, r */
+/* Least-squares line y = slope·x + intercept and Pearson's r. out[3]: slope, intercept, r. NaN where there is none:
+   the slope when all x are equal, r when all x or all y are equal. Sums exact (fsum) about the rounded means. */
 API void m_regress(const double *x, const double *y, int n, double *out) {
-    double mx = 0, my = 0; for (int i = 0; i < n; i++) { mx += x[i]; my += y[i]; } mx /= n; my /= n;
-    double sxy = 0, sxx = 0, syy = 0;
-    for (int i = 0; i < n; i++) { sxy += (x[i] - mx) * (y[i] - my); sxx += (x[i] - mx) * (x[i] - mx); syy += (y[i] - my) * (y[i] - my); }
-    out[0] = sxy / sxx; out[1] = my - out[0] * mx; out[2] = sxy / sqrt(sxx * syy);
+    out[0] = out[1] = out[2] = NAN;
+    if (n < 1) return;
+    double mx = fsum(x, n, t_plain, 0) / n, my = fsum(y, n, t_plain, 0) / n;
+    int kx, ky; double *dx = dev_scaled(x, n, mx, &kx), *dy = dev_scaled(y, n, my, &ky), *pr = malloc(n * sizeof(double));
+    for (int i = 0; i < n; i++) pr[i] = dx[i] * dy[i];
+    double ex = fsum(dx, n, t_plain, 0), ey = fsum(dy, n, t_plain, 0);
+    double sxy = fsum(pr, n, t_plain, 0) - ex * ey / n, sxx = fsum(dx, n, t_sq, 0) - ex * ex / n, syy = fsum(dy, n, t_sq, 0) - ey * ey / n;
+    free(pr); free(dx); free(dy);
+    if (sxx > 0) { out[0] = ldexp(sxy / sxx, ky - kx); out[1] = my - out[0] * mx; }
+    if (sxx > 0 && syy > 0) { double r = sxy / sqrt(sxx * syy); out[2] = r > 1 ? 1 : r < -1 ? -1 : r; }
 }
 
 /* ======================================================================== integers (u64) */

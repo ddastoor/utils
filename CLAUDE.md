@@ -800,6 +800,19 @@ unit `tests/unit/equations.test.mjs` 62, e2e `tests/e2e/equation.e2e.mjs` 54; re
   for a term that is missing"; a = 0 gives the solution of what is left). The grid of the simultaneous equations
   keeps what was typed through a change of size.
 
+### Statistics — as built after the Nov 2026 bug hunt
+(`stats` in `src/tools/math.ts`, reading of the boxes `src/lib/stats.ts`, engine mathcore `m_stats` / `m_modes` /
+`m_regress`; unit `tests/unit/stats.test.mjs` 27, e2e 27; reference `python3 scripts/make-stats-reference.py`.)
+Numbers separated by commas, semicolons, spaces or line breaks (a real minus sign is read; what is not a number is
+named under the result). **Sums are exact** (Shewchuk's `fsum`); deviations from the rounded mean are taken in a
+power-of-two unit and corrected for the mean's rounding (squares and cubes), so data of 10³⁰⁰, of 10⁻³⁰⁰ and of
+10⁹ + a few keep their figures. Quartiles: linear interpolation at (n − 1)·q (Excel's QUARTILE.INC, NumPy's default —
+said in the tab); mode: the most frequent values when anything repeats, else "none"; skewness of the population
+(m₃ / m₂^1.5, shown with ten decimals); geometric and harmonic mean: 0 with a zero among the numbers, none with a
+negative one (as Python's statistics module) — each "—" has its reason. The sorted row shows the first 1,000 values.
+Regression (optional box, one "x, y" pair a line; other lines are named and left out): least-squares line and
+Pearson's r; all x equal → no line, all y equal → a level line and no r.
+
 ### SQLite Playground (PC) — as built after the Nov 2026 bug hunt
 (`src/tools/software/sqlite.ts`, engine `src/lib/sqlite-engine.ts`, worker `src/workers/sqlite.worker.ts`; unit
 `tests/unit/sqlite.test.mjs` 106, e2e `tests/e2e/sqlite.e2e.mjs` 63.) Engine: the **official SQLite WebAssembly build**
