@@ -162,12 +162,15 @@ export const mount: Mount = (root) => {
   src.addEventListener('input', () => { stale(true); view.setAttribute('aria-busy', 'true'); rerun(); });
   src.addEventListener('keydown', (e) => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); rerun.cancel(); render(); } });
   const open = async ([f]: File[]) => {
-    clear(fileNote);
-    if (f.size > MAX_FILE) throw new Error(`${f.name} is ${num(Math.round(f.size / 1048576))} MB — too large to edit here (the limit is 20 MB)`);
-    const bytes = await readBytes(f);
-    if (looksBinary(bytes)) throw new Error(`${f.name} is not a text file. A graph file (.gv, .dot) is plain text.`);
-    const d = decodeGraphFile(bytes);
-    src.value = d.text.replace(/^﻿/, ''); fileName = f.name; index = 0;
+    clear(fileNote); view.setAttribute('aria-busy', 'true');       // busy from the moment a file is chosen
+    let d: { text: string; as: string };
+    try {
+      if (f.size > MAX_FILE) throw new Error(`${f.name} is ${num(Math.round(f.size / 1048576))} MB — too large to edit here (the limit is 20 MB)`);
+      const bytes = await readBytes(f);
+      if (looksBinary(bytes)) throw new Error(`${f.name} is not a text file. A graph file (.gv, .dot) is plain text.`);
+      d = decodeGraphFile(bytes);
+    } catch (e) { view.setAttribute('aria-busy', 'false'); throw e; }
+    src.value = d.text.replace(/^\ufeff/, ''); fileName = f.name; index = 0;
     if (d.as) fileNote.append(note(`${f.name} is not UTF-8: read as ${d.as}.`, 'info'));
     rerun.cancel(); render();
   };

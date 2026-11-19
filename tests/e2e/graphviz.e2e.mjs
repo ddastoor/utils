@@ -231,9 +231,9 @@ export default async (ctx) => {
   await file.setInputFiles(put('bom.gv', Buffer.concat([Buffer.from([0xef, 0xbb, 0xbf]), Buffer.from('digraph { bom -> ok }')]))); await settled();
   ok((await src.inputValue()) === 'digraph { bom -> ok }' && (await status.textContent()) === '' && !/not UTF-8/.test(await page.locator('.card').first().textContent()), 'a UTF-8 file with a byte order mark: the mark does not reach Graphviz');
   page.errors.length = 0; await clearToasts();
-  await file.setInputFiles(put('picture.png', Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 13, 0x49, 0x48, 0x44, 0x52]))); await page.waitForTimeout(300);
+  await file.setInputFiles(put('picture.png', Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 13, 0x49, 0x48, 0x44, 0x52]))); await settled(); await until(page, () => !!document.querySelector('.toast'));
   ok(/picture\.png is not a text file/.test(await toasts()) && (await src.inputValue()) === 'digraph { bom -> ok }', 'a file that is not text is refused and the editor keeps its graph'); await clearToasts();
-  await file.setInputFiles(put('huge.gv', Buffer.alloc(21 * 1024 * 1024, 0x20))); await page.waitForTimeout(500);
+  await file.setInputFiles(put('huge.gv', Buffer.alloc(21 * 1024 * 1024, 0x20))); await settled(); await until(page, () => !!document.querySelector('.toast'));
   ok(/huge\.gv is 21 MB — too large to edit here/.test(await toasts()) && (await src.inputValue()) === 'digraph { bom -> ok }', 'a file of 21 MB is refused with the limit'); await clearToasts();
   page.errors.length = 0;   // the two refusals are logged on purpose
   // a sample forgets the file's name
