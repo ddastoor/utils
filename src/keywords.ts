@@ -89,7 +89,7 @@ export const KEYWORDS: Record<string, string> = {
   'periodic': 'periodic table, elements, chemistry, atomic number, atomic mass, electron configuration, periodic table of elements, chemical elements, element symbol, atomic number, atomic mass, atomic weight, electron configuration, group, period, block, noble gas, halogen, alkali metal, transition metal, lanthanide, actinide, metalloid, hydrogen, oxygen, carbon, iron, gold, aluminium, aluminum, chemistry',
   'wordcount': 'word count, character count, letters, sentences, reading time, length, count words, how many words, word limit, essay length, sentence count, paragraph count, line count, speaking time, speech length, keywords, most used words, text statistics, characters without spaces, letter count',
   'case': 'case, uppercase, lowercase, title case, sentence case, camel, snake, kebab, capitalize, capitalise each word, capital letters, caps lock, all caps, small letters, change case, headline, camelCase, snake_case, kebab-case, pascal case, constant case, toggle case, alternating',
-  'lines': 'lines, sort, unique, dedupe, remove duplicates, trim, reverse, shuffle, empty lines',
+  'lines': 'lines, sort, unique, dedupe, remove duplicates, trim, reverse, shuffle, empty lines, sort lines, alphabetical order, sort numbers, numeric sort, natural sort, sort by length, randomize list, number lines, add prefix, add suffix, remove blank lines, list cleaner, uniq',
   'replace': 'replace text, replace word, bulk replace, find, replace, search, substitute, regex',
   'diff': 'diff, compare, difference, changes, text compare',
   'json': 'json, format, pretty, beautify, minify, validate, lint',

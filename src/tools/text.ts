@@ -7,6 +7,7 @@ import { textkit, type Textkit } from '../wasm/textkit';
 import { textStats, timeText, EMPTY, READING_WPM, SPEAKING_WPM, type TextStats } from '../lib/wordcount';
 import { roundDec } from '../lib/round';
 import { CASE_NAMES, CASE_HINTS, SHOWN, shownPart } from '../lib/caseconv';
+import { processLines, summary, type LineOptions, type LineDeps, type SortMode } from '../lib/linetools';
 import { sodium } from '../wasm/crypto';
 import { devcore, type Devcore } from '../wasm/devcore';
 import { trackWorker, releaseNow } from '../lifecycle';
@@ -79,36 +80,46 @@ export const caseConv: Mount = (root) => {
 };
 
 // ================================================================== Line tools
-export const lines: Mount = async (root) => {
-  const na = await sodium();
+// The work on the lines is src/lib/linetools.ts; sorting compares with the browser's collator. The two engines are
+// fetched when their option is chosen: crypto.wasm for Shuffle, textkit.wasm for By length.
+export const lines: Mount = (root) => {
   const ta = textarea({ rows: 10, value: 'banana\napple\n  cherry  \napple\n\nBanana\n10\n9', mono: true });
   const out = outputBox({ rows: 10, mono: true });
-  const o = { trim: true, empty: true, dedupe: true, ci: false, sort: 'az', reverse: false, number: false, prefix: '', suffix: '' };
-  const info = h('div', { class: 'muted small' });
-  const coll = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' });
-  const run = () => {
-    let ls = ta.value.split(/\r?\n/);
-    const before = ls.length;
-    if (o.trim) ls = ls.map((l) => l.trim());
-    if (o.empty) ls = ls.filter((l) => l.trim());
-    if (o.dedupe) { const seen = new Set<string>(); ls = ls.filter((l) => { const k = o.ci ? l.toLowerCase() : l; if (seen.has(k)) return false; seen.add(k); return true; }); }
-    if (o.sort === 'az') ls.sort(coll.compare); else if (o.sort === 'za') ls.sort((a, b) => coll.compare(b, a));
-    else if (o.sort === 'len') ls.sort((a, b) => a.length - b.length || coll.compare(a, b));
-    else if (o.sort === 'shuffle') ls = na.shuffle(ls); // fair CSPRNG shuffle (crypto.wasm)
-    if (o.reverse) ls.reverse();
-    ls = ls.map((l, i) => `${o.number ? `${i + 1}. ` : ''}${o.prefix}${l}${o.suffix}`);
-    out.value = ls.join('\n');
-    info.textContent = `${before} lines in → ${ls.length} lines out`;
+  const o: LineOptions = { trim: true, empty: true, dedupe: true, ci: false, sort: 'az', reverse: false, number: false, prefix: '', suffix: '' };
+  const info = h('div', { class: 'muted small' }), problem = h('div', { class: 'stack' });
+  let na: Awaited<ReturnType<typeof sodium>> | null = null, kit: Textkit | null = null, gone = false, timer = 0;
+  // the order of the last shuffle: it stays while only other options change (a prefix typed letter by letter used to
+  // shuffle the list anew at every key)
+  let shuffled: { of: string; order: Uint32Array } | null = null;
+  const deps: LineDeps = {
+    shuffle: (ls) => { const of = ls.join('\n'); if (!shuffled || shuffled.of !== of || shuffled.order.length !== ls.length) shuffled = { of, order: na!.permutation(ls.length) }; return Array.from(shuffled.order, (i) => ls[i]); },
+    lengths: (ls) => kit!.lineLengths(ls),
   };
-  ta.addEventListener('input', run);
+  const again = button('Shuffle again', () => { shuffled = null; void run(); }, { small: true });
+  const run = async () => {
+    again.hidden = o.sort !== 'shuffle';
+    try {
+      if (o.sort === 'shuffle' && !na) na = await sodium();
+      if (o.sort === 'len' && !kit) kit = await textkit();
+      if (gone) return;
+      const r = processLines(ta.value, o, deps); // the text and the options as they are now
+      out.value = r.lines.join('\n'); info.textContent = summary(r); clear(problem);
+    } catch (e: any) { clear(problem).append(note(`This option could not be loaded — ${e?.message || e}. Choose it again to retry.`, 'err')); }
+  };
+  const set = <K extends keyof LineOptions>(k: K) => (v: LineOptions[K]) => { o[k] = v; void run(); };
+  // a very long list is worked on when the typing pauses
+  ta.addEventListener('input', () => { clearTimeout(timer); if (ta.value.length > 200_000) timer = window.setTimeout(run, 250); else void run(); });
   root.append(card(null, field('Input', ta)), card('Options', stack(
-    h('div', { class: 'grid2' }, toggle('Trim spaces', o.trim, (v) => { o.trim = v; run(); }), toggle('Remove empty lines', o.empty, (v) => { o.empty = v; run(); }),
-      toggle('Remove duplicates', o.dedupe, (v) => { o.dedupe = v; run(); }), toggle('…ignoring case', o.ci, (v) => { o.ci = v; run(); }),
-      toggle('Reverse order', o.reverse, (v) => { o.reverse = v; run(); }), toggle('Number lines', o.number, (v) => { o.number = v; run(); })),
-    field('Sort', segmented([['none', 'Keep order'], ['az', 'A → Z'], ['za', 'Z → A'], ['len', 'By length'], ['shuffle', 'Shuffle']], o.sort, (v) => { o.sort = v; run(); })),
-    h('div', { class: 'grid2' }, field('Add prefix', input({ onInput: (v) => { o.prefix = v; run(); } })), field('Add suffix', input({ onInput: (v) => { o.suffix = v; run(); } }))))),
+    h('div', { class: 'grid2' }, toggle('Trim spaces', o.trim, set('trim')), toggle('Remove empty lines', o.empty, set('empty')),
+      toggle('Remove duplicates', o.dedupe, set('dedupe')), toggle('…ignoring case', o.ci, set('ci')),
+      toggle('Reverse order', o.reverse, set('reverse')), toggle('Number lines', o.number, set('number'))),
+    field('Sort', segmented<SortMode>([['none', 'Keep order'], ['az', 'A → Z'], ['za', 'Z → A'], ['num', '0 → 9'], ['len', 'By length'], ['shuffle', 'Shuffle']], o.sort, (v) => { if (v === 'shuffle') shuffled = null; o.sort = v; void run(); }),
+      'A → Z sorts as a dictionary does, with "item 2" before "item 10". 0 → 9 sorts by the number a line begins with (−3, 1.5, 1,20,000, ₹ 500); lines without one come last.'),
+    again,
+    h('div', { class: 'grid2' }, field('Add prefix', input({ onInput: set('prefix') })), field('Add suffix', input({ onInput: set('suffix') }))), problem)),
   card('Output', out, info));
-  run();
+  void run();
+  return () => { gone = true; clearTimeout(timer); };
 };
 
 // ================================================================== Find & replace

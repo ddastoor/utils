@@ -596,3 +596,21 @@ One entry per tab, written before its bug hunt: our module → candidates → ch
 - **Evidence:** Title Case equals the Python package on 197 of 203 titles (its own 72 tests among them); the six
   others are differences on purpose, listed with their reasons in the unit suite. The six code cases equal npm's
   `change-case` 5.4.4 on 3,016 generated names. UPPER and lower equal ICU on 2,509 texts.
+
+### 92. `lines` — Line Tools (19 Nov 2026)
+- **Ours:** the shuffle is crypto.wasm's (own C on libsodium's random numbers; a fair Fisher–Yates). Everything
+  else was TypeScript: split, trim, a `Set` for duplicates, and `Array.sort` with the browser's **`Intl.Collator`**
+  (ICU inside the browser; digits compared as numbers).
+- **Candidates for the sorting (the one real engine here):** ICU4X's official WebAssembly build (`icu` on npm: the
+  20 MB file of tab 90); a build of ours from the `icu_collator` crate (root collation ≈ 0.5 MB, each language's
+  tailoring more) or from `feruca` (the Unicode Collation Algorithm in Rust, root order only).
+- **Check:** unlike the browser's word segmenter (tab 90), the collator showed no defect: plain words sort as GNU
+  `sort` sorts them and numbered ones as `sort -V` (80 lists in the unit suite, 24 more through the page), and it
+  sorts **in the reader's own language** (ä after z in Swedish, with a in German) — which a root-only module of ours
+  would lose and a module with every tailoring would pay megabytes for.
+- **Decision:** the browser's collator stays (an engine of the platform, like WebCodecs for video: compiled ICU, no
+  download). **Beside it:** the length of a line for "By length" is textkit.wasm's count of characters (it was
+  UTF-16 units), fetched when that option is chosen; the shuffle stays crypto.wasm's, now fetched when Shuffle is
+  chosen instead of when the tab opens. What is left in TypeScript (`src/lib/linetools.ts`) hands lines to those
+  three engines: split, trim, a `Set`, reading a leading number — glue that would cost more to marshal into a
+  module and back (the sort itself must call the browser's collator) than it costs to run.

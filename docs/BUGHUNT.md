@@ -124,7 +124,7 @@ Areas with a shared review: the app shell (router, search, favorites, platform h
 |---|---|---|---|---|---|---|---|
 | `wordcount` | Word Counter | PC + mobile | text | ✓ | 17 | 145 | new engine textkit.wasm (unicode-segmentation + own rules); words as Word counts them; abbreviations, initials; lazyEngine for all wrappers |
 | `case` | Case Converter | PC + mobile | text | ✓ | 14 | 108 | conversions in textkit.wasm (case.rs); Title Case = port of python titlecase; code cases held to change-case; lines kept |
-| `lines` | Line Tools | PC + mobile | text |  |  |  |  |
+| `lines` | Line Tools | PC + mobile | text | ✓ | 10 | 102 | linetools.ts; held to GNU sort/awk/sed on 400 lists; 0 → 9 sort; shuffle stays put; engines lazy |
 | `replace` | Find & Replace | PC + mobile | text |  |  |  |  |
 | `diff` | Text Diff | PC + mobile | text |  |  |  |  |
 | `fancy` | Fancy Text | PC + mobile | text |  |  |  |  |
@@ -1079,3 +1079,23 @@ Reference for the five finance tabs: **mpmath at 60 digits** (`scripts/make-fina
   Added: **Capitalized Case** (Word's "Capitalize Each Word" — the tab's keywords promised "capitalize"); a tooltip
   per row; long results shown up to 20,000 characters and copied whole; texts above 200,000 characters converted
   when the typing pauses; Mc / O' / d' names in Title Case.
+- **`lines` (tab 92, 10 bugs; `src/lib/linetools.ts`; unit `tests/unit/linetools.test.mjs` 80, e2e 36 — before:
+  14 e2e checks).**
+  1. A list that ends with a line break had a line too many: sorted, an empty line stood on top; numbered, an empty
+     line got the last number.
+  2. An empty box was "1 lines in → 0 lines out".
+  3. "1 lines".
+  4. Duplicates: é typed as one character and as e + accent were two lines.
+  5. Duplicates "ignoring case": STRASSE stayed beside Straße (only `toLowerCase` was compared).
+  6. "By length" counted UTF-16 units: two emoji with a skin tone were 8 long, नमस्ते 6. Characters now, as the Word
+     Counter counts them (textkit.wasm).
+  7. Numbers could only be sorted as a dictionary sorts them: −3 before −20, 1.5 before 1.25. New choice **0 → 9**:
+     by the number a line begins with (signs, decimals, exponents, 1,20,000, ₹ 500); lines without one last.
+  8. Shuffle shuffled anew at every change of any option: a prefix typed letter by letter made the list jump at each
+     key. The order now stays until the lines change or "Shuffle again" is pressed.
+  9. The tab fetched crypto.wasm when it opened, for a shuffle that had not been asked for. No engine at open now.
+  10. A → Z left lines that differ only in capitals or accents (a / A, resume / résumé) in the order they came in, so
+      the same lines could sort two ways; the order is fixed now (small before capital, plain before accented).
+  Also: the line under the result says what was removed ("1 empty line and 1 duplicate removed"); a list above
+  200,000 characters is worked on when the typing pauses. Reference: the GNU tools on 400 lists
+  (`scripts/make-lines-reference.py`): all agree.

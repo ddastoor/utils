@@ -921,6 +921,22 @@ every browser and language setting (nothing uses the browser's locale):
   keep their line breaks on screen; a result is shown up to 20,000 characters and copied whole; a text above
   200,000 characters is converted when the typing pauses.
 
+### Line Tools — as built after the Nov 2026 bug hunt
+(`lines` in `src/tools/text.ts`, the work `src/lib/linetools.ts`; unit `tests/unit/linetools.test.mjs` 80, e2e
+`tests/e2e/lines.e2e.mjs` 36; reference `python3 scripts/make-lines-reference.py` → `tests/fixtures/lines/reference.json`.)
+In this order: split (a line break at the very end starts no line; an empty box has no lines) → **Trim spaces** →
+**Remove empty lines** (a line of spaces is empty) → **Remove duplicates** (the first of each stays; the same
+letters written two ways — NFC — are one line; "…ignoring case" also takes ß as ss) → **Sort** → **Reverse order**
+→ **Number lines** ("1. ") + prefix + suffix. Sort: *Keep order*; *A → Z* / *Z → A* by the browser's `Intl.Collator`
+in the reader's language, digits as numbers ("item 2" before "item 10", v1.9 before v1.10), small before capital and
+plain before accented where nothing else differs; *0 → 9* by the number a line begins with (`leadingNumber`: sign or
+−, ₹ $ € £ ¥ Rs INR USD, thousands commas incl. Indian grouping, decimals, exponent; equal numbers keep their order,
+lines without a number come last and are counted); *By length* in characters as the Word Counter counts them
+(textkit.wasm `tk_line_lengths`), equal lengths A → Z; *Shuffle* (crypto.wasm's fair permutation) — the order stays
+while other options change and is made anew by "Shuffle again" or a change of the lines. Engines are fetched when
+their option is chosen (none at open). The line under the result: "8 lines in → 6 lines out · 1 empty line and 1
+duplicate removed". A list above 200,000 characters is worked on when the typing pauses.
+
 ### SQLite Playground (PC) — as built after the Nov 2026 bug hunt
 (`src/tools/software/sqlite.ts`, engine `src/lib/sqlite-engine.ts`, worker `src/workers/sqlite.worker.ts`; unit
 `tests/unit/sqlite.test.mjs` 106, e2e `tests/e2e/sqlite.e2e.mjs` 63.) Engine: the **official SQLite WebAssembly build**
@@ -1359,7 +1375,7 @@ stay **public** (the source of the deployed site is then available to every user
 | whisper: **whisper.cpp 1.8.3** + ggml CPU backend (upstream unmodified) + own threadshim.h (std::mutex/std::thread/fstream for zig's thread-less libc++), backend-reg.cpp (static CPU-only registry), cxxabi_stubs.c (throw = abort), glue.cpp | C / C++ | **us** (`wasm/whisper`) | stt |
 | geo: Charles Karney's **geodesic.c 2.2** (GeographicLib's geodesic routines in C, MIT; the two files unmodified from the PROJ 9.9.0 release) + glue (inverse problem on WGS-84, half-way point, the haversine great circle for comparison) | C | **us** (`wasm/geo`, 36 KB, loaded by the Coordinates tab only; no tried-and-tested WebAssembly geodesic module exists: `docs/WASM-AUDIT.md`, tab 82) | coords |
 | textcore: Myers diff, tool-search ranking, rare-word ranking (tokeniser, lemmatiser, wordfreq hash table), XY-cut reading order | C (own code) | **us** (`wasm/textcore`) | diff, search box, photodict |
-| textkit: **unicode-segmentation 1.13.3** (the Rust ecosystem's UAX #29 implementation, Unicode 17.0, MIT / Apache-2.0: extended grapheme clusters, sentence boundaries) + our counting rules: words as a word limit counts them, abbreviations and initials, lines and paragraphs, keywords (Snowball's stop words); **the Case Converter's thirteen conversions** (`case.rs`: Title Case is a port of the Python package `titlecase` 2.4.1 — Gruber's rules, MIT; the code cases cut words as npm's `change-case` does; case mapping by Rust's standard library) | Rust | **us** (`wasm/textkit`, crates.io via `Cargo.lock`, 215 KB, fetched with the Word Counter's first text and with the Case Converter; the existing module — ICU4X's official build — is one file of 20 MB: `docs/WASM-AUDIT.md`, tab 90) | wordcount, case |
+| textkit: **unicode-segmentation 1.13.3** (the Rust ecosystem's UAX #29 implementation, Unicode 17.0, MIT / Apache-2.0: extended grapheme clusters, sentence boundaries) + our counting rules: words as a word limit counts them, abbreviations and initials, lines and paragraphs, keywords (Snowball's stop words); **the Case Converter's thirteen conversions** (`case.rs`: Title Case is a port of the Python package `titlecase` 2.4.1 — Gruber's rules, MIT; the code cases cut words as npm's `change-case` does; case mapping by Rust's standard library) | Rust | **us** (`wasm/textkit`, crates.io via `Cargo.lock`, 215 KB, fetched with the Word Counter's first text and with the Case Converter; the existing module — ICU4X's official build — is one file of 20 MB: `docs/WASM-AUDIT.md`, tab 90) | wordcount, case, lines ("By length") |
 | sheet: calamine 0.38 (read .xlsx .xlsm .xlsb .xls .ods) + rust_xlsxwriter 0.102 (write .xlsx) + csv 1 + serde_json | Rust | **us** (`wasm/sheet`, crates.io sources verified by `Cargo.lock`, target wasm32-wasip1) | sheet |
 | svgo: **OXVG 0.0.9** (Rust port of SVGO's plugins; lightningcss for `<style>`) + our glue: DOCTYPE / entities allowed, nesting limit 256, **our own safe preset** (OXVG's `Jobs::safe()` is not safe), `sv_diff` (do two rasters look alike? — the tab renders every result next to its original and falls back to the safe result when the full optimisation changed the picture) | Rust | **us** (`wasm/svgo`, crates.io via `Cargo.lock`, opt-level z, 4.9 MB / 1.3 MB gz, loaded with the first SVG; unit `tests/unit/svgo.test.mjs`, hazard drawings `tests/fixtures/svg/hazards.json`) | svgo |
 | keys — the **supplement** to hash-wasm for the key tabs (owner's tweak of 18 Nov 2026: what the existing module does not cover): lenient Base32 secrets, HOTP counters and truncation; checked parameters, random salts, PHC strings for scrypt / PBKDF2 and the reader of pasted hashes; RustCrypto **argon2** for Argon2 version 1.0 hashes (v=16 or no version, keyid / data), which hash-wasm does not read; RustCrypto **ssh-key** (OpenSSH Ed25519 generation), **aes + ctr + bcrypt-pbkdf** and our own OpenSSH wire reader (inspect Ed25519 / RSA / ECDSA / DSA keys, encrypted private keys, authorized_keys / known_hosts lines); API keys | Rust | **us** (`wasm/keys`, 0.31 MB; no existing WebAssembly module makes or reads OpenSSH key files) | totp, pwhash (with hash-wasm); sshkey, apikey |
@@ -1433,6 +1449,9 @@ Nov 2026 (Equation Solver): `src/lib/exact.ts` + `src/lib/equations.ts` — exac
 (compiled big-number arithmetic, like JSON.parse or RegExp in this list): discriminants, elimination on at most 4 × 4,
 Newton's step with exact residuals. mathcore's exact fractions are 64-bit and overflow here; the iterations and the
 root search stay in mathcore.
+Nov 2026 (Line Tools): `src/lib/linetools.ts` — split, trim, a `Set` for duplicates, reading a leading number, and
+`Array.sort` on the browser's `Intl.Collator` (compiled ICU, in the reader's language: `docs/WASM-AUDIT.md`, tab 92);
+the shuffle is crypto.wasm's and the line lengths are textkit.wasm's.
 Nov 2026 (Case Converter): nothing — the conversions are textkit.wasm's; `src/lib/caseconv.ts` holds the row names,
 the tooltips and the cut of a long result for the screen.
 Nov 2026 (Word Counter): the words of Thai, Lao, Khmer and Burmese stretches are cut by the browser's `Intl.Segmenter`
@@ -1793,7 +1812,8 @@ from its .dsc), check the version line, `python3 scripts/make-geo-reference.py`,
 (`src/lib.rs`, ~250 lines): `tk_stats(text, len)` → JSON in `tk_out_ptr()` / `tk_out_len()`:
 `{ words, chars, noSpace, sentences, paragraphs, lines, wordChars, bytes, top: [[word, count], …] }`; `tk_alloc` /
 `tk_free`. The rules are those of §3 "Word Counter". `src/case.rs` (~260 lines): `tk_case(text, len)` → a JSON array
-of the thirteen conversions of §3 "Case Converter", in the order of `CASE_NAMES` (`src/lib/caseconv.ts`). Speed: plain ASCII is counted without the segmenter (between
+of the thirteen conversions of §3 "Case Converter", in the order of `CASE_NAMES` (`src/lib/caseconv.ts`). `tk_line_lengths(text, len)`
+→ a JSON array: the characters of every line (Line Tools, "By length"). Speed: plain ASCII is counted without the segmenter (between
 two ASCII characters there is always a cluster boundary, except inside CR LF); a stretch around other characters
 goes to the crate. No imports beyond the WASI start-up. Wrapper `src/wasm/textkit.ts` (`bindTextkit`, `textkit()`).
 **To update:** `cargo update -p unicode-segmentation` in `wasm/textkit`, build, run `node tests/unit.mjs wordcount`

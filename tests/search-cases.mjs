@@ -81,7 +81,7 @@ export default [
   ['how many words', 'wordcount'], ['count words', 'wordcount'], ['sentence count', 'wordcount'], ['reading time', 'wordcount'], ['speaking time', 'wordcount'], ['word limit', 'wordcount'], ['characters without spaces', 'wordcount'],
   ['uppercase', 'case'], ['case converter', 'case'], ['title case', 'case'],
   ['capitalize each word', 'case'], ['all caps to lowercase', 'case'], ['change case', 'case'], ['snake case', 'case'], ['camelcase', 'case'], ['caps lock', 'case'],
-  ['remove duplicate lines', 'lines'], ['sort lines', 'lines'],
+  ['remove duplicate lines', 'lines'], ['sort lines', 'lines'], ['alphabetical order', 'lines'], ['remove blank lines', 'lines'], ['number lines', 'lines'], ['randomize list', 'lines'], ['sort numbers', 'lines'],
   ['find and replace', 'replace'], ['replace text', 'replace'],
   ['diff', 'diff'], ['compare text', 'diff'],
   ['fancy text', 'fancy'], ['instagram font', 'fancy'], ['stylish text', 'fancy'],

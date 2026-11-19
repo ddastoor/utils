@@ -6,6 +6,7 @@
 //!   tk_stats(text, len) → 0, JSON in tk_out_ptr() / tk_out_len():
 //!     { words, chars, noSpace, sentences, paragraphs, lines, wordChars, bytes, top: [[word, count], …] }
 //!   tk_case(text, len)  → 0, JSON: the thirteen conversions of the Case Converter (case.rs)
+//!   tk_line_lengths(text, len) → 0, JSON: the characters of every line (Line Tools, "By length")
 use std::cell::RefCell;
 use std::collections::HashMap;
 use unicode_segmentation::UnicodeSegmentation;
@@ -280,6 +281,17 @@ fn stats(text: &str) -> String {
     let mut out = String::with_capacity(text.len() * 14 + 64);
     out.push('[');
     for (i, v) in case::all(&text).iter().enumerate() { if i > 0 { out.push(','); } json_str(&mut out, v); }
+    out.push(']');
+    OUT.with(|o| *o.borrow_mut() = out.into_bytes());
+    0
+}
+
+/// The number of characters (grapheme clusters, as the Word Counter counts them) of every line of a text that is
+/// split at "\n": a JSON array of numbers. For the Line Tools' "By length".
+#[no_mangle] pub unsafe extern "C" fn tk_line_lengths(p: *const u8, n: usize) -> i32 {
+    let text = String::from_utf8_lossy(std::slice::from_raw_parts(p, n));
+    let mut out = String::from("[");
+    for (i, line) in text.split('\n').enumerate() { if i > 0 { out.push(','); } out.push_str(&characters(line).0.to_string()); }
     out.push(']');
     OUT.with(|o| *o.borrow_mut() = out.into_bytes());
     0
