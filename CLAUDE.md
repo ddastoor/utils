@@ -579,6 +579,11 @@ open while the numbers change; `fmtINR` writes paise with both digits (₹12.10)
   is left, so base + GST gives the typed amount back to the paisa. Seven slabs + "Other" (0 – 100 %, three
   decimals). An amount is read as it is written (₹1.005 is ₹1.01) and a third decimal is rounded with a note. A
   negative amount (a credit) is the mirror image. Limit ₹10 lakh crore.
+- `sip` (unit `tests/unit/sip.test.mjs` 52, e2e 39): monthly instalments at the start of each month, monthly rate =
+  annual / 12 (the AMFI / Groww convention), optional yearly step-up (0 – 1,000 %); or a lump sum compounded yearly
+  (the period may be a fraction of a year). Expected return above −100 % (a loss is shown as one) and at most
+  1,000 %. Maturity value, invested and gains are whole rupees that add up as shown; wealth multiple; "Instalments"
+  row; the step-up box only for the monthly SIP.
 
 **Scientific Calculator as built after the Nov 2026 bug hunt** (`src/tools/calc.ts`, text helpers `src/lib/calc-text.ts`,
 engine `wasm/mathcore` `m_expr_*`; unit `tests/unit/calc.test.mjs` 243 — 3,005 answers of **mpmath at 50 digits** and

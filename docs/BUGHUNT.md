@@ -85,7 +85,7 @@ Areas with a shared review: the app shell (router, search, favorites, platform h
 | `dates` | Date Calculator | PC + mobile | calc-core | ✓ | 7 | 40 | nothing to replace (WASM-AUDIT 58); held to Python's datetime (6,985 cases, years 1–9999); today() is the local date; years 0–99; end date counted in y-m-d; refusals |
 | `emi` | EMI Calculator | PC + mobile | calc-core | ✓ | 15 | 127 | nothing to replace (WASM-AUDIT 59); held to a month-by-month reference in mpmath at 420 digits (936 loans) + numpy-financial; closed forms over the whole range; unit label follows years / months; refusals with reasons; schedule stays open; paise with two digits |
 | `gst` | GST Calculator | PC + mobile | calc-core | ✓ | 6 | 62 | nothing to replace (WASM-AUDIT 60); whole paise in mathcore m_gst, held to Python's decimal (1,126 pairs × 4 modes); CGST + SGST add up to the GST shown; base + GST = the amount typed when it includes the tax; Other rate; paise() reads amounts as written (also for the invoice engine) |
-| `sip` | SIP Calculator | PC + mobile | calc-core |  |  |  |  |
+| `sip` | SIP Calculator | PC + mobile | calc-core | ✓ | 10 | 75 | nothing to replace (WASM-AUDIT 61); held to a month-by-month reference in mpmath (1,430 plans, 180 lump sums) + numpy-financial fv; refusals with reasons; no more freeze on absurd periods; figures add up as shown; instalments row |
 | `fd` | FD / RD Calculator | PC + mobile | calc-core |  |  |  |  |
 | `percent` | Percentage Calculator | PC + mobile | calc-core |  |  |  |  |
 | `words` | Number to Words | PC + mobile | calc-core |  |  |  |  |
@@ -725,4 +725,19 @@ reference cases.
   1.5 %, 6 % or 7.5 % (which the invoice tab has) could not be entered: "Other" with a box, up to three decimals;
   (6) 10¹⁸ rupees was worked out with digits a double does not have (limit ₹10 lakh crore, with the reason).
   A credit (negative amount) is the mirror image. Notes say when the amount or the rate was rounded.
+- **sip** — SIP Calculator (10 bugs; unit 0 → 52, e2e 16 → 39 — two of them loops over 87 plans and 40 lump sums).
+  Nothing to replace (`docs/WASM-AUDIT.md` tab 61). Reference: the instalments carried forward month by month in
+  **mpmath** (1,430 plans: −50 % to 1,000 %, 1 to 1,200 months, step-ups to 100 %; 180 lump sums), cross-checked with
+  **numpy-financial's fv**. What was wrong: (1) a period of 0, a negative one, or less than half a month gave ₹0 three
+  times and "—×" without a reason; (2) 15.04 years was silently worked out as 180 months — the number of instalments
+  was nowhere; (3) 300 years gave a maturity value of 23 digits, 5,000 years a screen full of them; (4) **3 × 10⁷
+  years froze the page for 1.6 seconds** (the engine looped once per month; it now stops at 12,000 and the tab
+  refuses beyond 100 years); (5) a negative amount had a negative maturity value; (6) a return of −1,300 % gave a
+  maturity value of −₹769, a lump sum at −150 % three dashes; (7) a step-up of −150 % made the instalments change
+  sign; (8) a lump sum for −5 years was worth ₹5,674; (9) "-0×" as the wealth multiple; (10) **Maturity − Invested
+  was not the Gains shown** whenever the invested amount had paise (a step-up of 5 % or 12.5 %): 209 of the 1,430
+  reference plans were a rupee off — the three figures are now the ones that add up. Refusals say why (amount above
+  0, return above −100 % and at most 1,000 %, period 1 month – 100 years, step-up 0 – 1,000 %, result up to ₹10,000
+  lakh crore). Added: "Instalments" row, a note for a period that is not whole months, "₹ a month" beside the
+  amount; the step-up box is hidden for a lump sum.
 

@@ -347,3 +347,10 @@ One entry per tab, written before its bug hunt: our module → candidates → ch
   amount is read as it is written with 15 digits. Held to **Python's decimal** (ROUND_HALF_UP on the typed text) for
   1,126 amount × rate pairs in the four modes.
 
+### 61. `sip` — SIP Calculator (19 Nov 2026)
+- **Ours:** mathcore (own C): `m_sip` — the instalments carried forward month by month (yearly step-up), or a lump sum.
+- **Candidates:** as for tab 59: no time-value-of-money module exists as WebAssembly; the JavaScript ports of
+  numpy-financial have `fv`, without step-ups.
+- **Decision:** nothing to replace. Held to the same recurrence in **mpmath at 60 digits** for 1,430 plans and 180
+  lump sums, cross-checked with **numpy-financial's fv** on the 120 plans without a step-up.
+

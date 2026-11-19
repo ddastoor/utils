@@ -79,10 +79,11 @@ what those suites missed.
   Python's datetime; `today()` is the local date now). **`emi` (tab 59) is DONE** (15 bugs; `src/lib/finance.ts`,
   closed forms in mathcore, reference `tests/fixtures/finance/reference.json` — `pip install mpmath numpy-financial`,
   `python3 scripts/make-finance-reference.py`; the fixture already holds the answers for SIP, FD / RD, GST and
-  Percentage, and `finance.ts` already has `sipPlan` and `fdPlan` — **the tabs `sip`, `fd`, `percent` still run
-  their old code**: faults found by probing are listed in `docs/HANDOFF.md` "Finance tabs: confirmed faults still
-  to fix"). **`gst` (tab 60) is DONE** (6 bugs; whole paise in mathcore `m_gst`, held to Python's decimal; "Other"
-  rate). **NEXT: `sip`**, then `fd`, `percent` and the rest of the list in that order; per tab: the
+  Percentage, and `finance.ts` already has `fdPlan` — **the tabs `fd` and `percent` still run their old code**:
+  faults found by probing are listed in `docs/HANDOFF.md` "Finance tabs: confirmed faults still to fix").
+  **`gst` (tab 60) is DONE** (6 bugs; whole paise in mathcore `m_gst`, held to Python's decimal; "Other" rate).
+  **`sip` (tab 61) is DONE** (10 bugs; `sipPlan`, held to mpmath + numpy-financial's fv). **NEXT: `fd`**, then
+  `percent` and the rest of the list in that order; per tab: the
   existing-module check with its entry in `docs/WASM-AUDIT.md` first (the survey of entry 56 covers calculators:
   no tried-and-tested WebAssembly calculator exists), then bugs, tests, fixes. Reference tools at hand: mpmath
   (`pip install mpmath`), Python's `decimal` / `fractions` / `datetime` / `zoneinfo`.

@@ -234,9 +234,6 @@ export ZIG=/tmp/zig/x/ziglang/zig
   you type.
 
 ## Finance tabs: confirmed faults still to fix (probed 19 Nov 2026; delete each line when its tab is done)
-- `sip`: a period of 0 / negative / under half a month gives zeros and "—×"; 15.04 years is silently 180 months;
-  300 or 5,000 years fill the screen with digits; 3 × 10⁷ years freezes the page for 1.6 s; a negative amount, a
-  return of −1,300 % and a step-up of −150 % give nonsense; "-0×". Use `sipPlan()`.
 - `fd`: tenure 0 / negative without a reason (RD with −2 years: "Invested −₹1,20,000"); 5,000 years fill the screen;
   −500 % gives nonsense; RD of 1.04 / 2.3 years silently 12 / 28 months; RD of 3 × 10⁷ years freezes for 1.8 s.
   Use `fdPlan()`.

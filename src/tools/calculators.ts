@@ -149,14 +149,19 @@ export const sip: Mount = async (root) => {
   const m = await mathcore();
   calcForm(root, [
     { key: 'mode', label: 'Investment', type: 'seg', value: 'sip', options: [['sip', 'Monthly SIP'], ['lump', 'Lumpsum']] },
-    { key: 'amt', label: 'Amount', value: 10000, unit: '₹' },
+    { key: 'amt', label: 'Amount', value: 10000, unit: (v) => (v.mode === 'sip' ? '₹ a month' : '₹') },
     { key: 'r', label: 'Expected return', value: 12, unit: '% p.a.', step: 0.5 },
     { key: 'y', label: 'Period', value: 15, unit: 'years' },
-    { key: 'step', label: 'Annual step-up (SIP)', value: 0, unit: '%' },
+    { key: 'step', label: 'Annual step-up (SIP)', value: 0, unit: '%', show: (v) => v.mode === 'sip' },
   ], (v) => {
     need(v.amt, v.r, v.y);
-    const { invested, value } = m.sip(v.amt, v.r, v.y, v.step || 0, v.mode === 'lump'); // nominal r/12 — the AMFI/Groww convention
-    return { big: [['Maturity value', fmtINR(Math.round(value))], ['Invested', fmtINR(Math.round(invested))], ['Gains', fmtINR(Math.round(value - invested))]], rows: [['Wealth multiple', `${fmtN(value / invested, 2)}×`]] };
+    const s = sipPlan(m, v.mode, v.amt, v.r, v.y, Number.isFinite(v.step) ? v.step : 0); // an empty step-up box is no step-up; nominal r/12 — the AMFI / Groww convention
+    const value = Math.round(s.value), invested = Math.round(s.invested); // the three figures add up as they are shown
+    return {
+      big: [['Maturity value', fmtINR(value)], ['Invested', fmtINR(invested)], ['Gains', fmtINR(value - invested)]],
+      rows: [['Wealth multiple', `${fmtN(s.multiple, 2)}×`], ...(s.months ? [['Instalments', `${s.months.toLocaleString('en-IN')} monthly${s.months >= 12 ? ` (${span(s.months)})` : ''}`] as [string, string]] : [])],
+      notes: s.rounded ? [`Instalments are monthly, so the period is counted as ${span(s.months!)}.`] : [],
+    };
   });
 };
 
