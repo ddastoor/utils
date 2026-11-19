@@ -629,3 +629,26 @@ One entry per tab, written before its bug hunt: our module → candidates → ch
   search now runs in the regex worker and is ended after 5 seconds** (it ran on the page and froze the tab).
   `src/lib/findreplace.ts` builds the pattern (plain text escaped, whole words by Unicode properties) and the
   replacement; that is string glue around a native engine.
+
+### 94. `diff` — Text Diff (19 Nov 2026)
+- **Ours before:** `t_diff` in textcore.wasm — own C, Myers' O(ND) algorithm over token ids, with the whole search
+  history kept for backtracking.
+- **What the check found (a defect of our own module):** the history was reserved for the worst case — a table of
+  (lines of both texts)² entries whatever the texts — so 3,000 lines with two changed lines took **528 MB** of
+  memory, and from about 8,000 lines on the reservation failed and the tab said **"Texts are too different to
+  diff"** about two texts that differed in two lines.
+- **Candidates:** no established WebAssembly diff module exists (npm's `diff` and `diff-match-patch` are
+  JavaScript). Open-source code to build from: the Rust crate **`similar`** 3.2.1 (Apache-2.0; 257 million
+  downloads, 76 million in the last 90 days; the diff library behind `insta`: Myers in linear space with a time
+  limit, diffs by line, word and grapheme, the marking of changes inside a line, unified diffs); `imara-diff`
+  (the engine of gitoxide: faster on huge files, lines only, no word level); libxdiff (git's C library).
+- **Decision:** **replaced by `similar`**, compiled into a module of its own, **textkit-diff.wasm**
+  (`wasm/textkit` with the feature `diff`, 0.69 MB — the crate is generic over every kind of token and every
+  algorithm, which is where the size comes from; it is built for size and fetched by this tab only). `similar`
+  covers everything the tab asks for and more: line numbers, the changed words of a changed line, a unified diff
+  that `patch` applies. Our glue (`src/diff.rs`): the rows the page draws, and one rule — a last line is the same
+  line whether or not a line break follows it (the unified diff is made from the texts as they are).
+- **Evidence:** the counts of removed and added lines equal GNU `diff -d` on 160 pairs; GNU `patch` turns the
+  original into the changed text with the module's unified diff (over 100 patches, final line breaks included);
+  characters: the fewest changes the longest common subsequence allows on 400 random pairs; 100,000 lines with two
+  changes in 0.2 s and 18 MB. The old routine left textcore.wasm (38 → 34 KB).

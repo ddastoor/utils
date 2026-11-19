@@ -11,6 +11,15 @@ path = "src/lib.rs"
 
 [dependencies]
 unicode-segmentation = "1.13.3"
+similar = { version = "3.2.1", default-features = false, features = ["std", "text", "inline", "unicode"], optional = true }
+
+# One module per group of tabs (as wasm/devcore does), so that a tab fetches only its own engine:
+#   text  → textkit.wasm       Word Counter, Case Converter, Line Tools ("By length")
+#   diff  → textkit-diff.wasm  Text Diff
+[features]
+default = ["text"]
+text = []
+diff = ["dep:similar"]
 
 [profile.release]
 opt-level = 3

@@ -1,14 +1,15 @@
 // Text tools + the JSON formatter and the regex tester (the other small developer tabs are in software/dev1.ts).
-// Unicode-aware work (segmentation, case mapping, collation, regex, JSON) uses the browser's native engines;
-// algorithmic work (diff) runs in textcore.wasm.
+// Counting, case conversion and comparing are textkit.wasm's and textkit-diff.wasm's (wasm/textkit); sorting and
+// regular expressions are the browser's own (Intl.Collator, RegExp); each tab's rules are in src/lib/.
 import { h, card, field, input, textarea, button, segmented, toggle, select, clear, stack, row, note, copy, outputBox, downloadBlob, slider, type Mount } from '../ui';
-import { textcore, type DiffOp } from '../wasm/textcore';
 import { textkit, type Textkit } from '../wasm/textkit';
 import { textStats, timeText, EMPTY, READING_WPM, SPEAKING_WPM, type TextStats } from '../lib/wordcount';
 import { roundDec } from '../lib/round';
 import { CASE_NAMES, CASE_HINTS, SHOWN, shownPart } from '../lib/caseconv';
 import { processLines, summary, type LineOptions, type LineDeps, type SortMode } from '../lib/linetools';
 import { plan, countText, type FindOptions, type Plan } from '../lib/findreplace';
+import { textdiff, type Textdiff, type DiffRow, type LineDiff, type SpanDiff } from '../wasm/textdiff';
+import { foldRows, lineSummary, spanSummary, APPROX, MAX_ROWS, MAX_SPAN_CHARS } from '../lib/textdiff';
 import { sodium } from '../wasm/crypto';
 import { devcore, type Devcore } from '../wasm/devcore';
 import { trackWorker, releaseNow } from '../lifecycle';
@@ -176,31 +177,59 @@ export const replace: Mount = (root) => {
 };
 
 // ================================================================== Diff
-export const diff: Mount = async (root) => {
-  const tc = await textcore();
+// The comparing is textkit-diff.wasm's (the `similar` crate: Myers' algorithm with a time limit); src/lib/textdiff.ts
+// folds long unchanged runs and words the summary; this draws.
+export const diff: Mount = (root) => {
   const A = textarea({ rows: 8, mono: true, value: 'apple\nbanana\ncherry\ndate' }), B = textarea({ rows: 8, mono: true, value: 'apple\nblueberry\ncherry\ndate\nelderberry' });
   let mode: 'lines' | 'words' | 'chars' = 'lines';
-  const out = h('div', { class: 'diff-out' });
-  const info = h('div', { class: 'muted small' });
-  const split = (s: string) => (mode === 'lines' ? s.split(/\r?\n/) : mode === 'words' ? s.split(/(\s+)/).filter((x) => x !== '') : [...s]);
-  const run = () => {
-    const a = split(A.value), b = split(B.value);
-    const ops = tc.diff(a, b, 20000) as DiffOp[] | null;
-    if (!ops) { clear(out).append(note('Texts are too different to diff.', 'warn')); return; }
-    let add = 0, del = 0;
-    const els = ops.map((o) => {
-      const txt = o.kind === 'ins' ? b[o.b] : a[o.a];
-      if (o.kind === 'ins') add++; else if (o.kind === 'del') del++;
-      return mode === 'lines'
-        ? h('div', { class: `dl dl-${o.kind}` }, h('span', { class: 'dl-sign' }, o.kind === 'ins' ? '+' : o.kind === 'del' ? '−' : ' '), h('span', null, txt || ' '))
-        : h('span', { class: `dw dw-${o.kind}` }, txt);
-    });
-    clear(out).append(mode === 'lines' ? h('div', { class: 'dl-wrap' }, els) : h('div', { class: 'dw-wrap' }, els));
-    info.textContent = add || del ? `${add} added, ${del} removed (${mode})` : 'The texts are identical.';
+  const out = h('div', { class: 'diff-out' }), info = h('div', { class: 'muted small' }), problem = h('div', { class: 'stack' });
+  let engine: Textdiff | null = null, gone = false, timer = 0, patch = '';
+  const copyBtn = button('Copy as patch', () => { if (patch) copy(patch); }, { small: true, icon: 'Copy' });
+  const saveBtn = button('Download .diff', () => { if (patch) downloadBlob(new Blob([patch], { type: 'text/x-diff' }), 'changes.diff'); }, { small: true, icon: 'Download' });
+  const actions = h('div', { class: 'row' }, copyBtn, saveBtn);
+  const lineRow = ([kind, a, b, parts]: DiffRow) => {
+    const partly = parts.some(([m]) => m) && parts.some(([m]) => !m); // a line that changed in part: mark the part
+    return h('div', { class: `dl dl-${kind === 2 ? 'ins' : kind === 1 ? 'del' : 'eq'}` }, h('span', { class: 'dl-no' }, a ? String(a) : ''), h('span', { class: 'dl-no' }, b ? String(b) : ''),
+      h('span', { class: 'dl-sign' }, kind === 2 ? '+' : kind === 1 ? '−' : ' '), h('span', { class: 'dl-text' }, parts.length ? parts.map(([m, t]) => (m && partly ? h('mark', null, t) : t)) : ' '));
   };
-  [A, B].forEach((x) => x.addEventListener('input', run));
-  root.append(card(null, stack(h('div', { class: 'grid2' }, field('Original', A), field('Changed', B)), segmented([['lines', 'Lines'], ['words', 'Words'], ['chars', 'Characters']], mode, (v) => { mode = v; run(); }))), card('Differences', info, out));
-  run();
+  const showLines = (d: LineDiff) => {
+    const wrap = h('div', { class: 'dl-wrap' }); let budget = MAX_ROWS, cut = false;
+    for (const block of foldRows(d.rows)) {
+      if (budget <= 0) { cut = true; break; }
+      if (block.fold) {
+        const rows = block.rows, fold = h('button', { type: 'button', class: 'dl-fold' }, `⋯ ${rows.length.toLocaleString('en-IN')} unchanged lines — show`);
+        fold.onclick = () => fold.replaceWith(...rows.slice(0, MAX_ROWS).map(lineRow), ...(rows.length > MAX_ROWS ? [h('div', { class: 'dl dl-eq' }, h('span', { class: 'dl-text muted' }, `… and ${(rows.length - MAX_ROWS).toLocaleString('en-IN')} more unchanged lines`))] : []));
+        wrap.append(fold);
+      } else { wrap.append(...block.rows.slice(0, budget).map(lineRow)); if (block.rows.length > budget) cut = true; budget -= block.rows.length; }
+    }
+    clear(out).append(wrap);
+    if (cut) out.append(note(`The first ${MAX_ROWS.toLocaleString('en-IN')} lines of the differences are shown. The patch holds all of them.`, 'info'));
+    info.textContent = lineSummary(d); patch = d.unified; actions.hidden = !patch;
+  };
+  const showSpans = (d: SpanDiff) => {
+    let left = MAX_SPAN_CHARS, cut = false; const els: Node[] = [];
+    for (const [kind, text] of d.spans) { if (left <= 0) { cut = true; break; } els.push(h('span', { class: `dw dw-${kind === 2 ? 'ins' : kind === 1 ? 'del' : 'eq'}` }, text.length > left ? text.slice(0, left) : text)); left -= text.length; }
+    clear(out).append(h('div', { class: 'dw-wrap' }, els));
+    if (cut) out.append(note(`The first ${MAX_SPAN_CHARS.toLocaleString('en-IN')} characters are shown.`, 'info'));
+    info.textContent = spanSummary(d); patch = ''; actions.hidden = true;
+  };
+  const run = async () => {
+    try {
+      if (!engine) { engine = await textdiff(); if (gone) return; }
+      clear(problem);
+      const d = mode === 'lines' ? engine.diff(A.value, B.value, 0) : engine.diff(A.value, B.value, mode === 'words' ? 1 : 2); // the texts as they are now
+      if (d.mode === 0) showLines(d); else showSpans(d);
+      if (d.approx) problem.append(note(APPROX, 'warn'));
+    } catch (e: any) { clear(problem).append(note(`The comparison could not be loaded — ${e?.message || e}. Type again to retry.`, 'err')); }
+  };
+  // longer texts are compared when the typing pauses (comparing and drawing 8,000 lines at every key made typing sluggish)
+  const soon = () => { clearTimeout(timer); if (A.value.length + B.value.length > 20_000) timer = window.setTimeout(run, 200); else void run(); };
+  [A, B].forEach((x) => x.addEventListener('input', soon));
+  actions.hidden = true;
+  root.append(card(null, stack(h('div', { class: 'grid2' }, field('Original', A), field('Changed', B)), segmented([['lines', 'Lines'], ['words', 'Words'], ['chars', 'Characters']], mode, (v) => { mode = v; void run(); }))),
+    card('Differences', info, problem, out, actions));
+  void run();
+  return () => { gone = true; clearTimeout(timer); };
 };
 
 // ================================================================== Fancy text

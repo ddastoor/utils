@@ -7,11 +7,15 @@
 //!     { words, chars, noSpace, sentences, paragraphs, lines, wordChars, bytes, top: [[word, count], …] }
 //!   tk_case(text, len)  → 0, JSON: the thirteen conversions of the Case Converter (case.rs)
 //!   tk_line_lengths(text, len) → 0, JSON: the characters of every line (Line Tools, "By length")
+//!   tk_diff(a, lenA, b, lenB, mode, limit_ms) → 0, JSON: the differences of two texts (diff.rs)
+// the module for the Text Diff (feature "diff") is built without the counting code below
+#![cfg_attr(not(feature = "text"), allow(dead_code, unused_imports))]
 use std::cell::RefCell;
 use std::collections::HashMap;
 use unicode_segmentation::UnicodeSegmentation;
 
-mod case;
+#[cfg(feature = "text")] mod case;
+#[cfg(feature = "diff")] mod diff;
 
 thread_local! { static OUT: RefCell<Vec<u8>> = RefCell::new(Vec::new()); }
 #[no_mangle] pub extern "C" fn tk_alloc(n: usize) -> *mut u8 { let mut v = Vec::<u8>::with_capacity(n.max(1)); let p = v.as_mut_ptr(); std::mem::forget(v); p }
@@ -222,7 +226,7 @@ fn characters(text: &str) -> (u64, u64) {
     (chars, no_space)
 }
 
-fn json_str(out: &mut String, s: &str) {
+pub(crate) fn json_str(out: &mut String, s: &str) {
     out.push('"');
     for c in s.chars() {
         match c { '"' => out.push_str("\\\""), '\\' => out.push_str("\\\\"), c if (c as u32) < 0x20 => out.push_str(&format!("\\u{:04x}", c as u32)), c => out.push(c) }
@@ -267,7 +271,7 @@ fn stats(text: &str) -> String {
 }
 
 /// Counts of a UTF-8 text (bytes that are not UTF-8 are read as U+FFFD, as browsers do).
-#[no_mangle] pub unsafe extern "C" fn tk_stats(p: *const u8, n: usize) -> i32 {
+#[cfg(feature = "text")] #[no_mangle] pub unsafe extern "C" fn tk_stats(p: *const u8, n: usize) -> i32 {
     let bytes = std::slice::from_raw_parts(p, n);
     let text = String::from_utf8_lossy(bytes);
     let json = stats(&text);
@@ -276,7 +280,7 @@ fn stats(text: &str) -> String {
 }
 
 /// The Case Converter's conversions of a UTF-8 text: a JSON array of strings in the order of case::all().
-#[no_mangle] pub unsafe extern "C" fn tk_case(p: *const u8, n: usize) -> i32 {
+#[cfg(feature = "text")] #[no_mangle] pub unsafe extern "C" fn tk_case(p: *const u8, n: usize) -> i32 {
     let text = String::from_utf8_lossy(std::slice::from_raw_parts(p, n));
     let mut out = String::with_capacity(text.len() * 14 + 64);
     out.push('[');
@@ -288,11 +292,21 @@ fn stats(text: &str) -> String {
 
 /// The number of characters (grapheme clusters, as the Word Counter counts them) of every line of a text that is
 /// split at "\n": a JSON array of numbers. For the Line Tools' "By length".
-#[no_mangle] pub unsafe extern "C" fn tk_line_lengths(p: *const u8, n: usize) -> i32 {
+#[cfg(feature = "text")] #[no_mangle] pub unsafe extern "C" fn tk_line_lengths(p: *const u8, n: usize) -> i32 {
     let text = String::from_utf8_lossy(std::slice::from_raw_parts(p, n));
     let mut out = String::from("[");
     for (i, line) in text.split('\n').enumerate() { if i > 0 { out.push(','); } out.push_str(&characters(line).0.to_string()); }
     out.push(']');
     OUT.with(|o| *o.borrow_mut() = out.into_bytes());
+    0
+}
+
+/// The differences of two UTF-8 texts (diff.rs): mode 0 lines, 1 words, 2 characters; `limit_ms` is the time after
+/// which the comparing settles for a diff that is not the shortest. JSON in tk_out_ptr() / tk_out_len().
+#[cfg(feature = "diff")] #[no_mangle] pub unsafe extern "C" fn tk_diff(pa: *const u8, na: usize, pb: *const u8, nb: usize, mode: u32, limit_ms: u32) -> i32 {
+    let a = String::from_utf8_lossy(std::slice::from_raw_parts(pa, na));
+    let b = String::from_utf8_lossy(std::slice::from_raw_parts(pb, nb));
+    let json = diff::diff(&a, &b, mode, limit_ms);
+    OUT.with(|o| *o.borrow_mut() = json.into_bytes());
     0
 }

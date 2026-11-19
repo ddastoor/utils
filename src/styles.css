@@ -441,8 +441,16 @@ details summary { cursor: pointer; font-weight: 600; color: var(--accent); paddi
 .dl-wrap { font-family: var(--mono); font-size: 13px; border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: auto; max-height: 60vh; }
 .dl { display: flex; gap: 8px; padding: 1px 10px; white-space: pre-wrap; word-break: break-word; }
 .dl-sign { width: 12px; flex: none; color: var(--muted); }
+.dl-no { width: 4ch; flex: none; text-align: right; color: var(--muted); user-select: none; font-variant-numeric: tabular-nums; } /* line numbers: original, changed */
+.dl-text { flex: 1; min-width: 0; }
+.dl mark { background: color-mix(in srgb, currentColor 22%, transparent); color: inherit; border-radius: 3px; text-decoration: inherit; } /* the part of a changed line that changed */
+.dl-fold { display: block; width: 100%; padding: 6px 10px; border: 0; border-block: 1px dashed var(--border); background: var(--surface-2); color: var(--muted); font: inherit; text-align: center; cursor: pointer; min-height: 32px; }
+.dl-fold:hover { color: var(--accent); }
+@media (pointer: coarse) { .dl-fold { min-height: 44px; } }
+@media (max-width: 640px) { .dl { gap: 5px; padding-inline: 6px; } .dl-no { width: 3ch; } }
 .dl-ins { background: var(--ok-soft); } .dl-ins .dl-sign { color: var(--ok); }
-.dl-del { background: var(--err-soft); text-decoration: line-through; text-decoration-color: color-mix(in srgb, var(--err) 50%, transparent); } .dl-del .dl-sign { color: var(--err); }
+.dl-del { background: var(--err-soft); } .dl-del .dl-text { text-decoration: line-through; text-decoration-color: color-mix(in srgb, var(--err) 50%, transparent); } .dl-del .dl-sign { color: var(--err); } /* the text is struck through, not its number */
+.diff-out + .row { margin-top: 10px; }
 .dw-wrap { white-space: pre-wrap; word-break: break-word; line-height: 1.7; padding: 10px; border: 1px solid var(--border); border-radius: var(--radius-sm); }
 .dw-ins { background: var(--ok-soft); color: var(--ok); border-radius: 3px; }
 .dw-del { background: var(--err-soft); color: var(--err); text-decoration: line-through; border-radius: 3px; }

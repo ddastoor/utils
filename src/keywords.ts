@@ -91,7 +91,7 @@ export const KEYWORDS: Record<string, string> = {
   'case': 'case, uppercase, lowercase, title case, sentence case, camel, snake, kebab, capitalize, capitalise each word, capital letters, caps lock, all caps, small letters, change case, headline, camelCase, snake_case, kebab-case, pascal case, constant case, toggle case, alternating',
   'lines': 'lines, sort, unique, dedupe, remove duplicates, trim, reverse, shuffle, empty lines, sort lines, alphabetical order, sort numbers, numeric sort, natural sort, sort by length, randomize list, number lines, add prefix, add suffix, remove blank lines, list cleaner, uniq',
   'replace': 'replace text, replace word, bulk replace, find, replace, search, substitute, regex, find and replace, search and replace, replace all, regular expression replace, whole word, swap words, remove text, replace with new line, sed',
-  'diff': 'diff, compare, difference, changes, text compare',
+  'diff': 'diff, compare, difference, changes, text compare, compare two texts, what changed, side by side, line diff, word diff, unified diff, patch file, make a patch, diff checker, compare documents, find differences',
   'json': 'json, format, pretty, beautify, minify, validate, lint',
   'regex': 'regex, regular expression, pattern, match, test, groups',
   'base64': 'base64, encode, decode, data url',

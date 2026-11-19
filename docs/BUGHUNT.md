@@ -126,7 +126,7 @@ Areas with a shared review: the app shell (router, search, favorites, platform h
 | `case` | Case Converter | PC + mobile | text | ✓ | 14 | 108 | conversions in textkit.wasm (case.rs); Title Case = port of python titlecase; code cases held to change-case; lines kept |
 | `lines` | Line Tools | PC + mobile | text | ✓ | 10 | 102 | linetools.ts; held to GNU sort/awk/sed on 400 lists; 0 → 9 sort; shuffle stays put; engines lazy |
 | `replace` | Find & Replace | PC + mobile | text | ✓ | 9 | 77 | worker + 5 s limit; Unicode whole words; ^ $ per line; \n in replacement; held to Python re on 226 searches |
-| `diff` | Text Diff | PC + mobile | text |  |  |  |  |
+| `diff` | Text Diff | PC + mobile | text | ✓ | 9 | 65 | engine → similar crate (textkit-diff.wasm); line numbers, marked changes, folds, unified diff; held to GNU diff -d and GNU patch |
 | `fancy` | Fancy Text | PC + mobile | text |  |  |  |  |
 | `emoji` | Emoji & Symbols | PC + mobile | text |  |  |  |  |
 | `morse` | Morse Code | PC + mobile | text |  |  |  |  |
@@ -1119,3 +1119,23 @@ Reference for the five finance tabs: **mpmath at 60 digits** (`scripts/make-fina
      now.
   Also: "No match — nothing was replaced."; a fold-out that says what `$1`, `$&`, `\n`, `^` mean here. Reference:
   Python's `re.subn` on 226 searches (`scripts/make-replace-reference.py`): all agree.
+- **`diff` (tab 94, 9 bugs; engine replaced: the `similar` crate in textkit-diff.wasm; unit
+  `tests/unit/textdiff.test.mjs` 51, e2e 30 — before: 16 e2e checks and the 40 unit checks of the old routine).**
+  1. **"Texts are too different to diff"** for two texts of 8,000 lines that differed in two lines (one near each
+     end): the old routine reserved memory by the size of the texts, not by how much they differ.
+  2. … and 3,000 such lines took 528 MB of memory. Now: 100,000 lines in 0.2 s and 18 MB.
+  3. A last line counted as changed when only one of the texts had a line break after it (the sample itself would
+     show "date" removed and added with any engine that compares lines with their ends).
+  4. No line numbers: in a long text there was no telling where a change was.
+  5. A changed line was shown as a removed and an added line with nothing to say what had changed in it; the
+     changed words are marked now.
+  6. Every unchanged line was drawn: two long texts with one change were thousands of rows to scroll through.
+     Unchanged runs are folded ("⋯ 7,982 unchanged lines — show") with three lines kept beside each change.
+  7. Words: "mat." and "mat" were two different words (punctuation was part of the word).
+  8. Characters: an emoji with a skin tone or a letter with its vowel sign was cut into halves, and half an emoji
+     was drawn as "changed".
+  9. Comparing and redrawing ran at every key also for long texts (70 ms a key at 8,000 lines); from 20,000
+     characters on it waits for a pause in the typing.
+  Added: **Copy as patch / Download .diff** — a unified diff that GNU `patch` applies (the Patch tab reads it too);
+  "The texts differ only in the line break at the end"; a note when the time limit (2 s) ended the search for the
+  shortest diff.

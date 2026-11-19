@@ -951,6 +951,24 @@ a lone brace) is run in that mode with a note. In "Replace with", with a regular
 in a sentence, the box is marked and the text shown unchanged. Under the result: "2 replacements" / "No match —
 nothing was replaced." (the count stops at 10,00,000+).
 
+### Text Diff — as built after the Nov 2026 bug hunt
+(`diff` in `src/tools/text.ts`, `src/lib/textdiff.ts`, engine **textkit-diff.wasm** — `wasm/textkit/src/diff.rs` on
+the `similar` crate, §5.1o; wrapper `src/wasm/textdiff.ts`; unit `tests/unit/textdiff.test.mjs` 51, e2e
+`tests/e2e/diff.e2e.mjs` 30; reference `python3 scripts/make-diff-reference.py` → `tests/fixtures/diff/reference.json`.)
+- **Lines:** Myers' shortest edit script (as GNU `diff -d` counts). Every row has its number in the original and in
+  the changed text and its sign; in a changed line the part that changed is marked (`similar`'s inline changes with
+  semantic clean-up; a line replaced by quite another one is not cut up). A last line is the same line whether or
+  not a line break follows it; if the texts differ only in that, the tab says so. Unchanged runs are folded with
+  three lines kept beside each change (`foldRows`; a click unfolds); at most 5,000 rows are drawn.
+- **Words:** pieces by Unicode's word boundaries — a word, a space, a sign are pieces of their own; the counts are
+  of words (pieces with a letter or digit). **Characters:** grapheme clusters.
+- **Copy as patch / Download .diff:** a unified diff with three lines of context made from the texts as they are
+  ("\ No newline at end of file" where it applies), headers `--- original` / `+++ changed`; GNU `patch` and the Patch
+  tab apply it.
+- A time limit of 2 s on the search for the shortest diff; past it the diff shown is still correct and a note says
+  it may not be the shortest. Texts above 20,000 characters are compared when the typing pauses. The sample pair is
+  compared as the tab opens (so the module is fetched at open — on the lazy test's list).
+
 ### SQLite Playground (PC) — as built after the Nov 2026 bug hunt
 (`src/tools/software/sqlite.ts`, engine `src/lib/sqlite-engine.ts`, worker `src/workers/sqlite.worker.ts`; unit
 `tests/unit/sqlite.test.mjs` 106, e2e `tests/e2e/sqlite.e2e.mjs` 63.) Engine: the **official SQLite WebAssembly build**
@@ -1388,8 +1406,8 @@ stay **public** (the source of the deployed site is then available to every user
 | espeak: **eSpeak NG 1.52.0** (+ English phoneme tables and dictionary compiled from the same release, linked in, served to its fopen/stat from memory) + glue (IPA for Kokoro, piper-phonemize-style sentences) | C | **us** (`wasm/espeak`) | tts (stt hints later) |
 | whisper: **whisper.cpp 1.8.3** + ggml CPU backend (upstream unmodified) + own threadshim.h (std::mutex/std::thread/fstream for zig's thread-less libc++), backend-reg.cpp (static CPU-only registry), cxxabi_stubs.c (throw = abort), glue.cpp | C / C++ | **us** (`wasm/whisper`) | stt |
 | geo: Charles Karney's **geodesic.c 2.2** (GeographicLib's geodesic routines in C, MIT; the two files unmodified from the PROJ 9.9.0 release) + glue (inverse problem on WGS-84, half-way point, the haversine great circle for comparison) | C | **us** (`wasm/geo`, 36 KB, loaded by the Coordinates tab only; no tried-and-tested WebAssembly geodesic module exists: `docs/WASM-AUDIT.md`, tab 82) | coords |
-| textcore: Myers diff, tool-search ranking, rare-word ranking (tokeniser, lemmatiser, wordfreq hash table), XY-cut reading order | C (own code) | **us** (`wasm/textcore`) | diff, search box, photodict |
-| textkit: **unicode-segmentation 1.13.3** (the Rust ecosystem's UAX #29 implementation, Unicode 17.0, MIT / Apache-2.0: extended grapheme clusters, sentence boundaries) + our counting rules: words as a word limit counts them, abbreviations and initials, lines and paragraphs, keywords (Snowball's stop words); **the Case Converter's thirteen conversions** (`case.rs`: Title Case is a port of the Python package `titlecase` 2.4.1 — Gruber's rules, MIT; the code cases cut words as npm's `change-case` does; case mapping by Rust's standard library) | Rust | **us** (`wasm/textkit`, crates.io via `Cargo.lock`, 215 KB, fetched with the Word Counter's first text and with the Case Converter; the existing module — ICU4X's official build — is one file of 20 MB: `docs/WASM-AUDIT.md`, tab 90) | wordcount, case, lines ("By length") |
+| textcore: tool-search ranking, rare-word ranking (tokeniser, lemmatiser, wordfreq hash table), XY-cut reading order | C (own code) | **us** (`wasm/textcore`) | search box, photodict, epub |
+| textkit: **unicode-segmentation 1.13.3** (the Rust ecosystem's UAX #29 implementation, Unicode 17.0, MIT / Apache-2.0: extended grapheme clusters, sentence boundaries) + our counting rules: words as a word limit counts them, abbreviations and initials, lines and paragraphs, keywords (Snowball's stop words); **the Case Converter's thirteen conversions** (`case.rs`: Title Case is a port of the Python package `titlecase` 2.4.1 — Gruber's rules, MIT; the code cases cut words as npm's `change-case` does; case mapping by Rust's standard library) | Rust | **us** (`wasm/textkit`, crates.io via `Cargo.lock`, two modules by Cargo features: **textkit.wasm** 216 KB — fetched with the Word Counter's first text and with the Case Converter — and **textkit-diff.wasm** 0.69 MB = the **`similar` crate 3.2.1** (Apache-2.0: Myers in linear space with a time limit, line / word / grapheme diffs, inline changes, unified diffs) + our glue, fetched by the Text Diff only; the existing module — ICU4X's official build — is one file of 20 MB: `docs/WASM-AUDIT.md`, tab 90) | wordcount, case, lines ("By length"); diff (textkit-diff) |
 | sheet: calamine 0.38 (read .xlsx .xlsm .xlsb .xls .ods) + rust_xlsxwriter 0.102 (write .xlsx) + csv 1 + serde_json | Rust | **us** (`wasm/sheet`, crates.io sources verified by `Cargo.lock`, target wasm32-wasip1) | sheet |
 | svgo: **OXVG 0.0.9** (Rust port of SVGO's plugins; lightningcss for `<style>`) + our glue: DOCTYPE / entities allowed, nesting limit 256, **our own safe preset** (OXVG's `Jobs::safe()` is not safe), `sv_diff` (do two rasters look alike? — the tab renders every result next to its original and falls back to the safe result when the full optimisation changed the picture) | Rust | **us** (`wasm/svgo`, crates.io via `Cargo.lock`, opt-level z, 4.9 MB / 1.3 MB gz, loaded with the first SVG; unit `tests/unit/svgo.test.mjs`, hazard drawings `tests/fixtures/svg/hazards.json`) | svgo |
 | keys — the **supplement** to hash-wasm for the key tabs (owner's tweak of 18 Nov 2026: what the existing module does not cover): lenient Base32 secrets, HOTP counters and truncation; checked parameters, random salts, PHC strings for scrypt / PBKDF2 and the reader of pasted hashes; RustCrypto **argon2** for Argon2 version 1.0 hashes (v=16 or no version, keyid / data), which hash-wasm does not read; RustCrypto **ssh-key** (OpenSSH Ed25519 generation), **aes + ctr + bcrypt-pbkdf** and our own OpenSSH wire reader (inspect Ed25519 / RSA / ECDSA / DSA keys, encrypted private keys, authorized_keys / known_hosts lines); API keys | Rust | **us** (`wasm/keys`, 0.31 MB; no existing WebAssembly module makes or reads OpenSSH key files) | totp, pwhash (with hash-wasm); sshkey, apikey |
@@ -1527,7 +1545,8 @@ Owner: "make the full site faster, more responsive and memory efficient — load
    type), invoice/rent/resume (MuPDF + Noto Sans: the live PDF preview is the main view), markdown (cmark-gfm,
    sample preview), terminal (BusyBox: the shell is ready at once), qr/barcode (zxing-cpp: drawn as you type),
    caption/watermark/signature (fonts of the first preview), coords (geo.wasm, 36 KB: the sample distance), case
-   (textkit.wasm, 0.21 MB: the sample sentence in all its conversions), cidr/cron/semver/glob/patch (their devcore-<tab>.wasm: the
+   (textkit.wasm, 0.21 MB: the sample sentence in all its conversions), diff (textkit-diff.wasm, 0.69 MB: the sample
+   pair compared), cidr/cron/semver/glob/patch (their devcore-<tab>.wasm: the
    sample is computed live), json/jwt/xml/json2types/jsondiff/base64 (their devcore module: the sample is formatted,
    decoded, compared or converted at once), mermaid (the sample diagram), graphviz (the sample graph: its module
    and worker). Adding to that list needs a reason in the test.
@@ -1822,9 +1841,16 @@ Vincenty's formula in mpmath), the example of geodesic.h (JFK → Changi 15,347,
 half a meridian, the date line, there and back. **To update:** a newer PROJ release in build.sh (URL + SHA-256
 from its .dsc), check the version line, `python3 scripts/make-geo-reference.py`, both suites.
 
-### 5.1o textkit → `src/wasm/bin/textkit.wasm` (Rust)
-`wasm/textkit/build.sh` = `cargo build --release --locked --target wasm32-wasip1` (no zig needed). One dependency:
-**`unicode-segmentation` 1.13.3** (crates.io, pinned by `Cargo.lock`; MIT / Apache-2.0; Unicode 17.0). Our code
+### 5.1o textkit → `src/wasm/bin/textkit.wasm` + `textkit-diff.wasm` (Rust)
+`wasm/textkit/build.sh` builds the crate twice with `cargo build --release --locked --target wasm32-wasip1
+--no-default-features --features <f>` (no zig needed): feature `text` → **textkit.wasm** (Word Counter, Case Converter,
+line lengths), feature `diff` → **textkit-diff.wasm** (Text Diff; built with `opt-level = "s"`: the `similar` crate is
+generic over every token type and algorithm — 0.69 MB instead of 0.88). Dependencies (crates.io, pinned by
+`Cargo.lock`): **`unicode-segmentation` 1.13.3** (MIT / Apache-2.0; Unicode 17.0) and, for `diff`, **`similar` 3.2.1**
+(Apache-2.0). `src/diff.rs`: `tk_diff(a, lenA, b, lenB, mode, limit_ms)` → JSON — mode 0 lines:
+`{ added, removed, same, approx, rows: [[kind, lineA, lineB, [[marked, text], …]], …], unified, endA, endB }`, mode 1
+words / 2 characters: `{ …, spans: [[kind, text], …] }` (kind 0 same, 1 only in the original, 2 only in the changed
+text); `approx` = the time limit ended the search. Wrapper `src/wasm/textdiff.ts`. Our code
 (`src/lib.rs`, ~250 lines): `tk_stats(text, len)` → JSON in `tk_out_ptr()` / `tk_out_len()`:
 `{ words, chars, noSpace, sentences, paragraphs, lines, wordChars, bytes, top: [[word, count], …] }`; `tk_alloc` /
 `tk_free`. The rules are those of §3 "Word Counter". `src/case.rs` (~260 lines): `tk_case(text, len)` → a JSON array
