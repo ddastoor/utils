@@ -777,6 +777,29 @@ unit `tests/unit/devdata.test.mjs`, references `tests/fixtures/devdata/reference
   Radians / degrees. Save PNG (what is on screen, at the device's pixel ratio). On wide screens (≥ 1000 px) the
   function list stands beside the graph.
 
+### Equation Solver — as built after the Nov 2026 bug hunt
+(`equation` in `src/tools/math.ts`; `src/lib/exact.ts` = fractions on BigInt, `src/lib/equations.ts`; engine mathcore;
+unit `tests/unit/equations.test.mjs` 62, e2e `tests/e2e/equation.e2e.mjs` 54; reference
+`python3 scripts/make-equations-reference.py` → `tests/fixtures/equations/reference.json`, needs `pip install mpmath`.)
+- **Quadratic, cubic, simultaneous (2 – 4 unknowns): solved from the decimals as typed.** `parseDec` turns each box
+  into an exact fraction; the discriminant (quadratic: b² − 4ac; cubic: 18abcd − 4b³d + b²c² − 4ac³ − 27a²d²) is
+  worked out exactly, so the **kind** of the answer is certain — two real roots / one twice / complex; three real /
+  one twice / one three times / one real and a pair — and repeated roots are exact fractions. Other roots: the
+  quadratic's by an integer square root with 128 guard bits (the root without cancellation first, the other from
+  x₁x₂ = c/a); the cubic's from mathcore's real root (`m_cubic`, Kahan's iteration), brought to the nearest double by
+  Newton's step on the exact polynomial, then the exact quadratic that is left (deflated from the top, or from the
+  bottom where the root is the large one). Linear systems: Gauss–Jordan on fractions → one solution, "No solution:
+  the equations contradict each other", or "Infinitely many solutions … only r of the n say something new".
+  A root that is a fraction shows it beside the decimal ("= 1/3"). Real roots ascending; a pair with +i first;
+  complex numbers written −1 + 2i, 2i, −i.
+- **Any equation in x:** mathcore `m_find_roots` on 20,000 steps of the range (sign changes by bisection, touching
+  roots by minimising |f|, poles rejected), up to 50 roots listed (a note when the list is full, and when a step is
+  wider than 0.05); radians / degrees. Not an equation with an answer: no x in it (true or false as it stands),
+  both sides equal everywhere, another letter (y, z, t, Ans), two = signs — each said.
+- Answers are live (also as the tab opens) and Enter solves; refusals name the box ("Coefficient a is empty — use 0
+  for a term that is missing"; a = 0 gives the solution of what is left). The grid of the simultaneous equations
+  keeps what was typed through a change of size.
+
 ### SQLite Playground (PC) — as built after the Nov 2026 bug hunt
 (`src/tools/software/sqlite.ts`, engine `src/lib/sqlite-engine.ts`, worker `src/workers/sqlite.worker.ts`; unit
 `tests/unit/sqlite.test.mjs` 106, e2e `tests/e2e/sqlite.e2e.mjs` 63.) Engine: the **official SQLite WebAssembly build**
@@ -1284,6 +1307,10 @@ Nov 2026 (Percentage): `src/lib/percent.ts` — six formulas on two typed number
 division of whole numbers (no loop, no data).
 Nov 2026 (Tip, Fuel, GPA, BMI's range, due date): `src/lib/smallcalc.ts`, `src/lib/health.ts` — a few multiplications
 and one division each, checks and wording; BMI and BMR themselves are mathcore's.
+Nov 2026 (Equation Solver): `src/lib/exact.ts` + `src/lib/equations.ts` — exact fractions on the browser's BigInt
+(compiled big-number arithmetic, like JSON.parse or RegExp in this list): discriminants, elimination on at most 4 × 4,
+Newton's step with exact residuals. mathcore's exact fractions are 64-bit and overflow here; the iterations and the
+root search stay in mathcore.
 Nov 2026 (Coordinates, Sleep Cycle): `src/lib/coords.ts` — reading a coordinate as a person typed it (one regular
 expression on a short string) and writing it back; the sleep times are one subtraction of minutes per row. The
 geodesic itself is geo.wasm.
@@ -1332,7 +1359,7 @@ Owner: "make the full site faster, more responsive and memory efficient — load
 2. **Opening a tab loads only that tab's code** (its dynamic-import chunk, < 400 KB). Engines, models, data files,
    fonts and workers load on **first use** — a file chosen, a button pressed, the first Enter — never at module
    load and never at mount, except where the tab's first view needs them. Allowed at open (listed with the reason
-   in `AT_OPEN` in the test): our three small engines (mathcore/crypto/textcore ≤ 140 KB: live results as you
+   in `AT_OPEN` in the test): our three small engines (mathcore/crypto/textcore ≤ 150 KB: live results as you
    type), invoice/rent/resume (MuPDF + Noto Sans: the live PDF preview is the main view), markdown (cmark-gfm,
    sample preview), terminal (BusyBox: the shell is ready at once), qr/barcode (zxing-cpp: drawn as you type),
    caption/watermark/signature (fonts of the first preview), coords (geo.wasm, 36 KB: the sample distance), cidr/cron/semver/glob/patch (their devcore-<tab>.wasm: the
@@ -1427,7 +1454,9 @@ two numbers, nesting limit 100, exact trigonometry at round angles (`sind` / `co
 `power_fn` (real powers of negatives), `ncr` / `npr` by multiplying, Γ without overflow up to 171 and NaN at its poles,
 divisions by zero and undefined values as NaN with a reason (`m_expr_why`: 1 division by zero, 2 outside the
 function's domain — the graphing tab draws a gap there), decimal `round`, the bare-percent rule. `m_expr_plot(h, x0, dx, n, tol, y, join)` samples a curve for the graphing tab and marks which neighbours are
-joined (see §3 "Graphing Calculator"). TS wrapper: `src/wasm/mathcore.ts` (`bindMathcore`
+joined (see §3 "Graphing Calculator"). `m_quadratic` / `m_cubic` are W. Kahan's (1986): coefficients scaled by a power of two,
+the discriminant with fma where its two products nearly cancel, the cubic's real root by Newton's iteration from a
+start that cannot overshoot, then the quadratic that is left. TS wrapper: `src/wasm/mathcore.ts` (`bindMathcore`
 works in the browser and in Node tests). Tests: `tests/unit/mathcore.test.mjs` (~150 known-answer checks).
 
 ### 5.1c metacore → `src/wasm/bin/metacore.wasm`

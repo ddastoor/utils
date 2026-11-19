@@ -536,6 +536,7 @@ details summary { cursor: pointer; font-weight: 600; color: var(--accent); paddi
 .fn-row { display: grid; grid-template-columns: 22px auto 1fr auto; gap: 8px; align-items: center; }
 .fn-swatch { width: 18px; height: 18px; border-radius: 5px; cursor: pointer; border: 0; padding: 0; position: relative; }
 .fn-swatch::after { content: ''; position: absolute; inset: -13px; } /* a 44 px touch target round the small square */
+.big-sub { display: block; margin-top: 2px; font-variant-numeric: tabular-nums; }
 .fn-err { grid-column: 1 / -1; color: var(--err); font-size: 13px; }
 .graph-canvas:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .fn-y { font-weight: 700; color: var(--muted); font-family: var(--mono); }

@@ -112,7 +112,7 @@ Areas with a shared review: the app shell (router, search, favorites, platform h
 | id | Tab | Platform | Area | R | B | T | Notes |
 |---|---|---|---|---|---|---|---|
 | `graph` | Graphing Calculator | PC + mobile | calc2-math | ✓ | 11 | 96 | nothing to replace (WASM-AUDIT 83); FROZEN TAB on deep zoom fixed (zoom limits, counted grid lines); engine m_expr_plot tells jumps and poles from steep curves (1000x was not drawn, floor had connectors); reasons under the boxes, x = 2 vertical line, zoom about cursor / fingers, keys, 'undefined' readout |
-| `equation` | Equation Solver | PC + mobile | calc2-math |  |  |  |  |
+| `equation` | Equation Solver | PC + mobile | calc2-math | ✓ | 14 | 93 | engine kept + exact fractions on BigInt (WASM-AUDIT 84): kind of every answer exact — (x−1.1)² showed two roots, (x−1)²(x−10⁶) a complex pair; Kahan's quadratic/cubic in mathcore; linear systems: none vs infinitely many, small-unit systems no longer 'unsolvable'; identities, other letters, 50-root cap said; live + Enter; reference fractions + mpmath |
 | `stats` | Statistics | PC + mobile | calc2-math |  |  |  |  |
 | `matrix` | Matrix Calculator | PC + mobile | calc2-math |  |  |  |  |
 | `fraction` | Fraction Calculator | PC + mobile | calc2-math |  |  |  |  |
@@ -939,4 +939,21 @@ Reference for the five finance tabs: **mpmath at 60 digits** (`scripts/make-fina
   released. Also: grid labels with the digits their step needs, arrow keys / + / − / 0 on the focused graph, two
   samples a pixel, the functions beside the graph on wide screens (typing one scrolled the picture under the
   sticky tab rows), a redraw when the system theme changes.
+- **equation** — Equation Solver (14 bugs; unit 0 → 62, e2e 30 → 54). **Repeated roots came out as different
+  numbers:** (x − 1.1)², typed 1, −2.2, 1.21, showed 1.1000000149 and 1.0999999851; (x − 0.1)³ showed 0.100001201554,
+  0.0999993992228, 0.0999993992228; (x − 1)²(x − 10⁶) showed 1 ± 0.00278966872477i; x³ + 10⁸x² + x + 1 showed three
+  real roots where there is a complex pair. Coefficients of 10²⁰⁰ gave "−0.5 + Errori", x² + 10¹⁶⁰x + 1 gave 0 and
+  "Error". **Simultaneous equations:** an ordinary system in units of 10⁻²⁰ and two nearly equal equations were
+  called unsolvable (an absolute test on the pivot); contradicting equations and dependent ones got the same "No
+  unique solution"; changing the number of unknowns threw away what had been typed. **Any equation:** x = x and
+  2 = 2 listed "50 solutions" (−100, −99.99, −99.98 …); x + y = 2 was solved with y = 0; more than twenty roots
+  were cut off without a word, and a range of millions was searched in steps of hundreds without saying so.
+  Complex numbers were written "− 2i" and "1i". Nothing was solved until Solve was pressed, and Enter did nothing.
+  Now: quadratics, cubics and linear systems are read as the decimals they are and classified with exact
+  fractions (`src/lib/exact.ts` on BigInt, `src/lib/equations.ts`): the kind of the answer is stated ("One real
+  root, twice"), every root is the nearest double of the true value (the cubic's by Newton's step on the exact
+  polynomial from the engine's estimate), fractions stand beside their decimals (x = 0.333333333333 = 1/3), "no
+  solution" is told from "infinitely many" with the rank; the engine's quadratic and cubic are Kahan's (scaled, no
+  cube roots of differences); identities, missing x, other letters, two = signs, fifty roots and coarse steps each
+  get their sentence; radians / degrees; live answers, Enter, the grid keeps what was typed.
 

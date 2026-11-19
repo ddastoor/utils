@@ -283,8 +283,8 @@ export const TOOLS: Tool[] = [
   // ---------------------------------------------------------------- Math & Science
   t('graph', 'Graphing Calculator', 'Plot up to six functions of x; zoom, pan, read values, save as PNG.', 'math', 'ChartSpline',
     'graph, plot, plotter, function, function plotter, graphing calculator, graph calculator, y=, f(x), curve, draw graph, desmos, geogebra, sine wave, parabola, line, vertical line, asymptote, tan, floor, step function, zoom, axes, grid, coordinates, x axis, y axis, png', () => math().then((m) => m.graph)),
-  t('equation', 'Equation Solver', 'Linear, quadratic, cubic and simultaneous equations.', 'math', 'Variable',
-    'equation, solve, quadratic, cubic, linear, simultaneous, system of equations, roots, x', () => math().then((m) => m.equation)),
+  t('equation', 'Equation Solver', 'Any equation in x, quadratic, cubic and simultaneous linear equations — exact for the numbers typed.', 'math', 'Variable',
+    'equation, solve, quadratic, cubic, linear, simultaneous, system of equations, roots, x, solve for x, roots, find roots, zeros, discriminant, vertex, complex roots, imaginary, repeated root, double root, polynomial, cubic equation, quadratic formula, system of equations, linear system, 2 unknowns, 3 unknowns, 4 unknowns, simultaneous equations, no solution, infinitely many solutions, fraction, exact', () => math().then((m) => m.equation)),
   t('stats', 'Statistics', 'Mean, median, mode, std dev, regression.', 'math', 'ChartColumn',
     'statistics, mean, median, mode, average, standard deviation, variance, regression, correlation, quartile', () => math().then((m) => m.stats)),
   t('matrix', 'Matrix Calculator', 'Add, multiply, invert, determinant.', 'math', 'Grid3x3',

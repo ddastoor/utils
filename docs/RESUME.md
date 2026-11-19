@@ -97,7 +97,9 @@ what those suites missed.
   bugs; `src/lib/health.ts`, `src/lib/coords.ts`; **new engine `geo.wasm`** = Karney's geodesic.c on WGS-84,
   `wasm/geo`, CLAUDE.md §5.1n; references `scripts/make-body-reference.py`, `scripts/make-geo-reference.py` — the
   latter needs `pip install geographiclib mpmath`). **`graph` (tab 83) is DONE** (11 bugs, among them a frozen tab on deep zoom; engine
-  `m_expr_plot`, `src/lib/graph.ts`). **NEXT: the rest of Math & Science** — `equation`, `stats`, `matrix`,
+  `m_expr_plot`, `src/lib/graph.ts`). **`equation` (tab 84) is DONE** (14 bugs; exact fractions on BigInt in
+  `src/lib/exact.ts` + `src/lib/equations.ts`, Kahan's quadratic / cubic in mathcore; reference
+  `scripts/make-equations-reference.py`). **NEXT: the rest of Math & Science** — `stats`, `matrix`,
   `fraction`, `primes`, `periodic` (`src/tools/math.ts`, engine mathcore), then the complete suites for the area;
   per tab: the
   existing-module check with its entry in `docs/WASM-AUDIT.md` first (the survey of entry 56 covers calculators:

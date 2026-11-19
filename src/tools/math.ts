@@ -1,6 +1,7 @@
 import { h, card, field, input, textarea, button, segmented, clear, stack, row, note, copy, downloadBlob, type Mount } from '../ui';
 import { readFunction, clampScale, clampCentre, zoomAbout, tickStep, ticks, tickLabel, type View } from '../lib/graph';
-import { mathcore, fmtNum, type Complex } from '../wasm/mathcore';
+import { mathcore, fmtNum } from '../wasm/mathcore';
+import { quadratic, cubic, linear, complexText, type Root } from '../lib/equations';
 import { ELEMENTS, CATEGORY_COLORS } from '../lib/elements';
 
 // ================================================================== Graphing calculator
@@ -148,73 +149,104 @@ export const graph: Mount = async (root, ctx) => {
 };
 
 // ================================================================== Equation solver
-const cfmt = (z: Complex) => (Math.abs(z.im) < 1e-12 ? fmtNum(z.re) : `${Math.abs(z.re) < 1e-12 ? '' : fmtNum(z.re) + ' '}${z.im < 0 ? '−' : Math.abs(z.re) < 1e-12 ? '' : '+'} ${fmtNum(Math.abs(z.im))}i`.trim());
+const ROOT_CAP = 50; // roots of "any equation" that are listed
 export const equation: Mount = async (root) => {
   const m = await mathcore();
-  let mode = 'any';
+  let mode = 'any', deg = false, n = 2;
+  const kept: Record<string, string> = {}; // what was typed into the grid of the simultaneous equations, by "row,column"
   const body = h('div', { class: 'stack' });
   const out = h('div', { class: 'stack' });
-  const num = (v: string | number) => input({ type: 'number', value: v });
-  /** run a Solve handler; problems are shown under the form instead of escaping as page errors */
-  const safe = (f: () => void) => () => { try { f(); } catch (e: any) { clear(out).append(note(e?.message || String(e), 'warn')); } };
+  const num = (v: string | number, label: string) => input({ type: 'number', value: v, step: 'any', attrs: { 'aria-label': label } });
+  const sub = (k: number) => '₁₂₃₄₅₆₇₈₉'[k] ?? String(k + 1);
+  const tile = (label: string, value: string, small = '', copyAs = value) => h('button', { class: 'big-result', type: 'button', title: 'Copy', onclick: () => copy(copyAs) },
+    h('span', { class: 'big-label' }, label), h('span', { class: 'big-value' }, value), small ? h('span', { class: 'big-sub muted small' }, small) : null);
+  const rootTile = (z: Root, label: string) => tile(label, complexText(z, (x) => fmtNum(x)), z.exact ? `= ${z.exact}` : '');
+  const kv = (rows: Array<[string, string]>) => h('div', { class: 'kv' }, rows.flatMap(([l, v]) => [h('span', null, l), h('span', null, v)]));
+  let solve = () => {};
+  /** work the answer out again; what cannot be solved is said under the form, never thrown at the page */
+  const run = () => { try { solve(); } catch (e: any) { clear(out).append(note(e?.message || String(e), 'warn')); } };
+  const live = (...boxes: HTMLElement[]) => boxes.forEach((b) => { b.addEventListener('input', run); b.addEventListener('keydown', (e) => { if ((e as KeyboardEvent).key === 'Enter') run(); }); });
+  const solveBtn = () => button('Solve', run, { variant: 'primary', icon: 'Variable' });
+
   const render = () => {
     clear(body); clear(out);
     if (mode === 'any') {
-      const eq = input({ value: 'x^3 - 2x = 1', attrs: { spellcheck: 'false' } });
-      const lo = num(-100), hi = num(100);
+      const eq = input({ value: 'x^3 - 2x = 1', attrs: { spellcheck: 'false', autocapitalize: 'off', 'aria-label': 'Equation' } });
+      const lo = num(-100, 'Search from'), hi = num(100, 'Search to');
+      solve = () => {
+        if (!eq.value.trim()) throw new Error('Type an equation, e.g. x^2 = 2.');
+        if ((eq.value.match(/=/g) || []).length > 1) throw new Error('One = sign, please: left side = right side.');
+        const a = parseFloat(lo.value), b = parseFloat(hi.value);
+        if (!isFinite(a) || !isFinite(b) || a >= b) throw new Error('The search range needs two numbers, "from" below "to".');
+        const ex = m.compile(eq.value, deg);
+        try {
+          const other = (['y', 'z', 't', 'ans'] as const).find((v) => ex.uses(v));
+          if (other) throw new Error(other === 'ans' ? 'Ans belongs to the calculator — an equation here is written with x.' : `Only x can be the unknown: "${other}" has no value. (Several unknowns: "Simultaneous".)`);
+          if (!ex.uses('x')) { // nothing to solve for: the two sides are equal or they are not
+            const v = ex.eval(0);
+            clear(out).append(note(!Number.isFinite(v) ? 'There is no x in the equation, and one side has no value.' : v === 0 ? 'There is no x in the equation, and it is true as it stands: every x solves it.' : 'There is no x in the equation, and it is false as it stands: no x solves it.', 'warn'));
+            return;
+          }
+          const probe = ex.range(a, (b - a) / 16, 17);
+          if (probe.every((v) => v === 0)) { clear(out).append(note('Both sides are equal for every x that was tried: every x in the range solves it.', 'warn')); return; }
+          const found = ex.roots(a, b, 20000, ROOT_CAP), step = (b - a) / 20000;
+          clear(out).append(card(found.length === 1 ? 'Real solution' : `Real solutions${found.length > 1 ? ` (${found.length}${found.length >= ROOT_CAP ? ' shown' : ''})` : ''}`,
+            found.length ? h('div', { class: 'big-results' }, found.map((r, i) => tile(`x${found.length > 1 ? sub(i) : ''}`, fmtNum(r + 0, 10).replace(/^-/, '−'), '', fmtNum(r + 0)))) : note(`No real solution between ${fmtNum(a)} and ${fmtNum(b)}.`, 'warn'),
+            found.length >= ROOT_CAP ? note(`The first ${ROOT_CAP} solutions from ${fmtNum(a)} upwards are shown — there may be more: narrow the range.`, 'warn') : null,
+            step > 0.05 ? note(`The range is searched in 20,000 steps of ${fmtNum(step, 3)}: solutions closer together than that can be missed — narrow the range to find them.`) : null));
+        } finally { ex.free(); }
+      };
+      live(eq, lo, hi);
       body.append(field('Equation in x (use = or just an expression = 0)', eq), h('div', { class: 'grid2' }, field('Search from', lo), field('to', hi)),
-        button('Solve', safe(() => {
-          if (!eq.value.trim()) throw new Error('Type an equation, e.g. x^2 = 2.');
-          const a = parseFloat(lo.value), b = parseFloat(hi.value);
-          if (!isFinite(a) || !isFinite(b) || a >= b) throw new Error('The search range needs two numbers, "from" below "to".');
-          const ex = m.compile(eq.value);
-          const uniq = (() => { try { return ex.roots(a, b); } finally { ex.free(); } })();
-          clear(out).append(card('Real solutions', uniq.length ? h('div', { class: 'big-results' }, uniq.slice(0, 20).map((r, i) => h('button', { class: 'big-result', type: 'button', onclick: () => copy(fmtNum(r)) }, h('span', { class: 'big-label' }, `x${uniq.length > 1 ? i + 1 : ''}`), h('span', { class: 'big-value' }, fmtNum(r, 10))))) : note('No real solution found in that range.', 'warn')));
-        }), { variant: 'primary', icon: 'Variable' }));
+        row(solveBtn(), segmented([['rad', 'Radians'], ['deg', 'Degrees']], deg ? 'deg' : 'rad', (v) => { deg = v === 'deg'; run(); })));
     } else if (mode === 'quad' || mode === 'cubic') {
       const names = mode === 'quad' ? ['a', 'b', 'c'] : ['a', 'b', 'c', 'd'];
       const vals = mode === 'quad' ? [1, -3, 2] : [1, -6, 11, -6];
-      const ins = names.map((n, i) => num(vals[i]));
-      body.append(h('p', { class: 'muted' }, mode === 'quad' ? 'ax² + bx + c = 0' : 'ax³ + bx² + cx + d = 0'), h('div', { class: 'form-grid' }, ins.map((x, i) => field(names[i], x))),
-        button('Solve', safe(() => {
-          const v = ins.map((x) => parseFloat(x.value));
-          if (v.some((x) => !isFinite(x)) || v[0] === 0) throw new Error('Coefficient a must be a non-zero number.');
-          let roots: Complex[];
-          if (mode === 'quad') {
-            const [a, b, c] = v, D = b * b - 4 * a * c;
-            roots = m.quadratic(a, b, c);
-            clear(out).append(card('Roots', h('div', { class: 'big-results' }, roots.map((r, i) => h('div', { class: 'big-result' }, h('span', { class: 'big-label' }, `x${i + 1}`), h('span', { class: 'big-value' }, cfmt(r))))),
-              h('div', { class: 'kv' }, h('span', null, 'Discriminant'), h('span', null, fmtNum(D)), h('span', null, 'Vertex'), h('span', null, `(${fmtNum(-b / (2 * a))}, ${fmtNum(c - (b * b) / (4 * a))})`))));
-          } else {
-            roots = m.cubic(v[0], v[1], v[2], v[3]);
-            clear(out).append(card('Roots', h('div', { class: 'big-results' }, roots.map((r, i) => h('div', { class: 'big-result' }, h('span', { class: 'big-label' }, `x${i + 1}`), h('span', { class: 'big-value' }, cfmt(r)))))));
-          }
-        }), { variant: 'primary', icon: 'Variable' }));
-    } else {
-      let n = 2;
-      const grid = h('div');
-      const cells: HTMLInputElement[][] = [];
-      const build = () => {
-        cells.length = 0;
-        const vars = ['x', 'y', 'z', 'w'].slice(0, n);
-        const defaults = n === 2 ? [[2, 3, 8], [1, -1, -1]] : [[1, 1, 1, 6], [0, 2, 5, -4], [2, 5, -1, 27]];
-        clear(grid).append(...Array.from({ length: n }, (_, r) => {
-          const rowCells = Array.from({ length: n + 1 }, (_, c) => { const x = num(defaults[r]?.[c] ?? 0); x.classList.add('eq-cell'); return x; });
-          cells.push(rowCells);
-          return h('div', { class: 'eq-row' }, ...rowCells.slice(0, n).flatMap((x, c) => [x, h('span', { class: 'eq-var' }, vars[c] + (c < n - 1 ? ' +' : ' ='))]), rowCells[n]);
-        }));
+      const ins = names.map((nm, i) => num(vals[i], nm));
+      solve = () => {
+        const v = ins.map((x) => (x.validity.badInput ? 'not a number' : x.value));
+        if (mode === 'quad') {
+          const q = quadratic(v[0], v[1], v[2]), [p, r] = q.roots;
+          clear(out).append(card(q.kind === 'double' ? 'Root' : 'Roots', h('div', { class: 'big-results' }, q.kind === 'double' ? rootTile(p, 'x₁ = x₂') : [rootTile(p, 'x₁'), rootTile(r, 'x₂')]),
+            kv([['Kind', q.kind === 'two' ? 'Two different real roots' : q.kind === 'double' ? 'One real root, twice (the parabola touches the axis)' : 'Two complex roots (the parabola does not reach the axis)'],
+              ['Discriminant b² − 4ac', q.disc.length > 40 ? fmtNum(parseFloat(q.disc.replace('−', '-'))).replace(/^-/, '−') : q.disc], ['Vertex', `(${fmtNum(q.vertex[0])}, ${fmtNum(q.vertex[1])})`.replace(/-/g, '−')]])));
+        } else {
+          const q = cubic(v[0], v[1], v[2], v[3], (a, b, c, d) => m.cubic(a, b, c, d)[0].re), [p, r, t3] = q.roots;
+          clear(out).append(card(q.kind === 'triple' ? 'Root' : 'Roots', h('div', { class: 'big-results' }, q.kind === 'triple' ? rootTile(p, 'x₁ = x₂ = x₃')
+            : q.kind === 'double' ? (p.re === r.re ? [rootTile(p, 'x₁ = x₂'), rootTile(t3, 'x₃')] : [rootTile(p, 'x₁'), rootTile(r, 'x₂ = x₃')]) : [rootTile(p, 'x₁'), rootTile(r, 'x₂'), rootTile(t3, 'x₃')]),
+            kv([['Kind', q.kind === 'three' ? 'Three different real roots' : q.kind === 'double' ? 'Two real roots, one of them twice' : q.kind === 'triple' ? 'One real root, three times' : 'One real root and two complex ones']])));
+        }
       };
-      body.append(segmented([['2', '2 unknowns'], ['3', '3 unknowns'], ['4', '4 unknowns']], '2', (v) => { n = +v; build(); }), h('div', { class: 'scroll-x' }, grid),
-        button('Solve', safe(() => {
-          const A = cells.map((r) => r.slice(0, n).map((x) => parseFloat(x.value))), b = cells.map((r) => parseFloat(r[n].value));
-          if ([...A.flat(), ...b].some((x) => !isFinite(x))) throw new Error('Fill in every coefficient (use 0 for a missing term).');
-          const s = m.solveLinear(A, b);
-          clear(out).append(card('Solution', s ? h('div', { class: 'big-results' }, s.map((v, i) => h('div', { class: 'big-result' }, h('span', { class: 'big-label' }, 'xyzw'[i]), h('span', { class: 'big-value' }, fmtNum(v))))) : note('No unique solution (the equations are dependent or inconsistent).', 'warn')));
-        }), { variant: 'primary', icon: 'Variable' }));
+      live(...ins);
+      body.append(h('p', { class: 'muted' }, mode === 'quad' ? 'ax² + bx + c = 0' : 'ax³ + bx² + cx + d = 0'), h('div', { class: 'form-grid' }, ins.map((x, i) => field(names[i], x))), solveBtn());
+    } else {
+      const grid = h('div');
+      let cells: HTMLInputElement[][] = [];
+      const build = () => {
+        const vars = ['x', 'y', 'z', 'w'].slice(0, n);
+        const defaults: Record<number, number[][]> = { 2: [[2, 3, 8], [1, -1, -1]], 3: [[1, 1, 1, 6], [0, 2, 5, -4], [2, 5, -1, 27]], 4: [[1, 1, 1, 1, 10], [1, -1, 2, 0, 5], [0, 2, 1, -1, 3], [3, 0, 0, 1, 7]] };
+        const touched = Object.keys(kept).length > 0; // once something was typed, the grid keeps it through a change of size
+        cells = Array.from({ length: n }, (_, r) => Array.from({ length: n + 1 }, (_, c) => {
+          const key = `${r},${c === n ? 'rhs' : c}`;
+          const x = num(kept[key] ?? (touched ? '0' : defaults[n][r][c]), c === n ? `Equation ${r + 1}, right-hand side` : `Equation ${r + 1}, coefficient of ${vars[c]}`);
+          x.classList.add('eq-cell'); x.addEventListener('input', () => { kept[key] = x.value; });
+          return x;
+        }));
+        clear(grid).append(...cells.map((rowCells) => h('div', { class: 'eq-row' }, ...rowCells.slice(0, n).flatMap((x, c) => [x, h('span', { class: 'eq-var' }, vars[c] + (c < n - 1 ? ' +' : ' ='))]), rowCells[n])));
+        live(...cells.flat());
+      };
+      solve = () => {
+        const s = linear(cells.map((r) => r.map((x) => (x.validity.badInput ? 'not a number' : x.value))));
+        clear(out).append(card(s.kind === 'one' ? 'Solution' : 'No single solution', s.kind === 'one' ? h('div', { class: 'big-results' }, s.x.map((v, i) => rootTile(v, 'xyzw'[i])))
+          : note(s.kind === 'none' ? 'No solution: the equations contradict each other.' : `Infinitely many solutions: the equations are not independent — only ${s.rank} of the ${n} ${s.rank === 1 ? 'says' : 'say'} something new.`, 'warn')));
+      };
+      body.append(segmented([['2', '2 unknowns'], ['3', '3 unknowns'], ['4', '4 unknowns']], String(n), (v) => { n = +v; build(); run(); }), h('div', { class: 'scroll-x' }, grid), solveBtn());
       build();
     }
+    run();
   };
-  root.append(card(null, stack(segmented([['any', 'Any equation f(x)=g(x)'], ['quad', 'Quadratic'], ['cubic', 'Cubic'], ['sys', 'Simultaneous (linear)']], mode, (v) => { mode = v; render(); }), body)), out);
+  root.append(card(null, stack(segmented([['any', 'Any equation f(x)=g(x)'], ['quad', 'Quadratic'], ['cubic', 'Cubic'], ['sys', 'Simultaneous (linear)']], mode, (v) => { mode = v; render(); }), body)), out,
+    note('Quadratic, cubic and simultaneous equations are solved from the numbers exactly as typed: (x − 1.1)² = 0 has one root, and a fraction is shown beside its decimal. "Any equation" looks for real solutions between the two limits.'));
   render();
 };
 

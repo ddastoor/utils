@@ -473,3 +473,21 @@ One entry per tab, written before its bug hunt: our module → candidates → ch
 - **Decision:** nothing to replace; the engine is already WebAssembly and gained the sampler. Held to the
   mathematics of each function (where floor, 1/x, tan … break and where they do not) on 60 random grids each.
 
+### 84. `equation` — Equation Solver (19 Nov 2026)
+- **Ours:** mathcore (own C): `m_find_roots` (real roots of any expression in a range), `m_quadratic`, `m_cubic`,
+  `m_solve_linear` — all in double precision.
+- **Candidates:** WebAssembly — none that is tried and tested for this job: computer-algebra systems exist as
+  WebAssembly builds (SymPy through Pyodide, 10 MB and more; Giac / Xcas, 15 MB; PARI/GP ports), megabytes each and
+  seconds to start, for four formulas. JavaScript: `mathjs` (`polynomialRoot`, `lusolve`; 4 million downloads a
+  month — double precision, the same faults as ours on repeated roots), `nerdamer`, `algebrite` (symbolic; unmaintained
+  or slow), `fraction.js`.
+- **Decision:** the engine stays, with Kahan's quadratic and cubic in place of the formulas with cube roots
+  (which turned the double root of (x − 1)²(x − 10⁶) into a complex pair). What double precision cannot give — the
+  *kind* of an answer for coefficients typed as decimals — is decided beside it on **exact fractions with the
+  browser's BigInt** (`src/lib/exact.ts`, `src/lib/equations.ts`): BigInt is the browser's own compiled big-number
+  arithmetic, and mathcore's exact fractions are 64-bit (a 4 × 4 system of 15-digit decimals needs 60 digits and
+  more). Rule step (c), our own TypeScript, for a part no module covers; reason recorded in CLAUDE.md §3a.
+- **Check:** Python's `fractions` and mpmath at 80 digits (`scripts/make-equations-reference.py`): 396 fractions to
+  the nearest double bit for bit, 400 quadratics, 300 cubics built from chosen roots, 300 linear systems (one
+  solution as fractions / none / infinitely many with the rank), 20 equations in x.
+

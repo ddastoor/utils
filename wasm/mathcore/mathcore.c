@@ -533,35 +533,58 @@ API int m_find_roots(int h, double a, double b, int samples, double *out, int ma
 }
 
 /* ======================================================================== polynomials */
+/* Quadratic and cubic after W. Kahan ("To Solve a Real Cubic Equation", 1986): no formula with cube roots of
+   differences — those lose a double root of (x - 1)^2 (x - 10^6) into a complex pair — but one real root by Newton's
+   iteration from a starting point that cannot overshoot, then the quadratic that is left. Coefficients are scaled by
+   a power of two first, so that nothing overflows on the way (roots do not change). The Equation Solver tab reads the
+   typed decimals exactly on top of this (src/lib/equations.ts); these are the plain double-precision answers. */
+/* b*b - a*c; where the two products nearly cancel, what each product lost in rounding is put back (fma) */
+static double qdisc(double a, double b, double c) {
+    double p = b * b, q = a * c, d = p - q;
+    if (3 * fabs(d) >= p + q) return d;
+    return d + (fma(b, b, -p) - fma(a, c, -q));
+}
+/* A x^2 + B x + C = 0, A != 0: out = re0, im0, re1, im1 — the larger real root first, or the pair with +im first */
+static void qdrtc(double A, double B, double C, double *out) {
+    double b = -B / 2, q = qdisc(A, b, C);
+    if (q < 0) { out[0] = out[2] = b / A; out[1] = fabs(sqrt(-q) / A); out[3] = -out[1]; return; }
+    double r = b + copysign(sqrt(q), b), x1, x2;
+    if (r == 0) { x1 = C / A; x2 = -x1; if (!(x1 == x1)) x1 = x2 = 0; if (x1 < 0 || x2 < 0) { x1 = sqrt(fabs(C / A)); x2 = -x1; } }
+    else { x1 = C / r; x2 = r / A; }
+    if (x1 < x2) { double t = x1; x1 = x2; x2 = t; }
+    out[0] = x1; out[1] = 0; out[2] = x2; out[3] = 0;
+}
+/* the largest of the magnitudes as a power of two, to scale by */
+static int top_exp(const double *v, int n) { int top = -100000; for (int i = 0; i < n; i++) if (v[i] != 0 && isfinite(v[i])) { int e; frexp(v[i], &e); if (e > top) top = e; } return top == -100000 ? 0 : top; }
 /* out: re0,im0,re1,im1 */
 API void m_quadratic(double a, double b, double c, double *out) {
-    double D = b * b - 4 * a * c;
-    if (D >= 0) {
-        double q = -0.5 * (b + copysign(sqrt(D), b)); /* numerically stable */
-        double r1 = q / a, r2 = q != 0 ? c / q : -b / a;
-        if (r1 < r2) { double t = r1; r1 = r2; r2 = t; }
-        out[0] = r1; out[1] = 0; out[2] = r2; out[3] = 0;
-    } else {
-        out[0] = -b / (2 * a); out[1] = sqrt(-D) / (2 * a); out[2] = out[0]; out[3] = -out[1];
-    }
+    double v[3] = {a, b, c}; int k = top_exp(v, 3);
+    qdrtc(ldexp(a, -k), ldexp(b, -k), ldexp(c, -k), out);
 }
-/* out: 3 complex roots (re,im)×3 */
+/* out: 3 complex roots (re,im)x3: a real root first, then the two of the quadratic that is left */
 API void m_cubic(double a, double b, double c, double d, double *out) {
-    b /= a; c /= a; d /= a;
-    double p = c - b * b / 3, q = 2 * b * b * b / 27 - b * c / 3 + d, sh = -b / 3;
-    double disc = q * q / 4 + p * p * p / 27;
-    if (fabs(disc) < 1e-14) {
-        double u = cbrt(-q / 2);
-        out[0] = 2 * u + sh; out[2] = out[4] = -u + sh; out[1] = out[3] = out[5] = 0;
-    } else if (disc < 0) {
-        double r = sqrt(-p * p * p / 27), phi = acos(fmax(-1, fmin(1, -q / (2 * r)))), m = 2 * cbrt(r);
-        for (int k = 0; k < 3; k++) { out[2 * k] = m * cos((phi + 2 * M_PI * k) / 3) + sh; out[2 * k + 1] = 0; }
-    } else {
-        double sd = sqrt(disc), u = cbrt(-q / 2 + sd), v = cbrt(-q / 2 - sd);
-        out[0] = u + v + sh; out[1] = 0;
-        out[2] = -(u + v) / 2 + sh; out[3] = sqrt(3) / 2 * (u - v);
-        out[4] = out[2]; out[5] = -out[3];
+    double v[4] = {a, b, c, d}; int k = top_exp(v, 4);
+    double A = ldexp(a, -k), B = ldexp(b, -k), C = ldexp(c, -k), D = ldexp(d, -k), X, b1, c2;
+    if (D == 0) { X = 0; b1 = B; c2 = C; }
+    else {
+        double q0, Q, Qp, x0, t, r, s;
+#define EVAL3(x) (q0 = A * (x), b1 = q0 + B, c2 = b1 * (x) + C, Qp = (q0 + b1) * (x) + c2, Q = c2 * (x) + D)
+        X = -(B / A) / 3; EVAL3(X);
+        t = Q / A; r = cbrt(fabs(t)); s = t < 0 ? -1 : 1;
+        t = -Qp / A; if (t > 0) r = 1.324717957244746 * fmax(r, sqrt(t));
+        x0 = X - s * r;
+        if (x0 != X) {
+            for (int it = 0; it < 200; it++) {
+                X = x0; EVAL3(X);
+                x0 = Qp == 0 ? X : X - (Q / Qp) / 1.000000000000001;
+                if (s * x0 <= s * X) break;
+            }
+            if (fabs(A) * X * X > fabs(D / X)) { c2 = -D / X; b1 = (c2 - C) / X; }
+        }
+#undef EVAL3
     }
+    out[0] = X; out[1] = 0;
+    qdrtc(A, b1, c2, out + 2);
 }
 
 /* ======================================================================== linear algebra (row-major) */
