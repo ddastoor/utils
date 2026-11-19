@@ -58,7 +58,7 @@ what those suites missed.
   the supplement: Base32 / HOTP truncation, PHC strings and checks, Argon2 1.0, plus OpenSSH and API keys); jq
   (jq-wasm), python (Pyodide), curl (curlconverter), xml (libxml2-wasm), json (dprint), mdtable, mermaid (Merman)
   were re-checked and keep their engine, each with the evidence (faults inside the module, or a module that is days
-  or months old). The same file lists the **candidates for the 124 tabs still to be hunted** (graphviz →
+  or months old). The same file lists the **candidates for the tabs still to be hunted** (121 after graphviz; graphviz →
   @viz-js/viz / @hpcc-js/wasm-graphviz, hash → hash-wasm, sodium tabs → libsodium-wrappers, MP3 →
   @mediabunny/mp3-encoder, noise → @jitsi/rnnoise-wasm, pitch → signalsmith-stretch, diff → @vscode/diff, zip →
   7z-wasm, …): each is tried when its tab is reached.
@@ -69,26 +69,22 @@ what those suites missed.
 - **Found during the audit and fixed:** our jq build showed local time as UTC → `wasm/jq/hosttz.c` + the shared
   `tzInfoImport` (891 reference cases from the native jq 1.8.2 in 27 zones; Python's `time.mktime` on clock-change
   nights corrected by the same host code).
-- **IN PROGRESS: `graphviz` (tab 55, the last tab of the data-engines area).** Done and pushed so far (19 Nov):
-  the existing-module check (Viz.js 3.31 and @hpcc-js/wasm-graphviz 1.30 both trap on valid graphs — an upstream
-  Graphviz bug in `storeline()`, labels.c: a label whose first line is empty leaves a text span uninitialised; native
-  dot survives it, WebAssembly does not; nothing beside the module can put that right → we keep our own build);
-  **our build is now Graphviz 16.1.0** from the official release (gitlab.com, SHA-256 in `wasm/graphviz/build.sh`) with
-  `storeline.patch`, `qsort.c` (glibc's stable merge sort) and `rand.c` (glibc's rand) so it draws what `dot` draws on
-  Linux — against the native 16.1.0 on the 457 graph files of the Graphviz sources: dot, neato, circo, osage and
-  patchwork identical on every file, twopi 451, sfdp 359, fdp 242 (the rest differ in the last digits of libm), no
-  crash in any engine; text measured by the browser (`supertools.text_width` import → the worker's canvas), several
-  graphs in one text, a graph's own `layout=` attribute, line numbers of the whole text; new worker (fresh instance
-  per drawing), client (newest text wins, slow layout ended), page (stale drawing dimmed and not downloadable, PNG
-  size limits, file decoding, messages tidied, Go to line). The old suites pass on it (unit 32, e2e 23).
-  **Still to do for the tab:** `scripts/make-graphviz-reference.mjs` + fixtures (`tests/fixtures/graphviz/`: graphs
-  from the Graphviz sources, EPL-1.0, + hazard graphs; hashes of native dot's output per graph × engine), the new
-  unit suite (native equality, fresh and reused instances, multi-graph, charset, measuring host, glibc rand values,
-  `src/lib/graphviz-text.ts`), the new e2e suite, `docs/WASM-AUDIT.md` entry 55, CLAUDE.md (§3a row, §5.1l, a §3
-  section), `docs/BUGHUNT.md` + tracker row, `tests/fixtures/README.md`. The native reference tool is
-  `$WORK/native/cmd/dot/dot_static` after `ZIG=… wasm/graphviz/build.sh` (WORK defaults to /tmp/graphviz-build).
-- **NEXT after graphviz:** the complete `npm test` + `npm run build && node tests/e2e.mjs` for the data-engines
-  area, then calc-core → … as listed above.
+- **NEXT:** the complete `npm test` + `npm run build && node tests/e2e.mjs` for the data-engines area (all its
+  tabs are done now), then **calc-core** → calc2-math → text → … as listed below; per tab: the existing-module check
+  with its entry in `docs/WASM-AUDIT.md` first, then bugs, tests, fixes.
+- **Graphviz (tab 55, `graphviz`): DONE (19 Nov 2026).** Existing modules first (`docs/WASM-AUDIT.md` entry 55):
+  Viz.js 3.31 and @hpcc-js/wasm-graphviz 1.30 both **trap on valid graphs** (an upstream fault in `storeline()`: a
+  label whose first line is empty), so the tab keeps a build of our own — now **Graphviz 16.1.0** from the official
+  release (gitlab.com; SHA-256 in `wasm/graphviz/build.sh`) with `storeline.patch`, `triangulation.patch` +
+  `st_delaunay.h` (prism overlap removal on our C port of Delaunator — no WebAssembly build had it), `qsort.c` /
+  `rand.c` (glibc's: dot, neato, twopi, osage, patchwork are byte for byte the native tool's on 457 graph files),
+  assertions kept (`-UNDEBUG`), text measured by the browser through a "textlayout" plugin. New worker (a fresh
+  instance per drawing), client (newest text wins), page (CLAUDE.md §3 "Graphviz", §5.1l). 22 bugs; unit 32 → 686,
+  e2e 23 → 81; reference = the native `dot` of the same source (`scripts/make-graphviz-reference.mjs`, 3,464
+  drawings). **Build tree for quick rebuilds** (lost with the container; `ZIG=/tmp/zig/x/ziglang/zig
+  WORK=/tmp/graphviz-build3 wasm/graphviz/build.sh` recreates it in ≈ 4 min): `/tmp/graphviz-build3`
+  (`native/cmd/dot/dot_static` = the reference tool). To tell the owner at the end: the upstream crash is worth
+  reporting to the Graphviz project (patch ready); native Graphviz 16.1.0 aborts on two hazard graphs.
 - **Code Formatter (tab 54, `prettier`): DONE (19 Nov 2026).** Engines by evidence (`docs/WASM-AUDIT.md` entry 54;
   CLAUDE.md §3 "Code Formatter"): **Biome's official wasm** for JS / TS / CSS / SCSS / YAML / GraphQL, **`@dprint/json`**
   for JSON, **`dprint-plugin-markup`** (+ Biome for what stands inside) for HTML and Vue, **Prettier** for Markdown and
@@ -143,9 +139,10 @@ what those suites missed.
   pairs), **python** (recursion guard for the browser's two stacks, lru_cache in Python, local time with tzdata's
   names, socket stand-in + asyncio, pbkdf2_hmac; new output pane that survives floods and shows \r / colours / the
   answers to input(); native CPython 3.14.8 as the reference for 69 programs — details in CLAUDE.md §5.1m).
-  Still open in this area: **prettier, graphviz** (sqlite and sqlfmt done since).
+  Still open in this area: nothing (sqlite, sqlfmt, prettier and graphviz done since).
   Running total: **51 of 176 tabs reviewed, 333 bugs fixed, 14,702 checks added** (+ shell).
   After `sqlite`, `sqlfmt` and `prettier` (19 Nov 2026): **54 of 176 tabs reviewed, 393 bugs fixed, 16,274 checks added**.
+  After `graphviz` (19 Nov 2026): **55 of 176 tabs reviewed, 415 bugs fixed, 16,986 checks added** — the data-engines area is complete.
   Python build tree for quick rebuilds (lost when the container is reclaimed; `wasm/python/build.sh` recreates it in
   ≈ 10 min): `/tmp/pyb3` (`native/python` = the reference interpreter; `rezip.sh` rebuilds only python314.zip).
   After any rebuild: `python3 scripts/make-tzabbr.py` and `<native python> scripts/make-python-reference.py`.

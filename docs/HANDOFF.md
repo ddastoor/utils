@@ -205,3 +205,30 @@ export ZIG=/tmp/zig/x/ziglang/zig
   e2e suites can run the app's pure modules without Vite (`tests/lib/codefmt-node.mjs`).
 - **Opening a file in an e2e test:** the tab reads the file before it starts work, so the notes of the previous result
   are still there — take them away first (`openFile` in `tests/e2e/prettier.e2e.mjs`) or the wait matches the old state.
+
+- **A native build of the same source is the best reference a C engine can have (Graphviz, 19 Nov 2026):** build it
+  first (`wasm/graphviz/build.sh` does: it needs the object list anyway), record what it draws
+  (`scripts/make-graphviz-reference.mjs`: hashes, so 3,464 drawings fit in 430 KB), and hold the module to it. What
+  that showed, none of it visible to hand-written expectations: the C library decides drawings (`qsort` is not
+  stable in musl, `rand()` is another generator — bring glibc's along and `dot` is byte for byte the tool's), which
+  engines can be exact at all (those without sin / cos in a loop), and where the tool itself aborts.
+- **`zig cc -O2` defines NDEBUG.** Assertions are gone unless the build says `-UNDEBUG` (check with
+  `strings module.wasm | grep "Assertion failed"`). In WebAssembly a null pointer is readable memory, so an engine
+  without assertions runs on where the native tool stops. `-ffile-prefix-map=$SRC/=` keeps the build path out.
+- **WebAssembly traps where native survives:** an uninitialised function pointer is a call through a garbage table
+  index. When a wasm build of a mature C program traps on valid input, run the native program under **valgrind**
+  (installed here) on the same input — twice in one process if the program frees at exit.
+- **A fresh instance per job** costs ≈ 1 ms once the module is compiled (`compileWasi` + `instantiateWasiModule`
+  in `src/wasm/wasi.ts`; the page compiles, the worker instantiates). Libraries written as command-line tools keep
+  counters and "said it once" flags in globals: a reused instance gives history-dependent output.
+- **A missing library can sometimes be replaced at its seam:** Graphviz wants GTS only for a Delaunay triangulation;
+  a 250-line port of Delaunator under its `delaunay.c` switched prism on. Port line by line and test against the
+  original for *identical arrays* (then every difference is a slip, not a matter of taste), and against a native
+  build with the real library for how close the whole thing comes (`apt-get install libgts-dev` works here).
+- **Editing a shell script while it runs** is safe only behind the line it is executing — and only if the bytes in
+  front of that line keep their length. Start long builds, then leave the script alone.
+- **Sandbox facts added:** gitlab.com is reachable (Graphviz's release archives); `apt-get install` works (Ubuntu
+  archive); foreground `sleep` over a few seconds is blocked — wait with `until grep -q … ; do sleep 5; done`.
+- **e2e waiting without sleeps:** the Graphviz tab sets `aria-busy` on the drawing while a text has no answer yet;
+  `settled()` in its suite waits for `aria-busy="false"` and a loaded picture. Worth copying in tabs that redraw as
+  you type.

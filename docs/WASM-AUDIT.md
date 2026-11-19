@@ -131,7 +131,7 @@ plus the OpenSSH and API-key code, for which no WebAssembly module exists.
 Checked one by one when each tab is reached — module first, then bugs, tests, fixes. Monthly downloads in brackets.
 | Tab(s) | Ours today | Existing module(s) to try first |
 |---|---|---|
-| `graphviz` | graphviz.wasm (our build of Graphviz 14.1.2) | **@viz-js/viz 3.31.0** (1.79 M), **@hpcc-js/wasm-graphviz 1.30.0** (1.36 M) |
+| `graphviz` | graphviz.wasm (our build of Graphviz 14.1.2) → **done, entry 55: own build kept, now Graphviz 16.1.0** | **@viz-js/viz 3.31.0** (1.79 M), **@hpcc-js/wasm-graphviz 1.30.0** (1.36 M) — both trap on valid graphs |
 | `hash` | crypto.wasm (own MD5 / SHA-1 / SHA-3 / CRC-32 + libsodium) | **hash-wasm** (already in the app: MD5, SHA-1, SHA-2, SHA-3, BLAKE2b, CRC-32, streaming) |
 | `sodium`, `sharelink`, `password`, `passphrase`, random tools | crypto.wasm (libsodium 1.0.20 built by us) | **libsodium-wrappers / -sumo** (the libsodium project's own WebAssembly build) |
 | `audio`, `tts`, `stt`, `noise`, `pitch` (MP3 output) | audio.wasm (LAME 4.0 built by us) | **@mediabunny/mp3-encoder 1.66.0** (10.4 M; LAME, from the muxer project already in the app) |
@@ -246,3 +246,52 @@ One entry per tab, written before its bug hunt: our module → candidates → ch
   HTML, Vue and Markdown (faults above).
 
 *(further entries follow as the hunt goes on)*
+
+### 55. `graphviz` — Graphviz (DOT) (19 Nov 2026)
+- **Our module:** graphviz.wasm — Graphviz 14.1.2 (C / C++) + Expat, compiled by us for wasm32-wasi (1.6 MB).
+- **Candidates** (npm, downloads a month): **@viz-js/viz 3.31.0** (1.79 M; Viz.js, the best-known build) and
+  **@hpcc-js/wasm-graphviz 1.30.0** (1.36 M; used by d3-graphviz). Both are Emscripten builds of **Graphviz 16.1.0**
+  with the module embedded in JavaScript, MIT / Apache-2.0 around EPL-2.0 — both famous, maintained, hostable in the
+  app. Either would have covered what the tab asked of its engine, and both were two major releases ahead of ours.
+- **Check:** every graph file of the Graphviz sources (`graphs/`, `tests/`: 434 files) through each build and through
+  the native `dot` 16.1.0 built here from the official archive.
+  | | native dot 16.1.0 | Viz.js 3.31 | hpcc 1.30 | ours (14.1.2) |
+  |---|---|---|---|---|
+  | files drawn, a new instance per file | 434 | 426 — **8 trap** (`crazy.gv`, `rankdir_dot*.gv`, …) | the same engine; a trap surfaces as an exception | 432 — **2 trap** (`record_dot.gv`) |
+  | one instance for several graphs | — | `ER.gv` traps on its **third** drawing (what a tab that redraws on every keystroke does) | as Viz.js | as fresh |
+  | Graphviz's warnings | on stderr | returned | **dropped** (none reach the caller) | returned |
+  | prism overlap removal (sfdp's default, `overlap=prism`) | only when built with GTS | no — "remove_overlap: Graphviz not built with triangulation library" on every sfdp drawing | no (and silent) | no, the same error |
+  The traps have one cause, inside Graphviz: `storeline()` (lib/common/labels.c) leaves a text span uninitialised when a
+  label's first line is empty, and freeing the label calls whatever stands in its `free_layout`. valgrind shows the
+  read in the native tool, which survives it by luck; in WebAssembly a call through a garbage table index traps.
+- **Decision — keep a WebAssembly build of our own** (the judgement clause of STANDING RULE #1): the existing modules
+  crash on valid graphs, the fault is inside the engine, and nothing placed beside the module can put it right
+  (Viz.js loses the drawing when the clean-up traps). So: own build **from the latest release — Graphviz 16.1.0,
+  the official archive, SHA-256 checked** — with the fault repaired (`storeline.patch`, one line; worth reporting
+  upstream). With that patch all 434 files are drawn, in a fresh and in a reused instance.
+- **What the own build then made possible** (none of it is in the existing modules):
+  - *The drawings of the dot program.* wasi-libc's `qsort` (smoothsort) orders equal elements differently from
+    glibc's merge sort, and Graphviz's comparison functions call different elements equal; its `rand()` is another
+    generator. With glibc's two routines in the module (`qsort.c`, `rand.c`; 2.4 million `rand()` values checked
+    against the real one) — final module against the native tool of the same source, **457 graph files × 8
+    engines**: **dot, neato, twopi, osage, patchwork: the SVG byte for byte on every file**; circo on all but three
+    that ask for overlap removal after it; sfdp 360; fdp 242 (the last digit of sin / cos differs between the C
+    libraries and the iterations enlarge it — the nodes, sizes and edges are always the same). No trap anywhere.
+    Before: dot differed on 9 files, neato on 4, sfdp on 358. (Viz.js against the tool: 14 of 426 differ in dot.)
+  - *Prism.* Graphviz takes its Delaunay triangulation from GTS (LGPL, on GLib — a large thing to bring to wasm32).
+    Under the rule's second step — own WebAssembly from open-source code — the triangulation is a C port of
+    **Delaunator 5.1.0** (ISC) with robust-predicates' `orient2d`, placed under Graphviz's delaunay.c
+    (`triangulation.patch`, `st_delaunay.h`). The port returns the arrays of the original for every input (1,513
+    point sets, 184,578 triangles while porting; the unit suite repeats it and checks with exact arithmetic).
+    Against a **native Graphviz built with GTS** (libgts 0.7.6), 449 files: sfdp **447** identical, neato + prism
+    442, fdp + prism 432, twopi + prism 382, circo + prism 359 — where points lie on one circle two triangulations
+    are equally right and the libraries choose differently. Left out: GTS's triangulation with fixed segments, which
+    only the spline router for parallel edges in the spring engines uses (two of the 449 files).
+  - *Text measured by the browser* (a "textlayout" plugin in the glue → an import the worker answers from a canvas):
+    Graphviz's built-in tables know the widths of a few Latin fonts; labels in Devanagari, CJK, Arabic or emoji were
+    guessed. The existing modules have the same tables.
+  - *Assertions kept* (`-UNDEBUG` — zig cc defines NDEBUG by itself at -O2): where the tool aborts the module stops
+    at the same check; the tab names it.
+- **Size:** 1.65 MB (0.56 MB compressed) — Viz.js is 1.2 MB of JavaScript with the module inside, hpcc 0.8 MB.
+- **Suites re-run after the replacement:** unit 686, e2e 81 (the reference is the native tool: 3,464 drawings);
+  lazy, shell, every-tab, no-external.

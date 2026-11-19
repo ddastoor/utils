@@ -702,6 +702,51 @@ real files.
   `tests/fixtures/codefmt/layout.json`, run both suites. The independent readers are `tests/lib/codefmt-check.mjs`
   (each allowance named where it is made); the engines for Node are `tests/lib/codefmt-node.mjs`.
 
+### Graphviz (PC) — as built after the Nov 2026 bug hunt
+(`src/tools/software/graphviz.ts`, helpers `src/lib/graphviz-text.ts`, client `src/lib/graphviz-client.ts`, worker
+`src/workers/graphviz.worker.ts`, wrapper `src/wasm/graphviz.ts`; unit `tests/unit/graphviz.test.mjs` 686, e2e
+`tests/e2e/graphviz.e2e.mjs` 81.) Engine: **our own build of Graphviz 16.1.0** (§5.1l) — the existing WebAssembly
+builds (Viz.js, hpcc) trap on valid graphs (`docs/WASM-AUDIT.md`, tab 55). The reference of the tests is the **native
+`dot`** built from the same source.
+- **Draws what `dot` draws on Linux:** with glibc's `qsort` and `rand` in the module, dot, neato, circo, osage and
+  patchwork give the SVG of the native tool byte for byte (457 graph files of the Graphviz sources, every one); fdp,
+  sfdp and twopi where the last digit of sin / cos does not decide (the drawing then differs, the nodes, sizes and
+  edges never).
+- **A fresh instance of the engine for every drawing** (≈ 1 ms; the page compiles the module once and hands it to
+  the worker). Graphviz the library counts on across graphs (ids of gradients and link anchors), so a reused instance
+  did not draw the same text the same way twice; and nothing a failed graph leaves behind reaches the next one.
+- **Text is measured by the browser:** Graphviz asks its "textlayout" plugin for the size of every piece of text; ours
+  (in `glue.c`) passes the question to the import `supertools.text_width`, which the worker answers from an
+  OffscreenCanvas with exactly the font words the SVG will carry (`cssFont`; `fontnames=svg|ps` followed as the SVG
+  writer does). Labels in any script and font fit their nodes. Without a canvas (or in the unit harness: -1) Graphviz
+  falls back to its built-in tables, as a native build without Pango does.
+- **Prism overlap removal** (`overlap=prism`, `overlap=false`, sfdp's default) and sfdp's `smoothing=triangle|rng`
+  work: they need a Delaunay triangulation, which Graphviz takes from GTS and which no WebAssembly build had — ours is
+  `wasm/graphviz/st_delaunay.h`, a C port of Delaunator. Not there (GTS only): the spline router for parallel edges in
+  the spring engines, which needs a triangulation with fixed segments.
+- **As the dot program reads a file:** several graphs in one text (a chooser "2 of 3" appears; a graph that starts on
+  the line on which the one before ends is not seen, as with dot), a graph's own `layout=` decides the engine (the tab
+  says so), messages name the line of the whole text ("Go to line"); `charset=` is set to UTF-8 because the text
+  always arrives as UTF-8 — files are decoded when opened (UTF-8, UTF-16 by its mark, Big5 when named, else
+  Windows-1252), binary files and files over 20 MB are refused.
+- **The tab:** one layout gives the picture and the chosen text format (plain, JSON, DOT with positions, xdot, canon;
+  shown as Graphviz writes it, the first 5,00,000 characters on screen, Copy and Download give all). The newest text
+  wins: a layout that holds up a newer text for 400 ms is ended (worker terminated); Stop for a long one. After an
+  error the last drawing stays, dimmed, and SVG / PNG / Copy / the text download are refused until the text draws
+  again. Messages: Graphviz's doubled "Warning: Warning:" said once, repeats counted, eight lines shown. PNG at
+  1× / 2× / 4× on white, within the canvas limits (16,384 px a side, 100 megapixels; made smaller with a note when it
+  would not fit). Download names from the opened file, "-2" for the second graph. Control characters XML forbids are
+  left out of the SVG with a note. Fit / 100 % / 200 %. Ctrl+Enter draws at once.
+- **Assertions stay in the build.** Where Graphviz fails one of its own checks the tool aborts and the module traps at
+  the same check; the tab says which ("cp" in chanSearch, ortho.c line 390) and the next graph gets a new instance.
+  Known faults of Graphviz 16.1.0 that the hazard graphs ran into (the tool has them too): `splines=ortho` with a loop
+  in circo and twopi; in fdp an HTML name `<y>` beside a plain name `"y"` (the tool aborts; the module draws with `<y>`
+  never placed).
+- **Not loaded:** pictures and files a graph points to (`image=`, `shapefile=`): nothing enters or leaves the page.
+- **To update Graphviz:** bump the version and SHA-256 in `wasm/graphviz/build.sh`, check that the two patches still
+  apply, build (it leaves the native tool), `DOT=$WORK/native/cmd/dot/dot_static node
+  scripts/make-graphviz-reference.mjs`, **read the diff** of `tests/fixtures/graphviz/reference.json`, run both suites.
+
 ### Audio Recorder — BUILT (`src/tools/audio.ts`, shared UI `src/lib/audioui.ts`; e2e `tests/e2e/audio.e2e.mjs` 21)
 Record the mic (MediaRecorder: Opus/WebM, AAC/M4A on Safari; 128 kbps) with pause/resume, big timer, live level meter
 with clip mark and a scrolling waveform; microphone picker; "voice clean-up" (browser echo/noise/AGC) on by default,
@@ -970,7 +1015,7 @@ stay **public** (the source of the deployed site is then available to every user
 | BusyBox 1.38.0 (130 applets) + compat shims | C | **us** (`wasm/busybox`) | terminal, bc console |
 | jq 1.8.2 (+ oniguruma) | C | **us** (`wasm/jq`) | jq |
 | CPython 3.14.8 (+ zlib 1.3.2; stdlib as .pyc in python314.zip with tzdata 2026.6) **+ our changes** (§5.1m: recursion guard for a browser's two stacks, lru_cache in Python, pbkdf2_hmac fallback, socket stand-in + asyncio loop without sockets, local time from the host) | C | **us** (`wasm/python`, python.wasm 7 MB + python314.zip 5.4 MB, loaded on the first Run; run by our WASI host `src/lib/terminal/wasi.ts` in `src/workers/python.worker.ts`) | python |
-| Graphviz 14.1.2 (cgraph, gvc, dot/neato/fdp/sfdp/circo/twopi/osage/patchwork, core renderers) + Expat 2.9.0 | C / C++ | **us** (`wasm/graphviz`, 1.6 MB / 0.54 MB gz, run in `src/workers/graphviz.worker.ts`) | graphviz |
+| Graphviz **16.1.0** (cgraph, gvc, dot/neato/fdp/sfdp/circo/twopi/osage/patchwork, core renderers; the official release archive) + Expat 2.9.0 **+ our changes** (§5.1l: `storeline.patch` — an upstream crash on labels that start with an empty line; `triangulation.patch` + `st_delaunay.h` — prism overlap removal on our C port of Delaunator instead of GTS; glibc's `qsort` and `rand`; assertions kept; text measured by the host through a "textlayout" plugin) | C / C++ | **us** (`wasm/graphviz`, 1.65 MB / 0.56 MB gz, a fresh instance per drawing in `src/workers/graphviz.worker.ts`; the existing builds — Viz.js, hpcc — trap on valid graphs: `docs/WASM-AUDIT.md`, tab 55) | graphviz |
 | audio: **LAME 4.0** libmp3lame (MP3 encoder) + own C (WAV writer, waveform peaks, levels, gain/fades, Kaiser windowed-sinc resampler, WSOLA time stretch, tempo × pitch) | C | **us** (`wasm/audio`) | audio (and tts, stt, noise, pitch) |
 | rnnoise: Xiph **RNNoise 0.2** (+ default model) + glue (48 kHz frames, latency compensation, wet/dry mix, VAD) | C | **us** (`wasm/rnnoise`) | noise |
 | espeak: **eSpeak NG 1.52.0** (+ English phoneme tables and dictionary compiled from the same release, linked in, served to its fopen/stat from memory) + glue (IPA for Kokoro, piper-phonemize-style sentences) | C | **us** (`wasm/espeak`) | tts (stt hints later) |
@@ -1091,7 +1136,8 @@ Owner: "make the full site faster, more responsive and memory efficient — load
    sample preview), terminal (BusyBox: the shell is ready at once), qr/barcode (zxing-cpp: drawn as you type),
    caption/watermark/signature (fonts of the first preview), cidr/cron/semver/glob/patch (their devcore-<tab>.wasm: the
    sample is computed live), json/jwt/xml/json2types/jsondiff/base64 (their devcore module: the sample is formatted,
-   decoded, compared or converted at once), mermaid (the sample diagram). Adding to that list needs a reason in the test.
+   decoded, compared or converted at once), mermaid (the sample diagram), graphviz (the sample graph: its module
+   and worker). Adding to that list needs a reason in the test.
    Examples of deferral: bc console starts BusyBox on its first Enter; Image Editor instantiates imgproc with
    the first photo; CSV/Excel loads sheet.wasm with the first file; Photo Dictionary loads the word list and
    Literata while OCR runs; PDF tabs load MuPDF when a PDF is chosen.
@@ -1260,15 +1306,44 @@ cases in 27 zones** (`tests/fixtures/jq/localtime.json`, `JQ=/path/to/jq-1.8.2/j
 e2e `tests/e2e/jq.e2e.mjs` (68, four browser time zones).
 
 ### 5.1l graphviz → `src/wasm/bin/graphviz.wasm`
-`ZIG=… wasm/graphviz/build.sh` (also needs cmake, bison, flex and a host C/C++ compiler): `graphviz_14.1.2.orig.tar.bz2` and
-`expat_2.9.0.orig.tar.gz` from the Ubuntu archive (SHA-256 from the signed .dsc files). A **native** CMake configure + build
-of gvc and the core/dot/neato plugins generates the bison/flex sources and gives the exact source list; those files are
-compiled unmodified for wasm32-wasi with our `config.h`, `expat_config.h`, `compat.h` (force-included: prototypes wasi-libc
-lacks — an implicit declaration gets the wrong wasm signature and traps) and `fstreamshim.h` (VPSC's debug log stream);
-`cxxabi_stubs.c` (throw = abort; flockfile no-op). Plugins are linked statically (`lt_preloaded_symbols`). Glue
-`gv_render(src, engine, format)` makes a **fresh GVC context per call** (an error could leave a pending job that later
-wrote to stdout) and keeps its own copies of the strings (Graphviz keeps pointers after the call). No FreeType/Pango:
-text is measured with Graphviz's built-in metrics. Unit `tests/unit/graphviz.test.mjs` (32).
+`ZIG=… wasm/graphviz/build.sh` (≈ 4 min; needs a host C/C++ compiler, make and patch): **Graphviz 16.1.0** from the
+project's own release archive (gitlab.com, package "graphviz-releases"; SHA-256 as published next to it — the archive
+ships the generated parsers, so no bison / flex / cmake) and `expat_2.9.0.orig.tar.gz` from the Ubuntu archive (SHA-256
+from the signed .dsc). Steps: our two patches are applied; a **native** autotools build of that source (without GTS,
+Pango, zlib …; static) gives the exact list of sources per library and leaves the **reference tool**
+`$WORK/native/cmd/dot/dot_static` (WORK defaults to /tmp/graphviz-build); the same files are compiled for wasm32-wasi
+with our `config.h`, `expat_config.h`, `compat.h` (force-included: prototypes wasi-libc lacks — an implicit declaration
+gets the wrong wasm signature and traps) and `fstreamshim.h` (VPSC's debug log stream); `cxxabi_stubs.c` (throw =
+abort; flockfile no-op). Plugins are linked statically (`lt_preloaded_symbols`).
+**Our changes (each file says why):**
+- `storeline.patch` (lib/common/labels.c, one line): a label whose first line is empty left a text span
+  uninitialised; freeing the label then called whatever stood in its `free_layout` — the native tool survives by luck
+  (valgrind shows the read), every WebAssembly build traps. Worth reporting upstream.
+- `triangulation.patch` + `st_delaunay.h`: lib/neatogen/delaunay.c gets a third branch beside "GTS" and "nothing" that
+  takes the Delaunay triangulation from our C port of **Delaunator 5.1.0** (ISC) with the `orient2d` of
+  **robust-predicates 3.0.3** (Unlicense); overlap.c, adjust.c and sfdpinit.c accept it where they ask for GTS → prism
+  overlap removal and sfdp's smoothing. The port makes the arrays the original makes for every input (unit suite,
+  against the npm package). Against a native Graphviz built with GTS, on 449 graph files: sfdp 447 identical, neato +
+  prism 442, fdp + prism 432, twopi 382, circo 359 (points on one circle have more than one triangulation).
+- `qsort.c` (glibc's merge sort: equal elements keep their order — Graphviz's comparison functions call different
+  elements equal, and the order decides which layout is drawn) and `rand.c` (glibc's `rand()`; sfdp's starting
+  positions): with them the module draws what `dot` draws on Linux.
+- `-UNDEBUG` (**zig cc defines NDEBUG by itself at -O2**): the assertions stay in, as in the tool; a failed one is a
+  trap at that check instead of a run with a null pointer, which WebAssembly does not notice. `-ffile-prefix-map`
+  keeps the build directory out of the messages (and of the module).
+- `glue.c`: `gv_layout(src, engine, index)` (several graphs in one text, read a line at a time like dot; the graph's
+  own `layout=`; `charset` → UTF-8; messages with the line of the whole text), `gv_format(format)` any number of
+  times on one layout (a failed format's job is cleared — Graphviz would run it again and end in exit(1)),
+  `gv_done`, `gv_count`, `gv_engine`, `gv_version`, `gv_render` (the three in one); a fresh GVC context per graph;
+  the "textlayout" plugin that asks the import `supertools.text_width(family, weight, style, stretch, size, text)`
+  (a negative answer = Graphviz's own tables); for the tests `gv_delaunay`, `gv_rand`, `gv_sort_pairs`.
+**Tests:** `tests/unit/graphviz.test.mjs` (686): 3,464 drawings of the native tool (240 graph files of the Graphviz
+sources and 200 hazard graphs × 8 engines; `scripts/make-graphviz-reference.mjs`, `tests/lib/graphviz-ref.mjs`), the
+triangulation against Delaunator and exact arithmetic, `rand()` against glibc's values, qsort against a stable sort,
+prism against geometry, the measuring import against what the SVG says. Text measuring in a real browser is the e2e
+suite's. **Do not install libgts-dev expecting the reference tool to change:** build.sh passes `--without-gts`.
+Licences of what is compiled in: Graphviz EPL-2.0, Expat MIT, Delaunator ISC, robust-predicates Unlicense (public
+domain); the two glibc routines are written anew from the published algorithm (no glibc code).
 
 ### 5.1m python → `src/wasm/bin/python.wasm` + `python314.zip`
 `ZIG=… wasm/python/build.sh` (≈ 10 min; host C compiler, make, xz): CPython 3.14.8 and zlib 1.3.2 from the Ubuntu archive
@@ -1366,6 +1441,7 @@ npm packages (pinned in `package-lock.json`) are bundled by Vite or copied to `p
 | @dprint/formatter 0.6.0, @dprint/json 0.26.0, dprint-plugin-markup 0.28.0 (markup_fmt) | MIT | Code Formatter |
 | prettier 3 | MIT | Code Formatter (Markdown; fallback) |
 | *test only (devDependencies, not shipped):* typescript-classic (= typescript 5.9.3), postcss, postcss-scss, parse5, graphql, marked, @vue/compiler-sfc, yaml | Apache-2.0 / MIT / ISC | independent readers of the Code Formatter's suites |
+| *test only:* delaunator 5.1.0 | ISC | the original that `wasm/graphviz/st_delaunay.h` (our C port, shipped inside graphviz.wasm) is held to |
 | @expo-google-fonts/noto-sans (Noto Sans TTF: regular, bold, italic) | OFL-1.1 (package MIT) | PDFs made by GST Invoice, Rent Receipt, Resume Builder |
 
 **Data files committed in `public/data/`**: EFF large wordlist (CC-BY 3.0); `dict/` — English Wiktionary via

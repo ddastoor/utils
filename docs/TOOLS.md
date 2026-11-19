@@ -175,7 +175,7 @@ Generated from `src/registry.ts` by `npm run docs` — do not edit by hand.
 | `semver` | Semver Checker | **PC only** | Check version ranges, compare and bump versions. | semver, version, range, caret, tilde, npm, compare, bump |
 | `glob` | Glob Tester | **PC only** | Test glob patterns against paths. | glob, pattern, wildcard, gitignore, minimatch, path, match |
 | `terminal` | Linux Terminal | **PC only** | BusyBox shell with an in-browser filesystem (upload/download files). | linux, terminal, shell, busybox, bash, command line, cli, console, … |
-| `graphviz` | Graphviz (DOT) | **PC only** | Render DOT graphs to SVG/PNG. | graphviz, dot, graph, diagram, digraph, network, render, svg |
+| `graphviz` | Graphviz (DOT) | **PC only** | Draw graphs written in the DOT language: eight layout engines, SVG / PNG, positions as text. | graphviz, dot, graph, diagram, digraph, network, render, svg, … |
 | `python` | Python Scratchpad | **PC only** | Run Python 3.14 (CPython) in the browser. | python, python3, cpython, micropython, script, run code, run python online, repl, … |
 | `totp` | TOTP / 2FA Codes | **PC only** | Generate one-time codes from a 2FA secret. | totp, 2fa, otp, one time password, authenticator, mfa, google authenticator, hotp, … |
 | `pwstrength` | Password Strength | **PC only** | Estimate how hard a password is to crack. | password strength, how strong is my password, password checker, is my password safe, zxcvbn, crack time, entropy, weak password, … |

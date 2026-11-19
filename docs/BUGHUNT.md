@@ -173,7 +173,7 @@ Areas with a shared review: the app shell (router, search, favorites, platform h
 | `semver` | Semver Checker | PC only | misc | ✓ | 7 | 24 | e2e 8→18 + 14 unit; engine = our port of npm semver, 16,380 pairs vs the package |
 | `glob` | Glob Tester | PC only | misc | ✓ | 2 | 44 | e2e 16→39 + 21 unit; own Unicode-aware matcher vs Python glob.translate (420 patterns) |
 | `terminal` | Linux Terminal | PC only | terminal |  |  |  |  |
-| `graphviz` | Graphviz (DOT) | PC only | data-engines |  |  |  |  |
+| `graphviz` | Graphviz (DOT) | PC only | data-engines | ✓ | 22 | 712 | engine: own build kept (WASM-AUDIT 55 — Viz.js and hpcc trap on valid graphs), now Graphviz 16.1.0 + storeline fix, prism on our Delaunator port, glibc qsort/rand (dot = native byte for byte), browser text measuring, assertions kept; reference = native dot (3,464 drawings) |
 | `python` | Python Scratchpad | PC only | data-engines | ✓ | 18 | 313 | native CPython 3.14.8 is the reference for 69 programs (stdout + stderr byte for byte); recursion through C code ends in RecursionError instead of killing the run, lru_cache in Python (cached recursion as deep as on a desktop), local time with tzdata's names and flags, socket stand-in + asyncio, pbkdf2_hmac; output pane survives 300,000 lines (92 s → 1.4 s), shows output during long computations, \r / colours / the answers to input(); hints for errors particular to the tab |
 | `totp` | TOTP / 2FA Codes | PC only | net | ✓ | 6 | 74 | e2e 11→49 + 25 unit; RFC 4226/6238; e2e 11→49; unit 36 (RFC 4226 / 6238, 600 random cases vs an independent implementation); HMAC = hash-wasm, Base32 + truncation = our supplement |
 | `pwstrength` | Password Strength | PC only | net | ✓ | 6 | 95 | e2e 13→32 + 76 unit (new); 304 passwords vs Python zxcvbn |
@@ -475,7 +475,7 @@ Four engines were written in Rust for this (STANDING RULE #1) — `wasm/devcore/
   rows); a line break in a cell vanished from the editor; a table pasted with text around it took the following
   lines as rows; CJK and emoji cells were padded as one column wide; 3,000 rows made every keystroke slow.
 
-### Software › data-engine tabs (17 Nov 2026, in progress) — jq, yaml, jsonschema, python, sqlite, sqlfmt, prettier done; graphviz open
+### Software › data-engine tabs (17–19 Nov 2026) — jq, yaml, jsonschema, python, sqlite, sqlfmt, prettier, graphviz done
 Method for these: the engine's native counterpart or an independent implementation is the reference, in bulk.
 - **jq** (16 bugs; unit 35 → 4,957, e2e 23 → 52). Reference: the native jq 1.8.2 command line, built from the same
   tarball — stdout, stderr and exit status for 4,903 filter × option × input cases (`tests/fixtures/jq/reference.json`).
@@ -608,3 +608,38 @@ reference cases.
   line (`rootBreaks`).
   Known and recorded, not fixed (they sit in Prettier, the fallback): `--x: {a:b}` gets a `;`; two Markdown
   constructions (a list followed by a line holding one space; tabs in a list's code block).
+- **graphviz** — Graphviz (DOT) (22 bugs; unit 32 → 686, e2e 23 → 81). **Engine:** the existing-module check came
+  first (`docs/WASM-AUDIT.md` tab 55): Viz.js and @hpcc-js/wasm-graphviz both trap on valid graphs, so the tab keeps
+  a build of our own — now **Graphviz 16.1.0** (was 14.1.2) from the official release with two patches and four
+  additions. Reference of the suites: the **native `dot`** built from the same source
+  (`scripts/make-graphviz-reference.mjs`: 240 graph files of the Graphviz sources + 200 hazard graphs × 8 engines =
+  3,464 drawings); the triangulation against the Delaunator package and exact arithmetic; `rand()` against glibc;
+  prism against geometry; in the browser, boxes against the browser's own measurement of their labels.
+  What was wrong: (1) **a label whose first line is empty could crash the engine** (`label="\nx"`, a record field
+  `{\n a|…}`; Graphviz's own `record_dot.gv`) — an upstream fault (an uninitialised text span), repaired by a one-line
+  patch; (2) **the same text was not drawn the same way twice**: one instance of the engine was reused and Graphviz
+  counts on across graphs (ids of gradients and link anchors) — now a fresh instance per drawing; (3) **sfdp said
+  "Error: remove_overlap: Graphviz not built with triangulation library" on every drawing** and left nodes
+  overlapping, `overlap=prism` was refused, `overlap=false` fell back to the Voronoi method, `smoothing=triangle|rng`
+  did not exist — the triangulation Graphviz takes from GTS is now our C port of Delaunator; (4) **labels outside
+  Graphviz's font tables were measured by guess** (Devanagari, CJK, Arabic, emoji, any font it does not know): text
+  ran out of its node or the node was far too wide, and the warnings about it were hidden — the browser measures now;
+  (5) drawings differed from the dot program's (dot on 9 of 457 graph files, neato on 4, sfdp on 358) because the C
+  library's `qsort` and `rand` are not glibc's — they are now; (6) `charset=latin1` in a graph made Graphviz convert
+  the text a second time ("Ã©"); (7) Latin-1 and UTF-16 files were read as UTF-8 (� for every accent); (8) of
+  several graphs in one text only the first was drawn and nothing said so; (9) Graphviz's assertions were compiled
+  out (zig cc defines NDEBUG by itself): where the tool aborts, the module ran on with a null pointer — it stops at
+  the check now and the tab names it; (10) after an error the old drawing stayed and looked current — Download SVG /
+  PNG and Copy handed out the drawing of an earlier text; (11) the text output came from a second layout without a
+  guard: twice the time, a late answer for an older text could replace the newer, errors were swallowed; (12) PNG:
+  above 16,384 pixels (possible from 8,200 px of drawing) nothing was saved and nothing said; (13) JSON went through
+  JSON.parse / JSON.stringify (numbers respelled; a text JSON.parse refuses left the old output standing); (14) Copy
+  SVG with nothing drawn copied an empty text; (15) a newer text had to wait for the long layout of an older one;
+  (16) an empty editor was "could not draw this graph"; (17) Graphviz's doubled "Warning: Warning:" and hundreds of
+  repeated lines were shown as they came; (18) a control character in a label made the SVG unreadable for the
+  browser — a broken picture, no message; (19) downloads were always "graph.*", whatever file was open; (20) a binary
+  or huge file went into the editor as it was; (21) a graph with `layout=…` was drawn by another engine than the
+  chooser showed, without a word; (22) megabytes of text output were put into the box whole.
+  Found beside the tab: a failed output format left its job in Graphviz's list and the next format ended in exit(1)
+  (glue; cleared now); native Graphviz 16.1.0 itself aborts on two of the hazard graphs (`splines=ortho` with a loop
+  in circo / twopi; an HTML name beside a plain name with the same text in fdp) — recorded, the tool's to repair.
