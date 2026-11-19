@@ -232,3 +232,19 @@ export ZIG=/tmp/zig/x/ziglang/zig
 - **e2e waiting without sleeps:** the Graphviz tab sets `aria-busy` on the drawing while a text has no answer yet;
   `settled()` in its suite waits for `aria-busy="false"` and a loaded picture. Worth copying in tabs that redraw as
   you type.
+
+## Finance tabs: confirmed faults still to fix (probed 19 Nov 2026; delete each line when its tab is done)
+- `gst`: the tab still uses floats — CGST + SGST do not add up to the GST shown (₹100.50 at 5 %: 5.03 against
+  2.51 + 2.51; ₹100 including 18 %: 15.25 against 7.63 + 7.63; ₹1,234.565 at 12 %: base + tax is a paisa off the total).
+  Engine ready: `m.gst()` / `gstSplit()` (whole paise, tax first when the amount includes it). No custom rate yet
+  (the invoice tab has 0.1 / 1.5 / 7.5 %): add "Other" with a box (`show` in calcForm).
+- `sip`: a period of 0 / negative / under half a month gives zeros and "—×"; 15.04 years is silently 180 months;
+  300 or 5,000 years fill the screen with digits; 3 × 10⁷ years freezes the page for 1.6 s; a negative amount, a
+  return of −1,300 % and a step-up of −150 % give nonsense; "-0×". Use `sipPlan()`.
+- `fd`: tenure 0 / negative without a reason (RD with −2 years: "Invested −₹1,20,000"); 5,000 years fill the screen;
+  −500 % gives nonsense; RD of 1.04 / 2.3 years silently 12 / 28 months; RD of 3 × 10⁷ years freezes for 1.8 s.
+  Use `fdPlan()`.
+- `percent`: "0.0001 % of 0.001" is shown as 0, "1 is what % of 3,000,000,000" as 0 %; "% change from −50 to −25" is
+  "+-50%" (divide by |A|; sign from the result); "-0" and "-0%"; six decimals at most; US digit grouping copied with
+  the commas. Use ten significant digits like the Unit Converter (`fmtUnit` / `plainUnit`).
+

@@ -558,6 +558,21 @@ opposite of adding (31 Jan → 28 Feb is one month); "Count end date" counts it 
 alike; whole numbers only in Add / subtract, results outside the calendar are refused; Age gives total months, the
 next birthday (29 February on the 28th in other years, said so) and the age it brings.
 
+**Finance calculators as built after the Nov 2026 bug hunt** (`src/lib/finance.ts` = what each tab refuses and how it
+reads a period; the arithmetic is mathcore's; reference `tests/fixtures/finance/reference.json` from
+`scripts/make-finance-reference.py`, which needs `pip install mpmath numpy-financial`). Shared rules: an amount is above
+0 and at most ₹10 lakh crore; a rate is 0 – 1,000 % a year; a period is at most 100 years; a result beyond ₹10,000 lakh
+crore is refused; every refusal says why; a period that is not whole months is counted as the nearest month and the
+tab says so. Shared form helper (`calcForm` in `src/lib/form.ts`): a unit beside a box may follow another field, a
+field may be shown only for some choices (`show`), `notes` explain how the input was read, an opened `<details>` stays
+open while the numbers change; `fmtINR` writes paise with both digits (₹12.10).
+- `emi` (unit `tests/unit/emi.test.mjs` 76, e2e 61): reducing balance; instalment P·r / (1 − (1 + r)^−n) and the
+  yearly schedule in closed forms (`expm1` / `log1p`: right at a rate of 10⁻¹³ % and at 1,000 % over 100 years, where
+  the textbook formula and the month-by-month recurrence break down). The EMI is shown to the rupee; total payment
+  and total interest are instalment × months on the exact instalment (as lenders' calculators show them). Tenure in
+  years or months (the number stays when the unit is switched); "Instalments" row; schedule with principal, interest
+  and balance per year, the last part-year labelled with its months, ending at exactly ₹0.
+
 **Scientific Calculator as built after the Nov 2026 bug hunt** (`src/tools/calc.ts`, text helpers `src/lib/calc-text.ts`,
 engine `wasm/mathcore` `m_expr_*`; unit `tests/unit/calc.test.mjs` 243 — 3,005 answers of **mpmath at 50 digits** and
 Python's exact integers, `scripts/make-calc-reference.py` (needs `pip install mpmath`) → `tests/fixtures/calc/reference.json`;
@@ -1256,6 +1271,10 @@ minimising |f|), quadratic/cubic, det/inverse/matmul/rank/linear solve, statisti
 detection; "2/3" without spaces is one fraction, so 1/3 ÷ 2/3 = 1/2), arbitrary-length base conversion, Roman numerals, number→words (Indian + international), finance
 (EMI, amortisation, SIP, FD/RD, PPF, EPF, NPS, prepayment), health (BMI, BMR, body fat, ideal weight), haversine,
 colour (RGB ⇄ HSL ⇄ OKLCH, WCAG luminance / contrast, and `m_color` op 5: OKLCH → sRGB with the CSS Color 4 gamut mapping).
+Finance since Nov 2026: `m_emi` and `m_amortize_yearly` in closed forms (see §3 "Finance calculators as built");
+`m_gst` (GST on one amount in whole paise, forwards and backwards, 128-bit products); `paise()` reads an amount as it
+is written with 15 digits (1.005 is 101 paise — also for the invoice lines); periods are clamped before they become
+loop counts.
 `wasm/mathcore/build.sh` (exports every `API m_*` function). Expression engine since Nov 2026 (details in §3
 "Scientific Calculator as built"): names without regard to case, one decimal point per number, no implicit product of
 two numbers, nesting limit 100, exact trigonometry at round angles (`sind` / `cosd`, the "gap" rule in radians),

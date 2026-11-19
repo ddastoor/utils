@@ -152,6 +152,15 @@ export function bindMathcore(e: any) {
         };
       } finally { e.m_free(lp); e.m_free(op); e.m_free(tp); }
     },
+    /** GST on one amount in whole paise (see m_gst). Returns rupees, or null when the amount or the rate is out of range. */
+    gst(amount: number, rate: number, inclusive: boolean, intra: boolean) {
+      const p = e.m_malloc(40);
+      try {
+        if (!e.m_gst(amount, rate, inclusive ? 1 : 0, intra ? 1 : 0, p)) return null;
+        const t = new BigInt64Array(mem(), p, 5), r = (x: bigint) => Number(x) / 100;
+        return { base: r(t[0]), cgst: r(t[1]), sgst: r(t[2]), igst: r(t[3]), total: r(t[4]) };
+      } finally { e.m_free(p); }
+    },
     /** GSTIN format + check character. */
     gstinValid: (g: string) => !!withStr(g.trim().toUpperCase(), (p, n) => e.m_gstin_valid(p, n)),
     haversine(lat1: number, lon1: number, lat2: number, lon2: number) { return withF64(2, (p) => { e.m_haversine(lat1, lon1, lat2, lon2, p); const [km, bearing] = f64(p, 2); return { km, bearing }; }); },

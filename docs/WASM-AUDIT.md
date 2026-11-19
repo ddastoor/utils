@@ -326,3 +326,15 @@ One entry per tab, written before its bug hunt: our module → candidates → ch
   WebAssembly modules; nothing in the registry). JavaScript: date-fns 4.4 (482 M a month), temporal-polyfill (30 M).
 - **Decision:** nothing to replace. Held to **Python's datetime and calendar** for 6,985 cases over the years 1 to 9999.
 
+### 59. `emi` — EMI Calculator (19 Nov 2026)
+- **Ours:** mathcore (own C): `m_emi`, `m_amortize_yearly`. The tab's checks and wording are `src/lib/finance.ts` (glue).
+- **Candidates:** WebAssembly — none: the registry has no loan, amortisation or time-value-of-money module compiled to
+  WebAssembly (searched "financial wasm", "loan calculator wasm", "amortization wasm", "finance webassembly"; the hits
+  are databases, hashes and parsers). JavaScript: `financial` 0.2.4 (a port of numpy-financial, 2.3 lakh downloads a
+  month), `financejs` 4.1 (35 thousand). numpy-financial itself — the reference this tab is now held to — computes
+  `(1 + r)^n − 1` as written and has no digits left at a rate of a billionth of a percent, so a port of it would have
+  brought back the fault this hunt removed from our engine.
+- **Decision:** nothing to replace — the engine stays our C, now in closed forms that hold over the whole range
+  (`expm1` / `log1p`). Held to the definition of a reducing-balance loan worked month by month in **mpmath at 420
+  digits** for 936 loans, cross-checked with **numpy-financial** (pmt, ipmt, ppmt) on the 540 ordinary ones.
+

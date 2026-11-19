@@ -21,6 +21,8 @@ export function calc(page) {
 }
 /** "₹21,696.45" / "1,234.5 kg" / "−3" → number */
 export const num = (s) => +String(s).replace(/−/g, '-').replace(/[^0-9.\-e]/g, '');
-/** Indian grouping like the app (en-IN, ≤ 2 decimals) */
-export const inr = (n) => `₹${new Intl.NumberFormat('en-IN', { maximumFractionDigits: 2 }).format(n)}`;
+/** Indian grouping like the app (en-IN; whole rupees, or rupees with both digits of the paise: ₹12.10) */
+export const inr = (n) => `${n < 0 ? '−' : ''}₹${new Intl.NumberFormat('en-IN', { maximumFractionDigits: 2 }).format(Math.abs(n)).replace(/\.\d$/, (m) => m + '0')}`;
+/** the finance reference (scripts/make-finance-reference.py) */
+export const financeRef = async () => JSON.parse(await (await import('node:fs/promises')).readFile(new URL('../fixtures/finance/reference.json', import.meta.url), 'utf8'));
 export const near = (a, b, tol) => Math.abs(a - b) <= tol;

@@ -83,7 +83,7 @@ Areas with a shared review: the app shell (router, search, favorites, platform h
 | `calc` | Scientific Calculator | PC + mobile | calc-core | ✓ | 21 | 308 | engine kept (WASM-AUDIT 56: no tried-and-tested wasm calculator); reference mpmath at 50 digits for 3,005 expressions; exact round angles, whole numbers digit for digit, exact chaining through Ans, refusals with reasons |
 | `units` | Unit Converter | PC + mobile | calc-core | ✓ | 6 | 118 | no engine to replace (WASM-AUDIT 57); exact definitions held to GNU Units 2.23 (3,222 conversions); small results keep their digits; metric and US kitchen measures; Indian area units |
 | `dates` | Date Calculator | PC + mobile | calc-core | ✓ | 7 | 40 | nothing to replace (WASM-AUDIT 58); held to Python's datetime (6,985 cases, years 1–9999); today() is the local date; years 0–99; end date counted in y-m-d; refusals |
-| `emi` | EMI Calculator | PC + mobile | calc-core |  |  |  |  |
+| `emi` | EMI Calculator | PC + mobile | calc-core | ✓ | 15 | 127 | nothing to replace (WASM-AUDIT 59); held to a month-by-month reference in mpmath at 420 digits (936 loans) + numpy-financial; closed forms over the whole range; unit label follows years / months; refusals with reasons; schedule stays open; paise with two digits |
 | `gst` | GST Calculator | PC + mobile | calc-core |  |  |  |  |
 | `sip` | SIP Calculator | PC + mobile | calc-core |  |  |  |  |
 | `fd` | FD / RD Calculator | PC + mobile | calc-core |  |  |  |  |
@@ -691,4 +691,23 @@ reference cases.
   "51 weeks 1 days"; (7) with the dates the other way round nothing said that "From" was the later one.
   Added: the two dates in words, "N days later / earlier", total months, the age the next birthday brings, and for
   29 February birthdays the day that is counted.
+- **emi** — EMI Calculator (15 bugs; unit 0 → 76, e2e 10 → 61). Nothing to replace (`docs/WASM-AUDIT.md` tab 59).
+  Reference: the definition of a reducing-balance loan — interest on what is owed, the rest repays — worked month by
+  month in **mpmath at 420 digits** for 936 loans (₹50,000 to ₹10 lakh crore, 0 % to 1,000 %, 1 to 1,200 months) and
+  cross-checked with **numpy-financial** (`scripts/make-finance-reference.py`); the tab's schedule is compared cell by
+  cell. What was wrong: (1) with "Tenure in: Months" the box still said **years**; (2) a loan of 0 gave "Principal
+  NaN% Interest NaN%"; (3) a negative loan had a negative EMI; (4) a negative rate gave "Principal 172.4% Interest
+  -72.4%"; (5) a tenure of 0, or of less than half a month, gave three dashes and "NaN%" without a reason;
+  (6) a negative tenure showed **"Invalid typed array length: -6"**; (7) 20.04 years was silently worked out as 240
+  months — the number of instalments was nowhere; (8) beyond 100 years the schedule stopped at year 100 without a
+  word; (9) **357,913,942 years was worked out as 8 months** (months × 12 wrapped round in the engine's 32-bit
+  integer): an EMI of ₹3,22,543 beside a total of ₹1.38 × 10¹⁷; (10) a long tenure at a high rate gave dashes
+  ((1 + r)^n overflows; the instalment there is simply loan × rate); (11) a rate of 10⁻¹³ % gave dashes
+  ((1 + r)^n − 1 had no digits left — numpy-financial has the same fault); (12) **the opened schedule folded shut on
+  every keystroke** (shared form helper: fixed for every calculator); (13) at 100 % over 100 years the schedule
+  said the loan is never repaid (the month-by-month recurrence multiplies its rounding by 1 + r each month; now
+  closed forms); (14) amounts with paise were written with one digit, "₹12.1" (shared `fmtINR`: every tab that shows
+  rupees); (15) a loan of 10³⁰⁰ filled the screen with digits. Refusals now say why (loan above 0 and at most
+  ₹10 lakh crore, rate 0 – 1,000 %, tenure 1 month – 100 years). Added: an "Instalments" row, a note when the
+  tenure was not whole months, the months of a last part-year in the schedule.
 

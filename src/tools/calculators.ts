@@ -4,6 +4,7 @@ import { calcForm, fmtINR, fmtN, need, today } from '../lib/form';
 import { mathcore } from '../wasm/mathcore';
 import { UNITS, convert, convertAll, belowAbsoluteZero, fmtUnit, plainUnit } from '../lib/units';
 import { DAY, parseD, isoD, fmtD, addDays, daysBetween, ymd, addSpan, nextBirthday, plural } from '../lib/dates';
+import { emiPlan, sipPlan, fdPlan, gstSplit, span } from '../lib/finance';
 
 // ------------------------------------------------------------------ Unit converter
 // table, arithmetic and number formatting: src/lib/units.ts (exact definitions, held to GNU Units by the unit suite)
@@ -102,16 +103,16 @@ export const emi: Mount = async (root) => {
   calcForm(root, [
     { key: 'p', label: 'Loan amount', value: 2500000, unit: '₹' },
     { key: 'r', label: 'Interest rate', value: 8.5, unit: '% p.a.', step: 0.05 },
-    { key: 'n', label: 'Tenure', value: 20, unit: 'years' },
+    { key: 'n', label: 'Tenure', value: 20, unit: (v) => (v.unit === 'm' ? 'months' : 'years') },
     { key: 'unit', label: 'Tenure in', type: 'seg', value: 'y', options: [['y', 'Years'], ['m', 'Months']] },
   ], (v) => {
     need(v.p, v.r, v.n);
-    const months = Math.round(v.unit === 'y' ? v.n * 12 : v.n);
-    const e = m.emi(v.p, v.r, months), total = e * months, interest = total - v.p;
-    const rows = m.amortizeYearly(v.p, v.r, months).map((y, i) => h('tr', null, h('td', null, `Year ${i + 1}`), h('td', { class: 'num' }, fmtINR(y.principal)), h('td', { class: 'num' }, fmtINR(y.interest)), h('td', { class: 'num' }, fmtINR(y.balance))));
-    const pp = (v.p / total) * 100;
+    const e = emiPlan(m, v.p, v.r, v.n, v.unit), pp = e.principalShare, part = e.months % 12;
+    const rows = e.years.map((y, i) => h('tr', null, h('td', null, `Year ${i + 1}${part && i === e.years.length - 1 ? ` (${span(part)})` : ''}`), h('td', { class: 'num' }, fmtINR(y.principal)), h('td', { class: 'num' }, fmtINR(y.interest)), h('td', { class: 'num' }, fmtINR(y.balance))));
     return {
-      big: [['Monthly EMI', fmtINR(Math.round(e))], ['Total interest', fmtINR(Math.round(interest))], ['Total payment', fmtINR(Math.round(total))]],
+      big: [['Monthly EMI', fmtINR(Math.round(e.emi))], ['Total interest', fmtINR(Math.round(e.interest))], ['Total payment', fmtINR(Math.round(e.total))]],
+      rows: [['Instalments', `${e.months.toLocaleString('en-IN')} monthly${e.months >= 12 ? ` (${span(e.months)})` : ''}`]],
+      notes: e.rounded ? [`Instalments are monthly, so the tenure is counted as ${span(e.months)}.`] : [],
       extra: [h('div', { class: 'bar' }, h('span', { style: { width: `${pp}%`, background: 'var(--accent)' } }), h('span', { style: { width: `${100 - pp}%`, background: 'var(--warn)' } })),
         h('div', { class: 'legend' }, h('span', null, h('i', { style: { background: 'var(--accent)' } }), `Principal ${pp.toFixed(1)}%`), h('span', null, h('i', { style: { background: 'var(--warn)' } }), `Interest ${(100 - pp).toFixed(1)}%`)),
         h('details', { class: 'mt' }, h('summary', null, 'Year-by-year schedule'), h('div', { class: 'scroll-x' }, h('table', { class: 'tbl' }, h('thead', null, h('tr', null, h('th', null, 'Year'), h('th', { class: 'num' }, 'Principal'), h('th', { class: 'num' }, 'Interest'), h('th', { class: 'num' }, 'Balance'))), h('tbody', null, rows))))],

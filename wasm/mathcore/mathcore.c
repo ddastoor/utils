@@ -838,27 +838,48 @@ API int m_words(uint64_t n, int indian, char *out, int cap) {
 }
 
 /* ======================================================================== finance */
+/* Reducing-balance loan. The instalment is P·r / (1 − (1+r)^−n), written with expm1 / log1p so that it holds for a
+ * rate of a millionth of a percent (where (1+r)^n − 1 loses every digit) and for 1,000 % over a century (where
+ * (1+r)^n overflows): there it is simply P·r. */
 API double m_emi(double P, double annual, int months) {
     double r = annual / 1200.0;
-    if (months <= 0) return NAN;
-    return r == 0 ? P / months : P * r * pow(1 + r, months) / (pow(1 + r, months) - 1);
+    if (months <= 0 || !(r > -1)) return NAN;
+    return r == 0 ? P / months : P * r / -expm1(-months * log1p(r));
+}
+/* what is still owed after k instalments: P·(1 − (1+r)^(k−n)) / (1 − (1+r)^−n). The month-by-month recurrence
+ * bal ← bal·(1+r) − emi multiplies its own rounding by (1+r) every month; the closed form does not. */
+static double loan_balance(double P, double r, int n, int k) {
+    if (k >= n) return 0;
+    if (r == 0) return P * (double)(n - k) / n;
+    double L = log1p(r);
+    return P * expm1((k - n) * L) / expm1(-n * L);
+}
+/* principal repaid by the instalments k0+1 … k1 (the difference of two balances, without subtracting them) */
+static double loan_principal(double P, double r, int n, int k0, int k1) {
+    if (r == 0) return P * (double)(k1 - k0) / n;
+    double L = log1p(r);
+    return P * exp((k0 - n) * L) * expm1((k1 - k0) * L) / -expm1(-n * L);
 }
 /* yearly schedule: out[y*3+0]=principal paid, +1 interest paid, +2 closing balance. Returns number of years. */
 API int m_amortize_yearly(double P, double annual, int months, double *out, int maxyears) {
-    double e = m_emi(P, annual, months), bal = P, r = annual / 1200.0;
+    double e = m_emi(P, annual, months), r = annual / 1200.0;
+    if (months <= 0 || e != e) return 0;
     int years = (months + 11) / 12; if (years > maxyears) years = maxyears;
     for (int y = 0; y < years; y++) {
-        double pp = 0, ii = 0;
-        for (int m = 0; m < 12 && y * 12 + m < months; m++) { double i = bal * r; ii += i; pp += e - i; bal -= e - i; }
-        out[y * 3] = pp; out[y * 3 + 1] = ii; out[y * 3 + 2] = bal > 0 ? bal : 0;
+        int k0 = y * 12, k1 = k0 + 12 < months ? k0 + 12 : months;
+        double pp = loan_principal(P, r, months, k0, k1);
+        out[y * 3] = pp; out[y * 3 + 1] = e * (k1 - k0) - pp; out[y * 3 + 2] = loan_balance(P, r, months, k1);
     }
     return years;
 }
+/* a period in years as whole months, 0 … 12,000 (a cast of something larger to int is undefined, and the loops below
+ * run once per month) */
+static int months_of(double years) { double m = round(years * 12); return !(m > 0) ? 0 : m > 12000 ? 12000 : (int)m; }
 /* SIP (monthly, nominal r/12, optional annual step-up %) or lumpsum. out[2]: invested, value */
 API void m_sip(double amount, double annual, double years, double stepup, int lump, double *out) {
     if (lump) { out[0] = amount; out[1] = amount * pow(1 + annual / 100, years); return; }
     double i = annual / 1200, v = 0, inv = 0, m = amount;
-    int n = (int)llround(years * 12);
+    int n = months_of(years);
     for (int k = 0; k < n; k++) { if (k && k % 12 == 0) m *= 1 + stepup / 100; v = (v + m) * (1 + i); inv += m; }
     out[0] = inv; out[1] = v;
 }
@@ -867,7 +888,7 @@ static double grow(double P, double r, int n, double t) { return n == 0 ? P * (1
 API void m_fd(double amount, double annual, double years, int comp, int rd, double *out) {
     double r = annual / 100;
     if (!rd) { out[0] = amount; out[1] = grow(amount, r, comp, years); return; }
-    int months = (int)llround(years * 12); double v = 0;
+    int months = months_of(years); double v = 0;
     for (int k = 0; k < months; k++) v += grow(amount, r, comp, (double)(months - k) / 12);
     out[0] = amount * months; out[1] = v;
 }
@@ -1052,7 +1073,14 @@ API double m_contrast(double r1, double g1, double b1, double r2, double g2, dou
 
 /* ======================================================================== India: GST invoices */
 /* Money is kept in integer paise; every rounding is half away from zero, per line (as invoices are printed). */
-static int64_t paise(double rupees) { double p = rupees * 100.0; return (int64_t)(p < 0 ? p - 0.5 : p + 0.5); }
+/* Rupees → paise: the amount as it is written with 15 digits is rounded, half away from zero. 1.005 is 101 paise,
+ * though the double nearest 1.005 lies a hair below it (rupees * 100 + 0.5 gave 100) — the reading of round(x, 2). */
+static int64_t paise(double rupees) {
+    char buf[40]; snprintf(buf, sizeof buf, "%.15g", fabs(rupees) * 100.0);
+    double p = floor(strtod(buf, NULL) + 0.5);
+    if (!(p < 9.0e18)) p = 9.0e18;
+    return rupees < 0 ? -(int64_t)p : (int64_t)p;
+}
 static int64_t rdiv(int64_t num, int64_t den) { return num >= 0 ? (num + den / 2) / den : -((-num + den / 2) / den); }
 
 /* lines: n × [qty, rate (₹), discount %, gst %]. intra = 1: CGST + SGST/UTGST (half each), 0: IGST.
@@ -1071,6 +1099,22 @@ API void m_invoice(const double *lines, int n, int intra, int roundoff, int64_t 
     }
     int64_t total = T + C + S + I, grand = roundoff ? rdiv(total, 100) * 100 : total;
     out[0] = T; out[1] = C; out[2] = S; out[3] = I; out[4] = total; out[5] = grand - total; out[6] = grand;
+}
+
+/* GST on one amount, in whole paise — the arithmetic of an invoice line, and the same backwards.
+ * rate: percent, read in thousandths (0.125 % = 125). inclusive = 0: the amount is the value before tax.
+ * inclusive = 1: the amount contains the tax; the tax is rounded and the base is what is left, so base + tax give the
+ * amount back to the paisa. intra = 1: CGST and SGST, two equal amounts each rounded on its own (the tax is then an
+ * even number of paise); 0: IGST. out[5] paise: base, cgst, sgst, igst, total. Returns 1, or 0 when out of range. */
+static int64_t rdiv128(__int128 num, __int128 den) { return (int64_t)(num >= 0 ? (num + den / 2) / den : -((-num + den / 2) / den)); }
+API int m_gst(double amount, double rate, int inclusive, int intra, int64_t *out) {
+    if (!(fabs(amount) <= 1e13) || !(rate >= 0 && rate <= 100)) return 0;
+    int64_t a = paise(amount), g = (int64_t)(rate * 1000.0 + 0.5), D = 100000, c = 0, ig = 0;
+    __int128 num = (__int128)a * g, den = inclusive ? D + g : D;
+    if (intra) c = rdiv128(num, 2 * den); else ig = rdiv128(num, den);
+    int64_t tax = 2 * c + ig, base = inclusive ? a - tax : a;
+    out[0] = base; out[1] = c; out[2] = c; out[3] = ig; out[4] = base + tax;
+    return 1;
 }
 
 /* GSTIN: 2-digit state code + 10-char PAN + entity number + 'Z' + check character (mod-36 Luhn variant used by GSTN). */

@@ -76,7 +76,13 @@ what those suites missed.
   **`calc` (tab 56) is DONE** (21 bugs; unit `calc.test.mjs` 243 with mpmath as reference, e2e 140; CLAUDE.md §3
   "Scientific Calculator as built"). **`units` (tab 57) is DONE** (6 bugs; `src/lib/units.ts`, every factor held
   to GNU Units — `apt-get install units`). **`dates` (tab 58) is DONE** (7 bugs; `src/lib/dates.ts`, held to
-  Python's datetime; `today()` is the local date now). **NEXT: `emi`**, then the rest of the list in that order; per tab: the
+  Python's datetime; `today()` is the local date now). **`emi` (tab 59) is DONE** (15 bugs; `src/lib/finance.ts`,
+  closed forms in mathcore, reference `tests/fixtures/finance/reference.json` — `pip install mpmath numpy-financial`,
+  `python3 scripts/make-finance-reference.py`; the fixture already holds the answers for SIP, FD / RD, GST and
+  Percentage, and `finance.ts` already has `sipPlan`, `fdPlan`, `gstSplit` and mathcore `m_gst` — **the tabs
+  `gst`, `sip`, `fd`, `percent` still run their old code**: faults found by probing are listed in
+  `docs/HANDOFF.md` "Finance tabs: confirmed faults still to fix"). **NEXT: `gst`**, then `sip`, `fd`, `percent`
+  and the rest of the list in that order; per tab: the
   existing-module check with its entry in `docs/WASM-AUDIT.md` first (the survey of entry 56 covers calculators:
   no tried-and-tested WebAssembly calculator exists), then bugs, tests, fixes. Reference tools at hand: mpmath
   (`pip install mpmath`), Python's `decimal` / `fractions` / `datetime` / `zoneinfo`.
