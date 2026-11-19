@@ -152,7 +152,7 @@ Generated from `src/registry.ts` by `npm run docs` — do not edit by hand.
 | `xml` | XML Formatter / XPath | **PC only** | Pretty-print XML and evaluate XPath. | xml, xpath, format, pretty, beautify, minify, validate, soap, … |
 | `json2types` | JSON → Types | **PC only** | Generate TypeScript, Go, Rust, Java or Python types. | go struct from json, struct from json, json to go, json to rust, json to java, json to python, json to typescript, interface, … |
 | `jsondiff` | JSON Diff | **PC only** | Structural diff of two JSON documents. | json diff, compare json, difference, structural, patch |
-| `sqlfmt` | SQL Formatter | **PC only** | Format SQL queries: keywords, indentation, one statement per block. | sql, format, beautify, pretty, postgres, mysql, bigquery, snowflake, … |
+| `sqlfmt` | SQL Formatter | **PC only** | Format SQL for PostgreSQL, MySQL, SQLite, SQL Server and Oracle: clauses, indentation, keyword case — nothing else changes. | sql, format, formatter, beautify, beautifier, pretty, prettify, indent, … |
 | `prettier` | Code Formatter | **PC only** | Prettier for JS/TS/CSS/HTML/YAML/Markdown/GraphQL. | prettier, format, beautify, javascript, typescript, css, scss, html, … |
 | `mockdata` | Mock Data Generator | **PC only** | Fake rows as JSON, CSV or SQL inserts. | mock, fake, test data, faker, seed, json, csv, sql insert, … |
 | `mdtable` | Markdown Table | **PC only** | Build Markdown tables from a grid or CSV. | markdown table, table generator, csv to markdown, readme, github |

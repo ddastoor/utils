@@ -183,11 +183,11 @@ export function progress() {
   });
 }
 
-/** Read-only output with copy button. */
-export function outputBox(o: { rows?: number; mono?: boolean; placeholder?: string; label?: string } = {}) {
+/** Read-only output with copy button. `text`: what Copy gives when the box shows only the beginning of a long result. */
+export function outputBox(o: { rows?: number; mono?: boolean; placeholder?: string; label?: string; text?: () => string } = {}) {
   const ta = textarea({ rows: o.rows || 6, readonly: true, mono: o.mono, placeholder: o.placeholder });
   if (o.label) ta.setAttribute('aria-label', o.label);
-  const el = h('div', { class: 'outbox' }, ta, button('', () => copy(ta.value), { icon: 'Copy', small: true, title: 'Copy' }));
+  const el = h('div', { class: 'outbox' }, ta, button('', () => copy(o.text ? o.text() : ta.value), { icon: 'Copy', small: true, title: 'Copy' }));
   return extend(el, { get value() { return ta.value; }, set value(v: string) { ta.value = v; }, ta });
 }
 

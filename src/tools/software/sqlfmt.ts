@@ -16,7 +16,7 @@ export const sqlfmt: Mount = (root) => {
   let indent = 2, keywords = 'upper', lines = 1, inline = false, dialect: Dialect = 'auto', engine: Devcore | null = null, full = '', file = '';
   const src = textarea({ rows: 10, mono: true, value: SAMPLE });
   src.setAttribute('aria-label', 'SQL');
-  const out = outputBox({ rows: 18, mono: true }), info = h('div');
+  const out = outputBox({ rows: 18, mono: true, label: 'Formatted SQL', text: () => full }), info = h('div');
   const run = async () => {
     engine ||= await devcore('sqlfmt');
     clear(info);

@@ -150,7 +150,7 @@ Areas with a shared review: the app shell (router, search, favorites, platform h
 | `xml` | XML Formatter / XPath | PC only | dev-data2 | ✓ | 9 | 45 | own Rust formatter moves white space only: declaration, DOCTYPE, entities, &#10;, nbsp and padded text were lost or rewritten; <parsererror> element; xml: and default-namespace prefixes in XPath; ISO-8859-1 / UTF-16 files; 74 documents compared by Chrome's parser |
 | `json2types` | JSON → Types | PC only | dev-data2 | ✓ | 10 | 110 | own Rust generator; every output compiled by tsc, go, rustc, javac, python for 36 samples: root lists / values as aliases, colliding and reserved names, shadowed type names, one-file Java, Python kw_only and kept keys, keys Go cannot tag, uint64 / BigInteger, plurals |
 | `jsondiff` | JSON Diff | PC only | dev-data2 | ✓ | 5 | 70 | own Rust diff on the lossless reader: lists aligned by equal elements and by id (one removal was N changes); numbers by value and never rounded; duplicate keys; empty sides; Swap; rows carry both values; 400 random pairs with two appliers |
-| `sqlfmt` | SQL Formatter | PC only | data-engines |  |  |  |  |
+| `sqlfmt` | SQL Formatter | PC only | data-engines | ✓ | 24 | 146 | our own formatter (Rust, devcore-sqlfmt.wasm) replaces the sqlformat crate, which changed the meaning of SQL (WASM-AUDIT 53): dialect-aware tokenizer (standard, PostgreSQL, MySQL, SQLite, SQL Server, Oracle; auto-detect), keywords change case only where they are keywords, layout of CTEs / MERGE / windows / DDL / blocks, scripts without semicolons, a guard that re-reads its own result; unit 113 (independent reader, SQLite engine, 10,752 names, layout record), e2e 49 (native SQLite, sqlglot, sqlparse read what the tab shows) |
 | `prettier` | Code Formatter | PC only | data-engines |  |  |  |  |
 | `mockdata` | Mock Data Generator | PC only | dev-data2 | ✓ | 10 | 47 | ranges beyond 32 bits, swapped / unreadable ranges explained, dd/mm/yyyy dates (threw 'Invalid time value'), id start, fine-grained decimals, duplicate / empty / __proto__ names, quoted SQL names (run in SQLite), word-count limit, no fields |
 | `mdtable` | Markdown Table | PC only | dev-data2 | ✓ | 6 | 28 | separator found by the sheet engine (a tab in a quoted cell forced TSV); <br> for line breaks, also in the editor; table inside other text; CJK / emoji widths; 3,000 rows; output read by cmark-gfm |
@@ -475,7 +475,7 @@ Four engines were written in Rust for this (STANDING RULE #1) — `wasm/devcore/
   rows); a line break in a cell vanished from the editor; a table pasted with text around it took the following
   lines as rows; CJK and emoji cells were padded as one column wide; 3,000 rows made every keystroke slow.
 
-### Software › data-engine tabs (17 Nov 2026, in progress) — jq, yaml, jsonschema, python done; sqlite, sqlfmt, prettier, graphviz open
+### Software › data-engine tabs (17 Nov 2026, in progress) — jq, yaml, jsonschema, python, sqlite, sqlfmt done; prettier, graphviz open
 Method for these: the engine's native counterpart or an independent implementation is the reference, in bulk.
 - **jq** (16 bugs; unit 35 → 4,957, e2e 23 → 52). Reference: the native jq 1.8.2 command line, built from the same
   tarball — stdout, stderr and exit status for 4,903 filter × option × input cases (`tests/fixtures/jq/reference.json`).
@@ -554,3 +554,27 @@ reference cases.
   Exports: CSV / JSON held only the 2,000 rows on screen, numbers went through JavaScript's.
   Tables panel: storage tables of full-text tables listed as tables, one unreadable object (fts4, a broken view)
   emptied the whole list, names with quotes could not be shown; a console warning for every failed statement.
+- **sqlfmt** (24 bugs; unit 2 → 113, e2e 14 → 49). The engine was the `sqlformat` crate; it is now **our own
+  formatter** (`wasm/devcore/src/sqlfmt.rs`; why: `docs/WASM-AUDIT.md` tab 53). References: an independent reader of
+  SQL in the unit suite, the SQLite engine (rows, column names, errors, database), and in the e2e suite the
+  **native SQLite**, **sqlglot** and **sqlparse** reading what the tab shows for a 141-statement, five-dialect corpus.
+  Meaning changed by the old engine: (1) in one-line mode the rest of a statement landed inside a `--` / `#` comment;
+  (2) `[bracket names]` were broken up and upper-cased; (3) `0x1F`, (4) `1_000` and (5) `1E+2` were split; (6) `'\'`
+  was read as unfinished, corrupting the strings after it; (7) dollar-quoted text was reformatted; (8) `@@variables`
+  and (9) `#temp` names / PostgreSQL `#>` were split or taken for comments; (10) nested comments ended early;
+  (11) 45 of 155 everyday column names were upper-cased (status, type, key, level, date, end …), which changes the
+  column names a query returns; (12) a third of the results changed again when formatted again.
+  Layout: (13) `CREATE` / `OR REPLACE` on two lines; (14) GRANT laid out as a query (`GRANT` / `SELECT` / `,` /
+  `INSERT`); (15) `NATURAL` / `JOIN` split; (16) `array [ 1,` / `2 ]`; (17) a comma after a comment alone on a line;
+  (18) the last line of a CTE glued to its bracket; (19) window frames broken at their AND, their words not
+  upper-cased; (20) every block comment forced onto a line of its own (`a` / `/* x */` / `= 1`); (21) the statements
+  of a trigger or procedure not indented and separated like top-level ones; (22) a stray blank before each statement
+  in one-line mode.
+  The tab: (23) "UPPER-CASE keywords" switched off forced lower case — there was no way to keep keywords as typed →
+  UPPER / lower / as typed; (24) one reading for every dialect (MySQL's backslashes, SQL Server's brackets,
+  PostgreSQL's `$$`) → a dialect choice with detection, and warnings for text or brackets that never close.
+  Found by the new suites in the new engine before it shipped: a comment from a later line ran into a `--` comment
+  in one-line mode (caught by the guard, which returned the input); a comment at the very start lost its line;
+  `go delete`, a BEGIN after a complete statement, FETCH FIRST / START WITH / FOR UPDATE at the start of a line and
+  MySQL's `USE INDEX` were not stable or taken for statements; 20,000 open brackets asked for 400 MB (indentation is
+  capped at 50 levels); the copy icon of the output box gave only what the box shows (`outputBox({ text })`).

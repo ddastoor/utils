@@ -25,7 +25,7 @@ const AT_OPEN = {
   semver: [/devcore-semver/, 'the sample range is checked as you type (devcore-semver, 0.16 MB)'],
   glob: [/devcore-glob/, 'the sample patterns are matched as you type (devcore-glob, 0.65 MB)'],
   patch: [/devcore-patch/, 'the patch is applied as you type (devcore-patch, 0.11 MB)'],
-  sqlfmt: [/devcore-sqlfmt/, 'the sample query is formatted live (devcore-sqlfmt, 0.22 MB)'],
+  sqlfmt: [/devcore-sqlfmt/, 'the sample query is formatted live (devcore-sqlfmt — our own formatter, 0.21 MB)'],
   jq: [/\/jq-[^/]*\.wasm|\/jq\.wasm/, 'the sample filter runs live as you type (jq.wasm, 0.96 MB)'],
   graphviz: [/graphviz-[^/]*\.wasm|graphviz\.worker/, 'the sample graph is drawn at once (graphviz.wasm, 1.6 MB, in a worker)'],
   baseenc: [/devcore-enc/, 'the sample text is encoded live (devcore-enc, 0.16 MB)'],

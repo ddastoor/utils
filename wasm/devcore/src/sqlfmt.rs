@@ -1616,7 +1616,8 @@ impl<'a, 'b> Lay<'a, 'b> {
         }
         match tk.k {
             K::Semi => {
-                if let Some(p) = self.pend { if !p.hard { self.pend = None; } }
+                // the semicolon follows its statement on the line — after a "--" comment it stands on the next one, at the margin
+                if let Some(p) = self.pend { self.pend = if p.hard { Some(Pend { level: self.level, ..p }) } else { None }; }
                 self.emit(i);
                 self.reset();
                 if self.level == 0 { self.hard(0, self.o.lines); } else { self.brk(self.level); }
@@ -1690,7 +1691,18 @@ fn same_tokens(d: &Doc, a: &An, out: &str, emitted: &[u32]) -> bool {
 }
 
 // ====================================================================================================== which dialect?
-fn any(w: &str, list: &[(&str, i32)]) -> i32 { list.iter().find(|(x, _)| x.eq_ignore_ascii_case(w)).map_or(0, |x| x.1) }
+/// What the word `w` says for a dialect. A weak hint counts once, however often the word is used.
+fn any(w: &str, list: &[(&str, i32)], seen: &mut u64) -> i32 {
+    match list.iter().position(|(x, _)| x.eq_ignore_ascii_case(w)) {
+        Some(k) => {
+            let bit = 1u64 << (k as u64 & 63);
+            let first = *seen & bit == 0;
+            *seen |= bit;
+            if first || list[k].1 > 2 { list[k].1 } else { 0 }
+        }
+        None => 0,
+    }
+}
 /// How much a text, read as dialect `d`, looks like that dialect.
 fn evidence(t: &[T], d: D) -> i32 {
     const PG: &[(&str, i32)] = &[("ILIKE", 3), ("JSONB", 4), ("SERIAL", 3), ("BIGSERIAL", 4), ("TIMESTAMPTZ", 4), ("PLPGSQL", 5), ("GENERATE_SERIES", 4), ("ARRAY_AGG", 2), ("BYTEA", 4),
@@ -1704,7 +1716,7 @@ fn evidence(t: &[T], d: D) -> i32 {
     const LITE: &[(&str, i32)] = &[("PRAGMA", 6), ("AUTOINCREMENT", 5), ("GLOB", 2), ("SQLITE_MASTER", 6), ("SQLITE_SCHEMA", 6), ("SQLITE_SEQUENCE", 6), ("STRFTIME", 3), ("JULIANDAY", 4),
         ("TYPEOF", 2), ("IFNULL", 1), ("TOTAL_CHANGES", 4), ("LAST_INSERT_ROWID", 5), ("JSON_EACH", 3), ("JSON_TREE", 3), ("UNIXEPOCH", 3), ("RANDOMBLOB", 4), ("ZEROBLOB", 4),
         ("INSTR", 1), ("PRINTF", 1), ("ROWID", 2), ("VACUUM", 1), ("ATTACH", 2), ("REINDEX", 1), ("GROUP_CONCAT", 1), ("IIF", 1), ("NOTNULL", 1), ("JSON_EXTRACT", 1),
-        ("JSON_GROUP_ARRAY", 4), ("JSON_GROUP_OBJECT", 4), ("TOTAL", 1)];
+        ("JSON_GROUP_ARRAY", 4), ("JSON_GROUP_OBJECT", 4)];
     const MS: &[(&str, i32)] = &[("NOLOCK", 5), ("NVARCHAR", 3), ("DATETIME2", 4), ("UNIQUEIDENTIFIER", 5), ("GETDATE", 4), ("GETUTCDATE", 4), ("SYSUTCDATETIME", 4), ("SYSDATETIME", 4),
         ("DATEADD", 2), ("DATEDIFF", 2), ("CHARINDEX", 3), ("SP_EXECUTESQL", 5), ("NOCOUNT", 5), ("IIF", 1), ("TRY_CAST", 3), ("TRY_CONVERT", 3), ("PRINT", 2), ("RAISERROR", 3),
         ("OPENJSON", 4), ("DBO", 3), ("SYSNAME", 3), ("PATINDEX", 3), ("NEWID", 4), ("SCOPE_IDENTITY", 5), ("OBJECT_ID", 4), ("DATEPART", 3), ("DATENAME", 3), ("EXEC", 2),
@@ -1713,7 +1725,7 @@ fn evidence(t: &[T], d: D) -> i32 {
         ("LISTAGG", 3), ("ELSIF", 2), ("DBMS_OUTPUT", 5), ("PLS_INTEGER", 5), ("CLOB", 2), ("NCLOB", 3), ("BFILE", 4), ("TO_DATE", 1), ("TO_CHAR", 1), ("TO_NUMBER", 1), ("NUMBER", 2),
         ("NOCYCLE", 4), ("SIBLINGS", 5), ("SYS_CONNECT_BY_PATH", 5), ("REGEXP_LIKE", 2), ("MULTISET", 3), ("ADD_MONTHS", 3), ("NEXTVAL", 1), ("CONNECT_BY_ROOT", 5)];
     let words = match d { D::Pg => PG, D::My => MY, D::Lite => LITE, D::Ms => MS, D::Ora => ORA, D::Std => return 1 };
-    let (mut s, mut names, mut vars, mut casts) = (0i32, 0i32, 0i32, 0i32);
+    let (mut s, mut names, mut vars, mut casts, mut seen) = (0i32, 0i32, 0i32, 0i32, 0u64);
     let sig: Vec<&T> = t.iter().filter(|x| !matches!(x.k, K::LineC | K::BlockC)).collect();
     for x in t {
         match (d, x.k) {
@@ -1729,7 +1741,7 @@ fn evidence(t: &[T], d: D) -> i32 {
         let pw = |w: &str| prev.map_or(false, |y| y.k == K::Word && y.s.eq_ignore_ascii_case(w));
         match x.k {
             K::Word => {
-                if x.s.len() <= 20 { s += any(x.s, words); }
+                if x.s.len() <= 20 { s += any(x.s, words, &mut seen); }
                 let w = x.s;
                 match d {
                     D::Pg => {

@@ -148,7 +148,7 @@ Checked one by one when each tab is reached — module first, then bugs, tests, 
 | `exif` | metacore.wasm (own C) | @uswriting/exiftool 1.0.9 (27.8 k; ExifTool) |
 | `sheet` | sheet.wasm (calamine + rust_xlsxwriter built by us) | @ironcalc/wasm-xlsx 0.9.1 (96 k) |
 | `markdown` | markdown.wasm (cmark-gfm built by us) | gfm-wasm 1.0.1 (1.5 k; cmark-gfm) — not established; md4c / Discord builds are other dialects |
-| `sqlfmt` | devcore-sqlfmt.wasm (sqlformat crate built by us) | none found (sql-formatter is JavaScript) |
+| `sqlfmt` | devcore-sqlfmt.wasm (sqlformat crate built by us) | none found (sql-formatter is JavaScript) — **done: see entry 53** |
 | `terminal`, `bc` console | busybox.wasm (BusyBox 1.38 built by us) | none found (coreutils builds for the WASIX runtime only) |
 | `pgp` | OpenPGP.js (JavaScript) | none found |
 | `calc`, calculators, Math & Science | mathcore.wasm (own C) | none found |
@@ -165,5 +165,27 @@ One entry per tab, written before its bug hunt: our module → candidates → ch
   build; no established CSV WebAssembly package turned up (search of 18 Nov: @nteract/sift-csv 11 k, a parser for
   one product). Workbooks: see the `sheet` tab's entry when it is reached (@ironcalc/wasm-xlsx to try).
 - **Decision:** nothing to replace. Hunt: 22 bugs, unit 0 → 106 (native SQLite as reference), e2e 14 → 63.
+
+### 53. `sqlfmt` — SQL Formatter (18–19 Nov 2026)
+- **Engine before:** devcore-sqlfmt.wasm = the `sqlformat` crate 0.5.0 (its latest), built by us.
+- **Is there an existing, tried-and-tested WebAssembly SQL formatter?** No. Search of the npm registry (18 Nov 2026,
+  "sql format wasm", by monthly downloads): `@wasm-fmt/sql_fmt` (9 k) and `@dprint/sql` (1.3 k) are builds of **the
+  same sqlformat crate**; `syntaqlite` (10.9 k) formats SQLite only; `sql-formatter` (the well-known one, millions) is
+  JavaScript; `pg-query-emscripten` / `libpg-query` parse PostgreSQL only and print it back without its comments.
+- **Check of the crate against what the tab is for** (a 141-statement corpus in five dialects,
+  `tests/fixtures/sqlfmt/corpus.json`; native SQLite, sqlglot and sqlparse as readers): it **changes what the SQL
+  means** — in one-line mode everything after a `--` / `#` comment ends up inside the comment; `[bracket names]`
+  are broken up and the words inside upper-cased; `0x1F` → `0 x1F`, `1_000` → `1 _000`, `1E+2` split; `'\'` is
+  read as an unfinished string, so later strings are rewritten; dollar-quoted text is reformatted; `@@trancount` →
+  `@@ trancount`; `#temp` and PostgreSQL's `#>` start a "comment"; 45 of 155 everyday column names (status, type,
+  key, level, date …) are upper-cased; 49 of 564 results change again when formatted again. These faults are inside
+  its tokenizer: nothing placed beside it can put them right (the rule's "defect, not a missing feature" case).
+- **Decision:** rule step 2 — an engine of our own: `wasm/devcore/src/sqlfmt.rs` (Rust, 1,500 lines, no crate beside
+  serde_json; the module went from 222 KB to 215 KB). It is built around the one thing a formatter may do — change
+  white space and the case of keywords — and proves it on every run (the result is tokenized again and compared).
+  Using the crate "for what it covers" with a supplement beside it (the owner's tweak) was considered: what it
+  covers correctly cannot be told from what it does not without doing the whole job again.
+- **Hunt:** 24 faults gone (list in `docs/BUGHUNT.md`); unit 2 → 113, e2e 14 → 49. Re-run after the replacement:
+  the tab's suites, `devcore`, `lazy`, `shell`, `every-tab`, `no-external`.
 
 *(further entries follow as the hunt goes on)*

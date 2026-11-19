@@ -165,7 +165,7 @@
    "d": "",
    "o": {},
    "sql": "select o.id, c.name, sum(i.qty * i.price) as total from orders o join customers c on c.id = o.customer_id left join items i on i.order_id = o.id and i.x = 1 where o.created_at >= '2026-01-01' and c.city in ('Pune', 'Mumbai') group by o.id, c.name having sum(i.qty) > 2 order by total desc limit 10; update stock set qty = qty - 1 where sku = 'A-1';",
-   "read": "sqlite",
+   "read": "standard",
    "out": "SELECT\n  o.id,\n  c.name,\n  sum(i.qty * i.price) AS total\nFROM\n  orders o\n  JOIN customers c ON c.id = o.customer_id\n  LEFT JOIN items i ON i.order_id = o.id\n    AND i.x = 1\nWHERE\n  o.created_at >= '2026-01-01'\n  AND c.city IN ('Pune', 'Mumbai')\nGROUP BY\n  o.id,\n  c.name\nHAVING\n  sum(i.qty) > 2\nORDER BY\n  total DESC\nLIMIT\n  10;\nUPDATE\n  stock\nSET\n  qty = qty - 1\nWHERE\n  sku = 'A-1';"
   },
   {

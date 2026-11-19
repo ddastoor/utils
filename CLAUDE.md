@@ -314,7 +314,7 @@ Formatter · `regex` Regex Tester · `base64` Base64 · `urlenc` URL Encoder · 
 Generator · `color` Color Converter · `jwt` JWT Decoder. New: `sqlite` SQLite Playground (official SQLite wasm) ·
 `jq` jq Playground (jq C source → wasm) · `yaml` YAML ⇄ JSON ⇄ TOML (our Rust formats-yaml.wasm) · `xml` XML Formatter /
 XPath · `json2types` JSON → Types (TS/Go/Rust/Java/Python) · `jsondiff` JSON Diff · `sqlfmt` SQL Formatter
-(sqlformat, Rust → devcore-sqlfmt.wasm) · `prettier` Code Formatter (Prettier standalone) · `mockdata` Mock Data Generator · `mdtable`
+(our own formatter, Rust → devcore-sqlfmt.wasm) · `prettier` Code Formatter (Prettier standalone) · `mockdata` Mock Data Generator · `mdtable`
 Markdown Table · `cidr` Subnet / CIDR (IPv4+IPv6) · `chmod` chmod Calculator · `x509` Certificate Decoder (own
 DER parser) · `sshkey` SSH Key Generator (Ed25519, OpenSSH format, libsodium) · `hmac` HMAC Generator · `pwhash`
 Password Hash Tool (Argon2id/bcrypt/PBKDF2) · `apikey` API Key Generator · `curl` cURL Converter · `cron` Cron
@@ -615,6 +615,50 @@ databases and CSV files).
   (a module this build lacks, a view on a dropped column) is listed with the reason. "Show rows" quotes any name.
 - An open transaction after a run is pointed out with COMMIT / ROLLBACK buttons.
 
+### SQL Formatter (PC) — as built after the Nov 2026 bug hunt
+(`src/tools/software/sqlfmt.ts`, engine `wasm/devcore/src/sqlfmt.rs` → `devcore-sqlfmt.wasm` 0.21 MB, no crates beside
+serde_json; unit `tests/unit/sqlfmt.test.mjs` 113, e2e `tests/e2e/sqlfmt.e2e.mjs` 49.) **Our own formatter**: no
+established WebAssembly SQL formatter exists, and the `sqlformat` crate the tab used changed the meaning of SQL
+(`docs/WASM-AUDIT.md`, tab 53). The rule it is built on: **a formatter may change white space and the case of
+keywords — nothing else.**
+- **Four steps:** `lex` (the lexical rules of each dialect: what a string, a quoted name, a comment, a number, a
+  variable, an operator is) → `analyse` (is this word a keyword *here*? clauses, blocks, statements) → `layout`
+  (white space between the tokens; a token is never altered beyond the case of a keyword) → **guard**: the result is
+  tokenized again and must hold the tokens of the input in order, else the input is returned untouched (`kept`; the
+  tab says so). The unit suite demands that the guard never has to step in.
+- **Dialects:** Auto-detect (default), Standard SQL, PostgreSQL, MySQL / MariaDB, SQLite, SQL Server, Oracle. Detection
+  reads the text as each dialect and scores what it finds (a string that never ends counts against a reading); the
+  tab shows "Read as …". What differs: backslashes in strings (MySQL, PostgreSQL `E'…'`), `"…"` strings (MySQL),
+  `$$…$$` (PostgreSQL), `q'[…]'` (Oracle), `[names]` (SQL Server, SQLite) versus subscripts (PostgreSQL), `#` comments
+  (MySQL) / `#temp` (SQL Server) / operator (PostgreSQL), nested comments (PostgreSQL, SQL Server, standard),
+  PostgreSQL's own rule for operators. Where a reading is unsure the safe one is taken: `--` starts a comment in every
+  dialect (MySQL's `5--5` is then simply left as typed), unknown signs keep the spacing they came with, a function
+  and its bracket are never pulled apart or pushed together (MySQL reads `count (` differently).
+- **Keywords:** UPPER / lower / as typed. A word changes case only where it is used as a keyword: about 60 words are
+  keywords everywhere (SELECT, FROM …); 330 more only in their place (`key` after PRIMARY, `offset` before a number,
+  `rows` in a window frame, `first` after NULLS, types after a column name or `::`); never next to a dot, never the
+  name after AS, never the first word of an entry in CREATE TABLE ( … ). Functions keep their case.
+- **Layout:** the style the tab always had (clauses on their own lines, their content indented, one entry a line,
+  subqueries as blocks, short brackets on the line) plus: CTEs, MERGE (a line per WHEN), windows (PARTITION BY /
+  ORDER BY / frame a line each), INSERT … ON CONFLICT, ALTER TABLE (an action a line), DDL on one line with its
+  definition list as a block, the query of CREATE VIEW / EXPLAIN on its own lines, long lists of short entries
+  filled to 72 columns, a bracket that fits its line (80) kept on it, AND / OR breaking only in conditions, the AND
+  of a join condition one level deeper. Comments stay where they were (behind their line, or on a line of their
+  own); a comma that follows a comment moves in front of it. Lines are indented at most 50 levels.
+- **Scripts:** statements without semicolons are told apart (a second SELECT, a command at the start of a line, GO);
+  BEGIN … END, IF … THEN … ELSE … END IF, LOOP, WHILE … DO, TRY / CATCH indent their statements; `BEGIN;` is a
+  transaction, CASE … END no block. One line per statement keeps the line break after a `--` comment and between two
+  parts of a string.
+- **The tab:** warnings for text, comments, quoted names and brackets that never close (with the line); a script of
+  megabytes is formatted in a fraction of a second, the box shows its first 10,00,000 characters, Copy and Download
+  give all; the download is named after the opened file.
+- **Tests:** an independent reader of SQL written in the unit suite (1,692 formattings of the 141-statement,
+  5-dialect corpus `tests/fixtures/sqlfmt/corpus.json`: same tokens, only keywords change case, all stable); the
+  SQLite engine runs original and result (rows, column names, errors, database); 224 keyword-like names × 48
+  statement shapes; the recorded layout (`layout.json`, `node scripts/make-sqlfmt-layout.mjs` — read its diff); the
+  tokens of each dialect; 4,000 broken texts. e2e: what the tab shows is read by the **native SQLite**, **sqlglot**
+  and **sqlparse** (`tests/lib/sqlfmt_check.py`; the last two are skipped with a note where they are not installed).
+
 ### Audio Recorder — BUILT (`src/tools/audio.ts`, shared UI `src/lib/audioui.ts`; e2e `tests/e2e/audio.e2e.mjs` 21)
 Record the mic (MediaRecorder: Opus/WebM, AAC/M4A on Safari; 128 kbps) with pause/resume, big timer, live level meter
 with clip mark and a scrolling waveform; microphone picker; "voice clean-up" (browser echo/noise/AGC) on by default,
@@ -894,7 +938,7 @@ stay **public** (the source of the deployed site is then available to every user
 | keys — the **supplement** to hash-wasm for the key tabs (owner's tweak of 18 Nov 2026: what the existing module does not cover): lenient Base32 secrets, HOTP counters and truncation; checked parameters, random salts, PHC strings for scrypt / PBKDF2 and the reader of pasted hashes; RustCrypto **argon2** for Argon2 version 1.0 hashes (v=16 or no version, keyid / data), which hash-wasm does not read; RustCrypto **ssh-key** (OpenSSH Ed25519 generation), **aes + ctr + bcrypt-pbkdf** and our own OpenSSH wire reader (inspect Ed25519 / RSA / ECDSA / DSA keys, encrypted private keys, authorized_keys / known_hosts lines); API keys | Rust | **us** (`wasm/keys`, 0.31 MB; no existing WebAssembly module makes or reads OpenSSH key files) | totp, pwhash (with hash-wasm); sshkey, apikey |
 | zxcvbn 3.1.1 (Rust port of Dropbox's estimator + its word lists) **+ our four fixes** (`wasm/zxcvbn/zxcvbn-fixes.patch`, applied by build.sh to the SHA-256-checked crate: ALL-CAPS words with a digit, repeats taken for sequences, single-character l33t words, keyboard-walk degree divided in integers) | Rust | **us** (`wasm/zxcvbn`, 2.2 MB, loaded with the first password; guesses + scores equal the Python reference for 304 passwords — `tests/unit/zxcvbn.test.mjs`) | pwstrength |
 | formats: **serde_yaml_ng** (unsafe-libyaml = libyaml translated to Rust), **toml**, **jsonschema** 0.61 (no network/file resolvers) + own schema inference | Rust | **us** (`wasm/formats`, two modules: formats-yaml 0.42 MB, formats-schema 2.7 MB) | yaml, jsonschema |
-| devcore: ipnet (CIDR), croner + chrono (cron; zone offsets from the browser's Intl via an `env.tz_offset` import, so no tz database), **own port of npm's semver** (`semver_npm.rs`: the package's range / comparator / inc logic with its own regular expressions on regex-lite — the nodejs-semver crate gave different answers), **own Unicode-aware glob matcher** (`globm`; globset matches bytes), **own unified-diff reader / applier** (`patchm`: offsets, white space, fuzz, like GNU patch; diffy refused most real patches), data-encoding + bs58 + own Ascii85/Z85 (long inputs go through data-encoding in pieces: it refuses 8 MiB and more on a 32-bit target), **own protobuf, MessagePack and CBOR readers** (`bin.rs`; rmpv and ciborium could not show CBOR `undefined` / simple values / long bignums or MessagePack's unused 0xc1, and reported errors as Rust debug text), x509-parser + sha1/sha2 (+ own PEM / PKCS #7 reader), sqlformat, own hex dump + search, **own lossless JSON reader / formatter** (`jsonfmt.rs`: changes white space only — member order, duplicate keys and number spelling kept; worded errors with line / column; JSON.parse → JSON.stringify reordered keys, dropped duplicates and rounded big numbers), **own JSON diff** (`jsondiff.rs`, RFC 6902 on that reader: lists aligned by equal elements (LCS) and records by `id`, numbers by value and never rounded), **own XML formatter** (`xmlfmt.rs`: re-indents elements that hold only elements, everything else byte-for-byte — declaration, DOCTYPE, entities, CDATA, text; the DOM round trip lost or rewrote all of these), **own JSON → types generator** (`j2t.rs`: TypeScript / Go / Rust serde / Java records / Python dataclasses; the e2e suite compiles its output with tsc, go, rustc, javac and python; crates unicode-ident (MIT / Apache-2.0 + Unicode-3.0) for Python identifiers and unicode-general-category (Apache-2.0) for what Go's struct tags accept) | Rust | **us** (`wasm/devcore`, crates.io via `Cargo.lock`, wasm32-wasip1; one `dc_call(op, input)` entry; **one module per tab** via Cargo features → `devcore-<feature>.wasm`, 67–650 KB) | cidr, x509, cron, semver, glob, patch, sqlfmt, hexview, baseenc, bindecode, base64 (devcore-enc), json + jwt (devcore-json), jsondiff, xml, json2types (devcore-j2t) |
+| devcore: ipnet (CIDR), croner + chrono (cron; zone offsets from the browser's Intl via an `env.tz_offset` import, so no tz database), **own port of npm's semver** (`semver_npm.rs`: the package's range / comparator / inc logic with its own regular expressions on regex-lite — the nodejs-semver crate gave different answers), **own Unicode-aware glob matcher** (`globm`; globset matches bytes), **own unified-diff reader / applier** (`patchm`: offsets, white space, fuzz, like GNU patch; diffy refused most real patches), data-encoding + bs58 + own Ascii85/Z85 (long inputs go through data-encoding in pieces: it refuses 8 MiB and more on a 32-bit target), **own protobuf, MessagePack and CBOR readers** (`bin.rs`; rmpv and ciborium could not show CBOR `undefined` / simple values / long bignums or MessagePack's unused 0xc1, and reported errors as Rust debug text), x509-parser + sha1/sha2 (+ own PEM / PKCS #7 reader), **own SQL formatter** (`sqlfmt.rs`: a tokenizer for standard SQL, PostgreSQL, MySQL, SQLite, SQL Server and Oracle; changes white space and the case of keywords only and checks its result against the input — the sqlformat crate changed the meaning of SQL), own hex dump + search, **own lossless JSON reader / formatter** (`jsonfmt.rs`: changes white space only — member order, duplicate keys and number spelling kept; worded errors with line / column; JSON.parse → JSON.stringify reordered keys, dropped duplicates and rounded big numbers), **own JSON diff** (`jsondiff.rs`, RFC 6902 on that reader: lists aligned by equal elements (LCS) and records by `id`, numbers by value and never rounded), **own XML formatter** (`xmlfmt.rs`: re-indents elements that hold only elements, everything else byte-for-byte — declaration, DOCTYPE, entities, CDATA, text; the DOM round trip lost or rewrote all of these), **own JSON → types generator** (`j2t.rs`: TypeScript / Go / Rust serde / Java records / Python dataclasses; the e2e suite compiles its output with tsc, go, rustc, javac and python; crates unicode-ident (MIT / Apache-2.0 + Unicode-3.0) for Python identifiers and unicode-general-category (Apache-2.0) for what Go's struct tags accept) | Rust | **us** (`wasm/devcore`, crates.io via `Cargo.lock`, wasm32-wasip1; one `dc_call(op, input)` entry; **one module per tab** via Cargo features → `devcore-<feature>.wasm`, 67–650 KB) | cidr, x509, cron, semver, glob, patch, sqlfmt, hexview, baseenc, bindecode, base64 (devcore-enc), json + jwt (devcore-json), jsondiff, xml, json2types (devcore-j2t) |
 | cmark-gfm 0.29.0.gfm.13 (GitHub Flavored Markdown) | C | **us** (`wasm/markdown`, source from the PyPI `cmarkgfm` sdist, SHA-256 pinned) | markdown |
 | libyaml 0.2.5 + toml++ 3 | C / C++ | **us** (`wasm/formats`) | yaml |
 | MuPDF 1.28 | C | Artifex (official `mupdf` npm) | all PDF tools, PDF → EPUB |
@@ -956,7 +1000,7 @@ Nov 2026 (Python Scratchpad): `src/lib/termtext.ts` (what a terminal would show 
 code that feeds the DOM), `src/lib/python-hints.ts` (one sentence per known error), `src/lib/tzinfo.ts` (the browser's
 Intl answering the C library's questions about local time; the zone table it uses is data made by a script) stay in TS.
 Third-party WebAssembly builds in use (accepted, see above): MuPDF, SQLite, MediaPipe Tasks, ONNX Runtime, jSquash, libheif-js, tesseract.js-core, zxing-wasm, libarchive.js, ffmpeg.wasm, hash-wasm. Staying JS (no compiled
-equivalent, reasons above): OpenPGP.js, Mermaid, Prettier, TensorFlow.js. (sql-formatter replaced by our Rust sqlformat build, Nov 2026.)
+equivalent, reasons above): OpenPGP.js, Mermaid, Prettier, TensorFlow.js. (sql-formatter was replaced by a build of the sqlformat crate, and that in Nov 2026 by our own Rust formatter: `docs/WASM-AUDIT.md`, tab 53.)
 
 ### Approved data APIs (connect-src allowlist)
 Add a host here and to the CSP `connect-src` in `index.html` (and the allowlist in `tests/e2e/no-external.e2e.mjs`)

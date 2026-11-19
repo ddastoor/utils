@@ -69,9 +69,16 @@ what those suites missed.
 - **Found during the audit and fixed:** our jq build showed local time as UTC → `wasm/jq/hosttz.c` + the shared
   `tzInfoImport` (891 reference cases from the native jq 1.8.2 in 27 zones; Python's `time.mktime` on clock-change
   nights corrected by the same host code).
-- **NEXT:** `sqlfmt`, `prettier`, `graphviz` (rest of the data-engines area; for each: the existing-module check
-  first — graphviz → @viz-js/viz / @hpcc-js/wasm-graphviz, prettier → Biome / dprint — then bugs, tests, fixes), the
+- **NEXT:** `prettier`, `graphviz` (rest of the data-engines area; for each: the existing-module check first —
+  graphviz → @viz-js/viz / @hpcc-js/wasm-graphviz, prettier → Biome / dprint — then bugs, tests, fixes), the
   complete `npm test` + `node tests/e2e.mjs` for the area, then calc-core → … as listed above.
+- **SQL Formatter (tab 53): DONE (19 Nov 2026)** — the sqlformat crate changed the meaning of SQL and no established
+  WebAssembly SQL formatter exists, so the tab has **our own formatter** now (`wasm/devcore/src/sqlfmt.rs`; CLAUDE.md
+  §3 "SQL Formatter"; `docs/WASM-AUDIT.md` entry 53). 24 bugs, unit 113, e2e 49. To change its layout: edit the
+  engine, `bash wasm/devcore/build.sh` (or the one-feature cargo line in it), `node scripts/make-sqlfmt-layout.mjs`,
+  **read the diff of `tests/fixtures/sqlfmt/layout.json`**, run `node tests/unit.mjs sqlfmt` and
+  `node tests/e2e.mjs sqlfmt` (the e2e uses python3 with `pip install sqlglot sqlparse`; without them those two
+  readers are skipped with a note).
 - **SQLite Playground (tab 52): DONE** — 22 bugs, unit 106 (native SQLite as reference), e2e 63; CLAUDE.md §3
   "SQLite Playground".
 - **Owner's to-do list: `todo.md`** ("to do"). First item (17 Nov 2026): a JS/TS → WebAssembly sweep.
@@ -109,8 +116,9 @@ what those suites missed.
   pairs), **python** (recursion guard for the browser's two stacks, lru_cache in Python, local time with tzdata's
   names, socket stand-in + asyncio, pbkdf2_hmac; new output pane that survives floods and shows \r / colours / the
   answers to input(); native CPython 3.14.8 as the reference for 69 programs — details in CLAUDE.md §5.1m).
-  Still open in this area: **sqlite, sqlfmt, prettier, graphviz**.
+  Still open in this area: **prettier, graphviz** (sqlite and sqlfmt done since).
   Running total: **51 of 176 tabs reviewed, 333 bugs fixed, 14,702 checks added** (+ shell).
+  After `sqlite` and `sqlfmt` (19 Nov 2026): **53 of 176 tabs reviewed, 380 bugs fixed, 15,992 checks added**.
   Python build tree for quick rebuilds (lost when the container is reclaimed; `wasm/python/build.sh` recreates it in
   ≈ 10 min): `/tmp/pyb3` (`native/python` = the reference interpreter; `rezip.sh` rebuilds only python314.zip).
   After any rebuild: `python3 scripts/make-tzabbr.py` and `<native python> scripts/make-python-reference.py`.
@@ -275,7 +283,7 @@ Dictionary), Codes & Files (5), Everyday (9), Device (11), Linux Terminal + bc c
    previous result on screen when a new patch failed, TOTP's otpauth account line vanished on the next tick, Mock Data made new random rows when only the output format changed, **errors thrown by any file picker's handler
    escaped as uncaught page errors (no message) — `filePicker` now reports them like buttons do (all tabs)**, and added a newline that broke "No newline at end of file" patches;
    the device time zone showed as "Asia/Calcutta" and India was listed twice in the Time Zone converter (src/lib/tz.ts).
-   sql-formatter (JS) replaced by our Rust sqlformat build (tier 1).
+   sql-formatter (JS) replaced by a Rust sqlformat build — and that, Nov 2026, by our own formatter (WASM-AUDIT tab 53).
 3. Audit list replacements (own builds of mozjpeg/libwebp/oxipng, libheif, tesseract, zxing-cpp, libarchive,
    zip AES in crypto.wasm, minimp4) — CLAUDE.md §3a.
 4. **Owner decision (16 Nov 2026, after step 1): "Finish all the original apps before asking me about potentials.md."**
