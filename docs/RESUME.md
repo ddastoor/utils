@@ -72,6 +72,27 @@ what those suites missed.
 - **NEXT:** `prettier`, `graphviz` (rest of the data-engines area; for each: the existing-module check first —
   graphviz → @viz-js/viz / @hpcc-js/wasm-graphviz, prettier → Biome / dprint — then bugs, tests, fixes), the
   complete `npm test` + `node tests/e2e.mjs` for the area, then calc-core → … as listed above.
+- **Code Formatter (tab 54, `prettier`): IN PROGRESS (19 Nov 2026) — step 1, the existing-module check.** Nothing
+  in the repository has changed for it yet. Findings so far (scratch scripts, lost if the container is reclaimed —
+  the method is what matters): Prettier has no WebAssembly build. Established WebAssembly formatters:
+  **Biome's official build** `@biomejs/wasm-web` 2.6.8 (75 k downloads a month; MIT / Apache-2.0; **70 MB, 18 MB
+  gzipped**; one module for every language) and the **dprint plugins** (the engines of `deno fmt`: `@dprint/typescript`
+  503 k a month, 4.9 MB; `@dprint/json`, `@dprint/markdown` 1.4 M; `dprint-plugin-malva` CSS / SCSS,
+  `dprint-plugin-markup` HTML / Vue, `dprint-plugin-yaml`, `dprint-plugin-graphql`; host `@dprint/formatter` 1.5 M).
+  Test: 423 real JS / TS files (this repository's `src`, `tests`, `scripts` + files from node_modules, 5.6 MB) are
+  formatted and the TypeScript 5.9 parser compares the program before and after (tree without layout, brackets,
+  quote style; all comments): **Prettier 423 same; Biome 423 same, 397 byte-identical to Prettier; dprint 411 same**
+  (the other 12 gain braces around a nested loop — same meaning) **after** its import sorting and brace insertion
+  are switched off (by default it reorders imports: 302 of 423 differ), and 66 of its results change when formatted
+  again (it keeps some of the input's line breaks; Prettier 15, Biome 17). JSON: Biome 250 of 254 identical to
+  Prettier (needs `json.parser.allowComments` for tsconfig files), dprint 120. YAML: Biome 21 of 21. CSS: Biome and
+  dprint 128 of 160 identical, meaning kept. Markdown: Biome and dprint also reformat the code inside fences.
+  Biome returns nothing for `.vue`. **Direction:** Biome's official build for the languages its formatter is mature
+  in (JS / JSX / TS / TSX, JSON, CSS, GraphQL — and YAML, SCSS, HTML, Markdown where the per-language tests pass),
+  in a tracked worker, loaded with the first Format; a dprint plugin or Prettier for what is left (rule: (b) an
+  existing JS library for features the module does not cover). To decide per language: a checker that is
+  independent of all three formatters (TypeScript parser, PostCSS, a YAML parser, cmark-gfm, an HTML parser,
+  graphql-js) over real files + hazards; then the tab, the suites, `docs/WASM-AUDIT.md` entry 54.
 - **SQL Formatter (tab 53): DONE (19 Nov 2026)** — the sqlformat crate changed the meaning of SQL and no established
   WebAssembly SQL formatter exists, so the tab has **our own formatter** now (`wasm/devcore/src/sqlfmt.rs`; CLAUDE.md
   §3 "SQL Formatter"; `docs/WASM-AUDIT.md` entry 53). 24 bugs, unit 113, e2e 49. To change its layout: edit the
