@@ -71,7 +71,9 @@ export default [
   ['fuel cost', 'fuel'], ['petrol cost', 'fuel'], ['mileage', 'fuel'],
   ['grade point average', 'gpa'], ['sgpa', 'gpa'],
   ['gpa', 'gpa'], ['cgpa to percentage', 'gpa'],
+  ['hex to decimal', 'base'], ['base 36', 'base'],
   ['binary to decimal', 'base'], ['hex to decimal', 'base'], ['number base', 'base'],
+  ['roman numerals', 'roman'], ['year in roman numerals', 'roman'],
   ['roman numerals', 'roman'], ['roman', 'roman'],
 
   // Text

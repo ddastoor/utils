@@ -126,6 +126,8 @@ export function bindMathcore(e: any) {
     },
     toRoman(n: number) { const p = e.m_malloc(32); try { return e.m_to_roman(n, p) ? cstr(p) : null; } finally { e.m_free(p); } },
     fromRoman(s: string) { const v = withStr(s.trim(), (p, n) => e.m_from_roman(p, n)) as number; return v || null; },
+    /** as found on clock faces and buildings too (IIII, MDCCCCX): the value up to 4,999, or null */
+    fromRomanLoose(s: string) { const v = withStr(s.trim(), (p, n) => e.m_from_roman_loose(p, n)) as number; return v || null; },
     words(n: bigint, indian: boolean) { const p = e.m_malloc(1024); try { e.m_words(n, indian ? 1 : 0, p, 1024); return cstr(p); } finally { e.m_free(p); } },
     emi: (P: number, annual: number, months: number) => e.m_emi(P, annual, months) as number,
     amortizeYearly(P: number, annual: number, months: number) { const max = 100; return withF64(max * 3, (p) => { const y = e.m_amortize_yearly(P, annual, months, p, max); const r = f64(p, y * 3); return Array.from({ length: y }, (_, i) => ({ principal: r[i * 3], interest: r[i * 3 + 1], balance: r[i * 3 + 2] })); }); },

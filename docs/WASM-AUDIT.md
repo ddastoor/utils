@@ -407,3 +407,13 @@ One entry per tab, written before its bug hunt: our module → candidates → ch
 - **Decision:** nothing to replace; stays TypeScript. Held to exact arithmetic on the typed numbers (Python's decimal
   and fractions): 2,112 bills, 245 trips, 400 grade sheets — `scripts/make-smallcalc-reference.py`.
 
+### 72 – 73. `base`, `roman` — Number Base Converter, Roman Numerals (19 Nov 2026)
+- **Ours:** mathcore (own C): `m_base_convert` (numbers of any length between bases 2 and 36, in limbs of 2³²) and
+  `m_to_roman` / `m_from_roman` / `m_from_roman_loose`.
+- **Candidates:** WebAssembly — big-number libraries exist as WebAssembly (GMP builds such as gmp-wasm, 60 thousand
+  downloads a month): 300 KB and more for one function of forty lines that the calculators' module already holds;
+  nothing for Roman numerals. JavaScript: BigInt's own `toString(radix)` (not arbitrary-base input), `roman-numerals`.
+- **Decision:** nothing to replace — a 0.3 MB arithmetic library for a base conversion would be the opposite of
+  "lazy and small", and the engine is already WebAssembly. Held to **Python's int()** and **numpy.base_repr** for 464
+  numbers up to 6,000 bits, and to the **roman** library for all 3,999 numerals and 3,000 strings of Roman letters.
+

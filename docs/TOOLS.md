@@ -96,7 +96,7 @@ Generated from `src/registry.ts` by `npm run docs` — do not edit by hand.
 | `fuel` | Fuel Cost Calculator | PC + mobile | Trip fuel cost and mileage. | fuel, petrol, diesel, cng, mileage, trip cost, kmpl, mpg, … |
 | `gpa` | GPA Calculator | PC + mobile | GPA / CGPA from grades and credits; CGPA to %. | cgpa to percentage, sgpa to percentage, gpa, cgpa, sgpa, grades, credits, percentage, … |
 | `base` | Number Base Converter | PC + mobile | Binary, octal, decimal, hex. | binary to decimal, hex to decimal, decimal to binary, decimal to hex, octal, binary, hex, hexadecimal, … |
-| `roman` | Roman Numerals | PC + mobile | Convert to and from Roman numerals. | roman, numerals, convert, mcmxc, latin |
+| `roman` | Roman Numerals | PC + mobile | Convert to and from Roman numerals. | roman, numerals, convert, mcmxc, latin, roman numbers, year in roman numerals, clock face, … |
 | `prepay` | Loan Prepayment | PC + mobile | Interest and months saved by prepaying a loan. | prepayment, part payment, part prepayment, foreclosure, loan prepayment, interest saved, tenure reduction |
 | `ppf` | PPF Calculator | PC + mobile | Public Provident Fund maturity. | ppf, public provident fund, 15 years, tax free, maturity, india |
 | `epf` | EPF Calculator | PC + mobile | Employee Provident Fund corpus at retirement. | epf, pf, provident fund, employee, retirement, corpus, uan, india |

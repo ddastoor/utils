@@ -9,6 +9,7 @@ import { pctAnswer, type PctOp } from '../lib/percent';
 import { inWords } from '../lib/words';
 import { bmiOf, feetInches, calorieNeeds, dueDate, ACTIVITY, LB, type Bmi } from '../lib/health';
 import { tipSplit, fuelCost, litresText, gpaOf } from '../lib/smallcalc';
+import { readNumber, romanAnswer } from '../lib/numerals';
 
 // ------------------------------------------------------------------ Unit converter
 // table, arithmetic and number formatting: src/lib/units.ts (exact definitions, held to GNU Units by the unit suite)
@@ -387,27 +388,43 @@ export const base: Mount = async (root) => {
   const inputs = new Map<number, HTMLInputElement>();
   const custom = input({ type: 'number', value: 3, min: 2, max: 36 });
   const customOut = input({ attrs: { spellcheck: 'false' } });
-  let value = '255', valueBase = 10; // canonical value kept as digits in some base (arbitrary precision in wasm)
-  const cb = () => Math.min(36, Math.max(2, parseInt(custom.value) || 2));
-  const sync = (except?: HTMLInputElement) => {
-    for (const [b, el] of inputs) if (el !== except) el.value = m.baseConvert(value, valueBase, b) ?? '';
-    if (customOut !== except) customOut.value = m.baseConvert(value, valueBase, cb()) ?? '';
+  const msg = h('div', { class: 'stack', role: 'status' });
+  let value = '255', valueBase = 10; // the number, kept as the digits last typed and their base (any length, in wasm)
+  let source: HTMLInputElement | null = null; // the box being typed in: it is never rewritten
+  const cb = () => (custom.value.trim() === '' ? NaN : Number(custom.value));
+  const fill = (el: HTMLInputElement, b: number) => { if (el !== source) el.value = (value && Number.isInteger(b) && b >= 2 && b <= 36 && m.baseConvert(value, valueBase, b)) || ''; };
+  const sync = () => {
+    for (const [b, el] of inputs) fill(el, b);
+    fill(customOut, cb());
   };
+  const say = (text: string) => { clear(msg); if (text) msg.append(note(text, 'warn')); };
+  const all = () => [...inputs.values(), customOut];
+  // one rule for every box: what is typed is either a number in that box's base — then every other box shows it — or
+  // it is not, and then the other boxes are emptied (they would show the number of before) and the reason is given
   const onEdit = (el: HTMLInputElement, b: () => number) => el.addEventListener('input', () => {
-    const ok = el.value.trim() && m.baseConvert(el.value, b(), 10) !== null;
-    el.classList.toggle('bad', !ok);
-    if (ok) { value = el.value; valueBase = b(); sync(el); }
+    const r = readNumber(el.value, b());
+    source = el; for (const x of all()) x.classList.remove('bad');
+    if ('text' in r) { value = r.text; valueBase = b(); say(''); }
+    else { value = ''; if ('error' in r) { el.classList.add('bad'); say(r.error); } else say(''); }
+    sync();
   });
   for (const [b] of bases) {
-    const el = input({ attrs: { spellcheck: 'false', inputmode: b === 10 ? 'numeric' : 'text' } });
+    const el = input({ attrs: { spellcheck: 'false', autocapitalize: 'off', autocomplete: 'off', inputmode: b === 10 ? 'numeric' : 'text' } });
     el.classList.add('mono');
     onEdit(el, () => b);
     inputs.set(b, el);
   }
+  customOut.classList.add('mono');
   onEdit(customOut, cb);
-  custom.addEventListener('input', () => sync());
-  root.append(card(null, stack(...bases.map(([b, n]) => field(`${n} (base ${b})`, inputs.get(b)!)), h('div', { class: 'grid2' }, field('Custom base', custom), field('Value in custom base', customOut)))),
-    note('Arbitrary precision (mathcore.wasm). Prefixes 0x, 0o, 0b and _ separators are accepted.'));
+  custom.addEventListener('input', () => {
+    const b = cb(), ok = Number.isInteger(b) && b >= 2 && b <= 36;
+    custom.classList.toggle('bad', !ok);
+    if (source === customOut) { source = null; } // its digits were typed in the old base: show the number in the new one
+    say(ok ? '' : 'The custom base must be a whole number from 2 to 36.');
+    sync();
+  });
+  root.append(card(null, stack(...bases.map(([b, n]) => field(`${n} (base ${b})`, inputs.get(b)!)), h('div', { class: 'grid2' }, field('Custom base', custom), field('Value in custom base', customOut)), msg)),
+    note('Whole numbers of any length (mathcore.wasm), with a sign if you like. A prefix is read in its own base — 0x in hexadecimal, 0o in octal, 0b in binary — and spaces, commas and _ between digits are skipped.'));
   sync();
 };
 
@@ -415,10 +432,11 @@ export const base: Mount = async (root) => {
 export const roman: Mount = async (root) => {
   const m = await mathcore();
   calcForm(root, [{ key: 'x', label: 'Number (1–3999) or Roman numeral', type: 'text', value: '2026' }], (v) => {
-    const s = String(v.x).trim();
-    if (/^\d+$/.test(s)) { const r = m.toRoman(+s); if (!r) throw new Error('Roman numerals cover 1–3999.'); return { big: [['Roman', r]] }; }
-    const n = m.fromRoman(s);
-    if (!n) throw new Error('Not a valid Roman numeral (1–3999).');
-    return { big: [['Number', String(n)]] };
+    const r = romanAnswer(m, String(v.x));
+    return {
+      big: [r.kind === 'roman' ? ['Roman', r.roman] : ['Number', String(r.number)]], // no digit comma: most of these are years
+      rows: r.parts && (r.parts.includes('+') || r.kind === 'number') ? [['Adds up as', r.parts]] : [],
+      notes: r.kind === 'number' && r.note ? [r.note] : [],
+    };
   });
 };

@@ -742,34 +742,55 @@ API int m_frac_eval(const char *src, int len, int64_t *out) {
 
 /* ======================================================================== number bases (arbitrary length), Roman, words */
 /* Converts digit string in base `from` to base `to` (2..36). Writes upper-case NUL-terminated result.
-   Returns length, or -1 on invalid digit. Handles a leading '-' and 0x/0o/0b prefixes. */
+   Returns length, or -1 on an invalid digit, -2 when there is no digit at all.
+   A leading '+' or '-' is read. A prefix 0x / 0o / 0b is read only in the base it stands for (16 / 8 / 2): in any
+   other base those letters are digits — "0b1" in hexadecimal is 0xB1 = 177. Spaces, '_' and ',' between digits are
+   skipped.
+   The number is kept in limbs of 2^32; digits go in and come out in chunks — the largest power of the base below 2^32
+   (10^9, 16^7, 36^6 …) — so a pass over the limbs handles up to 31 digits instead of one. */
+static uint32_t chunk_of(int b, int *k) { uint64_t p = (uint64_t)b; int n = 1; while (p * b < 4294967296ULL) { p *= b; n++; } *k = n; return (uint32_t)p; }
 API int m_base_convert(const char *src, int len, int from, int to, char *out, int outcap) {
+    if (from < 2 || from > 36 || to < 2 || to > 36) return -1;
     int i = 0, neg = 0;
     while (i < len && (src[i] == ' ' || src[i] == '_')) i++;
-    if (i < len && src[i] == '-') { neg = 1; i++; }
-    if (i + 1 < len && src[i] == '0' && (src[i + 1] == 'x' || src[i + 1] == 'X' || src[i + 1] == 'o' || src[i + 1] == 'b' || src[i + 1] == 'B')) i += 2;
-    /* limbs base 2^32, little-endian */
-    uint32_t *L = calloc((size_t)len + 2, sizeof(uint32_t)); int nl = 1;
-    int digits = 0;
-    for (; i < len; i++) {
-        char c = src[i];
-        if (c == '_' || c == ' ' || c == ',') continue;
-        int d = c >= '0' && c <= '9' ? c - '0' : c >= 'a' && c <= 'z' ? c - 'a' + 10 : c >= 'A' && c <= 'Z' ? c - 'A' + 10 : 99;
-        if (d >= from) { free(L); return -1; }
-        uint64_t carry = (uint64_t)d;
-        for (int k = 0; k < nl; k++) { uint64_t v = (uint64_t)L[k] * from + carry; L[k] = (uint32_t)v; carry = v >> 32; }
-        if (carry) L[nl++] = (uint32_t)carry;
-        digits++;
+    if (i < len && (src[i] == '-' || src[i] == '+')) { neg = src[i] == '-'; i++; }
+    if (i + 1 < len && src[i] == '0') {
+        char c = src[i + 1] | 32;
+        if ((c == 'x' && from == 16) || (c == 'o' && from == 8) || (c == 'b' && from == 2)) i += 2;
     }
-    if (!digits) { free(L); return -1; }
-    char *tmp = malloc((size_t)nl * 33 + 2); int tn = 0;
-    int zero;
-    do {
-        uint64_t rem = 0; zero = 1;
-        for (int k = nl - 1; k >= 0; k--) { uint64_t v = (rem << 32) | L[k]; L[k] = (uint32_t)(v / to); rem = v % to; if (L[k]) zero = 0; }
-        tmp[tn++] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"[rem];
+    /* limbs base 2^32, little-endian */
+    uint32_t *L = calloc((size_t)len / 6 + 4, sizeof(uint32_t)); int nl = 1;   /* a digit is at most log2(36) = 5.17 bits */
+    int digits = 0, kin, kout;
+    chunk_of(from, &kin); uint32_t cout = chunk_of(to, &kout);
+    uint32_t acc = 0, mulby = 1; int have = 0;
+    for (;; i++) {
+        int d = -1;
+        if (i < len) {
+            char c = src[i];
+            if (c == '_' || c == ' ' || c == ',') continue;
+            d = c >= '0' && c <= '9' ? c - '0' : c >= 'a' && c <= 'z' ? c - 'a' + 10 : c >= 'A' && c <= 'Z' ? c - 'A' + 10 : 99;
+            if (d >= from) { free(L); return -1; }
+            acc = acc * (uint32_t)from + (uint32_t)d; mulby *= (uint32_t)from; have++; digits++;
+        }
+        if (have == kin || (i >= len && have)) {             /* L = L * from^have + acc   (from^kin < 2^32, so mulby never wraps) */
+            uint64_t m = mulby, carry = acc;
+            for (int k = 0; k < nl; k++) { uint64_t v = (uint64_t)L[k] * m + carry; L[k] = (uint32_t)v; carry = v >> 32; }
+            if (carry) L[nl++] = (uint32_t)carry;
+            acc = 0; mulby = 1; have = 0;
+        }
+        if (i >= len) break;
+    }
+    if (!digits) { free(L); return -2; }
+    char *tmp = malloc((size_t)nl * 32 + (size_t)kout + 2); int tn = 0;
+    for (;;) {
+        uint64_t rem = 0; int zero = 1;
+        for (int k = nl - 1; k >= 0; k--) { uint64_t v = (rem << 32) | L[k]; L[k] = (uint32_t)(v / cout); rem = v % cout; if (L[k]) zero = 0; }
         while (nl > 1 && !L[nl - 1]) nl--;
-    } while (!zero);
+        /* a chunk gives kout digits — the last (most significant) one only those it has */
+        for (int k = 0; k < kout && (!zero || rem || !k); k++) { tmp[tn++] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"[rem % (uint32_t)to]; rem /= (uint32_t)to; }
+        if (zero) break;
+    }
+    while (tn > 1 && tmp[tn - 1] == '0') tn--;
     int o = 0;
     if (neg && !(tn == 1 && tmp[0] == '0') && o < outcap - 1) out[o++] = '-';
     while (tn && o < outcap - 1) out[o++] = tmp[--tn];
@@ -786,6 +807,24 @@ API int m_to_roman(int n, char *out) {
     for (int i = 0; i < 13; i++) while (n >= RV[i]) { int l = (int)strlen(RS[i]); memcpy(out + o, RS[i], l); o += l; n -= RV[i]; }
     out[o] = 0;
     return o;
+}
+/* The value of a numeral as it is found on clock faces and buildings as well: besides the standard form, I, X, C
+ * and M may stand four times in a row (IIII, XXXX, CCCC, MMMM) and V, L, D once — each rank written additively or
+ * with its standard subtractive pair, ranks in falling order. Returns the value (up to 4,999), or 0. */
+API int m_from_roman_loose(const char *s, int len) {
+    static const char ONE[] = "MCXI", FIVE[] = " DLV"; static const int VAL[] = {1000, 100, 10, 1};
+    int n = 0, i = 0;
+    if (len < 1 || len > 30) return 0;
+    for (int r = 0; r < 4; r++) {
+        char one = ONE[r], five = FIVE[r], ten = r ? ONE[r - 1] : 0;
+        char a = i < len ? (s[i] & ~32) : 0, b = i + 1 < len ? (s[i + 1] & ~32) : 0;
+        if (r && a == one && b == ten) { n += 9 * VAL[r]; i += 2; continue; }       /* CM XC IX */
+        if (r && a == one && b == five) { n += 4 * VAL[r]; i += 2; continue; }      /* CD XL IV */
+        if (r && a == five) { n += 5 * VAL[r]; i++; }
+        int k = 0;
+        while (i < len && (s[i] & ~32) == one && k < 4) { n += VAL[r]; i++; k++; }
+    }
+    return i == len ? n : 0;
 }
 /* returns value or 0 if invalid (strict canonical form) */
 API int m_from_roman(const char *s, int len) {

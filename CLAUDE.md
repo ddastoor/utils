@@ -629,6 +629,14 @@ open while the numbers change; `fmtINR` writes paise with both digits (₹12.10)
   litre", small amounts with three decimals. `gpa` (e2e 20) — credit-weighted mean on a 10-point or 4-point scale,
   CBSE / AICTE percentage (× 9.5) on the 10-point one; a row outside the scale, with negative credits or with one
   box empty is left out and named.
+- Numerals (`src/lib/numerals.ts`; unit `tests/unit/numerals.test.mjs` 109; reference
+  `python3 scripts/make-numerals-reference.py`, needs `pip install roman numpy`): `base` (e2e 37) — whole numbers of
+  any length between bases 2 and 36 (mathcore `m_base_convert`: limbs of 2³², digits in and out in chunks of the
+  largest power of the base below 2³²); a sign in front; **a prefix only in its own base** (0x in 16, 0o in 8, 0b in
+  2 — elsewhere those letters are digits); spaces, commas and _ skipped; at most 10,000 digits a box; a wrong
+  digit is named and the other boxes are emptied; the custom base must be a whole number 2 – 36. `roman` (e2e 26)
+  — 1 to 3,999 both ways; additive forms (IIII, MDCCCCX, up to MMMM…) are read with the standard form named
+  (`m_from_roman_loose`); Unicode numerals, spaces and lower case accepted; the numeral taken apart.
 - Number formatting shared by the calculators (`src/lib/form.ts`, unit `tests/unit/moneyfmt.test.mjs` 79):
   `roundDec(x, d)` (in `src/lib/round.ts`, no DOM) rounds a number as it is written with 15 digits, half away from zero (7.1225 → 7.123, 1.005 →
   1.01; Intl and toFixed round the binary value down) and leaves numbers that need more than 15 digits alone;

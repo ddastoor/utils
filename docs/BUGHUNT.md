@@ -96,8 +96,8 @@ Areas with a shared review: the app shell (router, search, favorites, platform h
 | `tip` | Tip & Bill Splitter | PC + mobile | calc-core | ✓ | 4 | 27 | nothing to replace (WASM-AUDIT 69–71); whole paise, shares rounded up so the bill is covered, left-over shown; people a whole number; 2,112 bills by decimal arithmetic |
 | `fuel` | Fuel Cost Calculator | PC + mobile | calc-core | ✓ | 5 | 39 | exact fractions for 245 trips; inputs checked; 1 litre; small amounts keep three decimals; distance keeps its decimal |
 | `gpa` | GPA Calculator | PC + mobile | calc-core | ✓ | 4 | 24 | exact fractions for 400 grade sheets; rows outside the scale, with negative credits or half empty are named and left out; credits on both scales |
-| `base` | Number Base Converter | PC + mobile | calc-core |  |  |  |  |
-| `roman` | Roman Numerals | PC + mobile | calc-core |  |  |  |  |
+| `base` | Number Base Converter | PC + mobile | calc-core | ✓ | 6 | 79 | nothing to replace (WASM-AUDIT 72–73); Python int() + numpy base_repr for 464 numbers up to 6,000 bits; prefixes only in their own base; reasons for wrong digits, no stale boxes; custom base checked; chunked arithmetic (29× faster) |
+| `roman` | Roman Numerals | PC + mobile | calc-core | ✓ | 4 | 72 | the roman library for all 3,999 numerals and 3,000 strings; additive forms (IIII) read with the standard form named; Unicode numerals; reasons; parts |
 | `prepay` | Loan Prepayment | PC + mobile | calc2-math |  |  |  |  |
 | `ppf` | PPF Calculator | PC + mobile | calc2-math |  |  |  |  |
 | `epf` | EPF Calculator | PC + mobile | calc2-math |  |  |  |  |
@@ -644,7 +644,7 @@ reference cases.
   (glue; cleared now); native Graphviz 16.1.0 itself aborts on two of the hazard graphs (`splines=ortho` with a loop
   in circo / twopi; an HTML name beside a plain name with the same text in fdp) — recorded, the tool's to repair.
 
-### Calculators › calc-core (19 Nov 2026, in progress)
+### Calculators › calc-core (19 Nov 2026)
 - **calc** — Scientific Calculator (21 bugs; unit 0 → 243 of its own, e2e 76 → 140). Engine kept
   (`docs/WASM-AUDIT.md` tab 56: no tried-and-tested WebAssembly calculator exists). Reference: **mpmath at 50 digits**
   and Python's exact integers for 3,005 expressions — every function over a grid in degrees and radians, 1,500
@@ -834,4 +834,20 @@ reference cases.
   (2) negative credits were subtracted; (3) a row with one box empty was skipped without a word; (4) with credits
   adding up to 0 the result was a dash without a reason. Rows that cannot be counted are named and left out; the
   total credits are shown on both scales.
+- **base** — Number Base Converter (6 bugs; unit `numerals.test.mjs` 0 → 109 for this tab and the next, e2e
+  13 → 37). Nothing to replace (`docs/WASM-AUDIT.md` tabs 72 – 73). Reference: **Python's int()** and **numpy's
+  base_repr** for 464 numbers from one bit to 6,000 bits typed in bases 2 – 36. What was wrong: (1) **a prefix was
+  taken off in every base**: in hexadecimal "0b1" — the number B1, 177 — was read as binary 1; in base 36 "0x1f"
+  (42,819) was 51; (2) a wrong digit only turned the box red: no reason, and **the other boxes went on showing the
+  number of before**; (3) an emptied box was marked wrong, the others kept their number; (4) **the custom base was
+  bent without a word** (40 was taken as 36, 1 as 2, while the box said 40); (5) "+5", a typographic minus and
+  "0O17" were refused; (6) long numbers froze the page — 60,000 digits took 4.4 s per conversion, six conversions a
+  keystroke: digits now go in and out in chunks (10⁹, 16⁷ …: 150 ms for the same number) and a box takes at most
+  10,000 digits. Every refusal names the digit and the digits of the base.
+- **roman** — Roman Numerals (4 bugs; e2e 8 → 26). Reference: the **roman** library for every number from 1 to 3,999
+  both ways and for 3,000 strings of Roman letters (what is a numeral in standard form). What was wrong:
+  (1) **IIII — every clock face — was "Not a valid Roman numeral"**, as were MDCCCCX and the other additive forms
+  carved on buildings: they are read now, with the standard form named; (2) "1,994", 0, −5 and 3.5 all got "Not a
+  valid Roman numeral"; (3) Ⅻ and ⅳ (the Unicode numerals) and "MM XXVI" with a space were refused; (4) one message
+  for every mistake. Added: the numeral taken apart ("M (1000) + CM (900) + XC (90) + IV (4)").
 
