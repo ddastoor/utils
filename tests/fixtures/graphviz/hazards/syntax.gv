@@ -1,0 +1,49 @@
+//// comments of every kind
+/* a block
+   comment */ digraph comments { // to the end of the line
+# a line that starts with a hash
+  a -> b /* in the middle */ -> c; // done
+  "/* not a comment */" -> "// nor this" -> "# nor this"
+}
+//// keywords in any case, and as quoted names
+DiGraph Keywords { NODE [shape=box]; EDGE [color=red]; SubGraph s { a } "node" -> "edge" -> "graph" -> "digraph" -> "subgraph" -> "strict" -> a }
+//// a strict graph merges repeated edges
+strict digraph s { a -> b; a -> b [color=red]; a -> b [label=third]; b -> a }
+////
+strict graph u { a -- b; b -- a; a -- b [color=blue]; a -- a }
+//// a graph without a name, and one whose name needs quotes
+digraph { a -> b }
+////
+graph "a name with spaces & <signs>" { a -- b }
+//// numbers as names
+digraph numbers { 1 -> 2 -> 3.5 -> -4 -> .5 -> -.5 -> 6. -> 007 -> "1e3"; 1 [label=one] }
+//// quoted names: escaped quotes, a line continued with a backslash, pieces joined with +
+digraph quoted { "say \"x\"" -> "one \
+line" -> "joined " + "with " + "plus" -> "tab	inside" -> "" }
+//// edges from and to groups of nodes
+digraph groups { {a b} -> {c d} -> e; subgraph { f g } -> h; e -> {rank=same; i j} }
+//// attribute lists: commas, semicolons, nothing; repeated lists; an empty list
+digraph attrs { a [color=red, shape=box; style=filled fillcolor=yellow] [penwidth=2]; b [] ; a -> b [color=blue][style=dashed] [] }
+//// statements without semicolons, names assigned in the graph body
+digraph loose { rankdir=LR nodesep=1 a -> b b -> c c [shape=box] d e d -> e }
+//// ports with compass points, also on plain nodes
+digraph compass { a:n -> b:s; a:ne -> b:sw; a:e -> b:w; a:se -> b:nw; a:c -> b:_; a -> a:w }
+//// subgraphs that share nodes, nested subgraphs, a subgraph named twice
+digraph subs { subgraph x { a b } subgraph y { b c } subgraph x { d } subgraph cluster_o { subgraph cluster_i { subgraph cluster_ii { e } f } g } a -> e -> f -> g; node [shape=box]; h }
+//// defaults apply from where they stand
+digraph defaults { a; node [color=red]; b; subgraph { node [shape=box]; c } d; edge [style=dotted]; a -> b; edge [style=""]; c -> d }
+//// an HTML string as a name
+digraph htmlid { <<b>x</b>> -> <y>; <y> -> "z"; <w> }
+//// multi-edges and loops
+digraph multi { a -> b; a -> b; a -> b [color=red]; a -> a; a -> a; b -> a }
+//// an undirected graph, edge keys
+graph keys { a -- b [key=one]; a -- b [key=two]; a -- b [key=one, color=red] }
+//// white space of every kind, CR LF line ends
+digraph	spaces	{	a	->	b
+	b ->
+	c }
+//// CR LF line ends
+digraph crlf {
+  a -> b;
+  b [label="two\nlines"];
+}

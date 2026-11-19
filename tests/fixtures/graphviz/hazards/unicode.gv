@@ -1,0 +1,18 @@
+//// Indian scripts
+digraph indic { "नमस्ते" -> "தமிழ்" -> "বাংলা" -> "ಕನ್ನಡ" -> "മലയാളം" -> "ગુજરાતી" -> "ਪੰਜਾਬੀ" -> "తెలుగు"; "नमस्ते" [label="नमस्ते दुनिया\nदूसरी पंक्ति"] }
+//// Chinese, Japanese, Korean
+digraph cjk { "漢字" -> "ひらがな" -> "カタカナ" -> "한국어"; "漢字" [label="漢字の長いラベル\l二行目\l"] }
+//// right-to-left scripts
+digraph rtl { "مرحبا بالعالم" -> "שלום עולם"; "مرحبا بالعالم" [shape=box] }
+//// emoji, combining marks and characters outside the basic plane
+digraph astral { "😀" -> "👨‍👩‍👧" -> "é" -> "𝔘𝔫𝔦𝔠𝔬𝔡𝔢" -> "🇮🇳"; "😀" [label="😀 smile\n🎉"] }
+//// names without quotes may hold any non-ASCII character
+digraph bare { café -> naïve -> Ünïcødé -> ₹500 -> 名前; café [label="café\l"] }
+//// accents composed and decomposed, spaces that are not spaces
+digraph forms { "é" -> "é" -> "a b" -> "a b" -> "a​b" -> "a b" }
+//// Latin-1 characters in every kind of label
+digraph latin1 { label="Größe · Ça · Ñandú · £ ¥ ©"; a [label="ÀÁÂÃÄÅÆÇÈÉÊË" shape=record]; b [label=<&Agrave;&Eacute; <b>Ü</b>>]; a -> b [label="×÷±"] }
+//// a record and a cluster in other scripts
+digraph mixed { node [shape=record]; subgraph cluster_k { label="समूह"; r [label="<a> पहला|<b> दूसरा|{<c> 第三|четвёртый}"] } r:a -> s; r:c -> s; s [label="Ελληνικά\rالعربية\l"] }
+//// long text in a script the built-in font tables do not know
+digraph long { a [label="यह एक बहुत लंबा लेबल है जो बॉक्स में ठीक से आना चाहिए" shape=box]; b [label="これは箱の中にきちんと収まるはずの非常に長いラベルです" shape=box]; a -> b }

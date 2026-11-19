@@ -1,0 +1,72 @@
+//// ranks: same, min, max, source, sink
+digraph ranks { a -> b -> c -> d; e -> f; {rank=same; b; e} {rank=min; f} {rank=max; a} {rank=source; s} {rank=sink; t} s -> a; d -> t }
+//// edges that do not constrain, weights and minimum lengths
+digraph weights { a -> b [weight=10]; a -> c [weight=0]; b -> d [minlen=3]; c -> d [constraint=false]; d -> a [constraint=false, label=back] }
+//// clusters, edges between clusters
+digraph compound { compound=true; subgraph cluster_a { a1 -> a2 } subgraph cluster_b { b1 -> b2 } a1 -> b2 [lhead=cluster_b]; a2 -> b1 [ltail=cluster_a, lhead=cluster_b]; a1 -> b1 [ltail=cluster_a] }
+//// new ranking, cluster ranking off
+digraph newrank { newrank=true; subgraph cluster_x { a -> b } subgraph cluster_y { c -> d } {rank=same; a; d} b -> c }
+////
+digraph norank { clusterrank=none; subgraph cluster_x { a -> b } c -> a }
+//// merged edges
+digraph concentrate { concentrate=true; a -> {b c d e}; {b c d e} -> f; a -> f }
+//// order of the edges as written
+digraph ordering { ordering=out; a -> {d c b}; b -> e; c -> e; d -> e; subgraph { node [ordering=in]; x; y } e -> x; e -> y }
+//// spline kinds
+digraph ortho { splines=ortho; a -> b -> c; a -> c; c -> a; b -> b }
+////
+digraph polyline { splines=polyline; a -> b -> c; a -> c; c -> a }
+////
+digraph curved { splines=curved; a -> b -> c; a -> c; c -> a }
+////
+digraph line { splines=line; a -> b -> c; a -> c; c -> a }
+////
+digraph nosplines { splines=none; a -> b -> c; a -> c }
+//// spacing
+digraph spacing { nodesep=1.5; ranksep="1.2 equally"; a -> {b c}; b -> d; c -> d }
+//// size, ratio, rotation, padding, margin
+digraph sized { size="3,3"; ratio=fill; a -> b -> c; a -> c }
+////
+digraph exact { size="6,2!"; a -> b -> c }
+////
+digraph compress { ratio=compress; size="2,5"; a -> {b c d e f} }
+////
+digraph rotated { rotate=90; a -> b -> c; label="rotated" }
+////
+digraph landscape { landscape=true; a -> b }
+////
+digraph padded { pad="0.5,1"; margin="0.3"; bgcolor=lightyellow; a -> b; center=true }
+//// the four directions with labels
+digraph tb { rankdir=TB; a -> b [label=tb]; b -> c }
+////
+digraph lr { rankdir=LR; a -> b [label=lr]; b -> c }
+////
+digraph bt { rankdir=BT; a -> b [label=bt]; b -> c }
+////
+digraph rl { rankdir=RL; a -> b [label=rl]; b -> c }
+//// groups and shared edge ends
+digraph groups { a [group=g]; b [group=g]; c [group=g]; d; a -> b -> c; a -> d -> c; x -> {y z} [samehead=h]; {y z} -> w [sametail=t] }
+//// pinned positions and edge lengths (the spring engines use them; dot ignores them)
+graph pinned { a [pos="0,0!"]; b [pos="2,1!"]; c [pos="1,3"]; a -- b [len=2]; b -- c [len=1.5]; c -- a }
+//// overlap and separation
+graph overlap { overlap=scale; sep="+10"; a -- b -- c -- d -- a; a -- c; node [width=1.5] e -- a }
+////
+graph prism { overlap=false; a -- b -- c -- a }
+//// a fixed start for the spring engines
+graph seeded { start=7; a -- b -- c -- d -- e -- a; a -- c }
+//// a root for the radial and circular engines
+graph rooted { root=c; a -- b -- c -- d; c -- e -- f; ranksep=2 }
+//// packing of the parts of a disconnected graph
+graph packed { pack=20; packmode=clust; a -- b; c -- d -- e; f; subgraph cluster_g { g -- h } }
+//// empty graphs and a lone node
+digraph empty { }
+////
+digraph lone { a }
+////
+digraph empty_cluster { subgraph cluster_e { label=empty } a }
+//// dimensions, model and mode for neato
+graph modes { mode=KK; model=subset; a -- b -- c -- d -- a }
+////
+graph major { mode=major; model=shortpath; a -- b -- c -- d -- a; a -- c [len=3] }
+//// treemap areas
+graph areas { a [area=4]; b [area=1]; c [area=2]; subgraph cluster_x { d [area=3]; e [area=1] } }

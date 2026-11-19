@@ -1,0 +1,26 @@
+//// a table with ports
+digraph ports { node [shape=plaintext]; t [label=<<table border="0" cellborder="1" cellspacing="0"><tr><td port="a">a</td><td port="b">b</td></tr><tr><td colspan="2" port="c">wide</td></tr></table>>]; u; t:a -> u; t:b:s -> u; t:c -> u:n }
+//// spans, padding and spacing
+digraph spans { n [shape=none label=<<table cellpadding="6" cellspacing="3" border="2"><tr><td rowspan="2">tall</td><td>1</td><td>2</td></tr><tr><td colspan="2">wide</td></tr><tr><td colspan="3" cellpadding="12">footer</td></tr></table>>] }
+//// text styles
+digraph styles { n [label=<plain <b>bold</b> <i>italic</i> <u>under</u> <o>over</o> <s>strike</s> x<sub>sub</sub> y<sup>sup</sup> <b><i>both</i></b>>] }
+//// fonts
+digraph fonts { n [label=<<font face="Helvetica" point-size="18" color="red">big red</font> <font face="Courier">mono</font> <font point-size="8">small</font> <font color="#00aa00"><b>green bold</b></font>>] }
+//// line breaks with alignment
+digraph breaks { n [shape=box label=<left<br align="left"/>right<br align="right"/>centre<br/>last>]; m [shape=box label=<<br/>starts with a break<br/><br/>and a gap>]; n -> m }
+//// rules, nested tables and background colours
+digraph nested { n [shape=none label=<<table bgcolor="#f6efe6" style="rounded"><tr><td>a</td><vr/><td>b</td></tr><hr/><tr><td colspan="2"><table border="0" cellborder="1"><tr><td bgcolor="yellow">in</td><td bgcolor="lightblue:white">ner</td></tr></table></td></tr></table>>] }
+//// entities and characters with a meaning in XML
+digraph entities { n [label=<&amp; &lt; &gt; &quot; &#8377; &#x20B9; &nbsp;&copy; &eacute; &alpha;&beta; x&nbsp;y>]; m [label=<a &amp;amp; b>]; n -> m }
+//// cell alignment, fixed sizes and borders by side
+digraph cells { n [shape=none label=<<table><tr><td align="left" width="120">left</td><td align="right" width="120">right</td></tr><tr><td valign="top" height="50">top</td><td valign="bottom" sides="LB">bottom</td></tr><tr><td fixedsize="true" width="40" height="20">clipped text here</td><td balign="left">a<br/>bb<br/>ccc</td></tr></table>>] }
+//// a picture that is not there
+digraph image { n [shape=none label=<<table><tr><td><img src="nowhere.png"/></td></tr><tr><td>caption</td></tr></table>>] }
+//// HTML labels on edges, graphs and clusters
+digraph everywhere { label=<<b>Graph</b> title>; subgraph cluster_x { label=<<i>cluster</i>>; a } a -> b [label=<<font color="blue">edge</font>> headlabel=<<b>h</b>> taillabel=<t>] }
+//// links and tooltips in cells
+digraph links { n [shape=none label=<<table><tr><td href="https://example.org/?a=1&amp;b=2" title="go &lt;there&gt;" target="_blank">link</td><td id="cell1" tooltip="tip">tip</td></tr></table>>] }
+//// an HTML label that is only text, and an empty one
+digraph text_only { a [label=<just text>]; b [label=<>]; c [label=< >]; a -> b -> c }
+//// wrong HTML: the label is drawn as text and a message says why
+digraph wrong { n [label=<<table><tr><td>x</td></table>>]; m [label=<<nosuch>tag</nosuch>>]; n -> m }

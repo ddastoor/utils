@@ -1,0 +1,22 @@
+//// polygon shapes
+digraph polygons { box; polygon [shape=polygon]; ellipse [shape=ellipse]; oval [shape=oval]; circle [shape=circle]; point [shape=point]; egg [shape=egg]; triangle [shape=triangle]; plaintext [shape=plaintext]; plain [shape=plain]; diamond [shape=diamond]; trapezium [shape=trapezium]; parallelogram [shape=parallelogram]; house [shape=house]; pentagon [shape=pentagon]; hexagon [shape=hexagon]; septagon [shape=septagon]; octagon [shape=octagon]; box [shape=box] }
+////
+digraph more { doublecircle [shape=doublecircle]; doubleoctagon [shape=doubleoctagon]; tripleoctagon [shape=tripleoctagon]; invtriangle [shape=invtriangle]; invtrapezium [shape=invtrapezium]; invhouse [shape=invhouse]; Mdiamond [shape=Mdiamond]; Msquare [shape=Msquare]; Mcircle [shape=Mcircle]; rect [shape=rect]; rectangle [shape=rectangle]; square [shape=square]; star [shape=star]; none [shape=none]; underline [shape=underline]; cylinder [shape=cylinder]; note [shape=note]; tab [shape=tab]; folder [shape=folder]; box3d [shape=box3d]; component [shape=component] }
+////
+digraph synbio { promoter [shape=promoter]; cds [shape=cds]; terminator [shape=terminator]; utr [shape=utr]; primersite [shape=primersite]; restrictionsite [shape=restrictionsite]; fivepoverhang [shape=fivepoverhang]; threepoverhang [shape=threepoverhang]; noverhang [shape=noverhang]; assembly [shape=assembly]; signature [shape=signature]; insulator [shape=insulator]; ribosite [shape=ribosite]; rnastab [shape=rnastab]; proteasesite [shape=proteasesite]; proteinstab [shape=proteinstab]; rpromoter [shape=rpromoter]; rarrow [shape=rarrow]; larrow [shape=larrow]; lpromoter [shape=lpromoter] }
+//// polygons by numbers
+digraph numbers { a [shape=polygon sides=3]; b [shape=polygon sides=7 skew=0.4]; c [shape=polygon sides=4 distortion=0.5]; d [shape=polygon sides=5 orientation=30]; e [shape=polygon sides=6 peripheries=3]; f [shape=polygon sides=4 regular=true]; g [shape=polygon sides=120]; a -> b -> c -> d -> e -> f -> g }
+//// sizes
+digraph sizes { a [width=2 height=0.2]; b [fixedsize=true width=0.3 height=0.3 label="too long for it"]; c [fixedsize=shape width=0.5 label="label outside"]; d [width=0 height=0 margin=0]; e [margin="0.5,0.1"]; f [shape=circle width=1.5]; g [shape=point width=0.3]; a -> b -> c -> d -> e -> f -> g }
+//// styles
+digraph styles { node [shape=box]; a [style=filled fillcolor=lightblue]; b [style=dashed]; c [style=dotted]; d [style=bold]; e [style=rounded]; f [style="rounded,filled,dashed" fillcolor="#ffeecc"]; g [style=invis]; h [style=diagonals]; i [style=striped fillcolor="red:green:blue"]; j [shape=circle style=wedged fillcolor="red;0.3:green;0.2:blue"]; k [style=radial fillcolor="white:navy"]; l [style=filled fillcolor="yellow:orange" gradientangle=90]; a -> b -> c -> d -> e -> f -> g -> h -> i -> j -> k -> l }
+//// colours
+digraph colours { a [color=red fontcolor=blue]; b [color="#ff8800"]; c [color="#00ff0080" style=filled]; d [color="0.6 0.8 0.9" style=filled]; e [colorscheme=blues9 color=7 style=filled fontcolor=1]; f [color="/accent5/3" style=filled]; g [color=transparent]; h [color="red:blue" peripheries=2]; i [color=nosuchcolour]; a -> b -> c -> d -> e -> f -> g -> h -> i; bgcolor="#f8f8f8" }
+//// pen widths and peripheries
+digraph pens { a [penwidth=0]; b [penwidth=0.5]; c [penwidth=5]; d [peripheries=0]; e [peripheries=4 shape=box]; f [shape=doublecircle peripheries=3]; a -> b -> c -> d -> e -> f }
+//// label places inside a node
+digraph places { node [shape=box width=2 height=1.2]; a [labelloc=t label=top]; b [labelloc=b label=bottom]; c [labelloc=c label=centre]; d [label="left\l" nojustify=true]; e [label="right\r"]; a -> b -> c -> d -> e }
+//// an unknown shape falls back to a box with a warning
+digraph unknown { a [shape=nosuch]; b [shape=""]; a -> b }
+//// cluster styles
+digraph clusters { subgraph cluster_a { style=filled; fillcolor=lightgrey; color=blue; a } subgraph cluster_b { style="rounded,dashed"; penwidth=3; b } subgraph cluster_c { style=invis; c } subgraph cluster_d { bgcolor="pink:white"; pencolor=red; peripheries=0; d } a -> b -> c -> d }

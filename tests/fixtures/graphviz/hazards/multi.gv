@@ -1,0 +1,18 @@
+// several graphs in one text, read one after the other as the dot program reads a file
+digraph first { a -> b }
+
+/* a comment between two graphs */
+graph second {
+  c -- d -- e
+}
+# a hash line
+strict digraph third { rankdir=LR; f -> g; f -> g; g -> h }
+digraph { anonymous -> fourth }
+
+
+digraph fifth {
+  label="last";
+  i [label="\nstarts empty"];
+}
+
+// text after the last graph

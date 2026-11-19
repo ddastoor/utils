@@ -1,0 +1,9 @@
+digraph good1 { a -> b }
+digraph good2 {
+  c -> d
+}
+digraph bad {
+  e -> f;
+  f -> ;
+}
+digraph never_read { g -> h }

@@ -1,0 +1,24 @@
+//// first line of a label is empty (the upstream storeline() bug: trapped in every WebAssembly build)
+digraph first_line_empty { a [label="\nx"]; }
+//// only line breaks
+digraph only_breaks { a [label="\n\n"]; b [label="\l"]; c [label="\r"]; d [label="\n\l\r"]; a -> b -> c -> d }
+//// left, right and centred lines
+digraph justify { a [label="left\lright\rcentre\n"]; b [label="trailing\l"]; c [label="\lleading"]; a -> b [label="\nedge\n"]; b -> c [label="one\ltwo\r"] }
+//// empty and blank labels
+digraph empty { a [label=""]; b [label=" "]; c [label="  two  spaces  "]; a -> b [label=""]; b -> c [label=" "] }
+//// escape sequences that stand for names
+digraph escapes { G1 [label="\G"]; n [label="\N in \G"]; n -> m [label="\E: \T to \H"]; m [label="\L"]; G1 -> n [tooltip="\E", label="\\N stays"] }
+//// the graph's own label
+digraph graph_label { label="\nTitle\n\nwith a gap\l"; labelloc=t; labeljust=l; a -> b }
+//// labels beside nodes and at edge ends
+digraph xlabels { a [xlabel="\nx"]; b [xlabel="beside b"]; a -> b [headlabel="\nh", taillabel="t\n", xlabel="\l", label="mid"]; forcelabels=true }
+//// records with empty fields and lines
+digraph record_empty { rankdir=LR; r [shape=record, label="{\n a|{b|\n}|<p> c\l}"]; r:p -> s; t [shape=record label="{||}"]; u [shape=Mrecord label="\n|x|\n"] }
+//// cluster labels
+digraph cluster_label { subgraph cluster_a { label="\n"; x } subgraph cluster_b { label="\nB\l"; y } subgraph cluster_c { label=""; z } x -> y -> z }
+//// long lines and many lines
+digraph long { a [label="The quick brown fox jumps over the lazy dog and keeps running until the end of this rather long line of text"]; b [label="1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12"]; a -> b }
+//// quotes, backslashes and brackets inside labels
+digraph quoting { a [label="say \"hi\""]; b [label="back\\slash"]; c [label="{curly} <angle> |bar|"]; d [shape=record label="\{curly\} \<angle\> \|bar\| \ space"]; a -> b -> c -> d }
+//// label on a node without a shape, a point and plain text
+digraph shapeless { a [shape=none label="\nnone"]; b [shape=point label="\nx"]; c [shape=plaintext label="plain\l"]; d [shape=plain label="\nplain"]; a -> b -> c -> d }

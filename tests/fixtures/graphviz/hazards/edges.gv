@@ -1,0 +1,22 @@
+//// arrow heads
+digraph heads { rankdir=LR; a0 -> b0 [arrowhead=normal]; a1 -> b1 [arrowhead=inv]; a2 -> b2 [arrowhead=dot]; a3 -> b3 [arrowhead=odot]; a4 -> b4 [arrowhead=none]; a5 -> b5 [arrowhead=tee]; a6 -> b6 [arrowhead=empty]; a7 -> b7 [arrowhead=diamond]; a8 -> b8 [arrowhead=odiamond]; a9 -> b9 [arrowhead=box]; a10 -> b10 [arrowhead=obox]; a11 -> b11 [arrowhead=open]; a12 -> b12 [arrowhead=crow]; a13 -> b13 [arrowhead=vee]; a14 -> b14 [arrowhead=halfopen]; a15 -> b15 [arrowhead=invdot]; a16 -> b16 [arrowhead=invodot]; a17 -> b17 [arrowhead=invempty]; a18 -> b18 [arrowhead=curve]; a19 -> b19 [arrowhead=icurve] }
+//// arrow heads made of parts
+digraph parts { rankdir=LR; a0 -> b0 [arrowhead=lnormal]; a1 -> b1 [arrowhead=rnormal]; a2 -> b2 [arrowhead=onormal]; a3 -> b3 [arrowhead=olnormal]; a4 -> b4 [arrowhead=normalnormal]; a5 -> b5 [arrowhead=teecrow]; a6 -> b6 [arrowhead=nonenormal]; a7 -> b7 [arrowhead=ldiamondrdiamond]; a8 -> b8 [arrowhead=oboxodot]; a9 -> b9 [arrowhead=nosuch] }
+//// direction, tails, sizes
+digraph dirs { a -> b [dir=forward]; b -> c [dir=back]; c -> d [dir=both arrowtail=dot]; d -> e [dir=none]; e -> f [arrowsize=3]; f -> g [arrowsize=0.3 dir=both arrowtail=crow arrowhead=tee] }
+//// in an undirected graph
+graph undirected { a -- b [dir=forward]; b -- c [arrowhead=dot dir=both]; c -- d }
+//// styles, widths, colours
+digraph styles { a -> b [style=dashed]; b -> c [style=dotted]; c -> d [style=bold]; d -> e [style=invis]; e -> f [style=tapered penwidth=7]; f -> g [penwidth=0.2]; g -> h [color="red:green:blue"]; h -> i [color="red;0.5:blue"]; i -> j [color="black:invis:black"]; j -> k [style="dashed,bold" color="#12345680"] }
+//// labels and where they sit
+digraph labels { a -> b [label="mid" decorate=true]; b -> c [headlabel=head taillabel=tail labelangle=60 labeldistance=2.5]; c -> d [label=floating labelfloat=true]; d -> e [xlabel=beside]; e -> f [label="font" fontname=Courier fontsize=20 fontcolor=red labelfontname=Helvetica labelfontsize=8 labelfontcolor=blue headlabel=h] }
+//// loops
+digraph loops { a -> a; b -> b [label=loop]; c -> c -> c; d:n -> d:s; e:e -> e:w [label="east to west"]; f -> f [headport=n tailport=n]; g -> g; g -> g; g -> g; a -> b -> c -> d -> e -> f -> g }
+//// ends: ports, clipping
+digraph ends { a -> b [headport=n tailport=s]; a -> c [headport=w tailport=e]; b -> c [headclip=false tailclip=false]; c -> d [headport=se]; d [shape=box] }
+//// links and tooltips on edges
+digraph links { a -> b [URL="https://example.org/?q=1&r=2" tooltip="a to <b> & back" target=_top]; b -> c [headURL="#head" tailURL="#tail" labelURL="#label" label=x headtooltip="h\"q\"" edgetooltip="e"]; c -> d [id="edge-id" class="one two"] }
+//// many edges between two nodes, in both directions
+digraph many { a -> b; a -> b; a -> b; b -> a; b -> a; a -> b [label=l1]; a -> b [label=l2]; b -> a [label=back] }
+//// edges that skip ranks, long chains, a flat edge with a label
+digraph flat { a -> b -> c -> d -> e; a -> e; a -> c; b -> e [label=skip]; {rank=same; x -> y [label=flat]; y -> z; x -> z [label="over"]} a -> x }

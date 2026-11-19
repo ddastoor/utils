@@ -44,7 +44,7 @@ export function bindGraphviz(e: any) {
     try {
       const code = e.gv_layout(ps, pe, index);
       const graphs = Math.max(0, e.gv_count(4)), drawn = Math.max(0, e.gv_count(5));
-      const used = zstr(e.gv_engine()) || engine;
+      const used = zstr(e.gv_engine());
       if (code) return { code, outputs: formats.map(() => ''), messages: messages(), nodes: 0, edges: 0, directed: false, graphs, index: drawn, engine: used };
       const info = { nodes: e.gv_count(0), edges: e.gv_count(1), directed: e.gv_count(2) === 1 };
       let rc = 0; const outputs: string[] = [];

@@ -1,0 +1,18 @@
+//// records in the four rank directions
+digraph tb { node [shape=record]; a [label="<l> left|<m> mid|<r> right"]; b [label="{top|{<x> x|y}|bottom}"]; a:m -> b:x; a:l -> b; a:r -> b:x:s }
+////
+digraph lr { rankdir=LR; node [shape=record]; a [label="<l> left|<m> mid|<r> right"]; b [label="{top|{<x> x|y}|bottom}"]; a:m -> b:x; a:l -> b; a:r -> b:x:s }
+////
+digraph bt { rankdir=BT; node [shape=record]; a [label="<l> left|<m> mid|<r> right"]; b [label="{top|{<x> x|y}|bottom}"]; a:m -> b:x; a:l -> b; a:r -> b:x:s }
+////
+digraph rl { rankdir=RL; node [shape=record]; a [label="<l> left|<m> mid|<r> right"]; b [label="{top|{<x> x|y}|bottom}"]; a:m -> b:x; a:l -> b; a:r -> b:x:s }
+//// rounded records, deep nesting, a linked list
+digraph nested { node [shape=Mrecord]; n [label="a|{b|{c|{d|{e|f}}}}|g"]; list0 [shape=record label="<v> 1|<n> next"]; list1 [shape=record label="<v> 2|<n> next"]; list2 [shape=record label="<v> 3|<n> nil"]; list0:n -> list1:v; list1:n -> list2:v; n -> list0 }
+//// field text with line breaks and justification
+digraph lines { node [shape=record]; a [label="one\ltwo\l|centre\n|right\r"]; b [label="{<h> head\n\n|body\lmore body\l|<f> foot}"]; a -> b:h; b:f -> a }
+//// record ports that do not exist, and compass points
+digraph ports { node [shape=record]; a [label="<p> p|<q> q"]; b; a:p:n -> b:s; a:q:se -> b:nw; a:nosuch -> b; a:p -> a:q }
+//// sizes and styles
+digraph sized { node [shape=record style="filled,rounded" fillcolor="#eef3fb"]; a [label="fixed|size" fixedsize=true width=3 height=0.4]; b [label="{tall|\n\n\n|record}" penwidth=2 color=navy]; c [label="font|size" fontsize=20 fontname="Courier"]; a -> b -> c }
+//// a wide table made of records
+digraph table { node [shape=record]; t [label="{id|1|2|3}|{name|Asha|Ravi|Meera}|{city|Pune|Kochi|Jaipur}|{pin|411001|682001|302001}"]; }

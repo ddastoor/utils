@@ -1,0 +1,201 @@
+SuperTools: prism overlap removal and sfdp's smoothing without the GTS library.
+
+Graphviz builds these parts only with GTS (LGPL, on top of GLib), which no WebAssembly build has: sfdp then
+reports "remove_overlap: Graphviz not built with triangulation library" for every drawing and leaves nodes
+overlapping, and overlap=prism is refused. All they need from GTS is a Delaunay triangulation of the node positions.
+
+lib/neatogen/delaunay.c gets a third branch (beside "GTS" and "nothing") that takes the triangulation from
+st_delaunay.h — our C port of Delaunator, see that file — and the three places that ask "is GTS there?" before using
+prism (overlap.c, adjust.c, sfdpinit.c) accept that branch too. lib/neatogen/neatosplines.c is left alone: its GTS
+path (a spline router for parallel edges in the spring engines) needs a triangulation that keeps given segments,
+which this is not.
+
+--- a/lib/neatogen/delaunay.c
++++ b/lib/neatogen/delaunay.c
+@@ -514,6 +514,92 @@
+     free (s->neigh);
+     free(s);
+ }
++#elif defined(SUPERTOOLS_DELAUNAY)
++// SuperTools: the triangulation without GTS (wasm/graphviz/st_delaunay.h, a C port of Delaunator). What Graphviz
++// asks for here: the edges of the triangulation (prism overlap removal, sfdp's smoothing), per node its neighbours
++// (UG_graph below) and the triangles. A triangulation that keeps given segments (mkSurface, for the spline router
++// of the spring engines) is not provided: lib/neatogen/neatosplines.c keeps its path for builds without GTS.
++#include "st_delaunay.h"
++
++// the triangulation of the points (x[i], y[i]) — or of x[2i], x[2i+1] when y is NULL
++static int st_triangulate(const double *x, const double *y, int n, st_tri_t *t) {
++    if (!y) return st_delaunay(x, n, t);
++    double *xy = gv_calloc(2 * (size_t)n, sizeof(double));
++    for (int i = 0; i < n; i++) { xy[2 * i] = x[i]; xy[2 * i + 1] = y[i]; }
++    const int ok = st_delaunay(xy, n, t);
++    free(xy);
++    return ok;
++}
++// every edge once: the half-edges that lie on the hull or come before their twin
++#define ST_FOREACH_EDGE(t, a, b) \
++    for (int e_ = 0, a, b; e_ < 3 * (t).ntriangles; e_++) \
++	if (((t).halfedges[e_] < e_) && (a = (int)(t).triangles[e_], b = (int)(t).triangles[e_ - e_ % 3 + (e_ + 1) % 3], 1))
++
++int *get_triangles(double *x, int n, int *tris)
++{
++    if (n <= 2) return NULL;
++    st_tri_t t;
++    if (!st_triangulate(x, NULL, n, &t)) return NULL;
++    int *faces = gv_calloc(3 * (size_t)t.ntriangles + 1, sizeof(int));
++    for (int i = 0; i < 3 * t.ntriangles; i++) faces[i] = (int)t.triangles[i];
++    *tris = t.ntriangles;
++    st_tri_free(&t);
++    return faces;
++}
++static v_data *delaunay_triangulation(double *x, double *y, int n) {
++    st_tri_t t;
++    if (!st_triangulate(x, y, n, &t)) return NULL;
++    v_data *delaunay = gv_calloc(n, sizeof(v_data));
++    int nedges = 0;
++    for (int i = 0; i < n; i++) { delaunay[i].ewgts = NULL; delaunay[i].nedges = 1; }
++    ST_FOREACH_EDGE(t, a, b) { delaunay[a].nedges++; delaunay[b].nedges++; nedges++; }
++    int *edges = gv_calloc(2 * (size_t)nedges + n, sizeof(int));
++    for (int i = 0; i < n; i++) {
++	delaunay[i].edges = edges;
++	edges += delaunay[i].nedges;
++	delaunay[i].edges[0] = i;
++	delaunay[i].nedges = 1;
++    }
++    ST_FOREACH_EDGE(t, a, b) {
++	delaunay[a].edges[delaunay[a].nedges++] = b;
++	delaunay[b].edges[delaunay[b].nedges++] = a;
++    }
++    st_tri_free(&t);
++    return delaunay;
++}
++/* As with GTS: the edges of the triangulation as pairs of point indices. Points on one line have no triangles;
++ * they are joined to a chain in their order along the line (the hull the triangulation returns). */
++int *delaunay_tri(double *x, double *y, int n, int *pnedges)
++{
++    st_tri_t t;
++    if (!st_triangulate(x, y, n, &t)) return NULL;
++    int nedges = 0, *edges;
++    ST_FOREACH_EDGE(t, a, b) { (void)a; (void)b; nedges++; }
++    if (nedges) {
++	int *ip = edges = gv_calloc(2 * (size_t)nedges, sizeof(int));
++	ST_FOREACH_EDGE(t, a, b) { *ip++ = a; *ip++ = b; }
++    } else {
++	nedges = t.nhull > 1 ? t.nhull - 1 : 0;
++	int *ip = edges = gv_calloc(2 * (size_t)nedges + 1, sizeof(int));
++	for (int i = 1; i < t.nhull; i++) { *ip++ = (int)t.hull[i - 1]; *ip++ = (int)t.hull[i]; }
++    }
++    *pnedges = nedges;
++    st_tri_free(&t);
++    return edges;
++}
++surface_t *mkSurface(double *x, double *y, int n, int *segs, int nsegs)
++{
++    (void)x; (void)y; (void)n; (void)segs; (void)nsegs;
++    agerrorf("mkSurface: this build has no triangulation that keeps given segments\n");
++    return 0;
++}
++void freeSurface(surface_t *s)
++{
++    if (!s) return;
++    free(s->faces);
++    free(s->neigh);
++    free(s);
++}
+ #else
+ static char* err = "Graphviz built without any triangulation library\n";
+ int* get_triangles (double *x, int n, int* tris)
+--- a/lib/neatogen/overlap.c
++++ b/lib/neatogen/overlap.c
+@@ -14,7 +14,7 @@
+ #include <util/alloc.h>
+ #include <util/prisize_t.h>
+ 
+-#if defined(HAVE_GTS) && defined(SFDP)
++#if (defined(HAVE_GTS) || defined(SUPERTOOLS_DELAUNAY)) && defined(SFDP)
+ 
+ #include <sparse/SparseMatrix.h>
+ #include <neatogen/call_tri.h>
+--- a/lib/neatogen/adjust.c
++++ b/lib/neatogen/adjust.c
+@@ -26,7 +26,7 @@
+ #include <neatogen/edges.h>
+ #include <neatogen/site.h>
+ #include <neatogen/digcola.h>
+-#if defined(HAVE_GTS) && defined(SFDP)
++#if (defined(HAVE_GTS) || defined(SUPERTOOLS_DELAUNAY)) && defined(SFDP)
+ #include <neatogen/overlap.h>
+ #endif
+ #include <stdbool.h>
+@@ -583,7 +583,7 @@
+     return A;
+ }
+ 
+-#if defined(HAVE_GTS) && defined(SFDP)
++#if (defined(HAVE_GTS) || defined(SUPERTOOLS_DELAUNAY)) && defined(SFDP)
+ static void fdpAdjust(graph_t *g, adjust_data *am) {
+     SparseMatrix A0 = makeMatrix(g);
+     SparseMatrix A = A0;
+@@ -775,7 +775,7 @@
+  */
+ static const lookup_t adjustMode[] = {
+     {AM_NONE, "", "none"},
+-#if defined(HAVE_GTS) && defined(SFDP)
++#if (defined(HAVE_GTS) || defined(SUPERTOOLS_DELAUNAY)) && defined(SFDP)
+     {AM_PRISM, "prism", "prism"},
+ #endif
+     {AM_VOR, "voronoi", "Voronoi"},
+@@ -793,7 +793,7 @@
+     {AM_PORTHO_YX, "portho_yx", "pseudo-orthogonal constraints"},
+     {AM_PORTHOXY, "porthoxy", "xy pseudo-orthogonal constraints"},
+     {AM_PORTHOYX, "porthoyx", "yx pseudo-orthogonal constraints"},
+-#if !(defined(HAVE_GTS) && defined(SFDP))
++#if !((defined(HAVE_GTS) || defined(SUPERTOOLS_DELAUNAY)) && defined(SFDP))
+     {AM_PRISM, "prism", 0},
+ #endif
+     {0}
+@@ -934,7 +934,7 @@
+ 	case AM_COMPRESS:
+ 	    ret = scAdjust(G, -1);
+ 	    break;
+-#if defined(HAVE_GTS) && defined(SFDP)
++#if (defined(HAVE_GTS) || defined(SUPERTOOLS_DELAUNAY)) && defined(SFDP)
+ 	case AM_PRISM:
+ 	    fdpAdjust(G, am);
+ 	    ret = 0;
+--- a/lib/sfdpgen/sfdpinit.c
++++ b/lib/sfdpgen/sfdpinit.c
+@@ -126,7 +126,7 @@
+     if (!sym) return dflt;
+     s = agxget (g, sym);
+     if (gv_isdigit(*s)) {
+-#if defined(HAVE_GTS)
++#if (defined(HAVE_GTS) || defined(SUPERTOOLS_DELAUNAY))
+ 	if ((v = atoi (s)) <= SMOOTHING_RNG)
+ #else
+ 	if ((v = atoi (s)) <= SMOOTHING_SPRING)
+@@ -144,13 +144,13 @@
+ 	    rv = SMOOTHING_NONE;
+ 	else if (!strcasecmp(s, "power_dist"))
+ 	    rv = SMOOTHING_STRESS_MAJORIZATION_POWER_DIST;
+-#if defined(HAVE_GTS)
++#if (defined(HAVE_GTS) || defined(SUPERTOOLS_DELAUNAY))
+ 	else if (!strcasecmp(s, "rng"))
+ 	    rv = SMOOTHING_RNG;
+ #endif
+ 	else if (!strcasecmp(s, "spring"))
+ 	    rv = SMOOTHING_SPRING;
+-#if defined(HAVE_GTS)
++#if (defined(HAVE_GTS) || defined(SUPERTOOLS_DELAUNAY))
+ 	else if (!strcasecmp(s, "triangle"))
+ 	    rv = SMOOTHING_TRIANGLE;
+ #endif
+@@ -237,7 +237,7 @@
+ 	spring_electrical_control ctrl = spring_electrical_control_new();
+ 
+ 	tuneControl(g, &ctrl);
+-#if defined(HAVE_GTS)
++#if (defined(HAVE_GTS) || defined(SUPERTOOLS_DELAUNAY))
+ 	graphAdjustMode(g, &am, "prism0");
+ #else
+ 	graphAdjustMode(g, &am, 0);

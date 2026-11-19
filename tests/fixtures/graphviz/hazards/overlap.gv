@@ -1,0 +1,56 @@
+//// prism overlap removal (needs a triangulation: Graphviz takes it from GTS, this build from its own)
+graph prism { overlap=prism; node [width=2]; a -- b -- c -- a; a -- d; a -- e }
+//// overlap=false means prism where there is a triangulation
+graph false { overlap=false; node [width=2]; a -- b -- c -- a; a -- d; a -- e }
+//// thirty wide nodes
+graph thirty { overlap=prism; node [width=2 height=1]; n0 -- n3; n1 -- n10; n2 -- n17; n3 -- n24; n4 -- n1; n5 -- n8; n6 -- n15; n7 -- n22; n8 -- n29; n9 -- n6; n10 -- n13; n11 -- n20; n12 -- n27; n13 -- n4; n14 -- n11; n15 -- n18; n16 -- n25; n17 -- n2; n18 -- n9; n19 -- n16; n20 -- n23; n21 -- n0; n22 -- n7; n23 -- n14; n24 -- n21; n25 -- n28; n26 -- n5; n27 -- n12; n28 -- n19; n29 -- n26 }
+//// how often, how far, and without shrinking
+graph tries { overlap=prism1000; node [width=2]; a -- b -- c -- a }
+////
+graph scaled { overlap=prism; overlap_scaling=2; overlap_shrink=false; node [width=2]; a -- b -- c -- a; a -- d }
+////
+graph negative_scaling { overlap=prism; overlap_scaling=-4; node [width=2]; a -- b -- c -- a; a -- d; d -- e }
+//// points on one line, two points, one point, no edges
+graph line { overlap=prism; node [width=3]; a [pos="0,0"]; b [pos="1,0"]; c [pos="2,0"]; d [pos="3,0"] }
+////
+graph vertical { overlap=prism; node [height=2]; a [pos="0,0"]; b [pos="0,1"]; c [pos="0,2"] }
+////
+graph two { overlap=prism; node [width=3]; a -- b }
+////
+graph one { overlap=prism; a }
+////
+graph loose { overlap=prism; node [width=2]; a; b; c; d; e }
+//// nodes on one spot, and on a grid (many points on one circle)
+graph same_spot { overlap=prism; node [width=1.5]; a [pos="1,1"]; b [pos="1,1"]; c [pos="1,1"]; d [pos="2,2"]; a -- d }
+////
+graph grid { overlap=prism; node [width=1.4 height=1.4]; a [pos="0,0"]; b [pos="1,0"]; c [pos="2,0"]; d [pos="0,1"]; e [pos="1,1"]; f [pos="2,1"]; g [pos="0,2"]; h [pos="1,2"]; i [pos="2,2"]; a -- e -- i }
+//// with labels on the edges, clusters and a separation
+graph labelled { overlap=prism; sep="+12"; node [width=1.5]; a -- b [label="an edge label"]; b -- c [label=two]; c -- a; subgraph cluster_x { d -- e } e -- a }
+//// the other ways of removing overlaps need no triangulation
+graph voronoi { overlap=voronoi; node [width=2]; a -- b -- c -- a; a -- d }
+////
+graph scale { overlap=scale; node [width=2]; a -- b -- c -- a; a -- d }
+////
+graph scalexy { overlap=scalexy; node [width=2]; a -- b -- c -- a; a -- d }
+////
+graph compress { overlap=compress; node [width=2]; a -- b -- c -- a; a -- d }
+////
+graph vpsc { overlap=vpsc; node [width=2]; a -- b -- c -- a; a -- d }
+////
+graph ortho { overlap=ortho; node [width=2]; a -- b -- c -- a; a -- d }
+////
+graph ipsep { overlap=ipsep; mode=ipsep; node [width=2]; a -- b -- c -- a; a -- d }
+////
+graph keep { overlap=true; node [width=2]; a -- b -- c -- a; a -- d }
+//// sfdp: its own smoothing and quadtree settings
+graph smooth_triangle { smoothing=triangle; a -- b -- c -- d -- e -- a; a -- c }
+////
+graph smooth_rng { smoothing=rng; a -- b -- c -- d -- e -- a; a -- c }
+////
+graph smooth_spring { smoothing=spring; a -- b -- c -- d -- e -- a; a -- c }
+////
+graph smooth_avg { smoothing=avg_dist; a -- b -- c -- d -- e -- a; a -- c }
+////
+graph sfdp_opts { K=1.5; repulsiveforce=2; levels=1; quadtree=fast; beautify=true; rotation=30; a -- b -- c -- d -- e -- a; a -- c; e -- f -- g }
+////
+graph sfdp_wide { node [width=1.5]; n0 -- n3; n0 -- n5; n1 -- n10; n1 -- n16; n2 -- n17; n2 -- n7; n3 -- n4; n3 -- n18; n4 -- n11; n4 -- n9; n5 -- n18; n5 -- n0; n6 -- n5; n6 -- n11; n7 -- n12; n7 -- n2; n8 -- n19; n8 -- n13; n9 -- n6; n9 -- n4; n10 -- n13; n10 -- n15; n11 -- n0; n11 -- n6; n12 -- n7; n12 -- n17; n13 -- n14; n13 -- n8; n14 -- n1; n14 -- n19; n15 -- n8; n15 -- n10; n16 -- n15; n16 -- n1; n17 -- n2; n17 -- n12; n18 -- n9; n18 -- n3; n19 -- n16; n19 -- n14 }

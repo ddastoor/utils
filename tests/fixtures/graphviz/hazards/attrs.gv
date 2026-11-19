@@ -1,0 +1,34 @@
+//// links, tooltips and ids with characters that mean something in XML
+digraph xml { a [URL="https://example.org/?a=1&b=2" tooltip="1 < 2 & \"three\" > 'two'" target="_blank"]; b [id="my<id>&" class="one two" href="#frag"]; c [label="a < b && c > d"]; "<n>&\"q\"" -> a -> b -> c; comment="-- two dashes -- in a comment"; label="<&>" }
+//// the graph chooses its own engine
+graph own_engine { layout=neato; a -- b -- c -- a }
+////
+digraph own_circo { layout=circo; a -> b -> c -> d -> a }
+//// a character set that is named but not needed
+digraph charset { charset="UTF-8"; a [label="é ₹ 漢"]; a -> b }
+////
+digraph latin1_ascii { charset=latin1; a [label="plain ASCII"]; a -> b }
+//// resolution and view
+digraph dpi { dpi=150; a -> b }
+////
+digraph viewport { viewport="100,100,2,50,50"; a -> b -> c -> d }
+////
+digraph outputorder { outputorder=edgesfirst; a -> b; b [style=filled fillcolor=white] }
+//// layers
+digraph layers { layers="base:top"; a [layer=base]; b [layer=top]; c [layer=all]; a -> b [layer=base]; b -> c [layer="base:top"] }
+//// files a graph points to are not there
+digraph files { a [image="nowhere.png" label=""]; b [shapefile="nowhere.svg"]; c [shape=epsf shapefile="nowhere.eps"]; a -> b -> c; stylesheet="style.css"; imagepath="/nowhere" }
+//// truthy and falsy values
+digraph booleans { a [fixedsize=TRUE width=1]; b [fixedsize=yes width=1]; c [fixedsize=1 width=1]; d [fixedsize=false]; e [fixedsize=no]; f [fixedsize=0]; g [fixedsize=maybe]; a -> b -> c -> d -> e -> f -> g; center=1; concentrate=FALSE }
+//// values out of range or of the wrong kind
+digraph odd { a [width=-1 height=abc]; b [peripheries=-3]; c [sides=1 shape=polygon]; d [fontsize=-5]; e [penwidth=-2]; f [margin="x,y"]; a -> b [weight=-1]; b -> c [minlen=-2]; c -> d [arrowsize=-1]; d -> e -> f; nodesep=-1; ranksep=0 }
+//// attributes Graphviz does not know are kept
+digraph unknown { myattr=1; a [custom="value" another=2]; a -> b [note="kept"] }
+//// tooltips on everything
+digraph tips { tooltip="graph tip"; subgraph cluster_x { tooltip="cluster tip"; a [tooltip="node\ntip"] } a -> b [tooltip="edge tip" label=e labeltooltip="label tip"] }
+//// search limits and iterations
+digraph limits { mclimit=0.1; nslimit=1; nslimit1=1; remincross=false; searchsize=1; a -> {b c d}; {b c d} -> e; b -> c -> d }
+////
+graph iterations { maxiter=3; epsilon=0.5; K=2; a -- b -- c -- d -- a; a -- c }
+//// quantum and normalisation
+graph normal { normalize=true; quantum=0.5; a -- b -- c }

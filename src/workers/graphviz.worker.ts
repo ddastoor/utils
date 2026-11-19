@@ -5,19 +5,8 @@
 //    Graphviz's built-in tables know the widths of a few Latin fonts only.
 import { instantiateWasiModule } from '../wasm/wasi';
 import { bindGraphviz, graphvizHost, type GvFont } from '../wasm/graphviz';
+import { cssFont, trapReason } from '../lib/graphviz-text';
 
-const GENERIC = new Set(['serif', 'sans-serif', 'monospace', 'cursive', 'fantasy', 'system-ui', 'ui-serif', 'ui-sans-serif', 'ui-monospace', 'ui-rounded', 'math', 'emoji', 'fangsong']);
-const STRETCH = new Set(['ultra-condensed', 'extra-condensed', 'condensed', 'semi-condensed', 'normal', 'semi-expanded', 'expanded', 'extra-expanded', 'ultra-expanded']);
-/** The CSS `font` value for what Graphviz writes into the SVG (font-family, -weight, -style, -stretch, -size).
- *  Words CSS does not know ("book", "demi", "narrow") are dropped: the browser ignores them in the SVG too. */
-export function cssFont(f: GvFont): string {
-  const families = f.family.split(',').map((s) => s.trim().replace(/^(["'])(.*)\1$/, '$2')).filter(Boolean)
-    .map((s) => (GENERIC.has(s.toLowerCase()) ? s.toLowerCase() : `"${s.replace(/[\\"]/g, '\\$&')}"`));
-  const w = f.weight.toLowerCase(), weight = /^(bold|bolder|lighter|[1-9]00)$/.test(w) ? w : '';
-  const s = f.style.toLowerCase(), style = s === 'italic' || s === 'oblique' ? s : '';
-  const t = f.stretch.toLowerCase(), stretch = STRETCH.has(t) && t !== 'normal' ? t : '';
-  return [style, weight, stretch, `${f.size}px`, families.join(', ') || 'serif'].filter(Boolean).join(' ');
-}
 let ctx: OffscreenCanvasRenderingContext2D | null | undefined;
 let lastFont = '', measured = 0;
 const widths = new Map<string, number>();
@@ -36,18 +25,12 @@ function measure(f: GvFont, text: string): number {
   measured++;
   return w;
 }
-const reason = (e: any): string => {
-  const m = String(e?.message || e);
-  if (e instanceof RangeError || /call stack/i.test(m)) return 'the graph nests deeper than the browser\'s call stack allows';
-  if (/out of memory|memory access out of bounds|Out of bounds|grow/i.test(m)) return 'it ran out of memory';
-  if (/unreachable/i.test(m)) return 'Graphviz gave up inside the layout (an internal check failed or the memory ran out)';
-  return m;
-};
 self.onmessage = async (ev: MessageEvent) => {
   const { id, module, src, engine, formats, index } = ev.data;
+  let stderr = '';
   try {
     const host = graphvizHost(measure);
-    const inst = await instantiateWasiModule(module, host.imports);
+    const inst = await instantiateWasiModule(module, host.imports, (text) => { if (stderr.length < 20000) stderr += text; });
     host.attach(inst.exports);
     const gv = bindGraphviz(inst.exports);
     measured = 0; widths.clear(); lastFont = '';
@@ -55,6 +38,6 @@ self.onmessage = async (ev: MessageEvent) => {
     const r = gv.renderAll(src, engine, formats, index);
     (self as any).postMessage({ id, result: { ...r, ms: performance.now() - t0, version: gv.version(), measured: measured > 0 } });
   } catch (e: any) {
-    (self as any).postMessage({ id, error: `Graphviz could not finish this graph: ${reason(e)}. Try another layout engine or a smaller graph.` });
+    (self as any).postMessage({ id, error: `Graphviz could not finish this graph: ${trapReason(String(e?.message || e), stderr)}. Try another layout engine or other attributes.` });
   }
 };

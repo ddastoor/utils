@@ -32,29 +32,38 @@
 #include <gvc/gvc.h>
 #include <gvc/gvplugin.h>
 #include <gvc/gvplugin_textlayout.h>
+extern void gvjobs_delete(GVC_t *gvc);   // lib/gvc/gvjobs.c (its header, gvcproc.h, needs Graphviz's internal types)
 #include <common/const.h>
 #include <common/textspan.h>
+#include <common/types.h>
 #define EXPORT __attribute__((visibility("default")))
 
 __attribute__((import_module("supertools"), import_name("text_width")))
 extern double st_text_width(const char *family, const char *weight, const char *style, const char *stretch, double size, const char *text);
 
-// the font the SVG renderer will name for this span (gvrender_core_svg.c, svg_textspan): family[,svg family], weight, style
+static Agraph_t *graph;   // the graph that is being laid out (set by gv_layout)
+// the font words the SVG renderer will write for this span (plugin/core/gvrender_core_svg.c, svg_textspan): which
+// family, weight and style it takes from Graphviz's table of PostScript fonts depends on the graph's fontnames
 static bool st_textlayout(textspan_t *span, char **fontpath) {
   textfont_t *font = span->font;
   PostscriptAlias *pa = font->postscript_alias;
   char family[512];
   const char *weight = "", *style = "", *stretch = "";
   if (pa) {
-    snprintf(family, sizeof family, "%s%s%s", pa->family ? pa->family : font->name, pa->svg_font_family ? "," : "", pa->svg_font_family ? pa->svg_font_family : "");
-    if (pa->weight) weight = pa->weight;
-    if (pa->style) style = pa->style;
+    const char *fam = pa->family, *wt = pa->weight, *sty = pa->style;
+    const fontname_kind kind = graph && AGDATA(graph) ? GD_fontnames(graph) : NATIVEFONTS;
+    if (kind == PSFONTS) fam = pa->name;
+    else if (kind == SVGFONTS) { fam = pa->svg_font_family; wt = pa->svg_font_weight; sty = pa->svg_font_style; }
+    if (!fam) fam = font->name;
+    snprintf(family, sizeof family, "%s%s%s", fam, pa->svg_font_family && pa->svg_font_family != fam ? "," : "", pa->svg_font_family && pa->svg_font_family != fam ? pa->svg_font_family : "");
+    if (wt) weight = wt;
+    if (sty) style = sty;
     if (pa->stretch) stretch = pa->stretch;
   } else snprintf(family, sizeof family, "%s", font->name);
   if ((font->flags & HTML_BF) && !*weight) weight = "bold";
   if ((font->flags & HTML_IF) && !*style) style = "italic";
   double width = st_text_width(family, weight, style, stretch, font->size, span->str ? span->str : "");
-  if (!(width >= 0)) return false;                 // the host does not measure: Graphviz's own tables
+  if (!(width >= 0) || width > 1e7) return false;  // the host does not measure (or answers nonsense): Graphviz's own tables
   span->size.x = width;
   span->size.y = font->size * LINESPACING;         // the rest as estimate_textspan_size() sets it
   span->yoffset_layout = 0.0;
@@ -111,7 +120,7 @@ EXPORT const char *gv_err(void) { return errs ? errs : ""; }
 EXPORT uint32_t gv_err_len(void) { return (uint32_t)elen; }
 EXPORT const char *gv_version(void) { return PACKAGE_VERSION; }
 
-static GVC_t *gvc; static Agraph_t *graph; static bool laid;
+static GVC_t *gvc; static bool laid;
 static int n_graphs, drawn;
 static char engine_used[64];
 EXPORT const char *gv_engine(void) { return engine_used; }
@@ -159,8 +168,8 @@ EXPORT int gv_layout(const char *src_, const char *engine_, int index) {
   if (!graph) { gv_done(); if (!elen) errf("Error: there is no graph in this text\n"); return 1; }
   char *cs = agget(graph, "charset");
   if (cs && *cs && strcasecmp(cs, "UTF-8") && strcasecmp(cs, "UTF8")) agset(graph, "charset", "UTF-8");
-  char *own = agget(graph, "layout");
-  if (own && *own) engine = own;
+  char *own = agget(graph, "layout");   // Graphviz's gvLayout lets the attribute decide, even an empty one (an error)
+  if (own) engine = own;
   snprintf(engine_used, sizeof engine_used, "%s", engine);
   if (gvLayout(gvc, graph, engine) != 0) { agclose(graph); graph = NULL; gv_done(); if (!elen) errf("Error: layout failed\n"); return 2; }
   laid = true;
@@ -175,8 +184,32 @@ EXPORT int gv_format(const char *format_) {
   int rc = gvRenderData(gvc, graph, format, &r, &n);
   if (rc == 0 && r) { out = malloc(n + 1); memcpy(out, r, n); out[n] = 0; olen = n; }
   gvFreeRenderData(r);
+  // Graphviz returns from a failed format with its job still in the list; the next format would then run that job
+  // too — one without a device, which ends in exit(1). Clear the list, so that the layout can be written again.
+  if (rc != 0) gvjobs_delete(gvc);
   return rc == 0 ? 0 : 3;
 }
+// For the tests: the Delaunay triangulation the prism overlap removal is built on (st_delaunay.h), on its own.
+// xy = x0 y0 x1 y1 …; returns int32 [triangles, hull points, 3 corners a triangle …, 3 half-edges a triangle …,
+// hull …] or NULL when the memory ran out. Free with gv_free.
+#include "st_delaunay.h"
+EXPORT int32_t *gv_delaunay(const double *xy, int n) {
+  st_tri_t t;
+  if (!st_delaunay(xy, n, &t)) return NULL;
+  int32_t *r = malloc(sizeof(int32_t) * (2 + 6 * (size_t)t.ntriangles + (size_t)t.nhull)), *p = r;
+  if (r) {
+    *p++ = t.ntriangles; *p++ = t.nhull;
+    for (int i = 0; i < 3 * t.ntriangles; i++) *p++ = (int32_t)t.triangles[i];
+    for (int i = 0; i < 3 * t.ntriangles; i++) *p++ = t.halfedges[i];
+    for (int i = 0; i < t.nhull; i++) *p++ = (int32_t)t.hull[i];
+  }
+  st_tri_free(&t);
+  return r;
+}
+// For the tests: the two C library functions this module replaces (rand.c, qsort.c).
+EXPORT int gv_rand(unsigned seed, int skip) { srand(seed); for (int i = 0; i < skip; i++) rand(); return rand(); }
+static int st_cmp_key(const void *a, const void *b) { const int32_t *x = a, *y = b; return (x[0] > y[0]) - (x[0] < y[0]); }
+EXPORT void gv_sort_pairs(int32_t *pairs, int n) { qsort(pairs, (size_t)n, 2 * sizeof(int32_t), st_cmp_key); }   // [key, tag] pairs, by key only
 EXPORT int gv_render(const char *src, const char *engine, const char *format) {
   int rc = gv_layout(src, engine, 0);
   if (rc) return rc;

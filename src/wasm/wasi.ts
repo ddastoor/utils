@@ -14,7 +14,8 @@ export async function compileWasi(url: string): Promise<WebAssembly.Module> {
 export async function instantiateWasi(url: string, extra: WebAssembly.Imports = {}): Promise<WasiInstance> {
   return instantiateWasiModule(await compileWasi(url), extra);
 }
-export async function instantiateWasiModule(module: WebAssembly.Module, extra: WebAssembly.Imports = {}): Promise<WasiInstance> {
+/** `onStderr`: receives what the module writes to stderr (a failed assertion, "out of memory") instead of the console. */
+export async function instantiateWasiModule(module: WebAssembly.Module, extra: WebAssembly.Imports = {}, onStderr?: (text: string) => void): Promise<WasiInstance> {
   let memory: WebAssembly.Memory;
   const wasi: Record<string, (...a: number[]) => number> = {};
   for (const imp of WebAssembly.Module.imports(module)) {
@@ -34,7 +35,8 @@ export async function instantiateWasiModule(module: WebAssembly.Module, extra: W
       n += l;
     }
     dv.setUint32(nwritten, n, true);
-    if (text.trim()) (fd === 2 ? console.warn : console.log)('[wasm]', text.trimEnd());
+    if (fd === 2 && onStderr) onStderr(text);
+    else if (text.trim()) (fd === 2 ? console.warn : console.log)('[wasm]', text.trimEnd());
     return 0;
   };
   // "no (more) pre-opened directories" is EBADF; wasi-libc's start-up aborts on any other error

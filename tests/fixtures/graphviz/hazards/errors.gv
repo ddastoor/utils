@@ -1,0 +1,41 @@
+//// an edge with no end
+digraph { a -> }
+//// a bracket that never closes
+digraph { a [label="x" }
+//// text that never closes
+digraph { a [label="never closed] }
+//// an HTML label that never closes
+digraph { a [label=<<b>never closed] }
+//// a graph that never closes
+digraph { a -> b
+//// the wrong kind of edge
+digraph { a -- b }
+////
+graph { a -> b }
+//// not a graph at all
+hello world
+//// a keyword where a name must stand
+digraph { node -> edge }
+//// a stray character
+digraph { a -> b; @ }
+//// an error on a later line
+digraph late {
+  a -> b;
+  b -> c;
+  c -> ;
+  d
+}
+//// an attribute without a value
+digraph { a [fixedsize] }
+//// an edge in an attribute list
+digraph { a [b -> c] }
+//// two names in a row where one must stand
+graph { a -- b c -- }
+//// a closing brace too many
+digraph { a -> b } }
+//// a port that is no compass point is taken as a port name; three parts are too many
+digraph { a:b:c:d -> e }
+//// nothing but a comment
+/* only a comment */
+//// nothing
+

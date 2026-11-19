@@ -107,10 +107,12 @@ export const mount: Mount = (root) => {
   };
   const render = async () => {
     const my = ++seq, text = src.value;
-    clearTimeout(busyTimer); busy.hidden = true;
+    clearTimeout(busyTimer); busy.hidden = true; clear(pngNote);
+    view.setAttribute('aria-busy', 'true');           // until this text has its answer (also what the tests wait for)
     if (!text.trim()) {
       stopGraphviz(); clear(status).append(note('Type a graph in the DOT language, pick an example or open a file.', 'info'));
-      good = null; current = false; view.classList.remove('stale'); img.removeAttribute('src'); textOut.value = ''; clear(textNote); clear(info); graphField.hidden = true; return;
+      good = null; current = false; view.classList.remove('stale'); img.removeAttribute('src'); textOut.value = ''; clear(textNote); clear(info); graphField.hidden = true;
+      view.setAttribute('aria-busy', 'false'); return;
     }
     busyTimer = setTimeout(() => { if (my === seq) busy.hidden = false; }, 400);
     stale(true);
@@ -138,7 +140,7 @@ export const mount: Mount = (root) => {
       clear(status).append(note(e?.message === 'Stopped' ? 'Stopped. Edit the graph or pick a faster engine (sfdp for big graphs).' : String(e?.message || e), 'warn'));
       if (good) status.append(note('The drawing below is of the last text that could be drawn.', 'info'));
       clear(info);
-    } finally { if (my === seq) { clearTimeout(busyTimer); busy.hidden = true; } }
+    } finally { if (my === seq) { clearTimeout(busyTimer); busy.hidden = true; view.setAttribute('aria-busy', 'false'); } }
   };
   let busyTimer: any = null;
   img.addEventListener('error', () => { if (img.getAttribute('src')) status.append(note('The browser could not show this SVG. Download it to look at what Graphviz wrote.', 'warn')); });
@@ -155,9 +157,9 @@ export const mount: Mount = (root) => {
     downloadBlob(blob, `${g.stem}.png`);
     clear(pngNote).append(note(p.reduced ? `The drawing is too large for ${pngScale}×: the PNG is ${num(p.w)} × ${num(p.h)} pixels (${p.scale.toFixed(2)}×). The SVG has no such limit.` : `PNG saved: ${num(p.w)} × ${num(p.h)} pixels.`, p.reduced ? 'warn' : 'ok'));
   };
-  const pngNote = h('div');
+  const pngNote = h('div', { class: 'gv-png-note' });
   const rerun = debounce(render, 300);
-  src.addEventListener('input', () => { stale(true); rerun(); });
+  src.addEventListener('input', () => { stale(true); view.setAttribute('aria-busy', 'true'); rerun(); });
   src.addEventListener('keydown', (e) => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); rerun.cancel(); render(); } });
   const open = async ([f]: File[]) => {
     clear(fileNote);
