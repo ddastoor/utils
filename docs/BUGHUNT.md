@@ -93,9 +93,9 @@ Areas with a shared review: the app shell (router, search, favorites, platform h
 | `bmi` | BMI Calculator | PC + mobile | calc-core | ✓ | 6 | 45 | nothing to replace (WASM-AUDIT 66–68); exact fractions for 1,141 people; healthy range = exactly the weights classed Normal; feet + inches + pounds in their own boxes; inputs checked |
 | `calories` | Calorie Calculator | PC + mobile | calc-core | ✓ | 2 | 24 | Mifflin–St Jeor in exact decimals for 588 people; inputs checked; loss targets under 1,200 / 1,500 kcal marked too low with a note |
 | `duedate` | Pregnancy Due Date | PC + mobile | calc-core | ✓ | 5 | 41 | Python's datetime for 1,255 pregnancies; today is the local date; past-due and future periods said in words; whole cycles only; days to go |
-| `tip` | Tip & Bill Splitter | PC + mobile | calc-core |  |  |  |  |
-| `fuel` | Fuel Cost Calculator | PC + mobile | calc-core |  |  |  |  |
-| `gpa` | GPA Calculator | PC + mobile | calc-core |  |  |  |  |
+| `tip` | Tip & Bill Splitter | PC + mobile | calc-core | ✓ | 4 | 27 | nothing to replace (WASM-AUDIT 69–71); whole paise, shares rounded up so the bill is covered, left-over shown; people a whole number; 2,112 bills by decimal arithmetic |
+| `fuel` | Fuel Cost Calculator | PC + mobile | calc-core | ✓ | 5 | 39 | exact fractions for 245 trips; inputs checked; 1 litre; small amounts keep three decimals; distance keeps its decimal |
+| `gpa` | GPA Calculator | PC + mobile | calc-core | ✓ | 4 | 24 | exact fractions for 400 grade sheets; rows outside the scale, with negative credits or half empty are named and left out; credits on both scales |
 | `base` | Number Base Converter | PC + mobile | calc-core |  |  |  |  |
 | `roman` | Roman Numerals | PC + mobile | calc-core |  |  |  |  |
 | `prepay` | Loan Prepayment | PC + mobile | calc2-math |  |  |  |  |
@@ -818,4 +818,20 @@ reference cases.
   "Today" was a dash without a word; (3) a cycle of 28.5 days gave "9 weeks 6.5 days"; (4) in the first days of a
   long cycle the count was negative and shown as a dash; (5) a period in the year 9999 gave "Invalid Date". Added:
   "To go: 210 days (30 weeks 0 days)", "Due today", "7 days past the due date".
+- **tip** — Tip & Bill Splitter (4 bugs; unit `smallcalc.test.mjs` 0 → 53 for the three tabs, e2e 9 → 19).
+  Nothing to replace (`docs/WASM-AUDIT.md` tabs 69 – 71). Reference: decimal arithmetic in whole paise for 2,112
+  bills. What was wrong: (1) **the share shown did not cover the bill**: ₹1,150 among three was "₹383.33 each" beside
+  "Collected ₹1,150" — three times ₹383.33 is a paisa short; every share is now rounded up (to the paisa, the rupee
+  or ₹10), "Collected" is share × people, and "Left over" says what that leaves; (2) 0 people was quietly one
+  person; (3) two and a half people were accepted; (4) a negative bill or tip gave negative shares.
+- **fuel** — Fuel Cost (5 bugs; e2e 7 → 22). Reference: exact fractions for 245 trips. What was wrong: (1) a mileage
+  of 0 gave "Fuel cost —" and "— litres", a negative one a negative cost; (2) 0 people was quietly one, 2.5 people
+  accepted; (3) **"1 litres"**; (4) small amounts were "0 litres" (half a kilometre on a scooter: 0.008 litres);
+  (5) the total distance was rounded to whole kilometres (12.7 km → "13 km").
+- **gpa** — GPA Calculator (4 bugs; e2e 8 → 20). Reference: exact fractions for 400 grade sheets, with the two
+  decimals shown rounded half up. What was wrong: (1) **a grade point above the scale was counted** — an 11 on the
+  10-point scale, and every 9 or 8 after switching to the 4-point scale ("GPA 8.89" on a 4-point scale);
+  (2) negative credits were subtracted; (3) a row with one box empty was skipped without a word; (4) with credits
+  adding up to 0 the result was a dash without a reason. Rows that cannot be counted are named and left out; the
+  total credits are shown on both scales.
 

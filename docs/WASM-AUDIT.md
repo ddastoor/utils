@@ -400,3 +400,10 @@ One entry per tab, written before its bug hunt: our module → candidates → ch
   found by trying every tenth of a kilogram or pound; calories: 588 people) and to **Python's datetime** (1,255
   pregnancies) — `scripts/make-health-reference.py`.
 
+### 69 – 71. `tip`, `fuel`, `gpa` — Tip & Bill Splitter, Fuel Cost, GPA (19 Nov 2026)
+- **Ours:** no engine: a handful of multiplications and one division each (`src/lib/smallcalc.ts`) — "trivial glue
+  arithmetic" under the compute rule; money in whole paise.
+- **Candidates:** none as WebAssembly; nothing to gain from a library.
+- **Decision:** nothing to replace; stays TypeScript. Held to exact arithmetic on the typed numbers (Python's decimal
+  and fractions): 2,112 bills, 245 trips, 400 grade sheets — `scripts/make-smallcalc-reference.py`.
+

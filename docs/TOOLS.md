@@ -92,8 +92,8 @@ Generated from `src/registry.ts` by `npm run docs` — do not edit by hand.
 | `bmi` | BMI Calculator | PC + mobile | Body mass index, with Indian and WHO cut-offs and your healthy weight range. | bmi, body mass index, weight, height, health, obesity, overweight, underweight, … |
 | `calories` | Calorie Calculator | PC + mobile | BMR and daily calories (TDEE). | calories, bmr, tdee, diet, maintenance, weight loss, metabolism, how many calories, … |
 | `duedate` | Pregnancy Due Date | PC + mobile | Estimated due date and week. | pregnancy, due date, lmp, conception, weeks, trimester, baby, edd, … |
-| `tip` | Tip & Bill Splitter | PC + mobile | Split a bill with tip among people. | tip, split bill, restaurant, share, divide, friends |
-| `fuel` | Fuel Cost Calculator | PC + mobile | Trip fuel cost and mileage. | fuel, petrol, diesel, mileage, trip cost, kmpl, mpg, distance |
+| `tip` | Tip & Bill Splitter | PC + mobile | Split a bill with tip among people. | tip, split bill, restaurant, share, divide, friends, service charge, go dutch, … |
+| `fuel` | Fuel Cost Calculator | PC + mobile | Trip fuel cost and mileage. | fuel, petrol, diesel, cng, mileage, trip cost, kmpl, mpg, … |
 | `gpa` | GPA Calculator | PC + mobile | GPA / CGPA from grades and credits; CGPA to %. | cgpa to percentage, sgpa to percentage, gpa, cgpa, sgpa, grades, credits, percentage, … |
 | `base` | Number Base Converter | PC + mobile | Binary, octal, decimal, hex. | binary to decimal, hex to decimal, decimal to binary, decimal to hex, octal, binary, hex, hexadecimal, … |
 | `roman` | Roman Numerals | PC + mobile | Convert to and from Roman numerals. | roman, numerals, convert, mcmxc, latin |

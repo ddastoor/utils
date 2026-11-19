@@ -8,6 +8,7 @@ import { emiPlan, sipPlan, fdPlan, gstSplit, span } from '../lib/finance';
 import { pctAnswer, type PctOp } from '../lib/percent';
 import { inWords } from '../lib/words';
 import { bmiOf, feetInches, calorieNeeds, dueDate, ACTIVITY, LB, type Bmi } from '../lib/health';
+import { tipSplit, fuelCost, litresText, gpaOf } from '../lib/smallcalc';
 
 // ------------------------------------------------------------------ Unit converter
 // table, arithmetic and number formatting: src/lib/units.ts (exact definitions, held to GNU Units by the unit suite)
@@ -329,10 +330,11 @@ export const tip: Mount = (root) => {
     { key: 'round', label: 'Round per person', type: 'seg', value: 'no', options: [['no', 'No'], ['1', 'To ₹1'], ['10', 'To ₹10']] },
   ], (v) => {
     need(v.bill, v.tip, v.people);
-    const tipAmt = (v.bill * v.tip) / 100, total = v.bill + tipAmt;
-    let each = total / Math.max(1, v.people);
-    if (v.round !== 'no') each = Math.ceil(each / +v.round) * +v.round;
-    return { big: [['Each person pays', fmtINR(each)], ['Total with tip', fmtINR(total)]], rows: [['Tip amount', fmtINR(tipAmt)], ['Collected', fmtINR(each * v.people)]] };
+    const t = tipSplit(v.bill, v.tip, v.people, v.round);
+    return {
+      big: [['Each person pays', fmtINR(t.each)], ['Total with tip', fmtINR(t.total)]],
+      rows: [['Tip amount', fmtINR(t.tip)], ['Collected', fmtINR(t.collected)], ...(t.extra > 0 ? [['Left over', `${fmtINR(t.extra)} more than the bill (each share is rounded up)`] as [string, string]] : [])],
+    };
   });
 };
 
@@ -346,8 +348,8 @@ export const fuel: Mount = (root) => {
     { key: 'people', label: 'Split between', value: 1, unit: 'people' },
   ], (v) => {
     need(v.dist, v.eff, v.price);
-    const km = v.dist * +v.trip, litres = km / v.eff, cost = litres * v.price;
-    return { big: [['Fuel cost', fmtINR(cost)], ['Fuel needed', `${fmtN(litres, 1)} litres`]], rows: [['Per person', fmtINR(cost / Math.max(1, v.people || 1))], ['Cost per km', fmtINR(cost / km)], ['Total distance', `${fmtN(km, 0)} km`]] };
+    const f = fuelCost(v.dist, v.eff, v.price, v.trip === '2' ? 2 : 1, v.people);
+    return { big: [['Fuel cost', fmtINR(f.cost)], ['Fuel needed', litresText(f.litres)]], rows: [['Per person', fmtINR(f.perPerson)], ['Cost per km', fmtINR(f.perKm)], ['Total distance', `${fmtN(f.km, 1)} km`]] };
   });
 };
 
@@ -356,22 +358,24 @@ export const gpa: Mount = (root) => {
   type Row = { g: HTMLInputElement; c: HTMLInputElement; el: HTMLElement };
   const rows: Row[] = [];
   const list = h('div', { class: 'stack' });
-  const out = h('div', { class: 'big-results' });
+  const out = h('div', { class: 'big-results' }), warn = h('div', { class: 'stack' });
   const scale = segmented([['10', '10-point'], ['4', '4-point']], '10', () => run());
+  const num = (el: HTMLInputElement) => (el.value.trim() === '' ? NaN : Number(el.value));
   const add = (g = '', c = '3') => {
-    const gi = input({ type: 'number', value: g, placeholder: 'Grade points', onInput: () => run() }), ci = input({ type: 'number', value: c, placeholder: 'Credits', onInput: () => run() });
+    const gi = input({ type: 'number', value: g, placeholder: 'Grade points', step: 'any', onInput: () => run() }), ci = input({ type: 'number', value: c, placeholder: 'Credits', step: 'any', onInput: () => run() });
     const r: Row = { g: gi, c: ci, el: h('div', { class: 'gpa-row' }, field('Grade point', gi), field('Credits', ci), button('', () => { rows.splice(rows.indexOf(r), 1); r.el.remove(); run(); }, { icon: 'Trash2', small: true, variant: 'ghost', title: 'Remove' })) };
     rows.push(r); list.append(r.el); run();
   };
+  const big = (label: string, value: string) => h('div', { class: 'big-result' }, h('span', { class: 'big-label' }, label), h('span', { class: 'big-value' }, value));
   const run = () => {
-    let s = 0, cs = 0;
-    for (const r of rows) { const g = parseFloat(r.g.value), c = parseFloat(r.c.value); if (isFinite(g) && isFinite(c)) { s += g * c; cs += c; } }
-    const v = cs ? s / cs : NaN;
-    clear(out).append(h('div', { class: 'big-result' }, h('span', { class: 'big-label' }, 'GPA / CGPA'), h('span', { class: 'big-value' }, isFinite(v) ? fmtN(v, 2) : '—')),
-      scale.value === '10' ? h('div', { class: 'big-result' }, h('span', { class: 'big-label' }, 'Percentage (CGPA × 9.5, CBSE/AICTE)'), h('span', { class: 'big-value' }, isFinite(v) ? `${fmtN(v * 9.5, 2)}%` : '—'))
-        : h('div', { class: 'big-result' }, h('span', { class: 'big-label' }, 'Total credits'), h('span', { class: 'big-value' }, fmtN(cs, 1))));
+    const ten = scale.value === '10', r = gpaOf(rows.map((x) => ({ g: num(x.g), c: num(x.c) })), ten ? 10 : 4), ok = isFinite(r.gpa);
+    clear(out).append(big('GPA / CGPA', ok ? fmtN(r.gpa, 2) : '—'),
+      ...(ten ? [big('Percentage (CGPA × 9.5, CBSE/AICTE)', ok ? `${fmtN(r.gpa * 9.5, 2)}%` : '—')] : []),
+      big('Total credits', fmtN(r.credits, 2)));
+    // a row that could not be counted is named; when nothing can be counted, say what is needed
+    clear(warn).append(...r.problems.map((p) => note(p, 'warn')), ...(!ok && !r.problems.length && r.subjects ? [note('The credits add up to 0 — give at least one subject its credits.', 'warn')] : []));
   };
-  root.append(card(null, stack(field('Scale', scale), list, button('Add subject', () => add(), { icon: 'Plus', small: true }))), card('Result', out),
+  root.append(card(null, stack(field('Scale', scale), list, button('Add subject', () => add(), { icon: 'Plus', small: true }))), card('Result', out, warn),
     note('For SGPAs → CGPA, enter each semester\'s SGPA as the grade point and its total credits. Universities may use a different percentage formula.'));
   [['9', '4'], ['8', '3'], ['10', '2']].forEach(([g, c]) => add(g, c));
 };

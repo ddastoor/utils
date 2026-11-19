@@ -622,6 +622,13 @@ open while the numbers change; `fmtINR` writes paise with both digits (₹12.10)
   100 – 250 cm, 20 – 400 kg. `duedate` (e2e 29) — Naegele's rule: first day of the last period + 280 days +
   (cycle − 28); a whole cycle of 20 – 45 days (empty = 28); weeks completed today (the reader's local date),
   trimesters to 13 weeks 6 days and 27 weeks 6 days, days to go.
+- Small ones (`src/lib/smallcalc.ts`; unit `tests/unit/smallcalc.test.mjs` 53; reference
+  `python3 scripts/make-smallcalc-reference.py`): `tip` (e2e 19) — whole paise; each share is rounded UP (paisa,
+  rupee or ₹10) so the bill is covered, "Collected" = share × people, "Left over" = what that leaves; people a whole
+  number ≥ 1. `fuel` (e2e 22) — distance × trips ÷ mileage × price, per person, per km (= price ÷ mileage); "1
+  litre", small amounts with three decimals. `gpa` (e2e 20) — credit-weighted mean on a 10-point or 4-point scale,
+  CBSE / AICTE percentage (× 9.5) on the 10-point one; a row outside the scale, with negative credits or with one
+  box empty is left out and named.
 - Number formatting shared by the calculators (`src/lib/form.ts`, unit `tests/unit/moneyfmt.test.mjs` 79):
   `roundDec(x, d)` (in `src/lib/round.ts`, no DOM) rounds a number as it is written with 15 digits, half away from zero (7.1225 → 7.123, 1.005 →
   1.01; Intl and toFixed round the binary value down) and leaves numbers that need more than 15 digits alone;
@@ -1200,6 +1207,8 @@ mock rows (random numbers from crypto.wasm) — is string glue around browser-na
 the Regex Tester is the browser's own RegExp, run in a worker (`src/workers/regex.worker.ts`) so it can be stopped.
 Nov 2026 (Percentage): `src/lib/percent.ts` — six formulas on two typed numbers, done on their decimals with one
 division of whole numbers (no loop, no data).
+Nov 2026 (Tip, Fuel, GPA, BMI's range, due date): `src/lib/smallcalc.ts`, `src/lib/health.ts` — a few multiplications
+and one division each, checks and wording; BMI and BMR themselves are mathcore's.
 Nov 2026 (Python Scratchpad): `src/lib/termtext.ts` (what a terminal would show for the program's output: display
 code that feeds the DOM), `src/lib/python-hints.ts` (one sentence per known error), `src/lib/tzinfo.ts` (the browser's
 Intl answering the C library's questions about local time; the zone table it uses is data made by a script) stay in TS.

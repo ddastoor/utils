@@ -87,7 +87,9 @@ what those suites missed.
   (10 bugs; `src/lib/words.ts`, "and" rule in mathcore `m_words`, held to num2words — `pip install num2words
   --no-deps`). **`timezone` (tab 65) is DONE** (6 bugs; `src/lib/tz.ts`, a "To zone", held to Python's zoneinfo).
   **`bmi`, `calories`, `duedate` (tabs 66 – 68) are DONE** (6 + 2 + 5 bugs; `src/lib/health.ts`, held to exact
-  fractions and Python's datetime). **NEXT: `tip`**, then `fuel`, `gpa`, `base`, `roman`; per tab: the
+  fractions and Python's datetime). **`tip`, `fuel`, `gpa` (tabs 69 – 71) are DONE** (4 + 5 + 4 bugs;
+  `src/lib/smallcalc.ts`). **NEXT: `base`**, then `roman` — the last two of calc-core; then the complete suites
+  (`npm test`, `npm run build && node tests/e2e.mjs`); per tab: the
   existing-module check with its entry in `docs/WASM-AUDIT.md` first (the survey of entry 56 covers calculators:
   no tried-and-tested WebAssembly calculator exists), then bugs, tests, fixes. Reference tools at hand: mpmath
   (`pip install mpmath`), Python's `decimal` / `fractions` / `datetime` / `zoneinfo`.
