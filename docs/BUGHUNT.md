@@ -86,7 +86,7 @@ Areas with a shared review: the app shell (router, search, favorites, platform h
 | `emi` | EMI Calculator | PC + mobile | calc-core | ✓ | 15 | 127 | nothing to replace (WASM-AUDIT 59); held to a month-by-month reference in mpmath at 420 digits (936 loans) + numpy-financial; closed forms over the whole range; unit label follows years / months; refusals with reasons; schedule stays open; paise with two digits |
 | `gst` | GST Calculator | PC + mobile | calc-core | ✓ | 6 | 62 | nothing to replace (WASM-AUDIT 60); whole paise in mathcore m_gst, held to Python's decimal (1,126 pairs × 4 modes); CGST + SGST add up to the GST shown; base + GST = the amount typed when it includes the tax; Other rate; paise() reads amounts as written (also for the invoice engine) |
 | `sip` | SIP Calculator | PC + mobile | calc-core | ✓ | 10 | 75 | nothing to replace (WASM-AUDIT 61); held to a month-by-month reference in mpmath (1,430 plans, 180 lump sums) + numpy-financial fv; refusals with reasons; no more freeze on absurd periods; figures add up as shown; instalments row |
-| `fd` | FD / RD Calculator | PC + mobile | calc-core |  |  |  |  |
+| `fd` | FD / RD Calculator | PC + mobile | calc-core | ✓ | 11 | 144 | nothing to replace (WASM-AUDIT 62); held to mpmath (1,100 deposits, 1,000 recurring deposits) + the banks' RD formula + exact decimal yields; refusals with reasons; no freeze; engine growth() keeps 15 digits over 1,200 periods; shared roundDec (7.1225 → 7.123) with its own unit suite |
 | `percent` | Percentage Calculator | PC + mobile | calc-core |  |  |  |  |
 | `words` | Number to Words | PC + mobile | calc-core |  |  |  |  |
 | `timezone` | Time Zone Converter | PC + mobile | calc-core |  |  |  |  |
@@ -740,4 +740,20 @@ reference cases.
   0, return above −100 % and at most 1,000 %, period 1 month – 100 years, step-up 0 – 1,000 %, result up to ₹10,000
   lakh crore). Added: "Instalments" row, a note for a period that is not whole months, "₹ a month" beside the
   amount; the step-up box is hidden for a lump sum.
+- **fd** — FD / RD Calculator (11 bugs; unit 0 → 38 and the shared formatting `moneyfmt.test.mjs` 0 → 79; e2e
+  11 → 38). Nothing to replace (`docs/WASM-AUDIT.md` tab 62). Reference: compound interest in **mpmath** for 1,100
+  deposits and 1,000 recurring deposits (0 – 100 %, a quarter of a year to a century, five ways of compounding), the
+  banks' own RD formula, and 76 effective yields in exact decimals. What was wrong: (1) an FD for −2 years was worth
+  ₹87,041, one for no time showed its deposit without a word; (2) **an RD for −2 years showed "Interest earned
+  ₹1,20,000 · Invested −₹1,20,000"**; (3) an RD of 0, or of under half a month, gave three zeros; (4) an RD of 1.04 or
+  2.3 years was silently 12 or 28 instalments; (5) 5,000 years filled the screen with digits; (6) **an RD of 3 × 10⁷
+  years froze the page for 1.8 seconds**; (7) a rate of −500 % gave ₹0 for an FD and dashes for an RD; (8) a negative
+  deposit had a negative maturity value; (9) **the effective yield of 7 % half-yearly was shown as 7.122 %** — it is
+  7.1225 % exactly, and the double nearest to it lies below: every yield and every amount is now rounded as it is
+  written (`roundDec` in `fmtN` / `fmtINR`: 1.005 → 1.01), for all calculators; (10) (1 + r/n) raised to 1,200
+  monthly periods kept 13 of 16 digits, and a lump sum at −99 % for a century as few: the engine now puts back what
+  the division and the addition lost (`growth()`): 15 – 16 digits everywhere; (11) with paise in the deposit,
+  Maturity − Invested was not the interest shown. Added: "Instalments" row and a note for the RD, "₹ a month".
+  Found on the way and fixed before it shipped: reading 16-digit amounts with 15 digits (₹1,00,12,49,99,99,999.99
+  became …50,00,00,000) — pinned in `moneyfmt.test.mjs`.
 

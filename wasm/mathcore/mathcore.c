@@ -876,20 +876,31 @@ API int m_amortize_yearly(double P, double annual, int months, double *out, int 
  * run once per month) */
 static int months_of(double years) { double m = round(years * 12); return !(m > 0) ? 0 : m > 12000 ? 12000 : (int)m; }
 /* SIP (monthly, nominal r/12, optional annual step-up %) or lumpsum. out[2]: invested, value */
+/* (1 + a/d)^e — growth at a/d per period over e periods, e.g. 9.5 / 1200 a month. Both the quotient and the sum are
+ * rounded, and e periods multiply that rounding by e (1,200 monthly periods: 13 digits left of 16; at −99 % a year,
+ * where 1 + a/d is small, fewer): what the division lost (fma gives it exactly) and what the addition lost are put
+ * back. Where both are exact nothing changes — 2^10 stays 1024. */
+static double growth(double a, double d, double e) {
+    double x = a / d, xl = fma(-x, d, a) / d;                     /* a/d   = x + xl */
+    double s = 1 + x, b = s - 1, sl = (1 - (s - b)) + (x - b);    /* 1 + x = s + sl */
+    double lost = sl + xl, p = pow(s, e);
+    return lost == 0 || !(s > 0) || !isfinite(p) ? p : p * (1 + e * lost / s);
+}
 API void m_sip(double amount, double annual, double years, double stepup, int lump, double *out) {
-    if (lump) { out[0] = amount; out[1] = amount * pow(1 + annual / 100, years); return; }
+    if (lump) { out[0] = amount; out[1] = amount * growth(annual, 100, years); return; }
     double i = annual / 1200, v = 0, inv = 0, m = amount;
     int n = months_of(years);
-    for (int k = 0; k < n; k++) { if (k && k % 12 == 0) m *= 1 + stepup / 100; v = (v + m) * (1 + i); inv += m; }
+    /* w + w·i, not w·(1 + i): the rounded 1 + i would be off by the same hair in every month */
+    for (int k = 0; k < n; k++) { if (k && k % 12 == 0) m *= 1 + stepup / 100; double w = v + m; v = w + w * i; inv += m; }
     out[0] = inv; out[1] = v;
 }
-static double grow(double P, double r, int n, double t) { return n == 0 ? P * (1 + r * t) : P * pow(1 + r / n, n * t); }
+/* P after t years at `annual` percent, compounded n times a year (0 = simple interest) */
+static double grow(double P, double annual, int n, double t) { return n == 0 ? P * (1 + annual * t / 100) : P * growth(annual, 100.0 * n, n * t); }
 /* FD (rd=0) or RD (rd=1, monthly instalment). comp = compounding per year (0 = simple). out[2]: invested, value */
 API void m_fd(double amount, double annual, double years, int comp, int rd, double *out) {
-    double r = annual / 100;
-    if (!rd) { out[0] = amount; out[1] = grow(amount, r, comp, years); return; }
+    if (!rd) { out[0] = amount; out[1] = grow(amount, annual, comp, years); return; }
     int months = months_of(years); double v = 0;
-    for (int k = 0; k < months; k++) v += grow(amount, r, comp, (double)(months - k) / 12);
+    for (int k = 0; k < months; k++) v += grow(amount, annual, comp, (double)(months - k) / 12);
     out[0] = amount * months; out[1] = v;
 }
 API double m_ppf(double yearly, double annual, int years) { double b = 0; for (int y = 0; y < years; y++) b = (b + yearly) * (1 + annual / 100); return b; }

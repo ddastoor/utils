@@ -354,3 +354,11 @@ One entry per tab, written before its bug hunt: our module → candidates → ch
 - **Decision:** nothing to replace. Held to the same recurrence in **mpmath at 60 digits** for 1,430 plans and 180
   lump sums, cross-checked with **numpy-financial's fv** on the 120 plans without a step-up.
 
+### 62. `fd` — FD / RD Calculator (19 Nov 2026)
+- **Ours:** mathcore (own C): `m_fd` — compound or simple interest on a deposit, or on each instalment of a recurring
+  deposit for the time it has left.
+- **Candidates:** as for tab 59: none as WebAssembly.
+- **Decision:** nothing to replace. Held to compound interest in **mpmath at 60 digits** for 1,100 deposits and 1,000
+  recurring deposits; the quarterly recurring deposits were also checked against the formula Indian banks publish,
+  M = R·((1 + i)ⁿ − 1) / (1 − (1 + i)^(−1/3)); 76 effective yields by exact decimal arithmetic.
+

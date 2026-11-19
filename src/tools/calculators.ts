@@ -170,15 +170,19 @@ export const fd: Mount = async (root) => {
   const m = await mathcore();
   calcForm(root, [
     { key: 'kind', label: 'Deposit', type: 'seg', value: 'fd', options: [['fd', 'Fixed deposit'], ['rd', 'Recurring deposit']] },
-    { key: 'amt', label: 'Amount (FD) / monthly instalment (RD)', value: 100000, unit: '₹' },
+    { key: 'amt', label: 'Amount (FD) / monthly instalment (RD)', value: 100000, unit: (v) => (v.kind === 'rd' ? '₹ a month' : '₹') },
     { key: 'r', label: 'Interest rate', value: 7, unit: '% p.a.', step: 0.05 },
     { key: 'y', label: 'Tenure', value: 5, unit: 'years', step: 0.25 },
     { key: 'comp', label: 'Compounding', type: 'select', value: '4', options: [['4', 'Quarterly (usual)'], ['12', 'Monthly'], ['2', 'Half-yearly'], ['1', 'Yearly'], ['0', 'Simple interest']] },
   ], (v) => {
     need(v.amt, v.r, v.y);
-    const n = parseInt(v.comp), r = v.r / 100;
-    const { invested, value } = m.fd(v.amt, v.r, v.y, n, v.kind === 'rd');
-    return { big: [['Maturity value', fmtINR(Math.round(value))], ['Interest earned', fmtINR(Math.round(value - invested))], ['Invested', fmtINR(Math.round(invested))]], rows: [['Effective annual yield', n ? `${fmtN((Math.pow(1 + r / n, n) - 1) * 100, 3)}%` : `${v.r}% (simple)`]] };
+    const d = fdPlan(m, v.kind, v.amt, v.r, v.y, parseInt(v.comp));
+    const value = Math.round(d.value), invested = Math.round(d.invested); // the three figures add up as they are shown
+    return {
+      big: [['Maturity value', fmtINR(value)], ['Interest earned', fmtINR(value - invested)], ['Invested', fmtINR(invested)]],
+      rows: [['Effective annual yield', d.yield === null ? `${v.r}% (simple)` : `${fmtN(d.yield, 3)}%`], ...(d.months ? [['Instalments', `${d.months.toLocaleString('en-IN')} monthly${d.months >= 12 ? ` (${span(d.months)})` : ''}`] as [string, string]] : [])],
+      notes: d.rounded ? [`Instalments are monthly, so the tenure is counted as ${span(d.months!)}.`] : [],
+    };
   });
 };
 

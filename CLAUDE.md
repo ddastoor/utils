@@ -584,6 +584,15 @@ open while the numbers change; `fmtINR` writes paise with both digits (₹12.10)
   (the period may be a fraction of a year). Expected return above −100 % (a loss is shown as one) and at most
   1,000 %. Maturity value, invested and gains are whole rupees that add up as shown; wealth multiple; "Instalments"
   row; the step-up box only for the monthly SIP.
+- `fd` (unit `tests/unit/fd.test.mjs` 38, e2e 38): fixed deposit A = P·(1 + r/n)^(n·t) (quarterly by default; monthly,
+  half-yearly, yearly, or simple interest; the tenure may be a fraction of a year — banks pay simple interest on a
+  broken period, which differs by a few rupees) or recurring deposit (each monthly instalment grows for the time it
+  has left — the banks' formula). Effective annual yield to three decimals. mathcore `growth()` puts back what the
+  division r/n and the addition 1 + r/n lost, so 1,200 periods keep 15 digits.
+- Number formatting shared by the calculators (`src/lib/form.ts`, unit `tests/unit/moneyfmt.test.mjs` 79):
+  `roundDec(x, d)` rounds a number as it is written with 15 digits, half away from zero (7.1225 → 7.123, 1.005 →
+  1.01; Intl and toFixed round the binary value down) and leaves numbers that need more than 15 digits alone;
+  `fmtN`, `fmtIntl` and `fmtINR` use it.
 
 **Scientific Calculator as built after the Nov 2026 bug hunt** (`src/tools/calc.ts`, text helpers `src/lib/calc-text.ts`,
 engine `wasm/mathcore` `m_expr_*`; unit `tests/unit/calc.test.mjs` 243 — 3,005 answers of **mpmath at 50 digits** and

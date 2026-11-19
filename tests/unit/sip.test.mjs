@@ -20,7 +20,7 @@ export default async (t, { load, wasm, root }) => {
     // the engine, wherever a double can hold the answer
     if (value !== null && invested !== null) {
       const g = m.sip(a, r, n / 12, s, false), e = Math.max(rel(g.value, value), rel(g.invested, invested));
-      if (e > worst) worst = e; if (e > 1e-12) bad.push(`${at}: engine ${g.invested} / ${g.value} ≠ ${invested} / ${value}`);
+      if (e > worst) worst = e; if (e > 1e-13) bad.push(`${at}: engine ${g.invested} / ${g.value} ≠ ${invested} / ${value}`);
     }
     // the tab: an answer up to ₹10,000 lakh crore, a refusal beyond
     const big = value === null || invested === null || value > F.MAX_RESULT || invested > F.MAX_RESULT, msg = why(() => {
@@ -29,18 +29,18 @@ export default async (t, { load, wasm, root }) => {
     });
     if (big) { refused++; if (msg !== TOO_LARGE) bad.push(`${at}: a result of ${value} was not refused (${msg})`); } else { shown++; if (msg) bad.push(`${at}: refused — ${msg}`); }
   }
-  t.ok(ref.sip.length === 1430 && !bad.length, `${ref.sip.length} monthly plans agree with the month-by-month reference to 12 digits (worst ${worst.toExponential(1)}); ${shown} shown, ${refused} beyond ₹10,000 lakh crore refused ${bad.slice(0, 3).join(' | ')}`);
+  t.ok(ref.sip.length === 1430 && !bad.length, `${ref.sip.length} monthly plans agree with the month-by-month reference to 13 digits (worst ${worst.toExponential(1)}); ${shown} shown, ${refused} beyond ₹10,000 lakh crore refused ${bad.slice(0, 3).join(' | ')}`);
   t.ok(shown > 900 && refused > 100, `both kinds are well represented (${shown} / ${refused})`);
 
   // ---- 180 lump sums, half a year to a century
   bad = [];
   for (const [a, r, y, value] of ref.lump) {
     const at = `₹${a} at ${r} % for ${y} years`;
-    if (value !== null && rel(m.sip(a, r, y, 0, true).value, value) > 1e-13) bad.push(`${at}: engine ${m.sip(a, r, y, 0, true).value} ≠ ${value}`);
+    if (value !== null && rel(m.sip(a, r, y, 0, true).value, value) > 1e-15) bad.push(`${at}: engine ${m.sip(a, r, y, 0, true).value} ≠ ${value}`);
     const msg = why(() => { const p = F.sipPlan(m, 'lump', a, r, y, 0); if (p.months !== null || p.rounded || p.invested !== a || rel(p.value, value) > 1e-13 || rel(p.multiple, value / a) > 1e-12) bad.push(`${at}: plan ${JSON.stringify(p)}`); });
     if ((value === null || value > F.MAX_RESULT) !== (msg === TOO_LARGE) || (msg && msg !== TOO_LARGE)) bad.push(`${at}: ${value} → "${msg}"`);
   }
-  t.ok(ref.lump.length === 180 && !bad.length, `${ref.lump.length} lump sums agree to 13 digits, and those beyond the limit are refused ${bad.slice(0, 3).join(' | ')}`);
+  t.ok(ref.lump.length === 180 && !bad.length, `${ref.lump.length} lump sums agree to the last digit of a double — also at −99 % for a century, where 1 − 0.99 raised to the 100th power had kept 13 — and those beyond the limit are refused ${bad.slice(0, 3).join(' | ')}`);
 
   // ---- known figures, and the closed form where there is one
   { const p = F.sipPlan(m, 'sip', 10000, 12, 15, 0);

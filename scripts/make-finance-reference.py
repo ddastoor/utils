@@ -115,7 +115,13 @@ for A in ['5000', '1234.5']:
                     bank = mpf(A) * ((1 + i) ** (n // 3) - 1) / (1 - (1 + i) ** (mpf(-1) / 3))
                     assert abs(bank / v - 1) < mpf(10) ** -40, (A, R, n)
                     bank_checked += 1
-yield_cases = [[float(R), C, f17(((1 + mpf(R) / 100 / C) ** C - 1) * 100)] for R in FD_RATES for C in [1, 2, 4, 12]]
+# [rate, compounding, yield, the yield with three decimals — exact decimal arithmetic, half up: 7 % half-yearly is 7.1225 % → 7.123]
+def yield3(R, C):
+    getcontext().prec = 80
+    y = ((1 + Decimal(R) / 100 / C) ** C - 1) * 100
+    t = format(y.quantize(Decimal('0.001'), rounding=ROUND_HALF_UP), 'f')  # plain digits: normalize() would write 10 as 1E+1
+    return t.rstrip('0').rstrip('.') if '.' in t else t
+yield_cases = [[float(R), C, f17(((1 + mpf(R) / 100 / C) ** C - 1) * 100), yield3(R, C)] for R in FD_RATES + ['5', '6', '6.5', '7.5', '8', '8.5', '9', '10', '12'] for C in [1, 2, 4, 12]]
 
 
 # ------------------------------------------------------------------ GST

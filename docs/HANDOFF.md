@@ -234,9 +234,6 @@ export ZIG=/tmp/zig/x/ziglang/zig
   you type.
 
 ## Finance tabs: confirmed faults still to fix (probed 19 Nov 2026; delete each line when its tab is done)
-- `fd`: tenure 0 / negative without a reason (RD with −2 years: "Invested −₹1,20,000"); 5,000 years fill the screen;
-  −500 % gives nonsense; RD of 1.04 / 2.3 years silently 12 / 28 months; RD of 3 × 10⁷ years freezes for 1.8 s.
-  Use `fdPlan()`.
 - `percent`: "0.0001 % of 0.001" is shown as 0, "1 is what % of 3,000,000,000" as 0 %; "% change from −50 to −25" is
   "+-50%" (divide by |A|; sign from the result); "-0" and "-0%"; six decimals at most; US digit grouping copied with
   the commas. Use ten significant digits like the Unit Converter (`fmtUnit` / `plainUnit`).
