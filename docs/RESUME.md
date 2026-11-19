@@ -74,7 +74,8 @@ what those suites missed.
 - **NOW: area calc-core** (18 tabs: calc, units, dates, emi, gst, sip, fd, percent, words, timezone, bmi, calories,
   duedate, tip, fuel, gpa, base, roman — `src/tools/calc.ts`, `src/tools/calculators.ts`, engine mathcore).
   **`calc` (tab 56) is DONE** (21 bugs; unit `calc.test.mjs` 243 with mpmath as reference, e2e 140; CLAUDE.md §3
-  "Scientific Calculator as built"). **NEXT: `units`**, then the rest of the list in that order; per tab: the
+  "Scientific Calculator as built"). **`units` (tab 57) is DONE** (6 bugs; `src/lib/units.ts`, every factor held
+  to GNU Units — `apt-get install units`). **NEXT: `dates`**, then the rest of the list in that order; per tab: the
   existing-module check with its entry in `docs/WASM-AUDIT.md` first (the survey of entry 56 covers calculators:
   no tried-and-tested WebAssembly calculator exists), then bugs, tests, fixes. Reference tools at hand: mpmath
   (`pip install mpmath`), Python's `decimal` / `fractions` / `datetime` / `zoneinfo`.
@@ -150,7 +151,7 @@ what those suites missed.
   Running total: **51 of 176 tabs reviewed, 333 bugs fixed, 14,702 checks added** (+ shell).
   After `sqlite`, `sqlfmt` and `prettier` (19 Nov 2026): **54 of 176 tabs reviewed, 393 bugs fixed, 16,274 checks added**.
   After `graphviz` (19 Nov 2026): **55 of 176 tabs reviewed, 415 bugs fixed, 16,986 checks added** — the data-engines area is complete.
-  After `calc` (19 Nov 2026): **56 of 176 tabs reviewed, 436 bugs fixed, 17,294 checks added**.
+  After `calc` and `units` (19 Nov 2026): **57 of 176 tabs reviewed, 442 bugs fixed, 17,412 checks added**.
   Python build tree for quick rebuilds (lost when the container is reclaimed; `wasm/python/build.sh` recreates it in
   ≈ 10 min): `/tmp/pyb3` (`native/python` = the reference interpreter; `rezip.sh` rebuilds only python314.zip).
   After any rebuild: `python3 scripts/make-tzabbr.py` and `<native python> scripts/make-python-reference.py`.

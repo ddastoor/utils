@@ -2,56 +2,43 @@ import { h, card, field, input, select, segmented, button, clear, stack, copy, n
 import { localZone, modernZone } from '../lib/tz';
 import { calcForm, fmtINR, fmtN, need, today } from '../lib/form';
 import { mathcore } from '../wasm/mathcore';
+import { UNITS, convert, convertAll, belowAbsoluteZero, fmtUnit, plainUnit } from '../lib/units';
 
 // ------------------------------------------------------------------ Unit converter
-const UNITS: Record<string, { label: string; units: Record<string, number | [(x: number) => number, (x: number) => number]> }> = {
-  length: { label: 'Length', units: { 'mm': 1e-3, 'cm': 1e-2, 'm': 1, 'km': 1e3, 'inch': 0.0254, 'foot': 0.3048, 'yard': 0.9144, 'mile': 1609.344, 'nautical mile': 1852 } },
-  mass: { label: 'Weight / mass', units: { 'mg': 1e-6, 'g': 1e-3, 'kg': 1, 'tonne': 1000, 'ounce': 0.028349523125, 'pound': 0.45359237, 'stone': 6.35029318, 'carat': 2e-4, 'tola': 0.0116638 } },
-  temperature: { label: 'Temperature', units: {
-    '°C': [(c) => c, (c) => c], '°F': [(f) => ((f - 32) * 5) / 9, (c) => (c * 9) / 5 + 32], 'K': [(k) => k - 273.15, (c) => c + 273.15] } },
-  area: { label: 'Area', units: { 'm²': 1, 'cm²': 1e-4, 'km²': 1e6, 'ft²': 0.09290304, 'in²': 0.00064516, 'yd²': 0.83612736, 'acre': 4046.8564224, 'hectare': 1e4, 'mile²': 2589988.110336, 'gaj (sq yd)': 0.83612736, 'bigha (UP, 27,000 ft²)': 2508.38 } },
-  volume: { label: 'Volume', units: { 'ml': 1e-3, 'litre': 1, 'm³': 1000, 'tsp': 0.00492892, 'tbsp': 0.0147868, 'cup (US)': 0.236588, 'fl oz (US)': 0.0295735, 'pint (US)': 0.473176, 'gallon (US)': 3.78541, 'gallon (UK)': 4.54609, 'ft³': 28.3168 } },
-  speed: { label: 'Speed', units: { 'm/s': 1, 'km/h': 1 / 3.6, 'mph': 0.44704, 'knot': 0.514444, 'ft/s': 0.3048 } },
-  data: { label: 'Data size', units: { 'bit': 0.125, 'byte': 1, 'KB (1000)': 1e3, 'MB (1000²)': 1e6, 'GB (1000³)': 1e9, 'TB (1000⁴)': 1e12, 'KiB (1024)': 1024, 'MiB (1024²)': 1048576, 'GiB (1024³)': 1073741824, 'TiB (1024⁴)': 1099511627776 } },
-  time: { label: 'Time', units: { 'ms': 1e-3, 'second': 1, 'minute': 60, 'hour': 3600, 'day': 86400, 'week': 604800, 'month (avg)': 2629746, 'year (365.2425 d)': 31556952 } },
-  pressure: { label: 'Pressure', units: { 'Pa': 1, 'kPa': 1e3, 'bar': 1e5, 'atm': 101325, 'psi': 6894.757, 'mmHg': 133.322 } },
-  energy: { label: 'Energy', units: { 'J': 1, 'kJ': 1e3, 'cal': 4.184, 'kcal': 4184, 'Wh': 3600, 'kWh (unit)': 3.6e6, 'BTU': 1055.06, 'eV': 1.602176634e-19 } },
-  power: { label: 'Power', units: { 'W': 1, 'kW': 1e3, 'hp (metric)': 735.49875, 'hp (mech)': 745.69987 } },
-  fuel: { label: 'Fuel economy', units: { 'km/l': [(x) => x, (x) => x], 'l/100km': [(x) => 100 / x, (x) => 100 / x], 'mpg (US)': [(x) => x * 0.425144, (x) => x / 0.425144], 'mpg (UK)': [(x) => x * 0.354006, (x) => x / 0.354006] } },
-};
-
+// table, arithmetic and number formatting: src/lib/units.ts (exact definitions, held to GNU Units by the unit suite)
 export const units: Mount = (root) => {
   let cat = 'length';
   const catSel = select(Object.entries(UNITS).map(([k, v]) => [k, v.label]), cat, (v) => { cat = v; fill(); });
   const val = input({ type: 'number', value: 1, onInput: () => run() });
+  val.step = 'any';
   const from = h('select', { class: 'input select', onchange: () => run() });
   const to = h('select', { class: 'input select', onchange: () => run() });
   const big = h('div', { class: 'big-results' });
   const table = h('div', { class: 'kv' });
-  const toBase = (u: string, x: number) => { const f = UNITS[cat].units[u]; return typeof f === 'number' ? x * f : f[0](x); };
-  const fromBase = (u: string, x: number) => { const f = UNITS[cat].units[u]; return typeof f === 'number' ? x / f : f[1](x); };
+  const warn = h('div');
+  const FIRST: Record<string, [string, string]> = { length: ['km', 'mile'], temperature: ['°C', '°F'], mass: ['kg', 'pound'], volume: ['litre', 'gallon (US)'], area: ['acre', 'hectare'], speed: ['km/h', 'mph'], data: ['GB (1000³)', 'GiB (1024³)'], pressure: ['psi', 'bar'], energy: ['kWh (unit)', 'kcal'], fuel: ['km/l', 'l/100km'], angle: ['degree', 'radian'] };
   const fill = () => {
     const us = Object.keys(UNITS[cat].units);
     from.replaceChildren(...us.map((u) => h('option', { value: u }, u)));
     to.replaceChildren(...us.map((u) => h('option', { value: u }, u)));
-    to.value = us[Math.min(1, us.length - 1)];
-    if (cat === 'length') { from.value = 'km'; to.value = 'mile'; }
-    if (cat === 'temperature') { from.value = '°C'; to.value = '°F'; }
-    if (cat === 'mass') { from.value = 'kg'; to.value = 'pound'; }
+    [from.value, to.value] = FIRST[cat] || [us[0], us[Math.min(1, us.length - 1)]];
     run();
   };
   const run = () => {
     const x = parseFloat(val.value);
-    clear(big); clear(table);
-    if (!isFinite(x)) return;
-    const base = toBase(from.value, x);
-    const r = fromBase(to.value, base);
-    big.append(h('button', { class: 'big-result', type: 'button', onclick: () => copy(fmtN(r, 10)) }, h('span', { class: 'big-label' }, `${fmtN(x, 10)} ${from.value} =`), h('span', { class: 'big-value' }, `${fmtN(r, 8)} ${to.value}`)));
-    table.append(...Object.keys(UNITS[cat].units).flatMap((u) => [h('span', null, u), h('span', null, fmtN(fromBase(u, base), 8))]));
+    clear(big); clear(table); clear(warn);
+    if (!isFinite(x)) { if (val.value.trim() || val.validity.badInput) warn.append(note('Type a number, such as 2.5 or 1e6.', 'info')); return; }
+    const r = convert(cat, from.value, to.value, x);
+    if (belowAbsoluteZero(cat, from.value, x)) warn.append(note(`${fmtUnit(x)} ${from.value} is below absolute zero (−273.15 °C, 0 K): no temperature is that low.`, 'warn'));
+    if (cat === 'fuel' && !(x > 0)) warn.append(note('A fuel economy is a number above 0.', 'warn'));
+    // click to copy: the plain number (no thousands separators), so that it pastes into a spreadsheet as a number
+    big.append(h('button', { class: 'big-result', type: 'button', title: 'Copy the number', onclick: () => { const t = plainUnit(r); if (t) copy(t); } },
+      h('span', { class: 'big-label' }, `${fmtUnit(x)} ${from.value} =`), h('span', { class: 'big-value' }, `${fmtUnit(r)} ${to.value}`)));
+    table.append(...convertAll(cat, from.value, x).flatMap(([u, v]) => [h('span', null, u), h('span', null, fmtUnit(v))]));
   };
   root.append(card(null, stack(field('Quantity', catSel), h('div', { class: 'form-grid' }, field('Value', val), field('From', from), field('To', to)),
     button('Swap', () => { const t = from.value; from.value = to.value; to.value = t; run(); }, { small: true, icon: 'ArrowLeftRight' }))),
-    card('Result', big, table));
+    card('Result', warn, big, table));
   fill();
 };
 

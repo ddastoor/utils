@@ -311,3 +311,11 @@ One entry per tab, written before its bug hunt: our module → candidates → ch
   independent reference (3,005 answers).
 - The same survey stands for the other calculator tabs that rest on mathcore (noted again in their entries).
 
+### 57. `units` — Unit Converter (19 Nov 2026)
+- **Ours:** no WebAssembly module — a table of factors and one multiplication and division per conversion
+  (`src/lib/units.ts`), which the compute rule leaves in TypeScript ("unit factors, a single multiplication").
+- **Candidates:** WebAssembly — none (the registry has no unit-conversion module in WebAssembly; GNU Units has no
+  WebAssembly build on npm). JavaScript: convert-units 2.3.4 (1.2 M a month), js-quantities 1.8.0 (0.4 M).
+- **Decision:** nothing to replace. A library would bring its own table, and the table is the whole tab; ours is
+  now the exact definitions, held to **GNU Units 2.23** for every pair of units (3,222 conversions).
+

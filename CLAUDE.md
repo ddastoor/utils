@@ -541,6 +541,14 @@ cooking), **Dates** (difference, add/subtract, age, weekday), **Finance – Indi
 GST add/remove at 5/12/18/28%, SIP, FD/RD compound, percentage, number to words in lakh/crore and
 international), **Time zones** (convert a time between zones via `Intl`).
 
+**Unit Converter as built after the Nov 2026 bug hunt** (`src/lib/units.ts` + `units` in `src/tools/calculators.ts`; unit
+`tests/unit/units.test.mjs` 93, e2e 56): 13 quantities (length, mass, temperature, area with gaj / cent / guntha /
+ground / bigha, volume with metric and US kitchen measures and UK units, speed, data, time, pressure with kgf/cm² and
+torr, energy, power, angle, fuel economy); every factor is the exact definition and is held to **GNU Units**
+(`scripts/make-units-reference.py`, 3,222 conversions); results with 10 significant digits (whole numbers and large
+values with all digits, tiny ones as 9.094947018 × 10⁻¹³ — never 0), a click copies the plain number; notes for
+temperatures below absolute zero and a fuel economy of 0.
+
 **Scientific Calculator as built after the Nov 2026 bug hunt** (`src/tools/calc.ts`, text helpers `src/lib/calc-text.ts`,
 engine `wasm/mathcore` `m_expr_*`; unit `tests/unit/calc.test.mjs` 243 — 3,005 answers of **mpmath at 50 digits** and
 Python's exact integers, `scripts/make-calc-reference.py` (needs `pip install mpmath`) → `tests/fixtures/calc/reference.json`;

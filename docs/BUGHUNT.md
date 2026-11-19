@@ -81,7 +81,7 @@ Areas with a shared review: the app shell (router, search, favorites, platform h
 | id | Tab | Platform | Area | R | B | T | Notes |
 |---|---|---|---|---|---|---|---|
 | `calc` | Scientific Calculator | PC + mobile | calc-core | ✓ | 21 | 308 | engine kept (WASM-AUDIT 56: no tried-and-tested wasm calculator); reference mpmath at 50 digits for 3,005 expressions; exact round angles, whole numbers digit for digit, exact chaining through Ans, refusals with reasons |
-| `units` | Unit Converter | PC + mobile | calc-core |  |  |  |  |
+| `units` | Unit Converter | PC + mobile | calc-core | ✓ | 6 | 118 | no engine to replace (WASM-AUDIT 57); exact definitions held to GNU Units 2.23 (3,222 conversions); small results keep their digits; metric and US kitchen measures; Indian area units |
 | `dates` | Date Calculator | PC + mobile | calc-core |  |  |  |  |
 | `emi` | EMI Calculator | PC + mobile | calc-core |  |  |  |  |
 | `gst` | GST Calculator | PC + mobile | calc-core |  |  |  |  |
@@ -667,4 +667,16 @@ reference cases.
   rounded text; (21) a history row with Ans was worked out again with the latest Ans.
   Beside it: the JSON Formatter's e2e suite still expected an older wording of one message (found by the complete
   run after the data-engines area: 4,976 of 4,977; corrected).
+- **units** — Unit Converter (6 bugs; unit 0 → 93, e2e 31 → 56). No engine to replace (`docs/WASM-AUDIT.md` tab 57).
+  Reference: **GNU Units 2.23** (`scripts/make-units-reference.py`): every ordered pair of units of every quantity
+  for several values, 3,222 conversions, all equal to 13 digits. What was wrong: (1) **small results were rounded
+  away**: 1 mm in miles showed "0.00000062", 1 byte in TiB and 1 mg in tonnes showed "0", and so did rows of the
+  table; (2) **factors rounded to six digits**: 1 knot was 1.8519984 km/h (it is 1.852 by definition), the US
+  gallon 3.78541 l (3.785411784) with its teaspoon, tablespoon, cup, fluid ounce and pint, the cubic foot, mmHg,
+  the BTU (1055.06 for 1055.05585262), tola, bigha and both mpg — wrong from the sixth or seventh digit, and the
+  old suite expected exactly those rounded results; (3) tsp, tbsp and cup were the US customary sizes without
+  saying so (4.93 / 14.79 / 236.6 ml) — the kitchen sizes 5 / 15 / 250 ml are there now, both labelled; (4) a click
+  on the result copied "1,609.344" with its thousands separator (text to a spreadsheet); (5) a temperature below
+  absolute zero was converted without a word; (6) a fuel economy of 0 gave "—" without a reason. Added: quintal,
+  cent, guntha, ground, UK pint and fluid ounce, cubic inch, torr, kgf/cm², and the quantity Angle.
 
