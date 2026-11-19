@@ -117,7 +117,7 @@ Areas with a shared review: the app shell (router, search, favorites, platform h
 | `matrix` | Matrix Calculator | PC + mobile | calc2-math | ✓ | 8 | 74 | engine kept for large matrices + exact fractions on BigInt up to 400 cells (WASM-AUDIT 86): det 0 is 0, inverse in fractions, fractions typed; tiny values no longer shown as 0 or called singular (relative tests in mathcore); refusals name matrix, row and shapes; reference Python fractions + NumPy |
 | `fraction` | Fraction Calculator | PC + mobile | calc2-math | ✓ | 6 | 51 | nothing to replace (WASM-AUDIT 87–88); engine now 128-bit — (1/2)^100 said 'Division by zero', 64-bit limit; ½ ¼, 1e3, hints and quoted errors; exact decimals with repeating digits in brackets; reference Python fractions (700 expressions) |
 | `primes` | Prime / LCM / GCD | PC + mobile | calc2-math | ✓ | 5 | 18 | engine agrees with SymPy on 420 hard 64-bit numbers; left-out pieces named (negatives, 0, decimals, words vanished; 0x10 was 16); one too-large number no longer blanks the answer; next prime after primes; copyable GCD/LCM |
-| `periodic` | Periodic Table | PC + mobile | calc2-math |  |  |  |  |
+| `periodic` | Periodic Table | PC + mobile | calc2-math | ✓ | 5 | 70 | no engine (WASM-AUDIT 89); data held to the mendeleev package (11 knowing differences listed); search: symbol first ('s' showed sodium), other spellings, categories; legend filter, selection mark, arrow keys, gap markers, 'predicted' from 104, 44 px cells on phones |
 
 ## text
 | id | Tab | Platform | Area | R | B | T | Notes |
@@ -989,4 +989,13 @@ Reference for the five finance tabs: **mpmath at 60 digits** (`scripts/make-fina
   left out is named, the next prime is shown after a prime too, and GCD / LCM can be copied. The engine itself
   agrees with SymPy on 420 hard numbers — products of two primes near 2³², Carmichael numbers, strong
   pseudoprimes, the last primes below 2⁶⁴.
+- **periodic** — Periodic Table (5 bugs; unit 0 → 41, e2e 22 → 46). Typing a symbol showed another element: "s"
+  gave sodium, "b" beryllium, "i" iron (the first name that began with the letter won over the symbol); "aluminum",
+  "cesium" and "sulphur" found nothing; a search without a match just dimmed the table; nothing marked which cell
+  the card below belonged to; the electron configurations of elements 104 – 108 — never measured — were not marked
+  "(predicted)" like those of 109 – 118. Now: symbol first, other spellings and Latin names (wolfram, aurum), a
+  category can be typed or picked in the legend ("noble gas"), the shown element is outlined, arrow keys walk the
+  table, the two gaps of group 3 say 57–71 and 89–103, a mass in brackets is explained, the block is shown, and on
+  phones cells and legend entries are 44 px. The data itself agrees with the `mendeleev` package but for IUPAC's
+  spelling of aluminium and caesium, five longest-lived isotopes found since, and two predicted configurations.
 

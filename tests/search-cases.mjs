@@ -193,6 +193,7 @@ export default [
   ['matrix multiplication', 'matrix'], ['inverse matrix', 'matrix'], ['determinant calculator', 'matrix'], ['transpose matrix', 'matrix'], ['linear algebra', 'matrix'],
   ['add fractions', 'fraction'], ['simplify fraction', 'fraction'], ['mixed number', 'fraction'], ['decimal to fraction', 'fraction'], ['repeating decimal', 'fraction'],
   ['prime factorization', 'primes'], ['is it prime', 'primes'], ['highest common factor', 'primes'], ['least common multiple', 'primes'], ['next prime', 'primes'],
+  ['atomic number', 'periodic'], ['electron configuration', 'periodic'], ['chemical elements', 'periodic'], ['atomic mass', 'periodic'], ['noble gas', 'periodic'],
   ['function plotter', 'graph'], ['draw graph', 'graph'], ['parabola', 'graph'], ['desmos', 'graph'], ['f(x)', 'graph'], ['sine wave', 'graph'],
   ['quadratic equation', 'equation'], ['solve equation', 'equation'], ['simultaneous equations', 'equation'],
   ['statistics', 'stats'], ['standard deviation', 'stats'], ['mean median mode', 'stats'],

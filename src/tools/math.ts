@@ -8,7 +8,7 @@ import type { Q } from '../lib/exact';
 import { fractionAnswer } from '../lib/fractions';
 import { readWholeNumbers, factorText, MAX_U64 } from '../lib/primes';
 import { roundDec } from '../lib/round';
-import { ELEMENTS, CATEGORY_COLORS } from '../lib/elements';
+import { ELEMENTS, CATEGORY_COLORS, ALIASES, elementMatches, findElement } from '../lib/elements';
 
 // ================================================================== Graphing calculator
 const COLORS = ['#4f46e5', '#e11d48', '#059669', '#d97706', '#0891b2', '#7c3aed'];
@@ -388,27 +388,53 @@ export const primes: Mount = async (root) => {
 
 // ================================================================== Periodic table
 export const periodic: Mount = (root) => {
-  const detail = h('div');
-  const q = input({ placeholder: 'Search element, symbol or number…' });
+  const detail = h('div', { 'aria-live': 'polite' });
+  const q = input({ placeholder: 'Search element, symbol or number…', attrs: { 'aria-label': 'Search element, symbol or number', spellcheck: 'false', autocapitalize: 'off' } });
+  const none = h('div');
+  let shown = ELEMENTS[0], only = ''; // the category picked in the legend, or ''
+  const cells = new Map<number, HTMLButtonElement>();
   const show = (el: (typeof ELEMENTS)[number]) => {
+    shown = el;
+    cells.forEach((b, z) => { b.classList.toggle('sel', z === el.z); b.setAttribute('aria-pressed', String(z === el.z)); });
+    const unstable = el.mass.startsWith('[');
     clear(detail).append(card(null, h('div', { class: 'el-detail' },
       h('div', { class: 'el-big', style: { background: CATEGORY_COLORS[el.cat] } }, h('small', null, String(el.z)), h('strong', null, el.sym), h('span', null, el.name)),
       h('div', { class: 'kv' },
         h('span', null, 'Atomic number'), h('span', null, String(el.z)), h('span', null, 'Atomic mass'), h('span', null, el.mass),
-        h('span', null, 'Category'), h('span', null, el.cat), h('span', null, 'Group / period'), h('span', null, `${el.group || '—'} / ${el.period}`),
-        h('span', null, 'Electron configuration'), h('span', null, el.config)))));
+        h('span', null, 'Category'), h('span', null, el.cat), h('span', null, 'Group / period'), h('span', null, `${el.group || '—'} / ${el.period}`), h('span', null, 'Block'), h('span', null, el.block),
+        h('span', null, 'Electron configuration'), h('span', null, el.config))),
+      unstable ? h('p', { class: 'muted small' }, `${el.name} has no stable isotope: ${el.mass} is the mass number of its longest-lived one.`) : null,
+      ALIASES[el.sym] ? h('p', { class: 'muted small' }, `Also: ${ALIASES[el.sym].map((a) => a[0].toUpperCase() + a.slice(1)).join(', ')}.`) : null));
   };
-  const grid = h('div', { class: 'ptable' }, ELEMENTS.map((el) => h('button', {
-    type: 'button', class: 'el', title: `${el.name} (${el.z})`, 'data-name': `${el.name} ${el.sym} ${el.z}`.toLowerCase(),
-    style: { gridColumn: String(el.col), gridRow: String(el.row), background: CATEGORY_COLORS[el.cat] }, onclick: () => show(el),
-  }, h('small', null, String(el.z)), h('strong', null, el.sym))));
-  q.addEventListener('input', () => {
-    const t = q.value.toLowerCase().trim();
-    grid.querySelectorAll<HTMLElement>('.el').forEach((b) => b.classList.toggle('dim', !!t && !b.dataset.name!.split(' ').some((w) => w.startsWith(t))));
-    const hit = ELEMENTS.find((e) => e.sym.toLowerCase() === t || e.name.toLowerCase().startsWith(t) || String(e.z) === t);
-    if (t && hit) show(hit);
+  const gap = (row: number, text: string) => h('div', { class: 'el-gap', style: { gridColumn: '3', gridRow: String(row) }, title: `Elements ${text}: in the rows below` }, text);
+  const grid = h('div', { class: 'ptable' }, ELEMENTS.map((el) => {
+    const b = h('button', { type: 'button', class: 'el', title: `${el.name} (${el.z})`, 'aria-label': `${el.name}, ${el.sym}, ${el.z}`,
+      style: { gridColumn: String(el.col), gridRow: String(el.row), background: CATEGORY_COLORS[el.cat] }, onclick: () => show(el) }, h('small', null, String(el.z)), h('strong', null, el.sym));
+    cells.set(el.z, b);
+    return b;
+  }), gap(6, '57–71'), gap(7, '89–103'));
+  // arrow keys move through the table as it is drawn
+  grid.addEventListener('keydown', (e) => {
+    const d = ({ ArrowLeft: [0, -1], ArrowRight: [0, 1], ArrowUp: [-1, 0], ArrowDown: [1, 0] } as Record<string, number[]>)[e.key];
+    const from = ELEMENTS.find((x) => cells.get(x.z) === document.activeElement);
+    if (!d || !from) return;
+    for (let r = from.row + d[0], c = from.col + d[1]; r >= 1 && r <= 10 && c >= 1 && c <= 18; r += d[0], c += d[1]) {
+      const to = ELEMENTS.find((x) => x.row === r && x.col === c);
+      if (to) { e.preventDefault(); cells.get(to.z)!.focus(); show(to); return; }
+    }
   });
-  root.append(card(null, q), card(null, h('div', { class: 'ptable-scroll' }, grid),
-    h('div', { class: 'legend' }, Object.entries(CATEGORY_COLORS).map(([k, c]) => h('span', null, h('i', { style: { background: c } }), k)))), detail);
-  show(ELEMENTS[0]);
+  const legend = h('div', { class: 'legend legend-pick' });
+  const apply = () => {
+    const t = q.value.trim();
+    let lit = 0;
+    for (const el of ELEMENTS) { const on = elementMatches(el, t) && (!only || el.cat === only); if (on) lit++; cells.get(el.z)!.classList.toggle('dim', !on); }
+    const hit = findElement(t);
+    if (t && hit && (!only || hit.cat === only)) show(hit);
+    clear(none);
+    if (!lit) none.append(note(t ? `No element matches "${t}"${only ? ` among the ${only}s` : ''}.` : `No element in that category.`, 'warn'));
+    clear(legend).append(...Object.entries(CATEGORY_COLORS).map(([k, c]) => h('button', { type: 'button', class: ['legend-item', only === k && 'on'], 'aria-pressed': String(only === k), title: only === k ? 'Show all' : `Show only: ${k}`, onclick: () => { only = only === k ? '' : k; apply(); } }, h('i', { style: { background: c } }), k)));
+  };
+  q.addEventListener('input', apply);
+  root.append(card(null, q, none), card(null, h('div', { class: 'ptable-scroll' }, grid), legend), detail);
+  show(shown); apply();
 };

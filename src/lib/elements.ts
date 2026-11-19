@@ -1,4 +1,6 @@
 // Periodic table data (IUPAC standard atomic weights, abridged; [n] = mass number of the most stable isotope).
+// Electron configurations: measured ground states (NIST) up to lawrencium; from rutherfordium (104) on nobody has
+// measured one — those are calculations, marked "(predicted)".
 export const CATEGORY_COLORS: Record<string, string> = {
   'alkali metal': '#fca5a5', 'alkaline earth metal': '#fdba74', 'transition metal': '#fde68a', 'post-transition metal': '#bbf7d0',
   metalloid: '#99f6e4', nonmetal: '#bae6fd', halogen: '#c7d2fe', 'noble gas': '#e9d5ff', lanthanide: '#fbcfe8', actinide: '#f5d0fe', unknown: '#e5e7eb',
@@ -108,11 +110,11 @@ const RAW = `1 H Hydrogen 1.008 n 1 1s1
 101 Md Mendelevium [258] c 0 [Rn] 5f13 7s2
 102 No Nobelium [259] c 0 [Rn] 5f14 7s2
 103 Lr Lawrencium [266] c 0 [Rn] 5f14 7s2 7p1
-104 Rf Rutherfordium [267] t 4 [Rn] 5f14 6d2 7s2
-105 Db Dubnium [268] t 5 [Rn] 5f14 6d3 7s2
-106 Sg Seaborgium [269] t 6 [Rn] 5f14 6d4 7s2
-107 Bh Bohrium [270] t 7 [Rn] 5f14 6d5 7s2
-108 Hs Hassium [269] t 8 [Rn] 5f14 6d6 7s2
+104 Rf Rutherfordium [267] t 4 [Rn] 5f14 6d2 7s2 (predicted)
+105 Db Dubnium [268] t 5 [Rn] 5f14 6d3 7s2 (predicted)
+106 Sg Seaborgium [269] t 6 [Rn] 5f14 6d4 7s2 (predicted)
+107 Bh Bohrium [270] t 7 [Rn] 5f14 6d5 7s2 (predicted)
+108 Hs Hassium [269] t 8 [Rn] 5f14 6d6 7s2 (predicted)
 109 Mt Meitnerium [278] u 9 [Rn] 5f14 6d7 7s2 (predicted)
 110 Ds Darmstadtium [281] u 10 [Rn] 5f14 6d8 7s2 (predicted)
 111 Rg Roentgenium [282] u 11 [Rn] 5f14 6d9 7s2 (predicted)
@@ -124,7 +126,7 @@ const RAW = `1 H Hydrogen 1.008 n 1 1s1
 117 Ts Tennessine [294] u 17 [Rn] 5f14 6d10 7s2 7p5 (predicted)
 118 Og Oganesson [294] u 18 [Rn] 5f14 6d10 7s2 7p6 (predicted)`;
 
-export interface Element { z: number; sym: string; name: string; mass: string; cat: string; group: number; period: number; config: string; row: number; col: number }
+export interface Element { z: number; sym: string; name: string; mass: string; cat: string; group: number; period: number; config: string; row: number; col: number; /** s, p, d or f */ block: string }
 
 export const ELEMENTS: Element[] = RAW.split('\n').map((line) => {
   const [z, sym, name, mass, c, g, ...cfg] = line.split(' ');
@@ -133,7 +135,31 @@ export const ELEMENTS: Element[] = RAW.split('\n').map((line) => {
   const fBlock = (Z >= 57 && Z <= 71) || (Z >= 89 && Z <= 103);
   return {
     z: Z, sym, name, mass, cat: CAT[c], group: +g, period, config: cfg.join(' '),
+    block: fBlock && Z !== 57 && Z !== 89 ? 'f' : Z === 2 || (+g >= 1 && +g <= 2) ? 's' : +g <= 12 ? 'd' : 'p', // lanthanum and actinium stand in group 3 here: d-block
     row: fBlock ? (Z <= 71 ? 9 : 10) : period,
     col: fBlock ? 3 + (Z <= 71 ? Z - 57 : Z - 89) : +g,
   };
 });
+
+/** other spellings and old names people type: American and British English, and the Latin behind a symbol */
+export const ALIASES: Record<string, string[]> = {
+  Al: ['aluminum'], Cs: ['cesium'], S: ['sulphur'], Na: ['natrium'], K: ['kalium'], Fe: ['ferrum'], Cu: ['cuprum'], Ag: ['argentum'], Au: ['aurum'], Sn: ['stannum'], Sb: ['stibium'], W: ['wolfram'], Hg: ['hydrargyrum', 'quicksilver'], Pb: ['plumbum'],
+};
+const names = (e: Element) => [e.name.toLowerCase(), ...(ALIASES[e.sym] ?? [])];
+/** Does the element belong to what was typed? Its symbol, its name or an alias begins with it, its number begins
+ *  with it, or it is the name of its category ("noble gas", "halogen"). */
+export function elementMatches(e: Element, query: string): boolean {
+  const t = query.trim().toLowerCase();
+  if (!t) return true;
+  if (/^\d+$/.test(t)) return String(e.z).startsWith(t);
+  return e.sym.toLowerCase().startsWith(t) || names(e).some((n) => n.startsWith(t)) || (t.length >= 4 && e.cat.startsWith(t));
+}
+/** The one element a search means: the symbol exactly (S is sulfur, not sodium), the number, the name or an alias
+ *  exactly, then the first whose name, alias or symbol begins with it. */
+export function findElement(query: string): Element | undefined {
+  const t = query.trim().toLowerCase();
+  if (!t) return undefined;
+  return ELEMENTS.find((e) => e.sym.toLowerCase() === t) ?? (/^\d+$/.test(t) ? ELEMENTS.find((e) => e.z === Number(t)) : undefined) ?? ELEMENTS.find((e) => names(e).includes(t))
+    ?? ELEMENTS.find((e) => names(e).some((n) => n.startsWith(t))) ?? ELEMENTS.find((e) => e.sym.toLowerCase().startsWith(t));
+}
+

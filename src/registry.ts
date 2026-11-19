@@ -293,8 +293,8 @@ export const TOOLS: Tool[] = [
     'fraction, numerator, denominator, simplify, mixed number, decimal to fraction, fractions, add fractions, subtract fractions, multiply fractions, divide fractions, simplify fraction, reduce fraction, lowest terms, mixed number, improper fraction, fraction to decimal, decimal to fraction, repeating decimal, recurring decimal, numerator, denominator, half, quarter', () => math().then((m) => m.fraction)),
   t('primes', 'Prime / LCM / GCD', 'Prime check, prime factors, next prime, GCD (HCF) and LCM of whole numbers up to 64 bits.', 'math', 'Sigma',
     'prime, factorization, lcm, gcd, hcf, divisors, prime factors, is prime, prime number, is it prime, prime checker, prime factorization, prime factorisation, factorize, factorise, factors, next prime, highest common factor, greatest common divisor, least common multiple, lowest common multiple, hcf and lcm, coprime, composite', () => math().then((m) => m.primes)),
-  t('periodic', 'Periodic Table', 'Interactive table of elements.', 'math', 'Atom',
-    'periodic table, elements, chemistry, atomic number, atomic mass, electron configuration', () => math().then((m) => m.periodic)),
+  t('periodic', 'Periodic Table', 'The 118 elements: search by symbol, name or number; mass, group, period, block, electron configuration.', 'math', 'Atom',
+    'periodic table, elements, chemistry, atomic number, atomic mass, electron configuration, periodic table of elements, chemical elements, element symbol, atomic number, atomic mass, atomic weight, electron configuration, group, period, block, noble gas, halogen, alkali metal, transition metal, lanthanide, actinide, metalloid, hydrogen, oxygen, carbon, iron, gold, aluminium, aluminum, chemistry', () => math().then((m) => m.periodic)),
 
   // ---------------------------------------------------------------- Text
   t('wordcount', 'Word Counter', 'Words, characters, sentences, reading time.', 'text', 'WholeWord',

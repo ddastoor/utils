@@ -550,6 +550,13 @@ details summary { cursor: pointer; font-weight: 600; color: var(--accent); paddi
 .el small { font-size: 9px; opacity: .7; } .el strong { font-size: 15px; }
 .el:hover { transform: scale(1.12); position: relative; z-index: 2; box-shadow: var(--shadow-lg); }
 .el.dim { opacity: .18; }
+.el.sel { outline: 3px solid var(--accent); outline-offset: 1px; position: relative; z-index: 1; }
+.el:focus-visible { outline: 3px solid var(--text); outline-offset: 1px; }
+.el-gap { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; font-size: 10px; color: var(--muted); border: 1px dashed var(--border); border-radius: 6px; }
+.legend.legend-pick { gap: 4px 6px; }
+@media (pointer: coarse) { .legend-item { min-height: 44px; } .ptable { min-width: 846px; } } /* cells and legend entries of 44 px for a finger */
+.legend-item { border: 1px solid transparent; background: none; color: inherit; font: inherit; padding: 6px 8px; border-radius: 8px; cursor: pointer; min-height: 32px; }
+.legend-item:hover { border-color: var(--border); } .legend-item.on { border-color: var(--accent); background: var(--accent-soft); color: var(--text); }
 .el-detail { display: grid; grid-template-columns: 120px 1fr; gap: 16px; align-items: center; }
 .el-big { aspect-ratio: 1; border-radius: 14px; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #111827; }
 .el-big strong { font-size: 40px; line-height: 1; } .el-big small { font-size: 13px; } .el-big span { font-size: 13px; font-weight: 600; }

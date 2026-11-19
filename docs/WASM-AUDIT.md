@@ -530,3 +530,11 @@ One entry per tab, written before its bug hunt: our module → candidates → ch
   **SymPy** (`factorint`, `isprime`, `nextprime`) on 420 hard 64-bit numbers and Python's `math.gcd` / `lcm` on 121
   lists (`scripts/make-primes-reference.py`, needs `pip install sympy`).
 
+### 89. `periodic` — Periodic Table (19 Nov 2026)
+- **Ours:** no engine: a table of 118 rows (`src/lib/elements.ts`) and a search over it.
+- **Candidates:** none — there is nothing to compute. Data packages (`periodic-table` on npm, the Python `mendeleev`
+  and `periodictable`) carry the same public figures; ours stays (10 KB, IUPAC spelling, current isotopes).
+- **Decision:** nothing to replace. The table is held to the `mendeleev` package element by element
+  (`scripts/make-periodic-reference.py`): symbol, name, atomic weight, group, period, block, electron
+  configuration — with the eleven places where ours knowingly differs listed in the test, each with its reason.
+

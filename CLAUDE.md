@@ -841,6 +841,19 @@ shapes ("To add, both matrices need the same shape — A is 2 × 3 and B is 2 ×
   18446744073709551557); for two and more numbers GCD and LCM (the LCM exact beyond 64 bits, by BigInt on mathcore's
   gcd); the first 20 numbers are taken apart.
 
+### Periodic Table — as built after the Nov 2026 bug hunt
+(`periodic` in `src/tools/math.ts`, data and search `src/lib/elements.ts`; unit `tests/unit/periodic.test.mjs` 41,
+e2e 46; reference `python3 scripts/make-periodic-reference.py`, needs `pip install mendeleev`.) 118 elements: IUPAC
+names (Aluminium, Caesium, Sulfur) and abridged standard atomic weights, `[n]` = mass number of the longest-lived
+isotope where there is no stable one (explained on the card); group (La and Ac stand in group 3, Ce – Lu and
+Th – Lr have none), period, block, category, ground-state electron configuration — "(predicted)" from element 104 on.
+Layout: 18 columns, the f-block (15 + 15) in two rows below, markers 57–71 and 89–103 in the gaps. Search
+(`findElement`): the symbol exactly, then the number, the name or an alias exactly (aluminum, cesium, sulphur,
+wolfram, aurum …), then the first name that begins with the text; `elementMatches` decides what stays lit (symbol,
+name, alias or number begins with it; or the category, from four letters on). The legend is a filter (one category
+at a time, combined with the search); the shown element is outlined; arrow keys move through the table; "No element
+matches …" when nothing does.
+
 ### SQLite Playground (PC) — as built after the Nov 2026 bug hunt
 (`src/tools/software/sqlite.ts`, engine `src/lib/sqlite-engine.ts`, worker `src/workers/sqlite.worker.ts`; unit
 `tests/unit/sqlite.test.mjs` 106, e2e `tests/e2e/sqlite.e2e.mjs` 63.) Engine: the **official SQLite WebAssembly build**

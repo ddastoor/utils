@@ -103,8 +103,11 @@ what those suites missed.
   reference `scripts/make-stats-reference.py`). **`matrix` (tab 86) is DONE** (8 bugs; exact fractions in `src/lib/matrix.ts`,
   reference `scripts/make-matrix-reference.py`). **`fraction`, `primes` (tabs 87 – 88) are DONE** (6 + 5 bugs; the
   fraction engine counts in 128 bits; references `scripts/make-fraction-reference.py`,
-  `scripts/make-primes-reference.py` — the latter needs `pip install sympy`). **NEXT:**
-  `periodic` (`src/tools/math.ts`, engine mathcore), then the complete suites for the area;
+  `scripts/make-primes-reference.py` — the latter needs `pip install sympy`). **`periodic` (tab 89) is DONE** (5 bugs; data held to the `mendeleev` package —
+  `scripts/make-periodic-reference.py`). **Area calc2-math is complete (16 tabs: 74 – 89).** **NEXT: area text** —
+  `wordcount`, `case`, `lines`, `replace`, `diff`, `fancy`, `emoji`, `morse`, `lorem`, `photodict`; then security-codes →
+  images1 → images2 → pdf → docs2 → audio → video → terminal → everyday-device (+ the app shell).
+  (old note, done:) `periodic` (`src/tools/math.ts`, engine mathcore), then the complete suites for the area;
   per tab: the
   existing-module check with its entry in `docs/WASM-AUDIT.md` first (the survey of entry 56 covers calculators:
   no tried-and-tested WebAssembly calculator exists), then bugs, tests, fixes. Reference tools at hand: mpmath
