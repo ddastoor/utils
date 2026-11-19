@@ -1,5 +1,7 @@
 import { h, note, type Mount } from '../ui';
 import { calcForm, fmtINR, fmtN, need } from '../lib/form';
+import { prepayPlan, ppfPlan, epfPlan, npsPlan, inflation as infl, span } from '../lib/finance';
+import { plural } from '../lib/dates';
 import { mathcore } from '../wasm/mathcore';
 
 // ------------------------------------------------------------------ Loan prepayment
@@ -10,18 +12,18 @@ export const prepay: Mount = async (root) => {
     { key: 'r', label: 'Interest rate', value: 8.5, unit: '% p.a.', step: 0.05 },
     { key: 'n', label: 'Remaining tenure', value: 20, unit: 'years' },
     { key: 'pp', label: 'Prepayment amount', value: 200000, unit: '₹' },
-    { key: 'when', label: 'Prepay after', value: 12, unit: 'months' },
+    { key: 'when', label: 'Prepay after', value: 12, unit: 'months', hint: '0 = now, before the next instalment' },
     { key: 'freq', label: 'Prepayment', type: 'seg', value: 'once', options: [['once', 'One time'], ['yearly', 'Every year']] },
     { key: 'keep', label: 'After prepaying, keep', type: 'seg', value: 'emi', options: [['emi', 'Same EMI (shorter tenure)'], ['tenure', 'Same tenure (lower EMI)']] },
   ], (v) => {
-    need(v.p, v.r, v.n, v.pp);
-    const months = Math.round(v.n * 12);
-    const { emi, baseInterest, interest, monthsTaken: m2, newEmi } = m.prepay(v.p, v.r, months, v.pp, v.when || 1, v.freq === 'yearly', v.keep === 'tenure');
-    const mm = m2;
-    const saved = baseInterest - interest;
+    need(v.p, v.r, v.n, v.pp, v.when);
+    const x = prepayPlan(m, v.p, v.r, v.n, v.pp, v.when, v.freq === 'yearly', v.keep === 'tenure');
+    const sooner = x.monthsSaved ? `${span(x.monthsSaved)} earlier` : 'No earlier';
     return {
-      big: [['Interest saved', fmtINR(Math.round(saved))], [v.keep === 'emi' ? 'Loan ends' : 'New EMI', v.keep === 'emi' ? `${Math.floor((months - mm) / 12)}y ${(months - mm) % 12}m earlier` : fmtINR(Math.round(newEmi))]],
-      rows: [['Original EMI', fmtINR(Math.round(emi))], ['Interest without prepayment', fmtINR(Math.round(baseInterest))], ['Interest with prepayment', fmtINR(Math.round(interest))], ['Months to close', `${mm} (was ${months})`]],
+      big: [['Interest saved', fmtINR(Math.round(x.baseInterest) - Math.round(x.interest))], v.keep === 'emi' || x.paidOff ? ['Loan ends', sooner] : ['New EMI', fmtINR(Math.round(x.newEmi))]],
+      rows: [['Original EMI', fmtINR(Math.round(x.emi))], ['Interest without prepayment', fmtINR(Math.round(x.baseInterest))], ['Interest with prepayment', fmtINR(Math.round(x.interest))],
+        ['Prepaid in all', fmtINR(Math.round(x.prepaid))], ['Months to close', `${x.monthsTaken.toLocaleString('en-IN')} (was ${x.months.toLocaleString('en-IN')})`]],
+      notes: x.paidOff ? [`${v.freq === 'yearly' ? 'A prepayment' : 'The prepayment'} pays the loan off: only what was still owed is counted.`] : [],
     };
   });
   root.append(note('Floating-rate home loans in India have no prepayment penalty for individuals (RBI). Check your lender for fixed-rate loans.'));
@@ -36,10 +38,13 @@ export const ppf: Mount = async (root) => {
     { key: 'y', label: 'Years', value: 15, unit: 'years', hint: '15-year lock-in, extendable in 5-year blocks' },
   ], (v) => {
     need(v.amt, v.r, v.y);
-    if (v.amt > 150000) throw new Error('The PPF limit is ₹1,50,000 per financial year.');
-    const bal = m.ppf(v.amt, v.r, Math.round(v.y)); // deposited before 5 April each year
-    const inv = v.amt * v.y;
-    return { big: [['Maturity value', fmtINR(Math.round(bal))], ['Interest earned', fmtINR(Math.round(bal - inv))], ['Total deposited', fmtINR(inv)]], rows: [['Tax status', 'EEE — deposit (80C), interest and maturity tax-free']] };
+    const x = ppfPlan(m, v.amt, v.r, v.y); // deposited before 5 April each year
+    const bal = Math.round(x.balance), inv = Math.round(x.invested);
+    return {
+      big: [['Maturity value', fmtINR(bal)], ['Interest earned', fmtINR(bal - inv)], ['Total deposited', fmtINR(inv)]],
+      rows: [['Tax status', 'EEE — deposit (80C), interest and maturity tax-free']],
+      notes: x.atMaturity ? [] : [`A PPF account matures after 15 years and can then be extended 5 years at a time — this is the balance after ${plural(x.years, 'year')}.`],
+    };
   });
   root.append(note('Assumes the yearly deposit is made before 5 April and the rate stays constant. The government revises the rate every quarter.'));
 };
@@ -56,11 +61,14 @@ export const epf: Mount = async (root) => {
     { key: 'r', label: 'EPF interest rate', value: 8.25, unit: '% p.a.', step: 0.05 },
   ], (v) => {
     need(v.basic, v.age, v.ret, v.r);
-    const years = Math.max(0, v.ret - v.age);
-    const { corpus: bal, contrib } = m.epf(v.basic, v.age, v.ret, v.bal || 0, v.inc || 0, v.r);
-    return { big: [['EPF corpus at retirement', fmtINR(Math.round(bal))], ['Your + employer contributions', fmtINR(Math.round(contrib))]], rows: [['Interest earned', fmtINR(Math.round(bal - contrib - (v.bal || 0)))], ['Years', String(years)]] };
+    const x = epfPlan(m, v.basic, v.age, v.ret, v.bal, v.inc, v.r);
+    const corpus = Math.round(x.corpus), own = Math.round(x.own), employer = Math.round(x.employer), opening = Math.round(x.opening);
+    return {
+      big: [['EPF corpus at retirement', fmtINR(corpus)], ['Your + employer contributions', fmtINR(own + employer)]],
+      rows: [['Your 12 %', fmtINR(own)], ['Employer\'s share into EPF', fmtINR(employer)], ['Interest earned', fmtINR(corpus - own - employer - opening)], ['Employer\'s share into the pension scheme (EPS, not in the corpus)', fmtINR(Math.round(x.eps))], ['Years', String(x.years)]],
+    };
   });
-  root.append(note('12% of basic+DA from you; employer 12% minus the EPS pension share (8.33% of up to ₹15,000). Interest credited monthly at the chosen rate.'));
+  root.append(note('12% of basic + DA from you; your employer adds 12%, of which 8.33% of pay up to ₹15,000 goes to the pension scheme (EPS). As the EPFO does it: interest is worked out each month on the balance the month opened with and credited once a year.'));
 };
 
 // ------------------------------------------------------------------ NPS
@@ -70,25 +78,37 @@ export const nps: Mount = async (root) => {
     { key: 'amt', label: 'Monthly contribution', value: 10000, unit: '₹' },
     { key: 'age', label: 'Current age', value: 30, unit: 'years' },
     { key: 'r', label: 'Expected return', value: 10, unit: '% p.a.', step: 0.5 },
-    { key: 'ann', label: 'Annuity purchase (min 40%)', value: 40, unit: '%' },
+    { key: 'sector', label: 'Subscriber', type: 'seg', value: 'other', options: [['other', 'Private / all citizens'], ['gov', 'Government']] },
+    { key: 'ann', label: 'Annuity purchase', value: 40, unit: '%', hint: 'At least 20 % (government: 40 %)' },
     { key: 'ar', label: 'Annuity rate', value: 6, unit: '% p.a.', step: 0.25 },
   ], (v) => {
     need(v.amt, v.age, v.r, v.ann, v.ar);
-    const r = m.nps(v.amt, v.age, v.r, v.ann, v.ar);
-    return { big: [['Corpus at 60', fmtINR(Math.round(r.corpus))], ['Monthly pension', fmtINR(Math.round(r.pension))]], rows: [['Lump sum (tax-free up to 60%)', fmtINR(Math.round(r.lump))], ['Used to buy annuity', fmtINR(Math.round(r.corpus - r.lump))], ['Total invested', fmtINR(r.invested)]] };
+    const x = npsPlan(m, v.amt, v.age, v.r, v.sector, v.ann, v.ar);
+    const corpus = Math.round(x.corpus), lump = Math.round(x.lump);
+    return {
+      big: [['Corpus at 60', fmtINR(corpus)], ['Monthly pension', fmtINR(Math.round(x.pension))]],
+      rows: [['Lump sum', fmtINR(lump)], ['Used to buy annuity', fmtINR(corpus - lump)], ['Total invested', fmtINR(Math.round(x.invested))], ['Contributions', `${x.months.toLocaleString('en-IN')} monthly (${span(x.months)})`]],
+      notes: v.sector === 'other' && x.corpus <= 800000 ? ['A corpus of up to ₹8 lakh may be taken out in full by non-government subscribers — no annuity is required.'] : [],
+    };
   });
+  root.append(note('At 60, part of the corpus must buy an annuity (the pension): at least 40% for government subscribers, at least 20% for everyone else since PFRDA\'s exit rules of December 2025. The lump sum is tax-free up to 60% of the corpus. Rules change — check the current ones with PFRDA or your NPS provider.'));
 };
 
 // ------------------------------------------------------------------ Inflation
-export const inflation: Mount = (root) => {
+export const inflation: Mount = async (root) => {
+  const m = await mathcore();
   calcForm(root, [
     { key: 'amt', label: 'Amount today', value: 100000, unit: '₹' },
     { key: 'r', label: 'Inflation rate', value: 6, unit: '% p.a.', step: 0.1 },
     { key: 'y', label: 'Years', value: 20, unit: 'years' },
   ], (v) => {
     need(v.amt, v.r, v.y);
-    const f = Math.pow(1 + v.r / 100, v.y);
-    return { big: [['Future cost of the same things', fmtINR(Math.round(v.amt * f))], ['Today\'s money is worth (in future)', fmtINR(Math.round(v.amt / f))]], rows: [['Purchasing power lost', `${fmtN((1 - 1 / f) * 100, 1)}%`], ['Prices multiply by', `${fmtN(f, 2)}×`], ['Years for prices to double', fmtN(Math.log(2) / Math.log(1 + v.r / 100), 1)]] };
+    const x = infl(m, v.amt, v.r, v.y), down = v.r < 0;
+    return {
+      big: [['Future cost of the same things', fmtINR(Math.round(x.future))], ['Today\'s money is worth (in future)', fmtINR(Math.round(x.worth))]],
+      rows: [[down ? 'Purchasing power gained' : 'Purchasing power lost', `${fmtN(Math.abs(x.lostPct), 1)}%`], ['Prices multiply by', `${fmtN(x.factor, 2)}×`],
+        [down ? 'Years for prices to halve' : 'Years for prices to double', x.doubling === null ? 'Never — prices stay as they are' : fmtN(x.doubling, 1)]],
+    };
   });
 };
 

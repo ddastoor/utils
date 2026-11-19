@@ -417,3 +417,18 @@ One entry per tab, written before its bug hunt: our module → candidates → ch
   "lazy and small", and the engine is already WebAssembly. Held to **Python's int()** and **numpy.base_repr** for 464
   numbers up to 6,000 bits, and to the **roman** library for all 3,999 numerals and 3,000 strings of Roman letters.
 
+### 74 – 78. `prepay`, `ppf`, `epf`, `nps`, `inflation` — Loan Prepayment, PPF, EPF, NPS, Inflation (19 Nov 2026)
+- **Ours:** mathcore (own C): `m_prepay` (the loan month by month with a part-prepayment), `m_ppf`, `m_epf` (the
+  account as the EPFO keeps it), `m_nps`, and the engine's `growth()` for inflation. What each tab refuses and how
+  it reads its boxes is `src/lib/finance.ts` (glue).
+- **Candidates:** WebAssembly — none: the registry has no module for loan schedules or Indian retirement schemes
+  (searched: "amortization wasm", "loan wasm", "financial wasm", "ppf", "epf", "nps"). JavaScript: `financial`
+  (numpy-financial's functions in TypeScript, 60 thousand downloads a month) and `financejs` give pmt / fv / nper —
+  the same closed forms the engine already has, and nothing for a prepayment schedule or for the EPFO's way of
+  crediting interest, which are the parts that had the bugs.
+- **Decision:** nothing to replace; the models are a few lines each on top of the engine's `m_emi` and `growth()`,
+  already WebAssembly. Held to **mpmath at 60 digits** by another route where there is one
+  (`scripts/make-finance2-reference.py`): 520 prepayments simulated month by month (66 of them also by the closed
+  form of a loan's balance), 192 PPF accounts by the annuity-due formula, 144 EPF accounts, 90 NPS accounts
+  (cross-checked with numpy-financial's `fv`), 240 inflation cases.
+

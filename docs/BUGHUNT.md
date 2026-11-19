@@ -98,11 +98,11 @@ Areas with a shared review: the app shell (router, search, favorites, platform h
 | `gpa` | GPA Calculator | PC + mobile | calc-core | ✓ | 4 | 24 | exact fractions for 400 grade sheets; rows outside the scale, with negative credits or half empty are named and left out; credits on both scales |
 | `base` | Number Base Converter | PC + mobile | calc-core | ✓ | 6 | 79 | nothing to replace (WASM-AUDIT 72–73); Python int() + numpy base_repr for 464 numbers up to 6,000 bits; prefixes only in their own base; reasons for wrong digits, no stale boxes; custom base checked; chunked arithmetic (29× faster) |
 | `roman` | Roman Numerals | PC + mobile | calc-core | ✓ | 4 | 72 | the roman library for all 3,999 numerals and 3,000 strings; additive forms (IIII) read with the standard form named; Unicode numerals; reasons; parts |
-| `prepay` | Loan Prepayment | PC + mobile | calc2-math |  |  |  |  |
-| `ppf` | PPF Calculator | PC + mobile | calc2-math |  |  |  |  |
-| `epf` | EPF Calculator | PC + mobile | calc2-math |  |  |  |  |
-| `nps` | NPS Calculator | PC + mobile | calc2-math |  |  |  |  |
-| `inflation` | Inflation Calculator | PC + mobile | calc2-math |  |  |  |  |
+| `prepay` | Loan Prepayment | PC + mobile | calc2-math | ✓ | 9 | 36 | nothing to replace (WASM-AUDIT 74–78); mpmath simulation of 520 prepayments; prepay now (0 months), months checked, prepayment capped at what is owed and said, prepaid in all, figures add up |
+| `ppf` | PPF Calculator | PC + mobile | calc2-math | ✓ | 5 | 25 | closed form in mpmath for 192 accounts; whole years 1–50, ₹500 – ₹1.5 lakh; note when not a maturity year |
+| `epf` | EPF Calculator | PC + mobile | calc2-math | ✓ | 6 | 26 | EPFO method (interest on monthly opening balances, credited yearly — monthly compounding overstated the corpus); 144 accounts in mpmath; own / employer / EPS rows that add up; ages checked |
+| `nps` | NPS Calculator | PC + mobile | calc2-math | ✓ | 7 | 27 | PFRDA December 2025: 20 % least annuity for non-government subscribers, 40 % government (it was silently raised to 40); 90 accounts in mpmath + numpy-financial; lump + annuity = corpus |
+| `inflation` | Inflation Calculator | PC + mobile | calc2-math | ✓ | 6 | 26 | mpmath for 240 cases; deflation (gained / halve), 0 % never doubles, limits and reasons; power by mathcore growth() |
 | `sleep` | Sleep Cycle | PC + mobile | calc2-math |  |  |  |  |
 | `bodyfat` | Body Fat | PC + mobile | calc2-math |  |  |  |  |
 | `idealweight` | Ideal Weight | PC + mobile | calc2-math |  |  |  |  |
@@ -850,4 +850,47 @@ reference cases.
   carved on buildings: they are read now, with the standard form named; (2) "1,994", 0, −5 and 3.5 all got "Not a
   valid Roman numeral"; (3) Ⅻ and ⅳ (the Unicode numerals) and "MM XXVI" with a space were refused; (4) one message
   for every mistake. Added: the numeral taken apart ("M (1000) + CM (900) + XC (90) + IV (4)").
+
+**Complete suites after calc-core (19 Nov 2026):** `npm test` 19,492 / 19,492 in 60 suites; `node tests/e2e.mjs`
+5,401 / 5,401 in 188 suites (749 s; six suites — graphviz, lazy, one copy-button test, a 60 s wait, a photo test,
+video AV1 — timed out under the load of the parallel run and passed when run alone).
+
+### Calculators › calc2-math (19 Nov 2026)
+Reference for the five finance tabs: **mpmath at 60 digits** (`scripts/make-finance2-reference.py` →
+`tests/fixtures/finance2/reference.json`); what each refuses is `src/lib/finance.ts`; unit
+`tests/unit/finance2.test.mjs` (66).
+- **prepay** — Loan Prepayment (9 bugs; e2e 11 → 21). "Prepay after 0 months" was quietly taken as 1, so prepaying
+  now could not be worked out; a month at or past the loan's end, a month with a fraction or a negative one gave
+  "Interest saved ₹0" without a word (the prepayment simply never happened); a tenure of 0 showed dashes and
+  negative amounts were worked with; a tenure beyond 100 years stopped at 1,200 months with money still owed; a
+  prepayment larger than what was owed was not capped in what the tab reported and "Same tenure" then showed
+  "New EMI ₹0"; the loop called a loan closed at 50 paise owed; a loan without interest showed rounding noise as
+  its interest; "Interest saved" could differ by a rupee from the two interests shown beside it. Now: the engine
+  (`m_prepay`) prepays before the instalment that follows, caps a prepayment at the balance and says so, reports
+  what was prepaid in all (seven prepayments of ₹2 lakh = ₹14 lakh) and whether a prepayment closed the loan; the
+  tab shows "3 years 4 months earlier", figures that add up, and a reason for everything it refuses.
+- **ppf** — PPF Calculator (5 bugs; e2e 7 → 17). 15.6 years gave the balance of 16 years against the deposits of
+  15.6; −5 years showed "Interest earned ₹7,50,000"; a thousand million years ran the engine's loop that long;
+  deposits under ₹500 (and negative ones) were accepted although the label names the limits; a negative rate was
+  worked with. Now whole years 1 – 50, ₹500 – ₹1,50,000, and a note when the years are not a maturity (15, then
+  blocks of 5).
+- **epf** — EPF Calculator (6 bugs; e2e 9 → 17). **The interest was compounded monthly**, which the EPFO does not
+  do: it works out interest on each month's opening balance and credits it once a year — the default example showed
+  about ₹2.7 crore, it is ₹2,56,34,372. Retiring at or before the present age showed a corpus of ₹0; an age of 30.5
+  showed "27.5 years" over a corpus for 27; a huge retirement age ran the loop that long; negative pay, balance,
+  raise and rate were worked with; "Interest earned" did not always add up with the figures beside it. Now the
+  rows name the member's 12 %, the employer's share into EPF and the share that goes to the pension scheme (EPS,
+  not in the corpus), and they add up as shown.
+- **nps** — NPS Calculator (7 bugs; e2e 9 → 19). An annuity share below 40 % was quietly worked as 40 % while the
+  box still said 20; and the rule itself is out of date — since PFRDA's exit rules of December 2025 a
+  non-government subscriber must put only 20 % into an annuity (government subscribers 40 %): new choice
+  "Subscriber", the least share is checked and named. An age of 60 or more showed a corpus of ₹0, an age with a
+  fraction was cut off without a word, a share above 100 % gave a negative lump sum, negative numbers were worked
+  with, lump sum + annuity could miss the corpus by a rupee, and an absurd age made the month count overflow. A
+  corpus of up to ₹8 lakh gets the note that it may be taken out in full.
+- **inflation** — Inflation Calculator (6 bugs; e2e 7 → 17). At 0 % "Years for prices to double" showed a dash;
+  deflation showed "Purchasing power lost −49.8%" and doubling in "−34.3" years (now "gained" and "years for prices
+  to halve"); −100 % and below showed ₹0, "—" or NaN; 0, negative and absurd numbers of years were worked with
+  (5,000 years: a screen of digits); a negative amount was accepted; results beyond what can be shown were shown.
+  The power is the engine's `growth()` now (the tab is mathcore's like the others).
 

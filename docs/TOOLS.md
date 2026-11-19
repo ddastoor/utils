@@ -97,11 +97,11 @@ Generated from `src/registry.ts` by `npm run docs` — do not edit by hand.
 | `gpa` | GPA Calculator | PC + mobile | GPA / CGPA from grades and credits; CGPA to %. | cgpa to percentage, sgpa to percentage, gpa, cgpa, sgpa, grades, credits, percentage, … |
 | `base` | Number Base Converter | PC + mobile | Binary, octal, decimal, hex. | binary to decimal, hex to decimal, decimal to binary, decimal to hex, octal, binary, hex, hexadecimal, … |
 | `roman` | Roman Numerals | PC + mobile | Convert to and from Roman numerals. | roman, numerals, convert, mcmxc, latin, roman numbers, year in roman numerals, clock face, … |
-| `prepay` | Loan Prepayment | PC + mobile | Interest and months saved by prepaying a loan. | prepayment, part payment, part prepayment, foreclosure, loan prepayment, interest saved, tenure reduction |
-| `ppf` | PPF Calculator | PC + mobile | Public Provident Fund maturity. | ppf, public provident fund, 15 years, tax free, maturity, india |
-| `epf` | EPF Calculator | PC + mobile | Employee Provident Fund corpus at retirement. | epf, pf, provident fund, employee, retirement, corpus, uan, india |
-| `nps` | NPS Calculator | PC + mobile | National Pension System corpus and pension. | nps, national pension system, pension, annuity, retirement, india |
-| `inflation` | Inflation Calculator | PC + mobile | Future cost and today's value of money. | inflation, future value, present value, purchasing power, cost of living, real return |
+| `prepay` | Loan Prepayment | PC + mobile | Interest and months saved by prepaying a loan — once or every year, shorter tenure or lower EMI. | prepayment, prepay, part payment, part prepayment, pre payment, foreclosure, pre closure, preclosure, … |
+| `ppf` | PPF Calculator | PC + mobile | Public Provident Fund: balance at maturity for a yearly deposit, 15 years and extensions. | ppf, public provident fund, 15 years, extension, 5 year block, tax free, eee, 80c, … |
+| `epf` | EPF Calculator | PC + mobile | Employee Provident Fund corpus at retirement: your 12 %, the employer's share, the pension scheme, yearly interest. | epf, pf, provident fund, employees provident fund, employee, employer contribution, epfo, eps, … |
+| `nps` | NPS Calculator | PC + mobile | National Pension System: corpus at 60, lump sum, annuity and monthly pension. | nps, national pension system, national pension scheme, pension, monthly pension, annuity, annuity purchase, lump sum, … |
+| `inflation` | Inflation Calculator | PC + mobile | Future cost of things and what today's money will be worth, years for prices to double. | inflation, deflation, future value, future cost, present value, purchasing power, value of money, value of rupee, … |
 | `sleep` | Sleep Cycle | PC + mobile | Best times to wake up or go to bed. | sleep, sleep calculator, when to wake up, when to sleep, bedtime calculator, bedtime, wake up, sleep cycle, … |
 | `bodyfat` | Body Fat | PC + mobile | Body fat % (US Navy method). | body fat, fat percentage, navy method, waist, neck, fitness |
 | `idealweight` | Ideal Weight | PC + mobile | Ideal body weight by several formulas. | ideal weight, healthy weight, devine, robinson, miller, hamwi, height |

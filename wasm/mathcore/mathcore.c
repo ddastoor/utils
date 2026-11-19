@@ -946,38 +946,60 @@ API void m_fd(double amount, double annual, double years, int comp, int rd, doub
     for (int k = 0; k < months; k++) v += grow(amount, annual, comp, (double)(months - k) / 12);
     out[0] = amount * months; out[1] = v;
 }
-API double m_ppf(double yearly, double annual, int years) { double b = 0; for (int y = 0; y < years; y++) b = (b + yearly) * (1 + annual / 100); return b; }
-/* out[2]: corpus, contributions */
+/* PPF: one deposit at the start of each year (before 5 April), interest compounded yearly */
+API double m_ppf(double yearly, double annual, int years) { double b = 0; if (years > 200) years = 200; for (int y = 0; y < years; y++) b = (b + yearly) * (1 + annual / 100); return b; }
+/* EPF, as the EPFO keeps the account: each month 12 % of basic + DA from the member and 12 % from the employer, of
+ * which 8.33 % of pay up to Rs 15,000 goes to the pension scheme (EPS) and never reaches this account. Interest is
+ * worked out every month on the balance the month opened with (a contribution earns from the month after it) and
+ * is credited once, at the end of the year — it does not compound within the year. Pay rises once a year.
+ * out[5]: corpus, the member's contributions, the employer's EPF share, the EPS share (not in the corpus), interest */
 API void m_epf(double basic, int age, int retire, double balance, double inc, double annual, double *out) {
-    double bal = balance, b = basic, contrib = 0;
-    for (int y = 0; y < retire - age; y++) {
+    double bal = balance, b = basic, own = 0, er_sum = 0, eps_sum = 0, interest = 0;
+    int years = retire - age; if (years < 0) years = 0; if (years > 100) years = 100;
+    for (int y = 0; y < years; y++) {
+        double accrued = 0;
         for (int m = 0; m < 12; m++) {
+            accrued += bal * annual / 1200;
             double emp = b * 0.12, eps = (b < 15000 ? b : 15000) * 0.0833, er = b * 0.12 - eps;
-            bal += emp + er; contrib += emp + er; bal += bal * annual / 1200;
+            bal += emp + er; own += emp; er_sum += er; eps_sum += eps;
         }
+        bal += accrued; interest += accrued;
         b *= 1 + inc / 100;
     }
-    out[0] = bal; out[1] = contrib;
+    out[0] = bal; out[1] = own; out[2] = er_sum; out[3] = eps_sum; out[4] = interest;
 }
-/* out[4]: corpus, monthly pension, lump sum, invested */
+/* NPS to the age of 60: monthly contributions at the start of each month, monthly rate = annual / 12.
+ * out[4]: corpus, monthly pension, lump sum, invested */
 API void m_nps(double monthly, int age, double annual, double annuity_pct, double annuity_rate, double *out) {
-    int months = (60 - age) * 12; if (months < 0) months = 0;
+    int months = (60 - age) * 12; if (months < 0) months = 0; if (months > 1200) months = 1200;
     double c = 0, i = annual / 1200;
-    for (int k = 0; k < months; k++) c = (c + monthly) * (1 + i);
-    double ap = annuity_pct < 40 ? 40 : annuity_pct, a = c * ap / 100;
+    for (int k = 0; k < months; k++) { double w = c + monthly; c = w + w * i; }
+    double a = c * annuity_pct / 100;
     out[0] = c; out[1] = a * annuity_rate / 1200; out[2] = c - a; out[3] = monthly * months;
 }
-/* out[5]: emi, base_interest, interest_with_prepay, months_taken, new_emi */
+/* A loan with a part-prepayment after `when` instalments (0 = before the next one), once or every 12 months from
+ * then on. keep_tenure = 0: the instalment stays and the loan ends sooner (the last instalment is what is left);
+ * 1: the loan runs its months and the instalment is worked out anew after each prepayment. A prepayment is never
+ * more than what is owed. The loan is over when less than half a paisa is left.
+ * out[7]: emi, interest without prepaying, interest with it, months taken, the instalment at the end, prepaid in all,
+ *         1 when a prepayment (not an instalment) paid the loan off */
 API void m_prepay(double P, double annual, int months, double pp, int when, int yearly, int keep_tenure, double *out) {
-    double r = annual / 1200, emi = m_emi(P, annual, months), base = emi * months - P;
-    double bal = P, interest = 0, ne = emi; int m = 0;
-    while (bal > 0.5 && m < 1200) {
+    double r = annual / 1200, emi = m_emi(P, annual, months), base = r == 0 ? 0 : emi * months - P;   /* no rate: exactly no interest */
+    double bal = P, interest = 0, ne = emi, prepaid = 0; int m = 0, ended = 0;
+    const double done = 0.005;
+    if (emi != emi) { for (int k = 0; k < 7; k++) out[k] = NAN; return; }
+    for (;;) {
+        int due = yearly ? (m >= when && (m - when) % 12 == 0) : (m == when);
+        if (due && bal > done) {
+            double x = pp < bal ? pp : bal; bal -= x; prepaid += x;
+            if (!(bal > done)) ended = 1;
+            if (keep_tenure && months - m > 0 && bal > done) ne = m_emi(bal, annual, months - m);
+        }
+        if (!(bal > done) || m >= months) break;
         double i = bal * r; interest += i;
         double pr = ne - i; if (pr > bal) pr = bal; bal -= pr; m++;
-        int due = yearly ? (m >= when && (m - when) % 12 == 0) : (m == when);
-        if (due && bal > 0) { bal -= pp; if (bal < 0) bal = 0; if (keep_tenure && months - m > 0) ne = m_emi(bal, annual, months - m); }
     }
-    out[0] = emi; out[1] = base; out[2] = interest; out[3] = m; out[4] = ne;
+    out[0] = emi; out[1] = base; out[2] = interest; out[3] = m; out[4] = ne; out[5] = prepaid; out[6] = ended;
 }
 
 /* ======================================================================== health & geodesy */

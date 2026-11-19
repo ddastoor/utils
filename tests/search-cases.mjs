@@ -171,6 +171,12 @@ export default [
   ['epf', 'epf'], ['provident fund', 'epf'],
   ['nps', 'nps'], ['pension calculator', 'nps'],
   ['inflation', 'inflation'], ['future value', 'inflation'],
+  // calc2-math bug hunt (Nov 2026)
+  ['part prepayment', 'prepay'], ['foreclosure', 'prepay'], ['pay off loan early', 'prepay'], ['reduce tenure', 'prepay'], ['home loan prepayment', 'prepay'], ['extra payment', 'prepay'],
+  ['ppf calculator', 'ppf'], ['ppf maturity', 'ppf'], ['ppf extension', 'ppf'], ['small savings', 'ppf'],
+  ['pf calculator', 'epf'], ['epfo', 'epf'], ['employer contribution', 'epf'], ['pf interest', 'epf'], ['pension scheme', 'epf'],
+  ['national pension', 'nps'], ['annuity', 'nps'], ['pfrda', 'nps'], ['monthly pension', 'nps'], ['corpus at 60', 'nps'],
+  ['purchasing power', 'inflation'], ['deflation', 'inflation'], ['price rise', 'inflation'], ['future cost', 'inflation'], ['prices double', 'inflation'], ['value of money', 'inflation'],
   ['sleep calculator', 'sleep'], ['when to wake up', 'sleep'],
   ['body fat', 'bodyfat'], ['fat percentage', 'bodyfat'],
   ['ideal weight', 'idealweight'], ['healthy weight', 'idealweight'],

@@ -637,6 +637,24 @@ open while the numbers change; `fmtINR` writes paise with both digits (₹12.10)
   digit is named and the other boxes are emptied; the custom base must be a whole number 2 – 36. `roman` (e2e 26)
   — 1 to 3,999 both ways; additive forms (IIII, MDCCCCX, up to MMMM…) are read with the standard form named
   (`m_from_roman_loose`); Unicode numerals, spaces and lower case accepted; the numeral taken apart.
+- Loans and retirement (`src/tools/finance2.ts`, plans in `src/lib/finance.ts`; unit `tests/unit/finance2.test.mjs`
+  66; reference `python3 scripts/make-finance2-reference.py` → `tests/fixtures/finance2/reference.json`, mpmath at 60
+  digits): `prepay` (e2e 21) — the loan month by month (mathcore `m_prepay`): a part-prepayment after N instalments
+  (0 = now, before the next one; a whole number below the months left), once or every 12 months from then on,
+  with the instalment kept (the loan ends sooner: "3 years 4 months earlier") or the tenure kept (a new, lower
+  instalment); a prepayment is capped at what is owed, with a note when it closes the loan; "Prepaid in all";
+  "Interest saved" is the difference of the two interests as shown. `ppf` (e2e 17) — a yearly deposit of ₹500 –
+  ₹1,50,000 at the start of each year, compounded yearly, whole years 1 – 50, a note when the years are not a
+  maturity (15, then blocks of 5). `epf` (e2e 17) — **as the EPFO keeps the account**: 12 % of basic + DA from the
+  member, 12 % from the employer less 8.33 % of pay up to ₹15,000 for the pension scheme (EPS, shown, not in the
+  corpus); interest on the balance each month opened with, **credited once a year**; pay rises once a year; whole
+  ages 15 – 74, retirement above the age and at most 75. `nps` (e2e 19) — monthly contributions at the start of each
+  month to the age of 60 (whole ages 18 – 59), monthly rate = annual / 12; "Subscriber": the least share of the
+  corpus that must buy an annuity is **40 % for government subscribers and 20 % for everyone else (PFRDA's exit
+  rules of December 2025)** — `NPS_MIN_ANNUITY` in `finance.ts`, the one place to change when the rule changes;
+  lump sum + annuity = the corpus as shown; pension = annuity × rate / 12; a note for a corpus of up to ₹8 lakh.
+  `inflation` (e2e 17) — (1 + r)^years by the engine's `growth()`; rates above −100 % (deflation: "Purchasing power
+  gained", "Years for prices to halve"), 0 % "Never — prices stay as they are", at most 100 years.
 - Number formatting shared by the calculators (`src/lib/form.ts`, unit `tests/unit/moneyfmt.test.mjs` 79):
   `roundDec(x, d)` (in `src/lib/round.ts`, no DOM) rounds a number as it is written with 15 digits, half away from zero (7.1225 → 7.123, 1.005 →
   1.01; Intl and toFixed round the binary value down) and leaves numbers that need more than 15 digits alone;
@@ -1262,7 +1280,7 @@ Owner: "make the full site faster, more responsive and memory efficient — load
 2. **Opening a tab loads only that tab's code** (its dynamic-import chunk, < 400 KB). Engines, models, data files,
    fonts and workers load on **first use** — a file chosen, a button pressed, the first Enter — never at module
    load and never at mount, except where the tab's first view needs them. Allowed at open (listed with the reason
-   in `AT_OPEN` in the test): our three small engines (mathcore/crypto/textcore ≤ 115 KB: live results as you
+   in `AT_OPEN` in the test): our three small engines (mathcore/crypto/textcore ≤ 140 KB: live results as you
    type), invoice/rent/resume (MuPDF + Noto Sans: the live PDF preview is the main view), markdown (cmark-gfm,
    sample preview), terminal (BusyBox: the shell is ready at once), qr/barcode (zxing-cpp: drawn as you type),
    caption/watermark/signature (fonts of the first preview), cidr/cron/semver/glob/patch (their devcore-<tab>.wasm: the
@@ -1347,7 +1365,10 @@ colour (RGB ⇄ HSL ⇄ OKLCH, WCAG luminance / contrast, and `m_color` op 5: OK
 Finance since Nov 2026: `m_emi` and `m_amortize_yearly` in closed forms (see §3 "Finance calculators as built");
 `m_gst` (GST on one amount in whole paise, forwards and backwards, 128-bit products); `paise()` reads an amount as it
 is written with 15 digits (1.005 is 101 paise — also for the invoice lines); periods are clamped before they become
-loop counts.
+loop counts. `m_prepay` (out[7]: instalment, interest without and with the prepayment, months taken, the last
+instalment, prepaid in all, 1 when a prepayment closed the loan; a loan is closed below half a paisa), `m_epf`
+(out[5]: corpus, the member's and the employer's contributions, the pension-scheme share, interest — the EPFO's
+method, see §3), `m_nps` (no silent floor on the annuity share; months clamped), `m_ppf` (years clamped).
 `wasm/mathcore/build.sh` (exports every `API m_*` function). Expression engine since Nov 2026 (details in §3
 "Scientific Calculator as built"): names without regard to case, one decimal point per number, no implicit product of
 two numbers, nesting limit 100, exact trigonometry at round angles (`sind` / `cosd`, the "gap" rule in radians),

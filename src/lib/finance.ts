@@ -109,3 +109,89 @@ export function gstSplit(m: Mathcore, amount: number, ratePct: number, inclusive
   const typed = inclusive ? g.total : g.base;
   return { rate: r, ...g, tax: g.cgst + g.sgst + g.igst, rounded: Math.abs(typed - amount) > 1e-9 * Math.max(1, Math.abs(amount)) };
 }
+
+// ------------------------------------------------------------------ Loan prepayment
+export interface PrepayPlan {
+  months: number; emi: number;
+  /** interest over the loan without prepaying, and with it */
+  baseInterest: number; interest: number; saved: number;
+  monthsTaken: number; monthsSaved: number;
+  /** the instalment after the prepayment(s): the same in 'emi' mode */
+  newEmi: number;
+  /** what was actually prepaid (a prepayment is never more than what is owed) */
+  prepaid: number;
+  /** a prepayment — not an instalment — paid the loan off */
+  paidOff: boolean;
+}
+export function prepayPlan(m: Mathcore, p: number, r: number, years: number, pp: number, when: number, yearly: boolean, keepTenure: boolean): PrepayPlan {
+  money(p, 'The outstanding principal'); rate(r);
+  const { months } = wholeMonths(years, 'y', 'The remaining tenure');
+  money(pp, 'The prepayment');
+  if (!Number.isInteger(when) || when < 0) throw new Error('Prepay after: a whole number of months, 0 or more (0 = before the next instalment).');
+  if (when >= months) throw new Error(`Prepay after: the loan has only ${months.toLocaleString('en-IN')} months left — choose a month before its last.`);
+  const x = m.prepay(p, r, months, pp, when, yearly, keepTenure);
+  result(x.emi, x.baseInterest, x.interest);
+  return { months, emi: x.emi, baseInterest: x.baseInterest, interest: x.interest, saved: x.baseInterest - x.interest, monthsTaken: x.monthsTaken, monthsSaved: months - x.monthsTaken, newEmi: x.newEmi, prepaid: x.prepaid,
+    paidOff: x.paidOff };
+}
+
+// ------------------------------------------------------------------ PPF
+export const PPF_MIN = 500, PPF_MAX = 150000;
+export interface PpfPlan { years: number; balance: number; invested: number; interest: number; /** the account matures after 15 years and then in blocks of 5 */ atMaturity: boolean }
+export function ppfPlan(m: Mathcore, yearly: number, r: number, y: number): PpfPlan {
+  if (!(yearly >= PPF_MIN)) throw new Error('A PPF account needs at least ₹500 a year.');
+  if (yearly > PPF_MAX) throw new Error('The PPF limit is ₹1,50,000 per financial year.');
+  rate(r);
+  if (!Number.isInteger(y) || y < 1 || y > 50) throw new Error('Years: a whole number from 1 to 50 (the account runs 15 years, then in blocks of 5).');
+  const balance = m.ppf(yearly, r, y), invested = yearly * y;
+  result(balance);
+  return { years: y, balance, invested, interest: balance - invested, atMaturity: y >= 15 && y % 5 === 0 };
+}
+
+// ------------------------------------------------------------------ EPF
+export interface EpfPlan { years: number; corpus: number; own: number; employer: number; eps: number; interest: number; opening: number }
+export function epfPlan(m: Mathcore, basic: number, age: number, retire: number, balance: number, inc: number, r: number): EpfPlan {
+  money(basic, 'The monthly basic + DA');
+  if (!Number.isInteger(age) || age < 15 || age > 74) throw new Error('Current age: a whole number of years from 15 to 74.');
+  if (!Number.isInteger(retire) || retire <= age || retire > 75) throw new Error(`Retirement age: a whole number of years above ${age}, at most 75.`);
+  const opening = Number.isFinite(balance) ? balance : 0, raise = Number.isFinite(inc) ? inc : 0; // empty boxes: nothing yet, no raise
+  if (opening < 0) throw new Error('The current EPF balance cannot be negative.');
+  if (opening > MAX_MONEY) throw new Error('The current EPF balance is too large — this calculator goes up to ₹10 lakh crore.');
+  if (raise < 0) throw new Error('The yearly salary increase cannot be negative.');
+  if (raise > 100) throw new Error('The yearly salary increase is too high — at most 100 %.');
+  rate(r, 'The EPF interest rate');
+  const x = m.epf(basic, age, retire, opening, raise, r);
+  result(x.corpus);
+  return { years: retire - age, corpus: x.corpus, own: x.own, employer: x.employer, eps: x.eps, interest: x.interest, opening };
+}
+
+// ------------------------------------------------------------------ NPS
+/** the least share of the corpus that must buy an annuity at 60: government employees 40 %; everyone else 20 %
+ *  since PFRDA's exit rules of December 2025 (40 % before) */
+export const NPS_MIN_ANNUITY = { gov: 40, other: 20 } as const;
+export interface NpsPlan { months: number; corpus: number; lump: number; annuity: number; pension: number; invested: number }
+export function npsPlan(m: Mathcore, monthly: number, age: number, r: number, sector: keyof typeof NPS_MIN_ANNUITY, annuityPct: number, annuityRate: number): NpsPlan {
+  money(monthly, 'The monthly contribution');
+  if (!Number.isInteger(age) || age < 18 || age > 59) throw new Error('Current age: a whole number of years from 18 to 59 (this calculator runs to the age of 60).');
+  rate(r, 'The expected return');
+  const least = NPS_MIN_ANNUITY[sector];
+  if (!(annuityPct >= least)) throw new Error(`At least ${least} % of the corpus must buy an annuity (${sector === 'gov' ? 'government subscribers' : 'non-government subscribers, since December 2025'}).`);
+  if (annuityPct > 100) throw new Error('The annuity cannot take more than 100 % of the corpus.');
+  if (annuityRate < 0) throw new Error('The annuity rate cannot be negative.');
+  if (annuityRate > 100) throw new Error('The annuity rate is too high — at most 100 % a year.');
+  const x = m.nps(monthly, age, r, annuityPct, annuityRate);
+  result(x.corpus);
+  return { months: (60 - age) * 12, corpus: x.corpus, lump: x.lump, annuity: x.corpus - x.lump, pension: x.pension, invested: x.invested };
+}
+
+// ------------------------------------------------------------------ Inflation
+export interface Inflation { future: number; worth: number; factor: number; lostPct: number; /** years for prices to double (rate above 0) or to halve (below 0); null at 0 % */ doubling: number | null }
+export function inflation(m: Mathcore, amount: number, r: number, y: number): Inflation {
+  money(amount, 'The amount');
+  if (r <= -100) throw new Error('The inflation rate must be above −100 % a year.');
+  rate(Math.max(r, 0), 'The inflation rate');
+  years(y, 'The number of years');
+  const future = m.sip(amount, r, y, 0, true).value, factor = future / amount; // (1 + r)^y, by the engine's growth()
+  result(future, amount / factor);
+  return { future, worth: amount / factor, factor, lostPct: (1 - 1 / factor) * 100, doubling: r === 0 ? null : Math.log(r > 0 ? 2 : 0.5) / Math.log1p(r / 100) };
+}
