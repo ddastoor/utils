@@ -1,4 +1,4 @@
-//! cron (croner), semver (node-semver rules), glob (globset), unified-diff patch (diffy), SQL formatting (sqlformat),
+//! cron (croner), semver (node-semver rules), glob (globset), unified-diff patch,
 //! hex dump.
 #![allow(unused_imports)]
 use crate::{arg, js, s, R};
@@ -378,22 +378,6 @@ pub fn patch(input: &[u8]) -> R {
     let f = &files[fi]; let hk = &f.hunks[h - 1];
     let first = hk.lines.iter().find(|l| l.0 != if reverse { '-' } else { '+' }).map(|l| l.1.clone()).unwrap_or_default();
     Err(format!("The patch does not apply: hunk {h} of {} (@@ -{} …) does not match this text{} — its first line “{}” was not found with its neighbours.", f.hunks.len(), hk.old_start, if files.len() > 1 { format!(" (tried all {} files of the diff)", files.len()) } else { String::new() }, first.chars().take(60).collect::<String>()))
-}
-
-// ------------------------------------------------------------------ SQL formatting: {sql, indent (spaces, 0 = tab), uppercase, lines}
-#[cfg(feature = "sqlfmt")]
-pub fn sqlfmt(input: &[u8]) -> R {
-    use sqlformat::{format, FormatOptions, Indent, QueryParams};
-    let a = arg(input)?;
-    let ind = a.get("indent").and_then(|v| v.as_u64()).unwrap_or(2);
-    let opts = FormatOptions {
-        indent: if ind == 0 { Indent::Tabs } else { Indent::Spaces(ind as u8) },
-        uppercase: a.get("uppercase").and_then(|v| v.as_bool()),
-        lines_between_queries: a.get("lines").and_then(|v| v.as_u64()).unwrap_or(1) as u8,
-        inline: a.get("inline").and_then(|v| v.as_bool()).unwrap_or(false),
-        ..Default::default()
-    };
-    Ok(format(s(&a, "sql"), &QueryParams::None, &opts).into_bytes())
 }
 
 // ------------------------------------------------------------------ hex dump: [u32 offset LE][u32 width][u32 maxLines] + bytes

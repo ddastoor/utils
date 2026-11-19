@@ -525,10 +525,8 @@ export default async (t, { load, wasm }) => {
       t.ok(cases >= 120 && !bad.length, `${cases} random patches made by GNU diff (context 0–5, files with / without a final newline, moved up or down) give the same text as GNU patch, and reverse restores the original ${bad.slice(0, 4).join(' | ')} ${bad.length > 4 ? `(+${bad.length - 4})` : ''}`);
     } catch (e) { if (!/ENOENT/.test(String(e))) throw e; }
   }
-  // ---- SQL format
-  const sql = d.text('sqlfmt', { sql: 'select a, b from t where x = 1 and y > 2 order by a', uppercase: true });
-  t.eq(sql, 'SELECT\n  a,\n  b\nFROM\n  t\nWHERE\n  x = 1\n  AND y > 2\nORDER BY\n  a', 'SQL formatted with upper-case keywords');
-  t.ok(/\t/.test(d.text('sqlfmt', { sql: 'select a from t', indent: 0 })), 'tab indent');
+  // ---- SQL format: its own suite, tests/unit/sqlfmt.test.mjs
+  t.eq(d.json('sqlfmt', { sql: 'select a, b from t where x = 1 and y > 2 order by a' }).text, 'SELECT\n  a,\n  b\nFROM\n  t\nWHERE\n  x = 1\n  AND y > 2\nORDER BY\n  a', 'SQL formatted with upper-case keywords');
   // ---- hex dump
   t.eq(d.hexdump(E.encode('Hello, World!\n\x00\x01ABC'), 0, 16), '00000000  48 65 6c 6c 6f 2c 20 57  6f 72 6c 64 21 0a 00 01  |Hello, World!...|\n00000010  41 42 43                                          |ABC|\n', 'hex dump like hexdump -C');
   t.eq(d.hexdump(E.encode('AB'), 4096, 8).slice(0, 8), '00001000', 'hex dump offset');

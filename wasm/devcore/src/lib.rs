@@ -17,6 +17,8 @@ mod jsondiff;
 #[cfg(any(feature = "json", feature = "jsondiff", feature = "j2t"))]
 mod jsonfmt;
 mod misc;
+#[cfg(feature = "sqlfmt")]
+mod sqlfmt;
 #[cfg(feature = "semver")]
 mod semver_npm;
 #[cfg(feature = "semver")]
@@ -68,7 +70,9 @@ pub unsafe extern "C" fn dc_call(op: *const u8, op_n: usize, inp: *const u8, in_
         #[cfg(feature = "patch")]
         "patch" => misc::patch(input),
         #[cfg(feature = "sqlfmt")]
-        "sqlfmt" => misc::sqlfmt(input),
+        "sqlfmt" => sqlfmt::run(input),
+        #[cfg(feature = "sqlfmt")]
+        "sqlfmt:tokens" => sqlfmt::tokens(input),
         "hexdump" => misc::hexdump(input),
         "find" => misc::find(input),
         #[cfg(feature = "jsondiff")]

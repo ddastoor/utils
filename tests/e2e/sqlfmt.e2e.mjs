@@ -26,9 +26,9 @@ export default async (ctx) => {
   } catch { info('Python sqlite3 failed — execution check skipped'); }
   await page.getByRole('radio', { name: '4 spaces' }).click(); ok((await out.inputValue()).includes('\n    o.id,'), '4-space indent');
   await page.getByRole('radio', { name: 'Tab' }).click(); ok((await out.inputValue()).includes('\n\to.id,'), 'tab indent');
-  await page.locator('label.switch', { hasText: 'UPPER-CASE' }).click(); await page.waitForTimeout(200); ok(/\nfrom\n/.test(await out.inputValue()), 'keywords not upper-cased when switched off');
+  await page.getByRole('radio', { name: 'lower', exact: true }).click(); await page.waitForTimeout(200); ok(/\nfrom\n/.test(await out.inputValue()), 'keywords in lower case');
   await page.locator('label.switch', { hasText: 'One line' }).click(); await page.waitForTimeout(200); ok(!(await fmt('select a from t where b = 1')).includes('\n'), 'one line');
-  await page.locator('label.switch', { hasText: 'One line' }).click(); await page.locator('label.switch', { hasText: 'UPPER-CASE' }).click();
+  await page.locator('label.switch', { hasText: 'One line' }).click(); await page.getByRole('radio', { name: 'UPPER', exact: true }).click();
   await page.getByRole('radio', { name: '2 spaces' }).click(); await page.getByRole('radio', { name: '1', exact: true }).click();
   ok(/;\n\nUPDATE/.test(await fmt('select 1; update t set a = 2')), 'one blank line between statements');
   const f = join(tmp, 'q.sql'); writeFileSync(f, 'SELECT * FROM t'); await page.locator('.drop input[type=file]').setInputFiles(f); await page.waitForTimeout(250);
