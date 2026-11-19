@@ -236,10 +236,17 @@ export ZIG=/tmp/zig/x/ziglang/zig
   `\uXXXX` escapes turned into the raw characters — invisible ones included (U+2028 inside a regular expression
   ends the line: "Invalid regular expression: missing /"). After writing a file that holds such escapes, look for
   raw invisible characters (`grep -nP '[\x{200b}-\x{200f}\x{2028}\x{2029}\x{a0}\x{300}-\x{36f}]'`) and put
-  the escapes back; a shell here-document keeps them as typed.
+  the escapes back. **A shell here-document does not protect them either** (the decoding happens before the command
+  runs): after writing any JS / TS file with such escapes run a re-escaping pass (a ten-line Python script that
+  replaces raw U+0080–00A0, U+00AD, U+0300–036F, U+2000–200F, U+2028–202F, U+FE0F … by `\\uXXXX`, building the
+  backslash with `chr(92)`), or build the line in Python.
 - **Node's ICU is not Chromium's:** Chromium ships its own word-break rules (no join over a full stop or a colon), so
   `Intl.Segmenter` gives other words in the browser than in a unit test. Anything that must be the same everywhere
   belongs in an engine of ours (the Word Counter's textkit.wasm).
+- **Seen once, not reproduced (19 Nov 2026):** one `npm test` run of five ended "20205/20206" with 91 assertions
+  fewer in the total — one suite stopped early. Three runs right after were clean (20,297 / 20,297). When running the
+  unit suites, write the output to a file (`npm test > log 2>&1; grep -A3 '✗' log`) so that the suite can be named
+  if it happens again.
 - **Lead for the app-shell area (not yet looked into, 19 Nov 2026):** on a phone (iPhone 13 emulation) the header's
   search box (`.search-input`) is 40 px tall — the owner's rule is 44 px touch targets. The phone placeholder says
   "Search 170+ tools…" while a phone shows 112 of the 176 tabs — to check when the shell is hunted.

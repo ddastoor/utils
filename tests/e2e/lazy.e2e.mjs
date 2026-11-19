@@ -14,6 +14,7 @@ const AT_OPEN = {
   rent: [/mupdf|NotoSans/, 'live PDF preview is the main view (MuPDF + Noto Sans)'],
   resume: [/mupdf|NotoSans/, 'live PDF preview is the main view (MuPDF + Noto Sans)'],
   markdown: [/markdown-[\w-]+\.wasm/, 'live preview of the sample text (cmark-gfm, 0.27 MB)'],
+  case: [/textkit-[\w-]+\.wasm/, 'the sample sentence is shown in all its conversions at once (textkit.wasm, 0.21 MB)'],
   coords: [/geo-[\w-]+\.wasm/, 'the sample distance is worked out at once (geo.wasm: Karney\'s geodesic routines, 36 KB)'],
   terminal: [/busybox-[\w-]+\.wasm/, 'the shell is ready at once (BusyBox, 0.5 MB)'],
   qr: [/zxing_full/, 'the QR code is drawn as you type (zxing-cpp, 1.5 MB)'],

@@ -7,7 +7,7 @@ export const EMPTY: TextStats = { words: 0, chars: 0, noSpace: 0, sentences: 0, 
 // Thai, Lao, Myanmar and Khmer are written without spaces between words: only a dictionary finds the words. The
 // engine has none and leaves these letters out of its word count (the same ranges in wasm/textkit/src/lib.rs); the
 // browser's own segmenter has the dictionaries, so the words of such stretches are counted here and added.
-const SEA = /[฀-໿က-႟ក-៿᧠-᧿ꧠ-꧿ꩠ-ꩿ]+/g;
+const SEA = /[\u0E00-\u0EFF\u1000-\u109F\u1780-\u17FF\u19E0-\u19FF\uA9E0-\uA9FF\uAA60-\uAA7F]+/g;
 function dictionaryWords(text: string): { words: number; chars: number } {
   let words = 0, chars = 0;
   const runs = text.match(SEA);

@@ -1,5 +1,6 @@
 // Wrapper for textkit.wasm (Rust, built by us — wasm/textkit): counts of a text on Unicode's segmentation rules
-// (UAX #29, the unicode-segmentation crate) with the Word Counter's own rules on top.
+// (UAX #29, the unicode-segmentation crate) with the Word Counter's own rules on top, and the Case Converter's
+// conversions.
 import { instantiateWasi } from './wasi';
 import wasmUrl from './bin/textkit.wasm?url';
 import { lazyEngine } from '../lifecycle';
@@ -10,12 +11,15 @@ export interface TextCounts { words: number; chars: number; noSpace: number; sen
 
 const enc = new TextEncoder(), dec = new TextDecoder();
 export function bindTextkit(e: any) {
+  const call = (fn: 'tk_stats' | 'tk_case', text: string) => {
+    const b = enc.encode(text), p = e.tk_alloc(b.length);
+    new Uint8Array(e.memory.buffer, p, b.length).set(b);
+    try { e[fn](p, b.length); return JSON.parse(dec.decode(new Uint8Array(e.memory.buffer, e.tk_out_ptr(), e.tk_out_len()))); } finally { e.tk_free(p, b.length); }
+  };
   return {
-    stats(text: string): TextCounts {
-      const b = enc.encode(text), p = e.tk_alloc(b.length);
-      new Uint8Array(e.memory.buffer, p, b.length).set(b);
-      try { e.tk_stats(p, b.length); return JSON.parse(dec.decode(new Uint8Array(e.memory.buffer, e.tk_out_ptr(), e.tk_out_len()))); } finally { e.tk_free(p, b.length); }
-    },
+    stats: (text: string): TextCounts => call('tk_stats', text),
+    /** The Case Converter's conversions of a text, in the order of CASE_NAMES (src/lib/caseconv.ts). */
+    cases: (text: string): string[] => call('tk_case', text),
   };
 }
 export type Textkit = ReturnType<typeof bindTextkit>;

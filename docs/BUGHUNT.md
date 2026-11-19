@@ -123,7 +123,7 @@ Areas with a shared review: the app shell (router, search, favorites, platform h
 | id | Tab | Platform | Area | R | B | T | Notes |
 |---|---|---|---|---|---|---|---|
 | `wordcount` | Word Counter | PC + mobile | text | ✓ | 17 | 145 | new engine textkit.wasm (unicode-segmentation + own rules); words as Word counts them; abbreviations, initials; lazyEngine for all wrappers |
-| `case` | Case Converter | PC + mobile | text |  |  |  |  |
+| `case` | Case Converter | PC + mobile | text | ✓ | 14 | 108 | conversions in textkit.wasm (case.rs); Title Case = port of python titlecase; code cases held to change-case; lines kept |
 | `lines` | Line Tools | PC + mobile | text |  |  |  |  |
 | `replace` | Find & Replace | PC + mobile | text |  |  |  |  |
 | `diff` | Text Diff | PC + mobile | text |  |  |  |  |
@@ -1056,3 +1056,26 @@ Reference for the five finance tabs: **mpmath at 60 digits** (`scripts/make-fina
   count of Word and `wc -w`, which a word limit is checked against — except that a dash or an ellipsis between two
   words separates them. References: `tests/fixtures/wordcount/` (wc / Word, Python's `regex`, pySBD, Snowball's stop
   words — `python3 scripts/make-wordcount-reference.py`), ICU in the unit suite.
+- **`case` (tab 91, 14 bugs; the conversions moved into textkit.wasm; unit `tests/unit/caseconv.test.mjs` 79, e2e 43
+  — before: 9 e2e checks and 5 unit lines).**
+  1. Title Case wrote "Don’T" for "don’t" (a typographic apostrophe split the word).
+  2. Title Case took the writer's capitals away: "the NASA iPhone app" → "The Nasa Iphone App".
+  3. Title Case knew one first and one last word for the whole text: of a list of titles only the first began with
+     its capital ("of Mice and Men"), and a small word after ? or ! stayed small.
+  4. Title Case wrote "Example.Com" for an address.
+  5. Title Case searched its list of words once for every word: 7 s a keystroke at 80,000 words (measured), four
+     times that at twice the length. One pass now (100,000 words in under 0.1 s).
+  6. Sentence case gave only the first line its capital; a new paragraph began small.
+  7. Sentence case: no capital after an opening quotation mark or bracket (`he said. "then we left."`).
+  8. Sentence case wrote "obéI" for the French "obéi": its test for the lone word "i" knew ASCII letters only.
+  9. Code cases took an apostrophe for a divider: "don't stop" → `don_t_stop`.
+  10. Code cases cut words at every combining mark and dropped it: Hindi "नमस्ते दुनिया" → `नमस_त_द_निया`, an accent
+      written as a mark was lost.
+  11. Code cases joined all lines into one name: a list of column names came out as one long word.
+  12. Upper and lower case followed the browser's language: on a Turkish browser "TITLE" became "tıtle" and "fish"
+      "FİSH" (and camelCase did, while snake_case did not).
+  13. A result of several lines was shown as one line (it was copied right).
+  14. All twelve copy buttons had the same name ("Copy"): a screen reader could not tell them apart.
+  Added: **Capitalized Case** (Word's "Capitalize Each Word" — the tab's keywords promised "capitalize"); a tooltip
+  per row; long results shown up to 20,000 characters and copied whole; texts above 200,000 characters converted
+  when the typing pauses; Mc / O' / d' names in Title Case.

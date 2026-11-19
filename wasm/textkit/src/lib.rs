@@ -5,9 +5,12 @@
 //!
 //!   tk_stats(text, len) → 0, JSON in tk_out_ptr() / tk_out_len():
 //!     { words, chars, noSpace, sentences, paragraphs, lines, wordChars, bytes, top: [[word, count], …] }
+//!   tk_case(text, len)  → 0, JSON: the thirteen conversions of the Case Converter (case.rs)
 use std::cell::RefCell;
 use std::collections::HashMap;
 use unicode_segmentation::UnicodeSegmentation;
+
+mod case;
 
 thread_local! { static OUT: RefCell<Vec<u8>> = RefCell::new(Vec::new()); }
 #[no_mangle] pub extern "C" fn tk_alloc(n: usize) -> *mut u8 { let mut v = Vec::<u8>::with_capacity(n.max(1)); let p = v.as_mut_ptr(); std::mem::forget(v); p }
@@ -115,7 +118,7 @@ impl Words<'_> {
 
 // ------------------------------------------------------------------ sentences
 /// Abbreviations after which a full stop does not end the sentence, whatever follows.
-const ABBR: &[&str] = &["mr", "mrs", "ms", "mx", "dr", "prof", "sr", "jr", "st", "mt", "smt", "shri", "sri", "kum", "er", "adv", "gen", "col", "lt", "capt",
+pub(crate) const ABBR: &[&str] = &["mr", "mrs", "ms", "mx", "dr", "prof", "sr", "jr", "st", "mt", "smt", "shri", "sri", "kum", "er", "adv", "gen", "col", "lt", "capt",
     "cpt", "sgt", "cmdr", "maj", "brig", "rev", "fr", "hon", "gov", "sen", "rep", "pres", "supt", "insp", "messrs", "mme", "mlle", "vs", "v", "viz", "cf",
     "e.g", "i.e", "approx", "ca", "pvt"];
 /// … and those that are one only before a number: "No. 5", "Fig. 3", "Rs. 500" — but "The answer is No. That is final."
@@ -268,5 +271,16 @@ fn stats(text: &str) -> String {
     let text = String::from_utf8_lossy(bytes);
     let json = stats(&text);
     OUT.with(|o| *o.borrow_mut() = json.into_bytes());
+    0
+}
+
+/// The Case Converter's conversions of a UTF-8 text: a JSON array of strings in the order of case::all().
+#[no_mangle] pub unsafe extern "C" fn tk_case(p: *const u8, n: usize) -> i32 {
+    let text = String::from_utf8_lossy(std::slice::from_raw_parts(p, n));
+    let mut out = String::with_capacity(text.len() * 14 + 64);
+    out.push('[');
+    for (i, v) in case::all(&text).iter().enumerate() { if i > 0 { out.push(','); } json_str(&mut out, v); }
+    out.push(']');
+    OUT.with(|o| *o.borrow_mut() = out.into_bytes());
     0
 }

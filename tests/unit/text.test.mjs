@@ -6,12 +6,6 @@ export default async (t, { load, wasm }) => {
   t.eq(x.toMorse('SOS Help'), '... --- ... / .... . .-.. .--.', 'to morse');
   t.eq(x.fromMorse('... --- ... / .... . .-.. .--.'), 'SOS HELP', 'from morse');
   t.eq(x.fromMorse(x.toMorse('Hello, World 2026!')), 'HELLO, WORLD 2026!', 'morse round trip');
-  // case
-  const c = Object.fromEntries(x.CASES.map(([n, f]) => [n, f('the quickBrown fox-of the_year')]));
-  t.eq(c['camelCase'], 'theQuickBrownFoxOfTheYear', 'camel'); t.eq(c['snake_case'], 'the_quick_brown_fox_of_the_year', 'snake');
-  t.eq(c['kebab-case'], 'the-quick-brown-fox-of-the-year', 'kebab'); t.eq(c['CONSTANT_CASE'], 'THE_QUICK_BROWN_FOX_OF_THE_YEAR', 'constant');
-  t.eq(x.CASES.find(([n]) => n === 'Title Case')[1]('war and peace of the world'), 'War and Peace of the World', 'title case small words');
-  t.eq(x.CASES.find(([n]) => n === 'Sentence case')[1]('HELLO THERE. HOW ARE YOU?'), 'Hello there. How are you?', 'sentence case');
   // fancy
   const bold = x.FANCY.find(([n]) => n === 'Bold')[1]('Ab1'); t.eq(bold, '𝐀𝐛𝟏', 'bold unicode');
   t.eq(x.FANCY.find(([n]) => n === 'Upside down')[1]('hi'), 'ᴉɥ', 'upside down');

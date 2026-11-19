@@ -6,6 +6,7 @@ import { textcore, type DiffOp } from '../wasm/textcore';
 import { textkit, type Textkit } from '../wasm/textkit';
 import { textStats, timeText, EMPTY, READING_WPM, SPEAKING_WPM, type TextStats } from '../lib/wordcount';
 import { roundDec } from '../lib/round';
+import { CASE_NAMES, CASE_HINTS, SHOWN, shownPart } from '../lib/caseconv';
 import { sodium } from '../wasm/crypto';
 import { devcore, type Devcore } from '../wasm/devcore';
 import { trackWorker, releaseNow } from '../lifecycle';
@@ -52,37 +53,29 @@ export const wordcount: Mount = (root) => {
 };
 
 // ================================================================== Case converter
-/** words for code-style cases: split at camelCase humps and acronyms (XMLHttpRequest → XML Http Request), drop punctuation */
-const wordsOf = (s: string) => s.replace(/(\p{Ll}|\p{N})(\p{Lu})/gu, '$1 $2').replace(/(\p{Lu}+)(\p{Lu}\p{Ll})/gu, '$1 $2').split(/[^\p{L}\p{N}]+/u).filter(Boolean);
-const cap = (w: string) => w.charAt(0).toLocaleUpperCase() + w.slice(1);
-const SMALL = new Set('a an and as at but by for if in nor of on or per the to vs via'.split(' '));
-export const CASES: Array<[string, (s: string) => string]> = [
-  ['UPPER CASE', (s) => s.toLocaleUpperCase()],
-  ['lower case', (s) => s.toLocaleLowerCase()],
-  // small words stay lower case except first, last and after : — (Chicago style)
-  ['Title Case', (s) => { const low = s.toLocaleLowerCase(), ws = [...low.matchAll(/[\p{L}\p{N}']+/gu)], last = ws.length - 1;
-    return low.replace(/[\p{L}\p{N}']+/gu, (w, off) => { const k = ws.findIndex((m) => m.index === off), prev = low.slice(0, off).trimEnd(); return k > 0 && k < last && SMALL.has(w) && !/[:—–]$/.test(prev) ? w : cap(w); }); }],
-  // a full stop after a lone letter is an abbreviation (i.e., e.g., U.S.), not the end of a sentence
-  ['Sentence case', (s) => s.toLocaleLowerCase().replace(/(^\s*|(?<!(?:^|[\s.])\p{L})[.!?]\s+)(\p{L})/gu, (_, p, c) => p + c.toLocaleUpperCase()).replace(/\bi\b(?![.'’]?\p{L})|\bi(?=['’](m|ll|ve|d)\b)/gu, 'I')],
-  ['camelCase', (s) => wordsOf(s).map((w, i) => (i ? cap(w.toLocaleLowerCase()) : w.toLocaleLowerCase())).join('')],
-  ['PascalCase', (s) => wordsOf(s).map((w) => cap(w.toLocaleLowerCase())).join('')],
-  ['snake_case', (s) => wordsOf(s).map((w) => w.toLowerCase()).join('_')],
-  ['kebab-case', (s) => wordsOf(s).map((w) => w.toLowerCase()).join('-')],
-  ['CONSTANT_CASE', (s) => wordsOf(s).map((w) => w.toUpperCase()).join('_')],
-  ['dot.case', (s) => wordsOf(s).map((w) => w.toLowerCase()).join('.')],
-  ['aLtErNaTiNg', (s) => [...s].map((c, i) => (i % 2 ? c.toUpperCase() : c.toLowerCase())).join('')],
-  ['iNVERSE', (s) => [...s].map((c) => (c === c.toUpperCase() ? c.toLowerCase() : c.toUpperCase())).join('')],
-];
+// The conversions are textkit.wasm's (wasm/textkit/src/case.rs); this builds the rows.
 export const caseConv: Mount = (root) => {
-  const ta = textarea({ rows: 6, value: 'The quick brown fox jumps over the lazy dog', placeholder: 'Text…' });
-  const list = h('div', { class: 'stack' });
-  const run = () => clear(list).append(...CASES.map(([name, f]) => {
-    const v = f(ta.value);
-    return h('div', { class: 'case-row' }, h('span', { class: 'case-name' }, name), h('code', { class: 'case-val' }, v), button('', () => copy(v), { icon: 'Copy', small: true, variant: 'ghost', title: 'Copy' }));
-  }));
-  ta.addEventListener('input', run);
-  root.append(card(null, ta), card('Conversions', list));
-  run();
+  const ta = textarea({ rows: 6, value: 'The quick brown fox jumps over the lazy dog', placeholder: 'Text…' }); ta.setAttribute('aria-label', 'Text to convert');
+  const values: string[] = CASE_NAMES.map(() => '');
+  const codes = CASE_NAMES.map(() => h('code', { class: 'case-val' }));
+  const problem = h('div', { class: 'stack' }), cutNote = h('p', { class: 'muted small', hidden: true }, `Long results are shown up to their first ${SHOWN.toLocaleString('en-IN')} characters — Copy gives all of it.`);
+  const list = h('div', { class: 'stack' }, CASE_NAMES.map((name, i) => h('div', { class: 'case-row', title: CASE_HINTS[name] }, h('span', { class: 'case-name' }, name), codes[i],
+    button('', () => { if (values[i]) copy(values[i]); }, { icon: 'Copy', small: true, variant: 'ghost', title: `Copy ${name}` }))));
+  let kit: Textkit | null = null, timer = 0, gone = false;
+  const show = (vals: string[]) => { vals.forEach((v, i) => { values[i] = v; codes[i].textContent = shownPart(v); }); cutNote.hidden = !vals.some((v) => v.length > SHOWN); };
+  const run = async () => {
+    if (!ta.value) return show(CASE_NAMES.map(() => ''));
+    try {
+      if (!kit) { kit = await textkit(); if (gone) return; }
+      clear(problem);
+      show(kit.cases(ta.value)); // the text as it is now
+    } catch (e: any) { clear(problem).append(note(`The converter could not be loaded — ${e?.message || e}. Type again to retry.`, 'err')); }
+  };
+  // a very long text is converted when the typing pauses
+  ta.addEventListener('input', () => { clearTimeout(timer); if (ta.value.length > 200_000) timer = window.setTimeout(run, 250); else void run(); });
+  root.append(card(null, ta, problem), card('Conversions', list, cutNote));
+  void run();
+  return () => { gone = true; clearTimeout(timer); };
 };
 
 // ================================================================== Line tools

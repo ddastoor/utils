@@ -574,3 +574,25 @@ One entry per tab, written before its bug hunt: our module → candidates → ch
   random strings of the code points the rules are about, and equal Python's `regex` module on the corpus; sentences
   equal ICU and the construction count on 1,500 generated texts and pySBD on the English corpus (two texts where
   pySBD is wrong are listed with the reason); words equal `wc -w` / Word on 32 texts in 16 languages.
+
+### 91. `case` — Case Converter (19 Nov 2026)
+- **Ours before:** no engine: twelve one-line functions in TypeScript on the browser's `toLocaleUpperCase` /
+  `toLocaleLowerCase` and regular expressions (title rules, sentence starts, word splitting for camelCase & co.).
+- **Candidates (existing WebAssembly modules):** none — case conversion is published as JavaScript (`change-case`,
+  `title-case` on npm) or as Rust / Python libraries, not as WebAssembly.
+- **Open-source code to build from (rule 2), each tried on the tab's texts:**
+  - **`heck`** 0.5.0 (1.6 billion downloads; snake / kebab / camel …): cuts a word at every combining mark and drops
+    the mark — "नमस्ते" → `नमस_ते` (the virama gone), "café" written with a combining accent → `cafe`; "don't" →
+    `don_t`; joins all lines into one name.
+  - **`convert_case`** 0.8 (660 million downloads): keeps punctuation inside the names — "Hello, world!" →
+    `hello,_world!`; splits `v2Api` into `v_2_api`.
+  - **`titlecase`** 3.6.0 (3 million downloads; Gruber's rules; needs the `regex` crate, + 0.6 MB): "state-of-the-art"
+    → `State-Of-The-Art`; `'that's what happens'` after a colon stays small; a second line is no title of its own.
+  Each fails on something the tab needs and the fault is inside the library (a defect, not a missing feature).
+- **Decision:** **our own Rust in textkit.wasm** (`wasm/textkit/src/case.rs`, + 45 KB): case mapping by Rust's
+  standard library (Unicode's full mappings: ß → SS, final sigma), words by the `unicode-segmentation` crate's
+  grapheme clusters (a mark stays with its letter), Title Case as a port of the Python package **`titlecase`**
+  2.4.1 (MIT) — the faithful carrier of Gruber's rules, which the Rust crate is not.
+- **Evidence:** Title Case equals the Python package on 197 of 203 titles (its own 72 tests among them); the six
+  others are differences on purpose, listed with their reasons in the unit suite. The six code cases equal npm's
+  `change-case` 5.4.4 on 3,016 generated names. UPPER and lower equal ICU on 2,509 texts.

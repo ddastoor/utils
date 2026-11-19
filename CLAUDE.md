@@ -890,6 +890,37 @@ from Safari's and Firefox's — `docs/WASM-AUDIT.md`, tab 90), except the words 
   a click on a count copies the plain number; "How these are counted" states the rules; a failed download of the
   engine is said and tried again at the next keystroke.
 
+### Case Converter — as built after the Nov 2026 bug hunt
+(`caseConv` in `src/tools/text.ts`, names and hints `src/lib/caseconv.ts`, engine textkit.wasm `tk_case` —
+`wasm/textkit/src/case.rs`, §5.1o; unit `tests/unit/caseconv.test.mjs` 79, e2e `tests/e2e/case.e2e.mjs` 43; reference
+`python3 scripts/make-case-reference.py` → `tests/fixtures/caseconv/reference.json`, needs `pip install titlecase regex`.)
+Thirteen conversions of the text, **line by line** (line breaks, blank lines and tabs stay as they are), the same in
+every browser and language setting (nothing uses the browser's locale):
+- **UPPER CASE / lower case:** Unicode's full case mapping (ß → SS, ﬁ → FI, the Greek final sigma).
+- **Title Case:** John Gruber's rules as the Python package `titlecase` carries them out (the reference of the
+  tests): every word gets its capital except a, an, and, as, at, but, by, en, for, if, in, of, on, or, the, to, v,
+  via, vs inside a line; the first and the last word of a line always, and a small word after `: . ; ? ! -`; a word
+  with a capital inside (iPhone, NASA) or a full stop inside (example.com) stays as typed; the parts of a compound
+  are handled one by one (State-of-the-Art); a line in capitals is lowered first; Mc, O', d' names; Mr / Mrs / Ms /
+  Dr. **On purpose not as the package:** no "a word without vowels is an acronym" guess (it wrote "Pvt Ltd" as "PVT
+  LTD"); "Mc" only with three letters behind it and not on the writer's own capitals (MCQs); a word left as typed
+  is not touched by the first / last / after-a-colon rules; tabs and blank lines kept; typographic apostrophes.
+- **Sentence case:** lower case, a capital at the start of the text, of every line and after `. ! ? …` (with closing
+  quotes or brackets) and a space — the first letter may stand behind an opening quotation mark or bracket; none
+  after a single letter with a full stop (e.g., p.m., an initial) or after a title or fixed abbreviation (the list
+  of the Word Counter); the English "I", "I'm", "I'll", "I've", "I'd". Names cannot be known and stay small.
+- **Capitalized Case:** every word with a capital, the rest small (Word's "Capitalize Each Word"); a word begins
+  after a space, hyphen, slash, bracket or quotation mark, not after an apostrophe.
+- **camelCase, PascalCase, snake_case, kebab-case, CONSTANT_CASE, dot.case:** one name per line. Words are runs of
+  letters and digits with the marks that belong to them (grapheme clusters: Hindi vowel signs, accents written as
+  marks), cut at lower→Upper, before the last capital of a run of capitals (XMLHttp → XML, Http) and at
+  digit→Upper (v2Api → v2, Api) — as npm's `change-case` cuts; an apostrophe between letters is dropped.
+- **aLtErNaTiNg** (by position in the text) and **iNVERSE**, as they always were.
+- **The tab:** the sample sentence is converted as the tab opens (so textkit.wasm is fetched at open — on the lazy
+  test's list); each row has its own copy button ("Copy snake_case") and a tooltip that says what it does; results
+  keep their line breaks on screen; a result is shown up to 20,000 characters and copied whole; a text above
+  200,000 characters is converted when the typing pauses.
+
 ### SQLite Playground (PC) — as built after the Nov 2026 bug hunt
 (`src/tools/software/sqlite.ts`, engine `src/lib/sqlite-engine.ts`, worker `src/workers/sqlite.worker.ts`; unit
 `tests/unit/sqlite.test.mjs` 106, e2e `tests/e2e/sqlite.e2e.mjs` 63.) Engine: the **official SQLite WebAssembly build**
@@ -1328,7 +1359,7 @@ stay **public** (the source of the deployed site is then available to every user
 | whisper: **whisper.cpp 1.8.3** + ggml CPU backend (upstream unmodified) + own threadshim.h (std::mutex/std::thread/fstream for zig's thread-less libc++), backend-reg.cpp (static CPU-only registry), cxxabi_stubs.c (throw = abort), glue.cpp | C / C++ | **us** (`wasm/whisper`) | stt |
 | geo: Charles Karney's **geodesic.c 2.2** (GeographicLib's geodesic routines in C, MIT; the two files unmodified from the PROJ 9.9.0 release) + glue (inverse problem on WGS-84, half-way point, the haversine great circle for comparison) | C | **us** (`wasm/geo`, 36 KB, loaded by the Coordinates tab only; no tried-and-tested WebAssembly geodesic module exists: `docs/WASM-AUDIT.md`, tab 82) | coords |
 | textcore: Myers diff, tool-search ranking, rare-word ranking (tokeniser, lemmatiser, wordfreq hash table), XY-cut reading order | C (own code) | **us** (`wasm/textcore`) | diff, search box, photodict |
-| textkit: **unicode-segmentation 1.13.3** (the Rust ecosystem's UAX #29 implementation, Unicode 17.0, MIT / Apache-2.0: extended grapheme clusters, sentence boundaries) + our counting rules: words as a word limit counts them, abbreviations and initials, lines and paragraphs, keywords (Snowball's stop words) | Rust | **us** (`wasm/textkit`, crates.io via `Cargo.lock`, 170 KB, fetched with the Word Counter's first text; the existing module — ICU4X's official build — is one file of 20 MB: `docs/WASM-AUDIT.md`, tab 90) | wordcount |
+| textkit: **unicode-segmentation 1.13.3** (the Rust ecosystem's UAX #29 implementation, Unicode 17.0, MIT / Apache-2.0: extended grapheme clusters, sentence boundaries) + our counting rules: words as a word limit counts them, abbreviations and initials, lines and paragraphs, keywords (Snowball's stop words); **the Case Converter's thirteen conversions** (`case.rs`: Title Case is a port of the Python package `titlecase` 2.4.1 — Gruber's rules, MIT; the code cases cut words as npm's `change-case` does; case mapping by Rust's standard library) | Rust | **us** (`wasm/textkit`, crates.io via `Cargo.lock`, 215 KB, fetched with the Word Counter's first text and with the Case Converter; the existing module — ICU4X's official build — is one file of 20 MB: `docs/WASM-AUDIT.md`, tab 90) | wordcount, case |
 | sheet: calamine 0.38 (read .xlsx .xlsm .xlsb .xls .ods) + rust_xlsxwriter 0.102 (write .xlsx) + csv 1 + serde_json | Rust | **us** (`wasm/sheet`, crates.io sources verified by `Cargo.lock`, target wasm32-wasip1) | sheet |
 | svgo: **OXVG 0.0.9** (Rust port of SVGO's plugins; lightningcss for `<style>`) + our glue: DOCTYPE / entities allowed, nesting limit 256, **our own safe preset** (OXVG's `Jobs::safe()` is not safe), `sv_diff` (do two rasters look alike? — the tab renders every result next to its original and falls back to the safe result when the full optimisation changed the picture) | Rust | **us** (`wasm/svgo`, crates.io via `Cargo.lock`, opt-level z, 4.9 MB / 1.3 MB gz, loaded with the first SVG; unit `tests/unit/svgo.test.mjs`, hazard drawings `tests/fixtures/svg/hazards.json`) | svgo |
 | keys — the **supplement** to hash-wasm for the key tabs (owner's tweak of 18 Nov 2026: what the existing module does not cover): lenient Base32 secrets, HOTP counters and truncation; checked parameters, random salts, PHC strings for scrypt / PBKDF2 and the reader of pasted hashes; RustCrypto **argon2** for Argon2 version 1.0 hashes (v=16 or no version, keyid / data), which hash-wasm does not read; RustCrypto **ssh-key** (OpenSSH Ed25519 generation), **aes + ctr + bcrypt-pbkdf** and our own OpenSSH wire reader (inspect Ed25519 / RSA / ECDSA / DSA keys, encrypted private keys, authorized_keys / known_hosts lines); API keys | Rust | **us** (`wasm/keys`, 0.31 MB; no existing WebAssembly module makes or reads OpenSSH key files) | totp, pwhash (with hash-wasm); sshkey, apikey |
@@ -1402,6 +1433,8 @@ Nov 2026 (Equation Solver): `src/lib/exact.ts` + `src/lib/equations.ts` — exac
 (compiled big-number arithmetic, like JSON.parse or RegExp in this list): discriminants, elimination on at most 4 × 4,
 Newton's step with exact residuals. mathcore's exact fractions are 64-bit and overflow here; the iterations and the
 root search stay in mathcore.
+Nov 2026 (Case Converter): nothing — the conversions are textkit.wasm's; `src/lib/caseconv.ts` holds the row names,
+the tooltips and the cut of a long result for the screen.
 Nov 2026 (Word Counter): the words of Thai, Lao, Khmer and Burmese stretches are cut by the browser's `Intl.Segmenter`
 (its dictionaries; `src/lib/wordcount.ts`) and added to textkit.wasm's count — the part the engine does not cover.
 Nov 2026 (Coordinates, Sleep Cycle): `src/lib/coords.ts` — reading a coordinate as a person typed it (one regular
@@ -1458,7 +1491,8 @@ Owner: "make the full site faster, more responsive and memory efficient — load
    in `AT_OPEN` in the test): our three small engines (mathcore/crypto/textcore ≤ 155 KB: live results as you
    type), invoice/rent/resume (MuPDF + Noto Sans: the live PDF preview is the main view), markdown (cmark-gfm,
    sample preview), terminal (BusyBox: the shell is ready at once), qr/barcode (zxing-cpp: drawn as you type),
-   caption/watermark/signature (fonts of the first preview), coords (geo.wasm, 36 KB: the sample distance), cidr/cron/semver/glob/patch (their devcore-<tab>.wasm: the
+   caption/watermark/signature (fonts of the first preview), coords (geo.wasm, 36 KB: the sample distance), case
+   (textkit.wasm, 0.21 MB: the sample sentence in all its conversions), cidr/cron/semver/glob/patch (their devcore-<tab>.wasm: the
    sample is computed live), json/jwt/xml/json2types/jsondiff/base64 (their devcore module: the sample is formatted,
    decoded, compared or converted at once), mermaid (the sample diagram), graphviz (the sample graph: its module
    and worker). Adding to that list needs a reason in the test.
@@ -1758,7 +1792,8 @@ from its .dsc), check the version line, `python3 scripts/make-geo-reference.py`,
 **`unicode-segmentation` 1.13.3** (crates.io, pinned by `Cargo.lock`; MIT / Apache-2.0; Unicode 17.0). Our code
 (`src/lib.rs`, ~250 lines): `tk_stats(text, len)` → JSON in `tk_out_ptr()` / `tk_out_len()`:
 `{ words, chars, noSpace, sentences, paragraphs, lines, wordChars, bytes, top: [[word, count], …] }`; `tk_alloc` /
-`tk_free`. The rules are those of §3 "Word Counter". Speed: plain ASCII is counted without the segmenter (between
+`tk_free`. The rules are those of §3 "Word Counter". `src/case.rs` (~260 lines): `tk_case(text, len)` → a JSON array
+of the thirteen conversions of §3 "Case Converter", in the order of `CASE_NAMES` (`src/lib/caseconv.ts`). Speed: plain ASCII is counted without the segmenter (between
 two ASCII characters there is always a cluster boundary, except inside CR LF); a stretch around other characters
 goes to the crate. No imports beyond the WASI start-up. Wrapper `src/wasm/textkit.ts` (`bindTextkit`, `textkit()`).
 **To update:** `cargo update -p unicode-segmentation` in `wasm/textkit`, build, run `node tests/unit.mjs wordcount`
@@ -1810,6 +1845,7 @@ npm packages (pinned in `package-lock.json`) are bundled by Vite or copied to `p
 | prettier 3 | MIT | Code Formatter (Markdown; fallback) |
 | *test only (devDependencies, not shipped):* typescript-classic (= typescript 5.9.3), postcss, postcss-scss, parse5, graphql, marked, @vue/compiler-sfc, yaml | Apache-2.0 / MIT / ISC | independent readers of the Code Formatter's suites |
 | *test only:* delaunator 5.1.0 | ISC | the original that `wasm/graphviz/st_delaunay.h` (our C port, shipped inside graphviz.wasm) is held to |
+| *test only:* change-case 5.4.4 | MIT | the reference of the Case Converter's code cases (`tests/unit/caseconv.test.mjs`) |
 | @expo-google-fonts/noto-sans (Noto Sans TTF: regular, bold, italic) | OFL-1.1 (package MIT) | PDFs made by GST Invoice, Rent Receipt, Resume Builder |
 
 **Data files committed in `public/data/`**: EFF large wordlist (CC-BY 3.0); `dict/` — English Wiktionary via

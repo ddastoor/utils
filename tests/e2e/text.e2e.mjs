@@ -3,9 +3,10 @@ export default async ({ base, page: newPage, ok }) => {
   const page = await newPage();
   const go = async (r) => { await page.goto(base + '#/' + r); await page.waitForSelector('.tool-body > *', { timeout: 15000 }); };
   await go('wordcount'); await page.locator('textarea').fill('One two three. Four five!');
-  ok((await page.locator('.big-value').first().textContent()) === '5', 'word counter: 5 words');
+  // (both tabs fetch their engine with the first text: the answer comes a moment after the typing)
+  ok(await page.waitForFunction(() => document.querySelector('.big-value').textContent === '5', null, { timeout: 8000 }).then(() => true, () => false), 'word counter: 5 words');
   await go('case'); await page.locator('textarea').fill('hello world');
-  ok((await page.locator('.case-val').allTextContents()).includes('HELLO WORLD'), 'case: upper');
+  ok(await page.waitForFunction(() => [...document.querySelectorAll('.case-val')].some((e) => e.textContent === 'HELLO WORLD'), null, { timeout: 8000 }).then(() => true, () => false), 'case: upper');
   await go('lines'); await page.waitForTimeout(100);
   ok((await page.locator('.outbox textarea').inputValue()) === '9\n10\napple\nbanana\nBanana\ncherry', 'line tools: trim, dedupe, natural sort');
   await go('replace'); await page.waitForTimeout(100);
