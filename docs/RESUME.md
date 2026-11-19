@@ -85,8 +85,8 @@ what those suites missed.
   DONE** (11 bugs; `fdPlan`, mathcore `growth()`, `roundDec` in the shared formatters). **`percent` (tab 63) is
   DONE** (9 bugs; `src/lib/percent.ts`: exact decimals, held to Python's fractions). **`words` (tab 64) is DONE**
   (10 bugs; `src/lib/words.ts`, "and" rule in mathcore `m_words`, held to num2words — `pip install num2words
-  --no-deps`). **NEXT: `timezone`**, then `bmi`, `calories`, `duedate`, `tip`, `fuel`, `gpa`, `base`, `roman`;
-  per tab: the
+  --no-deps`). **`timezone` (tab 65) is DONE** (6 bugs; `src/lib/tz.ts`, a "To zone", held to Python's zoneinfo).
+  **NEXT: `bmi`**, then `calories`, `duedate`, `tip`, `fuel`, `gpa`, `base`, `roman`; per tab: the
   existing-module check with its entry in `docs/WASM-AUDIT.md` first (the survey of entry 56 covers calculators:
   no tried-and-tested WebAssembly calculator exists), then bugs, tests, fixes. Reference tools at hand: mpmath
   (`pip install mpmath`), Python's `decimal` / `fractions` / `datetime` / `zoneinfo`.

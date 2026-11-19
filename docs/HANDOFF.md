@@ -232,3 +232,6 @@ export ZIG=/tmp/zig/x/ziglang/zig
 - **e2e waiting without sleeps:** the Graphviz tab sets `aria-busy` on the drawing while a text has no answer yet;
   `settled()` in its suite waits for `aria-busy="false"` and a loaded picture. Worth copying in tabs that redraw as
   you type.
+- **Lead for the app-shell area (not yet looked into, 19 Nov 2026):** on a phone (iPhone 13 emulation) the header's
+  search box (`.search-input`) is 40 px tall — the owner's rule is 44 px touch targets.
+

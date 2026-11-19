@@ -89,7 +89,7 @@ Areas with a shared review: the app shell (router, search, favorites, platform h
 | `fd` | FD / RD Calculator | PC + mobile | calc-core | ✓ | 11 | 144 | nothing to replace (WASM-AUDIT 62); held to mpmath (1,100 deposits, 1,000 recurring deposits) + the banks' RD formula + exact decimal yields; refusals with reasons; no freeze; engine growth() keeps 15 digits over 1,200 periods; shared roundDec (7.1225 → 7.123) with its own unit suite |
 | `percent` | Percentage Calculator | PC + mobile | calc-core | ✓ | 9 | 94 | nothing to replace (WASM-AUDIT 63); exact decimals: one division of whole numbers, held to Python's fractions (841 pairs × 6); tiny answers never 0; % change by |A| with the right sign; reasons where there is no answer; copy plain digits |
 | `words` | Number to Words | PC + mobile | calc-core | ✓ | 10 | 188 | nothing to replace (WASM-AUDIT 64); held to num2words (1,598 numbers, both systems); 'and' before a last part below a hundred; singular paisa / dollar / cent; plain numbers with any decimals and a sign; all 19 digits in Digits; lenient reading of ₹ Rs INR /-; shared with invoice and rent receipt |
-| `timezone` | Time Zone Converter | PC + mobile | calc-core |  |  |  |  |
+| `timezone` | Time Zone Converter | PC + mobile | calc-core | ✓ | 6 | 106 | nothing to replace (WASM-AUDIT 65: the browser's zone database); held to Python's zoneinfo (2,288 offsets, 3,095 readings around clock changes); offsets with seconds; years 1–99; a To zone among all zones; the year shown; renamed zones; difference in words |
 | `bmi` | BMI Calculator | PC + mobile | calc-core |  |  |  |  |
 | `calories` | Calorie Calculator | PC + mobile | calc-core |  |  |  |  |
 | `duedate` | Pregnancy Due Date | PC + mobile | calc-core |  |  |  |  |
@@ -782,4 +782,18 @@ reference cases.
   12,34,567.5 beside "Fifty Paise"; (10) in the invoice and the rent receipt an amount ending in half a paisa could
   lose it (the shared `rupeesInWords` reads the amount as it is written). Refusals now say what is wrong (not a
   number, written with an exponent, three decimals, a minus sign on money, more than 19 digits).
+- **timezone** — Time Zone Converter (6 bugs; unit 0 → 74, e2e 11 → 43 — one of them a loop over 130 readings).
+  Nothing to replace (`docs/WASM-AUDIT.md` tab 65: the zone database is the browser's). Reference: **Python's
+  zoneinfo** on tzdata 2026e (`scripts/make-tz-reference.py`): 2,288 offsets of 52 zones from 1850 to 2037 and 3,095
+  wall-clock readings around every clock change of seven years — which exist once, twice, or not at all. The reading
+  of wall-clock times was right (all 3,095 agree); what was wrong: (1) **an offset with seconds was written
+  "UTC+05:53.46666666666664"** (Kolkata before 1906, every zone before standard time); (2) **the years 1 to 99 were
+  worked out as 1901 to 1999** — wrong weekday, wrong offsets (Date.UTC again); (3) **a time could only be converted
+  to thirty fixed cities** — there was no "To zone" among the 419 zones of the list; (4) the year was never shown,
+  not even across New Year; (5) Samoa's skipped day (30 Dec 2011) was "read as 12:00 pm" without saying of which
+  day; (6) fourteen zones were listed under names tzdata has replaced (America/Buenos_Aires, America/Godthab,
+  Atlantic/Faeroe, Pacific/Truk, Africa/Asmera …). Added: the answer in large type (a click copies it), the
+  difference between the two zones in words ("New York is 10 hours 30 minutes behind Kolkata"). Dates are taken from
+  2 January 0001 to 30 December 9999 (a day inside the calendar in every zone). Known and reported by the suite: the
+  browser's database can be older than the reference (Morocco's 2026 dates in this Chromium).
 

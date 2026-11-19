@@ -1,5 +1,5 @@
 import { h, card, field, input, select, segmented, button, clear, stack, copy, note, type Mount } from '../ui';
-import { localZone, modernZone } from '../lib/tz';
+import { localZone, modernZone, zoneLabel, zoneOffset, wallToInstant, offsetLabel, fmtInstant, fmtClock, zoneGap, utcMs } from '../lib/tz';
 import { calcForm, fmtINR, fmtN, need, today } from '../lib/form';
 import { mathcore } from '../wasm/mathcore';
 import { UNITS, convert, convertAll, belowAbsoluteZero, fmtUnit, plainUnit } from '../lib/units';
@@ -225,36 +225,33 @@ export const words: Mount = async (root) => {
 
 // ------------------------------------------------------------------ Time zones
 const ZONES = ['Asia/Kolkata', 'UTC', 'Europe/London', 'Europe/Berlin', 'Europe/Paris', 'America/New_York', 'America/Chicago', 'America/Denver', 'America/Los_Angeles', 'America/Toronto', 'America/Sao_Paulo', 'Asia/Dubai', 'Asia/Singapore', 'Asia/Tokyo', 'Asia/Shanghai', 'Asia/Hong_Kong', 'Asia/Karachi', 'Asia/Dhaka', 'Asia/Kathmandu', 'Asia/Colombo', 'Australia/Sydney', 'Australia/Perth', 'Pacific/Auckland', 'Africa/Johannesburg', 'Africa/Lagos', 'Europe/Moscow', 'Asia/Riyadh', 'Asia/Seoul', 'Asia/Jakarta', 'Asia/Manila'];
-function zoneOffset(zone: string, at: Date) {
-  const p = new Intl.DateTimeFormat('en-US', { timeZone: zone, hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' }).formatToParts(at);
-  const g = (t: string) => +p.find((x) => x.type === t)!.value;
-  return (Date.UTC(g('year'), g('month') - 1, g('day'), g('hour'), g('minute'), g('second')) - at.getTime()) / 60000;
-}
 export const timezone: Mount = (root) => {
   const all = (Intl as any).supportedValuesOf ? (Intl as any).supportedValuesOf('timeZone') as string[] : ZONES;
   const local = localZone(); // "Asia/Kolkata", not ICU's old "Asia/Calcutta" (India was listed twice)
-  const opts = [...new Set([local, ...ZONES, ...all].map(modernZone))].map((z) => [z, z.replace(/_/g, ' ')] as [string, string]);
+  const opts = [...new Set([local, ...ZONES, ...all].map(modernZone))].map((z) => [z, zoneLabel(z)] as [string, string]);
   const now = new Date();
   calcForm(root, [
     { key: 'date', label: 'Date', type: 'date', value: today() },
     { key: 'time', label: 'Time', type: 'time', value: `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}` },
     { key: 'from', label: 'From zone', type: 'select', value: local, options: opts },
+    { key: 'to', label: 'To zone', type: 'select', value: local === 'UTC' ? 'Asia/Kolkata' : 'UTC', options: opts },
   ], (v) => {
     if (!v.date || !v.time) throw new Error('Pick a date and time.');
-    const [y, mo, d] = v.date.split('-').map(Number), [hh, mm] = v.time.split(':').map(Number);
-    // wall-clock time in `from` → instant. Try the offsets in force 14 h before and after; keep those that read back as
-    // the same wall time. Two = the hour repeated when clocks go back (earlier one, as java.time); none = the hour
-    // skipped when clocks go forward (moved forward by the gap, as java.time).
-    const wall = Date.UTC(y, mo - 1, d, hh, mm), offAt = (t: number) => zoneOffset(v.from, new Date(t));
-    const cands = [...new Set([offAt(wall - 14 * 3600000), offAt(wall + 14 * 3600000)])].map((o) => wall - o * 60000);
-    const valid = cands.filter((t) => t + offAt(t) * 60000 === wall).sort((p, q) => p - q);
-    const at = new Date(valid[0] ?? cands[0]);
-    const zoneName = v.from.replace(/_/g, ' ');
-    const clockNote = valid.length > 1 ? `This time happens twice in ${zoneName} (clocks go back); the first one is used.`
-      : !valid.length ? `This time does not exist in ${zoneName} (clocks go forward); it is read as ${new Intl.DateTimeFormat('en-IN', { timeZone: v.from, hour: '2-digit', minute: '2-digit', hour12: true }).format(at)}.` : '';
-    const fmt = (z: string) => new Intl.DateTimeFormat('en-IN', { timeZone: z, weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true }).format(at);
-    const off = (z: string) => { const o = zoneOffset(z, at); return `UTC${o >= 0 ? '+' : '−'}${String(Math.floor(Math.abs(o) / 60)).padStart(2, '0')}:${String(Math.abs(o) % 60).padStart(2, '0')}`; };
-    return { rows: [...(clockNote ? [['Note', clockNote] as [string, string]] : []), ...[...new Set([v.from, ...ZONES])].map((z) => [`${z.replace(/_/g, ' ')} (${off(z)})`, fmt(z)] as [string, string])] };
+    const day = parseD(v.date), [hh, mm] = String(v.time).split(':').map(Number);
+    // a day inside the calendar in every zone (zones are up to 14 hours from UTC)
+    if (!day || day.getTime() < utcMs(1, 1, 2) || day.getTime() > utcMs(9999, 12, 30)) throw new Error('Pick a date between 2 January 0001 and 30 December 9999.');
+    const wall = day.getTime() + hh * 3600000 + mm * 60000, { at, kind } = wallToInstant(v.from, wall);
+    const from = zoneLabel(v.from), to = zoneLabel(v.to), gap = zoneGap(v.from, v.to, at);
+    const sameDay = Math.floor((at + zoneOffset(v.from, at) * 1000) / DAY) === Math.floor(wall / DAY);
+    const note = kind === 'twice' ? `This time happens twice in ${from} (clocks go back); the first one is used.`
+      : kind === 'skipped' ? `This time does not exist in ${from} (clocks go forward); it is read as ${sameDay ? fmtClock(at, v.from) : fmtInstant(at, v.from)}.` : '';
+    const line = (z: string) => [`${zoneLabel(z)} (${offsetLabel(zoneOffset(z, at))})`, fmtInstant(at, z)] as [string, string];
+    return {
+      big: [[`In ${to}`, fmtInstant(at, v.to)]],
+      rows: [...(note ? [['Note', note] as [string, string]] : []),
+        ['Difference', v.from === v.to ? 'The two zones are the same.' : gap === 'the same time' ? `${to} has the same time as ${from}.` : `${to} is ${gap}${gap.endsWith('ahead') ? ' of' : ''} ${from}.`],
+        ...[...new Set([v.from, v.to, ...ZONES])].map(line)],
+    };
   });
 };
 

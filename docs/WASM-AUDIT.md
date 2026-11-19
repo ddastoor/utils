@@ -380,3 +380,13 @@ One entry per tab, written before its bug hunt: our module → candidates → ch
 - **Decision:** nothing to replace; the engine stays our C. Held to **num2words** (`en` and `en_IN`) for 1,598 whole
   numbers up to 10¹⁹ — which showed the one thing it did differently: no "and" before a last part below a hundred.
 
+### 65. `timezone` — Time Zone Converter (19 Nov 2026)
+- **Ours:** no engine of ours: the zone database is the browser's (Intl — ICU, compiled C++ with the IANA data), a
+  "browser-native engine" under §3a. `src/lib/tz.ts` asks it and writes the answers (glue).
+- **Candidates:** WebAssembly — none worth having: a module would have to ship its own copy of the IANA database
+  (chrono-tz and jiff in Rust do: 0.5 – 1 MB) to answer what the browser already answers, and it would age with the
+  site instead of with the browser. JavaScript: Temporal polyfills, date-fns-tz, Luxon — all sit on the same Intl.
+- **Decision:** nothing to replace. Held to **Python's zoneinfo** on tzdata 2026e for 2,288 offsets (52 zones, 1850 –
+  2037) and 3,095 wall-clock readings around 353 clock changes — to the second, in Node (the same tzdata) and by
+  sample in Chromium.
+

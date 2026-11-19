@@ -604,6 +604,14 @@ open while the numbers change; `fmtINR` writes paise with both digits (₹12.10)
   one cent), or a plain number (any sign, up to 30 decimals read digit by digit). Around the amount ₹ $ Rs. INR USD,
   digit commas, spaces, a leading + and a closing "/-" are accepted. "Digits" groups with BigInt (all 19 digits).
   `rupeesInWords()` of the same file words the totals of the GST Invoice and the Rent Receipt.
+- `timezone` (`src/lib/tz.ts`; unit `tests/unit/tz.test.mjs` 74, e2e 43): date + time in a "From zone" → the instant
+  → its reading in a "To zone" (large, copyable), the difference in words, and thirty cities. The zone database is
+  the browser's Intl. `zoneOffset` in whole seconds (local mean time: Kolkata UTC+05:53:28 in 1850) for any year
+  (`utcMs`: `Date.UTC` reads 0 – 99 as 1900 – 1999); `wallToInstant`: a reading that exists twice is its first
+  instant, one that does not exist is read with the offset from before the change (02:30 → 3:30 am) — as Python and
+  java.time do — with a note; `modernZone`: 21 renamed zones under their current names (not the merely linked ones:
+  Europe/Bratislava stays). Held to **Python's zoneinfo** (`python3 scripts/make-tz-reference.py`; leave out zones
+  whose pre-1970 history depends on the distribution's "backzone" build — Europe/Amsterdam).
 - Number formatting shared by the calculators (`src/lib/form.ts`, unit `tests/unit/moneyfmt.test.mjs` 79):
   `roundDec(x, d)` rounds a number as it is written with 15 digits, half away from zero (7.1225 → 7.123, 1.005 →
   1.01; Intl and toFixed round the binary value down) and leaves numbers that need more than 15 digits alone;
