@@ -1,0 +1,374 @@
+{
+ "about": "The layout the SQL Formatter gives (devcore-sqlfmt.wasm). Written by scripts/make-sqlfmt-layout.mjs — read its diff before committing it.",
+ "corpus": {
+  "sqlite": [
+   "SELECT\n  id,\n  name\nFROM\n  customers\nWHERE\n  city = 'Pune'\nORDER BY\n  id",
+   "SELECT\n  c.name,\n  count(*) AS n,\n  sum(o.total) total\nFROM\n  customers c\n  JOIN orders o ON o.customer_id = c.id\nGROUP BY\n  c.name\nHAVING\n  sum(o.total) > 100\nORDER BY\n  total DESC\nLIMIT\n  3 OFFSET 1",
+   "SELECT\n  'it''s -- not a comment',\n  'semi;colon',\n  '/* not a comment */',\n  '''',\n  'select from where',\n  \"from\"\nFROM\n  \"select\"\nWHERE\n  \"where\" > -5",
+   "SELECT\n  5 - -3,\n  5 - - 3,\n  -(-2),\n  - -2,\n  7, -- a real comment\n  8, /* block -- with dashes ; and semicolon */\n  9",
+   "SELECT\n  1 --1\n  + 2",
+   "SELECT\n  \"a b\",\n  \"semi;colon\",\n  \"dash--dash\",\n  [from],\n  `where`\nFROM\n  \"select\"\nORDER BY\n  \"where\"",
+   "SELECT\n  1 <> 2,\n  1 != 2,\n  1 <= 2,\n  2 >= 1,\n  1 == 1,\n  1 << 3,\n  16 >> 2,\n  6 & 3,\n  6 | 3,\n  ~5,\n  'a' || 'b' || 'c',\n  7 % 3,\n  7 / 2,\n  7 / 2.0,\n  -7 / 2,\n  2 * -3",
+   "SELECT\n  meta -> '$.ch',\n  meta ->> '$.ch',\n  meta ->> '$.tags[1]',\n  json_extract(meta, '$.n')\nFROM\n  orders\nORDER BY\n  id",
+   "SELECT\n  1e3,\n  1.5e-3,\n  .5,\n  5.,\n  0x1F,\n  1_000,\n  1E+2,\n  -1e-2,\n  9223372036854775807,\n  -9223372036854775808,\n  1.0,\n  100",
+   "SELECT\n  x'00ff',\n  X'AB',\n  typeof(x''),\n  cast('12' AS INTEGER) + 1,\n  cast(3.7 AS INT),\n  cast(x'41' AS TEXT)",
+   "SELECT\n  CASE\n    WHEN total > 500 THEN 'big'\n    WHEN total > 100 THEN 'mid'\n    ELSE 'small'\n  END AS size,\n  CASE city WHEN 'Pune' THEN 1 ELSE 0 END\nFROM\n  orders\n  JOIN customers c ON c.id = customer_id\nORDER BY\n  orders.id",
+   "SELECT\n  name,\n  (\n    SELECT\n      count(*)\n    FROM\n      orders o\n    WHERE\n      o.customer_id = c.id\n  ) AS n,\n  EXISTS (\n    SELECT\n      1\n    FROM\n      orders o\n    WHERE\n      o.customer_id = c.id\n      AND o.total > 900\n  )\nFROM\n  customers c\nWHERE\n  c.id IN (\n    SELECT\n      customer_id\n    FROM\n      orders\n    WHERE\n      total BETWEEN 50 AND 1000\n  )\n  AND c.notes IS NOT NULL\n  AND NOT (c.city LIKE 'P%' ESCAPE '\\')\nORDER BY\n  1",
+   "WITH RECURSIVE\n  n(i) AS (\n    SELECT\n      1\n    UNION ALL\n    SELECT\n      i + 1\n    FROM\n      n\n    WHERE\n      i < 5\n  ),\n  t AS (\n    SELECT\n      i,\n      i * i AS sq\n    FROM\n      n\n  )\nSELECT\n  *\nFROM\n  t\nWHERE\n  sq > 4\nUNION\nSELECT\n  0,\n  0\nUNION ALL\nSELECT\n  -1,\n  1\nEXCEPT\nSELECT\n  5,\n  25\nORDER BY\n  1",
+   "SELECT\n  id,\n  total,\n  sum(total) OVER (\n    PARTITION BY customer_id\n    ORDER BY placed\n    ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW\n  ) AS running,\n  rank() OVER w,\n  lag(total, 1, 0) OVER w\nFROM\n  orders\nWINDOW\n  w AS (ORDER BY total DESC)\nORDER BY\n  id",
+   "SELECT\n  customer_id,\n  group_concat(sku, '; ') FILTER (WHERE qty > 1),\n  count(DISTINCT sku),\n  max(price)\nFROM\n  orders\n  JOIN items ON order_id = id\nGROUP BY\n  customer_id\nORDER BY\n  1",
+   "SELECT\n  *\nFROM\n  customers\nWHERE\n  name GLOB '*a*'\n  AND city NOT IN ('Delhi', 'Goa')\n  AND joined >= date('2024-01-01', '+1 month')\n  OR (notes LIKE '%;%' AND id <> 99)",
+   "SELECT\n  coalesce(notes, 'none'),\n  ifnull(notes, ''),\n  nullif(city, 'Pune'),\n  iif(id % 2 = 0, 'even', 'odd'),\n  notes IS NULL,\n  notes ISNULL,\n  notes NOTNULL,\n  id NOT BETWEEN 2 AND 3\nFROM\n  customers\nORDER BY\n  id",
+   "SELECT DISTINCT\n  city COLLATE nocase\nFROM\n  customers\nORDER BY\n  city COLLATE nocase DESC NULLS LAST",
+   "SELECT\n  o.id,\n  c.name\nFROM\n  orders AS o\n  LEFT OUTER JOIN customers AS c ON (c.id = o.customer_id)\n  CROSS JOIN (\n    SELECT\n      1\n  )\n  INNER JOIN items i USING (sku)\nWHERE\n  1 = 0",
+   "SELECT\n  printf('%05.1f|%s|%d%%', total, placed, id),\n  substr(placed, 1, 4) || '-' || substr(placed, 6, 2),\n  replace(placed, '-', '/'),\n  length(placed),\n  instr(placed, '-')\nFROM\n  orders\nORDER BY\n  id\nLIMIT\n  2",
+   "SELECT\n  strftime('%Y-%m', placed) ym,\n  round(avg(total), 2)\nFROM\n  orders\nGROUP BY\n  ym\nORDER BY\n  ym",
+   "SELECT\n  *\nFROM\n  (\n    VALUES\n      (1, 'a;b'),\n      (2, 'c--d')\n  )\nORDER BY\n  1 DESC",
+   "SELECT\n  total,\n  total IS 120,\n  total IS NOT 120,\n  total IN (120, 60),\n  -total,\n  +total,\n  NOT total > 100,\n  total > 100 AND total < 1000 OR total = 60\nFROM\n  orders\nORDER BY\n  id",
+   "SELECT\n  a.id,\n  b.id\nFROM\n  orders a,\n  orders b\nWHERE\n  a.customer_id = b.customer_id\n  AND a.id < b.id\nORDER BY\n  1,\n  2",
+   "SELECT\n  max(total) - min(total),\n  sum(total) / count(*),\n  count(*) FILTER (WHERE total > 100),\n  total(total)\nFROM\n  orders",
+   "SELECT\n  json_group_array(id),\n  json_object('n', count(*), 'ids', json_group_array(id))\nFROM\n  orders\nWHERE\n  customer_id = 1",
+   "SELECT\n  'multi\nline string',\n  'tab\there',\n  'नमस्ते 😀',\n  'trailing space ',\n  ' leading',\n  'two  spaces',\n  '' || ''",
+   "SELECT\n  id\nFROM\n  orders\nWHERE\n  id = ?1\n  OR id = ?2\n  OR total > :min\n  OR placed = @day\n  OR meta = $meta",
+   "INSERT INTO\n  customers (id, name, city)\nVALUES\n  (5, 'New; Person', 'Kochi'),\n  (6, 'A -- B', NULL)\nON CONFLICT (id) DO UPDATE\nSET\n  name = excluded.name || '!'\nWHERE\n  excluded.id > 0\nRETURNING\n  id,\n  name",
+   "UPDATE\n  orders\nSET\n  total = total * 1.1,\n  placed = '2026-12-01'\nWHERE\n  customer_id IN (\n    SELECT\n      id\n    FROM\n      customers\n    WHERE\n      city = 'Pune'\n  )\nRETURNING\n  id,\n  round(total, 2)",
+   "DELETE FROM\n  items\nWHERE\n  order_id NOT IN (\n    SELECT\n      id\n    FROM\n      orders\n  )\n  OR (qty < 0 AND price IS NULL)\nRETURNING\n  sku",
+   "REPLACE INTO\n  customers (id, name)\nVALUES\n  (1, 'Asha R.')",
+   "CREATE TABLE IF NOT EXISTS t2 (\n  id INTEGER PRIMARY KEY AUTOINCREMENT,\n  code TEXT NOT NULL UNIQUE CHECK (length(code) = 3) DEFAULT 'abc',\n  amount REAL DEFAULT (1.5 * 2),\n  created TEXT DEFAULT CURRENT_TIMESTAMP,\n  ref INT REFERENCES customers (id) ON DELETE CASCADE ON UPDATE SET NULL,\n  both TEXT GENERATED ALWAYS AS (code || '-' || id) VIRTUAL,\n  CONSTRAINT pos CHECK (amount >= 0)\n) STRICT",
+   "CREATE UNIQUE INDEX IF NOT EXISTS idx_o ON orders (customer_id, placed DESC) WHERE total > 0",
+   "CREATE VIEW v_big AS\nSELECT\n  o.id,\n  c.name\nFROM\n  orders o\n  JOIN customers c ON c.id = o.customer_id\nWHERE\n  o.total > 500",
+   "CREATE TRIGGER tr_after AFTER INSERT ON orders FOR EACH ROW WHEN new.total > 1000\nBEGIN\n  UPDATE\n    customers\n  SET\n    notes = 'vip; since ' || new.placed\n  WHERE\n    id = new.customer_id;\n  INSERT INTO\n    items\n  VALUES\n    (new.id, 'GIFT', 1, 0);\nEND",
+   "ALTER TABLE customers ADD COLUMN phone TEXT DEFAULT '000'",
+   "CREATE TEMP TABLE tmp AS\nSELECT\n  id,\n  total\nFROM\n  orders\nWHERE\n  total > 100",
+   "SELECT\n  name\nFROM\n  pragma_table_info('orders')\nORDER BY\n  cid",
+   "PRAGMA foreign_keys = ON",
+   "EXPLAIN QUERY PLAN\nSELECT\n  *\nFROM\n  orders\nWHERE\n  id = 5",
+   "BEGIN;\nINSERT INTO\n  items\nVALUES\n  (999, 'Z', 1, 1);\nROLLBACK",
+   "SELECT\n  count(*)\nFROM\n  items",
+   "DROP VIEW IF EXISTS v_big",
+   "SELECT /* leading */\n  id -- trailing\nFROM /* mid */\n  orders -- end\nWHERE /* x */\n  id /* y */ = /* z */ 101",
+   "-- a comment before the statement\nSELECT\n  1 AS one\n  -- and one after it",
+   "SELECT\n  1 AS \"quoted \"\"inner\"\" name\",\n  2 AS [bracket name],\n  3 AS `tick name`,\n  4 AS 'string alias'",
+   "SELECT\n  id,\n  total -- aligned comment\nFROM\n  orders\nWHERE\n  total > 100\nORDER BY\n  id",
+   "SELECT\n  id\nFROM\n  orders\nWHERE\n  placed BETWEEN '2026-10-01' AND '2026-10-31'\n  AND total NOT BETWEEN 100 AND 200\n  AND customer_id BETWEEN 1 AND 2",
+   "SELECT\n  sum(CASE WHEN total > 100 THEN 1 ELSE 0 END) AS big,\n  sum(CASE WHEN total <= 100 THEN 1 END) AS small\nFROM\n  orders",
+   "SELECT\n  *\nFROM\n  orders\nWHERE\n  (customer_id, total) IN (\n    SELECT\n      customer_id,\n      max(total)\n    FROM\n      orders\n    GROUP BY\n      customer_id\n  )\nORDER BY\n  id",
+   "SELECT\n  id,\n  row_number() OVER (\n    PARTITION BY customer_id\n    ORDER BY total DESC NULLS LAST\n    RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING EXCLUDE TIES\n  ) rn\nFROM\n  orders\nORDER BY\n  id",
+   "SELECT\n  1\nWHERE\n  'a' < 'b'\n  AND 'A' < 'a' COLLATE binary\n  AND 2 BETWEEN 1 AND 3\n  AND NULL IS NULL\n  AND NOT NULL IS NOT NULL\n  AND 1 IN (1)\n  AND 1 NOT IN (2, 3)"
+  ],
+  "postgres": [
+   "SELECT\n  id::TEXT,\n  '42'::INT + 1,\n  now()::DATE,\n  cast(x AS NUMERIC(10, 2)),\n  '{1,2,3}'::INT[],\n  data::JSONB -> 'a' ->> 'b',\n  data #> '{a,b}',\n  data #>> '{a,b}',\n  data @> '{\"a\":1}'::JSONB,\n  data ? 'key',\n  data ?| array['a', 'b'],\n  data ?& array['a']\nFROM\n  t",
+   "SELECT\n  $$dollar; quoted -- text with 'quotes'$$,\n  $tag$nested $$ inside; -- here$tag$,\n  E'escaped \\' quote\\n',\n  U&'\\0441\\043B',\n  B'1010',\n  X'1F'\nFROM\n  t",
+   "SELECT\n  a || b,\n  a ~ '^x',\n  a ~* 'x$',\n  a !~ 'y',\n  a !~* 'y',\n  a ILIKE '%q%',\n  a SIMILAR TO '(a|b)%',\n  a IS DISTINCT FROM b,\n  a IS NOT DISTINCT FROM b,\n  a <@ b,\n  a && b,\n  a <-> b,\n  a << b,\n  a >> b,\n  a @@ to_tsquery('x & y')\nFROM\n  t",
+   "SELECT DISTINCT ON (customer_id)\n  customer_id,\n  id,\n  total\nFROM\n  orders\nORDER BY\n  customer_id,\n  total DESC NULLS LAST\nLIMIT\n  10 OFFSET 5",
+   "SELECT\n  *\nFROM\n  generate_series(1, 10) AS g(i)\n  CROSS JOIN LATERAL (\n    SELECT\n      i * 2 AS d\n  ) l\nWHERE\n  i % 2 = 0\nFETCH FIRST\n  3 ROWS ONLY",
+   "WITH\n  moved AS (\n    DELETE FROM\n      queue\n    WHERE\n      id IN (\n        SELECT\n          id\n        FROM\n          queue\n        ORDER BY\n          id\n        LIMIT\n          10\n        FOR UPDATE SKIP LOCKED\n      )\n    RETURNING\n      *\n  )\nINSERT INTO\n  done\nSELECT\n  *\nFROM\n  moved\nON CONFLICT (id) DO NOTHING",
+   "INSERT INTO\n  t (a, b)\nVALUES\n  ($1, $2),\n  ($3, $4)\nON CONFLICT (a) DO UPDATE\nSET\n  b = excluded.b,\n  n = t.n + 1\nWHERE\n  t.b IS DISTINCT FROM excluded.b\nRETURNING\n  *",
+   "UPDATE\n  t\nSET\n  a = a + 1,\n  (b, c) = (\n    SELECT\n      x,\n      y\n    FROM\n      u\n    WHERE\n      u.id = t.id\n  )\nFROM\n  v\nWHERE\n  t.id = v.id\n  AND v.flag\nRETURNING\n  t.*",
+   "SELECT\n  array[1, 2, 3],\n  array_agg(x ORDER BY x DESC) FILTER (WHERE x > 0),\n  (array[1, 2, 3])[2],\n  arr[1:2],\n  string_agg(n, ', ' ORDER BY n),\n  jsonb_build_object('k', v),\n  row(1, 'a')::mytype\nFROM\n  t\nGROUP BY\n  1",
+   "SELECT\n  count(*) FILTER (WHERE ok),\n  percentile_cont(0.5) WITHIN GROUP (ORDER BY x),\n  rank() OVER (\n    PARTITION BY g\n    ORDER BY x DESC\n    ROWS BETWEEN 1 PRECEDING AND 1 FOLLOWING\n  ),\n  sum(x) OVER w\nFROM\n  t\nWINDOW\n  w AS (PARTITION BY g)",
+   "CREATE TABLE IF NOT EXISTS public.events (\n  id BIGSERIAL PRIMARY KEY,\n  at TIMESTAMPTZ NOT NULL DEFAULT now(),\n  kind TEXT CHECK (kind IN ('a', 'b')),\n  payload JSONB DEFAULT '{}'::JSONB,\n  tags TEXT[] DEFAULT array[]::TEXT[],\n  UNIQUE (kind, at)\n) PARTITION BY range (at)",
+   "CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_events_payload ON events USING gin (payload jsonb_path_ops) WHERE kind = 'a'",
+   "CREATE OR REPLACE FUNCTION add_one(i INTEGER) RETURNS INTEGER LANGUAGE plpgsql AS $fn$ begin return i + 1; -- semicolons; inside\n end; $fn$",
+   "SELECT\n  *\nFROM\n  t\nWHERE\n  id = ANY ($1::INT[])\n  AND name = ALL (array['a'])\n  AND created_at > now() - INTERVAL '1 day'\n  AND (a, b) < (1, 2)\n  AND col IS NOT NULL",
+   "SELECT\n  e.*,\n  d.name\nFROM\n  emp e\n  NATURAL JOIN dept d\n  FULL OUTER JOIN x USING (k)\n  LEFT JOIN LATERAL unnest(e.tags) WITH ORDINALITY AS u(tag, n) ON TRUE",
+   "SELECT\n  1 AS \"Mixed Case\",\n  2 AS \"with \"\"quotes\"\"\",\n  3 AS \"semi;colon\",\n  4 AS \"dash--dash\",\n  5 AS \"/*star*/\"",
+   "SELECT\n  a -> 'b' ->> 'c',\n  a ->> 0,\n  a #>> '{x,y}',\n  -a,\n  - -a,\n  a - -1,\n  a - 1,\n  a - 1,\n  a * -1,\n  2 ^ 3,\n  |/ 25,\n  @ -5,\n  5 !,\n  !! 5,\n  a % b\nFROM\n  t",
+   "SELECT\n  x\nFROM\n  t\nWHERE\n  a = 1 -- note: ; not the end\n  AND b = 2 /* block; comment -- here */\n  AND c = 'x; y'",
+   "EXPLAIN (analyze, buffers, format json)\nSELECT\n  *\nFROM\n  t TABLESAMPLE bernoulli (10)\nWHERE\n  ctid = '(0,1)'",
+   "SELECT\n  to_char(now(), 'YYYY-MM-DD\"T\"HH24:MI:SS'),\n  extract(epoch FROM INTERVAL '2 hours'),\n  date_trunc('month', ts) AT TIME ZONE 'Asia/Kolkata',\n  ts::TIMESTAMP(0) WITHOUT TIME ZONE\nFROM\n  t",
+   "GRANT SELECT, INSERT ON ALL TABLES IN SCHEMA public TO app_user;\nREVOKE ALL ON t FROM public",
+   "COPY t (a, b) FROM STDIN WITH (format csv, header TRUE, delimiter ';', NULL '')",
+   "SELECT\n  *\nFROM\n  ONLY parent\nWHERE\n  EXISTS (\n    SELECT\n    FROM\n      child\n    WHERE\n      child.pid = parent.id\n  )\nFOR NO KEY UPDATE OF parent NOWAIT",
+   "DO $$ declare r record; begin for r in select 1 as x loop raise notice 'x = %; done', r.x; end loop; end $$",
+   "MERGE INTO\n  target t\nUSING\n  source s ON t.id = s.id\nWHEN MATCHED AND s.del THEN DELETE\nWHEN MATCHED THEN UPDATE SET v = s.v\nWHEN NOT MATCHED THEN INSERT (id, v) VALUES (s.id, s.v)",
+   "SELECT\n  :'var',\n  :\"ident\",\n  :plain,\n  a[1],\n  b.c[2].d\nFROM\n  t\nWHERE\n  x = :x::INT",
+   "VALUES\n  (1, 'one'),\n  (2, 'two')\nUNION ALL\nTABLE t\nINTERSECT\nSELECT\n  3,\n  'three'\nORDER BY\n  1\nLIMIT\n  ALL",
+   "SELECT\n  format('%s; %I -- %L', a, b, c),\n  'a' 'b',\n  'it''s',\n  '\\',\n  $q$\\$q$,\n  e'\\\\'\nFROM\n  t",
+   "SELECT\n  coalesce(a, b, 0) + greatest(1, least(2, 3)) - nullif(c, 0),\n  a BETWEEN SYMMETRIC 5 AND 1,\n  a NOT IN (1, 2),\n  a IS TRUE,\n  a IS NOT UNKNOWN,\n  a NOTNULL\nFROM\n  t"
+  ],
+  "mysql": [
+   "SELECT\n  `id`,\n  `select`,\n  `from`,\n  `a b`,\n  `semi;colon`,\n  `dash--dash`,\n  `back``tick`\nFROM\n  `my db`.`my table`\nWHERE\n  `where` = 1",
+   "SELECT\n  'it\\'s',\n  'a\\\\b',\n  \"double \\\"quoted\\\" string\",\n  'tab\\there',\n  'x' 'y',\n  _utf8mb4'x',\n  N'unicode',\n  0x1F,\n  b'101',\n  x'AB'\nFROM\n  t",
+   "SELECT\n  *\nFROM\n  t\nWHERE\n  a = 1 # hash comment; with semicolon\n  AND b = 2 -- dash comment\n  AND c = 3 /* block */ /*! mysql-specific */ /*+ MAX_EXECUTION_TIME(1000) */",
+   "SELECT\n  a <=> b,\n  a <> b,\n  a != b,\n  a && b,\n  a || b,\n  a XOR b,\n  !a,\n  a DIV b,\n  a MOD b,\n  a << 2,\n  a >> 2,\n  a REGEXP '^x',\n  a NOT REGEXP 'y',\n  a RLIKE 'z',\n  a SOUNDS LIKE b,\n  binary a = b\nFROM\n  t",
+   "SELECT\n  @var,\n  @@global.max_connections,\n  @`quoted var`,\n  @x := @x + 1,\n  @y := 5\nFROM\n  t,\n  (\n    SELECT\n      @x := 0\n  ) init",
+   "INSERT INTO\n  t (a, b)\nVALUES\n  (?, ?),\n  (?, ?)\nON DUPLICATE KEY UPDATE\n  b = VALUES(b),\n  n = n + 1",
+   "INSERT IGNORE INTO\n  t\nSET\n  a = 1,\n  b = 'x; y'",
+   "REPLACE INTO\n  t (a, b)\nSELECT\n  a,\n  b\nFROM\n  u\nWHERE\n  c IS NOT NULL",
+   "UPDATE\n  t\n  JOIN u ON u.id = t.id\nSET\n  t.a = u.a,\n  t.b = t.b + 1\nWHERE\n  u.flag = 1\nORDER BY\n  t.id\nLIMIT\n  10",
+   "DELETE\n  t,\n  u\nFROM\n  t\n  INNER JOIN u ON u.id = t.id\nWHERE\n  t.old = 1",
+   "SELECT\n  SQL_CALC_FOUND_ROWS STRAIGHT_JOIN a,\n  group_concat(DISTINCT b ORDER BY b DESC SEPARATOR '; ')\nFROM\n  t FORCE INDEX (idx_a)\n  LEFT JOIN u USE INDEX FOR JOIN (idx_b) ON u.id = t.id\nGROUP BY\n  a WITH ROLLUP\nHAVING\n  count(*) > 1\nLIMIT\n  5, 10",
+   "CREATE TABLE IF NOT EXISTS `orders` (\n  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,\n  `status` ENUM('new', 'paid', 'void') NOT NULL DEFAULT 'new',\n  `tags` SET('a', 'b'),\n  `amount` DECIMAL(10, 2) DEFAULT 0.00,\n  `data` JSON,\n  `created` DATETIME(6) DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),\n  PRIMARY KEY (`id`),\n  UNIQUE KEY `uq_status` (`status`, `created`),\n  FULLTEXT KEY `ft` (`status`),\n  CONSTRAINT `fk_c` FOREIGN KEY (`id`) REFERENCES `c` (`id`) ON DELETE CASCADE\n) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'orders; table'",
+   "ALTER TABLE t\n  ADD COLUMN c VARCHAR(20) CHARACTER SET latin1 NOT NULL DEFAULT '' AFTER b,\n  DROP INDEX idx_old,\n  MODIFY d BIGINT,\n  CHANGE e f TEXT,\n  ADD INDEX idx_new (c(10) DESC),\n  algorithm = inplace,\n  lock = none",
+   "SELECT\n  json_extract(data, '$.a.b[0]'),\n  data -> '$.a',\n  data ->> '$.a',\n  json_unquote(json_extract(data, '$.c')),\n  cast(x AS UNSIGNED),\n  cast(y AS CHAR(10) CHARACTER SET utf8mb4),\n  convert(z USING utf8mb4),\n  date_add(d, INTERVAL 1 DAY),\n  d + INTERVAL 2 HOUR\nFROM\n  t",
+   "SELECT\n  if(a > 1, 'y', 'n'),\n  ifnull(a, 0),\n  CASE a WHEN 1 THEN 'one' ELSE 'other' END,\n  count(*) OVER (PARTITION BY b),\n  row_number() OVER (ORDER BY c DESC)\nFROM\n  t\nWHERE\n  a IN (1, 2)\n  AND b BETWEEN 1 AND 5\n  AND c LIKE 'x\\_%' ESCAPE '\\\\'",
+   "SELECT\n  *\nFROM\n  t partition (p1, p2)\nWHERE\n  MATCH (title, body) AGAINST ('+word -other' IN boolean mode)\nORDER BY\n  rand()\nLIMIT\n  1\nFOR UPDATE SKIP LOCKED",
+   "SHOW FULL COLUMNS FROM `t` LIKE 'a%';\nDESCRIBE t;\nEXPLAIN format = json\nSELECT\n  1;\nSET NAMES utf8mb4;\nSET @a = 1, @b = 'x;y';\nUSE `my db`",
+   "CREATE PROCEDURE p (IN a INT, OUT b VARCHAR(10))\nBEGIN\n  DECLARE x INT DEFAULT 0;\n  IF a > 0 THEN\n    SET b = 'pos; yes';\n  ELSEIF a = 0 THEN\n    SET b = 'zero';\n  ELSE\n    SET b = 'neg';\n  END IF;\n  WHILE x < a DO\n    SET x = x + 1;\n  END WHILE;\n  SELECT\n    x;\nEND",
+   "SELECT\n  a\nFROM\n  t\nUNION\nSELECT\n  b\nFROM\n  u\nUNION ALL\n(\n  SELECT\n    c\n  FROM\n    v\n  ORDER BY\n    c\n  LIMIT\n    1\n)\nORDER BY\n  1\nLIMIT\n  3 OFFSET 2",
+   "LOAD DATA LOCAL INFILE '/tmp/x.csv' INTO TABLE t FIELDS TERMINATED BY ';' OPTIONALLY ENCLOSED BY '\"' LINES TERMINATED BY '\\n' IGNORE 1 LINES (a, @b) SET b = nullif(@b, '')",
+   "SELECT\n  `t`.*,\n  u.*\nFROM\n  `t` AS `t`\n  CROSS JOIN u\n  NATURAL LEFT JOIN v\nWHERE\n  t.a IS NULL\n  OR NOT t.b\n  OR t.c IS NOT TRUE",
+   "SELECT\n  1 + 2 * 3 - 4 / 5 % 6,\n  -1,\n  - -1,\n  +1,\n  ~1,\n  1 ^ 2,\n  1 | 2,\n  1 & 2,\n  5 - -5,\n  5 --5, 5 -/* c */- 5, 1.5e3, .5, 0b101, 0xFF"
+  ],
+  "tsql": [
+   "SELECT TOP 10 WITH TIES\n  [id],\n  [select],\n  [from],\n  [a b],\n  [semi;colon],\n  [dash--dash],\n  [bracket]]inside]\nFROM\n  [my db].[dbo].[my table] WITH (nolock)\nWHERE\n  [where] = 1\nORDER BY\n  [id] DESC",
+   "SELECT TOP (5) PERCENT\n  a,\n  N'unicode ''quoted''',\n  'it''s',\n  0x1F,\n  $12.50,\n  1e3,\n  1.5\nFROM\n  t",
+   "DECLARE @x INT = 5, @name NVARCHAR(50) = N'a; b';\nSET @x += 1;\nSELECT\n  @x AS x,\n  @name AS n,\n  @@rowcount,\n  @@identity",
+   "SELECT\n  a,\n  b,\n  row_number() OVER (PARTITION BY a ORDER BY b DESC) rn,\n  count(*) OVER () total\nFROM\n  t\nORDER BY\n  a\nOFFSET\n  10 ROWS\nFETCH NEXT\n  5 ROWS ONLY",
+   "SELECT\n  isnull(a, 0),\n  coalesce(b, c),\n  iif(a > 1, 'y', 'n'),\n  cast(a AS VARCHAR(10)),\n  convert(VARCHAR(10), getdate(), 120),\n  try_cast(x AS INT),\n  a + b,\n  a % 2,\n  a & 1,\n  a | 2,\n  a ^ 3,\n  ~a\nFROM\n  t",
+   "SELECT\n  *\nFROM\n  t1 a\n  INNER JOIN t2 b ON a.id = b.id\n  LEFT OUTER JOIN t3 c ON c.id = a.id\n  CROSS APPLY dbo.fn(a.id) f\n  OUTER APPLY (\n    SELECT TOP 1\n      *\n    FROM\n      t4\n    WHERE\n      t4.id = a.id\n    ORDER BY\n      d DESC\n  ) o\nWHERE\n  a.x <> b.y\n  AND a.z != 1\n  AND a.w !< 2\n  AND a.v !> 3",
+   "WITH\n  cte (n) AS (\n    SELECT\n      1\n    UNION ALL\n    SELECT\n      n + 1\n    FROM\n      cte\n    WHERE\n      n < 10\n  )\nSELECT\n  n\nFROM\n  cte\nOPTION (maxrecursion 100)",
+   "INSERT INTO\n  t (a, b)\nOUTPUT\n  inserted.id,\n  inserted.a INTO @ids\nVALUES\n  (1, 'x'),\n  (2, 'y; z')",
+   "UPDATE\n  t\nSET\n  a = a + 1,\n  b = 'x'\nOUTPUT\n  deleted.a,\n  inserted.a\nFROM\n  t\n  INNER JOIN u ON u.id = t.id\nWHERE\n  u.flag = 1",
+   "DELETE\n  TOP (10)\nFROM\n  t\nOUTPUT\n  deleted.*\nWHERE\n  a < 0",
+   "MERGE INTO\n  target AS t\nUSING\n  source AS s ON t.id = s.id\nWHEN MATCHED AND s.del = 1 THEN DELETE\nWHEN MATCHED THEN UPDATE SET t.v = s.v\nWHEN NOT MATCHED BY TARGET THEN INSERT (id, v) VALUES (s.id, s.v)\nWHEN NOT MATCHED BY SOURCE THEN DELETE\nOUTPUT\n  $action, inserted.id;",
+   "CREATE TABLE [dbo].[orders] (\n  [id] INT IDENTITY(1, 1) NOT NULL CONSTRAINT pk_orders PRIMARY KEY CLUSTERED,\n  [code] NVARCHAR(max) NULL,\n  [amount] DECIMAL(18, 2) NOT NULL DEFAULT (0),\n  [created] DATETIME2(7) NOT NULL DEFAULT (sysutcdatetime()),\n  [rv] ROWVERSION,\n  CONSTRAINT ck_amount CHECK ([amount] >= 0)\n) ON [primary]",
+   "CREATE PROCEDURE dbo.p @a INT, @b NVARCHAR(10) = N'x' OUTPUT AS\nBEGIN\n  SET nocount ON;\n  IF @a > 0\n  BEGIN\n    SELECT\n      'pos; yes';\n  END\n  ELSE\n  BEGIN\n    SELECT\n      'neg';\n  END;\n  RETURN 0;\nEND",
+   "SELECT\n  a\nFROM\n  t\nWHERE\n  b LIKE '%[_]%' ESCAPE '\\'\n  AND c LIKE '[a-c]%'\n  AND d IN (\n    SELECT\n      d\n    FROM\n      u\n  )\n  AND EXISTS (\n    SELECT\n      1\n    FROM\n      v\n    WHERE\n      v.id = t.id\n  )\n  AND e BETWEEN 1 AND 5\n  AND f IS NOT NULL",
+   "SELECT\n  a,\n  sum(b)\nFROM\n  t\nGROUP BY\n  GROUPING SETS ((a), ())\nHAVING\n  sum(b) > 0\nUNION ALL\nSELECT\n  NULL,\n  0\nEXCEPT\nSELECT\n  1,\n  1\nINTERSECT\nSELECT\n  2,\n  2",
+   "SELECT\n  *\nFROM\n  openjson(@json) WITH (id int '$.id', name nvarchar(50) '$.name') AS j;\nSELECT\n  json_value(doc, '$.a.b'),\n  json_query(doc, '$.c')\nFROM\n  t\nFOR json path, root('rows')",
+   "BEGIN TRY\n  BEGIN TRANSACTION;\n  UPDATE\n    t\n  SET\n    a = 1;\n  COMMIT TRANSACTION;\nEND TRY\nBEGIN CATCH\n  IF @@trancount > 0\n  ROLLBACK TRANSACTION;\n  THROW;\nEND CATCH",
+   "SELECT\n  a, -- comment; here\n  b /* block; -- comment */\nFROM\n  t -- end\nWHERE\n  1 = 1",
+   "EXEC dbo.p @a = 1, @b = @out OUTPUT;\nEXECUTE sp_executesql N'select @x; select 2', N'@x int', @x = 5",
+   "SELECT\n  string_agg(name, '; ') WITHIN GROUP (ORDER BY name),\n  format(amount, 'N2'),\n  dateadd(day, -1, getdate()),\n  datediff(minute, s, e),\n  a.b.c.d,\n  ..t.col\nFROM\n  a.b.c",
+   "SELECT\n  1 AS [a]]b],\n  2 AS \"q\"\"q\",\n  3 AS 'alias',\n  4 [no as],\n  5 AS #temp,\n  6 AS ##global\nFROM\n  #temp t,\n  ##global g",
+   "SELECT\n  pvt.*\nFROM\n  (\n    SELECT\n      a,\n      b,\n      c\n    FROM\n      t\n  ) s PIVOT (sum(c) FOR b IN ([x], [y], [z])) AS pvt\nORDER BY\n  a"
+  ],
+  "oracle": [
+   "SELECT\n  e.ename,\n  d.dname\nFROM\n  emp e,\n  dept d\nWHERE\n  e.deptno = d.deptno (+)\n  AND e.sal > :min_sal\n  AND rownum <= 10\nORDER BY\n  1",
+   "SELECT\n  q'[it's; a -- quoted 'string']',\n  q'{brace}',\n  q'!bang!',\n  n'national',\n  'it''s',\n  1e3,\n  1.5d,\n  2f,\n  DATE '2026-01-01',\n  TIMESTAMP '2026-01-01 10:00:00'\nFROM\n  dual",
+   "SELECT\n  level,\n  sys_connect_by_path(name, '/') path,\n  connect_by_root name\nFROM\n  tree\nSTART WITH\n  parent_id IS NULL\nCONNECT BY NOCYCLE\n  PRIOR id = parent_id\nORDER SIBLINGS BY\n  name",
+   "SELECT\n  a || b || 'x',\n  a ** 2,\n  mod(a, 2),\n  nvl(a, 0),\n  nvl2(a, 1, 0),\n  decode(a, 1, 'one', 2, 'two', 'other'),\n  to_char(d, 'YYYY-MM-DD HH24:MI:SS'),\n  to_date('2026-01-01', 'YYYY-MM-DD'),\n  trunc(sysdate) - 1,\n  a.nextval,\n  t.rowid\nFROM\n  t",
+   "SELECT\n  *\nFROM\n  (\n    SELECT\n      t.*,\n      row_number() OVER (PARTITION BY g ORDER BY v DESC NULLS LAST) rn\n    FROM\n      t\n  )\nWHERE\n  rn = 1\nFETCH FIRST\n  5 ROWS WITH TIES",
+   "INSERT ALL\n  INTO a (x) VALUES (1)\n  INTO b (y) VALUES ('2; two')\nSELECT\n  *\nFROM\n  dual",
+   "MERGE INTO\n  t\nUSING\n  (\n    SELECT\n      1 id,\n      'x' v\n    FROM\n      dual\n  ) s ON (t.id = s.id)\nWHEN MATCHED THEN UPDATE SET t.v = s.v WHERE t.v <> s.v DELETE WHERE t.v IS NULL\nWHEN NOT MATCHED THEN INSERT (id, v) VALUES (s.id, s.v)",
+   "UPDATE\n  t\nSET\n  (a, b) = (\n    SELECT\n      x,\n      y\n    FROM\n      u\n    WHERE\n      u.id = t.id\n  )\nWHERE\n  EXISTS (\n    SELECT\n      1\n    FROM\n      u\n    WHERE\n      u.id = t.id\n  )\nRETURNING\n  a INTO :out",
+   "CREATE TABLE t (\n  id NUMBER(10) GENERATED ALWAYS AS IDENTITY PRIMARY KEY,\n  name VARCHAR2(100 char) NOT NULL,\n  amount NUMBER(12, 2) DEFAULT 0,\n  created TIMESTAMP WITH TIME ZONE DEFAULT systimestamp,\n  data CLOB CHECK (data IS json),\n  CONSTRAINT uq UNIQUE (name)\n) tablespace users",
+   "CREATE OR REPLACE PROCEDURE p (a IN NUMBER, b OUT VARCHAR2) AS\nx number := 0;\nBEGIN\n  IF a > 0 THEN\n    b := 'pos; yes';\n  ELSIF a = 0 THEN\n    b := 'zero';\n  ELSE\n    b := 'neg';\n  END IF;\n  FOR i IN 1 .. 3 LOOP\n    x := x + i;\n  END LOOP;\n  dbms_output.put_line('x = ' || x);\nEXCEPTION\n  WHEN others THEN raise;\nEND;",
+   "SELECT\n  a,\n  listagg(b, '; ') WITHIN GROUP (ORDER BY b)\nFROM\n  t\nGROUP BY\n  ROLLUP (a)\nHAVING\n  count(*) > 1\nMINUS\nSELECT\n  c,\n  d\nFROM\n  u\nINTERSECT\nSELECT\n  e,\n  f\nFROM\n  v",
+   "SELECT\n  \"Mixed Case\",\n  \"semi;colon\",\n  \"dash--dash\",\n  t.\"a b\"\nFROM\n  \"My Table\" t\nWHERE\n  t.x = :1\n  AND t.y = :name\n  AND t.z LIKE '%\\_%' ESCAPE '\\'",
+   "SELECT\n  a, -- comment; here\n  b /* block; -- comment */ /*+ index(t idx) */\nFROM\n  t\nWHERE\n  regexp_like(a, '^x', 'i')\n  AND a IN (\n    SELECT /*+ no_merge */\n      b\n    FROM\n      u\n  )",
+   "SELECT\n  json_value(doc, '$.a.b' RETURNING number),\n  json_query(doc, '$.c' WITH wrapper),\n  xmlelement(\"e\", xmlattributes(a AS \"x\"), b),\n  cast(multiset(SELECT 1 FROM dual) AS t_tab),\n  a AT TIME ZONE 'Asia/Kolkata',\n  INTERVAL '1' DAY,\n  INTERVAL '1-2' YEAR TO MONTH\nFROM\n  t",
+   "ALTER TABLE t ADD (c VARCHAR2(10) DEFAULT 'x' NOT NULL, d DATE);\nALTER SESSION SET nls_date_format = 'YYYY-MM-DD';\nGRANT SELECT ON t TO u WITH GRANT OPTION;\nCOMMIT"
+  ]
+ },
+ "extra": [
+  {
+   "d": "",
+   "o": {},
+   "sql": "select a, b from t where x = 1 and y > 2 order by a",
+   "read": "standard",
+   "out": "SELECT\n  a,\n  b\nFROM\n  t\nWHERE\n  x = 1\n  AND y > 2\nORDER BY\n  a"
+  },
+  {
+   "d": "",
+   "o": {},
+   "sql": "select o.id, c.name, sum(i.qty * i.price) as total from orders o join customers c on c.id = o.customer_id left join items i on i.order_id = o.id and i.x = 1 where o.created_at >= '2026-01-01' and c.city in ('Pune', 'Mumbai') group by o.id, c.name having sum(i.qty) > 2 order by total desc limit 10; update stock set qty = qty - 1 where sku = 'A-1';",
+   "read": "sqlite",
+   "out": "SELECT\n  o.id,\n  c.name,\n  sum(i.qty * i.price) AS total\nFROM\n  orders o\n  JOIN customers c ON c.id = o.customer_id\n  LEFT JOIN items i ON i.order_id = o.id\n    AND i.x = 1\nWHERE\n  o.created_at >= '2026-01-01'\n  AND c.city IN ('Pune', 'Mumbai')\nGROUP BY\n  o.id,\n  c.name\nHAVING\n  sum(i.qty) > 2\nORDER BY\n  total DESC\nLIMIT\n  10;\nUPDATE\n  stock\nSET\n  qty = qty - 1\nWHERE\n  sku = 'A-1';"
+  },
+  {
+   "d": "",
+   "o": {},
+   "sql": "select a from t where (a = 1 or b = 2) and c in (select id from u where x = 1) and exists (select 1 from v)",
+   "read": "standard",
+   "out": "SELECT\n  a\nFROM\n  t\nWHERE\n  (a = 1 OR b = 2)\n  AND c IN (\n    SELECT\n      id\n    FROM\n      u\n    WHERE\n      x = 1\n  )\n  AND EXISTS (\n    SELECT\n      1\n    FROM\n      v\n  )"
+  },
+  {
+   "d": "",
+   "o": {},
+   "sql": "with a as (select 1 x), b as (select 2 y) select * from a, b union all select 1, 2",
+   "read": "standard",
+   "out": "WITH\n  a AS (\n    SELECT\n      1 x\n  ),\n  b AS (\n    SELECT\n      2 y\n  )\nSELECT\n  *\nFROM\n  a,\n  b\nUNION ALL\nSELECT\n  1,\n  2"
+  },
+  {
+   "d": "",
+   "o": {},
+   "sql": "select case when a = 1 then 'one' when a = 2 then 'two' else 'other' end as n, case a when 1 then 2 end from t",
+   "read": "standard",
+   "out": "SELECT\n  CASE\n    WHEN a = 1 THEN 'one'\n    WHEN a = 2 THEN 'two'\n    ELSE 'other'\n  END AS n,\n  CASE a WHEN 1 THEN 2 END\nFROM\n  t"
+  },
+  {
+   "d": "",
+   "o": {},
+   "sql": "create table t (id int primary key, name varchar(10) not null default 'x', created timestamp default current_timestamp, foreign key (id) references u (id) on delete cascade)",
+   "read": "standard",
+   "out": "CREATE TABLE t (\n  id INT PRIMARY KEY,\n  name VARCHAR(10) NOT NULL DEFAULT 'x',\n  created TIMESTAMP DEFAULT CURRENT_TIMESTAMP,\n  FOREIGN KEY (id) REFERENCES u (id) ON DELETE CASCADE\n)"
+  },
+  {
+   "d": "",
+   "o": {},
+   "sql": "select count(*), coalesce(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s) from t -- trailing\n-- own line\nwhere a /* inline */ = 1",
+   "read": "standard",
+   "out": "SELECT\n  count(*),\n  coalesce(\n    a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s\n  )\nFROM\n  t -- trailing\n-- own line\nWHERE\n  a /* inline */ = 1"
+  },
+  {
+   "d": "",
+   "o": {},
+   "sql": "select a from t limit 10 offset 5; delete from t where a = 1; select distinct a from t",
+   "read": "standard",
+   "out": "SELECT\n  a\nFROM\n  t\nLIMIT\n  10 OFFSET 5;\nDELETE FROM\n  t\nWHERE\n  a = 1;\nSELECT DISTINCT\n  a\nFROM\n  t"
+  },
+  {
+   "d": "",
+   "o": {},
+   "sql": "select row_number() over (partition by customer_id, region order by created_at desc rows between unbounded preceding and current row) from t",
+   "read": "standard",
+   "out": "SELECT\n  row_number() OVER (\n    PARTITION BY customer_id, region\n    ORDER BY created_at DESC\n    ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW\n  )\nFROM\n  t"
+  },
+  {
+   "d": "",
+   "o": {},
+   "sql": "DECLARE @x INT = 5\nSET @x += 1\nIF @x > 3\n    PRINT 'big'\nELSE\n    PRINT 'small'\nSELECT @x AS x\nGO\nUSE [my db]\nGO\nEXEC dbo.p @a = 1\nselect top 5 * from #t where [status] = 'x'",
+   "read": "tsql",
+   "out": "DECLARE @x INT = 5\nSET @x += 1\nIF @x > 3\nPRINT 'big'\nELSE\nPRINT 'small'\nSELECT\n  @x AS x\nGO\nUSE [my db]\nGO\nEXEC dbo.p @a = 1\nSELECT TOP 5\n  *\nFROM\n  #t\nWHERE\n  [status] = 'x'"
+  },
+  {
+   "d": "",
+   "o": {},
+   "sql": "insert into customers (id, first_name, last_name, email, phone, city, state, country, pincode, created_at, updated_at, notes) values (1, 'Asha', 'Rao', 'a@example.com', '+91 98765 43210', 'Pune', 'MH', 'IN', '411001', now(), now(), null), (2, 'Ravi', 'Kumar', 'r@example.com', null, 'Mumbai', 'MH', 'IN', '400001', now(), now(), 'vip')",
+   "read": "standard",
+   "out": "INSERT INTO\n  customers (\n    id, first_name, last_name, email, phone, city, state, country, pincode,\n    created_at, updated_at, notes\n  )\nVALUES\n  (\n    1, 'Asha', 'Rao', 'a@example.com', '+91 98765 43210', 'Pune', 'MH', 'IN',\n    '411001', now(), now(), NULL\n  ),\n  (\n    2, 'Ravi', 'Kumar', 'r@example.com', NULL, 'Mumbai', 'MH', 'IN', '400001',\n    now(), now(), 'vip'\n  )"
+  },
+  {
+   "d": "",
+   "o": {},
+   "sql": "select * from orders where status in ('new', 'paid', 'packed', 'shipped', 'delivered', 'returned', 'refunded', 'cancelled', 'failed', 'on-hold', 'pending-review') and id in (1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40)",
+   "read": "standard",
+   "out": "SELECT\n  *\nFROM\n  orders\nWHERE\n  status IN (\n    'new', 'paid', 'packed', 'shipped', 'delivered', 'returned', 'refunded',\n    'cancelled', 'failed', 'on-hold', 'pending-review'\n  )\n  AND id IN (\n    1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20,\n    21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38,\n    39, 40\n  )"
+  },
+  {
+   "d": "",
+   "o": {},
+   "sql": "select {{ col }}, a from {{ ref('orders') }} where d >= '{{ start }}' {% if x %} and b = 1 {% endif %} and c = %s and e = %(name)s and f = ${v} and g = #{w} and h = ?",
+   "read": "standard",
+   "out": "SELECT\n  {{ col }},\n  a\nFROM\n  {{ ref('orders') }}\nWHERE\n  d >= '{{ start }}' {% if x %}\n  AND b = 1 {% endif %}\n  AND c = %s\n  AND e = %(name)s\n  AND f = ${v}\n  AND g = #{w}\n  AND h = ?"
+  },
+  {
+   "d": "",
+   "o": {},
+   "sql": "-- report\n/* multi\n   line */\nselect a, -- first\n b /* second */, c\nfrom t; -- done\n\n\n-- next\nselect 2",
+   "read": "standard",
+   "out": "-- report\n/* multi\n   line */\nSELECT\n  a, -- first\n  b, /* second */\n  c\nFROM\n  t; -- done\n-- next\nSELECT\n  2"
+  },
+  {
+   "d": "",
+   "o": {},
+   "sql": "select case when a > 0 then case when b > 0 then 'both positive and large enough to matter' else 'only a' end when a = 0 then 'zero' else 'negative' end, x from t",
+   "read": "standard",
+   "out": "SELECT\n  CASE\n    WHEN a > 0 THEN CASE\n      WHEN b > 0 THEN 'both positive and large enough to matter'\n      ELSE 'only a'\n    END\n    WHEN a = 0 THEN 'zero'\n    ELSE 'negative'\n  END,\n  x\nFROM\n  t"
+  },
+  {
+   "d": "postgres",
+   "o": {},
+   "sql": "with a as (select 1), ins as (insert into t select * from a returning id) select count(*) from ins; create or replace view v as select a, b from t where c; create materialized view mv as select 1; refresh materialized view concurrently mv; drop table if exists a, b cascade; comment on column t.c is 'x; y'; alter table t alter column c type text using c::text, alter column d set default 0, add constraint fk foreign key (d) references u (id) on delete set null; vacuum analyze t; begin; savepoint s1; rollback to savepoint s1; commit;",
+   "read": "postgres",
+   "out": "WITH\n  a AS (\n    SELECT\n      1\n  ),\n  ins AS (\n    INSERT INTO\n      t\n    SELECT\n      *\n    FROM\n      a\n    RETURNING\n      id\n  )\nSELECT\n  count(*)\nFROM\n  ins;\nCREATE OR REPLACE VIEW v AS\nSELECT\n  a,\n  b\nFROM\n  t\nWHERE\n  c;\nCREATE MATERIALIZED VIEW mv AS\nSELECT\n  1;\nREFRESH MATERIALIZED VIEW CONCURRENTLY mv;\nDROP TABLE IF EXISTS a, b CASCADE;\nCOMMENT ON COLUMN t.c IS 'x; y';\nALTER TABLE t\n  ALTER COLUMN c TYPE TEXT USING c::TEXT,\n  ALTER COLUMN d SET DEFAULT 0,\n  ADD CONSTRAINT fk FOREIGN KEY (d) REFERENCES u (id) ON DELETE SET NULL;\nVACUUM ANALYZE t;\nBEGIN;\nSAVEPOINT s1;\nROLLBACK TO SAVEPOINT s1;\nCOMMIT;"
+  },
+  {
+   "d": "mysql",
+   "o": {},
+   "sql": "select a.id, (select count(*) from b where b.a_id = a.id) cnt from a where a.name like concat('%', ?, '%') and (a.x = 1 or a.y = 2 or (a.z = 3 and a.w = 4)) order by cnt desc, a.id limit 20, 10",
+   "read": "mysql",
+   "out": "SELECT\n  a.id,\n  (\n    SELECT\n      count(*)\n    FROM\n      b\n    WHERE\n      b.a_id = a.id\n  ) cnt\nFROM\n  a\nWHERE\n  a.name LIKE concat('%', ?, '%')\n  AND (a.x = 1 OR a.y = 2 OR (a.z = 3 AND a.w = 4))\nORDER BY\n  cnt DESC,\n  a.id\nLIMIT\n  20, 10"
+  },
+  {
+   "d": "",
+   "o": {},
+   "sql": "create table t (id int primary key, name varchar(10)); create index i on t (name); select count(distinct id), sum(case when x then 1 else 0 end) total from t group by 1 having count(*)>1 order by 2 desc nulls last limit 5",
+   "read": "standard",
+   "out": "CREATE TABLE t (id INT PRIMARY KEY, name VARCHAR(10));\nCREATE INDEX i ON t (name);\nSELECT\n  count(DISTINCT id),\n  sum(CASE WHEN x THEN 1 ELSE 0 END) total\nFROM\n  t\nGROUP BY\n  1\nHAVING\n  count(*) > 1\nORDER BY\n  2 DESC NULLS LAST\nLIMIT\n  5"
+  },
+  {
+   "d": "",
+   "o": {
+    "inline": true
+   },
+   "sql": "select o.id, c.name from orders o join customers c on c.id = o.customer_id where c.city in ('Pune', 'Mumbai') order by 1; update stock set qty = qty - 1 where sku = 'A-1'",
+   "read": "standard",
+   "out": "SELECT o.id, c.name FROM orders o JOIN customers c ON c.id = o.customer_id WHERE c.city IN ('Pune', 'Mumbai') ORDER BY 1;\nUPDATE stock SET qty = qty - 1 WHERE sku = 'A-1'"
+  },
+  {
+   "d": "",
+   "o": {
+    "inline": true
+   },
+   "sql": "-- report\n/* multi\n   line */\nselect a, -- first\n b /* second */, c\nfrom t; -- done\n\n\n-- next\nselect 2",
+   "read": "standard",
+   "out": "-- report\n/* multi\n   line */ SELECT a, -- first\nb, /* second */ c FROM t; -- done\n-- next\nSELECT 2"
+  },
+  {
+   "d": "",
+   "o": {
+    "inline": true
+   },
+   "sql": "select a from t where x in (select y from u where z = 'k') and w = 1 -- why\nunion all select 2",
+   "read": "standard",
+   "out": "SELECT a FROM t WHERE x IN (SELECT y FROM u WHERE z = 'k') AND w = 1 -- why\nUNION ALL SELECT 2"
+  },
+  {
+   "d": "sqlite",
+   "o": {
+    "inline": true
+   },
+   "sql": "create trigger tr after insert on orders for each row when new.total > 1000 begin update customers set notes = 'vip' where id = new.customer_id; insert into items values (new.id, 'GIFT', 1, 0); end",
+   "read": "sqlite",
+   "out": "CREATE TRIGGER tr AFTER INSERT ON orders FOR EACH ROW WHEN new.total > 1000 BEGIN UPDATE customers SET notes = 'vip' WHERE id = new.customer_id; INSERT INTO items VALUES (new.id, 'GIFT', 1, 0); END"
+  },
+  {
+   "d": "",
+   "o": {
+    "keywords": "lower"
+   },
+   "sql": "SELECT A, B FROM T WHERE X IS NOT NULL AND Y BETWEEN 1 AND 2 ORDER BY A DESC",
+   "read": "standard",
+   "out": "select\n  A,\n  B\nfrom\n  T\nwhere\n  X is not null\n  and Y between 1 and 2\norder by\n  A desc"
+  },
+  {
+   "d": "",
+   "o": {
+    "keywords": "keep"
+   },
+   "sql": "Select A, b From T Where X Is Not Null Order By A Desc",
+   "read": "standard",
+   "out": "Select\n  A,\n  b\nFrom\n  T\nWhere\n  X Is Not Null\nOrder By\n  A Desc"
+  },
+  {
+   "d": "",
+   "o": {
+    "indent": 4
+   },
+   "sql": "select a, b from t where c in (select d from u where e = 1)",
+   "read": "standard",
+   "out": "SELECT\n    a,\n    b\nFROM\n    t\nWHERE\n    c IN (\n        SELECT\n            d\n        FROM\n            u\n        WHERE\n            e = 1\n    )"
+  },
+  {
+   "d": "",
+   "o": {
+    "indent": 0
+   },
+   "sql": "select a, b from t where c in (select d from u where e = 1)",
+   "read": "standard",
+   "out": "SELECT\n\ta,\n\tb\nFROM\n\tt\nWHERE\n\tc IN (\n\t\tSELECT\n\t\t\td\n\t\tFROM\n\t\t\tu\n\t\tWHERE\n\t\t\te = 1\n\t)"
+  },
+  {
+   "d": "",
+   "o": {
+    "lines": 3
+   },
+   "sql": "select 1; select 2; select 3",
+   "read": "standard",
+   "out": "SELECT\n  1;\n\n\nSELECT\n  2;\n\n\nSELECT\n  3"
+  },
+  {
+   "d": "",
+   "o": {
+    "lines": 2
+   },
+   "sql": "begin; update t set a = 1; commit; -- done\nselect 1",
+   "read": "standard",
+   "out": "BEGIN;\n\nUPDATE\n  t\nSET\n  a = 1;\n\nCOMMIT; -- done\n\nSELECT\n  1"
+  }
+ ]
+}

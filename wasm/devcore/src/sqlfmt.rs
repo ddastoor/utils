@@ -927,6 +927,7 @@ impl<'a, 'b> Az<'a, 'b> {
         // what stands before must be complete
         if !(self.value_before() || matches!(p1, "END" | "TRANSACTION" | "TRAN" | "WORK" | "ONLY" | "ROWS" | "ROW" | "ASC" | "DESC" | "TRY" | "CATCH" | "NOWAIT" | "TIES" | "COMMIT" | "ROLLBACK") || (matches!(p1, "ON" | "OFF") && f.first == "SET")) { return false; }
         if matches!(f.first, "GRANT" | "REVOKE" | "LOCK" | "LOAD") || f.trigger || (p1 == "END" && matches!(w, "IF" | "WHILE")) { return false; }
+        if w == "USE" && matches!(self.w(1), "INDEX" | "KEY") { return false; } // MySQL: t USE INDEX (i)
         if f.query {
             match w {
                 "SELECT" => f.seen_select || f.cur == Cl::Set || (matches!(f.first, "UPDATE" | "DELETE") && !f.cte),
@@ -1801,7 +1802,9 @@ fn evidence(t: &[T], d: D) -> i32 {
             K::Op => match d {
                 D::Pg => {
                     if x.s == "::" { casts += 1; if casts <= 3 { s += 3; } }
-                    if matches!(x.s, "@>" | "<@" | "#>" | "#>>" | "~*" | "!~" | "!~*" | "||/" | "<->" | "?|" | "?&" | "@@") { s += 3; }
+                    // (“@@ ” is the text-search operator; “@@name” is a variable of SQL Server and MySQL)
+                    if matches!(x.s, "@>" | "<@" | "#>" | "#>>" | "~*" | "!~" | "!~*" | "||/" | "<->" | "?|" | "?&") || (x.s == "@@" && next.map_or(false, |y| y.sp)) { s += 3; }
+                    if x.s == "@@" && next.map_or(false, |y| !y.sp && y.k == K::Word) { s -= 4; }
                 }
                 D::My => { if x.s == "<=>" { s += 3; } if x.s == ":=" && prev.map_or(false, |y| y.k == K::Var) { s += 3; } }
                 D::Ms => { if matches!(x.s, "+=" | "-=" | "*=" | "/=") { s += 2; } if matches!(x.s, "!<" | "!>") { s += 4; } }
