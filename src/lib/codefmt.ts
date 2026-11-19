@@ -89,8 +89,9 @@ function biomeEngine(mod: { Workspace: new () => any }) {
   };
 }
 
-/** Letters only, without their case: no formatter adds or removes one (digits may change: .5 → 0.5). */
-const letters = (s: string) => s.replace(/[^A-Za-zÀ-￿]+/g, '').toLowerCase();
+/** Letters only, without their case: no formatter adds or removes one (digits may change: .5 → 0.5). The five
+ *  entities of markup are left out — s == &quot;a&quot; may come back as s == 'a'. */
+const letters = (s: string) => s.replace(/&(?:quot|apos|amp|lt|gt);/g, '').replace(/[^A-Za-z\u00C0-\uFFFF]+/g, '').toLowerCase();
 
 export function makeFormatter(load: Loaders) {
   let biome: ReturnType<typeof biomeEngine> | null = null;

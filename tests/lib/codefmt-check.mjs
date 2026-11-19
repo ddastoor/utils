@@ -122,7 +122,7 @@ function sameJson(a, b) {
 }
 
 // ───────────────────────────────────────────────────────────── CSS / SCSS
-const IDENT0 = /[A-Za-z_\u0080-￿\\$@%&]/, IDENT = /[\w\-\u0080-￿]/;
+const IDENT0 = /[A-Za-z_\u0080-\uFFFF\\$@%&]/, IDENT = /[\w\-\u0080-\uFFFF]/;
 /** A value, a selector's bracket or an at-rule's parameters as a list of tokens. Allowed: white space where CSS (and
  *  Sass) give it no meaning — around , ( ) [ ] { } / * : ; = and comparisons, in front of !important, at both ends;
  *  one quote style for a string that holds no quote; numbers by value with the unit in lower case (.5 = 0.50,
@@ -154,7 +154,7 @@ export function cssTokens(v, scss = false) {
     if (c === '#') { const m = /^#[0-9a-fA-F]{3,8}(?![\w-])/.exec(v.slice(i)); if (m) { out.push(m[0].toLowerCase()); i += m[0].length; continue; } }
     if (c === '+' || c === '-') {
       const prev = out[out.length - 1], left = isValue(prev);
-      const numNext = /^.(?:\d|\.\d)/.test(v.slice(i, i + 3)), nameNext = c === '-' && /^-(?:[A-Za-z_\u0080-￿\\-]|#\{)/.test(v.slice(i, i + 3));
+      const numNext = /^.(?:\d|\.\d)/.test(v.slice(i, i + 3)), nameNext = c === '-' && /^-(?:[A-Za-z_\u0080-\uFFFF\\-]|#\{)/.test(v.slice(i, i + 3));
       if (scss) {
         if (c === '-' && numNext && !left) { i = number(i + 1, '-'); continue; }
         if (nameNext && !left) { i = ident(i); continue; }
@@ -265,7 +265,7 @@ export function yamlData(text) {
   const note = (c) => { if (c) for (const l of String(c).split('\n')) if (l.trim()) comments.push(l.trim()); };
   const data = [];
   const val = (n) => {
-    if (n == null) return 'null:';
+    if (n == null) return 'null:null';                        // "? key" without a value is the key with null
     if (YAML.isAlias(n)) return `alias:${n.source}`;
     note(n.commentBefore); note(n.comment);
     const tag = n.tag && !/^tag:yaml\.org,2002:(str|int|float|bool|null|map|seq)$/.test(n.tag) ? `${n.tag} ` : '', anchor = n.anchor ? `&${n.anchor} ` : '';
@@ -401,12 +401,12 @@ function vueTemplate(ast) {
   const walk = (n, raw) => {
     if (n.type === 2) { if (raw) { out.push(`raw:${n.content}`); return; } n.content.split(/[ \t\n\r\f]+/).forEach((w, i) => { if (i > 0) ws(); if (w) out.push(`t:${w}`); }); return; }
     if (n.type === 3) { out.push(`<!--${n.content.replace(/\s+/g, ' ').trim()}-->`); return; }
-    if (n.type === 5) { out.push(`{{${vueExpr(n.content.loc.source)}}}`); return; }
+    if (n.type === 5) { out.push(`{{${vueExpr(n.content.content ?? n.content.loc.source)}}}`); return; }
     if (n.type !== 1) { (n.children || []).forEach((c) => walk(c, raw)); return; }
     const tag = n.tag, block = BLOCK.has(tag), mark = block ? 'B' : BOX.has(tag) ? 'X' : 'I';
     const props = n.props.map((p) => {
       if (p.type === 6) return `${p.name}=${p.value ? attrValue(tag, p.name, p.value.content) : ''}`;
-      const name = p.rawName ?? p.name, exp = p.exp?.loc.source;
+      const name = p.rawName ?? p.name, exp = p.exp?.content ?? p.exp?.loc.source;      // the expression after &quot; and its like are decoded
       return `${name}=${exp == null ? '' : vueExpr(exp, p.name === 'for' ? 'for' : p.name === 'slot' ? 'slot' : '')}`;
     }).sort().join(' ');
     out.push(`${mark}<${tag}${props ? ` ${props}` : ''}>`);

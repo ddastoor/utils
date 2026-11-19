@@ -38,3 +38,14 @@ export async function prettierFormat(lang, text, o = {}) {
   const parser = { js: 'babel', ts: 'typescript', markdown: 'markdown' }[lang] ?? lang;
   return (await loaders.prettier(parser))(text, { printWidth: 80, tabWidth: 2, useTabs: false, semi: true, singleQuote: false, trailingComma: 'all', endOfLine: 'lf', ...(lang === 'markdown' ? { embeddedLanguageFormatting: 'off' } : {}), ...o });
 }
+/** The tab's engine module (src/lib/codefmt.ts) with the loaders above — for scripts and the e2e suite (Node 22
+ *  reads the TypeScript file as it is); the unit suite loads the module through its own Vite loader. */
+export async function engine() { const { makeFormatter } = await import('../../src/lib/codefmt.ts'); return makeFormatter(loaders); }
+/** The hazard sections of tests/fixtures/codefmt/<lang>.txt: [[title, text], …]. */
+export function hazards(lang) {
+  const text = readFileSync(join(root, 'tests/fixtures/codefmt', `${lang}.txt`), 'utf8');
+  return text.split(/^§§§§ /m).slice(1).map((s) => { const i = s.indexOf('\n'); return [s.slice(0, i), s.slice(i + 1)]; });
+}
+export const LANGS = ['js', 'ts', 'json', 'css', 'scss', 'yaml', 'graphql', 'markdown', 'html', 'vue'];
+/** The file name a hazard section stands for (TypeScript sections with JSX are .tsx files). */
+export const nameOf = (lang, title) => (lang === 'ts' && /TSX/.test(title) ? 'section.tsx' : '');
