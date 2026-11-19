@@ -1,0 +1,57 @@
+§§§§ package file, minified
+{"name":"chai-shop","version":"1.4.2","private":true,"scripts":{"dev":"vite","build":"vite build","test":"node tests/unit.mjs && node tests/e2e.mjs"},"dependencies":{"vite":"^8.0.0"},"files":["dist","README.md"],"engines":{"node":">=22"}}
+§§§§ numbers as typed
+{"int":42,"neg":-7,"zero":0,"negzero":-0,"dec":1.50,"small":0.000001,"exp":1e5,"Exp":1E+10,"expneg":2.5e-7,"big":12345678901234567890,"precise":0.1000000000000000055511151231257827,"long":3.141592653589793238462643383279}
+§§§§ strings and escapes
+{"quote":"say \"hi\"","slash":"a\/b","back":"C:\\dir\\file","ctrl":"tab\there\nnew\r\b\f","uni":"\u00e9\u20b9\ud83d\ude00","raw":"é ₹ 😀 नमस्ते","empty":"","space":"  two  spaces  ","apostrophe":"it's","url":"https://example.com/a?b=c&d=e#f"}
+§§§§ empty and nested containers
+{"a":{},"b":[],"c":[[]],"d":[{}],"e":{"f":{"g":{"h":{"i":[[[1,[2,[3]]]]]}}}},"g":[{},{},[]]}
+§§§§ duplicate and odd keys
+{"a":1,"a":2,"":3," ":4,"__proto__":5,"constructor":6,"key with spaces":7,"ключ":8,"123":9,"a.b":10,"a\"b":11}
+§§§§ top-level string
+"just a string"
+§§§§ top-level number
+-12.5e3
+§§§§ top-level null
+null
+§§§§ top-level array of literals
+[true,false,null,0,"x"]
+§§§§ long array of numbers
+[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60]
+§§§§ array of records
+[{"id":0,"name":"Asha","city":"Pune","tags":["a"]},{"id":1,"name":"Ravi","city":"Mumbai","tags":[]},{"id":2,"name":"Meera","city":"Kochi","tags":["x","y","z"]}]
+§§§§ matrix
+[[1,0,0],[0,1,0],[0,0,1]]
+§§§§ already spread out, odd spacing
+{
+
+
+   "a"   :   1 ,
+	"b":[ 1 ,
+2,
+
+3 ]
+   ,"c" : { "d" :null }
+
+}
+
+
+§§§§ long string that cannot break
+{"description": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word ", "short": "x"}
+§§§§ Windows line ends
+{
+  "a": 1,
+  "b": [
+    2
+  ]
+}
+§§§§ comments (JSONC, as in tsconfig)
+// build settings
+{
+  /* target */ "compilerOptions": { "target": "ES2022", // modern
+    "strict": true /* always */ },
+  // files
+  "include": ["src"] // end
+}
+§§§§ GeoJSON-like nesting with long coordinates
+{"type":"FeatureCollection","features":[{"type":"Feature","properties":{"name":"Gateway of India"},"geometry":{"type":"Point","coordinates":[72.83465999999999,18.921984000000002]}},{"type":"Feature","properties":{},"geometry":{"type":"LineString","coordinates":[[72.8,18.9],[72.81,18.91],[72.82,18.92]]}}]}

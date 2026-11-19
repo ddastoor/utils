@@ -1,0 +1,293 @@
+§§§§ a workflow file with odd spacing
+name:   build
+on: [push,  pull_request]
+env: {NODE_VERSION: 22,   CI: true}
+jobs:
+  test:
+      runs-on: ubuntu-latest
+      strategy:
+          matrix:
+              node: [ 20, 22 ]
+              os: [ubuntu-latest,windows-latest]
+      steps:
+        - uses: actions/checkout@v4
+        - name:    Install
+          run:   npm ci && npm test
+        - run: |
+            echo "line one"
+            echo "line two"
+          if: ${{ github.event_name == 'push' }}
+§§§§ strings that must stay strings
+a: "yes"
+b: 'no'
+c: "123"
+d: '1.0'
+e: "null"
+f: "~"
+g: "true"
+h: '0x1F'
+i: "2026-11-19"
+j: "12:30"
+k: ""
+l: ''
+m: " leading and trailing "
+n: "a: b"
+o: "x # not a comment"
+p: '@handle'
+q: "- not a list"
+r: "[not, a, list]"
+s: "{not: a map}"
+t: '*not_an_alias'
+u: "&not_an_anchor"
+v: "!not_a_tag"
+w: "%percent"
+x: "`backtick`"
+y: '|'
+z: ">"
+§§§§ quotes and escapes
+a: "tab\there"
+b: "new\nline"
+c: "quote \" inside"
+d: 'it''s'
+e: "it's"
+f: 'say "hi"'
+g: "both ' and \""
+h: "☺ \x41 \e[0m \0"
+i: "back\\slash"
+j: 'back\slash stays'
+k: "trailing backslash \\"
+l: "line one\
+  continued"
+m: "é ₹ 😀 नमस्ते"
+n: 'single
+  folded
+  lines'
+o: "double
+
+  with a blank line"
+§§§§ values as typed
+int: 42
+neg: -7
+octal: 0o14
+old_octal: 012
+hex: 0x1F
+float: 1.50
+exp: 1e3
+Exp: 1.5E+10
+inf: .inf
+ninf: -.INF
+nan: .NaN
+sep: 1_000
+bools: [true, True, TRUE, false, yes, No, on, OFF, y, n]
+nulls: [null, Null, NULL, ~, ]
+date: 2026-11-19
+stamp: 2026-11-19T10:30:00+05:30
+time: 12:30:45
+version: 1.10
+zip: 01234
+plus: +91
+empty:
+tilde: ~
+§§§§ block scalars
+literal: |
+  line one
+    indented more
+  line three
+
+folded: >
+  these lines
+  are folded
+
+  into paragraphs
+strip: |-
+  no newline at the end
+keep: |+
+  keeps the blank lines after it
+
+
+strip_folded: >-
+  folded and
+  stripped
+indent: |2
+    starts with two extra spaces
+  second line
+hash: |
+  # not a comment
+  key: not a key
+  - not a list
+last: after
+§§§§ anchors, aliases, merge keys and tags
+defaults: &defaults
+  adapter: postgres
+  host: localhost
+development:
+  <<: *defaults
+  database: dev
+test:
+  <<: [*defaults]
+  database: test
+list: &ports [80, 443]
+again: *ports
+scalar: &name Asha
+ref: *name
+tagged: !!str 123
+float: !!float 1
+binary: !!binary |
+  R0lGODlhDAAMAIQAAP//9/X17unp5WZmZgAAAOfn515eXvPz7Y6OjuDg4J+fn5
+custom: !mytag {a: 1}
+seq: !!seq
+  - a
+set: !!set {a, b}
+local: !local/type value
+§§§§ several documents and directives
+%YAML 1.2
+---
+first: 1
+...
+---
+second: 2
+---
+- third
+--- !!map
+fourth: 4
+--- |
+  a literal document
+---
+# only a comment in this one
+---
+last: true
+§§§§ comments everywhere
+# top of the file
+
+# second block
+key: value # trailing
+# between keys
+list: # after a key
+  # before the first item
+  - a # item
+  # between items
+  - b
+  # after the last item
+map:
+  # first in the map
+  x: 1
+
+  # after a blank line
+  y: 2 # y
+flow: [a, b] # flow
+text: "has # no comment"
+url: http://example.com/#anchor
+# bottom of the file
+§§§§ sequences and their indentation
+not_indented:
+- a
+- b
+indented:
+  - a
+  - b
+nested:
+- - a
+  - b
+- - c
+-
+  - d
+of_maps:
+  - name: x
+    value: 1
+  -   name: y
+      value: 2
+  - name: z
+    children:
+      - deep:
+          - deeper: [1, 2]
+empty_item:
+  -
+  - ""
+  - ~
+mixed: [1, [2, [3, {a: b}]], "x"]
+§§§§ keys
+plain key: 1
+"quoted key": 2
+'single quoted': 3
+? complex key
+: complex value
+? [a, b]
+: seq key
+? {x: 1}
+: map key
+? |
+  block key
+: block value
+1: number key
+true: bool key
+null: null key
+~: tilde key
+"": empty key
+key with: colon
+"key: with colon": x
+a.b.c: dotted
+a/b: slash
+-dash: start
+k@y: at
+ключ: other scripts
+🔑: emoji
+§§§§ flow collections
+empty_seq: []
+empty_map: {}
+seq: [a, b,c,   d]
+map: {a: 1,b: 2, c:   3}
+nested: {list: [1, 2, {x: y}], map: {k: [v]}}
+multi: [
+  one,
+  two,
+  three
+]
+long: [alpha, bravo, charlie, delta, echo, foxtrot, golf, hotel, india, juliet, kilo, lima, mike, november, oscar]
+long_map: {alpha: 1, bravo: 2, charlie: 3, delta: 4, echo: 5, foxtrot: 6, golf: 7, hotel: 8, india: 9, juliet: 10}
+quoted: ["a, b", 'c: d', "e]"]
+pairs: [a: 1, b: 2]
+trailing: [a, b, ]
+json: {"a": 1, "b": [true, null]}
+§§§§ plain scalars over several lines and long lines
+description: this plain scalar
+  continues on the next line
+  and one more
+long: this is one very long line that goes on and on past any print width a formatter might want to enforce on it, and it must stay one line or fold only where a fold means the same
+url: https://example.com/a/very/long/path/that/cannot/be/broken/anywhere/without/changing/the/value/of/this/key?and=a&query=string
+command: docker run --rm -it -v "$(pwd)":/work -w /work -e FOO=bar -e BAZ=qux --network host image:tag sh -c "make all && make test"
+§§§§ compose file and a manifest
+services:
+  web:
+    image: "nginx:1.27"
+    ports: ["80:80", "443:443"]
+    environment:
+      - KEY=value
+      - OTHER=a b c
+    depends_on: [db]
+    healthcheck: {test: ["CMD", "curl", "-f", "http://localhost"], interval: 30s}
+  db:
+    image: postgres:17
+    volumes:
+      - db-data:/var/lib/postgresql/data
+volumes: {db-data: {}}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: web, labels: {app: web}}
+spec:
+  replicas: 3
+  template:
+    spec:
+      containers:
+      - name: web
+        image: nginx
+        args: ["--port", "8080"]
+        resources: {limits: {cpu: 500m, memory: 128Mi}}
+§§§§ already formatted
+name: x
+list:
+  - a
+  - b
+
+map:
+  k: v

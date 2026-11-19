@@ -1,0 +1,125 @@
+§§§§ the sample of the tab
+<!doctype html><html><head><title>Shop</title><style>body{margin:0}</style></head><body><nav><a href="/">Home</a><a href="/menu">Menu</a></nav><main><h1>Chai Point</h1><p>Open <b>7 am</b> to <i>10 pm</i>.</p></main><script>document.title="Chai"</script></body></html>
+§§§§ white space between inline elements
+<p><span>no</span><span>space</span> <span>one</span>   <span>space</span></p>
+<p>Open <b>7 am</b> to <i>10 pm</i>, <a href="/menu">menu</a>. (<a href="x">in brackets</a>) “<q>quoted</q>”</p>
+<p><b>a</b><i>b</i>c<u>d</u> e<s>f</s> g <em>h</em>i</p>
+<p>
+  text on its own line
+</p>
+<p> leading and trailing </p>
+<div><span>a</span>
+<span>b</span></div>
+<div><a href="1">one</a><a href="2">two</a><a href="3">three</a></div>
+<label>Name<input name="n"></label><button>Go</button><button> Padded </button>
+<p>a<br>b<br/>c<wbr>d&nbsp;e&#160;f</p>
+§§§§ text that must stay as typed
+<pre>
+  line   one
+	line two
+
+    <b>bold</b>   in pre
+</pre>
+<pre>no leading newline</pre>
+<pre>
+
+first line empty</pre>
+<textarea>
+  kept   as
+ typed </textarea>
+<textarea></textarea>
+<p style="white-space:pre">  cannot   know  </p>
+<code>  inline   code  </code>
+<script type="text/template"><div>  {{ kept }}  </div></script>
+<script type="text/plain">
+  plain   text
+</script>
+<style media="print">
+/* kept */
+a  {  b : c  }
+</style>
+§§§§ attributes
+<input type=text name=q value="a b" disabled required  class="  x   y  z " data-json='{"a":"b","c":[1,2]}' title='say "hi"' placeholder="it's" aria-label="A &amp; B" data-empty="" data-novalue DATA-UPPER="X" tabindex=-1>
+<a href="https://example.com/?a=1&b=2&amp;c=3#x" target=_blank rel="noopener noreferrer" download>l</a>
+<img src="a.png" alt="" srcset="a.png 1x, a@2x.png 2x,a@3x.png 3x" sizes="(max-width: 600px) 480px, 800px" width=100 height=100 loading=lazy>
+<div style="color:red;background:blue;margin:0 auto" onclick="a();b({x:1});return false" hidden></div>
+<div class="a
+  b
+  c" id=main></div>
+<my-element some-attr="1" :bound="x" @event="y" #ref v-if="z" [prop]="p" (ev)="q()" *ngIf="r"></my-element>
+<td colspan=2 rowspan="3" nowrap></td>
+§§§§ entities
+<p>&amp; &lt; &gt; &quot; &apos; &nbsp; &copy; &#169; &#xA9; &rarr; &hellip; &euro; &#8377; ₹ © → &amp;amp; &notanentity; &amp R&D AT&T a &lt b</p>
+<p title="&quot;q&quot; &amp; &lt;t&gt; &#39;s&#39;">x</p>
+<a href="?a=1&copy=2&amp;lt=3">l</a>
+§§§§ comments and doctype
+<!DOCTYPE html>
+<!-- top -->
+<html lang="en"><!-- after html -->
+<head><!-- in head --><meta charset=utf-8><title>T</title></head>
+<body>
+<!-- a
+     multi-line
+     comment -->
+<p>text <!-- inline --> more</p>
+<!--[if lt IE 9]><script src="html5shiv.js"></script><![endif]-->
+<!---->
+<!-- before the end -->
+</body>
+</html>
+<!-- after everything -->
+§§§§ scripts and styles
+<script>var a=1;function f(){return a<2&&a>0}document.write("</scr"+"ipt>")</script>
+<script type="module">import {a} from "./a.js";a()</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"Cafe","name":"Chai Point"}</script>
+<script type="application/json" id="data">{"a":[1,2,3]}</script>
+<script src="x.js" defer></script>
+<script async src="y.js"></script>
+<script type="importmap">{"imports":{"a":"./a.js"}}</script>
+<style>.a{color:red}@media print{.a{display:none}}</style>
+<style></style>
+<noscript><img src="pixel.gif"></noscript>
+§§§§ optional tags and void elements
+<ul><li>one<li>two<li>three</ul>
+<p>first<p>second
+<dl><dt>t<dd>d<dt>t2<dd>d2</dl>
+<table><caption>c<colgroup><col><col span=2><thead><tr><th>a<th>b<tbody><tr><td>1<td>2<tr><td>3<td>4<tfoot><tr><td>f<td>g</table>
+<select><option>a<option selected>b<optgroup label=g><option>c</select>
+<br><hr><img src=a><input><meta name=a content=b><link rel=x href=y><area><base><col><embed><source><track><wbr>
+<br/><hr /><img src=b />
+§§§§ tables and forms
+<table><tr><td>a</td><td>b</td></tr><tr><td colspan="2">c <b>d</b></td></tr></table>
+<form action="/go" method=post><fieldset><legend>L</legend><label for=a>A</label><input id=a><select name=s><option value=1>One</option><option value=2 selected>Two</option></select><textarea name=t rows=3>x</textarea><input type=checkbox checked><input type=radio name=r><button type=submit>Send</button></fieldset></form>
+§§§§ SVG and MathML
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" preserveAspectRatio="xMidYMid meet"><defs><linearGradient id="g" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#fff"/></linearGradient><clipPath id="c"><rect width="24" height="24"/></clipPath></defs><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5" fill="none" stroke="currentColor" stroke-width="2"/><text x="0" y="0">a <tspan>b</tspan> c</text><foreignObject width="10" height="10"><div>html</div></foreignObject></svg>
+<math><mfrac><mi>a</mi><mn>2</mn></mfrac></math>
+§§§§ templates and custom elements
+<template id="row"><tr><td class="name"></td><td><slot name="x">fallback</slot></td></tr></template>
+<my-card heading="Hi"><span slot="x">s</span>text</my-card>
+<x-a><x-b></x-b></x-a>
+<dialog open><p>d</p></dialog>
+<details><summary>S</summary>body</details>
+<picture><source srcset="a.webp" type="image/webp"><img src="a.jpg" alt="a"></picture>
+<video controls width=320><source src="a.mp4" type="video/mp4"><track kind="captions" src="a.vtt">No video.</video>
+<iframe src="about:blank" title="t"></iframe>
+§§§§ upper case
+<DIV CLASS="Box" ID=Main><P>Text <B>Bold</B></P><IMG SRC="A.PNG" ALT="Alt Text"><A HREF="Page.HTML">Link</A><BR></DIV>
+§§§§ long lines that must break
+<p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p>
+<a class="button button-primary button-large" href="https://example.com/a/very/long/path/to/somewhere?with=query&and=more" target="_blank" rel="noopener noreferrer" data-tracking-id="hero-cta-button" aria-describedby="hero-description">Call to action</a>
+<ul><li><a href="/one">One</a></li><li><a href="/two">Two</a></li><li><a href="/three">Three</a></li><li><a href="/four">Four</a></li><li><a href="/five">Five</a></li></ul>
+§§§§ a fragment without html or body
+<h1>Title</h1>
+<p>Just a fragment.</p>
+§§§§ other scripts
+<p lang="hi">नमस्ते <b>दुनिया</b></p><p>日本語<i>テキスト</i>。</p><p title="₹ 😀">é — “x”</p>
+§§§§ already formatted
+<!doctype html>
+<html>
+  <head>
+    <title>T</title>
+  </head>
+  <body>
+    <p>Text</p>
+  </body>
+</html>

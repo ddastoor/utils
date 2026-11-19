@@ -1,0 +1,72 @@
+§§§§ types
+type A<T extends object = {}> = { readonly [K in keyof T]?: T[K] extends infer U ? U : never }
+type B = { -readonly [K in keyof T]-?: T[K] } & { [K in Keys as `get${Capitalize<K>}`]: () => T[K] }
+type Fn = new (...a: any[]) => object
+type Abs = abstract new () => object
+type G = typeof import('./m')
+type T1 = `prefix-${string}-${number}`
+type U = A | (B & C) | (() => void) | (new () => X)
+type L = [first: string, second?: number, ...rest: boolean[]]
+type R = readonly string[] | ReadonlyArray<number> | unique symbol
+type Cond<T> = T extends string ? 'str' : T extends number ? 'num' : T extends (infer E)[] ? E : never
+type Getters = keyof typeof obj; type Idx = T['a']['b'][number]
+type Long = { kind: 'circle'; radius: number } | { kind: 'square'; size: number } | { kind: 'rectangle'; width: number; height: number }
+§§§§ interfaces and enums
+interface I extends A, B<string> { (x: number): string; new (x: number): I; readonly [key: string]: unknown; method?(): void; get acc(): number; set acc(v: number); prop: string, other?: number }
+enum E { A = 1, B, C = 'c', D = A | B, 'quoted' = 5 }
+const enum F { X, Y }
+declare enum G { Z }
+§§§§ classes
+abstract class C<T> extends Base<T> implements I, J {
+  private readonly x: number = 1; protected static y?: string; declare z: boolean; public accessor w = 1; override v!: T
+  protected abstract m(): void
+  constructor(public a: string, private b?: number, protected readonly c = 1) { super() }
+  static override f<U>(this: C<U>, ...args: [a: string, b?: number]): asserts this is D {}
+  method<K extends keyof T>(key: K): T[K] { return this.data[key]! }
+  [key: string]: unknown
+}
+§§§§ functions and overloads
+function f<const T extends readonly unknown[]>(x: T): T
+function f(x: string): string
+function f(x: any) { return x }
+function assertIsString(val: any): asserts val is string {}
+function isFish(pet: Fish | Bird): pet is Fish { return (pet as Fish).swim !== undefined }
+const fn = <T,>(x: T) => x, gen = async function* <T>(x: T): AsyncGenerator<T, void, undefined> { yield x }
+function withThis(this: Window, a?: number, ...rest: string[]): void {}
+§§§§ assertions and operators
+let v = x as unknown as string, w = <string>y, z = obj!.prop!.deep, s = x satisfies T, t = a! + b!, c = <const>['a'], d = { a: 1 } as const
+const o = fnc<string>('x'), p = obj?.method<string>(), q = new Map<string, number[]>(), r = a?.b!.c, k = x as any as Record<string, never>
+let u: typeof v, n: number | undefined = undefined, tup: [a: string, b: number] = ['', 0]
+if ((x as any).y) (z as Foo).bar()
+§§§§ modules and declarations
+import type { U } from './u'
+import { type V, w } from './v'
+import T, { type X as Y } from './t'
+export type { T } from './t'
+export type * from './all'
+import fs = require('fs')
+export = fs
+declare module 'm' { export function f(x: number): string; const v: number; export default v }
+declare global { interface Window { x: number } var G: string }
+namespace N { export const a = 1; export namespace M { export type T = string } }
+declare function d(x: number): void
+declare const VERSION: string
+/// <reference types="node" />
+§§§§ decorators
+@Component({ selector: 'app', template: '<p></p>' })
+class K {
+  @Input() name!: string
+  @Output() change = new EventEmitter<string>()
+  @HostListener('click', ['$event']) onClick(e: Event) {}
+  constructor(@Inject(TOKEN) private t: T, @Optional() readonly o?: O) {}
+  @dec static s = 1; @a @b() @c.d(1) multi() {}
+}
+§§§§ generics that look like comparisons
+const a = f<number>(1), b = x < y > (z), c = g<A, B>(1), d = new Foo<Bar<Baz>>(), e = <T,>() => {}, h = i < j, k = (l < m) > n
+type Deep = Array<Array<Map<string, Set<number>>>>
+§§§§ this repository's style: long lines
+export function bindThing(e: any) { const m = () => new Uint8Array(e.memory.buffer), put = (b: Uint8Array) => { const p = e.alloc(b.length); m().set(b, p); return p; }; return { run(op: string, input: Uint8Array): Uint8Array { const o = enc.encode(op), po = put(o), pi = put(input); try { const r = e.call(po, o.length, pi, input.length); const out = m().slice(e.out_ptr(), e.out_ptr() + e.out_len()); if (r !== 0) throw new Error(dec.decode(out)); return out; } finally { e.free(po, o.length); e.free(pi, input.length); } } }; }
+§§§§ TSX
+const A = <T,>({ items, render }: { items: T[]; render: (x: T) => JSX.Element }) => <ul>{items.map((x, i) => <li key={i}>{render(x)}</li>)}</ul>
+function B(props: React.PropsWithChildren<{ title?: string }>) { return <section aria-label={props.title ?? 'none'}>{props.children as React.ReactNode}</section> }
+const el = <Generic<string> value="x" />

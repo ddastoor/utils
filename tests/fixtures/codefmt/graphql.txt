@@ -1,0 +1,87 @@
+§§§§ query, minified
+query Orders($city:String!,$first:Int=10,$after:ID,$tags:[String!]!=["a","b"],$filter:OrderFilter={status:PAID,min:1.5}){orders(city:$city,first:$first,after:$after){edges{node{id total customer{name}}}pageInfo{hasNextPage endCursor}}}
+§§§§ anonymous query and commas
+{a,b,c d e:f(x:1,y:2,),g{h,i}}
+§§§§ aliases, arguments and values
+query Q { small: image(size: 64) big: image(size: 1024, format: PNG, crop: {x: 0, y: -1, w: 1.5e2, h: 0.5}) list(ids: [1, 2, 3], names: ["a", "b"], flags: [true, false, null], nested: [[1], [2, [3]]], empty: [], obj: {}) text(s: "quote \" and \\ and é and \n", e: "") enumValue(e: RED) variable(v: $v) }
+§§§§ block strings
+{
+  field(text: """
+    Hello,
+      indented World!
+
+    Yours,
+      GraphQL.
+  """, one: """one line""", quote: """has \""" inside""", empty: """""")
+}
+§§§§ fragments and directives
+query Hero($episode: Episode, $withFriends: Boolean!, $skip: Boolean = false) @cached(ttl: 60) {
+  hero(episode: $episode) @include(if: $withFriends) @skip(if: $skip) { ...HeroFields ... on Droid { primaryFunction } ... on Human @defer(label: "h") { height(unit: METER) } ... @include(if: true) { id } ... { name } }
+}
+fragment HeroFields on Character @live { name friends(first: 2) @connection(key: "Hero_friends", filter: ["a"]) { edges { node { ...HeroFields } } } }
+§§§§ mutation and subscription
+mutation AddOrder($input:AddOrderInput!){addOrder(input:$input){order{id status}errors{field message}}}
+subscription OnOrder($id:ID!){orderChanged(id:$id){id status updatedAt}}
+mutation{like(id:1){count}}
+§§§§ several operations with comments
+# leading comment
+query A { a } # trailing comment
+
+# between operations
+query B {
+  # inside a selection
+  b # after a field
+  c(
+    # inside arguments
+    x: 1 # after an argument
+  )
+}
+# last comment
+§§§§ schema: types, interfaces, unions
+schema{query:Query mutation:Mutation subscription:Subscription}
+"""A customer order"""
+type Order implements Node&Timestamped@key(fields:"id"){"The id" id:ID! total(currency:Currency=INR,round:Boolean=true):Float! items(first:Int=10,after:String):[Item!]! customer:Customer @deprecated(reason:"use buyer") tags:[[String]]}
+interface Node{id:ID!}
+interface Timestamped implements Node{id:ID! createdAt:DateTime!}
+union SearchResult=|Order|Customer|Item
+union Short=A|B
+scalar DateTime@specifiedBy(url:"https://tools.ietf.org/html/rfc3339")
+enum Currency{INR USD @deprecated EUR}
+input OrderFilter{status:Status=PAID min:Float max:Float tags:[String!]=[] nested:Inner={a:1}}
+directive@key(fields:String!)repeatable on OBJECT|INTERFACE
+directive @cached(ttl:Int=60,scope:Scope=PUBLIC) on QUERY|FIELD
+§§§§ schema: extensions and descriptions
+"""
+A long description
+
+  with an indented line
+and "quotes" inside.
+"""
+type Query {
+  "single line description"
+  order(
+    "the id"
+    id: ID!
+  ): Order
+  """block on a field"""
+  orders(city: String, first: Int = 10): [Order!]!
+}
+extend type Query { me: Customer }
+extend schema @link(url: "https://specs.apollo.dev/federation/v2.0") { subscription: Subscription }
+extend union SearchResult = Shop
+extend enum Currency { GBP }
+extend input OrderFilter { city: String }
+extend interface Node @tag(name: "x")
+extend scalar DateTime @tag(name: "y")
+type Empty
+§§§§ long lines that must break
+query VeryLongOperationName($firstVariable: String!, $secondVariable: Int = 100, $thirdVariable: [ID!]!, $fourthVariable: SomeInputType) { someFieldWithManyArguments(firstArgument: $firstVariable, secondArgument: $secondVariable, thirdArgument: $thirdVariable, fourthArgument: $fourthVariable) { id } }
+type T { fieldWithManyArguments(firstArgument: String!, secondArgument: Int = 100, thirdArgument: [ID!]!, fourthArgument: SomeInputType): String }
+§§§§ already formatted
+query Orders($city: String!) {
+  orders(city: $city) {
+    id
+
+    total
+  }
+}

@@ -1,0 +1,69 @@
+§§§§ variables, maps and defaults
+$accent:#4f46e5;$gap : 8px!default;$font-stack:("Helvetica Neue",Arial,sans-serif);$global:1 !global;
+$breakpoints:(small:576px,medium:768px,'large one':992px,nested:(a:1,b:(c:2)),);
+$list:1px 2px 3px;$comma:(1px,2px,3px);$single:(1px,);$empty:();$bool:true;$null:null;
+.btn{color:$accent;padding:$gap $gap*2;font-family:$font-stack}
+§§§§ nesting and the parent selector
+.card{color:red;&:hover{color:blue}&-title{font-weight:bold}&__body{margin:0;&--wide{width:100%}}& + &{margin-top:1em}& > &{x:y}.dark &{color:white}&.active{z:1}& &{a:b}#{&}__gen{c:d}@at-root .root-level{e:f}> .direct{g:h}+ .next{i:j}~ .later{k:l}}
+§§§§ spaces that change the value
+$a:10px;$b:4px;
+.m{w1:$a - $b;w2:$a -$b;w3:$a+$b;w4:$a + $b;w5:$a +$b;w6:$a*$b;w7:$a * 2;w8:-$a;w9:- $a;w10:$a/$b;w11:(10px/2);w12:10px/2;w13:1 - 2;w14:1 -2;w15:1-2;w16:a-b;w17:a - b;w18:$a % 3;w19:"a" + "b";w20:a+b;w21:#{$a}-#{$b};w22:#{$a} - #{$b};w23:calc(#{$a} - 1px);w24:10px+5;w25:1+2*3;w26:(1+2)*3;w27:not true;w28:$a==$b;w29:$a != $b;w30:$a<$b and $a>=1 or false}
+§§§§ interpolation
+$side:left;$name:"col";$q:"screen and (min-width: 100px)";$i:3;
+.#{$name}-#{$i}{margin-#{$side}:#{$i*4}px;width:calc(100% - #{$gap});content:"#{$name} of #{$i}";background:url("img/#{$name}.png");border-#{$side}-width:1px;grid-area:#{$i} / 1 / #{$i+1} / -1}
+@media #{$q}{a{b:c}}@media screen and (min-width:#{$bp+1}){a{b:c}}
+.a#{$i}b,.x-#{$name}:hover,[data-#{$name}="#{$i}"]{d:e}
+@keyframes spin-#{$name}{to{transform:rotate(360deg)}}
+§§§§ modules
+@use "sass:math";@use 'sass:map' as m;@use "config" with ($primary:blue,$secondary:green);@use "library" as *;
+@forward "src/list" hide list-reset,$horizontal-list-gap;@forward "theme" show $accent,button-mixin;@forward "vars" as vars-*;
+@import 'a','b';@import "c";
+.x{width:math.div(100%,3);height:math.round(1.5px);z:m.get($config,"depth","modal");y:map-get($breakpoints,small)}
+§§§§ mixins and functions
+@mixin button($bg,$fg:white,$args...){background:$bg;color:$fg;@content}
+@mixin on($bp){@media (min-width:$bp){@content}}
+@mixin slot{@content(1px)}
+@function double($x){@return $x*2}
+@function sum($numbers...){$s:0;@each $n in $numbers{$s:$s+$n}@return $s}
+.a{@include button(red);@include button($bg:blue,$fg:black);@include button(red,white,1px,2px...);@include on(600px){padding:double(8px)}@include slot using ($w){width:$w}width:sum(1,2,3);@extend %placeholder;@extend .b !optional}
+%placeholder{margin:0}
+§§§§ control flow
+@if $a==1{.a{b:c}}@else if $a!=2 and not $b{.d{e:f}}@else{.g{h:i}}
+@each $name,$glyph in (home:"\f015",user:"\f007"){.icon-#{$name}:before{content:$glyph}}
+@each $k,$v in $breakpoints{@media (min-width:$v){.show-#{$k}{display:block}}}
+@for $i from 1 through 3{.m-#{$i}{margin:#{$i*4}px}}@for $j from 0 to 2{.p-#{$j}{padding:$j+px}}
+$n:3;@while $n>0{.w-#{$n}{width:10px*$n}$n:$n - 1}
+.x{color:if($condition,red,blue);@if not index($list,1px){y:z}}
+@debug "value: #{$a}";@warn 'careful';@error "stop #{$b}";
+§§§§ comments of both kinds
+// a line comment
+/* a block comment */
+.a{ // after the brace
+  color:red; // after a declaration
+  // on its own line
+  /* block inside */
+  margin:0; /* trailing block */
+  // it's a comment with an apostrophe and a "quote
+  background:url(http://example.com/a.png); // the // inside url( ) is no comment
+  width:10px // no semicolon before this one
+}
+/*! kept in the compiled file */
+// last line
+§§§§ nested properties and placeholders
+.a{font:{family:$font;size:12px;weight:bold}margin:10px{top:0;bottom:2px}border:1px solid{radius:2px}}
+§§§§ long lists that must break
+$theme-colors:("primary":$blue,"secondary":$gray-600,"success":$green,"info":$cyan,"warning":$yellow,"danger":$red,"light":$gray-100,"dark":$gray-900);
+.x{transition:color .15s ease-in-out,background-color .15s ease-in-out,border-color .15s ease-in-out,box-shadow .15s ease-in-out;@include very-long-mixin-name($first-argument-value,$second-argument-value,$third-argument-value,$fourth-argument-value)}
+@mixin make-col($size:false,$columns:$grid-columns,$gutter:$grid-gutter-width,$breakpoints:$grid-breakpoints){flex:0 0 auto}
+§§§§ already formatted
+@use "sass:math";
+
+$gap: 8px;
+
+.card {
+  padding: $gap;
+
+  &:hover {
+    padding: math.div($gap, 2);
+  }
+}

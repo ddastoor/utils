@@ -1,0 +1,50 @@
+§§§§ minified sheet
+.card{display:flex;gap:8px;color:#333}.card:hover{box-shadow:0 1px 2px rgba(0,0,0,.2)}@media (max-width:600px){.card{flex-direction:column}}a,button{cursor:pointer}
+§§§§ selectors
+ul>li+li~li a:not(.x,.y)::before,[data-x="a b" i],a[href^='http'],a[target=_blank],input[type=checkbox]:checked+label,:is(h1,h2):where(.t)>:has(>img),li:nth-child(2n+1):nth-of-type( odd ),*,*::after,html:lang(en-IN),p::first-line,svg|a,.a\:b,#id\.x,.\31 0px,a:hover:focus-visible,:root{color:red}
+§§§§ numbers and units
+a{width:.5em;height:0.50em;margin:+.5px -0.0px 10PX 1e3px;line-height:1.;opacity:.0;flex:1 1 0;z-index:-1;font-size:1.0rem;transform:rotate(45DEG) scale(1.50,.5);width:calc(100%/3 - 2*1em);margin:0px 0 0.0em 000.5px;top:1E3px;transition:all .3S}
+§§§§ colours
+a{color:#FFF;background:#AbCdEf;border-color:#abcdef80;outline-color:RED;fill:rgb(0 0 0 / 50%);stroke:rgba(0,0,0,.5);color:hsl(120DEG 100% 50%);color:color-mix(in srgb,red 40%,blue);color:oklch(70% .1 200);color:TRANSPARENT;color:currentColor}
+§§§§ strings and urls
+a{content:"\201C";content:'it\'s';content:"say \"hi\"";content:"a\
+b";content:'"';content:"'";background:url(data:image/png;base64,iVBORw0KGgo=);background:url( "a b.png" );background:url(a.png) , url('b.png');background:url(http://example.com/x.png?a=1&b=2);font-family:"Helvetica Neue",Arial,'Noto Sans',sans-serif;quotes:"«" "»"}@import url("theme.css") screen and (min-width:100px);@import 'print.css' print;
+§§§§ maths functions
+a{width:calc( (100% - 10px)/3 );height:calc(1px + 2px);margin:calc(-1 * var(--gap));padding:calc(var(--a)*2 + var(--b,10px));width:min(100%,500px);width:max(1rem,2vw);font-size:clamp(1rem,2.5vw,2rem);width:calc(100% - (2*var(--x)));top:calc(50% - -5px);left:calc(1px - 2px)}
+§§§§ custom properties keep their text
+:root{--main:#06c;--empty:;--space: ;--json:[1,2,3];--obj:{a:b};--str:  'a b'  ;--Mixed-Case:10PX;--calc:calc(1px+2px);--url:url(x.png);--neg:-1;--font:"A", B}a{color:var(--main,#000);margin:var( --neg );width:var(--Mixed-Case)}
+§§§§ at-rules
+@charset "utf-8";@namespace svg url(http://www.w3.org/2000/svg);@layer base,components;@layer base{html{color:black}}@media screen and (-webkit-min-device-pixel-ratio:2),(min-resolution:192dpi){a{b:c}}@media (400px<=width<=700px){a{b:c}}@media not all and (monochrome){a{b:c}}@supports (display:grid) and (not (display:inline-grid)){a{display:grid}}@font-face{font-family:"X";src:url(x.woff2)format("woff2"),url(x.woff)format("woff");unicode-range:U+0025-00FF,u+4??}@keyframes spin{from{transform:rotate(0)}50.5%{transform:rotate(180deg)}to{transform:rotate(360deg)}}@page :first{margin:1in}@container sidebar (min-width:400px){a{b:c}}@property --x{syntax:'<length>';inherits:false;initial-value:0px}@counter-style thumbs{system:cyclic;symbols:"👍";suffix:" "}
+§§§§ nesting
+.card{color:red;&:hover{color:blue}& > .title{font-weight:bold}.dark &{color:white}&.active,&[open]{outline:1px solid}@media (width>=600px){padding:2rem}.child{margin:0;& + &{margin-top:1em}}}
+§§§§ comments everywhere
+/* top */
+.x /* a */ , .y /* b */ { /* c */ color /* d */ : /* e */ red /* f */ ; /* g */ margin : 0 /* h */ }
+/* between */
+@media /* m */ screen { /* n */ a { b : c } /* o */ }
+/*! licence */
+/**/
+a{/* only */}
+/* end */
+§§§§ semicolons, empties and case
+A:HOVER{COLOR:RED;;Background-Color:Blue;}b{}c{ }d{margin:0}e{margin:0;;;padding:0}DIV#Main.Wide{DISPLAY:BLOCK!IMPORTANT;color:red ! important}@MEDIA SCREEN{F{g:h}}
+§§§§ values with slashes, commas and spaces
+a{font:italic bold 12px/1.5 "Helvetica Neue",Arial;aspect-ratio:16 / 9;grid-area:1/2/3/4;grid-template-columns:[full-start] minmax(1em,1fr) [main-start] minmax(0,40em) [main-end] minmax(1em,1fr) [full-end];grid-template-areas:"header header" "sidebar main" "footer footer";transition:opacity .3s ease-in-out,transform .3s cubic-bezier(.4,0,.2,1) .1s;box-shadow:0 0 0 1px rgba(0,0,0,.1),0 2px 4px rgba(0,0,0,.2),inset 0 1px 0 #fff;background:linear-gradient(to right,rgba(255,255,255,0) 0%,#fff 100%),url(a.png) no-repeat center/cover;mask:url(#m);will-change:transform,opacity}
+§§§§ old browser hacks
+.clearfix{*zoom:1;_height:1px;filter:progid:DXImageTransform.Microsoft.gradient(startColorstr='#80000000',endColorstr='#80000000');filter:alpha(opacity=50);-ms-filter:"progid:DXImageTransform.Microsoft.Alpha(Opacity=50)";width:100px\9;color:red\0/}@media screen and (min-width:0\0){a{b:c}}
+§§§§ long selector list and long value
+.btn-primary:not(:disabled):not(.disabled):active:focus,.btn-primary:not(:disabled):not(.disabled).active:focus,.show>.btn-primary.dropdown-toggle:focus,.navbar-expand-lg .navbar-nav .nav-link,.table-striped>tbody>tr:nth-of-type(odd)>*{font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue","Noto Sans","Liberation Sans",Arial,sans-serif,"Apple Color Emoji","Segoe UI Emoji","Segoe UI Symbol","Noto Color Emoji"}
+§§§§ other scripts and symbols
+.नमस्ते::after{content:"😀 ₹"}.日本語{font-family:"游ゴシック"}.é{quotes:"\00ab" "\00bb"}
+§§§§ already formatted, blank lines kept
+a {
+  color: red;
+
+  margin: 0;
+}
+
+
+
+b {
+  color: blue;
+}

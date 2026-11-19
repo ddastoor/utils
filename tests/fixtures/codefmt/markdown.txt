@@ -1,0 +1,361 @@
+§§§§ the sample of the tab
+# Menu
+* Masala chai
+* Samosa
+
+|Item|Price|
+|-|-:|
+|Chai|20|
+|Samosa|15|
+
+Some   *emphasis*   here.
+§§§§ headings
+# One
+## Two ##
+###   Three with   spaces   ###
+#### Four with `code` and *em*
+##### Five
+###### Six
+
+Setext one
+==========
+
+Setext two
+---
+
+#not a heading
+
+\# not a heading either
+
+####### seven hashes is text
+
+#
+
+## 
+
+text right before
+# a heading
+text right after
+§§§§ emphasis and things that only look like it
+*a* _b_ **c** __d__ ***e*** ___f___ **g *h* i** _j **k** l_ *m*n*o* p*q*r
+
+snake_case_word and __init__.py and *args and **kwargs and 2 * 3 * 4 and a_b_c d_e
+
+\*not em\* \_not em\_ \`not code\` \[not a link\](x) \<not html\> 1\. not a list \- not a list \+ no \> no
+
+* literal star at the start of a paragraph line is a list
+
+~~strike~~ ~one tilde~ a~~b~~c
+
+**bold**text and text**bold** and **bold with trailing space **
+
+_a_b and a_b_ and _a b_c
+
+*नमस्ते* **日本語** _émigré_
+§§§§ code spans and blocks
+Use `code`, `` a ` b ``, ``` `` ```, ` leading and trailing `, `a  b` and `|`.
+
+```js
+const  x   =  {a:1}
+```
+
+```
+no language,   spaces   kept
+	tab kept
+```
+
+~~~python title="x.py" {1,3}
+def f( x ):
+    return x
+~~~
+
+````markdown
+```js
+nested fence
+```
+````
+
+    indented code block
+      with deeper indent
+
+Paragraph.
+
+```
+
+
+blank lines inside
+
+
+```
+
+```diff
+- removed
++ added
+```
+§§§§ lists
+- a
+- b
+
+* c
+* d
+
++ e
++ f
+
+1. one
+2. two
+3. three
+
+1. all
+1. ones
+1. here
+
+5. starts at five
+6. six
+
+1) paren
+2) paren
+
+- loose
+
+- items
+
+- here
+
+- parent
+  - child
+    - grandchild
+      1. ordered inside
+      2. second
+  - child two
+- parent two
+
+- item with two paragraphs
+
+  second paragraph
+
+- item with code
+
+  ```sh
+  npm test
+  ```
+
+- item with quote
+  > quoted
+
+-   wide marker
+-   spacing
+
+10. ten
+11. eleven
+
+- [ ] todo
+- [x] done
+- [X] done too
+
+Tight after text:
+- a
+- b
+§§§§ a code fence directly in a tight list
+1. Install:
+   ```sh
+   npm ci
+   ```
+2. Run:
+   ```sh
+   npm test
+   ```
+3. Done.
+§§§§ block quotes
+> one
+> two
+
+> lazy
+continuation
+
+> > nested
+> > quote
+>
+> back to one
+
+> - list in quote
+> - second
+>
+> ```
+> code in quote
+> ```
+
+> # heading in quote
+
+>no space after the mark
+§§§§ links and images
+[inline](https://example.com) [title](https://example.com "A title") [single](x 't') [paren](y (t)) [angle](<a b.html>) [parens in url](https://en.wikipedia.org/wiki/A_(b)) [empty]() <https://auto.link> <mail@example.com> https://bare.example.com/a_b_c www.example.com
+
+[ref][one] [collapsed][] [shortcut] [Case Insensitive][ONE] [not defined][nope]
+
+![image](a.png) ![alt *em*](b.png "title") ![ref image][one] [![linked image](c.png)](https://x.y)
+
+[one]: https://example.com/one "Title One"
+[collapsed]: <https://example.com/two>
+[shortcut]: https://example.com/three 'three'
+[unused]:
+  https://example.com/four
+
+Footnote[^1] and another[^note].
+
+[^1]: The first.
+
+[^note]: The second,
+    over two lines.
+§§§§ tables
+|Item|Price|Note|
+|-|-:|:-:|
+|Chai|20|hot|
+|Samosa|15||
+
+a | b
+--|--
+1 | 2
+
+| left | `a\|b` | esc \| pipe |
+|:-----|-------|------------|
+| *em* | **b** | [l](x) |
+| नमस्ते | 日本語 | 😀 |
+
+| one column |
+|---|
+| x |
+
+| a | b |
+|---|---|
+| too | many | cells |
+| few |
+§§§§ line breaks
+two spaces at the end  
+make a hard break
+
+a backslash\
+makes one too
+
+soft
+breaks
+stay soft
+
+a line that is very long and goes on and on beyond eighty characters without any break so that a formatter that wraps prose would have to fold it somewhere along the way
+§§§§ thematic breaks and the lines that could become one
+above
+
+***
+
+---
+
+___
+
+* * *
+
+- - -
+
+text
+***
+text
+
+text directly above three dashes is a setext heading
+---
+
+- - a list in a list
+§§§§ HTML
+<div align="center">
+  <img src="logo.png" width="100">
+</div>
+
+<details>
+<summary>More</summary>
+
+**markdown** inside
+
+</details>
+
+Inline <kbd>Ctrl</kbd>+<kbd>K</kbd>, <br> a break, <span class="x">span *em*</span> and <!-- a comment -->.
+
+<!-- a block comment
+     over lines -->
+
+<pre>
+  kept   *as*   typed
+</pre>
+
+<table>
+  <tr><td>*not em*</td></tr>
+</table>
+
+&copy; &amp; &lt; &#35; &#x1F600; &nbsp; &notanentity;
+
+A < B and C > D and 1 < 2 > 0 and a&b
+§§§§ lines that would change meaning if moved
+A paragraph where the next line starts with a number
+1986. A great year.
+
+and one with a plus
++ not at the start
+
+and a hash
+#hashtag
+
+and a quote mark
+> quoted lazily?
+
+and dashes
+- - -
+
+End.
+§§§§ front matter
+---
+title: "A page"
+tags: [a, b]
+date: 2026-11-19
+---
+
+# Body
+
+Text.
+§§§§ maths, dollars and other symbols
+Inline $a_b + c_d$ and $x*y*z$ and price $5 and $10.
+
+$$
+\sum_{i=1}^{n} x_i * y_i
+$$
+
+Emoji :smile: 😀, arrows -> <- => and --- and ... and "quotes" and 'single' and (c) (tm).
+
+@mention #123 user/repo#45 a@b.co
+§§§§ other scripts and widths
+# नमस्ते दुनिया
+
+日本語のテキスト。改行
+なし。
+
+| भाषा | 言語 |
+|---|---|
+| हिन्दी | 日本語 |
+
+- ₹ 100
+- € 5
+§§§§ Windows line ends
+# Title
+
+- a
+- b
+
+Text  
+break
+§§§§ already formatted
+# Title
+
+A paragraph.
+
+- a
+- b
+
+| a   | b   |
+| --- | --- |
+| 1   | 2   |

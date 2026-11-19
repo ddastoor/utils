@@ -1,0 +1,101 @@
+§§§§ options API, minified
+<template><div class="card"><h2>{{title}}</h2><button @click="add">Add</button></div></template>
+<script>export default{data(){return{title:"Chai",n:0}},methods:{add(){this.n++}}}</script>
+<style>.card{padding:8px}</style>
+§§§§ script setup with TypeScript and scoped SCSS
+<script setup lang="ts">
+import {ref,computed} from 'vue'
+interface Item{id:number;name:string}
+const props=defineProps<{items:Item[];title?:string}>()
+const emit=defineEmits<{(e:'pick',id:number):void}>()
+const q=ref('')
+const shown=computed(()=>props.items.filter(i=>i.name.includes(q.value)))
+</script>
+<template>
+<section :class="{active:isActive,'text-danger':hasError}" :style="{color:activeColor,fontSize:size+'px'}">
+<input v-model.trim="q" placeholder="Search" @keyup.enter="go($event)">
+<ul v-if="shown.length>0&&!loading"><li v-for="(item,i) in shown" :key="item.id" @click="emit('pick',item.id)">{{i+1}}. {{item.name.toUpperCase()}}</li></ul>
+<p v-else-if="loading">Loading…</p><p v-else>Nothing for “{{q}}”</p>
+</section>
+</template>
+<style scoped lang="scss">
+$gap:8px;
+section{padding:$gap;ul{margin:0;li{&:hover{color:red}}}}
+</style>
+§§§§ directives, slots and components
+<template>
+  <MyTable :rows="rows" :columns="['a','b']" v-bind="$attrs" v-on="listeners" @row-click="(row,i)=>select(row,i)" #default="{row}">
+    <template #header="{column}"><b>{{column.label}}</b></template>
+    <template v-slot:cell="slotProps"><span v-html="slotProps.html"></span></template>
+    <template #[dynamicSlot]>dynamic</template>
+    <MyCell v-for="n in 3" :key="n" :value="row[n]" v-show="n!==2" v-once/>
+    <component :is="kind" v-bind:[attr]="value" v-on:[event].prevent="handler"/>
+    <keep-alive><router-view/></keep-alive>
+  </MyTable>
+  <button :disabled="!ok||busy" @click.stop.prevent="count+=1;log(count)">{{ok?'Save':'Fix errors'}}</button>
+  <p>{{ price | currency('₹') }} {{ `template ${literal}` }} {{ a ? b : c }} {{ obj?.deep?.value ?? 'none' }}</p>
+</template>
+§§§§ text and white space that shows
+<template>
+  <p>Open <b>7 am</b> to <i>10 pm</i>, <a href="/menu">menu</a>.</p>
+  <p><span>no</span><span>space</span> <span>one</span>   <span>space</span></p>
+  <pre>
+  kept   as
+     typed
+</pre>
+  <textarea>
+ also kept </textarea>
+  <button>
+    Save
+  </button>
+</template>
+§§§§ custom blocks and other languages
+<template lang="pug">
+div.card
+  h2 {{ title }}
+</template>
+<script lang="ts">
+export default {name:'X'}
+</script>
+<i18n lang="json">
+{"en":{"hello":"Hello"},"hi":{"hello":"नमस्ते"}}
+</i18n>
+<docs>
+# Title
+Some   *docs*   text
+</docs>
+<style lang="less">
+@c:red;.a{color:@c}
+</style>
+§§§§ comments
+<!-- top-level comment -->
+<template>
+  <!-- in the template -->
+  <div><!-- inline --> text <!-- after --></div>
+</template>
+<script>
+// a script comment
+export default { /* inline */ name: 'x' } // trailing
+</script>
+<style>
+/* a style comment */
+a { color: red } /* after */
+</style>
+§§§§ long attribute lists that must break
+<template>
+  <el-dialog v-model="dialogVisible" title="A fairly long dialog title" width="50%" :before-close="handleClose" :close-on-click-modal="false" append-to-body destroy-on-close class="very-long-class-name another-class" @opened="onOpened" @closed="onClosed"><span>Body</span></el-dialog>
+</template>
+§§§§ already formatted
+<template>
+  <div class="card">
+    <h2>{{ title }}</h2>
+  </div>
+</template>
+
+<script>
+export default {
+  data() {
+    return { title: "Chai" };
+  },
+};
+</script>

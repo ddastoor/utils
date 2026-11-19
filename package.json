@@ -28,10 +28,21 @@
   },
   "homepage": "https://github.com/ddastoor/utils#readme",
   "devDependencies": {
+    "@vue/compiler-sfc": "^3.5.45",
+    "graphql": "^17.1.0",
+    "marked": "^18.2.1",
+    "parse5": "^8.1.1",
+    "postcss": "^8.5.33",
+    "postcss-scss": "^4.0.9",
     "typescript": "^7.0.2",
-    "vite": "^8.3.8"
+    "typescript-classic": "npm:typescript@^5.9.3",
+    "vite": "^8.3.8",
+    "yaml": "^2.9.1"
   },
   "dependencies": {
+    "@biomejs/wasm-web": "^2.6.8",
+    "@dprint/formatter": "^0.6.0",
+    "@dprint/json": "^0.26.0",
     "@expo-google-fonts/noto-sans": "0.4.2",
     "@ffmpeg/core": "^0.12.10",
     "@ffmpeg/ffmpeg": "^0.12.15",
@@ -56,6 +67,7 @@
     "@tesseract.js-data/fra": "^1.0.0",
     "@tesseract.js-data/spa": "^1.0.0",
     "@zip.js/zip.js": "^2.25.0",
+    "dprint-plugin-markup": "^0.28.0",
     "fflate": "^0.8.3",
     "hash-wasm": "4.13.0",
     "libarchive.js": "^2.0.2",

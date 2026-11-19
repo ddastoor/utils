@@ -1,0 +1,157 @@
+§§§§ no semicolons where a line could run on
+const a = 1
+;[1, 2].forEach(f)
+;(function () { ready() })()
+let x = y
+;`template`.length
+let i = 0
+++i
+const z = a
++b
+§§§§ return and its value
+function f() {
+  return (
+    a + b
+  )
+}
+function g() {
+  return
+}
+function h() { return a ? b : c }
+§§§§ regex or division
+a = b / c / d
+r = /=[/]\//g.test(s) ? 1 / 2 : /\//u
+const re = /[\]\/]+$/gimsuy, q = x++ / 2, w = (y) / 3
+if (/^\d+$/.test(v)) n = v / 1
+const s = a.match(/\/\*[\s\S]*?\*\//g) || []
+§§§§ comments in every place
+/* lead */ function /* a */ f(/* b */ x /* c */, y // d
+) /* e */ { /* f */ return /* g */ x } // h
+/**
+ * JSDoc block
+ * @param {number} n
+ */
+export const k = /* inline */ 1 // trailing
+const o = {
+  // only a comment
+}
+call(a, /* why */ b)
+function empty() {
+  // nothing yet
+}
+if (x) {
+  // comment-only branch
+} else {
+  /* another */
+}
+// last line
+§§§§ strings and their quotes
+const s = 'it\'s', t = "say \"hi\"", u = 'mixed "double" \'single\'', e = '', d = "", j = 'a\\b', nl = 'line\nbreak', uni = 'é\u{1F600}', cont = 'one \
+two'
+const emoji = '😀 नमस्ते', key = { 'a-b': 1, "c d": 2, valid: 3, 'valid2': 4, 5: 6, '7': 8 }
+§§§§ template literals
+const v = `a ${b + `nested ${c} ${`deeper ${d}`}`} e`
+const html = `
+  <ul>
+    ${items.map((i) => `<li>${i}</li>`).join('\n    ')}
+  </ul>
+`
+const tagged = sql`select * from ${table} where id = ${id}`, raw = String.raw`\n${x}\t`, empty = ``
+§§§§ numbers
+const n = [0XAB, 0b1010, 0O17, 1_000_000, .5, 5., 1E5, 1e-7, 0xabn, 10n, 1.50, 0.0, 0, -0, 1e+3, 0.1e2, 0XFf, 1_0.0_1]
+§§§§ operators and brackets that matter
+a ?? (b || c);
+(a && b) ?? c;
+-(-x); +(+x); - -x; a - -b; a + +b; a++ + ++b; a-- - --b;
+a ** -b; (-a) ** b; (a ** b) ** c; a ** b ** c;
+(a, b); x = (1, 2);
+typeof (() => {}); (await x)(); new (foo())(); new (a.b()); new a.b(); (a?.b)(); a?.[0]?.(1);
+void 0; delete a[b]; !(a instanceof B); !(k in o); (x = 1); (a = b) ? c : d;
+a = b ? c : d ? e : f;
+(a + b) * c; a + (b * c); (a || b) && c; a || (b && c); a % (b * c); (a % b) * c; a / (b / c); a - (b - c); a << (b + c);
+for (var i = (0 in []); ;) break;
+(function () {})(); (() => {})(); (async () => {})(); (class {}).name; ({}).toString(); ({ a } = b);
+let f = function () {}.bind(this), y = (a, b) => ({}), w = a ? (b, c) : d;
+§§§§ arrow functions and objects
+const f = async x => ({ ...x, [k]: v, 'quoted-key': 1, valid_id: 2, 3: 4, get g() { return 1 }, set s(v) {}, async *gen() {}, method() {}, [`t${1}`]: 2, __proto__: null })
+const id = x => x, pair = (a, b) => [a, b], none = () => {}, obj = () => ({}), curried = a => b => c => a + b + c, dflt = (a = 1, { b, c } = {}, ...rest) => rest
+promise.then(r => r.json()).then(({ data }) => data).catch(() => null).finally(done)
+§§§§ destructuring
+const { a = 1, b: { c }, d: [e, , f = 2], ...rest } = o, [g, , h = 2, ...i] = arr
+function p({ a, b = 2 }, [c, d] = [], ...e) {}
+;({ a, b } = c);
+[a, b] = [b, a]
+for (const [k, { v }] of Object.entries(m)) use(k, v)
+§§§§ control flow
+outer: for (const x of xs) { inner: for (;;) { if (x) continue outer; else break inner } }
+do x++; while (x < 5)
+while (x--) ;
+for (;;) {}
+for (let i = 0, n = a.length; i < n; i++) sum += a[i]
+for (const k in o) if (Object.hasOwn(o, k)) keys.push(k)
+switch (x) { case 1: case 2: f(); break; case 'a': { let y = 1; g(y) } // falls through
+  default: }
+try { risky() } catch { recover() } finally { done() }
+try { a() } catch ({ message }) { log(message) }
+if (a) b(); else if (c) d(); else { e() }
+if (a) { if (b) c() } else d()
+if (a) if (b) c(); else d()
+throw new Error(`bad ${x}`)
+§§§§ classes
+class A extends (B ?? C) {
+  static #count = 0; #secret; static name2 = 'x'; value = 1; 'quoted' = 2; [computed] = 3; 123 = 4
+  static { A.#count++ }
+  constructor(x) { super(x); this.#secret = x }
+  get v() { return this.#secret } set v(n) { this.#secret = n }
+  static async *[Symbol.iterator]() {} 'quoted method'() {} 123() {} async method() {} *gen() {}
+  #priv() { return #secret in this }
+  static create = () => new A()
+}
+class E {}
+const K = class Named extends A {}
+§§§§ modules
+import d, { a as b, default as c } from './m.js'
+import * as ns from "m"
+import json from './data.json' with { type: 'json' }
+import './side-effect.js'
+import {} from 'empty'
+export * from 'x'
+export * as all from 'y'
+export { a as alias, b, c as 'string name' }
+export default function () {}
+export const lazy = () => import('./lazy.js').then((m) => m.default), here = import.meta.url
+§§§§ generators and async
+async function* g() { yield* other(); for await (const x of y) yield x; const [a, b] = await Promise.all([p, q]); return await z }
+function* h() { const x = yield; yield x + 1; return yield* inner() }
+const top = await fetch(url)
+§§§§ newer syntax
+a ||= b; c &&= d; e ??= f; g **= 2; h >>>= 1
+const big = 2n ** 64n, sep = 1_000, at = arr.at(-1), has = Object.hasOwn(o, 'k')
+label: { break label }
+const re2 = /(?<year>\d{4})-(?<m>\d\d)/u, v = /[\p{L}--[a-z]]/v, d = /a/d
+using res = open()
+if (x?.y?.[z]?.(w) ?? fallback) go()
+try { x } catch { }
+const { [key]: renamed = dflt, ...others } = source
+§§§§ JSX
+const el = <div className="a" {...props} onClick={() => go(1)} data-x='single' aria-label="it's">text {value} <b>bold</b>{' '}<i>it</i>{/* c */}<>frag</><Foo.Bar x="1" y='2' z={`t`} /><input disabled value={v ?? ''} /></div>
+const list = <ul>{items.map(i => <li key={i.id}>{i.name}</li>)}</ul>
+const cond = ok ? <A /> : <B>no</B>, and = ok && <C render={() => <D />} />
+function App() { return <><Header title="x" />   <main>
+  spaced   text
+  on lines</main></> }
+const entity = <p>a &amp; b &nbsp; &lt;tag&gt; {"{braces}"} don&apos;t</p>
+§§§§ directives and hashbang
+#!/usr/bin/env node
+'use strict'
+"use client"
+function f() { 'use strict'; "use asm"; return 1 }
+§§§§ long lines that must break
+const result = await someService.withAVeryLongName.callAnotherMethod(firstArgument, secondArgument).then((response) => response.data.items.filter((item) => item.active && item.visible)).catch((error) => { logger.error('failed to load', error); return [] })
+const message = 'part one of a long string ' + variable + ' part two of a long string ' + another.property + ' part three of a long string ' + third
+const total = firstNumber + secondNumber * thirdNumber - fourthNumber / fifthNumber + sixthNumber % seventhNumber + eighthNumber ** 2 + ninthNumber
+if (conditionNumberOne && conditionNumberTwo || conditionNumberThree && conditionNumberFour || !conditionNumberFive && conditionNumberSix) run()
+const matrix = [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]], numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30]
+export function aFunctionWithManyParameters(parameterOne, parameterTwo = defaultValue, { optionOne, optionTwo = false } = {}, ...remaining) {}
+§§§§ minified
+!function(e,t){"use strict";var n=function(e){return e&&e.__esModule?e:{default:e}},r=t.map(function(e){return e*2}).filter(Boolean);for(var i=0;i<r.length;i++)if(r[i]>10)break;e.x=n(r)}(this,[1,2,3]);
