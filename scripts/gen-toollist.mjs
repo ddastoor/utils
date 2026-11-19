@@ -4,7 +4,8 @@ import { createServer } from 'vite';
 import { writeFileSync } from 'node:fs';
 
 const server = await createServer({ server: { middlewareMode: true }, logLevel: 'error', optimizeDeps: { noDiscovery: true, include: [] } });
-const { TOOLS, CATEGORIES } = await server.ssrLoadModule('/src/registry.ts');
+const { TOOLS, CATEGORIES, loadKeywords } = await server.ssrLoadModule('/src/registry.ts');
+await loadKeywords();
 await server.close();
 const P = { both: 'PC + mobile', pc: '**PC only**', mobile: '**Mobile only**' };
 const count = (p) => TOOLS.filter((t) => t.platform === p).length;

@@ -104,7 +104,7 @@ what those suites missed.
   reference `scripts/make-matrix-reference.py`). **`fraction`, `primes` (tabs 87 – 88) are DONE** (6 + 5 bugs; the
   fraction engine counts in 128 bits; references `scripts/make-fraction-reference.py`,
   `scripts/make-primes-reference.py` — the latter needs `pip install sympy`). **`periodic` (tab 89) is DONE** (5 bugs; data held to the `mendeleev` package —
-  `scripts/make-periodic-reference.py`). **Area calc2-math is complete (16 tabs: 74 – 89).** **NEXT: area text** —
+  `scripts/make-periodic-reference.py`). **Area calc2-math is complete (16 tabs: 74 – 89)** — complete suites after it: 20,085 unit checks, 5,613 e2e checks in 188 suites (two failures found and fixed: the start page was 1 KB over its budget → search keywords now live in `src/keywords.ts` and load with the search box; one stale expectation in `math.e2e.mjs`; and a shell bug found on the way — the search box's result list was hidden by a stale timer when the reader came straight back to the box). **NEXT: area text** —
   `wordcount`, `case`, `lines`, `replace`, `diff`, `fancy`, `emoji`, `morse`, `lorem`, `photodict`; then security-codes →
   images1 → images2 → pdf → docs2 → audio → video → terminal → everyday-device (+ the app shell).
   (old note, done:) `periodic` (`src/tools/math.ts`, engine mathcore), then the complete suites for the area;

@@ -1,6 +1,10 @@
 // Registry integrity: unique ids, valid categories/platforms/icons, keywords present.
 export default async (t, { load }) => {
-  const { TOOLS, CATEGORIES } = await load('/src/registry.ts');
+  const { TOOLS, CATEGORIES, loadKeywords } = await load('/src/registry.ts');
+  const { KEYWORDS } = await load('/src/keywords.ts');
+  t.ok(TOOLS.every((x) => x.kw.length === 0) || TOOLS.every((x) => x.kw.length > 0), 'keywords are loaded for all tabs or for none (they come with the search box, not with the start page)');
+  await loadKeywords();
+  t.ok(Object.keys(KEYWORDS).length === TOOLS.length && TOOLS.every((x) => x.id in KEYWORDS), 'src/keywords.ts has an entry for every tab and for nothing else');
   const { ICONS } = await load('/src/icons.gen.ts');
   const ids = new Set();
   for (const x of TOOLS) {

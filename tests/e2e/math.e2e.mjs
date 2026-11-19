@@ -7,7 +7,7 @@ export default async ({ base, page: newPage, ok }) => {
   await page.goto(base + '#/equation'); await page.getByRole('button', { name: 'Solve' }).click();
   ok((await page.locator('.big-value').count()) === 3, 'equation: x³−2x=1 → 3 roots');
   await page.getByRole('radio', { name: 'Quadratic' }).click(); await page.getByRole('button', { name: 'Solve' }).click();
-  ok((await page.locator('.big-value').allTextContents()).join(',') === '2,1', 'quadratic 1,−3,2 → 2,1');
+  ok((await page.locator('.big-value').allTextContents()).join(',') === '1,2', 'quadratic 1,−3,2 → 1, 2 (real roots in ascending order since the Nov 2026 bug hunt)');
   await page.getByRole('radio', { name: 'Simultaneous (linear)' }).click(); await page.getByRole('button', { name: 'Solve' }).click();
   ok((await page.locator('.big-value').allTextContents()).join(',') === '1,2', 'linear system → x=1,y=2');
   await page.goto(base + '#/stats'); await page.waitForSelector('.big-value');

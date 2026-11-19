@@ -6,7 +6,7 @@ import type { bindTextcore } from './wasm/textcore';
 type Engine = ReturnType<typeof bindTextcore>;
 let engine: Engine | null = null;
 /** Load the wasm engine on first use of the search box (its own instance: tools release theirs when left). */
-export const initSearch = async () => { engine ||= await (await import('./wasm/textcore')).newTextcore(); };
+export const initSearch = async () => { const [, tc] = await Promise.all([(await import('./registry')).loadKeywords(), import('./wasm/textcore')]); engine ||= await tc.newTextcore(); };
 /** For Node unit tests: supply an engine bound with bindTextcore(). */
 export const setSearchEngine = (e: Engine) => { engine = e; };
 

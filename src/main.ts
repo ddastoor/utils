@@ -246,8 +246,12 @@ function pick(t: Tool) {
   location.hash = `#/${t.id}`;
 }
 searchInput.addEventListener('input', async () => { sel = 0; await ensureSearch(); renderResults(); });
-searchInput.addEventListener('focus', () => { ensureSearch().then(() => { if (searchInput.value) renderResults(); }); });
-searchInput.addEventListener('blur', () => setTimeout(() => (results.hidden = true), 120));
+// The list is hidden a moment after the box loses the focus (a click on a result must still arrive). If the reader is
+// back in the box by then — Enter on a result, then "/" and a new word — the list stays: hiding it left a box with
+// text in it and no results until the next keystroke.
+let hideTimer = 0;
+searchInput.addEventListener('focus', () => { clearTimeout(hideTimer); ensureSearch().then(() => { if (searchInput.value) renderResults(); }); });
+searchInput.addEventListener('blur', () => { clearTimeout(hideTimer); hideTimer = window.setTimeout(() => { if (document.activeElement !== searchInput) results.hidden = true; }, 120); });
 searchInput.addEventListener('keydown', async (e) => {
   if (e.isComposing) return; // Enter that confirms an IME composition is not "open the top match"
   if (e.key === 'Enter') { e.preventDefault(); await ensureSearch(); renderResults(); if (hits[sel]) pick(hits[sel]); } // always rank what is in the box now

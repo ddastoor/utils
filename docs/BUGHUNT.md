@@ -999,3 +999,22 @@ Reference for the five finance tabs: **mpmath at 60 digits** (`scripts/make-fina
   phones cells and legend entries are 44 px. The data itself agrees with the `mendeleev` package but for IUPAC's
   spelling of aluminium and caesium, five longest-lived isotopes found since, and two predicted configurations.
 
+**Complete suites after calc2-math (19 Nov 2026):** `npm test` 20,085 / 20,085 in 70 suites; `node tests/e2e.mjs`
+5,611 / 5,613 in 188 suites (797 s). The two failures, both fixed, and a third find:
+- **The start page had grown to 181 KB** (budget of `lazy.e2e.mjs`: 180 KB) — the search keywords written for the
+  tabs of this hunt travel in the entry script, which every visit downloads whether it searches or not. Not answered
+  by raising the budget: the keywords of all 176 tabs moved to `src/keywords.ts`, a chunk of its own (22 KB) that
+  `loadKeywords()` fetches together with the search engine when the search box is first used. Start page: 8 files,
+  161 KB. `tests/unit/registry.test.mjs` holds the two lists to each other (every tab has keywords, no line without a
+  tab); search results are unchanged (1,900 checks of the registry and search suites).
+- `tests/e2e/math.e2e.mjs` (the older smoke test of the Math tabs) still expected the roots of x² − 3x + 2 as "2, 1";
+  the Equation Solver lists real roots ascending since tab 84 → "1, 2". The test was stale, not the tab.
+- **A bug of the app shell, found through a test that timed out now and then** (`shell.e2e.mjs`, three of nine runs
+  right after the change above, at the step that types "qqzzxxqq" into the search box): when the search box loses
+  the focus, a timer hides the result list 120 ms later — **also when the reader is back in the box by then and has
+  typed a new word**. The box then held text, the results were worked out, and nothing was shown until the next
+  keystroke (Enter on a result, then "/" and a word; or a click elsewhere and straight back). The timer is now
+  cancelled when the box gets the focus and does nothing while the box has it. Three checks in the shell suite
+  (both ways of leaving the box; the list still closes when the box is really left) — they fail on the build before
+  the fix. In the same suite the three stars at its start were clicked right after `goto`; a change of the hash is
+  taken up a moment later, so the suite now waits for the new tab's title first (a slip of the test).

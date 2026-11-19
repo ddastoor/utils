@@ -80,6 +80,23 @@ export default async ({ base, page: newPage, ok, devices }) => {
   await sb.fill('qqzzxxqq'); await r.waitForSelector('.result-empty'); const before = await r.evaluate(() => location.hash);
   await sb.press('ArrowDown'); await sb.press('Enter'); await r.waitForTimeout(150);
   ok((await r.locator('.result-empty').textContent()) === 'No matching tool' && await r.evaluate(() => location.hash) === before, '"No matching tool"; Enter does nothing');
+  // back in the box within the 120 ms after it lost the focus: the list of the new word must stay (a timer started by
+  // the blur used to hide it — a box with text and no results; this suite then timed out now and then at "qqzzxxqq")
+  for (const [how, leave] of [['Enter on a result', 'enter'], ['a click elsewhere', 'blur']]) {
+    await sb.fill('pdf'); await r.waitForSelector('.result');
+    const seen = await r.evaluate(async (leave) => {
+      const box = document.querySelector('input[type=search]'), wait = (ms) => new Promise((done) => setTimeout(done, ms));
+      if (leave === 'enter') box.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true })); else box.blur();
+      await wait(30); box.focus(); box.value = 'gst'; box.dispatchEvent(new Event('input', { bubbles: true }));
+      await wait(300);
+      return { hidden: document.querySelector('.search-results').hidden, results: document.querySelectorAll('.result').length };
+    }, leave);
+    ok(!seen.hidden && seen.results > 0, `after ${how}, a word typed straight away keeps its results on screen (${JSON.stringify(seen)})`);
+    await sb.press('Escape');
+  }
+  await sb.fill('emi'); await r.waitForSelector('.result'); await r.evaluate(() => document.querySelector('input[type=search]').blur()); await r.waitForTimeout(250);
+  ok(await r.locator('.search-results').isHidden(), 'the list still closes when the box is left');
+  await sb.fill(''); await sb.press('Escape');
   await sb.fill('gst'); await r.waitForSelector('.result'); await sb.press('Escape');
   ok(await sb.inputValue() === '' && await r.locator('.search-results').isHidden() && await r.evaluate(() => document.activeElement?.tagName) !== 'INPUT', 'Escape clears and closes the search');
   await sb.fill('gst'); await r.waitForSelector('.result'); await r.locator('.result').first().click(); await r.waitForFunction(() => location.hash === '#/gst'); ok(await sb.inputValue() === '', 'clicking a result opens it and empties the box');
@@ -99,7 +116,8 @@ export default async ({ base, page: newPage, ok, devices }) => {
 
   // favourites: order, row, garbage in storage, another browser tab, hidden tools
   const f = await newPage({ viewport: { width: 1366, height: 900 } });
-  for (const id of ['sip', 'qr', 'emi']) { await f.goto(base + '#/' + id); await f.locator('.head-star').click(); }
+  // (a change of the hash is taken up a moment later: wait for the new tab's title, or the click lands on the star of the tab before)
+  for (const id of ['sip', 'qr', 'emi']) { await f.goto(base + '#/' + id); await f.waitForFunction((title) => document.title.startsWith(title), TOOLS.find((t) => t.id === id).title); await f.locator('.head-star').click(); }
   await f.goto(base + '#/c/fav'); await f.waitForSelector('.tile');
   ok((await f.locator('.view .tile strong').allTextContents()).join() === 'SIP Calculator,QR Generator,EMI Calculator' && (await f.locator('.tab-fav .tab-count').textContent()) === '3', 'favorites keep the order they were starred in');
   await f.locator('.view .tile', { hasText: 'QR Generator' }).click(); await f.waitForFunction(() => location.hash === '#/qr?from=fav');

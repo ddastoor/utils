@@ -166,9 +166,10 @@ Wayland) and **mobile browsers** (Android Chrome, iPhone Safari).
 9. **The mobile UI must look good**, not just work: mobile-first layouts, ≥44 px touch targets, single
    column, sticky bottom action bar for the main action, no horizontal scroll, safe-area insets.
    Check every mobile tool at 390×844 with a screenshot before calling it done.
-10. **Search**: every tab has relevant keywords (`keywords` in the registry). A search box (home screen +
-    sidebar; `/` or Ctrl+K focuses it on PC) ranks tabs by title and keywords; pressing **Enter opens the
-    top match immediately**.
+10. **Search**: every tab has relevant keywords (`src/keywords.ts`, one line per tab id; a chunk of its own that
+    `loadKeywords()` of the registry fetches with the search box, so the start page does not carry it). A search box
+    (home screen + sidebar; `/` or Ctrl+K focuses it on PC) ranks tabs by title and keywords; pressing **Enter opens
+    the top match immediately**.
 11. **Lazy dependencies per tab (owner, Nov 16 2026):** a tab's engines, models, data and fonts are fetched from
     this site only when that tab is used, and released when it is left — see §4 "Lazy dependencies".
 
@@ -1408,8 +1409,11 @@ weather (Open-Meteo), IP/network info, clock-accuracy check (network time).
 Owner: "make the full site faster, more responsive and memory efficient — load dependencies from the site's host
 **per app/tab, only when the user selects that tab**". Rules (enforced by `tests/e2e/lazy.e2e.mjs`):
 1. **The shell loads no engine.** Home and category pages fetch only `index.html`, the entry JS/CSS and icons
-   (≈ 156 KB): no `.wasm`, `vendor/`, `models/`, `data/` or font file. The search box's engine (textcore.wasm, own
-   instance via `newTextcore()`) loads when the box is first focused/typed in (`ensureSearch()` in `src/main.ts`).
+   (≈ 161 KB; the test's budget is 180 KB): no `.wasm`, `vendor/`, `models/`, `data/` or font file. The search box's
+   engine (textcore.wasm, own instance via `newTextcore()`) **and the search keywords of all tabs** (`src/keywords.ts`,
+   22 KB, by `loadKeywords()` in `src/registry.ts`) load when the box is first focused/typed in (`ensureSearch()` in
+   `src/main.ts` → `initSearch()` in `src/search.ts`). Until then `kw` of every registry entry is empty: code that
+   needs keywords (tests, `scripts/gen-toollist.mjs`) awaits `loadKeywords()` first.
 2. **Opening a tab loads only that tab's code** (its dynamic-import chunk, < 400 KB). Engines, models, data files,
    fonts and workers load on **first use** — a file chosen, a button pressed, the first Enter — never at module
    load and never at mount, except where the tab's first view needs them. Allowed at open (listed with the reason
@@ -1441,6 +1445,7 @@ Owner: "make the full site faster, more responsive and memory efficient — load
 ```
 index.html                 app entry (CSP, root element)
 src/main.ts                shell: router, nav, home grid
+src/registry.ts            every tab (id, title, category, platform, loader); src/keywords.ts = their search keywords (lazy)
 src/lifecycle.ts           onLeave / trackWorker / releaseAll: free a tab's workers + engines when it is left
 src/ui.ts                  DOM helpers & widgets (file picker/drop, sliders, progress, download, toast)
 src/platform.ts            mobile / capability detection
@@ -1845,8 +1850,9 @@ Deployment branches**.
 0b. **Apply STANDING RULE #2 throughout:** extensive tests are written with the tool (unit + its own e2e suite,
    independent references where they exist); run, fix the bug or the test, run again until green.
 1. Create `src/tools/<id>.ts` exporting `mount(root)`; use helpers from `src/ui.ts`.
-2. Register it in `src/registry.ts` (id, title, desc, category, icon, rich keywords, `platform`: 'both' unless
-   the owner says PC only, or it genuinely needs phone hardware → 'mobile'). Add search cases.
+2. Register it in `src/registry.ts` (id, title, desc, category, icon, `platform`: 'both' unless the owner says PC
+   only, or it genuinely needs phone hardware → 'mobile') and give it rich keywords in `src/keywords.ts` (the unit
+   suite refuses a tab without a line there, and a line without a tab). Add search cases (`tests/search-cases.mjs`).
 3. Heavy dependencies: dynamic-import inside the tool **on first use** (not at mount — §4 "Lazy dependencies");
    workers via `trackWorker`, caches via `onLeave` (`src/lifecycle.ts`); vendor runtime files via
    `scripts/vendor.mjs`; never load from a CDN; keep the CSP intact. `tests/e2e/lazy.e2e.mjs` checks every tab.

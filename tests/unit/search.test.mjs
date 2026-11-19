@@ -3,7 +3,8 @@ export default async (t, { load, wasm }) => {
   const { searchTools, setSearchEngine } = await load('/src/search.ts');
   const { bindTextcore } = await load('/src/wasm/textcore.ts');
   setSearchEngine(bindTextcore(await wasm('textcore')));
-  const { TOOLS } = await load('/src/registry.ts');
+  const { TOOLS, loadKeywords } = await load('/src/registry.ts');
+  await loadKeywords();
   const cases = (await import('../search-cases.mjs')).default;
   for (const [q, want] of cases) t.eq(searchTools(TOOLS, q)[0]?.id, want, `search "${q}"`);
   const covered = new Set(cases.map((c) => c[1]));

@@ -233,5 +233,6 @@ export ZIG=/tmp/zig/x/ziglang/zig
   `settled()` in its suite waits for `aria-busy="false"` and a loaded picture. Worth copying in tabs that redraw as
   you type.
 - **Lead for the app-shell area (not yet looked into, 19 Nov 2026):** on a phone (iPhone 13 emulation) the header's
-  search box (`.search-input`) is 40 px tall — the owner's rule is 44 px touch targets.
+  search box (`.search-input`) is 40 px tall — the owner's rule is 44 px touch targets. The phone placeholder says
+  "Search 170+ tools…" while a phone shows 112 of the 176 tabs — to check when the shell is hunted.
 
