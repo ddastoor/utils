@@ -589,6 +589,13 @@ open while the numbers change; `fmtINR` writes paise with both digits (₹12.10)
   broken period, which differs by a few rupees) or recurring deposit (each monthly instalment grows for the time it
   has left — the banks' formula). Effective annual yield to three decimals. mathcore `growth()` puts back what the
   division r/n and the addition 1 + r/n lost, so 1,200 periods keep 15 digits.
+- `percent` (`src/lib/percent.ts`; unit `tests/unit/percent.test.mjs` 59, e2e 41): six questions — A % of B, A as a
+  percentage of B, % change from A to B (divided by |A|; "+" before an increase, 0 % without a sign), A increased /
+  decreased by B %, A is B % of what. The two numbers are taken as decimals (whole number × power of ten) and the
+  answer is one division of whole numbers, so it is the nearest double to the exact answer (a small difference of
+  two decimals keeps its digits); beyond 2^53 plain doubles. Ten significant digits (`fmtUnit`), tiny and huge
+  answers as × 10ⁿ, never rounded to 0; a reason under the card where there is no answer (B = 0, a change from 0);
+  a click copies plain digits.
 - Number formatting shared by the calculators (`src/lib/form.ts`, unit `tests/unit/moneyfmt.test.mjs` 79):
   `roundDec(x, d)` rounds a number as it is written with 15 digits, half away from zero (7.1225 → 7.123, 1.005 →
   1.01; Intl and toFixed round the binary value down) and leaves numbers that need more than 15 digits alone;
@@ -1165,6 +1172,8 @@ fields, a JWT's three parts (`atob` + `TextDecoder`), percent-escapes (the brows
 and `TextDecoder` do the work; the Windows-1252 fallback is a per-run retry), Markdown table layout and the assembly of
 mock rows (random numbers from crypto.wasm) — is string glue around browser-native or wasm engines and stays in TS;
 the Regex Tester is the browser's own RegExp, run in a worker (`src/workers/regex.worker.ts`) so it can be stopped.
+Nov 2026 (Percentage): `src/lib/percent.ts` — six formulas on two typed numbers, done on their decimals with one
+division of whole numbers (no loop, no data).
 Nov 2026 (Python Scratchpad): `src/lib/termtext.ts` (what a terminal would show for the program's output: display
 code that feeds the DOM), `src/lib/python-hints.ts` (one sentence per known error), `src/lib/tzinfo.ts` (the browser's
 Intl answering the C library's questions about local time; the zone table it uses is data made by a script) stay in TS.

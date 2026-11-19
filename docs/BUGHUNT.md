@@ -87,7 +87,7 @@ Areas with a shared review: the app shell (router, search, favorites, platform h
 | `gst` | GST Calculator | PC + mobile | calc-core | ✓ | 6 | 62 | nothing to replace (WASM-AUDIT 60); whole paise in mathcore m_gst, held to Python's decimal (1,126 pairs × 4 modes); CGST + SGST add up to the GST shown; base + GST = the amount typed when it includes the tax; Other rate; paise() reads amounts as written (also for the invoice engine) |
 | `sip` | SIP Calculator | PC + mobile | calc-core | ✓ | 10 | 75 | nothing to replace (WASM-AUDIT 61); held to a month-by-month reference in mpmath (1,430 plans, 180 lump sums) + numpy-financial fv; refusals with reasons; no more freeze on absurd periods; figures add up as shown; instalments row |
 | `fd` | FD / RD Calculator | PC + mobile | calc-core | ✓ | 11 | 144 | nothing to replace (WASM-AUDIT 62); held to mpmath (1,100 deposits, 1,000 recurring deposits) + the banks' RD formula + exact decimal yields; refusals with reasons; no freeze; engine growth() keeps 15 digits over 1,200 periods; shared roundDec (7.1225 → 7.123) with its own unit suite |
-| `percent` | Percentage Calculator | PC + mobile | calc-core |  |  |  |  |
+| `percent` | Percentage Calculator | PC + mobile | calc-core | ✓ | 9 | 94 | nothing to replace (WASM-AUDIT 63); exact decimals: one division of whole numbers, held to Python's fractions (841 pairs × 6); tiny answers never 0; % change by |A| with the right sign; reasons where there is no answer; copy plain digits |
 | `words` | Number to Words | PC + mobile | calc-core |  |  |  |  |
 | `timezone` | Time Zone Converter | PC + mobile | calc-core |  |  |  |  |
 | `bmi` | BMI Calculator | PC + mobile | calc-core |  |  |  |  |
@@ -756,4 +756,16 @@ reference cases.
   Maturity − Invested was not the interest shown. Added: "Instalments" row and a note for the RD, "₹ a month".
   Found on the way and fixed before it shipped: reading 16-digit amounts with 15 digits (₹1,00,12,49,99,99,999.99
   became …50,00,00,000) — pinned in `moneyfmt.test.mjs`.
+- **percent** — Percentage Calculator (9 bugs; unit 0 → 59, e2e 6 → 41 — one of them a loop over 150 answers).
+  Nothing to replace (`docs/WASM-AUDIT.md` tab 63). Reference: **exact fractions** of the typed numbers (Python's
+  `fractions`) for 841 pairs × the six questions; 4,878 of the 5,046 answers are the nearest double to the exact
+  fraction, the rest within two units of the last digit. What was wrong: (1) **small answers were shown as 0** —
+  "0.0001 % of 0.001", "1 is what % of 3,000,000,000" (0%), "10⁻⁹ is 50 % of what" — the answer was cut to six
+  decimals; (2) **"% change from −50 to −25" was "+-50%"** (divided by A instead of |A|, and the sign was taken from
+  B ≥ A): it is +50 %; (3) "-0" and "-0%"; (4) "+0%" for no change; (5) "33.3333333 % of 3" was 1; (6) a small
+  difference of two decimals was wrong from the eighth digit ("% change from 99.9999999 to 100": 1.000000083 × 10⁻⁷
+  instead of 1.000000001 × 10⁻⁷) — the numbers are now taken as decimals and the answer is one division of whole
+  numbers; (7) a dash without a reason when B or A is 0; (8) a click copied "1,399.3" with its comma, and copied the
+  dash when there was no answer; (9) 10²³ was written as 24 digits. Answers have ten digits like the Unit Converter
+  (`fmtUnit`), a real minus sign, "+" only before an increase; the copy is plain digits.
 

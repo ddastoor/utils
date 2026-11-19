@@ -59,7 +59,7 @@ export default [
   ['gst', 'gst'], ['gst calculator', 'gst'], ['reverse gst', 'gst'], ['remove gst from price', 'gst'], ['cgst sgst', 'gst'], ['taxable value', 'gst'],
   ['sip', 'sip'], ['mutual fund returns', 'sip'],
   ['fd', 'fd'], ['fixed deposit', 'fd'], ['recurring deposit', 'fd'],
-  ['percentage', 'percent'], ['percent change', 'percent'],
+  ['percentage', 'percent'], ['percent change', 'percent'], ['what percent', 'percent'], ['salary hike', 'percent'], ['percent off', 'percent'], ['reverse percentage', 'percent'],
   ['number to words', 'words'], ['amount in words', 'words'], ['lakh crore', 'words'], ['cheque amount', 'words'],
   ['time zone', 'timezone'], ['ist to pst', 'timezone'], ['world clock', 'timezone'],
   ['bmi', 'bmi'], ['body mass index', 'bmi'],

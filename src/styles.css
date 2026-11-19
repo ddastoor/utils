@@ -379,6 +379,7 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: 14px; }
 @media (max-width: 400px) { .form-grid { grid-template-columns: 1fr; } }
 .pct-row { display: grid; grid-template-columns: 1fr 1fr 1.4fr; gap: 12px; align-items: end; }
 .pct-row .big-result { min-height: var(--tap); }
+.pct-why { margin-top: 8px; }
 .gpa-row { display: grid; grid-template-columns: 1fr 1fr auto; gap: 10px; align-items: end; }
 details.mt { margin-top: 14px; }
 details summary { cursor: pointer; font-weight: 600; color: var(--accent); padding: 6px 0; }

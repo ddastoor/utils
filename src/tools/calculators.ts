@@ -5,6 +5,7 @@ import { mathcore } from '../wasm/mathcore';
 import { UNITS, convert, convertAll, belowAbsoluteZero, fmtUnit, plainUnit } from '../lib/units';
 import { DAY, parseD, isoD, fmtD, addDays, daysBetween, ymd, addSpan, nextBirthday, plural } from '../lib/dates';
 import { emiPlan, sipPlan, fdPlan, gstSplit, span } from '../lib/finance';
+import { pctAnswer, type PctOp } from '../lib/percent';
 
 // ------------------------------------------------------------------ Unit converter
 // table, arithmetic and number formatting: src/lib/units.ts (exact definitions, held to GNU Units by the unit suite)
@@ -188,20 +189,23 @@ export const fd: Mount = async (root) => {
 
 // ------------------------------------------------------------------ Percentage
 export const percent: Mount = (root) => {
-  const rows: Array<[string, (a: number, b: number) => string, string, string]> = [
-    ['What is A% of B?', (a, b) => fmtN((a / 100) * b, 6), '15', '2400'],
-    ['A is what % of B?', (a, b) => `${fmtN((a / b) * 100, 6)}%`, '45', '60'],
-    ['% change from A to B', (a, b) => `${b >= a ? '+' : ''}${fmtN(((b - a) / a) * 100, 6)}%`, '80', '100'],
-    ['A increased by B%', (a, b) => fmtN(a * (1 + b / 100), 6), '500', '18'],
-    ['A decreased by B% (discount)', (a, b) => fmtN(a * (1 - b / 100), 6), '1999', '30'],
-    ['A is B% of what?', (a, b) => fmtN(a / (b / 100), 6), '30', '20'],
+  const rows: Array<[string, PctOp, string, string]> = [
+    ['What is A% of B?', 'of', '15', '2400'],
+    ['A is what % of B?', 'share', '45', '60'],
+    ['% change from A to B', 'change', '80', '100'],
+    ['A increased by B%', 'up', '500', '18'],
+    ['A decreased by B% (discount)', 'down', '1999', '30'],
+    ['A is B% of what?', 'whole', '30', '20'],
   ];
-  root.append(...rows.map(([label, f, da, db]) => {
-    const a = input({ type: 'number', value: da }), b = input({ type: 'number', value: db });
-    const out = h('div', { class: 'pct-out' });
-    const run = () => { const x = parseFloat(a.value), y = parseFloat(b.value), r = isFinite(x) && isFinite(y) ? f(x, y) : '—'; out.textContent = r.includes('—') ? '—' : r; }; // e.g. ÷ 0 → no '—%'
+  root.append(...rows.map(([label, op, da, db]) => {
+    const a = input({ type: 'number', value: da, step: 'any' }), b = input({ type: 'number', value: db, step: 'any' });
+    const out = h('div', { class: 'pct-out' }), why = h('div', { class: 'pct-why field-hint', role: 'status' });
+    let plain = '';
+    const num = (el: HTMLInputElement) => (el.value.trim() === '' ? NaN : Number(el.value));
+    const run = () => { const r = pctAnswer(op, num(a), num(b)); out.textContent = r.text; plain = r.plain; why.textContent = r.why; why.hidden = !r.why; };
     a.addEventListener('input', run); b.addEventListener('input', run); run();
-    return card(label, h('div', { class: 'pct-row' }, field('A', a), field('B', b), h('button', { class: 'big-result', type: 'button', onclick: () => copy(out.textContent || '') }, h('span', { class: 'big-label' }, 'Answer'), h('span', { class: 'big-value' }, out))));
+    // a click copies the answer as plain digits (1399.3, not 1,399.3) — nothing when there is no answer
+    return card(label, h('div', { class: 'pct-row' }, field('A', a), field('B', b), h('button', { class: 'big-result', type: 'button', title: 'Copy', onclick: () => { if (plain) copy(plain); } }, h('span', { class: 'big-label' }, 'Answer'), h('span', { class: 'big-value' }, out))), why);
   }));
 };
 

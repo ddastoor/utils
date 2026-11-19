@@ -362,3 +362,12 @@ One entry per tab, written before its bug hunt: our module → candidates → ch
   recurring deposits; the quarterly recurring deposits were also checked against the formula Indian banks publish,
   M = R·((1 + i)ⁿ − 1) / (1 − (1 + i)^(−1/3)); 76 effective yields by exact decimal arithmetic.
 
+### 63. `percent` — Percentage Calculator (19 Nov 2026)
+- **Ours:** no engine: six formulas on two numbers (`src/lib/percent.ts`) — "a single multiplication" under the
+  compute rule. Since this hunt the two numbers are taken as decimals (whole number × power of ten) and the answer is
+  one division of whole numbers; there is no loop and no data to move into a module.
+- **Candidates:** WebAssembly — none (searched "decimal wasm", "percentage wasm": nothing but databases and hashes).
+  JavaScript: decimal.js, big.js (arbitrary-precision decimals; not needed for one exact division).
+- **Decision:** nothing to replace; stays TypeScript (recorded in CLAUDE.md §3a "Deliberately left in TypeScript").
+  Held to **Python's fractions** on the typed text for 841 pairs × 6 questions.
+
