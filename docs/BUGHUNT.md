@@ -122,7 +122,7 @@ Areas with a shared review: the app shell (router, search, favorites, platform h
 ## text
 | id | Tab | Platform | Area | R | B | T | Notes |
 |---|---|---|---|---|---|---|---|
-| `wordcount` | Word Counter | PC + mobile | text |  |  |  |  |
+| `wordcount` | Word Counter | PC + mobile | text | ✓ | 17 | 145 | new engine textkit.wasm (unicode-segmentation + own rules); words as Word counts them; abbreviations, initials; lazyEngine for all wrappers |
 | `case` | Case Converter | PC + mobile | text |  |  |  |  |
 | `lines` | Line Tools | PC + mobile | text |  |  |  |  |
 | `replace` | Find & Replace | PC + mobile | text |  |  |  |  |
@@ -1018,3 +1018,41 @@ Reference for the five finance tabs: **mpmath at 60 digits** (`scripts/make-fina
   (both ways of leaving the box; the list still closes when the box is really left) — they fail on the build before
   the fix. In the same suite the three stars at its start were clicked right after `goto`; a change of the hash is
   taken up a moment later, so the suite now waits for the new tab's title first (a slip of the test).
+
+### Text (19 Nov 2026 –)
+- **`wordcount` (tab 90, 17 bugs; new engine `textkit.wasm`; unit `tests/unit/wordcount.test.mjs` 125, e2e 36 —
+  before: 12 e2e checks and 4 unit lines).** The counting stood on the browser's own segmenter, and the browsers do
+  not agree (`docs/WASM-AUDIT.md`, tab 90). Found by probing the built page in Chromium:
+  1. **Words in Chrome:** "U.S.A." was 3 words, "e.g." 2, "p.m." 2, "example.com" 2 — Chromium's word rules never
+     join letters over a full stop (Safari and Firefox do: other counts for the same text).
+  2. A web address was 6 words, an e-mail address 5.
+  3. A date (10/11/2026) was 3 words, a time (9:30) 2, a fraction 2.
+  4. A compound written with the non-breaking hyphen (well‑known) was 2 words.
+  5. **Sentences:** "Dr. Smith went to Washington." was two, "Mr. Rao met Mrs. Iyer." three, "It costs Rs. 500."
+     two, "A. P. J. Abdul Kalam" four.
+  6. A row of asterisks or dashes was a sentence; `"Why now?" he asked.` was two.
+  7. **Paragraphs:** three paragraphs separated by single line breaks (text copied from a word processor) were
+     "1 paragraph"; a separator row (***) was a paragraph.
+  8. **Lines:** a text that ends with a line break had one line too many.
+  9. Average word length counted code points: Hindi words came out about twice as long as they are.
+  10. **Every keystroke** segmented the whole text four times on the main thread: 0.8 s a key at 1.2 MB, 4 s at 6 MB
+      — the tab stood still while one typed in a long text. Now 0.1 s for 1.2 MB, and a text above 200,000
+      characters is counted when the typing pauses (a keystroke costs under a millisecond).
+  11. **Keywords:** "very", "it's", "don't" and other function words were listed; India’s (curly) and India's
+      (straight) were two words, and neither was "india"; "3.5" was a keyword; a text in which no word repeats
+      listed its first ten words as "top".
+  12. Reading time of a long text in minutes only ("420 min"): now "7 hr 0 min".
+  13. The four tiles had a pointer cursor and did nothing: a click copies the number now (plain digits).
+  14. The tab fetched an engine (textcore.wasm) when it opened with an empty box; nothing is fetched now before
+      there is a text.
+  15. **In all twelve engine wrappers** (`src/wasm/*.ts`): a download that failed was remembered — the tab stayed
+      without its engine until it was left and opened again. One helper now (`lazyEngine` in `src/lifecycle.ts`): a
+      failed load is tried again by the next call. Found by the new e2e check that cuts the download.
+  16. On phones the heading of a folded section (`<summary>`, here "How these are counted", also the EMI
+      schedule and others) was 36 px tall: 44 px now.
+  17. Chinese and Japanese: the count depended on the browser's dictionary (6 "words" for 12 characters in one
+      browser, other figures elsewhere); every character counts now, as in Microsoft Word, and the tab says so.
+  **The rule now, said in the tab:** a word is what stands between two spaces and holds a letter or a digit — the
+  count of Word and `wc -w`, which a word limit is checked against — except that a dash or an ellipsis between two
+  words separates them. References: `tests/fixtures/wordcount/` (wc / Word, Python's `regex`, pySBD, Snowball's stop
+  words — `python3 scripts/make-wordcount-reference.py`), ICU in the unit suite.

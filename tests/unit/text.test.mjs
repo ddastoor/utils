@@ -12,18 +12,6 @@ export default async (t, { load, wasm }) => {
   t.eq(c['kebab-case'], 'the-quick-brown-fox-of-the-year', 'kebab'); t.eq(c['CONSTANT_CASE'], 'THE_QUICK_BROWN_FOX_OF_THE_YEAR', 'constant');
   t.eq(x.CASES.find(([n]) => n === 'Title Case')[1]('war and peace of the world'), 'War and Peace of the World', 'title case small words');
   t.eq(x.CASES.find(([n]) => n === 'Sentence case')[1]('HELLO THERE. HOW ARE YOU?'), 'Hello there. How are you?', 'sentence case');
-  // stats
-  const s = x.textStats('Hello world. This is a test!\n\nSecond paragraph here.');
-  t.eq([s.words, s.sentences, s.paragraphs], [9, 3, 2], 'word/sentence/paragraph counts');
-  t.eq(x.textStats('नमस्ते दुनिया').words, 2, 'Hindi word count');
-  // keyword frequency (C): stop words, numbers and short words dropped; ties keep first appearance
-  const kw = x.textStats('The cat sat. The cat ran! A dog ran 2026 2026 2026 times; dog dog. Ox ox ox.', tc).top;
-  t.eq(kw, [['dog', 3], ['cat', 2], ['ran', 2], ['sat', 1], ['times', 1]], 'top keywords');
-  t.eq(x.textStats('नमस्ते दुनिया नमस्ते', tc).top, [['नमस्ते', 2], ['दुनिया', 1]], 'Hindi keywords (UTF-8 code-point length)');
-  t.eq(tc.wordFreq([], 5), [], 'empty token list');
-  const many = Array.from({ length: 50000 }, (_, i) => `w${i % 997}`);
-  const big = tc.wordFreq(many, 3);
-  t.eq(big.map((r) => r[1]), [51, 51, 51], '50k tokens counted (997 distinct)');
   // fancy
   const bold = x.FANCY.find(([n]) => n === 'Bold')[1]('Ab1'); t.eq(bold, '𝐀𝐛𝟏', 'bold unicode');
   t.eq(x.FANCY.find(([n]) => n === 'Upside down')[1]('hi'), 'ᴉɥ', 'upside down');

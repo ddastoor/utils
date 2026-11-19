@@ -78,6 +78,7 @@ export default [
 
   // Text
   ['word count', 'wordcount'], ['character count', 'wordcount'], ['word counter', 'wordcount'],
+  ['how many words', 'wordcount'], ['count words', 'wordcount'], ['sentence count', 'wordcount'], ['reading time', 'wordcount'], ['speaking time', 'wordcount'], ['word limit', 'wordcount'], ['characters without spaces', 'wordcount'],
   ['uppercase', 'case'], ['case converter', 'case'], ['title case', 'case'],
   ['remove duplicate lines', 'lines'], ['sort lines', 'lines'],
   ['find and replace', 'replace'], ['replace text', 'replace'],

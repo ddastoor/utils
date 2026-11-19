@@ -11,3 +11,4 @@ wasm/svgo/target/
 wasm/keys/target/
 wasm/zxcvbn/target/
 wasm/formats/target/
+wasm/textkit/target/

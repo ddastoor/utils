@@ -538,3 +538,39 @@ One entry per tab, written before its bug hunt: our module → candidates → ch
   (`scripts/make-periodic-reference.py`): symbol, name, atomic weight, group, period, block, electron
   configuration — with the eleven places where ours knowingly differs listed in the test, each with its reason.
 
+## Text
+
+### 90. `wordcount` — Word Counter (19 Nov 2026)
+- **Ours before:** no engine of ours for the counting itself — the browser's `Intl.Segmenter` (ICU inside the browser)
+  cut the text into words, characters and sentences, a loop in TypeScript counted them, and `t_wordfreq` in
+  textcore.wasm (own C) ranked the keywords.
+- **What the check found:** the browser's segmenter is not one engine but three. **Chromium ships its own word rules**
+  (a full stop or a colon never joins letters), so the same text had other counts in Chrome than in Safari or
+  Firefox: "U.S.A." was 3 words, "e.g." 2, "example.com" 2. Node's ICU (stock rules) says 1 each — so a unit test
+  could not even see what the tab showed. And walking the segmenter's objects in JavaScript cost 0.8 s a keystroke on
+  1.2 MB of text. Nothing placed beside it puts that right: the counting has to stand on one segmenter of our own.
+- **Candidates (existing WebAssembly modules):**
+  - **ICU4X, the Unicode Consortium's official build** (`icu` 2.4.0 on npm, Unicode-3.0 licence; Firefox's
+    `Intl.Segmenter` is ICU4X): grapheme, word, sentence and line segmenters with dictionaries and LSTM models for
+    Thai, Lao, Khmer, Burmese, Chinese and Japanese. It is **one file of 20.3 MB** (all of ICU4X with all its data:
+    calendars, collation, number formats …) — for a tab that shows four numbers under a text box, on a phone. Its
+    word segmenter is plain UAX #29, which is not what a word limit counts (see below), so the rules would still be
+    ours. Not used: 20 MB against 0.17 MB for the same segmentation rules is not a trade this tab should make
+    (Claude's judgement, as the owner left such cases to it).
+  - `unicode-segmenter` (npm, 0.17, JavaScript), `@formatjs/intl-segmenter` (JavaScript polyfill): not WebAssembly.
+- **Open-source code to build from (rule 2):** the Rust crate **`unicode-segmentation`** 1.13.3 (MIT / Apache-2.0;
+  700 million downloads, 190 million in the last 90 days; the UAX #29 implementation of the Rust ecosystem; Unicode
+  17.0, tested against the Unicode Consortium's own break tests). ICU4X's `icu_segmenter` crate was the alternative
+  (same rules plus the dictionaries, megabytes of data); the dictionaries are the one thing it has more, and the
+  browser has them already.
+- **Decision:** **our own module `textkit.wasm`** (`wasm/textkit`, 170 KB, fetched with the first text): the
+  `unicode-segmentation` crate for characters (extended grapheme clusters) and sentence boundaries, and our counting
+  rules in Rust on top (words as a word limit counts them, abbreviations and initials, paragraphs, lines, keywords).
+  **Beside it, for what it does not cover** (owner's tweak: an existing engine for the missing part): the words of
+  Thai, Lao, Khmer and Burmese stretches — scripts without spaces, which only a dictionary can cut — come from the
+  browser's `Intl.Segmenter` (`src/lib/wordcount.ts`; the engine leaves those letters out of its count). `t_wordfreq`
+  left textcore.wasm (its only user was this tab).
+- **Evidence the new engine is right:** characters equal ICU's (Node, the same Unicode 17.0) on the corpus and 4,000
+  random strings of the code points the rules are about, and equal Python's `regex` module on the corpus; sentences
+  equal ICU and the construction count on 1,500 generated texts and pySBD on the English corpus (two texts where
+  pySBD is wrong are listed with the reason); words equal `wc -w` / Word on 32 texts in 16 languages.

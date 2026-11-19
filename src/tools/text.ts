@@ -2,7 +2,10 @@
 // Unicode-aware work (segmentation, case mapping, collation, regex, JSON) uses the browser's native engines;
 // algorithmic work (diff) runs in textcore.wasm.
 import { h, card, field, input, textarea, button, segmented, toggle, select, clear, stack, row, note, copy, outputBox, downloadBlob, slider, type Mount } from '../ui';
-import { textcore, type DiffOp, type bindTextcore } from '../wasm/textcore';
+import { textcore, type DiffOp } from '../wasm/textcore';
+import { textkit, type Textkit } from '../wasm/textkit';
+import { textStats, timeText, EMPTY, READING_WPM, SPEAKING_WPM, type TextStats } from '../lib/wordcount';
+import { roundDec } from '../lib/round';
 import { sodium } from '../wasm/crypto';
 import { devcore, type Devcore } from '../wasm/devcore';
 import { trackWorker, releaseNow } from '../lifecycle';
@@ -11,43 +14,41 @@ import type { RegexReq, RegexRes } from '../workers/regex.worker';
 const fmt = (n: number) => n.toLocaleString('en-IN');
 
 // ================================================================== Word counter
-/** Counts via the browser's Unicode segmenter; keyword frequency ranking runs in textcore.wasm (own C). */
-export function textStats(s: string, tc?: ReturnType<typeof bindTextcore>) {
-  const seg = (g: 'word' | 'grapheme' | 'sentence') => [...new Intl.Segmenter(undefined, { granularity: g }).segment(s)];
-  // word-like segments joined by a single hyphen count as one word ("e-mail", "well-known"), as in Word and Docs
-  const words: string[] = [];
-  const ws = seg('word') as any[];
-  for (let i = 0; i < ws.length; i++) {
-    if (!ws[i].isWordLike) continue;
-    let w = ws[i].segment;
-    while (i + 2 < ws.length && /^[-‐]$/.test(ws[i + 1].segment) && ws[i + 2].isWordLike) { w += ws[i + 1].segment + ws[i + 2].segment; i += 2; }
-    words.push(w);
-  }
-  const graphemes = seg('grapheme').length;
-  const noSpaces = seg('grapheme').filter((x) => !/^\s+$/.test(x.segment)).length;
-  const sentences = seg('sentence').filter((x) => x.segment.trim()).length;
-  const paragraphs = s.split(/\n\s*\n/).filter((p) => p.trim()).length;
-  const lines = s ? s.split('\n').length : 0;
-  const top = tc ? tc.wordFreq(words.map((w) => w.toLowerCase()), 10, { stop: true, numbers: true, minLen: 3 }) : [];
-  return { words: words.length, graphemes, noSpaces, sentences, paragraphs, lines, top, avgWord: words.length ? words.reduce((a, w) => a + [...w].length, 0) / words.length : 0 };
-}
-export const wordcount: Mount = async (root) => {
-  const tc = await textcore();
-  const ta = textarea({ rows: 10, placeholder: 'Type or paste text…' });
+// Counting is textkit.wasm's (Unicode's segmentation rules + the rules of src/lib/wordcount.ts); the engine is fetched
+// with the first text, not when the tab opens.
+export const wordcount: Mount = (root) => {
+  const ta = textarea({ rows: 10, placeholder: 'Type or paste text…' }); ta.setAttribute('aria-label', 'Text to count');
   const big = h('div', { class: 'big-results' });
   const more = h('div', { class: 'kv' });
   const kw = h('div', { class: 'chips' });
-  const run = () => {
-    const s = textStats(ta.value, tc);
-    const mins = (wpm: number) => { const m = s.words / wpm; return m < 1 ? `${Math.max(1, Math.round(m * 60))} sec` : `${Math.round(m)} min`; };
-    clear(big).append(...([['Words', fmt(s.words)], ['Characters', fmt(s.graphemes)], ['Sentences', fmt(s.sentences)], ['Reading time', s.words ? mins(238) : '—']] as Array<[string, string]>)
-      .map(([l, v]) => h('div', { class: 'big-result' }, h('span', { class: 'big-label' }, l), h('span', { class: 'big-value' }, v))));
-    clear(more).append(...([['Characters (no spaces)', fmt(s.noSpaces)], ['Paragraphs', fmt(s.paragraphs)], ['Lines', fmt(s.lines)], ['Avg word length', s.avgWord.toFixed(1)], ['Speaking time', s.words ? mins(150) : '—']] as Array<[string, string]>).flatMap(([l, v]) => [h('span', null, l), h('span', null, v)]));
-    clear(kw).append(...s.top.map(([w, n]) => h('span', { class: 'chip' }, `${w} · ${n}`)));
+  const problem = h('div', { class: 'stack' });
+  let kit: Textkit | null = null, loading: Promise<void> | null = null, timer = 0, gone = false;
+  const show = (s: TextStats) => {
+    const tile = (l: string, v: string, plain = v) => h('button', { class: 'big-result', type: 'button', title: 'Copy', onclick: () => { if (plain !== '—') copy(plain); } }, h('span', { class: 'big-label' }, l), h('span', { class: 'big-value' }, v));
+    clear(big).append(tile('Words', fmt(s.words), String(s.words)), tile('Characters', fmt(s.chars), String(s.chars)), tile('Sentences', fmt(s.sentences), String(s.sentences)), tile('Reading time', timeText(s.words, READING_WPM)));
+    clear(more).append(...([['Characters (no spaces)', fmt(s.noSpace)], ['Paragraphs', fmt(s.paragraphs)], ['Lines', fmt(s.lines)], ['Avg word length', s.words ? roundDec(s.avgWord, 1).toFixed(1) : '—'], ['Speaking time', timeText(s.words, SPEAKING_WPM)]] as Array<[string, string]>).flatMap(([l, v]) => [h('span', null, l), h('span', null, v)]));
+    clear(kw).append(...(s.top.length ? s.top.map(([w, n]) => h('span', { class: 'chip' }, `${w} · ${fmt(n)}`)) : [h('span', { class: 'muted small' }, s.words ? 'No word is used more than once.' : 'The words used most often will be listed here.')]));
   };
-  ta.addEventListener('input', run);
-  root.append(card(null, ta), card('Counts', big, more), card('Top keywords', kw));
-  run();
+  const count = async () => {
+    if (!ta.value) return show(EMPTY);
+    try {
+      if (!kit) { await (loading ||= textkit().then((k) => { kit = k; })); if (gone) return; }
+      clear(problem);
+      show(textStats(ta.value, kit!)); // the text as it is now: it may have changed while the engine was on its way
+    } catch (e: any) { loading = null; clear(problem).append(note(`The counter could not be loaded — ${e?.message || e}. Type again to retry.`, 'err')); }
+  };
+  // a book-length text is counted when the typing pauses, so that each keystroke stays quick
+  ta.addEventListener('input', () => { clearTimeout(timer); if (ta.value.length > 200_000) timer = window.setTimeout(count, 250); else void count(); });
+  root.append(card(null, ta, problem), card('Counts', big, more,
+    h('details', { class: 'mt' }, h('summary', null, 'How these are counted'), h('ul', { class: 'muted small' },
+      h('li', null, 'A word is what stands between two spaces and holds a letter or a digit, as Microsoft Word counts: "don’t", "e-mail", "U.S.A.", "km/h", "9:30", "10/11/2026" and a web address are one word each. A dash or an ellipsis between two words separates them ("stop—go" is two). In Chinese and Japanese every character is a word.'),
+      h('li', null, 'A character: what a reader sees as one — an emoji with its skin tone, or a letter with its accents and vowel signs, is one. Line breaks count as characters, but not among "no spaces".'),
+      h('li', null, 'A sentence ends at . ? ! । or at the end of a line; not after "Dr.", "Mr.", "Rs. 500", "e.g." or an initial like "A. R. Rahman".'),
+      h('li', null, 'Paragraphs are separated by blank lines; in a text without any blank line, every line is a paragraph.'),
+      h('li', null, `Reading time at ${READING_WPM} words a minute, speaking time at ${SPEAKING_WPM}.`)))),
+    card('Top keywords', kw));
+  show(EMPTY);
+  return () => { gone = true; clearTimeout(timer); };
 };
 
 // ================================================================== Case converter

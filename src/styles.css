@@ -383,6 +383,7 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: 14px; }
 .gpa-row { display: grid; grid-template-columns: 1fr 1fr auto; gap: 10px; align-items: end; }
 details.mt { margin-top: 14px; }
 details summary { cursor: pointer; font-weight: 600; color: var(--accent); padding: 6px 0; }
+@media (pointer: coarse) { details summary { padding: 12px 0; } } /* 44 px for a finger */
 .input.bad { border-color: var(--err); box-shadow: 0 0 0 3px var(--err-soft); }
 @media (max-width: 760px) { .pct-row { grid-template-columns: 1fr 1fr; } .pct-row .big-result { grid-column: 1 / -1; } }
 

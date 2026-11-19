@@ -123,7 +123,7 @@ Generated from `src/registry.ts` by `npm run docs` — do not edit by hand.
 
 | id | Tab | Platform | What it does | Search keywords |
 |---|---|---|---|---|
-| `wordcount` | Word Counter | PC + mobile | Words, characters, sentences, reading time. | word count, character count, letters, sentences, reading time, length |
+| `wordcount` | Word Counter | PC + mobile | Words, characters, sentences, reading time. | word count, character count, letters, sentences, reading time, length, count words, how many words, … |
 | `case` | Case Converter | PC + mobile | UPPER, lower, Title, camelCase, snake_case… | case, uppercase, lowercase, title case, sentence case, camel, snake, kebab, … |
 | `lines` | Line Tools | PC + mobile | Sort, dedupe, trim, reverse, shuffle lines. | lines, sort, unique, dedupe, remove duplicates, trim, reverse, shuffle, … |
 | `replace` | Find & Replace | PC + mobile | Find and replace, with regex support. | replace text, replace word, bulk replace, find, replace, search, substitute, regex |

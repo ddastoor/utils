@@ -14,7 +14,7 @@ import jsondiffUrl from './bin/devcore-jsondiff.wasm?url';
 import jsonUrl from './bin/devcore-json.wasm?url';
 import xmlUrl from './bin/devcore-xml.wasm?url';
 import j2tUrl from './bin/devcore-j2t.wasm?url';
-import { onLeave } from '../lifecycle';
+import { lazyEngine } from '../lifecycle';
 
 /** One small module per tab (Cargo features) — a tab downloads only its own engine. */
 const URLS = { cidr: cidrUrl, cron: cronUrl, semver: semverUrl, glob: globUrl, patch: patchUrl, sqlfmt: sqlfmtUrl, x509: x509Url, enc: encUrl, bin: binUrl, hex: hexUrl, jsondiff: jsondiffUrl, json: jsonUrl, xml: xmlUrl, j2t: j2tUrl };
@@ -77,9 +77,6 @@ export function bindDevcore(e: any) {
   };
 }
 export type Devcore = ReturnType<typeof bindDevcore>;
-const inst: Partial<Record<DevGroup, Promise<Devcore>>> = {};
+const engines: Partial<Record<DevGroup, () => Promise<Devcore>>> = {};
 /** Loaded on first use, dropped when the tab is left. */
-export const devcore = (g: DevGroup) => {
-  if (!inst[g]) { inst[g] = instantiateWasi(URLS[g], g === 'cron' ? tzImports(() => zone) : {}).then((x) => bindDevcore(x.exports)); onLeave(`devcore-${g}`, () => { delete inst[g]; }); }
-  return inst[g]!;
-};
+export const devcore = (g: DevGroup) => (engines[g] ||= lazyEngine(`devcore-${g}`, () => instantiateWasi(URLS[g], g === 'cron' ? tzImports(() => zone) : {}).then((x) => bindDevcore(x.exports))))();

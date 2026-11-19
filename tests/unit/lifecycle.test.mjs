@@ -18,6 +18,18 @@ export default async (t, { load }) => {
   L.onLeave('unit-d', () => freed++); L.releaseNow('unit-d'); L.releaseNow('unit-d'); t.eq([freed, live().resources.length], [13, 0], 'releaseNow frees one key, once');
   L.onLeave('unit-bad', () => { throw new Error('boom'); }); L.onLeave('unit-good', () => freed++); const w = console.warn; console.warn = () => {}; L.releaseAll(); console.warn = w;
   t.eq(freed, 14, 'a release that throws does not stop the others');
+  // lazyEngine: what every engine wrapper is made with
+  { let loads = 0, fail = true; const engine = L.lazyEngine('unit-lazy', () => { loads++; return fail ? Promise.reject(new Error('offline')) : Promise.resolve({ n: loads }); });
+    const first = engine(); t.ok(first === engine() && loads === 1, 'while it loads, every caller gets the same promise');
+    t.eq(await first.then(() => 'loaded', (e) => e.message), 'offline', 'a failed load is reported to who asked');
+    fail = false; const again = await engine();
+    t.eq([again.n, loads], [2, 2], 'a failed load is not kept: the next call loads again (it used to stay broken until the tab was left)');
+    t.ok((await engine()) === again && loads === 2 && live().resources.includes('unit-lazy'), 'a loaded engine is kept and registered for release');
+    L.releaseAll(); t.eq([(await engine()).n, loads], [3, 3], 'after the tab is left the next call loads anew');
+    engine.reset(); t.eq([(await engine()).n, loads], [4, 4], 'reset() forgets the instance (after a trap)');
+    // an engine that was replaced is not forgotten by the release of the one before it
+    const kept = engine(); L.releaseAll(); const fresh = engine(); t.ok(fresh !== kept && (await fresh).n === 5 && engine() === fresh, 'a release only forgets the instance it was registered for');
+    L.releaseAll(); }
   // workers
   const fake = () => ({ terminated: 0, terminate() { this.terminated++; } });
   const w1 = fake(), w2 = fake(); let ended = 0;

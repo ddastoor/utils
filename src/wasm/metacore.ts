@@ -2,7 +2,7 @@
 // `bindMetacore` is environment-neutral (Node unit tests); `metacore()` loads it in the browser.
 import { instantiateWasi } from './wasi';
 import wasmUrl from './bin/metacore.wasm?url';
-import { onLeave } from '../lifecycle';
+import { lazyEngine } from '../lifecycle';
 
 export const IMAGE_TYPES = ['unknown', 'jpeg', 'png', 'webp', 'gif', 'bmp', 'heic', 'avif'] as const;
 export type ImageType = (typeof IMAGE_TYPES)[number];
@@ -49,5 +49,4 @@ export function bindMetacore(e: any) {
   };
 }
 export type Metacore = ReturnType<typeof bindMetacore>;
-let inst: Promise<Metacore> | null = null;
-export const metacore = () => { if (!inst) { inst = instantiateWasi(wasmUrl).then((x) => bindMetacore(x.exports)); onLeave('metacore', () => (inst = null)); } return inst; };
+export const metacore = lazyEngine('metacore', () => instantiateWasi(wasmUrl).then((x) => bindMetacore(x.exports)));

@@ -232,6 +232,14 @@ export ZIG=/tmp/zig/x/ziglang/zig
 - **e2e waiting without sleeps:** the Graphviz tab sets `aria-busy` on the drawing while a text has no answer yet;
   `settled()` in its suite waits for `aria-busy="false"` and a loaded picture. Worth copying in tabs that redraw as
   you type.
+- **Trap when writing test files (19 Nov 2026):** a file written in one piece by the editor tool had most of its
+  `\uXXXX` escapes turned into the raw characters — invisible ones included (U+2028 inside a regular expression
+  ends the line: "Invalid regular expression: missing /"). After writing a file that holds such escapes, look for
+  raw invisible characters (`grep -nP '[\x{200b}-\x{200f}\x{2028}\x{2029}\x{a0}\x{300}-\x{36f}]'`) and put
+  the escapes back; a shell here-document keeps them as typed.
+- **Node's ICU is not Chromium's:** Chromium ships its own word-break rules (no join over a full stop or a colon), so
+  `Intl.Segmenter` gives other words in the browser than in a unit test. Anything that must be the same everywhere
+  belongs in an engine of ours (the Word Counter's textkit.wasm).
 - **Lead for the app-shell area (not yet looked into, 19 Nov 2026):** on a phone (iPhone 13 emulation) the header's
   search box (`.search-input`) is 40 px tall — the owner's rule is 44 px touch targets. The phone placeholder says
   "Search 170+ tools…" while a phone shows 112 of the 176 tabs — to check when the shell is hunted.

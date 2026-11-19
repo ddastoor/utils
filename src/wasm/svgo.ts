@@ -1,7 +1,7 @@
 // Wrapper for svgo.wasm (Rust, built by us: OXVG — see wasm/svgo). Loaded on first use, dropped when the tab is left.
 import { instantiateWasi } from './wasi';
 import wasmUrl from './bin/svgo.wasm?url';
-import { onLeave } from '../lifecycle';
+import { lazyEngine } from '../lifecycle';
 
 const enc = new TextEncoder(), dec = new TextDecoder();
 export function bindSvgo(e: any) {
@@ -28,7 +28,6 @@ export function bindSvgo(e: any) {
   };
 }
 export type Svgo = ReturnType<typeof bindSvgo>;
-let inst: Promise<Svgo> | null = null;
-export const svgo = () => { if (!inst) { inst = instantiateWasi(wasmUrl).then((x) => bindSvgo(x.exports)); onLeave('svgo', () => (inst = null)); } return inst; };
+export const svgo = lazyEngine('svgo', () => instantiateWasi(wasmUrl).then((x) => bindSvgo(x.exports)));
 /** After a WebAssembly trap (stack overflow, out of memory) the instance cannot be trusted: the next svgo() makes a new one. */
-export const resetSvgo = () => { inst = null; };
+export const resetSvgo = () => svgo.reset();

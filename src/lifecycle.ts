@@ -21,6 +21,23 @@ export function onLeave(key: string, fn: Release) {
   releases.set(key, fn);
 }
 
+/** An engine that is made on first use and kept until its tab is left: `get()` gives the same promise to every caller.
+ *  A load that fails is not kept — the next call tries again (a download that broke off on a weak connection used to
+ *  leave the tab without its engine until it was left and opened again). */
+export function lazyEngine<T>(key: string, load: () => Promise<T>): LazyEngine<T> {
+  let inst: Promise<T> | null = null;
+  const get = () => {
+    if (inst) return inst;
+    const mine = load();
+    inst = mine;
+    mine.catch(() => { if (inst === mine) inst = null; });
+    onLeave(key, () => { if (inst === mine) inst = null; });
+    return mine;
+  };
+  return Object.assign(get, { reset: () => { inst = null; } });
+}
+export interface LazyEngine<T> { (): Promise<T>; /** forget the instance (after a WebAssembly trap it cannot be trusted): the next call makes a new one */ reset(): void }
+
 /** Release one key now (e.g. a Stop button that terminates a worker). */
 export function releaseNow(key: string) { const f = releases.get(key); if (f) { releases.delete(key); f(); } }
 

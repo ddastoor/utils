@@ -1,0 +1,172 @@
+[
+ {
+  "id": "en-plain",
+  "lang": "en",
+  "text": "The monsoon reached the city on a Tuesday. By noon the streets were rivers, and nobody minded. Children sailed paper boats past the tea stall. The old man who ran it kept pouring, one glass after another, as if nothing had changed."
+ },
+ {
+  "id": "en-titles",
+  "lang": "en",
+  "text": "Dr. Mehta met Mr. Rao and Mrs. Iyer at the clinic. Prof. Banerjee joined them later. They talked for an hour."
+ },
+ {
+  "id": "en-money",
+  "lang": "en",
+  "text": "The ticket costs Rs. 500. A return costs Rs. 950 and saves time. Is that cheap? Most people think so."
+ },
+ {
+  "id": "en-initials",
+  "lang": "en",
+  "text": "A. P. J. Abdul Kalam grew up in Rameswaram. R. K. Narayan wrote about Malgudi. M. S. Subbulakshmi sang at the United Nations."
+ },
+ {
+  "id": "en-numbers",
+  "lang": "en",
+  "text": "The train left at 9:30 on 10/11/2026. It covered 1,384 km in 16.5 hours. The fare was 2,450.75 rupees, about 1/3 of a flight."
+ },
+ {
+  "id": "en-hyphens",
+  "lang": "en",
+  "text": "Her mother-in-law runs a state-of-the-art, well-equipped kitchen. It is a full-time job. The up-to-date menu changes twice a week."
+ },
+ {
+  "id": "en-contractions",
+  "lang": "en",
+  "text": "I can't say it isn't true. You'd know if you'd been there, wouldn't you? It's the baker's secret, and the baker's wife won't tell."
+ },
+ {
+  "id": "en-quotes",
+  "lang": "en",
+  "text": "She looked up and said, \"Stop.\" Nobody moved. \"Why now?\" he asked. \"Because it is time,\" she replied."
+ },
+ {
+  "id": "en-web",
+  "lang": "en",
+  "text": "Write to help.desk@example.co.in before Friday. The form is at https://example.org/forms/apply?year=2026&lang=en and takes five minutes. See www.example.com for the rules."
+ },
+ {
+  "id": "en-abbrev",
+  "lang": "en",
+  "text": "The U.S.A. and the U.K. signed first. Others, e.g. France and Japan, followed in the afternoon. The list (i.e. the final one) has 42 names."
+ },
+ {
+  "id": "en-ellipsis",
+  "lang": "en",
+  "text": "Wait... what was that? Nothing, probably. Still... it came again! Then silence."
+ },
+ {
+  "id": "en-tech",
+  "lang": "en",
+  "text": "We ported the tool from C++ to Rust in 2026. The .NET client talks to it over HTTP/2. R&D at AT&T tested version 3.1.4 first."
+ },
+ {
+  "id": "en-vs",
+  "lang": "en",
+  "text": "The final was India vs. Australia. It ended at 11 p.m. local time. Nobody slept that night."
+ },
+ {
+  "id": "en-headings",
+  "lang": "en",
+  "text": "Chapter One\nThe Journey Begins\n\nIt was cold. The road was empty.\n\n***\n\nMorning came late that year."
+ },
+ {
+  "id": "en-list",
+  "lang": "en",
+  "text": "Things to carry:\n- two shirts\n- an umbrella\n- the charger\n\nLeave by 6 a.m. Do not wait for the bus."
+ },
+ {
+  "id": "en-single-lines",
+  "lang": "en",
+  "text": "The first paragraph is one long line, as text copied from a word processor is.\nThe second follows after a single line break. It has two sentences.\nThe third closes the piece."
+ },
+ {
+  "id": "en-wrapped",
+  "lang": "en",
+  "text": "This paragraph was wrapped by hand\nat about forty characters a line,\nas plain-text mail used to be.\n\nA blank line starts the second\nparagraph, which is shorter.\n"
+ },
+ {
+  "id": "hi-1",
+  "lang": "hi",
+  "text": "भारत एक विशाल देश है। यहाँ अनेक भाषाएँ बोली जाती हैं। क्या आप हिंदी पढ़ सकते हैं? मुझे चाय बहुत पसंद है!"
+ },
+ {
+  "id": "hi-2",
+  "lang": "hi",
+  "text": "सुबह छह बजे गाड़ी स्टेशन से चली। रास्ते में बारिश होती रही, पर किसी ने शिकायत नहीं की।\nदोपहर तक हम पहाड़ों में थे।"
+ },
+ {
+  "id": "hinglish",
+  "lang": "mixed",
+  "text": "Kal office mein meeting hai, 10:30 baje. Please समय पर आना, okay? Chai-samosa ka intezaam Rs. 200 mein ho jayega."
+ },
+ {
+  "id": "fr",
+  "lang": "fr",
+  "text": "Aujourd'hui, l'école est fermée. Qu'est-ce qu'on fait ? On va au marché, bien sûr ! Il n'y a pas d'autre idée."
+ },
+ {
+  "id": "de",
+  "lang": "de",
+  "text": "Der Zug fährt um 7.45 Uhr ab. Bitte seien Sie pünktlich! Wer zu spät kommt, muss auf den nächsten warten – das dauert eine Stunde."
+ },
+ {
+  "id": "es",
+  "lang": "es",
+  "text": "¿Dónde está la estación? Está cerca, a dos calles de aquí. ¡Muchas gracias! De nada, señora."
+ },
+ {
+  "id": "ru",
+  "lang": "ru",
+  "text": "Поезд отправляется в семь часов утра. Мы приехали на вокзал заранее. Никто не опоздал!"
+ },
+ {
+  "id": "el",
+  "lang": "el",
+  "text": "Η θάλασσα ήταν ήρεμη εκείνο το πρωί. Τα καΐκια γύριζαν ένα ένα. Κανείς δεν βιαζόταν."
+ },
+ {
+  "id": "ar",
+  "lang": "ar",
+  "text": "وصل القطار إلى المحطة في الصباح الباكر. كان الجو باردا جدا. شربنا الشاي وانتظرنا."
+ },
+ {
+  "id": "he",
+  "lang": "he",
+  "text": "הרכבת הגיעה לתחנה מוקדם בבוקר. היה קר מאוד. שתינו תה וחיכינו."
+ },
+ {
+  "id": "ta",
+  "lang": "ta",
+  "text": "காலை ஆறு மணிக்கு ரயில் புறப்பட்டது. வழியெல்லாம் மழை பெய்தது. யாரும் குறை சொல்லவில்லை."
+ },
+ {
+  "id": "bn",
+  "lang": "bn",
+  "text": "সকাল ছয়টায় ট্রেন ছাড়ল। সারা পথ বৃষ্টি হল। কেউ অভিযোগ করল না।"
+ },
+ {
+  "id": "ko",
+  "lang": "ko",
+  "text": "기차는 아침 여섯 시에 떠났다. 길 내내 비가 왔다. 아무도 불평하지 않았다."
+ },
+ {
+  "id": "tr",
+  "lang": "tr",
+  "text": "Tren sabah altıda kalktı. Yol boyunca yağmur yağdı. Kimse şikâyet etmedi; İstanbul'a vardığımızda güneş açmıştı."
+ },
+ {
+  "id": "vi",
+  "lang": "vi",
+  "text": "Tàu rời ga lúc sáu giờ sáng. Trời mưa suốt dọc đường. Không ai phàn nàn cả."
+ },
+ {
+  "id": "emoji",
+  "lang": "chars",
+  "text": "👍🏽 👨‍👩‍👧‍👦 🇮🇳 🏳️‍🌈 1️⃣ ❤️ 😀😀"
+ },
+ {
+  "id": "marks",
+  "lang": "chars",
+  "text": "é ǟ नि क्ष 한국 กำ \r\n x‍y"
+ }
+]

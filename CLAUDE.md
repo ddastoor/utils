@@ -855,6 +855,41 @@ name, alias or number begins with it; or the category, from four letters on). Th
 at a time, combined with the search); the shown element is outlined; arrow keys move through the table; "No element
 matches …" when nothing does.
 
+### Word Counter — as built after the Nov 2026 bug hunt
+(`wordcount` in `src/tools/text.ts`, `src/lib/wordcount.ts`, engine `textkit.wasm` — §5.1o; unit
+`tests/unit/wordcount.test.mjs` 125, e2e `tests/e2e/wordcount.e2e.mjs` 36; reference
+`python3 scripts/make-wordcount-reference.py` → `tests/fixtures/wordcount/reference.json`, needs `pip install pysbd regex`.)
+The same numbers in every browser: nothing is counted with the browser's own segmenter (Chromium's word rules differ
+from Safari's and Firefox's — `docs/WASM-AUDIT.md`, tab 90), except the words of Thai, Lao, Khmer and Burmese.
+- **Words:** what stands between two spaces and holds a letter or a digit — the count of Microsoft Word and `wc -w`,
+  which a word limit is checked against: "don't", "e-mail", "U.S.A.", "km/h", "R&D", "9:30", "10/11/2026", "word(s)"
+  and a web or e-mail address are one word each. Corrected where that is plainly not a reader's count: a dash or an
+  ellipsis between two words separates them ("stop—go", "wait...what", "x--y"; a range of numbers, 2019–2026, stays
+  one), and so does a comma, semicolon, ? or ! with a letter right behind it; danda, Ethiopic wordspace and Tibetan
+  tsheg divide; **every Chinese character and kana is a word** (as Word counts); Thai, Lao, Khmer and Burmese
+  stretches are cut by the browser's dictionary (`Intl.Segmenter`) and added in `wordcount.ts`.
+- **Characters:** extended grapheme clusters (an emoji with its skin tone, a letter with its marks, an Indic conjunct,
+  CR LF are one each); line breaks count, but not among "no spaces".
+- **Sentences:** Unicode's sentence boundaries, and on top: a piece without a letter or digit is none (***); no end
+  after a title or a fixed abbreviation (Dr., Mr., Smt., Shri., Prof., vs., e.g., i.e. …), after an initial (one
+  capital letter other than I: "A. P. J. Abdul Kalam"), after No. / Fig. / Rs. / p. **before a number**, after a full
+  stop with a letter right behind it (".NET"), after ? or ! inside a web address, or after a quoted question that
+  goes on in lower case ("Why now?" he asked.). An abbreviation that may end a sentence (U.S., Ltd., etc.) does so
+  before a capital. The end of a line always ends the sentence.
+- **Lines** as a text box shows them (a line break at the very end starts none). **Paragraphs:** the blocks between
+  blank lines — a row without a letter, digit or emoji (***, ---) separates like a blank line; a text without any
+  blank line is one paragraph a line.
+- **Average word length** in characters as counted above, without the marks around a word. **Reading time** at 238
+  words a minute, **speaking time** at 150 ("45 sec", "3 min", "1 hr 5 min").
+- **Top keywords:** the words used at least twice, most used first (ties in order of first use), ten at most; lower
+  case, a curly apostrophe as a straight one, without a possessive 's; left out: Snowball's English stop words and
+  the usual contractions, numbers, words of one or two letters (in alphabets only), single Chinese characters, web
+  addresses. "No word is used more than once." when that is so.
+- **The tab:** nothing is fetched while the box is empty (the engine comes with the first text); a text above
+  200,000 characters is counted when the typing pauses (1.2 MB takes 0.1 s; a keystroke stays under a millisecond);
+  a click on a count copies the plain number; "How these are counted" states the rules; a failed download of the
+  engine is said and tried again at the next keystroke.
+
 ### SQLite Playground (PC) — as built after the Nov 2026 bug hunt
 (`src/tools/software/sqlite.ts`, engine `src/lib/sqlite-engine.ts`, worker `src/workers/sqlite.worker.ts`; unit
 `tests/unit/sqlite.test.mjs` 106, e2e `tests/e2e/sqlite.e2e.mjs` 63.) Engine: the **official SQLite WebAssembly build**
@@ -1292,7 +1327,8 @@ stay **public** (the source of the deployed site is then available to every user
 | espeak: **eSpeak NG 1.52.0** (+ English phoneme tables and dictionary compiled from the same release, linked in, served to its fopen/stat from memory) + glue (IPA for Kokoro, piper-phonemize-style sentences) | C | **us** (`wasm/espeak`) | tts (stt hints later) |
 | whisper: **whisper.cpp 1.8.3** + ggml CPU backend (upstream unmodified) + own threadshim.h (std::mutex/std::thread/fstream for zig's thread-less libc++), backend-reg.cpp (static CPU-only registry), cxxabi_stubs.c (throw = abort), glue.cpp | C / C++ | **us** (`wasm/whisper`) | stt |
 | geo: Charles Karney's **geodesic.c 2.2** (GeographicLib's geodesic routines in C, MIT; the two files unmodified from the PROJ 9.9.0 release) + glue (inverse problem on WGS-84, half-way point, the haversine great circle for comparison) | C | **us** (`wasm/geo`, 36 KB, loaded by the Coordinates tab only; no tried-and-tested WebAssembly geodesic module exists: `docs/WASM-AUDIT.md`, tab 82) | coords |
-| textcore: Myers diff, tool-search ranking, word frequency, rare-word ranking (tokeniser, lemmatiser, wordfreq hash table), XY-cut reading order | C (own code) | **us** (`wasm/textcore`) | diff, search box, word counter, photodict |
+| textcore: Myers diff, tool-search ranking, rare-word ranking (tokeniser, lemmatiser, wordfreq hash table), XY-cut reading order | C (own code) | **us** (`wasm/textcore`) | diff, search box, photodict |
+| textkit: **unicode-segmentation 1.13.3** (the Rust ecosystem's UAX #29 implementation, Unicode 17.0, MIT / Apache-2.0: extended grapheme clusters, sentence boundaries) + our counting rules: words as a word limit counts them, abbreviations and initials, lines and paragraphs, keywords (Snowball's stop words) | Rust | **us** (`wasm/textkit`, crates.io via `Cargo.lock`, 170 KB, fetched with the Word Counter's first text; the existing module — ICU4X's official build — is one file of 20 MB: `docs/WASM-AUDIT.md`, tab 90) | wordcount |
 | sheet: calamine 0.38 (read .xlsx .xlsm .xlsb .xls .ods) + rust_xlsxwriter 0.102 (write .xlsx) + csv 1 + serde_json | Rust | **us** (`wasm/sheet`, crates.io sources verified by `Cargo.lock`, target wasm32-wasip1) | sheet |
 | svgo: **OXVG 0.0.9** (Rust port of SVGO's plugins; lightningcss for `<style>`) + our glue: DOCTYPE / entities allowed, nesting limit 256, **our own safe preset** (OXVG's `Jobs::safe()` is not safe), `sv_diff` (do two rasters look alike? — the tab renders every result next to its original and falls back to the safe result when the full optimisation changed the picture) | Rust | **us** (`wasm/svgo`, crates.io via `Cargo.lock`, opt-level z, 4.9 MB / 1.3 MB gz, loaded with the first SVG; unit `tests/unit/svgo.test.mjs`, hazard drawings `tests/fixtures/svg/hazards.json`) | svgo |
 | keys — the **supplement** to hash-wasm for the key tabs (owner's tweak of 18 Nov 2026: what the existing module does not cover): lenient Base32 secrets, HOTP counters and truncation; checked parameters, random salts, PHC strings for scrypt / PBKDF2 and the reader of pasted hashes; RustCrypto **argon2** for Argon2 version 1.0 hashes (v=16 or no version, keyid / data), which hash-wasm does not read; RustCrypto **ssh-key** (OpenSSH Ed25519 generation), **aes + ctr + bcrypt-pbkdf** and our own OpenSSH wire reader (inspect Ed25519 / RSA / ECDSA / DSA keys, encrypted private keys, authorized_keys / known_hosts lines); API keys | Rust | **us** (`wasm/keys`, 0.31 MB; no existing WebAssembly module makes or reads OpenSSH key files) | totp, pwhash (with hash-wasm); sshkey, apikey |
@@ -1366,6 +1402,8 @@ Nov 2026 (Equation Solver): `src/lib/exact.ts` + `src/lib/equations.ts` — exac
 (compiled big-number arithmetic, like JSON.parse or RegExp in this list): discriminants, elimination on at most 4 × 4,
 Newton's step with exact residuals. mathcore's exact fractions are 64-bit and overflow here; the iterations and the
 root search stay in mathcore.
+Nov 2026 (Word Counter): the words of Thai, Lao, Khmer and Burmese stretches are cut by the browser's `Intl.Segmenter`
+(its dictionaries; `src/lib/wordcount.ts`) and added to textkit.wasm's count — the part the engine does not cover.
 Nov 2026 (Coordinates, Sleep Cycle): `src/lib/coords.ts` — reading a coordinate as a person typed it (one regular
 expression on a short string) and writing it back; the sleep times are one subtraction of minutes per row. The
 geodesic itself is geo.wasm.
@@ -1427,7 +1465,9 @@ Owner: "make the full site faster, more responsive and memory efficient — load
    Examples of deferral: bc console starts BusyBox on its first Enter; Image Editor instantiates imgproc with
    the first photo; CSV/Excel loads sheet.wasm with the first file; Photo Dictionary loads the word list and
    Literata while OCR runs; PDF tabs load MuPDF when a PDF is chosen.
-3. **Release on leave** (`src/lifecycle.ts`): engine loaders register `onLeave(key, release)`; workers are created
+3. **Release on leave** (`src/lifecycle.ts`): engine loaders are made with `lazyEngine(key, load)` (one promise for
+   every caller, forgotten when the tab is left — **and when the load fails, so that the next call tries again**;
+   `.reset()` after a trap) or register `onLeave(key, release)` themselves; workers are created
    through `trackWorker(worker, key, onEnd)`. `main.ts` `teardown()` calls `releaseAll()` on every navigation:
    workers are terminated (imgproc, codec, crypto, style-transfer, OCR, bc), cached wasm instances are dropped
    (textcore, mathcore, metacore, markdown, sheet, sodium, imgproc direct), MediaPipe tasks are `close()`d,
@@ -1438,8 +1478,8 @@ Owner: "make the full site faster, more responsive and memory efficient — load
    (the browser never unloads an imported module): MuPDF (its wasm heap), zxing-cpp, the MediaPipe runtime,
    libheif, OpenPGP.js. Their *data* is released; only the code/heap stays. Moving MuPDF into a worker (so it can
    be terminated) is a possible later improvement.
-5. New tools: put every heavy import behind a function called on first use; create workers with `trackWorker`;
-   register caches with `onLeave`; never start work in `mount` that the first view does not show.
+5. New tools: put every heavy import behind a function called on first use; wrap a wasm engine in `lazyEngine`;
+   create workers with `trackWorker`; register caches with `onLeave`; never start work in `mount` that the first view does not show.
 
 ### Directory map
 ```
@@ -1712,6 +1752,18 @@ and bearing on a sphere of the mean radius 6,371,008.8 m (haversine), latitude a
 Vincenty's formula in mpmath), the example of geodesic.h (JFK → Changi 15,347,512.94 m), a quarter of the equator,
 half a meridian, the date line, there and back. **To update:** a newer PROJ release in build.sh (URL + SHA-256
 from its .dsc), check the version line, `python3 scripts/make-geo-reference.py`, both suites.
+
+### 5.1o textkit → `src/wasm/bin/textkit.wasm` (Rust)
+`wasm/textkit/build.sh` = `cargo build --release --locked --target wasm32-wasip1` (no zig needed). One dependency:
+**`unicode-segmentation` 1.13.3** (crates.io, pinned by `Cargo.lock`; MIT / Apache-2.0; Unicode 17.0). Our code
+(`src/lib.rs`, ~250 lines): `tk_stats(text, len)` → JSON in `tk_out_ptr()` / `tk_out_len()`:
+`{ words, chars, noSpace, sentences, paragraphs, lines, wordChars, bytes, top: [[word, count], …] }`; `tk_alloc` /
+`tk_free`. The rules are those of §3 "Word Counter". Speed: plain ASCII is counted without the segmenter (between
+two ASCII characters there is always a cluster boundary, except inside CR LF); a stretch around other characters
+goes to the crate. No imports beyond the WASI start-up. Wrapper `src/wasm/textkit.ts` (`bindTextkit`, `textkit()`).
+**To update:** `cargo update -p unicode-segmentation` in `wasm/textkit`, build, run `node tests/unit.mjs wordcount`
+— the comparison with ICU needs a Node whose `process.versions.unicode` equals the crate's Unicode version (the
+suite says so when it has to skip it).
 
 ### 5.1e markdown → `src/wasm/bin/markdown.wasm`
 `ZIG=… wasm/markdown/build.sh`: downloads the `cmarkgfm` 2025.10.22 sdist from PyPI (SHA-256 `5bec6100…`), which vendors

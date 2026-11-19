@@ -1,7 +1,7 @@
 // Wrapper for zxcvbn.wasm (Rust, built by us — wasm/zxcvbn). Loaded on the first password, dropped when the tab is left.
 import { instantiateWasi } from './wasi';
 import wasmUrl from './bin/zxcvbn.wasm?url';
-import { onLeave } from '../lifecycle';
+import { lazyEngine } from '../lifecycle';
 
 export interface Strength { score: 0 | 1 | 2 | 3 | 4; guesses: number; log10: number; times: Record<'online_throttled' | 'online' | 'offline_slow' | 'offline_fast', { text: string; seconds: number }>; warning: string | null; suggestions: string[]; sequence: Array<{ token: string; i: number; j: number; kind: string; detail: string; guesses: number | null }> }
 const enc = new TextEncoder(), dec = new TextDecoder();
@@ -15,5 +15,4 @@ export function bindZxcvbn(e: any) {
     },
   };
 }
-let inst: Promise<ReturnType<typeof bindZxcvbn>> | null = null;
-export const zxcvbn = () => { if (!inst) { inst = instantiateWasi(wasmUrl, zxImports).then((x) => bindZxcvbn(x.exports)); onLeave('zxcvbn', () => (inst = null)); } return inst; };
+export const zxcvbn = lazyEngine('zxcvbn', () => instantiateWasi(wasmUrl, zxImports).then((x) => bindZxcvbn(x.exports)));

@@ -1,7 +1,7 @@
 // Wrapper for textcore.wasm (own C): Myers diff over token ids.
 import { instantiateWasi } from './wasi';
 import wasmUrl from './bin/textcore.wasm?url';
-import { onLeave } from '../lifecycle';
+import { lazyEngine } from '../lifecycle';
 
 export type DiffOp = { kind: 'eq' | 'del' | 'ins'; a: number; b: number };
 /** w: word as written (lower case), b: base form when w is unknown, z: Zipf×10 (−1 unknown), n: count, c: 1 = looks like a name */
@@ -23,17 +23,6 @@ export function bindTextcore(e: any) {
       try { const k = e.t_search_query(index, p, n, o, max); return Array.from(new Int32Array(e.memory.buffer, o, k)); } finally { e.t_free(p); e.t_free(o); }
     },
     searchFree: (index: number) => e.t_search_free(index),
-    /** Top-k [token, count] by frequency (count desc, then first appearance). Tokens should be segmented and
-     *  lower-cased by the caller. Options: drop English stop words / pure numbers / words shorter than minLen. */
-    wordFreq(tokens: string[], k = 10, o: { stop?: boolean; numbers?: boolean; minLen?: number } = {}): Array<[string, number]> {
-      if (!tokens.length) return [];
-      const [p, n] = putStr(tokens.map((x) => x.replace(/\n/g, ' ')).join('\n')), out = e.t_malloc(k * 8);
-      const flags = (o.stop ? 1 : 0) | (o.numbers ? 2 : 0) | ((Math.min(255, o.minLen || 0)) << 8);
-      try {
-        const r = e.t_wordfreq(p, n, flags, out, k), v = new Int32Array(e.memory.buffer, out, r * 2);
-        return Array.from({ length: r }, (_, i) => [tokens[v[i * 2]], v[i * 2 + 1]] as [string, number]);
-      } finally { e.t_free(p); e.t_free(out); }
-    },
     /** Load the English frequency table (public/data/dict/freq.txt). Returns the number of words. */
     freqLoad(text: string): number { const [p, n] = putStr(text); try { return e.t_freq_load(p, n); } finally { e.t_free(p); } },
     /** Zipf × 10 of a lower-case word (−1 = not in the table). */
@@ -76,7 +65,6 @@ export function bindTextcore(e: any) {
     },
   };
 }
-let inst: Promise<ReturnType<typeof bindTextcore>> | null = null;
 /** A separate instance (the search box keeps its own, so tools can release theirs). */
 export const newTextcore = () => instantiateWasi(wasmUrl).then((x) => bindTextcore(x.exports));
-export const textcore = () => { if (!inst) { inst = instantiateWasi(wasmUrl).then((x) => bindTextcore(x.exports)); onLeave('textcore', () => (inst = null)); } return inst; };
+export const textcore = lazyEngine('textcore', () => instantiateWasi(wasmUrl).then((x) => bindTextcore(x.exports)));

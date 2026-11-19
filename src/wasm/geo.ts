@@ -3,7 +3,7 @@
 // `bindGeo(exports)` is environment-neutral so the Node unit tests can use it too.
 import { instantiateWasi } from './wasi';
 import wasmUrl from './bin/geo.wasm?url';
-import { onLeave } from '../lifecycle';
+import { lazyEngine } from '../lifecycle';
 
 export interface Geodesic {
   /** metres along the shortest path on the WGS-84 ellipsoid */ metres: number;
@@ -29,5 +29,4 @@ export function bindGeo(e: any) {
 }
 export type Geo = ReturnType<typeof bindGeo>;
 
-let inst: Promise<Geo> | null = null;
-export const geo = () => { if (!inst) { inst = instantiateWasi(wasmUrl).then((x) => bindGeo(x.exports)); onLeave('geo', () => (inst = null)); } return inst; };
+export const geo = lazyEngine('geo', () => instantiateWasi(wasmUrl).then((x) => bindGeo(x.exports)));

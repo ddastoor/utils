@@ -2,7 +2,7 @@
 import { instantiateWasi } from './wasi';
 import yamlUrl from './bin/formats-yaml.wasm?url';
 import schemaUrl from './bin/formats-schema.wasm?url';
-import { onLeave } from '../lifecycle';
+import { lazyEngine } from '../lifecycle';
 
 export class FormatError extends Error { constructor(msg: string, public line?: number, public column?: number) { super(msg); } }
 const enc = new TextEncoder(), dec = new TextDecoder();
@@ -20,5 +20,5 @@ export function bindFormats(e: any) {
   };
 }
 const URLS = { yaml: yamlUrl, schema: schemaUrl };
-const inst: Partial<Record<keyof typeof URLS, Promise<ReturnType<typeof bindFormats>>>> = {};
-export const formats = (g: keyof typeof URLS) => { if (!inst[g]) { inst[g] = instantiateWasi(URLS[g]).then((x) => bindFormats(x.exports)); onLeave(`formats-${g}`, () => { delete inst[g]; }); } return inst[g]!; };
+const engines: Partial<Record<keyof typeof URLS, () => Promise<ReturnType<typeof bindFormats>>>> = {};
+export const formats = (g: keyof typeof URLS) => (engines[g] ||= lazyEngine(`formats-${g}`, () => instantiateWasi(URLS[g]).then((x) => bindFormats(x.exports))))();

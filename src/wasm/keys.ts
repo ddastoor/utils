@@ -1,7 +1,7 @@
 // Wrapper for keys.wasm (Rust, built by us — wasm/keys): HMAC, TOTP/HOTP, password hashes, OpenSSH keys, API keys.
 import { instantiateWasi } from './wasi';
 import wasmUrl from './bin/keys.wasm?url';
-import { onLeave } from '../lifecycle';
+import { lazyEngine } from '../lifecycle';
 
 const enc = new TextEncoder(), dec = new TextDecoder();
 export const toB64 = (b: Uint8Array) => { let s = ''; for (const x of b) s += String.fromCharCode(x); return btoa(s); };
@@ -19,5 +19,4 @@ export function bindKeys(e: any) {
   };
 }
 export type Keys = ReturnType<typeof bindKeys>;
-let inst: Promise<Keys> | null = null;
-export const keys = () => { if (!inst) { inst = instantiateWasi(wasmUrl).then((x) => bindKeys(x.exports)); onLeave('keys', () => (inst = null)); } return inst; };
+export const keys = lazyEngine('keys', () => instantiateWasi(wasmUrl).then((x) => bindKeys(x.exports)));
