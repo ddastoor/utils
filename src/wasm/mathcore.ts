@@ -167,7 +167,6 @@ export function bindMathcore(e: any) {
     },
     /** GSTIN format + check character. */
     gstinValid: (g: string) => !!withStr(g.trim().toUpperCase(), (p, n) => e.m_gstin_valid(p, n)),
-    haversine(lat1: number, lon1: number, lat2: number, lon2: number) { return withF64(2, (p) => { e.m_haversine(lat1, lon1, lat2, lon2, p); const [km, bearing] = f64(p, 2); return { km, bearing }; }); },
   };
 }
 export type Mathcore = ReturnType<typeof bindMathcore>;

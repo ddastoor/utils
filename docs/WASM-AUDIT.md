@@ -432,3 +432,33 @@ One entry per tab, written before its bug hunt: our module → candidates → ch
   form of a loan's balance), 192 PPF accounts by the annuity-due formula, 144 EPF accounts, 90 NPS accounts
   (cross-checked with numpy-financial's `fv`), 240 inflation cases.
 
+### 79 – 81. `sleep`, `bodyfat`, `idealweight` — Sleep Cycle, Body Fat, Ideal Weight (19 Nov 2026)
+- **Ours:** mathcore (own C): `m_bodyfat` (the US Navy equations of Hodgdon and Beckett), `m_idealweight` (Devine,
+  Robinson, Miller, Hamwi) and `m_bmi` for the healthy range; the sleep times are clock arithmetic (a subtraction of
+  minutes). What each tab refuses and how it reads its boxes is `src/lib/health.ts` (glue).
+- **Candidates:** WebAssembly — none (one formula each; nothing in the registry for "body fat", "ideal weight",
+  "sleep cycle"). JavaScript: single-purpose packages with a few hundred downloads a month.
+- **Decision:** nothing to replace. Held to **mpmath at 40 digits** (700 bodies), exact fractions (384 heights in cm
+  and in feet and inches: the four formulas and both healthy ranges, the latter also found by trying every tenth of
+  a kilogram) and **Python's datetime** (400 nights) — `scripts/make-body-reference.py`.
+
+### 82. `coords` — Coordinates Converter (19 Nov 2026)
+- **Ours (before):** mathcore `m_haversine` — the great circle on a sphere of the mean radius: up to 0.5 % off the
+  real Earth (Delhi → Mumbai 3.6 km, opposite points 11 km), shown with two decimals of a kilometre.
+- **What the utility needs:** the distance and the bearings between two points as GPS and maps mean them — on the
+  WGS-84 ellipsoid — for any two points, the nearly opposite ones included.
+- **Candidates:** WebAssembly — `proj-wasm` 0.1.0 (PROJ transpiled; 3,500 downloads a month, first release, a
+  projection library whose interface does not offer the geodesic routines), `@crossbind/port-proj-wasm` and
+  `@crossbind/port-spatialite-wasm` (2.0.0-beta, 1,500 downloads a month), PGlite with PostGIS (a whole database
+  server): none is a tried-and-tested module for this job, and the last three are megabytes for one function.
+  JavaScript: `geographiclib-geodesic` 2.2.0 (Karney's own JavaScript port, 970 thousand downloads a month),
+  `geodesy` 2.4.0 (Vincenty; does not converge for nearly opposite points), `haversine` (the sphere again).
+- **Decision (rule step 2 — our own WebAssembly build from open-source code):** **`geo.wasm`** = Charles Karney's
+  `geodesic.c` 2.2 (the C implementation of GeographicLib's geodesic routines, MIT), the two files taken unmodified
+  from the PROJ 9.9.0 release archive (SHA-256 from Ubuntu's signed .dsc), + 40 lines of glue; **36 KB**, loaded by
+  this tab only (`wasm/geo`). Accurate to about 15 nanometres. `m_haversine` left mathcore; the sphere's figure is
+  still shown, beside the real one, for comparison with tools that use it.
+- **Check:** against **Karney's Python implementation** (`pip install geographiclib`) for 437 pairs — within 20 nm —
+  of which 352 are also worked out with **Vincenty's formula in mpmath** (another method, another author; agreement
+  within 65 micrometres, the accuracy of his truncated series) — `scripts/make-geo-reference.py`.
+

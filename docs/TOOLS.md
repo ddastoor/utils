@@ -102,10 +102,10 @@ Generated from `src/registry.ts` by `npm run docs` — do not edit by hand.
 | `epf` | EPF Calculator | PC + mobile | Employee Provident Fund corpus at retirement: your 12 %, the employer's share, the pension scheme, yearly interest. | epf, pf, provident fund, employees provident fund, employee, employer contribution, epfo, eps, … |
 | `nps` | NPS Calculator | PC + mobile | National Pension System: corpus at 60, lump sum, annuity and monthly pension. | nps, national pension system, national pension scheme, pension, monthly pension, annuity, annuity purchase, lump sum, … |
 | `inflation` | Inflation Calculator | PC + mobile | Future cost of things and what today's money will be worth, years for prices to double. | inflation, deflation, future value, future cost, present value, purchasing power, value of money, value of rupee, … |
-| `sleep` | Sleep Cycle | PC + mobile | Best times to wake up or go to bed. | sleep, sleep calculator, when to wake up, when to sleep, bedtime calculator, bedtime, wake up, sleep cycle, … |
-| `bodyfat` | Body Fat | PC + mobile | Body fat % (US Navy method). | body fat, fat percentage, navy method, waist, neck, fitness |
-| `idealweight` | Ideal Weight | PC + mobile | Ideal body weight by several formulas. | ideal weight, healthy weight, devine, robinson, miller, hamwi, height |
-| `coords` | Coordinates Converter | PC + mobile | Decimal ⇄ DMS and distance between points. | coordinates, latitude, longitude, gps, dms, degrees minutes seconds, distance, haversine, … |
+| `sleep` | Sleep Cycle | PC + mobile | Best times to go to bed or to wake up, in 90-minute sleep cycles — also from now. | sleep, sleep calculator, when to wake up, when to sleep, when to go to bed, bedtime calculator, bedtime, bed time, … |
+| `bodyfat` | Body Fat | PC + mobile | Body fat % from a tape measure (US Navy method), its class, fat and lean mass. | body fat, bodyfat, fat percentage, body fat percentage, fat percent, navy method, us navy, tape measure, … |
+| `idealweight` | Ideal Weight | PC + mobile | Healthy weight range for a height (BMI) and ideal body weight by four formulas, kg or lb. | ideal weight, ideal body weight, ibw, healthy weight, weight for height, how much should i weigh, target weight, devine, … |
+| `coords` | Coordinates Converter | PC + mobile | Decimal ⇄ degrees-minutes-seconds, and the distance and bearing between two points (WGS-84). | coordinates, coordinate converter, latitude, longitude, lat long, lat lon, latlong, gps, … |
 
 ## Math & Science (7)
 

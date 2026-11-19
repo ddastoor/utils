@@ -114,7 +114,7 @@ export default async (t, { load, wasm }) => {
   t.near(m.bmi(68, 1.7), 23.53, 0.01, 'BMI'); t.eq(Math.round(m.bmr(true, 70, 170, 30)), 1618, 'BMR Mifflin');
   t.near(m.bodyfat(true, 175, 38, 85, 0), 16.9, 0.2, 'body fat navy');
   t.near(m.idealWeight(true, 170).devine, 65.98, 0.05, 'Devine');
-  const hv = m.haversine(28.6139, 77.209, 19.076, 72.8777); t.near(hv.km, 1148, 3, 'Delhi→Mumbai km');
+  t.ok(Number.isNaN(m.idealWeight(true, 140).devine), 'the ideal-weight formulas have no answer below 5 feet'); // distances on the Earth: wasm/geo, tests/unit/geo.test.mjs
   // matrices (C): add/sub, transpose, trace, power by squaring vs naive products
   const A = [[1, 2], [3, 4]], B = [[5, 6], [7, 8]];
   t.eq(m.matadd(A, B), [[6, 8], [10, 12]], 'A + B'); t.eq(m.matadd(A, B, -1), [[-4, -4], [-4, -4]], 'A − B');

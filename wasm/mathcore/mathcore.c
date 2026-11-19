@@ -1009,22 +1009,17 @@ API double m_bodyfat(int male, double h, double neck, double waist, double hip) 
     return male ? 495 / (1.0324 - 0.19077 * log10(waist - neck) + 0.15456 * log10(h)) - 450
                 : 495 / (1.29579 - 0.35004 * log10(waist + hip - neck) + 0.221 * log10(h)) - 450;
 }
-/* out[4]: Devine, Robinson, Miller, Hamwi (kg) */
+/* out[4]: Devine, Robinson, Miller, Hamwi (kg). The formulas count the inches above 5 feet: below it they say
+   nothing (NaN) — a height of 140 cm used to get the weight of 152.4 cm. */
 API void m_idealweight(int male, double cm, double *out) {
-    double in = cm / 2.54 - 60; if (in < 0) in = 0;
+    double in = cm / 2.54 - 60;
+    if (in < 0) { if (in > -1e-9) in = 0; else { out[0] = out[1] = out[2] = out[3] = NAN; return; } }
     out[0] = (male ? 50 : 45.5) + 2.3 * in;
     out[1] = (male ? 52 : 49) + (male ? 1.9 : 1.7) * in;
     out[2] = (male ? 56.2 : 53.1) + (male ? 1.41 : 1.36) * in;
     out[3] = (male ? 48 : 45.5) + (male ? 2.7 : 2.2) * in;
 }
-/* out[2]: great-circle km, initial bearing degrees */
-API void m_haversine(double lat1, double lon1, double lat2, double lon2, double *out) {
-    double R = 6371.0088, d = M_PI / 180, dLat = (lat2 - lat1) * d, dLon = (lon2 - lon1) * d;
-    double h = sin(dLat / 2) * sin(dLat / 2) + cos(lat1 * d) * cos(lat2 * d) * sin(dLon / 2) * sin(dLon / 2);
-    out[0] = 2 * R * asin(sqrt(h));
-    double y = sin(dLon) * cos(lat2 * d), x = cos(lat1 * d) * sin(lat2 * d) - sin(lat1 * d) * cos(lat2 * d) * cos(dLon);
-    out[1] = fmod(atan2(y, x) / d + 360, 360);
-}
+/* (the great circle and the geodesic of the Coordinates tab are in wasm/geo) */
 
 /* ======================================================================== matrices (more) */
 /* out = A + sign·B (same shape) */

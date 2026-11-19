@@ -655,6 +655,34 @@ open while the numbers change; `fmtINR` writes paise with both digits (₹12.10)
   lump sum + annuity = the corpus as shown; pension = annuity × rate / 12; a note for a corpus of up to ₹8 lakh.
   `inflation` (e2e 17) — (1 + r)^years by the engine's `growth()`; rates above −100 % (deflation: "Purchasing power
   gained", "Years for prices to halve"), 0 % "Never — prices stay as they are", at most 100 years.
+- Body and sleep (`src/tools/finance2.ts` on `src/lib/health.ts`; unit `tests/unit/body.test.mjs` 77; reference
+  `python3 scripts/make-body-reference.py` → `tests/fixtures/body/reference.json`): `bodyfat` (e2e 22) — the US
+  Navy equations (Hodgdon and Beckett 1984, centimetres; mathcore `m_bodyfat`); height 100 – 250 cm, neck 20 – 80,
+  waist 40 – 250, hip 50 – 250 (the hip box only for women), weight optional (20 – 400 kg); a man's waist must be
+  larger than his neck; a result of 0 % or less, or 75 % and more, is refused with the figure ("no body has");
+  shown with one decimal and classed **by that number** on the ACE chart (men 2 / 6 / 14 / 18 / 25, women
+  10 / 14 / 21 / 25 / 32; "Below essential fat" with a note); fat mass = weight × shown %, lean = the rest.
+  `idealweight` (e2e 18) — the healthy BMI ranges of the BMI tab (`healthyRange`, one routine for both tabs: Asian
+  18.5 – 23 on top, WHO 18.5 – 25) and Devine, Robinson, Miller, Hamwi (mathcore `m_idealweight`: inches over 5
+  feet; **below 152.4 cm the formulas have no answer** — NaN in the engine, a note in the tab); 100 – 250 cm;
+  metric, or feet + inches with pounds. `sleep` (e2e 22) — whole 90-minute cycles (6, 5, 4, 3) back from a wake-up
+  time or forward from a bedtime, plus whole minutes 0 – 180 to fall asleep (empty = 0); each row says the day it
+  falls on; "Go to bed now" reads the clock and is worked out again when the minute changes (an interval, cleared
+  on leave); times in the reader's locale.
+- `coords` (e2e 34; `src/lib/coords.ts`, engine `geo.wasm` — §5.1n; unit `tests/unit/geo.test.mjs` 69; reference
+  `python3 scripts/make-geo-reference.py`, needs `pip install geographiclib mpmath`): **reading** — decimal degrees
+  or degrees, minutes, seconds; minus signs of every kind (−, –), N / S / E / W or the words before or after, a
+  decimal comma, ° ′ ″ and their keyboard stand-ins, `deg` / `min` / `sec`, `28d36m50s`, `28:36:50`; only the last
+  number may have decimals, minutes and seconds below 60, two numbers always separated; the wrong letter for the
+  axis, a letter with a minus sign, values outside ±90 / ±180 are refused with the reason, prefixed "Point A: …".
+  A pair in a latitude box ("28.6139, 77.2090", "28°36′50″N 77°12′32″E") fills both boxes (`splitPair`; a comma
+  between digits without a space and without decimal points is a decimal comma). **Writing** — six decimals (a
+  plain minus, for pasting), DMS with two decimals of a second and degrees with four decimals of a minute, rounded
+  as decimals and carried (never 60.00″). **The answer** — distance (km with two decimals, metres under a
+  kilometre), miles (1,609.344 m) and nautical miles (1,852 m), initial bearing and bearing on arrival with their
+  compass points, the half-way point: the **geodesic on the WGS-84 ellipsoid**; the sphere's (haversine, mean
+  radius 6,371,008.8 m) beside it. Notes: the same place (no bearing), exactly opposite points, nearly opposite
+  ones (beyond 19,900 km). Point B optional — both boxes or neither.
 - Number formatting shared by the calculators (`src/lib/form.ts`, unit `tests/unit/moneyfmt.test.mjs` 79):
   `roundDec(x, d)` (in `src/lib/round.ts`, no DOM) rounds a number as it is written with 15 digits, half away from zero (7.1225 → 7.123, 1.005 →
   1.01; Intl and toFixed round the binary value down) and leaves numbers that need more than 15 digits alone;
@@ -1165,6 +1193,7 @@ stay **public** (the source of the deployed site is then available to every user
 | rnnoise: Xiph **RNNoise 0.2** (+ default model) + glue (48 kHz frames, latency compensation, wet/dry mix, VAD) | C | **us** (`wasm/rnnoise`) | noise |
 | espeak: **eSpeak NG 1.52.0** (+ English phoneme tables and dictionary compiled from the same release, linked in, served to its fopen/stat from memory) + glue (IPA for Kokoro, piper-phonemize-style sentences) | C | **us** (`wasm/espeak`) | tts (stt hints later) |
 | whisper: **whisper.cpp 1.8.3** + ggml CPU backend (upstream unmodified) + own threadshim.h (std::mutex/std::thread/fstream for zig's thread-less libc++), backend-reg.cpp (static CPU-only registry), cxxabi_stubs.c (throw = abort), glue.cpp | C / C++ | **us** (`wasm/whisper`) | stt |
+| geo: Charles Karney's **geodesic.c 2.2** (GeographicLib's geodesic routines in C, MIT; the two files unmodified from the PROJ 9.9.0 release) + glue (inverse problem on WGS-84, half-way point, the haversine great circle for comparison) | C | **us** (`wasm/geo`, 36 KB, loaded by the Coordinates tab only; no tried-and-tested WebAssembly geodesic module exists: `docs/WASM-AUDIT.md`, tab 82) | coords |
 | textcore: Myers diff, tool-search ranking, word frequency, rare-word ranking (tokeniser, lemmatiser, wordfreq hash table), XY-cut reading order | C (own code) | **us** (`wasm/textcore`) | diff, search box, word counter, photodict |
 | sheet: calamine 0.38 (read .xlsx .xlsm .xlsb .xls .ods) + rust_xlsxwriter 0.102 (write .xlsx) + csv 1 + serde_json | Rust | **us** (`wasm/sheet`, crates.io sources verified by `Cargo.lock`, target wasm32-wasip1) | sheet |
 | svgo: **OXVG 0.0.9** (Rust port of SVGO's plugins; lightningcss for `<style>`) + our glue: DOCTYPE / entities allowed, nesting limit 256, **our own safe preset** (OXVG's `Jobs::safe()` is not safe), `sv_diff` (do two rasters look alike? — the tab renders every result next to its original and falls back to the safe result when the full optimisation changed the picture) | Rust | **us** (`wasm/svgo`, crates.io via `Cargo.lock`, opt-level z, 4.9 MB / 1.3 MB gz, loaded with the first SVG; unit `tests/unit/svgo.test.mjs`, hazard drawings `tests/fixtures/svg/hazards.json`) | svgo |
@@ -1235,6 +1264,9 @@ Nov 2026 (Percentage): `src/lib/percent.ts` — six formulas on two typed number
 division of whole numbers (no loop, no data).
 Nov 2026 (Tip, Fuel, GPA, BMI's range, due date): `src/lib/smallcalc.ts`, `src/lib/health.ts` — a few multiplications
 and one division each, checks and wording; BMI and BMR themselves are mathcore's.
+Nov 2026 (Coordinates, Sleep Cycle): `src/lib/coords.ts` — reading a coordinate as a person typed it (one regular
+expression on a short string) and writing it back; the sleep times are one subtraction of minutes per row. The
+geodesic itself is geo.wasm.
 Nov 2026 (Python Scratchpad): `src/lib/termtext.ts` (what a terminal would show for the program's output: display
 code that feeds the DOM), `src/lib/python-hints.ts` (one sentence per known error), `src/lib/tzinfo.ts` (the browser's
 Intl answering the C library's questions about local time; the zone table it uses is data made by a script) stay in TS.
@@ -1283,7 +1315,7 @@ Owner: "make the full site faster, more responsive and memory efficient — load
    in `AT_OPEN` in the test): our three small engines (mathcore/crypto/textcore ≤ 140 KB: live results as you
    type), invoice/rent/resume (MuPDF + Noto Sans: the live PDF preview is the main view), markdown (cmark-gfm,
    sample preview), terminal (BusyBox: the shell is ready at once), qr/barcode (zxing-cpp: drawn as you type),
-   caption/watermark/signature (fonts of the first preview), cidr/cron/semver/glob/patch (their devcore-<tab>.wasm: the
+   caption/watermark/signature (fonts of the first preview), coords (geo.wasm, 36 KB: the sample distance), cidr/cron/semver/glob/patch (their devcore-<tab>.wasm: the
    sample is computed live), json/jwt/xml/json2types/jsondiff/base64 (their devcore module: the sample is formatted,
    decoded, compared or converted at once), mermaid (the sample diagram), graphviz (the sample graph: its module
    and worker). Adding to that list needs a reason in the test.
@@ -1360,7 +1392,7 @@ in one call; "a ± b%" = percentage of the running total), root finding (sign ch
 minimising |f|), quadratic/cubic, det/inverse/matmul/rank/linear solve, statistics + regression,
 64-bit primes (deterministic Miller–Rabin) and Pollard-rho factorisation, exact fractions (int64 with overflow
 detection; "2/3" without spaces is one fraction, so 1/3 ÷ 2/3 = 1/2), arbitrary-length base conversion, Roman numerals, number→words (Indian + international), finance
-(EMI, amortisation, SIP, FD/RD, PPF, EPF, NPS, prepayment), health (BMI, BMR, body fat, ideal weight), haversine,
+(EMI, amortisation, SIP, FD/RD, PPF, EPF, NPS, prepayment), health (BMI, BMR, body fat, ideal weight),
 colour (RGB ⇄ HSL ⇄ OKLCH, WCAG luminance / contrast, and `m_color` op 5: OKLCH → sRGB with the CSS Color 4 gamut mapping).
 Finance since Nov 2026: `m_emi` and `m_amortize_yearly` in closed forms (see §3 "Finance calculators as built");
 `m_gst` (GST on one amount in whole paise, forwards and backwards, 128-bit products); `paise()` reads an amount as it
@@ -1557,6 +1589,20 @@ prints, byte for byte on stdout and stderr (`tests/fixtures/python/reference.jso
 interpreter: `$WORK/native/python scripts/make-python-reference.py`); local time against the zone files inside the
 build for 51 zones × 575 moments; nested-call table; RFC 6070; host options; hints. `tests/unit/termtext.test.mjs`
 (61, incl. 3,000 random streams against a cell-by-cell terminal). e2e `tests/e2e/python.e2e.mjs` (88).
+
+### 5.1n geo → `src/wasm/bin/geo.wasm`
+`ZIG=… wasm/geo/build.sh`: downloads `proj_9.9.0.orig.tar.gz` from the Ubuntu archive (SHA-256 `791a0610…` from the
+signed `proj_9.9.0-1.dsc`), takes **only** `src/geodesic.c` and `src/geodesic.h` — Charles Karney's C implementation
+of GeographicLib's geodesic routines, version 2.2.0, MIT, which PROJ ships unmodified — and compiles them with
+`glue.c` as a reactor (36 KB). Exports: `g_inverse(lat1, lon1, lat2, lon2)` fills a static buffer (`g_out()`): metres
+along the geodesic on WGS-84 (a = 6,378,137 m, 1/f = 298.257223563), the azimuths at both ends (−180 … 180), metres
+and bearing on a sphere of the mean radius 6,371,008.8 m (haversine), latitude and longitude half-way
+(`geod_direct` at half the distance); `g_version()`. No allocation, no imports beyond the WASI start-up. Wrapper
+`src/wasm/geo.ts` (`bindGeo`, bearings turned to 0 … 360). Tests `tests/unit/geo.test.mjs` (69): 437 pairs within
+20 nm of Karney's Python implementation (`tests/fixtures/geo/reference.json`; 352 of them confirmed there with
+Vincenty's formula in mpmath), the example of geodesic.h (JFK → Changi 15,347,512.94 m), a quarter of the equator,
+half a meridian, the date line, there and back. **To update:** a newer PROJ release in build.sh (URL + SHA-256
+from its .dsc), check the version line, `python3 scripts/make-geo-reference.py`, both suites.
 
 ### 5.1e markdown → `src/wasm/bin/markdown.wasm`
 `ZIG=… wasm/markdown/build.sh`: downloads the `cmarkgfm` 2025.10.22 sdist from PyPI (SHA-256 `5bec6100…`), which vendors

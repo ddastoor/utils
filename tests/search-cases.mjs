@@ -181,6 +181,12 @@ export default [
   ['body fat', 'bodyfat'], ['fat percentage', 'bodyfat'],
   ['ideal weight', 'idealweight'], ['healthy weight', 'idealweight'],
   ['coordinates', 'coords'], ['lat long to dms', 'coords'], ['distance between coordinates', 'coords'],
+  // calc2-math bug hunt (Nov 2026): sleep, body, coordinates
+  ['bedtime', 'sleep'], ['when to go to bed', 'sleep'], ['sleep now', 'sleep'], ['alarm time', 'sleep'], ['sleep cycles', 'sleep'],
+  ['body fat percentage', 'bodyfat'], ['navy method', 'bodyfat'], ['lean mass', 'bodyfat'], ['tape measure', 'bodyfat'],
+  ['ideal body weight', 'idealweight'], ['how much should i weigh', 'idealweight'], ['devine', 'idealweight'], ['weight for height', 'idealweight'], ['ibw', 'idealweight'],
+  ['latitude longitude', 'coords'], ['gps coordinates', 'coords'], ['degrees minutes seconds', 'coords'], ['decimal degrees', 'coords'], ['bearing', 'coords'], ['geodesic', 'coords'],
+  ['as the crow flies', 'coords'], ['distance between two points', 'coords'], ['nautical miles', 'coords'], ['midpoint', 'coords'], ['wgs84', 'coords'], ['vincenty', 'coords'], ['haversine', 'coords'],
   ['graph', 'graph'], ['plot function', 'graph'], ['graphing calculator', 'graph'],
   ['quadratic equation', 'equation'], ['solve equation', 'equation'], ['simultaneous equations', 'equation'],
   ['statistics', 'stats'], ['standard deviation', 'stats'], ['mean median mode', 'stats'],

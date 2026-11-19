@@ -2,7 +2,10 @@ import { h, note, type Mount } from '../ui';
 import { calcForm, fmtINR, fmtN, need } from '../lib/form';
 import { prepayPlan, ppfPlan, epfPlan, npsPlan, inflation as infl, span } from '../lib/finance';
 import { plural } from '../lib/dates';
+import { BF_CHART, bodyFat, clockMinutes, clockText, feetInches, idealWeight, sleepTimes, type IdealWeight } from '../lib/health';
+import { antipodal, bearingText, parseCoord, splitPair, toDDM, toDecimal, toDMS } from '../lib/coords';
 import { mathcore } from '../wasm/mathcore';
+import { geo } from '../wasm/geo';
 
 // ------------------------------------------------------------------ Loan prepayment
 export const prepay: Mount = async (root) => {
@@ -114,23 +117,26 @@ export const inflation: Mount = async (root) => {
 
 // ------------------------------------------------------------------ Sleep cycle
 export const sleep: Mount = (root) => {
-  const now = new Date();
-  calcForm(root, [
-    { key: 'mode', label: 'I want to', type: 'seg', value: 'wake', options: [['wake', 'Wake up at…'], ['bed', 'Go to bed at…']] },
-    { key: 't', label: 'Time', type: 'time', value: '06:30' },
-    { key: 'fall', label: 'Time to fall asleep', value: 15, unit: 'min' },
+  const hhmm = () => { const n = new Date(); return `${n.getHours()}:${String(n.getMinutes()).padStart(2, '0')}`; };
+  let shownFor = '';
+  const form = calcForm(root, [
+    { key: 'mode', label: 'I want to', type: 'seg', value: 'wake', options: [['wake', 'Wake up at…'], ['bed', 'Go to bed at…'], ['now', 'Go to bed now']] },
+    { key: 't', label: 'Time', type: 'time', value: '06:30', show: (v) => v.mode !== 'now' },
+    { key: 'fall', label: 'Time to fall asleep', value: 15, unit: 'min', hint: 'Most people take 10 – 20 minutes' },
   ], (v) => {
-    const [hh, mm] = String(v.t || `${now.getHours()}:${now.getMinutes()}`).split(':').map(Number);
-    const base = hh * 60 + mm, fall = v.fall || 0;
-    const fmt = (m: number) => { const t = ((m % 1440) + 1440) % 1440; const d = new Date(2000, 0, 1, Math.floor(t / 60), t % 60); return d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }); };
-    const cycles = [6, 5, 4, 3];
-    const times = cycles.map((c) => (v.mode === 'wake' ? fmt(base - c * 90 - fall) : fmt(base + fall + c * 90)));
+    const now = v.mode === 'now', time = now ? hhmm() : String(v.t ?? '');
+    shownFor = now ? time : '';
+    const rows = sleepTimes(v.mode === 'wake' ? 'wake' : 'bed', time, v.fall);
+    const day = (d: number) => (d < 0 ? ' (the day before)' : d > 0 ? ' (the next day)' : '');
     return {
-      big: [[v.mode === 'wake' ? 'Go to bed at' : 'Set alarm for', times.slice(0, 2).join('  or  ')]],
-      rows: cycles.map((c, i) => [`${c} cycles (${(c * 1.5).toString()} h sleep)`, times[i]] as [string, string]),
+      big: [[v.mode === 'wake' ? 'Go to bed at' : now ? `Going to bed now (${clockText(clockMinutes(time)!)}), set the alarm for` : 'Set alarm for', rows.slice(0, 2).map((r) => clockText(r.at)).join('  or  ')]],
+      rows: rows.map((r) => [`${r.cycles} cycles (${r.hours} h sleep)`, clockText(r.at) + day(r.day)] as [string, string]),
     };
   });
   root.append(note('Sleep runs in ~90-minute cycles; waking between cycles feels easier. Adults need 7–9 hours (5–6 cycles).'));
+  // "now" moves on: when the minute changes the times are worked out again
+  const tick = setInterval(() => { if (form.values.mode === 'now' && shownFor !== hhmm()) form.refresh(); }, 5000);
+  return () => clearInterval(tick);
 };
 
 // ------------------------------------------------------------------ Body fat (US Navy)
@@ -139,65 +145,86 @@ export const bodyfat: Mount = async (root) => {
   calcForm(root, [
     { key: 'sex', label: 'Sex', type: 'seg', value: 'm', options: [['m', 'Male'], ['f', 'Female']] },
     { key: 'h', label: 'Height', value: 175, unit: 'cm' },
-    { key: 'neck', label: 'Neck', value: 38, unit: 'cm' },
-    { key: 'waist', label: 'Waist (at navel)', value: 85, unit: 'cm' },
-    { key: 'hip', label: 'Hip (women)', value: 95, unit: 'cm' },
-    { key: 'w', label: 'Weight', value: 75, unit: 'kg' },
+    { key: 'neck', label: 'Neck', value: 38, unit: 'cm', hint: 'Below the larynx' },
+    { key: 'waist', label: 'Waist', value: 85, unit: 'cm', hint: 'Men: at the navel. Women: at the narrowest point' },
+    { key: 'hip', label: 'Hip', value: 95, unit: 'cm', hint: 'At the widest point', show: (v) => v.sex === 'f' },
+    { key: 'w', label: 'Weight (optional)', value: 75, unit: 'kg' },
   ], (v) => {
-    need(v.h, v.neck, v.waist);
-    const bf = m.bodyfat(v.sex === 'm', v.h, v.neck, v.waist, v.hip);
-    if (!isFinite(bf) || bf <= 0) throw new Error('Check the measurements (waist must be larger than neck).');
-    const cat = v.sex === 'm' ? (bf < 6 ? 'Essential fat' : bf < 14 ? 'Athletic' : bf < 18 ? 'Fit' : bf < 25 ? 'Average' : 'Obese') : (bf < 14 ? 'Essential fat' : bf < 21 ? 'Athletic' : bf < 25 ? 'Fit' : bf < 32 ? 'Average' : 'Obese');
-    return { big: [['Body fat', `${fmtN(bf, 1)}%`], ['Category (ACE)', cat]], rows: isFinite(v.w) ? [['Fat mass', `${fmtN((v.w * bf) / 100, 1)} kg`], ['Lean mass', `${fmtN(v.w * (1 - bf / 100), 1)} kg`]] : [] };
+    const male = v.sex === 'm';
+    need(v.h, v.neck, v.waist); if (!male) need(v.hip);
+    const b = bodyFat(m, male, v.h, v.neck, v.waist, v.hip, v.w), chart = BF_CHART[male ? 'm' : 'f'], c = chart.cuts;
+    return {
+      big: [['Body fat', `${b.shown.toFixed(1)}%`], ['Category (ACE)', b.category]],
+      rows: [...(b.fat === null ? [] : [['Fat mass', `${fmtN(b.fat, 1)} kg`], ['Lean mass', `${fmtN(b.lean!, 1)} kg`]] as Array<[string, string]>),
+        [`Chart used (${male ? 'men' : 'women'})`, `<${c[0]} essential · <${c[1]} athletic · <${c[2]} fit · <${c[3]} average · ≥${c[3]} obese`]],
+      notes: b.category === 'Below essential fat' ? [`Less than the fat a body needs to work (about ${chart.essential} % for ${male ? 'men' : 'women'}) — check the measurements.`] : [],
+    };
   });
+  root.append(note('US Navy method (Hodgdon and Beckett, 1984): an estimate from a tape measure, usually within 3 – 4 percentage points of a laboratory measurement. Measure on bare skin, the tape level and not pulled tight.'));
 };
 
 // ------------------------------------------------------------------ Ideal weight
 export const idealweight: Mount = async (root) => {
   const m = await mathcore();
+  const metric = (v: Record<string, any>) => v.sys === 'm', imperial = (v: Record<string, any>) => v.sys === 'i';
   calcForm(root, [
     { key: 'sex', label: 'Sex', type: 'seg', value: 'm', options: [['m', 'Male'], ['f', 'Female']] },
-    { key: 'h', label: 'Height', value: 170, unit: 'cm' },
+    { key: 'sys', label: 'Units', type: 'seg', value: 'm', options: [['m', 'Metric'], ['i', 'Imperial']] },
+    { key: 'h', label: 'Height', value: 170, unit: 'cm', show: metric },
+    { key: 'ft', label: 'Height (feet)', value: 5, show: imperial },
+    { key: 'inch', label: 'and inches', value: 7, show: imperial },
   ], (v) => {
-    need(v.h);
-    const w = m.idealWeight(v.sex === 'm', v.h);
-    const f = { 'Devine (1974)': w.devine, 'Robinson (1983)': w.robinson, 'Miller (1983)': w.miller, 'Hamwi (1964)': w.hamwi };
-    const hm = v.h / 100;
-    return { big: [['Healthy BMI range (Asian 18.5–23)', `${fmtN(18.5 * hm * hm, 1)} – ${fmtN(23 * hm * hm, 1)} kg`]], rows: Object.entries(f).map(([k, x]) => [k, `${fmtN(x, 1)} kg`] as [string, string]) };
+    let w: IdealWeight;
+    if (v.sys === 'm') { need(v.h); w = idealWeight(m, v.sex === 'm', v.h / 100); }
+    else { if (!isFinite(v.ft) && !isFinite(v.inch)) need(NaN); w = idealWeight(m, v.sex === 'm', feetInches(v.ft, v.inch), 'lb'); }
+    const n1 = (x: number) => fmtN(x, 1), range = (r: { lo: number; hi: number }) => `${n1(r.lo)} – ${n1(r.hi)} ${w.unit}`;
+    return {
+      big: [['Healthy BMI range (Asian 18.5–23)', range(w.asian)]],
+      rows: [['Healthy BMI range (WHO 18.5–25)', range(w.who)], ...(w.formulas ?? []).map(([k, x]) => [k, `${n1(x)} ${w.unit}`] as [string, string])],
+      notes: w.formulas ? [] : ['The four formulas (Devine, Robinson, Miller, Hamwi) start at a height of 5 feet (152.4 cm) and say nothing below it — the BMI range is the guide here.'],
+    };
   });
+  root.append(note('The formulas were made to work out doses of medicine, from the height alone; the BMI range is the better guide to a healthy weight. Indian guidelines use the lower range (BMI up to 23).'));
 };
 
 // ------------------------------------------------------------------ Coordinates
-function parseCoord(s: string, isLat: boolean): number {
-  const t = s.trim().toUpperCase();
-  if (!t) throw new Error('Enter coordinates.');
-  const neg = /[SW]/.test(t) || t.startsWith('-');
-  const nums = t.match(/\d+(\.\d+)?/g)?.map(Number) || [];
-  if (!nums.length) throw new Error(`Can't read "${s}".`);
-  const v = nums[0] + (nums[1] || 0) / 60 + (nums[2] || 0) / 3600;
-  const r = neg ? -v : v;
-  if (Math.abs(r) > (isLat ? 90 : 180)) throw new Error(`${isLat ? 'Latitude' : 'Longitude'} out of range.`);
-  return r;
-}
-const toDMS = (v: number, isLat: boolean) => {
-  const a = Math.abs(v), d = Math.floor(a), mf = (a - d) * 60, m = Math.floor(mf), s = (mf - m) * 60;
-  return `${d}° ${m}′ ${s.toFixed(2)}″ ${isLat ? (v >= 0 ? 'N' : 'S') : v >= 0 ? 'E' : 'W'}`;
-};
+const MILE = 1609.344, NAUTICAL_MILE = 1852; // metres, by definition
 export const coords: Mount = async (root) => {
-  const m = await mathcore();
+  const g = await geo();
+  const point = (name: string, latText: string, lonText: string) => {
+    let lat: number, lon: number;
+    try { lat = parseCoord(latText, 'lat'); } catch (e: any) { throw new Error(`Point ${name}: ${e.message}`); }
+    try { lon = parseCoord(lonText, 'lon'); } catch (e: any) { throw new Error(`Point ${name}: ${e.message}`); }
+    return { lat, lon, rows: [[`${name} (decimal)`, `${toDecimal(lat)}, ${toDecimal(lon)}`], [`${name} (DMS)`, `${toDMS(lat, 'lat')}, ${toDMS(lon, 'lon')}`], [`${name} (degrees, minutes)`, `${toDDM(lat, 'lat')}, ${toDDM(lon, 'lon')}`]] as Array<[string, string]> };
+  };
   calcForm(root, [
-    { key: 'lat1', label: 'Point A latitude', type: 'text', value: '28.6139', placeholder: '28.6139 or 28° 36′ 50″ N' },
-    { key: 'lon1', label: 'Point A longitude', type: 'text', value: '77.2090' },
-    { key: 'lat2', label: 'Point B latitude (optional)', type: 'text', value: '19.0760' },
+    { key: 'lat1', label: 'Point A latitude', type: 'text', value: '28.6139', placeholder: '28.6139 or 28° 36′ 50″ N', hint: 'A pair such as "28.6139, 77.2090" fills both boxes' },
+    { key: 'lon1', label: 'Point A longitude', type: 'text', value: '77.2090', placeholder: '77.2090 or 77° 12′ 32″ E' },
+    { key: 'lat2', label: 'Point B latitude (optional)', type: 'text', value: '19.0760', placeholder: 'Leave both empty for one point' },
     { key: 'lon2', label: 'Point B longitude (optional)', type: 'text', value: '72.8777' },
   ], (v) => {
-    const a = [parseCoord(v.lat1, true), parseCoord(v.lon1, false)];
-    const rows: Array<[string, string]> = [['A (decimal)', `${a[0].toFixed(6)}, ${a[1].toFixed(6)}`], ['A (DMS)', `${toDMS(a[0], true)}, ${toDMS(a[1], false)}`]];
-    if (!String(v.lat2).trim() || !String(v.lon2).trim()) return { rows };
-    const b = [parseCoord(v.lat2, true), parseCoord(v.lon2, false)];
-    const { km, bearing: brg } = m.haversine(a[0], a[1], b[0], b[1]);
-    rows.push(['B (decimal)', `${b[0].toFixed(6)}, ${b[1].toFixed(6)}`], ['B (DMS)', `${toDMS(b[0], true)}, ${toDMS(b[1], false)}`]);
-    return { big: [['Distance (great circle)', `${fmtN(km, 2)} km`], ['Initial bearing', `${fmtN(brg, 1)}°`]], rows: [['Miles', fmtN(km * 0.621371, 2)], ['Nautical miles', fmtN(km / 1.852, 2)], ...rows] };
+    const a = point('A', String(v.lat1), String(v.lon1));
+    const bLat = String(v.lat2).trim(), bLon = String(v.lon2).trim();
+    if (!bLat && !bLon) return { rows: a.rows };
+    if (!bLat || !bLon) throw new Error(`Point B: the ${bLat ? 'longitude' : 'latitude'} is missing — fill in both boxes, or empty both for one point.`);
+    const b = point('B', bLat, bLon), x = g.inverse(a.lat, a.lon, b.lat, b.lon), km = x.metres / 1000;
+    const same = x.metres === 0, far = (m: number) => (m < 1000 ? `${fmtN(m, 1)} m` : `${fmtN(m / 1000, 2)} km`);
+    const few = (n: number) => fmtN(n, n < 10 ? 3 : 2); // a short walk keeps a third decimal: 0.062 miles, not 0.06
+    return {
+      big: [['Distance', far(x.metres)], ['Initial bearing', same ? '—' : bearingText(x.bearing)]],
+      rows: [['Miles', few(x.metres / MILE)], ['Nautical miles', few(x.metres / NAUTICAL_MILE)], ['Bearing on arrival', same ? '—' : bearingText(x.finalBearing)],
+        ['Half-way point', same ? '—' : `${toDecimal(x.mid[0])}, ${toDecimal(x.mid[1])}`], ['On a sphere (haversine)', far(x.sphereMetres)], ...a.rows, ...b.rows],
+      notes: same ? ['The two points are the same place.'] : antipodal(a.lat, a.lon, b.lat, b.lon) ? ['The two points are exactly opposite each other on the globe: more than one way is the shortest, all equally long — the bearing shown is one of them.']
+        : km > 19900 ? ['The points are almost opposite each other: the shortest way and its bearing change a great deal with a small change of either point.'] : [],
+    };
   });
-  root.append(h('p', { class: 'muted small' }, 'Accepts decimal degrees (−12.5) or degrees-minutes-seconds with N/S/E/W. Haversine on a mean-radius sphere (±0.5%).'));
+  // a pair typed or pasted into a latitude box ("28.6139, 77.2090" as map apps copy it) goes into both boxes
+  const boxes = [...root.querySelectorAll<HTMLInputElement>('input.input')];
+  for (const i of [0, 2]) boxes[i]?.addEventListener('input', () => {
+    const pair = splitPair(boxes[i].value);
+    if (!pair || !boxes[i + 1]) return;
+    boxes[i].value = pair[0]; boxes[i + 1].value = pair[1];
+    boxes[i + 1].dispatchEvent(new Event('input', { bubbles: true })); boxes[i].dispatchEvent(new Event('input', { bubbles: true }));
+  });
+  root.append(h('p', { class: 'muted small' }, 'Decimal degrees (−12.5, 12.5 S) or degrees, minutes and seconds with N / S / E / W. The distance is the shortest path on the WGS-84 ellipsoid — the Earth\'s shape as GPS uses it — by Karney\'s method (GeographicLib), good to a millimetre; the sphere figure is what the haversine formula gives (up to 0.5 % off).'));
 };

@@ -93,9 +93,12 @@ what those suites missed.
   suites, all green. **Area calc2-math, in progress:** **`prepay`, `ppf`, `epf`, `nps`, `inflation` (tabs 74 – 78)
   are DONE** (9 + 5 + 6 + 7 + 6 bugs; plans in `src/lib/finance.ts`, engine `m_prepay` / `m_epf` / `m_nps` / `m_ppf`,
   held to mpmath — `scripts/make-finance2-reference.py`; EPF follows the EPFO's interest method, NPS the PFRDA rules
-  of December 2025). **NEXT:** `sleep`, `bodyfat`, `idealweight`, `coords` (still in `src/tools/finance2.ts`: no
-  validation yet; US Navy body fat, four ideal-weight formulas, haversine + coordinate parsing), then the Math &
-  Science tabs (`graph`, `equation`, `stats`, `matrix`, `fraction`, `primes`, `periodic`); per tab: the
+  of December 2025). **`sleep`, `bodyfat`, `idealweight`, `coords` (tabs 79 – 82) are DONE** (4 + 7 + 3 + 13
+  bugs; `src/lib/health.ts`, `src/lib/coords.ts`; **new engine `geo.wasm`** = Karney's geodesic.c on WGS-84,
+  `wasm/geo`, CLAUDE.md §5.1n; references `scripts/make-body-reference.py`, `scripts/make-geo-reference.py` — the
+  latter needs `pip install geographiclib mpmath`). **NEXT: the Math & Science tabs** (`graph`, `equation`, `stats`,
+  `matrix`, `fraction`, `primes`, `periodic` — `src/tools/math*.ts`, engine mathcore), then the complete suites for
+  the area; per tab: the
   existing-module check with its entry in `docs/WASM-AUDIT.md` first (the survey of entry 56 covers calculators:
   no tried-and-tested WebAssembly calculator exists), then bugs, tests, fixes. Reference tools at hand: mpmath
   (`pip install mpmath`), Python's `decimal` / `fractions` / `datetime` / `zoneinfo`.

@@ -103,10 +103,10 @@ Areas with a shared review: the app shell (router, search, favorites, platform h
 | `epf` | EPF Calculator | PC + mobile | calc2-math | ✓ | 6 | 26 | EPFO method (interest on monthly opening balances, credited yearly — monthly compounding overstated the corpus); 144 accounts in mpmath; own / employer / EPS rows that add up; ages checked |
 | `nps` | NPS Calculator | PC + mobile | calc2-math | ✓ | 7 | 27 | PFRDA December 2025: 20 % least annuity for non-government subscribers, 40 % government (it was silently raised to 40); 90 accounts in mpmath + numpy-financial; lump + annuity = corpus |
 | `inflation` | Inflation Calculator | PC + mobile | calc2-math | ✓ | 6 | 26 | mpmath for 240 cases; deflation (gained / halve), 0 % never doubles, limits and reasons; power by mathcore growth() |
-| `sleep` | Sleep Cycle | PC + mobile | calc2-math |  |  |  |  |
-| `bodyfat` | Body Fat | PC + mobile | calc2-math |  |  |  |  |
-| `idealweight` | Ideal Weight | PC + mobile | calc2-math |  |  |  |  |
-| `coords` | Coordinates Converter | PC + mobile | calc2-math |  |  |  |  |
+| `sleep` | Sleep Cycle | PC + mobile | calc2-math | ✓ | 4 | 41 | nothing to replace (WASM-AUDIT 79–81); Python datetime for 400 nights; minutes 0–180 whole, empty time refused, the day each time falls on, new 'Go to bed now' that follows the clock |
+| `bodyfat` | Body Fat | PC + mobile | calc2-math | ✓ | 7 | 61 | mpmath for 700 bodies (US Navy equations); measurements checked one by one, impossible results refused with the figure, class by the number shown, hip only for women, fat + lean = weight |
+| `idealweight` | Ideal Weight | PC + mobile | calc2-math | ✓ | 3 | 28 | exact fractions for 384 heights; no formula below 5 feet (was the weight of 152.4 cm), same healthy range as the BMI tab (one routine), WHO range, feet + inches / lb |
+| `coords` | Coordinates Converter | PC + mobile | calc2-math | ✓ | 13 | 99 | NEW ENGINE geo.wasm = Karney's geodesic.c 2.2 on WGS-84 (WASM-AUDIT 82; the sphere was up to 0.5 % off); reference Karney's Python + Vincenty in mpmath, 437 pairs; reader rewritten (minus signs, words, comma, pairs, marks; reasons); DMS carry; half B said |
 
 ## math
 | id | Tab | Platform | Area | R | B | T | Notes |
@@ -893,4 +893,36 @@ Reference for the five finance tabs: **mpmath at 60 digits** (`scripts/make-fina
   to halve"); −100 % and below showed ₹0, "—" or NaN; 0, negative and absurd numbers of years were worked with
   (5,000 years: a screen of digits); a negative amount was accepted; results beyond what can be shown were shown.
   The power is the engine's `growth()` now (the tab is mathcore's like the others).
+- **sleep** — Sleep Cycle (4 bugs; e2e 7 → 22). A negative "time to fall asleep" moved the bedtime the other way,
+  15.5 minutes showed 9:14 for 9:14½, 1,00,000 minutes went round the clock 69 times, and an emptied time box
+  worked with the time at which the tab had been opened. Now whole minutes 0 – 180, "Choose a time.", every row
+  says the day it falls on ("9:15 PM (the day before)"), and a third choice **"Go to bed now"** follows the clock
+  minute by minute (stopped when the tab is left). Reference: Python's datetime for 400 nights.
+- **bodyfat** — Body Fat (7 bugs; e2e 7 → 22). A slim tall man (waist 62, neck 42) was told "waist must be larger
+  than neck" — the formula had gone below zero; a waist of 9 m showed "Body fat 154.3%" and a lean mass of
+  −40.8 kg; a negative weight gave negative masses; a woman without a hip measurement and a height of 0 were both
+  blamed on the waist; the class went by the unrounded figure ("18.0 %" beside "Fit"); the hip box was shown to men
+  as "Hip (women)" and ignored. Now measurements are checked one by one, a result that no body has (≤ 0 %, ≥ 75 %)
+  is refused with the figure, the class goes by the number shown, "Below essential fat" has a note, fat + lean =
+  the weight, the hip box appears for women only, the chart used is shown. Reference: the Hodgdon–Beckett equations
+  in mpmath for 700 bodies.
+- **idealweight** — Ideal Weight (3 bugs; e2e 9 → 18). Below 5 feet the four formulas silently gave the weights of
+  152.4 cm (a man of 140 cm: "Devine 50 kg", a BMI of 25.5); a height of 0 showed "0 – 0 kg", −170 cm the range of
+  170 cm, ten metres "Devine 817.5 kg"; and the healthy range disagreed with the BMI tab (53.5 – 66.5 kg here,
+  53.4 – 66.3 kg there — at 66.5 kg the BMI tab says "23.0, Overweight"). Now 100 – 250 cm, no formula below 5 feet
+  (said in a note; the engine returns NaN there), one routine (`healthyRange`) for both tabs, the WHO range beside
+  the Asian one, and feet + inches with pounds. Reference: exact fractions for 384 heights.
+- **coords** — Coordinates Converter (13 bugs; e2e 17 → 34). **Reading:** a real minus sign (−12.5, as the tab's
+  own hint wrote it) was ignored: 12.5 N; the S in "28.6 degrees" or "50 sec" made a southern latitude; a pair pasted
+  into one box ("28.6139, 77.2090", as map apps copy it) was read as degrees and minutes: 29.900717; a decimal
+  comma was "out of range"; 75 minutes and 80 seconds were accepted; ".5" was 5 and "1e1" was 1° 1′; E was accepted
+  on a latitude and a minus sign together with S; "28.5 30" (decimal degrees, then minutes) was accepted.
+  **Writing:** 28.9999999° came out as "28° 59′ 60.00″". **The answer:** a second point with one box empty was
+  passed over in silence; the same place twice had the bearing "0°"; and the distance was the sphere's — up to
+  0.5 % off (Delhi → Mumbai 3.6 km, opposite points 11 km) while shown to ten metres. Now: `src/lib/coords.ts`
+  reads every usual writing and refuses the rest with the reason; a pair in a latitude box fills both boxes; the
+  distance, both bearings (with compass points) and the half-way point are the **geodesic on WGS-84** by Karney's
+  method (`geo.wasm`, `docs/WASM-AUDIT.md` entry 82), the sphere's figure beside it; notes for the same place and
+  for (nearly) opposite points. Reference: Karney's Python library for 437 pairs, 352 of them confirmed with
+  Vincenty's formula in mpmath; 628 written and 400 typed coordinates by exact fractions.
 
