@@ -1,37 +1,53 @@
-import { h, card, field, input, textarea, button, segmented, clear, stack, row, note, copy, type Mount } from '../ui';
+import { h, card, field, input, textarea, button, segmented, clear, stack, row, note, copy, downloadBlob, type Mount } from '../ui';
+import { readFunction, clampScale, clampCentre, zoomAbout, tickStep, ticks, tickLabel, type View } from '../lib/graph';
 import { mathcore, fmtNum, type Complex } from '../wasm/mathcore';
 import { ELEMENTS, CATEGORY_COLORS } from '../lib/elements';
 
 // ================================================================== Graphing calculator
 const COLORS = ['#4f46e5', '#e11d48', '#059669', '#d97706', '#0891b2', '#7c3aed'];
+const MAX_FNS = 6, SAMPLES = 2; // samples per pixel
 export const graph: Mount = async (root, ctx) => {
   const m = await mathcore();
-  const fns: Array<{ src: string; on: boolean }> = [{ src: 'sin(x)', on: true }, { src: 'x^2/4 - 1', on: true }];
-  let cx = 0, cy = 0, scale = 50; // px per unit
+  type Ex = ReturnType<typeof m.compile>;
+  /** a function of x (ex), or a vertical line x = at */
+  interface Fn { src: string; on: boolean; kind: 'y' | 'x'; ex: Ex | null; at: number; error: string }
+  const fn = (src: string): Fn => ({ src, on: true, kind: 'y', ex: null, at: NaN, error: '' });
+  const fns: Fn[] = [fn('sin(x)'), fn('x^2/4 - 1')];
+  let view: View = { cx: 0, cy: 0, scale: 50 }; // scale = pixels per unit
   let deg = false;
-  const canvas = h('canvas', { class: 'graph-canvas' });
+  const canvas = h('canvas', { class: 'graph-canvas', tabindex: '0', role: 'img', 'aria-label': 'Graph of the functions below. Arrow keys move the view, + and − zoom, 0 resets it.' });
   const readout = h('div', { class: 'graph-readout muted small' });
   const list = h('div', { class: 'stack' });
-  type Ex = ReturnType<typeof m.compile>;
-  const compiled: Array<Ex | null> = [];
 
-  const recompile = () => {
-    compiled.forEach((c) => c?.free());
-    compiled.length = 0;
-    fns.forEach((f, i) => {
-      const inp = list.querySelectorAll<HTMLInputElement>('.fn-input')[i];
-      try { if (!f.src.trim()) throw 0; compiled.push(m.compile(f.src.replace(/^\s*y\s*=/, ''), deg)); inp?.classList.remove('bad'); }
-      catch { compiled.push(null); inp?.classList.toggle('bad', !!f.src.trim()); }
-    });
-    draw();
+  const compile = (f: Fn) => {
+    f.ex?.free(); f.ex = null; f.error = ''; f.at = NaN;
+    if (!f.src.trim()) return;
+    try {
+      const t = readFunction(f.src), ex = m.compile(t.body, deg);
+      const other = (['y', 'z', 't', 'ans'] as const).find((v) => ex.uses(v));
+      if (other || (t.kind === 'x' && ex.uses('x'))) {
+        ex.free();
+        throw new Error(t.kind === 'x' ? 'x = … takes a number: x = 2 draws a vertical line.' : other === 'ans' ? 'Ans belongs to the calculator — a function here is written with x.' : `Only x can be used here: "${other}" has no value.`);
+      }
+      f.kind = t.kind;
+      if (t.kind === 'y') f.ex = ex;
+      else { f.at = ex.eval(0); ex.free(); if (!Number.isFinite(f.at)) throw new Error('x = … needs a number that exists.'); }
+    } catch (e: any) { f.error = e?.message || String(e); }
   };
+  const addBtn = button('Add function', () => { if (fns.length < MAX_FNS) { fns.push(fn('')); renderList(); list.querySelectorAll<HTMLInputElement>('.fn-input')[fns.length - 1]?.focus(); } }, { icon: 'Plus', small: true });
   const renderList = () => {
-    clear(list).append(...fns.map((f, i) => h('div', { class: 'fn-row' },
-      h('span', { class: 'fn-swatch', style: { background: COLORS[i % COLORS.length], opacity: f.on ? '1' : '.3' }, onclick: () => { f.on = !f.on; renderList(); draw(); }, title: 'Show/hide' }),
-      h('span', { class: 'fn-y' }, 'y ='),
-      input({ value: f.src, placeholder: 'e.g. 2x+1, sin(x), sqrt(x)', onInput: (v) => { f.src = v; recompile(); }, attrs: { class: 'input fn-input', spellcheck: 'false' } }),
-      button('', () => { fns.splice(i, 1); renderList(); recompile(); }, { icon: 'X', small: true, variant: 'ghost', title: 'Remove' }))));
-    recompile();
+    clear(list).append(...fns.map((f, i) => {
+      const err = h('div', { class: 'fn-err', role: 'alert' });
+      const box = input({ value: f.src, placeholder: 'e.g. 2x+1, sin(x), sqrt(x), x = 2', onInput: (v) => { f.src = v; compile(f); mark(); draw(); }, attrs: { class: 'input fn-input', spellcheck: 'false', autocapitalize: 'off', 'aria-label': `Function ${i + 1}` } });
+      const mark = () => { box.classList.toggle('bad', !!f.error); err.textContent = f.error; err.hidden = !f.error; };
+      compile(f); mark();
+      return h('div', { class: 'fn-row' },
+        h('button', { type: 'button', class: 'fn-swatch', style: { background: COLORS[i % COLORS.length], opacity: f.on ? '1' : '.3' }, onclick: () => { f.on = !f.on; renderList(); }, title: f.on ? 'Hide' : 'Show', 'aria-label': `${f.on ? 'Hide' : 'Show'} function ${i + 1}`, 'aria-pressed': String(f.on) }),
+        h('span', { class: 'fn-y' }, 'y ='), box,
+        button('', () => { f.ex?.free(); fns.splice(i, 1); renderList(); }, { icon: 'X', small: true, variant: 'ghost', title: 'Remove' }), err);
+    }));
+    addBtn.disabled = fns.length >= MAX_FNS; addBtn.title = addBtn.disabled ? `${MAX_FNS} functions at most` : '';
+    draw();
   };
 
   const draw = () => {
@@ -43,76 +59,92 @@ export const graph: Mount = async (root, ctx) => {
     g.setTransform(dpr, 0, 0, dpr, 0, 0);
     const css = getComputedStyle(document.documentElement);
     const col = (v: string) => css.getPropertyValue(v).trim();
+    const { cx, cy, scale } = view;
     g.fillStyle = col('--surface'); g.fillRect(0, 0, W, H);
-    const toPx = (x: number, y: number) => [W / 2 + (x - cx) * scale, H / 2 - (y - cy) * scale];
+    const X = (x: number) => W / 2 + (x - cx) * scale, Y = (y: number) => H / 2 - (y - cy) * scale;
     const x0 = cx - W / 2 / scale, x1 = cx + W / 2 / scale, y0 = cy - H / 2 / scale, y1 = cy + H / 2 / scale;
-    // grid step: 1, 2, 5 × 10^k so lines are >= 40 px apart
-    const raw = 40 / scale, p = Math.pow(10, Math.floor(Math.log10(raw)));
-    const step = [1, 2, 5, 10].map((m) => m * p).find((s) => s >= raw)!;
-    g.lineWidth = 1; g.font = '11px system-ui'; g.fillStyle = col('--muted');
-    for (let x = Math.ceil(x0 / step) * step; x <= x1; x += step) {
-      const [px] = toPx(x, 0); g.strokeStyle = col('--surface-3'); g.beginPath(); g.moveTo(px, 0); g.lineTo(px, H); g.stroke();
-      if (Math.abs(x) > step / 2) { const [, py] = toPx(0, 0); g.fillText(fmtNum(x, 6), px + 3, Math.min(H - 4, Math.max(12, py + 13))); }
+    const step = tickStep(scale), ax = X(0), ay = Y(0);
+    g.lineWidth = 1; g.font = '11px system-ui'; g.fillStyle = col('--muted'); g.strokeStyle = col('--surface-3');
+    for (const x of ticks(x0, x1, step)) {
+      const px = X(x); g.beginPath(); g.moveTo(px, 0); g.lineTo(px, H); g.stroke();
+      if (x !== 0) g.fillText(tickLabel(x, step), px + 3, Math.min(H - 4, Math.max(12, ay + 13)));
     }
-    for (let y = Math.ceil(y0 / step) * step; y <= y1; y += step) {
-      const [, py] = toPx(0, y); g.strokeStyle = col('--surface-3'); g.beginPath(); g.moveTo(0, py); g.lineTo(W, py); g.stroke();
-      if (Math.abs(y) > step / 2) { const [px] = toPx(0, 0); g.fillText(fmtNum(y, 6), Math.min(W - 30, Math.max(3, px + 4)), py - 3); }
+    for (const y of ticks(y0, y1, step)) {
+      const py = Y(y); g.beginPath(); g.moveTo(0, py); g.lineTo(W, py); g.stroke();
+      if (y !== 0) { const label = tickLabel(y, step); g.fillText(label, Math.min(W - g.measureText(label).width - 4, Math.max(3, ax + 4)), py - 3); }
     }
     g.strokeStyle = col('--faint'); g.lineWidth = 1.5;
-    const [ax, ay] = toPx(0, 0);
     g.beginPath(); g.moveTo(0, ay); g.lineTo(W, ay); g.moveTo(ax, 0); g.lineTo(ax, H); g.stroke();
-    compiled.forEach((f, i) => {
-      if (!f || !fns[i].on) return;
+    const far = 4 * H; // a point far outside the picture is drawn there: the canvas does not take 10^300 pixels
+    fns.forEach((f, i) => {
+      if (!f.on || f.error) return;
       g.strokeStyle = COLORS[i % COLORS.length]; g.lineWidth = 2.2; g.beginPath();
-      let pen = false, lastY = NaN;
-      const ys = f.range(x0, 1 / scale, W + 1); // one wasm call per curve
-      for (let px = 0; px <= W; px += 1) {
-        const y = ys[px];
-        const py = H / 2 - (y - cy) * scale;
-        if (!isFinite(y) || Math.abs(py) > H * 20 || (pen && Math.abs(py - lastY) > H * 2)) { pen = false; lastY = py; continue; }
-        if (pen) g.lineTo(px, py); else g.moveTo(px, py);
-        pen = true; lastY = py;
+      if (f.kind === 'x') { const px = X(f.at); if (px >= -2 && px <= W + 2) { g.moveTo(px, 0); g.lineTo(px, H); } g.stroke(); return; }
+      if (!f.ex) return;
+      const n = W * SAMPLES + 1, { y, join } = f.ex.plot(x0, 1 / (scale * SAMPLES), n, 8 / scale); // one wasm call per curve
+      for (let k = 0; k < n; k++) {
+        if (!Number.isFinite(y[k])) continue;
+        const py = Math.min(H + far, Math.max(-far, Y(y[k])));
+        if (join[k]) g.lineTo(k / SAMPLES, py); else g.moveTo(k / SAMPLES, py);
       }
       g.stroke();
     });
   };
+  const setView = (v: View) => { const cx = clampCentre(v.cx), cy = clampCentre(v.cy); view = { cx, cy, scale: clampScale(v.scale, cx, cy) }; draw(); };
+  const zoom = (factor: number, px = canvas.clientWidth / 2, py = canvas.clientHeight / 2) => setView(zoomAbout(view, px, py, factor, canvas.clientWidth, canvas.clientHeight));
 
-  // pan & zoom (mouse, touch, pinch)
+  // pan & zoom (mouse, touch, pinch, keyboard); a zoom keeps the point under the cursor or between the fingers in place
   const pointers = new Map<number, { x: number; y: number }>();
   let pinchDist = 0;
-  canvas.addEventListener('pointerdown', (e) => { canvas.setPointerCapture(e.pointerId); pointers.set(e.pointerId, { x: e.clientX, y: e.clientY }); });
-  canvas.addEventListener('pointerup', (e) => { pointers.delete(e.pointerId); pinchDist = 0; });
-  canvas.addEventListener('pointercancel', (e) => { pointers.delete(e.pointerId); pinchDist = 0; });
+  const say = (mx: number, my: number) => {
+    const digits = (v: number) => Math.min(15, Math.max(3, Math.ceil(Math.log10(Math.max(Math.abs(v), 1e-300) * view.scale)) + 1));
+    readout.textContent = `x = ${fmtNum(mx, digits(mx))}, y = ${fmtNum(my, digits(my))}` + fns.map((f, i) => {
+      if (!f.on || f.error || (!f.ex && f.kind === 'y')) return '';
+      if (f.kind === 'x') return `  ·  line x = ${fmtNum(f.at, 6)}`;
+      const v = f.ex!.eval(mx);
+      return `  ·  f${i + 1}(x) = ${Number.isFinite(v) ? fmtNum(v, 6) : 'undefined'}`;
+    }).join('');
+  };
+  canvas.addEventListener('pointerdown', (e) => { try { canvas.setPointerCapture(e.pointerId); } catch { /* a pointer that is already gone */ } pointers.set(e.pointerId, { x: e.clientX, y: e.clientY }); });
+  const lift = (e: PointerEvent) => { pointers.delete(e.pointerId); pinchDist = 0; };
+  canvas.addEventListener('pointerup', lift); canvas.addEventListener('pointercancel', lift);
   canvas.addEventListener('pointermove', (e) => {
     const r = canvas.getBoundingClientRect();
-    const mx = cx + (e.clientX - r.left - r.width / 2) / scale, my = cy - (e.clientY - r.top - r.height / 2) / scale;
-    readout.textContent = `x = ${fmtNum(mx, 5)}, y = ${fmtNum(my, 5)}` + compiled.map((f, i) => (f && fns[i].on ? `  ·  f${i + 1}(x) = ${fmtNum(f.eval(mx), 6)}` : '')).join('');
+    say(view.cx + (e.clientX - r.left - r.width / 2) / view.scale, view.cy - (e.clientY - r.top - r.height / 2) / view.scale);
     const prev = pointers.get(e.pointerId);
     if (!prev) return;
-    if (pointers.size === 1) { cx -= (e.clientX - prev.x) / scale; cy += (e.clientY - prev.y) / scale; }
+    if (pointers.size === 1) view = { ...view, cx: view.cx - (e.clientX - prev.x) / view.scale, cy: view.cy + (e.clientY - prev.y) / view.scale };
     pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
     if (pointers.size === 2) {
-      const [a, b] = [...pointers.values()];
-      const d = Math.hypot(a.x - b.x, a.y - b.y);
-      if (pinchDist) scale = Math.min(5000, Math.max(0.5, scale * (d / pinchDist)));
+      const [a, b] = [...pointers.values()], d = Math.hypot(a.x - b.x, a.y - b.y);
+      if (pinchDist && d) view = zoomAbout(view, (a.x + b.x) / 2 - r.left, (a.y + b.y) / 2 - r.top, d / pinchDist, r.width, r.height);
       pinchDist = d;
     }
-    draw();
+    setView(view);
   });
-  canvas.addEventListener('wheel', (e) => { e.preventDefault(); const f = Math.exp(-e.deltaY * 0.0015); scale = Math.min(5000, Math.max(0.5, scale * f)); draw(); }, { passive: false });
+  canvas.addEventListener('wheel', (e) => { e.preventDefault(); const r = canvas.getBoundingClientRect(); zoom(Math.exp(-e.deltaY * 0.0015), e.clientX - r.left, e.clientY - r.top); }, { passive: false });
+  const reset = () => setView({ cx: 0, cy: 0, scale: 50 });
+  canvas.addEventListener('keydown', (e) => {
+    const step = 40 / view.scale, k = e.key;
+    if (k === 'ArrowLeft') setView({ ...view, cx: view.cx - step }); else if (k === 'ArrowRight') setView({ ...view, cx: view.cx + step });
+    else if (k === 'ArrowUp') setView({ ...view, cy: view.cy + step }); else if (k === 'ArrowDown') setView({ ...view, cy: view.cy - step });
+    else if (k === '+' || k === '=') zoom(1.5); else if (k === '-' || k === '_') zoom(1 / 1.5); else if (k === '0') reset(); else return;
+    e.preventDefault();
+  });
   const ro = new ResizeObserver(draw); ro.observe(canvas);
+  const dark = matchMedia('(prefers-color-scheme: dark)'); dark.addEventListener('change', draw); // the colours come from the page's theme
 
-  root.append(
+  root.append(h('div', { class: 'graph-layout' },
     card(null, h('div', { class: 'graph-wrap' }, canvas), readout,
-      row(button('', () => { scale *= 1.5; draw(); }, { icon: 'ZoomIn', small: true, title: 'Zoom in' }), button('', () => { scale /= 1.5; draw(); }, { icon: 'ZoomOut', small: true, title: 'Zoom out' }),
-        button('Reset view', () => { cx = cy = 0; scale = 50; draw(); }, { icon: 'RotateCcw', small: true }),
-        segmented([['rad', 'Radians'], ['deg', 'Degrees']], 'rad', (v) => { deg = v === 'deg'; recompile(); }),
-        button('Save PNG', () => canvas.toBlob((b) => { if (b) { const a = h('a', { href: URL.createObjectURL(b), download: 'graph.png' }); a.click(); } }), { icon: 'Download', small: true }))),
-    card('Functions', list, button('Add function', () => { if (fns.length < 6) { fns.push({ src: '', on: true }); renderList(); } }, { icon: 'Plus', small: true })),
-    note(ctx.isMobile ? 'Drag to pan, pinch to zoom.' : 'Drag to pan, scroll to zoom. Use x as the variable; implicit multiplication works (2x, 3sin(x)).'),
+      row(button('', () => zoom(1.5), { icon: 'ZoomIn', small: true, title: 'Zoom in' }), button('', () => zoom(1 / 1.5), { icon: 'ZoomOut', small: true, title: 'Zoom out' }),
+        button('Reset view', reset, { icon: 'RotateCcw', small: true }),
+        segmented([['rad', 'Radians'], ['deg', 'Degrees']], 'rad', (v) => { deg = v === 'deg'; renderList(); }),
+        button('Save PNG', () => canvas.toBlob((b) => { if (b) downloadBlob(b, 'graph.png'); }), { icon: 'Download', small: true }))),
+    card('Functions', list, addBtn)),
+    note(`${ctx.isMobile ? 'Drag to pan, pinch to zoom.' : 'Drag to pan, scroll to zoom; with the graph in focus the arrow keys, + and − work too.'} Use x as the variable — 2x, 3sin(x), x^2, sqrt(x), abs(x) — and x = 2 for a vertical line.`),
   );
   renderList();
-  return () => { ro.disconnect(); compiled.forEach((c) => c?.free()); };
+  return () => { ro.disconnect(); dark.removeEventListener('change', draw); fns.forEach((f) => f.ex?.free()); };
 };
 
 // ================================================================== Equation solver

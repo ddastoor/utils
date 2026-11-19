@@ -281,8 +281,8 @@ export const TOOLS: Tool[] = [
     'coordinates, coordinate converter, latitude, longitude, lat long, lat lon, latlong, gps, gps coordinates, dms, ddm, degrees minutes seconds, decimal degrees, degrees decimal minutes, distance, distance between two points, as the crow flies, great circle, geodesic, wgs84, wgs-84, ellipsoid, vincenty, karney, haversine, bearing, heading, azimuth, compass direction, midpoint, halfway point, nautical miles, miles, km, map, google maps', () => fin().then((m) => m.coords)),
 
   // ---------------------------------------------------------------- Math & Science
-  t('graph', 'Graphing Calculator', 'Plot functions; zoom and pan.', 'math', 'ChartSpline',
-    'graph, plot, function, graphing calculator, y=, curve, desmos, sine wave, parabola', () => math().then((m) => m.graph)),
+  t('graph', 'Graphing Calculator', 'Plot up to six functions of x; zoom, pan, read values, save as PNG.', 'math', 'ChartSpline',
+    'graph, plot, plotter, function, function plotter, graphing calculator, graph calculator, y=, f(x), curve, draw graph, desmos, geogebra, sine wave, parabola, line, vertical line, asymptote, tan, floor, step function, zoom, axes, grid, coordinates, x axis, y axis, png', () => math().then((m) => m.graph)),
   t('equation', 'Equation Solver', 'Linear, quadratic, cubic and simultaneous equations.', 'math', 'Variable',
     'equation, solve, quadratic, cubic, linear, simultaneous, system of equations, roots, x', () => math().then((m) => m.equation)),
   t('stats', 'Statistics', 'Mean, median, mode, std dev, regression.', 'math', 'ChartColumn',

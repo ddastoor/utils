@@ -111,7 +111,7 @@ Generated from `src/registry.ts` by `npm run docs` — do not edit by hand.
 
 | id | Tab | Platform | What it does | Search keywords |
 |---|---|---|---|---|
-| `graph` | Graphing Calculator | PC + mobile | Plot functions; zoom and pan. | graph, plot, function, graphing calculator, y=, curve, desmos, sine wave, … |
+| `graph` | Graphing Calculator | PC + mobile | Plot up to six functions of x; zoom, pan, read values, save as PNG. | graph, plot, plotter, function, function plotter, graphing calculator, graph calculator, y=, … |
 | `equation` | Equation Solver | PC + mobile | Linear, quadratic, cubic and simultaneous equations. | equation, solve, quadratic, cubic, linear, simultaneous, system of equations, roots, … |
 | `stats` | Statistics | PC + mobile | Mean, median, mode, std dev, regression. | statistics, mean, median, mode, average, standard deviation, variance, regression, … |
 | `matrix` | Matrix Calculator | PC + mobile | Add, multiply, invert, determinant. | matrix, determinant, inverse, transpose, multiply, linear algebra, rank |

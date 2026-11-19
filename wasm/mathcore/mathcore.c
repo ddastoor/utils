@@ -427,6 +427,46 @@ API void m_expr_eval_range(int h, double x0, double dx, int n, double *out) {
     double v[NVARS] = {0, 0, 0, 0, 0};
     for (int i = 0; i < n; i++) { v[0] = x0 + dx * i; out[i] = run(progs[h - 1], v); }
 }
+/* Samples for a plot: y[i] = f(x0 + i*dx), and join[i] = 1 when the curve runs unbroken from sample i-1 to sample i
+   (join[0] = 0). Two finite neighbours further apart than `tol` (the caller's few pixels, in units of y) are looked at
+   more closely: the stretch between them is halved again and again, each time following the half with the larger
+   difference. A jump (floor), a pole (1/x, tan) or a hole keeps or grows that difference however short the stretch
+   becomes; an unbroken curve, however steep (1000x), loses it. Before this the page judged by the size of the step
+   alone: floor(x) got vertical connectors and 1000x was not drawn at all. */
+API void m_expr_plot(int h, double x0, double dx, int n, double tol, double *y, unsigned char *join) {
+    if (h < 1 || h > MAXPROG || !progs[h - 1] || n <= 0) return;
+    Prog *pr = progs[h - 1];
+    double v[NVARS] = {0, 0, 0, 0, 0};
+    for (int i = 0; i < n; i++) { v[0] = x0 + dx * i; y[i] = run(pr, v); }
+    join[0] = 0;
+    for (int i = 1; i < n; i++) {
+        double ya = y[i - 1], yb = y[i];
+        if (!isfinite(ya) || !isfinite(yb)) { join[i] = 0; continue; }
+        double d = fabs(yb - ya);
+        if (d <= tol) { join[i] = 1; continue; }
+        double a = x0 + dx * (i - 1), b = x0 + dx * i;
+        int ok = 1;
+        for (int k = 0; k < 1100 && d > tol; k++) {
+            double m = a + (b - a) / 2;
+            if (!(m > a && m < b)) {                    /* neighbouring numbers: nothing lies between them */
+                /* still further apart than tol: so steep that one step of a double is visible (exp(x) at 10^15), or
+                   a jump. A steep curve runs on in the same direction and at a like pace on both sides; a jump
+                   (floor) is flat beside it, a pole (tan) turns round. */
+                v[0] = nextafter(a, -INFINITY); double yl = run(pr, v);
+                v[0] = nextafter(b, INFINITY); double yr = run(pr, v);
+                double l = ya - yl, c = yb - ya, r = yr - yb, big = fabs(l) > fabs(r) ? fabs(l) : fabs(r);
+                ok = isfinite(yl) && isfinite(yr) && ((l > 0 && c > 0 && r > 0) || (l < 0 && c < 0 && r < 0)) && d <= 8 * big;
+                d = ok ? 0 : d;
+                break;
+            }
+            v[0] = m; double ym = run(pr, v);
+            if (!isfinite(ym)) { ok = 0; break; }       /* a pole or a hole */
+            double da = fabs(ym - ya), db = fabs(yb - ym);
+            if (da >= db) { b = m; yb = ym; d = da; } else { a = m; ya = ym; d = db; }
+        }
+        join[i] = ok && d <= tol;
+    }
+}
 /* Does the expression reference variable idx? (lets the UI know if x is used) */
 API int m_expr_uses(int h, int idx) {
     if (h < 1 || h > MAXPROG || !progs[h - 1]) return 0;

@@ -30,6 +30,12 @@ export function bindMathcore(e: any) {
     eval(x = 0, ans = 0, y = 0) { return e.m_expr_eval(this.h, x, y, 0, 0, ans) as number; }
     range(x0: number, dx: number, n: number): Float64Array { return withF64(n, (p) => { e.m_expr_eval_range(this.h, x0, dx, n, p); return new Float64Array(mem().slice(p, p + n * 8)); }); }
     roots(a: number, b: number, samples = 20000, max = 50) { return withF64(max, (p) => f64(p, e.m_find_roots(this.h, a, b, samples, p, max))); }
+    /** Samples for a plot: y[i] = f(x0 + i·dx) and join[i] = 1 when the curve runs unbroken from sample i−1 to i —
+     *  jumps, poles and holes are told from steep but unbroken stretches (see m_expr_plot). `tol` in units of y. */
+    plot(x0: number, dx: number, n: number, tol: number): { y: Float64Array; join: Uint8Array } {
+      const py = e.m_malloc(Math.max(1, n) * 8), pj = e.m_malloc(Math.max(1, n));
+      try { e.m_expr_plot(this.h, x0, dx, n, tol, py, pj); return { y: new Float64Array(mem().slice(py, py + n * 8)), join: new Uint8Array(mem().slice(pj, pj + n)) }; } finally { e.m_free(py); e.m_free(pj); }
+    }
     uses(v: 'x' | 'y' | 'z' | 't' | 'ans') { return !!e.m_expr_uses(this.h, ['x', 'y', 'z', 't', 'ans'].indexOf(v)); }
     free() { e.m_expr_free(this.h); }
   }

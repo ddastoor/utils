@@ -111,7 +111,7 @@ Areas with a shared review: the app shell (router, search, favorites, platform h
 ## math
 | id | Tab | Platform | Area | R | B | T | Notes |
 |---|---|---|---|---|---|---|---|
-| `graph` | Graphing Calculator | PC + mobile | calc2-math |  |  |  |  |
+| `graph` | Graphing Calculator | PC + mobile | calc2-math | ✓ | 11 | 96 | nothing to replace (WASM-AUDIT 83); FROZEN TAB on deep zoom fixed (zoom limits, counted grid lines); engine m_expr_plot tells jumps and poles from steep curves (1000x was not drawn, floor had connectors); reasons under the boxes, x = 2 vertical line, zoom about cursor / fingers, keys, 'undefined' readout |
 | `equation` | Equation Solver | PC + mobile | calc2-math |  |  |  |  |
 | `stats` | Statistics | PC + mobile | calc2-math |  |  |  |  |
 | `matrix` | Matrix Calculator | PC + mobile | calc2-math |  |  |  |  |
@@ -925,4 +925,18 @@ Reference for the five finance tabs: **mpmath at 60 digits** (`scripts/make-fina
   method (`geo.wasm`, `docs/WASM-AUDIT.md` entry 82), the sphere's figure beside it; notes for the same place and
   for (nearly) opposite points. Reference: Karney's Python library for 437 pairs, 352 of them confirmed with
   Vincenty's formula in mpmath; 628 written and 400 typed coordinates by exact fractions.
+- **graph** — Graphing Calculator (11 bugs; unit 0 → 60, e2e 22 → 52). **The page froze for good** after panning
+  away from the origin and zooming in about 88 times (hold Enter on the button): the grid was drawn by adding a
+  step that had become smaller than the gap between two doubles, so the loop never arrived — zoom is now limited
+  to what doubles can carry (10⁻¹² … 10¹² px per unit, less far from the origin) and grid lines are counted, not
+  added up. **y = 1000x was not drawn at all** and **floor(x) had vertical connectors**: the page judged a break by
+  the size of the step between two samples; the engine's new `m_expr_plot` halves the stretch between two distant
+  samples until it knows — a jump or a pole keeps its distance, a steep unbroken curve loses it. A function that
+  could not be read got a red border and no reason (now the engine's message under the box); "x = 2" drew the
+  line y = x − 2 (now the vertical line), "x + y" drew with y = 0, "f(x) = …" was refused; the wheel and a pinch
+  zoomed about the middle of the picture instead of the cursor or the fingers; the readout said "f1(x) = Error"
+  where a function has no value; "Add function" stayed live at six and did nothing; the PNG's object URL was never
+  released. Also: grid labels with the digits their step needs, arrow keys / + / − / 0 on the focused graph, two
+  samples a pixel, the functions beside the graph on wide screens (typing one scrolled the picture under the
+  sticky tab rows), a redraw when the system theme changes.
 

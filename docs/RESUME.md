@@ -96,9 +96,10 @@ what those suites missed.
   of December 2025). **`sleep`, `bodyfat`, `idealweight`, `coords` (tabs 79 – 82) are DONE** (4 + 7 + 3 + 13
   bugs; `src/lib/health.ts`, `src/lib/coords.ts`; **new engine `geo.wasm`** = Karney's geodesic.c on WGS-84,
   `wasm/geo`, CLAUDE.md §5.1n; references `scripts/make-body-reference.py`, `scripts/make-geo-reference.py` — the
-  latter needs `pip install geographiclib mpmath`). **NEXT: the Math & Science tabs** (`graph`, `equation`, `stats`,
-  `matrix`, `fraction`, `primes`, `periodic` — `src/tools/math*.ts`, engine mathcore), then the complete suites for
-  the area; per tab: the
+  latter needs `pip install geographiclib mpmath`). **`graph` (tab 83) is DONE** (11 bugs, among them a frozen tab on deep zoom; engine
+  `m_expr_plot`, `src/lib/graph.ts`). **NEXT: the rest of Math & Science** — `equation`, `stats`, `matrix`,
+  `fraction`, `primes`, `periodic` (`src/tools/math.ts`, engine mathcore), then the complete suites for the area;
+  per tab: the
   existing-module check with its entry in `docs/WASM-AUDIT.md` first (the survey of entry 56 covers calculators:
   no tried-and-tested WebAssembly calculator exists), then bugs, tests, fixes. Reference tools at hand: mpmath
   (`pip install mpmath`), Python's `decimal` / `fractions` / `datetime` / `zoneinfo`.

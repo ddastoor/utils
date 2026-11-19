@@ -757,6 +757,26 @@ unit `tests/unit/devdata.test.mjs`, references `tests/fixtures/devdata/reference
 - `mockdata`: 22 field types (India-first); ranges validated and explained (swapped, not a number, dates as
   yyyy-mm-dd or dd/mm/yyyy); 53-bit uniform integers; unique column names; quoted SQL names; same rows in every format.
 
+### Graphing Calculator — as built after the Nov 2026 bug hunt
+(`graph` in `src/tools/math.ts`, view arithmetic `src/lib/graph.ts`, engine mathcore `m_expr_*`; unit
+`tests/unit/graph.test.mjs` 60, e2e `tests/e2e/graph.e2e.mjs` 52.)
+- **Up to six functions of x**, each in its own colour: `2x + 1`, `y = …`, `f(x) = …`, and `x = 2` for a vertical
+  line (the right side must be a number). Any other equation, another letter (y, z, t), `Ans` or text the engine
+  cannot read is refused **with the reason under the box**; nothing of that function is drawn.
+- **Sampling is the engine's** (`m_expr_plot`, two samples a pixel): for every pair of neighbouring samples it says
+  whether the curve runs unbroken between them. Samples further apart than 8 px are examined by halving the stretch
+  (following the half with the larger difference): a jump (floor), a pole (1/x, tan) or a hole keeps or grows the
+  difference, a steep but unbroken curve (1000x) loses it; at the limit of doubles a steep curve is told from a
+  jump by its neighbours (same direction, like pace). Values far outside the picture are drawn at 4 heights off.
+- **The view:** 50 px per unit at first; zoom by wheel (about the cursor), pinch (about the point between the
+  fingers), the buttons and + / − (about the centre), pan by dragging or the arrow keys, 0 and "Reset view".
+  `clampScale`: 10⁻¹² … 10¹² px per unit and never finer than 10¹³ ÷ the distance from the origin, so a pixel is
+  always thousands of doubles wide (deeper, the grid loop of the old page never ended — a frozen tab);
+  `ticks()` counts grid lines as whole multiples of a 1-2-5 step; `tickLabel` gives each the digits its step needs.
+- Readout under the graph: x, y of the pointer and every function's value there ("undefined" where it has none).
+  Radians / degrees. Save PNG (what is on screen, at the device's pixel ratio). On wide screens (≥ 1000 px) the
+  function list stands beside the graph.
+
 ### SQLite Playground (PC) — as built after the Nov 2026 bug hunt
 (`src/tools/software/sqlite.ts`, engine `src/lib/sqlite-engine.ts`, worker `src/workers/sqlite.worker.ts`; unit
 `tests/unit/sqlite.test.mjs` 106, e2e `tests/e2e/sqlite.e2e.mjs` 63.) Engine: the **official SQLite WebAssembly build**
@@ -1406,7 +1426,8 @@ method, see §3), `m_nps` (no silent floor on the annuity share; months clamped)
 two numbers, nesting limit 100, exact trigonometry at round angles (`sind` / `cosd`, the "gap" rule in radians),
 `power_fn` (real powers of negatives), `ncr` / `npr` by multiplying, Γ without overflow up to 171 and NaN at its poles,
 divisions by zero and undefined values as NaN with a reason (`m_expr_why`: 1 division by zero, 2 outside the
-function's domain — the graphing tab draws a gap there), decimal `round`, the bare-percent rule. TS wrapper: `src/wasm/mathcore.ts` (`bindMathcore`
+function's domain — the graphing tab draws a gap there), decimal `round`, the bare-percent rule. `m_expr_plot(h, x0, dx, n, tol, y, join)` samples a curve for the graphing tab and marks which neighbours are
+joined (see §3 "Graphing Calculator"). TS wrapper: `src/wasm/mathcore.ts` (`bindMathcore`
 works in the browser and in Node tests). Tests: `tests/unit/mathcore.test.mjs` (~150 known-answer checks).
 
 ### 5.1c metacore → `src/wasm/bin/metacore.wasm`

@@ -462,3 +462,14 @@ One entry per tab, written before its bug hunt: our module → candidates → ch
   of which 352 are also worked out with **Vincenty's formula in mpmath** (another method, another author; agreement
   within 65 micrometres, the accuracy of his truncated series) — `scripts/make-geo-reference.py`.
 
+### 83. `graph` — Graphing Calculator (19 Nov 2026)
+- **Ours:** mathcore (own C): the expression compiler and bytecode VM of the Scientific Calculator (entry 56),
+  `m_expr_eval_range`, and — new — `m_expr_plot`, which samples a curve and says which neighbouring samples belong
+  to one unbroken stretch. The picture is drawn on a canvas by the page.
+- **Candidates:** WebAssembly — none: no tried-and-tested module evaluates typed formulas or plots them (entry 56's
+  survey: `mathjs`, `expr-eval`, `nerdamer`, `algebrite` are JavaScript; the WebAssembly builds of computer-algebra
+  systems are megabytes and not made for a per-frame sampler). JavaScript plotters: `function-plot` (on D3 and
+  interval arithmetic, 30 thousand downloads a month), Desmos and GeoGebra are services or far larger applications.
+- **Decision:** nothing to replace; the engine is already WebAssembly and gained the sampler. Held to the
+  mathematics of each function (where floor, 1/x, tan … break and where they do not) on 60 random grids each.
+
