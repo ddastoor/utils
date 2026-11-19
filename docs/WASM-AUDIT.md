@@ -679,3 +679,31 @@ One entry per tab, written before its bug hunt: our module → candidates → ch
   `unicodedata`), the holes filled from Letterlike Symbols; NFKC of thirteen styles gives the plain text back;
   `tk_clusters` equals ICU 78.3 (Unicode 17.0) on texts in ten scripts; the suites of the Word Counter, the Case
   Converter, the Line Tools and the Text Diff were run again after the rebuild (all green).
+
+### 96. `emoji` — Emoji & Symbols (19 Nov 2026)
+- **Ours before:** no WebAssembly; the list came from the npm package `unicode-emoji-json` (names only), and the
+  search was `name.includes(word)` in TypeScript.
+- **What the tab needs:** (1) data — which emoji exist, what they are called, the words people look for them with,
+  their skin-tone variants; (2) a search that ranks.
+- **Candidates for the search:** no WebAssembly module is made for searching emoji. The pickers on npm
+  (`emoji-mart`, `emoji-picker-element`, `emojibase`'s own helpers) search in JavaScript — a prefix index over
+  the keywords, kept in IndexedDB by `emoji-picker-element` (state in the browser, which this app does not keep).
+  **We have an engine of our own for exactly this:** `textcore.wasm`'s tool-search ranking (own C: whole phrase,
+  whole word, beginning of a word, stem, Damerau–Levenshtein for slips of the keyboard), which takes any list of
+  records with a name and keywords.
+- **Decision (WebAssembly first):** the search runs in **textcore.wasm** — the 2,160 records (emoji and symbols)
+  are indexed in 20 ms, a query takes about 2 ms; the module (34 KB) is fetched with the first search. Nothing
+  was added to the module.
+- **The data** (data, not code — nothing to compile): replaced `unicode-emoji-json` by **`emojibase-data` 18.0.0**
+  (MIT; Unicode's emoji list with the CLDR names and keywords — Unicode's own annotations — and every skin-tone
+  variant spelled out, which `unicode-emoji-json` only flags). `scripts/make-emoji-data.py` cuts it down to what
+  the tab uses (206 KB, 60 KB over the wire, a chunk of its own) and adds the GitHub and Slack shortcodes from the
+  same package, a few Indian words, and the symbols with their names from the Unicode Character Database.
+  `unicode-emoji-json` stays as a test-only reference.
+- **Left in TypeScript:** `src/lib/emoji.ts` (the records handed to the engine, the choice of a skin-tone variant,
+  what a cell says) and `src/lib/emoji-support.ts` (ten characters drawn on a canvas to see which Emoji versions
+  the device's font has — the browser's canvas does the work).
+- **Evidence:** against `unicode-emoji-json` (another author's reading of Unicode's emoji-test.txt): the same 1,914
+  emoji spelled the same, in the same groups, with the same versions and the same skin-tone flags; three flags are
+  named differently (CLDR's longer names); ours has the nine emoji of Emoji 18 besides. Symbol names equal Perl's
+  `charnames` for all 237. Every emoji and symbol is found by its own name, and by its keywords.

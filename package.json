@@ -31,6 +31,7 @@
     "@vue/compiler-sfc": "^3.5.45",
     "change-case": "^5.4.4",
     "delaunator": "^5.1.0",
+    "emojibase-data": "18.0.0",
     "graphql": "^17.1.0",
     "marked": "^18.2.1",
     "parse5": "^8.1.1",
@@ -38,6 +39,7 @@
     "postcss-scss": "^4.0.9",
     "typescript": "^7.0.2",
     "typescript-classic": "npm:typescript@^5.9.3",
+    "unicode-emoji-json": "0.9.0",
     "vite": "^8.3.8",
     "yaml": "^2.9.1"
   },
@@ -84,7 +86,6 @@
     "semver": "^7.8.6",
     "tesseract.js": "^7.0.0",
     "tesseract.js-core": "^7.0.0",
-    "unicode-emoji-json": "^0.9.0",
     "zxing-wasm": "^3.1.7"
   },
   "private": true,

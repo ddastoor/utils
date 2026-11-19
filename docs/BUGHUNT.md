@@ -128,7 +128,7 @@ Areas with a shared review: the app shell (router, search, favorites, platform h
 | `replace` | Find & Replace | PC + mobile | text | ✓ | 9 | 77 | worker + 5 s limit; Unicode whole words; ^ $ per line; \n in replacement; held to Python re on 226 searches |
 | `diff` | Text Diff | PC + mobile | text | ✓ | 9 | 65 | engine → similar crate (textkit-diff.wasm); line numbers, marked changes, folds, unified diff; held to GNU diff -d and GNU patch |
 | `fancy` | Fancy Text | PC + mobile | text | ✓ | 10 | 118 | characters by textkit.wasm (emoji, Hindi stay whole); digits/brackets turn; tap a row to copy; long texts; alphabets held to Unicode's names |
-| `emoji` | Emoji & Symbols | PC + mobile | text |  |  |  |  |
+| `emoji` | Emoji & Symbols | PC + mobile | text | ✓ | 7 | 137 | search by keywords, ranked by textcore.wasm (was: letters inside the name); symbols by name; skin tones; emoji the font lacks left out; data held to unicode-emoji-json and Perl's names |
 | `morse` | Morse Code | PC + mobile | text |  |  |  |  |
 | `lorem` | Lorem Ipsum | PC + mobile | text |  |  |  |  |
 | `photodict` | Photo Dictionary | Mobile only | text |  |  |  |  |
@@ -1163,3 +1163,28 @@ Reference for the five finance tabs: **mpmath at 60 digits** (`scripts/make-fina
   every style; nothing is fetched until a text has an emoji or another script than Latin (then textkit.wasm, which
   tells its characters apart); a failed download is said, the fifteen table styles stay, and the next change tries
   again.
+
+- **`emoji` (tab 96, 7 bugs; the search is ranked by textcore.wasm now, the data comes from emojibase-data; unit
+  `tests/unit/emoji.test.mjs` 84, e2e 66 — before: 13 e2e checks).**
+  1. **The search looked for the typed letters inside an emoji's name and nowhere else.** An emoji is rarely called
+     what people type: "happy", "thanks", "namaste", "thumbsup", "+1" found nothing; "lol" found a lollipop;
+     "laugh" did not find 😂 ("face with tears of joy"). Every emoji now carries Unicode's own keywords (CLDR), the
+     shortcodes of GitHub and Slack, and a few Indian words (namaste, chai, diwali, bharat …).
+  2. … and it matched anywhere inside a name: "ok" listed 31 emoji — books, broken hearts, smoking signs.
+     The ranking is that of the tool search (whole words and phrases first, then beginnings, then slips of the
+     keyboard: "hapy brithday" → 🎂).
+  3. **Symbols could be found by the name of their group only**: "euro", "pi", "tick", "half", "degree",
+     "copyright", "infinity" found nothing ("rupee" was a single hard-coded exception).
+  4. The search box offered "rupee" as an example, and with the emoji list open "rupee" found nothing: only the
+     open list was searched. A search now covers both lists, each in a card of its own.
+  5. A symbol said nothing but its code point ("U+221A"). Every symbol has its Unicode name now ("Square root ·
+     U+221A"), checked against a second source (Perl's character names).
+  6. **Emoji newer than the device's font were empty boxes** (in this Chromium: all of Emoji 17). One emoji of each
+     recent version is drawn on a canvas as the tab opens; versions the font lacks are left out, the tab says how
+     many, and "Show them anyway" brings them back.
+  7. People and hands came in yellow only: there was no way to pick a skin tone (332 emoji have five each).
+  Also: the line under the box says what was copied, with its name ("Copied 🙏 — folded hands" — on a phone there
+  was no way to learn a name); Enter copies the best match; an emoji or symbol pasted into the box is found (to
+  learn its name); two more groups of symbols (Greek letters, superscripts and subscripts) and a few more
+  fractions; Emoji 18. The data was held to another package's reading of Unicode's emoji list (unicode-emoji-json:
+  the same 1,914 emoji, groups, versions and skin-tone flags; ours has the 9 of Emoji 18 besides).

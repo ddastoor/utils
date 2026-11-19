@@ -15,8 +15,8 @@ export default async ({ base, page: newPage, ok }) => {
   ok((await page.locator('.dl-ins').count()) === 2 && (await page.locator('.dl-del').count()) === 1, 'diff: 2 added, 1 removed');
   await go('fancy'); ok((await page.locator('.fancy-val').first().textContent()) === '𝐒𝐮𝐩𝐞𝐫𝐓𝐨𝐨𝐥𝐬', 'fancy bold');
   await go('emoji'); await page.waitForSelector('.emoji-cell');
-  await page.locator('input').first().fill('rocket'); await page.waitForTimeout(100);
-  ok((await page.locator('.emoji-cell').allTextContents()).includes('🚀'), 'emoji search: rocket');
+  await page.getByRole('searchbox', { name: 'Search emoji and symbols' }).fill('rocket');
+  ok(await page.waitForFunction(() => document.querySelector('.emoji-grid .emoji-cell')?.textContent === '🚀', null, { timeout: 8000 }).then(() => true, () => false), 'emoji search: rocket comes first');
   await go('morse'); await page.waitForTimeout(100);
   ok((await page.locator('.outbox textarea').inputValue()) === '... --- ... / .... . .-.. .--.', 'morse');
   await go('lorem'); ok((await page.locator('.outbox textarea').inputValue()).startsWith('Lorem ipsum dolor sit amet'), 'lorem');

@@ -87,6 +87,7 @@ export default [
   ['fancy text', 'fancy'], ['instagram font', 'fancy'], ['stylish text', 'fancy'],
   ['upside down text', 'fancy'], ['strikethrough', 'fancy'], ['bold text', 'fancy'], ['small caps', 'fancy'], ['font generator', 'fancy'], ['flip text', 'fancy'], ['cursive', 'fancy'],
   ['emoji', 'emoji'], ['symbols', 'emoji'], ['special characters', 'emoji'],
+  ['smiley', 'emoji'], ['emoji picker', 'emoji'], ['rupee sign', 'emoji'], ['degree symbol', 'emoji'], ['greek letters', 'emoji'], ['tick mark', 'emoji'], ['copyright symbol', 'emoji'],
   ['morse', 'morse'], ['morse code', 'morse'],
   ['lorem ipsum', 'lorem'], ['placeholder text', 'lorem'],
   ['photo dictionary', 'photodict'], ['word meaning', 'photodict'], ['difficult words', 'photodict'], ['vocabulary', 'photodict'], ['dictonary', 'photodict'], ['define words from photo', 'photodict'],

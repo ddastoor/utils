@@ -998,6 +998,36 @@ down, Strikethrough, Underline, Squared.
   shows the end of the text, as its result begins with it) and the tab says so; Copy styles the whole text. A
   keystroke at the end of 200,000 characters takes a few milliseconds.
 
+### Emoji & Symbols — as built after the Nov 2026 bug hunt
+(`emoji` in `src/tools/text.ts`; data and search records `src/lib/emoji.ts` on `src/lib/emoji-data.json`; which emoji
+the device can draw `src/lib/emoji-support.ts`; ranking textcore.wasm; unit `tests/unit/emoji.test.mjs` 84, e2e
+`tests/e2e/emoji.e2e.mjs` 66.)
+- **Data: `src/lib/emoji-data.json`, made by `python3 scripts/make-emoji-data.py`** (committed; run it again after
+  an update of the package — the unit suite fails when the file was made from another version than the installed
+  one). Emoji: **emojibase-data** (`en/data.json`: Unicode's list with the CLDR names and keywords, the Emoji version
+  of each, and every skin-tone variant) + the shortcodes of GitHub and Slack ("thumbsup", "pray") + a few Indian
+  words (`EXTRA` in the script: namaste, chai, diwali, bharat, roti …). 1,923 emoji in Unicode's nine groups and
+  order (Emoji 18); 332 have five skin tones each (the variants where everyone has the same tone). Symbols: eight
+  groups, 237 characters (`SYMBOLS` in the script — Arrows, Math, Greek, Superscripts & subscripts, Currency,
+  Punctuation, Check & stars, Misc), each with its name from the Unicode Character Database and the words people
+  look for it with (`ALIAS`: tick, sqrt, half, rupee …).
+- **Search** (one box for both lists): the records `[name, keywords, group]` are ranked by **textcore.wasm** — the
+  engine of the tool search (whole phrase, whole word, beginning, stem, slips of the keyboard) — fetched with the
+  first search and indexed once (20 ms; a query takes 2 ms). Results: a card "Emoji — n" and a card "Symbols — n",
+  best first, the open list's card on top. A symbol is also found by its group's name and its code point ("20b9").
+  An emoji or symbol typed or pasted into the box is found as itself (`byCharacter`; any skin tone) — that is how
+  to learn a name. Enter copies the best match. If the engine cannot be fetched the tab says so, the lists stay,
+  and the next key tries again.
+- **Skin tone:** six hands (the plain one and five tones) beside the list switch; the chosen tone is shown and
+  copied wherever an emoji has it ("thumbs up: medium skin tone").
+- **Emoji the device cannot draw are left out:** as the tab opens, one new emoji of each Emoji version from 12 on is
+  drawn on a canvas (`missingEmojiVersions`: a colour glyph looks the same in black and in white text, a
+  missing-glyph box does not; versions that added only sequences are told by the width). The tab says how many are
+  left out and "Show them anyway" brings them back. Where no colour emoji can be found at all, nothing is left
+  out. (Windows has no flag glyphs: flags show as two letters there and are copied as flags.)
+- **The tab:** a cell's title and label are its name (a symbol's: "Indian rupee sign · U+20B9"); a tap copies and the
+  line under the box says what was copied; nothing but the tab's own code and data is fetched at open.
+
 ### SQLite Playground (PC) — as built after the Nov 2026 bug hunt
 (`src/tools/software/sqlite.ts`, engine `src/lib/sqlite-engine.ts`, worker `src/workers/sqlite.worker.ts`; unit
 `tests/unit/sqlite.test.mjs` 106, e2e `tests/e2e/sqlite.e2e.mjs` 63.) Engine: the **official SQLite WebAssembly build**
@@ -1435,7 +1465,7 @@ stay **public** (the source of the deployed site is then available to every user
 | espeak: **eSpeak NG 1.52.0** (+ English phoneme tables and dictionary compiled from the same release, linked in, served to its fopen/stat from memory) + glue (IPA for Kokoro, piper-phonemize-style sentences) | C | **us** (`wasm/espeak`) | tts (stt hints later) |
 | whisper: **whisper.cpp 1.8.3** + ggml CPU backend (upstream unmodified) + own threadshim.h (std::mutex/std::thread/fstream for zig's thread-less libc++), backend-reg.cpp (static CPU-only registry), cxxabi_stubs.c (throw = abort), glue.cpp | C / C++ | **us** (`wasm/whisper`) | stt |
 | geo: Charles Karney's **geodesic.c 2.2** (GeographicLib's geodesic routines in C, MIT; the two files unmodified from the PROJ 9.9.0 release) + glue (inverse problem on WGS-84, half-way point, the haversine great circle for comparison) | C | **us** (`wasm/geo`, 36 KB, loaded by the Coordinates tab only; no tried-and-tested WebAssembly geodesic module exists: `docs/WASM-AUDIT.md`, tab 82) | coords |
-| textcore: tool-search ranking, rare-word ranking (tokeniser, lemmatiser, wordfreq hash table), XY-cut reading order | C (own code) | **us** (`wasm/textcore`) | search box, photodict, epub |
+| textcore: tool-search ranking, rare-word ranking (tokeniser, lemmatiser, wordfreq hash table), XY-cut reading order | C (own code) | **us** (`wasm/textcore`) | search box, emoji (search), photodict, epub |
 | textkit: **unicode-segmentation 1.13.3** (the Rust ecosystem's UAX #29 implementation, Unicode 17.0, MIT / Apache-2.0: extended grapheme clusters, sentence boundaries) + our counting rules: words as a word limit counts them, abbreviations and initials, lines and paragraphs, keywords (Snowball's stop words); **the Case Converter's thirteen conversions** (`case.rs`: Title Case is a port of the Python package `titlecase` 2.4.1 — Gruber's rules, MIT; the code cases cut words as npm's `change-case` does; case mapping by Rust's standard library) | Rust | **us** (`wasm/textkit`, crates.io via `Cargo.lock`, two modules by Cargo features: **textkit.wasm** 217 KB — fetched with the Word Counter's first text, with the Case Converter, and with the first Fancy Text that has an emoji or another script — and **textkit-diff.wasm** 0.69 MB = the **`similar` crate 3.2.1** (Apache-2.0: Myers in linear space with a time limit, line / word / grapheme diffs, inline changes, unified diffs) + our glue, fetched by the Text Diff only; the existing module — ICU4X's official build — is one file of 20 MB: `docs/WASM-AUDIT.md`, tab 90) | wordcount, case, lines ("By length"), fancy (characters); diff (textkit-diff) |
 | sheet: calamine 0.38 (read .xlsx .xlsm .xlsb .xls .ods) + rust_xlsxwriter 0.102 (write .xlsx) + csv 1 + serde_json | Rust | **us** (`wasm/sheet`, crates.io sources verified by `Cargo.lock`, target wasm32-wasip1) | sheet |
 | svgo: **OXVG 0.0.9** (Rust port of SVGO's plugins; lightningcss for `<style>`) + our glue: DOCTYPE / entities allowed, nesting limit 256, **our own safe preset** (OXVG's `Jobs::safe()` is not safe), `sv_diff` (do two rasters look alike? — the tab renders every result next to its original and falls back to the safe result when the full optimisation changed the picture) | Rust | **us** (`wasm/svgo`, crates.io via `Cargo.lock`, opt-level z, 4.9 MB / 1.3 MB gz, loaded with the first SVG; unit `tests/unit/svgo.test.mjs`, hazard drawings `tests/fixtures/svg/hazards.json`) | svgo |
@@ -1515,6 +1545,9 @@ them (`docs/WASM-AUDIT.md`, tab 93: the same dialect as the Regex Tester); the s
 Nov 2026 (Line Tools): `src/lib/linetools.ts` — split, trim, a `Set` for duplicates, reading a leading number, and
 `Array.sort` on the browser's `Intl.Collator` (compiled ICU, in the reader's language: `docs/WASM-AUDIT.md`, tab 92);
 the shuffle is crypto.wasm's and the line lengths are textkit.wasm's.
+Nov 2026 (Emoji & Symbols): `src/lib/emoji.ts` (records for the search engine, the pick of a skin-tone variant) and
+`src/lib/emoji-support.ts` (ten characters drawn on the browser's canvas to see which emoji the device's font has); the
+ranking is textcore.wasm's (`docs/WASM-AUDIT.md`, tab 96).
 Nov 2026 (Fancy Text): `src/lib/fancy.ts` — the tables (which character stands for which: data, nothing to
 compute) and `String.prototype.normalize` (the browser's ICU) for accented letters; the characters of a text with emoji
 or another script are told apart by textkit.wasm (`docs/WASM-AUDIT.md`, tab 95).
@@ -1932,6 +1965,7 @@ npm packages (pinned in `package-lock.json`) are bundled by Vite or copied to `p
 | @fontsource/anton (Anton font) | OFL-1.1 | Text on Image (meme style), Watermark |
 | @fontsource/great-vibes, /dancing-script, /caveat | OFL-1.1 | Signature Maker (typed signatures) |
 | @fontsource/literata (Literata, Google's reading typeface) | OFL-1.1 | Photo Dictionary cards |
+| emojibase-data 18.0.0 (Unicode's emoji list with CLDR names and keywords; shortcodes of GitHub's gemoji and Slack's emoji-data) — a devDependency: `scripts/make-emoji-data.py` cuts it down to `src/lib/emoji-data.json`, which is what ships | MIT (the Unicode data: Unicode License v3) | Emoji & Symbols |
 | onnxruntime-web 1.31.1 | MIT | Text-to-Speech (Kokoro, Piper) |
 | hash-wasm 4.13.0 | MIT | HMAC Generator, TOTP, Password Hash Tool |
 | mediabunny | MPL-2.0 | Video Compressor, Audio Recorder (cut without re-encoding) |
@@ -1941,6 +1975,7 @@ npm packages (pinned in `package-lock.json`) are bundled by Vite or copied to `p
 | *test only (devDependencies, not shipped):* typescript-classic (= typescript 5.9.3), postcss, postcss-scss, parse5, graphql, marked, @vue/compiler-sfc, yaml | Apache-2.0 / MIT / ISC | independent readers of the Code Formatter's suites |
 | *test only:* delaunator 5.1.0 | ISC | the original that `wasm/graphviz/st_delaunay.h` (our C port, shipped inside graphviz.wasm) is held to |
 | *test only:* change-case 5.4.4 | MIT | the reference of the Case Converter's code cases (`tests/unit/caseconv.test.mjs`) |
+| *test only:* unicode-emoji-json 0.9.0 | MIT | another reading of Unicode's emoji list, which the Emoji tab's data is held to (`tests/unit/emoji.test.mjs`) |
 | @expo-google-fonts/noto-sans (Noto Sans TTF: regular, bold, italic) | OFL-1.1 (package MIT) | PDFs made by GST Invoice, Rent Receipt, Resume Builder |
 
 **Data files committed in `public/data/`**: EFF large wordlist (CC-BY 3.0); `dict/` — English Wiktionary via

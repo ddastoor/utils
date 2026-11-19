@@ -101,7 +101,7 @@ export const KEYWORDS: Record<string, string> = {
   'color': 'hex to rgb, rgb to hex, hsl to hex, color, colour, hex, rgb, hsl, oklch, picker, convert, css',
   'jwt': 'jwt, token, decode, json web token, bearer, claims',
   'fancy': 'fancy text, unicode, font, fonts, bold, italic, cursive, script, fraktur, gothic, double struck, monospace, circled, bubble, squared, fullwidth, wide, small caps, upside down, flip text, strikethrough, strike, underline, instagram, whatsapp, bio, stylish, cool text, text styles, font generator',
-  'emoji': 'emoji, symbols, characters, special characters, copy, arrows, currency, math',
+  'emoji': 'emoji, emojis, emoticon, smiley, smileys, symbols, characters, special characters, copy, copy paste, arrows, currency, rupee sign, math symbols, greek letters, superscript, subscript, tick mark, check mark, degree symbol, copyright symbol, trademark, skin tone, flags, emoji search, emoji picker, unicode symbols',
   'morse': 'morse, code, sos, dots, dashes, telegraph',
   'lorem': 'lorem ipsum, placeholder, dummy text, filler',
   'photodict': 'photo dictionary, dictionary, meaning, meanings, define, definition, vocabulary, vocab, difficult words, hard words, rare words, word meaning, kindle, newspaper, book page, camera dictionary, scan words, look up words, lookup, glossary, english words, learn words, dictonary, meening',

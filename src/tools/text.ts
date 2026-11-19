@@ -3,6 +3,8 @@
 // regular expressions are the browser's own (Intl.Collator, RegExp); each tab's rules are in src/lib/.
 import { h, card, field, input, textarea, button, segmented, toggle, select, clear, stack, row, note, copy, outputBox, downloadBlob, slider, type Mount } from '../ui';
 import { textkit, type Textkit } from '../wasm/textkit';
+import type { bindTextcore } from '../wasm/textcore';
+type Textcore = ReturnType<typeof bindTextcore>;
 import { textStats, timeText, EMPTY, READING_WPM, SPEAKING_WPM, type TextStats } from '../lib/wordcount';
 import { roundDec } from '../lib/round';
 import { CASE_NAMES, CASE_HINTS, SHOWN, shownPart } from '../lib/caseconv';
@@ -270,39 +272,66 @@ export const fancy: Mount = (root) => {
 };
 
 // ================================================================== Emoji & symbols
-const SYMBOLS: Record<string, string> = {
-  Arrows: '← ↑ → ↓ ↔ ↕ ↖ ↗ ↘ ↙ ⇐ ⇑ ⇒ ⇓ ⇔ ⇕ ➔ ➜ ➤ ↩ ↪ ⤴ ⤵ ↻ ↺ ⟵ ⟶ ⟷',
-  Math: '± × ÷ = ≠ ≈ ≡ ≤ ≥ < > ∞ √ ∛ ∑ ∏ ∫ ∂ ∆ ∇ π θ λ μ σ Ω α β γ ° ‰ ∈ ∉ ⊂ ⊃ ∪ ∩ ∧ ∨ ¬ ∀ ∃ ∅ ⅓ ⅔ ¼ ½ ¾ ² ³ ⁿ',
-  Currency: '₹ $ € £ ¥ ₩ ₽ ₺ ₪ ₫ ₦ ₱ ฿ ₿ ¢ ₣ ₴ ₸',
-  Punctuation: '“ ” ‘ ’ « » ‹ › … — – • · ¶ § † ‡ © ® ™ ℠ № ‽ ¡ ¿',
-  'Check & stars': '✓ ✔ ✗ ✘ ☐ ☑ ☒ ★ ☆ ✦ ✧ ✪ ✩ ❤ ♥ ♡ ♦ ♣ ♠ ● ○ ◆ ◇ ■ □ ▲ △ ▼ ▽',
-  Misc: '☀ ☁ ☂ ☃ ☎ ☕ ☘ ☮ ☯ ☺ ♀ ♂ ⚠ ⚡ ⌘ ⌥ ⇧ ⌫ ⏎ ⎋ ⌚ ⌛ ✂ ✈ ✉ ✏ ♪ ♫ ∴ ∵',
-};
+// Data and search records: src/lib/emoji.ts (a chunk of its own, fetched with the tab); the ranking is textcore.wasm's
+// (the engine of the tool search), fetched with the first search.
 export const emoji: Mount = async (root) => {
-  const data: Array<{ name: string; slug: string; emojis: Array<{ emoji: string; name: string }> }> = (await import('unicode-emoji-json/data-by-group.json')).default as any;
-  let kind = 'emoji';
-  const q = input({ placeholder: 'Search emoji or symbols (e.g. heart, rupee, arrow)…' });
-  const body = h('div', { class: 'stack' });
-  const cell = (ch: string, title: string) => h('button', { class: 'emoji-cell', type: 'button', title, onclick: () => copy(ch) }, ch);
-  const render = () => {
-    const t = q.value.toLowerCase().trim();
-    clear(body);
-    if (kind === 'emoji') {
-      for (const g of data) {
-        const items = g.emojis.filter((e) => { const n = e.name.toLowerCase(); return !t || t.split(/\s+/).every((w) => n.includes(w)); }); // case-insensitive, all words ("flag india")
-        if (items.length) body.append(card(g.name, h('div', { class: 'emoji-grid' }, items.map((e) => cell(e.emoji, e.name)))));
-      }
-    } else {
-      for (const [name, chars] of Object.entries(SYMBOLS)) {
-        const items = chars.split(' ').filter((c) => !t || name.toLowerCase().includes(t) || (t === 'rupee' && c === '₹'));
-        if (items.length) body.append(card(name, h('div', { class: 'emoji-grid' }, items.map((c) => cell(c, `U+${c.codePointAt(0)!.toString(16).toUpperCase().padStart(4, '0')}`)))));
-      }
-    }
-    if (!body.children.length) body.append(note('Nothing found.'));
+  const [lib, support] = await Promise.all([import('../lib/emoji'), import('../lib/emoji-support')]);
+  const { EMOJI, SYMBOLS, ALL, EMOJI_GROUPS, SYMBOL_GROUPS, TONES, withTone, describe, byCharacter, records, norm } = lib;
+  type Item = (typeof ALL)[number];
+  const MAX = 300; // results asked of the engine
+  let kind: 'emoji' | 'symbols' = 'emoji', tone = 0, showAll = false, seq = 0, gone = false;
+  let index: { tc: Textcore; handle: number } | null = null;
+  // emoji newer than this device's font would be empty boxes: they are left out (and can be asked for)
+  const missing = support.missingEmojiVersions();
+  const tooNew = EMOJI.filter((it) => missing.has(it.version!)).length;
+  const drawable = (it: Item) => showAll || it.kind !== 'emoji' || !missing.has(it.version!);
+
+  const q = input({ placeholder: 'Search: heart, thanks, rupee, arrow…', attrs: { type: 'search', 'aria-label': 'Search emoji and symbols', autocomplete: 'off', autocapitalize: 'off', spellcheck: 'false', enterkeyhint: 'search' } });
+  const status = h('p', { class: 'muted small emoji-status', 'aria-live': 'polite' }, 'Tap a character to copy it.');
+  const problem = h('div', { class: 'stack' }), body = h('div', { class: 'stack' });
+  const pick = (it: Item) => { const ch = withTone(it, tone); void copy(ch); status.textContent = `Copied ${ch} — ${describe(it, tone)}`; };
+  const cell = (it: Item) => { const d = describe(it, tone); return h('button', { class: 'emoji-cell', type: 'button', title: d, 'aria-label': d, onclick: () => pick(it) }, withTone(it, tone)); };
+  const grid = (items: Item[]) => h('div', { class: 'emoji-grid' }, items.map(cell));
+
+  // skin tone: a hand in each of the six
+  const toneRow = h('div', { class: 'tone-row', role: 'radiogroup', 'aria-label': 'Skin tone' });
+  const drawTones = () => toneRow.replaceChildren(h('span', { class: 'muted small' }, 'Skin tone'), ...TONES.map((name, i) => h('button', { type: 'button', role: 'radio', class: ['tone-btn', i === tone && 'on'], 'aria-checked': String(i === tone), 'aria-label': `Skin tone: ${name}`, title: name, onclick: () => { if (tone === i) return; tone = i; drawTones(); void find(); } }, i ? `\u270b${String.fromCodePoint(0x1f3fa + i)}` : '\u270b')));
+
+  const browse = () => {
+    const items = kind === 'emoji' ? EMOJI.filter(drawable) : SYMBOLS;
+    body.replaceChildren(...(kind === 'emoji' ? EMOJI_GROUPS : SYMBOL_GROUPS).map((g) => card(g, grid(items.filter((it) => it.group === g)))));
+    if (kind === 'emoji' && tooNew && !showAll) body.append(h('div', { class: 'row emoji-new' }, h('span', { class: 'muted small' }, `${tooNew} newer emoji that this device cannot draw yet are left out.`), button('Show them anyway', () => { showAll = true; void find(); }, { small: true, variant: 'ghost' })));
   };
-  q.addEventListener('input', render);
-  root.append(card(null, stack(segmented([['emoji', 'Emoji'], ['symbols', 'Symbols']], kind, (v) => { kind = v; render(); }), q)), body, note('Tap any character to copy it.'));
-  render();
+  const load = async () => { const tc = await (await import('../wasm/textcore')).textcore(); return { tc, handle: tc.searchBuild(records()) }; };
+  const find = async () => {
+    const text = q.value.trim(), my = ++seq;
+    toneRow.hidden = !text && kind === 'symbols';
+    if (!text) { problem.replaceChildren(); browse(); return; }
+    const exact = byCharacter(text), nq = norm(text);
+    let ranked: Item[] = [];
+    if (nq) {
+      if (!index) {
+        try { const made = await load(); if (gone) return; index ||= made; } catch {
+          if (!gone && my === seq) problem.replaceChildren(note('The search could not be loaded — check your connection. It is tried again with the next key.', 'warn'));
+          return;
+        }
+        if (my !== seq) return; // a newer search is on its way through here
+      }
+      ranked = index.tc.searchQuery(index.handle, nq, MAX).map((i) => ALL[i]);
+    }
+    problem.replaceChildren();
+    const found = [...exact, ...ranked.filter((it) => !exact.includes(it))].filter(drawable);
+    const part = (k: Item['kind'], title: string) => { const items = found.filter((it) => it.kind === k); return items.length ? [card(`${title} — ${items.length}${ranked.length === MAX ? '+' : ''}`, grid(items))] : []; };
+    const cards = kind === 'emoji' ? [...part('emoji', 'Emoji'), ...part('symbol', 'Symbols')] : [...part('symbol', 'Symbols'), ...part('emoji', 'Emoji')];
+    body.replaceChildren(...(cards.length ? cards : [note(`Nothing found for "${text}". Try another word — a feeling, a thing, a country, or what a sign is called.`)]));
+  };
+  q.addEventListener('input', () => void find());
+  // Enter copies the best match
+  q.addEventListener('keydown', (e) => { if (e.key === 'Enter' && q.value.trim()) { e.preventDefault(); (body.querySelector('.emoji-cell') as HTMLButtonElement | null)?.click(); } });
+  drawTones();
+  root.append(card(null, stack(q, row(segmented([['emoji', 'Emoji'], ['symbols', 'Symbols']], kind, (v) => { kind = v; void find(); }), toneRow), status)), problem, body);
+  void find();
+  return () => { gone = true; try { index?.tc.searchFree(index.handle); } catch { /* the engine is gone already */ } };
 };
 
 // ================================================================== Morse
