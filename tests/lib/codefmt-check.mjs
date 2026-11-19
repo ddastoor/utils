@@ -186,6 +186,7 @@ export function cssTokens(v, scss = false) {
     if (/\)$/.test(p) && /^[A-Za-z"]/.test(q)) continue;                                           // url(a)format("b") = url(a) format("b")
     res.push(' ');
   }
+  for (let k = res.length - 2; k >= 0; k--) if (res[k] === ';' && res[k + 1] === '}') res.splice(k, 1);    // {a:b;} = {a:b}: the last declaration of a block needs no semicolon
   if (!scss) return res;
   // Sass: a comma in front of ")" means something only in a list of one — (1px,) is a list, (1px) is not
   const fin = [], stack = [];
@@ -429,7 +430,7 @@ export function vueFile(text) {
   const attrs = (b) => Object.entries(b.attrs).map(([k, v]) => `${k}=${v === true ? '' : v}`).sort().join(' ');
   if (d.template) out.push(`<template ${attrs(d.template)}>`, ...((d.template.lang && d.template.lang !== 'html') ? [`raw:${d.template.content.trim()}`] : vueTemplate(d.template.ast)));
   for (const s of [d.script, d.scriptSetup]) if (s) out.push(`<script ${attrs(s)}>`, `js:${embedded(s.content, /^tsx?$/.test(s.lang ?? '') ? s.lang : 'js')}`);
-  for (const s of d.styles) out.push(`<style ${attrs(s)}>`, (!s.lang || s.lang === 'css' || s.lang === 'scss' || s.lang === 'postcss') ? `css:${embeddedCss(s.content, s.lang === 'scss')}` : `raw:${s.content.trim()}`);
+  for (const s of d.styles) out.push(`<style ${attrs(s)}>`, (!s.lang || s.lang === 'css' || s.lang === 'scss' || s.lang === 'postcss') ? `css:${embeddedCss(s.content, s.lang === 'scss')}` : s.lang === 'less' ? loose(s.content).replace(/;\}/g, '}') : `raw:${s.content.trim()}`);
   for (const c of d.customBlocks) out.push(`<${c.type} ${attrs(c)}>`, c.lang === 'json' ? `json:${embeddedJson(c.content)}` : `raw:${c.content.trim()}`);
   const comments = [...text.matchAll(/<!--([\s\S]*?)-->/g)].map((m) => m[1].replace(/\s+/g, ' ').trim());
   return { blocks: out, comments };

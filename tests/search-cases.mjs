@@ -100,7 +100,7 @@ export default [
   ['json diff', 'jsondiff'], ['compare json', 'jsondiff'],
   ['sql formatter', 'sqlfmt'], ['format sql', 'sqlfmt'], ['beautify sql', 'sqlfmt'], ['prettify query', 'sqlfmt'], ['indent sql', 'sqlfmt'], ['format postgres query', 'sqlfmt'], ['tsql formatter', 'sqlfmt'],
   ['uppercase sql keywords', 'sqlfmt'], ['pl/sql beautifier', 'sqlfmt'], ['mysql query formatter', 'sqlfmt'],
-  ['prettier', 'prettier'], ['format javascript', 'prettier'], ['code formatter', 'prettier'], ['beautify css', 'prettier'],
+  ['prettier', 'prettier'], ['format javascript', 'prettier'], ['code formatter', 'prettier'], ['beautify css', 'prettier'], ['biome', 'prettier'], ['format typescript', 'prettier'], ['unminify js', 'prettier'], ['format vue', 'prettier'], ['tidy html', 'prettier'], ['format scss', 'prettier'], ['prettify graphql', 'prettier'],
   ['mock data', 'mockdata'], ['fake data', 'mockdata'], ['test data generator', 'mockdata'],
   ['markdown table', 'mdtable'], ['table generator', 'mdtable'],
   ['subnet', 'cidr'], ['cidr', 'cidr'], ['ip calculator', 'cidr'], ['netmask', 'cidr'],

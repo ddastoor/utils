@@ -907,3 +907,5 @@ details summary { cursor: pointer; font-weight: 600; color: var(--accent); paddi
   .tool-body button { min-width: var(--tap); }
 }
 .hexdump mark.hexhit { background: color-mix(in srgb, var(--accent) 28%, transparent); color: inherit; border-radius: 3px; }
+/* Code Formatter: a parser's message with its code frame */
+.fmt-err { margin: 0; white-space: pre-wrap; word-break: break-word; font: 12.5px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color: inherit; background: none; }

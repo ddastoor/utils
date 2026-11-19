@@ -188,4 +188,61 @@ One entry per tab, written before its bug hunt: our module → candidates → ch
 - **Hunt:** 24 faults gone (list in `docs/BUGHUNT.md`); unit 2 → 113, e2e 14 → 49. Re-run after the replacement:
   the tab's suites, `devcore`, `lazy`, `shell`, `every-tab`, `no-external`.
 
+### 54. `prettier` — Code Formatter (19 Nov 2026)
+- **Engine before:** Prettier 3 standalone — JavaScript — for all ten languages of the tab (JS / JSX, TypeScript, CSS,
+  SCSS, HTML, JSON, YAML, Markdown, GraphQL, Vue). No WebAssembly module of ours was involved; the question here was
+  STANDING RULE #1 itself: is there an existing, tried-and-tested WebAssembly formatter?
+- **Candidates** (npm registry, 19 Nov 2026, downloads a month): **Biome's official build** `@biomejs/wasm-web` 2.6.8
+  (75 k; its Node sibling is what `@biomejs/js-api` runs, 3.3 M; MIT / Apache-2.0; one module for every language,
+  **70 MB, 18 MB compressed**); the **dprint plugins** — the engines of `deno fmt`, published as WebAssembly because
+  that is how dprint runs them: `@dprint/typescript` (503 k, 4.9 MB), `@dprint/json` (0.66 MB), `@dprint/markdown`
+  (1.4 M), `dprint-plugin-markup` (markup_fmt: HTML, Vue; 126 k, 2.0 MB), `dprint-plugin-malva` (CSS, SCSS),
+  `dprint-plugin-yaml`, `dprint-plugin-graphql`; host `@dprint/formatter` (1.5 M). Looked at and set aside:
+  `@wasm-fmt/biome_fmt` (a third party's build of Biome's formatter, 2.5 k a month — not widely used); oxfmt has no
+  WebAssembly package; Prettier itself has none.
+- **How they were judged.** A formatter may change the layout and nothing else, so every result is read again by a
+  parser that belongs to none of the formatters (`tests/lib/codefmt-check.mjs`: TypeScript 5.9's parser, PostCSS,
+  eemeli's yaml, marked, parse5, graphql-js, the Vue compiler; JSON by its tokens as typed) and compared with the
+  original. Input: 140 hazard sections (`tests/fixtures/codefmt/`) × 8 settings of the tab's options, and real files
+  from this machine (the repository, node_modules, the Rust registry, Python, Ruby, the gcloud SDK; for Vue the
+  sources of PrimeVue and Element). "Refuses" = the formatter reports a syntax error for text Prettier formats.
+  Prettier is in every table as the yardstick — it is not free of faults either.
+
+  | Language | Files | Prettier (JS) | Biome (wasm) | dprint plugin (wasm) |
+  |---|---|---|---|---|
+  | JS / JSX / TS / TSX | 423 files, 232 hazard cases | same program everywhere | **same program everywhere**, stable, 397 of 423 files byte-identical to Prettier | prints `for (var i = (0 in []); ;)` without its brackets (**no longer JavaScript**); adds braces, turns `<const>x` into `x as const`; 66 of 423 results change when formatted again |
+  | JSON | 595 files, 136 cases | respells numbers (`1.50` → `1.5`, `1E+10` → `1e10`, `1e-07` → `1e-7`): 3 files | the same respelling | **every token as typed**, stable, nothing refused |
+  | CSS | 313 files, 128 cases | adds a `;` inside `--x: {a:b}`; 7 cases not stable | **no change of meaning**, stable; refuses `--x: [1,2,3]`, `--x: {a:b}` and old IE hacks (2 files) | drops brackets inside `calc( )`, lower-cases element names; refuses the hacks |
+  | SCSS | 88 cases (13 files) | clean | **clean**, stable | clean; 9 cases not stable |
+  | YAML | 654 files, 112 cases | clean | **clean**, 648 of 654 byte-identical to Prettier; refuses a flow sequence written over several lines (4 files) | **changes data**: a `\|+` scalar loses blank lines, tagged values are regrouped (5 files) |
+  | GraphQL | 88 cases | clean | **clean**, stable | clean; 8 cases not stable |
+  | Markdown | 600 files, 144 cases | 2 files render differently (a list followed by a line of one space; tabs in a list's code) | **11 files**: a fenced block in a tight list makes the list loose, list nesting and code indentation change | **54 files**: blank lines and leading spaces inside code blocks are dropped |
+  | HTML | 316 files, 128 cases | clean; refuses unknown entities and some omitted end tags | **adds white space that shows** between `</label>` and `<input>`, `<img>` and `<a>` (also in its strict mode); refuses 22 files | markup plugin: **clean**, stable; refuses omitted end tags (`<li>a<li>b`, 14 files) |
+  | Vue | 421 files, 64 cases | clean, but with "no semicolons" it writes `@click="a = 1⏎ b()"`, which Vue cannot compile | support is behind `experimentalFullSupportEnabled`; adds white space between two `{{ }}` (1 file), refuses 14 files and Less, leaves SCSS blocks as they are | markup plugin: **clean** on all 421, nothing refused; re-flows a `lang="pug"` template (ruins it) |
+- **Decision — an existing WebAssembly module for nine of the ten languages:**
+  - **JS / JSX, TypeScript / TSX, CSS, SCSS, YAML, GraphQL → Biome's official build.** Nothing it printed in these
+    languages meant anything else than the input, and its results are the closest to what the tab gave before.
+  - **JSON → `@dprint/json`**: the one formatter of the three that leaves every number as it was typed (the JSON
+    Formatter tab makes the same promise), and a JSON file no longer needs the 70 MB module.
+  - **HTML, Vue → `dprint-plugin-markup`** for the markup, and what stands inside it — scripts, styles, the
+    expressions of a Vue template, JSON blocks — is handed to Biome and `@dprint/json` through the plugin's host
+    callback (`setHostFormatter`), not to dprint's TypeScript plugin, which failed above. Our glue beside it
+    (rule: (c) own TS for what the modules do not cover): expressions of a template always keep their semicolons
+    (Vue needs them; this is where Prettier's own result breaks), nothing with a double quote goes back into a
+    double-quoted attribute, a wrapper the plugin could not take off again means "leave that expression as typed".
+  - **Markdown → stays with Prettier (JavaScript).** Both WebAssembly Markdown formatters change what a document
+    renders to — faults inside the engines, nothing beside them can put that right. cmark-gfm's own CommonMark
+    writer (our markdown.wasm) was considered as rule step 2: it turns reference links into inline links and
+    escapes far more than a person would, which is not formatting.
+  - **Beside the modules, rule (b): Prettier as the fallback** for text a module refuses — CSS with IE hacks or
+    bracketed custom properties, YAML with a multi-line flow sequence, HTML with omitted end tags, a Vue file with a
+    Pug template or a Less block, JSON5-like JSON. The tab says which engine formatted the text. Each Prettier
+    parser is fetched only when it is needed.
+- **Costs, said plainly.** Biome's module is 70 MB (18 MB over the wire), fetched with the first Format of one of
+  its languages and kept by the browser's cache; the deployed site grows from 635 MB to about 705 MB of GitHub
+  Pages' 1 GB. A module of 3–6 MB could be built by us from the same Biome crates (rule step 2) — not done,
+  because the official build exists and covers everything; it is the way out if the size ever hurts.
+- **Not chosen although smaller:** dprint's TypeScript, CSS, YAML and Markdown plugins (faults above). Biome for
+  HTML, Vue and Markdown (faults above).
+
 *(further entries follow as the hunt goes on)*
