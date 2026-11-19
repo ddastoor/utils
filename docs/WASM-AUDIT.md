@@ -516,3 +516,17 @@ One entry per tab, written before its bug hunt: our module → candidates → ch
 - **Check:** Python's `fractions` for 220 matrices (determinants also by the Leibniz sum, inverses multiplied back),
   NumPy for matrices of 25 – 40 rows — `scripts/make-matrix-reference.py`.
 
+### 87 – 88. `fraction`, `primes` — Fraction Calculator, Prime / LCM / GCD (19 Nov 2026)
+- **Ours:** mathcore (own C): `m_frac_eval` (a parser of fraction expressions on exact whole numbers — 64-bit until
+  now, 128-bit from now on), `m_is_prime` (deterministic Miller–Rabin for 64 bits), `m_factor` (Pollard rho),
+  `m_next_prime`, `m_gcd`.
+- **Candidates:** WebAssembly — GMP builds (`gmp-wasm`, 60 thousand downloads a month; 300 KB) give big whole numbers
+  and fractions but no expression reader, prime factoriser of this kind or 64-bit Miller–Rabin; PARI/GP ports are
+  megabytes. JavaScript: `fraction.js` (10 million downloads a month, no expressions with mixed numbers),
+  `mathjs` fractions, `big-integer` / BigInt-based prime tests.
+- **Decision:** nothing to replace: both engines are already WebAssembly, small, and agree with the references on
+  every case. The fraction engine got twice the room (38 digits) instead of a 300 KB library for unlimited room.
+- **Check:** Python's `fractions` on 700 expression trees and 400 exact decimals (`scripts/make-fraction-reference.py`);
+  **SymPy** (`factorint`, `isprime`, `nextprime`) on 420 hard 64-bit numbers and Python's `math.gcd` / `lcm` on 121
+  lists (`scripts/make-primes-reference.py`, needs `pip install sympy`).
+

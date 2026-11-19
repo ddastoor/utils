@@ -825,6 +825,22 @@ to mathcore in double precision — the line under the result says so; there "si
 against the size of the entries (n·ε·max |a|, as NumPy's matrix_rank). Refusals name the matrix, the row and the
 shapes ("To add, both matrices need the same shape — A is 2 × 3 and B is 2 × 2").
 
+### Fraction Calculator and Prime / LCM / GCD — as built after the Nov 2026 bug hunt
+(`fraction`, `primes` in `src/tools/math.ts`; wording `src/lib/fractions.ts`, `src/lib/primes.ts`; engine mathcore.)
+- **`fraction`** (unit `tests/unit/fraction.test.mjs` 34, e2e 26; reference `python3 scripts/make-fraction-reference.py`):
+  mathcore `m_frac_eval` reads fractions (3/4), mixed numbers (2 1/2), decimals and powers of ten (taken exactly),
+  + − × ÷ (also * / :), whole powers up to ±1,000 and brackets on **128-bit whole numbers with overflow checks**
+  (38 digits; beyond: "too large to keep exact here"). "2/3" without spaces is one number (1/3 ÷ 2/3 = 1/2); a power
+  comes first (2/3^2 = 2/9). TS tidies ½ ¼ ¾ …, the fraction slashes and odd spaces. Answer: the fraction in lowest
+  terms, the mixed number, and the **decimal written exactly** — every digit where it ends, the repeating digits in
+  brackets (1/6 = 0.1(6)), "…" after forty digits where the period is longer than 30. Refusals quote the part that
+  could not be read, or say: a bracket is not closed, a division by zero, a power that is no whole number.
+- **`primes`** (unit `tests/unit/primes.test.mjs` 8, e2e 28; reference `python3 scripts/make-primes-reference.py`,
+  needs sympy): whole numbers from 1 to 2⁶⁴ − 1 separated by commas or spaces (+ and _ allowed; anything else is
+  named and left out); per number: prime or its factors, and the next prime (none within 64 bits after
+  18446744073709551557); for two and more numbers GCD and LCM (the LCM exact beyond 64 bits, by BigInt on mathcore's
+  gcd); the first 20 numbers are taken apart.
+
 ### SQLite Playground (PC) — as built after the Nov 2026 bug hunt
 (`src/tools/software/sqlite.ts`, engine `src/lib/sqlite-engine.ts`, worker `src/workers/sqlite.worker.ts`; unit
 `tests/unit/sqlite.test.mjs` 106, e2e `tests/e2e/sqlite.e2e.mjs` 63.) Engine: the **official SQLite WebAssembly build**
@@ -1384,7 +1400,7 @@ Owner: "make the full site faster, more responsive and memory efficient — load
 2. **Opening a tab loads only that tab's code** (its dynamic-import chunk, < 400 KB). Engines, models, data files,
    fonts and workers load on **first use** — a file chosen, a button pressed, the first Enter — never at module
    load and never at mount, except where the tab's first view needs them. Allowed at open (listed with the reason
-   in `AT_OPEN` in the test): our three small engines (mathcore/crypto/textcore ≤ 150 KB: live results as you
+   in `AT_OPEN` in the test): our three small engines (mathcore/crypto/textcore ≤ 155 KB: live results as you
    type), invoice/rent/resume (MuPDF + Noto Sans: the live PDF preview is the main view), markdown (cmark-gfm,
    sample preview), terminal (BusyBox: the shell is ready at once), qr/barcode (zxing-cpp: drawn as you type),
    caption/watermark/signature (fonts of the first preview), coords (geo.wasm, 36 KB: the sample distance), cidr/cron/semver/glob/patch (their devcore-<tab>.wasm: the

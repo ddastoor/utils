@@ -101,8 +101,10 @@ what those suites missed.
   `src/lib/exact.ts` + `src/lib/equations.ts`, Kahan's quadratic / cubic in mathcore; reference
   `scripts/make-equations-reference.py`). **`stats` (tab 85) is DONE** (12 bugs; exact sums in mathcore, `src/lib/stats.ts`,
   reference `scripts/make-stats-reference.py`). **`matrix` (tab 86) is DONE** (8 bugs; exact fractions in `src/lib/matrix.ts`,
-  reference `scripts/make-matrix-reference.py`). **NEXT: the rest of Math & Science** —
-  `fraction`, `primes`, `periodic` (`src/tools/math.ts`, engine mathcore), then the complete suites for the area;
+  reference `scripts/make-matrix-reference.py`). **`fraction`, `primes` (tabs 87 – 88) are DONE** (6 + 5 bugs; the
+  fraction engine counts in 128 bits; references `scripts/make-fraction-reference.py`,
+  `scripts/make-primes-reference.py` — the latter needs `pip install sympy`). **NEXT:**
+  `periodic` (`src/tools/math.ts`, engine mathcore), then the complete suites for the area;
   per tab: the
   existing-module check with its entry in `docs/WASM-AUDIT.md` first (the survey of entry 56 covers calculators:
   no tried-and-tested WebAssembly calculator exists), then bugs, tests, fixes. Reference tools at hand: mpmath

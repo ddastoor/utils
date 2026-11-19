@@ -191,6 +191,8 @@ export default [
   ['solve for x', 'equation'], ['quadratic formula', 'equation'], ['find roots', 'equation'], ['system of equations', 'equation'], ['cubic equation', 'equation'], ['discriminant', 'equation'], ['complex roots', 'equation'],
   ['standard deviation calculator', 'stats'], ['quartile', 'stats'], ['best fit line', 'stats'], ['correlation coefficient', 'stats'], ['geometric mean', 'stats'], ['descriptive statistics', 'stats'],
   ['matrix multiplication', 'matrix'], ['inverse matrix', 'matrix'], ['determinant calculator', 'matrix'], ['transpose matrix', 'matrix'], ['linear algebra', 'matrix'],
+  ['add fractions', 'fraction'], ['simplify fraction', 'fraction'], ['mixed number', 'fraction'], ['decimal to fraction', 'fraction'], ['repeating decimal', 'fraction'],
+  ['prime factorization', 'primes'], ['is it prime', 'primes'], ['highest common factor', 'primes'], ['least common multiple', 'primes'], ['next prime', 'primes'],
   ['function plotter', 'graph'], ['draw graph', 'graph'], ['parabola', 'graph'], ['desmos', 'graph'], ['f(x)', 'graph'], ['sine wave', 'graph'],
   ['quadratic equation', 'equation'], ['solve equation', 'equation'], ['simultaneous equations', 'equation'],
   ['statistics', 'stats'], ['standard deviation', 'stats'], ['mean median mode', 'stats'],

@@ -117,13 +117,14 @@ export function bindMathcore(e: any) {
     gcd: (a: bigint, b: bigint) => BigInt.asUintN(64, e.m_gcd(a, b) as bigint),
     lcm: (a: bigint, b: bigint) => BigInt.asUintN(64, e.m_lcm(a, b) as bigint),
     nextPrime: (n: bigint) => BigInt.asUintN(64, e.m_next_prime(n) as bigint),
+    /** an expression of fractions, exactly: numerator and denominator up to 38 digits. `rest` of an Error = the part that could not be read */
     fraction(src: string): { n: bigint; d: bigint } {
-      const p = e.m_malloc(16);
+      const p = e.m_malloc(32);
       try {
         const ok = withStr(src, (s, len) => e.m_frac_eval(s, len, p));
-        if (!ok) throw new Error(err());
-        const v = new BigInt64Array(mem(), p, 2);
-        return { n: v[0], d: v[1] };
+        if (!ok) throw Object.assign(new Error(err()), { rest: cstr(e.m_frac_rest()) });
+        const v = new BigInt64Array(mem(), p, 4), wide = (lo: bigint, hi: bigint) => (hi << 64n) | BigInt.asUintN(64, lo);
+        return { n: wide(v[0], v[1]), d: wide(v[2], v[3]) };
       } finally { e.m_free(p); }
     },
     baseConvert(src: string, from: number, to: number): string | null {

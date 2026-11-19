@@ -5,6 +5,8 @@ import { quadratic, cubic, linear, complexText, type Root } from '../lib/equatio
 import { readNumbers, readPairs, someOf, lineText } from '../lib/stats';
 import { type M, readMatrix, shape, addM, mulM, transposeM, traceM, detM, rankM, inverseM, powM, readPower, exactOk, toNumbers, matrixText, valueText } from '../lib/matrix';
 import type { Q } from '../lib/exact';
+import { fractionAnswer } from '../lib/fractions';
+import { readWholeNumbers, factorText, MAX_U64 } from '../lib/primes';
 import { roundDec } from '../lib/round';
 import { ELEMENTS, CATEGORY_COLORS } from '../lib/elements';
 
@@ -337,48 +339,47 @@ export const matrix: Mount = async (root) => {
     note('Cells: whole numbers, decimals or fractions (3/4), separated by spaces, commas or tabs; a row a line — or on one line with semicolons (1 2; 3 4). The arithmetic is exact: a determinant of 0 is 0, and an inverse can be shown in fractions.'));
 };
 
-// ================================================================== Fractions (exact, mathcore int64 with overflow checks)
+// ================================================================== Fractions (exact, mathcore 128-bit with overflow checks)
 export const fraction: Mount = async (root) => {
   const m = await mathcore();
-  const ex = input({ value: '3/4 + 5/6 × 2 1/2', attrs: { spellcheck: 'false' } });
+  const ex = input({ value: '3/4 + 5/6 × 2 1/2', attrs: { spellcheck: 'false', autocapitalize: 'off', 'aria-label': 'Expression' } });
   const out = h('div', { class: 'big-results' });
   const err = h('div');
   const run = () => {
     clear(out); clear(err);
     try {
-      const q = m.fraction(ex.value);
-      const whole = q.n / q.d, rem = (q.n < 0n ? -q.n : q.n) % q.d;
-      const items: Array<[string, string]> = [['Fraction', q.d === 1n ? String(q.n) : `${q.n}/${q.d}`], ['Mixed number', q.d === 1n || whole === 0n ? (q.d === 1n ? String(q.n) : `${q.n}/${q.d}`) : `${whole} ${rem}/${q.d}`], ['Decimal', fmtNum(Number(q.n) / Number(q.d), 14)]];
-      out.append(...items.map(([l, v]) => h('button', { class: 'big-result', type: 'button', onclick: () => copy(v) }, h('span', { class: 'big-label' }, l), h('span', { class: 'big-value' }, v))));
-    } catch (e: any) { err.append(note(e.message, 'warn')); }
+      const a = fractionAnswer(m, ex.value);
+      const items: Array<[string, string]> = [['Fraction', a.fraction], ['Mixed number', a.mixed], ['Decimal', a.decimal]];
+      out.append(...items.map(([l, v]) => h('button', { class: 'big-result', type: 'button', title: 'Copy', onclick: () => copy(v.replace(/−/g, '-')) }, h('span', { class: 'big-label' }, l), h('span', { class: 'big-value' }, v))));
+    } catch (e: any) { err.append(note(e.message, ex.value.trim() ? 'warn' : undefined)); }
   };
   ex.addEventListener('input', run);
-  root.append(card(null, field('Expression', ex, 'Use a/b, mixed numbers like 2 1/2, decimals (converted exactly), + − × ÷ ^ and parentheses.')), card('Result', out, err));
+  root.append(card(null, field('Expression', ex, 'Use a/b, mixed numbers like 2 1/2, decimals (converted exactly), + − × ÷ ^ and parentheses.')), card('Result', out, err),
+    note('2/3 written without spaces is one number: 1/3 ÷ 2/3 = 1/2. A power comes first: 2/3^2 = 2/9, (2/3)^2 = 4/9. In the decimal, digits in brackets repeat for ever: 1/6 = 0.1(6).'));
   run();
 };
 
-// ================================================================== Primes / LCM / GCD (BigInt)
+// ================================================================== Primes / LCM / GCD (64-bit, mathcore)
+const PRIMES_SHOWN = 20;
 export const primes: Mount = async (root) => {
   const m = await mathcore();
-  const inp = input({ value: '360, 84, 1001', attrs: { spellcheck: 'false' } });
+  const inp = input({ value: '360, 84, 1001', attrs: { spellcheck: 'false', 'aria-label': 'Numbers' } });
   const out = h('div', { class: 'stack' });
   const run = () => {
     clear(out);
-    const MAX = 2n ** 64n - 1n;
-    const ns = inp.value.split(/[\s,;]+/).filter(Boolean).map((x) => { try { return BigInt(x.replace(/_/g, '')); } catch { return null; } }).filter((x): x is bigint => x !== null && x > 0n);
-    if (!ns.length) return;
-    if (ns.some((n) => n > MAX)) { out.append(note('Numbers up to 18,446,744,073,709,551,615 (64-bit) are supported.', 'warn')); return; }
+    const { ns, skipped, tooLarge } = readWholeNumbers(inp.value);
+    const left = [skipped.length ? note(`Left out — whole numbers from 1 up only: ${someOf(skipped)}`, 'warn') : null, tooLarge.length ? note(`Left out — beyond 18,446,744,073,709,551,615 (64 bits): ${someOf(tooLarge)}`, 'warn') : null];
+    if (!ns.length) { out.append(inp.value.trim() ? card(null, note('No whole number from 1 up among what was typed.', 'warn'), ...left) : note('Type one or more whole numbers — separated by commas or spaces.')); return; }
     if (ns.length > 1) {
       // gcd in wasm; the LCM can outgrow 64 bits, so it is built exactly as l / gcd(l, b) × b (gcd(l, b) = gcd(b, l mod b), both ≤ 64 bits)
-      const g = ns.reduce((a, b) => m.gcd(a, b)), l = ns.reduce((a, b) => (a / (a > MAX ? m.gcd(b, a % b) : m.gcd(a, b))) * b);
-      out.append(h('div', { class: 'big-results' }, h('div', { class: 'big-result' }, h('span', { class: 'big-label' }, 'GCD / HCF'), h('span', { class: 'big-value' }, String(g))), h('div', { class: 'big-result' }, h('span', { class: 'big-label' }, 'LCM'), h('span', { class: 'big-value' }, String(l)))));
+      const g = ns.reduce((a, b) => m.gcd(a, b)), l = ns.reduce((a, b) => (a / (a > MAX_U64 ? m.gcd(b, a % b) : m.gcd(a, b))) * b);
+      const tile = (label: string, v: string) => h('button', { class: 'big-result', type: 'button', title: 'Copy', onclick: () => copy(v) }, h('span', { class: 'big-label' }, label), h('span', { class: 'big-value' }, v));
+      out.append(h('div', { class: 'big-results' }, tile('GCD / HCF', String(g)), tile('LCM', String(l))));
     }
-    out.append(card(null, h('div', { class: 'kv' }, ns.slice(0, 20).flatMap((n) => {
-      const f = m.factor(n);
-      const grouped = [...f.reduce((m, p) => m.set(p, (m.get(p) || 0) + 1), new Map<bigint, number>())].map(([p, k]) => (k > 1 ? `${p}^${k}` : `${p}`)).join(' × ');
-      const next = m.nextPrime(n);
-      return [h('strong', null, String(n)), h('span', null, m.isPrime(n) ? 'Prime ✓' : n === 1n ? '1 (neither prime nor composite)' : `${grouped}  ·  next prime ${next ? String(next) : 'above 2⁶⁴ (out of range)'}`)];
-    }))));
+    out.append(card(null, h('div', { class: 'kv' }, ns.slice(0, PRIMES_SHOWN).flatMap((n) => {
+      const next = m.nextPrime(n), after = `next prime ${next ? String(next) : 'above 2⁶⁴ (out of range)'}`;
+      return [h('strong', null, String(n)), h('span', null, n === 1n ? `1 (neither prime nor composite)  ·  ${after}` : m.isPrime(n) ? `Prime ✓  ·  ${after}` : `${factorText(m.factor(n))}  ·  ${after}`)];
+    })), ns.length > PRIMES_SHOWN ? note(`The first ${PRIMES_SHOWN} of ${ns.length.toLocaleString('en-IN')} numbers are taken apart here; GCD and LCM are of all of them.`) : null, ...left));
   };
   inp.addEventListener('input', run);
   root.append(card(null, field('Numbers (one or more)', inp, 'Exact 64-bit prime test (deterministic Miller–Rabin), factorisation (Pollard rho), GCD and LCM — computed in mathcore.wasm.')), out);

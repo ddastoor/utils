@@ -86,7 +86,8 @@ export default async (t, { load, wasm }) => {
     const q = m.fraction(e); t.eq([q.n, q.d], [n, d], `fraction literal: ${e} = ${n}/${d}`);
   }
   t.throws(() => m.fraction('2^(1/2)'), 'fractional power rejected');
-  t.throws(() => m.fraction('99999999999999999 * 99999999999999999'), 'overflow detected');
+  t.eq(String(m.fraction('99999999999999999 * 99999999999999999').n), '9999999999999999800000000000000001', 'a product of 34 digits is kept (128-bit whole numbers)');
+  t.throws(() => m.fraction('99999999999999999999 * 99999999999999999999'), 'overflow detected beyond 38 digits');
   // --- bases, roman, words
   t.eq(m.baseConvert('255', 10, 16), 'FF', 'dec→hex'); t.eq(m.baseConvert('0xff', 16, 2), '11111111', 'hex prefix → bin');
   t.eq(m.baseConvert('-42', 10, 2), '-101010', 'negative'); t.eq(m.baseConvert('12345678901234567890123456789', 10, 16), '27E41B3246BEC9B16E398115', 'big number');

@@ -115,8 +115,8 @@ Generated from `src/registry.ts` by `npm run docs` — do not edit by hand.
 | `equation` | Equation Solver | PC + mobile | Any equation in x, quadratic, cubic and simultaneous linear equations — exact for the numbers typed. | equation, solve, quadratic, cubic, linear, simultaneous, system of equations, roots, … |
 | `stats` | Statistics | PC + mobile | Mean, median, mode, quartiles, standard deviation, skewness; regression line and correlation. | statistics, mean, median, mode, average, standard deviation, variance, regression, … |
 | `matrix` | Matrix Calculator | PC + mobile | Add, multiply, invert, determinant, rank, powers — exact, in fractions or decimals. | matrix, determinant, inverse, transpose, multiply, linear algebra, rank, matrices, … |
-| `fraction` | Fraction Calculator | PC + mobile | Exact fraction arithmetic. | fraction, numerator, denominator, simplify, mixed number, decimal to fraction |
-| `primes` | Prime / LCM / GCD | PC + mobile | Prime factors, LCM, GCD, prime check. | prime, factorization, lcm, gcd, hcf, divisors, prime factors, is prime |
+| `fraction` | Fraction Calculator | PC + mobile | Exact arithmetic with fractions and mixed numbers; repeating decimals. | fraction, numerator, denominator, simplify, mixed number, decimal to fraction, fractions, add fractions, … |
+| `primes` | Prime / LCM / GCD | PC + mobile | Prime check, prime factors, next prime, GCD (HCF) and LCM of whole numbers up to 64 bits. | prime, factorization, lcm, gcd, hcf, divisors, prime factors, is prime, … |
 | `periodic` | Periodic Table | PC + mobile | Interactive table of elements. | periodic table, elements, chemistry, atomic number, atomic mass, electron configuration |
 
 ## Text (10)

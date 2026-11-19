@@ -115,8 +115,8 @@ Areas with a shared review: the app shell (router, search, favorites, platform h
 | `equation` | Equation Solver | PC + mobile | calc2-math | ✓ | 14 | 93 | engine kept + exact fractions on BigInt (WASM-AUDIT 84): kind of every answer exact — (x−1.1)² showed two roots, (x−1)²(x−10⁶) a complex pair; Kahan's quadratic/cubic in mathcore; linear systems: none vs infinitely many, small-unit systems no longer 'unsolvable'; identities, other letters, 50-root cap said; live + Enter; reference fractions + mpmath |
 | `stats` | Statistics | PC + mobile | calc2-math | ✓ | 12 | 46 | nothing to replace (WASM-AUDIT 85); exact sums (fsum) — 1e16+1−1e16 was 0; skewness corrected for the rounded mean; extremes scaled; left-out pieces named, real minus read; reasons for every —; regression without 'Error'; reference fractions + Python statistics |
 | `matrix` | Matrix Calculator | PC + mobile | calc2-math | ✓ | 8 | 74 | engine kept for large matrices + exact fractions on BigInt up to 400 cells (WASM-AUDIT 86): det 0 is 0, inverse in fractions, fractions typed; tiny values no longer shown as 0 or called singular (relative tests in mathcore); refusals name matrix, row and shapes; reference Python fractions + NumPy |
-| `fraction` | Fraction Calculator | PC + mobile | calc2-math |  |  |  |  |
-| `primes` | Prime / LCM / GCD | PC + mobile | calc2-math |  |  |  |  |
+| `fraction` | Fraction Calculator | PC + mobile | calc2-math | ✓ | 6 | 51 | nothing to replace (WASM-AUDIT 87–88); engine now 128-bit — (1/2)^100 said 'Division by zero', 64-bit limit; ½ ¼, 1e3, hints and quoted errors; exact decimals with repeating digits in brackets; reference Python fractions (700 expressions) |
+| `primes` | Prime / LCM / GCD | PC + mobile | calc2-math | ✓ | 5 | 18 | engine agrees with SymPy on 420 hard 64-bit numbers; left-out pieces named (negatives, 0, decimals, words vanished; 0x10 was 16); one too-large number no longer blanks the answer; next prime after primes; copyable GCD/LCM |
 | `periodic` | Periodic Table | PC + mobile | calc2-math |  |  |  |  |
 
 ## text
@@ -975,4 +975,18 @@ Reference for the five finance tabs: **mpmath at 60 digits** (`scripts/make-fina
   0, the rank is certain, the inverse can be shown in fractions (Decimals / Fractions switch), the 90th power of
   [[1, 1], [1, 0]] has every digit; matrices beyond 400 cells go to the engine in double precision, and the tab says
   so; every refusal names the matrix, the row and the shapes.
+- **fraction** — Fraction Calculator (6 bugs; unit 0 → 34, e2e 14 → 26). (1/2)¹⁰⁰ was reported as "Division by
+  zero" (an overflowed product had come out as 0); numbers stopped at 64 bits ("9223372036854775807 + 1: Numbers too
+  large") — the engine now counts in 128 bits (38 digits), and what goes wrong first is what is reported; ½ ¼ ¾, a
+  power of ten (1e3) and a number starting with a point were "Could not read the expression", which was also all
+  an empty box and an open bracket got — now a hint, "A bracket is not closed", and the part that could not be
+  read is quoted; the decimal was a rounded 2.8333333333333 — now exact, with the repeating digits in brackets
+  (2.8(3), 1/7 = 0.(142857)). Also the ratio colon and the fraction slash, a real minus sign in the answers, and a
+  note on what binds to what.
+- **primes** — Prime / LCM / GCD (5 bugs; unit 0 → 8, e2e 23 → 28). Negative numbers, 0, decimals and words were
+  left out without a word (and with nothing else typed the page stayed empty); "0x10" was read as 16; one number
+  beyond 64 bits blanked the whole answer; of more than twenty numbers the rest was dropped silently. Now what is
+  left out is named, the next prime is shown after a prime too, and GCD / LCM can be copied. The engine itself
+  agrees with SymPy on 420 hard numbers — products of two primes near 2³², Carmichael numbers, strong
+  pseudoprimes, the last primes below 2⁶⁴.
 

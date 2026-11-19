@@ -795,37 +795,47 @@ API int m_factor(uint64_t n, uint64_t *out) {
 /* 0 when the next prime is above 2^64 − 1 (n + 1 wraps to 0) */
 API uint64_t m_next_prime(uint64_t n) { if (n < 2) return 2; uint64_t c = n + 1; while (c && !m_is_prime(c)) c++; return c; }
 
-/* ======================================================================== exact fractions (int64 with overflow checks) */
-typedef struct { int64_t n, d; } Q;
-static int q_ovf;
-static int64_t i64gcd(int64_t a, int64_t b) { if (a < 0) a = -a; if (b < 0) b = -b; while (b) { int64_t t = a % b; a = b; b = t; } return a; }
-static Q qmake(int64_t n, int64_t d) { if (d == 0) { q_ovf = 2; Q z = {0, 1}; return z; } if (d < 0) { n = -n; d = -d; } int64_t g = i64gcd(n, d); if (!g) g = 1; Q q = {n / g, d / g}; return q; }
-static int64_t mulc(int64_t a, int64_t b) { int64_t r; if (__builtin_mul_overflow(a, b, &r)) q_ovf = 1; return r; }
-static int64_t addc(int64_t a, int64_t b) { int64_t r; if (__builtin_add_overflow(a, b, &r)) q_ovf = 1; return r; }
+/* ======================================================================== exact fractions (128-bit whole numbers with overflow checks: 38 digits) */
+typedef __int128 I128;
+typedef struct { I128 n, d; } Q;
+static int q_ovf; /* the first thing that went wrong: 1 a number beyond 128 bits, 2 a division by zero */
+static I128 i64gcd(I128 a, I128 b) { if (a < 0) a = -a; if (b < 0) b = -b; while (b) { I128 t = a % b; a = b; b = t; } return a; }
+/* (a product that overflowed can come out as 0: that is "too large", not a division by zero — (1/2)^100 said so) */
+static Q qmake(I128 n, I128 d) { if (d == 0 || q_ovf) { if (!q_ovf) q_ovf = 2; Q z = {0, 1}; return z; } if (d < 0) { n = -n; d = -d; } I128 g = i64gcd(n, d); if (!g) g = 1; Q q = {n / g, d / g}; return q; }
+static I128 mulc(I128 a, I128 b) { I128 r; if (__builtin_mul_overflow(a, b, &r)) { if (!q_ovf) q_ovf = 1; return 1; } return r; }
+static I128 addc(I128 a, I128 b) { I128 r; if (__builtin_add_overflow(a, b, &r)) { if (!q_ovf) q_ovf = 1; return 1; } return r; }
 static Q qadd(Q a, Q b) { return qmake(addc(mulc(a.n, b.d), mulc(b.n, a.d)), mulc(a.d, b.d)); }
 static Q qsub(Q a, Q b) { Q nb = {-b.n, b.d}; return qadd(a, nb); }
-static Q qmul(Q a, Q b) { int64_t g1 = i64gcd(a.n, b.d), g2 = i64gcd(b.n, a.d); if (!g1) g1 = 1; if (!g2) g2 = 1; return qmake(mulc(a.n / g1, b.n / g2), mulc(a.d / g2, b.d / g1)); }
-static Q qdiv(Q a, Q b) { Q inv = {b.d, b.n}; if (b.n == 0) { q_ovf = 2; return a; } return qmul(a, qmake(inv.n, inv.d)); }
+static Q qmul(Q a, Q b) { I128 g1 = i64gcd(a.n, b.d), g2 = i64gcd(b.n, a.d); if (!g1) g1 = 1; if (!g2) g2 = 1; return qmake(mulc(a.n / g1, b.n / g2), mulc(a.d / g2, b.d / g1)); }
+static Q qdiv(Q a, Q b) { Q inv = {b.d, b.n}; if (b.n == 0) { if (!q_ovf) q_ovf = 2; return a; } return qmul(a, qmake(inv.n, inv.d)); }
 
-typedef struct { const char *s; int i; int err; } FP;
+typedef struct { const char *s; int i; int err; /* 1 cannot read (at i), 2 a bracket is not closed, 3 a power that is no whole number */ } FP;
 static void fws(FP *f) { while (f->s[f->i] == ' ') f->i++; }
 static Q fexpr(FP *f);
 static Q ffactor(FP *f);
 static Q fnum(FP *f) {
     fws(f);
     Q z = {0, 1};
-    if (f->s[f->i] == '(') { f->i++; Q v = fexpr(f); fws(f); if (f->s[f->i] != ')') { f->err = 1; return z; } f->i++; return v; }
+    if (f->s[f->i] == '(') { f->i++; Q v = fexpr(f); fws(f); if (f->s[f->i] != ')') { if (!f->err) f->err = f->s[f->i] ? 1 : 2; return z; } f->i++; return v; }
     if (f->s[f->i] == '-') { f->i++; Q v = ffactor(f); v.n = -v.n; return v; }
-    if (!(f->s[f->i] >= '0' && f->s[f->i] <= '9')) { f->err = 1; return z; }
-    int64_t ip = 0, fp = 0, fd = 1;
+    if (f->s[f->i] == '+') { f->i++; return ffactor(f); }
+    if (!((f->s[f->i] >= '0' && f->s[f->i] <= '9') || (f->s[f->i] == '.' && f->s[f->i + 1] >= '0' && f->s[f->i + 1] <= '9'))) { if (!f->err) f->err = 1; return z; }
+    I128 ip = 0, fp = 0, fd = 1;
     while (f->s[f->i] >= '0' && f->s[f->i] <= '9') { ip = addc(mulc(ip, 10), f->s[f->i] - '0'); f->i++; }
     int dec = 0;
     if (f->s[f->i] == '.') { dec = 1; f->i++; while (f->s[f->i] >= '0' && f->s[f->i] <= '9') { fp = addc(mulc(fp, 10), f->s[f->i] - '0'); fd = mulc(fd, 10); f->i++; } }
     Q q = qmake(addc(mulc(ip, fd), fp), fd);
+    /* a power of ten: 1e3, 1.5e-3 */
+    if ((f->s[f->i] == 'e' || f->s[f->i] == 'E') && ((f->s[f->i + 1] >= '0' && f->s[f->i + 1] <= '9') || ((f->s[f->i + 1] == '-' || f->s[f->i + 1] == '+') && f->s[f->i + 2] >= '0' && f->s[f->i + 2] <= '9'))) {
+        int neg = f->s[f->i + 1] == '-', e10 = 0; f->i += (f->s[f->i + 1] == '-' || f->s[f->i + 1] == '+') ? 2 : 1;
+        while (f->s[f->i] >= '0' && f->s[f->i] <= '9') { if (e10 < 1000) e10 = e10 * 10 + (f->s[f->i] - '0'); f->i++; }
+        Q ten = {10, 1}, pw = {1, 1}; for (int t = 0; t < e10 && !q_ovf; t++) pw = qmul(pw, ten);
+        q = neg ? qdiv(q, pw) : qmul(q, pw); dec = 1;
+    }
     /* "2/3" written without spaces is one fraction, binding tighter than × and ÷ (1/3 ÷ 2/3 = 1/2, as people mean it);
        not when a power follows ("2/3^2" stays 2 ÷ 3²) or the denominator is a decimal */
     if (!dec && f->s[f->i] == '/' && f->s[f->i + 1] >= '0' && f->s[f->i + 1] <= '9') {
-        int k = f->i + 1; int64_t den = 0;
+        int k = f->i + 1; I128 den = 0;
         while (f->s[k] >= '0' && f->s[k] <= '9') { den = addc(mulc(den, 10), f->s[k] - '0'); k++; }
         int j = k; while (f->s[j] == ' ') j++;
         if (f->s[k] != '.' && f->s[j] != '^') { f->i = k; return qmake(ip, den); }
@@ -834,7 +844,7 @@ static Q fnum(FP *f) {
     if (!dec) {
         int j = f->i; while (f->s[j] == ' ') j++;
         if (j > f->i && f->s[j] >= '0' && f->s[j] <= '9') {
-            int k = j; int64_t a = 0, b = 0; while (f->s[k] >= '0' && f->s[k] <= '9') { a = addc(mulc(a, 10), f->s[k] - '0'); k++; }
+            int k = j; I128 a = 0, b = 0; while (f->s[k] >= '0' && f->s[k] <= '9') { a = addc(mulc(a, 10), f->s[k] - '0'); k++; }
             if (f->s[k] == '/' && f->s[k + 1] >= '0' && f->s[k + 1] <= '9') { k++; while (f->s[k] >= '0' && f->s[k] <= '9') { b = addc(mulc(b, 10), f->s[k] - '0'); k++; } f->i = k; q = qadd(q, qmake(a, b)); }
         }
     }
@@ -844,28 +854,35 @@ static Q ffactor(FP *f) {
     Q b = fnum(f); fws(f);
     if (f->s[f->i] == '^') {
         f->i++; Q e = ffactor(f);
+        if (f->err) return b;
         if (e.d != 1 || e.n > 1000 || e.n < -1000) { f->err = 3; return b; }
-        Q r = {1, 1}; Q base = e.n < 0 ? qdiv(r, b) : b; int64_t k = e.n < 0 ? -e.n : e.n;
-        for (int64_t i = 0; i < k; i++) r = qmul(r, base);
+        Q r = {1, 1}; Q base = e.n < 0 ? qdiv(r, b) : b; int k = (int)(e.n < 0 ? -e.n : e.n);
+        for (int i = 0; i < k && !q_ovf; i++) r = qmul(r, base);
         return r;
     }
     return b;
 }
-static Q fterm(FP *f) { Q v = ffactor(f); for (;;) { fws(f); char c = f->s[f->i]; if (c == '*') { f->i++; v = qmul(v, ffactor(f)); } else if (c == '/') { f->i++; v = qdiv(v, ffactor(f)); } else return v; } }
-static Q fexpr(FP *f) { Q v = fterm(f); for (;;) { fws(f); char c = f->s[f->i]; if (c == '+') { f->i++; v = qadd(v, fterm(f)); } else if (c == '-') { f->i++; v = qsub(v, fterm(f)); } else return v; } }
-/* out[2] = numerator, denominator. Returns 1 ok, 0 error (m_error). */
+static Q fterm(FP *f) { Q v = ffactor(f); for (;;) { if (f->err) return v; fws(f); char c = f->s[f->i]; if (c == '*') { f->i++; v = qmul(v, ffactor(f)); } else if (c == '/') { f->i++; v = qdiv(v, ffactor(f)); } else return v; } }
+static Q fexpr(FP *f) { Q v = fterm(f); for (;;) { if (f->err) return v; fws(f); char c = f->s[f->i]; if (c == '+') { f->i++; v = qadd(v, fterm(f)); } else if (c == '-') { f->i++; v = qsub(v, fterm(f)); } else return v; } }
+/* out[4] = numerator (low 64 bits, high 64 bits), denominator (low, high). Returns 1 ok, 0 error (m_error);
+   *at = where in the normalised text the reading stopped (for the message). */
+static char frac_rest[40];
+API const char *m_frac_rest(void) { return frac_rest; }
 API int m_frac_eval(const char *src, int len, int64_t *out) {
     char *s = normalise(src, len);
     q_ovf = 0;
     FP f = {s, 0, 0};
     Q v = fexpr(&f); fws(&f);
-    if (!f.err && s[f.i]) f.err = 1;
+    if (!f.err && s[f.i]) f.err = s[f.i] == ')' ? 4 : 1;
+    { int k = 0; const char *r = s + f.i; while (*r == ' ') r++; while (r[k] && k < 24) { frac_rest[k] = r[k]; k++; } frac_rest[k] = 0; }
     free(s);
     if (f.err == 3) { set_err("Only whole-number powers keep fractions exact"); return 0; }
+    if (f.err == 2) { set_err("A bracket is not closed"); return 0; }
+    if (f.err == 4) { set_err("A closing bracket has no opening one"); return 0; }
     if (f.err) { set_err("Could not read the expression"); return 0; }
     if (q_ovf == 2) { set_err("Division by zero"); return 0; }
     if (q_ovf) { set_err("Numbers too large for exact arithmetic"); return 0; }
-    out[0] = v.n; out[1] = v.d;
+    out[0] = (int64_t)(uint64_t)v.n; out[1] = (int64_t)(v.n >> 64); out[2] = (int64_t)(uint64_t)v.d; out[3] = (int64_t)(v.d >> 64);
     return 1;
 }
 
