@@ -3,6 +3,8 @@ import { readFunction, clampScale, clampCentre, zoomAbout, tickStep, ticks, tick
 import { mathcore, fmtNum } from '../wasm/mathcore';
 import { quadratic, cubic, linear, complexText, type Root } from '../lib/equations';
 import { readNumbers, readPairs, someOf, lineText } from '../lib/stats';
+import { type M, readMatrix, shape, addM, mulM, transposeM, traceM, detM, rankM, inverseM, powM, readPower, exactOk, toNumbers, matrixText, valueText } from '../lib/matrix';
+import type { Q } from '../lib/exact';
 import { roundDec } from '../lib/round';
 import { ELEMENTS, CATEGORY_COLORS } from '../lib/elements';
 
@@ -253,9 +255,6 @@ export const equation: Mount = async (root) => {
 };
 
 // ================================================================== Statistics
-/** plain decimal numbers only (1, -2.5, .5, 3e1); anything else (0x10, Infinity, words) is ignored */
-const NUM = /^[+-]?(\d+\.?\d*|\.\d+)(e[+-]?\d+)?$/i;
-const parseNums = (s: string) => s.split(/[\s,;]+/).filter((x) => NUM.test(x)).map(Number).filter((x) => isFinite(x));
 const SORTED_SHOWN = 1000;
 export const stats: Mount = async (root) => {
   const m = await mathcore();
@@ -296,34 +295,46 @@ export const stats: Mount = async (root) => {
 };
 
 // ================================================================== Matrix
-type Mat = number[][];
-const parseMat = (s: string): Mat => {
-  const m = s.trim().split('\n').map((r) => parseNums(r)).filter((r) => r.length);
-  if (!m.length || m.some((r) => r.length !== m[0].length)) throw new Error('Each row needs the same number of values.');
-  return m;
-};
-const matStr = (m: Mat) => m.map((r) => r.map((x) => fmtNum(Math.abs(x) < 1e-12 ? 0 : x, 8)).join('\t')).join('\n');
 export const matrix: Mount = async (root) => {
   const m = await mathcore();
-  const mul = (a: Mat, b: Mat) => m.matmul(a, b);
-  const A = textarea({ rows: 4, mono: true, value: '2 1 0\n1 3 1\n0 1 4' }), B = textarea({ rows: 4, mono: true, value: '1 0 0\n0 1 0\n0 0 1' });
-  const out = h('pre', { class: 'mat-out' });
+  const A = textarea({ rows: 4, mono: true, value: '2 1 0\n1 3 1\n0 1 4', placeholder: 'Rows on lines: 1 2 3' }), B = textarea({ rows: 4, mono: true, value: '1 0 0\n0 1 0\n0 0 1' });
+  const out = h('pre', { class: 'mat-out', 'aria-live': 'polite' }), about = h('div', { class: 'muted small mat-about' });
   const pw = input({ type: 'number', value: 2, attrs: { 'aria-label': 'Power n' } });
-  const op = (label: string, f: () => string | Mat) => button(label, () => { try { const r = f(); out.textContent = typeof r === 'string' ? r : matStr(r); } catch (e: any) { out.textContent = '⚠ ' + e.message; } }, { small: true });
-  const sq = (m: Mat) => { if (m.length !== m[0].length) throw new Error('Needs a square matrix.'); return m; };
+  let fractions = false;
+  /** what the last press produced: a matrix or a single value, exact (fractions) or rounded (numbers) */
+  type Shown = { title: string; exact?: M | Q; rounded?: number[][] | number; text?: string };
+  let last: Shown | null = null;
+  const num8 = (x: number) => fmtNum(x, 12);
+  const paint = () => {
+    if (!last) { out.textContent = ''; about.textContent = ''; return; }
+    const r = last;
+    if (r.text !== undefined) out.textContent = r.text;
+    else if (r.exact !== undefined) out.textContent = Array.isArray(r.exact) ? matrixText(r.exact, fractions, num8) : valueText(r.exact, fractions, num8);
+    else out.textContent = Array.isArray(r.rounded) ? r.rounded.map((row) => row.map((x) => num8(x + 0).replace(/^-/, '−')).join('\t')).join('\n') : num8((r.rounded as number) + 0).replace(/^-/, '−');
+    about.textContent = `${r.title}${r.rounded !== undefined ? ' — in rounded arithmetic (double precision): the matrix is too large for exact fractions' : ''}`;
+  };
+  const press = (label: string, f: () => Shown) => button(label, () => { try { last = f(); } catch (e: any) { last = { title: '', text: `⚠ ${e?.message || e}` }; } paint(); }, { small: true });
+  const a = () => readMatrix(A.value, 'A'), b = () => readMatrix(B.value, 'B');
+  const sq = (x: M, what: string) => { if (x.length !== x[0].length) throw new Error(`${what} needs a square matrix — A is ${shape(x)}.`); return x; };
   root.append(card(null, stack(h('div', { class: 'grid2' }, field('Matrix A (rows on lines)', A), field('Matrix B', B)),
     h('div', { class: 'row' },
-      op('A + B', () => m.matadd(parseMat(A.value), parseMat(B.value), 1)),
-      op('A − B', () => m.matadd(parseMat(A.value), parseMat(B.value), -1)),
-      op('A × B', () => mul(parseMat(A.value), parseMat(B.value))),
-      op('det(A)', () => fmtNum(m.det(sq(parseMat(A.value))))),
-      op('A⁻¹', () => { const r = m.inverse(sq(parseMat(A.value))); if (!r) throw new Error('Matrix is singular (no inverse).'); return r; }),
-      op('Aᵀ', () => m.transpose(parseMat(A.value))),
-      op('rank(A)', () => String(m.rank(parseMat(A.value)))),
-      op('trace(A)', () => fmtNum(m.trace(sq(parseMat(A.value))))),
-      op('Aⁿ', () => { const a = sq(parseMat(A.value)); const n = parseInt(pw.value); if (!(n >= 0 && n <= 1000)) throw new Error('n between 0 and 1000'); return m.matpow(a, n); }),
+      press('A + B', () => { const r = addM(a(), b(), 1); return { title: `A + B (${shape(r)})`, exact: r }; }),
+      press('A − B', () => { const r = addM(a(), b(), -1); return { title: `A − B (${shape(r)})`, exact: r }; }),
+      press('A × B', () => { const x = a(), y = b(); if (x[0].length !== y.length) mulM(x, y); return exactOk(x) && exactOk(y) ? ((r) => ({ title: `A × B (${shape(r)})`, exact: r }))(mulM(x, y)) : { title: 'A × B', rounded: m.matmul(toNumbers(x), toNumbers(y)) }; }),
+      press('det(A)', () => { const x = sq(a(), 'The determinant'); return exactOk(x) ? { title: 'det(A)', exact: detM(x) } : { title: 'det(A)', rounded: m.det(toNumbers(x)) }; }),
+      press('A⁻¹', () => {
+        const x = sq(a(), 'The inverse');
+        if (exactOk(x)) { const r = inverseM(x); if (!r) throw new Error('A has no inverse: its determinant is 0.'); return { title: `A⁻¹ (${shape(r)})`, exact: r }; }
+        const r = m.inverse(toNumbers(x)); if (!r) throw new Error('A has no inverse (in rounded arithmetic its determinant is 0).'); return { title: 'A⁻¹', rounded: r };
+      }),
+      press('Aᵀ', () => { const r = transposeM(a()); return { title: `Aᵀ (${shape(r)})`, exact: r }; }),
+      press('rank(A)', () => { const x = a(); return exactOk(x) ? { title: `rank(A) — A is ${shape(x)}`, text: String(rankM(x)) } : { title: `rank(A) — A is ${shape(x)}`, rounded: m.rank(toNumbers(x)) }; }),
+      press('trace(A)', () => ({ title: 'trace(A)', exact: traceM(a()) })),
+      press('Aⁿ', () => { const x = sq(a(), 'A power'), n = readPower(pw.validity.badInput ? 'x' : pw.value); return exactOk(x, n) ? { title: `A^${n} (${shape(x)})`, exact: powM(x, n) } : { title: `A^${n}`, rounded: m.matpow(toNumbers(x), n) }; }),
       h('span', { class: 'muted small' }, 'n ='), pw))),
-    card('Result', out, button('Copy', () => copy(out.textContent || ''), { small: true, icon: 'Copy' })));
+    card('Result', out, about, row(button('Copy', () => copy((out.textContent || '').replace(/−/g, '-')), { small: true, icon: 'Copy' }),
+      segmented([['dec', 'Decimals'], ['frac', 'Fractions']], 'dec', (v) => { fractions = v === 'frac'; paint(); }))),
+    note('Cells: whole numbers, decimals or fractions (3/4), separated by spaces, commas or tabs; a row a line — or on one line with semicolons (1 2; 3 4). The arithmetic is exact: a determinant of 0 is 0, and an inverse can be shown in fractions.'));
 };
 
 // ================================================================== Fractions (exact, mathcore int64 with overflow checks)

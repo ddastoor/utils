@@ -100,7 +100,8 @@ what those suites missed.
   `m_expr_plot`, `src/lib/graph.ts`). **`equation` (tab 84) is DONE** (14 bugs; exact fractions on BigInt in
   `src/lib/exact.ts` + `src/lib/equations.ts`, Kahan's quadratic / cubic in mathcore; reference
   `scripts/make-equations-reference.py`). **`stats` (tab 85) is DONE** (12 bugs; exact sums in mathcore, `src/lib/stats.ts`,
-  reference `scripts/make-stats-reference.py`). **NEXT: the rest of Math & Science** — `matrix`,
+  reference `scripts/make-stats-reference.py`). **`matrix` (tab 86) is DONE** (8 bugs; exact fractions in `src/lib/matrix.ts`,
+  reference `scripts/make-matrix-reference.py`). **NEXT: the rest of Math & Science** —
   `fraction`, `primes`, `periodic` (`src/tools/math.ts`, engine mathcore), then the complete suites for the area;
   per tab: the
   existing-module check with its entry in `docs/WASM-AUDIT.md` first (the survey of entry 56 covers calculators:

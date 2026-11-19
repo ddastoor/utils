@@ -813,6 +813,18 @@ negative one (as Python's statistics module) — each "—" has its reason. The 
 Regression (optional box, one "x, y" pair a line; other lines are named and left out): least-squares line and
 Pearson's r; all x equal → no line, all y equal → a level line and no r.
 
+### Matrix Calculator — as built after the Nov 2026 bug hunt
+(`matrix` in `src/tools/math.ts`, `src/lib/matrix.ts` on `src/lib/exact.ts`, engine mathcore for large matrices; unit
+`tests/unit/matrix.test.mjs` 54, e2e 35; reference `python3 scripts/make-matrix-reference.py`, needs numpy.)
+Cells are whole numbers, decimals, powers of ten or fractions (3/4), separated by spaces, commas or tabs; a row a
+line, or on one line with semicolons; brackets and bars are ignored; a real minus sign is read. A + B, A − B, A × B,
+det, inverse, transpose, rank, trace and Aⁿ (n whole, 0 – 1000) are worked out on **exact fractions** while the
+matrix has at most 400 cells (and a power stays affordable: cells × n ≤ 20,000); the result is shown as decimals
+(twelve digits) or, at a press, as fractions, and Copy gives a tab-separated grid. Larger matrices (up to 60 × 60) go
+to mathcore in double precision — the line under the result says so; there "singular" and the rank are judged
+against the size of the entries (n·ε·max |a|, as NumPy's matrix_rank). Refusals name the matrix, the row and the
+shapes ("To add, both matrices need the same shape — A is 2 × 3 and B is 2 × 2").
+
 ### SQLite Playground (PC) — as built after the Nov 2026 bug hunt
 (`src/tools/software/sqlite.ts`, engine `src/lib/sqlite-engine.ts`, worker `src/workers/sqlite.worker.ts`; unit
 `tests/unit/sqlite.test.mjs` 106, e2e `tests/e2e/sqlite.e2e.mjs` 63.) Engine: the **official SQLite WebAssembly build**

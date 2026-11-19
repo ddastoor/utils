@@ -593,7 +593,7 @@ API double m_det(const double *A, int n) {
     double d = 1;
     for (int c = 0; c < n; c++) {
         int p = c; for (int r = c + 1; r < n; r++) if (fabs(a[r * n + c]) > fabs(a[p * n + c])) p = r;
-        if (fabs(a[p * n + c]) < 1e-14) { free(a); return 0; }
+        if (a[p * n + c] == 0) { free(a); return 0; }                 /* a column of zeros: the determinant is 0 (no fixed limit: a matrix of 1e-20s has its determinant too) */
         if (p != c) { for (int k = 0; k < n; k++) { double t = a[p * n + k]; a[p * n + k] = a[c * n + k]; a[c * n + k] = t; } d = -d; }
         d *= a[c * n + c];
         for (int r = c + 1; r < n; r++) { double f = a[r * n + c] / a[c * n + c]; for (int k = c; k < n; k++) a[r * n + k] -= f * a[c * n + k]; }
@@ -605,10 +605,13 @@ API double m_det(const double *A, int n) {
 API int m_inverse(const double *A, int n, double *out) {
     int w = 2 * n;
     double *a = malloc(sizeof(double) * n * w);
+    /* singular: a pivot no larger than rounding noise — measured against the largest entry, not against a fixed 1e-14 */
+    double top = 0; for (int i = 0; i < n * n; i++) if (fabs(A[i]) > top) top = fabs(A[i]);
+    double tiny = n * 2.220446049250313e-16 * top;
     for (int r = 0; r < n; r++) for (int c = 0; c < w; c++) a[r * w + c] = c < n ? A[r * n + c] : (c - n == r);
     for (int c = 0; c < n; c++) {
         int p = c; for (int r = c + 1; r < n; r++) if (fabs(a[r * w + c]) > fabs(a[p * w + c])) p = r;
-        if (fabs(a[p * w + c]) < 1e-14) { free(a); return 0; }
+        if (!(fabs(a[p * w + c]) > tiny)) { free(a); return 0; }
         for (int k = 0; k < w; k++) { double t = a[p * w + k]; a[p * w + k] = a[c * w + k]; a[c * w + k] = t; }
         double pv = a[c * w + c]; for (int k = 0; k < w; k++) a[c * w + k] /= pv;
         for (int r = 0; r < n; r++) if (r != c) { double f = a[r * w + c]; for (int k = 0; k < w; k++) a[r * w + k] -= f * a[c * w + k]; }
@@ -623,9 +626,11 @@ API void m_matmul(const double *A, int r1, int c1, const double *B, int c2, doub
 API int m_rank(const double *A, int rows, int cols) {
     double *a = malloc(sizeof(double) * rows * cols); memcpy(a, A, sizeof(double) * rows * cols);
     int rk = 0;
+    double top = 0; for (int i = 0; i < rows * cols; i++) if (fabs(A[i]) > top) top = fabs(A[i]);
+    double tiny = (rows > cols ? rows : cols) * 2.220446049250313e-16 * top; /* relative, as NumPy's matrix_rank */
     for (int c = 0; c < cols && rk < rows; c++) {
         int p = rk; for (int r = rk + 1; r < rows; r++) if (fabs(a[r * cols + c]) > fabs(a[p * cols + c])) p = r;
-        if (fabs(a[p * cols + c]) < 1e-10) continue;
+        if (!(fabs(a[p * cols + c]) > tiny)) continue;
         for (int k = 0; k < cols; k++) { double t = a[p * cols + k]; a[p * cols + k] = a[rk * cols + k]; a[rk * cols + k] = t; }
         for (int r = rk + 1; r < rows; r++) { double f = a[r * cols + c] / a[rk * cols + c]; for (int k = c; k < cols; k++) a[r * cols + k] -= f * a[rk * cols + k]; }
         rk++;

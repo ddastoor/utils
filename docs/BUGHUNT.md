@@ -114,7 +114,7 @@ Areas with a shared review: the app shell (router, search, favorites, platform h
 | `graph` | Graphing Calculator | PC + mobile | calc2-math | ✓ | 11 | 96 | nothing to replace (WASM-AUDIT 83); FROZEN TAB on deep zoom fixed (zoom limits, counted grid lines); engine m_expr_plot tells jumps and poles from steep curves (1000x was not drawn, floor had connectors); reasons under the boxes, x = 2 vertical line, zoom about cursor / fingers, keys, 'undefined' readout |
 | `equation` | Equation Solver | PC + mobile | calc2-math | ✓ | 14 | 93 | engine kept + exact fractions on BigInt (WASM-AUDIT 84): kind of every answer exact — (x−1.1)² showed two roots, (x−1)²(x−10⁶) a complex pair; Kahan's quadratic/cubic in mathcore; linear systems: none vs infinitely many, small-unit systems no longer 'unsolvable'; identities, other letters, 50-root cap said; live + Enter; reference fractions + mpmath |
 | `stats` | Statistics | PC + mobile | calc2-math | ✓ | 12 | 46 | nothing to replace (WASM-AUDIT 85); exact sums (fsum) — 1e16+1−1e16 was 0; skewness corrected for the rounded mean; extremes scaled; left-out pieces named, real minus read; reasons for every —; regression without 'Error'; reference fractions + Python statistics |
-| `matrix` | Matrix Calculator | PC + mobile | calc2-math |  |  |  |  |
+| `matrix` | Matrix Calculator | PC + mobile | calc2-math | ✓ | 8 | 74 | engine kept for large matrices + exact fractions on BigInt up to 400 cells (WASM-AUDIT 86): det 0 is 0, inverse in fractions, fractions typed; tiny values no longer shown as 0 or called singular (relative tests in mathcore); refusals name matrix, row and shapes; reference Python fractions + NumPy |
 | `fraction` | Fraction Calculator | PC + mobile | calc2-math |  |  |  |  |
 | `primes` | Prime / LCM / GCD | PC + mobile | calc2-math |  |  |  |  |
 | `periodic` | Periodic Table | PC + mobile | calc2-math |  |  |  |  |
@@ -966,4 +966,13 @@ Reference for the five finance tabs: **mpmath at 60 digits** (`scripts/make-fina
   gave "y = Errorx + Error", a level line a correlation of "Error"; a line with three numbers was taken as a pair
   and a line with one passed over, both silently. An empty box left an empty page; the sorted list grew without
   limit. The tab now says how its quartiles are worked out.
+- **matrix** — Matrix Calculator (8 bugs; unit 0 → 54, e2e 20 → 35). The result wrote every number under 10⁻¹² as
+  0 (a matrix of 10⁻¹³s came back as zeros); a matrix with 10⁻¹⁵ on its diagonal was "singular" with rank 0 (fixed
+  limits of 10⁻¹⁴ and 10⁻¹⁰ in the engine); a letter in a cell, an empty box and a number with a real minus sign
+  all got "Each row needs the same number of values"; a power of 2.5 was quietly cut to 2; "1 2; 3 4" was one row
+  of four, and brackets were refused; "Same size needed." did not say which sizes. Now the cells are read as the
+  decimals or **fractions** (3/4) they are and the arithmetic is exact (`src/lib/matrix.ts`): a determinant of 0 is
+  0, the rank is certain, the inverse can be shown in fractions (Decimals / Fractions switch), the 90th power of
+  [[1, 1], [1, 0]] has every digit; matrices beyond 400 cells go to the engine in double precision, and the tab says
+  so; every refusal names the matrix, the row and the shapes.
 

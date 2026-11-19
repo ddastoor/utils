@@ -503,3 +503,16 @@ One entry per tab, written before its bug hunt: our module → candidates → ch
   doubles (Python's `fractions`), cross-checked with Python's `statistics` module for 262 of 320 data sets —
   `scripts/make-stats-reference.py`.
 
+### 86. `matrix` — Matrix Calculator (19 Nov 2026)
+- **Ours:** mathcore (own C): `m_det`, `m_inverse`, `m_rank`, `m_matmul`, `m_matadd`, `m_transpose`, `m_trace`,
+  `m_matpow` — double precision.
+- **Candidates:** WebAssembly — linear-algebra stacks exist as WebAssembly (OpenBLAS / LAPACK inside Pyodide's NumPy,
+  Eigen builds, `@stdlib`'s BLAS kernels): megabytes, made for large numeric work, and double precision — they give
+  the same 5 × 10⁻¹⁷ where a hand-typed matrix has the determinant 0. JavaScript: `mathjs` (fractions only through
+  its own BigNumber / Fraction types), `ml-matrix`.
+- **Decision:** the engine stays for large matrices (its "is this nothing?" tests now measure against the entries);
+  matrices of up to 400 cells — every one a person types — are worked out on **exact fractions with the browser's
+  BigInt** (`src/lib/matrix.ts` on `src/lib/exact.ts`), as for the Equation Solver (entry 84).
+- **Check:** Python's `fractions` for 220 matrices (determinants also by the Leibniz sum, inverses multiplied back),
+  NumPy for matrices of 25 – 40 rows — `scripts/make-matrix-reference.py`.
+
