@@ -234,10 +234,6 @@ export ZIG=/tmp/zig/x/ziglang/zig
   you type.
 
 ## Finance tabs: confirmed faults still to fix (probed 19 Nov 2026; delete each line when its tab is done)
-- `gst`: the tab still uses floats — CGST + SGST do not add up to the GST shown (₹100.50 at 5 %: 5.03 against
-  2.51 + 2.51; ₹100 including 18 %: 15.25 against 7.63 + 7.63; ₹1,234.565 at 12 %: base + tax is a paisa off the total).
-  Engine ready: `m.gst()` / `gstSplit()` (whole paise, tax first when the amount includes it). No custom rate yet
-  (the invoice tab has 0.1 / 1.5 / 7.5 %): add "Other" with a box (`show` in calcForm).
 - `sip`: a period of 0 / negative / under half a month gives zeros and "—×"; 15.04 years is silently 180 months;
   300 or 5,000 years fill the screen with digits; 3 × 10⁷ years freezes the page for 1.6 s; a negative amount, a
   return of −1,300 % and a step-up of −150 % give nonsense; "-0×". Use `sipPlan()`.

@@ -121,19 +121,25 @@ export const emi: Mount = async (root) => {
 };
 
 // ------------------------------------------------------------------ GST
-export const gst: Mount = (root) => {
+// Whole paise, as an invoice is printed (mathcore m_gst): CGST and SGST are each rounded on their own and add up to the
+// GST shown; base + GST is the total to the paisa, in both directions.
+const pctText = (x: number) => String(parseFloat(x.toFixed(4)));
+export const gst: Mount = async (root) => {
+  const m = await mathcore();
   calcForm(root, [
     { key: 'amt', label: 'Amount', value: 1000, unit: '₹' },
-    { key: 'rate', label: 'GST rate', type: 'seg', value: '18', options: [['0.25', '0.25%'], ['3', '3%'], ['5', '5%'], ['12', '12%'], ['18', '18%'], ['28', '28%'], ['40', '40%']] },
+    { key: 'rate', label: 'GST rate', type: 'seg', value: '18', options: [['0.25', '0.25%'], ['3', '3%'], ['5', '5%'], ['12', '12%'], ['18', '18%'], ['28', '28%'], ['40', '40%'], ['other', 'Other']] },
+    { key: 'other', label: 'Other rate', value: 1.5, unit: '%', step: 0.001, min: 0, max: 100, hint: 'For example 0.1, 1.5, 6 or 7.5 — up to three decimals.', show: (v) => v.rate === 'other' },
     { key: 'mode', label: 'Amount is', type: 'seg', value: 'ex', options: [['ex', 'Before GST (add)'], ['in', 'Including GST (remove)']] },
     { key: 'kind', label: 'Supply', type: 'seg', value: 'intra', options: [['intra', 'Within state (CGST+SGST)'], ['inter', 'Inter-state (IGST)']] },
   ], (v) => {
-    need(v.amt);
-    const r = parseFloat(v.rate) / 100;
-    const base = v.mode === 'ex' ? v.amt : v.amt / (1 + r), tax = base * r, total = base + tax;
+    const rate = v.rate === 'other' ? v.other : parseFloat(v.rate);
+    need(v.amt, rate);
+    const g = gstSplit(m, v.amt, rate, v.mode === 'in', v.kind === 'intra'), half = pctText(g.rate / 2);
     return {
-      big: [['Total (incl. GST)', fmtINR(total)], ['GST amount', fmtINR(tax)], ['Base (excl. GST)', fmtINR(base)]],
-      rows: v.kind === 'intra' ? [['CGST (' + parseFloat(v.rate) / 2 + '%)', fmtINR(tax / 2)], ['SGST (' + parseFloat(v.rate) / 2 + '%)', fmtINR(tax / 2)]] : [['IGST (' + v.rate + '%)', fmtINR(tax)]],
+      big: [['Total (incl. GST)', fmtINR(g.total)], ['GST amount', fmtINR(g.tax)], ['Base (excl. GST)', fmtINR(g.base)]],
+      rows: v.kind === 'intra' ? [[`CGST (${half}%)`, fmtINR(g.cgst)], [`SGST (${half}%)`, fmtINR(g.sgst)]] : [[`IGST (${pctText(g.rate)}%)`, fmtINR(g.igst)]],
+      notes: [...(g.rounded ? [`The amount is taken to the paisa: ${fmtINR(v.mode === 'in' ? g.total : g.base)}.`] : []), ...(g.rate !== rate ? [`The rate is taken with three decimals: ${pctText(g.rate)} %.`] : [])],
     };
   });
 };

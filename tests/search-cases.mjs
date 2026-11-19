@@ -56,7 +56,7 @@ export default [
   ['unit converter', 'units'], ['km to miles', 'units'], ['celsius to fahrenheit', 'units'], ['kg to pounds', 'units'],
   ['days between dates', 'dates'], ['age calculator', 'dates'], ['date difference', 'dates'],
   ['emi', 'emi'], ['loan calculator', 'emi'], ['home loan', 'emi'],
-  ['gst', 'gst'], ['gst calculator', 'gst'],
+  ['gst', 'gst'], ['gst calculator', 'gst'], ['reverse gst', 'gst'], ['remove gst from price', 'gst'], ['cgst sgst', 'gst'], ['taxable value', 'gst'],
   ['sip', 'sip'], ['mutual fund returns', 'sip'],
   ['fd', 'fd'], ['fixed deposit', 'fd'], ['recurring deposit', 'fd'],
   ['percentage', 'percent'], ['percent change', 'percent'],

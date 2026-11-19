@@ -83,7 +83,7 @@ Generated from `src/registry.ts` by `npm run docs` — do not edit by hand.
 | `units` | Unit Converter | PC + mobile | Length, weight, temperature, area, volume, speed, data… | km to miles, miles to km, celsius to fahrenheit, fahrenheit to celsius, kg to pounds, lbs to kg, feet to meters, cm to inches, … |
 | `dates` | Date Calculator | PC + mobile | Days between dates, add days, age, weekday. | date, days between, difference, add days, age, birthday, weekday, duration |
 | `emi` | EMI Calculator | PC + mobile | Loan EMI with amortisation schedule. | emi, loan, home loan, car loan, interest, mortgage, amortization, installment |
-| `gst` | GST Calculator | PC + mobile | Add or remove GST (5/12/18/28%). | gst, tax, india, cgst, sgst, igst, inclusive, exclusive, … |
+| `gst` | GST Calculator | PC + mobile | Add or remove GST at any rate, to the paisa: CGST + SGST or IGST. | gst, tax, india, cgst, sgst, igst, inclusive, exclusive, … |
 | `sip` | SIP Calculator | PC + mobile | Mutual fund SIP / lumpsum returns. | sip, mutual fund, investment, returns, lumpsum, compound, wealth |
 | `fd` | FD / RD Calculator | PC + mobile | Fixed and recurring deposit maturity. | fd, rd, fixed deposit, recurring deposit, bank, interest, maturity, compound |
 | `percent` | Percentage Calculator | PC + mobile | X% of Y, % change, what percent. | percent, percentage, increase, decrease, change, marks, discount |

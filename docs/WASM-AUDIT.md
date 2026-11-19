@@ -338,3 +338,12 @@ One entry per tab, written before its bug hunt: our module → candidates → ch
   (`expm1` / `log1p`). Held to the definition of a reducing-balance loan worked month by month in **mpmath at 420
   digits** for 936 loans, cross-checked with **numpy-financial** (pmt, ipmt, ppmt) on the 540 ordinary ones.
 
+### 60. `gst` — GST Calculator (19 Nov 2026)
+- **Ours:** mathcore (own C): the new `m_gst` — GST on one amount in whole paise, forwards and backwards — beside
+  `m_invoice`, whose line arithmetic it shares.
+- **Candidates:** WebAssembly — none (no tax or decimal-money module in the registry; "gst calculator" finds two
+  JavaScript packages with 24 and 33 downloads a month). Decimal libraries are JavaScript (decimal.js, big.js).
+- **Decision:** nothing to replace. Whole paise in 64-bit integers with 128-bit products, half away from zero; the
+  amount is read as it is written with 15 digits. Held to **Python's decimal** (ROUND_HALF_UP on the typed text) for
+  1,126 amount × rate pairs in the four modes.
+

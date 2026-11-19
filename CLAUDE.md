@@ -572,6 +572,13 @@ open while the numbers change; `fmtINR` writes paise with both digits (₹12.10)
   and total interest are instalment × months on the exact instalment (as lenders' calculators show them). Tenure in
   years or months (the number stays when the unit is switched); "Instalments" row; schedule with principal, interest
   and balance per year, the last part-year labelled with its months, ending at exactly ₹0.
+- `gst` (unit `tests/unit/gst.test.mjs` 38, e2e 34): whole paise as on an invoice (mathcore `m_gst`, the arithmetic
+  of an invoice line). Before tax: CGST and SGST are each the half rate rounded on its own, the GST is their sum
+  (so it is an even number of paise; IGST on the same amount may differ by a paisa — as on real invoices).
+  Including tax: the tax is found first (amount × rate / (100 + rate), per half for CGST / SGST) and the base is what
+  is left, so base + GST gives the typed amount back to the paisa. Seven slabs + "Other" (0 – 100 %, three
+  decimals). An amount is read as it is written (₹1.005 is ₹1.01) and a third decimal is rounded with a note. A
+  negative amount (a credit) is the mirror image. Limit ₹10 lakh crore.
 
 **Scientific Calculator as built after the Nov 2026 bug hunt** (`src/tools/calc.ts`, text helpers `src/lib/calc-text.ts`,
 engine `wasm/mathcore` `m_expr_*`; unit `tests/unit/calc.test.mjs` 243 — 3,005 answers of **mpmath at 50 digits** and

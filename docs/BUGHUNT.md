@@ -84,7 +84,7 @@ Areas with a shared review: the app shell (router, search, favorites, platform h
 | `units` | Unit Converter | PC + mobile | calc-core | ✓ | 6 | 118 | no engine to replace (WASM-AUDIT 57); exact definitions held to GNU Units 2.23 (3,222 conversions); small results keep their digits; metric and US kitchen measures; Indian area units |
 | `dates` | Date Calculator | PC + mobile | calc-core | ✓ | 7 | 40 | nothing to replace (WASM-AUDIT 58); held to Python's datetime (6,985 cases, years 1–9999); today() is the local date; years 0–99; end date counted in y-m-d; refusals |
 | `emi` | EMI Calculator | PC + mobile | calc-core | ✓ | 15 | 127 | nothing to replace (WASM-AUDIT 59); held to a month-by-month reference in mpmath at 420 digits (936 loans) + numpy-financial; closed forms over the whole range; unit label follows years / months; refusals with reasons; schedule stays open; paise with two digits |
-| `gst` | GST Calculator | PC + mobile | calc-core |  |  |  |  |
+| `gst` | GST Calculator | PC + mobile | calc-core | ✓ | 6 | 62 | nothing to replace (WASM-AUDIT 60); whole paise in mathcore m_gst, held to Python's decimal (1,126 pairs × 4 modes); CGST + SGST add up to the GST shown; base + GST = the amount typed when it includes the tax; Other rate; paise() reads amounts as written (also for the invoice engine) |
 | `sip` | SIP Calculator | PC + mobile | calc-core |  |  |  |  |
 | `fd` | FD / RD Calculator | PC + mobile | calc-core |  |  |  |  |
 | `percent` | Percentage Calculator | PC + mobile | calc-core |  |  |  |  |
@@ -710,4 +710,19 @@ reference cases.
   rupees); (15) a loan of 10³⁰⁰ filled the screen with digits. Refusals now say why (loan above 0 and at most
   ₹10 lakh crore, rate 0 – 1,000 %, tenure 1 month – 100 years). Added: an "Instalments" row, a note when the
   tenure was not whole months, the months of a last part-year in the schedule.
+- **gst** — GST Calculator (6 bugs; unit 0 → 38, e2e 10 → 34 — two of them are loops over 250 splits). Nothing to
+  replace (`docs/WASM-AUDIT.md` tab 60). Reference: **Python's decimal** with ROUND_HALF_UP on the typed text of the
+  amount, 1,126 amount × rate pairs × four modes; 8,000 random splits for what must always hold. The tab worked in
+  binary fractions and printed each figure rounded on its own. What was wrong: (1) **CGST + SGST did not add up to
+  the GST shown** whenever the tax was an odd number of paise: ₹100.50 at 5 % showed GST ₹5.03 beside CGST ₹2.51 and
+  SGST ₹2.51 — on an invoice the two taxes are each rounded and the GST is their sum, ₹5.02; (2) the same when the
+  amount includes the tax: ₹100 including 18 % showed GST ₹15.25 beside 7.63 + 7.63 — now the tax is found first
+  (7.63 + 7.63 = 15.26) and the base is what is left (₹84.74), so base + GST is the amount typed, to the paisa;
+  (3) **base + GST was a paisa off the total** for amounts with a third decimal (₹1,234.565 at 12 %: 1,234.57 +
+  148.15 beside a total of 1,382.71); (4) an amount ending in half a paisa was rounded down when its double lies
+  below it (₹1.005 → ₹1.00) — the engine's `paise()` now reads the amount as it is written; **the invoice engine
+  shares it**: of the amounts x.xx5 up to ₹200, 1,147 of 20,000 had been rounded down; (5) only seven rates — 0.1 %,
+  1.5 %, 6 % or 7.5 % (which the invoice tab has) could not be entered: "Other" with a box, up to three decimals;
+  (6) 10¹⁸ rupees was worked out with digits a double does not have (limit ₹10 lakh crore, with the reason).
+  A credit (negative amount) is the mirror image. Notes say when the amount or the rate was rounded.
 
