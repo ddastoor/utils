@@ -8,6 +8,7 @@ import { textStats, timeText, EMPTY, READING_WPM, SPEAKING_WPM, type TextStats }
 import { roundDec } from '../lib/round';
 import { CASE_NAMES, CASE_HINTS, SHOWN, shownPart } from '../lib/caseconv';
 import { processLines, summary, type LineOptions, type LineDeps, type SortMode } from '../lib/linetools';
+import { plan, countText, type FindOptions, type Plan } from '../lib/findreplace';
 import { sodium } from '../wasm/crypto';
 import { devcore, type Devcore } from '../wasm/devcore';
 import { trackWorker, releaseNow } from '../lifecycle';
@@ -123,29 +124,55 @@ export const lines: Mount = (root) => {
 };
 
 // ================================================================== Find & replace
+// What is searched for is src/lib/findreplace.ts; the search runs in the regex worker (the browser's RegExp, off the
+// page), ended after REPLACE_LIMIT_MS so that a runaway pattern cannot freeze the tab.
+const REPLACE_LIMIT_MS = 5000;
 export const replace: Mount = (root) => {
   const ta = textarea({ rows: 8, value: 'Colour and flavour, colour again.' });
   const find = input({ value: 'colour', attrs: { spellcheck: 'false' } }), rep = input({ value: 'color', attrs: { spellcheck: 'false' } });
-  const o = { regex: false, cs: false, word: false };
+  const o: FindOptions = { regex: false, cs: false, word: false };
   const out = outputBox({ rows: 8 });
-  const info = h('div', { class: 'muted small' });
+  const info = h('div', { class: 'muted small' }), problem = h('div', { class: 'stack' });
+  let worker: Worker | null = null, seq = 0, timer = 0, deb = 0, current: Plan | null = null;
+  const stop = () => { clearTimeout(timer); if (worker) { releaseNow('replace'); worker = null; } };
+  const fail = (text: string) => { find.classList.add('bad'); out.value = ta.value; info.textContent = ''; clear(problem).append(note(text, 'err')); };
   const run = () => {
-    try {
-      if (!find.value) { out.value = ta.value; info.textContent = ''; return; }
-      let src = o.regex ? find.value : find.value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      if (o.word) src = `\\b(?:${src})\\b`;
-      const re = new RegExp(src, `g${o.cs ? '' : 'i'}u`);
-      const n = [...ta.value.matchAll(re)].length;
-      out.value = ta.value.replace(re, o.regex ? rep.value : rep.value.replace(/\$/g, '$$$$'));
-      info.textContent = `${n} replacement${n === 1 ? '' : 's'}`;
-      find.classList.remove('bad');
-    } catch (e: any) { find.classList.add('bad'); info.textContent = e.message; }
+    const id = ++seq, text = ta.value;
+    clearTimeout(timer);
+    if (!find.value) { stop(); find.classList.remove('bad'); clear(problem); out.value = text; info.textContent = ''; return; }
+    let p: Plan;
+    try { p = current = plan(find.value, rep.value, o); } catch (e: any) { stop(); return fail(e.message); }
+    if (!worker) {
+      worker = trackWorker(new Worker(new URL('../workers/regex.worker.ts', import.meta.url), { type: 'module' }), 'replace', () => { worker = null; });
+      worker.onmessage = (ev: MessageEvent<RegexRes>) => {
+        if (ev.data.id !== seq) return; // an answer to an earlier text
+        clearTimeout(timer);
+        if (ev.data.error) return fail(`The search could not be run: ${ev.data.error}`);
+        find.classList.remove('bad'); clear(problem);
+        out.value = ev.data.replaced ?? ''; info.textContent = countText(ev.data.total ?? 0);
+        if (current?.loose) problem.append(note('This pattern is valid only in JavaScript\'s older (non-Unicode) mode — an escape such as \\- or a lone brace — and was run that way.', 'info'));
+      };
+    }
+    timer = window.setTimeout(() => {
+      if (id !== seq) return;
+      stop();
+      fail(`Stopped after ${REPLACE_LIMIT_MS / 1000} seconds: this pattern takes too long on this text. Nested repeats such as (a+)+ or (.*)* make the engine try a huge number of ways to match — rewrite the pattern without them.`);
+    }, REPLACE_LIMIT_MS);
+    worker.postMessage({ id, pattern: p.pattern, flags: p.flags, text, replacement: p.replacement } satisfies RegexReq);
   };
-  [ta, find, rep].forEach((x) => x.addEventListener('input', run));
+  const runSoon = () => { clearTimeout(deb); deb = window.setTimeout(run, ta.value.length > 200_000 ? 250 : 30); };
+  [ta, find, rep].forEach((x) => x.addEventListener('input', runSoon));
+  const set = (k: keyof FindOptions) => (v: boolean) => { o[k] = v; run(); };
   root.append(card(null, stack(field('Text', ta), h('div', { class: 'grid2' }, field('Find', find), field('Replace with', rep)),
-    h('div', { class: 'row' }, toggle('Regular expression', false, (v) => { o.regex = v; run(); }), toggle('Case sensitive', false, (v) => { o.cs = v; run(); }), toggle('Whole words', false, (v) => { o.word = v; run(); })))),
-  card('Result', out, info));
+    h('div', { class: 'row' }, toggle('Regular expression', false, set('regex')), toggle('Case sensitive', false, set('cs')), toggle('Whole words', false, set('word'))),
+    h('details', null, h('summary', null, 'With a regular expression'), h('ul', { class: 'muted small' },
+      h('li', null, 'The patterns are JavaScript\'s, the same as in the Regex Tester tab.'),
+      h('li', null, 'In "Replace with": $1, $2 … stand for the groups, $<name> for a named group, $& or $0 for the whole match; \\n makes a line break, \\t a tab.'),
+      h('li', null, '^ and $ match at the start and the end of every line.'),
+      h('li', null, 'Without a regular expression, every character in both boxes stands for itself.'))))),
+  card('Result', out, info, problem));
   run();
+  return () => { clearTimeout(timer); clearTimeout(deb); };
 };
 
 // ================================================================== Diff

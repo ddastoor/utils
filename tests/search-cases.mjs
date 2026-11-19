@@ -82,7 +82,7 @@ export default [
   ['uppercase', 'case'], ['case converter', 'case'], ['title case', 'case'],
   ['capitalize each word', 'case'], ['all caps to lowercase', 'case'], ['change case', 'case'], ['snake case', 'case'], ['camelcase', 'case'], ['caps lock', 'case'],
   ['remove duplicate lines', 'lines'], ['sort lines', 'lines'], ['alphabetical order', 'lines'], ['remove blank lines', 'lines'], ['number lines', 'lines'], ['randomize list', 'lines'], ['sort numbers', 'lines'],
-  ['find and replace', 'replace'], ['replace text', 'replace'],
+  ['find and replace', 'replace'], ['replace text', 'replace'], ['search and replace', 'replace'], ['replace all', 'replace'], ['regex replace', 'replace'],
   ['diff', 'diff'], ['compare text', 'diff'],
   ['fancy text', 'fancy'], ['instagram font', 'fancy'], ['stylish text', 'fancy'],
   ['emoji', 'emoji'], ['symbols', 'emoji'], ['special characters', 'emoji'],

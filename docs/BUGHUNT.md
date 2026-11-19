@@ -125,7 +125,7 @@ Areas with a shared review: the app shell (router, search, favorites, platform h
 | `wordcount` | Word Counter | PC + mobile | text | ✓ | 17 | 145 | new engine textkit.wasm (unicode-segmentation + own rules); words as Word counts them; abbreviations, initials; lazyEngine for all wrappers |
 | `case` | Case Converter | PC + mobile | text | ✓ | 14 | 108 | conversions in textkit.wasm (case.rs); Title Case = port of python titlecase; code cases held to change-case; lines kept |
 | `lines` | Line Tools | PC + mobile | text | ✓ | 10 | 102 | linetools.ts; held to GNU sort/awk/sed on 400 lists; 0 → 9 sort; shuffle stays put; engines lazy |
-| `replace` | Find & Replace | PC + mobile | text |  |  |  |  |
+| `replace` | Find & Replace | PC + mobile | text | ✓ | 9 | 77 | worker + 5 s limit; Unicode whole words; ^ $ per line; \n in replacement; held to Python re on 226 searches |
 | `diff` | Text Diff | PC + mobile | text |  |  |  |  |
 | `fancy` | Fancy Text | PC + mobile | text |  |  |  |  |
 | `emoji` | Emoji & Symbols | PC + mobile | text |  |  |  |  |
@@ -1099,3 +1099,23 @@ Reference for the five finance tabs: **mpmath at 60 digits** (`scripts/make-fina
   Also: the line under the result says what was removed ("1 empty line and 1 duplicate removed"); a list above
   200,000 characters is worked on when the typing pauses. Reference: the GNU tools on 400 lists
   (`scripts/make-lines-reference.py`): all agree.
+- **`replace` (tab 93, 9 bugs; `src/lib/findreplace.ts`; unit `tests/unit/findreplace.test.mjs` 61, e2e 28 —
+  before: 12 e2e checks).**
+  1. The search ran on the page at every key: a pattern such as `(a+)+$` on forty letters **froze the tab**. It runs
+     in the regex worker now and is ended after 5 seconds with the reason; the page stays alive meanwhile.
+  2. "Whole words" knew ASCII letters only: with it switched on **no Hindi word was ever found** (nor a Russian or
+     Greek one).
+  3. … and "café" was replaced inside "cafés": after an accented letter the engine's `\b` sees a word end.
+     Words are now bounded by Unicode letters, digits, marks and the underscore.
+  4. `^` and `$` matched only at the start and the end of the whole text; at every line now, as in an editor
+     ("> " in front of each line).
+  5. There was no way to replace with a line break or a tab: `\n` in "Replace with" was a backslash and an n. With a
+     regular expression `\n`, `\t`, `\r`, `\\` are read now (plain mode stays literal).
+  6. `$0` for the whole match was written out as "$0" (only `$&` worked).
+  7. A pattern with escapes that JavaScript's Unicode mode refuses (`\-`, `\#`, a lone `{`) — common in patterns
+     pasted from elsewhere — was turned away ("Invalid escape"); it is run in the older mode now, with a note.
+  8. After a pattern that is not valid the result box kept the replacement of the pattern before it.
+  9. The refusal was the engine's raw line ("Invalid regular expression: /(/giu: Unterminated group"); a sentence
+     now.
+  Also: "No match — nothing was replaced."; a fold-out that says what `$1`, `$&`, `\n`, `^` mean here. Reference:
+  Python's `re.subn` on 226 searches (`scripts/make-replace-reference.py`): all agree.

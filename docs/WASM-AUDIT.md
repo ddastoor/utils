@@ -614,3 +614,18 @@ One entry per tab, written before its bug hunt: our module → candidates → ch
   chosen instead of when the tab opens. What is left in TypeScript (`src/lib/linetools.ts`) hands lines to those
   three engines: split, trim, a `Set`, reading a leading number — glue that would cost more to marshal into a
   module and back (the sort itself must call the browser's collator) than it costs to run.
+
+### 93. `replace` — Find & Replace (19 Nov 2026)
+- **Ours:** none — the browser's own `RegExp` (compiled C++, V8's Irregexp / JavaScriptCore's YARR), as in the Regex
+  Tester tab.
+- **Candidates (existing WebAssembly regex engines):** `vscode-oniguruma` (Microsoft's build of Oniguruma for VS
+  Code's grammars; 0.46 MB; Ruby's dialect; a scanner — no replace), `re2-wasm` (Google's RE2: linear time; no
+  look-around, no back-references), a build of ours from Rust's `regex` crate (linear time; the same limits), PCRE2
+  builds with few users.
+- **Decision:** the browser's `RegExp` stays. What this tab is asked for is "find & replace (regex)" in the dialect a
+  web user knows and can try next door in the Regex Tester; a second dialect in the neighbouring tab (no
+  `(?<=…)`, no `\1`, or Ruby's syntax) would be a trap, and none of the modules replaces — the `$1` logic would be
+  ours on top. The one defect of a backtracking engine, a pattern that never ends, is dealt with outside it: **the
+  search now runs in the regex worker and is ended after 5 seconds** (it ran on the page and froze the tab).
+  `src/lib/findreplace.ts` builds the pattern (plain text escaped, whole words by Unicode properties) and the
+  replacement; that is string glue around a native engine.

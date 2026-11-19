@@ -937,6 +937,20 @@ while other options change and is made anew by "Shuffle again" or a change of th
 their option is chosen (none at open). The line under the result: "8 lines in → 6 lines out · 1 empty line and 1
 duplicate removed". A list above 200,000 characters is worked on when the typing pauses.
 
+### Find & Replace — as built after the Nov 2026 bug hunt
+(`replace` in `src/tools/text.ts`, `src/lib/findreplace.ts`, the search in `src/workers/regex.worker.ts`; unit
+`tests/unit/findreplace.test.mjs` 61, e2e `tests/e2e/replace.e2e.mjs` 28; reference
+`python3 scripts/make-replace-reference.py` → `tests/fixtures/replace/reference.json`.)
+The engine is the browser's `RegExp` (the dialect of the Regex Tester tab), run **in a worker and ended after 5
+seconds** — a pattern that never ends cannot freeze the page. `plan(find, rep, options)` builds the search: flags
+`g`, `m` (^ and $ at every line), `u`, and `i` unless "Case sensitive"; without "Regular expression" every character
+of both boxes stands for itself; "Whole words" wraps the pattern in look-arounds on `[\p{L}\p{N}\p{M}_]` (a Hindi
+vowel sign or a combining accent continues a word); a pattern that only the older, non-Unicode mode accepts (`\-`,
+a lone brace) is run in that mode with a note. In "Replace with", with a regular expression: `$1` … `$9`,
+`$<name>`, `$&` and `$0` (the whole match), `$$`, and `\n` `\t` `\r` `\\`. A pattern that is not valid is refused
+in a sentence, the box is marked and the text shown unchanged. Under the result: "2 replacements" / "No match —
+nothing was replaced." (the count stops at 10,00,000+).
+
 ### SQLite Playground (PC) — as built after the Nov 2026 bug hunt
 (`src/tools/software/sqlite.ts`, engine `src/lib/sqlite-engine.ts`, worker `src/workers/sqlite.worker.ts`; unit
 `tests/unit/sqlite.test.mjs` 106, e2e `tests/e2e/sqlite.e2e.mjs` 63.) Engine: the **official SQLite WebAssembly build**
@@ -1449,6 +1463,8 @@ Nov 2026 (Equation Solver): `src/lib/exact.ts` + `src/lib/equations.ts` — exac
 (compiled big-number arithmetic, like JSON.parse or RegExp in this list): discriminants, elimination on at most 4 × 4,
 Newton's step with exact residuals. mathcore's exact fractions are 64-bit and overflow here; the iterations and the
 root search stay in mathcore.
+Nov 2026 (Find & Replace): `src/lib/findreplace.ts` — the pattern and the replacement as the browser's RegExp wants
+them (`docs/WASM-AUDIT.md`, tab 93: the same dialect as the Regex Tester); the search itself runs in the regex worker.
 Nov 2026 (Line Tools): `src/lib/linetools.ts` — split, trim, a `Set` for duplicates, reading a leading number, and
 `Array.sort` on the browser's `Intl.Collator` (compiled ICU, in the reader's language: `docs/WASM-AUDIT.md`, tab 92);
 the shuffle is crypto.wasm's and the line lengths are textkit.wasm's.

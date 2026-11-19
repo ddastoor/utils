@@ -126,7 +126,7 @@ Generated from `src/registry.ts` by `npm run docs` — do not edit by hand.
 | `wordcount` | Word Counter | PC + mobile | Words, characters, sentences, reading time. | word count, character count, letters, sentences, reading time, length, count words, how many words, … |
 | `case` | Case Converter | PC + mobile | UPPER, lower, Title, camelCase, snake_case… | case, uppercase, lowercase, title case, sentence case, camel, snake, kebab, … |
 | `lines` | Line Tools | PC + mobile | Sort, dedupe, trim, reverse, shuffle lines. | lines, sort, unique, dedupe, remove duplicates, trim, reverse, shuffle, … |
-| `replace` | Find & Replace | PC + mobile | Find and replace, with regex support. | replace text, replace word, bulk replace, find, replace, search, substitute, regex |
+| `replace` | Find & Replace | PC + mobile | Find and replace, with regex support. | replace text, replace word, bulk replace, find, replace, search, substitute, regex, … |
 | `diff` | Text Diff | PC + mobile | Compare two texts side by side. | diff, compare, difference, changes, text compare |
 | `fancy` | Fancy Text | PC + mobile | Stylish Unicode text for bios and posts. | fancy text, unicode, font, bold, italic, cursive, instagram, bio, … |
 | `emoji` | Emoji & Symbols | PC + mobile | Search and copy emoji and symbols. | emoji, symbols, characters, special characters, copy, arrows, currency, math |
