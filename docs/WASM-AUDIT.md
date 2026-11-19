@@ -295,3 +295,19 @@ One entry per tab, written before its bug hunt: our module → candidates → ch
 - **Size:** 1.65 MB (0.56 MB compressed) — Viz.js is 1.2 MB of JavaScript with the module inside, hpcc 0.8 MB.
 - **Suites re-run after the replacement:** unit 686, e2e 81 (the reference is the native tool: 3,464 drawings);
   lazy, shell, every-tab, no-external.
+
+### 56. `calc` — Scientific Calculator (19 Nov 2026)
+- **Our module:** mathcore.wasm — own C (`wasm/mathcore/mathcore.c`, 137 KB): the expression reader and evaluator
+  (`m_expr_*`), in doubles. The bc console beside it is BusyBox's bc (own build, tab `terminal`).
+- **Candidates** (npm registry search, downloads a month — `api.npmjs.org` is not reachable from here, the search
+  endpoint `registry.npmjs.org/-/v1/search?text=…` gives the same counts): WebAssembly calculators —
+  **fend-wasm-web 1.5.9** (1,739; the fend calculator, Rust), **libqalculate-wasm 0.0.6** (535), **@paddim8/kalk
+  3.2.3** (73), numbat (no package); **gmp-wasm 1.3.2** (1,541) is arithmetic without a reader of expressions.
+  JavaScript: mathjs 15.2 (22 M), expr-eval (2.1 M), decimal.js (551 M).
+- **Decision:** none of the WebAssembly candidates is a famous, tried-and-tested module (the ones this app uses are
+  three to five orders of magnitude more widely used; `@wasm-fmt/biome_fmt` was set aside at 2,500 a month) →
+  the rule's second step, a WebAssembly module of our own, which the tab already has; the JavaScript libraries
+  come after that in the owner's order. mathcore stays, and its faults were hunted with **mpmath** as the
+  independent reference (3,005 answers).
+- The same survey stands for the other calculator tabs that rest on mathcore (noted again in their entries).
+

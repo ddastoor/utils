@@ -9,8 +9,10 @@
  */
 #include <math.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <strings.h>
 
 #define API __attribute__((visibility("default")))
 
@@ -51,9 +53,11 @@ typedef struct { const char *name; double v; } ConstDef;
 static const ConstDef CONSTS[] = {{"pi", M_PI}, {"e", M_E}, {"tau", 2 * M_PI}, {"phi", 1.6180339887498948}, {"inf", INFINITY}};
 #define NCONSTS (int)(sizeof CONSTS / sizeof CONSTS[0])
 
-static int find_fn(const char *s, int n) { for (int i = 0; i < NFNS; i++) if ((int)strlen(FNS[i].name) == n && !strncmp(FNS[i].name, s, n)) return i; return -1; }
-static int find_const(const char *s, int n) { for (int i = 0; i < NCONSTS; i++) if ((int)strlen(CONSTS[i].name) == n && !strncmp(CONSTS[i].name, s, n)) return i; return -1; }
-static int find_var(const char *s, int n) { for (int i = 0; i < NVARS; i++) if ((int)strlen(VARS[i]) == n && !strncmp(VARS[i], s, n)) return i; return -1; }
+/* Names are matched without regard to case: a phone's keyboard writes "Sin(30)", and the keypad's key says "Ans". */
+static int same_name(const char *name, const char *s, int n) { return (int)strlen(name) == n && !strncasecmp(name, s, (size_t)n); }
+static int find_fn(const char *s, int n) { for (int i = 0; i < NFNS; i++) if (same_name(FNS[i].name, s, n)) return i; return -1; }
+static int find_const(const char *s, int n) { for (int i = 0; i < NCONSTS; i++) if (same_name(CONSTS[i].name, s, n)) return i; return -1; }
+static int find_var(const char *s, int n) { for (int i = 0; i < NVARS; i++) if (same_name(VARS[i], s, n)) return i; return -1; }
 
 /* ---- tokens */
 enum { T_END, T_NUM, T_FN, T_CONST, T_VAR, T_OP };
@@ -71,6 +75,10 @@ static char *normalise(const char *s, int len) {
         else if (u[0] == 0xC3 && i + 1 < len && u[1] == 0xB7) { o[j++] = '/'; i += 2; }
         else if (u[0] == 0xE2 && i + 2 < len && u[1] == 0x88 && u[2] == 0x92) { o[j++] = '-'; i += 3; }
         else if (u[0] == 0xE2 && i + 2 < len && u[1] == 0x88 && u[2] == 0x9A) { memcpy(o + j, " sqrt ", 6); j += 6; i += 3; }
+        else if (u[0] == 0xE2 && i + 2 < len && u[1] == 0x88 && u[2] == 0x9B) { memcpy(o + j, " cbrt ", 6); j += 6; i += 3; }   /* ∛ */
+        else if (u[0] == 0xE2 && i + 2 < len && u[1] == 0x88 && u[2] == 0x9E) { memcpy(o + j, " inf ", 5); j += 5; i += 3; }    /* ∞ */
+        else if (u[0] == 0xC2 && i + 1 < len && u[1] == 0xB7) { o[j++] = '*'; i += 2; }                                          /* · */
+        else if (u[0] == 0xE2 && i + 2 < len && u[1] == 0x8B && u[2] == 0x85) { o[j++] = '*'; i += 3; }                          /* ⋅ */
         else if (u[0] == 0xCF && i + 1 < len && u[1] == 0x80) { memcpy(o + j, " pi ", 4); j += 4; i += 2; }
         else if (u[0] == 0xC2 && i + 1 < len && u[1] == 0xB2) { memcpy(o + j, "^2", 2); j += 2; i += 2; }
         else if (u[0] == 0xC2 && i + 1 < len && u[1] == 0xB3) { memcpy(o + j, "^3", 2); j += 2; i += 2; }
@@ -92,7 +100,7 @@ static int lex_ident(Toks *ts, const char *s, int n) {
             if (c >= 0) { best = l; kind = T_CONST; idx = c; break; }
             if (v >= 0) { best = l; kind = T_VAR; idx = v; break; }
         }
-        if (!best) { set_err("Unknown name in expression"); return 0; }
+        if (!best) { char m[160]; snprintf(m, sizeof m, "Unknown name: %.*s", n - i > 40 ? 40 : n - i, s + i); set_err(m); return 0; }
         Tok k = {kind, 0, idx, 0};
         push_tok(ts, k);
         i += best;
@@ -108,7 +116,7 @@ static int lex(Toks *ts, const char *s) {
             char *end;
             double v = strtod(s + i, &end);
             /* strtod accepts hex/inf; we only allow decimal forms */
-            int j = i; while ((s[j] >= '0' && s[j] <= '9') || s[j] == '.') j++;
+            int j = i, dots = 0; while ((s[j] >= '0' && s[j] <= '9') || (s[j] == '.' && !dots++)) j++;   /* one decimal point: "1.2.3" is not 1.2 */
             if (s[j] == 'e' || s[j] == 'E') { int k = j + 1; if (s[k] == '+' || s[k] == '-') k++; if (s[k] >= '0' && s[k] <= '9') { while (s[k] >= '0' && s[k] <= '9') k++; j = k; } }
             if (end > s + j) end = (char *)s + j;
             v = strtod(s + i, NULL);
@@ -141,7 +149,9 @@ static int lex(Toks *ts, const char *s) {
 }
 
 /* ---- parser → bytecode */
-typedef struct { Toks *ts; int p; Prog *pr; int err; } P;
+typedef struct { Toks *ts; int p; Prog *pr; int err; int depth; } P;
+#define MAXDEPTH 100   /* brackets, signs and functions inside one another; the evaluation stack holds 256 values */
+static int deeper(P *ps) { if (ps->err) return 0; if (++ps->depth > MAXDEPTH) { set_err("Nested too deeply: more than 100 brackets, signs or functions inside one another"); ps->err = 1; return 0; } return 1; }
 static void emit(P *ps, Ins in) { Prog *pr = ps->pr; if (pr->n == pr->cap) { pr->cap = pr->cap ? pr->cap * 2 : 64; pr->code = realloc(pr->code, pr->cap * sizeof(Ins)); } pr->code[pr->n++] = in; }
 static Tok *pk(P *ps) { return &ps->ts->t[ps->p]; }
 static int is_op(P *ps, char c) { Tok *t = pk(ps); return t->t == T_OP && t->op == c; }
@@ -156,13 +166,14 @@ static void primary(P *ps) {
     if (t->t == T_NUM) { ps->p++; Ins in = {OP_NUM, 0, 0, t->v}; emit(ps, in); return; }
     if (t->t == T_CONST) { ps->p++; Ins in = {OP_NUM, 0, 0, CONSTS[t->idx].v}; emit(ps, in); return; }
     if (t->t == T_VAR) { ps->p++; Ins in = {OP_VAR, (uint8_t)t->idx, 0, 0}; emit(ps, in); return; }
-    if (t->t == T_OP && t->op == '(') { ps->p++; expr(ps); if (!is_op(ps, ')')) { set_err("Missing )"); ps->err = 1; return; } ps->p++; return; }
+    if (t->t == T_OP && t->op == '(') { ps->p++; expr(ps); if (ps->err) return; if (!is_op(ps, ')')) { set_err("Missing )"); ps->err = 1; return; } ps->p++; return; }
     if (t->t == T_FN) {
         int f = t->idx; ps->p++;
         int nargs = 0;
         if (is_op(ps, '(')) {
             ps->p++;
-            if (!is_op(ps, ')')) { expr(ps); nargs++; while (is_op(ps, ',')) { ps->p++; expr(ps); nargs++; } }
+            if (!is_op(ps, ')')) { expr(ps); nargs++; while (!ps->err && is_op(ps, ',')) { ps->p++; expr(ps); nargs++; } }
+            if (ps->err) return;
             if (!is_op(ps, ')')) { set_err("Missing )"); ps->err = 1; return; }
             ps->p++;
         } else { unary(ps); nargs = 1; }
@@ -188,15 +199,21 @@ static void power(P *ps) {
     if (!ps->err && is_op(ps, '^')) { ps->p++; unary(ps); Ins in = {OP_POW, 0, 0, 0}; emit(ps, in); }
 }
 static void unary(P *ps) {
-    if (is_op(ps, '-')) { ps->p++; unary(ps); Ins in = {OP_NEG, 0, 0, 0}; emit(ps, in); return; }
-    if (is_op(ps, '+')) { ps->p++; unary(ps); return; }
-    power(ps);
+    if (!deeper(ps)) return;
+    if (is_op(ps, '-')) { ps->p++; unary(ps); Ins in = {OP_NEG, 0, 0, 0}; emit(ps, in); }
+    else if (is_op(ps, '+')) { ps->p++; unary(ps); }
+    else power(ps);
+    ps->depth--;
 }
 static void term(P *ps) {
     unary(ps);
     while (!ps->err) {
         if (is_op(ps, '*') || is_op(ps, '/')) { char op = pk(ps)->op; ps->p++; unary(ps); Ins in = {op == '*' ? OP_MUL : OP_DIV, 0, 0, 0}; emit(ps, in); }
-        else if (starts_factor(ps)) { power(ps); Ins in = {OP_MUL, 0, 0, 0}; emit(ps, in); }
+        else if (starts_factor(ps)) {
+            /* things written side by side are multiplied (2π, 3(4+1), 2 sin 30) — but not two numbers: "2 3", "1.2.3" */
+            if (pk(ps)->t == T_NUM && ps->p > 0 && ps->ts->t[ps->p - 1].t == T_NUM) { set_err("A sign is missing between two numbers"); ps->err = 1; return; }
+            power(ps); Ins in = {OP_MUL, 0, 0, 0}; emit(ps, in);
+        }
         else break;
     }
 }
@@ -206,7 +223,13 @@ static void expr(P *ps) {
        b% anywhere else is b/100 (50% × 30 = 15). Only a term that ends in a bare % counts. */
     while (!ps->err && (is_op(ps, '+') || is_op(ps, '-'))) {
         char op = pk(ps)->op; ps->p++; term(ps);
-        int pct = !ps->err && ps->pr->n && ps->pr->code[ps->pr->n - 1].op == OP_PCT;
+        /* bare: the term is a value with a % behind it, with or without a sign in front (10%, -10%, 5!%) — its last
+           sign on the line is the % itself. (10%) in brackets, 5×10% and sin 30% are ordinary values. */
+        int pct = 0;
+        if (!ps->err && ps->p > 0 && ps->ts->t[ps->p - 1].t == T_OP && ps->ts->t[ps->p - 1].op == '%') {
+            int i = ps->pr->n - 1; while (i >= 0 && ps->pr->code[i].op == OP_NEG) i--;
+            pct = i >= 0 && ps->pr->code[i].op == OP_PCT;
+        }
         Ins in = {pct ? (op == '+' ? OP_ADDP : OP_SUBP) : (op == '+' ? OP_ADD : OP_SUB), 0, 0, 0}; emit(ps, in);
     }
 }
@@ -232,37 +255,125 @@ API int m_expr_compile(const char *src, int len, int deg) {
 }
 API void m_expr_free(int h) { if (h >= 1 && h <= MAXPROG && progs[h - 1]) { free(progs[h - 1]->code); free(progs[h - 1]); progs[h - 1] = NULL; } }
 
+/* ---- trigonometry that gives the values people expect at the round angles
+   Degrees: the angle is reduced to 0…90 exactly (fmod is exact), so sin 180° and cos 90° are 0, not 1.2e-16.
+   Radians: π is not a double; sin(M_PI) = 1.2e-16 is the sine of a number that is not quite π. A result that is
+   smaller than the gap between x and the next double cannot be told from 0 — it is the echo of x's own rounding —
+   and is given as 0 (sin(π), sin(100π), cos(π/2)); anything larger is left alone (sin(1e-20) stays 1e-20). */
+static double sind(double a) {
+    if (!isfinite(a)) return NAN;
+    double r = fmod(a, 360.0), sg = 1;
+    if (r < 0) { r = -r; sg = -1; }
+    if (r >= 180) { r -= 180; sg = -sg; }
+    if (r > 90) r = 180 - r;
+    if (r == 0) return 0;
+    if (r == 30) return sg * 0.5;
+    if (r == 90) return sg;
+    return sg * (r > 45 ? cos((90 - r) * (M_PI / 180.0)) : sin(r * (M_PI / 180.0)));
+}
+static double cosd(double a) {
+    if (!isfinite(a)) return NAN;
+    double r = fmod(fabs(a), 360.0), sg = 1;
+    if (r > 180) r = 360 - r;
+    if (r > 90) { r = 180 - r; sg = -1; }
+    if (r == 90) return 0;
+    if (r == 60) return sg * 0.5;
+    if (r == 0) return sg;
+    return sg * (r > 45 ? sin((90 - r) * (M_PI / 180.0)) : cos(r * (M_PI / 180.0)));
+}
+static double gap(double x) { x = fabs(x); return nextafter(x, INFINITY) - x; }
+static double sinr(double x) { double v = sin(x); return fabs(v) <= gap(x) && fabs(x) > 1 ? 0 : v; }
+static double cosr(double x) { double v = cos(x); return fabs(v) <= gap(x) && fabs(x) > 1 ? 0 : v; }
+static double zdiv(double p, double q) { return q == 0 ? NAN : p / q; }   /* tan 90°, sec 90°, cot 0: not defined */
+
+/* a^b. A negative number has a real power when the exponent is a fraction with an odd denominator:
+   (-8)^(1/3) = -2, (-8)^(2/3) = 4 — as calculators that know fractions give it. pow() alone says NaN. */
+static double power_fn(double a, double b) {
+    if (a < 0 && isfinite(a) && isfinite(b) && b != floor(b)) {
+        for (int q = 3; q <= 999; q += 2) {
+            double p = b * q, pr = round(p);
+            if (fabs(p - pr) <= 1e-12 * (fabs(p) > 1 ? fabs(p) : 1)) return (fmod(pr, 2) != 0 ? -1 : 1) * pow(-a, b);
+        }
+    }
+    return pow(a, b);
+}
+/* choices of k from n, and arrangements: by multiplying, so that nCr(200, 2) is not ∞ / ∞.
+   For whole numbers k > n gives 0; other arguments go through the gamma function. */
+static double ncr(double n, double k) {
+    if (n != floor(n) || k != floor(k) || n < 0) return gamma_fn(n + 1) / (gamma_fn(k + 1) * gamma_fn(n - k + 1));
+    if (k < 0 || k > n) return 0;
+    if (k > n - k) k = n - k;
+    if (k > 1e7) return NAN;
+    double r = 1;
+    for (double i = 1; i <= k; i++) { r = r * (n - k + i) / i; if (!isfinite(r)) break; }
+    return r < 9007199254740992.0 ? round(r) : r;
+}
+static double npr(double n, double k) {
+    if (n != floor(n) || k != floor(k) || n < 0) return gamma_fn(n + 1) / gamma_fn(n - k + 1);
+    if (k < 0 || k > n) return 0;
+    if (k > 1e7) return INFINITY;
+    double r = 1;
+    for (double i = 0; i < k; i++) { r *= n - i; if (!isfinite(r)) break; }
+    return r;
+}
+
 static double call_fn(int f, int n, double a, double b, int deg) {
-    double k = deg ? M_PI / 180.0 : 1.0, ik = deg ? 180.0 / M_PI : 1.0;
+    double ik = deg ? 180.0 / M_PI : 1.0;
     switch (f) {
-    case 0: return sin(a * k);
-    case 1: return cos(a * k);
-    case 2: if (deg && fabs(fmod(fmod(a, 180) + 180, 180) - 90) < 1e-12) return NAN; return tan(a * k);
+    case 0: return deg ? sind(a) : sinr(a);
+    case 1: return deg ? cosd(a) : cosr(a);
+    case 2: {
+        if (!deg) return zdiv(sinr(a), cosr(a));
+        double r = fmod(a, 180.0); if (r < 0) r += 180;
+        return r == 45 ? 1 : r == 135 ? -1 : zdiv(sind(a), cosd(a));
+    }
     case 3: return asin(a) * ik;
     case 4: return acos(a) * ik;
     case 5: return atan(a) * ik;
     case 6: return atan2(a, b) * ik;
     case 7: return sinh(a); case 8: return cosh(a); case 9: return tanh(a);
-    case 10: return asinh(a); case 11: return acosh(a); case 12: return atanh(a);
-    case 13: return 1 / cos(a * k); case 14: return 1 / sin(a * k); case 15: return 1 / tan(a * k);
-    case 16: return log(a);
-    case 17: return n == 2 ? log(a) / log(b) : log10(a);
-    case 18: return log10(a); case 19: return log2(a); case 20: return exp(a);
+    case 10: return asinh(a); case 11: return acosh(a); case 12: return fabs(a) == 1 ? NAN : atanh(a);
+    case 13: return zdiv(1, deg ? cosd(a) : cosr(a));
+    case 14: return zdiv(1, deg ? sind(a) : sinr(a));
+    case 15: return deg ? zdiv(cosd(a), sind(a)) : zdiv(cosr(a), sinr(a));
+    case 16: return a == 0 ? NAN : log(a);            /* the logarithm of 0 is not defined (not "−∞") */
+    case 17: {
+        if (a == 0) return NAN;
+        if (n != 2) return log10(a);
+        /* log(a, b): when a is a whole power of b the answer is that whole number (log(125, 5) = 3, not 3.0000000000000004) */
+        double r = log(a) / log(b), k = round(r);
+        return fabs(r - k) < 1e-9 && pow(b, k) == a ? k : r;
+    }
+    case 18: return a == 0 ? NAN : log10(a); case 19: return a == 0 ? NAN : log2(a); case 20: return exp(a);
     case 21: return sqrt(a); case 22: return cbrt(a);
-    case 23: return (a < 0 && fmod(b, 2) == 1) ? -pow(-a, 1 / b) : pow(a, 1 / b);
+    case 23: return b == 0 ? NAN : (a < 0 && fabs(fmod(b, 2)) == 1) ? -pow(-a, 1 / b) : pow(a, 1 / b);   /* root(a, b): the b-th root of a */
     case 24: return fabs(a); case 25: return floor(a); case 26: return ceil(a);
-    case 27: { double f10 = n == 2 ? pow(10, b) : 1; return round(a * f10) / f10; }
+    case 27: {
+        /* round(a, b decimals): the number as it is written with 15 digits is rounded, half away from zero —
+           round(1.005, 2) = 1.01, though the double nearest 1.005 lies a hair below it */
+        double f10 = n == 2 ? pow(10, round(b)) : 1, t = a * f10; char buf[40];
+        if (!isfinite(t)) return t;
+        snprintf(buf, sizeof buf, "%.15g", t);
+        return round(strtod(buf, NULL)) / f10;
+    }
     case 28: return trunc(a); case 29: return (a > 0) - (a < 0);
     case 30: return a < b ? a : b; case 31: return a > b ? a : b; case 32: return hypot(a, b);
     case 33: return fmod(fmod(a, b) + b, b);
     case 34: return factorial(a); case 35: return gamma_fn(a);
-    case 36: return factorial(a) / factorial(a - b);
-    case 37: return round(factorial(a) / (factorial(b) * factorial(a - b)));
+    case 36: return npr(a, b);
+    case 37: return ncr(a, b);
     case 38: return gcd_d(a, b);
     case 39: { double g = gcd_d(a, b); return g ? fabs(a * b) / g : 0; }
     }
     return NAN;
 }
+
+/* Why the last m_expr_eval has no real result: 0 nothing to say, 1 a division by zero, 2 outside what a function is
+   defined for (√ or log of a negative number, asin 2, tan 90°, (-8)^0.5 …). The first cause is kept. */
+enum { WHY_NONE, WHY_DIV0, WHY_DOMAIN };
+static int g_why;
+API int m_expr_why(void) { return g_why; }
+static double undefined(int why) { if (!g_why) g_why = why; return NAN; }
 
 static double run(Prog *pr, const double *vars) {
     double st[256];
@@ -275,16 +386,27 @@ static double run(Prog *pr, const double *vars) {
         case OP_ADD: sp--; st[sp - 1] += st[sp]; break;
         case OP_SUB: sp--; st[sp - 1] -= st[sp]; break;
         case OP_MUL: sp--; st[sp - 1] *= st[sp]; break;
-        case OP_DIV: sp--; st[sp - 1] /= st[sp]; break;
-        case OP_POW: sp--; st[sp - 1] = pow(st[sp - 1], st[sp]); break;
+        /* a division by zero is not a number here (1 ÷ 0 is refused, as calculators do — and 5 ÷ (1 ÷ 0) is not 0) */
+        case OP_DIV: sp--; st[sp - 1] = st[sp] == 0 && !isnan(st[sp - 1]) ? undefined(WHY_DIV0) : st[sp - 1] / st[sp]; break;
+        case OP_POW: {
+            sp--; double a = st[sp - 1], b = st[sp];
+            if (a == 0 && b < 0) st[sp - 1] = undefined(WHY_DIV0);
+            else { double r = power_fn(a, b); st[sp - 1] = isnan(r) && !isnan(a) && !isnan(b) ? undefined(WHY_DOMAIN) : r; }
+            break;
+        }
         case OP_NEG: st[sp - 1] = -st[sp - 1]; break;
-        case OP_FACT: st[sp - 1] = factorial(st[sp - 1]); break;
+        case OP_FACT: { double a = st[sp - 1], r = factorial(a); st[sp - 1] = isnan(r) && !isnan(a) ? undefined(WHY_DOMAIN) : r; break; }
         case OP_PCT: st[sp - 1] /= 100.0; break;
         case OP_ADDP: sp--; st[sp - 1] += st[sp - 1] * st[sp]; break;
         case OP_SUBP: sp--; st[sp - 1] -= st[sp - 1] * st[sp]; break;
         case OP_CALL:
-            if (in->nargs == 2) { sp--; st[sp - 1] = call_fn(in->arg, 2, st[sp - 1], st[sp], pr->deg); }
-            else st[sp - 1] = call_fn(in->arg, 1, st[sp - 1], 0, pr->deg);
+            {
+                double a, b = 0, r;
+                if (in->nargs == 2) { sp--; b = st[sp]; }
+                a = st[sp - 1];
+                r = call_fn(in->arg, in->nargs == 2 ? 2 : 1, a, b, pr->deg);
+                st[sp - 1] = isnan(r) && !isnan(a) && !isnan(b) ? undefined(in->arg == 33 && b == 0 ? WHY_DIV0 : WHY_DOMAIN) : r;
+            }
             break;
         }
         if (sp >= 250) return NAN;
@@ -294,6 +416,7 @@ static double run(Prog *pr, const double *vars) {
 
 /* vars: x, y, z, t, ans */
 API double m_expr_eval(int h, double x, double y, double z, double t, double ans) {
+    g_why = WHY_NONE;
     if (h < 1 || h > MAXPROG || !progs[h - 1]) return NAN;
     double v[NVARS] = {x, y, z, t, ans};
     return run(progs[h - 1], v);
@@ -312,6 +435,7 @@ API int m_expr_uses(int h, int idx) {
 }
 
 static double gamma_fn(double z) {
+    if (z <= 0 && z == floor(z)) return NAN;          /* the poles: Γ(0), Γ(-1), … */
     if (z < 0.5) return M_PI / (sin(M_PI * z) * gamma_fn(1 - z));
     z -= 1;
     static const double c[] = {0.99999999999980993, 676.5203681218851, -1259.1392167224028, 771.32342877765313, -176.61502916214059,
@@ -319,12 +443,12 @@ static double gamma_fn(double z) {
     double x = c[0];
     for (int i = 1; i < 9; i++) x += c[i] / (z + i);
     double t = z + 7.5;
-    return sqrt(2 * M_PI) * pow(t, z + 0.5) * exp(-t) * x;
+    double half = pow(t, (z + 0.5) / 2);              /* t^(z+½) in two halves: it alone overflows from Γ(171) on, the product does not */
+    return sqrt(2 * M_PI) * half * exp(-t) * half * x;
 }
 static double factorial(double n) {
-    if (n < 0) return NAN;
-    if (n == floor(n)) { if (n > 170) return INFINITY; double r = 1; for (int i = 2; i <= (int)n; i++) r *= i; return r; }
-    return gamma_fn(n + 1);
+    if (n == floor(n)) { if (n < 0) return NAN; if (n > 170) return INFINITY; double r = 1; for (int i = 2; i <= (int)n; i++) r *= i; return r; }
+    return gamma_fn(n + 1);   /* x! = Γ(x + 1), also for negative numbers that are not whole: (-0.5)! = √π */
 }
 
 /* ======================================================================== root finding */

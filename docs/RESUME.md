@@ -69,9 +69,16 @@ what those suites missed.
 - **Found during the audit and fixed:** our jq build showed local time as UTC → `wasm/jq/hosttz.c` + the shared
   `tzInfoImport` (891 reference cases from the native jq 1.8.2 in 27 zones; Python's `time.mktime` on clock-change
   nights corrected by the same host code).
-- **NEXT:** the complete `npm test` + `npm run build && node tests/e2e.mjs` for the data-engines area (all its
-  tabs are done now), then **calc-core** → calc2-math → text → … as listed below; per tab: the existing-module check
-  with its entry in `docs/WASM-AUDIT.md` first, then bugs, tests, fixes.
+- **Complete suites after the data-engines area (19 Nov):** `npm test` 18,334 / 18,334; `node tests/e2e.mjs`
+  4,976 of 4,977 in 188 suites — the one failure was a stale expectation in `json.e2e.mjs` (corrected).
+- **NOW: area calc-core** (18 tabs: calc, units, dates, emi, gst, sip, fd, percent, words, timezone, bmi, calories,
+  duedate, tip, fuel, gpa, base, roman — `src/tools/calc.ts`, `src/tools/calculators.ts`, engine mathcore).
+  **`calc` (tab 56) is DONE** (21 bugs; unit `calc.test.mjs` 243 with mpmath as reference, e2e 140; CLAUDE.md §3
+  "Scientific Calculator as built"). **NEXT: `units`**, then the rest of the list in that order; per tab: the
+  existing-module check with its entry in `docs/WASM-AUDIT.md` first (the survey of entry 56 covers calculators:
+  no tried-and-tested WebAssembly calculator exists), then bugs, tests, fixes. Reference tools at hand: mpmath
+  (`pip install mpmath`), Python's `decimal` / `fractions` / `datetime` / `zoneinfo`.
+  After calc-core: calc2-math → text → … as listed below.
 - **Graphviz (tab 55, `graphviz`): DONE (19 Nov 2026).** Existing modules first (`docs/WASM-AUDIT.md` entry 55):
   Viz.js 3.31 and @hpcc-js/wasm-graphviz 1.30 both **trap on valid graphs** (an upstream fault in `storeline()`: a
   label whose first line is empty), so the tab keeps a build of our own — now **Graphviz 16.1.0** from the official
@@ -143,6 +150,7 @@ what those suites missed.
   Running total: **51 of 176 tabs reviewed, 333 bugs fixed, 14,702 checks added** (+ shell).
   After `sqlite`, `sqlfmt` and `prettier` (19 Nov 2026): **54 of 176 tabs reviewed, 393 bugs fixed, 16,274 checks added**.
   After `graphviz` (19 Nov 2026): **55 of 176 tabs reviewed, 415 bugs fixed, 16,986 checks added** — the data-engines area is complete.
+  After `calc` (19 Nov 2026): **56 of 176 tabs reviewed, 436 bugs fixed, 17,294 checks added**.
   Python build tree for quick rebuilds (lost when the container is reclaimed; `wasm/python/build.sh` recreates it in
   ≈ 10 min): `/tmp/pyb3` (`native/python` = the reference interpreter; `rezip.sh` rebuilds only python314.zip).
   After any rebuild: `python3 scripts/make-tzabbr.py` and `<native python> scripts/make-python-reference.py`.

@@ -541,6 +541,32 @@ cooking), **Dates** (difference, add/subtract, age, weekday), **Finance – Indi
 GST add/remove at 5/12/18/28%, SIP, FD/RD compound, percentage, number to words in lakh/crore and
 international), **Time zones** (convert a time between zones via `Intl`).
 
+**Scientific Calculator as built after the Nov 2026 bug hunt** (`src/tools/calc.ts`, text helpers `src/lib/calc-text.ts`,
+engine `wasm/mathcore` `m_expr_*`; unit `tests/unit/calc.test.mjs` 243 — 3,005 answers of **mpmath at 50 digits** and
+Python's exact integers, `scripts/make-calc-reference.py` (needs `pip install mpmath`) → `tests/fixtures/calc/reference.json`;
+e2e `tests/e2e/calc.e2e.mjs` 140):
+- **Answers people expect at round values:** degrees are reduced to 0…90 exactly (sin 180° = 0, cos 90° = 0, tan 45° = 1);
+  in radians a result smaller than the gap between x and the next double is 0 (sin π, cos π/2); tan / sec / csc / cot at
+  a pole are refused. (−8)^(1/3) = −2: a negative number has a real power when the exponent is a fraction with an odd
+  denominator. nCr / nPr by multiplying (nCr(200, 2) = 19900; k > n gives 0); x! = Γ(x + 1) also for negative
+  non-whole x; round(x, n) rounds the decimal as written (round(1.005, 2) = 1.01); log(125, 5) = 3 exactly.
+- **What has no answer is refused with its reason** and the expression stays, the history and Ans untouched: a
+  division by zero (also 0^−1, mod(a, 0), and inside: 5 ÷ (1 ÷ 0) is not 0), no real result (√ / log of a negative
+  number, log 0, asin 2, a pole), too large (beyond 1.8 × 10^308). ∞ is an answer only when ∞ was typed.
+- **Reading:** names in any case (Sin, PI, Ans); × ÷ − · √ ∛ π ² ³ ∞ and `**`; things side by side are multiplied (2π,
+  3(4+1), 2 sin 30) but two numbers are not ("2 3", "1.2.3" → "A sign is missing between two numbers"); a letter x
+  between two operands is × ("2x3"), any other letter is an unknown name (this tab has no unknowns — the graphing
+  tab does); at most 100 brackets / signs / functions inside one another; commas in numbers get a hint.
+  Percent: `a + b%` / `a − b%` add or take off b % of a only when the term is a bare value with % (10%, −10%);
+  `(10%)`, `5×10%` are ordinary values.
+- **Display (`fmtNum`, shared with the Math tabs):** whole numbers up to 2^53 digit for digit; otherwise 12
+  significant digits (15 from 10^11 on), which hides binary noise; beyond that ten digits and an exponent.
+- **Going on from a result is exact:** after "=" the box shows the rounded result, `Ans` holds it exactly; an
+  operator (key, keyboard or paste) continues from `ans`, a digit or name starts anew; "=" again changes nothing;
+  ±, 1/x and M+ work on the exact value; MR puts back all digits when the rounded form would be another number; a
+  history row brings back its expression together with the Ans it was worked out with. Copy result copies the
+  result (also of an expression not yet worked out).
+
 ### Text & Dev
 Word/char/line/reading-time counts; case conversion (UPPER, lower, Title, Sentence, camel, snake, kebab);
 sort/dedupe/trim/reverse lines; find & replace (regex); diff two texts (Myers line + word diff);
@@ -1213,7 +1239,12 @@ minimising |f|), quadratic/cubic, det/inverse/matmul/rank/linear solve, statisti
 detection; "2/3" without spaces is one fraction, so 1/3 ÷ 2/3 = 1/2), arbitrary-length base conversion, Roman numerals, number→words (Indian + international), finance
 (EMI, amortisation, SIP, FD/RD, PPF, EPF, NPS, prepayment), health (BMI, BMR, body fat, ideal weight), haversine,
 colour (RGB ⇄ HSL ⇄ OKLCH, WCAG luminance / contrast, and `m_color` op 5: OKLCH → sRGB with the CSS Color 4 gamut mapping).
-`wasm/mathcore/build.sh` (exports every `API m_*` function). TS wrapper: `src/wasm/mathcore.ts` (`bindMathcore`
+`wasm/mathcore/build.sh` (exports every `API m_*` function). Expression engine since Nov 2026 (details in §3
+"Scientific Calculator as built"): names without regard to case, one decimal point per number, no implicit product of
+two numbers, nesting limit 100, exact trigonometry at round angles (`sind` / `cosd`, the "gap" rule in radians),
+`power_fn` (real powers of negatives), `ncr` / `npr` by multiplying, Γ without overflow up to 171 and NaN at its poles,
+divisions by zero and undefined values as NaN with a reason (`m_expr_why`: 1 division by zero, 2 outside the
+function's domain — the graphing tab draws a gap there), decimal `round`, the bare-percent rule. TS wrapper: `src/wasm/mathcore.ts` (`bindMathcore`
 works in the browser and in Node tests). Tests: `tests/unit/mathcore.test.mjs` (~150 known-answer checks).
 
 ### 5.1c metacore → `src/wasm/bin/metacore.wasm`

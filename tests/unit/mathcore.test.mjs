@@ -10,7 +10,7 @@ export default async (t, { load, wasm }) => {
     ['log(8,2)', '3'], ['nCr(5,2)', '10'], ['nPr(5,2)', '20'], ['10÷4', '2.5'], ['6×7', '42'], ['7−2', '5'], ['1e3+1', '1001'], ['abs(-3)', '3'],
     ['(2)(3)', '6'], ['2 sqrt 9', '6'], ['gcd(12,18)', '6'], ['lcm(4,6)', '12'], ['0.5!', fmtNum(Math.sqrt(Math.PI) / 2)], ['π', fmtNum(Math.PI)],
     ['3²', '9'], ['2³', '8'], ['2**10', '1024'], ['mod(-7,3)', '2'], ['round(2.567,2)', '2.57'], ['hypot(3,4)', '5'], ['root(27,3)', '3'], ['root(-8,3)', '-2'],
-    ['cbrt(-27)', '-3'], ['1/0', '∞'], ['sinh(0)', '0'], ['atan2(1,1)', fmtNum(Math.PI / 4)], ['e^2', fmtNum(Math.E ** 2)], ['tau/2', fmtNum(Math.PI)], ['log10(100)', '2'], ['log2(8)', '3'], ['x2', '6'],
+    ['cbrt(-27)', '-3'], ['1/0', 'Error'] /* a division by zero is refused since Nov 2026 (tests/unit/calc.test.mjs) */, ['10^400', '∞'], ['sinh(0)', '0'], ['atan2(1,1)', fmtNum(Math.PI / 4)], ['e^2', fmtNum(Math.E ** 2)], ['tau/2', fmtNum(Math.PI)], ['log10(100)', '2'], ['log2(8)', '3'], ['x2', '6'],
   ];
   for (const [s, want] of cases) { let got; try { got = ev(s); } catch (e) { got = 'ERR ' + e.message; } t.eq(got, want, `expr ${s}`); }
   t.eq(ev('sin(30)', { deg: true }), '0.5', 'sin 30°');

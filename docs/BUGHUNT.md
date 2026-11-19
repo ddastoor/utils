@@ -80,7 +80,7 @@ Areas with a shared review: the app shell (router, search, favorites, platform h
 ## calculators
 | id | Tab | Platform | Area | R | B | T | Notes |
 |---|---|---|---|---|---|---|---|
-| `calc` | Scientific Calculator | PC + mobile | calc-core |  |  |  |  |
+| `calc` | Scientific Calculator | PC + mobile | calc-core | ✓ | 21 | 308 | engine kept (WASM-AUDIT 56: no tried-and-tested wasm calculator); reference mpmath at 50 digits for 3,005 expressions; exact round angles, whole numbers digit for digit, exact chaining through Ans, refusals with reasons |
 | `units` | Unit Converter | PC + mobile | calc-core |  |  |  |  |
 | `dates` | Date Calculator | PC + mobile | calc-core |  |  |  |  |
 | `emi` | EMI Calculator | PC + mobile | calc-core |  |  |  |  |
@@ -643,3 +643,28 @@ reference cases.
   Found beside the tab: a failed output format left its job in Graphviz's list and the next format ended in exit(1)
   (glue; cleared now); native Graphviz 16.1.0 itself aborts on two of the hazard graphs (`splines=ortho` with a loop
   in circo / twopi; an HTML name beside a plain name with the same text in fdp) — recorded, the tool's to repair.
+
+### Calculators › calc-core (19 Nov 2026, in progress)
+- **calc** — Scientific Calculator (21 bugs; unit 0 → 243 of its own, e2e 76 → 140). Engine kept
+  (`docs/WASM-AUDIT.md` tab 56: no tried-and-tested WebAssembly calculator exists). Reference: **mpmath at 50 digits**
+  and Python's exact integers for 3,005 expressions — every function over a grid in degrees and radians, 1,500
+  random expressions written with as few brackets as the grammar needs, 135 written cases — each checked for its
+  value (12 digits) *and* for being displayed as the exact answer is displayed.
+  What was wrong: (1) **sin 180° = 1.224646799e-16**, cos 90° = 6.1e-17, sec 90° = 1.6e16, and the same in radians at
+  π; (2) **whole numbers beyond 12 digits came out wrong**: 2^40 = 1099511627780 (…776), 1234567² = …490 (…489);
+  999999999999.9 was shown as 1000000000000; (3) **1 ÷ 3 = , × 3 = gave 0.999999999999** — going on from a result
+  used its rounded text; (4) nCr(200, 2) and nPr(200, 2) were "Error" (∞ / ∞), nCr(5, 7) too; (5) **"1.2.3" was
+  1.2**, "1e5.5" was 50000 and "2 3" was 6; (6) **"2x3" was 0** and "2y" was 0 — letters were unknowns worth 0;
+  (7) Sin(30), PI and Ans typed with capitals were unknown names; (8) a result without a real value wiped the
+  typed expression, went into the history as "Error" and made Ans useless; (9) ± after the keypad's − piled up
+  brackets; (10) (−8)^(1/3) and root(−8, −3) were "Error", root(8, 0) was ∞; (11) deep nesting answered "Maximum
+  call stack size exceeded"; (12) **1 ÷ 0 was ∞ and 5 ÷ (1 ÷ 0) was 0**, ln 0 was −∞, an overflow was the
+  result "inf"; (13) 200 + (10%) was 220 and 200 + −10% was 199.9; (14) a digit typed on the keyboard after "="
+  was appended to the result (the digit keys started anew); (15) Copy result copied the expression; (16) MR put
+  back a rounded number; (17) (−0.5)! was "Error", Γ(170 … 171.6) was ∞, Γ(0) was ∞; (18) round(1.005, 2) was 1,
+  log(125, 5) was 3.0000000000000004 inside floor / ceil; (19) "Unknown name in expression" did not say which,
+  "1,000" was "Unexpected symbol after expression"; (20) "=" pressed twice replaced the exact result by its
+  rounded text; (21) a history row with Ans was worked out again with the latest Ans.
+  Beside it: the JSON Formatter's e2e suite still expected an older wording of one message (found by the complete
+  run after the data-engines area: 4,976 of 4,977; corrected).
+

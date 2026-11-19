@@ -36,7 +36,7 @@ export default async (ctx) => {
   await set('{"text":"नमस्ते \\u00e9 😀","esc":"line\\nbreak \\"quoted\\""}');
   ok(JSON.parse(await out.inputValue()).text === 'नमस्ते é 😀' && (await out.inputValue()).includes('\\u00e9') && JSON.parse(await out.inputValue()).esc === 'line\nbreak "quoted"', 'Unicode and escapes preserved as typed');
   // mistakes: what, where, and the spot can be selected
-  const E = [['{"a": 1,\n "b": }', /Unexpected “}”/, 2, 7], ['{"a":1,}', /Trailing comma before }/, 1, 8], ['[1, 2', /ends inside an array — a ] is missing/, 1, 6], ["{'a':1}", /double quotes \("\), not single quotes/, 1, 2], ['{"a":1} x', /Unexpected “x” after the end/, 1, 9],
+  const E = [['{"a": 1,\n "b": }', /A value is missing after the colon/, 2, 7], ['{"a":1,}', /Trailing comma before }/, 1, 8], ['[1, 2', /ends inside an array — a ] is missing/, 1, 6], ["{'a':1}", /double quotes \("\), not single quotes/, 1, 2], ['{"a":1} x', /Unexpected “x” after the end/, 1, 9],
     ['{a:1}', /Object keys must be in double quotes/, 1, 2], ['[1 2]', /is a comma missing/, 1, 4], ['{"a":tru}', /“tru” is not a JSON value/, 1, 6], ['[undefined]', /JSON has no undefined/, 1, 2], ['[01]', /leading zeros/, 1, 2], ['["a\nb"]', /line break inside a string/, 1, 4],
     ['// note\n[1]', /Comments are not allowed/, 1, 1], ['{"a":1}{"b":2}', /several values need to be inside one array, or use JSON Lines/, 1, 8], ['', /Nothing to format/, 1, 1], ['{"नाम": "😀", "b": ]', /Unexpected “]”/, 1, 19], ['[1,\n\n\n  2,,3]', /Two commas in a row/, 4, 5]];
   for (const [src, what, line, col] of E) {

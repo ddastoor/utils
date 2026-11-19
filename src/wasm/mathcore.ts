@@ -41,9 +41,16 @@ export function bindMathcore(e: any) {
       return new Expr(h);
     },
     /** one-shot evaluation */
-    evaluate(src: string, opts: { deg?: boolean; x?: number; ans?: number } = {}) {
+    /** Why the last evaluation gave NaN: a division by zero, or something a function is not defined for. */
+    why(): '' | 'div0' | 'domain' { return (['', 'div0', 'domain'] as const)[e.m_expr_why() as number] || ''; },
+    /** one-shot evaluation. `numbersOnly`: the letters x, y, z, t stand for nothing (a calculator, not a formula) —
+     *  "2x" is then an error instead of 2 × 0. */
+    evaluate(src: string, opts: { deg?: boolean; x?: number; ans?: number; numbersOnly?: boolean } = {}) {
       const ex = this.compile(src, opts.deg);
-      try { return ex.eval(opts.x ?? 0, opts.ans ?? 0); } finally { ex.free(); }
+      try {
+        if (opts.numbersOnly) for (const v of ['x', 'y', 'z', 't'] as const) if (ex.uses(v)) throw new Error(`Unknown name: ${v}`);
+        return ex.eval(opts.x ?? 0, opts.ans ?? 0);
+      } finally { ex.free(); }
     },
     quadratic(a: number, b: number, c: number): Complex[] { return withF64(4, (p) => { e.m_quadratic(a, b, c, p); const r = f64(p, 4); return [{ re: r[0], im: r[1] }, { re: r[2], im: r[3] }]; }); },
     cubic(a: number, b: number, c: number, d: number): Complex[] { return withF64(6, (p) => { e.m_cubic(a, b, c, d, p); const r = f64(p, 6); return [0, 1, 2].map((k) => ({ re: r[2 * k], im: r[2 * k + 1] })); }); },
@@ -156,10 +163,14 @@ let inst: Promise<Mathcore> | null = null;
 export const mathcore = () => { if (!inst) { inst = instantiateWasi(wasmUrl).then((x) => bindMathcore(x.exports)); onLeave('mathcore', () => (inst = null)); } return inst; };
 
 /** Display formatting (presentation only): up to 12 significant digits, no float noise. */
+/** A number for a person. Whole numbers are shown whole up to 2^53 (2^40 = 1099511627776, digit for digit);
+ *  other numbers with 12 significant digits — 15 from 10^11 on, where the part before the point needs them —
+ *  which hides the noise of binary fractions (0.1 + 0.2 = 0.3); very large and very small ones with an exponent. */
 export function fmtNum(x: number, sig = 12): string {
   if (!isFinite(x)) return isNaN(x) ? 'Error' : x > 0 ? '∞' : '−∞';
   if (x === 0) return '0';
+  if (Number.isSafeInteger(x)) return String(x);
   const a = Math.abs(x);
   if (a >= 1e15 || a < 1e-9) return x.toExponential(sig - 3).replace(/\.?0+e/, 'e').replace('e+', 'e');
-  return String(parseFloat(x.toPrecision(sig)));
+  return String(parseFloat(x.toPrecision(a >= 1e11 ? Math.max(sig, 15) : sig)));
 }
