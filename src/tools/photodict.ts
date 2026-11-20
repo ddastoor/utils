@@ -1,6 +1,7 @@
 // Photo Dictionary (mobile only, owner request): photograph a page (book, newspaper, Kindle) → OCR (Tesseract wasm) →
 // rank the words by English frequency in textcore.wasm (own C) → the 20 hardest with meanings from the bundled English
 // Wiktionary; words the bundle lacks are looked up online one word at a time (Wiktionary, then Free Dictionary API).
+import { cameraError } from '../lib/camera';
 import literata400 from '@fontsource/literata/files/literata-latin-400-normal.woff2?url';
 import literata400i from '@fontsource/literata/files/literata-latin-400-italic.woff2?url';
 import literata600 from '@fontsource/literata/files/literata-latin-600-normal.woff2?url';
@@ -119,7 +120,7 @@ export const mount: Mount = (root, ctx) => {
   const stopCam = () => { stream?.getTracks().forEach((t) => t.stop()); stream = null; camBox.hidden = true; camCtl.hidden = true; startBtn.hidden = false; };
   const startCam = async () => {
     try { stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' }, width: { ideal: 3840 }, height: { ideal: 2160 } }, audio: false }); }
-    catch (e) { toast(`Camera unavailable: ${errMsg(e)} — use “Choose a photo”.`, 'err'); return; }
+    catch (e) { toast(cameraError(e, 'camera', 'use “Choose a photo”').message, 'err'); return; }
     video.srcObject = stream; camBox.hidden = false; camCtl.hidden = false; startBtn.hidden = true;
   };
   const snap = async () => {

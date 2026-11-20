@@ -949,3 +949,10 @@ One entry per tab, written before its bug hunt: our module → candidates → ch
   in a space other than sRGB — lcms-wasm's build cannot make a profile from primaries; such files are used as they are.
 - **Evidence:** a chart of saturated Display P3 patches (made by pillow-heif with the profile of pug.heic) and a real
   iPhone photo, converted in Node and in the browser, equal Pillow's ImageCms (LittleCMS, native) within 2 levels.
+
+### 112. `passport` — Passport Photo (20 Nov 2026)
+- **Engines:** MediaPipe Tasks 1.2.3 (Google's own build — the latest: face landmarks, selfie segmentation) and
+  imgproc.wasm (ours: the person mask from the six classes, the guided-filter matte, compositing, the one warp that
+  straightens, scales and crops). **Candidates for imgproc's part:** none that does a guided-filter matte (OpenCV.js's
+  default build has no `ximgproc`; magick-wasm and wasm-vips: entry 109). **Decision:** both stay; the digital-upload
+  copy is resized with @jsquash/resize (entry 109).

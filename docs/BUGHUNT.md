@@ -16,7 +16,7 @@ Areas with a shared review: the app shell (router, search, favorites, platform h
 | `image` | Image Editor | PC + mobile | images1 | ✓ | 4 | 17 | resize → @jsquash/resize (linear light), imgproc kept (magick-wasm 15.5 MB, slower; wasm-vips needs SAB); JPEG of transparency on white; straighten crops its corners; size boxes checked |
 | `batch` | Batch Images | PC only | images1 | ✓ | 4 | 7 | jSquash resize; unique result names (shared list); sizes/scale checked; failed files listed; Stop |
 | `heic` | HEIC → JPG | PC + mobile | images1 | ✓ | 3 | 16 | libheif-js kept (latest) + lcms-wasm: Display P3 → sRGB (iPhone colours were off, every HEIC tab); primary image; failed files listed |
-| `passport` | Passport Photo | PC + mobile | images2 |  |  |  |  |
+| `passport` | Passport Photo | PC + mobile | images2 | ✓ | 4 | 6 | MediaPipe 1.2.3 (latest) + imgproc kept; no stale result after a face-less photo; Cancel ends the countdown; camera errors worded (shared src/lib/camera.ts); custom size 10–150 mm; jSquash resize for upload |
 | `formphoto` | Photo & Signature Resizer | PC + mobile | images2 |  |  |  |  |
 | `bgremove` | Background Remover | PC + mobile | images2 |  |  |  |  |
 | `cartoon` | Cartoonizer | PC + mobile | images2 |  |  |  |  |
@@ -1500,3 +1500,15 @@ Reference for the five finance tabs: **mpmath at 60 digits** (`scripts/make-fina
   2. A HEIC with several images (a burst, a depth map) gave the first one, not the primary one.
   3. A file that could not be read was reported in a toast that vanished; such files are listed now, the others
      converted.
+
+- **`passport` (tab 114, 4 bugs; engines kept: MediaPipe 1.2.3 (latest) + imgproc; the upload copy resized with
+  jSquash — docs/WASM-AUDIT.md, 112; e2e 25 — was 19).**
+  1. A photo without a face, chosen after a good one, left the earlier person's passport photo and its download
+     buttons on screen (which then said "Add a photo first"). The result is hidden and the reason shown now; a photo
+     chosen while another is still being read wins.
+  2. Cancel during the camera's 3-second countdown did not cancel: the photo was still taken from the stopped camera.
+     Cancel, a camera switch or leaving the tab ends the countdown now.
+  3. A refused, missing or busy camera showed "Camera unavailable: NotAllowedError: Permission denied"; said with
+     what to do now (one helper, `src/lib/camera.ts`, also for the QR scanner and the Photo Dictionary).
+  4. The custom size fell back to 35 × 45 mm without a word for 0 or a negative number, and took any size; it is
+     10 – 150 mm now, said under the boxes.

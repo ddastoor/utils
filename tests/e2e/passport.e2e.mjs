@@ -1,5 +1,7 @@
 // Passport Photo (#/passport): real portrait with a busy background (NASA photo: flag + space shuttle) → background
-// replaced by each preset's required colour, framed to the head-height rule, 300 dpi, digital upload limits, sheets.
+// replaced by each preset's required colour, framed to the head-height rule, 300 dpi, digital upload limits, sheets; a
+// photo without a face after a good one shows no stale result; custom sizes checked; Cancel during the camera's
+// countdown takes no photo; a refused camera said in words.
 import { imageInfo, decodeInPage, regionMeans } from '../lib/imgcheck.mjs';
 const F = (n) => new URL(`../fixtures/images/${n}`, import.meta.url).pathname;
 
@@ -60,6 +62,16 @@ export default async ({ base, page: newPage, ok, info, download, devices }) => {
   await page.locator('.slider', { hasText: 'Head size' }).locator('input').fill('1.1');
   await page.waitForTimeout(500);
   ok((await checksText()) !== before, 'Head size slider re-frames the photo');
+  // custom sizes that make no photo
+  await page.locator('select[aria-label="Country and document"]').selectOption('custom');
+  await page.getByLabel('Width (mm)').fill('0');
+  ok(/The width is a size of 10 – 150 mm/.test(await page.locator('.note-err').first().textContent()), 'custom width 0 mm: said (it fell back to 35 mm without a word)');
+  await page.getByLabel('Width (mm)').fill('30');
+  ok(!(await page.locator('.note-err').count()), '… and the note goes when the size is right');
+  // a photo without a face after a good one: the earlier person's photo is not left on screen
+  await page.locator('input[type=file]').first().setInputFiles(F('page.png'));
+  await page.waitForFunction(() => /No face found/.test(document.querySelector('.note-err')?.textContent || ''), null, { timeout: 60000 });
+  ok(!(await page.getByRole('button', { name: 'Download photo (300 dpi)' }).isVisible()) && !(await page.locator('.pp-out').isVisible()), 'a photo without a face: said, and the previous photo with its download buttons is hidden (it stayed)');
   ok(page.errors.length === 0, `no page errors: ${page.errors.join(' | ')}`);
 
   // live camera (Chromium fake camera: a test pattern, no face) → graceful message
@@ -68,8 +80,19 @@ export default async ({ base, page: newPage, ok, info, download, devices }) => {
   await cam.getByRole('button', { name: 'Use camera' }).click();
   await cam.waitForFunction(() => document.querySelector('.pp-video')?.videoWidth > 0, null, { timeout: 15000 });
   await cam.getByRole('button', { name: 'Take photo (3 s timer)' }).click();
+  ok(await cam.getByRole('button', { name: 'Take photo (3 s timer)' }).isDisabled(), 'the button is disabled during the countdown');
   await cam.waitForFunction(() => /No face found/.test(document.body.innerText), null, { timeout: 60000 });
   ok(true, 'camera capture works; a frame without a face gets a clear message');
+  await cam.getByRole('button', { name: 'Use camera' }).click();
+  await cam.waitForFunction(() => document.querySelector('.pp-video')?.videoWidth > 0, null, { timeout: 15000 });
+  await cam.getByRole('button', { name: 'Take photo (3 s timer)' }).click();
+  await cam.waitForTimeout(1200); await cam.getByRole('button', { name: 'Cancel' }).click();
+  await cam.waitForTimeout(2500);
+  ok(!cam.errors.length && (await cam.locator('.pp-count').textContent()) === '', `Cancel during the countdown: no photo is taken, no error (it drew a 0 × 0 frame: IndexSizeError) ${cam.errors.join(' | ')}`);
+  const deny = await newPage();
+  await deny.addInitScript(() => { navigator.mediaDevices.getUserMedia = async () => { throw new DOMException('Permission denied', 'NotAllowedError'); }; });
+  await deny.goto(base + '#/passport'); await deny.getByRole('button', { name: 'Use camera' }).click();
+  ok(/The camera was not allowed — allow it in the browser's site settings.*upload a photo instead/.test(await deny.locator('.toast').last().textContent({ timeout: 10000 })), 'a refused camera: said with what to do (it was "Camera unavailable: NotAllowedError: Permission denied")');
 
   const phone = await newPage({ ...devices['iPhone 13'] });
   await phone.goto(base + '#/passport');

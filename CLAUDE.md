@@ -472,6 +472,10 @@ red). Only rules known with confidence are included; the UI tells users to confi
 Unit test checks every preset is well-formed.
 Note shown to user: some agencies reject digitally altered photos; lighting on the face matters.
 Wayland/X11 is irrelevant for cameras.
+**As built after the Nov 2026 bug hunt** (e2e `tests/e2e/passport.e2e.mjs` 25): a photo without a face hides the result
+and says why (the newest photo wins); Cancel ends the camera's countdown; camera errors in words (`src/lib/camera.ts`,
+shared with the QR scanner and the Photo Dictionary); the custom size is 10 – 150 mm; the online-upload copy is
+resized with @jsquash/resize.
 
 ### Cartoonizer ("Prisma-like") — BUILT (`src/tools/cartoon.ts`, e2e `tests/e2e/cartoon.e2e.mjs`, 37 checks)
 Two engines, picked with a "Filters | AI art styles" switch; tiles show live thumbnails of the user's photo / the style.

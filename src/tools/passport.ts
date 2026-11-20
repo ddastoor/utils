@@ -2,13 +2,15 @@
 // found, straightened and framed to the preset's head-height rule; the background is replaced with the required
 // colour; outputs: 300 dpi JPEG, a digital-upload JPEG within the portal's px/KB limits, 4×6 in and A4 print sheets.
 import { h, card, field, input, segmented, slider, stack, note, actions, button, clear, toast, errMsg, downloadBlob, shareOrDownload, fmtBytes, baseName, type Mount } from '../ui';
-import { imgproc, imgprocDirect, type Img } from '../wasm/imgproc';
+import { imgprocDirect, type Img } from '../wasm/imgproc';
 import { encodeImg, setJpegDpi, previewOf, paint } from '../lib/imgio';
 import { imageInput } from '../lib/imgtools';
 import { SPECS, CUSTOM_BGS, pxAt, type PhotoSpec, type BgSpec } from '../lib/passport-specs';
 import { analyse, layout, buildPhoto, printSheet, type Analysis, type Adjust } from '../lib/passport';
 import { personMask } from '../lib/segment';
 import { encodeInRange } from './formphoto';
+import { cameraError } from '../lib/camera';
+import { resizeImg } from '../lib/imgio';
 
 const REGIONS = ['India', 'Americas', 'Europe', 'Asia-Pacific', 'Middle East & Africa'] as const;
 
@@ -25,9 +27,17 @@ export const mount: Mount = (root, ctx) => {
     h('optgroup', { label: 'Other' }, h('option', { value: 'custom' }, 'Custom size…')));
   const specInfo = h('div');
   const bgRow = h('div', { class: 'row' });
-  const customBox = h('div', { class: 'grid2', hidden: true },
-    field('Width (mm)', input({ type: 'number', value: custom.w, min: 10, onInput: (v) => { custom.w = +v || 35; refresh(); } })),
-    field('Height (mm)', input({ type: 'number', value: custom.h, min: 10, onInput: (v) => { custom.h = +v || 45; refresh(); } })));
+  const customNote = h('div');
+  /** A size in millimetres for the custom photo: 10 – 150 mm (a photo larger than a postcard is no ID photo). */
+  const mm = (v: string, label: string) => { const n = Number(v); return Number.isFinite(n) && n >= 10 && n <= 150 ? n : `The ${label} is a size of 10 – 150 mm.`; };
+  const onCustom = (key: 'w' | 'h', label: string) => (v: string) => {
+    const r = mm(v, label); clear(customNote);
+    if (typeof r === 'string') { customNote.append(note(r, 'err')); return; }
+    custom[key] = r; refresh();
+  };
+  const customBox = h('div', { class: 'stack', hidden: true }, h('div', { class: 'grid2' },
+    field('Width (mm)', input({ type: 'number', value: custom.w, min: 10, max: 150, onInput: onCustom('w', 'width') })),
+    field('Height (mm)', input({ type: 'number', value: custom.h, min: 10, max: 150, onInput: onCustom('h', 'height') }))), customNote);
   const renderSpec = () => {
     const s = eff(), choices = spec.id === 'custom' ? CUSTOM_BGS : [spec.bg, ...(spec.bgAlt || [])];
     if (!choices.some((c) => c.hex === bg.hex)) bg = choices[0];
@@ -49,14 +59,22 @@ export const mount: Mount = (root, ctx) => {
   const checks = h('ul', { class: 'checks' });
   const status = h('div', { class: 'muted small', 'aria-live': 'polite' });
   const editor = h('div', { class: 'stack', hidden: true });
+  const found = h('div', { 'aria-live': 'polite' });
+  let job = 0;
   const useImage = async (img: Img, fname: string) => {
-    src = img; name = baseName(fname); an = null; prev = null; editor.hidden = false; clear(checks);
-    status.textContent = 'Finding your face… (first run loads the face and background models)';
+    const me = ++job;
+    src = img; name = baseName(fname); an = null; prev = null; editor.hidden = true; clear(checks); clear(found);
+    found.append(note('Finding your face… (the first time, the face and background models are loaded)'));
     try {
-      an = await analyse(img);
-      status.textContent = '';
+      const a = await analyse(img);
+      if (me !== job) return; // a newer photo was chosen meanwhile
+      an = a; clear(found); editor.hidden = false;
       await refresh(true);
-    } catch (e) { status.textContent = errMsg(e); toast(errMsg(e), 'err'); }
+    } catch (e) {
+      if (me !== job) return;
+      // the editor (and the photo of the previous person in it) is not shown for a photo without a face
+      clear(found).append(note(errMsg(e), 'err'));
+    }
   };
   const input$ = imageInput((img, f) => useImage(img, f.name), { label: 'Upload a photo', capture: ctx.isMobile ? 'user' : undefined });
 
@@ -65,16 +83,22 @@ export const mount: Mount = (root, ctx) => {
   const count = h('div', { class: 'pp-count' });
   const camBox = h('div', { class: 'pp-cam', hidden: true }, video, h('div', { class: 'pp-oval' }), count);
   let stream: MediaStream | null = null, facing: 'user' | 'environment' = 'user';
-  const stopCam = () => { stream?.getTracks().forEach((t) => t.stop()); stream = null; camBox.hidden = true; camCtl.hidden = true; };
+  let shotSeq = 0;
+  const stopCam = () => { shot = 0; stream?.getTracks().forEach((t) => t.stop()); stream = null; camBox.hidden = true; camCtl.hidden = true; };
   const startCam = async () => {
     stopCam();
     try { stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: facing, width: { ideal: 1920 }, height: { ideal: 1440 } }, audio: false }); }
-    catch (e) { toast(`Camera unavailable: ${errMsg(e)}`, 'err'); return; }
+    catch (e) { toast(cameraError(e, 'camera', 'upload a photo instead').message, 'err'); return; }
     video.srcObject = stream; camBox.hidden = false; camCtl.hidden = false;
   };
+  let shot = 0; // a countdown in progress (0 = none); Cancel, a camera switch or leaving the tab ends it
   const snap = async () => {
-    for (let i = 3; i > 0; i--) { count.textContent = String(i); await new Promise((r) => setTimeout(r, 1000)); }
-    count.textContent = '';
+    if (shot) return; // a second press during the countdown starts no second one
+    const me = ++shotSeq; shot = me;
+    try {
+      for (let i = 3; i > 0; i--) { count.textContent = String(i); await new Promise((r) => setTimeout(r, 1000)); if (shot !== me || !stream) return; }
+    } finally { count.textContent = ''; if (shot === me) shot = 0; }
+    if (!stream || !video.videoWidth) return;
     const c = document.createElement('canvas'); c.width = video.videoWidth; c.height = video.videoHeight;
     const g = c.getContext('2d', { willReadFrequently: true })!;
     if (facing === 'user') { g.translate(c.width, 0); g.scale(-1, 1); } // un-mirror the selfie view
@@ -132,7 +156,7 @@ export const mount: Mount = (root, ctx) => {
       const f = up > 1 ? up : down; W = Math.round(W * f); H = Math.round(H * f);
       if (d.square) W = H = Math.max(W, H);
     }
-    if (W !== img.width || H !== img.height) img = await imgproc('resize', img, W, H);
+    if (W !== img.width || H !== img.height) img = await resizeImg(img, W, H); // Lanczos-3 in linear light (jSquash)
     const r = await encodeInRange(img, d.minKB ?? 0, d.maxKB ?? 2048, 300);
     await save(r.blob, `${tag()}-upload.jpg`);
   };
@@ -154,9 +178,9 @@ export const mount: Mount = (root, ctx) => {
   );
   root.append(
     card('Photo type', stack(field('Country / document', select), customBox, h('div', null, h('div', { class: 'field-label' }, 'Background colour'), bgRow), specInfo)),
-    card(null, stack(input$.el, h('div', { class: 'row' }, button('Use camera', startCam, { icon: 'Camera' })), camBox, camCtl)),
+    card(null, stack(input$.el, h('div', { class: 'row' }, button('Use camera', startCam, { icon: 'Camera' })), camBox, camCtl, found)),
     editor,
   );
   renderSpec();
-  return () => { stopCam(); input$.dispose(); };
+  return () => { stopCam(); job++; input$.dispose(); };
 };

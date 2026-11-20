@@ -4,6 +4,7 @@ import zxingWasm from 'zxing-wasm/full/zxing_full.wasm?url';
 import { h, card, field, input, textarea, button, segmented, select, toggle, slider, filePicker, clear, stack, note, copy, downloadBlob, canvasToBlob, outputBox, type Mount } from '../ui';
 import * as Q from '../lib/qrdata';
 import { checkBarcode, zintError } from '../lib/barcodes';
+import { cameraError } from '../lib/camera';
 
 let ready: Promise<unknown> | null = null;
 const zx = () => (ready ||= Promise.resolve(prepareZXingModule({ overrides: { locateFile: (p: string, prefix: string) => (p.endsWith('.wasm') ? zxingWasm : prefix + p) }, fireImmediately: true })));
@@ -147,14 +148,6 @@ const FORMAT_NAMES: Record<string, string> = {
   EAN13: 'EAN-13', EAN8: 'EAN-8', UPCA: 'UPC-A', UPCE: 'UPC-E', Code128: 'Code 128', Code39: 'Code 39', Code93: 'Code 93', ITF: 'ITF', Codabar: 'Codabar',
   DataBar: 'GS1 DataBar', DataBarExpanded: 'GS1 DataBar Expanded', DataBarLimited: 'GS1 DataBar Limited', DXFilmEdge: 'DX film edge',
 };
-/** The browser's camera errors, said for a person. */
-function cameraError(e: unknown): Error {
-  const n = (e as { name?: string })?.name ?? '';
-  if (n === 'NotAllowedError' || n === 'SecurityError') return new Error('The camera was not allowed — allow it in the browser\'s site settings (the camera icon in the address bar), or scan a photo instead.');
-  if (n === 'NotFoundError' || n === 'OverconstrainedError') return new Error('No camera was found — scan a photo or a screenshot instead.');
-  if (n === 'NotReadableError' || n === 'AbortError') return new Error('The camera is busy (another app or tab is using it). Close that, then try again.');
-  return e instanceof Error ? e : new Error(String(e));
-}
 export const scan: Mount = (root, ctx) => {
   let stream: MediaStream | null = null, timer = 0, busy = false;
   const video = h('video', { class: 'scan-video', playsinline: true, muted: true, autoplay: true });
@@ -199,7 +192,7 @@ export const scan: Mount = (root, ctx) => {
     stop(); // a second Start used to open a second stream and leave the first one running
     await zx();
     try { stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } } }); }
-    catch (e) { throw cameraError(e); }
+    catch (e) { throw cameraError(e, 'camera', 'scan a photo or a screenshot instead'); }
     video.srcObject = stream;
     for (const t of stream.getVideoTracks()) t.addEventListener('ended', stop);
     timer = window.setInterval(loop, 250);
