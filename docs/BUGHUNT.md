@@ -48,8 +48,8 @@ Areas with a shared review: the app shell (router, search, favorites, platform h
 | `epub` | PDF → EPUB | PC only | docs2 | ✓ | 17 | 93 | columns with 7.5 pt gutters; margin stamps; bold/size of a line from its spans; U+FFFF; formulas as pictures; bookmarks; /Lang; no freeze; newer PDF ends a run; epubcheck |
 | `sheet` | CSV / Excel | PC only | docs2 | ✓ | 18 | 141 | errors #DIV/0!; durations; 15 digits; exact numbers; JSON keys/IDs; Windows-1252/UTF-16; web-page .xls + Excel 2003 XML; newest file wins; Excel limits; LibreOffice reference |
 | `markdown` | Markdown Editor | PC + mobile | docs2 | ✓ | 14 | 30 | #fn links left the tab; Ctrl+K focus; Ctrl+P preview only; remote pictures not fetched; undoable toggles; GitHub heading ids; GFM spec 744 examples; a11y sweep (pre lang, task boxes) |
-| `invoice` | GST Invoice | PC + mobile | docs2 | ✓ | 8 | 17 | UPI QR @ as NPCI writes it (was %40), zbar read-back; links survive into PDFs; pictures in details; downloads wait for pictures; a11y sweep |
-| `rent` | Rent Receipt | PC + mobile | docs2 | ✓ | 7 | 16 | cash receipts no longer spill onto empty pages (3/2/1 a page); 120 months; reasons in words; PAN format; a11y sweep |
+| `invoice` | GST Invoice | PC + mobile | docs2 | ✓ | 8 | 21 | UPI QR @ as NPCI writes it (was %40), zbar read-back; links survive into PDFs; pictures in details; downloads wait for pictures; a11y sweep |
+| `rent` | Rent Receipt | PC + mobile | docs2 | ✓ | 8 | 25 | cash receipts no longer spill onto empty pages (3/2/1 a page); 120 months; reasons in words; PAN format; a11y sweep; cash receipts no longer spill onto empty pages (3/2/1 a page); 120 months; reasons in words; PAN format; a11y sweep; a pasted 500 KB address froze the tab — box lengths (all three forms) |
 | `resume` | Resume Builder | PC + mobile | docs2 | ✓ | 7 | 9 | mailto/tel/https links; JPEG photo; safe file name; download waits for the photo (the flaky 'photo included'); a11y sweep |
 
 ## security
@@ -2230,4 +2230,27 @@ cannot. Three new suites; each fails on the build before its fixes.
      in device pixels (a 2× zoom emulated through DevTools in the suite) and says so.
   3. **Dice:** a screen reader heard nothing after Roll: the roll in words, announced. Random Number, List Picker and
      Team Splitter announce their results too.
+- **`tests/e2e/junk-files.e2e.mjs`** (new) — every tab with a file picker (71) is given an empty file and 2 KB of random
+  bytes named like the file it asks for (photo.jpg, doc.pdf, data.csv …): no tab may throw. Found and fixed:
+  1. **Ten text tabs read files with `File.text()`** (Python, Patch, Log Viewer, YAML, jq, SQL Formatter, Code Formatter,
+     JSON → Types, JSON Diff, JSON Schema): a binary file went into the editor as garbage, and a file saved by Notepad or
+     Excel in Windows-1252 turned "café" into "caf�". New `src/lib/textfile.ts` (`textOf` / `readTextFile`: UTF-16 by
+     its mark, UTF-8 when valid, else Windows-1252; NUL bytes → "photo.jpg is not a text file — …"), shared with the
+     CSV tab; unit `textfile.test.mjs` (11).
+  2. **QR & Barcode Scanner:** a file that is no picture came back from zxing as one failed result and was listed as an
+     empty code with a Copy button — said now ("… is not a picture this browser can read").
+  3. **FFmpeg:** a file with no video, sound or subtitles was found out only when a job failed — said as it is read,
+     with FFmpeg's reason.
+- **Probes over every tab (scripts, not suites — they found nothing to fix):** a 360 px phone (no sideways scroll on
+  any tab); every tab left 40 ms after it opens, 173 times in a row (no error, no worker left behind); the keyboard's
+  focus on every control of every desktop tab (each Tab stop looks different from the same control unfocused — the
+  boxes with a unit beside them draw their ring on the wrapper; the calendar button inside a date box gets Chromium's
+  own ring, which a page cannot restyle).
+- **Half a megabyte pasted into the text box of every tab** (probe: the longest task the page runs afterwards):
+  1. **Rent Receipt froze for over 40 s**: every receipt repeats the address, and MuPDF laid the pasted text out on the
+     main thread again and again. Every box of the GST Invoice, Rent Receipt and Resume Builder has a length now (200
+     characters a line, 2,000 a text area, 500 an address, 400 the resume's links), said under the box when it is
+     reached; a details file is cut the same way (never inside an emoji: `cutText` in `src/lib/docrules.ts`), and the
+     rows (items, jobs …) stop at 100 — a file with more keeps the first 100 and says so. Rent e2e +3, invoice +4,
+     docgen unit +6.
 - **Complete unit suites** after all this: 21,731 assertions in 99 suites, all green.
