@@ -858,3 +858,11 @@ One entry per tab, written before its bug hunt: our module → candidates → ch
 - **Evidence:** the unit suite draws from libsodium.js in Node: 2,000 four-character passwords with all four sets;
   the 24 orders of four sets as often as their exact shares (χ²); the characters of 20,000 passwords of 20 at their
   exact shares (χ²); the count of passwords by inclusion–exclusion equal to counting every string one by one.
+
+### 105. `passphrase` — Passphrase Generator (20 Nov 2026)
+- **Ours before:** crypto.wasm's `u_uniform` (as tab 104).
+- **Decision (rule 1):** **libsodium.js's `randombytes_uniform`**, as the Password Generator (entry 104) — the same
+  chunk, so the two tabs and Sodium Encrypt share one download. The word list is data (the EFF large list, 62 KB,
+  byte for byte the copy the `xkcdpass` package ships); picking words is string glue (`src/lib/passphrases.ts`).
+- **Evidence:** in Node on libsodium.js: 800 passphrases of 3 – 12 words with each separator read back word by word
+  from the list; the first letters of 77,760 drawn words at their shares of the list (χ²).

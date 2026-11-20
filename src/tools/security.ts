@@ -7,8 +7,9 @@ import { hashData, stopHashing, Stopped } from '../lib/hash-client';
 import { HASHES, HASH_IDS, COMPARE_ALG, algo, type HashAlgo } from '../lib/hashes';
 import { parseExpected, isChecksumListName, neededAlgs, verify, unmatchedEntries, fmtDigest, sumsText, sumsName, type DigestFormat, type Expected, type ExpectedList } from '../lib/checksums';
 import { readEncryptedText, readShareLink, encryptedTextFile } from '../lib/sodium-format';
-import { sodium, toB64 } from '../wasm/crypto';
+import { toB64 } from '../wasm/crypto';
 import { libsodium } from '../wasm/libsodium';
+import { readWordList, makePassphrase, phraseBits, MIN_WORDS, MAX_WORDS, type PhraseOptions } from '../lib/passphrases';
 import { SETS as PW_SETS, MIN_LEN, MAX_LEN, alphabets, cleanSymbols, requiresEach, makePassword, entropyBits, strengthLabel as pwStrength, type PwOptions } from '../lib/passwords';
 import { isMobile } from '../platform';
 
@@ -388,34 +389,36 @@ export const password: Mount = async (root) => {
 // ------------------------------------------------------------------ Passphrase generator
 export const passphrase: Mount = async (root) => {
   const [na, words] = await Promise.all([
-    sodium(),
-    fetch(`${import.meta.env.BASE_URL}data/eff_large_wordlist.txt`).then((r) => r.text()).then((t) => t.split(/\s+/).filter(Boolean)),
+    libsodium(),
+    fetch(`${import.meta.env.BASE_URL}data/eff_large_wordlist.txt`).then((r) => {
+      if (!r.ok) throw new Error(`The word list could not be loaded (${r.status}). Reload the page and try again.`);
+      return r.text();
+    }).then(readWordList),
   ]);
-  const opts = { n: 6, sep: '-', cap: false, num: false, count: 5 };
+  const o: PhraseOptions = { words: 6, sep: '-', capitalise: false, digit: false };
+  const count = 5;
   const list = h('div', { class: 'stack' });
   const meter = h('div');
   const gen = () => {
-    const bits = opts.n * Math.log2(words.length) + (opts.num ? Math.log2(10) : 0);
+    const bits = phraseBits(o);
     const [lab, kind] = pwStrength(bits);
     clear(meter).append(h('div', { class: `pill pill-${kind}` }, `${lab} · ~${Math.round(bits)} bits of entropy`));
-    clear(list).append(...Array.from({ length: opts.count }, () => {
-      const ws = Array.from({ length: opts.n }, () => words[na.uniform(words.length)]).map((w) => (opts.cap ? w[0].toUpperCase() + w.slice(1) : w));
-      if (opts.num) { const i = na.uniform(ws.length); ws[i] += String(na.uniform(10)); }
-      const p = ws.join(opts.sep);
-      return h('div', { class: 'pwrow' }, h('code', { class: 'pw' }, p), button('', () => copy(p), { icon: 'Copy', small: true, title: 'Copy' }));
+    clear(list).append(...Array.from({ length: count }, (_, k) => {
+      const p = makePassphrase(words, o, na.uniform);
+      return h('div', { class: 'pwrow' }, h('code', { class: 'pw' }, p), button('', () => copy(p), { icon: 'Copy', small: true, title: `Copy passphrase ${k + 1}` }));
     }));
   };
   root.append(
     card(null, stack(
-      slider({ label: 'Words', min: 3, max: 12, value: opts.n, onInput: (v) => { opts.n = v; gen(); } }),
-      field('Separator', segmented([['-', 'hyphen -'], [' ', 'space'], ['.', 'dot .'], ['_', 'underscore _'], ['', 'none']], opts.sep, (v) => { opts.sep = v; gen(); })),
+      slider({ label: 'Words', min: MIN_WORDS, max: MAX_WORDS, value: o.words, onInput: (v) => { o.words = v; gen(); } }),
+      field('Separator', segmented([['-', 'hyphen -'], [' ', 'space'], ['.', 'dot .'], ['_', 'underscore _'], ['', 'none']], o.sep, (v) => { o.sep = v; gen(); })),
       h('div', { class: 'grid2' },
-        toggle('Capitalise words', opts.cap, (v) => { opts.cap = v; gen(); }),
-        toggle('Add a digit', opts.num, (v) => { opts.num = v; gen(); })),
+        toggle('Capitalise words', o.capitalise, (v) => { o.capitalise = v; gen(); }),
+        toggle('Add a digit', o.digit, (v) => { o.digit = v; gen(); })),
       meter)),
     card('Passphrases', list),
     actions(button('Generate again', gen, { variant: 'primary', icon: 'RefreshCw' })),
-    note(h('span', null, 'Words from the EFF Large Wordlist (7,776 words, CC BY 3.0). Each word adds ~12.9 bits. Randomness: libsodium ', ic('Lock'), ' randombytes_uniform.')),
+    note(h('span', null, 'Words from the EFF Large Wordlist (7,776 words, CC BY 3.0) — each adds ~12.9 bits; a digit after a random word adds log2(10 × words). Made on this device with libsodium ', ic('Lock'), ' randombytes_uniform; nothing is sent or kept.')),
   );
   gen();
 };

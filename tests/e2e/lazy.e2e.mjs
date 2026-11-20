@@ -15,6 +15,7 @@ const AT_OPEN = {
   resume: [/mupdf|NotoSans/, 'live PDF preview is the main view (MuPDF + Noto Sans)'],
   markdown: [/markdown-[\w-]+\.wasm/, 'live preview of the sample text (cmark-gfm, 0.27 MB)'],
   diff: [/textkit-diff-[\w-]+\.wasm/, 'the sample pair is compared at once (textkit-diff.wasm, 0.69 MB: the similar crate)'],
+  passphrase: [/libsodium|eff_large_wordlist\.txt/, 'passphrases are made as the tab opens (libsodium.js, 0.53 MB, shared with Password Generator and Sodium Encrypt; the EFF word list, 62 KB)'],
   password: [/libsodium/, 'passwords are made as the tab opens (libsodium.js: randombytes_uniform, the libsodium project\'s own WebAssembly build — 0.53 MB, shared with Sodium Encrypt)'],
   lorem: [/textkit-lorem-[\w-]+\.wasm/, 'the first paragraphs are made as the tab opens (textkit-lorem.wasm: the lipsum crate\'s Markov chain over Cicero, 0.13 MB)'],
   case: [/textkit-[\w-]+\.wasm/, 'the sample sentence is shown in all its conversions at once (textkit.wasm, 0.21 MB)'],
@@ -48,7 +49,7 @@ const AT_OPEN = {
   jsonschema: [/formats-schema/, 'the sample is validated at once (formats-schema, 2.7 MB)'],
   mermaid: [/mermaid|cytoscape|katex|dagre|elk/i, 'the sample diagram is the main view (Mermaid, loaded as JS chunks)'],
 };
-const HEAVY = /\.wasm$|\/vendor\/|\/models\/|\/data\/|\.(ttf|otf|woff2?)$/;
+const HEAVY = /\.wasm$|(^|\/)(vendor|models|data)\/|\.(ttf|otf|woff2?)$/; // URLs are relative to the site (no leading slash): the folders at the root are matched too (they were not)
 const BUDGET = 400 * 1024; // decoded bytes a tab may download at open (its own JS + CSS), apart from AT_OPEN tabs
 const SHELL_BUDGET = 180 * 1024; // index.html + entry JS + CSS + icons
 

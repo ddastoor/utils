@@ -60,7 +60,7 @@ Areas with a shared review: the app shell (router, search, favorites, platform h
 | `sharelink` | Encrypted Share Link | PC + mobile | security-codes | ✓ | 10 | 32 | engine as sodium (libsodium.js + crypto.wasm header); links read as they arrive (cut, changed, trailing full stop, %-escapes, other site's d=), password twice, long-link warning, autocomplete, Enter |
 | `hash` | Hash / Checksum | PC + mobile | security-codes | ✓ | 10 | 133 | engine → hash-wasm (existing wasm, 23 algorithms, own worker, Stop); expected checksums in every common form, checksum lists, auto-added algorithms, secure file comparison; crypto-client ordering fix |
 | `password` | Password Generator | PC + mobile | security-codes | ✓ | 3 | 37 | randombytes_uniform → libsodium.js; exact entropy (inclusion–exclusion), length box 4–128, symbols box, named copy buttons |
-| `passphrase` | Passphrase Generator | PC + mobile | security-codes |  |  |  |  |
+| `passphrase` | Passphrase Generator | PC + mobile | security-codes | ✓ | 3 | 17 | libsodium.js; word list checked (7,776 words; error pages were used as lists); digit entropy log2(10×n); named copy buttons; flaky split fixed; lazy suite root-folder gap fixed |
 
 ## media
 | id | Tab | Platform | Area | R | B | T | Notes |
@@ -1369,3 +1369,18 @@ Reference for the five finance tabs: **mpmath at 60 digits** (`scripts/make-fina
   3. The five copy buttons were all called "Copy" (a screen reader could not tell them apart): "Copy password 1" … 5.
   Also new: a symbols box (sites that allow only some symbols; what is not a symbol is named and left out), lengths
   from 4 (a PIN), and a note on where the randomness comes from.
+
+- **`passphrase` (tab 105, 3 bugs; engine: randombytes_uniform moved to libsodium.js — docs/WASM-AUDIT.md, 105; unit
+  `tests/unit/passphrases.test.mjs` 13 — new; e2e 16 — was 12).**
+  1. **The word list was not checked.** Whatever the server sent was split at white space and used: a 404 page or
+     an error page from a proxy became a "list" of a dozen words, and the tab made passphrases from them with the
+     strength label of 7,776 words. The list must now be exactly 7,776 different words (else the tab says the list
+     did not arrive whole and makes nothing); its SHA-256 is held in the unit suite.
+  2. "Add a digit" was counted as log2(10) bits; the digit also goes after a random word, so it adds log2(10 × words)
+     — 5.9 bits for six words, not 3.3.
+  3. The five copy buttons were all called "Copy": "Copy passphrase 1" … 5.
+  Also: the e2e suite split passphrases at "-", so "t-shirt", "yo-yo", "drop-down" or "felt-tip" (four words of the
+  list) made it fail about one run in seventy; it reads the words back from the list now. And the lazy-loading suite
+  never saw files in the site's own `data/`, `vendor/` and `models/` folders (it compared URLs without their leading
+  slash with patterns that had one); with that fixed the passphrase tab was the only one loading such a file at open —
+  the word list, which its first view needs (now on the list with the reason).
