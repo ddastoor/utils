@@ -16,7 +16,8 @@ const t0 = performance.now();
 // E2E_DIST=<folder>: serve another build (e.g. `npx vite build --outDir <folder>`) while a long run uses dist/
 const server = await preview({ root: join(here, '..'), preview: { port: 0 }, logLevel: 'error', ...(process.env.E2E_DIST ? { build: { outDir: process.env.E2E_DIST } } : {}) });
 const base = server.resolvedUrls.local[0];
-const browser = await chromium.launch({ args: ['--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream', '--auto-accept-this-tab-capture'] });
+// E2E_CHROME_ARGS adds browser flags (e.g. "--enable-logging=stderr --v=0", read with DEBUG=pw:browser to see why a page crashed)
+const browser = await chromium.launch({ args: ['--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream', '--auto-accept-this-tab-capture', ...(process.env.E2E_CHROME_ARGS || '').split(' ').filter(Boolean)] });
 const tmp = mkdtempSync(join(tmpdir(), 'supertools-e2e-'));
 
 const files = readdirSync(join(here, 'e2e')).filter((f) => f.endsWith('.e2e.mjs') && (!filters.length || filters.some((x) => f.includes(x)))).sort();
