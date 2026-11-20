@@ -19,7 +19,7 @@ const g = document.getElementById('c').getContext('2d');
 setInterval(() => post({ event: 'infoDelivery', info: { currentTime: t, playerState: playing ? 1 : 2 } }), 100);
 </script></body></html>`;
 
-export default async ({ base, page: newPage, ok, info, download }) => {
+export default async ({ base, page: newPage, ok, info, download, released }) => {
   const page = await newPage({ viewport: { width: 1280, height: 1000 } });
   const hits = [];
   await page.route('https://www.youtube-nocookie.com/**', (route) => { hits.push(route.request().url()); route.fulfill({ status: 200, contentType: 'text/html', body: FAKE }); });
@@ -99,4 +99,8 @@ export default async ({ base, page: newPage, ok, info, download }) => {
   await page.getByLabel('End time').fill('8');
   ok(await page.getByRole('button', { name: 'Record clip' }).isVisible(), 'other times of the same video keep the player');
   ok(!page.errors.length, `no page errors ${page.errors.slice(0, 3).join(' | ')}`);
+  // leaving the tab lets go of what it made: its results' blob URLs (they kept the files in memory until the page reloaded)
+  { const had = await page.evaluate((id) => [...window.__blobs.values()].filter((b) => b.at.startsWith(`#/${id}`) && !b.download && !/javascript/.test(b.type)).length, 'youtube');
+    const kept = await released(page, 'youtube');
+    ok(kept.length === 0, `leaving the tab: ${had} blob URLs it held are let go (${kept.length} kept${kept.length ? ': ' + kept.map((b) => `${b.type} ${Math.round(b.size / 1024)} KB ${b.from}`).join(', ') : ''})`); }
 };

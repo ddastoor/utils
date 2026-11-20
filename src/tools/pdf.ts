@@ -202,7 +202,7 @@ export const pdf2img: Mount = (root, ctx) => {
       if (capped.length) info.textContent = `${plural(capped.length, 'page')} (${capped.slice(0, 8).join(', ')}${capped.length > 8 ? ' …' : ''}) too large for ${d} dpi: drawn smaller, at most 16,384 px a side and 100 megapixels.`;
     }, { variant: 'primary', icon: 'FileOutput' })),
     card(null, results.el));
-  return () => { alive = false; seq++; };
+  return () => { alive = false; seq++; results.clear(); }; // the pages' pictures (blob URLs) would stay in memory until the page reloads
 };
 
 // ------------------------------------------------------------------ PDF → text

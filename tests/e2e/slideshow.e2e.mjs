@@ -8,7 +8,7 @@ const probeAudio = (f) => { try { return execFileSync('ffprobe', ['-v', 'error',
 const I = (n) => new URL(`../fixtures/images/${n}`, import.meta.url).pathname;
 const M = (n) => new URL(`../fixtures/media/${n}`, import.meta.url).pathname;
 
-export default async ({ base, page: newPage, ok, info, download, devices, tmp }) => {
+export default async ({ base, page: newPage, ok, info, download, devices, tmp, released }) => {
   const page = await newPage({ viewport: { width: 1280, height: 1100 } });
   await page.goto(`${base}#/slideshow`);
   const make = async () => { await page.locator('.actions').getByRole('button', { name: 'Make video' }).click(); await page.locator('.vid-result .vid-big').waitFor({ timeout: 180000 }); return download(page, () => page.locator('.actions').getByRole('button', { name: 'Download' }).click()); };
@@ -111,6 +111,10 @@ export default async ({ base, page: newPage, ok, info, download, devices, tmp })
   await page.getByRole('button', { name: 'Stop' }).click();
   ok(!page.errors.length, `no page errors ${page.errors.slice(0, 3).join(' | ')}`);
 
+  // leaving the tab lets go of what it made: its results' blob URLs (they kept the files in memory until the page reloaded)
+  { const had = await page.evaluate((id) => [...window.__blobs.values()].filter((b) => b.at.startsWith(`#/${id}`) && !b.download && !/javascript/.test(b.type)).length, 'slideshow');
+    const kept = await released(page, 'slideshow');
+    ok(kept.length === 0, `leaving the tab: ${had} blob URLs it held are let go (${kept.length} kept${kept.length ? ': ' + kept.map((b) => `${b.type} ${Math.round(b.size / 1024)} KB ${b.from}`).join(', ') : ''})`); }
   const ph = await newPage(devices['iPhone 13']);
   await ph.goto(`${base}#/slideshow`);
   await ph.locator('input[type=file]').first().setInputFiles([I('chelsea.png'), I('coffee.jpg')]);

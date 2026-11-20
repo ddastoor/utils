@@ -3,7 +3,7 @@ import zlib from 'node:zlib';
 import { readFileSync } from 'node:fs';
 import { pdfInfo, renderGrey } from '../lib/pdfcheck.mjs';
 const I = (n) => new URL(`../fixtures/images/${n}`, import.meta.url).pathname;
-export default async ({ base, page: newPage, ok, download, devices }) => {
+export default async ({ base, page: newPage, ok, download, devices, released }) => {
   const page = await newPage();
   await page.goto(base + '#/img2pdf');
   await page.locator('input[type=file]').first().setInputFiles([I('coffee.jpg'), I('chelsea.png'), I('pug.heic'), I('coffee-orientation6.jpg')]);
@@ -51,6 +51,10 @@ export default async ({ base, page: newPage, ok, download, devices }) => {
   ok(i3.list[0].w === 72 && i3.list[0].h === 96 && i3.list[1].w === 432 && i3.list[1].h === 576 && i3.list[2].w === 216 && i3.list[2].h === 288,
     `Fit: 600 dpi → 1 × 1⅓ in, 72 dpi → at 150 dpi, 300 dpi → 3 × 4 in (${i3.list.map((p) => `${p.w}×${p.h}`).join(', ')})`);
   ok(page.errors.length === 0 && p3.errors.length === 0, `no page errors: ${[...page.errors, ...p3.errors].join(' | ')}`);
+  // leaving the tab lets go of what it made: its results' blob URLs (they kept the files in memory until the page reloaded)
+  { const had = await page.evaluate((id) => [...window.__blobs.values()].filter((b) => b.at.startsWith(`#/${id}`) && !b.download && !/javascript/.test(b.type)).length, 'img2pdf');
+    const kept = await released(page, 'img2pdf');
+    ok(kept.length === 0, `leaving the tab: ${had} blob URLs it held are let go (${kept.length} kept${kept.length ? ': ' + kept.map((b) => `${b.type} ${Math.round(b.size / 1024)} KB ${b.from}`).join(', ') : ''})`); }
   const phone = await newPage({ ...devices['iPhone 13'] });
   await phone.goto(base + '#/img2pdf');
   await phone.locator('input[type=file]').first().setInputFiles([I('coffee.jpg'), I('chelsea.png')]);

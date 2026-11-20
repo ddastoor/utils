@@ -2,7 +2,7 @@
 import { imageInfo, regionMeans, lum, zipEntries } from '../lib/imgcheck.mjs';
 const F = (n) => new URL(`../fixtures/images/${n}`, import.meta.url).pathname;
 
-export default async ({ base, page: newPage, ok, download, devices }) => {
+export default async ({ base, page: newPage, ok, download, devices, released }) => {
   const page = await newPage();
   await page.goto(base + '#/watermark');
   await page.locator('input[type=file]').first().setInputFiles([F('coffee.jpg'), F('chelsea.png')]);
@@ -80,6 +80,10 @@ export default async ({ base, page: newPage, ok, download, devices }) => {
   const errs = page.errors.filter((e) => !/^Error: Type the text of the watermark/.test(e)); // the refusal above, logged by the button
   ok(errs.length === 0, `no page errors: ${errs.join(' | ')}`);
 
+  // leaving the tab lets go of what it made: its results' blob URLs (they kept the files in memory until the page reloaded)
+  { const had = await page.evaluate((id) => [...window.__blobs.values()].filter((b) => b.at.startsWith(`#/${id}`) && !b.download && !/javascript/.test(b.type)).length, 'watermark');
+    const kept = await released(page, 'watermark');
+    ok(kept.length === 0, `leaving the tab: ${had} blob URLs it held are let go (${kept.length} kept${kept.length ? ': ' + kept.map((b) => `${b.type} ${Math.round(b.size / 1024)} KB ${b.from}`).join(', ') : ''})`); }
   const phone = await newPage({ ...devices['iPhone 13'] });
   await phone.goto(base + '#/watermark');
   await phone.locator('input[type=file]').first().setInputFiles(F('coffee.jpg'));

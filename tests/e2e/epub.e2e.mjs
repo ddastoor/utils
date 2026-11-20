@@ -16,7 +16,7 @@ const epubcheck = (f) => {
 };
 const P = (n) => new URL(`../fixtures/pdf/${n}`, import.meta.url).pathname;
 const jpegInfo = (b) => { for (let i = 2; i < b.length - 9;) { if (b[i] !== 0xff) return null; const m = b[i + 1], len = (b[i + 2] << 8) | b[i + 3]; if (m >= 0xc0 && m <= 0xc2) return { h: (b[i + 5] << 8) | b[i + 6], w: (b[i + 7] << 8) | b[i + 8], comps: b[i + 9] }; i += 2 + len; } return null; };
-export default async ({ base, page: newPage, ok, info, download, tmp, devices }) => {
+export default async ({ base, page: newPage, ok, info, download, tmp, devices, released }) => {
   const page = await newPage({ viewport: { width: 1400, height: 1000 } });
   await page.goto(base + '#/epub');
   const make = async () => {
@@ -160,6 +160,10 @@ export default async ({ base, page: newPage, ok, info, download, tmp, devices })
   await q.waitForTimeout(3000);
   const liveAfter = await q.evaluate(() => globalThis.__supertoolsLive?.());
   ok(qd === 0 && q.errors.length === 0 && await q.evaluate(() => [...window.__urls].length) === 0, `leaving the tab during a conversion: it ends quietly, the pictures are let go (${JSON.stringify(liveAfter)}; ${q.errors.join(' | ')})`);
+  // leaving the tab lets go of what it made: its results' blob URLs (they kept the files in memory until the page reloaded)
+  { const had = await page.evaluate((id) => [...window.__blobs.values()].filter((b) => b.at.startsWith(`#/${id}`) && !b.download && !/javascript/.test(b.type)).length, 'epub');
+    const kept = await released(page, 'epub');
+    ok(kept.length === 0, `leaving the tab: ${had} blob URLs it held are let go (${kept.length} kept${kept.length ? ': ' + kept.map((b) => `${b.type} ${Math.round(b.size / 1024)} KB ${b.from}`).join(', ') : ''})`); }
   const phone = await newPage({ ...devices['iPhone 13'] });
   await phone.goto(base + '#/epub');
   ok(await phone.getByText('available on desktop browsers only').count() === 1, 'phone: PC-only notice');

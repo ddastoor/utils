@@ -5,7 +5,7 @@ import { execFileSync } from 'node:child_process';
 import { mp4Info } from './video.e2e.mjs';
 const probeAudio = (f) => { try { return execFileSync('ffprobe', ['-v', 'error', '-select_streams', 'a:0', '-show_entries', 'stream=codec_name', '-of', 'csv=p=0', f], { encoding: 'utf8' }).trim(); } catch { return null; } };
 
-export default async ({ base, page: newPage, ok, info, download }) => {
+export default async ({ base, page: newPage, ok, info, download, released }) => {
   const page = await newPage({ viewport: { width: 1280, height: 900 } });
   await page.addInitScript(() => { // stand-in for the save dialog: count what would be written to disk
     window.showSaveFilePicker = async (o) => ({ name: o.suggestedName, createWritable: async () => ({ write: async (d) => { window.__written = (window.__written || 0) + d.size; }, close: async () => { window.__closed = true; } }) });
@@ -88,4 +88,8 @@ export default async ({ base, page: newPage, ok, info, download }) => {
   ok(w[0] > 5000 && w[1] === true, `streamed to the file while recording (${w[0]} bytes, closed)`);
   ok(await page.getByText(/Saved straight to screencast-/).isVisible(), 'saved message');
   ok(!page.errors.length, `no page errors ${page.errors.slice(0, 3).join(' | ')}`);
+  // leaving the tab lets go of what it made: its results' blob URLs (they kept the files in memory until the page reloaded)
+  { const had = await page.evaluate((id) => [...window.__blobs.values()].filter((b) => b.at.startsWith(`#/${id}`) && !b.download && !/javascript/.test(b.type)).length, 'screencast');
+    const kept = await released(page, 'screencast');
+    ok(kept.length === 0, `leaving the tab: ${had} blob URLs it held are let go (${kept.length} kept${kept.length ? ': ' + kept.map((b) => `${b.type} ${Math.round(b.size / 1024)} KB ${b.from}`).join(', ') : ''})`); }
 };

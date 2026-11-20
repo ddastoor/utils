@@ -2,7 +2,7 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { imageInfo, zipEntries } from '../lib/imgcheck.mjs';
 const P = (n) => new URL(`../fixtures/pdf/${n}`, import.meta.url).pathname;
-export default async ({ base, page: newPage, ok, info, download, devices, tmp }) => {
+export default async ({ base, page: newPage, ok, info, download, devices, tmp, released }) => {
   const page = await newPage();
   // click Convert and wait until the result list holds exactly these files
   const convert = async (pg, names) => {
@@ -59,6 +59,12 @@ export default async ({ base, page: newPage, ok, info, download, devices, tmp })
   await page.waitForTimeout(3000);
   ok(await page.locator('.result-row').count() === 0, `a PDF opened during a conversion: none of the old file's pages appear (${await page.locator('.result-row .file-name').allTextContents()})`);
   ok(page.errors.length === 0, `no page errors: ${page.errors.join(' | ')}`);
+  // leaving the tab lets the pages' pictures go: the result list's blob URLs stayed alive (and their pictures in memory)
+  // until the page was reloaded
+  await convert(page, ['crazyones-p1.png']);
+  const had = await page.evaluate(() => [...window.__blobs.values()].filter((b) => b.at === '#/pdf2img' && /^image/.test(b.type)));
+  const kept = await released(page, 'pdf2img');
+  ok(had.length > 0 && kept.length === 0, `leaving the tab releases its ${had.length} pictures (${kept.length} still held, ${Math.round(kept.reduce((a, b) => a + b.size, 0) / 1024)} KB${kept.length ? ': ' + kept.map((b) => `${b.type} ${b.from}`).join(', ') : ''})`);
   const phone = await newPage({ ...devices['iPhone 13'] });
   await phone.goto(base + '#/pdf2img');
   await phone.locator('input[type=file]').first().setInputFiles(P('crazyones.pdf'));

@@ -4,7 +4,7 @@ import { imageInfo, zipEntries } from '../lib/imgcheck.mjs';
 import { readFileSync } from 'node:fs';
 const F = (n) => new URL(`../fixtures/images/${n}`, import.meta.url).pathname;
 
-export default async ({ base, page: newPage, ok, download, devices }) => {
+export default async ({ base, page: newPage, ok, download, devices, released }) => {
   const page = await newPage();
   await page.goto(base + '#/batch');
   const inputs = ['coffee.jpg', 'chelsea.png', 'astronaut.png', 'pug.heic', 'coffee-gps.jpg'].map(F);
@@ -89,6 +89,10 @@ export default async ({ base, page: newPage, ok, download, devices }) => {
   ok(unexpectedB.length === 0, `no page errors: ${unexpectedB.join(' | ')}`);
 
   // PC only: hidden on phones
+  // leaving the tab lets go of what it made: its results' blob URLs (they kept the files in memory until the page reloaded)
+  { const had = await page.evaluate((id) => [...window.__blobs.values()].filter((b) => b.at.startsWith(`#/${id}`) && !b.download && !/javascript/.test(b.type)).length, 'batch');
+    const kept = await released(page, 'batch');
+    ok(kept.length === 0, `leaving the tab: ${had} blob URLs it held are let go (${kept.length} kept${kept.length ? ': ' + kept.map((b) => `${b.type} ${Math.round(b.size / 1024)} KB ${b.from}`).join(', ') : ''})`); }
   const phone = await newPage({ ...devices['iPhone 13'] });
   await phone.goto(base + '#/batch');
   ok(/PC|computer|desktop/i.test(await phone.locator('body').innerText()), 'phone: explains Batch Images is PC only');

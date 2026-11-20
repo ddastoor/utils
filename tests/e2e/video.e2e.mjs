@@ -31,7 +31,7 @@ export function mp4Info(b) {
   return { duration, tracks, video: tracks.find((t) => t.kind === 'vide'), audio: tracks.find((t) => t.kind === 'soun') };
 }
 
-export default async ({ base, page: newPage, ok, info, download, devices, tmp }) => {
+export default async ({ base, page: newPage, ok, info, download, devices, tmp, released }) => {
   const page = await newPage({ viewport: { width: 1280, height: 1100 } });
   await page.goto(`${base}#/video`);
   const compress = async () => { await page.locator('.actions').getByRole('button', { name: /^Compress/ }).click(); await page.locator('.vid-result .vid-big').waitFor({ timeout: 120000 }); return download(page, () => page.locator('.actions').getByRole('button', { name: 'Download' }).click()); };
@@ -133,6 +133,10 @@ export default async ({ base, page: newPage, ok, info, download, devices, tmp })
   ok(!page.errors.length, `no page errors ${page.errors.slice(0, 3).join(' | ')}`);
 
   // phone layout
+  // leaving the tab lets go of what it made: its results' blob URLs (they kept the files in memory until the page reloaded)
+  { const had = await page.evaluate((id) => [...window.__blobs.values()].filter((b) => b.at.startsWith(`#/${id}`) && !b.download && !/javascript/.test(b.type)).length, 'video');
+    const kept = await released(page, 'video');
+    ok(kept.length === 0, `leaving the tab: ${had} blob URLs it held are let go (${kept.length} kept${kept.length ? ': ' + kept.map((b) => `${b.type} ${Math.round(b.size / 1024)} KB ${b.from}`).join(', ') : ''})`); }
   const ph = await newPage(devices['iPhone 13']);
   await ph.goto(`${base}#/video`);
   await ph.locator('input[type=file]').setInputFiles(M('clip.mp4'));

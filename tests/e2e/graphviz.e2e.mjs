@@ -247,4 +247,8 @@ export default async (ctx) => {
   await page.goto(`${base}#/`); await page.waitForTimeout(300);
   const live = await page.evaluate(() => globalThis.__supertoolsLive()); ok(live.workers === 0 && !live.resources.some((r) => /graphviz/.test(r)), `worker and module released on leave (${JSON.stringify(live)})`);
   await pcOnlyOnPhone(ctx, 'graphviz');
+  // leaving the tab lets go of what it made: its results' blob URLs (they kept the files in memory until the page reloaded)
+  { const had = await page.evaluate((id) => [...window.__blobs.values()].filter((b) => b.at.startsWith(`#/${id}`) && !b.download && !/javascript/.test(b.type)).length, 'graphviz');
+    const kept = await ctx.released(page, 'graphviz');
+    ok(kept.length === 0, `leaving the tab: ${had} blob URLs it held are let go (${kept.length} kept${kept.length ? ': ' + kept.map((b) => `${b.type} ${Math.round(b.size / 1024)} KB ${b.from}`).join(', ') : ''})`); }
 };

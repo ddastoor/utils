@@ -70,4 +70,8 @@ export default async (ctx) => {
   ok(await allStopped(page), 'and leaving stops it');
   ok(!page.errors.length, `no page errors ${page.errors.join(' | ')}`);
   await phoneLayout(ctx, 'mic', { ready: '.meter', buttons: ['Start', 'Record 5 s'] });
+  // leaving the tab lets go of what it made: its results' blob URLs (they kept the files in memory until the page reloaded)
+  { const had = await page.evaluate((id) => [...window.__blobs.values()].filter((b) => b.at.startsWith(`#/${id}`) && !b.download && !/javascript/.test(b.type)).length, 'mic');
+    const kept = await ctx.released(page, 'mic');
+    ok(kept.length === 0, `leaving the tab: ${had} blob URLs it held are let go (${kept.length} kept${kept.length ? ': ' + kept.map((b) => `${b.type} ${Math.round(b.size / 1024)} KB ${b.from}`).join(', ') : ''})`); }
 };

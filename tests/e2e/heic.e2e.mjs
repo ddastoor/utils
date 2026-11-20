@@ -5,7 +5,7 @@ import { imageInfo, zipEntries, decodeInPage } from '../lib/imgcheck.mjs';
 import { readFileSync } from 'node:fs';
 const F = (n) => new URL(`../fixtures/images/${n}`, import.meta.url).pathname;
 
-export default async ({ base, page: newPage, ok, download, devices }) => {
+export default async ({ base, page: newPage, ok, download, devices, released }) => {
   const page = await newPage();
   await page.goto(base + '#/heic');
   await page.locator('input[type=file]').setInputFiles([F('pug.heic'), F('xiaomi.heic')]);
@@ -53,6 +53,10 @@ export default async ({ base, page: newPage, ok, download, devices }) => {
   page.errors.splice(0, page.errors.length, ...page.errors.filter((e) => !/HEIC|heif|Not a readable|not supported/i.test(e)));
   ok(page.errors.length === 0, `no page errors: ${page.errors.join(' | ')}`);
 
+  // leaving the tab lets go of what it made: its results' blob URLs (they kept the files in memory until the page reloaded)
+  { const had = await page.evaluate((id) => [...window.__blobs.values()].filter((b) => b.at.startsWith(`#/${id}`) && !b.download && !/javascript/.test(b.type)).length, 'heic');
+    const kept = await released(page, 'heic');
+    ok(kept.length === 0, `leaving the tab: ${had} blob URLs it held are let go (${kept.length} kept${kept.length ? ': ' + kept.map((b) => `${b.type} ${Math.round(b.size / 1024)} KB ${b.from}`).join(', ') : ''})`); }
   const phone = await newPage({ ...devices['iPhone 13'] });
   await phone.goto(base + '#/heic');
   await phone.locator('input[type=file]').setInputFiles(F('pug.heic'));

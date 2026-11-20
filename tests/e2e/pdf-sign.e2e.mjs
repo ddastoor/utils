@@ -3,7 +3,7 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { pdfInfo, renderGrey } from '../lib/pdfcheck.mjs';
 const P = (n) => new URL(`../fixtures/pdf/${n}`, import.meta.url).pathname;
-export default async ({ base, page: newPage, ok, download, tmp, devices }) => {
+export default async ({ base, page: newPage, ok, download, tmp, devices, released }) => {
   const m = await import('mupdf');
   const sigImages = (f) => { const d = m.Document.openDocument(readFileSync(f), 'application/pdf').asPDF(), out = []; for (let k = 1; k < d.countObjects(); k++) { const o = d.newIndirect(k); if (o.isStream() && o.get('Subtype').toString() === '/Image') out.push({ smask: !o.get('SMask').isNull() }); } return out; };
   const page = await newPage({ viewport: { width: 1280, height: 1500 } }); // the whole page preview fits on screen
@@ -125,6 +125,10 @@ export default async ({ base, page: newPage, ok, download, tmp, devices }) => {
   ok(Math.abs(narrow - wide) / wide < 0.15, `after a narrower window and one more stroke the whole signature is kept (shape ${wide.toFixed(2)} → ${narrow.toFixed(2)})`);
   const real = page.errors.filter((e) => !/Make your signature first/.test(e));
   ok(real.length === 0, `no unexpected page errors: ${real.join(' | ')}`);
+  // leaving the tab lets go of what it made: its results' blob URLs (they kept the files in memory until the page reloaded)
+  { const had = await page.evaluate((id) => [...window.__blobs.values()].filter((b) => b.at.startsWith(`#/${id}`) && !b.download && !/javascript/.test(b.type)).length, 'pdf-sign');
+    const kept = await released(page, 'pdf-sign');
+    ok(kept.length === 0, `leaving the tab: ${had} blob URLs it held are let go (${kept.length} kept${kept.length ? ': ' + kept.map((b) => `${b.type} ${Math.round(b.size / 1024)} KB ${b.from}`).join(', ') : ''})`); }
   const phone = await newPage({ ...devices['iPhone 13'] });
   await phone.goto(base + '#/pdf-sign');
   await phone.locator('input[type=file]').first().setInputFiles(P('crazyones.pdf'));

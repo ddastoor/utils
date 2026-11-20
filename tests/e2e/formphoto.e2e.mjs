@@ -5,7 +5,7 @@ import { readFileSync } from 'node:fs';
 import { imageInfo, decodeInPage, regionMeans } from '../lib/imgcheck.mjs';
 const F = (n) => new URL(`../fixtures/images/${n}`, import.meta.url).pathname;
 
-export default async ({ base, page: newPage, ok, download, devices }) => {
+export default async ({ base, page: newPage, ok, download, devices, released }) => {
   const page = await newPage();
   await page.goto(base + '#/formphoto');
   const make = () => download(page, () => page.getByRole('button', { name: 'Make & download' }).click());
@@ -140,6 +140,10 @@ export default async ({ base, page: newPage, ok, download, devices }) => {
   const errs = page.errors.filter((e) => !/^Error: The (width|height) is a whole number|^Error: The minimum KB is above|^Error: The maximum is a size|^Error: The minimum is a size/.test(e)); // the refusals above, logged by the button
   ok(errs.length === 0, `no page errors: ${errs.join(' | ')}`);
 
+  // leaving the tab lets go of what it made: its results' blob URLs (they kept the files in memory until the page reloaded)
+  { const had = await page.evaluate((id) => [...window.__blobs.values()].filter((b) => b.at.startsWith(`#/${id}`) && !b.download && !/javascript/.test(b.type)).length, 'formphoto');
+    const kept = await released(page, 'formphoto');
+    ok(kept.length === 0, `leaving the tab: ${had} blob URLs it held are let go (${kept.length} kept${kept.length ? ': ' + kept.map((b) => `${b.type} ${Math.round(b.size / 1024)} KB ${b.from}`).join(', ') : ''})`); }
   const phone = await newPage({ ...devices['iPhone 13'] });
   await phone.goto(base + '#/formphoto');
   await phone.locator('input[type=file]').setInputFiles(F('astronaut.png'));

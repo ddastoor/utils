@@ -21,6 +21,17 @@ const tmp = mkdtempSync(join(tmpdir(), 'supertools-e2e-'));
 
 const files = readdirSync(join(here, 'e2e')).filter((f) => f.endsWith('.e2e.mjs') && (!filters.length || filters.some((x) => f.includes(x)))).sort();
 const queue = [...files], results = [];
+/** Every page: the blob URLs it makes and lets go, with the tab each was made on (`released()` reads them). */
+const BLOBS = () => {
+  window.__blobs = new Map(); const mk = URL.createObjectURL, rv = URL.revokeObjectURL, click = HTMLAnchorElement.prototype.click;
+  URL.createObjectURL = function (b) {
+    const u = mk.call(URL, b), stack = new Error().stack || '';
+    if (!/eval at evaluate|__playwright/.test(stack)) window.__blobs.set(u, { at: location.hash, size: b?.size ?? 0, type: b?.type || '', from: stack.split('\n')[2]?.trim().replace(/\(.*\/assets\//, '(').slice(0, 60) }); // a suite's own page.evaluate code is not the app's
+    return u;
+  };
+  URL.revokeObjectURL = function (u) { window.__blobs.delete(u); return rv.call(URL, u); };
+  HTMLAnchorElement.prototype.click = function () { const b = window.__blobs.get(this.href); if (b && this.download) b.download = true; return click.call(this); };
+};
 async function runOne(f) {
   const fails = [], infos = [], s0 = performance.now(); let passed = 0;
   const contexts = [];
@@ -30,11 +41,18 @@ async function runOne(f) {
       const c = await browser.newContext({ acceptDownloads: true, ...opts });
       contexts.push(c);
       const p = await c.newPage();
+      await p.addInitScript(BLOBS);
       p.errors = [];
       p.on('pageerror', (e) => p.errors.push(e.message));
       // MediaPipe's wasm prints glog/TFLite info lines ("INFO: …", "I1116 …", "W1116 …") to stderr → console.error; not errors
       p.on('console', (m) => { if (m.type() === 'error' && !/Wrong password|Could not decrypt|expected-error/.test(m.text()) && !/^(INFO: |[IW]\d{4} )/.test(m.text())) p.errors.push(m.text()); });
       return p;
+    },
+    /** Leave the tab for the start page: the blob URLs the tab made and still holds (results kept in memory until the page
+     *  reloads). Downloads' own URLs (let go 30 s after the click) and library code (zip.js's worker) are not counted. */
+    async released(p, id) {
+      await p.evaluate(() => { location.hash = '#/'; }); await p.locator('.tile').first().waitFor(); await p.waitForTimeout(300);
+      return p.evaluate((id) => [...window.__blobs.values()].filter((b) => (b.at === `#/${id}` || b.at.startsWith(`#/${id}?`)) && !b.download && !/javascript/.test(b.type)), id);
     },
     ok(cond, msg) { if (cond) passed++; else fails.push(msg); },
     info(msg) { infos.push(msg); },

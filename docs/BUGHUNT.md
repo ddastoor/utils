@@ -14,18 +14,18 @@ Areas with a shared review: the app shell (router, search, favorites, platform h
 | id | Tab | Platform | Area | R | B | T | Notes |
 |---|---|---|---|---|---|---|---|
 | `image` | Image Editor | PC + mobile | images1 | ✓ | 4 | 17 | resize → @jsquash/resize (linear light), imgproc kept (magick-wasm 15.5 MB, slower; wasm-vips needs SAB); JPEG of transparency on white; straighten crops its corners; size boxes checked |
-| `batch` | Batch Images | PC only | images1 | ✓ | 4 | 7 | jSquash resize; unique result names (shared list); sizes/scale checked; failed files listed; Stop |
-| `heic` | HEIC → JPG | PC + mobile | images1 | ✓ | 3 | 16 | libheif-js kept (latest) + lcms-wasm: Display P3 → sRGB (iPhone colours were off, every HEIC tab); primary image; failed files listed |
+| `batch` | Batch Images | PC only | images1 | ✓ | 4 | 8 | jSquash resize; unique result names (shared list); sizes/scale checked; failed files listed; Stop |
+| `heic` | HEIC → JPG | PC + mobile | images1 | ✓ | 3 | 17 | libheif-js kept (latest) + lcms-wasm: Display P3 → sRGB (iPhone colours were off, every HEIC tab); primary image; failed files listed |
 | `passport` | Passport Photo | PC + mobile | images2 | ✓ | 5 | 6 | MediaPipe 1.2.3 (latest) + imgproc kept; no stale result after a face-less photo; Cancel ends the countdown; camera errors worded (shared src/lib/camera.ts); custom size 10–150 mm; jSquash resize for upload; a11y sweep (white chips in the dark theme) |
-| `formphoto` | Photo & Signature Resizer | PC + mobile | images2 | ✓ | 8 | 55 | engines kept + jSquash resize; KB read strictly (max ×1000, min ×1024); dpi before padding (was +18 bytes over max); metacore padding exact; no download of an over-max file; per-field reasons; re-frame without new face search; newest photo wins; object URLs revoked |
+| `formphoto` | Photo & Signature Resizer | PC + mobile | images2 | ✓ | 8 | 56 | engines kept + jSquash resize; KB read strictly (max ×1000, min ×1024); dpi before padding (was +18 bytes over max); metacore padding exact; no download of an over-max file; per-field reasons; re-frame without new face search; newest photo wins; object URLs revoked |
 | `bgremove` | Background Remover | PC + mobile | images2 | ✓ | 8 | 21 | MediaPipe + imgproc kept (imgly ISNet noted for objects); newest photo/background wins; no-person said + Save refuses; failure reason on Save; status restored; .swatch CSS clash with Color tab fixed (.bg-swatch); 44 px swatches with pressed state; model note only first time |
 | `cartoon` | Cartoonizer | PC + mobile | images2 | ✓ | 7 | 8 | imgproc + TF.js (wasm/WebGL) kept; see-through photo/painting on white (onWhite in imgio); one AI painting at a time, newest settings follow; Save refuses a stale AI result; keyboard compare; model note only until loaded |
 | `redact` | Blur & Redact | PC + mobile | images2 | ✓ | 6 | 13 | Save refused during the face search (it saved every face visible); newest photo wins; boxes drawn during the search kept; failure in the status line; pointercancel; setPointerCapture guarded |
-| `watermark` | Watermark | PC + mobile | images1 | ✓ | 6 | 6 | unreadable first photo no longer blocks the preview; Clear photos; empty text refused; logo errors said; failures listed; HEIC logos; jSquash resize |
+| `watermark` | Watermark | PC + mobile | images1 | ✓ | 6 | 7 | unreadable first photo no longer blocks the preview; Clear photos; empty text refused; logo errors said; failures listed; HEIC logos; jSquash resize |
 | `caption` | Text on Image | PC + mobile | images1 | ✓ | 3 | 21 | over-long words and CJK broken between graphemes (src/lib/textwrap.ts); long text shrunk to fit |
 | `collage` | Collage Maker | PC + mobile | images1 | ✓ | 2 | 4 | A4 JPEG says 300 dpi; first photo's Move earlier off; jSquash resize on save |
 | `exif` | EXIF / Photo Info | PC + mobile | images1 | ✓ | 8 | 106 | engine replaced by ExifTool 13.42 (zeroperl wasm, worker): iPhone HEIC position was hidden; HEIC/WebP stay their format on strip; orientation + ICC kept; XMP/IPTC/maker notes/previews shown; non-photo files named; newest photo wins; HEIC preview; DMS carry |
-| `scanner` | Doc Scanner | PC + mobile | images2 | ✓ | 12 | 62 | page finder: DocCornerNet LEAN on ONNX Runtime Web (WASM-AUDIT 121); OpenCV's area resize in imgproc; memory, phone picker, B&W lossless, Fit to scan |
+| `scanner` | Doc Scanner | PC + mobile | images2 | ✓ | 12 | 63 | page finder: DocCornerNet LEAN on ONNX Runtime Web (WASM-AUDIT 121); OpenCV's area resize in imgproc; memory, phone picker, B&W lossless, Fit to scan |
 | `ocr` | OCR | PC + mobile | images2 | ✓ | 6 | 11 | language data that cannot be fetched no longer hangs the tab; sideways/upside-down pictures turned; dark mode; phone picker (also passport, signature) |
 | `signature` | Signature Maker | PC + mobile | images1 | ✓ | 5 | 9 | strokes scaled with the pad; ink colour for the whole signature; fonts only for Type; blank paper said |
 
@@ -35,17 +35,17 @@ Areas with a shared review: the app shell (router, search, favorites, platform h
 | `pdf-merge` | Merge PDF | PC + mobile | pdf | ✓ | 4 | 37 | annotations, links, forms, outlines kept (graftPage dropped them); one graft map per file |
 | `pdf-split` | Split PDF | PC + mobile | pdf | ✓ | 4 | 14 | parts keep annotations/links/forms/outline (rearrangePages); one at a time; N pages box; page lists read |
 | `pdf-organize` | Organize PDF | PC + mobile | pdf | ✓ | 4 | 5 | rearrangePages keeps annotations/links/forms/outline; tiles at once; newest PDF wins; Rotate all |
-| `img2pdf` | Images → PDF | PC + mobile | pdf | ✓ | 3 | 2 | Fit keeps a scan's paper size (its own dpi); Sort by file name; URLs released |
-| `pdf2img` | PDF → Images | PC + mobile | pdf | ✓ | 4 | 6 | a run keeps its own file; size cap 16384 px / 100 MP; padded names; stops on leave |
+| `img2pdf` | Images → PDF | PC + mobile | pdf | ✓ | 3 | 3 | Fit keeps a scan's paper size (its own dpi); Sort by file name; URLs released |
+| `pdf2img` | PDF → Images | PC + mobile | pdf | ✓ | 5 | 7 | a run keeps its own file; size cap 16384 px / 100 MP; padded names; stops on leave |
 | `pdf-compress` | Compress PDF | PC + mobile | pdf | ✓ | 5 | 5 | a run keeps its own file; ends with the tab; colour-key masks kept; target in 1000-byte KB; scan mode within memory |
-| `pdf-sign` | Sign PDF | PC + mobile | pdf | ✓ | 6 | 7 | signature tied to its page; kept on the page; strokes scaled with the pad; Clear wins; typed bounds measured; blank paper |
+| `pdf-sign` | Sign PDF | PC + mobile | pdf | ✓ | 6 | 8 | signature tied to its page; kept on the page; strokes scaled with the pad; Clear wins; typed bounds measured; blank paper |
 | `pdf-fill` | Fill PDF Form | PC + mobile | pdf | ✓ | 3 | 3 | unchosen radio shown unchosen; ticks via ZapfDingbats + ToUnicode; ₹ limit said |
 | `pdf-unlock` | Unlock PDF | PC + mobile | pdf | ✓ | 1 | 2 | a signed PDF: the unlocked copy no longer proves the signature — said |
 | `pdf-protect` | Protect PDF | PC + mobile | pdf | ✓ | 2 | 4 | signed PDF said; non-ASCII password warned (SASLprep) |
 | `pdf2text` | PDF → Text | PC + mobile | pdf | ✓ | 4 | 3 | page by page with progress; form values listed; option relabelled; empty copy said |
 | `pdf-pagenum` | PDF Page Numbers | PC + mobile | pdf | ✓ | 2 | 4 | a run keeps its own file; ends with the tab; progress |
 | `pdf-watermark` | PDF Watermark | PC + mobile | pdf | ✓ | 2 | 4 | a run keeps its own file (sizes were read from the new one); ends with the tab; progress |
-| `epub` | PDF → EPUB | PC only | docs2 | ✓ | 17 | 93 | columns with 7.5 pt gutters; margin stamps; bold/size of a line from its spans; U+FFFF; formulas as pictures; bookmarks; /Lang; no freeze; newer PDF ends a run; epubcheck |
+| `epub` | PDF → EPUB | PC only | docs2 | ✓ | 17 | 94 | columns with 7.5 pt gutters; margin stamps; bold/size of a line from its spans; U+FFFF; formulas as pictures; bookmarks; /Lang; no freeze; newer PDF ends a run; epubcheck |
 | `sheet` | CSV / Excel | PC only | docs2 | ✓ | 18 | 141 | errors #DIV/0!; durations; 15 digits; exact numbers; JSON keys/IDs; Windows-1252/UTF-16; web-page .xls + Excel 2003 XML; newest file wins; Excel limits; LibreOffice reference |
 | `markdown` | Markdown Editor | PC + mobile | docs2 | ✓ | 14 | 30 | #fn links left the tab; Ctrl+K focus; Ctrl+P preview only; remote pictures not fetched; undoable toggles; GitHub heading ids; GFM spec 744 examples; a11y sweep (pre lang, task boxes) |
 | `invoice` | GST Invoice | PC + mobile | docs2 | ✓ | 8 | 21 | UPI QR @ as NPCI writes it (was %40), zbar read-back; links survive into PDFs; pictures in details; downloads wait for pictures; a11y sweep |
@@ -65,17 +65,17 @@ Areas with a shared review: the app shell (router, search, favorites, platform h
 ## media
 | id | Tab | Platform | Area | R | B | T | Notes |
 |---|---|---|---|---|---|---|---|
-| `video` | Video Compressor | PC + mobile | video | ✓ | 8 | 14 | video area 20 Nov 2026 (docs/BUGHUNT.md) |
+| `video` | Video Compressor | PC + mobile | video | ✓ | 8 | 15 | video area 20 Nov 2026 (docs/BUGHUNT.md) |
 | `audio` | Audio Recorder | PC + mobile | audio | ✓ | 7 | 4 | decoded at the file's own rate (was the device's: 44.1 kHz saved as 48 kHz); newest file wins; mic errors in words; touch + a11y sweeps |
 | `tts` | Text-to-Speech | PC + mobile | audio | ✓ | 6 | 3 | Speak stayed busy after Stop; runs queued in the worker; sentence shown when heard; system-voice errors; text encodings; download size |
-| `stt` | Speech to Text | PC + mobile | audio | ✓ | 12 | 8 | names box faded after ~224 tokens (carry_initial_prompt, rebuilt whisper.wasm); decode at 16 kHz; new file clears transcript; download overflow; touch sweep |
+| `stt` | Speech to Text | PC + mobile | audio | ✓ | 12 | 9 | names box faded after ~224 tokens (carry_initial_prompt, rebuilt whisper.wasm); decode at 16 kHz; new file clears transcript; download overflow; touch sweep |
 | `noise` | Noise Remover | PC + mobile | audio | ✓ | 12 | 33 | Jitsi's RNNoise 0.2 build (= the release's standard 8-bit computation; ours ran the debug float weights, 4× larger); Save after a new file; strength re-cleaned everything; stereo voice; 16-bit WAV round trip; touch sweep |
 | `pitch` | Pitch & Speed | PC + mobile | audio | ✓ | 8 | 7 | Signalsmith Stretch (official wasm/AudioWorklet, MIT) replaces our WSOLA: chord 7-15 dB cleaner; Save after a new file; coalesced renders; selection follows the passage |
-| `slideshow` | Slideshow Maker | PC + mobile | video | ✓ | 5 | 4 | video area 20 Nov 2026 (docs/BUGHUNT.md) |
+| `slideshow` | Slideshow Maker | PC + mobile | video | ✓ | 5 | 5 | video area 20 Nov 2026 (docs/BUGHUNT.md) |
 | `ffmpeg` | FFmpeg | PC only | video | ✓ | 9 | 6 | video area 20 Nov 2026 (docs/BUGHUNT.md); +1 solo run: the new-file stop note was wiped by the probe; +2 stop during the load (the job ran after Stop / a new file); junk sweep (no media) |
-| `screencast` | Screencast | PC only | video | ✓ | 4 | 4 | video area 20 Nov 2026 (docs/BUGHUNT.md) |
+| `screencast` | Screencast | PC only | video | ✓ | 4 | 5 | video area 20 Nov 2026 (docs/BUGHUNT.md) |
 | `screenshot` | Screenshot | PC only | video | ✓ | 4 | 4 | video area 20 Nov 2026 (docs/BUGHUNT.md) |
-| `youtube` | YouTube Clip | PC only | video | ✓ | 6 | 43 | video area 20 Nov 2026 (docs/BUGHUNT.md) |
+| `youtube` | YouTube Clip | PC only | video | ✓ | 6 | 44 | video area 20 Nov 2026 (docs/BUGHUNT.md) |
 
 ## calculators
 | id | Tab | Platform | Area | R | B | T | Notes |
@@ -173,7 +173,7 @@ Areas with a shared review: the app shell (router, search, favorites, platform h
 | `semver` | Semver Checker | PC only | misc | ✓ | 7 | 24 | e2e 8→18 + 14 unit; engine = our port of npm semver, 16,380 pairs vs the package |
 | `glob` | Glob Tester | PC only | misc | ✓ | 2 | 44 | e2e 16→39 + 21 unit; own Unicode-aware matcher vs Python glob.translate (420 patterns) |
 | `terminal` | Linux Terminal | PC only | terminal | ✓ | 3 | 2 | terminal 20 Nov 2026 (docs/BUGHUNT.md); v86 asked of the owner |
-| `graphviz` | Graphviz (DOT) | PC only | data-engines | ✓ | 22 | 712 | engine: own build kept (WASM-AUDIT 55 — Viz.js and hpcc trap on valid graphs), now Graphviz 16.1.0 + storeline fix, prism on our Delaunator port, glibc qsort/rand (dot = native byte for byte), browser text measuring, assertions kept; reference = native dot (3,464 drawings) |
+| `graphviz` | Graphviz (DOT) | PC only | data-engines | ✓ | 22 | 713 | engine: own build kept (WASM-AUDIT 55 — Viz.js and hpcc trap on valid graphs), now Graphviz 16.1.0 + storeline fix, prism on our Delaunator port, glibc qsort/rand (dot = native byte for byte), browser text measuring, assertions kept; reference = native dot (3,464 drawings) |
 | `python` | Python Scratchpad | PC only | data-engines | ✓ | 21 | 314 | native CPython 3.14.8 is the reference for 69 programs (stdout + stderr byte for byte); recursion through C code ends in RecursionError instead of killing the run, lru_cache in Python (cached recursion as deep as on a desktop), local time with tzdata's names and flags, socket stand-in + asyncio, pbkdf2_hmac; output pane survives 300,000 lines (92 s → 1.4 s), shows output during long computations, \r / colours / the answers to input(); hints for errors particular to the tab; a11y sweep; junk sweep (binary, Windows-1252) |
 | `totp` | TOTP / 2FA Codes | PC only | net | ✓ | 6 | 74 | e2e 11→49 + 25 unit; RFC 4226/6238; e2e 11→49; unit 36 (RFC 4226 / 6238, 600 random cases vs an independent implementation); HMAC = hash-wasm, Base32 + truncation = our supplement |
 | `pwstrength` | Password Strength | PC only | net | ✓ | 6 | 95 | e2e 13→32 + 76 unit (new); 304 passwords vs Python zxcvbn |
@@ -219,7 +219,7 @@ Areas with a shared review: the app shell (router, search, favorites, platform h
 | id | Tab | Platform | Area | R | B | T | Notes |
 |---|---|---|---|---|---|---|---|
 | `webcam` | Webcam Test | PC + mobile | everyday-device | ✓ | 4 | 4 | everyday-device area 20 Nov 2026 (docs/BUGHUNT.md) |
-| `mic` | Microphone Test | PC + mobile | everyday-device | ✓ | 7 | 4 | everyday-device area 20 Nov 2026 (docs/BUGHUNT.md) |
+| `mic` | Microphone Test | PC + mobile | everyday-device | ✓ | 7 | 5 | everyday-device area 20 Nov 2026 (docs/BUGHUNT.md) |
 | `speaker` | Speaker Test | PC + mobile | everyday-device | ✓ | 3 | 2 | everyday-device area 20 Nov 2026 (docs/BUGHUNT.md) |
 | `keyboard` | Keyboard Test | PC only | everyday-device | ✓ | 3 | 3 | everyday-device area 20 Nov 2026 (docs/BUGHUNT.md) |
 | `pixels` | Dead Pixel Test | PC + mobile | everyday-device | ✓ | 2 | 5 | everyday-device area 20 Nov 2026 (docs/BUGHUNT.md); second look |
@@ -2261,6 +2261,24 @@ cannot. Three new suites; each fails on the build before its fixes.
      different character is looked up once; a text over 200,000 characters waits for a pause in the typing. e2e +2.
   Not ours: a real paste of that size is slow in Chromium itself — `insertText` of 100 KB into a bare text box in an
   empty page takes 5 s (quadratic), so the probe sets the value and measures what the tab does with it.
+- **100 KB pasted into every one-line box of every tab** (the same probe):
+  1. **Mock Data froze** (over 40 s): a 100 KB field name made 8 MB of JSON with 100 KB lines, which the output box
+     could not lay out. Names take 64 characters (PostgreSQL 63, MySQL 64), the table name 128, a list to pick from
+     2,000; the box shows the first 10 lakh characters (cut at a line, said) and Copy and Download give all of it —
+     even a legitimate 2 MB result (1,000 rows of long text) took 50 s to show before. e2e +3.
+  2. **Markdown Table:** every keystroke in a cell measured every cell's width again — 450 ms a key in a 5,000-row
+     sheet with Hindi text and emoji, then a 2.1 s task. Widths are remembered; a big table's Markdown follows when
+     the typing pauses (Download lays it out first). e2e +2.
 - **Every phone tab with the phone turned sideways** (844 × 390): no sideways scroll, no bottom bar taller than a third
   of the screen — nothing to fix.
+- **What a tab keeps after it is left:** a result shown from a blob URL keeps its file in memory until that URL is let
+  go — for good, if the tab never does it. Every tab that makes them was read: **PDF → Images kept every page's
+  picture** after the tab was left (its cleanup ended the run but not the result list). The harness now records
+  every blob URL each page makes and lets go, with the tab it was made on (`released(page, id)` in `tests/e2e.mjs`;
+  downloads' own URLs, let go 30 s after the click, and zip.js's worker code are not counted), and the suites of the
+  sixteen tabs that make them check it on leaving: pdf2img, video, slideshow, screencast, youtube, heic, batch,
+  img2pdf, scanner, mic, formphoto, watermark, epub, graphviz, stt, pdf-sign.
+- **The complete e2e run** (on the build before these sweeps): 6,537 / 6,540 checks in 190 suites. Three checks failed
+  twice: PDF Protect's and PDF Unlock's notes about a signed PDF and the Everyday smoke suite's coin were read once,
+  at once, after the action — races of the tests under load, which wait now. FFmpeg: a click timed out (see below).
 - **Complete unit suites** after all this: 21,731 assertions in 99 suites, all green.

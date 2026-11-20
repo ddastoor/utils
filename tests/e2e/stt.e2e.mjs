@@ -13,7 +13,7 @@ export function wer(ref, hyp) {
   return d[r.length][h2.length] / r.length;
 }
 
-export default async ({ base, page: newPage, ok, info, download, tmp }) => {
+export default async ({ base, page: newPage, ok, info, download, tmp, released }) => {
   const page = await newPage({ viewport: { width: 1280, height: 1100 } });
   await page.goto(`${base}#/stt`);
   const transcribe = async (file, model) => {
@@ -151,4 +151,8 @@ export default async ({ base, page: newPage, ok, info, download, tmp }) => {
   await page.locator('.actions').getByRole('button', { name: 'Stop' }).click();
   ok(await page.getByText('Stopped.').isVisible() && await page.locator('.actions').getByRole('button', { name: 'Transcribe' }).isVisible(), 'stop ends the job');
   ok(!page.errors.length && !tts.errors.length, `no page errors ${[...page.errors, ...tts.errors].slice(0, 3).join(' | ')}`);
+  // leaving the tab lets go of what it made: its results' blob URLs (they kept the files in memory until the page reloaded)
+  { const had = await page.evaluate((id) => [...window.__blobs.values()].filter((b) => b.at.startsWith(`#/${id}`) && !b.download && !/javascript/.test(b.type)).length, 'stt');
+    const kept = await released(page, 'stt');
+    ok(kept.length === 0, `leaving the tab: ${had} blob URLs it held are let go (${kept.length} kept${kept.length ? ': ' + kept.map((b) => `${b.type} ${Math.round(b.size / 1024)} KB ${b.from}`).join(', ') : ''})`); }
 };
