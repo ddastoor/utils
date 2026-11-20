@@ -1536,6 +1536,10 @@ docs/BUGHUNT.md tabs 166 – 176, docs/WASM-AUDIT.md 156.)
   a device that stops by itself is said. Microphone and Sound Meter open their AudioContext in the tap (Safari).
   Microphone: one 5 s recording at a time, no playback after the tab was left. Fake media in the suites:
   `tests/e2e/_media.mjs` (`__gumError`, **`__gumDelay`** for a permission question still open).
+- Dead Pixel Test: without full screen (iPhones) a tap on the last colour ends the test (the hint says so); the
+  resting mouse pointer hides. Ruler: the calibration is kept in device pixels — a browser zoom keeps the ruler's size
+  (resize + a resolution media query), with a note. Dice: the roll in words for screen readers (`.sr-only`, announced);
+  Random Number, List Picker and Team Splitter announce their results.
 - Speaker: every stop is a 20 ms fade; the sweep fades in and out. Keyboard: the main block (78 keys, "n of 78 keys
   tested"), the navigation keys and the number pad; keys on no drawing named; held keys released when the window loses
   the focus. Screen Info: refresh rate = 1000 ÷ the median gap of 60 frames' time stamps; Windows by its client-hint
@@ -2542,6 +2546,7 @@ npm packages (pinned in `package-lock.json`) are bundled by Vite or copied to `p
 | *test only:* change-case 5.4.4 | MIT | the reference of the Case Converter's code cases (`tests/unit/caseconv.test.mjs`) |
 | *test only:* github-slugger 2.0.0 | ISC | the reference of the Markdown Editor's heading ids (`tests/unit/markdown.test.mjs`) |
 | *test only:* unicode-emoji-json 0.9.0 | MIT | another reading of Unicode's emoji list, which the Emoji tab's data is held to (`tests/unit/emoji.test.mjs`) |
+| *test only:* axe-core 4.14.1 (Deque's accessibility checker) | MPL-2.0 | `tests/e2e/a11y.e2e.mjs`: WCAG 2.2 A / AA on every page, desktop light and dark, phone dark |
 | @expo-google-fonts/noto-sans (Noto Sans TTF: regular, bold, italic) | OFL-1.1 (package MIT) | PDFs made by GST Invoice, Rent Receipt, Resume Builder |
 
 **Data files committed in `public/data/`**: EFF large wordlist (CC-BY 3.0); `dict/` — English Wiktionary via
@@ -2612,6 +2617,12 @@ E2E_CONCURRENCY=8 node tests/e2e.mjs
   (see `docs/HANDOFF.md` §3–5).
 - `no-external.e2e.mjs` visits every route on desktop + phone (sharded) and fails on any request to another host,
   any CSP violation or any page error.
+- **Sweeps over every tab** (Nov 2026): `touch-targets.e2e.mjs` — on a phone, the hit area of every visible control of
+  every tab ≥ 44 × 44 px (measured with elementFromPoint), sliders ≥ 44 px tall, no sideways scroll; `a11y.e2e.mjs` —
+  axe-core with the WCAG 2.2 A / AA rules on every page (desktop light and dark, phone dark: contrast, names, ARIA,
+  keyboard access, 24 px targets); `tests/unit/css-vars.test.mjs` — every CSS custom property used is defined and
+  every light colour token has a dark value. Colour of small text: `--hint` (≥ 4.5 : 1 in both themes), never
+  `--faint` (icons and graphics only). A control without a visible label takes one (`select(…, label)`).
 - `tests/shoot.mjs <dir> <routes> [desktop|mobile|both]` takes screenshots for visual checks (phone = iPhone 13).
 Playwright is the pre-installed global one (no `playwright install`); CI runs build + unit tests.
 

@@ -16,7 +16,7 @@ Areas with a shared review: the app shell (router, search, favorites, platform h
 | `image` | Image Editor | PC + mobile | images1 | ✓ | 4 | 17 | resize → @jsquash/resize (linear light), imgproc kept (magick-wasm 15.5 MB, slower; wasm-vips needs SAB); JPEG of transparency on white; straighten crops its corners; size boxes checked |
 | `batch` | Batch Images | PC only | images1 | ✓ | 4 | 7 | jSquash resize; unique result names (shared list); sizes/scale checked; failed files listed; Stop |
 | `heic` | HEIC → JPG | PC + mobile | images1 | ✓ | 3 | 16 | libheif-js kept (latest) + lcms-wasm: Display P3 → sRGB (iPhone colours were off, every HEIC tab); primary image; failed files listed |
-| `passport` | Passport Photo | PC + mobile | images2 | ✓ | 4 | 6 | MediaPipe 1.2.3 (latest) + imgproc kept; no stale result after a face-less photo; Cancel ends the countdown; camera errors worded (shared src/lib/camera.ts); custom size 10–150 mm; jSquash resize for upload |
+| `passport` | Passport Photo | PC + mobile | images2 | ✓ | 5 | 6 | MediaPipe 1.2.3 (latest) + imgproc kept; no stale result after a face-less photo; Cancel ends the countdown; camera errors worded (shared src/lib/camera.ts); custom size 10–150 mm; jSquash resize for upload; a11y sweep (white chips in the dark theme) |
 | `formphoto` | Photo & Signature Resizer | PC + mobile | images2 | ✓ | 8 | 55 | engines kept + jSquash resize; KB read strictly (max ×1000, min ×1024); dpi before padding (was +18 bytes over max); metacore padding exact; no download of an over-max file; per-field reasons; re-frame without new face search; newest photo wins; object URLs revoked |
 | `bgremove` | Background Remover | PC + mobile | images2 | ✓ | 8 | 21 | MediaPipe + imgproc kept (imgly ISNet noted for objects); newest photo/background wins; no-person said + Save refuses; failure reason on Save; status restored; .swatch CSS clash with Color tab fixed (.bg-swatch); 44 px swatches with pressed state; model note only first time |
 | `cartoon` | Cartoonizer | PC + mobile | images2 | ✓ | 7 | 8 | imgproc + TF.js (wasm/WebGL) kept; see-through photo/painting on white (onWhite in imgio); one AI painting at a time, newest settings follow; Save refuses a stale AI result; keyboard compare; model note only until loaded |
@@ -47,10 +47,10 @@ Areas with a shared review: the app shell (router, search, favorites, platform h
 | `pdf-watermark` | PDF Watermark | PC + mobile | pdf | ✓ | 2 | 4 | a run keeps its own file (sizes were read from the new one); ends with the tab; progress |
 | `epub` | PDF → EPUB | PC only | docs2 | ✓ | 17 | 93 | columns with 7.5 pt gutters; margin stamps; bold/size of a line from its spans; U+FFFF; formulas as pictures; bookmarks; /Lang; no freeze; newer PDF ends a run; epubcheck |
 | `sheet` | CSV / Excel | PC only | docs2 | ✓ | 18 | 141 | errors #DIV/0!; durations; 15 digits; exact numbers; JSON keys/IDs; Windows-1252/UTF-16; web-page .xls + Excel 2003 XML; newest file wins; Excel limits; LibreOffice reference |
-| `markdown` | Markdown Editor | PC + mobile | docs2 | ✓ | 12 | 30 | #fn links left the tab; Ctrl+K focus; Ctrl+P preview only; remote pictures not fetched; undoable toggles; GitHub heading ids; GFM spec 744 examples |
-| `invoice` | GST Invoice | PC + mobile | docs2 | ✓ | 7 | 17 | UPI QR @ as NPCI writes it (was %40), zbar read-back; links survive into PDFs; pictures in details; downloads wait for pictures |
-| `rent` | Rent Receipt | PC + mobile | docs2 | ✓ | 6 | 16 | cash receipts no longer spill onto empty pages (3/2/1 a page); 120 months; reasons in words; PAN format |
-| `resume` | Resume Builder | PC + mobile | docs2 | ✓ | 6 | 9 | mailto/tel/https links; JPEG photo; safe file name; download waits for the photo (the flaky 'photo included') |
+| `markdown` | Markdown Editor | PC + mobile | docs2 | ✓ | 14 | 30 | #fn links left the tab; Ctrl+K focus; Ctrl+P preview only; remote pictures not fetched; undoable toggles; GitHub heading ids; GFM spec 744 examples; a11y sweep (pre lang, task boxes) |
+| `invoice` | GST Invoice | PC + mobile | docs2 | ✓ | 8 | 17 | UPI QR @ as NPCI writes it (was %40), zbar read-back; links survive into PDFs; pictures in details; downloads wait for pictures; a11y sweep |
+| `rent` | Rent Receipt | PC + mobile | docs2 | ✓ | 7 | 16 | cash receipts no longer spill onto empty pages (3/2/1 a page); 120 months; reasons in words; PAN format; a11y sweep |
+| `resume` | Resume Builder | PC + mobile | docs2 | ✓ | 7 | 9 | mailto/tel/https links; JPEG photo; safe file name; download waits for the photo (the flaky 'photo included'); a11y sweep |
 
 ## security
 | id | Tab | Platform | Area | R | B | T | Notes |
@@ -66,13 +66,13 @@ Areas with a shared review: the app shell (router, search, favorites, platform h
 | id | Tab | Platform | Area | R | B | T | Notes |
 |---|---|---|---|---|---|---|---|
 | `video` | Video Compressor | PC + mobile | video | ✓ | 8 | 14 | video area 20 Nov 2026 (docs/BUGHUNT.md) |
-| `audio` | Audio Recorder | PC + mobile | audio | ✓ | 5 | 4 | decoded at the file's own rate (was the device's: 44.1 kHz saved as 48 kHz); newest file wins; mic errors in words |
+| `audio` | Audio Recorder | PC + mobile | audio | ✓ | 7 | 4 | decoded at the file's own rate (was the device's: 44.1 kHz saved as 48 kHz); newest file wins; mic errors in words; touch + a11y sweeps |
 | `tts` | Text-to-Speech | PC + mobile | audio | ✓ | 6 | 3 | Speak stayed busy after Stop; runs queued in the worker; sentence shown when heard; system-voice errors; text encodings; download size |
-| `stt` | Speech to Text | PC + mobile | audio | ✓ | 11 | 8 | names box faded after ~224 tokens (carry_initial_prompt, rebuilt whisper.wasm); decode at 16 kHz; new file clears transcript; download overflow |
-| `noise` | Noise Remover | PC + mobile | audio | ✓ | 11 | 33 | Jitsi's RNNoise 0.2 build (= the release's standard 8-bit computation; ours ran the debug float weights, 4× larger); Save after a new file; strength re-cleaned everything; stereo voice; 16-bit WAV round trip |
+| `stt` | Speech to Text | PC + mobile | audio | ✓ | 12 | 8 | names box faded after ~224 tokens (carry_initial_prompt, rebuilt whisper.wasm); decode at 16 kHz; new file clears transcript; download overflow; touch sweep |
+| `noise` | Noise Remover | PC + mobile | audio | ✓ | 12 | 33 | Jitsi's RNNoise 0.2 build (= the release's standard 8-bit computation; ours ran the debug float weights, 4× larger); Save after a new file; strength re-cleaned everything; stereo voice; 16-bit WAV round trip; touch sweep |
 | `pitch` | Pitch & Speed | PC + mobile | audio | ✓ | 8 | 7 | Signalsmith Stretch (official wasm/AudioWorklet, MIT) replaces our WSOLA: chord 7-15 dB cleaner; Save after a new file; coalesced renders; selection follows the passage |
 | `slideshow` | Slideshow Maker | PC + mobile | video | ✓ | 5 | 4 | video area 20 Nov 2026 (docs/BUGHUNT.md) |
-| `ffmpeg` | FFmpeg | PC only | video | ✓ | 6 | 3 | video area 20 Nov 2026 (docs/BUGHUNT.md); +1 solo run: the new-file stop note was wiped by the probe |
+| `ffmpeg` | FFmpeg | PC only | video | ✓ | 8 | 5 | video area 20 Nov 2026 (docs/BUGHUNT.md); +1 solo run: the new-file stop note was wiped by the probe; +2 stop during the load (the job ran after Stop / a new file) |
 | `screencast` | Screencast | PC only | video | ✓ | 4 | 4 | video area 20 Nov 2026 (docs/BUGHUNT.md) |
 | `screenshot` | Screenshot | PC only | video | ✓ | 4 | 4 | video area 20 Nov 2026 (docs/BUGHUNT.md) |
 | `youtube` | YouTube Clip | PC only | video | ✓ | 6 | 43 | video area 20 Nov 2026 (docs/BUGHUNT.md) |
@@ -80,7 +80,7 @@ Areas with a shared review: the app shell (router, search, favorites, platform h
 ## calculators
 | id | Tab | Platform | Area | R | B | T | Notes |
 |---|---|---|---|---|---|---|---|
-| `calc` | Scientific Calculator | PC + mobile | calc-core | ✓ | 21 | 308 | engine kept (WASM-AUDIT 56: no tried-and-tested wasm calculator); reference mpmath at 50 digits for 3,005 expressions; exact round angles, whole numbers digit for digit, exact chaining through Ans, refusals with reasons |
+| `calc` | Scientific Calculator | PC + mobile | calc-core | ✓ | 23 | 308 | engine kept (WASM-AUDIT 56: no tried-and-tested wasm calculator); reference mpmath at 50 digits for 3,005 expressions; exact round angles, whole numbers digit for digit, exact chaining through Ans, refusals with reasons; a11y sweep (bc log, DEG/RAD 22 px) |
 | `units` | Unit Converter | PC + mobile | calc-core | ✓ | 6 | 118 | no engine to replace (WASM-AUDIT 57); exact definitions held to GNU Units 2.23 (3,222 conversions); small results keep their digits; metric and US kitchen measures; Indian area units |
 | `dates` | Date Calculator | PC + mobile | calc-core | ✓ | 7 | 40 | nothing to replace (WASM-AUDIT 58); held to Python's datetime (6,985 cases, years 1–9999); today() is the local date; years 0–99; end date counted in y-m-d; refusals |
 | `emi` | EMI Calculator | PC + mobile | calc-core | ✓ | 15 | 127 | nothing to replace (WASM-AUDIT 59); held to a month-by-month reference in mpmath at 420 digits (936 loans) + numpy-financial; closed forms over the whole range; unit label follows years / months; refusals with reasons; schedule stays open; paise with two digits |
@@ -117,7 +117,7 @@ Areas with a shared review: the app shell (router, search, favorites, platform h
 | `matrix` | Matrix Calculator | PC + mobile | calc2-math | ✓ | 8 | 74 | engine kept for large matrices + exact fractions on BigInt up to 400 cells (WASM-AUDIT 86): det 0 is 0, inverse in fractions, fractions typed; tiny values no longer shown as 0 or called singular (relative tests in mathcore); refusals name matrix, row and shapes; reference Python fractions + NumPy |
 | `fraction` | Fraction Calculator | PC + mobile | calc2-math | ✓ | 6 | 51 | nothing to replace (WASM-AUDIT 87–88); engine now 128-bit — (1/2)^100 said 'Division by zero', 64-bit limit; ½ ¼, 1e3, hints and quoted errors; exact decimals with repeating digits in brackets; reference Python fractions (700 expressions) |
 | `primes` | Prime / LCM / GCD | PC + mobile | calc2-math | ✓ | 5 | 18 | engine agrees with SymPy on 420 hard 64-bit numbers; left-out pieces named (negatives, 0, decimals, words vanished; 0x10 was 16); one too-large number no longer blanks the answer; next prime after primes; copyable GCD/LCM |
-| `periodic` | Periodic Table | PC + mobile | calc2-math | ✓ | 5 | 70 | no engine (WASM-AUDIT 89); data held to the mendeleev package (11 knowing differences listed); search: symbol first ('s' showed sodium), other spellings, categories; legend filter, selection mark, arrow keys, gap markers, 'predicted' from 104, 44 px cells on phones |
+| `periodic` | Periodic Table | PC + mobile | calc2-math | ✓ | 6 | 70 | no engine (WASM-AUDIT 89); data held to the mendeleev package (11 knowing differences listed); search: symbol first ('s' showed sodium), other spellings, categories; legend filter, selection mark, arrow keys, gap markers, 'predicted' from 104, 44 px cells on phones; a11y sweep (label in name) |
 
 ## text
 | id | Tab | Platform | Area | R | B | T | Notes |
@@ -152,8 +152,8 @@ Areas with a shared review: the app shell (router, search, favorites, platform h
 | `jsondiff` | JSON Diff | PC only | dev-data2 | ✓ | 5 | 70 | own Rust diff on the lossless reader: lists aligned by equal elements and by id (one removal was N changes); numbers by value and never rounded; duplicate keys; empty sides; Swap; rows carry both values; 400 random pairs with two appliers |
 | `sqlfmt` | SQL Formatter | PC only | data-engines | ✓ | 24 | 146 | our own formatter (Rust, devcore-sqlfmt.wasm) replaces the sqlformat crate, which changed the meaning of SQL (WASM-AUDIT 53): dialect-aware tokenizer (standard, PostgreSQL, MySQL, SQLite, SQL Server, Oracle; auto-detect), keywords change case only where they are keywords, layout of CTEs / MERGE / windows / DDL / blocks, scripts without semicolons, a guard that re-reads its own result; unit 113 (independent reader, SQLite engine, 10,752 names, layout record), e2e 49 (native SQLite, sqlglot, sqlparse read what the tab shows) |
 | `prettier` | Code Formatter | PC only | data-engines | ✓ | 13 | 282 | engines changed (WASM-AUDIT 54): Biome's official wasm (JS/TS/CSS/SCSS/YAML/GraphQL), @dprint/json, dprint-plugin-markup + Biome (HTML, Vue); Prettier for Markdown and as fallback. Independent readers per language (TypeScript parser, PostCSS, yaml, marked + cmark-gfm, parse5, graphql-js, Vue compiler); 140 hazard sections x 8 option sets; typed text survives a language switch; stale results; Markdown fences; Vue ts scripts and handlers; JSON numbers as typed; worker |
-| `mockdata` | Mock Data Generator | PC only | dev-data2 | ✓ | 10 | 47 | ranges beyond 32 bits, swapped / unreadable ranges explained, dd/mm/yyyy dates (threw 'Invalid time value'), id start, fine-grained decimals, duplicate / empty / __proto__ names, quoted SQL names (run in SQLite), word-count limit, no fields |
-| `mdtable` | Markdown Table | PC only | dev-data2 | ✓ | 6 | 28 | separator found by the sheet engine (a tab in a quoted cell forced TSV); <br> for line breaks, also in the editor; table inside other text; CJK / emoji widths; 3,000 rows; output read by cmark-gfm |
+| `mockdata` | Mock Data Generator | PC only | dev-data2 | ✓ | 11 | 47 | ranges beyond 32 bits, swapped / unreadable ranges explained, dd/mm/yyyy dates (threw 'Invalid time value'), id start, fine-grained decimals, duplicate / empty / __proto__ names, quoted SQL names (run in SQLite), word-count limit, no fields; a11y sweep |
+| `mdtable` | Markdown Table | PC only | dev-data2 | ✓ | 7 | 28 | separator found by the sheet engine (a tab in a quoted cell forced TSV); <br> for line breaks, also in the editor; table inside other text; CJK / emoji widths; 3,000 rows; output read by cmark-gfm; a11y sweep |
 | `cidr` | Subnet / CIDR Calculator | PC only | net | ✓ | 3 | 74 | e2e 15→43 + 46 unit; 300 cases vs Python ipaddress |
 | `chmod` | chmod Calculator | PC only | net | ✓ | 3 | 26 | e2e 13→39; 800 modes + 1,152 expressions vs real chmod |
 | `x509` | Certificate Decoder | PC only | net | ✓ | 10 | 66 | e2e 16→45 + 37 unit; fixtures vs OpenSSL |
@@ -174,11 +174,11 @@ Areas with a shared review: the app shell (router, search, favorites, platform h
 | `glob` | Glob Tester | PC only | misc | ✓ | 2 | 44 | e2e 16→39 + 21 unit; own Unicode-aware matcher vs Python glob.translate (420 patterns) |
 | `terminal` | Linux Terminal | PC only | terminal | ✓ | 3 | 2 | terminal 20 Nov 2026 (docs/BUGHUNT.md); v86 asked of the owner |
 | `graphviz` | Graphviz (DOT) | PC only | data-engines | ✓ | 22 | 712 | engine: own build kept (WASM-AUDIT 55 — Viz.js and hpcc trap on valid graphs), now Graphviz 16.1.0 + storeline fix, prism on our Delaunator port, glibc qsort/rand (dot = native byte for byte), browser text measuring, assertions kept; reference = native dot (3,464 drawings) |
-| `python` | Python Scratchpad | PC only | data-engines | ✓ | 18 | 313 | native CPython 3.14.8 is the reference for 69 programs (stdout + stderr byte for byte); recursion through C code ends in RecursionError instead of killing the run, lru_cache in Python (cached recursion as deep as on a desktop), local time with tzdata's names and flags, socket stand-in + asyncio, pbkdf2_hmac; output pane survives 300,000 lines (92 s → 1.4 s), shows output during long computations, \r / colours / the answers to input(); hints for errors particular to the tab |
+| `python` | Python Scratchpad | PC only | data-engines | ✓ | 19 | 313 | native CPython 3.14.8 is the reference for 69 programs (stdout + stderr byte for byte); recursion through C code ends in RecursionError instead of killing the run, lru_cache in Python (cached recursion as deep as on a desktop), local time with tzdata's names and flags, socket stand-in + asyncio, pbkdf2_hmac; output pane survives 300,000 lines (92 s → 1.4 s), shows output during long computations, \r / colours / the answers to input(); hints for errors particular to the tab; a11y sweep |
 | `totp` | TOTP / 2FA Codes | PC only | net | ✓ | 6 | 74 | e2e 11→49 + 25 unit; RFC 4226/6238; e2e 11→49; unit 36 (RFC 4226 / 6238, 600 random cases vs an independent implementation); HMAC = hash-wasm, Base32 + truncation = our supplement |
 | `pwstrength` | Password Strength | PC only | net | ✓ | 6 | 95 | e2e 13→32 + 76 unit (new); 304 passwords vs Python zxcvbn |
 | `jsonschema` | JSON Schema | PC only | data-engines | ✓ | 14 | 5431 | exact numbers and IDN formats switched on; inference no longer crashes on non-ASCII text and adds a format only when the validator accepts every example; plain messages (unknown $schema, $ref elsewhere, schema not valid at …), first 200 of N problems, formats not checked are named; reference = python-jsonschema verdicts for 5,338 pairs over five drafts, formats and patterns by hand against the RFCs / ECMA 262 |
-| `bitwise` | Bitwise Calculator | PC only | bitswebref | ✓ | 6 | 40 | rotate ≥ width wrapped, shift ≥ width, B overflow note, + / spaces, outputs paste back, unused boxes off; vs BigInt, random operands |
+| `bitwise` | Bitwise Calculator | PC only | bitswebref | ✓ | 7 | 42 | rotate ≥ width wrapped, shift ≥ width, B overflow note, + / spaces, outputs paste back, unused boxes off; vs BigInt, random operands; a11y sweep |
 | `ieee754` | IEEE-754 Inspector | PC only | bitswebref | ✓ | 5 | 45 | float32 ties (no double rounding) vs exact rationals; 1e-1000000 froze the page; stale result on bad input; too large / too small notes |
 | `contrast` | Contrast Checker | PC only | bitswebref | ✓ | 3 | 31 | see-through colours blended; a fix for every failing pair (white/black fallback); rgb() / hsl() / names; 40 random pairs vs formula |
 | `baseenc` | Base32 / Base58 / Ascii85 | PC only | bitswebref | ✓ | 9 | 98 | ≥ 8 MiB trapped the engine; Base58 froze on files; unpadded / spaced / 0x / data: input; file in Decode; vs Python base64 (147 values × 10) |
@@ -209,11 +209,11 @@ Areas with a shared review: the app shell (router, search, favorites, platform h
 | `countdown` | Countdown Timer | PC + mobile | everyday-device | ✓ | 8 | 14 | everyday-device area 20 Nov 2026 (docs/BUGHUNT.md) |
 | `pomodoro` | Pomodoro | PC + mobile | everyday-device | ✓ | 6 | 11 | everyday-device area 20 Nov 2026 (docs/BUGHUNT.md) |
 | `interval` | Interval Timer | PC + mobile | everyday-device | ✓ | 3 | 5 | everyday-device area 20 Nov 2026 (docs/BUGHUNT.md) |
-| `dice` | Dice Roller | PC + mobile | everyday-device | ✓ | 0 | 0 | everyday-device area 20 Nov 2026 (docs/BUGHUNT.md); engine → libsodium.js |
+| `dice` | Dice Roller | PC + mobile | everyday-device | ✓ | 1 | 1 | everyday-device area 20 Nov 2026 (docs/BUGHUNT.md); engine → libsodium.js; second look (screen reader) |
 | `coin` | Coin Flip | PC + mobile | everyday-device | ✓ | 1 | 3 | everyday-device area 20 Nov 2026 (docs/BUGHUNT.md); engine → libsodium.js |
-| `rng` | Random Number | PC + mobile | everyday-device | ✓ | 4 | 10 | everyday-device area 20 Nov 2026 (docs/BUGHUNT.md) |
-| `picker` | List Picker | PC + mobile | everyday-device | ✓ | 1 | 2 | everyday-device area 20 Nov 2026 (docs/BUGHUNT.md) |
-| `teams` | Team Splitter | PC + mobile | everyday-device | ✓ | 2 | 3 | everyday-device area 20 Nov 2026 (docs/BUGHUNT.md) |
+| `rng` | Random Number | PC + mobile | everyday-device | ✓ | 5 | 11 | everyday-device area 20 Nov 2026 (docs/BUGHUNT.md); announced |
+| `picker` | List Picker | PC + mobile | everyday-device | ✓ | 2 | 3 | everyday-device area 20 Nov 2026 (docs/BUGHUNT.md); announced |
+| `teams` | Team Splitter | PC + mobile | everyday-device | ✓ | 3 | 4 | everyday-device area 20 Nov 2026 (docs/BUGHUNT.md); announced |
 
 ## device
 | id | Tab | Platform | Area | R | B | T | Notes |
@@ -222,13 +222,13 @@ Areas with a shared review: the app shell (router, search, favorites, platform h
 | `mic` | Microphone Test | PC + mobile | everyday-device | ✓ | 7 | 4 | everyday-device area 20 Nov 2026 (docs/BUGHUNT.md) |
 | `speaker` | Speaker Test | PC + mobile | everyday-device | ✓ | 3 | 2 | everyday-device area 20 Nov 2026 (docs/BUGHUNT.md) |
 | `keyboard` | Keyboard Test | PC only | everyday-device | ✓ | 3 | 3 | everyday-device area 20 Nov 2026 (docs/BUGHUNT.md) |
-| `pixels` | Dead Pixel Test | PC + mobile | everyday-device | ✓ | 0 | 0 | everyday-device area 20 Nov 2026 (docs/BUGHUNT.md) |
+| `pixels` | Dead Pixel Test | PC + mobile | everyday-device | ✓ | 2 | 5 | everyday-device area 20 Nov 2026 (docs/BUGHUNT.md); second look |
 | `touch` | Touch Test | Mobile only | everyday-device | ✓ | 1 | 1 | everyday-device area 20 Nov 2026 (docs/BUGHUNT.md) |
 | `screen` | Screen Info | PC + mobile | everyday-device | ✓ | 4 | 13 | everyday-device area 20 Nov 2026 (docs/BUGHUNT.md); unit sensors.test.mjs |
 | `level` | Bubble Level | Mobile only | everyday-device | ✓ | 3 | 8 | everyday-device area 20 Nov 2026 (docs/BUGHUNT.md); unit sensors.test.mjs |
 | `compass` | Compass | Mobile only | everyday-device | ✓ | 5 | 14 | everyday-device area 20 Nov 2026 (docs/BUGHUNT.md); unit sensors.test.mjs |
 | `soundmeter` | Sound Meter | PC + mobile | everyday-device | ✓ | 4 | 3 | everyday-device area 20 Nov 2026 (docs/BUGHUNT.md) |
-| `ruler` | Ruler | PC + mobile | everyday-device | ✓ | 0 | 0 | everyday-device area 20 Nov 2026 (docs/BUGHUNT.md) |
+| `ruler` | Ruler | PC + mobile | everyday-device | ✓ | 1 | 3 | everyday-device area 20 Nov 2026 (docs/BUGHUNT.md); second look (zoom) |
 
 ## App shell
 | Part | R | B | T | Notes |
@@ -2191,3 +2191,43 @@ Media › video (20 Nov 2026 –)
      pill); the tool page's star is 44 px. The suite measures each hit area with `elementFromPoint`.
   2. **The phone's search box said "Search 170+ tools…"** — a phone offers 112 (PC-only tools are not shown there):
      the placeholder counts the tools this device can open (also on PCs, with the "/" hint).
+
+### Cross-cutting sweeps (20 Nov 2026) — every tab at once, after the per-tab pass
+The owner asked for more thoroughness: checks that look at every tab the same way, catching what one suite per tab
+cannot. Three new suites; each fails on the build before its fixes.
+- **`tests/e2e/touch-targets.e2e.mjs`** (new; the CSS named it but it did not exist) — every tab a phone offers, as it
+  opens: the hit area of every visible control (buttons, links, selects, text boxes, switches, chips, fold-outs, tabs,
+  radios) measured with `elementFromPoint` from its centre, each scrolled to the middle first; ≥ 44 × 44 px; sliders
+  ≥ 44 px tall; no sideways scroll. Found: the "Microphone options" / "Or record with the microphone" fold-outs of
+  Audio Recorder, Speech to Text and Noise Remover at 34 px (their own rule beat the phone rule).
+- **`tests/e2e/a11y.e2e.mjs`** (new) — axe-core 4.14 (Deque's checker, test-only devDependency) with the WCAG 2.0 / 2.1
+  / 2.2 A and AA rules on every page: desktop light and dark (173 pages each), phone dark (113). Found and fixed:
+  1. **Field hints at 3.1 : 1** (WCAG asks 4.5 : 1 of small text) on 20 tabs, also in the dark theme (4.2 : 1): a `--hint`
+     colour per theme (5.0 / 5.3 : 1); `--faint` stays for icons and graphics.
+  2. **Passport's background chips white in the dark theme** with the theme's light text (1.2 : 1): they used `--card`,
+     never defined. New unit `tests/unit/css-vars.test.mjs`: every custom property used is defined; every light colour
+     token has a dark value. Two more undefined variables found by it (a hover colour, the code panes' background).
+  3. **Markdown:** cmark-gfm writes a fenced block's language as `<pre lang="js">` (GitHub's way) — `lang` names the
+     human language, so a screen reader switched its voice to "js": it becomes `class="language-js"` (preview and
+     .html). Task-list checkboxes had no names.
+  4. Selects without names (Mock Data's types, Markdown Table's alignments); `select()` takes a label now.
+  5. Periodic Table: the names did not contain the visible "2 He" (WCAG 2.5.3, voice control); Bitwise: "A bit 0" →
+     "A bit 0: 1".
+  6. GST Invoice / Rent / Resume: `aria-label` on a plain div (a region now) and a preview that scrolls beside the form
+     but could not take the keyboard's focus.
+  7. Python and bc output: `aria-label` on a `<pre>` without a role (a log now); the recorder's level meter without a
+     value; the calculator's DEG / RAD toggle 22 px tall (WCAG 2.2: 24).
+- **FFmpeg, found by its solo runs (tab 152, 2 more bugs).** Stop — or a new file — while FFmpeg was still loading
+  ended nothing: the job went on after the load and ran to the end. Each job now has a token that Stop and a new file
+  take away, checked after every step; the worker is ended only inside a command. And a new file during a command: its
+  probe loads a new FFmpeg, whose loader wrote over the "Stopped: a new file was chosen" note and cleared it. A script
+  checked all four orders; the suite has checks for both.
+- **Second look at the tabs where the first pass found nothing:**
+  1. **Dead Pixel Test on an iPhone** (Safari makes only videos full screen): the hint said "Esc to exit" and taps went
+     round for ever — the panel could be left only with Back. Without full screen a tap on the last colour ends the
+     test. The resting mouse pointer hid pixels: it hides after 1.5 s.
+  2. **Ruler:** a calibrated ruler grew and shrank with the browser's zoom (a CSS pixel changes size): it keeps its size
+     in device pixels (a 2× zoom emulated through DevTools in the suite) and says so.
+  3. **Dice:** a screen reader heard nothing after Roll: the roll in words, announced. Random Number, List Picker and
+     Team Splitter announce their results too.
+- **Complete unit suites** after all this: 21,731 assertions in 99 suites, all green.
