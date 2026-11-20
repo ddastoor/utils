@@ -1,10 +1,13 @@
 import {
   h, card, field, input, textarea, button, segmented, toggle, slider, filePicker, progress, note, actions, outputBox,
-  downloadBlob, copy, toast, fmtBytes, stack, row, clear, ic, type Mount,
+  downloadBlob, copy, toast, fmtBytes, stack, row, clear, ic, select, errMsg, type Mount,
 } from '../ui';
-import { encryptBlob, decryptBlob, hashBlob, STRENGTH, sodiumVersion } from '../lib/crypto-client';
+import { encryptBlob, decryptBlob, STRENGTH, sodiumVersion } from '../lib/crypto-client';
+import { hashData, stopHashing, Stopped } from '../lib/hash-client';
+import { HASHES, HASH_IDS, COMPARE_ALG, algo, type HashAlgo } from '../lib/hashes';
+import { parseExpected, isChecksumListName, neededAlgs, verify, unmatchedEntries, fmtDigest, sumsText, sumsName, type DigestFormat, type Expected, type ExpectedList } from '../lib/checksums';
 import { readEncryptedText, readShareLink, encryptedTextFile } from '../lib/sodium-format';
-import { sodium, HASH_ALGS, type HashAlg, toB64, fromB64 } from '../wasm/crypto';
+import { sodium, toB64 } from '../wasm/crypto';
 import { isMobile } from '../platform';
 
 // ------------------------------------------------------------------ shared
@@ -144,57 +147,175 @@ export const sharelink: Mount = (root) => {
 };
 
 // ------------------------------------------------------------------ Hash
+interface HashItem { name: string | null; title: string; size: number; digests: Record<string, string> }
 export const hash: Mount = (root) => {
-  const chosen = new Set<HashAlg>(['SHA-256', 'SHA-512', 'MD5', 'SHA-1']);
+  const chosen = new Set<string>(['SHA-256', 'SHA-512', 'MD5', 'SHA-1']);
   let kind: 'file' | 'text' = 'file';
-  let files: File[] = [];
+  let files: File[] = [], lists: Array<{ name: string; list: ExpectedList }> = [];
+  let fmt: DigestFormat = 'hex';
+  let items: HashItem[] = [], shownAlgs: string[] = [], added: string[] = [], compareBy = '';
+  let typed = false, timer = 0, run = 0;
   const prog = progress();
-  const algRow = h('div', { class: 'chips-select' }, HASH_ALGS.map((a) => {
-    const t = toggle(a, chosen.has(a), (v) => (v ? chosen.add(a) : chosen.delete(a)));
+  const chip = (a: HashAlgo) => {
+    const t = toggle(a.id, chosen.has(a.id), (v) => { (v ? chosen.add(a.id) : chosen.delete(a.id)); if (kind === 'text' && typed) later(); });
+    t.title = a.about;
     return t;
-  }));
-  const expected = input({ placeholder: 'Paste the expected checksum to verify (optional)', attrs: { spellcheck: 'false' } });
+  };
+  const more = HASHES.filter((a) => a.group === 'more');
+  const algRow = h('div', null,
+    h('div', { class: 'chips-select' }, HASHES.filter((a) => a.group === 'main').map(chip)),
+    h('details', { class: 'more-algs' }, h('summary', null, `More algorithms (${more.length})`), h('div', { class: 'chips-select' }, more.map(chip))));
+  const expected = textarea({ rows: 2, placeholder: 'Expected checksum (optional) — one, or a whole list: SHA256SUMS, .md5, .sfv, sha256sum output…' });
+  expected.spellcheck = false; expected.setAttribute('aria-label', 'Expected checksum');
+  const expNote = h('div');
   const text = textarea({ rows: 4, placeholder: 'Text to hash (UTF-8)…' });
+  text.setAttribute('aria-label', 'Text to hash');
   const list = h('div', { class: 'muted small' });
-  const picker = filePicker({ multiple: true, label: 'Choose files', hint: 'Large files are fine — hashed in chunks', onFiles: (fs) => { files = fs; list.textContent = fs.map((f) => `${f.name} (${fmtBytes(f.size)})`).join(', '); } });
+  const picker = filePicker({ multiple: true, label: 'Choose files', hint: 'Large files are fine — read in pieces. A checksum list (SHA256SUMS, .sha256, .md5, .sfv) chosen with them is used to check them.', onFiles: async (fs) => {
+    const ls: typeof lists = [], hs: File[] = [];
+    for (const f of fs) {
+      if (isChecksumListName(f.name) && f.size < 1 << 20) {
+        const l = parseExpected(await f.text(), f.name);
+        if (l.entries.length) { ls.push({ name: f.name, list: l }); continue; }
+      }
+      hs.push(f);
+    }
+    files = hs; lists = ls; items = []; renderResults();
+    clear(list).append(...hs.map((f) => h('div', null, `${f.name} (${fmtBytes(f.size)})`)),
+      ...ls.map((l) => h('div', null, `${l.name} — read as the checksum list (${l.list.entries.length} checksum${l.list.entries.length === 1 ? '' : 's'}), not hashed`)));
+    checkExpected();
+  } });
   const inputArea = h('div');
   const results = h('div', { class: 'stack' });
+  const stopBtn = button('Stop', () => stopHashing(), { icon: 'Square' });
+  stopBtn.hidden = true;
   const render = () => clear(inputArea).append(kind === 'file' ? stack(picker, list) : text);
 
-  const show = (name: string, r: Record<string, string>) => {
-    const exp = expected.value.trim().toLowerCase().replace(/\s+/g, '');
-    const rows = Object.entries(r).map(([a, v]) => {
-      const match = exp && v === exp;
-      return h('tr', { class: match ? 'match' : '' }, h('th', null, a), h('td', { class: 'mono hashval' }, v),
-        h('td', null, button('', () => copy(v), { icon: 'Copy', small: true, variant: 'ghost', title: 'Copy' })));
-    });
-    const matched = exp && Object.values(r).includes(exp);
-    results.append(card(name,
-      exp ? note(matched ? 'Checksum matches ✓' : 'No algorithm matches the expected checksum ✗', matched ? 'ok' : 'err') : null,
-      h('div', { class: 'scroll-x' }, h('table', { class: 'tbl' }, h('tbody', null, rows)))));
+  /** Every expected checksum: the box and the checksum lists chosen with the files. */
+  const expectedList = (): ExpectedList => {
+    const box = parseExpected(expected.value);
+    return { entries: [...box.entries, ...lists.flatMap((l) => l.list.entries)], unread: box.unread };
   };
+  const checkExpected = () => {
+    const v = expected.value.trim(), l = parseExpected(expected.value);
+    clear(expNote);
+    if (v && !l.entries.length) expNote.append(note('No checksum found in what was pasted — paste it as the download page shows it (hex digits, Base64, or a line of a checksum list).', 'err'));
+    else if (l.unread.length) expNote.append(note(`${l.unread.length === 1 ? 'Line' : 'Lines'} ${l.unread.slice(0, 8).join(', ')}${l.unread.length > 8 ? ' …' : ''} could not be read as a checksum and ${l.unread.length === 1 ? 'is' : 'are'} left aside.`, 'warn'));
+    if (items.length) renderResults();
+  };
+  expected.addEventListener('input', checkExpected);
+
+  const verdictNote = (it: HashItem, l: ExpectedList) => {
+    const v = verify(it.name, it.digests, l);
+    if (!v) return null;
+    const where = (e: Expected) => (lists.length || l.entries.length > 1 ? ` (line ${e.line}${e.name ? ` of the list, "${e.name}"` : ''})` : '');
+    switch (v.kind) {
+      case 'match': return note(`✓ Matches the expected ${v.alg} checksum${where(v.entry)}.`, 'ok');
+      case 'unlisted': return note('This file is not in the checksum list.', 'warn');
+      case 'nolength': return note(`The expected checksum has ${v.entry.hex.length} hex digits — no algorithm here gives a checksum of that length.`, 'err');
+      case 'missing': return note(`The expected checksum is a ${v.alg} checksum${where(v.entry)} — press Compute to work it out.`, 'warn');
+      case 'mismatch': return note(h('span', null,
+        `✗ Does not match: the expected checksum${where(v.entry)} is not this ${it.name === null ? 'text' : 'file'}'s ${v.tried.join(' or ')}.`,
+        v.others.length ? h('span', null, ` A checksum of ${v.entry.hex.length} hex digits can also be ${v.others.join(', ').replace(/, ([^,]*)$/, ' or $1')}. `,
+          button(`Try ${v.others.length === 1 ? v.others[0] : 'those'} too`, () => { for (const a of v.others) chosen.add(a); syncChips(); return compute(); }, { small: true })) : null), 'err');
+    }
+  };
+  const syncChips = () => { for (const t of algRow.querySelectorAll<HTMLLabelElement>('label.switch')) { const cb = t.querySelector('input')!; cb.checked = chosen.has(t.textContent!.trim()); } };
+
+  function renderResults() {
+    clear(results);
+    if (!items.length) return;
+    const l = expectedList();
+    if (added.length) results.append(note(`${added.join(', ')} ${added.length === 1 ? 'was' : 'were'} worked out as well, for the expected checksum.`));
+    // a checksum list: how the chosen files fare, and what it lists that was not chosen
+    if (kind === 'file' && l.entries.some((e) => e.name !== undefined)) {
+      const vs = items.map((it) => verify(it.name, it.digests, l));
+      const ok = vs.filter((v) => v?.kind === 'match').length, bad = items.filter((_, k) => vs[k]?.kind === 'mismatch').map((it) => it.name);
+      const missing = unmatchedEntries(items.map((it) => it.name!), l).map((e) => e.name!.replace(/^.*[\\/]/, ''));
+      results.append(note([`Checksum list: ${ok} of ${items.length} file${items.length === 1 ? '' : 's'} match${items.length === 1 ? 'es' : ''}`,
+        bad.length ? `${bad.length} ${bad.length === 1 ? 'does' : 'do'} not (${bad.join(', ')})` : '',
+        missing.length ? `${missing.length} listed file${missing.length === 1 ? ' was' : 's were'} not chosen (${[...new Set(missing)].slice(0, 6).join(', ')}${missing.length > 6 ? ' …' : ''})` : ''].filter(Boolean).join('; ') + '.',
+        bad.length ? 'err' : ok === items.length ? 'ok' : 'warn'));
+    }
+    // two or more files: which are the same
+    if (items.length >= 2) {
+      const groups = new Map<string, HashItem[]>();
+      for (const it of items) { const k = `${it.size}:${it.digests[compareBy]}`; groups.set(k, [...(groups.get(k) ?? []), it]); }
+      const same = [...groups.values()].filter((g) => g.length > 1);
+      const by = ` (compared by size and ${compareBy})`;
+      results.append(items.length === 2
+        ? note(same.length ? `The two files are identical${by}.` : `The two files differ${by}.`, same.length ? 'ok' : 'warn')
+        : same.length === 1 && same[0].length === items.length ? note(`All ${items.length} files are identical${by}.`, 'ok')
+          : note(same.length ? `Identical${by}: ${same.map((g) => g.map((it) => it.name).join(' = ')).join('; ')}. The others differ.` : `No two of the files are the same${by}.`, same.length ? 'ok' : 'warn'));
+    }
+    for (const it of items) {
+      const v = verify(it.name, it.digests, l), hit = v?.kind === 'match' ? v.alg : '';
+      const rows = shownAlgs.filter((a) => a in it.digests).map((a) => {
+        const val = fmtDigest(it.digests[a], fmt);
+        return h('tr', { class: a === hit ? 'match' : '' }, h('th', { title: algo(a)!.about }, a), h('td', { class: 'mono hashval' }, val),
+          h('td', null, button('', () => copy(val), { icon: 'Copy', small: true, variant: 'ghost', title: `Copy ${a}` })));
+      });
+      results.append(card(it.title, verdictNote(it, l), h('div', { class: 'scroll-x' }, h('table', { class: 'tbl' }, h('tbody', null, rows)))));
+    }
+    // a checksum list of the files, as sha256sum (b2sum, b3sum, xxhsum) writes it
+    if (kind === 'file') {
+      let alg = shownAlgs.includes('SHA-256') ? 'SHA-256' : shownAlgs[0];
+      const out = outputBox({ rows: Math.min(6, items.length + 1), mono: true });
+      const name = h('span');
+      const fill = () => { out.value = sumsText(alg, items.map((it) => ({ name: it.name!, hex: it.digests[alg] }))); name.textContent = sumsName(alg); };
+      fill();
+      results.append(card('Checksum list',
+        field('Algorithm', select(shownAlgs.map((a) => [a, a] as [string, string]), alg, (v) => { alg = v; fill(); })),
+        out,
+        row(button('Download', () => downloadBlob(new Blob([out.value], { type: 'text/plain' }), sumsName(alg)), { icon: 'Download' }), h('span', { class: 'muted small' }, name, alg === 'CRC-32' ? '' : ' — sha256sum -c (b2sum, b3sum, xxhsum -c) checks the files against it'))));
+    }
+  }
+
+  async function compute() {
+    const want = HASH_IDS.filter((a) => chosen.has(a));
+    if (!want.length) throw new Error('Pick at least one algorithm.');
+    const its: Array<{ name: string | null; title: string; data: Blob }> = kind === 'text'
+      ? [{ name: null, title: 'Text', data: new Blob([text.value]) }]
+      : files.map((f) => ({ name: f.name, title: `${f.name} · ${fmtBytes(f.size)}`, data: f as Blob }));
+    if (!its.length) throw new Error(lists.length ? 'Choose the files to check as well — the checksum list alone holds nothing to hash.' : 'Choose a file first.');
+    const l = expectedList();
+    const need = neededAlgs(want, its.map((it) => it.name), l);
+    const algs = [...want, ...need];
+    // two files are compared by a secure hash even when only weak ones were chosen
+    const secure = algs.find((a) => !algo(a)!.weak);
+    const cmp = its.length >= 2 && !secure ? COMPARE_ALG : '';
+    const me = ++run, total = its.reduce((n, it) => n + it.data.size, 0);
+    const out: HashItem[] = [];
+    let before = 0;
+    stopBtn.hidden = kind === 'text';
+    try {
+      for (const [k, it] of its.entries()) {
+        const digests = await hashData(it.data, cmp ? [...algs, cmp] : algs, (done, ms) => {
+          if (me !== run) return;
+          const rate = ms > 300 ? ` · ${fmtBytes(done / (ms / 1000))}/s` : '';
+          prog.set(total ? (before + done) / total : 1, `${its.length > 1 ? `File ${k + 1} of ${its.length}: ` : ''}${it.name ?? 'text'} — ${fmtBytes(done)} of ${fmtBytes(it.data.size)}${rate}`);
+        });
+        before += it.data.size;
+        out.push({ name: it.name, title: kind === 'text' ? `Text · ${fmtBytes(it.data.size)}` : it.title, size: it.data.size, digests });
+      }
+    } catch (e) {
+      if (e instanceof Stopped) { toast('Stopped.'); return; }
+      throw e;
+    } finally { if (me === run) { prog.done(); stopBtn.hidden = true; } }
+    if (me !== run) return;
+    items = out; shownAlgs = algs; added = need; compareBy = cmp || secure || algs[0];
+    renderResults();
+  }
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(() => compute().catch((e) => toast(errMsg(e), 'err')), 250); };
+  text.addEventListener('input', () => { typed = true; later(); });
 
   root.append(
-    card(null, stack(segmented([['file', 'Files'], ['text', 'Text']], kind, (v) => { kind = v; render(); }), inputArea,
-      field('Algorithms', algRow), expected, prog)),
+    card(null, stack(segmented([['file', 'Files'], ['text', 'Text']], kind, (v) => { kind = v; items = []; run++; prog.done(); renderResults(); render(); }), inputArea,
+      field('Algorithms', algRow), field('Expected checksum', stack(expected, expNote)),
+      field('Show as', segmented([['hex', 'hex'], ['HEX', 'HEX'], ['base64', 'Base64']], fmt, (v) => { fmt = v as DigestFormat; renderResults(); })), prog)),
+    actions(button('Compute', compute, { variant: 'primary', icon: 'Fingerprint' }), stopBtn),
     results,
-    actions(button('Compute', async () => {
-      const algs = HASH_ALGS.filter((a) => chosen.has(a));
-      if (!algs.length) throw new Error('Pick at least one algorithm.');
-      clear(results);
-      if (kind === 'text') show('Text', await hashBlob(new Blob([text.value]), algs));
-      else {
-        if (!files.length) throw new Error('Choose a file first.');
-        const all: Array<Record<string, string>> = [];
-        for (const f of files) { const r = await hashBlob(f, algs, (p, t) => prog.set(p, `${f.name}: ${t}`)); all.push(r); show(`${f.name} · ${fmtBytes(f.size)}`, r); }
-        if (files.length === 2) { // same size and every chosen digest equal
-          const same = files[0].size === files[1].size && algs.every((a) => all[0][a] === all[1][a]);
-          results.prepend(note(same ? 'The two files are identical.' : 'The two files differ.', same ? 'ok' : 'warn'));
-        }
-      }
-      prog.done();
-    }, { variant: 'primary', icon: 'Fingerprint' })),
-    note('MD5 and SHA-1 are broken for security purposes — use them only to check old published checksums.', 'warn'),
+    note('MD5 and SHA-1 are broken for security purposes, and CRC, Adler and xxHash are checksums, not secure hashes — use them only to check published checksums or to find accidental damage.', 'warn'),
   );
   render();
 };

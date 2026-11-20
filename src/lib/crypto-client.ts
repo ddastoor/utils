@@ -1,5 +1,4 @@
 // Promise wrapper around the crypto worker.
-import type { HashAlg } from '../wasm/crypto';
 import { trackWorker } from '../lifecycle';
 
 let worker: Worker | null = null;
@@ -38,5 +37,3 @@ export const encryptBlob = (data: Blob, password: string, s: { ops: number; memK
   call<Blob>({ op: 'encrypt', data, password: new TextEncoder().encode(password), ops: s.ops, memKiB: s.memKiB }, onProgress);
 export const decryptBlob = (data: Blob, password: string, onProgress?: (f: number | null, t: string) => void) =>
   call<Blob>({ op: 'decrypt', data, password: new TextEncoder().encode(password) }, onProgress);
-export const hashBlob = (data: Blob, algs: HashAlg[], onProgress?: (f: number | null, t: string) => void) =>
-  call<Record<HashAlg, string>>({ op: 'hash', data, algs }, onProgress);
