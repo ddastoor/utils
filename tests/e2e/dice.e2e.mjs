@@ -49,6 +49,15 @@ export default async (ctx) => {
   const vals = shownDice.map((f) => FACES.includes(f) ? FACES.indexOf(f) + 1 : +f);
   ok(new RegExp(`^Rolled ${vals.length > 1 ? vals.slice(0, -1).join(', ') + ' and ' + vals.at(-1) : vals[0]}`).test(said) && (vals.length < 2 || said.endsWith(`total ${vals.reduce((a, b) => a + b, 0)}.`)) && await page.locator('.dice-row').getAttribute('aria-hidden') === 'true', `the roll in words for a screen reader: "${said}"`);
   ok(!page.errors.length, `no page errors ${page.errors.join(' | ')}`);
+  // the reader's "reduce motion" setting: the dice do not spin and toasts do not slide (they did); busy spinners still turn
+  const still = await ctx.page({ reducedMotion: 'reduce' }); await still.goto(`${ctx.base}#/dice`); await still.locator('.die').first().waitFor();
+  await still.getByRole('button', { name: 'Roll', exact: true }).click();
+  const anim = await still.evaluate(() => {
+    const t = document.createElement('div'); t.className = 'toast'; document.body.append(t); const toast = getComputedStyle(t).animationName; t.remove();
+    const sp = document.createElement('span'); sp.className = 'spinner'; document.body.append(sp); const spin = getComputedStyle(sp).animationName; sp.remove();
+    return { die: getComputedStyle(document.querySelector('.die')).animationName, toast, spin };
+  });
+  ok(anim.die === 'none' && anim.toast === 'none' && anim.spin === 'spin', `reduced motion: no rolling dice or sliding toast, the busy spinner still turns (${JSON.stringify(anim)})`);
   await phoneLayout(ctx, 'dice', { ready: '.die', buttons: ['Roll'], before: async (ph) => {
     const rr = ph.locator('input[type=range]'); await rr.fill('10'); await rr.dispatchEvent('input');
     await ph.getByRole('radio', { name: 'd100', exact: true }).click(); await ph.getByRole('button', { name: 'Roll', exact: true }).click();

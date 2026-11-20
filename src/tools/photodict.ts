@@ -109,7 +109,7 @@ export const mount: Mount = (root, ctx) => {
       const c = await lookupWord(word, online);
       looked.replaceChildren(c ? wordCard(c, true) : note(`“${word}” is not in the dictionary${online ? '' : ' on this phone (online look-up is off)'}.`, 'info'),
         button('Close', () => looked.replaceChildren(), { small: true, variant: 'ghost' }));
-      looked.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      looked.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
     } catch (e) { looked.replaceChildren(note(errMsg(e), 'err')); }
   };
 

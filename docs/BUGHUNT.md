@@ -209,7 +209,7 @@ Areas with a shared review: the app shell (router, search, favorites, platform h
 | `countdown` | Countdown Timer | PC + mobile | everyday-device | ✓ | 8 | 14 | everyday-device area 20 Nov 2026 (docs/BUGHUNT.md) |
 | `pomodoro` | Pomodoro | PC + mobile | everyday-device | ✓ | 6 | 11 | everyday-device area 20 Nov 2026 (docs/BUGHUNT.md) |
 | `interval` | Interval Timer | PC + mobile | everyday-device | ✓ | 3 | 5 | everyday-device area 20 Nov 2026 (docs/BUGHUNT.md) |
-| `dice` | Dice Roller | PC + mobile | everyday-device | ✓ | 1 | 1 | everyday-device area 20 Nov 2026 (docs/BUGHUNT.md); engine → libsodium.js; second look (screen reader) |
+| `dice` | Dice Roller | PC + mobile | everyday-device | ✓ | 2 | 2 | everyday-device area 20 Nov 2026 (docs/BUGHUNT.md); engine → libsodium.js; second look (screen reader) |
 | `coin` | Coin Flip | PC + mobile | everyday-device | ✓ | 1 | 3 | everyday-device area 20 Nov 2026 (docs/BUGHUNT.md); engine → libsodium.js |
 | `rng` | Random Number | PC + mobile | everyday-device | ✓ | 5 | 11 | everyday-device area 20 Nov 2026 (docs/BUGHUNT.md); announced |
 | `picker` | List Picker | PC + mobile | everyday-device | ✓ | 2 | 3 | everyday-device area 20 Nov 2026 (docs/BUGHUNT.md); announced |

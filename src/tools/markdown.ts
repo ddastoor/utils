@@ -111,8 +111,8 @@ export const mount: Mount = async (root, ctx) => {
     const target = preview.querySelector(`[id="${CSS.escape('md-' + id)}"]`); if (!target) return;
     // the preview pane scrolls (PC); where it does not (phones) the page does
     const pane = preview.parentElement!;
-    if (pane.scrollHeight > pane.clientHeight + 1) pane.scrollTo({ top: pane.scrollTop + target.getBoundingClientRect().top - pane.getBoundingClientRect().top - 8, behavior: 'smooth' });
-    else target.scrollIntoView({ block: 'start', behavior: 'smooth' });
+    if (pane.scrollHeight > pane.clientHeight + 1) pane.scrollTo({ top: pane.scrollTop + target.getBoundingClientRect().top - pane.getBoundingClientRect().top - 8, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+    else target.scrollIntoView({ block: 'start', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
   });
 
   // editing that Ctrl+Z can undo: the browser's own insertText, else setRangeText

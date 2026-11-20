@@ -38,7 +38,8 @@ async function runOne(f) {
   const ctx = {
     base, tmp, devices,
     async page(opts = {}) {
-      const c = await browser.newContext({ acceptDownloads: true, ...opts });
+      // E2E_TZ=Asia/Kolkata runs the pages in another time zone (the suites are written in UTC; the owner lives in IST)
+      const c = await browser.newContext({ acceptDownloads: true, ...(process.env.E2E_TZ ? { timezoneId: process.env.E2E_TZ } : {}), ...opts });
       contexts.push(c);
       const p = await c.newPage();
       await p.addInitScript(BLOBS);

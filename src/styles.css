@@ -511,6 +511,15 @@ details summary { cursor: pointer; font-weight: 600; color: var(--accent); paddi
 .die { font-size: 64px; line-height: 1; min-width: 64px; text-align: center; font-weight: 700; }
 .die.rolled { animation: roll .35s ease-out; }
 @keyframes roll { from { transform: rotate(-200deg) scale(.6); opacity: .2; } }
+/* Reduced motion (the reader's setting): no rolling dice, sliding toasts, smooth scrolling or sliding transitions; the
+   busy spinners and the indeterminate bar keep turning (they say "working"), more slowly; "time's up" only fades. */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .die.rolled, .toast { animation: none; }
+  .spinner, .btn.busy::after { animation-duration: 1.6s; }
+  .progress.indeterminate .progress-bar { animation-duration: 2.4s; }
+  *, *::before, *::after { transition-duration: 0.01ms !important; }
+}
 .coin { margin: 10px auto; width: 150px; height: 150px; border-radius: 50%; display: grid; place-items: center; font-size: 26px; font-weight: 800; background: linear-gradient(135deg, #fde68a, #f59e0b); color: #78350f; box-shadow: inset 0 -6px 0 rgb(0 0 0 / 15%); }
 .rng-out { word-break: break-word; }
 .pick-out { display: flex; flex-direction: column; gap: 6px; font-size: 22px; font-weight: 700; }
