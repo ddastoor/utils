@@ -4,8 +4,11 @@ import { zipFiles } from './zip';
 import type { Img } from '../wasm/imgproc';
 import { loadImg } from './imgio';
 
-/** File picker that also accepts pasted images (Ctrl+V). Calls onImage with the decoded image. */
-export function imageInput(onImage: (img: Img, file: File) => void | Promise<void>, opts: { label?: string; multiple?: boolean; capture?: 'user' | 'environment' } = {}) {
+/** File picker that also accepts pasted images (Ctrl+V). Calls onImage with the decoded image. `capture` (pass it on
+ *  phones only) adds a "Take a photo" button that opens that camera; the picker itself never forces the camera — with
+ *  the capture attribute a phone opens the camera and nothing else, so photos and screenshots already on it could not
+ *  be chosen (the phone's own menu for a plain picker offers the camera as well). */
+export function imageInput(onImage: (img: Img, file: File) => void | Promise<void>, opts: { label?: string; multiple?: boolean; capture?: 'user' | 'environment'; cameraLabel?: string } = {}) {
   const busy = h('div', { class: 'muted small' });
   const handle = async (files: File[]) => {
     for (const f of files) {
@@ -19,13 +22,20 @@ export function imageInput(onImage: (img: Img, file: File) => void | Promise<voi
     }
     busy.textContent = '';
   };
-  const picker = filePicker({ accept: 'image/*,.heic,.heif', multiple: opts.multiple, capture: opts.capture, label: opts.label || 'Choose a photo', hint: 'or drop / paste (Ctrl+V) · JPG, PNG, WebP, HEIC…', onFiles: handle });
+  const picker = filePicker({ accept: 'image/*,.heic,.heif', multiple: opts.multiple, label: opts.label || 'Choose a photo', hint: 'or drop / paste (Ctrl+V) · JPG, PNG, WebP, HEIC…', onFiles: handle });
+  let camera: HTMLElement | null = null;
+  if (opts.capture) {
+    const inp = h('input', { type: 'file', accept: 'image/*', hidden: true }) as HTMLInputElement;
+    inp.setAttribute('capture', opts.capture);
+    inp.addEventListener('change', () => { const fs = [...(inp.files || [])]; inp.value = ''; if (fs.length) handle(fs.slice(0, 1)); });
+    camera = h('div', { class: 'row' }, inp, button(opts.cameraLabel || 'Take a photo', () => inp.click(), { icon: 'Camera', title: opts.capture === 'user' ? 'Opens the front camera' : 'Opens the back camera' }));
+  }
   const onPaste = (e: ClipboardEvent) => {
     const fs = [...(e.clipboardData?.files || [])].filter((f) => f.type.startsWith('image/'));
     if (fs.length) { e.preventDefault(); handle(opts.multiple ? fs : fs.slice(0, 1)); }
   };
   addEventListener('paste', onPaste);
-  return { el: h('div', { class: 'stack' }, picker, busy), dispose: () => removeEventListener('paste', onPaste) };
+  return { el: h('div', { class: 'stack' }, picker, camera, busy), dispose: () => removeEventListener('paste', onPaste) };
 }
 
 /** Interactive crop box over a canvas. Returns crop rect in canvas pixel units. aspect = w/h or 0 for free. */

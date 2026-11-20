@@ -7,20 +7,38 @@ export type OcrLang = 'eng' | 'fra' | 'spa' | 'deu' | 'eng+fra+spa+deu';
 const at = (p: string) => new URL(p, document.baseURI).href;
 let current: { langs: OcrLang; w: Promise<TWorker> } | null = null;
 let progressCb: ((p: number, status: string) => void) | null = null;
+let failCb: ((e: Error) => void) | null = null;
+
+/** Tesseract.js reports what went wrong as the text of a JavaScript error ("TypeError: Failed to fetch"); in words. */
+export function ocrError(e: unknown): Error {
+  const s = String((e as Error)?.message ?? e ?? '').replace(/^Error:\s*/, '');
+  if (/fetch|network|load|404|traineddata/i.test(s)) return new Error(`The text engine or its language data could not be fetched (${s}) — check the connection and try again.`);
+  return new Error(`The text engine stopped: ${s || 'no reason given'}. Try again.`);
+}
 
 export async function ocrWorker(langs: OcrLang): Promise<TWorker> {
   if (current?.langs === langs) return current.w;
   const old = current; current = null;
-  if (old) (await old.w).terminate();
+  if (old) old.w.then((x) => x.terminate()).catch(() => {});
   const { createWorker, OEM } = await import('tesseract.js');
-  const w = createWorker(langs.split('+'), OEM.LSTM_ONLY, {
+  let fail!: (e: Error) => void;
+  const failed = new Promise<never>((_, reject) => { fail = reject; });
+  failed.catch(() => {});
+  // Tesseract.js rejects createWorker only when its first step fails: a language file that cannot be fetched left the
+  // promise pending for ever (the tab stuck at "Loading the text engine…") and threw from its message handler (an
+  // uncaught error). Its errorHandler is told about every failed job: the worker is given up and the caller is told.
+  const made = createWorker(langs.split('+'), OEM.LSTM_ONLY, {
     workerPath: at('vendor/tesseract/worker.min.js'),
     corePath: at('vendor/tesseract/core/'),
     langPath: at('vendor/tesseract/lang'),
     gzip: true, cacheMethod: 'none', workerBlobURL: false,
     logger: (m: any) => progressCb?.(m.progress ?? 0, m.status || ''),
+    errorHandler: (e: unknown) => { const err = ocrError(e); fail(err); failCb?.(err); },
   });
-  current = { langs, w };
+  const w = Promise.race([made, failed]);
+  const entry = { langs, w };
+  current = entry;
+  w.catch(() => { if (current === entry) current = null; made.then((x) => x.terminate()).catch(() => {}); }); // the next call starts afresh
   onLeave('ocr-worker', () => { const c = current; current = null; c?.w.then((x) => x.terminate()).catch(() => {}); });
   return w;
 }
@@ -28,11 +46,15 @@ export async function ocrWorker(langs: OcrLang): Promise<TWorker> {
 export interface OcrResult { text: string; confidence: number; words: Array<{ text: string; conf: number; x0: number; y0: number; x1: number; y1: number }> }
 export async function recognize(img: ImageData | HTMLCanvasElement | Blob, langs: OcrLang, onProgress?: (p: number, status: string) => void): Promise<OcrResult> {
   progressCb = onProgress || null;
-  const w = await ocrWorker(langs);
-  const src = img instanceof ImageData ? (() => { const c = document.createElement('canvas'); c.width = img.width; c.height = img.height; c.getContext('2d')!.putImageData(img, 0, 0); return c; })() : img;
-  const { data } = await w.recognize(src as any, {}, { text: true, blocks: true });
-  const words: OcrResult['words'] = [];
-  for (const b of (data as any).blocks || []) for (const p of b.paragraphs || []) for (const l of p.lines || []) for (const wd of l.words || []) words.push({ text: wd.text, conf: wd.confidence, x0: wd.bbox.x0, y0: wd.bbox.y0, x1: wd.bbox.x1, y1: wd.bbox.y1 });
-  progressCb = null;
-  return { text: (data.text || '').replace(/\n{3,}/g, '\n\n').trim(), confidence: data.confidence, words };
+  try {
+    const w = await ocrWorker(langs);
+    const src = img instanceof ImageData ? (() => { const c = document.createElement('canvas'); c.width = img.width; c.height = img.height; c.getContext('2d')!.putImageData(img, 0, 0); return c; })() : img;
+    // a job that fails is reported to errorHandler as well as rejected: whichever comes first ends the wait
+    const failed = new Promise<never>((_, reject) => { failCb = reject; });
+    failed.catch(() => {});
+    const { data } = await Promise.race([w.recognize(src as any, {}, { text: true, blocks: true }), failed]).catch((e) => { throw e instanceof Error && /text engine/.test(e.message) ? e : ocrError(e); });
+    const words: OcrResult['words'] = [];
+    for (const b of (data as any).blocks || []) for (const p of b.paragraphs || []) for (const l of p.lines || []) for (const wd of l.words || []) words.push({ text: wd.text, conf: wd.confidence, x0: wd.bbox.x0, y0: wd.bbox.y0, x1: wd.bbox.x1, y1: wd.bbox.y1 });
+    return { text: (data.text || '').replace(/\n{3,}/g, '\n\n').trim(), confidence: data.confidence, words };
+  } finally { progressCb = null; failCb = null; }
 }

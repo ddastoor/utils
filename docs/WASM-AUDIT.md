@@ -1060,3 +1060,17 @@ One entry per tab, written before its bug hunt: our module → candidates → ch
   the network is not sure, or cannot be fetched, imgproc's outline is used, then the whole photo. The warp and the
   clean-up stay imgproc's (scanic's warp is JavaScript; no candidate has the clean-up). OpenCV.js is not used: worse on
   both sets than the network and 14 MB.
+
+### 122. `ocr` — OCR (20 Nov 2026)
+- **Engine:** tesseract.js 7.0.0 + tesseract.js-core 7.0.0 (Tesseract, the project's own fork at 5.1.0-288, compiled to
+  WebAssembly; LSTM only, SIMD and relaxed-SIMD builds) with the `4.0.0_best_int` models of English, French, Spanish
+  and German — the existing module, at its latest version; imgproc for the clean-up, turning and scaling.
+- **Candidates:** PaddleOCR (PP-OCRv5 mobile detection + recognition, Apache-2.0) on ONNX Runtime Web (already in the
+  app) through community wrappers (ppu-paddle-ocr, @gutenye/ocr-browser — tens of thousands of downloads at most): often
+  better on camera photos of signs and screens, but it gives lines, not the words with their confidences and places
+  that the tab marks, and no paragraphs; Tesseract's own orientation detection (OSD) needs the legacy engine and its
+  model (another 10 MB core + data).
+- **Decision:** Tesseract stays (rule 1: the existing module covers what the tab is asked for). What it does not cover —
+  reading a sideways or upside-down picture — is added beside it in the tab (rule 1c, our own glue): a reading below 60 %
+  confidence is tried on a smaller copy turned the three other ways, and the picture is read the way that is clearly
+  better. PaddleOCR on ONNX Runtime is the thing to try if real camera photos read badly.

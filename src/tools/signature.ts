@@ -104,7 +104,7 @@ export const mount: Mount = (root, ctx) => {
     photoCanvas.width = inkFromPhoto.width; photoCanvas.height = inkFromPhoto.height;
     photoCanvas.getContext('2d')!.putImageData(new ImageData(new Uint8ClampedArray(inkFromPhoto.data), inkFromPhoto.width, inkFromPhoto.height), 0, 0);
   };
-  const photoIn = imageInput(async (img) => { photo = img.width > 2400 ? await imgproc('resize', img, 2400, Math.round((img.height * 2400) / img.width)) : img; await extract(); }, { label: 'Photo of your signature', capture: 'environment' });
+  const photoIn = imageInput(async (img) => { photo = img.width > 2400 ? await imgproc('resize', img, 2400, Math.round((img.height * 2400) / img.width)) : img; await extract(); }, { label: 'Photo of your signature', capture: ctx.isMobile ? 'environment' : undefined, cameraLabel: 'Photograph your signature' });
   const photoBox = stack(photoIn.el, note('Sign on plain white paper with a dark pen, take a photo straight on, in even light.'),
     h('div', { class: 'ed-stage' }, photoCanvas),
     slider({ label: 'Ink sensitivity', min: 0.5, max: 2.5, step: 0.05, value: 1, onChange: (v) => { strength = v; extract(); } }),

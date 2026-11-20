@@ -462,8 +462,8 @@ WebP and PNG keep transparency. **Batch Images** (`src/tools/batch.ts`, e2e 21):
 ### Passport Photo (India first)
 Camera (owner, Nov 16 2026: **on phones use the phone's camera, on PC use the webcam** — one "Use camera" button opens
 the live camera with getUserMedia on both: phone front/selfie camera by default + "Switch camera" for the back camera;
-PC webcam; oval face guide, 3-second timer, selfie view un-mirrored) or upload (on phones the picker also offers the
-camera, `capture=user`). **Busy real-world backgrounds (house, furniture, walls, people) are fully replaced** by the
+PC webcam; oval face guide, 3-second timer, selfie view un-mirrored) or upload (the picker does not force the camera: with
+`capture` a phone opens only the camera, so a photo already taken could not be chosen — fixed 20 Nov 2026). **Busy real-world backgrounds (house, furniture, walls, people) are fully replaced** by the
 preset's required colour (segmentation + guided-filter matte), never just lightened. Background → pure
 white via MediaPipe `selfie_multiclass_256x256` mask refined by `imgproc` guided filter at full
 resolution. Auto-framing from MediaPipe face landmarks (chin, eyes, crown estimate). Output JPEG at
@@ -1512,6 +1512,14 @@ Tesseract 5 LSTM (tesseract.js-core wasm), **languages English, French, Spanish,
 "don't bother about Hindi"; `@tesseract.js-data/{eng,fra,spa,deu}` 4.0.0_best_int, MIT, vendored) + "Mixed" (all four).
 `cacheMethod: 'none'` so models are never stored in IndexedDB (stateless). Image upload, camera, or paste from
 clipboard; optional pre-clean (imgproc doc enhance, grey); low-confidence words highlighted; copy / download `.txt`.
+**As built after the Nov 2026 bug hunt** (`src/tools/ocr.ts`, engine `src/lib/ocr.ts` — shared with the Photo
+Dictionary; e2e `tests/e2e/ocr.e2e.mjs` 24): tesseract.js 7.0.0 (docs/WASM-AUDIT.md 122). A failed download of the engine
+or a language is caught through Tesseract.js's error handler (it otherwise waits for ever) and said in words; the next
+try starts afresh. A reading below 60 % confidence is tried turned the three other ways (a copy of ≤ 1,200 px) and the
+picture read the way that is clearly better (≥ 60 % and 20 points more), the line says so; buttons turn the picture
+by hand. With the clean-up on, a dark picture (mean luma < 110) is inverted first. The newest picture or language wins.
+Phones: "Take a photo" (back camera) beside a picker that does not force the camera (screenshots, photos already
+taken) — the shared `imageInput` in `src/lib/imgtools.ts` does this for every tab that passes `capture`.
 
 ### Photo Dictionary (`photodict`, Text, **Mobile only** — owner request, owner chose the name) — BUILT
 (`src/tools/photodict.ts`, engine `src/lib/dictionary.ts`, ranking `wasm/textcore/rare.c`; e2e `tests/e2e/photodict.e2e.mjs`

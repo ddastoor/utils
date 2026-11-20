@@ -97,6 +97,7 @@ export default async ({ base, page: newPage, ok, info, download, devices }) => {
   const phone = await newPage({ ...devices['iPhone 13'] });
   await phone.goto(base + '#/passport');
   await phone.waitForSelector('input[type=file]', { state: 'attached' });
-  ok(await phone.locator('input[type=file][capture=user]').count() === 1, 'phone: front camera for selfies');
+  ok(await phone.locator('input[type=file][capture]').count() === 0 && await phone.getByRole('button', { name: 'Use camera' }).count() === 1,
+    'phone: "Use camera" opens the camera; the upload picker does not force it (a photo already taken can be chosen — the capture attribute allowed only the camera)');
   ok(await phone.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'phone: no horizontal scroll');
 };

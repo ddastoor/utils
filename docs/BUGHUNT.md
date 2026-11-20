@@ -26,7 +26,7 @@ Areas with a shared review: the app shell (router, search, favorites, platform h
 | `collage` | Collage Maker | PC + mobile | images1 | ✓ | 2 | 4 | A4 JPEG says 300 dpi; first photo's Move earlier off; jSquash resize on save |
 | `exif` | EXIF / Photo Info | PC + mobile | images1 | ✓ | 8 | 106 | engine replaced by ExifTool 13.42 (zeroperl wasm, worker): iPhone HEIC position was hidden; HEIC/WebP stay their format on strip; orientation + ICC kept; XMP/IPTC/maker notes/previews shown; non-photo files named; newest photo wins; HEIC preview; DMS carry |
 | `scanner` | Doc Scanner | PC + mobile | images2 | ✓ | 12 | 62 | page finder: DocCornerNet LEAN on ONNX Runtime Web (WASM-AUDIT 121); OpenCV's area resize in imgproc; memory, phone picker, B&W lossless, Fit to scan |
-| `ocr` | OCR | PC + mobile | images2 |  |  |  |  |
+| `ocr` | OCR | PC + mobile | images2 | ✓ | 6 | 11 | language data that cannot be fetched no longer hangs the tab; sideways/upside-down pictures turned; dark mode; phone picker (also passport, signature) |
 | `signature` | Signature Maker | PC + mobile | images1 |  |  |  |  |
 
 ## documents
@@ -1667,3 +1667,20 @@ Reference for the five finance tabs: **mpmath at 60 digits** (`scripts/make-fina
   10. An error while saving did not say which page; it does ("Page 3 (IMG_2041.jpg): …").
   11. No way to clear the pages for the next document but deleting them one by one: "Start over".
   12. Leaving the tab while photos were being read could still draw into it; the work stops.
+
+- **`ocr` (tab 124, 6 bugs; engine kept — tesseract.js 7.0.0, the latest — docs/WASM-AUDIT.md 122; e2e 24 — was 13).**
+  1. If the language data could not be fetched, the tab hung at "Loading the text engine…" for ever with the button
+     disabled, and Tesseract.js threw an uncaught "TypeError: Failed to fetch" (it rejects only when its first step
+     fails). The failure is caught through its error handler, said in words, and the next try starts afresh (the Photo
+     Dictionary, which shares `src/lib/ocr.ts`, had the same hang).
+  2. A sideways or upside-down picture came out as garbage. A reading below 60 % confidence is tried the other three
+     ways round on a smaller copy and read the way that is clearly better ("the picture was turned a quarter to the
+     left to read it"); buttons turn the picture by hand.
+  3. Light text on a dark ground (a screenshot in dark mode) gained stray characters ("i.", "»") from the clean-up,
+     which expects dark text on paper; dark pictures are inverted before it.
+  4. On phones the picker always opened the camera, so screenshots and photos already taken could not be read. The
+     shared picker (`imageInput`) never forces the camera now and adds "Take a photo" — this also fixes the Passport
+     Photo tab (its upload opened only the front camera; its own "Use camera" stays) and the Signature Maker.
+  5. A reading started for one picture (or language) could be shown after another picture was chosen; the newest wins,
+     and nothing is written into the tab after it is left.
+  6. Copy and "Download .txt" with nothing read copied nothing and saved an empty file; both say there is no text yet.
