@@ -3,10 +3,10 @@
 // draggable corners → perspective correction (homography in C, imgproc) → clean-up (colour / grey / black & white
 // adaptive threshold, imgproc) → one PDF (MuPDF: photos as JPEG, black-and-white pages as PNG) or JPEGs.
 // Only a preview of each photo is kept; the photo itself is read again, one page at a time, when the pages are saved.
-import { h, card, field, button, segmented, stack, note, clear, actions, toast, errMsg, downloadBlob, shareOrDownload, fmtBytes, filePicker, type Mount } from '../ui';
+import { h, card, field, button, segmented, stack, note, clear, actions, toast, errMsg, downloadBlob, shareOrDownload, fmtBytes, type Mount } from '../ui';
 import { imgproc, imgprocDirect, type Img } from '../wasm/imgproc';
 import { loadImg, encodeImg, previewOf, paint } from '../lib/imgio';
-import { quadEditor, resultList } from '../lib/imgtools';
+import { imagePicker, quadEditor, resultList } from '../lib/imgtools';
 import { imagesToPdf, type ImagePage } from '../lib/pdf';
 import { SIZE, startQuad, isPageQuad, type Found, type Source } from '../lib/pagefind';
 import { findPage } from '../lib/pagefind-client';
@@ -158,11 +158,12 @@ export const mount: Mount = (root, ctx) => {
         button('', () => { if (sel < 0) return; pages.splice(sel, 1); select(Math.min(sel, pages.length - 1)); }, { icon: 'Trash2', title: 'Delete page', variant: 'danger' }))),
     card('Clean-up', stack(modeSeg, note('B & W gives the crispest text and the smallest PDF; Colour keeps stamps and signatures in colour.'))),
   );
-  const pick = (o: { capture?: 'environment'; label: string; hint: string }) => filePicker({ accept: 'image/*,.heic,.heif', multiple: !o.capture, capture: o.capture, label: o.label, hint: o.hint, onFiles: (f) => add(f).catch((e) => toast(errMsg(e), 'err')) });
+  // photos of pages — or the camera (phone: the back camera; PC: the webcam), which stays open for page after page
+  const pick = (o: { label: string; hint: string }) => imagePicker({ accept: 'image/*,.heic,.heif', multiple: true, label: o.label, hint: o.hint, onFiles: (f) => add(f).catch((e) => toast(errMsg(e), 'err')) });
   root.append(
     card(null, stack(
       ctx.isMobile
-        ? h('div', { class: 'stack' }, pick({ capture: 'environment', label: 'Take a photo of a page', hint: 'flat, well lit, all four corners in the picture' }), pick({ label: 'Choose photos', hint: 'pages you have already photographed' }))
+        ? pick({ label: 'Choose photos', hint: 'pages you have already photographed — or use the camera: flat, well lit, all four corners in the picture' })
         : pick({ label: 'Add page photos', hint: 'one or many pages — flat, well lit, all four corners visible' }),
       status, strip,
       h('div', { class: 'row' }, button('Start over', () => { pages.length = 0; results.clear(); select(-1); status.textContent = ''; }, { small: true, variant: 'ghost', icon: 'RotateCcw', title: 'Remove all pages' })))),

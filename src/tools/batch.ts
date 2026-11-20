@@ -1,10 +1,10 @@
 // Batch Images (PC): resize + convert many images. Squoosh's Lanczos-3 resize in linear light (jSquash), MozJPEG /
 // libwebp / OxiPNG encoders, optional per-file size limit, rename pattern, one .zip download.
-import { h, card, field, input, segmented, slider, stack, grid2, note, progress, button, toggle, clear, errMsg, filePicker, fmtBytes, baseName, extOf, actions, type Mount } from '../ui';
+import { h, card, field, input, segmented, slider, stack, grid2, note, progress, button, toggle, clear, errMsg, fmtBytes, baseName, extOf, actions, type Mount } from '../ui';
 import { type Img } from '../wasm/imgproc';
 import { loadImg, encodeImg, encodeToSize, resizeImg, EXT, type Fmt } from '../lib/imgio';
 import { readSide } from '../lib/editor-geom';
-import { resultList } from '../lib/imgtools';
+import { imagePicker, resultList } from '../lib/imgtools';
 
 type Mode = 'none' | 'long' | 'width' | 'height' | 'percent' | 'exact';
 /** Target size for an image under a resize mode (never upscales unless exact). */
@@ -88,7 +88,7 @@ export const mount: Mount = (root, ctx) => {
   stopBtn.hidden = true;
   const setFiles = (fs: File[]) => { files = [...files, ...fs]; list.textContent = `${files.length} images · ${fmtBytes(files.reduce((s, f) => s + f.size, 0))}`; };
   root.append(
-    card(null, stack(filePicker({ accept: 'image/*,.heic,.heif', multiple: true, label: 'Add images', hint: 'JPG, PNG, WebP, HEIC — any number', onFiles: setFiles }), list,
+    card(null, stack(imagePicker({ accept: 'image/*,.heic,.heif', multiple: true, label: 'Add images', hint: 'JPG, PNG, WebP, HEIC — any number', onFiles: setFiles }), list,
       button('Clear list', () => { files = []; list.textContent = ''; results.clear(); prog.done(); }, { small: true, variant: 'ghost', icon: 'X' }))),
     card('Resize', stack(
       segmented([['none', 'Keep size'], ['long', 'Long side'], ['width', 'Width'], ['height', 'Height'], ['percent', 'Percent'], ['exact', 'Exact']], mode, (v) => { mode = v; relabel(); }),

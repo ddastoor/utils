@@ -130,7 +130,7 @@ export const mount: Mount = (root, ctx) => {
     const my = ++loadSeq, p = img.width > 2400 ? await imgproc('resize', img, 2400, Math.round((img.height * 2400) / img.width)) : img;
     if (my !== loadSeq) return; // a newer photo was chosen meanwhile
     photo = p; await extract();
-  }, { label: 'Photo of your signature', capture: ctx.isMobile ? 'environment' : undefined, cameraLabel: 'Photograph your signature' });
+  }, { label: 'Photo of your signature' }); // or the camera: the phone's, the PC's webcam
   const photoBox = stack(photoIn.el, note('Sign on plain white paper with a dark pen, take a photo straight on, in even light.'),
     h('div', { class: 'ed-stage' }, photoCanvas),
     slider({ label: 'Ink sensitivity', min: 0.5, max: 2.5, step: 0.05, value: 1, onChange: (v) => { strength = v; extract(); } }),

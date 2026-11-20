@@ -3,10 +3,10 @@
 // text shaping/rasterising and compositing use the browser's native canvas (compiled C++); encoding uses
 // MozJPEG / libwebp / OxiPNG (wasm). Fonts: system fonts + Anton (OFL-1.1) served from this site.
 import antonUrl from '@fontsource/anton/files/anton-latin-400-normal.woff2?url';
-import { h, card, field, input, textarea, button, segmented, slider, toggle, stack, grid2, note, clear, actions, filePicker, toast, errMsg, baseName, downloadBlob, shareOrDownload, fmtBytes, type Mount } from '../ui';
+import { h, card, field, input, textarea, button, segmented, slider, toggle, stack, grid2, note, clear, actions, toast, errMsg, baseName, downloadBlob, shareOrDownload, fmtBytes, type Mount } from '../ui';
 import { imgproc, type Img } from '../wasm/imgproc';
 import { loadImg, encodeImg, previewOf, resizeImg, setJpegDpi, EXT, type Fmt } from '../lib/imgio';
-import { imageInput, resultList } from '../lib/imgtools';
+import { imageInput, imagePicker, resultList } from '../lib/imgtools';
 import { isIOS } from '../platform';
 import { wrapLines } from '../lib/textwrap';
 
@@ -111,7 +111,7 @@ export const watermark: Mount = (root, ctx) => {
     field('Font', segmented(FONTS.map(([f, l]) => [f, l]) as Array<[string, string]>, o.font, (v) => { o.font = v; redraw(); })),
     field('Colour', input({ type: 'color', value: o.color, onInput: (v) => { o.color = v; redraw(); } })),
     toggle('Shadow (readable on any background)', true, (v) => { o.shadow = v; redraw(); }));
-  const logoBox = stack(filePicker({ accept: 'image/*,.heic,.heif', label: 'Choose a logo', hint: 'PNG with transparency works best', compact: true, onFiles: async (f) => {
+  const logoBox = stack(imagePicker({ accept: 'image/*,.heic,.heif', label: 'Choose a logo', hint: 'PNG with transparency works best', compact: true, onFiles: async (f) => {
     try { o.logo = await loadImg(f[0]); redraw(); } catch (e) { toast(`${f[0].name}: ${errMsg(e)}`, 'err'); }
   } }));
   logoBox.hidden = true;
@@ -135,7 +135,7 @@ export const watermark: Mount = (root, ctx) => {
     if (bad.length) failed.append(note(h('div', null, `${bad.length} photo${bad.length === 1 ? '' : 's'} could not be watermarked:`, h('ul', null, bad.map((x) => h('li', null, x)))), 'err'));
   };
   root.append(
-    card(null, stack(filePicker({ accept: 'image/*,.heic,.heif', multiple: true, label: 'Add photos', hint: 'one or many — the same watermark goes on all', onFiles: (f) => addFiles(f).catch((e) => toast(errMsg(e), 'err')) }), h('div', { class: 'row' }, list, clearBtn))),
+    card(null, stack(imagePicker({ accept: 'image/*,.heic,.heif', multiple: true, label: 'Add photos', hint: 'one or many — the same watermark goes on all', onFiles: (f) => addFiles(f).catch((e) => toast(errMsg(e), 'err')) }), h('div', { class: 'row' }, list, clearBtn))),
     stage,
     card('Watermark', stack(
       segmented([['text', 'Text'], ['logo', 'Logo']], o.kind, (v) => { o.kind = v; textBox.hidden = v !== 'text'; logoBox.hidden = v !== 'logo'; redraw(); }),
@@ -330,7 +330,7 @@ export const collage: Mount = (root, ctx) => {
     share ? await shareOrDownload(blob, name) : downloadBlob(blob, name);
   };
   root.append(
-    card(null, stack(filePicker({ accept: 'image/*,.heic,.heif', multiple: true, label: 'Add photos', hint: '2 to 16 photos', onFiles: (f) => add(f) }), strip)),
+    card(null, stack(imagePicker({ accept: 'image/*,.heic,.heif', multiple: true, label: 'Add photos', hint: '2 to 16 photos', onFiles: (f) => add(f) }), strip)),
     stage,
     card('Layout', stack(
       segmented([['auto', 'Grid'], ['2h', 'Side by side'], ['2v', 'Stacked'], ['3l', '1 + 2'], ['3t', '1 over 2'], ['4f', '1 over 3'], ['5', '2 + 3'], ['rows', 'Rows'], ['cols', 'Columns']], layout, (v) => { layout = v; redraw(); }),

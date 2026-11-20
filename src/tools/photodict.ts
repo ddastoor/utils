@@ -136,7 +136,7 @@ export const mount: Mount = (root, ctx) => {
   const startBtn = button('Use camera', startCam, { variant: 'primary', icon: 'Camera' });
   const shareBtn = button('Share list', () => shareList(), { icon: 'Share2' }); shareBtn.hidden = true;
   const camCtl = h('div', { class: 'row', hidden: true }, button('Snap', snap, { variant: 'primary', icon: 'Camera' }), button('Cancel', stopCam, { variant: 'ghost' }));
-  const input$ = imageInput((img) => { stopCam(); run(img); }, { label: 'Choose a photo of a page' });
+  const input$ = imageInput((img) => { stopCam(); run(img); }, { label: 'Choose a photo of a page', camera: false }); // its own camera, in the bar
 
   const shareList = async () => {
     if (!last?.cards.length) throw new Error('Take a photo first.');

@@ -101,7 +101,7 @@ export const sign: Mount = (root, ctx) => {
       if (my !== photoSeq) return; // a newer photo
       sigSeq++; sig = t; show();
     } catch (e) { if (my === photoSeq) toast(errMsg(e), 'err'); }
-  }, { label: 'Photo of your signature on white paper', capture: ctx.isMobile ? 'environment' : undefined, cameraLabel: 'Photograph your signature' });
+  }, { label: 'Photo of your signature on white paper' }); // or the camera: the phone's, the PC's webcam
   // a signature made in the background must not come back after "Clear" or after newer strokes / text / mode
   const makeSig = async () => {
     const my = ++sigSeq;

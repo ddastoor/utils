@@ -5,6 +5,7 @@
 // the MP4). Photos are decoded by our loader (HEIC, EXIF orientation, huge photos). A video is made from a copy of the
 // settings and the photo list taken when it starts: changes meanwhile wait for the next one.
 import { h, card, field, actions, button, select, slider, segmented, toggle, stack, note, progress, filePicker, toast, errMsg, fmtTime, fmtBytes, baseName, downloadBlob, shareOrDownload, clear, type Mount } from '../ui';
+import { imagePicker } from '../lib/imgtools';
 import { loadImg, previewOf } from '../lib/imgio';
 import { audio, decodeAudio, channelsOf } from '../lib/audio-client';
 import { ensureAac } from '../lib/aac';
@@ -100,7 +101,7 @@ export const mount: Mount = (root, ctx) => {
         photos.push({ name: f.name, bmp, tiny, w: img.width, h: img.height });
       } catch (e) { toast(`${f.name}: ${errMsg(e)}`, 'err'); }
     }
-    if (photos.length) picker.classList.add('drop-compact');
+    if (photos.length) picker.picker.classList.add('drop-compact');
     refresh();
   }
   async function setMusic(f: File) {
@@ -188,7 +189,7 @@ export const mount: Mount = (root, ctx) => {
   }
   function stopPreview() { cancelAnimationFrame(playing); playing = 0; try { (stopPreview as any).node?.stop(); } catch { /* ended */ } (stopPreview as any).node = null; playBtn.setLabel('Preview'); }
 
-  const picker = filePicker({ accept: 'image/*,.heic,.heif', multiple: true, label: 'Add photos', hint: 'JPEG, PNG, WebP, HEIC (iPhone) — in the order you want; reorder below', onFiles: (fs) => addPhotos(fs) });
+  const picker = imagePicker({ accept: 'image/*,.heic,.heif', multiple: true, label: 'Add photos', hint: 'JPEG, PNG, WebP, HEIC (iPhone) — in the order you want; reorder below', onFiles: (fs) => addPhotos(fs) });
   const musicPick = filePicker({ accept: 'audio/*,.mp3,.m4a,.aac,.wav,.ogg,.opus,.flac', label: 'Add music (optional)', compact: true, onFiles: ([f]) => setMusic(f) });
   const musicClear = button('Remove music', () => { music = null; musicInfo.textContent = ''; musicClear.hidden = true; refresh(); }, { icon: 'X', small: true, variant: 'ghost' }); musicClear.hidden = true;
   const goBtn = button(ctx.isMobile ? 'Make video' : 'Make video', () => render(), { icon: 'Clapperboard', variant: 'primary', disabled: true });

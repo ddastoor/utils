@@ -2,7 +2,8 @@
 // into a real PDF (src/lib/htmlpdf.ts); the preview shows that same PDF. Money maths (integer paise) and GSTIN checks
 // run in mathcore.wasm; amounts in words (lakh/crore) too. Details can be saved to / loaded from a JSON file you keep —
 // nothing is stored in the browser.
-import { h, card, field, stack, note, actions, button, segmented, toggle, input, select, textarea, filePicker, pickFiles, clear, toast, errMsg, downloadBlob, shareOrDownload, type Mount } from '../ui';
+import { h, card, field, stack, note, actions, button, segmented, toggle, input, select, textarea, pickFiles, clear, toast, errMsg, downloadBlob, shareOrDownload, type Mount } from '../ui';
+import { imagePicker } from '../lib/imgtools';
 import { htmlToPdf, pdfPreview, esc } from '../lib/htmlpdf';
 import { mupdf } from '../lib/pdf';
 import { mathcore } from '../wasm/mathcore';
@@ -113,7 +114,8 @@ function docShell(root: HTMLElement, ctx: { isMobile: boolean }, o: { build: () 
 function imagePick(label: string, maxSide: number, onImg: (bytes: Uint8Array | null, name: string) => void, o: { photo?: boolean } = {}) {
   const info = h('span', { class: 'muted small' });
   let seq = 0, busy: Promise<void> = Promise.resolve();
-  const picker = filePicker({ accept: 'image/*,.heic,.heif', compact: true, label, onFiles: ([f]) => {
+  // or the camera — a résumé photo is a selfie (the front camera on phones, the view mirrored); a logo or a signature on paper the back camera
+  const picker = imagePicker({ accept: 'image/*,.heic,.heif', compact: true, label, facing: o.photo ? 'user' : 'environment', onFiles: ([f]) => {
     const my = ++seq;
     busy = (async () => {
       try {

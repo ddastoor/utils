@@ -1,10 +1,10 @@
 // Core PDF tabs on MuPDF (official C → wasm build): merge, split, organize, images → PDF, PDF → images, PDF → text,
 // page numbers, watermark. Everything stays in the browser.
-import { h, card, field, stack, note, actions, button, segmented, slider, toggle, input, select, progress, copy, toast, errMsg, filePicker, downloadBlob, shareOrDownload, fmtBytes, type Mount } from '../ui';
+import { h, card, field, stack, note, actions, button, segmented, slider, toggle, input, select, progress, copy, toast, errMsg, downloadBlob, shareOrDownload, fmtBytes, type Mount } from '../ui';
 import { mupdf, imagesToPdf, savePdf, stampPage, pageGeom, pageThumb, renderPage, textWidth, parseRanges, pdfString, isLatin1, mergePdfs, subsetPdf, pageScale, type ImagePage } from '../lib/pdf';
 import { pdfInput, savePdfFile, stem, type LoadedPdf } from '../lib/pdfui';
 import { zipFiles } from '../lib/zip';
-import { resultList } from '../lib/imgtools';
+import { imagePicker, resultList } from '../lib/imgtools';
 import { loadImg, encodeImg } from '../lib/imgio';
 import { readExif } from '../lib/exif';
 
@@ -156,7 +156,7 @@ export const img2pdf: Mount = (root, ctx) => {
   };
   const marginBox = slider({ label: 'Margin', min: 0, max: 30, value: margin, unit: ' mm', onInput: (v) => (margin = v) });
   root.append(
-    card(null, h('div', { class: 'stack' }, filePicker({ accept: 'image/*,.heic,.heif', multiple: true, label: 'Choose images', hint: 'JPG, PNG, HEIC, WebP… (add more any time)', onFiles: add }), busy, info, sortBtn), list),
+    card(null, h('div', { class: 'stack' }, imagePicker({ accept: 'image/*,.heic,.heif', multiple: true, label: 'Choose images', hint: 'JPG, PNG, HEIC, WebP… (add more any time)', onFiles: add }), busy, info, sortBtn), list),
     card('Page', stack(
       segmented([['a4', 'A4'], ['letter', 'Letter'], ['fit', 'Fit to image']], size, (v) => { size = v; marginBox.hidden = v === 'fit'; }),
       marginBox, note('Each image gets its own page, turned to landscape when the image is wide. JPEG and PNG files are embedded without re-compression. "Fit to image": a scan keeps the paper size its file states (300 dpi …); other images are laid out at 150 dpi.'))),

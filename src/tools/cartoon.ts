@@ -3,10 +3,10 @@
 //    pencil sketch (B/W and colour), comic halftone. Instant; the save is computed again at full size with the same look.
 //  • AI art styles — Magenta arbitrary style transfer on TensorFlow.js (WebGL → WebAssembly → CPU), with built-in
 //    procedurally drawn "paintings" or any painting the user uploads; Strength blends from the photo's own style.
-import { h, card, stack, note, actions, button, segmented, slider, field, filePicker, downloadBlob, shareOrDownload, fmtBytes, baseName, toast, errMsg, type Mount } from '../ui';
+import { h, card, stack, note, actions, button, segmented, slider, field, downloadBlob, shareOrDownload, fmtBytes, baseName, toast, errMsg, type Mount } from '../ui';
 import { imgproc, type Img } from '../wasm/imgproc';
 import { encodeImg, loadImg, previewOf, paint, onWhite } from '../lib/imgio';
-import { imageInput } from '../lib/imgtools';
+import { imageInput, imagePicker } from '../lib/imgtools';
 import { ART_STYLES, artImage } from '../lib/style-art';
 import { styleEngine, styleVector, stylize, disposeStyleEngine } from '../lib/style-transfer';
 
@@ -125,7 +125,7 @@ export const mount: Mount = (root, ctx) => {
   const sizeSeg = segmented<string>((ctx.isMobile ? [['512', '512 px'], ['768', '768 px']] : [['512', '512 px'], ['1024', '1024 px'], ['1600', '1600 px']]) as Array<[string, string]>, String(aiSide), (v) => { aiSide = +v; sideChosen = true; render(); });
   const styleTile = (id: string, label: string, img: Img) =>
     h('button', { type: 'button', role: 'radio', 'aria-checked': String(id === styleId), class: ['fx-tile', id === styleId && 'on'], 'data-style': id, onclick: () => { styleId = id; markOn(styleGrid, id); render(); } }, thumbOf(img, 160), h('span', null, label));
-  const own = filePicker({ accept: 'image/*,.heic,.heif', compact: true, label: 'Use your own painting as the style', onFiles: async (f) => {
+  const own = imagePicker({ accept: 'image/*,.heic,.heif', compact: true, label: 'Use your own painting as the style', onFiles: async (f) => {
     try {
       const img = onWhite(previewOf(await loadImg(f[0]), 512)), id = `own${styleImgs.size + 1}`; // a see-through painting on white
       styleImgs.set(id, img); styleId = id;

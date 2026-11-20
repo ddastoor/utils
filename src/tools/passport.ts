@@ -76,7 +76,7 @@ export const mount: Mount = (root, ctx) => {
       clear(found).append(note(errMsg(e), 'err'));
     }
   };
-  const input$ = imageInput((img, f) => useImage(img, f.name), { label: 'Upload a photo' });
+  const input$ = imageInput((img, f) => useImage(img, f.name), { label: 'Upload a photo', camera: false }); // its own camera: oval guide, timer
 
   // live camera with an oval guide and a 3-second timer
   const video = h('video', { class: 'pp-video', autoplay: true, muted: true, playsInline: true } as any) as HTMLVideoElement;

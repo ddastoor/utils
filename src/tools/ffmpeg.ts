@@ -6,6 +6,7 @@ import { h, card, field, actions, button, select, input, segmented, toggle, slid
 import { onLeave } from '../lifecycle';
 import { JOB_GROUPS, DEFAULTS, EMPTY_PROBE, buildJob, parseProbe, secondFor, asJpegName, type Job, type Probe, type JobCtx } from '../lib/ffjobs';
 import { loadImg, encodeImg } from '../lib/imgio';
+import { liveCamera } from '../lib/livecam';
 
 const FORMATS: Array<[string, string]> = [['mp4', 'MP4 (H.264 + AAC)'], ['webm', 'WebM (VP8 + Opus)'], ['mkv', 'MKV (copy streams)'], ['mov', 'MOV (H.264 + AAC)'], ['mp3', 'MP3 audio'], ['m4a', 'M4A audio (AAC)'], ['wav', 'WAV audio'], ['flac', 'FLAC audio'], ['ogg', 'OGG audio (Opus)'], ['gif', 'GIF']];
 const quote = (s: string) => (/^[\w.\-/:=]+$/.test(s) ? s : `"${s.replace(/(["\\$`])/g, '\\$1')}"`);
@@ -31,14 +32,17 @@ export const mount: Mount = (root) => {
   const outCard = card('Output', outs); outCard.hidden = true;
   const logBox = h('pre', { class: 'ff-log' });
   const work = h('div', { class: 'stack', hidden: true });
-  const secondPick = filePicker({ accept: 'audio/*,image/*,video/*', label: 'Second file', compact: true, onFiles: async ([f]) => {
+  const takeSecond = async (f: File) => {
     second = f; p2 = undefined; secondInfo.textContent = `${f.name} · ${fmtBytes(f.size)}`; update();
     if (f.type.startsWith('image/') || /\.(srt|vtt|ass|ssa)$/i.test(f.name)) return;
     const pr = await probeFile(f, in2()).catch(() => undefined);
     if (second === f) { p2 = pr; update(); }
-  } });
+  };
+  const secondPick = filePicker({ accept: 'audio/*,image/*,video/*', label: 'Second file', compact: true, onFiles: ([f]) => { secondCam.stop(); return takeSecond(f); } });
+  // a job whose second file is a picture (a logo, the picture for sound, a picture-in-picture) can take it with the webcam
+  const secondCam = liveCamera({ instead: 'choose a picture instead', onSnap: async (_img, file) => takeSecond(await file()) });
   const secondInfo = h('div', { class: 'muted small' });
-  const secondBox = h('div', { class: 'stack' }, secondPick, secondInfo); secondBox.hidden = true;
+  const secondBox = h('div', { class: 'stack' }, secondPick, secondCam.el, secondInfo); secondBox.hidden = true;
   const clipList = h('ol', { class: 'ff-clips' });
   const clipPick = filePicker({ accept: 'video/*,audio/*,.mkv,.avi,.ts,.m2ts,.wmv', multiple: true, label: 'Add clips to join', compact: true, onFiles: (fs) => addClips(fs) });
   const joinBox = h('div', { class: 'stack' }, clipList, clipPick); joinBox.hidden = true;
@@ -66,6 +70,7 @@ export const mount: Mount = (root) => {
     const sec = secondFor(job, o);
     secondBox.hidden = !sec;
     if (sec) { secondPick.querySelector('strong')!.textContent = sec.label; secondPick.querySelector('input')!.setAttribute('accept', sec.accept); }
+    secondCam.el.hidden = !sec || !/image\//.test(sec.accept); // hidden, its camera closes
     joinBox.hidden = job !== 'join';
     if (job === 'join') renderClips();
     const parts: Record<Job, () => Array<Node | null>> = {

@@ -1,20 +1,25 @@
-// Small shared helpers for image tools: input widget (pick/drop/paste/camera), flips, 90° rotations, crop.
-import { h, filePicker, toast, button, downloadBlob, shareOrDownload, fmtBytes } from '../ui';
+// Small shared helpers for image tools: input widgets (pick / drop / paste / camera), flips, 90° rotations, crop.
+import { h, filePicker, toast, button, downloadBlob, shareOrDownload, fmtBytes, type PickOpts } from '../ui';
+import { liveCamera } from './livecam';
 import { zipFiles } from './zip';
 import type { Img } from '../wasm/imgproc';
 import { loadImg } from './imgio';
 
-/** File picker that also accepts pasted images (Ctrl+V). Calls onImage with the decoded image. `capture` (pass it on
- *  phones only) adds a "Take a photo" button that opens that camera; the picker itself never forces the camera — with
- *  the capture attribute a phone opens the camera and nothing else, so photos and screenshots already on it could not
- *  be chosen (the phone's own menu for a plain picker offers the camera as well). */
-export function imageInput(onImage: (img: Img, file: File) => void | Promise<void>, opts: { label?: string; multiple?: boolean; capture?: 'user' | 'environment'; cameraLabel?: string } = {}) {
+/** File picker that also accepts pasted images (Ctrl+V), with the camera beside it — owner, 20 Nov 2026: every tab that
+ *  takes a picture can take one, with the phone's camera or the PC's webcam (`liveCamera` in livecam.ts; `camera: false`
+ *  for a tab with a camera of its own). Calls onImage with the decoded image and its file; a photo from the camera comes
+ *  as its pixels and the same photo as a JPEG (camera-<date>-<time>.jpg), `how` = 'camera'. The picker never forces the
+ *  camera (with the capture attribute a phone opens the camera and nothing else, so photos and screenshots already on
+ *  it could not be chosen). A file chosen, dropped or pasted closes the camera. */
+export function imageInput(onImage: (img: Img, file: File, how: 'file' | 'camera') => void | Promise<void>,
+  opts: { label?: string; multiple?: boolean; camera?: false | { facing?: 'user' | 'environment' }; instead?: string } = {}) {
   const busy = h('div', { class: 'muted small' });
   const handle = async (files: File[]) => {
+    cam?.stop();
     for (const f of files) {
       busy.textContent = `Opening ${f.name}…`;
       try {
-        await onImage(await loadImg(f), f);
+        await onImage(await loadImg(f), f, 'file');
         compact();
       } catch (e: any) { toast(`${f.name}: ${e.message}`, 'err'); }
     }
@@ -26,19 +31,28 @@ export function imageInput(onImage: (img: Img, file: File) => void | Promise<voi
     picker.classList.add('drop-compact');
     const strong = picker.querySelector('strong'); if (strong) strong.textContent = opts.multiple ? 'Add more photos' : 'Choose another photo';
   };
-  let camera: HTMLElement | null = null;
-  if (opts.capture) {
-    const inp = h('input', { type: 'file', accept: 'image/*', hidden: true }) as HTMLInputElement;
-    inp.setAttribute('capture', opts.capture);
-    inp.addEventListener('change', () => { const fs = [...(inp.files || [])]; inp.value = ''; if (fs.length) handle(fs.slice(0, 1)); });
-    camera = h('div', { class: 'row' }, inp, button(opts.cameraLabel || 'Take a photo', () => inp.click(), { icon: 'Camera', title: opts.capture === 'user' ? 'Opens the front camera' : 'Opens the back camera' }));
-  }
+  const cam = opts.camera === false ? null : liveCamera({
+    multiple: opts.multiple, facing: opts.camera?.facing, instead: opts.instead ?? 'choose a photo instead',
+    onSnap: async (img, file) => { await onImage(img, await file(), 'camera'); compact(); },
+  });
   const onPaste = (e: ClipboardEvent) => {
     const fs = [...(e.clipboardData?.files || [])].filter((f) => f.type.startsWith('image/'));
     if (fs.length) { e.preventDefault(); handle(opts.multiple ? fs : fs.slice(0, 1)); }
   };
   addEventListener('paste', onPaste);
-  return { el: h('div', { class: 'stack' }, picker, camera, busy), dispose: () => removeEventListener('paste', onPaste), compact };
+  return { el: h('div', { class: 'stack' }, picker, cam?.el ?? null, busy), dispose: () => { removeEventListener('paste', onPaste); cam?.dispose(); }, compact, camera: cam };
+}
+
+/** A picker of pictures for a tab that reads the files itself, with the camera beside it (as `imageInput`): a photo from
+ *  the camera arrives through the same `onFiles` as a JPEG file (camera-<date>-<time>.jpg); with `multiple` the camera
+ *  stays open and every Snap adds one. A file chosen closes the camera. */
+export function imagePicker(o: PickOpts & { facing?: 'user' | 'environment'; instead?: string }) {
+  const cam = liveCamera({
+    multiple: o.multiple, facing: o.facing, instead: o.instead ?? 'choose a photo instead',
+    onSnap: async (_img, file) => { await o.onFiles([await file()]); },
+  });
+  const picker = filePicker({ ...o, onFiles: (fs) => { cam.stop(); return o.onFiles(fs); } });
+  return Object.assign(h('div', { class: 'stack' }, picker, cam.el), { picker, camera: cam });
 }
 
 /** Interactive crop box over a canvas. Returns crop rect in canvas pixel units. aspect = w/h or 0 for free. */

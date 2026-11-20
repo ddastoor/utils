@@ -1,8 +1,8 @@
 // HEIC → JPG/PNG/WebP: libheif (C++ → wasm) decodes the primary image, Little CMS (lcms-wasm) turns its colours into
 // sRGB with the photo's ICC profile, MozJPEG/libwebp/OxiPNG encode — all in a worker.
-import { h, card, field, segmented, slider, stack, note, progress, clear, errMsg, filePicker, baseName, type Mount } from '../ui';
+import { h, card, field, segmented, slider, stack, note, progress, clear, errMsg, baseName, type Mount } from '../ui';
 import { loadImg, encodeImg, EXT, type Fmt } from '../lib/imgio';
-import { resultList } from '../lib/imgtools';
+import { imagePicker, resultList } from '../lib/imgtools';
 
 export const mount: Mount = (root, ctx) => {
   let fmt: Fmt = 'jpeg', quality = 90;
@@ -28,7 +28,7 @@ export const mount: Mount = (root, ctx) => {
   };
   root.append(
     card(null, stack(
-      filePicker({ accept: '.heic,.heif,.avif,image/heic,image/heif,image/*', multiple: true, label: 'Choose HEIC photos', hint: 'iPhone photos (.heic / .heif) — several at once is fine', onFiles: convert }),
+      imagePicker({ accept: '.heic,.heif,.avif,image/heic,image/heif,image/*', multiple: true, label: 'Choose HEIC photos', hint: 'iPhone photos (.heic / .heif) — several at once is fine', onFiles: convert }),
       prog)),
     card('Output', stack(
       field('Format', segmented([['jpeg', 'JPG'], ['png', 'PNG'], ['webp', 'WebP']], fmt, (v) => { fmt = v; qSlider.hidden = v === 'png'; })),

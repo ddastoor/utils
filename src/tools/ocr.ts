@@ -6,7 +6,6 @@ import { h, card, field, segmented, toggle, stack, note, progress, button, actio
 import { imgproc, type Img } from '../wasm/imgproc';
 import { previewOf, paint } from '../lib/imgio';
 import { imageInput } from '../lib/imgtools';
-import { liveCamera } from '../lib/livecam';
 import { recognize, type OcrLang, type OcrResult } from '../lib/ocr';
 
 const ROT = [1, 6, 3, 8]; // quarter turns to the right as EXIF orientations
@@ -83,16 +82,12 @@ export const mount: Mount = (root, ctx) => {
     // highlight words the engine is unsure about (over the picture as it was read)
     for (const w of r.words) if (w.conf < 60) boxes.append(h('span', { class: 'ocr-low', title: `${w.text} (${Math.round(w.conf)} %)`, style: { left: `${(w.x0 / img.width) * 100}%`, top: `${(w.y0 / img.height) * 100}%`, width: `${((w.x1 - w.x0) / img.width) * 100}%`, height: `${((w.y1 - w.y0) / img.height) * 100}%` } }));
   };
-  const take = (img: Img, called: string) => { src = img; turns = 0; name = called; forget(); show(); editor.hidden = false; };
-  // a file (or a photo already taken, a screenshot, a paste) — or the camera: the phone's back camera, the PC's webcam,
-  // live in the page with Snap (owner, 20 Nov 2026). While the camera is open the picture and text below step aside.
-  const input$ = imageInput((img, f) => { cam.stop(); take(img, baseName(f.name)); }, { label: 'Choose an image with text' });
-  const cam = liveCamera({
-    mobile: ctx.isMobile, instead: 'choose an image instead',
-    onSnap: (img) => { input$.compact(); take(img, 'camera-photo'); reveal(editor.firstElementChild!); }, // the photo where the camera was
-    onOpen: () => { editor.hidden = true; },
-    onClose: () => { editor.hidden = !src; },
-  });
+  // a file (a photo already taken, a screenshot, a paste) — or the camera: the phone's back camera, the PC's webcam, live
+  // in the page with Snap (owner, 20 Nov 2026; the picker's own camera, src/lib/livecam.ts)
+  const input$ = imageInput((img, f, how) => {
+    src = img; turns = 0; name = baseName(f.name); forget(); show(); editor.hidden = false;
+    if (how === 'camera') reveal(editor.firstElementChild!); // the photo where the camera was
+  }, { label: 'Choose an image with text', instead: 'choose an image instead' });
   const turn = (k: number) => { if (!src) return; turns = (turns + k) % 4; forget(); show(); };
   const text = () => { if (!out.value.trim()) throw new Error('There is no text yet — choose an image and press "Extract text".'); return out.value; };
   editor.append(
@@ -108,6 +103,6 @@ export const mount: Mount = (root, ctx) => {
       button('Copy', () => copy(text()), { small: true, icon: 'Copy' }),
       button('Download .txt', () => (ctx.isMobile ? shareOrDownload : downloadBlob)(new Blob([text()], { type: 'text/plain;charset=utf-8' }), `${name}.txt`), { small: true, icon: 'Download' }))),
   );
-  root.append(card(null, stack(input$.el, cam.el)), editor);
-  return () => { alive = false; seq++; input$.dispose(); cam.dispose(); };
+  root.append(card(null, input$.el), editor);
+  return () => { alive = false; seq++; input$.dispose(); };
 };

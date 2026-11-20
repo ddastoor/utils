@@ -1,9 +1,9 @@
 // Background Remover: MediaPipe person segmentation + guided-filter matting (imgproc.wasm) → transparent PNG, a solid
 // colour, a blurred background, or another photo behind the person. Everything runs on the device.
-import { h, card, field, input, segmented, slider, stack, note, actions, button, filePicker, downloadBlob, shareOrDownload, fmtBytes, baseName, toast, errMsg, type Mount } from '../ui';
+import { h, card, field, input, segmented, slider, stack, note, actions, button, downloadBlob, shareOrDownload, fmtBytes, baseName, toast, errMsg, type Mount } from '../ui';
 import { imgproc, imgprocDirect, type Img } from '../wasm/imgproc';
 import { encodeImg, loadImg, previewOf, paint, resizeImg } from '../lib/imgio';
-import { imageInput } from '../lib/imgtools';
+import { imageInput, imagePicker } from '../lib/imgtools';
 import { personMask, type PersonMask } from '../lib/segment';
 import { coverCrop } from './canvas-tools';
 
@@ -51,7 +51,7 @@ export const mount: Mount = (root, ctx) => {
   const colourIn = input({ type: 'color', value: o.colour, onInput: (v) => setColour(v) });
   const colourBox = stack(colourRow, field('Custom colour', colourIn)); colourBox.hidden = true;
   const blurBox = slider({ label: 'Background blur', min: 1, max: 20, value: o.blur, onChange: (v) => { o.blur = v; render(); } }); blurBox.hidden = true;
-  const photoBox = filePicker({ accept: 'image/*,.heic,.heif', compact: true, label: 'Choose a background photo', onFiles: async (f) => {
+  const photoBox = imagePicker({ accept: 'image/*,.heic,.heif', compact: true, label: 'Choose a background photo', onFiles: async (f) => {
     const my = ++bgSeq; // the newest background photo wins
     try { const bg = previewOf(await loadImg(f[0]), 4000); if (my === bgSeq) { o.bg = bg; render(); } } catch (e) { toast(`${f[0].name}: ${errMsg(e)}`, 'err'); }
   } }); photoBox.hidden = true;

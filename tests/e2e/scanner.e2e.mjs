@@ -152,9 +152,9 @@ export default async ({ base, page: newPage, ok, info, download, devices, releas
   const phone = await newPage({ ...devices['iPhone 13'] });
   await phone.goto(base + '#/scanner');
   await phone.waitForSelector('input[type=file]', { state: 'attached', timeout: 20000 });
-  ok(await phone.locator('input[type=file][capture=environment]').count() === 1, 'phone: "Take a photo of a page" opens the back camera');
-  ok(await phone.locator('input[type=file][multiple]:not([capture])').count() === 1, 'phone: "Choose photos" picks photos already taken (no camera forced)');
-  await phone.locator('input[type=file]:not([capture])').setInputFiles(S('shadow-grey-desk.jpg'));
+  ok(await phone.getByRole('button', { name: 'Use camera' }).count() === 1 && await phone.locator('input[type=file][capture]').count() === 0, 'phone: "Use camera" opens the back camera in the page (page after page; owner, 20 Nov 2026)');
+  ok(await phone.locator('input[type=file]').count() === 1 && await phone.locator('input[type=file][multiple]').count() === 1, 'phone: "Choose photos" picks photos already taken (no camera forced)');
+  await phone.locator('input[type=file]').setInputFiles(S('shadow-grey-desk.jpg'));
   await phone.waitForSelector('.scan-thumb img', { timeout: 60000 });
   await phone.locator('.quad-h').first().scrollIntoViewIfNeeded();
   const hb = await phone.locator('.quad-h').first().boundingBox();

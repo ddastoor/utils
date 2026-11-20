@@ -318,6 +318,8 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: 14px; }
   .actions.inline { position: static; padding: 0; background: none; border: 0; backdrop-filter: none; }
   .live-cam-ctl { flex-wrap: nowrap; }
   .live-cam-ctl > .btn-primary { flex: 1; } /* Snap: the big target */
+  .live-cam-video { max-height: min(60vh, calc(100dvh - 240px)); } /* the view and its buttons below the tab rows */
+  html.cam-open .actions { display: none !important; } /* the tab's fixed bar steps aside while the camera is open */
   .preview { min-height: 160px; }
   .preview canvas, .preview img, .preview video { max-height: 56vh; }
   .grid2 { grid-template-columns: 1fr; }
@@ -518,6 +520,7 @@ details summary { cursor: pointer; font-weight: 600; color: var(--accent); paddi
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
   .die.rolled, .toast { animation: none; }
+  .live-cam.snap-flash::after { display: none; } /* the line under the camera says the photo was taken */
   .spinner, .btn.busy::after { animation-duration: 1.6s; }
   .progress.indeterminate .progress-bar { animation-duration: 2.4s; }
   *, *::before, *::after { transition-duration: 0.01ms !important; }
@@ -721,6 +724,9 @@ details summary { cursor: pointer; font-weight: 600; color: var(--accent); paddi
 /* live camera (src/lib/livecam.ts): the whole picture as the camera sends it, never mirrored (text reads the right way) */
 .live-cam { position: relative; max-width: 720px; border-radius: 12px; overflow: hidden; background: #000; }
 .live-cam-video { display: block; width: 100%; max-height: 60vh; object-fit: contain; }
+.live-cam-video.mirror { transform: scaleX(-1); } /* a selfie, as a mirror shows it (the photo itself is not mirrored) */
+.live-cam.snap-flash::after { content: ''; position: absolute; inset: 0; background: #fff; pointer-events: none; animation: cam-flash .3s ease-out forwards; }
+@keyframes cam-flash { from { opacity: .75; } to { opacity: 0; } }
 .pd-top { display: flex; gap: 12px; align-items: center; }
 .pd-thumb { width: 72px; height: auto; border-radius: 8px; border: 1px solid var(--border); flex: none; }
 .pd-top > .stack { flex: 1; min-width: 0; }

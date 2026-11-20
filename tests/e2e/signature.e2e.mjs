@@ -110,6 +110,6 @@ export default async ({ base, page: newPage, ok, download, devices }) => {
   ok(pb.width <= 390 && pb.height >= 120, `phone pad ${pb.width.toFixed(0)}×${pb.height.toFixed(0)}`);
   ok(await phone.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'phone: no horizontal scroll');
   await phone.getByRole('radio', { name: 'From photo' }).click();
-  ok(await phone.locator('input[type=file][capture=environment]').count() === 1 && await phone.locator('input[type=file]:not([capture])').count() === 1 && await phone.getByRole('button', { name: 'Photograph your signature' }).count() === 1,
-    'phone: "Photograph your signature" opens the camera; the picker takes a photo already taken');
+  ok(await phone.locator('input[type=file][capture]').count() === 0 && await phone.locator('input[type=file]').count() === 1 && await phone.getByRole('button', { name: 'Use camera' }).count() === 1,
+    'phone: "Use camera" opens the camera in the page; the picker takes a photo already taken');
 };
