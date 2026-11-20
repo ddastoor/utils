@@ -2302,7 +2302,14 @@ cannot. Three new suites; each fails on the build before its fixes.
   Asia/Kolkata and in America/Los_Angeles: 1,426 / 1,426 checks each — nothing to fix.
 - **A 120-character file name without spaces** in every phone tab's file picker (a real photo, PDF, MP3, MP4, CSV, JSON
   or text file under that name): nothing wider than the screen, no errors — nothing to fix.
+- **Timers left running after a tab is left** (probe: every tab opened, its main button pressed, then left; intervals,
+  timeouts of 2 s and more, animation-frame loops still going): nothing but Screen Info's 3 s race against a WebGPU
+  adapter that never answers (a one-shot that does nothing once the tab is gone) — nothing to fix.
+- **Favorites:** site data cleared in another browser tab left the stars here (the storage listener looked only at the
+  favorites key); shell e2e +1.
 - **The complete e2e run** (on the build before these sweeps): 6,537 / 6,540 checks in 190 suites. Three checks failed
   twice: PDF Protect's and PDF Unlock's notes about a signed PDF and the Everyday smoke suite's coin were read once,
-  at once, after the action — races of the tests under load, which wait now. FFmpeg: a click timed out (see below).
+  at once, after the action — races of the tests under load, which wait now. FFmpeg: the Stop check pressed Stop 1.5 s
+  after Run, but "Clean up a grainy video" takes 1.6 s on a warm engine — Stop was gone; the check now waits until
+  FFmpeg is working (on the longer Stabilise job).
 - **Complete unit suites** after all this: 21,731 assertions in 99 suites, all green.

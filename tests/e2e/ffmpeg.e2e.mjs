@@ -305,9 +305,10 @@ export default async ({ base, page: newPage, ok, info, download }) => {
   // Stop: said as stopped, not as an error (it showed "called FFmpeg.terminate()" in red); a new file during a job ends
   // the job (its probe reset the job's log, and the outputs took the new file's name)
   await choose(M('clip.mp4'), /Video: h264/);
-  await task('Clean up a grainy video');
+  // (Stop once FFmpeg is inside its command: a fixed 1.5 s wait raced the end of a job that takes 1.6 s on a warm engine)
+  await task('Stabilise a shaky video');
   await page.locator('.actions').getByRole('button', { name: 'Run FFmpeg' }).click();
-  await page.waitForTimeout(1500);
+  await page.getByText(/^Working/).first().waitFor({ timeout: 60000 });
   await page.locator('.actions').getByRole('button', { name: 'Stop' }).click();
   await page.waitForTimeout(500);
   ok(await page.getByText('Stopped.', { exact: true }).isVisible() && !(await page.locator('.err-text').count()) && await page.locator('.actions').getByRole('button', { name: 'Run FFmpeg' }).isVisible(), 'Stop: "Stopped.", no error, Run again');
