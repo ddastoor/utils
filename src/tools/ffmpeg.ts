@@ -13,7 +13,7 @@ const FONTS = ['NotoSans_400Regular.ttf', 'NotoSans_700Bold.ttf'];
 export const mount: Mount = (root) => {
   let ff: any = null, loading: Promise<any> | null = null, running = false, onProg: ((p: number) => void) | null = null;
   let main: File | null = null, second: File | null = null, logLines: string[] = [], streams = '';
-  let p1: Probe = EMPTY_PROBE, p2: Probe | undefined, probing: Promise<void> = Promise.resolve(), fontsIn = false;
+  let p1: Probe = EMPTY_PROBE, p2: Probe | undefined, probing: Promise<void> = Promise.resolve(), fontsIn = false, loadedOnce = false;
   /** the clips of "Join clips": the chosen file first; each added clip gets the name in3, in4 … inside FFmpeg */
   let clips: Array<{ file: File; name: string; probe: Probe }> = [], clipSeq = 2;
   let job: Job = 'convert';
@@ -139,13 +139,13 @@ export const mount: Mount = (root) => {
   async function engine() {
     if (ff) return ff;
     return (loading ||= (async () => {
-      status.textContent = 'Loading FFmpeg (≈ 31 MB, once per visit)…';
+      status.textContent = loadedOnce ? 'Starting FFmpeg…' : 'Loading FFmpeg (≈ 31 MB, once per visit)…';
       const { FFmpeg } = await import('@ffmpeg/ffmpeg');
       const f = new FFmpeg(), at = (p: string) => new URL(p, document.baseURI).href;
       f.on('log', ({ message }: any) => { logLines.push(message); if (logLines.length > 400) logLines.splice(0, 100); });
       f.on('progress', ({ progress: p }: any) => onProg?.(Math.max(0, Math.min(1, p))));
       await f.load({ coreURL: at('vendor/ffmpeg/ffmpeg-core.js'), wasmURL: at('vendor/ffmpeg/ffmpeg-core.wasm') });
-      ff = f; fontsIn = false;
+      ff = f; fontsIn = false; loadedOnce = true;
       onLeave('ffmpeg', () => { try { f.terminate(); } catch { /* gone */ } ff = null; loading = null; });
       status.textContent = '';
       return f;
@@ -218,13 +218,18 @@ export const mount: Mount = (root) => {
         } catch { /* not produced */ }
       }
       logBox.textContent = logLines.slice(-60).join('\n');
+      fresh(); // the next job gets a new FFmpeg
       if (code) throw new Error(`FFmpeg failed (exit ${code}): ${logLines.filter((l) => /error|invalid|no such|failed|unknown|unable/i.test(l)).slice(0, 2).join(' · ') || 'see the log'}`);
       if (!files.length) throw new Error('No output file was produced.');
       status.textContent = '';
       showOutputs(files, performance.now() - t0, b.zip);
-    } catch (e) { status.textContent = errMsg(e); status.classList.add('err-text'); toast(errMsg(e), 'err'); logBox.textContent = logLines.slice(-60).join('\n'); (logBox.parentElement as HTMLDetailsElement).open = true; }
+    } catch (e) { fresh(); status.textContent = errMsg(e); status.classList.add('err-text'); toast(errMsg(e), 'err'); logBox.textContent = logLines.slice(-60).join('\n'); (logBox.parentElement as HTMLDetailsElement).open = true; }
     finally { running = false; prog.done(); runBtn.hidden = false; stopBtn.hidden = true; }
   }
+  /** A new FFmpeg for every job: ffmpeg.wasm runs every exec in one module instance, and after a dozen jobs state left
+   *  behind by earlier ones made a later one trap ("function signature mismatch" in the subtitle renderer). Ending the
+   *  worker also gives its memory back; the core comes again from the browser's cache in a moment. */
+  function fresh() { try { ff?.terminate(); } catch { /* gone */ } ff = null; loading = null; fontsIn = false; }
   const mimeOf = (n: string) => ({ mp4: 'video/mp4', mov: 'video/quicktime', webm: 'video/webm', mkv: 'video/x-matroska', gif: 'image/gif', mp3: 'audio/mpeg', m4a: 'audio/mp4', wav: 'audio/wav', flac: 'audio/flac', ogg: 'audio/ogg', png: 'image/png', jpg: 'image/jpeg', mka: 'audio/x-matroska', srt: 'application/x-subrip', vtt: 'text/vtt', ass: 'text/x-ssa' } as Record<string, string>)[extOf(n)] || 'application/octet-stream';
   let urls: string[] = [];
   async function showOutputs(files: Array<{ name: string; blob: Blob }>, ms: number, zip = 'files') {
