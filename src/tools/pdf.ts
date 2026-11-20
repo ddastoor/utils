@@ -1,7 +1,7 @@
 // Core PDF tabs on MuPDF (official C → wasm build): merge, split, organize, images → PDF, PDF → images, PDF → text,
 // page numbers, watermark. Everything stays in the browser.
 import { h, card, field, stack, note, actions, button, segmented, slider, toggle, input, select, progress, copy, toast, errMsg, filePicker, downloadBlob, shareOrDownload, fmtBytes, type Mount } from '../ui';
-import { mupdf, imagesToPdf, savePdf, stampPage, pageGeom, pageThumb, renderPage, textWidth, parseRanges, pdfString, isLatin1, mergePdfs, subsetPdf, type ImagePage } from '../lib/pdf';
+import { mupdf, imagesToPdf, savePdf, stampPage, pageGeom, pageThumb, renderPage, textWidth, parseRanges, pdfString, isLatin1, mergePdfs, subsetPdf, pageScale, type ImagePage } from '../lib/pdf';
 import { pdfInput, savePdfFile, stem, type LoadedPdf } from '../lib/pdfui';
 import { zipFiles } from '../lib/zip';
 import { resultList } from '../lib/imgtools';
@@ -171,10 +171,10 @@ export const img2pdf: Mount = (root, ctx) => {
 
 // ------------------------------------------------------------------ PDF → images
 export const pdf2img: Mount = (root, ctx) => {
-  let f: LoadedPdf | null = null, dpi = 150, fmt: 'jpeg' | 'png' = 'jpeg', spec = '';
+  let f: LoadedPdf | null = null, dpi = 150, fmt: 'jpeg' | 'png' = 'jpeg', spec = '', seq = 0, alive = true;
   const info = h('div', { class: 'muted small' }), prog = progress();
   const results = resultList({ zipName: () => `${f ? stem(f.name) : 'pages'}-images.zip`, isMobile: ctx.isMobile });
-  const inp = pdfInput({ onLoad: ([x]) => { f = x; results.clear(); info.textContent = `${x.name}: ${plural(x.pages, 'page')}`; } });
+  const inp = pdfInput({ onLoad: ([x]) => { seq++; prog.done(); f = x; results.clear(); info.textContent = `${x.name}: ${plural(x.pages, 'page')}`; } });
   root.append(card(null, inp.el, info),
     card('Options', stack(
       field('Resolution', segmented([['72', '72 dpi (screen)'], ['150', '150 dpi'], ['300', '300 dpi (print)']], String(dpi), (v) => (dpi = +v))),
@@ -183,19 +183,26 @@ export const pdf2img: Mount = (root, ctx) => {
     actions(button('Convert', async () => {
       if (!f) throw new Error('Choose a PDF first.');
       results.clear();
-      const pages = spec.trim() ? parseRanges(spec, f.pages).flat() : Array.from({ length: f.pages }, (_, i) => i);
-      const s = stem(f.name);
+      // the file of this run: a PDF opened meanwhile must not have its pages saved under this one's names
+      const my = ++seq, doc = f.doc, count = f.pages, s = stem(f.name), d = dpi, ext = fmt === 'png' ? 'png' : 'jpg';
+      const pages = spec.trim() ? parseRanges(spec, count).flat() : Array.from({ length: count }, (_, i) => i);
+      const pad = String(count).length, capped: number[] = []; // p01 … p12: files sort in page order
       for (const [k, i] of pages.entries()) {
+        if (my !== seq || !alive) return;
         prog.set(k / pages.length, `Page ${i + 1}…`);
-        const pix = await renderPage(f.doc, i, dpi / 72, false);
-        const bytes = fmt === 'png' ? pix.asPNG() : pix.asJPEG(88);
-        results.add(`${s}-p${i + 1}.${fmt === 'png' ? 'png' : 'jpg'}`, new Blob([bytes.slice() as BlobPart], { type: fmt === 'png' ? 'image/png' : 'image/jpeg' }), `${pix.getWidth()}×${pix.getHeight()}`);
+        const g = pageGeom(doc.loadPage(i)), sc = pageScale(g.W, g.H, d);
+        if (sc.capped) capped.push(i + 1);
+        const pix = await renderPage(doc, i, sc.scale, false);
+        const bytes = ext === 'png' ? pix.asPNG() : pix.asJPEG(88);
+        results.add(`${s}-p${String(i + 1).padStart(pad, '0')}.${ext}`, new Blob([bytes.slice() as BlobPart], { type: ext === 'png' ? 'image/png' : 'image/jpeg' }), `${pix.getWidth()}×${pix.getHeight()}`);
         pix.destroy?.();
         await new Promise((r) => setTimeout(r));
       }
       prog.done();
+      if (capped.length) info.textContent = `${plural(capped.length, 'page')} (${capped.slice(0, 8).join(', ')}${capped.length > 8 ? ' …' : ''}) too large for ${d} dpi: drawn smaller, at most 16,384 px a side and 100 megapixels.`;
     }, { variant: 'primary', icon: 'FileOutput' })),
     card(null, results.el));
+  return () => { alive = false; seq++; };
 };
 
 // ------------------------------------------------------------------ PDF → text

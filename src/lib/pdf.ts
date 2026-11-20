@@ -255,6 +255,12 @@ export async function renderPage(doc: MDoc, index: number, scale: number, alpha 
   const pix = doc.loadPage(index).toPixmap(m.Matrix.scale(scale, scale), m.ColorSpace.DeviceRGB, alpha, true);
   return pix;
 }
+/** The scale for a page of W × H points at `dpi`, made smaller where the picture would pass 16,384 px a side or 100
+ *  megapixels (a poster at 300 dpi is billions of bytes — the tab would run out of memory). */
+export function pageScale(W: number, H: number, dpi: number): { scale: number; capped: boolean } {
+  const want = dpi / 72, cap = Math.min(16384 / Math.max(W, H), Math.sqrt(100e6 / (W * H)));
+  return want <= cap ? { scale: want, capped: false } : { scale: cap, capped: true };
+}
 /** Page thumbnail as a canvas (long side ≈ px). */
 export async function pageThumb(doc: MDoc, index: number, px = 180): Promise<HTMLCanvasElement> {
   const g = pageGeom(doc.loadPage(index)), s = px / Math.max(g.W, g.H);

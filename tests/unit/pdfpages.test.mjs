@@ -83,6 +83,13 @@ export default async (t, { load }) => {
   t.eq([R('0', 5), R('6', 5), R('2-9', 5)], ['“0” is outside 1–5.', '“6” is outside 1–5.', '“2-9” is outside 1–5.'], 'ranges: outside the document, said');
   t.eq([R('', 5), R(' , ', 5), R('a', 5), R('1-3-5', 5)], ['Enter page numbers, e.g. 1-3, 5, 8-', 'Enter page numbers, e.g. 1-3, 5, 8-', 'Cannot read the range “a”.', 'Cannot read the range “1-3-5”.'], 'ranges: nothing, or what cannot be read, said');
 
+  // ---- PDF → Images: the size of a page's picture
+  t.eq(pdf.pageScale(612, 792, 300), { scale: 300 / 72, capped: false }, 'a Letter page at 300 dpi: as asked (2550 × 3300 px)');
+  const poster = pdf.pageScale(3000, 3000, 300);
+  t.ok(poster.capped && Math.abs(3000 * poster.scale - 10000) < 1, `a 3000 pt poster at 300 dpi: drawn at 100 megapixels (${Math.round(3000 * poster.scale)} px a side), not 12,500`);
+  const strip = pdf.pageScale(14400, 200, 150);
+  t.ok(strip.capped && Math.round(14400 * strip.scale) === 16384, 'a 200-inch strip at 150 dpi: 16,384 px long at most');
+
   // ---- split / organize (one document)
   const S = await pdf.subsetPdf(A, undefined, [4, 2, 0]);
   const sd = open(S);

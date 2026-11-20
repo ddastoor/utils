@@ -36,7 +36,7 @@ Areas with a shared review: the app shell (router, search, favorites, platform h
 | `pdf-split` | Split PDF | PC + mobile | pdf | ✓ | 4 | 14 | parts keep annotations/links/forms/outline (rearrangePages); one at a time; N pages box; page lists read |
 | `pdf-organize` | Organize PDF | PC + mobile | pdf | ✓ | 4 | 5 | rearrangePages keeps annotations/links/forms/outline; tiles at once; newest PDF wins; Rotate all |
 | `img2pdf` | Images → PDF | PC + mobile | pdf | ✓ | 3 | 2 | Fit keeps a scan's paper size (its own dpi); Sort by file name; URLs released |
-| `pdf2img` | PDF → Images | PC + mobile | pdf |  |  |  |  |
+| `pdf2img` | PDF → Images | PC + mobile | pdf | ✓ | 4 | 6 | a run keeps its own file; size cap 16384 px / 100 MP; padded names; stops on leave |
 | `pdf-compress` | Compress PDF | PC + mobile | pdf |  |  |  |  |
 | `pdf-sign` | Sign PDF | PC + mobile | pdf |  |  |  |  |
 | `pdf-fill` | Fill PDF Form | PC + mobile | pdf |  |  |  |  |
@@ -1740,3 +1740,11 @@ Reference for the five finance tabs: **mpmath at 60 digits** (`scripts/make-fina
   2. Files come from a file dialog in its own order (Windows: the last one clicked first) and could only be moved one
      place at a time: "Sort by file name" (page-1, page-2 … page-10).
   3. The previews' object URLs were not released when the tab was left.
+
+- **`pdf2img` (tab 130, 4 bugs; engine kept — MuPDF; unit `pdfpages` +3, e2e 10 — was 7).**
+  1. A PDF opened during a conversion had its pages drawn under the old file's names (the loop read "the current file"
+     at every page); a run keeps its own file, and a newer file ends it.
+  2. A large page at 300 dpi (a 3000 pt poster: 12,500 px a side, 470 MB of pixels) could take the tab's memory; pages
+     are drawn at most 16,384 px a side and 100 megapixels, and the tab names the pages drawn smaller.
+  3. Names p1 … p12 sort as p1, p10, p11, p12, p2 by name; they are padded (p01 … p12) as the Doc Scanner's are.
+  4. Leaving the tab during a conversion left it drawing pages; it stops.
