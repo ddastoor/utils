@@ -299,7 +299,7 @@ Classic / Modern (two columns) / Compact, A4 or Letter, photo, repeatable jobs /
 | `pdf-pagenum` | PDF Page Numbers | both |
 | `pdf-watermark` | PDF Watermark | both |
 | `epub` | PDF → EPUB (Kindle) | **PC** — **BUILT** (see §3) |
-| `sheet` | CSV / Excel Viewer & Converter | **PC** — **BUILT** (sheet.wasm; open xlsx/xlsm/xlsb/xls/ods/csv/tsv/json, sheet tabs incl. hidden, separator override, filter, export CSV (BOM) / TSV / JSON / XLSX; e2e 17) |
+| `sheet` | CSV / Excel Viewer & Converter | **PC** — **BUILT** (sheet.wasm; open xlsx/xlsm/xlsb/xls/ods/csv/tsv/json and the "Excel" files that are web pages or Excel 2003 XML, sheet tabs incl. hidden, separator override, filter, export CSV (BOM) / TSV / JSON / XLSX; as built: §3 "CSV / Excel"; unit `sheet.test.mjs` 120 + `sheetdata.test.mjs` 42, e2e 32) |
 | `markdown` | Markdown Editor | both — **BUILT** (cmark-gfm wasm; live preview, toolbar + Ctrl+B/I/K, .md open/save, standalone .html, print of the preview only; e2e 23) |
 
 **Security**: `pgp` OpenPGP · `sodium` Sodium Encrypt · `sharelink` Encrypted Share Link (ciphertext in the
@@ -1263,6 +1263,34 @@ unixcw's libcw read through ctypes → `tests/fixtures/morse/reference.json`.)
   what is shown; the line under it: "3 paragraphs · 18 sentences · 316 words · 2,135 characters" (the Word Counter
   tab counts the same). A failed download of the engine is said; the next change or Regenerate tries again.
 
+### CSV / Excel (PC) — as built after the Nov 2026 bug hunt
+(`sheet` in `src/tools/sheet.ts`, around it `src/lib/sheetdata.ts`, engine sheet.wasm — §5.1f; unit `tests/unit/sheet.test.mjs`
+120 and `sheetdata.test.mjs` 42, e2e `tests/e2e/sheet.e2e.mjs` 32; fixtures and reference `python3
+scripts/make-sheet-fixtures.py` — needs `pip install openpyxl` and LibreOffice: every cell of kinds.xlsx, base.xlsx / .xls /
+.ods is held to **LibreOffice Calc's** reading, `soffice --convert-to csv` with the cells as shown.)
+- **Reading:** a zip or OLE file → calamine (xlsx, xlsm, xlsb, xls, ods): Excel's error values as Excel writes them
+  (#DIV/0!, #N/A, #NAME?, #GETTING_DATA), dates as ISO text, a time alone as hh:mm:ss, a duration with its hours going
+  past 24 (255:10:10). Anything else is text, decoded by its byte-order mark (UTF-16 LE / BE, UTF-8), as UTF-8 when it is
+  valid, else Windows-1252 (what Excel on Windows saves) — the line under the table names it; a file that is not text
+  (NUL bytes) is refused. Text that is a web page with tables (bank statements saved as ".xls") → one sheet per table,
+  the cells on the grid as the HTML table model puts them (colspan / rowspan), a layout table around tables left out;
+  Excel 2003 XML → its worksheets (ss:Index, MergeAcross / MergeDown, Number / Boolean / DateTime). JSON → one sheet
+  (objects → a column per key in the order they appear; a number a double cannot hold as written stays text — the
+  browser's JSON.parse source). Otherwise CSV: the separator (comma, semicolon, tab, pipe) is the one under which the
+  first 50 records, read as CSV, most often have the same number of fields; each new file is detected afresh; the
+  line names it. The newest file wins.
+- **Showing:** numbers as Excel's "General" shows them — 15 significant digits (0.1 + 0.2 is 0.3), whole numbers up to
+  2^53 digit for digit, an exponent beyond (1E+21, 1.25E-7); TRUE / FALSE; the first 1,000 rows (filtered rows keep
+  their numbers; a sheet above 20,000 rows is filtered when the typing pauses).
+- **Writing:** CSV (BOM) and TSV give the cells as shown. JSON: objects keyed by the header (a repeated heading →
+  Value_2, an empty one or a column beyond the header → its letter), arrays without one. "Numbers and dates written as
+  text become real numbers and dates": in .xlsx a cell becomes a number only when a double holds it exactly as written
+  (no leading zero, no +, not 16 digits of an ID), and ISO dates / times (2026-11-20, 2026-11-20 10:30[:15], 10:30[:15])
+  become Excel dates with their format; in JSON whole columns that sheet.wasm types INTEGER (within 2^53) or REAL become
+  numbers. .xlsx: sheet names Excel accepts (31 characters, none of [ ] : * ? / \\, no apostrophe at an end, not
+  "History", unique without regard to case); a CSV's sheet is named after the file; Excel's limits said in words
+  ("Cell C6 of “x” holds 40000 characters; an Excel cell holds at most 32,767"; 1,048,576 rows; 16,384 columns).
+
 ### SQLite Playground (PC) — as built after the Nov 2026 bug hunt
 (`src/tools/software/sqlite.ts`, engine `src/lib/sqlite-engine.ts`, worker `src/workers/sqlite.worker.ts`; unit
 `tests/unit/sqlite.test.mjs` 106, e2e `tests/e2e/sqlite.e2e.mjs` 63.) Engine: the **official SQLite WebAssembly build**
@@ -1900,6 +1928,10 @@ Nov 2026 (Word Counter): the words of Thai, Lao, Khmer and Burmese stretches are
 Nov 2026 (Coordinates, Sleep Cycle): `src/lib/coords.ts` — reading a coordinate as a person typed it (one regular
 expression on a short string) and writing it back; the sleep times are one subtraction of minutes per row. The
 geodesic itself is geo.wasm.
+Nov 2026 (CSV / Excel): `src/lib/sheetdata.ts` — the "Excel" files that are web pages or Excel 2003 XML are parsed by the
+browser's DOMParser (its HTML5 / XML parser, compiled C++) and laid on a grid by our TS; a CSV's encoding is the
+browser's TextDecoder; numbers shown with 15 digits (`toPrecision`); JSON in and out with JSON.parse / stringify.
+calamine (sheet.wasm) reads neither format (docs/WASM-AUDIT.md, tab 137).
 Nov 2026 (Python Scratchpad): `src/lib/termtext.ts` (what a terminal would show for the program's output: display
 code that feeds the DOM), `src/lib/python-hints.ts` (one sentence per known error), `src/lib/tzinfo.ts` (the browser's
 Intl answering the C library's questions about local time; the zone table it uses is data made by a script) stay in TS.

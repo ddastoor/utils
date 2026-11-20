@@ -46,7 +46,7 @@ Areas with a shared review: the app shell (router, search, favorites, platform h
 | `pdf-pagenum` | PDF Page Numbers | PC + mobile | pdf | ✓ | 2 | 4 | a run keeps its own file; ends with the tab; progress |
 | `pdf-watermark` | PDF Watermark | PC + mobile | pdf | ✓ | 2 | 4 | a run keeps its own file (sizes were read from the new one); ends with the tab; progress |
 | `epub` | PDF → EPUB | PC only | docs2 | ✓ | 17 | 93 | columns with 7.5 pt gutters; margin stamps; bold/size of a line from its spans; U+FFFF; formulas as pictures; bookmarks; /Lang; no freeze; newer PDF ends a run; epubcheck |
-| `sheet` | CSV / Excel | PC only | docs2 |  |  |  |  |
+| `sheet` | CSV / Excel | PC only | docs2 | ✓ | 18 | 141 | errors #DIV/0!; durations; 15 digits; exact numbers; JSON keys/IDs; Windows-1252/UTF-16; web-page .xls + Excel 2003 XML; newest file wins; Excel limits; LibreOffice reference |
 | `markdown` | Markdown Editor | PC + mobile | docs2 |  |  |  |  |
 | `invoice` | GST Invoice | PC + mobile | docs2 |  |  |  |  |
 | `rent` | Rent Receipt | PC + mobile | docs2 |  |  |  |  |
@@ -1866,3 +1866,36 @@ Reference for the five finance tabs: **mpmath at 60 digits** (`scripts/make-fina
   17. **The preview showed the lowest page numbers** instead of the first pages of the EPUB (a range like "5, 1-3").
   Also: the e2e suite's checks of responsiveness and of a newer PDF were run against the old code first (they fail
   there: 3.6 s, the old progress went on).
+- **`sheet` (tab 140, 18 bugs; sheet.wasm rebuilt — calamine + rust_xlsxwriter + csv; WASM-AUDIT 137; unit
+  `sheet.test.mjs` 120 — was 36 (every cell of five workbooks against **LibreOffice Calc**: `python3
+  scripts/make-sheet-fixtures.py`, needs openpyxl and LibreOffice), new `sheetdata.test.mjs` 42; e2e 32 — was 17).**
+  1. Excel's error values were written #DIV0, #NA, #NAME … (Debug text); now #DIV/0!, #N/A, #NAME? as Excel writes them.
+  2. A duration past 24 hours was a time of day or a date: 30 hours showed 06:00:00, the 255:10:10 of base.xlsx
+     "1900-01-10 15:10:10" — the hours now go on.
+  3. Numbers showed their binary noise (0.1 + 0.2 = 0.30000000000000004) in the table, CSV and TSV; now 15 digits as
+     Excel shows them (1E+21, 1.25E-7); booleans TRUE / FALSE in CSV too (they were "true").
+  4. "Numbers stored as text → numbers" in .xlsx turned +91 phone numbers into 919876543210 and rounded 16 – 20 digit
+     IDs; only what a double holds exactly becomes a number now (no +, no leading zero).
+  5. JSON export: a repeated heading overwrote the column before it (Value, Value → one Value); cells beyond the
+     header were dropped. Value, Value_2; the extra cells under their letters.
+  6. JSON import rounded IDs of more than 15 digits (12345678901234567890 → …67000): kept as text (JSON.parse's source).
+  7. CSV → JSON gave every number as a string: the option now also makes numeric columns numbers in JSON.
+  8. A Windows-1252 CSV (what Excel on Windows saves) showed caf�; Excel's "Unicode Text" (UTF-16) was unreadable:
+     decoded by its byte-order mark, as UTF-8 when valid, else Windows-1252 — said in the line under the table.
+  9. The separator chosen for one file stuck to the next one; now each file is detected afresh (and the line says
+     what was detected).
+  10. The separator was guessed from character counts — a quoted comma in the header or a title line misled it; it
+      is now guessed by reading the first 50 records as CSV with each candidate.
+  11. "Excel" files that are web pages (bank statements) were shown as CSV garbage: their tables are read (colspan /
+      rowspan on the grid, a layout table around them left out); Excel 2003 XML too (ss:Index, MergeAcross, types).
+  12. A file that is not text (a PDF named .csv) was shown as garbage: refused in words.
+  13. A filter over a big sheet looked up every shown row's number with indexOf (300,000 rows: seconds per key);
+      numbers are kept while filtering, and a big sheet is filtered when the typing pauses.
+  14. The newest file did not win: a big file chosen just before a small one replaced it when it finished.
+  15. Excel's limits came out as Rust's error with 0-based coordinates ("cell 5,2: …"): now "Cell C6 of “x” holds 40000
+      characters; an Excel cell holds at most 32,767", and the row / column limits likewise.
+  16. Sheet names Excel refuses (the same name in another case, "History", an apostrophe at an end) failed the save or
+      came out as SheetN silently: made unique and valid.
+  17. Dates written as text (a CSV's 2026-11-20, an .xls → .xlsx copy) stayed text in the .xlsx: with the option they
+      are Excel dates and times again.
+  18. The sheet of a CSV was named "CSV" in the .xlsx: it is named after the file.

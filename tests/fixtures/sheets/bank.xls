@@ -1,0 +1,11 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><title>Statement</title></head>
+<body><table><tr><td>
+<table border="1">
+<tr><th colspan="4">Account statement — Asha Rao</th></tr>
+<tr><th>Date</th><th>Narration</th><th>Amount (₹)</th><th>Balance</th></tr>
+<tr><td>01/11/2026</td><td>UPI/CHAI   STALL</td><td>-45.00</td><td rowspan="2">1,23,455.00</td></tr>
+<tr><td>02/11/2026</td><td>Salary &amp; bonus</td><td>50,000.00</td></tr>
+<tr><td>03/11/2026</td><td>NEFT
+   to   Ravi</td><td>-2,500.50</td><td>1,70,954.50</td></tr>
+</table>
+</td></tr></table></body></html>

@@ -64,6 +64,60 @@ export default async (t, { load, wasm, root }) => {
   const typed = sh.read(sh.xlsx({ sheets: [{ name: 'T', rows: [['n', 'f', 's', 'b', 'mixed', 'bigf'], [1, 1.5, 'a', true, 1, 1e300], [2, 2, 'b', false, 'x', 2]] }] }, { numbers: false })).sheets[0];
   t.eq(typed.types, ['INTEGER', 'REAL', 'TEXT', 'INTEGER', 'TEXT', 'REAL'], 'typed cells of a workbook: whole numbers and booleans INTEGER, other numbers REAL, anything mixed with text TEXT');
   t.eq(sh.read(F('base.xlsx')).sheets[0].types.length, sh.read(F('base.xlsx')).sheets[0].rows.reduce((a, r) => Math.max(a, r.length), 0), 'a real workbook: one type per column');
+  // ---- what LibreOffice Calc shows for every cell of real workbooks (tests/fixtures/sheets/reference.json, made by
+  // scripts/make-sheet-fixtures.py with soffice --convert-to csv): numbers to 15 digits, error values, durations,
+  // booleans (LibreOffice writes an .xls's as 1 / 0), times (it adds AM / PM and keeps hundredths)
+  const REF = JSON.parse(readFileSync(`${root}/tests/fixtures/sheets/reference.json`, 'utf8')).files;
+  const { cellText, colName, decodeText } = await load('/src/lib/sheetdata.ts');
+  const secs = (s) => { const m = /^(-?)(\d+):(\d\d):(\d\d)(?:[.,]\d+)?(?:\s*([AP]M))?$/.exec(s); if (!m) return null; let h = +m[2]; if (m[5] === 'PM' && h < 12) h += 12; if (m[5] === 'AM' && h === 12) h = 0; return (m[1] ? -1 : 1) * (h * 3600 + +m[3] * 60 + +m[4]); };
+  const same = (ours, lo) => {
+    const a = cellText(ours ?? null);
+    if (a === lo) return true;
+    if (typeof ours === 'boolean') return lo === (ours ? '1' : '0');
+    if (typeof ours === 'number') { const n = Number(lo); return lo !== '' && Number.isFinite(n) && Math.abs(n - ours) <= Math.abs(ours) * 1e-14; }
+    const sa = secs(a), sb = secs(lo);
+    return sa !== null && sa === sb;
+  };
+  for (const f of ['kinds.xlsx', 'base.xlsx', 'base.xls', 'base.ods']) {
+    const b = sh.read(F(f));
+    for (const [name, rows] of Object.entries(REF[f])) {
+      const s = b.sheets.find((x) => x.name === name);
+      if (!s) { t.ok(false, `${f}: sheet ${name} is read`); continue; }
+      const bad = [];
+      rows.forEach((r, i) => r.forEach((lo, c) => { if (!same(s.rows[i]?.[c], lo)) bad.push(`${colName(c)}${i + 1}: ours ${JSON.stringify(s.rows[i]?.[c])} / LibreOffice ${JSON.stringify(lo)}`); }));
+      t.eq(bad, [], `${f} › ${name}: every cell as LibreOffice shows it`);
+    }
+  }
+  const k = sh.read(F('kinds.xlsx')).sheets[0].rows;
+  t.eq(k.slice(1, 8).map((r) => r[1]), ['#DIV/0!', '#N/A', '#NAME?', '#NULL!', '#NUM!', '#REF!', '#VALUE!'], 'Excel\'s error values as Excel writes them (they were #DIV0, #NA, #NAME …)');
+  t.eq(k.slice(8, 11).map((r) => r[1]), ['30:00:00', '2:30:15', '255:10:10'], 'durations: the hours go on past 24 (30 hours was shown as 06:00:00)');
+  t.eq(sh.read(F('base.xlsx')).sheets[0].rows[1][9], '255:10:10', 'base.xlsx: the duration of 255 hours (was 1900-01-10 15:10:10)');
+  t.eq(k.slice(11, 17).map((r) => cellText(r[1])), ['0.3', '1E+21', '1.25E-7', '9007199254740992', '1234567890123456', '0.333333333333333'], 'numbers shown as Excel shows them: 15 digits (0.1 + 0.2 is 0.3), exponents for the very large and small');
+  // ---- the text encodings Excel saves CSV in (the reference is Python's csv module with the known encoding)
+  for (const [f, how] of [['cp1252.csv', 'Windows-1252'], ['utf16.txt', 'UTF-16']]) {
+    const d = decodeText(F(f)), b = sh.csv(enc(d.text));
+    t.eq([d.how, b.sheets[0].rows], [how, REF[f].CSV], `${f}: read as ${how}, every cell as Python reads it`);
+  }
+  t.eq(decodeText(enc('\uFEFFa,b')).text, 'a,b', 'UTF-8 with a byte-order mark: the mark is dropped');
+  t.throws(() => decodeText(new Uint8Array([0x25, 0x50, 0x44, 0x46, 0, 1, 2])), 'a binary file is refused');
+  // ---- numbers and dates written as text → .xlsx: only where nothing is lost
+  const conv = (v) => sh.read(sh.xlsx({ sheets: [{ name: 'C', rows: [['h'], [v]] }] }, { numbers: true, header: true })).sheets[0].rows[1][0];
+  for (const [v, want] of [['42', 42], ['-12', -12], [' 42 ', 42], ['1.50', 1.5], ['0.1', 0.1], ['1e5', 100000], ['9007199254740992', 9007199254740992], ['-0.25', -0.25]]) t.eq(conv(v), want, `"${v}" becomes the number ${want}`);
+  for (const v of ['007', '+919876543210', '+5', '1234567890123456789', '9007199254740993', '0.1234567890123456789', '1,5', '₹5', 'NaN', 'inf', '-007']) t.eq(conv(v), v, `"${v}" stays text (a code, a + or more digits than a number holds; a phone number with + was 919876543210)`);
+  for (const [v, want] of [['2026-11-20', '2026-11-20'], ['2026-11-20 10:30:15', '2026-11-20 10:30:15'], ['2026-11-20T10:30', '2026-11-20 10:30:00'], ['10:30:15', '10:30:15'], ['10:30', '10:30:00']]) t.eq(conv(v), want, `"${v}" becomes a date / time (read back as ${want})`);
+  for (const v of ['2026-13-01', '2026-02-30', '31/12/2026', '25:00:00', '10:61', '1:2', '2026-11-20 25:00', '2026-1-5']) t.eq(conv(v), v, `"${v}" stays text`);
+  // ---- Excel's limits, said in words; sheet names Excel accepts
+  const xerr = (b) => { try { sh.xlsx(b); return ''; } catch (e) { return e.message; } };
+  t.ok(/^Cell C2 of “L” holds 40000 characters; an Excel cell holds at most 32,767/.test(xerr({ sheets: [{ name: 'L', rows: [['a'], ['x', 'y', 'z'.repeat(40000)]] }] })), 'a cell over 32,767 characters: named in A1 notation');
+  t.ok(/has 16385 columns; an Excel sheet holds at most 16,384/.test(xerr({ sheets: [{ name: 'W', rows: [Array(16385).fill('a')] }] })), 'more than 16,384 columns: said');
+  t.ok(/has 1048577 rows; an Excel sheet holds at most 1,048,576/.test(xerr({ sheets: [{ name: 'R', rows: Array.from({ length: 1048577 }, () => []) }] })), 'more than 1,048,576 rows: said');
+  const names = sh.read(sh.xlsx({ sheets: ['Data', 'data', '', 'History', "'quoted'", 'a/b:c', 'x'.repeat(40), 'x'.repeat(40)].map((name) => ({ name, rows: [['v']] })) })).sheets.map((s) => s.name);
+  t.eq(names, ['Data', 'data (2)', 'Sheet3', 'Sheet4', 'quoted', 'abc', 'x'.repeat(31), 'x'.repeat(27) + ' (2)'], 'sheet names Excel accepts: unique without regard to case, no apostrophe at the ends, not History, 31 characters');
+  // ---- the separator, read as CSV (quotes and line breaks count as text)
+  t.eq(sh.csv(enc('"Name, full","Age, years"\nAsha,30\nRavi,41\n')).delimiter, ',', 'commas inside the quoted header: comma');
+  t.eq(sh.csv(enc('Report of 20 Nov 2026\nName;Price\nTea;1,50\nCoffee;2,75\n')).delimiter, ';', 'a title line, then semicolons with decimal commas: semicolon');
+  t.eq(sh.csv(enc('"a;b"|c\n"d;e"|f\n')).delimiter, '|', 'semicolons inside quotes: pipe');
+  t.eq(sh.csv(enc('one\ntwo\nthree\n')).sheets[0].rows, [['one'], ['two'], ['three']], 'a single column');
   { const t0 = performance.now(), big = 'id,code,amount\n' + Array.from({ length: 200000 }, (_, i) => `${i},${String(i).padStart(6, '0')},${i / 4}`).join('\n');
     t.ok(JSON.stringify(types(big)) === '["INTEGER","TEXT","REAL"]' && performance.now() - t0 < 5000, `200,000 rows typed in ${Math.round(performance.now() - t0)} ms`); }
 };

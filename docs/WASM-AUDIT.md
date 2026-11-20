@@ -1156,3 +1156,17 @@ One entry per tab, written before its bug hunt: our module → candidates → ch
   became "Column 1", the three real columns one). Not taken: MuPDF's `paragraph-break` (our paragraphs follow indents
   and line pitch) and `table-hunt` (tables as HTML tables would be a new feature — for the owner to pick).
 - **Also:** epubcheck 5.2.1 (the W3C's validator, Java) runs on every EPUB of both suites where it is installed.
+
+### 137. `sheet` — CSV / Excel (20 Nov 2026)
+- **Ours:** sheet.wasm — calamine 0.38 (reads .xlsx .xlsm .xlsb .xls .ods; the Rust reader behind python-calamine and
+  fastexcel), rust_xlsxwriter 0.102, the `csv` crate — built by us: no WebAssembly build of calamine is published.
+  **Candidates:** DuckDB-wasm (official; a famous CSV sniffer; .xlsx through its `excel` extension, fetched from
+  extensions.duckdb.org unless hosted here; no .xls / .xlsb / .ods; about 35 MB); SheetJS (JavaScript, not WebAssembly;
+  the npm package is stuck at 0.18.5 with published CVEs, newer versions only from its own CDN); LibreOffice compiled to
+  WebAssembly (ZetaOffice: hundreds of MB, not made for this). **Decision:** sheet.wasm stays — it reads more formats
+  than DuckDB-wasm at 1.4 MB, and LibreOffice Calc now checks it cell by cell (unit suite).
+- **Beside it (the owner's tweak: what the module does not cover):** "Excel" files that are web pages (bank statements)
+  and Excel 2003 XML — calamine reads neither. They are read with the browser's DOMParser (its HTML5 parser, compiled
+  C++ — like JSON.parse in §3a's list) and our TypeScript lays the cells on a grid (`src/lib/sheetdata.ts`); a
+  supplementary WebAssembly module (html5ever) would only duplicate the browser's parser. The text encodings of CSV
+  files (UTF-16, Windows-1252) are the browser's TextDecoder.

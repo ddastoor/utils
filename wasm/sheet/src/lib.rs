@@ -23,6 +23,12 @@ fn cell(d: &Data) -> Value {
         Data::Float(f) => if f.is_finite() { json!(f) } else { Value::String(f.to_string()) },
         Data::Int(i) => json!(i),
         Data::Bool(b) => json!(b),
+        // a duration ([h]:mm:ss): the hours go on past 24 (30 hours is 30:00:00, not 06:00:00 of the next day)
+        Data::DateTime(dt) if dt.is_duration() => {
+            let secs = (dt.as_f64() * 86400.0).round() as i64;
+            let a = secs.unsigned_abs();
+            Value::String(format!("{}{}:{:02}:{:02}", if secs < 0 { "-" } else { "" }, a / 3600, (a / 60) % 60, a % 60))
+        }
         Data::DateTime(dt) => match dt.as_datetime() {
             Some(t) => {
                 let d = format!("{:04}-{:02}-{:02}", t.year(), t.month(), t.day());
@@ -34,7 +40,9 @@ fn cell(d: &Data) -> Value {
         },
         Data::DateTimeIso(s) => Value::String(s.replacen('T', " ", 1).trim_end_matches(" 00:00:00").to_string()),
         Data::DurationIso(s) => Value::String(iso_duration(s)),
-        Data::Error(e) => Value::String(format!("#{:?}", e).to_uppercase()),
+        // Excel's own texts (#DIV/0!, #N/A, #NAME? …; calamine says "#DATA!" for #GETTING_DATA)
+        Data::Error(calamine::CellErrorType::GettingData) => Value::String("#GETTING_DATA".into()),
+        Data::Error(e) => Value::String(e.to_string()),
     }
 }
 
@@ -134,15 +142,15 @@ fn col_types(rows: &[Value]) -> Vec<&'static str> {
     set_out(json!({ "sheets": sheets }).to_string().into_bytes())
 }
 
-/// The delimiter that gives the most consistent column count over the first lines (comma, semicolon, tab, pipe).
+/// The delimiter (comma, semicolon, tab, pipe) under which the first 50 records — read as CSV, so quoted separators and
+/// line breaks count as text — most often have the same number of fields (two or more); ties go to the earlier one.
 fn sniff(text: &[u8]) -> u8 {
-    let head: Vec<&[u8]> = text.split(|b| *b == b'\n').take(50).collect();
-    let mut best = (b',', 0usize);
+    let mut best = (b',', (0usize, 0usize));
     for d in [b',', b';', b'\t', b'|'] {
-        let counts: Vec<usize> = head.iter().filter(|l| !l.is_empty()).map(|l| l.iter().filter(|b| **b == d).count()).collect();
-        if counts.is_empty() || counts[0] == 0 { continue; }
-        let same = counts.iter().filter(|c| **c == counts[0]).count();
-        let score = same * 1000 + counts[0];
+        let mut rdr = csv::ReaderBuilder::new().delimiter(d).has_headers(false).flexible(true).from_reader(text);
+        let mut counts: std::collections::BTreeMap<usize, usize> = Default::default();
+        for rec in rdr.byte_records().take(50) { match rec { Ok(r) => *counts.entry(r.len()).or_default() += 1, Err(_) => break } }
+        let score = counts.iter().filter(|(f, _)| **f > 1).map(|(f, c)| (*c, *f)).max().unwrap_or((0, 0));
         if score > best.1 { best = (d, score); }
     }
     best.0
@@ -168,40 +176,87 @@ fn sniff(text: &[u8]) -> u8 {
 #[derive(Deserialize)] struct SheetIn { name: String, rows: Vec<Vec<Value>> }
 #[derive(Deserialize)] struct BookIn { sheets: Vec<SheetIn>, #[serde(default)] numbers: bool, #[serde(default)] header: bool }
 
+/// Text that becomes a number in the .xlsx: written as a double gives back exactly what was written — a whole number
+/// up to 2^53 or a decimal a double holds (1.5, 0.1) — and is no code: no leading zeros (007, PIN codes), no plus
+/// sign (+91 phone numbers), not 16 digits of a card or an ID (a double keeps 15 – 16).
 fn as_number(s: &str) -> Option<f64> {
     let t = s.trim();
-    if t.is_empty() || t.len() > 30 || (t.len() > 1 && t.starts_with('0') && !t.starts_with("0.")) { return None; } // keep 007, PINs, phone numbers as text
-    t.parse::<f64>().ok().filter(|f| f.is_finite())
+    if t.is_empty() || t.starts_with('+') { return None; }
+    if int_text(t) { return t.parse::<i64>().ok().filter(|v| v.unsigned_abs() <= 1 << 53).map(|v| v as f64); }
+    if real_text(t) { return t.parse::<f64>().ok(); }
+    None
 }
 
-/// JSON { sheets, numbers, header } → .xlsx bytes. numbers: numeric-looking text becomes numbers; header: bold, frozen first row with a filter.
+fn digits(t: &str) -> bool { !t.is_empty() && t.bytes().all(|b| b.is_ascii_digit()) }
+/// Text that becomes an Excel date or time: 2026-11-20, 2026-11-20 10:30[:15[.5]] (or with T), 10:30[:15] — the forms
+/// the reader writes and Excel turns into dates itself; (the number format to show it with).
+fn as_datetime(s: &str) -> Option<(rust_xlsxwriter::ExcelDateTime, &'static str)> {
+    let t = s.trim();
+    let time_ok = |x: &str| { let p: Vec<&str> = x.split(':').collect(); (2..=3).contains(&p.len()) && p[0].len() == 2 && digits(p[0]) && p[1].len() == 2 && digits(p[1]) && p.get(2).map_or(true, |s| { let w = s.split('.').next().unwrap_or(""); w.len() == 2 && digits(w) && s.split('.').nth(1).map_or(true, digits) }) && p[0].parse::<u32>().unwrap_or(99) < 24 && p[1].parse::<u32>().unwrap_or(99) < 60 && p.get(2).map_or(true, |s| s[..2].parse::<u32>().unwrap_or(99) < 60) };
+    let date_ok = |x: &str| x.len() == 10 && digits(&x[0..4]) && &x[4..5] == "-" && digits(&x[5..7]) && &x[7..8] == "-" && digits(&x[8..10]);
+    let fmt = if t.len() == 10 && date_ok(t) { "yyyy-mm-dd" }
+        else if t.len() > 11 && date_ok(&t[..10]) && matches!(&t[10..11], " " | "T") && time_ok(&t[11..]) { "yyyy-mm-dd hh:mm:ss" }
+        else if time_ok(t) { "hh:mm:ss" } else { return None };
+    rust_xlsxwriter::ExcelDateTime::parse_from_str(t).ok().map(|d| (d, fmt))
+}
+
+/// A1 notation of a cell (0-based row and column).
+fn a1(r: usize, c: usize) -> String { let (mut s, mut i) = (String::new(), c + 1); while i > 0 { s.insert(0, (b'A' + ((i - 1) % 26) as u8) as char); i = (i - 1) / 26; } format!("{s}{}", r + 1) }
+
+/// Excel's sheet names: at most 31 characters, none of [ ] : * ? / \, no apostrophe at either end, not "History", and
+/// different from each other without regard to case.
+fn sheet_names(names: &[String]) -> Vec<String> {
+    let mut out: Vec<String> = Vec::new();
+    for (i, n) in names.iter().enumerate() {
+        let clean: String = n.chars().filter(|c| !"[]:*?/\\".contains(*c) && !c.is_control()).collect();
+        let mut base: String = clean.trim().trim_matches('\'').chars().take(31).collect();
+        if base.is_empty() || base.eq_ignore_ascii_case("history") { base = format!("Sheet{}", i + 1); }
+        let (mut name, mut k) = (base.clone(), 1);
+        while out.iter().any(|o| o.to_lowercase() == name.to_lowercase()) {
+            k += 1; let tail = format!(" ({k})");
+            name = format!("{}{tail}", base.chars().take(31 - tail.chars().count()).collect::<String>());
+        }
+        out.push(name);
+    }
+    out
+}
+
+/// JSON { sheets, numbers, header } → .xlsx bytes. numbers: numbers and dates written as text become numbers and dates
+/// (see as_number, as_datetime); header: bold, frozen first row with a filter.
 #[no_mangle] pub extern "C" fn xlsx_write(p: *const u8, n: usize) -> i32 {
     let book: BookIn = match serde_json::from_slice(input(p, n)) { Ok(b) => b, Err(e) => return err(format!("bad input: {e}")) };
     let mut wb = rust_xlsxwriter::Workbook::new();
-    // fixed creation time: wasm32-unknown-unknown has no clock
+    // fixed creation time: no clock is asked
     let props = rust_xlsxwriter::DocProperties::new().set_creation_datetime(&rust_xlsxwriter::ExcelDateTime::from_ymd(2000, 1, 1).unwrap());
     wb.set_properties(&props);
     let bold = rust_xlsxwriter::Format::new().set_bold();
+    let names = sheet_names(&book.sheets.iter().map(|s| s.name.clone()).collect::<Vec<_>>());
     for (si, s) in book.sheets.iter().enumerate() {
+        let shown = &names[si];
+        if s.rows.len() > 1_048_576 { return err(format!("“{shown}” has {} rows; an Excel sheet holds at most 1,048,576. Save it as CSV instead.", s.rows.len())); }
+        if let Some(w) = s.rows.iter().map(|r| r.len()).max().filter(|w| *w > 16_384) { return err(format!("“{shown}” has {w} columns; an Excel sheet holds at most 16,384. Save it as CSV instead.")); }
         let ws = wb.add_worksheet();
-        let name: String = s.name.chars().filter(|c| !"[]:*?/\\".contains(*c)).take(31).collect();
-        let _ = ws.set_name(if name.is_empty() { format!("Sheet{}", si + 1) } else { name });
+        if let Err(e) = ws.set_name(shown) { return err(format!("sheet name “{shown}”: {e}")); }
         let mut widths: Vec<usize> = Vec::new();
         for (r, row) in s.rows.iter().enumerate() {
             for (c, v) in row.iter().enumerate() {
-                let (r, c16) = (r as u32, c as u16);
+                let (r32, c16) = (r as u32, c as u16);
                 let hdr = book.header && r == 0;
+                if let Value::String(t) = v { let k = t.chars().count(); if k > 32_767 { return err(format!("Cell {} of “{shown}” holds {k} characters; an Excel cell holds at most 32,767. Save it as CSV instead.", a1(r, c))); } }
                 let res = match v {
                     Value::Null => Ok(()),
-                    Value::Bool(b) => ws.write_boolean(r, c16, *b).map(|_| ()),
-                    Value::Number(x) => ws.write_number(r, c16, x.as_f64().unwrap_or(0.0)).map(|_| ()),
-                    Value::String(t) => match (book.numbers && !hdr).then(|| as_number(t)).flatten() {
-                        Some(f) => ws.write_number(r, c16, f).map(|_| ()),
-                        None => if hdr { ws.write_string_with_format(r, c16, t, &bold).map(|_| ()) } else { ws.write_string(r, c16, t).map(|_| ()) },
+                    Value::Bool(b) => ws.write_boolean(r32, c16, *b).map(|_| ()),
+                    Value::Number(x) => ws.write_number(r32, c16, x.as_f64().unwrap_or(0.0)).map(|_| ()),
+                    Value::String(t) if hdr => ws.write_string_with_format(r32, c16, t, &bold).map(|_| ()),
+                    Value::String(t) if book.numbers => match (as_number(t), as_datetime(t)) {
+                        (Some(f), _) => ws.write_number(r32, c16, f).map(|_| ()),
+                        (None, Some((d, f))) => ws.write_datetime_with_format(r32, c16, &d, &rust_xlsxwriter::Format::new().set_num_format(f)).map(|_| ()),
+                        _ => ws.write_string(r32, c16, t).map(|_| ()),
                     },
-                    other => ws.write_string(r, c16, other.to_string()).map(|_| ()),
+                    Value::String(t) => ws.write_string(r32, c16, t).map(|_| ()),
+                    other => ws.write_string(r32, c16, other.to_string()).map(|_| ()),
                 };
-                if let Err(e) = res { return err(format!("cell {r},{c}: {e}")); }
+                if let Err(e) = res { return err(format!("Cell {} of “{shown}”: {e}", a1(r, c))); }
                 let w = match v { Value::String(t) => t.chars().count(), Value::Null => 0, o => o.to_string().len() };
                 if widths.len() <= c { widths.resize(c + 1, 0); }
                 widths[c] = widths[c].max(w);
