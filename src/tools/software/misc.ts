@@ -5,6 +5,7 @@ import { h, card, field, input, textarea, select, segmented, toggle, slider, cle
 import { devcore, setZone, type Devcore } from '../../wasm/devcore';
 import { kvRows, show, table, debounce } from './devui';
 import { localZone } from '../../lib/tz';
+import { readTextFile } from '../../lib/textfile';
 
 const lines = (s: string) => s.split(/\r?\n/).map((x) => x.trim()).filter(Boolean);
 const chips = (items: Array<[string, string]>, pick: (v: string) => void) => h('div', { class: 'chips' }, items.map(([v, l]) => h('button', { type: 'button', class: 'chip chip-btn', onclick: () => pick(v) }, l)));
@@ -100,7 +101,7 @@ export const patch: Mount = async (root) => {
     return [note(`Applied ${r.hunks} hunk${r.hunks === 1 ? '' : 's'}: +${r.added} −${r.removed} lines${r.file ? ` (${r.file})` : ''}.`, 'ok'), ...(r.notes as string[]).map((n) => note(n[0].toUpperCase() + n.slice(1) + '.', 'info'))];
   });
   [orig, diff].forEach((x) => x.addEventListener('input', debounce(run, 150)));
-  const loader = (ta: HTMLTextAreaElement, label: string, setName = false) => filePicker({ label, onFiles: async ([f]) => { ta.value = await f.text(); if (setName) name = f.name; run(); } });
+  const loader = (ta: HTMLTextAreaElement, label: string, setName = false) => filePicker({ label, onFiles: async ([f]) => { ta.value = await readTextFile(f, 'a patch or the file it changes is plain text'); if (setName) name = f.name; run(); } });
   root.append(h('div', { class: 'grid2' }, card('Original', orig, loader(orig, 'Open original file', true)), card('Patch (unified diff)', diff, loader(diff, 'Open .diff / .patch'))),
     card(null, toggle('Reverse (undo the patch)', false, (v) => { reverse = v; run(); }), status), card('Result', res, h('div', { class: 'row' }, button('Copy', () => copy(res.value), { small: true, icon: 'Copy' }), button('Download', () => { if (!res.value) throw new Error('Nothing to save yet'); downloadBlob(new Blob([res.value], { type: 'text/plain' }), name); }, { small: true, icon: 'Download' }))));
   run();
@@ -438,7 +439,7 @@ export const logview: Mount = (root) => {
     clear(more); if (idx.length > limit) more.append(button(`Show ${Math.min(2000, idx.length - limit)} more`, () => { limit += 2000; render(); }, { small: true }));
   };
   q.addEventListener('input', debounce(render, 120)); ta.addEventListener('input', debounce(() => load(ta.value), 200));
-  root.append(card(null, filePicker({ accept: '.log,.txt,.json,.jsonl,.ndjson,text/*', label: 'Open a log file', onFiles: async ([f]) => { ta.value = ''; load(await f.text()); } }), field('…or paste', ta)),
+  root.append(card(null, filePicker({ accept: '.log,.txt,.json,.jsonl,.ndjson,text/*', label: 'Open a log file', onFiles: async ([f]) => { const t = await readTextFile(f, 'a log file is plain text'); ta.value = ''; load(t); } }), field('…or paste', ta)),
     card(null, q, h('div', { class: 'row' }, toggle('Regular expression', false, (v) => { useRe = v; render(); }), toggle('Hide matches', false, (v) => { invert = v; render(); }), toggle('Readable JSON lines', true, (v) => { pretty = v; render(); })), counts, status),
     card(null, list, more));
   load('');

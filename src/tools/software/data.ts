@@ -4,6 +4,7 @@ import { devcore, type Devcore } from '../../wasm/devcore';
 import { debounce } from './devui';
 import { runJq, stopJq, JqStopped, JQ_LIMIT_MS } from '../../lib/jq-client';
 import SAMPLES from './jq-samples.json';
+import { readTextFile } from '../../lib/textfile';
 
 /** The Output box shows this many characters; Copy and Download give everything. */
 const JQ_SHOW = 1_000_000;
@@ -84,7 +85,7 @@ export const jq: Mount = (root) => {
     card('Filter', filter, ex, cmd),
     card('Options', h('div', { class: 'row wrap' }, tg('raw', 'Raw output (-r)'), tg('compact', 'Compact (-c)'), tg('slurp', 'Slurp (-s)'), tg('nullInput', 'Null input (-n)'), tg('sortKeys', 'Sort keys (-S)'), tg('rawInput', 'Raw input (-R)'), tg('tab', 'Tab indent'), tg('ascii', 'ASCII output (-a)'), tg('join', 'Join output (-j)')),
       field('Arguments ($name in the filter)', args, 'name=value is --arg (text); name:=value is --argjson (any JSON).')),
-    card('Input JSON', src, filePicker({ accept: '.json,.jsonl,.ndjson,.txt,.log,.csv,application/json', label: 'Open a file', onFiles: async ([f]) => { src.value = await f.text(); await run(); } })),
+    card('Input JSON', src, filePicker({ accept: '.json,.jsonl,.ndjson,.txt,.log,.csv,application/json', label: 'Open a file', onFiles: async ([f]) => { src.value = await readTextFile(f, 'JSON is plain text'); await run(); } })),
     card('Output', out, status, h('div', { class: 'row' }, button('Copy', () => { if (!full) throw new Error('Nothing to copy yet'); return copy(full); }, { small: true, icon: 'Copy' }), button('Download', () => { if (!full) throw new Error('Nothing to save yet'); downloadBlob(new Blob([full], { type: 'application/json' }), flags.raw || flags.join ? 'output.txt' : 'output.json'); }, { small: true, icon: 'Download' }))),
     note('jq 1.8.2 compiled from the official C source to WebAssembly — the same filter language and output as the jq command line. Your data stays in this browser.', 'info'));
   void run();

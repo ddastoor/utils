@@ -6,6 +6,7 @@ import { devcore, type Devcore } from '../../wasm/devcore';
 import { sodium, type Sodium } from '../../wasm/crypto';
 import { mathcore } from '../../wasm/mathcore';
 import { kvRows, show, table, debounce } from './devui';
+import { readTextFile } from '../../lib/textfile';
 
 const utf8 = new TextEncoder(), fromUtf8 = new TextDecoder();
 const N = (n: number) => n.toLocaleString('en-IN');
@@ -106,7 +107,7 @@ export const json2types: Mount = (root) => {
   };
   const runD = debounce(() => { void run(); }, 150);
   [src, name].forEach((x) => x.addEventListener('input', runD));
-  root.append(card('JSON sample', src, filePicker({ compact: true, accept: '.json,application/json', label: 'Open a JSON file', onFiles: async ([f]) => { src.value = await f.text(); await run(); } }), field('Root type name', name)),
+  root.append(card('JSON sample', src, filePicker({ compact: true, accept: '.json,application/json', label: 'Open a JSON file', onFiles: async ([f]) => { src.value = await readTextFile(f, 'JSON is plain text'); await run(); } }), field('Root type name', name)),
     card(null, segmented([['ts', 'TypeScript'], ['go', 'Go'], ['rust', 'Rust (serde)'], ['java', 'Java records'], ['py', 'Python dataclasses']], lang, (v) => { lang = v; void run(); })),
     card('Types', out, status, button('Download', () => { if (!out.value) throw new Error('Nothing to save yet'); downloadBlob(new Blob([out.value], { type: 'text/plain' }), `${lang === 'java' ? rootType : 'types'}.${J2T_EXT[lang]}`); }, { small: true, icon: 'Download' })),
     note('Fields missing from some array items become optional; null makes a field nullable; whole numbers become integers. Go and Rust map every key exactly; Java and Python keep a key as the field name when it is a valid name.', 'info'));
@@ -139,7 +140,7 @@ export const jsondiff: Mount = (root) => {
   };
   const runD = debounce(() => { void run(); }, 200);
   [a, b].forEach((x) => x.addEventListener('input', runD));
-  const open = (ta: HTMLTextAreaElement) => filePicker({ compact: true, accept: '.json,application/json', label: 'Open JSON', onFiles: async ([f]) => { ta.value = await f.text(); await run(); } });
+  const open = (ta: HTMLTextAreaElement) => filePicker({ compact: true, accept: '.json,application/json', label: 'Open JSON', onFiles: async ([f]) => { ta.value = await readTextFile(f, 'JSON is plain text'); await run(); } });
   root.append(h('div', { class: 'grid2' }, card('Left (old)', a, open(a)), card('Right (new)', b, open(b))),
     h('div', { class: 'row' }, button('Swap left and right', () => { const t = a.value; a.value = b.value; b.value = t; return run(); }, { small: true, icon: 'ArrowLeftRight' })),
     card('Differences', out), card('As a JSON Patch (RFC 6902)', patchBox, button('Download patch', () => { if (!patchBox.value) throw new Error('Nothing to save yet'); downloadBlob(new Blob([patchBox.value], { type: 'application/json-patch+json' }), 'changes.patch.json'); }, { small: true, icon: 'Download' })));

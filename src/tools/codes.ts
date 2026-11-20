@@ -153,8 +153,9 @@ export const scan: Mount = (root, ctx) => {
   const video = h('video', { class: 'scan-video', playsinline: true, muted: true, autoplay: true });
   const results = h('div', { class: 'stack' });
   const seen = new Set<string>();
-  const show = (list: Array<{ format: string; text: string }>) => {
+  const show = (list: Array<{ format: string; text: string; isValid?: boolean }>) => {
     for (const r of list) {
+      if (r.isValid === false) continue; // zxing's report of a failure is no code
       const key = `${r.format}:${r.text}`;
       if (seen.has(key)) continue;
       seen.add(key);
@@ -174,7 +175,10 @@ export const scan: Mount = (root, ctx) => {
   const readFile = async (f: Blob) => {
     await zx();
     const r = await readBarcodes(f, { tryHarder: true, maxNumberOfSymbols: 8 });
-    if (!r.length) results.prepend(note('No code found in that image.', 'warn'));
+    // a file that is no picture comes back as one failed result ("Failed to load image from memory"): it showed an
+    // empty code with a Copy button
+    if (r.some((x) => !x.isValid && /load image/i.test(x.error || ''))) { results.prepend(note(`${(f as File).name || 'That file'} is not a picture this browser can read — choose a photo or a screenshot (JPEG, PNG, WebP, GIF, BMP).`, 'err')); return; }
+    if (!r.some((x) => x.isValid)) results.prepend(note('No code found in that image.', 'warn'));
     show(r);
   };
   const loop = async () => {

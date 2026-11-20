@@ -2,6 +2,7 @@
 import { h, card, field, textarea, segmented, clear, note, copy, button, outputBox, filePicker, downloadBlob, type Mount } from '../../ui';
 import { formats, FormatError } from '../../wasm/formats';
 import { debounce } from './devui';
+import { readTextFile } from '../../lib/textfile';
 
 const where = (e: any) => (e instanceof FormatError && e.line ? ` (line ${e.line}${e.column ? `, column ${e.column}` : ''})` : '');
 const EXT: Record<string, string> = { json: 'json', yaml: 'yaml', toml: 'toml' };
@@ -34,7 +35,7 @@ export const yaml: Mount = async (root) => {
   src.addEventListener('input', debounce(run, 150));
   const need = (what: string) => { if (!out.value) throw new Error(`Nothing to ${what} yet`); };
   root.append(card(null, field('From', fromSeg), field('To', toSeg), indentField),
-    card('Input', src, filePicker({ accept: '.yaml,.yml,.json,.toml,text/*', label: 'Open a file', onFiles: async ([file]) => { src.value = await file.text(); from = detect(file.name, src.value); fromSeg.value = from; run(); } }), status),
+    card('Input', src, filePicker({ accept: '.yaml,.yml,.json,.toml,text/*', label: 'Open a file', onFiles: async ([file]) => { src.value = await readTextFile(file, 'YAML, JSON and TOML are plain text'); from = detect(file.name, src.value); fromSeg.value = from; run(); } }), status),
     card('Output', out, h('div', { class: 'row' }, button('Copy', () => { need('copy'); return copy(out.value); }, { small: true, icon: 'Copy' }),
       button('Download', () => { need('save'); downloadBlob(new Blob([out.value], { type: 'text/plain' }), `converted.${EXT[to]}`); }, { small: true, icon: 'Download' }),
       // Swap puts the output in the input box: with no output it would wipe what was typed
@@ -79,7 +80,7 @@ export const jsonschema: Mount = (root) => {
     // Ctrl+Enter (⌘ on a Mac): check now, without waiting for the pause after typing
     x.addEventListener('keydown', (e) => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); later.cancel(); void run(); } });
   }
-  root.append(h('div', { class: 'grid2' }, card('Schema', schema, filePicker({ accept: '.json', label: 'Open schema', onFiles: async ([x]) => { schema.value = await x.text(); later.cancel(); await run(); } })), card('Data (JSON)', data, filePicker({ accept: '.json', label: 'Open data', onFiles: async ([x]) => { data.value = await x.text(); later.cancel(); await run(); } }), button('Make a schema from this data', infer, { small: true, icon: 'Wand' }))),
+  root.append(h('div', { class: 'grid2' }, card('Schema', schema, filePicker({ accept: '.json', label: 'Open schema', onFiles: async ([x]) => { schema.value = await readTextFile(x, 'a JSON schema is plain text'); later.cancel(); await run(); } })), card('Data (JSON)', data, filePicker({ accept: '.json', label: 'Open data', onFiles: async ([x]) => { data.value = await readTextFile(x, 'JSON is plain text'); later.cancel(); await run(); } }), button('Make a schema from this data', infer, { small: true, icon: 'Wand' }))),
     card('Result', out), note('Draft 4, 6, 7, 2019-09 and 2020-12 (from "$schema"). Formats such as email, date-time, uri and uuid are checked; numbers are compared exactly, however large; "pattern" follows the regular expressions of JavaScript. A $ref to another file or web address is not fetched. The data is checked a moment after you stop typing — Ctrl+Enter checks at once.', 'info'));
   void run();
 };

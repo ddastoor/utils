@@ -6,6 +6,7 @@ import { h, card, field, textarea, clear, note, copy, button, filePicker, downlo
 import { runPython, stopPython } from '../../lib/python-client';
 import { termView } from '../../lib/termtext';
 import { hint } from '../../lib/python-hints';
+import { readTextFile } from '../../lib/textfile';
 
 export const SAMPLES: Record<string, string> = {
   Hello: `name = input("What is your name? ")
@@ -128,7 +129,7 @@ export const mount: Mount = (root) => {
   root.append(h('div', { class: 'grid2' },
     card(null, samples, field('Python code (Ctrl+Enter runs)', code),
       h('div', { class: 'row' }, runBtn, stopBtn,
-        filePicker({ accept: '.py,.pyw,.txt,text/x-python,text/plain', label: 'Open a .py file', onFiles: async ([f]) => { code.value = (await f.text()).replace(/\r\n?/g, '\n'); } }),
+        filePicker({ accept: '.py,.pyw,.txt,text/x-python,text/plain', label: 'Open a .py file', onFiles: async ([f]) => { code.value = (await readTextFile(f, 'a Python program is plain text')).replace(/\r\n?/g, '\n'); } }),
         button('Download .py', () => downloadBlob(new Blob([code.value], { type: 'text/x-python' }), 'main.py'), { small: true, icon: 'Download' }))),
     h('div', null,
       card('Output', status, out, produced, h('div', { class: 'row' },

@@ -6,6 +6,7 @@ import { h, card, field, select, segmented, toggle, slider, clear, note, copy, b
 import { debounce } from './devui';
 import { ENGINE_LABEL, type Lang, type Formatted } from '../../lib/codefmt';
 import { formatCode, onEngineLoading } from '../../lib/codefmt-client';
+import { readTextFile } from '../../lib/textfile';
 
 const LANGS: Record<Lang, { label: string; ext: string; sample: string }> = {
   js: { label: 'JavaScript / JSX', ext: 'js', sample: "const order={id:42,items:[{sku:'TEA',qty:2}],total:function(){return this.items.reduce((s,i)=>s+i.qty,0)}}\nexport default async function load(url){const res=await fetch(url,{headers:{'Accept':'application/json'}});if(!res.ok)throw new Error(`HTTP ${res.status}`);return res.json()}" },
@@ -80,7 +81,7 @@ export const prettier: Mount = (root) => {
     const ext = /\.([A-Za-z0-9]+)$/.exec(f.name)?.[1].toLowerCase() ?? '';
     const l = BY_EXT[ext];
     if (!l) throw new Error(ext ? `.${ext} files are not one of the ten languages here (${Object.values(LANGS).map((x) => x.label).join(', ')}).` : 'This file has no extension to tell its language by — paste its text and choose the language.');
-    src.value = await f.text(); setLang(l, true); name = f.name;
+    src.value = await readTextFile(f, 'source code is plain text'); setLang(l, true); name = f.name;
     await format();
   };
   const need = () => { if (!full) throw new Error('Nothing formatted yet'); };

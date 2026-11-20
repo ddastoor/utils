@@ -3,6 +3,7 @@
 import { h, card, field, textarea, segmented, select, toggle, clear, note, copy, button, outputBox, filePicker, downloadBlob, type Mount } from '../../ui';
 import { devcore, type Devcore } from '../../wasm/devcore';
 import { debounce } from './devui';
+import { readTextFile } from '../../lib/textfile';
 
 type Dialect = 'auto' | 'standard' | 'postgres' | 'mysql' | 'sqlite' | 'tsql' | 'oracle';
 type Result = { text: string; dialect: Exclude<Dialect, 'auto'>; kept: boolean; warn: string[] };
@@ -37,7 +38,7 @@ export const sqlfmt: Mount = (root) => {
   src.addEventListener('input', debounce(run, 150));
   const need = () => { if (!full) throw new Error('Nothing to copy yet'); };
   root.append(
-    card('SQL', src, filePicker({ accept: '.sql,.txt,.ddl,.dml,.psql,.pgsql,.tsql', label: 'Open a .sql file', onFiles: async ([f]) => { src.value = await f.text(); file = f.name; run(); } })),
+    card('SQL', src, filePicker({ accept: '.sql,.txt,.ddl,.dml,.psql,.pgsql,.tsql', label: 'Open a .sql file', onFiles: async ([f]) => { src.value = await readTextFile(f, 'SQL is plain text'); file = f.name; run(); } })),
     card(null,
       h('div', { class: 'row wrap' },
         field('Dialect', select(DIALECTS, 'auto', (v) => { dialect = v; run(); })),

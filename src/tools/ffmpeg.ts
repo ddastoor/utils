@@ -190,7 +190,9 @@ export const mount: Mount = (root) => {
         p1 = pr;
         streams = logLines.filter((l) => /Duration:|Stream #/.test(l)).join('\n');
         if (clips[0]?.file === my) clips[0].probe = pr;
-        info.textContent = `${my.name} · ${fmtBytes(my.size)}${pr.dur ? ` · ${fmtTime(pr.dur)}` : ''}\n${streams.replace(/^\s+/gm, '')}`;
+        // a file in which FFmpeg finds no picture, sound or subtitles is said at once (it was only found out by a job)
+        const why = !pr.video && !pr.audio && !pr.subs ? (logLines.find((l) => /Invalid data|could not find codec|no such file|end of file|moov atom not found|EBML header parsing failed/i.test(l)) || '').replace(/^.*?: /, '') : '';
+        info.textContent = `${my.name} · ${fmtBytes(my.size)}${pr.dur ? ` · ${fmtTime(pr.dur)}` : ''}\n${!pr.video && !pr.audio && !pr.subs ? `FFmpeg finds no video, sound or subtitles in this file${why ? ` (${why.trim()})` : ''} — is it a media file?` : streams.replace(/^\s+/gm, '')}`;
         if (job === 'join') renderClips();
         update();
       } catch (e) { info.textContent = `${my.name}: ${errMsg(e)}`; }

@@ -3,6 +3,7 @@
 // read with the browser's own parser (DOMParser, compiled C++); laying a table out on a grid is glue. No DOM here
 // except in the two functions that take a Document, so the unit suite can run the rest in Node.
 import type { Book, Cell, Sheet } from '../wasm/sheet';
+import { textOf } from './textfile';
 
 /** Column letters: 0 → A, 25 → Z, 26 → AA. */
 export const colName = (i: number) => { let s = ''; i++; while (i > 0) { const m = (i - 1) % 26; s = String.fromCharCode(65 + m) + s; i = Math.floor((i - 1) / 26); } return s; };
@@ -24,13 +25,9 @@ export const cellText = (v: Cell | undefined): string => (v === null || v === un
  *  else Windows-1252 (what Excel on Windows saves as "CSV"). `how` names what was not plain UTF-8. Refuses a file that
  *  is not text (NUL bytes without a UTF-16 mark). */
 export function decodeText(bytes: Uint8Array): { text: string; how: string } {
-  if (bytes[0] === 0xff && bytes[1] === 0xfe) return { text: new TextDecoder('utf-16le').decode(bytes.subarray(2)), how: 'UTF-16' };
-  if (bytes[0] === 0xfe && bytes[1] === 0xff) return { text: new TextDecoder('utf-16be').decode(bytes.subarray(2)), how: 'UTF-16' };
-  const head = bytes.subarray(0, 8192);
-  if (head.includes(0)) throw new Error('This file is not text: it is no CSV, TSV or JSON, and no spreadsheet this tab can read.');
-  const body = bytes[0] === 0xef && bytes[1] === 0xbb && bytes[2] === 0xbf ? bytes.subarray(3) : bytes;
-  try { return { text: new TextDecoder('utf-8', { fatal: true }).decode(body), how: '' }; }
-  catch { return { text: new TextDecoder('windows-1252').decode(body), how: 'Windows-1252' }; }
+  const r = textOf(bytes);
+  if (!r) throw new Error('This file is not text: it is no CSV, TSV or JSON, and no spreadsheet this tab can read.');
+  return r;
 }
 
 /** What a file that is not a zip (xlsx, ods) or an OLE container (xls) holds, by its first characters. */
