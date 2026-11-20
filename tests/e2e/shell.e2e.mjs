@@ -185,7 +185,22 @@ export default async ({ base, page: newPage, ok, devices }) => {
   for (const u of phonePages) { await phone.goto(base + u); await phone.waitForTimeout(200); if (await phone.evaluate(() => document.documentElement.scrollWidth <= innerWidth)) noScroll++; }
   ok(noScroll === phonePages.length, `phone: no horizontal scroll on home, category, favourites and tool pages (${noScroll}/${phonePages.length})`);
   ok(await phone.evaluate(() => { const b = document.querySelector('.tabs-cat'); return b.scrollWidth > b.clientWidth && getComputedStyle(b).overflowX !== 'visible'; }), 'phone: the category row can be swiped');
-  ok(await phone.locator('.search-input').getAttribute('placeholder') === 'Search 170+ tools…' && (await phone.locator('.search-input').getAttribute('enterkeyhint')) === 'go', 'phone search box');
+  await phone.goto(base); await phone.waitForTimeout(200);
+  const nPhone = +/(\d+) private tools/.exec(await phone.locator('.view').textContent())?.[1];
+  ok(await phone.locator('.search-input').getAttribute('placeholder') === `Search ${nPhone} tools…` && nPhone > 100 && nPhone < 170 && (await phone.locator('.search-input').getAttribute('enterkeyhint')) === 'go', `phone search box: "Search ${nPhone} tools…" — the tools a phone can open (it said "170+")`);
+  // touch targets of at least 44 px in the shell (the owner's rule): the search box, the tabs of both rows, the stars
+  await phone.goto(base + '#/emi'); await phone.waitForSelector('.tool-body .card');
+  const hit = await phone.evaluate(() => {
+    const out = {}, probe = (name, el) => { const b = el.getBoundingClientRect(), x = b.left + b.width / 2; let lo = b.top, hi = b.bottom;
+      while (lo > 0 && el.contains(document.elementFromPoint(x, lo - 1))) lo--; while (hi < innerHeight && el.contains(document.elementFromPoint(x, hi))) hi++; out[name] = Math.round(hi - lo); };
+    probe('search', document.querySelector('.search-input')); probe('category tab', document.querySelector('.tabs-cat .tab.on')); probe('tool tab', document.querySelector('.tabs-tool .tab.on')); probe('star', document.querySelector('.head-star'));
+    return out; });
+  ok(Object.values(hit).every((v) => v >= 44), `phone: the shell's touch targets are ≥ 44 px tall ${JSON.stringify(hit)} (search 40, tabs 36 / 34, star 42 before)`);
+  await phone.goto(base); await phone.waitForSelector('.tile');
+  const tileStar = await phone.evaluate(() => { const el = document.querySelector('.tile-star'), b = el.getBoundingClientRect(), y = b.top + b.height / 2; let lo = b.left, hi = b.right;
+    while (el.contains(document.elementFromPoint(lo - 1, y))) lo--; while (el.contains(document.elementFromPoint(hi, y))) hi++; let t = b.top, bt = b.bottom; const x = b.left + b.width / 2;
+    while (el.contains(document.elementFromPoint(x, t - 1))) t--; while (el.contains(document.elementFromPoint(x, bt))) bt++; return [Math.round(hi - lo), Math.round(bt - t)]; });
+  ok(tileStar.every((v) => v >= 44), `phone: a card's star takes taps over 44 × 44 px (${tileStar.join(' × ')}; 32 before)`);
 
   // dark mode: readable text on a dark page
   const dark = await newPage({ viewport: { width: 1366, height: 900 }, colorScheme: 'dark' });

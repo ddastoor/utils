@@ -2181,3 +2181,13 @@ Media › video (20 Nov 2026 –)
   example function. iPhone: + window.orientation in landscape; Safari's heading is magnetic north (caniuse's notes on
   `webkitCompassHeading`) — the tab said "true north". The no-data warning twice (as Level).
 - **`pixels`, `ruler` (170, 176):** reviewed, nothing found.
+
+### App shell (20 Nov 2026)
+- **2 bugs; e2e `shell` +2 checks (68).**
+  1. **Touch targets under 44 px on phones** (the owner's rule): the search box was 40 px tall, the category tabs 36,
+     the tool tabs 34, the tool page's star 42, a card's star 32. The search box is 44 px on phones; the tabs and the
+     cards' stars take taps over 44 px through an invisible hit area that reaches into the row's padding (the pills and
+     the rows keep their size: a pseudo-element placed from inside the 1 px border, so 6 px of inset is 5 beyond the
+     pill); the tool page's star is 44 px. The suite measures each hit area with `elementFromPoint`.
+  2. **The phone's search box said "Search 170+ tools…"** — a phone offers 112 (PC-only tools are not shown there):
+     the placeholder counts the tools this device can open (also on PCs, with the "/" hint).

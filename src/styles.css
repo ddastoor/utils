@@ -283,8 +283,13 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: 14px; }
   .brand-name, .privacy span { display: none; }
   .privacy { margin-left: 0; }
   .search { max-width: none; }
-  .search-input { font-size: 16px; } /* prevents iOS zoom on focus */
-  .search-results { position: fixed; left: 8px; right: 8px; top: 58px; max-height: 70vh; }
+  .search-input { font-size: 16px; height: 44px; } /* 16 px: no iOS zoom on focus; 44 px: a touch target (it was 40) */
+  .search-results { position: fixed; left: 8px; right: 8px; top: 62px; max-height: 70vh; }
+  /* touch targets of 44 px without bigger pills: the hit area reaches into the row's padding (the tabs were 36 / 34 px,
+     the cards' stars 32) */
+  .tab { position: relative; }
+  .tab::after { content: ''; position: absolute; inset: -6px -4px; } /* from inside the 1 px border: 5 px beyond the pill */
+  .tile-star::after { content: ''; position: absolute; inset: -6px; }
   .tabs { overflow-x: auto; scrollbar-width: none; padding: 7px 12px; scroll-padding: 12px; -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain; }
   .tabs::-webkit-scrollbar { display: none; }
   .tabs-tool { flex-wrap: nowrap; }
@@ -416,7 +421,7 @@ details summary { cursor: pointer; font-weight: 600; color: var(--accent); paddi
 .star.on { color: #f59e0b; }
 .star.on svg { fill: #f59e0b; }
 .tile-star { position: absolute; top: 6px; right: 4px; width: 32px; height: 32px; }
-.head-star { margin-left: auto; width: 42px; height: 42px; border: 1px solid var(--border); background: var(--surface); }
+.head-star { margin-left: auto; width: 44px; height: 44px; border: 1px solid var(--border); background: var(--surface); }
 .head-star .ic { width: 20px; height: 20px; }
 .tool-head-text { min-width: 0; }
 .tab-count { font-size: 11px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; background: var(--surface-3); color: var(--text); display: inline-grid; place-items: center; }

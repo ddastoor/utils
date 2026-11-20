@@ -18,7 +18,8 @@ type Route = { kind: 'home' } | { kind: 'section'; section: Section } | { kind: 
 
 // ------------------------------------------------------------------ layout
 const searchInput = h('input', {
-  class: 'search-input', type: 'search', placeholder: isMobile ? 'Search 170+ tools…' : 'Search tools…  ( / )',
+  // the tools this device can open (a phone searches 112, not "170+": PC-only tools are not offered there)
+  class: 'search-input', type: 'search', placeholder: isMobile ? `Search ${visible.length} tools…` : `Search ${visible.length} tools…  ( / )`,
   'aria-label': 'Search tools', autocomplete: 'off', enterkeyhint: 'go', spellcheck: 'false',
 });
 const results = h('div', { class: 'search-results', role: 'listbox', hidden: true });
