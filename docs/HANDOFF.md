@@ -67,7 +67,12 @@ this file = the owner's latest wishes, how the tests are written, and the traps 
   the phone, or with the webcam if it's on the PC." Done as Passport Photo does it — a live view in the page with Snap —
   but as a shared part, `liveCamera` in `src/lib/livecam.ts`, for the other tabs that lack a webcam on PCs (Doc Scanner,
   Signature Maker, Sign PDF: offered to the owner, not started). Its tests: a stand-in camera that shows a sentence
-  (`fakeTextCamera` in `tests/e2e/ocr.e2e.mjs`).
+  (`fakeTextCamera`, now in `tests/e2e/_camera.mjs`).
+- **20 Nov 2026 — the camera everywhere (standing):** "In fact, in all apps that offer to upload an image, also add the
+  option of taking a photo if it's a phone app, and take the photo with a webcam if it's a PC app … Do this for all
+  apps also. Once finished, check in merge to main and push." Built into the shared pickers; a new picture picker gets
+  it by using `imageInput` / `imagePicker`, and `tests/e2e/camera.e2e.mjs` fails on one without (EXEMPT: EXIF, SVG
+  Optimizer, FFmpeg's main input, QR Scanner, Photo Dictionary — with reasons).
 - **20 Nov 2026 — live:** the owner asked to merge into `main` and make the site live; Pages was switched on by the
   owner (Source: GitHub Actions). The repository's **default branch is `claude/exciting-bohr-b9yfwc`**, and Pages'
   environment lets only the default branch publish — so the site is published from that branch; `main` holds the

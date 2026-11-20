@@ -221,6 +221,11 @@ Wayland) and **mobile browsers** (Android Chrome, iPhone Safari).
   category with tool cards) and **★ Favorites** (`#/c/fav`), then one tab per category (`#/c/<cat>` = card grid of
   that category). Every tool page and card has a ☆ star toggle; starred tools appear in Favorites (count badge on
   the tab). Tool URLs: `#/<toolId>` (`?from=fav` keeps the Favorites row active).
+- **Camera wherever a picture is taken in (owner, 20 Nov 2026; standing):** "in all apps that offer to upload an image,
+  also add the option of taking a photo if it's a phone app, and take the photo with a webcam if it's a PC app". Every
+  picture picker is `imageInput` or `imagePicker` (`src/lib/imgtools.ts` — the camera is built in); a new one without a
+  camera fails `tests/e2e/camera.e2e.mjs` unless it is added to its EXEMPT list with the reason (§3 "Camera in every
+  tab that takes a picture").
 - **New utilities:** whenever the owner accepts a new utility, place it in the most fitting existing category,
   or create a new, well-named category for it (update `CATEGORIES` in `src/registry.ts` and this file).
   Give it rich search keywords (synonyms, everyday phrasing, file extensions, common misspellings) and add
@@ -542,8 +547,8 @@ and animals would need another model (docs/WASM-AUDIT.md, 114).
   pad's CSS pixels and scaled with the pad, so a narrower window or a turned phone keeps the whole signature), type (the
   three OFL handwriting fonts are fetched when "Type" is chosen — the pad needs none) or a photo (imgproc `inkToAlpha`;
   the newest photo wins; blank paper: "No ink was found in the photo"). The ink colour is the colour of the whole
-  signature, strokes drawn before it was chosen too. Phones: "Photograph your signature" beside a picker that does
-  not force the camera.
+  signature, strokes drawn before it was chosen too. The photo from a file or the camera (phones: the back camera;
+  PCs: the webcam — §3 "Camera in every tab that takes a picture"); the picker does not force the camera.
 
 ### EXIF / Photo Info — as built after the Nov 2026 bug hunt
 (`exif` in `src/tools/images.ts`; shaping `src/lib/photoinfo.ts`, engine `src/lib/exiftool.ts` in
@@ -1699,8 +1704,8 @@ opencv-python-headless`):
   reader hears where each one is.
 - **Saving:** pages straightened at up to 3,000 px; PDF (MuPDF): colour and grey pages as JPEG (quality 80), black and
   white as PNG (lossless — the smallest and crispest); A4 and Letter fit the page (turned for a landscape scan); "Fit to
-  scan" = the scan's shape with A4's long side (297 mm). JPGs: quality 80 (B & W 85). Phones: "Take a photo of a page"
-  (back camera) and "Choose photos"; Share.
+  scan" = the scan's shape with A4's long side (297 mm). JPGs: quality 80 (B & W 85). Phones and PCs: "Use camera" /
+  "Use webcam" — the camera stays open and every Snap adds a page (owner, 20 Nov 2026) — and "Choose photos"; Share.
 
 ### OCR
 Tesseract 5 LSTM (tesseract.js-core wasm), **languages English, French, Spanish, German** (owner decision Nov 16 2026:
@@ -1714,17 +1719,42 @@ try starts afresh. A reading below 60 % confidence is tried turned the three oth
 picture read the way that is clearly better (≥ 60 % and 20 points more), the line says so; buttons turn the picture
 by hand. With the clean-up on, a dark picture (mean luma < 110) is inverted first. The newest picture or language wins.
 **Camera (owner, 20 Nov 2026: "take a photo with the camera if it's on the phone, or with the webcam if it's on the
-PC"; e2e now 56):** "Use camera" on phones (the back camera; the camera-switch symbol turns to the front one) and "Use
-webcam" on PCs (the default webcam; "Switch camera" goes through the others when there are more) open a live view in
-the page — `liveCamera` in `src/lib/livecam.ts` (getUserMedia up to 4K, the whole picture, not mirrored so text reads
-the right way), shared for other tabs. Snap takes the full frame into the editor (its text downloads as
-camera-photo.txt). Snap, Cancel, a file chosen and leaving the tab close the camera; a camera that answers after that
-(the permission question was still open) is stopped at once; one that stops by itself is said; refusals in words
-(`cameraError`). While the camera is open the picture and text step aside (on phones their fixed "Extract text" bar
-would cover it). The picker does not force the camera (screenshots, photos already taken; an iPhone's picker also
-offers its camera app). `reveal(el)` in `src/ui.ts` brings an element into view between the sticky tab rows and a
-phone's fixed action bar (scrollIntoView knows neither). The native `capture` input of `imageInput` stays for tabs
-that pass it.
+PC"; the first tab with it — then every picture tab: §3 "Camera in every tab that takes a picture"; e2e 57):** the
+picker's own camera; Snap takes the full frame into the editor, scrolled into view (`reveal`), and its text downloads
+under the photo's name (camera-20261120-211503.txt). The picker does not force the camera (screenshots, photos already
+taken; an iPhone's picker also offers its camera app).
+
+### Camera in every tab that takes a picture (owner, 20 Nov 2026)
+Owner: "In all apps that offer to upload an image, also add the option of taking a photo if it's a phone app, and take
+the photo with a webcam if it's a PC app." No engine to fetch: the browser's getUserMedia.
+- **`liveCamera` (`src/lib/livecam.ts`):** "Use camera" on phones — the back camera; the camera-switch symbol turns to
+  the front one — and "Use webcam" on PCs — the default webcam; "Switch camera" goes through the others when there are
+  more. A live view in the page (up to 4K, the whole picture, not mirrored so text reads the right way; a selfie's view —
+  the résumé photo, `facing: 'user'`, front camera first — is mirrored as a mirror is, the photo is not). Snap hands
+  over the frame as pixels and, for tabs that read files, as a JPEG (quality 0.92) named as a phone names its photos:
+  camera-20261120-211503.jpg (-2, -3 … within a second). One photo: Snap closes it; several (`multiple`): it stays
+  open, a shutter flash (none with reduced motion) and "n photos taken", Done closes it.
+- **It closes** on Snap, Cancel / Done, a file chosen, dropped or pasted instead, another camera of the page opening (one
+  at a time — an iPhone cannot hold two), its box hidden by another mode (a ResizeObserver: no camera left running
+  unseen), and when the tab is left (`onLeave`, registered as it opens — no tab has to remember it). A camera that
+  answers after that (the permission question was still open) is stopped at once; one that stops by itself is said;
+  refusals in words (`cameraError`). While it is open a phone's fixed action bar steps aside (`html.cam-open`) and
+  `reveal(el)` (`src/ui.ts`) brings the view and its buttons in between the sticky tab rows and the screen's foot.
+- **Where:** built into `imageInput` — Image Editor, Photo & Signature Resizer, Background Remover, Cartoonizer, Blur &
+  Redact, Text on Image, OCR, Signature Maker, Sign PDF (`camera: false` for Passport Photo and Photo Dictionary, which
+  have cameras of their own); `imagePicker` (a file picker with the camera, photos arriving as files) — Batch Images,
+  HEIC → JPG, Watermark (photos and the logo), Collage, Doc Scanner, Images → PDF, Slideshow (several photos each), the
+  Cartoonizer's own style painting, the Background Remover's background photo, the logo / signature / photo of GST
+  Invoice, Rent Receipt and Resume; FFmpeg's picture inputs (logo, the picture for a sound, picture-in-picture). The
+  phones' native camera inputs (Doc Scanner, Signature Maker, Sign PDF) are gone — the live camera does it on both.
+- **Without a camera, on purpose** (EXEMPT in the sweep): EXIF / Photo Info (a photo taken in the page carries no
+  metadata — nothing to show), SVG Optimizer (SVG drawings), FFmpeg's main input (video and sound); the QR & Barcode
+  Scanner keeps its own camera.
+- **Tests:** `tests/e2e/camera.e2e.mjs` — every picture picker a tab shows, on a PC and a phone, has the camera in its
+  card; in every tab the stand-in camera (`tests/e2e/_camera.mjs`: a canvas stream showing a sentence) is opened, Snap
+  pressed (twice and Done where a tab takes several) and the tab's result checked; modes, one camera at a time,
+  leaving; phones: the back camera, the résumé selfie mirrored, pages one after another in the Doc Scanner. The OCR
+  suite holds the component's behaviour in detail (what Snap takes is read back; Switch; late and refused answers).
 
 ### Photo Dictionary (`photodict`, Text, **Mobile only** — owner request, owner chose the name) — BUILT
 (`src/tools/photodict.ts`, engine `src/lib/dictionary.ts`, ranking `wasm/textcore/rare.c`; e2e `tests/e2e/photodict.e2e.mjs`
@@ -2628,6 +2658,7 @@ DEBUG=pw:browser E2E_CHROME_ARGS="--enable-logging=stderr --v=0" node tests/e2e.
   keyboard access, 24 px targets); `tests/unit/css-vars.test.mjs` — every CSS custom property used is defined and
   every light colour token has a dark value. Colour of small text: `--hint` (≥ 4.5 : 1 in both themes), never
   `--faint` (icons and graphics only). A control without a visible label takes one (`select(…, label)`).
+  `camera.e2e.mjs` — the camera beside every picture picker (owner rule, §2) and its photo reaching every tab.
   `junk-files.e2e.mjs` — an empty file and random bytes in every file picker: no tab may throw (text tabs read files
   with `readTextFile` from `src/lib/textfile.ts`: UTF-16 by its mark, UTF-8, else Windows-1252; binary refused).
   `engine-download.e2e.mjs` — every desktop tab with its engine's download refused: no uncaught failure (the shell says
@@ -2672,3 +2703,5 @@ bandwidth, 10 minutes per deployment.
    workers via `trackWorker`, caches via `onLeave` (`src/lifecycle.ts`); vendor runtime files via
    `scripts/vendor.mjs`; never load from a CDN; keep the CSP intact. `tests/e2e/lazy.e2e.mjs` checks every tab.
 4. Add a smoke test in `tests/e2e.mjs`, update §2/§3 of this file, commit, push.
+5. A tab that takes a picture uses `imageInput` or `imagePicker` (`src/lib/imgtools.ts`): the camera — the phone's, the
+   PC's webcam — comes with it (owner rule, §2); `tests/e2e/camera.e2e.mjs` checks every picker.

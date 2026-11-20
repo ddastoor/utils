@@ -2363,3 +2363,13 @@ cannot. Three new suites; each fails on the build before its fixes.
   there, Snap the wide button). OCR e2e 24 → 56: a stand-in camera shows a sentence and what Snap takes is read
   (two webcams, each its own sentence; the phone's back and front camera), constraints, tracks stopped after Snap /
   Cancel / a file / leaving / a late answer / a camera that stops by itself, refusals in words, layout on the phone.
+- **Camera in every tab that takes a picture — owner request (20 Nov 2026).** "In all apps that offer to upload an image,
+  also add the option of taking a photo …": the camera is built into the shared pickers (`imageInput`, and `imagePicker`
+  for tabs that read files) — 25 pickers in 20 tabs (CLAUDE.md §3 "Camera in every tab that takes a picture"). Found
+  on the way: a camera left open in a box that another mode hides would run on unseen (now a ResizeObserver closes it);
+  two cameras of one tab could both be open (one at a time now — an iPhone cannot hold two); a phone tab's fixed
+  action bar covered Snap (it steps aside while a camera is open); the phones' native camera inputs (Doc Scanner,
+  Signature Maker, Sign PDF) only worked on phones and left the page — replaced. New sweep `camera.e2e.mjs` (36): the
+  camera beside every picture picker on PC and phone (a new picker without one fails), the snapped photo reaching
+  every tab, several photos, modes, leaving; the OCR suite's test of a file chosen during the camera had a race of its
+  own (fixed: it waits for the file's picture).
