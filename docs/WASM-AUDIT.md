@@ -1108,3 +1108,9 @@ One entry per tab, written before its bug hunt: our module → candidates → ch
   RGBA. **Candidates:** Ghostscript, the usual PDF compressor — its WebAssembly builds are one-person projects
   (@jspawn/ghostscript-wasm, unmaintained since 2022 — rejected in §6; ghostpdl-wasm forks) and Ghostscript rewrites
   the whole file (forms and annotations are often flattened or lost). **Decision:** MuPDF stays.
+
+### 129. `pdf-sign` — Sign PDF (20 Nov 2026)
+- MuPDF (the page, the image XObject with its soft mask, Helvetica for the date), the browser's canvas (strokes, typed
+  names), imgproc (the ink off a photo), jSquash (PNG). As entries 123 and 124: nothing to replace. A cryptographic
+  digital signature (PAdES) is not what the tab makes (it says so); MuPDF's signing needs a certificate the user does
+  not have here.

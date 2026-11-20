@@ -39,6 +39,22 @@ export function renderStrokes(strokes: Stroke[], w: number, hh: number, scale: n
   return { data: d.data, width: d.width, height: d.height } as Img;
 }
 
+/** A typed name in a handwriting font as an RGBA picture, sized to the ink of its letters — swashes that reach left of
+ *  the first letter, above the capitals or below the line included (the font's measured bounds), with a margin of a
+ *  tenth of the size. Shared by Sign PDF. */
+export async function typedSignature(text: string, font: string, color: string, px = 160): Promise<Img> {
+  await loadHandFonts();
+  const c0 = new OffscreenCanvas(10, 10).getContext('2d')!;
+  c0.font = `${px}px '${font}', cursive`;
+  const mt = c0.measureText(text), pad = Math.ceil(px * 0.1);
+  const left = Math.ceil(Math.max(0, mt.actualBoundingBoxLeft)), right = Math.ceil(Math.max(mt.width, mt.actualBoundingBoxRight));
+  const asc = Math.ceil(Math.max(mt.actualBoundingBoxAscent, px * 0.5)), desc = Math.ceil(Math.max(mt.actualBoundingBoxDescent, px * 0.2));
+  const c = new OffscreenCanvas(left + right + 2 * pad, asc + desc + 2 * pad), g = c.getContext('2d', { willReadFrequently: true })!;
+  g.font = c0.font; g.fillStyle = color; g.textBaseline = 'alphabetic'; g.fillText(text, pad + left, pad + asc);
+  const d = g.getImageData(0, 0, c.width, c.height);
+  return { data: d.data, width: c.width, height: c.height };
+}
+
 /** Trim to the ink (alpha bounding box) plus padding, in wasm. */
 export async function trim(img: Img, padFrac = 0.06): Promise<Img> {
   const b = await imgproc('alphaBBox', img, 8);
@@ -96,16 +112,7 @@ export const mount: Mount = (root, ctx) => {
   const typedInput = input({ value: typed, onInput: (v) => { typed = v; typedPreview.textContent = v || ' '; } });
   const typeBox = stack(field('Your name', typedInput),
     field('Style', segmented(HAND_FONTS.map(([f, l]) => [f, l]) as Array<[string, string]>, font, (v) => { font = v; typedPreview.style.fontFamily = `'${v}', cursive`; })), typedPreview);
-  const renderTyped = async (): Promise<Img> => {
-    await loadHandFonts();
-    const px = 160, c0 = new OffscreenCanvas(10, 10).getContext('2d')!;
-    c0.font = `${px}px '${font}', cursive`;
-    const w = Math.ceil(c0.measureText(typed).width + px), hh = Math.ceil(px * 1.8);
-    const c = new OffscreenCanvas(w, hh), g = c.getContext('2d', { willReadFrequently: true })!;
-    g.font = c0.font; g.fillStyle = color; g.textBaseline = 'middle'; g.fillText(typed, px / 2, hh / 2);
-    const d = g.getImageData(0, 0, w, hh);
-    return { data: d.data, width: w, height: hh };
-  };
+  const renderTyped = (): Promise<Img> => typedSignature(typed, font, color);
 
   // ---------- photo
   const photoCanvas = h('canvas', { class: 'ed-canvas sig-photo' });

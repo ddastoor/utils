@@ -38,7 +38,7 @@ Areas with a shared review: the app shell (router, search, favorites, platform h
 | `img2pdf` | Images → PDF | PC + mobile | pdf | ✓ | 3 | 2 | Fit keeps a scan's paper size (its own dpi); Sort by file name; URLs released |
 | `pdf2img` | PDF → Images | PC + mobile | pdf | ✓ | 4 | 6 | a run keeps its own file; size cap 16384 px / 100 MP; padded names; stops on leave |
 | `pdf-compress` | Compress PDF | PC + mobile | pdf | ✓ | 5 | 5 | a run keeps its own file; ends with the tab; colour-key masks kept; target in 1000-byte KB; scan mode within memory |
-| `pdf-sign` | Sign PDF | PC + mobile | pdf |  |  |  |  |
+| `pdf-sign` | Sign PDF | PC + mobile | pdf | ✓ | 6 | 7 | signature tied to its page; kept on the page; strokes scaled with the pad; Clear wins; typed bounds measured; blank paper |
 | `pdf-fill` | Fill PDF Form | PC + mobile | pdf |  |  |  |  |
 | `pdf-unlock` | Unlock PDF | PC + mobile | pdf |  |  |  |  |
 | `pdf-protect` | Protect PDF | PC + mobile | pdf |  |  |  |  |
@@ -1760,3 +1760,18 @@ Reference for the five finance tabs: **mpmath at 60 digits** (`scripts/make-fina
      an upload limit of 300,000 bytes could pass); a KB is 1,000 bytes now and under 20 is refused in words.
   5. "Scanned pages" drew a poster page at full size (the memory cap of PDF → Images applies now), and its warning did
      not say that links, bookmarks and form fields are lost too.
+
+- **`pdf-sign` (tab 132, 6 bugs; engines kept — MuPDF, the canvas, imgproc; e2e 19 — was 12).**
+  1. **The signature went on the page being looked at when saving**, not on the page it was put on: placed on page 1,
+     saved while reading page 2 → page 2 signed. It belongs to its page now; elsewhere the tab says "Your signature is
+     on page 1 — tap this page to move it here."
+  2. A tap near the bottom edge put part of the signature, and the date under it, below the page; both are kept on
+     the page (in the preview and, for pages of another shape with "every page", when saving).
+  3. Strokes drawn before the pad got narrower (a smaller window, a phone turned) were cut off when more was drawn;
+     they are scaled with the pad (about its middle).
+  4. "Clear" did not stop a signature being made in the background (switching back to Draw remakes it): the cleared
+     signature came back a moment later. Every newer stroke, text, photo or Clear wins.
+  5. A typed name in a script font was drawn on a canvas with fixed margins (a swash could be cut); it is sized to the
+     font's measured bounds — `typedSignature` in `signature.ts`, now also the Signature Maker's.
+  6. A photo of blank paper said "Nothing to save yet — sign first"; "No ink was found in the photo …". The newest
+     photo wins, and phones get a camera button beside a picker for a photo already taken.

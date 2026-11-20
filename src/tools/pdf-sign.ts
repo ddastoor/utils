@@ -6,7 +6,7 @@ import { pdfInput, savePdfFile, stem, type LoadedPdf } from '../lib/pdfui';
 import { imgproc, type Img } from '../wasm/imgproc';
 import { encodeImg } from '../lib/imgio';
 import { imageInput } from '../lib/imgtools';
-import { HAND_FONTS, loadHandFonts, renderStrokes, trim } from './signature';
+import { HAND_FONTS, renderStrokes, trim, typedSignature } from './signature';
 
 type Doc = LoadedPdf['doc'];
 const fresh = async (f: LoadedPdf): Promise<Doc> => openPdf(f.bytes, f.password); // a new copy to write into
@@ -41,6 +41,9 @@ function pageStage(onTap?: (fx: number, fy: number, page: number) => void) {
     layer, wrap,
     load(x: LoadedPdf) { f = x; page = 0; draw(); },
     get page() { return page; },
+    /** Height ÷ width of the page shown. */
+    get aspect() { return canvas.width ? canvas.height / canvas.width : Math.SQRT2; },
+    go,
     onDraw(fn: () => void) { listeners.push(fn); },
   };
 }
@@ -62,7 +65,8 @@ function draggable(el: HTMLElement, onMove: (fx: number, fy: number) => void) {
 export const sign: Mount = (root, ctx) => {
   let f: LoadedPdf | null = null, sig: Img | null = null, sigUrl = '';
   let mode: 'draw' | 'type' | 'photo' = 'draw', ink = '#0b2a8a', typed = '', font = HAND_FONTS[0][0];
-  const pos = { fx: 0.6, fy: 0.78, fw: 0.28 }; let allPages = false, withDate = false;
+  // the signature belongs to the page it was put on (saving put it on whatever page was being looked at)
+  const pos = { fx: 0.6, fy: 0.78, fw: 0.28, page: -1 }; let allPages = false, withDate = false, photoSeq = 0, sigSeq = 0;
   // signature sources
   const pad = h('canvas', { class: 'sig-pad pdfs-pad', 'aria-label': 'Draw your signature here' });
   const strokes: Array<{ pts: Array<{ x: number; y: number; p: number }>; color: string; width: number }> = [];
@@ -76,49 +80,79 @@ export const sign: Mount = (root, ctx) => {
     pad.getContext('2d')!.putImageData(new ImageData(new Uint8ClampedArray(img.data), img.width, img.height), 0, 0);
   };
   const pt = (e: PointerEvent) => { const r = pad.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top, p: e.pressure || 0.5 }; };
+  // strokes are in the pad's CSS pixels: a narrower pad (a smaller window, a phone turned) would cut the signature
+  let padW = 0, padH = 0;
+  new ResizeObserver(() => {
+    const r = pad.getBoundingClientRect(); if (!r.width || !r.height) return;
+    const k = padW ? Math.min(r.width / padW, r.height / padH) : 1;
+    if (k < 1) for (const st of strokes) { st.width *= k; for (const q of st.pts) { q.x *= k; q.y = r.height / 2 + (q.y - padH / 2) * k; } } // kept in the middle of the pad's height
+    padW = r.width; padH = r.height; redrawPad();
+  }).observe(pad);
   pad.addEventListener('pointerdown', (e) => { drawing = true; pad.setPointerCapture(e.pointerId); strokes.push({ pts: [pt(e)], color: ink, width: 2.6 }); redrawPad(); e.preventDefault(); });
   pad.addEventListener('pointermove', (e) => { if (!drawing) return; strokes[strokes.length - 1].pts.push(pt(e)); redrawPad(); });
   for (const ev of ['pointerup', 'pointercancel', 'pointerleave']) pad.addEventListener(ev, () => { if (drawing) { drawing = false; makeSig(); } });
   const typeIn = input({ placeholder: 'Type your name', onInput: (v) => { typed = v; makeSig(); } });
-  const photo = imageInput(async (img) => { try { const s = await imgproc('resize', img, Math.min(img.width, 1600), Math.round(img.height * Math.min(1, 1600 / img.width))); sig = await trim(await imgproc('inkToAlpha', s, parseInt(ink.slice(1), 16), false, 1)); show(); } catch (e) { toast(errMsg(e), 'err'); } }, { label: 'Photo of your signature on white paper' });
-  const makeSig = async () => {
+  const photo = imageInput(async (img) => {
+    const my = ++photoSeq;
     try {
-      if (mode === 'draw') { const r = pad.getBoundingClientRect(); if (!strokes.length || !r.width) return; sig = await trim(renderStrokes(strokes as any, r.width, r.height, 3)); }
-      else if (mode === 'type') {
-        if (!typed.trim()) return; await loadHandFonts();
-        const c = new OffscreenCanvas(10, 10), g = c.getContext('2d')!; g.font = `120px "${font}"`;
-        const w = Math.ceil(g.measureText(typed).width) + 60, cc = new OffscreenCanvas(w, 200), gg = cc.getContext('2d', { willReadFrequently: true })!;
-        gg.font = g.font; gg.fillStyle = ink; gg.textBaseline = 'middle'; gg.fillText(typed, 30, 100);
-        const d = gg.getImageData(0, 0, w, 200); sig = await trim({ data: d.data, width: w, height: 200 });
-      }
-      show();
+      const s = await imgproc('resize', img, Math.min(img.width, 1600), Math.round(img.height * Math.min(1, 1600 / img.width)));
+      const ink2 = await imgproc('inkToAlpha', s, parseInt(ink.slice(1), 16), false, 1);
+      const t = await trim(ink2).catch(() => { throw new Error('No ink was found in the photo — sign on plain white paper with a dark pen, and photograph it in even light.'); });
+      if (my !== photoSeq) return; // a newer photo
+      sigSeq++; sig = t; show();
+    } catch (e) { if (my === photoSeq) toast(errMsg(e), 'err'); }
+  }, { label: 'Photo of your signature on white paper', capture: ctx.isMobile ? 'environment' : undefined, cameraLabel: 'Photograph your signature' });
+  // a signature made in the background must not come back after "Clear" or after newer strokes / text / mode
+  const makeSig = async () => {
+    const my = ++sigSeq;
+    try {
+      let made: Img | null = null;
+      if (mode === 'draw') { const r = pad.getBoundingClientRect(); if (!strokes.length || !r.width) return; made = await trim(renderStrokes(strokes as any, r.width, r.height, 3)); }
+      else if (mode === 'type') { if (!typed.trim()) return; made = await trim(await typedSignature(typed, font, ink, 120)); }
+      if (!made || my !== sigSeq) return;
+      sig = made; show();
     } catch { /* nothing drawn yet */ }
   };
   const overlay = h('div', { class: 'pdfs-item pdfs-sig', hidden: true, title: 'Drag to move' }, h('img', { alt: 'Your signature' }), h('div', { class: 'pdfs-date', hidden: true }));
-  draggable(overlay, (x, y) => { pos.fx = x; pos.fy = y; });
-  const place = () => { overlay.style.left = `${pos.fx * 100}%`; overlay.style.top = `${pos.fy * 100}%`; overlay.style.width = `${pos.fw * 100}%`; (overlay.lastChild as HTMLElement).hidden = !withDate; (overlay.lastChild as HTMLElement).textContent = today(); };
+  draggable(overlay, (x, y) => { pos.fx = x; pos.fy = y; pos.page = stage.page; place(); });
+  const where = h('p', { class: 'muted small', 'aria-live': 'polite' });
+  /** Keep the signature (and the date under it) on the page — a tap near the bottom put part of it below the page. */
+  const place = () => {
+    const ar = stage.aspect, aspect = sig ? sig.height / sig.width : 0.35;
+    const sigH = (pos.fw * aspect) / ar, dateH = withDate ? (pos.fw * 0.13) / ar : 0;
+    pos.fx = Math.max(0, Math.min(pos.fx, 1 - pos.fw)); pos.fy = Math.max(0, Math.min(pos.fy, 1 - sigH - dateH));
+    overlay.style.left = `${pos.fx * 100}%`; overlay.style.top = `${pos.fy * 100}%`; overlay.style.width = `${pos.fw * 100}%`;
+    (overlay.lastChild as HTMLElement).hidden = !withDate; (overlay.lastChild as HTMLElement).textContent = today();
+    overlay.hidden = !sig || (!allPages && pos.page !== stage.page);
+    where.textContent = !sig ? '' : allPages ? 'Your signature goes on every page.' : pos.page === stage.page ? `Your signature is on this page (${pos.page + 1}).` : `Your signature is on page ${pos.page + 1} — tap this page to move it here.`;
+  };
   const show = async () => {
     if (!sig) return;
+    const my = sigSeq, url = URL.createObjectURL(await encodeImg(sig, 'png'));
+    if (my !== sigSeq || !sig) { URL.revokeObjectURL(url); return; } // cleared or replaced meanwhile
     if (sigUrl) URL.revokeObjectURL(sigUrl);
-    sigUrl = URL.createObjectURL(await encodeImg(sig, 'png'));
-    (overlay.firstChild as HTMLImageElement).src = sigUrl; overlay.hidden = false; place();
+    sigUrl = url;
+    (overlay.firstChild as HTMLImageElement).src = sigUrl;
+    if (pos.page < 0) pos.page = stage.page; // a first signature lands on the page being looked at
+    place();
   };
-  const stage = pageStage((fx, fy) => { pos.fx = Math.min(1 - pos.fw, fx); pos.fy = fy; place(); });
+  const stage = pageStage((fx, fy, page) => { pos.fx = fx; pos.fy = fy; pos.page = page; place(); });
   stage.layer.append(overlay);
-  const drawBox = stack(pad, h('div', { class: 'row' }, button('Clear', () => { strokes.length = 0; redrawPad(); sig = null; overlay.hidden = true; }, { small: true, variant: 'ghost', icon: 'Eraser' })));
+  stage.onDraw(place);
+  const drawBox = stack(pad, h('div', { class: 'row' }, button('Clear', () => { sigSeq++; strokes.length = 0; redrawPad(); sig = null; place(); }, { small: true, variant: 'ghost', icon: 'Eraser' })));
   const typeBox = stack(typeIn, field('Style', select(HAND_FONTS.map(([fam, label]) => [fam, label] as [string, string]), font, (v) => { font = v; makeSig(); }))); typeBox.hidden = true;
   const photoBox = photo.el; photoBox.hidden = true;
-  const inp = pdfInput({ onLoad: ([x]) => { f = x; stage.load(x); editor.hidden = false; requestAnimationFrame(redrawPad); } });
+  const inp = pdfInput({ onLoad: ([x]) => { f = x; pos.page = sig ? 0 : -1; stage.load(x); editor.hidden = false; requestAnimationFrame(redrawPad); } });
   const editor = h('div', { class: 'stack', hidden: true },
     card('1. Your signature', stack(
       segmented([['draw', 'Draw'], ['type', 'Type'], ['photo', 'Photo']], mode, (v) => { mode = v; drawBox.hidden = v !== 'draw'; typeBox.hidden = v !== 'type'; photoBox.hidden = v !== 'photo'; if (v === 'draw') requestAnimationFrame(redrawPad); makeSig(); }),
       drawBox, typeBox, photoBox,
       field('Ink', segmented([['#0b2a8a', 'Blue'], ['#111111', 'Black']], ink, (v) => { ink = v; strokes.forEach((s) => (s.color = v)); redrawPad(); makeSig(); })))),
-    card('2. Place it', stack(stage.el,
+    card('2. Place it', stack(stage.el, where,
       note(ctx.isMobile ? 'Tap the page to place the signature, then drag it.' : 'Click the page to place the signature, or drag it.'),
       slider({ label: 'Size', min: 8, max: 60, value: pos.fw * 100, unit: ' %', onInput: (v) => { pos.fw = v / 100; place(); } }),
       toggle('Add today’s date under it', withDate, (v) => { withDate = v; place(); }),
-      toggle('Put it on every page (initials)', allPages, (v) => (allPages = v)))),
+      toggle('Put it on every page (initials)', allPages, (v) => { allPages = v; place(); }))),
     note('This places an image of your signature (an “e-signature” as accepted by many forms); it is not a cryptographic digital signature.'));
   root.append(card(null, inp.el), editor,
     actions(button('Save signed PDF', async () => {
@@ -127,10 +161,11 @@ export const sign: Mount = (root, ctx) => {
       const m = await mupdf(), doc = await fresh(f);
       const png = new Uint8Array(await (await encodeImg(sig, 'png')).arrayBuffer());
       const ref = doc.addImage(new m.Image(png)), aspect = sig.height / sig.width;
-      const pages = allPages ? Array.from({ length: f.pages }, (_, i) => i) : [stage.page];
+      const pages = allPages ? Array.from({ length: f.pages }, (_, i) => i) : [Math.max(0, Math.min(f.pages - 1, pos.page))];
       for (const i of pages) {
         await stampPage(doc, i, (W, H) => {
-          const w = pos.fw * W, hh = w * aspect, x = pos.fx * W, y = H - pos.fy * H - hh;
+          // on the page whatever its shape (every page: pages may differ): the date's line above the bottom edge
+          const w = pos.fw * W, hh = w * aspect, x = Math.max(0, Math.min(pos.fx * W, W - w)), y = Math.min(H - hh, Math.max(withDate ? w * 0.13 : 0, H - pos.fy * H - hh));
           const date = withDate ? ` BT /STF ${(w * 0.09).toFixed(2)} Tf 0 g ${x.toFixed(2)} ${(y - w * 0.11).toFixed(2)} Td ${pdfString(today())} Tj ET` : '';
           return `q ${w.toFixed(2)} 0 0 ${hh.toFixed(2)} ${x.toFixed(2)} ${y.toFixed(2)} cm /SIG Do Q${date}`;
         }, { font: withDate, images: { SIG: ref } });
