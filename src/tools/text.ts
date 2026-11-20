@@ -353,7 +353,7 @@ export const morse: Mount = (root) => {
   const show = (text: string, isCode: boolean) => {
     shown = text;
     let part = text;
-    if (text.length > M.SHOW_MAX) { part = text.slice(0, M.SHOW_MAX); if (isCode) part = part.slice(0, Math.max(part.lastIndexOf(' '), part.lastIndexOf('\n')) + 1); }
+    if (text.length > M.SHOW_MAX) { part = text.slice(0, M.SHOW_MAX); const gap = Math.max(part.lastIndexOf(' '), part.lastIndexOf('\n')); if (isCode && gap > 0) part = part.slice(0, gap + 1); }
     const frag = document.createDocumentFragment(); // appended one by one: a spread of 500,000 groups overflowed the stack
     if (isCode) { for (const p of part.split(/([ \n])/)) if (p) frag.append(p === ' ' || p === '\n' ? p : h('span', { class: 'nb' }, p)); } else frag.append(part);
     if (part.length < text.length) frag.append(/\s$/.test(part) ? '…' : ' …');

@@ -2305,6 +2305,13 @@ cannot. Three new suites; each fails on the build before its fixes.
 - **Timers left running after a tab is left** (probe: every tab opened, its main button pressed, then left; intervals,
   timeouts of 2 s and more, animation-frame loops still going): nothing but Screen Info's 3 s race against a WebGPU
   adapter that never answers (a one-shot that does nothing once the tab is gone) — nothing to fix.
+- **Static checks over all the code (nothing to fix):** every listener a tab adds to `window` / `document` (keys,
+  paste, resize, orientation, print, messages, visibility) is removed by its cleanup, and every tab using the shared
+  image picker disposes it; every worker is tracked (`trackWorker`) or ended by its tab (the terminal); browser
+  storage is read and written inside try/catch; the only HTML written from data is zint's SVG (it escapes the text:
+  a Code 128 of `a<b>&c <img …>` shows as text) and Mermaid's (its strict mode sanitises), and the CSP forbids inline
+  scripts anyway.
+- **Unit suites after all this:** 21,756 / 21,756 assertions in 101 suites.
 - **Favorites:** site data cleared in another browser tab left the stars here (the storage listener looked only at the
   favorites key); shell e2e +1.
 - **The complete e2e run** (on the build before these sweeps): 6,537 / 6,540 checks in 190 suites. Three checks failed
