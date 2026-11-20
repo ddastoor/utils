@@ -27,7 +27,9 @@ export default async ({ base, page: newPage, ok, info, download, tmp, devices })
   const py = spawnSync('python3', [join(ROOT, 'tools/sodium_decrypt.py'), '--text', ct], { input: 'correct horse 123\n', encoding: 'utf8' });
   if (py.error || /No module named 'nacl'/.test(py.stderr)) info('PyNaCl not installed — reference decryptor check skipped');
   else ok(py.stdout.trim() === MSG, `reference PyNaCl decryptor reads our text (${py.stdout.trim().slice(0, 20)}…)`);
-  await seg('Decrypt');
+  const ac = [await pw.getAttribute('autocomplete')];
+  await seg('Decrypt'); ac.push(await pw.getAttribute('autocomplete'));
+  ok(ac.join() === 'new-password,off', `the password box: a new password when encrypting, not one the browser offers to make up when decrypting (it was new-password in both): ${ac}`);
   await fv(page, 'Encrypted text (Base64)').fill(ct); await pw.fill('correct horse 123'); await run();
   ok(await fv(page, 'Decrypted text').inputValue({ timeout: 60000 }) === MSG, 'decrypt text round trip');
   await fv(page, 'Encrypted text (Base64)').fill(ct); await pw.fill('wrong password'); await run();

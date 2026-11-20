@@ -529,7 +529,22 @@ reference decryptor opens both). Encrypted text is read as people paste it — B
 lines, in quotation marks, or a whole share link (`readEncryptedText`); a .txt file holding it is read as the encrypted
 bytes (`encryptedTextFile`); what is not encrypted text is said in words. The key derivation shows an indeterminate
 progress with the memory it takes, and a failure to get that memory is said. The version in the note comes from the
-worker after a run.
+worker after a run. The password box is a new password when encrypting and a plain one when decrypting (the browser must not offer to
+make one up there).
+
+### Encrypted Share Link — as built after the Nov 2026 bug hunt
+(`sharelink` in `src/tools/security.ts`, reading a link `readShareLink` in `src/lib/sodium-format.ts`; unit in
+`tests/unit/usodium.test.mjs`, e2e `tests/e2e/sharelink.e2e.mjs` 26.) The message is encrypted as Sodium Encrypt's text is
+(USODIUM1, Argon2id "Interactive", libsodium.js in the crypto worker) and the bytes go into the link as URL-safe Base64
+after `#/sharelink?d=` — the fragment, which browsers never send. **Composer:** message, password of at least 6
+characters typed twice, "Copy link" / "Share"; a link longer than 2,000 characters gets a note with its length (some
+apps cut long links; for a long text, Sodium Encrypt and a file). **Recipient:** the link is read as the page opens —
+what follows `d=` up to the next `&`, space, quotation mark or bracket, without the full stop or comma of a sentence,
+percent-escapes undone, white space dropped; a link that is empty, holds characters a link never has, is cut short
+(a length Base64 cannot have, or fewer than 78 bytes) or was not made by this tab is said in words and there is no
+Decrypt button. An empty password is asked for; a failure of the cipher says "the password is wrong, or the link was
+cut or changed on the way" (the two cannot be told apart). Enter decrypts; the password box is not a new-password
+box. "New message" goes back to the composer.
 
 ### Hash / Checksum
 Algorithms: MD5, SHA-1 (legacy, labelled), SHA-256, SHA-512, SHA3-256, SHA3-512, BLAKE2b-256,

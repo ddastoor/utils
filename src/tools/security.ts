@@ -3,7 +3,7 @@ import {
   downloadBlob, copy, toast, fmtBytes, stack, row, clear, ic, type Mount,
 } from '../ui';
 import { encryptBlob, decryptBlob, hashBlob, STRENGTH, sodiumVersion } from '../lib/crypto-client';
-import { readEncryptedText, encryptedTextFile } from '../lib/sodium-format';
+import { readEncryptedText, readShareLink, encryptedTextFile } from '../lib/sodium-format';
 import { sodium, HASH_ALGS, type HashAlg, toB64, fromB64 } from '../wasm/crypto';
 import { isMobile } from '../platform';
 
@@ -36,6 +36,7 @@ export const sodium_: Mount = (root) => {
   const render = () => {
     clear(inputArea).append(kind === 'file' ? stack(picker, fileInfo) : field(mode === 'encrypt' ? 'Text to encrypt' : 'Encrypted text (Base64)', text));
     pw2.el.hidden = mode === 'decrypt';
+    pw1.inp.autocomplete = mode === 'decrypt' ? 'off' : 'new-password'; // a password to type in, not one the browser should make up
     strengthField.hidden = mode === 'decrypt';
     runBtn.setLabel(mode === 'encrypt' ? 'Encrypt' : 'Decrypt');
     clear(outputArea);
@@ -88,39 +89,55 @@ export const sodium_: Mount = (root) => {
 export { sodium_ as sodium };
 
 // ------------------------------------------------------------------ Encrypted Share Link
+/** Beyond this many characters some apps (SMS, some chat and mail apps) cut a link. */
+const LINK_WARN = 2000;
+/** A failure to open a link, said for a link: a cut link and a wrong password look the same to the cipher. */
+const linkError = (e: unknown) => {
+  const m = e instanceof Error ? e.message : String(e);
+  return /Wrong password|corrupted|modified|incomplete|truncated|extra data|Not a Sodium|out of range/i.test(m)
+    ? 'Could not open the message: the password is wrong, or the link was cut or changed on the way (some apps cut long links — compare its end with the one that was sent).'
+    : m;
+};
 export const sharelink: Mount = (root) => {
-  const param = new URLSearchParams(location.hash.split('?')[1] || '').get('d');
   const prog = progress();
-  if (param) {
+  if (/[?&]d=/.test(location.hash)) {
+    const read = readShareLink(location.hash);
     const pw = passwordField('Password');
+    pw.inp.autocomplete = 'off'; // the password the sender gave — the browser should not offer to make one up
     const out = outputBox({ rows: 6 });
     const result = h('div');
+    let decryptBtn: HTMLButtonElement | undefined;
+    pw.inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') decryptBtn?.click(); });
     root.append(
       note('Someone sent you an encrypted message. Enter the password they gave you. Decryption happens on this device.'),
-      card(null, stack(pw.el, prog, result)),
-      actions(button('Decrypt', async () => {
-        const blob = await decryptBlob(new Blob([fromB64(param) as BlobPart]), pw.inp.value, (f, t) => prog.set(f, t)).finally(() => prog.done());
+      'error' in read ? note(`This link cannot be opened: ${read.error}`, 'err') : card(null, stack(pw.el, prog, result)),
+      actions(...('error' in read ? [] : [decryptBtn = button('Decrypt', async () => {
+        if (!pw.inp.value) throw new Error('Enter the password you were given.');
+        const blob = await decryptBlob(new Blob([read.bytes as BlobPart]), pw.inp.value, (f, t) => prog.set(f, t)).catch((e) => { throw new Error(linkError(e)); }).finally(() => prog.done());
         out.value = await blob.text();
         clear(result).append(field('Message', out));
-      }, { variant: 'primary', icon: 'LockOpen' }), button('New message', () => { location.hash = '#/sharelink'; }, { icon: 'Plus' })),
+      }, { variant: 'primary', icon: 'LockOpen' })]), button('New message', () => { location.hash = '#/sharelink'; }, { icon: 'Plus' })),
     );
     return;
   }
   const msg = textarea({ rows: 6, placeholder: 'Secret message…' });
-  const pw = passwordField('Password (tell it to the recipient separately)');
+  const pw = passwordField('Password (tell it to the recipient separately)'), pw2 = passwordField('Repeat password', 'Repeat password');
   const link = outputBox({ rows: 4, mono: true });
   const result = h('div', { class: 'stack' });
   root.append(
-    card(null, stack(field('Message', msg), pw.el, prog)),
+    card(null, stack(field('Message', msg), pw.el, pw2.el, prog)),
     result,
     actions(button('Create link', async () => {
       if (!msg.value.trim()) throw new Error('Write a message first.');
       if (pw.inp.value.length < 6) throw new Error('Use a password of at least 6 characters.');
+      if (pw.inp.value !== pw2.inp.value) throw new Error('The passwords do not match — the recipient could never open the message.');
       const blob = await encryptBlob(new Blob([msg.value]), pw.inp.value, STRENGTH.interactive, (f, t) => prog.set(f, t)).finally(() => prog.done());
       const url = `${location.origin}${location.pathname}#/sharelink?d=${toB64(new Uint8Array(await blob.arrayBuffer()), true)}`;
       link.value = url;
-      clear(result).append(field('Share this link', link), row(button('Copy link', () => copy(url), { variant: 'primary', icon: 'Copy' }),
-        'share' in navigator ? button('Share', () => navigator.share({ url }).catch(() => {}), { icon: 'Share2' }) : null));
+      clear(result).append(field('Share this link', link),
+        ...(url.length <= LINK_WARN ? [] : [note(`This link is ${url.length.toLocaleString('en-IN')} characters long. Some apps cut links beyond about ${LINK_WARN.toLocaleString('en-IN')} characters, and a cut link cannot be opened — for a long text use Sodium Encrypt and send the file.`, 'warn')]),
+        row(button('Copy link', () => copy(url), { variant: 'primary', icon: 'Copy' }),
+          'share' in navigator ? button('Share', () => navigator.share({ url }).catch(() => {}), { icon: 'Share2' }) : null));
     }, { variant: 'primary', icon: 'Link' })),
     note('The encrypted message lives entirely in the link (after the #), which browsers never send to any server. Without the password it cannot be read.'),
   );

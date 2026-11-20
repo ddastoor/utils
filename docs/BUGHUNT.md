@@ -56,8 +56,8 @@ Areas with a shared review: the app shell (router, search, favorites, platform h
 | id | Tab | Platform | Area | R | B | T | Notes |
 |---|---|---|---|---|---|---|---|
 | `pgp` | OpenPGP | PC + mobile | security-codes | ✓ | 8 | 61 | a 2nd recipient was dropped (library reads 1 armored block); stored file name; armor inside e-mail; errors in words; key IDs; fingerprint+date; RFC 9580 vectors; gpg both ways. Engine kept (rPGP semantics layer experimental) |
-| `sodium` | Sodium Encrypt | PC + mobile | security-codes | ✓ | 4 | 52 | engine → libsodium.js (sumo, libsodium 1.0.22) + crypto.wasm header; pasted text in every form (atob errors), .txt files, progress during Argon2; PyNaCl + cross-engine tests |
-| `sharelink` | Encrypted Share Link | PC + mobile | security-codes |  |  |  |  |
+| `sodium` | Sodium Encrypt | PC + mobile | security-codes | ✓ | 5 | 53 | engine → libsodium.js (sumo, libsodium 1.0.22) + crypto.wasm header; pasted text in every form (atob errors), .txt files, progress during Argon2; PyNaCl + cross-engine tests |
+| `sharelink` | Encrypted Share Link | PC + mobile | security-codes | ✓ | 10 | 32 | engine as sodium (libsodium.js + crypto.wasm header); links read as they arrive (cut, changed, trailing full stop, %-escapes, other site's d=), password twice, long-link warning, autocomplete, Enter |
 | `hash` | Hash / Checksum | PC + mobile | security-codes |  |  |  |  |
 | `password` | Password Generator | PC + mobile | security-codes |  |  |  |  |
 | `passphrase` | Passphrase Generator | PC + mobile | security-codes |  |  |  |  |
@@ -1300,3 +1300,30 @@ Reference for the five finance tabs: **mpmath at 60 digits** (`scripts/make-fina
   no longer loads crypto.wasm on the page as it opens just to print libsodium's version (the worker reports the
   version of the engine that did the work). Files of the old engine open with the new one and the other way round;
   the PyNaCl reference decryptor opens what the new one writes.
+  5. (Found with tab 102.) The password box of "Decrypt" was marked as a new password, so Chrome offered to make up
+     a strong one where the password of the file has to be typed; it is a plain password box there now.
+
+- **`sharelink` (tab 102, 10 bugs; engine: libsodium.js + crypto.wasm's header, as tab 101 — docs/WASM-AUDIT.md, 102;
+  unit: share links in `tests/unit/usodium.test.mjs` +13; e2e 26 — was 11).**
+  1. A link with a character a link never has (changed on the way by an app) gave the browser's "Failed to execute
+     'atob' on 'Window': The string to be decoded is not correctly encoded." — on pressing Decrypt, after the
+     password had been typed. The link is read as the page opens now; what is wrong is said in words and there is
+     no Decrypt button.
+  2. A link copied together with the full stop of its sentence ("…d=VVNP….") could not be opened (the same atob
+     error); the full stop is left aside now, as are a space that came in with a copy and percent-escapes.
+  3. A link cut inside its first 78 bytes said "Not a Sodium Encrypt file (missing USODIUM1 header)" — "the link is
+     cut short (some apps cut long links)" now.
+  4. A link cut inside the message said "Wrong password, or the file is not a valid encrypted file", though the
+     password was right. The cipher cannot tell the two apart; the tab says both now ("the password is wrong, or
+     the link was cut or changed on the way — compare its end with the one that was sent").
+  5. No password: the key was derived from an empty one (a second or more) and "Wrong password" followed; the tab
+     asks for the password now.
+  6. A link with an empty `d=` showed the composer without a word; a `d=` of another site gave "Not a Sodium Encrypt
+     file". Both are said for a link now.
+  7. The password was typed once: a slip made a link that nobody, the sender included, could ever open. It is typed
+     twice now, as in Sodium Encrypt.
+  8. A long message gave a long link without a word (5,000 characters → a link of 6,808); some apps cut links beyond
+     about 2,000 characters. Above that the tab says how long the link is and suggests Sodium Encrypt and a file.
+  9. The recipient's password box was marked as a new password: Chrome offered to make up a strong password where
+     the one that was sent has to be typed.
+  10. Enter in the recipient's password box did nothing; it decrypts now.

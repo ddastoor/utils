@@ -56,7 +56,7 @@ export default async (t, { load, wasm, root }) => {
   { const r = [lib.random(16), lib.random(16)]; t.ok(r[0].length === 16 && !Buffer.from(r[0]).equals(Buffer.from(r[1])), 'random salts differ'); }
 
   // ---- encrypted text as people paste it (src/lib/sodium-format.ts)
-  const { readEncryptedText, encryptedTextFile } = await load('/src/lib/sodium-format.ts');
+  const { readEncryptedText, readShareLink, encryptedTextFile } = await load('/src/lib/sodium-format.ts');
   { const ct = await bytes(await encrypt(new Blob([enc('hello sodium')]), enc('pw'), TINY, lib, codec));
     const b64 = Buffer.from(ct).toString('base64'), url = b64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
     const back = async (x) => { const r = readEncryptedText(x); return 'bytes' in r ? new TextDecoder().decode(await bytes(await decrypt(new Blob([r.bytes]), enc('pw'), lib, codec))) : r.error; };
@@ -74,6 +74,23 @@ export default async (t, { load, wasm, root }) => {
     const file = await encryptedTextFile(new Blob([`\uFEFF${b64.replace(/(.{76})/g, '$1\r\n')}\r\n`]));
     t.ok(file && Buffer.from(file).equals(Buffer.from(ct)), 'a .txt file holding the encrypted text (with a BOM and Windows line ends) is read as the encrypted bytes (it was "Not a Sodium Encrypt file")');
     t.eq([await encryptedTextFile(new Blob([ct])), await encryptedTextFile(new Blob(['just a note']))], [null, null], 'the encrypted bytes themselves, and other text: not taken for encrypted text'); }
+  // ---- share links (Encrypted Share Link: the hash of the page)
+  { const ct = await bytes(await encrypt(new Blob([enc('chai at 5')]), enc('pw'), TINY, lib, codec));
+    const d = Buffer.from(ct).toString('base64url');
+    const open = async (hash) => { const r = readShareLink(hash); return 'bytes' in r ? new TextDecoder().decode(await bytes(await decrypt(new Blob([r.bytes]), enc('pw'), lib, codec))) : r.error; };
+    t.eq(await open(`#/sharelink?d=${d}`), 'chai at 5', 'the hash of a share link');
+    t.eq(await open(`#/sharelink?d=${d}&utm_source=x`), 'chai at 5', 'a parameter an app added behind it');
+    t.eq(await open(`#/sharelink?d=${d}.`), 'chai at 5', 'the full stop of the sentence it was copied from');
+    t.eq(await open(`#/sharelink?d=${d.replace(/_/g, '%5F').replace(/-/g, '%2D')}`), 'chai at 5', 'percent-escapes an app put in');
+    t.eq(await open(`#/sharelink?d=${d.slice(0, 30)}%20${d.slice(30)}`), 'chai at 5', 'a space that came in with a copy');
+    t.eq(readShareLink('#/sharelink?d=VVNPRElVTTE%E0'), { error: 'the link was changed on the way — it holds characters a share link never has (%). Ask for the link again.' }, 'a broken percent-escape: said in words (decodeURIComponent threw "URI malformed" and the tab did not open)');
+    t.eq(readShareLink(`#/sharelink?d=${d.slice(0, 40)}!${d.slice(40)}`), { error: 'the link was changed on the way — it holds characters a share link never has (!). Ask for the link again.' }, 'a character a link never has (the browser said "Failed to execute \'atob\'")');
+    t.eq(readShareLink(`#/sharelink?d=${d.slice(0, 41)}`), { error: 'the link is cut short (some apps cut long links). Ask for the whole link.' }, 'cut at a length Base64 cannot have');
+    t.eq(readShareLink(`#/sharelink?d=${d.slice(0, 40)}`), { error: 'the link is cut short (some apps cut long links). Ask for the whole link.' }, 'cut inside the header (it was "Not a Sodium Encrypt file")');
+    t.eq(readShareLink(`#/sharelink?d=${d.slice(0, 100)}`), { error: 'the link is cut short (some apps cut long links). Ask for the whole link.' }, 'shorter than a header and an empty last chunk: cut');
+    t.ok('bytes' in readShareLink(`#/sharelink?d=${d.slice(0, -4)}`), 'cut inside the message: read, and the cipher decides (the tab says "wrong password, or the link was cut")');
+    t.eq(readShareLink('#/sharelink?d=SGVsbG8gd29ybGQ'), { error: 'it was not made by Encrypted Share Link (the part after "d=" should begin with "VVNPRElVTTE").' }, 'another site\'s d= parameter');
+    t.eq([readShareLink('#/sharelink?d='), readShareLink('#/sharelink?d=&x=1'), readShareLink('#/sharelink')], Array(3).fill({ error: 'the link holds no message. Ask for the whole link.' }), 'no message in the link'); }
   // ---- a key that cannot be derived (a phone without the memory a "Maximum" file asks for)
   { const broke = { ...lib, pwhash: () => { throw new RangeError('Aborted(OOM)'); } };
     const ct = await encrypt(new Blob([enc('x')]), enc('pw'), { ops: 4, memKiB: 1 << 20 }, { ...lib, pwhash: (p, s2) => lib.pwhash(p, s2, 1, 8) }, codec);

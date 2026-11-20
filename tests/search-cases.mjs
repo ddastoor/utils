@@ -37,7 +37,7 @@ export default [
   // Security
   ['pgp', 'pgp'], ['gpg', 'pgp'], ['openpgp', 'pgp'], ['public key encrypt', 'pgp'], ['verify signature', 'pgp'],
   ['encrypt file', 'sodium'], ['libsodium', 'sodium'], ['argon2', 'sodium'], ['decrypt file', 'sodium'],
-  ['share secret', 'sharelink'], ['encrypted link', 'sharelink'], ['secret message', 'sharelink'],
+  ['share secret', 'sharelink'], ['encrypted link', 'sharelink'], ['secret message', 'sharelink'], ['encrypted note', 'sharelink'], ['onetimesecret', 'sharelink'], ['privnote', 'sharelink'], ['password protected link', 'sharelink'],
   ['sha256', 'hash'], ['md5', 'hash'], ['checksum', 'hash'], ['hash file', 'hash'], ['crc32', 'hash'],
   ['password generator', 'password'], ['random password', 'password'], ['strong password', 'password'],
   ['passphrase', 'passphrase'], ['diceware', 'passphrase'],

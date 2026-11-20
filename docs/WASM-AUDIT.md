@@ -814,3 +814,13 @@ One entry per tab, written before its bug hunt: our module → candidates → ch
   opens a file written by libsodium.js**; wrong password, a changed bit in the first and in a later chunk, a cut
   after a whole chunk and inside one, bytes added, changed Argon2 parameters — each refused with its message
   (`tests/unit/usodium.test.mjs`); the Sodium and Share Link e2e suites pass on the new engine.
+
+### 102. `sharelink` — Encrypted Share Link (20 Nov 2026)
+- **Ours:** none of its own. The cryptography is **libsodium.js** (entry 101) and the USODIUM1 header is crypto.wasm's,
+  through the same worker as Sodium Encrypt; the link is the encrypted bytes as URL-safe Base64 after `#/sharelink?d=`.
+- **Candidates looked at:** a WebAssembly module for "encrypted share links" does not exist as such — services of the
+  kind (PrivateBin, Yopass, onetimesecret) are server programs; PrivateBin's browser side is JavaScript on WebCrypto
+  and its links need its server. Nothing to replace.
+- **Decision:** stays on entry 101's engines. What the tab adds is reading a link as it arrives after a trip through
+  other apps (`readShareLink` in `src/lib/sodium-format.ts`: string glue on the browser's `atob`) — TypeScript, as
+  recorded for the reading of typed input in §3a.

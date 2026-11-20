@@ -38,7 +38,7 @@ export default async ({ base, page: newPage, ok }) => {
 
   await page.goto(base + '#/sharelink');
   await page.locator('textarea').first().fill('meet at 5');
-  await page.locator('input[type=password]').fill('secret123');
+  await page.locator('input[type=password]').nth(0).fill('secret123'); await page.locator('input[type=password]').nth(1).fill('secret123');
   await page.getByRole('button', { name: 'Create link' }).click();
   await page.waitForFunction(() => [...document.querySelectorAll('.outbox textarea')].some((t) => t.value.includes('#/sharelink?d=')), null, { timeout: 30000 });
   const link = await page.locator('.outbox textarea').inputValue();
