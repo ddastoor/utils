@@ -4,6 +4,10 @@ import { readFileSync } from 'node:fs';
 
 export default async ({ base, page: newPage, ok, info, download }) => {
   const page = await newPage({ viewport: { width: 1280, height: 900 }, permissions: ['clipboard-read', 'clipboard-write'] });
+  await page.addInitScript(() => { // every clone of a shared track, to see that none is left running
+    const clone = MediaStreamTrack.prototype.clone; window.__clones = [];
+    MediaStreamTrack.prototype.clone = function () { const c = clone.call(this); window.__clones.push(c); return c; };
+  });
   await page.goto(`${base}#/screenshot`);
   const btn = (name) => page.getByRole('button', { name, exact: true });
   const png = (p) => { const b = readFileSync(p); return { sig: b.subarray(0, 8).toString('hex'), w: b.readUInt32BE(16), h: b.readUInt32BE(20), size: b.length }; };
@@ -50,10 +54,27 @@ export default async ({ base, page: newPage, ok, info, download }) => {
     await page.getByText('Cancelled.').waitFor({ timeout: 3000 });
     ok(await page.locator('.shot-thumb').count() === 3, '“Cancel” takes no shot');
   }
-  // pick an earlier shot from the gallery
+  // pick an earlier shot from the gallery: kept as PNG and decoded again, pixel for pixel the shot saved first
   await page.locator('.shot-thumb').last().click();
+  await page.waitForTimeout(500);
   ok(/\d+×\d+ · /.test(await page.locator('.shot-stage + .muted').textContent()), 'gallery shot opens in the editor');
+  await page.getByText('Crop (drag the box)').click({ force: true }).catch(() => {});
+  const cropOnNow = await page.getByRole('checkbox', { name: 'Crop (drag the box)' }).isChecked().catch(() => false);
+  if (cropOnNow) await page.getByText('Crop (drag the box)').click();
+  const p3 = readFileSync(await download(page, () => btn('PNG').click())), p0 = readFileSync(await download(page, () => btn('PNG').click()));
+  ok(p3.equals(p0) && p3.readUInt32BE(16) === W, `an earlier shot reopened from its PNG saves the same picture (${p3.length} bytes, ${p3.readUInt32BE(16)} px wide)`);
   await btn('Stop sharing').click();
   ok(await page.locator('.actions').getByRole('button', { name: 'Share a screen, window or tab' }).isVisible(), 'sharing stopped');
+  const clones = await page.evaluate(() => window.__clones.map((t) => t.readyState));
+  ok(clones.length >= 3 && clones.every((r) => r === 'ended'), `no copy of the shared screen is left running after "Stop sharing" (${clones.length} shots' copies: ${[...new Set(clones)].join(', ')}; they were left live)`);
+  // sharing ended during the countdown: said, no "Cannot read properties of null"
+  await page.locator('.actions').getByRole('button', { name: 'Share a screen, window or tab' }).click();
+  await page.getByText(/^Sharing .* Press “Take screenshot”/).waitFor({ timeout: 10000 });
+  await page.locator('.actions').getByRole('button', { name: 'Take screenshot in 3 s' }).click();
+  await page.waitForTimeout(600);
+  ok(await page.locator('.actions').getByRole('button', { name: 'Share something else' }).isDisabled(), 'another share cannot start during the countdown');
+  await btn('Stop sharing').click();
+  await page.getByText('Sharing ended before the shot. Share again to take one.').waitFor({ timeout: 8000 }).catch(() => {});
+  ok(await page.getByText('Sharing ended before the shot. Share again to take one.').isVisible(), 'sharing stopped during the countdown: said');
   ok(!page.errors.length, `no page errors ${page.errors.slice(0, 3).join(' | ')}`);
 };

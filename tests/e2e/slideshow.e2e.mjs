@@ -1,11 +1,14 @@
 // Slideshow Maker (#/slideshow): photos + music → MP4 (WebCodecs + mediabunny, music via our audio.wasm). Checks MP4
 // boxes, length, which photo is on screen at known times (vs the photos drawn the same way), reorder, shape, music.
-import { readFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import { join } from 'node:path';
 import { mp4Info } from './video.e2e.mjs';
+const probeAudio = (f) => { try { return execFileSync('ffprobe', ['-v', 'error', '-select_streams', 'a:0', '-show_entries', 'stream=codec_name', '-of', 'csv=p=0', f], { encoding: 'utf8' }).trim(); } catch { return null; } };
 const I = (n) => new URL(`../fixtures/images/${n}`, import.meta.url).pathname;
 const M = (n) => new URL(`../fixtures/media/${n}`, import.meta.url).pathname;
 
-export default async ({ base, page: newPage, ok, info, download, devices }) => {
+export default async ({ base, page: newPage, ok, info, download, devices, tmp }) => {
   const page = await newPage({ viewport: { width: 1280, height: 1100 } });
   await page.goto(`${base}#/slideshow`);
   const make = async () => { await page.locator('.actions').getByRole('button', { name: 'Make video' }).click(); await page.locator('.vid-result .vid-big').waitFor({ timeout: 180000 }); return download(page, () => page.locator('.actions').getByRole('button', { name: 'Download' }).click()); };
@@ -48,7 +51,9 @@ export default async ({ base, page: newPage, ok, info, download, devices }) => {
   ok(/video 0:06 · 1280×720 · music 0:02 \(repeats\)/.test(await page.getByText(/^3 photos/).textContent()), 'summary: 6 s video, music repeats');
   const f1 = await make(), i1 = mp4Info(readFileSync(f1));
   ok(i1.video?.codec === 'avc1' && i1.video.w === 1280 && i1.video.h === 720, `H.264 1280×720 (${i1.video?.codec})`);
-  ok(!!i1.audio && ['mp4a', 'Opus'].includes(i1.audio.codec), `music track (${i1.audio?.codec})`);
+  ok(i1.audio?.codec === 'mp4a', `music track in AAC (${i1.audio?.codec}; where the browser has no AAC encoder it was Opus inside the MP4)`);
+  const pa = probeAudio(f1); if (pa !== null) ok(pa === 'aac', `ffprobe reads the music as AAC (${pa})`);
+  ok(/\+ music \(AAC\)/.test(await page.locator('.vid-result').textContent()), 'the result says the music is AAC');
   ok(Math.abs(i1.duration - 6) < 0.2, `6 s long (${i1.duration.toFixed(2)} s)`);
   const w1 = await which(f1, [1.0, 3.0, 5.0]);
   ok(w1.out.map((o) => o.best).join(',') === 'chelsea.png,coffee.jpg,astronaut.png' && w1.out.every((o) => o.diff < 20), `photos in order at 1/3/5 s: ${w1.out.map((o) => `${o.best} (${o.diff.toFixed(1)})`).join(', ')}`);
@@ -72,6 +77,28 @@ export default async ({ base, page: newPage, ok, info, download, devices }) => {
   await page.getByText(/^2 photos · 1\.0 s each · video 0:02/).waitFor();
   const f4 = await make(), i4 = mp4Info(readFileSync(f4));
   ok(Math.abs(i4.duration - 2) < 0.15, `fit to music: ${i4.duration.toFixed(2)} s`);
+
+  // a photo removed and the shape changed while a video is being made: the video is made as it was asked for, and the
+  // removed photo is let go afterwards (drawing it after it was closed failed the video)
+  await page.getByText('Fit the slideshow to the music length').click();
+  await page.locator('input[type=file]').first().setInputFiles([I('coffee.jpg'), I('astronaut.png')]);
+  await page.getByText(/^4 photos/).waitFor({ timeout: 30000 });
+  await page.getByRole('slider').evaluate((el) => { el.value = '4'; el.dispatchEvent(new Event('input', { bubbles: true })); });
+  await page.locator('.actions').getByRole('button', { name: 'Make video' }).click();
+  await page.waitForTimeout(800);
+  await page.getByRole('button', { name: 'Remove photo 1' }).click();
+  await page.getByRole('radio', { name: 'Landscape 16:9' }).click();
+  await page.locator('.vid-result .vid-big').waitFor({ timeout: 180000 });
+  const f5 = await download(page, () => page.locator('.actions').getByRole('button', { name: 'Download' }).click()), i5 = mp4Info(readFileSync(f5));
+  ok(Math.abs(i5.duration - 16) < 0.25 && i5.video.w === 720 && i5.video.h === 1280, `changes during the making wait for the next video: ${i5.duration.toFixed(2)} s at ${i5.video.w}×${i5.video.h} (4 photos × 4 s, 9:16 as it was)`);
+  // the newest music wins (a slow file chosen first does not replace it)
+  const longWav = join(tmp, 'long-music.wav'), n = 44100 * 120, b = Buffer.alloc(44 + n * 2);
+  b.write('RIFF', 0); b.writeUInt32LE(36 + n * 2, 4); b.write('WAVEfmt ', 8); b.writeUInt32LE(16, 16); b.writeUInt16LE(1, 20); b.writeUInt16LE(1, 22); b.writeUInt32LE(44100, 24); b.writeUInt32LE(88200, 28); b.writeUInt16LE(2, 32); b.writeUInt16LE(16, 34); b.write('data', 36); b.writeUInt32LE(n * 2, 40);
+  writeFileSync(longWav, b);
+  await page.locator('input[type=file]').nth(1).setInputFiles(longWav);
+  await page.locator('input[type=file]').nth(1).setInputFiles(M('tone.mp3'));
+  await page.waitForTimeout(2500);
+  ok(/tone\.mp3 · 0:02/.test(await page.locator('.card').filter({ hasText: 'Music' }).first().textContent()), 'the music chosen last stays');
 
   // preview plays and stops
   await page.getByRole('button', { name: 'Preview' }).click();

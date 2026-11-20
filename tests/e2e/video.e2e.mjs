@@ -1,7 +1,12 @@
 // Video Compressor (#/video): WebCodecs (H.264 / AV1) + mediabunny. Checks the MP4 boxes (codecs, size), plays the
 // result in the browser (duration, dimensions) and compares a decoded frame with the original.
 import { readFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import { join } from 'node:path';
 const M = (n) => new URL(`../fixtures/media/${n}`, import.meta.url).pathname;
+/** the sound as ffprobe (FFmpeg, the independent reader) sees it: codec and bit rate; null without ffprobe */
+const probeAudio = (f) => { try { const [c, br] = execFileSync('ffprobe', ['-v', 'error', '-select_streams', 'a:0', '-show_entries', 'stream=codec_name,bit_rate', '-of', 'csv=p=0', f], { encoding: 'utf8' }).trim().split(','); return { codec: c, br: +br }; } catch { return null; } };
+const hasProbe = (() => { try { execFileSync('ffprobe', ['-version'], { stdio: 'ignore' }); return true; } catch { return false; } })();
 
 /** Minimal ISO-BMFF walk: track kinds, sample-entry codes, tkhd sizes, movie duration. */
 export function mp4Info(b) {
@@ -26,7 +31,7 @@ export function mp4Info(b) {
   return { duration, tracks, video: tracks.find((t) => t.kind === 'vide'), audio: tracks.find((t) => t.kind === 'soun') };
 }
 
-export default async ({ base, page: newPage, ok, info, download, devices }) => {
+export default async ({ base, page: newPage, ok, info, download, devices, tmp }) => {
   const page = await newPage({ viewport: { width: 1280, height: 1100 } });
   await page.goto(`${base}#/video`);
   const compress = async () => { await page.locator('.actions').getByRole('button', { name: /^Compress/ }).click(); await page.locator('.vid-result .vid-big').waitFor({ timeout: 120000 }); return download(page, () => page.locator('.actions').getByRole('button', { name: 'Download' }).click()); };
@@ -48,6 +53,7 @@ export default async ({ base, page: newPage, ok, info, download, devices }) => {
   ok(readFileSync(f1).length < size0 * 0.8, `Medium: smaller (${Math.round(size0 / 1024)} → ${Math.round(readFileSync(f1).length / 1024)} KB)`);
   ok(i1.video?.codec === 'avc1' && i1.video.w === 640 && i1.video.h === 360, `H.264 640×360 (${i1.video?.codec} ${i1.video?.w}×${i1.video?.h})`);
   ok(i1.audio?.codec === 'mp4a', 'AAC sound copied (no re-encoding)');
+  if (hasProbe) { const a0 = probeAudio(M('clip.mp4')), a1 = probeAudio(f1); ok(a1?.codec === 'aac' && Math.abs(a1.br - a0.br) <= 2000, `ffprobe: the AAC sound is the original's (${a1?.codec} ${a1?.br} b/s, was ${a0?.br})`); }
   ok(Math.abs(i1.duration - 3) < 0.15, `duration kept (${i1.duration.toFixed(2)} s)`);
   const p1 = await play(f1, M('clip.mp4'));
   ok(Math.abs(p1.duration - 3) < 0.15 && p1.w === 640 && p1.diff < 12, `plays: ${p1.duration.toFixed(2)} s, frame at 1 s matches the original (mean diff ${p1.diff.toFixed(1)})`);
@@ -59,6 +65,12 @@ export default async ({ base, page: newPage, ok, info, download, devices }) => {
   const f2 = await compress(), i2 = mp4Info(readFileSync(f2));
   ok(i2.video.w === 426 && i2.video.h === 240 && !i2.audio, `240p without sound (${i2.video.w}×${i2.video.h}, ${i2.tracks.length} track)`);
 
+  // ---- smaller sound: AAC at 64 kbps (it was Opus inside MP4 where the browser has no AAC encoder — Linux Chromium)
+  await page.getByLabel('Resolution').selectOption('0'); await page.getByLabel('Sound').selectOption('low');
+  const fl = await compress();
+  if (hasProbe) { const al = probeAudio(fl); ok(al?.codec === 'aac' && al.br > 40000 && al.br < 90000, `"Smaller" sound: AAC at ${Math.round((al?.br || 0) / 1000)} kbps (ffprobe: ${al?.codec})`); }
+  else ok(mp4Info(readFileSync(fl)).audio?.codec === 'mp4a', 'Smaller sound: AAC box');
+
   // ---- target size 150 KB (with sound), retried if the encoder overshoots
   await page.getByLabel('Resolution').selectOption('0'); await page.getByLabel('Sound').selectOption('keep');
   await page.getByRole('radio', { name: 'To a size' }).click();
@@ -69,6 +81,13 @@ export default async ({ base, page: newPage, ok, info, download, devices }) => {
   await page.getByLabel('Target size (MB)').fill('0.005');
   await page.locator('.actions').getByRole('button', { name: /^Compress/ }).click();
   ok(await page.getByText(/is too small for/).first().isVisible({ timeout: 5000 }).catch(() => false) || await page.getByText(/is too small for/).first().isVisible(), 'impossible target explained');
+  await page.getByLabel('Target size (MB)').fill('0');
+  await page.locator('.actions').getByRole('button', { name: /^Compress/ }).click();
+  ok(await page.getByText('Type a target size above 0 MB.').first().waitFor({ timeout: 5000 }).then(() => true, () => false), 'a target of 0 MB is refused (it was taken as 1 MB)');
+  // a target above the file's own size: never bigger than the original (it was: the bitrate followed the target)
+  await page.getByLabel('Target size (MB)').fill('50');
+  const fb = await compress(), sb = readFileSync(fb).length;
+  ok(sb < size0 && await page.getByText(/already under 50 MB/).isVisible(), `a 50 MB target for a ${Math.round(size0 / 1024)} KB video: ${Math.round(sb / 1024)} KB, said to be already under`);
 
   // ---- AV1 when the browser can encode it
   await page.getByRole('radio', { name: 'By quality' }).click();
@@ -87,8 +106,30 @@ export default async ({ base, page: newPage, ok, info, download, devices }) => {
   await page.getByRole('radio', { name: /H\.264/ }).click();
   const f5 = await compress(), i5 = mp4Info(readFileSync(f5));
   ok(i5.video.codec === 'avc1' && !!i5.audio && i5.audio.codec !== 'vorb', `WebM → MP4 H.264, sound ${i5.audio?.codec}`);
+  if (hasProbe) { const a5 = probeAudio(f5); ok(a5?.codec === 'aac', `WebM's Vorbis becomes AAC in the MP4 (ffprobe: ${a5?.codec}; it was Vorbis kept inside the MP4, which few players play)`); }
+  else info('ffprobe not installed: the sound codec is read from the MP4 box only');
   const p5 = await play(f5, M('clip.webm'));
   ok(p5.diff < 14 && Math.abs(p5.duration - 3) < 0.2, `WebM converted frame matches (diff ${p5.diff.toFixed(1)})`);
+  // ---- a longer video: Cancel, and a new file during a compression ends it
+  let longFile = '';
+  try { longFile = join(tmp, 'long-720p.mp4'); execFileSync('ffmpeg', ['-v', 'error', '-y', '-f', 'lavfi', '-i', 'testsrc2=size=1280x720:rate=30', '-f', 'lavfi', '-i', 'sine=frequency=330', '-t', '20', '-c:v', 'libx264', '-preset', 'ultrafast', '-c:a', 'aac', '-shortest', longFile]); } catch { longFile = ''; }
+  if (longFile) {
+    await page.getByRole('radio', { name: 'By quality' }).click();
+    await page.locator('input[type=file]').setInputFiles(longFile);
+    await page.getByText(/long-720p\.mp4: .* 1280×720/).waitFor({ timeout: 20000 });
+    await page.locator('.actions').getByRole('button', { name: /^Compress/ }).click();
+    await page.waitForTimeout(1500);
+    await page.locator('.actions').getByRole('button', { name: 'Cancel' }).click();
+    ok(await page.getByText('Cancelled').first().waitFor({ timeout: 10000 }).then(() => true, () => false) && await page.locator('.actions').getByRole('button', { name: /^Compress/ }).isVisible(), 'Cancel ends a compression');
+    await page.locator('.actions').getByRole('button', { name: /^Compress/ }).click();
+    await page.waitForTimeout(1500);
+    await page.locator('input[type=file]').setInputFiles(M('clip.mp4'));
+    await page.getByText(/clip\.mp4: .* 640×360/).waitFor({ timeout: 20000 });
+    await page.waitForTimeout(3000);
+    ok(await page.locator('.vid-result .vid-big').isHidden() && await page.locator('.actions').getByRole('button', { name: /^Compress/ }).isVisible(), 'a new file during a compression ends it: no result of the old file appears');
+    const fz = await compress();
+    ok(/clip-small\.mp4$/.test(fz) && mp4Info(readFileSync(fz)).video.w === 640, `the next compression is of the new file (${fz.split('/').pop()})`);
+  } else info('ffmpeg not installed: the cancel and new-file checks need a longer video');
   ok(!page.errors.length, `no page errors ${page.errors.slice(0, 3).join(' | ')}`);
 
   // phone layout

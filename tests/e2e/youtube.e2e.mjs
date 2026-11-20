@@ -90,5 +90,13 @@ export default async ({ base, page: newPage, ok, info, download }) => {
   ok(Math.abs(m.duration - 3) < 0.8, `recorded the 2 s → 5 s section (${m.duration.toFixed(2)} s)`);
   const label = await page.locator('.vid-big + .muted').textContent();
   ok(/cropped to the player|NOT cropped \(something other than this tab was shared\)/.test(label), `crop state reported to the user (${label})`);
+  // another video after the player was loaded: its player must be loaded (Record clip recorded the old video)
+  await page.getByLabel('Video link').fill('https://www.youtube.com/watch?v=aaaaaaaaaaa');
+  ok(await page.getByRole('button', { name: 'Load the player' }).isVisible() && await page.getByRole('button', { name: 'Record clip' }).isHidden() && await page.getByText('Another video: load its player.').isVisible(), 'another video in the link: the old player goes, "Load the player" again');
+  // the same video at other times keeps its player
+  await page.getByRole('button', { name: 'Load the player' }).click();
+  await page.getByRole('button', { name: 'Record clip' }).waitFor();
+  await page.getByLabel('End time').fill('8');
+  ok(await page.getByRole('button', { name: 'Record clip' }).isVisible(), 'other times of the same video keep the player');
   ok(!page.errors.length, `no page errors ${page.errors.slice(0, 3).join(' | ')}`);
 };

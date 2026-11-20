@@ -8,29 +8,9 @@
 import { h, card, field, actions, button, input, segmented, toggle, stack, note, outputBox, toast, errMsg, fmtBytes, fmtTime, downloadBlob, type Mount } from '../ui';
 import { linuxBanner } from '../linux';
 import { YTDLP_FILES, YTDLP_RELEASES, pickYtdlp, runHint, ytdlpUrl } from '../lib/ytdlp';
-
-/** "1h2m3s", "62", "62s", "1:02", "01:02:03.5" → seconds (NaN if unreadable). */
-export function parseTime(t: string): number {
-  t = String(t || '').trim().toLowerCase();
-  if (!t) return NaN;
-  if (/^\d+(\.\d+)?$/.test(t)) return +t;
-  if (/^\d+(:\d{1,2}){1,2}(\.\d+)?$/.test(t)) return t.split(':').reduce((a, p) => a * 60 + +p, 0);
-  const m = /^(?:(\d+)h)?(?:(\d+)m)?(?:(\d+(?:\.\d+)?)s)?$/.exec(t);
-  return m && (m[1] || m[2] || m[3]) ? (+m[1] || 0) * 3600 + (+m[2] || 0) * 60 + (+m[3] || 0) : NaN;
-}
-/** Video id and ?t= / &t= / #t= / start= time from any common YouTube link. */
-export function parseYouTube(url: string): { id: string; t: number } | null {
-  let u: URL;
-  try { u = new URL(url.trim().replace(/^(?!https?:)/, 'https://')); } catch { return null; }
-  const host = u.hostname.replace(/^(www|m|music)\./, '');
-  let id = '';
-  if (host === 'youtu.be') id = u.pathname.slice(1).split('/')[0];
-  else if (/^(youtube\.com|youtube-nocookie\.com)$/.test(host)) id = u.searchParams.get('v') || (/^\/(?:shorts|live|embed|v)\/([^/?#]+)/.exec(u.pathname)?.[1] ?? '');
-  if (!/^[\w-]{11}$/.test(id)) return null;
-  const t = u.searchParams.get('t') ?? u.searchParams.get('start') ?? (/[#&]t=([^&]+)/.exec(u.hash)?.[1] ?? '');
-  return { id, t: t ? parseTime(t) : NaN };
-}
-const hms = (s: number) => { const H = Math.floor(s / 3600), M = Math.floor((s % 3600) / 60), S = +(s % 60).toFixed(2); return `${H ? `${H}:` : ''}${H ? String(M).padStart(2, '0') : M}:${S < 10 ? '0' : ''}${S}`; };
+import { finishRecording } from '../lib/aac';
+import { parseTime, parseYouTube, hms } from '../lib/ytclip';
+export { parseTime, parseYouTube, hms };
 
 export const mount: Mount = (root) => {
   let mode: 'two' | 'one' = 'two', exact = false, audioOnly = false;
@@ -62,6 +42,7 @@ export const mount: Mount = (root) => {
     } else { start = parseTime(startIn.value || (isNaN(a.t) ? '0' : String(a.t))); end = parseTime(endIn.value); }
     if (isNaN(start) || isNaN(end)) { summary.textContent = 'Enter the start and end times (e.g. 1:02 and 1:30).'; work.hidden = true; return; }
     if (end <= start) { summary.textContent = 'The end must be after the start.'; work.hidden = true; return; }
+    if (frame && loadedId !== a.id) { clear(); recBtn.hidden = true; loadBtn.hidden = false; recStatus.textContent = 'Another video: load its player.'; } // it recorded the old video
     clip = { id: a.id, start, end };
     summary.textContent = `Video ${a.id} · from ${hms(start)} to ${hms(end)} (${fmtTime(end - start)})`;
     work.hidden = false;
@@ -79,7 +60,7 @@ export const mount: Mount = (root) => {
   // ------------------------------------------------------------------ record in the browser
   const ORIGIN = 'https://www.youtube-nocookie.com';
   let frame: HTMLIFrameElement | null = null, playerTime = 0, playerState = -1, ready = false, onInfo: (() => void) | null = null;
-  let rec: MediaRecorder | null = null, stream: MediaStream | null = null, outBlob: Blob | null = null, outUrl = '';
+  let rec: MediaRecorder | null = null, stream: MediaStream | null = null, outBlob: Blob | null = null, outUrl = '', loadedId = '', recording = false;
   const playerBox = h('div', { class: 'yt-player' });
   const recStatus = h('div', { class: 'muted small', 'aria-live': 'polite' });
   const result = h('div', { class: 'stack' });
@@ -108,7 +89,7 @@ export const mount: Mount = (root) => {
       const hello = () => frame?.contentWindow?.postMessage(JSON.stringify({ event: 'listening', id: 1, channel: 'widget' }), ORIGIN);
       hello(); let n = 0; const iv = window.setInterval(() => { if (ready || ++n > 40 || !frame) clearInterval(iv); else hello(); }, 250);
     });
-    playerBox.replaceChildren(frame);
+    playerBox.replaceChildren(frame); loadedId = clip.id;
     recBtn.hidden = false; loadBtn.hidden = true;
     recStatus.textContent = 'Player loaded from youtube-nocookie.com. Press “Record clip”, then share THIS tab when Chrome asks.';
   }
@@ -119,7 +100,13 @@ export const mount: Mount = (root) => {
     onInfo = () => { if (cond()) { clearTimeout(t); onInfo = null; res(true); } };
   });
   async function record() {
-    if (!clip || !frame) return;
+    if (!clip || !frame || recording) return; // a second press started a second recording
+    recording = true; recBtn.disabled = true;
+    try { await recordClip({ ...clip }); } finally { recording = false; recBtn.disabled = false; }
+  }
+  /** c: the clip as it was when recording started (editing the link meanwhile changed where it stopped and its name) */
+  async function recordClip(clip: { id: string; start: number; end: number }) {
+    if (clip.id !== loadedId) { recStatus.textContent = 'The player shows another video: load the player again.'; return; }
     if (!ready && !(await waitFor(() => ready, 8000))) { recStatus.textContent = 'The player did not answer. Reload the player (or use the yt-dlp command).'; return; }
     try {
       stream = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: { ideal: 30 } }, audio: { suppressLocalAudioPlayback: false } as any, preferCurrentTab: true, selfBrowserSurface: 'include' } as any);
@@ -131,30 +118,23 @@ export const mount: Mount = (root) => {
     const chunks: Blob[] = [];
     send('mute'); send('seekTo', [clip.start, true]); send('playVideo'); // muted while seeking so the start is clean
     recStatus.textContent = `Seeking to ${hms(clip.start)}…`;
-    if (!(await waitFor(() => playerState === 1 && playerTime >= clip!.start - 0.5 && playerTime < clip!.start + 2, 20000))) { recStatus.textContent = 'The video did not start (ad, age check or sign-in?). Start it by hand once, then try again.'; stopStream(); return; }
+    if (!(await waitFor(() => playerState === 1 && playerTime >= clip.start - 0.5 && playerTime < clip.start + 2, 20000))) { recStatus.textContent = 'The video did not start (ad, age check or sign-in?). Start it by hand once, then try again.'; stopStream(); return; }
     send('pauseVideo'); send('seekTo', [clip.start, true]); send('unMute');
     await new Promise((r) => setTimeout(r, 400));
     rec = new MediaRecorder(stream, mime ? { mimeType: mime, videoBitsPerSecond: 8_000_000 } : undefined);
     rec.ondataavailable = (e) => e.data.size && chunks.push(e.data);
     const done = new Promise((r) => (rec!.onstop = r));
     rec.start(500); send('playVideo');
-    const tick = window.setInterval(() => { recStatus.textContent = `Recording ${hms(Math.max(clip!.start, playerTime))} → ${hms(clip!.end)}${cropped ? '' : ' (not cropped: share THIS tab to record only the player)'}…`; if (playerTime >= clip!.end || !stream?.active) finish(); }, 100);
+    const tick = window.setInterval(() => { recStatus.textContent = `Recording ${hms(Math.max(clip.start, playerTime))} → ${hms(clip.end)}${cropped ? '' : ' (not cropped: share THIS tab to record only the player)'}…`; if (playerTime >= clip.end || !stream?.active) finish(); }, 100);
     const finish = () => { clearInterval(tick); if (rec?.state === 'recording') { send('pauseVideo'); rec.stop(); } };
     await done; clearInterval(tick);
     const ext = mime.includes('mp4') ? 'mp4' : 'webm';
-    let blob = new Blob(chunks, { type: `video/${ext}` });
-    try { // duration/seek index for MediaRecorder output (packet copy)
-      const mb = await import('mediabunny');
-      const inp = new mb.Input({ source: new mb.BlobSource(blob), formats: mb.ALL_FORMATS });
-      const out = new mb.Output({ format: ext === 'mp4' ? new mb.Mp4OutputFormat({ fastStart: 'in-memory' }) : new mb.WebMOutputFormat(), target: new mb.BufferTarget() });
-      const conv = await mb.Conversion.init({ input: inp, output: out, copy: { mode: 'forced' } } as any);
-      if (conv.isValid) { await conv.execute(); blob = new Blob([out.target.buffer!], { type: blob.type }); }
-    } catch { /* keep the raw recording */ }
+    const blob = await finishRecording(new Blob(chunks, { type: `video/${ext}` }), ext); // duration index; an MP4's sound as AAC
     stopStream(); rec = null;
     outBlob = blob; URL.revokeObjectURL(outUrl); outUrl = URL.createObjectURL(blob);
     const v = h('video', { src: outUrl, controls: true, class: 'vid-prev' });
     result.replaceChildren(h('div', { class: 'vid-big' }, fmtBytes(blob.size)), h('div', { class: 'muted small' }, `${hms(clip.start)}–${hms(clip.end)} · ${ext.toUpperCase()}${cropped ? ' · cropped to the player' : ' · NOT cropped (something other than this tab was shared)'}`), v,
-      h('div', { class: 'row' }, button('Download', () => downloadBlob(outBlob!, `youtube-${clip!.id}-${hms(clip!.start).replace(/:/g, '.')}.${ext}`), { icon: 'Download', variant: 'primary' })));
+      h('div', { class: 'row' }, button('Download', () => downloadBlob(outBlob!, `youtube-${clip.id}-${hms(clip.start).replace(/:/g, '.')}.${ext}`), { icon: 'Download', variant: 'primary' })));
     recStatus.textContent = 'Done.';
   }
   const stopStream = () => { stream?.getTracks().forEach((t) => t.stop()); stream = null; };

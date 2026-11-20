@@ -1,7 +1,9 @@
 // Screencast (#/screencast, PC): getDisplayMedia (Chromium's fake picker picks the screen) → MediaRecorder → remuxed
 // file. Checks length (pause excluded), area crop size, WebM with a real duration, mic track, streaming to a file.
 import { readFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
 import { mp4Info } from './video.e2e.mjs';
+const probeAudio = (f) => { try { return execFileSync('ffprobe', ['-v', 'error', '-select_streams', 'a:0', '-show_entries', 'stream=codec_name', '-of', 'csv=p=0', f], { encoding: 'utf8' }).trim(); } catch { return null; } };
 
 export default async ({ base, page: newPage, ok, info, download }) => {
   const page = await newPage({ viewport: { width: 1280, height: 900 } });
@@ -54,6 +56,30 @@ export default async ({ base, page: newPage, ok, info, download }) => {
   ok(Number.isFinite(m4.duration) && Math.abs(m4.duration - 1.5) < 0.5, `WebM has a duration (${m4.duration})`);
   const hasAudio = await page.evaluate(async () => { const v = document.querySelector('.vid-prev'); return v.mozHasAudio || v.webkitAudioDecodedByteCount > 0 || (v.audioTracks ? v.audioTracks.length > 0 : true); });
   ok(hasAudio, 'microphone mixed in (audio track present)');
+
+  // MP4 with the microphone: the sound is AAC (Linux Chromium's recorder writes Opus into MP4; it is re-encoded)
+  await page.getByRole('combobox', { name: /^Format/ }).selectOption('mp4');
+  await recordFor(1500);
+  const f5 = await download(page, () => btn('Download').click()), i5 = mp4Info(readFileSync(f5)), a5 = probeAudio(f5);
+  ok(i5.video?.codec === 'avc1' && i5.audio?.codec === 'mp4a' && (a5 === null || a5 === 'aac'), `MP4 with the microphone: H.264 + AAC (${i5.audio?.codec}${a5 ? `, ffprobe ${a5}` : ''})`);
+
+  // the countdown: a second click on Start does not start a second recorder; sharing ended meanwhile is said
+  await page.getByText('Add my microphone').click();
+  await page.getByText('3-second countdown').click(); // on again
+  const recorders = await page.evaluate(() => { const R = window.MediaRecorder; window.__recs = 0; window.MediaRecorder = class extends R { constructor(...a) { super(...a); window.__recs++; } }; window.MediaRecorder.isTypeSupported = R.isTypeSupported; return true; });
+  await btn('Start recording').click({ force: true });
+  await page.waitForTimeout(300);
+  ok(await btn('Start recording').isDisabled(), 'Start cannot be pressed again during the countdown');
+  await btn('Start recording').click({ force: true }).catch(() => {});
+  await page.getByText(/^Recording ·/).waitFor({ timeout: 15000 });
+  await page.waitForTimeout(800); await btn('Stop').click(); await page.getByText(/^Recorded /).first().waitFor({ timeout: 30000 });
+  ok(recorders && await page.evaluate(() => window.__recs) === 1, `one recorder for a double press (${await page.evaluate(() => window.__recs)})`);
+  await btn('Start recording').click();
+  await page.waitForTimeout(500);
+  await page.evaluate(() => document.querySelector('.sc-preview').srcObject.getVideoTracks()[0].stop());
+  await page.getByText('Sharing ended before the recording started.').waitFor({ timeout: 8000 }).catch(() => {});
+  ok(await page.getByText('Sharing ended before the recording started.').isVisible(), 'sharing ended during the countdown: said, nothing recorded');
+  await page.getByText('3-second countdown').click(); // off
 
   // straight to a file
   await page.getByText('Save straight to a file while recording').click();

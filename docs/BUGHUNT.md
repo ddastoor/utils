@@ -65,17 +65,17 @@ Areas with a shared review: the app shell (router, search, favorites, platform h
 ## media
 | id | Tab | Platform | Area | R | B | T | Notes |
 |---|---|---|---|---|---|---|---|
-| `video` | Video Compressor | PC + mobile | video |  |  |  |  |
+| `video` | Video Compressor | PC + mobile | video | ✓ | 8 | 14 | video area 20 Nov 2026 (docs/BUGHUNT.md) |
 | `audio` | Audio Recorder | PC + mobile | audio | ✓ | 5 | 4 | decoded at the file's own rate (was the device's: 44.1 kHz saved as 48 kHz); newest file wins; mic errors in words |
 | `tts` | Text-to-Speech | PC + mobile | audio | ✓ | 6 | 3 | Speak stayed busy after Stop; runs queued in the worker; sentence shown when heard; system-voice errors; text encodings; download size |
 | `stt` | Speech to Text | PC + mobile | audio | ✓ | 11 | 8 | names box faded after ~224 tokens (carry_initial_prompt, rebuilt whisper.wasm); decode at 16 kHz; new file clears transcript; download overflow |
 | `noise` | Noise Remover | PC + mobile | audio | ✓ | 11 | 33 | Jitsi's RNNoise 0.2 build (= the release's standard 8-bit computation; ours ran the debug float weights, 4× larger); Save after a new file; strength re-cleaned everything; stereo voice; 16-bit WAV round trip |
 | `pitch` | Pitch & Speed | PC + mobile | audio | ✓ | 8 | 7 | Signalsmith Stretch (official wasm/AudioWorklet, MIT) replaces our WSOLA: chord 7-15 dB cleaner; Save after a new file; coalesced renders; selection follows the passage |
-| `slideshow` | Slideshow Maker | PC + mobile | video |  |  |  |  |
-| `ffmpeg` | FFmpeg | PC only | video |  |  |  |  |
-| `screencast` | Screencast | PC only | video |  |  |  |  |
-| `screenshot` | Screenshot | PC only | video |  |  |  |  |
-| `youtube` | YouTube Clip | PC only | video |  |  |  |  |
+| `slideshow` | Slideshow Maker | PC + mobile | video | ✓ | 5 | 4 | video area 20 Nov 2026 (docs/BUGHUNT.md) |
+| `ffmpeg` | FFmpeg | PC only | video | ✓ | 5 | 3 | video area 20 Nov 2026 (docs/BUGHUNT.md) |
+| `screencast` | Screencast | PC only | video | ✓ | 4 | 4 | video area 20 Nov 2026 (docs/BUGHUNT.md) |
+| `screenshot` | Screenshot | PC only | video | ✓ | 4 | 4 | video area 20 Nov 2026 (docs/BUGHUNT.md) |
+| `youtube` | YouTube Clip | PC only | video | ✓ | 6 | 43 | video area 20 Nov 2026 (docs/BUGHUNT.md) |
 
 ## calculators
 | id | Tab | Platform | Area | R | B | T | Notes |
@@ -2047,3 +2047,56 @@ Reference for the five finance tabs: **mpmath at 60 digits** (`scripts/make-fina
   10. Leaving while a file was being read made a blob URL after the tab was gone.
   11. The Settings note claimed nothing about long recordings; it now says the names guide the whole recording (true
       with 1; whisper.cpp drops prompts for the last 5 s — recorded in WASM-AUDIT 146).
+
+Media › video (20 Nov 2026 –)
+- **`video` (tab 150, 8 bugs; WebCodecs + mediabunny + @mediabunny/aac-encoder — WASM-AUDIT 147; e2e 30 — was 16).**
+  1. **The sound of the MP4 was Opus where the browser has no AAC encoder (Linux Chromium, Firefox)** — "H.264, plays
+     everywhere" with a sound many players drop. AAC by mediabunny's WebAssembly encoder (ffprobe reads it back).
+  2. **A WebM's Vorbis was kept inside the MP4** (mediabunny allows it; few players play it) — the old check only looked
+     at the box's name. Only AAC and MP3 are copied; the rest becomes AAC at its own bitrate (128 – 256 kbps).
+  3. **"To a size" with a target above the file's size made the video bigger** (the bitrate followed the target): it
+     never goes above the original's own bitrate, and the result says the video was already under.
+  4. A target of 0 MB, a blank or a minus was taken as 1 MB without a word: refused.
+  5. A new file chosen during a compression changed the file and the settings under it (its retry encoded the new
+     file at the old bitrate): the running one is ended, a run keeps its own file.
+  6. Cancel between the size mode's retries did nothing (the next try started).
+  7. The newest file did not win; a file that is no video emptied the line of the one still open.
+  8. The notes said "50.0 MB" for a target of 50 MB: the target as chosen.
+- **`slideshow` (tab 151, 5 bugs; same engines — WASM-AUDIT 148; e2e 19 — was 15).**
+  1. **The music was Opus inside the MP4** where the browser has no AAC encoder: AAC (ffprobe), and the result says it.
+  2. **A photo removed while the video was being made failed it** (its closed bitmap was drawn): photos are let go
+     after the video.
+  3. **Settings and photos changed during the making were read live** — a shape changed halfway drew the rest of the
+     frames for another shape, a photo added or moved jumped in: a video is made from a copy taken when it starts.
+  4. The newest music did not win (a slower file chosen first replaced it); a file without sound was accepted.
+  5. A video that finished after the tab was left still touched the page.
+- **`ffmpeg` (tab 152, 5 bugs; ffmpeg.wasm stays — WASM-AUDIT 149 with the libav.js check; e2e +3 checks).**
+  1. **A new file chosen during a job left the job running:** the new file's probe reset the job's log (a failure then
+     showed the probe's lines) and the outputs took the new file's name. The job is ended ("Stopped: a new file was
+     chosen"); outputs are named after the file the job ran on.
+  2. A second file or added clips probed during a job did the same: probes wait for the job.
+  3. Stop showed "called FFmpeg.terminate()" in red besides "Stopped": "Stopped." and no error.
+  4. A job ended by leaving the tab raised an error toast on the next page.
+  5. A zip of several outputs was named after the file chosen last.
+- **`screencast` (tab 153, 4 bugs; e2e +4 checks).**
+  1. **The sound of an MP4 recording was Opus on Linux Chromium** (its recorder has no AAC): re-encoded to AAC as the
+     recording is finished, the picture copied (ffprobe reads AAC).
+  2. **A second press of Start during the countdown started a second recorder** (both wrote into one file): disabled.
+  3. Sharing ended during the countdown: the recording then started on nothing (TypeError) — said, and the next Start
+     asks again.
+  4. Leaving the tab during the countdown started a recording on a tab that was gone.
+- **`screenshot` (tab 154, 4 bugs; e2e +4 checks).**
+  1. **Every shot left a copy of the shared screen running** (a cloned track never stopped): after "Stop sharing" the
+     screen stayed shared. Each copy is stopped (the suite counts them).
+  2. **Every shot of a visit was kept as raw pixels** (33 MB a 4K shot, no limit): shots not shown are kept as lossless
+     PNG and decoded again when opened (pixel for pixel the same file saved).
+  3. Sharing stopped during the countdown: "Could not capture: Cannot read properties of null" — said in words.
+  4. Another share could be started during the countdown (the shot then had no picture): disabled.
+- **`youtube` (tab 155, 6 bugs; unit `ytclip.test.mjs` 41 — new; e2e +2 checks).**
+  1. **A link to another video after the player was loaded kept the old player:** "Record clip" recorded the old
+     video for the new times. The player goes and is loaded again; other times of the same video keep it.
+  2. Editing the link during a recording changed where it stopped and its file name: a recording keeps its clip.
+  3. "Record clip" could be pressed again during a recording (a second share and recorder).
+  4. The sound of the MP4 was Opus on Linux Chromium: AAC (as Screencast).
+  5. Times were written "0:60" (59.996 s): rounded first.
+  6. "1:60" was read as two minutes: seconds and minutes above 59 are refused.

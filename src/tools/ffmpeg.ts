@@ -13,6 +13,9 @@ const FONTS = ['NotoSans_400Regular.ttf', 'NotoSans_700Bold.ttf'];
 
 export const mount: Mount = (root) => {
   let ff: any = null, loading: Promise<any> | null = null, running = false, onProg: ((p: number) => void) | null = null;
+  // a job ended by Stop, by a new file or by leaving the tab says so (it showed "called FFmpeg.terminate()" in red);
+  // probes of a second file or of clips wait for a running job (they reset its log and shared its FFmpeg)
+  let stopNote = '', live = true, runDone: Promise<void> = Promise.resolve();
   let main: File | null = null, second: File | null = null, logLines: string[] = [], streams = '';
   let p1: Probe = EMPTY_PROBE, p2: Probe | undefined, probing: Promise<void> = Promise.resolve(), fontsIn = false, loadedOnce = false;
   /** the clips of "Join clips": the chosen file first; each added clip gets the name in3, in4 … inside FFmpeg */
@@ -161,6 +164,7 @@ export const mount: Mount = (root) => {
   }
   /** What FFmpeg says about one file (mounted alone at /probe). */
   async function probeFile(file: File, name: string): Promise<Probe> {
+    await runDone.catch(() => {});
     const f = await engine();
     try { await f.unmount('/probe'); } catch { /* */ }
     try { await f.createDir('/probe'); } catch { /* */ }
@@ -193,10 +197,11 @@ export const mount: Mount = (root) => {
     for (const n of FONTS) await f.writeFile(`/fonts/${n}`, new Uint8Array(await (await fetch(new URL(`vendor/fonts/${n}`, document.baseURI))).arrayBuffer()));
     fontsIn = true;
   }
-  async function run() {
+  function run() { runDone = runJob(); return runDone; }
+  async function runJob() {
     if (!main || running) return;
-    running = true; runBtn.hidden = true; stopBtn.hidden = false; outCard.hidden = true; status.textContent = ''; status.classList.remove('err-text');
-    const t0 = performance.now();
+    running = true; stopNote = ''; runBtn.hidden = true; stopBtn.hidden = false; outCard.hidden = true; status.textContent = ''; status.classList.remove('err-text');
+    const t0 = performance.now(), m = main; // the outputs are named after the file the job was run on
     let ran = false;
     try {
       await probing;
@@ -218,15 +223,27 @@ export const mount: Mount = (root) => {
         try { data = await f.readFile(n); await f.deleteFile(n); } catch { continue; /* not produced */ }
         let blob = new Blob([data as BlobPart], { type: mimeOf(n) }), nm = n;
         if (b.jpeg && n.endsWith('.png')) { blob = await encodeImg(await loadImg(blob), 'jpeg', 90); nm = asJpegName(n); } // MozJPEG
-        files.push({ name: nm.startsWith('out.') ? `${baseName(main.name)}-out.${extOf(nm)}` : b.pattern ? nm : `${baseName(main.name)}-${nm}`, blob });
+        files.push({ name: nm.startsWith('out.') ? `${baseName(m.name)}-out.${extOf(nm)}` : b.pattern ? nm : `${baseName(m.name)}-${nm}`, blob });
       }
       logBox.textContent = logLines.slice(-60).join('\n');
       if (code) throw new Error(`FFmpeg failed (exit ${code}): ${logLines.filter((l) => /error|invalid|no such|failed|unknown|unable/i.test(l)).slice(0, 2).join(' · ') || 'see the log'}`);
       if (!files.length) throw new Error('No output file was produced.');
+      if (!live || m !== main) return;
       status.textContent = '';
-      showOutputs(files, performance.now() - t0, b.zip);
-    } catch (e) { if (ran) fresh(); status.textContent = errMsg(e); status.classList.add('err-text'); toast(errMsg(e), 'err'); logBox.textContent = logLines.slice(-60).join('\n'); (logBox.parentElement as HTMLDetailsElement).open = true; }
-    finally { running = false; prog.done(); runBtn.hidden = false; stopBtn.hidden = true; }
+      showOutputs(files, performance.now() - t0, b.zip, m);
+    } catch (e) {
+      if (!live) return;
+      if (stopNote) { status.textContent = stopNote; return; } // stopped on purpose: no error
+      if (ran) fresh();
+      status.textContent = errMsg(e); status.classList.add('err-text'); toast(errMsg(e), 'err'); logBox.textContent = logLines.slice(-60).join('\n'); (logBox.parentElement as HTMLDetailsElement).open = true;
+    } finally { running = false; prog.done(); runBtn.hidden = false; stopBtn.hidden = true; }
+  }
+  /** End the running job (FFmpeg is busy in one long call: the worker is ended; the next job starts a new one). */
+  function stopJob(why: string) {
+    if (!running) return;
+    stopNote = why;
+    try { ff?.terminate(); } catch { /* gone */ }
+    ff = null; loading = null; fontsIn = false;
   }
   /** A new FFmpeg after a job FFmpeg ran and failed — not after a refusal, which never reached it (cheap insurance: ffmpeg.wasm runs every exec in one module instance). The page
    *  crashes and the later "function signature mismatch" of Nov 2026 were the core's JPEG encoder overflowing a buffer
@@ -234,13 +251,13 @@ export const mount: Mount = (root) => {
   function fresh() { try { ff?.terminate(); } catch { /* gone */ } ff = null; loading = null; fontsIn = false; }
   const mimeOf = (n: string) => ({ mp4: 'video/mp4', mov: 'video/quicktime', webm: 'video/webm', mkv: 'video/x-matroska', gif: 'image/gif', mp3: 'audio/mpeg', m4a: 'audio/mp4', wav: 'audio/wav', flac: 'audio/flac', ogg: 'audio/ogg', png: 'image/png', jpg: 'image/jpeg', mka: 'audio/x-matroska', srt: 'application/x-subrip', vtt: 'text/vtt', ass: 'text/x-ssa' } as Record<string, string>)[extOf(n)] || 'application/octet-stream';
   let urls: string[] = [];
-  async function showOutputs(files: Array<{ name: string; blob: Blob }>, ms: number, zip = 'files') {
+  async function showOutputs(files: Array<{ name: string; blob: Blob }>, ms: number, zip = 'files', m: File = main!) {
     urls.forEach(URL.revokeObjectURL); urls = [];
     clear(outs);
     const total = files.reduce((a, f) => a + f.blob.size, 0);
     outs.append(h('div', { class: 'muted small' }, `${files.length} file${files.length > 1 ? 's' : ''} · ${fmtBytes(total)} · ${(ms / 1000).toFixed(1)} s`));
     if (files.length > 1) {
-      outs.append(h('div', { class: 'row' }, button(`Download all as .zip (${files.length})`, async () => { const { zipFiles } = await import('../lib/zip'); downloadBlob(await zipFiles(files), `${baseName(main!.name)}-${zip}.zip`); }, { icon: 'Download', variant: 'primary' })));
+      outs.append(h('div', { class: 'row' }, button(`Download all as .zip (${files.length})`, async () => { const { zipFiles } = await import('../lib/zip'); downloadBlob(await zipFiles(files), `${baseName(m.name)}-${zip}.zip`); }, { icon: 'Download', variant: 'primary' })));
     }
     for (const f of files.slice(0, 60)) {
       const u = URL.createObjectURL(f.blob); urls.push(u);
@@ -253,6 +270,7 @@ export const mount: Mount = (root) => {
 
   const info = h('pre', { class: 'ff-info muted small' });
   const picker = filePicker({ accept: 'video/*,audio/*,image/*,.mkv,.flv,.avi,.ts,.m2ts,.wmv,.wma,.opus,.flac', label: 'Choose a video or audio file', hint: 'Any format FFmpeg reads — up to about 2 GB', onFiles: ([f]) => {
+    stopJob(`Stopped: a new file was chosen (${f.name}).`); // the running job was of the file before
     main = f; second = null; p2 = undefined; p1 = EMPTY_PROBE; clips = []; clipSeq = 2; secondInfo.textContent = ''; work.hidden = false; picker.classList.add('drop-compact'); info.textContent = f.name; renderOpts(); probe();
   } });
   // the task list, in groups (a native select: keyboard, type-ahead and screen readers as everywhere)
@@ -260,7 +278,7 @@ export const mount: Mount = (root) => {
   jobSel.value = job;
   jobSel.addEventListener('change', () => { job = jobSel.value as Job; renderOpts(); });
   const runBtn = button('Run FFmpeg', () => run(), { icon: 'Play', variant: 'primary' });
-  const stopBtn = button('Stop', () => { try { ff?.terminate(); } catch { /* */ } ff = null; loading = null; toast('Stopped', 'info'); }, { icon: 'Square', variant: 'danger' }); stopBtn.hidden = true;
+  const stopBtn = button('Stop', () => { stopJob('Stopped.'); toast('Stopped', 'info'); }, { icon: 'Square', variant: 'danger' }); stopBtn.hidden = true;
   const editRaw = button('Edit as arguments', () => { try { const a = build().args.join(' '); job = 'raw'; o.raw = a; jobSel.value = 'raw'; renderOpts(); } catch (e) { toast(errMsg(e), 'err'); } }, { icon: 'Terminal', small: true, variant: 'ghost' });
   work.append(
     card('Input', info, secondBox),
@@ -269,5 +287,5 @@ export const mount: Mount = (root) => {
     h('details', { class: 'rec-opts' }, h('summary', null, 'FFmpeg log'), logBox));
   root.append(card(null, picker), work, actions(runBtn, stopBtn),
     note('FFmpeg 5.1 runs here as WebAssembly on one CPU core: re-encoding is ~10–20× slower than native FFmpeg. Fast tasks (trim without re-encoding, extract audio, remove audio) take seconds.', 'info'));
-  return () => { urls.forEach(URL.revokeObjectURL); };
+  return () => { live = false; stopNote = 'left'; urls.forEach(URL.revokeObjectURL); };
 };

@@ -117,7 +117,7 @@ export const mount: Mount = (root, ctx) => {
     card(null, picker, recBox, inputInfo, player),
     card('Settings', stack(
       field('Model', segmented<'small' | 'base'>([['small', 'Accurate (190 MB, slower)'], ['base', 'Fast (60 MB)']], model, (v) => { model = v; estimate(); })),
-      field('Names and terms (optional)', stack(hintTa, hintNote), 'Spellings to expect — names, places, jargon. They guide Whisper through the whole recording but are not forced.'),
+      field('Names and terms (optional)', hintTa, 'Spellings to expect — names, places, jargon. They guide Whisper through the whole recording but are not forced.'), hintNote,
       toggle('Best accuracy (beam search; about 2× slower)', beam, (v) => (beam = v)))),
     prog, status, resultCard,
     note('English only (US, UK, Indian and other accents). Whisper runs on this device; the audio never leaves it. Long recordings take a while: about 1–3 seconds of work per second of audio on a PC.', 'info'),

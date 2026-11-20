@@ -1267,3 +1267,36 @@ One entry per tab, written before its bug hunt: our module → candidates → ch
   "Zentrixor … Amvika Raganathan" before, "Zentrixa … Anvika Raghunathan" after; the rest of the transcript identical).
   Limits recorded: whisper.cpp drops every prompt for the last 5 s of a recording (on purpose: it confuses the decoder);
   verbatim-repeated 20 s blocks can make Whisper skip a block (seen with the prompt carried, and at the end without it).
+
+### 147. `video` — Video Compressor (20 Nov 2026)
+- **Ours:** the browser's own encoders and decoders (WebCodecs — compiled C++, hardware where there is some) + mediabunny
+  (TypeScript, MPL-2.0, 31 M downloads a month) for reading and writing the containers. **Candidates:** ffmpeg.wasm (the
+  FFmpeg tab's engine: software x264 in one thread, 10 – 50× slower than a phone's hardware encoder; no gain), libav.js
+  6.11 (49 k a month: libavformat in WebAssembly — a muxer / demuxer where mediabunny already is one, and a famous one),
+  web-demuxer (28 k). **Missing feature found:** an AAC encoder where the browser has none (Chromium on Linux, Firefox) —
+  the sound of an MP4 was then Opus, or Vorbis / FLAC kept as they were, which many players and phones do not play.
+- **Decision:** WebCodecs + mediabunny stay; **beside them @mediabunny/aac-encoder 1.66.2** (mediabunny's official
+  extension: libavcodec's AAC-LC encoder compiled to WebAssembly, MPL-2.0 / LGPL-2.1, 12 M a month — rule 1(a)'s "existing
+  module for the missing feature"), fetched only when a sound is to be encoded where the browser has no AAC (1.1 MB; its
+  own worker from a blob: URL, which `worker-src` allows). `src/lib/aac.ts` (`ensureAac`), shared with the Slideshow.
+
+### 148. `slideshow` — Slideshow Maker (20 Nov 2026)
+- **Ours:** canvas + WebCodecs (H.264, else VP9 / AV1) + mediabunny; music faded by audio.wasm. Same candidates as tab
+  147. **Decision:** the same — AAC by @mediabunny/aac-encoder where the browser has no AAC encoder (it was Opus).
+
+### 149. `ffmpeg` — FFmpeg (20 Nov 2026)
+- **Ours:** ffmpeg.wasm 0.12 — `@ffmpeg/core` 0.12.10, the newest published core (FFmpeg 5.1.4, single-threaded, 31 MB;
+  libx264 / x265, libvpx, LAME, Opus, Vorbis, Theora, WebP, freetype / libass, zimg). **libav.js check (owner's
+  request):** libav.js 6.11.9 (Nov 2026) is FFmpeg 8 (Lavc 63) — but its published variants carry few codecs: the CLI
+  variant `@libav.js/variant-default-cli` is 2.3 MB with Opus and FLAC and nothing like x264 + LAME + libass + libvpx
+  (291 downloads a month); the popular variants (opus-af 422 k, webm-vp9 77 k) are libraries for decoding, not the
+  ffmpeg command. **Decision:** ffmpeg.wasm stays (rule 1: the famous build, and the only one with the codecs the
+  tab's jobs need). A libav.js "fat" build of our own (FFmpeg 8 + x264 + LAME + libass + libvpx …) is the upgrade path
+  (rule 2) — it would also end FFmpeg 5.1's limits recorded in CLAUDE.md (§3 FFmpeg); not started without the owner.
+
+### 150 – 152. `screencast`, `screenshot`, `youtube` (20 Nov 2026)
+- **Ours:** the browser's own capture and recorders (getDisplayMedia, MediaStreamTrackProcessor, MediaRecorder — the
+  only way a page can capture a screen or a tab) + mediabunny for the duration index; Screenshot saves with jSquash
+  (OxiPNG, MozJPEG). No WebAssembly module can capture a screen. **Added beside them:** @mediabunny/aac-encoder (tab
+  147) — the MP4 recordings of Linux Chromium carried Opus; their sound is re-encoded to AAC as the file is finished
+  (`finishRecording` in `src/lib/aac.ts`), the picture copied.

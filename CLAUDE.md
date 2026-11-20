@@ -1531,6 +1531,14 @@ loss; Chromium on Linux has no AAC encoder), re-encoded (64 kbps) or removed; Vo
 size + % saved, player, Download/Share; cancel. Tests: clip.mp4 (H.264/AAC) → smaller, avc1 + mp4a copied, 640×360,
 3 s, decoded frame at 1 s matches the original; 240p no sound (426×240, 1 track); 150 KB target; impossible target;
 AV1 (av01) frame match; WebM VP8/Vorbis → H.264 + re-encoded sound; phone layout.
+**As built after the Nov 2026 bug hunt** (e2e 30; docs/BUGHUNT.md tab 150, docs/WASM-AUDIT.md 147): **the sound of the MP4
+is AAC everywhere** — AAC and MP3 are copied as they are, any other sound (Opus, a WebM's Vorbis — which mediabunny would
+put into the MP4 as it is) becomes AAC at its own bitrate (128 – 256 kbps), "Smaller" is AAC 64 kbps; where the browser
+has no AAC encoder (Linux Chromium, Firefox) **@mediabunny/aac-encoder** (libavcodec's AAC in WebAssembly, 1.1 MB) is
+fetched for it (`ensureAac` in `src/lib/aac.ts`; ffprobe reads every result back in the suite). "To a size" never goes
+above the original's own bitrate (a target above the file's size made it bigger; the result says it was already
+under); a target of 0 is refused; the target is named as chosen ("50 MB"); a run keeps its own file and a new file
+ends it; Cancel works between the size mode's retries; the newest file wins.
 
 ### Slideshow Maker — BUILT (`src/tools/slideshow.ts`; e2e `tests/e2e/slideshow.e2e.mjs` 15)
 Photos (our loader: HEIC, EXIF orientation, downscaled to the output size) + optional music → MP4. Frames composed
@@ -1542,6 +1550,10 @@ or cut to the length with 0.4 s fade-in / ≤ 2.5 s fade-out (our audio.wasm), A
 Chromium). Reorder (◀ ▶), remove, live preview with music, progress + cancel, Download/Share. Tests: 3 real photos +
 660 Hz MP3 → H.264 1280×720, 6 s, music track; the photo on screen at 1/3/5 s is the right one (diff 6–11 vs 57–75 for
 the others); reorder; 9:16 → 720×1280; fit to music → 2 s; music frequency; phone defaults to 9:16.
+**As built after the Nov 2026 bug hunt** (e2e 19; tab 151): the music is AAC everywhere (`ensureAac`; it was Opus where
+the browser has no AAC encoder); a video is made from a copy of the photos and settings taken when it starts (a photo
+removed meanwhile is closed afterwards — drawing it failed the video; a shape changed halfway changed the rest); the
+newest music wins.
 
 ### Noise Remover — BUILT (`src/tools/noise.ts`, worker `src/workers/noise.worker.ts`; e2e `tests/e2e/noise.e2e.mjs` 25)
 **Xiph RNNoise 0.2** (recurrent network trained on speech + noise, C, BSD-3) as **Jitsi builds it** —
@@ -1712,7 +1724,7 @@ into the right container, or MP3/WAV), remove audio, trim (fast copy with the MP
 shape, GIF (palettegen/paletteuse), add audio to video, EBU R128 loudness (−16 LUFS), speed (setpts + chained atempo),
 frames (PNG/JPEG → zip), audio → MP4 (picture + sound with `-t` = probed length, animated waveform, or M4A), own
 arguments (in1.ext / in2.ext, last word = output). Non-zero exit = failure: FFmpeg's own error line is shown and the
-log opens. Stop = terminate the worker. **Known limits of this core:** libvpx-vp9 and libx265 wait forever for
+log opens. Stop = terminate the worker ("Stopped.", no error); a new file chosen during a job ends it (its probe reset the job's log and the outputs took the new name), probes of a second file or of clips wait for a running job, outputs are named after the file the job ran on (Nov 2026 hunt, tab 152; libav.js checked as a replacement: docs/WASM-AUDIT.md 149). **Known limits of this core:** libvpx-vp9 and libx265 wait forever for
 threads (so presets use VP8/x264 and the raw box warns); FFmpeg 5.1 ignores input `-to` and `-shortest` with a looped
 picture (handled with `-t`). Replacing it with our own build of current FFmpeg stays on the §3a audit list.
 Tests: clip.mp4/tone.wav/tone.mp3 → WebM plays, AAC copy, MP3 440 Hz, no-sound copy, fast trim ≈ 1 s and exact 1.00 s,
@@ -1818,6 +1830,10 @@ sharing ends. Recordings kept in memory are remuxed by mediabunny (packet copy) 
 "Save straight to a file while recording" streams chunks to disk with File System Access (long recordings).
 X11/Wayland note from `src/linux.ts`. Tests (Chromium's fake picker): MP4 H.264 ≈ 2.2 s; pause not counted; area =
 half the screen; WebM with a finite duration; microphone track; streaming to a (stubbed) file.
+**As built after the Nov 2026 bug hunt** (tab 153): the recording is finished by `finishRecording` (`src/lib/aac.ts`):
+duration index, and an MP4's sound as AAC (Linux Chromium's recorder writes Opus into MP4; re-encoded, the picture
+copied; if that fails, copied as it was — the sound is never dropped); Start cannot be pressed twice during the
+countdown; sharing ended during the countdown is said and the next Start asks again.
 
 ### Screenshot (PC) — BUILT (`src/tools/screenshot.ts`; e2e `tests/e2e/screenshot.e2e.mjs` 12)
 Share once (Chrome's picker: screen, window or tab; own tab excluded; optional mouse pointer) → "Take screenshot"
@@ -1829,6 +1845,9 @@ Editor: crop box (shared `cropBox`), **PNG** (our OxiPNG), **JPEG** (our MozJPEG
 it). A web page cannot screenshot silently, minimise the browser or see the active window (said in the tab).
 Tests: full-size PNG, JPEG, cropped PNG = 84 %, clipboard PNG, 3 s delay, PiP "Snap now" (< 1.5 s) and "Cancel",
 gallery, stop sharing.
+**As built after the Nov 2026 bug hunt** (tab 154): each shot's copy of the shared track is stopped (they kept the screen
+shared after "Stop sharing"); shots not shown are kept as lossless PNG (not 33 MB of pixels each) and decoded again
+when opened; sharing stopped during the countdown is said; no new share during the countdown.
 
 ### YouTube Clip (PC) — BUILT (`src/tools/youtube.ts`; e2e `tests/e2e/youtube.e2e.mjs` 13)
 Inputs: "Two links" (YouTube's Share → Start at… / right-click → "Copy video URL at current time" at the start and
@@ -1854,6 +1873,10 @@ Tests: link/time parsing known answers, exact yt-dlp command, sound-only, refusa
 player"; recording with a routed fake player (Playwright serves youtube-nocookie.com): commands received, 2→5 s ≈ 3 s.
 Headless Chromium's display capture is a synthetic monitor, so Region Capture itself cannot run in the tests (the
 reported crop state is checked).
+**As built after the Nov 2026 bug hunt** (tab 155; links and times in `src/lib/ytclip.ts`, unit `ytclip.test.mjs` 41): a
+link to another video unloads the player (it recorded the old video at the new times); a recording keeps its clip and
+cannot be started twice; the MP4's sound is AAC (`finishRecording`); minutes and seconds above 59 are refused; times
+are rounded before they are written (no "0:60").
 
 ### Linux X11 vs Wayland (owner requirement: auto-detect)
 No web API reports the display server and Chrome's UA says `X11; Linux` on both, so `src/linux.ts` detects it:
@@ -1942,6 +1965,7 @@ JavaScript-only components (no C/C++ equivalent exists for the job):
 | TensorFlow.js (Apache-2.0) | runs the Magenta style-transfer graph on the GPU via WebGL; its **wasm backend** (XNNPACK, C++ → wasm, tier 2 official build) is the CPU path | cartoon (neural) |
 | zip.js (BSD-3) | zips larger than 7-Zip can hold in the browser's memory (above 1.5 GB of input, 256 MB on phones): zip.js streams; 7-Zip (7z-wasm) makes every other archive (`docs/WASM-AUDIT.md`, tab 107) | zip (large zips) |
 | mediabunny (MPL-2.0) | MP4 muxing around the browser's hardware WebCodecs encoders; cutting audio without re-encoding (packet copy) | video, audio |
+| — beside it, WebAssembly: @mediabunny/aac-encoder (libavcodec's AAC-LC) | the AAC encoder browsers without one lack (Linux Chromium, Firefox); fetched only then (`src/lib/aac.ts`) | video, slideshow, screencast, youtube |
 
 **Audit of handwritten WebAssembly against existing modules (owner, 18 Nov 2026): `docs/WASM-AUDIT.md`** — per tab: our
 module, the existing candidates (version, downloads), what failed or passed, the decision. Kept current as the bug hunt
@@ -2429,6 +2453,7 @@ npm packages (pinned in `package-lock.json`) are bundled by Vite or copied to `p
 | hash-wasm 4.13.0 | MIT | Hash / Checksum, HMAC Generator, TOTP, Password Hash Tool |
 | libsodium-wrappers-sumo 0.8.4 (+ libsodium-sumo; libsodium 1.0.22 compiled to WebAssembly by its author) | ISC | Sodium Encrypt, Encrypted Share Link, Password Generator, Passphrase Generator |
 | mediabunny | MPL-2.0 | Video Compressor, Audio Recorder (cut without re-encoding) |
+| @mediabunny/aac-encoder 1.66.2 (FFmpeg's AAC encoder in WebAssembly) | MPL-2.0 (FFmpeg's code: LGPL-2.1) | Video Compressor, Slideshow, Screencast, YouTube Clip |
 | @jitsi/rnnoise-wasm 0.2.1 (RNNoise 0.2 compiled to WebAssembly by Jitsi) | Apache-2.0 (RNNoise: BSD-3-Clause) | Noise Remover |
 | signalsmith-stretch 1.3.2 (Signalsmith Stretch, WebAssembly + AudioWorklet) | MIT | Pitch & Speed |
 | lcms-wasm 1.0.5 (Little CMS 2.16) | MIT | HEIC colours (Display P3 → sRGB) |

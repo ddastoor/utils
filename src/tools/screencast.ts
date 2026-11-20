@@ -4,6 +4,7 @@
 // lack a duration index, so files kept in memory are remuxed by mediabunny (packet copy, seconds).
 import { h, card, field, actions, button, segmented, toggle, select, stack, note, toast, errMsg, fmtBytes, fmtTime, downloadBlob, sleep, type Mount } from '../ui';
 import { linuxBanner } from '../linux';
+import { finishRecording } from '../lib/aac';
 
 type Mode = 'whole' | 'area';
 const MIMES = ['video/mp4;codecs=avc1,mp4a.40.2', 'video/mp4;codecs=avc1,opus', 'video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm'];
@@ -13,7 +14,7 @@ export const mount: Mount = (root) => {
   let mode: Mode = 'whole', withAudio = true, withMic = false, countdown = true, toDisk = false, fps = 30, fmt: 'mp4' | 'webm' = 'mp4';
   let display: MediaStream | null = null, mic: MediaStream | null = null, ac: AudioContext | null = null, rec: MediaRecorder | null = null;
   let chunks: Blob[] = [], bytes = 0, writable: any = null, t0 = 0, pausedAt = 0, pausedTotal = 0, timer = 0, area: [number, number, number, number] | null = null, stopCrop: (() => void) | null = null;
-  let outUrl = '', outBlob: Blob | null = null, outName = '';
+  let outUrl = '', outBlob: Blob | null = null, outName = '', starting = false, live = true;
   const mimeFor = () => (fmt === 'mp4' ? MIMES.slice(0, 2) : MIMES.slice(2)).find((m) => MediaRecorder.isTypeSupported(m)) || MIMES.find((m) => MediaRecorder.isTypeSupported(m)) || '';
 
   const preview = h('video', { class: 'sc-preview', muted: true, autoplay: true, playsinline: true }) as HTMLVideoElement;
@@ -99,6 +100,11 @@ export const mount: Mount = (root) => {
     return dest.stream.getAudioTracks();
   }
   async function start() {
+    if (starting || rec) return; // a second click during the countdown started a second recorder
+    starting = true; setButtons();
+    try { await begin(); } finally { starting = false; setButtons(); }
+  }
+  async function begin() {
     if (!display && !(await pick())) return;
     if (mode === 'area' && !area) { toast('Drag on the preview to choose an area first.', 'info'); return; }
     const mime = mimeFor(), ext = mime.includes('mp4') ? 'mp4' : 'webm';
@@ -107,7 +113,12 @@ export const mount: Mount = (root) => {
       try { const fh = await (window as any).showSaveFilePicker({ suggestedName: outName, types: [{ description: 'Video', accept: { [ext === 'mp4' ? 'video/mp4' : 'video/webm']: [`.${ext}`] } }] }); writable = await fh.createWritable(); }
       catch { return; }
     }
-    if (countdown) for (let k = 3; k > 0; k--) { stateEl.textContent = `Starting in ${k}…`; timeEl.textContent = String(k); await sleep(1000); }
+    if (countdown) for (let k = 3; k > 0; k--) { stateEl.textContent = `Starting in ${k}…`; timeEl.textContent = String(k); await sleep(1000); if (!live || !display) break; }
+    if (!live || !display || display.getVideoTracks()[0]?.readyState !== 'live') { // sharing ended or the tab was left meanwhile
+      try { await writable?.abort?.(); } catch { /* */ } writable = null;
+      if (live) { stopAll(); stateEl.textContent = 'Sharing ended before the recording started.'; timeEl.textContent = '0:00'; } // the next Start asks again
+      return;
+    }
     const stream = new MediaStream([videoTrack(), ...(await audioTracks())]);
     rec = new MediaRecorder(stream, mime ? { mimeType: mime, videoBitsPerSecond: 8_000_000 } : undefined);
     chunks = []; bytes = 0; pausedTotal = 0;
@@ -128,13 +139,7 @@ export const mount: Mount = (root) => {
     if (writable) { await writable.close(); writable = null; stateEl.textContent = `Saved ${outName} (${fmtBytes(bytes)})`; result.replaceChildren(note(`Saved straight to ${outName} — ${fmtBytes(bytes)}, ${fmtTime(secs)}.`, 'ok')); resultCard.hidden = false; setButtons(); return; }
     stateEl.textContent = 'Finishing…';
     let blob = new Blob(chunks, { type: mime.split(';')[0] || `video/${ext}` });
-    try { // add the duration/seek index MediaRecorder leaves out (packet copy, no re-encoding)
-      const mb = await import('mediabunny');
-      const input = new mb.Input({ source: new mb.BlobSource(blob), formats: mb.ALL_FORMATS });
-      const output = new mb.Output({ format: ext === 'mp4' ? new mb.Mp4OutputFormat({ fastStart: 'in-memory' }) : new mb.WebMOutputFormat(), target: new mb.BufferTarget() });
-      const conv = await mb.Conversion.init({ input, output, copy: { mode: 'forced' } } as any);
-      if (conv.isValid) { await conv.execute(); blob = new Blob([output.target.buffer!], { type: blob.type }); }
-    } catch { /* keep the raw recording */ }
+    blob = await finishRecording(blob, ext as 'mp4' | 'webm'); // duration index; an MP4's sound as AAC
     outBlob = blob; URL.revokeObjectURL(outUrl); outUrl = URL.createObjectURL(blob); after.src = outUrl;
     const v = display?.getVideoTracks()[0]?.getSettings();
     result.replaceChildren(h('div', { class: 'vid-big' }, fmtBytes(blob.size)), h('div', { class: 'muted small' }, `${fmtTime(secs)} · ${area ? `${area[2]}×${area[3]} area` : `${v?.width || ''}×${v?.height || ''}`} · ${mime || 'browser default'}`), after);
@@ -145,8 +150,9 @@ export const mount: Mount = (root) => {
   function setButtons() {
     const live = !!rec && rec.state !== 'inactive';
     pickBtn.hidden = live; startBtn.hidden = live; pauseBtn.hidden = !live; stopBtn.hidden = !live;
+    pickBtn.disabled = starting; startBtn.disabled = starting;
     pauseBtn.setLabel(rec?.state === 'paused' ? 'Resume' : 'Pause');
-    startBtn.disabled = mode === 'area' && !!display && !area;
+    if (!starting) startBtn.disabled = mode === 'area' && !!display && !area;
     pickBtn.setLabel(display ? 'Choose again' : mode === 'area' ? 'Choose a screen' : 'Choose what to record');
     saveBtn.hidden = live || !outBlob;
   }
@@ -173,5 +179,5 @@ export const mount: Mount = (root) => {
     note('A web page cannot draw on your desktop, so an area is chosen on the preview. Windows shares system sound with “Entire screen”; on Linux pick the “Monitor of …” input as a microphone to record system sound.', 'info'),
     actions(pickBtn, startBtn, pauseBtn, stopBtn, saveBtn));
   setButtons();
-  return () => { stopAll(); clearInterval(timer); URL.revokeObjectURL(outUrl); };
+  return () => { live = false; stopAll(); clearInterval(timer); URL.revokeObjectURL(outUrl); };
 };

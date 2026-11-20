@@ -140,8 +140,8 @@ export default async ({ base, page: newPage, ok, info, download, tmp }) => {
   await page.getByText(/transcribing takes roughly/).waitFor({ timeout: 20000 });
   await page.getByRole('radio', { name: /Fast/ }).click();
   await page.locator('.actions').getByRole('button', { name: 'Transcribe' }).click();
-  await page.getByText(/Could not download the fast English model — check the connection/).first().waitFor({ timeout: 30000 }).catch(() => {});
-  ok(await page.getByText(/Could not download the fast English model — check the connection/).first().isVisible(), 'a dropped download is said in words');
+  await page.getByText(/Could not download the fast English model \(60 MB\) — check the connection/).first().waitFor({ timeout: 30000 }).catch(() => {});
+  ok(await page.getByText(/Could not download the fast English model \(60 MB\) — check the connection/).first().isVisible(), 'a dropped download is said in words');
   await page.unroute('**/ggml-base.en-q5_1.bin');
 
   // 5. stop

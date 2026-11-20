@@ -8,7 +8,10 @@ import { encodeImg } from '../lib/imgio';
 import { linuxBanner } from '../linux';
 import type { Img } from '../wasm/imgproc';
 
-interface Shot { img: Img; at: Date }
+/** a shot keeps its pixels while it is the one shown; the others are kept as lossless PNG (a 4K screenshot is 33 MB of
+ *  pixels — every shot of a visit was kept that way) and decoded again when opened */
+interface Shot { img?: Img; png?: Promise<Blob>; w: number; h: number; at: Date }
+const toCanvas = (img: Img) => { const c = new OffscreenCanvas(img.width, img.height); c.getContext('2d')!.putImageData(new ImageData(new Uint8ClampedArray(img.data), img.width, img.height), 0, 0); return c; };
 
 export const mount: Mount = (root) => {
   let stream: MediaStream | null = null, delay = 3, cursor = false, armed = false, cancelArm = false, pip: Window | null = null;
@@ -43,14 +46,14 @@ export const mount: Mount = (root) => {
     const track = stream!.getVideoTracks()[0];
     const W = window as any;
     if (W.MediaStreamTrackProcessor) {
-      const reader = new W.MediaStreamTrackProcessor({ track: track.clone() }).readable.getReader();
+      const clone = track.clone(), reader = new W.MediaStreamTrackProcessor({ track: clone }).readable.getReader();
       try {
         const { value: frame } = await reader.read();
         const c = new OffscreenCanvas(frame.displayWidth, frame.displayHeight), g = c.getContext('2d')!;
         g.drawImage(frame, 0, 0); frame.close();
         const id = g.getImageData(0, 0, c.width, c.height);
         return { data: id.data, width: c.width, height: c.height };
-      } finally { reader.cancel().catch(() => {}); }
+      } finally { reader.cancel().catch(() => {}); clone.stop(); } // a clone left running kept the screen shared after "Stop sharing"
     }
     const c = document.createElement('canvas'); c.width = video.videoWidth; c.height = video.videoHeight;
     const g = c.getContext('2d')!; g.drawImage(video, 0, 0);
@@ -87,24 +90,34 @@ export const mount: Mount = (root) => {
     if (pip) { pip.close(); pip = null; await sleep(250); } // let the countdown window disappear before the shot
     armed = false;
     if (cancelArm) { status.textContent = 'Cancelled.'; sync(); return; }
+    if (!stream || stream.getVideoTracks()[0]?.readyState !== 'live') { status.textContent = 'Sharing ended before the shot. Share again to take one.'; stream = null; sync(); return; }
     try {
       const img = await grab();
-      const shot = { img, at: new Date() };
-      shots.unshift(shot); show(shot); renderGallery();
+      const shot: Shot = { img, w: img.width, h: img.height, at: new Date() };
+      shot.png = toCanvas(img).convertToBlob({ type: 'image/png' });
+      shots.unshift(shot); await show(shot); renderGallery();
       status.textContent = `Captured ${img.width}×${img.height}. Crop it if you like, then save or copy.`;
     } catch (e) { toast(`Could not capture: ${errMsg(e)}`, 'err'); }
     sync();
   }
-  function show(s: Shot) {
+  async function show(s: Shot) {
+    if (cur && cur !== s && cur.png) cur.img = undefined; // the one shown before keeps only its PNG
     cur = s;
-    canvas.width = s.img.width; canvas.height = s.img.height;
-    canvas.getContext('2d')!.putImageData(new ImageData(new Uint8ClampedArray(s.img.data), s.img.width, s.img.height), 0, 0);
+    if (!s.img) { // decode its PNG again
+      const bmp = await createImageBitmap(await s.png!), c = new OffscreenCanvas(bmp.width, bmp.height), g = c.getContext('2d')!;
+      g.drawImage(bmp, 0, 0); bmp.close();
+      const id = g.getImageData(0, 0, c.width, c.height);
+      if (cur !== s) return;
+      s.img = { data: id.data, width: c.width, height: c.height };
+    }
+    canvas.width = s.w; canvas.height = s.h;
+    canvas.getContext('2d')!.putImageData(new ImageData(new Uint8ClampedArray(s.img.data), s.w, s.h), 0, 0);
     crop.reset(); cropOn.querySelector('input')!.checked = false;
-    shotInfo.textContent = `${s.img.width}×${s.img.height} · ${s.at.toLocaleTimeString()}`;
+    shotInfo.textContent = `${s.w}×${s.h} · ${s.at.toLocaleTimeString()}`;
     editCard.hidden = false;
   }
   async function cropped(): Promise<Img> {
-    const s = cur!.img;
+    const s = cur!.img!;
     if (!crop.active) return s;
     const r = crop.rect(s.width, s.height), x = Math.round(r.x), y = Math.round(r.y), w = Math.max(1, Math.round(r.w)), hh = Math.max(1, Math.round(r.h));
     const c = new OffscreenCanvas(w, hh), g = c.getContext('2d')!;
@@ -130,16 +143,17 @@ export const mount: Mount = (root) => {
   function renderGallery() {
     galleryCard.hidden = shots.length < 2;
     clear(gallery).append(...shots.map((s, i) => {
-      const c = h('canvas', { class: 'shot-thumb', width: 160, height: Math.max(1, Math.round((160 * s.img.height) / s.img.width)), title: `Shot ${shots.length - i}` }) as HTMLCanvasElement;
-      const b = createImageBitmap(new ImageData(new Uint8ClampedArray(s.img.data), s.img.width, s.img.height));
-      b.then((bmp) => { c.getContext('2d')!.drawImage(bmp, 0, 0, c.width, c.height); bmp.close(); });
-      c.addEventListener('click', () => show(s));
+      const c = h('canvas', { class: 'shot-thumb', width: 160, height: Math.max(1, Math.round((160 * s.h) / s.w)), title: `Shot ${shots.length - i}` }) as HTMLCanvasElement;
+      const b = s.img ? createImageBitmap(new ImageData(new Uint8ClampedArray(s.img.data), s.w, s.h)) : s.png!.then((p) => createImageBitmap(p));
+      b.then((bmp) => { c.getContext('2d')!.drawImage(bmp, 0, 0, c.width, c.height); bmp.close(); }).catch(() => {});
+      c.addEventListener('click', () => { show(s).catch((e) => toast(errMsg(e), 'err')); });
       return c;
     }));
   }
   function sync() {
     shareBtn.setLabel(stream ? 'Share something else' : 'Share a screen, window or tab');
     snapBtn.disabled = armed; snapBtn.setLabel(armed ? 'Waiting…' : delay ? `Take screenshot in ${delay} s` : 'Take screenshot');
+    shareBtn.disabled = armed; stopBtn.disabled = false; // another share during the countdown left the shot without a picture
     stopBtn.hidden = !stream;
   }
   const cropOn = toggle('Crop (drag the box)', false, (v) => crop.setEnabled(v));

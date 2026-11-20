@@ -302,6 +302,22 @@ export default async ({ base, page: newPage, ok, info, download }) => {
   ok(/\.wav$/.test(fw) && readWav(readFileSync(fw)).data[0].length > 0, 'fade on a WAV: still a WAV');
   await task('Remove audio');
   ok(await runFails(/needs a video — this file has no picture/), 'a video task on a sound file: said');
+  // Stop: said as stopped, not as an error (it showed "called FFmpeg.terminate()" in red); a new file during a job ends
+  // the job (its probe reset the job's log, and the outputs took the new file's name)
+  await choose(M('clip.mp4'), /Video: h264/);
+  await task('Clean up a grainy video');
+  await page.locator('.actions').getByRole('button', { name: 'Run FFmpeg' }).click();
+  await page.waitForTimeout(1500);
+  await page.locator('.actions').getByRole('button', { name: 'Stop' }).click();
+  await page.waitForTimeout(500);
+  ok(await page.getByText('Stopped.', { exact: true }).isVisible() && !(await page.locator('.err-text').count()) && await page.locator('.actions').getByRole('button', { name: 'Run FFmpeg' }).isVisible(), 'Stop: "Stopped.", no error, Run again');
+  await page.locator('.actions').getByRole('button', { name: 'Run FFmpeg' }).click();
+  await page.waitForTimeout(1500);
+  await choose(M('kf6.mp4'), /Video: h264/);
+  ok(await page.getByText('Stopped: a new file was chosen (kf6.mp4).').isVisible() && !(await page.locator('.err-text').count()), 'a new file during a job ends the job, without an error');
+  await task('Remove audio');
+  const kn = await run();
+  ok(/kf6-out\.mp4$/.test(kn), `the next job is of the new file and named after it (${kn.split('/').pop()})`);
   const errs = page.errors.filter((e) => !/FFmpeg failed|only 3 s long|change nothing|Type the text|Choose the logo|under half a second|at least one more clip|differ in size|needs a video/.test(e)); // refusals, logged by the button
   ok(!errs.length, `no page errors ${errs.slice(0, 3).join(' | ')}`);
   info('ffmpeg.wasm 0.12 core (FFmpeg 5.1.4)');
