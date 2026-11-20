@@ -707,3 +707,20 @@ One entry per tab, written before its bug hunt: our module → candidates → ch
   emoji spelled the same, in the same groups, with the same versions and the same skin-tone flags; three flags are
   named differently (CLDR's longer names); ours has the nine emoji of Emoji 18 besides. Symbol names equal Perl's
   `charnames` for all 237. Every emoji and symbol is found by its own name, and by its keywords.
+
+### 97. `morse` — Morse Code (19 Nov 2026)
+- **Ours before:** no WebAssembly; a table of 54 codes and two one-line functions in TypeScript; the sound by the
+  browser's Web Audio.
+- **Candidates:** no WebAssembly module exists for Morse code, and none would have work to do: the alphabet is a
+  table of 62 entries, a conversion is a look-up per character, and the sound is an oscillator switched by a list
+  of times (the browser's audio engine — compiled code — makes the samples). The established implementation is
+  **unixcw's libcw** (C, GPL): its job is keying a sound card in real time, which a browser tab does through Web
+  Audio; compiling it to WebAssembly would bring a second audio path and nothing the tab lacks.
+- **Decision:** stays TypeScript — a table and string handling (`src/lib/morse.ts`, no loops over data worth the
+  name); recorded here as the rule asks. **libcw is the reference of the tests instead**: its table (68 characters)
+  and its dot, dash and gap lengths at ten speeds are read out of the library by
+  `scripts/make-morse-reference.py` (`apt install cw`, ctypes) into `tests/fixtures/morse/reference.json`.
+- **Evidence:** 61 characters coded exactly as libcw codes them; its five procedural signals are read; the one
+  deliberate difference is "!" (-.-.--, the code in general use — libcw gives that key another meaning, and the
+  ITU recommendation has no exclamation mark); dot, dash, the gap inside a letter and between letters equal
+  libcw's to its whole microseconds at 5 – 40 words a minute; the word gap is the ITU's seven units.

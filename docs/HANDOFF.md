@@ -240,6 +240,10 @@ export ZIG=/tmp/zig/x/ziglang/zig
   runs): after writing any JS / TS file with such escapes run a re-escaping pass (a ten-line Python script that
   replaces raw U+0080–00A0, U+00AD, U+0300–036F, U+2000–200F, U+2028–202F, U+FE0F … by `\\uXXXX`, building the
   backslash with `chr(92)`), or build the line in Python.
+  **Run that pass on JS / TS / MJS sources only — never on a Markdown file:** it turned the joiners of an emoji and a
+  non-breaking hyphen in `docs/BUGHUNT.md` into literal backslash-u text once (caught in the diff before the commit).
+  Reference tools the suites of area text need again in a new container: `pip install pysbd regex titlecase`,
+  `apt install cw` (unixcw's libcw for `scripts/make-morse-reference.py`), perl (for `scripts/make-emoji-reference.py`).
 - **Node's ICU is not Chromium's:** Chromium ships its own word-break rules (no join over a full stop or a colon), so
   `Intl.Segmenter` gives other words in the browser than in a unit test. Anything that must be the same everywhere
   belongs in an engine of ours (the Word Counter's textkit.wasm).

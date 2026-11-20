@@ -18,7 +18,7 @@ export default async ({ base, page: newPage, ok }) => {
   await page.getByRole('searchbox', { name: 'Search emoji and symbols' }).fill('rocket');
   ok(await page.waitForFunction(() => document.querySelector('.emoji-grid .emoji-cell')?.textContent === '🚀', null, { timeout: 8000 }).then(() => true, () => false), 'emoji search: rocket comes first');
   await go('morse'); await page.waitForTimeout(100);
-  ok((await page.locator('.outbox textarea').inputValue()) === '... --- ... / .... . .-.. .--.', 'morse');
+  ok((await page.locator('.morse-out').textContent()) === '... --- ... / .... . .-.. .--.', 'morse');
   await go('lorem'); ok((await page.locator('.outbox textarea').inputValue()).startsWith('Lorem ipsum dolor sit amet'), 'lorem');
   await go('json'); await page.waitForSelector('.note-ok');
   ok((await page.locator('.outbox textarea').inputValue()).includes('\n  "name": "SuperTools"'), 'json format');

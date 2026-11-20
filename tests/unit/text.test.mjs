@@ -2,10 +2,6 @@ export default async (t, { load, wasm }) => {
   const x = await load('/src/tools/text.ts');
   const { bindTextcore } = await load('/src/wasm/textcore.ts');
   const tc = bindTextcore(await wasm('textcore'));
-  // morse
-  t.eq(x.toMorse('SOS Help'), '... --- ... / .... . .-.. .--.', 'to morse');
-  t.eq(x.fromMorse('... --- ... / .... . .-.. .--.'), 'SOS HELP', 'from morse');
-  t.eq(x.fromMorse(x.toMorse('Hello, World 2026!')), 'HELLO, WORLD 2026!', 'morse round trip');
   // colour
   const { hexToRgb, rgbToHex } = await load('/src/lib/color.ts');
   const { bindMathcore } = await load('/src/wasm/mathcore.ts');

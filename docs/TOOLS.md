@@ -130,7 +130,7 @@ Generated from `src/registry.ts` by `npm run docs` — do not edit by hand.
 | `diff` | Text Diff | PC + mobile | Compare two texts side by side. | diff, compare, difference, changes, text compare, compare two texts, what changed, side by side, … |
 | `fancy` | Fancy Text | PC + mobile | Stylish Unicode text for bios and posts. | fancy text, unicode, font, fonts, bold, italic, cursive, script, … |
 | `emoji` | Emoji & Symbols | PC + mobile | Search and copy emoji and symbols. | emoji, emojis, emoticon, smiley, smileys, symbols, characters, special characters, … |
-| `morse` | Morse Code | PC + mobile | Text ⇄ Morse, with sound. | morse, code, sos, dots, dashes, telegraph |
+| `morse` | Morse Code | PC + mobile | Text ⇄ Morse, with sound. | morse, morse code, code, sos, dots, dashes, dit, dah, … |
 | `lorem` | Lorem Ipsum | PC + mobile | Placeholder text generator. | lorem ipsum, placeholder, dummy text, filler |
 | `photodict` | Photo Dictionary | **Mobile only** | Photograph a page; get the hardest words with their dictionary meanings. | photo dictionary, dictionary, meaning, meanings, define, definition, vocabulary, vocab, … |
 

@@ -129,7 +129,7 @@ Areas with a shared review: the app shell (router, search, favorites, platform h
 | `diff` | Text Diff | PC + mobile | text | ✓ | 9 | 65 | engine → similar crate (textkit-diff.wasm); line numbers, marked changes, folds, unified diff; held to GNU diff -d and GNU patch |
 | `fancy` | Fancy Text | PC + mobile | text | ✓ | 10 | 118 | characters by textkit.wasm (emoji, Hindi stay whole); digits/brackets turn; tap a row to copy; long texts; alphabets held to Unicode's names |
 | `emoji` | Emoji & Symbols | PC + mobile | text | ✓ | 7 | 137 | search by keywords, ranked by textcore.wasm (was: letters inside the name); symbols by name; skin tones; emoji the font lacks left out; data held to unicode-emoji-json and Perl's names |
-| `morse` | Morse Code | PC + mobile | text |  |  |  |  |
+| `morse` | Morse Code | PC + mobile | text | ✓ | 11 | 78 | characters and groups no longer vanish silently; lines and word gaps read; sound: Stop, typographic signs, line gaps; held to unixcw's libcw (table and timing) |
 | `lorem` | Lorem Ipsum | PC + mobile | text |  |  |  |  |
 | `photodict` | Photo Dictionary | Mobile only | text |  |  |  |  |
 
@@ -1188,3 +1188,25 @@ Reference for the five finance tabs: **mpmath at 60 digits** (`scripts/make-fina
   learn its name); two more groups of symbols (Greek letters, superscripts and subscripts) and a few more
   fractions; Emoji 18. The data was held to another package's reading of Unicode's emoji list (unicode-emoji-json:
   the same 1,914 emoji, groups, versions and skin-tone flags; ours has the 9 of Emoji 18 besides).
+
+- **`morse` (tab 97, 11 bugs; `src/lib/morse.ts`; unit `tests/unit/morse.test.mjs` 52, e2e 42 — before: 13 e2e
+  checks and 3 unit checks). The reference is unixcw (libcw), the Morse program of Linux radio amateurs.**
+  1. A word made of characters without a code left an empty word behind: "A € B" → ".- /  / -...", and a text that
+     began with one started with " / ".
+  2. **Characters without a code vanished without a word**: é ("café" was sent as CAF), %, €, a whole Hindi word.
+     Now: é è à ä ö ü ñ ç have their codes, other accents are left off the letter (ê as E), % is sent as the ITU says
+     (0/0), typographic quotes and dashes as the plain ones — and what is left out is named under the result.
+  3. Text of several lines came out as one line of Morse.
+  4. **Two lines of Morse were read as one word**: "... --- ..." and ".... . .-.. .--." on two lines gave "SOSHELP".
+  5. Two spaces, a tab or a bar between words were not word gaps (".-  -..." gave "AB").
+  6. A group that is no Morse code was dropped ("AB" for ".- ...... -..."); it is shown as � and named.
+  7. "...---..." — SOS as it is sent, without gaps — showed nothing; it is read as <SOS> (and <SK>, <BK>, <KA>, <SN>,
+     <HH>, CH; letters in angle brackets are sent as one sign).
+  8. **Sound: the dots and dashes of a typographer (· −), which the tab read, were played as silence.**
+  9. Sound: a line break in Morse input was no gap at all (two lines sounded as one letter), and a slash without
+     spaces was played as a letter gap.
+  10. Sound: there was no way to stop a message, and pressing Play again played a second copy on top of the first.
+  11. Phone: a letter's dots and dashes were broken over two lines of the result (".--." as "." and "--.").
+  Also: a switch Auto / Text → Morse / Morse → text ("..." is no longer always Morse); tones rise and fall over 5 ms
+  (a hard switch clicks); the length of the message is said before it plays; a pitch slider; a chart of the alphabet.
+  Dot, dash and gap lengths equal libcw's at ten speeds to its whole microseconds.

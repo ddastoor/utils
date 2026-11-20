@@ -12,6 +12,7 @@ import { processLines, summary, type LineOptions, type LineDeps, type SortMode }
 import { plan, countText, type FindOptions, type Plan } from '../lib/findreplace';
 import { textdiff, type Textdiff, type DiffRow, type LineDiff, type SpanDiff } from '../wasm/textdiff';
 import { foldRows, lineSummary, spanSummary, APPROX, MAX_ROWS, MAX_SPAN_CHARS } from '../lib/textdiff';
+import * as M from '../lib/morse';
 import { FANCY, FANCY_SHOWN, BY_CHARACTER, needsEngine, plainClusters, fancyRow, type Split } from '../lib/fancy';
 import { sodium } from '../wasm/crypto';
 import { devcore, type Devcore } from '../wasm/devcore';
@@ -335,35 +336,68 @@ export const emoji: Mount = async (root) => {
 };
 
 // ================================================================== Morse
-const MORSE: Record<string, string> = { A: '.-', B: '-...', C: '-.-.', D: '-..', E: '.', F: '..-.', G: '--.', H: '....', I: '..', J: '.---', K: '-.-', L: '.-..', M: '--', N: '-.', O: '---', P: '.--.', Q: '--.-', R: '.-.', S: '...', T: '-', U: '..-', V: '...-', W: '.--', X: '-..-', Y: '-.--', Z: '--..', 0: '-----', 1: '.----', 2: '..---', 3: '...--', 4: '....-', 5: '.....', 6: '-....', 7: '--...', 8: '---..', 9: '----.', '.': '.-.-.-', ',': '--..--', '?': '..--..', "'": '.----.', '!': '-.-.--', '/': '-..-.', '(': '-.--.', ')': '-.--.-', '&': '.-...', ':': '---...', ';': '-.-.-.', '=': '-...-', '+': '.-.-.', '-': '-....-', '_': '..--.-', '"': '.-..-.', $: '...-..-', '@': '.--.-.' };
-const UNMORSE = Object.fromEntries(Object.entries(MORSE).map(([k, v]) => [v, k]));
-export const toMorse = (s: string) => s.toUpperCase().split(/\s+/).filter(Boolean).map((w) => [...w].map((c) => MORSE[c] ?? '').filter(Boolean).join(' ')).join(' / ');
-export const fromMorse = (s: string) => s.trim().split(/\s*\/\s*|\s{3,}/).map((w) => w.split(/\s+/).map((c) => UNMORSE[c.replace(/[·•]/g, '.').replace(/[−–—_]/g, '-')] ?? '').join('')).join(' ');
+// The alphabet, both conversions and the timing of the tones: src/lib/morse.ts. The sound is the browser's Web Audio.
 export const morse: Mount = (root) => {
-  const inp = textarea({ rows: 4, value: 'SOS Help', placeholder: 'Text or Morse (. - / )' });
-  const out = outputBox({ rows: 4, mono: true });
-  let wpm = 18, ctx: AudioContext | null = null;
-  const isMorse = () => /^[\s.\-/·•−–—_]+$/.test(inp.value.trim());
-  const run = () => { out.value = isMorse() ? fromMorse(inp.value) : toMorse(inp.value); };
-  inp.addEventListener('input', run);
-  const play = async () => {
-    const code = isMorse() ? inp.value : toMorse(inp.value);
-    ctx ||= new AudioContext();
-    const unit = 1.2 / wpm; let t = ctx.currentTime + 0.05;
-    const osc = ctx.createOscillator(), g = ctx.createGain();
-    osc.frequency.value = 650; g.gain.value = 0; osc.connect(g).connect(ctx.destination); osc.start();
-    for (const ch of code) {
-      if (ch === '.' || ch === '-') { const d = ch === '.' ? unit : 3 * unit; g.gain.setValueAtTime(0.4, t); g.gain.setValueAtTime(0, t + d); t += d + unit; }
-      else if (ch === ' ') t += 2 * unit; else if (ch === '/') t += 2 * unit; // gaps: symbol 1, letter 1+2 = 3, word " / " 1+2+2+2 = 7 units
+  type Way = 'auto' | 'encode' | 'decode';
+  let way: Way = 'auto', wpm = 18, pitch = 650, code = '';
+  let ctx: AudioContext | null = null, osc: OscillatorNode | null = null, endTimer = 0;
+  const inp = textarea({ rows: 4, value: 'SOS Help', placeholder: 'Text, or Morse code:  ... --- ...' }); inp.setAttribute('aria-label', 'Text or Morse code');
+  // the result: a box of its own kind, so that a letter's dots and dashes are never broken over two lines
+  const outText = h('div', { class: 'input textarea mono morse-out', role: 'textbox', 'aria-readonly': 'true', 'aria-multiline': 'true', 'aria-label': 'Morse code', tabindex: '0' });
+  let shown = '';
+  const out = h('div', { class: 'outbox' }, outText, button('', () => { if (shown) void copy(shown); }, { icon: 'Copy', small: true, title: 'Copy' }));
+  const show = (text: string, isCode: boolean) => { shown = text; outText.replaceChildren(...(isCode ? text.split(/([ \n])/).filter(Boolean).map((part) => (part === ' ' || part === '\n' ? part : h('span', { class: 'nb' }, part))) : [text])); };
+  const outField = field('Morse code', out), notes = h('div', { class: 'stack' }), lengthLine = h('p', { class: 'muted small morse-length' });
+  /** the result is Morse code or text: its box says which */
+  const nameOut = (name: string) => { outField.querySelector('.field-label')!.textContent = name; outField.setAttribute('aria-label', name); outText.setAttribute('aria-label', name); };
+  const list = (items: string[]) => items.slice(0, 12).join('  ') + (items.length > 12 ? ` … (${items.length} in all)` : '');
+  const showLength = () => { const s = M.schedule(code, wpm); lengthLine.textContent = s.tones.length ? `${M.lengthText(s.total)} of sound at ${wpm} words a minute.` : ''; playBtn.disabled = !s.tones.length; };
+  const run = () => {
+    stop();
+    const text = inp.value, decoding = way === 'decode' || (way === 'auto' && M.isMorse(text));
+    notes.replaceChildren();
+    if (decoding) {
+      const d = M.decode(text); show(d.text, false); code = M.tidy(text); nameOut('Text');
+      if (d.unknown.length) notes.append(note(`${d.unknown.length === 1 ? 'This group is' : `${d.unknown.length} groups are`} no Morse code and ${d.unknown.length === 1 ? 'is' : 'are'} shown as \ufffd:  ${list(d.unknown)}${/[^\s./|\-\u00b7\u2022\u2219\u22c5\u2212\u2013\u2014\u2012\u2015_]/.test(text) ? ' — Morse code is made of dots, dashes, spaces and slashes only.' : ''}`, 'warn'));
+    } else {
+      const e = M.encode(text); show(e.code, true); code = e.code; nameOut('Morse code');
+      if (e.skipped.length) notes.append(note(`No Morse code for ${e.skipped.length === 1 ? 'this character, which is' : `these ${e.skipped.length} characters, which are`} left out:  ${list(e.skipped)}`, 'warn'));
     }
-    osc.stop(t + 0.1);
+    showLength();
   };
-  root.append(card(null, stack(field('Input (auto-detects text or Morse)', inp), field('Output', out))),
-    card('Sound', slider({ label: 'Speed', min: 5, max: 40, value: wpm, unit: ' wpm', onInput: (v) => (wpm = v) })),
-    h('div', { class: 'actions' }, button('Play', play, { variant: 'primary', icon: 'Play' })));
+  // ---- sound: one oscillator, switched on and off by its gain (with 5 ms slopes, or every tone would click)
+  const stop = () => {
+    clearTimeout(endTimer);
+    if (osc) { const o = osc; osc = null; try { o.onended = null; o.stop(); o.disconnect(); } catch { /* it had ended */ } }
+    playBtn.hidden = false; stopBtn.hidden = true;
+  };
+  const play = async () => {
+    if (osc) stop();
+    const { tones, total } = M.schedule(code, wpm);
+    if (!tones.length) return;
+    ctx ||= new AudioContext();
+    if (ctx.state === 'suspended') await ctx.resume();
+    const o = ctx.createOscillator(), g = ctx.createGain(), t0 = ctx.currentTime + 0.06;
+    o.frequency.value = pitch; g.gain.value = 0; o.connect(g).connect(ctx.destination);
+    for (const { at, len } of tones) { const slope = Math.min(0.005, len / 4); g.gain.setValueAtTime(0, t0 + at); g.gain.linearRampToValueAtTime(0.4, t0 + at + slope); g.gain.setValueAtTime(0.4, t0 + at + len - slope); g.gain.linearRampToValueAtTime(0, t0 + at + len); }
+    o.start(); o.stop(t0 + total + 0.05); osc = o;
+    o.onended = () => { if (osc === o) stop(); };
+    endTimer = window.setTimeout(() => { if (osc === o) stop(); }, (total + 0.5) * 1000); // if "ended" never comes
+    playBtn.hidden = true; stopBtn.hidden = false;
+  };
+  const playBtn = button('Play', play, { variant: 'primary', icon: 'Play' }), stopBtn = button('Stop', () => stop(), { variant: 'primary', icon: 'Square' }); stopBtn.hidden = true;
+  inp.addEventListener('input', run);
+  const chart = h('details', { class: 'morse-chart' }, h('summary', {}, 'The Morse alphabet'),
+    h('div', { class: 'morse-grid' }, Object.entries(M.MORSE).sort(([a], [b]) => rank(a) - rank(b) || (a < b ? -1 : 1)).map(([c, m]) => h('span', { class: 'morse-item' }, h('b', {}, c), h('code', {}, m)))),
+    h('p', { class: 'muted small' }, 'A dash lasts three dots. Between the parts of a letter: one dot of silence; between letters three; between words seven. Words are written apart with a slash. Letters in angle brackets, such as <SK> (end of contact) or <SOS>, are sent as one sign without gaps.'));
+  root.append(card(null, stack(segmented<Way>([['auto', 'Auto'], ['encode', 'Text → Morse'], ['decode', 'Morse → text']], way, (v) => { way = v; run(); }), field('Text or Morse code', inp), outField, notes)),
+    card('Sound', stack(slider({ label: 'Speed', min: 5, max: 40, value: wpm, unit: ' wpm', onInput: (v) => { wpm = v; stop(); showLength(); } }), slider({ label: 'Pitch', min: 400, max: 1000, step: 10, value: pitch, unit: ' Hz', onInput: (v) => { pitch = v; if (osc && ctx) osc.frequency.setValueAtTime(v, ctx.currentTime); } }), lengthLine)),
+    h('div', { class: 'actions' }, playBtn, stopBtn), chart);
   run();
-  return () => { ctx?.close(); };
+  return () => { stop(); void ctx?.close(); };
 };
+/** the order of the chart: letters, digits, signs, accented letters */
+const rank = (c: string) => (/[A-Z]/.test(c) ? 0 : /[0-9]/.test(c) ? 1 : c.charCodeAt(0) < 128 ? 2 : 3);
 
 // ================================================================== Lorem ipsum
 const LOREM = 'lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod tempor incididunt ut labore et dolore magna aliqua ut enim ad minim veniam quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur excepteur sint occaecat cupidatat non proident sunt in culpa qui officia deserunt mollit anim id est laborum'.split(' ');

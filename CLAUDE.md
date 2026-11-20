@@ -1028,6 +1028,27 @@ the device can draw `src/lib/emoji-support.ts`; ranking textcore.wasm; unit `tes
 - **The tab:** a cell's title and label are its name (a symbol's: "Indian rupee sign · U+20B9"); a tap copies and the
   line under the box says what was copied; nothing but the tab's own code and data is fetched at open.
 
+### Morse Code — as built after the Nov 2026 bug hunt
+(`morse` in `src/tools/text.ts`, alphabet / conversions / timing `src/lib/morse.ts`; unit `tests/unit/morse.test.mjs`
+52, e2e `tests/e2e/morse.e2e.mjs` 42; reference `python3 scripts/make-morse-reference.py` — needs `apt install cw`:
+unixcw's libcw read through ctypes → `tests/fixtures/morse/reference.json`.)
+- **The alphabet** (`MORSE`, 62 characters): A – Z, 0 – 9, `. , ? ' ! / ( ) & : ; = + - _ " $ @` and É È À Ä Ö Ü Ñ Ç —
+  as unixcw codes them; "!" is -.-.-- (the code in general use; not in ITU-R M.1677-1).
+- **Text → Morse** (`encode`): capitals; letters apart by a space, words by " / ", lines stay lines; an accent
+  without a code of its own is left off (ê as E, ß as SS); % as the ITU says (0/0); × as X; typographic apostrophe,
+  quotes and dashes as the plain ones; `<SK>` (letters in angle brackets) is a procedural signal — its letters
+  without gaps. Characters without a code are left out and **named under the result**.
+- **Morse → text** (`decode`): dots and dashes also as · • − – — _; words apart by a slash, a bar, a tab or two and
+  more spaces; a line stays a line; `...---...` is <SOS>, and <SK> <BK> <KA> <SN> <HH> and CH are read; a group
+  that is no code is shown as U+FFFD and named.
+- **Direction:** Auto (Morse when the box holds nothing but dots, dashes and separators), or forced either way.
+- **Sound** (`schedule`): one unit = 1.2 s ÷ words a minute (PARIS = 50 units); dot 1, dash 3, 1 between the parts
+  of a letter, 3 between letters, 7 between words and lines. One oscillator, its gain rising and falling over 5 ms
+  per tone (no clicks); Play becomes Stop; a new text, a new speed or leaving the tab ends the sound; the length is
+  said beforehand; speed 5 – 40 wpm, pitch 400 – 1,000 Hz (also while it plays).
+- **The tab:** the result is a box whose letter groups never break over two lines; Copy gives plain dots, dashes
+  and spaces; a chart of the alphabet under the Play button. Nothing but the tab's own code is fetched.
+
 ### SQLite Playground (PC) — as built after the Nov 2026 bug hunt
 (`src/tools/software/sqlite.ts`, engine `src/lib/sqlite-engine.ts`, worker `src/workers/sqlite.worker.ts`; unit
 `tests/unit/sqlite.test.mjs` 106, e2e `tests/e2e/sqlite.e2e.mjs` 63.) Engine: the **official SQLite WebAssembly build**
@@ -1545,6 +1566,8 @@ them (`docs/WASM-AUDIT.md`, tab 93: the same dialect as the Regex Tester); the s
 Nov 2026 (Line Tools): `src/lib/linetools.ts` — split, trim, a `Set` for duplicates, reading a leading number, and
 `Array.sort` on the browser's `Intl.Collator` (compiled ICU, in the reader's language: `docs/WASM-AUDIT.md`, tab 92);
 the shuffle is crypto.wasm's and the line lengths are textkit.wasm's.
+Nov 2026 (Morse Code): `src/lib/morse.ts` — a table of 62 codes, a look-up per character and a list of tone times for
+the browser's Web Audio; no WebAssembly Morse module exists and none would have work to do (`docs/WASM-AUDIT.md`, tab 97).
 Nov 2026 (Emoji & Symbols): `src/lib/emoji.ts` (records for the search engine, the pick of a skin-tone variant) and
 `src/lib/emoji-support.ts` (ten characters drawn on the browser's canvas to see which emoji the device's font has); the
 ranking is textcore.wasm's (`docs/WASM-AUDIT.md`, tab 96).

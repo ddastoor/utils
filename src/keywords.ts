@@ -102,7 +102,7 @@ export const KEYWORDS: Record<string, string> = {
   'jwt': 'jwt, token, decode, json web token, bearer, claims',
   'fancy': 'fancy text, unicode, font, fonts, bold, italic, cursive, script, fraktur, gothic, double struck, monospace, circled, bubble, squared, fullwidth, wide, small caps, upside down, flip text, strikethrough, strike, underline, instagram, whatsapp, bio, stylish, cool text, text styles, font generator',
   'emoji': 'emoji, emojis, emoticon, smiley, smileys, symbols, characters, special characters, copy, copy paste, arrows, currency, rupee sign, math symbols, greek letters, superscript, subscript, tick mark, check mark, degree symbol, copyright symbol, trademark, skin tone, flags, emoji search, emoji picker, unicode symbols',
-  'morse': 'morse, code, sos, dots, dashes, telegraph',
+  'morse': 'morse, morse code, code, sos, dots, dashes, dit, dah, telegraph, cw, ham radio, morse translator, morse decoder, morse encoder, text to morse, morse to text, morse sound, beep',
   'lorem': 'lorem ipsum, placeholder, dummy text, filler',
   'photodict': 'photo dictionary, dictionary, meaning, meanings, define, definition, vocabulary, vocab, difficult words, hard words, rare words, word meaning, kindle, newspaper, book page, camera dictionary, scan words, look up words, lookup, glossary, english words, learn words, dictonary, meening',
   'sqlite': 'open db file, db file, sqlite3, sql on csv, query csv, sqlite, sql, database, db, query, select, csv, table, import, export',
