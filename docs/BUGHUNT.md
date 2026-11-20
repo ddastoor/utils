@@ -15,7 +15,7 @@ Areas with a shared review: the app shell (router, search, favorites, platform h
 |---|---|---|---|---|---|---|---|
 | `image` | Image Editor | PC + mobile | images1 | ✓ | 4 | 17 | resize → @jsquash/resize (linear light), imgproc kept (magick-wasm 15.5 MB, slower; wasm-vips needs SAB); JPEG of transparency on white; straighten crops its corners; size boxes checked |
 | `batch` | Batch Images | PC only | images1 | ✓ | 4 | 7 | jSquash resize; unique result names (shared list); sizes/scale checked; failed files listed; Stop |
-| `heic` | HEIC → JPG | PC + mobile | images1 |  |  |  |  |
+| `heic` | HEIC → JPG | PC + mobile | images1 | ✓ | 3 | 16 | libheif-js kept (latest) + lcms-wasm: Display P3 → sRGB (iPhone colours were off, every HEIC tab); primary image; failed files listed |
 | `passport` | Passport Photo | PC + mobile | images2 |  |  |  |  |
 | `formphoto` | Photo & Signature Resizer | PC + mobile | images2 |  |  |  |  |
 | `bgremove` | Background Remover | PC + mobile | images2 |  |  |  |  |
@@ -1490,3 +1490,13 @@ Reference for the five finance tabs: **mpmath at 60 digits** (`scripts/make-fina
   3. A file that could not be read was reported in a toast per file that vanished; such files are listed under the
      results now, and the others are made.
   4. A long batch could not be stopped; Stop ends it after the picture in hand.
+
+- **`heic` (tab 113, 3 bugs; engine: libheif-js 1.23.5 kept (the latest) + lcms-wasm (Little CMS) for colour —
+  docs/WASM-AUDIT.md, 111; unit `tests/unit/heic.test.mjs` 13 — new; e2e 14 — was 11).**
+  1. **iPhone photos changed colour**: they are in Display P3 and carry its profile; libheif's pixels were used as if
+     they were sRGB, so saturated colours came out duller (a red of 240 became 220). The pixels are turned into sRGB
+     with the photo's own profile now — in this tab and in every tab that opens a HEIC (Image Editor, Batch Images,
+     Passport Photo …), as the browser does for a JPEG or PNG with a profile.
+  2. A HEIC with several images (a burst, a depth map) gave the first one, not the primary one.
+  3. A file that could not be read was reported in a toast that vanished; such files are listed now, the others
+     converted.

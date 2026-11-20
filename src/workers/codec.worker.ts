@@ -6,6 +6,8 @@ import encodeWebp from '@jsquash/webp/encode';
 import decodeWebp from '@jsquash/webp/decode';
 import optimisePng from '@jsquash/oxipng/optimise';
 import resizeImage from '@jsquash/resize';
+import lcmsWasmUrl from 'lcms-wasm/dist/lcms.wasm?url';
+import { heicProfile, toSrgb } from '../lib/heic-color';
 
 type Img = { data: Uint8ClampedArray; width: number; height: number };
 const asImageData = (i: Img) => (typeof ImageData !== 'undefined' ? new ImageData(new Uint8ClampedArray(i.data), i.width, i.height) : (i as unknown as ImageData));
@@ -17,11 +19,26 @@ async function decodeHeic(buf: ArrayBuffer): Promise<Img> {
   const dec = new lib.HeifDecoder();
   const images = dec.decode(new Uint8Array(buf));
   if (!images?.length) throw new Error('Not a readable HEIC/HEIF image.');
-  const im = images[0], width = im.get_width(), height = im.get_height();
+  // the primary image (a file may hold several: bursts, depth maps, thumbnails)
+  const im = images.find((i: any) => i.is_primary?.()) ?? images[0], width = im.get_width(), height = im.get_height();
   const data = new Uint8ClampedArray(width * height * 4);
   await new Promise<void>((res, rej) => im.display({ data, width, height }, (d: any) => (d ? res() : rej(new Error('HEIC decode failed')))));
+  // an iPhone photo is in Display P3: to sRGB with its profile (the browser does the same for JPEG / PNG)
+  const icc = heicProfile(lib, im.handle);
+  if (icc) {
+    const L = await lcmsLib();
+    const r = toSrgb(L.lcms, L.C, data, icc);
+    if (r) return { data: r.data, width, height };
+  }
   return { data, width, height };
 }
+
+let lcmsP: Promise<{ lcms: any; C: any }> | null = null;
+const lcmsLib = () => (lcmsP ||= (async () => {
+  const m: any = await import('lcms-wasm');
+  const lcms = await m.instantiate({ locateFile: () => lcmsWasmUrl });
+  return { lcms, C: m };
+})());
 
 /** The image on a solid background (JPEG has no transparency: MozJPEG keeps the colour under a transparent pixel, which
  *  the browser stores as black). The browser's own compositing (canvas), so a picture without alpha is unchanged. */

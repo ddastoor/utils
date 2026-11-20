@@ -222,7 +222,7 @@ Test, plus `photodict` Photo Dictionary (owner said mobile only — phone camera
 |---|---|---|---|
 | `image` | Image Editor | both | own C wasm `imgproc` + MozJPEG/WebP/OxiPNG (jSquash) |
 | `batch` | Batch Images | **PC** | `imgproc` resize + jSquash + zip.js |
-| `heic` | HEIC → JPG | both | libheif (C++ → wasm, libheif-js) + jSquash |
+| `heic` | HEIC → JPG | both | libheif (C++ → wasm, libheif-js) + Little CMS (lcms-wasm: Display P3 → sRGB with the photo's profile) + jSquash |
 | `passport` | Passport Photo | both | MediaPipe Face Landmarker (eyes/chin/tilt) + selfie multiclass (person mask, crown via `p_mask_top`) → layout to head-height / eye-height rules (`src/lib/passport.ts`) → crop region only at full res → guided-filter matte + required colour → one homography warp (`p_warp_quad_fill`) → 300 dpi JPEG, digital-upload JPEG (px/KB limits), 4×6 in / A4 sheets |
 | `formphoto` | Photo & Signature Resizer | both | presets (`src/lib/form-specs.ts`: IBPS/SBI/RBI, SSC, UPSC, NTA, PAN — px + KB ranges, all editable, "confirm with the notification"), face auto-framing (BlazeFace), paper clean-up (`imgproc` ink), Lanczos resize, MozJPEG best quality ≤ max, JPEG comment padding up to the min (`metacore` `m_jpeg_pad`), DPI |
 | `bgremove` | Background Remover | both | MediaPipe selfie-multiclass (6 categories) → person mask in C (`p_person_mask`: hair+skin+clothes, accessories only next to the person) → `imgproc` guided-filter matte at full res → transparent PNG / colour / blur / another photo (`p_composite_img`) |
@@ -1660,6 +1660,7 @@ stay **public** (the source of the deployed site is then available to every user
 | FFmpeg | C | ffmpeg.wasm project | ffmpeg |
 | MozJPEG, libwebp, OxiPNG, Squoosh's resize (Lanczos-3 in linear light) | C / Rust | jSquash (Squoosh codecs; `@jsquash/resize` since Nov 2026) | image encoders; resizing in the Image Editor and Batch Images (`docs/WASM-AUDIT.md`, tabs 109, 110) |
 | libheif + libde265 | C++ | libheif-js | heic |
+| Little CMS 2.16 | C | lcms-wasm (Matt DesLauriers; npm 1.0.5) — in the codec worker, fetched for a HEIC with a non-sRGB ICC profile | heic and every tab that opens HEIC: Display P3 → sRGB (`docs/WASM-AUDIT.md`, tab 111) |
 | Tesseract 5 | C++ | tesseract.js-core | ocr |
 | zxing-cpp | C++ | zxing-wasm | qr, barcode, scan |
 | 7-Zip 24.09 (`7zz`, the command line, Emscripten build with WORKERFS) | C++ | use-strict (`7z-wasm` npm 1.2.0) — run in `src/workers/sevenzip.worker.ts`, a fresh instance per archive | zip (zip and 7z with AES-256; `docs/WASM-AUDIT.md`, tab 107), unzip (reads every archive; tab 108) |
@@ -2153,6 +2154,7 @@ npm packages (pinned in `package-lock.json`) are bundled by Vite or copied to `p
 | hash-wasm 4.13.0 | MIT | Hash / Checksum, HMAC Generator, TOTP, Password Hash Tool |
 | libsodium-wrappers-sumo 0.8.4 (+ libsodium-sumo; libsodium 1.0.22 compiled to WebAssembly by its author) | ISC | Sodium Encrypt, Encrypted Share Link, Password Generator, Passphrase Generator |
 | mediabunny | MPL-2.0 | Video Compressor, Audio Recorder (cut without re-encoding) |
+| lcms-wasm 1.0.5 (Little CMS 2.16) | MIT | HEIC colours (Display P3 → sRGB) |
 | @biomejs/wasm-web 2.6.8 (Biome's official WebAssembly build) | MIT OR Apache-2.0 | Code Formatter |
 | @dprint/formatter 0.6.0, @dprint/json 0.26.0, dprint-plugin-markup 0.28.0 (markup_fmt) | MIT | Code Formatter |
 | prettier 3 | MIT | Code Formatter (Markdown; fallback) |

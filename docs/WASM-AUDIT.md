@@ -935,3 +935,17 @@ One entry per tab, written before its bug hunt: our module → candidates → ch
 - **Ours:** imgproc.wasm's resize; jSquash's encoders. **Decision:** as entry 109 — resizing moves to
   **@jsquash/resize** (Lanczos-3 in linear light, premultiplied alpha, in the codec worker); decoding stays with the
   browser (and libheif-js / jSquash where it cannot), encoding with jSquash.
+
+### 111. `heic` — HEIC → JPG (20 Nov 2026)
+- **Engine:** libheif-js 1.23.5 (libheif + libde265 compiled to WebAssembly) — an existing module, the latest; stays.
+- **What it does not cover:** colour management. libheif hands out the pixels in the photo's own colour space; an
+  iPhone photo is in Display P3 (its ICC profile travels in the file), and read as sRGB its colours are off — a
+  saturated red 220 where it is 240 in sRGB. **Candidate for that part: lcms-wasm 1.0.5** (Little CMS 2.16, the
+  colour engine of GIMP, Krita and Pillow's ImageCms, compiled to WebAssembly by Matt DesLauriers; MIT; 316 KB).
+- **Decision (rule 1 with the owner's tweak):** libheif-js decodes; **lcms-wasm converts to sRGB with the photo's own
+  profile** (relative colorimetric, alpha kept, a strip of a million pixels at a time), in the codec worker, fetched
+  only for a HEIC that carries a profile other than sRGB. Reading the profile from libheif's handle is glue
+  (`src/lib/heic-color.ts`). Not covered: a HEIC that describes its colours only with an "nclx" box (no ICC profile)
+  in a space other than sRGB — lcms-wasm's build cannot make a profile from primaries; such files are used as they are.
+- **Evidence:** a chart of saturated Display P3 patches (made by pillow-heif with the profile of pug.heic) and a real
+  iPhone photo, converted in Node and in the browser, equal Pillow's ImageCms (LittleCMS, native) within 2 levels.

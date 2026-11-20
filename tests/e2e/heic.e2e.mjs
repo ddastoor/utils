@@ -1,5 +1,8 @@
-// HEIC → JPG (#/heic): real iPhone-style HEIC files (pillow-heif test images) → JPEG/PNG/WebP, zip of all.
-import { imageInfo, zipEntries } from '../lib/imgcheck.mjs';
+// HEIC → JPG (#/heic): real iPhone-style HEIC files (pillow-heif test images) → JPEG/PNG/WebP, zip of all; Display P3
+// colours turned into sRGB (a patch chart, held to Pillow's ImageCms — tests/fixtures/heic/reference.json); files that
+// are no photo listed, the others converted.
+import { imageInfo, zipEntries, decodeInPage } from '../lib/imgcheck.mjs';
+import { readFileSync } from 'node:fs';
 const F = (n) => new URL(`../fixtures/images/${n}`, import.meta.url).pathname;
 
 export default async ({ base, page: newPage, ok, download, devices }) => {
@@ -29,11 +32,24 @@ export default async ({ base, page: newPage, ok, download, devices }) => {
   const wp = imageInfo(await download(page, () => page.getByRole('button', { name: 'Save xiaomi.webp' }).click()));
   ok(wp.type === 'webp' && wp.width > 0, `WebP output: ${wp.width}×${wp.height}`);
 
+  // Display P3 → sRGB (as an iPhone photo carries it), checked on a chart of saturated patches
+  const ref = JSON.parse(readFileSync(new URL('../fixtures/heic/reference.json', import.meta.url), 'utf8')).files['p3-colours.heic'];
+  await page.getByRole('radio', { name: 'PNG' }).click();
+  await page.locator('input[type=file]').setInputFiles(F('p3-colours.heic'));
+  await page.waitForFunction(() => document.querySelectorAll('.result-row').length === 5, null, { timeout: 60000 });
+  const chart = await decodeInPage(page, await download(page, () => page.getByRole('button', { name: 'Save p3-colours.png' }).click()), ref.points.map(([x, y]) => [x / 96, y / 64]));
+  const near = (a, b) => a.every((v, i) => Math.abs(v - b[i]) <= 3);
+  ok(chart.px.every((p, i) => near(p.slice(0, 3), ref.srgb[i])), `P3 colours in sRGB = Pillow's ImageCms (red ${chart.px[0].slice(0, 3)} vs ${ref.srgb[0]}; it was ${ref.decoded[0]} — the photo's numbers without its profile)`);
+  await page.locator('input[type=file]').setInputFiles([{ name: 'notes.heic', mimeType: 'image/heic', buffer: Buffer.from('not a photo') }, { name: 'pug.heic', mimeType: 'image/heic', buffer: readFileSync(F('pug.heic')) }]);
+  await page.waitForFunction(() => document.querySelectorAll('.result-row').length === 6, null, { timeout: 60000 });
+  ok(/1 file could not be converted:.*notes\.heic/.test(await page.locator('.note-err').textContent()), `a file that is no photo is listed (it was a toast that vanished); the other is converted: ${await page.locator('.note-err').textContent()}`);
+  ok((await page.locator('.result-row .file-name').allTextContents()).includes('pug (2).png'), 'a second result of one name gets " (2)" (pug.png was there)');
+
   // a non-HEIC file is converted too (JPEG input), a broken file gives a clear error and no result
   await page.getByRole('radio', { name: 'JPG' }).click();
   await page.locator('input[type=file]').setInputFiles({ name: 'broken.heic', mimeType: 'image/heic', buffer: Buffer.from('not really a heic file at all') });
-  await page.waitForSelector('.toast-err', { timeout: 30000 });
-  ok((await page.locator('.result-row').count()) === 4, 'broken file adds no result');
+  await page.waitForFunction(() => /broken\.heic/.test(document.querySelector('.note-err')?.textContent || ''), null, { timeout: 30000 });
+  ok((await page.locator('.result-row').count()) === 6 && /not a photo this tool can read/.test(await page.locator('.note-err').textContent()), 'broken file adds no result; it is listed with the reason');
   page.errors.splice(0, page.errors.length, ...page.errors.filter((e) => !/HEIC|heif|Not a readable|not supported/i.test(e)));
   ok(page.errors.length === 0, `no page errors: ${page.errors.join(' | ')}`);
 
