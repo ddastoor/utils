@@ -285,6 +285,17 @@ export async function copy(text: string) {
   }
 }
 
+/** Bring an element into view between the sticky tab rows at the top and a fixed action bar at the bottom (phones) —
+ *  scrollIntoView knows neither. Its top wins when it is taller than the room. */
+export function reveal(el: Element) {
+  const top = (document.querySelector('.navwrap')?.getBoundingClientRect().bottom ?? 0) + 8;
+  const bar = [...document.querySelectorAll('.actions')].find((a) => getComputedStyle(a).position === 'fixed' && a.getClientRects().length > 0);
+  const bottom = (bar ? bar.getBoundingClientRect().top : innerHeight) - 8;
+  const r = el.getBoundingClientRect();
+  if (r.top < top) scrollBy({ top: r.top - top });
+  else if (r.bottom > bottom) scrollBy({ top: Math.min(r.bottom - bottom, r.top - top) });
+}
+
 let toastHost: HTMLElement | null = null;
 export function toast(msg: string, kind: 'ok' | 'err' | 'info' = 'info', ms = 2600) {
   if (!toastHost) { toastHost = h('div', { class: 'toasts', 'aria-live': 'polite' }); document.body.appendChild(toastHost); }

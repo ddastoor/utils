@@ -63,6 +63,11 @@ this file = the owner's latest wishes, how the tests are written, and the traps 
   its e2e suite and the JFK fixture are gone (last in commit `f1e9f21`); Auto Subtitles (#13) is off the potentials
   list. The site is now **512 MB** (488 MB of room); 175 tabs.
 - **20 Nov 2026 — EPUB Reader** added to `docs/potentials.md` (#71, the owner's request): MuPDF on the site, ≈ 0 MB.
+- **20 Nov 2026 — OCR camera:** "In the Images OCR app, add functionality to also take a photo with the camera if it's on
+  the phone, or with the webcam if it's on the PC." Done as Passport Photo does it — a live view in the page with Snap —
+  but as a shared part, `liveCamera` in `src/lib/livecam.ts`, for the other tabs that lack a webcam on PCs (Doc Scanner,
+  Signature Maker, Sign PDF: offered to the owner, not started). Its tests: a stand-in camera that shows a sentence
+  (`fakeTextCamera` in `tests/e2e/ocr.e2e.mjs`).
 - **20 Nov 2026 — live:** the owner asked to merge into `main` and make the site live; Pages was switched on by the
   owner (Source: GitHub Actions). The repository's **default branch is `claude/exciting-bohr-b9yfwc`**, and Pages'
   environment lets only the default branch publish — so the site is published from that branch; `main` holds the

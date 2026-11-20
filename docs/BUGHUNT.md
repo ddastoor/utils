@@ -2353,3 +2353,13 @@ cannot. Three new suites; each fails on the build before its fixes.
   `sha256sum`, whichever it is (the check names it); the Terminal's BusyBox checks it; a line break escaped exactly as
   `sha256sum` writes it (GNU's `-c` checks it — uutils reads no escaped line at all). Run with uutils 0.10.0 in front on
   the PATH: green. Unit suites: 21,763 / 21,763.
+- **OCR camera — owner request (20 Nov 2026).** "Take a photo with the camera if it's on the phone, or with the webcam if
+  it's on the PC": the PC had no camera at all, phones only the native camera input. Now one live view for both
+  (`liveCamera` in `src/lib/livecam.ts`, shared): the back camera / the webcam, Switch (front camera; another webcam),
+  Snap, Cancel. Found while building it, in the patterns other camera tabs use: a camera that answers after the person
+  moved on (a file chosen, the tab left, the permission question still open) must be stopped at once; the live view's
+  top slid under the sticky tab rows and its buttons below a phone's fixed bar (`scrollIntoView` knows neither —
+  `reveal()` in `src/ui.ts`); on a 390 px phone Snap / Switch camera / Cancel wrapped (Switch is the camera symbol
+  there, Snap the wide button). OCR e2e 24 → 56: a stand-in camera shows a sentence and what Snap takes is read
+  (two webcams, each its own sentence; the phone's back and front camera), constraints, tracks stopped after Snap /
+  Cancel / a file / leaving / a late answer / a camera that stops by itself, refusals in words, layout on the phone.

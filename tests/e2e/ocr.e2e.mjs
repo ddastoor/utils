@@ -1,7 +1,9 @@
 // OCR (#/ocr): Tesseract (wasm) on a real scanned page (scikit-image "page") and on French / Spanish / German text
 // with accents rendered in the browser; .txt download; low-confidence highlighting; pictures turned (by hand and by
 // themselves when they read badly); light text on dark; the newest picture wins; language data that cannot be fetched;
-// phone layout with "Take a photo" and a picker that does not force the camera.
+// the camera (owner, 20 Nov 2026): the PC's webcam and the phone's back camera, live in the page with Snap — a stand-in
+// camera shows a sentence, and what Snap takes is what is read; Switch, Cancel, a file instead, leaving the tab, a late or
+// refused answer, a camera that stops by itself; phone layout with a picker that does not force the camera.
 import { readFileSync } from 'node:fs';
 const F = (n) => new URL(`../fixtures/images/${n}`, import.meta.url).pathname;
 
@@ -118,10 +120,157 @@ export default async ({ base, page: newPage, ok, info, download, devices }) => {
   ok(/segmentation/i.test(await broken.locator('.ocr-text').inputValue()), 'the next try loads the engine afresh and reads the page');
   ok(broken.errors.filter((e) => !/could not be fetched/.test(e)).length === 0, `no uncaught errors (Tesseract.js threw "Failed to fetch" from its message handler): ${broken.errors.join(' | ')}`);
 
+  // ------------------------------------------------------------- the camera: the PC's webcam, the phone's back camera
+  // A stand-in for the camera (a canvas stream) that shows a sentence: what Snap takes is what "Extract text" reads. Two
+  // cameras, "cam-a" and "cam-b", each with its own sentence (the front camera of a phone is "cam-b"), one with
+  // window.__oneCam; every getUserMedia call and every track handed out is kept; __gumDelay / __gumError as in _media.mjs.
+  const fakeTextCamera = () => {
+    window.__tracks = []; window.__gumCalls = [];
+    navigator.mediaDevices.getUserMedia = async (c) => {
+      window.__gumCalls.push(JSON.parse(JSON.stringify(c)));
+      if (window.__gumDelay) await new Promise((r) => setTimeout(r, window.__gumDelay)); // the person still deciding
+      if (window.__gumError) throw new DOMException('blocked by the test', window.__gumError);
+      const id = c.video?.deviceId?.exact || (c.video?.facingMode?.ideal === 'user' ? 'cam-b' : 'cam-a');
+      const cv = document.createElement('canvas'); cv.width = 1280; cv.height = 720; const g = cv.getContext('2d');
+      const paint = () => {
+        g.fillStyle = '#fff'; g.fillRect(0, 0, 1280, 720); g.fillStyle = '#111'; g.font = '56px "DejaVu Serif", "Liberation Serif", serif';
+        g.fillText(id === 'cam-b' ? 'The second camera shows this line.' : 'The webcam reads this sentence well.', 60, 380);
+      };
+      paint(); setInterval(paint, 100);
+      const s = cv.captureStream(10), t = s.getVideoTracks()[0], settings = t.getSettings.bind(t);
+      t.getSettings = () => ({ ...settings(), deviceId: id });
+      window.__tracks.push(t);
+      return s;
+    };
+    navigator.mediaDevices.enumerateDevices = async () => (window.__oneCam ? ['cam-a'] : ['cam-a', 'cam-b']).map((deviceId) => ({ deviceId, kind: 'videoinput', label: deviceId, groupId: deviceId }));
+  };
+  const live = (p) => p.waitForFunction(() => document.querySelector('.live-cam-video')?.videoWidth > 0 && !document.querySelector('.live-cam').hidden, null, { timeout: 15000 });
+  const stopped = (p) => p.evaluate(() => window.__tracks.length > 0 && window.__tracks.every((t) => t.readyState === 'ended'));
+  const readIt = async (p) => {
+    await p.getByRole('button', { name: 'Extract text' }).click();
+    await p.waitForFunction(() => /confidence|No text found/.test(document.querySelector('.ocr-text')?.parentElement?.textContent || ''), null, { timeout: 120000 });
+    return p.locator('.ocr-text').inputValue();
+  };
+  const cam = await newPage();
+  await cam.addInitScript(fakeTextCamera);
+  await cam.goto(base + '#/ocr');
+  const useCam = cam.getByRole('button', { name: 'Use webcam' });
+  await useCam.waitFor();
+  ok(await cam.locator('input[type=file]').count() === 1 && await cam.locator('input[type=file][capture]').count() === 0, 'PC: "Use webcam" beside the picker');
+  await useCam.click();
+  await live(cam);
+  const c0 = (await cam.evaluate(() => window.__gumCalls))[0];
+  ok(c0.audio === false && c0.video && !('facingMode' in c0.video) && !('deviceId' in c0.video) && c0.video.width?.ideal === 3840 && c0.video.height?.ideal === 2160,
+    `PC: the default webcam is asked for, at up to 4K, without sound (${JSON.stringify(c0)})`);
+  ok(await cam.getByRole('button', { name: 'Switch camera' }).isVisible(), 'two webcams: "Switch camera" is offered');
+  ok(await cam.locator('.live-cam-video').evaluate((v) => getComputedStyle(v).transform === 'none' && getComputedStyle(v).objectFit === 'contain'), 'the live view is the whole picture and not mirrored (text reads the right way)');
+  await cam.getByRole('button', { name: 'Snap' }).click();
+  await cam.waitForSelector('.ed-canvas', { state: 'visible' });
+  ok(await stopped(cam) && await cam.locator('.live-cam').isHidden() && await useCam.isVisible(), 'Snap: the camera is closed (its track stopped) and the photo is in the editor');
+  const [ew, eh] = await cam.locator('.ed-canvas').evaluate((c) => [c.width, c.height]);
+  ok(ew === 1280 && eh === 720, `the photo is the camera's whole frame (${ew}×${eh})`);
+  ok(/Choose another photo/.test(await cam.locator('.drop').first().textContent()), 'the drop zone makes room once a photo is taken ("Choose another photo")');
+  const snapped = await readIt(cam);
+  ok(/webcam reads this sentence well/.test(snapped), `the photo from the webcam is read: ${JSON.stringify(snapped)}`);
+  const camTxt = await download(cam, () => cam.getByRole('button', { name: 'Download .txt' }).click());
+  ok(camTxt.endsWith('camera-photo.txt') && readFileSync(camTxt, 'utf8') === snapped, `its text downloads as camera-photo.txt (${camTxt.split('/').pop()})`);
+  // Switch: the other webcam; the photo comes from it
+  await useCam.click();
+  await live(cam);
+  ok(await cam.locator('.ed-canvas').isHidden(), 'while the camera is open, the photo and its text step aside (on phones their fixed "Extract text" bar would cover the camera)');
+  await cam.getByRole('button', { name: 'Switch camera' }).click();
+  await cam.waitForFunction(() => window.__gumCalls.length === 3, null, { timeout: 15000 });
+  await live(cam);
+  const c2 = (await cam.evaluate(() => window.__gumCalls))[2];
+  ok(c2.video.deviceId?.exact === 'cam-b' && await cam.evaluate(() => window.__tracks[1].readyState === 'ended' && window.__tracks[2].readyState === 'live'),
+    `"Switch camera" opens the other webcam (${JSON.stringify(c2.video.deviceId)}) and closes the first`);
+  await cam.getByRole('button', { name: 'Snap' }).click();
+  await cam.waitForSelector('.ed-canvas', { state: 'visible' });
+  const second = await readIt(cam);
+  ok(/second camera shows this line/.test(second), `the photo comes from the camera switched to: ${JSON.stringify(second)}`);
+  // Cancel: the camera closes, the last photo and its text come back
+  await useCam.click();
+  await live(cam);
+  ok((await cam.evaluate(() => window.__gumCalls.at(-1))).video.deviceId?.exact === 'cam-b', 'the camera opens again with the webcam switched to');
+  await cam.getByRole('button', { name: 'Cancel' }).click();
+  ok(await stopped(cam) && await cam.locator('.live-cam').isHidden() && await cam.locator('.ed-canvas').isVisible() && /second camera/.test(await cam.locator('.ocr-text').inputValue()),
+    'Cancel: the camera is closed, the last photo and its text are back');
+  // a file chosen while the camera is open: the camera closes and the file is shown
+  await useCam.click();
+  await live(cam);
+  await cam.locator('input[type=file]').setInputFiles(F('page.png'));
+  await cam.waitForFunction(() => document.querySelector('.live-cam').hidden && !document.querySelector('.ed-canvas').closest('[hidden]'), null, { timeout: 10000 });
+  ok(await stopped(cam) && await cam.locator('.ocr-text').inputValue() === '', 'a file chosen while the camera is open: the camera is closed and the file is the picture');
+  // the camera stops by itself (unplugged, taken by another app): said, and closed
+  await useCam.click();
+  await live(cam);
+  await cam.evaluate(() => window.__tracks.at(-1).dispatchEvent(new Event('ended')));
+  ok(await cam.locator('.toast', { hasText: 'The camera stopped' }).first().waitFor({ timeout: 5000 }).then(() => true, () => false) && await cam.locator('.live-cam').isHidden() && await useCam.isVisible(),
+    'a camera that stops by itself: "The camera stopped — it was unplugged, or another app took it." and the view closes');
+  // leaving the tab with the camera open closes it
+  await useCam.click();
+  await live(cam);
+  await cam.evaluate(() => { location.hash = '#/'; }); await cam.locator('.tile').first().waitFor();
+  ok(await stopped(cam), 'leaving the tab with the camera open: the camera is closed');
+  // an answer that comes after the person has moved on (the permission question still open): stopped at once
+  await cam.evaluate(() => { location.hash = '#/ocr'; window.__gumDelay = 1500; });
+  await useCam.click();
+  await cam.waitForTimeout(200);
+  ok(/Asking for the camera/.test(await cam.locator('.live-cam-wrap').textContent()), 'while the browser asks the person: "Asking for the camera…"');
+  await cam.evaluate(() => { location.hash = '#/'; });
+  await cam.waitForTimeout(2500);
+  ok(await stopped(cam), 'a camera that answers after the tab was left is stopped at once (it stayed on, unseen)');
+  await cam.evaluate(() => { location.hash = '#/ocr'; });
+  await useCam.click();
+  await cam.waitForTimeout(200);
+  await cam.locator('input[type=file]').setInputFiles(F('page.png'));
+  await cam.waitForTimeout(2500);
+  ok(await stopped(cam) && await cam.locator('.live-cam').isHidden() && await cam.locator('.ed-canvas').isVisible(), 'a file chosen before the camera answered: the camera is stopped when it answers and the file stays');
+  // refused or missing: said with what to do instead
+  await cam.evaluate(() => { window.__gumDelay = 0; window.__gumError = 'NotAllowedError'; });
+  await useCam.click();
+  ok(/The camera was not allowed — allow it in the browser's site settings.*choose an image instead/.test(await cam.locator('.toast').last().textContent({ timeout: 10000 })) && await useCam.isEnabled(),
+    'a refused camera: said with what to do, and the button works again');
+  await cam.evaluate(() => { window.__gumError = 'NotFoundError'; });
+  await useCam.click();
+  ok(await cam.locator('.toast', { hasText: 'No camera was found — choose an image instead.' }).first().waitFor({ timeout: 5000 }).then(() => true, () => false), 'no camera: "No camera was found — choose an image instead."');
+  await cam.evaluate(() => { window.__gumError = undefined; window.__oneCam = true; });
+  await useCam.click();
+  await live(cam);
+  ok(await cam.getByRole('button', { name: 'Switch camera' }).isHidden(), 'one webcam: no "Switch camera"');
+  await cam.getByRole('button', { name: 'Cancel' }).click();
+  ok(cam.errors.length === 0, `camera: no page errors ${cam.errors.join(' | ')}`);
+
   const phone = await newPage({ ...devices['iPhone 13'] });
+  await phone.addInitScript(fakeTextCamera);
   await phone.goto(base + '#/ocr');
   await phone.waitForSelector('input[type=file]', { state: 'attached' });
-  ok(await phone.locator('input[type=file][capture=environment]').count() === 1 && await phone.getByRole('button', { name: 'Take a photo' }).count() === 1, 'phone: "Take a photo" opens the back camera');
-  ok(await phone.locator('input[type=file]:not([capture])').count() === 1, 'phone: the picker does not force the camera — screenshots and photos already taken can be chosen');
+  ok(await phone.locator('input[type=file]').count() === 1 && await phone.locator('input[type=file][capture]').count() === 0, 'phone: the picker does not force the camera — screenshots and photos already taken can be chosen');
+  await phone.getByRole('button', { name: 'Use camera' }).click();
+  await live(phone);
+  ok((await phone.evaluate(() => window.__gumCalls))[0].video.facingMode?.ideal === 'environment', 'phone: "Use camera" opens the back camera');
+  await phone.waitForTimeout(300);
+  const lay = await phone.evaluate(() => {
+    const nav = document.querySelector('.navwrap').getBoundingClientRect().bottom, box = document.querySelector('.live-cam').getBoundingClientRect();
+    const btns = [...document.querySelectorAll('.live-cam-ctl > button')].map((b) => b.getBoundingClientRect());
+    return { nav, boxTop: box.top, vh: innerHeight, tops: btns.map((r) => Math.round(r.top)), bottom: Math.max(...btns.map((r) => r.bottom)), minH: Math.min(...btns.map((r) => r.height)), snapW: btns[0].width };
+  });
+  ok(lay.boxTop >= lay.nav - 1 && lay.bottom <= lay.vh, `phone: the whole camera view and its buttons are on the screen, below the tab rows (${JSON.stringify(lay)})`);
+  ok(new Set(lay.tops).size === 1 && lay.minH >= 44 && lay.snapW > 150, 'phone: Snap, Switch and Cancel on one line, at least 44 px tall, Snap the widest');
+  ok(await phone.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'phone: no horizontal scroll with the camera open');
+  await phone.getByRole('button', { name: 'Switch camera' }).click();
+  await phone.waitForFunction(() => window.__gumCalls.length === 2, null, { timeout: 15000 });
+  await live(phone);
+  ok((await phone.evaluate(() => window.__gumCalls))[1].video.facingMode?.ideal === 'user' && await phone.evaluate(() => window.__tracks[0].readyState === 'ended'), 'phone: "Switch camera" turns to the front camera (the back one closed first — an iPhone cannot hold both)');
+  await phone.getByRole('button', { name: 'Switch camera' }).click();
+  await phone.waitForFunction(() => window.__gumCalls.length === 3, null, { timeout: 15000 });
+  await live(phone);
+  await phone.getByRole('button', { name: 'Snap' }).click();
+  await phone.waitForSelector('.ed-canvas', { state: 'visible' });
+  ok((await phone.evaluate(() => window.__gumCalls))[2].video.facingMode?.ideal === 'environment' && await stopped(phone), 'phone: back to the back camera, Snap closes it');
+  ok(await phone.evaluate(() => document.querySelector('.ed-canvas').closest('.card').getBoundingClientRect().top >= document.querySelector('.navwrap').getBoundingClientRect().bottom - 1),
+    'phone: after Snap the photo is in view, not under the tab rows');
+  ok(/webcam reads this sentence well/.test(await readIt(phone)), 'phone: the photo is read');
   ok(await phone.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'phone: no horizontal scroll');
+  ok(phone.errors.length === 0, `phone: no page errors ${phone.errors.join(' | ')}`);
 };

@@ -316,6 +316,8 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: 14px; }
   }
   .actions > .btn { flex: 1; padding: 0 10px; }
   .actions.inline { position: static; padding: 0; background: none; border: 0; backdrop-filter: none; }
+  .live-cam-ctl { flex-wrap: nowrap; }
+  .live-cam-ctl > .btn-primary { flex: 1; } /* Snap: the big target */
   .preview { min-height: 160px; }
   .preview canvas, .preview img, .preview video { max-height: 56vh; }
   .grid2 { grid-template-columns: 1fr; }
@@ -716,6 +718,9 @@ details summary { cursor: pointer; font-weight: 600; color: var(--accent); paddi
 .pd-intro { margin: 0; }
 .pd-cam { position: relative; border-radius: 12px; overflow: hidden; background: #000; }
 .pd-video { width: 100%; max-height: 60vh; display: block; object-fit: cover; }
+/* live camera (src/lib/livecam.ts): the whole picture as the camera sends it, never mirrored (text reads the right way) */
+.live-cam { position: relative; max-width: 720px; border-radius: 12px; overflow: hidden; background: #000; }
+.live-cam-video { display: block; width: 100%; max-height: 60vh; object-fit: contain; }
 .pd-top { display: flex; gap: 12px; align-items: center; }
 .pd-thumb { width: 72px; height: auto; border-radius: 8px; border: 1px solid var(--border); flex: none; }
 .pd-top > .stack { flex: 1; min-width: 0; }

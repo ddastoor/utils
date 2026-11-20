@@ -15,14 +15,17 @@ export function imageInput(onImage: (img: Img, file: File) => void | Promise<voi
       busy.textContent = `Opening ${f.name}…`;
       try {
         await onImage(await loadImg(f), f);
-        // once a photo is open, shrink the big drop zone so the photo sits higher on phones
-        picker.classList.add('drop-compact');
-        const strong = picker.querySelector('strong'); if (strong) strong.textContent = opts.multiple ? 'Add more photos' : 'Choose another photo';
+        compact();
       } catch (e: any) { toast(`${f.name}: ${e.message}`, 'err'); }
     }
     busy.textContent = '';
   };
   const picker = filePicker({ accept: 'image/*,.heic,.heif', multiple: opts.multiple, label: opts.label || 'Choose a photo', hint: 'or drop / paste (Ctrl+V) · JPG, PNG, WebP, HEIC…', onFiles: handle });
+  /** once a photo is open (chosen, or taken with a camera), the big drop zone shrinks so the photo sits higher on phones */
+  const compact = () => {
+    picker.classList.add('drop-compact');
+    const strong = picker.querySelector('strong'); if (strong) strong.textContent = opts.multiple ? 'Add more photos' : 'Choose another photo';
+  };
   let camera: HTMLElement | null = null;
   if (opts.capture) {
     const inp = h('input', { type: 'file', accept: 'image/*', hidden: true }) as HTMLInputElement;
@@ -35,7 +38,7 @@ export function imageInput(onImage: (img: Img, file: File) => void | Promise<voi
     if (fs.length) { e.preventDefault(); handle(opts.multiple ? fs : fs.slice(0, 1)); }
   };
   addEventListener('paste', onPaste);
-  return { el: h('div', { class: 'stack' }, picker, camera, busy), dispose: () => removeEventListener('paste', onPaste) };
+  return { el: h('div', { class: 'stack' }, picker, camera, busy), dispose: () => removeEventListener('paste', onPaste), compact };
 }
 
 /** Interactive crop box over a canvas. Returns crop rect in canvas pixel units. aspect = w/h or 0 for free. */

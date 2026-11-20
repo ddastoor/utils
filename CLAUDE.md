@@ -253,7 +253,7 @@ Test, plus `photodict` Photo Dictionary (owner said mobile only — phone camera
 | `collage` | Collage Maker | both | canvas photo grid |
 | `exif` | EXIF / Photo Info | both | ExifTool 13.42 (Perl on zeroperl, WebAssembly) in a worker: every tag of every format; strip metadata losslessly (colour profile + orientation kept) |
 | `scanner` | Doc Scanner | both | page finder DocCornerNet LEAN (scanic-ml, MIT) on ONNX Runtime Web (fed by imgproc's OpenCV-exact area resize) → else `imgproc` outline (Otsu + largest region) → else the whole photo; draggable corners, homography warp, enhance (`imgproc`); PDF via MuPDF (`src/lib/pdf.ts`: photos JPEG, B & W PNG) or JPEGs |
-| `ocr` | OCR | both | Tesseract (C++ → wasm), English, French, Spanish, German |
+| `ocr` | OCR | both | Tesseract (C++ → wasm), English, French, Spanish, German; a file, or the camera (phone) / webcam (PC) live in the page (`src/lib/livecam.ts`) |
 
 **Documents** (engine: **MuPDF 1.28**, Artifex's official C → wasm build, for every PDF tab — merge/split via `graftPage`,
 rotation via `/Rotate`, rendering, text, stamping, AES-256 encrypt/decrypt in `saveToBuffer`; pdf-lib / PDF.js / QPDF are
@@ -1713,8 +1713,18 @@ or a language is caught through Tesseract.js's error handler (it otherwise waits
 try starts afresh. A reading below 60 % confidence is tried turned the three other ways (a copy of ≤ 1,200 px) and the
 picture read the way that is clearly better (≥ 60 % and 20 points more), the line says so; buttons turn the picture
 by hand. With the clean-up on, a dark picture (mean luma < 110) is inverted first. The newest picture or language wins.
-Phones: "Take a photo" (back camera) beside a picker that does not force the camera (screenshots, photos already
-taken) — the shared `imageInput` in `src/lib/imgtools.ts` does this for every tab that passes `capture`.
+**Camera (owner, 20 Nov 2026: "take a photo with the camera if it's on the phone, or with the webcam if it's on the
+PC"; e2e now 56):** "Use camera" on phones (the back camera; the camera-switch symbol turns to the front one) and "Use
+webcam" on PCs (the default webcam; "Switch camera" goes through the others when there are more) open a live view in
+the page — `liveCamera` in `src/lib/livecam.ts` (getUserMedia up to 4K, the whole picture, not mirrored so text reads
+the right way), shared for other tabs. Snap takes the full frame into the editor (its text downloads as
+camera-photo.txt). Snap, Cancel, a file chosen and leaving the tab close the camera; a camera that answers after that
+(the permission question was still open) is stopped at once; one that stops by itself is said; refusals in words
+(`cameraError`). While the camera is open the picture and text step aside (on phones their fixed "Extract text" bar
+would cover it). The picker does not force the camera (screenshots, photos already taken; an iPhone's picker also
+offers its camera app). `reveal(el)` in `src/ui.ts` brings an element into view between the sticky tab rows and a
+phone's fixed action bar (scrollIntoView knows neither). The native `capture` input of `imageInput` stays for tabs
+that pass it.
 
 ### Photo Dictionary (`photodict`, Text, **Mobile only** — owner request, owner chose the name) — BUILT
 (`src/tools/photodict.ts`, engine `src/lib/dictionary.ts`, ranking `wasm/textcore/rare.c`; e2e `tests/e2e/photodict.e2e.mjs`
