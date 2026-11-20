@@ -42,7 +42,7 @@ Areas with a shared review: the app shell (router, search, favorites, platform h
 | `pdf-fill` | Fill PDF Form | PC + mobile | pdf | ✓ | 3 | 3 | unchosen radio shown unchosen; ticks via ZapfDingbats + ToUnicode; ₹ limit said |
 | `pdf-unlock` | Unlock PDF | PC + mobile | pdf | ✓ | 1 | 2 | a signed PDF: the unlocked copy no longer proves the signature — said |
 | `pdf-protect` | Protect PDF | PC + mobile | pdf | ✓ | 2 | 4 | signed PDF said; non-ASCII password warned (SASLprep) |
-| `pdf2text` | PDF → Text | PC + mobile | pdf |  |  |  |  |
+| `pdf2text` | PDF → Text | PC + mobile | pdf | ✓ | 4 | 3 | page by page with progress; form values listed; option relabelled; empty copy said |
 | `pdf-pagenum` | PDF Page Numbers | PC + mobile | pdf |  |  |  |  |
 | `pdf-watermark` | PDF Watermark | PC + mobile | pdf |  |  |  |  |
 | `epub` | PDF → EPUB | PC only | docs2 |  |  |  |  |
@@ -1796,3 +1796,13 @@ Reference for the five finance tabs: **mpmath at 60 digits** (`scripts/make-fina
   2. A password with ₹, an emoji or letters added to Unicode since 2003 is outside the tables the PDF standard's
      password preparation (SASLprep) uses: MuPDF and pypdf open the file (checked: accents, ₹, a space, "="), strict
      readers may not. The tab warns while such a password is typed.
+
+- **`pdf2text` (tab 136, 4 bugs; MuPDF; e2e 11 — was 8).**
+  1. A long PDF froze the tab while its text was made (every page at once, no word); page by page now, with progress,
+     and a PDF chosen meanwhile wins.
+  2. What was typed into a filled form was missing from the text (MuPDF's text leaves form widgets out); the values
+     are listed under their page ("Form fields: Full name: Asha Rao …").
+  3. "Keep the page layout (spacing, columns)" promised columns side by side; MuPDF's option keeps the spacing and the
+     hyphens at line ends, nothing more — it is labelled so now.
+  4. Copy and "Download .txt" of a PDF without text (a scan) copied nothing / saved an empty file; both say why.
+  Also: two checks of the suite passed on an empty box (the text is made in the background now) — they wait for it.

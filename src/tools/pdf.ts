@@ -207,28 +207,44 @@ export const pdf2img: Mount = (root, ctx) => {
 
 // ------------------------------------------------------------------ PDF → text
 export const pdf2text: Mount = (root, ctx) => {
-  let f: LoadedPdf | null = null, layout = false, marks = true;
+  let f: LoadedPdf | null = null, layout = false, marks = true, seq = 0, alive = true;
   const out = h('textarea', { class: 'input textarea', rows: 16, 'aria-label': 'Extracted text', spellcheck: 'false' }) as HTMLTextAreaElement;
-  const info = h('div', { class: 'muted small' });
-  const run = () => {
+  const info = h('div', { class: 'muted small', 'aria-live': 'polite' }), prog = progress();
+  // page by page, giving the page a breath (a long PDF froze the tab without a word); the newest PDF or option wins
+  const run = async () => {
     if (!f) return;
-    const parts: string[] = []; let empty = 0;
-    for (let i = 0; i < f.pages; i++) {
-      const st = f.doc.loadPage(i).toStructuredText(layout ? 'preserve-whitespace' : 'dehyphenate');
-      const t = st.asText().replace(/\s+$/g, ''); st.destroy?.();
+    const my = ++seq, file = f, parts: string[] = []; let empty = 0, withFields = 0;
+    out.value = ''; info.replaceChildren();
+    for (let i = 0; i < file.pages; i++) {
+      if (my !== seq || !alive) return;
+      if (i % 10 === 0) { prog.set(i / file.pages, `Page ${i + 1} of ${file.pages}…`); await new Promise((r) => setTimeout(r)); if (my !== seq || !alive) return; }
+      const page = file.doc.loadPage(i), st = page.toStructuredText(layout ? 'preserve-whitespace' : 'dehyphenate');
+      let t = st.asText().replace(/\s+$/g, ''); st.destroy?.();
+      // what was typed into form fields is not page text (MuPDF leaves widgets out): listed under the page
+      const filled = ((page as any).getWidgets?.() || []).map((w: any) => {
+        const v = String(w.getValue() ?? ''), kind = w.getFieldType();
+        if (!v || v === 'Off' || kind === 'signature' || kind === 'button') return '';
+        return `${w.getLabel() || w.getName()}: ${kind === 'checkbox' ? 'ticked' : v}`;
+      }).filter((x: string, k: number, a: string[]) => x && a.indexOf(x) === k);
+      if (filled.length) { withFields++; t += `${t ? '\n\n' : ''}Form fields:\n${filled.join('\n')}`; }
       if (!t.trim()) empty++;
       parts.push(marks ? `--- Page ${i + 1} ---\n${t}` : t);
     }
+    prog.done();
     out.value = parts.join('\n\n');
-    info.replaceChildren(`${plural(f.pages, 'page')} · ${out.value.length.toLocaleString()} characters`,
-      empty === f.pages ? h('div', { class: 'note note-warn' }, 'No text layer: this looks like a scanned PDF. Use PDF → Images, then the OCR tool.') : '');
+    info.replaceChildren(`${plural(file.pages, 'page')} · ${out.value.length.toLocaleString()} characters${withFields ? ` · form fields listed under ${plural(withFields, 'page')}` : ''}`,
+      empty === file.pages ? h('div', { class: 'note note-warn' }, 'No text layer: this looks like a scanned PDF. Use PDF → Images, then the OCR tool.') : '');
   };
   const inp = pdfInput({ onLoad: ([x]) => { f = x; run(); } });
+  const text = () => { if (!out.value.trim()) throw new Error(f ? 'There is no text to copy — this PDF has no text layer.' : 'Choose a PDF first.'); return out.value; };
   root.append(card(null, inp.el),
-    card('Options', stack(toggle('Keep the page layout (spacing, columns)', layout, (v) => { layout = v; run(); }), toggle('Mark page breaks', marks, (v) => { marks = v; run(); }))),
-    card('Text', out, info, h('div', { class: 'row' },
-      button('Copy', () => copy(out.value), { small: true, icon: 'Copy' }),
-      button('Download .txt', () => (ctx.isMobile ? shareOrDownload : downloadBlob)(new Blob([out.value], { type: 'text/plain;charset=utf-8' }), `${f ? stem(f.name) : 'text'}.txt`), { small: true, icon: 'Download' }))));
+    card('Options', stack(
+      toggle('Keep the spacing and the hyphens at line ends as in the PDF', layout, (v) => { layout = v; run(); }),
+      toggle('Mark page breaks', marks, (v) => { marks = v; run(); }))),
+    card('Text', prog, out, info, h('div', { class: 'row' },
+      button('Copy', () => copy(text()), { small: true, icon: 'Copy' }),
+      button('Download .txt', () => (ctx.isMobile ? shareOrDownload : downloadBlob)(new Blob([text()], { type: 'text/plain;charset=utf-8' }), `${f ? stem(f.name) : 'text'}.txt`), { small: true, icon: 'Download' }))));
+  return () => { alive = false; seq++; };
 };
 
 // ------------------------------------------------------------------ Page numbers
