@@ -2372,4 +2372,8 @@ cannot. Three new suites; each fails on the build before its fixes.
   Signature Maker, Sign PDF) only worked on phones and left the page — replaced. New sweep `camera.e2e.mjs` (36): the
   camera beside every picture picker on PC and phone (a new picker without one fails), the snapped photo reaching
   every tab, several photos, modes, leaving; the OCR suite's test of a file chosen during the camera had a race of its
-  own (fixed: it waits for the file's picture).
+  own (fixed: it waits for the file's picture). The affected suites' run: 30 suites, 1,124 / 1,130 — six suites
+  (Background Remover, Cartoonizer, Blur & Redact, Invoice, Rent, Resume) read "the first polite live region" as the
+  tab's status line and found the camera's, which now comes first on the page: the camera's line is `role="status"`
+  (the same announcement), and the six pass (267 / 267 with camera, OCR and a11y). FFmpeg 72 / 72, lazy, a11y, touch
+  targets, junk files, no-external, engine-download, shell: green. Unit suites: 21,757 / 21,757.

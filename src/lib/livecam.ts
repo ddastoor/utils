@@ -52,7 +52,8 @@ function jpegOf(c: HTMLCanvasElement): Promise<File> {
 export function liveCamera(o: LiveCameraOptions) {
   const mobile = o.mobile ?? isMobile, instead = o.instead ?? 'choose a photo instead', key = `livecam:${++ids}`;
   const video = h('video', { class: 'live-cam-video', autoplay: true, muted: true, playsInline: true, 'aria-label': 'Camera picture' } as any) as HTMLVideoElement;
-  const status = h('div', { class: 'muted small', 'aria-live': 'polite' });
+  // role=status: a polite live region of its own (the tab's status line stays the first [aria-live] one the tab has)
+  const status = h('div', { class: 'muted small', role: 'status' });
   let stream: MediaStream | null = null, req = 0, gone = false, shown = false, taken = 0;
   let facing: 'environment' | 'user' = o.facing ?? 'environment';
   let cams: string[] = [], cam = -1; // PC: the cameras by deviceId, and the one in use
