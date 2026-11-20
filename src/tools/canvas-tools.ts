@@ -1,4 +1,5 @@
-// Watermark, Text on Image and Collage Maker. Pixel work (crop/resize of photos and logos) runs in imgproc.wasm;
+// Watermark, Text on Image and Collage Maker. Pixel work: crops and preview resizes in imgproc.wasm, the resizes of
+// saved pictures with @jsquash/resize (Squoosh's Lanczos-3 in linear light);
 // text shaping/rasterising and compositing use the browser's native canvas (compiled C++); encoding uses
 // MozJPEG / libwebp / OxiPNG (wasm). Fonts: system fonts + Anton (OFL-1.1) served from this site.
 import antonUrl from '@fontsource/anton/files/anton-latin-400-normal.woff2?url';
@@ -21,7 +22,7 @@ async function fitForCanvas(img: Img): Promise<{ img: Img; scaled: boolean }> {
   const px = img.width * img.height;
   if (!isIOS || px <= IOS_MAX) return { img, scaled: false };
   const s = Math.sqrt(IOS_MAX / px) * 0.98;
-  return { img: await imgproc('resize', img, Math.floor(img.width * s), Math.floor(img.height * s)), scaled: true };
+  return { img: await resizeImg(img, Math.floor(img.width * s), Math.floor(img.height * s)), scaled: true };
 }
 function canvasOf(img: Img) {
   const c = new OffscreenCanvas(img.width, img.height), g = c.getContext('2d', { willReadFrequently: true })!;
@@ -36,14 +37,15 @@ const fmtSeg = (cur: Fmt, on: (v: Fmt) => void) => field('Format', segmented([['
 type Pos = 'tl' | 'tc' | 'tr' | 'ml' | 'c' | 'mr' | 'bl' | 'bc' | 'br' | 'tile';
 export interface WmOpts { kind: 'text' | 'logo'; text: string; font: string; color: string; opacity: number; size: number; pos: Pos; margin: number; angle: number; shadow: boolean; logo: Img | null }
 /** Draw the watermark onto a copy of img. Sizes are % of the image's shorter side, so previews match exports. */
-export async function applyWatermark(img: Img, o: WmOpts): Promise<Img> {
+export async function applyWatermark(img: Img, o: WmOpts, fine = false): Promise<Img> {
   const { c, g } = canvasOf(img), W = img.width, H = img.height, S = Math.min(W, H);
   const m = (o.margin / 100) * S;
   let ow = 0, oh = 0, logoSrc: OffscreenCanvas | null = null;
   if (o.kind === 'logo') {
     if (!o.logo) return img;
     ow = Math.max(1, Math.round((o.size * 4 / 100) * S)); oh = Math.max(1, Math.round((ow * o.logo.height) / o.logo.width));
-    logoSrc = toBitmapSource(await imgproc('resize', o.logo, ow, oh)); // Lanczos in wasm
+    // the saved photos: Squoosh's Lanczos-3 in linear light (jSquash); the preview: imgproc's (instant)
+    logoSrc = toBitmapSource(fine ? await resizeImg(o.logo, ow, oh) : await imgproc('resize', o.logo, ow, oh));
   } else {
     await loadFonts();
     g.font = `${Math.max(6, (o.size / 100) * S)}px ${o.font}`;
@@ -126,7 +128,7 @@ export const watermark: Mount = (root, ctx) => {
     for (const f of files) {
       try {
         const { img, scaled } = await fitForCanvas(await loadImg(f));
-        const out = await applyWatermark(img, o);
+        const out = await applyWatermark(img, o, true);
         results.add(`${baseName(f.name)}-watermarked.${EXT[fmt]}`, await encodeImg(out, fmt, 88), `${out.width}×${out.height}${scaled ? ' (reduced for iPhone)' : ''}`);
       } catch (e) { bad.push(`${f.name}: ${errMsg(e)}`); }
     }
@@ -306,7 +308,7 @@ export const collage: Mount = (root, ctx) => {
   };
   const renderStrip = () => clear(strip).append(...photos.map((p, i) => h('div', { class: 'collage-item' },
     h('span', { class: 'collage-n' }, String(i + 1)), h('span', { class: 'file-name small' }, p.name),
-    button('', () => { if (i > 0) { [photos[i - 1], photos[i]] = [photos[i], photos[i - 1]]; redraw(); } }, { icon: 'ArrowUp', small: true, variant: 'ghost', title: `Move photo ${i + 1} earlier` }),
+    Object.assign(button('', () => { if (i > 0) { [photos[i - 1], photos[i]] = [photos[i], photos[i - 1]]; redraw(); } }, { icon: 'ArrowUp', small: true, variant: 'ghost', title: `Move photo ${i + 1} earlier` }), { disabled: i === 0 }), // the first cannot move earlier
     button('', () => { photos.splice(i, 1); redraw(); }, { icon: 'X', small: true, variant: 'ghost', title: `Remove photo ${i + 1}` }))));
   const add = async (fs: File[]) => {
     for (const f of fs) {

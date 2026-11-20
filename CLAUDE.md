@@ -498,6 +498,16 @@ holding less than 0.3 % of the picture is "No person was found" (Save refuses wi
 how much of the photo the person fills. The newest photo and the newest background photo win. People only — objects
 and animals would need another model (docs/WASM-AUDIT.md, 114).
 
+### Blur & Redact, Watermark, Text on Image, Collage — as built after the Nov 2026 bug hunt
+- `redact` (e2e 27): Save is refused while faces are still being looked for (it would save every face visible); the
+  newest photo wins; boxes drawn during the search are kept; a failed search is said in the status line.
+- `watermark` (e2e 18): the preview is the first photo that opens; "Clear photos"; empty text refused; photos that
+  fail are listed under the results; the saved photos' logo resized with @jsquash/resize.
+- `caption` (unit `textwrap.test.mjs` 18, e2e 14): `wrapLines` in `src/lib/textwrap.ts` breaks an over-long word
+  (a web address, Chinese / Japanese without spaces) between grapheme clusters; text is made smaller until each block
+  is at most 45 % of the height.
+- `collage` (e2e 19): the saved photos resized with @jsquash/resize; an A4 JPEG says 300 dpi.
+
 ### Cartoonizer ("Prisma-like") — BUILT (`src/tools/cartoon.ts`, e2e `tests/e2e/cartoon.e2e.mjs`, 37 checks)
 Two engines, picked with a "Filters | AI art styles" switch; tiles show live thumbnails of the user's photo / the style.
 - **Filters** (own C in `imgproc.wasm`, instant): Cartoon (bilateral smoothing → DoG edge lines (Winnemöller, τ≈0.985)

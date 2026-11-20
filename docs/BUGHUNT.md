@@ -20,10 +20,10 @@ Areas with a shared review: the app shell (router, search, favorites, platform h
 | `formphoto` | Photo & Signature Resizer | PC + mobile | images2 | ✓ | 8 | 55 | engines kept + jSquash resize; KB read strictly (max ×1000, min ×1024); dpi before padding (was +18 bytes over max); metacore padding exact; no download of an over-max file; per-field reasons; re-frame without new face search; newest photo wins; object URLs revoked |
 | `bgremove` | Background Remover | PC + mobile | images2 | ✓ | 8 | 21 | MediaPipe + imgproc kept (imgly ISNet noted for objects); newest photo/background wins; no-person said + Save refuses; failure reason on Save; status restored; .swatch CSS clash with Color tab fixed (.bg-swatch); 44 px swatches with pressed state; model note only first time |
 | `cartoon` | Cartoonizer | PC + mobile | images2 | ✓ | 7 | 8 | imgproc + TF.js (wasm/WebGL) kept; see-through photo/painting on white (onWhite in imgio); one AI painting at a time, newest settings follow; Save refuses a stale AI result; keyboard compare; model note only until loaded |
-| `redact` | Blur & Redact | PC + mobile | images2 |  |  |  |  |
-| `watermark` | Watermark | PC + mobile | images1 |  |  |  |  |
-| `caption` | Text on Image | PC + mobile | images1 |  |  |  |  |
-| `collage` | Collage Maker | PC + mobile | images1 |  |  |  |  |
+| `redact` | Blur & Redact | PC + mobile | images2 | ✓ | 6 | 13 | Save refused during the face search (it saved every face visible); newest photo wins; boxes drawn during the search kept; failure in the status line; pointercancel; setPointerCapture guarded |
+| `watermark` | Watermark | PC + mobile | images1 | ✓ | 6 | 6 | unreadable first photo no longer blocks the preview; Clear photos; empty text refused; logo errors said; failures listed; HEIC logos; jSquash resize |
+| `caption` | Text on Image | PC + mobile | images1 | ✓ | 3 | 21 | over-long words and CJK broken between graphemes (src/lib/textwrap.ts); long text shrunk to fit |
+| `collage` | Collage Maker | PC + mobile | images1 | ✓ | 2 | 4 | A4 JPEG says 300 dpi; first photo's Move earlier off; jSquash resize on save |
 | `exif` | EXIF / Photo Info | PC + mobile | images1 |  |  |  |  |
 | `scanner` | Doc Scanner | PC + mobile | images2 |  |  |  |  |
 | `ocr` | OCR | PC + mobile | images2 |  |  |  |  |
@@ -1568,3 +1568,38 @@ Reference for the five finance tabs: **mpmath at 60 digits** (`scripts/make-fina
   5. "Loading the style model (≈ 17 MB the first time)" flashed before every AI change; only until it has loaded.
   6. Save in Filters mode before the first preview was ready said "Choose a photo first." with a photo chosen.
   7. A painting that could not be opened was reported without its file name.
+
+- **`redact` (tab 118, 6 bugs; engines kept: MediaPipe BlazeFace + imgproc — docs/WASM-AUDIT.md, 116; e2e 27 — was 14).**
+  1. **Save during the face search saved the photo with every face visible** (the boxes were not there yet). Save
+     says "Still looking for faces — Save again in a moment." until the search ends.
+  2. A photo chosen while faces were being looked for in another got the other photo's boxes; the newest wins.
+  3. Boxes drawn while the search ran were thrown away when it ended; they are kept beside the faces.
+  4. A failed search was said in a toast that vanished — and after leaving the tab during a search, an error toast
+     appeared on the next page; said in the status line now ("draw boxes by hand"), nothing after leaving.
+  5. A gesture the browser took over (a scroll, a second finger) left a half-drawn box on screen and the drawing went
+     on with the next move; pointercancel ends it.
+  6. `setPointerCapture` threw for a pointer the browser no longer tracked (a page error); caught.
+  Test: the face model is held back 4 s so Save and the drawing surely happen during the search.
+
+- **`watermark` (tab 119, 6 bugs; canvas + jSquash, the saved logo resized with @jsquash/resize — 117; e2e 18 — was 12).**
+  1. A first photo that could not be opened left the tab without a preview for good (later photos were never shown).
+     It is said and left out; the next photo is the preview.
+  2. Photos could not be taken off the list; "Clear photos".
+  3. Empty text made "watermarked" copies with nothing on them; refused ("Type the text of the watermark.").
+  4. A logo that could not be opened was an unhandled error (page error); said with its name.
+  5. Photos that failed in a run were toasts that vanished; listed under the results now.
+  6. The logo picker did not offer HEIC files.
+
+- **`caption` (tab 120, 3 bugs; canvas text, our wrapping — 118; unit `tests/unit/textwrap.test.mjs` 18 — new; e2e 14 —
+  was 11).**
+  1. A word wider than the picture (a web address) was drawn past both edges.
+  2. Chinese and Japanese (no spaces) were one line running off the picture; an over-long word is broken between two
+     characters (never inside an emoji or a letter with its accent).
+  3. Long top and bottom text grew into each other and off the picture; the text is made smaller until each block
+     takes at most 45 % of the height.
+
+- **`collage` (tab 121, 2 bugs; the saved photos resized with @jsquash/resize — 119; e2e 19 — was 15).**
+  1. "A4 print (300 dpi)" saved a file without a dpi: it printed at whatever the program assumed (at 72 dpi a
+     34 × 49 inch page). The JPEG says 300 dpi now; for PNG / WebP the line under the preview says to choose JPEG.
+  2. "Move photo 1 earlier" was a button that did nothing; it is off.
+  Also: an error while drawing the preview is shown under it instead of an unhandled rejection.

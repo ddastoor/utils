@@ -17,6 +17,7 @@ export default async ({ base, page: newPage, ok, download, devices }) => {
   ok(d.px[1].slice(0, 3).every((v) => v > 245), 'centre cross gap is white');
   ok(!d.px[2].slice(0, 3).every((v) => v > 245) && !d.px[3].slice(0, 3).every((v) => v > 240), 'cells contain photos');
 
+  ok(await page.getByRole('button', { name: 'Move photo 1 earlier' }).isDisabled() && await page.getByRole('button', { name: 'Move photo 2 earlier' }).isEnabled(), 'the first photo cannot move earlier (its button is off)');
   // reorder: move photo 2 (chelsea) first → top-left cell content changes
   const tl = [0.05, 0.05, 0.45, 0.45];
   const [before] = await regionMeans(page, p, [tl]);

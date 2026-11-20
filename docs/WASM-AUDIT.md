@@ -990,3 +990,29 @@ One entry per tab, written before its bug hunt: our module → candidates → ch
   Text-to-Speech) after converting the graph with tf2onnx — the same XNNPACK kernels on the CPU, and no maintained
   WebGL path (ORT's WebGL backend is deprecated; WebGPU needs the 29 MB JSEP build). **Decision:** TF.js stays (its
   WebAssembly backend is the WebAssembly engine; the GPU path would be lost).
+
+### 116. `redact` — Blur & Redact (20 Nov 2026)
+- **Engines:** MediaPipe Tasks 1.2.3 Face Detector with BlazeFace short range (Google's build, the latest — the one
+  face model the Tasks API publishes), run on the whole photo and on tiles at three finer scales; imgproc.wasm (ours):
+  crops and resizes of the tiles, NMS, pixelate / blur / fill. **Candidates:** YuNet on OpenCV.js (8 – 10 MB for the
+  library, a 230 KB model; finds small faces without tiles); RetinaFace / SCRFD on ONNX Runtime Web (1 – 3 MB
+  models). **Decision:** MediaPipe and imgproc stay — the tiled search finds the six small faces of the test's group
+  photo and of a 3600 px one; a second engine would add megabytes for what the tiles already do. Noted: YuNet is the
+  first thing to try if faces at an angle or in profile are missed in real photos.
+
+### 117. `watermark` — Watermark (20 Nov 2026)
+- **Engines:** the browser's canvas (text shaping with its own HarfBuzz, compositing); imgproc for the preview's logo;
+  jSquash for encoding. **Decision:** the canvas stays (a WebAssembly HarfBuzz + FreeType would repeat the browser's
+  own compiled text engine and need fonts for every script); the logo of the saved photos and the iPhone downscale go
+  to @jsquash/resize (entry 109).
+
+### 118. `caption` — Text on Image (20 Nov 2026)
+- **Engines:** as entry 117 (canvas text). Line breaking is ours (`src/lib/textwrap.ts`: words by spaces, an over-long
+  word between grapheme clusters by the browser's Intl.Segmenter). **Candidate:** ICU4X's line segmenter (UAX #14 —
+  would break Chinese and Japanese at the right places, Thai by dictionary) — one file of 20 MB (entry 90).
+  **Decision:** our wrapping stays; breaking between any two characters is acceptable for Chinese and Japanese.
+
+### 119. `collage` — Collage Maker (20 Nov 2026)
+- **Engines:** imgproc (crops; the preview's resizes), canvas (rounded clips, background), jSquash (encoding; the A4
+  JPEG's 300 dpi by metacore). **Decision:** the saved collage's photos are resized with @jsquash/resize (entry 109);
+  the rest stays.

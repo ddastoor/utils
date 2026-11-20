@@ -50,6 +50,7 @@ export default async ({ base, page: newPage, ok, info, download, devices }) => {
   await page.mouse.move(r.x + r.width * 0.05, r.y + r.height * 0.8); await page.mouse.down();
   await page.mouse.move(r.x + r.width * 0.25, r.y + r.height * 0.95, { steps: 5 }); await page.mouse.up();
   await page.getByRole('button', { name: 'Done drawing' }).click();
+  await page.waitForFunction(() => document.querySelectorAll('.redact-box.ghost').length === 0, null, { timeout: 30000 });
   ok(await page.locator('.redact-box:not(.face)').count() === 1, 'manual box added');
   const [mb] = await regionMeans(page, await save(), [[0.08, 0.83, 0.22, 0.92]]);
   ok(lum(mb) < 8, 'manual box blacked out');
@@ -81,6 +82,9 @@ export default async ({ base, page: newPage, ok, info, download, devices }) => {
     for (let i = 0; i < 6; i++) g.drawImage(bmp, 90 + (i % 3) * 1170, 75 + Math.floor(i / 3) * 870, 780, 780);
     return [...new Uint8Array(await (await c.convertToBlob({ type: 'image/jpeg', quality: 0.9 })).arrayBuffer())];
   }, (await import('node:fs')).readFileSync(F('astronaut.png')).toString('base64')));
+  // the face model arrives 4 s late, so the search surely runs while Save is pressed and the box is drawn
+  const slow = async (r) => { await new Promise((f) => setTimeout(f, 4000)); await r.continue(); };
+  await page.route('**/blaze_face_short_range.tflite', slow);
   await page.goto(base + '#/'); await page.goto(base + '#/redact');
   await page.locator('input[type=file]').setInputFiles({ name: 'big-group.jpg', mimeType: 'image/jpeg', buffer: bigGroup });
   await page.waitForFunction(() => /Looking for faces/.test(document.querySelector('[aria-live="polite"].muted')?.textContent || ''), null, { timeout: 30000 });
@@ -97,9 +101,12 @@ export default async ({ base, page: newPage, ok, info, download, devices }) => {
   await page.getByRole('button', { name: 'Done drawing' }).click();
   await page.waitForFunction(() => /faces? found/.test(document.querySelector('[aria-live="polite"].muted')?.textContent || ''), null, { timeout: 120000 });
   ok(got === null, '… and nothing was downloaded');
-  const nFaces = await page.locator('.redact-box.face').count(), nMine = await page.locator('.redact-box:not(.face)').count();
-  info(`big group: ${nFaces} faces; the box was drawn ${stillSearching ? 'during' : 'after'} the search`);
-  ok(nFaces === 6 && nMine === 1, `the box drawn ${stillSearching ? 'during' : 'after'} the search is kept beside the 6 faces (${nFaces} + ${nMine})`);
+  // the picture is redrawn with the new box (the half-drawn ghost stays until then)
+  await page.waitForFunction(() => /7 areas hidden/.test(document.querySelector('[aria-live="polite"].muted')?.textContent || ''), null, { timeout: 30000 }).catch(() => {});
+  const nFaces = await page.locator('.redact-box.face').count(), nMine = await page.locator('.redact-box:not(.face):not(.ghost)').count();
+  await page.unroute('**/blaze_face_short_range.tflite', slow);
+  ok(stillSearching, 'the box was drawn while the search was still running');
+  ok(nFaces === 6 && nMine === 1, `the box drawn during the search is kept beside the 6 faces (${nFaces} + ${nMine})`);
   ok(/^6 faces found · 7 areas hidden$/.test(await page.locator(STATUS).first().textContent()), `status counts both (${await page.locator(STATUS).first().textContent()})`);
   // a cancelled pointer leaves no half-drawn box
   await page.getByRole('button', { name: 'Draw a box' }).click();
@@ -108,7 +115,7 @@ export default async ({ base, page: newPage, ok, info, download, devices }) => {
     const ev = (t, x, y) => l.dispatchEvent(new PointerEvent(t, { bubbles: true, cancelable: true, pointerId: 7, clientX: r.left + r.width * x, clientY: r.top + r.height * y }));
     ev('pointerdown', 0.1, 0.1); ev('pointermove', 0.3, 0.3); ev('pointercancel', 0.3, 0.3); ev('pointermove', 0.5, 0.5); ev('pointerup', 0.5, 0.5);
   });
-  ok(await page.locator('.redact-box.ghost').count() === 0 && await page.locator('.redact-box:not(.face)').count() === 1, 'a cancelled gesture leaves no ghost and adds no box');
+  ok(await page.locator('.redact-box.ghost').count() === 0 && await page.locator('.redact-box:not(.face):not(.ghost)').count() === 1, 'a cancelled gesture leaves no ghost and adds no box');
   await page.getByRole('button', { name: 'Done drawing' }).click();
   // newest photo wins: the group, then at once the scanned page
   await page.locator('input[type=file]').setInputFiles({ name: 'big-group.jpg', mimeType: 'image/jpeg', buffer: bigGroup });

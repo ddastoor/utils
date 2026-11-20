@@ -88,7 +88,7 @@ export const mount: Mount = (root, ctx) => {
   // draw manual boxes
   let start: { x: number; y: number } | null = null, ghost: HTMLElement | null = null;
   const norm = (e: PointerEvent) => { const r = canvas.getBoundingClientRect(); return { x: Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)), y: Math.min(1, Math.max(0, (e.clientY - r.top) / r.height)) }; };
-  layer.addEventListener('pointerdown', (e) => { if (!drawing) return; start = norm(e); layer.setPointerCapture(e.pointerId); ghost = h('div', { class: 'redact-box ghost' }); layer.append(ghost); e.preventDefault(); });
+  layer.addEventListener('pointerdown', (e) => { if (!drawing) return; start = norm(e); try { layer.setPointerCapture(e.pointerId); } catch { /* a pointer the browser no longer tracks */ } ghost = h('div', { class: 'redact-box ghost' }); layer.append(ghost); e.preventDefault(); });
   layer.addEventListener('pointermove', (e) => { if (!start || !ghost) return; const p = norm(e); Object.assign(ghost.style, { left: `${Math.min(p.x, start.x) * 100}%`, top: `${Math.min(p.y, start.y) * 100}%`, width: `${Math.abs(p.x - start.x) * 100}%`, height: `${Math.abs(p.y - start.y) * 100}%` }); });
   layer.addEventListener('pointerup', (e) => {
     if (!start) return;
