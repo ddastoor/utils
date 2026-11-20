@@ -885,13 +885,6 @@ details summary { cursor: pointer; font-weight: 600; color: var(--accent); paddi
 .tts-now { font-size: 15px; padding: 8px 12px; border-left: 3px solid var(--accent); background: var(--surface-2); border-radius: 6px; }
 .tts-now:empty { display: none; }
 /* speech to text */
-.stt-player { width: 100%; margin-top: 8px; }
-.stt-player:not([src]) { display: none; }
-.stt-out { min-height: 180px; font-size: 16px; line-height: 1.55; }
-.stt-segs { display: flex; flex-direction: column; gap: 4px; max-height: 360px; overflow: auto; }
-.stt-seg { display: flex; gap: 10px; text-align: left; background: none; border: 0; padding: 6px 8px; border-radius: 6px; cursor: pointer; color: inherit; font: inherit; min-height: 36px; }
-.stt-seg:hover { background: var(--surface-2); }
-.stt-t { font: 12px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color: var(--muted); padding-top: 3px; min-width: 44px; }
 /* software reference tables */
 .ref-tbl tr.grp th { background: var(--surface-2); color: var(--text); font-size: 13px; position: static; }
 .ref-tbl td.mono { white-space: nowrap; }

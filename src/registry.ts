@@ -109,7 +109,6 @@ export const TOOLS: Tool[] = [
   t('video', 'Video Compressor', 'Shrink videos to a target size (e.g. for WhatsApp).', 'media', 'Video', () => import('./tools/video').then((m) => m.mount)),
   t('audio', 'Audio Recorder', 'Record your voice, trim, and save.', 'media', 'AudioWaveform', () => import('./tools/audio').then((m) => m.mount)),
   t('tts', 'Text-to-Speech', 'Read text aloud with on-device voices.', 'media', 'AudioLines', () => import('./tools/tts').then((m) => m.mount)),
-  t('stt', 'Speech to Text', 'Transcribe recordings or audio/video files (Whisper, on-device).', 'media', 'MicVocal', () => import('./tools/stt').then((m) => m.mount)),
   t('noise', 'Noise Remover', 'Remove background noise from voice recordings.', 'media', 'AudioWaveform', () => import('./tools/noise').then((m) => m.mount)),
   t('pitch', 'Pitch & Speed', 'Change tempo or pitch of audio independently.', 'media', 'Gauge', () => import('./tools/pitch').then((m) => m.mount)),
   t('slideshow', 'Slideshow Maker', 'Photos + music → MP4 video.', 'media', 'GalleryHorizontal', () => import('./tools/slideshow').then((m) => m.mount)),

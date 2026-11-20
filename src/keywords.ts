@@ -45,7 +45,6 @@ export const KEYWORDS: Record<string, string> = {
   'video': 'video, compress, reduce size, mp4, whatsapp, email, mb, smaller, resize',
   'audio': 'record, voice, audio, microphone, memo, trim, wav, recorder',
   'tts': 'tts, speech, read aloud, voice, speak, narrate, text to speech',
-  'stt': 'speech to text, transcribe, transcription, dictation, voice to text, audio to text, whisper, subtitles, srt, vtt, captions, meeting notes, lecture, voice notes, indian english, accent',
   'noise': 'noise, denoise, noise removal, noise remover, noise reduction, remove noise, clean audio, hiss, background noise, rnnoise, voice',
   'pitch': 'pitch, speed, tempo, slow down song, slow down audio, speed up audio, slow down, speed up, transpose, key change, time stretch, practice, playback rate',
   'slideshow': 'slideshow, photos to video, images to video, music video, montage, mp4, reel',

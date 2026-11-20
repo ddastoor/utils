@@ -4,7 +4,7 @@
 # Toolchain: Zig (pip download ziglang==0.17.1; see CLAUDE.md §5). Each module's build.sh pins and verifies its sources.
 set -euo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
-for m in crypto mathcore geo textcore textkit imgproc metacore markdown sheet audio espeak whisper busybox; do
+for m in crypto mathcore geo textcore textkit imgproc metacore markdown sheet audio espeak busybox; do
   if [ -x "$HERE/$m/build.sh" ]; then echo "== $m"; "$HERE/$m/build.sh"; fi
 done
 node "$HERE/../tests/unit.mjs"

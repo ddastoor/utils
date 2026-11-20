@@ -26,11 +26,11 @@ that affects it.
 > When the owner names an app from `docs/potentials.md` (or `docs/IDEAS.md`), **before building anything**:
 > 1. Estimate what it adds to the deployed site (`dist/`): engines, models, data, fonts, in MB (look up the real
 >    file sizes of the release or package, not a guess from memory).
-> 2. Give the new total against GitHub Pages' **1 GB cap for a published site** (20 Nov 2026: **763 MB**, 237 MB of room — `du -sb
+> 2. Give the new total against GitHub Pages' **1 GB cap for a published site** (20 Nov 2026, after Speech to Text was removed: **512 MB**, 488 MB of room — `du -sb
 >    dist` after `npm run build`, in bytes: 1 GB is read as 10⁹ bytes; `du -sh` shows MiB), and for a large model the 100 GB / month soft bandwidth limit.
 > 3. Name what could be removed to make room, when room is short — an app, or a big model of one (the biggest today:
->    Speech to Text's Whisper models 238 MB — "Accurate" 190 MB + "Fast" 57 MB; Text-to-Speech's voices 167 MB —
->    Kokoro 94 MB + Piper 73 MB; Code Formatter's Biome 67 MB; FFmpeg 31 MB; Tesseract 27 MB; ExifTool 24 MB).
+>    Text-to-Speech's voices 167 MB — Kokoro 94 MB + Piper 73 MB; Code Formatter's Biome 67 MB; Photo Dictionary's
+>    data 34 MB; FFmpeg 31 MB; Tesseract 27 MB; ExifTool 24 MB).
 > 4. **Wait for the owner's decision.** Build nothing until the owner has decided.
 
 > ## ⚠️ STANDING RULE #1 — WebAssembly first (owner; permanent; applies to every line of new code)
@@ -228,7 +228,7 @@ Wayland) and **mobile browsers** (Android Chrome, iPhone Safari).
 Platform is PC + mobile unless marked **PC**. Tab ids are the URL hash (`#/<id>`).
 
 **The authoritative, always-current list is `docs/TOOLS.md`, generated from `src/registry.ts` (`npm run docs`).**
-Current total: **176 tabs in 11 categories — 108 PC + mobile, 64 PC only, 4 Mobile only** (regenerate with
+Current total: **175 tabs in 11 categories — 107 PC + mobile, 64 PC only, 4 Mobile only** (regenerate with
 `npm run docs` after every registry change; the owner asked for the registry to always be noted).
 The per-category notes below record decisions; when they disagree with the registry, the registry wins.
 
@@ -375,31 +375,9 @@ Builder (HTML → browser "Save as PDF"). Images: `signature` Signature Maker. S
 wasm) · `python` (CPython 3.14 C → wasm32-wasi, built by us) · `totp` · `pwstrength` (zxcvbn) · `jsonschema` · `bitwise` · `ieee754` ·
 `contrast` · `baseenc` · `bindecode` · `httpstatus` · `mime` · `ports` · `ascii` · `keycode` · `gradient` · `shadow` ·
 `svgo` · `patch`.
-**Speech to Text** (`stt`, Media, both) — **BUILT** (`src/tools/stt.ts`, worker `src/workers/stt.worker.ts`; e2e
-`tests/e2e/stt.e2e.mjs` 11). Engine: **whisper.cpp 1.8.3 built by us** (`wasm/whisper`, single thread, WebAssembly SIMD,
-~1.2 MB) + OpenAI Whisper English models (MIT) from huggingface.co/ggerganov/whisper.cpp (commit-pinned, SHA-256):
-"Accurate" `ggml-small.en-q5_1` (190 MB, served as 3 parts < 95 MB; default on PC; chosen for Indian, UK and US accents)
-and "Fast" `ggml-base.en-q5_1` (60 MB; default on phones). Record (browser voice clean-up on) or open any audio/video →
-mono 16 kHz by our audio.wasm in the worker → the model is streamed straight into wasm memory (download %), whisper's
-own progress via an `env.w_progress` import; "names and terms" box = Whisper's initial prompt (verified: invented
-names come out as typed); optional beam search (5); editable transcript, timestamped segments (click to play from
-there), Copy / .txt / .srt / .vtt. Stop = terminate the worker. Not live dictation (no threads on GitHub Pages).
-Measured in the sandbox (one thread): base.en ≈ 1.7 s of work per second of audio (11 s clip in 19 s), small.en ≈
-6× (10 s in 66 s) — the encoder always processes a 30 s window, so short clips cost the same as 30 s.
-Tests: JFK clip (public domain) word for word with base.en; LibriSpeech 1089-134686-0000 with small.en (WER ≤ 10 %);
-round trips through our own TTS — Indian English (Piper SVBI) with small.en WER ≤ 20 % (observed ~12 %; Piper's
-sampling makes each run differ), base.en reported (11–28 % seen), US English (Kokoro Michael) WER ≤ 15 % (0 %);
-hint-box spellings; .srt/.vtt/.txt; segments; stop.
-**As built after the Nov 2026 bug hunt** (e2e 19; docs/BUGHUNT.md tab 149, docs/WASM-AUDIT.md 146): **the names and terms
-guide every 30 s window** (`carry_initial_prompt` in the glue — whisper.cpp otherwise lets the prompt slide out of its
-rolling context after ~224 tokens; it drops prompts for the last 5 s of a recording by design); the page decodes
-straight to 16 kHz (`decodeAudio(blob, 16000)`: an hour of 48 kHz stereo is 1.4 GB at its own rate) and the player keeps
-the file; a new file ends a running job and clears the old transcript; the newest file wins and Transcribe waits for
-it; "no speech was found in this recording"; the model download grows its buffer when a server sends more than it
-announced, and a dropped or cut download is said in words; a hint over 60 words gets a note (Whisper reads 223 tokens,
-the end kept). Tests added: a 95 s meeting (LibriSpeech, JFK, eleven sentences of our TTS) — the names spelled as hinted
-at 83 s and nothing skipped; a new file; the newest file; silence; the long hint; a model larger than announced; a
-dropped download.
+**Speech to Text** (`stt`) — **removed by the owner on 20 Nov 2026** to make room for apps used more often (its two
+Whisper models were 238 MB of the site's 1 GB). The tab, its whisper.cpp build and its tests are in the git history
+(last in commit `f1e9f21`); Auto Subtitles (`docs/potentials.md` #13), which would have reused it, was removed with it.
 
 **Text-to-Speech** (`tts`) — **BUILT** (`src/tools/tts.ts`, worker `src/workers/tts.worker.ts`, front ends
 `src/lib/kokoro.ts` + `src/lib/piper.ts`; unit `espeak.test.mjs` 14 + `tts-text.test.mjs` 26; e2e `tts.e2e.mjs` 13).
@@ -426,8 +404,6 @@ again right after (it stayed busy for good); the worker takes runs one after ano
 a cancelled run ends at its next sentence; the sentence shown is the one being heard; a system voice that fails is
 said; a .txt in Windows-1252 or UTF-16 is decoded as the CSV tab does; the model download grows its buffer when a
 server sends more than it announced; WAV written by the browser's own 16-bit rule (see the Audio Recorder).
-Speech to Text accent requirement: very good on US, UK and **especially Indian English** → Whisper small.en default
-plus a "names & terms" hint box fed to Whisper's initial prompt.
 
 **Batch 4 (owner-requested):**
 - **`bc` console** — PC only, shown **inside the Scientific Calculator tab** next to the keypad calculator (owner's
@@ -472,7 +448,8 @@ Rejected by the owner: Typing Speed Test, Tuner, Metronome, Discount Calculator,
 Key-Sentence Summariser (in-browser llama.cpp/WebLLM with ~1.7B model — owner declined), Wallpapers (photo
 wallpapers via Wikimedia Commons/NASA, or a procedural generator — owner declined), and from `docs/potentials.md` (Nov 16 2026): Chess Board + Analysis (Stockfish),
 Python/JS Linter & Formatter (Ruff/Biome), Offline Translation (Mozilla Bergamot); and (20 Nov 2026) **v86** — a real Linux
-in an emulated PC, for the Terminal or a tab of its own: "leave out V86 completely".
+in an emulated PC, for the Terminal or a tab of its own: "leave out V86 completely"; and (20 Nov 2026, to make room for
+apps used more often) **Speech to Text** — removed from the site — with **Auto Subtitles** (potentials #13).
 Not added because a PC-only tool already covers them: Video Trimmer, Video → MP3, Audio Cutter (FFmpeg),
 Image Converter (Batch Images). Optional "nice to have" ideas not requested: GIF maker, screenshot
 beautifier, palette extractor, image compare, tone generator, white noise, pace calculator, recipe scaler,
@@ -1575,7 +1552,7 @@ the selection with a playhead. Clean up: normalise (loudest point to −1 dB) an
 LAME 4.0 wasm: 64/128/192/320 kbps CBR or VBR V2, with the LAME/Info tag), **WAV** 16-bit (own C), or **Original**
 (the recorded codec cut by packet copy with mediabunny — no re-encoding, and MediaRecorder's missing duration is
 fixed; WAV/FLAC originals keep their real sample rate). Volume/fade changes need MP3 or WAV (explained in a toast).
-`recorder()`, `waveEditor()`, `savePanel()` and `copyTrim()` are reused by Noise Remover, Pitch & Speed and STT.
+`recorder()`, `waveEditor()`, `savePanel()` and `copyTrim()` are reused by Noise Remover and Pitch & Speed.
 **As built after the Nov 2026 bug hunt** (e2e 23): **files are decoded at their own rate** (`decodeAudio` in
 `src/lib/audio-client.ts`: mediabunny reads the rate from the headers, an OfflineAudioContext of that rate decodes — a
 plain AudioContext resamples to the device's rate; shared by every audio tab); the newest file or recording wins;
@@ -2026,10 +2003,9 @@ stay **public** (the source of the deployed site is then available to every user
 | jq 1.8.2 (+ oniguruma) | C | **us** (`wasm/jq`) | jq |
 | CPython 3.14.8 (+ zlib 1.3.2; stdlib as .pyc in python314.zip with tzdata 2026.6) **+ our changes** (§5.1m: recursion guard for a browser's two stacks, lru_cache in Python, pbkdf2_hmac fallback, socket stand-in + asyncio loop without sockets, local time from the host) | C | **us** (`wasm/python`, python.wasm 7 MB + python314.zip 5.4 MB, loaded on the first Run; run by our WASI host `src/lib/terminal/wasi.ts` in `src/workers/python.worker.ts`) | python |
 | Graphviz **16.1.0** (cgraph, gvc, dot/neato/fdp/sfdp/circo/twopi/osage/patchwork, core renderers; the official release archive) + Expat 2.9.0 **+ our changes** (§5.1l: `storeline.patch` — an upstream crash on labels that start with an empty line; `triangulation.patch` + `st_delaunay.h` — prism overlap removal on our C port of Delaunator instead of GTS; glibc's `qsort` and `rand`; assertions kept; text measured by the host through a "textlayout" plugin) | C / C++ | **us** (`wasm/graphviz`, 1.65 MB / 0.56 MB gz, a fresh instance per drawing in `src/workers/graphviz.worker.ts`; the existing builds — Viz.js, hpcc — trap on valid graphs: `docs/WASM-AUDIT.md`, tab 55) | graphviz |
-| audio: **LAME 4.0** libmp3lame (MP3 encoder) + own C (WAV writer — 16-bit by the browser's own rule, waveform peaks, levels, gain/fades, scale, mix, Kaiser windowed-sinc resampler) | C | **us** (`wasm/audio`) | audio (and tts, stt, noise, pitch, slideshow) |
+| audio: **LAME 4.0** libmp3lame (MP3 encoder) + own C (WAV writer — 16-bit by the browser's own rule, waveform peaks, levels, gain/fades, scale, mix, Kaiser windowed-sinc resampler) | C | **us** (`wasm/audio`) | audio (and tts, noise, pitch, slideshow) |
 | Signalsmith Stretch 1.3.2 (tempo and pitch, polyphonic) | C++ | Signalsmith Audio (official `signalsmith-stretch`, WebAssembly in an AudioWorklet) — rendered offline by `src/lib/stretch.ts` | pitch (replaced our WSOLA in Nov 2026: `docs/WASM-AUDIT.md`, tab 145) |
-| espeak: **eSpeak NG 1.52.0** (+ English phoneme tables and dictionary compiled from the same release, linked in, served to its fopen/stat from memory) + glue (IPA for Kokoro, piper-phonemize-style sentences) | C | **us** (`wasm/espeak`) | tts (stt hints later) |
-| whisper: **whisper.cpp 1.8.3** + ggml CPU backend (upstream unmodified) + own threadshim.h (std::mutex/std::thread/fstream for zig's thread-less libc++), backend-reg.cpp (static CPU-only registry), cxxabi_stubs.c (throw = abort), glue.cpp | C / C++ | **us** (`wasm/whisper`) | stt |
+| espeak: **eSpeak NG 1.52.0** (+ English phoneme tables and dictionary compiled from the same release, linked in, served to its fopen/stat from memory) + glue (IPA for Kokoro, piper-phonemize-style sentences) | C | **us** (`wasm/espeak`) | tts |
 | geo: Charles Karney's **geodesic.c 2.2** (GeographicLib's geodesic routines in C, MIT; the two files unmodified from the PROJ 9.9.0 release) + glue (inverse problem on WGS-84, half-way point, the haversine great circle for comparison) | C | **us** (`wasm/geo`, 36 KB, loaded by the Coordinates tab only; no tried-and-tested WebAssembly geodesic module exists: `docs/WASM-AUDIT.md`, tab 82) | coords |
 | textcore: tool-search ranking, rare-word ranking (tokeniser, lemmatiser, wordfreq hash table), XY-cut reading order (columns numbered only where they are real: `minh`) | C (own code) | **us** (`wasm/textcore`) | search box, emoji (search), photodict, epub |
 | textkit: **unicode-segmentation 1.13.3** (the Rust ecosystem's UAX #29 implementation, Unicode 17.0, MIT / Apache-2.0: extended grapheme clusters, sentence boundaries) + our counting rules: words as a word limit counts them, abbreviations and initials, lines and paragraphs, keywords (Snowball's stop words); **the Case Converter's thirteen conversions** (`case.rs`: Title Case is a port of the Python package `titlecase` 2.4.1 — Gruber's rules, MIT; the code cases cut words as npm's `change-case` does; case mapping by Rust's standard library) | Rust | **us** (`wasm/textkit`, crates.io via `Cargo.lock`, two modules by Cargo features: **textkit.wasm** 217 KB — fetched with the Word Counter's first text, with the Case Converter, and with the first Fancy Text that has an emoji or another script — and **textkit-diff.wasm** 0.69 MB = the **`similar` crate 3.2.1** (Apache-2.0: Myers in linear space with a time limit, line / word / grapheme diffs, inline changes, unified diffs) + our glue, fetched by the Text Diff only; and **textkit-lorem.wasm** 0.13 MB = the **`lipsum` crate 0.9.1** (MIT: a Markov chain over the classic passage and Cicero's *De finibus*, with rand 0.8 / rand_chacha 0.3) + our glue (cleaned texts learned as circles, exact counts), fetched by the Lorem Ipsum tab; the existing module — ICU4X's official build — is one file of 20 MB: `docs/WASM-AUDIT.md`, tab 90) | wordcount, case, lines ("By length"), fancy (characters); diff (textkit-diff); lorem (textkit-lorem) |
@@ -2345,21 +2321,12 @@ into C arrays (`espeak_data.c`, voice paths lower-cased as eSpeak looks them up)
 the first module that links wasi-libc's pre-open scan: `fd_prestat_get` must answer EBADF (8), not ENOSYS, or start-up
 aborts with exit 71 — fixed in `src/wasm/wasi.ts` and the unit harness.
 
-### 5.1j whisper → `src/wasm/bin/whisper.wasm`
-`ZIG=… wasm/whisper/build.sh`: downloads the `whisper-rs-sys` 0.15.0 crate from static.crates.io (it vendors whisper.cpp
-1.8.3 + ggml; SHA-256 `6986c0fe…` = crates.io's published checksum; github.com is blocked in the sandbox) and compiles the
-upstream sources **unmodified**: ggml core + CPU backend (generic + `arch/wasm/quants.c` SIMD), whisper.cpp, and our
-`backend-reg.cpp` instead of ggml-backend-reg.cpp (which needs dlopen + std::filesystem). zig's libc++ for
-single-threaded wasm32-wasi has no threads or file streams: `threadshim.h` (force-included) adds a no-op `std::mutex`,
-a `std::thread` that runs its work at once (whisper.cpp joins workers right away; one thread is used anyway) and
-FILE*-based `std::ifstream/ofstream` (opening fails in the browser; we load models from memory). `-fwasm-exceptions`
-crashes clang here, so C++ is built with `-fexceptions` and `cxxabi_stubs.c` makes `throw` report and abort (only fatal
-paths throw). `-D_WASI_EMULATED_SIGNAL` + `-lwasi-emulated-signal`; max memory 4 GiB − 64 KiB; 8 MiB stack. Glue:
-`w_load(buf, len)`, `w_transcribe(pcm, n, prompt, beam, &len)` → JSON segments (t0/t1 in centiseconds; with a prompt,
-`carry_initial_prompt` so it guides every window — Nov 2026), `w_unload`.
-Imports: WASI + `env.w_progress` (`instantiateWasi(url, extra)` takes extra import modules now).
-**Big models:** `scripts/assets.json` entries with `"split": N` are verified, then stored as `<name>.0 … .k` (≤ N bytes)
-+ `<name>.parts.json` (sha256, size, part sizes) and the whole file removed, so no deployed file exceeds 100 MB.
+### 5.1j whisper — removed (owner, 20 Nov 2026)
+Speech to Text and our whisper.cpp 1.8.3 build (`wasm/whisper`, `src/wasm/bin/whisper.wasm`) were removed at the owner's
+word to make room on the site; the last commit that has them is `f1e9f21` (`git show f1e9f21:wasm/whisper/build.sh`).
+**Big models** (still supported by `scripts/fetch-assets.mjs`): `scripts/assets.json` entries with `"split": N` are
+verified, then stored as `<name>.0 … .k` (≤ N bytes) + `<name>.parts.json` (sha256, size, part sizes) and the whole file
+removed, so no deployed file exceeds 100 MB.
 
 ### 5.1k jq → `src/wasm/bin/jq.wasm`
 `ZIG=… wasm/jq/build.sh`: downloads `jq_1.8.2.orig.tar.gz` from the Ubuntu archive (github.com is blocked in the sandbox;
@@ -2674,7 +2641,7 @@ every push there that passes the unit suites goes live within about four minutes
 (fast-forwarded at the owner's word). GitHub's runner is Ubuntu 26.04 (`ubuntu-latest`): its coreutils are uutils
 (Rust), not GNU — a unit check that runs a system tool must work with both. To publish from `main` instead, the owner
 makes `main` the default branch (Settings → General) and allows it under Settings → Environments → github-pages →
-Deployment branches. GitHub Pages limits: a published site ≤ 1 GB (763 MB on 20 Nov 2026: 237 MB of room), 100 GB / month soft
+Deployment branches. GitHub Pages limits: a published site ≤ 1 GB (512 MB on 20 Nov 2026, after Speech to Text was removed: 488 MB of room), 100 GB / month soft
 bandwidth, 10 minutes per deployment.
 
 ## 8. Adding a new tool (checklist)

@@ -1252,6 +1252,8 @@ One entry per tab, written before its bug hunt: our module → candidates → ch
   which our CSP refuses. Glue: `src/lib/stretch.ts`. The WSOLA code is removed from audio.wasm (no other user).
 
 ### 146. `stt` — Speech to Text (20 Nov 2026)
+**The tab was removed by the owner on 20 Nov 2026** (room on the site for apps used more often; its Whisper models
+were 238 MB). What follows is the record of the engine as it was; the code is in the git history (commit `f1e9f21`).
 - **Ours:** whisper.cpp 1.8.3 (the release vendored by whisper-rs-sys 0.15.0, the newest crate, March 2026), built by us
   single-threaded with WebAssembly SIMD (1.2 MB) + glue. **Candidates:** @remotion/whisper-web 4.0.545 (Remotion, MIT,
   36 k a month) — **needs cross-origin isolation** (SharedArrayBuffer for its threads): GitHub Pages cannot send

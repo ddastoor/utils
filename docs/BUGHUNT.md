@@ -68,7 +68,7 @@ Areas with a shared review: the app shell (router, search, favorites, platform h
 | `video` | Video Compressor | PC + mobile | video | ✓ | 8 | 15 | video area 20 Nov 2026 (docs/BUGHUNT.md) |
 | `audio` | Audio Recorder | PC + mobile | audio | ✓ | 7 | 4 | decoded at the file's own rate (was the device's: 44.1 kHz saved as 48 kHz); newest file wins; mic errors in words; touch + a11y sweeps |
 | `tts` | Text-to-Speech | PC + mobile | audio | ✓ | 6 | 3 | Speak stayed busy after Stop; runs queued in the worker; sentence shown when heard; system-voice errors; text encodings; download size |
-| `stt` | Speech to Text | PC + mobile | audio | ✓ | 12 | 9 | names box faded after ~224 tokens (carry_initial_prompt, rebuilt whisper.wasm); decode at 16 kHz; new file clears transcript; download overflow; touch sweep |
+| `stt` | Speech to Text | PC + mobile | audio | ✓ | 12 | 9 | names box faded after ~224 tokens (carry_initial_prompt, rebuilt whisper.wasm); decode at 16 kHz; new file clears transcript; download overflow; touch sweep; REMOVED by the owner on 20 Nov 2026 (room for apps used more often; last in commit f1e9f21) |
 | `noise` | Noise Remover | PC + mobile | audio | ✓ | 12 | 33 | Jitsi's RNNoise 0.2 build (= the release's standard 8-bit computation; ours ran the debug float weights, 4× larger); Save after a new file; strength re-cleaned everything; stereo voice; 16-bit WAV round trip; touch sweep |
 | `pitch` | Pitch & Speed | PC + mobile | audio | ✓ | 8 | 7 | Signalsmith Stretch (official wasm/AudioWorklet, MIT) replaces our WSOLA: chord 7-15 dB cleaner; Save after a new file; coalesced renders; selection follows the passage |
 | `slideshow` | Slideshow Maker | PC + mobile | video | ✓ | 5 | 5 | video area 20 Nov 2026 (docs/BUGHUNT.md) |

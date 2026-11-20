@@ -55,8 +55,14 @@ this file = the owner's latest wishes, how the tests are written, and the traps 
   asked earlier; no earlier record of it was found in the repository or this session's chat, so it is recorded now.
 - **20 Nov 2026 — size check before every new app (standing rule, CLAUDE.md top):** "Whenever next new app I suggest
   from potentials.md, you do a rough calculation, tell me how much more space it will occupy, and potentially if you
-  can get rid of an existing app to make space, and then I'll make a decision." The site is 763 MB of GitHub Pages'
-  1 GB; the speech tabs are 55 % of it (Speech to Text 238 MB, Text-to-Speech 167 MB).
+  can get rid of an existing app to make space, and then I'll make a decision." The site was 763 MB of GitHub Pages'
+  1 GB, 238 MB of it Speech to Text's models.
+- **20 Nov 2026 — Speech to Text removed** (owner: "remove speech to text completely and remove auto subtitles
+  completely" — to make room for apps used more often; the owner first checked that the models were not in Git: they
+  never were, they are downloaded at build time). The tab, worker, whisper.wasm, `wasm/whisper`, the two model entries,
+  its e2e suite and the JFK fixture are gone (last in commit `f1e9f21`); Auto Subtitles (#13) is off the potentials
+  list. The site is now **512 MB** (488 MB of room); 175 tabs.
+- **20 Nov 2026 — EPUB Reader** added to `docs/potentials.md` (#71, the owner's request): MuPDF on the site, ≈ 0 MB.
 - **20 Nov 2026 — live:** the owner asked to merge into `main` and make the site live; Pages was switched on by the
   owner (Source: GitHub Actions). The repository's **default branch is `claude/exciting-bohr-b9yfwc`**, and Pages'
   environment lets only the default branch publish — so the site is published from that branch; `main` holds the

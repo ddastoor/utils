@@ -1,6 +1,6 @@
 // Shared audio UI: microphone recorder (MediaRecorder + live meter/waveform), waveform trim editor with playback,
 // and a save panel (MP3 via our LAME wasm, WAV, or the original codec trimmed without re-encoding via mediabunny).
-// Used by Audio Recorder, Noise Remover, Pitch & Speed and Speech to Text.
+// Used by Audio Recorder, Noise Remover and Pitch & Speed.
 import { h, button, field, select, toggle, segmented, note, clear, toast, errMsg, downloadBlob, shareOrDownload, fmtTime, input } from '../ui';
 import { audio, channelsOf, int16Asymmetric } from './audio-client';
 

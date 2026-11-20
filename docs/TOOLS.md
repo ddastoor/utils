@@ -2,7 +2,7 @@
 
 Generated from `src/registry.ts` by `npm run docs` — do not edit by hand.
 
-**176 tabs** in 11 categories — 108 PC + mobile, 64 PC only, 4 mobile only.
+**175 tabs** in 11 categories — 107 PC + mobile, 64 PC only, 4 mobile only.
 
 ## Images (15)
 
@@ -59,14 +59,13 @@ Generated from `src/registry.ts` by `npm run docs` — do not edit by hand.
 | `password` | Password Generator | PC + mobile | Strong random passwords. | password, generate, random, strong, secure, pin |
 | `passphrase` | Passphrase Generator | PC + mobile | Memorable diceware passphrases. | passphrase, diceware, words, memorable, eff, password |
 
-## Media (11)
+## Media (10)
 
 | id | Tab | Platform | What it does | Search keywords |
 |---|---|---|---|---|
 | `video` | Video Compressor | PC + mobile | Shrink videos to a target size (e.g. for WhatsApp). | video, compress, reduce size, mp4, whatsapp, email, mb, smaller, … |
 | `audio` | Audio Recorder | PC + mobile | Record your voice, trim, and save. | record, voice, audio, microphone, memo, trim, wav, recorder |
 | `tts` | Text-to-Speech | PC + mobile | Read text aloud with on-device voices. | tts, speech, read aloud, voice, speak, narrate, text to speech |
-| `stt` | Speech to Text | PC + mobile | Transcribe recordings or audio/video files (Whisper, on-device). | speech to text, transcribe, transcription, dictation, voice to text, audio to text, whisper, subtitles, … |
 | `noise` | Noise Remover | PC + mobile | Remove background noise from voice recordings. | noise, denoise, noise removal, noise remover, noise reduction, remove noise, clean audio, hiss, … |
 | `pitch` | Pitch & Speed | PC + mobile | Change tempo or pitch of audio independently. | pitch, speed, tempo, slow down song, slow down audio, speed up audio, slow down, speed up, … |
 | `slideshow` | Slideshow Maker | PC + mobile | Photos + music → MP4 video. | slideshow, photos to video, images to video, music video, montage, mp4, reel |

@@ -46,7 +46,7 @@ export async function sourceRate(data: Blob): Promise<number> {
  *  and was saved so). */
 export async function decodeAudio(data: ArrayBuffer | Blob, at?: number): Promise<AudioBuffer> {
   const blob = data instanceof Blob ? data : new Blob([data]);
-  // `at`: decode straight to that rate (Speech to Text needs 16 kHz: an hour of 48 kHz stereo is 1.4 GB as it is)
+  // `at`: decode straight to that rate (for a tab that needs a fixed rate: an hour of 48 kHz stereo is 1.4 GB as it is)
   const buf = await blob.arrayBuffer(), rate = at || await sourceRate(blob);
   if (rate >= 8000 && rate <= 384000) {
     try { return await new OfflineAudioContext(1, 1, rate).decodeAudioData(buf.slice(0)); } catch { /* a rate this browser cannot hold: below */ }

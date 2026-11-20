@@ -1,8 +1,6 @@
-// Speech fixtures for Noise Remover / Speech to Text / TTS tests (real recordings, small):
+// Speech fixtures for the Noise Remover's tests (real recordings, small):
 //   speech/librispeech-1.flac  LibriSpeech test sample (CC BY 4.0, via huggingface.co/datasets/Narsil/asr_dummy),
 //                              LibriSpeech test-clean 1089-134686-0000 ("He hoped there would be stew for dinner, …")
-//   speech/jfk.flac            JFK inaugural address excerpt (public domain, via huggingface.co/datasets/Xenova/
-//                              transformers.js-docs), converted to 16 kHz mono FLAC with our ffmpeg.wasm
 //   speech/noisy-speech.wav    librispeech-1 at 16 kHz + white noise at 5 dB SNR (seeded), 16-bit mono
 // Sources are SHA-256 pinned. Run: node scripts/make-speech-fixtures.mjs (output is committed).
 import { createHash } from 'node:crypto';
@@ -16,7 +14,6 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..'), out = join(roo
 mkdirSync(out, { recursive: true });
 const SRC = {
   'librispeech-1.flac': ['https://huggingface.co/datasets/Narsil/asr_dummy/resolve/main/1.flac', '30885601173f96b0d8ddd020dc959b055c6c1582b85a33e3fcab8c4b08ed94c2'],
-  'jfk.wav': ['https://huggingface.co/datasets/Xenova/transformers.js-docs/resolve/main/jfk.wav', 'aa81c2552465568567e670f3823117e633900d16bd6202346a72f3c8464c74c8'],
 };
 const cache = join(process.env.TMPDIR || '/tmp', 'speech-src'); mkdirSync(cache, { recursive: true });
 const get = (name) => {
@@ -40,7 +37,6 @@ async function ffmpeg(args, inputs = {}, outputs = []) {
 }
 const libri = get('librispeech-1.flac');
 writeFileSync(join(out, 'librispeech-1.flac'), libri);
-writeFileSync(join(out, 'jfk.flac'), (await ffmpeg(['-y', '-i', 'jfk.wav', '-ac', '1', '-ar', '16000', '-c:a', 'flac', 'jfk.flac'], { 'jfk.wav': get('jfk.wav') }, ['jfk.flac']))['jfk.flac']);
 // clean speech at 16 kHz as float, then add seeded white noise at 5 dB SNR
 const pcm = (await ffmpeg(['-y', '-i', 'in.flac', '-ac', '1', '-ar', '16000', '-f', 'f32le', 'clean.raw'], { 'in.flac': libri }, ['clean.raw']))['clean.raw'];
 const clean = new Float32Array(pcm.buffer.slice(pcm.byteOffset, pcm.byteOffset + pcm.byteLength));

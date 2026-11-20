@@ -226,5 +226,4 @@ export default [
   ['svg optimizer', 'svgo'], ['minify svg', 'svgo'],
   ['apply patch', 'patch'], ['patch', 'patch'],
   ['linux terminal', 'terminal'], ['busybox', 'terminal'], ['shell', 'terminal'], ['command line', 'terminal'],
-  ['speech to text', 'stt'], ['transcribe audio', 'stt'], ['voice to text', 'stt'], ['whisper', 'stt'], ['make subtitles', 'stt'],
 ];

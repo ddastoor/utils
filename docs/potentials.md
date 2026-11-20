@@ -12,7 +12,7 @@ not just GitHub, in general … maintaining the rules and constraints" (round 3)
 - at the start of any new session that resumes from `docs/RESUME.md`.
 
 **Size check first (owner, 20 Nov 2026 — standing rule, CLAUDE.md top):** when the owner names a tab from this list,
-first estimate how many MB it adds to the deployed site, give the new total against GitHub Pages' 1 GB cap (763 MB on
+first estimate how many MB it adds to the deployed site, give the new total against GitHub Pages' 1 GB cap (512 MB on
 20 Nov 2026), say what existing app or model could be removed to make room if needed — and **wait for the owner's
 decision** before building anything.
 
@@ -31,16 +31,16 @@ Every candidate:
 Platform: "both" = PC + mobile.
 
 ## Size check of every candidate (20 Nov 2026)
-The site is **763 MB** (762,621,158 bytes, `du -sb dist`) of GitHub Pages' 1 GB for a published site (read as 10⁹
-bytes) → **237 MB of room**. A size here is what the tab would ship — one build, without source maps or debug copies —
+The site is **512 MB** (511,614,356 bytes, `du -sb dist`, after Speech to Text was removed on 20 Nov 2026 — it was
+763 MB) of GitHub Pages' 1 GB for a published site (read as 10⁹ bytes) → **488 MB of room**. A size here is what the tab would ship — one build, without source maps or debug copies —
 measured on 20 Nov 2026 from the package's file list (`npm pack <pkg> --dry-run --json`) or the model's file list on
 Hugging Face (`huggingface.co/api/models/<repo>/tree/main`). **"est."** = no published build that could be measured
 from the sandbox (GitHub is not reachable there): measure it before building.
 - **Nothing new — about 0 – 0.3 MB, the tab's own code; its engines are already on the site:** 3 Make PDF Searchable,
-  9 Shamir Secret Split, 13 Auto Subtitles, 14 Audiobook, 15 PDF Compare, 16 PDF Tables → Excel, 17 Video Face Blur,
+  9 Shamir Secret Split, 14 Audiobook, 15 PDF Compare, 16 PDF Tables → Excel, 17 Video Face Blur,
   18 Label Sheets, 20 Duplicate Photos, 27 WireGuard, 30 Aadhaar / e-Invoice QR, 31 DIGIPIN, 34 Calendar Converter,
   36 Metadata Remover, 44 Anki Flashcards, 61 PDF Redact, 62 Authenticator Export, 63 Photo Organizer, 64 Subtitle
-  Sync, 65 Kindle Highlights, 66 XIRR; and 29 Breach Check, 52 Food Label, 53 Book Lookup (each needs its data-API host
+  Sync, 65 Kindle Highlights, 66 XIRR, 71 EPUB Reader; and 29 Breach Check, 52 Food Label, 53 Book Lookup (each needs its data-API host
   approved first).
 - **Small — under 10 MB:** 1 Image to SVG 0.2 (vtracer / potrace) · 2 Photo Upscaler 4.8 (Real-ESRGAN general x4v3;
   the best model, x4plus, 33.7 at half precision / 67.1 full) · 6 GIF Maker 0.7 (gifski) · 7 AVIF / JPEG XL 7 (jSquash:
@@ -65,8 +65,7 @@ from the sandbox (GitHub is not reachable there): measure it before building.
   · 50 Packet Capture 76 (Wiregasm: 73.4 + 2.6) · 51 Scratch 87 (the GUI) + the sprite and sound library it normally
   fetches from Scratch's servers · 67 Object Eraser 208 (LaMa) · 69 Data Notebook ≈ 70 (JupyterLite, est.).
 - **Off the list:** U1 Hindi voices (owner's rule, 20 Nov 2026: no Hindi work); U3 needs our own FFmpeg build first.
-- **What could make room, biggest first:** Speech to Text's "Accurate" model 190 MB (the "Fast" one, 57 MB, stays — less
-  accurate on Indian accents) · Text-to-Speech's Kokoro voices (US / UK) 94 MB or Piper's (Indian English) 73 MB · Code
+- **What could make room, biggest first** (Speech to Text, 238 MB, was removed on 20 Nov 2026): Text-to-Speech's Kokoro voices (US / UK) 94 MB or Piper's (Indian English) 73 MB · Code
   Formatter's Biome 67 MB (Prettier, JavaScript, would format those languages instead) · a whole tab's engine: Photo
   Dictionary 34, FFmpeg 31, OCR 27, EXIF 24. Or, removing nothing: a **second GitHub Pages site** of the owner's
   (`ddastoor.github.io/<another repo>/`) for big models — the same web address (origin), so the CSP and the "served from
@@ -95,7 +94,6 @@ from the sandbox (GitHub is not reachable there): measure it before building.
 ## Round 2 — reuse engines already on the site (cheapest)
 | # | New tab | Built from | What it does | Platform | Status |
 |---|---|---|---|---|---|
-| 13 | **Auto Subtitles** | whisper.cpp (our build) + WebCodecs/mediabunny, or FFmpeg on PC | Transcribe a video, edit the captions, burn them into the video (styled, Indian-English friendly) or save .srt | both | waiting |
 | 14 | **PDF / EPUB → Audiobook** | MuPDF text + Kokoro/Piper voices + our LAME | Read a book or PDF aloud into MP3s, one per chapter | both (long books best on PC) | waiting |
 | 15 | **PDF Compare** | MuPDF text + our textcore Myers diff | Two versions of a contract or agreement side by side, changes highlighted on the pages | both | waiting |
 | 16 | **PDF Tables → Excel** (bank statements, bills) | MuPDF structured text + own C table detection (extends our XY-cut) + our rust_xlsxwriter | Bank-statement PDFs → clean rows in Excel/CSV. Tabula/Camelot are Java/Python, so own C | both | waiting |
@@ -219,8 +217,13 @@ the owner said "add all ten". Every one runs in the browser on the device; none 
 | 69 | **Data Notebook**: pandas and charts on a CSV / Excel file, offline | JupyterLite (BSD-3) on Pyodide (MPL-2.0) | PC | waiting |
 | 70 | **CyberChef**: GCHQ's data toolkit — 400+ operations chained into recipes (decode, decompress, extract, convert) | CyberChef (Apache-2.0, JavaScript: a reason to record in §3a if accepted) | PC | waiting |
 
+## Round 6 — asked for by the owner (20 Nov 2026)
+| # | New tab | Engine | Platform | Status |
+|---|---|---|---|---|
+| 71 | **EPUB Reader** (owner, 20 Nov 2026: "add EPUB reader in potentials.md"): read .epub books (and FB2, CBZ comics — MuPDF reads those too; MOBI to be checked) — contents, page turning (tap, swipe, keys), font size and margins, light / dark / sepia, search in the book, go to a page or chapter; the book never leaves the device. A book's last page cannot be kept between visits (hard rule 1: nothing stored but Favorites) unless the owner allows it the way Favorites are | MuPDF (on the site; lays out reflowable books with HarfBuzz at any font size) — ≈ 0 MB new; Literata (on the site) for the text; read-aloud could reuse Text-to-Speech | both | waiting |
+
 ## Notes
-- **Cheapest wins:** Image to SVG, Make PDF Searchable, the six "reuse engines" tabs (13–18), Duplicate Photo Finder,
+- **Cheapest wins:** Image to SVG, Make PDF Searchable, the five "reuse engines" tabs (14–18), Duplicate Photo Finder,
   Chart Maker, WireGuard Config.
 - **Heavy ones:** Pandoc, Demucs, the upscaler models, LaTeX and Sky Map download only when their tab is used.
 - **JavaScript-only (tier 4, reason recorded if accepted):** Excalidraw and CircuitJS1 have no compiled equivalent.
@@ -234,6 +237,8 @@ the owner said "add all ten". Every one runs in the browser on the device; none 
 - Python/JS Linter & Formatter (Ruff / Biome)
 - Offline Translation (Mozilla Bergamot)
 - v86 — a real Linux in an emulated PC, for the Terminal or a tab of its own (owner, 20 Nov 2026: "leave out V86 completely")
+- Auto Subtitles (#13) — owner, 20 Nov 2026: removed together with the Speech to Text tab whose engine it would have reused
+  (Speech to Text was taken off the site to make room for apps used more often)
 
 ## Related
 `docs/IDEAS.md` is an earlier, longer research list from 15 Nov 2026, also waiting for the owner. It overlaps with this
