@@ -2623,6 +2623,15 @@ E2E_CONCURRENCY=8 node tests/e2e.mjs
   keyboard access, 24 px targets); `tests/unit/css-vars.test.mjs` — every CSS custom property used is defined and
   every light colour token has a dark value. Colour of small text: `--hint` (≥ 4.5 : 1 in both themes), never
   `--faint` (icons and graphics only). A control without a visible label takes one (`select(…, label)`).
+  `junk-files.e2e.mjs` — an empty file and random bytes in every file picker: no tab may throw (text tabs read files
+  with `readTextFile` from `src/lib/textfile.ts`: UTF-16 by its mark, UTF-8, else Windows-1252; binary refused).
+  `engine-download.e2e.mjs` — every desktop tab with its engine's download refused: no uncaught failure (the shell says
+  one nothing else caught, with "Try again"), and "Try again" works when the connection is back.
+  **Blob URLs:** the harness records every blob URL a page makes and lets go; `released(page, id)` leaves the tab and
+  returns what it still holds (a result kept in memory until the page reloads). Every tab that shows results from blob
+  URLs checks it in its suite; a new one must too.
+  **Big input:** a box that feeds a heavy step has a length (`maxlength`), a result box shows a part of a huge result
+  and says so (Copy / Download give all), and work on a text above 200,000 characters waits for a pause in the typing.
 - `tests/shoot.mjs <dir> <routes> [desktop|mobile|both]` takes screenshots for visual checks (phone = iPhone 13).
 Playwright is the pre-installed global one (no `playwright install`); CI runs build + unit tests.
 

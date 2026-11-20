@@ -2278,6 +2278,14 @@ cannot. Three new suites; each fails on the build before its fixes.
   downloads' own URLs, let go 30 s after the click, and zip.js's worker code are not counted), and the suites of the
   sixteen tabs that make them check it on leaving: pdf2img, video, slideshow, screencast, youtube, heic, batch,
   img2pdf, scanner, mic, formphoto, watermark, epub, graphviz, stt, pdf-sign.
+- **Every tab with its engine's download refused** (a dropped connection: .wasm, vendor/, models/, data/ and fonts) —
+  new suite `tests/e2e/engine-download.e2e.mjs`. Twelve tabs that start their engine as they open (JSON, Base64, JWT,
+  XML, JSON → Types, JSON Diff, SQL Formatter, Terminal, JSON Schema, Base Encoder, Binary Decoder, QR Generator) left
+  the failure uncaught: a page error, and a tab that did nothing without a word. Resume Builder printed Emscripten's
+  "Aborted(both async and sync fetching of the wasm failed). Build with -sASSERTIONS for more info." The shell now
+  catches a download failure nothing else caught and says it on the tab once, with "Try again" (a reload — a failed
+  module stays failed for the page); `errMsg` words Emscripten's abort as the failed download it is. The other tabs
+  already said it (the shell's "Could not load this tool", or their own line: Word Counter, Case, Diff, jq, Graphviz…).
 - **The complete e2e run** (on the build before these sweeps): 6,537 / 6,540 checks in 190 suites. Three checks failed
   twice: PDF Protect's and PDF Unlock's notes about a signed PDF and the Everyday smoke suite's coin were read once,
   at once, after the action — races of the tests under load, which wait now. FFmpeg: a click timed out (see below).
