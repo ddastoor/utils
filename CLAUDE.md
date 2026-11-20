@@ -613,6 +613,15 @@ and +; VEVENT (RFC 5545 escaping of the title and place, local times in UTC, an 
 the code holds" shows the exact text. Colours: a light code on a dark ground or contrast below 3 : 1 is warned about.
 Too much text is said in words. The newest text wins when zxing answers out of order. PNG (256 – 4,096 px, saved as
 qr-code.png) and SVG.
+**Barcode Generator as built** (`barcode` in `src/tools/codes.ts`, checks `src/lib/barcodes.ts`; unit
+`tests/unit/barcodes.test.mjs` 26 — GS1 check digits against python-stdnum, `python3 scripts/make-barcode-reference.py`;
+e2e `tests/e2e/barcode.e2e.mjs` 50 — read back by the Scanner tab, zbar and libdmtx). Twelve formats (EAN-13, EAN-8,
+UPC-A, UPC-E, Code 128, Code 39, Code 93, ITF, Codabar, Data Matrix, PDF417, Aztec). Before zint draws: EAN / UPC digits
+only (hyphens and spaces of an ISBN dropped), the check digit added or checked ("should be 0, not 1"), zeros zint
+adds in front said and the full number shown; UPC-E 6 – 8 digits with number system 0 / 1; ITF digits (a zero added
+in front of an odd count, under 6 digits pointed out); Code 39 upper-cased with a note, its characters checked;
+Codabar's A – D start and stop; Code 128 Latin-1 only, Code 93 ASCII only (the 2-D formats take any text). zint's own
+errors without their numbers. A typed value stays when the format changes; an untouched sample is replaced.
 
 ### Calculator
 Sub-tabs: **Scientific** (own parser: + − × ÷ ^ √ ∛ ! nPr nCr %; "a + b%" / "a − b%" add or take off b % of a like phone/Google

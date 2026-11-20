@@ -3,6 +3,7 @@ import { prepareZXingModule, writeBarcode, readBarcodes } from 'zxing-wasm/full'
 import zxingWasm from 'zxing-wasm/full/zxing_full.wasm?url';
 import { h, card, field, input, textarea, button, segmented, select, toggle, slider, filePicker, clear, stack, note, copy, downloadBlob, canvasToBlob, outputBox, type Mount } from '../ui';
 import * as Q from '../lib/qrdata';
+import { checkBarcode, zintError } from '../lib/barcodes';
 
 let ready: Promise<unknown> | null = null;
 const zx = () => (ready ||= Promise.resolve(prepareZXingModule({ overrides: { locateFile: (p: string, prefix: string) => (p.endsWith('.wasm') ? zxingWasm : prefix + p) }, fireImmediately: true })));
@@ -57,7 +58,7 @@ function codeError(e: string, format: string): string {
   if (/too long|too much|exceeds|capacity/i.test(e)) return format === 'QRCode'
     ? 'Too much for one QR code (at most about 2,900 bytes, fewer with more error correction) — shorten the text or choose Low error correction.'
     : `Too long for ${format} — shorten the value.`;
-  return e;
+  return zintError(e);
 }
 
 // ------------------------------------------------------------------ QR generator
@@ -122,10 +123,20 @@ export const barcode: Mount = (root) => {
   let fmt = 'EAN13', hrt = true;
   const r = renderer(() => fmt, () => ({ withHRT: hrt, scale: 4 }));
   const val = input({ value: FORMATS[0][2], attrs: { class: 'input mono', spellcheck: 'false' } });
-  const regen = () => r.run(val.value.trim());
+  const full = h('div', { class: 'muted small mono' });
+  const regen = () => {
+    const c = checkBarcode(fmt, val.value);
+    full.textContent = c.full ? `Encoded with its check digit: ${c.full}` : '';
+    return r.run(c.error ? '' : c.value, { errors: c.error ? [c.error] : [], warnings: c.notes });
+  };
   r.setRegen(regen);
   val.addEventListener('input', regen);
-  root.append(card(null, stack(field('Format', select(FORMATS.map(([k, l]) => [k, l]), fmt, (v) => { fmt = v; val.value = FORMATS.find((f) => f[0] === v)![2]; regen(); })), field('Value', val, 'EAN/UPC check digits are added automatically when omitted.'), toggle('Show human-readable text', true, (v) => { hrt = v; regen(); }))),
+  const sample = (f: string) => FORMATS.find((x) => x[0] === f)![2];
+  root.append(card(null, stack(field('Format', select(FORMATS.map(([k, l]) => [k, l]), fmt, (v) => {
+    // the sample of the format before is replaced by the new one; a value someone typed stays (to try it in another format)
+    if (!val.value.trim() || val.value.trim() === sample(fmt)) val.value = sample(v);
+    fmt = v; regen();
+  })), field('Value', stack(val, full), 'EAN/UPC check digits are added automatically when omitted.'), toggle('Show human-readable text', true, (v) => { hrt = v; regen(); }))),
     card(null, r.preview, r.status, r.controls), r.actionsEl);
   regen();
 };

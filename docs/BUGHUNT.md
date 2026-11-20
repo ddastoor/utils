@@ -197,7 +197,7 @@ Areas with a shared review: the app shell (router, search, favorites, platform h
 | id | Tab | Platform | Area | R | B | T | Notes |
 |---|---|---|---|---|---|---|---|
 | `qr` | QR Generator | PC + mobile | security-codes | ✓ | 7 | 41 | zxing-wasm 3.1.7 kept (latest); qrdata.ts: UPI amounts as typed (commas were dropped), NPCI form, RFC 5545 escaping, SMS digits, Wi-Fi/colour checks, newest text wins; zbar read-back |
-| `barcode` | Barcode Generator | PC + mobile | security-codes |  |  |  |  |
+| `barcode` | Barcode Generator | PC + mobile | security-codes | ✓ | 5 | 44 | zxing-wasm kept; barcodes.ts: zero padding / capitals / ITF said, check digit worded + shown, zint errors in words, typed value kept across formats; zbar + libdmtx read-back |
 | `scan` | QR & Barcode Scanner | PC + mobile | security-codes |  |  |  |  |
 | `zip` | Create Zip | PC + mobile | security-codes |  |  |  |  |
 | `unzip` | Extract Archive | PC + mobile | security-codes |  |  |  |  |
@@ -1404,3 +1404,17 @@ Reference for the five finance tabs: **mpmath at 60 digits** (`scripts/make-fina
   "What the code holds" shows the exact text; the newest text wins when zxing answers out of order; the PNG is saved
   as qr-code.png; a UPI ID that does not look like one, a long UPI note and an incomplete e-mail address are pointed
   out.
+
+- **`barcode` (tab 107, 5 bugs; engine kept: zxing-wasm 3.1.7 — docs/WASM-AUDIT.md, 106; unit
+  `tests/unit/barcodes.test.mjs` 26 — new, check digits held to python-stdnum; e2e 50 — was 32; read back by zbar and
+  libdmtx too).**
+  1. **A short EAN / UPC number became another number without a word**: zint pads it with zeros in front ("12345" is
+     drawn as EAN-13 0000000123457). The tab says so and shows the number with its check digit.
+  2. Code 39 in small letters was upper-cased without a word (a scanner reads ABC-123, not abc-123).
+  3. An odd number of digits in ITF got a zero in front without a word; ITF codes under 6 digits, which many scanners
+     skip, are pointed out too.
+  4. zint's errors were shown as they come ("Error 275: Invalid check digit '1', expecting '0' (retval: 7)", "Error 358:
+     Does not begin with …", "Error 204: Invalid character in input (ISO/IEC 8859-1 only)"); each is said for its
+     format now, with what to do (the right check digit, Codabar's A – D, the 2-D codes for Hindi).
+  5. Changing the format replaced a typed value with the new format's sample; a typed value stays now (only an
+     untouched sample is replaced).
