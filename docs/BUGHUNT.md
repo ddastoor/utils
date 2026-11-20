@@ -131,7 +131,7 @@ Areas with a shared review: the app shell (router, search, favorites, platform h
 | `emoji` | Emoji & Symbols | PC + mobile | text | ✓ | 7 | 137 | search by keywords, ranked by textcore.wasm (was: letters inside the name); symbols by name; skin tones; emoji the font lacks left out; data held to unicode-emoji-json and Perl's names |
 | `morse` | Morse Code | PC + mobile | text | ✓ | 11 | 78 | characters and groups no longer vanish silently; lines and word gaps read; sound: Stop, typographic signs, line gaps; held to unixcw's libcw (table and timing) |
 | `lorem` | Lorem Ipsum | PC + mobile | text | ✓ | 9 | 121 | engine → lipsum crate (textkit-lorem.wasm) + our glue for 2 crate defects; up to 20,000 words (was 50); exact counts held to the Word Counter; text held to the crate's own texts |
-| `photodict` | Photo Dictionary | Mobile only | text |  |  |  |  |
+| `photodict` | Photo Dictionary | Mobile only | text | ✓ | 6 | 15 | rare.c: case table (Gdańsk was gdaŅsk), titles/initials end no sentence (names found), bounded writes; a 2nd photo while reading was dropped; Snap before the first frame |
 
 ## software
 | id | Tab | Platform | Area | R | B | T | Notes |
@@ -1234,3 +1234,23 @@ Reference for the five finance tabs: **mpmath at 60 digits** (`scripts/make-fina
   marks, dashes and footnote stars in 400 texts of 400 words. Each text is learned as a circle now, and cleaned
   first (also of Roman initials: "L. Torquato" ended a sentence in the middle of a name); Cicero's sentences of up
   to 103 words are cut at a comma after 24 words.
+
+- **`photodict` (tab 99, 6 bugs; ranking engine textcore.wasm `rare.c` fixed; unit `tests/unit/rare.test.mjs` 65 —
+  was 56; e2e 49 — was 43).**
+  1. **Letters beyond ASCII were lowered wrongly** (a hand-written rule for Latin Extended-A that flips half-way, and
+     none for Latin Extended-B — 131 letters): "Gdańsk" came out as "gdaŅsk", "Wrocław" as "wrocŃaw", "Łódź" as
+     "ŁódŻ" — wrong words looked up, wrong names listed. Now a table generated from Python's `str.lower()` and held
+     to the JavaScript engine's `toLowerCase` for all 398 letters.
+  2. … and a name beginning with Ł was not taken for a capitalised word, so it was never recognised as a name.
+  3. **"Mr. Darcy", "J. R. R. Tolkien": the full stop of a title or an initial ended the sentence**, so the name
+     after it never stood in mid-sentence and was looked up as a word (online, too) instead of being listed under
+     "Names skipped".
+  4. "Prof.", "Capt." and other titles with their full stop were offered as hard words.
+  5. **A second photo chosen while the first was being read was dropped without a word**; the first page's words
+     stayed on screen. Now the newer photo is shown at once ("it is read as soon as the one before is done"), the
+     older result is not shown, and the newer one is read.
+  6. "Snap" pressed before the camera's first frame did nothing; it waits for the frame now.
+  Also (no visible symptom found): apostrophes and hyphens inside a word were appended without a length check, so
+  a token like a'a'a'… of 800 characters wrote past the tokeniser's 256-byte buffer; bounded now, with a test.
+  Checked and kept: the Wiktionary REST definition endpoint the online fallback uses is still served (experimental,
+  English only — what the tab asks for).

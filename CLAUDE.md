@@ -1312,7 +1312,8 @@ clipboard; optional pre-clean (imgproc doc enhance, grey); low-confidence words 
 
 ### Photo Dictionary (`photodict`, Text, **Mobile only** — owner request, owner chose the name) — BUILT
 (`src/tools/photodict.ts`, engine `src/lib/dictionary.ts`, ranking `wasm/textcore/rare.c`; e2e `tests/e2e/photodict.e2e.mjs`
-43 checks on a photographed-page fixture; unit `tests/unit/rare.test.mjs` 56 checks.) **As built:**
+49 checks on a photographed-page fixture; unit `tests/unit/rare.test.mjs` 65 checks.) **As built** (bug hunt of Nov 2026:
+`docs/BUGHUNT.md`, tab 99)**:**
 - Data (`public/data/dict/`, **committed**, 38 MB raw / 11 MB gzip, rebuilt by hand with `node scripts/build-dict.mjs`):
   `freq.txt` = wordfreq 3.1.1 `large_en` (311,698 words, Zipf×10 buckets; wheel SHA-256 pinned from PyPI);
   `<xx>.json` / `<xxx>.json` = English Wiktionary entries from kaikki.org (streamed, ~3.4 GB JSONL; SHA-256 + date of the
@@ -1325,12 +1326,16 @@ clipboard; optional pre-clean (imgproc doc enhance, grey); low-confidence words 
 - Ranking (C): tokens (Latin letters, ’ apostrophes, hyphens; possessives stripped; a line-break hyphen is joined when
   a half is not a word or the joined word is at least as common, tolerating OCR noise at the margin), lemmas for
   unknown regular inflections (−s/−es/−ies/−ed/−ing/−er/−est/−ly, doubled consonants, one level of recursion), stop
-  words and tokens < 3 letters or mixed with digits dropped, names = always capitalised + capitalised mid-sentence.
+  words and tokens < 3 letters or mixed with digits dropped, names = always capitalised + capitalised mid-sentence
+  (the full stop of a title — Mr., Dr., Prof., St. … — or of an initial — J. — ends no sentence, and a title with its
+  full stop is no candidate). Letters U+00C0 – U+024F are lowered by a table generated from Python's `str.lower()`.
   Candidates with Zipf < 4.5, rarest first (unknown to wordfreq = rarest), then count, then first appearance.
 - Lookup (TS): bundled entry → if it is only an inflection, its lemma's card with the note ("plural of goose"); an
   inflection of a common word ("rode" → ride) is skipped as common; capitalised names not in the bundle are skipped
   ("Names skipped" list); others go online (≤ 25 per photo, rarest first, 5 s timeout, session cache).
-- UI: "Use camera" (back camera viewfinder + Snap; sticky bottom bar on phones) or "Choose a photo"; "Photo of a
+- UI: "Use camera" (back camera viewfinder + Snap, which waits for the first frame; sticky bottom bar on phones) or
+  "Choose a photo" (a photo chosen while another is being read is shown at once and read next; the older result is
+  not shown); "Photo of a
   screen" adds a moiré blur; document clean-up always; cards in **Literata** (OFL, self-hosted) with rarity, part of
   speech · IPA, senses + examples, "More meanings"; Not found / Names skipped lists; recognised text with every word
   tappable (lookup card, works for common words too); "Share list" (Web Share, else copy); attribution line.

@@ -752,3 +752,19 @@ One entry per tab, written before its bug hunt: our module → candidates → ch
   texts, 22,000 words); every word is a word of the texts; sentences begin with a capital and end with . ? or !; the
   counts equal what the Word Counter's engine counts (28 sizes, with and without the classic opening); paragraph
   lengths 4 – 8 equally often (χ²).
+
+### 99. `photodict` — Photo Dictionary (20 Nov 2026)
+- **Engines:** OCR — **tesseract.js-core** (an established WebAssembly build, rule 1: stays); page clean-up —
+  imgproc.wasm (ours); **the ranking — textcore.wasm `rare.c` (our C)**: tokeniser for OCR text, line-break hyphens,
+  possessives, a lemmatiser for regular inflections, the wordfreq table in a hash table, the name heuristic; the
+  dictionary — data (Wiktionary via kaikki.org, wordfreq), fetched in shards.
+- **Candidates for the ranking:** no WebAssembly module does this job. Parts exist elsewhere: wordfreq is Python
+  (a Rust port, `wordfreq` by kampersanda, reads the same data but neither tokenises OCR text nor lemmatises);
+  lemmatisers are Python or JavaScript (spaCy, wink-lemmatizer); stemmers (Snowball / `rust-stemmers`) cut words
+  to stems that are not dictionary words ("perspicaci"), which a dictionary cannot look up.
+- **Decision:** our module stays — **with three faults fixed** that the bug hunt found in it: the case mapping of
+  U+00C0 – U+024F (now a table generated from Python's `str.lower()`), the full stop of titles and initials
+  ("Mr.", "J.") taken for a sentence end, and two unbounded writes in the tokeniser. 34 → 35 KB.
+- **Evidence:** all 398 letters lowered as the JavaScript engine lowers them (ICU — a separate implementation);
+  the old module's output for "Gdańsk, Wrocław, Łódź" and "Mr. Darcy" recorded beside the new in the bug list;
+  the photographed-page suite unchanged in its results (20 words, all 15 rare words of the page).

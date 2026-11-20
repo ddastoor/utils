@@ -160,6 +160,32 @@ export default async ({ base, page: newPage, ok, info, devices }) => {
   ok(await p4.locator('.pd-cam').isHidden(), 'camera closed after the snap');
   ok(/No text found|No hard words|hardest word/.test(await p4.locator(STATUS).textContent()), `snap was read: "${await p4.locator(STATUS).textContent()}"`);
 
+  // a second photo chosen while the first is being read: the newer one is read, the older result is not shown
+  // (the second photo was dropped without a word, and the first page's words stayed on screen)
+  { const p5 = await newPage(phone); await mockApis(p5, []);
+    await p5.goto(base + '#/photodict'); const file = p5.locator('input[type=file]').first();
+    await file.setInputFiles(F('astronaut.png')); await p5.waitForTimeout(300);
+    await file.setInputFiles(F('book-page.jpg'));
+    ok(await p5.waitForFunction((sel) => document.querySelector(sel)?.textContent === 'A new photo — it is read as soon as the one before is done.', STATUS, { timeout: 10000 }).then(() => true, () => false), 'a photo chosen while another is read: the tab says it comes next');
+    await p5.waitForFunction((sel) => /hardest word/.test(document.querySelector(sel)?.textContent || ''), STATUS, { timeout: 180000 });
+    const w5 = await cardWords(p5);
+    ok(w5.length === 20 && RARE.every((w) => w5.includes(w)), `… and the newer photo (the book page) is the one read: ${w5.length} words`);
+    const thumb = await p5.locator('.pd-thumb').evaluate((c) => c.width / c.height);
+    ok(Math.abs(thumb - 480 / 347) < 0.02, `the thumbnail is the newer photo (${thumb.toFixed(2)})`);
+    // and the other way round: the page first, then a photo without text — the page's words do not stay
+    await file.setInputFiles(F('book-page.jpg')); await p5.waitForTimeout(300);
+    await file.setInputFiles(F('astronaut.png'));
+    await p5.waitForFunction((sel) => /No text found|No hard words|hardest word/.test(document.querySelector(sel)?.textContent || '') && !/new photo/.test(document.querySelector(sel).textContent), STATUS, { timeout: 180000 });
+    const after = await cardWords(p5);
+    ok(!after.some((w) => RARE.includes(w)), `the page read first does not show its words over the newer photo (${await p5.locator(STATUS).textContent()})`);
+    ok(real(p5.errors).length === 0, `no page errors ${real(p5.errors).join(' | ')}`); }
+  // Snap pressed before the camera's first frame: it waits for it (it did nothing)
+  { const p6 = await newPage(phone); await mockApis(p6, []);
+    await p6.goto(base + '#/photodict'); await p6.getByRole('button', { name: 'Use camera' }).click();
+    await p6.getByRole('button', { name: 'Snap' }).click();
+    await waitDone(p6);
+    ok(await p6.locator('.pd-cam').isHidden() && /No text found|No hard words|hardest word/.test(await p6.locator(STATUS).textContent()), 'Snap at once: the picture is taken when the first frame arrives'); }
+
   // desktop: the tool is for phones
   const desk = await newPage({ viewport: { width: 1366, height: 900 } });
   await desk.goto(base + '#/photodict');

@@ -42,7 +42,9 @@ export function wordCard(c: WordCard, open = false): HTMLElement {
 }
 
 export const mount: Mount = (root, ctx) => {
-  let online = true, screen = false, last: Result | null = null, busy = false;
+  let online = true, screen = false, last: Result | null = null, busy = false, gone = false;
+  /** a photo chosen while another is being read: it is read next, and the older result is not shown */
+  let pending: Img | null = null;
   const thumb = h('canvas', { class: 'pd-thumb', 'aria-label': 'Your photo' });
   const prog = progress();
   const status = h('div', { class: 'muted small', 'aria-live': 'polite' });
@@ -53,8 +55,14 @@ export const mount: Mount = (root, ctx) => {
   const results = h('div', { class: 'stack', hidden: true });
 
   // ---------------------------------------------------------------- pipeline
-  const run = async (img: Img) => {
-    if (busy) return; busy = true;
+  const run = async (img: Img): Promise<void> => {
+    if (busy) { // the engine is busy with the photo before: this one is read as soon as it is free
+      pending = img; paint(previewOf(img, 480), thumb); cards.replaceChildren(); extra.replaceChildren(); textBox.replaceChildren(); shareBtn.hidden = true; last = null;
+      status.textContent = 'A new photo — it is read as soon as the one before is done.';
+      return;
+    }
+    busy = true;
+    const stale = () => gone || pending !== null; // a newer photo is waiting, or the tab was left
     results.hidden = false; shareBtn.hidden = true; cards.replaceChildren(); looked.replaceChildren(); extra.replaceChildren(); textBox.replaceChildren(); last = null;
     paint(previewOf(img, 480), thumb);
     try {
@@ -65,11 +73,13 @@ export const mount: Mount = (root, ctx) => {
       work = await imgproc('docEnhance', work, 1);
       ranker().catch(() => {}); loadFonts(); // word list + reading font load while OCR runs
       const r = await recognize(new ImageData(new Uint8ClampedArray(work.data), work.width, work.height), 'eng', (p, s) => prog.set(s.includes('recogn') ? p : null, s.includes('recogn') ? `Reading the page… ${Math.round(p * 100)} %` : 'Loading the text engine…'));
+      if (stale()) return;
       if (!r.text.trim()) { prog.done(); status.textContent = 'No text found. Hold the phone straight over the page, in good light, and try again.'; return; }
       showText(r.text);
       prog.set(null, 'Finding the hardest words…');
-      const res = last = await hardWords(r.text, { max: 20, online, onProgress: (d, n) => prog.set(n ? d / n : null, 'Looking up words…') });
-      prog.done();
+      const res = await hardWords(r.text, { max: 20, online, onProgress: (d, n) => { if (!stale()) prog.set(n ? d / n : null, 'Looking up words…'); } });
+      if (stale()) return;
+      last = res; prog.done();
       cards.replaceChildren(...res.cards.map((c) => wordCard(c)));
       shareBtn.hidden = !res.cards.length;
       status.textContent = res.cards.length
@@ -78,8 +88,11 @@ export const mount: Mount = (root, ctx) => {
       if (res.online.failed) extra.append(note('Some words could not be looked up online (no connection?). Results from the dictionary on this phone are shown.', 'warn'));
       if (res.notFound.length) extra.append(h('details', { class: 'pd-more' }, h('summary', null, `Not found (${res.notFound.length})`), h('p', { class: 'small' }, res.notFound.join(', '), h('br'), h('span', { class: 'muted' }, 'Usually misread letters or very rare names. Tap a word in the text below to try it.'))));
       if (res.names.length) extra.append(h('details', { class: 'pd-more' }, h('summary', null, `Names skipped (${res.names.length})`), h('p', { class: 'small' }, res.names.join(', '))));
-    } catch (e) { prog.done(); status.textContent = `Something went wrong: ${errMsg(e)}`; }
-    finally { busy = false; }
+    } catch (e) { if (!stale()) { prog.done(); status.textContent = `Something went wrong: ${errMsg(e)}`; } }
+    finally {
+      busy = false;
+      if (pending && !gone) { const next = pending; pending = null; return run(next); }
+    }
   };
 
   // recognised text: every word can be tapped to look it up
@@ -110,7 +123,9 @@ export const mount: Mount = (root, ctx) => {
     video.srcObject = stream; camBox.hidden = false; camCtl.hidden = false; startBtn.hidden = true;
   };
   const snap = async () => {
-    if (!video.videoWidth) return;
+    // the first frame may not have arrived yet: wait for it (up to 5 s) instead of doing nothing
+    if (!video.videoWidth) await new Promise<void>((res) => { const t = setTimeout(res, 5000); video.addEventListener('loadeddata', () => { clearTimeout(t); res(); }, { once: true }); });
+    if (!video.videoWidth) { toast('The camera sends no picture — try again, or use “Choose a photo”.', 'err'); return; }
     const c = document.createElement('canvas'); c.width = video.videoWidth; c.height = video.videoHeight;
     const g = c.getContext('2d', { willReadFrequently: true })!; g.drawImage(video, 0, 0);
     const d = g.getImageData(0, 0, c.width, c.height);
@@ -141,5 +156,5 @@ export const mount: Mount = (root, ctx) => {
       toggle('Look up missing words online (sends only that word)', true, (v) => (online = v)))),
     results,
     h('div', { class: 'actions' }, startBtn, shareBtn)); // sticky bottom bar on phones: the main action
-  return () => { stopCam(); input$.dispose(); };
+  return () => { gone = true; pending = null; stopCam(); input$.dispose(); };
 };

@@ -80,4 +80,27 @@ export default async (t, { load, wasm }) => {
   t.ok(rare(huge).some((r) => r.w === 'sesquipedalian' && r.n === 20000), 'long text (40k tokens) handled');
   let crashed = false; try { for (let i = 0; i < 200; i++) rare(String.fromCharCode(...Array.from({ length: 300 }, (_, k) => (k * 7919 + i * 104729) % 0xffff))); } catch { crashed = true; }
   t.ok(!crashed, 'random UTF-16 garbage never traps');
+
+  // ---- Nov 2026 bug hunt: letters beyond ASCII, titles and initials, overlong tokens
+  { // every letter of U+00C0–U+024F lowered as the JavaScript engine lowers it (V8 / ICU: another implementation)
+    const bad = [];
+    for (let c = 0xc0; c < 0x250; c++) {
+      if (c === 0xd7 || c === 0xf7) continue;
+      const ch = String.fromCodePoint(c), tok = `qq${ch}qq`, want = c === 0x130 ? 'qqiqq' : tok.toLowerCase();
+      const got = rare(`${tok}.`, 999).map((r) => r.w);
+      if (got.join() !== want) bad.push(`${ch}: ${got.join()} / ${want}`);
+    }
+    t.eq(bad, [], 'all 398 letters of Latin-1, Latin Extended-A and B are lowered as Unicode says (ł was lowered to ń, ń to ņ, ź to ż; Latin Extended-B not at all)');
+  }
+  t.eq(words('Gdańsk, Wrocław, Łódź and Dvořák.', 999).sort(), ['dvořák', 'gdańsk', 'wrocław', 'łódź'], 'Polish and Czech names keep their letters (they came out as "gdaŅsk", "wrocŃaw", "ŁódŻ")');
+  { const r = rare('Last week Łódź was cold. We liked Łódź.', 999).find((x) => x.w === 'łódź'); t.eq(r?.c, 1, 'a name that begins with Ł is a name (Ł was not taken for a capital)'); }
+  { const darcy = rare('Yesterday Mr. Darcy left. Mr. Darcy returned.', 999).find((x) => x.w === 'darcy');
+    t.eq(darcy?.c, 1, '"Mr. Darcy": the full stop of a title ends no sentence, so Darcy stands in mid-sentence — a name (it was looked up as a word)'); }
+  { const r = rare('The novels of J. R. R. Tolkien sold well. Tolkien wrote more.', 999).find((x) => x.w === 'tolkien');
+    t.eq(r?.c, 1, '"J. R. R. Tolkien": initials end no sentence either'); }
+  { const r = rare('Then I. Hope came.', 999).find((x) => x.w === 'hope'); t.eq(r?.c ?? 0, 0, '"I." is no initial: what follows starts a sentence'); }
+  t.eq(words('Dr. Quixotic. Prof. Perspicacious and Capt. Serendipity.', 999).sort(), ['perspicacious', 'quixotic', 'serendipity'], 'a title with its full stop is never a candidate ("prof" was offered as a hard word)');
+  t.ok(words('The prof said the capt was here.', 999).includes('prof'), '… the same word without a full stop is an ordinary word');
+  { const long = 'word ' + 'a' + "'a".repeat(400) + ' perspicacious ' + 'b' + '-b'.repeat(400) + ' quixotic';
+    t.eq(words(long, 999).sort(), ['perspicacious', 'quixotic', 'word'], 'a token of 800 apostrophes or hyphens between letters is too long for a word and is dropped — written within its 256-byte buffer (the apostrophes and hyphens were written past it)'); }
 };
