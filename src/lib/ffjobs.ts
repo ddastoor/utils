@@ -386,11 +386,12 @@ export function buildJob(job: Job, o: Record<string, any>, c: JobCtx): Built {
       let vf: string;
       if (c.in2) {
         if (!SUB_EXT.test(c.ext2 || '')) throw new Error('The subtitle file must be .srt, .vtt, .ass or .ssa.');
-        vf = `subtitles=filename=/in/${c.in2}:fontsdir=/fonts${/^(srt|vtt)$/.test(c.ext2!) ? ":force_style='FontName=Noto Sans,FontSize=20,Outline=2'" : ''}`;
+        // this FFmpeg has no system fonts: subtitles that name another font (Arial, an .ass file's own) would draw nothing
+        vf = `subtitles=filename=/in/${c.in2}:fontsdir=/fonts:force_style='${/^(srt|vtt)$/.test(c.ext2!) ? 'FontName=Noto Sans,FontSize=20,Outline=2' : 'FontName=Noto Sans'}'`;
       } else {
         if (!p.subs) throw new Error('Choose a subtitle file (.srt, .vtt, .ass) — this video has no subtitle track of its own.');
         if (BITMAP_SUBS.test(p.scodec)) throw new Error('This video\'s subtitles are pictures (DVD / Blu-ray), which this build cannot burn in — choose a subtitle file.');
-        vf = `subtitles=filename=/in/${c.in1}:si=0:fontsdir=/fonts`;
+        vf = `subtitles=filename=/in/${c.in1}:si=0:fontsdir=/fonts:force_style='${/^(ass|ssa)$/.test(p.scodec) ? 'FontName=Noto Sans' : 'FontName=Noto Sans,FontSize=20,Outline=2'}'`;
       }
       return { args: [...I, '-vf', vf, ...X264(20), ...ACOPY(p), 'out.mp4'], outputs: ['out.mp4'], fonts: true };
     }

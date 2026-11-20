@@ -289,9 +289,14 @@ export default async ({ base, page: newPage, ok, info, download }) => {
   await task('Remove silence');
   let sl = await audioOf(await run());
   ok(Math.abs(sl.duration - 3.7) < 0.2, `remove silence at the start and end of 1 + 1 + 1.5 + 1 + 1 s: ${sl.duration.toFixed(2)} s`);
+  // FFmpeg 5.1 (this core): a pause longer than the setting is cut to 0.25 s; the last pause of exactly 1 s is not
+  // longer than 1 s and stays
   await page.getByRole('radio', { name: 'Every pause' }).click();
   sl = await audioOf(await run());
-  ok(sl.duration > 2.2 && sl.duration < 2.9, `remove every pause over 1 s: ${sl.duration.toFixed(2)} s (the two tones, short gaps)`);
+  ok(Math.abs(sl.duration - 3.47) < 0.15, `remove every pause over 1 s: ${sl.duration.toFixed(2)} s (the 1.5 s pause cut short, the closing 1 s one kept)`);
+  await combo('Pauses longer than').selectOption('0.5');
+  sl = await audioOf(await run());
+  ok(Math.abs(sl.duration - 2.85) < 0.2, `remove every pause over 0.5 s: ${sl.duration.toFixed(2)} s (both pauses cut short)`);
   await task('Fade in / fade out');
   const fw = await run();
   ok(/\.wav$/.test(fw) && readWav(readFileSync(fw)).data[0].length > 0, 'fade on a WAV: still a WAV');

@@ -197,6 +197,7 @@ export const mount: Mount = (root) => {
     if (!main || running) return;
     running = true; runBtn.hidden = true; stopBtn.hidden = false; outCard.hidden = true; status.textContent = ''; status.classList.remove('err-text');
     const t0 = performance.now();
+    let ran = false;
     try {
       await probing;
       const b = build(); // refusals before FFmpeg starts
@@ -207,6 +208,7 @@ export const mount: Mount = (root) => {
       logLines = [];
       onProg = (p) => prog.set(p, `Working… ${Math.round(p * 100)} %`);
       prog.set(null, 'Working…');
+      ran = true;
       const code = await f.exec(['-hide_banner', '-y', ...real]);
       let names = b.outputs;
       if (b.pattern) names = (await f.listDir('/')).map((n: any) => n.name).filter((n: string) => b.pattern!.test(n)).sort();
@@ -223,10 +225,10 @@ export const mount: Mount = (root) => {
       if (!files.length) throw new Error('No output file was produced.');
       status.textContent = '';
       showOutputs(files, performance.now() - t0, b.zip);
-    } catch (e) { fresh(); status.textContent = errMsg(e); status.classList.add('err-text'); toast(errMsg(e), 'err'); logBox.textContent = logLines.slice(-60).join('\n'); (logBox.parentElement as HTMLDetailsElement).open = true; }
+    } catch (e) { if (ran) fresh(); status.textContent = errMsg(e); status.classList.add('err-text'); toast(errMsg(e), 'err'); logBox.textContent = logLines.slice(-60).join('\n'); (logBox.parentElement as HTMLDetailsElement).open = true; }
     finally { running = false; prog.done(); runBtn.hidden = false; stopBtn.hidden = true; }
   }
-  /** A new FFmpeg after a failed job (cheap insurance: ffmpeg.wasm runs every exec in one module instance). The page
+  /** A new FFmpeg after a job FFmpeg ran and failed — not after a refusal, which never reached it (cheap insurance: ffmpeg.wasm runs every exec in one module instance). The page
    *  crashes and the later "function signature mismatch" of Nov 2026 were the core's JPEG encoder overflowing a buffer
    *  at -q:v 2 (memory damaged for the jobs after it) — JPEG now comes from MozJPEG (`jpeg` in src/lib/ffjobs.ts). */
   function fresh() { try { ff?.terminate(); } catch { /* gone */ } ff = null; loading = null; fontsIn = false; }
