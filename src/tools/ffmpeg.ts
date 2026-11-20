@@ -16,7 +16,7 @@ export const mount: Mount = (root) => {
   // a job ended by Stop, by a new file or by leaving the tab says so (it showed "called FFmpeg.terminate()" in red);
   // probes of a second file or of clips wait for a running job (they reset its log and shared its FFmpeg)
   let stopNote = '', live = true, runDone: Promise<void> = Promise.resolve();
-  let jobSeq = 0, execing = false; // the job being run (Stop and a new file end it); FFmpeg inside a command
+  let jobSeq = 0, execing = false, endedAt = -1e9; // endedAt: when an FFmpeg was last ended (terminate) // the job being run (Stop and a new file end it); FFmpeg inside a command
   let main: File | null = null, second: File | null = null, logLines: string[] = [], streams = '';
   let p1: Probe = EMPTY_PROBE, p2: Probe | undefined, probing: Promise<void> = Promise.resolve(), fontsIn = false, loadedOnce = false;
   /** the clips of "Join clips": the chosen file first; each added clip gets the name in3, in4 … inside FFmpeg */
@@ -149,6 +149,10 @@ export const mount: Mount = (root) => {
       // when that job was ended inside a command, and the loader wrote over the note, then cleared it
       if (!status.textContent || /^(Starting|Loading) FFmpeg/.test(status.textContent)) status.textContent = saying;
       const { FFmpeg } = await import('@ffmpeg/ffmpeg');
+      // an FFmpeg ended a moment ago (Stop inside a command, a failed job) is still being torn down: Chromium's renderer
+      // crashed (signal 11 in compiled code) when a new one was started at once after a long session — so give it 2 s
+      const settle = endedAt + 2000 - performance.now();
+      if (settle > 0) await new Promise((r) => setTimeout(r, settle));
       const f = new FFmpeg(), at = (p: string) => new URL(p, document.baseURI).href;
       f.on('log', ({ message }: any) => { logLines.push(message); if (logLines.length > 400) logLines.splice(0, 100); });
       f.on('progress', ({ progress: p }: any) => onProg?.(Math.max(0, Math.min(1, p))));
@@ -260,12 +264,12 @@ export const mount: Mount = (root) => {
     stopNote = why; jobSeq++; // the job ends at its next step
     if (!execing) return; // FFmpeg is loading or the files are being mounted: the instance stays for what comes next
     try { ff?.terminate(); } catch { /* gone */ }
-    ff = null; loading = null; fontsIn = false;
+    ff = null; loading = null; fontsIn = false; endedAt = performance.now();
   }
   /** A new FFmpeg after a job FFmpeg ran and failed — not after a refusal, which never reached it (cheap insurance: ffmpeg.wasm runs every exec in one module instance). The page
    *  crashes and the later "function signature mismatch" of Nov 2026 were the core's JPEG encoder overflowing a buffer
    *  at -q:v 2 (memory damaged for the jobs after it) — JPEG now comes from MozJPEG (`jpeg` in src/lib/ffjobs.ts). */
-  function fresh() { try { ff?.terminate(); } catch { /* gone */ } ff = null; loading = null; fontsIn = false; }
+  function fresh() { try { ff?.terminate(); } catch { /* gone */ } ff = null; loading = null; fontsIn = false; endedAt = performance.now(); }
   const mimeOf = (n: string) => ({ mp4: 'video/mp4', mov: 'video/quicktime', webm: 'video/webm', mkv: 'video/x-matroska', gif: 'image/gif', mp3: 'audio/mpeg', m4a: 'audio/mp4', wav: 'audio/wav', flac: 'audio/flac', ogg: 'audio/ogg', png: 'image/png', jpg: 'image/jpeg', mka: 'audio/x-matroska', srt: 'application/x-subrip', vtt: 'text/vtt', ass: 'text/x-ssa' } as Record<string, string>)[extOf(n)] || 'application/octet-stream';
   let urls: string[] = [];
   async function showOutputs(files: Array<{ name: string; blob: Blob }>, ms: number, zip = 'files', m: File = main!) {
