@@ -19,6 +19,20 @@ that affects it.
 > `docs/IDEAS.md`). **Owner, 16 Nov 2026: finish ALL the original apps (every stub tab) before asking** — then ask
 > which to build. Build none of them until the owner picks.
 
+> ## 📏 Size check before every new app (owner, 20 Nov 2026; standing)
+> **Owner:** "Whenever next new app I suggest from potentials.md, you do a rough calculation, tell me how much more
+> space it will occupy, and potentially if you can get rid of an existing app to make space, and then I'll make a
+> decision."
+> When the owner names an app from `docs/potentials.md` (or `docs/IDEAS.md`), **before building anything**:
+> 1. Estimate what it adds to the deployed site (`dist/`): engines, models, data, fonts, in MB (look up the real
+>    file sizes of the release or package, not a guess from memory).
+> 2. Give the new total against GitHub Pages' **1 GB cap for a published site** (20 Nov 2026: **732 MB** — `du -sh
+>    dist` after `npm run build`), and for a large model the 100 GB / month soft bandwidth limit.
+> 3. Name what could be removed to make room, when room is short — an app, or a big model of one (the biggest today:
+>    Speech to Text's Whisper models 238 MB — "Accurate" 190 MB + "Fast" 57 MB; Text-to-Speech's voices 167 MB —
+>    Kokoro 94 MB + Piper 73 MB; Code Formatter's Biome 67 MB; FFmpeg 31 MB; Tesseract 27 MB; ExifTool 24 MB).
+> 4. **Wait for the owner's decision.** Build nothing until the owner has decided.
+
 > ## ⚠️ STANDING RULE #1 — WebAssembly first (owner; permanent; applies to every line of new code)
 > The owner has had to repeat this several times. **Check this rule before choosing ANY engine, library or
 > algorithm for ANY tool — new or existing — without waiting to be reminded.**
@@ -2647,10 +2661,16 @@ Playwright is the pre-installed global one (no `playwright install`); CI runs bu
 **Compute rule (owner):** algorithms and loops run in WebAssembly (own C where practical); TypeScript only builds
 UI, formats output and does trivial glue arithmetic (unit factors, a single multiplication, Date/Intl handling).
 
-**Deploy:** `.github/workflows/pages.yml` builds and publishes on push to `main` or the working branch.
-One-time setup by the owner: GitHub → repo **Settings → Pages → Source: GitHub Actions**. If the
-deployment is refused for a branch, allow it under **Settings → Environments → github-pages →
-Deployment branches**.
+**Deploy:** `.github/workflows/pages.yml` builds and runs the unit suites on every push to `main` or the working
+branch, and **publishes only from the repository's default branch** — the `github-pages` environment that Pages
+creates lets only that branch deploy. **Live since 20 Nov 2026 at https://ddastoor.github.io/utils/**: the owner
+switched Pages on (Settings → Pages → Source: GitHub Actions); the default branch is `claude/exciting-bohr-b9yfwc`, so
+every push there that passes the unit suites goes live within about four minutes; `main` holds the same commits
+(fast-forwarded at the owner's word). GitHub's runner is Ubuntu 26.04 (`ubuntu-latest`): its coreutils are uutils
+(Rust), not GNU — a unit check that runs a system tool must work with both. To publish from `main` instead, the owner
+makes `main` the default branch (Settings → General) and allows it under Settings → Environments → github-pages →
+Deployment branches. GitHub Pages limits: a published site ≤ 1 GB (732 MB on 20 Nov 2026), 100 GB / month soft
+bandwidth, 10 minutes per deployment.
 
 ## 8. Adding a new tool (checklist)
 0. **Apply STANDING RULE #1 first** (top of this file): for every engine/library/algorithm the tool needs, pick

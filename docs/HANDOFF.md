@@ -53,6 +53,14 @@ this file = the owner's latest wishes, how the tests are written, and the traps 
   `docs/potentials.md` #4 (Document Converter), still waiting for the owner to pick it. When it is built, every popular
   Pandoc use gets a button, as in the FFmpeg tab (search the web for them first). The owner believed this had been
   asked earlier; no earlier record of it was found in the repository or this session's chat, so it is recorded now.
+- **20 Nov 2026 — size check before every new app (standing rule, CLAUDE.md top):** "Whenever next new app I suggest
+  from potentials.md, you do a rough calculation, tell me how much more space it will occupy, and potentially if you
+  can get rid of an existing app to make space, and then I'll make a decision." The site is 732 MB of GitHub Pages'
+  1 GB; the speech tabs are 55 % of it (Speech to Text 238 MB, Text-to-Speech 167 MB).
+- **20 Nov 2026 — live:** the owner asked to merge into `main` and make the site live; Pages was switched on by the
+  owner (Source: GitHub Actions). The repository's **default branch is `claude/exciting-bohr-b9yfwc`**, and Pages'
+  environment lets only the default branch publish — so the site is published from that branch; `main` holds the
+  same commits.
 
 ## 2. Status at hand-off (commit 5f87b87)
 Own e2e suites now exist for **Calculators 27/27, Math & Science 7/7, Text 9/9, the 8 developer tabs (json, regex,

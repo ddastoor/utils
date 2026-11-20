@@ -11,7 +11,12 @@ not just GitHub, in general … maintaining the rules and constraints" (round 3)
 - when the current per-tab test work is finished, before starting the Software tabs;
 - at the start of any new session that resumes from `docs/RESUME.md`.
 
-When the owner picks a tab:
+**Size check first (owner, 20 Nov 2026 — standing rule, CLAUDE.md top):** when the owner names a tab from this list,
+first estimate how many MB it adds to the deployed site, give the new total against GitHub Pages' 1 GB cap (732 MB on
+20 Nov 2026), say what existing app or model could be removed to make room if needed — and **wait for the owner's
+decision** before building anything.
+
+When the owner picks a tab (after the size check):
 1. Mark it **accepted** here.
 2. Add it to the registry in the best-fitting category (CLAUDE.md §2 "New utilities").
 3. Build it by CLAUDE.md §8, WebAssembly first (STANDING RULE #1).
