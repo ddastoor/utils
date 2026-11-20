@@ -150,11 +150,15 @@ export const jsondiff: Mount = (root) => {
 // ================================================================== Markdown table
 /** How many columns a text takes in a fixed-width font: CJK, full-width forms and emoji are two wide, a character
  *  with its combining marks is one. */
+const WIDTHS = new Map<string, number>(); // a cell's width is worked out once: every keystroke lays out the whole table again
 export function textWidth(s: string): number {
   if (/^[\x20-\x7e]*$/.test(s)) return s.length;
+  const known = WIDTHS.get(s); if (known !== undefined) return known;
   const seg = typeof Intl !== 'undefined' && (Intl as any).Segmenter ? [...new (Intl as any).Segmenter().segment(s)].map((x: any) => x.segment as string) : [...s];
   let w = 0;
   for (const g of seg) w += /[ᄀ-ᅟ⺀-〾ぁ-㏿㐀-䶿一-鿿ꀀ-꓏가-힣豈-﫿︰-﹏＀-｠￠-￦]|\p{Extended_Pictographic}|[\u{1f1e6}-\u{1f1ff}]|[\u{20000}-\u{3fffd}]/u.test(g) ? 2 : 1;
+  if (WIDTHS.size > 100000) WIDTHS.clear();
+  WIDTHS.set(s, w);
   return w;
 }
 export function mdTable(rows: string[][], align: string[]): string {
@@ -181,7 +185,10 @@ const GRID_ROWS = 200;
 export const mdtable: Mount = (root) => {
   let rows: string[][] = [['Item', 'Qty', 'Price (₹)'], ['Chai', '2', '40'], ['Samosa', '3', '45'], ['Lassi', '1', '60']], align = ['left', 'right', 'right'];
   const grid = h('div', { class: 'scroll-x' }), gridNote = h('div'), out = outputBox({ rows: 8, mono: true, label: 'Markdown' }), paste = textarea({ rows: 4, mono: true, placeholder: 'Paste CSV, tab-separated cells (from Excel / Sheets) or a Markdown table' }), status = h('div');
-  const emit = () => { out.value = mdTable(rows, align); };
+  let timer = 0;
+  const emit = () => { clearTimeout(timer); out.value = mdTable(rows, align); };
+  /** after a keystroke in a cell: a big table (an imported sheet) is laid out again when the typing pauses */
+  const emitSoon = () => { clearTimeout(timer); if (out.value.length > 200000) timer = window.setTimeout(emit, 300); else emit(); };
   // a line break inside a cell is written <br> in the editor boxes too (a one-line box cannot hold a line break)
   const toBox = (c: string) => c.replace(/\r\n|\r|\n/g, '<br>'), fromBox = (v: string) => v.replace(/<br\s*\/?>/gi, '\n');
   const draw = () => {
@@ -189,7 +196,7 @@ export const mdtable: Mount = (root) => {
     rows = rows.map((r) => Array.from({ length: n }, (_, i) => r[i] ?? '')); while (align.length < n) align.push('none'); align = align.slice(0, n);
     clear(gridNote); if (rows.length > GRID_ROWS) gridNote.append(note(`The editor shows the first ${N(GRID_ROWS)} of ${N(rows.length)} rows; the Markdown below has all of them.`, 'info'));
     clear(grid).append(h('table', { class: 'tbl md-grid' }, h('thead', null, h('tr', null, ...align.map((a, i) => h('th', null, select([['none', '—'], ['left', 'Left'], ['center', 'Centre'], ['right', 'Right']], a as any, (v) => { align[i] = v; emit(); }, `Column ${i + 1} alignment`), button('', () => { if (n === 1) throw new Error('Keep at least one column'); rows.forEach((r) => r.splice(i, 1)); align.splice(i, 1); draw(); }, { small: true, icon: 'X', title: `Delete column ${i + 1}` }))), h('th', null))),
-      h('tbody', null, rows.slice(0, GRID_ROWS).map((r, ri) => h('tr', { class: ri === 0 ? 'hdr' : null }, ...r.map((c, ci) => h('td', null, h('input', { class: 'input md-cell', value: toBox(c), 'aria-label': `Row ${ri + 1} column ${ci + 1}`, oninput: (e: Event) => { r[ci] = fromBox((e.target as HTMLInputElement).value); emit(); } }))),
+      h('tbody', null, rows.slice(0, GRID_ROWS).map((r, ri) => h('tr', { class: ri === 0 ? 'hdr' : null }, ...r.map((c, ci) => h('td', null, h('input', { class: 'input md-cell', value: toBox(c), 'aria-label': `Row ${ri + 1} column ${ci + 1}`, oninput: (e: Event) => { r[ci] = fromBox((e.target as HTMLInputElement).value); emitSoon(); } }))),
         h('td', null, ri ? button('', () => { rows.splice(ri, 1); draw(); }, { small: true, icon: 'X', title: `Delete row ${ri + 1}` }) : null))))));
     emit();
   };
@@ -206,8 +213,9 @@ export const mdtable: Mount = (root) => {
     status.append(note(`Read ${plural(rows.length, 'row')} (${book.delimiter === '\t' ? 'tab' : book.delimiter === ',' ? 'comma' : `"${book.delimiter}"`}-separated)`, 'ok'));
   };
   root.append(card('Table', grid, gridNote, h('div', { class: 'row' }, button('Add row', () => { rows.push(rows[0].map(() => '')); draw(); }, { small: true, icon: 'Plus' }), button('Add column', () => { rows.forEach((r, i) => r.push(i ? '' : `Column ${r.length + 1}`)); draw(); }, { small: true, icon: 'Plus' }))),
-    card('Import', paste, button('Import', importText, { small: true, icon: 'Upload' }), status), card('Markdown', out, button('Download', () => downloadBlob(new Blob([`${out.value}\n`], { type: 'text/markdown' }), 'table.md'), { small: true, icon: 'Download' })));
+    card('Import', paste, button('Import', importText, { small: true, icon: 'Upload' }), status), card('Markdown', out, button('Download', () => { emit(); downloadBlob(new Blob([`${out.value}\n`], { type: 'text/markdown' }), 'table.md'); }, { small: true, icon: 'Download' })));
   draw();
+  return () => clearTimeout(timer);
 };
 
 // ================================================================== Mock data
@@ -267,7 +275,16 @@ export const mockdata: Mount = async (root) => {
   const na: Sodium = await sodium(), mc = await mathcore();
   const fields: MockField[] = [{ name: 'id', type: 'id', a: '1', b: '' }, { name: 'name', type: 'name', a: '', b: '' }, { name: 'email', type: 'email', a: '', b: '' }, { name: 'phone', type: 'phone', a: '', b: '' }, { name: 'city', type: 'city', a: '', b: '' }, { name: 'age', type: 'int', a: '18', b: '65' }, { name: 'joined', type: 'date', a: '2020-01-01', b: '2026-11-16' }, { name: 'plan', type: 'pick', a: 'free,pro,team', b: '' }];
   let fmt = 'json', count = 10;
-  const list = h('div', { class: 'stack' }), problems = h('div'), out = outputBox({ rows: 16, mono: true, label: 'Data' }), table_ = input({ value: 'customers', attrs: { class: 'input mono', spellcheck: 'false', 'aria-label': 'SQL table name' } });
+  // The box shows at most SHOW characters (100 KB pasted into the field names made 8 MB of JSON, whose 100 KB lines held
+  // the page for minutes); Copy and Download give all of it.
+  const SHOW = 1_000_000;
+  let full = '';
+  const list = h('div', { class: 'stack' }), problems = h('div'), cutNote = h('p', { class: 'muted small', hidden: true }), out = outputBox({ rows: 16, mono: true, label: 'Data', text: () => full }), table_ = input({ value: 'customers', attrs: { class: 'input mono', spellcheck: 'false', 'aria-label': 'SQL table name', maxlength: 128 } });
+  const setOut = (text: string) => {
+    full = text; out.value = text.length > SHOW ? `${text.slice(0, text.lastIndexOf('\n', SHOW) + 1 || SHOW)}…` : text;
+    cutNote.hidden = text.length <= SHOW;
+    cutNote.textContent = cutNote.hidden ? '' : `The box shows the first ${SHOW.toLocaleString('en-IN')} of ${text.length.toLocaleString('en-IN')} characters — Copy and Download give all of it.`;
+  };
   const R = (n: number) => na.uniform(n), pickA = <X>(a: readonly X[]) => a[R(a.length)];
   /** A whole number 0 ≤ x < span for spans up to 2^53 (libsodium's uniform covers 32 bits: two draws, no modulo bias). */
   const below = (span: number): number => {
@@ -312,27 +329,27 @@ export const mockdata: Mount = async (root) => {
     const { names, renamed } = mockNames(fields.map((f) => f.name));
     problems.querySelectorAll('.mock-names').forEach((x) => x.remove());
     if (renamed.length) problems.append(h('div', { class: 'mock-names' }, note(`Every column needs its own name: ${renamed.join(', ')}.`, 'warn')));
-    if (!fields.length) { out.value = ''; return; }
+    if (!fields.length) { setOut(''); return; }
     const csvCell = (v: any) => { const s = v == null ? '' : String(v); return /[",\r\n]|^\s|\s$/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
     const sqlVal = (v: any) => (v == null ? 'NULL' : typeof v === 'number' ? String(v) : typeof v === 'boolean' ? (v ? 'TRUE' : 'FALSE') : `'${String(v).replace(/'/g, "''")}'`);
     const obj = (r: any[], sep: string, colon: string) => names.map((n, i) => `${JSON.stringify(n)}${colon}${JSON.stringify(r[i] ?? null)}`).join(sep);
-    out.value = fmt === 'json' ? `[\n${rows.map((r) => `  {\n    ${obj(r, ',\n    ', ': ')}\n  }`).join(',\n')}\n]` : fmt === 'ndjson' ? rows.map((r) => `{${obj(r, ',', ':')}}`).join('\n')
+    setOut(fmt === 'json' ? `[\n${rows.map((r) => `  {\n    ${obj(r, ',\n    ', ': ')}\n  }`).join(',\n')}\n]` : fmt === 'ndjson' ? rows.map((r) => `{${obj(r, ',', ':')}}`).join('\n')
       : fmt === 'csv' ? [names.map(csvCell).join(','), ...rows.map((r) => r.map(csvCell).join(','))].join('\n')
-        : rows.map((r) => `INSERT INTO ${sqlName(table_.value.trim() || 'data')} (${names.map(sqlName).join(', ')}) VALUES (${r.map(sqlVal).join(', ')});`).join('\n');
+        : rows.map((r) => `INSERT INTO ${sqlName(table_.value.trim() || 'data')} (${names.map(sqlName).join(', ')}) VALUES (${r.map(sqlVal).join(', ')});`).join('\n'));
   };
   const draw = () => {
     clear(list).append(...fields.map((f, i) => h('div', { class: 'row mock-row' },
-      h('input', { class: 'input mono', value: f.name, 'aria-label': `Field ${i + 1} name`, spellcheck: 'false', oninput: (e: Event) => { f.name = (e.target as HTMLInputElement).value; render(); } }),
+      h('input', { class: 'input mono', value: f.name, maxlength: 64, 'aria-label': `Field ${i + 1} name`, spellcheck: 'false', oninput: (e: Event) => { f.name = (e.target as HTMLInputElement).value; render(); } }),
       select(MOCK_TYPES, f.type, (v) => { f.type = v; if (v === 'words') { f.a = '5'; f.b = ''; } else if (v === 'id') { f.a = '1'; f.b = ''; } else if (v === 'pick') { f.a = 'a, b, c'; f.b = ''; } else { f.a = ''; f.b = ''; } draw(); gen(); }, `Field ${i + 1} type`),
-      ['int', 'float', 'date', 'datetime', 'pick', 'id', 'words'].includes(f.type) ? h('input', { class: 'input mono', value: f.a, placeholder: f.type === 'pick' ? 'a, b, c' : f.type === 'id' ? 'start' : f.type === 'words' ? 'how many' : f.type.startsWith('date') ? 'from (2020-01-01)' : 'from', 'aria-label': `Field ${i + 1} from`, oninput: (e: Event) => { f.a = (e.target as HTMLInputElement).value; gen(); } }) : '',
-      ['int', 'float', 'date', 'datetime'].includes(f.type) ? h('input', { class: 'input mono', value: f.b, placeholder: f.type.startsWith('date') ? 'to (31/12/2026)' : 'to', 'aria-label': `Field ${i + 1} to`, oninput: (e: Event) => { f.b = (e.target as HTMLInputElement).value; gen(); } }) : '',
+      ['int', 'float', 'date', 'datetime', 'pick', 'id', 'words'].includes(f.type) ? h('input', { class: 'input mono', value: f.a, maxlength: 2000, placeholder: f.type === 'pick' ? 'a, b, c' : f.type === 'id' ? 'start' : f.type === 'words' ? 'how many' : f.type.startsWith('date') ? 'from (2020-01-01)' : 'from', 'aria-label': `Field ${i + 1} from`, oninput: (e: Event) => { f.a = (e.target as HTMLInputElement).value; gen(); } }) : '',
+      ['int', 'float', 'date', 'datetime'].includes(f.type) ? h('input', { class: 'input mono', value: f.b, maxlength: 40, placeholder: f.type.startsWith('date') ? 'to (31/12/2026)' : 'to', 'aria-label': `Field ${i + 1} to`, oninput: (e: Event) => { f.b = (e.target as HTMLInputElement).value; gen(); } }) : '',
       button('', () => { fields.splice(i, 1); draw(); gen(); }, { small: true, icon: 'X', title: `Remove field ${i + 1}` }))));
     if (!fields.length) list.append(note('No fields — add one to make data.', 'info'));
   };
   table_.addEventListener('input', render);
   root.append(card('Fields', list, problems, button('Add field', () => { fields.push({ name: `field${fields.length + 1}`, type: 'words', a: '3', b: '' }); draw(); gen(); }, { small: true, icon: 'Plus' })),
     card(null, slider({ label: 'Rows', min: 1, max: 1000, value: count, onInput: (v) => { count = v; gen(); } }), field('Format', segmented([['json', 'JSON'], ['ndjson', 'NDJSON'], ['csv', 'CSV'], ['sql', 'SQL INSERT']], fmt, (v) => { fmt = v; render(); })), field('SQL table name', table_)),
-    card('Data', out, h('div', { class: 'row' }, button('Generate again', gen, { small: true, icon: 'RefreshCw' }), button('Download', () => { if (!out.value) throw new Error('Nothing to save — add a field first'); downloadBlob(new Blob([out.value], { type: 'text/plain' }), `mock.${fmt === 'sql' ? 'sql' : fmt === 'csv' ? 'csv' : fmt === 'ndjson' ? 'ndjson' : 'json'}`); }, { small: true, icon: 'Download' }))),
+    card('Data', out, cutNote, h('div', { class: 'row' }, button('Generate again', gen, { small: true, icon: 'RefreshCw' }), button('Download', () => { if (!full) throw new Error('Nothing to save — add a field first'); downloadBlob(new Blob([full], { type: 'text/plain' }), `mock.${fmt === 'sql' ? 'sql' : fmt === 'csv' ? 'csv' : fmt === 'ndjson' ? 'ndjson' : 'json'}`); }, { small: true, icon: 'Download' }))),
     note('Fake data for testing only. PAN, IFSC and phone numbers only have the right format; GSTINs have a valid checksum but belong to no one. Dates can be typed as 2026-11-16 or 16/11/2026.', 'info'));
   draw(); gen();
 };

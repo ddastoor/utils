@@ -103,6 +103,20 @@ export default async (ctx) => {
   ok(await data.inputValue() === '' && /No fields — add one to make data/.test(await p2.locator('.card').first().textContent()), 'no fields: no output, and a hint');
   await p2.getByRole('button', { name: 'Download' }).click(); ok(await p2.waitForFunction(() => /Nothing to save — add a field first/.test(document.querySelector('.toasts')?.textContent || ''), null, { timeout: 5000 }).then(() => true, () => false), 'Download without fields: a message');
   await p2.getByRole('button', { name: 'Add field' }).click(); ok((await get()).length === 3 && (await get())[0].field1.split(' ').length === 3, 'a field can be added again');
+  // 100 KB pasted into a field name made 8 MB of JSON whose 100 KB lines held the page for minutes: a name takes 64
+  // characters, and a result over 10 lakh characters is shown in part and said — Copy and Download give all of it
+  await setF(1, 'name', 'n'.repeat(100000));
+  ok((await p2.getByLabel('Field 1 name').inputValue()).length === 64, 'a pasted 100 KB field name keeps 64 characters');
+  await setF(1, 'name', 'field1');
+  for (const i of [2, 3, 4]) { await p2.getByRole('button', { name: 'Add field' }).click(); await setF(i, 'from', '100'); }
+  const tBig = Date.now(); await p2.locator('input[type=range]').fill('1000');
+  await p2.getByText(/^The box shows the first 10,00,000 of [\d,]+ characters — Copy and Download give all of it\.$/).waitFor({ timeout: 20000 }).catch(() => {});
+  const boxed = await data.inputValue(), noteBig = await p2.getByText(/^The box shows the first/).textContent().catch(() => '');
+  const fBig = readFileSync(await ctx.download(p2, () => p2.getByRole('button', { name: 'Download' }).click()), 'utf8'), rowsBig = JSON.parse(fBig);
+  ok(boxed.length <= 1000001 && boxed.endsWith('…') && /^The box shows the first 10,00,000 of/.test(noteBig) && fBig.length > 1000000 && rowsBig.length === 1000 && rowsBig[999].field4.split(' ').length === 100 && fBig.startsWith(boxed.slice(0, -1)),
+    `a ${fBig.length.toLocaleString()}-character result: the box shows ${boxed.length.toLocaleString()} (cut at a line), said; the download has all 1,000 rows (${((Date.now() - tBig) / 1000).toFixed(1)} s)`);
+  await p2.locator('input[type=range]').fill('3');
+  ok(await p2.getByText(/^The box shows the first/).count() === 0 && (await get()).length === 3, 'a small result again: shown whole, the note gone');
   ok(!p2.errors.filter((e) => !/Nothing to save/.test(e)).length, `no page errors on the second page ${p2.errors.join(' | ')}`);
   ok(!page.errors.length, `no page errors ${page.errors.join(' | ')}`);
   await pcOnlyOnPhone(ctx, 'mockdata');

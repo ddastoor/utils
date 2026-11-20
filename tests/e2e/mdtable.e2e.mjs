@@ -72,6 +72,22 @@ export default async (ctx) => {
   const t1 = Date.now(); await page.locator('input[aria-label="Row 2 column 1"]').fill('edited'); ok((await out.inputValue()).split('\n')[2].startsWith('| edited') && Date.now() - t1 < 6000, `editing a cell of the big table does not redraw 24,000 boxes (${Date.now() - t1} ms)`);
   const f = await ctx.download(page, () => page.getByRole('button', { name: 'Download' }).click());
   ok(f.endsWith('table.md') && readFileSync(f, 'utf8') === `${await out.inputValue()}\n`, 'Download saves table.md');
+  // a sheet of 5,000 rows in Hindi with emoji: every keystroke in a cell laid the whole table out again, measuring every
+  // cell's width (426 ms a key, then a 2.1 s task); widths are remembered now and a big table follows when typing pauses
+  const hindi = ['Name,City,Note,Amount,Code', ...Array.from({ length: 5000 }, (_, i) => `Café ${i},नमस्ते पुणे,ok 😀 ${i},${i * 3},X${i}`)].join('\n');
+  await page.locator('textarea').nth(0).evaluate((e, v) => { e.value = v; }, hindi); await page.getByRole('button', { name: 'Import', exact: true }).click();
+  await page.waitForFunction(() => /Read 5,001 rows/.test(document.body.textContent), null, { timeout: 30000 });
+  const typing = await page.evaluate(async () => {
+    const longs = []; const po = new PerformanceObserver((l) => { for (const e of l.getEntries()) longs.push(Math.round(e.duration)); }); po.observe({ type: 'longtask' });
+    const c = document.querySelector('input[aria-label="Row 2 column 1"]'), keys = [];
+    for (const ch of 'Asha') { const t0 = performance.now(); c.value += ch; c.dispatchEvent(new Event('input', { bubbles: true })); keys.push(performance.now() - t0); await new Promise((r) => setTimeout(r, 60)); }
+    await new Promise((r) => setTimeout(r, 1500)); po.disconnect();
+    return { key: Math.round(Math.max(...keys)), longest: Math.max(0, ...longs), line: document.querySelectorAll('textarea')[1].value.split('\n')[2] };
+  });
+  ok(typing.key < 50 && typing.longest < 500 && typing.line.startsWith('| Café 0Asha '), `typing in a cell of a 5,000-row Hindi table: ${typing.key} ms a key, longest task ${typing.longest} ms, the Markdown follows ("${typing.line.slice(0, 24)}")`);
+  await page.locator('input[aria-label="Row 3 column 1"]').evaluate((c) => { c.value += 'Z'; c.dispatchEvent(new Event('input', { bubbles: true })); });
+  const fz = readFileSync(await ctx.download(page, () => page.getByRole('button', { name: 'Download' }).click()), 'utf8');
+  ok(fz.split('\n')[3].startsWith('| Café 1Z '), 'Download right after a keystroke has it (the table was waiting for the pause)');
   await imp('a\n1'); await page.getByRole('button', { name: 'Delete column 1' }).click();
   ok(await page.waitForFunction(() => /Keep at least one column/.test(document.querySelector('.toasts')?.textContent || ''), null, { timeout: 5000 }).then(() => true, () => false) && (await boxes()).join() === 'a,1', 'the last column cannot be deleted');
   ok(!page.errors.filter((e) => !/Keep at least one column/.test(e)).length, `no page errors ${page.errors.join(' | ')}`);

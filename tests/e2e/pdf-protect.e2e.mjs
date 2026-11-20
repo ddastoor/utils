@@ -55,7 +55,7 @@ export default async ({ base, page: newPage, ok, download, devices, tmp }) => {
   ok(d5.authenticatePassword(pw5) && !d5.authenticatePassword('passwörd'), 'a password with accents, ₹, a space and "=" protects and opens the file');
   // a signed PDF: re-protecting rewrites it, the signature no longer proves anything — said
   await page.locator('input[type=file]').first().setInputFiles(await makeSigned(tmp));
-  ok(await page.getByText('is digitally signed (1 signature). The protected copy no longer proves the signature').count() === 1, 'a signed PDF: the tab says the protected copy no longer proves the signature');
+  ok(await page.getByText('is digitally signed (1 signature). The protected copy no longer proves the signature').waitFor({ timeout: 20000 }).then(() => true, () => false), 'a signed PDF: the tab says the protected copy no longer proves the signature'); // read as the file opens (it was read once, at once: a race under load)
   const real = page.errors.filter((e) => !/do not match|cannot contain commas/.test(e));
   ok(real.length === 0, `no unexpected page errors: ${real.join(' | ')}`);
   const phone = await newPage({ ...devices['iPhone 13'] });

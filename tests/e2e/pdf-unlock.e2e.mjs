@@ -23,7 +23,7 @@ export default async ({ base, page: newPage, ok, download, devices, tmp }) => {
   await page.locator('input[type=file]').first().setInputFiles(await makeSigned(tmp, 'sign-pass'));
   await page.getByPlaceholder('Password').fill('sign-pass'); await page.getByPlaceholder('Password').press('Enter');
   await page.getByText('password accepted').waitFor();
-  ok(await page.getByText('is digitally signed (1 signature). The unlocked copy no longer proves the signature').count() === 1, 'a signed PDF: the tab says the unlocked copy no longer proves the signature');
+  ok(await page.getByText('is digitally signed (1 signature). The unlocked copy no longer proves the signature').waitFor({ timeout: 20000 }).then(() => true, () => false), 'a signed PDF: the tab says the unlocked copy no longer proves the signature');
   const real = page.errors.filter((e) => !/not protected/.test(e));
   ok(real.length === 0, `no unexpected page errors: ${real.join(' | ')}`);
   const phone = await newPage({ ...devices['iPhone 13'] });

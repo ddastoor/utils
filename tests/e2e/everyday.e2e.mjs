@@ -15,7 +15,7 @@ export default async ({ base, page: newPage, ok }) => {
   await go('interval'); await page.locator('.chip-btn', { hasText: 'Tabata' }).click();
   ok((await page.locator('.timer-display').textContent()) === '00:10', 'interval prep 10 s');
   await go('dice'); await page.waitForSelector('.die', { timeout: 15000 }); ok((await page.locator('.die').count()) === 2, 'two dice rolled');
-  await go('coin'); await page.getByRole('button', { name: 'Flip' }).click(); ok(/Heads|Tails/.test(await page.locator('.coin').textContent()), 'coin flipped');
+  await go('coin'); await page.getByRole('button', { name: 'Flip' }).click(); ok(await page.locator('.coin').filter({ hasText: /Heads|Tails/ }).waitFor({ timeout: 15000 }).then(() => true, () => false), 'coin flipped'); // the first flip fetches libsodium.js
   await go('rng'); const nums = (await page.locator('.rng-out').textContent()).split(', ').map(Number); ok(nums.length === 1 && nums[0] >= 1 && nums[0] <= 100, 'random number in range');
   await page.locator('input[type=number]').nth(2).fill('10'); await page.getByText('No repeats').click(); await page.getByRole('button', { name: 'Generate' }).click();
   const uniq = (await page.locator('.rng-out').textContent()).split(', '); ok(new Set(uniq).size === 10, '10 unique numbers');

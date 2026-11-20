@@ -152,8 +152,8 @@ Areas with a shared review: the app shell (router, search, favorites, platform h
 | `jsondiff` | JSON Diff | PC only | dev-data2 | ✓ | 7 | 71 | own Rust diff on the lossless reader: lists aligned by equal elements and by id (one removal was N changes); numbers by value and never rounded; duplicate keys; empty sides; Swap; rows carry both values; 400 random pairs with two appliers; junk sweep |
 | `sqlfmt` | SQL Formatter | PC only | data-engines | ✓ | 26 | 147 | our own formatter (Rust, devcore-sqlfmt.wasm) replaces the sqlformat crate, which changed the meaning of SQL (WASM-AUDIT 53): dialect-aware tokenizer (standard, PostgreSQL, MySQL, SQLite, SQL Server, Oracle; auto-detect), keywords change case only where they are keywords, layout of CTEs / MERGE / windows / DDL / blocks, scripts without semicolons, a guard that re-reads its own result; unit 113 (independent reader, SQLite engine, 10,752 names, layout record), e2e 49 (native SQLite, sqlglot, sqlparse read what the tab shows); junk sweep |
 | `prettier` | Code Formatter | PC only | data-engines | ✓ | 15 | 283 | engines changed (WASM-AUDIT 54): Biome's official wasm (JS/TS/CSS/SCSS/YAML/GraphQL), @dprint/json, dprint-plugin-markup + Biome (HTML, Vue); Prettier for Markdown and as fallback. Independent readers per language (TypeScript parser, PostCSS, yaml, marked + cmark-gfm, parse5, graphql-js, Vue compiler); 140 hazard sections x 8 option sets; typed text survives a language switch; stale results; Markdown fences; Vue ts scripts and handlers; JSON numbers as typed; worker; junk sweep |
-| `mockdata` | Mock Data Generator | PC only | dev-data2 | ✓ | 11 | 47 | ranges beyond 32 bits, swapped / unreadable ranges explained, dd/mm/yyyy dates (threw 'Invalid time value'), id start, fine-grained decimals, duplicate / empty / __proto__ names, quoted SQL names (run in SQLite), word-count limit, no fields; a11y sweep |
-| `mdtable` | Markdown Table | PC only | dev-data2 | ✓ | 7 | 28 | separator found by the sheet engine (a tab in a quoted cell forced TSV); <br> for line breaks, also in the editor; table inside other text; CJK / emoji widths; 3,000 rows; output read by cmark-gfm; a11y sweep |
+| `mockdata` | Mock Data Generator | PC only | dev-data2 | ✓ | 13 | 50 | ranges beyond 32 bits, swapped / unreadable ranges explained, dd/mm/yyyy dates (threw 'Invalid time value'), id start, fine-grained decimals, duplicate / empty / __proto__ names, quoted SQL names (run in SQLite), word-count limit, no fields; a11y sweep |
+| `mdtable` | Markdown Table | PC only | dev-data2 | ✓ | 8 | 30 | separator found by the sheet engine (a tab in a quoted cell forced TSV); <br> for line breaks, also in the editor; table inside other text; CJK / emoji widths; 3,000 rows; output read by cmark-gfm; a11y sweep |
 | `cidr` | Subnet / CIDR Calculator | PC only | net | ✓ | 3 | 74 | e2e 15→43 + 46 unit; 300 cases vs Python ipaddress |
 | `chmod` | chmod Calculator | PC only | net | ✓ | 3 | 26 | e2e 13→39; 800 modes + 1,152 expressions vs real chmod |
 | `x509` | Certificate Decoder | PC only | net | ✓ | 10 | 66 | e2e 16→45 + 37 unit; fixtures vs OpenSSL |
@@ -2253,4 +2253,14 @@ cannot. Three new suites; each fails on the build before its fixes.
      reached; a details file is cut the same way (never inside an emoji: `cutText` in `src/lib/docrules.ts`), and the
      rows (items, jobs …) stop at 100 — a file with more keeps the first 100 and says so. Rent e2e +3, invoice +4,
      docgen unit +6.
+  2. **Morse Code crashed** ("Maximum call stack size exceeded", nothing shown): the result's letter groups went into
+     the box with one spread call. It shows the first 20,000 characters, cut between two groups and said; Copy gives
+     all. Play set up every tone before the first sounded (days of sound for a book): it plays the first hour, and
+     lengths read in hours ("1234 min 5 s" before). e2e +7, unit +5.
+  3. **Unicode Inspector held the page 2.6 s on every keystroke** (dozens of regular expressions a character): each
+     different character is looked up once; a text over 200,000 characters waits for a pause in the typing. e2e +2.
+  Not ours: a real paste of that size is slow in Chromium itself — `insertText` of 100 KB into a bare text box in an
+  empty page takes 5 s (quadratic), so the probe sets the value and measures what the tab does with it.
+- **Every phone tab with the phone turned sideways** (844 × 390): no sideways scroll, no bottom bar taller than a third
+  of the screen — nothing to fix.
 - **Complete unit suites** after all this: 21,731 assertions in 99 suites, all green.
