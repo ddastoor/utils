@@ -768,3 +768,29 @@ One entry per tab, written before its bug hunt: our module → candidates → ch
 - **Evidence:** all 398 letters lowered as the JavaScript engine lowers them (ICU — a separate implementation);
   the old module's output for "Gdańsk, Wrocław, Łódź" and "Mr. Darcy" recorded beside the new in the bug list;
   the photographed-page suite unchanged in its results (20 words, all 15 rare words of the page).
+
+## Security and codes
+
+### 100. `pgp` — OpenPGP (20 Nov 2026)
+- **Ours:** OpenPGP.js 6.3.2 (JavaScript, LGPL-3.0; the latest release) — the library of Proton Mail, audited
+  repeatedly (Cure53, 2014 – 2023). No WebAssembly. The GnuPG-compatible profile and the reading of what is pasted
+  are ours (`src/tools/pgp.ts`, `src/lib/pgptext.ts`).
+- **Candidates:** no published WebAssembly OpenPGP module exists. Open-source code to build one from:
+  **rPGP** (crate `pgp` 0.21.1, MIT / Apache-2.0; 8 million downloads, 2.3 million in the last 90 days; Delta Chat;
+  audited in 2019 and 2024; v4 and RFC 9580 v6, AEAD, Argon2; a `wasm` feature) and **Sequoia** (2.4.2,
+  LGPL-2.0+, a WebAssembly target that its authors call experimental).
+- **The check:** rPGP is a *low-level* library — which subkey to encrypt to or sign with, and whether a key is
+  expired, revoked or bound by a valid signature, is left to the caller (its README: "NOTE: This is not always the
+  right key!"). That layer is where OpenPGP's security decisions are made. Its authors' own layer on top,
+  **rpgpie** 0.12.1, is described as "Experimental high level API" (74,000 downloads in all, 8,000 recent), and
+  **rsop** (the Stateless OpenPGP interface on it, which would map onto this tab almost one to one) has 26,000
+  downloads in all, a few hundred recent.
+- **Decision (rule 3, with the reason the rule asks for):** OpenPGP.js stays. Building our module on rPGP would
+  mean either an experimental semantics layer or our own key-selection and validity code — swapping an audited,
+  widely deployed implementation of exactly that layer for a less tried one, in a tool whose only job is security.
+  That is not doable without lowering what the tab is for. **To look at again** when rpgpie is no longer
+  experimental (or when an audited WebAssembly OpenPGP module appears). Noted for the owner.
+- **Evidence for what stays:** the RFC 9580 Appendix A vectors (the v6 key of A.4 with SEIPD v1 / v2 messages and
+  a clear-signed text; AEAD EAX / OCB / GCM and Argon2-protected messages, `tests/fixtures/pgp/rfc9580/`) decrypt
+  and verify with the library in Node (`tests/unit/pgp.test.mjs`) and in the tab; GnuPG 2.4 in both directions for
+  keys, recipients, signatures, passwords and the revocation certificate (`tests/e2e/pgp.e2e.mjs`).

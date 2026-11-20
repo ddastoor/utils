@@ -55,7 +55,7 @@ Areas with a shared review: the app shell (router, search, favorites, platform h
 ## security
 | id | Tab | Platform | Area | R | B | T | Notes |
 |---|---|---|---|---|---|---|---|
-| `pgp` | OpenPGP | PC + mobile | security-codes |  |  |  |  |
+| `pgp` | OpenPGP | PC + mobile | security-codes | ✓ | 8 | 61 | a 2nd recipient was dropped (library reads 1 armored block); stored file name; armor inside e-mail; errors in words; key IDs; fingerprint+date; RFC 9580 vectors; gpg both ways. Engine kept (rPGP semantics layer experimental) |
 | `sodium` | Sodium Encrypt | PC + mobile | security-codes |  |  |  |  |
 | `sharelink` | Encrypted Share Link | PC + mobile | security-codes |  |  |  |  |
 | `hash` | Hash / Checksum | PC + mobile | security-codes |  |  |  |  |
@@ -1254,3 +1254,33 @@ Reference for the five finance tabs: **mpmath at 60 digits** (`scripts/make-fina
   a token like a'a'a'… of 800 characters wrote past the tokeniser's 256-byte buffer; bounded now, with a test.
   Checked and kept: the Wiktionary REST definition endpoint the online fallback uses is still served (experimental,
   English only — what the tab asks for).
+
+- **Complete suites after area text (20 Nov 2026):** `npm test` 20,757 / 20,757 assertions in 78 suites;
+  `node tests/e2e.mjs` 5,853 / 5,853 checks in 188 suites (994 s). Nothing to fix.
+
+### Security and codes (20 Nov 2026 –)
+
+- **`pgp` (tab 100, 8 bugs; engine kept: OpenPGP.js — docs/WASM-AUDIT.md, 100; unit `tests/unit/pgp.test.mjs` 35 — new,
+  with the RFC 9580 Appendix A vectors; e2e 34 — was 8).**
+  1. **A second recipient was dropped without a word.** Two public keys (two files, or pasted one after the other)
+     went to OpenPGP.js as one text, and the library reads only the first armored block: the message was encrypted
+     to the first person alone (gpg shows one recipient). Each block is read on its own now.
+  2. A decrypted file was saved under the encrypted file's name without ".gpg" ("odd-name"), not under the name
+     stored inside the message ("photo.bin").
+  3. An armored message with an e-mail's words before it failed with "Error during parsing. This message / key
+     probably does not conform to a valid OpenPGP format." (the armor was looked for in the first 64 bytes only).
+  4. The library's errors were shown as they were: "Armored text not of type private key", "Error generating
+     keypair: Invalid user ID format", "Error during parsing …". Each is said in words now (a public key where the
+     private one belongs; "not an e-mail address" — checked before the key is made; not an OpenPGP message, or cut
+     short; a revoked or expired recipient key).
+  5. A message for another key said only "wrong key or password"; it names the key IDs the message is for and the
+     ones given now — and a message for a key, opened with a password, says a key is needed.
+  6. "Good signature from Bob" without the signing key's fingerprint or the date it was made (a user ID is only a
+     claim; gpg shows both). Both are shown now.
+  7. Decrypted text was shown only when the message had been pasted; a .asc file that held text gave only a
+     download. Text (valid UTF-8, under 2 MB) is shown either way.
+  8. A message chosen as the signature file, a clear-signed text pasted under Decrypt, a detached signature under
+     "Clear-signed text": each gave a parser error; now each is named.
+  Checked against gpg 2.4 in both directions: keys, two recipients, clear-signed and detached signatures (also of
+  typed text against the same text in a file), passwords, the revocation certificate; RFC 9580 (v6 key of Annex A.4,
+  SEIPD v2, AEAD OCB / EAX, Argon2) in Node and in the tab.

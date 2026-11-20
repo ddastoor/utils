@@ -5,6 +5,7 @@ import {
   h, card, field, input, textarea, button, segmented, toggle, filePicker, note, actions, outputBox, downloadBlob,
   stack, row, clear, fmtBytes, readBytes, type Mount,
 } from '../ui';
+import { armored, armoredBytes, wrongKind, pgpError, isEmail, decryptedName, groupHex, type ArmorKind } from '../lib/pgptext';
 
 const GPG_CONFIG = {
   v6Keys: false,
@@ -17,26 +18,47 @@ const GPG_CONFIG = {
 const MODERN_CONFIG = { v6Keys: true, aeadProtect: true, s2kType: openpgp.enums.s2k.argon2, preferredSymmetricAlgorithm: openpgp.enums.symmetric.aes256 } as const;
 
 type Profile = 'gpg' | 'modern';
-const isArmored = (b: Uint8Array) => new TextDecoder().decode(b.subarray(0, 64)).includes('-----BEGIN PGP');
 
-/** A key source: paste armored text or load a .asc/.gpg file. */
+/** A key source: paste armored text or load .asc / .gpg files. The armored blocks are found inside whatever was
+ *  pasted (an e-mail with the key in it) and each is read on its own — OpenPGP.js reads only the first block of a text,
+ *  so a second recipient's key was dropped without a word; the wrong kind of key or no key at all is said in words. */
 function keyInput(label: string, kind: 'public' | 'private', multiple = false) {
-  let bin: Uint8Array | null = null;
+  let bins: Uint8Array[] = []; // binary key files (armored ones go into the text box)
   const ta = textarea({ rows: 4, mono: true, placeholder: `Paste ${kind} key (-----BEGIN PGP ${kind.toUpperCase()} KEY BLOCK-----) or load a file` });
+  ta.setAttribute('aria-label', label);
   const info = h('span', { class: 'muted small' });
   const pick = filePicker({ compact: true, label: `Load ${kind} key file${multiple ? 's' : ''}`, hint: '.asc, .gpg, .pgp, .key', multiple, onFiles: async (fs) => {
     const parts = await Promise.all(fs.map(readBytes));
-    if (parts.every(isArmored)) { ta.value = parts.map((p) => new TextDecoder().decode(p)).join('\n'); bin = null; }
-    else { bin = parts[0]; ta.value = ''; }
+    const texts = parts.map(armoredBytes);
+    ta.value = texts.filter(Boolean).map((t) => t!.text).join('\n');
+    bins = parts.filter((_, i) => !texts[i]);
     info.textContent = fs.map((f) => f.name).join(', ');
   } });
+  ta.addEventListener('input', () => { bins = []; info.textContent = ''; });
   const el = field(label, stack(pick, info, ta));
+  const wanted: ArmorKind[] = kind === 'private' ? ['PRIVATE KEY BLOCK'] : ['PUBLIC KEY BLOCK', 'PRIVATE KEY BLOCK'];
+  const read = (o: { armoredKeys: string } | { binaryKeys: Uint8Array }): Promise<openpgp.Key[]> => (kind === 'private' ? openpgp.readPrivateKeys(o as any) : openpgp.readKeys(o as any));
   return {
     el,
     async keys(): Promise<openpgp.Key[]> {
-      if (bin) return kind === 'private' ? openpgp.readPrivateKeys({ binaryKeys: bin }) : openpgp.readKeys({ binaryKeys: bin });
-      if (!ta.value.trim()) return [];
-      return kind === 'private' ? openpgp.readPrivateKeys({ armoredKeys: ta.value }) : openpgp.readKeys({ armoredKeys: ta.value });
+      try {
+        const out: openpgp.Key[] = [];
+        for (const b of bins) out.push(...(await read({ binaryKeys: b })));
+        if (ta.value.trim()) {
+          // every block of every kind in the box: a public and a private key pasted together are both read
+          const blocks: Array<{ kind: ArmorKind; text: string }> = [];
+          let rest = ta.value.replace(/\r\n?/g, '\n');
+          for (let a = armored(rest); a; a = armored(rest)) {
+            for (const b of a.blocks) blocks.push({ kind: a.kind, text: b });
+            const last = a.blocks[a.blocks.length - 1];
+            rest = rest.slice(rest.indexOf(last) + last.length);
+          }
+          if (!blocks.length) throw new Error(`${label}: that is not an OpenPGP key (paste the whole block from "-----BEGIN PGP ${kind.toUpperCase()} KEY BLOCK-----" to its END line, or load the .asc / .gpg file).`);
+          for (const b of blocks) { const wrong = wrongKind(b.kind, wanted, label); if (wrong) throw new Error(wrong); }
+          for (const b of blocks) out.push(...(await read({ armoredKeys: b.text })));
+        }
+        return out;
+      } catch (e) { throw new Error(e instanceof Error && e.message.startsWith(label) ? e.message : `${label}: ${pgpError(e, 'key')}`); }
     },
   };
 }
@@ -80,19 +102,33 @@ const uid = (k: openpgp.Key) => k.getUserIDs()[0] || '(no user ID)';
 
 function result(area: HTMLElement, items: Array<Node | string | null>) { clear(area).append(...items.filter(Boolean) as Node[]); }
 
+const when = (d: Date | null | undefined) => (d ? d.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' }) : '');
 async function sigReport(sigs: any[], keys: openpgp.Key[]) {
   if (!sigs.length) return note('The data was not signed.', 'info');
   const lines: Node[] = [];
   for (const s of sigs) {
     const signer = keys.find((k) => k.getKeys(s.keyID).length);
+    const made = await Promise.resolve(s.signature).then((sig: any) => sig?.packets?.[0]?.created as Date | undefined, () => undefined);
     try {
       await s.verified;
-      lines.push(note(`Good signature from ${signer ? uid(signer) : 'key ' + s.keyID.toHex().toUpperCase()}`, 'ok'));
+      const key = signer!.getKeys(s.keyID)[0];
+      lines.push(note(h('span', null, `Good signature from ${uid(signer!)}`, h('br'), h('span', { class: 'small' }, `Key ${groupHex(key.getFingerprint())}${made ? ` · signed ${when(made)}` : ''}`)), 'ok'));
     } catch (e: any) {
-      lines.push(note(signer ? `BAD signature: ${e.message}` : `Signed by key ${s.keyID.toHex().toUpperCase()} — add that public key to verify it.`, signer ? 'err' : 'warn'));
+      lines.push(note(signer ? `BAD signature — the data or the signature was changed after signing (${pgpError(e, 'signature')}).` : `Signed by key ${s.keyID.toHex().toUpperCase()} — add that public key to verify it.`, signer ? 'err' : 'warn'));
     }
   }
   return h('div', { class: 'stack' }, lines);
+}
+/** A message from what was pasted or chosen: the armored block inside it, or binary packets. */
+async function readMsg(bytes: Uint8Array) {
+  const a = armoredBytes(bytes);
+  try {
+    if (a) {
+      if (a.kind !== 'MESSAGE') throw new Error(a.kind === 'SIGNED MESSAGE' ? 'That is a clear-signed message, not an encrypted one — check it under Verify.' : `That is ${a.kind === 'SIGNATURE' ? 'a signature' : 'a key'}, not an encrypted message.`);
+      return await openpgp.readMessage({ armoredMessage: a.text });
+    }
+    return await openpgp.readMessage({ binaryMessage: bytes });
+  } catch (e) { throw new Error(e instanceof Error && /^That is/.test(e.message) ? e.message : pgpError(e, 'message')); }
 }
 
 export const mount: Mount = (root) => {
@@ -112,12 +148,13 @@ export const mount: Mount = (root) => {
         h('div', { class: 'grid2' }, field('Passphrase', p1), field('Repeat passphrase', p2)),
         field('Key format', segmented([['gpg', 'GnuPG-compatible (v4, Ed25519/Cv25519)'], ['modern', 'RFC 9580 v6 (not readable by GnuPG yet)']], profile, (v) => (profile = v))),
       )), out, actions(button('Generate key pair', async () => {
-        if (!name.value && !email.value) throw new Error('Enter a name or email.');
+        if (!name.value.trim() && !email.value.trim()) throw new Error('Enter a name or an e-mail address.');
+        if (email.value.trim() && !isEmail(email.value.trim())) throw new Error(`"${email.value.trim()}" is not an e-mail address.`);
         if (!p1.value) throw new Error('Choose a passphrase to protect the private key.');
         if (p1.value !== p2.value) throw new Error('Passphrases do not match.');
         const cfg = profile === 'gpg' ? GPG_CONFIG : MODERN_CONFIG;
-        const userIDs = [{ name: name.value || undefined, email: email.value || undefined }];
-        const k = await openpgp.generateKey({ type: profile === 'gpg' ? 'ecc' : 'curve25519', curve: profile === 'gpg' ? 'curve25519Legacy' : undefined, userIDs, passphrase: p1.value, format: 'armored', config: cfg } as any);
+        const userIDs = [{ name: name.value.trim() || undefined, email: email.value.trim() || undefined }];
+        const k = await (openpgp.generateKey as any)({ type: profile === 'gpg' ? 'ecc' : 'curve25519', curve: profile === 'gpg' ? 'curve25519Legacy' : undefined, userIDs, passphrase: p1.value, format: 'armored', config: cfg }).catch((e: unknown) => { throw new Error(pgpError(e, 'generate')); });
         const pub = await openpgp.readKey({ armoredKey: k.publicKey });
         const base = (email.value || name.value || 'key').replace(/[^\w.@-]+/g, '_');
         const pubBox = outputBox({ rows: 6, mono: true }); pubBox.value = k.publicKey;
@@ -159,7 +196,7 @@ export const mount: Mount = (root) => {
             if (!pass.value) throw new Error('Enter a password.');
             opts.passwords = [pass.value];
           }
-          const res = await openpgp.encrypt(opts);
+          const res = await openpgp.encrypt(opts).catch((e: unknown) => { throw new Error(pgpError(e, 'encrypt')); });
           const name = `${data.name}.${asText ? 'asc' : 'gpg'}`;
           if (asText) { const box = outputBox({ rows: 8, mono: true }); box.value = res as string; result(out, [card('Encrypted', box, row(button('Download', () => downloadBlob(new Blob([res as string]), name), { variant: 'primary', icon: 'Download' })))]); }
           else { downloadBlob(new Blob([res as Uint8Array<ArrayBuffer>]), name); result(out, [note(`Encrypted → ${name}`, 'ok')]); }
@@ -175,19 +212,27 @@ export const mount: Mount = (root) => {
       body.append(card(null, stack(data.el, priv.el, field('Passphrase / password', kpass), verify.el)), out,
         actions(button('Decrypt', async () => {
           const bytes = await data.bytes();
-          const message = isArmored(bytes) ? await openpgp.readMessage({ armoredMessage: new TextDecoder().decode(bytes) }) : await openpgp.readMessage({ binaryMessage: bytes });
+          const message = await readMsg(bytes);
           const sk = await priv.keys();
           const vk = await verify.keys();
           const opts: any = { message, format: 'binary', verificationKeys: vk.length ? vk : undefined };
           if (sk.length) opts.decryptionKeys = await unlock(sk, kpass.value); else opts.passwords = [kpass.value];
           let res;
           try { res = await openpgp.decrypt(opts); }
-          catch (e: any) { throw new Error(/Session key|password|decrypt/i.test(e.message) ? 'Could not decrypt: wrong key or password.' : e.message); }
+          catch (e: any) {
+            // say which keys the message is for when the given key is not one of them
+            const forIds = message.getEncryptionKeyIDs().map((id) => id.toHex().toUpperCase());
+            const mine = sk.flatMap((k) => k.getKeys().map((x) => x.getKeyID().toHex().toUpperCase()));
+            if (sk.length && forIds.length && !forIds.some((id) => mine.includes(id) || /^0+$/.test(id))) throw new Error(`This message is not for your key: it was encrypted to key ID ${forIds.join(', ')}; yours is ${mine.join(', ')}.`);
+            if (!sk.length && forIds.length) throw new Error(`This message was encrypted to a key (ID ${forIds.join(', ')}), not with a password — load your private key.`);
+            throw new Error(/Session key|password|decrypt/i.test(e.message) ? (sk.length ? 'Could not decrypt with this key.' : 'Wrong password.') : pgpError(e, 'decrypt'));
+          }
           const outBytes = res.data as Uint8Array;
-          const fname = (message.packets.findPacket(openpgp.enums.packet.literalData) as any)?.getFileName?.() || data.name.replace(/\.(gpg|pgp|asc)$/i, '') || 'decrypted';
-          const textish = !outBytes.some((b) => b === 0) && outBytes.length < 2_000_000;
+          const fname = decryptedName((res as any).filename, data.name);
+          let text: string | null = null;
+          if (outBytes.length < 2_000_000 && !outBytes.some((b) => b === 0)) { try { text = new TextDecoder('utf-8', { fatal: true }).decode(outBytes); } catch { /* not text */ } }
           const items: Array<Node> = [await sigReport(res.signatures, vk)];
-          if (textish && data.kind === 'text') { const box = outputBox({ rows: 8 }); box.value = new TextDecoder().decode(outBytes); items.push(card('Decrypted text', box)); }
+          if (text !== null) { const box = outputBox({ rows: 8, label: 'Decrypted text' }); box.value = text; items.push(card('Decrypted text', box)); }
           items.push(row(button(`Download ${fname}`, () => downloadBlob(new Blob([outBytes as Uint8Array<ArrayBuffer>]), fname), { variant: 'primary', icon: 'Download' })));
           result(out, items);
         }, { variant: 'primary', icon: 'LockOpen' })));
@@ -237,12 +282,16 @@ export const mount: Mount = (root) => {
         if (!keys.length) throw new Error('Add the signer\'s public key.');
         let sigs;
         if (style === 'clear') {
-          const msg = await openpgp.readCleartextMessage({ cleartextMessage: data.text });
+          const a = armored(data.text);
+          if (!a || a.kind !== 'SIGNED MESSAGE') throw new Error(a ? `That is ${a.kind === 'MESSAGE' ? 'an encrypted or signed message (check it under Decrypt)' : a.kind === 'SIGNATURE' ? 'a detached signature (choose "Detached signature")' : 'a key'}, not a clear-signed text.` : 'Paste the whole clear-signed text, from "-----BEGIN PGP SIGNED MESSAGE-----" to "-----END PGP SIGNATURE-----".');
+          const msg = await openpgp.readCleartextMessage({ cleartextMessage: a.text }).catch((e: unknown) => { throw new Error(pgpError(e, 'signature')); });
           sigs = (await openpgp.verify({ message: msg, verificationKeys: keys })).signatures;
         } else {
           if (!sigFile) throw new Error('Choose the signature file.');
           const sb = await readBytes(sigFile);
-          const signature = isArmored(sb) ? await openpgp.readSignature({ armoredSignature: new TextDecoder().decode(sb) }) : await openpgp.readSignature({ binarySignature: sb });
+          const sa = armoredBytes(sb);
+          if (sa && sa.kind !== 'SIGNATURE') throw new Error(`The signature file holds ${sa.kind === 'MESSAGE' ? 'a message' : sa.kind === 'SIGNED MESSAGE' ? 'a clear-signed text (choose "Clear-signed text")' : 'a key'}, not a detached signature.`);
+          const signature = await (sa ? openpgp.readSignature({ armoredSignature: sa.text }) : openpgp.readSignature({ binarySignature: sb })).catch((e: unknown) => { throw new Error(pgpError(e, 'signature')); });
           const message = await openpgp.createMessage({ binary: await data.bytes() });
           sigs = (await openpgp.verify({ message, signature, verificationKeys: keys })).signatures;
         }

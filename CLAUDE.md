@@ -492,6 +492,14 @@ text, symmetric (passphrase) encrypt/decrypt. Binary or ASCII-armored output.
 **Profile: GnuPG-compatible** — v4 keys, Ed25519 (sign) + Curve25519 (encrypt), AES-256, SHA-512,
 SEIPDv1 with MDC, iterated+salted S2K for passphrases (GnuPG cannot read Argon2 S2K yet).
 Decryption accepts v4 and v6 (RFC 9580, AEAD/OCB, Argon2) input.
+**As built after the Nov 2026 bug hunt** (`src/tools/pgp.ts`, reading what was pasted `src/lib/pgptext.ts`; unit
+`tests/unit/pgp.test.mjs` 35 — the RFC 9580 Appendix A vectors in `tests/fixtures/pgp/rfc9580/`; e2e `tests/e2e/pgp.e2e.mjs`
+34 against gpg 2.4): the armored block is found anywhere in what was pasted or chosen (an e-mail around it); **every
+key block is read on its own** (OpenPGP.js reads only the first block of a text — a second recipient was dropped);
+the wrong kind of thing in a box is named; the library's errors are said in words; a decrypted file takes the name
+stored in the message; a message for another key names the key IDs; a good signature shows the signing key's
+fingerprint and the date; decrypted text is shown whenever it is text. Engine: OpenPGP.js stays (docs/WASM-AUDIT.md,
+tab 100: rPGP is low-level and its semantics layer is experimental).
 
 ### Sodium Encrypt (libsodium, symmetric only)
 Files **and** typed text. Argon2id (`crypto_pwhash`) derives a key; data encrypted with
@@ -1543,7 +1551,7 @@ JavaScript-only components (no C/C++ equivalent exists for the job):
 | Library | Why JS | Used by |
 |---|---|---|
 | own `src/lib/curl.ts` (shell word splitting for bash and cmd.exe, curl option table, code generators) | no tried-and-tested WebAssembly build of a curl command-line parser exists (curl's own parser is tied to libcurl and its tool's globals); it is string parsing of one short line and code templating. A Rust port into devcore is on the to-do sweep (`todo.md`) | curl |
-| OpenPGP.js 6 (LGPL-3.0) | the audited browser OpenPGP implementation; C alternatives (GnuPG, RNP+Botan) are not built or audited for wasm | pgp |
+| OpenPGP.js 6 (LGPL-3.0) | the audited browser OpenPGP implementation (Proton Mail); no WebAssembly OpenPGP module exists, and the Rust one that could be built (rPGP) is low-level — which key to use and whether it is valid is left to the caller, and its semantics layer (rpgpie) is marked experimental by its authors: swapping it in would lower the tab's security (`docs/WASM-AUDIT.md`, tab 100; to look at again) | pgp |
 | Mermaid 12 (MIT) | Mermaid exists only as JavaScript; `securityLevel: 'strict'` (labels sanitised), bundled by Vite | mermaid |
 | Prettier 3 standalone (MIT) | Markdown: both WebAssembly Markdown formatters (Biome's, dprint's) change what a document renders to (`docs/WASM-AUDIT.md`, tab 54). And the fallback for text the WebAssembly engines of the other nine languages cannot read (owner's tweak: (b) an existing JS library for what the module does not cover); each parser is fetched only then | prettier |
 | TensorFlow.js (Apache-2.0) | runs the Magenta style-transfer graph on the GPU via WebGL; its **wasm backend** (XNNPACK, C++ → wasm, tier 2 official build) is the CPU path | cartoon (neural) |
