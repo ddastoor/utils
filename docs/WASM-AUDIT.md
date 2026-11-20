@@ -844,3 +844,17 @@ One entry per tab, written before its bug hunt: our module → candidates → ch
   (Yann Collet's C), `crc32c`, and CRC-64 cross-checked with liblzma (`scripts/make-hash-reference.py`); whole and in
   odd pieces; the tab's checksum lists accepted by `sha256sum -c`, `md5sum -c`, `b2sum -c`, `xxhsum -c`,
   `rhash --check`; in the browser the same 23 digests for texts and a 3 MiB file.
+
+### 104. `password` — Password Generator (20 Nov 2026)
+- **Ours before:** crypto.wasm's `u_uniform` (libsodium 1.0.20's `randombytes_uniform`, built by us).
+- **Candidate:** **libsodium.js** (`libsodium-wrappers-sumo` 0.8.4, libsodium 1.0.22 — the libsodium project's own
+  WebAssembly build, already in the app since entry 101): `randombytes_uniform` — unbiased integers from the browser's
+  cryptographic generator, the same routine as ours.
+- **Decision (rule 1):** **the tab moves to libsodium.js** (`uniform` in `src/wasm/libsodium.ts`). The cost: the tab
+  shows passwords as it opens, so the 0.53 MB chunk (0.17 MB over the wire) comes with it instead of crypto.wasm's
+  57 KB — recorded in the lazy test's list with the reason; the chunk is the one Sodium Encrypt and Share Link use,
+  so the browser has it once for all three. The choice of characters, the one-of-each rule and the exact entropy are
+  string glue and a little BigInt arithmetic (`src/lib/passwords.ts`, §3a).
+- **Evidence:** the unit suite draws from libsodium.js in Node: 2,000 four-character passwords with all four sets;
+  the 24 orders of four sets as often as their exact shares (χ²); the characters of 20,000 passwords of 20 at their
+  exact shares (χ²); the count of passwords by inclusion–exclusion equal to counting every string one by one.

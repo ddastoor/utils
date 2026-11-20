@@ -15,6 +15,7 @@ const AT_OPEN = {
   resume: [/mupdf|NotoSans/, 'live PDF preview is the main view (MuPDF + Noto Sans)'],
   markdown: [/markdown-[\w-]+\.wasm/, 'live preview of the sample text (cmark-gfm, 0.27 MB)'],
   diff: [/textkit-diff-[\w-]+\.wasm/, 'the sample pair is compared at once (textkit-diff.wasm, 0.69 MB: the similar crate)'],
+  password: [/libsodium/, 'passwords are made as the tab opens (libsodium.js: randombytes_uniform, the libsodium project\'s own WebAssembly build — 0.53 MB, shared with Sodium Encrypt)'],
   lorem: [/textkit-lorem-[\w-]+\.wasm/, 'the first paragraphs are made as the tab opens (textkit-lorem.wasm: the lipsum crate\'s Markov chain over Cicero, 0.13 MB)'],
   case: [/textkit-[\w-]+\.wasm/, 'the sample sentence is shown in all its conversions at once (textkit.wasm, 0.21 MB)'],
   coords: [/geo-[\w-]+\.wasm/, 'the sample distance is worked out at once (geo.wasm: Karney\'s geodesic routines, 36 KB)'],

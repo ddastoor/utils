@@ -59,7 +59,7 @@ Areas with a shared review: the app shell (router, search, favorites, platform h
 | `sodium` | Sodium Encrypt | PC + mobile | security-codes | ✓ | 5 | 53 | engine → libsodium.js (sumo, libsodium 1.0.22) + crypto.wasm header; pasted text in every form (atob errors), .txt files, progress during Argon2; PyNaCl + cross-engine tests |
 | `sharelink` | Encrypted Share Link | PC + mobile | security-codes | ✓ | 10 | 32 | engine as sodium (libsodium.js + crypto.wasm header); links read as they arrive (cut, changed, trailing full stop, %-escapes, other site's d=), password twice, long-link warning, autocomplete, Enter |
 | `hash` | Hash / Checksum | PC + mobile | security-codes | ✓ | 10 | 133 | engine → hash-wasm (existing wasm, 23 algorithms, own worker, Stop); expected checksums in every common form, checksum lists, auto-added algorithms, secure file comparison; crypto-client ordering fix |
-| `password` | Password Generator | PC + mobile | security-codes |  |  |  |  |
+| `password` | Password Generator | PC + mobile | security-codes | ✓ | 3 | 37 | randombytes_uniform → libsodium.js; exact entropy (inclusion–exclusion), length box 4–128, symbols box, named copy buttons |
 | `passphrase` | Passphrase Generator | PC + mobile | security-codes |  |  |  |  |
 
 ## media
@@ -1357,3 +1357,15 @@ Reference for the five finance tabs: **mpmath at 60 digits** (`scripts/make-fina
   Also new: 14 more algorithms (SHA-224 / 384, SHA3-224 / 384, Keccak-256, BLAKE2s, BLAKE3, RIPEMD-160, CRC-32C, CRC-64,
   Adler-32, xxHash64, XXH3, XXH128) under "More algorithms"; text hashed as it is typed; hex / HEX / Base64; progress
   with speed; a checksum list of the files written as the tools write it (Download as SHA256SUMS, B2SUMS …).
+
+- **`password` (tab 104, 3 bugs; engine: randombytes_uniform moved to libsodium.js — docs/WASM-AUDIT.md, 104; unit
+  `tests/unit/passwords.test.mjs` 25 — new; e2e 25 — was 13).**
+  1. The entropy counted passwords the tab never makes: with "at least one of each set" a password without a digit is
+     drawn again, so there are fewer passwords than 89^20. "~130 bits" is 129 (and at 6 characters "~39" is 38); the
+     tab counts the passwords it can make now (inclusion–exclusion, exact) and says the alphabet and the rule under
+     the label.
+  2. A length could only be set with the slider — on a phone 16 or 32 was a matter of luck. A box beside it takes the
+     number (4 – 128; beyond is brought back when the box is left).
+  3. The five copy buttons were all called "Copy" (a screen reader could not tell them apart): "Copy password 1" … 5.
+  Also new: a symbols box (sites that allow only some symbols; what is not a symbol is named and left out), lengths
+  from 4 (a PIN), and a note on where the randomness comes from.

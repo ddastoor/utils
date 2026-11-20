@@ -8,6 +8,8 @@ import { HASHES, HASH_IDS, COMPARE_ALG, algo, type HashAlgo } from '../lib/hashe
 import { parseExpected, isChecksumListName, neededAlgs, verify, unmatchedEntries, fmtDigest, sumsText, sumsName, type DigestFormat, type Expected, type ExpectedList } from '../lib/checksums';
 import { readEncryptedText, readShareLink, encryptedTextFile } from '../lib/sodium-format';
 import { sodium, toB64 } from '../wasm/crypto';
+import { libsodium } from '../wasm/libsodium';
+import { SETS as PW_SETS, MIN_LEN, MAX_LEN, alphabets, cleanSymbols, requiresEach, makePassword, entropyBits, strengthLabel as pwStrength, type PwOptions } from '../lib/passwords';
 import { isMobile } from '../platform';
 
 // ------------------------------------------------------------------ shared
@@ -321,47 +323,64 @@ export const hash: Mount = (root) => {
 };
 
 // ------------------------------------------------------------------ Password generator
-const SETS = { upper: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', lower: 'abcdefghijklmnopqrstuvwxyz', digits: '0123456789', symbols: '!@#$%^&*()-_=+[]{};:,.<>/?~' };
-const AMBIG = /[Il1O0o|`'"]/g;
-
-function strengthLabel(bits: number) {
-  return bits < 40 ? ['Weak', 'err'] : bits < 64 ? ['Fair', 'warn'] : bits < 90 ? ['Strong', 'ok'] : ['Very strong', 'ok'];
-}
-
 export const password: Mount = async (root) => {
-  const na = await sodium();
-  const opts = { upper: true, lower: true, digits: true, symbols: true, ambiguous: false, len: 20, count: 5 };
+  const na = await libsodium();
+  const o: PwOptions = { len: 20, upper: true, lower: true, digits: true, symbols: true, symbolSet: PW_SETS.symbols, avoidLookalikes: false };
+  const count = 5;
   const list = h('div', { class: 'stack' });
   const meter = h('div');
+  const symNote = h('div', { class: 'muted small' });
   const gen = () => {
-    const sets = (Object.keys(SETS) as Array<keyof typeof SETS>).filter((k) => opts[k]).map((k) => (opts.ambiguous ? SETS[k].replace(AMBIG, '') : SETS[k]));
-    if (!sets.length) { clear(list).append(note('Pick at least one character set.', 'warn')); return; }
-    const all = sets.join('');
-    const bits = opts.len * Math.log2(all.length);
-    const [lab, kind] = strengthLabel(bits);
-    clear(meter).append(h('div', { class: `pill pill-${kind}` }, `${lab} · ~${Math.round(bits)} bits of entropy`));
-    clear(list).append(...Array.from({ length: opts.count }, () => {
-      let pw = '';
-      for (;;) {
-        const chars = Array.from({ length: opts.len }, () => all[na.uniform(all.length)]);
-        // require at least one char from each chosen set (when long enough)
-        if (opts.len < sets.length || sets.every((s) => chars.some((c) => s.includes(c)))) { pw = chars.join(''); break; }
-      }
-      return h('div', { class: 'pwrow' }, h('code', { class: 'pw' }, pw), button('', () => copy(pw), { icon: 'Copy', small: true, title: 'Copy' }));
+    const sets = alphabets(o);
+    if (!sets.length) {
+      clear(meter); clear(list).append(note(o.symbols && !cleanSymbols(o.symbolSet).set && !o.upper && !o.lower && !o.digits ? 'The symbols box holds no symbol — type some, or pick another set.' : 'Pick at least one character set.', 'warn'));
+      return;
+    }
+    const bits = entropyBits(o);
+    const [lab, kind] = pwStrength(bits);
+    const size = sets.reduce((n, s) => n + s.length, 0);
+    clear(meter).append(h('div', { class: `pill pill-${kind}` }, `${lab} · ~${Math.round(bits)} bits of entropy`),
+      h('div', { class: 'muted small' }, `${size} characters to choose from${requiresEach(o, sets) ? `, at least one of each of the ${sets.length} sets` : ''}.`));
+    clear(list).append(...Array.from({ length: count }, (_, k) => {
+      const pw = makePassword(o, na.uniform);
+      return h('div', { class: 'pwrow' }, h('code', { class: 'pw' }, pw), button('', () => copy(pw), { icon: 'Copy', small: true, title: `Copy password ${k + 1}` }));
     }));
   };
+  const lenSlider = slider({ label: 'Length', min: MIN_LEN, max: MAX_LEN, value: o.len, onInput: (v) => { o.len = v; lenBox.value = String(v); gen(); } });
+  const lenBox = input({ type: 'number', value: String(o.len), attrs: { min: String(MIN_LEN), max: String(MAX_LEN), inputmode: 'numeric', 'aria-label': 'Length (characters)' } });
+  lenBox.classList.add('pw-len'); lenBox.inputMode = 'numeric';
+  lenBox.addEventListener('input', () => {
+    const v = Math.round(Number(lenBox.value));
+    if (!Number.isFinite(v) || v < MIN_LEN || v > MAX_LEN) return; // finished on change
+    o.len = v; lenSlider.value = v; gen();
+  });
+  lenBox.addEventListener('change', () => {
+    const v = Math.min(MAX_LEN, Math.max(MIN_LEN, Math.round(Number(lenBox.value)) || o.len));
+    lenBox.value = String(v); o.len = v; lenSlider.value = v; gen();
+  });
+  const symBox = input({ value: o.symbolSet, attrs: { 'aria-label': 'Symbols to use', spellcheck: 'false', autocomplete: 'off' } });
+  symBox.addEventListener('input', () => {
+    o.symbolSet = symBox.value;
+    const { dropped } = cleanSymbols(symBox.value);
+    symNote.textContent = dropped ? `Left out (not a symbol): ${[...dropped].map((c) => (c === ' ' ? 'space' : c)).join(' ')}` : '';
+    gen();
+  });
+  const symField = field('Symbols to use (some sites allow only some)', stack(row(symBox, button('Reset', () => { symBox.value = PW_SETS.symbols; symBox.dispatchEvent(new Event('input')); }, { small: true })), symNote));
+  symField.hidden = !o.symbols;
   root.append(
     card(null, stack(
-      slider({ label: 'Length', min: 6, max: 128, value: opts.len, onInput: (v) => { opts.len = v; gen(); } }),
+      h('div', { class: 'pw-length' }, lenSlider, lenBox),
       h('div', { class: 'grid2' },
-        toggle('Uppercase A–Z', opts.upper, (v) => { opts.upper = v; gen(); }),
-        toggle('Lowercase a–z', opts.lower, (v) => { opts.lower = v; gen(); }),
-        toggle('Digits 0–9', opts.digits, (v) => { opts.digits = v; gen(); }),
-        toggle('Symbols !@#…', opts.symbols, (v) => { opts.symbols = v; gen(); }),
-        toggle('Avoid look-alikes (I l 1 O 0)', opts.ambiguous, (v) => { opts.ambiguous = v; gen(); })),
+        toggle('Uppercase A–Z', o.upper, (v) => { o.upper = v; gen(); }),
+        toggle('Lowercase a–z', o.lower, (v) => { o.lower = v; gen(); }),
+        toggle('Digits 0–9', o.digits, (v) => { o.digits = v; gen(); }),
+        toggle('Symbols !@#…', o.symbols, (v) => { o.symbols = v; symField.hidden = !v; gen(); }),
+        toggle('Avoid look-alikes (I l 1 | O 0 o)', o.avoidLookalikes, (v) => { o.avoidLookalikes = v; gen(); })),
+      symField,
       meter)),
     card('Passwords', list),
     actions(button('Generate again', gen, { variant: 'primary', icon: 'RefreshCw' })),
+    note(h('span', null, 'Made on this device from the browser\'s cryptographic random generator (libsodium ', ic('Lock'), ' randombytes_uniform); nothing is sent or kept. Entropy = log2 of the number of passwords these settings allow, each equally likely.')),
   );
   gen();
 };
@@ -377,7 +396,7 @@ export const passphrase: Mount = async (root) => {
   const meter = h('div');
   const gen = () => {
     const bits = opts.n * Math.log2(words.length) + (opts.num ? Math.log2(10) : 0);
-    const [lab, kind] = strengthLabel(bits);
+    const [lab, kind] = pwStrength(bits);
     clear(meter).append(h('div', { class: `pill pill-${kind}` }, `${lab} · ~${Math.round(bits)} bits of entropy`));
     clear(list).append(...Array.from({ length: opts.count }, () => {
       const ws = Array.from({ length: opts.n }, () => words[na.uniform(words.length)]).map((w) => (opts.cap ? w[0].toUpperCase() + w.slice(1) : w));

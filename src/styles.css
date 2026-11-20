@@ -321,6 +321,7 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: 14px; }
 .pw-wrap .input { flex: 1; }
 .pwrow { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface-2); }
 .pw { flex: 1; font-family: var(--mono); font-size: 15px; word-break: break-all; user-select: all; }
+.pw-length { display: flex; align-items: flex-end; gap: 12px; } .pw-length .slider { flex: 1; min-width: 0; } .pw-length .pw-len { width: 84px; flex: none; min-height: 44px; }
 .pill { display: inline-flex; padding: 4px 12px; border-radius: 999px; font-size: 13px; font-weight: 600; background: var(--surface-2); }
 .pill-ok { background: var(--ok-soft); color: var(--ok); }
 .pill-warn { background: var(--warn-soft); color: var(--warn); }

@@ -577,6 +577,15 @@ files in the format of the command-line tool (CRC-32 as .sfv), Download as SHA25
 Random passwords (length, sets, exclude look-alikes, require each set) and diceware passphrases
 (EFF large wordlist, 7776 words, CC-BY 3.0, `public/data/eff_large_wordlist.txt`). Shows entropy bits.
 Randomness from libsodium `randombytes_uniform` (→ `crypto.getRandomValues`).
+**Password Generator as built after the Nov 2026 bug hunt** (`password` in `src/tools/security.ts`, `src/lib/passwords.ts`;
+unit `tests/unit/passwords.test.mjs` 25, e2e `tests/e2e/password.e2e.mjs` 25): randomness from **libsodium.js**
+(`randombytes_uniform`, docs/WASM-AUDIT.md 104; the chunk comes as the tab opens — passwords are shown at once).
+Length 4 – 128 by slider or box; upper, lower, digits, symbols (the symbols box: only printable ASCII that is not a
+letter or digit, each once; what else was typed is named); "Avoid look-alikes" drops I l 1 | O 0 o ` ' ". With two or
+more sets and a length that can hold them, every set is used at least once (a draw that misses one is drawn again, so
+every allowed password is equally likely). The entropy is log2 of the number of passwords the settings allow
+(inclusion–exclusion, BigInt) — Weak < 40, Fair < 64, Strong < 90 bits, Very strong above; the line under it gives the
+alphabet's size and the rule. Five passwords, each with "Copy password n"; a click selects a whole password.
 
 ### Zip
 Create zip (optional AES-256 password, WinZip AE-2 format) from multiple files; extract zip (incl.
@@ -1557,7 +1566,7 @@ stay **public** (the source of the deployed site is then available to every user
 | Engine | Language → wasm | Built by | Used by |
 |---|---|---|---|
 | libsodium 1.0.20 + own MD5/SHA-1/SHA-3/CRC-32 + OpenBSD bcrypt + own CSPRNG helpers (shuffle, sampling, UUID v4/v7 — v7 values always increase: RFC 9562 §6.2 method 2, a random step inside one millisecond, clock steps back of up to 10 s tolerated) + USODIUM1 header | C | **us** (`wasm/crypto`) | passwords, random tools, uuid, mock data, line shuffle; the USODIUM1 header for sodium and sharelink (beside libsodium.js); its hashes (`u_hash_*`) are no longer called (hash-wasm since Nov 2026) |
-| **libsodium.js** — `libsodium-wrappers-sumo` 0.8.4 (libsodium **1.0.22**; the sumo build: the standard one has no Argon2) | C | the libsodium project (official WebAssembly build, embedded in the module) — binding `src/wasm/libsodium.ts`, format `src/lib/usodium.ts`, in `src/workers/crypto.worker.ts` | sodium, sharelink: Argon2id + XChaCha20-Poly1305 secretstream (`docs/WASM-AUDIT.md`, tab 101) |
+| **libsodium.js** — `libsodium-wrappers-sumo` 0.8.4 (libsodium **1.0.22**; the sumo build: the standard one has no Argon2) | C | the libsodium project (official WebAssembly build, embedded in the module) — binding `src/wasm/libsodium.ts`, format `src/lib/usodium.ts`, in `src/workers/crypto.worker.ts` | sodium, sharelink: Argon2id + XChaCha20-Poly1305 secretstream (`docs/WASM-AUDIT.md`, tab 101); password: randombytes_uniform (tab 104) |
 | imgproc (adjustments, resize, lossless orient/crop, filters, matting, warp + homography, doc enhance) | C (own code) | **us** (`wasm/imgproc`) | image tools, scanner, passport, cartoon |
 | metacore (EXIF → JSON, lossless metadata strip JPEG/PNG/WebP, JPEG DPI, image sniffing) | C (own code) | **us** (`wasm/metacore`) | exif, image loading, passport/formphoto DPI |
 | BusyBox 1.38.0 (130 applets) + compat shims | C | **us** (`wasm/busybox`) | terminal, bc console |
@@ -1717,7 +1726,7 @@ Owner: "make the full site faster, more responsive and memory efficient — load
    in `AT_OPEN` in the test): our three small engines (mathcore/crypto/textcore ≤ 155 KB: live results as you
    type), invoice/rent/resume (MuPDF + Noto Sans: the live PDF preview is the main view), markdown (cmark-gfm,
    sample preview), terminal (BusyBox: the shell is ready at once), qr/barcode (zxing-cpp: drawn as you type),
-   caption/watermark/signature (fonts of the first preview), coords (geo.wasm, 36 KB: the sample distance), case
+   caption/watermark/signature (fonts of the first preview), coords (geo.wasm, 36 KB: the sample distance), password (libsodium.js, 0.53 MB: the first passwords), case
    (textkit.wasm, 0.21 MB: the sample sentence in all its conversions), diff (textkit-diff.wasm, 0.69 MB: the sample
    pair compared), cidr/cron/semver/glob/patch (their devcore-<tab>.wasm: the
    sample is computed live), json/jwt/xml/json2types/jsondiff/base64 (their devcore module: the sample is formatted,
@@ -2079,7 +2088,7 @@ npm packages (pinned in `package-lock.json`) are bundled by Vite or copied to `p
 | emojibase-data 18.0.0 (Unicode's emoji list with CLDR names and keywords; shortcodes of GitHub's gemoji and Slack's emoji-data) — a devDependency: `scripts/make-emoji-data.py` cuts it down to `src/lib/emoji-data.json`, which is what ships | MIT (the Unicode data: Unicode License v3) | Emoji & Symbols |
 | onnxruntime-web 1.31.1 | MIT | Text-to-Speech (Kokoro, Piper) |
 | hash-wasm 4.13.0 | MIT | Hash / Checksum, HMAC Generator, TOTP, Password Hash Tool |
-| libsodium-wrappers-sumo 0.8.4 (+ libsodium-sumo; libsodium 1.0.22 compiled to WebAssembly by its author) | ISC | Sodium Encrypt, Encrypted Share Link |
+| libsodium-wrappers-sumo 0.8.4 (+ libsodium-sumo; libsodium 1.0.22 compiled to WebAssembly by its author) | ISC | Sodium Encrypt, Encrypted Share Link, Password Generator |
 | mediabunny | MPL-2.0 | Video Compressor, Audio Recorder (cut without re-encoding) |
 | @biomejs/wasm-web 2.6.8 (Biome's official WebAssembly build) | MIT OR Apache-2.0 | Code Formatter |
 | @dprint/formatter 0.6.0, @dprint/json 0.26.0, dprint-plugin-markup 0.28.0 (markup_fmt) | MIT | Code Formatter |
