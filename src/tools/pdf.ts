@@ -249,13 +249,25 @@ export const pdf2text: Mount = (root, ctx) => {
 
 // ------------------------------------------------------------------ Page numbers
 type Pos = 'bc' | 'br' | 'bl' | 'tc' | 'tr' | 'tl';
+/** A run over the pages of one file: it keeps that file (a PDF chosen meanwhile ends it without a result — it was
+ *  saved under the new file's name), reports progress every ten pages and gives the page a breath, and ends with the
+ *  tab (no download after leaving). Returns false when the run was ended. */
+function pageRun(prog: ReturnType<typeof progress>) {
+  let seq = 0, alive = true;
+  return {
+    start() { const my = ++seq; return { live: () => my === seq && alive, async step(i: number, n: number) { if (i % 10 === 0) { prog.set(i / n, `Page ${i + 1} of ${n}…`); await new Promise((r) => setTimeout(r)); } return my === seq && alive; } }; },
+    newFile() { seq++; prog.done(); },
+    leave() { alive = false; seq++; },
+  };
+}
+
 export const pagenum: Mount = (root, ctx) => {
   let f: LoadedPdf | null = null, pos: Pos = 'bc', format = 'n', start = 1, skipFirst = false, size = 11, marginMm = 10;
-  const info = h('div', { class: 'muted small' });
-  const inp = pdfInput({ onLoad: ([x]) => { f = x; info.textContent = `${x.name}: ${plural(x.pages, 'page')}`; } });
+  const info = h('div', { class: 'muted small' }), prog = progress(), runs = pageRun(prog);
+  const inp = pdfInput({ onLoad: ([x]) => { runs.newFile(); f = x; info.textContent = `${x.name}: ${plural(x.pages, 'page')}`; } });
   const FORMATS: Array<[string, string]> = [['n', '1, 2, 3'], ['page', 'Page 1'], ['pageof', 'Page 1 of 9'], ['slash', '1 / 9'], ['dash', '– 1 –']];
   const label = (n: number, total: number) => ({ n: `${n}`, page: `Page ${n}`, pageof: `Page ${n} of ${total}`, slash: `${n} / ${total}`, dash: `– ${n} –` } as Record<string, string>)[format];
-  root.append(card(null, inp.el, info),
+  root.append(card(null, inp.el, info, prog),
     card('Options', stack(
       field('Position', select<Pos>([['bc', 'Bottom centre'], ['br', 'Bottom right'], ['bl', 'Bottom left'], ['tc', 'Top centre'], ['tr', 'Top right'], ['tl', 'Top left']], pos, (v) => (pos = v))),
       field('Style', select(FORMATS, format, (v) => (format = v))),
@@ -265,11 +277,13 @@ export const pagenum: Mount = (root, ctx) => {
       slider({ label: 'Distance from the edge', min: 4, max: 30, value: marginMm, unit: ' mm', onInput: (v) => (marginMm = v) }))),
     actions(button('Add page numbers', async () => {
       if (!f) throw new Error('Choose a PDF first.');
-      const m = await mupdf(), doc = m.Document.openDocument(f.bytes, 'application/pdf').asPDF()!;
-      if (f.password !== undefined) doc.authenticatePassword(f.password);
-      const numbered = Array.from({ length: f.pages }, (_, i) => i).filter((i) => !(skipFirst && i === 0));
+      const file = f, run = runs.start();
+      const m = await mupdf(), doc = m.Document.openDocument(file.bytes, 'application/pdf').asPDF()!;
+      if (file.password !== undefined) doc.authenticatePassword(file.password);
+      const numbered = Array.from({ length: file.pages }, (_, i) => i).filter((i) => !(skipFirst && i === 0));
       const total = numbered.length + start - 1, mg = (marginMm * 72) / 25.4;
       for (const [k, i] of numbered.entries()) {
+        if (!(await run.step(k, numbered.length))) return;
         const text = label(start + k, total), w = await textWidth(text, size);
         await stampPage(doc, i, (W, H) => {
           const x = pos[1] === 'c' ? (W - w) / 2 : pos[1] === 'r' ? W - mg - w : mg;
@@ -277,17 +291,20 @@ export const pagenum: Mount = (root, ctx) => {
           return `BT /STF ${size} Tf 0 g ${x.toFixed(2)} ${y.toFixed(2)} Td ${pdfString(text)} Tj ET`;
         }, { font: true });
       }
-      await savePdfFile(savePdf(doc, f.password !== undefined ? 'encrypt=none' : ''), `${stem(f.name)}-numbered.pdf`, ctx.isMobile);
+      prog.done();
+      if (!run.live()) return;
+      await savePdfFile(savePdf(doc, file.password !== undefined ? 'encrypt=none' : ''), `${stem(file.name)}-numbered.pdf`, ctx.isMobile);
     }, { variant: 'primary', icon: 'ListOrdered' })));
+  return () => runs.leave();
 };
 
 // ------------------------------------------------------------------ Watermark
 export const watermark: Mount = (root, ctx) => {
   let f: LoadedPdf | null = null, text = 'CONFIDENTIAL', opacity = 25, colour = 'grey', angle = 'diag', tile = false, scale = 100;
-  const info = h('div', { class: 'muted small' });
-  const inp = pdfInput({ onLoad: ([x]) => { f = x; info.textContent = `${x.name}: ${plural(x.pages, 'page')}`; } });
+  const info = h('div', { class: 'muted small' }), prog = progress(), runs = pageRun(prog);
+  const inp = pdfInput({ onLoad: ([x]) => { runs.newFile(); f = x; info.textContent = `${x.name}: ${plural(x.pages, 'page')}`; } });
   const RGB: Record<string, [number, number, number]> = { grey: [0.45, 0.45, 0.45], red: [0.8, 0.1, 0.1], blue: [0.1, 0.25, 0.75], black: [0, 0, 0] };
-  root.append(card(null, inp.el, info),
+  root.append(card(null, inp.el, info, prog),
     card('Watermark', stack(
       field('Text', input({ value: text, onInput: (v) => (text = v) })),
       field('Colour', segmented([['grey', 'Grey'], ['red', 'Red'], ['blue', 'Blue'], ['black', 'Black']], colour, (v) => (colour = v))),
@@ -298,8 +315,9 @@ export const watermark: Mount = (root, ctx) => {
     actions(button('Add watermark', async () => {
       if (!f) throw new Error('Choose a PDF first.');
       if (!text.trim()) throw new Error('Type the watermark text.');
-      const m = await mupdf(), doc = m.Document.openDocument(f.bytes, 'application/pdf').asPDF()!;
-      if (f.password !== undefined) doc.authenticatePassword(f.password);
+      const file = f, run = runs.start();
+      const m = await mupdf(), doc = m.Document.openDocument(file.bytes, 'application/pdf').asPDF()!;
+      if (file.password !== undefined) doc.authenticatePassword(file.password);
       const [r, g, b] = RGB[colour], a = angle === 'diag' ? Math.PI / 4 : 0, c = Math.cos(a), s = Math.sin(a);
       // Latin text is drawn as real (vector) text in Helvetica; other scripts as a transparent PNG made by the browser
       const vector = isLatin1(text);
@@ -312,8 +330,9 @@ export const watermark: Mount = (root, ctx) => {
         img = doc.addImage(new m.Image(new Uint8Array(await (await big.convertToBlob({ type: 'image/png' })).arrayBuffer())));
         imgAspect = big.width / big.height;
       }
-      for (let i = 0; i < f.pages; i++) {
-        const geo = pageGeom(f.doc.loadPage(i)), base = Math.min(geo.W, geo.H);
+      for (let i = 0; i < file.pages; i++) {
+        if (!(await run.step(i, file.pages))) return;
+        const geo = pageGeom(doc.loadPage(i) as any), base = Math.min(geo.W, geo.H);
         const size = (tile ? base / 18 : base / Math.max(6, text.length * 0.62)) * (scale / 100);
         const w = vector ? await textWidth(text, size) : size * 1.4 * imgAspect;
         await stampPage(doc, i, (W, H) => {
@@ -326,7 +345,10 @@ export const watermark: Mount = (root, ctx) => {
           return ops.join('\n');
         }, { font: vector, opacity: opacity / 100, images: img ? { STIM: img } : undefined });
       }
-      await savePdfFile(savePdf(doc, f.password !== undefined ? 'encrypt=none' : ''), `${stem(f.name)}-watermarked.pdf`, ctx.isMobile);
+      prog.done();
+      if (!run.live()) return;
+      await savePdfFile(savePdf(doc, file.password !== undefined ? 'encrypt=none' : ''), `${stem(file.name)}-watermarked.pdf`, ctx.isMobile);
     }, { variant: 'primary', icon: 'Droplet' })));
+  return () => runs.leave();
 };
 

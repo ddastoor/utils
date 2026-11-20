@@ -1123,3 +1123,8 @@ One entry per tab, written before its bug hunt: our module → candidates → ch
 ### 131 – 132. `pdf-unlock`, `pdf-protect` (20 Nov 2026)
 - MuPDF's writer (AES-256 R6, AES-128, RC4 read; `encrypt=none`): nothing to replace. mupdf.js has no call for digital
   signatures; they are found in the form's fields (our glue, `signatureCount`).
+
+### 133 – 135. `pdf2text`, `pdf-pagenum`, `pdf-watermark` (20 Nov 2026)
+- MuPDF (structured text; content streams with Helvetica; images for other scripts drawn by the browser's canvas):
+  nothing to replace. MuPDF has no layout-keeping text mode (poppler's `pdftotext -layout` has one); the PDF → Text
+  option is labelled for what it does.

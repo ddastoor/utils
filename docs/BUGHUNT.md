@@ -43,8 +43,8 @@ Areas with a shared review: the app shell (router, search, favorites, platform h
 | `pdf-unlock` | Unlock PDF | PC + mobile | pdf | ✓ | 1 | 2 | a signed PDF: the unlocked copy no longer proves the signature — said |
 | `pdf-protect` | Protect PDF | PC + mobile | pdf | ✓ | 2 | 4 | signed PDF said; non-ASCII password warned (SASLprep) |
 | `pdf2text` | PDF → Text | PC + mobile | pdf | ✓ | 4 | 3 | page by page with progress; form values listed; option relabelled; empty copy said |
-| `pdf-pagenum` | PDF Page Numbers | PC + mobile | pdf |  |  |  |  |
-| `pdf-watermark` | PDF Watermark | PC + mobile | pdf |  |  |  |  |
+| `pdf-pagenum` | PDF Page Numbers | PC + mobile | pdf | ✓ | 2 | 4 | a run keeps its own file; ends with the tab; progress |
+| `pdf-watermark` | PDF Watermark | PC + mobile | pdf | ✓ | 2 | 4 | a run keeps its own file (sizes were read from the new one); ends with the tab; progress |
 | `epub` | PDF → EPUB | PC only | docs2 |  |  |  |  |
 | `sheet` | CSV / Excel | PC only | docs2 |  |  |  |  |
 | `markdown` | Markdown Editor | PC + mobile | docs2 |  |  |  |  |
@@ -1806,3 +1806,14 @@ Reference for the five finance tabs: **mpmath at 60 digits** (`scripts/make-fina
      hyphens at line ends, nothing more — it is labelled so now.
   4. Copy and "Download .txt" of a PDF without text (a scan) copied nothing / saved an empty file; both say why.
   Also: two checks of the suite passed on an empty box (the text is made in the background now) — they wait for it.
+
+- **`pdf-pagenum` (tab 137, 2 bugs; MuPDF; e2e 15 — was 11; `raceRun` / `makeLong` in `tests/lib/pdfannot.mjs`).**
+  1. A PDF chosen while another was being numbered received the first one's pages under its own name (the run read
+     "the current file" when saving); a run keeps its own file and a newer file ends it — `pageRun` in `src/tools/pdf.ts`,
+     shared with the Watermark.
+  2. Leaving the tab during a run still downloaded the result afterwards, and a long PDF froze the tab without a word;
+     the run ends with the tab, shows "Page n of N…" and gives the page a breath every ten pages.
+- **`pdf-watermark` (tab 138, 2 bugs; MuPDF; e2e 14 — was 10).**
+  1. The same two, and worse: the page sizes were read from the PDF chosen meanwhile while the pages were stamped
+     on the old one (a watermark placed for the wrong page size).
+  2. As Page Numbers: the run ends with the tab; progress on long PDFs.

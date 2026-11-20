@@ -2,6 +2,7 @@
 // including a page with /Rotate 90 (number must sit at the visual bottom) and a protected input.
 import { writeFileSync, readFileSync } from 'node:fs';
 import { pdfInfo, renderGrey } from '../lib/pdfcheck.mjs';
+import { makeLong, raceRun } from '../lib/pdfannot.mjs';
 const P = (n) => new URL(`../fixtures/pdf/${n}`, import.meta.url).pathname;
 export default async ({ base, page: newPage, ok, download, tmp, devices }) => {
   const page = await newPage();
@@ -44,6 +45,13 @@ export default async ({ base, page: newPage, ok, download, tmp, devices }) => {
   const i4 = await pdfInfo(await go());
   ok(!i4.encrypted && /encryption test/.test(i4.list[0].text) && /– 1 –/.test(i4.list[0].text), 'protected PDF numbered (– 1 –), result opens without password');
   ok(page.errors.length === 0, `no page errors: ${page.errors.join(' | ')}`);
+  // a long PDF: progress shown; another PDF chosen during the run gets no result (it got the first one's pages under
+  // its own name); leaving the tab during a run downloads nothing afterwards
+  const race = await raceRun(newPage, base, '#/pdf-pagenum', 'Add page numbers', await makeLong(tmp, 900), P('crazyones.pdf'));
+  ok(race.progress, 'a 900-page PDF: "Page n of 900…" while it runs');
+  ok(race.afterSwitch === 0, `another PDF chosen during the run: no download (${race.afterSwitch})`);
+  ok(race.afterLeave === 0, `the tab left during a run: no download afterwards (${race.afterLeave})`);
+  ok(race.errors.length === 0, `no page errors in those runs: ${race.errors.join(' | ')}`);
   const phone = await newPage({ ...devices['iPhone 13'] });
   await phone.goto(base + '#/pdf-pagenum');
   ok(await phone.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'phone: no horizontal scroll');

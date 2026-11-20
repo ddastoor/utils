@@ -59,3 +59,34 @@ export async function makeSigned(tmp, password) {
   writeFileSync(out, d.saveToBuffer(password ? `encrypt=aes-256,user-password=${password},owner-password=${password}x` : 'compress').asUint8Array());
   return out;
 }
+
+/** A long PDF (vicksburg-ocr.pdf's six pages again and again) for runs that must end when another PDF is chosen. */
+export async function makeLong(tmp, pages = 300) {
+  const m = await import('mupdf');
+  const src = m.Document.openDocument(readFileSync(P('vicksburg-ocr.pdf')), 'application/pdf').asPDF(), big = new m.PDFDocument();
+  for (let k = 0; k < pages; k++) big.graftPage(-1, src, k % 6);
+  const out = `${tmp}/long-${pages}.pdf`; writeFileSync(out, big.saveToBuffer('compress').asUint8Array());
+  return out;
+}
+
+/** In the tab at `route`: start `button` on a long PDF, then choose another PDF; then start it again and leave the tab.
+ *  Returns how many downloads came (none may) and whether progress was shown. */
+export async function raceRun(newPage, base, route, button, longPdf, otherPdf) {
+  const p = await newPage();
+  let downloads = 0; p.on('download', () => downloads++);
+  await p.goto(base + route);
+  await p.locator('input[type=file]').first().setInputFiles(longPdf);
+  await p.waitForFunction(() => /\d+ pages/.test(document.body.innerText), null, { timeout: 15000 });
+  await p.getByRole('button', { name: button }).click();
+  const progress = await p.waitForFunction(() => /Page \d+ of \d+…/.test(document.body.innerText), null, { timeout: 10000 }).then(() => true, () => false);
+  await p.locator('input[type=file]').first().setInputFiles(otherPdf);
+  await p.waitForTimeout(5000);
+  const afterSwitch = downloads;
+  await p.locator('input[type=file]').first().setInputFiles(longPdf);
+  await p.waitForFunction(() => /\d{3,} pages/.test(document.body.innerText), null, { timeout: 15000 });
+  await p.getByRole('button', { name: button }).click();
+  await p.waitForFunction(() => /Page \d+ of \d+…/.test(document.body.innerText), null, { timeout: 10000 }).catch(() => {}); // running
+  await p.goto(base + '#/');
+  await p.waitForTimeout(5000);
+  return { afterSwitch, afterLeave: downloads - afterSwitch, progress, errors: p.errors };
+}
