@@ -308,8 +308,9 @@ export default async ({ base, page: newPage, ok, info, download }) => {
   // inside its own compiled code, always at the same place — when Stop ended a command and Run started a new FFmpeg
   // (4 runs of 4, the headless shell of Chrome for Testing 153.0.8010.12; never in a short session; a 2 s pause before
   // the new FFmpeg did not help). A page cannot make the browser segfault: docs/BUGHUNT.md, "FFmpeg after a long session".
-  const longErrors = page.errors;
-  page = await newPage({ viewport: { width: 1280, height: 1100 } }); await page.goto(`${base}#/ffmpeg`);
+  // (E2E_FF_SAME_PAGE=1 keeps the long session's page, to look at that crash again — with E2E_CHANNEL=chromium too)
+  const longErrors = process.env.E2E_FF_SAME_PAGE ? [] : page.errors;
+  if (!process.env.E2E_FF_SAME_PAGE) { page = await newPage({ viewport: { width: 1280, height: 1100 } }); await page.goto(`${base}#/ffmpeg`); }
   await choose(M('clip.mp4'), /Video: h264/);
   // (Stop once FFmpeg is inside its command: a fixed 1.5 s wait raced the end of a job that takes 1.6 s on a warm engine)
   await task('Stabilise a shaky video');
@@ -322,8 +323,13 @@ export default async ({ base, page: newPage, ok, info, download }) => {
   // ended after the load and ran to the end anyway
   await page.locator('.actions').getByRole('button', { name: 'Run FFmpeg' }).click();
   await page.waitForTimeout(150); await page.locator('.actions').getByRole('button', { name: 'Stop' }).click();
-  await page.waitForTimeout(12000);
-  ok(await page.getByText('Stopped.', { exact: true }).isVisible() && !(await page.locator('.ff-out').count()) && !(await page.getByText(/^Working/).first().isVisible().catch(() => false)), 'Stop while FFmpeg loads: "Stopped." — and the job does not run after the load (it did)');
+  // "Stopped." comes once FFmpeg has loaded (the job ends at its next step) — then nothing may run: no output, no "Working"
+  // (a fixed 12 s wait was too short for a load after a long session on the full Chromium, and could not see a job that
+  // went on later)
+  const stoppedSaid = await page.getByText('Stopped.', { exact: true }).waitFor({ timeout: 60000 }).then(() => true, () => false);
+  await page.waitForTimeout(5000);
+  const outVisible = await page.locator('.ff-out').evaluateAll((els) => els.some((e) => e.offsetParent)), working = await page.getByText(/^Working/).first().isVisible().catch(() => false);
+  ok(stoppedSaid && !outVisible && !working && await page.getByText('Stopped.', { exact: true }).isVisible(), `Stop while FFmpeg loads: "Stopped." — and the job does not run after the load (it did) (said: ${stoppedSaid}, output: ${outVisible}, working: ${working})`);
   // a new file while the command runs: the job ends, and its note stays while the new file is read (the probe loads a
   // new FFmpeg, and the loader wrote over the note, then cleared it)
   await page.locator('.actions').getByRole('button', { name: 'Run FFmpeg' }).click();
