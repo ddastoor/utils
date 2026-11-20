@@ -1579,6 +1579,40 @@ picture (handled with `-t`). Replacing it with our own build of current FFmpeg s
 Tests: clip.mp4/tone.wav/tone.mp3 → WebM plays, AAC copy, MP3 440 Hz, no-sound copy, fast trim ≈ 1 s and exact 1.00 s,
 426×240, rotate 360×640, square crop, GIF89a 320 px, 2× = 1.5 s, 3 frames zipped, merge 660 Hz, raw hflip, bad filter
 reported, loudness changed, waveform 1280×720, picture + sound 2 s.
+**21 new jobs (owner, 20 Nov 2026 — todo.md item 2; the list = the owner's six + popular FFmpeg uses found on the
+web, sources in docs/BUGHUNT.md).** The jobs are `src/lib/ffjobs.ts` (pure: `buildJob(job, options, ctx)` → arguments,
+output names, text files to write, fonts, `jpeg`; every refusal a sentence — no picture, no sound, a time after the
+end, a reverse too long for memory (`maxReverseSeconds`: 700 MB of frames), fades longer than the clip, a timelapse
+under half a second …; `parseProbe` reads `ffmpeg -i`). The task list is a native `<select>` in eight groups:
+**Convert and extract** (convert, extract audio, remove audio, picture at a moment, extract frames, contact sheet —
+`fps=n/length,scale=320:-2,tile`, GIF, audio → MP4), **Cut and join** (trim, cut a part out — trim / atrim + concat,
+join clips — every clip fitted to the first one's size with black bars at 30 fps, silence for a clip without sound,
+or "Fast" with the concat demuxer when the clips match; a clip list with move / remove, split into equal parts — the
+segment muxer, no re-encoding, so parts start at key frames; loop n times — `-stream_loop`, boomerang, reverse),
+**Size and shape** (compress, resize, crop, fit to 9:16 / 16:9 / 1:1 / 4:5 at 720 px with a blurred copy or bars,
+rotate / flip, frame rate), **Picture** (colours — `eq` brightness / contrast / saturation, black and white;
+stabilise — `deshake` (the core has no vid.stab); clean up grain — `hqdn3d` light / medium / strong; deinterlace —
+`bwdif`; fade in / out — `fade` + `afade` from the probed length; text — an ASS script drawn by libass in Noto Sans
+(our vendored TTFs written to /fonts), position / size / colour / box; logo — `overlay` of a picture scaled to 10 – 30 %
+of the width, a corner, an opacity; picture-in-picture — a second video in a corner, `eof_action=pass`), **Speed**
+(speed up / slow down, timelapse 8× – 60× without sound), **Sound** (volume 25 – 300 %, loudness, remove silence — the
+ends, or every pause longer than 0.5 / 1 / 2 s (FFmpeg 5.1's `silenceremove`; 6.1 reads `stop_duration` differently),
+add audio — replace, or music under the sound with `amix normalize=0` and the music looped; sound settings — mono /
+stereo, 44.1 / 48 kHz), **Subtitles** (burn in a .srt / .vtt / .ass file or the video's own track — libass with Noto
+Sans; add a file as a track — mov_text in MP4, SRT / ASS in MKV, a language; extract the first track as SRT / WebVTT /
+ASS; picture subtitles (DVD / Blu-ray) are refused with the reason), **Expert** (own arguments).
+- **This core's JPEG encoder crashes the page.** ffmpeg.wasm's mjpeg overflows a buffer when it spends many bits on a
+  block (`-q:v 3` on a 640 × 360 frame, `-q:v 4` on a detailed one): the page dies, or memory is damaged for the jobs
+  after it (that was the "function signature mismatch" of the subtitle renderer seen in the e2e suite). So FFmpeg
+  writes PNG and **MozJPEG** (jSquash, the app's encoder) makes every JPEG (thumbnail, contact sheet, frames) at quality
+  90; "Your own arguments" refuses JPEG output from FFmpeg with the reason. (The tab's old "Extract frames → JPEG" used
+  `-q:v 2` and crashed the page on ordinary videos.)
+- A failed job gets a new core (cheap insurance); every other job runs on the same one. A new core for every job was
+  tried and dropped: slow, and it crashed the page run after run.
+- Tests: unit `tests/unit/ffjobs.test.mjs` (110) — every job's command run by a **native FFmpeg 6.1** (`apt install
+  ffmpeg`) on the fixtures and read back with ffprobe, decoded pixels and sound levels; every refusal; the probe reader
+  against ffprobe. e2e `tests/e2e/ffmpeg.e2e.mjs` runs every new job on ffmpeg.wasm in the browser. Fixtures
+  `tests/fixtures/media/` subs.srt, clip-subs.mkv, silent-320.mp4, pauses.wav, kf6.mp4.
 
 ### PDF → EPUB (PC) — BUILT (`src/tools/epub/epub.ts`, engine `src/lib/pdf2epub.ts`; e2e `tests/e2e/epub.e2e.mjs` 27)
 As built: MuPDF structured text (lines with font size/weight; raster image blocks) → pieces of a justified line on

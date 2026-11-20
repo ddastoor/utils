@@ -1604,6 +1604,26 @@ Reference for the five finance tabs: **mpmath at 60 digits** (`scripts/make-fina
   2. "Move photo 1 earlier" was a button that did nothing; it is off.
   Also: an error while drawing the preview is shown under it instead of an unhandled rejection.
 
+- **FFmpeg tab — 21 new jobs (todo.md item 2, the owner's choice of 20 Nov 2026; not yet the tab's own bug hunt, which
+  comes with area "video").** The job list: the owner's six (join clips; subtitles burn / add / extract; logo or text
+  on a video; volume; reverse; a thumbnail at a chosen time) and the popular FFmpeg uses found on the web that no tab
+  had (fades, fit to a shape with a blurred background, remove silence, picture-in-picture, loop / boomerang,
+  stabilise, denoise, contact sheet, timelapse, split into parts, sound settings, colours / black and white, cut a part
+  out, background music, deinterlace). **Sources** (20 Nov 2026): cheat sheets and guides —
+  https://cloudinary.com/blog/questions/what-are-the-most-useful-ffmpeg-command-line-options/ ,
+  https://videoproc.com/resource/ffmpeg-commands.htm , https://www.shotstack.io/learn/how-to-use-ffmpeg/ ,
+  https://img.ly/blog/ultimate-guide-to-ffmpeg/ , https://ostechnix.com/20-ffmpeg-commands-beginners ,
+  https://techearl.com/ffmpeg-commands-cheat-sheet , https://github.com/rendi-api/ffmpeg-cheatsheet ,
+  https://dev.to/alexshev/8-ffmpeg-recipes-i-use-every-week-that-most-developers-dont-know-exist-5458 ; FFmpeg GUIs —
+  https://corz.org/windows/software/ffe/ , https://github.com/OPS-Solutions/SimpleVideoEditor/ ,
+  https://www.linuxlinks.com/edconv-user-friendly-ffmpeg-gui/ ; creators' and filter guides —
+  https://shotstack.io/learn/blur-sides-vertical-video/ , https://www.junian.dev/blog/ffmpeg-vertical-video-blur/ ,
+  https://sumguy.pages.dev/ffmpeg-advanced-video-audio-manipulations , https://dt.iki.fi/ffmpeg-tips-tricks ,
+  https://www.mintlify.com/FFmpeg/FFmpeg/reference/video-filters , https://www.mintlify.com/FFmpeg/FFmpeg/reference/audio-filters .
+  **Bug found on the way (1):** the tab's "Extract frames → JPEG" used `-q:v 2`, and this core's JPEG encoder overflows
+  a buffer at high quality — the page crashed on ordinary videos (the old suite tested PNG frames only). Every JPEG is
+  MozJPEG's now; own arguments refuse JPEG from FFmpeg. Unit `tests/unit/ffjobs.test.mjs` 110 (new), e2e +the new jobs.
+
 - **`exif` (tab 122, 8 bugs; engine replaced: ExifTool 13.42 on zeroperl, in a worker — docs/WASM-AUDIT.md, 120; unit
   `tests/unit/exiftool.test.mjs` 87 — new, held to the native exiftool and Pillow; e2e 33 — was 14).**
   1. **An iPhone HEIC photo with its position said "This photo has no EXIF metadata (no camera details or
