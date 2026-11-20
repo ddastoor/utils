@@ -1,5 +1,5 @@
 // Promise wrapper around the hash worker (src/workers/hash.worker.ts). `stopHashing()` ends the worker at once.
-import { trackWorker } from '../lifecycle';
+import { trackWorker, releaseNow } from '../lifecycle';
 
 let worker: Worker | null = null, seq = 0;
 type Pending = { resolve: (v: Record<string, string>) => void; reject: (e: Error) => void; onProgress?: (done: number, ms: number) => void };
@@ -23,14 +23,15 @@ function w() {
 /** The digests (lower-case hex) of a file or text for each algorithm id of src/lib/hashes.ts. */
 export function hashData(data: Blob, algs: string[], onProgress?: (done: number, ms: number) => void): Promise<Record<string, string>> {
   const id = ++seq;
-  return new Promise((resolve, reject) => { pending.set(id, { resolve, reject, onProgress }); w().postMessage({ id, data, algs }); });
+  const wk = w(); // first: making a worker may end an old one, and that clears what is pending
+  return new Promise((resolve, reject) => { pending.set(id, { resolve, reject, onProgress }); wk.postMessage({ id, data, algs }); });
 }
 
 export class Stopped extends Error {}
 /** Ends a hashing run at once (the worker is terminated; the next run starts a new one). */
 export function stopHashing() {
   if (!worker) return;
-  worker.terminate();
-  const ps = [...pending.values()]; pending.clear(); worker = null;
+  const ps = [...pending.values()]; pending.clear();
+  releaseNow('hash-worker'); // terminates it and forgets it (worker = null)
   for (const p of ps) p.reject(new Stopped('Stopped.'));
 }

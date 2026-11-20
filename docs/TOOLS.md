@@ -54,8 +54,8 @@ Generated from `src/registry.ts` by `npm run docs` — do not edit by hand.
 |---|---|---|---|---|
 | `pgp` | OpenPGP | PC + mobile | Keys, encrypt, decrypt, sign and verify (GnuPG compatible). | verify signature, signed message, encrypt for someone, gpg encrypt, pgp, gpg, gnupg, openpgp, … |
 | `sodium` | Sodium Encrypt | PC + mobile | Password-encrypt files or text (Argon2id + XChaCha20). | encrypt, decrypt, password, libsodium, argon2, xchacha20, secure, lock file, … |
-| `sharelink` | Encrypted Share Link | PC + mobile | Turn a secret message into a password-protected link. | share, link, secret, message, encrypted, url, send password, note |
-| `hash` | Hash / Checksum | PC + mobile | MD5, SHA-1/256/512, SHA-3, BLAKE2b, CRC-32 of files or text. | hash, checksum, md5, sha1, sha256, sha512, sha3, blake2, … |
+| `sharelink` | Encrypted Share Link | PC + mobile | Turn a secret message into a password-protected link. | share, link, secret, message, encrypted, url, send password, note, … |
+| `hash` | Hash / Checksum | PC + mobile | SHA-256, MD5, SHA-3, BLAKE2/3, CRC, xxHash of files or text — and check a download against its checksum. | hash, checksum, md5, sha1, sha256, sha512, sha224, sha384, … |
 | `password` | Password Generator | PC + mobile | Strong random passwords. | password, generate, random, strong, secure, pin |
 | `passphrase` | Passphrase Generator | PC + mobile | Memorable diceware passphrases. | passphrase, diceware, words, memorable, eff, password |
 

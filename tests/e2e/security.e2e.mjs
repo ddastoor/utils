@@ -24,7 +24,7 @@ export default async ({ base, page: newPage, ok }) => {
 
   await page.goto(base + '#/hash');
   await page.getByRole('radio', { name: 'Text' }).click();
-  await page.locator('textarea').fill('abc');
+  await page.locator('textarea[aria-label="Text to hash"]').fill('abc');
   await page.getByRole('button', { name: 'Compute' }).click();
   await page.waitForSelector('.hashval', { timeout: 20000 });
   const vals = await page.locator('.hashval').allTextContents();

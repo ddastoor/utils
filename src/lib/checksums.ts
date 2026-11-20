@@ -93,6 +93,11 @@ export function parseExpected(text: string, listName?: string): ExpectedList {
       const d = readDigest(line); pendingLine = 0;
       if (d) { push({ line: n, hex: d, name: pendingName, alg: pendingAlg }); return; }
     }
+    // a checksum written in groups ("ba7816bf 8f01cfea …", as some pages print it): the groups together
+    if (/^(?:0x)?[0-9a-f]+(?:[ :][0-9a-f]+)+$/i.test(line)) {
+      const d = readDigest(line.replace(/[ :]/g, ''));
+      if (d) { pendingLine = 0; push({ line: n, hex: d }); return; }
+    }
     // web-page integrity: sha256-… sha384-… sha512-… (one or several in an integrity="…" attribute)
     const sri = [...line.matchAll(/(?:^|[\s"'=])(sha256|sha384|sha512)-([A-Za-z0-9+/]+={0,2})(?=$|[\s"'>])/gi)];
     if (sri.length) {

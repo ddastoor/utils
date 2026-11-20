@@ -58,7 +58,7 @@ Areas with a shared review: the app shell (router, search, favorites, platform h
 | `pgp` | OpenPGP | PC + mobile | security-codes | ✓ | 8 | 61 | a 2nd recipient was dropped (library reads 1 armored block); stored file name; armor inside e-mail; errors in words; key IDs; fingerprint+date; RFC 9580 vectors; gpg both ways. Engine kept (rPGP semantics layer experimental) |
 | `sodium` | Sodium Encrypt | PC + mobile | security-codes | ✓ | 5 | 53 | engine → libsodium.js (sumo, libsodium 1.0.22) + crypto.wasm header; pasted text in every form (atob errors), .txt files, progress during Argon2; PyNaCl + cross-engine tests |
 | `sharelink` | Encrypted Share Link | PC + mobile | security-codes | ✓ | 10 | 32 | engine as sodium (libsodium.js + crypto.wasm header); links read as they arrive (cut, changed, trailing full stop, %-escapes, other site's d=), password twice, long-link warning, autocomplete, Enter |
-| `hash` | Hash / Checksum | PC + mobile | security-codes |  |  |  |  |
+| `hash` | Hash / Checksum | PC + mobile | security-codes | ✓ | 10 | 133 | engine → hash-wasm (existing wasm, 23 algorithms, own worker, Stop); expected checksums in every common form, checksum lists, auto-added algorithms, secure file comparison; crypto-client ordering fix |
 | `password` | Password Generator | PC + mobile | security-codes |  |  |  |  |
 | `passphrase` | Passphrase Generator | PC + mobile | security-codes |  |  |  |  |
 
@@ -1327,3 +1327,33 @@ Reference for the five finance tabs: **mpmath at 60 digits** (`scripts/make-fina
   9. The recipient's password box was marked as a new password: Chrome offered to make up a strong password where
      the one that was sent has to be typed.
   10. Enter in the recipient's password box did nothing; it decrypts now.
+
+- **`hash` (tab 103, 10 bugs; engine: hash-wasm 4.13 — an existing WebAssembly module, replacing crypto.wasm's hashes —
+  docs/WASM-AUDIT.md, 103; unit `tests/unit/hash.test.mjs` 99 — new; e2e 40 — was 12).**
+  1. A checksum copied as a line of sha256sum / md5sum output ("e3b0…  ubuntu.iso") never matched: the spaces were
+     removed and the file name was glued onto the digits. Every common form is read now — sha*sum, b2sum, b3sum and
+     xxhsum lines (also `--tag`), openssl dgst, .sfv, certutil, PowerShell's Get-FileHash, "SHA-256: …" on a download
+     page, Base64 (`--base64`, `sha384-…` integrity values).
+  2. A checksum of an algorithm that was not chosen (a SHA-256 checksum with SHA-256 switched off) gave "No algorithm
+     matches the expected checksum ✗" — which reads as a damaged download. The usual algorithm of that length, or the
+     one the text names, is worked out as well now, and the tab says so.
+  3. A SHA3-256 checksum, checked with SHA-256, gave the same ✗ without a word that 64 digits can be five other
+     hashes; they are named now, with "Try those too".
+  4. Words in the box ("the checksum is on the website") gave ✗ too; "No checksum found in what was pasted" now, and
+     lines that cannot be read are named.
+  5. Changing the expected checksum after Compute left the old verdict on screen; it is checked again at once (and
+     the tab says when Compute has to work out another algorithm).
+  6. Two files with only CRC-32 chosen were called "identical" when their CRC-32 was the same — anyone can make two
+     different files with the same CRC-32 (the suite does). Files are compared by a secure hash now (BLAKE3 on the
+     side when only weak ones are chosen), and the tab says by which.
+  7. With three or more files nothing was compared; the identical ones are named now.
+  8. A checksum list (SHA256SUMS) could not be used to check the files it lists: it is read when chosen with the files
+     or pasted, each file is checked against its own line (by name, also through a path or another case), with a
+     summary and the listed files that were not chosen.
+  9. A large file (an ISO of several GB) could not be stopped; Stop ends the run.
+  10. (The crypto client, found here.) A call made after its worker had crashed was never answered: making the new
+      worker ended the old one, and that cleared the call just registered. The worker is made first now (the new hash
+      client had the same fault after Stop, and the suite caught it).
+  Also new: 14 more algorithms (SHA-224 / 384, SHA3-224 / 384, Keccak-256, BLAKE2s, BLAKE3, RIPEMD-160, CRC-32C, CRC-64,
+  Adler-32, xxHash64, XXH3, XXH128) under "More algorithms"; text hashed as it is typed; hex / HEX / Base64; progress
+  with speed; a checksum list of the files written as the tools write it (Download as SHA256SUMS, B2SUMS …).

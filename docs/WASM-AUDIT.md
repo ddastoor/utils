@@ -824,3 +824,23 @@ One entry per tab, written before its bug hunt: our module → candidates → ch
 - **Decision:** stays on entry 101's engines. What the tab adds is reading a link as it arrives after a trip through
   other apps (`readShareLink` in `src/lib/sodium-format.ts`: string glue on the browser's `atob`) — TypeScript, as
   recorded for the reading of typed input in §3a.
+
+### 103. `hash` — Hash / Checksum (20 Nov 2026)
+- **Ours before:** crypto.wasm — our C for MD5, SHA-1, SHA-3, CRC-32 and libsodium's SHA-256 / SHA-512 / BLAKE2b,
+  behind one `u_hash_*` interface, run in the crypto worker.
+- **Candidate:** **hash-wasm 4.13.0** (MIT; Dani Biró; about ten million downloads a month; already in the app for the
+  HMAC, TOTP and password-hash tabs, entry 58 ff.) — hand-tuned C compiled to WebAssembly, one small binary per
+  algorithm embedded in the package, streaming. It covers all nine algorithms the tab offered and fourteen more that
+  people meet next to them: SHA-224 / 384, SHA3-224 / 384, Keccak-256, BLAKE2s, BLAKE3, RIPEMD-160, CRC-32C, CRC-64
+  (XZ), Adler-32, xxHash64, XXH3, XXH128.
+- **Decision (rule 1):** **the tab moves to hash-wasm**, in a worker of its own (`src/workers/hash.worker.ts`, 143 KB,
+  only the algorithms of `src/lib/hashes.ts` bundled; fetched with the first Compute or the first typed text; Stop =
+  terminate). Nothing the owner asked for is left out, so no supplement is needed; reading expected checksums and
+  writing checksum lists is string glue (`src/lib/checksums.ts`, §3a). crypto.wasm's `u_hash_*` functions are no
+  longer called by the app (its unit suite still checks them); they go when crypto.wasm is next rebuilt (with the
+  password tabs' entries).
+- **Evidence:** 38 inputs × 23 algorithms equal to implementations that share no code with hash-wasm — Python's
+  hashlib (OpenSSL 3.5), zlib, pycryptodomex (Keccak), the `blake3` package (the BLAKE3 team's Rust code), `xxhash`
+  (Yann Collet's C), `crc32c`, and CRC-64 cross-checked with liblzma (`scripts/make-hash-reference.py`); whole and in
+  odd pieces; the tab's checksum lists accepted by `sha256sum -c`, `md5sum -c`, `b2sum -c`, `xxhsum -c`,
+  `rhash --check`; in the browser the same 23 digests for texts and a 3 MiB file.

@@ -24,7 +24,8 @@ function w() {
 
 function call<T>(msg: any, onProgress?: (f: number | null, t: string) => void): Promise<T> {
   const id = ++seq;
-  return new Promise<T>((resolve, reject) => { pending.set(id, { resolve, reject, onProgress }); w().postMessage({ ...msg, id }); });
+  const wk = w(); // first: replacing a crashed worker ends the old one, and that clears what is pending
+  return new Promise<T>((resolve, reject) => { pending.set(id, { resolve, reject, onProgress }); wk.postMessage({ ...msg, id }); });
 }
 
 export const STRENGTH = {

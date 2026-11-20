@@ -54,6 +54,8 @@ export default async (t, { load, root }) => {
   t.eq(one(`0x${SHA}`), [[SHA, null, null]], '0x in front');
   t.eq(one(SHA.match(/../g).join(' ')), [[SHA, null, null]], 'bytes apart by spaces (old certutil)');
   t.eq(one(SHA.match(/../g).join(':')), [[SHA, null, null]], 'bytes apart by colons (openssl -c)');
+  t.eq(one(SHA.match(/.{8}/g).join(' ')), [[SHA, null, null]], 'groups of eight digits apart by spaces (it was read as a CRC-32 of a file named after the rest)');
+  t.eq(one(`${SHA}  0123abcd`), [[SHA, '0123abcd', null]], '… but a file whose name is hex digits stays a file');
   t.eq(one('47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU='), [[SHA, null, null]], 'Base64 (sha256sum --base64)');
   t.eq(one('47DEQpj8HBSa-_TImW-5JCeuQeRkm5NMpJWZG3hSuFU'), [[SHA, null, null]], 'URL-safe Base64 without padding');
   t.eq(one(`SHA-256: ${SHA}`), [[SHA, null, 'SHA-256']], 'a download page: "SHA-256: …" names the algorithm');

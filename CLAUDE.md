@@ -550,6 +550,28 @@ box. "New message" goes back to the composer.
 Algorithms: MD5, SHA-1 (legacy, labelled), SHA-256, SHA-512, SHA3-256, SHA3-512, BLAKE2b-256,
 BLAKE2b-512, CRC-32. Streaming (large files), progress, paste an expected checksum to verify, compare
 two files, hash typed text.
+**As built after the Nov 2026 bug hunt** (`hash` in `src/tools/security.ts`; algorithms `src/lib/hashes.ts`, expected
+checksums and lists `src/lib/checksums.ts`, worker `src/workers/hash.worker.ts` + `src/lib/hash-client.ts`; unit
+`tests/unit/hash.test.mjs` 99, e2e `tests/e2e/hash.e2e.mjs` 40; reference `python3 scripts/make-hash-reference.py` —
+needs `pip install pycryptodomex blake3 xxhash crc32c`; the unit and e2e suites also run sha*sum, b2sum, cksum, openssl,
+and — where installed — `xxhsum` and `rhash` (`apt install xxhash rhash`)). **Engine: hash-wasm 4.13** (docs/WASM-AUDIT.md,
+103) in its own worker, fetched with the first Compute or the first typed text; **Stop** ends a run. 23 algorithms: the
+nine above, and under "More algorithms" SHA-224, SHA-384, SHA3-224, SHA3-384, Keccak-256, BLAKE2s-256, BLAKE3,
+RIPEMD-160, CRC-32C, CRC-64 (XZ), Adler-32, xxHash64, XXH3-64, XXH128 (each chip's tooltip says where it is used).
+Files are read 4 MiB at a time (progress with bytes and speed); text is hashed as it is typed (UTF-8). Shown as hex,
+HEX or Base64; Copy gives what is shown. **The expected checksum** box (or a checksum list chosen with the files —
+SHA256SUMS, *.sha256, *.md5, *.sfv, B2SUMS …, read and not hashed) takes a checksum as people paste it: hex in any case,
+in groups or bytes apart, `0x`, Base64 / URL-safe Base64 (16 bytes and more), lines of sha*sum / b2sum / b3sum /
+xxhsum (also `--tag` and `*binary` and coreutils' escaped names), openssl dgst, .sfv, certutil -hashfile, Get-FileHash
+(table and list), `sha384-…` integrity values, and a download page's sentence ("SHA-256: …"). Lines with a file name
+check that file (by the name as written, its last part, then without regard to case); a list's summary names the
+files that do not match and the listed files that were not chosen. An algorithm the checksum names, or the usual one
+of its length (8 → CRC-32, 16 → xxHash64, 32 → MD5, 40 → SHA-1, 56 → SHA-224, 64 → SHA-256, 96 → SHA-384, 128 → SHA-512)
+is worked out as well when not chosen, and the tab says so; a mismatch names the other algorithms of that length with
+"Try those too"; the verdict follows the box as it changes. **Two or more files** are compared by size and a secure
+hash (BLAKE3 on the side when only weak ones are chosen) and the identical ones named. **Checksum list** card: the
+files in the format of the command-line tool (CRC-32 as .sfv), Download as SHA256SUMS, MD5SUMS, B2SUMS, B3SUMS …
+(`sha256sum -c` accepts it).
 
 ### Passwords
 Random passwords (length, sets, exclude look-alikes, require each set) and diceware passphrases
@@ -1534,7 +1556,7 @@ stay **public** (the source of the deployed site is then available to every user
 
 | Engine | Language → wasm | Built by | Used by |
 |---|---|---|---|
-| libsodium 1.0.20 + own MD5/SHA-1/SHA-3/CRC-32 + OpenBSD bcrypt + own CSPRNG helpers (shuffle, sampling, UUID v4/v7 — v7 values always increase: RFC 9562 §6.2 method 2, a random step inside one millisecond, clock steps back of up to 10 s tolerated) + USODIUM1 header | C | **us** (`wasm/crypto`) | hash, passwords, random tools, uuid, mock data, line shuffle; the USODIUM1 header for sodium and sharelink (beside libsodium.js) |
+| libsodium 1.0.20 + own MD5/SHA-1/SHA-3/CRC-32 + OpenBSD bcrypt + own CSPRNG helpers (shuffle, sampling, UUID v4/v7 — v7 values always increase: RFC 9562 §6.2 method 2, a random step inside one millisecond, clock steps back of up to 10 s tolerated) + USODIUM1 header | C | **us** (`wasm/crypto`) | passwords, random tools, uuid, mock data, line shuffle; the USODIUM1 header for sodium and sharelink (beside libsodium.js); its hashes (`u_hash_*`) are no longer called (hash-wasm since Nov 2026) |
 | **libsodium.js** — `libsodium-wrappers-sumo` 0.8.4 (libsodium **1.0.22**; the sumo build: the standard one has no Argon2) | C | the libsodium project (official WebAssembly build, embedded in the module) — binding `src/wasm/libsodium.ts`, format `src/lib/usodium.ts`, in `src/workers/crypto.worker.ts` | sodium, sharelink: Argon2id + XChaCha20-Poly1305 secretstream (`docs/WASM-AUDIT.md`, tab 101) |
 | imgproc (adjustments, resize, lossless orient/crop, filters, matting, warp + homography, doc enhance) | C (own code) | **us** (`wasm/imgproc`) | image tools, scanner, passport, cartoon |
 | metacore (EXIF → JSON, lossless metadata strip JPEG/PNG/WebP, JPEG DPI, image sniffing) | C (own code) | **us** (`wasm/metacore`) | exif, image loading, passport/formphoto DPI |
@@ -1558,7 +1580,7 @@ stay **public** (the source of the deployed site is then available to every user
 | cmark-gfm 0.29.0.gfm.13 (GitHub Flavored Markdown) | C | **us** (`wasm/markdown`, source from the PyPI `cmarkgfm` sdist, SHA-256 pinned) | markdown |
 | libyaml 0.2.5 + toml++ 3 | C / C++ | **us** (`wasm/formats`) | yaml |
 | MuPDF 1.28 | C | Artifex (official `mupdf` npm) | all PDF tools, PDF → EPUB |
-| hash-wasm 4.13.0 (hand-tuned C → wasm, one small binary per algorithm, embedded in the package; streaming; HMAC over any of its hashes; Argon2, bcrypt, scrypt, PBKDF2) | C | Dani Biró (`hash-wasm` npm, ~10 M downloads a month) — wrappers `src/lib/hmac.ts`, `src/lib/totp.ts`, `src/lib/pwhash.ts`; only the algorithms a tab uses are bundled into its chunk, loaded with the tab's first result | hmac (all of it), totp (the HMAC), pwhash (Argon2id / i / d, bcrypt, scrypt, PBKDF2) — replaced RustCrypto builds of ours in Nov 2026 (`docs/WASM-AUDIT.md`) |
+| hash-wasm 4.13.0 (hand-tuned C → wasm, one small binary per algorithm, embedded in the package; streaming; HMAC over any of its hashes; Argon2, bcrypt, scrypt, PBKDF2) | C | Dani Biró (`hash-wasm` npm, ~10 M downloads a month) — wrappers `src/lib/hmac.ts`, `src/lib/totp.ts`, `src/lib/pwhash.ts`, `src/lib/hashes.ts` (in `src/workers/hash.worker.ts`); only the algorithms a tab uses are bundled into its chunk, loaded with the tab's first result | hash (23 algorithms), hmac (all of it), totp (the HMAC), pwhash (Argon2id / i / d, bcrypt, scrypt, PBKDF2) — replaced RustCrypto builds and crypto.wasm's hashes of ours in Nov 2026 (`docs/WASM-AUDIT.md`) |
 | ONNX Runtime Web 1.31 (CPU/WebAssembly, SIMD) | C++ | Microsoft (official `onnxruntime-web` wasm build) | tts (Kokoro, Piper) |
 | SQLite 3.54 | C | SQLite project (official `@sqlite.org/sqlite-wasm`), run in `src/workers/sqlite.worker.ts` (terminated on leave) | sqlite |
 | Biome 2.6.8 (formatter for JS / JSX / TS / TSX, CSS, SCSS, YAML, GraphQL; 70 MB) | Rust | Biome project (official `@biomejs/wasm-web`), run in `src/workers/codefmt.worker.ts` (terminated on leave) | prettier (Code Formatter) |
@@ -2056,7 +2078,7 @@ npm packages (pinned in `package-lock.json`) are bundled by Vite or copied to `p
 | @fontsource/literata (Literata, Google's reading typeface) | OFL-1.1 | Photo Dictionary cards |
 | emojibase-data 18.0.0 (Unicode's emoji list with CLDR names and keywords; shortcodes of GitHub's gemoji and Slack's emoji-data) — a devDependency: `scripts/make-emoji-data.py` cuts it down to `src/lib/emoji-data.json`, which is what ships | MIT (the Unicode data: Unicode License v3) | Emoji & Symbols |
 | onnxruntime-web 1.31.1 | MIT | Text-to-Speech (Kokoro, Piper) |
-| hash-wasm 4.13.0 | MIT | HMAC Generator, TOTP, Password Hash Tool |
+| hash-wasm 4.13.0 | MIT | Hash / Checksum, HMAC Generator, TOTP, Password Hash Tool |
 | libsodium-wrappers-sumo 0.8.4 (+ libsodium-sumo; libsodium 1.0.22 compiled to WebAssembly by its author) | ISC | Sodium Encrypt, Encrypted Share Link |
 | mediabunny | MPL-2.0 | Video Compressor, Audio Recorder (cut without re-encoding) |
 | @biomejs/wasm-web 2.6.8 (Biome's official WebAssembly build) | MIT OR Apache-2.0 | Code Formatter |

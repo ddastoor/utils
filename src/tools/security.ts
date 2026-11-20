@@ -267,7 +267,7 @@ export const hash: Mount = (root) => {
       results.append(card('Checksum list',
         field('Algorithm', select(shownAlgs.map((a) => [a, a] as [string, string]), alg, (v) => { alg = v; fill(); })),
         out,
-        row(button('Download', () => downloadBlob(new Blob([out.value], { type: 'text/plain' }), sumsName(alg)), { icon: 'Download' }), h('span', { class: 'muted small' }, name, alg === 'CRC-32' ? '' : ' — sha256sum -c (b2sum, b3sum, xxhsum -c) checks the files against it'))));
+        row(button('Download', () => downloadBlob(new Blob([out.value], { type: 'application/octet-stream' }), sumsName(alg)) /* text/plain would make Chrome add .txt */, { icon: 'Download' }), h('span', { class: 'muted small' }, name, alg === 'CRC-32' ? '' : ' — sha256sum -c (b2sum, b3sum, xxhsum -c) checks the files against it'))));
     }
   }
 

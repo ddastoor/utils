@@ -101,7 +101,7 @@ export const TOOLS: Tool[] = [
   t('pgp', 'OpenPGP', 'Keys, encrypt, decrypt, sign and verify (GnuPG compatible).', 'security', 'KeyRound', () => import('./tools/pgp').then((m) => m.mount)),
   t('sodium', 'Sodium Encrypt', 'Password-encrypt files or text (Argon2id + XChaCha20).', 'security', 'Lock', () => sec().then((m) => m.sodium)),
   t('sharelink', 'Encrypted Share Link', 'Turn a secret message into a password-protected link.', 'security', 'Link', () => sec().then((m) => m.sharelink)),
-  t('hash', 'Hash / Checksum', 'MD5, SHA-1/256/512, SHA-3, BLAKE2b, CRC-32 of files or text.', 'security', 'Fingerprint', () => sec().then((m) => m.hash)),
+  t('hash', 'Hash / Checksum', 'SHA-256, MD5, SHA-3, BLAKE2/3, CRC, xxHash of files or text — and check a download against its checksum.', 'security', 'Fingerprint', () => sec().then((m) => m.hash)),
   t('password', 'Password Generator', 'Strong random passwords.', 'security', 'Asterisk', () => sec().then((m) => m.password)),
   t('passphrase', 'Passphrase Generator', 'Memorable diceware passphrases.', 'security', 'BookKey', () => sec().then((m) => m.passphrase)),
 
