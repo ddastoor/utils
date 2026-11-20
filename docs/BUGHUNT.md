@@ -200,7 +200,7 @@ Areas with a shared review: the app shell (router, search, favorites, platform h
 | `barcode` | Barcode Generator | PC + mobile | security-codes | ✓ | 5 | 44 | zxing-wasm kept; barcodes.ts: zero padding / capitals / ITF said, check digit worded + shown, zint errors in words, typed value kept across formats; zbar + libdmtx read-back |
 | `scan` | QR & Barcode Scanner | PC + mobile | security-codes | ✓ | 3 | 31 | zxing-wasm kept; second Start leaked the camera; camera errors worded; describeCode: Wi-Fi/UPI/contact/event/e-mail/SMS/tel/geo fields, .vcf/.ics, paste, Clear |
 | `zip` | Create Zip | PC + mobile | security-codes | ✓ | 5 | 28 | engine → 7-Zip (7z-wasm) + zip.js above 1.5 GB; non-ASCII zip passwords refused (7-Zip/WinRAR could not open them), wrong macOS note, password twice, duplicate names, Stop; 7z format |
-| `unzip` | Extract Archive | PC + mobile | security-codes |  |  |  |  |
+| `unzip` | Extract Archive | PC + mobile | security-codes | ✓ | 3 | 23 | engine → 7-Zip reads everything (libarchive.js removed); password asked without re-choosing; '..' names made safe for folder saves; size guard; RAR/7z-encrypted-names/iso…; unar as RAR reference |
 
 ## everyday
 | id | Tab | Platform | Area | R | B | T | Notes |
@@ -1446,3 +1446,16 @@ Reference for the five finance tabs: **mpmath at 60 digits** (`scripts/make-fina
   5. A long archive could not be stopped; Stop ends 7-Zip at once.
   Also new: the 7z format (LZMA2, AES-256, encrypted file names); the files' own dates kept; the archive name gets the
   format's extension.
+
+- **`unzip` (tab 110, 3 bugs; engine: 7-Zip (7z-wasm) reads every archive — zip.js and libarchive.js no longer read
+  any — docs/WASM-AUDIT.md, 108; unit: the listing parser held to the native 7z, `tests/unit/archive-names.test.mjs` +8;
+  e2e 38 — was 23).**
+  1. An encrypted archive had to be chosen again after the password was typed ("enter the password and choose the file
+     again"); the tab asks for it and opens the same file with Open or Enter now.
+  2. "Save all to a folder" passed every part of a path to the browser — an entry named "../evil.txt" made
+     `getDirectoryHandle('..')` throw and the saving stopped half-way. Names are made safe (no "..", ".", empty parts;
+     characters Windows refuses replaced); 7-Zip itself strips "../" when it unpacks.
+  3. "Download all as .zip" unpacked and re-zipped everything in memory without a limit (a large archive could take the
+     tab down); above 1.5 GB (256 MB on phones) the tab says to download the files one by one.
+  Also new: RAR (1.5 – 5, encrypted), 7z with encrypted names, ISO, CAB and the other formats 7-Zip reads; locked files
+  marked; a .gz of one file; the archive's type in the title; Stop.

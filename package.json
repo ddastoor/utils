@@ -75,7 +75,6 @@
     "dprint-plugin-markup": "^0.28.0",
     "fflate": "^0.8.3",
     "hash-wasm": "4.13.0",
-    "libarchive.js": "^2.0.2",
     "libheif-js": "^1.23.5",
     "libsodium-wrappers-sumo": "0.8.4",
     "lucide-static": "^1.73.0",

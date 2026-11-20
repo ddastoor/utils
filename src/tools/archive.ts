@@ -1,10 +1,9 @@
-// Create Zip (7-Zip compiled to WebAssembly — 7z-wasm — for zip and 7z with AES-256; zip.js only for zips larger than
-// fit in memory) and Extract Archive (zip via zip.js incl. passwords; 7z / rar / tar / gz / bz2 / xz via libarchive
-// compiled to WebAssembly).
-import { h, card, field, input, button, filePicker, toggle, slider, segmented, clear, stack, note, progress, downloadBlob, fmtBytes, extOf, toast, type Mount } from '../ui';
+// Create Zip and Extract Archive: 7-Zip compiled to WebAssembly (7z-wasm) makes and reads every archive (zip and 7z with
+// AES-256; zip, 7z, rar, tar, gz, bz2, xz, iso, cab … with passwords); zip.js only writes zips larger than fit in memory.
+import { h, card, field, input, button, filePicker, toggle, slider, segmented, clear, stack, row, note, progress, downloadBlob, fmtBytes, toast, type Mount } from '../ui';
 import { has, isMobile } from '../platform';
-import { createArchive, stopSevenZip, Stopped } from '../lib/sevenzip-client';
-import { archivePaths, passwordProblem, archiveName } from '../lib/archive-names';
+import { createArchive, listArchive, extractArchive, extractAsZip, stopSevenZip, Stopped, type ArchiveEntry, type ArchiveList } from '../lib/sevenzip-client';
+import { archivePaths, passwordProblem, archiveName, safeParts } from '../lib/archive-names';
 
 const zipjs = () => import('@zip.js/zip.js');
 
@@ -82,64 +81,92 @@ export const zip: Mount = (root) => {
   sync();
 };
 
-type Entry = { path: string; size: number; dir: boolean; get: () => Promise<Blob> };
-
-let libarchiveReady: Promise<any> | null = null;
-async function libarchive() {
-  libarchiveReady ||= import('libarchive.js/dist/libarchive.js').then((m: any) => { m.Archive.init({ workerUrl: `${import.meta.env.BASE_URL}vendor/libarchive/worker-bundle.js` }); return m.Archive; });
-  return libarchiveReady;
-}
+const TYPE_NAMES: Record<string, string> = { zip: 'Zip', '7z': '7z', rar: 'RAR', rar5: 'RAR5', tar: 'tar', gzip: 'gzip', bzip2: 'bzip2', xz: 'xz', iso: 'ISO image', cab: 'Cabinet', wim: 'WIM', cpio: 'cpio', arj: 'ARJ', lzh: 'LZH', rpm: 'RPM', ar: 'ar', dmg: 'Apple disk image', udf: 'UDF', vhd: 'VHD', vhdx: 'VHDX', nsis: 'NSIS installer', msi: 'Windows Installer' };
 
 export const unzip: Mount = (root) => {
-  const pw = input({ type: 'password', placeholder: 'Password (only if the archive is encrypted)' });
+  const pw = input({ type: 'password', placeholder: 'Password (only if the archive is encrypted)', attrs: { 'aria-label': 'Password', autocomplete: 'off' } });
   const out = h('div', { class: 'stack' });
+  const ask = h('div');
   const prog = progress();
-  let entries: Entry[] = [];
-  let srcName = 'archive';
-  const open = async (f: File) => {
-    clear(out); entries = []; srcName = f.name.replace(/\.(zip|7z|rar|tar|gz|tgz|bz2|xz|tbz2|txz)$/i, '');
-    prog.set(null, 'Reading archive…');
-    try {
-      if (extOf(f.name) === 'zip' || (await f.slice(0, 4).arrayBuffer().then((b) => new Uint8Array(b).join(','))) === '80,75,3,4') {
-        const { ZipReader, BlobReader, BlobWriter } = await zipjs();
-        const r = new ZipReader(new BlobReader(f), { password: pw.value || undefined });
-        for (const e of await r.getEntries()) entries.push({ path: e.filename, size: e.uncompressedSize, dir: e.directory, get: () => (e as any).getData(new BlobWriter(), { password: pw.value || undefined }) });
-      } else {
-        const Archive = await libarchive();
-        const a = await Archive.open(f);
-        if (pw.value) await a.usePassword?.(pw.value);
-        for (const { file, path } of await a.getFilesArray()) entries.push({ path: path + file.name, size: file.size, dir: false, get: async () => file.extract() });
-      }
-    } catch (e: any) { prog.done(); throw new Error(/password|encrypt/i.test(e?.message || '') ? 'This archive is encrypted — enter the password and choose the file again.' : `Could not open: ${e?.message || e}`); }
-    prog.done();
-    const files = entries.filter((e) => !e.dir);
-    const save = async (e: Entry) => {
-      try { downloadBlob(await e.get(), e.path.split('/').pop() || 'file'); }
-      catch (err: any) { throw new Error(/password|encrypt/i.test(err?.message || '') ? 'Wrong or missing password.' : err?.message || String(err)); } // zip.js: "File contains encrypted entry"
+  const stopBtn = button('Stop', () => stopSevenZip(), { icon: 'Square' });
+  stopBtn.hidden = true;
+  let src: { blob: Blob; name: string; outer: string } | null = null;
+  const busy = async <T>(label: string, f: () => Promise<T>): Promise<T | undefined> => {
+    prog.set(null, label); stopBtn.hidden = false;
+    try { return await f(); }
+    catch (e) { if (e instanceof Stopped) { toast('Stopped.'); return undefined; } throw e; }
+    finally { prog.done(); stopBtn.hidden = true; }
+  };
+  /** 7-Zip's coded errors, said for a person. */
+  const said = (e: unknown, type: string) => {
+    const m = e instanceof Error ? e.message : String(e);
+    if (m === 'PASSWORD') return 'This archive is protected by a password — type it above and press Open.';
+    if (m === 'WRONG_PASSWORD') return 'Wrong password.';
+    if (m === 'PASSWORD_OR_DAMAGED') return 'This archive is protected by a password — type it above and press Open. (If it has none, it is damaged.)';
+    if (m === 'WRONG_OR_DAMAGED') return 'Wrong password — or the archive is damaged.';
+    if (m === 'NOT_ARCHIVE') return 'Could not open: this is not an archive 7-Zip can read (zip, 7z, rar, tar, gz, bz2, xz, iso, cab …).';
+    if (m.startsWith('DAMAGED:')) return `Could not open: the archive is damaged or cut short (${m.slice(8)}).`;
+    if (/internal error/.test(m) && type === 'zip' && /[^\x20-\x7e]/.test(pw.value)) return '7-Zip cannot take a zip password with letters beyond English (zips made elsewhere with such a password open only in the tool that made them).';
+    return m;
+  };
+  const open = async () => {
+    if (!src) return;
+    clear(out); clear(ask);
+    let list: ArchiveList | undefined;
+    try { list = await busy('Reading the archive…', () => listArchive(src!.blob, src!.name, pw.value)); }
+    catch (e) {
+      const m = said(e, '');
+      if (/password/i.test(m)) { ask.append(note(m, 'warn')); pw.focus(); return; }
+      out.append(note(m, 'err')); return;
+    }
+    if (!list) return;
+    if (list.inner) { // a tar inside gzip / bzip2 / xz
+      src = { blob: new Blob([list.inner.data as BlobPart]), name: list.inner.name, outer: `tar inside ${TYPE_NAMES[list.type.toLowerCase()] ?? list.type}` };
+      return open();
+    }
+    const type = list.type.toLowerCase(), files = list.entries.filter((e) => !e.dir);
+    const total = files.reduce((a, e) => a + e.size, 0), anyEnc = files.some((e) => e.encrypted);
+    if (anyEnc && !pw.value) ask.append(note('Some files are protected by a password — type it above before you download them.', 'warn'));
+    const kind = src.outer || TYPE_NAMES[type] || list.type;
+    const save = async (e: ArchiveEntry) => {
+      if (e.size > IN_MEMORY) throw new Error(`${fmtBytes(e.size)} is more than this browser can unpack in memory (${fmtBytes(IN_MEMORY)}).`);
+      if (e.encrypted && !pw.value) throw new Error('This file is protected by a password — type it above.');
+      const got = await busy(`Unpacking ${e.path}…`, () => extractArchive(src!.blob, src!.name, pw.value, [e.path]).catch((err) => { throw new Error(said(err, type)); }));
+      if (!got) return;
+      const f = got.find((x) => x.path === safeParts(e.path).join('/')) ?? got[0];
+      if (!f) throw new Error('7-Zip found nothing to unpack for that name.');
+      downloadBlob(new Blob([f.data as BlobPart]), safeParts(e.path).pop() || 'file');
     };
-    out.append(card(`${files.length} files · ${fmtBytes(files.reduce((a, e) => a + e.size, 0))}`, h('div', { class: 'file-list' }, files.slice(0, 2000).map((e) => h('div', { class: 'file-row' },
-      h('span', { class: 'file-name' }, e.path), h('span', { class: 'muted small' }, fmtBytes(e.size)), button('', () => save(e), { icon: 'Download', small: true, variant: 'ghost', title: 'Download' }))))),
+    const tooBig = total > IN_MEMORY;
+    out.append(card(`${files.length} file${files.length === 1 ? '' : 's'} · ${fmtBytes(total)} · ${kind}`,
+      tooBig ? note(`Together more than this browser can unpack in memory (${fmtBytes(IN_MEMORY)}) — download the files one by one.`, 'warn') : null,
+      h('div', { class: 'file-list' }, files.slice(0, 2000).map((e) => h('div', { class: 'file-row' },
+        e.encrypted ? h('span', { class: 'file-lock', title: 'Protected by a password', 'aria-label': 'Protected by a password' }, '🔒') : null, h('span', { class: 'file-name' }, e.path), h('span', { class: 'muted small' }, fmtBytes(e.size)),
+        button('', () => save(e), { icon: 'Download', small: true, variant: 'ghost', title: `Download ${safeParts(e.path).pop() || e.path}` })))),
+      files.length > 2000 ? note(`The first 2,000 of ${files.length.toLocaleString('en-IN')} files are listed; "Download all" takes every one.`) : null),
     h('div', { class: 'actions' },
       has.savePicker ? button('Save all to a folder', async () => {
+        if (tooBig) throw new Error('Too much to unpack at once in this browser — download the files one by one.');
         const dir = await (window as any).showDirectoryPicker({ mode: 'readwrite' });
+        const got = await busy('Unpacking…', () => extractArchive(src!.blob, src!.name, pw.value, null, (p) => prog.set(p / 100, `Unpacking: ${p} %`)).catch((err) => { throw new Error(said(err, type)); }));
+        if (!got) return;
         let n = 0;
-        for (const e of files) {
-          const parts = e.path.split('/').filter(Boolean); let d = dir;
+        for (const f of got) {
+          const parts = safeParts(f.path); let d = dir;
           for (const p of parts.slice(0, -1)) d = await d.getDirectoryHandle(p, { create: true });
           const fh = await d.getFileHandle(parts[parts.length - 1], { create: true }), w = await fh.createWritable();
-          await w.write(await e.get()); await w.close(); prog.set(++n / files.length, e.path);
+          await w.write(f.data); await w.close(); prog.set(++n / got.length, f.path);
         }
-        prog.done();
+        prog.done(); toast(`${n} file${n === 1 ? '' : 's'} saved.`);
       }, { variant: 'primary', icon: 'FolderDown' }) : null,
       button('Download all as .zip', async () => {
-        const { ZipWriter, BlobWriter, BlobReader } = await zipjs();
-        const w = new ZipWriter(new BlobWriter('application/zip'));
-        let n = 0;
-        for (const e of files) { await w.add(e.path, new BlobReader(await e.get())); prog.set(++n / files.length, e.path); }
-        prog.done();
-        downloadBlob(await w.close(), `${srcName}.zip`);
+        if (tooBig) throw new Error('Too much to unpack at once in this browser — download the files one by one.');
+        const data = await busy('Unpacking…', () => extractAsZip(src!.blob, src!.name, pw.value, (p) => prog.set(p / 100, `7-Zip: ${p} %`)).catch((err) => { throw new Error(said(err, type)); }));
+        if (data) downloadBlob(new Blob([data as BlobPart], { type: 'application/zip' }), `${src!.name.replace(/\.(zip|7z|rar|tar|gz|tgz|bz2|tbz2?|xz|txz|iso|cab)$/i, '').replace(/\.tar$/i, '') || 'archive'}.zip`);
       }, { icon: 'FileArchive', variant: has.savePicker ? 'secondary' : 'primary' })));
   };
-  root.append(card(null, stack(filePicker({ accept: '.zip,.7z,.rar,.tar,.gz,.tgz,.bz2,.tbz2,.xz,.txz,.cab,.iso,application/zip,application/x-7z-compressed', label: 'Choose an archive', hint: 'zip, 7z, rar, tar, gz, bz2, xz, iso…', onFiles: ([f]) => open(f).catch((e) => out.append(note(e.message, 'err'))) }), pw, prog)), out);
+  pw.addEventListener('keydown', (e) => { if (e.key === 'Enter') open(); });
+  root.append(card(null, stack(filePicker({ accept: '.zip,.7z,.rar,.tar,.gz,.tgz,.bz2,.tbz,.tbz2,.xz,.txz,.cab,.iso,.wim,.cpio,.arj,.lzh,.rpm,.deb,.dmg,application/zip,application/x-7z-compressed', label: 'Choose an archive', hint: 'zip, 7z, rar, tar, gz, bz2, xz, iso, cab…', onFiles: ([f]) => { src = { blob: f, name: f.name, outer: '' }; return open(); } }),
+    row(pw, button('Open', () => open(), { icon: 'LockOpen', small: true })), ask, prog, stopBtn)), out,
+    note('Read by 7-Zip (compiled to WebAssembly) on this device; nothing is uploaded.'));
 };
-void has;

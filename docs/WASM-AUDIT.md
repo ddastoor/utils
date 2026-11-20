@@ -893,3 +893,19 @@ One entry per tab, written before its bug hunt: our module → candidates → ch
   pyzipper (AES-256: right and wrong password) and the native 7z; 7z archives read by **py7zr** (a 7z implementation of
   its own: bytes, a Hindi password, names encrypted); Stop during a 96 MB archive; on a phone, 260 MB zipped by zip.js
   and read by zipfile.
+
+### 108. `unzip` — Extract Archive (20 Nov 2026)
+- **Before:** zip.js (JavaScript) for zips; **libarchive.js 2.0.2** (libarchive compiled to WebAssembly) for the rest.
+- **Candidates:** libarchive.js (as it is) and **7z-wasm 1.2.0** (7-Zip 24.09, entry 107 — already in the app). 7-Zip
+  reads everything the tab names and more (zip incl. AES / ZipCrypto, 7z incl. encrypted names, RAR 1.5 – 5 incl.
+  encrypted headers, tar, gz, bz2, xz, iso, cab, wim, cpio, arj, lzh, rpm, deb, dmg …).
+- **Decision (rule 1):** **7-Zip reads every archive**; zip.js and libarchive.js are no longer used for reading
+  (libarchive.js leaves the app). A tar inside gzip / bzip2 / xz is opened in its turn (7-Zip lists the .tar).
+  What the build does differently from the 7zz program, and how the tab copes: an encrypted header that does not
+  decrypt throws (no C++ exception handling in this build) instead of an error code — the worker tells a password
+  question from damage by the archive's signature (only 7z and RAR can hide their names); 7zz would ask for a
+  password on its input — the worker always passes `-p` (empty = none). Debian's 7z, used as a reference elsewhere,
+  has its RAR code removed: RAR results are compared with **The Unarchiver (`unar`)**.
+- **Evidence:** zips, tars (gz / bz2 / xz), 7z (also with a Hindi password and encrypted names) made by Python's
+  zipfile / tarfile, pyzipper and py7zr, and real RAR3 / RAR5 archives from rarfile's tests: listed, single files and
+  "Download all as .zip" byte-identical; RAR contents equal to `unar`'s.

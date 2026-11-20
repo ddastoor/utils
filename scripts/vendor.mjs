@@ -22,8 +22,6 @@ const copies = [
   ]),
   // OCR languages (owner: English, French, Spanish, German — Tesseract 4 "best_int" LSTM models)
   ...['eng', 'fra', 'spa', 'deu'].map((l) => [['@tesseract.js-data', l, '4.0.0_best_int', `${l}.traineddata.gz`], ['tesseract', 'lang', `${l}.traineddata.gz`]]),
-  [['libarchive.js', 'dist', 'worker-bundle.js'], ['libarchive', 'worker-bundle.js']],
-  [['libarchive.js', 'dist', 'libarchive.wasm'], ['libarchive', 'libarchive.wasm']],
   // Noto Sans (OFL; Latin, Greek, Cyrillic, Devanagari, ₹) TTFs for documents made by MuPDF (invoice, rent receipt,
   // resume): MuPDF's FreeType reads TTF, not WOFF
   ...[['400Regular', 'NotoSans_400Regular'], ['700Bold', 'NotoSans_700Bold'], ['400Regular_Italic', 'NotoSans_400Regular_Italic']]

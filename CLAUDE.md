@@ -85,7 +85,8 @@ that affects it.
 > - TypeScript only builds UI, formats output and does trivial glue (see the compute rule in §7). Pixel loops,
 >   parsers, codecs, maths, search, diff, compression, crypto → wasm.
 > - What is already in use stays, at its latest stable version: third-party builds (jSquash codecs, libheif-js,
->   tesseract.js-core, zxing-wasm, libarchive.js, ffmpeg.wasm, MuPDF, SQLite, ONNX Runtime, MediaPipe) and our own
+>   tesseract.js-core, zxing-wasm, 7z-wasm (7-Zip; replaced libarchive.js in Nov 2026), ffmpeg.wasm, MuPDF, SQLite,
+>   ONNX Runtime, MediaPipe) and our own
 >   builds (crypto, imgproc, BusyBox, jq, Graphviz, CPython, devcore, formats, …).
 > - The owner's to-do list (`todo.md`) has an item for it: sweep the code again and move as much JS/TS as possible
 >   into WebAssembly modules, where doable — **only when the owner picks that item** (see the to-do note below).
@@ -606,6 +607,14 @@ WebAssembly (7z-wasm)**, fetched with the first archive, a fresh instance per ar
 for a zip ASCII only (7-Zip and WinRAR cannot take other letters for a zip) — 7z takes any. Names: folder paths kept,
 no leading / or .. parts, the same name again becomes "name (2).ext". Above 1.5 GB of input (256 MB on phones) a zip is
 written by **zip.js** piece by piece (said in the tab) and a 7z is refused — 7-Zip holds the archive in memory.
+**Extract Archive as built** (`unzip` in `src/tools/archive.ts`, the listing `src/lib/sevenzip-text.ts`, safe names
+`safeParts` in `src/lib/archive-names.ts`; e2e `tests/e2e/unzip.e2e.mjs` 38 — `apt install unar` for the RAR reference):
+**7-Zip (7z-wasm) reads every archive** — zip (AES, ZipCrypto), 7z (encrypted names too), RAR 1.5 – 5 (encrypted
+headers too), tar, gz, bz2, xz, iso, cab, wim, cpio, arj, lzh, rpm, deb, dmg …; a tar inside gzip / bzip2 / xz is opened
+in its turn. The password is asked for when needed and the same file opened again with Open or Enter; a wrong password
+and a damaged archive are said (7z / RAR headers that do not decrypt: "wrong password — or damaged"). Files listed with
+size and a lock when encrypted (first 2,000); one file at a time, "Save all to a folder" (File System Access; names made
+safe) or "Download all as .zip" (7-Zip re-zips them) — the last two up to 1.5 GB (256 MB on phones). Stop.
 
 ### QR Codes
 Generate: text, URL, Wi-Fi (WPA/WEP/none), UPI payment link (`upi://pay?pa=…&pn=…&am=…`), email, phone,
@@ -1644,8 +1653,7 @@ stay **public** (the source of the deployed site is then available to every user
 | libheif + libde265 | C++ | libheif-js | heic |
 | Tesseract 5 | C++ | tesseract.js-core | ocr |
 | zxing-cpp | C++ | zxing-wasm | qr, barcode, scan |
-| libarchive | C | libarchive.js | unzip |
-| 7-Zip 24.09 (`7zz`, the command line, Emscripten build with WORKERFS) | C++ | use-strict (`7z-wasm` npm 1.2.0) — run in `src/workers/sevenzip.worker.ts`, a fresh instance per archive | zip (zip and 7z with AES-256; `docs/WASM-AUDIT.md`, tab 107) |
+| 7-Zip 24.09 (`7zz`, the command line, Emscripten build with WORKERFS) | C++ | use-strict (`7z-wasm` npm 1.2.0) — run in `src/workers/sevenzip.worker.ts`, a fresh instance per archive | zip (zip and 7z with AES-256; `docs/WASM-AUDIT.md`, tab 107), unzip (reads every archive; tab 108) |
 | MediaPipe Tasks (TFLite) | C++ | Google (official) | passport, bgremove, redact |
 | Browser-native C++ (WebCodecs, WebCrypto, Web Speech, MediaRecorder) | — | the browser | video (H.264/AV1 encode + decode, hardware-accelerated), audio recorder, tts, screencast, pbkdf2 |
 
@@ -1657,7 +1665,7 @@ JavaScript-only components (no C/C++ equivalent exists for the job):
 | Mermaid 12 (MIT) | Mermaid exists only as JavaScript; `securityLevel: 'strict'` (labels sanitised), bundled by Vite | mermaid |
 | Prettier 3 standalone (MIT) | Markdown: both WebAssembly Markdown formatters (Biome's, dprint's) change what a document renders to (`docs/WASM-AUDIT.md`, tab 54). And the fallback for text the WebAssembly engines of the other nine languages cannot read (owner's tweak: (b) an existing JS library for what the module does not cover); each parser is fetched only then | prettier |
 | TensorFlow.js (Apache-2.0) | runs the Magenta style-transfer graph on the GPU via WebGL; its **wasm backend** (XNNPACK, C++ → wasm, tier 2 official build) is the CPU path | cartoon (neural) |
-| zip.js (BSD-3) | zips larger than 7-Zip can hold in the browser's memory (above 1.5 GB of input, 256 MB on phones): zip.js streams; 7-Zip (7z-wasm) makes every other archive (`docs/WASM-AUDIT.md`, tab 107) | zip (large zips), unzip |
+| zip.js (BSD-3) | zips larger than 7-Zip can hold in the browser's memory (above 1.5 GB of input, 256 MB on phones): zip.js streams; 7-Zip (7z-wasm) makes every other archive (`docs/WASM-AUDIT.md`, tab 107) | zip (large zips) |
 | mediabunny (MPL-2.0) | MP4 muxing around the browser's hardware WebCodecs encoders; cutting audio without re-encoding (packet copy) | video, audio |
 
 **Audit of handwritten WebAssembly against existing modules (owner, 18 Nov 2026): `docs/WASM-AUDIT.md`** — per tab: our
@@ -1666,7 +1674,7 @@ moves on.
 
 **Audit list (STANDING RULE #1)** — by the owner's 18 Nov 2026 wording, existing tried-and-tested WebAssembly
 builds are the first choice and stay as they are (jSquash MozJPEG/libwebp/OxiPNG, libheif-js, tesseract.js-core, zxing-wasm,
-libarchive.js, the ffmpeg.wasm core): **no replacement needed, just keep them at the latest stable version** (the
+7z-wasm — 7-Zip, which replaced libarchive.js and zip.js's reading in Nov 2026 —, the ffmpeg.wasm core): **no replacement needed, just keep them at the latest stable version** (the
 ffmpeg.wasm core is FFmpeg 5.1.4 and cannot run libvpx-vp9/libx265 single-threaded — a newer wasm build of FFmpeg, ours or
 someone else's, would be an upgrade, not an obligation). What remains optional is moving **JavaScript** components to
 WebAssembly where a route exists:
@@ -1724,7 +1732,7 @@ geodesic itself is geo.wasm.
 Nov 2026 (Python Scratchpad): `src/lib/termtext.ts` (what a terminal would show for the program's output: display
 code that feeds the DOM), `src/lib/python-hints.ts` (one sentence per known error), `src/lib/tzinfo.ts` (the browser's
 Intl answering the C library's questions about local time; the zone table it uses is data made by a script) stay in TS.
-Third-party WebAssembly builds in use (accepted, see above): MuPDF, SQLite, MediaPipe Tasks, ONNX Runtime, jSquash, libheif-js, tesseract.js-core, zxing-wasm, libarchive.js, ffmpeg.wasm, hash-wasm, libsodium.js, Biome, the dprint JSON and markup plugins. Staying JS (no compiled
+Third-party WebAssembly builds in use (accepted, see above): MuPDF, SQLite, MediaPipe Tasks, ONNX Runtime, jSquash, libheif-js, tesseract.js-core, zxing-wasm, 7z-wasm (7-Zip), ffmpeg.wasm, hash-wasm, libsodium.js, Biome, the dprint JSON and markup plugins. Staying JS (no compiled
 equivalent, reasons above): OpenPGP.js, Mermaid, TensorFlow.js; Prettier for Markdown and as the Code Formatter's fallback. (sql-formatter was replaced by a build of the sqlformat crate, and that in Nov 2026 by our own Rust formatter: `docs/WASM-AUDIT.md`, tab 53.)
 
 ### Approved data APIs (connect-src allowlist)
@@ -2127,8 +2135,7 @@ npm packages (pinned in `package-lock.json`) are bundled by Vite or copied to `p
 | tesseract.js, tesseract.js-core, @tesseract.js-data/eng, /fra, /spa, /deu | Apache-2.0 / MIT | OCR |
 | zxing-wasm | MIT (zxing-cpp Apache-2.0) | QR |
 | @zip.js/zip.js | BSD-3-Clause | Zip, Batch Images |
-| libarchive.js | MIT (libarchive BSD) | Zip extract |
-| 7z-wasm 1.2.0 (7-Zip 24.09) | LGPL-2.1 + unRAR restriction (the unRAR code may not be used to re-create RAR compression) | Create Zip |
+| 7z-wasm 1.2.0 (7-Zip 24.09) | LGPL-2.1 + unRAR restriction (the unRAR code may not be used to re-create RAR compression) | Create Zip, Extract Archive |
 | @fontsource/anton (Anton font) | OFL-1.1 | Text on Image (meme style), Watermark |
 | @fontsource/great-vibes, /dancing-script, /caveat | OFL-1.1 | Signature Maker (typed signatures) |
 | @fontsource/literata (Literata, Google's reading typeface) | OFL-1.1 | Photo Dictionary cards |

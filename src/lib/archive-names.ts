@@ -29,3 +29,6 @@ export function archiveName(name: string, format: 'zip' | '7z'): string {
   const base = (name.trim() || 'archive').replace(/[\\/:*?"<>|]+/g, '-').replace(/\.(zip|7z)$/i, '');
   return `${base}.${format}`;
 }
+
+/** A file name's parts that are safe to create on a disk (no empty, "." or ".." parts; characters Windows refuses replaced). */
+export const safeParts = (p: string) => p.replace(/\\/g, '/').split('/').filter((x) => x && x !== '.' && x !== '..').map((x) => x.replace(/[<>:"|?*\u0000-\u001f]/g, '_'));

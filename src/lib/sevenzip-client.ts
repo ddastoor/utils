@@ -26,6 +26,20 @@ export function createArchive(files: Array<{ path: string; file: File }>, o: { f
   return new Promise((resolve, reject) => { pending.set(id, { resolve, reject, onProgress }); wk.postMessage({ id, op: 'create', files, ...o }); });
 }
 
+export interface ArchiveEntry { path: string; size: number; dir: boolean; encrypted: boolean; modified: string }
+export interface ArchiveList { type: string; entries: ArchiveEntry[]; inner?: { name: string; data: Uint8Array } }
+const call = <T>(msg: object, onProgress?: (pct: number) => void): Promise<T> => {
+  const wk = w(), id = ++seq;
+  return new Promise((resolve, reject) => { pending.set(id, { resolve, reject, onProgress }); wk.postMessage({ id, ...msg }); });
+};
+/** What an archive holds. Errors: "PASSWORD" (one is needed), "WRONG_PASSWORD", "NOT_ARCHIVE", "DAMAGED:…". */
+export const listArchive = (file: Blob, name: string, password: string) => call<ArchiveList>({ op: 'list', file, name, password });
+/** The files of an archive (all, or the given paths), or all of them as one zip. */
+export const extractArchive = (file: Blob, name: string, password: string, paths: string[] | null, onProgress?: (pct: number) => void) =>
+  call<Array<{ path: string; data: Uint8Array }>>({ op: 'extract', file, name, password, paths, zip: false }, onProgress);
+export const extractAsZip = (file: Blob, name: string, password: string, onProgress?: (pct: number) => void) =>
+  call<Uint8Array>({ op: 'extract', file, name, password, paths: null, zip: true }, onProgress);
+
 export function stopSevenZip() {
   if (!worker) return;
   const ps = [...pending.values()]; pending.clear();
