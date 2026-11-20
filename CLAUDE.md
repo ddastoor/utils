@@ -449,7 +449,7 @@ plus a "names & terms" hint box fed to Whisper's initial prompt.
   worker (out of memory) is started again with a line that says so — its files are gone; the file panel's errors in
   words; Ctrl+C during a command says why it cannot be interrupted (a synchronous WebAssembly call cannot be reached
   without shared memory, which GitHub Pages cannot enable) and that it stops by itself after 60 s. BusyBox 1.38.0 is the
-  newest release (its ash / hush are not built in). **v86** (a real Linux in an emulated PC) is a question for the owner.
+  newest release (its ash / hush are not built in). **v86** (a real Linux in an emulated PC): **left out completely — owner, 20 Nov 2026** (do not suggest it again).
 
 Removed by the owner from batch 3: Spin the Wheel, Tambola/Housie, Secret Santa, Scoreboard.
 
@@ -457,7 +457,8 @@ Rejected by the owner: Typing Speed Test, Tuner, Metronome, Discount Calculator,
 (hourly AI news summaries — considered via GitHub Actions + llama.cpp; owner declined), Local AI / LLM tab and
 Key-Sentence Summariser (in-browser llama.cpp/WebLLM with ~1.7B model — owner declined), Wallpapers (photo
 wallpapers via Wikimedia Commons/NASA, or a procedural generator — owner declined), and from `docs/potentials.md` (Nov 16 2026): Chess Board + Analysis (Stockfish),
-Python/JS Linter & Formatter (Ruff/Biome), Offline Translation (Mozilla Bergamot).
+Python/JS Linter & Formatter (Ruff/Biome), Offline Translation (Mozilla Bergamot); and (20 Nov 2026) **v86** — a real Linux
+in an emulated PC, for the Terminal or a tab of its own: "leave out V86 completely".
 Not added because a PC-only tool already covers them: Video Trimmer, Video → MP3, Audio Cutter (FFmpeg),
 Image Converter (Batch Images). Optional "nice to have" ideas not requested: GIF maker, screenshot
 beautifier, palette extractor, image compare, tone generator, white noise, pace calculator, recipe scaler,

@@ -1311,7 +1311,7 @@ One entry per tab, written before its bug hunt: our module → candidates → ch
   x86 interpreter instead of native wasm for every command. **Wasmer's JS SDK / WebAssembly.sh** and **container2wasm**
   need SharedArrayBuffer, which needs COOP / COEP headers GitHub Pages cannot send; **WebContainers** are proprietary.
   No existing module is "BusyBox for WASI".
-- **Decision:** our build stays (rule 2). **v86 is a question for the owner** (a different tab, or this one, with a real
+- **Decision:** our build stays (rule 2). **v86: left out completely (owner, 20 Nov 2026)** — it was a question for the owner (a different tab, or this one, with a real
   Linux in it) — asked at the end of the hunt, built only if chosen.
 
 ### 154. `stopwatch`, `countdown`, `pomodoro`, `interval` — the timers (20 Nov 2026)

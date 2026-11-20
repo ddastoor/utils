@@ -170,6 +170,7 @@ Verovio, basic-pitch) and these new ones (npm versions checked 20 Nov 2026):
 - Chess Board + Analysis (Stockfish)
 - Python/JS Linter & Formatter (Ruff / Biome)
 - Offline Translation (Mozilla Bergamot)
+- v86 — a real Linux in an emulated PC, for the Terminal or a tab of its own (owner, 20 Nov 2026: "leave out V86 completely")
 
 ## Related
 `docs/IDEAS.md` is an earlier, longer research list from 15 Nov 2026, also waiting for the owner. It overlaps with this

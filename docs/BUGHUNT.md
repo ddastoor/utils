@@ -172,7 +172,7 @@ Areas with a shared review: the app shell (router, search, favorites, platform h
 | `transfer` | Data Transfer Calculator | PC only | misc | ✓ | 4 | 18 | e2e 10→28 |
 | `semver` | Semver Checker | PC only | misc | ✓ | 7 | 24 | e2e 8→18 + 14 unit; engine = our port of npm semver, 16,380 pairs vs the package |
 | `glob` | Glob Tester | PC only | misc | ✓ | 2 | 44 | e2e 16→39 + 21 unit; own Unicode-aware matcher vs Python glob.translate (420 patterns) |
-| `terminal` | Linux Terminal | PC only | terminal | ✓ | 4 | 3 | terminal 20 Nov 2026 (docs/BUGHUNT.md); v86 asked of the owner |
+| `terminal` | Linux Terminal | PC only | terminal | ✓ | 4 | 3 | terminal 20 Nov 2026 (docs/BUGHUNT.md); v86: owner said leave it out (20 Nov 2026) |
 | `graphviz` | Graphviz (DOT) | PC only | data-engines | ✓ | 22 | 713 | engine: own build kept (WASM-AUDIT 55 — Viz.js and hpcc trap on valid graphs), now Graphviz 16.1.0 + storeline fix, prism on our Delaunator port, glibc qsort/rand (dot = native byte for byte), browser text measuring, assertions kept; reference = native dot (3,464 drawings) |
 | `python` | Python Scratchpad | PC only | data-engines | ✓ | 21 | 314 | native CPython 3.14.8 is the reference for 69 programs (stdout + stderr byte for byte); recursion through C code ends in RecursionError instead of killing the run, lru_cache in Python (cached recursion as deep as on a desktop), local time with tzdata's names and flags, socket stand-in + asyncio, pbkdf2_hmac; output pane survives 300,000 lines (92 s → 1.4 s), shows output during long computations, \r / colours / the answers to input(); hints for errors particular to the tab; a11y sweep; junk sweep (binary, Windows-1252) |
 | `totp` | TOTP / 2FA Codes | PC only | net | ✓ | 6 | 74 | e2e 11→49 + 25 unit; RFC 4226/6238; e2e 11→49; unit 36 (RFC 4226 / 6238, 600 random cases vs an independent implementation); HMAC = hash-wasm, Base32 + truncation = our supplement |
@@ -2107,7 +2107,7 @@ Media › video (20 Nov 2026 –)
   whose summary line says "music 0:02" — so it never saw the Music card: the locator is the card titled "Music", polled.
 
 ### Software › terminal (20 Nov 2026)
-- **`terminal` (tab 156, 3 bugs; BusyBox 1.38.0 stays — WASM-AUDIT 153, v86 for the owner; e2e +2 checks).**
+- **`terminal` (tab 156, 3 bugs; BusyBox 1.38.0 stays — WASM-AUDIT 153; v86 left out by the owner; e2e +2 checks).**
   1. **A crashed shell left the terminal dead:** its worker ran out of memory (a huge `yes | head`) and every later
      command waited for ever. The worker is started again with a line that says so (the files of the old one are gone).
   2. The file panel said "File error (44)": its errors in words ("no such file or folder (removed or renamed meanwhile?)",
