@@ -125,6 +125,101 @@ API void p_resize(const uint8_t *src, int sw, int sh, uint8_t *dst, int dw, int 
     free(tmp); free(cx); free(cy); free(pw); free(ph);
 }
 
+/* Area resize = OpenCV's cv2.resize(..., interpolation=INTER_AREA) on 8-bit RGBA, as imgproc/src/resize.cpp (4.x, 5.x)
+   computes it. The page-finding model of the Doc Scanner was trained on photos made 224 × 224 this way, and its
+   corners come out best when it is fed the same pixels (tests/unit/pagefind.test.mjs holds this to OpenCV itself):
+   – both axes shrink by a whole number: the mean of each block (2 × 2: (sum + 2) >> 2, OpenCV's vector code; other
+     blocks: the sum times 1/area in float, rounded half to even — cvRound);
+   – both axes shrink: OpenCV's area table (a source pixel covered by less than 1/1000 is left out), sums in float,
+     rounded half to even;
+   – an axis grows (or one grows and one shrinks): two taps per axis with INTER_AREA's coefficients (sx = ⌊dx·scale⌋,
+     fx = (dx + 1) − (sx + 1)/scale, 0 when ≤ 0, else its fraction) in OpenCV's 11-bit fixed point, rows combined as its
+     vector code rounds (where OpenCV's scalar tail rounds otherwise, a value can be one off). */
+typedef struct { int di, si; float alpha; } AreaTap;
+static int area_tab(int ssize, int dsize, double scale, AreaTap *tab) {
+    int k = 0;
+    for (int dx = 0; dx < dsize; dx++) {
+        double fsx1 = dx * scale, fsx2 = fsx1 + scale, cell = fmin(scale, ssize - fsx1);
+        int sx1 = (int)ceil(fsx1), sx2 = (int)floor(fsx2);
+        if (sx2 > ssize - 1) sx2 = ssize - 1;
+        if (sx1 > sx2) sx1 = sx2;
+        if (sx1 - fsx1 > 1e-3) { tab[k].di = dx; tab[k].si = sx1 - 1; tab[k++].alpha = (float)((sx1 - fsx1) / cell); }
+        for (int sx = sx1; sx < sx2; sx++) { tab[k].di = dx; tab[k].si = sx; tab[k++].alpha = (float)(1.0 / cell); }
+        if (fsx2 - sx2 > 1e-3) { tab[k].di = dx; tab[k].si = sx2; tab[k++].alpha = (float)(fmin(fmin(fsx2 - sx2, 1.), cell) / cell); }
+    }
+    return k;
+}
+static inline uint8_t u8_even(float v) { v = nearbyintf(v); return (uint8_t)(v <= 0 ? 0 : v >= 255 ? 255 : v); }
+static inline short s16_even(float v) { return (short)nearbyintf(v); }
+/* INTER_AREA's two taps per target pixel when an axis grows (OpenCV's resizeGeneric with area_mode). */
+static void area_linear_taps(int sn, int dn, int *ofs, short *al) {
+    double inv = (double)dn / sn, scale = 1. / inv;
+    for (int d = 0; d < dn; d++) {
+        int sx = (int)floor(d * scale);
+        float fx = (float)((d + 1) - (sx + 1) * inv);
+        fx = fx <= 0 ? 0.f : fx - floorf(fx);
+        if (sx < 0) { fx = 0; sx = 0; }
+        if (sx >= sn - 1) { fx = 0; sx = sn - 1; }
+        ofs[d] = sx; al[d * 2] = s16_even((1.f - fx) * 2048); al[d * 2 + 1] = s16_even(fx * 2048);
+    }
+}
+API void p_resize_area(const uint8_t *src, int sw, int sh, uint8_t *dst, int dw, int dh) {
+    double sx = 1. / ((double)dw / sw), sy = 1. / ((double)dh / sh);
+    if (sx >= 1 && sy >= 1) {
+        int ix = (int)lround(sx), iy = (int)lround(sy);
+        if (fabs(sx - ix) < 2.2204460492503131e-16 && fabs(sy - iy) < 2.2204460492503131e-16) {   /* whole blocks */
+            int area = ix * iy; float scale = 1.f / area;
+            for (int y = 0; y < dh; y++) for (int x = 0; x < dw; x++) for (int c = 0; c < 4; c++) {
+                int sum = 0;
+                for (int j = 0; j < iy; j++) for (int i = 0; i < ix; i++) sum += src[((size_t)(y * iy + j) * sw + x * ix + i) * 4 + c];
+                dst[((size_t)y * dw + x) * 4 + c] = ix == 2 && iy == 2 ? (uint8_t)((sum + 2) >> 2) : u8_even(sum * scale);
+            }
+            return;
+        }
+        AreaTap *xt = malloc(sizeof(AreaTap) * (size_t)(sw * 2 + 2)), *yt = malloc(sizeof(AreaTap) * (size_t)(sh * 2 + 2));
+        int xn = area_tab(sw, dw, sx, xt), yn = area_tab(sh, dh, sy, yt);
+        float *buf = malloc(sizeof(float) * 4 * (size_t)dw), *sum = calloc((size_t)dw * 4, sizeof(float));
+        int prev = yt[0].di;
+        for (int j = 0; j < yn; j++) {
+            float beta = yt[j].alpha; int dy = yt[j].di; const uint8_t *row = src + (size_t)yt[j].si * sw * 4;
+            memset(buf, 0, sizeof(float) * 4 * (size_t)dw);
+            for (int k = 0; k < xn; k++) {
+                const uint8_t *p = row + (size_t)xt[k].si * 4; float *b = buf + (size_t)xt[k].di * 4, a = xt[k].alpha;
+                b[0] = b[0] + p[0] * a; b[1] = b[1] + p[1] * a; b[2] = b[2] + p[2] * a; b[3] = b[3] + p[3] * a;
+            }
+            if (dy != prev) {
+                uint8_t *d = dst + (size_t)prev * dw * 4;
+                for (int i = 0; i < dw * 4; i++) { d[i] = u8_even(sum[i]); sum[i] = beta * buf[i]; }
+                prev = dy;
+            } else for (int i = 0; i < dw * 4; i++) sum[i] += beta * buf[i];
+        }
+        { uint8_t *d = dst + (size_t)prev * dw * 4; for (int i = 0; i < dw * 4; i++) d[i] = u8_even(sum[i]); }
+        free(xt); free(yt); free(buf); free(sum);
+        return;
+    }
+    int *xo = malloc(sizeof(int) * dw), *yo = malloc(sizeof(int) * dh);
+    short *xa = malloc(sizeof(short) * 2 * dw), *ya = malloc(sizeof(short) * 2 * dh);
+    area_linear_taps(sw, dw, xo, xa); area_linear_taps(sh, dh, yo, ya);
+    int *h0 = malloc(sizeof(int) * 4 * (size_t)dw), *h1 = malloc(sizeof(int) * 4 * (size_t)dw);
+    for (int y = 0; y < dh; y++) {
+        int r0 = yo[y], r1 = r0 + 1 < sh ? r0 + 1 : r0;
+        for (int pass = 0; pass < 2; pass++) {
+            const uint8_t *row = src + (size_t)(pass ? r1 : r0) * sw * 4; int *h = pass ? h1 : h0;
+            for (int x = 0; x < dw; x++) {
+                int s0 = xo[x], s1 = s0 + 1 < sw ? s0 + 1 : s0;
+                for (int c = 0; c < 4; c++) h[x * 4 + c] = row[s0 * 4 + c] * xa[x * 2] + row[s1 * 4 + c] * xa[x * 2 + 1];
+            }
+        }
+        short b0 = ya[y * 2], b1 = ya[y * 2 + 1];
+        uint8_t *d = dst + (size_t)y * dw * 4;
+        for (int i = 0; i < dw * 4; i++) {
+            int t = (((h0[i] >> 4) * b0) >> 16) + (((h1[i] >> 4) * b1) >> 16);
+            t = (t + 2) >> 2; d[i] = (uint8_t)(t < 0 ? 0 : t > 255 ? 255 : t);
+        }
+    }
+    free(xo); free(yo); free(xa); free(ya); free(h0); free(h1);
+}
+
 /* ======================================================================== blur & sharpen */
 static void box_h(const float *in, float *out, int w, int h, int ch, int r) {
     float inv = 1.0f / (2 * r + 1);

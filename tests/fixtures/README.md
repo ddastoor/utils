@@ -19,6 +19,8 @@ generates media with the project's own ffmpeg.wasm and Chromium). Used only by t
 | pdf/two-column-paper.pdf | `node scripts/make-paper-pdf.mjs`: original text, two columns, figure (chelsea.png), running header/footer | CC0 (text), CC0 (image) |
 | pdf/rc4-128-asdfzxcv.pdf, aes128-asdfzxcv.pdf, aes256-asdfzxcv.pdf | pypdf 7.1.0 encryption tests (user password `asdfzxcv`) | pypdf test data (BSD-3) |
 | images/book-page.jpg | `node scripts/make-page-photo.mjs`: original paragraph written for this project, set in Literata (OFL), then "photographed" (tilt, keystone, uneven light, shadow, blur, noise, JPEG) | CC0 (text), OFL (font) |
+| scanner/*.jpg, scanner/photos.json | `python3 scripts/make-scan-photos.py`: six "photos" of documents (text in Noto Sans, a receipt, a magazine page with scikit-image's astronaut) on scikit-image's sample photos (brick, coffee, gravel) and desks made by the script — perspective, light, shadows, a thumb, blur, noise, JPEG; the corners known exactly | CC0 (own work); scikit-image data BSD-3; Noto Sans OFL |
+| scanner/resize-area.json | `python3 scripts/make-scanner-reference.py`: OpenCV 5.1's `cv2.resize(…, INTER_AREA)` of pictures made from a formula (the unit suite makes the same pictures) | generated |
 | sheets/base.{xlsx,xls,xlsb,ods}, any_sheets.xlsx, password.xlsx, empty_file.xlsx | python-calamine 0.9.1 test data (real Excel / LibreOffice files) | MIT |
 | media/clip.mp4 | ffmpeg.wasm: testsrc2 640×360 3 s + 440 Hz, H.264/AAC | generated |
 | media/clip.webm | same, VP8/Vorbis | generated |

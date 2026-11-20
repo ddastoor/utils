@@ -41,6 +41,8 @@ export function bindImgproc(e: any) {
     },
     invert: (img: Img) => inplace(img, (p) => e.p_invert(p, n(img))),
     resize: (img: Img, w: number, h: number) => into(img, Math.max(1, Math.round(w)), Math.max(1, Math.round(h)), (s, d) => e.p_resize(s, img.width, img.height, d, Math.max(1, Math.round(w)), Math.max(1, Math.round(h)))),
+    /** OpenCV's INTER_AREA (the mean of the covered pixels) — what the Doc Scanner's page model was trained on. Opaque pictures. */
+    resizeArea: (img: Img, w: number, h: number) => into(img, Math.max(1, Math.round(w)), Math.max(1, Math.round(h)), (s, d) => e.p_resize_area(s, img.width, img.height, d, Math.max(1, Math.round(w)), Math.max(1, Math.round(h)))),
     /** Lossless EXIF-style orientation transform (1–8): 2 flip H, 3 180°, 4 flip V, 5 transpose, 6 90° CW, 7 transverse, 8 90° CCW. */
     orient: (img: Img, o: number): Img => (o >= 2 && o <= 8 ? into(img, o >= 5 ? img.height : img.width, o >= 5 ? img.width : img.height, (s, d) => e.p_orient(s, img.width, img.height, d, o)) : img),
     /** Exact pixel crop (clamped to the image). */

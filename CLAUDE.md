@@ -238,7 +238,7 @@ Test, plus `photodict` Photo Dictionary (owner said mobile only — phone camera
 | `caption` | Text on Image | both | canvas captions / meme text |
 | `collage` | Collage Maker | both | canvas photo grid |
 | `exif` | EXIF / Photo Info | both | ExifTool 13.42 (Perl on zeroperl, WebAssembly) in a worker: every tag of every format; strip metadata losslessly (colour profile + orientation kept) |
-| `scanner` | Doc Scanner | both | `imgproc` page detection (convexity/area check → falls back to whole photo), draggable corners, homography warp, enhance; PDF via MuPDF (`src/lib/pdf.ts`, JPEG pages embedded as-is) or JPEGs |
+| `scanner` | Doc Scanner | both | page finder DocCornerNet LEAN (scanic-ml, MIT) on ONNX Runtime Web (fed by imgproc's OpenCV-exact area resize) → else `imgproc` outline (Otsu + largest region) → else the whole photo; draggable corners, homography warp, enhance (`imgproc`); PDF via MuPDF (`src/lib/pdf.ts`: photos JPEG, B & W PNG) or JPEGs |
 | `ocr` | OCR | both | Tesseract (C++ → wasm), English, French, Spanish, German |
 
 **Documents** (engine: **MuPDF 1.28**, Artifex's official C → wasm build, for every PDF tab — merge/split via `graftPage`,
@@ -1483,9 +1483,29 @@ embedded images with MozJPEG at a chosen max resolution/quality; "rasterise" mod
 size" mode tries levels until the file is under the limit).
 
 ### Doc Scanner
-Camera or upload; automatic page detection (own C: Otsu + largest component + corners) with draggable
-corners; perspective correction; enhance modes (Colour clean, Grey, B/W adaptive threshold); multi-page
-→ PDF (A4/Letter/fit) or JPEGs.
+Camera or upload; automatic page detection with draggable corners; perspective correction; enhance modes (Colour
+clean, Grey, B/W adaptive threshold); multi-page → PDF (A4/Letter/fit) or JPEGs.
+**As built after the Nov 2026 bug hunt** (`src/tools/scanner.ts`; page finder `src/lib/pagefind.ts` (glue, no DOM),
+`src/workers/pagefind.worker.ts`, `src/lib/pagefind-client.ts`; unit `tests/unit/pagefind.test.mjs` 38, e2e
+`tests/e2e/scanner.e2e.mjs` 37; fixtures `python3 scripts/make-scan-photos.py` (photos with exact corners) and
+`python3 scripts/make-scanner-reference.py` (OpenCV's area resize) — need `pip install scikit-image
+opencv-python-headless`):
+- **Finding the page** (docs/WASM-AUDIT.md 121): the preview (1,100 px; 900 on phones) is made 224 × 224 with imgproc's
+  `resizeArea` (OpenCV's INTER_AREA, pixel for pixel — what the network was trained on) and given to **DocCornerNet
+  LEAN** (scanic-ml 0.2.0, MIT, 1.9 MB) on **ONNX Runtime Web 1.31** (the app's copy, shared with Text-to-Speech) in a
+  worker, fetched with the first page (about 5 MB over the wire). Its corners are used when P(document) ≥ 0.5 and they
+  make a convex page of at least 2 % of the photo (`startQuad`); else imgproc's outline (Otsu + the largest region);
+  else the whole photo, 2 % in from the edges. The line under the photo says which ("page found", "outline of the paper
+  found", "no page found"). If the finder cannot be fetched the tab says so once and goes on with the outline.
+- **Pages:** only the preview is kept; the photo is read again, one page at a time, when saving (phones run out of
+  memory with full-size photos). Every page has a thumbnail; move earlier / later (off at the ends), rotate, delete,
+  "Whole photo", "Start over". Corners that cross or fold back are said under the editor, the preview dims, and saving
+  is refused with the page's number. Handles: 26 px drawn, 46 px to touch, arrow keys (Shift = larger steps), a screen
+  reader hears where each one is.
+- **Saving:** pages straightened at up to 3,000 px; PDF (MuPDF): colour and grey pages as JPEG (quality 80), black and
+  white as PNG (lossless — the smallest and crispest); A4 and Letter fit the page (turned for a landscape scan); "Fit to
+  scan" = the scan's shape with A4's long side (297 mm). JPGs: quality 80 (B & W 85). Phones: "Take a photo of a page"
+  (back camera) and "Choose photos"; Share.
 
 ### OCR
 Tesseract 5 LSTM (tesseract.js-core wasm), **languages English, French, Spanish, German** (owner decision Nov 16 2026:
@@ -1726,7 +1746,7 @@ stay **public** (the source of the deployed site is then available to every user
 |---|---|---|---|
 | libsodium 1.0.20 + own MD5/SHA-1/SHA-3/CRC-32 + OpenBSD bcrypt + own CSPRNG helpers (shuffle, sampling, UUID v4/v7 — v7 values always increase: RFC 9562 §6.2 method 2, a random step inside one millisecond, clock steps back of up to 10 s tolerated) + USODIUM1 header | C | **us** (`wasm/crypto`) | random tools, uuid, mock data, line shuffle; the USODIUM1 header for sodium and sharelink (beside libsodium.js); its hashes (`u_hash_*`) are no longer called (hash-wasm since Nov 2026) |
 | **libsodium.js** — `libsodium-wrappers-sumo` 0.8.4 (libsodium **1.0.22**; the sumo build: the standard one has no Argon2) | C | the libsodium project (official WebAssembly build, embedded in the module) — binding `src/wasm/libsodium.ts`, format `src/lib/usodium.ts`, in `src/workers/crypto.worker.ts` | sodium, sharelink: Argon2id + XChaCha20-Poly1305 secretstream (`docs/WASM-AUDIT.md`, tab 101); password, passphrase: randombytes_uniform (tabs 104, 105) |
-| imgproc (adjustments, resize, lossless orient/crop, filters, matting, warp + homography, doc enhance) | C (own code) | **us** (`wasm/imgproc`) | image tools, scanner, passport, cartoon |
+| imgproc (adjustments, resize, OpenCV's area resize (`p_resize_area`, equal to cv2's INTER_AREA), lossless orient/crop, filters, matting, warp + homography, doc enhance) | C (own code) | **us** (`wasm/imgproc`) | image tools, scanner, passport, cartoon |
 | metacore (EXIF → JSON, lossless metadata strip JPEG/PNG/WebP, JPEG DPI, image sniffing) | C (own code) | **us** (`wasm/metacore`) | exif, image loading, passport/formphoto DPI |
 | BusyBox 1.38.0 (130 applets) + compat shims | C | **us** (`wasm/busybox`) | terminal, bc console |
 | jq 1.8.2 (+ oniguruma) | C | **us** (`wasm/jq`) | jq |
@@ -1750,7 +1770,7 @@ stay **public** (the source of the deployed site is then available to every user
 | MuPDF 1.28 | C | Artifex (official `mupdf` npm) | all PDF tools, PDF → EPUB |
 | ExifTool 13.42 on zeroperl (Perl 5 compiled to WebAssembly with ExifTool's library inside) | Perl / C | Phil Harvey (ExifTool), uswriting / 6over3 (`@uswriting/exiftool` 1.0.9, `@6over3/zeroperl-ts` 1.0.10) — run in `src/workers/exiftool.worker.ts` | exif (replaced metacore's reader and stripper in Nov 2026: `docs/WASM-AUDIT.md`, tab 120) |
 | hash-wasm 4.13.0 (hand-tuned C → wasm, one small binary per algorithm, embedded in the package; streaming; HMAC over any of its hashes; Argon2, bcrypt, scrypt, PBKDF2) | C | Dani Biró (`hash-wasm` npm, ~10 M downloads a month) — wrappers `src/lib/hmac.ts`, `src/lib/totp.ts`, `src/lib/pwhash.ts`, `src/lib/hashes.ts` (in `src/workers/hash.worker.ts`); only the algorithms a tab uses are bundled into its chunk, loaded with the tab's first result | hash (23 algorithms), hmac (all of it), totp (the HMAC), pwhash (Argon2id / i / d, bcrypt, scrypt, PBKDF2) — replaced RustCrypto builds and crypto.wasm's hashes of ours in Nov 2026 (`docs/WASM-AUDIT.md`) |
-| ONNX Runtime Web 1.31 (CPU/WebAssembly, SIMD) | C++ | Microsoft (official `onnxruntime-web` wasm build) | tts (Kokoro, Piper) |
+| ONNX Runtime Web 1.31 (CPU/WebAssembly, SIMD) | C++ | Microsoft (official `onnxruntime-web` wasm build) | tts (Kokoro, Piper); scanner (DocCornerNet LEAN, scanic-ml 0.2.0: the page's corners — `docs/WASM-AUDIT.md`, tab 121) |
 | SQLite 3.54 | C | SQLite project (official `@sqlite.org/sqlite-wasm`), run in `src/workers/sqlite.worker.ts` (terminated on leave) | sqlite |
 | Biome 2.6.8 (formatter for JS / JSX / TS / TSX, CSS, SCSS, YAML, GraphQL; 70 MB) | Rust | Biome project (official `@biomejs/wasm-web`), run in `src/workers/codefmt.worker.ts` (terminated on leave) | prettier (Code Formatter) |
 | dprint plugins: `@dprint/json` 0.26 and `dprint-plugin-markup` 0.28 (markup_fmt) — the JSON and HTML / Vue engines of `deno fmt` — behind the host `@dprint/formatter` 0.6 (JavaScript, 40 KB) | Rust | dprint project / g-plane (the plugins are published as WebAssembly: that is how dprint runs them) | prettier (Code Formatter) |
@@ -2247,7 +2267,8 @@ npm packages (pinned in `package-lock.json`) are bundled by Vite or copied to `p
 | @fontsource/great-vibes, /dancing-script, /caveat | OFL-1.1 | Signature Maker (typed signatures) |
 | @fontsource/literata (Literata, Google's reading typeface) | OFL-1.1 | Photo Dictionary cards |
 | emojibase-data 18.0.0 (Unicode's emoji list with CLDR names and keywords; shortcodes of GitHub's gemoji and Slack's emoji-data) — a devDependency: `scripts/make-emoji-data.py` cuts it down to `src/lib/emoji-data.json`, which is what ships | MIT (the Unicode data: Unicode License v3) | Emoji & Symbols |
-| onnxruntime-web 1.31.1 | MIT | Text-to-Speech (Kokoro, Piper) |
+| onnxruntime-web 1.31.1 | MIT | Text-to-Speech (Kokoro, Piper), Doc Scanner (page finder) |
+| scanic-ml 0.2.0 (DocCornerNet LEAN, the page-corner network; its own trimmed ONNX Runtime build is not used) | MIT | Doc Scanner |
 | hash-wasm 4.13.0 | MIT | Hash / Checksum, HMAC Generator, TOTP, Password Hash Tool |
 | libsodium-wrappers-sumo 0.8.4 (+ libsodium-sumo; libsodium 1.0.22 compiled to WebAssembly by its author) | ISC | Sodium Encrypt, Encrypted Share Link, Password Generator, Passphrase Generator |
 | mediabunny | MPL-2.0 | Video Compressor, Audio Recorder (cut without re-encoding) |

@@ -25,7 +25,7 @@ Areas with a shared review: the app shell (router, search, favorites, platform h
 | `caption` | Text on Image | PC + mobile | images1 | ✓ | 3 | 21 | over-long words and CJK broken between graphemes (src/lib/textwrap.ts); long text shrunk to fit |
 | `collage` | Collage Maker | PC + mobile | images1 | ✓ | 2 | 4 | A4 JPEG says 300 dpi; first photo's Move earlier off; jSquash resize on save |
 | `exif` | EXIF / Photo Info | PC + mobile | images1 | ✓ | 8 | 106 | engine replaced by ExifTool 13.42 (zeroperl wasm, worker): iPhone HEIC position was hidden; HEIC/WebP stay their format on strip; orientation + ICC kept; XMP/IPTC/maker notes/previews shown; non-photo files named; newest photo wins; HEIC preview; DMS carry |
-| `scanner` | Doc Scanner | PC + mobile | images2 |  |  |  |  |
+| `scanner` | Doc Scanner | PC + mobile | images2 | ✓ | 12 | 62 | page finder: DocCornerNet LEAN on ONNX Runtime Web (WASM-AUDIT 121); OpenCV's area resize in imgproc; memory, phone picker, B&W lossless, Fit to scan |
 | `ocr` | OCR | PC + mobile | images2 |  |  |  |  |
 | `signature` | Signature Maker | PC + mobile | images1 |  |  |  |  |
 
@@ -1641,3 +1641,29 @@ Reference for the five finance tabs: **mpmath at 60 digits** (`scripts/make-fina
   7. The preview of a HEIC photo was a broken image (browsers do not show HEIC in an `<img>`), and the preview's
      object URL was never released; the photo is decoded and drawn.
   8. Degrees, minutes and seconds could read 60.00″ (rounding without a carry); the Coordinates tab's writer is used.
+
+- **`scanner` (tab 123, 12 bugs; page finding → DocCornerNet LEAN on ONNX Runtime Web, docs/WASM-AUDIT.md 121; imgproc
+  gets OpenCV's area resize; unit `tests/unit/pagefind.test.mjs` 38 — new, held to OpenCV and to photos with known
+  corners (`scripts/make-scan-photos.py`, `scripts/make-scanner-reference.py`, needs `pip install scikit-image
+  opencv-python-headless`); e2e 37 — was 13).**
+  1. The page was not found where the paper is not much lighter than what it lies on — white paper on a light desk, a
+     grey desk, a page held in a hand: on 17 real photos the outline finder got 10 right, on 53 generated ones 20; the
+     page finder gets 15 and 43 (photos it never saw). The line under the photo says how the corners were found.
+  2. Every page kept its full-size photo in memory (a 12 MP photo is 48 MB of pixels): ten pages on a phone could end
+     the tab. Only the preview is kept; the photo is read again, one page at a time, when saving.
+  3. On phones the picker always opened the camera — photos already taken could not be added. "Take a photo of a page"
+     and "Choose photos" (several at once).
+  4. Of several photos added at once, only the last got a thumbnail; every page gets one now.
+  5. "Move page earlier" on page 1 did nothing and there was no "Move page later"; both, each off where it cannot move.
+  6. Corners dragged across each other made a twisted page without a word; the tab says "The corners cross or fold
+     back …", the preview dims, and saving is refused with the page's number.
+  7. "Fit to scan" made each PDF page at 150 dpi of the scan's pixels — a 3,000 px page became 20 inches tall; the page
+     now has the scan's shape with A4's long side (297 mm).
+  8. Black-and-white pages went into the PDF as JPEG at quality 70 (grey smudges round every letter) while the note
+     promised "the crispest text and smallest files"; they are PNG now (lossless; 23 KB for two pages against 92 KB in
+     colour), and JPGs of them quality 85.
+  9. The corner handles were 26 px touch targets (the rule is 44); 46 px now, a cancelled touch no longer leaves a
+     handle stuck to the finger, and each handle tells a screen reader where it is.
+  10. An error while saving did not say which page; it does ("Page 3 (IMG_2041.jpg): …").
+  11. No way to clear the pages for the next document but deleting them one by one: "Start over".
+  12. Leaving the tab while photos were being read could still draw into it; the work stops.

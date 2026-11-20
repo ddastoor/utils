@@ -1,0 +1,101 @@
+{
+ "note": "Corners TL TR BR BL in pixels of each photo; made by scripts/make-scan-photos.py",
+ "photos": [
+  {
+   "name": "white-page-light-desk.jpg",
+   "width": 825,
+   "height": 1100,
+   "corners": [
+    196.9,
+    135.87,
+    719.38,
+    200.02,
+    639.77,
+    986.18,
+    83.95,
+    917.93
+   ],
+   "note": "white paper on a light desk (the outline finder takes the desk)"
+  },
+  {
+   "name": "receipt-dark-wood.jpg",
+   "width": 825,
+   "height": 1100,
+   "corners": [
+    210.59,
+    175.14,
+    467.39,
+    134.47,
+    582.99,
+    905.88,
+    339.03,
+    944.52
+   ],
+   "note": "a receipt on dark wood"
+  },
+  {
+   "name": "magazine-brick.jpg",
+   "width": 1100,
+   "height": 825,
+   "corners": [
+    425.17,
+    62.05,
+    839.45,
+    177.91,
+    697.78,
+    746.12,
+    277.6,
+    653.93
+   ],
+   "note": "a magazine page on bricks"
+  },
+  {
+   "name": "page-held-thumb.jpg",
+   "width": 825,
+   "height": 1100,
+   "corners": [
+    100.06,
+    141.33,
+    680.64,
+    100.74,
+    748.92,
+    948.04,
+    150.38,
+    989.89
+   ],
+   "note": "a page held up, a thumb over its left edge"
+  },
+  {
+   "name": "shadow-grey-desk.jpg",
+   "width": 825,
+   "height": 1100,
+   "corners": [
+    242.43,
+    150.8,
+    710.38,
+    250.26,
+    577.91,
+    973.53,
+    69.27,
+    865.41
+   ],
+   "note": "a shadow across the page, grey desk"
+  },
+  {
+   "name": "page-gravel-angle.jpg",
+   "width": 1100,
+   "height": 825,
+   "corners": [
+    245.82,
+    168.6,
+    630.23,
+    43.7,
+    865.47,
+    661.23,
+    418.48,
+    806.47
+   ],
+   "note": "seen from an angle on gravel"
+  }
+ ]
+}

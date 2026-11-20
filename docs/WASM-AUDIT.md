@@ -1034,3 +1034,29 @@ One entry per tab, written before its bug hunt: our module → candidates → ch
   density stay). It runs in a worker (zeroperl is told it is in a browser; one job at a time — two at once crashed
   the page), fetched with the first photo, released on leave. metacore stays for the other tabs (orientation on
   loading, JPEG dpi and padding, sniffing); its `m_strip` is no longer used by any tab.
+
+### 121. `scanner` — Doc Scanner (20 Nov 2026) — **page finding: an existing model on ONNX Runtime Web**
+- **Ours:** imgproc.wasm (own C): page outline by Otsu's threshold + the largest region + its extreme points; the
+  homography warp; the clean-up (colour / grey / black and white).
+- **Candidates:** **scanic 1.8.0** (MIT; Rust → WebAssembly for blur, Canny and dilation; the contours, the corner pick
+  and the warp in JavaScript) with its optional **ML detector — DocCornerNet LEAN** (scanic-ml 0.2.0, MIT: a
+  MobileNetV2 corner network, 1.9 MB, trained on MIDV-500, SmartDoc 2015, UVDoc, WarpDoc and a Roboflow set; it ships
+  its own trimmed ONNX Runtime build); **OpenCV.js 5.0** (OpenCV's own WebAssembly build, packaged by TechStark, 14.7 MB;
+  the textbook recipe: blur → Canny → dilate → contours → the largest four-sided one — what jscanify does).
+- **Check:** (1) the 17 real photos of scanic's repository with hand-checked corners (`testImages/ground-truth.json`;
+  pre-filled by the ML detector, then corrected by hand — so leaning towards it): corners within 2 % of the diagonal —
+  ours 10, scanic classic 8, OpenCV 9 (6 found nothing), scanic ML 15. (2) 53 photos made for this check (pages,
+  receipts, a magazine page, cards on scikit-image's photos and plain desks; perspective, shadows, a thumb, blur,
+  noise, JPEG — no detector had seen them): ours 20, scanic classic 15, OpenCV 22 (18 nothing), scanic ML 43 (its 8
+  misses: card-like objects without text, where it says it is not sure). Ours fails where the paper is not much
+  lighter than the desk (white paper on a light desk, a grey desk, a page held in a hand). When the network is not
+  sure (P < 0.5) its corners are mostly wrong (5 – 39 %), so its own threshold is kept.
+- **Decision (rule 1):** page finding moves to **DocCornerNet LEAN on ONNX Runtime Web 1.31** — Microsoft's official
+  WebAssembly build that the app already ships for Text-to-Speech (the same file, so the browser's cache serves both;
+  scanic's trimmed runtime and its JavaScript are not used: feeding the network and reading its eight numbers is 30
+  lines, `src/lib/pagefind.ts`), in a worker, fetched with the first page (3.9 + 1.7 MB over the wire). **Supplement
+  (rule 1a):** the network was trained on photos made 224 × 224 with OpenCV's area resize, so imgproc gets
+  `p_resize_area` — OpenCV's INTER_AREA reproduced (equal to cv2 5.1 pixel for pixel when shrinking; tests 38). When
+  the network is not sure, or cannot be fetched, imgproc's outline is used, then the whole photo. The warp and the
+  clean-up stay imgproc's (scanic's warp is JavaScript; no candidate has the clean-up). OpenCV.js is not used: worse on
+  both sets than the network and 14 MB.

@@ -124,7 +124,7 @@ export function quadEditor(canvas: HTMLCanvasElement, onChange?: (q: number[]) =
   const wrap = h('div', { class: 'crop-wrap quad-wrap' }, canvas, svg, ...handles);
   const apply = () => {
     poly.setAttribute('points', [0, 1, 2, 3].map((i) => `${q[i * 2] * 1000},${q[i * 2 + 1] * 1000}`).join(' '));
-    handles.forEach((hd, i) => Object.assign(hd.style, { left: `${q[i * 2] * 100}%`, top: `${q[i * 2 + 1] * 100}%` }));
+    handles.forEach((hd, i) => { Object.assign(hd.style, { left: `${q[i * 2] * 100}%`, top: `${q[i * 2 + 1] * 100}%` }); hd.setAttribute('aria-valuetext', `${Math.round(q[i * 2] * 100)} % across, ${Math.round(q[i * 2 + 1] * 100)} % down`); });
   };
   let drag = -1;
   for (const hd of handles) {
@@ -136,6 +136,7 @@ export function quadEditor(canvas: HTMLCanvasElement, onChange?: (q: number[]) =
       apply(); onChange?.(q.slice());
     });
     hd.addEventListener('pointerup', () => { drag = -1; });
+    hd.addEventListener('pointercancel', () => { drag = -1; }); // a phone took the touch over (a scroll, a call)
     hd.addEventListener('keydown', (e) => {
       const i = +hd.dataset.i!, d = e.shiftKey ? 0.02 : 0.005, k = { ArrowLeft: [-d, 0], ArrowRight: [d, 0], ArrowUp: [0, -d], ArrowDown: [0, d] }[e.key];
       if (!k) return;

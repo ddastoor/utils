@@ -637,6 +637,7 @@ details summary { cursor: pointer; font-weight: 600; color: var(--accent); paddi
 .quad-poly { fill: rgb(79 70 229 / 12%); stroke: #4f46e5; stroke-width: 4; vector-effect: non-scaling-stroke; stroke-width: 2.5px; }
 .quad-h { position: absolute; width: 26px; height: 26px; margin: -13px 0 0 -13px; border-radius: 50%; background: #fff; border: 3px solid #4f46e5; box-shadow: 0 1px 4px rgb(0 0 0 / 40%); cursor: grab; touch-action: none; z-index: 2; }
 .quad-h:focus-visible { outline: 3px solid #f59e0b; }
+.quad-h::after { content: ''; position: absolute; inset: -13px; border-radius: 50%; } /* a 46 px touch target around the 26 px handle */
 .scan-pages { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; }
 .scan-thumb { position: relative; border: 2px solid var(--border); border-radius: 8px; overflow: hidden; background: #fff; padding: 0; aspect-ratio: 3 / 4; cursor: pointer; }
 .scan-thumb.sel { border-color: var(--accent, #4f46e5); }
@@ -645,6 +646,7 @@ details summary { cursor: pointer; font-weight: 600; color: var(--accent); paddi
 .scan-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 @media (max-width: 700px) { .scan-grid { grid-template-columns: 1fr; } }
 .scan-out { background: #fff; }
+.scan-out.dim { opacity: .35; }
 /* ------------------------------------------------------------------ Linux Terminal */
 .term-layout { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 14px; align-items: start; }
 .term { background: #15171c; color: #dcdfe4; border-radius: 12px; padding: 12px 14px; height: min(68vh, 640px); overflow: auto; font: 13.5px/1.45 ui-monospace, "Cascadia Mono", "DejaVu Sans Mono", Menlo, Consolas, monospace; cursor: text; border: 2px solid transparent; }
