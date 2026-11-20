@@ -196,7 +196,7 @@ Areas with a shared review: the app shell (router, search, favorites, platform h
 ## codes
 | id | Tab | Platform | Area | R | B | T | Notes |
 |---|---|---|---|---|---|---|---|
-| `qr` | QR Generator | PC + mobile | security-codes |  |  |  |  |
+| `qr` | QR Generator | PC + mobile | security-codes | ✓ | 7 | 41 | zxing-wasm 3.1.7 kept (latest); qrdata.ts: UPI amounts as typed (commas were dropped), NPCI form, RFC 5545 escaping, SMS digits, Wi-Fi/colour checks, newest text wins; zbar read-back |
 | `barcode` | Barcode Generator | PC + mobile | security-codes |  |  |  |  |
 | `scan` | QR & Barcode Scanner | PC + mobile | security-codes |  |  |  |  |
 | `zip` | Create Zip | PC + mobile | security-codes |  |  |  |  |
@@ -1384,3 +1384,23 @@ Reference for the five finance tabs: **mpmath at 60 digits** (`scripts/make-fina
   never saw files in the site's own `data/`, `vendor/` and `models/` folders (it compared URLs without their leading
   slash with patterns that had one); with that fixed the passphrase tab was the only one loading such a file at open —
   the word list, which its first view needs (now on the list with the reason).
+
+- **`qr` (tab 106, 7 bugs; engine kept: zxing-wasm 3.1.7, the latest — docs/WASM-AUDIT.md, 106; unit
+  `tests/unit/codes.test.mjs` 39 — was 6; e2e 27 — was 19; codes are read back by zbar too).**
+  1. **A UPI amount with a comma or ₹ was dropped without a word.** The amount box was a number box: "1,000",
+     "₹ 250" or "49,50" gave an empty value, and the code asked for no amount. Amounts are read as people write them
+     (₹ / Rs / INR, Indian or international digit commas, up to two decimals); "49,50" is refused (it is not ₹4,950)
+     and no code is made until the amount is right; above ₹1 lakh a note.
+  2. A calendar event's title and place were not escaped: "Diwali party, rooftop" and "Bandra; Mumbai" are split
+     into fields by calendar readers (RFC 5545 asks for \, and \;).
+  3. An event that ends before it starts was made.
+  4. An SMS number kept its spaces ("SMSTO:+91 98200 12345:…"); the number is digits and + now, as for calls.
+  5. A WPA password of fewer than 8 or more than 63 characters (no phone can join with it) was made without a word;
+     WEP key lengths, a missing WPA password and network names over 32 bytes are pointed out too.
+  6. A light code on a dark background, or colours with little contrast, which many phone cameras cannot read, gave
+     no warning.
+  7. Too much text showed zint's own words; the tab says how much fits and what to do.
+  Also: the UPI link is written as NPCI's linking specification writes it (the @ of the UPI ID as it is, not %40);
+  "What the code holds" shows the exact text; the newest text wins when zxing answers out of order; the PNG is saved
+  as qr-code.png; a UPI ID that does not look like one, a long UPI note and an incomplete e-mail address are pointed
+  out.

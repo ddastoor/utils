@@ -1,34 +1,11 @@
 // QR / barcode generation and scanning with zxing-cpp (+ zint writer), C++ compiled to WebAssembly.
 import { prepareZXingModule, writeBarcode, readBarcodes } from 'zxing-wasm/full';
 import zxingWasm from 'zxing-wasm/full/zxing_full.wasm?url';
-import { h, card, field, input, textarea, button, segmented, select, toggle, slider, filePicker, clear, stack, note, copy, downloadBlob, canvasToBlob, type Mount } from '../ui';
+import { h, card, field, input, textarea, button, segmented, select, toggle, slider, filePicker, clear, stack, note, copy, downloadBlob, canvasToBlob, outputBox, type Mount } from '../ui';
+import * as Q from '../lib/qrdata';
 
 let ready: Promise<unknown> | null = null;
 const zx = () => (ready ||= Promise.resolve(prepareZXingModule({ overrides: { locateFile: (p: string, prefix: string) => (p.endsWith('.wasm') ? zxingWasm : prefix + p) }, fireImmediately: true })));
-
-// ------------------------------------------------------------------ payload builders (exported for tests)
-const esc = (s: string) => s.replace(/([\\;,:"])/g, '\\$1');
-export const payload = {
-  wifi: (o: { ssid: string; pass: string; sec: string; hidden: boolean }) => `WIFI:T:${o.sec === 'none' ? 'nopass' : o.sec};S:${esc(o.ssid)};${o.sec === 'none' ? '' : `P:${esc(o.pass)};`}${o.hidden ? 'H:true;' : ''};`,
-  upi: (o: { vpa: string; name: string; amount: string; note: string }) => {
-    const p = new URLSearchParams({ pa: o.vpa.trim(), pn: o.name.trim() });
-    if (o.amount) { p.set('am', (+o.amount).toFixed(2)); p.set('cu', 'INR'); }
-    if (o.note) p.set('tn', o.note);
-    return `upi://pay?${p.toString().replace(/\+/g, '%20')}`;
-  },
-  // vCard 3.0 text values escape \ ; , and new lines (RFC 2426 §4), so "Tata Sons; Mumbai" stays one field
-  vcard: (o: { first: string; last: string; phone: string; email: string; org: string; url: string }) => {
-    const v = (s: string) => s.replace(/([\\;,])/g, '\\$1').replace(/\r?\n/g, '\\n');
-    return ['BEGIN:VCARD', 'VERSION:3.0', `N:${v(o.last)};${v(o.first)};;;`, `FN:${v(`${o.first} ${o.last}`.trim())}`, o.org && `ORG:${v(o.org)}`, o.phone && `TEL;TYPE=CELL:${o.phone}`, o.email && `EMAIL:${o.email}`, o.url && `URL:${o.url}`, 'END:VCARD'].filter(Boolean).join('\n');
-  },
-  email: (o: { to: string; subject: string; body: string }) => `mailto:${o.to}${o.subject || o.body ? '?' + new URLSearchParams({ ...(o.subject ? { subject: o.subject } : {}), ...(o.body ? { body: o.body } : {}) }).toString().replace(/\+/g, '%20') : ''}`,
-  sms: (o: { phone: string; msg: string }) => `SMSTO:${o.phone}:${o.msg}`,
-  tel: (o: { phone: string }) => `tel:${o.phone.replace(/\s+/g, '')}`,
-  event: (o: { title: string; start: string; end: string; place: string }) => {
-    const d = (s: string) => (s ? new Date(s).toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '') : '');
-    return ['BEGIN:VEVENT', `SUMMARY:${o.title}`, o.start && `DTSTART:${d(o.start)}`, o.end && `DTEND:${d(o.end)}`, o.place && `LOCATION:${o.place}`, 'END:VEVENT'].filter(Boolean).join('\n');
-  },
-};
 
 function recolor(svg: string, fg: string, bg: string) {
   return svg.replace(/fill="#000000"/gi, `fill="${fg}"`).replace(/fill="#FFFFFF"/gi, `fill="${bg}"`).replace(/<\?xml[^>]*>\s*<!DOCTYPE[^>]*>/, '');
@@ -45,26 +22,42 @@ async function svgToPng(svg: string, size: number, bg: string): Promise<Blob> {
 
 function renderer(format: () => string, extra: () => Record<string, unknown> = () => ({})) {
   const preview = h('div', { class: 'code-preview' });
-  const status = h('div');
-  let svg = '', fg = '#000000', bg = '#ffffff', size = 1024;
-  const run = async (text: string) => {
+  const status = h('div', { class: 'stack' });
+  const colourNote = h('div');
+  let svg = '', fg = '#000000', bg = '#ffffff', size = 1024, seq = 0;
+  /** Draws `text`; `notes` (errors / warnings of the form) are shown above. The newest call wins (zxing is async). */
+  const run = async (text: string, notes: { errors?: string[]; warnings?: string[] } = {}) => {
+    const me = ++seq;
     await zx();
-    clear(status);
+    if (me !== seq) return;
+    clear(status).append(...(notes.errors ?? []).map((e) => note(e, 'err')), ...(notes.warnings ?? []).map((w) => note(w, 'warn')));
     if (!text) { clear(preview); svg = ''; return; }
     const r = await writeBarcode(text, { format: format() as any, ...extra() });
-    if (r.error) { clear(preview); svg = ''; status.append(note(r.error, 'warn')); return; }
+    if (me !== seq) return;
+    if (r.error) { clear(preview); svg = ''; status.append(note(codeError(r.error, format()), 'warn')); return; }
     svg = recolor(r.svg, fg, bg);
     preview.innerHTML = svg; // zint's own SVG output (our generated markup, not user HTML)
   };
+  const colours = () => { clear(colourNote); const w = Q.colourWarning(fg, bg); if (w) colourNote.append(note(w, 'warn')); };
   const controls = stack(
-    h('div', { class: 'row' }, field('Colour', h('input', { type: 'color', value: fg, class: 'color-picker sm', oninput: (e: any) => { fg = e.target.value; regen(); } })),
-      field('Background', h('input', { type: 'color', value: bg, class: 'color-picker sm', oninput: (e: any) => { bg = e.target.value; regen(); } }))),
+    h('div', { class: 'row' }, field('Colour', h('input', { type: 'color', value: fg, class: 'color-picker sm', 'aria-label': 'Colour', oninput: (e: any) => { fg = e.target.value; colours(); regen(); } })),
+      field('Background', h('input', { type: 'color', value: bg, class: 'color-picker sm', 'aria-label': 'Background', oninput: (e: any) => { bg = e.target.value; colours(); regen(); } }))),
+    colourNote,
     slider({ label: 'PNG size', min: 256, max: 4096, step: 64, value: size, unit: ' px', onInput: (v) => (size = v) }));
   let regen = () => {};
+  const name = () => (format() === 'QRCode' ? 'qr-code' : format().toLowerCase());
   const actionsEl = h('div', { class: 'actions' },
-    button('PNG', async () => { if (!svg) throw new Error('Nothing to save yet.'); downloadBlob(await svgToPng(svg, size, bg), `${format().toLowerCase()}.png`); }, { variant: 'primary', icon: 'Download' }),
-    button('SVG', () => { if (!svg) throw new Error('Nothing to save yet.'); downloadBlob(new Blob([svg], { type: 'image/svg+xml' }), `${format().toLowerCase()}.svg`); }, { icon: 'Download' }));
+    button('PNG', async () => { if (!svg) throw new Error('Nothing to save yet.'); downloadBlob(await svgToPng(svg, size, bg), `${name()}.png`); }, { variant: 'primary', icon: 'Download' }),
+    button('SVG', () => { if (!svg) throw new Error('Nothing to save yet.'); downloadBlob(new Blob([svg], { type: 'image/svg+xml' }), `${name()}.svg`); }, { icon: 'Download' }));
   return { preview, status, controls, actionsEl, run, setRegen: (f: () => void) => (regen = f) };
+}
+
+/** zint's error text, said for a person. */
+function codeError(e: string, format: string): string {
+  if (/too long|too much|exceeds|capacity/i.test(e)) return format === 'QRCode'
+    ? 'Too much for one QR code (at most about 2,900 bytes, fewer with more error correction) — shorten the text or choose Low error correction.'
+    : `Too long for ${format} — shorten the value.`;
+  return e;
 }
 
 // ------------------------------------------------------------------ QR generator
@@ -83,36 +76,39 @@ export const qr: Mount = (root) => {
     tel: [['phone', 'Phone number']],
     event: [['title', 'Event title'], ['start', 'Starts'], ['end', 'Ends'], ['place', 'Location']],
   };
-  const build = () => {
-    const v = vals;
+  const build = (): Q.Checked => {
+    const v = vals, str = (k: string) => String(v[k] ?? '');
     switch (kind) {
-      case 'url': return v.text || '';
-      case 'wifi': return v.ssid ? payload.wifi({ ssid: v.ssid, pass: v.pass || '', sec: v.sec || 'WPA', hidden: !!v.hidden }) : '';
-      case 'upi': return v.vpa ? payload.upi({ vpa: v.vpa, name: v.name || '', amount: v.amount || '', note: v.note || '' }) : '';
-      case 'vcard': return v.first || v.last ? payload.vcard({ first: v.first || '', last: v.last || '', phone: v.phone || '', email: v.email || '', org: v.org || '', url: v.url || '' }) : '';
-      case 'email': return v.to ? payload.email({ to: v.to, subject: v.subject || '', body: v.body || '' }) : '';
-      case 'sms': return v.phone ? payload.sms({ phone: v.phone, msg: v.msg || '' }) : '';
-      case 'tel': return v.phone ? payload.tel({ phone: v.phone }) : '';
-      case 'event': return v.title ? payload.event({ title: v.title, start: v.start || '', end: v.end || '', place: v.place || '' }) : '';
+      case 'url': return { text: str('text'), errors: [], warnings: [] };
+      case 'wifi': return Q.wifi({ ssid: str('ssid'), pass: str('pass'), sec: v.sec || 'WPA', hidden: !!v.hidden });
+      case 'upi': return Q.upi({ vpa: str('vpa'), name: str('name'), amount: str('amount'), note: str('note') });
+      case 'vcard': return Q.vcard({ first: str('first'), last: str('last'), phone: str('phone'), email: str('email'), org: str('org'), url: str('url') });
+      case 'email': return Q.email({ to: str('to'), subject: str('subject'), body: str('body') });
+      case 'sms': return Q.sms({ phone: str('phone'), msg: str('msg') });
+      case 'tel': return Q.tel({ phone: str('phone') });
+      case 'event': return Q.event({ title: str('title'), start: str('start'), end: str('end'), place: str('place') });
     }
-    return '';
+    return { text: '', errors: [], warnings: [] };
   };
-  const regen = () => r.run(build());
+  const held = outputBox({ rows: 3, mono: true });
+  const heldBox = h('details', { class: 'qr-held' }, h('summary', null, 'What the code holds'), held);
+  const regen = () => { const b = build(); held.value = b.text; heldBox.hidden = !b.text; return r.run(b.text, b); };
   r.setRegen(regen);
   const renderForm = () => {
     for (const k of Object.keys(vals)) delete vals[k];
     if (kind === 'url') vals.text = 'https://ddastoor.github.io/utils/';
     if (kind === 'wifi') vals.sec = 'WPA';
     clear(form).append(...inputs[kind].map(([key, label, ph]) => {
+      if (key === 'amount') { const el = input({ value: '', placeholder: '₹ 49.50', attrs: { inputmode: 'decimal', 'aria-label': label } }); el.addEventListener('input', () => { vals.amount = el.value; regen(); }); return field(label, el); }
       if (key === 'sec') return field(label, segmented([['WPA', 'WPA/WPA2/WPA3'], ['WEP', 'WEP'], ['none', 'Open']], 'WPA', (v) => { vals.sec = v; regen(); }));
-      const el = key === 'body' || key === 'msg' || (kind === 'url' && key === 'text') ? textarea({ rows: 3, value: vals[key] || '', placeholder: ph }) : input({ value: vals[key] || '', placeholder: ph, type: key === 'start' || key === 'end' ? 'datetime-local' : key === 'amount' ? 'number' : key === 'email' || key === 'to' ? 'email' : key === 'phone' ? 'tel' : 'text' });
+      const el = key === 'body' || key === 'msg' || (kind === 'url' && key === 'text') ? textarea({ rows: 3, value: vals[key] || '', placeholder: ph }) : input({ value: vals[key] || '', placeholder: ph, type: key === 'start' || key === 'end' ? 'datetime-local' :  key === 'email' || key === 'to' ? 'email' : key === 'phone' ? 'tel' : 'text' });
       el.addEventListener('input', () => { vals[key] = (el as HTMLInputElement).value; regen(); });
       return field(label, el);
     }), kind === 'wifi' ? toggle('Hidden network', false, (v) => { vals.hidden = v; regen(); }) : '');
     regen();
   };
   root.append(card(null, stack(field('Type', select([['url', 'Text / link'], ['wifi', 'Wi-Fi login'], ['upi', 'UPI payment'], ['vcard', 'Contact card'], ['email', 'Email'], ['sms', 'SMS'], ['tel', 'Phone call'], ['event', 'Calendar event']], kind, (v) => { kind = v; renderForm(); })), form)),
-    card(null, r.preview, r.status, stack(field('Error correction', segmented([['L', 'Low 7%'], ['M', 'Medium 15%'], ['Q', 'Quartile 25%'], ['H', 'High 30%']], ec, (v) => { ec = v; regen(); })), r.controls)), r.actionsEl);
+    card(null, r.preview, r.status, heldBox, stack(field('Error correction', segmented([['L', 'Low 7%'], ['M', 'Medium 15%'], ['Q', 'Quartile 25%'], ['H', 'High 30%']], ec, (v) => { ec = v; regen(); })), r.controls)), r.actionsEl);
   renderForm();
 };
 

@@ -601,6 +601,18 @@ AES/ZipCrypto passwords) and 7z/rar/tar/gz/bz2/xz via libarchive. Download singl
 Generate: text, URL, Wi-Fi (WPA/WEP/none), UPI payment link (`upi://pay?pa=…&pn=…&am=…`), email, phone,
 SMS, contact card. Error-correction level, size, colours, PNG/SVG download. Scan: camera (back camera
 on phones) or image upload.
+**QR Generator as built after the Nov 2026 bug hunt** (`qr` in `src/tools/codes.ts`, contents and checks
+`src/lib/qrdata.ts`; unit `tests/unit/codes.test.mjs` 39, e2e `tests/e2e/qr.e2e.mjs` 27 — read back by the Scanner tab
+and by zbar, `apt install zbar-tools`). Engine zxing-wasm 3.1.7 (docs/WASM-AUDIT.md 106). Wi-Fi as ZXing describes it
+(\ ; , : " escaped; WPA 8 – 63 characters or 64 hex digits, WEP lengths, SSID ≤ 32 bytes — warnings, the code is still
+made); UPI as NPCI writes it (`pa=` with its @, values percent-encoded, `am=` with two decimals and `cu=INR`; the
+amount read as people type it — ₹ / Rs / INR, Indian or international commas; "49,50", three decimals, 0 or less are
+refused and no code is made; a note above ₹1 lakh, for a UPI ID that does not look like one, and for notes over 50
+characters); vCard 3.0 (RFC 2426 escaping); mailto (subject and body percent-encoded); SMSTO and tel with the digits
+and +; VEVENT (RFC 5545 escaping of the title and place, local times in UTC, an end before the start refused). "What
+the code holds" shows the exact text. Colours: a light code on a dark ground or contrast below 3 : 1 is warned about.
+Too much text is said in words. The newest text wins when zxing answers out of order. PNG (256 – 4,096 px, saved as
+qr-code.png) and SVG.
 
 ### Calculator
 Sub-tabs: **Scientific** (own parser: + − × ÷ ^ √ ∛ ! nPr nCr %; "a + b%" / "a − b%" add or take off b % of a like phone/Google

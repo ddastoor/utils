@@ -866,3 +866,11 @@ One entry per tab, written before its bug hunt: our module → candidates → ch
   byte for byte the copy the `xkcdpass` package ships); picking words is string glue (`src/lib/passphrases.ts`).
 - **Evidence:** in Node on libsodium.js: 800 passphrases of 3 – 12 words with each separator read back word by word
   from the list; the first letters of 77,760 drawn words at their shares of the list (χ²).
+
+### 106. `qr` — QR Generator (20 Nov 2026; also `barcode`, `scan`, which share the engine)
+- **Ours:** none. The engine is **zxing-wasm 3.1.7** (MIT; zxing-cpp's reader and zint's writer compiled to
+  WebAssembly; the `full` build) — an existing, widely used module, at its latest version (published 15 Nov 2026).
+- **Decision:** stays (rule 1). What goes into a code (Wi-Fi, UPI, vCard, mailto, SMSTO, tel, VEVENT) and the checks
+  on what was typed are string glue (`src/lib/qrdata.ts`, §3a).
+- **Evidence:** every kind of code the tab makes, saved as PNG, is read back by the Scanner tab (zxing) and by
+  **zbar 0.23** (`zbarimg`, an independent decoder), byte for byte, Hindi and emoji included.
