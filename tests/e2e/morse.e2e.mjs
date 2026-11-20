@@ -96,6 +96,28 @@ export default async ({ base, page: newPage, ok, devices }) => {
   const chart = await page.$$eval('.morse-item', (xs) => xs.map((x) => [x.querySelector('b').textContent, x.querySelector('code').textContent]));
   ok(chart.length === 62 && chart[0].join(' ') === 'A .-' && chart[25].join(' ') === 'Z --..' && chart[26].join(' ') === '0 -----' && chart.some(([c, m]) => c === '?' && m === '..--..'), `the alphabet chart: 62 characters, letters first, then digits, signs, accented letters (${chart.length})`);
 
+  // ---- a book pasted in: 500,000 letter groups were put into the box with one spread call, which overflowed the call
+  // stack ("Maximum call stack size exceeded", nothing shown), and Play would have set up days of tones before the first
+  const book = 'The quick brown fox jumps over the lazy dog. '.repeat(11000); // 495,000 characters
+  const t0 = Date.now(); await conv(book); const took = Date.now() - t0;
+  const shown = await out.evaluate((e) => e.textContent), groups = await out.evaluate((e) => e.querySelectorAll('.nb').length);
+  const cutLine = await page.getByText(/^The first [\d,]+ of [\d,]+ characters are shown — Copy gives all of it\.$/).textContent().catch(() => '');
+  ok(!page.errors.length && shown.length <= 20002 && shown.endsWith(' …') && groups > 3000 && cutLine, `a 495,000-character text: the first ${shown.length.toLocaleString()} characters of its code shown (${groups} groups), said — "${cutLine}"; ${took} ms; errors: ${page.errors.join(' | ').slice(0, 120)}`);
+  ok(/^- \.\.\.\. \. \/ --\.- \.\.- \.\. -\.-\. -\.- \//.test(shown) && / …$/.test(shown) && !/  …$/.test(shown), 'the shown part starts with the code of "The quick" and ends between two letter groups, then "…"');
+  await page.locator('.outbox', { has: out }).getByRole('button', { name: 'Copy' }).click();
+  const all = (await copied(page)).at(-1) || '';
+  ok(all.length > 1500000 && all.startsWith(shown.slice(0, -1)) && all.endsWith('-.. --- --. .-.-.-'), `Copy gives all of it (${all.length.toLocaleString()} characters, ending with "dog.")`);
+  const len = await page.locator('.morse-length').textContent();
+  ok(/^[\d,]+ hr( \d+ min)? of sound at \d+ words a minute\. Play gives the first hour\.$/.test(len), `the length in hours, and Play gives the first hour: "${len}"`);
+  await page.evaluate(() => { window.__ev = []; window.__osc = []; });
+  await page.getByRole('button', { name: 'Play' }).click(); await page.getByRole('button', { name: 'Stop' }).waitFor();
+  const sched = await page.evaluate(() => { const on = window.__ev.filter(([k, v]) => k === 'ramp' && v === 0.4).map(([, , t]) => t); return { n: on.length, span: on.length ? Math.max(...on) - Math.min(...on) : 0, stops: window.__osc.at(-1)?.__stops || [] }; });
+  ok(sched.n > 5000 && sched.span <= 3600 && sched.span > 3500, `Play sets up the first hour only: ${sched.n.toLocaleString()} tones over ${Math.round(sched.span)} s`);
+  await page.getByRole('button', { name: 'Stop' }).click();
+  ok(!page.errors.length, `the long text: no page errors ${page.errors.join(' | ')}`);
+  await conv('SOS Help');
+  ok(await page.getByText(/characters are shown — Copy gives all of it/).count() === 0 && await out.textContent() === '... --- ... / .... . .-.. .--.', 'a short text again: shown whole, the note gone');
+
   // ---- phone
   const ph = await newPage(devices['iPhone 13']); await ph.goto(`${base}#/morse`); await ph.locator('.morse-out').waitFor();
   await setValue(ph.getByRole('textbox', { name: 'Text or Morse code' }), 'Pack my box with five dozen liquor jugs, 1234567890 times');

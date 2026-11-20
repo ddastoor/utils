@@ -129,7 +129,7 @@ Areas with a shared review: the app shell (router, search, favorites, platform h
 | `diff` | Text Diff | PC + mobile | text | ✓ | 9 | 65 | engine → similar crate (textkit-diff.wasm); line numbers, marked changes, folds, unified diff; held to GNU diff -d and GNU patch |
 | `fancy` | Fancy Text | PC + mobile | text | ✓ | 10 | 118 | characters by textkit.wasm (emoji, Hindi stay whole); digits/brackets turn; tap a row to copy; long texts; alphabets held to Unicode's names |
 | `emoji` | Emoji & Symbols | PC + mobile | text | ✓ | 7 | 137 | search by keywords, ranked by textcore.wasm (was: letters inside the name); symbols by name; skin tones; emoji the font lacks left out; data held to unicode-emoji-json and Perl's names |
-| `morse` | Morse Code | PC + mobile | text | ✓ | 11 | 78 | characters and groups no longer vanish silently; lines and word gaps read; sound: Stop, typographic signs, line gaps; held to unixcw's libcw (table and timing) |
+| `morse` | Morse Code | PC + mobile | text | ✓ | 13 | 90 | characters and groups no longer vanish silently; lines and word gaps read; sound: Stop, typographic signs, line gaps; held to unixcw's libcw (table and timing) |
 | `lorem` | Lorem Ipsum | PC + mobile | text | ✓ | 9 | 121 | engine → lipsum crate (textkit-lorem.wasm) + our glue for 2 crate defects; up to 20,000 words (was 50); exact counts held to the Word Counter; text held to the crate's own texts |
 | `photodict` | Photo Dictionary | Mobile only | text | ✓ | 6 | 15 | rare.c: case table (Gdańsk was gdaŅsk), titles/initials end no sentence (names found), bounded writes; a 2nd photo while reading was dropped; Snap before the first frame |
 
@@ -164,7 +164,7 @@ Areas with a shared review: the app shell (router, search, favorites, platform h
 | `curl` | cURL Converter | PC only | net | ✓ | 12 | 89 | e2e 10→22 (35 commands vs real curl) + 77 unit (new) |
 | `cron` | Cron Explainer | PC only | misc | ✓ | 3 | 27 | e2e 17→40 + unit; never-running + DST-gap freeze |
 | `escape` | String Escape | PC only | misc | ✓ | 8 | 45 | e2e 18→35 + 28 unit |
-| `unicode` | Unicode Inspector | PC only | misc | ✓ | 8 | 48 | e2e 16→30 + 34 unit |
+| `unicode` | Unicode Inspector | PC only | misc | ✓ | 9 | 50 | e2e 16→30 + 34 unit |
 | `hexview` | Hex Viewer | PC only | misc | ✓ | 5 | 33 | e2e 14→29 + 18 unit |
 | `logview` | Log Viewer | PC only | misc | ✓ | 9 | 25 | e2e 13→32 + 5 unit (60 log lines); junk sweep |
 | `mermaid` | Mermaid Diagrams | PC only | misc | ✓ | 2 | 12 | e2e 9→21 |

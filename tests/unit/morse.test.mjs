@@ -5,7 +5,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 export default async (t, { load, root }) => {
-  const { MORSE, PROSIGNS, encode, decode, tidy, isMorse, schedule, lengthText } = await load('/src/lib/morse.ts');
+  const { MORSE, PROSIGNS, encode, decode, tidy, isMorse, schedule, lengthText, PLAY_MAX, SHOW_MAX } = await load('/src/lib/morse.ts');
   const ref = JSON.parse(readFileSync(join(root, 'tests/fixtures/morse/reference.json'), 'utf8'));
   const enc = (s) => encode(s).code, dec = (s) => decode(s).text;
 
@@ -96,4 +96,11 @@ export default async (t, { load, root }) => {
     t.eq([schedule('', 20).tones.length, schedule(' / ', 20).total, schedule('abc', 20).tones.length], [0, 0, 0], 'nothing to play: no tones');
     t.eq(schedule('.', 20).tones[0].at, 0, 'the first tone starts at once'); }
   t.eq([lengthText(0.2), lengthText(5.4), lengthText(59.6), lengthText(65), lengthText(120)], ['1 s', '5 s', '1 min', '1 min 5 s', '2 min'], 'the length in words');
+  t.eq([lengthText(3599.6), lengthText(3660), lengthText(7199), lengthText(90061)], ['1 hr', '1 hr 1 min', '2 hr', '25 hr 1 min'], 'hours ("1234 min 5 s" before)');
+  // a long text (a book pasted in): the length is counted to the end, the tones set up only to the limit
+  { const code = enc(Array(2000).fill('PARIS').join(' ')), full = schedule(code, 20), part = schedule(code, 20, 60), none = schedule(code, 20, 0);
+    t.near(part.total, full.total, 1e-9, `with a limit the length is still the whole length (${full.total.toFixed(1)} s)`);
+    t.ok(part.cut && !full.cut && part.tones.every((x) => x.at + x.len <= 60) && part.tones.length === full.tones.filter((x) => x.at + x.len <= 60).length && part.tones.length < full.tones.length, `tones only up to the limit (${part.tones.length} of ${full.tones.length})`);
+    t.eq([none.tones.length, none.total === full.total], [0, true], 'a limit of 0: only the length'); }
+  t.eq([PLAY_MAX, SHOW_MAX], [3600, 20000], 'the sound plays at most an hour; the box shows 20,000 characters');
 };

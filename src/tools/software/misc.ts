@@ -318,7 +318,9 @@ export function charInfo(ch: string) {
  *  that is all Cyrillic or Greek (ordinary Russian) — it stays for a word that mixes scripts ("pаypal"), or that is made
  *  only of look-alikes in a text that also has Latin words. A variation selector is flagged only after a plain letter. */
 export function inspect(text: string) {
-  const infos = [...text].map((c) => ({ c, ...charInfo(c) }));
+  // each different character is looked up once (half a megabyte of text took 2.6 s: a few dozen regular expressions a character)
+  const memo = new Map<string, ReturnType<typeof charInfo>>();
+  const infos = [...text].map((c) => { let v = memo.get(c); if (!v) memo.set(c, (v = charInfo(c))); return { c, ...v }; });
   const isLetter = (c: string) => /^[\p{L}\p{M}\p{N}]$/u.test(c), pict = (c: string) => /^\p{Extended_Pictographic}$/u.test(c);
   // words = runs of letters / marks / digits (joiners inside a word belong to it)
   const word: number[] = []; let w = 0;
@@ -359,7 +361,8 @@ export const unicode: Mount = (root) => {
     clear(out); if (infos.length > 2000) out.append(note(`The table lists the first 2,000 of ${infos.length.toLocaleString('en-IN')} characters; the summary and the buttons cover all of them.`, 'info'));
   };
   const clean = (f: (s: string) => string) => () => { ta.value = f(ta.value); run(); };
-  ta.addEventListener('input', run);
+  let timer = 0; // a long text is looked at when the typing pauses
+  ta.addEventListener('input', () => { clearTimeout(timer); if (ta.value.length > 200000) timer = window.setTimeout(run, 400); else run(); });
   root.append(card(null, field('Text', ta), h('div', { class: 'row' },
     // only what is flagged where it stands: an emoji keeps its joiners, Persian its ZWNJ, Russian its letters
     button('Remove invisible', clean((s) => inspect(s).infos.filter((i) => i.flag !== 'invisible').map((i) => i.c).join('')), { small: true }),
@@ -369,6 +372,7 @@ export const unicode: Mount = (root) => {
     button('NFC', clean((s) => s.normalize('NFC')), { small: true }), button('NFKC', clean((s) => s.normalize('NFKC')), { small: true }), button('Copy', () => copy(ta.value), { small: true, icon: 'Copy' }))),
   card('Summary', sum), card('Characters', h('div', { class: 'scroll-x' }, h('table', { class: 'tbl utbl' }, h('thead', null, h('tr', null, ['Char', 'Code point', 'UTF-8', 'UTF-16', 'Category', 'Script', 'Name / note'].map((x) => h('th', null, x)))), tbody))), out);
   run();
+  return () => clearTimeout(timer);
 };
 
 // ------------------------------------------------------------------ Log viewer

@@ -58,6 +58,19 @@ export default async (ctx) => {
   ok(await counts('👨‍👩‍👧') === '5/1/8/18' && await counts('🇮🇳') === '2/1/4/8' && await counts('क्षि') === '4/1/4/12' && await counts('é') === '1/1/1/2' && await counts('é') === '2/1/2/3' && await counts('') === '0/0/0/0', 'code points / graphemes / UTF-16 / UTF-8 for a family emoji, a flag, a Devanagari cluster, é in both forms, nothing');
   // a long text: the table stops at 2,000 rows and says so; the summary covers everything
   await ta.fill('abc def '.repeat(400)); ok(await page.locator('.utbl tbody tr').count() === 2000 && /first 2,000 of 3,200 characters/.test(await page.locator('.tool-body .note-info').last().textContent()) && (await sum())['Characters (code points)'] === '3200', 'long text: 2,000 rows listed, with a note (the rest used to be cut silently)');
+  // half a megabyte (it held the page for 2.6 s on every keystroke: each character went through dozens of regular
+  // expressions): each different character is looked up once, and a text this long waits for a pause in the typing
+  const half = 'Hello wоrld\u200b café ₹500 👍🏽 नमस्ते. '.repeat(14000);
+  const lt = await page.evaluate(async (half) => {
+    const t = document.querySelector('textarea'), longs = [];
+    const po = new PerformanceObserver((l) => { for (const e of l.getEntries()) longs.push(e.duration); }); po.observe({ type: 'longtask' });
+    const t0 = performance.now(); t.value = half; t.dispatchEvent(new Event('input', { bubbles: true })); const sync = performance.now() - t0;
+    await new Promise((r) => setTimeout(r, 3000)); po.disconnect();
+    return { sync: Math.round(sync), longest: Math.round(Math.max(0, ...longs)) };
+  }, half);
+  const big = await sum();
+  ok(lt.sync < 50 && lt.longest < 1500 && big['Characters (code points)'] === String([...half].length), `a 500 KB text: the keystroke returns in ${lt.sync} ms, the longest task ${lt.longest} ms, ${big['Characters (code points)']} characters counted`);
+  ok(/28000 suspicious characters|28,000 suspicious characters/.test(await page.locator('.tool-body .note-warn').first().textContent()), `every hidden space and look-alike is still found (${(await page.locator('.tool-body .note-warn').first().textContent()).slice(0, 60)})`);
   await ta.fill(''); ok(await page.locator('.utbl tbody tr').count() === 0 && (await sum()).Scripts === '—', 'empty box: empty table');
   ok(!page.errors.length, `no page errors ${page.errors.join(' | ')}`);
   await pcOnlyOnPhone(ctx, 'unicode');

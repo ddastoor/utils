@@ -348,12 +348,24 @@ export const morse: Mount = (root) => {
   const outText = h('div', { class: 'input textarea mono morse-out', role: 'textbox', 'aria-readonly': 'true', 'aria-multiline': 'true', 'aria-label': 'Morse code', tabindex: '0' });
   let shown = '';
   const out = h('div', { class: 'outbox' }, outText, button('', () => { if (shown) void copy(shown); }, { icon: 'Copy', small: true, title: 'Copy' }));
-  const show = (text: string, isCode: boolean) => { shown = text; outText.replaceChildren(...(isCode ? text.split(/([ \n])/).filter(Boolean).map((part) => (part === ' ' || part === '\n' ? part : h('span', { class: 'nb' }, part))) : [text])); };
+  const cutNote = h('p', { class: 'muted small', hidden: true });
+  /** A long result: its first SHOW_MAX characters (cut between two letter groups), Copy gives all of it. */
+  const show = (text: string, isCode: boolean) => {
+    shown = text;
+    let part = text;
+    if (text.length > M.SHOW_MAX) { part = text.slice(0, M.SHOW_MAX); if (isCode) part = part.slice(0, Math.max(part.lastIndexOf(' '), part.lastIndexOf('\n')) + 1); }
+    const frag = document.createDocumentFragment(); // appended one by one: a spread of 500,000 groups overflowed the stack
+    if (isCode) { for (const p of part.split(/([ \n])/)) if (p) frag.append(p === ' ' || p === '\n' ? p : h('span', { class: 'nb' }, p)); } else frag.append(part);
+    if (part.length < text.length) frag.append(/\s$/.test(part) ? '…' : ' …');
+    outText.replaceChildren(frag);
+    cutNote.hidden = part.length === text.length;
+    cutNote.textContent = cutNote.hidden ? '' : `The first ${part.length.toLocaleString('en-IN')} of ${text.length.toLocaleString('en-IN')} characters are shown — Copy gives all of it.`;
+  };
   const outField = field('Morse code', out), notes = h('div', { class: 'stack' }), lengthLine = h('p', { class: 'muted small morse-length' });
   /** the result is Morse code or text: its box says which */
   const nameOut = (name: string) => { outField.querySelector('.field-label')!.textContent = name; outField.setAttribute('aria-label', name); outText.setAttribute('aria-label', name); };
   const list = (items: string[]) => items.slice(0, 12).join('  ') + (items.length > 12 ? ` … (${items.length} in all)` : '');
-  const showLength = () => { const s = M.schedule(code, wpm); lengthLine.textContent = s.tones.length ? `${M.lengthText(s.total)} of sound at ${wpm} words a minute.` : ''; playBtn.disabled = !s.tones.length; };
+  const showLength = () => { const s = M.schedule(code, wpm, 0); lengthLine.textContent = s.total ? `${M.lengthText(s.total)} of sound at ${wpm} words a minute.${s.total > M.PLAY_MAX ? ' Play gives the first hour.' : ''}` : ''; playBtn.disabled = !s.total; };
   const run = () => {
     stop();
     const text = inp.value, decoding = way === 'decode' || (way === 'auto' && M.isMorse(text));
@@ -375,7 +387,7 @@ export const morse: Mount = (root) => {
   };
   const play = async () => {
     if (osc) stop();
-    const { tones, total } = M.schedule(code, wpm);
+    const { tones } = M.schedule(code, wpm, M.PLAY_MAX), total = tones.length ? tones[tones.length - 1].at + tones[tones.length - 1].len : 0;
     if (!tones.length) return;
     ctx ||= new AudioContext();
     if (ctx.state === 'suspended') await ctx.resume();
@@ -392,7 +404,7 @@ export const morse: Mount = (root) => {
   const chart = h('details', { class: 'morse-chart' }, h('summary', {}, 'The Morse alphabet'),
     h('div', { class: 'morse-grid' }, Object.entries(M.MORSE).sort(([a], [b]) => rank(a) - rank(b) || (a < b ? -1 : 1)).map(([c, m]) => h('span', { class: 'morse-item' }, h('b', {}, c), h('code', {}, m)))),
     h('p', { class: 'muted small' }, 'A dash lasts three dots. Between the parts of a letter: one dot of silence; between letters three; between words seven. Words are written apart with a slash. Letters in angle brackets, such as <SK> (end of contact) or <SOS>, are sent as one sign without gaps.'));
-  root.append(card(null, stack(segmented<Way>([['auto', 'Auto'], ['encode', 'Text → Morse'], ['decode', 'Morse → text']], way, (v) => { way = v; run(); }), field('Text or Morse code', inp), outField, notes)),
+  root.append(card(null, stack(segmented<Way>([['auto', 'Auto'], ['encode', 'Text → Morse'], ['decode', 'Morse → text']], way, (v) => { way = v; run(); }), field('Text or Morse code', inp), outField, cutNote, notes)),
     card('Sound', stack(slider({ label: 'Speed', min: 5, max: 40, value: wpm, unit: ' wpm', onInput: (v) => { wpm = v; stop(); showLength(); } }), slider({ label: 'Pitch', min: 400, max: 1000, step: 10, value: pitch, unit: ' Hz', onInput: (v) => { pitch = v; if (osc && ctx) osc.frequency.setValueAtTime(v, ctx.currentTime); } }), lengthLine)),
     h('div', { class: 'actions' }, playBtn, stopBtn), chart);
   run();

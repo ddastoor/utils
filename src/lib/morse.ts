@@ -72,9 +72,9 @@ export interface Tone { /** seconds from the start */ at: number; /** seconds */
 /** When the tones of a message sound. One unit is 1.2 s ÷ words a minute (the word PARIS is 50 units): a dot is one
  *  unit, a dash three; between the parts of a letter one unit of silence, between letters three, between words
  *  (and lines) seven. */
-export function schedule(code: string, wpm: number): { tones: Tone[]; total: number; unit: number } {
+export function schedule(code: string, wpm: number, upTo = Infinity): { tones: Tone[]; total: number; unit: number; cut: boolean } {
   const unit = 1.2 / wpm, tones: Tone[] = [];
-  let t = 0, gap = 0; // gap: the units of silence owed before the next tone
+  let t = 0, gap = 0, cut = false; // gap: the units of silence owed before the next tone
   for (const line of tidy(code).split('\n')) {
     for (const word of line.split(' / ')) {
       for (const group of word.split(' ')) {
@@ -82,14 +82,25 @@ export function schedule(code: string, wpm: number): { tones: Tone[]; total: num
           if (sign !== '.' && sign !== '-') continue;
           t += gap * unit;
           const len = (sign === '.' ? 1 : 3) * unit;
-          tones.push({ at: t, len }); t += len; gap = 1;
+          if (t + len <= upTo) tones.push({ at: t, len }); else cut = true; // past `upTo` only the length is counted
+          t += len; gap = 1;
         }
         if (gap) gap = 3;
       }
       if (gap) gap = 7;
     }
   }
-  return { tones, total: t, unit };
+  return { tones, total: t, unit, cut };
 }
-/** "12 s", "1 min 5 s". */
-export const lengthText = (seconds: number): string => { const s = Math.max(1, Math.round(seconds)); return s < 60 ? `${s} s` : `${Math.floor(s / 60)} min${s % 60 ? ` ${s % 60} s` : ''}`; };
+/** "12 s", "1 min 5 s", "2 hr 5 min". */
+export const lengthText = (seconds: number): string => {
+  const s = Math.max(1, Math.round(seconds));
+  if (s < 60) return `${s} s`;
+  if (s < 3600) return `${Math.floor(s / 60)} min${s % 60 ? ` ${s % 60} s` : ''}`;
+  const m = Math.round(s / 60);
+  return `${Math.floor(m / 60).toLocaleString('en-IN')} hr${m % 60 ? ` ${m % 60} min` : ''}`;
+};
+/** The sound plays at most this long (a book in Morse code is days of sound; every tone is set up before it plays). */
+export const PLAY_MAX = 3600;
+/** The result box shows this many characters (hundreds of thousands of letter groups made the page crawl). */
+export const SHOW_MAX = 20000;
