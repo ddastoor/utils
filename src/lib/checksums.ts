@@ -217,10 +217,14 @@ export function fmtDigest(hex: string, f: DigestFormat): string {
 }
 
 /** A checksum list as the command-line tool writes it — `sha256sum -c SHA256SUMS` (b2sum, b3sum, xxhsum alike) checks
- *  it; CRC-32 as an .sfv file. Names with a line break or a backslash are escaped as coreutils escapes them. */
+ *  it; CRC-32 as an .sfv file. A name with a line break is escaped as coreutils escapes it (a backslash in front of the
+ *  line, \\ \n \r in the name): there is no other way to put it on one line. A name with a backslash but no line break
+ *  is written as it is: GNU's sha256sum reads a line without the leading backslash literally, and the sha256sum of
+ *  Ubuntu 26.04 (uutils coreutils 0.10) and BusyBox's — the Terminal tab's — cannot read an escaped line at all, not
+ *  even uutils' own. */
 export function sumsText(alg: string, rows: Array<{ name: string; hex: string }>): string {
   if (alg === 'CRC-32') return rows.map((r) => `${r.name} ${r.hex.toUpperCase()}\n`).join('');
-  return rows.map((r) => (/[\\\n\r]/.test(r.name)
+  return rows.map((r) => (/[\n\r]/.test(r.name)
     ? `\\${r.hex}  ${r.name.replace(/\\/g, '\\\\').replace(/\n/g, '\\n').replace(/\r/g, '\\r')}\n`
     : `${r.hex}  ${r.name}\n`)).join('');
 }

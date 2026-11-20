@@ -7,6 +7,7 @@ import { readFileSync, writeFileSync, mkdtempSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { spawnSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 
 const gen = (n, seed) => { const out = new Uint8Array(n); let x = seed; for (let i = 0; i < n; i++) { x = (Math.imul(x, 1103515245) + 12345) & 0x7fffffff; out[i] = (x >>> 16) & 0xff; } return out; };
 const hex = (b) => Buffer.from(b).toString('hex');
@@ -126,13 +127,31 @@ export default async (t, { load, root }) => {
       t.eq(verifyWith('b2sum', ['-c'], 'BLAKE2b-512', 'B2SUMS'), 'OK', 'b2sum -c');
       if (has('xxhsum')) t.eq(verifyWith('xxhsum', ['-c'], 'xxHash64', 'XXH64SUMS'), 'OK', 'xxhsum -c (XXH64)');
       if (has('rhash')) t.eq(verifyWith('rhash', ['--check'], 'CRC-32', 'checksums.sfv'), 'OK', 'rhash --check reads the .sfv the tab writes');
-      // an awkward name: the escape coreutils uses
+      // awkward names. Which sha256sum this is matters: Ubuntu 26.04's is uutils coreutils (0.10), which writes GNU's
+      // escaped line but cannot read one — not even its own ("no properly formatted checksum lines found").
+      const impl = spawnSync('sha256sum', ['--version'], { encoding: 'utf8' }).stdout.split('\n')[0] || 'sha256sum';
+      const gnu = /GNU coreutils/.test(impl);
+      const X = hex(createHash('sha256').update('x').digest());
+      // a backslash: written as it is — GNU reads a line without the leading backslash literally, uutils and BusyBox too
       writeFileSync(join(dir, 'back\\slash.txt'), 'x');
-      const awk = await hashers(['SHA-256']); awk.update(new TextEncoder().encode('x'));
-      writeFileSync(join(dir, 'AWK'), C.sumsText('SHA-256', [{ name: 'back\\slash.txt', hex: hex(awk.digest()['SHA-256']) }]));
-      t.eq(spawnSync('sha256sum', ['-c', 'AWK'], { cwd: dir }).status, 0, 'a backslash in a name is escaped as sha256sum expects');
+      const bs = C.sumsText('SHA-256', [{ name: 'back\\slash.txt', hex: X }]);
+      t.eq(bs, `${X}  back\\slash.txt\n`, 'a backslash in a name is written as it is (no escaped line)');
+      writeFileSync(join(dir, 'AWK'), bs);
+      const awk = spawnSync('sha256sum', ['-c', 'AWK'], { cwd: dir, encoding: 'utf8' });
+      t.eq(awk.status, 0, `… and sha256sum -c checks it (${impl}${awk.status ? `: ${(awk.stdout + awk.stderr).trim()}` : ''})`);
+      t.eq(C.parseExpected(bs).entries[0]?.name, 'back\\slash.txt', '… and the tab reads its own line back');
       const back = C.parseExpected(run('sha256sum', ['back\\slash.txt'])).entries[0];
       t.eq(back?.name, 'back\\slash.txt', '… and read back from sha256sum\'s own escaped line');
+      // a line break: GNU's escaped form, the only way to put it on one line — the line sha256sum itself writes
+      const NL = 'new\nline\\x.txt';
+      writeFileSync(join(dir, NL), 'x');
+      const nl = C.sumsText('SHA-256', [{ name: NL, hex: X }]);
+      t.eq(nl, `\\${X}  new\\nline\\\\x.txt\n`, 'a line break in a name: the escaped line (\\n, and \\\\ for the backslash)');
+      t.eq(nl, run('sha256sum', [NL]), `… exactly the line sha256sum writes (${impl})`);
+      t.eq(C.parseExpected(nl).entries[0]?.name, NL, '… and the tab reads it back');
+      writeFileSync(join(dir, 'NL'), nl);
+      if (gnu) t.eq(spawnSync('sha256sum', ['-c', 'NL'], { cwd: dir }).status, 0, '… and GNU sha256sum -c checks it');
+      else t.ok(true, `${impl} cannot read an escaped line (not even its own) — the -c check of a line break needs GNU's sha256sum`);
     } finally { rmSync(dir, { recursive: true, force: true }); }
   } else t.ok(true, 'coreutils not found — the tool cases are skipped');
 
@@ -164,5 +183,17 @@ export default async (t, { load, root }) => {
   t.eq(C.fmtDigest(SHA, 'base64'), '47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU=', 'Base64 (as sha256sum --base64 and integrity attributes write it)');
   t.eq(C.sumsText('SHA-256', [{ name: 'a.iso', hex: SHA }]), `${SHA}  a.iso\n`, 'the line of sha256sum');
   t.eq(C.sumsText('CRC-32', [{ name: 'a.zip', hex: '1a2b3c4d' }]), 'a.zip 1A2B3C4D\n', 'CRC-32: an .sfv line');
+  // the Terminal tab's sha256sum (BusyBox) checks the list this tab writes; it reads no escaped line, so a name with a
+  // backslash has to be written as it is (it was escaped as GNU writes it, and BusyBox found neither checksum nor file)
+  {
+    const { bootSystem, listApplets } = await load('/src/lib/terminal/system.ts');
+    const mod = await WebAssembly.compile(readFileSync(join(root, 'src/wasm/bin/busybox.wasm')));
+    const sh = bootSystem(mod, { out: () => {}, err: () => {} }, listApplets(mod));
+    const enc = new TextEncoder(), X = hex(createHash('sha256').update('x').digest()), names = ['back\\slash.txt', 'plain.txt', 'with space.txt'];
+    for (const n of names) sh.vfs.writeFile(`/home/user/${n}`, enc.encode('x'));
+    sh.vfs.writeFile('/home/user/SHA256SUMS', enc.encode(C.sumsText('SHA-256', names.map((name) => ({ name, hex: X })))));
+    const r = sh.capture('cd /home/user && sha256sum -c SHA256SUMS');
+    t.eq([r.code, r.out], [0, names.map((n) => `${n}: OK\n`).join('')], `the Terminal tab's sha256sum (BusyBox) checks the list the tab writes (${JSON.stringify(r.out + r.err).slice(0, 160)})`);
+  }
   t.eq(['SHA-256', 'MD5', 'BLAKE2b-512', 'BLAKE3', 'CRC-32'].map(C.sumsName), ['SHA256SUMS', 'MD5SUMS', 'B2SUMS', 'B3SUMS', 'checksums.sfv'], 'list names as the tools use them');
 };

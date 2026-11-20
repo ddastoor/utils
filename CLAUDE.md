@@ -659,7 +659,7 @@ BLAKE2b-512, CRC-32. Streaming (large files), progress, paste an expected checks
 two files, hash typed text.
 **As built after the Nov 2026 bug hunt** (`hash` in `src/tools/security.ts`; algorithms `src/lib/hashes.ts`, expected
 checksums and lists `src/lib/checksums.ts`, worker `src/workers/hash.worker.ts` + `src/lib/hash-client.ts`; unit
-`tests/unit/hash.test.mjs` 99, e2e `tests/e2e/hash.e2e.mjs` 40; reference `python3 scripts/make-hash-reference.py` —
+`tests/unit/hash.test.mjs` 106, e2e `tests/e2e/hash.e2e.mjs` 40; reference `python3 scripts/make-hash-reference.py` —
 needs `pip install pycryptodomex blake3 xxhash crc32c`; the unit and e2e suites also run sha*sum, b2sum, cksum, openssl,
 and — where installed — `xxhsum` and `rhash` (`apt install xxhash rhash`)). **Engine: hash-wasm 4.13** (docs/WASM-AUDIT.md,
 103) in its own worker, fetched with the first Compute or the first typed text; **Stop** ends a run. 23 algorithms: the
@@ -678,7 +678,7 @@ is worked out as well when not chosen, and the tab says so; a mismatch names the
 "Try those too"; the verdict follows the box as it changes. **Two or more files** are compared by size and a secure
 hash (BLAKE3 on the side when only weak ones are chosen) and the identical ones named. **Checksum list** card: the
 files in the format of the command-line tool (CRC-32 as .sfv), Download as SHA256SUMS, MD5SUMS, B2SUMS, B3SUMS …
-(`sha256sum -c` accepts it).
+(`sha256sum -c` accepts it; a name with a backslash is written as it is — Ubuntu 26.04's `sha256sum`, uutils 0.10, and BusyBox read no escaped line — and only a line break is escaped as coreutils escapes it).
 
 ### Passwords
 Random passwords (length, sets, exclude look-alikes, require each set) and diceware passphrases

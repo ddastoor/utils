@@ -58,7 +58,7 @@ Areas with a shared review: the app shell (router, search, favorites, platform h
 | `pgp` | OpenPGP | PC + mobile | security-codes | ✓ | 8 | 61 | a 2nd recipient was dropped (library reads 1 armored block); stored file name; armor inside e-mail; errors in words; key IDs; fingerprint+date; RFC 9580 vectors; gpg both ways. Engine kept (rPGP semantics layer experimental) |
 | `sodium` | Sodium Encrypt | PC + mobile | security-codes | ✓ | 5 | 53 | engine → libsodium.js (sumo, libsodium 1.0.22) + crypto.wasm header; pasted text in every form (atob errors), .txt files, progress during Argon2; PyNaCl + cross-engine tests |
 | `sharelink` | Encrypted Share Link | PC + mobile | security-codes | ✓ | 10 | 32 | engine as sodium (libsodium.js + crypto.wasm header); links read as they arrive (cut, changed, trailing full stop, %-escapes, other site's d=), password twice, long-link warning, autocomplete, Enter |
-| `hash` | Hash / Checksum | PC + mobile | security-codes | ✓ | 10 | 133 | engine → hash-wasm (existing wasm, 23 algorithms, own worker, Stop); expected checksums in every common form, checksum lists, auto-added algorithms, secure file comparison; crypto-client ordering fix |
+| `hash` | Hash / Checksum | PC + mobile | security-codes | ✓ | 11 | 140 | engine → hash-wasm (existing wasm, 23 algorithms, own worker, Stop); expected checksums in every common form, checksum lists, auto-added algorithms, secure file comparison; crypto-client ordering fix; 20 Nov: a name with a backslash written as it is — Ubuntu 26.04's sha256sum (uutils 0.10) and BusyBox (the Terminal tab) read no escaped line; found by GitHub's build machine |
 | `password` | Password Generator | PC + mobile | security-codes | ✓ | 3 | 37 | randombytes_uniform → libsodium.js; exact entropy (inclusion–exclusion), length box 4–128, symbols box, named copy buttons |
 | `passphrase` | Passphrase Generator | PC + mobile | security-codes | ✓ | 3 | 17 | libsodium.js; word list checked (7,776 words; error pages were used as lists); digit entropy log2(10×n); named copy buttons; flaky split fixed; lazy suite root-folder gap fixed |
 
@@ -2335,3 +2335,14 @@ cannot. Three new suites; each fails on the build before its fixes.
   headless shell (72 / 72); the checks are the same.
 - **So the complete e2e run is green**: 192 suites, every check passing (the two load flakes pass alone).
 - **Complete unit suites** after all this: 21,731 assertions in 99 suites, all green.
+- **Ubuntu 26.04's sha256sum — found by GitHub's build machine (20 Nov 2026).** The Pages build stopped at one unit check
+  ("a backslash in a name is escaped as sha256sum expects"): GitHub's `ubuntu-latest` is now Ubuntu 26.04, whose
+  `sha256sum` is uutils coreutils 0.10.0 (the Rust rewrite). It writes GNU's escaped line for a name with a backslash
+  (`\<hash>  back\\slash.txt`) but cannot read one, not even its own ("no properly formatted checksum lines found" —
+  checked with the package from the Ubuntu archive). BusyBox's `sha256sum`, the Terminal tab's, cannot either: a list
+  from the Hash tab with such a name could not be checked in our own Terminal (it found neither the checksum nor the
+  file). GNU reads a line without the leading backslash literally, so the Hash tab now writes such a name as it is and
+  escapes only a line break, which cannot go on a line any other way. hash unit +7: the list checked by the installed
+  `sha256sum`, whichever it is (the check names it); the Terminal's BusyBox checks it; a line break escaped exactly as
+  `sha256sum` writes it (GNU's `-c` checks it — uutils reads no escaped line at all). Run with uutils 0.10.0 in front on
+  the PATH: green. Unit suites: 21,763 / 21,763.
