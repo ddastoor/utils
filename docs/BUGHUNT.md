@@ -69,7 +69,7 @@ Areas with a shared review: the app shell (router, search, favorites, platform h
 | `audio` | Audio Recorder | PC + mobile | audio | ✓ | 5 | 4 | decoded at the file's own rate (was the device's: 44.1 kHz saved as 48 kHz); newest file wins; mic errors in words |
 | `tts` | Text-to-Speech | PC + mobile | audio | ✓ | 6 | 3 | Speak stayed busy after Stop; runs queued in the worker; sentence shown when heard; system-voice errors; text encodings; download size |
 | `stt` | Speech to Text | PC + mobile | audio |  |  |  |  |
-| `noise` | Noise Remover | PC + mobile | audio |  |  |  |  |
+| `noise` | Noise Remover | PC + mobile | audio | ✓ | 11 | 33 | Jitsi's RNNoise 0.2 build (= the release's standard 8-bit computation; ours ran the debug float weights, 4× larger); Save after a new file; strength re-cleaned everything; stereo voice; 16-bit WAV round trip |
 | `pitch` | Pitch & Speed | PC + mobile | audio |  |  |  |  |
 | `slideshow` | Slideshow Maker | PC + mobile | video |  |  |  |  |
 | `ffmpeg` | FFmpeg | PC only | video |  |  |  |  |
@@ -1984,7 +1984,32 @@ Reference for the five finance tabs: **mpmath at 60 digits** (`scripts/make-fina
      file that is not text is refused.
   6. The model download assumed Content-Length: a server that compresses the file (more bytes than announced)
      overflowed the buffer — it grows now.
-- **`noise` — found while checking the shared decoding (its own hunt follows): at strength 0 % the result was no
-  longer the input** for files not at 48 kHz (the dry sound went through the resampler twice); the cleaned sound is
-  now mixed with the untouched input at the file's own rate (`a_mix2`, new in audio.wasm). The suite's references are
-  decoded at the file's 16 kHz (they were decoded at the device's rate, like the tool).
+- **`noise` (tab 147, 11 bugs; RNNoise 0.2 — now Jitsi's build — + audio.wasm; WASM-AUDIT 144; e2e 25 — was 12; unit
+  `rnnoise.test.mjs` 26 — was 10, `audio.test.mjs` +4).** First found while checking the shared decoding: at strength
+  0 % the result was no longer the input for files not at 48 kHz (resampled twice) — mixed at the file's rate now.
+  1. **Our RNNoise was not the release's standard computation:** compiled without configure, it ran the network on the
+     model's float weights — the release's debugging option — 0.12 dB off at the first frame, 2.4 dB at the worst,
+     and four times the download. Replaced by Jitsi's build, which equals the native release frame for frame
+     (`scripts/make-rnnoise-reference.sh`; the unit suite holds every frame to 0.02 dB and every voice probability to
+     0.001).
+  2. **Save right after choosing another file saved the previous file's sound under the new name** (the "ready" flag
+     was not reset); Save now waits for the file just chosen.
+  3. **Every move of the Strength slider cleaned the whole recording again** (minutes for a long one): the worker keeps
+     the input and the cleaned sound, a new strength is only mixed (`a_mix2`); 50 % is the exact middle, 0 % the file.
+  4. A new file kept the previous file's selection (2 – 5 s of the last file was applied to the next).
+  5. The newest file did not win: an older, slower decode replaced it.
+  6. A file chosen while a long one was being cleaned waited for the long one (the worker finished the stale job):
+     the stale job is ended.
+  7. The share of speech was read from the first channel only: a voice on the right channel of a stereo file was
+     "speech in 0 %". Each 10 ms frame takes the larger voice probability of the channels.
+  8. A failed download of the engine stayed failed until the tab was reopened (a rejected promise was kept).
+  9. Save after a failed cleaning saved what the waveform held from before, or failed with a TypeError: refused with
+     the reason.
+  10. **16-bit WAV (every audio tab): a file opened and saved unchanged lost a step on every loud sample** (written ×32767,
+      read back ÷32768; −32768 became −32767). Chromium reads 16-bit PCM as s ÷ 32767 above zero and s ÷ 32768 below,
+      Firefox and Safari ÷ 32768 for both: the page finds the rule once (one sample decoded) and the writer inverts it —
+      checked for all 65,536 values under both rules; the Recorder's and the Noise Remover's suites compare exactly.
+  11. The waveform editor could draw an older sound's peaks over a newer sound when two were set at once (shared).
+  - Under load: with three audio suites in one headless browser, Chromium's MediaRecorder sometimes ignored `pause()`
+    (the WebM held 66 unbroken 60 ms packets, 3.9 s, for 2.6 s of recording; ffprobe). Never alone, never under four
+    busy CPU loops; the harness's re-run alone covers it (`E2E_NO_RETRY=1` shows it).

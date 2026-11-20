@@ -30,8 +30,12 @@ static inline float clampf(float v) { return v > 1.f ? 1.f : v < -1.f ? -1.f : v
 // ------------------------------------------------------------------ WAV
 static void le16(uint8_t *p, uint32_t v) { p[0] = v; p[1] = v >> 8; }
 static void le32(uint8_t *p, uint32_t v) { p[0] = v; p[1] = v >> 8; p[2] = v >> 16; p[3] = v >> 24; }
-/** bits = 16 (PCM, rounded) or 32 (IEEE float). Channels interleaved in the file. */
-API uint8_t *a_wav(const float *x, uint32_t frames, uint32_t ch, uint32_t sr, uint32_t bits) {
+/** bits = 16 (PCM, rounded) or 32 (IEEE float). Channels interleaved in the file.
+ *  flags bit 0 (16-bit): samples above zero ×32767 and below ×32768 — the inverse of how Chromium reads 16-bit PCM
+ *  (s / 32767 above zero, s / 32768 below); without it ×32768 for both and clipped at 32767 — the inverse of s / 32768
+ *  (Firefox, Safari, FFmpeg, libsndfile). With the browser's own rule a file opened and saved unchanged keeps every
+ *  sample (×32767 for both changed the loud half of them by a step). */
+API uint8_t *a_wav(const float *x, uint32_t frames, uint32_t ch, uint32_t sr, uint32_t bits, uint32_t flags) {
   if (!ch || ch > 8 || !sr || (bits != 16 && bits != 32)) return fail("bad WAV parameters");
   uint32_t bps = bits / 8, data = frames * ch * bps;
   if ((uint64_t)frames * ch * bps > 0xFFFFFFFFull - 64) return fail("too long for a WAV file (4 GB)");
@@ -45,7 +49,7 @@ API uint8_t *a_wav(const float *x, uint32_t frames, uint32_t ch, uint32_t sr, ui
   for (uint32_t i = 0; i < frames; i++)
     for (uint32_t c = 0; c < ch; c++) {
       float v = clampf(x[(size_t)c * frames + i]);
-      if (bits == 16) { int32_t s = (int32_t)lrintf(v * 32767.f); le16(p, (uint16_t)(int16_t)s); p += 2; }
+      if (bits == 16) { int32_t s = (int32_t)lrintf(v * ((flags & 1) && v > 0 ? 32767.f : 32768.f)); if (s > 32767) s = 32767; le16(p, (uint16_t)(int16_t)s); p += 2; }
       else { uint32_t u; memcpy(&u, &v, 4); le32(p, u); p += 4; }
     }
   g_outlen = 44 + data;
@@ -109,6 +113,8 @@ API void a_levels(const float *x, uint32_t n, float *out) {
   out[0] = pk; out[1] = n ? (float)sqrt(s / n) : 0;
 }
 API void a_gain(float *x, uint32_t n, float g) { for (uint32_t i = 0; i < n; i++) x[i] = clampf(x[i] * g); }
+/* x·g, not clamped (RNNoise reads its samples on the ±32768 scale of 16-bit audio) */
+API void a_scale(float *x, uint32_t n, float g) { for (uint32_t i = 0; i < n; i++) x[i] *= g; }
 /* a = ga·a + gb·b, sample by sample (the Noise Remover's strength: the cleaned sound with the untouched input) */
 API void a_mix2(float *a, const float *b, uint32_t n, float ga, float gb) { for (uint32_t i = 0; i < n; i++) a[i] = clampf(ga * a[i] + gb * b[i]); }
 /** Linear fade in over the first `fin` frames and fade out over the last `fout` frames, every channel. */

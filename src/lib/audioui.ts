@@ -2,7 +2,7 @@
 // and a save panel (MP3 via our LAME wasm, WAV, or the original codec trimmed without re-encoding via mediabunny).
 // Used by Audio Recorder, Noise Remover, Pitch & Speed and Speech to Text.
 import { h, button, field, select, toggle, segmented, note, clear, toast, errMsg, downloadBlob, shareOrDownload, fmtTime, input } from '../ui';
-import { audio, channelsOf } from './audio-client';
+import { audio, channelsOf, int16Asymmetric } from './audio-client';
 
 // ------------------------------------------------------------------ recorder
 export interface Recording { blob: Blob; mime: string; seconds: number }
@@ -116,7 +116,7 @@ export function recorder(o: { onDone: (r: Recording) => void; onStart?: () => vo
 // ------------------------------------------------------------------ waveform trim editor + playback
 export function waveEditor(o: { onChange?: () => void } = {}) {
   let buf: AudioBuffer | null = null, peaks: Float32Array | null = null, sel: [number, number] = [0, 0];
-  let ctx: AudioContext | null = null, src: AudioBufferSourceNode | null = null, playStart = 0, playFrom = 0, raf = 0, playhead = -1, drag = -1;
+  let ctx: AudioContext | null = null, src: AudioBufferSourceNode | null = null, playStart = 0, playFrom = 0, raf = 0, playhead = -1, drag = -1, setSeq = 0;
   const canvas = h('canvas', { class: 'wave', 'aria-label': 'Waveform: drag the edges to trim' }) as HTMLCanvasElement;
   const wrap = h('div', { class: 'wave-wrap' }, canvas);
   const sIn = input({ type: 'number', min: 0, step: 0.01, onInput: (v) => setSel(+v, sel[1], true) }) as HTMLInputElement;
@@ -189,7 +189,8 @@ export function waveEditor(o: { onChange?: () => void } = {}) {
     el, playBtn,
     async set(b: AudioBuffer) {
       stopPlay(); buf = b;
-      const N = 4096, chs = channelsOf(b), per = await Promise.all(chs.slice(0, 2).map((c) => audio('peaks', c, N)));
+      const my = ++setSeq, N = 4096, chs = channelsOf(b), per = await Promise.all(chs.slice(0, 2).map((c) => audio('peaks', c, N)));
+      if (my !== setSeq) return; // a newer sound was set meanwhile: its peaks, not these
       peaks = per[0];
       if (per[1]) for (let i = 0; i < N; i++) { peaks[2 * i] = Math.min(peaks[2 * i], per[1][2 * i]); peaks[2 * i + 1] = Math.max(peaks[2 * i + 1], per[1][2 * i + 1]); }
       setSel(0, b.duration);
@@ -244,7 +245,7 @@ export function savePanel(o: { isMobile: boolean; name: () => string; pcm: () =>
       const { chs, sr } = await o.pcm();
       if (!chs.length || !chs[0].length) throw new Error('Nothing selected.');
       const t0 = performance.now();
-      const bytes = fmt === 'wav' ? await audio('wav', chs, sr, 16) : await audio('mp3', chs, sr, rate === 'v2' ? { vbr: true, rate: 2 } : { rate: +rate });
+      const bytes = fmt === 'wav' ? await audio('wav', chs, sr, 16, await int16Asymmetric()) : await audio('mp3', chs, sr, rate === 'v2' ? { vbr: true, rate: 2 } : { rate: +rate });
       status.textContent = `${fmt.toUpperCase()} · ${(bytes.length / 1024 / 1024).toFixed(2)} MB · encoded in ${((performance.now() - t0) / 1000).toFixed(1)} s`;
       return { blob: new Blob([bytes as BlobPart], { type: fmt === 'wav' ? 'audio/wav' : 'audio/mpeg' }), file: `${o.name()}.${fmt}` };
     } catch (e) { status.textContent = errMsg(e); throw e; }

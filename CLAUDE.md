@@ -355,7 +355,7 @@ Glob Tester. Left out: API client (CORS/CSP), DNS/WHOIS/ping/port scan (need net
 Batch 3 (accepted): **Math & Science** category (new): `graph` Graphing Calculator · `equation` Equation
 Solver · `stats` Statistics · `matrix` Matrix · `fraction` Fraction · `primes` Prime/LCM/GCD · `periodic` Periodic
 Table. Calculators: `prepay` Loan Prepayment · `ppf` · `epf` · `nps` · `inflation` · `sleep` Sleep Cycle · `bodyfat` ·
-`idealweight` · `coords` Coordinates. Media: `noise` Noise Remover (RNNoise, own wasm, **BUILT**) · `pitch` Pitch & Speed (own C WSOLA, **BUILT**)
+`idealweight` · `coords` Coordinates. Media: `noise` Noise Remover (RNNoise 0.2, Jitsi's WebAssembly build, **BUILT**) · `pitch` Pitch & Speed (own C WSOLA, **BUILT**)
 · `slideshow` Slideshow Maker (WebCodecs, **BUILT**). Documents: `invoice` GST Invoice · `rent` Rent Receipt · `resume` Resume
 Builder (HTML → browser "Save as PDF"). Images: `signature` Signature Maker. Software (PC): `graphviz` (Graphviz C →
 wasm) · `python` (CPython 3.14 C → wasm32-wasi, built by us) · `totp` · `pwstrength` (zxcvbn) · `jsonschema` · `bitwise` · `ieee754` ·
@@ -397,6 +397,11 @@ Claude's own app voice was considered and rejected: proprietary cloud service �
 Tests: Kokoro 24 kHz mono, plausible length and energy, female median F0 > male + 40 Hz (Heart vs Michael), British
 voice, 2× speed ≈ half the length, Piper 22.05 kHz with female above male pitch, MP3 frames, sentence progress, stop,
 markdown → text.
+**As built after the Nov 2026 bug hunt** (e2e 16; docs/BUGHUNT.md tab 146): Stop ends the run at once and Speak works
+again right after (it stayed busy for good); the worker takes runs one after another (two shared one ONNX session) and
+a cancelled run ends at its next sentence; the sentence shown is the one being heard; a system voice that fails is
+said; a .txt in Windows-1252 or UTF-16 is decoded as the CSV tab does; the model download grows its buffer when a
+server sends more than it announced; WAV written by the browser's own 16-bit rule (see the Audio Recorder).
 Speech to Text accent requirement: very good on US, UK and **especially Indian English** → Whisper small.en default
 plus a "names & terms" hint box fed to Whisper's initial prompt.
 
@@ -1492,6 +1497,15 @@ LAME 4.0 wasm: 64/128/192/320 kbps CBR or VBR V2, with the LAME/Info tag), **WAV
 (the recorded codec cut by packet copy with mediabunny — no re-encoding, and MediaRecorder's missing duration is
 fixed; WAV/FLAC originals keep their real sample rate). Volume/fade changes need MP3 or WAV (explained in a toast).
 `recorder()`, `waveEditor()`, `savePanel()` and `copyTrim()` are reused by Noise Remover, Pitch & Speed and STT.
+**As built after the Nov 2026 bug hunt** (e2e 23): **files are decoded at their own rate** (`decodeAudio` in
+`src/lib/audio-client.ts`: mediabunny reads the rate from the headers, an OfflineAudioContext of that rate decodes — a
+plain AudioContext resamples to the device's rate; shared by every audio tab); the newest file or recording wins;
+microphone errors in words (busy, unplugged — the next try takes the default —, blocked). **16-bit WAV round trip:**
+Chromium reads 16-bit PCM as s ÷ 32767 above zero and s ÷ 32768 below, Firefox and Safari ÷ 32768 for both;
+`int16Asymmetric()` finds the rule once (one sample decoded) and audio.wasm's writer inverts it (`a_wav` flag), so a
+file opened and saved unchanged keeps every sample (the suite compares exactly). Under heavy parallel load in one
+headless browser Chromium's MediaRecorder has been seen to ignore `pause()` (docs/BUGHUNT.md, tab 147); the harness
+re-runs the suite alone.
 
 ### Video Compressor — BUILT (`src/tools/video.ts`; e2e `tests/e2e/video.e2e.mjs` 16)
 Engine: the browser's own encoders/decoders through **WebCodecs** (compiled C++ in the browser, hardware where
@@ -1519,16 +1533,29 @@ Chromium). Reorder (◀ ▶), remove, live preview with music, progress + cancel
 660 Hz MP3 → H.264 1280×720, 6 s, music track; the photo on screen at 1/3/5 s is the right one (diff 6–11 vs 57–75 for
 the others); reorder; 9:16 → 720×1280; fit to music → 2 s; music frequency; phone defaults to 9:16.
 
-### Noise Remover — BUILT (`src/tools/noise.ts`, worker `src/workers/noise.worker.ts`; e2e `tests/e2e/noise.e2e.mjs` 11)
-**Xiph RNNoise 0.2** (recurrent network trained on speech + noise, C, BSD-3) built by us → `rnnoise.wasm` (5.6 MB, the
-default model's weights; fetched only when the tab cleans something). Pipeline in one worker: our audio.wasm resamples
-to 48 kHz → RNNoise in 10 ms frames (its 2-frame latency removed, so the output lines up with the input) → back to
-the file's rate. Strength = wet/dry mix (0 % = original), voice-activity share reported, A/B button ("Hear the
-original"), waveform trim, MP3/WAV. Open a file or record (recorder with the browser's own noise suppression off).
-Test: LibriSpeech sample + seeded white noise at 5 dB SNR (`tests/fixtures/speech/`, `scripts/make-speech-fixtures.mjs`)
-→ SNR against the clean reference rises from 5.6 to 11.6 dB; strength 0 reproduces the input; 3.00 s trim; MP3;
-microphone path; phone layout. Unit `tests/unit/rnnoise.test.mjs` (10: white noise −20 dB+, speech kept within 6 dB,
-pauses −15 dB+, zero lag, mix, stereo).
+### Noise Remover — BUILT (`src/tools/noise.ts`, worker `src/workers/noise.worker.ts`; e2e `tests/e2e/noise.e2e.mjs` 25)
+**Xiph RNNoise 0.2** (recurrent network trained on speech + noise, C, BSD-3) as **Jitsi builds it** —
+`@jitsi/rnnoise-wasm` 0.2.1 (Apache-2.0; its "sync" file, which carries the 0.2 model with the WebAssembly inlined,
+1.9 MB / 1.34 MB gzipped; the package's `rnnoise.wasm` still has the 0.1 model and is not used), fetched only when the
+tab cleans something (docs/WASM-AUDIT.md, tab 144: our own build ran the release's debugging float weights). It equals
+the release as RNNoise's configure builds it (8-bit weights). Pipeline in one worker: audio.wasm resamples to 48 kHz
+and scales to ±32768 (`a_scale`) → RNNoise in 10 ms frames, one at a time through the module's memory
+(`src/wasm/rnnoise.ts`: its two frames of lag removed, so the output lines up with the input; the voice probability of
+a frame = the larger of the channels) → back to ±1 and to the file's rate. **The worker keeps the input and the fully
+cleaned sound:** Strength (0 – 100 %) is then only mixed (`a_mix2`) — 0 % is the file sample for sample, 50 % the exact
+middle; nothing is cleaned again. A newer file ends the cleaning of an older one; Save waits for the file just chosen
+and refuses after a failure with the reason; a new file is selected whole, a new strength keeps the selection.
+Voice-activity share reported, A/B button ("Hear the original"), waveform trim, MP3/WAV. Open a file or record
+(recorder with the browser's own noise suppression off).
+Tests: unit `tests/unit/rnnoise.test.mjs` (26) — **every 10 ms frame within 0.02 dB and every voice probability within
+0.001 of the native RNNoise 0.2 release** (`bash scripts/make-rnnoise-reference.sh` → `tests/fixtures/rnnoise/
+reference.json`: the release from the Ubuntu archive, compiled with `-DDISABLE_DEBUG_FLOAT` and the generic C path, run
+by `scripts/rnnoise-ref/driver.c`), white noise −20 dB+, speech kept within 6 dB, pauses −15 dB+, lag 0 to the sample,
+channels independent, odd lengths, the module's memory flat over a minute; e2e — LibriSpeech sample + seeded white
+noise at 5 dB SNR (`tests/fixtures/speech/`, `scripts/make-speech-fixtures.mjs`) → SNR against the clean reference
+from 5.0 to 11.5 dB, rate and length kept, strength 0 / 50 % exact, a strength is a mix, Save right after another file,
+the newest file, a 4-minute file superseded, a voice on the right channel only, 48 kHz without resampling, a file that
+is no sound, the microphone, leaving mid-clean, phone layout.
 
 ### Pitch & Speed — BUILT (`src/tools/pitch.ts`; e2e `tests/e2e/pitch.e2e.mjs` 11)
 Open any audio/video file → speed 0.5–2× (keeps pitch: WSOLA, own C) and pitch −12…+12 semitones (keeps length:
@@ -1853,7 +1880,6 @@ stay **public** (the source of the deployed site is then available to every user
 | CPython 3.14.8 (+ zlib 1.3.2; stdlib as .pyc in python314.zip with tzdata 2026.6) **+ our changes** (§5.1m: recursion guard for a browser's two stacks, lru_cache in Python, pbkdf2_hmac fallback, socket stand-in + asyncio loop without sockets, local time from the host) | C | **us** (`wasm/python`, python.wasm 7 MB + python314.zip 5.4 MB, loaded on the first Run; run by our WASI host `src/lib/terminal/wasi.ts` in `src/workers/python.worker.ts`) | python |
 | Graphviz **16.1.0** (cgraph, gvc, dot/neato/fdp/sfdp/circo/twopi/osage/patchwork, core renderers; the official release archive) + Expat 2.9.0 **+ our changes** (§5.1l: `storeline.patch` — an upstream crash on labels that start with an empty line; `triangulation.patch` + `st_delaunay.h` — prism overlap removal on our C port of Delaunator instead of GTS; glibc's `qsort` and `rand`; assertions kept; text measured by the host through a "textlayout" plugin) | C / C++ | **us** (`wasm/graphviz`, 1.65 MB / 0.56 MB gz, a fresh instance per drawing in `src/workers/graphviz.worker.ts`; the existing builds — Viz.js, hpcc — trap on valid graphs: `docs/WASM-AUDIT.md`, tab 55) | graphviz |
 | audio: **LAME 4.0** libmp3lame (MP3 encoder) + own C (WAV writer, waveform peaks, levels, gain/fades, Kaiser windowed-sinc resampler, WSOLA time stretch, tempo × pitch) | C | **us** (`wasm/audio`) | audio (and tts, stt, noise, pitch) |
-| rnnoise: Xiph **RNNoise 0.2** (+ default model) + glue (48 kHz frames, latency compensation, wet/dry mix, VAD) | C | **us** (`wasm/rnnoise`) | noise |
 | espeak: **eSpeak NG 1.52.0** (+ English phoneme tables and dictionary compiled from the same release, linked in, served to its fopen/stat from memory) + glue (IPA for Kokoro, piper-phonemize-style sentences) | C | **us** (`wasm/espeak`) | tts (stt hints later) |
 | whisper: **whisper.cpp 1.8.3** + ggml CPU backend (upstream unmodified) + own threadshim.h (std::mutex/std::thread/fstream for zig's thread-less libc++), backend-reg.cpp (static CPU-only registry), cxxabi_stubs.c (throw = abort), glue.cpp | C / C++ | **us** (`wasm/whisper`) | stt |
 | geo: Charles Karney's **geodesic.c 2.2** (GeographicLib's geodesic routines in C, MIT; the two files unmodified from the PROJ 9.9.0 release) + glue (inverse problem on WGS-84, half-way point, the haversine great circle for comparison) | C | **us** (`wasm/geo`, 36 KB, loaded by the Coordinates tab only; no tried-and-tested WebAssembly geodesic module exists: `docs/WASM-AUDIT.md`, tab 82) | coords |
@@ -1882,6 +1908,7 @@ stay **public** (the source of the deployed site is then available to every user
 | zxing-cpp | C++ | zxing-wasm | qr, barcode, scan |
 | 7-Zip 24.09 (`7zz`, the command line, Emscripten build with WORKERFS) | C++ | use-strict (`7z-wasm` npm 1.2.0) — run in `src/workers/sevenzip.worker.ts`, a fresh instance per archive | zip (zip and 7z with AES-256; `docs/WASM-AUDIT.md`, tab 107), unzip (reads every archive; tab 108) |
 | MediaPipe Tasks (TFLite) | C++ | Google (official) | passport, bgremove, redact |
+| RNNoise 0.2 (Xiph, BSD-3; the 0.2 model, 8-bit weights — the release as its configure builds it) | C | Jitsi (`@jitsi/rnnoise-wasm` 0.2.1, Emscripten; the "sync" file) — frames, lag and voice probability in `src/wasm/rnnoise.ts`, resampling / scaling / mixing in audio.wasm (`src/workers/noise.worker.ts`) | noise (replaced our own build in Nov 2026: `docs/WASM-AUDIT.md`, tab 144) |
 | Browser-native C++ (WebCodecs, WebCrypto, Web Speech, MediaRecorder) | — | the browser | video (H.264/AV1 encode + decode, hardware-accelerated), audio recorder, tts, screencast, pbkdf2 |
 
 JavaScript-only components (no C/C++ equivalent exists for the job):
@@ -1963,7 +1990,7 @@ calamine (sheet.wasm) reads neither format (docs/WASM-AUDIT.md, tab 137).
 Nov 2026 (Python Scratchpad): `src/lib/termtext.ts` (what a terminal would show for the program's output: display
 code that feeds the DOM), `src/lib/python-hints.ts` (one sentence per known error), `src/lib/tzinfo.ts` (the browser's
 Intl answering the C library's questions about local time; the zone table it uses is data made by a script) stay in TS.
-Third-party WebAssembly builds in use (accepted, see above): MuPDF, SQLite, MediaPipe Tasks, ONNX Runtime, jSquash, libheif-js, tesseract.js-core, zxing-wasm, 7z-wasm (7-Zip), ffmpeg.wasm, hash-wasm, libsodium.js, Biome, the dprint JSON and markup plugins. Staying JS (no compiled
+Third-party WebAssembly builds in use (accepted, see above): MuPDF, SQLite, MediaPipe Tasks, ONNX Runtime, RNNoise (Jitsi's build), jSquash, libheif-js, tesseract.js-core, zxing-wasm, 7z-wasm (7-Zip), ffmpeg.wasm, hash-wasm, libsodium.js, Biome, the dprint JSON and markup plugins. Staying JS (no compiled
 equivalent, reasons above): OpenPGP.js, Mermaid, TensorFlow.js; Prettier for Markdown and as the Code Formatter's fallback. (sql-formatter was replaced by a build of the sqlformat crate, and that in Nov 2026 by our own Rust formatter: `docs/WASM-AUDIT.md`, tab 53.)
 
 ### Approved data APIs (connect-src allowlist)
@@ -2147,12 +2174,15 @@ of 2026-07-11), uses our `wasm/audio/lame-config.h` (from LAME's own configure r
 `src/lib/audio-client.ts` (`audio(op, …)`, tracked worker). Tests `tests/unit/audio.test.mjs` (38: WAV bytes, peaks,
 resampler pass band + alias rejection, WSOLA tempo/pitch by zero crossings, MP3 frame chain + Info/Xing tag).
 
-### 5.1h rnnoise → `src/wasm/bin/rnnoise.wasm`
-`ZIG=… wasm/rnnoise/build.sh`: `rnnoise_0.2+ds.orig.tar.xz` from the Ubuntu archive (xiph.org is blocked in the sandbox;
-Debian's repack of upstream 0.2 incl. the trained model, SHA-256 `db2718ee…` from the signed .dsc; model version
-`0b50c45` checked), the library sources from upstream's Makefile.am + `glue.c`; `wasm/rnnoise/os_support.h` supplies
-the `OPUS_CLEAR` macro that upstream's generic (non-x86/NEON) path includes but does not ship. Wrapper
-`src/wasm/rnnoise.ts`.
+### 5.1h rnnoise — no longer ours (Jitsi's build since Nov 2026)
+The Noise Remover runs `@jitsi/rnnoise-wasm` (docs/WASM-AUDIT.md, tab 144). What stays is the **native reference**:
+`bash scripts/make-rnnoise-reference.sh` fetches `rnnoise_0.2+ds.orig.tar.xz` from the Ubuntu archive (xiph.org is
+blocked in the sandbox; Debian's repack of upstream 0.2 incl. the trained model, SHA-256 `db2718ee…` from the signed
+.dsc; model version `0b50c45` checked), compiles it with the system's cc as the release's configure would
+(`-DDISABLE_DEBUG_FLOAT`: the 8-bit weights) on the generic C path (`-U__SSE2__ …`, as every WebAssembly build) —
+`scripts/rnnoise-ref/os_support.h` supplies the `OPUS_CLEAR` macro that path includes but the release does not ship —
+and runs `scripts/rnnoise-ref/driver.c`. **To update:** a newer `@jitsi/rnnoise-wasm`; if it carries another RNNoise,
+point the script at that release and run both suites.
 
 ### 5.1i espeak → `src/wasm/bin/espeak.wasm`
 `ZIG=… wasm/espeak/build.sh` (also needs gcc, make, autoconf, automake, libtool, pkg-config): downloads
@@ -2376,6 +2406,7 @@ npm packages (pinned in `package-lock.json`) are bundled by Vite or copied to `p
 | hash-wasm 4.13.0 | MIT | Hash / Checksum, HMAC Generator, TOTP, Password Hash Tool |
 | libsodium-wrappers-sumo 0.8.4 (+ libsodium-sumo; libsodium 1.0.22 compiled to WebAssembly by its author) | ISC | Sodium Encrypt, Encrypted Share Link, Password Generator, Passphrase Generator |
 | mediabunny | MPL-2.0 | Video Compressor, Audio Recorder (cut without re-encoding) |
+| @jitsi/rnnoise-wasm 0.2.1 (RNNoise 0.2 compiled to WebAssembly by Jitsi) | Apache-2.0 (RNNoise: BSD-3-Clause) | Noise Remover |
 | lcms-wasm 1.0.5 (Little CMS 2.16) | MIT | HEIC colours (Display P3 → sRGB) |
 | @uswriting/exiftool 1.0.9 + @6over3/zeroperl-ts 1.0.10 (ExifTool 13.42; Perl 5) | Apache-2.0 (the packages); ExifTool and Perl: the Artistic License or GPL-1.0+ | EXIF / Photo Info |
 | @biomejs/wasm-web 2.6.8 (Biome's official WebAssembly build) | MIT OR Apache-2.0 | Code Formatter |

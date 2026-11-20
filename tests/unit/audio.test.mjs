@@ -15,7 +15,14 @@ export default async (t, { load, wasm }) => {
   const str = (o, n) => String.fromCharCode(...w.subarray(o, o + n));
   t.eq(str(0, 4) + str(8, 8) + str(36, 4), 'RIFFWAVEfmt data', 'WAV chunk ids');
   t.eq([dv.getUint32(4, true), dv.getUint16(20, true), dv.getUint16(22, true), dv.getUint32(24, true), dv.getUint32(28, true), dv.getUint16(32, true), dv.getUint16(34, true), dv.getUint32(40, true)], [36 + 12, 1, 1, 8000, 16000, 2, 16, 12], 'WAV header (PCM 16-bit mono 8 kHz)');
-  t.eq(Array.from({ length: 6 }, (_, i) => dv.getInt16(44 + i * 2, true)), [0, 16384, -16384, 32767, -32767, 32767], 'samples rounded and clipped');
+  t.eq(Array.from({ length: 6 }, (_, i) => dv.getInt16(44 + i * 2, true)), [0, 16384, -16384, 32767, -32768, 32767], 'samples ×32768, rounded and clipped (1 → 32767, −1 → −32768)');
+  // a file read by the browser and saved unchanged keeps every sample — under either rule browsers read 16-bit PCM by
+  { const back = (rule, chromium) => { const all = Float32Array.from({ length: 65536 }, (_, i) => rule(i - 32768)), d = new DataView(a.wav([all], 8000, 16, chromium).buffer);
+      let bad = 0; for (let i = 0; i < 65536; i++) if (d.getInt16(44 + i * 2, true) !== i - 32768) bad++; return bad; };
+    t.eq(back((s) => s / 32768, false), 0, 'every 16-bit sample read as s / 32768 (Firefox, Safari) is written back as s (×32767 changed the loud half by a step)');
+    t.eq(back((s) => Math.fround(s < 0 ? s / 32768 : s / 32767), true), 0, 'every 16-bit sample read as Chromium reads it (s / 32767 above zero, s / 32768 below) is written back as s with its rule');
+    const dc = new DataView(a.wav([Float32Array.of(1, -1, 0.5)], 8000, 16, true).buffer);
+    t.eq([dc.getInt16(44, true), dc.getInt16(46, true), dc.getInt16(48, true)], [32767, -32768, 16384], 'Chromium\'s rule: 1 → 32767, −1 → −32768, 0.5 → 16384 (0.5 × 32767, rounded to even)'); }
   const ws = a.wav([Float32Array.of(0.25, -1), Float32Array.of(0.75, 0.5)], 48000, 32), ds = new DataView(ws.buffer);
   t.eq([ds.getUint16(20, true), ds.getUint16(22, true), ds.getUint16(32, true), ds.getFloat32(44, true), ds.getFloat32(48, true), ds.getFloat32(52, true), ds.getFloat32(56, true)], [3, 2, 8, 0.25, 0.75, -1, 0.5], '32-bit float stereo, interleaved L R L R');
   t.throws(() => a.wav([Float32Array.of(0)], 0), 'sample rate 0 refused');
@@ -89,6 +96,9 @@ export default async (t, { load, wasm }) => {
   t.ok(frames(m4).bad === -1 && frames(m4).out.every((f) => f.mode === 3), '3 channels are mixed down to mono');
   t.ok(a.mp3([new Float32Array(0)], 44100).length > 0 || true, 'empty input does not crash');
   t.ok(m1.length > 15000 && m1.length < 18500, `1 s at 128 kbps ≈ 16 KB (${m1.length} bytes)`);
+  // scale: x·g without clamping (the Noise Remover hands RNNoise samples on the ±32768 scale)
+  { const s = a.scale([Float32Array.from([0.5, -2, 1e-3])], 32768)[0];
+    t.eq(Array.from(s), [16384, -65536, Math.fround(Math.fround(1e-3) * 32768)], 'scale: ×32768, not clamped (gain clamps to ±1)'); }
   // mix2: ga·a + gb·b, clamped (the Noise Remover's strength at rates other than 48 kHz)
   { const x = [Float32Array.from([0.5, -0.5, 0.9, 0])], y = [Float32Array.from([0.1, 0.2, 0.9, -1])];
     const m = a.mix2(x, y, 0.25, 0.75);

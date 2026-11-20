@@ -1,21 +1,27 @@
-// Noise Remover: Xiph RNNoise 0.2 (recurrent neural network trained on speech + noise, C → our own wasm build) in a
-// worker, at 48 kHz (our audio.wasm resamples in and out). Open a file or record; strength = wet/dry mix; compare
-// original vs cleaned on the waveform; save MP3 (own LAME wasm) or WAV.
+// Noise Remover: Xiph RNNoise 0.2 (a recurrent neural network trained on speech and noise; Jitsi's WebAssembly build)
+// in a worker, at 48 kHz (audio.wasm resamples in and out). Open a file or record; strength = how much of the cleaned
+// sound is mixed with the original (the worker keeps both, so a new strength is mixed at once, not cleaned again);
+// compare original and cleaned on the waveform; save MP3 (LAME, our build) or WAV.
 import { h, card, actions, button, slider, stack, filePicker, note, toast, errMsg, baseName, type Mount } from '../ui';
 import { recorder, waveEditor, savePanel, type Recording } from '../lib/audioui';
 import { decodeAudio, channelsOf } from '../lib/audio-client';
 import { trackWorker } from '../lifecycle';
 
+type Reply = { chs: Float32Array[]; vad?: Float32Array; ms?: number };
 let worker: Worker | null = null, seq = 0;
-const pend = new Map<number, { res: (v: any) => void; rej: (e: Error) => void }>();
-function denoise(chs: Float32Array[], sr: number, mix: number): Promise<{ chs: Float32Array[]; vad: Float32Array; ms: number }> {
+const pend = new Map<number, { res: (v: Reply) => void; rej: (e: Error) => void }>();
+function engine(msg: { op: 'clean'; chs: Float32Array[]; sr: number; mix: number } | { op: 'mix'; mix: number }): Promise<Reply> {
+  if (msg.op === 'clean' && worker && pend.size) { // a newer file: what the worker still does is for an older one
+    for (const p of pend.values()) p.rej(new Error('superseded'));
+    pend.clear(); worker.terminate(); worker = null;
+  }
   if (!worker) {
     worker = trackWorker(new Worker(new URL('../workers/noise.worker.ts', import.meta.url), { type: 'module' }), 'noise-worker', () => { pend.clear(); worker = null; });
     worker.onmessage = (e) => { const p = pend.get(e.data.id); if (!p) return; pend.delete(e.data.id); e.data.error ? p.rej(new Error(e.data.error)) : p.res(e.data); };
-    worker.onerror = (e) => { for (const p of pend.values()) p.rej(new Error(e.message || 'Noise engine failed')); pend.clear(); worker = null; };
+    worker.onerror = (e) => { for (const p of pend.values()) p.rej(new Error(e.message || 'The noise engine stopped')); pend.clear(); worker?.terminate(); worker = null; };
   }
   const id = ++seq;
-  return new Promise((res, rej) => { pend.set(id, { res, rej }); worker!.postMessage({ id, chs, sr, mix }); });
+  return new Promise((res, rej) => { pend.set(id, { res, rej }); worker!.postMessage({ id, ...msg }); });
 }
 const toBuffer = (chs: Float32Array[], sr: number) => {
   const b = new AudioBuffer({ length: Math.max(1, chs[0].length), numberOfChannels: chs.length, sampleRate: sr });
@@ -24,11 +30,23 @@ const toBuffer = (chs: Float32Array[], sr: number) => {
 };
 
 export const mount: Mount = (root, ctx) => {
-  let src: AudioBuffer | null = null, name = 'audio', mix = 1, tok = 0, timer = 0, ready = false, showing: 'clean' | 'orig' = 'clean', cleaned: AudioBuffer | null = null;
+  let src: AudioBuffer | null = null, name = 'audio', mix = 1, timer = 0, live = true;
+  let fileSeq = 0, gen = 0;               // the newest file; the newest result asked for (clean or mix)
+  let cleaned: AudioBuffer | null = null; // the result for this file at this strength (null while one is on its way)
+  let shownFor: AudioBuffer | null = null, showing: 'clean' | 'orig' = 'clean';
+  let job: Promise<void> = Promise.resolve(), failed = '', info = '';
   const editor = waveEditor();
   const status = h('div', { class: 'muted small', 'aria-live': 'polite' });
   const work = h('div', { class: 'stack', hidden: true });
-  const strength = slider({ label: 'Strength', min: 0, max: 100, step: 5, value: 100, fmt: (v) => `${v} %`, onInput: (v) => { mix = v / 100; ready = false; clearTimeout(timer); timer = window.setTimeout(run, 400); } });
+  const strength = slider({
+    label: 'Strength', min: 0, max: 100, step: 5, value: 100, fmt: (v) => `${v} %`,
+    onInput: (v) => {
+      mix = v / 100; clearTimeout(timer); timer = 0;
+      if (!src) return;
+      cleaned = null;
+      timer = window.setTimeout(() => { timer = 0; job = remix(); }, 150);
+    },
+  });
   const abBtn = button('Hear the original', () => toggleAB(), { icon: 'Repeat', small: true });
 
   async function toggleAB() {
@@ -38,42 +56,71 @@ export const mount: Mount = (root, ctx) => {
     await editor.set(showing === 'clean' ? cleaned : src);
     editor.setRange(a, b);
     abBtn.setLabel(showing === 'clean' ? 'Hear the original' : 'Hear the cleaned audio');
-    status.textContent = showing === 'clean' ? status.dataset.clean || '' : 'Showing the ORIGINAL (noisy) audio';
+    status.textContent = showing === 'clean' ? info : 'Showing the ORIGINAL (noisy) audio';
   }
-  async function run() {
-    if (!src) return;
-    const my = ++tok;
-    status.textContent = 'Removing noise…';
+  /** Put a result on the waveform: the selection stays when only the strength changed. */
+  async function show(chs: Float32Array[], s: AudioBuffer, my: number) {
+    const keep = shownFor === s && editor.buffer ? editor.range : null;
+    const b = toBuffer(chs, s.sampleRate);
+    showing = 'clean'; abBtn.setLabel('Hear the original');
+    await editor.set(b);
+    if (!live || my !== gen) return;
+    if (keep && (keep[0] > 0 || keep[1] < s.duration)) editor.setRange(keep[0], keep[1]);
+    cleaned = b; shownFor = s; failed = '';
+    status.textContent = info;
+  }
+  async function clean() {
+    const s = src!, my = ++gen, file = fileSeq;
+    status.textContent = 'Removing noise…'; failed = '';
     try {
-      const r = await denoise(channelsOf(src), src.sampleRate, mix);
-      if (my !== tok) return;
-      cleaned = toBuffer(r.chs, src.sampleRate);
-      const [a, b] = editor.buffer ? editor.range : [0, src.duration];
-      showing = 'clean'; abBtn.setLabel('Hear the original');
-      await editor.set(cleaned);
-      if (editor.buffer && (a > 0 || b < src.duration)) editor.setRange(a, b);
-      ready = true;
-      const speech = r.vad.filter((v) => v > 0.5).length / Math.max(1, r.vad.length);
-      status.textContent = status.dataset.clean = `${src.duration.toFixed(1)} s cleaned in ${(r.ms / 1000).toFixed(1)} s · speech detected in ${Math.round(speech * 100)} % of the recording`;
-    } catch (e) { if (my === tok) status.textContent = `Could not clean: ${errMsg(e)}`; }
+      const r = await engine({ op: 'clean', chs: channelsOf(s), sr: s.sampleRate, mix });
+      if (!live || file !== fileSeq) return;
+      const vad = r.vad!, speech = vad.filter((v) => v > 0.5).length / Math.max(1, vad.length);
+      info = `${s.duration.toFixed(1)} s cleaned in ${(r.ms! / 1000).toFixed(1)} s · speech detected in ${Math.round(speech * 100)} % of the recording`;
+      if (my === gen) await show(r.chs, s, my);
+    } catch (e) {
+      if (live && file === fileSeq && my === gen) { failed = `Could not clean the sound: ${errMsg(e)}`; status.textContent = failed; }
+    }
   }
-  const load = async (blob: Blob, fname: string) => {
+  async function remix() {
+    const s = src!, my = ++gen, file = fileSeq;
+    try {
+      const r = await engine({ op: 'mix', mix });
+      if (live && my === gen && file === fileSeq) await show(r.chs, s, my);
+    } catch {
+      // the worker was ended (and its copy with it): clean the file again at this strength
+      if (live && my === gen && file === fileSeq) await clean();
+    }
+  }
+  const load = (blob: Blob, fname: string) => {
+    const my = ++fileSeq;
     status.textContent = 'Reading the audio…';
-    try {
-      const b = await decodeAudio(blob);
-      if (!b.duration) throw new Error('No audio in this file.');
-      src = b; name = baseName(fname); cleaned = null; work.hidden = false; bar.hidden = false; picker.classList.add('drop-compact');
+    job = (async () => {
+      let b: AudioBuffer;
+      try {
+        b = await decodeAudio(blob);
+        if (!b.duration) throw new Error('there is no sound in this file');
+      } catch (e) {
+        if (my === fileSeq && live) { status.textContent = src ? info : ''; toast(`Cannot read this audio: ${errMsg(e)}`, 'err'); }
+        return; // what was open stays open
+      }
+      if (my !== fileSeq || !live) return;
+      clearTimeout(timer); timer = 0;
+      src = b; name = baseName(fname); cleaned = null; info = '';
+      work.hidden = false; bar.hidden = false; picker.classList.add('drop-compact');
       editor.stop();
-      await run();
-    } catch (e) { status.textContent = ''; toast(`Cannot read this audio: ${errMsg(e)}`, 'err'); }
+      await clean();
+    })();
   };
   const save = savePanel({
     isMobile: ctx.isMobile,
     name: () => `${name}-clean`,
     pcm: async () => {
-      if (!ready) { clearTimeout(timer); await run(); }
+      if (timer) { clearTimeout(timer); timer = 0; job = remix(); } // a strength still waiting for its turn
+      await job;
+      if (!cleaned) throw new Error(failed || 'The cleaned sound is not ready — open a recording first.');
       if (showing !== 'clean') await toggleAB();
-      return { chs: editor.selection(), sr: editor.buffer!.sampleRate };
+      return { chs: editor.selection(), sr: cleaned.sampleRate };
     },
   });
   const rec = recorder({ isMobile: ctx.isMobile, voice: false, onDone: (r: Recording) => load(r.blob, 'recording') });
@@ -87,5 +134,5 @@ export const mount: Mount = (root, ctx) => {
     card('Result', editor.el),
     card('Save', save.el));
   root.append(card(null, picker, recBox, status), work, bar);
-  return () => { clearTimeout(timer); rec.dispose(); editor.dispose(); };
+  return () => { live = false; fileSeq++; gen++; clearTimeout(timer); rec.dispose(); editor.dispose(); };
 };

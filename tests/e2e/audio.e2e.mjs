@@ -101,7 +101,7 @@ export default async ({ base, page: newPage, ok, info, download, tmp }) => {
   const w2 = readWav(readFileSync(await save()));
   ok(w2.ch === 2 && w2.sr === 44100 && w2.n === 44100, `trimmed WAV is exactly 1 s at the file's 44.1 kHz, stereo (${w2.n} samples at ${w2.sr} Hz)`);
   // the samples themselves: the WAV holds the file's samples from 2.00 s on, unchanged but for 16-bit rounding
-  { let worst = 0; for (let i = 0; i < 44100; i++) worst = Math.max(worst, Math.abs(w2.data[0][i] - Math.round(L[2 * 44100 + i] * 32767) / 32768)); ok(worst < 2 / 32768, `sample for sample the file's own (largest difference ${(worst * 32768).toFixed(2)} of a 16-bit step)`); }
+  { let worst = 0; for (let i = 0; i < 44100; i++) worst = Math.max(worst, Math.abs(w2.data[0][i] - Math.round(L[2 * 44100 + i] * 32767) / 32768)); ok(worst === 0, `sample for sample the file's own, exactly (largest difference ${(worst * 32768).toFixed(2)} of a 16-bit step; saving with ×32767 made it 1)`); }
   ok(Math.abs(freqOf(w2.data[0], w2.sr) - 880) < 2 && Math.abs(peakOf(w2.data[0]) - 0.5) < 0.02 && Math.abs(peakOf(w2.data[1]) - 0.25) < 0.02, `trimmed part is the 880 Hz tone (${freqOf(w2.data[0], w2.sr).toFixed(1)} Hz), channel levels kept`);
   await fmt('MP3');
   await page.getByLabel('MP3 quality').selectOption('320');

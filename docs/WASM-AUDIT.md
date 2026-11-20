@@ -1207,3 +1207,23 @@ One entry per tab, written before its bug hunt: our module → candidates → ch
   espeak-ng build, one-person packages), sherpa-onnx's WebAssembly TTS (Kaldi project, official; Piper/Kokoro voices,
   but its own 30 MB+ build and no streaming per sentence in the browser package). **Decision:** ours stays — the network
   runs on the famous official module already; our eSpeak build is at its latest release.
+
+### 144. `noise` — Noise Remover (20 Nov 2026)
+- **Ours:** rnnoise.wasm — our zig build of the RNNoise 0.2 release (5.6 MB; 5.05 MB gzipped) + glue (framing, lag,
+  mix). **Candidates** (npm, monthly downloads from the registry's search): **@jitsi/rnnoise-wasm 0.2.1** (Jitsi Meet's
+  build, Apache-2.0, 328 k), @shiguredo/rnnoise-wasm 2025.1.5 (Apache-2.0, 118 k; a later RNNoise: 23 dB apart from the
+  0.2 release, 1.8× slower), @timephy/rnnoise-wasm (a fork of Jitsi's, 37 k), simple-rnnoise-wasm (23 k),
+  @echogarden/rnnoise-wasm (18 k), @sapphi-red/web-noise-suppressor 0.4.1 (AudioWorklet nodes around Shiguredo's RNNoise,
+  Speex and GTCRN — GTCRN is a newer, better-scoring model but works at 16 kHz only, which would cut the high band of
+  every 44.1 / 48 kHz recording; worklets are for live sound, not files), DeepFilterNet 3 (48 kHz and better than
+  RNNoise, but no published, widely used WebAssembly build — deepfilternet3-noise-filter is a LiveKit plug-in).
+- **Check:** each build run on the same 48 kHz input in Node against a **native build of the RNNoise 0.2 release**
+  (`scripts/make-rnnoise-reference.sh`). Jitsi's package has two builds: its async `rnnoise.wasm` still carries the 0.1
+  model; its **sync file carries 0.2** and equals the native release **as the release's own configure builds it** — the
+  network on the model's 8-bit weights (`DISABLE_DEBUG_FLOAT`): every frame within 0.01 dB, voice probabilities equal to
+  four decimals. **Ours compiled the sources without configure and so ran the float weights — the release's debugging
+  option (`--enable-dnn-debug-float`)**: 0.12 dB apart at the first frame, 2.4 dB at the worst, and four times the size.
+- **Decision: Jitsi's build replaces ours** (the famous module, the release's standard computation, 1.34 MB gzipped
+  instead of 5.05). Beside it (glue, `src/wasm/rnnoise.ts`): framing, the two frames of lag, the voice probability of
+  every channel; in audio.wasm: resampling, `a_scale` (×32768 unclamped, new) and `a_mix2`. wasm/rnnoise/ is gone; the
+  native build stays as the test reference only.

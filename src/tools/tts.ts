@@ -3,7 +3,7 @@
 // Runtime Web (WebAssembly) in a worker; playback starts with the first sentence. MP3 via our LAME wasm, or WAV.
 // "System voices" (Web Speech, on-device voices only) can play but not be saved (browsers cannot capture them).
 import { h, card, field, actions, button, slider, select, stack, note, progress, filePicker, toast, errMsg, fmtTime, downloadBlob, shareOrDownload, type Mount } from '../ui';
-import { audio } from '../lib/audio-client';
+import { audio, int16Asymmetric } from '../lib/audio-client';
 import { decodeText } from '../lib/sheetdata';
 import { trackWorker } from '../lifecycle';
 
@@ -123,7 +123,7 @@ export const mount: Mount = (root, ctx) => {
   async function save() {
     if (!parts.length) return;
     const all = new Float32Array(parts.reduce((a, p) => a + p.length, 0)); let k = 0; for (const p of parts) { all.set(p, k); k += p.length; }
-    const bytes = fmt === 'wav' ? await audio('wav', [all], sr, 16) : await audio('mp3', [all], sr, { rate: 96 });
+    const bytes = fmt === 'wav' ? await audio('wav', [all], sr, 16, await int16Asymmetric()) : await audio('mp3', [all], sr, { rate: 96 });
     const name = `speech-${voice.id.replace(/^in_/, 'indian-')}.${fmt}`, blob = new Blob([bytes as BlobPart], { type: fmt === 'wav' ? 'audio/wav' : 'audio/mpeg' });
     ctx.isMobile ? await shareOrDownload(blob, name) : downloadBlob(blob, name);
   }

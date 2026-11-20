@@ -15,6 +15,21 @@ export function audio<K extends keyof AudioEngine>(op: K, ...args: Parameters<Au
   return new Promise((res, rej) => { pending.set(id, { res, rej }); worker!.postMessage({ id, op, args }); });
 }
 
+let asym: Promise<boolean> | null = null;
+/** Does this browser read 16-bit PCM as Chromium does — s / 32767 above zero, s / 32768 below (Firefox and Safari divide
+ *  both by 32768)? Found once by decoding a one-sample WAV of 32767; the WAV writer inverts the browser's rule, so a
+ *  file opened and saved unchanged keeps every sample. */
+export function int16Asymmetric(): Promise<boolean> {
+  return (asym ||= (async () => {
+    try {
+      const b = new ArrayBuffer(46), v = new DataView(b), put = (o: number, t: string) => { for (let i = 0; i < t.length; i++) v.setUint8(o + i, t.charCodeAt(i)); };
+      put(0, 'RIFF'); v.setUint32(4, 38, true); put(8, 'WAVEfmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+      v.setUint32(24, 8000, true); v.setUint32(28, 16000, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true); put(36, 'data'); v.setUint32(40, 2, true); v.setInt16(44, 32767, true);
+      const d = await new OfflineAudioContext(1, 1, 8000).decodeAudioData(b);
+      return d.getChannelData(0)[0] === 1;
+    } catch { return false; }
+  })());
+}
 /** AudioBuffer → planar Float32Array copies. */
 export const channelsOf = (b: AudioBuffer) => Array.from({ length: b.numberOfChannels }, (_, i) => b.getChannelData(i).slice());
 /** The sample rate the file's audio is stored at (mediabunny reads it from the headers), or 0. */

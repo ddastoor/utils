@@ -20,10 +20,11 @@ export function bindAudio(e: any) {
   const withMono = <T>(x: Float32Array, f: (p: number) => T): T => { const p = e.a_malloc(x.length * 4); new Float32Array(mem(), p, x.length).set(x); try { return f(p); } finally { e.a_free(p); } };
   return {
     version(): string { const p = e.a_lame_version(), m = new Uint8Array(mem()); let n = p; while (m[n]) n++; return new TextDecoder().decode(m.subarray(p, n)); },
-    /** RIFF/WAVE, 16-bit PCM (default) or 32-bit float. */
-    wav(chs: Float32Array[], sr: number, bits: 16 | 32 = 16): Uint8Array {
+    /** RIFF/WAVE, 16-bit PCM (default) or 32-bit float. chromium: write 16-bit samples as Chromium reads them (above
+     *  zero ×32767, below ×32768; int16Asymmetric() in src/lib/audio-client.ts tells), else ×32768 for both. */
+    wav(chs: Float32Array[], sr: number, bits: 16 | 32 = 16, chromium = false): Uint8Array {
       const { p, n } = putPlanar(chs);
-      try { return takeBytes(e.a_wav(p, n, chs.length, sr, bits)); } finally { e.a_free(p); }
+      try { return takeBytes(e.a_wav(p, n, chs.length, sr, bits, chromium ? 1 : 0)); } finally { e.a_free(p); }
     },
     /** MP3 with LAME: CBR `rate` kbps (default 192) or VBR quality `rate` 0–9. More than 2 channels are mixed down. */
     mp3(chs: Float32Array[], sr: number, o: Mp3Options = {}): Uint8Array {
@@ -42,6 +43,10 @@ export function bindAudio(e: any) {
     },
     gain(chs: Float32Array[], g: number): Float32Array[] {
       return chs.map((c) => withMono(c, (p) => { e.a_gain(p, c.length, g); return new Float32Array(mem(), p, c.length).slice(); }));
+    },
+    /** x·g per channel, not clamped (gain clamps to ±1). */
+    scale(chs: Float32Array[], g: number): Float32Array[] {
+      return chs.map((c) => withMono(c, (p) => { e.a_scale(p, c.length, g); return new Float32Array(mem(), p, c.length).slice(); }));
     },
     fade(chs: Float32Array[], fadeIn: number, fadeOut: number): Float32Array[] {
       const { p, n } = putPlanar(chs);
