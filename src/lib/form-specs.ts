@@ -48,3 +48,13 @@ export const FORM_SPECS: FormSpec[] = [
   },
 ];
 export const KIND_LABEL: Record<Kind, string> = { photo: 'Photo', signature: 'Signature', thumb: 'Thumb impression', declaration: 'Declaration' };
+
+/** The bytes a "KB" limit allows, read the strict way: portals differ — some count 1 KB as 1,000 bytes, some as 1,024 —
+ *  so the maximum is maxKB × 1,000 and the minimum minKB × 1,024 (a file between them passes either reading). When the
+ *  two readings leave no room (e.g. 50 – 50 KB) the minimum is read as minKB × 1,000. */
+export function kbRange(minKB: number, maxKB: number) {
+  const max = Math.floor(maxKB * 1000);
+  let min = Math.ceil(minKB * 1024);
+  if (min > max) min = Math.ceil(minKB * 1000);
+  return { min, max };
+}

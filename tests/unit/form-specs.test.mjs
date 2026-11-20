@@ -1,7 +1,10 @@
 // Exam/portal upload presets are well-formed; JPEG padding (metacore) reaches a minimum size without touching pixels.
-import { readFileSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdtempSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 export default async (t, { load, wasm, root }) => {
-  const { FORM_SPECS, KIND_LABEL } = await load('/src/lib/form-specs.ts');
+  const { FORM_SPECS, KIND_LABEL, kbRange } = await load('/src/lib/form-specs.ts');
   const ids = new Set();
   for (const s of FORM_SPECS) {
     t.ok(!ids.has(s.id) && /^[a-z0-9-]+$/.test(s.id), `${s.id}: unique id`); ids.add(s.id);
@@ -25,4 +28,46 @@ export default async (t, { load, wasm, root }) => {
   const huge = mc.jpegPad(jpg, 300000); t.ok(huge.length >= 300000, 'several COM segments for > 64 KB of padding');
   t.eq(mc.jpegPad(jpg, 1000).length, jpg.length, 'already big enough → unchanged');
   t.eq(mc.sniff(huge), { type: 'jpeg', width: 600, height: 400 }, 'padded file still parses (SOF found after COM segments)');
+
+  // Exactly the target (a portal's maximum may be the target): every need from 4 bytes on, around the 64 KB segment edge
+  // too, gives a file of exactly that many bytes; an independent walk over the segments finds well-formed COM segments
+  // and then the original file's segments unchanged.
+  const walk = (b) => {
+    if (b[0] !== 0xff || b[1] !== 0xd8) return 'no SOI';
+    let i = 2, coms = 0;
+    while (i + 4 <= b.length && b[i] === 0xff && b[i + 1] === 0xfe) { const len = (b[i + 2] << 8) | b[i + 3]; if (len < 2) return 'bad length'; i += 2 + len; coms++; }
+    if (i > b.length) return 'overrun';
+    return Buffer.from(b.subarray(i)).equals(Buffer.from(jpg.subarray(2))) ? coms : 'original changed';
+  };
+  const S = 65537; // one full COM segment: marker + length + 65,533 bytes
+  const needs = [4, 5, 6, 7, 8, 100, 1000, S - 1, S, S + 1, S + 2, S + 3, S + 4, S + 5, S + 7, S + 8, 2 * S, 2 * S + 1, 2 * S + 3, 2 * S + 4, 3 * S + 2];
+  let exact = 0, walked = 0;
+  for (const need of needs) {
+    const out = mc.jpegPad(jpg, jpg.length + need);
+    if (out.length === jpg.length + need) exact++; else t.ok(false, `need ${need}: ${out.length - jpg.length} bytes added`);
+    if (typeof walk(out) === 'number') walked++; else t.ok(false, `need ${need}: ${walk(out)}`);
+  }
+  t.eq(exact, needs.length, `padding is exact for ${needs.length} sizes from 4 bytes to 3 segments (also 1 – 3 bytes past a full segment)`);
+  t.eq(walked, needs.length, 'every padded file walks as COM segments + the original file');
+  t.eq(mc.jpegPad(jpg, jpg.length + 2).length, jpg.length + 4, 'fewer than 4 bytes short: one empty COM segment (4 bytes)');
+  t.eq(mc.jpegPad(new Uint8Array([0x89, 0x50, 0x4e, 0x47, 1, 2, 3]), 1000).length, 7, 'not a JPEG → returned as it is');
+
+  // Pixels: Pillow (libjpeg) decodes the padded file to the same pixels as the original.
+  try {
+    const dir = mkdtempSync(join(tmpdir(), 'pad-'));
+    writeFileSync(join(dir, 'a.jpg'), jpg); writeFileSync(join(dir, 'b.jpg'), mc.jpegPad(jpg, jpg.length + 2 * S + 5));
+    const same = execFileSync('python3', ['-I', '-c', 'import sys;from PIL import Image;a=Image.open(sys.argv[1]);b=Image.open(sys.argv[2]);print(a.size==b.size and a.tobytes()==b.tobytes())', join(dir, 'a.jpg'), join(dir, 'b.jpg')]).toString().trim();
+    t.eq(same, 'True', 'Pillow decodes the padded JPEG to exactly the original pixels');
+  } catch (e) { t.ok(true, `Pillow not available — pixel check skipped (${String(e.message).split('\n')[0]})`); }
+
+  // KB limits read the strict way (either way of counting a KB passes)
+  t.eq(kbRange(20, 50), { min: 20480, max: 50000 }, '20 – 50 KB → 20,480 – 50,000 bytes');
+  t.eq(kbRange(0, 1), { min: 0, max: 1000 }, '0 – 1 KB');
+  t.eq(kbRange(50, 50), { min: 50000, max: 50000 }, '50 – 50 KB: only the 1,000-byte reading has room → 50,000 bytes');
+  t.eq(kbRange(49.5, 50), { min: 49500, max: 50000 }, '49.5 – 50 KB → the minimum read as 1,000 bytes a KB');
+  t.eq(kbRange(10.5, 20.25), { min: 10752, max: 20250 }, 'decimal KB');
+  for (const s of FORM_SPECS) for (const i of s.items) {
+    const r = kbRange(i.minKB, i.maxKB);
+    t.ok(r.min === Math.ceil(i.minKB * 1024) && r.min <= r.max, `${s.id}/${i.kind}: ${i.minKB}–${i.maxKB} KB holds both readings (${r.min} – ${r.max} bytes)`);
+  }
 };

@@ -956,3 +956,13 @@ One entry per tab, written before its bug hunt: our module → candidates → ch
   straightens, scales and crops). **Candidates for imgproc's part:** none that does a guided-filter matte (OpenCV.js's
   default build has no `ximgproc`; magick-wasm and wasm-vips: entry 109). **Decision:** both stay; the digital-upload
   copy is resized with @jsquash/resize (entry 109).
+
+### 113. `formphoto` — Photo & Signature Resizer (20 Nov 2026)
+- **Engines:** MediaPipe Tasks 1.2.3 (BlazeFace, for placing the frame on the face — Google's build, the latest);
+  imgproc.wasm (ours: the crop, the paper clean-up `inkToAlpha`); jSquash's MozJPEG (the highest quality under the
+  maximum); metacore.wasm (ours: the dpi in the JFIF header, the padding with JPEG comments up to the minimum).
+- **Candidates:** for the resize, @jsquash/resize (entry 109) — taken, as in the other image tabs. For the paper
+  clean-up: none (OpenCV.js could threshold, but not keep the ink's colour on white; magick-wasm: entry 109). For
+  metacore's two jobs: exiftool and libexif have no WebAssembly build that writes a JFIF density or pads a file;
+  piexifjs is JavaScript and handles EXIF, not JFIF. **Decision:** imgproc and metacore stay; resizing moves to
+  @jsquash/resize. metacore's padding was made exact (it could end 1 – 3 bytes above its target).

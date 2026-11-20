@@ -224,7 +224,7 @@ Test, plus `photodict` Photo Dictionary (owner said mobile only — phone camera
 | `batch` | Batch Images | **PC** | `imgproc` resize + jSquash + zip.js |
 | `heic` | HEIC → JPG | both | libheif (C++ → wasm, libheif-js) + Little CMS (lcms-wasm: Display P3 → sRGB with the photo's profile) + jSquash |
 | `passport` | Passport Photo | both | MediaPipe Face Landmarker (eyes/chin/tilt) + selfie multiclass (person mask, crown via `p_mask_top`) → layout to head-height / eye-height rules (`src/lib/passport.ts`) → crop region only at full res → guided-filter matte + required colour → one homography warp (`p_warp_quad_fill`) → 300 dpi JPEG, digital-upload JPEG (px/KB limits), 4×6 in / A4 sheets |
-| `formphoto` | Photo & Signature Resizer | both | presets (`src/lib/form-specs.ts`: IBPS/SBI/RBI, SSC, UPSC, NTA, PAN — px + KB ranges, all editable, "confirm with the notification"), face auto-framing (BlazeFace), paper clean-up (`imgproc` ink), Lanczos resize, MozJPEG best quality ≤ max, JPEG comment padding up to the min (`metacore` `m_jpeg_pad`), DPI |
+| `formphoto` | Photo & Signature Resizer | both | presets (`src/lib/form-specs.ts`: IBPS/SBI/RBI, SSC, UPSC, NTA, PAN — px + KB ranges, all editable, "confirm with the notification"), face auto-framing (BlazeFace), paper clean-up (`imgproc` ink), resize @jsquash/resize, DPI (`metacore`), MozJPEG best quality ≤ max, JPEG comment padding up to the min (`metacore` `m_jpeg_pad`); KB read strictly (max × 1,000, min × 1,024 bytes) |
 | `bgremove` | Background Remover | both | MediaPipe selfie-multiclass (6 categories) → person mask in C (`p_person_mask`: hair+skin+clothes, accessories only next to the person) → `imgproc` guided-filter matte at full res → transparent PNG / colour / blur / another photo (`p_composite_img`) |
 | `cartoon` | Cartoonizer | both | `imgproc` filters (DoG lines, k-means, Kuwahara, dodge, halftone) + Magenta arbitrary style transfer (TF.js: WebGL → wasm XNNPACK → CPU) |
 | `redact` | Blur & Redact | both | MediaPipe BlazeFace on the whole photo + multi-scale square tiles (small faces in group photos), NMS + pixelate/blur/fill in `imgproc`; manual boxes; tap a box to keep it visible |
@@ -476,6 +476,18 @@ Wayland/X11 is irrelevant for cameras.
 and says why (the newest photo wins); Cancel ends the camera's countdown; camera errors in words (`src/lib/camera.ts`,
 shared with the QR scanner and the Photo Dictionary); the custom size is 10 – 150 mm; the online-upload copy is
 resized with @jsquash/resize.
+
+### Photo & Signature Resizer — as built after the Nov 2026 bug hunt
+(`formphoto` in `src/tools/formphoto.ts`, presets and `kbRange` in `src/lib/form-specs.ts`; unit
+`tests/unit/form-specs.test.mjs` 80, e2e `tests/e2e/formphoto.e2e.mjs` 47.) **KB limits are read the strict way**:
+portals differ in what a KB is, so the file is at most maxKB × 1,000 and at least minKB × 1,024 bytes (both readings
+pass; 50 – 50 KB, where they leave no room, is 50,000 bytes); the result line names the bytes. Order: crop (imgproc;
+signatures, thumbs and declarations cleaned to white paper first) → @jsquash/resize to the exact pixels → MozJPEG at the
+highest quality under the maximum → the dpi into the JFIF header (`encodeInRange`, shared with the Passport tab; the
+size is judged with it) → JPEG comment segments up to the minimum (`m_jpeg_pad`, exact to the byte). A file that cannot
+get under the maximum is not downloaded on its own (reason + "Download anyway"). Width and height 10 – 5,000 px, each
+box refused with its own reason; the frame follows the boxes while they hold a valid size (the face is found once per
+photo); the newest photo or kind wins.
 
 ### Cartoonizer ("Prisma-like") — BUILT (`src/tools/cartoon.ts`, e2e `tests/e2e/cartoon.e2e.mjs`, 37 checks)
 Two engines, picked with a "Filters | AI art styles" switch; tiles show live thumbnails of the user's photo / the style.

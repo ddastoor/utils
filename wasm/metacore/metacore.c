@@ -254,6 +254,9 @@ API int m_jpeg_pad(const uint8_t *b, int n, uint8_t *out, int target) {
         int body = need - 4; /* marker (2) + length (2) */
         if (body < 0) body = 0;
         if (body > 65533) body = 65533;
+        /* a segment is at least 4 bytes: never leave 1 - 3 bytes over for the next one (the file would end up 1 - 3
+           bytes above the target, which may be a portal's maximum) */
+        { int rest = need - (body + 4); if (rest > 0 && rest < 4) body -= 4; }
         out[w++] = 0xff; out[w++] = 0xfe; out[w++] = (uint8_t)((body + 2) >> 8); out[w++] = (uint8_t)(body + 2);
         memset(out + w, 0, body); w += body;
         need -= body + 4;

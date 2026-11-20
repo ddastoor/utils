@@ -17,7 +17,7 @@ Areas with a shared review: the app shell (router, search, favorites, platform h
 | `batch` | Batch Images | PC only | images1 | ✓ | 4 | 7 | jSquash resize; unique result names (shared list); sizes/scale checked; failed files listed; Stop |
 | `heic` | HEIC → JPG | PC + mobile | images1 | ✓ | 3 | 16 | libheif-js kept (latest) + lcms-wasm: Display P3 → sRGB (iPhone colours were off, every HEIC tab); primary image; failed files listed |
 | `passport` | Passport Photo | PC + mobile | images2 | ✓ | 4 | 6 | MediaPipe 1.2.3 (latest) + imgproc kept; no stale result after a face-less photo; Cancel ends the countdown; camera errors worded (shared src/lib/camera.ts); custom size 10–150 mm; jSquash resize for upload |
-| `formphoto` | Photo & Signature Resizer | PC + mobile | images2 |  |  |  |  |
+| `formphoto` | Photo & Signature Resizer | PC + mobile | images2 | ✓ | 8 | 55 | engines kept + jSquash resize; KB read strictly (max ×1000, min ×1024); dpi before padding (was +18 bytes over max); metacore padding exact; no download of an over-max file; per-field reasons; re-frame without new face search; newest photo wins; object URLs revoked |
 | `bgremove` | Background Remover | PC + mobile | images2 |  |  |  |  |
 | `cartoon` | Cartoonizer | PC + mobile | images2 |  |  |  |  |
 | `redact` | Blur & Redact | PC + mobile | images2 |  |  |  |  |
@@ -1512,3 +1512,24 @@ Reference for the five finance tabs: **mpmath at 60 digits** (`scripts/make-fina
      what to do now (one helper, `src/lib/camera.ts`, also for the QR scanner and the Photo Dictionary).
   4. The custom size fell back to 35 × 45 mm without a word for 0 or a negative number, and took any size; it is
      10 – 150 mm now, said under the boxes.
+
+- **`formphoto` (tab 115, 8 bugs; engines: MediaPipe + imgproc + jSquash + metacore kept, resizing moved to
+  @jsquash/resize — docs/WASM-AUDIT.md, 113; unit `tests/unit/form-specs.test.mjs` 80 — was 58; e2e 47 — was 14).**
+  1. "50 KB" was read as 51,200 bytes: a portal that counts a KB as 1,000 bytes refused files of 50,001 – 51,200
+     bytes. The maximum is maxKB × 1,000 and the minimum minKB × 1,024 now (a file between them passes either way of
+     counting; when the two leave no room, 50 – 50 KB, the minimum is read with 1,000); the result names the bytes.
+  2. The dpi was written after the padding: the JFIF header then went in front of the padding as a second one, and
+     the file ended 18 bytes above its target — above the maximum for 50 – 50 KB (50,018 bytes). The dpi is written
+     first and the size judged with it (also for the Passport tab's upload copy, which shares the routine).
+  3. metacore's padding ended 1 – 3 bytes above its target when that was 1 – 3 bytes past a full 64 KB comment
+     segment (the last segment cannot be smaller than 4 bytes); the segments are split so that it never happens.
+  4. A picture that could not get under the maximum even at the lowest quality was still downloaded — a file the
+     portal refuses. It is not downloaded now; the result says why and how to make it fit, with "Download anyway".
+  5. "Check the size and KB fields." for every mistake, and an empty minimum, a width of 10.5 or one of 90,000 were
+     taken; each box is checked with its own reason now (width and height 10 – 5,000 px).
+  6. Each key in the width / height boxes searched the face again, and a half-typed value ("3" of "300") set the
+     frame to 3 : 230; the frame follows the boxes only while they hold a valid size, around the face found once.
+  7. A second photo (or another kind) chosen while the first was still being cleaned or searched could get the
+     frame of the first; the newest wins.
+  8. The picture of every result stayed in memory (object URLs never revoked).
+  Test: the first check read the page before the spec was drawn (a flake under load) — it waits now.
