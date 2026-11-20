@@ -263,10 +263,12 @@ export async function pageThumb(doc: MDoc, index: number, px = 180): Promise<HTM
   return c;
 }
 
-/** "1-3, 5, 8-" → 0-based page indices (in order, duplicates kept). Throws on a bad range. */
+/** "1-3, 5, 8-" → 0-based page indices (in order, duplicates kept). Throws on a bad range. Also read: numbers apart by
+ *  spaces only ("1 3 5"), the dashes of other keyboards (— ‒ −) and "1..3". */
 export function parseRanges(spec: string, count: number): number[][] {
   const out: number[][] = [];
-  for (const part of spec.split(/[,;]+/).map((s) => s.trim()).filter(Boolean)) {
+  const norm = spec.replace(/[—‒−]/g, '-').replace(/(\d)\s*\.\.+\s*(?=\d)/g, '$1-').replace(/(\d)\s+(?=\d)/g, '$1,');
+  for (const part of norm.split(/[,;]+/).map((s) => s.trim()).filter(Boolean)) {
     const mm = /^(\d+)?\s*(?:(-|–|to)\s*(\d+)?)?$/i.exec(part);
     if (!mm || (!mm[1] && !mm[3])) throw new Error(`Cannot read the range “${part}”.`);
     const a = mm[1] ? +mm[1] : 1, b = mm[2] ? (mm[3] ? +mm[3] : count) : a;

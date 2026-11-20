@@ -42,11 +42,14 @@ export const split: Mount = (root, ctx) => {
   const info = h('div', { class: 'muted small' }), body = h('div', { class: 'stack', hidden: true });
   const rangeIn = input({ placeholder: 'e.g. 1-3, 5, 8-', onInput: (v) => (spec = v) });
   const rangeBox = field('Page ranges (each range becomes one PDF)', rangeIn, 'Use commas between ranges; “8-” means page 8 to the end.');
-  const chunkBox = slider({ label: 'Pages per file', min: 1, max: 50, value: n, onInput: (v) => (n = v) }); chunkBox.hidden = true;
+  // a box, not a slider of 1–50: a 300-page PDF in parts of 100 could not be asked for
+  const chunkIn = input({ type: 'number', min: 1, step: 1, value: n, attrs: { 'aria-label': 'Pages per file' }, onInput: (v) => (n = Number(v)) });
+  const chunkBox = field('Pages per file', chunkIn); chunkBox.hidden = true;
   const inp = pdfInput({ onLoad: ([x]) => { f = x; body.hidden = false; info.textContent = `${x.name}: ${plural(x.pages, 'page')}`; } });
   body.append(segmented([['ranges', 'Ranges'], ['each', 'Every page'], ['chunks', 'Every N pages']], mode, (v) => { mode = v; rangeBox.hidden = v !== 'ranges'; chunkBox.hidden = v !== 'chunks'; }), rangeBox, chunkBox);
   root.append(card(null, inp.el, info, body), actions(button('Split', async () => {
     if (!f) throw new Error('Choose a PDF first.');
+    if (mode === 'chunks' && !(Number.isInteger(n) && n >= 1)) throw new Error('Pages per file: a whole number, 1 or more.');
     const groups = mode === 'each' ? Array.from({ length: f.pages }, (_, i) => [i])
       : mode === 'chunks' ? Array.from({ length: Math.ceil(f.pages / n) }, (_, k) => Array.from({ length: Math.min(n, f!.pages - k * n) }, (_, j) => k * n + j))
       : parseRanges(spec, f.pages);

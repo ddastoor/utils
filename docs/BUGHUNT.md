@@ -33,7 +33,7 @@ Areas with a shared review: the app shell (router, search, favorites, platform h
 | id | Tab | Platform | Area | R | B | T | Notes |
 |---|---|---|---|---|---|---|---|
 | `pdf-merge` | Merge PDF | PC + mobile | pdf | ✓ | 4 | 37 | annotations, links, forms, outlines kept (graftPage dropped them); one graft map per file |
-| `pdf-split` | Split PDF | PC + mobile | pdf |  |  |  |  |
+| `pdf-split` | Split PDF | PC + mobile | pdf | ✓ | 4 | 14 | parts keep annotations/links/forms/outline (rearrangePages); one at a time; N pages box; page lists read |
 | `pdf-organize` | Organize PDF | PC + mobile | pdf |  |  |  |  |
 | `img2pdf` | Images → PDF | PC + mobile | pdf |  |  |  |  |
 | `pdf2img` | PDF → Images | PC + mobile | pdf |  |  |  |  |
@@ -1710,3 +1710,15 @@ Reference for the five finance tabs: **mpmath at 60 digits** (`scripts/make-fina
      merged to 780 KB; with one graft map per file 675 KB.
   4. The same form merged twice would have had two fields of one name (they show the same value); the later one is
      renamed "foo (2)" and the tab says so.
+
+- **`pdf-split` (tab 127, 4 bugs; engine kept — MuPDF, docs/WASM-AUDIT.md 124; unit `pdfpages.test.mjs` +7 for page lists;
+  e2e 15 — was 8).**
+  1. The parts lost every annotation, link, form field and outline entry (the page routine of Merge); a part is now
+     made by MuPDF's `rearrangePages` on the file opened afresh — links between its pages renumbered, its outline
+     entries kept, a filled form still a form.
+  2. All parts were made at once: "Every page" of a long PDF held a copy of the document per page in memory; one at a
+     time now.
+  3. "Every N pages" was a slider of 1 – 50 (a 300-page PDF in parts of 100 could not be asked for); a box now, 0 or a
+     fraction refused in words.
+  4. Page lists typed with spaces only ("1 3 5"), other dashes (— −) or "1..3" were refused; they are read
+     (`parseRanges`, also used by PDF → Images).

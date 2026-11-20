@@ -73,6 +73,16 @@ export default async (t, { load }) => {
   const m4 = m.Document.openDocument(M4.bytes, 'application/pdf');
   t.ok(!m4.needsPassword() && m4.countPages() === 2, 'a protected file first: the merged PDF has no password');
 
+  // ---- page lists as people type them (Split, PDF → Images)
+  const R = (spec, n) => { try { return pdf.parseRanges(spec, n); } catch (e) { return e.message; } };
+  t.eq(R('1-3, 5, 8-', 10), [[0, 1, 2], [4], [7, 8, 9]], 'ranges: 1-3, 5, 8-');
+  t.eq(R('1 3 5', 5), [[0], [2], [4]], 'ranges: numbers apart by spaces only');
+  t.eq(R('1 - 3; 5', 5), [[0, 1, 2], [4]], 'ranges: spaces around a dash, a semicolon');
+  t.eq([R('2—4', 5), R('2−4', 5), R('2–4', 5), R('1..3', 5), R('1 to 3', 5)], [[[1, 2, 3]], [[1, 2, 3]], [[1, 2, 3]], [[0, 1, 2]], [[0, 1, 2]]], 'ranges: em dash, minus sign, en dash, two dots, "to"');
+  t.eq([R('-2', 5), R('4-2', 5), R('3,3', 5)], [[[0, 1]], [[3, 2, 1]], [[2], [2]]], 'ranges: from the start, backwards, a page twice');
+  t.eq([R('0', 5), R('6', 5), R('2-9', 5)], ['“0” is outside 1–5.', '“6” is outside 1–5.', '“2-9” is outside 1–5.'], 'ranges: outside the document, said');
+  t.eq([R('', 5), R(' , ', 5), R('a', 5), R('1-3-5', 5)], ['Enter page numbers, e.g. 1-3, 5, 8-', 'Enter page numbers, e.g. 1-3, 5, 8-', 'Cannot read the range “a”.', 'Cannot read the range “1-3-5”.'], 'ranges: nothing, or what cannot be read, said');
+
   // ---- split / organize (one document)
   const S = await pdf.subsetPdf(A, undefined, [4, 2, 0]);
   const sd = open(S);
