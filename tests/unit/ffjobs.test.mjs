@@ -55,7 +55,13 @@ export default async (t, { load, root }) => {
   refuse('split', { splitSec: '10' }, C(vid), /choose shorter parts/, 'split into parts longer than the file');
   refuse('sheet', {}, C(P({ ...vid, dur: 0 })), /could not tell how long/, 'contact sheet of a file of unknown length');
   // a few exact commands
-  t.eq(J.buildJob('thumb', { ...J.DEFAULTS, thumbAt: '1:02.5' }, C(P({ ...vid, dur: 100 }))).args, ['-ss', '62.5', '-i', 'in1.mp4', '-frames:v', '1', '-q:v', '2', 'thumb.jpg'], 'thumbnail at 1:02.5');
+  const th = J.buildJob('thumb', { ...J.DEFAULTS, thumbAt: '1:02.5' }, C(P({ ...vid, dur: 100 })));
+  t.eq([th.args, th.jpeg], [['-ss', '62.5', '-i', 'in1.mp4', '-frames:v', '1', 'thumb.png'], true], 'thumbnail at 1:02.5: FFmpeg writes PNG, MozJPEG makes the JPEG');
+  t.eq(J.buildJob('thumb', { ...J.DEFAULTS, thumbFmt: 'png' }, C(vid)).jpeg, false, 'thumbnail as PNG: no JPEG step');
+  t.ok(J.buildJob('sheet', J.DEFAULTS, C(vid)).jpeg === true && J.buildJob('frames', { ...J.DEFAULTS, frameFmt: 'jpg' }, C(vid)).jpeg === true && J.buildJob('frames', { ...J.DEFAULTS, frameFmt: 'png' }, C(vid)).jpeg === false, 'contact sheet and JPEG frames: MozJPEG too');
+  t.ok(['-i in1.mp4 -frames:v 1 -q:v 2 out.jpg', '-i in1.mp4 -frames:v 1 out.jpeg', '-i in1.mp4 -c:v mjpeg out.avi', '-i in1.mp4 -vcodec MJPEG out.mov'].every((raw) => { try { J.buildJob('raw', { ...J.DEFAULTS, raw }, C(vid)); return false; } catch (e) { return /crash the page while writing JPEG/.test(e.message); } }), 'own arguments: JPEG from FFmpeg refused (its encoder crashes the page)');
+  t.eq(J.buildJob('raw', { ...J.DEFAULTS, raw: '-i in1.jpg -vf hflip out.png' }, C(vid)).outputs, ['out.png'], 'own arguments: a JPEG input is fine');
+  t.eq(J.asJpegName('frame-0001.png'), 'frame-0001.jpg', 'the JPEG keeps the PNG\'s name');
   t.eq(J.buildJob('loop', { ...J.DEFAULTS, loopKind: '3' }, C(vid)).args, ['-stream_loop', '2', '-i', 'in1.mp4', '-c', 'copy', 'out.mp4'], 'loop 3 times: two extra loops, no re-encoding');
   t.eq(J.buildJob('volume', { ...J.DEFAULTS, vol: '2' }, C(P({ ...vid, acodec: 'vorbis' }), { in1: 'in1.webm', ext: 'webm' })).args, ['-i', 'in1.webm', '-af', 'volume=2', '-c:v', 'copy', '-c:a', 'libopus', '-b:a', '128k', 'out.webm'], 'volume of a WebM: picture copied, sound as Opus');
   const jf = J.buildJob('join', { ...J.DEFAULTS, joinFast: true }, C(vid, { ins: ['in1.mp4', 'in3.mp4'], ps: [vid, vid] }));
@@ -121,7 +127,7 @@ export default async (t, { load, root }) => {
 
   // convert and extract
   let r = runJob('thumb', { thumbAt: '1.5' }, [M('clip.mp4')]);
-  if (ok(r, 'thumbnail')) { const i = info(r.out); t.ok(i.v.codec_name === 'mjpeg' && i.v.width === 640 && i.v.height === 360, 'thumbnail: a 640 × 360 JPEG'); }
+  if (ok(r, 'thumbnail')) { const i = info(r.out); t.ok(i.v.codec_name === 'png' && i.v.width === 640 && i.v.height === 360, 'thumbnail: a 640 × 360 PNG from FFmpeg (the tab makes the JPEG)'); }
   r = runJob('sheet', { sheetGrid: '4x4' }, [M('clip.mp4')]);
   if (ok(r, 'contact sheet')) { const i = info(r.out); t.eq([i.v.width, i.v.height], [6 + 4 * 326, 6 + 4 * 186], 'contact sheet 4 × 4: 320 × 180 pictures, 6 px apart, on white'); t.ok(pixels(r.out, 0, [0, 0, 0.004, 0.004]).every((x) => x > 240), '… the margin is white'); }
   // cut and join

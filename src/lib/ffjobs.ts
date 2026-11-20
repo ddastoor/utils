@@ -53,7 +53,11 @@ export interface JobCtx {
   p: Probe; p2?: Probe; ps?: Probe[];           // what FFmpeg said about them
   ext: string; ext2?: string;                    // extensions of the two files (lower case)
 }
-export interface Built { args: string[]; outputs: string[]; pattern?: RegExp; writes?: Array<[string, string]>; fonts?: boolean; zip?: string }
+/** jpeg: the PNG outputs are to be made JPEG by MozJPEG (this core's own JPEG encoder overflows a buffer at high
+ *  quality — `-q:v 3` and below on a 640 × 360 frame crash the page — so FFmpeg writes PNG here). */
+export interface Built { args: string[]; outputs: string[]; pattern?: RegExp; writes?: Array<[string, string]>; fonts?: boolean; zip?: string; jpeg?: boolean }
+/** The output names a job lists end in .png when `jpeg` is set; these are the names the user gets. */
+export const asJpegName = (n: string) => n.replace(/\.png$/, '.jpg');
 
 /** "90", "1:30", "00:01:30.5", "1.5" → seconds; NaN when it is not a time. */
 export function secs(t: string): number {
@@ -147,15 +151,14 @@ export function buildJob(job: Job, o: Record<string, any>, c: JobCtx): Built {
       const t = secs(o.thumbAt);
       if (!Number.isFinite(t)) throw new Error('The moment is a time — seconds (12.5) or minutes:seconds (1:30).');
       if (p.dur && t >= p.dur) throw new Error(`The video is only ${fmtS(p.dur)} s long.`);
-      const out = `thumb.${o.thumbFmt}`;
-      return { args: ['-ss', fmtS(t), ...I, '-frames:v', '1', ...(o.thumbFmt === 'jpg' ? ['-q:v', '2'] : []), out], outputs: [out] };
+      return { args: ['-ss', fmtS(t), ...I, '-frames:v', '1', 'thumb.png'], outputs: ['thumb.png'], jpeg: o.thumbFmt === 'jpg' };
     }
-    case 'frames': needVideo(p); return { args: [...I, '-vf', `fps=${o.frameFps}`, ...(o.frameFmt === 'jpg' ? ['-q:v', '2'] : []), `frame-%04d.${o.frameFmt}`], outputs: [], pattern: new RegExp(`^frame-\\d{4}\\.${o.frameFmt}$`), zip: 'frames' };
+    case 'frames': needVideo(p); return { args: [...I, '-vf', `fps=${o.frameFps}`, 'frame-%04d.png'], outputs: [], pattern: /^frame-\d{4}\.png$/, zip: 'frames', jpeg: o.frameFmt === 'jpg' };
     case 'sheet': {
       needVideo(p); needDur(p);
       const [cols, rows] = String(o.sheetGrid).split('x').map(Number), n = cols * rows;
       // n frames evenly over the video (fps = n / length), each 320 px wide, on a white sheet
-      return { args: [...I, '-vf', `fps=${n}/${fmtS(p.dur)},scale=320:-2,tile=${cols}x${rows}:padding=6:margin=6:color=white`, '-frames:v', '1', '-q:v', '2', 'sheet.jpg'], outputs: ['sheet.jpg'] };
+      return { args: [...I, '-vf', `fps=${n}/${fmtS(p.dur)},scale=320:-2,tile=${cols}x${rows}:padding=6:margin=6:color=white`, '-frames:v', '1', 'sheet.png'], outputs: ['sheet.png'], jpeg: true };
     }
     case 'gif': needVideo(p); return { args: [...I, '-vf', `fps=${o.gifFps},scale=${o.gifW}:-1:flags=lanczos,split[a][b];[a]palettegen=stats_mode=diff[p];[b][p]paletteuse=dither=bayer:bayer_scale=4`, '-loop', '0', 'out.gif'], outputs: ['out.gif'] };
     case 'audio2mp4': {
@@ -408,6 +411,11 @@ export function buildJob(job: Job, o: Record<string, any>, c: JobCtx): Built {
       const args = (String(o.raw).match(/"[^"]*"|'[^']*'|\S+/g) || []).map((a) => a.replace(/^["']|["']$/g, ''));
       if (args[0] === 'ffmpeg') args.shift();
       const out = args[args.length - 1];
+      // this core's JPEG encoder (mjpeg) overflows a buffer when it spends many bits on a block — -q:v 3 on a 640 × 360
+      // frame, -q:v 4 on a detailed one — and takes the whole page down with it: no JPEG from FFmpeg here
+      const mjpeg = args.some((a, i) => /^-(c|codec|vcodec)(:v)?$/.test(a) && /^mjpeg$/i.test(args[i + 1] || ''));
+      if (mjpeg || args.some((a, i) => i > 0 && !/^-/.test(args[i - 1] || '-') && /\.(jpe?g|mjpe?g)$/i.test(a)) || /\.(jpe?g|mjpe?g)$/i.test(out || ''))
+        throw new Error('This FFmpeg build can crash the page while writing JPEG — write .png instead, or use "Picture at a moment" or "Extract frames", which make their JPEGs with MozJPEG.');
       return { args, outputs: out && !out.startsWith('-') && !/^in\d+\./.test(out) ? [out] : [] };
     }
   }

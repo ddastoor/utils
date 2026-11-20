@@ -4,17 +4,17 @@
 // line is shown so it can be copied to a real terminal, or edited in "Your own arguments".
 import { h, card, field, actions, button, select, input, segmented, toggle, slider, stack, note, progress, filePicker, outputBox, toast, errMsg, fmtBytes, fmtTime, baseName, extOf, downloadBlob, clear, type Mount } from '../ui';
 import { onLeave } from '../lifecycle';
-import { JOB_GROUPS, DEFAULTS, EMPTY_PROBE, buildJob, parseProbe, secondFor, type Job, type Probe, type JobCtx } from '../lib/ffjobs';
+import { JOB_GROUPS, DEFAULTS, EMPTY_PROBE, buildJob, parseProbe, secondFor, asJpegName, type Job, type Probe, type JobCtx } from '../lib/ffjobs';
+import { loadImg, encodeImg } from '../lib/imgio';
 
 const FORMATS: Array<[string, string]> = [['mp4', 'MP4 (H.264 + AAC)'], ['webm', 'WebM (VP8 + Opus)'], ['mkv', 'MKV (copy streams)'], ['mov', 'MOV (H.264 + AAC)'], ['mp3', 'MP3 audio'], ['m4a', 'M4A audio (AAC)'], ['wav', 'WAV audio'], ['flac', 'FLAC audio'], ['ogg', 'OGG audio (Opus)'], ['gif', 'GIF']];
 const quote = (s: string) => (/^[\w.\-/:=]+$/.test(s) ? s : `"${s.replace(/(["\\$`])/g, '\\$1')}"`);
 const FONTS = ['NotoSans_400Regular.ttf', 'NotoSans_700Bold.ttf'];
-const JOBS_PER_CORE = 8;
 
 export const mount: Mount = (root) => {
   let ff: any = null, loading: Promise<any> | null = null, running = false, onProg: ((p: number) => void) | null = null;
   let main: File | null = null, second: File | null = null, logLines: string[] = [], streams = '';
-  let p1: Probe = EMPTY_PROBE, p2: Probe | undefined, probing: Promise<void> = Promise.resolve(), fontsIn = false, loadedOnce = false, jobsOnCore = 0;
+  let p1: Probe = EMPTY_PROBE, p2: Probe | undefined, probing: Promise<void> = Promise.resolve(), fontsIn = false, loadedOnce = false;
   /** the clips of "Join clips": the chosen file first; each added clip gets the name in3, in4 … inside FFmpeg */
   let clips: Array<{ file: File; name: string; probe: Probe }> = [], clipSeq = 2;
   let job: Job = 'convert';
@@ -47,9 +47,9 @@ export const mount: Mount = (root) => {
   function update() {
     if (!main) return;
     try {
-      const { args } = build();
+      const b = build(), { args } = b;
       const show = (a: string) => (/^in\d+\.\w+$/.test(a) ? realName(a) : /^out\./.test(a) ? `${baseName(main!.name)}-out.${extOf(a)}` : a.replace(/\/in\/(in\d+\.\w+)/g, (_, n) => realName(n)).replace(/\/work\//g, ''));
-      cmd.value = `ffmpeg ${args.map((a) => quote(show(a))).join(' ')}`;
+      cmd.value = `ffmpeg ${args.map((a) => quote(show(a))).join(' ')}${b.jpeg ? '\n# then PNG → JPEG with MozJPEG (quality 90)' : ''}`;
     } catch (e) { cmd.value = errMsg(e); }
   }
   const sel = (label: string, key: string, options: Array<[string, string]>, after?: () => void) => field(label, select<string>(options, o[key], (v) => { o[key] = v; after?.(); update(); }));
@@ -212,14 +212,13 @@ export const mount: Mount = (root) => {
       if (b.pattern) names = (await f.listDir('/')).map((n: any) => n.name).filter((n: string) => b.pattern!.test(n)).sort();
       const files: Array<{ name: string; blob: Blob }> = [];
       for (const n of names) {
-        try {
-          const data = await f.readFile(n);
-          files.push({ name: n.startsWith('out.') ? `${baseName(main.name)}-out.${extOf(n)}` : b.pattern ? n : `${baseName(main.name)}-${n}`, blob: new Blob([data as BlobPart], { type: mimeOf(n) }) });
-          await f.deleteFile(n);
-        } catch { /* not produced */ }
+        let data: Uint8Array;
+        try { data = await f.readFile(n); await f.deleteFile(n); } catch { continue; /* not produced */ }
+        let blob = new Blob([data as BlobPart], { type: mimeOf(n) }), nm = n;
+        if (b.jpeg && n.endsWith('.png')) { blob = await encodeImg(await loadImg(blob), 'jpeg', 90); nm = asJpegName(n); } // MozJPEG
+        files.push({ name: nm.startsWith('out.') ? `${baseName(main.name)}-out.${extOf(nm)}` : b.pattern ? nm : `${baseName(main.name)}-${nm}`, blob });
       }
       logBox.textContent = logLines.slice(-60).join('\n');
-      if (++jobsOnCore >= JOBS_PER_CORE) fresh();
       if (code) throw new Error(`FFmpeg failed (exit ${code}): ${logLines.filter((l) => /error|invalid|no such|failed|unknown|unable/i.test(l)).slice(0, 2).join(' · ') || 'see the log'}`);
       if (!files.length) throw new Error('No output file was produced.');
       status.textContent = '';
@@ -227,11 +226,10 @@ export const mount: Mount = (root) => {
     } catch (e) { fresh(); status.textContent = errMsg(e); status.classList.add('err-text'); toast(errMsg(e), 'err'); logBox.textContent = logLines.slice(-60).join('\n'); (logBox.parentElement as HTMLDetailsElement).open = true; }
     finally { running = false; prog.done(); runBtn.hidden = false; stopBtn.hidden = true; }
   }
-  /** A new FFmpeg after a failed job and after every JOBS_PER_CORE jobs: ffmpeg.wasm runs every exec in one module
-   *  instance, and after a long series of jobs (about 30 in the e2e suite) state left behind made a later one trap
-   *  ("function signature mismatch" in the subtitle renderer) — every job alone works. A new core for every job was
-   *  tried and dropped: the reloads made the tab slow and, run after run, crashed the page. */
-  function fresh() { try { ff?.terminate(); } catch { /* gone */ } ff = null; loading = null; fontsIn = false; jobsOnCore = 0; }
+  /** A new FFmpeg after a failed job (cheap insurance: ffmpeg.wasm runs every exec in one module instance). The page
+   *  crashes and the later "function signature mismatch" of Nov 2026 were the core's JPEG encoder overflowing a buffer
+   *  at -q:v 2 (memory damaged for the jobs after it) — JPEG now comes from MozJPEG (`jpeg` in src/lib/ffjobs.ts). */
+  function fresh() { try { ff?.terminate(); } catch { /* gone */ } ff = null; loading = null; fontsIn = false; }
   const mimeOf = (n: string) => ({ mp4: 'video/mp4', mov: 'video/quicktime', webm: 'video/webm', mkv: 'video/x-matroska', gif: 'image/gif', mp3: 'audio/mpeg', m4a: 'audio/mp4', wav: 'audio/wav', flac: 'audio/flac', ogg: 'audio/ogg', png: 'image/png', jpg: 'image/jpeg', mka: 'audio/x-matroska', srt: 'application/x-subrip', vtt: 'text/vtt', ass: 'text/x-ssa' } as Record<string, string>)[extOf(n)] || 'application/octet-stream';
   let urls: string[] = [];
   async function showOutputs(files: Array<{ name: string; blob: Blob }>, ms: number, zip = 'files') {

@@ -21,6 +21,10 @@ export default async ({ base, page: newPage, ok, info, download }) => {
     const p = await download(page, () => page.locator('.ff-out').first().getByRole('button', { name: dlName }).click());
     return p;
   };
+  const runFails = async (re) => {
+    await page.locator('.actions').getByRole('button', { name: 'Run FFmpeg' }).click();
+    return page.locator('.err-text', { hasText: re }).first().waitFor({ timeout: 30000 }).then(() => true, () => false);
+  };
   const media = (path) => page.evaluate(async (b64) => {
     const blob = new Blob([Uint8Array.from(atob(b64), (c) => c.charCodeAt(0))]);
     const v = document.createElement('video'); v.muted = true; v.src = URL.createObjectURL(blob);
@@ -99,6 +103,14 @@ export default async ({ base, page: newPage, ok, info, download }) => {
   await page.getByText(/^3 files/).waitFor({ timeout: 120000 });
   const z = readFileSync(await download(page, () => page.getByRole('button', { name: /Download all as \.zip \(3\)/ }).click()));
   ok(z.readUInt32LE(0) === 0x04034b50 && (z.toString('latin1').match(/frame-000\d\.png/g) || []).length >= 3, 'three frames zipped');
+  // JPEG frames: this core's own JPEG encoder crashed the page at -q:v 2 (the tab's old JPEG option) — MozJPEG now
+  await combo('As').selectOption('jpg');
+  await page.locator('.actions').getByRole('button', { name: 'Run FFmpeg' }).click();
+  await page.getByText(/^3 files/).waitFor({ timeout: 120000 });
+  const jnames = await page.locator('.ff-out strong').allTextContents();
+  const j1 = imageInfo(readFileSync(await download(page, () => page.locator('.ff-out').first().getByRole('button', { name: 'Download' }).click())));
+  ok(jnames.join() === 'frame-0001.jpg,frame-0002.jpg,frame-0003.jpg' && j1.type === 'jpeg' && j1.width === 640, `three JPEG frames, made by MozJPEG, the page alive (${jnames.join(', ')})`);
+  await combo('As').selectOption('png');
 
   // merge: clip video + 660 Hz MP3
   await task('Add audio / background music');
@@ -111,6 +123,8 @@ export default async ({ base, page: newPage, ok, info, download }) => {
   await page.getByLabel('FFmpeg arguments').fill('-i in1.mp4 -vf hflip -c:v libx264 -preset ultrafast -c:a copy out.mp4');
   const rw = mp4Info(readFileSync(await run()));
   ok(rw.video?.codec === 'avc1' && rw.video.w === 640, 'own arguments run (hflip)');
+  await page.getByLabel('FFmpeg arguments').fill('-i in1.mp4 -frames:v 1 -q:v 2 shot.jpg');
+  ok(await runFails(/crash the page while writing JPEG/), 'own arguments writing a JPEG: refused before FFmpeg runs (its JPEG encoder crashes the page)');
   await page.getByLabel('FFmpeg arguments').fill('-i in1.mp4 -vf nosuchfilter out.mp4');
   await page.locator('.actions').getByRole('button', { name: 'Run FFmpeg' }).click();
   await page.locator('.err-text', { hasText: /FFmpeg failed/ }).first().waitFor({ timeout: 60000 });
@@ -144,10 +158,6 @@ export default async ({ base, page: newPage, ok, info, download }) => {
   const mean = (f, [x0, y0, x1, y1]) => { let r = 0, g = 0, b = 0, n = 0; for (let y = Math.floor(y0 * f.h); y < Math.floor(y1 * f.h); y++) for (let x = Math.floor(x0 * f.w); x < Math.floor(x1 * f.w); x++) { const i = (y * f.w + x) * 4; r += f.d[i]; g += f.d[i + 1]; b += f.d[i + 2]; n++; } return [r / n, g / n, b / n]; };
   const changed = (a, b, [x0, y0, x1, y1]) => { let c = 0, n = 0; for (let y = Math.floor(y0 * a.h); y < Math.floor(y1 * a.h); y++) for (let x = Math.floor(x0 * a.w); x < Math.floor(x1 * a.w); x++) { const i = (y * a.w + x) * 4; n++; if (Math.abs(a.d[i] - b.d[i]) > 60 || Math.abs(a.d[i + 1] - b.d[i + 1]) > 60 || Math.abs(a.d[i + 2] - b.d[i + 2]) > 60) c++; } return c / n; };
   const choose = async (path, re) => { await page.locator('input[type=file]').first().setInputFiles(path); await page.locator('.ff-info').getByText(re).first().waitFor({ timeout: 60000 }); };
-  const runFails = async (re) => {
-    await page.locator('.actions').getByRole('button', { name: 'Run FFmpeg' }).click();
-    return page.locator('.err-text', { hasText: re }).first().waitFor({ timeout: 30000 }).then(() => true, () => false);
-  };
   const groups = await combo('Task').evaluate((s) => [...s.querySelectorAll('optgroup')].map((g) => `${g.label}: ${g.children.length}`));
   ok(groups.join(' | ') === 'Convert and extract: 8 | Cut and join: 6 | Size and shape: 6 | Picture: 8 | Speed: 2 | Sound: 5 | Subtitles: 3 | Expert: 1', `tasks in groups: ${groups.join(' | ')}`);
 
