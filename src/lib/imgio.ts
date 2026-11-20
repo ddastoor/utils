@@ -72,7 +72,6 @@ export async function setJpegDpi(blob: Blob, dpi: number): Promise<Blob> {
   return new Blob([(await metacore()).jpegDpi(new Uint8Array(await blob.arrayBuffer()), dpi) as BlobPart], { type: 'image/jpeg' });
 }
 
-/** Draw an Img into a canvas element (for previews). */
 /** The picture on a white background when it has transparent pixels (else the same object): for engines that ignore
  *  alpha — a style network, filters that look at colour — and for JPEG. The browser's own compositing (canvas). */
 export function onWhite(img: Img): Img {
@@ -87,6 +86,7 @@ export function onWhite(img: Img): Img {
   const o = g.getImageData(0, 0, c.width, c.height);
   return { data: o.data, width: o.width, height: o.height };
 }
+/** Draw an Img into a canvas element (for previews). */
 export function paint(img: Img, canvas: HTMLCanvasElement) {
   canvas.width = img.width; canvas.height = img.height;
   canvas.getContext('2d')!.putImageData(new ImageData(new Uint8ClampedArray(img.data), img.width, img.height), 0, 0);

@@ -32,6 +32,23 @@ export default async ({ base, page: newPage, ok, download, devices }) => {
   const [w1] = await regionMeans(page, await save(), [tall]);
   ok(diff(w1, (await regionMeans(page, F('coffee.jpg'), [tall]))[0]) > 4, 'long text wraps upward into the picture');
 
+  // a word wider than the picture (a web address) and Chinese text without spaces are broken, never drawn past the
+  // edges (the outer 2 % stays as it was); very long text is made smaller so top and bottom never meet
+  const EDGES = [[0, 0.62, 0.02, 0.97], [0.98, 0.62, 1, 0.97]];
+  const origEdges = await regionMeans(page, F('coffee.jpg'), EDGES);
+  for (const [label, text] of [['a long web address', 'https://example.com/' + 'abcdefghij'.repeat(8)], ['Chinese without spaces', '这是一个非常长的中文标题没有任何空格所以必须在字符之间换行才能放进图片里面']]) {
+    await page.getByLabel('Bottom text').fill(text);
+    const e = await regionMeans(page, await save(), EDGES);
+    ok(e.every((m, k) => diff(m, origEdges[k]) < 3), `${label}: wrapped inside the picture (edges ${e.map((m, k) => diff(m, origEdges[k]).toFixed(1))})`);
+  }
+  const MIDBAND = [0.2, 0.47, 0.8, 0.53];
+  const [origMid] = await regionMeans(page, F('coffee.jpg'), [MIDBAND]);
+  const long = 'so much text that it would fill the whole picture if it were drawn at the chosen size '.repeat(4);
+  await page.getByLabel('Top text').fill(long); await page.getByLabel('Bottom text').fill(long);
+  const [mid2] = await regionMeans(page, await save(), [MIDBAND]);
+  ok(diff(mid2, origMid) < 3, `very long top and bottom text is made smaller: the middle stays clear (${diff(mid2, origMid).toFixed(1)})`);
+  await page.getByLabel('Top text').fill('');
+
   // caption style with dark band → bottom darker
   await page.getByRole('radio', { name: 'Caption' }).click();
   await page.getByLabel('Bottom text').fill('Morning coffee ☕');

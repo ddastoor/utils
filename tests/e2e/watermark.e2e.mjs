@@ -54,7 +54,31 @@ export default async ({ base, page: newPage, ok, download, devices }) => {
   const li = imageInfo(lp); ok(li.type === 'png' && li.width === 600, 'PNG output');
   const [lbr, ltl] = await regionMeans(page, lp, [[0.7, 0.7, 0.95, 0.95], TL]);
   ok(Math.abs(lum(lbr) - lum(origBR)) > 8 && Math.abs(lum(ltl) - lum(origTL)) < 3, 'logo drawn bottom-right only');
-  ok(page.errors.length === 0, `no page errors: ${page.errors.join(' | ')}`);
+  // a logo that cannot be opened is said with its name
+  await page.locator('input[type=file]').nth(1).setInputFiles({ name: 'broken-logo.png', mimeType: 'image/png', buffer: Buffer.from('not a picture') });
+  ok(await page.locator('.toast', { hasText: 'broken-logo.png' }).first().waitFor({ timeout: 8000 }).then(() => true, () => false), 'a logo that cannot be opened: said with its name');
+
+  // empty text is refused
+  await page.getByRole('radio', { name: 'Text', exact: true }).click();
+  await page.getByLabel('Text', { exact: true }).fill('   ');
+  await page.getByRole('button', { name: 'Watermark all' }).click();
+  ok(await page.locator('.toast', { hasText: 'Type the text of the watermark' }).first().waitFor({ timeout: 8000 }).then(() => true, () => false), 'empty text: "Type the text of the watermark."');
+  await page.getByLabel('Text', { exact: true }).fill('© TEST');
+
+  // Clear photos; a first photo that cannot be opened does not block the preview; a bad one later is listed
+  await page.getByRole('button', { name: 'Clear photos' }).click();
+  ok(await page.locator('.ed-canvas').isHidden() && !(await page.getByRole('button', { name: 'Clear photos' }).isVisible()), 'Clear photos empties the list and the preview');
+  await page.locator('input[type=file]').first().setInputFiles([{ name: 'broken.jpg', mimeType: 'image/jpeg', buffer: Buffer.from('no picture here') }, { name: 'coffee.jpg', mimeType: 'image/jpeg', buffer: (await import('node:fs')).readFileSync(F('coffee.jpg')) }]);
+  await page.waitForSelector('.ed-canvas', { state: 'visible', timeout: 30000 });
+  ok(await page.locator('.toast', { hasText: 'broken.jpg' }).first().isVisible().catch(() => false) || await page.locator('.toast', { hasText: 'broken.jpg' }).count() > 0, 'an unreadable first photo is said …');
+  ok(/^1 photo: coffee\.jpg$/.test((await page.locator('.row', { has: page.getByRole('button', { name: 'Clear photos' }) }).first().innerText()).replace(/\s*Clear photos\s*/, '').trim()), '… left out, and the next photo is the preview');
+  await page.locator('input[type=file]').first().setInputFiles({ name: 'later.png', mimeType: 'image/png', buffer: Buffer.from('broken too') });
+  await page.waitForTimeout(300);
+  await page.getByRole('button', { name: 'Watermark all' }).click();
+  await page.waitForFunction(() => document.querySelectorAll('.result-row').length === 1 && /could not be watermarked/.test(document.body.innerText), null, { timeout: 60000 });
+  ok(/1 photo could not be watermarked:[\s\S]*later\.png/.test(await page.locator('.note-err').last().innerText()), 'a photo that fails in the run is listed under the results; the others are made');
+  const errs = page.errors.filter((e) => !/^Error: Type the text of the watermark/.test(e)); // the refusal above, logged by the button
+  ok(errs.length === 0, `no page errors: ${errs.join(' | ')}`);
 
   const phone = await newPage({ ...devices['iPhone 13'] });
   await phone.goto(base + '#/watermark');

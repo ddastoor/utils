@@ -44,6 +44,16 @@ export default async ({ base, page: newPage, ok, download, devices }) => {
   await page.locator('.slider', { hasText: 'Rounded corners' }).locator('input').fill('0');
   d = await decodeInPage(page, await save(), [[0.001, 0.001]]);
   ok(!d.px[0].slice(0, 3).every((v) => v < 10), 'no spacing, no rounding: photo reaches the corner');
+
+  // A4: the JPEG says 300 dpi (prints at A4); a PNG cannot — said
+  await page.getByRole('radio', { name: 'A4 print (300 dpi)' }).click();
+  await page.getByRole('radio', { name: 'JPEG' }).click();
+  p = await save(); i = imageInfo(p);
+  ok(i.type === 'jpeg' && i.width === 2480 && i.height === 3508 && i.dpi === 300, `A4 JPEG 2480×3508 at 300 dpi (${i.width}×${i.height}, ${i.dpi} dpi)`);
+  ok(/300 dpi \(prints at A4\)/.test(await page.locator('.ed-stage + .muted').innerText()), 'the line under the preview says so');
+  await page.getByRole('radio', { name: 'PNG' }).click();
+  p = await save();
+  ok(imageInfo(p).type === 'png' && /choose JPEG for a file that says 300 dpi/.test(await page.locator('.ed-stage + .muted').innerText()), 'A4 as PNG: the line says to choose JPEG for 300 dpi');
   ok(page.errors.length === 0, `no page errors: ${page.errors.join(' | ')}`);
 
   const phone = await newPage({ ...devices['iPhone 13'] });
@@ -51,5 +61,7 @@ export default async ({ base, page: newPage, ok, download, devices }) => {
   await phone.locator('input[type=file]').setInputFiles(['coffee.jpg', 'chelsea.png'].map(F));
   await phone.waitForSelector('.ed-canvas', { state: 'visible', timeout: 30000 });
   ok(await phone.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'phone: no horizontal scroll');
+  const small = await phone.evaluate(() => [...document.querySelectorAll('.collage-item button')].map((b) => b.getBoundingClientRect()).filter((r) => r.height < 44 || r.width < 44).length);
+  ok(small === 0, `phone: the move and remove buttons are touch targets (${small} smaller than 44 px)`);
   ok(phone.errors.length === 0, `phone: no errors: ${phone.errors.join(' | ')}`);
 };

@@ -1,7 +1,7 @@
 // Blur & Redact: automatic face detection (MediaPipe BlazeFace, official C++ → wasm) on the whole photo plus
 // overlapping tiles so small faces in group photos are found; boxes merged with NMS in imgproc.wasm. Manual boxes
 // for number plates, documents, screens. Effects (pixelate / blur / solid bar) run in imgproc.wasm.
-import { h, card, field, button, segmented, slider, stack, note, actions, toast, errMsg, baseName, downloadBlob, shareOrDownload, fmtBytes, clear, type Mount } from '../ui';
+import { h, card, field, button, segmented, slider, stack, note, actions, errMsg, baseName, downloadBlob, shareOrDownload, fmtBytes, clear, type Mount } from '../ui';
 import { imgproc, imgprocDirect, type Img } from '../wasm/imgproc';
 import { encodeImg, previewOf, EXT, type Fmt } from '../lib/imgio';
 import { imageInput } from '../lib/imgtools';
@@ -62,7 +62,7 @@ export async function applyRedaction(img: Img, boxes: Box[], effect: Effect, str
 export const mount: Mount = (root, ctx) => {
   let orig: Img | null = null, small: Img | null = null, name = 'photo', fmt: Fmt = 'jpeg';
   let effect: Effect = 'pixelate', strength = 6, pad = 18, drawing = false;
-  let boxes: Box[] = [], detecting = false;
+  let boxes: Box[] = [], detecting = false, photoSeq = 0, detectNote = '';
   const canvas = h('canvas', { class: 'ed-canvas' });
   const layer = h('div', { class: 'redact-layer' });
   const wrap = h('div', { class: 'crop-wrap redact-wrap' }, canvas, layer);
@@ -83,7 +83,7 @@ export const mount: Mount = (root, ctx) => {
     })));
     if (detecting) return;
     const faces = boxes.filter((b) => b.face).length, hidden = boxes.filter((b) => b.on).length;
-    status.textContent = `${faces} face${faces === 1 ? '' : 's'} found · ${hidden} area${hidden === 1 ? '' : 's'} hidden`;
+    status.textContent = detectNote || `${faces} face${faces === 1 ? '' : 's'} found · ${hidden} area${hidden === 1 ? '' : 's'} hidden`;
   };
   // draw manual boxes
   let start: { x: number; y: number } | null = null, ghost: HTMLElement | null = null;
@@ -96,15 +96,27 @@ export const mount: Mount = (root, ctx) => {
     if (w > 0.01 && hh > 0.01) boxes.push({ x: Math.min(p.x, start.x), y: Math.min(p.y, start.y), w, h: hh, on: true, face: false });
     start = null; ghost = null; render();
   });
+  // a gesture the browser takes over (a scroll, a second finger, a call) leaves no half-drawn box behind
+  layer.addEventListener('pointercancel', () => { start = null; ghost?.remove(); ghost = null; });
   const drawBtn = button('Draw a box', () => { drawing = !drawing; drawBtn.setLabel(drawing ? 'Done drawing' : 'Draw a box'); wrap.classList.toggle('drawing', drawing); }, { icon: 'SquareDashed' });
   const input$ = imageInput(async (img, f) => {
+    const my = ++photoSeq; // a photo chosen while faces are being looked for in another wins
     orig = img; name = baseName(f.name); small = previewOf(img, ctx.isMobile ? 1000 : 1400); boxes = []; editor.hidden = false;
-    status.textContent = 'Looking for faces…'; detecting = true; render();
-    try { boxes = await detectFaces(img); } catch (e) { toast(`Face detection unavailable: ${errMsg(e)} — draw boxes by hand.`, 'err'); }
+    status.textContent = 'Looking for faces…'; detecting = true; detectNote = ''; render();
+    let faces: Box[] = [];
+    try { faces = await detectFaces(img); }
+    catch (e) {
+      if (my !== photoSeq || !root.isConnected) return; // another photo, or the tab was left (its detector closed)
+      detectNote = `Faces could not be looked for (${errMsg(e)}) — draw boxes by hand over what to hide.`;
+    }
+    if (my !== photoSeq) return;
+    boxes = [...faces, ...boxes]; // boxes drawn while the search ran are kept
     detecting = false; render();
   });
   const save = async (share: boolean) => {
     if (!orig) throw new Error('Choose a photo first.');
+    // saving before the search ends would give a photo with every face visible
+    if (detecting) throw new Error('Still looking for faces — Save again in a moment.');
     const out = await applyRedaction(orig, boxes, effect, strength, pad);
     const blob = await encodeImg(out, fmt, 90), fname = `${name}-redacted.${EXT[fmt]}`;
     status.textContent = `Saved ${fmtBytes(blob.size)} · ${out.width}×${out.height} · no metadata`;

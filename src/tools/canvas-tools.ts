@@ -4,9 +4,10 @@
 import antonUrl from '@fontsource/anton/files/anton-latin-400-normal.woff2?url';
 import { h, card, field, input, textarea, button, segmented, slider, toggle, stack, grid2, note, clear, actions, filePicker, toast, errMsg, baseName, downloadBlob, shareOrDownload, fmtBytes, type Mount } from '../ui';
 import { imgproc, type Img } from '../wasm/imgproc';
-import { loadImg, encodeImg, previewOf, EXT, type Fmt } from '../lib/imgio';
+import { loadImg, encodeImg, previewOf, resizeImg, setJpegDpi, EXT, type Fmt } from '../lib/imgio';
 import { imageInput, resultList } from '../lib/imgtools';
 import { isIOS } from '../platform';
+import { wrapLines } from '../lib/textwrap';
 
 // ------------------------------------------------------------------ shared
 let fontsReady: Promise<void> | null = null;
@@ -29,21 +30,6 @@ function canvasOf(img: Img) {
 }
 const imgOf = (c: OffscreenCanvas, g: OffscreenCanvasRenderingContext2D): Img => { const d = g.getImageData(0, 0, c.width, c.height); return { data: d.data, width: d.width, height: d.height }; };
 function toBitmapSource(img: Img) { const { c } = canvasOf(img); return c; }
-/** Greedy word wrap using the canvas' own text metrics (handles any script the browser can shape). */
-export function wrapLines(g: { measureText(s: string): { width: number } }, text: string, maxW: number): string[] {
-  const out: string[] = [];
-  for (const para of text.split('\n')) {
-    const words = para.split(/(\s+)/).filter((w) => w.length);
-    let line = '';
-    for (const w of words) {
-      const t = line + w;
-      if (line && g.measureText(t.trimEnd()).width > maxW && /\S/.test(w)) { out.push(line.trimEnd()); line = w.trimStart(); }
-      else line = t;
-    }
-    out.push(line.trimEnd());
-  }
-  return out;
-}
 const fmtSeg = (cur: Fmt, on: (v: Fmt) => void) => field('Format', segmented([['jpeg', 'JPEG'], ['png', 'PNG'], ['webp', 'WebP']], cur, on));
 
 // ================================================================== Watermark
@@ -93,6 +79,7 @@ export const watermark: Mount = (root, ctx) => {
   const o: WmOpts = { kind: 'text', text: '© My Name', font: FONTS[1][0], color: '#ffffff', opacity: 0.6, size: 5, pos: 'br', margin: 3, angle: -30, shadow: true, logo: null };
   const canvas = h('canvas', { class: 'ed-canvas' });
   const list = h('div', { class: 'muted small' });
+  const failed = h('div');
   const results = resultList({ zipName: () => 'watermarked.zip', isMobile: ctx.isMobile });
   let tok = 0;
   const redraw = async () => {
@@ -102,16 +89,29 @@ export const watermark: Mount = (root, ctx) => {
     canvas.width = out.width; canvas.height = out.height;
     canvas.getContext('2d')!.putImageData(new ImageData(new Uint8ClampedArray(out.data), out.width, out.height), 0, 0);
   };
+  const clearBtn = button('Clear photos', () => { files.length = 0; preview = null; stage.hidden = true; showList(); results.clear(); clear(failed); }, { small: true, variant: 'ghost', icon: 'X' });
+  const showList = () => {
+    clear(list).append(files.length ? `${files.length} photo${files.length > 1 ? 's' : ''}: ${files.map((f) => f.name).join(', ')}` : '');
+    clearBtn.hidden = !files.length;
+  };
+  /** The preview is the first photo that opens (a file that cannot be read is said and left out). */
   const addFiles = async (fs: File[]) => {
-    files.push(...fs);
-    list.textContent = `${files.length} photo${files.length > 1 ? 's' : ''}: ${files.map((f) => f.name).join(', ')}`;
-    if (!preview && files[0]) { preview = previewOf(await loadImg(files[0]), ctx.isMobile ? 900 : 1400); stage.hidden = false; redraw(); }
+    for (const f of fs) {
+      if (!preview) {
+        try { preview = previewOf(await loadImg(f), ctx.isMobile ? 900 : 1400); stage.hidden = false; redraw(); }
+        catch (e) { toast(`${f.name}: ${errMsg(e)} — left out.`, 'err'); continue; }
+      }
+      files.push(f);
+    }
+    showList();
   };
   const textBox = stack(field('Text', input({ value: o.text, onInput: (v) => { o.text = v; redraw(); } })),
     field('Font', segmented(FONTS.map(([f, l]) => [f, l]) as Array<[string, string]>, o.font, (v) => { o.font = v; redraw(); })),
     field('Colour', input({ type: 'color', value: o.color, onInput: (v) => { o.color = v; redraw(); } })),
     toggle('Shadow (readable on any background)', true, (v) => { o.shadow = v; redraw(); }));
-  const logoBox = stack(filePicker({ accept: 'image/*', label: 'Choose a logo', hint: 'PNG with transparency works best', compact: true, onFiles: async (f) => { o.logo = await loadImg(f[0]); redraw(); } }));
+  const logoBox = stack(filePicker({ accept: 'image/*,.heic,.heif', label: 'Choose a logo', hint: 'PNG with transparency works best', compact: true, onFiles: async (f) => {
+    try { o.logo = await loadImg(f[0]); redraw(); } catch (e) { toast(`${f[0].name}: ${errMsg(e)}`, 'err'); }
+  } }));
   logoBox.hidden = true;
   const angle = slider({ label: 'Tile angle', min: -90, max: 90, value: o.angle, unit: '°', onInput: (v) => { o.angle = v; redraw(); } });
   angle.hidden = true;
@@ -120,17 +120,20 @@ export const watermark: Mount = (root, ctx) => {
   const run = async () => {
     if (!files.length) throw new Error('Add photos first.');
     if (o.kind === 'logo' && !o.logo) throw new Error('Choose a logo image.');
-    results.clear();
+    if (o.kind === 'text' && !o.text.trim()) throw new Error('Type the text of the watermark.');
+    results.clear(); clear(failed);
+    const bad: string[] = [];
     for (const f of files) {
       try {
         const { img, scaled } = await fitForCanvas(await loadImg(f));
         const out = await applyWatermark(img, o);
         results.add(`${baseName(f.name)}-watermarked.${EXT[fmt]}`, await encodeImg(out, fmt, 88), `${out.width}×${out.height}${scaled ? ' (reduced for iPhone)' : ''}`);
-      } catch (e) { toast(`${f.name}: ${errMsg(e)}`, 'err'); }
+      } catch (e) { bad.push(`${f.name}: ${errMsg(e)}`); }
     }
+    if (bad.length) failed.append(note(h('div', null, `${bad.length} photo${bad.length === 1 ? '' : 's'} could not be watermarked:`, h('ul', null, bad.map((x) => h('li', null, x)))), 'err'));
   };
   root.append(
-    card(null, stack(filePicker({ accept: 'image/*,.heic,.heif', multiple: true, label: 'Add photos', hint: 'one or many — the same watermark goes on all', onFiles: (f) => addFiles(f).catch((e) => toast(errMsg(e), 'err')) }), list)),
+    card(null, stack(filePicker({ accept: 'image/*,.heic,.heif', multiple: true, label: 'Add photos', hint: 'one or many — the same watermark goes on all', onFiles: (f) => addFiles(f).catch((e) => toast(errMsg(e), 'err')) }), h('div', { class: 'row' }, list, clearBtn))),
     stage,
     card('Watermark', stack(
       segmented([['text', 'Text'], ['logo', 'Logo']], o.kind, (v) => { o.kind = v; textBox.hidden = v !== 'text'; logoBox.hidden = v !== 'logo'; redraw(); }),
@@ -142,8 +145,9 @@ export const watermark: Mount = (root, ctx) => {
       slider({ label: 'Margin', min: 0, max: 15, step: 0.5, value: o.margin, unit: '%', onInput: (v) => { o.margin = v; redraw(); } }),
       fmtSeg(fmt, (v) => (fmt = v)))),
     actions(button('Watermark all', run, { variant: 'primary', icon: 'Stamp' })),
-    card('Results', results.el),
+    card('Results', failed, results.el),
   );
+  showList();
   loadFonts().then(redraw);
   return () => results.clear();
 };
@@ -154,15 +158,24 @@ export async function applyCaption(img: Img, o: CapOpts): Promise<Img> {
   await loadFonts();
   const { c, g } = canvasOf(img), W = img.width, H = img.height;
   const meme = o.style === 'meme';
-  const px = Math.max(8, (o.size / 100) * Math.min(W, H) * (meme ? 1.25 : 1));
-  g.font = `${px}px ${meme ? FONTS[0][0] : o.font}`;
+  let px = Math.max(8, (o.size / 100) * Math.min(W, H) * (meme ? 1.25 : 1));
+  const family = meme ? FONTS[0][0] : o.font, maxW = W * 0.92;
+  const prep = (text: string) => (meme || o.upper ? text.toLocaleUpperCase() : text);
+  const linesOf = (text: string) => (text.trim() ? wrapLines(g, prep(text), maxW) : []);
+  // text that would not fit is made smaller: each block at most 45 % of the picture's height (the two never meet)
+  for (let k = 0; k < 40; k++) {
+    g.font = `${px}px ${family}`;
+    const tall = Math.max(linesOf(o.top).length, linesOf(o.bottom).length) * px * 1.12 + px * 0.7;
+    if (tall <= H * 0.45 || px <= 6) break;
+    px = Math.max(6, px * 0.9);
+  }
+  g.font = `${px}px ${family}`;
   g.textAlign = o.align; g.textBaseline = 'top'; g.lineJoin = 'round';
-  const maxW = W * 0.92, lineH = px * 1.12, pad = px * 0.35;
+  const lineH = px * 1.12, pad = px * 0.35;
   const x = o.align === 'left' ? W * 0.04 : o.align === 'right' ? W * 0.96 : W / 2;
   const block = (text: string, at: 'top' | 'bottom') => {
     if (!text.trim()) return;
-    const t = meme || o.upper ? text.toLocaleUpperCase() : text;
-    const lines = wrapLines(g, t, maxW), bh = lines.length * lineH;
+    const lines = linesOf(text), bh = lines.length * lineH;
     const y0 = at === 'top' ? H * 0.03 + (o.band ? pad : 0) : H - H * 0.03 - bh - (o.band ? pad : 0);
     if (o.band && !meme) { g.fillStyle = 'rgba(0,0,0,0.55)'; g.fillRect(0, y0 - pad, W, bh + pad * 2); }
     lines.forEach((ln, i) => {
@@ -246,7 +259,9 @@ export function coverCrop(w: number, hh: number, cw: number, ch: number): [numbe
   return [(w - sw) / 2, (hh - sh) / 2, sw, sh];
 }
 export interface CollageOpts { layout: string; W: number; H: number; gap: number; radius: number; bg: string }
-export async function renderCollage(imgs: Img[], o: CollageOpts): Promise<Img> {
+/** fine: the saved collage — photos resized with Squoosh's Lanczos-3 in linear light (jSquash); the preview uses
+ *  imgproc's (instant). */
+export async function renderCollage(imgs: Img[], o: CollageOpts, fine = false): Promise<Img> {
   const c = new OffscreenCanvas(o.W, o.H), g = c.getContext('2d', { willReadFrequently: true })!;
   g.fillStyle = o.bg; g.fillRect(0, 0, o.W, o.H);
   const gap = (o.gap / 100) * Math.min(o.W, o.H), cells = collageCells(o.layout, imgs.length);
@@ -255,7 +270,8 @@ export async function renderCollage(imgs: Img[], o: CollageOpts): Promise<Img> {
     const x = Math.round(cx * (o.W - gap) + gap), y = Math.round(cy * (o.H - gap) + gap);
     const w = Math.max(1, Math.round(cw * (o.W - gap) - gap)), hh = Math.max(1, Math.round(ch * (o.H - gap) - gap));
     const [sx, sy, sw, sh] = coverCrop(imgs[i].width, imgs[i].height, w, hh);
-    const tile = await imgproc('resize', await imgproc('crop', imgs[i], sx, sy, sw, sh), w, hh); // wasm crop + Lanczos
+    const cropped = await imgproc('crop', imgs[i], sx, sy, sw, sh);
+    const tile = fine ? await resizeImg(cropped, w, hh) : await imgproc('resize', cropped, w, hh);
     const r = (o.radius / 100) * Math.min(w, hh);
     g.save(); g.beginPath(); g.roundRect(x, y, w, hh, r); g.clip();
     g.drawImage(toBitmapSource(tile), x, y);
@@ -280,7 +296,9 @@ export const collage: Mount = (root, ctx) => {
     stage.hidden = !photos.length;
     if (!photos.length) return;
     const my = ++tok, d = dims(ctx.isMobile ? 0.35 : 0.5);
-    const out = await renderCollage(photos.map((p) => p.small), { layout, ...d, ...o });
+    let out: Img;
+    try { out = await renderCollage(photos.map((p) => p.small), { layout, ...d, ...o }); }
+    catch (e) { if (my === tok) info.textContent = `The preview could not be drawn: ${errMsg(e)}`; return; }
     if (my !== tok) return;
     canvas.width = out.width; canvas.height = out.height;
     canvas.getContext('2d')!.putImageData(new ImageData(new Uint8ClampedArray(out.data), out.width, out.height), 0, 0);
@@ -299,9 +317,14 @@ export const collage: Mount = (root, ctx) => {
   };
   const save = async (share: boolean) => {
     if (photos.length < 2) throw new Error('Add at least two photos.');
-    const out = await renderCollage(photos.map((p) => p.full), { layout, ...dims(1), ...o });
-    const blob = await encodeImg(out, fmt, 88), name = `collage.${EXT[fmt]}`;
-    info.textContent = `${fmtBytes(blob.size)} · ${out.width}×${out.height}`;
+    const out = await renderCollage(photos.map((p) => p.full), { layout, ...dims(1), ...o }, true);
+    let blob = await encodeImg(out, fmt, 88);
+    // the A4 page prints at its size only when the file says 300 dpi (JPEG's JFIF header; PNG and WebP are printed at
+    // whatever the printing program assumes)
+    const a4 = size === 'a4';
+    if (a4 && fmt === 'jpeg') blob = await setJpegDpi(blob, 300);
+    const name = `collage.${EXT[fmt]}`;
+    info.textContent = `${fmtBytes(blob.size)} · ${out.width}×${out.height}${a4 ? (fmt === 'jpeg' ? ' · 300 dpi (prints at A4)' : ' · choose JPEG for a file that says 300 dpi') : ''}`;
     share ? await shareOrDownload(blob, name) : downloadBlob(blob, name);
   };
   root.append(
