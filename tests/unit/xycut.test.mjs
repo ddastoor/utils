@@ -24,6 +24,24 @@ export default async (t, { load, wasm }) => {
   const many = Array.from({ length: 4000 }, (_, i) => [i % 2 ? 320 : 50, Math.floor(i / 2) * 12, i % 2 ? 550 : 280, Math.floor(i / 2) * 12 + 10]);
   const rm = tc.xycut(many);
   t.ok(rm.order.length === 4000 && rm.col[0] === 1 && rm.col[3999] === 2 && rm.order[1999] === 3998, '4000 lines in two columns');
+  // minh: a part counts as a column only with three boxes and that height (the EPUB tab passes a quarter of the page)
+  const stamp = [[18, 600, 23, 760]];                                       // a vertical stamp in the left margin
+  const cols3 = [...lines(45, 214, 60, 20, 12), ...lines(222, 396, 60, 20, 12), ...lines(404, 575, 60, 20, 12)];
+  const rs = tc.xycut([...stamp, ...cols3], 4, 2, 150);
+  t.eq(rs.col[0], 0, 'a margin stamp is no column');
+  t.eq([...new Set(rs.col.slice(1))], [1, 2, 3], `the three columns beside it are columns 1, 2, 3 (${[...new Set(rs.col)]})`);
+  t.eq(rs.order, [0, ...Array.from({ length: 60 }, (_, i) => i + 1)], 'the stamp, then each column top to bottom');
+  t.eq(tc.xycut([...stamp, ...cols3], 4, 2).col.slice(0, 2), [1, 2], 'without minh every part of the first split is a column (the old numbering)');
+  // the Federal Register's gutters are about 7.5 pt: missed with gx 8 (rows across the columns), found with gx 4
+  const fr = [...lines(45, 214.5, 60, 20, 12), ...lines(222, 396.5, 60, 20, 12), ...lines(404, 575, 60, 20, 12)];
+  const narrow = tc.xycut(fr, 8, 2, 150);
+  t.ok(new Set(narrow.col).size === 1 && narrow.order[1] === 20, `gutters of 7.5 pt are missed with gx 8: rows across the columns (${narrow.order.slice(0, 4)})`);
+  const found = tc.xycut(fr, 4, 2, 150);
+  t.ok([...new Set(found.col)].join() === '1,2,3' && found.order.every((v, i) => v === i), 'and found with gx 4 (the tab takes the gutter from the body text: 0.45 × its size)');
+  const short = [...lines(50, 280, 100, 2), ...lines(320, 550, 100, 2)];
+  t.eq(tc.xycut(short, 8, 2, 150), { order: [0, 1, 2, 3], col: [0, 0, 0, 0] }, 'two short parts are read left then right but are not labelled columns');
+  const table = [[50, 40, 550, 50], [50, 60, 200, 70], [300, 60, 550, 70], [50, 74, 200, 84], [300, 74, 550, 84], [50, 100, 550, 110]];
+  t.eq(tc.xycut(table, 8, 2, 150).col, [0, 0, 0, 0, 0, 0], 'the cells of a table in a single-column page are not columns');
   // ink regions: a drawn box and a "text" area that is skipped
   const W = 200, H = 200, data = new Uint8ClampedArray(W * H * 4).fill(255);
   const fill = (x0, y0, x1, y1) => { for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) { const i = (y * W + x) * 4; data[i] = data[i + 1] = data[i + 2] = 0; } };

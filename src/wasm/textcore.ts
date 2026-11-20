@@ -36,13 +36,15 @@ export function bindTextcore(e: any) {
         return JSON.parse(new TextDecoder().decode(new Uint8Array(e.memory.buffer, o, k)));
       } finally { e.t_free(p); e.t_free(o); }
     },
-    /** XY-cut reading order of boxes [x0, y0, x1, y1] (y down). Returns { order, col } (col 0 = full width). */
-    xycut(boxes: number[][], gx = 8, gy = 3): { order: number[]; col: number[] } {
+    /** XY-cut reading order of boxes [x0, y0, x1, y1] (y down): vertical gutters of at least `gx`, horizontal gaps of at
+     *  least `gy`; a part of a split counts as a column when it holds three boxes and is `minh` high (0: every part).
+     *  Returns { order, col } (col 0 = outside the columns). */
+    xycut(boxes: number[][], gx = 8, gy = 3, minh = 0): { order: number[]; col: number[] } {
       const n = boxes.length; if (!n) return { order: [], col: [] };
       const bp = e.t_malloc(n * 16), op = e.t_malloc(n * 4), cp = e.t_malloc(n * 4);
       try {
         new Float32Array(e.memory.buffer, bp, n * 4).set(boxes.flat());
-        const k = e.t_xycut(bp, n, gx, gy, op, cp);
+        const k = e.t_xycut(bp, n, gx, gy, minh, op, cp);
         return { order: Array.from(new Int32Array(e.memory.buffer, op, k)), col: Array.from(new Int32Array(e.memory.buffer, cp, k)) };
       } finally { e.t_free(bp); e.t_free(op); e.t_free(cp); }
     },

@@ -1128,3 +1128,31 @@ One entry per tab, written before its bug hunt: our module → candidates → ch
 - MuPDF (structured text; content streams with Helvetica; images for other scripts drawn by the browser's canvas):
   nothing to replace. MuPDF has no layout-keeping text mode (poppler's `pdftotext -layout` has one); the PDF → Text
   option is labelled for what it does.
+
+### 136. `epub` — PDF → EPUB (20 Nov 2026)
+- **Ours:** textcore's XY-cut (`t_xycut`, own C: reading order and columns) and imgproc's `p_ink_regions` (own C:
+  vector figures as ink outside the text), on MuPDF 1.28.6 (text spans with their fonts, images, drawing) and jSquash's
+  MozJPEG; fflate zips. **Candidates (existing WebAssembly):** MuPDF itself — the official build already in the app has
+  page segmentation (`toStructuredText('segment')`: nested "Split" blocks), `dehyphenate`, `paragraph-break` (marks
+  headings) and `table-hunt`; no WebAssembly PDF → EPUB converter exists (Calibre's is Python + Qt; pdf2htmlEX is C++
+  with poppler and makes fixed-layout HTML, not reflowable text).
+- **The check:** five real PDFs of public test corpora (pdf.js's `tracemonkey.pdf`, a 14-page two-column ACM paper;
+  pypdf's LaTeX multicol sample; the Federal Register of 6 August 2020, three columns; GeoTopo, 30 pages of mathematics;
+  a review whose fonts have no Unicode maps) — words of each method in the order of poppler's `pdftotext`
+  (longest common subsequence; poppler is no perfect reference: it reads the generated two-column fixture and the
+  multicol sample with the top of the right column first, where ours is right):
+
+  | PDF | ours before | ours now | MuPDF `segment` | MuPDF plain |
+  |---|---|---|---|---|
+  | tracemonkey (2 columns) | 97.9 % | 97.8 % | 94.7 % | 94.2 % |
+  | multicol (2 columns) | 91.3 % | 91.3 % | 85.2 % | 85.2 % |
+  | Federal Register (3 columns) | **55.2 %** | 93.6 % | 79.9 % | 81.1 % |
+  | GeoTopo (1 column, maths) | 97.6 % (3,561 words) | 97.3 % (3,773 words) | 96.8 % | 97.1 % |
+
+  MuPDF's segmentation changes the order little and gives no column numbers (the tab labels "Page N · Column K").
+  **Decision:** our XY-cut stays (MuPDF's segmentation reads worse — Claude's judgement under the owner's rule); MuPDF
+  stays for everything else. The Federal Register exposed two faults of ours, fixed in our C: gutters had to be 8 pt
+  (theirs are 7.5 pt — now 0.45 × the body text), and the first vertical split numbered columns (a stamp up the margin
+  became "Column 1", the three real columns one). Not taken: MuPDF's `paragraph-break` (our paragraphs follow indents
+  and line pitch) and `table-hunt` (tables as HTML tables would be a new feature — for the owner to pick).
+- **Also:** epubcheck 5.2.1 (the W3C's validator, Java) runs on every EPUB of both suites where it is installed.

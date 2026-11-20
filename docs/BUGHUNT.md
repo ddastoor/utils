@@ -45,7 +45,7 @@ Areas with a shared review: the app shell (router, search, favorites, platform h
 | `pdf2text` | PDF → Text | PC + mobile | pdf | ✓ | 4 | 3 | page by page with progress; form values listed; option relabelled; empty copy said |
 | `pdf-pagenum` | PDF Page Numbers | PC + mobile | pdf | ✓ | 2 | 4 | a run keeps its own file; ends with the tab; progress |
 | `pdf-watermark` | PDF Watermark | PC + mobile | pdf | ✓ | 2 | 4 | a run keeps its own file (sizes were read from the new one); ends with the tab; progress |
-| `epub` | PDF → EPUB | PC only | docs2 |  |  |  |  |
+| `epub` | PDF → EPUB | PC only | docs2 | ✓ | 17 | 93 | columns with 7.5 pt gutters; margin stamps; bold/size of a line from its spans; U+FFFF; formulas as pictures; bookmarks; /Lang; no freeze; newer PDF ends a run; epubcheck |
 | `sheet` | CSV / Excel | PC only | docs2 |  |  |  |  |
 | `markdown` | Markdown Editor | PC + mobile | docs2 |  |  |  |  |
 | `invoice` | GST Invoice | PC + mobile | docs2 |  |  |  |  |
@@ -1817,3 +1817,52 @@ Reference for the five finance tabs: **mpmath at 60 digits** (`scripts/make-fina
   1. The same two, and worse: the page sizes were read from the PDF chosen meanwhile while the pages were stamped
      on the old one (a watermark placed for the wrong page size).
   2. As Page Numbers: the run ends with the tab; progress on long PDFs.
+
+### Documents 2 — EPUB, sheets, Markdown, generators (20 Nov 2026 –)
+- **`epub` (tab 139, 17 bugs; MuPDF + textcore's XY-cut + imgproc's ink regions; WASM-AUDIT 136; unit
+  `tests/unit/pdf2epub.test.mjs` 64 (new: the engine in Node on its own engines, reading order held to poppler's
+  `pdftotext` — `python3 scripts/make-epub-reference.py` — and to the generator's known order, epubcheck on the results);
+  `xycut.test.mjs` 19 — was 11; e2e 48 — was 27; epubcheck 5.2.1 in both suites where installed; fixture
+  `federal-register-3p.pdf`, public domain).** Found by a comparison on five real PDFs (WASM-AUDIT 136) and by reading:
+  1. **Narrow gutters were not seen:** the XY-cut wanted 8 pt between columns; the Federal Register's are 7.5 pt, so
+     its three columns were cut into rows and read across, line by line (55 % of the words in order → 94 %). The gutter
+     is now 0.45 × the body text.
+  2. **A stamp up the margin became "Column 1"** (arXiv's, the Federal Register's) and the real columns were numbered as
+     one: text that runs up or down the page is kept apart (left out with the running headers, else a note at the end
+     of the page), and the XY-cut numbers only real columns (three lines, a tenth of the page high; `minh`).
+  3. **A line was as bold and as large as its first character** (MuPDF gives a line the font of its first span): a
+     paragraph starting with "**Theorem 1.**" could become a heading, a drop cap made a line large. Spans are read
+     (`preserve-spans`) and joined; a line takes the size and weight most of its characters have.
+  4. **The running header and the page number came back as a picture:** once left out of the text, their ink counted
+     as a figure (the Federal Register's header was a picture on every page).
+  5. **A broken Unicode map made the page unreadable:** MuPDF passes U+FFFF through, which XML does not allow (Kindle,
+     the preview and epubcheck refuse the page). Characters XML forbids and C1 controls are left out (`xmlText`).
+  6. **One unreadable formula turned a whole column into a picture** (a line with U+FFFD — a maths font without a
+     Unicode map): such lines are now pictures in their place; a column is a picture only when most of it is
+     unreadable (GeoTopo: 3,561 → 3,773 words as text).
+  7. **Body text was taken for headings** on a page that is mostly footnotes (the body size was the median, the
+     footnotes' size; every body line was 1.18 × larger): the size of most characters, and more than three
+     "heading" lines in a row are text.
+  8. **The PDF's bookmarks were lost:** they are the contents now (nested; a bookmark of a page left out goes to the
+     next page that is in), with a page list; the NCX gives bookmarks of one page one play order (epubcheck's rule).
+  9. **Every EPUB said it was English:** the PDF's /Lang is used when it is a language tag (hyphenation and the
+     dictionary on the Kindle follow it).
+  10. **The tab froze during a conversion:** the text of all pages was read in one loop and pages without figures never
+      paused (300 pages: 3.6 s without a frame); now a pause every 30 ms (longest gap 0.25 s) and progress for both
+      passes ("Reading the text: page n of N…").
+  11. **A conversion went on after another PDF was chosen** and its result came out under the new PDF's name (the name
+      was read after the await); leaving the tab did not end it either. A conversion keeps its PDF and ends (`Stopped`)
+      when a newer one is chosen or the tab is left.
+  12. **The preview's pictures were never let go** (blob URLs): released with the next PDF, the next run and the tab.
+  13. **Words made of i, v, x, l, c were page numbers** ("ill", "civil", "vivid" alone at the top or bottom of a page
+      were removed): a page number must be a Roman numeral (xiv), digits, "Page n", "n of m" or "– n –".
+  14. **Every page with a figure was drawn whole at up to 3 × the screen width** (Scribe: 5,580 × 7,221 px, 160 MB, to
+      cut one figure out): MuPDF now draws just the figure at the size it is shown, within 32 megapixels; a figure
+      across both columns is drawn as wide as the screen (it was drawn larger and shrunk).
+  15. **A PDF without pages gave an EPUB with an empty spine** (not valid); refused in words. The summary said "1
+      pages · 1 figures"; the file line "0 page".
+  16. **A page whose text runs sideways** (/Rotate 90 over upright text, a table turned on the page) was read as columns
+      of single words: the page is a picture.
+  17. **The preview showed the lowest page numbers** instead of the first pages of the EPUB (a range like "5, 1-3").
+  Also: the e2e suite's checks of responsiveness and of a newer PDF were run against the old code first (they fail
+  there: 3.6 s, the old progress went on).

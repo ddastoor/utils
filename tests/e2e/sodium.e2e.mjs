@@ -1,7 +1,7 @@
 // Sodium Encrypt (#/sodium): text and file round trips (multi-chunk), the USODIUM1 header fields per strength, the
 // independent PyNaCl reference decryptor (tools/sodium_decrypt.py) opening our files, wrong password, tampering and
 // truncation detected, password checks.
-import { readFileSync, writeFileSync } from 'node:fs';
+import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
 import { join } from 'node:path';
@@ -26,7 +26,7 @@ export default async ({ base, page: newPage, ok, info, download, tmp, devices })
   ok(!ct.includes(Buffer.from(MSG).toString('base64').slice(0, 10)), 'ciphertext does not contain the text');
   const py = spawnSync('python3', [join(ROOT, 'tools/sodium_decrypt.py'), '--text', ct], { input: 'correct horse 123\n', encoding: 'utf8' });
   if (py.error || /No module named 'nacl'/.test(py.stderr)) info('PyNaCl not installed — reference decryptor check skipped');
-  else ok(py.stdout.trim() === MSG, `reference PyNaCl decryptor reads our text (${py.stdout.trim().slice(0, 20)}…)`);
+  else ok(py.stdout.trim() === MSG, `reference PyNaCl decryptor reads our text (${py.stdout.trim().slice(0, 20)}…)${py.status ? ` — it ended with ${py.status}: ${py.stderr.trim().split('\n').pop()}` : ''}`);
   const ac = [await pw.getAttribute('autocomplete')];
   await seg('Decrypt'); ac.push(await pw.getAttribute('autocomplete'));
   ok(ac.join() === 'new-password,off', `the password box: a new password when encrypting, not one the browser offers to make up when decrypting (it was new-password in both): ${ac}`);
@@ -44,7 +44,8 @@ export default async ({ base, page: newPage, ok, info, download, tmp, devices })
   ok(/data\.bin\.usodium$/.test(enc) && e.readUInt32LE(9) === 3 && e.readUInt32LE(13) === 262144 && e.length === 61 + data.length + 5 * 17, `file encrypted: ops 3, 256 MiB, 5 chunks (${e.length} bytes)`);
   const out = join(tmp, 'py.bin');
   const py2 = spawnSync('python3', [join(ROOT, 'tools/sodium_decrypt.py'), enc, out], { input: 'another secret 456\n', encoding: 'utf8' });
-  if (!py2.error && !/No module named/.test(py2.stderr)) ok(readFileSync(out).equals(data), 'reference PyNaCl decryptor restores the exact file');
+  // (on a machine short of memory Argon2's 256 MiB may not be had: the decryptor's own message is shown, not a crash)
+  if (!py2.error && !/No module named/.test(py2.stderr)) ok(existsSync(out) && readFileSync(out).equals(data), `reference PyNaCl decryptor restores the exact file${py2.status ? ` — it ended with ${py2.status}: ${py2.stderr.trim().split('\n').pop()}` : ''}`);
   await seg('Decrypt');
   await page.locator('input[type=file]').setInputFiles(enc); await pw.fill('another secret 456');
   const dec = await download(page, run);

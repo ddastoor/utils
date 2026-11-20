@@ -6,6 +6,7 @@ export const ICONS: Record<string, string> = {
   Angle: "<path d=\"M3 3v16a2 2 0 0 0 2 2h16\" /><path d=\"M3 11a10 10 0 0 1 10 10\" />",
   Aperture: "<circle cx=\"12\" cy=\"12\" r=\"10\" /><path d=\"m14.31 8 5.74 9.94\" /><path d=\"M9.69 8h11.48\" /><path d=\"m7.38 12 5.74-9.94\" /><path d=\"M9.69 16 3.95 6.06\" /><path d=\"M14.31 16H2.83\" /><path d=\"m16.62 12-5.74 9.94\" />",
   ArrowDown: "<path d=\"M12 5v14\" /><path d=\"m19 12-7 7-7-7\" />",
+  ArrowDownAZ: "<path d=\"m3 16 4 4 4-4\" /><path d=\"M7 20V4\" /><path d=\"M20 8h-5\" /><path d=\"M15 10V6.5a2.5 2.5 0 0 1 5 0V10\" /><path d=\"M15 14h5l-5 6h5\" />",
   ArrowLeft: "<path d=\"m12 19-7-7 7-7\" /><path d=\"M19 12H5\" />",
   ArrowLeftRight: "<path d=\"M8 3 4 7l4 4\" /><path d=\"M4 7h16\" /><path d=\"m16 21 4-4-4-4\" /><path d=\"M20 17H4\" />",
   ArrowRight: "<path d=\"M5 12h14\" /><path d=\"m12 5 7 7-7 7\" />",

@@ -1650,21 +1650,49 @@ ASS; picture subtitles (DVD / Blu-ray) are refused with the reason), **Expert** 
   against ffprobe. e2e `tests/e2e/ffmpeg.e2e.mjs` runs every new job on ffmpeg.wasm in the browser. Fixtures
   `tests/fixtures/media/` subs.srt, clip-subs.mkv, silent-320.mp4, pauses.wav, kf6.mp4.
 
-### PDF → EPUB (PC) — BUILT (`src/tools/epub/epub.ts`, engine `src/lib/pdf2epub.ts`; e2e `tests/e2e/epub.e2e.mjs` 27)
-As built: MuPDF structured text (lines with font size/weight; raster image blocks) → pieces of a justified line on
-the same baseline are joined → running headers/footers = top/bottom-10 % lines whose first 12 letters repeat on ≥ 40 %
-of pages (page numbers and OCR slips like "VICKSBUEG" still match) + bare page numbers → figures = raster images
-(except a full-page scan under an OCR layer) ∪ ink found outside the text boxes on a 1.5 px/pt render (imgproc
-`p_ink_regions`: dilation + connected components) → reading order + columns by XY-cut (textcore `t_xycut`: vertical
-gutters first so a column is read top to bottom; otherwise one split at the widest horizontal gap, recursively; first
-vertical split numbers columns) → paragraphs by the page's line pitch, indents, short last lines and font-size changes
-after a sentence end; headings by size (≥ 1.18 × body) or short bold lines; de-hyphenation (keeps "e-reader") → one
-XHTML per PDF page (`page-break-before`), "Page N · Column K" labels, figures cropped from a render where a column is
-as wide as the screen (Paperwhite 1236 px / Scribe 1860 px), greyscale MozJPEG by default; pages with no text →
-full-page picture; garbled text (private-use / U+FFFD) → that column as a picture; "Columns as pictures" mode.
-EPUB 3 (nav + NCX, `dcterms:modified`, urn:uuid), mimetype stored first, zipped with fflate. Tests: a generated
-two-column paper (`scripts/make-paper-pdf.mjs`) and pypdf's OCR'd Vicksburg pages; every XHTML parsed as XML in the
-browser and the EPUB re-opened by MuPDF. (epubcheck is Java and not available offline here.)
+### PDF → EPUB (PC) — BUILT (`src/tools/epub/epub.ts`, engine `src/lib/pdf2epub.ts`; unit `tests/unit/pdf2epub.test.mjs` 64, e2e `tests/e2e/epub.e2e.mjs` 48)
+As built after the Nov 2026 bug hunt (docs/BUGHUNT.md tab 139, docs/WASM-AUDIT.md 136):
+- **Text:** MuPDF's structured text with `preserve-spans` — each span in one font — joined into lines (same baseline,
+  close after one another; a space where the PDF leaves a gap without one); a line takes the size and the weight most
+  of its characters have (MuPDF gives a line the font of its first character: "**Theorem 1.** Let …" is no bold line).
+  Lines that run up or down the page (arXiv's stamp, the Federal Register's) are kept apart: left out with the running
+  headers, else a note at the end of the page; a page whose text mostly runs sideways is a picture. Lines off the page
+  are dropped. Characters XML does not allow (MuPDF passes U+FFFF of a broken Unicode map through) and C1 controls are
+  left out (`xmlText`).
+- **Running headers / footers:** top / bottom 10 % lines whose first 12 letters repeat on ≥ 40 % of the chosen pages
+  (OCR slips like "VICKSBUEG" still match) and page numbers on their own (`pageNumberLike`: digits, "Page n", "n of m",
+  "– n –", a real Roman numeral — not "ill" or "civil"). Their ink stays text for the figure finder (it came back as
+  a picture).
+- **Figures:** raster images (except a full-page scan under an OCR layer) ∪ ink outside every text line on a 1.5 px/pt
+  drawing (imgproc `p_ink_regions`), merged until no two touch; lines inside a figure belong to it.
+- **Order and columns:** textcore's XY-cut (`t_xycut(boxes, gx, gy, minh)`: vertical gutters first, then the widest
+  horizontal gap, recursively): gutters of 0.45 × the body text (the Federal Register's are 7.5 pt), and only real
+  columns are numbered — at least three lines and a tenth of the page high (a note in the margin, table cells are not).
+  The body size is the size most characters have; more than three "heading" lines in a row are text.
+- **Paragraphs and headings:** the page's line pitch, indents, short last lines, a size change after a sentence end;
+  headings by size (≥ 1.18 × body) or short bold lines; de-hyphenation (keeps "e-reader"). Unreadable lines (more than
+  a tenth U+FFFD, private-use or control characters — a maths font without a Unicode map) are a picture in their
+  place; a column is one picture when most of it is unreadable or with "Columns as pictures".
+- **Pictures:** MuPDF draws just the figure (a display list into a pixmap of its box) so that a column is as wide as the
+  screen (Paperwhite 1236 px / Scribe 1860 px), a figure across the page as wide as the screen, within 32 megapixels
+  and 16,384 px a side; greyscale MozJPEG by default; a page without text is a picture as wide as the screen.
+- **The book:** one XHTML per PDF page (`page-break-before`, "Page N · Column K" labels), EPUB 3 with the PDF's
+  bookmarks as the contents (nested; a bookmark of a page left out → the next page that is in; else one entry per page
+  with its first heading), a page list, an NCX for older readers (bookmarks of one file share its play order), the
+  PDF's /Lang as the language (else English), `dcterms:modified`, urn:uuid; mimetype stored first; fflate.
+- **The tab:** a conversion keeps the PDF it started with; a newer PDF or leaving the tab ends it (`Stopped`); progress
+  for both passes ("Reading the text: page n of N…", "Page n of N…") and a pause every 30 ms (300 pages: the longest
+  gap between frames 0.25 s — it was 3.6 s); the preview (first three pages in reading order) lets its pictures go
+  with the next PDF, run or the tab; a PDF without pages is refused; the summary counts in words.
+- **Tests:** unit — the engine in Node on its own engines (`EpubEngines`): the Federal Register's first three pages
+  (public domain, `tests/fixtures/pdf/federal-register-3p.pdf`) and the OCR'd Vicksburg pages held to poppler's
+  `pdftotext` (`python3 scripts/make-epub-reference.py` → `tests/fixtures/epub/reference.json`, needs poppler-utils);
+  the generated two-column paper to the order its generator wrote (poppler reads it wrong); generated PDFs for bold
+  run-in headings, broken Unicode maps, unreadable formulas, bookmarks, /Lang, stamps, sideways, offset and huge pages.
+  e2e — the tab in Chromium, every XHTML parsed as XML, the EPUB re-opened by MuPDF, races and responsiveness.
+  **epubcheck** (the W3C's validator, Java 21): both suites run it on every EPUB where installed — `EPUBCHECK=/path/
+  epubcheck.jar`, or a release unpacked under `/opt/epubcheck*` (github.com/w3c/epubcheck/releases; 5.2.1 used); errors
+  and warnings fail.
 Original notes: Kindle Paperwhite now, Scribe later. Requirements: preserve **page breaks**; detect **columns** in technical
 PDFs, split them vertically, extract text and figures per column in reading order, and label sections
 **"Page N · Column K"**. Pipeline per page: PDF.js text items (positions, font size) → render page →
@@ -1773,7 +1801,7 @@ stay **public** (the source of the deployed site is then available to every user
 | espeak: **eSpeak NG 1.52.0** (+ English phoneme tables and dictionary compiled from the same release, linked in, served to its fopen/stat from memory) + glue (IPA for Kokoro, piper-phonemize-style sentences) | C | **us** (`wasm/espeak`) | tts (stt hints later) |
 | whisper: **whisper.cpp 1.8.3** + ggml CPU backend (upstream unmodified) + own threadshim.h (std::mutex/std::thread/fstream for zig's thread-less libc++), backend-reg.cpp (static CPU-only registry), cxxabi_stubs.c (throw = abort), glue.cpp | C / C++ | **us** (`wasm/whisper`) | stt |
 | geo: Charles Karney's **geodesic.c 2.2** (GeographicLib's geodesic routines in C, MIT; the two files unmodified from the PROJ 9.9.0 release) + glue (inverse problem on WGS-84, half-way point, the haversine great circle for comparison) | C | **us** (`wasm/geo`, 36 KB, loaded by the Coordinates tab only; no tried-and-tested WebAssembly geodesic module exists: `docs/WASM-AUDIT.md`, tab 82) | coords |
-| textcore: tool-search ranking, rare-word ranking (tokeniser, lemmatiser, wordfreq hash table), XY-cut reading order | C (own code) | **us** (`wasm/textcore`) | search box, emoji (search), photodict, epub |
+| textcore: tool-search ranking, rare-word ranking (tokeniser, lemmatiser, wordfreq hash table), XY-cut reading order (columns numbered only where they are real: `minh`) | C (own code) | **us** (`wasm/textcore`) | search box, emoji (search), photodict, epub |
 | textkit: **unicode-segmentation 1.13.3** (the Rust ecosystem's UAX #29 implementation, Unicode 17.0, MIT / Apache-2.0: extended grapheme clusters, sentence boundaries) + our counting rules: words as a word limit counts them, abbreviations and initials, lines and paragraphs, keywords (Snowball's stop words); **the Case Converter's thirteen conversions** (`case.rs`: Title Case is a port of the Python package `titlecase` 2.4.1 — Gruber's rules, MIT; the code cases cut words as npm's `change-case` does; case mapping by Rust's standard library) | Rust | **us** (`wasm/textkit`, crates.io via `Cargo.lock`, two modules by Cargo features: **textkit.wasm** 217 KB — fetched with the Word Counter's first text, with the Case Converter, and with the first Fancy Text that has an emoji or another script — and **textkit-diff.wasm** 0.69 MB = the **`similar` crate 3.2.1** (Apache-2.0: Myers in linear space with a time limit, line / word / grapheme diffs, inline changes, unified diffs) + our glue, fetched by the Text Diff only; and **textkit-lorem.wasm** 0.13 MB = the **`lipsum` crate 0.9.1** (MIT: a Markov chain over the classic passage and Cicero's *De finibus*, with rand 0.8 / rand_chacha 0.3) + our glue (cleaned texts learned as circles, exact counts), fetched by the Lorem Ipsum tab; the existing module — ICU4X's official build — is one file of 20 MB: `docs/WASM-AUDIT.md`, tab 90) | wordcount, case, lines ("By length"), fancy (characters); diff (textkit-diff); lorem (textkit-lorem) |
 | sheet: calamine 0.38 (read .xlsx .xlsm .xlsb .xls .ods) + rust_xlsxwriter 0.102 (write .xlsx) + csv 1 + serde_json | Rust | **us** (`wasm/sheet`, crates.io sources verified by `Cargo.lock`, target wasm32-wasip1) | sheet |
 | svgo: **OXVG 0.0.9** (Rust port of SVGO's plugins; lightningcss for `<style>`) + our glue: DOCTYPE / entities allowed, nesting limit 256, **our own safe preset** (OXVG's `Jobs::safe()` is not safe), `sv_diff` (do two rasters look alike? — the tab renders every result next to its original and falls back to the safe result when the full optimisation changed the picture) | Rust | **us** (`wasm/svgo`, crates.io via `Cargo.lock`, opt-level z, 4.9 MB / 1.3 MB gz, loaded with the first SVG; unit `tests/unit/svgo.test.mjs`, hazard drawings `tests/fixtures/svg/hazards.json`) | svgo |
