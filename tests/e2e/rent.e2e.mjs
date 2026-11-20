@@ -21,7 +21,28 @@ export default async ({ base, page: newPage, ok, download, devices }) => {
   await page.getByRole('radio', { name: 'First day' }).click();
   d = await pdf();
   ok(/Date: 01\/05\/2026/.test(d.text), 'receipt dated on the first day');
-  ok(page.errors.length === 0, `no page errors: ${page.errors.join(' | ')}`);
+  // five years: sixty receipts (it stopped at 36 without a word)
+  await page.getByLabel('From month').fill('2021-04'); await page.getByLabel('To month').fill('2026-03');
+  d = await pdf();
+  const per = d.pages.map((p) => (p.text.match(/RENT RECEIPT/g) || []).length);
+  ok((d.text.match(/RENT RECEIPT/g) || []).length === 60 && per.every((k) => k === per[0] && k >= 2) && /Receipt No\.\s*60\b/.test(d.text), `60 cash receipts: no empty page — the stamp boxes do not fit three to a page, so two (they ran onto a second, empty page: 40 pages for 60)`);
+  await page.getByRole('radio', { name: 'UPI' }).click();
+  d = await pdf();
+  ok((d.text.match(/RENT RECEIPT/g) || []).length === 60 && d.pages.length === 20 && /Receipt No\.\s*60\b/.test(d.text), `60 months → 60 receipts on 20 pages (${(d.text.match(/RENT RECEIPT/g) || []).length} receipts, ${d.pages.length} pages: ${d.pages.map((p) => (p.text.match(/RENT RECEIPT/g) || []).length).join(',')})`);
+  const refused = async (from, to, rent, want) => {
+    await page.getByLabel('From month').fill(from); await page.getByLabel('To month').fill(to); await page.getByLabel('Monthly rent (₹)').fill(rent);
+    const said = await page.locator('.dg-layout').getByText(want).first().waitFor({ timeout: 5000 }).then(() => true, () => false);
+    await page.getByRole('button', { name: 'Download PDF' }).click();
+    return said && await page.locator('.toast', { hasText: want }).first().waitFor({ timeout: 5000 }).then(() => true, () => false);
+  };
+  ok(await refused('2016-01', '2026-01', '25000', 'At most 120 months (ten years) at a time.'), '121 months: refused in words');
+  ok(await refused('2026-05', '2026-04', '25000', 'The last month is before the first.'), 'the last month before the first: said (it said "choose the months")');
+  ok(await refused('2026-04', '2026-06', '', 'Enter the monthly rent.'), 'no rent: refused (it printed "Rupees Zero")');
+  await page.getByLabel('Monthly rent (₹)').fill('25000');
+  await page.getByLabel('Landlord PAN').fill('ABC123');
+  ok(await page.getByText('A PAN is five letters, four digits and a letter').count() === 1, 'a PAN that is no PAN: said');
+  const real = page.errors.filter((e) => !/At most 120 months|The last month is before|Enter the monthly rent/.test(e));
+  ok(real.length === 0, `no page errors: ${real.join(' | ')}`);
   const phone = await newPage({ ...devices['iPhone 13'] });
   await phone.goto(base + '#/rent');
   await phone.waitForFunction(() => /\d+ pages? · \d+ KB/.test(document.querySelector('[aria-live="polite"].muted')?.textContent || ''), null, { timeout: 60000 });

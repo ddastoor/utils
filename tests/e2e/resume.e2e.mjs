@@ -18,10 +18,19 @@ export default async ({ base, page: newPage, ok, download, devices }) => {
   await page.getByRole('radio', { name: 'Letter' }).click();
   d = await pdf();
   ok(d.pages[0].w === 612 && d.pages[0].h === 792 && /profile/i.test(d.text) && /Skill one/.test(d.text), 'modern template on US Letter');
+  // (no waiting: a download made while the photo is still being read waits for it — that was the flaky "photo included")
   await page.locator('input[type=file]').first().setInputFiles(I('astronaut.png'));
-  await page.waitForTimeout(600);
   d = await pdf();
-  ok(d.images >= 1, 'photo included');
+  ok(d.images >= 1 && d.jpegs >= 1, `photo included, as a JPEG (${d.images} pictures, ${d.jpegs} JPEG)`);
+  // the e-mail address, the phone number and the web addresses are links in the PDF
+  await page.getByLabel('Links (LinkedIn, GitHub, website)').fill('linkedin.com/in/asha, https://github.com/asha');
+  d = await pdf();
+  for (const want of ['mailto:you@example.com', 'tel:+919876543210', 'https://linkedin.com/in/asha', 'https://github.com/asha']) ok(d.links.includes(want), `link ${want} (${d.links.join(' ')})`);
+  // a name with characters a file system refuses
+  await page.getByLabel('Full name').fill('A/B: Rao');
+  const fn = await download(page, () => page.getByRole('button', { name: 'Download PDF' }).click());
+  ok(/A_B_-Rao-resume\.pdf$/.test(fn), `file name made safe (${fn.split('/').pop()})`);
+  await page.getByLabel('Full name').fill('Asha Rao');
   await page.getByRole('radio', { name: 'Compact' }).click();
   for (let k = 0; k < 9; k++) await page.getByRole('button', { name: 'Add job' }).click();
   const roles = page.getByLabel('Role'), pts = page.getByLabel('What you did (one point per line)');

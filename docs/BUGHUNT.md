@@ -48,9 +48,9 @@ Areas with a shared review: the app shell (router, search, favorites, platform h
 | `epub` | PDF → EPUB | PC only | docs2 | ✓ | 17 | 93 | columns with 7.5 pt gutters; margin stamps; bold/size of a line from its spans; U+FFFF; formulas as pictures; bookmarks; /Lang; no freeze; newer PDF ends a run; epubcheck |
 | `sheet` | CSV / Excel | PC only | docs2 | ✓ | 18 | 141 | errors #DIV/0!; durations; 15 digits; exact numbers; JSON keys/IDs; Windows-1252/UTF-16; web-page .xls + Excel 2003 XML; newest file wins; Excel limits; LibreOffice reference |
 | `markdown` | Markdown Editor | PC + mobile | docs2 | ✓ | 12 | 30 | #fn links left the tab; Ctrl+K focus; Ctrl+P preview only; remote pictures not fetched; undoable toggles; GitHub heading ids; GFM spec 744 examples |
-| `invoice` | GST Invoice | PC + mobile | docs2 |  |  |  |  |
-| `rent` | Rent Receipt | PC + mobile | docs2 |  |  |  |  |
-| `resume` | Resume Builder | PC + mobile | docs2 |  |  |  |  |
+| `invoice` | GST Invoice | PC + mobile | docs2 | ✓ | 7 | 17 | UPI QR @ as NPCI writes it (was %40), zbar read-back; links survive into PDFs; pictures in details; downloads wait for pictures |
+| `rent` | Rent Receipt | PC + mobile | docs2 | ✓ | 6 | 16 | cash receipts no longer spill onto empty pages (3/2/1 a page); 120 months; reasons in words; PAN format |
+| `resume` | Resume Builder | PC + mobile | docs2 | ✓ | 6 | 9 | mailto/tel/https links; JPEG photo; safe file name; download waits for the photo (the flaky 'photo included') |
 
 ## security
 | id | Tab | Platform | Area | R | B | T | Notes |
@@ -1928,3 +1928,33 @@ Reference for the five finance tabs: **mpmath at 60 digits** (`scripts/make-fina
   11. **A file dropped on the editor was ignored** (the app keeps the browser from opening it in place of the page):
       it is opened.
   12. **A long document was rendered and counted on every key:** above 200,000 characters when the typing pauses.
+- **`invoice` (tab 142, 7 bugs; MuPDF HTML + mathcore + zxing-wasm; WASM-AUDIT 139; e2e 29 — was 18; new unit
+  `docgen.test.mjs` 19 for the three generators, rules in `src/lib/docrules.ts`).**
+  1. **The UPI QR code wrote the UPI ID's @ as %40** — NPCI's linking specification keeps it as it is (the QR tab's
+     rule since its hunt); the invoice now uses the QR tab's `upi()` (read back by zbar: `pa=shop@okaxis&…&am=1179.99`),
+     and a code that cannot be made is said (it was left out without a word).
+  2. A UPI ID that does not look like one was taken without a word: the QR tab's note under the box.
+  3. A due date before the invoice date was printed without a word: said.
+  4. **No link survived into any generated PDF** (the pages were drawn without them; MuPDF also read mailto: as a
+     path): the business's e-mail is a mailto: link now — a fix in `htmlToPdf` for all three tabs.
+  5. **The logo and the signature were lost through Save / Load details:** they go into the file (data: URLs).
+  6. A download right after choosing a picture could be made without it (still being read): it waits.
+  7. Leaving the tab while the preview waited still built a PDF afterwards: the tab's updates end with it.
+- **`rent` (tab 143, 6 bugs; e2e 16 — was 9).**
+  1. **Cash receipts ran onto empty pages:** with the revenue-stamp box three receipts did not fit an A4 page and each
+     group of three spilled onto a second, empty page (60 receipts → 40 pages, every other one blank). Three a page
+     when they fit, else two, else one — the same for a long address.
+  2. **More than 36 months were cut off without a word:** up to 120 (ten years), beyond that refused in words.
+  3. A last month before the first said "Choose the from and to months": it says what is wrong.
+  4. No rent printed "₹ 0.00 (Rupees Zero Only)": refused ("Enter the monthly rent.").
+  5. A PAN that is no PAN (five letters, four digits, a letter) was taken without a word: said.
+  6. The signature image was lost through Save / Load details (as the invoice's pictures).
+- **`resume` (tab 144, 6 bugs; e2e 12 — was 7).**
+  1. **The e-mail address, the phone number and LinkedIn / GitHub were not links in the PDF:** mailto:, tel: and https:
+     links (only those schemes; anything else stays text, quotes escaped — unit suite).
+  2. **The photo was a PNG** (a photo as PNG is many times larger): JPEG, quality 85.
+  3. A name with / or : gave a broken file name ("A/B-resume.pdf"): file names are made safe (`safeName`).
+  4. **A download right after choosing the photo was saved without it** — the full run's flaky "photo included" was
+     this race in the tab (the suite waited 600 ms): the download waits for the picture.
+  5. The photo was lost through Save / Load details.
+  6. Leaving the tab mid-update (as the invoice).

@@ -4,9 +4,13 @@
 // nothing is stored in the browser.
 import { h, card, field, stack, note, actions, button, segmented, toggle, input, select, textarea, filePicker, pickFiles, clear, toast, errMsg, downloadBlob, shareOrDownload, type Mount } from '../ui';
 import { htmlToPdf, pdfPreview, esc } from '../lib/htmlpdf';
+import { mupdf } from '../lib/pdf';
 import { mathcore } from '../wasm/mathcore';
 import { loadImg, encodeImg, previewOf } from '../lib/imgio';
 import { rupeesInWords } from '../lib/words';
+import { upi } from '../lib/qrdata';
+import { safeName, mailLink, telLink, webLinks, STATES, GST_RATES, rentMonths, rentProblem } from '../lib/docrules';
+export { STATES, GST_RATES, rentMonths, rentProblem } from '../lib/docrules';
 
 // ------------------------------------------------------------------ shared
 type Obj = Record<string, any>;
@@ -37,13 +41,20 @@ function repeater(rows: Obj[], make: () => Obj, renderRow: (row: Obj, i: number)
   return { el: h('div', { class: 'stack' }, list, h('div', null, button(addLabel, () => { rows.push(make()); draw(); change(); }, { icon: 'Plus', small: true }))), draw };
 }
 
-/** Live PDF preview + download + save/load details. */
-function docShell(root: HTMLElement, ctx: { isMobile: boolean }, o: { build: () => Promise<Uint8Array>; fileName: () => string; state: () => Obj; load: (s: Obj) => void; kind: string }) {
+/** Pictures in a details file: data: URLs (PNG or JPEG). */
+const toDataUrl = (b: Uint8Array) => { let s = ''; for (let i = 0; i < b.length; i += 0x8000) s += String.fromCharCode(...b.subarray(i, i + 0x8000)); return `data:${b[0] === 0xff ? 'image/jpeg' : 'image/png'};base64,${btoa(s)}`; };
+const fromDataUrl = (u: unknown): Uint8Array | null => { const m = typeof u === 'string' && /^data:image\/(png|jpeg);base64,([A-Za-z0-9+/=]+)$/.exec(u); if (!m) return null; const t = atob(m[2]), b = new Uint8Array(t.length); for (let i = 0; i < t.length; i++) b[i] = t.charCodeAt(i); return b; };
+
+
+/** Live PDF preview + download + save/load details (pictures go into the details file too). Ends with the tab. */
+function docShell(root: HTMLElement, ctx: { isMobile: boolean }, o: { build: () => Promise<Uint8Array>; fileName: () => string; state: () => Obj; load: (s: Obj) => void; kind: string; images?: () => Record<string, Uint8Array | null>; setImages?: (im: Record<string, Uint8Array | null>) => void; ready?: Array<{ ready: () => Promise<void> }> }) {
+  const ready = () => Promise.all((o.ready || []).map((p) => p.ready()));
   const pages = h('div', { class: 'dg-pages', 'aria-label': 'Preview' });
   const status = h('div', { class: 'muted small', 'aria-live': 'polite' });
-  let timer = 0, tok = 0;
+  let timer = 0, tok = 0, live = true;
   const refresh = () => {
     clearTimeout(timer);
+    if (!live) return;
     timer = window.setTimeout(async () => {
       const my = ++tok; status.textContent = 'Updating preview…';
       try {
@@ -55,43 +66,57 @@ function docShell(root: HTMLElement, ctx: { isMobile: boolean }, o: { build: () 
     }, 450);
   };
   const save = async () => {
+    await ready();                 // a picture still being read goes in
     const bytes = await o.build(); // always fresh: the preview may still be waiting for its debounce
     const blob = new Blob([bytes as BlobPart], { type: 'application/pdf' }), name = o.fileName();
     ctx.isMobile ? await shareOrDownload(blob, name) : downloadBlob(blob, name);
   };
-  const saveJson = () => downloadBlob(new Blob([JSON.stringify({ kind: o.kind, version: 1, ...o.state() }, null, 2)], { type: 'application/json' }), `${o.kind}-details.json`);
+  const saveJson = () => {
+    const im = o.images?.() || {}, images = Object.fromEntries(Object.entries(im).filter(([, b]) => b).map(([k, b]) => [k, toDataUrl(b!)]));
+    downloadBlob(new Blob([JSON.stringify({ kind: o.kind, version: 1, ...o.state(), ...(Object.keys(images).length ? { images } : {}) }, null, 2)], { type: 'application/json' }), `${o.kind}-details.json`);
+  };
   const loadJson = async () => {
     const [f] = await pickFiles('application/json,.json'); if (!f) return;
-    try { const d = JSON.parse(await f.text()); if (d.kind && d.kind !== o.kind) throw new Error(`This file holds ${d.kind} details.`); o.load(d); toast('Details loaded', 'ok'); } catch (e) { toast(errMsg(e), 'err'); }
+    try {
+      const d = JSON.parse(await f.text());
+      if (!d || typeof d !== 'object' || Array.isArray(d)) throw new Error('This file holds no details.');
+      if (d.kind && d.kind !== o.kind) throw new Error(`This file holds ${d.kind} details.`);
+      const images = d.images; delete d.images;
+      o.load(d);
+      if (o.setImages) o.setImages(Object.fromEntries(Object.keys(o.images?.() || {}).map((k) => [k, fromDataUrl(images?.[k])])));
+      toast('Details loaded', 'ok');
+    } catch (e) { toast(errMsg(e), 'err'); }
   };
   const preview = card('Preview', status, pages);
   root.append(h('div', { class: 'dg-tools row' },
     button('Load details', loadJson, { icon: 'FolderOpen', small: true, variant: 'ghost', title: 'Open a details file you saved earlier' }),
     button('Save details', saveJson, { icon: 'Save', small: true, variant: 'ghost', title: 'Keep these details in a file on your device (nothing is stored in the browser)' })));
-  return { refresh, preview, actions: actions(button('Download PDF', save, { icon: 'Download', variant: 'primary' })) };
+  return { refresh, preview, actions: actions(button('Download PDF', save, { icon: 'Download', variant: 'primary' })), leave: () => { live = false; tok++; clearTimeout(timer); } };
 }
 
-/** Optional picture (logo, signature, photo) → PNG/JPEG bytes for the template. */
-function imagePick(label: string, maxSide: number, onImg: (bytes: Uint8Array | null, name: string) => void) {
+/** Optional picture (logo, signature, photo) → bytes for the template: PNG (a logo or a signature may be see-through),
+ *  JPEG for a photo (a tenth of the size). The newest picture wins. `set` shows one loaded from a details file. */
+function imagePick(label: string, maxSide: number, onImg: (bytes: Uint8Array | null, name: string) => void, o: { photo?: boolean } = {}) {
   const info = h('span', { class: 'muted small' });
-  const picker = filePicker({ accept: 'image/*,.heic,.heif', compact: true, label, onFiles: async ([f]) => {
-    try { const img = previewOf(await loadImg(f), maxSide); const png = new Uint8Array(await (await encodeImg(img, 'png')).arrayBuffer()); info.textContent = f.name; onImg(png, f.name); } catch (e) { toast(errMsg(e), 'err'); }
+  let seq = 0, busy: Promise<void> = Promise.resolve();
+  const picker = filePicker({ accept: 'image/*,.heic,.heif', compact: true, label, onFiles: ([f]) => {
+    const my = ++seq;
+    busy = (async () => {
+      try {
+        const img = previewOf(await loadImg(f), maxSide), bytes = new Uint8Array(await (await encodeImg(img, o.photo ? 'jpeg' : 'png', 85)).arrayBuffer());
+        if (my !== seq) return;
+        info.textContent = f.name; onImg(bytes, f.name);
+      } catch (e) { if (my === seq) toast(`${f.name}: ${errMsg(e)}`, 'err'); }
+    })();
   } });
-  return stack(picker, h('div', { class: 'row' }, info, button('Remove', () => { info.textContent = ''; onImg(null, ''); }, { small: true, variant: 'ghost' })));
+  const el = stack(picker, h('div', { class: 'row' }, info, button('Remove', () => { seq++; info.textContent = ''; onImg(null, ''); }, { small: true, variant: 'ghost' })));
+  /** ready(): the picture being read, if any — a download made meanwhile waits for it (it was saved without it). */
+  return { el, ready: () => busy, set: (bytes: Uint8Array | null, name: string) => { seq++; info.textContent = bytes ? name : ''; } };
 }
+
 
 // ------------------------------------------------------------------ GST Invoice
-/** GST state codes; UTGST applies in the union territories without a legislature. */
-export const STATES: Array<[string, string, boolean?]> = [
-  ['01', 'Jammu and Kashmir'], ['02', 'Himachal Pradesh'], ['03', 'Punjab'], ['04', 'Chandigarh', true], ['05', 'Uttarakhand'], ['06', 'Haryana'],
-  ['07', 'Delhi'], ['08', 'Rajasthan'], ['09', 'Uttar Pradesh'], ['10', 'Bihar'], ['11', 'Sikkim'], ['12', 'Arunachal Pradesh'], ['13', 'Nagaland'],
-  ['14', 'Manipur'], ['15', 'Mizoram'], ['16', 'Tripura'], ['17', 'Meghalaya'], ['18', 'Assam'], ['19', 'West Bengal'], ['20', 'Jharkhand'],
-  ['21', 'Odisha'], ['22', 'Chhattisgarh'], ['23', 'Madhya Pradesh'], ['24', 'Gujarat'], ['26', 'Dadra and Nagar Haveli and Daman and Diu', true],
-  ['27', 'Maharashtra'], ['29', 'Karnataka'], ['30', 'Goa'], ['31', 'Lakshadweep', true], ['32', 'Kerala'], ['33', 'Tamil Nadu'], ['34', 'Puducherry'],
-  ['35', 'Andaman and Nicobar Islands', true], ['36', 'Telangana'], ['37', 'Andhra Pradesh'], ['38', 'Ladakh', true], ['97', 'Other Territory'], ['96', 'Outside India (export)'],
-];
 const stateName = (c: string) => STATES.find((s) => s[0] === c)?.[1] || '';
-export const GST_RATES = [0, 0.1, 0.25, 1, 1.5, 3, 5, 6, 7.5, 12, 18, 28, 40];
 const DOC_TYPES: Array<[string, string]> = [['tax', 'Tax Invoice'], ['proforma', 'Proforma Invoice'], ['quote', 'Quotation'], ['bos', 'Bill of Supply']];
 
 export const invoice: Mount = (root, ctx) => {
@@ -103,10 +128,19 @@ export const invoice: Mount = (root, ctx) => {
     bank: { name: '', account: '', ifsc: '', upi: '' }, notes: 'Thank you for your business.', terms: 'Payment due within 15 days.',
   };
   let logo: Uint8Array | null = null, sign: Uint8Array | null = null;
-  const change = () => shell.refresh();
+  const upiNote = h('div', { class: 'stack' }), dueNote = h('div', { class: 'stack' });
+  // the UPI ID as the QR code will hold it (the QR tab's rules), and a due date before the invoice date
+  const checks = () => {
+    const u = upi({ vpa: String(s.bank.upi || ''), name: String(s.seller.name || ''), amount: '', note: String(s.number || '') });
+    clear(upiNote).append(...[...u.errors, ...u.warnings].map((w) => note(w, 'warn')));
+    clear(dueNote).append(...(s.due && s.date && s.due < s.date ? [note('The due date is before the invoice date.', 'warn')] : []));
+  };
+  const change = () => { checks(); shell.refresh(); };
+  const logoPick = imagePick('Logo (optional)', 600, (b) => { logo = b; change(); }), signPick = imagePick('Signature image (optional)', 500, (b) => { sign = b; change(); });
   const shell = docShell(root, ctx, {
-    kind: 'invoice', state: () => s, fileName: () => `${(s.number || 'invoice').replace(/[^\w.-]+/g, '_')}.pdf`,
+    kind: 'invoice', state: () => s, fileName: () => `${safeName(s.number, 'invoice').replace(/[^\w.-]+/g, '_')}.pdf`,
     load: (d) => { Object.assign(s, d); delete s.kind; delete s.version; rebuildForm(); change(); },
+    ready: [logoPick, signPick], images: () => ({ logo, sign }), setImages: (im) => { logo = im.logo; sign = im.sign; logoPick.set(logo, 'logo (from the details file)'); signPick.set(sign, 'signature (from the details file)'); change(); },
     build: () => buildInvoice(s, logo, sign),
   });
   const form = h('div', { class: 'stack' });
@@ -136,19 +170,20 @@ export const invoice: Mount = (root, ctx) => {
         h('div', { class: 'grid2' }, bound(s, 'number', 'Number', { change }), bound(s, 'date', 'Date', { type: 'date', change })),
         h('div', { class: 'grid2' }, bound(s, 'due', 'Due date (optional)', { type: 'date', change }),
           field('Place of supply', select([['', 'Same as customer state'], ...STATES.map(([c, n]) => [c, `${c} · ${n}`] as [string, string])], s.pos, (v) => { s.pos = v; change(); }))),
-        toggle('Tax payable on reverse charge', s.reverse, (v) => { s.reverse = v; change(); }))),
-      party(s.seller, 'From (your business)', true), imagePick('Logo (optional)', 600, (b) => { logo = b; change(); }),
+        dueNote, toggle('Tax payable on reverse charge', s.reverse, (v) => { s.reverse = v; change(); }))),
+      party(s.seller, 'From (your business)', true), logoPick.el,
       party(s.buyer, 'Bill to (customer)', false),
       card('Items', items.el, toggle('Round the total to the nearest rupee', s.roundoff, (v) => { s.roundoff = v; change(); })),
       card('Payment', stack(h('div', { class: 'grid2' }, bound(s.bank, 'name', 'Bank', { change }), bound(s.bank, 'account', 'Account number', { change })),
-        h('div', { class: 'grid2' }, bound(s.bank, 'ifsc', 'IFSC', { change }), bound(s.bank, 'upi', 'UPI ID (adds a pay-by-UPI QR code)', { placeholder: 'name@bank', change })))),
+        h('div', { class: 'grid2' }, bound(s.bank, 'ifsc', 'IFSC', { change }), bound(s.bank, 'upi', 'UPI ID (adds a pay-by-UPI QR code)', { placeholder: 'name@bank', change })), upiNote)),
       card('Notes', stack(bound(s, 'notes', 'Notes', { area: true, change }), bound(s, 'terms', 'Terms', { area: true, change }),
-        field('Colour', segmented(ACCENTS, s.accent, (v) => { s.accent = v; change(); })), imagePick('Signature image (optional)', 500, (b) => { sign = b; change(); }))),
+        field('Colour', segmented(ACCENTS, s.accent, (v) => { s.accent = v; change(); })), signPick.el)),
       note('Check GST rates and HSN/SAC codes for your goods or services; this tool does the arithmetic, not tax advice.'));
   };
   rebuildForm();
   root.append(h('div', { class: 'dg-layout' }, form, shell.preview), shell.actions);
   change();
+  return shell.leave;
 };
 
 export async function invoiceTotals(s: Obj) {
@@ -162,22 +197,23 @@ async function buildInvoice(s: Obj, logo: Uint8Array | null, sign: Uint8Array | 
   const title = DOC_TYPES.find((d) => d[0] === s.type)![1], noTax = s.type === 'bos', SG = t.ut ? 'UTGST' : 'SGST';
   if (logo) files['logo.png'] = logo;
   if (sign) files['sign.png'] = sign;
-  if (s.bank.upi && t.grand > 0) {
-    try {
-      const { prepareZXingModule, writeBarcode } = await import('zxing-wasm/full');
-      const wasm = (await import('zxing-wasm/full/zxing_full.wasm?url')).default;
-      prepareZXingModule({ overrides: { locateFile: (p: string, pre: string) => (p.endsWith('.wasm') ? wasm : pre + p) }, fireImmediately: true });
-      const uri = `upi://pay?pa=${encodeURIComponent(s.bank.upi.trim())}&pn=${encodeURIComponent(s.seller.name)}&am=${t.grand.toFixed(2)}&cu=INR&tn=${encodeURIComponent(s.number)}`;
-      const r = await writeBarcode(uri, { format: 'QRCode', scale: 6 } as any);
-      if (r.image) files['upi.png'] = new Uint8Array(await r.image.arrayBuffer());
-    } catch { /* QR is optional */ }
+  // the pay-by-UPI code as the QR tab writes it (NPCI's linking specification: the @ of the UPI ID as it is — it was
+  // sent as %40 — values percent-encoded, the amount with two decimals)
+  const pay = String(s.bank.upi || '').trim() && t.grand > 0 ? upi({ vpa: String(s.bank.upi), name: String(s.seller.name || ''), amount: t.grand.toFixed(2), note: String(s.number || '') }).text : '';
+  if (pay) {
+    const { prepareZXingModule, writeBarcode } = await import('zxing-wasm/full');
+    const wasm = (await import('zxing-wasm/full/zxing_full.wasm?url')).default;
+    prepareZXingModule({ overrides: { locateFile: (p: string, pre: string) => (p.endsWith('.wasm') ? wasm : pre + p) }, fireImmediately: true });
+    const r = await writeBarcode(pay, { format: 'QRCode', scale: 6 } as any);
+    if (!r.image) throw new Error(`The UPI QR code could not be made: ${r.error || 'no picture'}`);
+    files['upi.png'] = new Uint8Array(await r.image.arrayBuffer());
   }
   // per-rate summary
   const byRate = new Map<number, { taxable: number; c: number; s: number; i: number }>();
   s.items.forEach((r: Obj, k: number) => { const L = t.lines[k], g = noTax ? 0 : +r.gst || 0, b = byRate.get(g) || { taxable: 0, c: 0, s: 0, i: 0 }; b.taxable += L.taxable; b.c += L.cgst; b.s += L.sgst; b.i += L.igst; byRate.set(g, b); });
   const taxCols = noTax ? '' : t.intra ? `<th class="r">CGST</th><th class="r">${SG}</th>` : '<th class="r">IGST</th>';
   const rows = s.items.map((r: Obj, k: number) => { const L = t.lines[k]; return `<tr><td>${k + 1}</td><td>${esc(r.desc)}</td><td>${esc(r.hsn)}</td><td class="r">${esc(r.qty)} ${esc(r.unit)}</td><td class="r">${money(+r.rate || 0)}</td><td class="r">${+r.disc ? `${r.disc}%` : ''}</td><td class="r">${money(L.taxable)}</td>${noTax ? '' : `<td class="r">${r.gst}%</td>`}${noTax ? '' : t.intra ? `<td class="r">${money(L.cgst)}</td><td class="r">${money(L.sgst)}</td>` : `<td class="r">${money(L.igst)}</td>`}<td class="r">${money(L.taxable + L.cgst + L.sgst + L.igst)}</td></tr>`; }).join('');
-  const party = (p: Obj, label: string) => `<div class="lbl">${label}</div><div class="pname">${esc(p.name)}</div><div>${esc(p.address).replace(/\n/g, '<br/>')}</div>${p.gstin ? `<div>GSTIN: <b>${esc(p.gstin)}</b></div>` : ''}<div>State: ${esc(stateName(p.state))} (${esc(p.state)})</div>${p.phone ? `<div>Phone: ${esc(p.phone)}</div>` : ''}${p.email ? `<div>${esc(p.email)}</div>` : ''}`;
+  const party = (p: Obj, label: string) => `<div class="lbl">${label}</div><div class="pname">${esc(p.name)}</div><div>${esc(p.address).replace(/\n/g, '<br/>')}</div>${p.gstin ? `<div>GSTIN: <b>${esc(p.gstin)}</b></div>` : ''}<div>State: ${esc(stateName(p.state))} (${esc(p.state)})</div>${p.phone ? `<div>Phone: ${esc(p.phone)}</div>` : ''}${p.email ? `<div>${mailLink(p.email)}</div>` : ''}`;
   const summary = noTax ? '' : `<table class="sum"><tr><th>GST rate</th><th class="r">Taxable value</th>${t.intra ? `<th class="r">CGST</th><th class="r">${SG}</th>` : '<th class="r">IGST</th>'}<th class="r">Total tax</th></tr>${[...byRate].map(([g, b]) => `<tr><td>${g}%</td><td class="r">${money(b.taxable)}</td>${t.intra ? `<td class="r">${money(b.c)}</td><td class="r">${money(b.s)}</td>` : `<td class="r">${money(b.i)}</td>`}<td class="r">${money(b.c + b.s + b.i)}</td></tr>`).join('')}</table>`;
   const totals = [['Taxable value', t.taxable], ...(noTax ? [] : t.intra ? [['CGST', t.cgst], [SG, t.sgst]] : [['IGST', t.igst]]), ...(t.roundoff ? [['Round off', t.roundoff]] : [])] as Array<[string, number]>;
   const body = `
@@ -193,7 +229,7 @@ ${files['upi.png'] ? '<div class="qr"><img src="img/upi.png"/><div>Scan to pay w
 ${s.notes ? `<p class="notes"><b>Notes:</b> ${esc(s.notes).replace(/\n/g, '<br/>')}</p>` : ''}${s.terms ? `<p class="notes"><b>Terms:</b> ${esc(s.terms).replace(/\n/g, '<br/>')}</p>` : ''}
 ${s.type === 'bos' ? '<p class="small">Bill of supply: no GST is charged (composition taxpayer / exempt supply).</p>' : ''}<p class="small">This is a computer-generated ${title.toLowerCase()}.</p>`;
   const a = s.accent;
-  const css = `body { font-size: 8.6pt; color: #1f2328; } table { border-collapse: collapse; width: 100%; } td, th { vertical-align: top; }
+  const css = `body { font-size: 8.6pt; color: #1f2328; } table { border-collapse: collapse; width: 100%; } td, th { vertical-align: top; } a { color: inherit; text-decoration: none; }
 .head td.hl { width: 56%; } .head td.hr { width: 44%; text-align: right; } .logo { height: 44pt; margin-bottom: 4pt; }
 .title { font-size: 17pt; font-weight: bold; color: ${a}; margin-bottom: 5pt; } .m { margin: 1pt 0; }
 .pname { font-size: 11pt; font-weight: bold; } .lbl { color: ${a}; font-weight: bold; font-size: 7.5pt; text-transform: uppercase; margin-top: 6pt; }
@@ -209,64 +245,70 @@ ${s.type === 'bos' ? '<p class="small">Bill of supply: no GST is charged (compos
 
 // ------------------------------------------------------------------ Rent Receipt
 const MODES: Array<[string, string]> = [['cash', 'Cash'], ['upi', 'UPI'], ['bank', 'Bank transfer'], ['cheque', 'Cheque']];
-export function rentMonths(from: string, to: string): Array<{ start: Date; end: Date }> {
-  const out: Array<{ start: Date; end: Date }> = [];
-  if (!/^\d{4}-\d{2}$/.test(from) || !/^\d{4}-\d{2}$/.test(to)) return out;
-  let [y, mo] = from.split('-').map(Number); const [ty, tm] = to.split('-').map(Number);
-  while ((y < ty || (y === ty && mo <= tm)) && out.length < 36) { out.push({ start: new Date(y, mo - 1, 1), end: new Date(y, mo, 0) }); mo++; if (mo > 12) { mo = 1; y++; } }
-  return out;
-}
 export const rent: Mount = (root, ctx) => {
   const now = new Date(), fy = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
   const s: Obj = { tenant: 'Tenant Name', landlord: 'Landlord Name', pan: '', address: 'Flat, Building, Street, City, PIN', rent: 25000, from: `${fy}-04`, to: `${fy + 1}-03`, mode: 'upi', dateOn: 'end', start: 1 };
   let sign: Uint8Array | null = null;
   const change = () => shell.refresh();
+  const signPick = imagePick('Signature image', 500, (b) => { sign = b; change(); });
   const shell = docShell(root, ctx, {
-    kind: 'rent', state: () => s, fileName: () => `rent-receipts-${s.from}-to-${s.to}.pdf`,
+    kind: 'rent', state: () => s, fileName: () => `rent-receipts-${safeName(s.from, 'from')}-to-${safeName(s.to, 'to')}.pdf`,
     load: (d) => { Object.assign(s, d); delete s.kind; delete s.version; build(); change(); },
+    ready: [signPick], images: () => ({ sign }), setImages: (im) => { sign = im.sign; signPick.set(sign, 'signature (from the details file)'); change(); },
     build: () => buildRent(s, sign),
   });
   const warn = h('div', { class: 'stack' });
   const checks = () => {
-    const months = rentMonths(s.from, s.to).length, yearly = (+s.rent || 0) * Math.min(12, months);
+    const months = rentMonths(s.from, s.to).length, yearly = (+s.rent || 0) * Math.min(12, months), pan = String(s.pan || '').trim(), problem = rentProblem(s);
     clear(warn);
-    if (yearly > 100000 && !String(s.pan).trim()) warn.append(note('Rent above ₹1,00,000 a year: your employer will ask for the landlord’s PAN.', 'warn'));
+    if (problem) warn.append(note(problem, 'warn'));
+    if (yearly > 100000 && !pan) warn.append(note('Rent above ₹1,00,000 a year: your employer will ask for the landlord’s PAN.', 'warn'));
+    if (pan && !/^[A-Z]{5}\d{4}[A-Z]$/.test(pan)) warn.append(note('A PAN is five letters, four digits and a letter (ABCDE1234F) — check it.', 'warn'));
     if (s.mode === 'cash' && +s.rent > 5000) warn.append(note('Cash receipts above ₹5,000 need a ₹1 revenue stamp signed across by the landlord — a box for it is printed.', 'info'));
   };
   const form = h('div', { class: 'stack' });
   const build = () => {
     clear(form).append(
       card('Who', stack(bound(s, 'tenant', 'Tenant (you)', { change }), bound(s, 'landlord', 'Landlord', { change }),
-        bound(s, 'pan', 'Landlord PAN', { placeholder: 'ABCDE1234F', change: () => { s.pan = String(s.pan).toUpperCase(); change(); checks(); } }),
+        bound(s, 'pan', 'Landlord PAN', { placeholder: 'ABCDE1234F', change: () => { s.pan = String(s.pan).toUpperCase().trim(); change(); checks(); } }),
         bound(s, 'address', 'Rented property address', { area: true, change }))),
       card('Rent', stack(bound(s, 'rent', 'Monthly rent (₹)', { type: 'number', change: () => { change(); checks(); } }),
         h('div', { class: 'grid2' }, bound(s, 'from', 'From month', { type: 'month', change: () => { change(); checks(); } }), bound(s, 'to', 'To month', { type: 'month', change: () => { change(); checks(); } })),
         field('Paid by', segmented(MODES, s.mode, (v) => { s.mode = v; change(); checks(); })),
         field('Receipt date', segmented([['end', 'Last day of the month'], ['start', 'First day']], s.dateOn, (v) => { s.dateOn = v; change(); })),
         bound(s, 'start', 'First receipt number', { type: 'number', change }), warn)),
-      card('Landlord’s signature (optional)', imagePick('Signature image', 500, (b) => { sign = b; change(); }), note('Usually the landlord signs the printed receipts. A signature image is added only if you choose one.')));
+      card('Landlord’s signature (optional)', signPick.el, note('Usually the landlord signs the printed receipts. A signature image is added only if you choose one.')));
     checks();
   };
   build();
   root.append(h('div', { class: 'dg-layout' }, form, shell.preview), shell.actions);
   change();
+  return shell.leave;
 };
 async function buildRent(s: Obj, sign: Uint8Array | null): Promise<Uint8Array> {
+  const problem = rentProblem(s);
+  if (problem) throw new Error(problem);
   const months = rentMonths(s.from, s.to);
-  if (!months.length) throw new Error('Choose the from and to months.');
   const words = await inWords(+s.rent || 0), mode = MODES.find((m) => m[0] === s.mode)![1], stamp = s.mode === 'cash' && +s.rent > 5000;
   const d = (x: Date) => `${String(x.getDate()).padStart(2, '0')}/${String(x.getMonth() + 1).padStart(2, '0')}/${x.getFullYear()}`;
   const mon = (x: Date) => x.toLocaleString('en-IN', { month: 'long', year: 'numeric' });
-  const receipts = months.map((m, i) => `<div class="rc">
+  const receipt = (m: { start: Date; end: Date }, i: number, per: number) => `<div class="rc">
 <table class="t"><tr><td><div class="h">RENT RECEIPT</div><div class="sub">${esc(mon(m.start))}</div></td><td class="r">Receipt No. <b>${(+s.start || 1) + i}</b><br/>Date: <b>${d(s.dateOn === 'start' ? m.start : m.end)}</b></td></tr></table>
 <p>Received with thanks from <b>${esc(s.tenant)}</b> a sum of <b>₹ ${money(+s.rent || 0)}</b> (${esc(words)}) by <b>${esc(mode)}</b> towards the rent of the property at <b>${esc(s.address).replace(/\n/g, ', ')}</b> for the period <b>${d(m.start)}</b> to <b>${d(m.end)}</b>.</p>
-<table class="t sg"><tr><td>Landlord: <b>${esc(s.landlord)}</b>${s.pan ? `<br/>PAN: <b>${esc(s.pan)}</b>` : ''}</td><td class="r">${stamp ? '<div class="stamp">Revenue<br/>stamp</div>' : ''}${sign ? '<img class="si" src="img/sign.png"/><br/>' : '<br/><br/><br/>'}Signature of landlord</td></tr></table></div>${i % 3 !== 2 && i < months.length - 1 ? '<div class="cut">- - - - - - - - - - - - - - - -  cut here  - - - - - - - - - - - - - - - -</div>' : ''}`);
-  const pages = Array.from({ length: Math.ceil(receipts.length / 3) }, (_, k) => receipts.slice(k * 3, k * 3 + 3).join('')); // three per A4 page
+<table class="t sg"><tr><td>Landlord: <b>${esc(s.landlord)}</b>${s.pan ? `<br/>PAN: <b>${esc(s.pan)}</b>` : ''}</td><td class="r">${stamp ? '<div class="stamp">Revenue<br/>stamp</div>' : ''}${sign ? '<img class="si" src="img/sign.png"/><br/>' : '<br/><br/><br/>'}Signature of landlord</td></tr></table></div>${i % per !== per - 1 && i < months.length - 1 ? '<div class="cut">- - - - - - - - - - - - - - - -  cut here  - - - - - - - - - - - - - - - -</div>' : ''}`;
   const css = `body { font-size: 10pt; color: #1f2328; } table.t { width: 100%; border-collapse: collapse; } td { vertical-align: top; } .r { text-align: right; }
 .rc { border: 1pt solid #9aa3ad; padding: 12pt 14pt; margin: 6pt 0; } .h { font-size: 15pt; font-weight: bold; color: #1f3a8a; letter-spacing: 1pt; } .sub { color: #555; }
 p { line-height: 1.7; margin: 12pt 0; } .sg td { padding-top: 8pt; } .si { height: 34pt; } .stamp { display: inline-block; border: 0.8pt dashed #777; width: 42pt; height: 42pt; font-size: 6.5pt; color: #777; text-align: center; padding-top: 12pt; margin-bottom: 4pt; }
 .cut { color: #9aa3ad; font-size: 8pt; margin: 10pt 0; text-align: center; }`;
-  return htmlToPdf(pages, css, { size: 'a4', margin: 36, title: `Rent receipts ${s.from} to ${s.to}`, files: sign ? { 'sign.png': sign } : {} });
+  // three receipts an A4 page; where three do not fit (a cash receipt's stamp box, a long address) a page of three
+  // ran onto a second, empty page — then two a page, or one
+  const m = await mupdf();
+  for (const per of [3, 2, 1]) {
+    const pages = Array.from({ length: Math.ceil(months.length / per) }, (_, k) => months.slice(k * per, k * per + per).map((mm, j) => receipt(mm, k * per + j, per)).join(''));
+    const bytes = await htmlToPdf(pages, css, { size: 'a4', margin: 36, title: `Rent receipts ${s.from} to ${s.to}`, files: sign ? { 'sign.png': sign } : {} });
+    if (per === 1 || m.Document.openDocument(bytes, 'application/pdf').countPages() === pages.length) return bytes;
+  }
+  throw new Error('unreachable');
 }
 
 // ------------------------------------------------------------------ Resume Builder
@@ -281,9 +323,11 @@ export const resume: Mount = (root, ctx) => {
   };
   let photo: Uint8Array | null = null;
   const change = () => shell.refresh();
+  const photoPick = imagePick('Photo (optional)', 600, (b) => { photo = b; change(); }, { photo: true });
   const shell = docShell(root, ctx, {
-    kind: 'resume', state: () => s, fileName: () => `${String(s.name || 'resume').trim().replace(/\s+/g, '-')}-resume.pdf`,
+    kind: 'resume', state: () => s, fileName: () => `${safeName(s.name, 'resume')}-resume.pdf`,
     load: (d) => { Object.assign(s, d); delete s.kind; delete s.version; build(); change(); },
+    ready: [photoPick], images: () => ({ photo }), setImages: (im) => { photo = im.photo; photoPick.set(photo, 'photo (from the details file)'); change(); },
     build: () => buildResume(s, photo),
   });
   const form = h('div', { class: 'stack' });
@@ -301,24 +345,26 @@ export const resume: Mount = (root, ctx) => {
       card('You', stack(h('div', { class: 'grid2' }, bound(s, 'name', 'Full name', { change }), bound(s, 'title', 'Headline', { change })),
         h('div', { class: 'grid2' }, bound(s, 'email', 'Email', { type: 'email', change }), bound(s, 'phone', 'Phone', { type: 'tel', change })),
         h('div', { class: 'grid2' }, bound(s, 'location', 'Location', { change }), bound(s, 'links', 'Links (LinkedIn, GitHub, website)', { change })),
-        imagePick('Photo (optional)', 600, (b) => { photo = b; change(); }), bound(s, 'summary', 'Summary', { area: true, change }))),
+        photoPick.el, bound(s, 'summary', 'Summary', { area: true, change }))),
       card('Experience', jobs.el), card('Education', schools.el), card('Projects (optional)', projects.el),
       card('Skills and more', stack(bound(s, 'skills', 'Skills (comma separated)', { area: true, change }), bound(s, 'extras', 'Other (languages, certificates, awards — one per line)', { area: true, change }))));
   };
   build();
   root.append(h('div', { class: 'dg-layout' }, form, shell.preview), shell.actions);
   change();
+  return shell.leave;
 };
 async function buildResume(s: Obj, photo: Uint8Array | null): Promise<Uint8Array> {
   const a = s.accent, lines = (t: string) => String(t || '').split('\n').map((x) => x.trim()).filter(Boolean);
   const bullets = (t: string) => { const l = lines(t); return l.length ? `<ul>${l.map((x) => `<li>${esc(x.replace(/^[-•*]\s*/, ''))}</li>`).join('')}</ul>` : ''; };
   const dates = (f: string, t: string) => esc([f, t].filter(Boolean).join(' – '));
-  const contact = [s.email, s.phone, s.location, s.links].filter((x) => String(x || '').trim()).map(esc);
+  // the e-mail address, the phone number and the web addresses are links in the PDF
+  const contact = [[s.email, mailLink], [s.phone, telLink], [s.location, esc], [s.links, webLinks]].filter(([x]) => String(x || '').trim()).map(([x, f]) => (f as (v: string) => string)(String(x)));
   const sec = (title: string, inner: string) => (inner.trim() ? `<div class="sec"><div class="st">${title}</div>${inner}</div>` : '');
   const jobs = s.jobs.filter((j: Obj) => j.role || j.org).map((j: Obj) => `<div class="item"><table class="row"><tr><td><b>${esc(j.role)}</b>${j.org ? ` · ${esc(j.org)}` : ''}${j.place ? `, ${esc(j.place)}` : ''}</td><td class="d">${dates(j.from, j.to)}</td></tr></table>${bullets(j.points)}</div>`).join('');
   const schools = s.schools.filter((e: Obj) => e.degree || e.org).map((e: Obj) => `<div class="item"><table class="row"><tr><td><b>${esc(e.degree)}</b>${e.org ? ` · ${esc(e.org)}` : ''}${e.grade ? ` · ${esc(e.grade)}` : ''}</td><td class="d">${dates(e.from, e.to)}</td></tr></table></div>`).join('');
   const schoolsSide = s.schools.filter((e: Obj) => e.degree || e.org).map((e: Obj) => `<div class="item"><b>${esc(e.degree)}</b>${e.org ? `<br/>${esc(e.org)}` : ''}${e.grade ? `<br/>${esc(e.grade)}` : ''}${e.from || e.to ? `<br/><span class="muted">${dates(e.from, e.to)}</span>` : ''}</div>`).join('');
-  const projects = s.projects.filter((p: Obj) => p.name).map((p: Obj) => `<div class="item"><b>${esc(p.name)}</b>${p.link ? ` · <span class="muted">${esc(p.link)}</span>` : ''}${bullets(p.points)}</div>`).join('');
+  const projects = s.projects.filter((p: Obj) => p.name).map((p: Obj) => `<div class="item"><b>${esc(p.name)}</b>${p.link ? ` · <span class="muted">${webLinks(p.link)}</span>` : ''}${bullets(p.points)}</div>`).join('');
   const skills = String(s.skills || '').split(',').map((x) => x.trim()).filter(Boolean);
   const skillHtml = skills.length ? (s.template === 'modern' ? `<ul class="plain">${skills.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : `<p>${skills.map(esc).join(' · ')}</p>`) : '';
   const extras = lines(s.extras).length ? `<ul class="plain">${lines(s.extras).map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : '';
@@ -335,7 +381,7 @@ ${sec('Summary', s.summary ? `<p>${esc(s.summary)}</p>` : '')}${sec('Experience'
   const compact = s.template === 'compact';
   // MuPDF ignores percentage column widths: give the two columns of the modern template fixed widths in points
   const inner = (s.size === 'letter' ? 612 : 595.28) - 2 * (compact ? 30 : 38), side = Math.round(inner * 0.31) - 23, main = Math.round(inner * 0.69) - 14;
-  const css = `body { font-size: ${compact ? 8.8 : 9.8}pt; color: #1f2328; line-height: ${compact ? 1.3 : 1.42}; } table { border-collapse: collapse; width: 100%; } td { vertical-align: top; }
+  const css = `body { font-size: ${compact ? 8.8 : 9.8}pt; color: #1f2328; line-height: ${compact ? 1.3 : 1.42}; } table { border-collapse: collapse; width: 100%; } td { vertical-align: top; } a { color: inherit; text-decoration: none; }
 .name { font-size: ${compact ? 18 : 22}pt; font-weight: bold; color: ${a}; } .title { font-size: 11pt; color: #444; margin-top: 1pt; } .contact { color: #555; margin-top: 4pt; }
 .photo { width: 70pt; } .top .pc { width: 80pt; text-align: right; }
 .sec { margin-top: ${compact ? 7 : 11}pt; } .st { font-size: 8.5pt; font-weight: bold; color: ${a}; text-transform: uppercase; letter-spacing: 1pt; border-bottom: 0.8pt solid ${a}; padding-bottom: 2pt; margin-bottom: 4pt; }

@@ -283,6 +283,17 @@ supply, GSTIN check auto-fills the state, place of supply, reverse charge, per-r
 pay QR (zxing-wasm), logo and signature images, accent colour. Rent receipt: one per month (exact month ends), three
 per A4 page with cut lines, landlord PAN warning above ₹1 lakh/year, revenue-stamp box for cash above ₹5,000. Resume:
 Classic / Modern (two columns) / Compact, A4 or Letter, photo, repeatable jobs / education / projects.
+**As built after the Nov 2026 bug hunt** (rules in `src/lib/docrules.ts`, unit `tests/unit/docgen.test.mjs` 19; e2e invoice
+29, rent 16, resume 12; `tests/lib/docgen-check.mjs` reads the PDFs back — links, JPEGs, the QR code with zbarimg): the
+pages' **links survive** into the PDF (`htmlToPdf` makes them again on the drawn pages; MuPDF gives mailto: / tel: back as
+"OEBPS/…" paths, which are mended) — the invoice's e-mail, the resume's e-mail, phone, LinkedIn / GitHub / project
+addresses (only mailto:, tel:, http(s); other text stays text). The invoice's **UPI QR is the QR tab's `upi()`**
+(NPCI: the @ as it is, two decimals, cu=INR; its notes under the UPI box); a due date before the date is said. **Save
+details keeps the pictures** (logo, signature, photo as data: URLs) and Load brings them back; a download waits for a
+picture still being read; the preview's updates end with the tab. Rent: three receipts a page when they fit, else two,
+else one (a cash receipt's stamp box spilled each page onto an empty one); up to 120 months; what stops the receipts
+said in words (months reversed, no rent, too many) and a PAN that is not five letters, four digits and a letter
+warned. Resume: the photo is a JPEG (quality 85); file names are made safe (`safeName`).
 | id | Tab | Platform |
 |---|---|---|
 | `pdf-merge` | Merge PDF | both |

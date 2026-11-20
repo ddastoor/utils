@@ -42,11 +42,18 @@ html, body { margin: 0; padding: 0; } body { font-family: Doc; }\n`;
   const doc = m.Document.openDocument(zipSync(files), 'application/epub+zip');
   doc.layout(W - 2 * mg, H - 2 * mg, 10);
   const buf = new m.Buffer(), w = new m.DocumentWriter(buf, 'pdf', 'compress');
-  for (let i = 0; i < doc.countPages(); i++) { const dev = w.beginPage([0, 0, W, H]); doc.loadPage(i).run(dev, m.Matrix.translate(mg, mg)); w.endPage(); }
+  // the pages are drawn into the PDF; their links (an e-mail address, a web page) are made again on top
+  const links: Array<Array<[[number, number, number, number], string]>> = [];
+  for (let i = 0; i < doc.countPages(); i++) {
+    const page = doc.loadPage(i), dev = w.beginPage([0, 0, W, H]); page.run(dev, m.Matrix.translate(mg, mg)); w.endPage();
+    // (MuPDF reads mailto: and tel: as paths beside the chapter — "OEBPS/mailto:…" — and gives them back so)
+    links.push(page.getLinks().map((l: any) => { const [x0, y0, x1, y1] = l.getBounds(); return [[x0 + mg, y0 + mg, x1 + mg, y1 + mg], String(l.getURI()).replace(/^OEBPS\/(?=(mailto|tel):)/i, '')] as [[number, number, number, number], string]; }).filter(([, u]: [unknown, string]) => /^(https?:|mailto:|tel:)/i.test(u)));
+  }
   w.close();
   // subset the embedded fonts, add page numbers and the title
   const pdf = m.Document.openDocument(buf.asUint8Array().slice(), 'application/pdf').asPDF()!;
   const n = pdf.countPages();
+  links.forEach((ls, i) => { if (i < n && ls.length) { const p = pdf.loadPage(i); for (const [r, u] of ls) p.createLink(r, u); } });
   if (o.pageNumbers && n > 1) for (let i = 0; i < n; i++) {
     const t = `Page ${i + 1} of ${n}`, tw = await textWidth(t, 8);
     await stampPage(pdf, i, (PW) => `BT /STF 8 Tf 0.45 g ${((PW - tw) / 2).toFixed(2)} ${(mg / 2 - 3).toFixed(2)} Td ${pdfString(t)} Tj ET`, { font: true });

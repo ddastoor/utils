@@ -1,7 +1,7 @@
 // GST Invoice (#/invoice): MuPDF-made PDF read back in Node — CGST/SGST vs IGST vs UTGST, totals and round-off from
 // mathcore (integer paise), amount in words, GSTIN check, UPI QR, Bill of supply, Hindi text, save/load details.
 import { readFileSync, writeFileSync } from 'node:fs';
-import { pdfDoc } from '../lib/docgen-check.mjs';
+import { pdfDoc, pdfQr } from '../lib/docgen-check.mjs';
 export default async ({ base, page: newPage, ok, info, download, tmp, devices }) => {
   const page = await newPage({ viewport: { width: 1400, height: 1000 } });
   await page.goto(base + '#/invoice');
@@ -47,6 +47,22 @@ export default async ({ base, page: newPage, ok, info, download, tmp, devices })
   await page.getByLabel('UPI ID (adds a pay-by-UPI QR code)').fill('shop@okaxis');
   d = await pdf();
   ok(d.images >= 1 && /Scan to pay with UPI/.test(d.text) && /shop@okaxis/.test(d.text), 'UPI QR code printed');
+  // the code holds the UPI link as the QR tab writes it (NPCI): the @ of the UPI ID as it is — it was %40
+  const qr = await pdfQr(await download(page, () => page.getByRole('button', { name: 'Download PDF' }).click()));
+  if (qr === null) info('zbarimg not installed — the QR code is not read back');
+  else ok(qr === 'upi://pay?pa=shop@okaxis&pn=Your%20Business%20Name&am=1179.99&cu=INR&tn=INV-001', `the QR code read back by zbar: ${qr}`);
+  await page.getByLabel('UPI ID (adds a pay-by-UPI QR code)').fill('shop');
+  ok(await page.getByText('does not look like a UPI ID').first().waitFor({ timeout: 5000 }).then(() => true, () => false), 'a UPI ID that does not look like one: said under the box');
+  await page.getByLabel('UPI ID (adds a pay-by-UPI QR code)').fill('shop@okaxis');
+  ok(await page.getByText('does not look like a UPI ID').count() === 0, 'and the note goes when it does');
+  // a due date before the invoice date
+  await page.getByLabel('Due date (optional)').fill('2020-01-01');
+  ok(await page.getByText('The due date is before the invoice date.').count() === 1, 'a due date before the date: said');
+  await page.getByLabel('Due date (optional)').fill('');
+  // the business's e-mail address is a link in the PDF
+  await page.locator('.card', { hasText: 'From (your business)' }).getByLabel('Email').fill('billing@example.com');
+  d = await pdf();
+  ok(d.links.includes('mailto:billing@example.com'), `the e-mail address is a link (${d.links.join(' ')})`);
   // bill of supply: no GST
   await page.getByRole('radio', { name: 'Bill of Supply' }).click();
   d = await pdf();
@@ -63,6 +79,24 @@ export default async ({ base, page: newPage, ok, info, download, tmp, devices })
   const chooser = page.waitForEvent('filechooser'); await page.getByRole('button', { name: 'Load details' }).click(); await (await chooser).setFiles(jf2);
   await page.waitForFunction(() => [...document.querySelectorAll('input')].some((i) => i.value === 'INV-777'));
   ok(/INV-777/.test((await pdf()).text), 'details loaded back from the file');
+  // the logo goes into the details file and comes back from it (it was lost); a download waits for a picture being read
+  await page.locator('input[type=file]').first().setInputFiles(new URL('../fixtures/images/astronaut.png', import.meta.url).pathname);
+  const withLogo = await pdf();
+  ok(withLogo.images >= 2, `a download straight after choosing the logo has it (${withLogo.images} pictures with the QR code)`);
+  const jl = await download(page, () => page.getByRole('button', { name: 'Save details' }).click()), jj = JSON.parse(readFileSync(jl, 'utf8'));
+  ok(/^data:image\/png;base64,/.test(jj.images?.logo || ''), 'the logo is in the details file');
+  const fresh = await newPage({ viewport: { width: 1400, height: 1000 } });
+  await fresh.goto(base + '#/invoice');
+  await fresh.waitForFunction(() => /\d+ pages? · \d+ KB/.test(document.querySelector('[aria-live="polite"].muted')?.textContent || ''), null, { timeout: 60000 });
+  const ch2 = fresh.waitForEvent('filechooser'); await fresh.getByRole('button', { name: 'Load details' }).click(); await (await ch2).setFiles(jl);
+  await fresh.getByText('logo (from the details file)').waitFor({ timeout: 10000 });
+  const back = await pdfDoc(await download(fresh, () => fresh.getByRole('button', { name: 'Download PDF' }).click()));
+  ok(back.images >= 2 && /INV-777/.test(back.text), `loaded in a fresh tab: the logo is back (${back.images} pictures)`);
+  // leaving the tab while the preview waits: nothing after it
+  await fresh.locator('.card', { hasText: 'Bill to (customer)' }).getByLabel('Name').fill('Someone else');
+  await fresh.goto(base + '#/');
+  await fresh.waitForTimeout(1500);
+  ok(fresh.errors.length === 0, `leaving the tab mid-update: no errors (${fresh.errors.join(' | ')})`);
   ok(page.errors.length === 0, `no page errors: ${page.errors.join(' | ')}`);
   const phone = await newPage({ ...devices['iPhone 13'] });
   await phone.goto(base + '#/invoice');

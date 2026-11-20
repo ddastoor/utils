@@ -1181,3 +1181,12 @@ One entry per tab, written before its bug hunt: our module → candidates → ch
   as the extensions GitHub always switches on make them (tag filter 6, autolinks 5, one "must not crash").
 - **Beside it:** heading ids as GitHub gives them (`src/lib/mdslug.ts`, held to npm's github-slugger), and the
   rendered HTML tidied in an inert DOMParser document (pictures from other sites, links, ids) — glue in TypeScript.
+
+### 139 – 141. `invoice`, `rent`, `resume` — the document generators (20 Nov 2026)
+- **Engine:** MuPDF's own HTML layout (the official build already in the app; HarfBuzz shaping) through an in-memory
+  EPUB (`src/lib/htmlpdf.ts`), mathcore for the GST arithmetic, zxing-wasm for the UPI QR code. **Candidates:** no
+  HTML → PDF engine exists as WebAssembly besides MuPDF's (WeasyPrint, wkhtmltopdf and Chromium are not); typst
+  (Rust, compiled to WebAssembly as typst.ts) is a typesetter of its own markup — the templates would be written anew,
+  with tens of MB of fonts and packages, for the same pages. **Decision:** MuPDF stays. Found on the way: the pages were
+  drawn into the PDF without their links, and MuPDF reads mailto: / tel: as paths beside the chapter ("OEBPS/mailto:…")
+  — the links are made again on the drawn pages now (getLinks → createLink).
