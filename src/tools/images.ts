@@ -1,50 +1,79 @@
-// EXIF / Photo Info: read camera, exposure, date and GPS; remove metadata (lossless for JPEG/PNG).
-import { h, card, button, stack, note, clear, filePicker, fmtBytes, baseName, downloadBlob, shareOrDownload, toast, type Mount } from '../ui';
-import { readExif, stripMetadata, type ExifData } from '../lib/exif';
-import { loadImg, encodeImg } from '../lib/imgio';
+// EXIF / Photo Info: everything a photo says about itself — camera, date, place, serial numbers, names, previews —
+// read by ExifTool (13.42, WebAssembly, in a worker: src/lib/exiftool-client.ts), and the photo saved without it
+// (ExifTool too: the picture's bytes untouched, the colour profile and orientation kept). Formats ExifTool cannot
+// write are re-saved as a JPEG.
+import { h, card, button, stack, note, clear, filePicker, fmtBytes, baseName, downloadBlob, shareOrDownload, toast, errMsg, type Mount } from '../ui';
+import { loadImg, encodeImg, previewOf, paint } from '../lib/imgio';
 import { imageInfoOf } from '../lib/imgtools';
+import { readPhotoTags, stripPhoto } from '../lib/exiftool-client';
+import { photoInfo, gpsOf, isMetadata, notPicture } from '../lib/photoinfo';
+import { toDecimal, toDMS } from '../lib/coords';
 
-const fmtDate = (s?: string) => (s ? s.replace(/^(\d{4}):(\d{2}):(\d{2})/, '$1-$2-$3') : undefined);
-const dms = (v: number, pos: string, neg: string) => {
-  const a = Math.abs(v), d = Math.floor(a), m = Math.floor((a - d) * 60), s = ((a - d) * 60 - m) * 60;
-  return `${d}° ${m}′ ${s.toFixed(2)}″ ${v >= 0 ? pos : neg}`;
+const kv = (rows: Array<[string, unknown]>) => {
+  const r = rows.filter(([, v]) => v !== undefined && v !== null && v !== '');
+  return r.length ? h('dl', { class: 'kv' }, r.flatMap(([k, v]) => [h('dt', null, k), h('dd', null, String(v))])) : null;
 };
+const EXT_MIME: Record<string, string> = { jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', webp: 'image/webp', heic: 'image/heic', heif: 'image/heif', avif: 'image/avif', tif: 'image/tiff', tiff: 'image/tiff', gif: 'image/gif' };
+const extOf = (name: string) => (/\.([A-Za-z0-9]{1,8})$/.exec(name)?.[1] || '').toLowerCase();
 
 export const exif: Mount = (root, ctx) => {
   const out = h('div', { class: 'stack' });
+  let seq = 0, loaded = false;
   const show = async (file: File) => {
+    const my = ++seq;
     clear(out);
-    const [x, dims] = await Promise.all([readExif(file), imageInfoOf(file)]);
-    const url = URL.createObjectURL(file);
-    const kv = (rows: Array<[string, unknown]>) => {
-      const r = rows.filter(([, v]) => v !== undefined && v !== null && v !== '');
-      return r.length ? h('dl', { class: 'kv' }, r.flatMap(([k, v]) => [h('dt', null, k), h('dd', null, String(v))])) : null;
-    };
-    const has = Object.keys(x.raw).length > 0;
+    const thumb = h('canvas', { class: 'exif-thumb', 'aria-label': file.name });
+    const status = h('div', { class: 'muted small', 'aria-live': 'polite' }, `Reading the metadata…${loaded ? '' : ' (the first photo loads ExifTool, about 8 MB)'}`);
+    const head = card(null, thumb, kv([['File', file.name], ['Size', fmtBytes(file.size)], ['Type', file.type || extOf(file.name).toUpperCase() || '—']]), status);
+    out.append(head);
+    // the picture and its size while ExifTool reads (a RAW file or a damaged one may have no picture to show)
+    loadImg(file).then((img) => { if (my === seq) paint(previewOf(img, 480), thumb); }).catch(() => { thumb.hidden = true; });
+    const dims = imageInfoOf(file);
+    let tags;
+    try { tags = await readPhotoTags(file); loaded = true; }
+    catch (e) { if (my === seq) status.textContent = `This file could not be read: ${errMsg(e)}`; return; }
+    if (my !== seq) return;
+    const not = notPicture(tags);
+    if (not) { status.textContent = not; thumb.hidden = true; return; }
+    const x = photoInfo(tags), d = await dims;
+    if (my !== seq) return;
+    status.textContent = '';
+    if (d) head.append(kv([['Pixels', `${d.width} × ${d.height} (${((d.width * d.height) / 1e6).toFixed(1)} MP)`]])!);
+    const groups = x.groups.filter(([g]) => !/^(File|Composite)$/.test(g));
     out.append(h('div', { class: 'stack' },
-      card(null, h('img', { src: url, alt: file.name, class: 'exif-thumb' }), kv([['File', file.name], ['Size', fmtBytes(file.size)], ['Type', file.type || '—'], ['Pixels', dims ? `${dims.width} × ${dims.height} (${((dims.width * dims.height) / 1e6).toFixed(1)} MP)` : undefined]])),
-      !has ? note('This photo has no EXIF metadata (no camera details or location).', 'ok') : null,
-      x.gps ? card('Location (GPS)', note('This photo reveals where it was taken. Remove metadata before sharing it publicly.', 'warn'),
-        kv([['Latitude', `${x.gps.lat.toFixed(6)} (${dms(x.gps.lat, 'N', 'S')})`], ['Longitude', `${x.gps.lon.toFixed(6)} (${dms(x.gps.lon, 'E', 'W')})`], ['Altitude', x.gps.alt !== undefined ? `${(+x.gps.alt).toFixed(1)} m` : undefined], ['GPS date', x.gps.time]]),
-        h('a', { href: `https://www.openstreetmap.org/?mlat=${x.gps.lat.toFixed(6)}&mlon=${x.gps.lon.toFixed(6)}#map=16/${x.gps.lat.toFixed(6)}/${x.gps.lon.toFixed(6)}`, target: '_blank', rel: 'noopener noreferrer', class: 'btn btn-secondary btn-sm' }, 'Open in OpenStreetMap ↗')) : null,
-      has ? card('Camera', kv([['Make', x.make], ['Model', x.model], ['Lens', x.lens], ['Software', x.software], ['Artist', x.artist], ['Copyright', x.copyright]])) : null,
-      has ? card('Exposure', kv([['Taken', fmtDate(x.dateTimeOriginal || x.dateTime)], ['Shutter', x.exposure], ['Aperture', x.fNumber ? `f/${+x.fNumber.toFixed(1)}` : undefined], ['ISO', x.iso], ['Focal length', x.focalLength ? `${+x.focalLength.toFixed(1)} mm${x.focal35 ? ` (${x.focal35} mm equiv.)` : ''}` : undefined], ['Flash', x.flash], ['Orientation', x.orientation]])) : null,
-      has ? h('details', { class: 'card' }, h('summary', null, `All tags (${Object.keys(x.raw).length})`), kv(Object.entries(x.raw))) : null,
+      x.metadataCount === 0 ? note('This photo carries no metadata — no camera details, date or location.', 'ok')
+        : note(h('div', null, h('strong', null, 'This photo gives away:'), h('ul', null, x.reveals.length ? x.reveals.map((r) => h('li', null, r)) : [h('li', null, `${x.metadataCount} metadata tags (see All tags)`)]), 'Save it without metadata before sharing it publicly.'), 'warn'),
+      x.gps ? card('Location (GPS)',
+        kv([['Latitude', `${toDecimal(x.gps.lat)} (${toDMS(x.gps.lat, 'lat')})`], ['Longitude', `${toDecimal(x.gps.lon)} (${toDMS(x.gps.lon, 'lon')})`], ['Altitude', x.gps.alt !== undefined ? `${x.gps.alt.toFixed(1)} m` : undefined], ['GPS time', x.gps.time]]),
+        h('a', { href: `https://www.openstreetmap.org/?mlat=${toDecimal(x.gps.lat)}&mlon=${toDecimal(x.gps.lon)}#map=16/${toDecimal(x.gps.lat)}/${toDecimal(x.gps.lon)}`, target: '_blank', rel: 'noopener noreferrer', class: 'btn btn-secondary btn-sm' }, 'Open in OpenStreetMap ↗')) : null,
+      x.camera.some(([, v]) => v) ? card('Camera', kv(x.camera)) : null,
+      x.exposure.some(([, v]) => v) ? card('Exposure', kv(x.exposure)) : null,
+      h('details', { class: 'card' }, h('summary', null, `All tags (${groups.reduce((n, [, r]) => n + r.length, 0)})`),
+        ...groups.map(([g, rows]) => h('div', { class: 'stack' }, h('h4', null, g), kv(rows)))),
+      x.warning ? note(`ExifTool: ${x.warning}`, 'warn') : null,
       card('Remove metadata', stack(
-        note(file.type === 'image/jpeg' || file.type === 'image/png' ? 'Removes EXIF, GPS, XMP and comments without re-compressing the picture (colour profile kept).' : 'This format is re-saved as a high-quality JPEG without metadata.'),
-        h('div', { class: 'actions' }, button('Save without metadata', async () => {
-          const clean = await strip(file);
-          const name = `${baseName(file.name)}-clean.${clean.type === 'image/png' ? 'png' : 'jpg'}`;
-          ctx.isMobile ? await shareOrDownload(clean, name) : downloadBlob(clean, name);
-          toast(`Saved ${fmtBytes(clean.size)} without metadata`, 'ok');
-        }, { variant: 'primary', icon: 'ShieldCheck' })))),
+        note('Removes the camera details, date, location, names, serial numbers, previews and comments without re-compressing the picture. The colour profile and the orientation stay.'),
+        h('div', { class: 'actions' }, button('Save without metadata', () => saveClean(file), { variant: 'primary', icon: 'ShieldCheck' })))),
     ));
   };
-  root.append(card(null, filePicker({ accept: 'image/*,.heic,.heif', label: 'Choose a photo', hint: 'JPG, PNG, WebP, HEIC — nothing is uploaded', onFiles: (f) => show(f[0]).catch((e) => toast(e.message, 'err')) })), out);
+  /** ExifTool writes the file without metadata; the result is read again to make sure nothing private is left.
+   *  A format ExifTool cannot write (BMP …) is re-saved as a high-quality JPEG. */
+  const saveClean = async (file: File) => {
+    let blob: Blob, name: string, how: string;
+    const ext = extOf(file.name) || 'jpg';
+    try {
+      const bytes = await stripPhoto(file);
+      blob = new Blob([bytes as BlobPart], { type: file.type || EXT_MIME[ext] || 'application/octet-stream' });
+      name = `${baseName(file.name)}-clean.${ext}`; how = 'picture untouched';
+    } catch (e) {
+      blob = await encodeImg(await loadImg(file), 'jpeg', 92);
+      name = `${baseName(file.name)}-clean.jpg`; how = `re-saved as JPEG — ${errMsg(e)}`;
+    }
+    const left = await readPhotoTags(new File([blob], name, { type: blob.type }));
+    if (gpsOf(left)) throw new Error('The location could not be removed from this file — do not share it.');
+    const rest = Object.keys(left).filter(isMetadata).filter((k) => !/:(Orientation|XResolution|YResolution|ResolutionUnit|YCbCrPositioning|ExifByteOrder|XMPToolkit)$/.test(k) && !/^XMP-(HDRGainMap|apdi|hdrgm)$/.test(k.split(':')[0]));
+    ctx.isMobile ? await shareOrDownload(blob, name) : downloadBlob(blob, name);
+    toast(`Saved ${fmtBytes(blob.size)} without metadata (${how})${rest.length ? ` — ${rest.length} technical tags stay` : ''}`, 'ok');
+  };
+  root.append(card(null, filePicker({ accept: 'image/*,.heic,.heif,.dng,.tif,.tiff', label: 'Choose a photo', hint: 'JPG, PNG, WebP, HEIC, TIFF, DNG — nothing is uploaded', onFiles: (f) => show(f[0]).catch((e) => toast(errMsg(e), 'err')) })), out);
 };
-
-/** Lossless strip for JPEG/PNG; re-encode anything else (HEIC, WebP…) to JPEG q92. */
-export async function strip(file: File): Promise<Blob> {
-  return (await stripMetadata(file)) || encodeImg(await loadImg(file), 'jpeg', 92);
-}
-export type { ExifData };

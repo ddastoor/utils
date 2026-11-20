@@ -41,6 +41,12 @@ this file = the owner's latest wishes, how the tests are written, and the traps 
   satisfies everything the owner asked for that utility; if there is none or none fits, our own
   build from open-source code — also ports of JS/TS-only functionality where possible; only then a JS/TS library as
   it is; everything hosted in the app). #2 Extensive tests for every utility: test, fix the bug or the test, test again.
+- **20 Nov 2026 — FFmpeg tab, more buttons (todo.md item 2, chosen by the owner):** the owner asked whether the FFmpeg
+  tab covers the popular FFmpeg jobs with buttons (it does — 15 tasks, no command line needed; the command is shown
+  only for information) and then: add buttons for the popular jobs that have none (join clips, subtitles, logo or
+  text on video, volume, reverse, a thumbnail at a chosen time), search for more popular FFmpeg uses and add those
+  too, then continue the bug hunt. Also asked: is there a famous existing WebAssembly FFmpeg — ffmpeg.wasm (in use)
+  and libav.js (to be checked against it when the hunt reaches the FFmpeg tab, area "video").
 
 ## 2. Status at hand-off (commit 5f87b87)
 Own e2e suites now exist for **Calculators 27/27, Math & Science 7/7, Text 9/9, the 8 developer tabs (json, regex,

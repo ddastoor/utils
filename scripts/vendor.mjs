@@ -28,6 +28,8 @@ const copies = [
     .map(([dir, f]) => [['@expo-google-fonts', 'noto-sans', dir, `${f}.ttf`], ['fonts', `${f}.ttf`]]),
   // TF.js WebAssembly backend (XNNPACK, C++ → wasm): the CPU path for the Cartoonizer's style transfer when WebGL is missing
   ...['tfjs-backend-wasm.wasm', 'tfjs-backend-wasm-simd.wasm'].map((f) => [['@tensorflow', 'tfjs-backend-wasm', 'dist', f], ['tfjs', f]]),
+  // ExifTool 13.42 on zeroperl (Perl 5 compiled to WebAssembly, ExifTool's library inside): the EXIF / Photo Info tab
+  [['@6over3', 'zeroperl-ts', 'dist', 'esm', 'zeroperl.wasm'], ['exiftool', 'zeroperl.wasm']],
 ];
 
 rmSync(out(), { recursive: true, force: true });

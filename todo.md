@@ -18,5 +18,15 @@ The owner adds items here in chat ("add … to to do"). Newest instructions win.
    (zip.js, mediabunny, OpenPGP.js, Mermaid, Prettier, TensorFlow.js) and the "Deliberately left in TypeScript" notes;
    then every `src/tools/**/*.ts` and `src/lib/*.ts` for loops, parsers and maths still done in TypeScript.
 
+2. **FFmpeg tab: buttons for more popular jobs** (owner, 20 Nov 2026 — **chosen by the owner: do it** right after the
+   EXIF / Photo Info tab of the bug hunt, then go on with the hunt). The owner's words: "make a note to remember to add
+   all the popular new jobs for FFmpeg that don't have buttons yet above, and also search for more out there, more
+   popular things that people do with FFmpeg and add it to the list. And obviously add this new functionality and then
+   obviously continue the bug hunt and the test case writing." The tab must stay button-driven (no command line needed).
+   Jobs without a button so far: **join several clips into one**; **subtitles — burn in, add as a track, extract**;
+   **a logo or text on a video**; **change the volume by a set amount**; **reverse a clip**; **a thumbnail at a chosen
+   time**. Then the more popular jobs found by searching (to be listed here before building). Each job with e2e checks
+   against known answers (ffprobe / the decoded frames), as the tab's other tasks.
+
 ## Done
 _(nothing yet)_

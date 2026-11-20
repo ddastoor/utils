@@ -1016,3 +1016,21 @@ One entry per tab, written before its bug hunt: our module → candidates → ch
 - **Engines:** imgproc (crops; the preview's resizes), canvas (rounded clips, background), jSquash (encoding; the A4
   JPEG's 300 dpi by metacore). **Decision:** the saved collage's photos are resized with @jsquash/resize (entry 109);
   the rest stays.
+
+### 120. `exif` — EXIF / Photo Info (20 Nov 2026) — **replaced: ExifTool**
+- **Ours:** metacore.wasm (own C): an EXIF IFD walker and a JPEG / PNG / WebP stripper. It read no HEIC (an iPhone 13
+  Pro photo with its position was "no EXIF metadata"), no XMP, IPTC, maker notes or PNG text, and its strip dropped
+  the orientation (portrait photos came out on their side) and re-encoded HEIC and WebP to JPEG.
+- **Candidates:** **ExifTool 13.42 on zeroperl** (`@uswriting/exiftool` 1.0.9 + `@6over3/zeroperl-ts` 1.0.10,
+  Apache-2.0: Perl 5 compiled to WebAssembly with Phil Harvey's ExifTool — the reference tool for photo metadata —
+  inside; 25 MB, 7.6 MB gzipped); exiv2-wasm 0.5 (Exiv2, 5 MB); libexif-wasm 0.5 (EXIF only); @saschazar/wasm-exif
+  (EXIF only, 2022).
+- **Check:** ExifTool-wasm against the native exiftool on every photo of tests/fixtures/images: the same tags with the
+  same values (only an iPhone HEIC differs, where 13.42 decodes a few more Apple maker-note tags than Ubuntu's 12.76);
+  0.3 – 0.5 s a photo after the first; it writes JPEG, PNG, WebP, HEIC and TIFF without touching the picture (JPEG scan
+  data and PNG image data byte for byte, HEIC pixels by Pillow).
+- **Decision (rule 1):** ExifTool is the engine of the tab — reading every tag of every format, and "Save without
+  metadata" (`-all= --icc_profile:all -tagsfromfile @ -orientation -jfif:all`: the colour profile, orientation and
+  density stay). It runs in a worker (zeroperl is told it is in a browser; one job at a time — two at once crashed
+  the page), fetched with the first photo, released on leave. metacore stays for the other tabs (orientation on
+  loading, JPEG dpi and padding, sniffing); its `m_strip` is no longer used by any tab.

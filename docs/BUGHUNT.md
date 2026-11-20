@@ -24,7 +24,7 @@ Areas with a shared review: the app shell (router, search, favorites, platform h
 | `watermark` | Watermark | PC + mobile | images1 | ✓ | 6 | 6 | unreadable first photo no longer blocks the preview; Clear photos; empty text refused; logo errors said; failures listed; HEIC logos; jSquash resize |
 | `caption` | Text on Image | PC + mobile | images1 | ✓ | 3 | 21 | over-long words and CJK broken between graphemes (src/lib/textwrap.ts); long text shrunk to fit |
 | `collage` | Collage Maker | PC + mobile | images1 | ✓ | 2 | 4 | A4 JPEG says 300 dpi; first photo's Move earlier off; jSquash resize on save |
-| `exif` | EXIF / Photo Info | PC + mobile | images1 |  |  |  |  |
+| `exif` | EXIF / Photo Info | PC + mobile | images1 | ✓ | 8 | 106 | engine replaced by ExifTool 13.42 (zeroperl wasm, worker): iPhone HEIC position was hidden; HEIC/WebP stay their format on strip; orientation + ICC kept; XMP/IPTC/maker notes/previews shown; non-photo files named; newest photo wins; HEIC preview; DMS carry |
 | `scanner` | Doc Scanner | PC + mobile | images2 |  |  |  |  |
 | `ocr` | OCR | PC + mobile | images2 |  |  |  |  |
 | `signature` | Signature Maker | PC + mobile | images1 |  |  |  |  |
@@ -1603,3 +1603,21 @@ Reference for the five finance tabs: **mpmath at 60 digits** (`scripts/make-fina
      34 × 49 inch page). The JPEG says 300 dpi now; for PNG / WebP the line under the preview says to choose JPEG.
   2. "Move photo 1 earlier" was a button that did nothing; it is off.
   Also: an error while drawing the preview is shown under it instead of an unhandled rejection.
+
+- **`exif` (tab 122, 8 bugs; engine replaced: ExifTool 13.42 on zeroperl, in a worker — docs/WASM-AUDIT.md, 120; unit
+  `tests/unit/exiftool.test.mjs` 87 — new, held to the native exiftool and Pillow; e2e 33 — was 14).**
+  1. **An iPhone HEIC photo with its position said "This photo has no EXIF metadata (no camera details or
+     location)"** — our reader did not read HEIC. ExifTool reads every format; the position, the phone and the rest
+     are shown, and "This photo gives away: …" says in words what is in it.
+  2. "Save without metadata" re-encoded HEIC and WebP to JPEG (quality lost, another format); they keep their format
+     and their picture's bytes now.
+  3. Stripping dropped the orientation: a portrait phone photo came out on its side. The orientation stays (and the
+     colour profile and the JFIF density); nothing private does — the result is read again to make sure.
+  4. XMP, IPTC, maker notes (serial numbers, owner names), PNG text and time chunks and embedded preview pictures were
+     not shown; they are, grouped, and named among what the photo gives away.
+  5. A file that is no picture (a text file named .jpg) said "no EXIF metadata"; it says what it is ("ExifTool reads
+     it as a TXT file"); an empty file is said.
+  6. A second photo chosen while the first was being read could be replaced by the first's details; the newest wins.
+  7. The preview of a HEIC photo was a broken image (browsers do not show HEIC in an `<img>`), and the preview's
+     object URL was never released; the photo is decoded and drawn.
+  8. Degrees, minutes and seconds could read 60.00″ (rounding without a carry); the Coordinates tab's writer is used.

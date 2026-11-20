@@ -71,6 +71,7 @@
     "@tesseract.js-data/eng": "^1.0.0",
     "@tesseract.js-data/fra": "^1.0.0",
     "@tesseract.js-data/spa": "^1.0.0",
+    "@uswriting/exiftool": "1.0.9",
     "@zip.js/zip.js": "^2.25.0",
     "7z-wasm": "^1.2.0",
     "dprint-plugin-markup": "^0.28.0",

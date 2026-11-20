@@ -231,7 +231,7 @@ Test, plus `photodict` Photo Dictionary (owner said mobile only — phone camera
 | `watermark` | Watermark | both | canvas text/logo watermark |
 | `caption` | Text on Image | both | canvas captions / meme text |
 | `collage` | Collage Maker | both | canvas photo grid |
-| `exif` | EXIF / Photo Info | both | own EXIF parser; strip metadata |
+| `exif` | EXIF / Photo Info | both | ExifTool 13.42 (Perl on zeroperl, WebAssembly) in a worker: every tag of every format; strip metadata losslessly (colour profile + orientation kept) |
 | `scanner` | Doc Scanner | both | `imgproc` page detection (convexity/area check → falls back to whole photo), draggable corners, homography warp, enhance; PDF via MuPDF (`src/lib/pdf.ts`, JPEG pages embedded as-is) or JPEGs |
 | `ocr` | OCR | both | Tesseract (C++ → wasm), English, French, Spanish, German |
 
@@ -507,6 +507,19 @@ and animals would need another model (docs/WASM-AUDIT.md, 114).
   (a web address, Chinese / Japanese without spaces) between grapheme clusters; text is made smaller until each block
   is at most 45 % of the height.
 - `collage` (e2e 19): the saved photos resized with @jsquash/resize; an A4 JPEG says 300 dpi.
+
+### EXIF / Photo Info — as built after the Nov 2026 bug hunt
+(`exif` in `src/tools/images.ts`; shaping `src/lib/photoinfo.ts`, engine `src/lib/exiftool.ts` in
+`src/workers/exiftool.worker.ts` + `src/lib/exiftool-client.ts`; unit `tests/unit/exiftool.test.mjs` 87 — needs
+`apt install libimage-exiftool-perl` for the native reference; e2e `tests/e2e/exif.e2e.mjs` 33.) **ExifTool 13.42**
+(`@uswriting/exiftool`, Perl on zeroperl; `public/vendor/exiftool/zeroperl.wasm`, 25 MB / 7.6 MB gzipped, fetched with
+the first photo, one job at a time in its worker, ended on leave). Reading: `-json -G1 -a -c %+.8f -m`; the summary
+cards (location with decimal and DMS and an OpenStreetMap link, camera, exposure), "This photo gives away: …" (place,
+date, camera or phone, serial numbers, names, people, an embedded preview, software, descriptions), every tag by
+group; a broken GPS block or 0, 0 is no position. "Save without metadata": `-q -q -m -all= --icc_profile:all
+-tagsfromfile @ -orientation -jfif:all` — the file keeps its format and its picture's bytes; the result is read
+again (a position left would be refused); formats ExifTool cannot write are re-saved as JPEG. A file that is no
+picture is named for what it is.
 
 ### Cartoonizer ("Prisma-like") — BUILT (`src/tools/cartoon.ts`, e2e `tests/e2e/cartoon.e2e.mjs`, 37 checks)
 Two engines, picked with a "Filters | AI art styles" switch; tiles show live thumbnails of the user's photo / the style.
@@ -1690,6 +1703,7 @@ stay **public** (the source of the deployed site is then available to every user
 | cmark-gfm 0.29.0.gfm.13 (GitHub Flavored Markdown) | C | **us** (`wasm/markdown`, source from the PyPI `cmarkgfm` sdist, SHA-256 pinned) | markdown |
 | libyaml 0.2.5 + toml++ 3 | C / C++ | **us** (`wasm/formats`) | yaml |
 | MuPDF 1.28 | C | Artifex (official `mupdf` npm) | all PDF tools, PDF → EPUB |
+| ExifTool 13.42 on zeroperl (Perl 5 compiled to WebAssembly with ExifTool's library inside) | Perl / C | Phil Harvey (ExifTool), uswriting / 6over3 (`@uswriting/exiftool` 1.0.9, `@6over3/zeroperl-ts` 1.0.10) — run in `src/workers/exiftool.worker.ts` | exif (replaced metacore's reader and stripper in Nov 2026: `docs/WASM-AUDIT.md`, tab 120) |
 | hash-wasm 4.13.0 (hand-tuned C → wasm, one small binary per algorithm, embedded in the package; streaming; HMAC over any of its hashes; Argon2, bcrypt, scrypt, PBKDF2) | C | Dani Biró (`hash-wasm` npm, ~10 M downloads a month) — wrappers `src/lib/hmac.ts`, `src/lib/totp.ts`, `src/lib/pwhash.ts`, `src/lib/hashes.ts` (in `src/workers/hash.worker.ts`); only the algorithms a tab uses are bundled into its chunk, loaded with the tab's first result | hash (23 algorithms), hmac (all of it), totp (the HMAC), pwhash (Argon2id / i / d, bcrypt, scrypt, PBKDF2) — replaced RustCrypto builds and crypto.wasm's hashes of ours in Nov 2026 (`docs/WASM-AUDIT.md`) |
 | ONNX Runtime Web 1.31 (CPU/WebAssembly, SIMD) | C++ | Microsoft (official `onnxruntime-web` wasm build) | tts (Kokoro, Piper) |
 | SQLite 3.54 | C | SQLite project (official `@sqlite.org/sqlite-wasm`), run in `src/workers/sqlite.worker.ts` (terminated on leave) | sqlite |
@@ -2193,6 +2207,7 @@ npm packages (pinned in `package-lock.json`) are bundled by Vite or copied to `p
 | libsodium-wrappers-sumo 0.8.4 (+ libsodium-sumo; libsodium 1.0.22 compiled to WebAssembly by its author) | ISC | Sodium Encrypt, Encrypted Share Link, Password Generator, Passphrase Generator |
 | mediabunny | MPL-2.0 | Video Compressor, Audio Recorder (cut without re-encoding) |
 | lcms-wasm 1.0.5 (Little CMS 2.16) | MIT | HEIC colours (Display P3 → sRGB) |
+| @uswriting/exiftool 1.0.9 + @6over3/zeroperl-ts 1.0.10 (ExifTool 13.42; Perl 5) | Apache-2.0 (the packages); ExifTool and Perl: the Artistic License or GPL-1.0+ | EXIF / Photo Info |
 | @biomejs/wasm-web 2.6.8 (Biome's official WebAssembly build) | MIT OR Apache-2.0 | Code Formatter |
 | @dprint/formatter 0.6.0, @dprint/json 0.26.0, dprint-plugin-markup 0.28.0 (markup_fmt) | MIT | Code Formatter |
 | prettier 3 | MIT | Code Formatter (Markdown; fallback) |
