@@ -19,7 +19,7 @@ Areas with a shared review: the app shell (router, search, favorites, platform h
 | `passport` | Passport Photo | PC + mobile | images2 | ✓ | 4 | 6 | MediaPipe 1.2.3 (latest) + imgproc kept; no stale result after a face-less photo; Cancel ends the countdown; camera errors worded (shared src/lib/camera.ts); custom size 10–150 mm; jSquash resize for upload |
 | `formphoto` | Photo & Signature Resizer | PC + mobile | images2 | ✓ | 8 | 55 | engines kept + jSquash resize; KB read strictly (max ×1000, min ×1024); dpi before padding (was +18 bytes over max); metacore padding exact; no download of an over-max file; per-field reasons; re-frame without new face search; newest photo wins; object URLs revoked |
 | `bgremove` | Background Remover | PC + mobile | images2 | ✓ | 8 | 21 | MediaPipe + imgproc kept (imgly ISNet noted for objects); newest photo/background wins; no-person said + Save refuses; failure reason on Save; status restored; .swatch CSS clash with Color tab fixed (.bg-swatch); 44 px swatches with pressed state; model note only first time |
-| `cartoon` | Cartoonizer | PC + mobile | images2 |  |  |  |  |
+| `cartoon` | Cartoonizer | PC + mobile | images2 | ✓ | 7 | 8 | imgproc + TF.js (wasm/WebGL) kept; see-through photo/painting on white (onWhite in imgio); one AI painting at a time, newest settings follow; Save refuses a stale AI result; keyboard compare; model note only until loaded |
 | `redact` | Blur & Redact | PC + mobile | images2 |  |  |  |  |
 | `watermark` | Watermark | PC + mobile | images1 |  |  |  |  |
 | `caption` | Text on Image | PC + mobile | images1 |  |  |  |  |
@@ -1551,3 +1551,20 @@ Reference for the five finance tabs: **mpmath at 60 digits** (`scripts/make-fina
   7. "first run loads a 16 MB model" was said for every photo; only for the first of a visit now.
   8. The status line now says how much of the photo the person fills (a first hint when the search took a cat or a
      pattern for a person — MediaPipe's model is trained on people).
+
+- **`cartoon` (tab 117, 7 bugs; engines kept: imgproc + Magenta on TF.js (WebAssembly / WebGL) — docs/WASM-AUDIT.md,
+  115; e2e 45 — was 37).**
+  1. A see-through photo (a cut-out from the Background Remover) was painted black where it was transparent by the AI
+     styles, and the filters drew ink lines and dark halos along the cut; it is put on white first (`onWhite`, now in
+     `src/lib/imgio.ts`, shared with the Signature Maker). The same for a see-through painting used as the style.
+  2. Every step of the Strength slider (each arrow key) and every style click queued a whole painting in the worker:
+     five changes took five runs (≈ 5 s each on WebAssembly) before the newest showed. One painting at a time now; a
+     change meanwhile waits and only the newest settings follow ("your new choice follows").
+  3. Save in AI mode gave whatever was on screen — the previous style or strength while the new one was being
+     painted, or the Filters picture under an AI style's name when the style engine failed. It refuses with the
+     reason now ("still being made", or the engine's error).
+  4. "Hold to compare" worked only with a pointer; Space or Enter held on the focused button compares too, and
+     losing focus shows the result again.
+  5. "Loading the style model (≈ 17 MB the first time)" flashed before every AI change; only until it has loaded.
+  6. Save in Filters mode before the first preview was ready said "Choose a photo first." with a photo chosen.
+  7. A painting that could not be opened was reported without its file name.

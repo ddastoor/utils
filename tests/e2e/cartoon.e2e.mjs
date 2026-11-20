@@ -157,17 +157,71 @@ export default async ({ base, page: newPage, ok, info, download, devices }) => {
   const released = await stats(page);
   ok(held.mad < 3, `hold to compare shows the original (mean difference ${held.mad.toFixed(1)})`);
   ok(Math.abs(released.mad - s100.mad) < 0.5, 'releasing shows the result again');
+  // the keyboard: Space held on the focused button
+  await cmp.focus(); await page.keyboard.down('Space'); await page.waitForTimeout(150);
+  const kheld = await stats(page);
+  await page.keyboard.up('Space'); await page.waitForTimeout(150);
+  const kback = await stats(page);
+  ok(kheld.mad < 3 && Math.abs(kback.mad - s100.mad) < 0.5, `Space held on the focused button compares too (${kheld.mad.toFixed(1)} → ${kback.mad.toFixed(1)})`);
   // own painting as the style
   before = st;
   await page.locator('input[type=file]').nth(1).setInputFiles(F('flower.jpg'));
   st = await nextAi(page, before);
   ok(/^Your painting · /.test(st), `own painting used as the style: "${st}"`);
   ok(await page.locator('.fx-tile.on[data-style^="own"]').count() === 1, 'own painting tile added and selected');
+
+  // one painting at a time: a burst of strength changes paints at most twice (the one under way and the newest),
+  // and Save meanwhile does not give the older picture under the new settings
+  const n0 = await renders(page);
+  for (const v of [10, 20, 30, 40, 50]) await setSlider(page, 'Strength', v);
+  ok(/your new choice follows/.test(await page.locator(STATUS).first().textContent()), `a change while painting waits for it ("${await page.locator(STATUS).first().textContent()}")`);
+  let got = null; page.once('download', (dl) => { got = dl; });
+  await page.getByRole('button', { name: 'Save', exact: true }).click();
+  ok(await page.locator('.toast', { hasText: 'The painting is still being made' }).first().waitFor({ timeout: 8000 }).then(() => true, () => false), 'Save while the new painting is being made: "still being made"');
+  await page.waitForTimeout(300);
+  ok(got === null, '… and nothing is downloaded');
+  await page.waitForFunction(([sel]) => / s on /.test(document.querySelector(sel)?.textContent || ''), [STATUS], { timeout: 240000 });
+  await page.waitForTimeout(4000);
+  const nb = (await renders(page)) - n0;
+  ok(nb >= 1 && nb <= 2 && / s on /.test(await page.locator(STATUS).first().textContent()), `five changes → ${nb} painting(s), not five`);
   const p3 = await download(page, () => page.getByRole('button', { name: 'Save', exact: true }).click());
   const i3 = imageInfo(p3), d3 = await decodeInPage(page, p3);
   ok(i3.type === 'jpeg' && i3.width === 512 && i3.height === 512 && /your-painting/.test(p3), `AI result saved as JPEG (${i3.width}×${i3.height}, ${p3.split('/').pop()})`);
   ok(d3.mean[0] + d3.mean[1] + d3.mean[2] > 60, 'saved picture is not blank');
-  ok(page.errors.length === 0, `no page errors: ${page.errors.join(' | ')}`);
+  const errs = page.errors.filter((e) => !/^Error: The painting is still being made/.test(e)); // the refusal above, logged by the button
+  ok(errs.length === 0, `no page errors: ${errs.join(' | ')}`);
+
+  // ---- a see-through photo (a cut-out from the Background Remover) is painted as if on white, in both engines
+  const pair = await page.evaluate(async (b64) => {
+    const bmp = await createImageBitmap(new Blob([Uint8Array.from(atob(b64), (c) => c.charCodeAt(0))]));
+    const mk = async (white) => {
+      const c = new OffscreenCanvas(192, 192), g = c.getContext('2d'); g.drawImage(bmp, 0, 0, 192, 192);
+      if (white) { g.fillStyle = '#fff'; g.fillRect(0, 0, 96, 192); } else g.clearRect(0, 0, 96, 192);
+      return [...new Uint8Array(await (await c.convertToBlob({ type: 'image/png' })).arrayBuffer())];
+    };
+    return [await mk(false), await mk(true)];
+  }, readFileSync(F('astronaut.png')).toString('base64'));
+  const tp = await newPage();
+  await tp.goto(base + '#/cartoon?backend=wasm');
+  const pixels = () => tp.evaluate(() => { const c = document.querySelector('canvas.ed-canvas'); return [...c.getContext('2d').getImageData(0, 0, c.width, c.height).data]; });
+  const diffOf = (a, b) => { let d = 0; for (let i = 0; i < a.length; i += 4) d += (Math.abs(a[i] - b[i]) + Math.abs(a[i + 1] - b[i + 1]) + Math.abs(a[i + 2] - b[i + 2])) / 3; return d / (a.length / 4); };
+  const leftLum = (px) => { let l = 0, n = 0; for (let y = 0; y < 192; y++) for (let x = 0; x < 80; x++) { const i = (y * 192 + x) * 4; l += 0.299 * px[i] + 0.587 * px[i + 1] + 0.114 * px[i + 2]; n++; } return l / n; };
+  const fxOf = async (buf, name) => { const b = await renders(tp); await tp.locator('input[type=file]').first().setInputFiles({ name, mimeType: 'image/png', buffer: Buffer.from(buf) }); await waitRender(tp, b); await waitStatus(tp, /^Cartoon · \d+ ms$/); return pixels(); };
+  const fxT = await fxOf(pair[0], 'cutout.png'), fxW = await fxOf(pair[1], 'white.png');
+  ok(leftLum(fxT) > 200 && diffOf(fxT, fxW) < 1, `filters: the see-through half is white paper, as for the same photo on white (lum ${leftLum(fxT).toFixed(0)}, diff ${diffOf(fxT, fxW).toFixed(2)})`);
+  const aiOf = async (buf, name) => {
+    const b0 = await tp.locator(STATUS).first().textContent();
+    await tp.locator('input[type=file]').first().setInputFiles({ name, mimeType: 'image/png', buffer: Buffer.from(buf) });
+    await tp.waitForFunction(([sel, b]) => { const t = document.querySelector(sel)?.textContent || ''; return t !== b && /Painting|Reading|Loading/.test(t); }, [STATUS, b0], { timeout: 60000 }).catch(() => {});
+    await tp.waitForFunction(([sel]) => / s on |Could not/.test(document.querySelector(sel)?.textContent || ''), [STATUS], { timeout: 240000 });
+    return pixels();
+  };
+  const tb = await tp.locator(STATUS).first().textContent();
+  await tp.getByRole('radio', { name: 'AI art styles' }).click();
+  await nextAi(tp, tb, 240000);
+  const aiW = await aiOf(pair[1], 'white.png'), aiT = await aiOf(pair[0], 'cutout.png');
+  ok(aiT.length === aiW.length && diffOf(aiT, aiW) < 1, `AI style: the see-through photo is painted as the same photo on white (diff ${diffOf(aiT, aiW).toFixed(2)}, left lum ${leftLum(aiT).toFixed(0)})`);
+  ok(tp.errors.length === 0, `no page errors (see-through photo): ${tp.errors.join(' | ')}`);
 
   // ---- WebGL and WebAssembly backends paint the same picture (small photo keeps software WebGL quick)
   const small = Buffer.from(await page.evaluate(async (b64) => {

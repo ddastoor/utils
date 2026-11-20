@@ -5,7 +5,7 @@
 //    procedurally drawn "paintings" or any painting the user uploads; Strength blends from the photo's own style.
 import { h, card, stack, note, actions, button, segmented, slider, field, filePicker, downloadBlob, shareOrDownload, fmtBytes, baseName, toast, errMsg, type Mount } from '../ui';
 import { imgproc, type Img } from '../wasm/imgproc';
-import { encodeImg, loadImg, previewOf, paint } from '../lib/imgio';
+import { encodeImg, loadImg, previewOf, paint, onWhite } from '../lib/imgio';
 import { imageInput } from '../lib/imgtools';
 import { ART_STYLES, artImage } from '../lib/style-art';
 import { styleEngine, styleVector, stylize, disposeStyleEngine } from '../lib/style-transfer';
@@ -43,6 +43,9 @@ export const mount: Mount = (root, ctx) => {
   const status = h('div', { class: 'muted small', 'aria-live': 'polite' });
   const editor = h('div', { class: 'stack', hidden: true });
   let tok = 0, renders = 0; // renders: count of finished results (canvas data-n), lets tests wait for a fresh one
+  // what the shown result was made from — Save gives the AI result only when it matches the current settings
+  let photoN = 0, resultKey = '', aiError = '', aiRunning = false, aiAgain = false, modelReady = false;
+  const aiKey = () => `ai|${photoN}|${styleId}|${strength}|${aiSide}`;
 
   // ---------------------------------------------------------------- rendering
   const render = async () => {
@@ -53,24 +56,37 @@ export const mount: Mount = (root, ctx) => {
         status.textContent = 'Painting…';
         const t0 = performance.now(), out = await applyFilter(small, fx, o);
         if (my !== tok) return;
-        result = out; paint(out, canvas); canvas.dataset.n = String(++renders);
+        result = out; resultKey = `fx|${photoN}`; paint(out, canvas); canvas.dataset.n = String(++renders);
         status.textContent = `${FILTERS.find((f) => f[0] === fx)![1]} · ${Math.round(performance.now() - t0)} ms`;
       } else {
-        status.textContent = 'Loading the style model (≈ 17 MB the first time)…';
-        const backend = await styleEngine(prefer);
-        if (my !== tok) return;
-        // on a real GPU 1024 px takes about a second; on the CPU paths start small (the user can still pick larger)
-        if (!sideChosen && backend === 'webgl' && !ctx.isMobile) { aiSide = 1024; sizeSeg.value = '1024'; }
-        status.textContent = 'Reading the painting’s style…';
-        const vec = await vectorFor(styleId);
-        if (my !== tok) return;
-        status.textContent = `Painting your photo… (${backendLabel(backend)})`;
-        const r = await stylize(orig!, vec, strength, aiSide);
-        if (my !== tok) return;
-        result = r.img; paint(r.img, canvas); canvas.dataset.n = String(++renders);
-        status.textContent = `${styleName(styleId)} · ${r.img.width}×${r.img.height} · ${(r.ms / 1000).toFixed(1)} s on ${backendLabel(backend)}`;
+        // one painting at a time: a change while one is being painted waits for it, and only the newest settings follow
+        // (each run takes seconds on WebAssembly; queuing every step of a slider made the last one minutes late)
+        if (aiRunning) { aiAgain = true; status.textContent = 'Painting… (your new choice follows)'; return; }
+        aiRunning = true; aiError = '';
+        try {
+          if (!modelReady) status.textContent = 'Loading the style model (≈ 17 MB the first time)…';
+          const backend = await styleEngine(prefer);
+          modelReady = true;
+          if (my !== tok) return;
+          // on a real GPU 1024 px takes about a second; on the CPU paths start small (the user can still pick larger)
+          if (!sideChosen && backend === 'webgl' && !ctx.isMobile) { aiSide = 1024; sizeSeg.value = '1024'; }
+          const key = aiKey();
+          status.textContent = 'Reading the painting’s style…';
+          const vec = await vectorFor(styleId);
+          if (my !== tok) return;
+          status.textContent = `Painting your photo… (${backendLabel(backend)})`;
+          const r = await stylize(orig!, vec, strength, aiSide);
+          if (my !== tok) return;
+          result = r.img; resultKey = key; paint(r.img, canvas); canvas.dataset.n = String(++renders);
+          status.textContent = `${styleName(styleId)} · ${r.img.width}×${r.img.height} · ${(r.ms / 1000).toFixed(1)} s on ${backendLabel(backend)}`;
+        } finally {
+          aiRunning = false;
+          if (aiAgain) { aiAgain = false; if (engine === 'ai') render(); }
+        }
       }
-    } catch (e) { if (my === tok) status.textContent = `Could not apply the style: ${errMsg(e)}`; }
+    } catch (e) {
+      if (my === tok) { status.textContent = `Could not apply the style: ${errMsg(e)}`; if (engine === 'ai') aiError = errMsg(e); }
+    }
   };
   const backendLabel = (b: string) => (b === 'webgl' ? 'the GPU (WebGL)' : b === 'wasm' ? 'WebAssembly' : 'the CPU');
   const styleName = (id: string) => ART_STYLES.find((s) => s.id === id)?.name || 'Your painting';
@@ -111,10 +127,10 @@ export const mount: Mount = (root, ctx) => {
     h('button', { type: 'button', role: 'radio', 'aria-checked': String(id === styleId), class: ['fx-tile', id === styleId && 'on'], 'data-style': id, onclick: () => { styleId = id; markOn(styleGrid, id); render(); } }, thumbOf(img, 160), h('span', null, label));
   const own = filePicker({ accept: 'image/*,.heic,.heif', compact: true, label: 'Use your own painting as the style', onFiles: async (f) => {
     try {
-      const img = previewOf(await loadImg(f[0]), 512), id = `own${styleImgs.size + 1}`;
+      const img = onWhite(previewOf(await loadImg(f[0]), 512)), id = `own${styleImgs.size + 1}`; // a see-through painting on white
       styleImgs.set(id, img); styleId = id;
       styleGrid.append(styleTile(id, 'Your painting', img)); markOn(styleGrid, id); render();
-    } catch (e) { toast(errMsg(e), 'err'); }
+    } catch (e) { toast(`${f[0].name}: ${errMsg(e)}`, 'err'); }
   } });
   styleGrid.append(...ART_STYLES.map((s) => styleTile(s.id, s.name, artImage(s.id))));
   const aiBox = stack(styleGrid, own,
@@ -128,10 +144,16 @@ export const mount: Mount = (root, ctx) => {
   const compare = button('Hold to compare', () => {}, { icon: 'Eye', small: true, variant: 'ghost', title: 'Show the original while pressed' });
   const showOrig = (on: boolean) => { if (!small || comparing === on) return; comparing = on; on ? paint(engine === 'ai' && result ? previewOf(orig!, Math.max(result.width, result.height)) : small, canvas) : result && paint(result, canvas); };
   compare.addEventListener('pointerdown', () => showOrig(true));
-  for (const ev of ['pointerup', 'pointerleave', 'pointercancel']) compare.addEventListener(ev, () => showOrig(false));
+  for (const ev of ['pointerup', 'pointerleave', 'pointercancel', 'blur']) compare.addEventListener(ev, () => showOrig(false));
+  // keyboard: hold Space or Enter on the focused button
+  compare.addEventListener('keydown', (e) => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); showOrig(true); } });
+  compare.addEventListener('keyup', (e) => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); showOrig(false); } });
 
   const save = async (share: boolean) => {
-    if (!orig || !result) throw new Error('Choose a photo first.');
+    if (!orig) throw new Error('Choose a photo first.');
+    if (engine === 'ai' && resultKey !== aiKey())
+      throw new Error(aiRunning || !aiError ? 'The painting is still being made — Save again when it is shown.' : `There is no painting to save: ${aiError}`);
+    if (!result) throw new Error('The picture is still being made — a moment.');
     let out = result;
     if (engine === 'filters') {
       status.textContent = 'Making the full-size picture…';
@@ -143,7 +165,8 @@ export const mount: Mount = (root, ctx) => {
   };
 
   const input$ = imageInput((img, f) => {
-    orig = img; name = baseName(f.name); small = previewOf(img, PREVIEW); thumb = previewOf(img, 150); result = null;
+    img = onWhite(img); // a see-through photo (a cut-out) on white: the filters and the network ignore transparency
+    orig = img; name = baseName(f.name); small = previewOf(img, PREVIEW); thumb = previewOf(img, 150); result = null; photoN++; resultKey = '';
     editor.hidden = false; paint(small, canvas); drawFxTiles(); render();
   });
   showParams();

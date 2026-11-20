@@ -518,7 +518,10 @@ Two engines, picked with a "Filters | AI art styles" switch; tiles show live thu
   copyrighted art shipped); "Use your own painting as the style" adds any image. **Strength** (default 70 %) blends the
   style vector with the photo's own (Magenta's interpolation; 0 % ≈ the photo). Size 512 / 1024 / 1600 px on PC
   (1024 default on a real GPU, 512 on CPU paths), 512 / 768 on phones; the result is saved as shown (JPEG).
-  "Hold to compare" shows the original. Measured: 512 px ≈ 6 s on WebAssembly (sandbox CPU).
+  "Hold to compare" (pointer, or Space / Enter held) shows the original. Measured: 512 px ≈ 6 s on WebAssembly (sandbox CPU).
+- **As built after the Nov 2026 bug hunt** (e2e 45): a see-through photo or painting is put on white first (`onWhite`
+  in `src/lib/imgio.ts`); one AI painting at a time — a change meanwhile waits and only the newest settings follow;
+  Save in AI mode gives only a painting made with the current photo, style, strength and size (else the reason).
 
 ### OpenPGP
 Generate key pair (name, email, passphrase) → download armored public/private keys. Encrypt file

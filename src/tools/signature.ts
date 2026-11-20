@@ -6,7 +6,7 @@ import dancing from '@fontsource/dancing-script/files/dancing-script-latin-400-n
 import caveat from '@fontsource/caveat/files/caveat-latin-400-normal.woff2?url';
 import { h, card, field, input, button, segmented, slider, stack, grid2, note, actions, downloadBlob, shareOrDownload, fmtBytes, type Mount } from '../ui';
 import { imgproc, type Img } from '../wasm/imgproc';
-import { encodeImg } from '../lib/imgio';
+import { encodeImg, onWhite } from '../lib/imgio';
 import { imageInput } from '../lib/imgtools';
 
 export const HAND_FONTS: Array<[string, string, string]> = [['Great Vibes', 'Elegant', greatVibes], ['Dancing Script', 'Flowing', dancing], ['Caveat', 'Casual', caveat]];
@@ -46,15 +46,6 @@ export async function trim(img: Img, padFrac = 0.06): Promise<Img> {
   const pad = Math.round(Math.max(b.w, b.h) * padFrac);
   return imgproc('crop', img, b.x - pad, b.y - pad, b.w + 2 * pad, b.h + 2 * pad);
 }
-function onWhite(img: Img): Img {
-  const c = new OffscreenCanvas(img.width, img.height), g = c.getContext('2d', { willReadFrequently: true })!;
-  g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height);
-  const t = new OffscreenCanvas(img.width, img.height); t.getContext('2d')!.putImageData(new ImageData(new Uint8ClampedArray(img.data), img.width, img.height), 0, 0);
-  g.drawImage(t, 0, 0);
-  const d = g.getImageData(0, 0, c.width, c.height);
-  return { data: d.data, width: d.width, height: d.height };
-}
-
 export const mount: Mount = (root, ctx) => {
   let mode: 'draw' | 'type' | 'photo' = 'draw', color = INKS[0][0], width = 3;
   const strokes: Stroke[] = [];

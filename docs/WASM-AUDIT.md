@@ -978,3 +978,15 @@ One entry per tab, written before its bug hunt: our module → candidates → ch
   background photo is resized with @jsquash/resize (entry 109). Objects and animals would need a second model of at
   least 40 MB (imgly's ISNet, on the ONNX Runtime the app already ships for Text-to-Speech) — a feature the owner has
   not asked for; noted for the owner rather than added.
+
+### 115. `cartoon` — Cartoonizer (20 Nov 2026)
+- **Ours:** imgproc.wasm's six filters (bilateral + k-means + DoG lines, Kuwahara, watercolour, pencil, halftone).
+  **Candidates:** OpenCV.js (8 – 10 MB for the whole library; its non-photorealistic functions — stylization,
+  pencilSketch, edgePreservingFilter — give another look and cover neither the k-means cartoon, the halftone nor the
+  watercolour); magick-wasm (entry 109: no Kuwahara-like oil paint with these controls, 15 MB). **Decision:** imgproc
+  stays.
+- **AI styles:** Magenta's arbitrary style transfer on TensorFlow.js — its WebAssembly backend (XNNPACK, Google's
+  official build) is the CPU engine, WebGL the GPU one. **Candidate:** ONNX Runtime Web (already in the app for
+  Text-to-Speech) after converting the graph with tf2onnx — the same XNNPACK kernels on the CPU, and no maintained
+  WebGL path (ORT's WebGL backend is deprecated; WebGPU needs the 29 MB JSEP build). **Decision:** TF.js stays (its
+  WebAssembly backend is the WebAssembly engine; the GPU path would be lost).
