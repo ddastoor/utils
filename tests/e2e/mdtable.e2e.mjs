@@ -88,6 +88,12 @@ export default async (ctx) => {
   await page.locator('input[aria-label="Row 3 column 1"]').evaluate((c) => { c.value += 'Z'; c.dispatchEvent(new Event('input', { bubbles: true })); });
   const fz = readFileSync(await ctx.download(page, () => page.getByRole('button', { name: 'Download' }).click()), 'utf8');
   ok(fz.split('\n')[3].startsWith('| Café 1Z '), 'Download right after a keystroke has it (the table was waiting for the pause)');
+  // 160,000 rows: the column count and widths came from Math.max(...) over every row, which overflowed the call stack
+  const huge = ['k,v', ...Array.from({ length: 160000 }, (_, i) => `${i},v${i}`)].join('\n');
+  await page.locator('textarea').nth(0).evaluate((e, v) => { e.value = v; }, huge); await page.getByRole('button', { name: 'Import', exact: true }).click();
+  const hugeOk = await page.waitForFunction(() => /Read (1,60,001|160,001) rows/.test(document.body.textContent), null, { timeout: 60000 }).then(() => true, () => false);
+  const lastLine = await out.evaluate((t) => { const v = t.value; return v.slice(v.lastIndexOf('\n') + 1); });
+  ok(hugeOk && /^\| 159999 \| v159999 \|$/.test(lastLine) && !page.errors.filter((e) => !/Keep at least one column/.test(e)).length, `a 160,000-row CSV: read and laid out ("${lastLine}"; errors: ${page.errors.join(' | ').slice(0, 80)})`);
   await imp('a\n1'); await page.getByRole('button', { name: 'Delete column 1' }).click();
   ok(await page.waitForFunction(() => /Keep at least one column/.test(document.querySelector('.toasts')?.textContent || ''), null, { timeout: 5000 }).then(() => true, () => false) && (await boxes()).join() === 'a,1', 'the last column cannot be deleted');
   ok(!page.errors.filter((e) => !/Keep at least one column/.test(e)).length, `no page errors ${page.errors.join(' | ')}`);

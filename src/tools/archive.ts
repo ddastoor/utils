@@ -25,11 +25,16 @@ export const zip: Mount = (root) => {
   const stopBtn = button('Stop', () => stopSevenZip(), { icon: 'Square' });
   stopBtn.hidden = true;
   const total = () => files.reduce((a, f) => a + f.file.size, 0);
+  const SHOWN = 500;
   const render = () => {
     const paths = archivePaths(files.map((f) => f.path));
-    clear(list).append(...files.map((f, i) => h('div', { class: 'file-row' }, h('span', { class: 'file-name' }, paths[i]), h('span', { class: 'muted small' }, fmtBytes(f.file.size)),
-      button('', () => { files.splice(i, 1); render(); }, { icon: 'X', small: true, variant: 'ghost', title: `Remove ${paths[i]}` }))));
-    if (files.length) list.append(h('div', { class: 'muted small' }, `${files.length} file${files.length === 1 ? '' : 's'} · ${fmtBytes(total())}`));
+    // the first SHOWN rows (a folder of 150,000 files drew 150,000 rows, and spreading them into append() overflowed the
+    // call stack); every file goes into the archive
+    clear(list);
+    for (const [i, f] of files.slice(0, SHOWN).entries()) list.append(h('div', { class: 'file-row' }, h('span', { class: 'file-name' }, paths[i]), h('span', { class: 'muted small' }, fmtBytes(f.file.size)),
+      button('', () => { files.splice(i, 1); render(); }, { icon: 'X', small: true, variant: 'ghost', title: `Remove ${paths[i]}` })));
+    if (files.length > SHOWN) list.append(h('div', { class: 'muted small' }, `… and ${(files.length - SHOWN).toLocaleString('en-IN')} more (the first ${SHOWN} are listed)`));
+    if (files.length) list.append(h('div', { class: 'muted small' }, `${files.length.toLocaleString('en-IN')} file${files.length === 1 ? '' : 's'} · ${fmtBytes(total())}`));
     sync();
   };
   const sync = () => {
@@ -39,7 +44,8 @@ export const zip: Mount = (root) => {
       ? `${fmtBytes(total())} is more than a 7z archive can be made of in this browser (${fmtBytes(IN_MEMORY)}) — choose Zip.`
       : `${fmtBytes(total())}: the zip is written piece by piece (zip.js) instead of by 7-Zip, which holds an archive in memory.`, format === '7z' ? 'err' : 'info'));
   };
-  const add = (fs: File[]) => { files.push(...fs.map((file) => ({ file, path: (file as any).webkitRelativePath || file.name }))); render(); };
+  // one by one: push(...) of a folder of 150,000 files (a project with node_modules) overflowed the call stack
+  const add = (fs: File[]) => { for (const file of fs) files.push({ file, path: (file as any).webkitRelativePath || file.name }); render(); };
   const folderBtn = h('input', { type: 'file', hidden: true, webkitdirectory: true, multiple: true, onchange: (e: any) => add([...e.target.files]) } as any);
   root.append(card(null, stack(filePicker({ multiple: true, label: 'Add files', onFiles: add }), !('ontouchstart' in window) ? button('Add a folder', () => folderBtn.click(), { small: true, icon: 'FolderPlus' }) : null, folderBtn, list)),
     card('Options', stack(

@@ -162,9 +162,9 @@ export function textWidth(s: string): number {
   return w;
 }
 export function mdTable(rows: string[][], align: string[]): string {
-  const n = Math.max(...rows.map((r) => r.length), 1), cell = (s: string) => (s ?? '').replace(/\|/g, '\\|').replace(/\r\n|\r|\n/g, '<br>');
+  const n = rows.reduce((m, r) => Math.max(m, r.length), 1), cell = (s: string) => (s ?? '').replace(/\|/g, '\\|').replace(/\r\n|\r|\n/g, '<br>');
   const R = rows.map((r) => Array.from({ length: n }, (_, i) => cell(r[i] ?? '')));
-  const w = Array.from({ length: n }, (_, i) => Math.max(3, ...R.map((r) => textWidth(r[i]))));
+  const w = Array.from({ length: n }, (_, i) => R.reduce((m, r) => Math.max(m, textWidth(r[i])), 3));
   const pad = (s: string, i: number) => { const d = w[i] - textWidth(s); return align[i] === 'right' ? ' '.repeat(d) + s : align[i] === 'center' ? ' '.repeat(Math.floor(d / 2)) + s + ' '.repeat(Math.ceil(d / 2)) : s + ' '.repeat(d); };
   const sep = w.map((x, i) => (align[i] === 'center' ? `:${'-'.repeat(x - 2)}:` : align[i] === 'right' ? `${'-'.repeat(x - 1)}:` : align[i] === 'left' ? `:${'-'.repeat(x - 1)}` : '-'.repeat(x)));
   const line = (c: string[]) => `| ${c.join(' | ')} |`;
@@ -192,7 +192,7 @@ export const mdtable: Mount = (root) => {
   // a line break inside a cell is written <br> in the editor boxes too (a one-line box cannot hold a line break)
   const toBox = (c: string) => c.replace(/\r\n|\r|\n/g, '<br>'), fromBox = (v: string) => v.replace(/<br\s*\/?>/gi, '\n');
   const draw = () => {
-    const n = Math.max(...rows.map((r) => r.length), 1);
+    const n = rows.reduce((m, r) => Math.max(m, r.length), 1); // not Math.max(...): 150,000 rows overflowed the call stack
     rows = rows.map((r) => Array.from({ length: n }, (_, i) => r[i] ?? '')); while (align.length < n) align.push('none'); align = align.slice(0, n);
     clear(gridNote); if (rows.length > GRID_ROWS) gridNote.append(note(`The editor shows the first ${N(GRID_ROWS)} of ${N(rows.length)} rows; the Markdown below has all of them.`, 'info'));
     clear(grid).append(h('table', { class: 'tbl md-grid' }, h('thead', null, h('tr', null, ...align.map((a, i) => h('th', null, select([['none', '—'], ['left', 'Left'], ['center', 'Centre'], ['right', 'Right']], a as any, (v) => { align[i] = v; emit(); }, `Column ${i + 1} alignment`), button('', () => { if (n === 1) throw new Error('Keep at least one column'); rows.forEach((r) => r.splice(i, 1)); align.splice(i, 1); draw(); }, { small: true, icon: 'X', title: `Delete column ${i + 1}` }))), h('th', null))),

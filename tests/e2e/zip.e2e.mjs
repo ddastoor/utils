@@ -113,4 +113,12 @@ print(json.dumps({os.path.relpath(os.path.join(r,f),d):hashlib.sha256(open(os.pa
   ok(jz.bad === null && jz.files['zeros.bin'][0] === 260 << 20 && jz.files['notes.txt'][2] === sha(a), 'the zip.js zip: CRC OK, both files whole');
   await ph.getByRole('radio', { name: /^7z/ }).click();
   ok(/more than a 7z archive can be made of in this browser/.test(await ph.locator('.note-err').textContent()), '… and 7z is refused for it, with the reason');
+  // a folder of 150,000 files (a project with node_modules): spreading them into the list overflowed the call stack (the
+  // files were never added) and every row was drawn; the first 500 are listed now and the rest counted
+  const many = await newPage(); await many.goto(`${base}#/zip`); await many.locator('.tool-body input[type=file]').first().waitFor({ state: 'attached' });
+  const tm = Date.now();
+  await many.evaluate(() => { const dt = new DataTransfer(); for (let i = 0; i < 150000; i++) dt.items.add(new File(['x'], `f${i}.txt`)); const inp = document.querySelector('.tool-body input[type=file]'); inp.files = dt.files; inp.dispatchEvent(new Event('change', { bubbles: true })); });
+  const listed = await many.getByText(/^1,50,000 files · /).waitFor({ timeout: 60000 }).then(() => true, () => false);
+  ok(listed && await many.locator('.file-row').count() === 500 && await many.getByText('… and 1,49,500 more (the first 500 are listed)').count() === 1 && !many.errors.length,
+    `150,000 files: 500 listed, the rest counted (${((Date.now() - tm) / 1000).toFixed(1)} s; errors: ${many.errors.join(' | ').slice(0, 100)})`);
 };

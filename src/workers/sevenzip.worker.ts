@@ -2,6 +2,7 @@
 // Emscripten build of the 7zz command line). Input files are mounted read-only with WORKERFS (not copied into memory);
 // a fresh instance runs each command (7zz is a command-line program: one run, one process).
 import SevenZip from '7z-wasm';
+import { walk } from '../lib/fswalk';
 import wasmUrl from '7z-wasm/7zz.wasm?url';
 import { parseList } from '../lib/sevenzip-text';
 
@@ -41,17 +42,6 @@ async function run(id: number, prepare: (z: any) => void, args: string[], header
   return { z, rc, err, out: text() };
 }
 
-/** Every file under `dir` of the in-memory file system, with its path below `dir`. */
-function walk(z: any, dir: string, base = ''): Array<{ path: string; data: Uint8Array }> {
-  const out: Array<{ path: string; data: Uint8Array }> = [];
-  for (const n of z.FS.readdir(dir)) {
-    if (n === '.' || n === '..') continue;
-    const p = `${dir}/${n}`, st = z.FS.stat(p);
-    if (z.FS.isDir(st.mode)) out.push(...walk(z, p, `${base}${n}/`));
-    else out.push({ path: base + n, data: z.FS.readFile(p) });
-  }
-  return out;
-}
 
 /** 7zz's complaint, said for a person. */
 function why(rc: number, err: string, hasPassword: boolean): Error {
