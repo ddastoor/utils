@@ -1081,3 +1081,17 @@ One entry per tab, written before its bug hunt: our module → candidates → ch
   encode. **Candidates:** signature_pad and perfect-freehand (smoothing and pressure — JavaScript, no WebAssembly; the
   canvas would still draw); for the ink: none (OpenCV.js can threshold but not keep the ink's colour on transparent
   paper — entry 113). **Decision:** all stay.
+
+## Documents — PDF (20 Nov 2026 –)
+
+### 124. `pdf-merge` — Merge PDF (20 Nov 2026; the page routine is shared with `pdf-split` and `pdf-organize`)
+- **Engine:** MuPDF 1.28.6 (Artifex's own WebAssembly build — the latest). **Candidates:** PDFium compiled to
+  WebAssembly (@embedpdf/pdfium; Google's engine, it can import pages), QPDF builds for the browser (few users, old),
+  pdf-lib (JavaScript). None does more for merging than MuPDF does with the right calls.
+- **What MuPDF's `graftPage` does not cover** (found in this hunt): a page's annotations — comments, highlights,
+  stamps, web links, links between pages, form fields — and the document's outline. **Decision (rule 1, the gaps by
+  1c, our own glue in `src/lib/pdf.ts`):** one document's pages go through MuPDF's own `rearrangePages` (it keeps
+  annotations, renumbers links and the outline; the form's field list, which it drops, is put back); several
+  documents: the first is the base, the others' pages are grafted with one graft map per file, their annotations
+  copied, links made again with the pages renumbered, form fields added and outlines appended. pypdf reads the results
+  in the unit suite as the independent reference.

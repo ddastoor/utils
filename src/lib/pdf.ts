@@ -49,6 +49,144 @@ export async function openPdf(bytes: Uint8Array, password?: string): Promise<MDo
 /** Serialise. `encrypt=none` writes without encryption (only after a successful authenticatePassword). */
 export const savePdf = (doc: MDoc, extra = '') => doc.saveToBuffer(['compress', 'garbage', extra].filter(Boolean).join(',')).asUint8Array().slice();
 
+// ------------------------------------------------------------------ pages from one or several PDFs
+// MuPDF's graftPage copies a page's content and resources but not its /Annots: comments, highlights, stamps, web links,
+// links between pages and form fields (with what was typed into them) were lost in every merged, split or reorganised
+// PDF. One document's pages go through MuPDF's rearrangePages (it keeps them all and renumbers internal links and the
+// outline) — only the form's field list, which it drops, is put back; several documents are merged as below.
+const subtype = (o: any) => { const s = o.get('Subtype'); return s.isName() ? s.asName() : ''; };
+const indirect = (o: any) => (o.isIndirect() ? o.asIndirect() : -1);
+
+/** After rearrangePages: the form's field list again, with the fields that still have a widget on some page (Kids of
+ *  dropped pages removed; a widget copied for a repeated page joins as a field of its own). */
+function restoreForm(doc: any, form: any) {
+  const left = new Set<number>(), roots: any[] = [], seen = new Set<number>();
+  for (let i = 0; i < doc.countPages(); i++) {
+    const annots = doc.findPage(i).get('Annots');
+    if (!annots.isArray()) continue;
+    annots.forEach((a: any) => {
+      if (!a.isDictionary() || subtype(a) !== 'Widget') return;
+      left.add(indirect(a));
+      let f = a; while (f.get('Parent').isDictionary()) f = f.get('Parent');
+      const k = indirect(f); if (!seen.has(k)) { seen.add(k); roots.push(f); }
+    });
+  }
+  const prune = (field: any): boolean => {
+    if (subtype(field) === 'Widget' && !field.get('Kids').isArray()) return left.has(indirect(field));
+    const kids = field.get('Kids'); if (!kids.isArray()) return false;
+    const keep = doc.newArray(); kids.forEach((k: any) => { if (prune(k)) keep.push(k); });
+    field.put('Kids', keep);
+    return keep.length > 0;
+  };
+  const fields = doc.newArray(), placed = new Set<number>();
+  const old = form.get('Fields');
+  if (old.isArray()) old.forEach((f: any) => { const k = indirect(f); if (seen.has(k) && prune(f)) { fields.push(f); placed.add(k); } });
+  for (const f of roots) if (!placed.has(indirect(f)) && prune(f)) fields.push(f);
+  form.put('Fields', fields);
+  doc.getTrailer().get('Root').put('AcroForm', form);
+}
+
+/** A new PDF of `pages` (0-based, in this order, repeats allowed) of one PDF, each turned by `rotate[i]` degrees more;
+ *  annotations, links, outline and form fields come along. No password on the result. */
+export async function subsetPdf(bytes: Uint8Array, password: string | undefined, pages: number[], rotate?: number[]): Promise<Uint8Array> {
+  const doc: any = await openPdf(bytes, password);
+  const f = doc.getTrailer().get('Root').get('AcroForm');
+  const form = f.isDictionary() ? (f.isIndirect() ? f : doc.addObject(f)) : null;
+  doc.rearrangePages(pages);
+  if (form) restoreForm(doc, form);
+  rotate?.forEach((r, i) => {
+    if (!r) return;
+    const o = doc.findPage(i), cur = o.getInheritable('Rotate');
+    o.put('Rotate', ((((cur.isNumber() ? cur.asNumber() : 0) + r) % 360) + 360) % 360);
+  });
+  return savePdf(doc, 'encrypt=none');
+}
+
+/** One PDF of several, in order, every page of each. The first file is the base (its annotations, links, form and
+ *  outline stay as they are); the others' pages are grafted with one graft map per file (fonts and images they share
+ *  are copied once — a map per page copied them again for every page), their annotations copied with the pages (the
+ *  /P back-reference cut first, or the whole source page tree would come along), their links made again with the
+ *  pages renumbered, their form fields added (a name the merged form already has gets " (2)" — two fields of one
+ *  name would show the same value) and their outlines appended. No password on the result. */
+export async function mergePdfs(inputs: Array<{ bytes: Uint8Array; password?: string }>): Promise<{ bytes: Uint8Array; renamed: string[] }> {
+  const out: any = await openPdf(inputs[0].bytes, inputs[0].password);
+  const root = out.getTrailer().get('Root'), renamed: string[] = [];
+  const names = new Set<string>();
+  const formOf = () => {
+    let af = root.get('AcroForm');
+    if (!af.isDictionary()) { root.put('AcroForm', out.addObject(out.newDictionary())); af = root.get('AcroForm'); }
+    if (!af.get('Fields').isArray()) af.put('Fields', out.newArray());
+    return af;
+  };
+  const base = root.get('AcroForm');
+  if (base.isDictionary() && base.get('Fields').isArray()) base.get('Fields').forEach((f: any) => { if (f.get('T').isString()) names.add(f.get('T').asString()); });
+  const outlines: any[] = [];
+  for (const input of inputs.slice(1)) {
+    const src: any = await openPdf(input.bytes, input.password);
+    const start = out.countPages(), n = src.countPages(), map = out.newGraftMap();
+    for (let i = 0; i < n; i++) map.graftPage(-1, src, i);
+    for (let i = 0; i < n; i++) { const a = src.findPage(i).get('Annots'); if (a.isArray()) a.forEach((x: any) => { if (x.isDictionary()) x.delete('P'); }); }
+    for (let i = 0; i < n; i++) {
+      const sa = src.findPage(i).get('Annots');
+      if (!sa.isArray()) continue;
+      const np = out.findPage(start + i), arr = out.newArray();
+      sa.forEach((a: any) => { if (!a.isDictionary() || subtype(a) === 'Link') return; const c = map.graftObject(a); c.put('P', np); arr.push(c); });
+      if (arr.length) np.put('Annots', arr);
+    }
+    for (let i = 0; i < n; i++) {
+      const page = out.loadPage(start + i);
+      for (const l of src.loadPage(i).getLinks()) {
+        if (l.isExternal()) { page.createLink(l.getBounds(), l.getURI()); continue; }
+        const d = src.resolveLinkDestination(l);
+        if (d.page >= 0 && d.page < n) page.createLink(l.getBounds(), out.formatLinkURI({ ...d, page: start + d.page }));
+      }
+    }
+    const sf = src.getTrailer().get('Root').get('AcroForm');
+    if (sf.isDictionary() && sf.get('Fields').isArray() && sf.get('Fields').length) {
+      const af = formOf(), fields = af.get('Fields');
+      sf.get('Fields').forEach((fd: any) => {
+        const c = map.graftObject(fd);
+        let t = c.get('T').isString() ? c.get('T').asString() : '';
+        if (t && names.has(t)) { let k = 2; while (names.has(`${t} (${k})`)) k++; renamed.push(`${t} → ${t} (${k})`); t = `${t} (${k})`; c.put('T', out.newString(t)); } // a string, not a name
+        if (t) names.add(t);
+        fields.push(c);
+      });
+      // the fonts the fields are drawn with, their default look, and whether a viewer must draw them itself
+      const dr = sf.get('DR');
+      if (dr.isDictionary()) {
+        if (!af.get('DR').isDictionary()) af.put('DR', out.newDictionary());
+        dr.forEach((v: any, kind: any) => {
+          if (!v.isDictionary()) return;
+          if (!af.get('DR').get(kind).isDictionary()) af.get('DR').put(kind, out.newDictionary());
+          const into = af.get('DR').get(kind);
+          v.forEach((x: any, k: any) => { if (into.get(k).isNull()) into.put(k, map.graftObject(x)); });
+        });
+      }
+      if (af.get('DA').isNull() && sf.get('DA').isString()) af.put('DA', sf.get('DA').asString());
+      if (sf.get('NeedAppearances').isBoolean() && sf.get('NeedAppearances').asBoolean()) af.put('NeedAppearances', true);
+    }
+    const remap = (items: any[]): any[] => items.map((it) => {
+      let uri = it.uri;
+      if (uri && uri.startsWith('#')) { const d = src.resolveLinkDestination(uri); uri = d.page >= 0 && d.page < n ? out.formatLinkURI({ ...d, page: start + d.page }) : undefined; }
+      return { title: it.title, uri, open: it.open, down: it.down ? remap(it.down) : undefined };
+    });
+    const ol = src.loadOutline();
+    if (ol?.length) outlines.push(...remap(ol));
+  }
+  if (outlines.length) {
+    const it = out.outlineIterator();
+    while (it.item()) if (it.next() !== 0) break; // to the end of the top level
+    const put = (items: any[]) => {
+      for (const x of items) {
+        it.insert({ title: x.title, uri: x.uri, open: x.open });
+        if (x.down?.length) { it.prev(); if (it.down() >= 0) put(x.down); it.up(); it.next(); }
+      }
+    };
+    put(outlines);
+  }
+  return { bytes: savePdf(out, 'encrypt=none'), renamed };
+}
+
 /** Visual page size (after /Rotate) and the matrix from visual coordinates (origin bottom-left, points) to user space. */
 export function pageGeom(page: MPage): { W: number; H: number; rot: number; m: [number, number, number, number, number, number] } {
   const o = page.getObject();

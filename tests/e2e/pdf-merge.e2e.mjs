@@ -1,7 +1,8 @@
 // Merge PDF (#/pdf-merge): three real PDFs (one AES-256 protected → password box) → one PDF in the chosen order.
 import { pdfInfo } from '../lib/pdfcheck.mjs';
+import { makeAnnotated, readBack } from '../lib/pdfannot.mjs';
 const P = (n) => new URL(`../fixtures/pdf/${n}`, import.meta.url).pathname;
-export default async ({ base, page: newPage, ok, download, devices }) => {
+export default async ({ base, page: newPage, ok, download, devices, tmp }) => {
   const page = await newPage();
   await page.goto(base + '#/pdf-merge');
   await page.locator('input[type=file]').first().setInputFiles([P('crazyones.pdf'), P('two-different-pages.pdf'), P('aes256-asdfzxcv.pdf')]);
@@ -33,6 +34,22 @@ export default async ({ base, page: newPage, ok, download, devices }) => {
   // expected: our own validation message, and MuPDF's warnings while it tries to repair the deliberately broken file
   const real = page.errors.filter((e) => !/Choose at least two PDFs|Not a readable PDF|broken\.pdf|syntax error|cannot|no objects found|^warning: /i.test(e));
   ok(real.length === 0, `no unexpected page errors: ${real.join(' | ')}`);
+  // what is on the pages comes along: comments, highlights, web links, links between pages, the outline, filled-in
+  // form fields (MuPDF's graftPage dropped all of it); the same form twice keeps two separate fields
+  const { annotated, form } = await makeAnnotated(tmp);
+  const p2 = await newPage();
+  await p2.goto(base + '#/pdf-merge');
+  await p2.locator('input[type=file]').first().setInputFiles([form, annotated, form]);
+  await p2.waitForFunction(() => document.querySelectorAll('.pdf-row').length === 3);
+  const r = await readBack(await download(p2, () => p2.getByRole('button', { name: 'Merge PDFs' }).click()));
+  ok(r.pages.length === 8, `merged: 1 + 6 + 1 pages (${r.pages.length})`);
+  ok(r.pages[1].notes.join() === 'note A' && r.pages[2].kinds.includes('Highlight') && r.pages[2].web.join() === 'https://example.org/a', 'merged: the comment, the highlight and the web link of the second file are on its pages');
+  ok(r.pages[3].goto.join() === '5', `merged: the link from the second file's page 3 goes to its page 5, now page 6 (${r.pages[3].goto})`);
+  ok(JSON.stringify(r.outline) === JSON.stringify([['Start', 1], ['Chapter', 5], ['Section', 6]]), `merged: the outline, pages renumbered (${JSON.stringify(r.outline)})`);
+  ok(r.pages[0].fields.join() === 'foo=Alice' && r.pages[7].fields.join() === 'foo (2)=Alice' && r.listed === 2, `merged: both copies of the form are forms, filled in, kept apart (${r.pages[0].fields} / ${r.pages[7].fields}, ${r.listed} fields)`);
+  ok(/form fields renamed so that they stay separate: foo → foo \(2\)/.test(await p2.locator('.muted.small').filter({ hasText: 'Merged' }).textContent()), 'merged: the renaming is said');
+  ok(p2.errors.length === 0, `no page errors: ${p2.errors.join(' | ')}`);
+
   const phone = await newPage({ ...devices['iPhone 13'] });
   await phone.goto(base + '#/pdf-merge');
   await phone.locator('input[type=file]').first().setInputFiles([P('crazyones.pdf'), P('jpeg.pdf')]);

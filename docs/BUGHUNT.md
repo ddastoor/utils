@@ -32,7 +32,7 @@ Areas with a shared review: the app shell (router, search, favorites, platform h
 ## documents
 | id | Tab | Platform | Area | R | B | T | Notes |
 |---|---|---|---|---|---|---|---|
-| `pdf-merge` | Merge PDF | PC + mobile | pdf |  |  |  |  |
+| `pdf-merge` | Merge PDF | PC + mobile | pdf | ✓ | 4 | 37 | annotations, links, forms, outlines kept (graftPage dropped them); one graft map per file |
 | `pdf-split` | Split PDF | PC + mobile | pdf |  |  |  |  |
 | `pdf-organize` | Organize PDF | PC + mobile | pdf |  |  |  |  |
 | `img2pdf` | Images → PDF | PC + mobile | pdf |  |  |  |  |
@@ -1695,3 +1695,18 @@ Reference for the five finance tabs: **mpmath at 60 digits** (`scripts/make-fina
   4. A photo of blank paper said "Nothing to save yet — sign first"; it says no ink was found and what to try.
   5. On phones the photo picker only opened the camera (the shared picker fix of the OCR tab): "Photograph your
      signature" beside a picker for a photo already taken. Also: the newest photo wins.
+
+### Documents — PDF (20 Nov 2026 –)
+
+- **`pdf-merge` (tab 126, 4 bugs; engine kept — MuPDF 1.28.6, docs/WASM-AUDIT.md 124; unit `tests/unit/pdfpages.test.mjs`
+  30 — new, read back by MuPDF and by **pypdf** (`tests/lib/pdfpages_check.py`, `pip install pypdf`); e2e 17 — was 10;
+  test PDFs `tests/lib/pdfannot.mjs`).**
+  1. **Everything on the pages that is not page content was lost** — comments, highlights, stamps, web links, links
+     between pages and form fields with what was typed into them (a filled form came out empty): MuPDF's `graftPage`
+     copies no annotations. Now copied (the /P back-reference cut first), links made again with the pages renumbered,
+     the form's fields added. The same routine had the same fault in Split and Organize (their entries).
+  2. The outlines (bookmarks) of the files were lost; they are appended, pages renumbered.
+  3. Fonts and images that pages share were copied again for every page (a graft per page): two files of 677 KB
+     merged to 780 KB; with one graft map per file 675 KB.
+  4. The same form merged twice would have had two fields of one name (they show the same value); the later one is
+     renamed "foo (2)" and the tab says so.

@@ -3,6 +3,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { unzipSync } from 'fflate';
 import { pdfInfo } from '../lib/pdfcheck.mjs';
 const P = (n) => new URL(`../fixtures/pdf/${n}`, import.meta.url).pathname;
+import { makeAnnotated, readBack } from '../lib/pdfannot.mjs';
 export default async ({ base, page: newPage, ok, download, tmp, devices }) => {
   const page = await newPage();
   await page.goto(base + '#/pdf-split');
@@ -35,6 +36,23 @@ export default async ({ base, page: newPage, ok, download, tmp, devices }) => {
   ok(counts.sort().join(',') === '1,2,2', `every 2 pages → 2 + 2 + 1 (${counts.join(',')})`);
   const real = page.errors.filter((e) => !/is outside 1–2/.test(e));
   ok(real.length === 0, `no unexpected page errors: ${real.join(' | ')}`);
+  // what is on the pages comes along: pages 3–5 keep the link (p3 → p5, now p1 → p3) and the outline entries of their
+  // pages; page 1 keeps its comment (MuPDF's graftPage dropped them); a filled form stays a filled form
+  const { annotated, form } = await makeAnnotated(tmp);
+  await page.locator('input[type=file]').first().setInputFiles(annotated);
+  await page.getByText('annotated.pdf: 6 pages').waitFor();
+  await page.getByRole('radio', { name: 'Ranges' }).click();
+  await page.getByPlaceholder('e.g. 1-3, 5, 8-').fill('3-5, 1');
+  const z4 = unzip(await split());
+  const r35 = await readBack(z4.find((x) => /p3-5\.pdf$/.test(x[0]))[1]), r1 = await readBack(z4.find((x) => /p1\.pdf$/.test(x[0]))[1]);
+  ok(r35.pages[0].goto.join() === '2' && JSON.stringify(r35.outline) === JSON.stringify([['Chapter', 2]]), `pages 3–5: the link of page 3 goes to page 5 (now 3), the outline keeps its entry (${r35.pages[0].goto}, ${JSON.stringify(r35.outline)})`);
+  ok(r1.pages[0].notes.join() === 'note A', 'page 1: its comment is kept');
+  await page.locator('input[type=file]').first().setInputFiles(form);
+  await page.getByText('filled-form.pdf: 1 page').waitFor();
+  await page.getByPlaceholder('e.g. 1-3, 5, 8-').fill('1');
+  const rf = await readBack(await download(page, () => page.getByRole('button', { name: 'Split', exact: true }).click()));
+  ok(rf.pages[0].fields.join() === 'foo=Alice' && rf.listed === 1, `a filled form split off: still a form with its value (${rf.pages[0].fields}, ${rf.listed} listed)`);
+
   const phone = await newPage({ ...devices['iPhone 13'] });
   await phone.goto(base + '#/pdf-split');
   await phone.locator('input[type=file]').first().setInputFiles(P('crazyones.pdf'));

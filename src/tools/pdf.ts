@@ -1,7 +1,7 @@
 // Core PDF tabs on MuPDF (official C → wasm build): merge, split, organize, images → PDF, PDF → images, PDF → text,
 // page numbers, watermark. Everything stays in the browser.
 import { h, card, field, stack, note, actions, button, segmented, slider, toggle, input, select, progress, copy, toast, errMsg, filePicker, downloadBlob, shareOrDownload, fmtBytes, type Mount } from '../ui';
-import { mupdf, imagesToPdf, savePdf, stampPage, pageGeom, pageThumb, renderPage, textWidth, parseRanges, pdfString, isLatin1, type ImagePage } from '../lib/pdf';
+import { mupdf, imagesToPdf, savePdf, stampPage, pageGeom, pageThumb, renderPage, textWidth, parseRanges, pdfString, isLatin1, mergePdfs, subsetPdf, type ImagePage } from '../lib/pdf';
 import { pdfInput, savePdfFile, stem, type LoadedPdf } from '../lib/pdfui';
 import { zipFiles } from '../lib/zip';
 import { resultList } from '../lib/imgtools';
@@ -9,12 +9,6 @@ import { loadImg, encodeImg } from '../lib/imgio';
 import { readExif } from '../lib/exif';
 
 const plural = (n: number, w: string) => `${n} ${w}${n === 1 ? '' : 's'}`;
-/** A new PDF made of pages [doc, index] in order. */
-async function pagesToPdf(parts: Array<[LoadedPdf['doc'], number]>) {
-  const m = await mupdf(), out = new m.PDFDocument();
-  for (const [d, i] of parts) out.graftPage(-1, d, i);
-  return savePdf(out);
-}
 
 // ------------------------------------------------------------------ Merge
 export const merge: Mount = (root, ctx) => {
@@ -35,8 +29,9 @@ export const merge: Mount = (root, ctx) => {
   root.append(card(null, inp.el, list, info, note('Files are merged in this order. Protected PDFs are opened with their password; the result has no password.')),
     actions(button('Merge PDFs', async () => {
       if (files.length < 2) throw new Error('Choose at least two PDFs.');
-      const bytes = await pagesToPdf(files.flatMap((f) => Array.from({ length: f.pages }, (_, i) => [f.doc, i] as [LoadedPdf['doc'], number])));
-      info.textContent = `Merged: ${plural(files.reduce((a, f) => a + f.pages, 0), 'page')}, ${fmtBytes(bytes.length)}`;
+      const { bytes, renamed } = await mergePdfs(files.map((f) => ({ bytes: f.bytes, password: f.password })));
+      info.textContent = `Merged: ${plural(files.reduce((a, f) => a + f.pages, 0), 'page')}, ${fmtBytes(bytes.length)}`
+        + (renamed.length ? ` · form fields renamed so that they stay separate: ${renamed.join(', ')}` : '');
       await savePdfFile(bytes, 'merged.pdf', ctx.isMobile);
     }, { variant: 'primary', icon: 'Merge' })));
 };
@@ -56,7 +51,8 @@ export const split: Mount = (root, ctx) => {
       : mode === 'chunks' ? Array.from({ length: Math.ceil(f.pages / n) }, (_, k) => Array.from({ length: Math.min(n, f!.pages - k * n) }, (_, j) => k * n + j))
       : parseRanges(spec, f.pages);
     const s = stem(f.name), label = (g: number[]) => (g.length === 1 ? `p${g[0] + 1}` : `p${g[0] + 1}-${g[g.length - 1] + 1}`);
-    const outs = await Promise.all(groups.map(async (g) => ({ name: `${s}-${label(g)}.pdf`, blob: new Blob([await pagesToPdf(g.map((i) => [f!.doc, i])) as BlobPart], { type: 'application/pdf' }) })));
+    const outs: Array<{ name: string; blob: Blob }> = [];
+    for (const g of groups) outs.push({ name: `${s}-${label(g)}.pdf`, blob: new Blob([await subsetPdf(f.bytes, f.password, g) as BlobPart], { type: 'application/pdf' }) }); // one at a time: each part opens the file afresh
     info.textContent = `${plural(outs.length, 'file')} made`;
     if (outs.length === 1) return ctx.isMobile ? shareOrDownload(outs[0].blob, outs[0].name) : downloadBlob(outs[0].blob, outs[0].name);
     const zip = await zipFiles(outs);
@@ -99,14 +95,7 @@ export const organize: Mount = (root, ctx) => {
     actions(button('Save PDF', async () => {
       if (!f) throw new Error('Choose a PDF first.');
       if (!order.length) throw new Error('All pages were deleted.');
-      const m = await mupdf(), out = new m.PDFDocument();
-      order.forEach((p) => out.graftPage(-1, f!.doc, p.src));
-      order.forEach((p, i) => {
-        if (!p.rot) return;
-        const o = out.loadPage(i).getObject(), r = o.getInheritable('Rotate');
-        o.put('Rotate', ((r.isNumber() ? r.asNumber() : 0) + p.rot) % 360);
-      });
-      await savePdfFile(savePdf(out), `${stem(f.name)}-organized.pdf`, ctx.isMobile);
+      await savePdfFile(await subsetPdf(f.bytes, f.password, order.map((p) => p.src), order.map((p) => p.rot)), `${stem(f.name)}-organized.pdf`, ctx.isMobile);
     }, { variant: 'primary', icon: 'Download' }), button('Reset', () => { order = all.map((p) => Object.assign(p, { rot: 0 })); render(); }, { variant: 'ghost', icon: 'Undo2' })));
 };
 

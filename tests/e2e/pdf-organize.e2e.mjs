@@ -1,7 +1,8 @@
 // Organize PDF (#/pdf-organize): thumbnails; move, rotate, delete, reset → saved PDF has exactly that order/rotation.
 import { pdfInfo } from '../lib/pdfcheck.mjs';
 const P = (n) => new URL(`../fixtures/pdf/${n}`, import.meta.url).pathname;
-export default async ({ base, page: newPage, ok, download, devices }) => {
+import { makeAnnotated, readBack } from '../lib/pdfannot.mjs';
+export default async ({ base, page: newPage, ok, download, devices, tmp }) => {
   const page = await newPage();
   await page.goto(base + '#/pdf-organize');
   await page.locator('input[type=file]').first().setInputFiles(P('two-different-pages.pdf'));
@@ -23,6 +24,17 @@ export default async ({ base, page: newPage, ok, download, devices }) => {
   const i3 = await pdfInfo(await save());
   ok(i3.pages === 2 && i3.list[0].text.trim() === '1' && i3.list.every((p) => p.rot === 0), 'reset restores order, rotation and deleted pages');
   ok(page.errors.length === 0, `no page errors: ${page.errors.join(' | ')}`);
+  // what is on the pages comes along: page 5 moved first, page 6 deleted — the link of page 3 follows page 5, the
+  // comment page 1, the outline the pages (MuPDF's graftPage dropped them)
+  const { annotated } = await makeAnnotated(tmp);
+  await page.locator('input[type=file]').first().setInputFiles(annotated);
+  await page.waitForFunction(() => document.querySelectorAll('.pdf-tile').length === 6);
+  for (let k = 5; k > 1; k--) await page.getByRole('button', { name: `Move page ${k} earlier` }).click();
+  await page.getByRole('button', { name: 'Delete page 6' }).click();
+  const ro = await readBack(await save());
+  ok(ro.pages.length === 5 && ro.pages[3].goto.join() === '0' && ro.pages[1].notes.join() === 'note A', `page 5 first: the link of (old) page 3 goes to it, the comment stays on (old) page 1 (${ro.pages[3].goto}, ${ro.pages[1].notes})`);
+  ok(JSON.stringify(ro.outline) === JSON.stringify([['Start', 1], ['Chapter', 0]]), `the outline follows, the entry of the deleted page is gone (${JSON.stringify(ro.outline)})`);
+
   const phone = await newPage({ ...devices['iPhone 13'] });
   await phone.goto(base + '#/pdf-organize');
   await phone.locator('input[type=file]').first().setInputFiles(P('two-different-pages.pdf'));
