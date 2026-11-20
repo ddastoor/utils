@@ -16,6 +16,7 @@ export const mount: Mount = (root) => {
   // a job ended by Stop, by a new file or by leaving the tab says so (it showed "called FFmpeg.terminate()" in red);
   // probes of a second file or of clips wait for a running job (they reset its log and shared its FFmpeg)
   let stopNote = '', live = true, runDone: Promise<void> = Promise.resolve();
+  let jobSeq = 0, execing = false; // the job being run (Stop and a new file end it); FFmpeg inside a command
   let main: File | null = null, second: File | null = null, logLines: string[] = [], streams = '';
   let p1: Probe = EMPTY_PROBE, p2: Probe | undefined, probing: Promise<void> = Promise.resolve(), fontsIn = false, loadedOnce = false;
   /** the clips of "Join clips": the chosen file first; each added clip gets the name in3, in4 … inside FFmpeg */
@@ -144,7 +145,9 @@ export const mount: Mount = (root) => {
     if (ff) return ff;
     return (loading ||= (async () => {
       const saying = loadedOnce ? 'Starting FFmpeg…' : 'Loading FFmpeg (≈ 31 MB, once per visit)…';
-      status.textContent = saying;
+      // a note left by the job before ("Stopped: a new file was chosen") stays: the new file's probe needs a new FFmpeg
+      // when that job was ended inside a command, and the loader wrote over the note, then cleared it
+      if (!status.textContent || /^(Starting|Loading) FFmpeg/.test(status.textContent)) status.textContent = saying;
       const { FFmpeg } = await import('@ffmpeg/ffmpeg');
       const f = new FFmpeg(), at = (p: string) => new URL(p, document.baseURI).href;
       f.on('log', ({ message }: any) => { logLines.push(message); if (logLines.length > 400) logLines.splice(0, 100); });
@@ -204,20 +207,27 @@ export const mount: Mount = (root) => {
   async function runJob() {
     if (!main || running) return;
     running = true; stopNote = ''; runBtn.hidden = true; stopBtn.hidden = false; outCard.hidden = true; status.textContent = ''; status.classList.remove('err-text');
-    const t0 = performance.now(), m = main; // the outputs are named after the file the job was run on
+    const t0 = performance.now(), m = main, my = ++jobSeq; // the outputs are named after the file the job was run on
+    // a job stopped before FFmpeg's command began (FFmpeg still loading, the file being mounted) ends at its next step —
+    // it used to go on once FFmpeg had loaded and run to the end, after Stop or a new file
+    const alive = () => { if (my !== jobSeq) throw new Error('stopped'); };
     let ran = false;
     try {
-      await probing;
+      await probing; alive();
       const b = build(); // refusals before FFmpeg starts
-      const f = await engine(); await mountInputs(f);
-      if (b.fonts) await fonts(f);
-      if (b.writes) { try { await f.createDir('/work'); } catch { /* exists */ } for (const [path, text] of b.writes) await f.writeFile(path, new TextEncoder().encode(text)); }
+      const f = await engine(); alive();
+      await mountInputs(f); alive();
+      if (b.fonts) { await fonts(f); alive(); }
+      if (b.writes) { try { await f.createDir('/work'); } catch { /* exists */ } for (const [path, text] of b.writes) await f.writeFile(path, new TextEncoder().encode(text)); alive(); }
       const real = b.args.map((a) => (/^in\d+\.\w+$/.test(a) ? `/in/${a}` : a));
       logLines = [];
       onProg = (p) => prog.set(p, `Working… ${Math.round(p * 100)} %`);
       prog.set(null, 'Working…');
       ran = true;
-      const code = await f.exec(['-hide_banner', '-y', ...real]);
+      let code: number;
+      execing = true;
+      try { code = await f.exec(['-hide_banner', '-y', ...real]); } finally { execing = false; }
+      alive();
       let names = b.outputs;
       if (b.pattern) names = (await f.listDir('/')).map((n: any) => n.name).filter((n: string) => b.pattern!.test(n)).sort();
       const files: Array<{ name: string; blob: Blob }> = [];
@@ -228,6 +238,7 @@ export const mount: Mount = (root) => {
         if (b.jpeg && n.endsWith('.png')) { blob = await encodeImg(await loadImg(blob), 'jpeg', 90); nm = asJpegName(n); } // MozJPEG
         files.push({ name: nm.startsWith('out.') ? `${baseName(m.name)}-out.${extOf(nm)}` : b.pattern ? nm : `${baseName(m.name)}-${nm}`, blob });
       }
+      alive();
       logBox.textContent = logLines.slice(-60).join('\n');
       if (code) throw new Error(`FFmpeg failed (exit ${code}): ${logLines.filter((l) => /error|invalid|no such|failed|unknown|unable/i.test(l)).slice(0, 2).join(' · ') || 'see the log'}`);
       if (!files.length) throw new Error('No output file was produced.');
@@ -244,7 +255,8 @@ export const mount: Mount = (root) => {
   /** End the running job (FFmpeg is busy in one long call: the worker is ended; the next job starts a new one). */
   function stopJob(why: string) {
     if (!running) return;
-    stopNote = why;
+    stopNote = why; jobSeq++; // the job ends at its next step
+    if (!execing) return; // FFmpeg is loading or the files are being mounted: the instance stays for what comes next
     try { ff?.terminate(); } catch { /* gone */ }
     ff = null; loading = null; fontsIn = false;
   }

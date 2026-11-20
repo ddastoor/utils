@@ -311,10 +311,18 @@ export default async ({ base, page: newPage, ok, info, download }) => {
   await page.locator('.actions').getByRole('button', { name: 'Stop' }).click();
   await page.waitForTimeout(500);
   ok(await page.getByText('Stopped.', { exact: true }).isVisible() && !(await page.locator('.err-text').count()) && await page.locator('.actions').getByRole('button', { name: 'Run FFmpeg' }).isVisible(), 'Stop: "Stopped.", no error, Run again');
+  // Stop while FFmpeg is still loading (the Stop above ended it inside a command, so this Run loads a new one): the job
+  // ended after the load and ran to the end anyway
   await page.locator('.actions').getByRole('button', { name: 'Run FFmpeg' }).click();
-  await page.waitForTimeout(1500);
+  await page.waitForTimeout(150); await page.locator('.actions').getByRole('button', { name: 'Stop' }).click();
+  await page.waitForTimeout(12000);
+  ok(await page.getByText('Stopped.', { exact: true }).isVisible() && !(await page.locator('.ff-out').count()) && !(await page.getByText(/^Working/).count()), 'Stop while FFmpeg loads: "Stopped." — and the job does not run after the load (it did)');
+  // a new file while the command runs: the job ends, and its note stays while the new file is read (the probe loads a
+  // new FFmpeg, and the loader wrote over the note, then cleared it)
+  await page.locator('.actions').getByRole('button', { name: 'Run FFmpeg' }).click();
+  await page.getByText(/^Working/).first().waitFor({ timeout: 60000 });
   await choose(M('kf6.mp4'), /Video: h264/);
-  ok(await page.getByText('Stopped: a new file was chosen (kf6.mp4).').isVisible() && !(await page.locator('.err-text').count()), 'a new file during a job ends the job, without an error');
+  ok(await page.getByText('Stopped: a new file was chosen (kf6.mp4).').isVisible() && !(await page.locator('.err-text').count()), 'a new file during a job ends the job, without an error — the note stays while the new file is read');
   await task('Remove audio');
   const kn = await run();
   ok(/kf6-out\.mp4$/.test(kn), `the next job is of the new file and named after it (${kn.split('/').pop()})`);
