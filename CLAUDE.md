@@ -1654,6 +1654,32 @@ Merge, split (ranges / every page), reorder (drag thumbnails), rotate, delete pa
 (page size A4/Letter/fit, margins), PDF → images (PNG/JPEG at chosen DPI), **compress** (recompress
 embedded images with MozJPEG at a chosen max resolution/quality; "rasterise" mode for scans; "target
 size" mode tries levels until the file is under the limit).
+**As built after the Nov 2026 bug hunt** (tabs 126 – 138, 42 bugs: docs/BUGHUNT.md "Documents — PDF"; MuPDF 1.28 stays —
+docs/WASM-AUDIT.md 124 – 135; unit `tests/unit/pdfpages.test.mjs`, read back by MuPDF and by **pypdf**
+(`tests/lib/pdfpages_check.py`, `pip install pypdf`); test PDFs with annotations, links, forms and outlines from
+`tests/lib/pdfannot.mjs`):
+- **Nothing but the page content used to survive Merge, Split and Organize** (MuPDF's `graftPage` copies no
+  annotations): `mergePdfs` in `src/lib/pdf.ts` copies comments, highlights, stamps, links (renumbered), form fields
+  with their values (a repeated field name becomes "name (2)", said) and the outlines, with one graft map per file
+  (shared fonts and images once); Split and Organize use MuPDF's `rearrangePages` on the file opened afresh. Split
+  makes one part at a time; "Every N pages" is a box; page lists take "1 3 5", "1..3" and other dashes (`parseRanges`).
+- **A run keeps its own file:** PDF → Images, Compress, Page Numbers and Watermark (`pageRun` in `src/tools/pdf.ts`) —
+  a PDF chosen during a run ends it without a result (the old file's pages were saved under the new name); leaving the
+  tab ends it; long runs show "Page n of N…" and give the page a breath. Organize draws its tiles at once and the
+  pictures one by one (the newest PDF wins); "Rotate all left / right". PDF → Text works page by page and lists form
+  values; Copy / .txt of a PDF without text say why.
+- **Sizes:** pages are drawn at most 16,384 px a side and 100 megapixels (PDF → Images, Compress "Scanned pages"), the
+  pages drawn smaller are named; image names padded (p01 …). Images → PDF "Fit to image" keeps the paper size of a
+  file stating ≥ 150 dpi (a 300 dpi A4 scan stays A4); "Sort by file name". Compress: a KB is 1,000 bytes, a target
+  under 20 KB refused, images with a colour-key mask kept as they are.
+- **Sign PDF:** the signature belongs to the page it was put on (it went on the page shown when saving), stays on the
+  page near its edges, strokes scale with the pad; Clear wins over a signature still being made; typed signatures are
+  sized to the font's measured bounds (`typedSignature`, shared with the Signature Maker).
+- **Fill PDF Form:** an unset radio group shows nothing chosen; ✓ ✔ ✗ ✘ in "type anywhere" are ZapfDingbats with a
+  ToUnicode map; a ₹ in a field is stored but MuPDF draws fields with a Latin / Greek / Cyrillic font (known limit,
+  said — "Rs." shows everywhere).
+- **Unlock / Protect:** a digitally signed PDF (an e-Aadhaar) is unlocked or protected with a warning that the copy no
+  longer proves the signature (`signatureCount`); a password outside SASLprep's tables (₹, emoji) is warned about.
 
 ### Doc Scanner
 Camera or upload; automatic page detection with draggable corners; perspective correction; enhance modes (Colour
