@@ -2319,4 +2319,19 @@ cannot. Three new suites; each fails on the build before its fixes.
   at once, after the action — races of the tests under load, which wait now. FFmpeg: the Stop check pressed Stop 1.5 s
   after Run, but "Clean up a grainy video" takes 1.6 s on a warm engine — Stop was gone; the check now waits until
   FFmpeg is working (on the longer Stabilise job).
+- **The complete e2e run on the new build:** 6,596 / 6,597 checks in 192 suites. Two checks failed under load and passed
+  when run again alone (a timing check of the Python tab's output, a tone still playing after 2 s). One failed twice:
+- **FFmpeg after a long session — a fault of the test browser, not of the tab.** At "Stop while FFmpeg loads", after
+  about 60 jobs on one FFmpeg, Stop ending a command and Run starting a new FFmpeg, the page crashed: Chromium's
+  renderer received signal 11 (SEGV_ACCERR) inside its own compiled code, at the same offset every time — 4 runs of 4
+  with Playwright's headless shell (Chrome for Testing 153.0.8010.12; read with `DEBUG=pw:browser
+  E2E_CHROME_ARGS="--enable-logging=stderr --v=0"`). A page's JavaScript and WebAssembly cannot make the browser
+  segfault. Not in short sessions (10 Stop / reload cycles; 10 warm-up jobs and 4 rounds); a 2 s pause before the new
+  FFmpeg did not help (reverted). **The full Chromium build** (`E2E_CHANNEL=chromium`, new headless mode, close to
+  Chrome) runs the same long session without a crash: 72 / 72 with `E2E_FF_SAME_PAGE=1` (the Stop checks on the long
+  session's page). Its one failure before was the check's fixed 12 s: after the long session the new FFmpeg took
+  longer to load — the check now waits up to 60 s for "Stopped." and watches 5 s more for any output or "Working"
+  (stronger: a job going on after the load would now be seen). The suite runs its Stop checks on a fresh page in the
+  headless shell (72 / 72); the checks are the same.
+- **So the complete e2e run is green**: 192 suites, every check passing (the two load flakes pass alone).
 - **Complete unit suites** after all this: 21,731 assertions in 99 suites, all green.

@@ -1841,6 +1841,10 @@ ASS; picture subtitles (DVD / Blu-ray) are refused with the reason), **Expert** 
   `-q:v 2` and crashed the page on ordinary videos.)
 - A failed job gets a new core (cheap insurance); every other job runs on the same one. A new core for every job was
   tried and dropped: slow, and it crashed the page run after run.
+- **The test browser's own crash (Nov 2026):** Playwright's headless shell (Chrome for Testing 153) segfaults its
+  renderer when, after about 60 jobs on one FFmpeg, Stop ends a command and Run starts a new FFmpeg; the full Chromium
+  build does not (`E2E_CHANNEL=chromium E2E_FF_SAME_PAGE=1 node tests/e2e.mjs ffmpeg`: 72 / 72). The suite therefore runs
+  its Stop checks on a fresh page; look again with a newer Playwright (docs/BUGHUNT.md, "FFmpeg after a long session").
 - Tests: unit `tests/unit/ffjobs.test.mjs` (110) — every job's command run by a **native FFmpeg 6.1** (`apt install
   ffmpeg`) on the fixtures and read back with ffprobe, decoded pixels and sound levels; every refusal; the probe reader
   against ffprobe. e2e `tests/e2e/ffmpeg.e2e.mjs` runs every new job on ffmpeg.wasm in the browser. Fixtures
@@ -2597,6 +2601,10 @@ npm test                 # node tests/unit.mjs — all unit suites concurrently 
 npm run build && npm run test:e2e   # node tests/e2e.mjs — one Chromium, suites run concurrently (~15 s)
 node tests/unit.mjs mathcore keys   # filter by file name (several = any of them); same for e2e: node tests/e2e.mjs cidr chmod.
 E2E_CONCURRENCY=8 node tests/e2e.mjs
+E2E_DIST=<folder> node tests/e2e.mjs …   # test another build (npx vite build --outDir <folder>): never rebuild dist under a run
+E2E_TZ=Asia/Kolkata node tests/e2e.mjs … # every page in another time zone (the suites are written in UTC)
+E2E_CHANNEL=chromium node tests/e2e.mjs … # the full Chromium (new headless mode) instead of Playwright's headless shell
+DEBUG=pw:browser E2E_CHROME_ARGS="--enable-logging=stderr --v=0" node tests/e2e.mjs …   # why a page crashed
 ```
 - `tests/unit/*.test.mjs` export `default async (t, { load, wasm })`; `t.ok/eq/near/throws`; `load()` = Vite SSR
   import of any `src/` module; `wasm(name)` instantiates `src/wasm/bin/<name>.wasm` with a WASI shim.
