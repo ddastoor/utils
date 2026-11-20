@@ -17,9 +17,24 @@ export function audio<K extends keyof AudioEngine>(op: K, ...args: Parameters<Au
 
 /** AudioBuffer → planar Float32Array copies. */
 export const channelsOf = (b: AudioBuffer) => Array.from({ length: b.numberOfChannels }, (_, i) => b.getChannelData(i).slice());
-/** Decode any file the browser can play (MP3, AAC/M4A, Opus/WebM, OGG, WAV, FLAC; and video files' audio). */
+/** The sample rate the file's audio is stored at (mediabunny reads it from the headers), or 0. */
+export async function sourceRate(data: Blob): Promise<number> {
+  try {
+    const mb = await import('mediabunny');
+    const input = new mb.Input({ source: new mb.BlobSource(data), formats: mb.ALL_FORMATS });
+    const t = await input.getPrimaryAudioTrack();
+    return t ? await t.getSampleRate() : 0;
+  } catch { return 0; }
+}
+/** Decode any file the browser can play (MP3, AAC/M4A, Opus/WebM, OGG, WAV, FLAC; and video files' audio) at the
+ *  file's own sample rate — a plain AudioContext decodes at the device's rate (a 44.1 kHz file came out at 48 kHz,
+ *  and was saved so). */
 export async function decodeAudio(data: ArrayBuffer | Blob): Promise<AudioBuffer> {
-  const buf = data instanceof Blob ? await data.arrayBuffer() : data;
+  const blob = data instanceof Blob ? data : new Blob([data]);
+  const buf = await blob.arrayBuffer(), rate = await sourceRate(blob);
+  if (rate >= 8000 && rate <= 384000) {
+    try { return await new OfflineAudioContext(1, 1, rate).decodeAudioData(buf.slice(0)); } catch { /* a rate this browser cannot hold: below */ }
+  }
   const Ctx = window.AudioContext || (window as any).webkitAudioContext;
   const ctx = new Ctx();
   try { return await ctx.decodeAudioData(buf); } finally { ctx.close?.(); }

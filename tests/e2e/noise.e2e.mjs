@@ -9,9 +9,10 @@ export default async ({ base, page: newPage, ok, info, download, devices }) => {
   await page.goto(`${base}#/noise`);
   const save = () => download(page, () => page.locator('.actions').getByRole('button', { name: 'Download' }).click());
   const cleaned = () => page.getByText(/cleaned in [\d.]+ s/).waitFor({ timeout: 60000 });
-  /** clean reference decoded by the browser at the page's rate (same rate the tool decodes at) */
+  /** clean reference decoded by the browser at the file's own rate, 16 kHz (as the tool decodes since Nov 2026 — it was
+   *  the device's rate, 48 kHz, and so was the tool's output) */
   const ref = await page.evaluate(async (b64) => {
-    const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0)), ctx = new AudioContext();
+    const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0)), ctx = new OfflineAudioContext(1, 1, 16000);
     const b = await ctx.decodeAudioData(bytes.buffer); return { sr: b.sampleRate, x: Array.from(b.getChannelData(0)) };
   }, readFileSync(F('librispeech-1.flac')).toString('base64'));
   const clean = Float32Array.from(ref.x);
@@ -25,7 +26,8 @@ export default async ({ base, page: newPage, ok, info, download, devices }) => {
   const w = readWav(readFileSync(await save()));
   ok(w.sr === ref.sr && Math.abs(w.n - clean.length) <= 2, `same length and rate as the input (${w.n} samples at ${w.sr} Hz)`);
   // input SNR against the reference, measured the same way
-  const noisy = await page.evaluate(async (b64) => { const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0)), ctx = new AudioContext(); return Array.from((await ctx.decodeAudioData(bytes.buffer)).getChannelData(0)); }, readFileSync(F('noisy-speech.wav')).toString('base64'));
+  const noisy = await page.evaluate(async (b64) => { const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0)), ctx = new OfflineAudioContext(1, 1, 16000); return Array.from((await ctx.decodeAudioData(bytes.buffer)).getChannelData(0)); }, readFileSync(F('noisy-speech.wav')).toString('base64'));
+  ok(w.sr === 16000, `the cleaned file keeps the input's 16 kHz (${w.sr} Hz) — RNNoise works at 48 kHz in between`);
   const sIn = snr(Float32Array.from(noisy)), sOut = snr(w.data[0]);
   info(`SNR vs clean speech: noisy ${sIn.toFixed(1)} dB → cleaned ${sOut.toFixed(1)} dB`);
   ok(sIn > 3 && sIn < 7, `fixture is 5 dB SNR (${sIn.toFixed(1)} dB)`);

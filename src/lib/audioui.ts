@@ -58,7 +58,16 @@ export function recorder(o: { onDone: (r: Recording) => void; onStart?: () => vo
     try {
       stream = await navigator.mediaDevices.getUserMedia({ audio: { deviceId: deviceId ? { exact: deviceId } : undefined, echoCancellation: clean, noiseSuppression: clean, autoGainControl: clean, channelCount: stereo ? 2 : 1 } });
     } catch (e: any) {
-      throw new Error(e?.name === 'NotAllowedError' ? 'Microphone permission was denied. Allow it in the browser’s site settings and try again.' : e?.name === 'NotFoundError' ? 'No microphone found.' : errMsg(e));
+      const why: Record<string, string> = {
+        NotAllowedError: 'Microphone permission was denied. Allow it in the browser’s site settings and try again.',
+        NotFoundError: 'No microphone found.',
+        NotReadableError: 'The microphone is in use by another program (or the system refuses it). Close the other program and try again.',
+        OverconstrainedError: 'The chosen microphone is no longer there. Choose another one under “Microphone options”.',
+        SecurityError: 'This page may not use the microphone (the browser blocks it here).',
+        AbortError: 'The microphone could not be started. Try again.',
+      };
+      if (e?.name === 'OverconstrainedError') { deviceId = ''; micSel.value = ''; } // the next try uses the default microphone
+      throw new Error(why[e?.name] || errMsg(e));
     }
     fillMics();
     const mime = recordMime();

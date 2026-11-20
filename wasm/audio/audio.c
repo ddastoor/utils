@@ -2,6 +2,7 @@
 // −1…1, PLANAR: channel c of `frames` samples starts at x + c*frames. Functions that return a new buffer allocate it
 // with malloc (free it with a_free) and put its length in a_outlen() (bytes for encoders, frames for audio).
 //   a_wav        float → RIFF/WAVE (16-bit PCM or 32-bit float)
+//   a_mix2       two signals mixed with their own gains
 //   a_mp3        float → MP3 (CBR kbps or VBR V0–V9), with the LAME/Xing tag frame so players know the length
 //   a_peaks      min/max per bucket (waveform drawing)
 //   a_levels     peak + RMS
@@ -108,6 +109,8 @@ API void a_levels(const float *x, uint32_t n, float *out) {
   out[0] = pk; out[1] = n ? (float)sqrt(s / n) : 0;
 }
 API void a_gain(float *x, uint32_t n, float g) { for (uint32_t i = 0; i < n; i++) x[i] = clampf(x[i] * g); }
+/* a = ga·a + gb·b, sample by sample (the Noise Remover's strength: the cleaned sound with the untouched input) */
+API void a_mix2(float *a, const float *b, uint32_t n, float ga, float gb) { for (uint32_t i = 0; i < n; i++) a[i] = clampf(ga * a[i] + gb * b[i]); }
 /** Linear fade in over the first `fin` frames and fade out over the last `fout` frames, every channel. */
 API void a_fade(float *x, uint32_t frames, uint32_t ch, uint32_t fin, uint32_t fout) {
   for (uint32_t c = 0; c < ch; c++) {

@@ -1190,3 +1190,20 @@ One entry per tab, written before its bug hunt: our module → candidates → ch
   with tens of MB of fonts and packages, for the same pages. **Decision:** MuPDF stays. Found on the way: the pages were
   drawn into the PDF without their links, and MuPDF reads mailto: / tel: as paths beside the chapter ("OEBPS/mailto:…")
   — the links are made again on the drawn pages now (getLinks → createLink).
+
+### 142. `audio` — Audio Recorder (20 Nov 2026)
+- **Ours:** audio.wasm (LAME 4.0 MP3 encoder + our C: WAV, peaks, levels, gain, fades, resampler, WSOLA) built by us;
+  mediabunny (JavaScript, MPL-2.0) cuts the original codec without re-encoding. **Candidates:** lamejs is JavaScript;
+  wasm-media-encoders (LAME + Ogg Vorbis compiled to WebAssembly, one-person package, LAME 3.100) and
+  @breezystack/lamejs; ffmpeg.wasm (31 MB for an MP3 encoder). None is more tried and tested than LAME itself, which
+  we build at its latest release. **Decision:** ours stays. New: `a_mix2` (two signals with their own gains) for the
+  Noise Remover; decoding at the file's own rate (mediabunny reads it from the headers, an OfflineAudioContext of that
+  rate decodes — glue).
+
+### 143. `tts` — Text-to-Speech (20 Nov 2026)
+- **Ours:** eSpeak NG 1.52 (our build) for phonemes; **ONNX Runtime Web 1.31** (Microsoft's official build) runs Kokoro-82M
+  and Piper. **Candidates:** kokoro-js (JavaScript around transformers.js, which itself runs ONNX Runtime Web — the same
+  engine with more JavaScript), piper-tts-web / @mintplex-labs/piper-tts-web (ONNX Runtime Web + an Emscripten
+  espeak-ng build, one-person packages), sherpa-onnx's WebAssembly TTS (Kaldi project, official; Piper/Kokoro voices,
+  but its own 30 MB+ build and no streaming per sentence in the browser package). **Decision:** ours stays — the network
+  runs on the famous official module already; our eSpeak build is at its latest release.

@@ -47,6 +47,17 @@ export function bindAudio(e: any) {
       const { p, n } = putPlanar(chs);
       try { e.a_fade(p, n, chs.length, fadeIn, fadeOut); return chs.map((_, i) => new Float32Array(mem(), p + i * n * 4, n).slice()); } finally { e.a_free(p); }
     },
+    /** ga·a + gb·b per channel (same lengths), clamped to ±1. */
+    mix2(a: Float32Array[], b: Float32Array[], ga: number, gb: number): Float32Array[] {
+      return a.map((x, i) => {
+        const n = x.length, pa = e.a_malloc(n * 4), pb = e.a_malloc(n * 4);
+        try {
+          new Float32Array(mem(), pa, n).set(x); new Float32Array(mem(), pb, n).set(b[i].subarray(0, n));
+          e.a_mix2(pa, pb, n, ga, gb);
+          return new Float32Array(mem(), pa, n).slice();
+        } finally { e.a_free(pa); e.a_free(pb); }
+      });
+    },
     mixMono(chs: Float32Array[]): Float32Array {
       if (chs.length === 1) return chs[0];
       const { p, n } = putPlanar(chs), o = e.a_malloc(n * 4);

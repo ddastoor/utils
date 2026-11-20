@@ -89,4 +89,9 @@ export default async (t, { load, wasm }) => {
   t.ok(frames(m4).bad === -1 && frames(m4).out.every((f) => f.mode === 3), '3 channels are mixed down to mono');
   t.ok(a.mp3([new Float32Array(0)], 44100).length > 0 || true, 'empty input does not crash');
   t.ok(m1.length > 15000 && m1.length < 18500, `1 s at 128 kbps ≈ 16 KB (${m1.length} bytes)`);
+  // mix2: ga·a + gb·b, clamped (the Noise Remover's strength at rates other than 48 kHz)
+  { const x = [Float32Array.from([0.5, -0.5, 0.9, 0])], y = [Float32Array.from([0.1, 0.2, 0.9, -1])];
+    const m = a.mix2(x, y, 0.25, 0.75);
+    t.ok(m[0].every((v, i) => Math.abs(v - [0.2, 0.025, 0.9, -0.75][i]) < 1e-6), `mix2 known answers (${Array.from(m[0]).map((v) => v.toFixed(3))})`);
+    t.ok(Math.abs(a.mix2([Float32Array.from([0.9])], [Float32Array.from([0.9])], 1, 1)[0][0] - 1) < 1e-6 && x[0][0] === 0.5, 'clamped to 1; the inputs untouched'); }
 };

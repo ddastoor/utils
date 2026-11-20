@@ -60,7 +60,15 @@ if (isMainThread) {
     inst.exports._initialize?.();
     return inst.exports;
   }
-  const ctx = { load: (p) => vite.ssrLoadModule(p), wasm, root };
+  // Vite's module runner gives every module fetch 60 s; on a busy machine (a browser run beside the unit run, a build)
+  // a fetch waits longer and the whole suite crashed with "transport invoke timed out". The runner (made by the first
+  // ssrLoadModule) reads its transport's `timeout` at every fetch: 0 = no limit. (Vite internals: without them, as before.)
+  const load = (p) => {
+    const r = vite.ssrLoadModule(p), t = vite._ssrCompatModuleRunner?.options?.transport;
+    if (t && t.timeout === undefined) t.timeout = 0;
+    return r;
+  };
+  const ctx = { load, wasm, root };
   const out = await Promise.all(workerData.files.map(async (f) => {
     const fails = [], passes = { n: 0 }, s0 = performance.now();
     const j = (v) => JSON.stringify(v, (_, x) => (typeof x === 'bigint' ? `${x}n` : x));

@@ -91,13 +91,17 @@ export default async ({ base, page: newPage, ok, info, download, tmp }) => {
   const fx = join(tmp, 'tones.wav'); writeFileSync(fx, makeWav([L, R], sr));
   await page.locator('input[type=file]').setInputFiles(fx);
   await page.getByText(/tones\.wav: 3\.0 s · 2 channels/).waitFor({ timeout: 15000 });
-  const ctxRate = +(/(\d+) Hz/.exec(await page.getByText(/tones\.wav: 3\.0 s/).textContent())[1]);
+  // the file's own rate (a plain AudioContext decoded at the device's rate, and saved so)
+  const ctxRate = +(/([\d,]+) Hz/.exec(await page.getByText(/tones\.wav: 3\.0 s/).textContent())[1].replace(/,/g, ''));
+  ok(ctxRate === 44100, `the file's rate is shown and kept: ${ctxRate} Hz`);
   await page.getByLabel('Start (seconds)').fill('2');
   await page.getByLabel('End (seconds)').fill('3');
   ok(/Selection 0:02\.0\d* – 0:03\.0\d* · 1\.00 s/.test(await page.getByText(/^Selection/).textContent()), 'selection set from the time boxes');
   await fmt('WAV');
   const w2 = readWav(readFileSync(await save()));
-  ok(w2.ch === 2 && w2.sr === ctxRate && Math.abs(w2.n - ctxRate) <= 1, `trimmed WAV is exactly 1 s, stereo (${w2.n} samples at ${w2.sr} Hz)`);
+  ok(w2.ch === 2 && w2.sr === 44100 && w2.n === 44100, `trimmed WAV is exactly 1 s at the file's 44.1 kHz, stereo (${w2.n} samples at ${w2.sr} Hz)`);
+  // the samples themselves: the WAV holds the file's samples from 2.00 s on, unchanged but for 16-bit rounding
+  { let worst = 0; for (let i = 0; i < 44100; i++) worst = Math.max(worst, Math.abs(w2.data[0][i] - Math.round(L[2 * 44100 + i] * 32767) / 32768)); ok(worst < 2 / 32768, `sample for sample the file's own (largest difference ${(worst * 32768).toFixed(2)} of a 16-bit step)`); }
   ok(Math.abs(freqOf(w2.data[0], w2.sr) - 880) < 2 && Math.abs(peakOf(w2.data[0]) - 0.5) < 0.02 && Math.abs(peakOf(w2.data[1]) - 0.25) < 0.02, `trimmed part is the 880 Hz tone (${freqOf(w2.data[0], w2.sr).toFixed(1)} Hz), channel levels kept`);
   await fmt('MP3');
   await page.getByLabel('MP3 quality').selectOption('320');

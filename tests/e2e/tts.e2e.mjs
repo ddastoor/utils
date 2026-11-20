@@ -75,6 +75,20 @@ export default async ({ base, page: newPage, ok, info, download, tmp }) => {
   ok(true, 'reads sentence by sentence (progress shown)');
   await page.locator('.actions').getByRole('button', { name: 'Stop' }).click();
   ok(await page.getByText('Stopped.').isVisible(), 'stop');
+  ok(await page.locator('.tts-now').textContent() === '', 'after Stop no sentence is shown as being read');
+  // Speak again while a run is still making its sentences: the old run ends first (two runs shared the ONNX session)
+  await page.locator('.actions').getByRole('button', { name: 'Speak' }).click();
+  await page.getByText(/^Reading \d of \d/).first().waitFor({ timeout: 120000 });
+  await page.locator('.actions').getByRole('button', { name: 'Stop' }).click();
+  await page.locator('.actions').getByRole('button', { name: 'Speak' }).click();
+  await page.getByText(/of speech made in/).waitFor({ timeout: 180000 });
+  const st = await page.locator('[aria-live="polite"].muted').filter({ hasText: 'of speech made' }).textContent();
+  ok(/^0:0[4-9]|^0:1\d/.test(st) && await page.locator('.toast.err, .toast-err').count() === 0, `a run started right after another one stops: whole (${st})`);
+  // a .txt saved by Notepad in Windows-1252
+  const w1252 = join(tmp, 'cafe.txt'); writeFileSync(w1252, Buffer.from('Caf\xe9 au lait, na\xefve r\xe9sum\xe9.', 'latin1'));
+  await page.locator('input[type=file]').setInputFiles(w1252);
+  await page.waitForFunction(() => /Café/.test(document.querySelector('textarea')?.value || ''), null, { timeout: 5000 });
+  ok(await page.getByLabel('Text to read').inputValue() === 'Café au lait, naïve résumé.', 'a Windows-1252 text file: café (it was caf\uFFFD, read aloud as nonsense)');
 
   // .md file → plain text
   const md = join(tmp, 'notes.md'); writeFileSync(md, '# Title\n\nSome **bold** text and a [link](https://example.com).\n\n- item one\n- item two\n');

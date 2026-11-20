@@ -66,8 +66,8 @@ Areas with a shared review: the app shell (router, search, favorites, platform h
 | id | Tab | Platform | Area | R | B | T | Notes |
 |---|---|---|---|---|---|---|---|
 | `video` | Video Compressor | PC + mobile | video |  |  |  |  |
-| `audio` | Audio Recorder | PC + mobile | audio |  |  |  |  |
-| `tts` | Text-to-Speech | PC + mobile | audio |  |  |  |  |
+| `audio` | Audio Recorder | PC + mobile | audio | ✓ | 5 | 4 | decoded at the file's own rate (was the device's: 44.1 kHz saved as 48 kHz); newest file wins; mic errors in words |
+| `tts` | Text-to-Speech | PC + mobile | audio | ✓ | 6 | 3 | Speak stayed busy after Stop; runs queued in the worker; sentence shown when heard; system-voice errors; text encodings; download size |
 | `stt` | Speech to Text | PC + mobile | audio |  |  |  |  |
 | `noise` | Noise Remover | PC + mobile | audio |  |  |  |  |
 | `pitch` | Pitch & Speed | PC + mobile | audio |  |  |  |  |
@@ -1958,3 +1958,33 @@ Reference for the five finance tabs: **mpmath at 60 digits** (`scripts/make-fina
      this race in the tab (the suite waited 600 ms): the download waits for the picture.
   5. The photo was lost through Save / Load details.
   6. Leaving the tab mid-update (as the invoice).
+
+### Media › audio (20 Nov 2026 –)
+- **`audio` (tab 145, 5 bugs; audio.wasm + mediabunny; WASM-AUDIT 142; e2e 23 — was 21; unit `audio.test.mjs` +2).**
+  1. **Every file was decoded at the device's rate:** a plain AudioContext resamples while it decodes, so a 44.1 kHz
+     file was shown as "48000 Hz" and its WAV / MP3 saved at 48 kHz. `decodeAudio` reads the file's rate (mediabunny,
+     from the headers) and decodes at it (OfflineAudioContext): the trimmed WAV is now the file's own samples (the
+     suite compares them sample for sample). Shared by the Noise Remover, Pitch & Speed, Speech to Text, Slideshow.
+  2. The newest file (or recording) did not win: an older, slower decode replaced it.
+  3. Microphone errors other than "denied" / "not found" came out as browser codes; a microphone in use by another
+     program, one unplugged since it was chosen (the next try takes the default) and a blocked page are said in words.
+  4. Nothing was left behind for a load that finished after the tab was left (guarded).
+  5. Found by the full run: the recorder's pause check is timing-sensitive under a saturated machine (passes alone,
+     twice) — recorded here, not changed.
+- **`tts` (tab 146, 6 bugs; eSpeak + ONNX Runtime Web; WASM-AUDIT 143; e2e 16 — was 13).**
+  1. **After Stop the Speak button stayed busy for good:** speak() waited for the worker's last word, which carried
+     the stopped run's number and was ignored — Stop now ends the wait at once (found by the new "speak again after
+     Stop" check; the old suite never pressed Speak after Stop).
+  2. **A Speak during a run started a second run on the same ONNX session at once:** the worker queues runs; a
+     cancelled one ends at its next sentence.
+  3. **The sentence shown as being read was the one just made** — ahead of the sound when the voice is made faster
+     than real time: each sentence is shown when it starts to play; Stop clears it.
+  4. A system voice that failed (removed, busy) left Stop up and said nothing: said, buttons restored.
+  5. A .txt from Notepad (Windows-1252) was read aloud with U+FFFD in it; UTF-16 too: decoded as the CSV tab does; a
+     file that is not text is refused.
+  6. The model download assumed Content-Length: a server that compresses the file (more bytes than announced)
+     overflowed the buffer — it grows now.
+- **`noise` — found while checking the shared decoding (its own hunt follows): at strength 0 % the result was no
+  longer the input** for files not at 48 kHz (the dry sound went through the resampler twice); the cleaned sound is
+  now mixed with the untouched input at the file's own rate (`a_mix2`, new in audio.wasm). The suite's references are
+  decoded at the file's 16 kHz (they were decoded at the device's rate, like the tool).

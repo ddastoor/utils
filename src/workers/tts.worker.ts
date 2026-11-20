@@ -13,7 +13,9 @@ type Msg = { id: number; op: 'speak'; base: string; engine: 'kokoro' | 'piper'; 
 const post = (m: any, t: Transferable[] = []) => (self as any).postMessage(m, t);
 let base = '', es: Espeak | null = null, kokoro: Promise<ort.InferenceSession> | null = null, piper: Promise<{ s: ort.InferenceSession; cfg: PiperConfig }> | null = null;
 const voices = new Map<string, Promise<Float32Array>>();
-let cancelled = 0;
+// runs one after the other: a new Speak while one runs used to run both on the same ONNX session at once
+const cancelled = new Set<number>();
+let chain: Promise<unknown> = Promise.resolve();
 const at = (p: string) => new URL(p, base).href;
 
 async function fetchBytes(url: string, what: string, id: number): Promise<Uint8Array> {
@@ -21,15 +23,17 @@ async function fetchBytes(url: string, what: string, id: number): Promise<Uint8A
   if (!r.ok) throw new Error(`Could not load ${what} (${r.status})`);
   const total = +(r.headers.get('content-length') || 0);
   if (!r.body || !total) return new Uint8Array(await r.arrayBuffer());
-  const out = new Uint8Array(total), rd = r.body.getReader();
-  let got = 0, last = 0;
+  let out = new Uint8Array(total), got = 0, last = 0;
+  const rd = r.body.getReader();
   for (;;) {
     const { done, value } = await rd.read();
     if (done) break;
+    // (a server that compresses the file sends more bytes than Content-Length says: the buffer grows)
+    if (got + value.length > out.length) { const bigger = new Uint8Array(Math.max(out.length * 2, got + value.length)); bigger.set(out.subarray(0, got)); out = bigger; }
     out.set(value, got); got += value.length;
-    if (got - last > total / 50) { last = got; post({ id, type: 'progress', what, loaded: got, total }); }
+    if (got - last > total / 50) { last = got; post({ id, type: 'progress', what, loaded: Math.min(got, total), total }); }
   }
-  return got === total ? out : out.subarray(0, got);
+  return got === out.length ? out : out.slice(0, got);
 }
 async function espeak() {
   if (!es) es = bindEspeak((await instantiateWasi(espeakUrl)).exports);
@@ -54,9 +58,12 @@ const piperSession = (id: number) => (piper ||= (async () => {
 const i64 = (a: number[]) => BigInt64Array.from(a.map((x) => BigInt(x)));
 const silence = (sr: number, s: number) => new Float32Array(Math.round(sr * s));
 
-self.onmessage = async (ev: MessageEvent<Msg>) => {
+self.onmessage = (ev: MessageEvent<Msg>) => {
   const m = ev.data;
-  if (m.op === 'cancel') { cancelled = m.id; return; }
+  if (m.op === 'cancel') { cancelled.add(m.id); return; }
+  chain = chain.then(() => (cancelled.has(m.id) ? post({ id: m.id, type: 'cancelled' }) : run(m))).finally(() => cancelled.delete(m.id));
+};
+async function run(m: Exclude<Msg, { op: 'cancel' }>) {
   base = m.base;
   try {
     const e = await espeak();
@@ -68,7 +75,7 @@ self.onmessage = async (ev: MessageEvent<Msg>) => {
       const [s, style] = await Promise.all([kokoroSession(m.id), kokoroVoice(m.voice, m.id)]);
       post({ id: m.id, type: 'ready', parts: parts.length, loadMs: performance.now() - t0 });
       for (let k = 0; k < parts.length; k++) {
-        if (cancelled === m.id) return post({ id: m.id, type: 'cancelled' });
+        if (cancelled.has(m.id)) return post({ id: m.id, type: 'cancelled' });
         const ids = tokenize(parts[k].phonemes), n = Math.min(Math.max(ids.length - 2, 0), 509);
         const out = await s.run({
           input_ids: new ort.Tensor('int64', i64(ids), [1, ids.length]),
@@ -85,7 +92,7 @@ self.onmessage = async (ev: MessageEvent<Msg>) => {
       const { s, cfg } = await piperSession(m.id), sr = cfg.audio.sample_rate, inf = cfg.inference;
       post({ id: m.id, type: 'ready', parts: lines.length, loadMs: performance.now() - t0 });
       for (let k = 0; k < lines.length; k++) {
-        if (cancelled === m.id) return post({ id: m.id, type: 'cancelled' });
+        if (cancelled.has(m.id)) return post({ id: m.id, type: 'cancelled' });
         const { ids } = phonemeIds(lines[k].ph, cfg.phoneme_id_map);
         const feeds: Record<string, ort.Tensor> = {
           input: new ort.Tensor('int64', i64(ids), [1, ids.length]),
@@ -103,5 +110,5 @@ self.onmessage = async (ev: MessageEvent<Msg>) => {
   } catch (err: any) {
     post({ id: m.id, type: 'error', error: err?.message || String(err) });
   }
-};
+}
 function concat(parts: Float32Array[]) { const o = new Float32Array(parts.reduce((a, p) => a + p.length, 0)); let k = 0; for (const p of parts) { o.set(p, k); k += p.length; } return o; }

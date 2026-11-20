@@ -8,22 +8,26 @@ import { audio, decodeAudio } from '../lib/audio-client';
 const stamp = () => { const d = new Date(), p = (n: number) => String(n).padStart(2, '0'); return `recording-${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}`; };
 
 export const mount: Mount = (root, ctx) => {
-  let src: { blob: Blob; name: string; recorded: boolean } | null = null, normalise = false, fades = false;
+  let src: { blob: Blob; name: string; recorded: boolean } | null = null, normalise = false, fades = false, seq = 0, live = true;
   const editor = waveEditor();
   const editCards = h('div', { class: 'stack', hidden: true });
   const bar = actions();
   const status = h('div', { class: 'muted small', 'aria-live': 'polite' });
 
+  // the newest file (or recording) wins; nothing is shown after the tab is left
   const load = async (blob: Blob, name: string, recorded: boolean) => {
+    const my = ++seq;
     status.textContent = 'Reading the audio…';
     try {
       const buf = await decodeAudio(blob);
+      if (my !== seq || !live) return;
       if (!buf.duration) throw new Error('No audio in this file.');
       src = { blob, name, recorded };
       await editor.set(buf);
-      status.textContent = `${recorded ? 'Recording' : name}: ${buf.duration.toFixed(1)} s · ${buf.numberOfChannels === 1 ? 'mono' : `${buf.numberOfChannels} channels`} · ${buf.sampleRate} Hz`;
+      if (my !== seq || !live) return;
+      status.textContent = `${recorded ? 'Recording' : name}: ${buf.duration.toFixed(1)} s · ${buf.numberOfChannels === 1 ? 'mono' : `${buf.numberOfChannels} channels`} · ${buf.sampleRate.toLocaleString('en-IN')} Hz`;
       editCards.hidden = false; showEdit();
-    } catch (e) { status.textContent = ''; toast(`Cannot read this audio: ${errMsg(e)}`, 'err'); }
+    } catch (e) { if (my === seq && live) { status.textContent = ''; toast(`Cannot read this audio: ${errMsg(e)}`, 'err'); } }
   };
   const rec = recorder({ isMobile: ctx.isMobile, onStart: () => { editCards.hidden = true; editor.stop(); }, onDone: (r: Recording) => load(r.blob, `${stamp()}.${extForMime(r.mime)}`, true) });
 
@@ -65,5 +69,5 @@ export const mount: Mount = (root, ctx) => {
     card(null, filePicker({ accept: 'audio/*,video/*,.mp3,.m4a,.aac,.wav,.ogg,.opus,.flac,.webm', label: 'Or open an audio file to trim', compact: true, onFiles: ([f]) => load(f, f.name, false) }), status),
     editCards, bar);
   showRec();
-  return () => { rec.dispose(); editor.dispose(); };
+  return () => { live = false; seq++; rec.dispose(); editor.dispose(); };
 };
