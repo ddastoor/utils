@@ -1,4 +1,5 @@
-// audio.wasm (LAME 4.0 + own C): WAV bytes, peaks/levels, resampler, WSOLA tempo/pitch, MP3 frame structure.
+// audio.wasm (LAME 4.0 + own C): WAV bytes, peaks/levels, resampler, MP3 frame structure. (Tempo and pitch moved to
+// Signalsmith Stretch in Nov 2026 — the Pitch & Speed suite; the WSOLA code is gone.)
 export default async (t, { load, wasm }) => {
   const { bindAudio } = await load('/src/wasm/audio.ts');
   const a = bindAudio(await wasm('audio'));
@@ -48,23 +49,6 @@ export default async (t, { load, wasm }) => {
   t.ok(up.length === 22050 && Math.abs(freq(up, 44100) - 440) < 0.5, '22.05 → 44.1 kHz up-sampling');
   const [odd] = a.resample([sine(300, 44100, 1)], 24000 / 44100);
   t.ok(odd.length === 24000 && Math.abs(freq(odd, 24000) - 300) < 0.5, 'non-integer ratio 44.1 → 24 kHz');
-
-  // ---- WSOLA tempo + pitch
-  const tone = sine(440, 44100, 2);
-  const [fast] = a.stretch([tone], 44100, 2);
-  t.eq(fast.length, 44100, 'tempo 2×: half the length');
-  t.near(freq(fast, 44100), 440, 1, 'tempo 2×: pitch unchanged (440 Hz)');
-  t.near(rms(fast, 4410, 39690), 0.8 * Math.SQRT1_2, 0.03, 'tempo 2×: level steady (no gaps or doubling)');
-  const [slow] = a.stretch([tone], 44100, 0.5);
-  t.ok(slow.length === 176400 && Math.abs(freq(slow, 44100) - 440) < 1, 'tempo 0.5×: double length, 440 Hz');
-  t.near(rms(slow, 17640, 158760), 0.8 * Math.SQRT1_2, 0.03, 'tempo 0.5×: level steady');
-  const [hi] = a.tempoPitch([tone], 44100, 1, 12);
-  t.ok(Math.abs(hi.length - tone.length) <= 2 && Math.abs(freq(hi, 44100) - 880) < 2, `+12 semitones: 880 Hz, same length (${freq(hi, 44100).toFixed(1)} Hz)`);
-  const [lo] = a.tempoPitch([tone], 44100, 1.25, -5);
-  t.ok(Math.abs(lo.length - tone.length / 1.25) <= 2 && Math.abs(freq(lo, 44100) - 440 * 2 ** (-5 / 12)) < 2, `−5 semitones at 1.25×: ${freq(lo, 44100).toFixed(1)} Hz, ${lo.length} samples`);
-  const st = a.stretch([tone, tone.map((v) => -v)], 44100, 1.5);
-  t.ok(st.length === 2 && st[0].every((v, i) => Math.abs(v + st[1][i]) < 1e-6), 'stereo: both channels cut at the same places');
-  t.throws(() => a.stretch([tone], 44100, 10), 'tempo outside 0.25–4 refused');
 
   // ---- MP3 (LAME)
   /** Walks MPEG audio frames: returns header fields of each frame. */

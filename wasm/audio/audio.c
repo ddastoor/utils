@@ -8,7 +8,6 @@
 //   a_levels     peak + RMS
 //   a_gain, a_fade, a_mix_mono
 //   a_resample   windowed-sinc (Kaiser) resampler, any ratio
-//   a_wsola      WSOLA time stretch (tempo change without pitch change); with a_resample → pitch shift
 #include <math.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -182,63 +181,3 @@ API float *a_resample(const float *x, uint32_t frames, uint32_t ch, double ratio
   return o;
 }
 
-// ------------------------------------------------------------------ WSOLA time stretch
-// Frames of N ≈ 40 ms with a Hann window, 50 % overlap on output (Hs = N/2). Each analysis frame starts near
-// k·Ha (Ha = Hs·tempo) and is moved by up to ±Δ (≈ 12 ms) to the offset whose start best continues the previous
-// frame (normalised cross-correlation over the overlap, coarse search on every 4th sample then a fine search).
-// The same offset is used for every channel (searched on the mono mix), so stereo images stay put.
-API float *a_wsola(const float *x, uint32_t frames, uint32_t ch, uint32_t sr, double tempo) {
-  if (!(tempo >= 0.25 && tempo <= 4)) return fail("tempo must be 0.25…4");
-  if (!ch) return fail("no channels");
-  uint32_t N = 1; while (N < sr / 25) N <<= 1; // ≈ 40 ms, power of two
-  uint32_t Hs = N / 2, D = sr * 12 / 1000;
-  double Ha = Hs * tempo;
-  uint32_t on = (uint32_t)(frames / tempo) + N;
-  float *o = calloc((size_t)on * ch, sizeof(float)), *mono = malloc((size_t)frames * sizeof(float) + 4), *win = malloc(N * sizeof(float));
-  if (!o || !mono || !win) { free(o); free(mono); free(win); return fail("out of memory"); }
-  a_mix_mono(x, frames, ch, mono);
-  for (uint32_t i = 0; i < N; i++) win[i] = 0.5f - 0.5f * cosf(2 * (float)M_PI * i / N);
-  int64_t prev = 0; // input start of the previously copied frame
-  uint32_t out_frames = 0;
-  for (uint32_t k = 0;; k++) {
-    uint64_t opos = (uint64_t)k * Hs;
-    int64_t nominal = (int64_t)llround(k * Ha), best = nominal;
-    if (opos + N > on || nominal >= (int64_t)frames) break;
-    if (k > 0) {
-      int64_t want = prev + Hs; // natural continuation of the previous frame
-      int64_t lo = nominal - D, hi = nominal + D;
-      if (lo < 0) lo = 0;
-      if (hi > (int64_t)frames - (int64_t)N) hi = (int64_t)frames - (int64_t)N;
-      if (want + (int64_t)Hs <= (int64_t)frames && hi >= lo) {
-        double bestc = -1e30;
-        for (int pass = 0; pass < 2; pass++) {
-          int64_t a = pass ? best - 3 : lo, b = pass ? best + 3 : hi, step = pass ? 1 : 4, sstep = pass ? 1 : 4;
-          if (a < lo) a = lo;
-          if (b > hi) b = hi;
-          for (int64_t d = a; d <= b; d += step) {
-            double c = 0, e = 1e-9;
-            for (uint32_t i = 0; i < Hs; i += sstep) { float u = mono[want + i], v = mono[d + i]; c += u * v; e += v * v; }
-            c /= sqrt(e);
-            if (c > bestc) { bestc = c; best = d; }
-          }
-        }
-      }
-    }
-    if (best < 0) best = 0;
-    for (uint32_t c = 0; c < ch; c++) {
-      const float *in = x + (size_t)c * frames;
-      float *out = o + (size_t)c * on + opos;
-      for (uint32_t i = 0; i < N && best + i < frames; i++) out[i] += in[best + i] * (k == 0 && i < Hs ? 1.f : win[i]); // no fade-in at the start
-    }
-    prev = best;
-    out_frames = (uint32_t)(opos + N);
-  }
-  uint32_t want = (uint32_t)llround(frames / tempo);
-  if (want > on) want = on;
-  // compact the planar output to `want` frames per channel (first Hs samples are half-windowed: fade-in is fine)
-  if (want != on) for (uint32_t c = 1; c < ch; c++) memmove(o + (size_t)c * want, o + (size_t)c * on, want * sizeof(float));
-  (void)out_frames;
-  free(mono); free(win);
-  g_outlen = want;
-  return o;
-}

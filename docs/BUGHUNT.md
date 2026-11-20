@@ -70,7 +70,7 @@ Areas with a shared review: the app shell (router, search, favorites, platform h
 | `tts` | Text-to-Speech | PC + mobile | audio | ✓ | 6 | 3 | Speak stayed busy after Stop; runs queued in the worker; sentence shown when heard; system-voice errors; text encodings; download size |
 | `stt` | Speech to Text | PC + mobile | audio |  |  |  |  |
 | `noise` | Noise Remover | PC + mobile | audio | ✓ | 11 | 33 | Jitsi's RNNoise 0.2 build (= the release's standard 8-bit computation; ours ran the debug float weights, 4× larger); Save after a new file; strength re-cleaned everything; stereo voice; 16-bit WAV round trip |
-| `pitch` | Pitch & Speed | PC + mobile | audio |  |  |  |  |
+| `pitch` | Pitch & Speed | PC + mobile | audio | ✓ | 8 | 7 | Signalsmith Stretch (official wasm/AudioWorklet, MIT) replaces our WSOLA: chord 7-15 dB cleaner; Save after a new file; coalesced renders; selection follows the passage |
 | `slideshow` | Slideshow Maker | PC + mobile | video |  |  |  |  |
 | `ffmpeg` | FFmpeg | PC only | video |  |  |  |  |
 | `screencast` | Screencast | PC only | video |  |  |  |  |
@@ -2013,3 +2013,18 @@ Reference for the five finance tabs: **mpmath at 60 digits** (`scripts/make-fina
   - Under load: with three audio suites in one headless browser, Chromium's MediaRecorder sometimes ignored `pause()`
     (the WebM held 66 unbroken 60 ms packets, 3.9 s, for 2.6 s of recording; ffprobe). Never alone, never under four
     busy CPU loops; the harness's re-run alone covers it (`E2E_NO_RETRY=1` shows it).
+- **`pitch` (tab 148, 8 bugs; Signalsmith Stretch replaces our WSOLA — WASM-AUDIT 145; e2e 18 — was 11; unit
+  `audio.test.mjs` without the WSOLA cases).**
+  1. **Music came out smeared:** WSOLA left −30 to −36 dB of stray energy around a chord (Signalsmith −37 to −47 dB).
+  2. **Save right after choosing another file saved the previous file's result under the new name** ("ready" not reset).
+  3. Every slider step during a processing queued a whole processing of its own (a long file took one per step): one
+     rendering at a time now, the newest settings rendered after it.
+  4. A selection was lost at every change; at another speed it now follows the same passage (× old ÷ new tempo).
+  5. The newest file did not win.
+  6. Save after a failed processing saved what was left on the waveform, or failed with a TypeError: refused with the
+     reason.
+  7. A file that is no sound emptied the status line while the open file stayed.
+  8. A processing that ended after the tab was left still touched the page.
+  - Found while writing it (not shipped): the coalescing promise (`busy ||= (async () => …)()`) cleared itself before
+    the assignment when there was nothing to render and stayed settled for good — `await null` first; the suite's
+    first slider check caught it.

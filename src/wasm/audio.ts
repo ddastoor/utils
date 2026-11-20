@@ -1,5 +1,5 @@
 // Wrapper for audio.wasm (wasm/audio): LAME 4.0 MP3 encoder (C, LGPL-2.0) + our own audio C — WAV writer, waveform
-// peaks, levels, gain/fades, windowed-sinc resampler, WSOLA time stretch. Audio is planar Float32Array per channel.
+// peaks, levels, gain/fades, windowed-sinc resampler (tempo and pitch: Signalsmith Stretch, src/lib/stretch.ts). Audio is planar Float32Array per channel.
 // In the browser call it through src/lib/audio-client.ts (runs in a worker); bindAudio() is used there and in tests.
 
 export interface Mp3Options { vbr?: boolean; rate?: number; quality?: number }
@@ -72,18 +72,6 @@ export function bindAudio(e: any) {
     resample(chs: Float32Array[], ratio: number): Float32Array[] {
       const { p, n } = putPlanar(chs);
       try { return takePlanar(e.a_resample(p, n, chs.length, ratio), chs.length); } finally { e.a_free(p); }
-    },
-    /** Tempo change without pitch change (WSOLA). tempo 2 = twice as fast. */
-    stretch(chs: Float32Array[], sr: number, tempo: number): Float32Array[] {
-      const { p, n } = putPlanar(chs);
-      try { return takePlanar(e.a_wsola(p, n, chs.length, sr, tempo), chs.length); } finally { e.a_free(p); }
-    },
-    /** Tempo × and pitch in semitones, independently: stretch by tempo/pitch-ratio, then resample by 1/pitch-ratio. */
-    tempoPitch(chs: Float32Array[], sr: number, tempo: number, semitones: number): Float32Array[] {
-      const r = 2 ** (semitones / 12);
-      if (Math.abs(semitones) < 1e-6) return Math.abs(tempo - 1) < 1e-6 ? chs : this.stretch(chs, sr, tempo);
-      const s = this.stretch(chs, sr, tempo / r);
-      return this.resample(s, 1 / r);
     },
   };
 }

@@ -1227,3 +1227,26 @@ One entry per tab, written before its bug hunt: our module → candidates → ch
   instead of 5.05). Beside it (glue, `src/wasm/rnnoise.ts`): framing, the two frames of lag, the voice probability of
   every channel; in audio.wasm: resampling, `a_scale` (×32768 unclamped, new) and `a_mix2`. wasm/rnnoise/ is gone; the
   native build stays as the test reference only.
+
+### 145. `pitch` — Pitch & Speed (20 Nov 2026)
+- **Ours:** WSOLA time stretch + Kaiser windowed-sinc resampling in audio.wasm (own C). **Candidates:** **signalsmith-
+  stretch 1.3.2** (Signalsmith Audio's official WebAssembly / AudioWorklet release of Signalsmith Stretch, MIT, 264 k
+  downloads a month), rubberband-wasm 3.3.0 (a build of Rubber Band 3.3 by hash-wasm's author, GPL-2.0, 20 k; upstream is
+  at 4.0), @echogarden/rubberband-wasm (9 k), @audio/stretch-wsola (JavaScript). SoundTouch has no maintained
+  WebAssembly package (soundtouchjs is a JavaScript port).
+- **Check** (same signals, `freqOf` by zero crossings, stray energy = everything more than 6 Hz from the expected
+  partials of a C-major chord, Hann window of 65,536 points):
+  | Engine | Pitch of a 440 Hz sine | Chord at 1.25×, 0.8×, +3 st, 1.25×+3, 0.85×−2, 1.5×, 0.5× |
+  |---|---|---|
+  | our WSOLA | exact | −30.9 −30.8 −30.2 −33.8 −36.4 −30.0 −29.9 dB |
+  | Rubber Band R3 ("finer") | exact | −20.7 −23.1 −18.5 −15.6 −15.5 −18.1 −13.3 dB (each partial's phase drifts: the lines broaden, the beating changes; between the partials it is 50 dB down) |
+  | Rubber Band R2 ("faster") | up to 36 cents off | −3 to −12 dB |
+  | **Signalsmith Stretch** (its default 120 ms blocks) | 0.3 – 2.4 cents sharp at a speed alone, up to 5.0 with a pitch shift | **−45.7 −40.9 −47.4 −46.0 −42.1 −42.9 −37.2 dB** |
+  Signalsmith with 200 ms blocks: within 3.6 cents, transients smeared more; 60 ms: up to 12 cents. Lengths exact (the
+  OfflineAudioContext's); 3 minutes of stereo in 5.7 s. Started at output 0 it fades in over ~50 ms (its latency is
+  0.12 s): we start it 0.25 s ahead and cut that off — the first 10 ms at full level. Stereo stays linked.
+- **Decision: Signalsmith Stretch replaces our WSOLA** (the most used official build, the cleanest on music by 7 – 15 dB;
+  its few cents of pitch error are below what listeners notice — the suite holds speed alone to 3 cents and pitch shifts
+  to 6, as measured). It runs in an OfflineAudioContext (the browser's audio thread; AudioWorklet in Chrome, Firefox,
+  Safari 14.1+); the worklet loads the package's own file by its URL — the package would otherwise make a blob: module,
+  which our CSP refuses. Glue: `src/lib/stretch.ts`. The WSOLA code is removed from audio.wasm (no other user).

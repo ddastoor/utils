@@ -355,7 +355,7 @@ Glob Tester. Left out: API client (CORS/CSP), DNS/WHOIS/ping/port scan (need net
 Batch 3 (accepted): **Math & Science** category (new): `graph` Graphing Calculator · `equation` Equation
 Solver · `stats` Statistics · `matrix` Matrix · `fraction` Fraction · `primes` Prime/LCM/GCD · `periodic` Periodic
 Table. Calculators: `prepay` Loan Prepayment · `ppf` · `epf` · `nps` · `inflation` · `sleep` Sleep Cycle · `bodyfat` ·
-`idealweight` · `coords` Coordinates. Media: `noise` Noise Remover (RNNoise 0.2, Jitsi's WebAssembly build, **BUILT**) · `pitch` Pitch & Speed (own C WSOLA, **BUILT**)
+`idealweight` · `coords` Coordinates. Media: `noise` Noise Remover (RNNoise 0.2, Jitsi's WebAssembly build, **BUILT**) · `pitch` Pitch & Speed (Signalsmith Stretch, **BUILT**)
 · `slideshow` Slideshow Maker (WebCodecs, **BUILT**). Documents: `invoice` GST Invoice · `rent` Rent Receipt · `resume` Resume
 Builder (HTML → browser "Save as PDF"). Images: `signature` Signature Maker. Software (PC): `graphviz` (Graphviz C →
 wasm) · `python` (CPython 3.14 C → wasm32-wasi, built by us) · `totp` · `pwstrength` (zxcvbn) · `jsonschema` · `bitwise` · `ieee754` ·
@@ -1557,13 +1557,23 @@ from 5.0 to 11.5 dB, rate and length kept, strength 0 / 50 % exact, a strength i
 the newest file, a 4-minute file superseded, a voice on the right channel only, 48 kHz without resampling, a file that
 is no sound, the microphone, leaving mid-clean, phone layout.
 
-### Pitch & Speed — BUILT (`src/tools/pitch.ts`; e2e `tests/e2e/pitch.e2e.mjs` 11)
-Open any audio/video file → speed 0.5–2× (keeps pitch: WSOLA, own C) and pitch −12…+12 semitones (keeps length:
-WSOLA by tempo/ratio then Kaiser windowed-sinc resampling by 1/ratio), processed in the audio worker 350 ms after a
-slider moves; presets (Practice 75 %, Half speed, 1.25×, Podcast 1.5×, ±1 tone, Nightcore, Slowed, Deep voice,
-Chipmunk); result on the waveform editor (trim, play); MP3 192 kbps default / WAV. Tests: 440 Hz stereo WAV →
-1.5× = 1.333 s at 440 Hz, +7 st = 659.3 Hz, Deep voice −5 st with the length kept, MP3 length, stereo balance.
-Tests: fake microphone (pause excluded from the length), and a generated 440 Hz / silence / 880 Hz stereo WAV:
+### Pitch & Speed — BUILT (`src/tools/pitch.ts`, engine `src/lib/stretch.ts`; e2e `tests/e2e/pitch.e2e.mjs` 18)
+Open any audio/video file → speed 0.5–2× (pitch kept) and pitch −12…+12 semitones (length kept), both by **Signalsmith
+Stretch** 1.3.2 (`signalsmith-stretch`, MIT — its authors' WebAssembly / AudioWorklet release; docs/WASM-AUDIT.md, tab
+145: 7 – 15 dB cleaner on a chord than our WSOLA, which it replaced) rendered offline: an OfflineAudioContext of the
+file's rate, the node fed the whole file and started 0.25 s ahead (its latency is 0.12 s; started at 0 it fades in),
+the lead cut off, length = input ÷ speed. The worklet loads the package's own file by URL (the package would make a
+blob: module, which the CSP refuses); nothing is fetched before the first change. Pitch is within a few cents (speed
+alone ≤ 2.4, with a pitch shift ≤ 5.0 — measured; inaudible). One rendering at a time: settings changed during one are
+rendered once after it; "Original" is the file itself. A selection follows its passage when the speed changes; the
+newest file wins; Save waits for the file and the settings shown and refuses after a failure. Presets (Practice
+75 %, Half speed, 1.25×, Podcast 1.5×, ±1 tone, Nightcore, Slowed, Deep voice, Chipmunk); result on the waveform editor
+(trim, play); MP3 192 kbps default / WAV. Tests: 440 Hz stereo WAV → "Original" sample for sample, 1.5× = 58,800
+samples at 440 Hz (< 3 cents) and full level from the first 10 ms, +7 st = 659.26 Hz and −5 st (< 6 cents) with the
+length kept, a C-major chord's stray energy below −40 dB (−47.2), MP3 length, stereo balance, a selection at another
+speed, four speeds during a minute-long rendering → at most three renderings, Save at once after another file, the
+newest file, a file that is no sound, leaving mid-rendering.
+(Audio Recorder) Tests: fake microphone (pause excluded from the length), and a generated 440 Hz / silence / 880 Hz stereo WAV:
 exact 1.00 s trims, the 880 Hz part found by zero crossings, channel levels kept, MP3 decoded by the browser,
 normalise peak −1 dB, fade envelope.
 
@@ -1879,7 +1889,8 @@ stay **public** (the source of the deployed site is then available to every user
 | jq 1.8.2 (+ oniguruma) | C | **us** (`wasm/jq`) | jq |
 | CPython 3.14.8 (+ zlib 1.3.2; stdlib as .pyc in python314.zip with tzdata 2026.6) **+ our changes** (§5.1m: recursion guard for a browser's two stacks, lru_cache in Python, pbkdf2_hmac fallback, socket stand-in + asyncio loop without sockets, local time from the host) | C | **us** (`wasm/python`, python.wasm 7 MB + python314.zip 5.4 MB, loaded on the first Run; run by our WASI host `src/lib/terminal/wasi.ts` in `src/workers/python.worker.ts`) | python |
 | Graphviz **16.1.0** (cgraph, gvc, dot/neato/fdp/sfdp/circo/twopi/osage/patchwork, core renderers; the official release archive) + Expat 2.9.0 **+ our changes** (§5.1l: `storeline.patch` — an upstream crash on labels that start with an empty line; `triangulation.patch` + `st_delaunay.h` — prism overlap removal on our C port of Delaunator instead of GTS; glibc's `qsort` and `rand`; assertions kept; text measured by the host through a "textlayout" plugin) | C / C++ | **us** (`wasm/graphviz`, 1.65 MB / 0.56 MB gz, a fresh instance per drawing in `src/workers/graphviz.worker.ts`; the existing builds — Viz.js, hpcc — trap on valid graphs: `docs/WASM-AUDIT.md`, tab 55) | graphviz |
-| audio: **LAME 4.0** libmp3lame (MP3 encoder) + own C (WAV writer, waveform peaks, levels, gain/fades, Kaiser windowed-sinc resampler, WSOLA time stretch, tempo × pitch) | C | **us** (`wasm/audio`) | audio (and tts, stt, noise, pitch) |
+| audio: **LAME 4.0** libmp3lame (MP3 encoder) + own C (WAV writer — 16-bit by the browser's own rule, waveform peaks, levels, gain/fades, scale, mix, Kaiser windowed-sinc resampler) | C | **us** (`wasm/audio`) | audio (and tts, stt, noise, pitch, slideshow) |
+| Signalsmith Stretch 1.3.2 (tempo and pitch, polyphonic) | C++ | Signalsmith Audio (official `signalsmith-stretch`, WebAssembly in an AudioWorklet) — rendered offline by `src/lib/stretch.ts` | pitch (replaced our WSOLA in Nov 2026: `docs/WASM-AUDIT.md`, tab 145) |
 | espeak: **eSpeak NG 1.52.0** (+ English phoneme tables and dictionary compiled from the same release, linked in, served to its fopen/stat from memory) + glue (IPA for Kokoro, piper-phonemize-style sentences) | C | **us** (`wasm/espeak`) | tts (stt hints later) |
 | whisper: **whisper.cpp 1.8.3** + ggml CPU backend (upstream unmodified) + own threadshim.h (std::mutex/std::thread/fstream for zig's thread-less libc++), backend-reg.cpp (static CPU-only registry), cxxabi_stubs.c (throw = abort), glue.cpp | C / C++ | **us** (`wasm/whisper`) | stt |
 | geo: Charles Karney's **geodesic.c 2.2** (GeographicLib's geodesic routines in C, MIT; the two files unmodified from the PROJ 9.9.0 release) + glue (inverse problem on WGS-84, half-way point, the haversine great circle for comparison) | C | **us** (`wasm/geo`, 36 KB, loaded by the Coordinates tab only; no tried-and-tested WebAssembly geodesic module exists: `docs/WASM-AUDIT.md`, tab 82) | coords |
@@ -1990,7 +2001,7 @@ calamine (sheet.wasm) reads neither format (docs/WASM-AUDIT.md, tab 137).
 Nov 2026 (Python Scratchpad): `src/lib/termtext.ts` (what a terminal would show for the program's output: display
 code that feeds the DOM), `src/lib/python-hints.ts` (one sentence per known error), `src/lib/tzinfo.ts` (the browser's
 Intl answering the C library's questions about local time; the zone table it uses is data made by a script) stay in TS.
-Third-party WebAssembly builds in use (accepted, see above): MuPDF, SQLite, MediaPipe Tasks, ONNX Runtime, RNNoise (Jitsi's build), jSquash, libheif-js, tesseract.js-core, zxing-wasm, 7z-wasm (7-Zip), ffmpeg.wasm, hash-wasm, libsodium.js, Biome, the dprint JSON and markup plugins. Staying JS (no compiled
+Third-party WebAssembly builds in use (accepted, see above): MuPDF, SQLite, MediaPipe Tasks, ONNX Runtime, RNNoise (Jitsi's build), Signalsmith Stretch, jSquash, libheif-js, tesseract.js-core, zxing-wasm, 7z-wasm (7-Zip), ffmpeg.wasm, hash-wasm, libsodium.js, Biome, the dprint JSON and markup plugins. Staying JS (no compiled
 equivalent, reasons above): OpenPGP.js, Mermaid, TensorFlow.js; Prettier for Markdown and as the Code Formatter's fallback. (sql-formatter was replaced by a build of the sqlformat crate, and that in Nov 2026 by our own Rust formatter: `docs/WASM-AUDIT.md`, tab 53.)
 
 ### Approved data APIs (connect-src allowlist)
@@ -2170,9 +2181,10 @@ harness both implement a real clock). ~1.4 MB, loaded only by the PC-only `sheet
 reachable from the sandbox; SHA-256 `3df5124d…` from Ubuntu's signed `lame_4.0-1.dsc`; LAME 4.0 = upstream release
 of 2026-07-11), uses our `wasm/audio/lame-config.h` (from LAME's own configure run as a cross build), compiles
 `libmp3lame/*.c` (no frontend, decoder, NASM or SSE) + `audio.c` with `-O2 -msimd128`, exports every `API a_*`.
-~257 KB. TS wrapper `src/wasm/audio.ts` (`bindAudio`), worker `src/workers/audio.worker.ts`, client
-`src/lib/audio-client.ts` (`audio(op, …)`, tracked worker). Tests `tests/unit/audio.test.mjs` (38: WAV bytes, peaks,
-resampler pass band + alias rejection, WSOLA tempo/pitch by zero crossings, MP3 frame chain + Info/Xing tag).
+~253 KB. TS wrapper `src/wasm/audio.ts` (`bindAudio`), worker `src/workers/audio.worker.ts`, client
+`src/lib/audio-client.ts` (`audio(op, …)`, tracked worker). Tests `tests/unit/audio.test.mjs` (35: WAV bytes — every
+16-bit value back as it was under both browsers' rules, peaks, resampler pass band + alias rejection, scale and mix, MP3
+frame chain + Info/Xing tag). The WSOLA time stretch is gone (Nov 2026: Signalsmith Stretch, tab 145).
 
 ### 5.1h rnnoise — no longer ours (Jitsi's build since Nov 2026)
 The Noise Remover runs `@jitsi/rnnoise-wasm` (docs/WASM-AUDIT.md, tab 144). What stays is the **native reference**:
@@ -2407,6 +2419,7 @@ npm packages (pinned in `package-lock.json`) are bundled by Vite or copied to `p
 | libsodium-wrappers-sumo 0.8.4 (+ libsodium-sumo; libsodium 1.0.22 compiled to WebAssembly by its author) | ISC | Sodium Encrypt, Encrypted Share Link, Password Generator, Passphrase Generator |
 | mediabunny | MPL-2.0 | Video Compressor, Audio Recorder (cut without re-encoding) |
 | @jitsi/rnnoise-wasm 0.2.1 (RNNoise 0.2 compiled to WebAssembly by Jitsi) | Apache-2.0 (RNNoise: BSD-3-Clause) | Noise Remover |
+| signalsmith-stretch 1.3.2 (Signalsmith Stretch, WebAssembly + AudioWorklet) | MIT | Pitch & Speed |
 | lcms-wasm 1.0.5 (Little CMS 2.16) | MIT | HEIC colours (Display P3 → sRGB) |
 | @uswriting/exiftool 1.0.9 + @6over3/zeroperl-ts 1.0.10 (ExifTool 13.42; Perl 5) | Apache-2.0 (the packages); ExifTool and Perl: the Artistic License or GPL-1.0+ | EXIF / Photo Info |
 | @biomejs/wasm-web 2.6.8 (Biome's official WebAssembly build) | MIT OR Apache-2.0 | Code Formatter |
