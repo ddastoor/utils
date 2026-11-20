@@ -131,7 +131,7 @@ Generated from `src/registry.ts` by `npm run docs` — do not edit by hand.
 | `fancy` | Fancy Text | PC + mobile | Stylish Unicode text for bios and posts. | fancy text, unicode, font, fonts, bold, italic, cursive, script, … |
 | `emoji` | Emoji & Symbols | PC + mobile | Search and copy emoji and symbols. | emoji, emojis, emoticon, smiley, smileys, symbols, characters, special characters, … |
 | `morse` | Morse Code | PC + mobile | Text ⇄ Morse, with sound. | morse, morse code, code, sos, dots, dashes, dit, dah, … |
-| `lorem` | Lorem Ipsum | PC + mobile | Placeholder text generator. | lorem ipsum, placeholder, dummy text, filler |
+| `lorem` | Lorem Ipsum | PC + mobile | Placeholder text generator. | lorem ipsum, lipsum, placeholder, placeholder text, dummy text, filler, filler text, sample text, … |
 | `photodict` | Photo Dictionary | **Mobile only** | Photograph a page; get the hardest words with their dictionary meanings. | photo dictionary, dictionary, meaning, meanings, define, definition, vocabulary, vocab, … |
 
 ## Software (56)

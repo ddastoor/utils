@@ -13,6 +13,8 @@ import { plan, countText, type FindOptions, type Plan } from '../lib/findreplace
 import { textdiff, type Textdiff, type DiffRow, type LineDiff, type SpanDiff } from '../wasm/textdiff';
 import { foldRows, lineSummary, spanSummary, APPROX, MAX_ROWS, MAX_SPAN_CHARS } from '../lib/textdiff';
 import * as M from '../lib/morse';
+import { LIMITS, readCount, asText, summary as loremSummary, newSeed } from '../lib/lorem';
+import { loremEngine, type LoremUnit, type LoremEngine } from '../wasm/lorem';
 import { FANCY, FANCY_SHOWN, BY_CHARACTER, needsEngine, plainClusters, fancyRow, type Split } from '../lib/fancy';
 import { sodium } from '../wasm/crypto';
 import { devcore, type Devcore } from '../wasm/devcore';
@@ -400,27 +402,51 @@ export const morse: Mount = (root) => {
 const rank = (c: string) => (/[A-Z]/.test(c) ? 0 : /[0-9]/.test(c) ? 1 : c.charCodeAt(0) < 128 ? 2 : 3);
 
 // ================================================================== Lorem ipsum
-const LOREM = 'lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod tempor incididunt ut labore et dolore magna aliqua ut enim ad minim veniam quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur excepteur sint occaecat cupidatat non proident sunt in culpa qui officia deserunt mollit anim id est laborum'.split(' ');
-export const lorem: Mount = async (root) => {
-  const na = await sodium();
-  let unit = 'p', n = 3, classic = true;
-  const out = outputBox({ rows: 12, label: 'Generated text' });
-  const pick = () => LOREM[na.uniform(LOREM.length)];
-  const sentence = () => { const w = Array.from({ length: 8 + na.uniform(10) }, pick); w[0] = w[0][0].toUpperCase() + w[0].slice(1); return w.join(' ') + '.'; };
-  const para = () => Array.from({ length: 4 + na.uniform(4) }, sentence).join(' ');
-  const OPEN = 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.', OPEN_W = OPEN.replace(/[,.]/g, '').toLowerCase().split(' ');
-  /** exactly n paragraphs / sentences / words; "classic" makes the first sentence (or first words) the usual opening */
-  const run = () => {
-    let s: string;
-    if (unit === 'w') { const w = Array.from({ length: n }, (_, i) => (classic && i < OPEN_W.length ? OPEN_W[i] : pick())); w[0] = w[0][0].toUpperCase() + w[0].slice(1); s = w.join(' ') + '.'; }
-    else if (unit === 's') s = Array.from({ length: n }, (_, i) => (classic && !i ? OPEN : sentence())).join(' ');
-    else s = Array.from({ length: n }, (_, i) => (classic && !i ? para().replace(/^[^.]*\./, OPEN) : para())).join('\n\n');
-    out.value = s;
+// The text is textkit-lorem.wasm's (the lipsum crate's Markov chain over Cicero); src/lib/lorem.ts reads the count
+// and lays the result out. One seed per text: a new count or format keeps the text, Regenerate makes a new one.
+export const lorem: Mount = (root) => {
+  let unit: LoremUnit = 'p', classic = true, html = false, seed = newSeed(), text = '', gone = false;
+  // a text box with the number keys (a number box empties itself when "1,000" is pasted into it); ↑ / ↓ step by one
+  const count = input({ value: LIMITS.p.start, attrs: { 'aria-label': 'How many', inputmode: 'numeric', autocomplete: 'off', spellcheck: 'false', enterkeyhint: 'done' } });
+  count.addEventListener('keydown', (e) => {
+    if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
+    const r = readCount(count.value, unit); if (!('n' in r)) return;
+    e.preventDefault(); count.value = String(Math.min(LIMITS[unit].max, Math.max(1, r.n + (e.key === 'ArrowUp' ? 1 : -1)))); void run();
+  });
+  const out = outputBox({ rows: 12, label: 'Generated text', text: () => text });
+  const info = h('p', { class: 'muted small lorem-info', 'aria-live': 'polite' }), problem = h('div', { class: 'stack' });
+  count.classList.add('lorem-count');
+  const countField = field('How many paragraphs', count);
+  const run = async () => {
+    const read = readCount(count.value, unit);
+    countField.querySelector('.field-label')!.textContent = `How many ${LIMITS[unit].many}`;
+    if ('error' in read) { problem.replaceChildren(note(read.error, 'warn')); count.setAttribute('aria-invalid', 'true'); return; }
+    count.removeAttribute('aria-invalid');
+    let eng: LoremEngine;
+    try { eng = await loremEngine(); } catch {
+      if (!gone) problem.replaceChildren(note('The text generator could not be loaded — check your connection. It is tried again with the next change or with Regenerate.', 'warn'));
+      return;
+    }
+    if (gone) return;
+    const r = eng.generate(unit, read.n, classic, seed);
+    text = asText(r.paragraphs, html); out.value = text;
+    info.textContent = loremSummary(r.paragraphs, r.sentences, r.words);
+    problem.replaceChildren();
   };
-  root.append(card(null, stack(segmented([['p', 'Paragraphs'], ['s', 'Sentences'], ['w', 'Words']], unit, (v) => { unit = v; run(); }),
-    slider({ label: 'How many', min: 1, max: 50, value: n, onInput: (v) => { n = v; run(); } }),
-    toggle('Start with "Lorem ipsum…"', true, (v) => { classic = v; run(); }))), card(null, out), h('div', { class: 'actions' }, button('Regenerate', run, { icon: 'RefreshCw' }), button('Copy', () => copy(out.value), { variant: 'primary', icon: 'Copy' })));
-  run();
+  count.addEventListener('input', () => void run());
+  const regenerate = () => { seed = newSeed(); return run(); };
+  root.append(
+    card(null, stack(
+      segmented<LoremUnit>([['p', 'Paragraphs'], ['s', 'Sentences'], ['w', 'Words']], unit, (v) => { unit = v; count.value = String(LIMITS[v].start); void run(); }), // each unit starts at its own usual number
+      countField,
+      toggle('Start with "Lorem ipsum dolor sit amet…"', classic, (v) => { classic = v; void run(); }),
+      segmented<'text' | 'html'>([['text', 'Plain text'], ['html', 'HTML <p>']], 'text', (v) => { html = v === 'html'; void run(); }),
+      problem)),
+    card(null, out, info),
+    h('div', { class: 'actions' }, button('Regenerate', regenerate, { icon: 'RefreshCw' }), button('Copy', () => { if (text) void copy(text); }, { variant: 'primary', icon: 'Copy' })),
+    note('Latin from Cicero\'s "On the Ends of Good and Evil" (45 BC), the book the classic Lorem ipsum passage was cut from, put together anew each time by a Markov chain (the lipsum library). Placeholder text: it means nothing in particular.'));
+  void run();
+  return () => { gone = true; };
 };
 
 // ================================================================== JSON (Software)

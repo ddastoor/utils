@@ -8,6 +8,7 @@
 //!   tk_case(text, len)  → 0, JSON: the thirteen conversions of the Case Converter (case.rs)
 //!   tk_line_lengths(text, len) → 0, JSON: the characters of every line (Line Tools, "By length")
 //!   tk_clusters(text, len) → 0, JSON: the length in UTF-16 units of every character a reader sees (Fancy Text)
+//!   tk_lorem(unit, n, classic, seed32) → 0, JSON: Lorem ipsum — paragraphs, sentences and words counted (lorem.rs)
 //!   tk_diff(a, lenA, b, lenB, mode, limit_ms) → 0, JSON: the differences of two texts (diff.rs)
 // the module for the Text Diff (feature "diff") is built without the counting code below
 #![cfg_attr(not(feature = "text"), allow(dead_code, unused_imports))]
@@ -17,6 +18,7 @@ use unicode_segmentation::UnicodeSegmentation;
 
 #[cfg(feature = "text")] mod case;
 #[cfg(feature = "diff")] mod diff;
+#[cfg(feature = "lorem")] mod lorem;
 
 thread_local! { static OUT: RefCell<Vec<u8>> = RefCell::new(Vec::new()); }
 #[no_mangle] pub extern "C" fn tk_alloc(n: usize) -> *mut u8 { let mut v = Vec::<u8>::with_capacity(n.max(1)); let p = v.as_mut_ptr(); std::mem::forget(v); p }
@@ -325,6 +327,16 @@ fn stats(text: &str) -> String {
     let a = String::from_utf8_lossy(std::slice::from_raw_parts(pa, na));
     let b = String::from_utf8_lossy(std::slice::from_raw_parts(pb, nb));
     let json = diff::diff(&a, &b, mode, limit_ms);
+    OUT.with(|o| *o.borrow_mut() = json.into_bytes());
+    0
+}
+
+/// Lorem ipsum (lorem.rs): unit 0 paragraphs, 1 sentences, 2 words; `n` of them; `classic` = begin with "Lorem ipsum";
+/// 32 bytes of seed at `seed` (the page fills them from crypto.getRandomValues; the tests choose them).
+#[cfg(feature = "lorem")] #[no_mangle] pub unsafe extern "C" fn tk_lorem(unit: u32, n: u32, classic: u32, seed: *const u8) -> i32 {
+    let mut s = [0u8; 32];
+    s.copy_from_slice(std::slice::from_raw_parts(seed, 32));
+    let json = lorem::lorem(unit, (n as usize).min(1_000_000), classic != 0, s);
     OUT.with(|o| *o.borrow_mut() = json.into_bytes());
     0
 }

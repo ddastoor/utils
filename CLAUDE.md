@@ -1049,6 +1049,29 @@ unixcw's libcw read through ctypes → `tests/fixtures/morse/reference.json`.)
 - **The tab:** the result is a box whose letter groups never break over two lines; Copy gives plain dots, dashes
   and spaces; a chart of the alphabet under the Play button. Nothing but the tab's own code is fetched.
 
+### Lorem Ipsum — as built after the Nov 2026 bug hunt
+(`lorem` in `src/tools/text.ts`, reading the count and the layout `src/lib/lorem.ts`, engine **textkit-lorem.wasm** —
+`wasm/textkit/src/lorem.rs` on the `lipsum` crate, §5.1o; wrapper `src/wasm/lorem.ts`; unit `tests/unit/lorem.test.mjs`
+95, e2e `tests/e2e/lorem.e2e.mjs` 39; reference `python3 scripts/make-lorem-reference.py` →
+`tests/fixtures/lorem/reference.json`.)
+- **The text:** the Markov chain of word pairs of the `lipsum` crate over its two texts — the classic passage and
+  Cicero's *De finibus*, book I — so every two neighbouring words follow each other in one of them. Our glue: the
+  texts are cleaned before the chain learns them (quotation marks, dashes, footnote marks, brackets, Roman
+  initials) and learned as circles (the crate's chain jumped into the middle of a sentence at a text's end); a
+  sentence ends at . ? or !, or at the first comma, colon or semicolon after 24 words, at 40 at the latest;
+  paragraphs of 4 – 8 sentences.
+- **Paragraphs / Sentences / Words**, exactly as many as asked: 1 – 200 / 1 – 2,000 / 1 – 20,000 (they start at 3 / 5 /
+  50). The count is a text box with the number keys (digit commas and spaces read; ↑ / ↓ step by one); what it
+  cannot make is refused in a sentence and the text stays.
+- **"Start with Lorem ipsum…"** (on): the classic first sentence word for word — "Lorem ipsum dolor sit amet,
+  consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua." — then the chain
+  from its last two words; off: the text begins where one of Cicero's sentences begins.
+- **One seed per text** (32 bytes from `crypto.getRandomValues`): a new number, the opening switch or the format keep
+  it — five paragraphs begin with the three that were there — and **Regenerate** makes a new one.
+- **Plain text** (paragraphs apart by a blank line) or **HTML** (each in `<p>`); Copy and the box's copy button give
+  what is shown; the line under it: "3 paragraphs · 18 sentences · 316 words · 2,135 characters" (the Word Counter
+  tab counts the same). A failed download of the engine is said; the next change or Regenerate tries again.
+
 ### SQLite Playground (PC) — as built after the Nov 2026 bug hunt
 (`src/tools/software/sqlite.ts`, engine `src/lib/sqlite-engine.ts`, worker `src/workers/sqlite.worker.ts`; unit
 `tests/unit/sqlite.test.mjs` 106, e2e `tests/e2e/sqlite.e2e.mjs` 63.) Engine: the **official SQLite WebAssembly build**
@@ -1487,7 +1510,7 @@ stay **public** (the source of the deployed site is then available to every user
 | whisper: **whisper.cpp 1.8.3** + ggml CPU backend (upstream unmodified) + own threadshim.h (std::mutex/std::thread/fstream for zig's thread-less libc++), backend-reg.cpp (static CPU-only registry), cxxabi_stubs.c (throw = abort), glue.cpp | C / C++ | **us** (`wasm/whisper`) | stt |
 | geo: Charles Karney's **geodesic.c 2.2** (GeographicLib's geodesic routines in C, MIT; the two files unmodified from the PROJ 9.9.0 release) + glue (inverse problem on WGS-84, half-way point, the haversine great circle for comparison) | C | **us** (`wasm/geo`, 36 KB, loaded by the Coordinates tab only; no tried-and-tested WebAssembly geodesic module exists: `docs/WASM-AUDIT.md`, tab 82) | coords |
 | textcore: tool-search ranking, rare-word ranking (tokeniser, lemmatiser, wordfreq hash table), XY-cut reading order | C (own code) | **us** (`wasm/textcore`) | search box, emoji (search), photodict, epub |
-| textkit: **unicode-segmentation 1.13.3** (the Rust ecosystem's UAX #29 implementation, Unicode 17.0, MIT / Apache-2.0: extended grapheme clusters, sentence boundaries) + our counting rules: words as a word limit counts them, abbreviations and initials, lines and paragraphs, keywords (Snowball's stop words); **the Case Converter's thirteen conversions** (`case.rs`: Title Case is a port of the Python package `titlecase` 2.4.1 — Gruber's rules, MIT; the code cases cut words as npm's `change-case` does; case mapping by Rust's standard library) | Rust | **us** (`wasm/textkit`, crates.io via `Cargo.lock`, two modules by Cargo features: **textkit.wasm** 217 KB — fetched with the Word Counter's first text, with the Case Converter, and with the first Fancy Text that has an emoji or another script — and **textkit-diff.wasm** 0.69 MB = the **`similar` crate 3.2.1** (Apache-2.0: Myers in linear space with a time limit, line / word / grapheme diffs, inline changes, unified diffs) + our glue, fetched by the Text Diff only; the existing module — ICU4X's official build — is one file of 20 MB: `docs/WASM-AUDIT.md`, tab 90) | wordcount, case, lines ("By length"), fancy (characters); diff (textkit-diff) |
+| textkit: **unicode-segmentation 1.13.3** (the Rust ecosystem's UAX #29 implementation, Unicode 17.0, MIT / Apache-2.0: extended grapheme clusters, sentence boundaries) + our counting rules: words as a word limit counts them, abbreviations and initials, lines and paragraphs, keywords (Snowball's stop words); **the Case Converter's thirteen conversions** (`case.rs`: Title Case is a port of the Python package `titlecase` 2.4.1 — Gruber's rules, MIT; the code cases cut words as npm's `change-case` does; case mapping by Rust's standard library) | Rust | **us** (`wasm/textkit`, crates.io via `Cargo.lock`, two modules by Cargo features: **textkit.wasm** 217 KB — fetched with the Word Counter's first text, with the Case Converter, and with the first Fancy Text that has an emoji or another script — and **textkit-diff.wasm** 0.69 MB = the **`similar` crate 3.2.1** (Apache-2.0: Myers in linear space with a time limit, line / word / grapheme diffs, inline changes, unified diffs) + our glue, fetched by the Text Diff only; and **textkit-lorem.wasm** 0.13 MB = the **`lipsum` crate 0.9.1** (MIT: a Markov chain over the classic passage and Cicero's *De finibus*, with rand 0.8 / rand_chacha 0.3) + our glue (cleaned texts learned as circles, exact counts), fetched by the Lorem Ipsum tab; the existing module — ICU4X's official build — is one file of 20 MB: `docs/WASM-AUDIT.md`, tab 90) | wordcount, case, lines ("By length"), fancy (characters); diff (textkit-diff); lorem (textkit-lorem) |
 | sheet: calamine 0.38 (read .xlsx .xlsm .xlsb .xls .ods) + rust_xlsxwriter 0.102 (write .xlsx) + csv 1 + serde_json | Rust | **us** (`wasm/sheet`, crates.io sources verified by `Cargo.lock`, target wasm32-wasip1) | sheet |
 | svgo: **OXVG 0.0.9** (Rust port of SVGO's plugins; lightningcss for `<style>`) + our glue: DOCTYPE / entities allowed, nesting limit 256, **our own safe preset** (OXVG's `Jobs::safe()` is not safe), `sv_diff` (do two rasters look alike? — the tab renders every result next to its original and falls back to the safe result when the full optimisation changed the picture) | Rust | **us** (`wasm/svgo`, crates.io via `Cargo.lock`, opt-level z, 4.9 MB / 1.3 MB gz, loaded with the first SVG; unit `tests/unit/svgo.test.mjs`, hazard drawings `tests/fixtures/svg/hazards.json`) | svgo |
 | keys — the **supplement** to hash-wasm for the key tabs (owner's tweak of 18 Nov 2026: what the existing module does not cover): lenient Base32 secrets, HOTP counters and truncation; checked parameters, random salts, PHC strings for scrypt / PBKDF2 and the reader of pasted hashes; RustCrypto **argon2** for Argon2 version 1.0 hashes (v=16 or no version, keyid / data), which hash-wasm does not read; RustCrypto **ssh-key** (OpenSSH Ed25519 generation), **aes + ctr + bcrypt-pbkdf** and our own OpenSSH wire reader (inspect Ed25519 / RSA / ECDSA / DSA keys, encrypted private keys, authorized_keys / known_hosts lines); API keys | Rust | **us** (`wasm/keys`, 0.31 MB; no existing WebAssembly module makes or reads OpenSSH key files) | totp, pwhash (with hash-wasm); sshkey, apikey |
@@ -1566,6 +1589,8 @@ them (`docs/WASM-AUDIT.md`, tab 93: the same dialect as the Regex Tester); the s
 Nov 2026 (Line Tools): `src/lib/linetools.ts` — split, trim, a `Set` for duplicates, reading a leading number, and
 `Array.sort` on the browser's `Intl.Collator` (compiled ICU, in the reader's language: `docs/WASM-AUDIT.md`, tab 92);
 the shuffle is crypto.wasm's and the line lengths are textkit.wasm's.
+Nov 2026 (Lorem Ipsum): `src/lib/lorem.ts` — reading the count, the `<p>` layout and the line under the text; the
+text is textkit-lorem.wasm's (`docs/WASM-AUDIT.md`, tab 98).
 Nov 2026 (Morse Code): `src/lib/morse.ts` — a table of 62 codes, a look-up per character and a list of tone times for
 the browser's Web Audio; no WebAssembly Morse module exists and none would have work to do (`docs/WASM-AUDIT.md`, tab 97).
 Nov 2026 (Emoji & Symbols): `src/lib/emoji.ts` (records for the search engine, the pick of a skin-tone variant) and
@@ -1929,11 +1954,14 @@ Vincenty's formula in mpmath), the example of geodesic.h (JFK → Changi 15,347,
 half a meridian, the date line, there and back. **To update:** a newer PROJ release in build.sh (URL + SHA-256
 from its .dsc), check the version line, `python3 scripts/make-geo-reference.py`, both suites.
 
-### 5.1o textkit → `src/wasm/bin/textkit.wasm` + `textkit-diff.wasm` (Rust)
+### 5.1o textkit → `src/wasm/bin/textkit.wasm` + `textkit-diff.wasm` + `textkit-lorem.wasm` (Rust)
 `wasm/textkit/build.sh` builds the crate twice with `cargo build --release --locked --target wasm32-wasip1
 --no-default-features --features <f>` (no zig needed): feature `text` → **textkit.wasm** (Word Counter, Case Converter,
 line lengths), feature `diff` → **textkit-diff.wasm** (Text Diff; built with `opt-level = "s"`: the `similar` crate is
-generic over every token type and algorithm — 0.69 MB instead of 0.88). Dependencies (crates.io, pinned by
+generic over every token type and algorithm — 0.69 MB instead of 0.88). Feature `lorem` → **textkit-lorem.wasm** (Lorem Ipsum, also
+`opt-level = "s"`, 0.13 MB): `src/lorem.rs` on the **`lipsum` crate 0.9.1** (MIT) — `tk_lorem(unit, n, classic, seed32)` →
+`{ paragraphs: [...], sentences, words }` (unit 0 paragraphs, 1 sentences, 2 words). The two texts are the crate's
+own constants, cleaned and learned as circles (see §3 "Lorem Ipsum"). Dependencies (crates.io, pinned by
 `Cargo.lock`): **`unicode-segmentation` 1.13.3** (MIT / Apache-2.0; Unicode 17.0) and, for `diff`, **`similar` 3.2.1**
 (Apache-2.0). `src/diff.rs`: `tk_diff(a, lenA, b, lenB, mode, limit_ms)` → JSON — mode 0 lines:
 `{ added, removed, same, approx, rows: [[kind, lineA, lineB, [[marked, text], …]], …], unified, endA, endB }`, mode 1

@@ -724,3 +724,31 @@ One entry per tab, written before its bug hunt: our module → candidates → ch
   deliberate difference is "!" (-.-.--, the code in general use — libcw gives that key another meaning, and the
   ITU recommendation has no exclamation mark); dot, dash, the gap inside a letter and between letters equal
   libcw's to its whole microseconds at 5 – 40 words a minute; the word gap is the ITU's seven units.
+
+### 98. `lorem` — Lorem Ipsum (20 Nov 2026)
+- **Ours before:** no WebAssembly of its own; 69 words of the classic passage picked at random with libsodium's
+  `randombytes_uniform` (crypto.wasm), the sentences put together in TypeScript.
+- **Candidates:** no published WebAssembly Lorem generator exists. npm's `lorem-ipsum` (JavaScript) does what ours
+  did — random words from a list of 64. The established open-source generator is the Rust crate **`lipsum`**
+  0.9.1 (Martin Geisler, MIT; 7.5 million downloads, 2.5 million in the last 90 days): a Markov chain of word pairs
+  over the classic passage and the first book of Cicero's *De finibus*, the book the passage was cut from.
+- **Decision (rule 2: our own WebAssembly from open-source code):** the crate is compiled into a module of its own,
+  **textkit-lorem.wasm** (the `lorem` feature of `wasm/textkit`, 0.13 MB at opt-level s; fetched as the tab opens,
+  for the sample text). **Our glue (`src/lorem.rs`)**: exact numbers of paragraphs (4 – 8 sentences each),
+  sentences or words; the classic first sentence word for word ("et dolore" also occurs in Cicero, so the chain
+  alone wanders off in the middle of it); a text without it begins where one of Cicero's sentences begins; long
+  sentences are cut at a comma after 24 words and at 40 at the latest; a 32-byte seed from the page (the same seed
+  gives the same text, a larger number more of it).
+- **Defects of the crate found by the tests, put right beside it:** (1) at the end of a text its chain has no
+  successor for the last two words — it drops the last word and jumps to a random pair, splicing two
+  half-sentences ("… id est distinguique …"); natively, in 400 texts of 400 words, "laborum." never appears. Each
+  text is learned as a circle now (its first two words once more at its end). (2) Its texts carry quotation marks
+  (which come out unbalanced), "--" dashes, "**" footnote marks, "(est)" and Roman initials ("L. Torquato": the
+  full stop ended a sentence in the middle of a name) — 1,079 such signs in those 400 texts. The texts are cleaned
+  before the chain learns them. Both through the crate's public API (`MarkovChain::new`, `learn`,
+  `iter_with_rng_from` and its two text constants); the crate itself is unmodified.
+- **Evidence:** a Python reader of the crate's own two texts (`scripts/make-lorem-reference.py`; the crate checked
+  by its crates.io SHA-256) lists every pair of neighbouring words: every pair of the output is one of them (60
+  texts, 22,000 words); every word is a word of the texts; sentences begin with a capital and end with . ? or !; the
+  counts equal what the Word Counter's engine counts (28 sizes, with and without the classic opening); paragraph
+  lengths 4 – 8 equally often (χ²).

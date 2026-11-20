@@ -469,6 +469,8 @@ details summary { cursor: pointer; font-weight: 600; color: var(--accent); paddi
 @media (max-width: 760px) { .tone-row > span { flex-basis: 100%; } } /* the six hands on one row of a phone */
 .emoji-new { align-items: center; gap: 8px; flex-wrap: wrap; }
 .morse-length { margin: 0; min-height: 1.4em; }
+.lorem-info { margin: 8px 0 0; }
+.lorem-count { max-width: 14rem; }
 .morse-out { white-space: pre-wrap; overflow: auto; min-height: 96px; max-height: 50vh; padding-right: 52px; font-size: 15px; letter-spacing: 1px; resize: none; user-select: text; }
 .morse-out .nb { white-space: nowrap; }
 .morse-chart { margin-top: 4px; }

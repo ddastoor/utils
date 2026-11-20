@@ -130,7 +130,7 @@ Areas with a shared review: the app shell (router, search, favorites, platform h
 | `fancy` | Fancy Text | PC + mobile | text | ✓ | 10 | 118 | characters by textkit.wasm (emoji, Hindi stay whole); digits/brackets turn; tap a row to copy; long texts; alphabets held to Unicode's names |
 | `emoji` | Emoji & Symbols | PC + mobile | text | ✓ | 7 | 137 | search by keywords, ranked by textcore.wasm (was: letters inside the name); symbols by name; skin tones; emoji the font lacks left out; data held to unicode-emoji-json and Perl's names |
 | `morse` | Morse Code | PC + mobile | text | ✓ | 11 | 78 | characters and groups no longer vanish silently; lines and word gaps read; sound: Stop, typographic signs, line gaps; held to unixcw's libcw (table and timing) |
-| `lorem` | Lorem Ipsum | PC + mobile | text |  |  |  |  |
+| `lorem` | Lorem Ipsum | PC + mobile | text | ✓ | 9 | 121 | engine → lipsum crate (textkit-lorem.wasm) + our glue for 2 crate defects; up to 20,000 words (was 50); exact counts held to the Word Counter; text held to the crate's own texts |
 | `photodict` | Photo Dictionary | Mobile only | text |  |  |  |  |
 
 ## software
@@ -1210,3 +1210,27 @@ Reference for the five finance tabs: **mpmath at 60 digits** (`scripts/make-fina
   Also: a switch Auto / Text → Morse / Morse → text ("..." is no longer always Morse); tones rise and fall over 5 ms
   (a hard switch clicks); the length of the message is said before it plays; a pitch slider; a chart of the alphabet.
   Dot, dash and gap lengths equal libcw's at ten speeds to its whole microseconds.
+
+- **`lorem` (tab 98, 9 bugs; engine replaced: the `lipsum` crate's Markov chain in textkit-lorem.wasm; unit
+  `tests/unit/lorem.test.mjs` 95, e2e 39 — before: 13 e2e checks).**
+  1. **At most 50 of anything**: 300 words of filler — an everyday request — could not be made. Now up to 200
+     paragraphs, 2,000 sentences or 20,000 words.
+  2. "Words" gave one sentence of up to 50 words without a full stop inside.
+  3. Doubled words — "ut ut", "dolor dolor" — 15 in every 1,000 words.
+  4. 63 different words, and no comma after the opening: it did not read like the text it imitates. Now Cicero's
+     words in Cicero's order (a Markov chain over *De finibus*, book I): 2,700 words, commas, questions.
+  5. The count was a slider: an exact number (say 37) was hard to hit, on a phone harder still. Now a box with the
+     number keys (pasted "1,000" is read; ↑ / ↓ step by one), and what it cannot make is refused in a sentence.
+  6. A new count threw the text away; changing 3 to 5 paragraphs now keeps the three and adds two (the text stays
+     until Regenerate).
+  7. No HTML: paragraphs can be copied in `<p>` elements now.
+  8. Nothing said what was made; the line under the text counts paragraphs, sentences, words and characters (the
+     same numbers as the Word Counter tab — the suites check it).
+  9. The engine at open (crypto.wasm) failing to download left only the shell's "Could not load this tool"; now
+     the form stays, the tab says what failed, and the next change or Regenerate tries again.
+  **Two defects of the `lipsum` crate, put right by our glue beside it (and recorded in docs/WASM-AUDIT.md, 98):**
+  its chain, at the end of a text, dropped the last word and jumped into the middle of another sentence ("… id
+  est distinguique …"; "laborum." never came out — 0 times in 400 texts), and its source text left 1,079 quotation
+  marks, dashes and footnote stars in 400 texts of 400 words. Each text is learned as a circle now, and cleaned
+  first (also of Roman initials: "L. Torquato" ended a sentence in the middle of a name); Cicero's sentences of up
+  to 103 words are cut at a comma after 24 words.
