@@ -39,7 +39,7 @@ Areas with a shared review: the app shell (router, search, favorites, platform h
 | `pdf2img` | PDF → Images | PC + mobile | pdf | ✓ | 4 | 6 | a run keeps its own file; size cap 16384 px / 100 MP; padded names; stops on leave |
 | `pdf-compress` | Compress PDF | PC + mobile | pdf | ✓ | 5 | 5 | a run keeps its own file; ends with the tab; colour-key masks kept; target in 1000-byte KB; scan mode within memory |
 | `pdf-sign` | Sign PDF | PC + mobile | pdf | ✓ | 6 | 7 | signature tied to its page; kept on the page; strokes scaled with the pad; Clear wins; typed bounds measured; blank paper |
-| `pdf-fill` | Fill PDF Form | PC + mobile | pdf |  |  |  |  |
+| `pdf-fill` | Fill PDF Form | PC + mobile | pdf | ✓ | 3 | 3 | unchosen radio shown unchosen; ticks via ZapfDingbats + ToUnicode; ₹ limit said |
 | `pdf-unlock` | Unlock PDF | PC + mobile | pdf |  |  |  |  |
 | `pdf-protect` | Protect PDF | PC + mobile | pdf |  |  |  |  |
 | `pdf2text` | PDF → Text | PC + mobile | pdf |  |  |  |  |
@@ -1775,3 +1775,14 @@ Reference for the five finance tabs: **mpmath at 60 digits** (`scripts/make-fina
      font's measured bounds — `typedSignature` in `signature.ts`, now also the Signature Maker's.
   6. A photo of blank paper said "Nothing to save yet — sign first"; "No ink was found in the photo …". The newest
      photo wins, and phones get a camera button beside a picker for a photo already taken.
+
+- **`pdf-fill` (tab 133, 3 bugs; engine kept — MuPDF; unit `pdfpages` +1, e2e 17 — was 15).**
+  1. A radio group with nothing chosen in the PDF showed its first option as chosen — and saved nothing; nothing is
+     shown chosen until one is picked.
+  2. "Type anywhere" invited "ticks ✓" but refused ✓ as "not Latin" (the old test typed a "v" instead); ✓ ✔ ✗ ✘ are
+     drawn with ZapfDingbats (a standard PDF font) with a ToUnicode map, so that MuPDF, pypdf and poppler read them
+     back as ✓ (without it MuPDF reads U+0013).
+  3. A ₹ typed into a field is stored, but MuPDF draws fields with a built-in font of Latin, Greek and Cyrillic: the ₹
+     comes out as a gap (also when flattened). Known limit, said in the tab after saving ("Rs." shows everywhere);
+     giving the field an embedded Noto Sans did not change MuPDF's drawing (tried; 350 KB more). A ₹ in "type
+     anywhere" text is refused with the same hint.

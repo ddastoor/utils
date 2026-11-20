@@ -210,12 +210,28 @@ const CP1252: Record<number, number> = { 0x20ac: 0x80, 0x201a: 0x82, 0x0192: 0x8
   0x2018: 0x91, 0x2019: 0x92, 0x201c: 0x93, 0x201d: 0x94, 0x2022: 0x95, 0x2013: 0x96, 0x2014: 0x97, 0x02dc: 0x98, 0x2122: 0x99, 0x0161: 0x9a, 0x203a: 0x9b, 0x0153: 0x9c, 0x017e: 0x9e, 0x0178: 0x9f };
 const winAnsi = (s: string) => Uint8Array.from(s, (c) => { const u = c.charCodeAt(0); return u < 0x80 || (u >= 0xa0 && u <= 0xff) ? u : CP1252[u] ?? 0x3f; });
 export const pdfString = (s: string) => `(${s.replace(/[\\()]/g, (c) => `\\${c}`).replace(/[\r\n]/g, ' ')})`;
+/** Ticks and crosses, which WinAnsi lacks, from ZapfDingbats (a standard PDF font, in every viewer): its codes. */
+export const TICKS: Record<string, string> = { '✓': '3', '✔': '4', '✗': '7', '✘': '8' };
+/** Text as runs for a content stream: Helvetica (/STF) and, for ticks, ZapfDingbats (/STZ, given by stampPage's
+ *  `ticks`). Returns the operators after "BT … Td". */
+export const textRuns = (text: string, size: number) => {
+  let out = '', cur = '', font = '';
+  const flush = () => { if (cur) out += `/${font} ${size} Tf ${pdfString(cur)} Tj `; cur = ''; };
+  for (const ch of text) {
+    const f = ch in TICKS ? 'STZ' : 'STF';
+    if (f !== font) { flush(); font = f; }
+    cur += TICKS[ch] ?? ch;
+  }
+  flush();
+  return out;
+};
 /** True when Helvetica (WinAnsi) can show every character of s. */
 export const isLatin1 = (s: string) => [...s].every((c) => { const u = c.codePointAt(0)!; return (u >= 0x20 && u < 0x7f) || (u >= 0xa0 && u <= 0xff) || u in CP1252; });
 
 /** Draw extra content on a page in its visual coordinate system. `ops` gets the visual size and returns PDF content
  *  operators; resources: Helvetica as /STF (when font) and an opacity state /STGS (when opacity < 1), images as named. */
-export async function stampPage(doc: MDoc, index: number, ops: (W: number, H: number) => string, o: { font?: boolean; opacity?: number; images?: Record<string, any> } = {}) {
+const TICK_CMAP = '/CIDInit /ProcSet findresource begin 12 dict begin begincmap /CIDSystemInfo << /Registry (Adobe) /Ordering (UCS) /Supplement 0 >> def /CMapName /Adobe-Identity-UCS def /CMapType 2 def 1 begincodespacerange <00> <FF> endcodespacerange 4 beginbfchar <33> <2713> <34> <2714> <37> <2717> <38> <2718> endbfchar endcmap CMapName currentdict /CMap defineresource pop end end';
+export async function stampPage(doc: MDoc, index: number, ops: (W: number, H: number) => string, o: { font?: boolean; ticks?: boolean; opacity?: number; images?: Record<string, any> } = {}) {
   const m = await mupdf();
   const page = doc.loadPage(index), obj = page.getObject(), g = pageGeom(page);
   // own Resources dictionary (copy an inherited one so other pages are not changed)
@@ -227,6 +243,8 @@ export async function stampPage(doc: MDoc, index: number, ops: (W: number, H: nu
   }
   const sub = (key: string) => { let d = res.get(key); if (!d.isDictionary()) { res.put(key, doc.newDictionary()); d = res.get(key); } return d; };
   if (o.font) sub('Font').put('STF', doc.addSimpleFont(new m.Font('Helvetica')));
+  // ZapfDingbats with a ToUnicode map, so that a copied or searched tick is ✓ (without it MuPDF reads U+0013)
+  if (o.ticks) sub('Font').put('STZ', doc.addObject({ Type: 'Font', Subtype: 'Type1', BaseFont: 'ZapfDingbats', ToUnicode: doc.addStream(TICK_CMAP, {}) }));
   if (o.opacity !== undefined && o.opacity < 1) sub('ExtGState').put('STGS', doc.addObject({ Type: 'ExtGState', ca: o.opacity, CA: o.opacity }));
   for (const [k, v] of Object.entries(o.images || {})) sub('XObject').put(k, v);
   const f = (n: number) => +n.toFixed(4);

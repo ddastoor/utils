@@ -1,7 +1,7 @@
 // Sign PDF (draw / type / photo of a signature → placed on the page as a transparent image, optional date) and
 // Fill PDF Form (AcroForm fields: text, check boxes, radio buttons, lists; or type anywhere on a page). MuPDF wasm.
 import { h, card, field, stack, note, actions, button, segmented, slider, toggle, input, select, clear, errMsg, toast, type Mount } from '../ui';
-import { mupdf, savePdf, stampPage, pageGeom, renderPage, pdfString, isLatin1, openPdf } from '../lib/pdf';
+import { mupdf, savePdf, stampPage, pageGeom, renderPage, pdfString, isLatin1, openPdf, textRuns, TICKS } from '../lib/pdf';
 import { pdfInput, savePdfFile, stem, type LoadedPdf } from '../lib/pdfui';
 import { imgproc, type Img } from '../wasm/imgproc';
 import { encodeImg } from '../lib/imgio';
@@ -207,8 +207,9 @@ export const fill: Mount = (root, ctx) => {
       } else if (kind === 'checkbox') {
         let v = w.getValue() !== 'Off' && w.getValue() !== ''; el = toggle(label, v, (x) => (v = x)); get = () => v;
       } else if (kind === 'radiobutton') {
+        // nothing chosen in the PDF: nothing shown as chosen (the first option looked chosen but none was saved)
         const opts = ws.map(onState); let v = ws.find((r) => r.getValue() !== 'Off') ? w.getValue() : '';
-        el = field(label, segmented(opts.map((o) => [o, o] as [string, string]), v || opts[0], (x) => (v = x))); get = () => v || '';
+        el = field(label, segmented(opts.map((o) => [o, o] as [string, string]), v, (x) => (v = x))); get = () => v || '';
       } else if (kind === 'combobox' || kind === 'listbox') {
         const opts = w.getOptions(); let v = w.getValue() || '';
         el = field(label, select([['', '—'], ...opts.map((o: string) => [o, o] as [string, string])], v, (x) => (v = x))); get = () => v;
@@ -221,7 +222,7 @@ export const fill: Mount = (root, ctx) => {
   const inp = pdfInput({ onLoad: ([x]) => { f = x; boxes.length = 0; stage.layer.replaceChildren(); stage.load(x); build(x); editor.hidden = false; } });
   const editor = h('div', { class: 'stack', hidden: true },
     card('Form fields', info, formBox),
-    card('Type anywhere', stack(stage.el, note(ctx.isMobile ? 'Tap the page to add text there (names, dates, ticks ✓ …).' : 'Click the page to add text there (names, dates, ticks ✓ …).'),
+    card('Type anywhere', stack(stage.el, note(ctx.isMobile ? 'Tap the page to add text there (names, dates, ticks ✓ ✗ …).' : 'Click the page to add text there (names, dates, ticks ✓ ✗ …).'),
       slider({ label: 'Text size', min: 7, max: 24, value: size, unit: ' pt', onInput: (v) => (size = v) }))),
     card(null, toggle('Flatten (the result can no longer be edited)', flatten, (v) => (flatten = v))));
   root.append(card(null, inp.el), editor,
@@ -243,10 +244,14 @@ export const fill: Mount = (root, ctx) => {
       }
       for (const b of boxes) {
         const text = b.el.value.trim(); if (!text) continue;
-        if (!isLatin1(text)) throw new Error(`“${text}”: typed text supports Latin letters only — use a form field or Sign PDF → Type for other scripts.`);
-        await stampPage(doc, b.page, (W, H) => `BT /STF ${size} Tf 0 g ${(b.fx * W + 2).toFixed(2)} ${(H - b.fy * H - size * 0.95).toFixed(2)} Td ${pdfString(text)} Tj ET`, { font: true });
+        const plain = [...text].filter((c) => !(c in TICKS)).join('');
+        if (!isLatin1(plain)) throw new Error(`“${text}”: typed text supports Latin letters and the ticks ✓ ✔ ✗ ✘ only${/₹/.test(plain) ? ' — write “Rs.” for ₹' : ''} — use a form field or Sign PDF → Type for other scripts.`);
+        await stampPage(doc, b.page, (W, H) => `BT 0 g ${(b.fx * W + 2).toFixed(2)} ${(H - b.fy * H - size * 0.95).toFixed(2)} Td ${textRuns(text, size)}ET`, { font: true, ticks: plain.length !== text.length });
       }
       if (flatten) doc.bake(true, true);
       await savePdfFile(savePdf(doc, f.password !== undefined ? 'encrypt=none' : ''), `${stem(f.name)}-filled.pdf`, ctx.isMobile);
+      // MuPDF draws fields with a built-in font of Latin, Greek and Cyrillic letters: a ₹ is saved in the value but
+      // drawn as a gap (other viewers may draw it) — said rather than left to be found on paper
+      if (fields.some((x) => x.kind === 'text' && /₹/.test(String(x.get())))) toast('Saved. The ₹ sign is in the field, but this form’s font has no ₹ — it shows as a gap in some PDF viewers (and when flattened). “Rs.” shows everywhere.', 'info', 9000);
     }, { variant: 'primary', icon: 'Download' })));
 };

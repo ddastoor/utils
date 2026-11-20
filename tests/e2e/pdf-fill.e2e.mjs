@@ -14,6 +14,7 @@ export default async ({ base, page: newPage, ok, download, tmp, devices }) => {
   await page.getByText('6 form fields found.').waitFor();
   ok(true, 'six fields found (radio buttons grouped)');
   ok(await page.getByLabel('Reference').isDisabled(), 'read-only field shown but locked');
+  ok(await page.locator('[role=radio][aria-checked=true]', { hasText: /^(Male|Female)$/ }).count() === 0, 'a radio group with nothing chosen shows nothing chosen (it showed "Male" chosen and saved nothing)');
   await page.getByLabel('Full name').fill('Asha Rao');
   await page.getByLabel('Address').fill('12 MG Road\nBengaluru');
   await page.getByText('I agree').click();
@@ -22,6 +23,10 @@ export default async ({ base, page: newPage, ok, download, tmp, devices }) => {
   const save = () => download(page, () => page.getByRole('button', { name: 'Save filled PDF' }).click());
   const f1 = await save(), v1 = values(f1);
   ok(v1.full_name === 'Asha Rao' && /MG Road/.test(v1.address), `text fields filled (${JSON.stringify(v1.full_name)})`);
+  await page.getByLabel('Full name').fill('Rent ₹ 5,000');
+  const fr = await save();
+  ok(values(fr).full_name === 'Rent ₹ 5,000' && await page.locator('.toast', { hasText: 'this form’s font has no ₹' }).count() === 1, 'a ₹ in a field: saved in the value, and the tab says the form\'s font may show a gap ("Rs." everywhere)');
+  await page.getByLabel('Full name').fill('Asha Rao');
   ok(v1.agree !== 'Off' && v1.agree !== '', `checkbox ticked (${v1.agree})`);
   ok(v1.gender === 'Female', `radio group set (${v1.gender})`);
   ok(v1.state === 'Karnataka', `combo box set (${v1.state})`);
@@ -46,14 +51,14 @@ export default async ({ base, page: newPage, ok, download, tmp, devices }) => {
   await page.evaluate(() => { const r = document.querySelector('.pdfs-canvas').getBoundingClientRect(); scrollBy(0, r.top - 400); });
   const cb = await page.locator('.pdfs-canvas').boundingBox();
   await page.mouse.click(cb.x + cb.width * 0.1, cb.y + cb.height * 0.04);
-  await page.getByPlaceholder('Type here').fill('Received – OK ✓'.replace('✓', 'v'));
+  await page.getByPlaceholder('Type here').fill('Received – OK ✓ (not ✗)');
   const f3 = await save(), t3 = (await pdfInfo(f3)).list[0].text, g3 = await renderGrey(f3, 0, 1), o3 = await renderGrey(P('crazyones.pdf'), 0, 1);
-  ok(/Received – OK v/.test(t3), 'typed text is real text in the PDF');
+  ok(/Received – OK ✓ \(not ✗\)/.test(t3), `typed text is real text in the PDF, ticks too (ZapfDingbats; they were refused as "not Latin"): ${JSON.stringify(t3.slice(0, 40))}`);
   ok(g3.dark(0.08, 0.03, 0.45, 0.08) > o3.dark(0.08, 0.03, 0.45, 0.08) + 0.002, 'typed text placed where clicked');
   await page.getByPlaceholder('Type here').fill('नमस्ते');
   await page.getByRole('button', { name: 'Save filled PDF' }).click();
-  ok(await page.getByText('Latin letters only').count() >= 1, 'non-Latin typed text explained');
-  const real = page.errors.filter((e) => !/Latin letters only/.test(e));
+  ok(await page.getByText('Latin letters and the ticks').count() >= 1, 'non-Latin typed text explained (ticks are allowed)');
+  const real = page.errors.filter((e) => !/Latin letters and the ticks/.test(e));
   ok(real.length === 0, `no unexpected page errors: ${real.join(' | ')}`);
   const phone = await newPage({ ...devices['iPhone 13'] });
   await phone.goto(base + '#/pdf-fill');

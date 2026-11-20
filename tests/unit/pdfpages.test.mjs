@@ -83,6 +83,9 @@ export default async (t, { load }) => {
   t.eq([R('0', 5), R('6', 5), R('2-9', 5)], ['“0” is outside 1–5.', '“6” is outside 1–5.', '“2-9” is outside 1–5.'], 'ranges: outside the document, said');
   t.eq([R('', 5), R(' , ', 5), R('a', 5), R('1-3-5', 5)], ['Enter page numbers, e.g. 1-3, 5, 8-', 'Enter page numbers, e.g. 1-3, 5, 8-', 'Cannot read the range “a”.', 'Cannot read the range “1-3-5”.'], 'ranges: nothing, or what cannot be read, said');
 
+  // ---- ticks in typed text: ZapfDingbats runs
+  t.eq(pdf.textRuns('OK ✓ (not ✗)', 10), String.raw`/STF 10 Tf (OK ) Tj /STZ 10 Tf (3) Tj /STF 10 Tf ( \(not ) Tj /STZ 10 Tf (7) Tj /STF 10 Tf (\)) Tj `, 'text runs: Helvetica, ZapfDingbats for the ticks, brackets escaped');
+
   // ---- PDF → Images: the size of a page's picture
   t.eq(pdf.pageScale(612, 792, 300), { scale: 300 / 72, capped: false }, 'a Letter page at 300 dpi: as asked (2550 × 3300 px)');
   const poster = pdf.pageScale(3000, 3000, 300);

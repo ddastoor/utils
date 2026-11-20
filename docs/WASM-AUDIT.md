@@ -1114,3 +1114,8 @@ One entry per tab, written before its bug hunt: our module → candidates → ch
   names), imgproc (the ink off a photo), jSquash (PNG). As entries 123 and 124: nothing to replace. A cryptographic
   digital signature (PAdES) is not what the tab makes (it says so); MuPDF's signing needs a certificate the user does
   not have here.
+
+### 130. `pdf-fill` — Fill PDF Form (20 Nov 2026)
+- MuPDF's widgets (values, appearance streams, `bake` for flattening): nothing to replace. Found: MuPDF draws text
+  fields with its built-in sans (Latin, Greek, Cyrillic) whatever font the form's /DA names — a ₹ is a gap; PDFium
+  (@embedpdf/pdfium) is the candidate to look at if that matters to the owner.
