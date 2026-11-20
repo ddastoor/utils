@@ -114,3 +114,107 @@ export function colourWarning(fg: string, bg: string): string | null {
   if (ratio < 3) return `Too little contrast between the colours (${ratio.toFixed(1)} : 1) — cameras may not read it. Aim for 4 : 1 or more.`;
   return null;
 }
+
+// ------------------------------------------------------------------ reading what a scanned code holds
+export interface CodeField { label: string; value: string; secret?: boolean }
+export interface Described {
+  kind: 'wifi' | 'upi' | 'contact' | 'event' | 'email' | 'sms' | 'tel' | 'geo' | 'link' | 'text';
+  title: string;
+  fields: CodeField[];
+  /** A link to open (http(s), mailto:, tel:, sms:, upi:, geo:) — never javascript: or data:. */
+  open?: { href: string; label: string };
+  /** A file to save (a contact as .vcf, an event as .ics). */
+  save?: { name: string; type: string; text: string; label: string };
+}
+
+/** Splits "K:v;K:v;" of a MECARD-style string (WIFI:, MECARD:) on unescaped semicolons; \x stands for x. */
+function mecard(body: string): Record<string, string> {
+  const out: Record<string, string> = {};
+  let key = '', val = '', inKey = true;
+  for (let i = 0; i < body.length; i++) {
+    const c = body[i];
+    if (c === '\\' && i + 1 < body.length) { (inKey ? (key += body[++i]) : (val += body[++i])); continue; }
+    if (inKey && c === ':') { inKey = false; continue; }
+    if (!inKey && c === ';') { if (key) out[key.toUpperCase()] = val; key = ''; val = ''; inKey = true; continue; }
+    if (inKey) key += c; else val += c;
+  }
+  if (key && !inKey) out[key.toUpperCase()] = val;
+  return out;
+}
+
+const icsUnesc = (s: string) => s.replace(/\\([\\;,nN])/g, (_, c: string) => (c === 'n' || c === 'N' ? '\n' : c));
+/** The lines of a vCard / iCalendar text, folded lines joined (RFC 5545 §3.1), as [name with parameters, value]. */
+function contentLines(text: string): Array<[string, string]> {
+  return text.replace(/\r?\n[ \t]/g, '').split(/\r?\n/).map((l) => { const i = l.indexOf(':'); return i < 0 ? null : [l.slice(0, i), l.slice(i + 1)] as [string, string]; }).filter(Boolean) as Array<[string, string]>;
+}
+const icsDate = (v: string) => {
+  const m = /^(\d{4})(\d{2})(\d{2})(?:T(\d{2})(\d{2})(\d{2})?(Z)?)?$/.exec(v.trim());
+  if (!m) return v;
+  if (!m[4]) return `${m[3]}/${m[2]}/${m[1]}`;
+  const d = m[7] ? new Date(Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +(m[6] ?? 0))) : new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +(m[6] ?? 0));
+  return d.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
+};
+
+export function describeCode(text: string): Described {
+  const t = text.trim();
+  if (/^WIFI:/i.test(t)) {
+    const f = mecard(t.slice(5)), sec = (f.T || '').toUpperCase();
+    return { kind: 'wifi', title: 'Wi-Fi network', fields: [
+      { label: 'Network', value: f.S ?? '' },
+      ...(f.P ? [{ label: 'Password', value: f.P, secret: true }] : []),
+      { label: 'Security', value: !sec || sec === 'NOPASS' ? 'Open (no password)' : sec === 'WPA' ? 'WPA / WPA2 / WPA3' : sec },
+      ...(/^true$/i.test(f.H ?? '') ? [{ label: 'Hidden', value: 'yes' }] : []),
+    ] };
+  }
+  if (/^upi:\/\/pay\?/i.test(t)) {
+    const p = new URLSearchParams(t.slice(t.indexOf('?') + 1));
+    const am = p.get('am');
+    return { kind: 'upi', title: 'UPI payment', fields: [
+      { label: 'Pay to', value: p.get('pn') || '(no name)' }, { label: 'UPI ID', value: p.get('pa') ?? '' },
+      ...(am ? [{ label: 'Amount', value: `₹${Number(am).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` }] : [{ label: 'Amount', value: 'typed by the payer' }]),
+      ...(p.get('tn') ? [{ label: 'Note', value: p.get('tn')! }] : []),
+    ], open: { href: t, label: 'Pay with a UPI app' } };
+  }
+  if (/^BEGIN:VCARD/i.test(t)) {
+    const ls = contentLines(t);
+    const unesc = (v: string) => v.replace(/\\([\\;,nN])/g, (_, c: string) => (c === 'n' || c === 'N' ? '\n' : c));
+    const raw = (n: string) => ls.filter(([k]) => k.split(';')[0].toUpperCase() === n).map(([, v]) => v);
+    const get = (n: string) => raw(n).map(unesc);
+    const name = get('FN')[0] || (raw('N')[0] ?? '').split(/(?<!\\);/).slice(0, 2).map(unesc).reverse().join(' ').trim();
+    return { kind: 'contact', title: 'Contact', fields: [
+      { label: 'Name', value: name }, ...raw('ORG').map((v) => ({ label: 'Company', value: v.split(/(?<!\\);/).map(unesc).filter(Boolean).join(', ') })), // company;department
+      ...get('TEL').map((v) => ({ label: 'Phone', value: v })), ...get('EMAIL').map((v) => ({ label: 'E-mail', value: v })), ...get('URL').map((v) => ({ label: 'Website', value: v })),
+    ], save: { name: `${(name || 'contact').replace(/[\\/:*?"<>|]+/g, '').trim() || 'contact'}.vcf`, type: 'text/vcard', text: t.replace(/\r?\n/g, '\r\n') + '\r\n', label: 'Save contact (.vcf)' } };
+  }
+  if (/^MECARD:/i.test(t)) {
+    const f = mecard(t.slice(7));
+    return { kind: 'contact', title: 'Contact', fields: [{ label: 'Name', value: (f.N ?? '').replace(/,/g, ' ') }, ...(f.TEL ? [{ label: 'Phone', value: f.TEL }] : []), ...(f.EMAIL ? [{ label: 'E-mail', value: f.EMAIL }] : [])] };
+  }
+  if (/^BEGIN:(VEVENT|VCALENDAR)/i.test(t)) {
+    const ls = contentLines(t), get = (n: string) => ls.find(([k]) => k.split(';')[0].toUpperCase() === n)?.[1];
+    const title = icsUnesc(get('SUMMARY') ?? '');
+    const ics = /^BEGIN:VCALENDAR/i.test(t) ? t : ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//SuperTools//QR scanner//EN', t, 'END:VCALENDAR'].join('\n');
+    return { kind: 'event', title: 'Calendar event', fields: [
+      { label: 'Event', value: title }, ...(get('DTSTART') ? [{ label: 'Starts', value: icsDate(get('DTSTART')!) }] : []), ...(get('DTEND') ? [{ label: 'Ends', value: icsDate(get('DTEND')!) }] : []),
+      ...(get('LOCATION') ? [{ label: 'Place', value: icsUnesc(get('LOCATION')!) }] : []),
+    ], save: { name: `${(title || 'event').replace(/[\\/:*?"<>|]+/g, '').trim() || 'event'}.ics`, type: 'text/calendar', text: ics.replace(/\r?\n/g, '\r\n') + '\r\n', label: 'Add to calendar (.ics)' } };
+  }
+  const mail = /^mailto:([^?]*)(\?.*)?$/i.exec(t);
+  if (mail) {
+    const q = new URLSearchParams(mail[2]?.slice(1) ?? ''), dec = (s: string) => { try { return decodeURIComponent(s); } catch { return s; } };
+    return { kind: 'email', title: 'E-mail', fields: [{ label: 'To', value: dec(mail[1]) }, ...(q.get('subject') ? [{ label: 'Subject', value: q.get('subject')! }] : []), ...(q.get('body') ? [{ label: 'Message', value: q.get('body')! }] : [])], open: { href: t, label: 'Write the e-mail' } };
+  }
+  const sms = /^SMSTO:([^:]*):?([\s\S]*)$/i.exec(t) ?? /^sms:([^?]*)(?:\?body=([\s\S]*))?$/i.exec(t);
+  if (sms) {
+    const num = sms[1], body = /^sms:/i.test(t) ? decodeURIComponent(sms[2] ?? '') : sms[2];
+    return { kind: 'sms', title: 'Text message', fields: [{ label: 'To', value: num }, ...(body ? [{ label: 'Message', value: body }] : [])], open: { href: `sms:${phoneDigits(num)}${body ? `?body=${encodeURIComponent(body)}` : ''}`, label: 'Send the message' } };
+  }
+  if (/^tel:/i.test(t)) return { kind: 'tel', title: 'Phone number', fields: [{ label: 'Number', value: t.slice(4) }], open: { href: `tel:${phoneDigits(t.slice(4))}`, label: 'Call' } };
+  const geo = /^geo:(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/i.exec(t);
+  if (geo) return { kind: 'geo', title: 'Place', fields: [{ label: 'Latitude', value: geo[1] }, { label: 'Longitude', value: geo[2] }], open: { href: `geo:${geo[1]},${geo[2]}`, label: 'Open in a map app' } };
+  if (/^https?:\/\/\S+$/i.test(t)) {
+    let host = ''; try { host = new URL(t).host; } catch { /* not a URL after all */ }
+    if (host) return { kind: 'link', title: 'Link', fields: [{ label: 'Site', value: host }], open: { href: t, label: 'Open link' } };
+  }
+  return { kind: 'text', title: 'Text', fields: [] };
+}

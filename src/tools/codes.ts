@@ -142,6 +142,19 @@ export const barcode: Mount = (root) => {
 };
 
 // ------------------------------------------------------------------ Scanner
+const FORMAT_NAMES: Record<string, string> = {
+  QRCode: 'QR code', MicroQRCode: 'Micro QR code', rMQRCode: 'rMQR code', DataMatrix: 'Data Matrix', Aztec: 'Aztec', PDF417: 'PDF417', MaxiCode: 'MaxiCode',
+  EAN13: 'EAN-13', EAN8: 'EAN-8', UPCA: 'UPC-A', UPCE: 'UPC-E', Code128: 'Code 128', Code39: 'Code 39', Code93: 'Code 93', ITF: 'ITF', Codabar: 'Codabar',
+  DataBar: 'GS1 DataBar', DataBarExpanded: 'GS1 DataBar Expanded', DataBarLimited: 'GS1 DataBar Limited', DXFilmEdge: 'DX film edge',
+};
+/** The browser's camera errors, said for a person. */
+function cameraError(e: unknown): Error {
+  const n = (e as { name?: string })?.name ?? '';
+  if (n === 'NotAllowedError' || n === 'SecurityError') return new Error('The camera was not allowed — allow it in the browser\'s site settings (the camera icon in the address bar), or scan a photo instead.');
+  if (n === 'NotFoundError' || n === 'OverconstrainedError') return new Error('No camera was found — scan a photo or a screenshot instead.');
+  if (n === 'NotReadableError' || n === 'AbortError') return new Error('The camera is busy (another app or tab is using it). Close that, then try again.');
+  return e instanceof Error ? e : new Error(String(e));
+}
 export const scan: Mount = (root, ctx) => {
   let stream: MediaStream | null = null, timer = 0, busy = false;
   const video = h('video', { class: 'scan-video', playsinline: true, muted: true, autoplay: true });
@@ -153,30 +166,54 @@ export const scan: Mount = (root, ctx) => {
       if (seen.has(key)) continue;
       seen.add(key);
       navigator.vibrate?.(60);
-      const isUrl = /^https?:\/\//i.test(r.text);
-      results.prepend(card(r.format, h('div', { class: 'scan-text' }, r.text), h('div', { class: 'row' }, button('Copy', () => copy(r.text), { small: true, icon: 'Copy' }),
-        isUrl ? h('a', { class: 'btn btn-sm', href: r.text, target: '_blank', rel: 'noopener noreferrer' }, 'Open link') : null)));
+      const d = Q.describeCode(r.text);
+      const fmtName = FORMAT_NAMES[r.format] ?? r.format;
+      const rows = d.fields.map((f) => h('tr', null, h('th', null, f.label), h('td', { class: f.secret ? 'mono' : '' }, f.value),
+        h('td', null, f.secret || d.kind === 'wifi' ? button('', () => copy(f.value), { icon: 'Copy', small: true, variant: 'ghost', title: `Copy ${f.label.toLowerCase()}` }) : null)));
+      const open = d.open ? h('a', { class: 'btn btn-sm', href: d.open.href, ...(/^https?:/i.test(d.open.href) ? { target: '_blank' } : {}), rel: 'noopener noreferrer' }, d.open.label) : null;
+      const save = d.save ? button(d.save.label, () => downloadBlob(new Blob([d.save!.text], { type: d.save!.type }), d.save!.name), { small: true, icon: 'Download' }) : null;
+      results.prepend(card(d.kind === 'text' ? fmtName : `${fmtName} · ${d.title}`,
+        rows.length ? h('table', { class: 'tbl scan-fields' }, h('tbody', null, rows)) : null,
+        h('div', { class: 'scan-text' }, r.text),
+        h('div', { class: 'row' }, button('Copy', () => copy(r.text), { small: true, icon: 'Copy' }), open, save)));
     }
   };
+  const readFile = async (f: Blob) => {
+    await zx();
+    const r = await readBarcodes(f, { tryHarder: true, maxNumberOfSymbols: 8 });
+    if (!r.length) results.prepend(note('No code found in that image.', 'warn'));
+    show(r);
+  };
   const loop = async () => {
-    if (!stream || busy || video.readyState < 2) return;
+    if (!stream || busy || video.readyState < 2 || !video.videoWidth) return;
     busy = true;
     try {
       const c = new OffscreenCanvas(video.videoWidth, video.videoHeight), g = c.getContext('2d', { willReadFrequently: true })!;
       g.drawImage(video, 0, 0);
       show(await readBarcodes(g.getImageData(0, 0, c.width, c.height), { tryHarder: true, maxNumberOfSymbols: 4 }));
-    } finally { busy = false; }
-  };
-  const start = async () => {
-    await zx();
-    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } } });
-    video.srcObject = stream;
-    clearInterval(timer); timer = window.setInterval(loop, 250);
+    } catch (e) { console.warn('frame not read', e); } // one frame that cannot be read is no reason to stop (or to raise an error)
+    finally { busy = false; }
   };
   const stop = () => { clearInterval(timer); stream?.getTracks().forEach((t) => t.stop()); stream = null; video.srcObject = null; };
+  const start = async () => {
+    stop(); // a second Start used to open a second stream and leave the first one running
+    await zx();
+    try { stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } } }); }
+    catch (e) { throw cameraError(e); }
+    video.srcObject = stream;
+    for (const t of stream.getVideoTracks()) t.addEventListener('ended', stop);
+    timer = window.setInterval(loop, 250);
+  };
+  // a screenshot or photo pasted with Ctrl+V is scanned too
+  const onPaste = (e: ClipboardEvent) => {
+    const f = [...(e.clipboardData?.items ?? [])].find((i) => i.kind === 'file' && i.type.startsWith('image/'))?.getAsFile();
+    if (f) { e.preventDefault(); readFile(f).catch((err) => results.prepend(note(`That image could not be read (${err instanceof Error ? err.message : String(err)}).`, 'err'))); }
+  };
+  document.addEventListener('paste', onPaste);
   root.append(card(null, h('div', { class: 'scan-wrap' }, video, h('div', { class: 'scan-frame' }))),
-    card('Or scan an image', filePicker({ accept: 'image/*', compact: true, label: 'Choose a photo or screenshot', onFiles: async ([f]) => { await zx(); const r = await readBarcodes(f, { tryHarder: true, maxNumberOfSymbols: 8 }); if (!r.length) results.prepend(note('No code found in that image.', 'warn')); show(r); } })),
-    results, h('div', { class: 'actions' }, button('Start camera', start, { variant: 'primary', icon: 'ScanQrCode' }), button('Stop', stop, { icon: 'Square' })),
-    note(`Reads QR, Data Matrix, Aztec, PDF417, EAN/UPC, Code 128/39/93, ITF, Codabar and more.${ctx.isMobile ? ' Uses the back camera.' : ''}`));
-  return stop;
+    card('Or scan an image', filePicker({ accept: 'image/*', compact: true, label: 'Choose a photo or screenshot', hint: ctx.isMobile ? undefined : 'or paste one with Ctrl+V', onFiles: ([f]) => readFile(f) })),
+    results, h('div', { class: 'actions' }, button('Start camera', start, { variant: 'primary', icon: 'ScanQrCode' }), button('Stop', stop, { icon: 'Square' }),
+      button('Clear', () => { clear(results); seen.clear(); }, { icon: 'Trash2' })),
+    note(`Reads QR, Data Matrix, Aztec, PDF417, EAN/UPC, Code 128/39/93, ITF, Codabar and more. Wi-Fi, UPI, contact and calendar codes are shown field by field.${ctx.isMobile ? ' Uses the back camera.' : ''}`));
+  return () => { stop(); document.removeEventListener('paste', onPaste); };
 };

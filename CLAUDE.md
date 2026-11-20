@@ -622,6 +622,14 @@ adds in front said and the full number shown; UPC-E 6 – 8 digits with number s
 in front of an odd count, under 6 digits pointed out); Code 39 upper-cased with a note, its characters checked;
 Codabar's A – D start and stop; Code 128 Latin-1 only, Code 93 ASCII only (the 2-D formats take any text). zint's own
 errors without their numbers. A typed value stays when the format changes; an untouched sample is replaced.
+**QR & Barcode Scanner as built** (`scan` in `src/tools/codes.ts`, `describeCode` in `src/lib/qrdata.ts`; e2e
+`tests/e2e/scan.e2e.mjs` 21): back camera (getUserMedia; a second Start ends the first stream; refused / missing / busy
+cameras said in words; a frame every 250 ms, one that cannot be read is skipped), an image file, or a screenshot pasted
+with Ctrl+V. Each code once, newest first, titled with its format ("QR code · Wi-Fi network") and shown field by
+field: Wi-Fi (network, password with its own copy button, security, hidden), UPI (payee, ID, amount, note; "Pay with a
+UPI app"), vCard / MECARD ("Save contact (.vcf)", CRLF), VEVENT ("Add to calendar (.ics)", wrapped in VCALENDAR; UTC
+times in local time), mailto, SMSTO / sms:, tel:, geo:, http(s) links (the site shown; opened in a new tab with
+noopener); javascript: and data: stay text. The raw text is always shown with Copy; Clear empties the list.
 
 ### Calculator
 Sub-tabs: **Scientific** (own parser: + − × ÷ ^ √ ∛ ! nPr nCr %; "a + b%" / "a − b%" add or take off b % of a like phone/Google

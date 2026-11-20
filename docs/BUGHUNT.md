@@ -198,7 +198,7 @@ Areas with a shared review: the app shell (router, search, favorites, platform h
 |---|---|---|---|---|---|---|---|
 | `qr` | QR Generator | PC + mobile | security-codes | ✓ | 7 | 41 | zxing-wasm 3.1.7 kept (latest); qrdata.ts: UPI amounts as typed (commas were dropped), NPCI form, RFC 5545 escaping, SMS digits, Wi-Fi/colour checks, newest text wins; zbar read-back |
 | `barcode` | Barcode Generator | PC + mobile | security-codes | ✓ | 5 | 44 | zxing-wasm kept; barcodes.ts: zero padding / capitals / ITF said, check digit worded + shown, zint errors in words, typed value kept across formats; zbar + libdmtx read-back |
-| `scan` | QR & Barcode Scanner | PC + mobile | security-codes |  |  |  |  |
+| `scan` | QR & Barcode Scanner | PC + mobile | security-codes | ✓ | 3 | 31 | zxing-wasm kept; second Start leaked the camera; camera errors worded; describeCode: Wi-Fi/UPI/contact/event/e-mail/SMS/tel/geo fields, .vcf/.ics, paste, Clear |
 | `zip` | Create Zip | PC + mobile | security-codes |  |  |  |  |
 | `unzip` | Extract Archive | PC + mobile | security-codes |  |  |  |  |
 
@@ -1418,3 +1418,16 @@ Reference for the five finance tabs: **mpmath at 60 digits** (`scripts/make-fina
      format now, with what to do (the right check digit, Codabar's A – D, the 2-D codes for Hindi).
   5. Changing the format replaced a typed value with the new format's sample; a typed value stays now (only an
      untouched sample is replaced).
+
+- **`scan` (tab 108, 3 bugs; engine kept: zxing-wasm 3.1.7 — docs/WASM-AUDIT.md, 106; unit: `describeCode` in
+  `tests/unit/codes.test.mjs` +20; e2e 21 — was 10).**
+  1. A second "Start camera" opened a second stream and left the first one running (the camera light stayed on until
+     the tab was left); Start ends the old stream first, and a stream that ends by itself stops the scanning.
+  2. A refused, missing or busy camera showed the browser's words ("NotAllowedError: Permission denied"); each is said
+     with what to do.
+  3. A Wi-Fi code was shown only as its raw text, so its password could only be copied with the code's escapes
+     ("masala\:chai\;123"). Wi-Fi, UPI, contact, calendar, e-mail, SMS, phone and place codes are shown field by field
+     now — Copy password, "Save contact (.vcf)", "Add to calendar (.ics)", Call / Send / Pay / map links (never a
+     link for javascript: or data:).
+  Also: format names as people say them ("QR code", "EAN-13"); a screenshot pasted with Ctrl+V is scanned; Clear; a
+  frame that cannot be read is skipped instead of raising an error.

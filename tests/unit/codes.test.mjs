@@ -54,4 +54,33 @@ export default async (t, { load }) => {
   t.eq(Q.colourWarning('#1d4ed8', '#fef3c7'), null, 'dark blue on cream');
   t.ok(/light code on a dark background/.test(Q.colourWarning('#ffffff', '#000000')), 'white on black: warned');
   t.ok(/Too little contrast/.test(Q.colourWarning('#9ca3af', '#ffffff')), 'grey on white: warned');
+
+  // ---- reading a scanned code (the Scanner tab)
+  const D = Q.describeCode, F = (d) => Object.fromEntries(d.fields.map((f) => [f.label, f.value]));
+  { const w = Q.wifi({ ssid: 'My;Home,Net "5G"', pass: 'p@ss:w;rd\\1', sec: 'WPA', hidden: true }).text, d = D(w);
+    t.eq([d.kind, F(d)], ['wifi', { Network: 'My;Home,Net "5G"', Password: 'p@ss:w;rd\\1', Security: 'WPA / WPA2 / WPA3', Hidden: 'yes' }], 'Wi-Fi: every escaped character read back (round trip with the generator)');
+    t.ok(d.fields.find((f) => f.label === 'Password').secret && !d.open, '… the password marked for its own copy button; no link'); }
+  t.eq(F(D('WIFI:S:Cafe;T:nopass;;')), { Network: 'Cafe', Security: 'Open (no password)' }, 'an open network, fields in another order');
+  t.eq(F(D('wifi:T:WEP;S:Old;P:abcde;;')), { Network: 'Old', Password: 'abcde', Security: 'WEP' }, 'lower-case prefix, WEP');
+  { const d = D(Q.upi({ vpa: 'chai@ybl', name: 'Chai & Co', amount: '1,250.5', note: 'Table 7' }).text);
+    t.eq([d.kind, F(d), d.open.href.startsWith('upi://pay?pa=chai@ybl')], ['upi', { 'Pay to': 'Chai & Co', 'UPI ID': 'chai@ybl', Amount: '₹1,250.50', Note: 'Table 7' }, true], 'UPI: payee, ID, amount in rupees, note; a link for a UPI app'); }
+  t.eq(F(D('upi://pay?pa=x@ybl&pn=Shop')).Amount, 'typed by the payer', 'UPI without an amount');
+  { const d = D(Q.vcard({ first: 'Anaya', last: 'Iyer', phone: '+91 98200 12345', email: 'anaya@example.com', org: 'Tata Sons; Mumbai, India', url: '' }).text);
+    t.eq([d.kind, F(d)], ['contact', { Name: 'Anaya Iyer', Company: 'Tata Sons; Mumbai, India', Phone: '+91 98200 12345', 'E-mail': 'anaya@example.com' }], 'a vCard: name, company (escapes undone), phone, e-mail');
+    t.eq([d.save.name, d.save.type, d.save.text.includes('\r\nFN:Anaya Iyer\r\n')], ['Anaya Iyer.vcf', 'text/vcard', true], '… saved as "Anaya Iyer.vcf" with CRLF line ends (RFC 2426)'); }
+  t.eq(F(D('MECARD:N:Rao,Asha;TEL:+919820012345;EMAIL:a@x.in;;')), { Name: 'Rao Asha', Phone: '+919820012345', 'E-mail': 'a@x.in' }, 'a MECARD contact');
+  { const d = D('BEGIN:VEVENT\nSUMMARY:Diwali party\\, rooftop\nDTSTART:20261108T140000Z\nDTEND:20261108T173000Z\nLOCATION:Bandra\; Mumbai\nEND:VEVENT');
+    t.eq([d.kind, F(d).Event, F(d).Place], ['event', 'Diwali party, rooftop', 'Bandra; Mumbai'], 'an event: escapes undone');
+    t.ok(F(d).Starts === new Date(Date.UTC(2026, 10, 8, 14, 0)).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' }), '… a UTC time shown in local time');
+    t.ok(/^BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:[^\r]+\r\nBEGIN:VEVENT/.test(d.save.text) && d.save.name === 'Diwali party, rooftop.ics', '… saved as an .ics calendar file (wrapped in VCALENDAR)'); }
+  t.eq(F(D('BEGIN:VEVENT\nSUMMARY:Back\\\\slash\\, done\nEND:VEVENT')).Event, 'Back\\slash, done', 'an escaped backslash in an event (it was left doubled)');
+  t.eq(F(D('BEGIN:VEVENT\nSUMMARY:All day\nDTSTART;VALUE=DATE:20261225\nEND:VEVENT')).Starts, '25/12/2026', 'an all-day event');
+  t.eq([D('mailto:help@example.com?subject=Refund%20%26%20order%20%237&body=Hi').kind, F(D('mailto:help@example.com?subject=Refund%20%26%20order%20%237&body=Hi'))], ['email', { To: 'help@example.com', Subject: 'Refund & order #7', Message: 'Hi' }], 'mailto: decoded');
+  t.eq([F(D('SMSTO:+91 98200 12345:Running late')), D('SMSTO:+91 98200 12345:Running late').open.href], [{ To: '+91 98200 12345', Message: 'Running late' }, 'sms:+919820012345?body=Running%20late'], 'SMSTO, with an sms: link');
+  t.eq(F(D('sms:+919820012345?body=Hi%20there')), { To: '+919820012345', Message: 'Hi there' }, 'sms: URI');
+  t.eq([F(D('tel:+91 22 2345 6789')), D('tel:+91 22 2345 6789').open.href], [{ Number: '+91 22 2345 6789' }, 'tel:+912223456789'], 'tel, with a call link');
+  t.eq([D('geo:19.0760,72.8777').kind, D('geo:19.0760,72.8777').open.href], ['geo', 'geo:19.0760,72.8777'], 'a place');
+  t.eq([D('https://example.com/menu?x=1').kind, F(D('https://example.com/menu?x=1')).Site, D('https://example.com/menu?x=1').open.href], ['link', 'example.com', 'https://example.com/menu?x=1'], 'a link: its site shown, opened as it is');
+  t.eq([D('javascript:alert(1)').kind, D('javascript:alert(1)').open], ['text', undefined], 'javascript: is plain text — never a link');
+  t.eq([D('data:text/html,<b>x</b>').open, D('Table 7 · order 1234').kind], [undefined, 'text'], 'data: and plain text: no link');
 };
