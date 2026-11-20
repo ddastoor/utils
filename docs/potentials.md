@@ -156,6 +156,22 @@ Verovio, basic-pitch) and these new ones (npm versions checked 20 Nov 2026):
 | 59 | **Retro DOS PC**: run old DOS programs and games the user owns | js-dos 8.5 (DOSBox → wasm, GPL-2.0) | PC | waiting |
 | 60 | **Code Screenshot**: code → a styled, syntax-highlighted PNG / SVG | Shiki 4.6 (MIT; its regex engine Oniguruma as wasm; mostly JavaScript — reason to record in §3a if accepted) | PC (Software) | waiting |
 
+## Round 5 — everyday tools (20 Nov 2026)
+Asked by the owner: "any other cool open source projects out there that I could actually use in day-to-day life?" —
+the owner said "add all ten". Every one runs in the browser on the device; none uploads anything. Build none until picked.
+| # | New tab | Engine | Platform | Status |
+|---|---|---|---|---|
+| 61 | **PDF Redact**: black out an Aadhaar number, PAN, account number or address so the text is really gone from the PDF (not a box over it) | MuPDF (on the site): redaction annotations applied | both | waiting |
+| 62 | **Authenticator Export Reader**: read Google Authenticator's "Transfer accounts" QR (`otpauth-migration://`) → each account with its own QR, to back up 2FA or move it to another app | zxing-wasm + devcore's protobuf reader (on the site) | both | waiting |
+| 63 | **Photo Organizer**: rename photos by the date taken, shift a wrong camera clock, find photos without a date | ExifTool (on the site) + File System Access | PC | waiting |
+| 64 | **Subtitle Sync**: shift or stretch an .srt to match a video, or line it up with the speech automatically (ffsubsync's method, MIT) | audio.wasm + a voice detector (RNNoise's, on the site) | both | waiting |
+| 65 | **Kindle Highlights Exporter**: `My Clippings.txt` → a clean Markdown / CSV file per book, duplicates removed, or Anki cards | own parser (Rust → wasm) | both | waiting |
+| 66 | **XIRR / Mutual-fund Returns**: the real return from actual SIP and redemption dates (Excel's XIRR), CAGR | mathcore (on the site) | both | waiting |
+| 67 | **Object Eraser**: paint over a photobomber, a wire or a blemish and it is filled in | LaMa (Apache-2.0) on ONNX Runtime Web (on the site), ≈ 200 MB model | PC | waiting |
+| 68 | **KeePass Vault Viewer**: open a .kdbx (KeePass, KeePassXC, KeePassDX), search, copy passwords, 2FA codes | kdbxweb (MIT, JavaScript) + hash-wasm's Argon2 (on the site) | both | waiting |
+| 69 | **Data Notebook**: pandas and charts on a CSV / Excel file, offline | JupyterLite (BSD-3) on Pyodide (MPL-2.0) | PC | waiting |
+| 70 | **CyberChef**: GCHQ's data toolkit — 400+ operations chained into recipes (decode, decompress, extract, convert) | CyberChef (Apache-2.0, JavaScript: a reason to record in §3a if accepted) | PC | waiting |
+
 ## Notes
 - **Cheapest wins:** Image to SVG, Make PDF Searchable, the six "reuse engines" tabs (13–18), Duplicate Photo Finder,
   Chart Maker, WireGuard Config.
