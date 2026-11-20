@@ -143,7 +143,8 @@ export const mount: Mount = (root) => {
   async function engine() {
     if (ff) return ff;
     return (loading ||= (async () => {
-      status.textContent = loadedOnce ? 'Starting FFmpeg…' : 'Loading FFmpeg (≈ 31 MB, once per visit)…';
+      const saying = loadedOnce ? 'Starting FFmpeg…' : 'Loading FFmpeg (≈ 31 MB, once per visit)…';
+      status.textContent = saying;
       const { FFmpeg } = await import('@ffmpeg/ffmpeg');
       const f = new FFmpeg(), at = (p: string) => new URL(p, document.baseURI).href;
       f.on('log', ({ message }: any) => { logLines.push(message); if (logLines.length > 400) logLines.splice(0, 100); });
@@ -151,7 +152,9 @@ export const mount: Mount = (root) => {
       await f.load({ coreURL: at('vendor/ffmpeg/ffmpeg-core.js'), wasmURL: at('vendor/ffmpeg/ffmpeg-core.wasm') });
       ff = f; fontsIn = false; loadedOnce = true;
       onLeave('ffmpeg', () => { try { f.terminate(); } catch { /* gone */ } ff = null; loading = null; });
-      status.textContent = '';
+      // only its own words go: "Stopped: a new file was chosen" (written meanwhile by the job it ended) was wiped by the
+      // new file's probe starting FFmpeg again
+      if (status.textContent === saying) status.textContent = '';
       return f;
     })().catch((e) => { loading = null; throw e; }));
   }

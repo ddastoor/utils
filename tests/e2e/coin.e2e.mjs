@@ -6,7 +6,10 @@ export default async (ctx) => {
   const { base, page: newPage, ok } = ctx;
   const page = await newPage(); await page.goto(`${base}#/coin`); await page.locator('.coin').waitFor({ timeout: 15000 });
   ok(await page.locator('.coin').textContent() === '?' && await page.locator('.center.muted').textContent() === '', 'starts with "?" and no counts');
+  ok(await page.evaluate(() => performance.getEntriesByType('resource').every((e) => !/libsodium-wrappers|\.wasm/.test(e.name))), 'no engine fetched before the first flip (the coin shows "?")');
   await page.getByRole('button', { name: 'Flip', exact: true }).click();
+  await page.waitForFunction(() => document.querySelector('.coin').textContent !== '?', null, { timeout: 15000 }); // the first flip fetches libsodium.js
+  ok(await page.evaluate(() => performance.getEntriesByType('resource').some((e) => /libsodium-wrappers/.test(e.name))), 'the first flip uses libsodium.js (randombytes_uniform)');
   const f1 = await page.locator('.coin').textContent(), cls = await page.locator('.coin').getAttribute('class');
   ok(/^(Heads|Tails)$/.test(f1) && cls.includes(f1.toLowerCase()), `flip shows Heads or Tails with its style (${f1}, ${cls})`);
   ok(await page.locator('.center.muted').textContent() === (f1 === 'Heads' ? 'Heads 1 · Tails 0' : 'Heads 0 · Tails 1'), 'count after one flip');

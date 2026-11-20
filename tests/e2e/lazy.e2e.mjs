@@ -17,6 +17,7 @@ const AT_OPEN = {
   diff: [/textkit-diff-[\w-]+\.wasm/, 'the sample pair is compared at once (textkit-diff.wasm, 0.69 MB: the similar crate)'],
   passphrase: [/libsodium|eff_large_wordlist\.txt/, 'passphrases are made as the tab opens (libsodium.js, 0.53 MB, shared with Password Generator and Sodium Encrypt; the EFF word list, 62 KB)'],
   password: [/libsodium/, 'passwords are made as the tab opens (libsodium.js: randombytes_uniform, the libsodium project\'s own WebAssembly build — 0.53 MB, shared with Sodium Encrypt)'],
+  dice: [/libsodium/, 'the dice are rolled as the tab opens (libsodium.js: randombytes_uniform — 0.53 MB, shared with the password tabs and Sodium Encrypt)'],
   lorem: [/textkit-lorem-[\w-]+\.wasm/, 'the first paragraphs are made as the tab opens (textkit-lorem.wasm: the lipsum crate\'s Markov chain over Cicero, 0.13 MB)'],
   case: [/textkit-[\w-]+\.wasm/, 'the sample sentence is shown in all its conversions at once (textkit.wasm, 0.21 MB)'],
   coords: [/geo-[\w-]+\.wasm/, 'the sample distance is worked out at once (geo.wasm: Karney\'s geodesic routines, 36 KB)'],

@@ -1,6 +1,9 @@
-// Everyday: timers (stopwatch, countdown, Pomodoro, interval) and randomness (libsodium CSPRNG via crypto.wasm).
+// Everyday: timers (stopwatch, countdown, Pomodoro, interval) and randomness — libsodium's randombytes_uniform: Dice and
+// Coin from libsodium.js (the libsodium project's own WebAssembly build); Random Number, Picker and Teams from crypto.wasm,
+// which has it too and adds what libsodium.js lacks: draws without repeats and shuffles (docs/WASM-AUDIT.md 155).
 import { h, card, field, input, textarea, button, segmented, toggle, slider, clear, stack, note, copy, type Mount } from '../ui';
 import { sodium } from '../wasm/crypto';
+import { libsodium } from '../wasm/libsodium';
 
 // ------------------------------------------------------------------ shared timer helpers
 const pad = (n: number, w = 2) => String(Math.floor(n)).padStart(w, '0');
@@ -281,7 +284,7 @@ export const interval: Mount = (root) => {
 // ------------------------------------------------------------------ Randomness (libsodium CSPRNG)
 const FACES = ['⚀', '⚁', '⚂', '⚃', '⚄', '⚅'];
 export const dice: Mount = async (root) => {
-  const na = await sodium();
+  const na = await libsodium(); // the dice are rolled as the tab opens
   let n = 2, sides = 6;
   const out = h('div', { class: 'dice-row' }), total = h('div', { class: 'big-value center' });
   const roll = () => {
@@ -295,11 +298,12 @@ export const dice: Mount = async (root) => {
   roll();
 };
 
-export const coin: Mount = async (root) => {
-  const na = await sodium();
-  let heads = 0, tails = 0, spin: Animation | null = null;
+export const coin: Mount = (root) => {
+  let heads = 0, tails = 0, spin: Animation | null = null, na: Awaited<ReturnType<typeof libsodium>> | null = null;
   const face = h('div', { class: 'coin', 'aria-live': 'polite' }, '?'), stats = h('div', { class: 'muted center' });
-  const flip = () => {
+  // the engine comes with the first flip (the coin shows "?" until then); later flips are immediate
+  const flip = () => (na ? toss(na) : libsodium().then((e) => { na = e; toss(e); }));
+  const toss = (na: { uniform(upper: number): number }) => {
     const isH = na.uniform(2) === 0;
     isH ? heads++ : tails++;
     face.textContent = isH ? 'Heads' : 'Tails'; face.className = `coin ${isH ? 'heads' : 'tails'}`;
