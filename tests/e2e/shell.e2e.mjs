@@ -128,6 +128,10 @@ export default async ({ base, page: newPage, ok, devices }) => {
   await f.goto(base + '#/gst'); await f.locator('.head-star').click();
   await f2.waitForFunction(() => document.querySelectorAll('.view .tile').length === 3); ok((await f2.locator('.tab-fav .tab-count').textContent()) === '3', 'favorites stay in sync between two open browser tabs');
   await f2.close();
+  const f3 = await f.context().newPage(); await f3.goto(base + '#/c/fav'); await f3.waitForSelector('.tile');
+  await f.evaluate(() => localStorage.clear());
+  ok(await f3.waitForFunction(() => !document.querySelector('.tab-fav .tab-count'), null, { timeout: 5000 }).then(() => true, () => false), 'site data cleared in another browser tab: the favorites go here too (they stayed)');
+  await f3.close();
   for (const [stored, want] of [['{', 0], ['null', 0], ['"emi"', 0], ['["emi","nope",42,"json","emi",null]', 2]]) {
     await f.evaluate((v) => localStorage.setItem('supertools.favorites.v1', v), stored); await f.reload(); await f.goto(base + '#/c/fav'); await f.waitForTimeout(150);
     ok((await f.locator('.view .tile').count()) === want && (await f.locator('.tab-fav .tab-count').count()) === (want ? 1 : 0), `damaged favorites data ${stored} → ${want} favorites, no duplicates, no crash`);

@@ -29,4 +29,4 @@ export function toggleFav(id: string): boolean {
 export function onFavChange(f: () => void) { listeners.add(f); return () => listeners.delete(f); }
 
 // keep several open tabs in sync
-window.addEventListener('storage', (e) => { if (e.key === KEY) { cache = null; listeners.forEach((f) => f()); } });
+window.addEventListener('storage', (e) => { if (e.key === KEY || e.key === null) { cache = null; listeners.forEach((f) => f()); } }); // null: the storage was cleared
