@@ -49,6 +49,10 @@ this file = the owner's latest wishes, how the tests are written, and the traps 
   text on video, volume, reverse, a thumbnail at a chosen time), search for more popular FFmpeg uses and add those
   too, then continue the bug hunt. Also asked: is there a famous existing WebAssembly FFmpeg — ffmpeg.wasm (in use)
   and libav.js (to be checked against it when the hunt reaches the FFmpeg tab, area "video").
+- **20 Nov 2026 — Pandoc:** "include all the Pandoc uses when you come to the Pandoc app". The Pandoc tab is
+  `docs/potentials.md` #4 (Document Converter), still waiting for the owner to pick it. When it is built, every popular
+  Pandoc use gets a button, as in the FFmpeg tab (search the web for them first). The owner believed this had been
+  asked earlier; no earlier record of it was found in the repository or this session's chat, so it is recorded now.
 
 ## 2. Status at hand-off (commit 5f87b87)
 Own e2e suites now exist for **Calculators 27/27, Math & Science 7/7, Text 9/9, the 8 developer tabs (json, regex,

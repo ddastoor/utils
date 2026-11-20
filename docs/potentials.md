@@ -31,7 +31,7 @@ Platform: "both" = PC + mobile.
 | 1 | **Image to SVG**: trace a logo, signature or scan into vectors | vtracer (Rust, MIT) or potrace (C, GPL) | own wasm build | < 1 MB | both | waiting |
 | 2 | **Photo Upscaler**: 2× / 4×, sharpen blurry or small photos | Real-ESRGAN / Upscayl models | ONNX Runtime Web (already on the site for TTS) | 17–65 MB model | both | waiting |
 | 3 | **Make PDF Searchable**: add an OCR text layer to scanned PDFs | the idea behind OCRmyPDF | Tesseract + MuPDF (both already on the site) | nothing new | both | waiting |
-| 4 | **Document Converter**: DOCX ⇄ Markdown / HTML / EPUB / ODT | Pandoc | official pandoc.wasm | ≈ 50 MB | PC | waiting |
+| 4 | **Document Converter**: DOCX ⇄ Markdown / HTML / EPUB / ODT (owner, 20 Nov 2026: "include all the Pandoc uses when you come to the Pandoc app" — when it is built, every popular Pandoc use gets its own button, as in the FFmpeg tab, no command line needed; search the web for the popular uses first; what pandoc.wasm cannot do is added beside it by STANDING RULE #1 or said in the tab) | Pandoc | official pandoc.wasm | ≈ 50 MB | PC | waiting |
 | 5 | **Vocal Remover / Karaoke**: split vocals from music | Demucs (stem separation) | ONNX Runtime Web | 80+ MB model | PC | waiting |
 
 ## Round 1 — also good fits
