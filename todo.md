@@ -18,27 +18,10 @@ The owner adds items here in chat ("add … to to do"). Newest instructions win.
    (zip.js, mediabunny, OpenPGP.js, Mermaid, Prettier, TensorFlow.js) and the "Deliberately left in TypeScript" notes;
    then every `src/tools/**/*.ts` and `src/lib/*.ts` for loops, parsers and maths still done in TypeScript.
 
-2. **FFmpeg tab: buttons for more popular jobs** (owner, 20 Nov 2026 — **chosen by the owner: do it** right after the
-   EXIF / Photo Info tab of the bug hunt, then go on with the hunt). The owner's words: "make a note to remember to add
-   all the popular new jobs for FFmpeg that don't have buttons yet above, and also search for more out there, more
-   popular things that people do with FFmpeg and add it to the list. And obviously add this new functionality and then
-   obviously continue the bug hunt and the test case writing." The tab must stay button-driven (no command line needed).
-   **The owner's six:** (1) join several clips into one; (2) subtitles — burn in, add as a track, extract; (3) a logo
-   or text on a video; (4) change the volume by a set amount; (5) reverse a clip; (6) a thumbnail at a chosen time.
-   **Found on the web (20 Nov 2026: cheat sheets, FFmpeg GUIs and creators' guides — sources in docs/BUGHUNT.md) and
-   not yet a button here or another tab's job:** (7) fade in / fade out (picture and sound); (8) fit to a shape
-   (9:16, 16:9, 1:1 …) with a blurred background or bars instead of cropping; (9) remove silence (start, end, inside);
-   (10) picture-in-picture (a second video in a corner); (11) loop a clip n times, and "boomerang" (forward + back);
-   (12) stabilise a shaky video; (13) clean up a grainy (noisy) video; (14) contact sheet — a grid of frames in one
-   picture; (15) timelapse — 8× to 60× faster; (16) split into equal parts (a zip); (17) sound settings — mono /
-   stereo, sample rate; (18) colours — brightness, contrast, saturation, black and white; (19) cut a part out of the
-   middle; (20) background music under the sound (mix instead of replace); (21) deinterlace old camcorder / TV
-   recordings. Already elsewhere: compress to a size (Video Compressor), photos → video (Slideshow Maker), audio noise
-   (Noise Remover). Each job with e2e checks against known answers (ffprobe / the decoded frames).
-
 3. _(withdrawn by the owner on 20 Nov 2026: the "Export Python utility" for the YouTube Clip tab — do not build it.)_
 
 ## Done
+- **2. FFmpeg tab: buttons for more popular jobs** (owner, 20 Nov 2026: "add all the popular new jobs for FFmpeg that don't have buttons yet … search for more out there … and add it") — done 20 Nov 2026: 21 new jobs (39 in all, in eight groups of a task list; no command line needed): the owner's six (join clips; subtitles burn in / add as a track / extract; logo or text on a video; volume; reverse; picture at a chosen moment) and fifteen popular uses found on the web (fades, fit to a shape with a blurred background or bars, remove silence, picture-in-picture, loop / boomerang, stabilise, clean up grain, contact sheet, timelapse, split into parts, sound settings, colours / black and white, cut a part out, background music, deinterlace; sources in docs/BUGHUNT.md). `src/lib/ffjobs.ts`, `src/tools/ffmpeg.ts`; unit `ffjobs.test.mjs` 110 (native FFmpeg 6.1), e2e `ffmpeg.e2e.mjs` 68. Found on the way: the core's JPEG encoder crashed the page (every JPEG is MozJPEG's now).
 - **4. YouTube Clip tab: "Download latest yt-dlp"** (owner, 20 Nov 2026: "Have an export button called download latest
   YT-DLP … when the user clicks that button, the app should basically go to GitHub and download the latest version of
   YT-DLP. Is this possible? If so, make it happen.") — done 20 Nov 2026: a link to GitHub's

@@ -1622,7 +1622,7 @@ Reference for the five finance tabs: **mpmath at 60 digits** (`scripts/make-fina
   https://www.mintlify.com/FFmpeg/FFmpeg/reference/video-filters , https://www.mintlify.com/FFmpeg/FFmpeg/reference/audio-filters .
   **Bug found on the way (1):** the tab's "Extract frames → JPEG" used `-q:v 2`, and this core's JPEG encoder overflows
   a buffer at high quality — the page crashed on ordinary videos (the old suite tested PNG frames only). Every JPEG is
-  MozJPEG's now; own arguments refuse JPEG from FFmpeg. Unit `tests/unit/ffjobs.test.mjs` 110 (new), e2e +the new jobs.
+  MozJPEG's now; own arguments refuse JPEG from FFmpeg. Also fixed before it shipped: burned-in subtitles of the video's own track drew nothing (libass found no font: Noto Sans is forced), a refused job no longer reloads the core. Unit `tests/unit/ffjobs.test.mjs` 110 (new; every command run by a native FFmpeg 6.1), e2e `tests/e2e/ffmpeg.e2e.mjs` 68 (was 22; every new job on ffmpeg.wasm in the browser, 26 minutes) — all green.
 
 - **`exif` (tab 122, 8 bugs; engine replaced: ExifTool 13.42 on zeroperl, in a worker — docs/WASM-AUDIT.md, 120; unit
   `tests/unit/exiftool.test.mjs` 87 — new, held to the native exiftool and Pillow; e2e 33 — was 14).**
