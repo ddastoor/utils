@@ -2,7 +2,7 @@ import './styles.css';
 import { CATEGORIES, TOOLS, TOOL_BY_ID, type Tool, type CatId } from './registry';
 import { searchTools, initSearch } from './search';
 import { releaseAll, setIdle } from './lifecycle';
-import { h, ic, clear, errMsg, toast, type Cleanup } from './ui';
+import { h, ic, clear, errMsg, toast, DOWNLOAD_FAILED, type Cleanup } from './ui';
 import { isMobile } from './platform';
 import { favs, isFav, toggleFav, onFavChange } from './favorites';
 
@@ -182,12 +182,27 @@ async function showTool(tool: Tool, from?: 'fav') {
   } catch (e) {
     console.error(e);
     // a failed download of the tool's code is remembered by the browser for this page, so "try again" = reload (same tab reopens)
-    if (my === nav) clear(body).append(h('div', { class: 'note note-err' }, ic('TriangleAlert'), h('div', null,
-      h('div', null, `Could not load this tool: ${errMsg(e)}`),
-      h('div', { class: 'muted' }, 'Check your internet connection, then try again.'),
-      h('button', { type: 'button', class: 'btn btn-secondary btn-sm', onclick: () => location.reload() }, 'Try again'))));
+    if (my === nav) clear(body).append(loadFailed('Could not load this tool', e));
   }
 }
+
+/** The note of a tool whose code or engine could not be downloaded. A failed download is remembered by the browser for
+ *  this page, so "Try again" reloads it (the same tab reopens). */
+const loadFailed = (what: string, e: unknown) => h('div', { class: 'note note-err load-failed', role: 'alert' }, ic('TriangleAlert'), h('div', null,
+  h('div', null, `${what}: ${errMsg(e)}`),
+  h('div', { class: 'muted' }, 'Check your internet connection, then try again.'),
+  h('button', { type: 'button', class: 'btn btn-secondary btn-sm', onclick: () => location.reload() }, 'Try again')));
+// An engine a tab fetches in the background (not awaited by its mount: a sample computed as the tab opens) failed to
+// download and nothing caught it: the tab sat there without a word. It is said on the tab, once.
+const unhandled = (reason: unknown, ev: Event) => {
+  if (!DOWNLOAD_FAILED.test(errMsg(reason)) && !DOWNLOAD_FAILED.test(String((reason as any)?.message ?? reason ?? ''))) return;
+  const body = view.querySelector('.tool-body');
+  if (!body) return;
+  ev.preventDefault(); console.warn('download failed:', reason);
+  if (!body.querySelector('.load-failed')) body.prepend(loadFailed('Part of this tool could not be downloaded', reason));
+};
+window.addEventListener('unhandledrejection', (ev) => unhandled(ev.reason, ev));
+window.addEventListener('error', (ev) => unhandled(ev.error ?? ev.message, ev));
 
 function parse(): Route {
   let raw = location.hash.replace(/^#\/?/, '');

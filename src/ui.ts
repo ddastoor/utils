@@ -293,7 +293,14 @@ export function toast(msg: string, kind: 'ok' | 'err' | 'info' = 'info', ms = 26
   setTimeout(() => { t.classList.add('out'); setTimeout(() => t.remove(), 300); }, kind === 'err' ? Math.max(ms, 5000) : ms);
 }
 
-export const errMsg = (e: unknown) => (e instanceof Error ? e.message : typeof e === 'string' ? e : 'Something went wrong');
+/** A message for the reader. Emscripten's abort after a failed download ("Aborted(both async and sync fetching of the
+ *  wasm failed). Build with -sASSERTIONS for more info.") is said as the download failure it is. */
+export const errMsg = (e: unknown) => {
+  const m = e instanceof Error ? e.message : typeof e === 'string' ? e : 'Something went wrong';
+  return /fetching of the wasm failed/.test(m) ? 'Failed to fetch' : m;
+};
+/** Messages browsers give a download that failed (Chromium, Firefox, Safari; a module script; Emscripten's abort). */
+export const DOWNLOAD_FAILED = /Failed to fetch|NetworkError|^Load failed$|fetching of the wasm failed|Importing a module script failed|dynamically imported module/i;
 
 // ------------------------------------------------------------------ images
 
