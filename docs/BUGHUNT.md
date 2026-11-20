@@ -37,7 +37,7 @@ Areas with a shared review: the app shell (router, search, favorites, platform h
 | `pdf-organize` | Organize PDF | PC + mobile | pdf | ✓ | 4 | 5 | rearrangePages keeps annotations/links/forms/outline; tiles at once; newest PDF wins; Rotate all |
 | `img2pdf` | Images → PDF | PC + mobile | pdf | ✓ | 3 | 2 | Fit keeps a scan's paper size (its own dpi); Sort by file name; URLs released |
 | `pdf2img` | PDF → Images | PC + mobile | pdf | ✓ | 4 | 6 | a run keeps its own file; size cap 16384 px / 100 MP; padded names; stops on leave |
-| `pdf-compress` | Compress PDF | PC + mobile | pdf |  |  |  |  |
+| `pdf-compress` | Compress PDF | PC + mobile | pdf | ✓ | 5 | 5 | a run keeps its own file; ends with the tab; colour-key masks kept; target in 1000-byte KB; scan mode within memory |
 | `pdf-sign` | Sign PDF | PC + mobile | pdf |  |  |  |  |
 | `pdf-fill` | Fill PDF Form | PC + mobile | pdf |  |  |  |  |
 | `pdf-unlock` | Unlock PDF | PC + mobile | pdf |  |  |  |  |
@@ -1748,3 +1748,15 @@ Reference for the five finance tabs: **mpmath at 60 digits** (`scripts/make-fina
      are drawn at most 16,384 px a side and 100 megapixels, and the tab names the pages drawn smaller.
   3. Names p1 … p12 sort as p1, p10, p11, p12, p2 by name; they are padded (p01 … p12) as the Doc Scanner's are.
   4. Leaving the tab during a conversion left it drawing pages; it stops.
+
+- **`pdf-compress` (tab 131, 5 bugs; resizing → @jsquash/resize, docs/WASM-AUDIT.md 128; e2e 20 — was 15).**
+  1. A PDF chosen while another was being compressed received the first one's result: its bytes were downloaded under
+     the new file's name, with the new file's size in the "before → after" line. A run keeps its own file; a file
+     chosen meanwhile ends it without a result.
+  2. Leaving the tab during compression still downloaded the result afterwards; the run ends with the tab.
+  3. An image with a colour-key mask (/Mask [min max …]: exact colours cut out) became a JPEG, whose colours are no
+     longer exact — speckled holes; such images stay as they are.
+  4. "Target size" turned anything under 20 KB into 20 without a word and read a KB as 1,024 bytes (a file just over
+     an upload limit of 300,000 bytes could pass); a KB is 1,000 bytes now and under 20 is refused in words.
+  5. "Scanned pages" drew a poster page at full size (the memory cap of PDF → Images applies now), and its warning did
+     not say that links, bookmarks and form fields are lost too.

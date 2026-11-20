@@ -1101,3 +1101,10 @@ One entry per tab, written before its bug hunt: our module → candidates → ch
   are and reads an image's resolution (JFIF, pHYs, EXIF) — used for "Fit to image"; images it cannot embed (HEIC, WebP,
   a JPEG stored on its side) are decoded by libheif-js / the browser and re-encoded by jSquash's MozJPEG. Nothing to
   replace.
+
+### 128. `pdf-compress` — Compress PDF (20 Nov 2026)
+- **Engines:** MuPDF 1.28.6 (decoding images, subsetting fonts, deduplicating, writing); jSquash's MozJPEG; resizing
+  moved from imgproc to **@jsquash/resize** (Lanczos in linear light — entry 109); imgproc expands MuPDF's pixmaps to
+  RGBA. **Candidates:** Ghostscript, the usual PDF compressor — its WebAssembly builds are one-person projects
+  (@jspawn/ghostscript-wasm, unmaintained since 2022 — rejected in §6; ghostpdl-wasm forks) and Ghostscript rewrites
+  the whole file (forms and annotations are often flattened or lost). **Decision:** MuPDF stays.

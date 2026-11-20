@@ -254,10 +254,12 @@ non-Latin text as a PNG image, opacity via ExtGState, tiled), `pdf-unlock` (12: 
 owner-only restrictions removed too), `pdf-protect` (13: AES-256 V5 R6, permission bits print/copy/edit, permissions
 password (random if empty), re-protecting replaces the old password; passwords cannot contain commas — MuPDF's option
 syntax), `pdf-compress` (14: every image XObject except masks is decoded by MuPDF, expanded to RGBA (`p_expand`) and
-resized (Lanczos) in imgproc.wasm to the level's dpi of the largest page, re-encoded with MozJPEG (grey stays grey) and
-kept only if ≥ 8 % smaller; fonts subset; `garbage=deduplicate`. Levels Light 220/84 · Recommended 150/72 · Strong
-110/60 · Extreme 80/48 (dpi / quality); Target size tries them in order; Scanned pages = one JPEG per page at the exact
-page size (text layer lost, warned). Nothing is downloaded when the file cannot get smaller), `pdf-sign` (12: draw
+resized (Lanczos in linear light, @jsquash/resize) to the level's dpi of the largest page, re-encoded with MozJPEG (grey stays
+grey) and kept only if ≥ 8 % smaller; images with a colour-key /Mask stay as they are; fonts subset; `garbage=deduplicate`. Levels Light 220/84 · Recommended 150/72 · Strong
+110/60 · Extreme 80/48 (dpi / quality); Target size (KB of 1,000 bytes, at least 20) tries them in order; Scanned pages = one
+JPEG per page at the exact page size, at most 100 megapixels (text layer, links and form fields lost, warned). Nothing is
+downloaded when the file cannot get smaller; a run keeps its own file (a PDF chosen meanwhile gets nothing from it) and
+ends with the tab; e2e 20), `pdf-sign` (12: draw
 (pressure-aware strokes from the Signature Maker), type (OFL handwriting fonts) or photo (paper removed by imgproc
 `inkToAlpha`) → trimmed transparent PNG placed as an image XObject with soft mask; tap/click to place, drag, size, date
 dd/mm/yyyy, every page; "not a cryptographic digital signature" note), `pdf-fill` (15: AcroForm fields — text, multi-line,
