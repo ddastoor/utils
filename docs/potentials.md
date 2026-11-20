@@ -143,6 +143,19 @@ are separate candidates, not alternatives.
 | U6 | **Prime / LCM / GCD beyond 64 bits** | GMP (LGPL, C) | own wasm build; primality and GCD/LCM of any size | waiting |
 | U7 | **Coordinates: UTM and other map grids** | PROJ (MIT, C++) | own wasm build | waiting |
 
+## Round 4 — ready-made WebAssembly modules to use as they are (20 Nov 2026)
+Asked by the owner: "are there any other ready popular interesting webassembly modules that u can pull in as is and make
+a new app out of?" Answered with the ready-made ones already above (#2, #4, #7, #12, #28, #39, #46, #49; IDEAS.md: Typst,
+Verovio, basic-pitch) and these new ones (npm versions checked 20 Nov 2026):
+| # | New tab | Ready-made module | Platform | Status |
+|---|---|---|---|---|
+| 55 | **Cut Out Anything**: tap an object, pet or product in a photo → transparent PNG (the Background Remover does people only) | Segment Anything (SlimSAM / SAM 2 small) through Transformers.js 4.3 on ONNX Runtime Web (already on the site), Apache-2.0 | both | waiting |
+| 56 | **Flash Player**: play old .swf games and animations offline (the user's own files) | Ruffle 0.8.0 (`@ruffle-rs/ruffle`, Rust → wasm, MIT OR Apache-2.0) | PC | waiting |
+| 57 | **Lottie Animation Viewer**: open .json / .lottie animations, export GIF / MP4 / PNG frames | ThorVG (`@thorvg/lottie-player` 1.1.3 / `@lottiefiles/dotlottie-web` 0.83, MIT) | both | waiting |
+| 58 | **Map File Converter**: KML / KMZ ⇄ GPX ⇄ GeoJSON ⇄ Shapefile ⇄ CSV | GDAL (`gdal3.js` 2.8.1, LGPL-2.1) | both | waiting |
+| 59 | **Retro DOS PC**: run old DOS programs and games the user owns | js-dos 8.5 (DOSBox → wasm, GPL-2.0) | PC | waiting |
+| 60 | **Code Screenshot**: code → a styled, syntax-highlighted PNG / SVG | Shiki 4.6 (MIT; its regex engine Oniguruma as wasm; mostly JavaScript — reason to record in §3a if accepted) | PC (Software) | waiting |
+
 ## Notes
 - **Cheapest wins:** Image to SVG, Make PDF Searchable, the six "reuse engines" tabs (13–18), Duplicate Photo Finder,
   Chart Maker, WireGuard Config.
