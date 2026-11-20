@@ -1095,3 +1095,9 @@ One entry per tab, written before its bug hunt: our module → candidates → ch
   documents: the first is the base, the others' pages are grafted with one graft map per file, their annotations
   copied, links made again with the pages renumbered, form fields added and outlines appended. pypdf reads the results
   in the unit suite as the independent reference.
+
+### 125 – 127. `pdf-split`, `pdf-organize`, `img2pdf` (20 Nov 2026)
+- MuPDF 1.28.6, as entry 124 (Split and Organize: `rearrangePages`). Images → PDF: MuPDF embeds JPEG and PNG as they
+  are and reads an image's resolution (JFIF, pHYs, EXIF) — used for "Fit to image"; images it cannot embed (HEIC, WebP,
+  a JPEG stored on its side) are decoded by libheif-js / the browser and re-encoded by jSquash's MozJPEG. Nothing to
+  replace.

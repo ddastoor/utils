@@ -35,7 +35,7 @@ Areas with a shared review: the app shell (router, search, favorites, platform h
 | `pdf-merge` | Merge PDF | PC + mobile | pdf | ✓ | 4 | 37 | annotations, links, forms, outlines kept (graftPage dropped them); one graft map per file |
 | `pdf-split` | Split PDF | PC + mobile | pdf | ✓ | 4 | 14 | parts keep annotations/links/forms/outline (rearrangePages); one at a time; N pages box; page lists read |
 | `pdf-organize` | Organize PDF | PC + mobile | pdf | ✓ | 4 | 5 | rearrangePages keeps annotations/links/forms/outline; tiles at once; newest PDF wins; Rotate all |
-| `img2pdf` | Images → PDF | PC + mobile | pdf |  |  |  |  |
+| `img2pdf` | Images → PDF | PC + mobile | pdf | ✓ | 3 | 2 | Fit keeps a scan's paper size (its own dpi); Sort by file name; URLs released |
 | `pdf2img` | PDF → Images | PC + mobile | pdf |  |  |  |  |
 | `pdf-compress` | Compress PDF | PC + mobile | pdf |  |  |  |  |
 | `pdf-sign` | Sign PDF | PC + mobile | pdf |  |  |  |  |
@@ -1732,3 +1732,11 @@ Reference for the five finance tabs: **mpmath at 60 digits** (`scripts/make-fina
   3. A PDF opened while the last one's pictures were still being drawn got the old document's pages mixed into its
      grid; the newest PDF wins.
   4. A scanned PDF lying on its side needed a click on every page: "Rotate all left / right".
+
+- **`img2pdf` (tab 129, 3 bugs; engine kept — MuPDF; e2e 11 — was 9).**
+  1. "Fit to image" laid every image out at 150 dpi, so a 300 dpi scan of an A4 page became a page twice the size
+     of the paper; a file that states 150 dpi or more (MuPDF reads JFIF, PNG pHYs and EXIF) keeps its paper size, a
+     photo (72 dpi stated, or nothing) stays at 150 dpi.
+  2. Files come from a file dialog in its own order (Windows: the last one clicked first) and could only be moved one
+     place at a time: "Sort by file name" (page-1, page-2 … page-10).
+  3. The previews' object URLs were not released when the tab was left.

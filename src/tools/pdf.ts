@@ -134,7 +134,12 @@ export const img2pdf: Mount = (root, ctx) => {
         button('', () => { URL.revokeObjectURL(it.url); items.splice(i, 1); render(); }, { icon: 'Trash2', small: true, variant: 'ghost', title: `Remove ${it.name}` }),
         button('', () => { items.splice(i + 1, 0, ...items.splice(i, 1)); render(); }, { icon: 'ArrowRight', small: true, variant: 'ghost', title: `Move ${it.name} later`, disabled: i === items.length - 1 })))));
     info.textContent = items.length ? plural(items.length, 'image') : '';
+    sortBtn.hidden = items.length < 2;
   };
+  // a file dialog hands files over in its own order (Windows: the last one clicked first): page-1 … page-10 in order
+  const byName = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' });
+  const sortBtn = button('Sort by file name', () => { items.sort((a, b) => byName.compare(a.name, b.name)); render(); }, { small: true, variant: 'ghost', icon: 'ArrowDownAZ' });
+  sortBtn.hidden = true;
   const add = async (fs: File[]) => {
     let k = 0;
     for (const file of fs) {
@@ -151,16 +156,17 @@ export const img2pdf: Mount = (root, ctx) => {
   };
   const marginBox = slider({ label: 'Margin', min: 0, max: 30, value: margin, unit: ' mm', onInput: (v) => (margin = v) });
   root.append(
-    card(null, h('div', { class: 'stack' }, filePicker({ accept: 'image/*,.heic,.heif', multiple: true, label: 'Choose images', hint: 'JPG, PNG, HEIC, WebP… (add more any time)', onFiles: add }), busy, info), list),
+    card(null, h('div', { class: 'stack' }, filePicker({ accept: 'image/*,.heic,.heif', multiple: true, label: 'Choose images', hint: 'JPG, PNG, HEIC, WebP… (add more any time)', onFiles: add }), busy, info, sortBtn), list),
     card('Page', stack(
       segmented([['a4', 'A4'], ['letter', 'Letter'], ['fit', 'Fit to image']], size, (v) => { size = v; marginBox.hidden = v === 'fit'; }),
-      marginBox, note('Each image gets its own page, turned to landscape when the image is wide. JPEG and PNG files are embedded without re-compression.'))),
+      marginBox, note('Each image gets its own page, turned to landscape when the image is wide. JPEG and PNG files are embedded without re-compression. "Fit to image": a scan keeps the paper size its file states (300 dpi …); other images are laid out at 150 dpi.'))),
     actions(button('Make PDF', async () => {
       if (!items.length) throw new Error('Add some images first.');
-      const bytes = await imagesToPdf(items.map((i) => i.page), { size, margin: (margin * 72) / 25.4, dpi: 150 });
+      const bytes = await imagesToPdf(items.map((i) => i.page), { size, margin: (margin * 72) / 25.4, dpi: 150, ownDpi: true });
       info.textContent = `PDF: ${plural(items.length, 'page')}, ${fmtBytes(bytes.length)}`;
       await savePdfFile(bytes, 'images.pdf', ctx.isMobile);
     }, { variant: 'primary', icon: 'FileInput' })));
+  return () => { for (const it of items) URL.revokeObjectURL(it.url); }; // the previews' object URLs
 };
 
 // ------------------------------------------------------------------ PDF → images

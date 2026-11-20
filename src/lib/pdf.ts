@@ -8,14 +8,17 @@ export interface ImagePage { bytes: Uint8Array; width: number; height: number; p
 
 /** Build a PDF with one image per page. JPEG/PNG data is embedded as-is (no re-compression). size 'fit' = page is
  *  exactly the image at `dpi`; otherwise the image is centred inside the margins (points, 72 per inch). */
-export async function imagesToPdf(pages: ImagePage[], o: { size?: string; margin?: number; dpi?: number; landscapeAuto?: boolean } = {}): Promise<Uint8Array> {
+export async function imagesToPdf(pages: ImagePage[], o: { size?: string; margin?: number; dpi?: number; landscapeAuto?: boolean; ownDpi?: boolean } = {}): Promise<Uint8Array> {
   const m = await mupdf(), doc = new m.PDFDocument();
   const size = PAGE_SIZES[o.size || 'a4'], margin = o.margin ?? 0, dpi = o.dpi || 150;
   pages.forEach((p, i) => {
-    const ref = doc.addImage(new m.Image(p.bytes));
+    const im = new m.Image(p.bytes), ref = doc.addImage(im);
     const res = doc.addObject({ XObject: { [`I${i}`]: ref } });
     let W: number, H: number, dw: number, dh: number, x: number, y: number;
-    if (!size) { W = dw = p.pt ? p.pt[0] : (p.width * 72) / dpi; H = dh = p.pt ? p.pt[1] : (p.height * 72) / dpi; x = y = 0; }
+    // ownDpi: a file that states 150 dpi or more (a scan: 300, 600) keeps its paper size; cameras state 72 and
+    // screenshots nothing (MuPDF then says 96) — those get `dpi`
+    const xr = o.ownDpi && im.getXResolution() >= 150 ? im.getXResolution() : dpi, yr = o.ownDpi && im.getYResolution() >= 150 ? im.getYResolution() : dpi;
+    if (!size) { W = dw = p.pt ? p.pt[0] : (p.width * 72) / xr; H = dh = p.pt ? p.pt[1] : (p.height * 72) / yr; x = y = 0; }
     else {
       [W, H] = size;
       if (o.landscapeAuto !== false && p.width > p.height) [W, H] = [H, W];
