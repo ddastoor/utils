@@ -35,6 +35,12 @@ export function rentMonths(from: string, to: string): Array<{ start: Date; end: 
 }
 /** Receipts made at once: ten years (it stopped at 36 without a word). */
 export const MAX_MONTHS = 120;
+/** The longest text a box takes, and the most rows (items, jobs …). A pasted document froze the tab: every rent receipt
+ *  repeats the address, and 500 KB of it laid out again and again kept MuPDF busy for minutes. Text and rows from a
+ *  details file are cut the same way. */
+export const MAX_LINE = 200, MAX_AREA = 2000, MAX_ROWS = 100;
+/** `s` cut to at most `n` UTF-16 units — never between the two halves of a surrogate pair (an emoji). */
+export const cutText = (s: string, n: number) => (s.length <= n ? s : s.slice(0, /[\ud800-\udbff]/.test(s[n - 1]) ? n - 1 : n));
 /** Why the months cannot be made, or '' (also used under the boxes). */
 export function rentProblem(s: Obj): string {
   if (!/^\d{4}-\d{2}$/.test(String(s.from)) || !/^\d{4}-\d{2}$/.test(String(s.to))) return 'Choose the from and to months.';

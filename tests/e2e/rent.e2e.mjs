@@ -41,6 +41,18 @@ export default async ({ base, page: newPage, ok, download, devices }) => {
   await page.getByLabel('Monthly rent (₹)').fill('25000');
   await page.getByLabel('Landlord PAN').fill('ABC123');
   ok(await page.getByText('A PAN is five letters, four digits and a letter').count() === 1, 'a PAN that is no PAN: said');
+  // a document pasted into the address box froze the tab (every receipt repeats the address; 500 KB of it laid out
+  // again and again kept MuPDF busy for minutes): the box keeps 500 characters, says so, and the preview follows
+  await page.getByLabel('Landlord PAN').fill('ABCDE1234F');
+  const addr = page.getByLabel('Rented property address'), t0 = Date.now();
+  await addr.fill('Flat 12, Shanti Apartments, MG Road, Pune 411001. '.repeat(10000));
+  ok((await addr.inputValue()).length === 500 && await page.getByText('At most 500 characters — the rest is left out.').isVisible(), 'a pasted 500 KB address is cut to 500 characters, said under the box');
+  await page.waitForFunction(() => /\d+ pages? · \d+ KB/.test(document.querySelector('[aria-live="polite"].muted')?.textContent || ''), null, { timeout: 60000 });
+  d = await pdf();
+  const secs = (Date.now() - t0) / 1000, shanti = (d.text.match(/Shanti/g) || []).length, receipts = (d.text.match(/RENT RECEIPT/g) || []).length;
+  ok(receipts >= 1 && shanti === 10 * receipts && secs < 30, `${receipts} receipts with the cut address (${shanti} × "Shanti") in ${secs.toFixed(1)} s`);
+  await addr.fill('Flat 12, MG Road, Pune');
+  ok(await page.getByText('At most 500 characters').count() === 0, 'a shorter address: the note goes');
   const real = page.errors.filter((e) => !/At most 120 months|The last month is before|Enter the monthly rent/.test(e));
   ok(real.length === 0, `no page errors: ${real.join(' | ')}`);
   const phone = await newPage({ ...devices['iPhone 13'] });

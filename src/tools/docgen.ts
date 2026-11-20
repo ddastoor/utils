@@ -9,7 +9,7 @@ import { mathcore } from '../wasm/mathcore';
 import { loadImg, encodeImg, previewOf } from '../lib/imgio';
 import { rupeesInWords } from '../lib/words';
 import { upi } from '../lib/qrdata';
-import { safeName, mailLink, telLink, webLinks, STATES, GST_RATES, rentMonths, rentProblem } from '../lib/docrules';
+import { safeName, mailLink, telLink, webLinks, STATES, GST_RATES, rentMonths, rentProblem, cutText, MAX_LINE, MAX_AREA, MAX_ROWS } from '../lib/docrules';
 export { STATES, GST_RATES, rentMonths, rentProblem } from '../lib/docrules';
 
 // ------------------------------------------------------------------ shared
@@ -20,25 +20,37 @@ const fmtDate = (iso: string) => { if (!iso) return ''; const [y, mo, d] = iso.s
 const todayIso = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
 const ACCENTS: Array<[string, string]> = [['#1f3a8a', 'Navy'], ['#0f766e', 'Teal'], ['#7c2d12', 'Brown'], ['#111827', 'Black'], ['#6d28d9', 'Violet']];
 
+
 /** Text / number / date input bound to obj[key]. */
-function bound(obj: Obj, key: string, label: string, o: { type?: string; placeholder?: string; area?: boolean; hint?: string; change: () => void }) {
-  const el = (o.area ? textarea({ value: obj[key] ?? '', rows: 3, placeholder: o.placeholder, onInput: (v: string) => { obj[key] = v; o.change(); } })
-    : input({ type: o.type || 'text', value: obj[key] ?? '', placeholder: o.placeholder, onInput: (v: string) => { obj[key] = o.type === 'number' ? (v === '' ? '' : +v) : v; o.change(); } })) as HTMLInputElement;
-  return field(label, el, o.hint);
+function bound(obj: Obj, key: string, label: string, o: { type?: string; placeholder?: string; area?: boolean; hint?: string; max?: number; change: () => void }) {
+  const text = o.area || !o.type || ['text', 'tel', 'email', 'url'].includes(o.type), max = o.max ?? (o.area ? MAX_AREA : MAX_LINE);
+  if (text && typeof obj[key] === 'string') obj[key] = cutText(obj[key], max);
+  const limit = h('span', { 'aria-live': 'polite' });
+  const said = (v: string) => { limit.textContent = text && v.length >= max ? `${o.hint ? ' · ' : ''}At most ${max.toLocaleString('en-IN')} characters — the rest is left out.` : ''; };
+  const el = (o.area ? textarea({ value: obj[key] ?? '', rows: 3, placeholder: o.placeholder, onInput: (v: string) => { obj[key] = v; said(v); o.change(); } })
+    : input({ type: o.type || 'text', value: obj[key] ?? '', placeholder: o.placeholder, onInput: (v: string) => { obj[key] = o.type === 'number' ? (v === '' ? '' : +v) : v; said(v); o.change(); } })) as HTMLInputElement;
+  if (text) el.maxLength = max;
+  said(el.value);
+  return field(label, el, h('span', null, o.hint || '', limit));
 }
 
 /** Rows of fields (items, jobs, schools…) with add / remove / move. */
 function repeater(rows: Obj[], make: () => Obj, renderRow: (row: Obj, i: number) => HTMLElement[], change: () => void, addLabel: string) {
-  const list = h('div', { class: 'dg-rows' });
+  const list = h('div', { class: 'dg-rows' }), full = h('div', { class: 'field-hint', 'aria-live': 'polite' });
+  const cut = rows.length > MAX_ROWS;
+  rows.splice(MAX_ROWS); // a details file with thousands of rows
   const draw = () => {
+    add.disabled = rows.length >= MAX_ROWS;
+    full.textContent = cut ? `Only the first ${MAX_ROWS} were kept.` : rows.length >= MAX_ROWS ? `At most ${MAX_ROWS}.` : '';
     clear(list).append(...rows.map((r, i) => h('div', { class: 'dg-row' },
       h('div', { class: 'dg-row-fields' }, ...renderRow(r, i)),
       h('div', { class: 'dg-row-tools' },
         button('', () => { rows.splice(i - 1, 0, ...rows.splice(i, 1)); draw(); change(); }, { icon: 'ArrowUp', small: true, variant: 'ghost', title: 'Move up', disabled: i === 0 }),
         button('', () => { rows.splice(i, 1); draw(); change(); }, { icon: 'Trash2', small: true, variant: 'ghost', title: 'Remove' })))));
   };
+  const add = button(addLabel, () => { if (rows.length < MAX_ROWS) rows.push(make()); draw(); change(); }, { icon: 'Plus', small: true }) as HTMLButtonElement;
   draw();
-  return { el: h('div', { class: 'stack' }, list, h('div', null, button(addLabel, () => { rows.push(make()); draw(); change(); }, { icon: 'Plus', small: true }))), draw };
+  return { el: h('div', { class: 'stack' }, list, h('div', null, add), full), draw };
 }
 
 /** Pictures in a details file: data: URLs (PNG or JPEG). */
@@ -158,7 +170,7 @@ export const invoice: Mount = (root, ctx) => {
         checkG(); change();
       } }) as HTMLInputElement;
       checkG();
-      return card(title, stack(bound(who, 'name', 'Name', { change }), bound(who, 'address', 'Address', { area: true, change }),
+      return card(title, stack(bound(who, 'name', 'Name', { change }), bound(who, 'address', 'Address', { area: true, max: 500, change }),
         field('GSTIN', g, chk), field('State', stSel),
         ...(withContact ? [h('div', { class: 'grid2' }, bound(who, 'phone', 'Phone', { type: 'tel', change }), bound(who, 'email', 'Email', { type: 'email', change }))] : [])));
     };
@@ -273,7 +285,7 @@ export const rent: Mount = (root, ctx) => {
     clear(form).append(
       card('Who', stack(bound(s, 'tenant', 'Tenant (you)', { change }), bound(s, 'landlord', 'Landlord', { change }),
         bound(s, 'pan', 'Landlord PAN', { placeholder: 'ABCDE1234F', change: () => { s.pan = String(s.pan).toUpperCase().trim(); change(); checks(); } }),
-        bound(s, 'address', 'Rented property address', { area: true, change }))),
+        bound(s, 'address', 'Rented property address', { area: true, max: 500, change }))),
       card('Rent', stack(bound(s, 'rent', 'Monthly rent (₹)', { type: 'number', change: () => { change(); checks(); } }),
         h('div', { class: 'grid2' }, bound(s, 'from', 'From month', { type: 'month', change: () => { change(); checks(); } }), bound(s, 'to', 'To month', { type: 'month', change: () => { change(); checks(); } })),
         field('Paid by', segmented(MODES, s.mode, (v) => { s.mode = v; change(); checks(); })),
@@ -346,7 +358,7 @@ export const resume: Mount = (root, ctx) => {
         field('Colour', segmented(ACCENTS, s.accent, (v) => { s.accent = v; change(); })), field('Paper', segmented([['a4', 'A4'], ['letter', 'Letter']], s.size, (v) => { s.size = v; change(); })))),
       card('You', stack(h('div', { class: 'grid2' }, bound(s, 'name', 'Full name', { change }), bound(s, 'title', 'Headline', { change })),
         h('div', { class: 'grid2' }, bound(s, 'email', 'Email', { type: 'email', change }), bound(s, 'phone', 'Phone', { type: 'tel', change })),
-        h('div', { class: 'grid2' }, bound(s, 'location', 'Location', { change }), bound(s, 'links', 'Links (LinkedIn, GitHub, website)', { change })),
+        h('div', { class: 'grid2' }, bound(s, 'location', 'Location', { change }), bound(s, 'links', 'Links (LinkedIn, GitHub, website)', { max: 400, change })),
         photoPick.el, bound(s, 'summary', 'Summary', { area: true, change }))),
       card('Experience', jobs.el), card('Education', schools.el), card('Projects (optional)', projects.el),
       card('Skills and more', stack(bound(s, 'skills', 'Skills (comma separated)', { area: true, change }), bound(s, 'extras', 'Other (languages, certificates, awards — one per line)', { area: true, change }))));

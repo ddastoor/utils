@@ -27,4 +27,12 @@ export default async (t, { load }) => {
   t.ok(new Set(codes).size === codes.length && codes.every((c) => /^\d\d$/.test(c)), `${codes.length} state codes, unique`);
   t.eq(D.STATES.filter((s) => s[2]).map((s) => s[0]).sort(), ['04', '26', '31', '35', '38'], 'UTGST: Chandigarh, DNH & DD, Lakshadweep, A & N Islands, Ladakh');
   t.ok(D.GST_RATES.includes(18) && D.GST_RATES.includes(40) && D.GST_RATES.includes(0.25), 'GST rates include 0.25 %, 18 %, 40 %');
+  // the length limit of the boxes (a pasted document froze the tab): cut at a whole character
+  t.eq([D.MAX_LINE, D.MAX_AREA, D.MAX_ROWS], [200, 2000, 100], 'limits: 200 characters a line, 2,000 a text area, 100 rows');
+  t.eq(D.cutText('abcdef', 4), 'abcd', 'cut to 4');
+  t.eq(D.cutText('abc', 4), 'abc', 'shorter text stays');
+  t.eq(D.cutText('abc😀def', 4), 'abc', 'an emoji is not split in two (no lone surrogate)');
+  t.eq(D.cutText('ab😀def', 4), 'ab😀', 'an emoji that fits stays whole');
+  const cut = D.cutText('x'.repeat(199) + '😀'.repeat(3), 200);
+  t.ok(cut.length === 199 && !/[\ud800-\udfff]/.test(cut), 'the cut never leaves half an emoji');
 };

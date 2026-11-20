@@ -79,6 +79,24 @@ export default async ({ base, page: newPage, ok, info, download, tmp, devices })
   const chooser = page.waitForEvent('filechooser'); await page.getByRole('button', { name: 'Load details' }).click(); await (await chooser).setFiles(jf2);
   await page.waitForFunction(() => [...document.querySelectorAll('input')].some((i) => i.value === 'INV-777'));
   ok(/INV-777/.test((await pdf()).text), 'details loaded back from the file');
+  // a details file with a document in a box and a thousand rows (like a pasted document, it kept the preview busy for
+  // minutes): every box is cut to its limit and the rows to 100, each said, and the preview follows
+  const huge = { ...j, number: 'INV-BIG', buyer: { ...j.buyer, address: 'Plot 7, Ring Road, Surat 395002. '.repeat(16000) }, items: Array.from({ length: 1000 }, (_, i) => ({ ...j.items[0], desc: `Item${i + 1} ${'x'.repeat(5000)}` })) };
+  const jf3 = `${tmp}/inv-big.json`; writeFileSync(jf3, JSON.stringify(huge));
+  const t0 = Date.now();
+  const ch3 = page.waitForEvent('filechooser'); await page.getByRole('button', { name: 'Load details' }).click(); await (await ch3).setFiles(jf3);
+  await page.waitForFunction(() => [...document.querySelectorAll('input')].some((i) => i.value === 'INV-BIG'), null, { timeout: 30000 });
+  const buyer = page.locator('.card', { hasText: 'Bill to (customer)' });
+  const lens = await page.evaluate(() => [...document.querySelectorAll('.dg-row input')].filter((i) => i.type === 'text' && /^Item\d/.test(i.value)).map((i) => i.value.length));
+  ok(lens.length === 100 && lens.every((n) => n === 200), `1,000 rows of 5,000 characters → 100 rows of 200 (${lens.length} rows, longest ${Math.max(...lens)})`);
+  ok(await page.getByText('Only the first 100 were kept.').isVisible() && await page.getByRole('button', { name: 'Add item' }).isDisabled(), 'the row limit is said and Add item is off');
+  ok((await buyer.getByLabel('Address').inputValue()).length === 500 && await buyer.getByText('At most 500 characters — the rest is left out.').isVisible(), 'the 512 KB address is cut to 500 characters, said under the box');
+  await page.waitForFunction(() => /\d+ pages? · \d+ KB/.test(document.querySelector('[aria-live="polite"].muted')?.textContent || '') && [...document.querySelectorAll('input')].some((i) => i.value === 'INV-BIG'), null, { timeout: 60000 });
+  const big = await pdf(), secs = (Date.now() - t0) / 1000;
+  ok(/INV-BIG/.test(big.text) && /Item100\b/.test(big.text) && !/Item101\b/.test(big.text) && secs < 45, `the PDF has the 100 rows (${big.pages.length} pages) — loaded and made in ${secs.toFixed(1)} s`);
+  const ch4 = page.waitForEvent('filechooser'); await page.getByRole('button', { name: 'Load details' }).click(); await (await ch4).setFiles(jf2);
+  await page.waitForFunction(() => [...document.querySelectorAll('input')].some((i) => i.value === 'INV-777'));
+  ok(!(await page.getByText('Only the first 100 were kept.').count()) && await page.getByRole('button', { name: 'Add item' }).isEnabled(), 'loading a normal file again: no note, Add item on');
   // the logo goes into the details file and comes back from it (it was lost); a download waits for a picture being read
   await page.locator('input[type=file]').first().setInputFiles(new URL('../fixtures/images/astronaut.png', import.meta.url).pathname);
   const withLogo = await pdf();
