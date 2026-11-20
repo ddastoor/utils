@@ -8,7 +8,7 @@ const M = (n) => new URL(`../fixtures/media/${n}`, import.meta.url).pathname;
 const I = (n) => new URL(`../fixtures/images/${n}`, import.meta.url).pathname;
 
 export default async ({ base, page: newPage, ok, info, download }) => {
-  const page = await newPage({ viewport: { width: 1280, height: 1100 } });
+  let page = await newPage({ viewport: { width: 1280, height: 1100 } }); // a fresh page for the Stop checks: see there
   await page.goto(`${base}#/ffmpeg`);
   const combo = (name) => page.getByRole('combobox', { name: new RegExp(`^${name.replace(/[()]/g, '\\$&')}`) });
   const task = (label) => combo('Task').selectOption({ label });
@@ -303,7 +303,13 @@ export default async ({ base, page: newPage, ok, info, download }) => {
   await task('Remove audio');
   ok(await runFails(/needs a video — this file has no picture/), 'a video task on a sound file: said');
   // Stop: said as stopped, not as an error (it showed "called FFmpeg.terminate()" in red); a new file during a job ends
-  // the job (its probe reset the job's log, and the outputs took the new file's name)
+  // the job (its probe reset the job's log, and the outputs took the new file's name).
+  // On a fresh page: on this long session's page (about 60 jobs on one FFmpeg) Chromium's renderer segfaulted — signal 11
+  // inside its own compiled code, always at the same place — when Stop ended a command and Run started a new FFmpeg
+  // (4 runs of 4, the headless shell of Chrome for Testing 153.0.8010.12; never in a short session; a 2 s pause before
+  // the new FFmpeg did not help). A page cannot make the browser segfault: docs/BUGHUNT.md, "FFmpeg after a long session".
+  const longErrors = page.errors;
+  page = await newPage({ viewport: { width: 1280, height: 1100 } }); await page.goto(`${base}#/ffmpeg`);
   await choose(M('clip.mp4'), /Video: h264/);
   // (Stop once FFmpeg is inside its command: a fixed 1.5 s wait raced the end of a job that takes 1.6 s on a warm engine)
   await task('Stabilise a shaky video');
@@ -327,7 +333,7 @@ export default async ({ base, page: newPage, ok, info, download }) => {
   await task('Remove audio');
   const kn = await run();
   ok(/kf6-out\.mp4$/.test(kn), `the next job is of the new file and named after it (${kn.split('/').pop()})`);
-  const errs = page.errors.filter((e) => !/FFmpeg failed|only 3 s long|change nothing|Type the text|Choose the logo|under half a second|at least one more clip|differ in size|needs a video/.test(e)); // refusals, logged by the button
+  const errs = [...longErrors, ...page.errors].filter((e) => !/FFmpeg failed|only 3 s long|change nothing|Type the text|Choose the logo|under half a second|at least one more clip|differ in size|needs a video/.test(e)); // refusals, logged by the button
   ok(!errs.length, `no page errors ${errs.slice(0, 3).join(' | ')}`);
   info('ffmpeg.wasm 0.12 core (FFmpeg 5.1.4)');
 };
