@@ -1300,3 +1300,38 @@ One entry per tab, written before its bug hunt: our module → candidates → ch
   (OxiPNG, MozJPEG). No WebAssembly module can capture a screen. **Added beside them:** @mediabunny/aac-encoder (tab
   147) — the MP4 recordings of Linux Chromium carried Opus; their sound is re-encoded to AAC as the file is finished
   (`finishRecording` in `src/lib/aac.ts`), the picture copied.
+
+### 153. `terminal` — Linux Terminal (20 Nov 2026)
+- **Ours:** BusyBox 1.38.0 compiled by us to wasm32-wasi (130 applets), our WASI host and our shell (`src/lib/terminal/`).
+  1.38.0 (13 May 2026) is the newest release; Debian lists CVE-2026-38755 against its shell — ash and hush are not
+  built in here (`applets.cfg`: `CONFIG_ASH=n`, `CONFIG_HUSH=n`; the shell is ours).
+- **Candidates:** **v86** (copy/v86, BSD-2-Clause: an x86 PC emulated in WebAssembly, booting a real Linux image) — the
+  one that would give what the tab leaves out (processes, `ps`, `top`, `vi`, `less`, a real `sh`); the price is a
+  disk image of 10 – 30 MB fetched with the tab, a boot of seconds, files moved in and out through its 9p share, and an
+  x86 interpreter instead of native wasm for every command. **Wasmer's JS SDK / WebAssembly.sh** and **container2wasm**
+  need SharedArrayBuffer, which needs COOP / COEP headers GitHub Pages cannot send; **WebContainers** are proprietary.
+  No existing module is "BusyBox for WASI".
+- **Decision:** our build stays (rule 2). **v86 is a question for the owner** (a different tab, or this one, with a real
+  Linux in it) — asked at the end of the hunt, built only if chosen.
+
+### 154. `stopwatch`, `countdown`, `pomodoro`, `interval` — the timers (20 Nov 2026)
+- **Ours:** none — the browser's clocks (`performance.now()`, `Date.now()`), timeouts, frames and Web Audio beeps;
+  `timerNow()` adds the time a computer slept. No WebAssembly module has anything to do here.
+
+### 155. `dice`, `coin`, `rng`, `picker`, `teams` — randomness (20 Nov 2026)
+- **Ours before:** crypto.wasm — libsodium 1.0.20's `randombytes_uniform` built by us, plus our C for draws without
+  repeats (`u_sample`) and unbiased shuffles (`u_shuffle_idx`, Fisher–Yates on randombytes_uniform).
+- **Candidate:** **libsodium.js** (`libsodium-wrappers-sumo` 0.8.4, libsodium 1.0.22 — the project's own build, already
+  in the app for Sodium Encrypt and the password tabs, entries 101, 104, 105): `randombytes_uniform`; no sampling, no
+  shuffle.
+- **Decision (rule 1 and its tweak):** **Dice and Coin move to libsodium.js** — it covers all they need. Dice rolls as
+  the tab opens (the lazy test's list, with the reason; the chunk is shared with the password tabs); Coin fetches it with
+  the first flip. **Random Number, Picker and Teams keep crypto.wasm:** what they need beyond uniform draws — draws
+  without repeats and shuffles — libsodium.js does not have, and crypto.wasm is the supplementary module of our own for it
+  (rule 1(a)); its random numbers are libsodium's own routine from the signed release, so a second module per tab would
+  add a download and change nothing. Ranges above 2³² (Random Number) combine three of its draws into 53 bits in TS.
+
+### 156. The Device tabs (20 Nov 2026) — webcam, mic, speaker, keyboard, pixels, touch, screen, level, compass, soundmeter, ruler
+- **Ours:** none — the browser's camera, microphone, Web Audio, keyboard, pointer and orientation events, client hints
+  and WebGPU. The compass heading and the tilt are a few sines and cosines per sensor event (`src/lib/sensors.ts`),
+  held to geometry and to the W3C spec's example function in `tests/unit/sensors.test.mjs`. Nothing to replace.

@@ -72,7 +72,7 @@ Areas with a shared review: the app shell (router, search, favorites, platform h
 | `noise` | Noise Remover | PC + mobile | audio | ✓ | 11 | 33 | Jitsi's RNNoise 0.2 build (= the release's standard 8-bit computation; ours ran the debug float weights, 4× larger); Save after a new file; strength re-cleaned everything; stereo voice; 16-bit WAV round trip |
 | `pitch` | Pitch & Speed | PC + mobile | audio | ✓ | 8 | 7 | Signalsmith Stretch (official wasm/AudioWorklet, MIT) replaces our WSOLA: chord 7-15 dB cleaner; Save after a new file; coalesced renders; selection follows the passage |
 | `slideshow` | Slideshow Maker | PC + mobile | video | ✓ | 5 | 4 | video area 20 Nov 2026 (docs/BUGHUNT.md) |
-| `ffmpeg` | FFmpeg | PC only | video | ✓ | 5 | 3 | video area 20 Nov 2026 (docs/BUGHUNT.md) |
+| `ffmpeg` | FFmpeg | PC only | video | ✓ | 6 | 3 | video area 20 Nov 2026 (docs/BUGHUNT.md); +1 solo run: the new-file stop note was wiped by the probe |
 | `screencast` | Screencast | PC only | video | ✓ | 4 | 4 | video area 20 Nov 2026 (docs/BUGHUNT.md) |
 | `screenshot` | Screenshot | PC only | video | ✓ | 4 | 4 | video area 20 Nov 2026 (docs/BUGHUNT.md) |
 | `youtube` | YouTube Clip | PC only | video | ✓ | 6 | 43 | video area 20 Nov 2026 (docs/BUGHUNT.md) |
@@ -172,7 +172,7 @@ Areas with a shared review: the app shell (router, search, favorites, platform h
 | `transfer` | Data Transfer Calculator | PC only | misc | ✓ | 4 | 18 | e2e 10→28 |
 | `semver` | Semver Checker | PC only | misc | ✓ | 7 | 24 | e2e 8→18 + 14 unit; engine = our port of npm semver, 16,380 pairs vs the package |
 | `glob` | Glob Tester | PC only | misc | ✓ | 2 | 44 | e2e 16→39 + 21 unit; own Unicode-aware matcher vs Python glob.translate (420 patterns) |
-| `terminal` | Linux Terminal | PC only | terminal |  |  |  |  |
+| `terminal` | Linux Terminal | PC only | terminal | ✓ | 3 | 2 | terminal 20 Nov 2026 (docs/BUGHUNT.md); v86 asked of the owner |
 | `graphviz` | Graphviz (DOT) | PC only | data-engines | ✓ | 22 | 712 | engine: own build kept (WASM-AUDIT 55 — Viz.js and hpcc trap on valid graphs), now Graphviz 16.1.0 + storeline fix, prism on our Delaunator port, glibc qsort/rand (dot = native byte for byte), browser text measuring, assertions kept; reference = native dot (3,464 drawings) |
 | `python` | Python Scratchpad | PC only | data-engines | ✓ | 18 | 313 | native CPython 3.14.8 is the reference for 69 programs (stdout + stderr byte for byte); recursion through C code ends in RecursionError instead of killing the run, lru_cache in Python (cached recursion as deep as on a desktop), local time with tzdata's names and flags, socket stand-in + asyncio, pbkdf2_hmac; output pane survives 300,000 lines (92 s → 1.4 s), shows output during long computations, \r / colours / the answers to input(); hints for errors particular to the tab |
 | `totp` | TOTP / 2FA Codes | PC only | net | ✓ | 6 | 74 | e2e 11→49 + 25 unit; RFC 4226/6238; e2e 11→49; unit 36 (RFC 4226 / 6238, 600 random cases vs an independent implementation); HMAC = hash-wasm, Base32 + truncation = our supplement |
@@ -205,30 +205,30 @@ Areas with a shared review: the app shell (router, search, favorites, platform h
 ## everyday
 | id | Tab | Platform | Area | R | B | T | Notes |
 |---|---|---|---|---|---|---|---|
-| `stopwatch` | Stopwatch | PC + mobile | everyday-device |  |  |  |  |
-| `countdown` | Countdown Timer | PC + mobile | everyday-device |  |  |  |  |
-| `pomodoro` | Pomodoro | PC + mobile | everyday-device |  |  |  |  |
-| `interval` | Interval Timer | PC + mobile | everyday-device |  |  |  |  |
-| `dice` | Dice Roller | PC + mobile | everyday-device |  |  |  |  |
-| `coin` | Coin Flip | PC + mobile | everyday-device |  |  |  |  |
-| `rng` | Random Number | PC + mobile | everyday-device |  |  |  |  |
-| `picker` | List Picker | PC + mobile | everyday-device |  |  |  |  |
-| `teams` | Team Splitter | PC + mobile | everyday-device |  |  |  |  |
+| `stopwatch` | Stopwatch | PC + mobile | everyday-device | ✓ | 2 | 2 | everyday-device area 20 Nov 2026 (docs/BUGHUNT.md) |
+| `countdown` | Countdown Timer | PC + mobile | everyday-device | ✓ | 8 | 14 | everyday-device area 20 Nov 2026 (docs/BUGHUNT.md) |
+| `pomodoro` | Pomodoro | PC + mobile | everyday-device | ✓ | 6 | 11 | everyday-device area 20 Nov 2026 (docs/BUGHUNT.md) |
+| `interval` | Interval Timer | PC + mobile | everyday-device | ✓ | 3 | 5 | everyday-device area 20 Nov 2026 (docs/BUGHUNT.md) |
+| `dice` | Dice Roller | PC + mobile | everyday-device | ✓ | 0 | 0 | everyday-device area 20 Nov 2026 (docs/BUGHUNT.md); engine → libsodium.js |
+| `coin` | Coin Flip | PC + mobile | everyday-device | ✓ | 1 | 3 | everyday-device area 20 Nov 2026 (docs/BUGHUNT.md); engine → libsodium.js |
+| `rng` | Random Number | PC + mobile | everyday-device | ✓ | 4 | 10 | everyday-device area 20 Nov 2026 (docs/BUGHUNT.md) |
+| `picker` | List Picker | PC + mobile | everyday-device | ✓ | 1 | 2 | everyday-device area 20 Nov 2026 (docs/BUGHUNT.md) |
+| `teams` | Team Splitter | PC + mobile | everyday-device | ✓ | 2 | 3 | everyday-device area 20 Nov 2026 (docs/BUGHUNT.md) |
 
 ## device
 | id | Tab | Platform | Area | R | B | T | Notes |
 |---|---|---|---|---|---|---|---|
-| `webcam` | Webcam Test | PC + mobile | everyday-device |  |  |  |  |
-| `mic` | Microphone Test | PC + mobile | everyday-device |  |  |  |  |
-| `speaker` | Speaker Test | PC + mobile | everyday-device |  |  |  |  |
-| `keyboard` | Keyboard Test | PC only | everyday-device |  |  |  |  |
-| `pixels` | Dead Pixel Test | PC + mobile | everyday-device |  |  |  |  |
-| `touch` | Touch Test | Mobile only | everyday-device |  |  |  |  |
-| `screen` | Screen Info | PC + mobile | everyday-device |  |  |  |  |
-| `level` | Bubble Level | Mobile only | everyday-device |  |  |  |  |
-| `compass` | Compass | Mobile only | everyday-device |  |  |  |  |
-| `soundmeter` | Sound Meter | PC + mobile | everyday-device |  |  |  |  |
-| `ruler` | Ruler | PC + mobile | everyday-device |  |  |  |  |
+| `webcam` | Webcam Test | PC + mobile | everyday-device | ✓ | 4 | 4 | everyday-device area 20 Nov 2026 (docs/BUGHUNT.md) |
+| `mic` | Microphone Test | PC + mobile | everyday-device | ✓ | 7 | 4 | everyday-device area 20 Nov 2026 (docs/BUGHUNT.md) |
+| `speaker` | Speaker Test | PC + mobile | everyday-device | ✓ | 3 | 2 | everyday-device area 20 Nov 2026 (docs/BUGHUNT.md) |
+| `keyboard` | Keyboard Test | PC only | everyday-device | ✓ | 3 | 3 | everyday-device area 20 Nov 2026 (docs/BUGHUNT.md) |
+| `pixels` | Dead Pixel Test | PC + mobile | everyday-device | ✓ | 0 | 0 | everyday-device area 20 Nov 2026 (docs/BUGHUNT.md) |
+| `touch` | Touch Test | Mobile only | everyday-device | ✓ | 1 | 1 | everyday-device area 20 Nov 2026 (docs/BUGHUNT.md) |
+| `screen` | Screen Info | PC + mobile | everyday-device | ✓ | 4 | 13 | everyday-device area 20 Nov 2026 (docs/BUGHUNT.md); unit sensors.test.mjs |
+| `level` | Bubble Level | Mobile only | everyday-device | ✓ | 3 | 8 | everyday-device area 20 Nov 2026 (docs/BUGHUNT.md); unit sensors.test.mjs |
+| `compass` | Compass | Mobile only | everyday-device | ✓ | 5 | 14 | everyday-device area 20 Nov 2026 (docs/BUGHUNT.md); unit sensors.test.mjs |
+| `soundmeter` | Sound Meter | PC + mobile | everyday-device | ✓ | 4 | 3 | everyday-device area 20 Nov 2026 (docs/BUGHUNT.md) |
+| `ruler` | Ruler | PC + mobile | everyday-device | ✓ | 0 | 0 | everyday-device area 20 Nov 2026 (docs/BUGHUNT.md) |
 
 ## App shell
 | Part | R | B | T | Notes |
@@ -2100,3 +2100,84 @@ Media › video (20 Nov 2026 –)
   4. The sound of the MP4 was Opus on Linux Chromium: AAC (as Screencast).
   5. Times were written "0:60" (59.996 s): rounded first.
   6. "1:60" was read as two minutes: seconds and minutes above 59 are refused.
+- **`ffmpeg`, once more (the solo run of its suite, 70 / 71).** The note "Stopped: a new file was chosen (…)" showed for a
+  moment only: the new file's probe started FFmpeg again, and the loader cleared the status line when it was ready. It
+  now clears only its own words. (The "reverse" check that failed in the loaded run of six suites passes alone.)
+- **Test fix, `slideshow`:** "the music chosen last stays" read the first card whose text holds "music" — the photos card,
+  whose summary line says "music 0:02" — so it never saw the Music card: the locator is the card titled "Music", polled.
+
+### Software › terminal (20 Nov 2026)
+- **`terminal` (tab 156, 3 bugs; BusyBox 1.38.0 stays — WASM-AUDIT 153, v86 for the owner; e2e +2 checks).**
+  1. **A crashed shell left the terminal dead:** its worker ran out of memory (a huge `yes | head`) and every later
+     command waited for ever. The worker is started again with a line that says so (the files of the old one are gone).
+  2. The file panel said "File error (44)": its errors in words ("no such file or folder (removed or renamed meanwhile?)",
+     "not a folder", "already there" …).
+  3. Ctrl+C while a command runs did nothing, without a word: the status line says a running command cannot be
+     interrupted in a browser tab (the page has no way into a synchronous WebAssembly call without shared memory,
+     which GitHub Pages cannot enable) and stops by itself after 60 s.
+
+### Everyday (20 Nov 2026) — stopwatch, countdown, pomodoro, interval, dice, coin, rng, picker, teams
+- **The timers (tabs 157 – 160; no engine — the browser's clocks and Web Audio, WASM-AUDIT 154).** Shared engine in
+  `src/tools/everyday.ts`: `timerNow()`, `runner()`, `wakeLock()`, `unlockAudio()`.
+  1. **The alarm rang only when the tab was looked at:** Countdown, Pomodoro and Interval moved on in animation frames,
+     which a background tab never draws. Now one timeout per planned end, all set at Start (a timeout set by a timeout
+     is "chained" — Chrome runs those once a minute after five minutes in the background), a 1 s interval, and the
+     moment the tab is shown. The suite switches frames and our interval off and the alarm still comes on time.
+  2. **Pomodoro / Interval drifted:** a step began when the end of the step before was *noticed*. Back in the tab after a
+     while away, the break started only then. Steps now end at their planned times; after a sleep, one beep for the last.
+  3. **A laptop's sleep was left out** (performance.now() — and the browser's timeouts — stand still during sleep on macOS
+     and Linux): a 25-minute timer rang 25 awake minutes later, a stopwatch left the night out. `timerNow()` counts the
+     wall clock running ahead by more than a second as sleep (a clock set back changes nothing).
+  4. **The screen wake lock was never asked for again** after the tab had been hidden (the browser lets it go then) —
+     the screen went dark for the rest of the run; a lock arriving after a quick Start → Pause was kept.
+  5. The alarm's audio was opened by the alarm itself — from a timer, where Safari plays no sound: it is opened in the
+     Start tap. It was never closed: closed when the tab is left.
+  6. **A setting changed during a run stopped the timer and went back to step 1** (a break made longer during a focus lost
+     the focus, silently). The step being timed now stays with the time spent in it; one made shorter than that ends
+     now; a step that no longer exists gives way to the one at its place; a timer not started shows the new plan.
+  7. Countdown: more than 24.8 days overflowed the browser's timeout (it fires at once): at most 99:59:59, said.
+  8. The end-of-run alarm sounded over the last step's beeps (990 Hz and 880 Hz at once): it follows them.
+  9. Stopwatch: Lap pressed twice while stopped added a lap of 00:00.00.
+  10. The tab's title stood still in the background (Countdown); Pomodoro and Interval show time and step there too.
+  11. Interval: "Get ready" could not be changed (10 s always): a slider, 0 – 60 s (0 leaves the step out).
+- **`dice`, `coin` (161, 162; engine → libsodium.js, WASM-AUDIT 155).** Coin: a side that came up again showed nothing
+  happening (the CSS class was put back unchanged, so the spin did not run) — the spin is restarted every flip. Coin
+  fetches its engine with the first flip; Dice rolls at open.
+- **`rng` (163, 4 bugs).** Ranges above 2³² said "Range too large" (ten-digit numbers): up to 2⁵³ now, 53 random bits
+  drawn again when they fall in the incomplete block; numbers beyond 2⁵³ − 1 (which a double cannot hold exactly) are
+  refused; an empty Min or Max was read as 0; "1.2 to 1.8" said "Max must be ≥ min" — "There is no whole number…".
+- **`picker` (164, 1 bug).** "How many" 1.5 picked one item but numbered it "1.".
+- **`teams` (165, 2 bugs).** "Sharma, Rahul" on its own line became two people (every comma split): once there is more
+  than one line, a line is one name. A team count of 0 or an empty box made 2 teams silently: asked for.
+
+### Device (20 Nov 2026) — webcam, mic, speaker, keyboard, pixels, touch, screen, level, compass, soundmeter, ruler
+- **`webcam`, `mic`, `soundmeter` (166, 167, 175; one gate per tab, `mediaGate` in `src/tools/device.ts`).**
+  1. **Two requests while the browser was still asking left the first stream running** (Start and a resolution, Start
+     and Record, a device chosen) — and a stream that arrived after the tab was left was never stopped: the camera light
+     stayed on. The newest request wins; a late stream is stopped at once (`_media.mjs` got `__gumDelay` to show it).
+  2. Microphone: Record pressed twice ran two recordings; a recording that ended after the tab was left played anyway;
+     its object URLs were never freed.
+  3. A camera / microphone busy in another app, or gone, said the browser's bare error: in words; one that stops by
+     itself (unplugged) is said.
+  4. The audio engine was opened after the permission question — Safari keeps it suspended then (no meter): opened in
+     the tap.
+  5. Sound Meter: the "avg" was the mean of the dB values (71 dB for a quiet and a loud second): the energy average
+     (Leq, 78 dB), as sound level meters give it; a new calibration offset left min / avg / max at the old one.
+- **`speaker` (168, 3 bugs).** Stop cut the tone off (a click) — 20 ms fade; the sweep started and ended with a click;
+  Stop left the voice speaking.
+- **`keyboard` (169, 3 bugs).** Delete, Home, End, Page Up / Down, Insert, Print Screen, Scroll Lock, Pause and the number
+  pad were not drawn (a laptop's Delete key could not be checked); keys on no drawing (the ISO key, F13 …) are named; a key
+  held while the window lost the focus (Alt+Tab) showed as stuck.
+- **`touch` (171, 1 bug).** The line kept "1 touch" after the finger lifted.
+- **`screen` (172, 4 bugs; unit `sensors.test.mjs`).** "Windows 15.0.0" on Windows 11 (client hints number Windows
+  their own way: 13 and above is 11); WebGPU "Available" wherever `navigator.gpu` existed, also without an adapter; the
+  refresh rate counted from before the first frame ("~59 Hz" on 60 Hz screens) — the median gap of the frames' own time
+  stamps; every resize started another 60-frame measurement and the sizes shown were those of its start.
+- **`level` (173, 3 bugs).** In landscape the bubble ran along the wrong axis (the tilt is now turned by the screen's
+  rotation, `screenTilt`); the two numbers were not named; Start twice showed the no-sensor warning twice.
+- **`compass` (174, 5 bugs).** 360 − alpha is right only for a phone lying flat in portrait: held upright it ignored gamma
+  (330° shown for 310°), in landscape it was 90° off. `headingOf` works it out from the whole orientation — the screen's
+  top, or the back camera's direction when upright — held in the unit suite to geometry and to the W3C spec's own
+  example function. iPhone: + window.orientation in landscape; Safari's heading is magnetic north (caniuse's notes on
+  `webkitCompassHeading`) — the tab said "true north". The no-data warning twice (as Level).
+- **`pixels`, `ruler` (170, 176):** reviewed, nothing found.

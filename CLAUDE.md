@@ -445,6 +445,11 @@ plus a "names & terms" hint box fed to Whisper's initial prompt.
   networking, mount, process lists (ps/top/kill), full-screen tty apps (vi, less, top). Tests:
   `tests/unit/terminal-applets.test.mjs` (**every applet has a known-answer case; the suite fails if one is added
   without**), `terminal.test.mjs` (shell), `busybox.test.mjs` (raw module under Node WASI), `tests/e2e/terminal.e2e.mjs`.
+  **As built after the Nov 2026 bug hunt** (e2e 22; docs/BUGHUNT.md tab 156, docs/WASM-AUDIT.md 153): a crashed shell
+  worker (out of memory) is started again with a line that says so — its files are gone; the file panel's errors in
+  words; Ctrl+C during a command says why it cannot be interrupted (a synchronous WebAssembly call cannot be reached
+  without shared memory, which GitHub Pages cannot enable) and that it stops by itself after 60 s. BusyBox 1.38.0 is the
+  newest release (its ash / hush are not built in). **v86** (a real Linux in an emulated PC) is a question for the owner.
 
 Removed by the owner from batch 3: Spin the Wheel, Tambola/Housie, Secret Santa, Scoreboard.
 
@@ -1497,6 +1502,51 @@ builds (Viz.js, hpcc) trap on valid graphs (`docs/WASM-AUDIT.md`, tab 55). The r
   apply, build (it leaves the native tool), `DOT=$WORK/native/cmd/dot/dot_static node
   scripts/make-graphviz-reference.mjs`, **read the diff** of `tests/fixtures/graphviz/reference.json`, run both suites.
 
+### Everyday timers and randomness — as built after the Nov 2026 bug hunt
+(`src/tools/everyday.ts`; e2e `stopwatch` 21, `countdown` 44, `pomodoro` 37, `interval` 23, `dice` 21, `coin` 18, `rng` 37,
+`picker` 18, `teams` 18; docs/BUGHUNT.md tabs 157 – 165, docs/WASM-AUDIT.md 154 – 155.)
+- **The timers ring in a background tab.** `runner()`: a frame loop while the tab is shown (the display), **one timeout
+  per planned end, all set when the run starts or its plan changes** (none chained — Chrome runs a timeout set by a
+  timeout only once a minute after five minutes in the background), a 1 s interval (the tab's title; the catch-up after
+  a sleep) and the moment the tab is shown again. Steps end at their **planned** times (the next begins when the last was
+  due); several ended at once (a sleep) → one beep, for the last. **`timerNow()`** = performance.now() + the time the
+  computer slept (the wall clock running ahead by more than a second; performance.now() and the timeouts stand still
+  in sleep on macOS and Linux). The screen wake lock is asked for again whenever the tab is shown and let go at once if
+  it arrives after a Pause. The alarm's AudioContext is opened in the Start tap (Safari) and closed on leave; the
+  end-of-run alarm follows the last step's double beep. The tests switch frames and our interval off to stand for a
+  background tab, and lag performance.now() behind the wall clock for a sleep.
+- Countdown: at most 99:59:59 (said); title "mm:ss · Countdown" also in the background, "Time’s up · Countdown". Pomodoro /
+  Interval: title "mm:ss · step"; **a setting changed during a run keeps the run** — the step being timed stays with the
+  time spent in it (made shorter than that: it ends now, the next starts whole), a step no longer in the plan gives way
+  to the one at its place, a timer not yet started shows the new plan from step 1; presets (Tabata …) start over.
+  Interval: "Get ready" 0 – 60 s (0 leaves it out). Stopwatch: no empty lap from a second Lap while stopped.
+- Randomness: Dice and Coin use **libsodium.js** (`randombytes_uniform`; Coin fetches it with the first flip, Dice rolls
+  at open); Random Number, Picker and Teams **crypto.wasm** (the same routine plus draws without repeats and shuffles).
+  Random Number: ranges up to 2⁵³ (above 2³² three draws give 53 bits, drawn again in the incomplete last block),
+  numbers beyond ±(2⁵³ − 1) refused, empty boxes asked for. Teams: once there is more than one line a line is one name
+  ("Sharma, Rahul"); a single line is split at its commas; a count of 0 / empty is asked for. Coin: the spin restarts on
+  every flip (Web Animations; none with reduced motion).
+
+### Device tabs — as built after the Nov 2026 bug hunt
+(`src/tools/device.ts`, maths `src/lib/sensors.ts`; unit `tests/unit/sensors.test.mjs` 25; e2e `webcam` 27, `mic` 26,
+`speaker` 30, `keyboard` 25, `pixels` 19, `touch` 18, `screen` 18, `level` 26, `compass` 22, `soundmeter` 18, `ruler` 17;
+docs/BUGHUNT.md tabs 166 – 176, docs/WASM-AUDIT.md 156.)
+- **Camera and microphone:** `mediaGate()` per tab — the newest getUserMedia request wins, a stream that arrives for an
+  older request or after the tab was left is stopped at once; errors in words (`mediaError`: denied, none, gone, busy);
+  a device that stops by itself is said. Microphone and Sound Meter open their AudioContext in the tap (Safari).
+  Microphone: one 5 s recording at a time, no playback after the tab was left. Fake media in the suites:
+  `tests/e2e/_media.mjs` (`__gumError`, **`__gumDelay`** for a permission question still open).
+- Speaker: every stop is a 20 ms fade; the sweep fades in and out. Keyboard: the main block (78 keys, "n of 78 keys
+  tested"), the navigation keys and the number pad; keys on no drawing named; held keys released when the window loses
+  the focus. Screen Info: refresh rate = 1000 ÷ the median gap of 60 frames' time stamps; Windows by its client-hint
+  number (13+ → Windows 11, `platformName`); WebGPU "Available" only with an adapter; the table at once, the rate after.
+- **Compass:** `headingOf(alpha, beta, gamma, angle)` — the heading of the screen's top (in landscape a side of the
+  phone: `angle` from `window.orientation`, else `screen.orientation.angle`), or of the back camera when the phone is
+  within 30° of upright; iPhone: `webkitCompassHeading` + the screen's angle. Magnetic north on both (Safari's heading
+  is magnetic too). **Level:** `screenTilt(beta, gamma, angle)` turns the tilt to the screen's axes; the numbers are
+  "left–right · front–back". **Sound Meter:** levels kept in dB of full scale, the offset added when shown (min / avg /
+  max move with it); avg = the energy average (Leq); unweighted, said.
+
 ### Audio Recorder — BUILT (`src/tools/audio.ts`, shared UI `src/lib/audioui.ts`; e2e `tests/e2e/audio.e2e.mjs` 21)
 Record the mic (MediaRecorder: Opus/WebM, AAC/M4A on Safari; 128 kbps) with pause/resume, big timer, live level meter
 with clip mark and a scrolling waveform; microphone picker; "voice clean-up" (browser echo/noise/AGC) on by default,
@@ -1914,8 +1964,8 @@ stay **public** (the source of the deployed site is then available to every user
 
 | Engine | Language → wasm | Built by | Used by |
 |---|---|---|---|
-| libsodium 1.0.20 + own MD5/SHA-1/SHA-3/CRC-32 + OpenBSD bcrypt + own CSPRNG helpers (shuffle, sampling, UUID v4/v7 — v7 values always increase: RFC 9562 §6.2 method 2, a random step inside one millisecond, clock steps back of up to 10 s tolerated) + USODIUM1 header | C | **us** (`wasm/crypto`) | random tools, uuid, mock data, line shuffle; the USODIUM1 header for sodium and sharelink (beside libsodium.js); its hashes (`u_hash_*`) are no longer called (hash-wasm since Nov 2026) |
-| **libsodium.js** — `libsodium-wrappers-sumo` 0.8.4 (libsodium **1.0.22**; the sumo build: the standard one has no Argon2) | C | the libsodium project (official WebAssembly build, embedded in the module) — binding `src/wasm/libsodium.ts`, format `src/lib/usodium.ts`, in `src/workers/crypto.worker.ts` | sodium, sharelink: Argon2id + XChaCha20-Poly1305 secretstream (`docs/WASM-AUDIT.md`, tab 101); password, passphrase: randombytes_uniform (tabs 104, 105) |
+| libsodium 1.0.20 + own MD5/SHA-1/SHA-3/CRC-32 + OpenBSD bcrypt + own CSPRNG helpers (shuffle, sampling, UUID v4/v7 — v7 values always increase: RFC 9562 §6.2 method 2, a random step inside one millisecond, clock steps back of up to 10 s tolerated) + USODIUM1 header | C | **us** (`wasm/crypto`) | rng, picker, teams (draws without repeats, shuffles — what libsodium.js lacks: `docs/WASM-AUDIT.md` 155), uuid, mock data, line shuffle; the USODIUM1 header for sodium and sharelink (beside libsodium.js); its hashes (`u_hash_*`) are no longer called (hash-wasm since Nov 2026) |
+| **libsodium.js** — `libsodium-wrappers-sumo` 0.8.4 (libsodium **1.0.22**; the sumo build: the standard one has no Argon2) | C | the libsodium project (official WebAssembly build, embedded in the module) — binding `src/wasm/libsodium.ts`, format `src/lib/usodium.ts`, in `src/workers/crypto.worker.ts` | sodium, sharelink: Argon2id + XChaCha20-Poly1305 secretstream (`docs/WASM-AUDIT.md`, tab 101); password, passphrase, dice, coin: randombytes_uniform (tabs 104, 105, 155) |
 | imgproc (adjustments, resize, OpenCV's area resize (`p_resize_area`, equal to cv2's INTER_AREA), lossless orient/crop, filters, matting, warp + homography, doc enhance) | C (own code) | **us** (`wasm/imgproc`) | image tools, scanner, passport, cartoon |
 | metacore (EXIF → JSON, lossless metadata strip JPEG/PNG/WebP, JPEG DPI, image sniffing) | C (own code) | **us** (`wasm/metacore`) | exif, image loading, passport/formphoto DPI |
 | BusyBox 1.38.0 (130 applets) + compat shims | C | **us** (`wasm/busybox`) | terminal, bc console |
@@ -2083,7 +2133,7 @@ Owner: "make the full site faster, more responsive and memory efficient — load
    in `AT_OPEN` in the test): our three small engines (mathcore/crypto/textcore ≤ 155 KB: live results as you
    type), invoice/rent/resume (MuPDF + Noto Sans: the live PDF preview is the main view), markdown (cmark-gfm,
    sample preview), terminal (BusyBox: the shell is ready at once), qr/barcode (zxing-cpp: drawn as you type),
-   caption/watermark (fonts of the first preview), coords (geo.wasm, 36 KB: the sample distance), password and passphrase (libsodium.js, 0.53 MB: the first passwords; the EFF word list, 62 KB), case
+   caption/watermark (fonts of the first preview), coords (geo.wasm, 36 KB: the sample distance), password, passphrase and dice (libsodium.js, 0.53 MB: the first passwords, the first roll; the EFF word list, 62 KB), case
    (textkit.wasm, 0.21 MB: the sample sentence in all its conversions), diff (textkit-diff.wasm, 0.69 MB: the sample
    pair compared), cidr/cron/semver/glob/patch (their devcore-<tab>.wasm: the
    sample is computed live), json/jwt/xml/json2types/jsondiff/base64 (their devcore module: the sample is formatted,
