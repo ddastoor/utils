@@ -23,10 +23,20 @@ The owner adds items here in chat ("add … to to do"). Newest instructions win.
    all the popular new jobs for FFmpeg that don't have buttons yet above, and also search for more out there, more
    popular things that people do with FFmpeg and add it to the list. And obviously add this new functionality and then
    obviously continue the bug hunt and the test case writing." The tab must stay button-driven (no command line needed).
-   Jobs without a button so far: **join several clips into one**; **subtitles — burn in, add as a track, extract**;
-   **a logo or text on a video**; **change the volume by a set amount**; **reverse a clip**; **a thumbnail at a chosen
-   time**. Then the more popular jobs found by searching (to be listed here before building). Each job with e2e checks
-   against known answers (ffprobe / the decoded frames), as the tab's other tasks.
+   **The owner's six:** (1) join several clips into one; (2) subtitles — burn in, add as a track, extract; (3) a logo
+   or text on a video; (4) change the volume by a set amount; (5) reverse a clip; (6) a thumbnail at a chosen time.
+   **Found on the web (20 Nov 2026: cheat sheets, FFmpeg GUIs and creators' guides — sources in docs/BUGHUNT.md) and
+   not yet a button here or another tab's job:** (7) fade in / fade out (picture and sound); (8) fit to a shape
+   (9:16, 16:9, 1:1 …) with a blurred background or bars instead of cropping; (9) remove silence (start, end, inside);
+   (10) picture-in-picture (a second video in a corner); (11) loop a clip n times, and "boomerang" (forward + back);
+   (12) stabilise a shaky video; (13) clean up a grainy (noisy) video; (14) contact sheet — a grid of frames in one
+   picture; (15) timelapse — 8× to 60× faster; (16) split into equal parts (a zip); (17) sound settings — mono /
+   stereo, sample rate; (18) colours — brightness, contrast, saturation, black and white; (19) cut a part out of the
+   middle; (20) background music under the sound (mix instead of replace); (21) deinterlace old camcorder / TV
+   recordings. Already elsewhere: compress to a size (Video Compressor), photos → video (Slideshow Maker), audio noise
+   (Noise Remover). Each job with e2e checks against known answers (ffprobe / the decoded frames).
+
+3. _(withdrawn by the owner on 20 Nov 2026: the "Export Python utility" for the YouTube Clip tab — do not build it.)_
 
 ## Done
 _(nothing yet)_
