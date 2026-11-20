@@ -958,8 +958,8 @@ details summary { cursor: pointer; font-weight: 600; color: var(--accent); paddi
 .term-note, .term-cut { color: #94a3b8; font-style: italic; }
 .term-cut { margin-bottom: 6px; }
 
-/* Touch targets ≥ 44 px on touch screens (owner rule §1.9). Desktop keeps the compact sizes. Sweep: scratch sweep.mjs /
-   tests/e2e/touch-targets.e2e.mjs measures every visible control of every phone tab. */
+/* Touch targets ≥ 44 px on touch screens (owner rule §1.9). Desktop keeps the compact sizes.
+   tests/e2e/touch-targets.e2e.mjs measures the hit area of every visible control of every phone tab. */
 @media (pointer: coarse), (max-width: 640px) {
   .btn-sm, .seg-btn { min-height: var(--tap); }
   .btn-sm.btn-icon { width: var(--tap); }
@@ -967,6 +967,7 @@ details summary { cursor: pointer; font-weight: 600; color: var(--accent); paddi
   .range { height: var(--tap); }
   .tool-body button, .tool-body [role=button], .tool-body a.btn, .tool-body select, .tool-body input:not([type=checkbox]):not([type=radio]):not([type=hidden]) { min-height: var(--tap); }
   .tool-body button { min-width: var(--tap); }
+  .rec-opts summary { min-height: var(--tap); padding-block: 12px; } /* "Microphone options" was 34 px: its own rule beat the general one */
 }
 .hexdump mark.hexhit { background: color-mix(in srgb, var(--accent) 28%, transparent); color: inherit; border-radius: 3px; }
 /* Code Formatter: a parser's message with its code frame */
