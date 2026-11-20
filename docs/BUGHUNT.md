@@ -18,7 +18,7 @@ Areas with a shared review: the app shell (router, search, favorites, platform h
 | `heic` | HEIC → JPG | PC + mobile | images1 | ✓ | 3 | 16 | libheif-js kept (latest) + lcms-wasm: Display P3 → sRGB (iPhone colours were off, every HEIC tab); primary image; failed files listed |
 | `passport` | Passport Photo | PC + mobile | images2 | ✓ | 4 | 6 | MediaPipe 1.2.3 (latest) + imgproc kept; no stale result after a face-less photo; Cancel ends the countdown; camera errors worded (shared src/lib/camera.ts); custom size 10–150 mm; jSquash resize for upload |
 | `formphoto` | Photo & Signature Resizer | PC + mobile | images2 | ✓ | 8 | 55 | engines kept + jSquash resize; KB read strictly (max ×1000, min ×1024); dpi before padding (was +18 bytes over max); metacore padding exact; no download of an over-max file; per-field reasons; re-frame without new face search; newest photo wins; object URLs revoked |
-| `bgremove` | Background Remover | PC + mobile | images2 |  |  |  |  |
+| `bgremove` | Background Remover | PC + mobile | images2 | ✓ | 8 | 21 | MediaPipe + imgproc kept (imgly ISNet noted for objects); newest photo/background wins; no-person said + Save refuses; failure reason on Save; status restored; .swatch CSS clash with Color tab fixed (.bg-swatch); 44 px swatches with pressed state; model note only first time |
 | `cartoon` | Cartoonizer | PC + mobile | images2 |  |  |  |  |
 | `redact` | Blur & Redact | PC + mobile | images2 |  |  |  |  |
 | `watermark` | Watermark | PC + mobile | images1 |  |  |  |  |
@@ -1533,3 +1533,21 @@ Reference for the five finance tabs: **mpmath at 60 digits** (`scripts/make-fina
      frame of the first; the newest wins.
   8. The picture of every result stayed in memory (object URLs never revoked).
   Test: the first check read the page before the spec was drawn (a flake under load) — it waits now.
+
+- **`bgremove` (tab 116, 8 bugs; engines kept: MediaPipe 1.2.3 + imgproc; the background photo of the saved picture
+  resized with @jsquash/resize — docs/WASM-AUDIT.md, 114; e2e 31 — was 11; color e2e +1).**
+  1. A photo chosen while another was still being searched could end with the earlier photo's mask (a cut-out of the
+     wrong shape); the newest photo wins now, and so does the newest background photo.
+  2. A photo without a person (a scanned page) gave an empty transparent PNG without a word; the tab says "No person
+     was found in this photo — there is nothing to keep" (and that it finds people, not objects), and Save refuses.
+  3. When the search failed, Save said "Choose a photo first." — it gives the reason now.
+  4. "Choose a background photo." stayed in the status line after switching to another background, and the preview
+     kept the last picture; the status line comes back and the preview shows the photo while there is nothing to put
+     behind it.
+  5. The tab's `.swatch` rule in styles.css (later in the file) turned the Color Converter's 96 px colour sample into a
+     40 px-high rounded shape; the tab's buttons are `.bg-swatch` now (a check in color.e2e.mjs).
+  6. The colour buttons were 40 px (touch targets are 44) and did not show which colour was chosen; 44 px, pressed
+     state (a custom colour un-marks them).
+  7. "first run loads a 16 MB model" was said for every photo; only for the first of a visit now.
+  8. The status line now says how much of the photo the person fills (a first hint when the search took a cat or a
+     pattern for a person — MediaPipe's model is trained on people).

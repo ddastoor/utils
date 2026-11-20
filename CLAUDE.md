@@ -489,6 +489,15 @@ get under the maximum is not downloaded on its own (reason + "Download anyway").
 box refused with its own reason; the frame follows the boxes while they hold a valid size (the face is found once per
 photo); the newest photo or kind wins.
 
+### Background Remover — as built after the Nov 2026 bug hunt
+(`bgremove` in `src/tools/bgremove.ts`, `personMask` in `src/lib/segment.ts`; e2e `tests/e2e/bgremove.e2e.mjs` 31.)
+MediaPipe's selfie multiclass model → imgproc's person mask (hair + skin + clothes, accessories only next to the
+person) → guided-filter matte at full size → transparent PNG, a colour (five swatches with a pressed state, or any
+colour), a blurred background, or another photo (cover-cropped, resized with @jsquash/resize when saved). A mask
+holding less than 0.3 % of the picture is "No person was found" (Save refuses with that reason); the status line says
+how much of the photo the person fills. The newest photo and the newest background photo win. People only — objects
+and animals would need another model (docs/WASM-AUDIT.md, 114).
+
 ### Cartoonizer ("Prisma-like") — BUILT (`src/tools/cartoon.ts`, e2e `tests/e2e/cartoon.e2e.mjs`, 37 checks)
 Two engines, picked with a "Filters | AI art styles" switch; tiles show live thumbnails of the user's photo / the style.
 - **Filters** (own C in `imgproc.wasm`, instant): Cartoon (bilateral smoothing → DoG edge lines (Winnemöller, τ≈0.985)

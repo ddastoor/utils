@@ -966,3 +966,15 @@ One entry per tab, written before its bug hunt: our module → candidates → ch
   metacore's two jobs: exiftool and libexif have no WebAssembly build that writes a JFIF density or pads a file;
   piexifjs is JavaScript and handles EXIF, not JFIF. **Decision:** imgproc and metacore stay; resizing moves to
   @jsquash/resize. metacore's padding was made exact (it could end 1 – 3 bytes above its target).
+
+### 114. `bgremove` — Background Remover (20 Nov 2026)
+- **Engines:** MediaPipe Tasks 1.2.3 with the selfie multiclass model (Google's build, the latest; 16 MB, shared with
+  the Passport tab) finds hair, skin and clothes; imgproc.wasm (ours) joins the classes into a person mask, makes the
+  guided-filter matte at full size and composites. **Candidates:** `@imgly/background-removal` (ISNet on ONNX Runtime
+  Web, AGPL-3.0, 40 – 170 MB of models; any subject — objects and animals too); MODNet (Apache-2.0, portrait matting,
+  25 MB ONNX); U²-Net (Apache-2.0); BRIA's RMBG-1.4 (licence for non-commercial use only). None replaces the guided
+  filter at full resolution (they give a mask at their input size, 320 – 1024 px). **Decision:** MediaPipe and imgproc
+  stay — the tab is a person cut-out (the owner's ask), and MediaPipe is the existing module that does it; the saved
+  background photo is resized with @jsquash/resize (entry 109). Objects and animals would need a second model of at
+  least 40 MB (imgly's ISNet, on the ONNX Runtime the app already ships for Text-to-Speech) — a feature the owner has
+  not asked for; noted for the owner rather than added.

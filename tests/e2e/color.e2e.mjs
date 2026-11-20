@@ -53,6 +53,8 @@ export default async (ctx) => {
   await setValue(F.hex, '#ff000080'); let v = await all();
   ok(v.rgb === 'rgba(255, 0, 0, 0.502)' && v.hsl === 'hsl(0 100% 50% / 0.502)' && v.ok === 'oklch(62.8% 0.25768 29.23 / 0.502)' && await page.getByLabel('Opacity').inputValue() === '50', '8-digit hex: the alpha is kept in every notation and on the slider (it used to be dropped)');
   ok(/repeating-conic-gradient/.test(await page.locator('.swatch').evaluate((e) => e.style.background)), 'a see-through colour is shown over a checkerboard');
+  const swb = await page.locator('.swatch').boundingBox();
+  ok(swb.height === 96 && swb.width > 200 && await page.locator('.swatch').evaluate((e) => getComputedStyle(e).borderRadius) === '12px', `the colour sample is a wide 96 px block, not another tab's round button (${Math.round(swb.width)}×${swb.height})`);
   await page.getByLabel('Opacity').fill('25'); v = await all(); ok(v.hex === '#ff000040' && v.rgb === 'rgba(255, 0, 0, 0.25)', 'the Opacity slider sets the alpha');
   const acc = await page.locator('.card').filter({ hasText: 'Accessibility' }).locator('.kv span').allTextContents();
   ok(acc.join('|') === 'Contrast vs white|1.56 : 1|Contrast vs black|1.22 : 1', // red at 25 % over white is rgb(255, 191, 191); over black rgb(64, 0, 0)
