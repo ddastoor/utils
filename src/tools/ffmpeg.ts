@@ -9,11 +9,12 @@ import { JOB_GROUPS, DEFAULTS, EMPTY_PROBE, buildJob, parseProbe, secondFor, typ
 const FORMATS: Array<[string, string]> = [['mp4', 'MP4 (H.264 + AAC)'], ['webm', 'WebM (VP8 + Opus)'], ['mkv', 'MKV (copy streams)'], ['mov', 'MOV (H.264 + AAC)'], ['mp3', 'MP3 audio'], ['m4a', 'M4A audio (AAC)'], ['wav', 'WAV audio'], ['flac', 'FLAC audio'], ['ogg', 'OGG audio (Opus)'], ['gif', 'GIF']];
 const quote = (s: string) => (/^[\w.\-/:=]+$/.test(s) ? s : `"${s.replace(/(["\\$`])/g, '\\$1')}"`);
 const FONTS = ['NotoSans_400Regular.ttf', 'NotoSans_700Bold.ttf'];
+const JOBS_PER_CORE = 8;
 
 export const mount: Mount = (root) => {
   let ff: any = null, loading: Promise<any> | null = null, running = false, onProg: ((p: number) => void) | null = null;
   let main: File | null = null, second: File | null = null, logLines: string[] = [], streams = '';
-  let p1: Probe = EMPTY_PROBE, p2: Probe | undefined, probing: Promise<void> = Promise.resolve(), fontsIn = false, loadedOnce = false;
+  let p1: Probe = EMPTY_PROBE, p2: Probe | undefined, probing: Promise<void> = Promise.resolve(), fontsIn = false, loadedOnce = false, jobsOnCore = 0;
   /** the clips of "Join clips": the chosen file first; each added clip gets the name in3, in4 … inside FFmpeg */
   let clips: Array<{ file: File; name: string; probe: Probe }> = [], clipSeq = 2;
   let job: Job = 'convert';
@@ -218,7 +219,7 @@ export const mount: Mount = (root) => {
         } catch { /* not produced */ }
       }
       logBox.textContent = logLines.slice(-60).join('\n');
-      fresh(); // the next job gets a new FFmpeg
+      if (++jobsOnCore >= JOBS_PER_CORE) fresh();
       if (code) throw new Error(`FFmpeg failed (exit ${code}): ${logLines.filter((l) => /error|invalid|no such|failed|unknown|unable/i.test(l)).slice(0, 2).join(' · ') || 'see the log'}`);
       if (!files.length) throw new Error('No output file was produced.');
       status.textContent = '';
@@ -226,10 +227,11 @@ export const mount: Mount = (root) => {
     } catch (e) { fresh(); status.textContent = errMsg(e); status.classList.add('err-text'); toast(errMsg(e), 'err'); logBox.textContent = logLines.slice(-60).join('\n'); (logBox.parentElement as HTMLDetailsElement).open = true; }
     finally { running = false; prog.done(); runBtn.hidden = false; stopBtn.hidden = true; }
   }
-  /** A new FFmpeg for every job: ffmpeg.wasm runs every exec in one module instance, and after a dozen jobs state left
-   *  behind by earlier ones made a later one trap ("function signature mismatch" in the subtitle renderer). Ending the
-   *  worker also gives its memory back; the core comes again from the browser's cache in a moment. */
-  function fresh() { try { ff?.terminate(); } catch { /* gone */ } ff = null; loading = null; fontsIn = false; }
+  /** A new FFmpeg after a failed job and after every JOBS_PER_CORE jobs: ffmpeg.wasm runs every exec in one module
+   *  instance, and after a long series of jobs (about 30 in the e2e suite) state left behind made a later one trap
+   *  ("function signature mismatch" in the subtitle renderer) — every job alone works. A new core for every job was
+   *  tried and dropped: the reloads made the tab slow and, run after run, crashed the page. */
+  function fresh() { try { ff?.terminate(); } catch { /* gone */ } ff = null; loading = null; fontsIn = false; jobsOnCore = 0; }
   const mimeOf = (n: string) => ({ mp4: 'video/mp4', mov: 'video/quicktime', webm: 'video/webm', mkv: 'video/x-matroska', gif: 'image/gif', mp3: 'audio/mpeg', m4a: 'audio/mp4', wav: 'audio/wav', flac: 'audio/flac', ogg: 'audio/ogg', png: 'image/png', jpg: 'image/jpeg', mka: 'audio/x-matroska', srt: 'application/x-subrip', vtt: 'text/vtt', ass: 'text/x-ssa' } as Record<string, string>)[extOf(n)] || 'application/octet-stream';
   let urls: string[] = [];
   async function showOutputs(files: Array<{ name: string; blob: Blob }>, ms: number, zip = 'files') {
