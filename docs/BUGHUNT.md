@@ -34,7 +34,7 @@ Areas with a shared review: the app shell (router, search, favorites, platform h
 |---|---|---|---|---|---|---|---|
 | `pdf-merge` | Merge PDF | PC + mobile | pdf | ✓ | 4 | 37 | annotations, links, forms, outlines kept (graftPage dropped them); one graft map per file |
 | `pdf-split` | Split PDF | PC + mobile | pdf | ✓ | 4 | 14 | parts keep annotations/links/forms/outline (rearrangePages); one at a time; N pages box; page lists read |
-| `pdf-organize` | Organize PDF | PC + mobile | pdf |  |  |  |  |
+| `pdf-organize` | Organize PDF | PC + mobile | pdf | ✓ | 4 | 5 | rearrangePages keeps annotations/links/forms/outline; tiles at once; newest PDF wins; Rotate all |
 | `img2pdf` | Images → PDF | PC + mobile | pdf |  |  |  |  |
 | `pdf2img` | PDF → Images | PC + mobile | pdf |  |  |  |  |
 | `pdf-compress` | Compress PDF | PC + mobile | pdf |  |  |  |  |
@@ -1722,3 +1722,13 @@ Reference for the five finance tabs: **mpmath at 60 digits** (`scripts/make-fina
      fraction refused in words.
   4. Page lists typed with spaces only ("1 3 5"), other dashes (— −) or "1..3" were refused; they are read
      (`parseRanges`, also used by PDF → Images).
+
+- **`pdf-organize` (tab 128, 4 bugs; engine kept — MuPDF, docs/WASM-AUDIT.md 124; e2e 15 — was 10).**
+  1. The saved PDF lost every annotation, link, form field and outline entry (the page routine of Merge); it is made
+     by MuPDF's `rearrangePages` now — a link follows the page it points to, the entry of a deleted page leaves the
+     outline.
+  2. A long PDF showed nothing until the picture of every page was drawn (80 pages: seconds of an empty card); the
+     tiles appear at once and the pictures are drawn into them one by one.
+  3. A PDF opened while the last one's pictures were still being drawn got the old document's pages mixed into its
+     grid; the newest PDF wins.
+  4. A scanned PDF lying on its side needed a click on every page: "Rotate all left / right".

@@ -89,12 +89,30 @@ export const organize: Mount = (root, ctx) => {
     }));
     info.textContent = f ? `${plural(order.length, 'page')}${f.pages - order.length ? ` (${f.pages - order.length} deleted)` : ''}` : '';
   };
+  let loadSeq = 0;
   const inp = pdfInput({ onLoad: async ([x]) => {
-    f = x; order = [];
-    for (let i = 0; i < x.pages; i++) order.push({ src: i, rot: 0, thumb: await pageThumb(x.doc, i, 160) });
+    // every tile at once (a blank of the page's shape), the pictures drawn into them one by one — a long PDF showed
+    // nothing until all were drawn; and a PDF opened meanwhile must not get the old one's pages
+    const my = ++loadSeq;
+    f = x;
+    order = Array.from({ length: x.pages }, (_, i) => {
+      const g = pageGeom(x.doc.loadPage(i)), c = document.createElement('canvas'), s = 160 / Math.max(g.W, g.H);
+      c.width = Math.max(1, Math.round(g.W * s)); c.height = Math.max(1, Math.round(g.H * s));
+      return { src: i, rot: 0, thumb: c };
+    });
     all = order.slice(); render();
+    for (const p of all) {
+      if (my !== loadSeq) return;
+      const t = await pageThumb(x.doc, p.src, 160);
+      if (my !== loadSeq) return;
+      p.thumb.width = t.width; p.thumb.height = t.height; p.thumb.getContext('2d')!.drawImage(t, 0, 0);
+      if (p.src % 20 === 19 || p.src === all.length - 1) await new Promise((r) => setTimeout(r)); // let the page breathe
+    }
   } });
-  root.append(card(null, inp.el, info), card(null, grid, note(ctx.isMobile ? 'Use the arrows to move pages.' : 'Drag pages to reorder them, or use the arrows.')),
+  const turnAll = (by: number) => { if (!order.length) throw new Error('Choose a PDF first.'); for (const p of order) p.rot = (p.rot + by + 360) % 360; render(); };
+  root.append(card(null, inp.el, info), card(null, grid,
+    h('div', { class: 'row' }, button('Rotate all left', () => turnAll(-90), { small: true, variant: 'ghost', icon: 'RotateCcw' }), button('Rotate all right', () => turnAll(90), { small: true, variant: 'ghost', icon: 'RotateCw' })),
+    note(ctx.isMobile ? 'Use the arrows to move pages.' : 'Drag pages to reorder them, or use the arrows.')),
     actions(button('Save PDF', async () => {
       if (!f) throw new Error('Choose a PDF first.');
       if (!order.length) throw new Error('All pages were deleted.');
