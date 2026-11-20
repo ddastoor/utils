@@ -26,8 +26,8 @@ that affects it.
 > When the owner names an app from `docs/potentials.md` (or `docs/IDEAS.md`), **before building anything**:
 > 1. Estimate what it adds to the deployed site (`dist/`): engines, models, data, fonts, in MB (look up the real
 >    file sizes of the release or package, not a guess from memory).
-> 2. Give the new total against GitHub Pages' **1 GB cap for a published site** (20 Nov 2026: **732 MB** — `du -sh
->    dist` after `npm run build`), and for a large model the 100 GB / month soft bandwidth limit.
+> 2. Give the new total against GitHub Pages' **1 GB cap for a published site** (20 Nov 2026: **763 MB**, 237 MB of room — `du -sb
+>    dist` after `npm run build`, in bytes: 1 GB is read as 10⁹ bytes; `du -sh` shows MiB), and for a large model the 100 GB / month soft bandwidth limit.
 > 3. Name what could be removed to make room, when room is short — an app, or a big model of one (the biggest today:
 >    Speech to Text's Whisper models 238 MB — "Accurate" 190 MB + "Fast" 57 MB; Text-to-Speech's voices 167 MB —
 >    Kokoro 94 MB + Piper 73 MB; Code Formatter's Biome 67 MB; FFmpeg 31 MB; Tesseract 27 MB; ExifTool 24 MB).
@@ -2669,7 +2669,7 @@ every push there that passes the unit suites goes live within about four minutes
 (fast-forwarded at the owner's word). GitHub's runner is Ubuntu 26.04 (`ubuntu-latest`): its coreutils are uutils
 (Rust), not GNU — a unit check that runs a system tool must work with both. To publish from `main` instead, the owner
 makes `main` the default branch (Settings → General) and allows it under Settings → Environments → github-pages →
-Deployment branches. GitHub Pages limits: a published site ≤ 1 GB (732 MB on 20 Nov 2026), 100 GB / month soft
+Deployment branches. GitHub Pages limits: a published site ≤ 1 GB (763 MB on 20 Nov 2026: 237 MB of room), 100 GB / month soft
 bandwidth, 10 minutes per deployment.
 
 ## 8. Adding a new tool (checklist)

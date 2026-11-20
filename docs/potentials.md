@@ -12,7 +12,7 @@ not just GitHub, in general … maintaining the rules and constraints" (round 3)
 - at the start of any new session that resumes from `docs/RESUME.md`.
 
 **Size check first (owner, 20 Nov 2026 — standing rule, CLAUDE.md top):** when the owner names a tab from this list,
-first estimate how many MB it adds to the deployed site, give the new total against GitHub Pages' 1 GB cap (732 MB on
+first estimate how many MB it adds to the deployed site, give the new total against GitHub Pages' 1 GB cap (763 MB on
 20 Nov 2026), say what existing app or model could be removed to make room if needed — and **wait for the owner's
 decision** before building anything.
 
@@ -29,6 +29,48 @@ Every candidate:
 - duplicates no existing tab and nothing the owner rejected.
 
 Platform: "both" = PC + mobile.
+
+## Size check of every candidate (20 Nov 2026)
+The site is **763 MB** (762,621,158 bytes, `du -sb dist`) of GitHub Pages' 1 GB for a published site (read as 10⁹
+bytes) → **237 MB of room**. A size here is what the tab would ship — one build, without source maps or debug copies —
+measured on 20 Nov 2026 from the package's file list (`npm pack <pkg> --dry-run --json`) or the model's file list on
+Hugging Face (`huggingface.co/api/models/<repo>/tree/main`). **"est."** = no published build that could be measured
+from the sandbox (GitHub is not reachable there): measure it before building.
+- **Nothing new — about 0 – 0.3 MB, the tab's own code; its engines are already on the site:** 3 Make PDF Searchable,
+  9 Shamir Secret Split, 13 Auto Subtitles, 14 Audiobook, 15 PDF Compare, 16 PDF Tables → Excel, 17 Video Face Blur,
+  18 Label Sheets, 20 Duplicate Photos, 27 WireGuard, 30 Aadhaar / e-Invoice QR, 31 DIGIPIN, 34 Calendar Converter,
+  36 Metadata Remover, 44 Anki Flashcards, 61 PDF Redact, 62 Authenticator Export, 63 Photo Organizer, 64 Subtitle
+  Sync, 65 Kindle Highlights, 66 XIRR; and 29 Breach Check, 52 Food Label, 53 Book Lookup (each needs its data-API host
+  approved first).
+- **Small — under 10 MB:** 1 Image to SVG 0.2 (vtracer / potrace) · 2 Photo Upscaler 4.8 (Real-ESRGAN general x4v3;
+  the best model, x4plus, 33.7 at half precision / 67.1 full) · 6 GIF Maker 0.7 (gifski) · 7 AVIF / JPEG XL 7 (jSquash:
+  AVIF 3.5 + 1.2, JXL 1.4 + 0.8; one-thread builds) · 8 age 0.1 · 10 Spell Checker ≈ 3 (Hunspell 0.8 + dictionaries,
+  est.) · 11 BPM & Key 0.4 (aubio) · 19 Music Tags 0.7 (TagLib) · 23 Circuit Simulator ≈ 2 (est.) · 25 Chart Maker < 1
+  (est.) · 26 Certificate Maker + 32 PDF Signatures ≈ 1 together (one Mbed TLS build, est.) · 33 Phone Numbers ≈ 1 – 2
+  (libphonenumber, est.) · 35 DjVu ≈ 1 – 2 (est.) · 37 Hidden Message < 1 (steghide, est.) · 38 RAW Photos 1.4 (LibRaw)
+  · 41 Favicon Maker 2.4 (resvg) · 42 Audio Effects ≈ 1 – 2 (SoX, est.) · 45 PARI/GP ≈ 5 – 10 (est.) · 47 Offline
+  Wikipedia ≈ 2 – 5 (libzim, est.; the .zim files are the user's own, never hosted) · 48 ESP32 Flasher 0.5 · 57 Lottie
+  1.2 (ThorVG) · 60 Code Screenshot ≈ 3 – 6 (Shiki 0.6 + the languages chosen) · 68 KeePass 0.3 (kdbxweb; Argon2 is on
+  the site) · 70 CyberChef 9.0 (its OCR data left out: the site has Tesseract) · U4 JBIG2 ≈ 1, U5 unpaper < 1, U6 GMP
+  ≈ 1 (est.).
+- **Medium — 10 to 60 MB:** 4 Document Converter 58.6 (pandoc.wasm) · 12 CSV/Excel SQL 37 (DuckDB, one of its three
+  builds: 35.9 + worker) · 21 Whiteboard 17.7 (Excalidraw with its fonts) · 24 Sky Map ≈ 20 – 50 (est.) · 28 Code Runner:
+  Lua 0.5, Ruby + 30.6, PHP + ≈ 50 (its ICU data alone 30.8), C + ≈ 70 (est.) · 39 Image Converter 16.3 (ImageMagick) ·
+  40 Panorama ≈ 10 – 15 (own OpenCV build with stitching, est.; opencv.js without it is 13.3) · 43 MIDI → MP3 ≈ 9 – 33
+  (FluidSynth 2.4 + a SoundFont, est.) · 46 3D → STL 11.1 (OpenSCAD) · 49 R Console 48.7 (webR) · 54 Diagram Editor ≈ 40 –
+  60 (draw.io, est.) · 55 Cut Out Anything 13.8 (SlimSAM, quantized; SAM 2.1 tiny 33.1) + Transformers.js ≈ 1 – 2 ·
+  56 Flash Player 15.3 (Ruffle) · 58 Map Converter 40 (GDAL: 28.2 + 11.6 data) · 59 Retro DOS ≈ 8 – 18 (js-dos) · U2 Full
+  Python ≈ 45 (Pyodide 13.9 measured + numpy / pandas / matplotlib, est.) · U7 PROJ ≈ 12 (est., with its database).
+- **Large — over 60 MB:** 5 Vocal Remover 180.5 (HTDemucs; 113.1 for vocals only with Open-Unmix) · 22 LaTeX ≈ 175 (est.)
+  · 50 Packet Capture 76 (Wiregasm: 73.4 + 2.6) · 51 Scratch 87 (the GUI) + the sprite and sound library it normally
+  fetches from Scratch's servers · 67 Object Eraser 208 (LaMa) · 69 Data Notebook ≈ 70 (JupyterLite, est.).
+- **Off the list:** U1 Hindi voices (owner's rule, 20 Nov 2026: no Hindi work); U3 needs our own FFmpeg build first.
+- **What could make room, biggest first:** Speech to Text's "Accurate" model 190 MB (the "Fast" one, 57 MB, stays — less
+  accurate on Indian accents) · Text-to-Speech's Kokoro voices (US / UK) 94 MB or Piper's (Indian English) 73 MB · Code
+  Formatter's Biome 67 MB (Prettier, JavaScript, would format those languages instead) · a whole tab's engine: Photo
+  Dictionary 34, FFmpeg 31, OCR 27, EXIF 24. Or, removing nothing: a **second GitHub Pages site** of the owner's
+  (`ddastoor.github.io/<another repo>/`) for big models — the same web address (origin), so the CSP and the "served from
+  this site" rule hold, with its own 1 GB.
 
 ## Round 1 — top picks
 | # | New tab | Open-source project | Engine | Download | Platform | Status |
