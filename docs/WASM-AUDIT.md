@@ -874,3 +874,22 @@ One entry per tab, written before its bug hunt: our module → candidates → ch
   on what was typed are string glue (`src/lib/qrdata.ts`, §3a).
 - **Evidence:** every kind of code the tab makes, saved as PNG, is read back by the Scanner tab (zxing) and by
   **zbar 0.23** (`zbarimg`, an independent decoder), byte for byte, Hindi and emoji included.
+
+### 107. `zip` — Create Zip (20 Nov 2026)
+- **Before:** zip.js 2.25 (JavaScript; the browser's own deflate and WebCrypto's AES) — recorded in §3a as a
+  JavaScript component "because libarchive's wasm build has no crypto".
+- **Candidates:** **7z-wasm 1.2.0** (7-Zip 24.09 compiled to WebAssembly with Emscripten by use-strict; LGPL-2.1 +
+  unRAR restriction; 1.65 MB, 0.68 MB over the wire; includes WORKERFS, so the chosen files are read in place, not
+  copied) — creates zip (deflate levels, AES-256 — WinZip's format — UTF-8 names) and 7z (LZMA2, AES-256, encrypted
+  names). libarchive.js 2.0.2 — its WebAssembly build writes archives but without encryption.
+- **Decision (rule 1 with the owner's tweak):** **7-Zip makes the archives**, in a worker of its own
+  (`src/workers/sevenzip.worker.ts`; a fresh instance per archive; Stop = terminate). What it does not cover: an
+  archive larger than the browser can hold in memory (7-Zip writes into Emscripten's in-memory file system; the heap
+  limit is 2 GiB) — **zip.js stays beside it for zips above 1.5 GB of input (256 MB on phones)**, rule (b): it streams.
+  A 7z beyond that is refused with the reason. Non-ASCII zip passwords: native 7-Zip refuses them for zip
+  (E_INVALIDARG) and the wasm build aborts — the tab refuses them with the reason and offers 7z (UTF-16 passwords), so
+  no archive is made that 7-Zip or WinRAR could not open.
+- **Evidence:** zips read by Python's zipfile (CRC, names with the UTF-8 flag, store / deflate, the files' dates),
+  pyzipper (AES-256: right and wrong password) and the native 7z; 7z archives read by **py7zr** (a 7z implementation of
+  its own: bytes, a Hindi password, names encrypted); Stop during a 96 MB archive; on a phone, 260 MB zipped by zip.js
+  and read by zipfile.

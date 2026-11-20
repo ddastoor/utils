@@ -596,6 +596,16 @@ separator hyphen / space / dot / underscore / none, capitals, a digit after a ra
 ### Zip
 Create zip (optional AES-256 password, WinZip AE-2 format) from multiple files; extract zip (incl.
 AES/ZipCrypto passwords) and 7z/rar/tar/gz/bz2/xz via libarchive. Download single entries or all.
+**Create Zip as built after the Nov 2026 bug hunt** (`zip` in `src/tools/archive.ts`, names and password rules
+`src/lib/archive-names.ts`, worker `src/workers/sevenzip.worker.ts` + `src/lib/sevenzip-client.ts`; unit
+`tests/unit/archive-names.test.mjs` 13, e2e `tests/e2e/zip.e2e.mjs` 28 — Python's zipfile, pyzipper, py7zr and the
+native 7z read the results; `pip install pyzipper py7zr`, `apt install 7zip`). **Engine: 7-Zip 24.09 compiled to
+WebAssembly (7z-wasm)**, fetched with the first archive, a fresh instance per archive, the files mounted read-only
+(WORKERFS) with their own dates; **Stop**. Formats: **Zip** (deflate 0 – 9, UTF-8 names, AES-256 in WinZip's format) or
+**7z** (LZMA2, AES-256, file names encrypted too unless switched off). Password: at least 4 characters, typed twice;
+for a zip ASCII only (7-Zip and WinRAR cannot take other letters for a zip) — 7z takes any. Names: folder paths kept,
+no leading / or .. parts, the same name again becomes "name (2).ext". Above 1.5 GB of input (256 MB on phones) a zip is
+written by **zip.js** piece by piece (said in the tab) and a 7z is refused — 7-Zip holds the archive in memory.
 
 ### QR Codes
 Generate: text, URL, Wi-Fi (WPA/WEP/none), UPI payment link (`upi://pay?pa=…&pn=…&am=…`), email, phone,
@@ -1635,6 +1645,7 @@ stay **public** (the source of the deployed site is then available to every user
 | Tesseract 5 | C++ | tesseract.js-core | ocr |
 | zxing-cpp | C++ | zxing-wasm | qr, barcode, scan |
 | libarchive | C | libarchive.js | unzip |
+| 7-Zip 24.09 (`7zz`, the command line, Emscripten build with WORKERFS) | C++ | use-strict (`7z-wasm` npm 1.2.0) — run in `src/workers/sevenzip.worker.ts`, a fresh instance per archive | zip (zip and 7z with AES-256; `docs/WASM-AUDIT.md`, tab 107) |
 | MediaPipe Tasks (TFLite) | C++ | Google (official) | passport, bgremove, redact |
 | Browser-native C++ (WebCodecs, WebCrypto, Web Speech, MediaRecorder) | — | the browser | video (H.264/AV1 encode + decode, hardware-accelerated), audio recorder, tts, screencast, pbkdf2 |
 
@@ -1646,7 +1657,7 @@ JavaScript-only components (no C/C++ equivalent exists for the job):
 | Mermaid 12 (MIT) | Mermaid exists only as JavaScript; `securityLevel: 'strict'` (labels sanitised), bundled by Vite | mermaid |
 | Prettier 3 standalone (MIT) | Markdown: both WebAssembly Markdown formatters (Biome's, dprint's) change what a document renders to (`docs/WASM-AUDIT.md`, tab 54). And the fallback for text the WebAssembly engines of the other nine languages cannot read (owner's tweak: (b) an existing JS library for what the module does not cover); each parser is fetched only then | prettier |
 | TensorFlow.js (Apache-2.0) | runs the Magenta style-transfer graph on the GPU via WebGL; its **wasm backend** (XNNPACK, C++ → wasm, tier 2 official build) is the CPU path | cartoon (neural) |
-| zip.js (BSD-3) | AES-256 zip *creation*; libarchive's wasm build has no crypto | zip |
+| zip.js (BSD-3) | zips larger than 7-Zip can hold in the browser's memory (above 1.5 GB of input, 256 MB on phones): zip.js streams; 7-Zip (7z-wasm) makes every other archive (`docs/WASM-AUDIT.md`, tab 107) | zip (large zips), unzip |
 | mediabunny (MPL-2.0) | MP4 muxing around the browser's hardware WebCodecs encoders; cutting audio without re-encoding (packet copy) | video, audio |
 
 **Audit of handwritten WebAssembly against existing modules (owner, 18 Nov 2026): `docs/WASM-AUDIT.md`** — per tab: our
@@ -1661,7 +1672,7 @@ someone else's, would be an upgrade, not an obligation). What remains optional i
 WebAssembly where a route exists:
 | JavaScript component | Possible WebAssembly route | Status |
 |---|---|---|
-| zip.js (AES-256 zip creation) | own C: deflate (zlib/miniz) + WinZip AES (AES-CTR + HMAC-SHA1 + PBKDF2) in `crypto.wasm` | optional |
+| zip.js (AES-256 zip creation) | 7-Zip (7z-wasm) makes the archives since Nov 2026; zip.js only for zips that do not fit in memory | done (tab 107) |
 | mediabunny (MP4/WebM mux + demux around WebCodecs) | minimp4 (C, CC0) muxer around WebCodecs | optional |
 | semver (npm, used only by tests now — the Semver tab runs our Rust port of it in devcore-semver.wasm, checked against the package over 16,380 version × range pairs) | — | done |
 | `src/lib/curl.ts` (cURL command parser, Nov 2026) | Rust module in devcore (`devcore-curl.wasm`) | to do (`todo.md` item 1) |
@@ -2117,6 +2128,7 @@ npm packages (pinned in `package-lock.json`) are bundled by Vite or copied to `p
 | zxing-wasm | MIT (zxing-cpp Apache-2.0) | QR |
 | @zip.js/zip.js | BSD-3-Clause | Zip, Batch Images |
 | libarchive.js | MIT (libarchive BSD) | Zip extract |
+| 7z-wasm 1.2.0 (7-Zip 24.09) | LGPL-2.1 + unRAR restriction (the unRAR code may not be used to re-create RAR compression) | Create Zip |
 | @fontsource/anton (Anton font) | OFL-1.1 | Text on Image (meme style), Watermark |
 | @fontsource/great-vibes, /dancing-script, /caveat | OFL-1.1 | Signature Maker (typed signatures) |
 | @fontsource/literata (Literata, Google's reading typeface) | OFL-1.1 | Photo Dictionary cards |

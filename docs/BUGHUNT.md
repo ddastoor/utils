@@ -199,7 +199,7 @@ Areas with a shared review: the app shell (router, search, favorites, platform h
 | `qr` | QR Generator | PC + mobile | security-codes | ✓ | 7 | 41 | zxing-wasm 3.1.7 kept (latest); qrdata.ts: UPI amounts as typed (commas were dropped), NPCI form, RFC 5545 escaping, SMS digits, Wi-Fi/colour checks, newest text wins; zbar read-back |
 | `barcode` | Barcode Generator | PC + mobile | security-codes | ✓ | 5 | 44 | zxing-wasm kept; barcodes.ts: zero padding / capitals / ITF said, check digit worded + shown, zint errors in words, typed value kept across formats; zbar + libdmtx read-back |
 | `scan` | QR & Barcode Scanner | PC + mobile | security-codes | ✓ | 3 | 31 | zxing-wasm kept; second Start leaked the camera; camera errors worded; describeCode: Wi-Fi/UPI/contact/event/e-mail/SMS/tel/geo fields, .vcf/.ics, paste, Clear |
-| `zip` | Create Zip | PC + mobile | security-codes |  |  |  |  |
+| `zip` | Create Zip | PC + mobile | security-codes | ✓ | 5 | 28 | engine → 7-Zip (7z-wasm) + zip.js above 1.5 GB; non-ASCII zip passwords refused (7-Zip/WinRAR could not open them), wrong macOS note, password twice, duplicate names, Stop; 7z format |
 | `unzip` | Extract Archive | PC + mobile | security-codes |  |  |  |  |
 
 ## everyday
@@ -1431,3 +1431,18 @@ Reference for the five finance tabs: **mpmath at 60 digits** (`scripts/make-fina
      link for javascript: or data:).
   Also: format names as people say them ("QR code", "EAN-13"); a screenshot pasted with Ctrl+V is scanned; Clear; a
   frame that cannot be read is skipped instead of raising an error.
+
+- **`zip` (tab 109, 5 bugs; engine: 7-Zip 24.09 compiled to WebAssembly (7z-wasm) replaces zip.js, which stays only
+  for zips larger than the browser can hold in memory — docs/WASM-AUDIT.md, 107; unit `tests/unit/archive-names.test.mjs`
+  13 — new; e2e 28 — was 13).**
+  1. **A zip with a non-English password could not be opened by 7-Zip or WinRAR**: they take only ASCII for a zip
+     password (native 7-Zip: E_INVALIDARG). The tab made it anyway (zip.js); it refuses such a password for a zip now,
+     with the reason, and offers the 7z format, which takes any letters.
+  2. The note said macOS Archive Utility opens AES zips — it does not (nor do Windows' zip folders); the note names the
+     tools that do.
+  3. The password was typed once; a slip made an archive nobody could open. It is typed twice now.
+  4. Two files of the same name (from two folders, or added twice) became two entries of one name — extractors
+     overwrite one or stop to ask. The second is "notes (2).txt" now.
+  5. A long archive could not be stopped; Stop ends 7-Zip at once.
+  Also new: the 7z format (LZMA2, AES-256, encrypted file names); the files' own dates kept; the archive name gets the
+  format's extension.

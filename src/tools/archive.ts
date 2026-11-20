@@ -1,45 +1,85 @@
-// Create Zip (zip.js: deflate + optional AES-256) and Extract Archive (zip via zip.js incl. passwords;
-// 7z / rar / tar / gz / bz2 / xz via libarchive compiled to WebAssembly).
-import { h, card, field, input, button, filePicker, toggle, slider, clear, stack, note, progress, downloadBlob, fmtBytes, extOf, type Mount } from '../ui';
-import { has } from '../platform';
+// Create Zip (7-Zip compiled to WebAssembly — 7z-wasm — for zip and 7z with AES-256; zip.js only for zips larger than
+// fit in memory) and Extract Archive (zip via zip.js incl. passwords; 7z / rar / tar / gz / bz2 / xz via libarchive
+// compiled to WebAssembly).
+import { h, card, field, input, button, filePicker, toggle, slider, segmented, clear, stack, note, progress, downloadBlob, fmtBytes, extOf, toast, type Mount } from '../ui';
+import { has, isMobile } from '../platform';
+import { createArchive, stopSevenZip, Stopped } from '../lib/sevenzip-client';
+import { archivePaths, passwordProblem, archiveName } from '../lib/archive-names';
 
 const zipjs = () => import('@zip.js/zip.js');
 
+/** Above this much input, the zip is written by zip.js, which streams; 7-Zip holds the archive in memory. */
+const IN_MEMORY = isMobile ? 256 << 20 : 1536 << 20;
+
 export const zip: Mount = (root) => {
   let files: Array<{ file: File; path: string }> = [];
-  let level = 6, encrypt = false;
+  let level = 6, encrypt = false, format: 'zip' | '7z' = 'zip', encryptNames = true;
   const list = h('div', { class: 'file-list' });
-  const name = input({ value: 'archive.zip' });
-  const pw = input({ type: 'password', placeholder: 'Password', attrs: { autocomplete: 'new-password' } });
-  const pwField = field('Password (AES-256)', pw);
+  const name = input({ value: 'archive', attrs: { 'aria-label': 'Archive name' } });
+  const pw = input({ type: 'password', placeholder: 'Password', attrs: { autocomplete: 'new-password', 'aria-label': 'Password' } });
+  const pw2 = input({ type: 'password', placeholder: 'Repeat password', attrs: { autocomplete: 'new-password', 'aria-label': 'Repeat password' } });
+  const namesToggle = toggle('Encrypt the file names too (7z only)', true, (v) => { encryptNames = v; });
+  const pwField = stack(field('Password', pw), field('Repeat password', pw2), namesToggle);
   pwField.hidden = true;
+  const formatNote = h('div');
   const prog = progress();
+  const stopBtn = button('Stop', () => stopSevenZip(), { icon: 'Square' });
+  stopBtn.hidden = true;
+  const total = () => files.reduce((a, f) => a + f.file.size, 0);
   const render = () => {
-    clear(list).append(...files.map((f, i) => h('div', { class: 'file-row' }, h('span', { class: 'file-name' }, f.path), h('span', { class: 'muted small' }, fmtBytes(f.file.size)),
-      button('', () => { files.splice(i, 1); render(); }, { icon: 'X', small: true, variant: 'ghost', title: 'Remove' }))));
-    if (files.length) list.append(h('div', { class: 'muted small' }, `${files.length} files · ${fmtBytes(files.reduce((a, f) => a + f.file.size, 0))}`));
+    const paths = archivePaths(files.map((f) => f.path));
+    clear(list).append(...files.map((f, i) => h('div', { class: 'file-row' }, h('span', { class: 'file-name' }, paths[i]), h('span', { class: 'muted small' }, fmtBytes(f.file.size)),
+      button('', () => { files.splice(i, 1); render(); }, { icon: 'X', small: true, variant: 'ghost', title: `Remove ${paths[i]}` }))));
+    if (files.length) list.append(h('div', { class: 'muted small' }, `${files.length} file${files.length === 1 ? '' : 's'} · ${fmtBytes(total())}`));
+    sync();
+  };
+  const sync = () => {
+    namesToggle.hidden = format !== '7z';
+    clear(formatNote);
+    if (total() > IN_MEMORY) formatNote.append(note(format === '7z'
+      ? `${fmtBytes(total())} is more than a 7z archive can be made of in this browser (${fmtBytes(IN_MEMORY)}) — choose Zip.`
+      : `${fmtBytes(total())}: the zip is written piece by piece (zip.js) instead of by 7-Zip, which holds an archive in memory.`, format === '7z' ? 'err' : 'info'));
   };
   const add = (fs: File[]) => { files.push(...fs.map((file) => ({ file, path: (file as any).webkitRelativePath || file.name }))); render(); };
   const folderBtn = h('input', { type: 'file', hidden: true, webkitdirectory: true, multiple: true, onchange: (e: any) => add([...e.target.files]) } as any);
   root.append(card(null, stack(filePicker({ multiple: true, label: 'Add files', onFiles: add }), !('ontouchstart' in window) ? button('Add a folder', () => folderBtn.click(), { small: true, icon: 'FolderPlus' }) : null, folderBtn, list)),
-    card('Options', stack(field('Zip file name', name), slider({ label: 'Compression level', min: 0, max: 9, value: level, onInput: (v) => (level = v), fmt: (v) => (v === 0 ? 'store (no compression)' : String(v)) }),
-      toggle('Password-protect (AES-256)', false, (v) => { encrypt = v; pwField.hidden = !v; }), pwField, prog)),
-    h('div', { class: 'actions' }, button('Create zip', async () => {
+    card('Options', stack(
+      field('Format', segmented([['zip', 'Zip — opens everywhere'], ['7z', '7z — smaller, any password']], format, (v) => { format = v as 'zip' | '7z'; sync(); })),
+      field('Archive name', name),
+      slider({ label: 'Compression level', min: 0, max: 9, value: level, onInput: (v) => (level = v), fmt: (v) => (v === 0 ? 'store (no compression)' : v === 9 ? '9 (smallest, slowest)' : String(v)) }),
+      toggle('Password-protect (AES-256)', false, (v) => { encrypt = v; pwField.hidden = !v; }), pwField, formatNote, prog)),
+    h('div', { class: 'actions' }, button('Create archive', async () => {
       if (!files.length) throw new Error('Add some files first.');
-      if (encrypt && pw.value.length < 4) throw new Error('Choose a longer password.');
+      const password = encrypt ? pw.value : '';
+      if (encrypt) { const why = passwordProblem(pw.value, pw2.value, format); if (why) throw new Error(why); }
+      const big = total() > IN_MEMORY;
+      if (big && format === '7z') throw new Error(`${fmtBytes(total())} is more than a 7z archive can be made of in this browser — choose Zip.`);
+      const paths = archivePaths(files.map((f) => f.path)), items = files.map((f, i) => ({ path: paths[i], file: f.file }));
+      const fname = archiveName(name.value, format);
+      if (!big) {
+        stopBtn.hidden = false;
+        try {
+          const data = await createArchive(items, { format, level, password, encryptNames }, (p) => prog.set(p / 100, `7-Zip: ${p} %`));
+          downloadBlob(new Blob([data as BlobPart], { type: format === 'zip' ? 'application/zip' : 'application/x-7z-compressed' }), fname);
+        } catch (e) { if (e instanceof Stopped) { toast('Stopped.'); return; } throw e; }
+        finally { prog.done(); stopBtn.hidden = true; }
+        return;
+      }
+      // beyond what fits in memory: zip.js writes the zip piece by piece (the browser's own deflate; WinZip AES)
       const { ZipWriter, BlobWriter, BlobReader } = await zipjs();
-      const w = new ZipWriter(new BlobWriter('application/zip'), { level, password: encrypt ? pw.value : undefined, encryptionStrength: 3 });
-      const total = files.reduce((a, f) => a + f.file.size, 0) || 1;
+      const w = new ZipWriter(new BlobWriter('application/zip'), { level, password: password || undefined, encryptionStrength: 3, useUnicodeFileNames: true } as any);
+      const all = total() || 1;
       let done = 0;
-      for (const f of files) {
-        await w.add(f.path, new BlobReader(f.file), { lastModDate: new Date(f.file.lastModified), onprogress: async (p) => prog.set((done + p) / total, `Adding ${f.path}`) });
-        done += f.file.size;
+      for (const it of items) {
+        await w.add(it.path, new BlobReader(it.file), { lastModDate: new Date(it.file.lastModified), onprogress: async (p) => prog.set((done + p) / all, `Adding ${it.path}`) });
+        done += it.file.size;
       }
       const blob = await w.close();
       prog.done();
-      downloadBlob(blob, name.value.endsWith('.zip') ? name.value : name.value + '.zip');
-    }, { variant: 'primary', icon: 'FileArchive' })),
-    note('Password-protected zips use WinZip AES-256 — open them with 7-Zip, WinRAR, macOS Archive Utility or this tool.'));
+      downloadBlob(blob, fname);
+    }, { variant: 'primary', icon: 'FileArchive' }), stopBtn),
+    note('Made by 7-Zip (compiled to WebAssembly) on this device. Password-protected zips use AES-256: Windows\' own zip folders and macOS Archive Utility cannot open them — use 7-Zip, WinRAR, PeaZip, Keka (Mac) or this site\'s Extract Archive tab. 7z archives open in the same tools.'));
+  sync();
 };
 
 type Entry = { path: string; size: number; dir: boolean; get: () => Promise<Blob> };
