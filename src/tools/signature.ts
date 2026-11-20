@@ -57,8 +57,12 @@ export const mount: Mount = (root, ctx) => {
   const padWrap = h('div', { class: 'sig-wrap' }, pad, h('div', { class: 'sig-line' }), h('span', { class: 'sig-hint' }, 'Sign above the line'));
   let cssW = 600, cssH = 220;
   const resizePad = () => {
-    const r = padWrap.getBoundingClientRect(), dpr = devicePixelRatio || 1;
+    const r = padWrap.getBoundingClientRect(), dpr = devicePixelRatio || 1, was = cssW;
     cssW = Math.max(240, r.width || 600); cssH = Math.round(cssW / (ctx.isMobile ? 2 : 2.7));
+    // the strokes are in the pad's CSS pixels: a pad that became narrower (a smaller window, a phone turned) would cut
+    // the right part of the signature off — they are scaled with the pad (its height follows its width)
+    const k = cssW / was;
+    if (k !== 1) for (const st of strokes) { st.width *= k; for (const p of st.pts) { p.x *= k; p.y *= k; } }
     pad.style.height = `${cssH}px`; pad.width = Math.round(cssW * dpr); pad.height = Math.round(cssH * dpr);
     paintPad();
   };
@@ -82,6 +86,13 @@ export const mount: Mount = (root, ctx) => {
 
   // ---------- type
   const typedPreview = h('div', { class: 'sig-typed', style: { fontFamily: `'${font}', cursive`, color } }, typed);
+  /** The ink colour is the colour of the whole signature — also of strokes drawn before it was chosen. */
+  const setColor = (v: string) => {
+    color = v; typedPreview.style.color = v;
+    for (const st of strokes) st.color = v;
+    paintPad();
+    if (mode === 'photo') extract();
+  };
   const typedInput = input({ value: typed, onInput: (v) => { typed = v; typedPreview.textContent = v || ' '; } });
   const typeBox = stack(field('Your name', typedInput),
     field('Style', segmented(HAND_FONTS.map(([f, l]) => [f, l]) as Array<[string, string]>, font, (v) => { font = v; typedPreview.style.fontFamily = `'${v}', cursive`; })), typedPreview);
@@ -98,13 +109,21 @@ export const mount: Mount = (root, ctx) => {
 
   // ---------- photo
   const photoCanvas = h('canvas', { class: 'ed-canvas sig-photo' });
+  let photoSeq = 0;
   const extract = async () => {
     if (!photo) return;
-    inkFromPhoto = await imgproc('inkToAlpha', photo, parseInt(color.slice(1), 16), keepInk, strength);
+    const my = ++photoSeq, got = await imgproc('inkToAlpha', photo, parseInt(color.slice(1), 16), keepInk, strength);
+    if (my !== photoSeq) return; // a newer photo or setting
+    inkFromPhoto = got;
     photoCanvas.width = inkFromPhoto.width; photoCanvas.height = inkFromPhoto.height;
     photoCanvas.getContext('2d')!.putImageData(new ImageData(new Uint8ClampedArray(inkFromPhoto.data), inkFromPhoto.width, inkFromPhoto.height), 0, 0);
   };
-  const photoIn = imageInput(async (img) => { photo = img.width > 2400 ? await imgproc('resize', img, 2400, Math.round((img.height * 2400) / img.width)) : img; await extract(); }, { label: 'Photo of your signature', capture: ctx.isMobile ? 'environment' : undefined, cameraLabel: 'Photograph your signature' });
+  let loadSeq = 0;
+  const photoIn = imageInput(async (img) => {
+    const my = ++loadSeq, p = img.width > 2400 ? await imgproc('resize', img, 2400, Math.round((img.height * 2400) / img.width)) : img;
+    if (my !== loadSeq) return; // a newer photo was chosen meanwhile
+    photo = p; await extract();
+  }, { label: 'Photo of your signature', capture: ctx.isMobile ? 'environment' : undefined, cameraLabel: 'Photograph your signature' });
   const photoBox = stack(photoIn.el, note('Sign on plain white paper with a dark pen, take a photo straight on, in even light.'),
     h('div', { class: 'ed-stage' }, photoCanvas),
     slider({ label: 'Ink sensitivity', min: 0.5, max: 2.5, step: 0.05, value: 1, onChange: (v) => { strength = v; extract(); } }),
@@ -116,6 +135,7 @@ export const mount: Mount = (root, ctx) => {
     slider({ label: 'Pen width', min: 1, max: 10, step: 0.5, value: width, onInput: (v) => (width = v) })));
   typeBox.hidden = true; photoBox.hidden = true;
 
+  const inkSeg = segmented(INKS, color, setColor);
   const current = async (): Promise<Img> => {
     if (mode === 'draw') { if (!strokes.length) throw new Error('Nothing to save yet — sign first.'); return renderStrokes(strokes, cssW, cssH, 4); } // 4× = crisp at print sizes
     if (mode === 'type') { if (!typed.trim()) throw new Error('Type your name first.'); return renderTyped(); }
@@ -123,7 +143,11 @@ export const mount: Mount = (root, ctx) => {
     return inkFromPhoto;
   };
   const save = async (kind: 'png' | 'jpeg', share = false) => {
-    let img = await trim(await current());
+    const made = await current();
+    let img = await trim(made).catch((e) => {
+      if (mode === 'photo') throw new Error('No ink was found in the photo — try a higher ink sensitivity, a darker pen, or plain white paper in even light.');
+      throw e;
+    });
     if (kind === 'jpeg') img = onWhite(img);
     const blob = await encodeImg(img, kind, 92), name = `signature.${kind === 'png' ? 'png' : 'jpg'}`;
     info.textContent = `${img.width}×${img.height} · ${fmtBytes(blob.size)}${kind === 'png' ? ' · transparent' : ' · white background'}`;
@@ -131,16 +155,15 @@ export const mount: Mount = (root, ctx) => {
   };
   root.append(
     card(null, stack(
-      segmented([['draw', 'Draw'], ['type', 'Type'], ['photo', 'From photo']], mode, (v) => { mode = v; drawBox.hidden = v !== 'draw'; typeBox.hidden = v !== 'type'; photoBox.hidden = v !== 'photo'; if (v === 'draw') resizePad(); }),
+      segmented([['draw', 'Draw'], ['type', 'Type'], ['photo', 'From photo']], mode, (v) => { mode = v; drawBox.hidden = v !== 'draw'; typeBox.hidden = v !== 'type'; photoBox.hidden = v !== 'photo'; if (v === 'draw') resizePad(); if (v === 'type') loadHandFonts(); }),
       drawBox, typeBox, photoBox)),
-    card('Ink', grid2(field('Colour', segmented(INKS, color, (v) => { color = v; typedPreview.style.color = v; if (mode === 'photo') extract(); })),
-      field('Custom', input({ type: 'color', value: color, onInput: (v) => { color = v; typedPreview.style.color = v; } })))),
+    card('Ink', grid2(field('Colour', inkSeg),
+      field('Custom', input({ type: 'color', value: color, onInput: (v) => { inkSeg.value = v as any; setColor(v); } })))),
     card(null, info, note(h('span', null, 'Need exact pixels/KB for an exam or job form? Save here, then use ', h('a', { href: '#/formphoto' }, 'Photo & Signature Resizer'), '.'))),
     actions(button(ctx.isMobile ? 'PNG' : 'Save PNG (transparent)', () => save('png'), { variant: 'primary', icon: 'Download', title: 'Save PNG with a transparent background' }),
       button(ctx.isMobile ? 'JPG' : 'Save JPG (white)', () => save('jpeg'), { icon: 'FileImage', title: 'Save JPG on a white background' }),
       ctx.isMobile ? button('Share', () => save('png', true), { icon: 'Share2' }) : null),
   );
-  loadHandFonts();
-  requestAnimationFrame(resizePad);
+  requestAnimationFrame(resizePad); // the handwriting fonts are fetched when "Type" is chosen (the pad needs none)
   return () => { ro.disconnect(); photoIn.dispose(); };
 };

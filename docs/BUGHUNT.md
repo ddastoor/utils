@@ -27,7 +27,7 @@ Areas with a shared review: the app shell (router, search, favorites, platform h
 | `exif` | EXIF / Photo Info | PC + mobile | images1 | ✓ | 8 | 106 | engine replaced by ExifTool 13.42 (zeroperl wasm, worker): iPhone HEIC position was hidden; HEIC/WebP stay their format on strip; orientation + ICC kept; XMP/IPTC/maker notes/previews shown; non-photo files named; newest photo wins; HEIC preview; DMS carry |
 | `scanner` | Doc Scanner | PC + mobile | images2 | ✓ | 12 | 62 | page finder: DocCornerNet LEAN on ONNX Runtime Web (WASM-AUDIT 121); OpenCV's area resize in imgproc; memory, phone picker, B&W lossless, Fit to scan |
 | `ocr` | OCR | PC + mobile | images2 | ✓ | 6 | 11 | language data that cannot be fetched no longer hangs the tab; sideways/upside-down pictures turned; dark mode; phone picker (also passport, signature) |
-| `signature` | Signature Maker | PC + mobile | images1 |  |  |  |  |
+| `signature` | Signature Maker | PC + mobile | images1 | ✓ | 5 | 9 | strokes scaled with the pad; ink colour for the whole signature; fonts only for Type; blank paper said |
 
 ## documents
 | id | Tab | Platform | Area | R | B | T | Notes |
@@ -1684,3 +1684,14 @@ Reference for the five finance tabs: **mpmath at 60 digits** (`scripts/make-fina
   5. A reading started for one picture (or language) could be shown after another picture was chosen; the newest wins,
      and nothing is written into the tab after it is left.
   6. Copy and "Download .txt" with nothing read copied nothing and saved an empty file; both say there is no text yet.
+
+- **`signature` (tab 125, 5 bugs; engines kept — docs/WASM-AUDIT.md 123; e2e 24 — was 15).**
+  1. A window made narrower after signing (or a phone turned) cut the right part of the signature off the saved file:
+     the strokes are scaled with the pad now.
+  2. A new ink colour applied only to strokes drawn after it — a blue signature turned "Maroon" was saved blue; the
+     colour is the whole signature's (and the custom colour box now does what the swatches do, also for a photo).
+  3. The three handwriting fonts (113 KB) were fetched as the tab opened although the drawing pad needs none; they are
+     fetched when "Type" is chosen (the lazy suite's allowance for the tab is gone).
+  4. A photo of blank paper said "Nothing to save yet — sign first"; it says no ink was found and what to try.
+  5. On phones the photo picker only opened the camera (the shared picker fix of the OCR tab): "Photograph your
+     signature" beside a picker for a photo already taken. Also: the newest photo wins.

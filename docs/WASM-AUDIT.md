@@ -1074,3 +1074,10 @@ One entry per tab, written before its bug hunt: our module → candidates → ch
   reading a sideways or upside-down picture — is added beside it in the tab (rule 1c, our own glue): a reading below 60 %
   confidence is tried on a smaller copy turned the three other ways, and the picture is read the way that is clearly
   better. PaddleOCR on ONNX Runtime is the thing to try if real camera photos read badly.
+
+### 123. `signature` — Signature Maker (20 Nov 2026)
+- **Engines:** the browser's canvas draws the strokes (its own compiled Skia) and the typed name (its HarfBuzz);
+  imgproc.wasm (ours) takes the ink off a photo of paper (`inkToAlpha`), trims and crops; jSquash's OxiPNG and MozJPEG
+  encode. **Candidates:** signature_pad and perfect-freehand (smoothing and pressure — JavaScript, no WebAssembly; the
+  canvas would still draw); for the ink: none (OpenCV.js can threshold but not keep the ink's colour on transparent
+  paper — entry 113). **Decision:** all stay.

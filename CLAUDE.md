@@ -513,6 +513,12 @@ and animals would need another model (docs/WASM-AUDIT.md, 114).
   (a web address, Chinese / Japanese without spaces) between grapheme clusters; text is made smaller until each block
   is at most 45 % of the height.
 - `collage` (e2e 19): the saved photos resized with @jsquash/resize; an A4 JPEG says 300 dpi.
+- `signature` (Signature Maker, `src/tools/signature.ts`, e2e `tests/e2e/signature.e2e.mjs` 24): draw (strokes kept in the
+  pad's CSS pixels and scaled with the pad, so a narrower window or a turned phone keeps the whole signature), type (the
+  three OFL handwriting fonts are fetched when "Type" is chosen — the pad needs none) or a photo (imgproc `inkToAlpha`;
+  the newest photo wins; blank paper: "No ink was found in the photo"). The ink colour is the colour of the whole
+  signature, strokes drawn before it was chosen too. Phones: "Photograph your signature" beside a picker that does
+  not force the camera.
 
 ### EXIF / Photo Info — as built after the Nov 2026 bug hunt
 (`exif` in `src/tools/images.ts`; shaping `src/lib/photoinfo.ts`, engine `src/lib/exiftool.ts` in
@@ -1915,7 +1921,7 @@ Owner: "make the full site faster, more responsive and memory efficient — load
    in `AT_OPEN` in the test): our three small engines (mathcore/crypto/textcore ≤ 155 KB: live results as you
    type), invoice/rent/resume (MuPDF + Noto Sans: the live PDF preview is the main view), markdown (cmark-gfm,
    sample preview), terminal (BusyBox: the shell is ready at once), qr/barcode (zxing-cpp: drawn as you type),
-   caption/watermark/signature (fonts of the first preview), coords (geo.wasm, 36 KB: the sample distance), password and passphrase (libsodium.js, 0.53 MB: the first passwords; the EFF word list, 62 KB), case
+   caption/watermark (fonts of the first preview), coords (geo.wasm, 36 KB: the sample distance), password and passphrase (libsodium.js, 0.53 MB: the first passwords; the EFF word list, 62 KB), case
    (textkit.wasm, 0.21 MB: the sample sentence in all its conversions), diff (textkit-diff.wasm, 0.69 MB: the sample
    pair compared), cidr/cron/semver/glob/patch (their devcore-<tab>.wasm: the
    sample is computed live), json/jwt/xml/json2types/jsondiff/base64 (their devcore module: the sample is formatted,

@@ -25,7 +25,6 @@ const AT_OPEN = {
   barcode: [/zxing_full/, 'the barcode is drawn as you type (zxing-cpp, 1.5 MB)'],
   caption: [/anton/, 'the meme font is used by the first preview (Anton, 18 KB)'],
   watermark: [/anton/, 'the watermark font is used by the first preview (Anton, 18 KB)'],
-  signature: [/great-vibes|dancing-script|caveat/, 'typed-signature styles are previewed at once (3 fonts, 113 KB)'],
   cidr: [/devcore-cidr/, 'the sample block is calculated as you type (devcore-cidr, 0.14 MB)'],
   cron: [/devcore-cron/, 'the sample schedule is explained and its next runs listed (devcore-cron, 0.17 MB)'],
   semver: [/devcore-semver/, 'the sample range is checked as you type (devcore-semver, 0.16 MB)'],
