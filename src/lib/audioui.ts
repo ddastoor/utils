@@ -18,7 +18,7 @@ export function recorder(o: { onDone: (r: Recording) => void; onStart?: () => vo
   const time = h('div', { class: 'rec-time', 'aria-live': 'off' }, '0:00.0');
   const state = h('div', { class: 'muted small', 'aria-live': 'polite' }, 'Ready');
   const fill = h('div', { class: 'meter-fill' }), clip = h('div', { class: 'meter-clip', title: 'Too loud: move back from the microphone' });
-  const meter = h('div', { class: 'meter', role: 'meter', 'aria-label': 'Input level', 'aria-valuemin': '0', 'aria-valuemax': '100' }, fill, clip);
+  const meter = h('div', { class: 'meter', role: 'meter', 'aria-label': 'Input level', 'aria-valuemin': '0', 'aria-valuemax': '100', 'aria-valuenow': '0' }, fill, clip);
   const live = h('canvas', { class: 'rec-live', 'aria-hidden': 'true' }) as HTMLCanvasElement;
   const micSel = select<string>([['', 'Default microphone']], '', (v) => (deviceId = v));
   const recBtn = button('Record', () => start(), { icon: 'Mic', variant: 'primary' });

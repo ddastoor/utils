@@ -122,8 +122,9 @@ export function textarea(o: { value?: string; placeholder?: string; rows?: numbe
   return el;
 }
 
-export function select<T extends string>(options: Array<[T, string]>, value: T, onChange?: (v: T) => void) {
-  const el = h('select', { class: 'input select' }, options.map(([v, l]) => h('option', { value: v }, l)));
+/** A select box; `label` names it when no visible <label> does (a box in a table cell or a row). */
+export function select<T extends string>(options: Array<[T, string]>, value: T, onChange?: (v: T) => void, label?: string) {
+  const el = h('select', { class: 'input select', 'aria-label': label }, options.map(([v, l]) => h('option', { value: v }, l)));
   el.value = value;
   if (onChange) el.addEventListener('change', () => onChange(el.value as T));
   return el;

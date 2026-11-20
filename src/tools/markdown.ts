@@ -54,6 +54,20 @@ function headingIds(root: ParentNode, prefix: string) {
 }
 const SIZE_LIVE = 200000; // longer texts are rendered when the typing pauses
 
+/** What assistive technology needs in the rendered HTML (axe-core's findings): cmark-gfm writes a fenced block's
+ *  language as `<pre lang="js">`, GitHub's way — but `lang` names the *human* language, so a screen reader switched its
+ *  voice to "js"; it becomes `class="language-js"` on the code (and `data-lang`). A task list's checkbox had no name: it
+ *  takes its item's text. */
+function tidyA11y(root: Element) {
+  for (const pre of root.querySelectorAll('pre[lang]')) {
+    const lang = pre.getAttribute('lang') || ''; pre.removeAttribute('lang');
+    if (lang) { pre.setAttribute('data-lang', lang); pre.querySelector('code')?.classList.add(`language-${lang.replace(/[^\w+#.-]/g, '')}`); }
+  }
+  for (const box of root.querySelectorAll('li > input[type=checkbox]')) {
+    const text = (box.parentElement?.textContent || '').trim().replace(/\s+/g, ' ').slice(0, 120);
+    if (text) box.setAttribute('aria-label', text);
+  }
+}
 export const mount: Mount = async (root, ctx) => {
   const md = await markdown();
   let smart = true, breaks = false, name = 'document', view: 'write' | 'preview' = 'write', tok = 0, timer: ReturnType<typeof setTimeout> | undefined;
@@ -76,6 +90,7 @@ export const mount: Mount = async (root, ctx) => {
     }
     for (const a of doc.querySelectorAll('a[href]')) if (!a.getAttribute('href')!.startsWith('#')) { a.setAttribute('target', '_blank'); a.setAttribute('rel', 'noopener noreferrer'); }
     headingIds(doc.body, 'md-');
+    tidyA11y(doc.body);
     preview.replaceChildren(...doc.body.childNodes);
     away.hidden = !other;
     away.textContent = other ? `${other === 1 ? 'A picture' : `${other} pictures`} from another place ${other === 1 ? 'is' : 'are'} not shown here (this page loads nothing from other sites); the downloaded .html shows ${other === 1 ? 'it' : 'them'}.` : '';
@@ -148,6 +163,7 @@ export const mount: Mount = async (root, ctx) => {
   const standalone = () => {
     const doc = new DOMParser().parseFromString(md.html(ta.value, { smart, hardBreaks: breaks }), 'text/html');
     headingIds(doc.body, '');
+    tidyA11y(doc.body);
     const t = (doc.querySelector('h1')?.textContent || name).trim();
     return `<!doctype html>\n<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${escapeHtml(t)}</title>\n<style>body{margin:0;padding:32px 16px}${MD_CSS}</style></head>\n<body><article class="markdown-body">\n${doc.body.innerHTML}</article></body></html>\n`;
   };

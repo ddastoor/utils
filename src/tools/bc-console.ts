@@ -19,7 +19,7 @@ export function bcConsole() {
   let hpos = 0;
   const pend = new Map<number, (r: any) => void>();
   const call = (op: string, data: any) => new Promise<any>((res) => { const id = ++seq; pend.set(id, res); getWorker().postMessage({ id, op, ...data }); });
-  const out = h('pre', { class: 'bc-out', 'aria-live': 'polite', 'aria-label': 'bc output' });
+  const out = h('pre', { class: 'bc-out', role: 'log', 'aria-live': 'polite', 'aria-label': 'bc output' });
   const inp = h('input', { class: 'input mono bc-in', 'aria-label': 'bc input', placeholder: 'e.g.  scale=50; 4*a(1)    or    2^256', spellcheck: 'false', autocomplete: 'off' }) as HTMLInputElement;
   const add = (cls: string, text: string) => { out.append(h('div', { class: cls }, text)); out.scrollTop = out.scrollHeight; };
   const run = async (src: string) => {

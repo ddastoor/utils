@@ -408,8 +408,8 @@ export const periodic: Mount = (root) => {
   };
   const gap = (row: number, text: string) => h('div', { class: 'el-gap', style: { gridColumn: '3', gridRow: String(row) }, title: `Elements ${text}: in the rows below` }, text);
   const grid = h('div', { class: 'ptable' }, ELEMENTS.map((el) => {
-    const b = h('button', { type: 'button', class: 'el', title: `${el.name} (${el.z})`, 'aria-label': `${el.name}, ${el.sym}, ${el.z}`,
-      style: { gridColumn: String(el.col), gridRow: String(el.row), background: CATEGORY_COLORS[el.cat] }, onclick: () => show(el) }, h('small', null, String(el.z)), h('strong', null, el.sym));
+    const b = h('button', { type: 'button', class: 'el', title: `${el.name} (${el.z})`, 'aria-label': `${el.z} ${el.sym}, ${el.name}`, // starts with what the cell shows (WCAG 2.5.3: the visible text is part of the name)
+      style: { gridColumn: String(el.col), gridRow: String(el.row), background: CATEGORY_COLORS[el.cat] }, onclick: () => show(el) }, h('small', null, String(el.z)), ' ', h('strong', null, el.sym)); // the space: the visible text reads "2 He", as the name begins
     cells.set(el.z, b);
     return b;
   }), gap(6, '57–71'), gap(7, '89–103'));

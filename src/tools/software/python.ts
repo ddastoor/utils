@@ -90,7 +90,7 @@ export const mount: Mount = (root) => {
   });
   const stdin = textarea({ rows: 3, mono: true, value: 'Asha', placeholder: 'One line for every input() — or any text the program reads from sys.stdin' });
   stdin.setAttribute('aria-label', 'Input'); stdin.spellcheck = false;
-  const out = h('pre', { class: 'py-out', 'aria-label': 'Output', tabindex: '0' }), status = h('div', { 'aria-live': 'polite' }), produced = h('div'), fileList = h('div', { class: 'chips' });
+  const out = h('pre', { class: 'py-out', role: 'log', 'aria-label': 'Output', tabindex: '0' }), status = h('div', { 'aria-live': 'polite' }), produced = h('div'), fileList = h('div', { class: 'chips' });
   const view = termView(out);
   const runBtn = button('Run', () => run(), { icon: 'Play', variant: 'primary' }), stopBtn = button('Stop', () => stopPython(), { icon: 'Square' });
   stopBtn.hidden = true;

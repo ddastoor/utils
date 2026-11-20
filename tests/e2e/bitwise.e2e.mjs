@@ -65,7 +65,9 @@ export default async (ctx) => {
   await set('300', '0', 'AND', 1, 8); ok(/does not fit in 8 bits/.test(await page.locator('.note-warn').textContent()), '300 in 8 bits → overflow note');
   await set('0xA5', '0', 'NOT', 1, 8);
   ok(await page.locator('.bitgrid .bit').count() === 8 && (await page.$$eval('.bitgrid .bit', (b) => b.map((x) => x.textContent).join(''))) === '10100101', 'bit grid shows A (0xA5 = 10100101)');
-  await page.locator('.bitgrid .bit[aria-label="A bit 0"]').click(); ok(await A.inputValue() === '0xA4', 'clicking bit 0 flips it (0xA4)');
+  ok(await page.locator('.bitgrid .bit').last().getAttribute('aria-label') === 'A bit 0: 1', 'a bit\'s name holds the value it shows ("A bit 0: 1" — voice control and screen readers; it was "A bit 0")');
+  await page.getByRole('button', { name: 'A bit 0: 1', exact: true }).click(); ok(await A.inputValue() === '0xA4', 'clicking bit 0 flips it (0xA4)');
+  ok(await page.locator('.bitgrid .bit').last().getAttribute('aria-label') === 'A bit 0: 0', 'and its name follows (A bit 0: 0)');
   await page.getByRole('radio', { name: '64-bit' }).click(); curW = 64; ok(await page.locator('.bitgrid .bit').count() === 64, '64 bits drawn');
   await A.fill('0xZZ'); await page.waitForTimeout(150); ok(await A.evaluate((e) => e.classList.contains('bad')) && /decimal, 0x hex/.test(await page.locator('.note-warn').textContent()) && await page.locator('.bitgrid .bit').count() === 0, 'invalid number marked, bit grid emptied');
   for (const t of ['1.5', '1e3', '0b12', '--1', '']) { await A.fill(t); await page.waitForTimeout(120); ok(await A.evaluate((e) => e.classList.contains('bad')), `"${t}" is not a whole number`); }

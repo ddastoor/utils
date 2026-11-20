@@ -49,7 +49,7 @@ const fromDataUrl = (u: unknown): Uint8Array | null => { const m = typeof u === 
 /** Live PDF preview + download + save/load details (pictures go into the details file too). Ends with the tab. */
 function docShell(root: HTMLElement, ctx: { isMobile: boolean }, o: { build: () => Promise<Uint8Array>; fileName: () => string; state: () => Obj; load: (s: Obj) => void; kind: string; images?: () => Record<string, Uint8Array | null>; setImages?: (im: Record<string, Uint8Array | null>) => void; ready?: Array<{ ready: () => Promise<void> }> }) {
   const ready = () => Promise.all((o.ready || []).map((p) => p.ready()));
-  const pages = h('div', { class: 'dg-pages', 'aria-label': 'Preview' });
+  const pages = h('div', { class: 'dg-pages', role: 'region', 'aria-label': 'Preview' });
   const status = h('div', { class: 'muted small', 'aria-live': 'polite' });
   let timer = 0, tok = 0, live = true;
   const refresh = () => {
@@ -88,6 +88,8 @@ function docShell(root: HTMLElement, ctx: { isMobile: boolean }, o: { build: () 
     } catch (e) { toast(errMsg(e), 'err'); }
   };
   const preview = card('Preview', status, pages);
+  preview.tabIndex = 0; // it scrolls on its own beside the form (PC): the keyboard can scroll it too (axe: scrollable-region-focusable)
+  preview.setAttribute('aria-label', 'Preview of the PDF');
   root.append(h('div', { class: 'dg-tools row' },
     button('Load details', loadJson, { icon: 'FolderOpen', small: true, variant: 'ghost', title: 'Open a details file you saved earlier' }),
     button('Save details', saveJson, { icon: 'Save', small: true, variant: 'ghost', title: 'Keep these details in a file on your device (nothing is stored in the browser)' })));
