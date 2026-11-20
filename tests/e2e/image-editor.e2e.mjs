@@ -1,8 +1,12 @@
-// Image Editor (#/image): real photos (EXIF orientation, GPS, HEIC), geometry, adjustments, encoders, target size.
+// Image Editor (#/image): real photos (EXIF orientation, GPS, HEIC), geometry, adjustments, encoders, target size;
+// a transparent PNG saved as JPEG (white, not black) and as WebP (alpha kept); straightening keeps no empty corner;
+// the size boxes refuse what cannot be made; resizing in linear light (a 1-pixel checkerboard halves to ≈ 187, not 128).
 import { imageInfo, decodeInPage } from '../lib/imgcheck.mjs';
+import { spawnSync } from 'node:child_process';
+import { join } from 'node:path';
 const F = (n) => new URL(`../fixtures/images/${n}`, import.meta.url).pathname;
 
-export default async ({ base, page: newPage, ok, download, devices }) => {
+export default async ({ base, page: newPage, ok, download, devices, tmp }) => {
   const page = await newPage();
   const open = async (file) => {
     await page.goto(base + '#/');
@@ -102,7 +106,55 @@ export default async ({ base, page: newPage, ok, download, devices }) => {
   await open('page.png');
   ok(String(await dims()) === '384,191', 'greyscale PNG opens at 384×191');
 
-  ok(page.errors.length === 0, `no page errors: ${page.errors.join(' | ')}`);
+  // test pictures: a transparent one, a checkerboard, a white sheet with a mark
+  const mk = spawnSync('python3', ['-c', `from PIL import Image
+im=Image.new('RGBA',(200,100),(0,0,0,0))
+for x in range(100,200):
+  for y in range(100): im.putpixel((x,y),(220,20,20,255))
+im.save('${join(tmp, 'alpha.png')}')
+cb=Image.new('RGB',(64,64))
+for x in range(64):
+  for y in range(64): cb.putpixel((x,y),(255,255,255) if (x+y)%2 else (0,0,0))
+cb.save('${join(tmp, 'checker.png')}')
+wh=Image.new('RGB',(384,191),(255,255,255))
+for x in range(180,204):
+  for y in range(85,105): wh.putpixel((x,y),(0,0,0))
+wh.save('${join(tmp, 'white.png')}')`]);
+  if (mk.status !== 0) ok(false, `test images: ${mk.stderr}`);
+  const openPath = async (p) => { await page.goto(base + '#/'); await page.goto(base + '#/image'); await page.locator('input[type=file]').setInputFiles(p); await page.waitForFunction(() => /\d+×\d+ · original/.test(document.querySelector('.ed-stage')?.closest('.card')?.textContent || ''), null, { timeout: 30000 }); };
+  // 12. Straighten: no empty corners; the size boxes follow
+  const scg = (w, h, deg) => { const a = Math.abs(deg) * Math.PI / 180, c = Math.cos(a), sn = Math.sin(a), k = Math.min(w / (w * c + h * sn), h / (w * sn + h * c)); return [Math.floor(w * k), Math.floor(h * k)]; };
+  await openPath(join(tmp, 'white.png'));
+  await page.locator('.slider', { hasText: 'Straighten' }).locator('input[type=range]').fill('10');
+  ok(String(await dims()) === String(scg(384, 191, 10)), `straighten 10°: the boxes show the kept size ${await dims()} (the largest rectangle without empty corners)`);
+  const st = await save(), sti = imageInfo(st);
+  const corners = await decodeInPage(page, st, [[0.01, 0.01], [0.99, 0.01], [0.01, 0.99], [0.99, 0.99]]);
+  ok(String([sti.width, sti.height]) === String(scg(384, 191, 10)) && corners.px.every((p) => p[0] > 245 && p[1] > 245 && p[2] > 245), `straightened export ${sti.width}×${sti.height}: the corners are the white sheet, not black (${JSON.stringify(corners.px)})`);
+  await page.locator('.slider', { hasText: 'Straighten' }).locator('input[type=range]').fill('0');
+
+  // 13. The size boxes
+  for (const [v, rx] of [['0', /The width must be at least 1 pixel/], ['-5', /The width must be at least 1 pixel/], ['99999', /at most 16,384 pixels/], ['12.5', /whole number of pixels/]]) {
+    await page.getByLabel('Width (px)').fill(v);
+    await page.getByRole('button', { name: 'Save', exact: true }).click();
+    ok(rx.test(await page.locator('.toast').last().textContent()), `width "${v}": refused in words (−5 gave a 1-pixel picture, 0 the original size)`);
+  }
+
+  // 14. Transparency, and resizing in linear light
+  await openPath(join(tmp, 'alpha.png'));
+  const aj = await decodeInPage(page, await save(), [[0.25, 0.5], [0.75, 0.5]]);
+  ok(aj.px[0][0] > 245 && aj.px[0][1] > 245 && aj.px[0][2] > 245 && aj.px[1][0] > 180 && aj.px[1][1] < 60, `a transparent PNG saved as JPEG: the transparent half is white (it was black): ${JSON.stringify(aj.px)}`);
+  await page.getByRole('radio', { name: 'WebP' }).click();
+  const aw = await decodeInPage(page, await save(), [[0.25, 0.5], [0.75, 0.5]]);
+  ok(aw.px[0][3] < 10 && aw.px[1][3] > 245, `… as WebP the transparency is kept: ${JSON.stringify(aw.px)}`);
+  await page.getByRole('radio', { name: 'PNG' }).click();
+  await openPath(join(tmp, 'checker.png'));
+  await page.getByRole('radio', { name: 'PNG' }).click();
+  await page.getByLabel('Width (px)').fill('32');
+  const half = await decodeInPage(page, await save(), [[0.5, 0.5], [0.25, 0.25]]);
+  ok(half.px.every((p) => Math.abs(p[0] - 187) <= 4), `a 1-pixel black/white checkerboard halved is ≈ 187 grey — light averaged in linear light (sRGB arithmetic gives 128): ${JSON.stringify(half.px)}`);
+
+  const unexpectedE = page.errors.filter((x) => !/The width (must|can|is)/.test(x)); // the Save button logs the refusals it shows
+  ok(unexpectedE.length === 0, `no page errors: ${unexpectedE.join(' | ')}`);
 
   // 11. Phone: Share button, no horizontal scroll
   const phone = await newPage({ ...devices['iPhone 13'] });

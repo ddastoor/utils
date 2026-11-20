@@ -13,8 +13,8 @@ Areas with a shared review: the app shell (router, search, favorites, platform h
 ## images
 | id | Tab | Platform | Area | R | B | T | Notes |
 |---|---|---|---|---|---|---|---|
-| `image` | Image Editor | PC + mobile | images1 |  |  |  |  |
-| `batch` | Batch Images | PC only | images1 |  |  |  |  |
+| `image` | Image Editor | PC + mobile | images1 | ✓ | 4 | 17 | resize → @jsquash/resize (linear light), imgproc kept (magick-wasm 15.5 MB, slower; wasm-vips needs SAB); JPEG of transparency on white; straighten crops its corners; size boxes checked |
+| `batch` | Batch Images | PC only | images1 | ✓ | 4 | 7 | jSquash resize; unique result names (shared list); sizes/scale checked; failed files listed; Stop |
 | `heic` | HEIC → JPG | PC + mobile | images1 |  |  |  |  |
 | `passport` | Passport Photo | PC + mobile | images2 |  |  |  |  |
 | `formphoto` | Photo & Signature Resizer | PC + mobile | images2 |  |  |  |  |
@@ -1459,3 +1459,34 @@ Reference for the five finance tabs: **mpmath at 60 digits** (`scripts/make-fina
      tab down); above 1.5 GB (256 MB on phones) the tab says to download the files one by one.
   Also new: RAR (1.5 – 5, encrypted), 7z with encrypted names, ISO, CAB and the other formats 7-Zip reads; locked files
   marked; a .gz of one file; the archive's type in the title; Stop.
+
+- **Complete suites after area security-codes:** 21,097 unit assertions, all green; e2e 6,005 of 6,010 checks in 188
+  suites. One failure was a fault of this area — the QR tab's new "What the code holds" box had no accessible name
+  (every-tab) — fixed. Four checks failed only under the full parallel load and pass alone, three times in a row:
+  formphoto "IBPS photo spec shown by default", keycode "Space on the focused Copy button copies", mermaid "Class
+  renders", resume "photo included" — their timing is to be looked at with those tabs (formphoto and resume come with
+  their areas; keycode and mermaid are on the list in RESUME.md).
+
+### Images (20 Nov 2026 –)
+
+- **`image` (tab 111, 4 bugs; engine: resizing moved to @jsquash/resize — Lanczos-3 in linear light; imgproc stays
+  for the live adjustments: docs/WASM-AUDIT.md, 109; unit `tests/unit/editor-geom.test.mjs` 6 — new; e2e 37 — was 26).**
+  1. **A transparent PNG saved as JPEG came out on black** — MozJPEG keeps the colour under a transparent pixel, which
+     the browser stores as black. The JPEG encoder (shared by every image tab) now puts such a picture on white;
+     WebP and PNG keep the transparency.
+  2. Straightening rotated the picture inside its own frame and left the corners empty — black in a JPEG,
+     transparent otherwise. The largest centred rectangle of the same shape without an empty corner is kept now
+     (the preview and the size boxes show it).
+  3. The size boxes took anything: 0 gave the original size without a word, −5 a picture of one pixel, 99999 a
+     picture no browser can hold. They are whole numbers of 1 – 16,384 pixels now, refused in words otherwise.
+  4. Making a picture smaller averaged the gamma-encoded values, so fine detail came out darker (a 1-pixel black /
+     white checkerboard halved to 128 grey instead of 187). Resizing is done in linear light now.
+
+- **`batch` (tab 112, 4 bugs; engine as tab 111 — docs/WASM-AUDIT.md, 110; e2e 21 — was 14).**
+  1. **Two results of one name overwrote each other**: two IMG_0001.jpg from two folders, or a name pattern without
+     {n}, put the same name twice into the zip (an unzip keeps one). The shared result list (also HEIC, Doc Scanner,
+     Watermark, PDF → Images) adds " (2)", " (3)" now.
+  2. The sizes took anything: −5 or 0 made pictures of one pixel; a scale of 0 % too. Refused in words now.
+  3. A file that could not be read was reported in a toast per file that vanished; such files are listed under the
+     results now, and the others are made.
+  4. A long batch could not be stopped; Stop ends it after the picture in hand.

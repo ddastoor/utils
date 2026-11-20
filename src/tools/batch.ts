@@ -1,8 +1,9 @@
-// Batch Images (PC): resize + convert many images. imgproc.wasm Lanczos-3 resize, MozJPEG/libwebp/OxiPNG
-// encoders, optional per-file size limit, rename pattern, one .zip download.
-import { h, card, field, input, segmented, slider, stack, grid2, note, progress, button, toggle, toast, errMsg, filePicker, fmtBytes, baseName, extOf, actions, type Mount } from '../ui';
-import { imgproc, type Img } from '../wasm/imgproc';
-import { loadImg, encodeImg, encodeToSize, EXT, type Fmt } from '../lib/imgio';
+// Batch Images (PC): resize + convert many images. Squoosh's Lanczos-3 resize in linear light (jSquash), MozJPEG /
+// libwebp / OxiPNG encoders, optional per-file size limit, rename pattern, one .zip download.
+import { h, card, field, input, segmented, slider, stack, grid2, note, progress, button, toggle, clear, errMsg, filePicker, fmtBytes, baseName, extOf, actions, type Mount } from '../ui';
+import { type Img } from '../wasm/imgproc';
+import { loadImg, encodeImg, encodeToSize, resizeImg, EXT, type Fmt } from '../lib/imgio';
+import { readSide } from '../lib/editor-geom';
 import { resultList } from '../lib/imgtools';
 
 type Mode = 'none' | 'long' | 'width' | 'height' | 'percent' | 'exact';
@@ -43,27 +44,48 @@ export const mount: Mount = (root, ctx) => {
   };
   const qSlider = slider({ label: 'Quality', min: 1, max: 100, value: quality, onInput: (v) => (quality = v) });
   const kbField = field('Maximum size per file (KB)', kb); kbField.hidden = true;
+  let stopped = false;
+  const failed = h('div');
+  /** The numbers of the form, or the reason one cannot be used. */
+  const settings = () => {
+    if (mode === 'percent') { const p = Number(a.value); if (!Number.isFinite(p) || p <= 0 || p > 400) throw new Error('The scale is a percentage above 0 and at most 400.'); return [p, 0] as const; }
+    if (mode === 'none') return [0, 0] as const;
+    const A = readSide(a.value, mode === 'height' ? 'height' : mode === 'long' ? 'long side' : 'width');
+    if (typeof A === 'string') throw new Error(A);
+    if (mode !== 'exact') return [A, 0] as const;
+    const B = readSide(b.value, 'height');
+    if (typeof B === 'string') throw new Error(B);
+    return [A, B] as const;
+  };
   const run = async () => {
     if (!files.length) throw new Error('Add some images first.');
-    results.clear();
+    const [A, B] = settings();
+    const maxKB = Number(kb.value);
+    if (limit && !(maxKB >= 5)) throw new Error('The size limit is at least 5 KB.');
+    results.clear(); clear(failed); stopped = false; stopBtn.hidden = false;
     const t0 = performance.now(); let inBytes = 0, outBytes = 0;
-    for (let i = 0; i < files.length; i++) {
+    const bad: string[] = [];
+    for (let i = 0; i < files.length && !stopped; i++) {
       const f = files[i];
       prog.set(i / files.length, `${i + 1}/${files.length} · ${f.name}`);
       try {
         let img: Img = await loadImg(f);
-        const [W, H] = targetSize(img.width, img.height, mode, +a.value || 1, +b.value || 1);
-        if (W !== img.width || H !== img.height) img = await imgproc('resize', img, W, H);
+        const [W, H] = targetSize(img.width, img.height, mode, A, B);
+        if (W !== img.width || H !== img.height) img = await resizeImg(img, W, H);
         const kind: Fmt = fmt === 'keep' ? (/png/.test(f.type) ? 'png' : /webp/.test(f.type) ? 'webp' : 'jpeg') : fmt;
         let blob: Blob, extra = '';
-        if (limit && kind !== 'png') { const r = await encodeToSize(img, kind, (+kb.value || 300) * 1024); blob = r.blob; extra = ` · q${r.quality}${r.tooBig ? ' (over limit)' : ''}`; }
+        if (limit && kind !== 'png') { const r = await encodeToSize(img, kind, maxKB * 1024); blob = r.blob; extra = ` · q${r.quality}${r.tooBig ? ' (over the limit — make it smaller)' : ''}`; }
         else blob = await encodeImg(img, kind, quality);
         inBytes += f.size; outBytes += blob.size;
         results.add(`${renameWith(pattern.value, baseName(f.name), i, files.length, W, H)}.${EXT[kind]}`, blob, `${W}×${H}${extra}`);
-      } catch (e) { toast(`${f.name}: ${errMsg(e)}`, 'err'); }
+      } catch (e) { bad.push(`${f.name}: ${errMsg(e)}`); }
     }
-    prog.set(1, `Done: ${results.items.length} files, ${fmtBytes(inBytes)} → ${fmtBytes(outBytes)} in ${((performance.now() - t0) / 1000).toFixed(1)} s`);
+    stopBtn.hidden = true;
+    if (bad.length) failed.append(note(h('div', null, `${bad.length} image${bad.length === 1 ? '' : 's'} could not be processed:`, h('ul', null, bad.slice(0, 50).map((x) => h('li', null, x)))), 'err'));
+    prog.set(1, `${stopped ? 'Stopped' : 'Done'}: ${results.items.length} file${results.items.length === 1 ? '' : 's'}, ${fmtBytes(inBytes)} → ${fmtBytes(outBytes)} in ${((performance.now() - t0) / 1000).toFixed(1)} s`);
   };
+  const stopBtn = button('Stop', () => { stopped = true; }, { icon: 'Square' });
+  stopBtn.hidden = true;
   const setFiles = (fs: File[]) => { files = [...files, ...fs]; list.textContent = `${files.length} images · ${fmtBytes(files.reduce((s, f) => s + f.size, 0))}`; };
   root.append(
     card(null, stack(filePicker({ accept: 'image/*,.heic,.heif', multiple: true, label: 'Add images', hint: 'JPG, PNG, WebP, HEIC — any number', onFiles: setFiles }), list,
@@ -71,14 +93,14 @@ export const mount: Mount = (root, ctx) => {
     card('Resize', stack(
       segmented([['none', 'Keep size'], ['long', 'Long side'], ['width', 'Width'], ['height', 'Height'], ['percent', 'Percent'], ['exact', 'Exact']], mode, (v) => { mode = v; relabel(); }),
       grid2(aField, bField),
-      note('Images are never enlarged except in "Exact" mode. Lanczos-3 resampling (WebAssembly).'))),
+      note('Images are never enlarged except in "Exact" mode and Percent above 100. Lanczos-3 resampling in linear light (WebAssembly).'))),
     card('Convert', stack(
-      field('Format', segmented([['jpeg', 'JPEG'], ['webp', 'WebP'], ['png', 'PNG'], ['keep', 'Same as input']], fmt, (v) => { fmt = v; })),
+      field('Format', segmented([['jpeg', 'JPEG'], ['webp', 'WebP'], ['png', 'PNG'], ['keep', 'Same as input']], fmt, (v) => { fmt = v; }), '"Same as input" keeps PNG and WebP; HEIC, GIF and others become JPEG.'),
       qSlider,
       toggle('Limit file size', false, (v) => { limit = v; kbField.hidden = !v; qSlider.hidden = v; }), kbField,
       field('File names', pattern, '{name} = original name, {n} = number, {w}×{h} = size. Metadata (incl. GPS) is removed.'))),
-    actions(button('Process images', run, { variant: 'primary', icon: 'Play' })),
-    card('Results', prog, results.el),
+    actions(button('Process images', run, { variant: 'primary', icon: 'Play' }), stopBtn),
+    card('Results', prog, failed, results.el),
   );
   relabel();
   void extOf;

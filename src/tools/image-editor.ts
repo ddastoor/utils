@@ -2,7 +2,8 @@
 // quality or target-size, metadata stripped. Live preview runs on a downscaled copy; export re-applies to full size.
 import { h, card, field, input, button, segmented, toggle, slider, clear, stack, note, actions, fmtBytes, baseName, downloadBlob, shareOrDownload, type Mount } from '../ui';
 import { imgprocDirect, imgproc, type Img, type Adjust } from '../wasm/imgproc';
-import { encodeImg, encodeToSize, previewOf, paint, EXT, type Fmt } from '../lib/imgio';
+import { encodeImg, encodeToSize, previewOf, paint, resizeImg, EXT, type Fmt } from '../lib/imgio';
+import { straightenCrop, readSide } from '../lib/editor-geom';
 import { imageInput, cropBox } from '../lib/imgtools';
 
 const ADJ: Array<[keyof Adjust | 'sharpen', string, number, number, number]> = [
@@ -35,13 +36,19 @@ export const mount: Mount = async (root, ctx) => {
     raf = requestAnimationFrame(() => {
       if (!base) return;
       let img = base;
-      if (straighten) img = ip.rotate(img, straighten, img.width, img.height, 0);
+      if (straighten) { img = ip.rotate(img, straighten, img.width, img.height, 0); const c = straightenCrop(img.width, img.height, straighten); img = ip.crop(img, c.x, c.y, c.w, c.h); } // no empty corners
       img = ip.adjust(img, adj as Adjust);
       if (adj.sharpen) img = ip.sharpen(img, adj.sharpen, 1.0);
       paint(img, canvas);
     });
   };
-  const fullDims = () => { if (!orig) return [0, 0]; const t = turns % 2; const W = t ? orig.height : orig.width, H = t ? orig.width : orig.height; const c = crop$.active ? crop$.rect(W, H) : { w: W, h: H }; return [Math.round(c.w), Math.round(c.h)]; };
+  const fullDims = () => {
+    if (!orig) return [0, 0];
+    const t = turns % 2; const W = t ? orig.height : orig.width, H = t ? orig.width : orig.height;
+    const c = crop$.active ? crop$.rect(W, H) : { w: W, h: H };
+    const s2 = straighten ? straightenCrop(Math.round(c.w), Math.round(c.h), straighten) : { w: Math.round(c.w), h: Math.round(c.h) };
+    return [s2.w, s2.h];
+  };
   const syncDims = () => { const [W, H] = fullDims(); wI.value = String(W); hI.value = String(H); };
 
   const exportImg = async (): Promise<Img> => {
@@ -49,9 +56,11 @@ export const mount: Mount = async (root, ctx) => {
     let img = orig;
     for (const o of geoOps()) img = await imgproc('orient', img, o);
     if (crop$.active) { const c = crop$.rect(img.width, img.height); img = await imgproc('crop', img, c.x, c.y, c.w, c.h); }
-    if (straighten) img = await imgproc('rotate', img, straighten, img.width, img.height, 0);
-    const W = +wI.value || img.width, H = +hI.value || img.height;
-    if (W !== img.width || H !== img.height) img = await imgproc('resize', img, W, H);
+    if (straighten) { img = await imgproc('rotate', img, straighten, img.width, img.height, 0); const c = straightenCrop(img.width, img.height, straighten); img = await imgproc('crop', img, c.x, c.y, c.w, c.h); }
+    const W = readSide(wI.value, 'width'), H = readSide(hI.value, 'height');
+    if (typeof W === 'string') throw new Error(W);
+    if (typeof H === 'string') throw new Error(H);
+    if (W !== img.width || H !== img.height) img = await resizeImg(img, W, H); // Lanczos-3 in linear light (jSquash)
     if (Object.entries(adj).some(([k, v]) => k !== 'sharpen' && v)) img = await imgproc('adjust', img, adj as Adjust);
     if (adj.sharpen) img = await imgproc('sharpen', img, adj.sharpen, Math.max(0.8, img.width / 2000));
     return img;
@@ -80,7 +89,7 @@ export const mount: Mount = async (root, ctx) => {
   });
 
   const sliders = ADJ.map(([k, label, min, max, step]) => slider({ label, min, max, step, value: 0, fmt: (v) => (k === 'hue' ? `${v}°` : k === 'exposure' ? `${v > 0 ? '+' : ''}${v.toFixed(2)} EV` : v.toFixed(2)), onInput: (v) => { adj[k] = v; render(); } }));
-  const straightenSlider = slider({ label: 'Straighten', min: -45, max: 45, step: 0.5, value: 0, unit: '°', onInput: (v) => { straighten = v; render(); } });
+  const straightenSlider = slider({ label: 'Straighten', min: -45, max: 45, step: 0.5, value: 0, unit: '°', onInput: (v) => { straighten = v; render(); syncDims(); } });
   const cropSeg = segmented([['off', 'No crop'], ['0', 'Free'], ['1', '1:1'], ['1.3333', '4:3'], ['1.5', '3:2'], ['1.7778', '16:9'], ['0.5625', '9:16'], ['0.8', '4:5']], 'off', (v) => {
     if (v === 'off') crop$.reset(); else { crop$.setEnabled(true); crop$.setAspect(+v); }
     syncDims();

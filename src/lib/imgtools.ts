@@ -88,7 +88,11 @@ export function resultList(opts: { zipName: () => string; isMobile?: boolean }) 
   };
   return {
     el,
-    add(name: string, blob: Blob, note = '') {
+    add(name0: string, blob: Blob, note = '') {
+      // the same name twice (two IMG_0001.jpg from two folders, a pattern without {n}) would overwrite in the zip
+      let name = name0;
+      const taken = (n: string) => items.some((i) => i.name.toLowerCase() === n.toLowerCase());
+      if (taken(name)) { const m = /^(.*?)(\.[^.]{1,10})?$/.exec(name0)!; for (let k = 2; taken(name); k++) name = `${m[1]} (${k})${m[2] ?? ''}`; }
       const url = URL.createObjectURL(blob);
       items.push({ name, blob, url });
       listEl.append(h('div', { class: 'result-row' },

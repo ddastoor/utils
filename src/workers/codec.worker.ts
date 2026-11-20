@@ -1,9 +1,11 @@
-// Image codecs off the main thread: MozJPEG, libwebp, OxiPNG (jSquash builds of the C/Rust sources) + libheif.
+// Image codecs off the main thread: MozJPEG, libwebp, OxiPNG and Squoosh's resize (jSquash builds of the C/Rust
+// sources) + libheif.
 import encodeJpeg from '@jsquash/jpeg/encode';
 import decodeJpeg from '@jsquash/jpeg/decode';
 import encodeWebp from '@jsquash/webp/encode';
 import decodeWebp from '@jsquash/webp/decode';
 import optimisePng from '@jsquash/oxipng/optimise';
+import resizeImage from '@jsquash/resize';
 
 type Img = { data: Uint8ClampedArray; width: number; height: number };
 const asImageData = (i: Img) => (typeof ImageData !== 'undefined' ? new ImageData(new Uint8ClampedArray(i.data), i.width, i.height) : (i as unknown as ImageData));
@@ -21,9 +23,21 @@ async function decodeHeic(buf: ArrayBuffer): Promise<Img> {
   return { data, width, height };
 }
 
+/** The image on a solid background (JPEG has no transparency: MozJPEG keeps the colour under a transparent pixel, which
+ *  the browser stores as black). The browser's own compositing (canvas), so a picture without alpha is unchanged. */
+async function flatten(img: Img, bg = '#ffffff'): Promise<Img> {
+  const c = new OffscreenCanvas(img.width, img.height), g = c.getContext('2d', { willReadFrequently: true })!;
+  g.fillStyle = bg; g.fillRect(0, 0, img.width, img.height);
+  const bmp = await createImageBitmap(asImageData(img), { premultiplyAlpha: 'premultiply', colorSpaceConversion: 'none' } as ImageBitmapOptions);
+  g.drawImage(bmp, 0, 0); bmp.close();
+  const d = g.getImageData(0, 0, img.width, img.height);
+  return { data: d.data, width: img.width, height: img.height };
+}
+const hasAlpha = (img: Img) => { const d = img.data; for (let i = 3; i < d.length; i += 4) if (d[i] !== 255) return true; return false; };
+
 /** Encode to a format; `pngFromRgba` builds a PNG via OffscreenCanvas then optimises it with OxiPNG. */
 async function encode(img: Img, fmt: 'jpeg' | 'webp' | 'png', quality: number, opts: any = {}): Promise<ArrayBuffer> {
-  if (fmt === 'jpeg') return encodeJpeg(asImageData(img), { quality, progressive: true, optimize_coding: true, ...opts });
+  if (fmt === 'jpeg') { const { background, ...o } = opts; if (hasAlpha(img)) img = await flatten(img, background ?? '#ffffff'); return encodeJpeg(asImageData(img), { quality, progressive: true, optimize_coding: true, ...o }); }
   if (fmt === 'webp') return encodeWebp(asImageData(img), { quality, method: 4, ...opts });
   // OxiPNG effort scales with size so a 12 MP photo doesn't take half a minute: level 2 ≤ 2 MP, 1 ≤ 6 MP, else 0.
   const px = img.width * img.height;
@@ -35,6 +49,12 @@ self.onmessage = async (ev: MessageEvent<any>) => {
   try {
     let result: any;
     if (op === 'encode') result = await encode(ev.data.img, ev.data.fmt, ev.data.quality, ev.data.opts);
+    else if (op === 'resize') {
+      // Squoosh's resize (jSquash; Rust → WebAssembly): Lanczos-3 in linear light, alpha premultiplied
+      const { img, width, height } = ev.data;
+      const r = await resizeImage(asImageData(img), { width, height, method: 'lanczos3', premultiply: true, linearRGB: true });
+      result = { data: r.data, width: r.width, height: r.height };
+    }
     else if (op === 'decode') {
       const { buf, kind } = ev.data;
       result = kind === 'heic' ? await decodeHeic(buf) : kind === 'webp' ? await decodeWebp(buf) : await decodeJpeg(buf);

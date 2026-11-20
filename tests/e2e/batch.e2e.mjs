@@ -1,5 +1,7 @@
-// Batch Images (#/batch, PC only): real photos of several formats → resize/convert/limit size → zip.
+// Batch Images (#/batch, PC only): real photos of several formats → resize/convert/limit size → zip; names that would
+// clash get " (2)"; sizes that cannot be made refused; a file that is no image named in a list, the others made; Stop.
 import { imageInfo, zipEntries } from '../lib/imgcheck.mjs';
+import { readFileSync } from 'node:fs';
 const F = (n) => new URL(`../fixtures/images/${n}`, import.meta.url).pathname;
 
 export default async ({ base, page: newPage, ok, download, devices }) => {
@@ -55,7 +57,36 @@ export default async ({ base, page: newPage, ok, download, devices }) => {
   await run(5);
   const kept = await page.locator('.result-row .file-name').allTextContents();
   ok(kept.includes('chelsea.png') && kept.includes('coffee.jpg'), `formats kept: ${kept}`);
-  ok(page.errors.length === 0, `no page errors: ${page.errors.join(' | ')}`);
+
+  // names that would clash, a file that is no image, sizes that cannot be made, Stop
+  const fresh = async (files) => { await page.getByRole('button', { name: 'Clear list' }).click(); await page.locator('input[type=file]').setInputFiles(files); };
+  await page.getByRole('radio', { name: 'JPEG' }).click(); await page.getByRole('radio', { name: 'Long side' }).click(); await page.getByLabel('Long side (px)').fill('200');
+  await fresh([{ name: 'coffee.jpg', mimeType: 'image/jpeg', buffer: readFileSync(F('coffee.jpg')) }, { name: 'coffee.jpg', mimeType: 'image/jpeg', buffer: readFileSync(F('coffee-gps.jpg')) }, { name: 'broken.jpg', mimeType: 'image/jpeg', buffer: Buffer.from('this is not a picture') }, { name: 'chelsea.png', mimeType: 'image/png', buffer: readFileSync(F('chelsea.png')) }]);
+  await run(3);
+  const n2 = await page.locator('.result-row .file-name').allTextContents();
+  ok(String(n2) === 'coffee.jpg,coffee (2).jpg,chelsea.jpg', `two files of one name: "coffee (2).jpg" (both were "coffee.jpg" — one overwrote the other in the zip): ${n2}`);
+  ok(/1 image could not be processed:.*broken\.jpg/.test(await page.locator('.note-err').textContent()), `a file that is no image is named in a list, the others are made (it was a toast that vanished): ${await page.locator('.note-err').textContent()}`);
+  const z2 = zipEntries(await download(page, () => page.getByRole('button', { name: /Download all \(3\)/ }).click()));
+  ok(z2 && z2.includes('coffee.jpg') && z2.includes('coffee (2).jpg') && z2.length === 3, `the zip holds both: ${z2}`);
+  await page.getByLabel('File names').fill('photo');
+  await run(3);
+  ok(String(await page.locator('.result-row .file-name').allTextContents()) === 'photo.jpg,photo (2).jpg,photo (3).jpg', 'a pattern without {n}: photo.jpg, photo (2).jpg …');
+  await page.getByLabel('File names').fill('{name}');
+  for (const [v, rx] of [['-5', /at least 1 pixel/], ['0', /at least 1 pixel/], ['12.5', /whole number of pixels/]]) {
+    await page.getByLabel('Long side (px)').fill(v); await page.getByRole('button', { name: 'Process images' }).click();
+    ok(rx.test(await page.locator('.toast').last().textContent()), `long side "${v}": refused in words (−5 made 1-pixel pictures)`);
+  }
+  await page.getByRole('radio', { name: 'Percent' }).click(); await page.getByLabel('Scale (%)').fill('0'); await page.getByRole('button', { name: 'Process images' }).click();
+  ok(/percentage above 0/.test(await page.locator('.toast').last().textContent()), 'scale 0 %: refused');
+  await page.getByLabel('Scale (%)').fill('100');
+  await fresh(Array.from({ length: 40 }, (_, i) => ({ name: `p${i}.jpg`, mimeType: 'image/jpeg', buffer: readFileSync(F('coffee.jpg')) })));
+  await page.getByRole('button', { name: 'Process images' }).click();
+  await page.waitForFunction(() => document.querySelectorAll('.result-row').length >= 2, null, { timeout: 60000 });
+  await page.getByRole('button', { name: 'Stop' }).click();
+  await page.waitForFunction(() => /Stopped/.test(document.querySelector('.progress-label')?.textContent || ''), null, { timeout: 60000 });
+  ok((await page.locator('.result-row').count()) < 40, `Stop ends the run after the image in hand (${await page.locator('.result-row').count()} of 40 made)`);
+  const unexpectedB = page.errors.filter((x) => !/pixel|percentage/.test(x));
+  ok(unexpectedB.length === 0, `no page errors: ${unexpectedB.join(' | ')}`);
 
   // PC only: hidden on phones
   const phone = await newPage({ ...devices['iPhone 13'] });

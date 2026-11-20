@@ -909,3 +909,29 @@ One entry per tab, written before its bug hunt: our module → candidates → ch
 - **Evidence:** zips, tars (gz / bz2 / xz), 7z (also with a Hindi password and encrypted names) made by Python's
   zipfile / tarfile, pyzipper and py7zr, and real RAR3 / RAR5 archives from rarfile's tests: listed, single files and
   "Download all as .zip" byte-identical; RAR contents equal to `unar`'s.
+
+## Images (20 Nov 2026 –)
+
+### 109. `image` — Image Editor (20 Nov 2026)
+- **Ours:** imgproc.wasm (our C): the adjustments (exposure in EV, brightness, contrast, highlights, shadows,
+  saturation, vibrance, hue, temperature, tint), sharpening, rotation by any angle, quarter turns and flips, crop,
+  Lanczos-3 resize. Encoders: jSquash's MozJPEG 1.6.0, libwebp 1.5.0, OxiPNG 2.3.0 — the latest.
+- **Candidates:** **@imagemagick/magick-wasm 0.0.46** (ImageMagick's own build, Apache-2.0, no threads needed):
+  15.5 MB of WebAssembly; on a 1600 × 1200 preview (Node, the same machine) modulate + brightness-contrast 236 ms,
+  unsharp 493 ms, rotate 634 ms — imgproc does all ten adjustments in one pass in 70 ms, sharpening in 396 ms, the
+  rotation in 118 ms; and it has no exposure in EV, highlights / shadows, vibrance or temperature / tint.
+  **wasm-vips 0.0.19** needs SharedArrayBuffer (threads), which needs cross-origin isolation — GitHub Pages cannot
+  send those headers and a service worker is not allowed (§1): excluded. **@jsquash/resize 2.1.1** (Squoosh's resize,
+  Rust → 34 KB of WebAssembly; the codecs' own family): Lanczos-3 **in linear light** with premultiplied alpha — a
+  1-pixel black / white checkerboard halves to 187 (the right grey), where arithmetic on sRGB values (ours, Pillow's,
+  ImageMagick's default) gives 127; 1.4 s for 12 MP → 1600 × 1200 (ours 0.9 s).
+- **Decision:** **resizing moves to @jsquash/resize** (rule 1: an existing module for the part it covers; in the codec
+  worker); **imgproc stays for the live adjustments, geometry and sharpening** — magick-wasm would make every slider
+  move two to five times slower for a 150 times larger download and still need imgproc beside it for the
+  adjustments it lacks (Claude's judgement, as for ICU4X in entry 90). The JPEG encoder gets the picture on white when
+  it has transparency (the browser's canvas compositing).
+
+### 110. `batch` — Batch Images (20 Nov 2026)
+- **Ours:** imgproc.wasm's resize; jSquash's encoders. **Decision:** as entry 109 — resizing moves to
+  **@jsquash/resize** (Lanczos-3 in linear light, premultiplied alpha, in the codec worker); decoding stays with the
+  browser (and libheif-js / jSquash where it cannot), encoding with jSquash.

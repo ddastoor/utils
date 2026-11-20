@@ -91,7 +91,7 @@ export const qr: Mount = (root) => {
     }
     return { text: '', errors: [], warnings: [] };
   };
-  const held = outputBox({ rows: 3, mono: true });
+  const held = outputBox({ rows: 3, mono: true, label: 'What the code holds' });
   const heldBox = h('details', { class: 'qr-held' }, h('summary', null, 'What the code holds'), held);
   const regen = () => { const b = build(); held.value = b.text; heldBox.hidden = !b.text; return r.run(b.text, b); };
   r.setRegen(regen);

@@ -27,6 +27,10 @@ export async function encodeImg(img: Img, fmt: Fmt, quality = 82, opts: any = {}
   const buf = await call<ArrayBuffer>({ op: 'encode', img: plain(img), fmt, quality, opts });
   return new Blob([buf], { type: MIME[fmt] });
 }
+/** Resize with Squoosh's Lanczos-3 in linear light (jSquash, in the codec worker). */
+export async function resizeImg(img: Img, width: number, height: number): Promise<Img> {
+  return call<Img>({ op: 'resize', img: plain(img), width: Math.max(1, Math.round(width)), height: Math.max(1, Math.round(height)) });
+}
 /** Largest quality whose output fits in maxBytes. */
 export async function encodeToSize(img: Img, fmt: 'jpeg' | 'webp', maxBytes: number, opts: any = {}): Promise<{ blob: Blob; quality: number; tooBig?: boolean }> {
   const r = await call<{ buf: ArrayBuffer; quality: number; tooBig?: boolean }>({ op: 'target', img: plain(img), fmt, maxBytes, opts });

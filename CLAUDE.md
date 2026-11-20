@@ -443,6 +443,15 @@ resize, brightness, contrast, exposure, saturation, vibrance, hue, temperature, 
 **target size** mode (binary search on quality, e.g. "under 200 KB"). Strip EXIF/GPS. Share button on
 mobile (Web Share) so iPhone users can save to Photos. Large photos (>16 MP) are processed in wasm
 memory, not canvas (iOS canvas limit).
+**As built after the Nov 2026 bug hunt** (`src/tools/image-editor.ts`, geometry `src/lib/editor-geom.ts`; unit
+`tests/unit/editor-geom.test.mjs` 6, e2e `tests/e2e/image-editor.e2e.mjs` 37): the live preview and the adjustments,
+geometry and sharpening are imgproc.wasm's; **resizing on export is @jsquash/resize** (Squoosh's Lanczos-3 in linear
+light, premultiplied alpha; in the codec worker — docs/WASM-AUDIT.md 109). Straightening keeps the largest centred
+rectangle of the picture's shape without an empty corner (k = min(w / (w·cos + h·sin), h / (w·sin + h·cos))); the size
+boxes take whole numbers 1 – 16,384. JPEG export puts a transparent picture on white (the codec worker, for every tab);
+WebP and PNG keep transparency. **Batch Images** (`src/tools/batch.ts`, e2e 21): the same resize; sizes and the scale
+(0 – 400 %) checked; Stop; files that cannot be read listed under the results. The shared result list
+(`resultList` in `src/lib/imgtools.ts`) gives a second result of one name " (2)" (zip downloads keep every file).
 
 ### Passport Photo (India first)
 Camera (owner, Nov 16 2026: **on phones use the phone's camera, on PC use the webcam** — one "Use camera" button opens
@@ -1649,7 +1658,7 @@ stay **public** (the source of the deployed site is then available to every user
 | Biome 2.6.8 (formatter for JS / JSX / TS / TSX, CSS, SCSS, YAML, GraphQL; 70 MB) | Rust | Biome project (official `@biomejs/wasm-web`), run in `src/workers/codefmt.worker.ts` (terminated on leave) | prettier (Code Formatter) |
 | dprint plugins: `@dprint/json` 0.26 and `dprint-plugin-markup` 0.28 (markup_fmt) — the JSON and HTML / Vue engines of `deno fmt` — behind the host `@dprint/formatter` 0.6 (JavaScript, 40 KB) | Rust | dprint project / g-plane (the plugins are published as WebAssembly: that is how dprint runs them) | prettier (Code Formatter) |
 | FFmpeg | C | ffmpeg.wasm project | ffmpeg |
-| MozJPEG, libwebp, OxiPNG | C / Rust | jSquash (Squoosh codecs) | image encoders |
+| MozJPEG, libwebp, OxiPNG, Squoosh's resize (Lanczos-3 in linear light) | C / Rust | jSquash (Squoosh codecs; `@jsquash/resize` since Nov 2026) | image encoders; resizing in the Image Editor and Batch Images (`docs/WASM-AUDIT.md`, tabs 109, 110) |
 | libheif + libde265 | C++ | libheif-js | heic |
 | Tesseract 5 | C++ | tesseract.js-core | ocr |
 | zxing-cpp | C++ | zxing-wasm | qr, barcode, scan |
@@ -2129,7 +2138,7 @@ npm packages (pinned in `package-lock.json`) are bundled by Vite or copied to `p
 | @ffmpeg/ffmpeg, @ffmpeg/util, @ffmpeg/core | MIT / GPL-2.0+ (core) | FFmpeg |
 | mupdf (Artifex, official wasm) | AGPL-3.0 | all PDF tools, Doc Scanner PDF output |
 | fflate | MIT | EPUB zip |
-| @jsquash/jpeg (MozJPEG), /webp, /oxipng | Apache-2.0 (+ codec licences) | image encoders |
+| @jsquash/jpeg (MozJPEG), /webp, /oxipng, /resize | Apache-2.0 (+ codec licences) | image encoders; resizing |
 | @mediapipe/tasks-vision | Apache-2.0 | Passport |
 | @tensorflow/tfjs-core, -converter, -backend-webgl, -backend-wasm (XNNPACK wasm), -backend-cpu | Apache-2.0 | Cartoonizer style transfer |
 | tesseract.js, tesseract.js-core, @tesseract.js-data/eng, /fra, /spa, /deu | Apache-2.0 / MIT | OCR |
