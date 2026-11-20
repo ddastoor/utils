@@ -54,4 +54,31 @@ export default async (t, { load, wasm, root }) => {
   { let msg = ''; try { await decrypt(new Blob([enc('not a usodium file at all, just some text here!!')]), enc('pw'), lib, codec); } catch (e) { msg = e.message; } t.ok(msg.length > 0, `not a USODIUM1 file: refused (${msg})`); }
   // the random bytes and salts
   { const r = [lib.random(16), lib.random(16)]; t.ok(r[0].length === 16 && !Buffer.from(r[0]).equals(Buffer.from(r[1])), 'random salts differ'); }
+
+  // ---- encrypted text as people paste it (src/lib/sodium-format.ts)
+  const { readEncryptedText, encryptedTextFile } = await load('/src/lib/sodium-format.ts');
+  { const ct = await bytes(await encrypt(new Blob([enc('hello sodium')]), enc('pw'), TINY, lib, codec));
+    const b64 = Buffer.from(ct).toString('base64'), url = b64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    const back = async (x) => { const r = readEncryptedText(x); return 'bytes' in r ? new TextDecoder().decode(await bytes(await decrypt(new Blob([r.bytes]), enc('pw'), lib, codec))) : r.error; };
+    t.eq(await back(b64), 'hello sodium', 'Base64 as written');
+    t.eq(await back(b64.replace(/(.{20})/g, '$1\n')), 'hello sodium', 'broken over lines (as an e-mail wraps it)');
+    t.eq(await back(`  "${b64}"  `), 'hello sodium', 'in quotation marks, with spaces (the browser said "Failed to execute \'atob\'")');
+    t.eq(await back(`“${b64}”`), 'hello sodium', '… in curly ones');
+    t.eq(await back(url), 'hello sodium', 'URL-safe Base64 without padding');
+    t.eq(await back(`https://ddastoor.github.io/utils/#/sharelink?d=${url}`), 'hello sodium', 'a whole share link: its d= part is read');
+    t.eq(await back(`Open this: https://x.example/#/sharelink?d=${url} — the password is on WhatsApp`), 'hello sodium', '… also inside a sentence');
+    t.eq(readEncryptedText('hello there!'), { error: 'That is not the encrypted text of Sodium Encrypt — it holds characters Base64 does not use (!).' }, 'text that is not Base64: said in words (it was the browser\'s "string to be decoded is not correctly encoded")');
+    t.eq(readEncryptedText('SGVsbG8gd29ybGQ='), { error: 'That is Base64, but not text encrypted by Sodium Encrypt (it begins with "VVNPRElVTTE").' }, 'Base64 of something else');
+    t.eq(readEncryptedText(b64.slice(0, 41)).error ?? 'decoded', 'The encrypted text is cut short — copy all of it.', 'cut at a length Base64 cannot have');
+    t.eq(readEncryptedText('   '), { error: 'Paste the encrypted text (it begins with "VVNPRElVTTE").' }, 'nothing');
+    const file = await encryptedTextFile(new Blob([`\uFEFF${b64.replace(/(.{76})/g, '$1\r\n')}\r\n`]));
+    t.ok(file && Buffer.from(file).equals(Buffer.from(ct)), 'a .txt file holding the encrypted text (with a BOM and Windows line ends) is read as the encrypted bytes (it was "Not a Sodium Encrypt file")');
+    t.eq([await encryptedTextFile(new Blob([ct])), await encryptedTextFile(new Blob(['just a note']))], [null, null], 'the encrypted bytes themselves, and other text: not taken for encrypted text'); }
+  // ---- a key that cannot be derived (a phone without the memory a "Maximum" file asks for)
+  { const broke = { ...lib, pwhash: () => { throw new RangeError('Aborted(OOM)'); } };
+    const ct = await encrypt(new Blob([enc('x')]), enc('pw'), { ops: 4, memKiB: 1 << 20 }, { ...lib, pwhash: (p, s2) => lib.pwhash(p, s2, 1, 8) }, codec);
+    let msg = ''; try { await decrypt(ct, enc('pw'), broke, codec); } catch (e) { msg = e.message; }
+    t.eq(msg, 'Deriving the key needs 1 GiB of memory, which this device could not give (Aborted(OOM)). Close other tabs and try again, or open it on a computer.', 'the memory a file asks for, when the device cannot give it: said in words');
+    const steps = []; await decrypt(await encrypt(new Blob([enc('x')]), enc('pw'), TINY, lib, codec), enc('pw'), lib, codec, (f, txt) => steps.push([f, txt]));
+    t.eq(steps[0], [null, 'Deriving key with Argon2id (8 KiB)…'], 'while the key is derived the progress bar has no fraction to show (it sat at 0 %)'); }
 };

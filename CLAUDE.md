@@ -521,6 +521,15 @@ then ciphertext chunks: each = chunk plaintext + 17 bytes; last chunk carries TA
 The 41..61-byte header (everything before the first chunk) is also used as additional data? — No: AD is
 empty; integrity of parameters is implicit because wrong parameters derive a wrong key and the first
 chunk fails to authenticate.
+**As built after the Nov 2026 bug hunt** (`sodium_` in `src/tools/security.ts`; format `src/lib/usodium.ts` and
+`src/lib/sodium-format.ts`; unit `tests/unit/usodium.test.mjs` 43, e2e `tests/e2e/sodium.e2e.mjs` 25): **the cryptography is
+libsodium.js** (`libsodium-wrappers-sumo`, libsodium 1.0.22 — `src/wasm/libsodium.ts`) in the crypto worker; the 61-byte
+header stays crypto.wasm's (our C); the format is unchanged (files of either engine open with the other; PyNaCl's
+reference decryptor opens both). Encrypted text is read as people paste it — Base64 standard or URL-safe, broken over
+lines, in quotation marks, or a whole share link (`readEncryptedText`); a .txt file holding it is read as the encrypted
+bytes (`encryptedTextFile`); what is not encrypted text is said in words. The key derivation shows an indeterminate
+progress with the memory it takes, and a failure to get that memory is said. The version in the note comes from the
+worker after a run.
 
 ### Hash / Checksum
 Algorithms: MD5, SHA-1 (legacy, labelled), SHA-256, SHA-512, SHA3-256, SHA3-512, BLAKE2b-256,

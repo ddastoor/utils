@@ -56,7 +56,7 @@ Areas with a shared review: the app shell (router, search, favorites, platform h
 | id | Tab | Platform | Area | R | B | T | Notes |
 |---|---|---|---|---|---|---|---|
 | `pgp` | OpenPGP | PC + mobile | security-codes | ✓ | 8 | 61 | a 2nd recipient was dropped (library reads 1 armored block); stored file name; armor inside e-mail; errors in words; key IDs; fingerprint+date; RFC 9580 vectors; gpg both ways. Engine kept (rPGP semantics layer experimental) |
-| `sodium` | Sodium Encrypt | PC + mobile | security-codes |  |  |  |  |
+| `sodium` | Sodium Encrypt | PC + mobile | security-codes | ✓ | 4 | 52 | engine → libsodium.js (sumo, libsodium 1.0.22) + crypto.wasm header; pasted text in every form (atob errors), .txt files, progress during Argon2; PyNaCl + cross-engine tests |
 | `sharelink` | Encrypted Share Link | PC + mobile | security-codes |  |  |  |  |
 | `hash` | Hash / Checksum | PC + mobile | security-codes |  |  |  |  |
 | `password` | Password Generator | PC + mobile | security-codes |  |  |  |  |
@@ -1284,3 +1284,19 @@ Reference for the five finance tabs: **mpmath at 60 digits** (`scripts/make-fina
   Checked against gpg 2.4 in both directions: keys, two recipients, clear-signed and detached signatures (also of
   typed text against the same text in a file), passwords, the revocation certificate; RFC 9580 (v6 key of Annex A.4,
   SEIPD v2, AEAD OCB / EAX, Argon2) in Node and in the tab.
+
+- **`sodium` (tab 101, 4 bugs; engine: the cryptography moved to libsodium.js — the libsodium project's own
+  WebAssembly build, libsodium 1.0.22 — with crypto.wasm kept for the USODIUM1 header; unit
+  `tests/unit/usodium.test.mjs` 43 — new; e2e 25 — was 16).**
+  1. Text that is not Base64 gave the browser's own words: "Failed to execute 'atob' on 'Window': The string to be
+     decoded is not correctly encoded."
+  2. … and so did good encrypted text in quotation marks, and a whole share link pasted into the box (its d= part is
+     the very same text). Both are read now; URL-safe Base64 and text broken over lines too.
+  3. A .txt file holding the encrypted text (saved from an e-mail) was refused as "Not a Sodium Encrypt file"; it
+     is read as the encrypted bytes now.
+  4. While the key was derived the progress bar sat at 0 % (four seconds and more with "Maximum"); it shows that it
+     is working now, with the memory the file asks for ("Deriving key with Argon2id (1 GiB)…").
+  Also: a key derivation that fails (a phone without the 1 GiB a "Maximum" file asks for) says so in words; the tab
+  no longer loads crypto.wasm on the page as it opens just to print libsodium's version (the worker reports the
+  version of the engine that did the work). Files of the old engine open with the new one and the other way round;
+  the PyNaCl reference decryptor opens what the new one writes.

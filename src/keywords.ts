@@ -37,7 +37,7 @@ export const KEYWORDS: Record<string, string> = {
   'rent': 'rent receipt, hra, house rent, landlord, tenant, receipt, income tax, pan, revenue stamp',
   'resume': 'resume, cv, cv maker, resume maker, curriculum vitae, biodata, job application, pdf resume',
   'pgp': 'verify signature, signed message, encrypt for someone, gpg encrypt, pgp, gpg, gnupg, openpgp, encrypt, decrypt, sign, verify, public key, private key, keypair, asc, armor',
-  'sodium': 'encrypt, decrypt, password, libsodium, argon2, xchacha20, secure, lock file, symmetric',
+  'sodium': 'encrypt, decrypt, password, libsodium, argon2, xchacha20, secure, lock file, symmetric, encrypt file, password protect file, encrypt text, secret message, usodium',
   'sharelink': 'share, link, secret, message, encrypted, url, send password, note',
   'hash': 'hash, checksum, md5, sha1, sha256, sha512, sha3, blake2, crc32, verify, integrity, download',
   'password': 'password, generate, random, strong, secure, pin',

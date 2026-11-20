@@ -6,7 +6,7 @@ let worker: Worker | null = null;
 /** libsodium's version, as the worker reports it with a result of the USODIUM1 format ('' until then). */
 export let sodiumVersion = '';
 let seq = 0;
-const pending = new Map<number, { resolve: (v: any) => void; reject: (e: Error) => void; onProgress?: (f: number, t: string) => void }>();
+const pending = new Map<number, { resolve: (v: any) => void; reject: (e: Error) => void; onProgress?: (f: number | null, t: string) => void }>();
 
 function w() {
   if (!worker) {
@@ -23,7 +23,7 @@ function w() {
   return worker;
 }
 
-function call<T>(msg: any, onProgress?: (f: number, t: string) => void): Promise<T> {
+function call<T>(msg: any, onProgress?: (f: number | null, t: string) => void): Promise<T> {
   const id = ++seq;
   return new Promise<T>((resolve, reject) => { pending.set(id, { resolve, reject, onProgress }); w().postMessage({ ...msg, id }); });
 }
@@ -34,9 +34,9 @@ export const STRENGTH = {
   sensitive: { label: 'Maximum (1 GiB)', ops: 4, memKiB: 1024 * 1024 },
 } as const;
 
-export const encryptBlob = (data: Blob, password: string, s: { ops: number; memKiB: number }, onProgress?: (f: number, t: string) => void) =>
+export const encryptBlob = (data: Blob, password: string, s: { ops: number; memKiB: number }, onProgress?: (f: number | null, t: string) => void) =>
   call<Blob>({ op: 'encrypt', data, password: new TextEncoder().encode(password), ops: s.ops, memKiB: s.memKiB }, onProgress);
-export const decryptBlob = (data: Blob, password: string, onProgress?: (f: number, t: string) => void) =>
+export const decryptBlob = (data: Blob, password: string, onProgress?: (f: number | null, t: string) => void) =>
   call<Blob>({ op: 'decrypt', data, password: new TextEncoder().encode(password) }, onProgress);
-export const hashBlob = (data: Blob, algs: HashAlg[], onProgress?: (f: number, t: string) => void) =>
+export const hashBlob = (data: Blob, algs: HashAlg[], onProgress?: (f: number | null, t: string) => void) =>
   call<Record<HashAlg, string>>({ op: 'hash', data, algs }, onProgress);

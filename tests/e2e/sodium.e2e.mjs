@@ -57,8 +57,33 @@ export default async ({ base, page: newPage, ok, info, download, tmp, devices })
   await fv(page, 'Text to encrypt').fill('x'); await pw.fill('abcdefgh1'); await pw2.fill('abcdefgh2'); await run();
   ok(/do not match/.test(await toastText()), 'password mismatch refused');
   await pw.fill(''); await run(); ok(/Enter a password/.test(await toastText()), 'empty password refused');
-  const unexpected = page.errors.filter((e) => !/password|corrupt|tamper|damaged|truncat|incomplete|do not match|Enter a password/i.test(e)); // the button helper also logs the expected messages
+  const unexpected = page.errors.filter((e) => !/password|corrupt|tamper|damaged|truncat|incomplete|do not match|Enter a password|Base64/i.test(e)); // the button helper also logs the expected messages
   ok(!unexpected.length, `no unexpected page errors ${unexpected.join(' | ')}`);
+  // ---- Nov 2026 bug hunt: the engine is libsodium.js; encrypted text as people paste it; a .txt file of it; Maximum
+  ok(/libsodium 1\.0\.22\)/.test(await page.locator('.note').last().textContent()), `the note names the engine's libsodium after a run (${(await page.locator('.note').last().textContent()).slice(0, 80)})`);
+  await seg('Decrypt'); await seg('Text');
+  const urlSafe = ct.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  for (const [label, v] of [['broken over lines', ct.replace(/(.{40})/g, '$1\n')], ['in quotation marks', `"${ct}"`], ['a whole share link', `https://ddastoor.github.io/utils/#/sharelink?d=${urlSafe}`]]) {
+    await fv(page, 'Decrypted text').evaluate((e) => { e.value = ''; }).catch(() => {});
+    await fv(page, 'Encrypted text (Base64)').fill(v); await pw.fill('correct horse 123'); await run();
+    ok(await fv(page, 'Decrypted text').inputValue({ timeout: 60000 }) === MSG, `encrypted text ${label} is read (it gave the browser's "Failed to execute 'atob'")`);
+  }
+  await fv(page, 'Encrypted text (Base64)').fill('hello there!'); await pw.fill('x'); await run();
+  ok(/it holds characters Base64 does not use \(!\)/.test(await toastText()), `text that is not Base64: said in words (${await toastText()})`);
+  await fv(page, 'Encrypted text (Base64)').fill('SGVsbG8gd29ybGQ='); await run();
+  ok(/That is Base64, but not text encrypted by Sodium Encrypt/.test(await toastText()), 'Base64 of something else: said');
+  await seg('File'); const txt = join(tmp, 'mail.txt'); writeFileSync(txt, `\ufeff${ct.replace(/(.{76})/g, '$1\r\n')}\r\n`);
+  await page.locator('input[type=file]').setInputFiles(txt); await pw.fill('correct horse 123');
+  const fromTxt = await download(page, run);
+  ok(readFileSync(fromTxt, 'utf8') === MSG, 'a .txt file holding the encrypted text decrypts (it was "Not a Sodium Encrypt file")');
+  // Maximum (1 GiB) on a desktop: there and back
+  await seg('Encrypt'); await seg('Text'); await seg('Maximum (1 GiB)');
+  await fv(page, 'Text to encrypt').fill('the most careful setting'); await pw.fill('max setting 789'); await pw2.fill('max setting 789'); await run();
+  const big = await fv(page, 'Encrypted text — share this').inputValue({ timeout: 120000 });
+  const bb = Buffer.from(big, 'base64');
+  ok(bb.readUInt32LE(9) === 4 && bb.readUInt32LE(13) === 1048576, 'Maximum: ops 4 and 1 GiB in the header');
+  await seg('Decrypt'); await fv(page, 'Encrypted text (Base64)').fill(big); await pw.fill('max setting 789'); await run();
+  ok(await fv(page, 'Decrypted text').inputValue({ timeout: 120000 }) === 'the most careful setting', '… and it decrypts (1 GiB of Argon2id in the browser\'s worker)');
   const ph = await newPage(devices['iPhone 13']); await ph.goto(`${base}#/sodium`); await ph.locator('input[aria-label="Password"]').waitFor();
   ok(!(await ph.getByRole('radio', { name: 'Maximum (1 GiB)' }).count()) && await ph.getByRole('radio', { name: 'Fast (64 MiB)' }).isChecked(), 'phone: 1 GiB preset hidden, Fast by default');
   ok(await ph.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'phone: no horizontal scroll');

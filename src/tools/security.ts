@@ -3,6 +3,7 @@ import {
   downloadBlob, copy, toast, fmtBytes, stack, row, clear, ic, type Mount,
 } from '../ui';
 import { encryptBlob, decryptBlob, hashBlob, STRENGTH, sodiumVersion } from '../lib/crypto-client';
+import { readEncryptedText, encryptedTextFile } from '../lib/sodium-format';
 import { sodium, HASH_ALGS, type HashAlg, toB64, fromB64 } from '../wasm/crypto';
 import { isMobile } from '../platform';
 
@@ -46,10 +47,14 @@ export const sodium_: Mount = (root) => {
     if (mode === 'encrypt' && pw !== pw2.inp.value) throw new Error('Passwords do not match.');
     if (mode === 'encrypt' && pw.length < 8) toast('Tip: use a longer password (12+ characters).', 'info');
     let data: Blob;
-    if (kind === 'file') { if (!file) throw new Error('Choose a file first.'); data = file; }
-    else if (mode === 'encrypt') data = new Blob([text.value]);
-    else data = new Blob([fromB64(text.value.trim()) as BlobPart]);
-    const onP = (f: number, t: string) => prog.set(f, t);
+    if (kind === 'file') {
+      if (!file) throw new Error('Choose a file first.');
+      // a file that holds the encrypted text (saved from an e-mail) instead of the encrypted bytes
+      const fromText = mode === 'decrypt' ? await encryptedTextFile(file) : null;
+      data = fromText ? new Blob([fromText as BlobPart]) : file;
+    } else if (mode === 'encrypt') data = new Blob([text.value]);
+    else { const r = readEncryptedText(text.value); if ('error' in r) throw new Error(r.error); data = new Blob([r.bytes as BlobPart]); }
+    const onP = (f: number | null, t: string) => prog.set(f, t);
     clear(outputArea);
     try {
       const res = mode === 'encrypt' ? await encryptBlob(data, pw, STRENGTH[strength], onP) : await decryptBlob(data, pw, onP);

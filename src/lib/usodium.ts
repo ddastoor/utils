@@ -6,12 +6,23 @@ import type { SodiumHeader } from '../wasm/crypto';
 import { CHUNK, HEADER_LEN } from './sodium-format';
 
 export interface HeaderCodec { write(h: SodiumHeader): Uint8Array; parse(b: Uint8Array): SodiumHeader }
-type Progress = (frac: number, text: string) => void;
+type Progress = (frac: number | null, text: string) => void;
+
+/** 64 MiB, 1 GiB, 8 KiB. */
+const amount = (kib: number) => (kib >= 1 << 20 ? `${+(kib / (1 << 20)).toFixed(2)} GiB` : kib >= 1024 ? `${+(kib / 1024).toFixed(1)} MiB` : `${kib} KiB`);
+
+/** Argon2id with its failure said: on a phone the memory the file asks for may not be there. */
+function derive(na: StreamCrypto, password: Uint8Array, salt: Uint8Array, ops: number, memKiB: number): Uint8Array {
+  try { return na.pwhash(password, salt, ops, memKiB); }
+  catch (e) {
+    throw new Error(`Deriving the key needs ${amount(memKiB)} of memory, which this device could not give (${e instanceof Error ? e.message : String(e)}). Close other tabs and try again, or open it on a computer.`);
+  }
+}
 
 export async function encrypt(data: Blob, password: Uint8Array, s: { ops: number; memKiB: number }, na: StreamCrypto, codec: HeaderCodec, progress: Progress = () => {}): Promise<Blob> {
-  progress(0, 'Deriving key with Argon2id…');
+  progress(null, 'Deriving key with Argon2id…');
   const salt = na.random(16);
-  const key = na.pwhash(password, salt, s.ops, s.memKiB);
+  const key = derive(na, password, salt, s.ops, s.memKiB);
   const st = na.pushStream(key);
   key.fill(0);
   const parts: BlobPart[] = [codec.write({ ops: s.ops, memKiB: s.memKiB, chunk: CHUNK, salt, header: st.header }) as BlobPart];
@@ -30,8 +41,8 @@ export async function encrypt(data: Blob, password: Uint8Array, s: { ops: number
 export async function decrypt(data: Blob, password: Uint8Array, na: StreamCrypto, codec: HeaderCodec, progress: Progress = () => {}): Promise<Blob> {
   const head = new Uint8Array(await data.slice(0, HEADER_LEN).arrayBuffer());
   const h = codec.parse(head);
-  progress(0, 'Deriving key with Argon2id…');
-  const key = na.pwhash(password, h.salt, h.ops, h.memKiB);
+  progress(null, `Deriving key with Argon2id (${amount(h.memKiB)})…`);
+  const key = derive(na, password, h.salt, h.ops, h.memKiB);
   const st = na.pullStream(key, h.header);
   key.fill(0);
   const parts: BlobPart[] = [];

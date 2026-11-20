@@ -12,7 +12,7 @@ const post = (m: any, transfer: Transferable[] = []) => (self as any).postMessag
 
 self.onmessage = async (ev: MessageEvent<Msg>) => {
   const msg = ev.data;
-  const progress = (frac: number, text: string) => post({ id: msg.id, type: 'progress', frac, text });
+  const progress = (frac: number | null, text: string) => post({ id: msg.id, type: 'progress', frac, text });
   try {
     const na = await sodium();
     if (msg.op === 'hash') {
