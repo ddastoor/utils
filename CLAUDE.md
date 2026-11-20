@@ -376,6 +376,16 @@ Tests: JFK clip (public domain) word for word with base.en; LibriSpeech 1089-134
 round trips through our own TTS — Indian English (Piper SVBI) with small.en WER ≤ 20 % (observed ~12 %; Piper's
 sampling makes each run differ), base.en reported (11–28 % seen), US English (Kokoro Michael) WER ≤ 15 % (0 %);
 hint-box spellings; .srt/.vtt/.txt; segments; stop.
+**As built after the Nov 2026 bug hunt** (e2e 19; docs/BUGHUNT.md tab 149, docs/WASM-AUDIT.md 146): **the names and terms
+guide every 30 s window** (`carry_initial_prompt` in the glue — whisper.cpp otherwise lets the prompt slide out of its
+rolling context after ~224 tokens; it drops prompts for the last 5 s of a recording by design); the page decodes
+straight to 16 kHz (`decodeAudio(blob, 16000)`: an hour of 48 kHz stereo is 1.4 GB at its own rate) and the player keeps
+the file; a new file ends a running job and clears the old transcript; the newest file wins and Transcribe waits for
+it; "no speech was found in this recording"; the model download grows its buffer when a server sends more than it
+announced, and a dropped or cut download is said in words; a hint over 60 words gets a note (Whisper reads 223 tokens,
+the end kept). Tests added: a 95 s meeting (LibriSpeech, JFK, eleven sentences of our TTS) — the names spelled as hinted
+at 83 s and nothing skipped; a new file; the newest file; silence; the long hint; a model larger than announced; a
+dropped download.
 
 **Text-to-Speech** (`tts`) — **BUILT** (`src/tools/tts.ts`, worker `src/workers/tts.worker.ts`, front ends
 `src/lib/kokoro.ts` + `src/lib/piper.ts`; unit `espeak.test.mjs` 14 + `tts-text.test.mjs` 26; e2e `tts.e2e.mjs` 13).
@@ -2217,7 +2227,8 @@ a `std::thread` that runs its work at once (whisper.cpp joins workers right away
 FILE*-based `std::ifstream/ofstream` (opening fails in the browser; we load models from memory). `-fwasm-exceptions`
 crashes clang here, so C++ is built with `-fexceptions` and `cxxabi_stubs.c` makes `throw` report and abort (only fatal
 paths throw). `-D_WASI_EMULATED_SIGNAL` + `-lwasi-emulated-signal`; max memory 4 GiB − 64 KiB; 8 MiB stack. Glue:
-`w_load(buf, len)`, `w_transcribe(pcm, n, prompt, beam, &len)` → JSON segments (t0/t1 in centiseconds), `w_unload`.
+`w_load(buf, len)`, `w_transcribe(pcm, n, prompt, beam, &len)` → JSON segments (t0/t1 in centiseconds; with a prompt,
+`carry_initial_prompt` so it guides every window — Nov 2026), `w_unload`.
 Imports: WASI + `env.w_progress` (`instantiateWasi(url, extra)` takes extra import modules now).
 **Big models:** `scripts/assets.json` entries with `"split": N` are verified, then stored as `<name>.0 … .k` (≤ N bytes)
 + `<name>.parts.json` (sha256, size, part sizes) and the whole file removed, so no deployed file exceeds 100 MB.

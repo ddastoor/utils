@@ -68,7 +68,7 @@ Areas with a shared review: the app shell (router, search, favorites, platform h
 | `video` | Video Compressor | PC + mobile | video |  |  |  |  |
 | `audio` | Audio Recorder | PC + mobile | audio | ✓ | 5 | 4 | decoded at the file's own rate (was the device's: 44.1 kHz saved as 48 kHz); newest file wins; mic errors in words |
 | `tts` | Text-to-Speech | PC + mobile | audio | ✓ | 6 | 3 | Speak stayed busy after Stop; runs queued in the worker; sentence shown when heard; system-voice errors; text encodings; download size |
-| `stt` | Speech to Text | PC + mobile | audio |  |  |  |  |
+| `stt` | Speech to Text | PC + mobile | audio | ✓ | 11 | 8 | names box faded after ~224 tokens (carry_initial_prompt, rebuilt whisper.wasm); decode at 16 kHz; new file clears transcript; download overflow |
 | `noise` | Noise Remover | PC + mobile | audio | ✓ | 11 | 33 | Jitsi's RNNoise 0.2 build (= the release's standard 8-bit computation; ours ran the debug float weights, 4× larger); Save after a new file; strength re-cleaned everything; stereo voice; 16-bit WAV round trip |
 | `pitch` | Pitch & Speed | PC + mobile | audio | ✓ | 8 | 7 | Signalsmith Stretch (official wasm/AudioWorklet, MIT) replaces our WSOLA: chord 7-15 dB cleaner; Save after a new file; coalesced renders; selection follows the passage |
 | `slideshow` | Slideshow Maker | PC + mobile | video |  |  |  |  |
@@ -2028,3 +2028,22 @@ Reference for the five finance tabs: **mpmath at 60 digits** (`scripts/make-fina
   - Found while writing it (not shipped): the coalescing promise (`busy ||= (async () => …)()`) cleared itself before
     the assignment when there was nothing to render and stayed settled for good — `await null` first; the suite's
     first slider check caught it.
+- **`stt` (tab 149, 11 bugs; whisper.cpp 1.8.3, our build, stays — WASM-AUDIT 146; whisper.wasm rebuilt; e2e 19 — was 11).**
+  1. **The names and terms stopped guiding the spelling after a minute or two:** whisper.cpp keeps the prompt at the head
+     of its rolling context and pushes it out after ~224 tokens — at 83 s into a meeting "Zentrixa … Anvika
+     Raghunathan" came out "Zentrixor … Amvika Raganathan". `carry_initial_prompt` keeps it in every window.
+  2. **A new file left the previous transcript on screen:** its .txt / .srt / .vtt took the new file's name and its
+     segments played the new file. A new file clears it.
+  3. A new file chosen during a transcription let it run on, and its result appeared under the new file: it is ended.
+  4. The newest file did not win; Transcribe could be pressed while a new file was being read (it transcribed the old).
+  5. **Memory:** the page decoded at the file's rate and the worker resampled — an hour of 48 kHz stereo was 1.4 GB on
+     the page. Decoded straight to 16 kHz now (`decodeAudio(blob, 16000)`), a third; the player keeps the file.
+  6. A recording without speech showed an empty transcript and "0 segments": "no speech was found in this recording".
+  7. **The model download wrote past its buffer** when a server sent more bytes than its HEAD announced (compression):
+     the buffer grows (checked with a route that announces 1,000 bytes).
+  8. A dropped connection said "Failed to fetch" / "network error": "Could not download … — check the connection";
+     a stream cut halfway is "interrupted".
+  9. A long hint was cut by Whisper (223 tokens, the end kept) without a word: a note from 60 words.
+  10. Leaving while a file was being read made a blob URL after the tab was gone.
+  11. The Settings note claimed nothing about long recordings; it now says the names guide the whole recording (true
+      with 1; whisper.cpp drops prompts for the last 5 s — recorded in WASM-AUDIT 146).

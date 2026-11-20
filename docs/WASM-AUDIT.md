@@ -1250,3 +1250,20 @@ One entry per tab, written before its bug hunt: our module → candidates → ch
   to 6, as measured). It runs in an OfflineAudioContext (the browser's audio thread; AudioWorklet in Chrome, Firefox,
   Safari 14.1+); the worklet loads the package's own file by its URL — the package would otherwise make a blob: module,
   which our CSP refuses. Glue: `src/lib/stretch.ts`. The WSOLA code is removed from audio.wasm (no other user).
+
+### 146. `stt` — Speech to Text (20 Nov 2026)
+- **Ours:** whisper.cpp 1.8.3 (the release vendored by whisper-rs-sys 0.15.0, the newest crate, March 2026), built by us
+  single-threaded with WebAssembly SIMD (1.2 MB) + glue. **Candidates:** @remotion/whisper-web 4.0.545 (Remotion, MIT,
+  36 k a month) — **needs cross-origin isolation** (SharedArrayBuffer for its threads): GitHub Pages cannot send
+  COOP / COEP and a service worker is ruled out, so it cannot run here; whisper.cpp's own wasm example — threads, the
+  same; @fugood/node-whisper-wasm 1.1.3 (the browser back end of whisper.node, MIT, 26 k; 1.2 is a release candidate) —
+  the same whisper.cpp in 4.1 MB with WebGPU and Parakeet beside it, but it fetches a model by URL into Emscripten's
+  file system (a second copy of 190 MB beside the loaded model; our small.en is three parts streamed straight into the
+  engine's memory) and keeps it in Cache Storage by default; @huggingface/transformers (Whisper on ONNX Runtime Web —
+  famous, a JavaScript pipeline around the official ORT build, other model files; its WebGPU path is the one reason to
+  move, as for Kokoro: noted, not taken).
+- **Decision:** ours stays. Changed: `carry_initial_prompt` when there are names and terms — whisper.cpp otherwise lets
+  the prompt slide out of its rolling context after ~224 tokens (checked: a name at 83 s of a varied meeting came out
+  "Zentrixor … Amvika Raganathan" before, "Zentrixa … Anvika Raghunathan" after; the rest of the transcript identical).
+  Limits recorded: whisper.cpp drops every prompt for the last 5 s of a recording (on purpose: it confuses the decoder);
+  verbatim-repeated 20 s blocks can make Whisper skip a block (seen with the prompt carried, and at the end without it).

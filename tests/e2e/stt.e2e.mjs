@@ -1,7 +1,8 @@
 // Speech to Text (#/stt): our whisper.cpp wasm + Whisper English models. Known answers: the JFK inaugural clip and a
 // LibriSpeech sample (word error rate), and round trips through our own Text-to-Speech — Indian English (Piper) and
 // US English (Kokoro) voices read sentences that must come back as text. Also: hint box spelling, .srt/.vtt, stop.
-import { readFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
 const S = (n) => new URL(`../fixtures/speech/${n}`, import.meta.url).pathname;
 const norm = (t) => t.toLowerCase().replace(/\bmr\b\.?/g, 'mister').replace(/\b7\b/g, 'seven').replace(/[^a-z0-9' ]+/g, ' ').replace(/\s+/g, ' ').trim().split(' ').filter(Boolean);
 /** word error rate of `hyp` against `ref` (Levenshtein over words) */
@@ -12,7 +13,7 @@ export function wer(ref, hyp) {
   return d[r.length][h2.length] / r.length;
 }
 
-export default async ({ base, page: newPage, ok, info, download }) => {
+export default async ({ base, page: newPage, ok, info, download, tmp }) => {
   const page = await newPage({ viewport: { width: 1280, height: 1100 } });
   await page.goto(`${base}#/stt`);
   const transcribe = async (file, model) => {
@@ -81,6 +82,67 @@ export default async ({ base, page: newPage, ok, info, download }) => {
   info(`without hints: "${plain.text}" · with hints: "${hinted.text}"`);
   ok(/Zentrixa/.test(hinted.text) && /Anvika/.test(hinted.text) && /Raghunathan/.test(hinted.text), 'hint box gives the expected spellings');
   await page.getByLabel('Names and terms').fill('');
+
+  // 4b. a long recording: the names guide every 30 s window, not only the first. whisper.cpp keeps the prompt at the head
+  // of its rolling context and pushes it out after ~224 tokens of transcript — at 83 s "Zentrixor … Amvika Raganathan"
+  // came back; `carry_initial_prompt` keeps it in every window. A varied meeting (verbatim repeats make Whisper skip):
+  // LibriSpeech and JFK, then ten sentences, the names and a closing sentence from our Text-to-Speech.
+  const MEETING = ['Good morning everyone, and thank you for joining the quarterly planning meeting.', 'First, the warehouse in Pune finished moving its stock to the new building last week.', 'Deliveries were late on two days because a truck broke down near the highway toll plaza.', 'The finance team wants every invoice uploaded before the twentieth of each month.', 'We also hired three engineers who will start on the mobile application in January.', 'Customer complaints went down by about a third after the new help desk opened.', 'Next quarter we plan to open a small office in Bengaluru for the support staff.', 'The marketing budget stays the same, but more of it will go to online videos.', 'Please read the safety rules again, because the fire drill showed some problems.', 'Lunch will be served in the canteen on the ground floor after this meeting.', NAMES, 'The meeting ended at four, and everyone went home early because of the rain.'].join(' ');
+  const mW = await speak('am_michael', MEETING);
+  const b64 = (f) => readFileSync(f).toString('base64');
+  const longB64 = await page.evaluate(async ([a, b, c]) => {
+    const dec = async (s) => (await new OfflineAudioContext(1, 1, 16000).decodeAudioData(Uint8Array.from(atob(s), (x) => x.charCodeAt(0)).buffer)).getChannelData(0);
+    const gap = new Float32Array(8000), parts = [await dec(a), gap, await dec(b), gap, await dec(c)];
+    const n = parts.reduce((t, p) => t + p.length, 0), buf = new ArrayBuffer(44 + n * 2), v = new DataView(buf), w = (o, t) => [...t].forEach((ch, i) => v.setUint8(o + i, ch.charCodeAt(0)));
+    w(0, 'RIFF'); v.setUint32(4, 36 + n * 2, true); w(8, 'WAVEfmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true); v.setUint32(24, 16000, true); v.setUint32(28, 32000, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true); w(36, 'data'); v.setUint32(40, n * 2, true);
+    let o = 44; for (const p of parts) for (const x of p) { v.setInt16(o, Math.max(-32768, Math.min(32767, Math.round(x * 32767))), true); o += 2; }
+    let bin = ''; const u = new Uint8Array(buf); for (let i = 0; i < u.length; i += 0x8000) bin += String.fromCharCode(...u.subarray(i, i + 0x8000));
+    return btoa(bin);
+  }, [b64(S('librispeech-1.flac')), b64(S('jfk.flac')), b64(mW)]);
+  const longFile = join(tmp, 'meeting.wav'); writeFileSync(longFile, Buffer.from(longB64, 'base64'));
+  await page.getByLabel('Names and terms').fill('Zentrixa, Anvika Raghunathan');
+  const lg = await transcribe(longFile, 'base');
+  const named = [...(await page.locator('.stt-seg').allTextContents())].find((t) => /report to/.test(t)) || '';
+  info(`a meeting of ${lg.st.split(' of audio')[0]} with the hint: "${named.trim()}" · ${lg.st}`);
+  ok(/Zentrixa/.test(named) && /Anvika/.test(named) && /Raghunathan/.test(named) && /(\d:\d\d)/.test(named), `the names still guide the spelling late in a long recording ("${named.trim()}")`);
+  ok(/everyone went home early/.test(lg.text) && /Good morning everyone/.test(lg.text) && /Bengaluru/.test(lg.text), 'nothing of the meeting is skipped (first, middle and closing sentences there)');
+  await page.getByLabel('Names and terms').fill('');
+
+  // 4c. a new file: the transcript of the last one goes (its downloads would carry the new name); the newest file wins
+  await page.locator('input[type=file]').first().setInputFiles(S('jfk.flac'));
+  await page.getByText(/jfk\.flac: 0:11/).waitFor({ timeout: 20000 });
+  ok(await page.getByLabel('Transcript').isHidden(), 'a new file clears the transcript of the one before');
+  await page.locator('input[type=file]').first().setInputFiles(longFile);
+  await page.locator('input[type=file]').first().setInputFiles(S('librispeech-1.flac'));
+  await page.getByText(/librispeech-1\.flac: 0:10/).waitFor({ timeout: 20000 }); await page.waitForTimeout(1500);
+  ok(/librispeech-1\.flac/.test(await page.getByText(/transcribing takes roughly/).textContent()), 'the file chosen last stays');
+  // silence: said, no transcript
+  const silent = join(tmp, 'silence.wav'), sb = Buffer.alloc(44 + 16000 * 2 * 4);
+  sb.write('RIFF', 0); sb.writeUInt32LE(36 + 16000 * 8, 4); sb.write('WAVEfmt ', 8); sb.writeUInt32LE(16, 16); sb.writeUInt16LE(1, 20); sb.writeUInt16LE(1, 22); sb.writeUInt32LE(16000, 24); sb.writeUInt32LE(32000, 28); sb.writeUInt16LE(2, 32); sb.writeUInt16LE(16, 34); sb.write('data', 36); sb.writeUInt32LE(16000 * 8, 40);
+  writeFileSync(silent, sb);
+  const sl = await transcribe(silent, 'base');
+  ok(/no speech was found/.test(sl.st) && await page.getByLabel('Transcript').isHidden(), `four seconds of silence: "${sl.st}"`);
+  // a long hint is pointed out
+  await page.getByLabel('Names and terms').fill(Array.from({ length: 80 }, (_, i) => `Name${i}`).join(', '));
+  ok(await page.getByText(/80 words: Whisper reads only about the last/).isVisible(), 'a hint of 80 names says that only the end of it is read');
+  await page.getByLabel('Names and terms').fill('');
+
+  // 4d. the model download: a server that announces fewer bytes than it sends (compression) — the buffer grows (it was
+  // written past its end); a connection that drops — said in words. A fresh worker each time (leave the tab and come back).
+  await page.goto(`${base}#/`); await page.goto(`${base}#/stt`);
+  await page.route('**/ggml-base.en-q5_1.bin', (r) => r.request().method() === 'HEAD' ? r.fulfill({ status: 200, headers: { 'content-length': '1000' }, body: '' }) : r.continue());
+  const sm = await transcribe(S('jfk.flac'), 'base');
+  ok(wer(JFK, sm.text) === 0, `a model larger than announced is still read whole (JFK word for word: "${sm.text}")`);
+  await page.unroute('**/ggml-base.en-q5_1.bin');
+  await page.goto(`${base}#/`); await page.goto(`${base}#/stt`);
+  await page.route('**/ggml-base.en-q5_1.bin', (r) => r.request().method() === 'HEAD' ? r.continue() : r.abort('connectionreset'));
+  await page.locator('input[type=file]').first().setInputFiles(S('jfk.flac'));
+  await page.getByText(/transcribing takes roughly/).waitFor({ timeout: 20000 });
+  await page.getByRole('radio', { name: /Fast/ }).click();
+  await page.locator('.actions').getByRole('button', { name: 'Transcribe' }).click();
+  await page.getByText(/Could not download the fast English model — check the connection/).first().waitFor({ timeout: 30000 }).catch(() => {});
+  ok(await page.getByText(/Could not download the fast English model — check the connection/).first().isVisible(), 'a dropped download is said in words');
+  await page.unroute('**/ggml-base.en-q5_1.bin');
 
   // 5. stop
   await page.getByRole('radio', { name: /Accurate/ }).click();

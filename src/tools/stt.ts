@@ -26,10 +26,14 @@ const engine = () => {
 
 export const mount: Mount = (root, ctx) => {
   let model: 'small' | 'base' = ctx.isMobile ? 'base' : 'small', beam = false, src: { buf: AudioBuffer; name: string; url: string } | null = null, segs: Segment[] = [], running = 0;
+  let pickSeq = 0, live = true;
   const prog = progress();
   const status = h('div', { class: 'muted small', 'aria-live': 'polite' });
   const hintTa = textarea({ rows: 2, placeholder: 'e.g. Ahmedabad, Kubernetes, GSTIN, Dr Iyer, SuperTools' }) as HTMLTextAreaElement;
   hintTa.setAttribute('aria-label', 'Names and terms');
+  // Whisper reads at most 223 tokens of it (whisper.cpp keeps the end of a longer prompt); a rare name is 3 – 4 tokens
+  const hintNote = h('div', { class: 'muted small', 'aria-live': 'polite' });
+  hintTa.addEventListener('input', () => { const n = hintTa.value.trim().split(/[\s,;]+/).filter(Boolean).length; hintNote.textContent = n > 60 ? `${n} words: Whisper reads only about the last 60 – 100 of them (223 tokens) — keep the list to the names and terms that matter.` : ''; });
   const player = h('audio', { controls: true, class: 'stt-player' }) as HTMLAudioElement;
   const out = h('textarea', { class: 'input textarea stt-out', rows: 10, 'aria-label': 'Transcript', spellcheck: 'true' }) as HTMLTextAreaElement;
   const list = h('div', { class: 'stt-segs' });
@@ -50,20 +54,30 @@ export const mount: Mount = (root, ctx) => {
     inputInfo.textContent = `${src.name}: ${fmtTime(d)} · transcribing takes roughly ${fmtTime(Math.max(d, 15) * rate)} with this model on a typical PC`;
   }
   async function setSource(blob: Blob, name: string) {
-    inputInfo.textContent = 'Reading the audio…';
+    const my = ++pickSeq;
+    inputInfo.textContent = 'Reading the audio…'; goBtn.disabled = true;
     try {
-      const buf = await decodeAudio(blob);
-      if (!buf.duration) throw new Error('No sound in this file.');
+      const buf = await decodeAudio(blob, 16000); // what Whisper reads: 16 kHz (the player keeps the file itself)
+      if (my !== pickSeq || !live) return;
+      if (!buf.duration) throw new Error('there is no sound in this file');
+      if (running) stop();
       if (src) URL.revokeObjectURL(src.url);
       src = { buf, name, url: URL.createObjectURL(blob) };
       player.src = src.url;
+      // the transcript belonged to the file before (its downloads would take this file's name, its segments play this one)
+      segs = []; out.value = ''; clear(list); resultCard.hidden = true; status.textContent = '';
       estimate();
       goBtn.disabled = false; picker.classList.add('drop-compact');
-    } catch (e) { inputInfo.textContent = ''; toast(`Cannot read this audio: ${errMsg(e)}`, 'err'); }
+    } catch (e) {
+      if (my !== pickSeq || !live) return;
+      inputInfo.textContent = ''; estimate(); goBtn.disabled = !src; // what was open stays open
+      toast(`Cannot read this audio: ${errMsg(e)}`, 'err');
+    }
   }
   function show(result: { segments: Segment[] }) {
     segs = result.segments.filter((s) => s.text.trim() && !/^\s*[[(](blank_audio|music|silence|inaudible)[\])]\s*$/i.test(s.text));
     out.value = toText(segs);
+    if (!segs.length) { clear(list); resultCard.hidden = true; return; } // the status line says no speech was found
     clear(list).append(...segs.map((s) => h('button', { class: 'stt-seg', type: 'button', onclick: () => { player.currentTime = s.t0 / 100; player.play().catch(() => {}); } },
       h('span', { class: 'stt-t' }, fmtTime(s.t0 / 100)), h('span', null, s.text.trim()))));
     resultCard.hidden = false;
@@ -80,7 +94,7 @@ export const mount: Mount = (root, ctx) => {
         }
         handlers.delete(id); prog.done();
         if (m.type === 'error') { toast(m.error, 'err'); status.textContent = m.error; }
-        else { show(m.result); status.textContent = `${fmtTime(m.seconds)} of audio transcribed in ${(m.ms / 1000).toFixed(1)} s${m.loadMs > 1500 ? ` (+ ${(m.loadMs / 1000).toFixed(1)} s loading the model)` : ''} · ${segs.length} segment${segs.length === 1 ? '' : 's'}`; }
+        else { show(m.result); status.textContent = `${fmtTime(m.seconds)} of audio transcribed in ${(m.ms / 1000).toFixed(1)} s${m.loadMs > 1500 ? ` (+ ${(m.loadMs / 1000).toFixed(1)} s loading the model)` : ''} · ${segs.length ? `${segs.length} segment${segs.length === 1 ? '' : 's'}` : 'no speech was found in this recording'}`; }
         resolve();
       });
       const chs = channelsOf(src!.buf);
@@ -103,10 +117,10 @@ export const mount: Mount = (root, ctx) => {
     card(null, picker, recBox, inputInfo, player),
     card('Settings', stack(
       field('Model', segmented<'small' | 'base'>([['small', 'Accurate (190 MB, slower)'], ['base', 'Fast (60 MB)']], model, (v) => { model = v; estimate(); })),
-      field('Names and terms (optional)', hintTa, 'Spellings to expect — names, places, jargon. They guide Whisper but are not forced.'),
+      field('Names and terms (optional)', stack(hintTa, hintNote), 'Spellings to expect — names, places, jargon. They guide Whisper through the whole recording but are not forced.'),
       toggle('Best accuracy (beam search; about 2× slower)', beam, (v) => (beam = v)))),
     prog, status, resultCard,
     note('English only (US, UK, Indian and other accents). Whisper runs on this device; the audio never leaves it. Long recordings take a while: about 1–3 seconds of work per second of audio on a PC.', 'info'),
     actions(goBtn, stopBtn));
-  return () => { stop(); rec.dispose(); if (src) URL.revokeObjectURL(src.url); };
+  return () => { live = false; pickSeq++; stop(); rec.dispose(); if (src) URL.revokeObjectURL(src.url); };
 };

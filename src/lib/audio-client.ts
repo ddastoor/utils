@@ -42,11 +42,12 @@ export async function sourceRate(data: Blob): Promise<number> {
   } catch { return 0; }
 }
 /** Decode any file the browser can play (MP3, AAC/M4A, Opus/WebM, OGG, WAV, FLAC; and video files' audio) at the
- *  file's own sample rate — a plain AudioContext decodes at the device's rate (a 44.1 kHz file came out at 48 kHz,
+ *  file's own sample rate (or at `at`) — a plain AudioContext decodes at the device's rate (a 44.1 kHz file came out at 48 kHz,
  *  and was saved so). */
-export async function decodeAudio(data: ArrayBuffer | Blob): Promise<AudioBuffer> {
+export async function decodeAudio(data: ArrayBuffer | Blob, at?: number): Promise<AudioBuffer> {
   const blob = data instanceof Blob ? data : new Blob([data]);
-  const buf = await blob.arrayBuffer(), rate = await sourceRate(blob);
+  // `at`: decode straight to that rate (Speech to Text needs 16 kHz: an hour of 48 kHz stereo is 1.4 GB as it is)
+  const buf = await blob.arrayBuffer(), rate = at || await sourceRate(blob);
   if (rate >= 8000 && rate <= 384000) {
     try { return await new OfflineAudioContext(1, 1, rate).decodeAudioData(buf.slice(0)); } catch { /* a rate this browser cannot hold: below */ }
   }

@@ -51,6 +51,10 @@ API char *w_transcribe(const float *pcm, int n, const char *prompt, int beam, un
   p.no_context = true;
   p.suppress_blank = true;
   p.initial_prompt = prompt && *prompt ? prompt : nullptr;
+  // the names and terms guide every 30 s window, not only the first: without this whisper.cpp keeps the prompt at the
+  // head of its rolling context, and after ~224 tokens of transcript (a minute or two) it is pushed out — at 89 s into
+  // a recording "Zentrixa … Anvika Raghunathan" came out as "Zentrixor … Amvica Raginathan" again
+  p.carry_initial_prompt = p.initial_prompt != nullptr;
   if (beam >= 2) p.beam_search.beam_size = beam;
   p.progress_callback = on_progress;
   if (whisper_full(g_ctx, p, pcm, n) != 0) return nullptr;

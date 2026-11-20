@@ -21,45 +21,58 @@ async function engine() {
   if (!au) au = bindAudio((await instantiateWasi(audioUrl)).exports);
   return w;
 }
-/** Streams the model (whole file, or the parts listed in <file>.parts.json) straight into wasm memory, then loads it. */
+/** Streams the model (whole file, or the parts listed in <file>.parts.json) straight into wasm memory, then loads it.
+ *  The size comes from the parts list (exact) or from a HEAD request; a server that compresses the file sends more bytes
+ *  than it announced, so the buffer grows (it was written past its end). */
 async function loadModel(name: SttModel, id: number) {
   if (loaded === name) return;
   const e = await engine(), m = MODELS[name];
   const urls: string[] = [], sizes: number[] = [];
-  if (m.split) {
-    const man = await (await fetch(at(`${m.file}.parts.json`))).json();
-    man.parts.forEach((n: number, i: number) => { urls.push(at(`${m.file}.${i}`)); sizes.push(n); });
-  } else {
-    urls.push(at(m.file)); sizes.push(+((await fetch(urls[0], { method: 'HEAD' })).headers.get('content-length') || 0));
-  }
-  let total = sizes.reduce((a, b) => a + b, 0);
-  if (!total) { const r = await fetch(urls[0]); const b = new Uint8Array(await r.arrayBuffer()); sizes[0] = total = b.length; return loadBytes(e, name, [b]); }
+  const offline = (why: unknown) => new Error(`Could not download ${m.label} — check the connection and try again (${why instanceof Error ? why.message : why}).`);
+  try {
+    if (m.split) {
+      const r = await fetch(at(`${m.file}.parts.json`));
+      if (!r.ok) throw new Error(`${r.status}`);
+      const man = await r.json();
+      man.parts.forEach((n: number, i: number) => { urls.push(at(`${m.file}.${i}`)); sizes.push(n); });
+    } else {
+      urls.push(at(m.file));
+      const r = await fetch(urls[0], { method: 'HEAD' });
+      if (!r.ok) throw new Error(`${r.status}`);
+      sizes.push(+(r.headers.get('content-length') || 0));
+    }
+  } catch (err) { throw offline(err); }
+  const total = sizes.reduce((a, b) => a + b, 0);
   e.w_unload(); loaded = null;
-  const ptr = e.w_malloc(total);
+  let cap = Math.max(total, 1 << 20), ptr = e.w_malloc(cap);
   if (!ptr) throw new Error('Not enough memory for the model.');
   let off = 0, last = 0;
   try {
     for (const u of urls) {
-      const r = await fetch(u);
-      if (!r.ok || !r.body) throw new Error(`Could not load ${m.label} (${r.status})`);
+      let r: Response;
+      try { r = await fetch(u); } catch (err) { throw offline(err); }
+      if (!r.ok || !r.body) throw offline(r.status);
       const rd = r.body.getReader();
       for (;;) {
-        const { done, value } = await rd.read();
-        if (done) break;
+        let chunk: ReadableStreamReadResult<Uint8Array>;
+        try { chunk = await rd.read(); } catch { throw new Error(`The download of ${m.label} was interrupted — try again.`); }
+        if (chunk.done) break;
+        const value = chunk.value;
+        if (off + value.length > cap) { // more than announced: grow
+          const np = e.w_malloc(Math.max(cap * 2, off + value.length));
+          if (!np) throw new Error('Not enough memory for the model.');
+          new Uint8Array(e.memory.buffer).copyWithin(np, ptr, ptr + off);
+          e.w_free(ptr); ptr = np; cap = Math.max(cap * 2, off + value.length);
+        }
         new Uint8Array(e.memory.buffer, ptr + off, value.length).set(value); off += value.length;
-        if (off - last > total / 100) { last = off; post({ id, type: 'progress', stage: 'download', p: off / total, what: m.label }); }
+        if (off - last > (total || cap) / 100) { last = off; post({ id, type: 'progress', stage: 'download', p: Math.min(1, off / (total || cap)), what: m.label }); }
       }
     }
-    if (off !== total) throw new Error('The model download was incomplete.');
+    if ((m.split && off !== total) || off < total || !off) throw new Error(`The download of ${m.label} was incomplete — try again.`);
     post({ id, type: 'progress', stage: 'load', p: 1, what: m.label });
-    if (e.w_load(ptr, total) !== 0) throw new Error('The model could not be loaded.');
+    if (e.w_load(ptr, off) !== 0) throw new Error('The model could not be loaded.');
     loaded = name;
   } finally { e.w_free(ptr); }
-}
-function loadBytes(e: any, name: SttModel, parts: Uint8Array[]) {
-  const total = parts.reduce((a, p) => a + p.length, 0), ptr = e.w_malloc(total);
-  let off = 0; for (const p of parts) { new Uint8Array(e.memory.buffer, ptr + off, p.length).set(p); off += p.length; }
-  try { if (e.w_load(ptr, total) !== 0) throw new Error('The model could not be loaded.'); loaded = name; } finally { e.w_free(ptr); }
 }
 
 self.onmessage = async (ev: MessageEvent<Msg>) => {
