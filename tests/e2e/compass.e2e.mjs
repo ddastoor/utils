@@ -35,10 +35,17 @@ export default async (ctx) => {
   await send({ absolute: false, alpha: 10, beta: 0, gamma: 0 }); ok(await read() === '270° W', 'relative (non-absolute) readings are ignored');
   await send({ absolute: true, alpha: null, beta: null, gamma: null }); ok(await read() === '270° W', 'events without alpha ignored');
   ok(/magnetic north/.test(await page.locator('.note').last().textContent()), 'Android note: magnetic north + figure-8 calibration');
+  // the phone held as people hold it: tilted, upright, in landscape (360 − alpha is right only flat and in portrait)
+  await send({ absolute: true, alpha: 0, beta: 20, gamma: 35 }); ok(await read() === '0° N', `tilted sideways and forward, top to the north: 0° N (${await read()}; the top's heading does not change)`);
+  await send({ absolute: true, alpha: 30, beta: 90, gamma: 20 }); ok(await read() === '310° NW', `upright (beta 90°, gamma 20°): where the back camera looks — 310° (${await read()}; it said 330°)`);
+  await page.evaluate(() => { Object.defineProperty(window, 'orientation', { configurable: true, get: () => 90 }); });
+  await send({ absolute: true, alpha: 30, beta: 0, gamma: 0 }); ok(await read() === '60° NE', `screen in landscape, flat: the screen's top is the phone's right side — 60° (${await read()}; it said 330°)`);
+  await send({ absolute: true, alpha: 30, beta: 0, gamma: -90 }); ok(await read() === '60° NE', `landscape, standing on its side: the back looks to 60° (${await read()})`);
+  await page.evaluate(() => { Object.defineProperty(window, 'orientation', { configurable: true, get: () => 0 }); });
   await page.goto(`${base}#/screen`); await page.locator('.kv').first().waitFor();
   await page.goto(`${base}#/compass`); await page.getByRole('button', { name: 'Start', exact: true }).click();
   await send({ absolute: false, alpha: 10, beta: 0, gamma: 0 }); await page.waitForTimeout(1700);
-  ok(await read() === '—' && /No compass data/.test(await page.locator('.note-warn').textContent()), 'only relative data for 1.5 s → "No compass data" warning');
+  ok(await read() === '—' && /No compass data/.test(await page.locator('.note-warn').textContent()) && await page.locator('.note-warn').count() === 1, 'only relative data for 1.5 s → "No compass data" warning');
   await page.goto(`${base}#/screen`); await page.locator('.kv').first().waitFor(); await send({ absolute: true, alpha: 5 });
   ok(!page.errors.length, `no page errors ${page.errors.join(' | ')}`);
   // iPhone: webkitCompassHeading, permission
@@ -49,6 +56,9 @@ export default async (ctx) => {
   await ip.evaluate(() => (window.__perm = 'granted')); await ist.click();
   const iev = await ip.evaluate(() => ('ondeviceorientationabsolute' in window ? 'deviceorientationabsolute' : 'deviceorientation'));
   await ip.evaluate((n) => dispatchEvent(Object.assign(new Event(n), { webkitCompassHeading: 45.4, alpha: 300, absolute: false })), iev);
-  ok(await ip.locator('.big-value').textContent() === '45° NE' && /true north/.test(await ip.locator('.note').last().textContent()), `iPhone: webkitCompassHeading 45.4 → "45° NE", true north note (${await ip.locator('.big-value').textContent()})`);
+  ok(await ip.locator('.big-value').textContent() === '45° NE' && /magnetic north/.test(await ip.locator('.note').last().textContent()), `iPhone: webkitCompassHeading 45.4 → "45° NE"; Safari's heading is magnetic (the note said "true north") (${await ip.locator('.big-value').textContent()})`);
+  await ip.evaluate(() => { Object.defineProperty(window, 'orientation', { configurable: true, get: () => 90 }); });
+  await ip.evaluate((n) => dispatchEvent(Object.assign(new Event(n), { webkitCompassHeading: 45.4, alpha: 300, absolute: false })), iev);
+  ok(await ip.locator('.big-value').textContent() === '135° SE', `iPhone in landscape: heading + window.orientation = 135° (${await ip.locator('.big-value').textContent()})`);
   await phoneLayout(ctx, 'compass', { ready: '.dial', buttons: ['Start'] });
 };

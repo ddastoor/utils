@@ -29,6 +29,15 @@ export default async (ctx) => {
   await amp(0.05); await btn('Reset stats').click(); await page.waitForTimeout(300); await amp(0.5); await page.waitForTimeout(200);
   r = await reading(); const m = /min (\d+) · avg (\d+) · max (\d+)/.exec(r.stats);
   ok(m && Math.abs(m[1] - 61) <= 1 && Math.abs(m[3] - 81) <= 1 && +m[2] > +m[1] && +m[2] < +m[3], `after Reset stats: min ≈ 61, max ≈ 81, avg between (${r.stats})`);
+  // the average is the energy average (Leq): half the time at 61 dB and half at 81 dB averages 78 dB, not 71
+  await amp(0.05); await btn('Reset stats').click(); await page.waitForTimeout(1000); await amp(0.5); await page.waitForTimeout(650);
+  r = await reading(); let mm = /min (\d+) · avg (\d+) · max (\d+)/.exec(r.stats);
+  ok(mm && +mm[2] >= 74 && +mm[2] <= 80, `Leq of a quiet and a loud second: about 78 dB (${r.stats}; the mean of the dB values said about 71)`);
+  // a new offset moves min, average and max with the reading (they were kept at the old one)
+  const s0 = page.locator('input[type=range]'); await s0.fill('100'); await s0.dispatchEvent('input'); await page.waitForTimeout(100);
+  const r2 = await reading(), m2 = /min (\d+) · avg (\d+) · max (\d+)/.exec(r2.stats);
+  ok(m2 && +m2[1] === +mm[1] + 10 && +m2[3] === +mm[3] + 10, `offset 90 → 100: min and max 10 dB higher (${r.stats} → ${r2.stats})`);
+  await s0.fill('90'); await s0.dispatchEvent('input');
   const ink = await page.locator('canvas.wave').evaluate((c) => { const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; let n = 0; for (let i = 3; i < d.length; i += 4) if (d[i]) n++; return n; });
   ok(ink > 200, `history graph drawn (${ink} pixels)`);
   await btn('Start').click(); await page.waitForTimeout(300);
@@ -38,6 +47,12 @@ export default async (ctx) => {
   await page.goto(`${base}#/soundmeter`); await btn('Start').waitFor(); await page.evaluate(() => (window.__gumError = 'NotAllowedError'));
   await btn('Start').click(); await btn('Start').click();
   ok(await page.locator('.note-err').count() === 1 && /Permission was denied/.test(await page.locator('.note-err').textContent()), 'permission denied → one message (not one per click)');
+  // the tab left while the browser still asks for the microphone: the stream that arrives afterwards is stopped
+  await page.evaluate(() => { window.__gumError = null; window.__gumDelay = 300; });
+  const n0 = await page.evaluate(() => window.__tracks.length);
+  await btn('Start').click(); await page.goto(`${base}#/screen`); await page.locator('.kv').first().waitFor(); await page.waitForTimeout(600);
+  ok(await page.evaluate((n) => window.__tracks.length > n && window.__tracks.every((t) => t.readyState === 'ended'), n0), 'the tab left while the browser asked: the microphone that came later is stopped (it stayed on)');
+  await page.evaluate(() => { window.__gumDelay = 0; });
   ok(!page.errors.length, `no page errors ${page.errors.join(' | ')}`);
   await phoneLayout(ctx, 'soundmeter', { ready: '.db', buttons: ['Start', 'Reset stats'] });
 };

@@ -23,6 +23,7 @@ export default async (ctx) => {
   ok(/^1 touch · max 1 · pressure \d\.\d\d$/.test(await info()), `one finger: "${await info()}"`);
   for (let i = 1; i <= 10; i++) await touch('touchMove', [[x0 + ((x1 - x0) * i) / 10, y, 1]]);
   await touch('touchEnd', []);
+  ok(/^No finger on the screen · max 1$/.test(await info()), `all fingers lifted: said (it kept "1 touch") — "${await info()}"`);
   const pid = await page.evaluate(() => window.__pids.at(-1)), want = rgb(COLORS[pid % COLORS.length]);
   const px = (cx, cy) => cv.evaluate((c, [cx, cy]) => { const r = c.getBoundingClientRect(); return [...c.getContext('2d').getImageData(Math.round((cx - r.left) * devicePixelRatio), Math.round((cy - r.top) * devicePixelRatio), 1, 1).data]; }, [cx, cy]);
   const mid = await px((x0 + x1) / 2, y), off = await px((x0 + x1) / 2, y + 60);

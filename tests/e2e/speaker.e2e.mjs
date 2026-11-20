@@ -51,7 +51,9 @@ export default async (ctx) => {
   ok(Math.abs(h.hz - 1000) < 10 && h.L > 0.1 && Math.abs(h.L - h.R) / h.L < 0.05, `Play tone: 1000 Hz in both channels (${h.hz.toFixed(0)} Hz, ${r3(h)})`);
   await setF(3000); await wait(250); h = await hear(); ok(Math.abs(h.hz - 3000) < 25, `moving the slider while it plays changes the pitch live (${h.hz.toFixed(0)} Hz)`);
   await setF(100); await wait(300); h = await hear(); ok(Math.abs(h.hz - 100) < 6, `100 Hz (${h.hz.toFixed(1)} Hz)`);
-  await btn('Stop').click(); await wait(200); h = await hear(); ok(h.L < 0.002 && h.R < 0.002, `Stop silences the tone (${r3(h)})`);
+  await page.evaluate(() => (window.__ramps = [])); await btn('Stop').click(); await wait(200); h = await hear(); ok(h.L < 0.002 && h.R < 0.002, `Stop silences the tone (${r3(h)})`);
+  const st = await page.evaluate(() => window.__ramps);
+  ok(st.some(([k, v, t]) => k === 'ramp' && v === 0.0001 && t > 0 && t <= 0.03), `Stop fades the tone out in 20 ms (cut off at once it clicked) ${JSON.stringify(st)}`);
   await setF(440); await page.evaluate(() => (window.__ramps = [])); await btn('Play tone').click(); await wait(2000);
   ok((await hear()).L > 0.1, 'tone still playing after 2 s');
   await wait(1400); h = await hear(); ok(h.L < 0.002, `tone stops by itself after 3 s (${r3(h)})`);
@@ -60,6 +62,7 @@ export default async (ctx) => {
   await page.evaluate(() => (window.__ramps = [])); await btn('Sweep 20 Hz → 20 kHz').click(); await wait(300);
   const sw = await page.evaluate(() => window.__ramps);
   ok(sw.some(([k, v]) => k === 'set' && v === 20) && sw.some(([k, v, t]) => k === 'ramp' && v === 20000 && Math.abs(t - 10) < 0.35), `sweep: 20 Hz rising exponentially to 20 kHz over 10 s ${JSON.stringify(sw)}`);
+  ok(sw.some(([k, v, t]) => k === 'ramp' && v === 0.2 && t <= 0.06) && sw.some(([k, v, t]) => k === 'ramp' && v === 0.0001 && Math.abs(t - 10) < 0.35), 'the sweep fades in and out (it started and ended with a click)');
   h = await hear(); ok(h.L > 0.05 && h.hz < 60, `sweep starts low (${h.hz.toFixed(0)} Hz after 0.3 s; 20·1000^(t/10) ≈ 25 Hz)`);
   await btn('Left').click(); await wait(); h = await hear(); ok(h.R < 0.002 && h.L > 0.15, 'pressing Left during the sweep stops the sweep');
   await btn('Stop').click(); await btn('Stop').click(); ok(true, 'Stop twice is harmless');

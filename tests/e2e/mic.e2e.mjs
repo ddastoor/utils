@@ -49,6 +49,25 @@ export default async (ctx) => {
   const rows = await page.evaluate(() => [...document.querySelectorAll('.kv > span')].map((e) => e.textContent));
   ok(rows[rows.indexOf('Sample rate') + 1] === (real.sampleRate ? `${real.sampleRate} Hz` : '—') && /fake|default/i.test(rows[rows.indexOf('Microphone') + 1]), `real fake microphone: ${rows.join(' ')}`);
   ok(await page.locator('.note-err').count() === 0, 'old error cleared after a successful start');
+  // Record twice in a row: one recording (a second one ran over the first)
+  await page.evaluate(() => { window.__realGum = false; window.__rec = 0; const S = MediaRecorder.prototype.start; MediaRecorder.prototype.start = function (...a) { window.__rec++; return S.apply(this, a); }; });
+  await btn('Start').click(); await page.locator('.kv').waitFor();
+  await btn('Record 5 s').click(); await btn('Record 5 s').click(); await page.waitForTimeout(200);
+  ok(await page.evaluate(() => window.__rec) === 1, `Record pressed twice: one recording (${await page.evaluate(() => window.__rec)})`);
+  // the tab left during a recording: nothing plays afterwards
+  await page.evaluate(() => { window.__played = 0; const P = HTMLMediaElement.prototype.play; HTMLMediaElement.prototype.play = function () { window.__played++; return P.call(this); }; });
+  await page.goto(`${base}#/screen`); await page.locator('.kv').first().waitFor(); await page.waitForTimeout(800);
+  ok(await page.evaluate(() => window.__played) === 0 && await allStopped(page), 'the tab left during a recording: the microphone stops and the recording does not play (it played after the tab was left)');
+  // Start and a microphone chosen while the browser asks: one live stream
+  await page.goto(`${base}#/mic`); await btn('Start').waitFor(); await page.evaluate(() => { window.__gumDelay = 300; });
+  const n0 = await page.evaluate(() => window.__tracks.length);
+  await btn('Start').click(); await btn('Record 5 s').click();
+  await page.waitForFunction((n) => window.__tracks.length >= n + 2, n0, { timeout: 5000 }).catch(() => {}); await page.waitForTimeout(200);
+  const live = await page.evaluate((n) => window.__tracks.slice(n).filter((t) => t.readyState === 'live').length, n0);
+  ok(live === 1, `two requests while the browser asks: one live microphone stream (${live})`);
+  await page.evaluate(() => { window.__gumDelay = 0; });
+  await page.goto(`${base}#/screen`); await page.locator('.kv').first().waitFor(); await page.waitForTimeout(300);
+  ok(await allStopped(page), 'and leaving stops it');
   ok(!page.errors.length, `no page errors ${page.errors.join(' | ')}`);
   await phoneLayout(ctx, 'mic', { ready: '.meter', buttons: ['Start', 'Record 5 s'] });
 };

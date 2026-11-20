@@ -49,7 +49,9 @@ export default async (ctx) => {
   await page.evaluate(() => (window.__gumError = 'NotAllowedError')); await btn('Start camera').click();
   ok(/Permission was denied/.test(await page.locator('.note-err').textContent()), 'permission denied → how to allow it');
   await page.evaluate(() => (window.__gumError = 'NotFoundError')); await btn('Start camera').click();
-  ok(await page.locator('.note-err').count() === 1 && /No such device/.test(await page.locator('.note-err').textContent()), 'no camera → "No such device" (one message, not stacked)');
+  ok(await page.locator('.note-err').count() === 1 && /No camera was found/.test(await page.locator('.note-err').textContent()), 'no camera → "No camera was found" (one message, not stacked)');
+  await page.evaluate(() => (window.__gumError = 'NotReadableError')); await btn('Start camera').click();
+  ok(/The camera is busy \(another app or tab is using it\)/.test(await page.locator('.note-err').textContent()), 'camera in use by another app → said (it showed the browser\'s bare error)');
   await page.evaluate(() => (window.__gumError = null));
   const errs0 = page.errors.length;
   await btn('Snapshot').click(); await page.waitForTimeout(300);
@@ -60,6 +62,22 @@ export default async (ctx) => {
   await page.waitForFunction(() => document.querySelector('video').videoWidth > 0, null, { timeout: 10000 }); await page.locator('.kv').waitFor();
   r = await rows(); ok(/fake/i.test(r.Camera) && r.Resolution === await page.evaluate(() => `${document.querySelector('video').videoWidth} × ${document.querySelector('video').videoHeight}`), `real capture device: label "${r.Camera}", ${r.Resolution}`);
   ok(await page.locator('select').evaluate((s) => s.options.length) === nCams && await page.locator('select').inputValue() !== '', 'camera list filled and the active camera selected');
+  // the camera stops by itself (unplugged, taken by another app): said
+  await page.evaluate(() => { const t = window.__tracks.at(-1); t.stop(); t.dispatchEvent(new Event('ended')); });
+  ok(/The camera stopped — unplugged, or taken by another app/.test(await page.locator('.note-warn').textContent().catch(() => '')), 'a camera that stops by itself is said');
+  // two requests while the browser is still asking (Start, then a resolution): one camera stream stays, the other is stopped
+  await page.evaluate(() => { window.__realGum = false; window.__gumDelay = 300; });
+  const n0 = await page.evaluate(() => window.__tracks.length);
+  await btn('Start camera').click(); await page.getByRole('radio', { name: '720p', exact: true }).click();
+  await page.waitForFunction((n) => window.__tracks.length >= n + 2, n0, { timeout: 5000 }).catch(() => {}); await page.waitForTimeout(200);
+  let live = await page.evaluate((n) => window.__tracks.slice(n).filter((t) => t.readyState === 'live').length, n0);
+  ok(live === 1, `Start and a resolution while the browser asks: one live camera stream (${live}; the first one kept running)`);
+  // leaving the tab while the browser asks: the stream that arrives afterwards is stopped
+  const n1 = await page.evaluate(() => window.__tracks.length);
+  await btn('Start camera').click(); await page.goto(`${base}#/screen`); await page.locator('.kv').first().waitFor(); await page.waitForTimeout(600);
+  live = await page.evaluate(() => window.__tracks.filter((t) => t.readyState === 'live').length);
+  ok(await page.evaluate((n) => window.__tracks.length > n, n1) && live === 0, `the tab left while the browser asked: the camera that came later is stopped (${live} live; the camera light stayed on)`);
+  await page.evaluate(() => { window.__gumDelay = 0; });
   ok(!page.errors.length, `no page errors ${page.errors.join(' | ')}`);
   await phoneLayout(ctx, 'webcam', { ready: 'video', buttons: ['Start camera', 'Snapshot'] });
 };

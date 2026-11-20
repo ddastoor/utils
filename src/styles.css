@@ -515,8 +515,11 @@ details summary { cursor: pointer; font-weight: 600; color: var(--accent); paddi
 .meter { height: 14px; border-radius: 999px; background: var(--surface-3); overflow: hidden; }
 .meter > span { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--ok), var(--warn), var(--err)); transition: width .05s; }
 .spk-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
-.kb { display: flex; flex-direction: column; gap: 5px; padding: 12px; border-radius: 12px; background: var(--surface-2); outline: none; min-width: 760px; }
+.kb { display: flex; gap: 12px; align-items: flex-start; width: max-content; padding: 3px; border-radius: 15px; outline: none; }
 .kb:focus { box-shadow: 0 0 0 3px var(--accent-soft); }
+.kb-block { display: flex; flex-direction: column; gap: 5px; padding: 12px; border-radius: 12px; background: var(--surface-2); }
+.kb-main { width: 760px; }
+.kb-side .kb-key { flex: 0 0 46px; }
 .kb-row { display: flex; gap: 5px; }
 .kb-key { flex: 1 1 0; min-width: 0; height: 42px; border-radius: 7px; background: var(--surface); border: 1px solid var(--border); display: grid; place-items: center; font-size: 12px; font-weight: 600; transition: background .05s; }
 .kb-Backspace, .kb-Tab, .kb-CapsLock, .kb-Enter { flex-grow: 1.8; } .kb-ShiftLeft, .kb-ShiftRight { flex-grow: 2.4; } .kb-Space { flex-grow: 6; }

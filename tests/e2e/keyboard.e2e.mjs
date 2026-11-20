@@ -19,7 +19,7 @@ export default async (ctx) => {
   const last = () => page.evaluate(() => { const s = [...document.querySelectorAll('.kv > *')].map((e) => e.textContent); const o = {}; for (let i = 0; i + 1 < s.length; i += 2) o[s[i]] = s[i + 1]; return o; });
   const hits = () => page.$$eval('.kb-key.hit', (k) => k.map((e) => [...e.classList].find((c) => /^kb-[A-Z]/.test(c)).slice(3)));
   const tested = () => page.locator('.tool-body .card .muted').first().textContent();
-  const labels = await page.$$eval('.kb-row', (rs) => rs.map((r) => [...r.children].map((k) => k.textContent)));
+  const labels = await page.$$eval('.kb-main .kb-row', (rs) => rs.map((r) => [...r.children].map((k) => k.textContent)));
   ok(labels.map((r) => r.length).join() === ROWS.map((r) => r.length).join() && labels.flat().length === N, `${N} keys in 6 rows`);
   const want = { Escape: 'Esc', Backquote: '`', Digit1: '1', Minus: '-', Equal: '=', KeyQ: 'Q', BracketLeft: '[', Backslash: '\\', Semicolon: ';', Quote: "'", Comma: ',', Slash: '/', ShiftLeft: 'Shift', ShiftRight: 'Shift', ControlLeft: 'Ctrl', MetaLeft: 'Win', ContextMenu: 'Menu', ArrowLeft: '←', ArrowUp: '↑', ArrowDown: '↓', ArrowRight: '→', Space: 'Space', F12: 'F12' };
   const flat = ROWS.flat(), lab = labels.flat();
@@ -46,11 +46,20 @@ export default async (ctx) => {
   await page.keyboard.press('F5'); await page.waitForTimeout(300);
   ok(page.url() === url && await page.evaluate(() => window.__marker) === marker && (await last()).code === 'F5', 'F5 is captured, the page does not reload');
   await page.keyboard.press('Tab'); ok(await page.evaluate(() => document.activeElement.classList.contains('kb')) && (await last()).code === 'Tab', 'Tab is captured, focus stays on the keyboard');
-  await page.keyboard.press('Numpad5'); e = await last(); ok(e.code === 'Numpad5' && e.location === '3', 'keys not drawn (Numpad 5) still reported, location 3');
+  await page.keyboard.press('Numpad5'); e = await last();
+  ok(e.code === 'Numpad5' && e.location === '3' && await page.locator('.kb-Numpad5').evaluate((k) => k.classList.contains('hit')), 'the number pad is drawn: Numpad 5 lights up, location 3');
+  await page.keyboard.press('Delete'); await page.keyboard.press('Home'); await page.keyboard.press('PageDown');
+  ok(await page.locator('.kb-nav .kb-key.hit').count() === 3 && /· 4 more \(navigation and number pad\)/.test(await tested()), `Delete, Home, Page Down light up (they were not drawn) — "${await tested()}"`);
+  for (const code of ['F13', 'IntlBackslash']) await page.evaluate((code) => { for (const t of ['keydown', 'keyup']) document.activeElement.dispatchEvent(new KeyboardEvent(t, { code, key: code === 'F13' ? 'F13' : '\\', bubbles: true })); }, code);
+  ok(/other keys: F13, IntlBackslash/.test(await tested()), `keys on no drawing are named (${await tested()})`);
+  // a key held while the window loses the focus never sends its key-up: it must not show as stuck
+  await page.keyboard.down('AltLeft'); await page.evaluate(() => dispatchEvent(new Event('blur')));
+  ok(!await page.locator('.kb-AltLeft').evaluate((k) => k.classList.contains('down')), 'Alt held during Alt+Tab (the window loses the focus): not left showing as stuck');
+  await page.keyboard.up('AltLeft');
   const all = ROWS.flat();
   for (const k of all) await page.keyboard.press(k === 'Space' ? ' ' : k).catch(() => {});
   const h = await hits(); const missing = all.filter((k) => !h.includes(k));
-  ok(await tested() === `${N - missing.length} of ${N} keys tested` && missing.length <= 2, `every key registers (${await tested()}; not delivered by the test driver: ${missing.join(', ') || 'none'})`);
+  ok((await tested()).startsWith(`${N - missing.length} of ${N} keys tested`) && missing.length <= 2, `every key registers (${await tested()}; not delivered by the test driver: ${missing.join(', ') || 'none'})`);
   ok(await page.locator('.kb-key.down').count() === 0, 'no key left stuck after release');
   // typing somewhere else is ignored (and not swallowed)
   await page.getByRole('button', { name: 'Reset', exact: true }).click();

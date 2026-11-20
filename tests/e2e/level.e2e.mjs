@@ -33,10 +33,19 @@ export default async (ctx) => {
   await page.evaluate(() => dispatchEvent(Object.assign(new Event('deviceorientation'), { alpha: null, beta: null, gamma: null })));
   ok(await read() === '0.0° · 0.0°', 'events without angles are ignored');
   ok(await page.locator('.note-warn').count() === 0, 'no "no sensor" warning when data arrives');
+  // the screen turned to landscape (the phone lies flat, the picture stays as it was): the bubble runs along the screen's axes
+  await page.evaluate(() => { Object.defineProperty(window, 'orientation', { configurable: true, get: () => 90 }); });
+  await btn('Calibrate (set zero)').click(); // zero at beta 1.97, gamma 2.96 (from above) → tilt relative to that
+  await tilt(1.97, 2.96 + 10); let q = await bub();
+  ok(await read() === '0.0° · −10.0°'.replace('−', '-') && Math.abs(q.x) < 1e-6 && Math.abs(q.y - (10 / 45) * 100) < 1e-3, `landscape: the phone's right side 10° lower is the screen's top 10° lower — the bubble goes down (${await read()}, bubble ${q.x.toFixed(2)}, ${q.y.toFixed(2)}; it went sideways)`);
+  await tilt(1.97 + 5, 2.96); q = await bub();
+  ok(await read() === '5.0° · 0.0°' && Math.abs(q.x + (5 / 45) * 100) < 1e-3 && Math.abs(q.y) < 1e-6, `landscape: the phone's top 5° higher is the screen's right side 5° lower (${await read()})`);
+  await page.evaluate(() => { Object.defineProperty(window, 'orientation', { configurable: true, get: () => 0 }); });
+  ok(/left–right · front–back/.test(await page.locator('.card').first().textContent()), 'the two numbers are named');
   // fresh mount without data → warning
   await page.goto(`${base}#/screen`); await page.locator('.kv').first().waitFor(); await tilt(1, 1);
-  await page.goto(`${base}#/level`); await btn('Start').click(); await page.waitForTimeout(1700);
-  ok(/No motion sensor data/.test(await page.locator('.note-warn').textContent()), 'no sensor events within 1.5 s → "No motion sensor data" warning');
+  await page.goto(`${base}#/level`); await btn('Start').click(); await btn('Start').click(); await page.waitForTimeout(1700);
+  ok(/No motion sensor data/.test(await page.locator('.note-warn').textContent()) && await page.locator('.note-warn').count() === 1, 'no sensor events within 1.5 s → "No motion sensor data" warning, once (Start twice showed it twice)');
   ok(!page.errors.length, `no page errors ${page.errors.join(' | ')}`);
   // iPhone: motion permission
   const ip = await newPage({ ...devices['iPhone 13'], permissions: ['accelerometer', 'gyroscope', 'magnetometer'] });

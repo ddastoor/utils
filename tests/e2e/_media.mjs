@@ -2,12 +2,14 @@
 //  video → a 640×480 canvas stream, left half red, right half blue (so mirroring can be checked in a snapshot);
 //  audio → a Web Audio oscillator (window.__osc, window.__gain; frequency/amplitude set by the test).
 // Every track handed out is kept in window.__tracks (to check they are stopped when the tab is left).
-// window.__gumError = 'NotAllowedError' | 'NotFoundError' makes the next calls fail like a real browser.
+// window.__gumError = 'NotAllowedError' | 'NotFoundError' makes the next calls fail like a real browser;
+// window.__gumDelay = ms answers only after that long (a permission question still open).
 export const fakeMedia = ({ freq = 440, amp = 0.5 } = {}) => {
   window.__tracks = []; window.__gumCalls = [];
   const real = navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices);
   navigator.mediaDevices.getUserMedia = async (c) => {
     window.__gumCalls.push(JSON.parse(JSON.stringify(c)));
+    if (window.__gumDelay) await new Promise((r) => setTimeout(r, window.__gumDelay)); // the browser still asking the person
     if (window.__gumError) throw new DOMException('blocked by the test', window.__gumError);
     if (window.__realGum) { const s = await real(c); window.__tracks.push(...s.getTracks()); return s; }
     const out = new MediaStream();

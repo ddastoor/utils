@@ -1,34 +1,73 @@
 // Device tests and phone sensors. Everything uses standard browser APIs on the device; nothing leaves it.
-import { h, card, field, button, segmented, toggle, slider, select, clear, stack, note, downloadBlob, canvasToBlob, type Mount } from '../ui';
+import { h, card, field, button, segmented, toggle, slider, clear, stack, note, errMsg, downloadBlob, canvasToBlob, type Mount } from '../ui';
 import { isIOS } from '../platform';
 import { modernZone } from '../lib/tz';
+import { headingOf, platformName, screenTilt } from '../lib/sensors';
 
 const stopStream = (s?: MediaStream | null) => s?.getTracks().forEach((t) => t.stop());
 const kv = (rows: Array<[string, string]>) => h('div', { class: 'kv' }, rows.flatMap(([k, v]) => [h('span', null, k), h('span', null, v)]));
-const permErr = (e: any) => note(e?.name === 'NotAllowedError' ? 'Permission was denied. Allow access in the browser\'s site settings (padlock icon) and try again.' : e?.name === 'NotFoundError' ? 'No such device was found.' : `Could not start: ${e?.message || e}`, 'err');
+/** getUserMedia's errors in words. */
+function mediaError(e: any, device: 'camera' | 'microphone'): string {
+  const n = e?.name;
+  if (n === 'NotAllowedError' || n === 'SecurityError') return `Permission was denied. Allow the ${device} in the browser's site settings (the icon in the address bar) and try again.`;
+  if (n === 'NotFoundError') return `No ${device} was found — check that one is connected.`;
+  if (n === 'OverconstrainedError') return `The chosen ${device} is no longer there — the next Start uses the default one.`;
+  if (n === 'NotReadableError' || n === 'AbortError') return `The ${device} is busy (another app or tab is using it). Close that, then try again.`;
+  if (!navigator.mediaDevices?.getUserMedia) return `This browser gives no access to a ${device} here (it needs a secure https:// page).`;
+  return `Could not start the ${device}: ${errMsg(e)}`;
+}
+/** The newest camera / microphone request wins, and none outlives the tab: a second request while the browser was still
+ *  asking (a camera, a microphone or a resolution chosen, Record pressed) left the first stream running, and a stream
+ *  that arrived after the tab was left was never stopped — the camera light stayed on. Such a stream is stopped at
+ *  once; `get` gives null for it (and drops an error of a request that is no longer the newest). */
+function mediaGate() {
+  let seq = 0, live = true;
+  return {
+    async get(c: MediaStreamConstraints): Promise<MediaStream | null> {
+      const my = ++seq;
+      let s: MediaStream;
+      try { s = await navigator.mediaDevices.getUserMedia(c); } catch (e) { if (my !== seq || !live) return null; throw e; }
+      if (my !== seq || !live) { stopStream(s); return null; }
+      return s;
+    },
+    end() { live = false; seq++; },
+    get live() { return live; },
+  };
+}
+/** The screen's rotation from the phone's natural (portrait) position, 0 / 90 / 180 / 270 — 90 = turned
+ *  counter-clockwise, its top edge to the left. iPhones: window.orientation (Safari's screen.orientation.angle has been
+ *  seen to disagree with it — WebKit bug 254863). */
+function screenAngle(): number {
+  const w = (window as any).orientation, a = typeof w === 'number' ? w : (screen.orientation?.angle ?? 0);
+  return ((a % 360) + 360) % 360;
+}
 
 // ------------------------------------------------------------------ Webcam
 export const webcam: Mount = (root) => {
   let stream: MediaStream | null = null, mirror = true;
+  const gate = mediaGate();
   const video = h('video', { class: 'cam-video', autoplay: true, playsinline: true, muted: true });
   const info = h('div');
-  const devSel = h('select', { class: 'input select' });
+  const devSel = h('select', { class: 'input select', 'aria-label': 'Camera' });
   let res = '1080';
   const RES: Record<string, [number, number]> = { '480': [640, 480], '720': [1280, 720], '1080': [1920, 1080], '2160': [3840, 2160] };
   const start = async () => {
-    stopStream(stream);
+    stopStream(stream); stream = null; video.srcObject = null; // a camera may not open twice: the old stream goes first
     clear(info);
-    try {
-      const [w, hh] = RES[res];
-      stream = await navigator.mediaDevices.getUserMedia({ video: { deviceId: devSel.value ? { exact: devSel.value } : undefined, width: { ideal: w }, height: { ideal: hh } }, audio: false });
-      video.srcObject = stream;
-      const devices = (await navigator.mediaDevices.enumerateDevices()).filter((d) => d.kind === 'videoinput');
-      const cur = stream.getVideoTracks()[0].getSettings().deviceId;
-      devSel.replaceChildren(...devices.map((d, i) => h('option', { value: d.deviceId }, d.label || `Camera ${i + 1}`)));
-      if (cur) devSel.value = cur;
-      const s = stream.getVideoTracks()[0].getSettings();
-      info.append(kv([['Camera', stream.getVideoTracks()[0].label || '—'], ['Resolution', `${s.width} × ${s.height}`], ['Frame rate', s.frameRate ? `${Math.round(s.frameRate)} fps` : '—'], ['Facing', (s as any).facingMode || '—'], ['Cameras found', String(devices.length)]]));
-    } catch (e) { info.append(permErr(e)); }
+    const [w, hh] = RES[res];
+    let s: MediaStream | null;
+    try { s = await gate.get({ video: { deviceId: devSel.value ? { exact: devSel.value } : undefined, width: { ideal: w }, height: { ideal: hh } }, audio: false }); }
+    catch (e: any) { if (e?.name === 'OverconstrainedError') devSel.value = ''; clear(info).append(note(mediaError(e, 'camera'), 'err')); return; }
+    if (!s) return; // a newer request, or the tab was left
+    stream = s; video.srcObject = s;
+    const track = s.getVideoTracks()[0];
+    track.addEventListener('ended', () => { if (stream === s) info.prepend(note('The camera stopped — unplugged, or taken by another app. Press Start camera to try again.', 'warn')); });
+    const devices = (await navigator.mediaDevices.enumerateDevices()).filter((d) => d.kind === 'videoinput');
+    if (stream !== s) return;
+    const st = track.getSettings();
+    devSel.replaceChildren(...devices.map((d, i) => h('option', { value: d.deviceId }, d.label || `Camera ${i + 1}`)));
+    if (st.deviceId) devSel.value = st.deviceId;
+    clear(info).append(kv([['Camera', track.label || '—'], ['Resolution', `${st.width} × ${st.height}`], ['Frame rate', st.frameRate ? `${Math.round(st.frameRate)} fps` : '—'], ['Facing', (st as any).facingMode || '—'], ['Cameras found', String(devices.length)]]));
   };
   devSel.addEventListener('change', start);
   const snap = async () => {
@@ -42,82 +81,111 @@ export const webcam: Mount = (root) => {
       toggle('Mirror preview', true, (v) => { mirror = v; video.style.transform = v ? 'scaleX(-1)' : ''; }))),
     h('div', { class: 'actions' }, button('Start camera', start, { variant: 'primary', icon: 'Webcam' }), button('Snapshot', snap, { icon: 'Camera' })));
   video.style.transform = 'scaleX(-1)';
-  return () => stopStream(stream);
+  return () => { gate.end(); stopStream(stream); stream = null; };
 };
 
 // ------------------------------------------------------------------ Microphone test
 export const mic: Mount = (root) => {
-  let stream: MediaStream | null = null, ctx: AudioContext | null = null, raf = 0, rec: MediaRecorder | null = null;
+  let stream: MediaStream | null = null, ctx: AudioContext | null = null, raf = 0, rec: MediaRecorder | null = null, src: MediaStreamAudioSourceNode | null = null, url = '';
+  const gate = mediaGate();
   const canvas = h('canvas', { class: 'wave' });
   const meter = h('div', { class: 'meter' }, h('span'));
   const info = h('div'), playback = h('div');
-  const devSel = h('select', { class: 'input select' });
+  const devSel = h('select', { class: 'input select', 'aria-label': 'Microphone' });
   const start = async () => {
-    stopStream(stream); cancelAnimationFrame(raf); clear(info);
-    try {
-      stream = await navigator.mediaDevices.getUserMedia({ audio: { deviceId: devSel.value ? { exact: devSel.value } : undefined, echoCancellation: false, noiseSuppression: false, autoGainControl: false } });
-      const devices = (await navigator.mediaDevices.enumerateDevices()).filter((d) => d.kind === 'audioinput');
-      const cur = stream.getAudioTracks()[0].getSettings();
-      devSel.replaceChildren(...devices.map((d, i) => h('option', { value: d.deviceId }, d.label || `Microphone ${i + 1}`)));
-      if (cur.deviceId) devSel.value = cur.deviceId;
-      info.append(kv([['Microphone', stream.getAudioTracks()[0].label || '—'], ['Sample rate', cur.sampleRate ? `${cur.sampleRate} Hz` : '—'], ['Channels', String(cur.channelCount ?? '—')], ['Microphones found', String(devices.length)]]));
-      ctx ||= new AudioContext();
-      const src = ctx.createMediaStreamSource(stream), an = ctx.createAnalyser(); an.fftSize = 2048; src.connect(an);
-      const buf = new Float32Array(an.fftSize);
-      const draw = () => {
-        an.getFloatTimeDomainData(buf);
-        let peak = 0; for (const v of buf) peak = Math.max(peak, Math.abs(v));
-        (meter.firstChild as HTMLElement).style.width = `${Math.min(100, peak * 100)}%`;
-        const W = (canvas.width = canvas.clientWidth * devicePixelRatio), H = (canvas.height = canvas.clientHeight * devicePixelRatio), g = canvas.getContext('2d')!;
-        g.clearRect(0, 0, W, H); g.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--accent'); g.lineWidth = 2 * devicePixelRatio; g.beginPath();
-        for (let i = 0; i < buf.length; i++) { const x = (i / buf.length) * W, y = H / 2 - buf[i] * H / 2; i ? g.lineTo(x, y) : g.moveTo(x, y); }
-        g.stroke(); raf = requestAnimationFrame(draw);
-      };
-      draw();
-    } catch (e) { info.append(permErr(e)); }
+    cancelAnimationFrame(raf); clear(info); stopStream(stream); stream = null; src?.disconnect(); src = null;
+    // the audio engine is opened in the tap itself: Safari starts audio only from one (after the permission question it
+    // stayed suspended and the meter showed nothing)
+    try { ctx ||= new AudioContext(); if (ctx.state !== 'running') ctx.resume().catch(() => {}); } catch { /* no Web Audio */ }
+    let s: MediaStream | null;
+    try { s = await gate.get({ audio: { deviceId: devSel.value ? { exact: devSel.value } : undefined, echoCancellation: false, noiseSuppression: false, autoGainControl: false } }); }
+    catch (e: any) { if (e?.name === 'OverconstrainedError') devSel.value = ''; clear(info).append(note(mediaError(e, 'microphone'), 'err')); return; }
+    if (!s) return;
+    stream = s;
+    const track = s.getAudioTracks()[0];
+    track.addEventListener('ended', () => { if (stream === s) info.prepend(note('The microphone stopped — unplugged, or taken by another app. Press Start to try again.', 'warn')); });
+    const devices = (await navigator.mediaDevices.enumerateDevices()).filter((d) => d.kind === 'audioinput');
+    if (stream !== s) return;
+    const cur = track.getSettings();
+    devSel.replaceChildren(...devices.map((d, i) => h('option', { value: d.deviceId }, d.label || `Microphone ${i + 1}`)));
+    if (cur.deviceId) devSel.value = cur.deviceId;
+    info.append(kv([['Microphone', track.label || '—'], ['Sample rate', cur.sampleRate ? `${cur.sampleRate} Hz` : '—'], ['Channels', String(cur.channelCount ?? '—')], ['Microphones found', String(devices.length)]]));
+    if (!ctx) return;
+    if (ctx.state !== 'running') ctx.resume().catch(() => {});
+    const an = ctx.createAnalyser(); an.fftSize = 2048; src = ctx.createMediaStreamSource(s); src.connect(an);
+    const buf = new Float32Array(an.fftSize);
+    const draw = () => {
+      an.getFloatTimeDomainData(buf);
+      let peak = 0; for (const v of buf) peak = Math.max(peak, Math.abs(v));
+      (meter.firstChild as HTMLElement).style.width = `${Math.min(100, peak * 100)}%`;
+      const W = (canvas.width = canvas.clientWidth * devicePixelRatio), H = (canvas.height = canvas.clientHeight * devicePixelRatio), g = canvas.getContext('2d')!;
+      g.clearRect(0, 0, W, H); g.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--accent'); g.lineWidth = 2 * devicePixelRatio; g.beginPath();
+      for (let i = 0; i < buf.length; i++) { const x = (i / buf.length) * W, y = H / 2 - buf[i] * H / 2; i ? g.lineTo(x, y) : g.moveTo(x, y); }
+      g.stroke(); raf = requestAnimationFrame(draw);
+    };
+    draw();
   };
   devSel.addEventListener('change', start);
   const record = async () => {
+    if (rec?.state === 'recording') return; // one recording at a time (a second press started another one over it)
     if (!stream) await start();
-    if (!stream) return;
+    if (!stream || !gate.live) return;
     clear(playback).append(note('Recording 5 seconds… speak now.'));
-    const chunks: Blob[] = [];
-    rec = new MediaRecorder(stream);
-    rec.ondataavailable = (e) => chunks.push(e.data);
-    rec.onstop = () => { const a = h('audio', { controls: true, src: URL.createObjectURL(new Blob(chunks, { type: rec!.mimeType })) }); clear(playback).append(a); a.play().catch(() => {}); };
-    rec.start(); setTimeout(() => rec?.state === 'recording' && rec.stop(), 5000);
+    const chunks: Blob[] = [], r = new MediaRecorder(stream);
+    rec = r;
+    r.ondataavailable = (e) => chunks.push(e.data);
+    r.onstop = () => {
+      if (!gate.live || rec !== r) return; // the tab was left meanwhile: no playback (it played after the tab was left)
+      if (url) URL.revokeObjectURL(url);
+      url = URL.createObjectURL(new Blob(chunks, { type: r.mimeType }));
+      const a = h('audio', { controls: true, src: url }); clear(playback).append(a); a.play().catch(() => {});
+    };
+    r.start(); setTimeout(() => { if (r.state === 'recording') r.stop(); }, 5000);
   };
   root.append(card(null, meter, canvas, info), card('Options', field('Microphone', devSel)), card('Playback test', playback),
     h('div', { class: 'actions' }, button('Start', start, { variant: 'primary', icon: 'Mic' }), button('Record 5 s', record, { icon: 'Circle' })));
-  return () => { cancelAnimationFrame(raf); stopStream(stream); ctx?.close(); };
+  return () => {
+    gate.end(); cancelAnimationFrame(raf);
+    if (rec?.state === 'recording') rec.stop();
+    rec = null; stopStream(stream); stream = null; ctx?.close(); ctx = null;
+    if (url) URL.revokeObjectURL(url);
+  };
 };
 
 // ------------------------------------------------------------------ Speaker test
 export const speaker: Mount = (root) => {
-  let ctx: AudioContext | null = null, osc: OscillatorNode | null = null;
+  let ctx: AudioContext | null = null, osc: OscillatorNode | null = null, gain: GainNode | null = null;
   let freq = 440;
-  const ac = () => (ctx ||= new AudioContext());
-  const stop = () => { try { osc?.stop(); } catch { /* */ } osc = null; };
+  const ac = () => { ctx ||= new AudioContext(); if (ctx.state !== 'running') ctx.resume().catch(() => {}); return ctx; };
+  /** The sound ends with a 20 ms fade: cut off at once, it clicked in the speakers. */
+  const stop = () => {
+    const o = osc, g = gain; osc = null; gain = null;
+    if (!o || !g || !ctx) return;
+    const t = ctx.currentTime;
+    try { g.gain.cancelScheduledValues(t); g.gain.setValueAtTime(Math.max(g.gain.value, 0.0001), t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.02); o.stop(t + 0.025); } catch { /* already over */ }
+  };
   const tone = (pan: number, secs = 1.2, f = freq) => {
     stop();
     const c = ac(), o = c.createOscillator(), g = c.createGain(), p = c.createStereoPanner();
     o.frequency.value = f; p.pan.value = pan;
     g.gain.setValueAtTime(0.0001, c.currentTime); g.gain.exponentialRampToValueAtTime(0.3, c.currentTime + 0.05); g.gain.setValueAtTime(0.3, c.currentTime + secs - 0.1); g.gain.exponentialRampToValueAtTime(0.0001, c.currentTime + secs);
-    o.connect(g).connect(p).connect(c.destination); o.start(); o.stop(c.currentTime + secs); osc = o;
+    o.connect(g).connect(p).connect(c.destination); o.start(); o.stop(c.currentTime + secs); osc = o; gain = g;
   };
   const say = (text: string, pan: number) => { tone(pan, 0.8); if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(text); speechSynthesis.cancel(); speechSynthesis.speak(u); } };
   const sweep = () => {
     stop();
-    const c = ac(), o = c.createOscillator(), g = c.createGain();
-    o.frequency.setValueAtTime(20, c.currentTime); o.frequency.exponentialRampToValueAtTime(20000, c.currentTime + 10);
-    g.gain.value = 0.2; o.connect(g).connect(c.destination); o.start(); o.stop(c.currentTime + 10); osc = o;
+    const c = ac(), o = c.createOscillator(), g = c.createGain(), t = c.currentTime;
+    o.frequency.setValueAtTime(20, t); o.frequency.exponentialRampToValueAtTime(20000, t + 10);
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.2, t + 0.05); g.gain.setValueAtTime(0.2, t + 9.9); g.gain.exponentialRampToValueAtTime(0.0001, t + 10); // no click at either end
+    o.connect(g).connect(c.destination); o.start(t); o.stop(t + 10); osc = o; gain = g;
   };
+  const stopAll = () => { stop(); if ('speechSynthesis' in window) speechSynthesis.cancel(); };
   root.append(card('Stereo', h('div', { class: 'spk-row' },
     button('Left', () => say('Left', -1), { variant: 'primary', icon: 'ArrowLeft' }), button('Both', () => say('Centre', 0), { icon: 'Volume2' }), button('Right', () => say('Right', 1), { variant: 'primary', icon: 'ArrowRight' }))),
   card('Tone generator', stack(slider({ label: 'Frequency', min: 20, max: 20000, value: freq, unit: ' Hz', onInput: (v) => { freq = v; if (osc) osc.frequency.value = v; } }),
-    h('div', { class: 'row' }, button('Play tone', () => tone(0, 3), { icon: 'Play' }), button('Sweep 20 Hz → 20 kHz', sweep, { icon: 'AudioLines' }), button('Stop', stop, { icon: 'Square' })))),
+    h('div', { class: 'row' }, button('Play tone', () => tone(0, 3), { icon: 'Play' }), button('Sweep 20 Hz → 20 kHz', sweep, { icon: 'AudioLines' }), button('Stop', stopAll, { icon: 'Square' })))),
   note('Start with low volume. Most adults hear up to ~15–17 kHz; small speakers often can\'t reproduce below ~100 Hz.'));
-  return () => { stop(); ctx?.close(); speechSynthesis?.cancel(); };
+  return () => { osc = null; gain = null; ctx?.close(); ctx = null; if ('speechSynthesis' in window) speechSynthesis.cancel(); };
 };
 
 // ------------------------------------------------------------------ Keyboard test (PC)
@@ -129,25 +197,42 @@ const ROWS: string[][] = [
   ['ShiftLeft', 'KeyZ', 'KeyX', 'KeyC', 'KeyV', 'KeyB', 'KeyN', 'KeyM', 'Comma', 'Period', 'Slash', 'ShiftRight'],
   ['ControlLeft', 'MetaLeft', 'AltLeft', 'Space', 'AltRight', 'MetaRight', 'ContextMenu', 'ControlRight', 'ArrowLeft', 'ArrowUp', 'ArrowDown', 'ArrowRight'],
 ];
-const LABEL = (code: string) => code.replace(/^Key|^Digit/, '').replace('Backquote', '`').replace('Minus', '-').replace('Equal', '=').replace('BracketLeft', '[').replace('BracketRight', ']').replace('Backslash', '\\').replace('Semicolon', ';').replace('Quote', "'").replace('Comma', ',').replace('Period', '.').replace('Slash', '/').replace(/Left$|Right$/, (m) => (/Arrow/.test(code) ? m : '')).replace('Control', 'Ctrl').replace('Escape', 'Esc').replace('ContextMenu', 'Menu').replace('Meta', 'Win').replace(/^Arrow(Left|Right|Up|Down)$/, (_, d) => ({ Left: '←', Right: '→', Up: '↑', Down: '↓' } as any)[d]);
+// the keys beside the main block on full-size keyboards (Delete, Home, End … were not drawn — a laptop's Delete key could
+// not be checked); keys on no drawing (the ISO key beside left Shift, F13 …) are listed by name
+const NAV: string[][] = [['PrintScreen', 'ScrollLock', 'Pause'], ['Insert', 'Home', 'PageUp'], ['Delete', 'End', 'PageDown']];
+const NUMPAD: string[][] = [['NumLock', 'NumpadDivide', 'NumpadMultiply', 'NumpadSubtract'], ['Numpad7', 'Numpad8', 'Numpad9', 'NumpadAdd'], ['Numpad4', 'Numpad5', 'Numpad6'], ['Numpad1', 'Numpad2', 'Numpad3', 'NumpadEnter'], ['Numpad0', 'NumpadDecimal']];
+const NAMES: Record<string, string> = { Backquote: '`', Minus: '-', Equal: '=', BracketLeft: '[', BracketRight: ']', Backslash: '\\', Semicolon: ';', Quote: "'", Comma: ',', Period: '.', Slash: '/',
+  ShiftLeft: 'Shift', ShiftRight: 'Shift', ControlLeft: 'Ctrl', ControlRight: 'Ctrl', AltLeft: 'Alt', AltRight: 'Alt', MetaLeft: 'Win', MetaRight: 'Win', Escape: 'Esc', ContextMenu: 'Menu', CapsLock: 'CapsLock',
+  ArrowLeft: '←', ArrowRight: '→', ArrowUp: '↑', ArrowDown: '↓', PrintScreen: 'PrtSc', ScrollLock: 'ScrLk', Insert: 'Ins', Delete: 'Del', PageUp: 'PgUp', PageDown: 'PgDn',
+  NumLock: 'Num', NumpadDivide: '/', NumpadMultiply: '*', NumpadSubtract: '−', NumpadAdd: '+', NumpadEnter: 'Enter', NumpadDecimal: '.' };
+const LABEL = (code: string) => NAMES[code] ?? code.replace(/^Key|^Digit|^Numpad/, '');
 export const keyboard: Mount = (root) => {
-  const keys = new Map<string, HTMLElement>();
-  const kb = h('div', { class: 'kb', tabindex: '0' }, ROWS.map((r) => h('div', { class: 'kb-row' }, r.map((code) => { const k = h('div', { class: `kb-key kb-${code}` }, LABEL(code)); keys.set(code, k); return k; }))));
+  const keys = new Map<string, HTMLElement>(), main = new Set(ROWS.flat()), other = new Set<string>();
+  const block = (rows: string[][], cls: string) => h('div', { class: `kb-block ${cls}` }, rows.map((r) => h('div', { class: 'kb-row' }, r.map((code) => { const k = h('div', { class: `kb-key kb-${code}` }, LABEL(code)); keys.set(code, k); return k; }))));
+  const kb = h('div', { class: 'kb', tabindex: '0', 'aria-label': 'Keyboard — press keys to test them' }, block(ROWS, 'kb-main'), block(NAV, 'kb-side kb-nav'), block(NUMPAD, 'kb-side kb-num'));
   const last = h('div', { class: 'kv' });
   const tested = h('div', { class: 'muted' });
+  const count = () => {
+    const hit = [...keys].filter(([, k]) => k.classList.contains('hit')), m = hit.filter(([c]) => main.has(c)).length, x = hit.length - m;
+    tested.textContent = `${m} of ${main.size} keys tested${x ? ` · ${x} more (navigation and number pad)` : ''}${other.size ? ` · other keys: ${[...other].join(', ')}` : ''}`;
+  };
   const down = (e: KeyboardEvent) => {
     if (!kb.contains(document.activeElement) && document.activeElement !== kb) return;
     e.preventDefault(); e.stopPropagation(); // the app's own shortcuts (/ and Ctrl+K → search) must not steal the focus
-    const k = keys.get(e.code); k?.classList.add('down', 'hit');
+    const k = keys.get(e.code);
+    if (k) k.classList.add('down', 'hit'); else if (e.code && e.code !== 'Unidentified') other.add(e.code);
     clear(last).append(...([['key', JSON.stringify(e.key)], ['code', e.code], ['keyCode', String(e.keyCode)], ['location', String(e.location)], ['modifiers', [e.ctrlKey && 'Ctrl', e.shiftKey && 'Shift', e.altKey && 'Alt', e.metaKey && 'Meta'].filter(Boolean).join(' + ') || 'none'], ['repeat', String(e.repeat)]] as Array<[string, string]>).flatMap(([a, b]) => [h('span', null, a), h('code', null, b)]));
-    tested.textContent = `${[...keys.values()].filter((x) => x.classList.contains('hit')).length} of ${keys.size} keys tested`;
+    count();
   };
   const up = (e: KeyboardEvent) => keys.get(e.code)?.classList.remove('down');
-  addEventListener('keydown', down, true); addEventListener('keyup', up, true); // capture: runs before document listeners
-  root.append(note('Click the keyboard below, then press keys. Keys turn green once they register; stuck keys stay highlighted.'), card(null, h('div', { class: 'scroll-x' }, kb), tested), card('Last key event', last),
-    h('div', { class: 'actions' }, button('Reset', () => { keys.forEach((k) => k.classList.remove('hit', 'down')); tested.textContent = ''; kb.focus(); }, { icon: 'RotateCcw' })));
+  // a key held while the window loses the focus (Alt+Tab, Win+D) never sends its key-up: it showed as stuck
+  const lost = () => keys.forEach((k) => k.classList.remove('down'));
+  addEventListener('keydown', down, true); addEventListener('keyup', up, true); addEventListener('blur', lost); // capture: runs before document listeners
+  root.append(note('Click the keyboard below, then press keys. Keys turn green once they register; a key that stays dark blue after you let go is stuck. Every key is captured while the keyboard has the focus (Tab too) — click anywhere outside it to stop.'),
+    card(null, h('div', { class: 'scroll-x' }, kb), tested), card('Last key event', last),
+    h('div', { class: 'actions' }, button('Reset', () => { keys.forEach((k) => k.classList.remove('hit', 'down')); other.clear(); tested.textContent = ''; kb.focus(); }, { icon: 'RotateCcw' })));
   setTimeout(() => kb.focus(), 50);
-  return () => { removeEventListener('keydown', down, true); removeEventListener('keyup', up, true); };
+  return () => { removeEventListener('keydown', down, true); removeEventListener('keyup', up, true); removeEventListener('blur', lost); };
 };
 
 // ------------------------------------------------------------------ Dead pixel test
@@ -198,7 +283,10 @@ export const touch: Mount = (root) => {
     g.strokeStyle = colors[e.pointerId % colors.length]; g.lineWidth = Math.max(3, (e.width || 8) * devicePixelRatio * 0.6); g.lineCap = 'round';
     g.beginPath(); g.moveTo(p[0], p[1]); g.lineTo(n[0], n[1]); g.stroke(); last.set(e.pointerId, n);
   });
-  const end = (e: PointerEvent) => { active.delete(e.pointerId); last.delete(e.pointerId); };
+  const end = (e: PointerEvent) => {
+    active.delete(e.pointerId); last.delete(e.pointerId);
+    info.textContent = active.size ? `${active.size} touch${active.size > 1 ? 'es' : ''} · max ${maxTouches}` : `No finger on the screen · max ${maxTouches}`; // it kept saying "2 touches" after they lifted
+  };
   canvas.addEventListener('pointerup', end); canvas.addEventListener('pointercancel', end);
   root.append(card(null, canvas, info), h('div', { class: 'actions' }, button('Clear', () => { canvas.getContext('2d')!.clearRect(0, 0, canvas.width, canvas.height); maxTouches = 0; info.textContent = 'Draw with one or more fingers'; }, { icon: 'Eraser' })),
     note(`This device reports up to ${navigator.maxTouchPoints || 0} simultaneous touch points. Draw lines across every edge to find dead zones.`));
@@ -210,27 +298,48 @@ export const touch: Mount = (root) => {
 // ------------------------------------------------------------------ Screen info
 export const screen_: Mount = (root) => {
   const out = h('div');
-  const measureHz = () => new Promise<number>((res) => { let n = 0; const t0 = performance.now(); const f = () => { if (++n < 60) requestAnimationFrame(f); else res(Math.round((n * 1000) / (performance.now() - t0))); }; requestAnimationFrame(f); });
-  const render = async () => {
-    const dpr = devicePixelRatio, sw = screen.width, sh = screen.height;
+  let hz = 0, ua: Record<string, any> = {}, gpu = '…', seq = 0, timer = 0, live = true;
+  /** The refresh rate from the frames' own time stamps: the median gap of 60 frames (one late frame does not count;
+   *  starting the clock before the first frame put "~59 Hz" on 60 Hz screens). */
+  const measureHz = () => new Promise<number>((res) => {
+    const ts: number[] = [];
+    const f = (t: number) => { ts.push(t); if (ts.length < 61) requestAnimationFrame(f); else { const d = ts.slice(1).map((x, i) => x - ts[i]).sort((a, b) => a - b); res(Math.round(1000 / d[d.length >> 1])); } };
+    requestAnimationFrame(f);
+  });
+  const uad = (navigator as any).userAgentData;
+  const render = () => {
+    if (!live) return;
+    const dpr = devicePixelRatio, sw = screen.width, sh = screen.height; // read when drawn: a resize during a measurement showed the old size
     const mm = (q: string) => matchMedia(q).matches;
-    const hz = await measureHz();
-    const uad = (navigator as any).userAgentData;
-    let ua: Record<string, string> = {};
-    try { ua = uad ? await uad.getHighEntropyValues(['platform', 'platformVersion', 'model', 'fullVersionList']) : {}; } catch { /* */ }
+    const brands = (ua.fullVersionList || uad?.brands || []).filter((b: any) => !/Not/.test(b.brand));
     clear(out).append(
       card('Display', kv([['Screen (CSS px)', `${sw} × ${sh}`], ['Physical pixels', `${Math.round(sw * dpr)} × ${Math.round(sh * dpr)}`], ['Device pixel ratio', String(dpr)], ['Viewport', `${innerWidth} × ${innerHeight}`], ['Available area', `${screen.availWidth} × ${screen.availHeight}`],
-        ['Colour depth', `${screen.colorDepth}-bit`], ['Colour gamut', mm('(color-gamut: rec2020)') ? 'Rec. 2020' : mm('(color-gamut: p3)') ? 'Display P3' : 'sRGB'], ['HDR', mm('(dynamic-range: high)') ? 'Yes' : 'No'], ['Refresh rate (measured)', `~${hz} Hz`],
+        ['Colour depth', `${screen.colorDepth}-bit`], ['Colour gamut', mm('(color-gamut: rec2020)') ? 'Rec. 2020' : mm('(color-gamut: p3)') ? 'Display P3' : 'sRGB'], ['HDR', mm('(dynamic-range: high)') ? 'Yes' : 'No'], ['Refresh rate (measured)', hz ? `~${hz} Hz` : 'measuring…'],
         ['Orientation', (screen.orientation as any)?.type || '—'], ['Dark mode', mm('(prefers-color-scheme: dark)') ? 'On' : 'Off'], ['Touch points', String(navigator.maxTouchPoints || 0)]])),
-      card('Browser & device', kv([['Browser', uad?.brands ? uad.brands.filter((b: any) => !/Not/.test(b.brand)).map((b: any) => `${b.brand} ${b.version}`).join(', ') : navigator.userAgent], ['Platform', ua.platform ? `${ua.platform} ${ua.platformVersion || ''}` : navigator.platform], ['Model', ua.model || '—'],
-        ['CPU threads', String(navigator.hardwareConcurrency || '—')], ['Memory (approx.)', (navigator as any).deviceMemory ? `${(navigator as any).deviceMemory} GB+` : '—'], ['Language', navigator.language], ['Time zone', modernZone(Intl.DateTimeFormat().resolvedOptions().timeZone)], ['WebGPU', 'gpu' in navigator ? 'Available' : 'No'], ['User agent', navigator.userAgent]])),
+      card('Browser & device', kv([['Browser', brands.length ? brands.map((b: any) => `${b.brand} ${b.version}`).join(', ') : navigator.userAgent], ['Platform', platformName(ua.platform || '', ua.platformVersion || '') || navigator.platform], ['Model', ua.model || '—'],
+        ['CPU threads', String(navigator.hardwareConcurrency || '—')], ['Memory (approx.)', (navigator as any).deviceMemory ? `${(navigator as any).deviceMemory} GB+` : '—'], ['Language', navigator.language], ['Time zone', modernZone(Intl.DateTimeFormat().resolvedOptions().timeZone)], ['WebGPU', gpu], ['User agent', navigator.userAgent]])),
     );
   };
+  const measure = async () => { const my = ++seq; const v = await measureHz(); if (my === seq && live) { hz = v; render(); } };
+  /** WebGPU is there only when the browser finds an adapter ("Available" was shown wherever navigator.gpu existed). */
+  const findGpu = async () => {
+    const g = (navigator as any).gpu;
+    if (!g) { gpu = 'Not in this browser'; return; }
+    try {
+      const a = await Promise.race([g.requestAdapter(), new Promise((r) => setTimeout(() => r(undefined), 3000))]) as any;
+      if (!a) { gpu = 'Not available on this device (no adapter)'; return; }
+      const i = a.info || (typeof a.requestAdapterInfo === 'function' ? await a.requestAdapterInfo() : null);
+      gpu = `Available${i?.vendor ? ` (${[i.vendor, i.architecture].filter(Boolean).join(' ')})` : ''}`;
+    } catch { gpu = 'Not available on this device'; }
+  };
+  const resized = () => { render(); clearTimeout(timer); timer = window.setTimeout(measure, 300); }; // sizes at once, the rate once the window rests
   const dark = matchMedia('(prefers-color-scheme: dark)');
-  addEventListener('resize', render); dark.addEventListener('change', render);
+  addEventListener('resize', resized); dark.addEventListener('change', render);
   root.append(out);
-  render();
-  return () => { removeEventListener('resize', render); dark.removeEventListener('change', render); };
+  render(); void measure();
+  void (async () => { try { if (uad?.getHighEntropyValues) ua = await uad.getHighEntropyValues(['platform', 'platformVersion', 'model', 'fullVersionList']); } catch { /* */ } render(); })();
+  void findGpu().then(render);
+  return () => { live = false; seq++; clearTimeout(timer); removeEventListener('resize', resized); dark.removeEventListener('change', render); };
 };
 export { screen_ as screen };
 
@@ -242,42 +351,45 @@ async function motionPermission(): Promise<boolean> {
 }
 const deg1 = (v: number) => `${(Math.abs(v) < 0.05 ? 0 : v).toFixed(1)}°`; // never "-0.0°"
 export const level: Mount = (root) => {
-  let zb = 0, zg = 0, b = 0, g = 0, got = false;
+  let zb = 0, zg = 0, b = 0, g = 0, got = false, warn = 0;
   const bubble = h('div', { class: 'bubble' });
   const vial = h('div', { class: 'vial' }, h('div', { class: 'vial-ring' }), bubble);
   const readout = h('div', { class: 'big-value center' }, '—');
+  const caption = h('div', { class: 'muted small center' }, 'left–right · front–back (degrees)');
   const status = h('div');
+  const clamp = (v: number) => Math.max(-45, Math.min(45, v));
   const on = (e: DeviceOrientationEvent) => {
     if (e.beta == null || e.gamma == null) return;
     got = true; b = e.beta; g = e.gamma;
-    const dx = g - zg, dy = b - zb, x = Math.max(-45, Math.min(45, dx)), y = Math.max(-45, Math.min(45, dy));
-    bubble.style.transform = `translate(${(-x / 45) * 100}px, ${(-y / 45) * 100}px)`; // the bubble stops at the rim…
-    const tilt = Math.hypot(dx, dy);
-    readout.textContent = `${deg1(dx)} · ${deg1(dy)}`; // …the reading does not
-    bubble.classList.toggle('level', tilt < 0.6);
+    // the tilt as the screen shows it: in landscape the phone's sides are the screen's top and bottom (the bubble ran
+    // along the wrong axis there)
+    const { right, top } = screenTilt(b - zb, g - zg, screenAngle()); // right side lower, top edge higher
+    bubble.style.transform = `translate(${(-clamp(right) / 45) * 100}px, ${(-clamp(top) / 45) * 100}px)`; // the bubble stops at the rim…
+    readout.textContent = `${deg1(right)} · ${deg1(top)}`; // …the reading does not
+    bubble.classList.toggle('level', Math.hypot(right, top) < 0.6);
   };
   const start = async () => {
-    clear(status);
+    clear(status); clearTimeout(warn);
     if (!(await motionPermission())) { status.append(note('Motion access was denied. On iPhone: allow it when asked (Settings › Safari › Motion & Orientation Access).', 'err')); return; }
     addEventListener('deviceorientation', on);
-    setTimeout(() => { if (!got) status.append(note('No motion sensor data — this device or browser has no tilt sensor (most PCs).', 'warn')); }, 1500);
+    warn = window.setTimeout(() => { if (!got) clear(status).append(note('No motion sensor data — this device or browser has no tilt sensor (most PCs).', 'warn')); }, 1500);
   };
-  root.append(card(null, vial, readout, status), h('div', { class: 'actions' }, button('Start', start, { variant: 'primary', icon: 'Crosshair' }), button('Calibrate (set zero)', () => { zb = b; zg = g; }, { icon: 'RotateCcw' })),
+  root.append(card(null, vial, readout, caption, status), h('div', { class: 'actions' }, button('Start', start, { variant: 'primary', icon: 'Crosshair' }), button('Calibrate (set zero)', () => { zb = b; zg = g; }, { icon: 'RotateCcw' })),
     note('Lay the phone flat on the surface. Turns green when level. Calibrate on a known-flat surface for best accuracy.'));
-  return () => removeEventListener('deviceorientation', on);
+  return () => { clearTimeout(warn); removeEventListener('deviceorientation', on); };
 };
 
 // ------------------------------------------------------------------ Compass (mobile)
 export const compass: Mount = (root) => {
-  let got = false, rot = 0;
+  let got = false, rot = 0, warn = 0;
   const dial = h('div', { class: 'dial' }, ...['N', 'E', 'S', 'W'].map((d, i) => h('span', { class: `dial-${d}`, style: { transform: `rotate(${i * 90}deg) translateY(-112px) rotate(${-i * 90}deg)` } }, d)), h('div', { class: 'dial-needle' }));
   const readout = h('div', { class: 'big-value center' }, '—');
   const status = h('div');
   const card8 = (deg: number) => ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'][Math.round(deg / 45) % 8];
   const on = (e: any) => {
     let heading: number | null = null;
-    if (typeof e.webkitCompassHeading === 'number') heading = e.webkitCompassHeading; // iOS (true north)
-    else if (e.absolute && e.alpha != null) heading = (360 - e.alpha) % 360; // Android absolute (magnetic north)
+    if (typeof e.webkitCompassHeading === 'number') heading = (e.webkitCompassHeading + screenAngle()) % 360; // iPhone: the phone's top, in portrait
+    else if (e.absolute && e.alpha != null) heading = headingOf(e.alpha, e.beta ?? 0, e.gamma ?? 0, screenAngle()); // Android
     if (heading == null) return;
     got = true;
     rot += ((-heading - rot) % 360 + 540) % 360 - 180; // shortest turn: 359° → 1° moves 2°, not a full spin back
@@ -286,51 +398,63 @@ export const compass: Mount = (root) => {
   };
   const evt = 'ondeviceorientationabsolute' in window ? 'deviceorientationabsolute' : 'deviceorientation';
   const start = async () => {
-    clear(status);
+    clear(status); clearTimeout(warn);
     if (!(await motionPermission())) { status.append(note('Motion access was denied.', 'err')); return; }
     addEventListener(evt, on);
-    setTimeout(() => { if (!got) status.append(note('No compass data — this device has no magnetometer, or the browser does not expose it.', 'warn')); }, 1500);
+    warn = window.setTimeout(() => { if (!got) clear(status).append(note('No compass data — this device has no magnetometer, or the browser does not expose it.', 'warn')); }, 1500);
   };
   root.append(card(null, h('div', { class: 'dial-wrap' }, dial), readout, status), h('div', { class: 'actions' }, button('Start', start, { variant: 'primary', icon: 'Compass' })),
-    note(isIOS ? 'Shows true north (iOS).' : 'Shows magnetic north. Keep away from magnets and metal; wave the phone in a figure-8 to calibrate.'));
-  return () => removeEventListener(evt, on);
+    // iPhones too: Safari's webkitCompassHeading is measured from magnetic north (it said "true north")
+    note(`Shows magnetic north. Hold the phone flat, or upright to aim with the back camera. Keep away from magnets and metal${isIOS ? '' : '; wave the phone in a figure-8 to calibrate'}.`));
+  return () => { clearTimeout(warn); removeEventListener(evt, on); };
 };
 
 // ------------------------------------------------------------------ Sound meter
 export const soundmeter: Mount = (root) => {
-  let stream: MediaStream | null = null, ctx: AudioContext | null = null, raf = 0, offset = 90;
-  let min = Infinity, max = -Infinity, sum = 0, n = 0;
+  let stream: MediaStream | null = null, ctx: AudioContext | null = null, raf = 0, offset = 90, src: MediaStreamAudioSourceNode | null = null;
+  // levels are kept as the microphone gives them (dB of the digital full scale) and the offset is added when shown: a new
+  // offset moves min, average and max with the reading (they mixed offsets)
+  let min = Infinity, max = -Infinity, energy = 0, n = 0;
+  const gate = mediaGate();
   const big = h('div', { class: 'big-value center db' }, '—');
   const stats = h('div', { class: 'muted center' });
   const hist = h('canvas', { class: 'wave' });
   const series: number[] = [];
   const level = (db: number) => (db < 40 ? 'Quiet room' : db < 60 ? 'Conversation' : db < 75 ? 'Busy street' : db < 90 ? 'Loud — limit exposure' : 'Very loud — hearing risk');
+  const shown = (raw: number) => Math.max(0, raw + offset); // digital silence → 0 dB, not −150
   const status = h('div');
   const start = async () => {
-    clear(status); cancelAnimationFrame(raf); stopStream(stream); stream = null; // Start again: one stream, one loop
-    try {
-      stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } });
-      ctx ||= new AudioContext();
-      const an = ctx.createAnalyser(); an.fftSize = 4096; ctx.createMediaStreamSource(stream).connect(an);
-      const buf = new Float32Array(an.fftSize);
-      const loop = () => {
-        an.getFloatTimeDomainData(buf);
-        let s = 0; for (const v of buf) s += v * v;
-        const db = Math.max(0, 20 * Math.log10(Math.sqrt(s / buf.length) + 1e-12) + offset); // digital silence → 0 dB, not −150
-        if (isFinite(db)) { min = Math.min(min, db); max = Math.max(max, db); sum += db; n++; series.push(db); if (series.length > 300) series.shift(); }
-        big.textContent = `${db.toFixed(0)} dB`; stats.textContent = `${level(db)} · min ${min.toFixed(0)} · avg ${(sum / n).toFixed(0)} · max ${max.toFixed(0)}`;
-        const W = (hist.width = hist.clientWidth * devicePixelRatio), H = (hist.height = hist.clientHeight * devicePixelRatio), g = hist.getContext('2d')!;
-        g.clearRect(0, 0, W, H); g.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--accent');
-        series.forEach((d, i) => { const hh = Math.max(1, ((d - 20) / 100) * H); g.fillRect((i / 300) * W, H - hh, Math.max(1, W / 300), hh); });
-        raf = requestAnimationFrame(loop);
-      };
-      loop();
-    } catch (e) { status.append(permErr(e)); }
+    clear(status); cancelAnimationFrame(raf); stopStream(stream); stream = null; src?.disconnect(); src = null; // Start again: one stream, one loop
+    try { ctx ||= new AudioContext(); if (ctx.state !== 'running') ctx.resume().catch(() => {}); } catch { /* no Web Audio */ } // in the tap (Safari)
+    let s: MediaStream | null;
+    try { s = await gate.get({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } }); }
+    catch (e) { clear(status).append(note(mediaError(e, 'microphone'), 'err')); return; }
+    if (!s) return;
+    if (!ctx) { stopStream(s); clear(status).append(note('This browser has no Web Audio — the level cannot be measured.', 'err')); return; }
+    stream = s;
+    if (ctx.state !== 'running') ctx.resume().catch(() => {});
+    const an = ctx.createAnalyser(); an.fftSize = 4096; src = ctx.createMediaStreamSource(s); src.connect(an);
+    const buf = new Float32Array(an.fftSize);
+    const loop = () => {
+      an.getFloatTimeDomainData(buf);
+      let sq = 0; for (const v of buf) sq += v * v;
+      const ms = sq / buf.length, raw = 10 * Math.log10(ms + 1e-24); // 20·log10(RMS)
+      min = Math.min(min, raw); max = Math.max(max, raw); energy += ms; n++; series.push(raw); if (series.length > 300) series.shift();
+      // the average is the energy average (Leq), as sound level meters give it — the mean of the dB values said 60 dB for
+      // a minute of 80 and a minute of 40 (Leq: 77)
+      const db = shown(raw), avg = 10 * Math.log10(energy / n + 1e-24);
+      big.textContent = `${db.toFixed(0)} dB`; stats.textContent = `${level(db)} · min ${shown(min).toFixed(0)} · avg ${shown(avg).toFixed(0)} · max ${shown(max).toFixed(0)}`;
+      const W = (hist.width = hist.clientWidth * devicePixelRatio), H = (hist.height = hist.clientHeight * devicePixelRatio), g = hist.getContext('2d')!;
+      g.clearRect(0, 0, W, H); g.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--accent');
+      series.forEach((d, i) => { const hh = Math.max(1, ((shown(d) - 20) / 100) * H); g.fillRect((i / 300) * W, H - hh, Math.max(1, W / 300), hh); });
+      raf = requestAnimationFrame(loop);
+    };
+    loop();
   };
   root.append(card(null, big, stats, hist, status), card('Calibration', slider({ label: 'Offset (adjust to match a reference meter)', min: 60, max: 120, value: offset, unit: ' dB', onInput: (v) => (offset = v) })),
-    h('div', { class: 'actions' }, button('Start', start, { variant: 'primary', icon: 'Gauge' }), button('Reset stats', () => { min = Infinity; max = -Infinity; sum = 0; n = 0; series.length = 0; }, { icon: 'RotateCcw' })),
-    note('Phone and laptop microphones are not calibrated instruments; readings are approximate (±5–10 dB).'));
-  return () => { cancelAnimationFrame(raf); stopStream(stream); ctx?.close(); };
+    h('div', { class: 'actions' }, button('Start', start, { variant: 'primary', icon: 'Gauge' }), button('Reset stats', () => { min = Infinity; max = -Infinity; energy = 0; n = 0; series.length = 0; }, { icon: 'RotateCcw' })),
+    note('Phone and laptop microphones are not calibrated instruments; readings are approximate (±5–10 dB), unweighted (not dB(A)). The average is the energy average (Leq).'));
+  return () => { gate.end(); cancelAnimationFrame(raf); stopStream(stream); stream = null; ctx?.close(); ctx = null; };
 };
 
 // ------------------------------------------------------------------ Ruler
@@ -363,4 +487,3 @@ export const ruler: Mount = (root) => {
   addEventListener('resize', draw);
   return () => removeEventListener('resize', draw);
 };
-void select;
