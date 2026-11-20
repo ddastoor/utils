@@ -70,6 +70,18 @@ export default async ({ base, page: newPage, ok, download, devices }) => {
   ok((await out()).trim() === '', 'Ctrl+L clears the screen');
   ok(page.errors.length === 0, `no page errors: ${page.errors.join(' | ')}`);
 
+  // Ctrl+C during a running command: said why nothing happens (it did nothing, without a word)
+  await page.locator('.term-in').fill('sleep 3'); await page.locator('.term-in').press('Enter');
+  await page.waitForTimeout(400);
+  await page.locator('.term-in').press('Control+c');
+  ok(await page.getByText('A running command cannot be interrupted in a browser tab; it stops by itself after 60 s.').isVisible(), 'Ctrl+C during a command says why it goes on');
+  await page.waitForFunction(() => !document.querySelector('.term-line')?.classList.contains('busy'), null, { timeout: 30000 });
+  // a file removed while its download waits: said in words (it said "File error (44)")
+  await page.locator('.term-in').fill('sleep 2; rm n.txt'); await page.locator('.term-in').press('Enter');
+  await page.waitForTimeout(300);
+  await page.getByRole('button', { name: 'Download n.txt' }).click();
+  ok(await page.getByText(/n\.txt: no such file or folder \(removed or renamed meanwhile\?\)/).first().waitFor({ timeout: 10000 }).then(() => true, () => false), 'a file removed while its download waited: said in words');
+
   const phone = await newPage({ ...devices['iPhone 13'] });
   await phone.goto(base + '#/terminal');
   ok(/PC|computer|desktop/i.test(await phone.locator('body').innerText()), 'phone: explains the terminal is PC only');

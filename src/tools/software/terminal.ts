@@ -33,8 +33,7 @@ export function ansiToNodes(text: string, state: { fg?: string; bold?: boolean; 
 }
 
 export const mount: Mount = (root) => {
-  const worker = new Worker(new URL('../../workers/terminal.worker.ts', import.meta.url), { type: 'module' });
-  let seq = 0, busy = false, prompt = 'user@supertools:~$ ', cwd = '/home/user';
+  let worker: Worker, seq = 0, busy = false, prompt = 'user@supertools:~$ ', cwd = '/home/user', live = true;
   const pend = new Map<number, (r: Reply) => void>();
   const ansi = {} as { fg?: string; bold?: boolean; ul?: boolean };
   const screen = h('pre', { class: 'term-out', 'aria-live': 'polite', 'aria-label': 'Terminal output' });
@@ -55,12 +54,24 @@ export const mount: Mount = (root) => {
     while (screen.childNodes.length > 6000) screen.firstChild!.remove();
     term.scrollTop = term.scrollHeight;
   };
-  worker.onmessage = (e) => {
-    const m = e.data;
-    if (m.type === 'out') write(m.text); else if (m.type === 'err') write(m.text, 'term-err');
-    else if (m.type === 'reply') { pend.get(m.id)?.(m); pend.delete(m.id); }
-  };
-  worker.onerror = (e) => { write(`\n[terminal crashed: ${e.message}]\n`, 'term-err'); busy = false; };
+  /** The shell's worker. If it crashes (out of memory) its pending calls end with the reason and a new one starts —
+   *  the terminal stayed dead before (every later command waited for ever); the files went with the old one. */
+  function startWorker() {
+    worker = new Worker(new URL('../../workers/terminal.worker.ts', import.meta.url), { type: 'module' });
+    worker.onmessage = (e) => {
+      const m = e.data;
+      if (m.type === 'out') write(m.text); else if (m.type === 'err') write(m.text, 'term-err');
+      else if (m.type === 'reply') { pend.get(m.id)?.(m); pend.delete(m.id); }
+    };
+    worker.onerror = (e) => {
+      e.preventDefault?.();
+      if (!live) return;
+      write(`\n[the terminal stopped (${e.message || 'out of memory?'}): starting a new one — the files of this one are gone]\n`, 'term-err');
+      for (const f of pend.values()) f({ id: 0, error: 'The terminal stopped.' });
+      pend.clear(); worker.terminate(); startWorker(); hello();
+    };
+  }
+  startWorker();
   const call = (op: string, data: any = {}, transfer: Transferable[] = []) => new Promise<Reply>((res, rej) => {
     const id = ++seq; pend.set(id, (r) => (r.error ? rej(new Error(r.error)) : res(r))); worker.postMessage({ id, op, ...data }, transfer);
   });
@@ -128,6 +139,7 @@ export const mount: Mount = (root) => {
     } else if (e.key === 'l' && e.ctrlKey) { e.preventDefault(); clear(screen); }
     else if (e.key === 'c' && e.ctrlKey && !inp.selectionStart !== !inp.selectionEnd) { /* let copy work when text is selected */ }
     else if (e.key === 'c' && e.ctrlKey && !busy) { e.preventDefault(); write(prompt, 'term-prompt-echo'); write(inp.value + '^C\n'); inp.value = ''; }
+    else if (e.key === 'c' && e.ctrlKey && busy) { e.preventDefault(); status.textContent = 'A running command cannot be interrupted in a browser tab; it stops by itself after 60 s.'; } // it did nothing, without a word
   });
   // multi-line paste runs as one script
   inp.addEventListener('paste', (e) => {
@@ -145,12 +157,13 @@ export const mount: Mount = (root) => {
         button('', () => refreshFiles(), { icon: 'RefreshCw', small: true, variant: 'ghost', title: 'Refresh' })),
       pathEl, files,
       h('p', { class: 'muted small' }, 'Files live in this tab\'s memory and disappear when you close it. Click a folder to cd into it, a file name to paste it into the command line.'))));
-  (async () => {
+  async function hello() {
     const r = await call('hello');
     write(r.welcome, 'term-note');
     setPrompt(r.prompt, r.cwd);
     refreshFiles();
     inp.focus();
-  })();
-  return () => worker.terminate();
+  }
+  hello();
+  return () => { live = false; worker.terminate(); };
 };

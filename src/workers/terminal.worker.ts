@@ -49,9 +49,16 @@ self.onmessage = async (e: MessageEvent<any>) => {
     if (m.op === 'cd') { s.run(`cd '${String(m.path).replace(/'/g, "'\\''")}'`, false); flush(); return reply(m.id, { prompt: s.prompt(), cwd: s.cwd }); }
   } catch (err: any) {
     flush();
-    reply(m.id, { error: err instanceof FsError ? `File error (${err.errno})` : err?.message || String(err) });
+    reply(m.id, { error: err instanceof FsError ? fsWords(err.errno, m.path || m.dir || '') : err?.message || String(err) });
   }
 };
+
+/** A file error of the panel in words (it said "File error (44)"). WASI's numbers. */
+function fsWords(errno: number, path: string): string {
+  const name = path ? `${path}: ` : '';
+  const words: Record<number, string> = { 44: 'no such file or folder (removed or renamed meanwhile?)', 54: 'not a folder', 31: 'a folder, not a file', 20: 'already there', 37: 'name too long', 32: 'too many symbolic links', 28: 'not possible here' };
+  return `${name}${words[errno] || `file error ${errno}`}`;
+}
 
 /** Tab completion: commands for the first word, paths otherwise. */
 function complete(s: Shell, text: string): string[] {
