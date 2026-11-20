@@ -1170,3 +1170,14 @@ One entry per tab, written before its bug hunt: our module → candidates → ch
   C++ — like JSON.parse in §3a's list) and our TypeScript lays the cells on a grid (`src/lib/sheetdata.ts`); a
   supplementary WebAssembly module (html5ever) would only duplicate the browser's parser. The text encodings of CSV
   files (UTF-16, Windows-1252) are the browser's TextDecoder.
+
+### 138. `markdown` — Markdown Editor (20 Nov 2026)
+- **Ours:** cmark-gfm 0.29.0.gfm.13 — GitHub's own C implementation of GitHub Flavored Markdown — built by us from the
+  source the PyPI package `cmarkgfm` vendors (SHA-256 pinned). **Candidates:** markdown-wasm (md4c compiled by rsms;
+  last release 2021; no footnotes and no tag filter), WebAssembly builds of comrak (Rust, GFM-compatible; small
+  one-person packages), pulldown-cmark (no WebAssembly package of note). None is GitHub's own renderer, and none is
+  more tried and tested than it. **Decision:** ours stays. Now held to every example of the GFM spec and of cmark-gfm's
+  extension, smart-punctuation and regression files at the same tag (744): 732 give the spec's HTML, 12 differ exactly
+  as the extensions GitHub always switches on make them (tag filter 6, autolinks 5, one "must not crash").
+- **Beside it:** heading ids as GitHub gives them (`src/lib/mdslug.ts`, held to npm's github-slugger), and the
+  rendered HTML tidied in an inert DOMParser document (pictures from other sites, links, ids) — glue in TypeScript.

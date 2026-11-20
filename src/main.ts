@@ -260,6 +260,7 @@ searchInput.addEventListener('keydown', async (e) => {
   else if (e.key === 'Escape') { closeSearch(); searchInput.blur(); }
 });
 document.addEventListener('keydown', (e) => {
+  if (e.defaultPrevented) return;                 // a tab took the key (the Markdown Editor's Ctrl+K inserts a link)
   const tgt = e.target as HTMLElement;
   const typing = tgt && (tgt.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(tgt.tagName));
   if ((e.key === '/' && !typing) || ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k')) {

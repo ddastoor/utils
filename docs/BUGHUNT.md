@@ -47,7 +47,7 @@ Areas with a shared review: the app shell (router, search, favorites, platform h
 | `pdf-watermark` | PDF Watermark | PC + mobile | pdf | ✓ | 2 | 4 | a run keeps its own file (sizes were read from the new one); ends with the tab; progress |
 | `epub` | PDF → EPUB | PC only | docs2 | ✓ | 17 | 93 | columns with 7.5 pt gutters; margin stamps; bold/size of a line from its spans; U+FFFF; formulas as pictures; bookmarks; /Lang; no freeze; newer PDF ends a run; epubcheck |
 | `sheet` | CSV / Excel | PC only | docs2 | ✓ | 18 | 141 | errors #DIV/0!; durations; 15 digits; exact numbers; JSON keys/IDs; Windows-1252/UTF-16; web-page .xls + Excel 2003 XML; newest file wins; Excel limits; LibreOffice reference |
-| `markdown` | Markdown Editor | PC + mobile | docs2 |  |  |  |  |
+| `markdown` | Markdown Editor | PC + mobile | docs2 | ✓ | 12 | 30 | #fn links left the tab; Ctrl+K focus; Ctrl+P preview only; remote pictures not fetched; undoable toggles; GitHub heading ids; GFM spec 744 examples |
 | `invoice` | GST Invoice | PC + mobile | docs2 |  |  |  |  |
 | `rent` | Rent Receipt | PC + mobile | docs2 |  |  |  |  |
 | `resume` | Resume Builder | PC + mobile | docs2 |  |  |  |  |
@@ -1899,3 +1899,32 @@ Reference for the five finance tabs: **mpmath at 60 digits** (`scripts/make-fina
   17. Dates written as text (a CSV's 2026-11-20, an .xls → .xlsx copy) stayed text in the .xlsx: with the option they
       are Excel dates and times again.
   18. The sheet of a CSV was named "CSV" in the .xlsx: it is named after the file.
+- **`markdown` (tab 141, 12 bugs; cmark-gfm; WASM-AUDIT 138; unit `markdown.test.mjs` 29 — was 26, one check runs the
+  744 examples of the GFM spec files (`tests/fixtures/markdown/`, CC-BY-SA 4.0) and one 430 headings against
+  github-slugger; e2e 46 — was 19).**
+  1. **A footnote or a link to a heading took the app to its start page and the text was lost:** "#fn-1" in the
+     address is no tab (hash routing). Links inside the document now scroll the preview pane; the address stays.
+  2. **Ctrl+K in the editor** inserted a link and then the app's own Ctrl+K moved the focus to the search box: the
+     app's shortcut leaves a key a tab has taken (`defaultPrevented`, src/main.ts).
+  3. **Ctrl+P printed the whole app** (only the button switched to the preview); and the button dropped the print
+     mode after one second, before a slow print preview (iOS) had read it. The browser's beforeprint / afterprint
+     events switch it now, for every way of printing, and the tab removes them when it is left.
+  4. **Pictures from other sites** were asked for, refused by the page's CSP (a security-policy violation each) and
+     shown broken: the HTML is tidied in an inert document first; such a picture is a note with its description, and
+     a line says why (the downloaded .html shows them).
+  5. **The toolbar and the shortcuts could not be undone with Ctrl+Z** (setRangeText leaves no undo step): edits go
+     through the browser's insertText.
+  6. **A second press did not take formatting off:** Bold on bold text gave ****bold****, Heading on a heading
+     "## ## Title", a numbered list numbered empty lines. Inline marks toggle (asterisk runs read as italic / bold),
+     line formats come off when every line has them, another heading level is replaced, empty lines are skipped.
+  7. **The word count counted the Markdown** (a link's address added words); it counts the rendered text, and an
+     empty text has no "1 min read".
+  8. **The .html's title** came from a regular expression on the source (a "# comment" in a code block won; a setext
+     heading and closing #s were missed): the first rendered h1.
+  9. **Links to headings went nowhere:** headings get GitHub's ids (in the preview with a prefix, in the .html as on
+     GitHub).
+  10. **A Windows-1252 .md showed U+FFFD**, CR LF stayed, and opening a file replaced the text with no way back: decoded
+      as the CSV tab does, line ends LF, Ctrl+Z brings the text before back.
+  11. **A file dropped on the editor was ignored** (the app keeps the browser from opening it in place of the page):
+      it is opened.
+  12. **A long document was rendered and counted on every key:** above 200,000 characters when the typing pauses.

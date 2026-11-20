@@ -4,14 +4,15 @@ import { instantiateWasi } from './wasi';
 import wasmUrl from './bin/markdown.wasm?url';
 import { lazyEngine } from '../lifecycle';
 
-export interface MdOptions { smart?: boolean; hardBreaks?: boolean; footnotes?: boolean }
+/** unsafe: raw HTML and every link kept — for the spec tests only; the app never passes it. */
+export interface MdOptions { smart?: boolean; hardBreaks?: boolean; footnotes?: boolean; unsafe?: boolean }
 export function bindMarkdown(e: any) {
   const enc = new TextEncoder(), dec = new TextDecoder();
   return {
     html(src: string, o: MdOptions = {}): string {
       const b = enc.encode(src), p = e.md_malloc(b.length), lenP = e.md_malloc(4);
       new Uint8Array(e.memory.buffer, p, b.length).set(b);
-      const flags = (o.smart ? 1 : 0) | (o.hardBreaks ? 2 : 0) | (o.footnotes !== false ? 4 : 0);
+      const flags = (o.smart ? 1 : 0) | (o.hardBreaks ? 2 : 0) | (o.footnotes !== false ? 4 : 0) | (o.unsafe ? 8 : 0);
       const out = e.md_html(p, b.length, flags, lenP);
       try { return dec.decode(new Uint8Array(e.memory.buffer, out, new Int32Array(e.memory.buffer, lenP, 1)[0])); }
       finally { e.md_free(out); e.md_free(p); e.md_free(lenP); }

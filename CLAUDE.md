@@ -300,7 +300,7 @@ Classic / Modern (two columns) / Compact, A4 or Letter, photo, repeatable jobs /
 | `pdf-watermark` | PDF Watermark | both |
 | `epub` | PDF → EPUB (Kindle) | **PC** — **BUILT** (see §3) |
 | `sheet` | CSV / Excel Viewer & Converter | **PC** — **BUILT** (sheet.wasm; open xlsx/xlsm/xlsb/xls/ods/csv/tsv/json and the "Excel" files that are web pages or Excel 2003 XML, sheet tabs incl. hidden, separator override, filter, export CSV (BOM) / TSV / JSON / XLSX; as built: §3 "CSV / Excel"; unit `sheet.test.mjs` 120 + `sheetdata.test.mjs` 42, e2e 32) |
-| `markdown` | Markdown Editor | both — **BUILT** (cmark-gfm wasm; live preview, toolbar + Ctrl+B/I/K, .md open/save, standalone .html, print of the preview only; e2e 23) |
+| `markdown` | Markdown Editor | both — **BUILT** (cmark-gfm wasm; live preview, toolbar + Ctrl+B/I/K, .md open/save, standalone .html, print of the preview only; as built: §3 "Markdown Editor"; unit 29 incl. the 744 GFM spec examples, e2e 46) |
 
 **Security**: `pgp` OpenPGP · `sodium` Sodium Encrypt · `sharelink` Encrypted Share Link (ciphertext in the
 URL `#fragment`, never sent to a server) · `hash` Hash / Checksum · `password` Password Generator ·
@@ -1290,6 +1290,23 @@ scripts/make-sheet-fixtures.py` — needs `pip install openpyxl` and LibreOffice
   numbers. .xlsx: sheet names Excel accepts (31 characters, none of [ ] : * ? / \\, no apostrophe at an end, not
   "History", unique without regard to case); a CSV's sheet is named after the file; Excel's limits said in words
   ("Cell C6 of “x” holds 40000 characters; an Excel cell holds at most 32,767"; 1,048,576 rows; 16,384 columns).
+
+### Markdown Editor — as built after the Nov 2026 bug hunt
+(`markdown` in `src/tools/markdown.ts`, heading ids `src/lib/mdslug.ts`, engine `src/wasm/markdown.ts` — §5.1e; unit
+`tests/unit/markdown.test.mjs` 29, e2e `tests/e2e/markdown.e2e.mjs` 46.) **cmark-gfm 0.29.0.gfm.13** with GitHub's
+extensions (tables, strikethrough, autolinks, tag filter, task lists, footnotes) in its safe mode; the unit suite runs
+the 744 examples of the GFM spec and cmark-gfm's test files at that tag (`tests/fixtures/markdown/`; 12 differ only
+as GitHub's extensions make them). The HTML is tidied in an **inert DOMParser document** before it is shown: pictures
+from other sites are not fetched (a note with their description; the .html shows them), links leave in a new tab with
+noopener, headings get **GitHub's ids** (github-slugger's rule, held to the npm package), ids are prefixed "md-" in the
+preview, and links inside the document scroll the preview pane (the address never changes: "#fn-1" would leave the
+tab). Toolbar and Ctrl+B / I / K: inline marks wrap the selection and come off on a second press (asterisk runs: 1 or 3
+italic, 2 or 3 bold), line formats come off when every line has them, a heading of another level is replaced, empty
+lines are skipped by lists; every edit goes through the browser's insertText, so Ctrl+Z undoes it. Counts are of the
+rendered text. Above 200,000 characters the preview is drawn when the typing pauses. Files: decoded by their mark,
+UTF-8 or Windows-1252, CR LF → LF, Ctrl+Z brings the text before back; a file dropped on the editor is opened.
+Printing — the button, Ctrl+P or the menu — shows the preview only (beforeprint / afterprint). The .html: the first
+rendered h1 as its title, GitHub's ids.
 
 ### SQLite Playground (PC) — as built after the Nov 2026 bug hunt
 (`src/tools/software/sqlite.ts`, engine `src/lib/sqlite-engine.ts`, worker `src/workers/sqlite.worker.ts`; unit
@@ -2356,6 +2373,7 @@ npm packages (pinned in `package-lock.json`) are bundled by Vite or copied to `p
 | *test only (devDependencies, not shipped):* typescript-classic (= typescript 5.9.3), postcss, postcss-scss, parse5, graphql, marked, @vue/compiler-sfc, yaml | Apache-2.0 / MIT / ISC | independent readers of the Code Formatter's suites |
 | *test only:* delaunator 5.1.0 | ISC | the original that `wasm/graphviz/st_delaunay.h` (our C port, shipped inside graphviz.wasm) is held to |
 | *test only:* change-case 5.4.4 | MIT | the reference of the Case Converter's code cases (`tests/unit/caseconv.test.mjs`) |
+| *test only:* github-slugger 2.0.0 | ISC | the reference of the Markdown Editor's heading ids (`tests/unit/markdown.test.mjs`) |
 | *test only:* unicode-emoji-json 0.9.0 | MIT | another reading of Unicode's emoji list, which the Emoji tab's data is held to (`tests/unit/emoji.test.mjs`) |
 | @expo-google-fonts/noto-sans (Noto Sans TTF: regular, bold, italic) | OFL-1.1 (package MIT) | PDFs made by GST Invoice, Rent Receipt, Resume Builder |
 

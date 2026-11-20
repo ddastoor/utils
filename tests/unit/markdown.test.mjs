@@ -1,5 +1,6 @@
 // markdown.wasm (cmark-gfm built by us): CommonMark + GFM known answers and the safety guarantees the app relies on.
-export default async (t, { load, wasm }) => {
+import { readFileSync } from 'node:fs';
+export default async (t, { load, wasm, root }) => {
   const { bindMarkdown } = await load('/src/wasm/markdown.ts');
   const md = bindMarkdown(await wasm('markdown'));
   const H = (s, o) => md.html(s, o);
@@ -33,4 +34,42 @@ export default async (t, { load, wasm }) => {
   let crashed = false; try { for (let i = 0; i < 300; i++) H(String.fromCharCode(...Array.from({ length: 200 }, (_, k) => (k * 7919 + i * 31) % 0x2fff))); } catch { crashed = true; }
   t.ok(!crashed, 'random input never traps');
   t.eq(H('*'.repeat(20000)).length > 0, true, 'pathological emphasis input finishes');
+
+  // ---- the GFM spec and cmark-gfm's own test files at the tag we build (tests/fixtures/markdown/, CC-BY-SA 4.0):
+  // every example gives the spec's HTML — but where an extension GitHub always uses changes it (the tag filter escapes
+  // <script> / <style>; bare URLs and e-mail addresses become links), which the spec's plain CommonMark examples assume
+  // switched off. Our options GITHUB_PRE_LANG and TABLE_PREFER_STYLE_ATTRIBUTES are undone before comparing.
+  const FENCE = '`'.repeat(32), counts = { exact: 0, tagfilter: 0, autolink: 0, ignore: 0 }, unexplained = [];
+  const norm = (s) => s.replace(/<pre lang="([^"]*)"><code>/g, '<pre><code class="language-$1">').replace(/ style="text-align: (\w+)"/g, ' align="$1"')
+    .replace(/<input ([^>]*?) ?\/?>/g, (m, a) => `<input ${(a.match(/[\w-]+="[^"]*"/g) || []).sort().join(' ')}>`);
+  for (const f of ['spec.txt', 'extensions.txt', 'smart_punct.txt', 'regression.txt']) {
+    const L = readFileSync(`${root}/tests/fixtures/markdown/${f}`, 'utf8').split('\n');
+    for (let i = 0; i < L.length; i++) {
+      if (!L[i].startsWith(FENCE + ' example')) continue;
+      let j = i + 1; const a = [], b = [];
+      while (L[j] !== '.') a.push(L[j++]); j++;
+      while (L[j] !== FENCE) b.push(L[j++]);
+      const src = a.join('\n').replace(/→/g, '\t') + (a.length ? '\n' : ''), want = b.join('\n').replace(/→/g, '\t') + (b.length ? '\n' : '');
+      const got = norm(md.html(src, { unsafe: true, smart: f === 'smart_punct.txt' }));
+      if (want === '<IGNORE>\n') counts.ignore++;                                   // "should not crash"
+      else if (got === norm(want)) counts.exact++;
+      else if (got.replace(/&lt;(\/?)(script|style|title|textarea|xmp|iframe|noembed|noframes|plaintext)/gi, '<$1$2') === norm(want)) counts.tagfilter++;
+      else if (got.replace(/<a href="(?:https?:\/\/|mailto:)[^"]*">([^<]*)<\/a>/g, '$1') === norm(want)) counts.autolink++;
+      else unexplained.push(`${f}:${i + 1} ${JSON.stringify(src)} → ${JSON.stringify(got)}, the spec says ${JSON.stringify(want)}`);
+      i = j;
+    }
+  }
+  t.eq(unexplained, [], 'every example of the GFM spec, extensions, smart punctuation and regression files: the spec\'s HTML or an extension GitHub uses');
+  t.eq(counts, { exact: 732, tagfilter: 6, autolink: 5, ignore: 1 }, `744 examples: ${JSON.stringify(counts)}`);
+  const safe = H('<script>alert(1)</script>\n\n<b>x</b>\n\n[a](javascript:x) ![b](data:text/html,x) ![c](data:image/png;base64,AA==)');
+  t.ok(!/<script|<b>|javascript:|data:text/.test(safe) && /data:image\/png/.test(safe), 'without unsafe (the app): raw HTML and unsafe links dropped, a data: picture kept');
+
+  // ---- heading ids as GitHub gives them: our slugger against npm's github-slugger (the one GitHub's tools use)
+  const { slugger } = await load('/src/lib/mdslug.ts');
+  const GS = (await import('github-slugger')).default;
+  const heads = ['Hello World', 'Hello, World!', 'foo bar', 'foo bar', 'foo bar', 'Привет мир', '😄 emoji', 'C++ & C#', 'under_score', '  spaced  ', 'What works', 'Ünïcödé Àccents', '日本語 見出し', 'a-b—c', 'तालिका १', 'foo-bar-1', 'foo-bar', '', '', '#hash', 'Ünïcödé Àccents', 'ÀÉÎ', "It's (a) test.", 'x'.repeat(300), 'Ⅻ roman', '١٢٣ arabic digits', 'ǅ titlecase', 'Ꝃ ꝃ', 'İstanbul', 'ΣΊΣΥΦΟΣ'];
+  for (let k = 0; k < 400; k++) heads.push(String.fromCodePoint(...Array.from({ length: 6 }, (_, i) => [0x41, 0x61, 0x30, 0x20, 0x2d, 0x5f, 0x2e, 0xe9, 0x416, 0x5d0, 0x627, 0x915, 0x93f, 0x4e00, 0x1f600, 0x300, 0x2019, 0x3000][(k * 7 + i * 13 + (k >> 2)) % 18])));
+  const ours = slugger(), ref = new GS();
+  const diff = heads.map((x) => [x, ours(x), ref.slug(x)]).filter(([, a, b]) => a !== b);
+  t.eq(diff, [], `${heads.length} headings (with repeats, Unicode, emoji, marks): the same ids as github-slugger`);
 };

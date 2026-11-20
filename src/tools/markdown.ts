@@ -1,7 +1,12 @@
-// Markdown Editor: GitHub Flavored Markdown rendered by cmark-gfm (C → our own wasm build). Live preview, toolbar,
-// open .md, download .md / standalone .html, print or save as PDF (browser print of the preview only).
+// Markdown Editor: GitHub Flavored Markdown rendered by cmark-gfm (C → our own wasm build). Live preview, toolbar
+// (each button undoable with Ctrl+Z, a second press takes the formatting off), open .md, download .md / standalone
+// .html, print or save as PDF (the preview only — also with Ctrl+P). The rendered HTML is parsed into an inert
+// document first: pictures from other sites are not fetched (shown as a note), links inside the document scroll the
+// preview (a "#fn-1" in the address would have taken the app to its start page), headings get GitHub's ids.
 import { h, card, actions, button, segmented, toggle, filePicker, downloadBlob, shareOrDownload, baseName, toast, errMsg, type Mount } from '../ui';
 import { markdown } from '../wasm/markdown';
+import { decodeText } from '../lib/sheetdata';
+import { slugger } from '../lib/mdslug';
 
 const SAMPLE = `# Markdown Editor
 
@@ -40,65 +45,131 @@ export const MD_CSS = `.markdown-body{font:16px/1.6 system-ui,-apple-system,"Seg
 
 const escapeHtml = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
 
+/** Headings get GitHub's ids (so [x](#a-heading) works) — with `prefix` in the preview, where they share the page with
+ *  the app. */
+function headingIds(root: ParentNode, prefix: string) {
+  const slug = slugger();
+  for (const hd of root.querySelectorAll('h1, h2, h3, h4, h5, h6')) if (!hd.id) hd.id = prefix + slug(hd.textContent || '');
+  if (prefix) for (const el of root.querySelectorAll('[id]')) if (!el.id.startsWith(prefix)) el.id = prefix + el.id;
+}
+const SIZE_LIVE = 200000; // longer texts are rendered when the typing pauses
+
 export const mount: Mount = async (root, ctx) => {
   const md = await markdown();
-  let smart = true, breaks = false, name = 'document', view: 'write' | 'preview' = 'write', tok = 0;
+  let smart = true, breaks = false, name = 'document', view: 'write' | 'preview' = 'write', tok = 0, timer: ReturnType<typeof setTimeout> | undefined;
   const ta = h('textarea', { class: 'input textarea md-src', spellcheck: 'true', 'aria-label': 'Markdown text', rows: 24 }) as HTMLTextAreaElement;
   ta.value = SAMPLE;
   const preview = h('article', { class: 'markdown-body md-preview', 'aria-label': 'Preview' });
-  const stats = h('div', { class: 'muted small' });
+  const stats = h('div', { class: 'muted small' }), away = h('div', { class: 'muted small', hidden: true });
+  const draw = () => {
+    const html = md.html(ta.value, { smart, hardBreaks: breaks });
+    // an inert document: nothing is fetched while it is tidied (cmark has already dropped raw HTML and unsafe links)
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    let other = 0;
+    for (const img of doc.querySelectorAll('img')) {
+      const src = img.getAttribute('src') || '';
+      if (/^data:image\//i.test(src)) continue;
+      other++;
+      const note = doc.createElement('span'); note.className = 'md-img'; note.title = src;
+      note.textContent = `🖼 ${img.getAttribute('alt') || 'picture'}`;
+      img.replaceWith(note);
+    }
+    for (const a of doc.querySelectorAll('a[href]')) if (!a.getAttribute('href')!.startsWith('#')) { a.setAttribute('target', '_blank'); a.setAttribute('rel', 'noopener noreferrer'); }
+    headingIds(doc.body, 'md-');
+    preview.replaceChildren(...doc.body.childNodes);
+    away.hidden = !other;
+    away.textContent = other ? `${other === 1 ? 'A picture' : `${other} pictures`} from another place ${other === 1 ? 'is' : 'are'} not shown here (this page loads nothing from other sites); the downloaded .html shows ${other === 1 ? 'it' : 'them'}.` : '';
+    const words = [...new Intl.Segmenter(undefined, { granularity: 'word' }).segment(preview.textContent || '')].filter((s) => s.isWordLike).length;
+    stats.textContent = `${words.toLocaleString('en-IN')} word${words === 1 ? '' : 's'} · ${ta.value.length.toLocaleString('en-IN')} characters${words ? ` · ${Math.max(1, Math.round(words / 230))} min read` : ''}`;
+  };
   const render = () => {
-    const my = ++tok;
-    queueMicrotask(() => {
-      if (my !== tok) return;
-      preview.innerHTML = md.html(ta.value, { smart, hardBreaks: breaks }); // safe: cmark drops raw HTML and unsafe URLs
-      for (const a of preview.querySelectorAll('a[href]')) { if (!a.getAttribute('href')!.startsWith('#')) { a.setAttribute('target', '_blank'); a.setAttribute('rel', 'noopener noreferrer'); } }
-      const words = [...new Intl.Segmenter(undefined, { granularity: 'word' }).segment(ta.value)].filter((s) => s.isWordLike).length;
-      stats.textContent = `${words.toLocaleString()} words · ${ta.value.length.toLocaleString()} characters · ${Math.max(1, Math.round(words / 230))} min read`;
-    });
+    const my = ++tok; clearTimeout(timer);
+    if (ta.value.length > SIZE_LIVE) { timer = setTimeout(() => { if (my === tok) draw(); }, 300); return; }
+    queueMicrotask(() => { if (my === tok) draw(); });
   };
   ta.addEventListener('input', render);
+  // links inside the document scroll the preview (in the address they would leave the tab)
+  preview.addEventListener('click', (e) => {
+    const a = (e.target as Element).closest?.('a[href^="#"]'); if (!a) return;
+    e.preventDefault();
+    let id = a.getAttribute('href')!.slice(1); try { id = decodeURIComponent(id); } catch { /* as typed */ }
+    const target = preview.querySelector(`[id="${CSS.escape('md-' + id)}"]`); if (!target) return;
+    // the preview pane scrolls (PC); where it does not (phones) the page does
+    const pane = preview.parentElement!;
+    if (pane.scrollHeight > pane.clientHeight + 1) pane.scrollTo({ top: pane.scrollTop + target.getBoundingClientRect().top - pane.getBoundingClientRect().top - 8, behavior: 'smooth' });
+    else target.scrollIntoView({ block: 'start', behavior: 'smooth' });
+  });
 
-  // toolbar: wrap the selection or insert at the start of each selected line
-  const wrap = (before: string, after = before, placeholder = 'text') => {
-    const { selectionStart: s, selectionEnd: e, value: v } = ta, sel = v.slice(s, e) || placeholder;
-    ta.setRangeText(before + sel + after, s, e, 'end');
-    ta.setSelectionRange(s + before.length, s + before.length + sel.length); ta.focus(); render();
+  // editing that Ctrl+Z can undo: the browser's own insertText, else setRangeText
+  const replace = (text: string, a: number, b: number) => {
+    ta.focus(); ta.setSelectionRange(a, b);
+    // (a text of megabytes goes in at once, without undo: the browser's insertText is slow for it)
+    if (text.length > 1e6 || !document.execCommand?.('insertText', false, text) || ta.value.slice(a, a + text.length) !== text) ta.setRangeText(text, a, b, 'end');
   };
-  const lines = (prefix: (i: number) => string) => {
+  // inline formatting: wrap the selection; a second press takes the marks off again
+  const wrap = (mark: string, after = mark, placeholder = 'text') => {
+    const { selectionStart: s, selectionEnd: e, value: v } = ta, sel = v.slice(s, e), n = mark.length;
+    const stars = (str: string, from: number, step: number) => { let k = 0; while (str[from + k * step] === '*') k++; return k; };
+    // asterisks: 1 or 3 around the text → italic, 2 or 3 → bold; other marks: exactly those marks around it
+    const isOn = (k: number) => (mark === '*' ? k % 2 === 1 : k >= 2);
+    const star = mark === '*' || mark === '**';
+    const outside = star ? isOn(Math.min(stars(v, s - 1, -1), stars(v, e, 1))) : v.slice(s - n, s) === mark && v.slice(e, e + after.length) === after;
+    const inside = sel.length > n + after.length && (star ? isOn(Math.min(stars(sel, 0, 1), stars(sel, sel.length - 1, -1))) : sel.startsWith(mark) && sel.endsWith(after));
+    if (outside) { replace(sel, s - n, e + after.length); ta.setSelectionRange(s - n, e - n); }
+    else if (inside) { const inner = sel.slice(n, sel.length - after.length); replace(inner, s, e); ta.setSelectionRange(s, s + inner.length); }
+    else { const t = sel || placeholder; replace(mark + t + after, s, e); ta.setSelectionRange(s + n, s + n + t.length); }
+    render();
+  };
+  // line formatting: every selected line; when all of them already have it, it comes off
+  const lines = (add: (i: number) => string, has: RegExp) => {
     const { selectionStart: s, selectionEnd: e, value: v } = ta, a = v.lastIndexOf('\n', s - 1) + 1, b = v.indexOf('\n', e) < 0 ? v.length : v.indexOf('\n', e);
-    const block = v.slice(a, b).split('\n').map((l, i) => prefix(i) + l).join('\n');
-    ta.setRangeText(block, a, b, 'select'); ta.focus(); render();
+    const ls = v.slice(a, b).split('\n'), full = ls.filter((l) => l.trim());
+    const off = full.length > 0 && full.every((l) => has.test(l));
+    let n = 0;
+    const heading = has.source.startsWith('^#');   // a heading of another level becomes this one
+    const block = ls.map((l) => (!l.trim() ? l : off ? l.replace(has, '') : add(n++) + (heading ? l.replace(has, '') : l))).join('\n');
+    replace(block, a, b); ta.setSelectionRange(a, a + block.length); render();
   };
-  const insert = (text: string) => { ta.setRangeText(text, ta.selectionStart, ta.selectionEnd, 'end'); ta.focus(); render(); };
+  const insert = (text: string) => { replace(text, ta.selectionStart, ta.selectionEnd); render(); };
   const tb = (icon: string, title: string, f: () => void) => button('', f, { icon, small: true, variant: 'ghost', title });
   const toolbar = h('div', { class: 'md-toolbar', role: 'toolbar', 'aria-label': 'Formatting' },
     tb('Bold', 'Bold (Ctrl+B)', () => wrap('**')), tb('Italic', 'Italic (Ctrl+I)', () => wrap('*')), tb('Strikethrough', 'Strikethrough', () => wrap('~~')),
-    tb('Heading', 'Heading', () => lines(() => '## ')), tb('Link', 'Link (Ctrl+K)', () => wrap('[', '](https://)', 'link text')),
-    tb('List', 'Bulleted list', () => lines(() => '- ')), tb('ListOrdered', 'Numbered list', () => lines((i) => `${i + 1}. `)), tb('ListTodo', 'Task list', () => lines(() => '- [ ] ')),
-    tb('Quote', 'Quote', () => lines(() => '> ')), tb('Code', 'Code', () => wrap('`')), tb('SquareCode', 'Code block', () => wrap('\n```\n', '\n```\n', 'code')),
+    tb('Heading', 'Heading', () => lines(() => '## ', /^#{1,6}\s+/)), tb('Link', 'Link (Ctrl+K)', () => wrap('[', '](https://)', 'link text')),
+    tb('List', 'Bulleted list', () => lines(() => '- ', /^[-*+]\s+(?!\[[ xX]\]\s)/)), tb('ListOrdered', 'Numbered list', () => lines((i) => `${i + 1}. `, /^\d{1,9}[.)]\s+/)), tb('ListTodo', 'Task list', () => lines(() => '- [ ] ', /^[-*+]\s+\[[ xX]\]\s+/)),
+    tb('Quote', 'Quote', () => lines(() => '> ', /^>\s?/)), tb('Code', 'Code', () => wrap('`')), tb('SquareCode', 'Code block', () => wrap('\n```\n', '\n```\n', 'code')),
     tb('Table', 'Table', () => insert('\n| Column 1 | Column 2 |\n|---|---|\n| a | b |\n')), tb('Minus', 'Horizontal line', () => insert('\n\n---\n\n')));
   ta.addEventListener('keydown', (e) => {
-    if (!(e.ctrlKey || e.metaKey)) return;
+    if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
     const k = e.key.toLowerCase();
+    // (the app's Ctrl+K — focus the search box — leaves a key the editor took alone)
     if (k === 'b') { e.preventDefault(); wrap('**'); } else if (k === 'i') { e.preventDefault(); wrap('*'); } else if (k === 'k') { e.preventDefault(); wrap('[', '](https://)', 'link text'); }
   });
 
-  const title = () => (/^#\s+(.+)$/m.exec(ta.value)?.[1] || name).trim();
-  const standalone = () => `<!doctype html>\n<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${escapeHtml(title())}</title>\n<style>body{margin:0;padding:32px 16px}${MD_CSS}</style></head>\n<body><article class="markdown-body">\n${md.html(ta.value, { smart, hardBreaks: breaks })}</article></body></html>\n`;
-  const save = (blob: Blob, file: string) => (ctx.isMobile ? shareOrDownload(blob, file) : downloadBlob(blob, file));
-  const print = () => {
-    render();
-    document.documentElement.classList.add('print-md');
-    const done = () => { document.documentElement.classList.remove('print-md'); removeEventListener('afterprint', done); };
-    addEventListener('afterprint', done);
-    setTimeout(() => { window.print(); setTimeout(done, 1000); }, 50);
+  const standalone = () => {
+    const doc = new DOMParser().parseFromString(md.html(ta.value, { smart, hardBreaks: breaks }), 'text/html');
+    headingIds(doc.body, '');
+    const t = (doc.querySelector('h1')?.textContent || name).trim();
+    return `<!doctype html>\n<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${escapeHtml(t)}</title>\n<style>body{margin:0;padding:32px 16px}${MD_CSS}</style></head>\n<body><article class="markdown-body">\n${doc.body.innerHTML}</article></body></html>\n`;
   };
-  const open = filePicker({ accept: '.md,.markdown,.txt,text/markdown,text/plain', label: 'Open a .md file', compact: true, onFiles: async ([f]) => {
-    try { ta.value = await f.text(); name = baseName(f.name); render(); toast(`Opened ${f.name}`, 'ok'); } catch (e) { toast(errMsg(e), 'err'); }
-  } });
+  const save = (blob: Blob, file: string) => (ctx.isMobile ? shareOrDownload(blob, file) : downloadBlob(blob, file));
+  // printing (the button, Ctrl+P or the browser's menu) shows the preview only
+  const before = () => { clearTimeout(timer); draw(); document.documentElement.classList.add('print-md'); };
+  const after = () => document.documentElement.classList.remove('print-md');
+  addEventListener('beforeprint', before); addEventListener('afterprint', after);
+  const openFile = async (f: File) => {
+    try {
+      const { text, how } = decodeText(new Uint8Array(await f.arrayBuffer()));
+      replace(text.replace(/\r\n?/g, '\n'), 0, ta.value.length); ta.setSelectionRange(0, 0); ta.scrollTop = 0;
+      name = baseName(f.name); render();
+      toast(`Opened ${f.name}${how ? ` (read as ${how})` : ''} — Ctrl+Z brings back the text before`, 'ok');
+    } catch (e) { toast(`${f.name}: ${errMsg(e)}`, 'err'); }
+  };
+  const open = filePicker({ accept: '.md,.markdown,.mdown,.mkd,.txt,text/markdown,text/plain', label: 'Open a .md file', compact: true, onFiles: ([f]) => openFile(f) });
+  // a file dropped on the editor is opened (the browser would otherwise put its name in, or leave the page)
+  ta.addEventListener('dragover', (e) => { if (e.dataTransfer?.types.includes('Files')) { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; } });
+  ta.addEventListener('drop', (e) => { const f = e.dataTransfer?.files?.[0]; if (f) { e.preventDefault(); openFile(f); } });
   const editorPane = h('div', { class: 'md-pane md-edit' }, toolbar, ta);
-  const previewPane = h('div', { class: 'md-pane md-view' }, preview);
+  const previewPane = h('div', { class: 'md-pane md-view' }, away, preview);
   const setView = (v: typeof view) => { view = v; editorPane.hidden = ctx.isMobile && v !== 'write'; previewPane.hidden = ctx.isMobile && v !== 'preview'; };
   root.append(
     card(null, h('div', { class: 'row md-top' },
@@ -109,7 +180,8 @@ export const mount: Mount = async (root, ctx) => {
     actions(
       button(ctx.isMobile ? '.md' : 'Download .md', () => save(new Blob([ta.value], { type: 'text/markdown;charset=utf-8' }), `${name}.md`), { icon: 'Download' }),
       button(ctx.isMobile ? '.html' : 'Download .html', () => save(new Blob([standalone()], { type: 'text/html;charset=utf-8' }), `${name}.html`), { icon: 'FileCode' }),
-      button(ctx.isMobile ? 'PDF' : 'Print / PDF', print, { icon: 'Printer', variant: 'primary' })),
+      button(ctx.isMobile ? 'PDF' : 'Print / PDF', () => window.print(), { icon: 'Printer', variant: 'primary' })),
   );
-  setView('write'); render();
+  setView('write'); draw();
+  return () => { clearTimeout(timer); removeEventListener('beforeprint', before); removeEventListener('afterprint', after); after(); };
 };
