@@ -2286,6 +2286,9 @@ cannot. Three new suites; each fails on the build before its fixes.
   catches a download failure nothing else caught and says it on the tab once, with "Try again" (a reload — a failed
   module stays failed for the page); `errMsg` words Emscripten's abort as the failed download it is. The other tabs
   already said it (the shell's "Could not load this tool", or their own line: Word Counter, Case, Diff, jq, Graphviz…).
+- **Reduced motion** (the reader's system setting): the dice still spun in, toasts slid up, transitions slid and the
+  Markdown preview and the Photo Dictionary scrolled smoothly. All stop under `prefers-reduced-motion`; the busy
+  spinners and the indeterminate bar keep turning (they say "working"), more slowly. Dice e2e +1.
 - **The complete e2e run** (on the build before these sweeps): 6,537 / 6,540 checks in 190 suites. Three checks failed
   twice: PDF Protect's and PDF Unlock's notes about a signed PDF and the Everyday smoke suite's coin were read once,
   at once, after the action — races of the tests under load, which wait now. FFmpeg: a click timed out (see below).
