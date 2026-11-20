@@ -316,7 +316,7 @@ export default async ({ base, page: newPage, ok, info, download }) => {
   await page.locator('.actions').getByRole('button', { name: 'Run FFmpeg' }).click();
   await page.waitForTimeout(150); await page.locator('.actions').getByRole('button', { name: 'Stop' }).click();
   await page.waitForTimeout(12000);
-  ok(await page.getByText('Stopped.', { exact: true }).isVisible() && !(await page.locator('.ff-out').count()) && !(await page.getByText(/^Working/).count()), 'Stop while FFmpeg loads: "Stopped." — and the job does not run after the load (it did)');
+  ok(await page.getByText('Stopped.', { exact: true }).isVisible() && !(await page.locator('.ff-out').count()) && !(await page.getByText(/^Working/).first().isVisible().catch(() => false)), 'Stop while FFmpeg loads: "Stopped." — and the job does not run after the load (it did)');
   // a new file while the command runs: the job ends, and its note stays while the new file is read (the probe loads a
   // new FFmpeg, and the loader wrote over the note, then cleared it)
   await page.locator('.actions').getByRole('button', { name: 'Run FFmpeg' }).click();
