@@ -2286,6 +2286,12 @@ cannot. Three new suites; each fails on the build before its fixes.
   catches a download failure nothing else caught and says it on the tab once, with "Try again" (a reload — a failed
   module stays failed for the page); `errMsg` words Emscripten's abort as the failed download it is. The other tabs
   already said it (the shell's "Could not load this tool", or their own line: Word Counter, Case, Diff, jq, Graphviz…).
+- **Spreading a big list into one call** (the Morse crash, searched for in all the code): `push(...x)` and
+  `Math.max(...x)` overflow V8's call stack past about 150,000 items. Three places could get there: **Create Zip** (a
+  folder of 150,000 files — a project with node_modules — was never added; the first 500 are listed now, the rest
+  counted), **Extract Archive** ("Save all to a folder" on an archive with 150,000 files in one folder; the walk keeps one
+  list — `src/lib/fswalk.ts`, unit-tested with a folder of 1,000,000 files) and **Markdown Table** (a 160,000-row CSV).
+  The other spreads are over bounded lists (1,000 regex matches, a dozen diff rows, dice, devices, chosen PDFs).
 - **Reduced motion** (the reader's system setting): the dice still spun in, toasts slid up, transitions slid and the
   Markdown preview and the Photo Dictionary scrolled smoothly. All stop under `prefers-reduced-motion`; the busy
   spinners and the indeterminate bar keep turning (they say "working"), more slowly. Dice e2e +1.
