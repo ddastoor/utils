@@ -2289,6 +2289,13 @@ cannot. Three new suites; each fails on the build before its fixes.
 - **Reduced motion** (the reader's system setting): the dice still spun in, toasts slid up, transitions slid and the
   Markdown preview and the Photo Dictionary scrolled smoothly. All stop under `prefers-reduced-motion`; the busy
   spinners and the indeterminate bar keep turning (they say "working"), more slowly. Dice e2e +1.
+- **Other time zones** (the suites are written in UTC; the owner lives in IST): the harness takes `E2E_TZ=<zone>`; the
+  36 suites of tabs with dates and times (Date Calculator, Due Date, Epoch, Countdown, Pomodoro, Interval, Stopwatch,
+  Time Zone, Sleep, EMI, SIP, FD, PPF, EPF, NPS, Prepayment, GST Invoice, Rent, Resume, cron, jq, JWT, X.509, EXIF,
+  Python, SQLite, CSV / Excel, Log Viewer, Mock Data, TOTP, UUID, Create Zip, the calculator …) passed in
+  Asia/Kolkata and in America/Los_Angeles: 1,426 / 1,426 checks each — nothing to fix.
+- **A 120-character file name without spaces** in every phone tab's file picker (a real photo, PDF, MP3, MP4, CSV, JSON
+  or text file under that name): nothing wider than the screen, no errors — nothing to fix.
 - **The complete e2e run** (on the build before these sweeps): 6,537 / 6,540 checks in 190 suites. Three checks failed
   twice: PDF Protect's and PDF Unlock's notes about a signed PDF and the Everyday smoke suite's coin were read once,
   at once, after the action — races of the tests under load, which wait now. FFmpeg: a click timed out (see below).
