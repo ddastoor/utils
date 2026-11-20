@@ -44,6 +44,25 @@ export default async (ctx) => {
   await u.setSlider('Work', 300); await u.btn('Skip').click(); ok((await u.state()).time === '05:00', 'work 300 s = 05:00');
   await u.btn('Start').click(); await page.clock.runFor(10100); await u.btn('Pause').click(); await page.clock.runFor(30000);
   ok((await u.state()).time === '04:50', `pause freezes the time (${(await u.state()).time})`);
+  // the "Get ready" step: 0 s leaves it out, otherwise its length
+  await u.btn('Reset').click(); await page.locator('.chip-btn', { hasText: 'HIIT' }).click();
+  await u.setSlider('Get ready', 0);
+  ok(JSON.stringify(await u.state()) === JSON.stringify({ label: 'Work · round 1', time: '00:40', step: 'Step 1 of 15' }), `Get ready 0 s: the workout starts with round 1, 8 + 7 = 15 steps (${JSON.stringify(await u.state())})`);
+  await u.setSlider('Get ready', 30); ok(JSON.stringify(await u.state()) === JSON.stringify({ label: 'Get ready', time: '00:30', step: 'Step 1 of 16' }), 'Get ready 30 s');
+  await u.setSlider('Get ready', 10);
+  // a setting changed during the workout: it goes on (it used to stop and start over)
+  await u.btn('Start').click(); await page.clock.runFor(10000 + 15000); await beeps(); // 15 s into round 1
+  await u.setSlider('Rest', 30); let st = await u.state();
+  ok(st.label === 'Work · round 1' && st.time === '00:25' && await u.btn('Pause').count() === 1, `rest changed during round 1: still running, 00:25 left (${JSON.stringify(st)})`);
+  await u.setSlider('Work', 15); await page.clock.runFor(50); st = await u.state();
+  ok(st.label === 'Rest' && st.time === '00:30' && st.step === 'Step 3 of 16' && (await beeps()).length === 2, `work made 15 s after 15 s of it: round 1 is over now (beeps), the whole 30-s rest begins (${JSON.stringify(st)})`);
+  await u.btn('Reset').click(); await beeps();
+  // a tab in the background: the beeps come on time without frames or our interval
+  await page.evaluate(() => { window.__raf = window.requestAnimationFrame; window.__si = window.setInterval; window.requestAnimationFrame = () => 0; window.setInterval = () => 0; });
+  await u.btn('Start').click(); await page.clock.runFor(10050);
+  ok((await beeps()).length === 2 && (await u.state()).label === 'Work · round 1', 'background tab: "Get ready" ends on time with its beeps');
+  await page.evaluate(() => { window.requestAnimationFrame = window.__raf; window.setInterval = window.__si; });
+  await u.btn('Reset').click();
   ok(!page.errors.length, `no page errors ${page.errors.join(' | ')}`);
   await phoneLayout(ctx, 'interval', { ready: '.timer-display', buttons: ['Start', 'Skip', 'Reset'] });
 };

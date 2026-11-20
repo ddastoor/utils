@@ -97,8 +97,12 @@ export default async ({ base, page: newPage, ok, info, download, devices, tmp })
   writeFileSync(longWav, b);
   await page.locator('input[type=file]').nth(1).setInputFiles(longWav);
   await page.locator('input[type=file]').nth(1).setInputFiles(M('tone.mp3'));
-  await page.waitForTimeout(2500);
-  ok(/tone\.mp3 · 0:02/.test(await page.locator('.card').filter({ hasText: 'Music' }).first().textContent()), 'the music chosen last stays');
+  // the card titled "Music" (a loose hasText also matched the photos card, whose summary line says "music 0:02")
+  const musicCard = page.locator('section.card', { has: page.locator('h3.card-title', { hasText: /^Music$/ }) });
+  await musicCard.getByText(/tone\.mp3 · 0:02/).waitFor({ timeout: 20000 }).catch(() => {});
+  await page.waitForTimeout(3000); // the long file finishes decoding meanwhile: it must not take the place of the newer one
+  const mt = await musicCard.textContent();
+  ok(/tone\.mp3 · 0:02/.test(mt) && !/long-music/.test(mt), `the music chosen last stays (${mt.replace(/\s+/g, ' ').slice(0, 80)})`);
 
   // preview plays and stops
   await page.getByRole('button', { name: 'Preview' }).click();

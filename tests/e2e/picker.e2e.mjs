@@ -15,6 +15,8 @@ export default async (ctx) => {
   ok(p.length === 3 && new Set(p.map((x) => x[1])).size === 3 && p.every((x) => DEF.includes(x[1])) && p.map((x) => x[0]).join() === '1.,2.,3.', `3 different items numbered 1–3 (${p.map((x) => x[1])})`);
   await n.fill('99'); p = await pick(); ok(p.length === 5 && [...p.map((x) => x[1])].sort().join() === [...DEF].sort().join(), 'asking for more than the list → every item once (a shuffle)');
   await n.fill('0'); p = await pick(); ok(p.length === 1, 'count 0 → one item');
+  await n.fill('2.7'); p = await pick(); ok(p.length === 2 && p.map((x) => x[0]).join() === '1.,2.', `count 2.7 → two items, numbered (${p.length})`);
+  await n.fill('1.5'); p = await pick(); ok(p.length === 1 && p[0][0] === '', 'count 1.5 → one item, without a number (it was numbered "1.")');
   await ta.fill('  Red , Green,,\n\n Blue  \n,Yellow'); await n.fill('10'); p = await pick();
   ok([...p.map((x) => x[1])].sort().join() === 'Blue,Green,Red,Yellow', `commas + new lines, spaces and blanks ignored (${p.map((x) => x[1])})`);
   await ta.fill('Chai, Kaapi, Lassi, Nimbu pani, Jaljeera'); await n.fill('1');

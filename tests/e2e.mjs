@@ -13,7 +13,8 @@ const here = dirname(fileURLToPath(import.meta.url));
 const filters = process.argv.slice(2).flatMap((a) => a.split(',')).filter(Boolean);
 const CONCURRENCY = Number(process.env.E2E_CONCURRENCY || Math.min(10, Math.max(4, cpus().length * 2)));
 const t0 = performance.now();
-const server = await preview({ root: join(here, '..'), preview: { port: 0 }, logLevel: 'error' });
+// E2E_DIST=<folder>: serve another build (e.g. `npx vite build --outDir <folder>`) while a long run uses dist/
+const server = await preview({ root: join(here, '..'), preview: { port: 0 }, logLevel: 'error', ...(process.env.E2E_DIST ? { build: { outDir: process.env.E2E_DIST } } : {}) });
 const base = server.resolvedUrls.local[0];
 const browser = await chromium.launch({ args: ['--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream', '--auto-accept-this-tab-capture'] });
 const tmp = mkdtempSync(join(tmpdir(), 'supertools-e2e-'));

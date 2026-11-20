@@ -24,6 +24,9 @@ export default async (ctx) => {
   ok(await page.locator('.coin').textContent() === '?' && await page.locator('.coin').getAttribute('class') === 'coin' && await page.locator('.center.muted').textContent() === '', 'Reset: "?" with the plain coin style, counts cleared');
   await page.getByRole('button', { name: 'Flip', exact: true }).click();
   ok(/^Heads [01] · Tails [01]$/.test(await page.locator('.center.muted').textContent()), 'counting restarts from zero');
+  // the coin spins on every flip — also when the side comes up again (the class stayed the same and nothing moved)
+  const spins = await page.evaluate(async () => { const b = document.querySelector('button[aria-label="Flip"]'), c = document.querySelector('.coin'), o = []; for (let i = 0; i < 6; i++) { b.click(); o.push(c.getAnimations().filter((a) => a.playState === 'running').length); } return o; });
+  ok(spins.every((n) => n === 1), `every flip spins the coin once (${spins})`);
   ok(!page.errors.length, `no page errors ${page.errors.join(' | ')}`);
   await phoneLayout(ctx, 'coin', { ready: '.coin', buttons: ['Flip', 'Reset'] });
 };

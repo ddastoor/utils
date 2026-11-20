@@ -8,6 +8,14 @@ export default async (ctx) => {
     window.__beeps = []; window.__vib = 0;
     const s = OscillatorNode.prototype.start; OscillatorNode.prototype.start = function (...a) { window.__beeps.push(this.frequency.value); return s.apply(this, a); };
     navigator.vibrate = () => { window.__vib++; return true; };
+    // the audio of the alarm: when it is opened, and that it is closed when the tab is left
+    const AC = window.AudioContext; window.__ac = { made: 0, closed: 0 };
+    window.AudioContext = class extends AC { constructor(...a) { super(...a); window.__ac.made++; } close() { window.__ac.closed++; return super.close(); } };
+    // the screen wake lock, as the browser gives it: a sentinel that the browser lets go when the tab is hidden
+    window.__wl = { req: 0, active: 0, list: [] }; window.__wlDelay = 0;
+    Object.defineProperty(navigator, 'wakeLock', { configurable: true, value: { request: () => new Promise((res) => { window.__wl.req++; setTimeout(() => {
+      const s = new EventTarget(); s.released = false; s.release = async () => { if (!s.released) { s.released = true; window.__wl.active--; s.dispatchEvent(new Event('release')); } };
+      window.__wl.active++; window.__wl.list.push(s); res(s); }, window.__wlDelay); }) } });
   });
   await page.clock.install({ time: T0 });
   await page.goto(`${base}#/countdown`);
@@ -51,6 +59,44 @@ export default async (ctx) => {
   await page.goto(`${base}#/stopwatch`); await page.locator('.timer-display').waitFor();
   ok(!/Countdown/.test(await page.title()), `leaving the tab restores the title (${await page.title()})`);
   await page.clock.runFor(6000); ok(await page.evaluate(() => window.__beeps.length) === 0, 'leaving the tab stops the timer (no alarm later)');
+  ok(await page.evaluate(() => window.__ac.made >= 1 && window.__ac.closed === window.__ac.made), `leaving the tab closes the alarm's audio (${JSON.stringify(await page.evaluate(() => window.__ac))})`);
+
+  // --- what the tab does when nobody looks at it
+  await page.goto(`${base}#/countdown`); await disp.waitFor(); await page.evaluate(() => { window.__beeps = []; window.__ac.made = 0; });
+  await set(0, 0, 10); await btn('Start').click();
+  ok(await page.evaluate(() => window.__ac.made) === 1, 'the alarm\'s audio is opened by the Start click (Safari plays sound only after a tap; the alarm itself comes from a timer)');
+  await page.evaluate(() => { window.__raf = window.requestAnimationFrame; window.requestAnimationFrame = () => 0; }); // a tab in the background draws no frames
+  await page.clock.runFor(3000);
+  ok(await page.title() === '00:07 · Countdown', `background tab: the tab's title keeps counting (${await page.title()}; it stood still without frames)`);
+  await page.clock.runFor(7200); ok(await isDone(), 'background tab: time is up at the end');
+  // the alarm comes from the timeout set at Start alone: no frames, no interval
+  await page.evaluate(() => { window.__si = window.setInterval; window.setInterval = () => 0; window.__beeps = []; });
+  await set(0, 0, 3); await btn('Start').click(); await page.clock.runFor(3200);
+  ok(await beeps() === 4 && await isDone() && await shown() === '00:00', `background tab: the alarm sounds at the end without a single frame (it waited until the tab was looked at) — ${await beeps()} beeps`);
+  await page.evaluate(() => { window.requestAnimationFrame = window.__raf; window.setInterval = window.__si; });
+  // the wake lock: asked for at Start, asked for again when the tab is shown (the browser lets it go when the tab is hidden),
+  // let go at Pause — also when it arrives after the Pause
+  const vis = (v) => page.evaluate((v) => { Object.defineProperty(document, 'visibilityState', { value: v, configurable: true }); if (v === 'hidden') for (const s of window.__wl.list) s.release(); document.dispatchEvent(new Event('visibilitychange')); }, v);
+  const wl = () => page.evaluate(() => ({ ...window.__wl, list: undefined }));
+  await page.evaluate(() => { window.__wl.req = 0; });
+  await set(0, 1, 0); await btn('Start').click(); await page.clock.runFor(10);
+  ok((await wl()).active === 1, 'running: the screen is kept on');
+  await vis('hidden'); await page.clock.runFor(1000); await vis('visible'); await page.clock.runFor(10);
+  let w = await wl(); ok(w.active === 1 && w.req === 2, `the tab shown again: the screen is kept on again (${JSON.stringify(w)}; it stayed off for the rest of the run)`);
+  ok(/^00:5[89] · Countdown$/.test(await page.title()), `… and the time is right (${await page.title()})`);
+  await btn('Pause').click(); ok((await wl()).active === 0, 'paused: the screen may sleep');
+  await page.evaluate(() => { window.__wlDelay = 50; }); await btn('Start').click(); await btn('Pause').click(); await page.clock.runFor(100);
+  w = await wl(); ok(w.active === 0, `Start and at once Pause: the lock that arrives afterwards is let go (${JSON.stringify(w)})`);
+  await page.evaluate(() => { window.__wlDelay = 0; });
+  // the longest countdown
+  await set(150, 0, 0); ok(/at most 99 hours, 59 minutes and 59 seconds/.test(await page.locator('.card', { hasText: 'Set time' }).textContent()), '150 hours: said that 99:59:59 is the most');
+  await btn('Start').click(); ok(await btn('Start').count() === 1 && await shown() === '150:00:00', '… and Start does not start it');
+  await set(99, 59, 59); ok(await shown() === '99:59:59' && !/at most/.test(await page.locator('.card', { hasText: 'Set time' }).textContent()), '99:59:59 is allowed');
+  // the computer sleeps for two minutes: performance.now() (and the browser's timeouts) stand still, the wall clock goes on
+  await page.evaluate(() => { const p = performance.now.bind(performance); window.__lag = 0; performance.now = () => p() - window.__lag; window.__beeps = []; });
+  await set(0, 1, 0); await btn('Start').click(); await page.clock.runFor(1000);
+  await page.evaluate(() => { window.__lag += 120000; }); await page.clock.fastForward(120000); await page.clock.runFor(100);
+  ok(await isDone() && await beeps() === 4, 'a 1-minute countdown through 2 minutes of sleep: time is up on waking (the sleep was left out)');
   ok(!page.errors.length, `no page errors ${page.errors.join(' | ')}`);
   await phoneLayout(ctx, 'countdown', { ready: '.timer-display', buttons: ['Start', 'Reset'] });
 };

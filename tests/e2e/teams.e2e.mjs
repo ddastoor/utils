@@ -34,7 +34,12 @@ export default async (ctx) => {
   ok(c.pass && DEF.every((d) => inFirst.cnt[d] > 120 && inFirst.cnt[d] < 280), `each person lands in Team 1 about half the time: ${c.text}`);
   // P(Aarav and Diya on the same team) = 3/7 for 8 people in two teams of 4
   ok(Math.abs(inFirst.together / 400 - 3 / 7) < 0.1, `two given people share a team 3/7 of the time (${(inFirst.together / 400).toFixed(3)})`);
-  await ta.fill(' \n,\n '); await page.getByRole('button', { name: 'Make teams', exact: true }).click();
+  // one name a line: a comma inside a name ("Sharma, Rahul") stays (it made two people of one)
+  const sur = ['Sharma, Rahul', 'Iyer, Meera', 'Khan, Kabir', 'Das, Sara'];
+  await ta.fill(sur.join('\n')); await val.fill('2'); t = await make(); ok(check(t, sur, 2), `"Last, First" names, one a line: four people (${t.flatMap((x) => x.names).join(' | ')})`);
+  await val.fill('0'); t = await make(); ok(t.length === 0 && /Enter how many teams to make/.test(await page.locator('.teams').textContent()), 'number of teams 0 → asked for (it made 2 teams)');
+  await val.fill(''); t = await make(); ok(t.length === 0 && /Enter how many teams/.test(await page.locator('.teams').textContent()), 'number of teams empty → asked for');
+  await ta.fill(' \n,\n '); await val.fill('2'); await page.getByRole('button', { name: 'Make teams', exact: true }).click();
   ok(await page.locator('.teams .card').count() === 0 && /Add some names first/.test(await page.locator('.teams').textContent()), 'empty list → message, old teams cleared');
   ok(!page.errors.length, `no page errors ${page.errors.join(' | ')}`);
   await phoneLayout(ctx, 'teams', { ready: '.teams .card', buttons: ['Make teams'] });
