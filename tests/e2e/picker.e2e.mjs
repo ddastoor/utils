@@ -30,6 +30,7 @@ export default async (ctx) => {
   await ta.fill('   \n , \n'); await page.getByRole('button', { name: 'Pick', exact: true }).click();
   ok(await page.locator('.pick-out').textContent() === 'Add some items first', 'empty list → message');
   await ta.fill('मसाला डोसा\n😀 Smile\nरसगुल्ला'); await n.fill('3'); p = await pick(); ok(p.map((x) => x[1]).sort().join() === ['मसाला डोसा', '😀 Smile', 'रसगुल्ला'].sort().join(), 'Hindi and emoji items kept intact');
+  ok(await page.locator('.pick-out').getAttribute('aria-live') === 'polite', 'the result is announced to a screen reader (aria-live; nothing was said after the button)');
   ok(!page.errors.length, `no page errors ${page.errors.join(' | ')}`);
   await phoneLayout(ctx, 'picker', { ready: 'textarea', buttons: ['Pick'] });
 };

@@ -241,25 +241,36 @@ export const pixels: Mount = (root) => {
   let close: (() => void) | null = null;
   const start = async () => {
     close?.();
-    let i = 0;
-    const panel = h('div', { class: 'pixel-panel', style: { background: COLORS[0] } }, h('div', { class: 'pixel-hint' }, 'Tap / click or press → for next colour · Esc to exit'));
+    let i = 0, idle = 0, full = false;
+    const hint = h('div', { class: 'pixel-hint' }, 'Tap / click or press → for next colour · Esc to exit');
+    const panel = h('div', { class: 'pixel-panel', style: { background: COLORS[0] } }, hint);
     document.body.append(panel);
-    const show = () => { panel.style.background = COLORS[i]; panel.firstElementChild?.remove(); };
+    const show = () => { panel.style.background = COLORS[i]; hint.remove(); };
+    const next = () => {
+      // without full screen (iPhones: Safari makes only videos full screen) there is no Esc to press: a tap on the last
+      // colour ends the test — the panel could be left only with the browser's Back button
+      if (!full && i === COLORS.length - 1) { close?.(); return; }
+      i = (i + 1) % COLORS.length; show();
+    };
     const key = (e: KeyboardEvent) => {
       if (e.key === 'Escape') close?.();
       else if (['ArrowRight', ' ', 'Enter'].includes(e.key)) { e.preventDefault(); i = (i + 1) % COLORS.length; show(); }
       else if (e.key === 'ArrowLeft') { i = (i + COLORS.length - 1) % COLORS.length; show(); }
     };
+    // the mouse pointer sits on the pixels being looked at: it is hidden while the mouse rests
+    const moved = () => { panel.style.cursor = ''; clearTimeout(idle); idle = window.setTimeout(() => { panel.style.cursor = 'none'; }, 1500); };
     // not { once: true }: entering full screen fires this event too, and the exit must still close the panel
     const fs = () => { if (!document.fullscreenElement) close?.(); };
     close = () => {
-      close = null; panel.remove(); removeEventListener('keydown', key); document.removeEventListener('fullscreenchange', fs);
+      close = null; clearTimeout(idle); panel.remove(); removeEventListener('keydown', key); document.removeEventListener('fullscreenchange', fs);
       if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
     };
-    panel.addEventListener('click', () => { i = (i + 1) % COLORS.length; show(); });
+    panel.addEventListener('click', next);
+    panel.addEventListener('mousemove', moved); moved();
     addEventListener('keydown', key);
     document.addEventListener('fullscreenchange', fs);
-    try { await panel.requestFullscreen(); } catch { /* iOS: fixed panel still covers the page */ }
+    try { await panel.requestFullscreen(); full = true; } catch { /* iPhone: the fixed panel still covers the page */ }
+    if (!full && hint.isConnected) hint.textContent = 'Tap for the next colour — the test ends after the last one (magenta)';
   };
   root.append(card(null, stack(h('p', null, 'Fills the screen with solid colours (black, white, red, green, blue, grey, yellow, cyan, magenta). Look closely for dots that stay a different colour — dead (always dark) or stuck (always lit) pixels — and for uneven backlight on black.'),
     h('div', { class: 'swatches' }, COLORS.map((c) => h('span', { style: { background: c } }))))), h('div', { class: 'actions' }, button('Start full-screen test', start, { variant: 'primary', icon: 'Maximize' })));
@@ -479,11 +490,26 @@ export const ruler: Mount = (root) => {
     cardBox.style.width = `${(upright ? 53.98 : 85.6) * pxPerMm}px`; cardBox.style.height = `${(upright ? 85.6 : 53.98) * pxPerMm}px`;
     cardBox.textContent = upright ? 'Card (upright)' : 'Card';
   };
-  const cal = slider({ label: 'Calibration', min: 2, max: 8, step: 0.005, value: pxPerMm, fmt: (v) => `${v.toFixed(3)} px/mm`, onInput: (v) => { pxPerMm = v; draw(); } });
+  const cal = slider({ label: 'Calibration', min: 2, max: 8, step: 0.005, value: pxPerMm, fmt: (v) => `${v.toFixed(3)} px/mm`, onInput: (v) => { pxPerMm = v; zoomNote.textContent = ''; draw(); } });
+  const zoomNote = h('div', { class: 'muted small', 'aria-live': 'polite' });
+  /** A browser zoom (Ctrl + / −) changes how large a CSS pixel is: the ruler keeps its size on the screen — the same
+   *  device pixels per millimetre (a calibrated ruler grew and shrank with the zoom). Watched through a resolution media
+   *  query (a zoom need not resize the window). A window moved to another screen changes it too: said. */
+  let dpr = devicePixelRatio, mq: MediaQueryList | null = null;
+  const rescale = () => {
+    const d = devicePixelRatio;
+    if (d !== dpr) {
+      pxPerMm = (pxPerMm * dpr) / d; dpr = d; cal.value = pxPerMm;
+      zoomNote.textContent = 'The page zoom (or the screen) changed: the ruler kept its size. If the window moved to another screen, calibrate again.';
+    }
+    watch(); draw();
+  };
+  const watch = () => { mq?.removeEventListener('change', rescale); mq = matchMedia(`(resolution: ${devicePixelRatio}dppx)`); mq.addEventListener('change', rescale); };
   root.append(card(null, h('div', { class: 'ruler-wrap' }, rulerEl)), card(null, field('Units', segmented([['cm', 'Centimetres'], ['in', 'Inches']], unit, (v) => { unit = v; draw(); }))),
-    card('Calibrate with a bank/ID card', stack(h('p', { class: 'muted' }, 'Hold any standard card (credit, debit, Aadhaar PVC, driving licence — 85.6 × 54 mm) against the screen and drag the slider until the outline matches it exactly. On a phone, hold the card upright and match its long edge.'), cardBox, cal)),
-    note('Calibration is kept only while this tab is open.'));
+    card('Calibrate with a bank/ID card', stack(h('p', { class: 'muted' }, 'Hold any standard card (credit, debit, Aadhaar PVC, driving licence — 85.6 × 54 mm) against the screen and drag the slider until the outline matches it exactly. On a phone, hold the card upright and match its long edge.'), cardBox, cal, zoomNote)),
+    note('Calibration is kept only while this tab is open; zooming the page keeps the ruler\'s size.'));
   requestAnimationFrame(draw);
-  addEventListener('resize', draw);
-  return () => removeEventListener('resize', draw);
+  watch();
+  addEventListener('resize', rescale);
+  return () => { removeEventListener('resize', rescale); mq?.removeEventListener('change', rescale); };
 };

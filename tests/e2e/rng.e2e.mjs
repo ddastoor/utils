@@ -54,6 +54,7 @@ export default async (ctx) => {
   v = nums(await gen(1e12, 1e12 + 9, 200)); ok(v.every((x) => x >= 1e12 && x <= 1e12 + 9) && new Set(v).size === 10, 'large offsets keep exact integers (10¹²…10¹² + 9)');
   const shown = await gen(1, 100, 5); await page.getByRole('button', { name: 'Copy', exact: true }).click();
   ok(await page.evaluate(() => navigator.clipboard.readText()) === shown, 'Copy copies the result');
+  ok(await page.locator('.rng-out').getAttribute('aria-live') === 'polite', 'the result is announced to a screen reader (aria-live; nothing was said after the button)');
   ok(!page.errors.length, `no page errors ${page.errors.join(' | ')}`);
   await phoneLayout(ctx, 'rng', { ready: '.rng-out', buttons: ['Generate'], before: async (ph) => {
     await ph.locator('label.field', { hasText: 'Max' }).locator('input').fill('4294967295'); await ph.locator('label.field', { hasText: 'How many' }).locator('input').fill('1000');

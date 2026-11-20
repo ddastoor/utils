@@ -506,6 +506,7 @@ details summary { cursor: pointer; font-weight: 600; color: var(--accent); paddi
 .phase-label { text-align: center; font-weight: 700; font-size: 18px; text-transform: uppercase; letter-spacing: .06em; }
 .phase-label.work { color: var(--err); } .phase-label.rest { color: var(--ok); } .phase-label.prep { color: var(--warn); }
 .chip-btn { border: 1px solid var(--border); cursor: pointer; min-height: 34px; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; } /* read by screen readers only */
 .dice-row { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; padding: 10px 0; }
 .die { font-size: 64px; line-height: 1; min-width: 64px; text-align: center; font-weight: 700; }
 .die.rolled { animation: roll .35s ease-out; }

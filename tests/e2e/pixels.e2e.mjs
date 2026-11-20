@@ -36,4 +36,19 @@ export default async (ctx) => {
   const pb = await pp.boundingBox(), pv = ph.viewportSize();
   ok(pb.width === pv.width && pb.height >= pv.height, `phone: panel covers the screen (${pb.width}×${pb.height})`);
   await ph.tap('.pixel-panel'); ok(await pp.evaluate((e) => getComputedStyle(e).backgroundColor) === ORDER[1], 'phone: tap → next colour');
+  // an iPhone: Safari makes only videos full screen — without it there is no Esc: a tap on the last colour ends the test
+  const ip = await newPage({ ...ctx.devices['iPhone 13'] });
+  await ip.addInitScript(() => { Element.prototype.requestFullscreen = function () { return Promise.reject(new TypeError('not supported')); }; });
+  await ip.goto(`${base}#/pixels`); await ip.getByRole('button', { name: 'Start full-screen test', exact: true }).click();
+  const ipp = ip.locator('.pixel-panel'); await ipp.waitFor(); await ip.waitForTimeout(100);
+  ok(/the test ends after the last one/.test(await ipp.textContent()) && !/Esc/.test(await ipp.textContent()), `iPhone (no full screen): the hint says how the test ends, not "Esc" (${await ipp.textContent()})`);
+  const seen = []; for (let k = 0; k < 8; k++) { await ip.tap('.pixel-panel'); seen.push(await ipp.evaluate((e) => getComputedStyle(e).backgroundColor)); }
+  ok(JSON.stringify(seen) === JSON.stringify(ORDER.slice(1)), 'iPhone: taps go through the colours to magenta');
+  await ip.tap('.pixel-panel'); await ip.waitForTimeout(100);
+  ok(await ipp.count() === 0, 'iPhone: a tap on the last colour ends the test (the panel could be left only with Back)');
+  // the mouse pointer is hidden while it rests on the colour
+  const dp = await newPage(); await dp.goto(`${base}#/pixels`); await dp.getByRole('button', { name: 'Start full-screen test', exact: true }).click();
+  const dpp = dp.locator('.pixel-panel'); await dpp.waitFor(); await dp.mouse.move(300, 300); await dp.waitForTimeout(1800);
+  const hid = await dpp.evaluate((e) => getComputedStyle(e).cursor); await dp.mouse.move(320, 310); const back = await dpp.evaluate((e) => getComputedStyle(e).cursor);
+  ok(hid === 'none' && back !== 'none', `the mouse pointer hides when it rests and comes back when it moves (${hid} → ${back})`);
 };

@@ -43,6 +43,11 @@ export default async (ctx) => {
   ok(Math.abs(same - 0.25) < 0.06, `consecutive d4 rolls independent (repeat rate ${same.toFixed(3)})`);
   for (const s of [8, 10, 12]) { await sides(s); const v = (await rolls(200)).flatMap((x) => x.vals); ok(v.every((x) => x >= 1 && x <= s) && new Set(v).size === s, `d${s}: all ${s} values seen, none outside`); }
   await page.getByRole('button', { name: 'Roll', exact: true }).click(); ok(await page.locator('.die.rolled').count() === 1, 'the Roll button rolls (animated die)');
+  // a screen reader hears the roll (the faces are pictures of dice): an announced line in words, matching the dice shown
+  await page.getByRole('button', { name: 'Roll', exact: true }).click();
+  const said = await page.locator('.sr-only[aria-live]').textContent(), shownDice = await page.$$eval('.die', (d) => d.map((e) => e.textContent));
+  const vals = shownDice.map((f) => FACES.includes(f) ? FACES.indexOf(f) + 1 : +f);
+  ok(new RegExp(`^Rolled ${vals.length > 1 ? vals.slice(0, -1).join(', ') + ' and ' + vals.at(-1) : vals[0]}`).test(said) && (vals.length < 2 || said.endsWith(`total ${vals.reduce((a, b) => a + b, 0)}.`)) && await page.locator('.dice-row').getAttribute('aria-hidden') === 'true', `the roll in words for a screen reader: "${said}"`);
   ok(!page.errors.length, `no page errors ${page.errors.join(' | ')}`);
   await phoneLayout(ctx, 'dice', { ready: '.die', buttons: ['Roll'], before: async (ph) => {
     const rr = ph.locator('input[type=range]'); await rr.fill('10'); await rr.dispatchEvent('input');

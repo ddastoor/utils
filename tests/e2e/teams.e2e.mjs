@@ -41,6 +41,7 @@ export default async (ctx) => {
   await val.fill(''); t = await make(); ok(t.length === 0 && /Enter how many teams/.test(await page.locator('.teams').textContent()), 'number of teams empty → asked for');
   await ta.fill(' \n,\n '); await val.fill('2'); await page.getByRole('button', { name: 'Make teams', exact: true }).click();
   ok(await page.locator('.teams .card').count() === 0 && /Add some names first/.test(await page.locator('.teams').textContent()), 'empty list → message, old teams cleared');
+  ok(await page.locator('.teams').getAttribute('aria-live') === 'polite', 'the result is announced to a screen reader (aria-live; nothing was said after the button)');
   ok(!page.errors.length, `no page errors ${page.errors.join(' | ')}`);
   await phoneLayout(ctx, 'teams', { ready: '.teams .card', buttons: ['Make teams'] });
 };

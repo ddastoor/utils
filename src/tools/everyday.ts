@@ -286,13 +286,16 @@ const FACES = ['⚀', '⚁', '⚂', '⚃', '⚄', '⚅'];
 export const dice: Mount = async (root) => {
   const na = await libsodium(); // the dice are rolled as the tab opens
   let n = 2, sides = 6;
-  const out = h('div', { class: 'dice-row' }), total = h('div', { class: 'big-value center' });
+  const out = h('div', { class: 'dice-row', 'aria-hidden': 'true' }), total = h('div', { class: 'big-value center' });
+  // a screen reader heard nothing after Roll (the faces are pictures): the roll in words, announced
+  const said = h('div', { class: 'sr-only', 'aria-live': 'polite' });
   const roll = () => {
     const vals = Array.from({ length: n }, () => na.uniform(sides) + 1);
     clear(out).append(...vals.map((v) => h('div', { class: 'die rolled' }, sides === 6 ? FACES[v - 1] : String(v))));
     total.textContent = n > 1 ? `Total ${vals.reduce((a, b) => a + b, 0)}` : '';
+    said.textContent = `Rolled ${vals.length > 1 ? `${vals.slice(0, -1).join(', ')} and ${vals.at(-1)}` : vals[0]}${n > 1 ? `, total ${vals.reduce((a, b) => a + b, 0)}` : ''}.`;
   };
-  root.append(card(null, out, total), card(null, stack(slider({ label: 'Dice', min: 1, max: 10, value: n, onInput: (v) => (n = v) }),
+  root.append(card(null, out, total, said), card(null, stack(slider({ label: 'Dice', min: 1, max: 10, value: n, onInput: (v) => (n = v) }),
     field('Sides', segmented([['4', 'd4'], ['6', 'd6'], ['8', 'd8'], ['10', 'd10'], ['12', 'd12'], ['20', 'd20'], ['100', 'd100']], '6', (v) => (sides = +v))))),
   h('div', { class: 'actions' }, button('Roll', roll, { variant: 'primary', icon: 'Dices' })));
   roll();
@@ -329,7 +332,7 @@ export const rng: Mount = async (root) => {
   const na = await sodium();
   const min = input({ type: 'number', value: 1 }), max = input({ type: 'number', value: 100 }), count = input({ type: 'number', value: 1, min: 1, max: 1000 });
   let unique = false, sort = false;
-  const out = h('div', { class: 'big-value center rng-out' });
+  const out = h('div', { class: 'big-value center rng-out', 'aria-live': 'polite' }); // announced (a screen reader heard nothing)
   const gen = () => {
     if (min.value.trim() === '' || max.value.trim() === '') { out.textContent = `Enter the ${min.value.trim() === '' ? 'smallest' : 'largest'} number`; return; }
     const a = Math.ceil(+min.value), b = Math.floor(+max.value), c = Math.min(1000, Math.max(1, Math.floor(+count.value) || 1));
@@ -363,7 +366,7 @@ export const picker: Mount = async (root) => {
   const na = await sodium();
   const ta = textarea({ rows: 8, value: 'Pizza\nBiryani\nDosa\nPaneer tikka\nPasta', placeholder: 'One item per line (or comma-separated)' });
   const n = input({ type: 'number', value: 1, min: 1 });
-  const out = h('div', { class: 'pick-out' });
+  const out = h('div', { class: 'pick-out', 'aria-live': 'polite' });
   const pick = () => {
     const list = items(ta.value), k = Math.min(list.length, Math.max(1, Math.floor(+n.value) || 1));
     if (!list.length) { out.textContent = 'Add some items first'; return; }
@@ -377,7 +380,7 @@ export const teams: Mount = async (root) => {
   const ta = textarea({ rows: 8, value: 'Aarav\nDiya\nVihaan\nAnanya\nIshaan\nMeera\nKabir\nSara', placeholder: 'One name per line (or all on one line, comma-separated)' });
   let mode = 'count';
   const k = input({ type: 'number', value: 2, min: 1 });
-  const out = h('div', { class: 'teams' });
+  const out = h('div', { class: 'teams', 'aria-live': 'polite' });
   const split = () => {
     const names = na.shuffle(items(ta.value, true));
     if (!names.length) { clear(out).append(note('Add some names first.', 'warn')); return; }

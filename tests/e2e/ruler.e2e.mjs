@@ -35,6 +35,16 @@ export default async (ctx) => {
   await check(5, 'calibrated to 5 px/mm');
   await setCal(2.5); await check(2.5, 'calibrated to 2.5 px/mm');
   await page.setViewportSize({ width: 900, height: 800 }); await page.waitForTimeout(150); await check(2.5, 'after resizing the window');
+  // a browser zoom changes the size of a CSS pixel (devicePixelRatio): the calibrated ruler keeps its size in device pixels
+  const cdp = await page.context().newCDPSession(page);
+  // Ctrl + to 200 %: twice the device pixels a CSS pixel, half the CSS width
+  await setCal(5); await cdp.send('Emulation.setDeviceMetricsOverride', { width: 450, height: 400, deviceScaleFactor: 2, mobile: false }); await page.waitForTimeout(300);
+  ok(await page.evaluate(() => devicePixelRatio) === 2, 'zoomed: 2 device pixels a CSS pixel');
+  await check(2.5, 'calibrated at 5 px/mm, then zoomed 2× — 2.5 CSS px a mm, the same size on the screen (it grew with the zoom)');
+  ok(/the ruler kept its size/.test(await page.locator('.card', { hasText: 'Calibrate' }).textContent()) && await page.locator('.slider-val').textContent() === '2.500 px/mm', 'the zoom is said, and the slider follows');
+  await cdp.send('Emulation.setDeviceMetricsOverride', { width: 900, height: 800, deviceScaleFactor: 1, mobile: false }); await page.waitForTimeout(300);
+  await check(5, 'zoomed back: 5 px a mm again');
+  await cdp.send('Emulation.clearDeviceMetricsOverride');
   await page.goto(`${base}#/screen`); await page.locator('.kv').first().waitFor(); await page.setViewportSize({ width: 1100, height: 800 }); await page.waitForTimeout(150);
   ok(!page.errors.length, `no page errors ${page.errors.join(' | ')}`);
   const ph = await phoneLayout(ctx, 'ruler', { ready: '.tick.major' });
