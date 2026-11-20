@@ -41,6 +41,8 @@ this file = the owner's latest wishes, how the tests are written, and the traps 
   satisfies everything the owner asked for that utility; if there is none or none fits, our own
   build from open-source code — also ports of JS/TS-only functionality where possible; only then a JS/TS library as
   it is; everything hosted in the app). #2 Extensive tests for every utility: test, fix the bug or the test, test again.
+- **20 Nov 2026 — languages:** "going forward, as far as languages is concerned, don't bother about hindi … make a note
+  of this." No new Hindi work or tests anywhere (CLAUDE.md, top). Existing Hindi handling stays, untouched.
 - **20 Nov 2026 — FFmpeg tab, more buttons (todo.md item 2, chosen by the owner):** the owner asked whether the FFmpeg
   tab covers the popular FFmpeg jobs with buttons (it does — 15 tasks, no command line needed; the command is shown
   only for information) and then: add buttons for the popular jobs that have none (join clips, subtitles, logo or

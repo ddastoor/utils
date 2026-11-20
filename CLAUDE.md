@@ -118,6 +118,12 @@ that affects it.
 > - The complete suites still run at the end of each area; what they find is fixed and pushed as its own commit.
 > - Push to the working branch only (see the session's branch rule); never force-push.
 
+> ## 🗣️ Languages — don't bother about Hindi (owner, 20 Nov 2026; standing)
+> **Owner:** "going forward, as far as languages is concerned, don't bother about hindi … make a note of this."
+> No new work, features or test cases for Hindi (Devanagari) in any tab from now on — English first (the OCR tab's
+> rule of 16 Nov 2026, "don't bother about Hindi", now applies everywhere). What already handles Hindi stays as it is;
+> it is not removed, and it is not extended or tested further.
+
 > ## 📝 Owner's to-do list: `todo.md` (the owner calls it "to do")
 > Created 17 Nov 2026. When the owner says "add … to to do" or "what's on to do", it means this file. Read it at the
 > start of a session and keep it current. **Never start an item on your own (owner, 17 Nov 2026):** when the current

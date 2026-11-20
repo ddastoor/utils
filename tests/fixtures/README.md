@@ -23,6 +23,11 @@ generates media with the project's own ffmpeg.wasm and Chromium). Used only by t
 | media/clip.mp4 | ffmpeg.wasm: testsrc2 640×360 3 s + 440 Hz, H.264/AAC | generated |
 | media/clip.webm | same, VP8/Vorbis | generated |
 | media/tone.wav, tone.mp3, noisy-tone.wav | ffmpeg.wasm sine (+ white noise) | generated |
+| media/subs.srt | written for this project: three cues in English (one with a dash) | CC0 |
+| media/clip-subs.mkv | native ffmpeg: clip.mp4's video + its sound as FLAC (no start offset) + subs.srt as an SRT track (language eng) | generated |
+| media/silent-320.mp4 | native ffmpeg: testsrc2 320×240, 1.5 s, H.264, no sound (joining clips of another size and without sound) | generated |
+| media/pauses.wav | native ffmpeg: 1 s silence, 1 s 440 Hz, 1.5 s silence, 1 s 660 Hz, 1 s silence (16 kHz mono; removing silence) | generated |
+| media/kf6.mp4 | native ffmpeg: testsrc2 320×180, 6 s, a key frame every second + 440 Hz AAC (splitting, timelapse) | generated |
 | speech/librispeech-1.flac | LibriSpeech test-clean 1089-134686-0000 via huggingface.co/datasets/Narsil/asr_dummy (SHA-256 pinned): "He hoped there would be stew for dinner, turnips and carrots and bruised potatoes and fat mutton pieces to be ladled out in thick peppered flour fattened sauce." | CC BY 4.0 (LibriSpeech, Panayotov et al.) |
 | speech/jfk.flac | JFK inaugural address excerpt via huggingface.co/datasets/Xenova/transformers.js-docs (pinned), 16 kHz mono FLAC (our ffmpeg.wasm): "And so my fellow Americans, ask not what your country can do for you, ask what you can do for your country." | public domain (US government work) |
 | speech/noisy-speech.wav | librispeech-1 + seeded white noise at 5 dB SNR, 16 kHz mono (`node scripts/make-speech-fixtures.mjs`) | CC BY 4.0 (derived) |
