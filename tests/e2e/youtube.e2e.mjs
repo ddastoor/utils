@@ -26,6 +26,30 @@ export default async ({ base, page: newPage, ok, info, download }) => {
   await page.goto(`${base}#/youtube`);
   const summary = () => page.locator('[aria-live]').filter({ hasText: /Video |link|end|Enter/ }).first().textContent();
 
+  // "Download latest yt-dlp": a link to GitHub's latest-release address, the file for this computer first (headless
+  // Chromium on Linux x86-64), every other system under "Other systems"; nothing is requested from GitHub
+  const gh = [];
+  page.on('request', (r) => { if (/github\.com/.test(r.url())) gh.push(r.url()); });
+  const main = page.getByRole('link', { name: /^Download latest yt-dlp/ });
+  await main.waitFor({ timeout: 10000 });
+  ok(await main.isVisible(), 'the download button is there before any link is pasted');
+  ok(await main.getAttribute('href') === 'https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux' && /Linux \(x86-64\) \(yt-dlp_linux\)/.test(await main.textContent()), `Linux: yt-dlp_linux (${await main.getAttribute('href')})`);
+  ok(/chmod \+x yt-dlp_linux && \.\/yt-dlp_linux/.test(await page.locator('.card', { has: main }).innerText()), 'how to run it, under the button');
+  ok(await main.getAttribute('rel') === 'noopener noreferrer' && await main.getAttribute('referrerpolicy') === 'no-referrer', 'no referrer sent to GitHub');
+  const others = await page.locator('.ytdlp-files a').evaluateAll((as) => as.map((a) => a.getAttribute('href')));
+  ok(others.length === 7 && others.every((u) => /^https:\/\/github\.com\/yt-dlp\/yt-dlp\/releases\/latest\/download\//.test(u)) && others.some((u) => u.endsWith('/yt-dlp.exe')) && others.some((u) => u.endsWith('/yt-dlp_macos')), `seven files for the other systems (${others.length})`);
+  const bb = await main.boundingBox();
+  ok(bb.height >= 40, `the button is a real button (${Math.round(bb.height)} px)`);
+  for (const [name, ua, want] of [['Windows', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36', 'yt-dlp.exe'], ['macOS', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36', 'yt-dlp_macos']]) {
+    const p2 = await newPage({ userAgent: ua, viewport: { width: 1280, height: 900 } });
+    await p2.goto(`${base}#/youtube`);
+    const m2 = p2.getByRole('link', { name: /^Download latest yt-dlp/ });
+    await m2.waitFor({ timeout: 10000 });
+    ok((await m2.getAttribute('href')).endsWith(`/download/${want}`), `${name}: ${want}`);
+    await p2.close();
+  }
+  ok(gh.length === 0, 'nothing was requested from GitHub (a link, not a fetch)');
+
   // parsing
   await page.getByLabel('Video link').fill('https://youtu.be/dQw4w9WgXcQ?t=62');
   ok(/Now paste the link copied at the end/.test(await summary()), 'asks for the end link');

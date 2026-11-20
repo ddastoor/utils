@@ -7,6 +7,7 @@
 // Nothing is contacted until "Load the player" is pressed. Direct download from a web page is impossible (CORS).
 import { h, card, field, actions, button, input, segmented, toggle, stack, note, outputBox, toast, errMsg, fmtBytes, fmtTime, downloadBlob, type Mount } from '../ui';
 import { linuxBanner } from '../linux';
+import { YTDLP_FILES, YTDLP_RELEASES, pickYtdlp, runHint, ytdlpUrl } from '../lib/ytdlp';
 
 /** "1h2m3s", "62", "62s", "1:02", "01:02:03.5" → seconds (NaN if unreadable). */
 export function parseTime(t: string): number {
@@ -168,10 +169,27 @@ export const mount: Mount = (root) => {
     card('Record in this browser', stack(
       note('Plays the clip in YouTube’s privacy-enhanced player and records it in real time. Chrome asks to share this tab — choose it. Ads may appear; some videos cannot be embedded.', 'info'),
       playerBox, recStatus, h('div', { class: 'row' }, loadBtn, recBtn), result)));
+  // "Download the latest yt-dlp": a link to yt-dlp's GitHub releases (always the newest); the file for this computer
+  // first — Chromium tells the architecture (ARM) a moment later
+  const ytMain = h('a', { class: 'btn btn-primary', rel: 'noopener noreferrer', referrerpolicy: 'no-referrer' });
+  const ytHint = h('div', { class: 'muted small' });
+  const showYt = (arch = '', bitness = '') => {
+    const f = pickYtdlp(navigator.userAgent, arch, bitness);
+    ytMain.setAttribute('href', ytdlpUrl(f.file)); ytMain.dataset.file = f.file;
+    ytMain.textContent = `Download latest yt-dlp — ${f.system} (${f.file})`;
+    ytHint.textContent = runHint(f);
+  };
+  showYt();
+  (navigator as any).userAgentData?.getHighEntropyValues?.(['architecture', 'bitness']).then((v: any) => showYt(v?.architecture || '', v?.bitness || '')).catch(() => {});
+  const ytCard = card('Get yt-dlp — the newest version, from GitHub', stack(
+    h('div', { class: 'row' }, ytMain), ytHint,
+    h('details', null, h('summary', null, 'Other systems'), h('ul', { class: 'ytdlp-files' }, ...YTDLP_FILES.map((f) =>
+      h('li', null, h('a', { href: ytdlpUrl(f.file), rel: 'noopener noreferrer', referrerpolicy: 'no-referrer' }, f.file), ` — ${f.system}, ${f.note}`)))),
+    note(h('span', null, 'Your browser downloads it straight from yt-dlp’s own releases on GitHub (', h('a', { href: YTDLP_RELEASES, target: '_blank', rel: 'noopener noreferrer' }, 'github.com/yt-dlp/yt-dlp'), ') — always the latest release. This page itself fetches nothing. For merging the best video with its sound yt-dlp also needs ffmpeg (Windows: winget install Gyan.FFmpeg).'), 'info')));
   root.append(
     card('Clip', stack(field('I have', segmented<'two' | 'one'>([['two', 'Two links (start and end)'], ['one', 'One link + times']], mode, (v) => { mode = v; twoBox.hidden = v !== 'two'; oneBox.hidden = v !== 'one'; (linkField.querySelector('.field-label') as HTMLElement).textContent = v === 'two' ? 'Link at the start (with ?t=)' : 'Video link'; parse(); })),
       linkField, twoBox, oneBox, summary)),
-    work,
+    work, ytCard,
     ...[linuxBanner()].filter((x): x is HTMLElement => !!x),
     note('A web page cannot download from YouTube directly (YouTube does not allow it across sites). Respect the creator’s rights: clip only what you may use.', 'info'));
   return () => { removeEventListener('message', onMessage); rec?.state === 'recording' && rec.stop(); stopStream(); clear(); URL.revokeObjectURL(outUrl); };

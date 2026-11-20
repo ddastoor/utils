@@ -1630,6 +1630,11 @@ m./music. hosts, `t=` / `start=` / `#t=`; different videos and end ≤ start are
 1. **yt-dlp command** (original quality): `yt-dlp --download-sections "*START-END" -f "bv*[ext=mp4]+ba[ext=m4a]/b[ext=mp4]"
    --merge-output-format mp4 -o "%(title)s [start-end].%(ext)s" URL`, optional `--force-keyframes-at-cuts` (exact) or
    `-x --audio-format mp3` (sound only); install hints for Windows (winget), Linux (pipx) and Android (Termux).
+   **"Download latest yt-dlp"** (owner, 20 Nov 2026; `src/lib/ytdlp.ts`): a link to GitHub's
+   `github.com/yt-dlp/yt-dlp/releases/latest/download/<file>` (always the newest release) for this computer —
+   yt-dlp.exe / yt-dlp_arm64.exe / yt-dlp_x86.exe (Chromium's architecture and bitness), yt-dlp_macos, yt-dlp_linux /
+   yt-dlp_linux_aarch64, the Python zipapp elsewhere — the other six under "Other systems", how to run it; a link, not a
+   request: nothing is fetched by the page and the CSP is unchanged.
 2. **Record in this browser**: nothing is requested from YouTube until "Load the player"; then the privacy-enhanced
    `youtube-nocookie.com/embed/ID?enablejsapi=1&start=…` player (owner-approved `frame-src`; `connect-src` stays
    'self'; no YouTube script in our page). It is driven with the IFrame API's postMessage protocol ("listening"

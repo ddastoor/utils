@@ -39,4 +39,9 @@ The owner adds items here in chat ("add … to to do"). Newest instructions win.
 3. _(withdrawn by the owner on 20 Nov 2026: the "Export Python utility" for the YouTube Clip tab — do not build it.)_
 
 ## Done
-_(nothing yet)_
+- **4. YouTube Clip tab: "Download latest yt-dlp"** (owner, 20 Nov 2026: "Have an export button called download latest
+  YT-DLP … when the user clicks that button, the app should basically go to GitHub and download the latest version of
+  YT-DLP. Is this possible? If so, make it happen.") — done 20 Nov 2026: a link to GitHub's
+  `releases/latest/download/<file>` (always the newest release), the file for this computer first (Windows x64 / ARM
+  / 32-bit, macOS, Linux x86-64 / ARM64, the Python zipapp elsewhere), the others under "Other systems", how to run it;
+  the page fetches nothing itself (CSP unchanged). `src/lib/ytdlp.ts`, unit `ytdlp.test.mjs` 19, youtube e2e +8.
