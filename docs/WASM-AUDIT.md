@@ -794,3 +794,23 @@ One entry per tab, written before its bug hunt: our module → candidates → ch
   a clear-signed text; AEAD EAX / OCB / GCM and Argon2-protected messages, `tests/fixtures/pgp/rfc9580/`) decrypt
   and verify with the library in Node (`tests/unit/pgp.test.mjs`) and in the tab; GnuPG 2.4 in both directions for
   keys, recipients, signatures, passwords and the revocation certificate (`tests/e2e/pgp.e2e.mjs`).
+
+### 101. `sodium` — Sodium Encrypt (20 Nov 2026; also `sharelink`, which shares the format and the worker)
+- **Ours before:** crypto.wasm — libsodium **1.0.20** built by us (minimal, 57 KB) + our C for the USODIUM1 header,
+  hashes, random helpers.
+- **Candidate:** **libsodium.js** (`libsodium-wrappers-sumo` 0.8.4, ISC — the libsodium project's own WebAssembly
+  build, by libsodium's author; carries libsodium **1.0.22**). The standard build (`libsodium-wrappers`) has no
+  Argon2 (`crypto_pwhash` is only in "sumo"); the sumo build has everything the format needs: Argon2id up to the
+  "Maximum" preset (1 GiB — 4.4 s in Node), the XChaCha20-Poly1305 secretstream, random bytes. Its WebAssembly is
+  embedded in the module (base64) — nothing is fetched. 0.53 MB in the worker's chunk (crypto.wasm: 57 KB).
+- **Decision (rule 1, with the owner's tweak):** **the cryptography moves to libsodium.js**; what it does not have —
+  the 61-byte USODIUM1 header — stays in **crypto.wasm** (our C, written and read in `u_sh_write` / `u_sh_parse`) as the
+  supplement. The format is unchanged, byte for byte. The encrypt / decrypt loop moved from the worker into
+  `src/lib/usodium.ts` (runs in Node too), on a `StreamCrypto` interface both engines satisfy
+  (`src/wasm/libsodium.ts` binds libsodium.js to it). crypto.wasm keeps its other users (hashes, random tools,
+  password tabs) until their own entries.
+- **Evidence:** the same Argon2id keys from both engines (four parameter sets, a Hindi + emoji password); files of
+  0 B – 200 KB written by either engine opened by the other; **`tools/sodium_decrypt.py` (PyNaCl — the C libsodium)
+  opens a file written by libsodium.js**; wrong password, a changed bit in the first and in a later chunk, a cut
+  after a whole chunk and inside one, bytes added, changed Argon2 parameters — each refused with its message
+  (`tests/unit/usodium.test.mjs`); the Sodium and Share Link e2e suites pass on the new engine.

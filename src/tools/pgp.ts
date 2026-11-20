@@ -1,21 +1,29 @@
 // OpenPGP (OpenPGP.js 6). Default profile is GnuPG-compatible: v4 keys, Ed25519 + Curve25519 (legacy encodings),
 // AES-256, SEIPDv1 + MDC, iterated+salted S2K. Decryption/verification also accept RFC 9580 (v6, AEAD, Argon2) input.
-import * as openpgp from 'openpgp';
+import type * as OpenPGP from 'openpgp';
+import { lazyEngine } from '../lifecycle';
 import {
   h, card, field, input, textarea, button, segmented, toggle, filePicker, note, actions, outputBox, downloadBlob,
   stack, row, clear, fmtBytes, readBytes, type Mount,
 } from '../ui';
 import { armored, armoredBytes, wrongKind, pgpError, isEmail, decryptedName, groupHex, type ArmorKind } from '../lib/pgptext';
 
-const GPG_CONFIG = {
-  v6Keys: false,
-  aeadProtect: false,
-  preferredSymmetricAlgorithm: openpgp.enums.symmetric.aes256,
-  preferredHashAlgorithm: openpgp.enums.hash.sha512,
-  s2kType: openpgp.enums.s2k.iterated,
-  s2kIterationCountByte: 255,
-} as const;
-const MODERN_CONFIG = { v6Keys: true, aeadProtect: true, s2kType: openpgp.enums.s2k.argon2, preferredSymmetricAlgorithm: openpgp.enums.symmetric.aes256 } as const;
+// OpenPGP.js is fetched with the first action, not as the tab opens (it is 0.4 MB): every handler awaits ready() first.
+const engine = lazyEngine('openpgp', () => import('openpgp'));
+let openpgp: typeof OpenPGP;
+let GPG_CONFIG: Record<string, unknown>, MODERN_CONFIG: Record<string, unknown>;
+async function ready() {
+  openpgp = await engine();
+  GPG_CONFIG = {
+    v6Keys: false,
+    aeadProtect: false,
+    preferredSymmetricAlgorithm: openpgp.enums.symmetric.aes256,
+    preferredHashAlgorithm: openpgp.enums.hash.sha512,
+    s2kType: openpgp.enums.s2k.iterated,
+    s2kIterationCountByte: 255,
+  };
+  MODERN_CONFIG = { v6Keys: true, aeadProtect: true, s2kType: openpgp.enums.s2k.argon2, preferredSymmetricAlgorithm: openpgp.enums.symmetric.aes256 };
+}
 
 type Profile = 'gpg' | 'modern';
 
@@ -37,12 +45,12 @@ function keyInput(label: string, kind: 'public' | 'private', multiple = false) {
   ta.addEventListener('input', () => { bins = []; info.textContent = ''; });
   const el = field(label, stack(pick, info, ta));
   const wanted: ArmorKind[] = kind === 'private' ? ['PRIVATE KEY BLOCK'] : ['PUBLIC KEY BLOCK', 'PRIVATE KEY BLOCK'];
-  const read = (o: { armoredKeys: string } | { binaryKeys: Uint8Array }): Promise<openpgp.Key[]> => (kind === 'private' ? openpgp.readPrivateKeys(o as any) : openpgp.readKeys(o as any));
+  const read = (o: { armoredKeys: string } | { binaryKeys: Uint8Array }): Promise<OpenPGP.Key[]> => (kind === 'private' ? openpgp.readPrivateKeys(o as any) : openpgp.readKeys(o as any));
   return {
     el,
-    async keys(): Promise<openpgp.Key[]> {
+    async keys(): Promise<OpenPGP.Key[]> {
       try {
-        const out: openpgp.Key[] = [];
+        const out: OpenPGP.Key[] = [];
         for (const b of bins) out.push(...(await read({ binaryKeys: b })));
         if (ta.value.trim()) {
           // every block of every kind in the box: a public and a private key pasted together are both read
@@ -87,9 +95,9 @@ function dataInput(textLabel = 'Message') {
   };
 }
 
-async function unlock(keys: openpgp.Key[], pass: string): Promise<openpgp.PrivateKey[]> {
+async function unlock(keys: OpenPGP.Key[], pass: string): Promise<OpenPGP.PrivateKey[]> {
   return Promise.all(keys.map(async (k) => {
-    const pk = k as openpgp.PrivateKey;
+    const pk = k as OpenPGP.PrivateKey;
     if (!pk.isPrivate()) throw new Error('That is a public key; a private key is needed here.');
     if (pk.isDecrypted()) return pk;
     try { return await openpgp.decryptKey({ privateKey: pk, passphrase: pass }); }
@@ -97,13 +105,13 @@ async function unlock(keys: openpgp.Key[], pass: string): Promise<openpgp.Privat
   }));
 }
 
-const fpr = (k: openpgp.Key) => k.getFingerprint().toUpperCase().replace(/(.{4})/g, '$1 ').trim();
-const uid = (k: openpgp.Key) => k.getUserIDs()[0] || '(no user ID)';
+const fpr = (k: OpenPGP.Key) => k.getFingerprint().toUpperCase().replace(/(.{4})/g, '$1 ').trim();
+const uid = (k: OpenPGP.Key) => k.getUserIDs()[0] || '(no user ID)';
 
 function result(area: HTMLElement, items: Array<Node | string | null>) { clear(area).append(...items.filter(Boolean) as Node[]); }
 
 const when = (d: Date | null | undefined) => (d ? d.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' }) : '');
-async function sigReport(sigs: any[], keys: openpgp.Key[]) {
+async function sigReport(sigs: any[], keys: OpenPGP.Key[]) {
   if (!sigs.length) return note('The data was not signed.', 'info');
   const lines: Node[] = [];
   for (const s of sigs) {
@@ -148,6 +156,7 @@ export const mount: Mount = (root) => {
         h('div', { class: 'grid2' }, field('Passphrase', p1), field('Repeat passphrase', p2)),
         field('Key format', segmented([['gpg', 'GnuPG-compatible (v4, Ed25519/Cv25519)'], ['modern', 'RFC 9580 v6 (not readable by GnuPG yet)']], profile, (v) => (profile = v))),
       )), out, actions(button('Generate key pair', async () => {
+        await ready();
         if (!name.value.trim() && !email.value.trim()) throw new Error('Enter a name or an e-mail address.');
         if (email.value.trim() && !isEmail(email.value.trim())) throw new Error(`"${email.value.trim()}" is not an e-mail address.`);
         if (!p1.value) throw new Error('Choose a passphrase to protect the private key.');
@@ -182,6 +191,7 @@ export const mount: Mount = (root) => {
       renderMode();
       body.append(card(null, stack(data.el, field('Encrypt with', segmented([['key', 'Public key'], ['pass', 'Password (symmetric)']], mode, (v) => { mode = v; renderMode(); })), modeArea, armor)), out,
         actions(button('Encrypt', async () => {
+        await ready();
           const bytes = await data.bytes();
           const message = data.kind === "text" ? await openpgp.createMessage({ text: data.text }) : await openpgp.createMessage({ binary: bytes, filename: data.name });
           const asText = armor.checked || data.kind === 'text';
@@ -211,6 +221,7 @@ export const mount: Mount = (root) => {
       const verify = keyInput('Sender public key (optional, to verify signature)', 'public', true);
       body.append(card(null, stack(data.el, priv.el, field('Passphrase / password', kpass), verify.el)), out,
         actions(button('Decrypt', async () => {
+        await ready();
           const bytes = await data.bytes();
           const message = await readMsg(bytes);
           const sk = await priv.keys();
@@ -248,6 +259,7 @@ export const mount: Mount = (root) => {
       body.append(card(null, stack(data.el, priv.el, field('Passphrase', kpass),
         field('Signature type', segmented([['detached', 'Detached (.sig/.asc)'], ['clear', 'Clear-signed text']], style, (v) => (style = v))), armor)), out,
         actions(button('Sign', async () => {
+        await ready();
           const keys = await unlock(await priv.keys(), kpass.value);
           if (!keys.length) throw new Error('Load your private key.');
           if (style === 'clear') {
@@ -278,6 +290,7 @@ export const mount: Mount = (root) => {
     renderSig();
     body.append(card(null, stack(field('Signature type', segmented([['detached', 'Detached signature'], ['clear', 'Clear-signed text']], style, (v) => { style = v; renderSig(); })), data.el, sigArea, pubs.el)), out,
       actions(button('Verify', async () => {
+        await ready();
         const keys = await pubs.keys();
         if (!keys.length) throw new Error('Add the signer\'s public key.');
         let sigs;

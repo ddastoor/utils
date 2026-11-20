@@ -3,6 +3,8 @@ import type { HashAlg } from '../wasm/crypto';
 import { trackWorker } from '../lifecycle';
 
 let worker: Worker | null = null;
+/** libsodium's version, as the worker reports it with a result of the USODIUM1 format ('' until then). */
+export let sodiumVersion = '';
 let seq = 0;
 const pending = new Map<number, { resolve: (v: any) => void; reject: (e: Error) => void; onProgress?: (f: number, t: string) => void }>();
 
@@ -12,6 +14,7 @@ function w() {
     worker.onmessage = (e) => {
       const m = e.data, p = pending.get(m.id);
       if (!p) return;
+      if (m.version) sodiumVersion = m.version;
       if (m.type === 'progress') p.onProgress?.(m.frac, m.text);
       else { pending.delete(m.id); m.type === 'done' ? p.resolve(m.result) : p.reject(new Error(m.message)); }
     };

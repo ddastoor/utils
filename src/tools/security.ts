@@ -2,7 +2,7 @@ import {
   h, card, field, input, textarea, button, segmented, toggle, slider, filePicker, progress, note, actions, outputBox,
   downloadBlob, copy, toast, fmtBytes, stack, row, clear, ic, type Mount,
 } from '../ui';
-import { encryptBlob, decryptBlob, hashBlob, STRENGTH } from '../lib/crypto-client';
+import { encryptBlob, decryptBlob, hashBlob, STRENGTH, sodiumVersion } from '../lib/crypto-client';
 import { sodium, HASH_ALGS, type HashAlg, toB64, fromB64 } from '../wasm/crypto';
 import { isMobile } from '../platform';
 
@@ -54,6 +54,7 @@ export const sodium_: Mount = (root) => {
     try {
       const res = mode === 'encrypt' ? await encryptBlob(data, pw, STRENGTH[strength], onP) : await decryptBlob(data, pw, onP);
       prog.done();
+      const v = root.querySelector('.ver'); if (v && sodiumVersion) v.textContent = ` ${sodiumVersion}`;
       if (kind === 'file') {
         const name = mode === 'encrypt' ? `${file!.name}.usodium` : file!.name.replace(/\.usodium$/i, '') || 'decrypted';
         outputArea.append(note(`${mode === 'encrypt' ? 'Encrypted' : 'Decrypted'}: ${name} (${fmtBytes(res.size)})`, 'ok'),
@@ -75,9 +76,8 @@ export const sodium_: Mount = (root) => {
     )),
     outputArea,
     actions(runBtn),
-    note(h('span', null, 'Format: Argon2id → XChaCha20-Poly1305 secretstream (libsodium ', h('span', { class: 'ver' }), '). Files are processed in 64 KiB authenticated chunks; tampering or truncation is detected.')),
+    note(h('span', null, 'Format: Argon2id → XChaCha20-Poly1305 secretstream (libsodium', h('span', { class: 'ver' }), '). Files are processed in 64 KiB authenticated chunks; tampering or truncation is detected.')),
   );
-  sodium().then((s) => { const v = root.querySelector('.ver'); if (v) v.textContent = s.version; });
   render();
 };
 export { sodium_ as sodium };

@@ -76,6 +76,7 @@
     "hash-wasm": "4.13.0",
     "libarchive.js": "^2.0.2",
     "libheif-js": "^1.23.5",
+    "libsodium-wrappers-sumo": "0.8.4",
     "lucide-static": "^1.73.0",
     "mediabunny": "^1.66.0",
     "mermaid": "^12.3.0",
