@@ -43,3 +43,19 @@ export async function readBack(path) {
   const af = d.getTrailer().get('Root').get('AcroForm');
   return { pages, outline: flat(d.loadOutline()), listed: af.isDictionary() && af.get('Fields').isArray() ? af.get('Fields').length : 0 };
 }
+
+/** crazyones.pdf with a signature field that holds a signature dictionary (as a signed PDF has; the bytes of the
+ *  signature itself are a stand-in — only the structure is read), saved with `password` when given. */
+export async function makeSigned(tmp, password) {
+  const m = await import('mupdf');
+  const d = m.Document.openDocument(readFileSync(P('crazyones.pdf')), 'application/pdf').asPDF();
+  const page = d.findPage(0);
+  const sigv = d.addObject({ Type: 'Sig', Filter: 'Adobe.PPKLite', SubFilter: 'adbe.pkcs7.detached', ByteRange: [0, 100, 200, 300], Contents: d.newByteString(new Uint8Array(64)), M: '(D:20261120120000Z)' });
+  const field = d.addObject({ Type: 'Annot', Subtype: 'Widget', FT: 'Sig', T: d.newString('Signature1'), F: 132, Rect: [50, 50, 250, 100], P: page, V: sigv });
+  const annots = d.newArray(); annots.push(field); page.put('Annots', annots);
+  const fields = d.newArray(); fields.push(field);
+  d.getTrailer().get('Root').put('AcroForm', d.addObject({ Fields: fields, SigFlags: 3 }));
+  const out = `${tmp}/signed${password ? '-locked' : ''}.pdf`;
+  writeFileSync(out, d.saveToBuffer(password ? `encrypt=aes-256,user-password=${password},owner-password=${password}x` : 'compress').asUint8Array());
+  return out;
+}

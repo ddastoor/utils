@@ -2,7 +2,8 @@
 // without a password and keep their text; unprotected input is reported.
 import { pdfInfo } from '../lib/pdfcheck.mjs';
 const P = (n) => new URL(`../fixtures/pdf/${n}`, import.meta.url).pathname;
-export default async ({ base, page: newPage, ok, download, devices }) => {
+import { makeSigned } from '../lib/pdfannot.mjs';
+export default async ({ base, page: newPage, ok, download, devices, tmp }) => {
   const page = await newPage();
   await page.goto(base + '#/pdf-unlock');
   for (const f of ['aes256-asdfzxcv.pdf', 'aes128-asdfzxcv.pdf', 'rc4-128-asdfzxcv.pdf']) {
@@ -18,6 +19,11 @@ export default async ({ base, page: newPage, ok, download, devices }) => {
   await page.getByText('is not protected').waitFor();
   await page.getByRole('button', { name: 'Save without password' }).click();
   ok(await page.getByText('This PDF is not protected.').count() >= 1, 'unprotected PDF: nothing to remove');
+  // a digitally signed PDF (an e-Aadhaar is one): the unlocked copy no longer proves the signature — said
+  await page.locator('input[type=file]').first().setInputFiles(await makeSigned(tmp, 'sign-pass'));
+  await page.getByPlaceholder('Password').fill('sign-pass'); await page.getByPlaceholder('Password').press('Enter');
+  await page.getByText('password accepted').waitFor();
+  ok(await page.getByText('is digitally signed (1 signature). The unlocked copy no longer proves the signature').count() === 1, 'a signed PDF: the tab says the unlocked copy no longer proves the signature');
   const real = page.errors.filter((e) => !/not protected/.test(e));
   ok(real.length === 0, `no unexpected page errors: ${real.join(' | ')}`);
   const phone = await newPage({ ...devices['iPhone 13'] });

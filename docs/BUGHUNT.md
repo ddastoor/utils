@@ -40,8 +40,8 @@ Areas with a shared review: the app shell (router, search, favorites, platform h
 | `pdf-compress` | Compress PDF | PC + mobile | pdf | ✓ | 5 | 5 | a run keeps its own file; ends with the tab; colour-key masks kept; target in 1000-byte KB; scan mode within memory |
 | `pdf-sign` | Sign PDF | PC + mobile | pdf | ✓ | 6 | 7 | signature tied to its page; kept on the page; strokes scaled with the pad; Clear wins; typed bounds measured; blank paper |
 | `pdf-fill` | Fill PDF Form | PC + mobile | pdf | ✓ | 3 | 3 | unchosen radio shown unchosen; ticks via ZapfDingbats + ToUnicode; ₹ limit said |
-| `pdf-unlock` | Unlock PDF | PC + mobile | pdf |  |  |  |  |
-| `pdf-protect` | Protect PDF | PC + mobile | pdf |  |  |  |  |
+| `pdf-unlock` | Unlock PDF | PC + mobile | pdf | ✓ | 1 | 2 | a signed PDF: the unlocked copy no longer proves the signature — said |
+| `pdf-protect` | Protect PDF | PC + mobile | pdf | ✓ | 2 | 4 | signed PDF said; non-ASCII password warned (SASLprep) |
 | `pdf2text` | PDF → Text | PC + mobile | pdf |  |  |  |  |
 | `pdf-pagenum` | PDF Page Numbers | PC + mobile | pdf |  |  |  |  |
 | `pdf-watermark` | PDF Watermark | PC + mobile | pdf |  |  |  |  |
@@ -1786,3 +1786,13 @@ Reference for the five finance tabs: **mpmath at 60 digits** (`scripts/make-fina
      comes out as a gap (also when flattened). Known limit, said in the tab after saving ("Rs." shows everywhere);
      giving the field an embedded Noto Sans did not change MuPDF's drawing (tried; 350 KB more). A ₹ in "type
      anywhere" text is refused with the same hint.
+
+- **`pdf-unlock` (tab 134, 1 bug; MuPDF; unit `pdfpages` +1 — `signatureCount`; e2e 13 — was 12).**
+  1. A digitally signed PDF (an e-Aadhaar is one — the tab's own example) was unlocked without a word, but the
+     rewritten copy no longer proves the signature; the tab says so and to give the original where the signature
+     matters (`signatureCount` in `src/lib/pdf.ts`: signature fields with a signature dictionary).
+- **`pdf-protect` (tab 135, 2 bugs; MuPDF; e2e 17 — was 13).**
+  1. The same for protecting a signed PDF.
+  2. A password with ₹, an emoji or letters added to Unicode since 2003 is outside the tables the PDF standard's
+     password preparation (SASLprep) uses: MuPDF and pypdf open the file (checked: accents, ₹, a space, "="), strict
+     readers may not. The tab warns while such a password is typed.

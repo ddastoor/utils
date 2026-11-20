@@ -49,6 +49,23 @@ export async function openPdf(bytes: Uint8Array, password?: string): Promise<MDo
   }
   return doc;
 }
+/** How many digital signatures the PDF carries (signature fields whose /V is a signature dictionary). Any rewrite —
+ *  unlocking, protecting — makes them stop proving anything, so the tabs say so. */
+export function signatureCount(doc: any): number {
+  const af = doc.getTrailer().get('Root').get('AcroForm');
+  if (!af.isDictionary()) return 0;
+  let n = 0;
+  const walk = (f: any, ft: string, depth: number) => {
+    if (depth > 32 || !f.isDictionary()) return;
+    const t = f.get('FT').isName() ? f.get('FT').asName() : ft;
+    if (t === 'Sig' && f.get('V').isDictionary()) n++;
+    const kids = f.get('Kids');
+    if (kids.isArray()) kids.forEach((k: any) => walk(k, t, depth + 1));
+  };
+  const fields = af.get('Fields');
+  if (fields.isArray()) fields.forEach((f: any) => walk(f, '', 0));
+  return n;
+}
 /** Serialise. `encrypt=none` writes without encryption (only after a successful authenticatePassword). */
 export const savePdf = (doc: MDoc, extra = '') => doc.saveToBuffer(['compress', 'garbage', extra].filter(Boolean).join(',')).asUint8Array().slice();
 

@@ -83,6 +83,11 @@ export default async (t, { load }) => {
   t.eq([R('0', 5), R('6', 5), R('2-9', 5)], ['“0” is outside 1–5.', '“6” is outside 1–5.', '“2-9” is outside 1–5.'], 'ranges: outside the document, said');
   t.eq([R('', 5), R(' , ', 5), R('a', 5), R('1-3-5', 5)], ['Enter page numbers, e.g. 1-3, 5, 8-', 'Enter page numbers, e.g. 1-3, 5, 8-', 'Cannot read the range “a”.', 'Cannot read the range “1-3-5”.'], 'ranges: nothing, or what cannot be read, said');
 
+  // ---- digital signatures are counted (Unlock and Protect warn: a rewritten copy no longer proves them)
+  const { makeSigned } = await import(root + 'tests/lib/pdfannot.mjs');
+  const signedPath = await makeSigned(dir);
+  t.eq([pdf.signatureCount(open(readFileSync(signedPath))), pdf.signatureCount(open(F('form.pdf'))), pdf.signatureCount(open(F('crazyones.pdf')))], [1, 0, 0], 'signatures: one in the signed PDF, none in a form or a plain PDF');
+
   // ---- ticks in typed text: ZapfDingbats runs
   t.eq(pdf.textRuns('OK ✓ (not ✗)', 10), String.raw`/STF 10 Tf (OK ) Tj /STZ 10 Tf (3) Tj /STF 10 Tf ( \(not ) Tj /STZ 10 Tf (7) Tj /STF 10 Tf (\)) Tj `, 'text runs: Helvetica, ZapfDingbats for the ticks, brackets escaped');
 

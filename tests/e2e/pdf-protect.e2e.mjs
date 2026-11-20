@@ -2,7 +2,8 @@
 // read back with MuPDF in Node: needs the password, wrong one fails, right one opens with the text and permissions.
 import { readFileSync } from 'node:fs';
 const P = (n) => new URL(`../fixtures/pdf/${n}`, import.meta.url).pathname;
-export default async ({ base, page: newPage, ok, download, devices }) => {
+import { makeSigned } from '../lib/pdfannot.mjs';
+export default async ({ base, page: newPage, ok, download, devices, tmp }) => {
   const m = await import('mupdf');
   const open = (f) => m.Document.openDocument(readFileSync(f), 'application/pdf');
   const page = await newPage();
@@ -42,6 +43,19 @@ export default async ({ base, page: newPage, ok, download, devices }) => {
   await page.getByPlaceholder('Password', { exact: true }).fill('New-pass'); await page.getByPlaceholder('Repeat the password').fill('New-pass');
   const d4 = open(await go());
   ok(!d4.authenticatePassword('asdfzxcv') && d4.authenticatePassword('New-pass') && /AES/.test(d4.getMetaData('encryption')), 'old RC4 password replaced by AES-256 with the new one');
+  // a password with ₹ or an emoji: warned (the PDF password rules of 2003 do not know them); plain ASCII: no warning
+  const warnPw = () => page.getByText('This password has characters other than A–Z').isVisible();
+  await page.getByPlaceholder('Password', { exact: true }).fill('rent₹99');
+  ok(await warnPw(), 'a password with ₹: a warning that some readers may not open the file');
+  await page.getByPlaceholder('Password', { exact: true }).fill('Rent-99!');
+  ok(!(await warnPw()), 'a plain password: no warning');
+  const pw5 = 'pässwörd ₹=1';
+  await page.getByPlaceholder('Password', { exact: true }).fill(pw5); await page.getByPlaceholder('Repeat the password').fill(pw5);
+  const d5 = open(await go());
+  ok(d5.authenticatePassword(pw5) && !d5.authenticatePassword('passwörd'), 'a password with accents, ₹, a space and "=" protects and opens the file');
+  // a signed PDF: re-protecting rewrites it, the signature no longer proves anything — said
+  await page.locator('input[type=file]').first().setInputFiles(await makeSigned(tmp));
+  ok(await page.getByText('is digitally signed (1 signature). The protected copy no longer proves the signature').count() === 1, 'a signed PDF: the tab says the protected copy no longer proves the signature');
   const real = page.errors.filter((e) => !/do not match|cannot contain commas/.test(e));
   ok(real.length === 0, `no unexpected page errors: ${real.join(' | ')}`);
   const phone = await newPage({ ...devices['iPhone 13'] });

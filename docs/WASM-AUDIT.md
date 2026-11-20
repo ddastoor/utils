@@ -1119,3 +1119,7 @@ One entry per tab, written before its bug hunt: our module → candidates → ch
 - MuPDF's widgets (values, appearance streams, `bake` for flattening): nothing to replace. Found: MuPDF draws text
   fields with its built-in sans (Latin, Greek, Cyrillic) whatever font the form's /DA names — a ₹ is a gap; PDFium
   (@embedpdf/pdfium) is the candidate to look at if that matters to the owner.
+
+### 131 – 132. `pdf-unlock`, `pdf-protect` (20 Nov 2026)
+- MuPDF's writer (AES-256 R6, AES-128, RC4 read; `encrypt=none`): nothing to replace. mupdf.js has no call for digital
+  signatures; they are found in the form's fields (our glue, `signatureCount`).
