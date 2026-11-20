@@ -29,6 +29,21 @@ export function pickYtdlp(ua: string, arch = '', bitness = ''): YtdlpFile {
   return by('yt-dlp');
 }
 
+/** What else yt-dlp needs for YouTube on this kind of computer. Since November 2025 yt-dlp runs YouTube's player code
+ *  with a JavaScript runtime (yt-dlp's wiki, "EJS"): Deno by default (2.3 or newer); Node 22+ or QuickJS with
+ *  `--js-runtimes`. Without one it warns "No supported JavaScript runtime could be found" and YouTube often refuses the
+ *  download ("HTTP error 403 Forbidden") — what the owner met on 20 Nov 2026 with Ubuntu's months-old apt package.
+ *  The standalone files carry yt-dlp's solver scripts; with pip it is the "default" extra. */
+export function needsHint(f: YtdlpFile): string {
+  if (f.file.endsWith('.exe')) return 'For YouTube it also needs a JavaScript runtime, Deno, and ffmpeg: winget install DenoLand.Deno, then winget install Gyan.FFmpeg.';
+  if (f.file === 'yt-dlp_macos') return 'For YouTube it also needs a JavaScript runtime, Deno, and ffmpeg: brew install deno, then brew install ffmpeg.';
+  if (f.file.startsWith('yt-dlp_linux')) return 'For YouTube it also needs a JavaScript runtime, Deno: curl -fsSL https://deno.land/install.sh | sh — and your distribution’s ffmpeg package. Use this file rather than the yt-dlp of apt or your distribution: that one is usually months old, and YouTube refuses old versions (“HTTP error 403 Forbidden”).';
+  return 'For YouTube it also needs a JavaScript runtime: Deno, or Node 22 or newer with --js-runtimes node added to the command. On Android in Termux: pkg install python ffmpeg nodejs, then pip install "yt-dlp[default]".';
+}
+
+/** What the two messages mean, said beside the command. */
+export const TROUBLE_403 = '“HTTP error 403 Forbidden” or “No supported JavaScript runtime could be found”? The yt-dlp is too old or Deno is missing: YouTube changes often and refuses old versions. Get the newest yt-dlp (the button below; yt-dlp -U keeps it current — not for the copy installed by apt, which updates only with the system) and install Deno, then run the command again.';
+
 /** How to run it once downloaded (in the Downloads folder). */
 export function runHint(f: YtdlpFile): string {
   if (f.file.endsWith('.exe')) return `In a terminal (PowerShell) in your Downloads folder: .\\${f.file} "<YouTube link>" — and .\\${f.file} -U updates it later.`;

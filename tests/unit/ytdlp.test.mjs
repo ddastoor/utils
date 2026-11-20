@@ -30,4 +30,18 @@ export default async (t, { load }) => {
   t.eq(Y.runHint(Y.pickYtdlp(UA.win)), 'In a terminal (PowerShell) in your Downloads folder: .\\yt-dlp.exe "<YouTube link>" — and .\\yt-dlp.exe -U updates it later.', 'Windows run hint');
   t.eq(Y.runHint(Y.pickYtdlp(UA.linux)), 'In a terminal in your Downloads folder: chmod +x yt-dlp_linux && ./yt-dlp_linux "<YouTube link>" — and ./yt-dlp_linux -U updates it later.', 'Linux run hint (chmod first)');
   t.ok(/python3 yt-dlp/.test(Y.runHint(Y.pickYtdlp(UA.android))), 'zipapp run hint');
+
+  // What else yt-dlp needs for YouTube. Owner, 20 Nov 2026: Ubuntu's yt-dlp (apt, 2026.03.17) without a JavaScript
+  // runtime warned "No supported JavaScript runtime could be found" and the download failed with "HTTP error 403
+  // Forbidden" — the tab had said nothing about either. Since November 2025 yt-dlp runs YouTube's player code with a
+  // JavaScript runtime: Deno by default (2.3 or newer), Node 22+ or QuickJS with --js-runtimes (yt-dlp's EJS wiki).
+  const need = (ua) => Y.needsHint(Y.pickYtdlp(ua));
+  t.ok(/winget install DenoLand\.Deno/.test(need(UA.win)) && /Gyan\.FFmpeg/.test(need(UA.win)), `Windows: Deno and ffmpeg by winget (${need(UA.win)})`);
+  t.ok(/brew install deno/.test(need(UA.mac)) && /brew install ffmpeg/.test(need(UA.mac)), `macOS: Deno and ffmpeg by Homebrew (${need(UA.mac)})`);
+  t.ok(/curl -fsSL https:\/\/deno\.land\/install\.sh \| sh/.test(need(UA.linux)), `Linux: Deno's own installer (${need(UA.linux)})`);
+  t.ok(/apt/.test(need(UA.linux)) && /403/.test(need(UA.linux)), 'Linux: why the yt-dlp of apt will not do (months old; YouTube answers 403)');
+  t.eq(need(UA.linuxArm), need(UA.linux), 'Linux ARM: the same advice');
+  t.ok(/--js-runtimes node/.test(need(UA.android)) && /pkg install python ffmpeg nodejs/.test(need(UA.android)) && /yt-dlp\[default\]/.test(need(UA.android)), `Android (Termux): Node with --js-runtimes node, and yt-dlp with its solver (${need(UA.android)})`);
+  t.ok(Y.YTDLP_FILES.every((f) => /JavaScript runtime/.test(Y.needsHint(f))), 'every system is told that YouTube needs a JavaScript runtime');
+  t.ok(/403/.test(Y.TROUBLE_403) && /yt-dlp -U/.test(Y.TROUBLE_403) && /Deno/.test(Y.TROUBLE_403) && /No supported JavaScript runtime/.test(Y.TROUBLE_403), 'what "HTTP Error 403" and "No supported JavaScript runtime" mean, in words');
 };

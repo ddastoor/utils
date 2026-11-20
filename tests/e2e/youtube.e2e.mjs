@@ -35,6 +35,10 @@ export default async ({ base, page: newPage, ok, info, download, released }) => 
   ok(await main.isVisible(), 'the download button is there before any link is pasted');
   ok(await main.getAttribute('href') === 'https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux' && /Linux \(x86-64\) \(yt-dlp_linux\)/.test(await main.textContent()), `Linux: yt-dlp_linux (${await main.getAttribute('href')})`);
   ok(/chmod \+x yt-dlp_linux && \.\/yt-dlp_linux/.test(await page.locator('.card', { has: main }).innerText()), 'how to run it, under the button');
+  // what yt-dlp needs besides itself (owner, 20 Nov 2026: apt's months-old yt-dlp without a JavaScript runtime got
+  // "HTTP error 403 Forbidden", and the tab had not said a word about either)
+  const ytCardText = await page.locator('.card', { has: main }).innerText();
+  ok(/JavaScript runtime/.test(ytCardText) && /deno\.land\/install\.sh/.test(ytCardText) && /apt/.test(ytCardText), `under the button: Deno's installer for Linux, and why apt's yt-dlp will not do (${ytCardText.slice(0, 80)}…)`);
   ok(await main.getAttribute('rel') === 'noopener noreferrer' && await main.getAttribute('referrerpolicy') === 'no-referrer', 'no referrer sent to GitHub');
   const others = await page.locator('.ytdlp-files a').evaluateAll((as) => as.map((a) => a.getAttribute('href')));
   ok(others.length === 7 && others.every((u) => /^https:\/\/github\.com\/yt-dlp\/yt-dlp\/releases\/latest\/download\//.test(u)) && others.some((u) => u.endsWith('/yt-dlp.exe')) && others.some((u) => u.endsWith('/yt-dlp_macos')), `seven files for the other systems (${others.length})`);
@@ -57,6 +61,8 @@ export default async ({ base, page: newPage, ok, info, download, released }) => 
   ok((await summary()) === 'Video dQw4w9WgXcQ · from 1:02 to 1:30 (0:28)', `two links → ${await summary()}`);
   const cmd = await page.locator('.outbox textarea').inputValue();
   ok(cmd === 'yt-dlp --download-sections "*62-90" -f "bv*[ext=mp4]+ba[ext=m4a]/b[ext=mp4]" --merge-output-format mp4 -o "%(title)s [1.02-1.30].%(ext)s" "https://www.youtube.com/watch?v=dQw4w9WgXcQ"', `yt-dlp command: ${cmd}`);
+  const cmdCard = await page.locator('.card').filter({ hasText: 'Download with yt-dlp (original quality)' }).innerText();
+  ok(/Deno/.test(cmdCard) && /DenoLand\.Deno/.test(cmdCard) && /403/.test(cmdCard) && /yt-dlp -U/.test(cmdCard) && /No supported JavaScript runtime/.test(cmdCard), 'with the command: Deno on every system, and what "HTTP Error 403" means');
   await page.getByText('Sound only (MP3)').click();
   ok(/-x --audio-format mp3/.test(await page.locator('.outbox textarea').inputValue()), 'sound-only command');
   await page.getByLabel('End link').fill('https://youtu.be/aaaaaaaaaaa?t=90');

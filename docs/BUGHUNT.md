@@ -75,7 +75,7 @@ Areas with a shared review: the app shell (router, search, favorites, platform h
 | `ffmpeg` | FFmpeg | PC only | video | ✓ | 9 | 6 | video area 20 Nov 2026 (docs/BUGHUNT.md); +1 solo run: the new-file stop note was wiped by the probe; +2 stop during the load (the job ran after Stop / a new file); junk sweep (no media) |
 | `screencast` | Screencast | PC only | video | ✓ | 4 | 5 | video area 20 Nov 2026 (docs/BUGHUNT.md) |
 | `screenshot` | Screenshot | PC only | video | ✓ | 4 | 4 | video area 20 Nov 2026 (docs/BUGHUNT.md) |
-| `youtube` | YouTube Clip | PC only | video | ✓ | 6 | 44 | video area 20 Nov 2026 (docs/BUGHUNT.md) |
+| `youtube` | YouTube Clip | PC only | video | ✓ | 7 | 54 | video area 20 Nov 2026 (docs/BUGHUNT.md); 20 Nov (owner): nothing said that yt-dlp needs Deno for YouTube or that apt's copy is too old — the owner got HTTP 403 |
 
 ## calculators
 | id | Tab | Platform | Area | R | B | T | Notes |
@@ -2335,6 +2335,13 @@ cannot. Three new suites; each fails on the build before its fixes.
   headless shell (72 / 72); the checks are the same.
 - **So the complete e2e run is green**: 192 suites, every check passing (the two load flakes pass alone).
 - **Complete unit suites** after all this: 21,731 assertions in 99 suites, all green.
+- **YouTube Clip — found by the owner (20 Nov 2026).** The yt-dlp command the tab writes failed on the owner's Kubuntu
+  with "HTTP error 403 Forbidden": Ubuntu's apt yt-dlp (2026.03.17, eight months old) and no JavaScript runtime
+  ("No supported JavaScript runtime could be found … YouTube extraction without a JS runtime has been deprecated"). Since
+  November 2025 yt-dlp needs Deno (or Node 22+ / QuickJS with `--js-runtimes`) for YouTube, and YouTube refuses old
+  versions — the tab said neither. Now: what each system needs under the download button (`needsHint` in
+  `src/lib/ytdlp.ts`) and what the two messages mean beside the command (`TROUBLE_403`). ytdlp unit +8, youtube e2e +2;
+  the command itself was right and is unchanged.
 - **Ubuntu 26.04's sha256sum — found by GitHub's build machine (20 Nov 2026).** The Pages build stopped at one unit check
   ("a backslash in a name is escaped as sha256sum expects"): GitHub's `ubuntu-latest` is now Ubuntu 26.04, whose
   `sha256sum` is uutils coreutils 0.10.0 (the Rust rewrite). It writes GNU's escaped line for a name with a backslash

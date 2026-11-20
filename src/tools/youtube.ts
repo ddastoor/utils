@@ -7,7 +7,7 @@
 // Nothing is contacted until "Load the player" is pressed. Direct download from a web page is impossible (CORS).
 import { h, card, field, actions, button, input, segmented, toggle, stack, note, outputBox, toast, errMsg, fmtBytes, fmtTime, downloadBlob, type Mount } from '../ui';
 import { linuxBanner } from '../linux';
-import { YTDLP_FILES, YTDLP_RELEASES, pickYtdlp, runHint, ytdlpUrl } from '../lib/ytdlp';
+import { TROUBLE_403, YTDLP_FILES, YTDLP_RELEASES, needsHint, pickYtdlp, runHint, ytdlpUrl } from '../lib/ytdlp';
 import { finishRecording } from '../lib/aac';
 import { parseTime, parseYouTube, hms } from '../lib/ytclip';
 export { parseTime, parseYouTube, hms };
@@ -145,7 +145,8 @@ export const mount: Mount = (root) => {
     card('Download with yt-dlp (original quality)', stack(cmd,
       toggle('Exact cut (re-encodes the edges; slower)', exact, (v) => { exact = v; renderCmd(); }),
       toggle('Sound only (MP3)', audioOnly, (v) => { audioOnly = v; renderCmd(); }),
-      note(h('span', null, 'Needs ', h('strong', null, 'yt-dlp'), ' and ', h('strong', null, 'ffmpeg'), ' on the computer — Windows: winget install yt-dlp.yt-dlp Gyan.FFmpeg · Linux: pipx install yt-dlp and your ffmpeg package · Android: Termux (pkg install python ffmpeg, pip install yt-dlp).'), 'info'))),
+      note(h('span', null, 'Needs ', h('strong', null, 'yt-dlp'), ', ', h('strong', null, 'ffmpeg'), ' and ', h('strong', null, 'Deno'), ' (a JavaScript runtime: yt-dlp runs YouTube’s player code with it) on the computer — Windows: winget install yt-dlp.yt-dlp, winget install Gyan.FFmpeg and winget install DenoLand.Deno · Linux: the newest yt-dlp from the button below, your ffmpeg package and Deno (curl -fsSL https://deno.land/install.sh | sh) · Android: Termux (pkg install python ffmpeg nodejs, pip install "yt-dlp[default]", and add --js-runtimes node to the command).'), 'info'),
+      note(TROUBLE_403, 'warn'))),
     card('Record in this browser', stack(
       note('Plays the clip in YouTube’s privacy-enhanced player and records it in real time. Chrome asks to share this tab — choose it. Ads may appear; some videos cannot be embedded.', 'info'),
       playerBox, recStatus, h('div', { class: 'row' }, loadBtn, recBtn), result)));
@@ -153,16 +154,18 @@ export const mount: Mount = (root) => {
   // first — Chromium tells the architecture (ARM) a moment later
   const ytMain = h('a', { class: 'btn btn-primary', rel: 'noopener noreferrer', referrerpolicy: 'no-referrer' });
   const ytHint = h('div', { class: 'muted small' });
+  const ytNeeds = h('div', { class: 'muted small' }); // what else it needs for YouTube (Deno; why not apt's copy)
   const showYt = (arch = '', bitness = '') => {
     const f = pickYtdlp(navigator.userAgent, arch, bitness);
     ytMain.setAttribute('href', ytdlpUrl(f.file)); ytMain.dataset.file = f.file;
     ytMain.textContent = `Download latest yt-dlp — ${f.system} (${f.file})`;
     ytHint.textContent = runHint(f);
+    ytNeeds.textContent = needsHint(f);
   };
   showYt();
   (navigator as any).userAgentData?.getHighEntropyValues?.(['architecture', 'bitness']).then((v: any) => showYt(v?.architecture || '', v?.bitness || '')).catch(() => {});
   const ytCard = card('Get yt-dlp — the newest version, from GitHub', stack(
-    h('div', { class: 'row' }, ytMain), ytHint,
+    h('div', { class: 'row' }, ytMain), ytHint, ytNeeds,
     h('details', null, h('summary', null, 'Other systems'), h('ul', { class: 'ytdlp-files' }, ...YTDLP_FILES.map((f) =>
       h('li', null, h('a', { href: ytdlpUrl(f.file), rel: 'noopener noreferrer', referrerpolicy: 'no-referrer' }, f.file), ` — ${f.system}, ${f.note}`)))),
     note(h('span', null, 'Your browser downloads it straight from yt-dlp’s own releases on GitHub (', h('a', { href: YTDLP_RELEASES, target: '_blank', rel: 'noopener noreferrer' }, 'github.com/yt-dlp/yt-dlp'), ') — always the latest release. This page itself fetches nothing. For merging the best video with its sound yt-dlp also needs ffmpeg (Windows: winget install Gyan.FFmpeg).'), 'info')));

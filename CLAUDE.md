@@ -1959,7 +1959,12 @@ m./music. hosts, `t=` / `start=` / `#t=`; different videos and end ≤ start are
    `github.com/yt-dlp/yt-dlp/releases/latest/download/<file>` (always the newest release) for this computer —
    yt-dlp.exe / yt-dlp_arm64.exe / yt-dlp_x86.exe (Chromium's architecture and bitness), yt-dlp_macos, yt-dlp_linux /
    yt-dlp_linux_aarch64, the Python zipapp elsewhere — the other six under "Other systems", how to run it; a link, not a
-   request: nothing is fetched by the page and the CSP is unchanged.
+   request: nothing is fetched by the page and the CSP is unchanged. **What else yt-dlp needs is said** (owner, 20 Nov 2026: Ubuntu's apt
+   yt-dlp 2026.03.17 without a JavaScript runtime got "HTTP error 403 Forbidden"): since November 2025 yt-dlp runs
+   YouTube's player code with a JavaScript runtime — Deno by default (2.3+), Node 22+ or QuickJS with `--js-runtimes`
+   (yt-dlp's EJS wiki). `needsHint(file)` under the download button (Windows: winget DenoLand.Deno; macOS: brew; Linux:
+   Deno's installer and why the distribution's yt-dlp will not do; Termux: nodejs + `--js-runtimes node`, pip
+   "yt-dlp[default]") and `TROUBLE_403` beside the command (what the two messages mean; `yt-dlp -U`).
 2. **Record in this browser**: nothing is requested from YouTube until "Load the player"; then the privacy-enhanced
    `youtube-nocookie.com/embed/ID?enablejsapi=1&start=…` player (owner-approved `frame-src`; `connect-src` stays
    'self'; no YouTube script in our page). It is driven with the IFrame API's postMessage protocol ("listening"
