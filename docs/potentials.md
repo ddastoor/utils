@@ -46,7 +46,7 @@ from the sandbox (GitHub is not reachable there): measure it before building.
   9 Shamir Secret Split, 14 Audiobook, 15 PDF Compare, 16 PDF Tables → Excel, 17 Video Face Blur,
   18 Label Sheets, 20 Duplicate Photos, 27 WireGuard, 30 Aadhaar / e-Invoice QR, 31 DIGIPIN, 34 Calendar Converter,
   36 Metadata Remover, 44 Anki Flashcards, 61 PDF Redact, 62 Authenticator Export, 63 Photo Organizer, 64 Subtitle
-  Sync, 65 Kindle Highlights, 66 XIRR, 71 EPUB Reader; and 29 Breach Check, 52 Food Label, 53 Book Lookup (each needs its data-API host
+  Sync, 65 Kindle Highlights, 71 EPUB Reader; and 29 Breach Check, 52 Food Label, 53 Book Lookup (each needs its data-API host
   approved first).
 - **Small — under 10 MB:** 1 Image to SVG 0.2 (vtracer / potrace) · 2 Photo Upscaler 4.8 (Real-ESRGAN general x4v3;
   the best model, x4plus, 33.7 at half precision / 67.1 full) · 6 GIF Maker 0.7 (gifski) · 7 AVIF / JPEG XL 7 (jSquash:
@@ -255,7 +255,6 @@ the owner said "add all ten". Every one runs in the browser on the device; none 
 | 63 | **Photo Organizer**: rename photos by the date taken, shift a wrong camera clock, find photos without a date | ExifTool (on the site) + File System Access | PC | waiting |
 | 64 | **Subtitle Sync**: shift or stretch an .srt to match a video, or line it up with the speech automatically (ffsubsync's method, MIT) | audio.wasm + a voice detector (RNNoise's, on the site) | both | waiting |
 | 65 | **Kindle Highlights Exporter**: `My Clippings.txt` → a clean Markdown / CSV file per book, duplicates removed, or Anki cards | own parser (Rust → wasm) | both | waiting |
-| 66 | **XIRR / Mutual-fund Returns**: the real return from actual SIP and redemption dates (Excel's XIRR), CAGR | mathcore (on the site) | both | waiting |
 | 67 | **Object Eraser**: paint over a photobomber, a wire or a blemish and it is filled in | LaMa (Apache-2.0) on ONNX Runtime Web (on the site), ≈ 200 MB model | PC | waiting |
 | 68 | **KeePass Vault Viewer**: open a .kdbx (KeePass, KeePassXC, KeePassDX), search, copy passwords, 2FA codes | kdbxweb (MIT, JavaScript) + hash-wasm's Argon2 (on the site) | both | waiting |
 | 69 | **Data Notebook**: pandas and charts on a CSV / Excel file, offline | JupyterLite (BSD-3) on Pyodide (MPL-2.0) | PC | waiting |
@@ -280,13 +279,15 @@ the owner said "add all ten". Every one runs in the browser on the device; none 
 - **Round 3 cheapest wins:** DIGIPIN & Plus Codes, Calendar Converter, Aadhaar/e-Invoice QR Verifier, Anki Flashcards,
   Favicon Maker, JBIG2 for scans.
 
-## Removed by the owner (16 Nov 2026) — do not suggest again
+## Removed by the owner (16 – 21 Nov 2026) — do not suggest again
 - Chess Board + Analysis (Stockfish)
 - Python/JS Linter & Formatter (Ruff / Biome)
 - Offline Translation (Mozilla Bergamot)
 - v86 — a real Linux in an emulated PC, for the Terminal or a tab of its own (owner, 20 Nov 2026: "leave out V86 completely")
 - Auto Subtitles (#13) — owner, 20 Nov 2026: removed together with the Speech to Text tab whose engine it would have reused
   (Speech to Text was taken off the site to make room for apps used more often)
+- XIRR / Mutual-fund Returns (#66: the real return from actual SIP and redemption dates, CAGR) — owner, 21 Nov 2026: "remove
+  XIRR / Mutual-fund Returns"
 
 ## Related
 `docs/IDEAS.md` is an earlier, longer research list from 15 Nov 2026, also waiting for the owner. It overlaps with this
