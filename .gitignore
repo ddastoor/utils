@@ -12,3 +12,4 @@ wasm/keys/target/
 wasm/zxcvbn/target/
 wasm/formats/target/
 wasm/textkit/target/
+__pycache__/
