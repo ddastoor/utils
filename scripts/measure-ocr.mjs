@@ -1,9 +1,12 @@
-// measure-ocr.mjs DIR [--prep a,b,…] [--psm N] [--only TEXT] [--param name=value,…] — how many of a photo's words the OCR reads right, for
+// measure-ocr.mjs DIR [--prep a,b,…] [--psm N] [--only TEXT] [--param name=value,…] [--tilt DEG] — how many of a photo's words the OCR reads right, for
 // every photo of DIR (made by scripts/make-kindle-photos.py: <name>.jpg + <name>.txt). The engine is the app's own:
 // tesseract.js with the English model the site serves (4.0.0_best_int), in Node; the clean-up steps are imgproc.wasm's,
 // as the tab runs them (src/wasm/imgproc.ts through Vite's loader). Prints one line per photo and the means: the words
 // read right (the longest common subsequence of the two word lists, over the words of the page), the uncommon words
 // found (those a reader looks up) and how clean the reading is (the words read that are right).
+// --tilt DEG: every photo turned by DEG degrees first (to the right; negative: to the left) on a desk-coloured canvas that
+// holds every corner, with a camera's noise — a phone held at an angle (owner, 21 Nov 2026: "when I click it at different
+// angles"); 90, 180, 270: turned a quarter, a half, three quarters (the phone held sideways).
 // Needs python3 with Pillow (to decode the JPEGs).
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
@@ -21,6 +24,8 @@ const opt = (k, d) => { const i = args.indexOf(k); return i >= 0 ? args[i + 1] :
 const preps = opt('--prep', 'app').split(',');
 const psm = opt('--psm', '3');
 const only = opt('--only', '');
+const tilt = parseFloat(opt('--tilt', '0')) || 0;
+let readSmall; // a quick reading of a picture (the tabs' "glance"), set in main(): uprightByReading's reader
 let found = 0; // photos whose page was found (the page… variants)
 
 /** Words as a reader counts them: letters, digits and the apostrophe; case and punctuation ignored. */
@@ -57,6 +62,7 @@ async function imgprocNode() {
   const vite = await createServer({ root, server: { middlewareMode: true, hmr: false, ws: false, watch: null }, logLevel: 'error', optimizeDeps: { noDiscovery: true, include: [] } });
   const { bindImgproc } = await vite.ssrLoadModule('/src/wasm/imgproc.ts');
   const { straighten } = await vite.ssrLoadModule('/src/lib/pagecrop.ts');
+  const { uprightByReading } = await vite.ssrLoadModule('/src/lib/upright.ts');
   const mod = await WebAssembly.compile(readFileSync(join(root, 'src/wasm/bin/imgproc.wasm')));
   let memory; const w = {};
   for (const i of WebAssembly.Module.imports(mod)) if (i.module === 'wasi_snapshot_preview1') w[i.name] = () => 52;
@@ -67,12 +73,12 @@ async function imgprocNode() {
   w.environ_get = () => 0;
   const inst = await WebAssembly.instantiate(mod, { wasi_snapshot_preview1: w });
   memory = inst.exports.memory; inst.exports._initialize?.();
-  return { ip: bindImgproc(inst.exports), straighten, close: () => vite.close() };
+  return { ip: bindImgproc(inst.exports), straighten, uprightByReading, close: () => vite.close() };
 }
 
 /** The clean-up variants. app = what the Photo Dictionary did until 21 Nov 2026 (≤ 3000 px, the document clean-up, grey);
  *  page = the page found and straightened first by src/lib/pagecrop.ts (what the tab does now). */
-async function prepare(ip, straighten, img, p) {
+async function prepare({ ip, straighten, uprightByReading }, img, p) {
   const cap = (im, L = 3000) => { const s = Math.max(im.width, im.height); return s > L ? ip.resize(im, (im.width * L) / s, (im.height * L) / s) : im; };
   const copy = (im) => ({ width: im.width, height: im.height, data: new Uint8ClampedArray(im.data) });
   if (p === 'raw') return cap(img);
@@ -81,7 +87,7 @@ async function prepare(ip, straighten, img, p) {
   if (p.startsWith('page')) {
     // page[+step…]: the page found and straightened, then the steps in order — blur (a screen's moiré), up<f> (larger by
     // f, default 2, while the longer side is under 2000 px — the engine reads x-heights of 20 – 30 px best), sharp<a>
-    // (unsharp mask, amount a, default 1, σ 1.2; sharp1.5s2 = amount 1.5, σ 2), bw (black and white instead of grey). Old names: pagescreen = page+blur, pageup = page+up, pagesharp = page+sharp.
+    // (unsharp mask, amount a, default 1, σ 1.2; sharp1.5s2 = amount 1.5, σ 2), bw (black and white instead of grey). Old names: pagescreen = page+blur, pageup = page+up, pagesharp = page+sharp. level: the text levelled and set upright (src/lib/upright.ts, as both tabs do now).
     const steps = { pagescreen: ['blur'], pageup: ['up'], pagesharp: ['sharp'] }[p] || p.split('+').slice(1);
     const s = await straighten(cap(img), ip);
     found += s.found ? 1 : 0;
@@ -90,11 +96,16 @@ async function prepare(ip, straighten, img, p) {
       if (st === 'blur') pg = ip.blur(pg, 1.1);
       else if (st.startsWith('sharp')) { const [a, sg] = st.slice(5).split('s'); pg = ip.sharpen(pg, parseFloat(a) || 1, parseFloat(sg) || 1.2); }
       else if (st.startsWith('up')) { const f = parseFloat(st.slice(2)) || 2; if (Math.max(pg.width, pg.height) < 2000) pg = ip.resize(pg, pg.width * f, pg.height * f); }
+      else if (st === 'level') pg = (await uprightByReading(pg, readSmall, ip)).img;
       else if (st !== 'bw') throw new Error('unknown step ' + st);
     }
     const out = ip.docEnhance(pg, steps.includes('bw') ? 2 : 1);
     // as the tab does: a page found that gives fewer than 25 words → the whole photo is read too, the better kept
-    if (s.found) out.whole = () => ip.docEnhance(steps.includes('blur') ? ip.blur(copy(cap(img)), 1.1) : copy(cap(img)), 1);
+    if (s.found) out.whole = async () => {
+      let w = steps.includes('blur') ? ip.blur(copy(cap(img)), 1.1) : copy(cap(img));
+      if (steps.includes('level')) w = (await uprightByReading(w, readSmall, ip)).img;
+      return ip.docEnhance(w, 1);
+    };
     return out;
   }
   if (p.startsWith('crop')) {
@@ -113,24 +124,40 @@ async function prepare(ip, straighten, img, p) {
 }
 
 async function main() {
-  const { ip, straighten, close } = await imgprocNode();
+  const eng = await imgprocNode(), { ip, close } = eng;
   const worker = await createWorker('eng', OEM.LSTM_ONLY, { langPath: join(root, 'node_modules/@tesseract.js-data/eng/4.0.0_best_int'), gzip: true, cacheMethod: 'none' });
   // --param name=value,…: Tesseract parameters for the run (e.g. thresholding_method=2, Sauvola instead of Otsu)
   const params = Object.fromEntries(opt('--param', '').split(',').filter(Boolean).map((kv) => kv.split('=')));
   await worker.setParameters({ tessedit_pageseg_mode: psm, ...params });
+  readSmall = async (im) => {
+    const d = (await worker.recognize(ppm(ip.docEnhance({ width: im.width, height: im.height, data: new Uint8ClampedArray(im.data) }, 1)), {}, { text: true, blocks: true })).data;
+    const words = []; for (const b of d.blocks || []) for (const pa of b.paragraphs) for (const l of pa.lines) for (const wd of l.words) words.push({ text: wd.text, conf: wd.confidence });
+    return { confidence: d.confidence, words };
+  };
   const names = readdirSync(dir).filter((f) => f.endsWith('.jpg') && existsSync(join(dir, f.slice(0, -4) + '.txt')) && (!only || f.includes(only))).map((f) => f.slice(0, -4)).sort(); // a photo without its words is no test photo
   const totals = {};
   for (const name of names) {
     const truth = wordsOf(readFileSync(join(dir, name + '.txt'), 'utf8'));
     const rare = new Set(truth.filter((x) => RARE.has(x)));
-    const img = decodeJpeg(join(dir, name + '.jpg'));
+    let img = decodeJpeg(join(dir, name + '.jpg'));
+    if (tilt % 90 === 0 && tilt) img = ip.orient(img, [1, 6, 3, 8][((tilt / 90) % 4 + 4) % 4]); // a quarter turn: no corners
+    else if (tilt) {
+      // the photo's own ground around it (the median colour of its outermost 12 px — another colour would outline the old
+      // frame, which the page finder takes for a page), with a camera's noise (a flat colour would make it a screenshot
+      // to the page finder: src/lib/pagecrop.ts DIGITAL). Fill colour: a value no camera pixel has exactly (alpha 254).
+      const med = [0, 1, 2].map((ch) => { const v = []; for (let y = 0; y < img.height; y++) for (let x = 0; x < img.width; x++) if (x < 12 || y < 12 || x >= img.width - 12 || y >= img.height - 12) v.push(img.data[(y * img.width + x) * 4 + ch]); v.sort((p, q) => p - q); return v[v.length >> 1]; });
+      const a = (Math.abs(tilt) * Math.PI) / 180, c = Math.cos(a), sn = Math.sin(a);
+      img = ip.rotate(img, tilt, Math.round(img.width * c + img.height * sn), Math.round(img.width * sn + img.height * c), (0xfe << 24 | med[2] << 16 | med[1] << 8 | med[0]) >>> 0);
+      const d = img.data; let seed = 12345;
+      for (let i = 0; i < d.length; i += 4) if (d[i + 3] === 0xfe) { seed = (seed * 1103515245 + 12345) >>> 0; const n = ((seed >>> 16) % 25) - 12; d[i] += n; d[i + 1] += n; d[i + 2] += n; d[i + 3] = 255; }
+    }
     const row = [name.padEnd(14)];
     for (const p of preps) {
       const t0 = performance.now();
-      const work = await prepare(ip, straighten, img, p);
+      const work = await prepare(eng, img, p);
       let { data } = await worker.recognize(ppm(work), {}, { text: true, blocks: true });
       const nWords = (d) => (d.blocks || []).reduce((n, b) => n + b.paragraphs.reduce((m, pa) => m + pa.lines.reduce((k, l) => k + l.words.length, 0), 0), 0);
-      if (work.whole && nWords(data) < 25) { const d2 = (await worker.recognize(ppm(work.whole()), {}, { text: true, blocks: true })).data; if (nWords(d2) > nWords(data)) data = d2; }
+      if (work.whole && nWords(data) < 25) { const d2 = (await worker.recognize(ppm(await work.whole()), {}, { text: true, blocks: true })).data; if (nWords(d2) > nWords(data)) data = d2; }
       const got = wordsOf(data.text);
       const right = lcs(truth, got), found = [...rare].filter((x) => got.includes(x)).length;
       const acc = right / truth.length, clean = got.length ? right / got.length : 0;

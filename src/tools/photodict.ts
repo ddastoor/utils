@@ -15,7 +15,7 @@ import { previewOf, paint } from '../lib/imgio';
 import { imageInput } from '../lib/imgtools';
 import { recognize, POOR, type OcrResult } from '../lib/ocr';
 import { straighten } from '../lib/pagecrop';
-import { uprightByReading, turnWords } from '../lib/upright';
+import { uprightByReading, uprightWords } from '../lib/upright';
 import { hardWords, lookupWord, rarity, ranker, type WordCard, type Result } from '../lib/dictionary';
 import { wikiSummary, type Summary } from '../lib/wikipedia';
 import { onLeave } from '../lifecycle';
@@ -122,7 +122,7 @@ export const mount: Mount = (root, ctx) => {
       // not be read): the lines of the page say which way up it stands (src/lib/upright.ts); where they leave it open,
       // a small copy is read both ways round
       const glance = async (im: Img) => recognize(new ImageData(new Uint8ClampedArray(im.data), im.width, im.height), 'eng');
-      const setUp = (im: Img) => uprightByReading(im, async (x) => glance(await clean(x))).catch(() => ({ img: im, turns: 0 }));
+      const setUp = (im: Img) => uprightByReading(im, async (x) => glance(await clean(x))).catch(() => ({ img: im, turns: 0, slant: 0 }));
       let up = await setUp(page.img);
       if (stale()) return;
       let r: OcrResult = await read(await clean(up.img));
@@ -148,7 +148,7 @@ export const mount: Mount = (root, ctx) => {
       last = res; prog.done();
       cards.replaceChildren(...phrases, ...res.cards.map((c) => withWiki(wordCard(c), c.word)));
       bar.hidden = !res.cards.length;
-      const turnedNote = up.turns ? ` · the photo was turned ${turnWords(up.turns)} to read it` : '';
+      const turnedNote = up.turns || up.slant ? ` · the photo was ${uprightWords(up)} to read it` : '';
       status.textContent = res.cards.length
         ? `${res.cards.length} uncommon word${res.cards.length > 1 ? 's' : ''}, rarest first · ${r.words.length} words read${res.online.tried ? ` · ${res.online.tried} looked up online` : ''}${turnedNote}`
         : `No uncommon words on this page — tap any word in the text to look it up.${turnedNote}`;

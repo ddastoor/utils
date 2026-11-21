@@ -50,6 +50,9 @@ that affects it.
 > can't understand a thing. Fix that. Do whatever you have to do internally, rotate the image … should work even if my
 > camera is in landscape mode and portrait mode." — both tabs find which way up the text stands (the phone's tilt at the
 > moment of the snap where the browser gives it, and the picture itself) and turn the photo before it is read.
+> **At any angle (owner, 21 Nov 2026):** "the OCR app also should be extremely good, especially on the phone, when I click
+> it at different angles … Just like what you're doing for the photo dictionary app." — both tabs also measure the slant
+> of the lines and level the photo before the quarter turns (§3 OCR, "At any angle").
 
 > ## 📏 Size check before every new app (owner, 20 Nov 2026; standing)
 > **Owner:** "Whenever next new app I suggest from potentials.md, you do a rough calculation, tell me how much more
@@ -2015,6 +2018,32 @@ way, a gallery photo, a page held sideways to a webcam. Measured: the page found
 four ways gives the right turn in all 16 cases (unit `textturns.test.mjs` 36); the Kindle photo turned 90°, 270° and
 180° reads 95 %+ of its words in this tab and gives 90 %+ of the upright photo's uncommon words in the Photo Dictionary,
 also from a phone still lying across the picture (e2e).
+**At any angle (owner, 21 Nov 2026: "especially on the phone, when I click it at different angles"):** before the quarter
+turns, the slant of the lines is measured — the angle from each letter to its nearest neighbour, folded to −45 … 45°, the
+peak of a half-degree histogram (`p_text_turns`' eighth number) — and a slant of 5° or more is levelled (`level` in
+`upright.ts`: the picture turned back on a canvas that holds every corner, the new corners white; a steep slant is
+measured a little short, so what is left is measured on the levelled picture and added, each time from the original).
+**What the letters say is only a suggestion, tried by reading** (`uprightByReading`): on a soft photo the letters run
+together into words and the suggestion can be wrong — the first version, live for a few hours, turned two upright photos
+of the Kindle set over or sideways and read 2 % and 0 % of their words instead of 98 % and 80 % (docs/BUGHUNT.md). Now the
+picture as it is and each picture the suggestion gives are read quickly — the middle of each, at most 1,000 px a side at
+its own scale (a copy made smaller left the text of a whole photo too small to read either way round) — and scored by
+the words read right as the OCR's confidence in each puts it (`score`: words of two letters and more; not the average
+confidence — a page lying sideways is read confidently in a few places, the OCR turning some lines by itself); a change
+is kept only when it scores more than 1.15 × the picture as it is + 3. Only when the letters say upright and level is
+nothing read. A photographed page whose outline is found is straightened by the page finder already; the levelling serves
+a close-up with no edge in sight (a Kindle's screen filling the photo, a book page, a newspaper column) and a page the
+finder misses. The line says "the picture was levelled (12°) to read it" ("levelled (7°) and turned a quarter to the
+left"; the Photo Dictionary: "the photo was …"). **Measured** (`node scripts/measure-ocr.mjs DIR --prep page,page+level
+--tilt DEG`: the 24 Kindle and newspaper photos of `scripts/make-kindle-photos.py`, turned on their own ground with a
+camera's noise): level photos 67.0 % of their words read right, as before the levelling (it changes none of them); turned
+25° 53.9 → 61.9 %, −35° 46.1 → 57.8 %, a quarter 55.8 → 63.5 % (page found and straightened → + level and turn). Unit
+`textturns.test.mjs` 73 (the pages of three real photos turned 8° … 200° come back level within a degree, the soft video
+frame within two; a reader with set answers: every refusal and acceptance); e2e: the whole Kindle photo turned 30° and
+−40° reads 95 %+ of its words, a close-up of its screen (no edge, words cut at the sides) turned 20° and −25° 90 %+ of the
+words of the close-up as it is, the two soft upright photos the first version spoiled (`kindle-blur`, `kindle-comfortaa`)
+read as they stand — and the Photo Dictionary gives 90 %+ of the same uncommon words (`tests/e2e/_tilt.mjs`). Next: the
+lines' direction and slant from projection profiles (robust where letters run together), see docs/RESUME.md.
 
 ### Camera in every tab that takes a picture (owner, 20 Nov 2026)
 Owner: "In all apps that offer to upload an image, also add the option of taking a photo if it's a phone app, and take

@@ -2587,6 +2587,28 @@ cannot. Three new suites; each fails on the build before its fixes.
   photo turned 90° / 270° / 180°: 90 %+ of the upright photo's uncommon words and the line says how it was turned; a
   phone still lying across the picture, either way; a still turned upside down by the tab's own turn to the live
   picture's shape), OCR 67 (the Kindle photo turned three ways: 95 %+ of its words read right).
+- **Photo Dictionary and OCR: the sideways fix turned upright photos over (21 Nov 2026; found while adding photos at any
+  angle — owner: "especially on the phone, when I click it at different angles").** Measuring the new levelling on the 24
+  Kindle and newspaper photos of `scripts/make-kindle-photos.py` (`scripts/measure-ocr.mjs`, now with `--tilt DEG` and a
+  `level` step) showed the turn of to-do #11, live for a few hours, spoiling upright photos: on a soft photo the letters
+  run together into words, and the letter-based check took a sepia still for upside down (6 letters rising against 37
+  dropping: 98.4 % of its words read → 2.0 %) and a Comfortaa video frame for sideways (80.2 % → 0 %); three more were given
+  the wrong axis (word blobs stand closer to the line below than to the next word). The small slants it measured did not
+  follow the picture (a page turned −1.5 … +3° still measured 1.3 – 1.8°). Now every turn and levelling is a suggestion
+  tried by reading (`uprightByReading` in `src/lib/upright.ts`): the picture as it is and each suggestion are read on their
+  middle (at most 1,000 px a side, at the picture's own scale), scored by the words read right as the OCR's confidence puts
+  them, and a change kept only above 1.15 × as it is + 3 words; only "upright and level" skips the reading. Also found on
+  the way: the quick reading of a copy made smaller could not read a whole photo's small text either way round (a 40°
+  photo kept as it was); the average confidence missed a sideways page the OCR read in a few places at 85 % (34 words of
+  451 — now the count of words decides: 92 against 190); levelling below 5° is left to Tesseract; and the e2e and measuring
+  photos turned on a canvas of another colour outlined the old frame, which the page finder took for the page (they are
+  turned on their own ground with a camera's noise now). Result: level photos read exactly as before the levelling (67.0 %),
+  turned 25° 53.9 → 61.9 %, −35° 46.1 → 57.8 %, a quarter 55.8 → 63.5 %. Tests: unit `textturns.test.mjs` 73 (a reader with set
+  answers: a wrong suggestion refused, a right one kept, a sideways page read confidently in places still turned); e2e OCR
+  76 and Photo Dictionary 114 — the two spoiled photos are fixtures now (`kindle-blur.jpg`, `kindle-comfortaa.jpg`: read as
+  they stand), the Kindle photo turned 30° / −40°, a close-up of its screen turned 20° / −25° (`tests/e2e/_tilt.mjs`).
+  Still open: the letters' direction on soft text (a page whose lines run down the picture judged as running across is
+  never tried the right way) — the lines' direction and slant from projection profiles next.
 - **TTS offline: XTTS-v2 broke on every fresh install — a library released the same day (21 Nov 2026; to-do #7).** The
   survey of XTTS's new Indian voices stopped at its first voice: `'NoneType' object has no attribute 'get_seq_length'`
   in coqui-tts's GPT step. coqui-tts 0.28.0 asks only for transformers ≥ 4.57; transformers 5.24.0, out that day, changed

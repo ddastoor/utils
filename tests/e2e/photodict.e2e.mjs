@@ -5,6 +5,7 @@
 // Online fallback is mocked with responses in the real APIs' formats (the sandbox and CI never reach them):
 // snollygoster → Wiktionary REST, mumpsimus → Wiktionary 404 then Free Dictionary API, quidnunc → nowhere (Not found).
 import { readFileSync } from 'node:fs';
+import { tiltedJpeg, CLOSE_UP } from './_tilt.mjs';
 const F = (n) => new URL(`../fixtures/images/${n}`, import.meta.url).pathname;
 const STATUS = '.pd-top [aria-live="polite"]';
 /** A photo turned `deg` degrees to the right (90: a phone held sideways one way, 270: the other, 180: upside down), as a
@@ -250,11 +251,15 @@ export default async ({ base, page: newPage, ok, info, devices }) => {
       g.fillText(l, 80, y);
       const u = new Uint8Array(await (await c.convertToBlob({ type: 'image/png' })).arrayBuffer()); let b = ''; for (let i = 0; i < u.length; i += 0x8000) b += String.fromCharCode(...u.subarray(i, i + 0x8000)); return btoa(b);
     }, readFileSync(F(txt), 'utf8').trim().split(/\s+/)), 'base64');
-    for (const [photo, txt, min, what] of [['kindle-page.jpg', 'kindle-page.txt', 0.9, "a phone's still"], ['kindle-frame.jpg', 'kindle-frame.txt', 0.8, 'a frame of the live video']]) {
+    // (kindle-blur and kindle-comfortaa: upright photos whose letters run together — the letter-based check took one for
+    // upside down and the other for sideways, and the turn spoiled them: 2 % and 0 % of their words; 21 Nov 2026)
+    for (const [photo, txt, min, what] of [['kindle-page.jpg', 'kindle-page.txt', 0.9, "a phone's still"], ['kindle-frame.jpg', 'kindle-frame.txt', 0.8, 'a frame of the live video'],
+      ['kindle-blur.jpg', 'kindle-blur.txt', 0.85, 'a soft still whose letters run together'], ['kindle-comfortaa.jpg', 'kindle-comfortaa.txt', 0.6, 'a frame of the live video in Comfortaa']]) {
       const ref = await pick({ name: 'clean-copy.png', mimeType: 'image/png', buffer: await cleanCopy(txt) });
-      const got = await pick(F(photo)), share = ref.filter((w) => got.includes(w)).length / ref.length;
+      const got = await pick(F(photo)), share = ref.filter((w) => got.includes(w)).length / ref.length, said = await pk.locator(STATUS).textContent();
       ok(ref.length >= 8 && share >= min, `${what} of a Kindle page finds ${Math.round(100 * share)} % (at least ${100 * min} %) of the ${ref.length} uncommon words of a clean copy of it — missing: ${ref.filter((w) => !got.includes(w)).join(', ') || 'none'}`);
       ok(await pk.locator('.pd-advice').innerText() === '', `${what}: read well, so no "snap again" hint`);
+      ok(!/turned/.test(said), `${what}: upright, read the way it stands — not turned (${said})`);
     }
     // a photo too soft to read well (a frame of the live video, out of focus, with moiré): what was read is shown, and
     // the tab says why and what to do — not a list of misread words passed off as the page's
@@ -271,6 +276,18 @@ export default async ({ base, page: newPage, ok, info, devices }) => {
       const share = kindleWords.filter((w) => got.includes(w)).length / kindleWords.length, said = await pk.locator(STATUS).textContent();
       ok(kindleWords.length >= 8 && share >= 0.9 && said.includes(`the photo was turned ${how} to read it`), `the Kindle photo turned ${deg}°: ${Math.round(100 * share)} % of the upright photo's uncommon words, turned ${how} first (${said})`);
     }
+    // photos taken at an angle (owner, 21 Nov 2026: "when I click it at different angles"): the whole photo turned 30° on
+    // a desk, and a close-up of the screen (no edge to find) turned 20° and −25° — the lines levelled first, the same
+    // uncommon words as the photo upright / the close-up as it is
+    { const got = await pick({ name: 'kindle-tilt30.jpg', mimeType: 'image/jpeg', buffer: await tiltedJpeg(pk, F('kindle-page.jpg'), 30) });
+      const share = kindleWords.filter((w) => got.includes(w)).length / kindleWords.length;
+      ok(share >= 0.9, `the Kindle photo turned 30°: ${Math.round(100 * share)} % of the upright photo's uncommon words (${await pk.locator(STATUS).textContent()})`); }
+    { const level = await pick({ name: 'closeup.jpg', mimeType: 'image/jpeg', buffer: await tiltedJpeg(pk, F('kindle-page.jpg'), 0, CLOSE_UP) });
+      for (const deg of [20, -25]) {
+        const got = await pick({ name: `closeup${deg}.jpg`, mimeType: 'image/jpeg', buffer: await tiltedJpeg(pk, F('kindle-page.jpg'), deg, CLOSE_UP) }), said = await pk.locator(STATUS).textContent();
+        const share = level.filter((w) => got.includes(w)).length / Math.max(1, level.length);
+        ok(level.length >= 8 && share >= 0.9 && /the photo was levelled \(\d+°\)/.test(said), `a close-up of the screen turned ${deg}°: ${Math.round(100 * share)} % of the close-up's uncommon words as it is, levelled first (${said})`);
+      } }
     await pick(F('kindle-page.jpg'));
     ok(!(await pk.locator(STATUS).textContent()).includes('was turned'), 'an upright photo is read as it is (nothing turned)');
     ok(real(pk.errors).length === 0, `no page errors with the Kindle photos ${real(pk.errors).join(' | ')}`); }

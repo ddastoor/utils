@@ -6,6 +6,7 @@
 // refused answer, a camera that stops by itself; phone layout with a picker that does not force the camera.
 import { readFileSync } from 'node:fs';
 import { fakeTextCamera, live, stopped } from './_camera.mjs';
+import { tiltedJpeg, CLOSE_UP } from './_tilt.mjs';
 const F = (n) => new URL(`../fixtures/images/${n}`, import.meta.url).pathname;
 
 export default async ({ base, page: newPage, ok, info, download, devices }) => {
@@ -34,10 +35,12 @@ export default async ({ base, page: newPage, ok, info, download, devices }) => {
   const lcs = (a, b) => { let prev = new Uint16Array(b.length + 1), cur = new Uint16Array(b.length + 1); for (let i = 1; i <= a.length; i++) { cur[0] = 0; for (let j = 1; j <= b.length; j++) cur[j] = a[i - 1] === b[j - 1] ? prev[j - 1] + 1 : Math.max(prev[j], cur[j - 1]); [prev, cur] = [cur, prev]; } return prev[b.length]; };
   const line = () => page.locator('.ocr-text ~ [aria-live="polite"]').innerText();
   const readRight = {};
-  for (const [f, min] of [['kindle-page.jpg', 0.95], ['kindle-frame.jpg', 0.9]]) {
+  // (kindle-blur and kindle-comfortaa: upright photos whose letters run together — the letter-based check took one for
+  // upside down and the other for sideways, and the turn spoiled them: 2 % and 0 % of their words; 21 Nov 2026)
+  for (const [f, min] of [['kindle-page.jpg', 0.95], ['kindle-frame.jpg', 0.9], ['kindle-blur.jpg', 0.95], ['kindle-comfortaa.jpg', 0.75]]) {
     const got = await recognise(F(f), 'English', true), truth = wordsOf(readFileSync(F(f.replace('.jpg', '.txt')), 'utf8'));
     const right = readRight[f] = lcs(truth, wordsOf(got)) / truth.length;
-    ok(right >= min && /the page was found and straightened/.test(await line()) && !/reads poorly/.test(await line()), `${f}: ${(100 * right).toFixed(1)} % of the page's words read right (at least ${100 * min} %), the page straightened first (${await line()})`);
+    ok(right >= min && /the page was found and straightened/.test(await line()) && !/reads poorly/.test(await line()) && !/turned/.test(await line()), `${f}: ${(100 * right).toFixed(1)} % of the page's words read right (at least ${100 * min} %), the page straightened first and not turned (${await line()})`);
     const low = await page.locator('.ocr-low').evaluateAll((els) => els.map((e) => [parseFloat(e.style.left), parseFloat(e.style.top)]));
     ok(low.every(([x, y]) => x >= 0 && x <= 100 && y >= 0 && y <= 100), `${f}: the unsure words are marked on the page that was read (${low.length})`);
   }
@@ -56,13 +59,30 @@ export default async ({ base, page: newPage, ok, info, download, devices }) => {
       const right = lcs(truth, wordsOf(got)) / truth.length;
       ok(right >= 0.95 && (await line()).includes(`the picture was turned ${how} to read it`) && /straightened/.test(await line()), `the Kindle photo turned ${deg}°: ${(100 * right).toFixed(1)} % of its words read right, turned ${how} first (${await line()})`);
     }
+    // photos taken at an angle (owner, 21 Nov 2026: "especially on the phone, when I click it at different angles"): the
+    // whole photo turned 30° and −40° on a desk (its page is found and straightened), and a close-up of the screen — no
+    // edge to find, words cut at the sides — turned 20° and −25°: the lines are levelled first, and the close-up reads as
+    // it does at the angle the photo has by itself (about 7°)
+    for (const deg of [30, -40]) {
+      const got = await recognise({ name: `kindle-tilt${deg}.jpg`, mimeType: 'image/jpeg', buffer: await tiltedJpeg(page, F('kindle-page.jpg'), deg) }, 'English', true);
+      const right = lcs(truth, wordsOf(got)) / truth.length;
+      ok(right >= 0.95 && /straightened|levelled/.test(await line()), `the Kindle photo turned ${deg}°: ${(100 * right).toFixed(1)} % of its words read right (${await line()})`);
+    }
+    const level = wordsOf(await recognise({ name: 'closeup.jpg', mimeType: 'image/jpeg', buffer: await tiltedJpeg(page, F('kindle-page.jpg'), 0, CLOSE_UP) }, 'English', true));
+    ok(level.length >= 120, `the close-up as it is: ${level.length} words (${await line()})`);
+    for (const deg of [20, -25]) {
+      const got = wordsOf(await recognise({ name: `closeup${deg}.jpg`, mimeType: 'image/jpeg', buffer: await tiltedJpeg(page, F('kindle-page.jpg'), deg, CLOSE_UP) }, 'English', true));
+      const same = lcs(level, got) / level.length, said = await line(), by = +(said.match(/levelled \((\d+)°\)/) || [])[1];
+      ok(same >= 0.9 && by >= Math.abs(deg) - 10 && by <= Math.abs(deg) + 10, `the close-up turned ${deg}°: ${(100 * same).toFixed(1)} % of the words of the close-up as it is, levelled by ${by}° (${said})`);
+    }
   }
   // a photo too soft to read well (a frame of the live video, out of focus, with moiré): the line says so
   await recognise(F('kindle-soft.jpg'), 'English', true);
   ok(/the text reads poorly: a sharper photo, closer and in good light, reads better/.test(await line()), `a blurred photo: the line says it reads poorly (${await line()})`);
   { const got = await recognise(F('kindle-page.jpg'), 'English', false), truth = wordsOf(readFileSync(F('kindle-page.txt'), 'utf8'));
     const raw = lcs(truth, wordsOf(got)) / truth.length;
-    ok(!/straightened/.test(await line()) && raw < readRight['kindle-page.jpg'], `without the clean-up the photo is read as it is: ${(100 * raw).toFixed(1)} % against ${(100 * readRight['kindle-page.jpg']).toFixed(1)} % with it (the clean-up of before, without the straightening, read 1 %)`); }
+    // (the page is not looked for without the clean-up; the photo may still be levelled — that is no clean-up)
+    ok(!/straightened/.test(await line()), `without the clean-up the page is not cut out and straightened: ${(100 * raw).toFixed(1)} % against ${(100 * readRight['kindle-page.jpg']).toFixed(1)} % with it (${await line()}; the clean-up of before, without the straightening, read 1 %)`); }
 
   // render a sentence as an image in the browser (system serif font, black on white)
   const render = async (s) => Buffer.from(await page.evaluate(async (s) => {

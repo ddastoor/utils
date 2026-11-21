@@ -125,12 +125,13 @@ export function bindImgproc(e: any) {
     /** Which way up the text of a picture stands (p_text_turns): the quarter turns to the right that set it upright
      *  (0–3), -1 when there is too little text to say, -2 when the lines' axis is clear but not which end is up; with
      *  the evidence — neighbour votes along / across the lines, letters sticking out on the low / high side, letters,
-     *  and `across0`: the lines run across the picture (else up and down it). */
-    textTurns(img: Img): { turns: number; along: number; across: number; up: number; down: number; letters: number; across0: boolean } {
-      const s = put(img.data), o = e.p_malloc(28);
+     *  `across0`: the lines run across the picture (else up and down it), and `slant`: the lines' angle from the nearer
+     *  axis in degrees, −45 … 45 (positive: falling to the right). */
+    textTurns(img: Img): { turns: number; along: number; across: number; up: number; down: number; letters: number; across0: boolean; slant: number } {
+      const s = put(img.data), o = e.p_malloc(32);
       try {
-        const t = e.p_text_turns(s, img.width, img.height, o), v = new Int32Array(mem(), o, 7);
-        return { turns: t, along: v[1], across: v[2], up: v[3], down: v[4], letters: v[5], across0: v[6] === 1 };
+        const t = e.p_text_turns(s, img.width, img.height, o), v = new Int32Array(mem(), o, 8);
+        return { turns: t, along: v[1], across: v[2], up: v[3], down: v[4], letters: v[5], across0: v[6] === 1, slant: v[7] / 100 };
       } finally { e.p_free(s); e.p_free(o); }
     },
     /** Perspective-correct the quad (TL,TR,BR,BL in source px) into a w×h image. */

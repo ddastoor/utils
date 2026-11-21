@@ -1001,11 +1001,13 @@ API int p_ink_regions(const uint8_t *px, int w, int h, int thr, const float *ski
  * together than the lines are); (4) the direction along that axis — in Latin script more letters rise above the
  * x-height (b d f h k l t, capitals, digits, the dots of i and j) than drop below the baseline (g j p q y): in every
  * run of letters the side more of them stick out of is the top.
- * out[7]: the quarter turns to the right that make the text upright (0–3; as EXIF orientations 1, 6, 3, 8), the
+ * out[8]: the quarter turns to the right that make the text upright (0–3; as EXIF orientations 1, 6, 3, 8), the
  * neighbour votes along and across the lines, the letters sticking out on the low side (top or left) and on the high
- * side, the letters used, 1 when the lines run across the picture (0: up and down it). Returns the turns; -1 when the
- * picture holds too little text to say, -2 when the lines' axis is clear but not which end is up (the caller may
- * compare readings). */
+ * side, the letters used, 1 when the lines run across the picture (0: up and down it), and the lines' slant in
+ * hundredths of a degree, −45° … 45° from the nearer axis (owner, 21 Nov 2026: a photo taken "at different angles" —
+ * the direction of most letters' nearest neighbour; positive: the lines fall to the right). Returns the turns; -1 when
+ * the picture holds too little text to say, -2 when the lines' axis is clear but not which end is up (the caller may
+ * compare readings). A slanted picture is levelled by the caller first (p_rotate), then asked again. */
 typedef struct { int x0, y0, x1, y1, n; } tt_box;
 static int tt_cmp(const void *a, const void *b) { int x = *(const int *)a, y = *(const int *)b; return (x > y) - (x < y); }
 /* the exact median (the mean of the middle two for an even count): the same band whichever way round the page lies */
@@ -1013,7 +1015,7 @@ static float tt_median(int *v, int n) { qsort(v, n, sizeof(int), tt_cmp); return
 static int tt_find(int *p, int i) { while (p[i] != i) { p[i] = p[p[i]]; i = p[i]; } return i; }
 
 API int p_text_turns(const uint8_t *px, int w, int h, int32_t *out) {
-    for (int k = 0; k < 7; k++) out[k] = 0;
+    for (int k = 0; k < 8; k++) out[k] = 0;
     int n = w * h;
     if (w < 32 || h < 32) return -1;
     uint8_t *g = malloc(n), *ink = calloc(n, 1);
@@ -1074,6 +1076,35 @@ API int p_text_turns(const uint8_t *px, int w, int h, int32_t *out) {
     for (int c = 0; c < gw * gh; c++) head[c] = -1;
     for (int k = 0; k < nl; k++) { int cx = (bx[k].x0 + bx[k].x1) / 2 / cs, cy = (bx[k].y0 + bx[k].y1) / 2 / cs; next[k] = head[cy * gw + cx]; head[cy * gw + cx] = k; }
     int along_h = 0, along_v = 0;
+    /* the slant: a histogram of the nearest neighbour's direction folded to −45° … 45° (half-degree bins) */
+    float sh[180]; for (int b = 0; b < 180; b++) sh[b] = 0;
+    float *ang = malloc(sizeof(float) * nl); int na = 0;
+    for (int k = 0; k < nl; k++) {
+        float cx = (bx[k].x0 + bx[k].x1) * 0.5f, cy = (bx[k].y0 + bx[k].y1) * 0.5f, best = 1e30f, sdx = 0, sdy = 0;
+        int gx = (int)cx / cs, gy = (int)cy / cs;
+        for (int yy = gy - 1; yy <= gy + 1; yy++) for (int xx = gx - 1; xx <= gx + 1; xx++) {
+            if (xx < 0 || yy < 0 || xx >= gw || yy >= gh) continue;
+            for (int j = head[yy * gw + xx]; j >= 0; j = next[j]) {
+                if (j == k) continue;
+                float dx = (bx[j].x0 + bx[j].x1) * 0.5f - cx, dy = (bx[j].y0 + bx[j].y1) * 0.5f - cy, d = dx * dx + dy * dy;
+                if (d < best) { best = d; sdx = dx; sdy = dy; }
+            }
+        }
+        if (best > 6.25f * sz * sz || best < 0.04f * sz * sz) continue;
+        float a = atan2f(sdy, sdx) * 57.29578f;          /* −180 … 180 */
+        while (a > 45.0f) a -= 90.0f; while (a <= -45.0f) a += 90.0f;
+        int b = (int)((a + 45.0f) * 2.0f); if (b < 0) b = 0; if (b > 179) b = 179;
+        sh[b] += 1.0f; ang[na++] = a;
+    }
+    if (na >= 20) {
+        int pk = 0; float pv = -1;
+        for (int b = 0; b < 180; b++) { float v = 0; for (int q = -3; q <= 3; q++) v += sh[(b + q + 180) % 180]; if (v > pv) { pv = v; pk = b; } }
+        float c = pk / 2.0f - 45.0f + 0.25f, sum = 0; int cnt = 0;
+        for (int q = 0; q < na; q++) { float d = ang[q] - c; if (d > 45) d -= 90; if (d <= -45) d += 90; if (fabsf(d) <= 2.0f) { sum += d; cnt++; } }
+        float sk = cnt ? c + sum / cnt : c; if (sk > 45) sk -= 90; if (sk <= -45) sk += 90;
+        out[7] = (int32_t)lroundf(sk * 100.0f);
+    }
+    free(ang);
     for (int k = 0; k < nl; k++) {
         float cx = (bx[k].x0 + bx[k].x1) * 0.5f, cy = (bx[k].y0 + bx[k].y1) * 0.5f, best = 1e30f, bdx = 0, bdy = 0;
         int gx = (int)cx / cs, gy = (int)cy / cs;
