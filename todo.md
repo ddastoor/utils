@@ -62,6 +62,18 @@ The owner adds items here in chat ("add … to to do"). Newest instructions win.
     order. Owner, the same day: "I don't mean zoom in as in zoom into a picture. What I mean is quickly locate the word
     which is in my mind because it is sorted in alphabetical order." — no picture zoom: the list is only put in order.
 
+13. **Every PC app on both Windows and Linux: a quick check across all the apps** (owner, 21 Nov 2026: "Just do a quick
+    test across all the apps and make sure that all the apps that work on PC work on both Windows and Linux.") Every tab
+    that runs on a PC (the PC-only ones and the PC + mobile ones) is opened and used for its main job on Windows and on
+    Linux (Chrome; on Linux X11 and Wayland), and what differs between the two is looked at on purpose: file and folder
+    pickers and drag-and-drop, file names and paths (backslashes, drive letters, case), line endings (CR LF / LF) in the
+    files a tab opens and saves, text encodings (Windows-1252 / UTF-16 from Windows programs), keyboard shortcuts
+    (Ctrl / Super / AltGr), fonts the page falls back on, the clipboard, screen capture (Screencast, Screenshot — the
+    portal on Wayland), camera and microphone, downloads, the offline speech scripts (.cmd on Windows, .sh on Linux) and
+    yt-dlp's file per system. What fails is fixed and pinned by a check in the tab's suite. How: this sandbox is Linux;
+    Windows by its behaviour where it can be stood in for (Windows-made files, Windows user-agent and client hints,
+    CR LF), and the rest on a Windows PC — the owner's, through the Claude app, or a Windows runner of GitHub Actions.
+
 ## Done
 - **11. Photo Dictionary and OCR: a photo taken with the phone held sideways** (owner, 21 Nov 2026: "a new requirement in
     todo.md for the photo dictionary on the mobile phone. Basically, the problem is when I take my phone and turn it 90
