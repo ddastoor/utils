@@ -21,6 +21,14 @@ this file = the owner's latest wishes, how the tests are written, and the traps 
   or time" banner means this session's machine/time is used up (the fix is a new session — work is safe in Git); the
   previous session started this one with `create_session` and stopped itself so two sessions never edit the branch.
 
+- **21 Nov 2026 — how the potentials go from here (agreed):** "after all the to-dos, we'll start going through
+  potentials.md. So you show me potentials.md apps. Then I will select either one app or a bunch of apps, and you build
+  them out and then remove them from potential.md, and then we repeat this process." Before that: the offline voices in
+  progress, to-do #5 (SuperUtils), the Regex Tester's flavours, the Photo Dictionary plan. Each pick gets the size check
+  first (CLAUDE.md top).
+- **21 Nov 2026 — "is this stuck?"** The owner ran an offline speech script; after "== Parler-TTS: 1 voice" nothing showed
+  for minutes (uv was installing PyTorch with `--quiet`). Fixed: uv's progress shows, each engine says what its first run
+  downloads, driver.py says when it starts and what model it downloads.
 - **21 Nov 2026 — the JS/TS → WebAssembly sweep moved to the potentials:** "for now move 'JS/TS → WebAssembly sweep' from
   to-do to potentials.md" → `docs/potentials.md` #74 (todo.md item 1 points there). Not to be started until the owner picks it.
 - **21 Nov 2026 — rename:** "Also make a note to change this app's name from SuperTools to 'SuperUtils'" → `todo.md` #5

@@ -58,6 +58,18 @@ export default async (t, { load }) => {
   // every PowerShell single-quoted string is closed on its line
   t.ok(cmd.split('\r\n').filter((l) => !/^\s*#/.test(l) && !/^@|^setlocal|^set |^powershell|^echo|^pause|^exit|^<#/.test(l)).every((l) => (l.replace(/''/g, '').match(/'/g) || []).length % 2 === 0), 'Windows: quotes balanced on every PowerShell line');
 
+  // uv shows its downloads, and each engine's first run says what it downloads (owner, 21 Nov 2026: a first run sat
+  // silent after "== Parler-TTS: 1 voice" while uv fetched PyTorch with --quiet — "is this stuck?")
+  t.ok(!sh.includes('--quiet') && !cmd.includes('--quiet'), 'uv is not quiet: its download progress shows (Linux and Windows)');
+  const big = [{ ...runs[0], engine: 'parler', name: 'Parler-TTS', first: { programs: 800, cuda: 3100, models: 3766.6 } }, { ...runs[0], first: { programs: 170, cuda: 170, models: 63.2 } }];
+  const note1 = '  First run: about 800 MB of programs (3.1 GB with an NVIDIA graphics card) and 3.8 GB of model files to download; uv and Hugging Face show the progress. Later runs reuse them.';
+  const note2 = '  First run: about 170 MB of programs and 63 MB of model files to download; uv and Hugging Face show the progress. Later runs reuse them.';
+  t.eq([S.firstRunNote(big[0]), S.firstRunNote(big[1]), S.firstRunNote(runs[0])], [note1, note2, ''], 'the first-run line: programs (with the NVIDIA size where PyTorch comes with it) and model files');
+  const shBig = S.linuxScript({ ...input, runs: big }), cmdBig = S.windowsScript({ ...input, runs: big });
+  t.ok(shBig.includes(`say 'Parler-TTS: 1 voice'\necho '${note1}'\n`) && shBig.includes(`echo '${note2}'`), 'Linux: the line under each engine’s heading');
+  const winLines = cmdBig.split('\r\n').map((l) => l.trim()), at = winLines.indexOf("Say 'Parler-TTS: 1 voice'");
+  t.ok(at > 0 && winLines[at + 1] === `Write-Host '${note1}'` && winLines.includes(`Write-Host '${note2}'`) && /^[\x00-\x7f]*$/.test(cmdBig), 'Windows: the same line under each heading, and the file stays ASCII');
+
   // package pins are checked before they reach a command line
   t.throws(() => S.linuxScript({ ...input, runs: [{ ...runs[0], packages: ['x; rm -rf ~'] }] }), 'a package pin with shell characters is refused (Linux)');
   t.throws(() => S.windowsScript({ ...input, runs: [{ ...runs[0], packages: ['x`; calc'] }] }), 'a package pin with shell characters is refused (Windows)');
@@ -77,6 +89,9 @@ export default async (t, { load }) => {
   const good = join(fake, 'good.sh'); writeFileSync(good, S.linuxScript({ ...input, runs: [three[0], three[2]] }));
   const g = spawnSync('bash', [good], { encoding: 'utf8', env: { ...process.env, SUPERTOOLS_TTS_DIR: fake, PATH: '/usr/bin:/bin' } });
   t.ok(g.status === 0 && /== Done\. The speech is in /.test(g.stdout), 'Linux: all engines well — "Done", exit 0');
+  const noted = join(fake, 'noted.sh'); writeFileSync(noted, S.linuxScript({ ...input, runs: [{ ...three[0], first: { programs: 170, cuda: 170, models: 63.2 } }] }));
+  const n = spawnSync('bash', [noted], { encoding: 'utf8', env: { ...process.env, SUPERTOOLS_TTS_DIR: fake, PATH: '/usr/bin:/bin' } });
+  t.ok(n.status === 0 && n.stdout.includes('== Piper: 1 voice\n' + note2 + '\n'), `Linux: the first-run line is printed under the heading, before uv starts (${n.stdout.slice(0, 200)})`);
   const win = S.windowsScript({ ...input, runs: three });
   t.ok(/\$failed = @\(\)/.test(win) && (win.match(/if \(\$LASTEXITCODE -ne 0\) \{ \$failed \+= '/g) || []).length === 3 && /if \(\$failed\.Count\) \{ throw/.test(win), 'Windows: each failure noted, the others run, the end says which');
 

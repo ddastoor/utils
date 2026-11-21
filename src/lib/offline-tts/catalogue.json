@@ -161,10 +161,10 @@
    ],
    "mb": 350,
    "torch": true,
-   "speedControl": true,
+   "speedControl": false,
    "licence": "Apache-2.0",
    "slow": true,
-   "about": "Alibaba's speech language models: nine named speakers, and a model that speaks in a voice described in words (sex, age, manner — an accent asked for does not come through in English). About four times slower than real time on a processor (0.6B; 1.7B about five); a graphics card is many times faster."
+   "about": "Alibaba's speech language models: nine named speakers, and a model that speaks in a voice described in words (sex, age, manner — an accent asked for does not come through in English). Its pace cannot be set (an instruction moved it by 5 % in our test). About four times slower than real time on a processor (0.6B), the 1.7B models about five; a graphics card is many times faster."
   },
   "omnivoice": {
    "name": "OmniVoice",
@@ -361,8 +361,7 @@
    "licence": "Apache-2.0",
    "personal": false,
    "name": "Qwen3-TTS 1.7B CustomVoice",
-   "page": "https://huggingface.co/Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice",
-   "untried": "Not run here: 4.5 GB (the same program as Qwen3-TTS 0.6B, which was run)."
+   "page": "https://huggingface.co/Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice"
   },
   "qwen-0.6b": {
    "engine": "qwen",
@@ -372,8 +371,7 @@
    "licence": "Apache-2.0",
    "personal": false,
    "name": "Qwen3-TTS 0.6B CustomVoice",
-   "page": "https://huggingface.co/Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice",
-   "noSpeed": true
+   "page": "https://huggingface.co/Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice"
   },
   "veena": {
    "engine": "veena",

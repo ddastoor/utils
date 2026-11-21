@@ -123,8 +123,12 @@ def fetch(repo, revision, files=None):
     of files, many pages) to find two files made Hugging Face answer "429 Too Many Requests"."""
     from huggingface_hub import hf_hub_download, snapshot_download
     local = os.path.join(MODELS, repo.replace('/', '--'))
+    named = bool(files) and not any(c in f for f in files for c in '*?[')
+    missing = [f for f in files if not os.path.exists(os.path.join(local, f))] if named else ([] if os.path.isdir(local) else ['*'])
+    if missing:  # said before a download of gigabytes starts (Hugging Face's progress bars follow)
+        log(f'  Downloading {repo}' + (f': {", ".join(os.path.basename(f) for f in missing)}' if named else '') + ' (once: it is kept in the models folder)')
     try:
-        if files and not any(c in f for f in files for c in '*?['):
+        if named:
             for f in files:
                 hf_hub_download(repo, f, revision=revision, local_dir=local)
             return local
@@ -731,17 +735,12 @@ def mms(job, voices):
         log(f'  {v["label"]}: {secs:.1f} s of speech in {time.time() - t0:.1f} s')
 
 
-def pace_words(speed):
-    """The pace as an instruction, for models that take one (Qwen3-TTS 1.7B)."""
-    s = float(speed)
-    return '' if 0.9 <= s <= 1.1 else 'Speak very slowly.' if s < 0.7 else 'Speak slowly.' if s < 0.9 else 'Speak a little faster than usual.' if s <= 1.4 else 'Speak fast.'
-
-
 @engine('qwen')
 def qwen(job, voices):
     """Alibaba's Qwen3-TTS (Apache-2.0) through its qwen-tts package: the nine speakers of the CustomVoice models, and
-    the VoiceDesign model, which speaks in a voice described in words. The 1.7B models take the pace as an instruction;
-    the 0.6B model has no instructions (no speed). A text is spoken in parts of up to about 40 seconds."""
+    the VoiceDesign model, which speaks in a voice described in words. No speed: an instruction to speak slowly or
+    faster moved the 1.7B model's pace by only about 5 % (tested), and the 0.6B model takes none. A text is spoken in
+    parts of up to about 40 seconds."""
     import numpy as np
     import torch
     from qwen_tts import Qwen3TTSModel
@@ -761,11 +760,9 @@ def qwen(job, voices):
                 torch.manual_seed(v.get('seed', 0))
                 with torch.inference_mode():
                     if v.get('describe'):
-                        how = (v['describe'] + ' ' + pace_words(job['speed'])).strip()
-                        wavs, sr = model.generate_voice_design(text=c, language='English', instruct=how)
+                        wavs, sr = model.generate_voice_design(text=c, language='English', instruct=v['describe'])
                     else:
-                        wavs, sr = model.generate_custom_voice(text=c, language='English', speaker=v['speaker'],
-                                                               instruct=pace_words(job['speed']) or None)
+                        wavs, sr = model.generate_custom_voice(text=c, language='English', speaker=v['speaker'])
                 parts.append(np.asarray(wavs[0], dtype=np.float32).reshape(-1))
                 parts.append(silence(sr, 0.25))
             secs = write_audio(os.path.join(job['out'], v['id']), np.concatenate(parts) if parts else silence(sr, 0.1), sr, job.get('mp3', True))
@@ -784,7 +781,7 @@ def main():
     if not voices:
         return
     os.makedirs(job['out'], exist_ok=True)
-    log(f'{name}: {len(voices)} voice{"s" if len(voices) > 1 else ""}')
+    log('  The programs are ready; starting.')  # what came before (uv's downloads) may have taken minutes
     ENGINES[name](job, voices)
 
 

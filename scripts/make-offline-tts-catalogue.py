@@ -188,10 +188,11 @@ ENGINES = {
         'name': 'Qwen3-TTS', 'url': 'https://github.com/QwenLM/Qwen3-TTS',
         'packages': ['qwen-tts==0.1.1', 'transformers==4.57.3', 'accelerate==1.12.0', 'huggingface-hub==0.36.2', 'lameenc==1.9.0',
                      'torch', 'torchaudio'],
-        'mb': 350, 'torch': True, 'speedControl': True, 'licence': 'Apache-2.0', 'slow': True,
+        'mb': 350, 'torch': True, 'speedControl': False, 'licence': 'Apache-2.0', 'slow': True,
         'about': "Alibaba's speech language models: nine named speakers, and a model that speaks in a voice described in "
-                 'words (sex, age, manner — an accent asked for does not come through in English). About four times slower '
-                 'than real time on a processor (0.6B; 1.7B about five); a graphics card is many times faster.',
+                 'words (sex, age, manner — an accent asked for does not come through in English). Its pace cannot be '
+                 'set (an instruction moved it by 5 % in our test). About four times slower than real time on a processor '
+                 '(0.6B), the 1.7B models about five; a graphics card is many times faster.',
     },
     'omnivoice': {
         'name': 'OmniVoice', 'url': 'https://github.com/k2-fsa/OmniVoice',
@@ -632,8 +633,6 @@ def qwen():
     for mid, repo, rev, name in QWEN:
         models[mid] = {'engine': 'qwen', 'repo': repo, 'rev': rev, 'mb': mb(size_of(repo, rev, pat)), 'licence': 'Apache-2.0', 'personal': False,
                        'name': name, 'page': f'https://huggingface.co/{repo}'}
-        if mid == 'qwen-0.6b':
-            models[mid]['noSpeed'] = True  # the 0.6B model takes no instructions, so no pace
         for sp, sex, g, words in QWEN_SPEAKERS:
             voices.append({'id': f'{mid.replace(".", "")}-{sp.lower().replace("_", "-")}', 'label': f'{sp.replace("_", " ")} — {words}',
                            'group': g, 'sex': sex, 'model': mid, 'speaker': sp})
@@ -790,7 +789,6 @@ def pocket_clone():
 UNTRIED = {
     'indic-parler': 'Not run here: Hugging Face gives it only to an account that has accepted its conditions.',
     'parler-large': 'Not run here: 9.3 GB, more than the test machine had room for (the same program as Parler Mini, which was run).',
-    'qwen-1.7b': 'Not run here: 4.5 GB (the same program as Qwen3-TTS 0.6B, which was run).',
     'bark': 'Not run here: 4.5 GB (the same program as Bark small).',
     'chatterbox': 'Not run yet: it needs a second PyTorch (2.6) beside the model, more than the test machine had room for.',
     'chatterbox-turbo': 'Not run yet: it needs a second PyTorch (2.6) beside the model, more than the test machine had room for.',

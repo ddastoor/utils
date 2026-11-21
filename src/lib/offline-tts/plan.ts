@@ -1,11 +1,13 @@
 // The offline mode's choices → what the script does (no DOM: the unit suite runs it). The catalogue
 // (catalogue.json, made by scripts/make-offline-tts-catalogue.py) lists the voices; this file turns the chosen ones into
 // the job (driver.py's input), the engine runs (pinned packages) and what the person is told (sizes, licences).
-import { linuxScript, windowsScript, type EngineRun } from './scripts';
+import { linuxScript, windowsScript, fmtMB, type EngineRun } from './scripts';
+
+export { fmtMB };
 
 export type OS = 'windows' | 'linux';
 export interface Engine { name: string; url: string; packages: string[]; mb: number; torch: boolean; speedControl: boolean; licence: string; about: string; accept?: string; slow?: boolean; ownTorch?: boolean }
-export interface Model { engine: string; repo: string; rev: string; mb: number; licence: string; personal: boolean; name: string; gated?: boolean; accept?: string; file?: string; descTokenizer?: [string, string]; page?: string; noSpeed?: boolean; untried?: string }
+export interface Model { engine: string; repo: string; rev: string; mb: number; licence: string; personal: boolean; name: string; gated?: boolean; accept?: string; file?: string; descTokenizer?: [string, string]; page?: string; untried?: string }
 export interface Clip { repo: string; rev: string; file: string }
 export interface CVoice { id: string; label: string; group: string; sex: string; model: string; speaker?: number | string; voice?: string; lang?: string; describe?: string; clip?: Clip }
 export interface Catalogue { made: string; groups: Array<[string, string]>; engines: Record<string, Engine>; models: Record<string, Model>; voices: CVoice[] }
@@ -53,9 +55,7 @@ export function planOf(cat: Catalogue, ids: Iterable<string>): Plan {
     gated: [...new Set(models.filter((m) => m.gated).map((m) => m.repo))],
     accept: [...new Set(models.map((m) => m.accept || cat.engines[m.engine].accept).filter(Boolean) as string[])],
     personal: models.some((m) => m.personal),
-    // an engine without speed, or a model of an engine that has it but not this model (Qwen3-TTS 0.6B)
-    noSpeed: [...engines.filter((e) => !cat.engines[e].speedControl).map((e) => cat.engines[e].name),
-      ...models.filter((m) => m.noSpeed && cat.engines[m.engine].speedControl).map((m) => m.name)],
+    noSpeed: engines.filter((e) => !cat.engines[e].speedControl).map((e) => cat.engines[e].name),
     slow: engines.filter((e) => cat.engines[e].slow).map((e) => cat.engines[e].name),
   };
 }
@@ -75,13 +75,28 @@ export function buildJob(cat: Catalogue, p: Plan, text: string, speed: number, m
   };
 }
 
-/** The engine runs of a plan (pinned packages; XTTS-v2 with its licence accepted). */
+/** The engine runs of a plan (pinned packages; XTTS-v2 with its licence accepted), each with what its first run
+ *  downloads: Python and uv with the first engine, PyTorch with the first engine that needs the shared one and with
+ *  every engine that pins its own — the same sums as planOf. */
 export function runsOf(cat: Catalogue, p: Plan): EngineRun[] {
-  return p.engines.map((e) => ({
-    engine: e, name: cat.engines[e].name, packages: cat.engines[e].packages,
-    voices: p.voices.filter((v) => cat.models[v.model].engine === e).length,
-    ...(cat.engines[e].accept === 'cpml' ? { env: { COQUI_TOS_AGREED: '1' } } : {}),
-  }));
+  let sharedTorch = false;
+  return p.engines.map((e, i) => {
+    const E = cat.engines[e];
+    const voices = p.voices.filter((v) => cat.models[v.model].engine === e);
+    const models = [...new Set(voices.map((v) => v.model))].map((m) => cat.models[m]);
+    const clips = new Set(voices.filter((v) => v.clip).map((v) => v.clip!.file)).size;
+    const torch = E.torch && (E.ownTorch || !sharedTorch);
+    if (E.torch && !E.ownTorch) sharedTorch = true;
+    const programs = E.mb + (i === 0 ? BASE_MB : 0);
+    return {
+      engine: e, name: E.name, packages: E.packages, voices: voices.length,
+      first: {
+        programs: programs + (torch ? TORCH_MB.cpu : 0), cuda: programs + (torch ? TORCH_MB.cuda : 0),
+        models: models.reduce((a, m) => a + m.mb, 0) + clips * 0.7,
+      },
+      ...(E.accept === 'cpml' ? { env: { COQUI_TOS_AGREED: '1' } } : {}),
+    };
+  });
 }
 
 export const SCRIPT_NAME: Record<OS, string> = { windows: 'supertools-speech.cmd', linux: 'supertools-speech.sh' };
@@ -90,11 +105,6 @@ export const SCRIPT_NAME: Record<OS, string> = { windows: 'supertools-speech.cmd
 export function scriptFor(os: OS, cat: Catalogue, p: Plan, o: { text: string; speed: number; mp3: boolean; driver: string; made: string; site: string }): string {
   const input = { job: buildJob(cat, p, o.text, o.speed, o.mp3), driver: o.driver, runs: runsOf(cat, p), made: o.made, site: o.site, gated: p.gated };
   return os === 'windows' ? windowsScript(input) : linuxScript(input);
-}
-
-/** "1.2 GB" / "350 MB" (MB = 10⁶ bytes, as the catalogue counts). */
-export function fmtMB(mb: number): string {
-  return mb >= 1000 ? `${(mb / 1000).toFixed(mb >= 10000 ? 0 : 1)} GB` : `${Math.max(1, Math.round(mb))} MB`;
 }
 
 /** Search: every word of the query in the voice's label, its model's name, its engine's name or its group's name. */

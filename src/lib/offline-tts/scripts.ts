@@ -24,7 +24,26 @@ export const PYTHON = '3.12';
 
 /** One engine's run: its packages (pinned), settings it needs (COQUI_TOS_AGREED for XTTS-v2, once the person accepted
  *  its licence in the tab) and a line for the person. */
-export interface EngineRun { engine: string; name: string; packages: string[]; voices: number; env?: Record<string, string> }
+/** `first`: what the engine's first run downloads, in MB (its programs — with PyTorch where this run is the first to
+ *  need it —, the same with PyTorch's NVIDIA build, its models): said before it starts, so a first run that spends
+ *  minutes on PyTorch does not look stuck (owner, 21 Nov 2026). */
+export interface EngineRun {
+  engine: string; name: string; packages: string[]; voices: number; env?: Record<string, string>;
+  first?: { programs: number; cuda: number; models: number };
+}
+
+/** "1.2 GB" / "350 MB" (MB = 10⁶ bytes, as the catalogue counts). */
+export function fmtMB(mb: number): string {
+  return mb >= 1000 ? `${(mb / 1000).toFixed(mb >= 10000 ? 0 : 1)} GB` : `${Math.max(1, Math.round(mb))} MB`;
+}
+
+/** The line under an engine's heading: what its first run downloads (ASCII: the Windows script is ASCII). */
+export function firstRunNote(r: EngineRun): string {
+  if (!r.first) return '';
+  const f = r.first;
+  const programs = `about ${fmtMB(f.programs)} of programs${f.cuda !== f.programs ? ` (${fmtMB(f.cuda)} with an NVIDIA graphics card)` : ''}`;
+  return `  First run: ${programs} and ${fmtMB(f.models)} of model files to download; uv and Hugging Face show the progress. Later runs reuse them.`;
+}
 
 /** UTF-8 → Base64 (the browser's btoa takes Latin-1 only). */
 export function b64(s: string): string {
@@ -67,8 +86,10 @@ const tokenSteps = (repos: string[]) => [
 export function linuxScript(o: ScriptInput): string {
   const runs = o.runs.map((r) => [
     `say ${shq(`${r.name}: ${r.voices} voice${r.voices > 1 ? 's' : ''}`)}`,
-    // an engine that fails does not stop the others (the voices made so far stay; the end says which failed)
-    `if ! ${envOf(r).map(([k, v]) => `${k}=${v} `).join('')}"$DIR/bin/uv" run --quiet --python ${PYTHON} --no-project ${withArgs(r.packages).join(' ')} python "$DIR/driver.py" "$RUN/job.json" ${r.engine} "$RUN"; then FAILED="$FAILED, "${shq(r.name)}; fi`,
+    ...(r.first ? [`echo ${shq(firstRunNote(r))}`] : []),
+    // an engine that fails does not stop the others (the voices made so far stay; the end says which failed); uv is
+    // not quiet: its downloads show (PyTorch is hundreds of MB, GB with CUDA — silent, a first run looked stuck)
+    `if ! ${envOf(r).map(([k, v]) => `${k}=${v} `).join('')}"$DIR/bin/uv" run --python ${PYTHON} --no-project ${withArgs(r.packages).join(' ')} python "$DIR/driver.py" "$RUN/job.json" ${r.engine} "$RUN"; then FAILED="$FAILED, "${shq(r.name)}; fi`,
   ].join('\n')).join('\n');
   const gated = o.gated || [];
   for (const r of gated) if (!REPO.test(r)) throw new Error(`Not a repository: ${r}`);
@@ -138,8 +159,9 @@ export function windowsScript(o: ScriptInput): string {
   const ps = (s: string) => `'${s.replace(/'/g, "''")}'`;
   const runs = o.runs.map((r) => [
     `Say ${ps(ascii(`${r.name}: ${r.voices} voice${r.voices > 1 ? 's' : ''}`))}`,
+    ...(r.first ? [`Write-Host ${ps(ascii(firstRunNote(r)))}`] : []),
     ...envOf(r).map(([k, v]) => `$env:${k} = ${ps(v)}`),
-    `& $uv run --quiet --python ${PYTHON} --no-project ${withArgs(r.packages).join(' ')} python "$Dir\\driver.py" "$Run\\job.json" ${r.engine} "$Run"`,
+    `& $uv run --python ${PYTHON} --no-project ${withArgs(r.packages).join(' ')} python "$Dir\\driver.py" "$Run\\job.json" ${r.engine} "$Run"`,
     `if ($LASTEXITCODE -ne 0) { $failed += ${ps(ascii(r.name))} }`,
   ].join('\r\n')).join('\r\n');
   const gated = o.gated || [];

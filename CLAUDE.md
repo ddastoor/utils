@@ -18,6 +18,12 @@ that affects it.
 > The owner asked (Nov 16 2026) to be **reminded** about the new-tab ideas in `docs/potentials.md` (and the older
 > `docs/IDEAS.md`). **Owner, 16 Nov 2026: finish ALL the original apps (every stub tab) before asking** — then ask
 > which to build. Build none of them until the owner picks.
+> **The process (owner, 21 Nov 2026; agreed):** "after all the to-dos, we'll start going through potentials.md. So you
+> show me potentials.md apps. Then I will select either one app or a bunch of apps, and you build them out and then
+> remove them from potential.md, and then we repeat this process." So, once the work in hand is finished (the offline
+> voices, to-do #5 SuperUtils, the Regex Tester's flavours, the Photo Dictionary plan — `docs/RESUME.md`): show the
+> apps of `docs/potentials.md` → the owner picks one or several → **the size check below for each** (wait for the
+> decision) → build and test them → remove them from `docs/potentials.md` → show the list again.
 
 > ## 📏 Size check before every new app (owner, 20 Nov 2026; standing)
 > **Owner:** "Whenever next new app I suggest from potentials.md, you do a rough calculation, tell me how much more
@@ -457,6 +463,12 @@ on this PC**; phones never see the switch.
   in its own environment with **pinned packages** (`engines` in the catalogue) → the models from **Hugging Face at
   pinned commits** (`fetch()` in driver.py; plain HTTPS, `HF_HUB_DISABLE_XET=1`) → `output/<date_time>/<voice>.wav` and
   `.mp3` (lameenc, 128 kbps). PyTorch: `UV_TORCH_BACKEND=auto` (CUDA build with an NVIDIA card, else the processor's).
+  **What it shows while it works** (owner, 21 Nov 2026 — a first run sat silent after "== Parler-TTS: 1 voice" for
+  minutes, "is this stuck?"): uv is not quiet (its download bars and "Installed n packages"); under each engine's heading a
+  line says what its first run downloads — its programs (PyTorch with the first engine that needs it, again with an
+  engine that pins its own), the size with PyTorch's NVIDIA build, its model files (`firstRunNote`, sizes from
+  `runsOf`); driver.py says "The programs are ready; starting." and "Downloading <repo>: <files> …" before a model, with
+  Hugging Face's progress bars.
   Windows: a `.cmd` that runs the PowerShell under it (ASCII, CRLF; Windows PowerShell 5.1 is part of Windows 10 / 11).
   Linux: bash with curl or wget. A gated model (Indic Parler-TTS) makes the script ask once for a Hugging Face token
   (hidden input), kept in the folder's `cache/huggingface/token`; a refused download is explained by driver.py.
@@ -498,8 +510,9 @@ on this PC**; phones never see the switch.
     versions 1, 2 and 3, ten voices each (F1 – F5 women, M1 – M5 men — pitch agrees), 16 steps.
   - **Indic Tiny TTS** (sulabhkatiyar/indic-tiny-tts-english; weights CC BY 4.0, code MIT): IISc SYSPIN's two Indian
     English speakers, its own small package from the repository, run on ONNX Runtime (no PyTorch); reads ₹, lakh, crore.
-  - **Qwen3-TTS** (Alibaba, Apache-2.0; qwen-tts 0.1.1): the nine speakers of the 0.6B (no instructions, so no speed) and
-    1.7B CustomVoice models, and 12 VoiceDesign voices described by sex, age and manner. **VoiceDesign gives no accent in
+  - **Qwen3-TTS** (Alibaba, Apache-2.0; qwen-tts 0.1.1): the nine speakers of the 0.6B and 1.7B CustomVoice models, and
+    12 VoiceDesign voices described by sex, age and manner. **No speed control:** an instruction to speak slowly or
+    faster moved the 1.7B model's pace by about 5 % (tested), and the 0.6B takes none. **VoiceDesign gives no accent in
     English**: light, mild and strong Indian accents, a South Indian one and RP all came out North American (tested).
   - **OmniVoice** (k2-fsa / Xiaomi; code Apache-2.0, model CC BY-NC): 40 voices made of its own words — sex, age and an
     accent (Indian, American, British, Australian, Canadian × young / middle-aged / older; Chinese, Japanese, Korean,
@@ -517,10 +530,10 @@ on this PC**; phones never see the switch.
 - **Measured here (Linux, 4-core processor, no graphics card; every voice run was read back by Whisper small.en, its
   pitch measured with pYIN and its accent heard by SpeechBrain's CommonAccent model):** Supertonic 1 / 2 ≈ 8× faster than
   real time, 3 ≈ 2.6×; Indic Tiny ≈ 7×; MeloTTS ≈ 3.5×; MMS ≈ 2.7×; Kokoro ≈ 4×; Pocket ≈ 2×; XTTS-v2 ≈ 1.7× slower (studio
-  voice), 2.6× with a clip; Qwen3-TTS 0.6B ≈ 3.5× slower, VoiceDesign 1.7B ≈ 4.5×; OmniVoice ≈ 6×; Parler Mini ≈ 5.5×; Bark
+  voice), 2.6× with a clip; Qwen3-TTS 0.6B ≈ 3.5× slower, 1.7B CustomVoice and VoiceDesign ≈ 4.5×; OmniVoice ≈ 6×; Parler Mini ≈ 5.5×; Bark
   small did not finish a preset in 8 minutes beside another run. Accents heard: Indic Tiny Indian (first), MeloTTS's
   Indian voice mildly Indian (third), OmniVoice's Indian voices Indian; Qwen's voices North American. Not run here
-  (tagged in the tab): Indic Parler and Pocket cloning (gated), Parler Large, Qwen 1.7B CustomVoice, Bark (full), Veena,
+  (tagged in the tab): Indic Parler and Pocket cloning (gated), Parler Large, Bark (full), Veena,
   VoxCPM2 (size), Chatterbox / Turbo (a second PyTorch), SYSPIN (pending). The Windows script was read by its text only
   (PowerShell could not be installed in the sandbox). Left out (docs/BUGHUNT.md, "TTS offline"): Indic-Speak (gated; its
   inference code cannot be read without access), Maya 2 (no pinnable release; Linux and NVIDIA only), ZONOS3-Mini (an

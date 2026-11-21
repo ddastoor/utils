@@ -57,7 +57,7 @@ export default async (t, { load }) => {
   const design = per('qwen').filter((v) => v.model === 'qwen-design');
   t.ok(design.length >= 12 && design.every((v) => v.describe && !v.speaker && v.describe.length < 300), `Qwen3-TTS VoiceDesign: ${design.length} voices, each a description`);
   t.ok(design.every((v) => v.group === 'any' && !/accent/i.test(v.describe) && /North American/.test(v.label)), 'VoiceDesign promises no accent (tested: Indian and British descriptions came out North American)');
-  t.ok(cat.models['qwen-0.6b'].noSpeed && !cat.models['qwen-1.7b'].noSpeed && !cat.models['qwen-design'].noSpeed, 'Qwen3-TTS: only the 0.6B model has no speed (it takes no instructions)');
+  t.ok(!cat.engines.qwen.speedControl, 'Qwen3-TTS has no speed control (an instruction moved the 1.7B model’s pace by 5 % in the test)');
   // OmniVoice: every description made of omnivoice 0.2.1's own words (omnivoice/utils/voice_design.py)
   const OMNI_WORDS = new Set(['male', 'female', 'child', 'teenager', 'young adult', 'middle-aged', 'elderly', 'very low pitch', 'low pitch', 'moderate pitch',
     'high pitch', 'very high pitch', 'whisper', 'american accent', 'british accent', 'australian accent', 'chinese accent', 'canadian accent', 'indian accent',
@@ -111,9 +111,9 @@ export default async (t, { load }) => {
   t.near(p.modelMB, cat.models.xtts.mb + cat.models.pocket.mb + 0.7, 0.01, 'a clip adds its recording');
   t.eq(P.planOf(cat, []).programMB, 0, 'nothing chosen, nothing to download');
   p = P.planOf(cat, ['qwen-06b-ryan', 'qwen-design-in-woman-young', 'bark-small-hi-0']);
-  t.eq(p.noSpeed, ['Bark', 'Qwen3-TTS 0.6B CustomVoice'], 'no speed: Bark (the engine) and Qwen3-TTS 0.6B (the model)');
+  t.eq(p.noSpeed, ['Qwen3-TTS', 'Bark'], 'no speed: the engines without it, in their running order');
   t.eq(p.slow, ['Qwen3-TTS', 'Bark'], 'slow engines named');
-  t.eq(P.planOf(cat, ['qwen-17b-ryan']).noSpeed, [], 'Qwen3-TTS 1.7B takes the pace as an instruction');
+  t.eq(P.planOf(cat, ['kokoro-af_heart']).noSpeed, [], 'Kokoro has a speed');
 
   const job = P.buildJob(cat, P.planOf(cat, ['piper-vctk-p248', 'kokoro-hm_psi-b', 'indic-parler-thoma', 'xtts-ana-florence', 'xtts-clip-vctk-p248', 'pocket-anna']), 'Hello.', 1.234, false);
   const jv = Object.fromEntries(job.voices.map((v) => [v.id, v]));
@@ -143,6 +143,18 @@ export default async (t, { load }) => {
   t.ok(cmd.includes("$env:COQUI_TOS_AGREED = '1'") && cmd.includes('Read-Host -AsSecureString') && cmd.includes('ai4bharat/indic-parler-tts'), 'Windows: licence setting, token asked for (hidden)');
   t.ok(cmd.split('\r\n').filter((l) => !/^\s*#/.test(l) && !/^@|^setlocal|^set |^powershell|^echo|^pause|^exit|^<#/.test(l)).every((l) => (l.replace(/''/g, '').match(/'/g) || []).length % 2 === 0), 'Windows: quotes balanced on every line');
 
+  // each engine's first-run downloads add up to the plan's totals: Python and uv with the first engine, the shared
+  // PyTorch once (with the first engine that needs it), again for an engine that pins its own (Chatterbox)
+  {
+    const pick = ['piper-vctk-p248', 'kokoro-af_heart', 'chatterbox-default', 'parler-mini-jon'].filter((id) => cat.voices.some((v) => v.id === id));
+    const pl = P.planOf(cat, pick), rs = P.runsOf(cat, pl);
+    t.eq(pick.length, 4, 'the four voices of the first-run check exist');
+    t.eq(rs.map((r) => r.engine), ['piper', 'kokoro', 'chatterbox', 'parler'], 'runs in the planner’s order');
+    t.eq(rs.map((r) => r.first.cuda !== r.first.programs), [false, true, true, false], 'PyTorch with Kokoro (first to need the shared one) and Chatterbox (its own), not again with Parler-TTS');
+    const sum = (k) => Math.round(rs.reduce((a, r) => a + r.first[k], 0) * 10) / 10, r1 = (x) => Math.round(x * 10) / 10;
+    t.eq([sum('programs'), sum('cuda'), sum('models')], [r1(pl.programMB), r1(pl.programMBcuda), r1(pl.modelMB)], 'the runs’ first downloads add up to the plan’s programs, NVIDIA programs and models');
+    t.eq(rs[0].first.programs, cat.engines.piper.mb + P.BASE_MB, 'Python and uv come with the first engine');
+  }
   t.eq([P.fmtMB(0.3), P.fmtMB(359.2), P.fmtMB(999), P.fmtMB(1000), P.fmtMB(3766.6), P.fmtMB(12345)], ['1 MB', '359 MB', '999 MB', '1.0 GB', '3.8 GB', '12 GB'], 'sizes in MB / GB');
   t.ok(P.matches(cat, byId.get('piper-vctk-p248'), 'indian woman') && !P.matches(cat, byId.get('piper-vctk-p251'), 'indian woman'), 'search: every word must match');
   t.ok(P.matches(cat, byId.get('indic-parler-thoma'), 'parler thoma') && P.matches(cat, byId.get('kokoro-af_heart'), 'american'), 'search finds the model and the group');

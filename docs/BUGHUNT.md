@@ -2430,6 +2430,17 @@ cannot. Three new suites; each fails on the build before its fixes.
   Candidates checked and left for later: MeloTTS (its PyPI package 0.1.1 needs torch < 2.0, no Python 3.12), Chatterbox
   (pins torch 2.6.0 and gradio), Indic-Speak (gated, 7 GB, its inference code unreadable without access), Veena, Maya 2,
   Orpheus (GPU-sized), ZONOS3-Mini (an Indian accent with a dose — on the processor only through its C++ tool).
+- **TTS offline — a first run looked stuck (owner, 21 Nov 2026).** The owner ran a script with one Parler-TTS voice; it
+  printed "== Parler-TTS: 1 voice" and then nothing for minutes — "Is this stuck or is this taking time because the model
+  is big?" It was neither: uv ran with `--quiet`, so the download of PyTorch and Parler-TTS's packages (about 0.8 GB, 3 GB
+  with an NVIDIA card) showed nothing, and the model's 3.8 GB came after. Fixed: no `--quiet` (uv's bars show, in Linux's
+  and Windows' scripts), a line under each heading with what its first run downloads (`firstRunNote`, from `runsOf`: the
+  sums equal the tab's totals), driver.py's "The programs are ready; starting." and "Downloading <repo>: <files>". Checks:
+  unit offline-tts +5 (no --quiet; the line in both scripts, ASCII on Windows; printed before uv starts), plan +5 (PyTorch
+  counted with the first engine that needs it and with Chatterbox's own, sums). A real run here in a pseudo-terminal showed
+  uv's progress, the driver's lines and Hugging Face's bars. Also: Qwen3-TTS has no speed control (the 1.7B's pace
+  instruction moved it 5 %; the 1.7B CustomVoice now run here — Whisper read Ryan and Serena back, WER 0.15 on the time
+  "9:30" only).
 - **TTS offline, round 2 (21 Nov 2026; owner: "include them all") — found while adding twelve engines, each run here on
   the CPU where the disk allowed; every voice run was read back by Whisper small.en (word error rate against the text),
   its median pitch measured (pYIN) and its accent heard by SpeechBrain's CommonAccent model (13 of 13 of its own reference

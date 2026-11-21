@@ -16,11 +16,17 @@ first estimate how many MB it adds to the deployed site, give the new total agai
 20 Nov 2026), say what existing app or model could be removed to make room if needed — and **wait for the owner's
 decision** before building anything.
 
+**The process (owner, 21 Nov 2026; agreed):** "after all the to-dos, we'll start going through potentials.md. So you show
+me potentials.md apps. Then I will select either one app or a bunch of apps, and you build them out and then remove them
+from potential.md, and then we repeat this process." — show this list, the owner picks one or several, the size check
+for each, build and test, remove the built ones from this file, show the list again.
+
 When the owner picks a tab (after the size check):
 1. Mark it **accepted** here.
 2. Add it to the registry in the best-fitting category (CLAUDE.md §2 "New utilities").
 3. Build it by CLAUDE.md §8, WebAssembly first (STANDING RULE #1).
 4. Give it its own thorough e2e suite.
+5. When it is built and tested: **remove it from this file** (CLAUDE.md §2 and `docs/TOOLS.md` record it from then on).
 
 Every candidate:
 - runs fully on the device;
