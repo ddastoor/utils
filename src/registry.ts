@@ -174,7 +174,7 @@ export const TOOLS: Tool[] = [
   t('emoji', 'Emoji & Symbols', 'Search and copy emoji and symbols.', 'text', 'Smile', () => text().then((m) => m.emoji)),
   t('morse', 'Morse Code', 'Text ⇄ Morse, with sound.', 'text', 'Radio', () => text().then((m) => m.morse)),
   t('lorem', 'Lorem Ipsum', 'Placeholder text generator.', 'text', 'Text', () => text().then((m) => m.lorem)),
-  t('photodict', 'Photo Dictionary', 'Photograph a page; get the hardest words with their dictionary meanings.', 'text', 'BookOpenText', () => import('./tools/photodict').then((m) => m.mount), 'mobile'),
+  t('photodict', 'Photo Dictionary', 'Photograph a page; get the hardest words with their dictionary meanings.', 'text', 'BookOpenText', () => import('./tools/photodict').then((m) => m.mount), 'both'),
 
   // ---------------------------------------------------------------- Software (all PC only)
   t('sqlite', 'SQLite Playground', 'Open a .db or CSV, run SQL, export results.', 'software', 'Database', () => swData().then((m) => m.sqlite), 'pc'),

@@ -131,7 +131,7 @@ Areas with a shared review: the app shell (router, search, favorites, platform h
 | `emoji` | Emoji & Symbols | PC + mobile | text | ✓ | 7 | 137 | search by keywords, ranked by textcore.wasm (was: letters inside the name); symbols by name; skin tones; emoji the font lacks left out; data held to unicode-emoji-json and Perl's names |
 | `morse` | Morse Code | PC + mobile | text | ✓ | 13 | 90 | characters and groups no longer vanish silently; lines and word gaps read; sound: Stop, typographic signs, line gaps; held to unixcw's libcw (table and timing) |
 | `lorem` | Lorem Ipsum | PC + mobile | text | ✓ | 9 | 121 | engine → lipsum crate (textkit-lorem.wasm) + our glue for 2 crate defects; up to 20,000 words (was 50); exact counts held to the Word Counter; text held to the crate's own texts |
-| `photodict` | Photo Dictionary | Mobile only | text | ✓ | 6 | 15 | rare.c: case table (Gdańsk was gdaŅsk), titles/initials end no sentence (names found), bounded writes; a 2nd photo while reading was dropped; Snap before the first frame |
+| `photodict` | Photo Dictionary | PC + mobile | text | ✓ | 6 | 21 | rare.c: case table (Gdańsk was gdaŅsk), titles/initials end no sentence (names found), bounded writes; a 2nd photo while reading was dropped; Snap before the first frame. 21 Nov 2026: PC + mobile (owner), the shared live camera — a PC webcam's photo of the page gives the same 20 words |
 
 ## software
 | id | Tab | Platform | Area | R | B | T | Notes |

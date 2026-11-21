@@ -1,4 +1,4 @@
-// Photo Dictionary (#/photodict, mobile only): a photographed book page (tests/fixtures/images/book-page.jpg, made by
+// Photo Dictionary (#/photodict, PC + mobile — owner, 21 Nov 2026; it was mobile only): a photographed book page (tests/fixtures/images/book-page.jpg, made by
 // scripts/make-page-photo.mjs) → OCR → the hardest words, rarest first, with Wiktionary meanings from the bundle.
 // Online fallback is mocked with responses in the real APIs' formats (the sandbox and CI never reach them):
 // snollygoster → Wiktionary REST, mumpsimus → Wiktionary 404 then Free Dictionary API, quidnunc → nowhere (Not found).
@@ -153,11 +153,12 @@ export default async ({ base, page: newPage, ok, info, devices }) => {
   await mockApis(p4, []);
   await p4.goto(base + '#/photodict');
   await p4.getByRole('button', { name: 'Use camera' }).click();
-  await p4.waitForFunction(() => document.querySelector('video.pd-video')?.videoWidth > 0, null, { timeout: 15000 });
-  ok(await p4.locator('.pd-cam').isVisible(), 'camera viewfinder shown');
-  await p4.getByRole('button', { name: 'Snap' }).click();
+  await p4.waitForFunction(() => document.querySelector('video.live-cam-video')?.videoWidth > 0, null, { timeout: 15000 });
+  ok(await p4.locator('.live-cam').isVisible(), 'camera viewfinder shown (the shared live camera)');
+  ok(await p4.evaluate(() => getComputedStyle(document.querySelector('.actions')).display === 'none'), 'phone: no fixed bar over the camera');
+  await p4.locator('.live-cam-ctl').getByRole('button', { name: 'Snap' }).click();
   await waitDone(p4);
-  ok(await p4.locator('.pd-cam').isHidden(), 'camera closed after the snap');
+  ok(await p4.locator('.live-cam').isHidden(), 'camera closed after the snap');
   ok(/No text found|No hard words|hardest word/.test(await p4.locator(STATUS).textContent()), `snap was read: "${await p4.locator(STATUS).textContent()}"`);
 
   // a second photo chosen while the first is being read: the newer one is read, the older result is not shown
@@ -182,12 +183,37 @@ export default async ({ base, page: newPage, ok, info, devices }) => {
   // Snap pressed before the camera's first frame: it waits for it (it did nothing)
   { const p6 = await newPage(phone); await mockApis(p6, []);
     await p6.goto(base + '#/photodict'); await p6.getByRole('button', { name: 'Use camera' }).click();
-    await p6.getByRole('button', { name: 'Snap' }).click();
+    await p6.locator('.live-cam-ctl').getByRole('button', { name: 'Snap' }).click();
     await waitDone(p6);
-    ok(await p6.locator('.pd-cam').isHidden() && /No text found|No hard words|hardest word/.test(await p6.locator(STATUS).textContent()), 'Snap at once: the picture is taken when the first frame arrives'); }
+    ok(await p6.locator('.live-cam').isHidden() && /No text found|No hard words|hardest word/.test(await p6.locator(STATUS).textContent()), 'Snap at once: the picture is taken when the first frame arrives'); }
 
-  // desktop: the tool is for phones
-  const desk = await newPage({ viewport: { width: 1366, height: 900 } });
-  await desk.goto(base + '#/photodict');
-  ok(await desk.getByText('made for phones').count() === 1, 'desktop: explains the tool is for phones');
+  // PC (owner, 21 Nov 2026: "PC + phone", the photo from the webcam): a webcam that shows the book page → Snap → the
+  // same 20 words as the photo file; and a photo file on a PC
+  { const desk = await newPage({ viewport: { width: 1366, height: 900 } }); await mockApis(desk, []);
+    const shot = `data:image/jpeg;base64,${readFileSync(F('book-page.jpg')).toString('base64')}`;
+    await desk.addInitScript((url) => {
+      window.__tracks = [];
+      navigator.mediaDevices.getUserMedia = async () => {
+        const img = new Image(); img.src = url; await img.decode();
+        const cv = document.createElement('canvas'); cv.width = img.naturalWidth; cv.height = img.naturalHeight; const g = cv.getContext('2d');
+        const paint = () => g.drawImage(img, 0, 0); paint(); setInterval(paint, 100);
+        const s = cv.captureStream(10); window.__tracks.push(s.getVideoTracks()[0]); return s;
+      };
+      navigator.mediaDevices.enumerateDevices = async () => [{ deviceId: 'cam-a', kind: 'videoinput', label: 'Webcam', groupId: 'cam-a' }];
+    }, shot);
+    await desk.goto(base + '#/photodict');
+    await desk.getByRole('button', { name: 'Use webcam' }).waitFor();
+    ok(await desk.getByText('made for phones').count() === 0 && await desk.locator('.tool-title .badge').count() === 0, 'PC: the tool itself, not a "made for phones" note');
+    await desk.getByRole('button', { name: 'Use webcam' }).click();
+    await desk.waitForFunction(() => document.querySelector('video.live-cam-video')?.videoWidth > 0, null, { timeout: 15000 });
+    await desk.locator('.live-cam-ctl').getByRole('button', { name: 'Snap' }).click();
+    await desk.waitForFunction((sel) => /hardest word|No text found|went wrong/.test(document.querySelector(sel)?.textContent || ''), STATUS, { timeout: 180000 });
+    const wd = await cardWords(desk);
+    ok(wd.length === 20 && RARE.every((w) => wd.includes(w)), `PC: the webcam's photo of the page gives the 20 hardest words (${wd.length}: ${wd.slice(0, 5).join(', ')} …)`);
+    ok(await desk.evaluate(() => window.__tracks.every((t) => t.readyState === 'ended')), 'PC: the webcam is off after the Snap');
+    ok(await desk.getByRole('button', { name: 'Share list' }).isVisible(), 'PC: Share list once there is a list');
+    await desk.locator('input[type=file]').first().setInputFiles(F('book-page.jpg'));
+    await desk.waitForFunction((sel) => /hardest word/.test(document.querySelector(sel)?.textContent || ''), STATUS, { timeout: 180000 });
+    ok((await cardWords(desk)).length === 20, 'PC: a photo file works as well');
+    ok(real(desk.errors).length === 0, `PC: no page errors ${real(desk.errors).join(' | ')}`); }
 };

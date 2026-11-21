@@ -140,8 +140,8 @@ that affects it.
 > - Every picture picker — in every tab, existing and new — is `imageInput` or `imagePicker` (`src/lib/imgtools.ts`),
 >   which carry the live camera (`src/lib/livecam.ts`): the phone's camera (back first) on phones, the webcam on PCs.
 > - `tests/e2e/camera.e2e.mjs` fails on a picture picker without one, unless its EXEMPT list names the tab and the
->   reason (today only the SVG Optimizer — it takes SVG drawings, which no camera makes; the QR Scanner and the Photo
->   Dictionary have cameras of their own). EXIF / Photo Info and FFmpeg's main picker got the camera at the owner's
+>   reason (today only the SVG Optimizer — it takes SVG drawings, which no camera makes; the QR Scanner has a camera of
+>   its own; the Photo Dictionary uses the shared one since 21 Nov 2026, when it became PC + mobile). EXIF / Photo Info and FFmpeg's main picker got the camera at the owner's
 >   word (21 Nov 2026: "also add it for exif too"; FFmpeg's webcam had been only in the picture box of three tasks).
 >   Details: §3 "Camera in every tab that takes a picture"; checklist §8 item 5.
 
@@ -248,14 +248,15 @@ Wayland) and **mobile browsers** (Android Chrome, iPhone Safari).
 Platform is PC + mobile unless marked **PC**. Tab ids are the URL hash (`#/<id>`).
 
 **The authoritative, always-current list is `docs/TOOLS.md`, generated from `src/registry.ts` (`npm run docs`).**
-Current total: **175 tabs in 11 categories — 107 PC + mobile, 64 PC only, 4 Mobile only** (regenerate with
+Current total: **175 tabs in 11 categories — 108 PC + mobile, 64 PC only, 3 Mobile only** (regenerate with
 `npm run docs` after every registry change; the owner asked for the registry to always be noted).
 The per-category notes below record decisions; when they disagree with the registry, the registry wins.
 
 **Platform model (owner rule):** every tool is exactly one of **PC + mobile** (`'both'`), **PC only** (`'pc'`,
 hidden on phones) or **Mobile only** (`'mobile'`, hidden on desktops) — the `platform` field in
 `src/registry.ts`. Mobile only = needs phone hardware: `level` Bubble Level, `compass` Compass, `touch` Touch
-Test, plus `photodict` Photo Dictionary (owner said mobile only — phone camera). `keyboard` Keyboard Test is PC only (physical keyboard). Opening a hidden tool by URL shows an explanation.
+Test. (`photodict` Photo Dictionary was mobile only until the owner made it PC + mobile on 21 Nov 2026 — the webcam on a
+PC.) `keyboard` Keyboard Test is PC only (physical keyboard). Opening a hidden tool by URL shows an explanation.
 
 **Images**
 | id | Tab | Platform | Engine |
@@ -360,9 +361,9 @@ URL `#fragment`, never sent to a server) · `hash` Hash / Checksum · `password`
 `timezone` Time Zone Converter · `bmi` BMI · `calories` Calorie (BMR/TDEE) · `duedate` Pregnancy Due Date ·
 `tip` Tip & Bill Splitter · `fuel` Fuel Cost · `gpa` GPA · `base` Number Base Converter · `roman` Roman Numerals
 
-**Text** (all both except `photodict`): `wordcount` Word Counter · `case` Case Converter · `lines` Line Tools · `replace` Find &
+**Text** (all both): `wordcount` Word Counter · `case` Case Converter · `lines` Line Tools · `replace` Find &
 Replace · `diff` Text Diff · `fancy` Fancy Text · `emoji` Emoji & Symbols · `morse` Morse Code · `lorem` Lorem Ipsum ·
-`photodict` **Photo Dictionary (Mobile only, owner request — see §3)**
+`photodict` **Photo Dictionary (PC + mobile — owner, 21 Nov 2026; see §3)**
 
 **Software** — owner rule: **every Software tool is PC only.** Moved here from the old "Text & Dev": `json` JSON
 Formatter · `regex` Regex Tester · `base64` Base64 · `urlenc` URL Encoder · `epoch` Epoch Converter · `uuid` UUID
@@ -1775,8 +1776,8 @@ the photo with a webcam if it's a PC app." No engine to fetch: the browser's get
   refusals in words (`cameraError`). While it is open a phone's fixed action bar steps aside (`html.cam-open`) and
   `reveal(el)` (`src/ui.ts`) brings the view and its buttons in between the sticky tab rows and the screen's foot.
 - **Where:** built into `imageInput` — Image Editor, Photo & Signature Resizer, Background Remover, Cartoonizer, Blur &
-  Redact, Text on Image, OCR, Signature Maker, Sign PDF (`camera: false` for Passport Photo and Photo Dictionary, which
-  have cameras of their own); `imagePicker` (a file picker with the camera, photos arriving as files) — Batch Images,
+  Redact, Text on Image, OCR, Signature Maker, Sign PDF, Photo Dictionary (21 Nov 2026) (`camera: false` for Passport
+  Photo, which has a camera of its own); `imagePicker` (a file picker with the camera, photos arriving as files) — Batch Images,
   HEIC → JPG, Watermark (photos and the logo), Collage, Doc Scanner, Images → PDF, Slideshow (several photos each), the
   Cartoonizer's own style painting, the Background Remover's background photo, the logo / signature / photo of GST
   Invoice, Rent Receipt and Resume; EXIF / Photo Info (owner, 21 Nov 2026 — a photo taken in the page carries no
@@ -1785,14 +1786,31 @@ the photo with a webcam if it's a PC app." No engine to fetch: the browser's get
   shown when a task asks for one). The phones' native camera inputs (Doc Scanner, Signature Maker, Sign PDF) are gone
   — the live camera does it on both.
 - **Without a camera, on purpose** (EXEMPT in the sweep): SVG Optimizer (it takes SVG drawings, which no camera makes);
-  the QR & Barcode Scanner and the Photo Dictionary keep cameras of their own.
+  the QR & Barcode Scanner keeps a camera of its own.
 - **Tests:** `tests/e2e/camera.e2e.mjs` — every picture picker a tab shows, on a PC and a phone, has the camera in its
   card; in every tab the stand-in camera (`tests/e2e/_camera.mjs`: a canvas stream showing a sentence) is opened, Snap
   pressed (twice and Done where a tab takes several) and the tab's result checked; modes, one camera at a time,
   leaving; phones: the back camera, the résumé selfie mirrored, pages one after another in the Doc Scanner. The OCR
   suite holds the component's behaviour in detail (what Snap takes is read back; Switch; late and refused answers).
 
-### Photo Dictionary (`photodict`, Text, **Mobile only** — owner request, owner chose the name) — BUILT
+### Photo Dictionary (`photodict`, Text, **PC + mobile** — owner request, owner chose the name) — BUILT
+**Owner, 21 Nov 2026:** "Looks like you missed out the photo dictionary app" — it was mobile only (the owner's choice of
+16 Nov), so a PC showed only "made for phones"; asked, the owner chose **PC + phone, the photo from the webcam on a PC**.
+Its own camera gave way to the shared live camera of every picture tab (`imageInput` — the back camera on phones, the
+webcam on PCs, "Switch camera", closed on leave); "Share list" sits in the phone's fixed bar once there is a list. e2e
+55: a PC's webcam showing the book page → Snap → the same 20 words as the photo file.
+**To build next (owner, 21 Nov 2026 — "make a note of this and build it out when you come to it"; after the PDF → EPUB
+fix):**
+1. **Wikipedia under every word:** after the OCR and the word list, each word gets — besides its dictionary meaning — a
+   **live look-up on the Wikipedia API**, shown in a little box under the meaning (a summary of the article). This adds
+   `en.wikipedia.org` (Wikimedia REST, e.g. `/api/rest_v1/page/summary/<title>`, CORS without a key) to the approved
+   data APIs: CSP `connect-src`, §3a's table, `no-external.e2e.mjs`'s allowlist; only the word (or phrase) is sent; the
+   reply shown as plain text; mocked in the tests.
+2. **As many words as are uncommon, not a fixed 20:** the list stops where the words turn common ("the" …) — fewer than
+   20 when the page has fewer uncommon words, more than 20 when it has more.
+3. **The complete OCR text before the list, on phones and PCs,** where a phrase can be **selected** (touch selection on a
+   phone, the mouse on a PC) and **searched on Wikipedia**: the phrase is added to the list — looked up on Wikipedia
+   only (a phrase has no dictionary entry).
 (`src/tools/photodict.ts`, engine `src/lib/dictionary.ts`, ranking `wasm/textcore/rare.c`; e2e `tests/e2e/photodict.e2e.mjs`
 49 checks on a photographed-page fixture; unit `tests/unit/rare.test.mjs` 65 checks.) **As built** (bug hunt of Nov 2026:
 `docs/BUGHUNT.md`, tab 99)**:**
@@ -1815,9 +1833,9 @@ the photo with a webcam if it's a PC app." No engine to fetch: the browser's get
 - Lookup (TS): bundled entry → if it is only an inflection, its lemma's card with the note ("plural of goose"); an
   inflection of a common word ("rode" → ride) is skipped as common; capitalised names not in the bundle are skipped
   ("Names skipped" list); others go online (≤ 25 per photo, rarest first, 5 s timeout, session cache).
-- UI: "Use camera" (back camera viewfinder + Snap, which waits for the first frame; sticky bottom bar on phones) or
-  "Choose a photo" (a photo chosen while another is being read is shown at once and read next; the older result is
-  not shown); "Photo of a
+- UI: "Use camera" on phones / "Use webcam" on PCs (the shared live camera: back camera viewfinder + Snap, which waits
+  for the first frame) or "Choose a photo of a page" (a photo chosen while another is being read is shown at once and
+  read next; the older result is not shown); "Photo of a
   screen" adds a moiré blur; document clean-up always; cards in **Literata** (OFL, self-hosted) with rarity, part of
   speech · IPA, senses + examples, "More meanings"; Not found / Names skipped lists; recognised text with every word
   tappable (lookup card, works for common words too); "Share list" (Web Share, else copy); attribution line.

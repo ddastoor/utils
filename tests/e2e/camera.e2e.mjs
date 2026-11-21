@@ -17,12 +17,11 @@ const M = (n) => new URL(`../fixtures/media/${n}`, import.meta.url).pathname;
 const EXEMPT = {
   svgo: 'SVG Optimizer takes SVG drawings, which no camera makes',
   scan: 'the QR & Barcode Scanner has its own camera above its image picker',
-  photodict: 'Photo Dictionary has its own camera, the main button of its bottom bar',
 };
 
 export default async ({ base, page: newPage, ok, info, devices }) => {
   // ------------------------------------------------------------------ 1. coverage, PC and phone
-  for (const [kind, opts, least] of [['PC', { viewport: { width: 1280, height: 900 } }, 21], ['phone', { ...devices['iPhone 13'] }, 19]]) {
+  for (const [kind, opts, least] of [['PC', { viewport: { width: 1280, height: 900 } }, 22], ['phone', { ...devices['iPhone 13'] }, 20]]) {
     const page = await newPage(opts);
     await page.goto(base); await page.waitForSelector('.tile');
     const ids = [...new Set(await page.evaluate(() => [...document.querySelectorAll('a.tile')].map((a) => a.getAttribute('href').replace(/^#\//, '')).filter((x) => x && !x.startsWith('c/'))))];
@@ -54,7 +53,7 @@ export default async ({ base, page: newPage, ok, info, devices }) => {
   const step = async (name, fn) => { try { const r = await fn(); ok(r === true, `${name}${typeof r === 'string' ? ` — ${r}` : ''}`); } catch (e) { ok(false, `${name}: ${e.message.split('\n')[0]}`); } };
 
   // tabs that take one photo through the shared picker: Snap gives the tab its picture ("Choose another photo")
-  for (const id of ['image', 'formphoto', 'bgremove', 'cartoon', 'redact', 'caption', 'ocr']) {
+  for (const id of ['image', 'formphoto', 'bgremove', 'cartoon', 'redact', 'caption', 'ocr', 'photodict']) {
     await step(`${id}: "Use webcam" → Snap → the photo is the tab's picture, the camera closed`, async () => {
       await go(id); await openCamera(pg); await snap(pg); await newest();
       return closed();

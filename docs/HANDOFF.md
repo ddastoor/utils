@@ -92,6 +92,11 @@ this file = the owner's latest wishes, how the tests are written, and the traps 
   AJUR_January_2016p5.pdf and the EPUB the tab made (uploaded in chat; ask again in a new session).
   **The owner's rule for it (21 Nov 2026):** side-by-side content goes top to bottom in the EPUB, spaced apart, each
   piece under a marker of our own — "Page 1, part 1", "Page 1, part 2" … — never words from the PDF (CLAUDE.md §3).
+- **21 Nov 2026 — Photo Dictionary:** "Looks like you missed out the photo dictionary app" — it was mobile only, so a
+  PC showed "made for phones"; asked, the owner chose PC + phone with the webcam: done (shared live camera). Then the
+  owner's plan, to build after the PDF → EPUB fix (CLAUDE.md §3 Photo Dictionary, "To build next"): a live Wikipedia
+  box under each word's dictionary meaning; as many words as are uncommon (fewer or more than 20); the complete OCR
+  text shown first, where a phrase selected on the phone or the PC is searched on Wikipedia and added to the list.
 - **20 Nov 2026 — live:** the owner asked to merge into `main` and make the site live; Pages was switched on by the
   owner (Source: GitHub Actions). The repository's **default branch is `claude/exciting-bohr-b9yfwc`**, and Pages'
   environment lets only the default branch publish — so the site is published from that branch; `main` holds the

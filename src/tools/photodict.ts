@@ -1,11 +1,12 @@
-// Photo Dictionary (mobile only, owner request): photograph a page (book, newspaper, Kindle) → OCR (Tesseract wasm) →
+// Photo Dictionary (PC + mobile — owner, 21 Nov 2026; it was mobile only): photograph a page (book, newspaper, Kindle)
+// with the phone's back camera or the PC's webcam (the shared live camera of every picture tab), or choose a photo → OCR (Tesseract wasm) →
 // rank the words by English frequency in textcore.wasm (own C) → the 20 hardest with meanings from the bundled English
 // Wiktionary; words the bundle lacks are looked up online one word at a time (Wiktionary, then Free Dictionary API).
-import { cameraError } from '../lib/camera';
 import literata400 from '@fontsource/literata/files/literata-latin-400-normal.woff2?url';
 import literata400i from '@fontsource/literata/files/literata-latin-400-italic.woff2?url';
 import literata600 from '@fontsource/literata/files/literata-latin-600-normal.woff2?url';
-import { h, card, stack, note, toggle, button, progress, toast, errMsg, copy, type Mount } from '../ui';
+import { h, card, stack, note, toggle, button, progress, errMsg, copy, type Mount } from '../ui';
+import { isMobile } from '../platform';
 import { imgproc, type Img } from '../wasm/imgproc';
 import { previewOf, paint } from '../lib/imgio';
 import { imageInput } from '../lib/imgtools';
@@ -58,13 +59,13 @@ export const mount: Mount = (root, ctx) => {
   // ---------------------------------------------------------------- pipeline
   const run = async (img: Img): Promise<void> => {
     if (busy) { // the engine is busy with the photo before: this one is read as soon as it is free
-      pending = img; paint(previewOf(img, 480), thumb); cards.replaceChildren(); extra.replaceChildren(); textBox.replaceChildren(); shareBtn.hidden = true; last = null;
+      pending = img; paint(previewOf(img, 480), thumb); cards.replaceChildren(); extra.replaceChildren(); textBox.replaceChildren(); bar.hidden = true; last = null;
       status.textContent = 'A new photo — it is read as soon as the one before is done.';
       return;
     }
     busy = true;
     const stale = () => gone || pending !== null; // a newer photo is waiting, or the tab was left
-    results.hidden = false; shareBtn.hidden = true; cards.replaceChildren(); looked.replaceChildren(); extra.replaceChildren(); textBox.replaceChildren(); last = null;
+    results.hidden = false; bar.hidden = true; cards.replaceChildren(); looked.replaceChildren(); extra.replaceChildren(); textBox.replaceChildren(); last = null;
     paint(previewOf(img, 480), thumb);
     try {
       // camera photos: ≤ 3000 px, optional moiré removal for screens, then the document clean-up (grey, even light)
@@ -75,18 +76,18 @@ export const mount: Mount = (root, ctx) => {
       ranker().catch(() => {}); loadFonts(); // word list + reading font load while OCR runs
       const r = await recognize(new ImageData(new Uint8ClampedArray(work.data), work.width, work.height), 'eng', (p, s) => prog.set(s.includes('recogn') ? p : null, s.includes('recogn') ? `Reading the page… ${Math.round(p * 100)} %` : 'Loading the text engine…'));
       if (stale()) return;
-      if (!r.text.trim()) { prog.done(); status.textContent = 'No text found. Hold the phone straight over the page, in good light, and try again.'; return; }
+      if (!r.text.trim()) { prog.done(); status.textContent = isMobile ? 'No text found. Hold the phone straight over the page, in good light, and try again.' : 'No text found. Hold the page flat and close to the webcam, in good light, and try again — or choose a photo of it.'; return; }
       showText(r.text);
       prog.set(null, 'Finding the hardest words…');
       const res = await hardWords(r.text, { max: 20, online, onProgress: (d, n) => { if (!stale()) prog.set(n ? d / n : null, 'Looking up words…'); } });
       if (stale()) return;
       last = res; prog.done();
       cards.replaceChildren(...res.cards.map((c) => wordCard(c)));
-      shareBtn.hidden = !res.cards.length;
+      bar.hidden = !res.cards.length;
       status.textContent = res.cards.length
         ? `${res.cards.length} hardest word${res.cards.length > 1 ? 's' : ''}, rarest first · ${r.words.length} words read${res.online.tried ? ` · ${res.online.tried} looked up online` : ''}`
         : 'No hard words on this page — everything here is common English.';
-      if (res.online.failed) extra.append(note('Some words could not be looked up online (no connection?). Results from the dictionary on this phone are shown.', 'warn'));
+      if (res.online.failed) extra.append(note('Some words could not be looked up online (no connection?). Results from the dictionary in this app are shown.', 'warn'));
       if (res.notFound.length) extra.append(h('details', { class: 'pd-more' }, h('summary', null, `Not found (${res.notFound.length})`), h('p', { class: 'small' }, res.notFound.join(', '), h('br'), h('span', { class: 'muted' }, 'Usually misread letters or very rare names. Tap a word in the text below to try it.'))));
       if (res.names.length) extra.append(h('details', { class: 'pd-more' }, h('summary', null, `Names skipped (${res.names.length})`), h('p', { class: 'small' }, res.names.join(', '))));
     } catch (e) { if (!stale()) { prog.done(); status.textContent = `Something went wrong: ${errMsg(e)}`; } }
@@ -107,36 +108,18 @@ export const mount: Mount = (root, ctx) => {
     looked.replaceChildren(h('div', { class: 'muted small' }, `Looking up “${word}”…`));
     try {
       const c = await lookupWord(word, online);
-      looked.replaceChildren(c ? wordCard(c, true) : note(`“${word}” is not in the dictionary${online ? '' : ' on this phone (online look-up is off)'}.`, 'info'),
+      looked.replaceChildren(c ? wordCard(c, true) : note(`“${word}” is not in the dictionary${online ? '' : ' in this app (online look-up is off)'}.`, 'info'),
         button('Close', () => looked.replaceChildren(), { small: true, variant: 'ghost' }));
       looked.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
     } catch (e) { looked.replaceChildren(note(errMsg(e), 'err')); }
   };
 
-  // ---------------------------------------------------------------- input: live back camera or a photo
-  const video = h('video', { class: 'pd-video', autoplay: true, muted: true, playsInline: true } as any) as HTMLVideoElement;
-  let stream: MediaStream | null = null;
-  const camBox = h('div', { class: 'pd-cam', hidden: true }, video);
-  const stopCam = () => { stream?.getTracks().forEach((t) => t.stop()); stream = null; camBox.hidden = true; camCtl.hidden = true; startBtn.hidden = false; };
-  const startCam = async () => {
-    try { stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' }, width: { ideal: 3840 }, height: { ideal: 2160 } }, audio: false }); }
-    catch (e) { toast(cameraError(e, 'camera', 'use “Choose a photo”').message, 'err'); return; }
-    video.srcObject = stream; camBox.hidden = false; camCtl.hidden = false; startBtn.hidden = true;
-  };
-  const snap = async () => {
-    // the first frame may not have arrived yet: wait for it (up to 5 s) instead of doing nothing
-    if (!video.videoWidth) await new Promise<void>((res) => { const t = setTimeout(res, 5000); video.addEventListener('loadeddata', () => { clearTimeout(t); res(); }, { once: true }); });
-    if (!video.videoWidth) { toast('The camera sends no picture — try again, or use “Choose a photo”.', 'err'); return; }
-    const c = document.createElement('canvas'); c.width = video.videoWidth; c.height = video.videoHeight;
-    const g = c.getContext('2d', { willReadFrequently: true })!; g.drawImage(video, 0, 0);
-    const d = g.getImageData(0, 0, c.width, c.height);
-    stopCam();
-    await run({ data: d.data, width: d.width, height: d.height });
-  };
-  const startBtn = button('Use camera', startCam, { variant: 'primary', icon: 'Camera' });
-  const shareBtn = button('Share list', () => shareList(), { icon: 'Share2' }); shareBtn.hidden = true;
-  const camCtl = h('div', { class: 'row', hidden: true }, button('Snap', snap, { variant: 'primary', icon: 'Camera' }), button('Cancel', stopCam, { variant: 'ghost' }));
-  const input$ = imageInput((img) => { stopCam(); run(img); }, { label: 'Choose a photo of a page', camera: false }); // its own camera, in the bar
+  // ---------------------------------------------------------------- input: the camera (phone: back; PC: webcam) or a photo
+  // the shared live camera of every picture tab (src/lib/livecam.ts): Snap gives the frame at full size; a photo chosen
+  // instead closes it; leaving the tab closes it. The reading runs on its own (the picker is free for the next photo).
+  const input$ = imageInput((img) => { void run(img); }, { label: 'Choose a photo of a page', instead: 'choose a photo of the page instead' });
+  const shareBtn = button('Share list', () => shareList(), { icon: 'Share2' });
+  const bar = h('div', { class: 'actions', hidden: true }, shareBtn); // phones: a fixed bar, once there is a list to share
 
   const shareList = async () => {
     if (!last?.cards.length) throw new Error('Take a photo first.');
@@ -152,10 +135,10 @@ export const mount: Mount = (root, ctx) => {
   root.append(
     card(null, stack(
       h('p', { class: 'pd-intro' }, 'Photograph a page of a book, newspaper or Kindle. You get its 20 hardest words, rarest first, with their meanings.'),
-      camBox, camCtl, input$.el,
+      input$.el,
       toggle('Photo of a screen (Kindle, phone, monitor)', false, (v) => (screen = v)),
       toggle('Look up missing words online (sends only that word)', true, (v) => (online = v)))),
     results,
-    h('div', { class: 'actions' }, startBtn, shareBtn)); // sticky bottom bar on phones: the main action
-  return () => { gone = true; pending = null; stopCam(); input$.dispose(); };
+    bar);
+  return () => { gone = true; pending = null; input$.dispose(); };
 };

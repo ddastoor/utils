@@ -2,7 +2,7 @@
 
 Generated from `src/registry.ts` by `npm run docs` — do not edit by hand.
 
-**175 tabs** in 11 categories — 107 PC + mobile, 64 PC only, 4 mobile only.
+**175 tabs** in 11 categories — 108 PC + mobile, 64 PC only, 3 mobile only.
 
 ## Images (15)
 
@@ -131,7 +131,7 @@ Generated from `src/registry.ts` by `npm run docs` — do not edit by hand.
 | `emoji` | Emoji & Symbols | PC + mobile | Search and copy emoji and symbols. | emoji, emojis, emoticon, smiley, smileys, symbols, characters, special characters, … |
 | `morse` | Morse Code | PC + mobile | Text ⇄ Morse, with sound. | morse, morse code, code, sos, dots, dashes, dit, dah, … |
 | `lorem` | Lorem Ipsum | PC + mobile | Placeholder text generator. | lorem ipsum, lipsum, placeholder, placeholder text, dummy text, filler, filler text, sample text, … |
-| `photodict` | Photo Dictionary | **Mobile only** | Photograph a page; get the hardest words with their dictionary meanings. | photo dictionary, dictionary, meaning, meanings, define, definition, vocabulary, vocab, … |
+| `photodict` | Photo Dictionary | PC + mobile | Photograph a page; get the hardest words with their dictionary meanings. | photo dictionary, dictionary, meaning, meanings, define, definition, vocabulary, vocab, … |
 
 ## Software (56)
 
