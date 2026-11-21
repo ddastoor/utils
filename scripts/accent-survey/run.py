@@ -4,7 +4,9 @@
 # tagged "not run") reads the two sentences below through driver.py, model by model (its download deleted after it),
 # then accent.py scores every recording into WORK/scores.json. Then: python3 scripts/make-indian-accents.py WORK, and
 # python3 scripts/make-offline-tts-catalogue.py. Needs uv (~/.local/bin/uv or on the PATH), several GB of disk, hours
-# on a processor (Bark small and OmniVoice are slow).
+# on a processor (Bark small, OmniVoice and Kyutai are slow). Each engine runs in WORK/envs/<engine>, made with
+# `uv pip install --torch-backend cpu` (as the scripts of the tab do — `uv run --with torch` takes no backend and puts
+# PyPI's CUDA build, 4 GB of NVIDIA libraries, on a machine without a graphics card).
 import json, os, shutil, subprocess, sys
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 TEXTS = ['Good morning. I do hope you had a pleasant journey. The weather in London has been rather lovely this week, '
@@ -14,6 +16,19 @@ TEXTS = ['Good morning. I do hope you had a pleasant journey. The weather in Lon
 UV = shutil.which('uv') or os.path.expanduser('~/.local/bin/uv')
 ENV = {**os.environ, 'UV_TORCH_BACKEND': 'cpu', 'HF_HUB_DISABLE_XET': '1', 'HF_HUB_DISABLE_TELEMETRY': '1', 'UV_NO_CONFIG': '1',
        'UV_PYTHON_PREFERENCE': 'only-managed', 'PYTHONUTF8': '1', 'COQUI_TOS_AGREED': '1'}
+
+
+def envfor(work, name, pins):
+    """WORK/envs/<name> with these packages (PyTorch's processor build), made once; its python."""
+    e = os.path.join(work, 'envs', name)
+    py, mark = os.path.join(e, 'bin', 'python'), os.path.join(e, '.pins')
+    if os.path.exists(py) and os.path.exists(mark) and open(mark).read() == ' '.join(pins):
+        return py
+    shutil.rmtree(e, ignore_errors=True)
+    subprocess.run([UV, 'venv', '--quiet', '--python', '3.12', e], env=ENV, check=True)
+    subprocess.run([UV, 'pip', 'install', '--python', py, '--torch-backend', 'cpu', *pins], env=ENV, check=True)
+    open(mark, 'w').write(' '.join(pins))
+    return py
 
 
 def job(cat, ids, text):
@@ -42,15 +57,15 @@ def main():
         e, d = cat['models'][mid]['engine'], os.path.join(work, mid)
         os.makedirs(d, exist_ok=True)
         shutil.copy(os.path.join(ROOT, 'src/lib/offline-tts/driver.py'), d)
-        pins = [a for p in cat['engines'][e]['packages'] for a in ('--with', p)]
+        py = envfor(work, e, cat['engines'][e]['packages'])
         for i, t in enumerate(TEXTS, 1):
             json.dump(job(cat, ids, t), open(os.path.join(d, f'job{i}.json'), 'w'), ensure_ascii=False)
             print(f'== {mid} ({i}): {len(ids)} voices', flush=True)
-            subprocess.run([UV, 'run', '--python', '3.12', '--no-project', *pins, 'python', '-I', 'driver.py', f'job{i}.json', e, f'out{i}'], cwd=d, env=ENV)
+            subprocess.run([py, '-I', 'driver.py', f'job{i}.json', e, f'out{i}'], cwd=d, env=ENV)
         shutil.rmtree(os.path.join(d, 'models'), ignore_errors=True)
     wavs = [os.path.join(r, f) for r, _, fs in os.walk(work) for f in fs if f.endswith('.wav') and os.path.basename(r) in ('out1', 'out2')]
-    subprocess.run([UV, 'run', '--python', '3.12', '--no-project', '--with', 'speechbrain==1.1.2', '--with', 'librosa==0.11.0', '--with', 'torch',
-                    '--with', 'torchaudio', 'python', '-I', os.path.join(ROOT, 'scripts/accent-survey/accent.py'), os.path.join(work, 'scores.json'), *sorted(wavs)], env=ENV, check=True)
+    py = envfor(work, 'accent', ['speechbrain==1.1.2', 'librosa==0.11.0', 'torch', 'torchaudio'])
+    subprocess.run([py, '-I', os.path.join(ROOT, 'scripts/accent-survey/accent.py'), os.path.join(work, 'scores.json'), *sorted(wavs)], env=ENV, check=True)
 
 
 if __name__ == '__main__':
