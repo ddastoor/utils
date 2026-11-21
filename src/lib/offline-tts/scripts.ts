@@ -67,7 +67,8 @@ const tokenSteps = (repos: string[]) => [
 export function linuxScript(o: ScriptInput): string {
   const runs = o.runs.map((r) => [
     `say ${shq(`${r.name}: ${r.voices} voice${r.voices > 1 ? 's' : ''}`)}`,
-    `${envOf(r).map(([k, v]) => `${k}=${v} `).join('')}"$DIR/bin/uv" run --quiet --python ${PYTHON} --no-project ${withArgs(r.packages).join(' ')} python "$DIR/driver.py" "$RUN/job.json" ${r.engine} "$RUN"`,
+    // an engine that fails does not stop the others (the voices made so far stay; the end says which failed)
+    `if ! ${envOf(r).map(([k, v]) => `${k}=${v} `).join('')}"$DIR/bin/uv" run --quiet --python ${PYTHON} --no-project ${withArgs(r.packages).join(' ')} python "$DIR/driver.py" "$RUN/job.json" ${r.engine} "$RUN"; then FAILED="$FAILED, "${shq(r.name)}; fi`,
   ].join('\n')).join('\n');
   const gated = o.gated || [];
   for (const r of gated) if (!REPO.test(r)) throw new Error(`Not a repository: ${r}`);
@@ -123,9 +124,11 @@ SUPERTOOLS_DRIVER
 base64 -d > "$RUN/job.json" <<'SUPERTOOLS_JOB'
 ${wrap(b64(JSON.stringify(o.job)))}
 SUPERTOOLS_JOB
+FAILED=''
 ${runs}
-say "Done. The speech is in $RUN"
 if command -v xdg-open >/dev/null 2>&1; then xdg-open "$RUN" >/dev/null 2>&1 || true; fi
+if [ -n "$FAILED" ]; then echo "Stopped with an error: \${FAILED#, } (the messages above say why). The other voices are in $RUN" >&2; exit 1; fi
+say "Done. The speech is in $RUN"
 `;
 }
 
@@ -137,7 +140,7 @@ export function windowsScript(o: ScriptInput): string {
     `Say ${ps(ascii(`${r.name}: ${r.voices} voice${r.voices > 1 ? 's' : ''}`))}`,
     ...envOf(r).map(([k, v]) => `$env:${k} = ${ps(v)}`),
     `& $uv run --quiet --python ${PYTHON} --no-project ${withArgs(r.packages).join(' ')} python "$Dir\\driver.py" "$Run\\job.json" ${r.engine} "$Run"`,
-    `if ($LASTEXITCODE -ne 0) { throw ${ps(ascii(`${r.name} stopped with an error.`))} + " (code $LASTEXITCODE)" }`,
+    `if ($LASTEXITCODE -ne 0) { $failed += ${ps(ascii(r.name))} }`,
   ].join('\r\n')).join('\r\n');
   const gated = o.gated || [];
   for (const r of gated) if (!REPO.test(r)) throw new Error(`Not a repository: ${r}`);
@@ -194,9 +197,11 @@ ${token}  $Run = Join-Path $Dir ('output\\' + (Get-Date -Format 'yyyy-MM-dd_HHmm
   New-Item -ItemType Directory -Force -Path $Run | Out-Null
   [IO.File]::WriteAllBytes((Join-Path $Dir 'driver.py'), [Convert]::FromBase64String(${ps(b64(o.driver))}))
   [IO.File]::WriteAllBytes((Join-Path $Run 'job.json'), [Convert]::FromBase64String(${ps(b64(JSON.stringify(o.job)))}))
+  $failed = @()
 ${runs.split('\r\n').map((l) => `  ${l}`).join('\r\n')}
-  Say "Done. The speech is in $Run"
   Invoke-Item -LiteralPath $Run
+  if ($failed.Count) { throw ('Stopped with an error: ' + ($failed -join ', ') + ' (the messages above say why). The other voices are in ' + $Run) }
+  Say "Done. The speech is in $Run"
 } catch {
   Write-Host ''
   Write-Host ("It stopped: " + $_.Exception.Message) -ForegroundColor Red

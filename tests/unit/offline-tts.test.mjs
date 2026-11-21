@@ -62,6 +62,24 @@ export default async (t, { load }) => {
   t.throws(() => S.linuxScript({ ...input, runs: [{ ...runs[0], packages: ['x; rm -rf ~'] }] }), 'a package pin with shell characters is refused (Linux)');
   t.throws(() => S.windowsScript({ ...input, runs: [{ ...runs[0], packages: ['x`; calc'] }] }), 'a package pin with shell characters is refused (Windows)');
 
+  // an engine that fails does not stop the others: a stand-in uv that fails for one engine and notes the others
+  const fake = mkdtempSync(join(tmpdir(), 'stts-fake-'));
+  execFileSync('mkdir', ['-p', join(fake, 'bin')]);
+  writeFileSync(join(fake, 'bin', 'uv'), '#!/bin/sh\nfor a; do e="$p"; p="$a"; done\n# the engine is the argument before the last\nfor a; do last2="$prev"; prev="$a"; done\necho "$last2" >> "$SUPERTOOLS_TTS_DIR/ran"\n[ "$last2" != kokoro ]\n', { mode: 0o755 });
+  const three = [{ engine: 'piper', name: 'Piper', packages: ['piper-tts==1.8.0'], voices: 1 }, { engine: 'kokoro', name: 'Kokoro', packages: ['kokoro==0.9.4'], voices: 1 }, { engine: 'pocket', name: 'Pocket TTS', packages: ['pocket-tts==4.0.1'], voices: 1 }];
+  const ff = join(fake, 'run.sh'); writeFileSync(ff, S.linuxScript({ ...input, runs: three }));
+  const fr = spawnSync('bash', [ff], { encoding: 'utf8', env: { ...process.env, SUPERTOOLS_TTS_DIR: fake, PATH: '/usr/bin:/bin' } });
+  t.eq(readFileSync(join(fake, 'ran'), 'utf8').trim().split('\n'), ['piper', 'kokoro', 'pocket'], 'Linux: every engine runs although Kokoro failed');
+  t.ok(fr.status === 1 && /Stopped with an error: Kokoro \(the messages above say why\)/.test(fr.stderr), `Linux: the end names the engine that failed and exits 1 (${fr.status}: ${fr.stderr.trim().slice(-120)})`);
+  writeFileSync(join(fake, 'ran'), '');
+  const ok2 = spawnSync('bash', [ff], { encoding: 'utf8', env: { ...process.env, SUPERTOOLS_TTS_DIR: fake, PATH: '/usr/bin:/bin' } });
+  t.ok(ok2.status === 1 && readFileSync(join(fake, 'ran'), 'utf8').trim().split('\n').length === 3, 'Linux: a second run runs again');
+  const good = join(fake, 'good.sh'); writeFileSync(good, S.linuxScript({ ...input, runs: [three[0], three[2]] }));
+  const g = spawnSync('bash', [good], { encoding: 'utf8', env: { ...process.env, SUPERTOOLS_TTS_DIR: fake, PATH: '/usr/bin:/bin' } });
+  t.ok(g.status === 0 && /== Done\. The speech is in /.test(g.stdout), 'Linux: all engines well — "Done", exit 0');
+  const win = S.windowsScript({ ...input, runs: three });
+  t.ok(/\$failed = @\(\)/.test(win) && (win.match(/if \(\$LASTEXITCODE -ne 0\) \{ \$failed \+= '/g) || []).length === 3 && /if \(\$failed\.Count\) \{ throw/.test(win), 'Windows: each failure noted, the others run, the end says which');
+
   // the real thing (opt-in: downloads uv, Python packages and a 63 MB voice)
   if (process.env.OFFLINE_TTS_E2E === '1') {
     const home = mkdtempSync(join(tmpdir(), 'stts-home-'));
