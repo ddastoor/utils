@@ -709,6 +709,123 @@ API int p_detect_quad(const uint8_t *rgba, int w, int h, float *out) {
     free(small); free(g); free(lab); free(stack);
     return conf;
 }
+/* The page of a photo for reading (the Photo Dictionary and the OCR tab; owner, 21 Nov 2026: a phone's photo of a Kindle
+   page must read "extremely well"). Like p_detect_quad, but among every bright region it takes the one most like a page:
+   a clean quadrilateral (the region's area against the quadrilateral of its extreme points), of a page's size, not
+   running off the photo's edges — so a Kindle's screen inside its black body wins over a light desk around it, and a
+   sheet of paper over the table. Several thresholds around Otsu's are tried (a lamp's glare can light the black body
+   between the screen and the desk at one of them). out = TL, TR, BR, BL in photo pixels; returns 1 – 100 (how clean
+   the quadrilateral is), 0 when there is none. */
+static float page_try(const uint8_t *g, int sw, int sh, int th, int *lab, int *stack, float *q) {
+    int n = sw * sh, nl = 0; float best = 0;
+    memset(lab, 0, sizeof(int) * (size_t)n);
+    for (int i = 0; i < n; i++) {
+        if (g[i] <= th || lab[i]) continue;
+        nl++; int sz = 0, border = 0, sp = 0; stack[sp++] = i; lab[i] = nl;
+        float e[4] = {1e9f, -1e9f, -1e9f, 1e9f}; int ix[4] = {i, i, i, i};
+        while (sp) {
+            int p = stack[--sp], x = p % sw, y = p / sw; sz++;
+            if (x == 0 || y == 0 || x == sw - 1 || y == sh - 1) border++;
+            float a = (float)(x + y), b = (float)(x - y);
+            if (a < e[0]) { e[0] = a; ix[0] = p; } if (b > e[1]) { e[1] = b; ix[1] = p; }
+            if (a > e[2]) { e[2] = a; ix[2] = p; } if (b < e[3]) { e[3] = b; ix[3] = p; }
+            int nb[4] = {p - 1, p + 1, p - sw, p + sw}, ok[4] = {x > 0, x < sw - 1, y > 0, y < sh - 1};
+            for (int k = 0; k < 4; k++) if (ok[k] && !lab[nb[k]] && g[nb[k]] > th) { lab[nb[k]] = nl; stack[sp++] = nb[k]; }
+        }
+        if (sz < n / 25) continue;                              /* a page is at least 4 % of the photo */
+        float c[8], area = 0; int sign = 0, convex = 1;
+        for (int k = 0; k < 4; k++) { c[k * 2] = (float)(ix[k] % sw) + 0.5f; c[k * 2 + 1] = (float)(ix[k] / sw) + 0.5f; }
+        for (int k = 0; k < 4; k++) {
+            float x0 = c[k * 2], y0 = c[k * 2 + 1], x1 = c[((k + 1) % 4) * 2], y1 = c[((k + 1) % 4) * 2 + 1], x2 = c[((k + 2) % 4) * 2], y2 = c[((k + 2) % 4) * 2 + 1];
+            area += x0 * y1 - x1 * y0;
+            float cr = (x1 - x0) * (y2 - y1) - (y1 - y0) * (x2 - x1);
+            int sg = cr > 0 ? 1 : cr < 0 ? -1 : 0;
+            if (sg) { if (sign && sg != sign) convex = 0; sign = sg; }
+        }
+        area = fabsf(area) / 2;
+        if (!convex || area < n * 0.04f || area > n * 0.985f) continue;
+        float fill = sz / area; if (fill > 1) fill = 1;          /* a page with its lines of text: about 0.7 – 1 */
+        float score = sz * fill * fill * fill * (border > (sw + sh) / 50 ? 0.15f : 1.0f);
+        if (score > best) { best = score; memcpy(q, c, sizeof c); q[8] = fill; }
+    }
+    return best;
+}
+/* The screen inside a dark body (a Kindle, a phone, a tablet): the largest dark region that does not touch the photo's
+   edges, and the light pixels inside the quadrilateral of its extreme points; their extreme points are the screen's
+   corners. Works where a lamp's glare joins the screen to a light desk across the body (the light regions are one). */
+static float page_in_frame(const uint8_t *g, int sw, int sh, int th, int *lab, int *stack, float *q) {
+    int n = sw * sh, nl = 0, bestSz = 0; float bq[8];
+    memset(lab, 0, sizeof(int) * (size_t)n);
+    for (int i = 0; i < n; i++) {
+        if (g[i] > th || lab[i]) continue;
+        nl++; int sz = 0, border = 0, sp = 0; stack[sp++] = i; lab[i] = nl;
+        float e[4] = {1e9f, -1e9f, -1e9f, 1e9f}; int ix[4] = {i, i, i, i};
+        while (sp) {
+            int p = stack[--sp], x = p % sw, y = p / sw; sz++;
+            if (x == 0 || y == 0 || x == sw - 1 || y == sh - 1) border++;
+            float a = (float)(x + y), b = (float)(x - y);
+            if (a < e[0]) { e[0] = a; ix[0] = p; } if (b > e[1]) { e[1] = b; ix[1] = p; }
+            if (a > e[2]) { e[2] = a; ix[2] = p; } if (b < e[3]) { e[3] = b; ix[3] = p; }
+            int nb[4] = {p - 1, p + 1, p - sw, p + sw}, ok[4] = {x > 0, x < sw - 1, y > 0, y < sh - 1};
+            for (int k = 0; k < 4; k++) if (ok[k] && !lab[nb[k]] && g[nb[k]] <= th) { lab[nb[k]] = nl; stack[sp++] = nb[k]; }
+        }
+        if (border > (sw + sh) / 50 || sz < n / 30 || sz <= bestSz) continue;
+        bestSz = sz;
+        for (int k = 0; k < 4; k++) { bq[k * 2] = (float)(ix[k] % sw) + 0.5f; bq[k * 2 + 1] = (float)(ix[k] / sw) + 0.5f; }
+    }
+    if (!bestSz) return 0;
+    /* the light pixels inside the body's quadrilateral (a point is inside when it is on the same side of all four edges) */
+    float e[4] = {1e9f, -1e9f, -1e9f, 1e9f}; int ix[4] = {-1, -1, -1, -1}, cnt = 0;
+    for (int y = 0; y < sh; y++) for (int x = 0; x < sw; x++) {
+        int i = y * sw + x; if (g[i] <= th) continue;
+        int in = 1, sg = 0;
+        for (int k = 0; k < 4 && in; k++) {
+            float x1 = bq[k * 2], y1 = bq[k * 2 + 1], x2 = bq[((k + 1) % 4) * 2], y2 = bq[((k + 1) % 4) * 2 + 1];
+            float cr = (x2 - x1) * (y + 0.5f - y1) - (y2 - y1) * (x + 0.5f - x1);
+            int s2 = cr > 0 ? 1 : cr < 0 ? -1 : 0;
+            if (s2) { if (sg && s2 != sg) in = 0; sg = s2; }
+        }
+        if (!in) continue;
+        cnt++;
+        float a = (float)(x + y), b = (float)(x - y);
+        if (a < e[0]) { e[0] = a; ix[0] = i; } if (b > e[1]) { e[1] = b; ix[1] = i; }
+        if (a > e[2]) { e[2] = a; ix[2] = i; } if (b < e[3]) { e[3] = b; ix[3] = i; }
+    }
+    if (cnt < n / 25 || ix[0] < 0) return 0;
+    float c[8], area = 0;
+    for (int k = 0; k < 4; k++) { c[k * 2] = (float)(ix[k] % sw) + 0.5f; c[k * 2 + 1] = (float)(ix[k] / sw) + 0.5f; }
+    for (int k = 0; k < 4; k++) area += c[k * 2] * c[((k + 1) % 4) * 2 + 1] - c[((k + 1) % 4) * 2] * c[k * 2 + 1];
+    area = fabsf(area) / 2;
+    if (area < n * 0.04f) return 0;
+    float fill = cnt / area; if (fill > 1) fill = 1;
+    memcpy(q, c, sizeof c); q[8] = fill;
+    return cnt * fill * fill * fill;
+}
+API int p_page_quad(const uint8_t *rgba, int w, int h, float *out) {
+    float s = (w > h ? w : h) > 512 ? 512.0f / (w > h ? w : h) : 1.0f;
+    int sw = (int)(w * s), sh = (int)(h * s); if (sw < 8 || sh < 8) return 0;
+    uint8_t *small = malloc((size_t)sw * sh * 4); p_resize(rgba, w, h, small, sw, sh);
+    p_blur(small, sw, sh, 1.5f);
+    uint8_t *g = malloc((size_t)sw * sh);
+    for (int i = 0; i < sw * sh; i++) g[i] = u8(0.299f * small[i * 4] + 0.587f * small[i * 4 + 1] + 0.114f * small[i * 4 + 2]);
+    int th = otsu(g, sw * sh);
+    int *lab = malloc(sizeof(int) * (size_t)sw * sh), *stack = malloc(sizeof(int) * (size_t)sw * sh);
+    float best = 0, q[9], bq[9] = {0};
+    const int steps[5] = {0, 20, 40, -20, 60};
+    for (int k = 0; k < 5; k++) {
+        int t = th + steps[k]; if (t < 16 || t > 240) continue;
+        float sc = page_try(g, sw, sh, t, lab, stack, q);
+        if (sc > best) { best = sc; memcpy(bq, q, sizeof q); }
+    }
+    { float sc = page_in_frame(g, sw, sh, th, lab, stack, q); if (sc > best) { best = sc; memcpy(bq, q, sizeof q); } }
+    int conf = 0;
+    if (best > 0) {
+        for (int k = 0; k < 8; k++) out[k] = bq[k] / s;
+        conf = (int)(100 * bq[8]); if (conf < 1) conf = 1; if (conf > 100) conf = 100;
+    } else { out[0] = 0; out[1] = 0; out[2] = (float)w; out[3] = 0; out[4] = (float)w; out[5] = (float)h; out[6] = 0; out[7] = (float)h; }
+    free(small); free(g); free(lab); free(stack);
+    return conf;
+}
 /* Perspective warp: H (row-major 3x3) maps destination (x,y,1) to source coordinates. */
 API void p_warp(const uint8_t *src, int sw, int sh, uint8_t *dst, int dw, int dh, const float *H);
 /* 3×3 homography (row-major, h33 = 1) mapping the dw×dh output rectangle onto the quad q = TL,TR,BR,BL (x,y pairs).

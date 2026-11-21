@@ -113,6 +113,13 @@ export function bindImgproc(e: any) {
       try { const c = e.p_detect_quad(s, img.width, img.height, o); return { corners: Array.from(new Float32Array(mem(), o, 8)), confidence: c }; }
       finally { e.p_free(s); e.p_free(o); }
     },
+    /** The page of a photo for reading (p_page_quad): the bright quadrilateral most like a page, preferring one that does
+     *  not run off the photo's edges — a Kindle's screen in its black body over a light desk. confidence 0: none. */
+    pageQuad(img: Img): { corners: number[]; confidence: number } {
+      const s = put(img.data), o = e.p_malloc(32);
+      try { const c = e.p_page_quad(s, img.width, img.height, o); return { corners: Array.from(new Float32Array(mem(), o, 8)), confidence: c }; }
+      finally { e.p_free(s); e.p_free(o); }
+    },
     /** Perspective-correct the quad (TL,TR,BR,BL in source px) into a w×h image. */
     warp(img: Img, corners: number[], w: number, h: number): Img {
       const qp = e.p_malloc(32); new Float32Array(mem(), qp, 8).set(corners.slice(0, 8));
