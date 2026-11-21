@@ -2430,6 +2430,21 @@ cannot. Three new suites; each fails on the build before its fixes.
   Candidates checked and left for later: MeloTTS (its PyPI package 0.1.1 needs torch < 2.0, no Python 3.12), Chatterbox
   (pins torch 2.6.0 and gradio), Indic-Speak (gated, 7 GB, its inference code unreadable without access), Veena, Maya 2,
   Orpheus (GPU-sized), ZONOS3-Mini (an Indian accent with a dose — on the processor only through its C++ tool).
+- **Screencast — area recordings were black (21 Nov 2026; found answering the owner's "only the rectangular area becomes
+  the full screen of the video?").** The suite checked only the size of an area recording. A pixel check (a canvas
+  "screen": red around four colours) showed every pixel 0/0/0: `new VideoFrame(frame, { visibleRect })` is encoded as
+  black for BGRA frames — Chrome's usual kind for screens — while Chromium's test screen sends I420, where it works.
+  Fixed: drawn onto an OffscreenCanvas of the rectangle's size. Four pipelines compared (pass-through, visibleRect,
+  drawImage, copyTo) on BGRA and I420 sources: only visibleRect failed, on BGRA. Checks: e2e +2 (the rectangle's
+  pixels at 1:1, eight points; Chromium's own screen not black).
+- **Screencast / Screenshot — the mouse pointer (owner, 21 Nov 2026: "add an option to exclude the mouse", "include the
+  mouse exclude option in the screenshot app also").** Screencast had none; Screenshot had one that did nothing when
+  changed during a share (Chrome keeps a live track's `cursor`: applyConstraints leaves it). Both: the setting is asked
+  for when sharing starts, a change on an open share ends it (also while the picker is open — the share that comes back
+  would have the old setting), the status says what the browser reports, locked while recording / during the countdown.
+  Screencast's sound switch had the same fault (fixed the same way), its frame rate is applied to the open share. Also:
+  a share ended while its picture was loading left the tab waiting (both tabs). Checks: Screencast e2e +9, Screenshot +5
+  (the constraint asked for, each wording of the report, the ended share, the locks).
 - **TTS offline — Indic Parler-TTS refused the owner's token (21 Nov 2026).** "Hugging Face did not let this computer
   download ai4bharat/indic-parler-tts …" came after the engine's programs were installed, and could not say why. The
   three causes look alike from the download (401 / 403 "GatedRepo"): a token Hugging Face does not know (whoami: "Invalid

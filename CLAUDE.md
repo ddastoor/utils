@@ -2198,6 +2198,20 @@ half the screen; WebM with a finite duration; microphone track; streaming to a (
 duration index, and an MP4's sound as AAC (Linux Chromium's recorder writes Opus into MP4; re-encoded, the picture
 copied; if that fails, copied as it was — the sound is never dropped); Start cannot be pressed twice during the
 countdown; sharing ended during the countdown is said and the next Start asks again.
+**21 Nov 2026 (owner's questions; e2e 32):** **an area recording was black** — the crop made each frame a `VideoFrame`
+with `visibleRect`, which MediaRecorder encoded as black for BGRA frames (Chrome's usual screen frames; Chromium's test
+screen sends I420, where it worked, so the size check passed): the rectangle is now drawn onto an OffscreenCanvas of its
+size frame by frame (any kind of frame; black around what is left if the shared picture shrinks). The video **is** the
+rectangle at the screen's own pixels (owner: "only the rectangular area becomes the full screen of the video?" — yes):
+the suite records a known picture (red around four colours) and reads the file's pixels with ffmpeg. **"Show the mouse
+pointer"** (owner: "add an option to exclude the mouse"; on by default): the capture's `cursor` ('always' / 'never'),
+asked for when sharing starts — Chrome keeps a live track's setting, so the pointer or the shared sound changed on an
+open share ends it ("… is set when sharing starts: choose what to record again"; also when changed while Chrome's
+picker is open), the frame rate is applied to the open share; the line under the preview says what the browser reports
+("no mouse pointer", "with the mouse pointer: this browser keeps it in, though it was asked to leave it out", or "may
+still record" where it reports nothing — whether Chrome honours 'never' depends on its version and the system; its test
+screen has no pointer, so the suite sets the report). The switches are locked while recording. A share ended while its
+picture was on its way no longer leaves the tab waiting.
 
 ### Screenshot (PC) — BUILT (`src/tools/screenshot.ts`; e2e `tests/e2e/screenshot.e2e.mjs` 12)
 Share once (Chrome's picker: screen, window or tab; own tab excluded; optional mouse pointer) → "Take screenshot"
@@ -2212,6 +2226,9 @@ gallery, stop sharing.
 **As built after the Nov 2026 bug hunt** (tab 154): each shot's copy of the shared track is stopped (they kept the screen
 shared after "Stop sharing"); shots not shown are kept as lossless PNG (not 33 MB of pixels each) and decoded again
 when opened; sharing stopped during the countdown is said; no new share during the countdown.
+**21 Nov 2026 (e2e 22):** "Show the mouse pointer" (off by default) did nothing when changed during a share (Chrome keeps
+a live track's `cursor`): a change now ends the share ("… share again"), also while the picker is open; the status line
+says what the browser reports for the pointer; the switch is locked during the countdown.
 
 ### YouTube Clip (PC) — BUILT (`src/tools/youtube.ts`; e2e `tests/e2e/youtube.e2e.mjs` 13)
 Inputs: "Two links" (YouTube's Share → Start at… / right-click → "Copy video URL at current time" at the start and

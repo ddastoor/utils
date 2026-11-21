@@ -4,6 +4,17 @@ import { readFileSync } from 'node:fs';
 
 export default async ({ base, page: newPage, ok, info, download }) => {
   const page = await newPage({ viewport: { width: 1280, height: 900 }, permissions: ['clipboard-read', 'clipboard-write'] });
+  await page.addInitScript(() => { // what every share asked the browser for (the pointer setting)
+    // and what the browser reports back: Chrome's test screen reports "never" whatever is asked (it has no pointer), so
+    // the suite decides — 'echo' (what was asked), a value, or 'none' (a browser that reports nothing)
+    const gdm = navigator.mediaDevices.getDisplayMedia.bind(navigator.mediaDevices); window.__gdm = []; window.__cursorReport = 'echo';
+    navigator.mediaDevices.getDisplayMedia = async (c) => {
+      window.__gdm.push(JSON.parse(JSON.stringify(c || {})));
+      const s = await gdm(c), t = s.getVideoTracks()[0], gs = t.getSettings.bind(t), m = window.__cursorReport;
+      t.getSettings = () => { const r = gs(); if (m === 'echo') r.cursor = c?.video?.cursor; else if (m === 'none') delete r.cursor; else r.cursor = m; return r; };
+      return s;
+    };
+  });
   await page.addInitScript(() => { // every clone of a shared track, to see that none is left running
     const clone = MediaStreamTrack.prototype.clone; window.__clones = [];
     MediaStreamTrack.prototype.clone = function () { const c = clone.call(this); window.__clones.push(c); return c; };
@@ -76,5 +87,30 @@ export default async ({ base, page: newPage, ok, info, download }) => {
   await btn('Stop sharing').click();
   await page.getByText('Sharing ended before the shot. Share again to take one.').waitFor({ timeout: 8000 }).catch(() => {});
   ok(await page.getByText('Sharing ended before the shot. Share again to take one.').isVisible(), 'sharing stopped during the countdown: said');
+
+  // the mouse pointer: left out unless asked for; set when sharing starts (Chrome keeps a live track's setting), so a
+  // change on an open share ends it and the next share has it (owner, 21 Nov 2026: "include the mouse exclude option")
+  const cursors = () => page.evaluate(() => window.__gdm.map((c) => c.video?.cursor));
+  ok((await cursors()).every((c) => c === 'never'), `no pointer by default (cursor: ${[...new Set(await cursors())].join(', ')})`);
+  const shareB = page.locator('.actions').getByRole('button', { name: 'Share a screen, window or tab' });
+  const sharing = async () => { await page.getByText(/^Sharing .* Press “Take screenshot”/).waitFor({ timeout: 10000 }); return page.getByText(/^Sharing /).textContent(); };
+  await shareB.click();
+  ok(/ · no mouse pointer\. /.test(await sharing()), `the share says the pointer is left out (${await sharing()})`);
+  const pointerSw = page.locator('label.switch', { hasText: 'Show the mouse pointer' });
+  await pointerSw.click();
+  await page.getByText('The mouse pointer is set when sharing starts: share again.').waitFor({ timeout: 5000 });
+  ok(await shareB.isVisible() && !(await btn('Stop sharing').isVisible()), 'switched on during a share: that share ends');
+  await shareB.click();
+  ok((await cursors()).at(-1) === 'always' && / · with the mouse pointer\. /.test(await sharing()), `the next share asks for the pointer (${(await cursors()).at(-1)}; ${await sharing()})`);
+  await pointerSw.click(); // off again: ends this share
+  await page.getByText('The mouse pointer is set when sharing starts: share again.').waitFor({ timeout: 5000 });
+  await page.evaluate(() => (window.__cursorReport = 'motion'));
+  await shareB.click();
+  ok(/with the mouse pointer: this browser keeps it in, though it was asked to leave it out/.test(await sharing()), `a browser that keeps the pointer in is said to (${await sharing()})`);
+  await page.evaluate(() => (window.__cursorReport = 'echo'));
+  await page.locator('.actions').getByRole('button', { name: 'Take screenshot in 3 s' }).click();
+  await page.waitForTimeout(300);
+  ok(await pointerSw.locator('input').isDisabled(), 'the pointer switch is locked during the countdown');
+  await page.getByText(/^Captured/).first().waitFor({ timeout: 10000 });
   ok(!page.errors.length, `no page errors ${page.errors.slice(0, 3).join(' | ')}`);
 };

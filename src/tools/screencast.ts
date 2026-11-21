@@ -1,6 +1,6 @@
 // Screencast (PC): record a screen, window or tab (Chrome's picker), or a rectangle of one (cropped live), with the
-// shared sound and optionally the microphone. MediaRecorder (browser's own encoders) → MP4 (H.264) where the browser
-// can, else WebM; long recordings can stream straight to a file (File System Access). WebM/MP4 from MediaRecorder
+// shared sound and optionally the microphone; the mouse pointer in the picture or not (the capture's `cursor`).
+// MediaRecorder (browser's own encoders) → MP4 (H.264) where the browser can, else WebM; long recordings can stream straight to a file (File System Access). WebM/MP4 from MediaRecorder
 // lack a duration index, so files kept in memory are remuxed by mediabunny (packet copy, seconds).
 import { h, card, field, actions, button, segmented, toggle, select, stack, note, toast, errMsg, fmtBytes, fmtTime, downloadBlob, sleep, type Mount } from '../ui';
 import { linuxBanner } from '../linux';
@@ -11,10 +11,10 @@ const MIMES = ['video/mp4;codecs=avc1,mp4a.40.2', 'video/mp4;codecs=avc1,opus', 
 const even = (v: number) => Math.max(2, Math.floor(v / 2) * 2);
 
 export const mount: Mount = (root) => {
-  let mode: Mode = 'whole', withAudio = true, withMic = false, countdown = true, toDisk = false, fps = 30, fmt: 'mp4' | 'webm' = 'mp4';
+  let mode: Mode = 'whole', withAudio = true, withMic = false, countdown = true, toDisk = false, fps = 30, fmt: 'mp4' | 'webm' = 'mp4', pointer = true;
   let display: MediaStream | null = null, mic: MediaStream | null = null, ac: AudioContext | null = null, rec: MediaRecorder | null = null;
   let chunks: Blob[] = [], bytes = 0, writable: any = null, t0 = 0, pausedAt = 0, pausedTotal = 0, timer = 0, area: [number, number, number, number] | null = null, stopCrop: (() => void) | null = null;
-  let outUrl = '', outBlob: Blob | null = null, outName = '', starting = false, live = true;
+  let outUrl = '', outBlob: Blob | null = null, outName = '', starting = false, live = true, cancelWait: (() => void) | null = null;
   const mimeFor = () => (fmt === 'mp4' ? MIMES.slice(0, 2) : MIMES.slice(2)).find((m) => MediaRecorder.isTypeSupported(m)) || MIMES.find((m) => MediaRecorder.isTypeSupported(m)) || '';
 
   const preview = h('video', { class: 'sc-preview', muted: true, autoplay: true, playsinline: true }) as HTMLVideoElement;
@@ -54,18 +54,35 @@ export const mount: Mount = (root) => {
   // ------------------------------------------------------------------ capture
   async function pick() {
     stopAll();
+    const asked = [pointer, withAudio];
     try {
-      display = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: { ideal: fps } }, audio: withAudio ? { suppressLocalAudioPlayback: false } as any : false, selfBrowserSurface: 'exclude', systemAudio: 'include', surfaceSwitching: 'include', monitorTypeSurfaces: 'include' } as any);
+      display = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: { ideal: fps }, cursor: pointer ? 'always' : 'never' }, audio: withAudio ? { suppressLocalAudioPlayback: false } as any : false, selfBrowserSurface: 'exclude', systemAudio: 'include', surfaceSwitching: 'include', monitorTypeSurfaces: 'include' } as any);
     } catch (e: any) { if (e?.name !== 'NotAllowedError') toast(errMsg(e), 'err'); return false; }
+    if (asked[0] !== pointer || asked[1] !== withAudio) { // a setting changed while Chrome's picker was open
+      display.getTracks().forEach((t) => t.stop()); display = null;
+      stateEl.textContent = `${asked[0] !== pointer ? 'The mouse pointer' : 'The sound'} is set when sharing starts: choose what to record again.`;
+      return false;
+    }
     display.getVideoTracks()[0].addEventListener('ended', () => { if (rec && rec.state !== 'inactive') stop(); else stopAll(); });
+    const mine = display;
     preview.srcObject = display;
-    await new Promise((r) => (preview.readyState >= 1 ? r(null) : (preview.onloadedmetadata = () => r(null))));
+    // the share can end while its picture is on its way (a setting changed, the tab left): stop waiting then
+    await new Promise((r) => { cancelWait = () => r(null); if (preview.readyState >= 1) r(null); else preview.onloadedmetadata = () => r(null); });
+    cancelWait = null;
+    if (display !== mine) return false;
     stageCard.hidden = false;
     const s = display.getVideoTracks()[0].getSettings();
-    hint.textContent = mode === 'area' ? `Drag on the picture to choose the area to record (${s.width}×${s.height}).` : `${s.width}×${s.height} · ${(s as any).displaySurface || 'screen'}${display.getAudioTracks().length ? ' · with sound' : withAudio ? ' · no sound shared (tick “Share audio” in Chrome’s picker)' : ''}`;
+    hint.textContent = mode === 'area' ? `Drag on the picture to choose the area to record (${s.width}×${s.height}${pointerWords(s)}).` : `${s.width}×${s.height} · ${(s as any).displaySurface || 'screen'}${display.getAudioTracks().length ? ' · with sound' : withAudio ? ' · no sound shared (tick “Share audio” in Chrome’s picker)' : ''}${pointerWords(s)}`;
     area = null; drawSel();
     return true;
   }
+  /** What the browser says it does with the pointer (Chrome reports `cursor`; a browser that does not may keep it). */
+  const pointerWords = (s: MediaTrackSettings) => {
+    const c = (s as any).cursor as string | undefined;
+    if (c === 'never') return ' · no mouse pointer';
+    if (c) return pointer ? ' · with the mouse pointer' : ' · with the mouse pointer: this browser keeps it in, though it was asked to leave it out';
+    return pointer ? '' : ' · this browser may still record the mouse pointer';
+  };
   /** The video track to record: the shared one, or the selected rectangle of it (WebCodecs frames, canvas fallback). */
   function videoTrack(): MediaStreamTrack {
     const src = display!.getVideoTracks()[0];
@@ -74,10 +91,18 @@ export const mount: Mount = (root) => {
     if (W.MediaStreamTrackProcessor && W.MediaStreamTrackGenerator) {
       const proc = new W.MediaStreamTrackProcessor({ track: src }), gen = new W.MediaStreamTrackGenerator({ kind: 'video' });
       const ctl = new AbortController();
+      // the rectangle is drawn onto a canvas of its size, frame by frame. A VideoFrame cut with visibleRect recorded
+      // black wherever the screen came as BGRA frames (Chrome's usual kind; it worked for I420 only) — Nov 2026
+      const oc = new OffscreenCanvas(w, hh), og = oc.getContext('2d', { alpha: false })!;
       proc.readable.pipeThrough(new TransformStream({
         transform(frame: VideoFrame, c) {
-          try { const vw = frame.displayWidth, vh = frame.displayHeight, cx = Math.min(x, vw - 2), cy = Math.min(y, vh - 2); c.enqueue(new VideoFrame(frame, { visibleRect: { x: cx, y: cy, width: Math.min(w, vw - cx), height: Math.min(hh, vh - cy) } })); }
-          finally { frame.close(); }
+          try {
+            const vw = frame.displayWidth, vh = frame.displayHeight, cx = Math.min(x, vw - 2), cy = Math.min(y, vh - 2);
+            const cw = Math.min(w, vw - cx), ch = Math.min(hh, vh - cy);
+            if (cw < w || ch < hh) og.fillRect(0, 0, w, hh); // the shared picture became smaller: black around what is left
+            og.drawImage(frame, cx, cy, cw, ch, 0, 0, cw, ch);
+            c.enqueue(new VideoFrame(oc, { timestamp: frame.timestamp }));
+          } finally { frame.close(); }
         },
       }), { signal: ctl.signal }).pipeTo(gen.writable, { signal: ctl.signal }).catch(() => {});
       stopCrop = () => { ctl.abort(); gen.stop(); };
@@ -146,9 +171,18 @@ export const mount: Mount = (root) => {
     resultCard.hidden = false; stateEl.textContent = `Recorded ${fmtTime(secs)}`;
     setButtons();
   }
-  function stopAll() { stop(); display?.getTracks().forEach((t) => t.stop()); display = null; preview.srcObject = null; stageCard.hidden = true; area = null; setButtons(); }
+  function stopAll() { stop(); display?.getTracks().forEach((t) => t.stop()); display = null; cancelWait?.(); preview.srcObject = null; stageCard.hidden = true; hint.textContent = ''; area = null; setButtons(); }
+  /** A setting that the browser takes only when sharing starts (the pointer, the shared sound): changed while a share
+   *  is open, the share ends, so the recording cannot go on without it (Chrome keeps a live track's `cursor`). */
+  function shareSetting(what: string) {
+    if (!display || rec || starting) return;
+    stopAll();
+    stateEl.textContent = `${what} is set when sharing starts: choose what to record again.`;
+  }
   function setButtons() {
     const live = !!rec && rec.state !== 'inactive';
+    for (const t of [pointerT, soundT]) (t.querySelector('input') as HTMLInputElement).disabled = live || starting;
+    fpsSel.disabled = live || starting;
     pickBtn.hidden = live; startBtn.hidden = live; pauseBtn.hidden = !live; stopBtn.hidden = !live;
     pickBtn.disabled = starting; startBtn.disabled = starting;
     pauseBtn.setLabel(rec?.state === 'paused' ? 'Resume' : 'Pause');
@@ -163,13 +197,20 @@ export const mount: Mount = (root) => {
   const stopBtn = button('Stop', () => stop(), { icon: 'Square', variant: 'danger' });
   const saveBtn = button('Download', () => outBlob && downloadBlob(outBlob, outName), { icon: 'Download', variant: 'primary' });
   const hasFsa = !!(window as any).showSaveFilePicker;
+  const pointerT = toggle('Show the mouse pointer', pointer, (v) => { pointer = v; shareSetting('The mouse pointer'); });
+  const soundT = toggle('Record the sound of the tab or screen (tick “Share audio” in the picker)', withAudio, (v) => { withAudio = v; shareSetting('The sound'); });
+  const fpsSel = select<string>([['30', '30 fps'], ['60', '60 fps'], ['15', '15 fps (small files)']], String(fps), (v) => {
+    fps = +v; // a frame rate can change on an open share
+    display?.getVideoTracks()[0]?.applyConstraints({ frameRate: { ideal: fps } }).catch(() => shareSetting('The frame rate'));
+  });
   root.append(
     card('What to record', stack(
       field('Record', segmented<Mode>([['whole', 'Screen, window or tab'], ['area', 'An area (rectangle)']], mode, (v) => { mode = v; area = null; drawSel(); setButtons(); if (display) hint.textContent = v === 'area' ? 'Drag on the picture to choose the area to record.' : ''; })),
       h('div', { class: 'row' },
         field('Format', select<string>([['mp4', 'MP4 (H.264)'], ['webm', 'WebM (VP9)']], fmt, (v) => (fmt = v as any))),
-        field('Frame rate', select<string>([['30', '30 fps'], ['60', '60 fps'], ['15', '15 fps (small files)']], String(fps), (v) => (fps = +v)))),
-      toggle('Record the sound of the tab or screen (tick “Share audio” in the picker)', withAudio, (v) => (withAudio = v)),
+        field('Frame rate', fpsSel)),
+      soundT,
+      pointerT,
       toggle('Add my microphone', withMic, (v) => (withMic = v)),
       toggle('3-second countdown', countdown, (v) => (countdown = v)),
       hasFsa ? toggle('Save straight to a file while recording (for long recordings)', toDisk, (v) => (toDisk = v)) : null,

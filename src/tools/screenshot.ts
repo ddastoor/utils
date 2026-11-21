@@ -14,7 +14,7 @@ interface Shot { img?: Img; png?: Promise<Blob>; w: number; h: number; at: Date 
 const toCanvas = (img: Img) => { const c = new OffscreenCanvas(img.width, img.height); c.getContext('2d')!.putImageData(new ImageData(new Uint8ClampedArray(img.data), img.width, img.height), 0, 0); return c; };
 
 export const mount: Mount = (root) => {
-  let stream: MediaStream | null = null, delay = 3, cursor = false, armed = false, cancelArm = false, pip: Window | null = null;
+  let stream: MediaStream | null = null, delay = 3, cursor = false, armed = false, cancelArm = false, pip: Window | null = null, cancelWait: (() => void) | null = null;
   const shots: Shot[] = [];
   let cur: Shot | null = null;
   const video = h('video', { muted: true, playsinline: true, autoplay: true, class: 'shot-src' }) as HTMLVideoElement;
@@ -29,17 +29,27 @@ export const mount: Mount = (root) => {
 
   async function share() {
     stopShare();
+    const asked = cursor;
     try {
       stream = await navigator.mediaDevices.getDisplayMedia({ video: { cursor: cursor ? 'always' : 'never', frameRate: { ideal: 10 } } as any, audio: false, selfBrowserSurface: 'exclude', surfaceSwitching: 'include', monitorTypeSurfaces: 'include' } as any);
     } catch (e: any) { if (e?.name !== 'NotAllowedError') toast(errMsg(e), 'err'); return; }
+    if (asked !== cursor) { // the switch changed while the picker was open
+      stream.getTracks().forEach((t) => t.stop()); stream = null;
+      status.textContent = 'The mouse pointer is set when sharing starts: share again.'; sync(); return;
+    }
     stream.getVideoTracks()[0].addEventListener('ended', () => { stream = null; status.textContent = 'Sharing ended. Share again to take more shots.'; sync(); });
+    const mine = stream;
     video.srcObject = stream;
-    await new Promise((r) => (video.readyState >= 2 ? r(null) : (video.onloadeddata = () => r(null))));
-    const s = stream.getVideoTracks()[0].getSettings();
-    status.textContent = `Sharing ${(s as any).displaySurface || 'screen'} · ${s.width}×${s.height}. Press “Take screenshot”.`;
+    // the share can end while its first picture is on its way (the pointer switch, Stop sharing): stop waiting then
+    await new Promise((r) => { cancelWait = () => r(null); if (video.readyState >= 2) r(null); else video.onloadeddata = () => r(null); });
+    cancelWait = null;
+    if (stream !== mine) return;
+    const s = stream.getVideoTracks()[0].getSettings(), c = (s as any).cursor as string | undefined;
+    const ptr = c === 'never' ? ' · no mouse pointer' : c ? (cursor ? ' · with the mouse pointer' : ' · with the mouse pointer: this browser keeps it in, though it was asked to leave it out') : cursor ? '' : ' · this browser may still show the mouse pointer';
+    status.textContent = `Sharing ${(s as any).displaySurface || 'screen'} · ${s.width}×${s.height}${ptr}. Press “Take screenshot”.`;
     sync();
   }
-  function stopShare() { stream?.getTracks().forEach((t) => t.stop()); stream = null; video.srcObject = null; sync(); }
+  function stopShare() { stream?.getTracks().forEach((t) => t.stop()); stream = null; video.srcObject = null; cancelWait?.(); sync(); }
 
   /** One frame at full resolution: a fresh VideoFrame if the browser offers one, else the <video> element. */
   async function grab(): Promise<Img> {
@@ -154,9 +164,16 @@ export const mount: Mount = (root) => {
     shareBtn.setLabel(stream ? 'Share something else' : 'Share a screen, window or tab');
     snapBtn.disabled = armed; snapBtn.setLabel(armed ? 'Waiting…' : delay ? `Take screenshot in ${delay} s` : 'Take screenshot');
     shareBtn.disabled = armed; stopBtn.disabled = false; // another share during the countdown left the shot without a picture
+    (pointerT.querySelector('input') as HTMLInputElement).disabled = armed;
     stopBtn.hidden = !stream;
   }
   const cropOn = toggle('Crop (drag the box)', false, (v) => crop.setEnabled(v));
+  // the browser takes the pointer setting when sharing starts and keeps it (Chrome ignores a change on the live track):
+  // changed while sharing, the share ends and the next one has it
+  const pointerT = toggle('Show the mouse pointer', cursor, (v) => {
+    cursor = v;
+    if (stream && !armed) { stopShare(); status.textContent = 'The mouse pointer is set when sharing starts: share again.'; }
+  });
   const shareBtn = button('Share a screen, window or tab', () => share(), { icon: 'MonitorUp' });
   const snapBtn = button('Take screenshot', () => arm(), { icon: 'Camera', variant: 'primary' });
   const stopBtn = button('Stop sharing', () => stopShare(), { icon: 'MonitorOff', variant: 'ghost' });
@@ -169,7 +186,7 @@ export const mount: Mount = (root) => {
     card('Take a screenshot', stack(
       h('div', { class: 'row' },
         field('Delay', select<string>([['0', 'None'], ['3', '3 seconds'], ['5', '5 seconds'], ['10', '10 seconds']], String(delay), (v) => { delay = +v; sync(); })),
-        toggle('Show the mouse pointer', cursor, (v) => (cursor = v))),
+        pointerT),
       status, video)),
     ...[linuxBanner()].filter((x): x is HTMLElement => !!x),
     editCard, galleryCard,
