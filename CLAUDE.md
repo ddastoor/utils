@@ -417,6 +417,17 @@ sound after the first sentence). Speed 0.5–2× (model-side, natural pitch). Te
 cannot capture them). Measured in the sandbox: Kokoro ≈ 0.4× real time incl. the first model load, Piper ≈ 0.8×.
 Not yet: WebGPU for Kokoro (ORT's 29 MB JSEP build) — would make it several times faster on PCs with a GPU.
 Claude's own app voice was considered and rejected: proprietary cloud service — violates the hard requirements.
+**To build next — an "Offline" mode, PC only (owner, 21 Nov 2026):** "keep the existing functionality … add a new offline
+mode … download a high quality latest model to the local computer … the sophisticated light Indian accent one", then:
+"I intend that this runs entirely from the user's PC, not in the browser. So you will also have to find out whether this
+operating system is Linux or Windows, and appropriately download whatever is needed for the user to run it. Also give
+instructions in the offline mode. Also make this offline mode for PC only." Plan: the tab tells Windows from Linux
+(user-agent client hints, as `src/lib/ytdlp.ts` does for yt-dlp) and offers, as links the person clicks (nothing fetched by
+the page; the CSP unchanged), a native speech program and the model — candidates: sherpa-onnx's prebuilt offline TTS
+(Apache-2.0; Windows and Linux builds; runs Kokoro, Piper / VITS voices and others) with MeloTTS EN_INDIA (MIT) or another
+light Indian-English model chosen by ear (samples first, owner's pick, size of the downloads said); a ready script for
+that system (.bat / .sh) holding the text typed in the tab, which writes the speech to a WAV and an MP3; step-by-step
+instructions in the tab. The existing in-browser mode stays exactly as it is.
 Tests: Kokoro 24 kHz mono, plausible length and energy, female median F0 > male + 40 Hz (Heart vs Michael), British
 voice, 2× speed ≈ half the length, Piper 22.05 kHz with female above male pitch, MP3 frames, sentence progress, stop,
 markdown → text.

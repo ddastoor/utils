@@ -97,6 +97,10 @@ this file = the owner's latest wishes, how the tests are written, and the traps 
 - **21 Nov 2026 — a new potential app:** "PDF/EPUB creator … PC only … like a rich text editor … type, copy, paste, … embed
   another PDF … paste pictures, insert pictures … convert to either PDF or EPUB. Use all the existing functionality" —
   added to docs/potentials.md as #72 (not to build until the owner picks it; size check first: ≈ 0 MB new).
+- **21 Nov 2026 — Text-to-Speech offline mode (to build next, PC only):** first asked as a self-contained HTML; then the owner:
+  "I intend that this runs entirely from the user's PC, not in the browser … find out whether this operating system is
+  Linux or Windows, and appropriately download whatever is needed … give instructions … PC only. Okay, go ahead to build
+  out this offline mode next whenever you get a chance." Plan: CLAUDE.md §3 Text-to-Speech, "Offline mode".
 - **21 Nov 2026 — Text-to-Speech:** "the Indian accents … are too thick … thinner Indian accents with good diction and
   clarity? Are there such models out there?" — the current one is Piper's L2-ARCTIC (non-native speakers). Candidates told
   to the owner: Kokoro's Hindi voices hf_alpha / hf_beta / hm_omega / hm_psi reading English (0.5 MB each, already our
