@@ -48,7 +48,7 @@ from the sandbox (GitHub is not reachable there): measure it before building.
   36 Metadata Remover, 61 PDF Redact, 62 Authenticator Export, 63 Photo Organizer, 64 Subtitle
   Sync, 71 EPUB Reader, 76 Screenshot Finder, 77 Paper Deadlines, 78 Bill Splitter by Photo, 79 Phone ⇄ PC Beam, 80 Measure from
   a Photo, 81 Camera Reader, 84 Number Detective, 85 Lecture Video → Slides, 87 Screenshot Stitcher, 88 Wi-Fi QR from a sticker,
-  89 Visiting Card, 90 Emergency Card; and 29 Breach Check, 52 Food Label, 53 Book Lookup (each needs its data-API host
+  89 Visiting Card, 90 Emergency Card, 91 PDF Library Search; and 29 Breach Check, 52 Food Label, 53 Book Lookup (each needs its data-API host
   approved first).
 - **Small — under 10 MB:** 1 Image to SVG 0.2 (vtracer / potrace) · 2 Photo Upscaler 4.8 (Real-ESRGAN general x4v3;
   the best model, x4plus, 33.7 at half precision / 67.1 full) · 6 GIF Maker 0.7 (gifski) · 7 AVIF / JPEG XL 7 (jSquash:
@@ -291,6 +291,7 @@ on the device and keeps nothing between visits; most only put engines already on
 | 88 | **Router Sticker → Wi-Fi QR**: photograph the label under the router → its network name and password read → a Wi-Fi QR for guests | Tesseract + the QR tab's Wi-Fi code (both on the site) | both | waiting |
 | 89 | **Visiting Card → Contact**: photograph a business card → name, phone numbers, e-mail, company, address → a contact file (.vcf) to save, or its QR | Tesseract + the QR tab's vCard writer (both on the site); phone numbers by #33's libphonenumber if built | both | waiting |
 | 90 | **Family Emergency Card**: a wallet card (85.6 × 54 mm) and a bag sticker with blood group, allergies, medicines and emergency numbers, as text and a QR any phone reads offline → printable PDF; "Save details / Load details" as a file of your own, like the GST Invoice | zxing + MuPDF's HTML layout with Noto Sans (on the site) | both | waiting |
+| 91 | **PDF Library Search** (owner, 21 Nov 2026: "ok add PDF Library Search" — from the second batch of round 7's question; asked how a web app takes a folder: the browser hands the page the files the reader picks or drops, nothing goes to a server): choose or drop a folder of PDFs and EPUBs ("Choose a folder", a folder dragged from Explorer / Dolphin, or File System Access on Chrome for PCs — Chrome's dialog says "upload", though the files only reach the page in the browser) → every word of every file searchable, each hit with its page and a small preview, a click opens that page; the index lives in memory and goes with the tab | MuPDF (on the site: text of PDFs and EPUBs, page previews) + an index and search of our own in WebAssembly (textcore / textkit) | both (folders on PCs; on phones many files picked at once) | waiting |
 
 ## Notes
 - **Cheapest wins:** Image to SVG, Make PDF Searchable, the five "reuse engines" tabs (14–18), Duplicate Photo Finder,
