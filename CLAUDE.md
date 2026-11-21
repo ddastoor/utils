@@ -417,7 +417,7 @@ sound after the first sentence). Speed 0.5–2× (model-side, natural pitch). Te
 cannot capture them). Measured in the sandbox: Kokoro ≈ 0.4× real time incl. the first model load, Piper ≈ 0.8×.
 Not yet: WebGPU for Kokoro (ORT's 29 MB JSEP build) — would make it several times faster on PCs with a GPU.
 Claude's own app voice was considered and rejected: proprietary cloud service — violates the hard requirements.
-**To build next — an "Offline" mode, PC only (owner, 21 Nov 2026):** "keep the existing functionality … add a new offline
+**Offline mode, PC only (owner, 21 Nov 2026) — BUILT (as built: below):** "keep the existing functionality … add a new offline
 mode … download a high quality latest model to the local computer … the sophisticated light Indian accent one", then:
 "I intend that this runs entirely from the user's PC, not in the browser. So you will also have to find out whether this
 operating system is Linux or Windows, and appropriately download whatever is needed for the user to run it. Also give
@@ -443,6 +443,49 @@ if they are large in size. That's the whole point of it being offline mode … i
 project." → every good offline voice found goes into the catalogue, whatever its size; the files are downloaded by the PC
 from where their makers publish them (Hugging Face, the engines' releases) — nothing of them is in the repository or on
 the site.
+**Offline mode as built (21 Nov 2026)** (`src/tools/tts-offline.ts`, imported when the mode is chosen — 111 KB / 24 KB
+gzip with the catalogue; `src/lib/offline-tts/`: `catalogue.json` from `python3 scripts/make-offline-tts-catalogue.py`,
+`plan.ts`, `scripts.ts`, `driver.py`; unit `offline-tts.test.mjs` 25 and `offline-tts-plan.test.mjs` 70, e2e
+`tts-offline.e2e.mjs` 31). On a PC a "Mode" switch above the text: **In this browser** (the tab as it was) or **Offline
+on this PC**; phones never see the switch.
+- **What the page does:** nothing but write a script. Windows or Linux is detected (client hints, else the user agent;
+  another system is told the scripts are for those two) and can be switched; the script for that system holds the text,
+  the chosen voices (the job) and `driver.py` as Base64. The CSP is unchanged; no request leaves the page.
+- **What the script does on the PC:** everything in one folder (`%USERPROFILE%\SuperTools-TTS`, `~/SuperTools-TTS`):
+  **uv 0.13.9** from its wheel on PyPI (SHA-256 checked; x86-64 and ARM64) → Python 3.12 (uv's own build) → each engine
+  in its own environment with **pinned packages** (`engines` in the catalogue) → the models from **Hugging Face at
+  pinned commits** (`fetch()` in driver.py; plain HTTPS, `HF_HUB_DISABLE_XET=1`) → `output/<date_time>/<voice>.wav` and
+  `.mp3` (lameenc, 128 kbps). PyTorch: `UV_TORCH_BACKEND=auto` (CUDA build with an NVIDIA card, else the processor's).
+  Windows: a `.cmd` that runs the PowerShell under it (ASCII, CRLF; Windows PowerShell 5.1 is part of Windows 10 / 11).
+  Linux: bash with curl or wget. A gated model (Indic Parler-TTS) makes the script ask once for a Hugging Face token
+  (hidden input), kept in the folder's `cache/huggingface/token`; a refused download is explained by driver.py.
+- **The voices (416 in 44 models):** grouped Indian (49) / American (73) / British and Irish (108) / other accents (37) /
+  accent not documented (149); filters by engine, sex and words; sizes counted once per model; licences shown, "personal
+  use only" marked; XTTS-v2 (Coqui Public Model License, non-commercial) needs its licence ticked before the download.
+  - **Piper** (piper-tts 1.8.0): every English voice of rhasspy/piper-voices except LibriTTS — VCTK's 109 speakers by
+    VCTK's own accent list (Indian: p248, p251, p376), L2-ARCTIC's 24 (Hindi L1: ASI, RRBI, SVBI, TNI), CMU ARCTIC's 18
+    (ksp Indian; eleven not described), ARU's 12, SEMAINE's 4, and the single voices.
+  - **Kokoro** (kokoro 0.9.4 — hexgrad's own pipeline: misaki's dictionary, spaCy's tagger (en_core_web_sm 3.7.1 from
+    Hugging Face, handed to spacy.load by its folder), eSpeak NG for words it does not know — every word is spoken;
+    sherpa-onnx's Kokoro drops unknown words): 20 American and 8 British voices with the authors' grades, and the 4 Hindi
+    voices reading English three ways (American or British reading, or eSpeak's Hindi rules).
+  - **Parler-TTS** (parler-tts 0.2.3, transformers 4.46.1, sentencepiece 0.2.0 — 0.2.3's protobuf code needs protobuf 5,
+    which the audio codec's package forbids): **Indic Parler-TTS** (AI4Bharat; 21 Indian English speakers, Thoma and Mary
+    recommended; gated), **Large v1** (9.3 GB) and **Mini v1.1** (3.8 GB) with 34 named speakers each (accents not
+    documented). A speaker is described in words ("Thoma speaks at a moderate pace …"; the pace from the speed); the
+    text goes in pieces of ≤ 240 characters with one seed.
+  - **XTTS-v2** (coqui-tts[codec] 0.28.0): 58 studio voices (accents not documented) and 8 Indian voices taken from
+    10-second recordings in kyutai/tts-voices (5 voice donations, CC0; VCTK p248 / p251 / p376, CC BY 4.0). A clip is read
+    with librosa — torchaudio ≥ 2.9 hands decoding to torchcodec, which needs FFmpeg on the system.
+  - **Pocket TTS** (pocket-tts 4.0.1; the package pins its model files): its 21 English voices, accents from VCTK's list
+    where a voice was made from VCTK; no speed control (said). The sex of the others from the pitch of a sample.
+- **Measured here (Linux, CPU only):** Kokoro ≈ 4× faster than real time; Pocket ≈ 2× faster; XTTS-v2 ≈ 1.7× slower
+  (studio voice), 2.6× with a clip; Parler Mini ≈ 5.5× slower. The Windows script was read by its text only (PowerShell
+  could not be installed in the sandbox). Not added yet (docs/BUGHUNT.md, "TTS offline"): MeloTTS EN_INDIA (its PyPI
+  package needs torch < 2.0; sherpa-onnx 2.x drops unknown words), Chatterbox (pins torch 2.6), Indic-Speak and Veena
+  (GPU-sized, gated), ZONOS3-Mini (an Indian accent with a dose; a C++ tool on Windows).
+- **To update:** change a pin or a revision in `scripts/make-offline-tts-catalogue.py` (packages: `ENGINES`), run it,
+  run an engine through driver.py on a short text (the commands are in the unit suite's header), both suites.
 Tests: Kokoro 24 kHz mono, plausible length and energy, female median F0 > male + 40 Hz (Heart vs Michael), British
 voice, 2× speed ≈ half the length, Piper 22.05 kHz with female above male pitch, MP3 frames, sentence progress, stop,
 markdown → text.

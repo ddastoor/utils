@@ -358,6 +358,12 @@ POCKET = {'alba': 'alba-mackenna/casual.wav', 'anna': 'vctk/p228', 'azelma': 'vc
           'paul': 'vctk/p259', 'peter_yearsley': 'voice-zero', 'stuart_bell': 'voice-zero', 'vera': 'vctk/p229'}
 
 
+# the voices not made from VCTK: the sex by the pitch of a sample made here (median F0 — under 150 Hz a man, above
+# 165 Hz a woman; Alba, at 127 Hz, is left unsaid)
+POCKET_SEX = {'cosette': 'f', 'caro_davy': 'f', 'javert': 'm', 'jean': 'm', 'marius': 'm', 'bill_boerst': 'm',
+              'peter_yearsley': 'm', 'stuart_bell': 'm'}
+
+
 def pocket():
     t = tree(POCKET_REPO, POCKET_REV)
     models = {'pocket': {'engine': 'pocket', 'repo': POCKET_REPO, 'rev': POCKET_REV,
@@ -366,8 +372,11 @@ def pocket():
     vctk = vctk_speakers()
     voices = []
     for name, src in POCKET.items():
-        label, group, sex = name.replace('_', ' ').title(), 'any', ''
+        label, group, sex = name.replace('_', ' ').title(), 'any', POCKET_SEX.get(name, '')
+        if sex:
+            label += f' — {SEX[sex]}'
         if src.startswith('vctk/'):
+            label = name.replace('_', ' ').title()
             s = vctk[src[5:]]
             acc = ACCENT_WORD.get(s['accent'], s['accent'])
             label += f' — {SEX[s["sex"]]}, {acc} (from VCTK {src[5:]})'

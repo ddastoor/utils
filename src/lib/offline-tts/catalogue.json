@@ -81,11 +81,10 @@
    "name": "XTTS-v2",
    "url": "https://huggingface.co/coqui/XTTS-v2",
    "packages": [
-    "coqui-tts==0.28.0",
-    "transformers==4.57.6",
-    "huggingface-hub==0.36.0",
+    "coqui-tts[codec]==0.28.0",
     "lameenc==1.9.0",
-    "torch"
+    "torch",
+    "torchaudio"
    ],
    "mb": 450,
    "torch": true,
@@ -3753,17 +3752,17 @@
   },
   {
    "id": "pocket-bill-boerst",
-   "label": "Bill Boerst",
+   "label": "Bill Boerst — man",
    "group": "any",
-   "sex": "",
+   "sex": "m",
    "model": "pocket",
    "voice": "bill_boerst"
   },
   {
    "id": "pocket-caro-davy",
-   "label": "Caro Davy",
+   "label": "Caro Davy — woman",
    "group": "any",
-   "sex": "",
+   "sex": "f",
    "model": "pocket",
    "voice": "caro_davy"
   },
@@ -3777,9 +3776,9 @@
   },
   {
    "id": "pocket-cosette",
-   "label": "Cosette",
+   "label": "Cosette — woman",
    "group": "any",
-   "sex": "",
+   "sex": "f",
    "model": "pocket",
    "voice": "cosette"
   },
@@ -3825,25 +3824,25 @@
   },
   {
    "id": "pocket-jean",
-   "label": "Jean",
+   "label": "Jean — man",
    "group": "any",
-   "sex": "",
+   "sex": "m",
    "model": "pocket",
    "voice": "jean"
   },
   {
    "id": "pocket-javert",
-   "label": "Javert",
+   "label": "Javert — man",
    "group": "any",
-   "sex": "",
+   "sex": "m",
    "model": "pocket",
    "voice": "javert"
   },
   {
    "id": "pocket-marius",
-   "label": "Marius",
+   "label": "Marius — man",
    "group": "any",
-   "sex": "",
+   "sex": "m",
    "model": "pocket",
    "voice": "marius"
   },
@@ -3873,17 +3872,17 @@
   },
   {
    "id": "pocket-peter-yearsley",
-   "label": "Peter Yearsley",
+   "label": "Peter Yearsley — man",
    "group": "any",
-   "sex": "",
+   "sex": "m",
    "model": "pocket",
    "voice": "peter_yearsley"
   },
   {
    "id": "pocket-stuart-bell",
-   "label": "Stuart Bell",
+   "label": "Stuart Bell — man",
    "group": "any",
-   "sex": "",
+   "sex": "m",
    "model": "pocket",
    "voice": "stuart_bell"
   },

@@ -1349,3 +1349,13 @@ were 238 MB). What follows is the record of the engine as it was; the code is in
 - **Ours:** none — the browser's camera, microphone, Web Audio, keyboard, pointer and orientation events, client hints
   and WebGPU. The compass heading and the tilt are a few sines and cosines per sensor event (`src/lib/sensors.ts`),
   held to geometry and to the W3C spec's example function in `tests/unit/sensors.test.mjs`. Nothing to replace.
+
+### 177. Text-to-Speech, "Offline on this PC" (21 Nov 2026)
+- **Not a WebAssembly question:** the owner asked for this mode to run "entirely from the user's PC, not in the
+  browser" with models far larger than a page can hold. The page writes a script and runs nothing; the engines are
+  native programs on the PC (Python packages with compiled PyTorch / ONNX Runtime), fetched by the script from where
+  their makers publish them, pinned. The in-browser mode keeps its WebAssembly engines (Kokoro and Piper on ONNX Runtime
+  Web, our eSpeak NG and LAME).
+- **Choices made for the PC:** hexgrad's own Kokoro pipeline over sherpa-onnx (sherpa-onnx's front end drops unknown
+  words; 2.x has no eSpeak at all); uv over a system Python (nothing installed into the system, one folder to delete);
+  lameenc for MP3 (LAME, no FFmpeg needed).

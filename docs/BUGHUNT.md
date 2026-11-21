@@ -2408,3 +2408,20 @@ cannot. Three new suites; each fails on the build before its fixes.
   page. Checked independently (`scratchpad/epubfix/piccheck.mjs`): every page of the five PDFs that draws a picture has
   one in the EPUB; a JPEG drawn on its own is in the EPUB byte for byte (the arXiv paper's JPEGs are halves of composed
   figures, drawn together as the page shows them).
+- **TTS offline (21 Nov 2026) — found while building the Offline mode, each run here on the CPU.** sherpa-onnx's Kokoro
+  front end left out every word its lexicon lacks ("Chakraborty", "SuperTools", numbers; sherpa-onnx 2.x removed eSpeak
+  altogether — its issue #4139) → hexgrad's own pipeline (misaki + eSpeak NG), which speaks every word. Kokoro's
+  pipeline: spaCy's model pins spaCy 3.7, whose thinc 8.2 is built against numpy 1 (numpy 2 → "dtype size changed") →
+  numpy 1.26.4 pinned; misaki would pip-install the spaCy model from GitHub → the same model from Hugging Face, handed to
+  spacy.load by its folder. Parler-TTS: sentencepiece 0.2.3's protobuf code needs protobuf 5, the audio codec's package
+  forbids it (ImportError `runtime_version`) → sentencepiece 0.2.0. XTTS-v2: coqui-tts refuses to start without
+  torchaudio and torchcodec, and torchcodec decodes through FFmpeg installed on the system → coqui-tts[codec] and the
+  clip read with librosa. Hugging Face answers HEAD requests of many small files with 429 (rate limit) when nobody is
+  signed in — huggingface_hub waits and retries; said in the docs. A gated model refused (no token, conditions not
+  accepted) now ends the engine with a sentence instead of a traceback. Tests: unit `offline-tts.test.mjs` (scripts:
+  bash -n, Base64 parts back byte for byte, shell text inert; with OFFLINE_TTS_E2E=1 the Linux script runs for real),
+  `offline-tts-plan.test.mjs` 70 (catalogue against VCTK's list and sherpa-onnx's copies of the speaker maps, every voice
+  in one script, driver.py's text pieces), e2e `tts-offline.e2e.mjs` 31 (the scripts downloaded and read back).
+  Candidates checked and left for later: MeloTTS (its PyPI package 0.1.1 needs torch < 2.0, no Python 3.12), Chatterbox
+  (pins torch 2.6.0 and gradio), Indic-Speak (gated, 7 GB, its inference code unreadable without access), Veena, Maya 2,
+  Orpheus (GPU-sized), ZONOS3-Mini (an Indian accent with a dose — on the processor only through its C++ tool).

@@ -26,7 +26,7 @@ export function offlinePanel(o: { text: () => string; speed: number }): HTMLElem
   const osLine = h('div', { class: 'muted small' }, detected ? `This computer: ${detected === 'windows' ? 'Windows' : 'Linux'}.` : 'This computer is neither Windows nor Linux: the scripts are made for those two.');
   const groupSeg = segmented<string>([['', 'All'], ...cat.groups.map(([g, n]) => [g, n.replace(' English', '').replace(' — accent not documented', ' (accent not documented)')] as [string, string])], group, (v) => { group = v; list(); });
   const engineSel = select<string>([['', 'Every engine'], ...Object.entries(cat.engines).map(([k, e]) => [k, e.name] as [string, string])], '', (v) => { engine = v; list(); }, 'Engine');
-  const sexSel = select<string>(SEXES, '', (v) => { sex = v; list(); }, 'Voice');
+  const sexSel = select<string>(SEXES, '', (v) => { sex = v; list(); }, 'Voices to show');
   const search = h('input', { type: 'search', class: 'input', placeholder: 'Search the voices (name, accent, model)', 'aria-label': 'Search the voices' }) as HTMLInputElement;
   search.addEventListener('input', () => { query = search.value; list(); });
 
