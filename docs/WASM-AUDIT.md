@@ -1163,6 +1163,12 @@ One entry per tab, written before its bug hunt: our module → candidates → ch
   and line pitch) and `table-hunt` (tables as HTML tables would be a new feature — for the owner to pick).
 - **Also:** epubcheck 5.2.1 (the W3C's validator, Java) runs on every EPUB of both suites where it is installed.
 
+**21 Nov 2026 (the owner's test PDFs):** engines unchanged — MuPDF 1.28 (structured text; our JavaScript device over the
+page for rules, pictures and visible / invisible text; the pictures' own bytes from their image objects), textcore.wasm's
+XY-cut, imgproc.wasm's ink regions. textcore's `t_xycut` grew two arguments of our own — `heavy` (a side holding a figure
+or a table is a part) and `hd` (a head over the columns is read first) — and returns a part per position; rebuilt,
+`xycut.test.mjs` 33. No existing WebAssembly module does reading order with parts (MuPDF's `segment` was checked in 136).
+
 ### 137. `sheet` — CSV / Excel (20 Nov 2026)
 - **Ours:** sheet.wasm — calamine 0.38 (reads .xlsx .xlsm .xlsb .xls .ods; the Rust reader behind python-calamine and
   fastexcel), rust_xlsxwriter 0.102, the `csv` crate — built by us: no WebAssembly build of calamine is published.

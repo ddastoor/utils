@@ -1962,16 +1962,58 @@ ASS; picture subtitles (DVD / Blu-ray) are refused with the reason), **Expert** 
   against ffprobe. e2e `tests/e2e/ffmpeg.e2e.mjs` runs every new job on ffmpeg.wasm in the browser. Fixtures
   `tests/fixtures/media/` subs.srt, clip-subs.mkv, silent-320.mp4, pauses.wav, kf6.mp4.
 
-### PDF → EPUB (PC) — BUILT (`src/tools/epub/epub.ts`, engine `src/lib/pdf2epub.ts`; unit `tests/unit/pdf2epub.test.mjs` 64, e2e `tests/e2e/epub.e2e.mjs` 48)
+### PDF → EPUB (PC) — BUILT (`src/tools/epub/epub.ts`, engine `src/lib/pdf2epub.ts`; unit `tests/unit/pdf2epub.test.mjs` 94 + `xycut.test.mjs` 33, e2e `tests/e2e/epub.e2e.mjs` 52)
 **Owner's rule for the reading order (21 Nov 2026; standing):** "in the original PDF, whenever there are multiple columns
 or things which are not exactly top to bottom, then you should make it top to bottom in the EPUB and space it out
 correctly, and add your own little text and markers saying … this section of the original page is now the next section
 in the vertical form … Don't write the word from the original PDF, but just say page 1, part 1, page 1, part 2, page 1,
 part 3, that kind of thing." → everything that stands side by side in a PDF page (columns, blocks left and right) is
 laid out one after another, top to bottom, spaced apart, each piece introduced by a marker of our own — "Page 1, part
-1", "Page 1, part 2" … (the labels "Page N · Column K" become these) — never words taken from the PDF. **Pending (owner's
-user testing, 21 Nov 2026):** the owner's AJUR_January_2016p5.pdf came out "very badly" — fix it under this rule
-(docs/RESUME.md queue).
+1", "Page 1, part 2" … (the labels "Page N · Column K" became these) — never words taken from the PDF.
+**Owner's strict rule for pictures (21 Nov 2026; standing):** "maintain original images as images in the new EPUB. Don't
+do OCR of any sort. If in the original PDF it's an image, preserve it as an image in the new EPUB", and then: "Don't drop
+any images from the original page at all. That's a strict rule. If it's a full page image in the original PDF, then
+include it as a full, the same image in the new EPUB … preserve all original images exactly."
+**As built after the owner's test PDFs (21 Nov 2026; docs/BUGHUNT.md "PDF → EPUB, the owner's test PDFs").** The owner's
+five pairs (AJUR_January_2016p5 — a journal page; 2611.25554v1 — an arXiv paper from Word; another_one — REVTeX two
+columns; test_1 — a LaTeX paper; test_2 — 115 pages of REVTeX lecture notes) were converted and read page by page:
+- **Parts:** textcore's `t_xycut(boxes, heavy, n, gx, gy, minh, hd, …)` returns a part per position: at the first vertical
+  split outside any part with two sides that count — a real column, or a side holding a heavy box (a figure or a table
+  of ≥ 1.5 % of the page) — every counting side is a part of its own; a side that does not count (a margin note) joins
+  the part after it. Each segment of a page with parts gets `<h4 class="part">Page N, part K</h4>` (the toggle "Mark the
+  parts of a page laid out side by side"); the summary says "n laid out in parts · figures · tables · equations".
+  `hd` (0.8 × body): boxes at the top of one column that end above where every other column begins, with a gap under
+  them across the region (an epigraph), are read before the columns.
+- **Contents pages:** page numbers flush right (three or more sharing their right edge) join the entry on their row
+  ("I. Equilibrium … 3", `keep`: a line each) — unless another cell stands before the entry (a table of three columns).
+- **Tables:** ruled — grids, stacked rules of one extent, growing over table rows above and below (a table cut by the
+  page), a ruled region with drawn ink inside it is a figure (a plot's frame); without rules — rows of short cells
+  aligned in three places, built from lines that are not running text (in two columns a line of the other column beside
+  a formula's pieces made a "table" across the page) and not contents entries; rows mostly maths are a formula; a
+  paragraph's line inside ends the table. A table is a picture, `<div class="fig tbl">`, sized in em.
+- **Display equations** (lines mostly in a maths font, or of pictures): grouped by distance in ems of the body text (on
+  one row up to 1.5 em, up to 4 em where running text spans the gap — never across a gutter; close above / below;
+  stacked); groups closer than 0.9 em that overlap merge; a paragraph's line that is mostly maths stays text (also a list
+  item's next line, under its text); what stands inside, small pieces beside, short lines stacked right beside it (a
+  fraction in the text font), the limits of a sum in small type under it; groups that grew into each other are one
+  picture; the picture takes in ink that runs out of MuPDF's boxes (a big Σ); its number = the nearest label to the right
+  on its rows with nothing between (`<p class="eqno">`). A formula inside a line is a small picture in the line (em-sized,
+  on the baseline); raised / lowered marks are `<sup>` / `<sub>` (by baseline, or by box when MuPDF's origin hides the
+  rise).
+- **TeX's habits mended:** an accent set before its letter (in a span, or a run of another style: "Gröbner", "q̇", "n̂",
+  "Šmejkal"); a line that is only an accent goes into the box of the line under it; ≠ drawn as "=" with a slash; chess
+  and dingbat fonts (SkakNew-Figurine gave "KQRNBp") are pictures.
+- **Pictures — the strict rule:** our MuPDF device reads every picture the page draws (images and image masks), with its
+  clip, soft masks and blended groups, whether anything visible is drawn over it afterwards, and the image object it
+  comes from. **No picture is dropped** (any size; a logo repeated in every footer; one that fills the page). A picture
+  with nothing over it is **its own bytes**: a JPEG of the PDF copied byte for byte, any other image its own pixels as
+  PNG (`picBytes`); with labels over it or drawn together with other pictures, its region is drawn as the page shows it
+  at the picture's own resolution (never below the screen's), in colour, PNG when none of it is a JPEG. The greyscale
+  option touches only our own drawings (formulas, tables, vector figures). A figure is as wide on the screen as in its
+  column. A page that is one picture: that picture exactly, the page's visible text after it as text. **A scanned page
+  under invisible OCR text** (render mode 3, counted by the device) keeps its picture and **the OCR text is not used**. A
+  picture under a page of running text (a slide's background) stands first, exactly, and the text is read as text.
+- Footnote separators: one `<hr class="fn"/>` (a rule inside a line of rule glyphs is the same rule).
 As built after the Nov 2026 bug hunt (docs/BUGHUNT.md tab 139, docs/WASM-AUDIT.md 136):
 - **Text:** MuPDF's structured text with `preserve-spans` — each span in one font — joined into lines (same baseline,
   close after one another; a space where the PDF leaves a gap without one); a line takes the size and the weight most
@@ -1984,8 +2026,9 @@ As built after the Nov 2026 bug hunt (docs/BUGHUNT.md tab 139, docs/WASM-AUDIT.m
   (OCR slips like "VICKSBUEG" still match) and page numbers on their own (`pageNumberLike`: digits, "Page n", "n of m",
   "– n –", a real Roman numeral — not "ill" or "civil"). Their ink stays text for the figure finder (it came back as
   a picture).
-- **Figures:** raster images (except a full-page scan under an OCR layer) ∪ ink outside every text line on a 1.5 px/pt
-  drawing (imgproc `p_ink_regions`), merged until no two touch; lines inside a figure belong to it.
+- **Figures:** every picture of the PDF (see the strict rule above) ∪ ink outside every text line and outside the
+  pictures on a 1.5 px/pt drawing (imgproc `p_ink_regions`), merged until no two touch; lines inside a figure and short
+  labels touching it (or beside a ruled diagram) belong to it.
 - **Order and columns:** textcore's XY-cut (`t_xycut(boxes, gx, gy, minh)`: vertical gutters first, then the widest
   horizontal gap, recursively): gutters of 0.45 × the body text (the Federal Register's are 7.5 pt), and only real
   columns are numbered — at least three lines and a tenth of the page high (a note in the margin, table cells are not).
@@ -1997,7 +2040,7 @@ As built after the Nov 2026 bug hunt (docs/BUGHUNT.md tab 139, docs/WASM-AUDIT.m
 - **Pictures:** MuPDF draws just the figure (a display list into a pixmap of its box) so that a column is as wide as the
   screen (Paperwhite 1236 px / Scribe 1860 px), a figure across the page as wide as the screen, within 32 megapixels
   and 16,384 px a side; greyscale MozJPEG by default; a page without text is a picture as wide as the screen.
-- **The book:** one XHTML per PDF page (`page-break-before`, "Page N · Column K" labels), EPUB 3 with the PDF's
+- **The book:** one XHTML per PDF page (`page-break-before`, "Page N, part K" markers), EPUB 3 with the PDF's
   bookmarks as the contents (nested; a bookmark of a page left out → the next page that is in; else one entry per page
   with its first heading), a page list, an NCX for older readers (bookmarks of one file share its play order), the
   PDF's /Lang as the language (else English), `dcterms:modified`, urn:uuid; mimetype stored first; fflate.
@@ -2006,8 +2049,9 @@ As built after the Nov 2026 bug hunt (docs/BUGHUNT.md tab 139, docs/WASM-AUDIT.m
   gap between frames 0.25 s — it was 3.6 s); the preview (first three pages in reading order) lets its pictures go
   with the next PDF, run or the tab; a PDF without pages is refused; the summary counts in words.
 - **Tests:** unit — the engine in Node on its own engines (`EpubEngines`): the Federal Register's first three pages
-  (public domain, `tests/fixtures/pdf/federal-register-3p.pdf`) and the OCR'd Vicksburg pages held to poppler's
-  `pdftotext` (`python3 scripts/make-epub-reference.py` → `tests/fixtures/epub/reference.json`, needs poppler-utils);
+  (public domain, `tests/fixtures/pdf/federal-register-3p.pdf`) held to poppler's `pdftotext` (`python3
+  scripts/make-epub-reference.py` → `tests/fixtures/epub/reference.json`, needs poppler-utils); the OCR'd Vicksburg pages
+  kept as their pictures (no OCR text); pictures byte for byte / pixel for pixel; generated PDFs for each rule above;
   the generated two-column paper to the order its generator wrote (poppler reads it wrong); generated PDFs for bold
   run-in headings, broken Unicode maps, unreadable formulas, bookmarks, /Lang, stamps, sideways, offset and huge pages.
   e2e — the tab in Chromium, every XHTML parsed as XML, the EPUB re-opened by MuPDF, races and responsiveness.

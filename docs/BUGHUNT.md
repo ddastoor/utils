@@ -2388,3 +2388,23 @@ cannot. Three new suites; each fails on the build before its fixes.
   FFmpeg's webcam was only in the picture box of three tasks, which shows after a video is chosen — now also beside the
   main picker (the snapped photo is the file to work on); EXIF / Photo Info has the camera and says what a photo taken
   in the browser carries (nothing). The sweep's EXEMPT list is down to the SVG Optimizer; camera 38 / 38, EXIF 33 / 33.
+- **PDF → EPUB, the owner's test PDFs (21 Nov 2026).** The owner's rule: what stands side by side is read one after
+  another, each piece under "Page N, part K"; then the strict rule for pictures (none dropped, each kept exactly, no OCR
+  of any sort). Five pairs the owner made with the old tab (AJUR_January_2016p5, 2611.25554v1, another_one, test_1,
+  test_2 — kept in the session's scratchpad `epub-owner/`) were converted and read page by page against the original.
+  Found and fixed (each with a unit check, `pdf2epub.test.mjs` 64 → 94, `xycut.test.mjs` 19 → 33, e2e 48 → 52):
+  columns labelled instead of laid out as parts; tables in an arXiv paper read cell by cell as columns; a table cut by
+  the page; a plot's frame taken for a table; a "table" across both columns from a line of the other column beside a
+  formula's pieces (test_2 pp. 5, 7 — the columns then read row by row); a contents page whose page numbers became
+  columns of their own and whose short rows became a table (test_2 p. 1, another_one p. 7); display equations in pieces
+  (numerator / denominator, a big Σ whose MuPDF box is too short, limits in small type, pieces of one row 2 em apart, a
+  fraction set in the text font beside it), drawn twice (two groups that grew into each other), labels doubled or taken
+  from the other column, a list item's next line made a picture; formulas in a line as text soup; "mc 2" (a rise MuPDF's
+  origin hides); "Gr¨obner", "a̸ = 0", "˙q", "ˇSmejkal" (TeX's accents and slashes); a chess font read as "KQRNBp"; an
+  epigraph read inside the right-hand column, cutting a sentence; a diagram's label left outside it; AJUR's footnote
+  separator drawn twice; a footer logo, full-page pictures and a scanned page's picture left out (the strict rule); the
+  OCR layer of a scan used as the text (now the scan is kept as its picture). Heap corruption found on the way: a
+  JavaScript MuPDF device run over a display list (mupdf.js keeps and drops its packed paths) — the device runs over the
+  page. Checked independently (`scratchpad/epubfix/piccheck.mjs`): every page of the five PDFs that draws a picture has
+  one in the EPUB; a JPEG drawn on its own is in the EPUB byte for byte (the arXiv paper's JPEGs are halves of composed
+  figures, drawn together as the page shows them).
