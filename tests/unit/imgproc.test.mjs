@@ -108,4 +108,38 @@ export default async (t, { load, wasm }) => {
   t.eq(Array.from(ex1.data), [10, 10, 10, 255, 200, 200, 200, 255], 'expand grey → RGBA');
   t.eq(Array.from(ex2.data), [7, 7, 7, 99], 'expand grey+alpha → RGBA');
   t.eq(Array.from(ex3.data), [1, 2, 3, 255, 4, 5, 6, 255], 'expand RGB → RGBA');
+
+  // p_text_lines — the lines' direction from projection profiles (owner, 21 Nov 2026: photos "at different angles"). A
+  // made-up page: 14 lines of "words" (dark blocks with gaps) on white, each word with taller strokes rising above its
+  // band now and then (as b d f h k l t do) and a few dropping below it (g j p q y); turned by known angles.
+  { const W = 900, H = 700, pg = { width: W, height: H, data: new Uint8ClampedArray(W * H * 4).fill(255) };
+    let seed = 7; const rnd = () => (seed = (seed * 1103515245 + 12345) >>> 0) / 4294967296;
+    const ink = (x0, y0, x1, y1) => { for (let y = Math.max(0, y0); y < Math.min(H, y1); y++) for (let x = Math.max(0, x0); x < Math.min(W, x1); x++) pg.data.fill(30, (y * W + x) * 4, (y * W + x) * 4 + 3); };
+    for (let line = 0; line < 14; line++) {
+      const y = 60 + line * 42; let x = 40;
+      while (x < W - 60) {
+        const len = 30 + Math.floor(rnd() * 70);
+        for (let c = x; c < x + len - 6; c += 9) {
+          ink(c, y, c + 6, y + 14); // the x-height band
+          const r = rnd(); if (r < 0.3) ink(c + 1, y - 9, c + 4, y); else if (r < 0.37) ink(c + 1, y + 14, c + 4, y + 21); // rising, dropping
+        }
+        x += len + 12;
+      }
+    }
+    const turnBy = (deg) => { const a = (Math.abs(deg % 90) * Math.PI) / 180, q = Math.round(deg / 90) % 2 !== 0, w0 = q ? H : W, h0 = q ? W : H;
+      return ip.rotate(pg, deg, Math.round(w0 * Math.cos(a) + h0 * Math.sin(a)), Math.round(w0 * Math.sin(a) + h0 * Math.cos(a)), 0xffffffff); };
+    const up = ip.textLines(pg);
+    t.ok(Math.abs(up.angle) < 0.15 && up.turns === 0 && up.contrast > 2 && Math.abs(up.pitch - 42) < 1, `upright: lines at ${up.angle}°, turns ${up.turns}, pitch ${up.pitch.toFixed(1)} px (42), contrast ${up.contrast.toFixed(1)}`);
+    for (const deg of [7, -12, 25, -40]) {
+      const r = ip.textLines(turnBy(deg));
+      t.ok(Math.abs(r.angle - deg) < 0.3 && r.turns === 0, `turned ${deg}°: lines at ${r.angle.toFixed(2)}° (positive: falling to the right), upright once levelled (turns ${r.turns})`);
+    }
+    for (const [o, want, angle] of [[6, 3, 90], [3, 2, 0], [8, 1, 90]]) { // a quarter to the right, upside down, a quarter to the left
+      const r = ip.textLines(ip.orient(pg, o));
+      t.ok(Math.abs(Math.abs(r.angle) - angle) < 0.3 && r.turns === want, `orientation ${o}: lines at ${r.angle}°, ${want} quarter turns to the right set it upright (got ${r.turns}; ink beside the band ${Math.round(r.low)} / ${Math.round(r.high)})`);
+    }
+    const blank = { width: 400, height: 300, data: new Uint8ClampedArray(400 * 300 * 4).fill(240) };
+    t.eq(ip.textLines(blank).turns, -1, 'a blank sheet: no lines (-1)');
+    t.eq(ip.textLines({ width: 20, height: 20, data: new Uint8ClampedArray(1600).fill(0) }).turns, -1, 'a picture too small: no lines (-1)');
+  }
 };

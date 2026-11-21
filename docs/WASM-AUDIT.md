@@ -1093,6 +1093,22 @@ One entry per tab, written before its bug hunt: our module → candidates → ch
   sharpening the page (+2 points on one set of photos, −2 on another; Tesseract's confidence picked the worse reading on
   two of them), upscaling small pages (no gain).
 
+- **Photos at any angle, 21 Nov 2026 (to-do #11 and the owner's "when I click it at different angles"; the Photo
+  Dictionary shares it):** which way up the text stands and how far its lines slant. **Candidates:** Tesseract's own
+  orientation and script detection (OSD) — not in the LSTM-only core the app ships; it needs tesseract.js-core's legacy
+  build (a second core of about 10 MB) and `osd.traineddata` (10.5 MB), and it reports quarter turns only, no slant;
+  Leptonica's skew finder (`pixFindSkewSweepAndSearch`, the projection-profile method) is compiled into the same core
+  but tesseract.js exports nothing of it; OpenCV.js (`minAreaRect` over text boxes, Hough lines) — 8 MB and a pipeline
+  of our own around it all the same. **Decision (rule 2: own WebAssembly):** two looks in imgproc.wasm — `p_text_turns`
+  (the letters: their nearest neighbours give the axis, the letters rising above the x-height against those dropping
+  below the baseline give the top) and `p_text_lines` (projection profiles at every degree and then every tenth: the
+  angle with the sharpest profile, Postl's criterion as Leptonica uses it; the line pitch from the profile's
+  autocorrelation and the ink just outside the x-height band of the average line) — and the glue in
+  `src/lib/upright.ts` that has every turn and levelling they suggest tried by a quick Tesseract reading (the only
+  thing that is never fooled by soft letters). Measured on the 24 photos of the set turned 0 / 25 / −35 / 90 / 180°:
+  67.0 / 63.0 / 59.3 / 66.0 / 65.8 % of the words read right (the page found and straightened alone: 67.0 / 53.9 / 46.1 /
+  55.8 / 1.8 %); the profiles give the axis of all 112 straightened pages (4 orientations × 28 photos) at 800 px.
+
 ### 123. `signature` — Signature Maker (20 Nov 2026)
 - **Engines:** the browser's canvas draws the strokes (its own compiled Skia) and the typed name (its HarfBuzz);
   imgproc.wasm (ours) takes the ink off a photo of paper (`inkToAlpha`), trims and crops; jSquash's OxiPNG and MozJPEG

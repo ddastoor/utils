@@ -2018,32 +2018,37 @@ way, a gallery photo, a page held sideways to a webcam. Measured: the page found
 four ways gives the right turn in all 16 cases (unit `textturns.test.mjs` 36); the Kindle photo turned 90°, 270° and
 180° reads 95 %+ of its words in this tab and gives 90 %+ of the upright photo's uncommon words in the Photo Dictionary,
 also from a phone still lying across the picture (e2e).
-**At any angle (owner, 21 Nov 2026: "especially on the phone, when I click it at different angles"):** before the quarter
-turns, the slant of the lines is measured — the angle from each letter to its nearest neighbour, folded to −45 … 45°, the
-peak of a half-degree histogram (`p_text_turns`' eighth number) — and a slant of 5° or more is levelled (`level` in
-`upright.ts`: the picture turned back on a canvas that holds every corner, the new corners white; a steep slant is
-measured a little short, so what is left is measured on the levelled picture and added, each time from the original).
-**What the letters say is only a suggestion, tried by reading** (`uprightByReading`): on a soft photo the letters run
-together into words and the suggestion can be wrong — the first version, live for a few hours, turned two upright photos
-of the Kindle set over or sideways and read 2 % and 0 % of their words instead of 98 % and 80 % (docs/BUGHUNT.md). Now the
-picture as it is and each picture the suggestion gives are read quickly — the middle of each, at most 1,000 px a side at
-its own scale (a copy made smaller left the text of a whole photo too small to read either way round) — and scored by
-the words read right as the OCR's confidence in each puts it (`score`: words of two letters and more; not the average
+**At any angle (owner, 21 Nov 2026: "especially on the phone, when I click it at different angles"):** both tabs level a
+slanted photo and set it upright before it is read (`src/lib/upright.ts`), from two looks at the ink, both own C in
+imgproc.wasm: **the lines** (`p_text_lines`: the ink of letter and word size projected across every direction, by a
+degree and then a tenth; the direction with the sharpest profile — Postl's criterion, as Leptonica's skew finder uses
+it — is the lines'; sound where letters run together on a soft photo, and exact to a tenth of a degree on the real
+pages) and **the letters** (`p_text_turns`: the axis from each letter's nearest neighbour, the top from the letters that
+rise above the x-height against those that drop below the baseline). A slant of 5° and more is levelled (the picture
+turned back on a canvas that holds every corner, the new corners white). **Nothing they say is trusted alone**
+(`uprightByReading`): on a soft photo the letters run together into words and a look can be wrong — the first version,
+live for a few hours, turned two upright photos of the Kindle set over or sideways and read 2 % and 0 % of their words
+instead of 98 % and 80 % (docs/BUGHUNT.md). Each picture a look suggests, and the picture as it is, is read quickly — the
+middle, at most 1,000 px a side at its own scale (smaller copies and 700 px crops decided worse) — and scored by the words
+read right as the OCR's confidence in each puts them (`score`: words of two letters and more; not the average
 confidence — a page lying sideways is read confidently in a few places, the OCR turning some lines by itself); a change
-is kept only when it scores more than 1.15 × the picture as it is + 3. Only when the letters say upright and level is
-nothing read. A photographed page whose outline is found is straightened by the page finder already; the levelling serves
-a close-up with no edge in sight (a Kindle's screen filling the photo, a book page, a newspaper column) and a page the
-finder misses. The line says "the picture was levelled (12°) to read it" ("levelled (7°) and turned a quarter to the
-left"; the Photo Dictionary: "the photo was …"). **Measured** (`node scripts/measure-ocr.mjs DIR --prep page,page+level
---tilt DEG`: the 24 Kindle and newspaper photos of `scripts/make-kindle-photos.py`, turned on their own ground with a
-camera's noise): level photos 67.0 % of their words read right, as before the levelling (it changes none of them); turned
-25° 53.9 → 61.9 %, −35° 46.1 → 57.8 %, a quarter 55.8 → 63.5 % (page found and straightened → + level and turn). Unit
-`textturns.test.mjs` 73 (the pages of three real photos turned 8° … 200° come back level within a degree, the soft video
-frame within two; a reader with set answers: every refusal and acceptance); e2e: the whole Kindle photo turned 30° and
-−40° reads 95 %+ of its words, a close-up of its screen (no edge, words cut at the sides) turned 20° and −25° 90 %+ of the
-words of the close-up as it is, the two soft upright photos the first version spoiled (`kindle-blur`, `kindle-comfortaa`)
-read as they stand — and the Photo Dictionary gives 90 %+ of the same uncommon words (`tests/e2e/_tilt.mjs`). Next: the
-lines' direction and slant from projection profiles (robust where letters run together), see docs/RESUME.md.
+is kept only when it scores above 1.15 × the picture as it is + 3. Nothing is read when both looks say upright and level
+(never wrong on the set); only the picture as it is when its lines run across, nothing needs levelling and it reads at
+65 % confidence or more (text upside down reads far below); when the looks see the lines run different ways (a desk's
+stripes in a whole photo), each one's direction and slant is tried. The line says "the picture was levelled (12°) to read
+it" ("levelled (7°) and turned a quarter to the left"; the Photo Dictionary: "the photo was …"). **Measured**
+(`node scripts/measure-ocr.mjs DIR --prep page,page+level --tilt DEG`: the 24 Kindle and newspaper photos of
+`scripts/make-kindle-photos.py`, turned on their own ground with a camera's noise; the page found and straightened →
+also set upright and level): level 67.0 → 67.0 % of the words read right (none worse), turned 25° 53.9 → 63.0 %, −35°
+46.1 → 59.3 %, a quarter 55.8 → 66.0 %, upside down 1.8 → 65.8 %. The cost: about one quick reading more for most upright
+photos (two thirds of them; none where both looks agree). What still fails is the page finder on some tilted whole
+photos (it takes a wrong outline) and photos too soft to read at any angle. Unit `textturns.test.mjs` 74 (the pages of
+three real photos turned 8° … 200° come back level — the profiles measure the turn exactly —, a reader that knows the
+page: wrong suggestions refused, the right way round kept) and `imgproc.test.mjs` (a made-up page at known angles and in
+four orientations); e2e: the whole Kindle photo turned 30° and −40° reads 95 %+ of its words, a close-up of its screen
+(no edge, words cut at the sides) turned 20° and −25° 90 %+ of the words of the close-up as it is, the two soft upright
+photos the first version spoiled (`kindle-blur`, `kindle-comfortaa`) read as they stand — and the Photo Dictionary gives
+90 %+ of the same uncommon words (`tests/e2e/_tilt.mjs`).
 
 ### Camera in every tab that takes a picture (owner, 20 Nov 2026)
 Owner: "In all apps that offer to upload an image, also add the option of taking a photo if it's a phone app, and take
@@ -2483,7 +2488,7 @@ stay **public** (the source of the deployed site is then available to every user
 |---|---|---|---|
 | libsodium 1.0.20 + own MD5/SHA-1/SHA-3/CRC-32 + OpenBSD bcrypt + own CSPRNG helpers (shuffle, sampling, UUID v4/v7 — v7 values always increase: RFC 9562 §6.2 method 2, a random step inside one millisecond, clock steps back of up to 10 s tolerated) + USODIUM1 header | C | **us** (`wasm/crypto`) | rng, picker, teams (draws without repeats, shuffles — what libsodium.js lacks: `docs/WASM-AUDIT.md` 155), uuid, mock data, line shuffle; the USODIUM1 header for sodium and sharelink (beside libsodium.js); its hashes (`u_hash_*`) are no longer called (hash-wasm since Nov 2026) |
 | **libsodium.js** — `libsodium-wrappers-sumo` 0.8.4 (libsodium **1.0.22**; the sumo build: the standard one has no Argon2) | C | the libsodium project (official WebAssembly build, embedded in the module) — binding `src/wasm/libsodium.ts`, format `src/lib/usodium.ts`, in `src/workers/crypto.worker.ts` | sodium, sharelink: Argon2id + XChaCha20-Poly1305 secretstream (`docs/WASM-AUDIT.md`, tab 101); password, passphrase, dice, coin: randombytes_uniform (tabs 104, 105, 155) |
-| imgproc (adjustments, resize, OpenCV's area resize (`p_resize_area`, equal to cv2's INTER_AREA), lossless orient/crop, filters, matting, warp + homography, doc enhance) | C (own code) | **us** (`wasm/imgproc`) | image tools, scanner, passport, cartoon |
+| imgproc (adjustments, resize, OpenCV's area resize (`p_resize_area`, equal to cv2's INTER_AREA), lossless orient/crop, filters, matting, warp + homography, doc enhance, the page in a photo (`p_page_quad`), which way up the text stands and how its lines slant (`p_text_turns`: the letters; `p_text_lines`: projection profiles)) | C (own code) | **us** (`wasm/imgproc`) | image tools, scanner, passport, cartoon, ocr and photodict (pages found, set upright and level) |
 | metacore (EXIF → JSON, lossless metadata strip JPEG/PNG/WebP, JPEG DPI, image sniffing) | C (own code) | **us** (`wasm/metacore`) | exif, image loading, passport/formphoto DPI |
 | BusyBox 1.38.0 (130 applets) + compat shims | C | **us** (`wasm/busybox`) | terminal, bc console |
 | jq 1.8.2 (+ oniguruma) | C | **us** (`wasm/jq`) | jq |

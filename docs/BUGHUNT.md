@@ -2607,8 +2607,17 @@ cannot. Three new suites; each fails on the build before its fixes.
   answers: a wrong suggestion refused, a right one kept, a sideways page read confidently in places still turned); e2e OCR
   76 and Photo Dictionary 114 — the two spoiled photos are fixtures now (`kindle-blur.jpg`, `kindle-comfortaa.jpg`: read as
   they stand), the Kindle photo turned 30° / −40°, a close-up of its screen turned 20° / −25° (`tests/e2e/_tilt.mjs`).
-  Still open: the letters' direction on soft text (a page whose lines run down the picture judged as running across is
-  never tried the right way) — the lines' direction and slant from projection profiles next.
+  Then (the same day): **the lines' direction and slant from projection profiles** (`p_text_lines`, own C: the direction
+  with the sharpest profile of the ink projected across it) — it gave the axis of all 112 straightened pages (28 photos
+  × 4 orientations), where the letters missed several soft ones, and measures a turn exactly (8.0°, 15.0°, 35.0°); a
+  first version always found 45° (whole-pixel bins alias at that angle: each pixel is shared between two bins now). Its
+  own up / down (the ink just outside the x-height band of the average line) was right less often than the letters', so
+  a turn is taken without reading only when the two agree on "upright" (never wrong on the set); when they see the lines
+  run different ways (a desk's stripes in a whole photo) each one's direction and slant is tried. 700 px quick readings
+  instead of 1,000 saved 13 % of the time and decided worse (a soft upright photo 89 → 60 %): kept at 1,000. Result:
+  level 67.0 %, 25° 63.0 %, −35° 59.3 %, a quarter 66.0 %, upside down 65.8 % (the page alone: 67.0 / 53.9 / 46.1 / 55.8 /
+  1.8 %). Tests: unit imgproc (a made-up page at known angles and in four orientations), textturns 74 (a reader that
+  knows the page); e2e OCR 76, Photo Dictionary 114.
 - **TTS offline: XTTS-v2 broke on every fresh install — a library released the same day (21 Nov 2026; to-do #7).** The
   survey of XTTS's new Indian voices stopped at its first voice: `'NoneType' object has no attribute 'get_seq_length'`
   in coqui-tts's GPT step. coqui-tts 0.28.0 asks only for transformers ≥ 4.57; transformers 5.24.0, out that day, changed

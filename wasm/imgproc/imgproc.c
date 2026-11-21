@@ -1172,3 +1172,174 @@ API int p_text_turns(const uint8_t *px, int w, int h, int32_t *out) {
     out[0] = turns;
     return turns;
 }
+
+/* ======================================================================== the lines' direction from projection profiles */
+/* Owner, 21 Nov 2026: photos taken "at different angles". The letter-based p_text_turns misjudges soft photos — their
+ * letters run together into words, whose nearest neighbour may be the word below. This looks at the ink as a whole:
+ * (1) ink as in p_text_turns, in the pieces of letter or word size (the Kindle's body, a photo's edges and other large
+ * shapes left out, specks too); (2) for every direction θ (−90° … 89° by one degree, then by a tenth around the best)
+ * the ink projected across θ into a profile of 1-px bins — text lines running along θ give the profile its sharpest
+ * rises and falls: the score is Σ (P[i+1] − P[i])² (Postl's criterion, the one Leptonica's skew finder uses);
+ * (3) at the best θ the profile folded on the line pitch (the first peak of its autocorrelation) is the average line —
+ * the side of its x-height band with more ink is the top (Latin script: b d f h k l t, capitals and digits rise above
+ * it, only g j p q y drop below the baseline: several times the ink).
+ * out[8] (floats): θ, the lines' direction in degrees from the x axis toward y (clockwise on the screen), −90 < θ ≤ 90;
+ * the score at θ over the score at right angles to it; the ink beside the band on the side of smaller t
+ * (t = −x·sinθ + y·cosθ) and on the side of larger t; the pitch in pixels; its strength (autocorrelation at the pitch
+ * over at 0); the ink pixels used; and the turns. Returns the turns: 0–3, the quarter turns to the right that set the
+ * text upright once it is levelled (as p_text_turns), −1 when there is too little ink or no direction stands out, −2
+ * when the direction does but not which side is the top. */
+/* (each pixel shared between the two bins it falls between: whole bins would alias — at 45° the pixel grid alone gives the
+ * profile a comb of sharp steps) */
+static double tl_score(const int16_t *xs, const int16_t *ys, int k, double deg, int off, float *prof, int len) {
+    double a = deg * 3.14159265358979323846 / 180.0, s = sin(a), c = cos(a);
+    for (int i = 0; i < len; i++) prof[i] = 0;
+    for (int i = 0; i < k; i++) {
+        double t = -xs[i] * s + ys[i] * c + off; int b = (int)floor(t); float f = (float)(t - b);
+        if (b >= 0 && b + 1 < len) { prof[b] += 1 - f; prof[b + 1] += f; }
+    }
+    double sc = 0; for (int i = 1; i < len; i++) { double d = prof[i] - prof[i - 1]; sc += d * d; }
+    return sc;
+}
+static double tl_norm(double d) { while (d > 90) d -= 180; while (d <= -90) d += 180; return d; }
+
+API int p_text_lines(const uint8_t *px, int w, int h, float *out) {
+    for (int k = 0; k < 8; k++) out[k] = 0;
+    int n = w * h;
+    if (w < 32 || h < 32) return -1;
+    uint8_t *g = malloc(n), *ink = calloc(n, 1);
+    uint32_t *ii = malloc(sizeof(uint32_t) * (size_t)(w + 1) * (h + 1));
+    int32_t *stack = malloc(sizeof(int32_t) * n);
+    if (!g || !ink || !ii || !stack) { free(g); free(ink); free(ii); free(stack); return -1; }
+    unsigned hist[256] = {0};
+    for (int i = 0; i < n; i++) { const uint8_t *p = px + (size_t)i * 4; g[i] = (77 * p[0] + 150 * p[1] + 29 * p[2]) >> 8; hist[g[i]]++; }
+    { int c = 0, med = 0; while (med < 255 && (c += hist[med]) < n / 2) med++; if (med < 100) for (int i = 0; i < n; i++) g[i] = 255 - g[i]; }
+    for (int x = 0; x <= w; x++) ii[x] = 0;
+    for (int y = 0; y < h; y++) {
+        uint32_t row = 0; ii[(size_t)(y + 1) * (w + 1)] = 0;
+        for (int x = 0; x < w; x++) { row += g[y * w + x]; ii[(size_t)(y + 1) * (w + 1) + x + 1] = ii[(size_t)y * (w + 1) + x + 1] + row; }
+    }
+    int r = (w < h ? w : h) / 40; if (r < 8) r = 8;
+    for (int y = 0; y < h; y++) {
+        int y0 = y - r < 0 ? 0 : y - r, y1 = y + r + 1 > h ? h : y + r + 1;
+        for (int x = 0; x < w; x++) {
+            int x0 = x - r < 0 ? 0 : x - r, x1 = x + r + 1 > w ? w : x + r + 1;
+            uint32_t s = ii[(size_t)y1 * (w + 1) + x1] - ii[(size_t)y0 * (w + 1) + x1] - ii[(size_t)y1 * (w + 1) + x0] + ii[(size_t)y0 * (w + 1) + x0];
+            int m = (int)(s / (uint32_t)((x1 - x0) * (y1 - y0))), d = m * 12 / 100; if (d < 14) d = 14;
+            ink[y * w + x] = g[y * w + x] < m - d;
+        }
+    }
+    free(ii); free(g);
+    /* components: their size first (1 → 2), then the kept ones' pixels marked 3, the others 4 */
+    int cap = 60000, nb = 0; tt_box *bx = malloc(sizeof(tt_box) * cap); int32_t *seed = malloc(sizeof(int32_t) * cap);
+    if (!bx || !seed) { free(ink); free(stack); free(bx); free(seed); return -1; }
+    for (int s0 = 0; s0 < n; s0++) {
+        if (ink[s0] != 1) continue;
+        int top = 0, cnt = 0; tt_box b = { w, h, -1, -1, 0 }; stack[top++] = s0; ink[s0] = 2;
+        while (top) {
+            int i = stack[--top], x = i % w, y = i / w; cnt++;
+            if (x < b.x0) b.x0 = x; if (x > b.x1) b.x1 = x; if (y < b.y0) b.y0 = y; if (y > b.y1) b.y1 = y;
+            for (int dy = -1; dy <= 1; dy++) for (int dx = -1; dx <= 1; dx++) {
+                int xx = x + dx, yy = y + dy; if (xx < 0 || yy < 0 || xx >= w || yy >= h) continue;
+                int j = yy * w + xx; if (ink[j] == 1) { ink[j] = 2; stack[top++] = j; }
+            }
+        }
+        b.n = cnt;
+        if (nb < cap) { bx[nb] = b; seed[nb] = s0; nb++; }
+    }
+    /* the size of a piece: the median of the larger side of those of three pixels or more */
+    int *tmp = malloc(sizeof(int) * (nb ? nb : 1)), nt = 0;
+    for (int q = 0; q < nb; q++) if (bx[q].n >= 3) { int bw = bx[q].x1 - bx[q].x0 + 1, bh = bx[q].y1 - bx[q].y0 + 1; tmp[nt++] = bw > bh ? bw : bh; }
+    if (nt < 30) { free(tmp); free(ink); free(stack); free(bx); free(seed); out[6] = 0; return -1; }
+    int sz = (int)(tt_median(tmp, nt) + 0.5f); if (sz < 3) sz = 3;
+    free(tmp);
+    int lim = (w < h ? w : h) / 3, kept = 0;
+    for (int q = 0; q < nb; q++) {
+        int bw = bx[q].x1 - bx[q].x0 + 1, bh = bx[q].y1 - bx[q].y0 + 1, m = bw > bh ? bw : bh, t = bw < bh ? bw : bh;
+        int keep = bx[q].n >= 3 && 2 * m >= sz && m <= 8 * sz && m <= lim && t <= 3 * sz;
+        uint8_t mark = keep ? 3 : 4; int top = 0; stack[top++] = seed[q]; ink[seed[q]] = mark;
+        while (top) {
+            int i = stack[--top], x = i % w, y = i / w;
+            for (int dy = -1; dy <= 1; dy++) for (int dx = -1; dx <= 1; dx++) {
+                int xx = x + dx, yy = y + dy; if (xx < 0 || yy < 0 || xx >= w || yy >= h) continue;
+                int j = yy * w + xx; if (ink[j] == 2) { ink[j] = mark; stack[top++] = j; }
+            }
+        }
+        if (keep) kept += bx[q].n;
+    }
+    free(bx); free(seed); free(stack);
+    if (kept < 400) { free(ink); out[6] = kept; return -1; }
+    /* the kept ink's pixels (every one, or every second, third … beyond 250,000) */
+    int stride = kept > 250000 ? (kept + 249999) / 250000 : 1, k = 0, c0 = 0;
+    int16_t *xs = malloc(sizeof(int16_t) * (kept / stride + 2)), *ys = malloc(sizeof(int16_t) * (kept / stride + 2));
+    if (!xs || !ys) { free(ink); free(xs); free(ys); return -1; }
+    for (int i = 0; i < n; i++) if (ink[i] == 3 && (c0++ % stride) == 0) { xs[k] = (int16_t)(i % w); ys[k] = (int16_t)(i / w); k++; }
+    free(ink);
+    out[6] = (float)k;
+    int off = w + h + 2, len = 2 * off + 2;
+    float *prof = malloc(sizeof(float) * len);
+    double *sc = malloc(sizeof(double) * 180);
+    if (!prof || !sc) { free(xs); free(ys); free(prof); free(sc); return -1; }
+    int best = 0;
+    for (int a = 0; a < 180; a++) { sc[a] = tl_score(xs, ys, k, a - 90, off, prof, len); if (sc[a] > sc[best]) best = a; }
+    double th = best - 90, top = sc[best];
+    for (int q = -10; q <= 10; q++) { double d = best - 90 + q * 0.1, v = tl_score(xs, ys, k, d, off, prof, len); if (v > top) { top = v; th = d; } }
+    th = tl_norm(th);
+    double across = tl_score(xs, ys, k, tl_norm(th + 90), off, prof, len);
+    double contrast = across > 0 ? top / across : 99;
+    /* the profile at θ, the line pitch and the average line */
+    tl_score(xs, ys, k, th, off, prof, len);
+    free(xs); free(ys); free(sc);
+    int i0 = 0, i1 = len - 1; while (i0 < len && prof[i0] <= 0) i0++; while (i1 > i0 && prof[i1] <= 0) i1--;
+    int span = i1 - i0 + 1, maxlag = span / 3; if (maxlag > 400) maxlag = 400;
+    double mean = 0; for (int i = i0; i <= i1; i++) mean += prof[i]; mean /= span;
+    double r0 = 0; for (int i = i0; i <= i1; i++) r0 += (prof[i] - mean) * (prof[i] - mean);
+    double pitch = 0, strength = 0;
+    if (maxlag > 6 && r0 > 0) {
+        double prev = 1, rbest = 0; int lbest = 0, crossed = 0;
+        double *rr = malloc(sizeof(double) * (maxlag + 2));
+        for (int lag = 0; lag <= maxlag + 1; lag++) { double s = 0; for (int i = i0; i + lag <= i1; i++) s += (prof[i] - mean) * (prof[i + lag] - mean); rr[lag] = s / r0; }
+        for (int lag = 2; lag <= maxlag; lag++) {
+            if (rr[lag] < 0) crossed = 1;
+            if (crossed && rr[lag] > rr[lag - 1] && rr[lag] >= rr[lag + 1] && rr[lag] > rbest) { rbest = rr[lag]; lbest = lag; }
+            prev = rr[lag];
+        }
+        (void)prev;
+        if (lbest) {
+            double a = rr[lbest - 1], b = rr[lbest], cc = rr[lbest + 1], den = a - 2 * b + cc;
+            pitch = lbest + (den != 0 ? 0.5 * (a - cc) / den : 0); strength = rbest;
+        }
+        free(rr);
+    }
+    out[0] = (float)th; out[1] = (float)contrast; out[4] = (float)pitch; out[5] = (float)strength;
+    if (contrast < 1.15) { free(prof); return -1; }
+    int turns = -2;
+    if (pitch >= 4 && strength > 0.1) {
+        int M = (int)(pitch + 0.5); double *A = calloc(M, sizeof(double)), lo = 0, hi = 0;
+        for (int i = i0; i <= i1; i++) { double f = fmod((i - i0) / pitch, 1.0); int b = (int)(f * M); if (b >= M) b = M - 1; A[b] += prof[i]; }
+        /* smoothed a little; the gap between lines = the lowest bin, the band = the bins of half the highest and more
+         * around the highest; the ink above the gap's level, from the gap to the band on each side */
+        double *Sm = malloc(sizeof(double) * M); int gi = 0, mi = 0;
+        for (int b = 0; b < M; b++) Sm[b] = (A[(b + M - 1) % M] + 2 * A[b] + A[(b + 1) % M]) / 4;
+        for (int b = 0; b < M; b++) { if (Sm[b] < Sm[gi]) gi = b; if (Sm[b] > Sm[mi]) mi = b; }
+        double base = Sm[gi], half = base + 0.5 * (Sm[mi] - base);
+        int cs = mi, ce = mi;
+        for (int q = 1; q < M; q++) { int b = (mi - q + M) % M; if (Sm[b] < half || b == gi) break; cs = b; }
+        for (int q = 1; q < M; q++) { int b = (mi + q) % M; if (Sm[b] < half || b == gi) break; ce = b; }
+        /* the ink just outside the band, as far as 0.6 of its height on each side (the rising letters reach about that
+         * far, the dropping ones less) and never past the gap */
+        int hc = (ce - cs + M) % M + 1, wz = (int)(0.6 * hc + 0.5); if (wz < 2) wz = 2;
+        for (int q = 1; q <= wz; q++) { int b = (cs - q + M) % M; if (b == gi || b == ce) break; lo += Sm[b] - base; }   /* the side of smaller t */
+        for (int q = 1; q <= wz; q++) { int b = (ce + q) % M; if (b == gi || b == cs) break; hi += Sm[b] - base; }        /* the side of larger t */
+        out[2] = (float)lo; out[3] = (float)hi;
+        if ((lo > 1.4 * hi || hi > 1.4 * lo) && lo + hi > 0) {
+            /* the top of the text: toward smaller t when lo wins, i.e. along −n, n = (−sinθ, cosθ) */
+            double a = th * 3.14159265358979323846 / 180.0, ux = lo > hi ? sin(a) : -sin(a), uy = lo > hi ? -cos(a) : cos(a);
+            double bestd = -2; for (int q = 0; q < 4; q++) { if (-uy > bestd) { bestd = -uy; turns = q; } double t2 = ux; ux = -uy; uy = t2; }
+        }
+        free(A); free(Sm);
+    }
+    free(prof);
+    out[7] = (float)turns;
+    return turns;
+}

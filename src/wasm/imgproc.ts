@@ -134,6 +134,18 @@ export function bindImgproc(e: any) {
         return { turns: t, along: v[1], across: v[2], up: v[3], down: v[4], letters: v[5], across0: v[6] === 1, slant: v[7] / 100 };
       } finally { e.p_free(s); e.p_free(o); }
     },
+    /** The lines' direction from projection profiles (p_text_lines): `turns` 0–3 (the quarter turns to the right that
+     *  set the text upright once levelled), -1 when no direction stands out, -2 when it does but not which side is the
+     *  top; `angle`: the lines' direction in degrees from the x axis toward y (−90 < angle ≤ 90); `contrast`: how much
+     *  sharper the profile is along the lines than across them; `low` / `high`: the ink beside the x-height band on
+     *  either side; `pitch` (px) and its `strength`; `ink`: the ink pixels used. */
+    textLines(img: Img): { turns: number; angle: number; contrast: number; low: number; high: number; pitch: number; strength: number; ink: number } {
+      const s = put(img.data), o = e.p_malloc(32);
+      try {
+        const t = e.p_text_lines(s, img.width, img.height, o), v = new Float32Array(mem(), o, 8);
+        return { turns: t, angle: v[0], contrast: v[1], low: v[2], high: v[3], pitch: v[4], strength: v[5], ink: v[6] };
+      } finally { e.p_free(s); e.p_free(o); }
+    },
     /** Perspective-correct the quad (TL,TR,BR,BL in source px) into a w×h image. */
     warp(img: Img, corners: number[], w: number, h: number): Img {
       const qp = e.p_malloc(32); new Float32Array(mem(), qp, 8).set(corners.slice(0, 8));
