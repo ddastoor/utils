@@ -36,8 +36,14 @@ The owner adds items here in chat ("add … to to do"). Newest instructions win.
     `tests/unit/repo-paths` refuses such names), and the build stopped on a path taken from a file:// URL (59 places,
     now `fileURLToPath`). Files as Windows programs save them: the Hash tab's checksum lists and Sodium's encrypted
     text read UTF-16 now. X11 / Wayland: the shared note also in Screen Info, Screenshot's Wayland tip about its
-    countdown window; `tests/e2e/os.e2e.mjs` opens all 172 PC tabs as Windows, X11 and Wayland. Next: the full
-    Windows run's results (in progress), what they find fixed and pinned.
+    countdown window; `tests/e2e/os.e2e.mjs` opens all 172 PC tabs as Windows, X11 and Wayland. Then: Extract
+    Archive's "Save all to a folder" makes names Windows can create (aux.c → aux_.c, `notes.` → notes_, README / readme
+    kept apart; elsewhere a name the browser refuses takes that form); the Patch tab keeps a Windows file's CR LF; the
+    Keyboard Test registers PrintScreen by its release (Windows keeps its key-down) and takes the key-up (a lone Alt
+    moved the focus to Chrome's menu); the offline speech script for Windows ends with its real exit code and **was run
+    for real on Windows** (`.github/workflows/windows-tts.yml`: Piper — the lock's versions, a WAV and an MP3, exit 1 for
+    a voice that cannot be made; then one job per engine). Next: the per-engine Windows results and the full browser
+    run's (both in progress), what they find fixed and pinned.
 
 ## Done
 - **12. Photo Dictionary: the final list of words in alphabetical order** (owner, 21 Nov 2026) — done 21 Nov 2026: the

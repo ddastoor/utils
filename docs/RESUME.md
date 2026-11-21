@@ -32,8 +32,13 @@ fills, clean what can be made again and carry on (owner, 21 Nov 2026).
 todo.md #13 has the progress. The Windows run: GitHub Actions → "Windows check" (`.github/workflows/windows.yml`,
 workflow_dispatch; trigger it with the GitHub tools, read its log with get_job_logs; the log is also an artifact).
 Done so far: Windows checkout (con.json / prn.json), the build's file:// paths, UTF-16 files in Hash and Sodium,
-X11 / Wayland notes (Screen Info, Screenshot), `os.e2e.mjs`. Next: read the full Windows run, tell failures of the app
-on Windows from suites that need a Linux tool as their reference, fix the first, then the potentials process.
+X11 / Wayland notes (Screen Info, Screenshot), `os.e2e.mjs`, Extract Archive's folder names, the Patch tab's CR LF, the
+Keyboard Test's PrintScreen / Alt, the offline speech script's exit code. **The offline speech script runs on Windows**
+("Windows offline speech", `.github/workflows/windows-tts.yml`; input `voices` = a JSON list, one job per entry of voice
+ids — `tests/unit/offline-tts-run.test.mjs` with OFFLINE_TTS_E2E=1 and OFFLINE_TTS_VOICES): Piper passed; one job per
+engine was started on 21 Nov 2026 (18 jobs). Next: read those (get_job_logs per job), fix what fails on Windows; read
+the full browser run ("Windows check" run 3, id 44951297119), tell failures of the app on Windows from suites that need
+a Linux tool as their reference, fix the first; then the potentials process.
 **Then, in the owner's order:** #8 Regex Tester flavours (research done: PCRE2 — `pcre2-wasm` 10.49.3 or our own build;
 Google's `re2-wasm` 1.0.2 for RE2 / Go; `vscode-oniguruma` 2.0.1 for Ruby / Oniguruma; Python's `re` through the Python
 tab's CPython and the `regex` module; Perl through ExifTool's zeroperl, already on the site; JavaScript as now; Java and
