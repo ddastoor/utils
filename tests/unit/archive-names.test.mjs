@@ -17,6 +17,19 @@ export default async (t, { load }) => {
   t.eq(A.safeParts('../../etc/passwd'), ['etc', 'passwd'], 'no ".." parts when saving to a folder');
   t.eq(A.safeParts('/abs//x/./y.txt'), ['abs', 'x', 'y.txt'], 'no empty or "." parts');
   t.eq(A.safeParts('a\\b:c?.txt'), ['a', 'b_c_.txt'], 'backslashes as folders; characters Windows refuses replaced');
+  // on Windows (to-do #13): names Windows cannot create, whatever the extension — and only there
+  t.eq(A.safeParts('linux/drivers/aux.c', true), ['linux', 'drivers', 'aux_.c'], 'Windows: aux.c (the Linux kernel has one) → aux_.c — AUX is a device there');
+  t.eq(A.safeParts('linux/drivers/aux.c'), ['linux', 'drivers', 'aux.c'], '… elsewhere aux.c stays aux.c');
+  t.eq(['CON', 'con.json', 'Prn.txt.bak', 'nul', 'COM1.log', 'com0', 'lpt9.x', 'lpt¹.txt', 'CONIN$', 'aux/x.txt'].map((n) => A.safeParts(n, true).join('/')), ['CON_', 'con_.json', 'Prn_.txt.bak', 'nul_', 'COM1_.log', 'com0_', 'lpt9_.x', 'lpt¹_.txt', 'CONIN$_', 'aux_/x.txt'], 'Windows: every device name, in any case, with any extension, also a folder');
+  t.eq(['console.log', 'conf', 'auxiliary.c', 'com10', 'lpt', 'icon.png', 'x.con'].map((n) => A.safeParts(n, true).join('/')), ['console.log', 'conf', 'auxiliary.c', 'com10', 'lpt', 'icon.png', 'x.con'], '… but no name that only begins with one or ends with one');
+  t.eq(A.safeParts('notes./draft. /end..', true), ['notes_', 'draft__', 'end__'], 'Windows: a dot or space at the end of a name (Windows would drop it) becomes _');
+  t.eq(A.safeParts('notes./draft. '), ['notes.', 'draft. '], '… elsewhere they stay');
+  const taken = new Set();
+  t.eq(['README', 'readme', 'ReadMe', 'a.txt', 'A.TXT', 'a (2).txt', '.bashrc', '.BASHRC', 'v1.2 release notes', 'V1.2 Release Notes', 'x.tar.gz', 'X.tar.gz'].map((n) => A.freeName(n, taken, true)),
+    ['README', 'readme (2)', 'ReadMe (3)', 'a.txt', 'A (2).TXT', 'a (2) (2).txt', '.bashrc', '.BASHRC (2)', 'v1.2 release notes', 'V1.2 Release Notes (2)', 'x.tar.gz', 'X.tar (2).gz'],
+    'Windows and macOS: two names that differ only by case get (2), (3) … (the second would overwrite the first)');
+  const linux = new Set();
+  t.eq(['README', 'readme', 'README'].map((n) => A.freeName(n, linux, false)), ['README', 'readme', 'README (2)'], 'Linux: README and readme are two files; only the very same name again is renamed');
 
   // ---- what 7zz prints for an archive (src/lib/sevenzip-text.ts), held to the native 7z's own listings
   const { parseList } = await load('/src/lib/sevenzip-text.ts');

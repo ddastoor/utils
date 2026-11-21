@@ -30,5 +30,31 @@ export function archiveName(name: string, format: 'zip' | '7z'): string {
   return `${base}.${format}`;
 }
 
-/** A file name's parts that are safe to create on a disk (no empty, "." or ".." parts; characters Windows refuses replaced). */
-export const safeParts = (p: string) => p.replace(/\\/g, '/').split('/').filter((x) => x && x !== '.' && x !== '..').map((x) => x.replace(/[<>:"|?*\u0000-\u001f]/g, '_'));
+const DEVICE = /^(con|prn|aux|nul|com[0-9¹²³]|lpt[0-9¹²³]|conin\$|conout\$)$/i;
+/** The parts of a path from an archive, safe to create in a folder: no empty, "." or ".." parts; < > : " | ? * and
+ *  control characters replaced. `windows` (the browser runs on Windows — to-do #13): also no device names, which Windows
+ *  cannot create whatever the extension (aux.c → aux_.c, as in the Linux kernel's sources), and no dot or space at the end
+ *  of a name (Windows drops them: "notes." would become "notes"). */
+export const safeParts = (p: string, windows = false) => p.replace(/\\/g, '/').split('/').filter((x) => x && x !== '.' && x !== '..').map((x) => {
+  let s = x.replace(/[<>:"|?*\u0000-\u001f]/g, '_');
+  if (windows) {
+    s = s.replace(/[. ]+$/, (m) => '_'.repeat(m.length));
+    const dot = s.indexOf('.'), stem = dot < 0 ? s : s.slice(0, dot);
+    if (DEVICE.test(stem)) s = `${stem}_${s.slice(stem.length)}`;
+  }
+  return s;
+});
+
+/** A file name not yet taken in a folder. Windows and macOS do not tell README from readme — the second file written would
+ *  overwrite the first — so with `foldCase` a name taken in any case gets " (2)", " (3)" … before its extension. `taken`:
+ *  the names used so far in that folder (kept up to date here). */
+export function freeName(name: string, taken: Set<string>, foldCase: boolean): string {
+  const key = (n: string) => (foldCase ? n.toLowerCase() : n);
+  let out = name;
+  if (taken.has(key(out))) {
+    const m = /^(.+?)(\.[^.]{1,10})?$/.exec(name) ?? [name, name, ''];
+    for (let i = 2; taken.has(key(out = `${m[1]} (${i})${m[2] ?? ''}`)); i++);
+  }
+  taken.add(key(out));
+  return out;
+}

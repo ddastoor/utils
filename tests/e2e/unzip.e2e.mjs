@@ -116,6 +116,45 @@ open(out+'/junk.zip','wb').write(b'this is not an archive at all'*10)`, src, tmp
   ok(await page.locator('.note-err').count() > 0 || await page.locator('.file-row').count() > 0, `a zip cut in half: said, or what can be read is listed (${(await notes()).join(' | ')})`);
   const unexpected = page.errors.filter((x) => !/password|Could not open|not an archive|Invalid|signature|Zip|damaged/i.test(x));
   ok(!unexpected.length, `no unexpected page errors ${unexpected.join(' | ')}`);
+  // ---- "Save all to a folder" writes names the computer's system can hold (to-do #13). The folder is a stand-in that
+  // behaves as Windows' does (no device names, no name ending with a dot or a space, README = readme) or as Linux's.
+  const mkn = spawnSync('python3', ['-c', `import zipfile,sys
+with zipfile.ZipFile(sys.argv[1],'w') as z:
+  for n,b in [('linux/drivers/aux.c','int aux;'),('README','upper'),('readme','lower'),('notes.','dot'),('con/x.txt','in con'),('docs/Readme.md','one'),('Docs/readme.md','two')]: z.writestr(n,b)`, join(tmp, 'names.zip')], { encoding: 'utf8' });
+  ok(mkn.status === 0, `names.zip built ${mkn.stderr}`);
+  const saveAll = async (ua, windows) => {
+    const p = await newPage(ua ? { userAgent: ua } : {});
+    await p.addInitScript((windows) => {
+      const saved = {}; window.__saved = saved;
+      const DEV = /^(con|prn|aux|nul|com[0-9]|lpt[0-9])$/i;
+      const check = (n) => { if (windows && (DEV.test(n.split('.')[0]) || /[. ]$/.test(n))) throw new DOMException(`Windows cannot create "${n}"`, 'InvalidModificationError'); };
+      const dir = (path, subs = new Map()) => ({
+        kind: 'directory', name: path,
+        async getDirectoryHandle(n) { check(n); const k = windows ? n.toLowerCase() : n; if (!subs.has(k)) subs.set(k, dir(`${path}${n}/`)); return subs.get(k); },
+        async getFileHandle(n) {
+          check(n); const at = `${path}${n}`;
+          return { kind: 'file', name: n, async createWritable() { const parts = []; return { async write(d) { parts.push(d); }, async close() { saved[windows ? at.toLowerCase() : at] = `${at}=${await new Blob(parts).text()}`; } }; } };
+        },
+      });
+      window.showDirectoryPicker = async () => dir('');
+      if (!('showSaveFilePicker' in window)) window.showSaveFilePicker = async () => { throw new Error('not used'); };
+    }, windows);
+    await p.goto(`${base}#/unzip`);
+    await p.locator('input[type=file]').setInputFiles(join(tmp, 'names.zip'));
+    await p.locator('.file-row').first().waitFor({ timeout: 30000 });
+    await p.getByRole('button', { name: 'Save all to a folder' }).click();
+    await p.waitForFunction(() => [...document.querySelectorAll('.toast')].some((t) => /saved|cannot/.test(t.textContent)), null, { timeout: 30000 });
+    const r = { files: await p.evaluate(() => Object.values(window.__saved).sort()), toasts: await p.locator('.toast').allTextContents() };
+    await p.close();
+    return r;
+  };
+  const win = await saveAll('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36', true);
+  ok(win.toasts.some((t) => t === '7 files saved.'), `Windows: every file of the archive is saved (${win.toasts.join(' | ')}) — "aux.c", "notes." and "con" stopped the saving there`);
+  ok(JSON.stringify(win.files) === JSON.stringify(['README=upper', 'con_/x.txt=in con', 'docs/Readme.md=one', 'docs/readme (2).md=two', 'linux/drivers/aux_.c=int aux;', 'notes_=dot', 'readme (2)=lower']),
+    `Windows: aux.c → aux_.c, "con" → con_, "notes." → notes_, and README / readme, docs/Readme.md / Docs/readme.md both kept — the second overwrote the first (${win.files.join(', ')})`);
+  const lin = await saveAll(null, false);
+  ok(lin.toasts.some((t) => t === '7 files saved.') && JSON.stringify(lin.files) === JSON.stringify(['Docs/readme.md=two', 'README=upper', 'con/x.txt=in con', 'docs/Readme.md=one', 'linux/drivers/aux.c=int aux;', 'notes.=dot', 'readme=lower']),
+    `Linux: every name as it is in the archive (${lin.files.join(', ')})`);
   const ph = await newPage(devices['iPhone 13']); await ph.goto(`${base}#/unzip`); await ph.locator('input[type=file]').waitFor({ state: 'attached' });
   ok(await ph.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'phone: no horizontal scroll');
 };

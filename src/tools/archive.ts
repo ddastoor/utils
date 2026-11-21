@@ -1,9 +1,9 @@
 // Create Zip and Extract Archive: 7-Zip compiled to WebAssembly (7z-wasm) makes and reads every archive (zip and 7z with
 // AES-256; zip, 7z, rar, tar, gz, bz2, xz, iso, cab … with passwords); zip.js only writes zips larger than fit in memory.
 import { h, card, field, input, button, filePicker, toggle, slider, segmented, clear, stack, row, note, progress, downloadBlob, fmtBytes, toast, type Mount } from '../ui';
-import { has, isMobile } from '../platform';
+import { has, isMobile, isWindows, isMac } from '../platform';
 import { createArchive, listArchive, extractArchive, extractAsZip, stopSevenZip, Stopped, type ArchiveEntry, type ArchiveList } from '../lib/sevenzip-client';
-import { archivePaths, passwordProblem, archiveName, safeParts } from '../lib/archive-names';
+import { archivePaths, passwordProblem, archiveName, safeParts, freeName } from '../lib/archive-names';
 
 const zipjs = () => import('@zip.js/zip.js');
 
@@ -157,10 +157,15 @@ export const unzip: Mount = (root) => {
         const got = await busy('Unpacking…', () => extractArchive(src!.blob, src!.name, pw.value, null, (p) => prog.set(p / 100, `Unpacking: ${p} %`)).catch((err) => { throw new Error(said(err, type)); }));
         if (!got) return;
         let n = 0;
+        // names as this system can create them (Windows: no device names …), and no two that the folder cannot tell
+        // apart (Windows and macOS: README and readme are one file)
+        const foldCase = isWindows || isMac, taken = new Map<string, Set<string>>();
         for (const f of got) {
-          const parts = safeParts(f.path); let d = dir;
+          const parts = safeParts(f.path, isWindows); let d = dir;
           for (const p of parts.slice(0, -1)) d = await d.getDirectoryHandle(p, { create: true });
-          const fh = await d.getFileHandle(parts[parts.length - 1], { create: true }), w = await fh.createWritable();
+          const folder = parts.slice(0, -1).join('/'), key = foldCase ? folder.toLowerCase() : folder;
+          if (!taken.has(key)) taken.set(key, new Set());
+          const fh = await d.getFileHandle(freeName(parts[parts.length - 1], taken.get(key)!, foldCase), { create: true }), w = await fh.createWritable();
           await w.write(f.data); await w.close(); prog.set(++n / got.length, f.path);
         }
         prog.done(); toast(`${n} file${n === 1 ? '' : 's'} saved.`);
