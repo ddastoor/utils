@@ -42,6 +42,18 @@ the PATH; 16 GB of memory: run nothing heavy beside it). It runs, one at a time:
 **Machine rules:** 16 GB of memory — Kyutai holds ≈ 9 GB, VibeVoice ≈ 12 GB: no build or browser suite beside the survey;
 disk is a fixed allowance — the models are deleted after each run; when it fills, clean what can be made again and carry
 on (owner, 21 Nov 2026).
+**#8 Regex Tester flavours — in progress (started 21 Nov 2026, while #7's survey runs):** engines chosen — PCRE2:
+`pcre2-wasm` 10.49.3 (installed; MIT; tried in Node: indexes in UTF-16, named groups, compile errors with offsets);
+Ruby: Microsoft's `vscode-oniguruma` 2.0.1 (installed; Ruby syntax; unmatched groups come back as the string's end —
+override OnigString.convertUtf8OffsetToUtf16 so they read −1); Go: **Go's own regexp** (`wasm/regexgo/`, WASI
+command, JSON out, no encoding/json — 2.6 MB; `re2-wasm` rejected: RE2 C++ of 2022 behind a JavaScript-syntax
+translator that accepts what Go refuses); Python `re`: the Python tab's CPython (a fresh run ≈ 0.1 – 0.2 s); Perl:
+zeroperl (on the site, `ZeroPerl.create()` + `eval`); POSIX ERE: wasi-libc has musl's regcomp (TRE) — or gnulib's
+regex for grep -E's exact behaviour; Python `regex` module: needs a CPython rebuild; Java / .NET: to decide. **Next:**
+`src/lib/regex/` adapters (one per flavour, common result shape), the worker loading them lazily (a 'run' message
+starts the page's time limit), the tab's flavour select + flags per flavour + "Replace every match", unit tests
+against the native engines (Go native build of the same source, uv's Python 3.14, Ruby 3.3, libpcre2 10.42 here),
+e2e.
 **Then, in the owner's order:** #8 Regex Tester flavours (research done: PCRE2 — `pcre2-wasm` 10.49.3 or our own build;
 Google's `re2-wasm` 1.0.2 for RE2 / Go; `vscode-oniguruma` 2.0.1 for Ruby / Oniguruma; Python's `re` through the Python
 tab's CPython and the `regex` module; Perl through ExifTool's zeroperl, already on the site; JavaScript as now; Java and
