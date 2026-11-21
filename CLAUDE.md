@@ -982,6 +982,12 @@ unit `tests/unit/devdata.test.mjs`, references `tests/fixtures/devdata/reference
   spelling of numbers and strings are kept; indent 2 / 4 / tab, minify, sort keys; a worded message with line, column and
   "Show it" for every mistake; accepts exactly what JSON.parse accepts.
 - `regex`: the browser's RegExp in a worker, ended after 2 s (runaway patterns); flag mistakes named; named groups.
+  **To build (owner, 21 Nov 2026 — "make a note of this and build it out when you get a chance"):** a choice of regex
+  flavours the user can select — Python (`re`, and the `regex` module), Perl / PCRE, and the other standard ones (e.g.
+  JavaScript as now, Go / RE2, Java, .NET, POSIX ERE, Ruby / Oniguruma). WebAssembly first (STANDING RULE #1): candidates
+  to check — PCRE2 (C; our own build or an existing wasm one), RE2 (Google's `re2-wasm`), Python's `re` through our
+  CPython 3.14 wasm (the Python tab's), Oniguruma (already compiled into our jq.wasm), Rust `regex` / `fancy-regex`;
+  each flavour's behaviour held to its native engine in the tests.
 - `base64` (devcore-enc): text or file ⇄ Base64 / URL-safe / data: URL; decoding takes messy input (no padding, line
   breaks, %3D, data: URLs); binary results are recognised by their first bytes, shown as hex and saved under a fitting
   name; long output is cut on screen only.
