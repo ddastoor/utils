@@ -3,7 +3,7 @@ name = "keys"
 version = "0.1.0"
 edition = "2021"
 publish = false
-description = "SuperTools supplement to hash-wasm for wasm32: Base32 / HOTP codes, PHC strings and checks for password hashes, Argon2 v1.0, OpenSSH keys, API keys"
+description = "SuperUtils supplement to hash-wasm for wasm32: Base32 / HOTP codes, PHC strings and checks for password hashes, Argon2 v1.0, OpenSSH keys, API keys"
 
 [lib]
 crate-type = ["cdylib"]

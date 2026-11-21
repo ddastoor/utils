@@ -131,7 +131,7 @@ export default async ({ base, page: newPage, ok, info, download, devices, releas
   ok(page.errors.filter((e) => !/corners cross/.test(e)).length === 0, `no page errors: ${page.errors.join(' | ')}`);
   await page.goto(base + '#/');
   await page.waitForTimeout(300);
-  ok(await page.evaluate(() => globalThis.__supertoolsLive().workers) === 0, 'leaving the tab ends the page finder and the image workers');
+  ok(await page.evaluate(() => globalThis.__superutilsLive().workers) === 0, 'leaving the tab ends the page finder and the image workers');
 
   // the page finder cannot be fetched: the outline of the paper is used, and the tab says so
   const p2 = await newPage();

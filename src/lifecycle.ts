@@ -56,4 +56,4 @@ export function releaseAll() {
 }
 
 // test hook (tests/e2e/lazy.e2e.mjs): what is alive right now
-(globalThis as any).__supertoolsLive = () => ({ workers: workers.size, resources: [...releases.keys()] });
+(globalThis as any).__superutilsLive = () => ({ workers: workers.size, resources: [...releases.keys()] });

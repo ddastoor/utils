@@ -1,4 +1,4 @@
-"""SuperTools: asyncio in a browser tab (wasm/python/lib, added to python314.zip by build.sh; installed by
+"""SuperUtils: asyncio in a browser tab (wasm/python/lib, added to python314.zip by build.sh; installed by
 sitecustomize the first time asyncio is imported).
 
 asyncio's usual event loop wakes itself through a socket pair and hands blocking calls to threads; a browser tab has

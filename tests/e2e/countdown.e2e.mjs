@@ -26,7 +26,7 @@ export default async (ctx) => {
   const set = async (hh, mm, ss) => { await f('Hours').fill(String(hh)); await f('Minutes').fill(String(mm)); await f('Seconds').fill(String(ss)); };
   const beeps = () => page.evaluate(() => window.__beeps.length), isDone = () => disp.evaluate((e) => e.classList.contains('done'));
   const base0 = await page.title();
-  ok(await shown() === '05:00' && base0 === 'Countdown Timer · SuperTools', 'default 5 minutes');
+  ok(await shown() === '05:00' && base0 === 'Countdown Timer · SuperUtils', 'default 5 minutes');
   await set(1, 30, 45); ok(await shown() === '1:30:45', `1 h 30 min 45 s → 1:30:45 (${await shown()})`);
   await set(0, 0, 90); ok(await shown() === '01:30', '90 seconds → 01:30');
   await page.locator('.chip-btn', { hasText: '3 min' }).click(); ok(await shown() === '03:00' && await f('Minutes').inputValue() === '3', '"3 min" preset');

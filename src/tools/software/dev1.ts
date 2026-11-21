@@ -380,7 +380,7 @@ export function jwtTime(v: unknown): { ms: number; odd?: string } | null {
 }
 const TIME_CLAIMS: Array<[string, string]> = [['iat', 'Issued at'], ['nbf', 'Not valid before'], ['exp', 'Expires'], ['auth_time', 'Signed in at'], ['updated_at', 'Profile updated']];
 export const jwt: Mount = (root) => {
-  const sample = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IlN1cGVyVG9vbHMiLCJpYXQiOjE3MDAwMDAwMDAsImV4cCI6MTgwMDAwMDAwMH0.j5KxLrp-25U2I0DsdLyLpU2GThyffaUpi5Gx0UVA9yM'; // HS256, secret "supertools"
+  const sample = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IlN1cGVyVXRpbHMiLCJpYXQiOjE3MDAwMDAwMDAsImV4cCI6MTgwMDAwMDAwMH0.UdoTphDd2UORY8tjT07pGVCYpdtk3fWdUQbq1H0EjTY'; // HS256, secret "supertools"
   const ta = textarea({ rows: 5, mono: true, value: sample });
   const out = h('div', { class: 'stack' });
   let dc: Devcore | null = null, seq = 0;

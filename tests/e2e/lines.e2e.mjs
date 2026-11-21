@@ -101,7 +101,7 @@ export default async ({ base, page: newPage, ok, devices }) => {
   ok(took < 50 && await until(page, (n) => document.querySelectorAll('textarea')[1].value.split('\n').length === n, uniq, 20000), `120,000 lines: the keystroke returns in ${took.toFixed(1)} ms and the ${uniq.toLocaleString('en-IN')} different lines follow, sorted`);
   ok(new RegExp(`^1,20,000 lines in → ${uniq.toLocaleString('en-IN')} lines out · ${(120000 - uniq).toLocaleString('en-IN')} duplicates removed$`).test(await info()), `… with the count (${await info()})`);
   ok(!page.errors.length, `no page errors ${page.errors.join(' | ')}`);
-  await page.goto(`${base}#/`); ok(await until(page, () => globalThis.__supertoolsLive().resources.length === 0), 'both engines are released when the tab is left');
+  await page.goto(`${base}#/`); ok(await until(page, () => globalThis.__superutilsLive().resources.length === 0), 'both engines are released when the tab is left');
 
   // ---- phone
   const ph = await newPage(devices['iPhone 13']); await ph.goto(`${base}#/lines`); await ph.getByLabel('Input').waitFor();

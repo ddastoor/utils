@@ -46,7 +46,7 @@ export default async ({ base, page: newPage, ok, devices }) => {
   const r = await newPage({ viewport: { width: 1366, height: 900 } });
   for (const bad of ['#/nope', '#/c/zzz', '#/%E0%A4%A', '#/%', '#/emi%']) {
     await r.goto(base + '#/gst'); await r.goto(base + bad); await r.waitForTimeout(150);
-    ok(await r.title() === 'SuperTools' && (await r.locator('.home-sec').count()) > 5, `unknown or malformed route ${bad} shows the home page`);
+    ok(await r.title() === 'SuperUtils' && (await r.locator('.home-sec').count()) > 5, `unknown or malformed route ${bad} shows the home page`);
   }
   await r.goto(base + '#/%'); await r.reload(); await r.waitForSelector('.tile');
   ok((await r.locator('.tile').count()) === visibleDesktop.length && !r.errors.length, `page loaded directly on a malformed hash still works (${r.errors.join(' | ')})`);
@@ -60,7 +60,7 @@ export default async ({ base, page: newPage, ok, devices }) => {
   for (const c of CATEGORIES) {
     await r.goto(base + '#/c/' + c.id); await r.waitForTimeout(60);
     const want = visibleDesktop.filter((t) => t.cat === c.id).length;
-    if ((await r.locator('.view .tile').count()) === want && (await r.locator('.tabs-tool .tab').count()) === want && await r.title() === `${c.title} · SuperTools` && (await r.locator('.tool-desc').textContent()) === `${want} tools`) allCats++;
+    if ((await r.locator('.view .tile').count()) === want && (await r.locator('.tabs-tool .tab').count()) === want && await r.title() === `${c.title} · SuperUtils` && (await r.locator('.tool-desc').textContent()) === `${want} tools`) allCats++;
   }
   ok(allCats === CATEGORIES.length, `every category page lists its tools, fills the tool row and sets the title (${allCats}/${CATEGORIES.length})`);
   await r.goto(base + '#/emi'); await r.waitForSelector('.tool-body .card'); await r.evaluate(() => window.scrollTo(0, 600)); await r.goto(base + '#/sip'); await r.waitForSelector('.tool-body .card');
@@ -133,9 +133,19 @@ export default async ({ base, page: newPage, ok, devices }) => {
   ok(await f3.waitForFunction(() => !document.querySelector('.tab-fav .tab-count'), null, { timeout: 5000 }).then(() => true, () => false), 'site data cleared in another browser tab: the favorites go here too (they stayed)');
   await f3.close();
   for (const [stored, want] of [['{', 0], ['null', 0], ['"emi"', 0], ['["emi","nope",42,"json","emi",null]', 2]]) {
-    await f.evaluate((v) => localStorage.setItem('supertools.favorites.v1', v), stored); await f.reload(); await f.goto(base + '#/c/fav'); await f.waitForTimeout(150);
+    await f.evaluate((v) => localStorage.setItem('superutils.favorites.v1', v), stored); await f.reload(); await f.goto(base + '#/c/fav'); await f.waitForTimeout(150);
     ok((await f.locator('.view .tile').count()) === want && (await f.locator('.tab-fav .tab-count').count()) === (want ? 1 : 0), `damaged favorites data ${stored} → ${want} favorites, no duplicates, no crash`);
   }
+  // the stars kept under the app's old name (SuperTools, until 21 Nov 2026) move to the new key once, none lost
+  await f.evaluate(() => { localStorage.clear(); localStorage.setItem('supertools.favorites.v1', '["emi","json","gst"]'); }); await f.reload(); await f.goto(base + '#/c/fav'); await f.waitForTimeout(150);
+  const keys = await f.evaluate(() => [localStorage.getItem('superutils.favorites.v1'), localStorage.getItem('supertools.favorites.v1')]);
+  ok((await f.locator('.view .tile').count()) === 3 && keys[0] === '["emi","json","gst"]' && keys[1] === null, `stars saved under the old name are kept and moved to the new key (${JSON.stringify(keys)})`);
+  await f.goto(base + '#/emi'); await f.locator('.head-star').click(); await f.waitForTimeout(100);
+  ok(await f.evaluate(() => localStorage.getItem('superutils.favorites.v1')) === '["json","gst"]', 'a change afterwards is written under the new key');
+  const f4 = await f.context().newPage(); await f4.goto(base + '#/c/fav'); await f4.waitForSelector('.tile');
+  await f.evaluate(() => localStorage.setItem('supertools.favorites.v1', '["emi"]'));
+  ok(await f4.waitForFunction(() => document.querySelectorAll('.view .tile').length === 1, null, { timeout: 5000 }).then(() => true, () => false) && await f4.evaluate(() => [localStorage.getItem('superutils.favorites.v1'), localStorage.getItem('supertools.favorites.v1')]).then((k) => k[0] === '["emi"]' && k[1] === null), 'a page of the old version still open writes the old key: the newest stars move over');
+  await f4.close();
   ok(!f.errors.length, `favorites: no page errors ${f.errors.join(' | ')}`);
   await phone.goto(base + '#/json'); await phone.waitForSelector('.note-warn');
   ok(!(await phone.locator('.head-star').count()), 'a tool that is hidden on this device has no star (it could never appear in Favorites here)');
@@ -160,7 +170,7 @@ export default async ({ base, page: newPage, ok, devices }) => {
   await w.evaluate(() => { location.hash = '#/emi'; }); await w.waitForSelector('.note-err');
   ok(/Could not load this tool/.test(await w.locator('.note-err').textContent()) && /Check your internet connection/.test(await w.locator('.note-err').textContent()), 'failed download of a tab: clear message');
   fail = false; await w.getByRole('button', { name: 'Try again' }).click(); await w.waitForSelector('.tool-body .card', { timeout: 15000 });
-  ok(await w.title() === 'EMI Calculator · SuperTools', '"Try again" reloads the page and the tab opens');
+  ok(await w.title() === 'EMI Calculator · SuperUtils', '"Try again" reloads the page and the tab opens');
   // files dropped beside a drop zone must not replace the app; a drop zone still receives them
   await w.goto(base + '#/hash'); await w.waitForSelector('.drop');
   const drop = (sel) => w.evaluate((sel) => { const dt = new DataTransfer(); dt.items.add(new File(['abc'], 'dropped.txt', { type: 'text/plain' })); const res = {}; for (const type of ['dragover', 'drop']) { const ev = new DragEvent(type, { bubbles: true, cancelable: true, dataTransfer: dt }); document.querySelector(sel).dispatchEvent(ev); res[type] = ev.defaultPrevented; } return res; }, sel);

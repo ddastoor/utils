@@ -79,7 +79,7 @@ export default async ({ base, page: newPage, ok, devices }) => {
   ok(shown === 20001 && (await copied(page)).at(-1).length === long.length && await page.locator('p', { hasText: 'Long results are shown up to' }).isVisible(), `a long result is put on screen up to 20,000 characters (said under the list) and copied whole (${shown} shown, ${(await copied(page)).at(-1).length} copied)`);
   await conv('short again'); ok(await page.locator('p', { hasText: 'Long results are shown up to' }).isHidden(), 'the note goes with the long text');
   ok(!page.errors.length, `no page errors ${page.errors.join(' | ')}`);
-  await page.goto(`${base}#/`); ok(await until(page, () => globalThis.__supertoolsLive().resources.length === 0), 'the engine is released when the tab is left');
+  await page.goto(`${base}#/`); ok(await until(page, () => globalThis.__superutilsLive().resources.length === 0), 'the engine is released when the tab is left');
 
   // ---- the engine cannot be fetched: said, and typing again retries
   const off = await newPage({ viewport: { width: 1366, height: 900 } }); let fail = true;

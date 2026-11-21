@@ -162,8 +162,8 @@ export default async (t, { load, root }) => {
   C('logname', 'logname', 'user\n');
   C('groups', 'groups', 'user\n');
   C('id', 'id', (o) => /uid=0\(user\) gid=0\(user\)/.test(o));
-  C('hostname', 'hostname', 'supertools\n');
-  C('uname', 'uname -n; uname -s', (o) => o.startsWith('supertools\n') || /\S/.test(o));
+  C('hostname', 'hostname', 'superutils\n');
+  C('uname', 'uname -n; uname -s', (o) => o.startsWith('superutils\n') || /\S/.test(o));
   C('nproc', 'nproc', `${nproc}\n`);
   C('pwd', 'busybox pwd', '/home/user/w\n', 'BusyBox pwd sees the shell cwd ($PWD)');
   C('which', 'busybox which ls', '/bin/ls\n');

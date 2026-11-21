@@ -99,7 +99,7 @@ export function runsOf(cat: Catalogue, p: Plan): EngineRun[] {
   });
 }
 
-export const SCRIPT_NAME: Record<OS, string> = { windows: 'supertools-speech.cmd', linux: 'supertools-speech.sh' };
+export const SCRIPT_NAME: Record<OS, string> = { windows: 'superutils-speech.cmd', linux: 'superutils-speech.sh' };
 
 /** The script for a system, with the text, the voices and driver.py inside it. */
 export function scriptFor(os: OS, cat: Catalogue, p: Plan, o: { text: string; speed: number; mp3: boolean; driver: string; made: string; site: string }): string {

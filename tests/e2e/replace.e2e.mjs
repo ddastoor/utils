@@ -77,7 +77,7 @@ export default async ({ base, page: newPage, ok, devices }) => {
   const took = await text.evaluate((e, v) => { e.value = v; const t = performance.now(); e.dispatchEvent(new Event('input', { bubbles: true })); return performance.now() - t; }, long);
   ok(took < 50 && await until(page, () => document.querySelector('.card:last-of-type .muted.small')?.textContent.trim() === '40,000 replacements', null, 15000), `0.9 MB: the keystroke returns in ${took.toFixed(1)} ms; 40,000 replacements follow (Indian grouping)`);
   ok(await page.locator('summary', { hasText: 'With a regular expression' }).isVisible() && !page.errors.length, `the rules for regular expressions are a click away; no page errors ${page.errors.join(' | ')}`);
-  await page.goto(`${base}#/`); ok(await until(page, () => globalThis.__supertoolsLive().workers === 0), 'the worker is ended when the tab is left');
+  await page.goto(`${base}#/`); ok(await until(page, () => globalThis.__superutilsLive().workers === 0), 'the worker is ended when the tab is left');
 
   // ---- phone
   const ph = await newPage(devices['iPhone 13']); await ph.goto(`${base}#/replace`); await ph.getByLabel('Text').waitFor();

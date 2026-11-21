@@ -3,7 +3,7 @@ name = "svgo"
 version = "0.1.0"
 edition = "2021"
 publish = false
-description = "SuperTools SVG optimiser for wasm32: OXVG (Rust port of SVGO's preset-default)"
+description = "SuperUtils SVG optimiser for wasm32: OXVG (Rust port of SVGO's preset-default)"
 
 [lib]
 crate-type = ["cdylib"]

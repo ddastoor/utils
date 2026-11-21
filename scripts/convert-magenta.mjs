@@ -98,7 +98,7 @@ export function convert(dir) {
     else r.skip(w);
   }
   const weightsManifest = JSON.parse(readFileSync(join(dir, 'weights_manifest.json'), 'utf8'));
-  const model = { format: 'graph-model', generatedBy: 'magenta (legacy tfjs)', convertedBy: 'SuperTools scripts/convert-magenta.mjs', modelTopology: { node: nodes, library: {}, versions }, weightsManifest };
+  const model = { format: 'graph-model', generatedBy: 'magenta (legacy tfjs)', convertedBy: 'SuperUtils scripts/convert-magenta.mjs', modelTopology: { node: nodes, library: {}, versions }, weightsManifest };
   writeFileSync(join(dir, 'model.json'), JSON.stringify(model));
   return { nodes: nodes.length, ops: [...new Set(nodes.map((n) => n.op))].sort() };
 }

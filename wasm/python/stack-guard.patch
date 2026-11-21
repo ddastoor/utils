@@ -5,7 +5,7 @@
  #endif
  
 -static inline uintptr_t
-+/* SuperTools (wasm/python/stack-guard.patch). CPython 3.14 notices deep C recursion by looking at the address of the
++/* SuperUtils (wasm/python/stack-guard.patch). CPython 3.14 notices deep C recursion by looking at the address of the
 +   stack. A WebAssembly program has two stacks: the one in its memory, which this address belongs to, and the engine's
 +   own call stack, which is the one that runs out — in a browser after about 1 MB — and which C code cannot see. So
 +   every function that makes a recursion check reserves SUPERTOOLS_STACK_PAD bytes of the visible stack: its depth
@@ -78,7 +78,7 @@
  PyAPI_FUNC(int) Py_EnterRecursiveCall(const char *where);
  PyAPI_FUNC(void) Py_LeaveRecursiveCall(void);
 +#if defined(__wasi__) && defined(SUPERTOOLS_STACK_PAD)
-+/* SuperTools (wasm/python/stack-guard.patch, explained in pycore_pystate.h): the caller of the function reserves
++/* SuperUtils (wasm/python/stack-guard.patch, explained in pycore_pystate.h): the caller of the function reserves
 +   the padding. */
 +extern void *volatile supertools_stack_sink;
 +static inline __attribute__((always_inline)) int
@@ -100,7 +100,7 @@
  #endif
  
 +#if defined(__wasi__) && defined(SUPERTOOLS_STACK_PAD)
-+/* SuperTools (wasm/python/stack-guard.patch, explained in pycore_pystate.h): the budget of visible stack that keeps
++/* SuperUtils (wasm/python/stack-guard.patch, explained in pycore_pystate.h): the budget of visible stack that keeps
 +   nested calls within the engine's own call stack. SUPERTOOLS_C_STACK is the size measured for a browser worker; the
 +   page may give another one in the environment (it measures how deep this browser can go) — only at start-up. */
 +static uintptr_t
@@ -122,7 +122,7 @@
      _PyEntryFrame entry;
  
 +#if defined(__wasi__) && defined(SUPERTOOLS_EVAL_PAD)
-+    /* SuperTools (wasm/python/stack-guard.patch): the interpreter loop is by far the largest frame of a call chain;
++    /* SuperUtils (wasm/python/stack-guard.patch): the interpreter loop is by far the largest frame of a call chain;
 +       it counts for more. */
 +    char supertools_eval_pad[SUPERTOOLS_EVAL_PAD];
 +    supertools_stack_sink = supertools_eval_pad;
@@ -134,7 +134,7 @@
  /* Implement Py_EnterRecursiveCall() and Py_LeaveRecursiveCall() as functions
     for the limited API. */
  
-+#undef Py_EnterRecursiveCall       /* SuperTools: Include/ceval.h wraps the name for its callers */
++#undef Py_EnterRecursiveCall       /* SuperUtils: Include/ceval.h wraps the name for its callers */
  int Py_EnterRecursiveCall(const char *where)
  {
      return _Py_EnterRecursiveCall(where);

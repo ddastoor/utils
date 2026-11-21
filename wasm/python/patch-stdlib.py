@@ -28,7 +28,7 @@ change("functools.py", """try:
     from _functools import _lru_cache_wrapper
 except ImportError:
     pass
-""", """# SuperTools (wasm/python/patch-stdlib.py): the Python wrapper above is used; the C one nests C calls
+""", """# SuperUtils (wasm/python/patch-stdlib.py): the Python wrapper above is used; the C one nests C calls
 """)
 # an argument that cannot be hashed: the C wrapper hashes the key itself ("unhashable type: 'list'"); a dict lookup
 # with the same key words it differently in 3.14 ("cannot use 'tuple' as a dict key (...)") — keep the C wording
@@ -37,7 +37,7 @@ change("functools.py", """    elif len(key) == 1 and type(key[0]) in fasttypes:
     return key
 """, """    elif len(key) == 1 and type(key[0]) in fasttypes:
         return key[0]
-    hash(key)       # SuperTools: as the C wrapper does (same error for an unhashable argument)
+    hash(key)       # SuperUtils: as the C wrapper does (same error for an unhashable argument)
     return key
 """)
 print("patch-stdlib: functools.lru_cache uses its Python wrapper")
@@ -49,7 +49,7 @@ except ImportError:
 """, """    from _hashlib import pbkdf2_hmac
     __all__ += ('pbkdf2_hmac',)
 except ImportError:
-    # SuperTools (wasm/python/patch-stdlib.py): the pure-Python fallback of CPython 3.11
+    # SuperUtils (wasm/python/patch-stdlib.py): the pure-Python fallback of CPython 3.11
     _trans_5C = bytes((x ^ 0x5C) for x in range(256))
     _trans_36 = bytes((x ^ 0x36) for x in range(256))
 

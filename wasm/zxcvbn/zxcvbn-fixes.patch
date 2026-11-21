@@ -5,7 +5,7 @@ diff -ru orig/src/matching/mod.rs zxcvbn-3.1.1/src/matching/mod.rs
                  matches.push(m4tch);
              }
          }
-+        // SuperTools fix: single-character l33t matches are dropped, as in the reference ("1" would match "i", "4" would
++        // SuperUtils fix: single-character l33t matches are dropped, as in the reference ("1" would match "i", "4" would
 +        // match "a" — very common words with a low rank). The crate only dropped empty tokens, so "1" alone was a
 +        // dictionary word worth 4 guesses and "!!!!!!!!" 40 instead of 96.
          matches
@@ -20,7 +20,7 @@ diff -ru orig/src/matching/mod.rs zxcvbn-3.1.1/src/matching/mod.rs
          let mut i = 0;
          let mut j;
 -        let mut last_delta = 0;
-+        // SuperTools fix: "no delta yet" is None, as in the reference (last_delta = null). The crate used 0 for it, so a run
++        // SuperUtils fix: "no delta yet" is None, as in the reference (last_delta = null). The crate used 0 for it, so a run
 +        // of equal characters (delta 0) never ended a segment and "aaaaaaab" became one 8-character "sequence".
 +        let chars: Vec<char> = password.chars().collect();
 +        let mut last_delta: Option<i32> = None;
@@ -59,7 +59,7 @@ diff -ru orig/src/scoring.rs zxcvbn-3.1.1/src/scoring.rs
 -        || token.chars().all(char::is_uppercase)
 +        || !token.chars().any(char::is_lowercase)
      {
-+        // SuperTools fix: "all caps" means no lower-case letter (reference zxcvbn: /^[^a-z]+$/). The crate required every
++        // SuperUtils fix: "all caps" means no lower-case letter (reference zxcvbn: /^[^a-z]+$/). The crate required every
 +        // character to be upper case, so TRUSTNO1 fell through to the sum below with 0 lower-case letters = 0 variations.
          return 2;
      }
@@ -69,7 +69,7 @@ diff -ru orig/src/scoring.rs zxcvbn-3.1.1/src/scoring.rs
              (*KEYPAD_STARTING_POSITIONS, *KEYPAD_AVERAGE_DEGREE)
          };
 -        let mut guesses = 0u64;
-+        // SuperTools fix: the average degree is a fraction (qwerty 432/94 = 4.596, keypad 5.07), as in the reference. The
++        // SuperUtils fix: the average degree is a fraction (qwerty 432/94 = 4.596, keypad 5.07), as in the reference. The
 +        // crate divided in integers (4 and 5), which made every keyboard-walk estimate 13 % too low per turn.
 +        let mut total = 0f64;
          let len = token.chars().count();

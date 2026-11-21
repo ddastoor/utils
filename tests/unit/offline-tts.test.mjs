@@ -16,7 +16,7 @@ export default async (t, { load }) => {
   // Base64 of UTF-8: every script, every character
   for (const s of ['', 'plain', 'नमस्ते दुनिया', 'emoji 👍🏽 and “quotes”', '€ ₹ £', 'a'.repeat(100000)]) t.eq(dec(S.b64(s)), s, `Base64 round trip (${s.slice(0, 12) || 'empty'}…)`);
 
-  const hostile = "Hello $(touch /tmp/pwned) `id` $HOME ${PATH} 'single' \"double\" \\back\\slash\nSUPERTOOLS_JOB\nSUPERTOOLS_DRIVER\n'@\n#>\n<#\nनमस्ते — ₹500";
+  const hostile = "Hello $(touch /tmp/pwned) `id` $HOME ${PATH} 'single' \"double\" \\back\\slash\nSUPERUTILS_JOB\nSUPERUTILS_DRIVER\n'@\n#>\n<#\nनमस्ते — ₹500";
   const job = { text: hostile, speed: 1.1, mp3: true, voices: [{ id: 'piper-vctk-p248', label: 'VCTK p248', engine: 'piper', repo: 'rhasspy/piper-voices', rev: 'e9c8a39444359388adaa94255becb37a5a2b8e51', file: 'en/en_GB/vctk/medium/en_GB-vctk-medium.onnx', speaker: 87 }] };
   const runs = [{ engine: 'piper', name: 'Piper', packages: ['piper-tts==1.8.0', 'huggingface-hub==2.4.0', 'lameenc==1.9.0', 'numpy==2.3.5'], voices: 1 }];
   const input = { job, driver, runs, made: '21 Nov 2026', site: 'https://ddastoor.github.io/utils/#/tts' };
@@ -27,8 +27,8 @@ export default async (t, { load }) => {
   const syn = spawnSync('bash', ['-n', shf], { encoding: 'utf8' });
   t.ok(syn.status === 0, `bash -n reads the Linux script (${syn.stderr.trim()})`);
   const between = (s, tag) => s.split(`<<'${tag}'\n`)[1].split(`\n${tag}\n`)[0];
-  t.eq(JSON.parse(dec(between(sh, 'SUPERTOOLS_JOB'))), job, 'Linux: the job decodes to exactly the job (the text with its $(…), backticks, quotes and the end markers)');
-  t.eq(dec(between(sh, 'SUPERTOOLS_DRIVER')), driver, 'Linux: driver.py decodes to exactly driver.py');
+  t.eq(JSON.parse(dec(between(sh, 'SUPERUTILS_JOB'))), job, 'Linux: the job decodes to exactly the job (the text with its $(…), backticks, quotes and the end markers)');
+  t.eq(dec(between(sh, 'SUPERUTILS_DRIVER')), driver, 'Linux: driver.py decodes to exactly driver.py');
   t.ok(!sh.includes('touch /tmp/pwned') && !sh.includes('नमस्ते'), 'Linux: the text appears only as Base64');
   t.ok(sh.includes(S.UV.linux.x86_64.sha256) && sh.includes(S.UV.linux.aarch64.sha256) && sh.includes(`'${S.UV.member.linux}'`), 'Linux: uv for x86-64 and ARM64, checked by SHA-256, taken out of its wheel');
   t.ok(/--with 'piper-tts==1\.8\.0' --with 'huggingface-hub==2\.4\.0' --with 'lameenc==1\.9\.0' --with 'numpy==2\.3\.5' python "\$DIR\/driver\.py" "\$RUN\/job\.json" piper "\$RUN"/.test(sh), 'Linux: the engine runs with its pinned packages');
@@ -41,7 +41,7 @@ export default async (t, { load }) => {
   t.ok(S.windowsScript({ ...input, runs: [{ ...runs[0], packages: ['misaki[en]==0.9.4'] }] }).includes("--with 'misaki[en]==0.9.4'"), 'Windows: the pin quoted too');
   t.ok(/UV_PYTHON_PREFERENCE:-only-managed/.test(sh) && /HF_HUB_DISABLE_XET:-1/.test(sh) && /UV_TORCH_BACKEND:-auto/.test(sh), 'Linux: its own Python, plain HTTPS downloads from Hugging Face, PyTorch for the GPU there is (CPU otherwise)');
   // the script decodes its parts with the system's base64 (coreutils) the same way
-  const jobOut = execFileSync('bash', ['-c', `base64 -d <<'SUPERTOOLS_JOB'\n${between(sh, 'SUPERTOOLS_JOB')}\nSUPERTOOLS_JOB`], { encoding: 'utf8' });
+  const jobOut = execFileSync('bash', ['-c', `base64 -d <<'SUPERUTILS_JOB'\n${between(sh, 'SUPERUTILS_JOB')}\nSUPERUTILS_JOB`], { encoding: 'utf8' });
   t.eq(JSON.parse(jobOut).text, hostile, 'Linux: base64 -d gives the text back, untouched');
   t.ok(!existsSync('/tmp/pwned'), 'nothing in the text was run');
 
@@ -49,7 +49,7 @@ export default async (t, { load }) => {
   const cmd = S.windowsScript(input);
   t.ok(/^[\x00-\x7f]*$/.test(cmd), 'Windows: the .cmd file is ASCII (cmd.exe reads it in the console code page)');
   t.ok(!/[^\r]\n/.test(cmd) && cmd.includes('\r\n'), 'Windows: CRLF line endings throughout');
-  t.ok(cmd.startsWith('<# : ') && /\r\n#>\r\n/.test(cmd) && /set "SUPERTOOLS_SELF=%~f0"/.test(cmd) && /iex \(\[IO\.File\]::ReadAllText\(\$env:SUPERTOOLS_SELF\)\)/.test(cmd), 'Windows: a cmd / PowerShell hybrid (cmd runs PowerShell on the same file; PowerShell skips the batch lines as a comment)');
+  t.ok(cmd.startsWith('<# : ') && /\r\n#>\r\n/.test(cmd) && /set "SUPERUTILS_SELF=%~f0"/.test(cmd) && /iex \(\[IO\.File\]::ReadAllText\(\$env:SUPERUTILS_SELF\)\)/.test(cmd), 'Windows: a cmd / PowerShell hybrid (cmd runs PowerShell on the same file; PowerShell skips the batch lines as a comment)');
   const psStr = (name) => new RegExp(`${name}'\\), \\[Convert\\]::FromBase64String\\('([A-Za-z0-9+/=]+)'\\)`).exec(cmd)?.[1];
   t.eq(JSON.parse(dec(psStr('job.json') || '')), job, 'Windows: the job decodes to exactly the job');
   t.eq(dec(psStr('driver.py') || ''), driver, 'Windows: driver.py decodes to exactly driver.py');
@@ -77,20 +77,20 @@ export default async (t, { load }) => {
   // an engine that fails does not stop the others: a stand-in uv that fails for one engine and notes the others
   const fake = mkdtempSync(join(tmpdir(), 'stts-fake-'));
   execFileSync('mkdir', ['-p', join(fake, 'bin')]);
-  writeFileSync(join(fake, 'bin', 'uv'), '#!/bin/sh\nfor a; do e="$p"; p="$a"; done\n# the engine is the argument before the last\nfor a; do last2="$prev"; prev="$a"; done\necho "$last2" >> "$SUPERTOOLS_TTS_DIR/ran"\n[ "$last2" != kokoro ]\n', { mode: 0o755 });
+  writeFileSync(join(fake, 'bin', 'uv'), '#!/bin/sh\nfor a; do e="$p"; p="$a"; done\n# the engine is the argument before the last\nfor a; do last2="$prev"; prev="$a"; done\necho "$last2" >> "$SUPERUTILS_TTS_DIR/ran"\n[ "$last2" != kokoro ]\n', { mode: 0o755 });
   const three = [{ engine: 'piper', name: 'Piper', packages: ['piper-tts==1.8.0'], voices: 1 }, { engine: 'kokoro', name: 'Kokoro', packages: ['kokoro==0.9.4'], voices: 1 }, { engine: 'pocket', name: 'Pocket TTS', packages: ['pocket-tts==4.0.1'], voices: 1 }];
   const ff = join(fake, 'run.sh'); writeFileSync(ff, S.linuxScript({ ...input, runs: three }));
-  const fr = spawnSync('bash', [ff], { encoding: 'utf8', env: { ...process.env, SUPERTOOLS_TTS_DIR: fake, PATH: '/usr/bin:/bin' } });
+  const fr = spawnSync('bash', [ff], { encoding: 'utf8', env: { ...process.env, SUPERUTILS_TTS_DIR: fake, PATH: '/usr/bin:/bin' } });
   t.eq(readFileSync(join(fake, 'ran'), 'utf8').trim().split('\n'), ['piper', 'kokoro', 'pocket'], 'Linux: every engine runs although Kokoro failed');
   t.ok(fr.status === 1 && /Stopped with an error: Kokoro \(the messages above say why\)/.test(fr.stderr), `Linux: the end names the engine that failed and exits 1 (${fr.status}: ${fr.stderr.trim().slice(-120)})`);
   writeFileSync(join(fake, 'ran'), '');
-  const ok2 = spawnSync('bash', [ff], { encoding: 'utf8', env: { ...process.env, SUPERTOOLS_TTS_DIR: fake, PATH: '/usr/bin:/bin' } });
+  const ok2 = spawnSync('bash', [ff], { encoding: 'utf8', env: { ...process.env, SUPERUTILS_TTS_DIR: fake, PATH: '/usr/bin:/bin' } });
   t.ok(ok2.status === 1 && readFileSync(join(fake, 'ran'), 'utf8').trim().split('\n').length === 3, 'Linux: a second run runs again');
   const good = join(fake, 'good.sh'); writeFileSync(good, S.linuxScript({ ...input, runs: [three[0], three[2]] }));
-  const g = spawnSync('bash', [good], { encoding: 'utf8', env: { ...process.env, SUPERTOOLS_TTS_DIR: fake, PATH: '/usr/bin:/bin' } });
+  const g = spawnSync('bash', [good], { encoding: 'utf8', env: { ...process.env, SUPERUTILS_TTS_DIR: fake, PATH: '/usr/bin:/bin' } });
   t.ok(g.status === 0 && /== Done\. The speech is in /.test(g.stdout), 'Linux: all engines well — "Done", exit 0');
   const noted = join(fake, 'noted.sh'); writeFileSync(noted, S.linuxScript({ ...input, runs: [{ ...three[0], first: { programs: 170, cuda: 170, models: 63.2 } }] }));
-  const n = spawnSync('bash', [noted], { encoding: 'utf8', env: { ...process.env, SUPERTOOLS_TTS_DIR: fake, PATH: '/usr/bin:/bin' } });
+  const n = spawnSync('bash', [noted], { encoding: 'utf8', env: { ...process.env, SUPERUTILS_TTS_DIR: fake, PATH: '/usr/bin:/bin' } });
   t.ok(n.status === 0 && n.stdout.includes('== Piper: 1 voice\n' + note2 + '\n'), `Linux: the first-run line is printed under the heading, before uv starts (${n.stdout.slice(0, 200)})`);
   const win = S.windowsScript({ ...input, runs: three });
   t.ok(/\$failed = @\(\)/.test(win) && (win.match(/if \(\$LASTEXITCODE -ne 0\) \{ \$failed \+= '/g) || []).length === 3 && /if \(\$failed\.Count\) \{ throw/.test(win), 'Windows: each failure noted, the others run, the end says which');
@@ -101,7 +101,7 @@ export default async (t, { load }) => {
   const gsh = S.linuxScript(gIn), gcmd = S.windowsScript(gIn);
   const pos = (s, x) => s.indexOf(x);
   const ckL = "--with 'huggingface-hub==0.36.2' python \"$DIR/driver.py\" \"$RUN/job.json\" --check-access 'ai4bharat/indic-parler-tts'";
-  t.ok(pos(gsh, ckL) > pos(gsh, "\nSUPERTOOLS_JOB\n") && pos(gsh, ckL) < pos(gsh, "say 'Piper: 1 voice'") && pos(gsh, ckL) > pos(gsh, 'read -rsp'), 'Linux: the token is checked after it is asked for and the job is written, before the first engine');
+  t.ok(pos(gsh, ckL) > pos(gsh, "\nSUPERUTILS_JOB\n") && pos(gsh, ckL) < pos(gsh, "say 'Piper: 1 voice'") && pos(gsh, ckL) > pos(gsh, 'read -rsp'), 'Linux: the token is checked after it is asked for and the job is written, before the first engine');
   writeFileSync(join(tmp, 'gated.sh'), gsh);
   t.ok(spawnSync('bash', ['-n', join(tmp, 'gated.sh')]).status === 0, 'Linux: bash -n reads the script with the check');
   const ckW = "--with 'huggingface-hub==0.36.2' python \"$Dir\\driver.py\" \"$Run\\job.json\" --check-access 'ai4bharat/indic-parler-tts'";
@@ -109,8 +109,8 @@ export default async (t, { load }) => {
   t.ok(!sh.includes('--check-access') && !cmd.includes('--check-access'), 'no check without a gated model');
   const gf = mkdtempSync(join(tmpdir(), 'stts-gated-'));
   execFileSync('mkdir', ['-p', join(gf, 'bin')]);
-  writeFileSync(join(gf, 'bin', 'uv'), '#!/bin/sh\nfor a; do last2="$prev"; prev="$a"; done\necho "$last2" >> "$SUPERTOOLS_TTS_DIR/ran"\nif [ "$last2" = --check-access ] && [ -n "$FAKE_REFUSE" ]; then echo "refused (the driver says why)" >&2; exit 1; fi\n', { mode: 0o755 });
-  const runG = (env) => { writeFileSync(join(gf, 'ran'), ''); return spawnSync('bash', [join(tmp, 'gated.sh')], { encoding: 'utf8', env: { ...process.env, SUPERTOOLS_TTS_DIR: gf, PATH: '/usr/bin:/bin', HF_TOKEN: 'hf_stand_in', ...env } }); };
+  writeFileSync(join(gf, 'bin', 'uv'), '#!/bin/sh\nfor a; do last2="$prev"; prev="$a"; done\necho "$last2" >> "$SUPERUTILS_TTS_DIR/ran"\nif [ "$last2" = --check-access ] && [ -n "$FAKE_REFUSE" ]; then echo "refused (the driver says why)" >&2; exit 1; fi\n', { mode: 0o755 });
+  const runG = (env) => { writeFileSync(join(gf, 'ran'), ''); return spawnSync('bash', [join(tmp, 'gated.sh')], { encoding: 'utf8', env: { ...process.env, SUPERUTILS_TTS_DIR: gf, PATH: '/usr/bin:/bin', HF_TOKEN: 'hf_stand_in', ...env } }); };
   const refused = runG({ FAKE_REFUSE: '1' }), ranR = readFileSync(join(gf, 'ran'), 'utf8').trim().split('\n');
   t.ok(refused.status === 1 && ranR.join() === '--check-access' && /Nothing else was downloaded\. Fix that, then run this again\./.test(refused.stderr), `Linux: a refused token stops the script before any engine (${refused.status}; ran ${ranR.join(', ')})`);
   const passed = runG({}), ranP = readFileSync(join(gf, 'ran'), 'utf8').trim().split('\n');
@@ -122,8 +122,8 @@ export default async (t, { load }) => {
     const small = { ...job, text: 'Hello from the offline mode. This sentence was made on this computer.', voices: [{ id: 'piper-lessac-low', label: 'Lessac (low)', engine: 'piper', repo: 'rhasspy/piper-voices', rev: 'e9c8a39444359388adaa94255becb37a5a2b8e51', file: 'en/en_US/lessac/low/en_US-lessac-low.onnx' }] };
     const f = join(home, 'tts.sh'); writeFileSync(f, S.linuxScript({ ...input, job: small }));
     // (the sandbox reaches PyPI and Hugging Face but not GitHub, where uv's own Python builds are: a system 3.12 here)
-    const r = spawnSync('bash', [f], { encoding: 'utf8', env: { ...process.env, SUPERTOOLS_TTS_DIR: join(home, 'SuperTools-TTS'), UV_PYTHON_PREFERENCE: 'system' }, timeout: 900000 });
-    const out = join(home, 'SuperTools-TTS', 'output'), runDir = existsSync(out) ? readdirSync(out)[0] : '';
+    const r = spawnSync('bash', [f], { encoding: 'utf8', env: { ...process.env, SUPERUTILS_TTS_DIR: join(home, 'SuperUtils-TTS'), UV_PYTHON_PREFERENCE: 'system' }, timeout: 900000 });
+    const out = join(home, 'SuperUtils-TTS', 'output'), runDir = existsSync(out) ? readdirSync(out)[0] : '';
     const files = runDir ? readdirSync(join(out, runDir)) : [];
     t.ok(r.status === 0 && files.includes('piper-lessac-low.wav') && files.includes('piper-lessac-low.mp3'), `the Linux script ran: uv, Piper, a WAV and an MP3 (${files.join(', ')}; ${(r.stderr || '').slice(-400)})`);
   }

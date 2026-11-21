@@ -28,7 +28,7 @@ export function bcConsole() {
     hist.push(src); hpos = hist.length;
     add('bc-q', `> ${src}`);
     const session = [...lines, src].join('\n');
-    const r = await call('capture', { line: `bc -lq <<'__SUPERTOOLS_BC__'\n${session}\n__SUPERTOOLS_BC__` });
+    const r = await call('capture', { line: `bc -lq <<'__SUPERUTILS_BC__'\n${session}\n__SUPERUTILS_BC__` });
     const full = r.out as string;
     const fresh = full.startsWith(prevOut) ? full.slice(prevOut.length) : full;
     const errText = (r.err as string).trim();

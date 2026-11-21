@@ -3,7 +3,7 @@ name = "textkit"
 version = "0.1.0"
 edition = "2021"
 publish = false
-description = "SuperTools text engine for wasm32: counting words, characters, sentences, paragraphs and lines on Unicode's own segmentation rules (UAX #29)"
+description = "SuperUtils text engine for wasm32: counting words, characters, sentences, paragraphs and lines on Unicode's own segmentation rules (UAX #29)"
 
 [lib]
 crate-type = ["cdylib"]

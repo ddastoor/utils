@@ -1,4 +1,4 @@
-// SuperTools shell: a small POSIX-style shell that runs BusyBox applets (our wasm32-wasi build) as separate WASI
+// SuperUtils shell: a small POSIX-style shell that runs BusyBox applets (our wasm32-wasi build) as separate WASI
 // instances on a shared in-memory filesystem. WebAssembly cannot fork, so pipelines run stage by stage (each stage's
 // output becomes the next stage's input; an output cap stands in for SIGPIPE, so `yes | head` works).
 // Supports: quoting, escapes, $VAR ${VAR} ${VAR:-x} $? $# $@, $(…) `…`, $((…)), ~, globbing (* ? […]), pipes,
@@ -267,12 +267,12 @@ export class Shell {
   cols = 100;
   constructor(public vfs: VFS, public busybox: WebAssembly.Module, applets: string[], public io: ShellIO) {
     this.applets = new Set(applets);
-    for (const [k, v] of Object.entries({ HOME: '/home/user', PATH: '/bin:/usr/bin', USER: 'user', LOGNAME: 'user', SHELL: '/bin/sh', TERM: 'xterm-256color', LANG: 'C.UTF-8', TZ: 'UTC', HOSTNAME: 'supertools', PS1: '\\u@\\h:\\w\\$ ' })) this.vars.set(k, v);
+    for (const [k, v] of Object.entries({ HOME: '/home/user', PATH: '/bin:/usr/bin', USER: 'user', LOGNAME: 'user', SHELL: '/bin/sh', TERM: 'xterm-256color', LANG: 'C.UTF-8', TZ: 'UTC', HOSTNAME: 'superutils', PS1: '\\u@\\h:\\w\\$ ' })) this.vars.set(k, v);
     this.vars.set('PWD', this.cwd);
     try { this.vfs.mkdirp(this.cwd); } catch { /* exists */ }
   }
   env() { const e: Record<string, string> = {}; for (const k of this.exported) if (this.vars.has(k)) e[k] = this.vars.get(k)!; e.PWD = this.cwd; e.COLUMNS = String(this.cols); return e; }
-  prompt() { const home = this.vars.get('HOME') || '/home/user'; const w = this.cwd === home ? '~' : this.cwd.startsWith(home + '/') ? '~' + this.cwd.slice(home.length) : this.cwd; return `user@supertools:${w}$ `; }
+  prompt() { const home = this.vars.get('HOME') || '/home/user'; const w = this.cwd === home ? '~' : this.cwd.startsWith(home + '/') ? '~' + this.cwd.slice(home.length) : this.cwd; return `user@superutils:${w}$ `; }
 
   /** Run one line (or a script). Returns the exit status. */
   run(src: string, record = true): number {
@@ -690,7 +690,7 @@ function lexHeredoc(body: string): Word {
 export const BUILTINS = new Set(['cd', 'pwd', 'export', 'unset', 'read', 'history', 'clear', 'exit', 'break', 'continue', ':', 'type', 'which', 'help', 'source', '.', 'sh']);
 export const concat = (a: Uint8Array[]) => { const n = a.reduce((s, b) => s + b.length, 0), o = new Uint8Array(n); let k = 0; for (const b of a) { o.set(b, k); k += b.length; } return o; };
 export const errText = (e: number) => ({ 2: 'Permission denied', 8: 'Bad file descriptor', 20: 'File exists', 22: 'File too large', 28: 'Invalid argument', 31: 'Is a directory', 32: 'Too many levels of symbolic links', 44: 'No such file or directory', 54: 'Not a directory', 55: 'Directory not empty' } as Record<number, string>)[e] || `error ${e}`;
-const HELP = (applets: Set<string>) => `SuperTools terminal — BusyBox ${[...applets].length} commands running as WebAssembly in your browser.
+const HELP = (applets: Set<string>) => `SuperUtils terminal — BusyBox ${[...applets].length} commands running as WebAssembly in your browser.
 Files live in memory until you close the tab; use Upload/Download on the right to move files in and out.
 Shell: pipes |, redirects > >> < 2> &> 2>&1, here-docs << and <<<, && || ;, $VAR, $(cmd), $((1+2)), *.txt,
        if/then/elif/else/fi, for/while/until … do … done, { …; }, ( … ), # comments.

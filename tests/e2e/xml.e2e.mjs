@@ -91,8 +91,8 @@ export default async (ctx) => {
   const bigXml = `<rows>${Array.from({ length: 20000 }, (_, i) => `<row id="${i}"><name>item ${i}</name><v>${i % 7}</v></row>`).join('')}</rows>`; const t0 = Date.now();
   await xp.fill('count(//row)'); f = await put(bigXml, 'Tab'); ok(f.split('\n').length === 80002 && (await res()).kv.join() === 'Number,20000', `60,001 elements (${(bigXml.length / 1e6).toFixed(1)} MB) formatted and counted in ${Date.now() - t0} ms`);
   await put('<a/>'); await page.getByRole('button', { name: 'Download' }).click();
-  ok((await page.evaluate(() => globalThis.__supertoolsLive())).resources.includes('devcore-xml'), 'the engine is devcore-xml.wasm');
+  ok((await page.evaluate(() => globalThis.__superutilsLive())).resources.includes('devcore-xml'), 'the engine is devcore-xml.wasm');
   ok(!page.errors.length, `no page errors ${page.errors.join(' | ')}`);
-  await page.goto(`${base}#/`); ok(await page.waitForFunction(() => globalThis.__supertoolsLive().resources.length === 0, null, { timeout: 8000 }).then(() => true, () => false), 'released when the tab is left');
+  await page.goto(`${base}#/`); ok(await page.waitForFunction(() => globalThis.__superutilsLive().resources.length === 0, null, { timeout: 8000 }).then(() => true, () => false), 'released when the tab is left');
   await pcOnlyOnPhone(ctx, 'xml');
 };

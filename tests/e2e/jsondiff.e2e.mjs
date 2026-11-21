@@ -69,8 +69,8 @@ export default async (ctx) => {
   const fa = join(ctx.tmp, 'jd-left.json'), fb = join(ctx.tmp, 'jd-right.json'); writeFileSync(fa, '{"from":"file","n":1}'); writeFileSync(fb, '{"from":"file","n":2,"new":[]}');
   await page.locator('input[type=file]').nth(0).setInputFiles(fa); await page.locator('input[type=file]').nth(1).setInputFiles(fb);
   ok(await page.waitForFunction(() => document.querySelectorAll('.jd-tbl tbody tr').length === 2, null, { timeout: 8000 }).then(() => true, () => false) && await A.inputValue() === '{"from":"file","n":1}', 'two files opened and compared');
-  ok((await page.evaluate(() => globalThis.__supertoolsLive())).resources.includes('devcore-jsondiff'), 'the engine is devcore-jsondiff.wasm');
+  ok((await page.evaluate(() => globalThis.__superutilsLive())).resources.includes('devcore-jsondiff'), 'the engine is devcore-jsondiff.wasm');
   ok(!page.errors.length, `no page errors ${page.errors.join(' | ')}`);
-  await page.goto(`${base}#/`); ok(await page.waitForFunction(() => globalThis.__supertoolsLive().resources.length === 0, null, { timeout: 8000 }).then(() => true, () => false), 'released when the tab is left');
+  await page.goto(`${base}#/`); ok(await page.waitForFunction(() => globalThis.__superutilsLive().resources.length === 0, null, { timeout: 8000 }).then(() => true, () => false), 'released when the tab is left');
   await pcOnlyOnPhone(ctx, 'jsondiff');
 };

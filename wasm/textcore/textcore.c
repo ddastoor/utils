@@ -1,5 +1,5 @@
 /*
- * textcore.wasm — text algorithms for SuperTools (own code).
+ * textcore.wasm — text algorithms for SuperUtils (own code).
  *   This file: the allocator the wrapper uses. The engines are search.c (tool search), rare.c (rare-word ranking
  *   for the Photo Dictionary) and xycut.c (reading order for PDF → EPUB). The Text Diff's own Myers routine lived
  *   here until Nov 2026; that tab now uses textkit-diff.wasm (wasm/textkit).

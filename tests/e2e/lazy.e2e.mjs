@@ -127,7 +127,7 @@ export default async ({ base, page: newPage, ok, info, devices }) => {
   // 4. engines load on first use and are released when the tab is left
   {
     const p = await newPage({ viewport: { width: 1366, height: 900 } });
-    const live = () => p.evaluate(() => globalThis.__supertoolsLive());
+    const live = () => p.evaluate(() => globalThis.__superutilsLive());
     const wasm = [];
     p.on('request', (r) => { if (r.url().endsWith('.wasm')) wasm.push(rel(r.url())); });
     await p.goto(`${base}#/calc`);

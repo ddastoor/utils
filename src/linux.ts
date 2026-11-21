@@ -16,7 +16,7 @@ export function detectPassive(): { display: Display; sure: boolean } {
   return screenX !== 0 || screenY !== 0 ? { display: 'x11', sure: true } : { display: 'wayland', sure: false };
 }
 export async function confirmDisplay(): Promise<Display> {
-  const w = window.open('about:blank', 'supertools-probe', 'popup,width=160,height=100,left=0,top=0');
+  const w = window.open('about:blank', 'superutils-probe', 'popup,width=160,height=100,left=0,top=0');
   if (!w) throw new Error('The browser blocked the small test window: allow pop-ups for this site and try again.');
   try {
     w.document.title = 'Checking…';

@@ -117,7 +117,7 @@ export const qr: Mount = (root) => {
 // ------------------------------------------------------------------ Barcode generator
 const FORMATS: Array<[string, string, string]> = [
   ['EAN13', 'EAN-13 (retail, India 890…)', '890123456789'], ['EAN8', 'EAN-8', '9031101'], ['UPCA', 'UPC-A', '03600029145'], ['UPCE', 'UPC-E', '0425261'],
-  ['Code128', 'Code 128', 'SUPERTOOLS-2026'], ['Code39', 'Code 39', 'ABC-1234'], ['Code93', 'Code 93', 'CODE93'], ['ITF', 'ITF (Interleaved 2 of 5)', '12345678'],
+  ['Code128', 'Code 128', 'SUPERUTILS-2026'], ['Code39', 'Code 39', 'ABC-1234'], ['Code93', 'Code 93', 'CODE93'], ['ITF', 'ITF (Interleaved 2 of 5)', '12345678'],
   ['Codabar', 'Codabar', 'A12345B'], ['DataMatrix', 'Data Matrix', 'Hello DataMatrix'], ['PDF417', 'PDF417', 'PDF417 example'], ['Aztec', 'Aztec', 'Aztec example'],
 ];
 export const barcode: Mount = (root) => {

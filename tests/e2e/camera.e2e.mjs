@@ -169,7 +169,7 @@ export default async ({ base, page: newPage, ok, info, devices }) => {
   await step('leaving a tab with its camera open: the camera is closed, nothing of it is kept', async () => {
     await go('collage'); await openCamera(pg);
     await pg.evaluate(() => { location.hash = '#/'; }); await pg.locator('.tile').first().waitFor();
-    const live = await pg.evaluate(() => globalThis.__supertoolsLive());
+    const live = await pg.evaluate(() => globalThis.__superutilsLive());
     return await stopped(pg) && !live.resources.some((k) => k.startsWith('livecam')) ? true : JSON.stringify(live);
   });
   ok(!pg.errors.length, `the webcam in every tab: no page errors ${pg.errors.slice(0, 5).join(' | ')}`);

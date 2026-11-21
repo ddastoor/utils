@@ -243,7 +243,7 @@ export const diff: Mount = (root) => {
 // every character, the text turned upside down): the characters of a text with emoji or another script than Latin
 // are told apart by textkit.wasm, fetched with the first such text.
 export const fancy: Mount = (root) => {
-  const inp = textarea({ rows: 2, value: 'SuperTools', placeholder: 'Type something…' }); inp.setAttribute('aria-label', 'Text to style');
+  const inp = textarea({ rows: 2, value: 'SuperUtils', placeholder: 'Type something…' }); inp.setAttribute('aria-label', 'Text to style');
   const cells = FANCY.map(() => h('span', { class: 'case-val fancy-val' }));
   /** the splitter for the text in the box: null while the engine it needs is not there */
   let split: Split | null = plainClusters, kit: Split | null = null, seq = 0, gone = false;
@@ -469,7 +469,7 @@ export function jsonProblem(e: any): { text: string; pos: number | null } {
 }
 interface JsonFmt { out: string; values: number; objects: number; arrays: number; keys: number; depth: number; duplicates: Array<{ key: string; line: number }> }
 export const json: Mount = (root) => {
-  const ta = textarea({ rows: 12, mono: true, value: '{"name":"SuperTools","tools":173,"tags":["private","wasm"],"nested":{"b":2,"a":1}}' });
+  const ta = textarea({ rows: 12, mono: true, value: '{"name":"SuperUtils","tools":175,"tags":["private","wasm"],"nested":{"b":2,"a":1}}' });
   const out = outputBox({ rows: 14, mono: true });
   const status = h('div');
   let indent = '2', sorted = false, mini = false, dc: Devcore | null = null, seq = 0;

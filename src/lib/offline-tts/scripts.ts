@@ -1,7 +1,7 @@
 // The scripts of the Text-to-Speech tab's offline mode (owner, 21 Nov 2026: "I intend that this runs entirely from the
 // user's PC, not in the browser … find out whether this operating system is Linux or Windows, and appropriately download
 // whatever is needed"). One file per system — a .cmd for Windows (double-click; PowerShell inside) and a .sh for Linux —
-// that keeps everything in one folder (SuperTools-TTS in the home folder): uv (Astral's Python manager, from PyPI,
+// that keeps everything in one folder (SuperUtils-TTS in the home folder): uv (Astral's Python manager, from PyPI,
 // SHA-256 checked) fetches Python and the speech engines; the engines fetch the chosen models from Hugging Face at pinned
 // revisions; driver.py (the same on both systems) makes one WAV and one MP3 per voice. The page itself fetches nothing.
 // The text, the job and driver.py are carried as Base64 (any character is safe, and the .cmd file stays ASCII).
@@ -103,15 +103,15 @@ ${tokenSteps(gated).map((l) => `  echo ${shq(l)}`).join('\n')}
 fi
 ` : '';
   return `#!/usr/bin/env bash
-# SuperTools - offline speech for Linux. Made by ${o.site} on ${o.made}.
-# It runs entirely on this computer and keeps everything in one folder (~/SuperTools-TTS, or $SUPERTOOLS_TTS_DIR):
+# SuperUtils - offline speech for Linux. Made by ${o.site} on ${o.made}.
+# It runs entirely on this computer and keeps everything in one folder (~/SuperUtils-TTS, or $SUPERUTILS_TTS_DIR):
 #   bin/uv          uv ${UV.version} (Astral's Python manager, from PyPI, SHA-256 checked); it fetches Python and the engines
 #   models/         the voices you chose, from Hugging Face (fixed revisions)
 #   output/<time>/  one WAV and one MP3 per voice
 # Run it with:  bash <this file>     Run it again for another text: what is downloaded stays.
 # To remove everything, delete the folder.
 set -euo pipefail
-DIR="\${SUPERTOOLS_TTS_DIR:-$HOME/SuperTools-TTS}"
+DIR="\${SUPERUTILS_TTS_DIR:-$HOME/SuperUtils-TTS}"
 mkdir -p "$DIR/bin" "$DIR/output"
 say() { printf '\\n== %s\\n' "$*"; }
 fetch() {
@@ -141,12 +141,12 @@ export UV_PYTHON_PREFERENCE="\${UV_PYTHON_PREFERENCE:-only-managed}" UV_TORCH_BA
 export HF_HOME="$DIR/cache/huggingface" HF_HUB_DISABLE_XET="\${HF_HUB_DISABLE_XET:-1}" HF_HUB_DISABLE_TELEMETRY=1
 ${token}RUN="$DIR/output/$(date +%Y-%m-%d_%H%M%S)"
 mkdir -p "$RUN"
-base64 -d > "$DIR/driver.py" <<'SUPERTOOLS_DRIVER'
+base64 -d > "$DIR/driver.py" <<'SUPERUTILS_DRIVER'
 ${wrap(b64(o.driver))}
-SUPERTOOLS_DRIVER
-base64 -d > "$RUN/job.json" <<'SUPERTOOLS_JOB'
+SUPERUTILS_DRIVER
+base64 -d > "$RUN/job.json" <<'SUPERUTILS_JOB'
 ${wrap(b64(JSON.stringify(o.job)))}
-SUPERTOOLS_JOB
+SUPERUTILS_JOB
 ${gated.length ? `say ${shq(`Checking that Hugging Face lets this computer download ${gated.join(', ')}`)}
 if ! "$DIR/bin/uv" run --python ${PYTHON} --no-project ${withArgs(CHECK_PINS).join(' ')} python "$DIR/driver.py" "$RUN/job.json" --check-access ${gated.map(shq).join(' ')}; then
   echo 'Nothing else was downloaded. Fix that, then run this again.' >&2; exit 1
@@ -182,16 +182,16 @@ ${tokenSteps(gated).map((l) => `    Write-Host ${ps(ascii(l))}`).join('\n')}
     [IO.File]::WriteAllText($tokenFile, $token.Trim()); Remove-Variable token
   }
 ` : '';
-  const body = `<# : SuperTools - offline speech for Windows. Made by ${ascii(o.site)} on ${ascii(o.made)}. Double-click this file.
+  const body = `<# : SuperUtils - offline speech for Windows. Made by ${ascii(o.site)} on ${ascii(o.made)}. Double-click this file.
 @echo off
 setlocal
-set "SUPERTOOLS_SELF=%~f0"
-powershell -NoProfile -ExecutionPolicy Bypass -Command "iex ([IO.File]::ReadAllText($env:SUPERTOOLS_SELF))"
+set "SUPERUTILS_SELF=%~f0"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "iex ([IO.File]::ReadAllText($env:SUPERUTILS_SELF))"
 echo.
 pause
 exit /b
 #>
-# It runs entirely on this computer and keeps everything in one folder (SuperTools-TTS in your user folder):
+# It runs entirely on this computer and keeps everything in one folder (SuperUtils-TTS in your user folder):
 #   bin\\uv.exe      uv ${UV.version} (Astral's Python manager, from PyPI, SHA-256 checked); it fetches Python and the engines
 #   models\\         the voices you chose, from Hugging Face (fixed revisions)
 #   output\\<time>\\  one WAV and one MP3 per voice
@@ -201,7 +201,7 @@ $ProgressPreference = 'SilentlyContinue'
 [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
 function Say($m) { Write-Host ''; Write-Host "== $m" -ForegroundColor Cyan }
 try {
-  $Dir = if ($env:SUPERTOOLS_TTS_DIR) { $env:SUPERTOOLS_TTS_DIR } else { Join-Path $env:USERPROFILE 'SuperTools-TTS' }
+  $Dir = if ($env:SUPERUTILS_TTS_DIR) { $env:SUPERUTILS_TTS_DIR } else { Join-Path $env:USERPROFILE 'SuperUtils-TTS' }
   New-Item -ItemType Directory -Force -Path (Join-Path $Dir 'bin'), (Join-Path $Dir 'output') | Out-Null
   $uv = Join-Path $Dir 'bin\\uv.exe'
   if (-not (Test-Path -LiteralPath $uv)) {

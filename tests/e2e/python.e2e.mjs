@@ -266,7 +266,7 @@ print("still alive")
   d = await download(page, () => page.getByRole('button', { name: 'Download .py' }).click()); ok(readFileSync(d, 'utf8') === 'print("from file")\nprint("crlf")\n', '.py download');
   ok(!page.errors.length, `no page errors ${page.errors.join(' | ')}`);
   await page.goto(`${base}#/`); await page.waitForTimeout(300);
-  ok((await page.evaluate(() => globalThis.__supertoolsLive())).workers === 0, 'worker released on leave');
+  ok((await page.evaluate(() => globalThis.__superutilsLive())).workers === 0, 'worker released on leave');
 
   // ---------------------------------------------------------------- local time = the browser's
   const TZ_SRC = `import time, datetime

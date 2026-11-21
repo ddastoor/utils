@@ -3,7 +3,7 @@ name = "devcore"
 version = "0.1.0"
 edition = "2021"
 publish = false
-description = "SuperTools developer-tool engine for wasm32: CIDR, cron, semver, glob, base encodings, binary decoders, X.509, patch, SQL formatting, hex dump, JSON formatter / diff / types, XML formatter"
+description = "SuperUtils developer-tool engine for wasm32: CIDR, cron, semver, glob, base encodings, binary decoders, X.509, patch, SQL formatting, hex dump, JSON formatter / diff / types, XML formatter"
 
 [lib]
 crate-type = ["cdylib"]

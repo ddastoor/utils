@@ -139,7 +139,7 @@ export default async ({ base, page: newPage, ok, info, download, devices, tmp })
   await pick(longFile);
   await page.getByText('Removing noise…').waitFor({ timeout: 20000 });
   await page.goto(`${base}#/`);
-  ok(await page.waitForFunction(() => globalThis.__supertoolsLive().workers === 0, null, { timeout: 8000 }).then(() => true, () => false), 'leaving the tab while it cleans ends the noise worker');
+  ok(await page.waitForFunction(() => globalThis.__superutilsLive().workers === 0, null, { timeout: 8000 }).then(() => true, () => false), 'leaving the tab while it cleans ends the noise worker');
   ok(!page.errors.length, `no page errors after leaving ${page.errors.slice(0, 3).join(' | ')}`);
 
   const ph = await newPage(devices['iPhone 13']);

@@ -1,4 +1,4 @@
-// SuperTools Graphviz glue: lay out one DOT graph with a chosen engine and write it in one or more formats.
+// SuperUtils Graphviz glue: lay out one DOT graph with a chosen engine and write it in one or more formats.
 //   gv_layout(src, engine, index) → 0 ok, 1 no graph could be read, 2 layout failed   (the graph stays laid out)
 //                                   index = which graph of the text (from 0; the last one if there are fewer)
 //   gv_format(format)             → 0 ok, 3 render failed; the text is in gv_out (svg, json, plain, xdot, dot, canon …)

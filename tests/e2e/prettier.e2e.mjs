@@ -258,7 +258,7 @@ export default async (ctx) => {
     ok(then.text === 'let a = 1;\n' && then.notes[0] === 'Formatted by Biome.', 'the next try works');
     // leaving the tab ends the worker; coming back starts afresh
     await p.goto(`${base}#/`); await p.waitForTimeout(200);
-    ok((await p.evaluate(() => globalThis.__supertoolsLive())).workers === 0, 'leaving the tab ends the worker');
+    ok((await p.evaluate(() => globalThis.__superutilsLive())).workers === 0, 'leaving the tab ends the worker');
     await p.goto(`${base}#/prettier`); await p.locator('textarea').first().waitFor();
     ok((await format(p)).notes[0] === 'Formatted by Biome.', 'back on the tab it formats again');
     await p.close();

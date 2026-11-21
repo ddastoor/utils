@@ -1,5 +1,5 @@
 /*
- * mathcore.wasm — numeric engine for SuperTools calculators and Math & Science tools.
+ * mathcore.wasm — numeric engine for SuperUtils calculators and Math & Science tools.
  * Own code (MIT-style, part of this repo). Built as a WASI reactor with zig cc; see build.sh.
  *
  * Sections: expression compiler/evaluator · root finding · polynomials · linear algebra · statistics ·

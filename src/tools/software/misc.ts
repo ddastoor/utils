@@ -117,7 +117,7 @@ const MAGIC: Array<[number, number[] | string, string]> = [
   [0, 'fLaC', 'FLAC audio'], [0, 'OggS', 'Ogg (Vorbis / Opus)'], [0, [0x1a, 0x45, 0xdf, 0xa3], 'Matroska / WebM'], [0, [0xd0, 0xcf, 0x11, 0xe0], 'MS Office 97–2003 (OLE)'], [0, '{\\rtf', 'RTF document'],
   [0, [0x49, 0x49, 0x2a, 0x00], 'TIFF (little-endian)'], [0, [0x4d, 0x4d, 0x00, 0x2a], 'TIFF (big-endian)'], [0, 'BM', 'BMP image'], [0, [0x00, 0x00, 0x01, 0x00], 'ICO icon'], [0, 'wOF2', 'WOFF2 font'], [0, 'wOFF', 'WOFF font'],
   [0, [0x00, 0x01, 0x00, 0x00], 'TrueType font'], [0, 'OTTO', 'OpenType font'], [0, '-----BEGIN', 'PEM (certificate / key)'], [0, [0xef, 0xbb, 0xbf], 'UTF-8 text with BOM'], [0, [0xff, 0xfe, 0x00, 0x00], 'UTF-32 LE text (BOM)'], [0, [0x00, 0x00, 0xfe, 0xff], 'UTF-32 BE text (BOM)'], [0, [0xff, 0xfe], 'UTF-16 LE text (BOM)'], [0, [0xfe, 0xff], 'UTF-16 BE text (BOM)'],
-  [0, '<?xml', 'XML'], [0, '<svg', 'SVG image'], [0, '<!DOCTYPE html', 'HTML document'], [0, '<!doctype html', 'HTML document'], [0, '<html', 'HTML document'], [0, '#!', 'Script (shebang)'], [0, [0xca, 0xfe, 0xba, 0xbe], 'Java class / Mach-O fat binary'], [0, 'USODIUM1', 'Sodium Encrypt file (SuperTools)'],
+  [0, '<?xml', 'XML'], [0, '<svg', 'SVG image'], [0, '<!DOCTYPE html', 'HTML document'], [0, '<!doctype html', 'HTML document'], [0, '<html', 'HTML document'], [0, '#!', 'Script (shebang)'], [0, [0xca, 0xfe, 0xba, 0xbe], 'Java class / Mach-O fat binary'], [0, 'USODIUM1', 'Sodium Encrypt file (SuperUtils)'],
 ];
 export function sniff(b: Uint8Array): string {
   for (const [off, sig, name] of MAGIC) {

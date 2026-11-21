@@ -157,7 +157,7 @@ const B58_MAX = 10_000, SHOW_MAX = 200_000, FILE_MAX = 64 * 1024 * 1024;
 export const baseenc: Mount = (root) => {
   let alg = 'base32', dir = 'enc', file: Uint8Array | null = null, fileName = '', decoded: Uint8Array | null = null, full = '', dc: Devcore | null = null;
   // a plain read-only box: the Copy button below gives the whole text even when the box shows only its beginning
-  const src = textarea({ rows: 6, mono: true, value: 'Hello, SuperTools!' }), out = textarea({ rows: 6, mono: true, readonly: true }), info = h('div');
+  const src = textarea({ rows: 6, mono: true, value: 'Hello, SuperUtils!' }), out = textarea({ rows: 6, mono: true, readonly: true }), info = h('div');
   out.setAttribute('aria-label', 'Output');
   const show = (t: string) => { full = t; out.value = t.length > SHOW_MAX ? t.slice(0, SHOW_MAX) : t; if (t.length > SHOW_MAX) info.append(note(`Showing the first ${SHOW_MAX.toLocaleString('en-IN')} of ${t.length.toLocaleString('en-IN')} characters — Copy and Download give all of it.`, 'info')); };
   const run = async () => {

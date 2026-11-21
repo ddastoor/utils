@@ -1,4 +1,4 @@
-"""SuperTools: a stand-in for CPython's C module _socket (wasm/python/lib, added to python314.zip by build.sh).
+"""SuperUtils: a stand-in for CPython's C module _socket (wasm/python/lib, added to python314.zip by build.sh).
 
 A browser tab has no sockets, and the WebAssembly build has no _socket. Without this file `import socket` failed —
 and with it asyncio, doctest, pdb, logging.handlers, email.utils, http.client and urllib.request, which only import

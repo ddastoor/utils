@@ -30,7 +30,7 @@ const view = h('main', { class: 'view', id: 'view' });
 
 document.getElementById('app')!.append(
   h('header', { class: 'topbar' },
-    h('a', { class: 'brand', href: '#/', 'aria-label': 'SuperTools home' }, h('span', { class: 'brand-mark' }, ic('Zap')), h('span', { class: 'brand-name' }, 'SuperTools')),
+    h('a', { class: 'brand', href: '#/', 'aria-label': 'SuperUtils home' }, h('span', { class: 'brand-mark' }, ic('Zap')), h('span', { class: 'brand-name' }, 'SuperUtils')),
     search,
     h('span', { class: 'privacy', title: 'Everything runs in your browser. Files never leave your device.' }, ic('ShieldCheck'), h('span', null, 'Private · on-device'))),
   h('div', { class: 'navwrap' }, catBar, toolBar),
@@ -108,11 +108,11 @@ function showHome() {
   teardown(); setIdle(true);
   lastSection = 'all';
   renderTabs('all');
-  document.title = 'SuperTools';
+  document.title = 'SuperUtils';
   const fv = favTools();
   clear(view).append(
     h('section', { class: 'home-hero' },
-      h('h1', null, 'SuperTools'),
+      h('h1', null, 'SuperUtils'),
       h('p', { class: 'muted' }, `${visible.length} private tools that run entirely in your browser. Browse by category, search, or star your favorites.`)),
     h('section', { class: 'home-sec' }, h('h2', { class: 'sec-title' }, ic('Star'), 'Favorites'), fv.length ? h('div', { class: 'tiles' }, fv.map((t) => tile(t, 'fav'))) : favEmpty()),
     ...cats.map((c) => h('section', { class: 'home-sec' },
@@ -129,7 +129,7 @@ function showSection(section: Section) {
   renderTabs(section);
   const cat = CATEGORIES.find((c) => c.id === section);
   const title = section === 'fav' ? 'Favorites' : cat!.title;
-  document.title = `${title} · SuperTools`;
+  document.title = `${title} · SuperUtils`;
   const list = section === 'fav' ? favTools() : toolsIn(section);
   clear(view).append(
     h('div', { class: 'tool-head' }, h('div', { class: 'tool-head-ic' }, ic(section === 'fav' ? 'Star' : cat!.icon)),
@@ -150,7 +150,7 @@ async function showTool(tool: Tool, from?: 'fav') {
   lastSection = section;
   lastInSection.set(section, tool.id);
   renderTabs(section, tool);
-  document.title = `${tool.title} · SuperTools`;
+  document.title = `${tool.title} · SuperUtils`;
 
   const body = h('div', { class: 'tool-body' }, h('div', { class: 'loading' }, h('span', { class: 'spinner' }), 'Loading…'));
   clear(view).append(

@@ -1,4 +1,4 @@
-//! SuperTools text engine (wasm32-wasip1). Counting for the Word Counter tab on Unicode's own segmentation rules
+//! SuperUtils text engine (wasm32-wasip1). Counting for the Word Counter tab on Unicode's own segmentation rules
 //! (UAX #29, the unicode-segmentation crate): user-perceived characters and sentences — with the rules a person counts
 //! by that the standard leaves open ("Dr. Rao" does not end a sentence) — and words as a word limit counts them. The same numbers in every browser: nothing here depends on the browser's own segmenter, whose
 //! rules differ between Chrome, Safari and Firefox.

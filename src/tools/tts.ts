@@ -17,7 +17,7 @@ export const VOICES: Array<[string, Voice[]]> = [
   ['British English', [V('bf_emma', 'Emma — female', 'kokoro', 'b'), V('bf_isabella', 'Isabella — female', 'kokoro', 'b'), V('bm_george', 'George — male', 'kokoro', 'b'), V('bm_fable', 'Fable — male', 'kokoro', 'b')]],
   ['Indian English', [V('in_svbi', 'Female voice 1 (SVBI)', 'piper', 'a', 2), V('in_tni', 'Female voice 2 (TNI)', 'piper', 'a', 9), V('in_asi', 'Male voice 1 (ASI)', 'piper', 'a', 10), V('in_rrbi', 'Male voice 2 (RRBI)', 'piper', 'a', 19)]],
 ];
-const SAMPLE = 'Welcome to SuperTools. This voice is made on your own device, so the text you type never leaves it. You can change the speed, pick another voice, and save the result as an MP3.';
+const SAMPLE = 'Welcome to SuperUtils. This voice is made on your own device, so the text you type never leaves it. You can change the speed, pick another voice, and save the result as an MP3.';
 /** Markdown → plain text for reading aloud (headings, emphasis, links, code fences, list markers). */
 export const mdToText = (s: string) => s.replace(/```[\s\S]*?```/g, ' ').replace(/`([^`]*)`/g, '$1').replace(/!\[[^\]]*\]\([^)]*\)/g, '').replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
   .replace(/^\s{0,3}#{1,6}\s+(.*)$/gm, '$1.').replace(/^\s*[-*+]\s+/gm, '').replace(/^\s*\d+[.)]\s+/gm, '').replace(/^\s*>\s?/gm, '').replace(/(\*\*|__|\*|_|~~)(.*?)\1/g, '$2').replace(/^\s*[-*_]{3,}\s*$/gm, '').replace(/\|/g, ' ');

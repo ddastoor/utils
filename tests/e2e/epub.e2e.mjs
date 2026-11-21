@@ -168,7 +168,7 @@ export default async ({ base, page: newPage, ok, info, download, tmp, devices, r
   await q.getByText(/Page \d+ of 300…/).first().waitFor({ timeout: 30000 }).catch(() => {});
   await q.goto(base + '#/');
   await q.waitForTimeout(3000);
-  const liveAfter = await q.evaluate(() => globalThis.__supertoolsLive?.());
+  const liveAfter = await q.evaluate(() => globalThis.__superutilsLive?.());
   ok(qd === 0 && q.errors.length === 0 && await q.evaluate(() => [...window.__urls].length) === 0, `leaving the tab during a conversion: it ends quietly, the pictures are let go (${JSON.stringify(liveAfter)}; ${q.errors.join(' | ')})`);
   // leaving the tab lets go of what it made: its results' blob URLs (they kept the files in memory until the page reloaded)
   { const had = await page.evaluate((id) => [...window.__blobs.values()].filter((b) => b.at.startsWith(`#/${id}`) && !b.download && !/javascript/.test(b.type)).length, 'epub');

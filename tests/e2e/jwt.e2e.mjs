@@ -13,11 +13,11 @@ export default async (ctx) => {
   const set = async (s) => { await setValue(ta, s); await page.waitForFunction(() => true); };
   const kv = async () => { const t = await page.locator('.kv span').allTextContents(); const o = {}; for (let i = 0; i < t.length; i += 2) o[t[i]] = t[i + 1]; return o; };
   const b = (o) => Buffer.from(typeof o === 'string' ? o : JSON.stringify(o)).toString('base64url'), tok = (h, p, s = 'c2ln') => `${b(h)}.${b(p)}.${s}`;
-  ok(await hdr.inputValue() === '{\n  "alg": "HS256",\n  "typ": "JWT"\n}' && await pl.inputValue() === '{\n  "sub": "1234567890",\n  "name": "SuperTools",\n  "iat": 1700000000,\n  "exp": 1800000000\n}', 'the sample token is decoded: header and payload');
+  ok(await hdr.inputValue() === '{\n  "alg": "HS256",\n  "typ": "JWT"\n}' && await pl.inputValue() === '{\n  "sub": "1234567890",\n  "name": "SuperUtils",\n  "iat": 1700000000,\n  "exp": 1800000000\n}', 'the sample token is decoded: header and payload');
   let k = await kv();
   ok(k['Issued at (iat)'] === '2023-11-14T22:13:20Z · 15 Nov 2023, 3:43:20 am IST · 3 years ago' && k['Expires (exp)'] === '2027-01-15T08:00:00Z · 15 Jan 2027, 1:30:00 pm IST · in 2 months' && k.Signature === '32 bytes · algorithm HS256', `time claims in UTC, local time and words; signature size (${JSON.stringify(k)})`);
   ok(/Token is not expired — it expires in 2 months\./.test(await notes(page)) && /signature is NOT verified/.test(await notes(page)) && await page.locator('.note-ok').count() === 1, 'verdict + the reminder that the signature is not checked');
-  ok((await page.evaluate(() => globalThis.__supertoolsLive())).resources.includes('devcore-json'), 'the claims are printed by devcore-json (lossless)');
+  ok((await page.evaluate(() => globalThis.__superutilsLive())).resources.includes('devcore-json'), 'the claims are printed by devcore-json (lossless)');
   // PyJWT's tokens
   let good = 0;
   for (const [i, r] of REF.jwt.entries()) {
@@ -53,6 +53,6 @@ export default async (ctx) => {
   }
   await set(''); ok(await page.locator('.note, .outbox').count() === 0, 'an empty box shows nothing');
   ok(!page.errors.length, `no page errors ${page.errors.join(' | ')}`);
-  await page.goto(`${base}#/`); ok(await until(page, () => globalThis.__supertoolsLive().resources.length === 0), 'the engine is released when the tab is left');
+  await page.goto(`${base}#/`); ok(await until(page, () => globalThis.__superutilsLive().resources.length === 0), 'the engine is released when the tab is left');
   await pcOnlyOnPhone(ctx, 'jwt');
 };

@@ -1,4 +1,6 @@
-# SuperTools
+# SuperUtils
+
+(Called SuperTools until 21 Nov 2026.)
 
 Private, in-browser utilities — 173 tools for images, PDFs, security, media, calculators, maths, text,
 software engineering and everyday use. Hosted on GitHub Pages; everything runs on your device and no file

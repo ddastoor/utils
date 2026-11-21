@@ -1,5 +1,5 @@
 /*
- * metacore.wasm — file-metadata parsing for SuperTools (own code, WebAssembly first: STANDING RULE #1).
+ * metacore.wasm — file-metadata parsing for SuperUtils (own code, WebAssembly first: STANDING RULE #1).
  *   m_sniff        : detect image type and pixel size from the header (JPEG, PNG, WebP, GIF, BMP, HEIC/AVIF brand)
  *   m_exif_json    : read EXIF (JPEG APP1 / PNG eXIf / WebP EXIF chunk) into a compact JSON object of named tags
  *   m_strip        : remove metadata without re-encoding (JPEG: APP1..APP15 except ICC + COM; PNG: eXIf/tEXt/zTXt/iTXt/

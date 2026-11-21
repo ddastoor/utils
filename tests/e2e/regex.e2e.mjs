@@ -51,8 +51,8 @@ export default async (ctx) => {
   ok(await until(page, () => /Stopped after 2 seconds: this pattern takes too long/.test(document.querySelector('.note-err')?.textContent || ''), null, 9000), `a runaway pattern is stopped (${Date.now() - t0} ms) with an explanation`);
   ok(await page.evaluate(() => 1 + 1) === 2 && await page.locator('.regex-hl').textContent() === 'a'.repeat(40) + '!', 'the page stayed responsive and the text is still shown');
   await set('a{3}', 'g', 'aaaaaa'); ok(await marksAre(['aaa', 'aaa']), 'the next pattern runs in a fresh worker');
-  ok((await page.evaluate(() => globalThis.__supertoolsLive())).workers === 1, 'one worker is alive');
+  ok((await page.evaluate(() => globalThis.__superutilsLive())).workers === 1, 'one worker is alive');
   ok(!page.errors.length, `no page errors ${page.errors.join(' | ')}`);
-  await page.goto(`${base}#/`); ok(await until(page, () => globalThis.__supertoolsLive().workers === 0), 'the worker is ended when the tab is left');
+  await page.goto(`${base}#/`); ok(await until(page, () => globalThis.__superutilsLive().workers === 0), 'the worker is ended when the tab is left');
   await pcOnlyOnPhone(ctx, 'regex');
 };

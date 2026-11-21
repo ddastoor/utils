@@ -154,7 +154,7 @@ pid_t wait(int *s) { return waitpid(-1, s, 0); }
 /* ---- identity / host info shims */
 char *getlogin(void) { static char u[] = "user"; return u; }
 int getlogin_r(char *b, size_t n) { if (n < 5) return ERANGE; strcpy(b, "user"); return 0; }
-int gethostname(char *b, size_t n) { const char h[] = "supertools"; if (n < sizeof h) { errno = ENAMETOOLONG; return -1; } memcpy(b, h, sizeof h); return 0; }
+int gethostname(char *b, size_t n) { const char h[] = "superutils"; if (n < sizeof h) { errno = ENAMETOOLONG; return -1; } memcpy(b, h, sizeof h); return 0; }
 int sethostname(const char *b, size_t n) { (void)b; (void)n; errno = EPERM; return -1; }
 int setpriority(int w, id_t who, int prio) { (void)w; (void)who; (void)prio; return 0; }
 int getpriority(int w, id_t who) { (void)w; (void)who; errno = 0; return 0; }
@@ -180,8 +180,8 @@ struct hostent *gethostbyname(const char *n) { (void)n; h_err = 1; return NULL; 
 #include <limits.h>
 int bb_uname(struct utsname *u) {
 	memset(u, 0, sizeof *u);
-	strcpy(u->sysname, "Linux"); strcpy(u->nodename, "supertools"); strcpy(u->release, "6.0-wasm");
-	strcpy(u->version, "#1 SuperTools BusyBox in WebAssembly"); strcpy(u->machine, "wasm32");
+	strcpy(u->sysname, "Linux"); strcpy(u->nodename, "superutils"); strcpy(u->release, "6.0-wasm");
+	strcpy(u->version, "#1 SuperUtils BusyBox in WebAssembly"); strcpy(u->machine, "wasm32");
 	return 0;
 }
 int bb_chmod(const char *p, mode_t m) { (void)m; struct stat st; return bb_stat(p, &st); }

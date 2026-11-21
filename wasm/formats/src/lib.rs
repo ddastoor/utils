@@ -1,4 +1,4 @@
-//! SuperTools config formats (wasm32-wasip1). Built twice (Cargo features): formats-yaml.wasm (YAML ⇄ JSON ⇄ TOML: the
+//! SuperUtils config formats (wasm32-wasip1). Built twice (Cargo features): formats-yaml.wasm (YAML ⇄ JSON ⇄ TOML: the
 //! parsers serde_yaml_ng — unsafe-libyaml, a Rust translation of libyaml — and toml, our lossless JSON reader, and
 //! our own writers for the three formats, see conv.rs) and formats-schema.wasm (jsonschema).
 //! Entry point: f_call(op, json) → JSON; errors come back as {"error": "...", "line": n, "column": n}.

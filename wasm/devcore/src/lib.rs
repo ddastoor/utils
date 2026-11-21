@@ -1,4 +1,4 @@
-//! SuperTools developer-tool engine (wasm32-wasip1, no JS glue). One entry point:
+//! SuperUtils developer-tool engine (wasm32-wasip1, no JS glue). One entry point:
 //!   dc_call(op, input) → 0 and the result in dc_out, or −1 and an error message in dc_out.
 //! Ops take JSON or raw bytes (see each function) and return JSON, text or bytes.
 use serde_json::{json, Value};

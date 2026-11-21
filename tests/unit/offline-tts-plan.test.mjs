@@ -132,7 +132,7 @@ export default async (t, { load }) => {
   const syn = spawnSync('bash', ['-n', shf], { encoding: 'utf8' });
   t.ok(syn.status === 0, `bash -n reads the script of all ${ids.length} voices (${syn.stderr.trim()})`);
   const between = (s, tag) => s.split(`<<'${tag}'\n`)[1].split(`\n${tag}\n`)[0];
-  const back = JSON.parse(dec(between(sh, 'SUPERTOOLS_JOB')));
+  const back = JSON.parse(dec(between(sh, 'SUPERUTILS_JOB')));
   t.eq(back.voices.length, ids.length, 'the job carries every voice'); t.eq(back.text, o.text, 'and the text, untouched');
   for (const e of P.ENGINE_ORDER) t.ok(sh.includes(` python "$DIR/driver.py" "$RUN/job.json" ${e} "$RUN"`), `the Linux script runs ${e}`);
   t.ok(/COQUI_TOS_AGREED=1 "\$DIR\/bin\/uv" run/.test(sh), 'XTTS-v2 runs with its licence accepted');
@@ -193,11 +193,11 @@ if '${how}' == 'check':
 else:
     import driver
     try: driver.fetch('ai4bharat/indic-parler-tts', 'abc', ['config.json']); print('OK')
-    except SystemExit as e: print('EXIT', e.code)`], { cwd: tmp, encoding: 'utf8', env: { ...process.env, PYTHONPATH: '', HF_HOME: '/home/u/SuperTools-TTS/cache/huggingface', ...env } }).stdout;
+    except SystemExit as e: print('EXIT', e.code)`], { cwd: tmp, encoding: 'utf8', env: { ...process.env, PYTHONPATH: '', HF_HOME: '/home/u/SuperUtils-TTS/cache/huggingface', ...env } }).stdout;
   const ok = check({ STUB_ACCESS: 'ok' });
   t.ok(/ai4bharat\/indic-parler-tts: this computer may download it\.\nOK/.test(ok), `the check passes an open model (${ok.trim()})`);
   const bad = check({ STUB_ACCESS: 'no', STUB_WHOAMI: 'bad' });
-  t.ok(/^EXIT Hugging Face refused the token saved on this computer/.test(bad) && bad.includes('type "Read"') && bad.includes('delete /home/u/SuperTools-TTS/cache/huggingface/token and run the script again'), `a token Hugging Face does not know: make a Read token, delete the saved one (${bad.trim().slice(0, 120)})`);
+  t.ok(/^EXIT Hugging Face refused the token saved on this computer/.test(bad) && bad.includes('type "Read"') && bad.includes('delete /home/u/SuperUtils-TTS/cache/huggingface/token and run the script again'), `a token Hugging Face does not know: make a Read token, delete the saved one (${bad.trim().slice(0, 120)})`);
   const notYet = check({ STUB_ACCESS: 'no', STUB_WHOAMI: 'read' });
   t.ok(notYet.includes('The token belongs to the account "asha", which has not been given access to ai4bharat/indic-parler-tts') && notYet.includes('"Agree and access repository"') && notYet.includes('the same token works'), 'an account that has not accepted the conditions: its name, the page, the button');
   const fine = check({ STUB_ACCESS: 'no', STUB_WHOAMI: 'fine' });

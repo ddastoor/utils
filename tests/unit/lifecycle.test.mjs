@@ -2,7 +2,7 @@
 // (no document — the same situation as this Node test) the module must NOT treat itself as "no tab open": a release
 // run at once there left the worker without its engine (Hash, Sodium Encrypt and Share Link broke, Nov 2026).
 export default async (t, { load }) => {
-  const L = await load('/src/lifecycle.ts'), live = () => globalThis.__supertoolsLive();
+  const L = await load('/src/lifecycle.ts'), live = () => globalThis.__superutilsLive();
   let freed = 0;
   L.onLeave('unit-a', () => freed++);
   t.eq([freed, live().resources.includes('unit-a')], [0, true], 'without a document (worker context) a registration is kept, not released at once');

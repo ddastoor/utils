@@ -12,7 +12,7 @@ export default async (ctx) => {
   const status = async () => (await page.locator('.note').allTextContents()).map((x) => x.trim()).join(' | ');
   const set = (s) => setValue(inp, s);
   await inp.waitFor();
-  const D = '{"name":"SuperTools","tools":173,"tags":["private","wasm"],"nested":{"b":2,"a":1}}';
+  const D = '{"name":"SuperUtils","tools":175,"tags":["private","wasm"],"nested":{"b":2,"a":1}}';
   ok(await until(page, (w) => document.querySelectorAll('textarea')[1]?.value === w, JSON.stringify(JSON.parse(D), null, 2)), 'default formatted with 2 spaces');
   ok(/^Valid JSON · 127 characters · 6 keys in 2 objects, 1 array, 2 levels deep$/.test(await status()), `status counts characters, keys, objects, arrays, depth (${await status()})`);
   ok(await page.evaluate(() => performance.getEntriesByType('resource').some((r) => /devcore-json-[\w-]+\.wasm/.test(r.name))), 'the formatter engine is devcore-json.wasm');
@@ -20,7 +20,7 @@ export default async (ctx) => {
   await page.getByRole('radio', { name: 'Tabs', exact: true }).click(); ok(await out.inputValue() === JSON.stringify(JSON.parse(D), null, '\t'), 'tabs');
   await page.getByRole('radio', { name: '2 spaces', exact: true }).click();
   await page.locator('label.switch').filter({ hasText: 'Sort keys' }).click();
-  ok(await out.inputValue() === JSON.stringify({ name: 'SuperTools', nested: { a: 1, b: 2 }, tags: ['private', 'wasm'], tools: 173 }, ['name', 'nested', 'a', 'b', 'tags', 'tools'], 2), 'keys sorted recursively, arrays keep their order');
+  ok(await out.inputValue() === JSON.stringify({ name: 'SuperUtils', nested: { a: 1, b: 2 }, tags: ['private', 'wasm'], tools: 175 }, ['name', 'nested', 'a', 'b', 'tags', 'tools'], 2), 'keys sorted recursively, arrays keep their order');
   await page.locator('label.switch').filter({ hasText: 'Sort keys' }).click();
   await page.getByRole('button', { name: 'Minify' }).click(); ok(await out.inputValue() === JSON.stringify(JSON.parse(D)), 'minify');
   await set('{ "a" : [ 1 , 2 ] }'); ok(await out.inputValue() === '{"a":[1,2]}', 'typing after Minify keeps the output minified');
@@ -65,6 +65,6 @@ export default async (ctx) => {
   await set('[1,'); await page.getByRole('button', { name: 'Download' }).click();
   ok(await until(page, () => /Nothing to save/.test(document.querySelector('.toasts')?.textContent || '')), 'Download with broken JSON: a message instead of an empty file');
   ok(!page.errors.filter((e) => !/Nothing to save/.test(e)).length, `no page errors ${page.errors.join(' | ')}`);
-  await page.goto(`${base}#/`); ok(await until(page, () => globalThis.__supertoolsLive().resources.length === 0), 'the engine is released when the tab is left');
+  await page.goto(`${base}#/`); ok(await until(page, () => globalThis.__superutilsLive().resources.length === 0), 'the engine is released when the tab is left');
   await pcOnlyOnPhone(ctx, 'json');
 };

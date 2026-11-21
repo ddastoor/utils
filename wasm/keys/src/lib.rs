@@ -1,4 +1,4 @@
-//! SuperTools key & hash engine (wasm32-wasip1). One entry point like devcore: k_call(op, json) → JSON.
+//! SuperUtils key & hash engine (wasm32-wasip1). One entry point like devcore: k_call(op, json) → JSON.
 //! What the tabs' existing WebAssembly engine (hash-wasm: HMAC, Argon2, bcrypt, scrypt, PBKDF2) has no part for:
 //! Base32 secrets and HOTP truncation, PHC strings and checked parameters for password hashes, Argon2 version 1.0
 //! hashes (RustCrypto argon2), OpenSSH keys (ssh-key: Ed25519, bcrypt-pbkdf + AES-256-CTR passphrase protection and

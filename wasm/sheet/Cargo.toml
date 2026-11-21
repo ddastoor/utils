@@ -3,7 +3,7 @@ name = "sheet"
 version = "0.1.0"
 edition = "2021"
 publish = false
-description = "SuperTools spreadsheet engine: calamine (read xlsx/xls/xlsb/ods) + rust_xlsxwriter (write xlsx) + csv, for wasm32"
+description = "SuperUtils spreadsheet engine: calamine (read xlsx/xls/xlsb/ods) + rust_xlsxwriter (write xlsx) + csv, for wasm32"
 
 [lib]
 crate-type = ["cdylib"]

@@ -1,4 +1,4 @@
-/* Pre-included into every BusyBox C source for the wasm32-wasi build (SuperTools Linux Terminal).
+/* Pre-included into every BusyBox C source for the wasm32-wasi build (SuperUtils Linux Terminal).
  * WASI preview 1 offers files, clocks and randomness but no processes, signals, users or sockets. These
  * declarations let the filesystem/stdio applets compile; the functions are implemented in wasi_stubs.c and fail
  * cleanly (ENOSYS) or act as a single-user system (uid 0, umask 022). */

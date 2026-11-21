@@ -3,7 +3,7 @@ name = "formats"
 version = "0.1.0"
 edition = "2021"
 publish = false
-description = "SuperTools config-format engine for wasm32: YAML / JSON / TOML conversion and JSON Schema validation"
+description = "SuperUtils config-format engine for wasm32: YAML / JSON / TOML conversion and JSON Schema validation"
 
 [lib]
 crate-type = ["cdylib"]

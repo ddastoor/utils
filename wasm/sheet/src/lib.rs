@@ -1,4 +1,4 @@
-//! SuperTools spreadsheet engine, compiled by us to wasm32 (no JS glue: plain exported functions + JSON).
+//! SuperUtils spreadsheet engine, compiled by us to wasm32 (no JS glue: plain exported functions + JSON).
 //! Read: calamine (xlsx, xlsm, xlsb, xls, ods) and RFC 4180 CSV (delimiter detected). Write: xlsx (rust_xlsxwriter), CSV.
 use calamine::{open_workbook_auto_from_rs, Data, Reader};
 use chrono::{Datelike, Timelike};

@@ -40,7 +40,7 @@ c=sqlite3.connect(sys.argv[1]); cur=c.execute(sys.argv[2]); print(json.dumps({"c
   const page = await newPage({ viewport: { width: 1366, height: 900 } }); const reqs = []; page.on('request', (r) => reqs.push(r.url()));
   await page.goto(`${base}#/sqlite`);
   const ed = page.locator('textarea[aria-label="SQL"]'); await ed.waitFor();
-  const live = () => page.evaluate(() => globalThis.__supertoolsLive());
+  const live = () => page.evaluate(() => globalThis.__superutilsLive());
   const status = () => page.locator('.sql-status').textContent();
   const waitStatus = (re, timeout = 30000) => page.waitForFunction((src) => new RegExp(src[0], src[1]).test(document.querySelector('.sql-status').textContent) && !document.querySelector('.sql-busy'), [re.source, re.flags], { timeout }).then(() => true, () => false);
   const tables = () => page.$$eval('.sql-result', (ts) => ts.map((t) => ({ cols: [...t.querySelectorAll('thead th')].map((c) => c.textContent), rows: [...t.querySelectorAll('tbody tr')].map((r) => [...r.children].map((c) => ({ t: c.textContent, c: c.className }))) })));

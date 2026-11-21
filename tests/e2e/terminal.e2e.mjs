@@ -7,7 +7,7 @@ const F = (n) => new URL(`../fixtures/images/${n}`, import.meta.url).pathname;
 export default async ({ base, page: newPage, ok, download, devices }) => {
   const page = await newPage();
   await page.goto(base + '#/terminal');
-  await page.waitForFunction(() => /Welcome to the SuperTools terminal/.test(document.querySelector('.term-out')?.textContent || ''), null, { timeout: 30000 });
+  await page.waitForFunction(() => /Welcome to the SuperUtils terminal/.test(document.querySelector('.term-out')?.textContent || ''), null, { timeout: 30000 });
   const out = () => page.locator('.term-out').innerText();
   const run = async (cmd) => {
     const before = (await out()).length;
@@ -17,13 +17,13 @@ export default async ({ base, page: newPage, ok, download, devices }) => {
     await page.waitForTimeout(50);
     return (await out()).slice(before);
   };
-  ok(/user@supertools:~\$/.test(await page.locator('.term-prompt').innerText()), 'prompt shows user@supertools:~$');
+  ok(/user@superutils:~\$/.test(await page.locator('.term-prompt').innerText()), 'prompt shows user@superutils:~$');
   ok((await run('echo hello world')).includes('hello world'), 'echo');
   ok(/README\.txt/.test(await run('mkdir -p folder && ls')), 'ls lists the home directory');
   ok(await page.locator('.term-out span[style*="color"]').count() > 0, 'ls colours (ANSI → styled spans)');
   ok((await run('echo "2^100" | bc')).includes('1267650600228229401496703205376'), 'bc arbitrary precision');
   ok(/n 1\s+n 2\s+n 3/.test(await run('seq 3 | xargs -n 1 echo n')), 'xargs (spawn shim) in the worker');
-  ok((await run('uname -a')).includes('supertools'), 'uname');
+  ok((await run('uname -a')).includes('superutils'), 'uname');
   ok((await run('nosuch')).includes('command not found'), 'unknown command');
   ok(await page.locator('.term-err').count() > 0, 'stderr shown in red');
 

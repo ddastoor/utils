@@ -3,7 +3,7 @@ name = "zxcvbn-wasm"
 version = "0.1.0"
 edition = "2021"
 publish = false
-description = "SuperTools password strength: zxcvbn (Rust port of Dropbox's estimator) for wasm32"
+description = "SuperUtils password strength: zxcvbn (Rust port of Dropbox's estimator) for wasm32"
 
 [lib]
 crate-type = ["cdylib"]

@@ -124,9 +124,9 @@ export default async (ctx) => {
   t0 = Date.now(); await setValue(filter, '.a + 1'); await filter.press('Enter');
   ok(await idle() && await out.inputValue() === '4\n' && Date.now() - t0 < 3000, `a newer filter replaces the running one (${Date.now() - t0} ms)`);
   // quick runs do not restart the engine: 12 option changes in a row, one worker throughout
-  const live0 = await page.evaluate(() => globalThis.__supertoolsLive());
+  const live0 = await page.evaluate(() => globalThis.__superutilsLive());
   for (let i = 0; i < 6; i++) { await page.locator('label.switch', { hasText: 'Sort keys' }).click(); await page.locator('label.switch', { hasText: 'Slurp' }).click(); }
-  ok(await idle() && await out.inputValue() === '4\n' && JSON.stringify(await page.evaluate(() => globalThis.__supertoolsLive())) === JSON.stringify(live0) && live0.workers === 1, `one worker, kept while options change (${JSON.stringify(live0)})`);
+  ok(await idle() && await out.inputValue() === '4\n' && JSON.stringify(await page.evaluate(() => globalThis.__superutilsLive())) === JSON.stringify(live0) && live0.workers === 1, `one worker, kept while options change (${JSON.stringify(live0)})`);
 
   // ---- out of memory: explained, and the engine is restarted
   t0 = Date.now(); await setValue(filter, '[range(1e9)] | length'); await filter.press('Enter');
@@ -150,7 +150,7 @@ export default async (ctx) => {
 
   // ---- leaving the tab ends the worker
   await page.goto(`${base}#/`); await page.waitForTimeout(200);
-  const live = await page.evaluate(() => globalThis.__supertoolsLive());
+  const live = await page.evaluate(() => globalThis.__superutilsLive());
   ok(live.workers === 0 && live.resources.length === 0, `leaving the tab ends the jq worker (${JSON.stringify(live)})`);
   await page.goto(`${base}#/jq`); ok(await idle() && await out.inputValue() === S.o, 'coming back: the sample is filtered again');
   const errs = page.errors.filter((e) => !/Nothing to save yet/.test(e));   // the empty Download above: reported as a toast and logged

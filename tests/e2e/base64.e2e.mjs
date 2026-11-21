@@ -83,6 +83,6 @@ export default async (ctx) => {
   f = await download(page, () => page.getByRole('button', { name: 'Download' }).click());
   ok(readFileSync(f, 'utf8').length === 4194341, 'Download gives the whole text');
   ok(!page.errors.filter((e) => !/Nothing to save/.test(e)).length, `no page errors ${page.errors.join(' | ')}`);
-  await page.goto(`${base}#/`); ok(await until(page, () => globalThis.__supertoolsLive().resources.length === 0), 'the engine is released when the tab is left');
+  await page.goto(`${base}#/`); ok(await until(page, () => globalThis.__superutilsLive().resources.length === 0), 'the engine is released when the tab is left');
   await pcOnlyOnPhone(ctx, 'base64');
 };

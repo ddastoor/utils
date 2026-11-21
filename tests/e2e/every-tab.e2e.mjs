@@ -63,7 +63,7 @@ export default async ({ base, page: newPage, ok, info, devices }) => {
         const grew = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth).catch(() => 0);
         if (grew > 1) bad.grew.push(`${tag} +${grew}px`);
         await page.goto(`${base}#/`); await page.waitForTimeout(250);
-        const live = await page.evaluate(() => globalThis.__supertoolsLive());
+        const live = await page.evaluate(() => globalThis.__superutilsLive());
         if (live.workers || live.resources.length) bad.alive.push(`${tag}: ${live.workers} worker(s), ${live.resources.join(' ')}`);
       }
       await page.context().close().catch(() => {});

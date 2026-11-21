@@ -193,7 +193,7 @@ export function describeCode(text: string): Described {
   if (/^BEGIN:(VEVENT|VCALENDAR)/i.test(t)) {
     const ls = contentLines(t), get = (n: string) => ls.find(([k]) => k.split(';')[0].toUpperCase() === n)?.[1];
     const title = icsUnesc(get('SUMMARY') ?? '');
-    const ics = /^BEGIN:VCALENDAR/i.test(t) ? t : ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//SuperTools//QR scanner//EN', t, 'END:VCALENDAR'].join('\n');
+    const ics = /^BEGIN:VCALENDAR/i.test(t) ? t : ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//SuperUtils//QR scanner//EN', t, 'END:VCALENDAR'].join('\n');
     return { kind: 'event', title: 'Calendar event', fields: [
       { label: 'Event', value: title }, ...(get('DTSTART') ? [{ label: 'Starts', value: icsDate(get('DTSTART')!) }] : []), ...(get('DTEND') ? [{ label: 'Ends', value: icsDate(get('DTEND')!) }] : []),
       ...(get('LOCATION') ? [{ label: 'Place', value: icsUnesc(get('LOCATION')!) }] : []),

@@ -1,5 +1,5 @@
 /*
- * imgproc.wasm — image processing for SuperTools (own code). Built as a WASI reactor (see build.sh).
+ * imgproc.wasm — image processing for SuperUtils (own code). Built as a WASI reactor (see build.sh).
  * All images are interleaved RGBA8, row-major, no padding. Functions work in place unless they take src/dst.
  *
  * Sections: tone & colour adjustment · resampling (Lanczos-3) · blur/sharpen · rotation · artistic filters

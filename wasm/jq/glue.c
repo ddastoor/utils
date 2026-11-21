@@ -1,4 +1,4 @@
-// SuperTools jq glue: run a jq program over input text exactly like the jq command line
+// SuperUtils jq glue: run a jq program over input text exactly like the jq command line
 //   jq <flags> [--arg / --argjson …] '<filter>' input.json
 // from WebAssembly. It follows jq 1.8.2's own src/main.c step by step — the same input reader (jq_util_input, so
 // `input`, `inputs`, `input_filename`, `input_line_number` and the "at input.json:3" positions in messages work), the

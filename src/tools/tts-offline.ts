@@ -2,7 +2,7 @@
 // run on the person's own computer, not in the browser. The page fetches nothing and runs nothing: it writes a script
 // for Windows (.cmd) or Linux (.sh) that holds the text, the chosen voices and driver.py; on the PC the script fetches
 // uv (from PyPI, SHA-256 checked), Python, the engines (pinned packages) and the models (Hugging Face, pinned
-// revisions) into one folder, SuperTools-TTS, and writes a WAV and an MP3 per voice. Imported only when the mode is
+// revisions) into one folder, SuperUtils-TTS, and writes a WAV and an MP3 per voice. Imported only when the mode is
 // chosen (the catalogue of 430 voices is 100 KB).
 import { h, card, field, button, segmented, toggle, note, stack, toast, downloadBlob, slider, select } from '../ui';
 import catalogue from '../lib/offline-tts/catalogue.json';
@@ -44,7 +44,7 @@ export function offlinePanel(o: { text: () => string; speed: number }): HTMLElem
     return h('div', { class: 'otts-model' }, h('strong', null, m.name), ` · ${fmtMB(m.mb)} · ${e.name}`,
       m.personal ? tag('personal use only', 'warn') : null, m.gated ? tag('free Hugging Face account', 'info') : null,
       e.torch && m.mb > 1500 ? tag('slow without a graphics card') : null,
-      m.untried ? h('span', { class: 'otts-tag', title: m.untried }, 'not run by SuperTools yet') : null,
+      m.untried ? h('span', { class: 'otts-tag', title: m.untried }, 'not run by SuperUtils yet') : null,
       h('span', { class: 'muted small' }, ` ${m.licence}`),
       m.page ? h('a', { href: m.page, target: '_blank', rel: 'noopener', class: 'small' }, /piper-samples|spaces|kyutai/.test(m.page) ? 'listen' : 'about it') : null);
   }
@@ -104,14 +104,14 @@ export function offlinePanel(o: { text: () => string; speed: number }): HTMLElem
     dl.disabled = !p.voices.length || (p.accept.includes('cpml') && !accepted);
     steps.replaceChildren(...(os === 'windows' ? [
       h('li', null, 'Download the script (', h('code', null, SCRIPT_NAME.windows), ') and double-click it. If Windows asks whether to run it, choose ', h('em', null, 'More info → Run anyway'), ' (it is a text file: open it in Notepad to read it first).'),
-      h('li', null, `The first run downloads the programs and the voices (about ${fmtMB(p.modelMB + p.programMB)}) into the folder `, h('code', null, 'SuperTools-TTS'), ' in your user folder; later runs reuse them.'),
+      h('li', null, `The first run downloads the programs and the voices (about ${fmtMB(p.modelMB + p.programMB)}) into the folder `, h('code', null, 'SuperUtils-TTS'), ' in your user folder; later runs reuse them.'),
       h('li', null, 'When it is done, the folder with the speech opens: one MP3 and one WAV per voice.'),
-      h('li', null, 'For another text, make a new script here: the downloads stay. To remove everything, delete the SuperTools-TTS folder.'),
+      h('li', null, 'For another text, make a new script here: the downloads stay. To remove everything, delete the SuperUtils-TTS folder.'),
     ] : [
       h('li', null, 'Download the script (', h('code', null, SCRIPT_NAME.linux), ') and run it in a terminal: ', h('code', null, `bash ~/Downloads/${SCRIPT_NAME.linux}`), '.'),
-      h('li', null, `The first run downloads the programs and the voices (about ${fmtMB(p.modelMB + p.programMB)}) into `, h('code', null, '~/SuperTools-TTS'), '; later runs reuse them. It needs curl or wget, and nothing is installed into the system.'),
+      h('li', null, `The first run downloads the programs and the voices (about ${fmtMB(p.modelMB + p.programMB)}) into `, h('code', null, '~/SuperUtils-TTS'), '; later runs reuse them. It needs curl or wget, and nothing is installed into the system.'),
       h('li', null, 'When it is done, the folder with the speech opens: one MP3 and one WAV per voice.'),
-      h('li', null, 'For another text, make a new script here: the downloads stay. To remove everything, delete ~/SuperTools-TTS.'),
+      h('li', null, 'For another text, make a new script here: the downloads stay. To remove everything, delete ~/SuperUtils-TTS.'),
     ]));
   }
 

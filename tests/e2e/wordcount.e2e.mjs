@@ -96,7 +96,7 @@ export default async ({ base, page: newPage, ok, devices }) => {
   ok(!page.errors.length, `no page errors ${page.errors.join(' | ')}`);
 
   // ---- leaving: the engine is released; coming back and leaving while it loads does no harm
-  await page.goto(`${base}#/`); ok(await until(page, () => globalThis.__supertoolsLive().resources.length === 0), 'the engine is released when the tab is left');
+  await page.goto(`${base}#/`); ok(await until(page, () => globalThis.__superutilsLive().resources.length === 0), 'the engine is released when the tab is left');
   await page.goto(`${base}#/wordcount`); await ta.waitFor(); await setValue(ta, 'two words'); await page.goto(`${base}#/case`); await page.waitForTimeout(400);
   ok(!page.errors.length, `leaving while the engine is on its way: no error ${page.errors.join(' | ')}`);
 

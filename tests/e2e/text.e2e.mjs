@@ -13,15 +13,16 @@ export default async ({ base, page: newPage, ok }) => {
   ok((await page.locator('.outbox textarea').inputValue()) === 'color and flavour, color again.', 'find & replace (case-insensitive)');
   await go('diff'); await page.waitForSelector('.dl');
   ok((await page.locator('.dl-ins').count()) === 2 && (await page.locator('.dl-del').count()) === 1, 'diff: 2 added, 1 removed');
-  await go('fancy'); ok((await page.locator('.fancy-val').first().textContent()) === '𝐒𝐮𝐩𝐞𝐫𝐓𝐨𝐨𝐥𝐬', 'fancy bold');
+  await go('fancy'); ok((await page.locator('.fancy-val').first().textContent()) === '𝐒𝐮𝐩𝐞𝐫𝐔𝐭𝐢𝐥𝐬', 'fancy bold');
   await go('emoji'); await page.waitForSelector('.emoji-cell');
   await page.getByRole('searchbox', { name: 'Search emoji and symbols' }).fill('rocket');
   ok(await page.waitForFunction(() => document.querySelector('.emoji-grid .emoji-cell')?.textContent === '🚀', null, { timeout: 8000 }).then(() => true, () => false), 'emoji search: rocket comes first');
   await go('morse'); await page.waitForTimeout(100);
   ok((await page.locator('.morse-out').textContent()) === '... --- ... / .... . .-.. .--.', 'morse');
-  await go('lorem'); ok((await page.locator('.outbox textarea').inputValue()).startsWith('Lorem ipsum dolor sit amet'), 'lorem');
+  await go('lorem'); // the text comes from textkit-lorem.wasm, fetched as the tab opens: a moment after it
+  ok(await page.waitForFunction(() => document.querySelector('.outbox textarea')?.value.startsWith('Lorem ipsum dolor sit amet'), null, { timeout: 8000 }).then(() => true, () => false), 'lorem');
   await go('json'); await page.waitForSelector('.note-ok');
-  ok((await page.locator('.outbox textarea').inputValue()).includes('\n  "name": "SuperTools"'), 'json format');
+  ok((await page.locator('.outbox textarea').inputValue()).includes('\n  "name": "SuperUtils"'), 'json format');
   await page.locator('textarea').first().fill('{"a": 1,}');
   ok(/line 1, column/.test(await page.locator('.note-err').innerText()), 'json error position');
   await go('regex'); ok(await page.waitForFunction(() => document.querySelectorAll('.regex-hl mark').length === 2, null, { timeout: 8000 }).then(() => true, () => false), 'regex: 2 matches highlighted (matching runs in a worker)');
@@ -35,6 +36,6 @@ export default async ({ base, page: newPage, ok }) => {
   await page.locator('input.mono').last().fill(v7);
   ok(/7 — time-ordered/.test(await page.locator('.kv').last().innerText()), 'uuid v7 generated and inspected');
   await go('color'); ok((await page.locator('input.mono').first().inputValue()) === '#4f46e5', 'color hex');
-  await go('jwt'); await page.getByLabel('Payload').waitFor(); ok(/SuperTools/.test(await page.getByLabel('Payload').inputValue()), 'jwt payload decoded');
+  await go('jwt'); await page.getByLabel('Payload').waitFor(); ok(/SuperUtils/.test(await page.getByLabel('Payload').inputValue()), 'jwt payload decoded');
   ok(!page.errors.length, 'no console errors ' + page.errors.join(' | '));
 };

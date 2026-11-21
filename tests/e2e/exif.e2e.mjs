@@ -92,7 +92,7 @@ export default async ({ base, page: newPage, ok, info, download, devices }) => {
   // leaving the tab ends the worker
   await page.goto(base + '#/');
   await page.waitForTimeout(300);
-  ok(await page.evaluate(() => globalThis.__supertoolsLive().workers) === 0, 'leaving the tab ends the ExifTool worker');
+  ok(await page.evaluate(() => globalThis.__superutilsLive().workers) === 0, 'leaving the tab ends the ExifTool worker');
 
   const phone = await newPage({ ...devices['iPhone 13'] });
   await phone.goto(base + '#/exif');

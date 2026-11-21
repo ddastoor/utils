@@ -88,7 +88,7 @@ export default async ({ base, page: newPage, ok, tmp, download, devices }) => {
   await page.locator('.dl-fold').first().click();
   ok(await page.locator('.dl').count() === 5021 && /and 2,982 more unchanged lines/.test(await page.locator('.dl-wrap').textContent()), 'a click unfolds it (5,000 lines at most are put on screen)');
   ok(!page.errors.length, `no page errors ${page.errors.join(' | ')}`);
-  await page.goto(`${base}#/`); ok(await until(page, () => globalThis.__supertoolsLive().resources.length === 0), 'the engine is released when the tab is left');
+  await page.goto(`${base}#/`); ok(await until(page, () => globalThis.__superutilsLive().resources.length === 0), 'the engine is released when the tab is left');
 
   // ---- the engine cannot be fetched: said, and typing again retries
   const off = await newPage({ viewport: { width: 1366, height: 900 } }); let fail = true;

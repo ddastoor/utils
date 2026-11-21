@@ -6,7 +6,7 @@ import { readFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 
 const dec = (s) => Buffer.from(s.replace(/\s+/g, ''), 'base64').toString('utf8');
-const jobOfSh = (sh) => JSON.parse(dec(sh.split(`<<'SUPERTOOLS_JOB'\n`)[1].split('\nSUPERTOOLS_JOB\n')[0]));
+const jobOfSh = (sh) => JSON.parse(dec(sh.split(`<<'SUPERUTILS_JOB'\n`)[1].split('\nSUPERUTILS_JOB\n')[0]));
 const jobOfCmd = (cmd) => JSON.parse(dec(/job\.json'\), \[Convert\]::FromBase64String\('([A-Za-z0-9+/=]+)'\)/.exec(cmd)[1]));
 
 export default async ({ base, page: newPage, ok, download, devices }) => {
@@ -56,7 +56,7 @@ export default async ({ base, page: newPage, ok, download, devices }) => {
   // Linux script
   await page.getByRole('radio', { name: 'Linux' }).click();
   let f = await download(page, () => page.getByRole('button', { name: 'Download the script for Linux (.sh)' }).click());
-  ok(f.endsWith('supertools-speech.sh'), 'Linux: supertools-speech.sh');
+  ok(f.endsWith('superutils-speech.sh'), 'Linux: superutils-speech.sh');
   const sh = readFileSync(f, 'utf8');
   const syn = spawnSync('bash', ['-n', f], { encoding: 'utf8' });
   ok(syn.status === 0, `bash -n reads it (${syn.stderr.trim()})`);
@@ -80,7 +80,7 @@ export default async ({ base, page: newPage, ok, download, devices }) => {
   await sl.fill('0.8');
   await page.getByText('MP3 as well as WAV').click();
   f = await download(page, () => page.getByRole('button', { name: 'Download the script for Windows (.cmd)' }).click());
-  ok(f.endsWith('supertools-speech.cmd'), 'Windows: supertools-speech.cmd');
+  ok(f.endsWith('superutils-speech.cmd'), 'Windows: superutils-speech.cmd');
   const cmd = readFileSync(f, 'latin1');
   ok(/^[\x00-\x7f]*$/.test(cmd) && !/[^\r]\n/.test(cmd) && cmd.startsWith('<# : '), 'ASCII, CRLF, the cmd / PowerShell hybrid');
   job = jobOfCmd(cmd);
