@@ -72,7 +72,15 @@ def silence(sr, seconds):
 def fetch(repo, revision, files=None):
     """The model's files from Hugging Face at a fixed revision, into ./models/<repo> (kept for the next run)."""
     from huggingface_hub import snapshot_download
-    return snapshot_download(repo, revision=revision, allow_patterns=files, local_dir=os.path.join(MODELS, repo.replace('/', '--')))
+    try:
+        return snapshot_download(repo, revision=revision, allow_patterns=files, local_dir=os.path.join(MODELS, repo.replace('/', '--')))
+    except Exception as e:
+        if 'Gated' in type(e).__name__ or re.search(r'\b(401|403)\b', str(e)):
+            token = os.path.join(os.environ.get('HF_HOME', ''), 'token')
+            sys.exit(f'Hugging Face did not let this computer download {repo}: it needs a free account that has accepted '
+                     f'the conditions at https://huggingface.co/{repo}, and a token of that account. To be asked for '
+                     f'the token again, delete {token} and run the script again.')
+        raise
 
 
 ENGINES = {}
@@ -139,6 +147,125 @@ def kokoro(job, voices):
                 parts.append(audio.detach().cpu().numpy())
                 parts.append(silence(24000, 0.15))
         secs = write_audio(os.path.join(job['out'], v['id']), np.concatenate(parts) if parts else silence(24000, 0.1), 24000, job.get('mp3', True))
+        log(f'  {v["label"]}: {secs:.1f} s of speech in {time.time() - t0:.1f} s')
+
+
+def pace(speed):
+    """Parler and Indic Parler take the pace in words."""
+    s = float(speed)
+    return 'very slowly' if s < 0.7 else 'slowly' if s < 0.9 else 'at a moderate pace' if s <= 1.1 else 'slightly fast' if s <= 1.4 else 'fast'
+
+
+@engine('parler')
+def parler(job, voices):
+    """Parler-TTS (Hugging Face, Apache-2.0) and AI4Bharat's Indic Parler-TTS: a named speaker described in words
+    ("Thoma speaks … with very clear audio"). A text is spoken a few sentences at a time (the models are trained on
+    short utterances), each piece with the same description and seed, so the voice stays the same."""
+    import numpy as np
+    import torch
+    from parler_tts import ParlerTTSForConditionalGeneration
+    from transformers import AutoTokenizer
+    device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
+    dtype = torch.bfloat16 if device != 'cpu' else torch.float32
+    log(f'  (on the {"graphics card" if device != "cpu" else "processor"} — on a processor this takes a while)')
+    by_model = {}
+    for v in voices:
+        by_model.setdefault((v['repo'], v['rev']), []).append(v)
+    for (repo, rev), group in by_model.items():
+        d = fetch(repo, rev, ['config.json', 'generation_config.json', 'preprocessor_config.json', '*.safetensors',
+                              '*.safetensors.index.json', 'tokenizer*', 'spiece.model', 'special_tokens_map.json'])
+        model = ParlerTTSForConditionalGeneration.from_pretrained(d, torch_dtype=dtype).to(device).eval()
+        prompt_tok = AutoTokenizer.from_pretrained(d)
+        dt = group[0].get('descTokenizer')  # [repo, revision] when the descriptions have a tokenizer of their own
+        desc_tok = AutoTokenizer.from_pretrained(fetch(dt[0], dt[1], ['tokenizer*', 'spiece.model', 'special_tokens_map.json', 'config.json'])) if dt else prompt_tok
+        sr = model.config.sampling_rate
+        for v in group:
+            description = v['describe'].replace('{pace}', pace(job['speed']))
+            desc = desc_tok(description, return_tensors='pt').to(device)
+            t0 = time.time()
+            parts = []
+            for c in chunks(job['text'], 240):
+                torch.manual_seed(v.get('seed', 0))
+                p = prompt_tok(c, return_tensors='pt').to(device)
+                with torch.inference_mode():
+                    g = model.generate(input_ids=desc.input_ids, attention_mask=desc.attention_mask,
+                                       prompt_input_ids=p.input_ids, prompt_attention_mask=p.attention_mask)
+                parts.append(g.to(torch.float32).cpu().numpy().reshape(-1))
+                parts.append(silence(sr, 0.25))
+            secs = write_audio(os.path.join(job['out'], v['id']), np.concatenate(parts) if parts else silence(sr, 0.1), sr, job.get('mp3', True))
+            log(f'  {v["label"]}: {secs:.1f} s of speech in {time.time() - t0:.1f} s')
+        del model
+        if device != 'cpu':
+            torch.cuda.empty_cache()
+
+
+def clip(v):
+    """A voice taken from a short recording (a reference clip on Hugging Face, fixed revision): its local path."""
+    c = v['clip']
+    return os.path.join(fetch(c['repo'], c['rev'], [c['file']]), c['file'])
+
+
+@engine('xtts')
+def xtts(job, voices):
+    """Coqui XTTS-v2 (the Coqui Public Model License: non-commercial use) through the coqui-tts package: its 58 studio
+    voices, or a voice taken from a reference clip."""
+    import numpy as np
+    import torch
+    import TTS.tts.models.xtts as xtts_model
+    from TTS.tts.configs.xtts_config import XttsConfig
+    from TTS.tts.models.xtts import Xtts
+
+    # coqui-tts reads a clip with torchaudio, which since PyTorch 2.9 hands the work to torchcodec — and that needs the
+    # FFmpeg libraries installed on the system. librosa (one of coqui-tts' own packages) reads a WAV without them.
+    def load_audio(path, sr):
+        import librosa
+        a, _ = librosa.load(path, sr=sr, mono=True)
+        return torch.from_numpy(a).unsqueeze(0)
+    xtts_model.load_audio = load_audio
+    v0 = voices[0]
+    d = fetch(v0['repo'], v0['rev'], ['config.json', 'model.pth', 'vocab.json', 'speakers_xtts.pth', 'mel_stats.pth', 'LICENSE.txt'])
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    log(f'  (on the {"graphics card" if device == "cuda" else "processor"})')
+    config = XttsConfig()
+    config.load_json(os.path.join(d, 'config.json'))
+    model = Xtts.init_from_config(config)
+    model.load_checkpoint(config, checkpoint_dir=d, eval=True)
+    model.to(device)
+    sr = config.audio.output_sample_rate
+    for v in voices:
+        if v.get('clip'):
+            latent, embedding = model.get_conditioning_latents(audio_path=[clip(v)])
+        else:
+            s = model.speaker_manager.speakers[v['speaker']]
+            latent, embedding = s['gpt_cond_latent'], s['speaker_embedding']
+        t0 = time.time()
+        parts = []
+        for c in chunks(job['text'], 230):
+            torch.manual_seed(0)
+            with torch.inference_mode():
+                out = model.inference(c, 'en', latent.to(device), embedding.to(device), temperature=0.7, speed=float(job['speed']))
+            parts.append(np.asarray(out['wav'], dtype=np.float32).reshape(-1))
+            parts.append(silence(sr, 0.2))
+        secs = write_audio(os.path.join(job['out'], v['id']), np.concatenate(parts) if parts else silence(sr, 0.1), sr, job.get('mp3', True))
+        log(f'  {v["label"]}: {secs:.1f} s of speech in {time.time() - t0:.1f} s')
+
+
+@engine('pocket')
+def pocket(job, voices):
+    """Kyutai's Pocket TTS (CC BY 4.0): a small model that runs fast on a processor; its catalogue of voices (the
+    package fetches the model and each voice from Hugging Face at the revisions written into it)."""
+    import numpy as np
+    from pocket_tts import TTSModel
+    model = TTSModel.load_model()
+    sr = model.sample_rate
+    for v in voices:
+        state = model.get_state_for_audio_prompt(v['voice'])
+        t0 = time.time()
+        parts = []
+        for c in chunks(job['text'], 600):
+            parts.append(model.generate_audio(state, c).detach().cpu().numpy().reshape(-1))
+            parts.append(silence(sr, 0.2))
+        secs = write_audio(os.path.join(job['out'], v['id']), np.concatenate(parts) if parts else silence(sr, 0.1), sr, job.get('mp3', True))
         log(f'  {v["label"]}: {secs:.1f} s of speech in {time.time() - t0:.1f} s')
 
 

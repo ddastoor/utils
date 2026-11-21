@@ -1,0 +1,3899 @@
+{
+ "made": "21 Nov 2026",
+ "groups": [
+  [
+   "in",
+   "Indian English"
+  ],
+  [
+   "us",
+   "American English"
+  ],
+  [
+   "uk",
+   "British and Irish English"
+  ],
+  [
+   "world",
+   "Other English accents"
+  ],
+  [
+   "any",
+   "English — accent not documented"
+  ]
+ ],
+ "engines": {
+  "piper": {
+   "name": "Piper",
+   "url": "https://github.com/OHF-Voice/piper1-gpl",
+   "packages": [
+    "piper-tts==1.8.0",
+    "huggingface-hub==2.4.0",
+    "lameenc==1.9.0",
+    "numpy==2.3.5"
+   ],
+   "mb": 60,
+   "torch": false,
+   "speedControl": true,
+   "licence": "GPL-3.0 (the piper-tts program)",
+   "about": "Small, quick voices (VITS) — several times faster than real time on any processor."
+  },
+  "kokoro": {
+   "name": "Kokoro",
+   "url": "https://huggingface.co/hexgrad/Kokoro-82M",
+   "packages": [
+    "kokoro==0.9.4",
+    "misaki[en]==0.9.4",
+    "spacy==3.7.5",
+    "thinc==8.2.5",
+    "numpy==1.26.4",
+    "transformers==5.23.0",
+    "huggingface-hub==2.4.0",
+    "lameenc==1.9.0",
+    "torch"
+   ],
+   "mb": 400,
+   "torch": true,
+   "speedControl": true,
+   "licence": "Apache-2.0",
+   "about": "A small, highly rated neural model with hexgrad's own reading of English (every word spoken) — about four times faster than real time on a processor."
+  },
+  "parler": {
+   "name": "Parler-TTS",
+   "url": "https://github.com/huggingface/parler-tts",
+   "packages": [
+    "parler-tts==0.2.3",
+    "transformers==4.46.1",
+    "sentencepiece==0.2.0",
+    "protobuf==4.25.9",
+    "huggingface-hub==0.36.2",
+    "lameenc==1.9.0",
+    "numpy==2.5.5",
+    "torch"
+   ],
+   "mb": 450,
+   "torch": true,
+   "speedControl": true,
+   "licence": "Apache-2.0",
+   "about": "Large models that speak as a sentence describes (a named speaker, a pace, very clear audio). Slow on a processor — a graphics card helps a lot."
+  },
+  "xtts": {
+   "name": "XTTS-v2",
+   "url": "https://huggingface.co/coqui/XTTS-v2",
+   "packages": [
+    "coqui-tts==0.28.0",
+    "transformers==4.57.6",
+    "huggingface-hub==0.36.0",
+    "lameenc==1.9.0",
+    "torch"
+   ],
+   "mb": 450,
+   "torch": true,
+   "speedControl": true,
+   "accept": "cpml",
+   "licence": "Coqui Public Model License (non-commercial use only)",
+   "about": "Coqui's large multilingual model: 58 studio voices, and voices taken from short recordings. About real time on a fast processor."
+  },
+  "pocket": {
+   "name": "Pocket TTS",
+   "url": "https://huggingface.co/kyutai/pocket-tts-without-voice-cloning",
+   "packages": [
+    "pocket-tts==4.0.1",
+    "lameenc==1.9.0",
+    "torch"
+   ],
+   "mb": 350,
+   "torch": true,
+   "speedControl": false,
+   "licence": "CC BY 4.0",
+   "about": "Kyutai's small, natural model — faster than real time on a processor. Its speed cannot be changed."
+  }
+ },
+ "models": {
+  "piper-en_GB-alan-low": {
+   "engine": "piper",
+   "repo": "rhasspy/piper-voices",
+   "rev": "e9c8a39444359388adaa94255becb37a5a2b8e51",
+   "file": "en/en_GB/alan/low/en_GB-alan-low.onnx",
+   "mb": 63.1,
+   "name": "Piper alan (low)",
+   "licence": "Mycroft mimic3 voice (see its card)",
+   "personal": false
+  },
+  "piper-en_GB-alan-medium": {
+   "engine": "piper",
+   "repo": "rhasspy/piper-voices",
+   "rev": "e9c8a39444359388adaa94255becb37a5a2b8e51",
+   "file": "en/en_GB/alan/medium/en_GB-alan-medium.onnx",
+   "mb": 63.2,
+   "name": "Piper alan (medium)",
+   "licence": "Mycroft mimic3 voice (see its card)",
+   "personal": false
+  },
+  "piper-en_GB-alba-medium": {
+   "engine": "piper",
+   "repo": "rhasspy/piper-voices",
+   "rev": "e9c8a39444359388adaa94255becb37a5a2b8e51",
+   "file": "en/en_GB/alba/medium/en_GB-alba-medium.onnx",
+   "mb": 63.2,
+   "name": "Piper alba (medium)",
+   "licence": "CC BY 4.0",
+   "personal": false
+  },
+  "piper-en_GB-aru-medium": {
+   "engine": "piper",
+   "repo": "rhasspy/piper-voices",
+   "rev": "e9c8a39444359388adaa94255becb37a5a2b8e51",
+   "file": "en/en_GB/aru/medium/en_GB-aru-medium.onnx",
+   "mb": 76.8,
+   "name": "Piper ARU (12 speakers)",
+   "licence": "CC BY 4.0 (ARU speech corpus, University of Liverpool)",
+   "personal": false
+  },
+  "piper-en_GB-cori-high": {
+   "engine": "piper",
+   "repo": "rhasspy/piper-voices",
+   "rev": "e9c8a39444359388adaa94255becb37a5a2b8e51",
+   "file": "en/en_GB/cori/high/en_GB-cori-high.onnx",
+   "mb": 114.2,
+   "name": "Piper cori (high)",
+   "licence": "public domain / CC BY 4.0",
+   "personal": false
+  },
+  "piper-en_GB-cori-medium": {
+   "engine": "piper",
+   "repo": "rhasspy/piper-voices",
+   "rev": "e9c8a39444359388adaa94255becb37a5a2b8e51",
+   "file": "en/en_GB/cori/medium/en_GB-cori-medium.onnx",
+   "mb": 63.2,
+   "name": "Piper cori (medium)",
+   "licence": "public domain / CC BY 4.0",
+   "personal": false
+  },
+  "piper-en_GB-jenny_dioco-medium": {
+   "engine": "piper",
+   "repo": "rhasspy/piper-voices",
+   "rev": "e9c8a39444359388adaa94255becb37a5a2b8e51",
+   "file": "en/en_GB/jenny_dioco/medium/en_GB-jenny_dioco-medium.onnx",
+   "mb": 63.2,
+   "name": "Piper jenny dioco (medium)",
+   "licence": "see the Jenny dataset",
+   "personal": false
+  },
+  "piper-en_GB-northern_english_male-medium": {
+   "engine": "piper",
+   "repo": "rhasspy/piper-voices",
+   "rev": "e9c8a39444359388adaa94255becb37a5a2b8e51",
+   "file": "en/en_GB/northern_english_male/medium/en_GB-northern_english_male-medium.onnx",
+   "mb": 63.2,
+   "name": "Piper northern english male (medium)",
+   "licence": "CC BY-SA 4.0",
+   "personal": false
+  },
+  "piper-en_GB-semaine-medium": {
+   "engine": "piper",
+   "repo": "rhasspy/piper-voices",
+   "rev": "e9c8a39444359388adaa94255becb37a5a2b8e51",
+   "file": "en/en_GB/semaine/medium/en_GB-semaine-medium.onnx",
+   "mb": 76.7,
+   "name": "Piper SEMAINE (4 speakers)",
+   "licence": "CC BY-NC-SA 4.0 (DFKI SEMAINE)",
+   "personal": true
+  },
+  "piper-en_GB-southern_english_female-low": {
+   "engine": "piper",
+   "repo": "rhasspy/piper-voices",
+   "rev": "e9c8a39444359388adaa94255becb37a5a2b8e51",
+   "file": "en/en_GB/southern_english_female/low/en_GB-southern_english_female-low.onnx",
+   "mb": 63.1,
+   "name": "Piper southern english female (low)",
+   "licence": "CC BY-SA 4.0",
+   "personal": false
+  },
+  "piper-en_GB-vctk-medium": {
+   "engine": "piper",
+   "repo": "rhasspy/piper-voices",
+   "rev": "e9c8a39444359388adaa94255becb37a5a2b8e51",
+   "file": "en/en_GB/vctk/medium/en_GB-vctk-medium.onnx",
+   "mb": 77.0,
+   "name": "Piper VCTK (109 speakers)",
+   "licence": "CC BY 4.0 (VCTK)",
+   "personal": false
+  },
+  "piper-en_US-amy-low": {
+   "engine": "piper",
+   "repo": "rhasspy/piper-voices",
+   "rev": "e9c8a39444359388adaa94255becb37a5a2b8e51",
+   "file": "en/en_US/amy/low/en_US-amy-low.onnx",
+   "mb": 63.1,
+   "name": "Piper amy (low)",
+   "licence": "Mycroft mimic3 voice (see its card)",
+   "personal": false
+  },
+  "piper-en_US-amy-medium": {
+   "engine": "piper",
+   "repo": "rhasspy/piper-voices",
+   "rev": "e9c8a39444359388adaa94255becb37a5a2b8e51",
+   "file": "en/en_US/amy/medium/en_US-amy-medium.onnx",
+   "mb": 63.2,
+   "name": "Piper amy (medium)",
+   "licence": "Mycroft mimic3 voice (see its card)",
+   "personal": false
+  },
+  "piper-en_US-arctic-medium": {
+   "engine": "piper",
+   "repo": "rhasspy/piper-voices",
+   "rev": "e9c8a39444359388adaa94255becb37a5a2b8e51",
+   "file": "en/en_US/arctic/medium/en_US-arctic-medium.onnx",
+   "mb": 76.8,
+   "name": "Piper CMU ARCTIC (18 speakers)",
+   "licence": "CMU ARCTIC licence (free use, see its card)",
+   "personal": false
+  },
+  "piper-en_US-bryce-medium": {
+   "engine": "piper",
+   "repo": "rhasspy/piper-voices",
+   "rev": "e9c8a39444359388adaa94255becb37a5a2b8e51",
+   "file": "en/en_US/bryce/medium/en_US-bryce-medium.onnx",
+   "mb": 63.5,
+   "name": "Piper bryce (medium)",
+   "licence": "public domain",
+   "personal": false
+  },
+  "piper-en_US-danny-low": {
+   "engine": "piper",
+   "repo": "rhasspy/piper-voices",
+   "rev": "e9c8a39444359388adaa94255becb37a5a2b8e51",
+   "file": "en/en_US/danny/low/en_US-danny-low.onnx",
+   "mb": 63.1,
+   "name": "Piper danny (low)",
+   "licence": "Mycroft mimic3 voice (see its card)",
+   "personal": false
+  },
+  "piper-en_US-hfc_female-medium": {
+   "engine": "piper",
+   "repo": "rhasspy/piper-voices",
+   "rev": "e9c8a39444359388adaa94255becb37a5a2b8e51",
+   "file": "en/en_US/hfc_female/medium/en_US-hfc_female-medium.onnx",
+   "mb": 63.2,
+   "name": "Piper hfc female (medium)",
+   "licence": "CC BY-NC-SA 4.0",
+   "personal": true
+  },
+  "piper-en_US-hfc_male-medium": {
+   "engine": "piper",
+   "repo": "rhasspy/piper-voices",
+   "rev": "e9c8a39444359388adaa94255becb37a5a2b8e51",
+   "file": "en/en_US/hfc_male/medium/en_US-hfc_male-medium.onnx",
+   "mb": 63.2,
+   "name": "Piper hfc male (medium)",
+   "licence": "CC BY-NC-SA 4.0",
+   "personal": true
+  },
+  "piper-en_US-hifi_tts_92-medium": {
+   "engine": "piper",
+   "repo": "rhasspy/piper-voices",
+   "rev": "e9c8a39444359388adaa94255becb37a5a2b8e51",
+   "file": "en/en_US/hifi_tts_92/medium/en_US-hifi_tts_92-medium.onnx",
+   "mb": 63.2,
+   "name": "Piper hifi tts 92 (medium)",
+   "licence": "CC BY 4.0",
+   "personal": false
+  },
+  "piper-en_US-joe-medium": {
+   "engine": "piper",
+   "repo": "rhasspy/piper-voices",
+   "rev": "e9c8a39444359388adaa94255becb37a5a2b8e51",
+   "file": "en/en_US/joe/medium/en_US-joe-medium.onnx",
+   "mb": 63.2,
+   "name": "Piper joe (medium)",
+   "licence": "CC0",
+   "personal": false
+  },
+  "piper-en_US-john-medium": {
+   "engine": "piper",
+   "repo": "rhasspy/piper-voices",
+   "rev": "e9c8a39444359388adaa94255becb37a5a2b8e51",
+   "file": "en/en_US/john/medium/en_US-john-medium.onnx",
+   "mb": 63.5,
+   "name": "Piper john (medium)",
+   "licence": "public domain",
+   "personal": false
+  },
+  "piper-en_US-kathleen-low": {
+   "engine": "piper",
+   "repo": "rhasspy/piper-voices",
+   "rev": "e9c8a39444359388adaa94255becb37a5a2b8e51",
+   "file": "en/en_US/kathleen/low/en_US-kathleen-low.onnx",
+   "mb": 63.1,
+   "name": "Piper kathleen (low)",
+   "licence": "CC0",
+   "personal": false
+  },
+  "piper-en_US-kathleen-medium": {
+   "engine": "piper",
+   "repo": "rhasspy/piper-voices",
+   "rev": "e9c8a39444359388adaa94255becb37a5a2b8e51",
+   "file": "en/en_US/kathleen/medium/en_US-kathleen-medium.onnx",
+   "mb": 63.2,
+   "name": "Piper kathleen (medium)",
+   "licence": "CC0",
+   "personal": false
+  },
+  "piper-en_US-kristin-medium": {
+   "engine": "piper",
+   "repo": "rhasspy/piper-voices",
+   "rev": "e9c8a39444359388adaa94255becb37a5a2b8e51",
+   "file": "en/en_US/kristin/medium/en_US-kristin-medium.onnx",
+   "mb": 63.5,
+   "name": "Piper kristin (medium)",
+   "licence": "public domain",
+   "personal": false
+  },
+  "piper-en_US-kusal-medium": {
+   "engine": "piper",
+   "repo": "rhasspy/piper-voices",
+   "rev": "e9c8a39444359388adaa94255becb37a5a2b8e51",
+   "file": "en/en_US/kusal/medium/en_US-kusal-medium.onnx",
+   "mb": 63.2,
+   "name": "Piper kusal (medium)",
+   "licence": "Mycroft mimic2 voice (see its card)",
+   "personal": false
+  },
+  "piper-en_US-l2arctic-medium": {
+   "engine": "piper",
+   "repo": "rhasspy/piper-voices",
+   "rev": "e9c8a39444359388adaa94255becb37a5a2b8e51",
+   "file": "en/en_US/l2arctic/medium/en_US-l2arctic-medium.onnx",
+   "mb": 76.8,
+   "name": "Piper L2-ARCTIC (24 speakers)",
+   "licence": "CC BY-NC 4.0 (L2-ARCTIC)",
+   "personal": true
+  },
+  "piper-en_US-lessac-high": {
+   "engine": "piper",
+   "repo": "rhasspy/piper-voices",
+   "rev": "e9c8a39444359388adaa94255becb37a5a2b8e51",
+   "file": "en/en_US/lessac/high/en_US-lessac-high.onnx",
+   "mb": 113.9,
+   "name": "Piper lessac (high)",
+   "licence": "Blizzard 2013 Lessac licence (see its card)",
+   "personal": false
+  },
+  "piper-en_US-lessac-low": {
+   "engine": "piper",
+   "repo": "rhasspy/piper-voices",
+   "rev": "e9c8a39444359388adaa94255becb37a5a2b8e51",
+   "file": "en/en_US/lessac/low/en_US-lessac-low.onnx",
+   "mb": 63.2,
+   "name": "Piper lessac (low)",
+   "licence": "Blizzard 2013 Lessac licence (see its card)",
+   "personal": false
+  },
+  "piper-en_US-lessac-medium": {
+   "engine": "piper",
+   "repo": "rhasspy/piper-voices",
+   "rev": "e9c8a39444359388adaa94255becb37a5a2b8e51",
+   "file": "en/en_US/lessac/medium/en_US-lessac-medium.onnx",
+   "mb": 63.2,
+   "name": "Piper lessac (medium)",
+   "licence": "Blizzard 2013 Lessac licence (see its card)",
+   "personal": false
+  },
+  "piper-en_US-ljspeech-high": {
+   "engine": "piper",
+   "repo": "rhasspy/piper-voices",
+   "rev": "e9c8a39444359388adaa94255becb37a5a2b8e51",
+   "file": "en/en_US/ljspeech/high/en_US-ljspeech-high.onnx",
+   "mb": 114.2,
+   "name": "Piper ljspeech (high)",
+   "licence": "public domain",
+   "personal": false
+  },
+  "piper-en_US-ljspeech-medium": {
+   "engine": "piper",
+   "repo": "rhasspy/piper-voices",
+   "rev": "e9c8a39444359388adaa94255becb37a5a2b8e51",
+   "file": "en/en_US/ljspeech/medium/en_US-ljspeech-medium.onnx",
+   "mb": 63.5,
+   "name": "Piper ljspeech (medium)",
+   "licence": "public domain",
+   "personal": false
+  },
+  "piper-en_US-mike-medium": {
+   "engine": "piper",
+   "repo": "rhasspy/piper-voices",
+   "rev": "e9c8a39444359388adaa94255becb37a5a2b8e51",
+   "file": "en/en_US/mike/medium/en_US-mike-medium.onnx",
+   "mb": 63.2,
+   "name": "Piper mike (medium)",
+   "licence": "CC0",
+   "personal": false
+  },
+  "piper-en_US-norman-medium": {
+   "engine": "piper",
+   "repo": "rhasspy/piper-voices",
+   "rev": "e9c8a39444359388adaa94255becb37a5a2b8e51",
+   "file": "en/en_US/norman/medium/en_US-norman-medium.onnx",
+   "mb": 63.5,
+   "name": "Piper norman (medium)",
+   "licence": "public domain",
+   "personal": false
+  },
+  "piper-en_US-reza_ibrahim-medium": {
+   "engine": "piper",
+   "repo": "rhasspy/piper-voices",
+   "rev": "e9c8a39444359388adaa94255becb37a5a2b8e51",
+   "file": "en/en_US/reza_ibrahim/medium/en_US-reza_ibrahim-medium.onnx",
+   "mb": 63.5,
+   "name": "Piper reza ibrahim (medium)",
+   "licence": "CC0",
+   "personal": false
+  },
+  "piper-en_US-ryan-high": {
+   "engine": "piper",
+   "repo": "rhasspy/piper-voices",
+   "rev": "e9c8a39444359388adaa94255becb37a5a2b8e51",
+   "file": "en/en_US/ryan/high/en_US-ryan-high.onnx",
+   "mb": 120.8,
+   "name": "Piper ryan (high)",
+   "licence": "CC BY-NC-SA 4.0",
+   "personal": true
+  },
+  "piper-en_US-ryan-low": {
+   "engine": "piper",
+   "repo": "rhasspy/piper-voices",
+   "rev": "e9c8a39444359388adaa94255becb37a5a2b8e51",
+   "file": "en/en_US/ryan/low/en_US-ryan-low.onnx",
+   "mb": 63.1,
+   "name": "Piper ryan (low)",
+   "licence": "CC BY-NC-SA 4.0",
+   "personal": true
+  },
+  "piper-en_US-ryan-medium": {
+   "engine": "piper",
+   "repo": "rhasspy/piper-voices",
+   "rev": "e9c8a39444359388adaa94255becb37a5a2b8e51",
+   "file": "en/en_US/ryan/medium/en_US-ryan-medium.onnx",
+   "mb": 63.2,
+   "name": "Piper ryan (medium)",
+   "licence": "CC BY-NC-SA 4.0",
+   "personal": true
+  },
+  "piper-en_US-sam-medium": {
+   "engine": "piper",
+   "repo": "rhasspy/piper-voices",
+   "rev": "e9c8a39444359388adaa94255becb37a5a2b8e51",
+   "file": "en/en_US/sam/medium/en_US-sam-medium.onnx",
+   "mb": 63.2,
+   "name": "Piper sam (medium)",
+   "licence": "Apache-2.0",
+   "personal": false
+  },
+  "kokoro": {
+   "engine": "kokoro",
+   "repo": "hexgrad/Kokoro-82M",
+   "rev": "f3ff3571791e",
+   "mb": 359.2,
+   "licence": "Apache-2.0",
+   "personal": false,
+   "name": "Kokoro-82M v1.0"
+  },
+  "indic-parler": {
+   "engine": "parler",
+   "repo": "ai4bharat/indic-parler-tts",
+   "rev": "660bc53c64ae83150613264111708a0465211237",
+   "descTokenizer": [
+    "google/flan-t5-large",
+    "0613663d0d48ea86ba8cb3d7a44f0f65dc596a2a"
+   ],
+   "gated": true,
+   "mb": 3766.6,
+   "licence": "Apache-2.0",
+   "personal": false,
+   "name": "Indic Parler-TTS (AI4Bharat)"
+  },
+  "parler-large": {
+   "engine": "parler",
+   "repo": "parler-tts/parler-tts-large-v1",
+   "rev": "50cb4b874c83902f930d7c2e753224c15654f11e",
+   "mb": 9335.5,
+   "licence": "Apache-2.0",
+   "personal": false,
+   "name": "Parler-TTS Large v1"
+  },
+  "parler-mini": {
+   "engine": "parler",
+   "repo": "parler-tts/parler-tts-mini-v1.1",
+   "rev": "fbb2dd281092c5b414ef29cf9d8895f386f1feef",
+   "descTokenizer": [
+    "google/flan-t5-large",
+    "0613663d0d48ea86ba8cb3d7a44f0f65dc596a2a"
+   ],
+   "mb": 3766.6,
+   "licence": "Apache-2.0",
+   "personal": false,
+   "name": "Parler-TTS Mini v1.1"
+  },
+  "xtts": {
+   "engine": "xtts",
+   "repo": "coqui/XTTS-v2",
+   "rev": "6c2b0d75eae4b7047358e3b6bd9325f857d43f77",
+   "mb": 1876.1,
+   "licence": "Coqui Public Model License — non-commercial use only",
+   "personal": true,
+   "accept": "cpml",
+   "name": "XTTS-v2 (Coqui)"
+  },
+  "pocket": {
+   "engine": "pocket",
+   "repo": "kyutai/pocket-tts-without-voice-cloning",
+   "rev": "a7056f505a4a8ca72d8b5fb1440071d6f1a35739",
+   "mb": 355.8,
+   "licence": "CC BY 4.0",
+   "personal": false,
+   "name": "Pocket TTS (Kyutai)"
+  }
+ },
+ "voices": [
+  {
+   "id": "piper-en_gb-alan-low",
+   "label": "Alan · low quality",
+   "group": "uk",
+   "sex": "m",
+   "model": "piper-en_GB-alan-low"
+  },
+  {
+   "id": "piper-en_gb-alan-medium",
+   "label": "Alan",
+   "group": "uk",
+   "sex": "m",
+   "model": "piper-en_GB-alan-medium"
+  },
+  {
+   "id": "piper-en_gb-alba-medium",
+   "label": "Alba — Scottish English",
+   "group": "uk",
+   "sex": "f",
+   "model": "piper-en_GB-alba-medium"
+  },
+  {
+   "id": "piper-aru-01",
+   "label": "ARU speaker 01 — British English",
+   "group": "uk",
+   "sex": "",
+   "model": "piper-en_GB-aru-medium",
+   "speaker": 3
+  },
+  {
+   "id": "piper-aru-02",
+   "label": "ARU speaker 02 — British English",
+   "group": "uk",
+   "sex": "",
+   "model": "piper-en_GB-aru-medium",
+   "speaker": 9
+  },
+  {
+   "id": "piper-aru-03",
+   "label": "ARU speaker 03 — British English",
+   "group": "uk",
+   "sex": "",
+   "model": "piper-en_GB-aru-medium",
+   "speaker": 0
+  },
+  {
+   "id": "piper-aru-04",
+   "label": "ARU speaker 04 — British English",
+   "group": "uk",
+   "sex": "",
+   "model": "piper-en_GB-aru-medium",
+   "speaker": 11
+  },
+  {
+   "id": "piper-aru-05",
+   "label": "ARU speaker 05 — British English",
+   "group": "uk",
+   "sex": "",
+   "model": "piper-en_GB-aru-medium",
+   "speaker": 7
+  },
+  {
+   "id": "piper-aru-06",
+   "label": "ARU speaker 06 — British English",
+   "group": "uk",
+   "sex": "",
+   "model": "piper-en_GB-aru-medium",
+   "speaker": 1
+  },
+  {
+   "id": "piper-aru-07",
+   "label": "ARU speaker 07 — British English",
+   "group": "uk",
+   "sex": "",
+   "model": "piper-en_GB-aru-medium",
+   "speaker": 10
+  },
+  {
+   "id": "piper-aru-08",
+   "label": "ARU speaker 08 — British English",
+   "group": "uk",
+   "sex": "",
+   "model": "piper-en_GB-aru-medium",
+   "speaker": 5
+  },
+  {
+   "id": "piper-aru-09",
+   "label": "ARU speaker 09 — British English",
+   "group": "uk",
+   "sex": "",
+   "model": "piper-en_GB-aru-medium",
+   "speaker": 4
+  },
+  {
+   "id": "piper-aru-10",
+   "label": "ARU speaker 10 — British English",
+   "group": "uk",
+   "sex": "",
+   "model": "piper-en_GB-aru-medium",
+   "speaker": 2
+  },
+  {
+   "id": "piper-aru-11",
+   "label": "ARU speaker 11 — British English",
+   "group": "uk",
+   "sex": "",
+   "model": "piper-en_GB-aru-medium",
+   "speaker": 6
+  },
+  {
+   "id": "piper-aru-12",
+   "label": "ARU speaker 12 — British English",
+   "group": "uk",
+   "sex": "",
+   "model": "piper-en_GB-aru-medium",
+   "speaker": 8
+  },
+  {
+   "id": "piper-en_gb-cori-high",
+   "label": "Cori — British English (LibriVox reader) · high quality",
+   "group": "uk",
+   "sex": "f",
+   "model": "piper-en_GB-cori-high"
+  },
+  {
+   "id": "piper-en_gb-cori-medium",
+   "label": "Cori — British English (LibriVox reader)",
+   "group": "uk",
+   "sex": "f",
+   "model": "piper-en_GB-cori-medium"
+  },
+  {
+   "id": "piper-en_gb-jenny_dioco-medium",
+   "label": "Jenny",
+   "group": "uk",
+   "sex": "f",
+   "model": "piper-en_GB-jenny_dioco-medium"
+  },
+  {
+   "id": "piper-en_gb-northern_english_male-medium",
+   "label": "Northern English",
+   "group": "uk",
+   "sex": "m",
+   "model": "piper-en_GB-northern_english_male-medium"
+  },
+  {
+   "id": "piper-semaine-obadiah",
+   "label": "SEMAINE Obadiah — man, British English",
+   "group": "uk",
+   "sex": "m",
+   "model": "piper-en_GB-semaine-medium",
+   "speaker": 2
+  },
+  {
+   "id": "piper-semaine-poppy",
+   "label": "SEMAINE Poppy — woman, British English",
+   "group": "uk",
+   "sex": "f",
+   "model": "piper-en_GB-semaine-medium",
+   "speaker": 3
+  },
+  {
+   "id": "piper-semaine-prudence",
+   "label": "SEMAINE Prudence — woman, British English",
+   "group": "uk",
+   "sex": "f",
+   "model": "piper-en_GB-semaine-medium",
+   "speaker": 0
+  },
+  {
+   "id": "piper-semaine-spike",
+   "label": "SEMAINE Spike — man, British English",
+   "group": "uk",
+   "sex": "m",
+   "model": "piper-en_GB-semaine-medium",
+   "speaker": 1
+  },
+  {
+   "id": "piper-en_gb-southern_english_female-low",
+   "label": "Southern English · low quality",
+   "group": "uk",
+   "sex": "f",
+   "model": "piper-en_GB-southern_english_female-low"
+  },
+  {
+   "id": "piper-vctk-p225",
+   "label": "VCTK p225 — woman, 23, English, Southern England",
+   "group": "uk",
+   "sex": "f",
+   "model": "piper-en_GB-vctk-medium",
+   "speaker": 107
+  },
+  {
+   "id": "piper-vctk-p226",
+   "label": "VCTK p226 — man, 22, English, Surrey",
+   "group": "uk",
+   "sex": "m",
+   "model": "piper-en_GB-vctk-medium",
+   "speaker": 95
+  },
+  {
+   "id": "piper-vctk-p227",
+   "label": "VCTK p227 — man, 38, English, Cumbria",
+   "group": "uk",
+   "sex": "m",
+   "model": "piper-en_GB-vctk-medium",
+   "speaker": 82
+  },
+  {
+   "id": "piper-vctk-p228",
+   "label": "VCTK p228 — woman, 22, English, Southern England",
+   "group": "uk",
+   "sex": "f",
+   "model": "piper-en_GB-vctk-medium",
+   "speaker": 90
+  },
+  {
+   "id": "piper-vctk-p229",
+   "label": "VCTK p229 — woman, 23, English, Southern England",
+   "group": "uk",
+   "sex": "f",
+   "model": "piper-en_GB-vctk-medium",
+   "speaker": 85
+  },
+  {
+   "id": "piper-vctk-p230",
+   "label": "VCTK p230 — woman, 22, English, Stockton-on-tees",
+   "group": "uk",
+   "sex": "f",
+   "model": "piper-en_GB-vctk-medium",
+   "speaker": 74
+  },
+  {
+   "id": "piper-vctk-p231",
+   "label": "VCTK p231 — woman, 23, English, Southern England",
+   "group": "uk",
+   "sex": "f",
+   "model": "piper-en_GB-vctk-medium",
+   "speaker": 15
+  },
+  {
+   "id": "piper-vctk-p232",
+   "label": "VCTK p232 — man, 23, English, Southern England",
+   "group": "uk",
+   "sex": "m",
+   "model": "piper-en_GB-vctk-medium",
+   "speaker": 60
+  },
+  {
+   "id": "piper-vctk-p233",
+   "label": "VCTK p233 — woman, 23, English, Staffordshire",
+   "group": "uk",
+   "sex": "f",
+   "model": "piper-en_GB-vctk-medium",
+   "speaker": 89
+  },
+  {
+   "id": "piper-vctk-p234",
+   "label": "VCTK p234 — woman, 22, Scottish, West Dumfries",
+   "group": "uk",
+   "sex": "f",
+   "model": "piper-en_GB-vctk-medium",
+   "speaker": 94
+  },
+  {
+   "id": "piper-vctk-p236",
+   "label": "VCTK p236 — woman, 23, English, Manchester",
+   "group": "uk",
+   "sex": "f",
+   "model": "piper-en_GB-vctk-medium",
+   "speaker": 1
+  },
+  {
+   "id": "piper-vctk-p237",
+   "label": "VCTK p237 — man, 22, Scottish, Fife",
+   "group": "uk",
+   "sex": "m",
+   "model": "piper-en_GB-vctk-medium",
+   "speaker": 102
+  },
+  {
+   "id": "piper-vctk-p238",
+   "label": "VCTK p238 — woman, 22, Northern Irish, Belfast",
+   "group": "uk",
+   "sex": "f",
+   "model": "piper-en_GB-vctk-medium",
+   "speaker": 17
+  },
+  {
+   "id": "piper-vctk-p239",
+   "label": "VCTK p239 — woman, 22, English, SW England",
+   "group": "uk",
+   "sex": "f",
+   "model": "piper-en_GB-vctk-medium",
+   "speaker": 0
+  },
+  {
+   "id": "piper-vctk-p240",
+   "label": "VCTK p240 — woman, 21, English, Southern England",
+   "group": "uk",
+   "sex": "f",
+   "model": "piper-en_GB-vctk-medium",
+   "speaker": 86
+  },
+  {
+   "id": "piper-vctk-p241",
+   "label": "VCTK p241 — man, 21, Scottish, Perth",
+   "group": "uk",
+   "sex": "m",
+   "model": "piper-en_GB-vctk-medium",
+   "speaker": 98
+  },
+  {
+   "id": "piper-vctk-p243",
+   "label": "VCTK p243 — man, 22, English, London",
+   "group": "uk",
+   "sex": "m",
+   "model": "piper-en_GB-vctk-medium",
+   "speaker": 81
+  },
+  {
+   "id": "piper-vctk-p244",
+   "label": "VCTK p244 — woman, 22, English, Manchester",
+   "group": "uk",
+   "sex": "f",
+   "model": "piper-en_GB-vctk-medium",
+   "speaker": 48
+  },
+  {
+   "id": "piper-vctk-p245",
+   "label": "VCTK p245 — man, 25, Irish, Dublin",
+   "group": "uk",
+   "sex": "m",
+   "model": "piper-en_GB-vctk-medium",
+   "speaker": 97
+  },
+  {
+   "id": "piper-vctk-p246",
+   "label": "VCTK p246 — man, 22, Scottish, Selkirk",
+   "group": "uk",
+   "sex": "m",
+   "model": "piper-en_GB-vctk-medium",
+   "speaker": 93
+  },
+  {
+   "id": "piper-vctk-p247",
+   "label": "VCTK p247 — man, 22, Scottish, Argyll",
+   "group": "uk",
+   "sex": "m",
+   "model": "piper-en_GB-vctk-medium",
+   "speaker": 5
+  },
+  {
+   "id": "piper-vctk-p248",
+   "label": "VCTK p248 — woman, 23, Indian",
+   "group": "in",
+   "sex": "f",
+   "model": "piper-en_GB-vctk-medium",
+   "speaker": 87
+  },
+  {
+   "id": "piper-vctk-p249",
+   "label": "VCTK p249 — woman, 22, Scottish, Aberdeen",
+   "group": "uk",
+   "sex": "f",
+   "model": "piper-en_GB-vctk-medium",
+   "speaker": 103
+  },
+  {
+   "id": "piper-vctk-p250",
+   "label": "VCTK p250 — woman, 22, English, SE England",
+   "group": "uk",
+   "sex": "f",
+   "model": "piper-en_GB-vctk-medium",
+   "speaker": 3
+  },
+  {
+   "id": "piper-vctk-p251",
+   "label": "VCTK p251 — man, 26, Indian",
+   "group": "in",
+   "sex": "m",
+   "model": "piper-en_GB-vctk-medium",
+   "speaker": 92
+  },
+  {
+   "id": "piper-vctk-p252",
+   "label": "VCTK p252 — man, 22, Scottish, Edinburgh",
+   "group": "uk",
+   "sex": "m",
+   "model": "piper-en_GB-vctk-medium",
+   "speaker": 79
+  },
+  {
+   "id": "piper-vctk-p253",
+   "label": "VCTK p253 — woman, 22, Welsh, Cardiff",
+   "group": "uk",
+   "sex": "f",
+   "model": "piper-en_GB-vctk-medium",
+   "speaker": 88
+  },
+  {
+   "id": "piper-vctk-p254",
+   "label": "VCTK p254 — man, 21, English, Surrey",
+   "group": "uk",
+   "sex": "m",
+   "model": "piper-en_GB-vctk-medium",
+   "speaker": 76
+  },
+  {
+   "id": "piper-vctk-p255",
+   "label": "VCTK p255 — man, 19, Scottish, Galloway",
+   "group": "uk",
+   "sex": "m",
+   "model": "piper-en_GB-vctk-medium",
+   "speaker": 84
+  },
+  {
+   "id": "piper-vctk-p256",
+   "label": "VCTK p256 — man, 24, English, Birmingham",
+   "group": "uk",
+   "sex": "m",
+   "model": "piper-en_GB-vctk-medium",
+   "speaker": 104
+  },
+  {
+   "id": "piper-vctk-p257",
+   "label": "VCTK p257 — woman, 24, English, Southern England",
+   "group": "uk",
+   "sex": "f",
+   "model": "piper-en_GB-vctk-medium",
+   "speaker": 18
+  },
+  {
+   "id": "piper-vctk-p258",
+   "label": "VCTK p258 — man, 22, English, Southern England",
+   "group": "uk",
+   "sex": "m",
+   "model": "piper-en_GB-vctk-medium",
+   "speaker": 57
+  },
+  {
+   "id": "piper-vctk-p259",
+   "label": "VCTK p259 — man, 23, English, Nottingham",
+   "group": "uk",
+   "sex": "m",
+   "model": "piper-en_GB-vctk-medium",
+   "speaker": 4
+  },
+  {
+   "id": "piper-vctk-p260",
+   "label": "VCTK p260 — man, 21, Scottish, Orkney",
+   "group": "uk",
+   "sex": "m",
+   "model": "piper-en_GB-vctk-medium",
+   "speaker": 96
+  },
+  {
+   "id": "piper-vctk-p261",
+   "label": "VCTK p261 — woman, 26, Northern Irish, Belfast",
+   "group": "uk",
+   "sex": "f",
+   "model": "piper-en_GB-vctk-medium",
+   "speaker": 6
+  },
+  {
+   "id": "piper-vctk-p262",
+   "label": "VCTK p262 — woman, 23, Scottish, Edinburgh",
+   "group": "uk",
+   "sex": "f",
+   "model": "piper-en_GB-vctk-medium",
+   "speaker": 80
+  },
+  {
+   "id": "piper-vctk-p263",
+   "label": "VCTK p263 — man, 22, Scottish, Aberdeen",
+   "group": "uk",
+   "sex": "m",
+   "model": "piper-en_GB-vctk-medium",
+   "speaker": 7
+  },
+  {
+   "id": "piper-vctk-p264",
+   "label": "VCTK p264 — woman, 23, Scottish, West Lothian",
+   "group": "uk",
+   "sex": "f",
+   "model": "piper-en_GB-vctk-medium",
+   "speaker": 2
+  },
+  {
+   "id": "piper-vctk-p265",
+   "label": "VCTK p265 — woman, 23, Scottish, Ross",
+   "group": "uk",
+   "sex": "f",
+   "model": "piper-en_GB-vctk-medium",
+   "speaker": 100
+  },
+  {
+   "id": "piper-vctk-p266",
+   "label": "VCTK p266 — woman, 22, Irish, Athlone",
+   "group": "uk",
+   "sex": "f",
+   "model": "piper-en_GB-vctk-medium",
+   "speaker": 41
+  },
+  {
+   "id": "piper-vctk-p267",
+   "label": "VCTK p267 — woman, 23, English, Yorkshire",
+   "group": "uk",
+   "sex": "f",
+   "model": "piper-en_GB-vctk-medium",
+   "speaker": 54
+  },
+  {
+   "id": "piper-vctk-p268",
+   "label": "VCTK p268 — woman, 23, English, Southern England",
+   "group": "uk",
+   "sex": "f",
+   "model": "piper-en_GB-vctk-medium",
+   "speaker": 66
+  },
+  {
+   "id": "piper-vctk-p269",
+   "label": "VCTK p269 — woman, 20, English, Newcastle",
+   "group": "uk",
+   "sex": "f",
+   "model": "piper-en_GB-vctk-medium",
+   "speaker": 77
+  },
+  {
+   "id": "piper-vctk-p270",
+   "label": "VCTK p270 — man, 21, English, Yorkshire",
+   "group": "uk",
+   "sex": "m",
+   "model": "piper-en_GB-vctk-medium",
+   "speaker": 12
+  },
+  {
+   "id": "piper-vctk-p271",
+   "label": "VCTK p271 — man, 19, Scottish, Fife",
+   "group": "uk",
+   "sex": "m",
+   "model": "piper-en_GB-vctk-medium",
+   "speaker": 16
+  },
+  {
+   "id": "piper-vctk-p272",
+   "label": "VCTK p272 — man, 23, Scottish, Edinburgh",
+   "group": "uk",
+   "sex": "m",
+   "model": "piper-en_GB-vctk-medium",
+   "speaker": 62
+  },
+  {
+   "id": "piper-vctk-p273",
+   "label": "VCTK p273 — man, 23, English, Suffolk",
+   "group": "uk",
+   "sex": "m",
+   "model": "piper-en_GB-vctk-medium",
+   "speaker": 19
+  },
+  {
+   "id": "piper-vctk-p274",
+   "label": "VCTK p274 — man, 22, English, Essex",
+   "group": "uk",
+   "sex": "m",
+   "model": "piper-en_GB-vctk-medium",
+   "speaker": 10
+  },
+  {
+   "id": "piper-vctk-p275",
+   "label": "VCTK p275 — man, 23, Scottish, Midlothian",
+   "group": "uk",
+   "sex": "m",
+   "model": "piper-en_GB-vctk-medium",
+   "speaker": 55
+  },
+  {
+   "id": "piper-vctk-p276",
+   "label": "VCTK p276 — woman, 24, English, Oxford",
+   "group": "uk",
+   "sex": "f",
+   "model": "piper-en_GB-vctk-medium",
+   "speaker": 11
+  },
+  {
+   "id": "piper-vctk-p277",
+   "label": "VCTK p277 — woman, 23, English, NE England",
+   "group": "uk",
+   "sex": "f",
+   "model": "piper-en_GB-vctk-medium",
+   "speaker": 14
+  },
+  {
+   "id": "piper-vctk-p278",
+   "label": "VCTK p278 — man, 22, English, Cheshire",
+   "group": "uk",
+   "sex": "m",
+   "model": "piper-en_GB-vctk-medium",
+   "speaker": 64
+  },
+  {
+   "id": "piper-vctk-p279",
+   "label": "VCTK p279 — man, 23, English, Leicester",
+   "group": "uk",
+   "sex": "m",
+   "model": "piper-en_GB-vctk-medium",
+   "speaker": 69
+  },
+  {
+   "id": "piper-vctk-p280",
+   "label": "VCTK p280 — woman, 25, Unknown, France (mic2 files unavailable)",
+   "group": "any",
+   "sex": "f",
+   "model": "piper-en_GB-vctk-medium",
+   "speaker": 63
+  },
+  {
+   "id": "piper-vctk-p281",
+   "label": "VCTK p281 — man, 29, Scottish, Edinburgh",
+   "group": "uk",
+   "sex": "m",
+   "model": "piper-en_GB-vctk-medium",
+   "speaker": 13
+  },
+  {
+   "id": "piper-vctk-p282",
+   "label": "VCTK p282 — woman, 23, English, Newcastle",
+   "group": "uk",
+   "sex": "f",
+   "model": "piper-en_GB-vctk-medium",
+   "speaker": 91
+  },
+  {
+   "id": "piper-vctk-p283",
+   "label": "VCTK p283 — woman, 24, Irish, Cork",
+   "group": "uk",
+   "sex": "f",
+   "model": "piper-en_GB-vctk-medium",
+   "speaker": 8
+  },
+  {
+   "id": "piper-vctk-p284",
+   "label": "VCTK p284 — man, 20, Scottish, Fife",
+   "group": "uk",
+   "sex": "m",
+   "model": "piper-en_GB-vctk-medium",
+   "speaker": 20
+  },
+  {
+   "id": "piper-vctk-p285",
+   "label": "VCTK p285 — man, 21, Scottish, Edinburgh",
+   "group": "uk",
+   "sex": "m",
+   "model": "piper-en_GB-vctk-medium",
+   "speaker": 70
+  },
+  {
+   "id": "piper-vctk-p286",
+   "label": "VCTK p286 — man, 23, English, Newcastle",
+   "group": "uk",
+   "sex": "m",
+   "model": "piper-en_GB-vctk-medium",
+   "speaker": 9
+  },
+  {
+   "id": "piper-vctk-p287",
+   "label": "VCTK p287 — man, 23, English, York",
+   "group": "uk",
+   "sex": "m",
+   "model": "piper-en_GB-vctk-medium",
+   "speaker": 23
+  },
+  {
+   "id": "piper-vctk-p288",
+   "label": "VCTK p288 — woman, 22, Irish, Dublin",
+   "group": "uk",
+   "sex": "f",
+   "model": "piper-en_GB-vctk-medium",
+   "speaker": 58
+  },
+  {
+   "id": "piper-vctk-p292",
+   "label": "VCTK p292 — man, 23, Northern Irish, Belfast",
+   "group": "uk",
+   "sex": "m",
+   "model": "piper-en_GB-vctk-medium",
+   "speaker": 61
+  },
+  {
+   "id": "piper-vctk-p293",
+   "label": "VCTK p293 — woman, 22, Northern Irish, Belfast",
+   "group": "uk",
+   "sex": "f",
+   "model": "piper-en_GB-vctk-medium",
+   "speaker": 78
+  },
+  {
+   "id": "piper-vctk-p294",
+   "label": "VCTK p294 — woman, 33, American, San Francisco",
+   "group": "us",
+   "sex": "f",
+   "model": "piper-en_GB-vctk-medium",
+   "speaker": 39
+  },
+  {
+   "id": "piper-vctk-p295",
+   "label": "VCTK p295 — woman, 23, Irish, Dublin",
+   "group": "uk",
+   "sex": "f",
+   "model": "piper-en_GB-vctk-medium",
+   "speaker": 56
+  },
+  {
+   "id": "piper-vctk-p297",
+   "label": "VCTK p297 — woman, 20, American, New York",
+   "group": "us",
+   "sex": "f",
+   "model": "piper-en_GB-vctk-medium",
+   "speaker": 52
+  },
+  {
+   "id": "piper-vctk-p298",
+   "label": "VCTK p298 — man, 19, Irish, Tipperary",
+   "group": "uk",
+   "sex": "m",
+   "model": "piper-en_GB-vctk-medium",
+   "speaker": 67
+  },
+  {
+   "id": "piper-vctk-p299",
+   "label": "VCTK p299 — woman, 25, American, California",
+   "group": "us",
+   "sex": "f",
+   "model": "piper-en_GB-vctk-medium",
+   "speaker": 68
+  },
+  {
+   "id": "piper-vctk-p300",
+   "label": "VCTK p300 — woman, 23, American, California",
+   "group": "us",
+   "sex": "f",
+   "model": "piper-en_GB-vctk-medium",
+   "speaker": 72
+  },
+  {
+   "id": "piper-vctk-p301",
+   "label": "VCTK p301 — woman, 23, American, North Carolina",
+   "group": "us",
+   "sex": "f",
+   "model": "piper-en_GB-vctk-medium",
+   "speaker": 59
+  },
+  {
+   "id": "piper-vctk-p302",
+   "label": "VCTK p302 — man, 20, Canadian, Montreal",
+   "group": "world",
+   "sex": "m",
+   "model": "piper-en_GB-vctk-medium",
+   "speaker": 105
+  },
+  {
+   "id": "piper-vctk-p303",
+   "label": "VCTK p303 — woman, 24, Canadian, Toronto",
+   "group": "world",
+   "sex": "f",
+   "model": "piper-en_GB-vctk-medium",
+   "speaker": 99
+  },
+  {
+   "id": "piper-vctk-p304",
+   "label": "VCTK p304 — man, 22, Northern Irish, Belfast",
+   "group": "uk",
+   "sex": "m",
+   "model": "piper-en_GB-vctk-medium",
+   "speaker": 28
+  },
+  {
+   "id": "piper-vctk-p305",
+   "label": "VCTK p305 — woman, 19, American, Philadelphia",
+   "group": "us",
+   "sex": "f",
+   "model": "piper-en_GB-vctk-medium",
+   "speaker": 40
+  },
+  {
+   "id": "piper-vctk-p306",
+   "label": "VCTK p306 — woman, 21, American, New York",
+   "group": "us",
+   "sex": "f",
+   "model": "piper-en_GB-vctk-medium",
+   "speaker": 101
+  },
+  {
+   "id": "piper-vctk-p307",
+   "label": "VCTK p307 — woman, 23, Canadian, Ontario",
+   "group": "world",
+   "sex": "f",
+   "model": "piper-en_GB-vctk-medium",
+   "speaker": 49
+  },
+  {
+   "id": "piper-vctk-p308",
+   "label": "VCTK p308 — woman, 18, American, Alabama",
+   "group": "us",
+   "sex": "f",
+   "model": "piper-en_GB-vctk-medium",
+   "speaker": 34
+  },
+  {
+   "id": "piper-vctk-p310",
+   "label": "VCTK p310 — woman, 21, American, Tennessee",
+   "group": "us",
+   "sex": "f",
+   "model": "piper-en_GB-vctk-medium",
+   "speaker": 27
+  },
+  {
+   "id": "piper-vctk-p311",
+   "label": "VCTK p311 — man, 21, American, Iowa",
+   "group": "us",
+   "sex": "m",
+   "model": "piper-en_GB-vctk-medium",
+   "speaker": 38
+  },
+  {
+   "id": "piper-vctk-p312",
+   "label": "VCTK p312 — woman, 19, Canadian, Hamilton",
+   "group": "world",
+   "sex": "f",
+   "model": "piper-en_GB-vctk-medium",
+   "speaker": 53
+  },
+  {
+   "id": "piper-vctk-p313",
+   "label": "VCTK p313 — woman, 24, Irish, County Down",
+   "group": "uk",
+   "sex": "f",
+   "model": "piper-en_GB-vctk-medium",
+   "speaker": 46
+  },
+  {
+   "id": "piper-vctk-p314",
+   "label": "VCTK p314 — woman, 26, South African, Cape Town",
+   "group": "world",
+   "sex": "f",
+   "model": "piper-en_GB-vctk-medium",
+   "speaker": 35
+  },
+  {
+   "id": "piper-vctk-p316",
+   "label": "VCTK p316 — man, 20, Canadian, Alberta",
+   "group": "world",
+   "sex": "m",
+   "model": "piper-en_GB-vctk-medium",
+   "speaker": 47
+  },
+  {
+   "id": "piper-vctk-p317",
+   "label": "VCTK p317 — woman, 23, Canadian, Hamilton",
+   "group": "world",
+   "sex": "f",
+   "model": "piper-en_GB-vctk-medium",
+   "speaker": 36
+  },
+  {
+   "id": "piper-vctk-p318",
+   "label": "VCTK p318 — woman, 32, American, Napa",
+   "group": "us",
+   "sex": "f",
+   "model": "piper-en_GB-vctk-medium",
+   "speaker": 43
+  },
+  {
+   "id": "piper-vctk-p323",
+   "label": "VCTK p323 — woman, 19, South African, Pretoria",
+   "group": "world",
+   "sex": "f",
+   "model": "piper-en_GB-vctk-medium",
+   "speaker": 31
+  },
+  {
+   "id": "piper-vctk-p326",
+   "label": "VCTK p326 — man, 26, Australian, English Sydney",
+   "group": "world",
+   "sex": "m",
+   "model": "piper-en_GB-vctk-medium",
+   "speaker": 71
+  },
+  {
+   "id": "piper-vctk-p329",
+   "label": "VCTK p329 — woman, 23, American",
+   "group": "us",
+   "sex": "f",
+   "model": "piper-en_GB-vctk-medium",
+   "speaker": 21
+  },
+  {
+   "id": "piper-vctk-p330",
+   "label": "VCTK p330 — woman, 26, American",
+   "group": "us",
+   "sex": "f",
+   "model": "piper-en_GB-vctk-medium",
+   "speaker": 33
+  },
+  {
+   "id": "piper-vctk-p333",
+   "label": "VCTK p333 — woman, 19, American, Indiana",
+   "group": "us",
+   "sex": "f",
+   "model": "piper-en_GB-vctk-medium",
+   "speaker": 45
+  },
+  {
+   "id": "piper-vctk-p334",
+   "label": "VCTK p334 — man, 18, American, Chicago",
+   "group": "us",
+   "sex": "m",
+   "model": "piper-en_GB-vctk-medium",
+   "speaker": 29
+  },
+  {
+   "id": "piper-vctk-p335",
+   "label": "VCTK p335 — woman, 25, New Zealand, English",
+   "group": "world",
+   "sex": "f",
+   "model": "piper-en_GB-vctk-medium",
+   "speaker": 42
+  },
+  {
+   "id": "piper-vctk-p336",
+   "label": "VCTK p336 — woman, 18, South African, Johannesburg",
+   "group": "world",
+   "sex": "f",
+   "model": "piper-en_GB-vctk-medium",
+   "speaker": 51
+  },
+  {
+   "id": "piper-vctk-p339",
+   "label": "VCTK p339 — woman, 21, American, Pennsylvania",
+   "group": "us",
+   "sex": "f",
+   "model": "piper-en_GB-vctk-medium",
+   "speaker": 37
+  },
+  {
+   "id": "piper-vctk-p340",
+   "label": "VCTK p340 — woman, 18, Irish, Dublin",
+   "group": "uk",
+   "sex": "f",
+   "model": "piper-en_GB-vctk-medium",
+   "speaker": 30
+  },
+  {
+   "id": "piper-vctk-p341",
+   "label": "VCTK p341 — woman, 26, American, Ohio",
+   "group": "us",
+   "sex": "f",
+   "model": "piper-en_GB-vctk-medium",
+   "speaker": 65
+  },
+  {
+   "id": "piper-vctk-p343",
+   "label": "VCTK p343 — woman, 27, Canadian, Alberta",
+   "group": "world",
+   "sex": "f",
+   "model": "piper-en_GB-vctk-medium",
+   "speaker": 83
+  },
+  {
+   "id": "piper-vctk-p345",
+   "label": "VCTK p345 — man, 22, American, Florida",
+   "group": "us",
+   "sex": "m",
+   "model": "piper-en_GB-vctk-medium",
+   "speaker": 75
+  },
+  {
+   "id": "piper-vctk-p347",
+   "label": "VCTK p347 — man, 26, South African, Johannesburg",
+   "group": "world",
+   "sex": "m",
+   "model": "piper-en_GB-vctk-medium",
+   "speaker": 32
+  },
+  {
+   "id": "piper-vctk-p351",
+   "label": "VCTK p351 — woman, 21, Northern Irish, Derry",
+   "group": "uk",
+   "sex": "f",
+   "model": "piper-en_GB-vctk-medium",
+   "speaker": 44
+  },
+  {
+   "id": "piper-vctk-p360",
+   "label": "VCTK p360 — man, 19, American, New Jersey",
+   "group": "us",
+   "sex": "m",
+   "model": "piper-en_GB-vctk-medium",
+   "speaker": 24
+  },
+  {
+   "id": "piper-vctk-p361",
+   "label": "VCTK p361 — woman, 19, American, New Jersey",
+   "group": "us",
+   "sex": "f",
+   "model": "piper-en_GB-vctk-medium",
+   "speaker": 22
+  },
+  {
+   "id": "piper-vctk-p362",
+   "label": "VCTK p362 — woman, 29, American",
+   "group": "us",
+   "sex": "f",
+   "model": "piper-en_GB-vctk-medium",
+   "speaker": 108
+  },
+  {
+   "id": "piper-vctk-p363",
+   "label": "VCTK p363 — man, 22, Canadian, Toronto",
+   "group": "world",
+   "sex": "m",
+   "model": "piper-en_GB-vctk-medium",
+   "speaker": 50
+  },
+  {
+   "id": "piper-vctk-p364",
+   "label": "VCTK p364 — man, 23, Irish, Donegal",
+   "group": "uk",
+   "sex": "m",
+   "model": "piper-en_GB-vctk-medium",
+   "speaker": 106
+  },
+  {
+   "id": "piper-vctk-p374",
+   "label": "VCTK p374 — man, 28, Australian, English",
+   "group": "world",
+   "sex": "m",
+   "model": "piper-en_GB-vctk-medium",
+   "speaker": 25
+  },
+  {
+   "id": "piper-vctk-p376",
+   "label": "VCTK p376 — man, 22, Indian",
+   "group": "in",
+   "sex": "m",
+   "model": "piper-en_GB-vctk-medium",
+   "speaker": 26
+  },
+  {
+   "id": "piper-vctk-s5",
+   "label": "VCTK s5 — woman, 22, British, (new speaker, more data would be released for training a speaker-dependent model)",
+   "group": "uk",
+   "sex": "f",
+   "model": "piper-en_GB-vctk-medium",
+   "speaker": 73
+  },
+  {
+   "id": "piper-en_us-amy-low",
+   "label": "Amy · low quality",
+   "group": "us",
+   "sex": "f",
+   "model": "piper-en_US-amy-low"
+  },
+  {
+   "id": "piper-en_us-amy-medium",
+   "label": "Amy",
+   "group": "us",
+   "sex": "f",
+   "model": "piper-en_US-amy-medium"
+  },
+  {
+   "id": "piper-arctic-aew",
+   "label": "CMU ARCTIC aew — speaker, accent not documented",
+   "group": "any",
+   "sex": "",
+   "model": "piper-en_US-arctic-medium",
+   "speaker": 6
+  },
+  {
+   "id": "piper-arctic-ahw",
+   "label": "CMU ARCTIC ahw — speaker, accent not documented",
+   "group": "any",
+   "sex": "",
+   "model": "piper-en_US-arctic-medium",
+   "speaker": 14
+  },
+  {
+   "id": "piper-arctic-aup",
+   "label": "CMU ARCTIC aup — speaker, accent not documented",
+   "group": "any",
+   "sex": "",
+   "model": "piper-en_US-arctic-medium",
+   "speaker": 13
+  },
+  {
+   "id": "piper-arctic-awb",
+   "label": "CMU ARCTIC awb — man, Scottish English",
+   "group": "uk",
+   "sex": "m",
+   "model": "piper-en_US-arctic-medium",
+   "speaker": 0
+  },
+  {
+   "id": "piper-arctic-axb",
+   "label": "CMU ARCTIC axb — speaker, accent not documented",
+   "group": "any",
+   "sex": "",
+   "model": "piper-en_US-arctic-medium",
+   "speaker": 15
+  },
+  {
+   "id": "piper-arctic-bdl",
+   "label": "CMU ARCTIC bdl — man, American English",
+   "group": "us",
+   "sex": "m",
+   "model": "piper-en_US-arctic-medium",
+   "speaker": 7
+  },
+  {
+   "id": "piper-arctic-clb",
+   "label": "CMU ARCTIC clb — woman, American English",
+   "group": "us",
+   "sex": "f",
+   "model": "piper-en_US-arctic-medium",
+   "speaker": 4
+  },
+  {
+   "id": "piper-arctic-eey",
+   "label": "CMU ARCTIC eey — speaker, accent not documented",
+   "group": "any",
+   "sex": "",
+   "model": "piper-en_US-arctic-medium",
+   "speaker": 16
+  },
+  {
+   "id": "piper-arctic-fem",
+   "label": "CMU ARCTIC fem — speaker, accent not documented",
+   "group": "any",
+   "sex": "",
+   "model": "piper-en_US-arctic-medium",
+   "speaker": 10
+  },
+  {
+   "id": "piper-arctic-gka",
+   "label": "CMU ARCTIC gka — speaker, accent not documented",
+   "group": "any",
+   "sex": "",
+   "model": "piper-en_US-arctic-medium",
+   "speaker": 17
+  },
+  {
+   "id": "piper-arctic-jmk",
+   "label": "CMU ARCTIC jmk — man, Canadian English",
+   "group": "world",
+   "sex": "m",
+   "model": "piper-en_US-arctic-medium",
+   "speaker": 8
+  },
+  {
+   "id": "piper-arctic-ksp",
+   "label": "CMU ARCTIC ksp — man, Indian English",
+   "group": "in",
+   "sex": "m",
+   "model": "piper-en_US-arctic-medium",
+   "speaker": 3
+  },
+  {
+   "id": "piper-arctic-ljm",
+   "label": "CMU ARCTIC ljm — speaker, accent not documented",
+   "group": "any",
+   "sex": "",
+   "model": "piper-en_US-arctic-medium",
+   "speaker": 11
+  },
+  {
+   "id": "piper-arctic-lnh",
+   "label": "CMU ARCTIC lnh — speaker, accent not documented",
+   "group": "any",
+   "sex": "",
+   "model": "piper-en_US-arctic-medium",
+   "speaker": 5
+  },
+  {
+   "id": "piper-arctic-rms",
+   "label": "CMU ARCTIC rms — man, American English",
+   "group": "us",
+   "sex": "m",
+   "model": "piper-en_US-arctic-medium",
+   "speaker": 1
+  },
+  {
+   "id": "piper-arctic-rxr",
+   "label": "CMU ARCTIC rxr — speaker, accent not documented",
+   "group": "any",
+   "sex": "",
+   "model": "piper-en_US-arctic-medium",
+   "speaker": 9
+  },
+  {
+   "id": "piper-arctic-slp",
+   "label": "CMU ARCTIC slp — speaker, accent not documented",
+   "group": "any",
+   "sex": "",
+   "model": "piper-en_US-arctic-medium",
+   "speaker": 12
+  },
+  {
+   "id": "piper-arctic-slt",
+   "label": "CMU ARCTIC slt — woman, American English",
+   "group": "us",
+   "sex": "f",
+   "model": "piper-en_US-arctic-medium",
+   "speaker": 2
+  },
+  {
+   "id": "piper-en_us-bryce-medium",
+   "label": "Bryce",
+   "group": "us",
+   "sex": "m",
+   "model": "piper-en_US-bryce-medium"
+  },
+  {
+   "id": "piper-en_us-danny-low",
+   "label": "Danny · low quality",
+   "group": "us",
+   "sex": "m",
+   "model": "piper-en_US-danny-low"
+  },
+  {
+   "id": "piper-en_us-hfc_female-medium",
+   "label": "Hi-Fi Captain (woman)",
+   "group": "us",
+   "sex": "f",
+   "model": "piper-en_US-hfc_female-medium"
+  },
+  {
+   "id": "piper-en_us-hfc_male-medium",
+   "label": "Hi-Fi Captain (man)",
+   "group": "us",
+   "sex": "m",
+   "model": "piper-en_US-hfc_male-medium"
+  },
+  {
+   "id": "piper-en_us-hifi_tts_92-medium",
+   "label": "Hi-Fi TTS reader 92",
+   "group": "us",
+   "sex": "f",
+   "model": "piper-en_US-hifi_tts_92-medium"
+  },
+  {
+   "id": "piper-en_us-joe-medium",
+   "label": "Joe",
+   "group": "us",
+   "sex": "m",
+   "model": "piper-en_US-joe-medium"
+  },
+  {
+   "id": "piper-en_us-john-medium",
+   "label": "John (LibriVox reader)",
+   "group": "us",
+   "sex": "m",
+   "model": "piper-en_US-john-medium"
+  },
+  {
+   "id": "piper-en_us-kathleen-low",
+   "label": "Kathleen · low quality",
+   "group": "us",
+   "sex": "f",
+   "model": "piper-en_US-kathleen-low"
+  },
+  {
+   "id": "piper-en_us-kathleen-medium",
+   "label": "Kathleen",
+   "group": "us",
+   "sex": "f",
+   "model": "piper-en_US-kathleen-medium"
+  },
+  {
+   "id": "piper-en_us-kristin-medium",
+   "label": "Kristin (LibriVox reader)",
+   "group": "us",
+   "sex": "f",
+   "model": "piper-en_US-kristin-medium"
+  },
+  {
+   "id": "piper-en_us-kusal-medium",
+   "label": "Kusal (Mycroft)",
+   "group": "any",
+   "sex": "m",
+   "model": "piper-en_US-kusal-medium"
+  },
+  {
+   "id": "piper-l2arctic-aba",
+   "label": "L2-ARCTIC ABA — man, first language Arabic",
+   "group": "world",
+   "sex": "m",
+   "model": "piper-en_US-l2arctic-medium",
+   "speaker": 21
+  },
+  {
+   "id": "piper-l2arctic-asi",
+   "label": "L2-ARCTIC ASI — man, first language Hindi",
+   "group": "in",
+   "sex": "m",
+   "model": "piper-en_US-l2arctic-medium",
+   "speaker": 10
+  },
+  {
+   "id": "piper-l2arctic-bwc",
+   "label": "L2-ARCTIC BWC — man, first language Mandarin",
+   "group": "world",
+   "sex": "m",
+   "model": "piper-en_US-l2arctic-medium",
+   "speaker": 20
+  },
+  {
+   "id": "piper-l2arctic-ebvs",
+   "label": "L2-ARCTIC EBVS — man, first language Spanish",
+   "group": "world",
+   "sex": "m",
+   "model": "piper-en_US-l2arctic-medium",
+   "speaker": 22
+  },
+  {
+   "id": "piper-l2arctic-erms",
+   "label": "L2-ARCTIC ERMS — man, first language Spanish",
+   "group": "world",
+   "sex": "m",
+   "model": "piper-en_US-l2arctic-medium",
+   "speaker": 6
+  },
+  {
+   "id": "piper-l2arctic-hjk",
+   "label": "L2-ARCTIC HJK — woman, first language Korean",
+   "group": "world",
+   "sex": "f",
+   "model": "piper-en_US-l2arctic-medium",
+   "speaker": 11
+  },
+  {
+   "id": "piper-l2arctic-hkk",
+   "label": "L2-ARCTIC HKK — man, first language Korean",
+   "group": "world",
+   "sex": "m",
+   "model": "piper-en_US-l2arctic-medium",
+   "speaker": 16
+  },
+  {
+   "id": "piper-l2arctic-hqtv",
+   "label": "L2-ARCTIC HQTV — man, first language Vietnamese",
+   "group": "world",
+   "sex": "m",
+   "model": "piper-en_US-l2arctic-medium",
+   "speaker": 8
+  },
+  {
+   "id": "piper-l2arctic-lxc",
+   "label": "L2-ARCTIC LXC — woman, first language Mandarin",
+   "group": "world",
+   "sex": "f",
+   "model": "piper-en_US-l2arctic-medium",
+   "speaker": 12
+  },
+  {
+   "id": "piper-l2arctic-mbmps",
+   "label": "L2-ARCTIC MBMPS — woman, first language Spanish",
+   "group": "world",
+   "sex": "f",
+   "model": "piper-en_US-l2arctic-medium",
+   "speaker": 7
+  },
+  {
+   "id": "piper-l2arctic-ncc",
+   "label": "L2-ARCTIC NCC — woman, first language Mandarin",
+   "group": "world",
+   "sex": "f",
+   "model": "piper-en_US-l2arctic-medium",
+   "speaker": 13
+  },
+  {
+   "id": "piper-l2arctic-njs",
+   "label": "L2-ARCTIC NJS — woman, first language Spanish",
+   "group": "world",
+   "sex": "f",
+   "model": "piper-en_US-l2arctic-medium",
+   "speaker": 17
+  },
+  {
+   "id": "piper-l2arctic-pnv",
+   "label": "L2-ARCTIC PNV — woman, first language Vietnamese",
+   "group": "world",
+   "sex": "f",
+   "model": "piper-en_US-l2arctic-medium",
+   "speaker": 4
+  },
+  {
+   "id": "piper-l2arctic-rrbi",
+   "label": "L2-ARCTIC RRBI — man, first language Hindi",
+   "group": "in",
+   "sex": "m",
+   "model": "piper-en_US-l2arctic-medium",
+   "speaker": 19
+  },
+  {
+   "id": "piper-l2arctic-ska",
+   "label": "L2-ARCTIC SKA — woman, first language Arabic",
+   "group": "world",
+   "sex": "f",
+   "model": "piper-en_US-l2arctic-medium",
+   "speaker": 23
+  },
+  {
+   "id": "piper-l2arctic-svbi",
+   "label": "L2-ARCTIC SVBI — woman, first language Hindi",
+   "group": "in",
+   "sex": "f",
+   "model": "piper-en_US-l2arctic-medium",
+   "speaker": 2
+  },
+  {
+   "id": "piper-l2arctic-thv",
+   "label": "L2-ARCTIC THV — woman, first language Vietnamese",
+   "group": "world",
+   "sex": "f",
+   "model": "piper-en_US-l2arctic-medium",
+   "speaker": 1
+  },
+  {
+   "id": "piper-l2arctic-tlv",
+   "label": "L2-ARCTIC TLV — man, first language Vietnamese",
+   "group": "world",
+   "sex": "m",
+   "model": "piper-en_US-l2arctic-medium",
+   "speaker": 5
+  },
+  {
+   "id": "piper-l2arctic-tni",
+   "label": "L2-ARCTIC TNI — woman, first language Hindi",
+   "group": "in",
+   "sex": "f",
+   "model": "piper-en_US-l2arctic-medium",
+   "speaker": 9
+  },
+  {
+   "id": "piper-l2arctic-txhc",
+   "label": "L2-ARCTIC TXHC — man, first language Mandarin",
+   "group": "world",
+   "sex": "m",
+   "model": "piper-en_US-l2arctic-medium",
+   "speaker": 0
+  },
+  {
+   "id": "piper-l2arctic-ybaa",
+   "label": "L2-ARCTIC YBAA — man, first language Arabic",
+   "group": "world",
+   "sex": "m",
+   "model": "piper-en_US-l2arctic-medium",
+   "speaker": 18
+  },
+  {
+   "id": "piper-l2arctic-ydck",
+   "label": "L2-ARCTIC YDCK — woman, first language Korean",
+   "group": "world",
+   "sex": "f",
+   "model": "piper-en_US-l2arctic-medium",
+   "speaker": 15
+  },
+  {
+   "id": "piper-l2arctic-ykwk",
+   "label": "L2-ARCTIC YKWK — man, first language Korean",
+   "group": "world",
+   "sex": "m",
+   "model": "piper-en_US-l2arctic-medium",
+   "speaker": 14
+  },
+  {
+   "id": "piper-l2arctic-zhaa",
+   "label": "L2-ARCTIC ZHAA — woman, first language Arabic",
+   "group": "world",
+   "sex": "f",
+   "model": "piper-en_US-l2arctic-medium",
+   "speaker": 3
+  },
+  {
+   "id": "piper-en_us-lessac-high",
+   "label": "Lessac · high quality",
+   "group": "us",
+   "sex": "f",
+   "model": "piper-en_US-lessac-high"
+  },
+  {
+   "id": "piper-en_us-lessac-low",
+   "label": "Lessac · low quality",
+   "group": "us",
+   "sex": "f",
+   "model": "piper-en_US-lessac-low"
+  },
+  {
+   "id": "piper-en_us-lessac-medium",
+   "label": "Lessac",
+   "group": "us",
+   "sex": "f",
+   "model": "piper-en_US-lessac-medium"
+  },
+  {
+   "id": "piper-en_us-ljspeech-high",
+   "label": "LJ Speech · high quality",
+   "group": "us",
+   "sex": "f",
+   "model": "piper-en_US-ljspeech-high"
+  },
+  {
+   "id": "piper-en_us-ljspeech-medium",
+   "label": "LJ Speech",
+   "group": "us",
+   "sex": "f",
+   "model": "piper-en_US-ljspeech-medium"
+  },
+  {
+   "id": "piper-en_us-mike-medium",
+   "label": "Mike",
+   "group": "us",
+   "sex": "m",
+   "model": "piper-en_US-mike-medium"
+  },
+  {
+   "id": "piper-en_us-norman-medium",
+   "label": "Norman (LibriVox reader)",
+   "group": "us",
+   "sex": "m",
+   "model": "piper-en_US-norman-medium"
+  },
+  {
+   "id": "piper-en_us-reza_ibrahim-medium",
+   "label": "Reza Ibrahim",
+   "group": "any",
+   "sex": "m",
+   "model": "piper-en_US-reza_ibrahim-medium"
+  },
+  {
+   "id": "piper-en_us-ryan-high",
+   "label": "Ryan · high quality",
+   "group": "us",
+   "sex": "m",
+   "model": "piper-en_US-ryan-high"
+  },
+  {
+   "id": "piper-en_us-ryan-low",
+   "label": "Ryan · low quality",
+   "group": "us",
+   "sex": "m",
+   "model": "piper-en_US-ryan-low"
+  },
+  {
+   "id": "piper-en_us-ryan-medium",
+   "label": "Ryan",
+   "group": "us",
+   "sex": "m",
+   "model": "piper-en_US-ryan-medium"
+  },
+  {
+   "id": "piper-en_us-sam-medium",
+   "label": "Sam (a non-binary voice)",
+   "group": "us",
+   "sex": "n",
+   "model": "piper-en_US-sam-medium"
+  },
+  {
+   "id": "kokoro-af_heart",
+   "label": "Heart — woman (Kokoro’s grade A)",
+   "group": "us",
+   "sex": "f",
+   "model": "kokoro",
+   "voice": "af_heart"
+  },
+  {
+   "id": "kokoro-af_alloy",
+   "label": "Alloy — woman (Kokoro’s grade C)",
+   "group": "us",
+   "sex": "f",
+   "model": "kokoro",
+   "voice": "af_alloy"
+  },
+  {
+   "id": "kokoro-af_aoede",
+   "label": "Aoede — woman (Kokoro’s grade C+)",
+   "group": "us",
+   "sex": "f",
+   "model": "kokoro",
+   "voice": "af_aoede"
+  },
+  {
+   "id": "kokoro-af_bella",
+   "label": "Bella — woman (Kokoro’s grade A-)",
+   "group": "us",
+   "sex": "f",
+   "model": "kokoro",
+   "voice": "af_bella"
+  },
+  {
+   "id": "kokoro-af_jessica",
+   "label": "Jessica — woman (Kokoro’s grade D)",
+   "group": "us",
+   "sex": "f",
+   "model": "kokoro",
+   "voice": "af_jessica"
+  },
+  {
+   "id": "kokoro-af_kore",
+   "label": "Kore — woman (Kokoro’s grade C+)",
+   "group": "us",
+   "sex": "f",
+   "model": "kokoro",
+   "voice": "af_kore"
+  },
+  {
+   "id": "kokoro-af_nicole",
+   "label": "Nicole — woman (Kokoro’s grade B-)",
+   "group": "us",
+   "sex": "f",
+   "model": "kokoro",
+   "voice": "af_nicole"
+  },
+  {
+   "id": "kokoro-af_nova",
+   "label": "Nova — woman (Kokoro’s grade C)",
+   "group": "us",
+   "sex": "f",
+   "model": "kokoro",
+   "voice": "af_nova"
+  },
+  {
+   "id": "kokoro-af_river",
+   "label": "River — woman (Kokoro’s grade D)",
+   "group": "us",
+   "sex": "f",
+   "model": "kokoro",
+   "voice": "af_river"
+  },
+  {
+   "id": "kokoro-af_sarah",
+   "label": "Sarah — woman (Kokoro’s grade C+)",
+   "group": "us",
+   "sex": "f",
+   "model": "kokoro",
+   "voice": "af_sarah"
+  },
+  {
+   "id": "kokoro-af_sky",
+   "label": "Sky — woman (Kokoro’s grade C-)",
+   "group": "us",
+   "sex": "f",
+   "model": "kokoro",
+   "voice": "af_sky"
+  },
+  {
+   "id": "kokoro-am_adam",
+   "label": "Adam — man (Kokoro’s grade F+)",
+   "group": "us",
+   "sex": "m",
+   "model": "kokoro",
+   "voice": "am_adam"
+  },
+  {
+   "id": "kokoro-am_echo",
+   "label": "Echo — man (Kokoro’s grade D)",
+   "group": "us",
+   "sex": "m",
+   "model": "kokoro",
+   "voice": "am_echo"
+  },
+  {
+   "id": "kokoro-am_eric",
+   "label": "Eric — man (Kokoro’s grade D)",
+   "group": "us",
+   "sex": "m",
+   "model": "kokoro",
+   "voice": "am_eric"
+  },
+  {
+   "id": "kokoro-am_fenrir",
+   "label": "Fenrir — man (Kokoro’s grade C+)",
+   "group": "us",
+   "sex": "m",
+   "model": "kokoro",
+   "voice": "am_fenrir"
+  },
+  {
+   "id": "kokoro-am_liam",
+   "label": "Liam — man (Kokoro’s grade D)",
+   "group": "us",
+   "sex": "m",
+   "model": "kokoro",
+   "voice": "am_liam"
+  },
+  {
+   "id": "kokoro-am_michael",
+   "label": "Michael — man (Kokoro’s grade C+)",
+   "group": "us",
+   "sex": "m",
+   "model": "kokoro",
+   "voice": "am_michael"
+  },
+  {
+   "id": "kokoro-am_onyx",
+   "label": "Onyx — man (Kokoro’s grade D)",
+   "group": "us",
+   "sex": "m",
+   "model": "kokoro",
+   "voice": "am_onyx"
+  },
+  {
+   "id": "kokoro-am_puck",
+   "label": "Puck — man (Kokoro’s grade C+)",
+   "group": "us",
+   "sex": "m",
+   "model": "kokoro",
+   "voice": "am_puck"
+  },
+  {
+   "id": "kokoro-am_santa",
+   "label": "Santa — man (Kokoro’s grade D-)",
+   "group": "us",
+   "sex": "m",
+   "model": "kokoro",
+   "voice": "am_santa"
+  },
+  {
+   "id": "kokoro-bf_alice",
+   "label": "Alice — woman (Kokoro’s grade D)",
+   "group": "uk",
+   "sex": "f",
+   "model": "kokoro",
+   "voice": "bf_alice"
+  },
+  {
+   "id": "kokoro-bf_emma",
+   "label": "Emma — woman (Kokoro’s grade B-)",
+   "group": "uk",
+   "sex": "f",
+   "model": "kokoro",
+   "voice": "bf_emma"
+  },
+  {
+   "id": "kokoro-bf_isabella",
+   "label": "Isabella — woman (Kokoro’s grade C)",
+   "group": "uk",
+   "sex": "f",
+   "model": "kokoro",
+   "voice": "bf_isabella"
+  },
+  {
+   "id": "kokoro-bf_lily",
+   "label": "Lily — woman (Kokoro’s grade D)",
+   "group": "uk",
+   "sex": "f",
+   "model": "kokoro",
+   "voice": "bf_lily"
+  },
+  {
+   "id": "kokoro-bm_daniel",
+   "label": "Daniel — man (Kokoro’s grade D)",
+   "group": "uk",
+   "sex": "m",
+   "model": "kokoro",
+   "voice": "bm_daniel"
+  },
+  {
+   "id": "kokoro-bm_fable",
+   "label": "Fable — man (Kokoro’s grade C)",
+   "group": "uk",
+   "sex": "m",
+   "model": "kokoro",
+   "voice": "bm_fable"
+  },
+  {
+   "id": "kokoro-bm_george",
+   "label": "George — man (Kokoro’s grade C)",
+   "group": "uk",
+   "sex": "m",
+   "model": "kokoro",
+   "voice": "bm_george"
+  },
+  {
+   "id": "kokoro-bm_lewis",
+   "label": "Lewis — man (Kokoro’s grade D+)",
+   "group": "uk",
+   "sex": "m",
+   "model": "kokoro",
+   "voice": "bm_lewis"
+  },
+  {
+   "id": "kokoro-hf_alpha-a",
+   "label": "Alpha — woman, Kokoro’s Hindi voice, American reading of the words",
+   "group": "in",
+   "sex": "f",
+   "model": "kokoro",
+   "voice": "hf_alpha",
+   "lang": "a"
+  },
+  {
+   "id": "kokoro-hf_alpha-b",
+   "label": "Alpha — woman, Kokoro’s Hindi voice, British reading of the words",
+   "group": "in",
+   "sex": "f",
+   "model": "kokoro",
+   "voice": "hf_alpha",
+   "lang": "b"
+  },
+  {
+   "id": "kokoro-hf_alpha-h",
+   "label": "Alpha — woman, Kokoro’s Hindi voice, Hindi reading rules (eSpeak NG)",
+   "group": "in",
+   "sex": "f",
+   "model": "kokoro",
+   "voice": "hf_alpha",
+   "lang": "h"
+  },
+  {
+   "id": "kokoro-hf_beta-a",
+   "label": "Beta — woman, Kokoro’s Hindi voice, American reading of the words",
+   "group": "in",
+   "sex": "f",
+   "model": "kokoro",
+   "voice": "hf_beta",
+   "lang": "a"
+  },
+  {
+   "id": "kokoro-hf_beta-b",
+   "label": "Beta — woman, Kokoro’s Hindi voice, British reading of the words",
+   "group": "in",
+   "sex": "f",
+   "model": "kokoro",
+   "voice": "hf_beta",
+   "lang": "b"
+  },
+  {
+   "id": "kokoro-hf_beta-h",
+   "label": "Beta — woman, Kokoro’s Hindi voice, Hindi reading rules (eSpeak NG)",
+   "group": "in",
+   "sex": "f",
+   "model": "kokoro",
+   "voice": "hf_beta",
+   "lang": "h"
+  },
+  {
+   "id": "kokoro-hm_omega-a",
+   "label": "Omega — man, Kokoro’s Hindi voice, American reading of the words",
+   "group": "in",
+   "sex": "m",
+   "model": "kokoro",
+   "voice": "hm_omega",
+   "lang": "a"
+  },
+  {
+   "id": "kokoro-hm_omega-b",
+   "label": "Omega — man, Kokoro’s Hindi voice, British reading of the words",
+   "group": "in",
+   "sex": "m",
+   "model": "kokoro",
+   "voice": "hm_omega",
+   "lang": "b"
+  },
+  {
+   "id": "kokoro-hm_omega-h",
+   "label": "Omega — man, Kokoro’s Hindi voice, Hindi reading rules (eSpeak NG)",
+   "group": "in",
+   "sex": "m",
+   "model": "kokoro",
+   "voice": "hm_omega",
+   "lang": "h"
+  },
+  {
+   "id": "kokoro-hm_psi-a",
+   "label": "Psi — man, Kokoro’s Hindi voice, American reading of the words",
+   "group": "in",
+   "sex": "m",
+   "model": "kokoro",
+   "voice": "hm_psi",
+   "lang": "a"
+  },
+  {
+   "id": "kokoro-hm_psi-b",
+   "label": "Psi — man, Kokoro’s Hindi voice, British reading of the words",
+   "group": "in",
+   "sex": "m",
+   "model": "kokoro",
+   "voice": "hm_psi",
+   "lang": "b"
+  },
+  {
+   "id": "kokoro-hm_psi-h",
+   "label": "Psi — man, Kokoro’s Hindi voice, Hindi reading rules (eSpeak NG)",
+   "group": "in",
+   "sex": "m",
+   "model": "kokoro",
+   "voice": "hm_psi",
+   "lang": "h"
+  },
+  {
+   "id": "indic-parler-thoma",
+   "label": "Thoma — man (recommended by AI4Bharat)",
+   "group": "in",
+   "sex": "m",
+   "model": "indic-parler",
+   "describe": "Thoma speaks {pace} with a clear, expressive voice, in a very close recording that has almost no background noise."
+  },
+  {
+   "id": "indic-parler-mary",
+   "label": "Mary — woman (recommended by AI4Bharat)",
+   "group": "in",
+   "sex": "f",
+   "model": "indic-parler",
+   "describe": "Mary speaks {pace} with a clear, expressive voice, in a very close recording that has almost no background noise."
+  },
+  {
+   "id": "indic-parler-swapna",
+   "label": "Swapna — woman",
+   "group": "in",
+   "sex": "f",
+   "model": "indic-parler",
+   "describe": "Swapna speaks {pace} with a clear, expressive voice, in a very close recording that has almost no background noise."
+  },
+  {
+   "id": "indic-parler-dinesh",
+   "label": "Dinesh — man",
+   "group": "in",
+   "sex": "m",
+   "model": "indic-parler",
+   "describe": "Dinesh speaks {pace} with a clear, expressive voice, in a very close recording that has almost no background noise."
+  },
+  {
+   "id": "indic-parler-meera",
+   "label": "Meera — woman",
+   "group": "in",
+   "sex": "f",
+   "model": "indic-parler",
+   "describe": "Meera speaks {pace} with a clear, expressive voice, in a very close recording that has almost no background noise."
+  },
+  {
+   "id": "indic-parler-jatin",
+   "label": "Jatin — man",
+   "group": "in",
+   "sex": "m",
+   "model": "indic-parler",
+   "describe": "Jatin speaks {pace} with a clear, expressive voice, in a very close recording that has almost no background noise."
+  },
+  {
+   "id": "indic-parler-aakash",
+   "label": "Aakash — man",
+   "group": "in",
+   "sex": "m",
+   "model": "indic-parler",
+   "describe": "Aakash speaks {pace} with a clear, expressive voice, in a very close recording that has almost no background noise."
+  },
+  {
+   "id": "indic-parler-sneha",
+   "label": "Sneha — woman",
+   "group": "in",
+   "sex": "f",
+   "model": "indic-parler",
+   "describe": "Sneha speaks {pace} with a clear, expressive voice, in a very close recording that has almost no background noise."
+  },
+  {
+   "id": "indic-parler-kabir",
+   "label": "Kabir — man",
+   "group": "in",
+   "sex": "m",
+   "model": "indic-parler",
+   "describe": "Kabir speaks {pace} with a clear, expressive voice, in a very close recording that has almost no background noise."
+  },
+  {
+   "id": "indic-parler-tisha",
+   "label": "Tisha — woman",
+   "group": "in",
+   "sex": "f",
+   "model": "indic-parler",
+   "describe": "Tisha speaks {pace} with a clear, expressive voice, in a very close recording that has almost no background noise."
+  },
+  {
+   "id": "indic-parler-chingkhei",
+   "label": "Chingkhei — woman",
+   "group": "in",
+   "sex": "f",
+   "model": "indic-parler",
+   "describe": "Chingkhei speaks {pace} with a clear, expressive voice, in a very close recording that has almost no background noise."
+  },
+  {
+   "id": "indic-parler-thoibi",
+   "label": "Thoibi — woman",
+   "group": "in",
+   "sex": "f",
+   "model": "indic-parler",
+   "describe": "Thoibi speaks {pace} with a clear, expressive voice, in a very close recording that has almost no background noise."
+  },
+  {
+   "id": "indic-parler-priya",
+   "label": "Priya — woman",
+   "group": "in",
+   "sex": "f",
+   "model": "indic-parler",
+   "describe": "Priya speaks {pace} with a clear, expressive voice, in a very close recording that has almost no background noise."
+  },
+  {
+   "id": "indic-parler-tarun",
+   "label": "Tarun — man",
+   "group": "in",
+   "sex": "m",
+   "model": "indic-parler",
+   "describe": "Tarun speaks {pace} with a clear, expressive voice, in a very close recording that has almost no background noise."
+  },
+  {
+   "id": "indic-parler-gauri",
+   "label": "Gauri — woman",
+   "group": "in",
+   "sex": "f",
+   "model": "indic-parler",
+   "describe": "Gauri speaks {pace} with a clear, expressive voice, in a very close recording that has almost no background noise."
+  },
+  {
+   "id": "indic-parler-nisha",
+   "label": "Nisha — woman",
+   "group": "in",
+   "sex": "f",
+   "model": "indic-parler",
+   "describe": "Nisha speaks {pace} with a clear, expressive voice, in a very close recording that has almost no background noise."
+  },
+  {
+   "id": "indic-parler-raghav",
+   "label": "Raghav — man",
+   "group": "in",
+   "sex": "m",
+   "model": "indic-parler",
+   "describe": "Raghav speaks {pace} with a clear, expressive voice, in a very close recording that has almost no background noise."
+  },
+  {
+   "id": "indic-parler-kavya",
+   "label": "Kavya — woman",
+   "group": "in",
+   "sex": "f",
+   "model": "indic-parler",
+   "describe": "Kavya speaks {pace} with a clear, expressive voice, in a very close recording that has almost no background noise."
+  },
+  {
+   "id": "indic-parler-ravi",
+   "label": "Ravi — man",
+   "group": "in",
+   "sex": "m",
+   "model": "indic-parler",
+   "describe": "Ravi speaks {pace} with a clear, expressive voice, in a very close recording that has almost no background noise."
+  },
+  {
+   "id": "indic-parler-vikas",
+   "label": "Vikas — man",
+   "group": "in",
+   "sex": "m",
+   "model": "indic-parler",
+   "describe": "Vikas speaks {pace} with a clear, expressive voice, in a very close recording that has almost no background noise."
+  },
+  {
+   "id": "indic-parler-riya",
+   "label": "Riya — woman",
+   "group": "in",
+   "sex": "f",
+   "model": "indic-parler",
+   "describe": "Riya speaks {pace} with a clear, expressive voice, in a very close recording that has almost no background noise."
+  },
+  {
+   "id": "parler-large-laura",
+   "label": "Laura — woman (one of its steadiest voices)",
+   "group": "any",
+   "sex": "f",
+   "model": "parler-large",
+   "describe": "Laura's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-large-gary",
+   "label": "Gary — man",
+   "group": "any",
+   "sex": "m",
+   "model": "parler-large",
+   "describe": "Gary's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-large-jon",
+   "label": "Jon — man",
+   "group": "any",
+   "sex": "m",
+   "model": "parler-large",
+   "describe": "Jon's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-large-lea",
+   "label": "Lea — woman",
+   "group": "any",
+   "sex": "f",
+   "model": "parler-large",
+   "describe": "Lea's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-large-karen",
+   "label": "Karen — woman",
+   "group": "any",
+   "sex": "f",
+   "model": "parler-large",
+   "describe": "Karen's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-large-rick",
+   "label": "Rick — man",
+   "group": "any",
+   "sex": "m",
+   "model": "parler-large",
+   "describe": "Rick's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-large-brenda",
+   "label": "Brenda — woman",
+   "group": "any",
+   "sex": "f",
+   "model": "parler-large",
+   "describe": "Brenda's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-large-david",
+   "label": "David — man",
+   "group": "any",
+   "sex": "m",
+   "model": "parler-large",
+   "describe": "David's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-large-eileen",
+   "label": "Eileen — woman",
+   "group": "any",
+   "sex": "f",
+   "model": "parler-large",
+   "describe": "Eileen's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-large-jordan",
+   "label": "Jordan — man",
+   "group": "any",
+   "sex": "m",
+   "model": "parler-large",
+   "describe": "Jordan's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-large-mike",
+   "label": "Mike — man",
+   "group": "any",
+   "sex": "m",
+   "model": "parler-large",
+   "describe": "Mike's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-large-yann",
+   "label": "Yann — man",
+   "group": "any",
+   "sex": "m",
+   "model": "parler-large",
+   "describe": "Yann's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-large-joy",
+   "label": "Joy — woman",
+   "group": "any",
+   "sex": "f",
+   "model": "parler-large",
+   "describe": "Joy's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-large-james",
+   "label": "James — man",
+   "group": "any",
+   "sex": "m",
+   "model": "parler-large",
+   "describe": "James's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-large-eric",
+   "label": "Eric — man (one of its steadiest voices)",
+   "group": "any",
+   "sex": "m",
+   "model": "parler-large",
+   "describe": "Eric's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-large-lauren",
+   "label": "Lauren — woman",
+   "group": "any",
+   "sex": "f",
+   "model": "parler-large",
+   "describe": "Lauren's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-large-rose",
+   "label": "Rose — woman",
+   "group": "any",
+   "sex": "f",
+   "model": "parler-large",
+   "describe": "Rose's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-large-will",
+   "label": "Will — man (one of its steadiest voices)",
+   "group": "any",
+   "sex": "m",
+   "model": "parler-large",
+   "describe": "Will's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-large-jason",
+   "label": "Jason — man",
+   "group": "any",
+   "sex": "m",
+   "model": "parler-large",
+   "describe": "Jason's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-large-aaron",
+   "label": "Aaron — man",
+   "group": "any",
+   "sex": "m",
+   "model": "parler-large",
+   "describe": "Aaron's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-large-naomie",
+   "label": "Naomie — woman",
+   "group": "any",
+   "sex": "f",
+   "model": "parler-large",
+   "describe": "Naomie's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-large-alisa",
+   "label": "Alisa — woman (one of its steadiest voices)",
+   "group": "any",
+   "sex": "f",
+   "model": "parler-large",
+   "describe": "Alisa's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-large-patrick",
+   "label": "Patrick — man (one of its steadiest voices)",
+   "group": "any",
+   "sex": "m",
+   "model": "parler-large",
+   "describe": "Patrick's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-large-jerry",
+   "label": "Jerry — man",
+   "group": "any",
+   "sex": "m",
+   "model": "parler-large",
+   "describe": "Jerry's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-large-tina",
+   "label": "Tina — woman",
+   "group": "any",
+   "sex": "f",
+   "model": "parler-large",
+   "describe": "Tina's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-large-jenna",
+   "label": "Jenna — woman",
+   "group": "any",
+   "sex": "f",
+   "model": "parler-large",
+   "describe": "Jenna's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-large-bill",
+   "label": "Bill — man",
+   "group": "any",
+   "sex": "m",
+   "model": "parler-large",
+   "describe": "Bill's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-large-tom",
+   "label": "Tom — man",
+   "group": "any",
+   "sex": "m",
+   "model": "parler-large",
+   "describe": "Tom's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-large-carol",
+   "label": "Carol — woman",
+   "group": "any",
+   "sex": "f",
+   "model": "parler-large",
+   "describe": "Carol's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-large-barbara",
+   "label": "Barbara — woman",
+   "group": "any",
+   "sex": "f",
+   "model": "parler-large",
+   "describe": "Barbara's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-large-rebecca",
+   "label": "Rebecca — woman",
+   "group": "any",
+   "sex": "f",
+   "model": "parler-large",
+   "describe": "Rebecca's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-large-anna",
+   "label": "Anna — woman",
+   "group": "any",
+   "sex": "f",
+   "model": "parler-large",
+   "describe": "Anna's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-large-bruce",
+   "label": "Bruce — man",
+   "group": "any",
+   "sex": "m",
+   "model": "parler-large",
+   "describe": "Bruce's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-large-emily",
+   "label": "Emily — woman",
+   "group": "any",
+   "sex": "f",
+   "model": "parler-large",
+   "describe": "Emily's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-mini-laura",
+   "label": "Laura — woman",
+   "group": "any",
+   "sex": "f",
+   "model": "parler-mini",
+   "describe": "Laura's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-mini-gary",
+   "label": "Gary — man (one of its steadiest voices)",
+   "group": "any",
+   "sex": "m",
+   "model": "parler-mini",
+   "describe": "Gary's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-mini-jon",
+   "label": "Jon — man (one of its steadiest voices)",
+   "group": "any",
+   "sex": "m",
+   "model": "parler-mini",
+   "describe": "Jon's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-mini-lea",
+   "label": "Lea — woman (one of its steadiest voices)",
+   "group": "any",
+   "sex": "f",
+   "model": "parler-mini",
+   "describe": "Lea's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-mini-karen",
+   "label": "Karen — woman",
+   "group": "any",
+   "sex": "f",
+   "model": "parler-mini",
+   "describe": "Karen's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-mini-rick",
+   "label": "Rick — man",
+   "group": "any",
+   "sex": "m",
+   "model": "parler-mini",
+   "describe": "Rick's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-mini-brenda",
+   "label": "Brenda — woman",
+   "group": "any",
+   "sex": "f",
+   "model": "parler-mini",
+   "describe": "Brenda's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-mini-david",
+   "label": "David — man",
+   "group": "any",
+   "sex": "m",
+   "model": "parler-mini",
+   "describe": "David's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-mini-eileen",
+   "label": "Eileen — woman",
+   "group": "any",
+   "sex": "f",
+   "model": "parler-mini",
+   "describe": "Eileen's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-mini-jordan",
+   "label": "Jordan — man",
+   "group": "any",
+   "sex": "m",
+   "model": "parler-mini",
+   "describe": "Jordan's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-mini-mike",
+   "label": "Mike — man (one of its steadiest voices)",
+   "group": "any",
+   "sex": "m",
+   "model": "parler-mini",
+   "describe": "Mike's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-mini-yann",
+   "label": "Yann — man",
+   "group": "any",
+   "sex": "m",
+   "model": "parler-mini",
+   "describe": "Yann's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-mini-joy",
+   "label": "Joy — woman",
+   "group": "any",
+   "sex": "f",
+   "model": "parler-mini",
+   "describe": "Joy's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-mini-james",
+   "label": "James — man",
+   "group": "any",
+   "sex": "m",
+   "model": "parler-mini",
+   "describe": "James's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-mini-eric",
+   "label": "Eric — man",
+   "group": "any",
+   "sex": "m",
+   "model": "parler-mini",
+   "describe": "Eric's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-mini-lauren",
+   "label": "Lauren — woman",
+   "group": "any",
+   "sex": "f",
+   "model": "parler-mini",
+   "describe": "Lauren's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-mini-rose",
+   "label": "Rose — woman",
+   "group": "any",
+   "sex": "f",
+   "model": "parler-mini",
+   "describe": "Rose's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-mini-will",
+   "label": "Will — man",
+   "group": "any",
+   "sex": "m",
+   "model": "parler-mini",
+   "describe": "Will's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-mini-jason",
+   "label": "Jason — man",
+   "group": "any",
+   "sex": "m",
+   "model": "parler-mini",
+   "describe": "Jason's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-mini-aaron",
+   "label": "Aaron — man",
+   "group": "any",
+   "sex": "m",
+   "model": "parler-mini",
+   "describe": "Aaron's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-mini-naomie",
+   "label": "Naomie — woman",
+   "group": "any",
+   "sex": "f",
+   "model": "parler-mini",
+   "describe": "Naomie's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-mini-alisa",
+   "label": "Alisa — woman",
+   "group": "any",
+   "sex": "f",
+   "model": "parler-mini",
+   "describe": "Alisa's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-mini-patrick",
+   "label": "Patrick — man",
+   "group": "any",
+   "sex": "m",
+   "model": "parler-mini",
+   "describe": "Patrick's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-mini-jerry",
+   "label": "Jerry — man",
+   "group": "any",
+   "sex": "m",
+   "model": "parler-mini",
+   "describe": "Jerry's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-mini-tina",
+   "label": "Tina — woman",
+   "group": "any",
+   "sex": "f",
+   "model": "parler-mini",
+   "describe": "Tina's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-mini-jenna",
+   "label": "Jenna — woman (one of its steadiest voices)",
+   "group": "any",
+   "sex": "f",
+   "model": "parler-mini",
+   "describe": "Jenna's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-mini-bill",
+   "label": "Bill — man",
+   "group": "any",
+   "sex": "m",
+   "model": "parler-mini",
+   "describe": "Bill's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-mini-tom",
+   "label": "Tom — man",
+   "group": "any",
+   "sex": "m",
+   "model": "parler-mini",
+   "describe": "Tom's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-mini-carol",
+   "label": "Carol — woman",
+   "group": "any",
+   "sex": "f",
+   "model": "parler-mini",
+   "describe": "Carol's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-mini-barbara",
+   "label": "Barbara — woman",
+   "group": "any",
+   "sex": "f",
+   "model": "parler-mini",
+   "describe": "Barbara's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-mini-rebecca",
+   "label": "Rebecca — woman",
+   "group": "any",
+   "sex": "f",
+   "model": "parler-mini",
+   "describe": "Rebecca's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-mini-anna",
+   "label": "Anna — woman",
+   "group": "any",
+   "sex": "f",
+   "model": "parler-mini",
+   "describe": "Anna's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-mini-bruce",
+   "label": "Bruce — man",
+   "group": "any",
+   "sex": "m",
+   "model": "parler-mini",
+   "describe": "Bruce's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-mini-emily",
+   "label": "Emily — woman",
+   "group": "any",
+   "sex": "f",
+   "model": "parler-mini",
+   "describe": "Emily's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "xtts-claribel-dervla",
+   "label": "Claribel Dervla — woman (studio voice)",
+   "group": "any",
+   "sex": "f",
+   "model": "xtts",
+   "speaker": "Claribel Dervla"
+  },
+  {
+   "id": "xtts-daisy-studious",
+   "label": "Daisy Studious — woman (studio voice)",
+   "group": "any",
+   "sex": "f",
+   "model": "xtts",
+   "speaker": "Daisy Studious"
+  },
+  {
+   "id": "xtts-gracie-wise",
+   "label": "Gracie Wise — woman (studio voice)",
+   "group": "any",
+   "sex": "f",
+   "model": "xtts",
+   "speaker": "Gracie Wise"
+  },
+  {
+   "id": "xtts-tammie-ema",
+   "label": "Tammie Ema — woman (studio voice)",
+   "group": "any",
+   "sex": "f",
+   "model": "xtts",
+   "speaker": "Tammie Ema"
+  },
+  {
+   "id": "xtts-alison-dietlinde",
+   "label": "Alison Dietlinde — woman (studio voice)",
+   "group": "any",
+   "sex": "f",
+   "model": "xtts",
+   "speaker": "Alison Dietlinde"
+  },
+  {
+   "id": "xtts-ana-florence",
+   "label": "Ana Florence — woman (studio voice)",
+   "group": "any",
+   "sex": "f",
+   "model": "xtts",
+   "speaker": "Ana Florence"
+  },
+  {
+   "id": "xtts-annmarie-nele",
+   "label": "Annmarie Nele — woman (studio voice)",
+   "group": "any",
+   "sex": "f",
+   "model": "xtts",
+   "speaker": "Annmarie Nele"
+  },
+  {
+   "id": "xtts-asya-anara",
+   "label": "Asya Anara — woman (studio voice)",
+   "group": "any",
+   "sex": "f",
+   "model": "xtts",
+   "speaker": "Asya Anara"
+  },
+  {
+   "id": "xtts-brenda-stern",
+   "label": "Brenda Stern — woman (studio voice)",
+   "group": "any",
+   "sex": "f",
+   "model": "xtts",
+   "speaker": "Brenda Stern"
+  },
+  {
+   "id": "xtts-gitta-nikolina",
+   "label": "Gitta Nikolina — woman (studio voice)",
+   "group": "any",
+   "sex": "f",
+   "model": "xtts",
+   "speaker": "Gitta Nikolina"
+  },
+  {
+   "id": "xtts-henriette-usha",
+   "label": "Henriette Usha — woman (studio voice)",
+   "group": "any",
+   "sex": "f",
+   "model": "xtts",
+   "speaker": "Henriette Usha"
+  },
+  {
+   "id": "xtts-sofia-hellen",
+   "label": "Sofia Hellen — woman (studio voice)",
+   "group": "any",
+   "sex": "f",
+   "model": "xtts",
+   "speaker": "Sofia Hellen"
+  },
+  {
+   "id": "xtts-tammy-grit",
+   "label": "Tammy Grit — woman (studio voice)",
+   "group": "any",
+   "sex": "f",
+   "model": "xtts",
+   "speaker": "Tammy Grit"
+  },
+  {
+   "id": "xtts-tanja-adelina",
+   "label": "Tanja Adelina — woman (studio voice)",
+   "group": "any",
+   "sex": "f",
+   "model": "xtts",
+   "speaker": "Tanja Adelina"
+  },
+  {
+   "id": "xtts-vjollca-johnnie",
+   "label": "Vjollca Johnnie — woman (studio voice)",
+   "group": "any",
+   "sex": "f",
+   "model": "xtts",
+   "speaker": "Vjollca Johnnie"
+  },
+  {
+   "id": "xtts-andrew-chipper",
+   "label": "Andrew Chipper — man (studio voice)",
+   "group": "any",
+   "sex": "m",
+   "model": "xtts",
+   "speaker": "Andrew Chipper"
+  },
+  {
+   "id": "xtts-badr-odhiambo",
+   "label": "Badr Odhiambo — man (studio voice)",
+   "group": "any",
+   "sex": "m",
+   "model": "xtts",
+   "speaker": "Badr Odhiambo"
+  },
+  {
+   "id": "xtts-dionisio-schuyler",
+   "label": "Dionisio Schuyler — man (studio voice)",
+   "group": "any",
+   "sex": "m",
+   "model": "xtts",
+   "speaker": "Dionisio Schuyler"
+  },
+  {
+   "id": "xtts-royston-min",
+   "label": "Royston Min — man (studio voice)",
+   "group": "any",
+   "sex": "m",
+   "model": "xtts",
+   "speaker": "Royston Min"
+  },
+  {
+   "id": "xtts-viktor-eka",
+   "label": "Viktor Eka — man (studio voice)",
+   "group": "any",
+   "sex": "m",
+   "model": "xtts",
+   "speaker": "Viktor Eka"
+  },
+  {
+   "id": "xtts-abrahan-mack",
+   "label": "Abrahan Mack — man (studio voice)",
+   "group": "any",
+   "sex": "m",
+   "model": "xtts",
+   "speaker": "Abrahan Mack"
+  },
+  {
+   "id": "xtts-adde-michal",
+   "label": "Adde Michal — man (studio voice)",
+   "group": "any",
+   "sex": "m",
+   "model": "xtts",
+   "speaker": "Adde Michal"
+  },
+  {
+   "id": "xtts-baldur-sanjin",
+   "label": "Baldur Sanjin — man (studio voice)",
+   "group": "any",
+   "sex": "m",
+   "model": "xtts",
+   "speaker": "Baldur Sanjin"
+  },
+  {
+   "id": "xtts-craig-gutsy",
+   "label": "Craig Gutsy — man (studio voice)",
+   "group": "any",
+   "sex": "m",
+   "model": "xtts",
+   "speaker": "Craig Gutsy"
+  },
+  {
+   "id": "xtts-damien-black",
+   "label": "Damien Black — man (studio voice)",
+   "group": "any",
+   "sex": "m",
+   "model": "xtts",
+   "speaker": "Damien Black"
+  },
+  {
+   "id": "xtts-gilberto-mathias",
+   "label": "Gilberto Mathias — man (studio voice)",
+   "group": "any",
+   "sex": "m",
+   "model": "xtts",
+   "speaker": "Gilberto Mathias"
+  },
+  {
+   "id": "xtts-ilkin-urbano",
+   "label": "Ilkin Urbano — man (studio voice)",
+   "group": "any",
+   "sex": "m",
+   "model": "xtts",
+   "speaker": "Ilkin Urbano"
+  },
+  {
+   "id": "xtts-kazuhiko-atallah",
+   "label": "Kazuhiko Atallah — man (studio voice)",
+   "group": "any",
+   "sex": "m",
+   "model": "xtts",
+   "speaker": "Kazuhiko Atallah"
+  },
+  {
+   "id": "xtts-ludvig-milivoj",
+   "label": "Ludvig Milivoj — man (studio voice)",
+   "group": "any",
+   "sex": "m",
+   "model": "xtts",
+   "speaker": "Ludvig Milivoj"
+  },
+  {
+   "id": "xtts-suad-qasim",
+   "label": "Suad Qasim — man (studio voice)",
+   "group": "any",
+   "sex": "m",
+   "model": "xtts",
+   "speaker": "Suad Qasim"
+  },
+  {
+   "id": "xtts-torcull-diarmuid",
+   "label": "Torcull Diarmuid — man (studio voice)",
+   "group": "any",
+   "sex": "m",
+   "model": "xtts",
+   "speaker": "Torcull Diarmuid"
+  },
+  {
+   "id": "xtts-viktor-menelaos",
+   "label": "Viktor Menelaos — man (studio voice)",
+   "group": "any",
+   "sex": "m",
+   "model": "xtts",
+   "speaker": "Viktor Menelaos"
+  },
+  {
+   "id": "xtts-zacharie-aimilios",
+   "label": "Zacharie Aimilios — man (studio voice)",
+   "group": "any",
+   "sex": "m",
+   "model": "xtts",
+   "speaker": "Zacharie Aimilios"
+  },
+  {
+   "id": "xtts-nova-hogarth",
+   "label": "Nova Hogarth — woman (studio voice)",
+   "group": "any",
+   "sex": "f",
+   "model": "xtts",
+   "speaker": "Nova Hogarth"
+  },
+  {
+   "id": "xtts-maja-ruoho",
+   "label": "Maja Ruoho — woman (studio voice)",
+   "group": "any",
+   "sex": "f",
+   "model": "xtts",
+   "speaker": "Maja Ruoho"
+  },
+  {
+   "id": "xtts-uta-obando",
+   "label": "Uta Obando — woman (studio voice)",
+   "group": "any",
+   "sex": "f",
+   "model": "xtts",
+   "speaker": "Uta Obando"
+  },
+  {
+   "id": "xtts-lidiya-szekeres",
+   "label": "Lidiya Szekeres — woman (studio voice)",
+   "group": "any",
+   "sex": "f",
+   "model": "xtts",
+   "speaker": "Lidiya Szekeres"
+  },
+  {
+   "id": "xtts-chandra-macfarland",
+   "label": "Chandra MacFarland — woman (studio voice)",
+   "group": "any",
+   "sex": "f",
+   "model": "xtts",
+   "speaker": "Chandra MacFarland"
+  },
+  {
+   "id": "xtts-szofi-granger",
+   "label": "Szofi Granger — woman (studio voice)",
+   "group": "any",
+   "sex": "f",
+   "model": "xtts",
+   "speaker": "Szofi Granger"
+  },
+  {
+   "id": "xtts-camilla-holmstr-m",
+   "label": "Camilla Holmström — woman (studio voice)",
+   "group": "any",
+   "sex": "f",
+   "model": "xtts",
+   "speaker": "Camilla Holmström"
+  },
+  {
+   "id": "xtts-lilya-stainthorpe",
+   "label": "Lilya Stainthorpe — woman (studio voice)",
+   "group": "any",
+   "sex": "f",
+   "model": "xtts",
+   "speaker": "Lilya Stainthorpe"
+  },
+  {
+   "id": "xtts-zofija-kendrick",
+   "label": "Zofija Kendrick — woman (studio voice)",
+   "group": "any",
+   "sex": "f",
+   "model": "xtts",
+   "speaker": "Zofija Kendrick"
+  },
+  {
+   "id": "xtts-narelle-moon",
+   "label": "Narelle Moon — woman (studio voice)",
+   "group": "any",
+   "sex": "f",
+   "model": "xtts",
+   "speaker": "Narelle Moon"
+  },
+  {
+   "id": "xtts-barbora-maclean",
+   "label": "Barbora MacLean — woman (studio voice)",
+   "group": "any",
+   "sex": "f",
+   "model": "xtts",
+   "speaker": "Barbora MacLean"
+  },
+  {
+   "id": "xtts-alexandra-hisakawa",
+   "label": "Alexandra Hisakawa — woman (studio voice)",
+   "group": "any",
+   "sex": "f",
+   "model": "xtts",
+   "speaker": "Alexandra Hisakawa"
+  },
+  {
+   "id": "xtts-alma-mar-a",
+   "label": "Alma María — woman (studio voice)",
+   "group": "any",
+   "sex": "f",
+   "model": "xtts",
+   "speaker": "Alma María"
+  },
+  {
+   "id": "xtts-rosemary-okafor",
+   "label": "Rosemary Okafor — woman (studio voice)",
+   "group": "any",
+   "sex": "f",
+   "model": "xtts",
+   "speaker": "Rosemary Okafor"
+  },
+  {
+   "id": "xtts-ige-behringer",
+   "label": "Ige Behringer — man (studio voice)",
+   "group": "any",
+   "sex": "m",
+   "model": "xtts",
+   "speaker": "Ige Behringer"
+  },
+  {
+   "id": "xtts-filip-traverse",
+   "label": "Filip Traverse — man (studio voice)",
+   "group": "any",
+   "sex": "m",
+   "model": "xtts",
+   "speaker": "Filip Traverse"
+  },
+  {
+   "id": "xtts-damjan-chapman",
+   "label": "Damjan Chapman — man (studio voice)",
+   "group": "any",
+   "sex": "m",
+   "model": "xtts",
+   "speaker": "Damjan Chapman"
+  },
+  {
+   "id": "xtts-wulf-carlevaro",
+   "label": "Wulf Carlevaro — man (studio voice)",
+   "group": "any",
+   "sex": "m",
+   "model": "xtts",
+   "speaker": "Wulf Carlevaro"
+  },
+  {
+   "id": "xtts-aaron-dreschner",
+   "label": "Aaron Dreschner — man (studio voice)",
+   "group": "any",
+   "sex": "m",
+   "model": "xtts",
+   "speaker": "Aaron Dreschner"
+  },
+  {
+   "id": "xtts-kumar-dahl",
+   "label": "Kumar Dahl — man (studio voice)",
+   "group": "any",
+   "sex": "m",
+   "model": "xtts",
+   "speaker": "Kumar Dahl"
+  },
+  {
+   "id": "xtts-eugenio-matarac",
+   "label": "Eugenio Mataracı — man (studio voice)",
+   "group": "any",
+   "sex": "m",
+   "model": "xtts",
+   "speaker": "Eugenio Mataracı"
+  },
+  {
+   "id": "xtts-ferran-simen",
+   "label": "Ferran Simen — man (studio voice)",
+   "group": "any",
+   "sex": "m",
+   "model": "xtts",
+   "speaker": "Ferran Simen"
+  },
+  {
+   "id": "xtts-xavier-hayasaka",
+   "label": "Xavier Hayasaka — man (studio voice)",
+   "group": "any",
+   "sex": "m",
+   "model": "xtts",
+   "speaker": "Xavier Hayasaka"
+  },
+  {
+   "id": "xtts-luis-moray",
+   "label": "Luis Moray — man (studio voice)",
+   "group": "any",
+   "sex": "m",
+   "model": "xtts",
+   "speaker": "Luis Moray"
+  },
+  {
+   "id": "xtts-marcos-rudaski",
+   "label": "Marcos Rudaski — man (studio voice)",
+   "group": "any",
+   "sex": "m",
+   "model": "xtts",
+   "speaker": "Marcos Rudaski"
+  },
+  {
+   "id": "xtts-clip-imran",
+   "label": "Imran — man, taken from a 10-second recording (CC0 voice donation)",
+   "group": "in",
+   "sex": "m",
+   "model": "xtts",
+   "clip": {
+    "repo": "kyutai/tts-voices",
+    "rev": "323332d33f997de8394f24a193e1a76df720e01a",
+    "file": "voice-donations/Imran_from_I_India_enhanced.wav"
+   }
+  },
+  {
+   "id": "xtts-clip-indian-guy",
+   "label": "Indian guy — man, taken from a 10-second recording (CC0 voice donation)",
+   "group": "in",
+   "sex": "m",
+   "model": "xtts",
+   "clip": {
+    "repo": "kyutai/tts-voices",
+    "rev": "323332d33f997de8394f24a193e1a76df720e01a",
+    "file": "voice-donations/Indian_guy_enhanced.wav"
+   }
+  },
+  {
+   "id": "xtts-clip-marshal",
+   "label": "Marshal — man, taken from a 10-second recording (CC0 voice donation)",
+   "group": "in",
+   "sex": "m",
+   "model": "xtts",
+   "clip": {
+    "repo": "kyutai/tts-voices",
+    "rev": "323332d33f997de8394f24a193e1a76df720e01a",
+    "file": "voice-donations/Marshal_Indian_enhanced.wav"
+   }
+  },
+  {
+   "id": "xtts-clip-siddh",
+   "label": "Siddh — man, taken from a 10-second recording (CC0 voice donation)",
+   "group": "in",
+   "sex": "m",
+   "model": "xtts",
+   "clip": {
+    "repo": "kyutai/tts-voices",
+    "rev": "323332d33f997de8394f24a193e1a76df720e01a",
+    "file": "voice-donations/Siddh_Indian_enhanced.wav"
+   }
+  },
+  {
+   "id": "xtts-clip-vinith",
+   "label": "Vinith — man, taken from a 10-second recording (CC0 voice donation)",
+   "group": "in",
+   "sex": "m",
+   "model": "xtts",
+   "clip": {
+    "repo": "kyutai/tts-voices",
+    "rev": "323332d33f997de8394f24a193e1a76df720e01a",
+    "file": "voice-donations/Vinith___English_India_enhanced.wav"
+   }
+  },
+  {
+   "id": "xtts-clip-vctk-p248",
+   "label": "VCTK p248 — woman, taken from a 10-second recording (VCTK, CC BY 4.0)",
+   "group": "in",
+   "sex": "f",
+   "model": "xtts",
+   "clip": {
+    "repo": "kyutai/tts-voices",
+    "rev": "323332d33f997de8394f24a193e1a76df720e01a",
+    "file": "vctk/p248_023_enhanced.wav"
+   }
+  },
+  {
+   "id": "xtts-clip-vctk-p251",
+   "label": "VCTK p251 — man, taken from a 10-second recording (VCTK, CC BY 4.0)",
+   "group": "in",
+   "sex": "m",
+   "model": "xtts",
+   "clip": {
+    "repo": "kyutai/tts-voices",
+    "rev": "323332d33f997de8394f24a193e1a76df720e01a",
+    "file": "vctk/p251_023_enhanced.wav"
+   }
+  },
+  {
+   "id": "xtts-clip-vctk-p376",
+   "label": "VCTK p376 — man, taken from a 10-second recording (VCTK, CC BY 4.0)",
+   "group": "in",
+   "sex": "m",
+   "model": "xtts",
+   "clip": {
+    "repo": "kyutai/tts-voices",
+    "rev": "323332d33f997de8394f24a193e1a76df720e01a",
+    "file": "vctk/p376_023_enhanced.wav"
+   }
+  },
+  {
+   "id": "pocket-alba",
+   "label": "Alba",
+   "group": "any",
+   "sex": "",
+   "model": "pocket",
+   "voice": "alba"
+  },
+  {
+   "id": "pocket-anna",
+   "label": "Anna — woman, English (from VCTK p228)",
+   "group": "uk",
+   "sex": "f",
+   "model": "pocket",
+   "voice": "anna"
+  },
+  {
+   "id": "pocket-azelma",
+   "label": "Azelma — woman, Canadian (from VCTK p303)",
+   "group": "world",
+   "sex": "f",
+   "model": "pocket",
+   "voice": "azelma"
+  },
+  {
+   "id": "pocket-bill-boerst",
+   "label": "Bill Boerst",
+   "group": "any",
+   "sex": "",
+   "model": "pocket",
+   "voice": "bill_boerst"
+  },
+  {
+   "id": "pocket-caro-davy",
+   "label": "Caro Davy",
+   "group": "any",
+   "sex": "",
+   "model": "pocket",
+   "voice": "caro_davy"
+  },
+  {
+   "id": "pocket-charles",
+   "label": "Charles — man, English (from VCTK p254)",
+   "group": "uk",
+   "sex": "m",
+   "model": "pocket",
+   "voice": "charles"
+  },
+  {
+   "id": "pocket-cosette",
+   "label": "Cosette",
+   "group": "any",
+   "sex": "",
+   "model": "pocket",
+   "voice": "cosette"
+  },
+  {
+   "id": "pocket-eponine",
+   "label": "Eponine — woman, Scottish (from VCTK p262)",
+   "group": "uk",
+   "sex": "f",
+   "model": "pocket",
+   "voice": "eponine"
+  },
+  {
+   "id": "pocket-eve",
+   "label": "Eve — woman, American (from VCTK p361)",
+   "group": "us",
+   "sex": "f",
+   "model": "pocket",
+   "voice": "eve"
+  },
+  {
+   "id": "pocket-fantine",
+   "label": "Fantine — woman, English (from VCTK p244)",
+   "group": "uk",
+   "sex": "f",
+   "model": "pocket",
+   "voice": "fantine"
+  },
+  {
+   "id": "pocket-george",
+   "label": "George — man, American (from VCTK p315)",
+   "group": "us",
+   "sex": "m",
+   "model": "pocket",
+   "voice": "george"
+  },
+  {
+   "id": "pocket-jane",
+   "label": "Jane — woman, American (from VCTK p339)",
+   "group": "us",
+   "sex": "f",
+   "model": "pocket",
+   "voice": "jane"
+  },
+  {
+   "id": "pocket-jean",
+   "label": "Jean",
+   "group": "any",
+   "sex": "",
+   "model": "pocket",
+   "voice": "jean"
+  },
+  {
+   "id": "pocket-javert",
+   "label": "Javert",
+   "group": "any",
+   "sex": "",
+   "model": "pocket",
+   "voice": "javert"
+  },
+  {
+   "id": "pocket-marius",
+   "label": "Marius",
+   "group": "any",
+   "sex": "",
+   "model": "pocket",
+   "voice": "marius"
+  },
+  {
+   "id": "pocket-mary",
+   "label": "Mary — woman, American (from VCTK p333)",
+   "group": "us",
+   "sex": "f",
+   "model": "pocket",
+   "voice": "mary"
+  },
+  {
+   "id": "pocket-michael",
+   "label": "Michael — man, American (from VCTK p360)",
+   "group": "us",
+   "sex": "m",
+   "model": "pocket",
+   "voice": "michael"
+  },
+  {
+   "id": "pocket-paul",
+   "label": "Paul — man, English (from VCTK p259)",
+   "group": "uk",
+   "sex": "m",
+   "model": "pocket",
+   "voice": "paul"
+  },
+  {
+   "id": "pocket-peter-yearsley",
+   "label": "Peter Yearsley",
+   "group": "any",
+   "sex": "",
+   "model": "pocket",
+   "voice": "peter_yearsley"
+  },
+  {
+   "id": "pocket-stuart-bell",
+   "label": "Stuart Bell",
+   "group": "any",
+   "sex": "",
+   "model": "pocket",
+   "voice": "stuart_bell"
+  },
+  {
+   "id": "pocket-vera",
+   "label": "Vera — woman, English (from VCTK p229)",
+   "group": "uk",
+   "sex": "f",
+   "model": "pocket",
+   "voice": "vera"
+  }
+ ]
+}

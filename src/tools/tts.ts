@@ -2,7 +2,9 @@
 // (L2-ARCTIC speakers whose first language is Hindi). Phonemes from our own eSpeak NG wasm, the networks on ONNX
 // Runtime Web (WebAssembly) in a worker; playback starts with the first sentence. MP3 via our LAME wasm, or WAV.
 // "System voices" (Web Speech, on-device voices only) can play but not be saved (browsers cannot capture them).
-import { h, card, field, actions, button, slider, select, stack, note, progress, filePicker, toast, errMsg, fmtTime, downloadBlob, shareOrDownload, type Mount } from '../ui';
+// On a PC, a second mode, "Offline on this PC" (./tts-offline.ts, owner 21 Nov 2026): large voices that run on the
+// computer itself — the page writes a script for Windows or Linux. Phones see the in-browser mode only.
+import { h, card, field, actions, button, slider, select, segmented, stack, note, progress, filePicker, toast, errMsg, fmtTime, downloadBlob, shareOrDownload, type Mount } from '../ui';
 import { audio, int16Asymmetric } from '../lib/audio-client';
 import { decodeText } from '../lib/sheetdata';
 import { trackWorker } from '../lifecycle';
@@ -136,13 +138,30 @@ export const mount: Mount = (root, ctx) => {
     // UTF-8, UTF-16 or Windows-1252 (as Notepad saves); a file that is not text is refused
     try { const { text: t, how } = decodeText(new Uint8Array(await f.arrayBuffer())); ta.value = /\.(md|markdown)$/i.test(f.name) ? mdToText(t) : t; syncCount(); toast(`Opened ${f.name}${how ? ` (read as ${how})` : ''}`, 'ok'); } catch (e) { toast(`${f.name}: ${errMsg(e)}`, 'err'); }
   } });
+  const voiceCard = card('Voice', stack(field('Voice', vsel), hint,
+    slider({ label: 'Speed', min: 0.5, max: 2, step: 0.05, value: 1, fmt: (v) => `${+v.toFixed(2)}×`, onInput: (v) => { speed = v; syncCount(); } }), fmtBox));
+  const here = note('Everything runs on this device: the voices are downloaded from this site once per visit and your text is never sent anywhere.', 'info');
+  const acts = actions(speakBtn, stopBtn, saveBtn);
+  const browserParts: HTMLElement[] = [voiceCard, now, status, here, acts];
+  // PC only: the offline mode, loaded when it is chosen (its catalogue is 100 KB)
+  const offlineBox = h('div', { class: 'stack', hidden: true });
+  let offline: Promise<void> | null = null;
+  const mode = ctx.isMobile ? null : segmented<'browser' | 'offline'>([['browser', 'In this browser'], ['offline', 'Offline on this PC']], 'browser', (m) => {
+    if (m === 'offline') {
+      stopAll(); status.textContent = '';
+      for (const e of browserParts) e.hidden = true;
+      offlineBox.hidden = false;
+      offline ||= import('./tts-offline').then(({ offlinePanel }) => { offlineBox.append(offlinePanel({ text: () => ta.value, speed })); })
+        .catch((e) => { offline = null; offlineBox.append(note(`The offline mode could not be loaded: ${errMsg(e)}`, 'err')); });
+    } else {
+      for (const e of browserParts) e.hidden = false;
+      offlineBox.hidden = true;
+    }
+  });
   root.append(
+    ...(mode ? [card('Mode', stack(mode, h('div', { class: 'muted small' }, 'Offline on this PC: large voices that run on this computer itself (Windows or Linux) — this page writes the script that does it.')))] : []),
     card(null, stack(ta, count, open)),
-    card('Voice', stack(field('Voice', vsel), hint,
-      slider({ label: 'Speed', min: 0.5, max: 2, step: 0.05, value: 1, fmt: (v) => `${+v.toFixed(2)}×`, onInput: (v) => { speed = v; syncCount(); } }), fmtBox)),
-    prog, now, status,
-    note('Everything runs on this device: the voices are downloaded from this site once per visit and your text is never sent anywhere.', 'info'),
-    actions(speakBtn, stopBtn, saveBtn));
+    voiceCard, prog, now, status, here, acts, offlineBox);
   fillVoices(); syncCount();
   return () => { stopAll(); ac?.close(); };
 };

@@ -22,8 +22,9 @@ export const UV = {
 /** The Python every engine runs on (uv downloads its own build: nothing is installed on the system). */
 export const PYTHON = '3.12';
 
-/** One engine's run: its packages (pinned) and a line for the person. */
-export interface EngineRun { engine: string; name: string; packages: string[]; voices: number }
+/** One engine's run: its packages (pinned), settings it needs (COQUI_TOS_AGREED for XTTS-v2, once the person accepted
+ *  its licence in the tab) and a line for the person. */
+export interface EngineRun { engine: string; name: string; packages: string[]; voices: number; env?: Record<string, string> }
 
 /** UTF-8 → Base64 (the browser's btoa takes Latin-1 only). */
 export function b64(s: string): string {
@@ -41,15 +42,40 @@ function withArgs(packages: string[]): string[] {
   return packages.flatMap((p) => ['--with', p]);
 }
 const ascii = (s: string) => s.normalize('NFKD').replace(/[^\x20-\x7e]/g, '');
+/** A setting is NAME=value with nothing a shell would read otherwise. */
+function envOf(r: EngineRun): Array<[string, string]> {
+  const e = Object.entries(r.env || {});
+  for (const [k, v] of e) if (!/^[A-Z][A-Z0-9_]*$/.test(k) || !/^[A-Za-z0-9._-]*$/.test(v)) throw new Error(`Not a setting: ${k}=${v}`);
+  return e;
+}
+const REPO = /^[A-Za-z0-9][A-Za-z0-9._-]*\/[A-Za-z0-9][A-Za-z0-9._-]*$/;
 
-export interface ScriptInput { job: object; driver: string; runs: EngineRun[]; made: string; site: string }
+/** `gated`: Hugging Face repositories that need a (free) account and a token — the script asks for the token once and
+ *  keeps it in its own folder (cache/huggingface/token), where huggingface_hub looks for it. */
+export interface ScriptInput { job: object; driver: string; runs: EngineRun[]; made: string; site: string; gated?: string[] }
+
+const tokenSteps = (repos: string[]) => [
+  `${repos.length > 1 ? 'These voices are' : 'This voice is'} on Hugging Face behind a free account: ${repos.join(', ')}.`,
+  '1. Sign in (or sign up, free) at https://huggingface.co',
+  ...repos.map((r, i) => `${i + 2}. Open https://huggingface.co/${r} and accept its conditions`),
+  `${repos.length + 2}. Make a token with the "Read" permission at https://huggingface.co/settings/tokens`,
+];
 
 /** Linux: bash, curl or wget, sha256sum; uv taken out of its wheel by python3, unzip or bsdtar (whichever is there). */
 export function linuxScript(o: ScriptInput): string {
   const runs = o.runs.map((r) => [
     `say ${shq(`${r.name}: ${r.voices} voice${r.voices > 1 ? 's' : ''}`)}`,
-    `"$DIR/bin/uv" run --quiet --python ${PYTHON} --no-project ${withArgs(r.packages).join(' ')} python "$DIR/driver.py" "$RUN/job.json" ${r.engine} "$RUN"`,
+    `${envOf(r).map(([k, v]) => `${k}=${v} `).join('')}"$DIR/bin/uv" run --quiet --python ${PYTHON} --no-project ${withArgs(r.packages).join(' ')} python "$DIR/driver.py" "$RUN/job.json" ${r.engine} "$RUN"`,
   ].join('\n')).join('\n');
+  const gated = o.gated || [];
+  for (const r of gated) if (!REPO.test(r)) throw new Error(`Not a repository: ${r}`);
+  const token = gated.length ? `if [ -z "\${HF_TOKEN:-}" ] && [ ! -s "$HF_HOME/token" ]; then
+${tokenSteps(gated).map((l) => `  echo ${shq(l)}`).join('\n')}
+  read -rsp 'Paste the token here (it is not shown) and press Enter: ' TOKEN; echo
+  if [ -z "$TOKEN" ]; then echo 'No token given: run this again when you have one.' >&2; exit 1; fi
+  mkdir -p "$HF_HOME"; (umask 077; printf '%s' "$TOKEN" > "$HF_HOME/token"); unset TOKEN
+fi
+` : '';
   return `#!/usr/bin/env bash
 # SuperTools - offline speech for Linux. Made by ${o.site} on ${o.made}.
 # It runs entirely on this computer and keeps everything in one folder (~/SuperTools-TTS, or $SUPERTOOLS_TTS_DIR):
@@ -87,7 +113,7 @@ fi
 export UV_CACHE_DIR="$DIR/cache/uv" UV_PYTHON_INSTALL_DIR="$DIR/python" UV_NO_CONFIG=1
 export UV_PYTHON_PREFERENCE="\${UV_PYTHON_PREFERENCE:-only-managed}" UV_TORCH_BACKEND="\${UV_TORCH_BACKEND:-auto}"
 export HF_HOME="$DIR/cache/huggingface" HF_HUB_DISABLE_XET="\${HF_HUB_DISABLE_XET:-1}" HF_HUB_DISABLE_TELEMETRY=1
-RUN="$DIR/output/$(date +%Y-%m-%d_%H%M%S)"
+${token}RUN="$DIR/output/$(date +%Y-%m-%d_%H%M%S)"
 mkdir -p "$RUN"
 base64 -d > "$DIR/driver.py" <<'SUPERTOOLS_DRIVER'
 ${wrap(b64(o.driver))}
@@ -107,9 +133,22 @@ export function windowsScript(o: ScriptInput): string {
   const ps = (s: string) => `'${s.replace(/'/g, "''")}'`;
   const runs = o.runs.map((r) => [
     `Say ${ps(ascii(`${r.name}: ${r.voices} voice${r.voices > 1 ? 's' : ''}`))}`,
+    ...envOf(r).map(([k, v]) => `$env:${k} = ${ps(v)}`),
     `& $uv run --quiet --python ${PYTHON} --no-project ${withArgs(r.packages).join(' ')} python "$Dir\\driver.py" "$Run\\job.json" ${r.engine} "$Run"`,
     `if ($LASTEXITCODE -ne 0) { throw ${ps(ascii(`${r.name} stopped with an error.`))} + " (code $LASTEXITCODE)" }`,
   ].join('\r\n')).join('\r\n');
+  const gated = o.gated || [];
+  for (const r of gated) if (!REPO.test(r)) throw new Error(`Not a repository: ${r}`);
+  const token = gated.length ? `  $tokenFile = Join-Path $env:HF_HOME 'token'
+  if (-not $env:HF_TOKEN -and -not (Test-Path -LiteralPath $tokenFile)) {
+${tokenSteps(gated).map((l) => `    Write-Host ${ps(ascii(l))}`).join('\n')}
+    $secure = Read-Host -AsSecureString 'Paste the token here (it is not shown) and press Enter'
+    $token = [Runtime.InteropServices.Marshal]::PtrToStringBSTR([Runtime.InteropServices.Marshal]::SecureStringToBSTR($secure))
+    if (-not $token) { throw 'No token given: run this again when you have one.' }
+    New-Item -ItemType Directory -Force -Path $env:HF_HOME | Out-Null
+    [IO.File]::WriteAllText($tokenFile, $token.Trim()); Remove-Variable token
+  }
+` : '';
   const body = `<# : SuperTools - offline speech for Windows. Made by ${ascii(o.site)} on ${ascii(o.made)}. Double-click this file.
 @echo off
 setlocal
@@ -149,7 +188,7 @@ try {
   if (-not $env:UV_TORCH_BACKEND) { $env:UV_TORCH_BACKEND = 'auto' }
   if (-not $env:HF_HUB_DISABLE_XET) { $env:HF_HUB_DISABLE_XET = '1' }
   $env:HF_HOME = Join-Path $Dir 'cache\\huggingface'; $env:HF_HUB_DISABLE_TELEMETRY = '1'; $env:PYTHONUTF8 = '1'
-  $Run = Join-Path $Dir ('output\\' + (Get-Date -Format 'yyyy-MM-dd_HHmmss'))
+${token}  $Run = Join-Path $Dir ('output\\' + (Get-Date -Format 'yyyy-MM-dd_HHmmss'))
   New-Item -ItemType Directory -Force -Path $Run | Out-Null
   [IO.File]::WriteAllBytes((Join-Path $Dir 'driver.py'), [Convert]::FromBase64String(${ps(b64(o.driver))}))
   [IO.File]::WriteAllBytes((Join-Path $Run 'job.json'), [Convert]::FromBase64String(${ps(b64(JSON.stringify(o.job)))}))

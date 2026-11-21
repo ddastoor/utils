@@ -894,6 +894,18 @@ details summary { cursor: pointer; font-weight: 600; color: var(--accent); paddi
 .yt-frame { width: 100%; height: 100%; border: 0; display: block; }
 /* text-to-speech */
 .tts-text { min-height: 160px; font-size: 16px; line-height: 1.55; }
+/* Text-to-Speech, offline mode (PC only) */
+.otts-filters { display: grid; grid-template-columns: minmax(140px, 1fr) minmax(120px, 1fr) minmax(200px, 2fr); gap: 8px; }
+.otts-list { max-height: min(60vh, 640px); overflow: auto; border: 1px solid var(--border); border-radius: 10px; padding: 6px 10px; display: grid; gap: 2px; }
+.otts-model { margin-top: 10px; padding: 6px 0 4px; border-bottom: 1px solid var(--border); font-size: 14px; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; }
+.otts-model:first-child { margin-top: 0; }
+.otts-voice { display: flex; align-items: center; gap: 10px; min-height: 32px; padding: 2px 4px; border-radius: 6px; cursor: pointer; font-size: 14px; }
+.otts-voice:hover { background: var(--surface-2); }
+.otts-voice input { width: 18px; height: 18px; flex: none; }
+.otts-tag { font-size: 12px; padding: 1px 8px; border-radius: 999px; background: var(--surface-2); color: var(--hint); }
+.otts-tag.warn { font-weight: 600; }
+.otts-summary .chips { margin-top: 8px; }
+.otts-steps { margin: 0; padding-left: 22px; display: grid; gap: 8px; line-height: 1.5; }
 .tts-now { font-size: 15px; padding: 8px 12px; border-left: 3px solid var(--accent); background: var(--surface-2); border-radius: 6px; }
 .tts-now:empty { display: none; }
 /* speech to text */
