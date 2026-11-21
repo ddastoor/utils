@@ -49,6 +49,14 @@ The owner adds items here in chat ("add … to to do"). Newest instructions win.
    native engine in the tests. Order: with the work in hand (CLAUDE.md, the potentials process), after the TTS work and
    the Photo Dictionary.
 
+9. **OCR on the phone, as good as the Photo Dictionary** (owner, 21 Nov 2026: "just like the photo dictionary, the OCR
+   app should also work really well from my phone"): the OCR tab shares the engine (`src/lib/ocr.ts`), the live camera
+   (`src/lib/livecam.ts`) and the picture clean-up with the Photo Dictionary, so the phone work of #6 — the camera's
+   full-resolution still instead of a video frame, continuous autofocus, the clean-up chosen by measuring photos of
+   Kindle pages, newspapers and printed pages — is held for the OCR tab too: its suite measures the words read right on
+   the same photo set. What is the OCR tab's own (a whole page of running text, columns, the four languages, the text
+   kept in its lines) is tuned and measured on its own. Done together with #6.
+
 ## Done
 - **2. FFmpeg tab: buttons for more popular jobs** (owner, 20 Nov 2026: "add all the popular new jobs for FFmpeg that don't have buttons yet … search for more out there … and add it") — done 20 Nov 2026: 21 new jobs (39 in all, in eight groups of a task list; no command line needed): the owner's six (join clips; subtitles burn in / add as a track / extract; logo or text on a video; volume; reverse; picture at a chosen moment) and fifteen popular uses found on the web (fades, fit to a shape with a blurred background or bars, remove silence, picture-in-picture, loop / boomerang, stabilise, clean up grain, contact sheet, timelapse, split into parts, sound settings, colours / black and white, cut a part out, background music, deinterlace; sources in docs/BUGHUNT.md). `src/lib/ffjobs.ts`, `src/tools/ffmpeg.ts`; unit `ffjobs.test.mjs` 110 (native FFmpeg 6.1), e2e `ffmpeg.e2e.mjs` 68. Found on the way: the core's JPEG encoder crashed the page (every JPEG is MozJPEG's now).
 - **4. YouTube Clip tab: "Download latest yt-dlp"** (owner, 20 Nov 2026: "Have an export button called download latest
