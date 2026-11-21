@@ -105,30 +105,40 @@ def piper(job, voices):
         log(f'  {v["label"]}: {secs:.1f} s of speech in {time.time() - t0:.1f} s')
 
 
+SPACY_SM = ('spacy/en_core_web_sm', '8fb6f8155286360bf5486fe399e2738d1df7ded2')  # spaCy's small English pipeline 3.7.1
+
+
 @engine('kokoro')
 def kokoro(job, voices):
-    """Kokoro-82M v1.0 (53 voices: American, British, Hindi …) through sherpa-onnx, CPU."""
+    """Kokoro-82M v1.0 (hexgrad, Apache-2.0) through its own pipeline: misaki reads the text (a pronouncing dictionary,
+    spaCy for the part of speech, eSpeak NG for the words the dictionary lacks — every word is spoken)."""
     import numpy as np
-    import sherpa_onnx
+    import spacy
+    import torch
+    # misaki asks spaCy for "en_core_web_sm" and would install it with pip from GitHub: the pipeline is taken from
+    # Hugging Face instead (the same files, at a fixed revision) and handed to spacy.load by its folder.
+    sm = fetch(SPACY_SM[0], SPACY_SM[1], ['config.cfg', 'meta.json', 'tokenizer', '*/*', '*/*/*'])
+    load, is_package = spacy.load, spacy.util.is_package
+    spacy.load = lambda name, *a, **k: load(sm if name == 'en_core_web_sm' else name, *a, **k)
+    spacy.util.is_package = lambda name: name == 'en_core_web_sm' or is_package(name)
+    from kokoro import KModel, KPipeline
     v0 = voices[0]
-    d = fetch(v0['repo'], v0['rev'])
-    cfg = sherpa_onnx.OfflineTtsConfig(
-        model=sherpa_onnx.OfflineTtsModelConfig(
-            kokoro=sherpa_onnx.OfflineTtsKokoroModelConfig(
-                model=os.path.join(d, 'model.onnx'), voices=os.path.join(d, 'voices.bin'), tokens=os.path.join(d, 'tokens.txt'),
-                data_dir=os.path.join(d, 'espeak-ng-data'), dict_dir=os.path.join(d, 'dict'),
-                lexicon=os.path.join(d, 'lexicon-us-en.txt') + ',' + os.path.join(d, 'lexicon-zh.txt')),
-            num_threads=max(1, min(8, os.cpu_count() or 2)), provider='cpu'),
-        max_num_sentences=1)
-    tts = sherpa_onnx.OfflineTts(cfg)
+    d = fetch(v0['repo'], v0['rev'], ['config.json', 'kokoro-v1_0.pth'] + sorted({f'voices/{v["voice"]}.pt' for v in voices}))
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    log(f'  (on the {"graphics card" if device == "cuda" else "processor"})')
+    model = KModel(repo_id=v0['repo'], config=os.path.join(d, 'config.json'), model=os.path.join(d, 'kokoro-v1_0.pth')).to(device).eval()
+    pipes = {}
     for v in voices:
+        lang = v.get('lang') or v['voice'][0]
+        if lang not in pipes:
+            pipes[lang] = KPipeline(lang_code=lang, repo_id=v0['repo'], model=model, device=device)
         t0 = time.time()
         parts = []
-        for c in chunks(job['text'], 400):
-            a = tts.generate(c, sid=int(v['speaker']), speed=float(job['speed']))
-            parts.append(np.asarray(a.samples, dtype=np.float32))
-            parts.append(silence(a.sample_rate, 0.25))
-        secs = write_audio(os.path.join(job['out'], v['id']), np.concatenate(parts), tts.sample_rate, job.get('mp3', True))
+        for _, _, audio in pipes[lang](job['text'], voice=os.path.join(d, 'voices', v['voice'] + '.pt'), speed=float(job['speed'])):
+            if audio is not None:
+                parts.append(audio.detach().cpu().numpy())
+                parts.append(silence(24000, 0.15))
+        secs = write_audio(os.path.join(job['out'], v['id']), np.concatenate(parts) if parts else silence(24000, 0.1), 24000, job.get('mp3', True))
         log(f'  {v["label"]}: {secs:.1f} s of speech in {time.time() - t0:.1f} s')
 
 
