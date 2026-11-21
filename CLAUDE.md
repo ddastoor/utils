@@ -459,7 +459,7 @@ on this PC**; phones never see the switch.
   Windows: a `.cmd` that runs the PowerShell under it (ASCII, CRLF; Windows PowerShell 5.1 is part of Windows 10 / 11).
   Linux: bash with curl or wget. A gated model (Indic Parler-TTS) makes the script ask once for a Hugging Face token
   (hidden input), kept in the folder's `cache/huggingface/token`; a refused download is explained by driver.py.
-- **The voices (416 in 44 models):** grouped Indian (49) / American (73) / British and Irish (108) / other accents (37) /
+- **The voices (430 in 45 models):** grouped Indian (63) / American (73) / British and Irish (108) / other accents (37) /
   accent not documented (149); filters by engine, sex and words; sizes counted once per model; licences shown, "personal
   use only" marked; XTTS-v2 (Coqui Public Model License, non-commercial) needs its licence ticked before the download.
   - **Piper** (piper-tts 1.8.0): every English voice of rhasspy/piper-voices except LibriTTS — VCTK's 109 speakers by
@@ -468,7 +468,10 @@ on this PC**; phones never see the switch.
   - **Kokoro** (kokoro 0.9.4 — hexgrad's own pipeline: misaki's dictionary, spaCy's tagger (en_core_web_sm 3.7.1 from
     Hugging Face, handed to spacy.load by its folder), eSpeak NG for words it does not know — every word is spoken;
     sherpa-onnx's Kokoro drops unknown words): 20 American and 8 British voices with the authors' grades, and the 4 Hindi
-    voices reading English three ways (American or British reading, or eSpeak's Hindi rules).
+    voices reading English three ways (American or British reading, or eSpeak's Hindi rules); and **goonj-1-82M**
+    (BH-Builds, Apache-2.0 — Kokoro-82M trained further on Indian speakers): 10 Indian English personas and 4
+    Hindi-native ones, read the same way (the engine runs each Kokoro-family model with its own weights and voice packs).
+    Two of goonj's and Indic Parler's two recommended voices are ticked when the mode opens.
   - **Parler-TTS** (parler-tts 0.2.3, transformers 4.46.1, sentencepiece 0.2.0 — 0.2.3's protobuf code needs protobuf 5,
     which the audio codec's package forbids): **Indic Parler-TTS** (AI4Bharat; 21 Indian English speakers, Thoma and Mary
     recommended; gated), **Large v1** (9.3 GB) and **Mini v1.1** (3.8 GB) with 34 named speakers each (accents not

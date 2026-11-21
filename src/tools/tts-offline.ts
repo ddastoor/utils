@@ -3,7 +3,7 @@
 // for Windows (.cmd) or Linux (.sh) that holds the text, the chosen voices and driver.py; on the PC the script fetches
 // uv (from PyPI, SHA-256 checked), Python, the engines (pinned packages) and the models (Hugging Face, pinned
 // revisions) into one folder, SuperTools-TTS, and writes a WAV and an MP3 per voice. Imported only when the mode is
-// chosen (the catalogue of 416 voices is 100 KB).
+// chosen (the catalogue of 430 voices is 100 KB).
 import { h, card, field, button, segmented, toggle, note, stack, toast, downloadBlob, slider, select } from '../ui';
 import catalogue from '../lib/offline-tts/catalogue.json';
 import driver from '../lib/offline-tts/driver.py?raw';

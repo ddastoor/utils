@@ -101,7 +101,7 @@ this file = the owner's latest wishes, how the tests are written, and the traps 
   owner: only the mode is PC only, the tab stays PC + mobile; "Knock yourself out and include many more large,
   sophisticated models … US accent, UK accent … the Indian accent to be as light as possible"; then "include as many
   different variants of Indian, US and [UK] accents as you can, even if they are large in size … it doesn't affect the
-  size of … my GitHub project." → 416 voices in 44 models, five engines; samples of the Indian ones sent for listening.
+  size of … my GitHub project." → 430 voices in 45 models, five engines; samples of the Indian ones sent for listening.
   **How to run an engine by hand** (what the unit suite's real-run option does for Piper): copy `src/lib/offline-tts/driver.py`
   into a scratch folder, write a job.json (voices as `buildJob` makes them: id, label, engine, repo, rev + the engine's
   fields), then `HF_HUB_DISABLE_XET=1 uv run --python 3.12 --no-project --with '<each pin of ENGINES[e].packages>' python
