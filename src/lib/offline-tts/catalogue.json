@@ -200,7 +200,7 @@
    "speedControl": false,
    "licence": "MIT",
    "slow": true,
-   "about": "Suno's expressive GPT-style model, speaking in the manner of a voice preset — English speakers and Hindi speakers (English with an Indian accent). Slow on a processor; its pace cannot be set."
+   "about": "Suno's expressive GPT-style model, speaking in the manner of a voice preset — English speakers and Hindi speakers (English with an Indian accent, heard as such here). It draws its speech at random and now and then says something else: listen to the result. About eight times slower than real time on a processor (small); its pace cannot be set."
   },
   "chatterbox": {
    "name": "Chatterbox",
@@ -258,6 +258,7 @@
    "url": "https://github.com/idiap/coqui-ai-TTS",
    "packages": [
     "coqui-tts[codec]==0.28.0",
+    "six==1.17.0",
     "num2words==0.5.14",
     "lameenc==1.9.0",
     "torch",
@@ -512,8 +513,7 @@
    "licence": "MIT",
    "personal": false,
    "name": "Bark small (Suno)",
-   "page": "https://huggingface.co/suno/bark-small",
-   "untried": "Not run here yet."
+   "page": "https://huggingface.co/suno/bark-small"
   },
   "syspin-female": {
    "engine": "coqui",
@@ -523,8 +523,7 @@
    "licence": "MIT",
    "personal": false,
    "name": "SYSPIN Indian English VITS (woman)",
-   "page": "https://huggingface.co/SYSPIN/vits_English_Female",
-   "untried": "Not run here yet."
+   "page": "https://huggingface.co/SYSPIN/vits_English_Female"
   },
   "syspin-male": {
    "engine": "coqui",
@@ -534,8 +533,7 @@
    "licence": "MIT",
    "personal": false,
    "name": "SYSPIN Indian English VITS (man)",
-   "page": "https://huggingface.co/SYSPIN/vits_English_Male",
-   "untried": "Not run here yet."
+   "page": "https://huggingface.co/SYSPIN/vits_English_Male"
   },
   "pocket": {
    "engine": "pocket",

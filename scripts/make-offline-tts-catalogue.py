@@ -206,7 +206,9 @@ ENGINES = {
         'packages': ['transformers==4.57.3', 'huggingface-hub==0.36.2', 'lameenc==1.9.0', 'torch'],
         'mb': 300, 'torch': True, 'speedControl': False, 'licence': 'MIT', 'slow': True,
         'about': "Suno's expressive GPT-style model, speaking in the manner of a voice preset — English speakers and "
-                 'Hindi speakers (English with an Indian accent). Slow on a processor; its pace cannot be set.',
+                 'Hindi speakers (English with an Indian accent, heard as such here). It draws its speech at random and '
+                 'now and then says something else: listen to the result. About eight times slower than real time on a '
+                 'processor (small); its pace cannot be set.',
     },
     'chatterbox': {
         'name': 'Chatterbox', 'url': 'https://github.com/resemble-ai/chatterbox',
@@ -231,7 +233,8 @@ ENGINES = {
     },
     'coqui': {
         'name': 'Coqui TTS (VITS)', 'url': 'https://github.com/idiap/coqui-ai-TTS',
-        'packages': ['coqui-tts[codec]==0.28.0', 'num2words==0.5.14', 'lameenc==1.9.0', 'torch', 'torchaudio'],
+        # six: coqui-tts 0.28.0 imports it for its VITS models without asking for it (ModuleNotFoundError here)
+        'packages': ['coqui-tts[codec]==0.28.0', 'six==1.17.0', 'num2words==0.5.14', 'lameenc==1.9.0', 'torch', 'torchaudio'],
         'mb': 450, 'torch': True, 'speedControl': True, 'licence': 'MPL-2.0 (the program)',
         'about': "IISc SYSPIN's Indian English voices, trained with Coqui TTS (VITS). Quick, but less clear than the newer models.",
     },
@@ -751,6 +754,7 @@ def voxcpm():
     return models, voices
 
 
+# SYSPIN, run here (21 Nov 2026): 4.5× faster than real time; the accent model hears Indian first for both; 185 / 157 Hz
 def syspin():
     models, voices = {}, []
     for mid, repo, rev, sx in SYSPIN:
@@ -788,13 +792,10 @@ UNTRIED = {
     'parler-large': 'Not run here: 9.3 GB, more than the test machine had room for (the same program as Parler Mini, which was run).',
     'qwen-1.7b': 'Not run here: 4.5 GB (the same program as Qwen3-TTS 0.6B, which was run).',
     'bark': 'Not run here: 4.5 GB (the same program as Bark small).',
-    'bark-small': 'Not run here yet.',
     'chatterbox': 'Not run yet: it needs a second PyTorch (2.6) beside the model, more than the test machine had room for.',
     'chatterbox-turbo': 'Not run yet: it needs a second PyTorch (2.6) beside the model, more than the test machine had room for.',
     'veena': 'Not run here: 7.6 GB, made for a graphics card.',
     'voxcpm2': 'Not run yet: 5 GB.',
-    'syspin-female': 'Not run here yet.',
-    'syspin-male': 'Not run here yet.',
     'pocket-clone': 'Not run here: Hugging Face gives it only to an account that has accepted its conditions.',
 }
 

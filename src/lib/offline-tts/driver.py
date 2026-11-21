@@ -514,11 +514,18 @@ def bark(job, voices):
             t0 = time.time()
             parts = []
             for c in chunks(job['text'], 180):
-                torch.manual_seed(v.get('seed', 0))
-                inputs = processor(c, voice_preset=v['voice']).to(device)
-                with torch.inference_mode():
-                    a = model.generate(**inputs, pad_token_id=processor.tokenizer.pad_token_id)
-                parts.append(a.cpu().numpy().reshape(-1).astype(np.float32))
+                # Bark draws its speech at random and can babble on after the text (seen here: 14.7 s for a sentence of
+                # eleven words); a part far longer than its words could take is drawn again, at most twice
+                for attempt in range(3):
+                    torch.manual_seed(v.get('seed', 0) + attempt)
+                    inputs = processor(c, voice_preset=v['voice']).to(device)
+                    with torch.inference_mode():
+                        a = model.generate(**inputs, pad_token_id=processor.tokenizer.pad_token_id)
+                    a = a.cpu().numpy().reshape(-1).astype(np.float32)
+                    if len(a) / sr <= 0.8 * len(c.split()) + 3:
+                        break
+                    log(f'  (part {len(parts) // 2 + 1} ran on for {len(a) / sr:.0f} s — drawn again)')
+                parts.append(a)
                 parts.append(silence(sr, 0.25))
             secs = write_audio(os.path.join(job['out'], v['id']), np.concatenate(parts) if parts else silence(sr, 0.1), sr, job.get('mp3', True))
             log(f'  {v["label"]}: {secs:.1f} s of speech in {time.time() - t0:.1f} s')
