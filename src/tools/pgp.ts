@@ -1,5 +1,7 @@
-// OpenPGP (OpenPGP.js 6). Default profile is GnuPG-compatible: v4 keys, Ed25519 + Curve25519 (legacy encodings),
-// AES-256, SEIPDv1 + MDC, iterated+salted S2K. Decryption/verification also accept RFC 9580 (v6, AEAD, Argon2) input.
+// OpenPGP (OpenPGP.js 6), in two standards (src/lib/pgpstd.ts). "GnuPG-compatible" — the tab as it always was: v4 keys,
+// Ed25519 + Curve25519 (legacy encodings), AES-256, SEIPDv1 + MDC, iterated+salted S2K; decryption / verification also
+// accept RFC 9580 input. "Latest standard" (owner, 21 Nov 2026) — RFC 9580: v6 keys (Ed25519 + X25519 or Ed448 + X448),
+// SEIPDv2 with AES-256 in OCB mode, Argon2, v6 signatures; each result says the format it has.
 import type * as OpenPGP from 'openpgp';
 import { lazyEngine } from '../lifecycle';
 import {
@@ -7,22 +9,17 @@ import {
   stack, row, clear, fmtBytes, readBytes, type Mount,
 } from '../ui';
 import { armored, armoredBytes, wrongKind, pgpError, isEmail, decryptedName, groupHex, type ArmorKind } from '../lib/pgptext';
+import { gpgConfig, modernConfig, rfc9580Config, messageFormat, formatWords, keyWords, protectionWords, signatureWords, withoutSeipdv2, readOut, type Standard } from '../lib/pgpstd';
 
 // OpenPGP.js is fetched with the first action, not as the tab opens (it is 0.4 MB): every handler awaits ready() first.
 const engine = lazyEngine('openpgp', () => import('openpgp'));
 let openpgp: typeof OpenPGP;
-let GPG_CONFIG: Record<string, unknown>, MODERN_CONFIG: Record<string, unknown>;
+let GPG_CONFIG: Record<string, unknown>, MODERN_CONFIG: Record<string, unknown>, RFC9580_CONFIG: Record<string, unknown>;
 async function ready() {
   openpgp = await engine();
-  GPG_CONFIG = {
-    v6Keys: false,
-    aeadProtect: false,
-    preferredSymmetricAlgorithm: openpgp.enums.symmetric.aes256,
-    preferredHashAlgorithm: openpgp.enums.hash.sha512,
-    s2kType: openpgp.enums.s2k.iterated,
-    s2kIterationCountByte: 255,
-  };
-  MODERN_CONFIG = { v6Keys: true, aeadProtect: true, s2kType: openpgp.enums.s2k.argon2, preferredSymmetricAlgorithm: openpgp.enums.symmetric.aes256 };
+  GPG_CONFIG = gpgConfig(openpgp);
+  MODERN_CONFIG = modernConfig(openpgp);
+  RFC9580_CONFIG = rfc9580Config(openpgp);
 }
 
 type Profile = 'gpg' | 'modern';
@@ -111,16 +108,18 @@ const uid = (k: OpenPGP.Key) => k.getUserIDs()[0] || '(no user ID)';
 function result(area: HTMLElement, items: Array<Node | string | null>) { clear(area).append(...items.filter(Boolean) as Node[]); }
 
 const when = (d: Date | null | undefined) => (d ? d.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' }) : '');
-async function sigReport(sigs: any[], keys: OpenPGP.Key[]) {
+async function sigReport(sigs: any[], keys: OpenPGP.Key[], detail = false) {
   if (!sigs.length) return note('The data was not signed.', 'info');
   const lines: Node[] = [];
   for (const s of sigs) {
     const signer = keys.find((k) => k.getKeys(s.keyID).length);
-    const made = await Promise.resolve(s.signature).then((sig: any) => sig?.packets?.[0]?.created as Date | undefined, () => undefined);
+    const sigObj = await Promise.resolve(s.signature).catch(() => undefined);
+    const made = sigObj?.packets?.[0]?.created as Date | undefined;
+    const how = detail ? signatureWords(sigObj) : ''; // latest-standard mode: "v6 signature (RFC 9580) · Ed25519 · SHA-512"
     try {
       await s.verified;
       const key = signer!.getKeys(s.keyID)[0];
-      lines.push(note(h('span', null, `Good signature from ${uid(signer!)}`, h('br'), h('span', { class: 'small' }, `Key ${groupHex(key.getFingerprint())}${made ? ` · signed ${when(made)}` : ''}`)), 'ok'));
+      lines.push(note(h('span', null, `Good signature from ${uid(signer!)}`, h('br'), h('span', { class: 'small' }, `Key ${groupHex(key.getFingerprint())}${made ? ` · signed ${when(made)}` : ''}${how ? ` · ${how}` : ''}`)), 'ok'));
     } catch (e: any) {
       lines.push(note(signer ? `BAD signature — the data or the signature was changed after signing (${pgpError(e, 'signature')}).` : `Signed by key ${s.keyID.toHex().toUpperCase()} — add that public key to verify it.`, signer ? 'err' : 'warn'));
     }
@@ -139,14 +138,63 @@ async function readMsg(bytes: Uint8Array) {
   } catch (e) { throw new Error(e instanceof Error && /^That is/.test(e.message) ? e.message : pgpError(e, 'message')); }
 }
 
+/** Generate keys in the latest standard: a v6 key (RFC 9580) — Ed25519 + X25519, or Ed448 + X448 — whose secret parts
+ *  are locked with Argon2 and AES-256 in OCB mode, asking for SEIPDv2 (AES-256 / OCB first). */
+function generateLatest(body: HTMLElement, out: HTMLElement) {
+  const name = input({ placeholder: 'Your name' }), email = input({ type: 'email', placeholder: 'you@example.com' });
+  const p1 = input({ type: 'password', attrs: { autocomplete: 'new-password' } }), p2 = input({ type: 'password', attrs: { autocomplete: 'new-password' } });
+  let type: 'curve25519' | 'curve448' = 'curve25519';
+  body.append(card(null, stack(
+    h('div', { class: 'grid2' }, field('Name', name), field('Email', email)),
+    h('div', { class: 'grid2' }, field('Passphrase', p1), field('Repeat passphrase', p2)),
+    field('Algorithm', segmented([['curve25519', 'Ed25519 + X25519'], ['curve448', 'Ed448 + X448 (stronger, larger)']], type, (v) => (type = v))),
+    note('A v6 key (RFC 9580). The passphrase is stretched with Argon2 (3 passes, 4 lanes, 64 MiB) and locks the secret parts with AES-256 in OCB mode; messages to the key are asked for in SEIPDv2 (AES-256 in OCB mode). Sequoia PGP, rPGP, GopenPGP and OpenPGP.js read it — GnuPG 2.4 does not.'),
+  )), out, actions(button('Generate key pair', async () => {
+    await ready();
+    if (!name.value.trim() && !email.value.trim()) throw new Error('Enter a name or an e-mail address.');
+    if (email.value.trim() && !isEmail(email.value.trim())) throw new Error(`"${email.value.trim()}" is not an e-mail address.`);
+    if (!p1.value) throw new Error('Choose a passphrase to protect the private key.');
+    if (p1.value !== p2.value) throw new Error('Passphrases do not match.');
+    const userIDs = [{ name: name.value.trim() || undefined, email: email.value.trim() || undefined }];
+    const k = await (openpgp.generateKey as any)({ type, userIDs, passphrase: p1.value, format: 'armored', config: RFC9580_CONFIG }).catch((e: unknown) => { throw new Error(pgpError(e, 'generate')); });
+    const pub = await openpgp.readKey({ armoredKey: k.publicKey }), priv = await openpgp.readPrivateKey({ armoredKey: k.privateKey });
+    const base = (email.value || name.value || 'key').replace(/[^\w.@-]+/g, '_');
+    const pubBox = outputBox({ rows: 6, mono: true }); pubBox.value = k.publicKey;
+    result(out, [card('Your new key pair',
+      h('div', { class: 'kv' }, h('span', null, 'User ID'), h('span', null, uid(pub)), h('span', null, 'Fingerprint'), h('code', null, fpr(pub)),
+        h('span', null, 'Algorithm'), h('span', null, keyWords(pub)), h('span', null, 'Passphrase protection'), h('span', null, protectionWords(priv))),
+      field('Public key — share this', pubBox),
+      row(button('Public key (.asc)', () => downloadBlob(new Blob([k.publicKey]), `${base}.pub.asc`), { variant: 'primary', icon: 'Download' }),
+        button('Private key (.asc)', () => downloadBlob(new Blob([k.privateKey]), `${base}.secret.asc`), { icon: 'KeyRound' }),
+        button('Revocation cert', () => downloadBlob(new Blob([k.revocationCertificate]), `${base}.rev.asc`), { icon: 'Ban' })),
+      note('Keep the private key file and passphrase safe — nothing is stored by this site. Programs that read RFC 9580 keys import it (Sequoia PGP: sq key import file.asc); GnuPG 2.4 cannot.', 'warn'))]);
+  }, { variant: 'primary', icon: 'KeyRound' })));
+}
+
+const FOOT: Record<Standard, string> = {
+  gpg: 'GnuPG-compatible by default (tested against gpg 2.4 in both directions). Keys are never stored — load them each time. Decryption also accepts the newer RFC 9580 (v6) format. On import gpg may print a harmless note about SHA-3 preferences; it still uses SHA-512.',
+  rfc9580: 'Latest standard: RFC 9580 (2024) — v6 keys, messages protected with AEAD (SEIPDv2), passwords through Argon2, v6 signatures (tested against rPGP and Sequoia PGP in both directions). Keys are never stored — load them each time. Older keys still work: a message to a key that does not offer SEIPDv2 is made in the older form, as RFC 9580 requires, and a v4 key signs with v4 signatures.',
+};
+
 export const mount: Mount = (root) => {
   let op: 'gen' | 'enc' | 'dec' | 'sign' | 'verify' = 'enc';
+  // owner, 21 Nov 2026: the GnuPG-compatible tab exactly as it was, and a second mode for the latest standard
+  let std: Standard = 'gpg';
+  const latest = () => std === 'rfc9580';
   const body = h('div', { class: 'stack' });
   const opSeg = segmented([['gen', 'Generate keys'], ['enc', 'Encrypt'], ['dec', 'Decrypt'], ['sign', 'Sign'], ['verify', 'Verify']], op, (v) => { op = v; render(); });
+  const stdNote = h('div');
+  const foot = h('div');
+  const stdSeg = segmented([['gpg', 'GnuPG-compatible'], ['rfc9580', 'Latest standard (RFC 9580)']], std, (v) => { std = v; renderStd(); render(); });
+  const renderStd = () => {
+    stdNote.replaceChildren(...(latest() ? [note('RFC 9580, the newest OpenPGP standard (2024): v6 keys, AEAD-protected messages, Argon2 passwords. Sequoia PGP, rPGP, GopenPGP and OpenPGP.js (Proton) read it — GnuPG 2.4 cannot (it follows LibrePGP).', 'warn')] : []));
+    foot.replaceChildren(note(FOOT[std]));
+  };
 
   const render = () => {
     clear(body);
     const out = h('div', { class: 'stack' });
+    if (op === 'gen' && latest()) { generateLatest(body, out); return; }
     if (op === 'gen') {
       const name = input({ placeholder: 'Your name' }), email = input({ type: 'email', placeholder: 'you@example.com' });
       const p1 = input({ type: 'password', attrs: { autocomplete: 'new-password' } }), p2 = input({ type: 'password', attrs: { autocomplete: 'new-password' } });
@@ -195,7 +243,8 @@ export const mount: Mount = (root) => {
           const bytes = await data.bytes();
           const message = data.kind === "text" ? await openpgp.createMessage({ text: data.text }) : await openpgp.createMessage({ binary: bytes, filename: data.name });
           const asText = armor.checked || data.kind === 'text';
-          const opts: any = { message, format: asText ? 'armored' : 'binary', config: GPG_CONFIG };
+          const now = latest();
+          const opts: any = { message, format: now ? 'object' : asText ? 'armored' : 'binary', config: now ? RFC9580_CONFIG : GPG_CONFIG };
           if (mode === 'key') {
             const keys = await pubs.keys();
             if (!keys.length) throw new Error('Add at least one recipient public key.');
@@ -206,10 +255,18 @@ export const mount: Mount = (root) => {
             if (!pass.value) throw new Error('Enter a password.');
             opts.passwords = [pass.value];
           }
-          const res = await openpgp.encrypt(opts).catch((e: unknown) => { throw new Error(pgpError(e, 'encrypt')); });
+          let res: any = await openpgp.encrypt(opts).catch((e: unknown) => { throw new Error(pgpError(e, 'encrypt')); });
+          let how: Node | null = null;
+          if (now) {
+            // the latest standard: say what was written — and why SEIPDv1 where a recipient's key does not offer SEIPDv2
+            const f = messageFormat(res), old = f.seipd === 1 && opts.encryptionKeys ? await withoutSeipdv2(openpgp, opts.encryptionKeys) : [];
+            how = stack(note(`Format: ${formatWords(f)}`, 'info'),
+              old.length ? note(`${old.map(uid).join(', ')}: ${old.length === 1 ? 'this key does' : 'these keys do'} not offer SEIPDv2 (${old.map((k) => `v${k.keyPacket.version}`).join(', ')}), so the message is in the older SEIPDv1 form — RFC 9580 has it made so that every recipient can read it.`, 'warn') : null);
+            res = await readOut(asText ? res.armor(RFC9580_CONFIG) : res.write()); // a stream of chunks, joined
+          }
           const name = `${data.name}.${asText ? 'asc' : 'gpg'}`;
-          if (asText) { const box = outputBox({ rows: 8, mono: true }); box.value = res as string; result(out, [card('Encrypted', box, row(button('Download', () => downloadBlob(new Blob([res as string]), name), { variant: 'primary', icon: 'Download' })))]); }
-          else { downloadBlob(new Blob([res as Uint8Array<ArrayBuffer>]), name); result(out, [note(`Encrypted → ${name}`, 'ok')]); }
+          if (asText) { const box = outputBox({ rows: 8, mono: true }); box.value = res as string; result(out, [card('Encrypted', box, row(button('Download', () => downloadBlob(new Blob([res as string]), name), { variant: 'primary', icon: 'Download' }))), how]); }
+          else { downloadBlob(new Blob([res as Uint8Array<ArrayBuffer>]), name); result(out, [note(`Encrypted → ${name}`, 'ok'), how]); }
         }, { variant: 'primary', icon: 'Lock' })));
       return;
     }
@@ -224,6 +281,7 @@ export const mount: Mount = (root) => {
         await ready();
           const bytes = await data.bytes();
           const message = await readMsg(bytes);
+          const how = latest() ? note(`Format: ${formatWords(messageFormat(message))}`, 'info') : null;
           const sk = await priv.keys();
           const vk = await verify.keys();
           const opts: any = { message, format: 'binary', verificationKeys: vk.length ? vk : undefined };
@@ -242,7 +300,8 @@ export const mount: Mount = (root) => {
           const fname = decryptedName((res as any).filename, data.name);
           let text: string | null = null;
           if (outBytes.length < 2_000_000 && !outBytes.some((b) => b === 0)) { try { text = new TextDecoder('utf-8', { fatal: true }).decode(outBytes); } catch { /* not text */ } }
-          const items: Array<Node> = [await sigReport(res.signatures, vk)];
+          const items: Array<Node> = [await sigReport(res.signatures, vk, latest())];
+          if (how) items.push(how);
           if (text !== null) { const box = outputBox({ rows: 8, label: 'Decrypted text' }); box.value = text; items.push(card('Decrypted text', box)); }
           items.push(row(button(`Download ${fname}`, () => downloadBlob(new Blob([outBytes as Uint8Array<ArrayBuffer>]), fname), { variant: 'primary', icon: 'Download' })));
           result(out, items);
@@ -264,16 +323,20 @@ export const mount: Mount = (root) => {
           if (!keys.length) throw new Error('Load your private key.');
           if (style === 'clear') {
             if (data.kind !== 'text') throw new Error('Clear-signing works on typed text; use Detached for files.');
-            const signed = await openpgp.sign({ message: await openpgp.createCleartextMessage({ text: data.text }), signingKeys: keys, config: GPG_CONFIG });
+            const signed = await openpgp.sign({ message: await openpgp.createCleartextMessage({ text: data.text }), signingKeys: keys, config: latest() ? RFC9580_CONFIG : GPG_CONFIG });
             const box = outputBox({ rows: 8, mono: true }); box.value = signed;
-            result(out, [card('Clear-signed message', box)]);
+            const how = latest() ? note(`Made: ${signatureWords(((await openpgp.readCleartextMessage({ cleartextMessage: signed })) as any).signature)}`, 'info') : null;
+            result(out, [card('Clear-signed message', box), how]);
             return;
           }
           const bytes = await data.bytes();
-          const sig = await openpgp.sign({ message: await openpgp.createMessage({ binary: bytes }), signingKeys: keys, detached: true, format: armor.checked ? 'armored' : 'binary', config: GPG_CONFIG } as any);
+          const sig = await openpgp.sign({ message: await openpgp.createMessage({ binary: bytes }), signingKeys: keys, detached: true, format: armor.checked ? 'armored' : 'binary', config: latest() ? RFC9580_CONFIG : GPG_CONFIG } as any);
           const name = `${data.name}.${armor.checked ? 'asc' : 'sig'}`;
           downloadBlob(new Blob([sig as any]), name);
-          result(out, [note(`Detached signature saved as ${name}. Verify with: gpg --verify ${name} ${data.name}`, 'ok')]);
+          if (latest()) {
+            const made = await (armor.checked ? openpgp.readSignature({ armoredSignature: sig as any }) : openpgp.readSignature({ binarySignature: sig as any }));
+            result(out, [note(`Detached signature saved as ${name} — ${signatureWords(made)}. Check it under Verify, or with a program that reads RFC 9580 signatures (Sequoia PGP: sq verify).`, 'ok')]);
+          } else result(out, [note(`Detached signature saved as ${name}. Verify with: gpg --verify ${name} ${data.name}`, 'ok')]);
         }, { variant: 'primary', icon: 'Signature' })));
       return;
     }
@@ -308,11 +371,11 @@ export const mount: Mount = (root) => {
           const message = await openpgp.createMessage({ binary: await data.bytes() });
           sigs = (await openpgp.verify({ message, signature, verificationKeys: keys })).signatures;
         }
-        result(out, [await sigReport(sigs, keys)]);
+        result(out, [await sigReport(sigs, keys, latest())]);
       }, { variant: 'primary', icon: 'BadgeCheck' })));
   };
 
-  root.append(card(null, opSeg), body,
-    note('GnuPG-compatible by default (tested against gpg 2.4 in both directions). Keys are never stored — load them each time. Decryption also accepts the newer RFC 9580 (v6) format. On import gpg may print a harmless note about SHA-3 preferences; it still uses SHA-512.'));
+  root.append(card(null, stack(field('Standard', stdSeg), stdNote, opSeg)), body, foot);
+  renderStd();
   render();
 };
