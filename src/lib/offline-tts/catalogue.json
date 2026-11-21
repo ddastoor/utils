@@ -1968,8 +1968,7 @@
    "licence": "MIT",
    "personal": false,
    "name": "Chatterbox (Resemble AI)",
-   "page": "https://huggingface.co/ResembleAI/chatterbox",
-   "untried": "Not run yet: it needs a second PyTorch (2.6) beside the model, more than the test machine had room for."
+   "page": "https://huggingface.co/ResembleAI/chatterbox"
   },
   "chatterbox-turbo": {
    "engine": "chatterbox",
@@ -1979,8 +1978,7 @@
    "licence": "MIT",
    "personal": false,
    "name": "Chatterbox Turbo (Resemble AI)",
-   "page": "https://huggingface.co/ResembleAI/chatterbox-turbo",
-   "untried": "Not run yet: it needs a second PyTorch (2.6) beside the model, more than the test machine had room for."
+   "page": "https://huggingface.co/ResembleAI/chatterbox-turbo"
   },
   "xtts": {
    "engine": "xtts",

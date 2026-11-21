@@ -1047,8 +1047,6 @@ def kyutai():
 UNTRIED = {
     'indic-parler': 'Not run here: Hugging Face gives it only to an account that has accepted its conditions.',
     'parler-large': 'Not run here: 9.3 GB, more than the test machine had room for (the same program as Parler Mini, which was run).',
-    'chatterbox': 'Not run yet: it needs a second PyTorch (2.6) beside the model, more than the test machine had room for.',
-    'chatterbox-turbo': 'Not run yet: it needs a second PyTorch (2.6) beside the model, more than the test machine had room for.',
     'pocket-clone': 'Not run here: Hugging Face gives it only to an account that has accepted its conditions.',
 }
 

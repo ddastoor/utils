@@ -634,8 +634,8 @@ on this PC**; phones never see the switch.
   VoxCPM2 6 s in 5, VibeVoice 1.5B 8 s in 5, Veena 6 s in 7, F5-TTS 10 s in 34 (≈ 200× slower: a 4-core processor). Every
   engine was run here with its lock as the scripts make it (`python3 scripts/accent-survey/smoke.py WORK ENGINE:VOICE …`,
   21 Nov 2026). The accent of every Indian voice that runs here: the ranking below. Qwen's voices sound North American.
-  Not run here (tagged in the tab): Indic Parler and Pocket cloning (gated), Parler Large (9.3 GB, the program of Parler
-  Mini), Chatterbox / Turbo (re-test running at the sync point: docs/RESUME.md). The Windows script was read by its text only
+  Chatterbox and Turbo 5 s in 10 and 9. Not run here (tagged in the tab): Indic Parler and Pocket cloning (gated), Parler
+  Large (9.3 GB, the program of Parler Mini). The Windows script was read by its text only
   (PowerShell could not be installed in the sandbox). Left out (docs/BUGHUNT.md, "TTS offline"): Indic-Speak (gated; its
   inference code cannot be read without access), Maya 2 (no pinnable release; Linux and NVIDIA only), ZONOS3-Mini (an
   Indian accent with a dose; on a processor only through its C++ tool). To-do #7 (round 2's rest): F5-TTS, VibeVoice, the

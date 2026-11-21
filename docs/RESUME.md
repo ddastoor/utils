@@ -23,9 +23,9 @@ ones" — no new models or voices; docs/HANDOFF.md §1). **One command does all 
 the PATH; 16 GB of memory: run nothing heavy beside it). It runs, one at a time:
 1. **Smoke tests with each engine's lock** (`smoke.py`). **Passed:** piper, supertonic, melo, indictiny, mms, coqui
    (SYSPIN), kokoro, pocket, bark small and **bark (full)** (13.5 s of speech in 8 min, its 4.5 GB download included),
-   qwen 0.6B, omnivoice, parler Mini, **f5** (10 s in 34 min), **voxcpm2** (6 s in 5 min). **vibevoice** (8 s in 5 min), **veena** (6 s in 7 min). Bark, VoxCPM2, VibeVoice and Veena
-   lost their `UNTRIED` tags. **Left:** chatterbox and chatterbox-turbo — they failed at start: their watermark
-   (resemble-perth 1.0.1) imports pkg_resources, gone from setuptools 82; pinned setuptools 81.0.0, re-test running. Each that passes loses its `UNTRIED` entry in
+   qwen 0.6B, omnivoice, parler Mini, **f5** (10 s in 34 min), **voxcpm2** (6 s in 5 min). **vibevoice** (8 s in 5 min), **veena** (6 s in 7 min), **chatterbox** and **turbo** (5 s in 10 / 9 min, after
+   the setuptools 81 pin: their watermark, resemble-perth 1.0.1, imports pkg_resources). All of them lost their
+   `UNTRIED` tags — every engine has run here except the gated two and Parler Large. **Smoke tests: done.** Each that passes loses its `UNTRIED` entry in
    `scripts/make-offline-tts-catalogue.py`; one that fails is fixed in `src/lib/offline-tts/driver.py` or keeps its tag
    with the reason.
 2. **The accent survey of the Indian voices not yet measured** (`run.py WORK --all ENGINE`, six voices at a time, each

@@ -2640,6 +2640,6 @@ cannot. Three new suites; each fails on the build before its fixes.
   marker; and then **every run stopped at start: `'NoneType' object is not callable`** — its watermark, resemble-perth
   1.0.1 (chatterbox-tts pins it), imports `pkg_resources`, which setuptools 82 removed, and swallows the ImportError
   (the watermarker class is None) → setuptools 81.0.0, the last with pkg_resources, is one of the engine's packages.
-  Both would have stopped the owner's run. Tests: unit offline-tts-plan 169 (+1: no lock asks for two versions of a
-  package without a marker).
+  Both would have stopped the owner's run; with them fixed, Chatterbox and Turbo speak (5 s of speech each). Tests: unit
+  offline-tts-plan 169 (+1: no lock asks for two versions of a package without a marker).
 
