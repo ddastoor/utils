@@ -428,6 +428,16 @@ the page; the CSP unchanged), a native speech program and the model — candidat
 light Indian-English model chosen by ear (samples first, owner's pick, size of the downloads said); a ready script for
 that system (.bat / .sh) holding the text typed in the tab, which writes the speech to a WAV and an MP3; step-by-step
 instructions in the tab. The existing in-browser mode stays exactly as it is.
+**Owner, 21 Nov 2026 (later the same day) — what is PC only, and what goes into it:** "the whole text to speech app should
+not be PC only. Only this new offline mode of this app should be PC only." → the tab stays **PC + mobile**; on phones the
+Offline mode is simply not offered (the in-browser voices are all there). And: "in the new offline pc-only Text-to-Speech
+mode … it's just going to be offline and will finally be downloaded to the user's PC. Knock yourself out and include many
+more large, sophisticated models. Not just … the Indian accent, but even for the US accent, UK accent, and include more
+options also in offline mode. Especially for the Indian accent, I want the Indian accent to be as light as possible.
+Include many more voices in offline mode." → no size limit of the site applies to these models (they go to the PC, not
+onto GitHub Pages): a catalogue of many large, high-quality voices — US, UK and Indian English (the Indian ones chosen
+for the lightest accent with clear diction), more accents and options beside them — each with its size, licence and a
+note on what it sounds like; the person picks the voices, the tab gives the downloads and the script for them.
 Tests: Kokoro 24 kHz mono, plausible length and energy, female median F0 > male + 40 Hz (Heart vs Michael), British
 voice, 2× speed ≈ half the length, Piper 22.05 kHz with female above male pitch, MP3 frames, sentence progress, stop,
 markdown → text.
