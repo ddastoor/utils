@@ -31,7 +31,14 @@ export default async (t, { load }) => {
   t.eq(dec(between(sh, 'SUPERTOOLS_DRIVER')), driver, 'Linux: driver.py decodes to exactly driver.py');
   t.ok(!sh.includes('touch /tmp/pwned') && !sh.includes('नमस्ते'), 'Linux: the text appears only as Base64');
   t.ok(sh.includes(S.UV.linux.x86_64.sha256) && sh.includes(S.UV.linux.aarch64.sha256) && sh.includes(`'${S.UV.member.linux}'`), 'Linux: uv for x86-64 and ARM64, checked by SHA-256, taken out of its wheel');
-  t.ok(/--with piper-tts==1\.8\.0 --with huggingface-hub==2\.4\.0 --with lameenc==1\.9\.0 --with numpy==2\.3\.5 python "\$DIR\/driver\.py" "\$RUN\/job\.json" piper "\$RUN"/.test(sh), 'Linux: the engine runs with its pinned packages');
+  t.ok(/--with 'piper-tts==1\.8\.0' --with 'huggingface-hub==2\.4\.0' --with 'lameenc==1\.9\.0' --with 'numpy==2\.3\.5' python "\$DIR\/driver\.py" "\$RUN\/job\.json" piper "\$RUN"/.test(sh), 'Linux: the engine runs with its pinned packages');
+  // a pin with extras is not a file pattern to bash: with a file that "misaki[en]==0.9.4" would match, the argument stays
+  const ex = S.linuxScript({ ...input, runs: [{ ...runs[0], packages: ['misaki[en]==0.9.4'] }] });
+  const line = ex.split('\n').find((l) => l.includes('misaki'));
+  writeFileSync(join(tmp, 'misakie==0.9.4'), '');
+  const argv = execFileSync('bash', ['-c', `set -- ${line.split(' run ')[1].split(' python ')[0]}; printf '%s\\n' "$@"`], { cwd: tmp, encoding: 'utf8' });
+  t.eq(argv.trim().split('\n').slice(-2), ['--with', 'misaki[en]==0.9.4'], 'Linux: a pin with extras reaches uv as written, though a file matches it as a pattern');
+  t.ok(S.windowsScript({ ...input, runs: [{ ...runs[0], packages: ['misaki[en]==0.9.4'] }] }).includes("--with 'misaki[en]==0.9.4'"), 'Windows: the pin quoted too');
   t.ok(/UV_PYTHON_PREFERENCE:-only-managed/.test(sh) && /HF_HUB_DISABLE_XET:-1/.test(sh) && /UV_TORCH_BACKEND:-auto/.test(sh), 'Linux: its own Python, plain HTTPS downloads from Hugging Face, PyTorch for the GPU there is (CPU otherwise)');
   // the script decodes its parts with the system's base64 (coreutils) the same way
   const jobOut = execFileSync('bash', ['-c', `base64 -d <<'SUPERTOOLS_JOB'\n${between(sh, 'SUPERTOOLS_JOB')}\nSUPERTOOLS_JOB`], { encoding: 'utf8' });

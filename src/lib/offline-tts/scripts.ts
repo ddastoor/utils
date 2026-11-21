@@ -39,7 +39,9 @@ const wrap = (s: string, n = 76) => s.replace(new RegExp(`(.{${n}})`, 'g'), '$1\
 const SAFE_PIN = /^[A-Za-z0-9._-]+(\[[A-Za-z0-9._,-]+\])?(==[A-Za-z0-9.+!_-]+)?$/;
 function withArgs(packages: string[]): string[] {
   for (const p of packages) if (!SAFE_PIN.test(p)) throw new Error(`Not a package pin: ${p}`);
-  return packages.flatMap((p) => ['--with', p]);
+  // in single quotes for both shells: bash would read "misaki[en]==0.9.4" as a file pattern (a file named
+  // misakie==0.9.4 in the folder would take its place); no pin holds a quote
+  return packages.flatMap((p) => ['--with', `'${p}'`]);
 }
 const ascii = (s: string) => s.normalize('NFKD').replace(/[^\x20-\x7e]/g, '');
 /** A setting is NAME=value with nothing a shell would read otherwise. */
