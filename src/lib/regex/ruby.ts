@@ -11,6 +11,19 @@ import { namedGroups } from './flavours';
 // vscode-oniguruma's FindOption and Syntax (const enums in its .d.ts: their values)
 const OPT: Record<string, number> = { i: 2 /* Ignorecase */, x: 3 /* Extend */, m: 4 /* Multiline: Ruby's m */ };
 const NONE = 1, RUBY = 10;
+// Ruby's \w \d \s (and \b) are ASCII; its [[:alpha:]] and \p{…} are Unicode — Oniguruma's are all Unicode unless told
+const WORD_ASCII = 15, DIGIT_ASCII = 16, SPACE_ASCII = 17;
+
+/** Onigmo refuses {n,m} with m below n ("upper is smaller than lower in repeat range"); Oniguruma takes it. */
+export function badRange(p: string): boolean {
+  for (let i = 0; i < p.length; i++) {
+    if (p[i] === '\\') { i++; continue; }
+    if (p[i] === '[') { let d = 1; for (i++; i < p.length && d; i++) { if (p[i] === '\\') i++; else if (p[i] === '[') d++; else if (p[i] === ']') d--; } i--; continue; }
+    const m = /^\{(\d+),(\d+)\}/.exec(p.slice(i));
+    if (m && +m[2] < +m[1]) return true;
+  }
+  return false;
+}
 
 let ready: Promise<void> | null = null;
 export const loadOnig = (wasm: ArrayBuffer | Uint8Array) => (ready ??= onig.loadWASM(wasm as ArrayBuffer).catch((e) => { ready = null; throw e; }));
@@ -45,7 +58,8 @@ export function rubySub(rep: string, text: string, g: Span[], names: string[], n
 export function runRuby(q: EngineReq): EngineOut {
   if (!ready) throw new Error('Oniguruma is not loaded');
   let sc: OnigScanner;
-  try { sc = new onig.OnigScanner([q.pattern], { options: [NONE, ...[...q.flags].map((c) => OPT[c])], syntax: RUBY } as any); }
+  if (badRange(q.pattern)) throw new PatternError('upper is smaller than lower in repeat range');
+  try { sc = new onig.OnigScanner([q.pattern], { options: [NONE, WORD_ASCII, DIGIT_ASCII, SPACE_ASCII, ...[...q.flags].map((c) => OPT[c])], syntax: RUBY } as any); }
   catch (e: any) { throw new PatternError(String(e?.message || e)); }
   const str = onig.createOnigString(q.text) as any;
   // a group that took no part comes back as −1 (the binding would map it to the end of the text)
