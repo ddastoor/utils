@@ -83,6 +83,10 @@ this file = the owner's latest wishes, how the tests are written, and the traps 
   mode which uses the latest OpenPGP standard, which may or may not be compatible with GPG." References for its tests
   (not in the repository): `cargo install --locked rsop` (rPGP 0.21's SOP tool) and `cargo install --locked
   sequoia-sop --no-default-features --features cli,crypto-openssl` (Sequoia 2; needs libssl-dev).
+  **Done (21 Nov 2026):** the "Standard" switch (GnuPG-compatible, unchanged; Latest standard (RFC 9580)). Run its
+  suites with the tools: `RSOP=~/.cargo/bin/rsop SQOP=~/.cargo/bin/sqop node tests/unit.mjs pgp9580` and
+  `… node tests/e2e.mjs pgp9580` (both find them on the PATH too; without them those checks are skipped with a note).
+  SOP refuses to overwrite an output file (`--verifications-out`): give each run its own name.
 - **21 Nov 2026 — PDF → EPUB, the owner's user testing:** "this PDF was rendered very badly … see if you can fix it, and
   if you can, please note it … after the OpenPGP thing … please do this PDF to EPUB stuff also." The files:
   AJUR_January_2016p5.pdf and the EPUB the tab made (uploaded in chat; ask again in a new session).

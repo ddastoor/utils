@@ -794,6 +794,12 @@ One entry per tab, written before its bug hunt: our module → candidates → ch
   a clear-signed text; AEAD EAX / OCB / GCM and Argon2-protected messages, `tests/fixtures/pgp/rfc9580/`) decrypt
   and verify with the library in Node (`tests/unit/pgp.test.mjs`) and in the tab; GnuPG 2.4 in both directions for
   keys, recipients, signatures, passwords and the revocation certificate (`tests/e2e/pgp.e2e.mjs`).
+- **21 Nov 2026 — the "Latest standard (RFC 9580)" mode (owner's request):** the same engine (OpenPGP.js 6.3.2 covers
+  RFC 9580 in full: v6 keys, SEIPDv2 with OCB / EAX / GCM, Argon2, v6 signatures). rPGP (rsop 0.12) and Sequoia PGP
+  (sqop 0.38, Sequoia 2.4) are now the **independent references** of the mode's tests in both directions
+  (`tests/unit/pgp9580.test.mjs`, `tests/e2e/pgp9580.e2e.mjs`). Both also have the post-quantum profile (RFC 9980:
+  ML-KEM-768 + X25519, ML-DSA-65 + Ed25519); OpenPGP.js 6.3.2 has not — the one thing rPGP would add. Not a reason
+  to switch while rpgpie stays experimental (above); to look at again with the next OpenPGP.js release.
 
 ### 101. `sodium` — Sodium Encrypt (20 Nov 2026; also `sharelink`, which shares the format and the worker)
 - **Ours before:** crypto.wasm — libsodium **1.0.20** built by us (minimal, 57 KB) + our C for the USODIUM1 header,

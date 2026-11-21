@@ -55,7 +55,7 @@ Areas with a shared review: the app shell (router, search, favorites, platform h
 ## security
 | id | Tab | Platform | Area | R | B | T | Notes |
 |---|---|---|---|---|---|---|---|
-| `pgp` | OpenPGP | PC + mobile | security-codes | ✓ | 8 | 61 | a 2nd recipient was dropped (library reads 1 armored block); stored file name; armor inside e-mail; errors in words; key IDs; fingerprint+date; RFC 9580 vectors; gpg both ways. Engine kept (rPGP semantics layer experimental) |
+| `pgp` | OpenPGP | PC + mobile | security-codes | ✓ | 8 | 169 | a 2nd recipient was dropped (library reads 1 armored block); stored file name; armor inside e-mail; errors in words; key IDs; fingerprint+date; RFC 9580 vectors; gpg both ways. Engine kept (rPGP semantics layer experimental); a 2nd recipient was dropped (library reads 1 armored block); stored file name; armor inside e-mail; errors in words; key IDs; fingerprint+date; RFC 9580 vectors; gpg both ways. Engine kept (rPGP semantics layer experimental). 21 Nov 2026: 'Latest standard (RFC 9580)' mode, tested both ways against rPGP and Sequoia |
 | `sodium` | Sodium Encrypt | PC + mobile | security-codes | ✓ | 5 | 53 | engine → libsodium.js (sumo, libsodium 1.0.22) + crypto.wasm header; pasted text in every form (atob errors), .txt files, progress during Argon2; PyNaCl + cross-engine tests |
 | `sharelink` | Encrypted Share Link | PC + mobile | security-codes | ✓ | 10 | 32 | engine as sodium (libsodium.js + crypto.wasm header); links read as they arrive (cut, changed, trailing full stop, %-escapes, other site's d=), password twice, long-link warning, autocomplete, Enter |
 | `hash` | Hash / Checksum | PC + mobile | security-codes | ✓ | 11 | 140 | engine → hash-wasm (existing wasm, 23 algorithms, own worker, Stop); expected checksums in every common form, checksum lists, auto-added algorithms, secure file comparison; crypto-client ordering fix; 20 Nov: a name with a backslash written as it is — Ubuntu 26.04's sha256sum (uutils 0.10) and BusyBox (the Terminal tab) read no escaped line; found by GitHub's build machine |
@@ -1284,6 +1284,13 @@ Reference for the five finance tabs: **mpmath at 60 digits** (`scripts/make-fina
   Checked against gpg 2.4 in both directions: keys, two recipients, clear-signed and detached signatures (also of
   typed text against the same text in a file), passwords, the revocation certificate; RFC 9580 (v6 key of Annex A.4,
   SEIPD v2, AEAD OCB / EAX, Argon2) in Node and in the tab.
+  **21 Nov 2026 — the "Latest standard (RFC 9580)" mode (owner's request; unit `pgp9580.test.mjs` 68, e2e
+  `pgp9580.e2e.mjs` 40 against rPGP and Sequoia).** One bug found while it was built, by the interop probe before the
+  tab used it: a message encrypted with `format: 'object'` (needed to read its format) gave a stream from `armor()` /
+  `write()`, and the tab would have shown "[object Object]" — `readOut` in `src/lib/pgpstd.ts` joins it (unit checks
+  for armored and binary). Checked both ways with each tool: v6 keys (Ed25519 and Ed448), messages and signatures
+  inside them, the Argon2 / OCB-locked secret key, passwords, clear-signed and detached signatures; a GnuPG key gets
+  SEIPDv1 (named), which gpg 2.4 decrypts; gpg refuses the v6 key (as the tab says).
 
 - **`sodium` (tab 101, 4 bugs; engine: the cryptography moved to libsodium.js — the libsodium project's own
   WebAssembly build, libsodium 1.0.22 — with crypto.wasm kept for the USODIUM1 header; unit

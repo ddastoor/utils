@@ -35,7 +35,7 @@ export default [
   ['markdown', 'markdown'], ['md editor', 'markdown'], ['markdown preview', 'markdown'],
 
   // Security
-  ['pgp', 'pgp'], ['gpg', 'pgp'], ['openpgp', 'pgp'], ['public key encrypt', 'pgp'], ['verify signature', 'pgp'],
+  ['pgp', 'pgp'], ['gpg', 'pgp'], ['openpgp', 'pgp'], ['public key encrypt', 'pgp'], ['verify signature', 'pgp'], ['rfc 9580', 'pgp'], ['openpgp v6 key', 'pgp'], ['sequoia', 'pgp'],
   ['encrypt file', 'sodium'], ['libsodium', 'sodium'], ['argon2', 'sodium'], ['decrypt file', 'sodium'],
   ['share secret', 'sharelink'], ['encrypted link', 'sharelink'], ['secret message', 'sharelink'], ['encrypted note', 'sharelink'], ['onetimesecret', 'sharelink'], ['privnote', 'sharelink'], ['password protected link', 'sharelink'],
   ['sha256', 'hash'], ['md5', 'hash'], ['checksum', 'hash'], ['hash file', 'hash'], ['crc32', 'hash'], ['blake3', 'hash'], ['xxhash', 'hash'], ['verify iso download', 'hash'], ['sha256sum', 'hash'], ['identical files', 'hash'], ['certutil hashfile', 'hash'],

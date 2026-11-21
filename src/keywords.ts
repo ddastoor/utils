@@ -36,7 +36,7 @@ export const KEYWORDS: Record<string, string> = {
   'invoice': 'invoice, gst invoice, bill generator, invoice generator, invoice maker, bill, billing, tax invoice, gstin, hsn, sac, freelancer, quotation, estimate, pdf',
   'rent': 'rent receipt, hra, house rent, landlord, tenant, receipt, income tax, pan, revenue stamp',
   'resume': 'resume, cv, cv maker, resume maker, curriculum vitae, biodata, job application, pdf resume',
-  'pgp': 'verify signature, signed message, encrypt for someone, gpg encrypt, pgp, gpg, gnupg, openpgp, encrypt, decrypt, sign, verify, public key, private key, keypair, asc, armor',
+  'pgp': 'verify signature, signed message, encrypt for someone, gpg encrypt, pgp, gpg, gnupg, openpgp, encrypt, decrypt, sign, verify, public key, private key, keypair, asc, armor, rfc 9580, rfc9580, v6 key, seipdv2, aead, ocb, ed448, x25519, sequoia, crypto refresh, latest openpgp standard',
   'sodium': 'encrypt, decrypt, password, libsodium, argon2, xchacha20, secure, lock file, symmetric, encrypt file, password protect file, encrypt text, usodium',
   'sharelink': 'share, link, secret, message, encrypted, url, send password, note, encrypted note, secure message, private message, confidential, password protected link, share a secret safely, one time secret, onetimesecret, privnote, secret link, encrypted url, whatsapp secret',
   'hash': 'hash, checksum, md5, sha1, sha256, sha512, sha224, sha384, sha3, keccak, blake2, b2sum, blake3, b3sum, crc32, crc32c, crc64, adler32, xxhash, xxh3, xxh64, xxh128, ripemd160, verify, verify download, check iso, integrity, sri, sha256sum, md5sum, sha256sums, checksum file, sfv, certutil, certutil hashfile, hashfile, get-filehash, file fingerprint, digest, compare files, identical files, duplicate file',

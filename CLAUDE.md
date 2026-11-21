@@ -216,6 +216,8 @@ Wayland) and **mobile browsers** (Android Chrome, iPhone Safari).
 - No offline/installable app — **all online** (plain website).
 - OpenPGP: **GnuPG-compatible** (v4 Curve25519 keys). Decryption accepts both v4 and RFC 9580 v6 input,
   so a future GnuPG that adopts RFC 9580 keeps working with this tool.
+  21 Nov 2026: a second mode beside it, **"Latest standard (RFC 9580)"** — v6 keys, SEIPDv2 (AEAD), Argon2 — "which may
+  or may not be compatible with GPG"; the GnuPG-compatible mode stays exactly as it was (§3 OpenPGP).
 - "Use your best discretion" for everything else; "leave out the things you suggested leaving out".
 
 ---
@@ -616,6 +618,25 @@ the wrong kind of thing in a box is named; the library's errors are said in word
 stored in the message; a message for another key names the key IDs; a good signature shows the signing key's
 fingerprint and the date; decrypted text is shown whenever it is text. Engine: OpenPGP.js stays (docs/WASM-AUDIT.md,
 tab 100: rPGP is low-level and its semantics layer is experimental).
+**A second mode, "Latest standard (RFC 9580)"** (owner, 21 Nov 2026: "keep the existing functionality exactly the same
+and add another, new mode which uses the latest OpenPGP standard, which may or may not be compatible with GPG";
+settings and words `src/lib/pgpstd.ts`; unit `tests/unit/pgp9580.test.mjs` 68, e2e `tests/e2e/pgp9580.e2e.mjs` 40 —
+against **rPGP** (rsop 0.12, rpgp 0.21) and **Sequoia PGP** (sqop 0.38, Sequoia 2.4), found by `$RSOP` / `$SQOP` or on
+the PATH (build commands: docs/HANDOFF.md; skipped with a note where missing)). A "Standard" switch above the five
+actions: **GnuPG-compatible** (the default — the tab exactly as it was; `gpgConfig` is its old settings, its suite
+unchanged) or **Latest standard**: Generate makes a **v6 key**, Ed25519 + X25519 or Ed448 + X448, its secret parts
+locked with **Argon2** (3 passes, 4 lanes, 64 MiB — RFC 9580's second recommended setting; the first wants 2 GiB, too
+much for a phone) and AES-256 in OCB mode, asking for SEIPDv2 with AES-256 / OCB; Encrypt writes **SEIPDv2** (AEAD; OCB
+first, the cipher both sides list) with v6 session keys, a password through Argon2 into a v6 SKESK; a recipient key
+that does not offer SEIPDv2 (every GnuPG key) gets **SEIPDv1 with v3 session keys, as RFC 9580 §5.1 requires** — the tab
+names those keys; Sign makes v6 signatures with a v6 key (SHA-512); **every result says its format** ("Format: SEIPDv2 —
+AES-256 in OCB mode (AEAD, RFC 9580) · v6 session key for 1 key", "Made: v6 signature (RFC 9580) · Ed25519 · SHA-512"),
+Decrypt and Verify too (also what another program made: Sequoia stretches passwords with iterated S2K inside a v6
+SKESK, and the line says so). GnuPG 2.4 reads none of it (it follows LibrePGP) — said in the tab; it still decrypts the
+SEIPDv1 messages this mode writes to its keys. A message encrypted with `format: 'object'` (to read its format)
+keeps its data as a stream: `readOut` joins what `armor()` / `write()` give (the tab showed "[object Object]"). **Not there: post-quantum keys** (RFC 9980,
+ML-KEM-768 + X25519 / ML-DSA-65 + Ed25519 — rPGP and Sequoia have them); OpenPGP.js 6.3.2, the newest release, does not.
+A later step when the library has them (engine unchanged: docs/WASM-AUDIT.md, tab 100).
 
 ### Sodium Encrypt (libsodium, symmetric only)
 Files **and** typed text. Argon2id (`crypto_pwhash`) derives a key; data encrypted with
@@ -2103,7 +2124,7 @@ JavaScript-only components (no C/C++ equivalent exists for the job):
 | Library | Why JS | Used by |
 |---|---|---|
 | own `src/lib/curl.ts` (shell word splitting for bash and cmd.exe, curl option table, code generators) | no tried-and-tested WebAssembly build of a curl command-line parser exists (curl's own parser is tied to libcurl and its tool's globals); it is string parsing of one short line and code templating. A Rust port into devcore is on the to-do sweep (`todo.md`) | curl |
-| OpenPGP.js 6 (LGPL-3.0) | the audited browser OpenPGP implementation (Proton Mail); no WebAssembly OpenPGP module exists, and the Rust one that could be built (rPGP) is low-level — which key to use and whether it is valid is left to the caller, and its semantics layer (rpgpie) is marked experimental by its authors: swapping it in would lower the tab's security (`docs/WASM-AUDIT.md`, tab 100; to look at again) | pgp |
+| OpenPGP.js 6 (LGPL-3.0) — both standards of the tab (GnuPG-compatible and RFC 9580) | the audited browser OpenPGP implementation (Proton Mail); no WebAssembly OpenPGP module exists, and the Rust one that could be built (rPGP) is low-level — which key to use and whether it is valid is left to the caller, and its semantics layer (rpgpie) is marked experimental by its authors: swapping it in would lower the tab's security (`docs/WASM-AUDIT.md`, tab 100; to look at again) | pgp |
 | Mermaid 12 (MIT) | Mermaid exists only as JavaScript; `securityLevel: 'strict'` (labels sanitised), bundled by Vite | mermaid |
 | Prettier 3 standalone (MIT) | Markdown: both WebAssembly Markdown formatters (Biome's, dprint's) change what a document renders to (`docs/WASM-AUDIT.md`, tab 54). And the fallback for text the WebAssembly engines of the other nine languages cannot read (owner's tweak: (b) an existing JS library for what the module does not cover); each parser is fetched only then | prettier |
 | TensorFlow.js (Apache-2.0) | runs the Magenta style-transfer graph on the GPU via WebGL; its **wasm backend** (XNNPACK, C++ → wasm, tier 2 official build) is the CPU path | cartoon (neural) |
