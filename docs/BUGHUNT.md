@@ -2430,6 +2430,17 @@ cannot. Three new suites; each fails on the build before its fixes.
   Candidates checked and left for later: MeloTTS (its PyPI package 0.1.1 needs torch < 2.0, no Python 3.12), Chatterbox
   (pins torch 2.6.0 and gradio), Indic-Speak (gated, 7 GB, its inference code unreadable without access), Veena, Maya 2,
   Orpheus (GPU-sized), ZONOS3-Mini (an Indian accent with a dose — on the processor only through its C++ tool).
+- **TTS offline — Indic Parler-TTS refused the owner's token (21 Nov 2026).** "Hugging Face did not let this computer
+  download ai4bharat/indic-parler-tts …" came after the engine's programs were installed, and could not say why. The
+  three causes look alike from the download (401 / 403 "GatedRepo"): a token Hugging Face does not know (whoami: "Invalid
+  username or password"), an account that has not accepted the model's conditions, a fine-grained token not allowed to
+  read gated models. Fixed: the script checks the token right after it is given (driver.py `--check-access`, with
+  huggingface-hub only — seconds, before any engine) and `access_help` names the case by `whoami` (the account's name,
+  the token's kind) with what to do; a later refusal in `fetch` says the same; the libraries' SyntaxWarnings (audiotools'
+  docstrings) and FutureWarnings no longer show. Checks: unit plan +6 (the three cases and an open model with a stand-in
+  huggingface_hub; fetch; the warnings filter against a control), offline-tts +6 (the check's place in both scripts, a
+  refusal stops before any engine, an accepted token goes on). Run here against Hugging Face itself: no token, a wrong
+  token and an open model gave the right answers (an account with a token is not available in the sandbox).
 - **TTS offline — a first run looked stuck (owner, 21 Nov 2026).** The owner ran a script with one Parler-TTS voice; it
   printed "== Parler-TTS: 1 voice" and then nothing for minutes — "Is this stuck or is this taking time because the model
   is big?" It was neither: uv ran with `--quiet`, so the download of PyTorch and Parler-TTS's packages (about 0.8 GB, 3 GB

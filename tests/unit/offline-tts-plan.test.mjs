@@ -3,7 +3,7 @@
 // models as read from the .onnx.json files inside sherpa-onnx's archives (a separate copy of the same models — p248 87,
 // p251 92, p376 26; L2-ARCTIC SVBI 2, TNI 9, ASI 10, RRBI 19; ARCTIC ksp 3), VCTK's own speaker list
 // (scripts/data/vctk-speaker-info.txt), Kokoro's VOICES.md grades, and bash -n for every script.
-import { readFileSync, writeFileSync, mkdtempSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdtempSync, mkdirSync } from 'node:fs';
 import { spawnSync, execFileSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -169,4 +169,43 @@ print(json.dumps({'max': max(map(len, c)), 'same': ' '.join(c).split() == t.spli
   t.ok(r.max <= 240 && r.same && r.n > 5, `driver.py cuts a long text into pieces of at most 240 characters, every word kept (${r.n} pieces)`);
   t.eq(r.pace, ['very slowly', 'slowly', 'at a moderate pace', 'slightly fast', 'fast'], 'Parler’s pace words');
   t.eq(r.engines, [...P.ENGINE_ORDER].sort(), 'driver.py has every engine the planner runs');
+
+  // a gated model refused: which of the three cases it is, in words (owner, 21 Nov 2026: Indic Parler-TTS refused his
+  // token and the message could not say why) — with a stand-in huggingface_hub
+  mkdirSync(join(tmp, 'hfstub', 'huggingface_hub'), { recursive: true });
+  writeFileSync(join(tmp, 'hfstub', 'huggingface_hub', '__init__.py'), [
+    'import os',
+    'class GatedRepoError(Exception): pass',
+    'def whoami(token=None):',
+    "    w = os.environ.get('STUB_WHOAMI', 'read')",
+    "    if w == 'bad': raise Exception('401 Client Error: Unauthorized (Invalid username or password.)')",
+    "    return {'name': 'asha', 'auth': {'accessToken': {'role': 'fineGrained' if w == 'fine' else 'read'}}}",
+    'class HfApi:',
+    '    def auth_check(self, repo, **k):',
+    "        if os.environ.get('STUB_ACCESS') == 'no': raise GatedRepoError('403 Client Error. Cannot access gated repo. You are not in the authorized list.')",
+    "def hf_hub_download(*a, **k): raise GatedRepoError('403 Client Error. Cannot access gated repo.')",
+    "def snapshot_download(*a, **k): raise GatedRepoError('403 Client Error. Cannot access gated repo.')", ''].join('\n'));
+  const check = (env, how = 'check') => spawnSync('python3', ['-I', '-c', `import sys, runpy; sys.path.insert(0, 'hfstub'); sys.path.insert(0, '.')
+if '${how}' == 'check':
+    sys.argv = ['driver.py', 'job.json', '--check-access', 'ai4bharat/indic-parler-tts']
+    try: runpy.run_path('driver.py', run_name='__main__'); print('OK')
+    except SystemExit as e: print('EXIT', e.code)
+else:
+    import driver
+    try: driver.fetch('ai4bharat/indic-parler-tts', 'abc', ['config.json']); print('OK')
+    except SystemExit as e: print('EXIT', e.code)`], { cwd: tmp, encoding: 'utf8', env: { ...process.env, PYTHONPATH: '', HF_HOME: '/home/u/SuperTools-TTS/cache/huggingface', ...env } }).stdout;
+  const ok = check({ STUB_ACCESS: 'ok' });
+  t.ok(/ai4bharat\/indic-parler-tts: this computer may download it\.\nOK/.test(ok), `the check passes an open model (${ok.trim()})`);
+  const bad = check({ STUB_ACCESS: 'no', STUB_WHOAMI: 'bad' });
+  t.ok(/^EXIT Hugging Face refused the token saved on this computer/.test(bad) && bad.includes('type "Read"') && bad.includes('delete /home/u/SuperTools-TTS/cache/huggingface/token and run the script again'), `a token Hugging Face does not know: make a Read token, delete the saved one (${bad.trim().slice(0, 120)})`);
+  const notYet = check({ STUB_ACCESS: 'no', STUB_WHOAMI: 'read' });
+  t.ok(notYet.includes('The token belongs to the account "asha", which has not been given access to ai4bharat/indic-parler-tts') && notYet.includes('"Agree and access repository"') && notYet.includes('the same token works'), 'an account that has not accepted the conditions: its name, the page, the button');
+  const fine = check({ STUB_ACCESS: 'no', STUB_WHOAMI: 'fine' });
+  t.ok(fine.includes('fine-grained token') && fine.includes('Read access to contents of all public gated repos you can access'), 'a fine-grained token: the box to tick, or a Read token');
+  const dl = check({ STUB_WHOAMI: 'read' }, 'fetch');
+  t.ok(dl.includes('\nEXIT The token belongs to the account "asha"'), `a download refused later says the same (fetch: ${dl.trim().slice(0, 160)})`);
+  // the libraries' SyntaxWarnings (an escape in a docstring) are not shown once driver.py is loaded
+  writeFileSync(join(tmp, 'noisy.py'), 's = "lru\\_cache"\n');
+  const noisy = (pre) => spawnSync('python3', ['-I', '-c', `import sys; sys.path.insert(0, '.')\n${pre}\nexec(compile(open('noisy.py').read(), 'noisy.py', 'exec'))`], { cwd: tmp, encoding: 'utf8' }).stderr;
+  t.ok(/SyntaxWarning/.test(noisy('')) && !/Warning/.test(noisy('import driver')), 'a module with an invalid escape: warned without driver.py, silent with it');
 };

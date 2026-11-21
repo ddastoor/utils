@@ -8,7 +8,13 @@ import os
 import re
 import sys
 import time
+import warnings
 import wave
+
+# the libraries' notes to their own developers (an escape in a docstring, a call that will change) are not for the
+# reader of this window: they looked like errors (owner, 21 Nov 2026)
+for _c in (SyntaxWarning, FutureWarning, DeprecationWarning):
+    warnings.filterwarnings('ignore', category=_c)
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 MODELS = os.path.join(HERE, 'models')
@@ -135,11 +141,50 @@ def fetch(repo, revision, files=None):
         return snapshot_download(repo, revision=revision, allow_patterns=files, local_dir=local)
     except Exception as e:
         if 'Gated' in type(e).__name__ or re.search(r'\b(401|403)\b', str(e)):
-            token = os.path.join(os.environ.get('HF_HOME', ''), 'token')
-            sys.exit(f'Hugging Face did not let this computer download {repo}: it needs a free account that has accepted '
-                     f'the conditions at https://huggingface.co/{repo}, and a token of that account. To be asked for '
-                     f'the token again, delete {token} and run the script again.')
+            sys.exit(access_help(repo))
         raise
+
+
+def access_help(repo):
+    """Why Hugging Face refuses a gated model to this computer, and what to do. The token's account and kind (whoami)
+    tell the three cases apart: a token Hugging Face does not know, an account that has not accepted the model's
+    conditions, a fine-grained token not allowed to read gated models."""
+    from huggingface_hub import whoami
+    page = f'https://huggingface.co/{repo}'
+    again = f'delete {os.path.join(os.environ.get("HF_HOME", ""), "token")} and run the script again: it asks for the token'
+    try:
+        me = whoami()
+    except Exception as e:
+        if 'TokenNotFound' in type(e).__name__:
+            return f'No Hugging Face token is saved on this computer, and {repo} needs one: run the script again, it asks for it.'
+        return (f'Hugging Face refused the token saved on this computer, so {repo} cannot be downloaded: the token is '
+                f'mistyped, cut short, or was deleted on the website. Make a token of the type "Read" at '
+                f'https://huggingface.co/settings/tokens (signed in with an account that has accepted the conditions at '
+                f'{page}), then {again}.')
+    name = me.get('name') or '?'
+    role = ((me.get('auth') or {}).get('accessToken') or {}).get('role', '')
+    if role == 'fineGrained':
+        return (f'The token belongs to the account "{name}", but it is a fine-grained token, which opens a gated model only '
+                f'when it is allowed to: at https://huggingface.co/settings/tokens edit it and tick "Read access to contents '
+                f'of all public gated repos you can access" (then run the script again), or make a token of the type '
+                f'"Read" and {again}. The account must also have accepted the conditions at {page}.')
+    return (f'The token belongs to the account "{name}", which has not been given access to {repo}: signed in as "{name}", '
+            f'open {page}, press "Agree and access repository", then run the script again (the same token works).')
+
+
+def check_access(repos):
+    """The script's check right after the token step: is every gated model of the job open to this token? Said in
+    seconds, before the programs and models (gigabytes) are downloaded."""
+    from huggingface_hub import HfApi
+    api = HfApi()
+    for repo in repos:
+        try:
+            api.auth_check(repo)
+        except Exception as e:
+            if 'Gated' in type(e).__name__ or re.search(r'\b(401|403)\b', str(e)):
+                sys.exit(access_help(repo))
+            raise
+        log(f'  {repo}: this computer may download it.')
 
 
 ENGINES = {}
@@ -773,6 +818,8 @@ def qwen(job, voices):
 
 
 def main():
+    if len(sys.argv) > 2 and sys.argv[2] == '--check-access':
+        return check_access(sys.argv[3:])
     job = json.load(open(sys.argv[1], encoding='utf-8'))
     name = sys.argv[2]
     if len(sys.argv) > 3:

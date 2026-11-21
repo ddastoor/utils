@@ -471,7 +471,13 @@ on this PC**; phones never see the switch.
   Hugging Face's progress bars.
   Windows: a `.cmd` that runs the PowerShell under it (ASCII, CRLF; Windows PowerShell 5.1 is part of Windows 10 / 11).
   Linux: bash with curl or wget. A gated model (Indic Parler-TTS) makes the script ask once for a Hugging Face token
-  (hidden input), kept in the folder's `cache/huggingface/token`; a refused download is explained by driver.py.
+  (hidden input), kept in the folder's `cache/huggingface/token`, and **checks it at once** (owner, 21 Nov 2026: his
+  token was refused only after gigabytes of programs): `driver.py job.json --check-access <repo>…` with huggingface-hub
+  alone (`CHECK_PINS`) — `auth_check`, and on a refusal `access_help` tells the three cases apart by `whoami`: a token
+  Hugging Face does not know (make a "Read" token, delete the saved one), an account that has not accepted the model's
+  conditions (its name, the page, "Agree and access repository"), a fine-grained token without "Read access to contents
+  of all public gated repos" — and stops before any engine ("Nothing else was downloaded"). A later refusal (fetch) says
+  the same. The libraries' SyntaxWarning / FutureWarning / DeprecationWarning lines are filtered out (they read as errors).
 - **The voices (626 in 64 models, 16 engines; round 2 on 21 Nov 2026 — owner: "include them all"):** grouped Indian (134)
   / American (84) / British and Irish (117) / other accents (60) / accent not documented (231); filters by engine, sex and
   words; sizes counted once per model; licences shown, "personal use only" marked; XTTS-v2 (Coqui Public Model License,

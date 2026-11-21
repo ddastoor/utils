@@ -70,6 +70,8 @@ function envOf(r: EngineRun): Array<[string, string]> {
   return e;
 }
 const REPO = /^[A-Za-z0-9][A-Za-z0-9._-]*\/[A-Za-z0-9][A-Za-z0-9._-]*$/;
+/** What the token check runs with: Hugging Face's own library, nothing else (a few MB). */
+export const CHECK_PINS = ['huggingface-hub==0.36.2'];
 
 /** `gated`: Hugging Face repositories that need a (free) account and a token — the script asks for the token once and
  *  keeps it in its own folder (cache/huggingface/token), where huggingface_hub looks for it. */
@@ -145,7 +147,11 @@ SUPERTOOLS_DRIVER
 base64 -d > "$RUN/job.json" <<'SUPERTOOLS_JOB'
 ${wrap(b64(JSON.stringify(o.job)))}
 SUPERTOOLS_JOB
-FAILED=''
+${gated.length ? `say ${shq(`Checking that Hugging Face lets this computer download ${gated.join(', ')}`)}
+if ! "$DIR/bin/uv" run --python ${PYTHON} --no-project ${withArgs(CHECK_PINS).join(' ')} python "$DIR/driver.py" "$RUN/job.json" --check-access ${gated.map(shq).join(' ')}; then
+  echo 'Nothing else was downloaded. Fix that, then run this again.' >&2; exit 1
+fi
+` : ''}FAILED=''
 ${runs}
 if command -v xdg-open >/dev/null 2>&1; then xdg-open "$RUN" >/dev/null 2>&1 || true; fi
 if [ -n "$FAILED" ]; then echo "Stopped with an error: \${FAILED#, } (the messages above say why). The other voices are in $RUN" >&2; exit 1; fi
@@ -219,7 +225,10 @@ ${token}  $Run = Join-Path $Dir ('output\\' + (Get-Date -Format 'yyyy-MM-dd_HHmm
   New-Item -ItemType Directory -Force -Path $Run | Out-Null
   [IO.File]::WriteAllBytes((Join-Path $Dir 'driver.py'), [Convert]::FromBase64String(${ps(b64(o.driver))}))
   [IO.File]::WriteAllBytes((Join-Path $Run 'job.json'), [Convert]::FromBase64String(${ps(b64(JSON.stringify(o.job)))}))
-  $failed = @()
+${gated.length ? `  Say ${ps(ascii(`Checking that Hugging Face lets this computer download ${gated.join(', ')}`))}
+  & $uv run --python ${PYTHON} --no-project ${withArgs(CHECK_PINS).join(' ')} python "$Dir\\driver.py" "$Run\\job.json" --check-access ${gated.map(ps).join(' ')}
+  if ($LASTEXITCODE -ne 0) { throw 'Hugging Face refused the download (the message above says why and what to do). Nothing else was downloaded; run this again when it is fixed.' }
+` : ''}  $failed = @()
 ${runs.split('\r\n').map((l) => `  ${l}`).join('\r\n')}
   Invoke-Item -LiteralPath $Run
   if ($failed.Count) { throw ('Stopped with an error: ' + ($failed -join ', ') + ' (the messages above say why). The other voices are in ' + $Run) }

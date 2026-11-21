@@ -95,6 +95,27 @@ export default async (t, { load }) => {
   const win = S.windowsScript({ ...input, runs: three });
   t.ok(/\$failed = @\(\)/.test(win) && (win.match(/if \(\$LASTEXITCODE -ne 0\) \{ \$failed \+= '/g) || []).length === 3 && /if \(\$failed\.Count\) \{ throw/.test(win), 'Windows: each failure noted, the others run, the end says which');
 
+  // a gated model: the token is checked right after it is given, before any engine (owner, 21 Nov 2026: Indic
+  // Parler-TTS refused his token only after gigabytes of programs) — the check runs with huggingface-hub alone
+  const gIn = { ...input, gated: ['ai4bharat/indic-parler-tts'] };
+  const gsh = S.linuxScript(gIn), gcmd = S.windowsScript(gIn);
+  const pos = (s, x) => s.indexOf(x);
+  const ckL = "--with 'huggingface-hub==0.36.2' python \"$DIR/driver.py\" \"$RUN/job.json\" --check-access 'ai4bharat/indic-parler-tts'";
+  t.ok(pos(gsh, ckL) > pos(gsh, "\nSUPERTOOLS_JOB\n") && pos(gsh, ckL) < pos(gsh, "say 'Piper: 1 voice'") && pos(gsh, ckL) > pos(gsh, 'read -rsp'), 'Linux: the token is checked after it is asked for and the job is written, before the first engine');
+  writeFileSync(join(tmp, 'gated.sh'), gsh);
+  t.ok(spawnSync('bash', ['-n', join(tmp, 'gated.sh')]).status === 0, 'Linux: bash -n reads the script with the check');
+  const ckW = "--with 'huggingface-hub==0.36.2' python \"$Dir\\driver.py\" \"$Run\\job.json\" --check-access 'ai4bharat/indic-parler-tts'";
+  t.ok(pos(gcmd, ckW) > pos(gcmd, "'job.json'") && pos(gcmd, ckW) < pos(gcmd, "Say 'Piper: 1 voice'") && /if \(\$LASTEXITCODE -ne 0\) \{ throw 'Hugging Face refused the download/.test(gcmd) && /^[\x00-\x7f]*$/.test(gcmd), 'Windows: the same check in the same place; a refusal stops the script; ASCII');
+  t.ok(!sh.includes('--check-access') && !cmd.includes('--check-access'), 'no check without a gated model');
+  const gf = mkdtempSync(join(tmpdir(), 'stts-gated-'));
+  execFileSync('mkdir', ['-p', join(gf, 'bin')]);
+  writeFileSync(join(gf, 'bin', 'uv'), '#!/bin/sh\nfor a; do last2="$prev"; prev="$a"; done\necho "$last2" >> "$SUPERTOOLS_TTS_DIR/ran"\nif [ "$last2" = --check-access ] && [ -n "$FAKE_REFUSE" ]; then echo "refused (the driver says why)" >&2; exit 1; fi\n', { mode: 0o755 });
+  const runG = (env) => { writeFileSync(join(gf, 'ran'), ''); return spawnSync('bash', [join(tmp, 'gated.sh')], { encoding: 'utf8', env: { ...process.env, SUPERTOOLS_TTS_DIR: gf, PATH: '/usr/bin:/bin', HF_TOKEN: 'hf_stand_in', ...env } }); };
+  const refused = runG({ FAKE_REFUSE: '1' }), ranR = readFileSync(join(gf, 'ran'), 'utf8').trim().split('\n');
+  t.ok(refused.status === 1 && ranR.join() === '--check-access' && /Nothing else was downloaded\. Fix that, then run this again\./.test(refused.stderr), `Linux: a refused token stops the script before any engine (${refused.status}; ran ${ranR.join(', ')})`);
+  const passed = runG({}), ranP = readFileSync(join(gf, 'ran'), 'utf8').trim().split('\n');
+  t.ok(passed.status === 0 && ranP.join() === '--check-access,piper' && passed.stdout.includes('== Checking that Hugging Face lets this computer download ai4bharat/indic-parler-tts'), `Linux: an accepted token goes on to the engines (${ranP.join(', ')})`);
+
   // the real thing (opt-in: downloads uv, Python packages and a 63 MB voice)
   if (process.env.OFFLINE_TTS_E2E === '1') {
     const home = mkdtempSync(join(tmpdir(), 'stts-home-'));

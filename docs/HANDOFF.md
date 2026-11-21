@@ -26,6 +26,9 @@ this file = the owner's latest wishes, how the tests are written, and the traps 
   them out and then remove them from potential.md, and then we repeat this process." Before that: the offline voices in
   progress, to-do #5 (SuperUtils), the Regex Tester's flavours, the Photo Dictionary plan. Each pick gets the size check
   first (CLAUDE.md top).
+- **21 Nov 2026 — Indic Parler-TTS refused the owner's token** (the message could not say why). Answered with the
+  three cases (`whoami` tells them apart) and the fix for each; the script now checks the token right after it is given
+  and names the case (CLAUDE.md, offline mode).
 - **21 Nov 2026 — "is this stuck?"** The owner ran an offline speech script; after "== Parler-TTS: 1 voice" nothing showed
   for minutes (uv was installing PyTorch with `--quiet`). Fixed: uv's progress shows, each engine says what its first run
   downloads, driver.py says when it starts and what model it downloads.
