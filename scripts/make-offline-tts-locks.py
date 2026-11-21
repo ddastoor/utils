@@ -8,6 +8,7 @@
 # their build (+cpu …: uv picks the build for the PC's graphics card), and NVIDIA's libraries and Triton are left to that
 # build. Needs uv. Run after a change to an engine's packages, then the generator; run the engine (driver.py) after.
 import importlib.util, json, os, re, subprocess, sys, tempfile
+from packaging.markers import Marker
 here = os.path.dirname(os.path.abspath(__file__))
 spec = importlib.util.spec_from_file_location('catalogue', os.path.join(here, 'make-offline-tts-catalogue.py'))
 gen = importlib.util.module_from_spec(spec)
@@ -15,6 +16,15 @@ spec.loader.exec_module(gen)
 OUT = os.path.join(here, 'data', 'offline-tts-locks.json')
 TORCH = {'torch', 'torchaudio', 'torchvision', 'torchcodec'}
 UV = os.environ.get('UV') or 'uv'
+# The systems the tab's scripts install on — always Python 3.12 (uv's own build). A universal lock also lists versions for
+# other Pythons (3.14 forks): those lines are dropped, or PyTorch's two versions would both stand unmarked in the lock and
+# contradict each other (found 21 Nov 2026: Chatterbox's lock asked for torch 2.6.0 and 2.15.0 at once).
+TARGETS = [dict(python_version='3.12', python_full_version='3.12.13', implementation_name='cpython', platform_python_implementation='CPython',
+                **sysenv) for sysenv in (
+    dict(sys_platform='linux', platform_system='Linux', os_name='posix', platform_machine='x86_64'),
+    dict(sys_platform='linux', platform_system='Linux', os_name='posix', platform_machine='aarch64'),
+    dict(sys_platform='win32', platform_system='Windows', os_name='nt', platform_machine='AMD64'),
+    dict(sys_platform='win32', platform_system='Windows', os_name='nt', platform_machine='ARM64'))]
 
 
 def lock(packages):
@@ -31,6 +41,8 @@ def lock(packages):
         if not line or line.startswith(('#', '-')):
             continue
         spec, _, mark = line.partition(' ; ')
+        if mark and not any(Marker(mark).evaluate(t) for t in TARGETS):
+            continue  # for no system the scripts install on (another Python, macOS …)
         name = re.split(r'[=<>!~\[ ]', spec, maxsplit=1)[0].lower()
         if name.startswith('nvidia-') or name == 'triton':
             continue  # what PyTorch's CUDA build needs comes with that build
@@ -42,13 +54,29 @@ def lock(packages):
         item = spec + (f' ; {mark}' if mark else '')
         if item not in out:
             out.append(item)
+    # a package without a marker stands for every system: twice with different versions is a contradiction
+    names = {}
+    for item in out:
+        spec, _, mark = item.partition(' ; ')
+        if not mark:
+            n = re.split(r'[=<>!~\[ ]', spec, maxsplit=1)[0].lower()
+            if n in names and names[n] != spec:
+                sys.exit(f'{packages}: {names[n]} and {spec} would both be required')
+            names[n] = spec
     return out
 
 
 def main():
+    # python3 scripts/make-offline-tts-locks.py [ENGINE …] — only the engines named are locked again (the others keep the
+    # versions they were run with); none named: every engine
+    only = set(sys.argv[1:])
     ver = subprocess.run([UV, '--version'], capture_output=True, text=True).stdout.strip()
+    old = json.load(open(OUT, encoding='utf-8'))['engines'] if only and os.path.exists(OUT) else {}
     locks = {}
     for name, e in gen.ENGINES.items():
+        if only and name not in only and name in old and old[name]['packages'] == e['packages']:
+            locks[name] = old[name]
+            continue
         locks[name] = {'packages': e['packages'], 'lock': lock(e['packages'])}
         print(f'{name}: {len(locks[name]["lock"])} packages', flush=True)
     for extra, pkgs in (('check-access', gen.CHECK_PINS),) if hasattr(gen, 'CHECK_PINS') else ():

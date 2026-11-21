@@ -81,6 +81,15 @@ export default async (t, { load }) => {
       || E.packages.some((p) => { const m = p.match(/^([A-Za-z0-9._-]+)(?:\[[^\]]*\])?==(.+)$/); return m && !E.lock.some((l) => name(l) === m[1].toLowerCase().replace(/_/g, '-') && l.includes(`==${m[2]}`)); }));
     t.eq(bad.map(([e]) => e), [], 'every engine has a lock holding its own pins, PyTorch without a build, no NVIDIA libraries');
     t.ok(Object.values(cat.engines).filter((E) => E.torch).every((E) => E.lock.some((l) => /^torch==\d/.test(l))), 'every engine that needs PyTorch has its version locked'); }
+  // a package without a marker stands for every system: twice with different versions, uv cannot install the engine at all
+  // (21 Nov 2026: Chatterbox's lock asked for torch 2.6.0 and 2.15.0 at once — a universal lock's Python 3.14 lines with
+  // their markers taken off)
+  { const clash = [], name = (l) => l.split(/[=<>!~[ ;]/)[0].toLowerCase().replace(/_/g, '-');
+    for (const [e, E] of Object.entries(cat.engines)) {
+      const seen = new Map();
+      for (const l of E.lock ?? []) { if (l.includes(' ; ')) continue; const n = name(l), v = l.split(' ; ')[0]; if (seen.has(n) && seen.get(n) !== v) clash.push(`${e}: ${seen.get(n)} / ${v}`); seen.set(n, v); }
+    }
+    t.eq(clash, [], 'no lock asks for two versions of one package for every system'); }
   // MeloTTS: MeloTTS-English's speaker numbers (its config: EN-US 0, EN-BR 1, EN_INDIA 2, EN-AU 3, EN-Default 4)
   t.eq(per('melo').map((v) => [v.speaker, v.id, v.group]).sort(), [[0, 'melo-en-us', 'us'], [1, 'melo-en-br', 'uk'], [2, 'melo-en-india', 'in'], [3, 'melo-en-au', 'world'], [4, 'melo-en-default', 'any']], 'MeloTTS: its five speakers and their accents');
   t.ok(per('melo').every((v) => v.sex === 'f'), 'MeloTTS: five women’s voices');
