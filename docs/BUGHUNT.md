@@ -2668,3 +2668,20 @@ cannot. Three new suites; each fails on the build before its fixes.
   "Unicode") → both through `textOf`. (4) **X11 / Wayland**: Screenshot's countdown window "stays on top" — not on
   Wayland, which leaves that to the desktop (said there now); Screen Info says what a page is not told on Wayland.
   `tests/e2e/os.e2e.mjs` opens all 172 PC tabs as Windows (user agent and client hints), X11 and Wayland.
+  Then: (5) **Extract Archive's "Save all to a folder"** wrote every name as it is in the archive — on Windows a device
+  name (the Linux kernel's `aux.c`, a folder `con`) cannot be created, a name ending with a dot or a space loses it,
+  and README / readme are one file (the second overwrote the first) → `safeParts(path, windows)` (aux_.c, notes_),
+  `freeName()` (" (2)" where the folder cannot tell names apart: Windows and macOS); elsewhere a name the browser
+  refuses ("Name is not allowed": its File System Access may hold names to what every system can create — its
+  sandboxed file system accepts all of them, so this could not be settled here) takes the safe form (e2e unzip 43).
+  (6) **The Patch tab** saved a Windows file (CR LF) with LF — a text box gives its text back with LF only, so every
+  line of the file had changed; GNU patch keeps them → the line ends of the opened original are kept on Download
+  (`crlfText`), and a patch saved by PowerShell 5.1 (UTF-16, CR LF) applies (e2e patch 27). (7) **The Keyboard Test**
+  lit a key on its key-down only; Windows keeps PrintScreen's key-down for itself, so PrtSc could never be tested there
+  → a key also registers on its release; and the release of a lone Alt moved the focus to Chrome's menu on Windows
+  (every key after it went to the browser) → the key-up is taken too (e2e keyboard 29). (8) **The offline speech
+  script for Windows** had only been read: it ended with exit code 0 whatever happened, and opening the output folder
+  (Invoke-Item) could fail the run where Explorer cannot open it → exit 1 on a failure (after the pause), the folder a
+  convenience as xdg-open is on Linux; **run for real on GitHub's Windows runner** (`.github/workflows/windows-tts.yml`,
+  `tests/unit/offline-tts-run.test.mjs`): Piper — the lock's versions, a WAV and an MP3, exit 1 for a voice that cannot
+  be made; then one job per engine. The Windows steps also say that Chrome may ask to keep the .cmd.
