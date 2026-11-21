@@ -30,12 +30,17 @@ that affects it.
 > phone, especially when I take pictures of my Kindle, because I read a lot on my Kindle. It also obviously has to work
 > very well on the PC using a webcam, but my primary use case for photo dictionary is while using it with my phone to take
 > pictures of Kindle page so that I can quickly look up stuff."
-> So: **its first case is a phone photographing a Kindle page** (an e-ink screen: moiré, glare, a slight tilt, the camera's
-> focus), then a PC's webcam. Every change to it, to its OCR (`src/lib/ocr.ts`), to the shared live camera
-> (`src/lib/livecam.ts`) or to the image clean-up it uses is judged first by how well a phone's photo of a Kindle page
-> reads; its suite measures that (§3 Photo Dictionary). The owner's report of 21 Nov 2026: on the phone the OCR was
-> worse than with the webcam (the Kindle's "Comforta" font) — the same engine on both; the phone's Snap gives one frame of
-> the live video, not a photo (§3 Photo Dictionary, "To build next").
+> Owner, the same day: "especially when I take a picture of my Kindle paperweight [Paperwhite]. But it should work for
+> newspapers and other pages also" — and it "should be absolutely fantastic".
+> So: **its first case is a phone photographing a Kindle Paperwhite page** (an e-ink screen: moiré, glare, a slight tilt,
+> the camera's focus), **then newspapers and printed pages** (columns, small type, newsprint), then a PC's webcam. Every
+> change to it, to its OCR (`src/lib/ocr.ts`), to the shared live camera (`src/lib/livecam.ts`) or to the image clean-up
+> it uses is judged first by how well a phone's photo of a Kindle page reads; its suite measures that (§3 Photo
+> Dictionary). The owner's report of 21 Nov 2026: on the phone the OCR was worse than with the webcam (the Kindle's
+> "Comforta" font) — the same engine on both; the phone's Snap gives one frame of the live video, not a photo (§3 Photo
+> Dictionary, "To build next").
+> **The OCR tab too** (owner, 21 Nov 2026: "just like the photo dictionary, the OCR app should also work really well from
+> my phone"): it shares the engine, the camera and the clean-up, and is held to the same phone photos (`todo.md` #9).
 
 > ## 📏 Size check before every new app (owner, 20 Nov 2026; standing)
 > **Owner:** "Whenever next new app I suggest from potentials.md, you do a rough calculation, tell me how much more
@@ -559,14 +564,28 @@ on this PC**; phones never see the switch.
   pitch measured with pYIN and its accent heard by SpeechBrain's CommonAccent model):** Supertonic 1 / 2 ≈ 8× faster than
   real time, 3 ≈ 2.6×; Indic Tiny ≈ 7×; MeloTTS ≈ 3.5×; MMS ≈ 2.7×; Kokoro ≈ 4×; Pocket ≈ 2×; XTTS-v2 ≈ 1.7× slower (studio
   voice), 2.6× with a clip; Qwen3-TTS 0.6B ≈ 3.5× slower, 1.7B CustomVoice and VoiceDesign ≈ 4.5×; OmniVoice ≈ 6×; Parler Mini ≈ 5.5×; Bark
-  small did not finish a preset in 8 minutes beside another run. Accents heard: Indic Tiny Indian (first), MeloTTS's
-  Indian voice mildly Indian (third), OmniVoice's Indian voices Indian; Qwen's voices North American. Not run here
+  small ≈ 8× slower (13 s of speech in 100 s, after its 1.6 GB download); SYSPIN ≈ 4× faster. The accent of every Indian
+  voice that runs here: the ranking below. Qwen's voices sound North American. Not run here
   (tagged in the tab): Indic Parler and Pocket cloning (gated), Parler Large, Bark (full), Veena,
-  VoxCPM2 (size), Chatterbox / Turbo (a second PyTorch), SYSPIN (pending). The Windows script was read by its text only
+  VoxCPM2 (size), Chatterbox / Turbo (a second PyTorch). The Windows script was read by its text only
   (PowerShell could not be installed in the sandbox). Left out (docs/BUGHUNT.md, "TTS offline"): Indic-Speak (gated; its
   inference code cannot be read without access), Maya 2 (no pinnable release; Linux and NVIDIA only), ZONOS3-Mini (an
   Indian accent with a dose; on a processor only through its C++ tool). Not looked at yet: Kyutai TTS 1.6B, VibeVoice,
   F5-TTS.
+- **Indian accents, lightest first** (owner, 21 Nov 2026: "keep a note that shows ranked all the Indian accents in order
+  of increasing Indian accent thickness … the topmost … as British sounding as possible … name the model … Don't clutter
+  the page … a kind of text pop-up … when the user clicks a button"): a small button beside the accent groups opens a
+  dialog (`openRanking` in `src/tools/tts-offline.ts`, `rankIndian` / `strength` / `ACCENT_WORDS` in `plan.ts`): every
+  Indian voice that was measured, lightest first — #, a tick (chooses the voice as the list does), the voice and its
+  model, a bar and words for the Indian accent (very light / light / clear / strong), what it sounds like otherwise
+  (English (England), Scottish, American …); then the Indian voices not measured, by model, with the reason (an account,
+  a size this machine cannot run). **How it is measured** (`scripts/accent-survey/`): every runnable Indian voice reads
+  the same two British sentences through driver.py; SpeechBrain's CommonAccent classifier (ECAPA-TDNN on Common Voice,
+  16 accents, pinned revision) scores each recording; a voice's `heard.indian` = its Indian score minus its best other
+  score, averaged over the two sentences (above 0: heard as Indian first), `heard.like` = the closest other accent. The raw
+  scores are committed (`scripts/data/indian-accents.json`, from `python3 scripts/make-indian-accents.py WORK`); the
+  generator turns them into the catalogue's `heard`, and the unit suite works them out again from the raw scores. To
+  measure again: `python3 scripts/accent-survey/run.py WORK` (hours on a processor), then the two scripts.
 - **To update:** change a pin or a revision in `scripts/make-offline-tts-catalogue.py` (packages: `ENGINES`), run it,
   run an engine through driver.py on a short text (the commands are in the unit suite's header), both suites.
 Tests: Kokoro 24 kHz mono, plausible length and energy, female median F0 > male + 40 Hz (Heart vs Michael), British
@@ -1982,6 +2001,18 @@ fix):**
    grey, moiré, tilt, blur, noise; and the owner's own when he sends them — "Save this photo" under the thumbnail saves
    exactly what was read) with the words read right measured for each clean-up (moiré, contrast, straightening, scale),
    the best kept, and the suite holds that accuracy.
+   **Progress (21 Nov 2026):** the measuring is built — `scripts/make-kindle-photos.py OUT --count N` (photos of a
+   Kindle Paperwhite page in Literata / Noto Sans / Liberation Serif / Comfortaa and of newspapers, the camera's still or
+   a video frame, tilt, focus, noise, glare, moiré, each with its words) and `node scripts/measure-ocr.mjs OUT --prep
+   app,page` (the app's OCR and imgproc in Node: words read right, rare words found). **The page found and straightened
+   first** (`src/lib/pagecrop.ts` on imgproc's `p_page_quad`: of every bright region the cleanest quadrilateral of a
+   page's size that does not run off the photo, at five thresholds, and the light area inside a dark body — a Kindle on a
+   light desk, glare on its body) raised the words read right from 28 % to the high 90s on most photos (Comfortaa 0 → 93 %,
+   a video frame 0 → 97 %); the Photo Dictionary reads the straightened page and, when it gives fewer than 25 words, the
+   whole photo too (the better kept). **Snap on a phone takes the camera's still** (`stillOf` in `src/lib/livecam.ts`:
+   ImageCapture `takePhoto`, at most 4096 px wide, turned to the live picture's way round; continuous autofocus asked
+   for; the frame where there is none — Safari — or it fails). Left: small text with glare, small text in a video
+   frame, newspapers' columns, the OCR tab (#9).
 **Owner, 21 Nov 2026: build this upgrade next — after the Indian-accent ranking in progress, before the rest of the
 voice work, the rename and the regex flavours, and before anything from `docs/potentials.md`** (`todo.md` #6).
 (`src/tools/photodict.ts`, engine `src/lib/dictionary.ts`, ranking `wasm/textcore/rare.c`; e2e `tests/e2e/photodict.e2e.mjs`
@@ -2878,6 +2909,7 @@ npm packages (pinned in `package-lock.json`) are bundled by Vite or copied to `p
 | *test only:* delaunator 5.1.0 | ISC | the original that `wasm/graphviz/st_delaunay.h` (our C port, shipped inside graphviz.wasm) is held to |
 | *test only:* change-case 5.4.4 | MIT | the reference of the Case Converter's code cases (`tests/unit/caseconv.test.mjs`) |
 | *test only:* github-slugger 2.0.0 | ISC | the reference of the Markdown Editor's heading ids (`tests/unit/markdown.test.mjs`) |
+| *test only:* @fontsource/comfortaa 5.3.0 (Comfortaa) | OFL-1.1 | a Kindle font of the owner's in the test photos of `scripts/make-kindle-photos.py` (Photo Dictionary) |
 | *test only:* unicode-emoji-json 0.9.0 | MIT | another reading of Unicode's emoji list, which the Emoji tab's data is held to (`tests/unit/emoji.test.mjs`) |
 | *test only:* axe-core 4.14.1 (Deque's accessibility checker) | MPL-2.0 | `tests/e2e/a11y.e2e.mjs`: WCAG 2.2 A / AA on every page, desktop light and dark, phone dark |
 | @expo-google-fonts/noto-sans (Noto Sans TTF: regular, bold, italic) | OFL-1.1 (package MIT) | PDFs made by GST Invoice, Rent Receipt, Resume Builder |

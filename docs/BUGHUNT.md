@@ -2486,3 +2486,19 @@ cannot. Three new suites; each fails on the build before its fixes.
   cannot be made. Chatterbox pins PyTorch 2.6 → the planner counts a second PyTorch for it. A model not run here is
   tagged in the tab with the reason. The Vinith check of the e2e suite matched five voices once the other cloning
   engines had the same recordings → it ticks XTTS's by its id.
+- **Photo Dictionary on a phone (owner, 21 Nov 2026: "it has to work extremely well on my phone, especially when I take
+  pictures of my Kindle"; to-do #6 item 5) — measured, then fixed.** A test set made for it (`scripts/make-kindle-photos.py`:
+  a Kindle Paperwhite page in four fonts, Comfortaa among them, or a newspaper; the camera's still or a video frame; tilt,
+  focus, noise, glare, moiré) read by the app's own engine in Node (`scripts/measure-ocr.mjs`). Found: (1) **the Kindle's
+  black body, the table and the hand were read with the page** — the clean-up divided the dark body by itself and
+  Tesseract's layout broke on it: 28 % of the words read right over 24 photos, 0 % on several; the page is now found and
+  straightened first (`src/lib/pagecrop.ts`, imgproc `p_page_quad`): most photos read in the high 90s (a Comfortaa still
+  0 → 93 %, a video frame 0 → 97 %, a newspaper still 31 → 86 %). (2) **The Doc Scanner's outline takes the largest bright
+  region** — on a light desk that is the desk around the Kindle: the reading tabs have their own finder (the cleanest
+  quadrilateral not running off the photo; the light area inside a dark body, which also holds when a lamp's glare joins
+  the screen to the desk). (3) **A phone's Snap was one frame of the live video** (about 1920 × 1080: the text of a Kindle
+  page held at arm's length is a few pixels high) — Snap now takes the camera's still where the browser can
+  (ImageCapture, Android Chrome), turned to the live picture's way round, with continuous autofocus. Checks: unit
+  pagecrop 19; e2e photodict +9 (the still read and not the frame, its size asked for, autofocus, the camera off, "Save
+  this photo" gives the still, a still turned, refused → the frame, no ImageCapture → the frame); camera 39 and OCR 57
+  unchanged. Left: small text with glare, small text in a video frame, newspaper columns, the OCR tab (to-do #9).

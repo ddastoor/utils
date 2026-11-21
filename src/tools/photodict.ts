@@ -13,7 +13,8 @@ import { isMobile } from '../platform';
 import { imgproc, type Img } from '../wasm/imgproc';
 import { previewOf, paint } from '../lib/imgio';
 import { imageInput } from '../lib/imgtools';
-import { recognize } from '../lib/ocr';
+import { recognize, type OcrResult } from '../lib/ocr';
+import { straighten } from '../lib/pagecrop';
 import { hardWords, lookupWord, rarity, ranker, type WordCard, type Result } from '../lib/dictionary';
 import { wikiSummary, type Summary } from '../lib/wikipedia';
 import { onLeave } from '../lifecycle';
@@ -106,14 +107,18 @@ export const mount: Mount = (root, ctx) => {
     status.textContent = ''; // the line said the page before's result while the new one was read
     paint(previewOf(img, 480), thumb);
     try {
-      // camera photos: ≤ 3000 px, optional moiré removal for screens, then the document clean-up (grey, even light)
+      // camera photos: ≤ 3000 px; the page found and straightened (a Kindle's screen in its black body, a sheet on a
+      // table: src/lib/pagecrop.ts); optional moiré removal for screens; then the document clean-up (grey, even light)
       let work = img; const L = Math.max(img.width, img.height);
       if (L > 3000) work = await imgproc('resize', work, Math.round((work.width * 3000) / L), Math.round((work.height * 3000) / L));
-      if (screen) work = await imgproc('blur', work, 1.1);
-      work = await imgproc('docEnhance', work, 1);
+      const whole = work, page = await straighten(work).catch(() => ({ img: work, found: false })); // no page: the photo as it is
+      const clean = async (im: Img) => imgproc('docEnhance', screen ? await imgproc('blur', im, 1.1) : im, 1);
       ranker().catch(() => {}); loadFonts(); // word list + reading font load while OCR runs
-      const r = await recognize(new ImageData(new Uint8ClampedArray(work.data), work.width, work.height), 'eng', (p, s) => prog.set(s.includes('recogn') ? p : null, s.includes('recogn') ? `Reading the page… ${Math.round(p * 100)} %` : 'Loading the text engine…'));
+      const read = async (im: Img) => recognize(new ImageData(new Uint8ClampedArray(im.data), im.width, im.height), 'eng', (p, s) => prog.set(s.includes('recogn') ? p : null, s.includes('recogn') ? `Reading the page… ${Math.round(p * 100)} %` : 'Loading the text engine…'));
+      let r: OcrResult = await read(await clean(page.img));
       if (stale()) return;
+      // an outline that was not the page (little read on it): the whole photo is read too, and the better reading kept
+      if (page.found && r.words.length < 25) { const r2 = await read(await clean(whole)); if (stale()) return; if (r2.words.length > r.words.length) r = r2; }
       if (!r.text.trim()) { prog.done(); status.textContent = isMobile ? 'No text found. Hold the phone straight over the page, in good light, and try again.' : 'No text found. Hold the page flat and close to the webcam, in good light, and try again — or choose a photo of it.'; return; }
       // the words broken over two lines put together, for the text shown, a tap, a selection and the ranking
       const text = (await ranker()).dehyphen(r.text);

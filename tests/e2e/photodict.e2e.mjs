@@ -260,6 +260,64 @@ export default async ({ base, page: newPage, ok, info, devices }) => {
     await waitDone(p6);
     ok(await p6.locator('.live-cam').isHidden() && /No text found|No uncommon words|uncommon word/.test(await p6.locator(STATUS).textContent()), 'Snap at once: the picture is taken when the first frame arrives'); }
 
+  // phones: Snap takes the camera's own still where the browser can (ImageCapture.takePhoto — Android Chrome), at its
+  // full size; a frame of the live video (about 1920 × 1080) is softer and smaller (owner, 21 Nov 2026: the phone read a
+  // Kindle page worse than the webcam). Here the video shows a sentence with no rare word, the still the book page: the
+  // words found say which one was read.
+  const stillCam = async (mode) => {
+    const p = await newPage(phone); await mockApis(p, []);
+    const still = `data:image/jpeg;base64,${readFileSync(F('book-page.jpg')).toString('base64')}`;
+    await p.addInitScript(([url, mode]) => {
+      window.__tracks = []; window.__photos = []; window.__focus = [];
+      navigator.mediaDevices.getUserMedia = async () => {
+        const cv = document.createElement('canvas'); cv.width = 1280; cv.height = 720; const g = cv.getContext('2d'); // the live picture: landscape
+        const paint = () => { g.fillStyle = '#fff'; g.fillRect(0, 0, cv.width, cv.height); g.fillStyle = '#111'; g.font = '48px serif'; g.fillText('The cat sat on the mat.', 40, 360); };
+        paint(); setInterval(paint, 100);
+        const s = cv.captureStream(10), t = s.getVideoTracks()[0];
+        t.getCapabilities = () => ({ focusMode: ['manual', 'single-shot', 'continuous'] });
+        const ac = t.applyConstraints.bind(t); t.applyConstraints = async (c) => { window.__focus.push(JSON.stringify(c)); return ac({}); };
+        window.__tracks.push(t); return s;
+      };
+      navigator.mediaDevices.enumerateDevices = async () => [{ deviceId: 'back', kind: 'videoinput', label: 'Back camera', groupId: 'back' }];
+      if (mode === 'none') { delete window.ImageCapture; return; }
+      window.ImageCapture = class {
+        constructor(track) { this.track = track; }
+        async getPhotoCapabilities() { return { imageWidth: { min: 640, max: 8160, step: 1 }, imageHeight: { min: 480, max: 6120, step: 1 } }; }
+        async takePhoto(settings) {
+          window.__photos.push(settings || null);
+          if (mode === 'refuse') throw new DOMException('the camera is busy', 'OperationError');
+          const img = new Image(); img.src = url; await img.decode();
+          if (mode !== 'portrait') return (await fetch(url)).blob();
+          // a still that comes the sensor's way round: the scene turned a quarter to the left (no EXIF turn)
+          const c = new OffscreenCanvas(img.naturalHeight, img.naturalWidth), g = c.getContext('2d');
+          g.translate(0, c.height); g.rotate(-Math.PI / 2); g.drawImage(img, 0, 0);
+          return c.convertToBlob({ type: 'image/jpeg', quality: 0.92 });
+        }
+      };
+    }, [still, mode]);
+    await p.goto(base + '#/photodict');
+    await p.getByRole('button', { name: 'Use camera' }).click();
+    await p.waitForFunction(() => document.querySelector('video.live-cam-video')?.videoWidth > 0, null, { timeout: 15000 });
+    await p.locator('.live-cam-ctl').getByRole('button', { name: 'Snap' }).click();
+    await waitDone(p);
+    return { p, words: await cardWords(p), photos: await p.evaluate(() => window.__photos), focus: await p.evaluate(() => window.__focus) };
+  };
+  { const r = await stillCam('still');
+    ok(r.photos.length === 1 && RARE.filter((w) => r.words.includes(w)).length >= RARE.length - 1, `Snap on a phone: the camera's own still is read, not the video frame (${r.words.length} words: ${r.words.slice(0, 4).join(', ')} …)`);
+    ok(r.photos[0]?.imageWidth === 4096, `a still of a 50-megapixel camera is asked for at 4096 px wide, not 8160 (${JSON.stringify(r.photos[0])})`);
+    ok(r.focus.some((c) => /"focusMode":"continuous"/.test(c)), `the camera is asked to keep focusing (continuous autofocus) where it can (${r.focus.join(' | ')})`);
+    ok(await r.p.evaluate(() => window.__tracks.every((t) => t.readyState === 'ended')), 'the camera is off after the snap');
+    const [dl] = await Promise.all([r.p.waitForEvent('download'), r.p.getByRole('button', { name: 'Save this photo' }).click()]);
+    const saved = readFileSync(await dl.path());
+    ok(saved[0] === 0xff && saved[1] === 0xd8 && saved.length > 100000, `Save this photo gives the still that was read (${saved.length} bytes)`); }
+  { const r = await stillCam('portrait');
+    ok(RARE.filter((w) => r.words.includes(w)).length >= RARE.length - 1, `a still that came the sensor's way round (portrait, the live picture landscape) is turned before it is read (${r.words.length} words)`); }
+  { const r = await stillCam('refuse');
+    ok(r.photos.length === 1 && !RARE.some((w) => r.words.includes(w)) && /No uncommon words|uncommon word|No text found/.test(await r.p.locator(STATUS).textContent()), 'a still the camera refuses: the video frame is read instead');
+    ok(real(r.p.errors).length === 0, `no page errors when the still is refused ${real(r.p.errors).join(' | ')}`); }
+  { const r = await stillCam('none');
+    ok(r.photos.length === 0 && !RARE.some((w) => r.words.includes(w)), 'a browser without ImageCapture (Safari): the video frame is read'); }
+
   // PC (owner, 21 Nov 2026: "PC + phone", the photo from the webcam): a webcam that shows the book page → Snap → the
   // same words as the photo file; and a photo file on a PC
   { const desk = await newPage({ viewport: { width: 1366, height: 900 } }); await mockApis(desk, []);

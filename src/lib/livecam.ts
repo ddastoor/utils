@@ -35,6 +35,35 @@ export interface LiveCameraOptions {
 
 /** The size asked for: the largest the camera offers up to 4K (text and faces need pixels). */
 const SIZE = { width: { ideal: 3840 }, height: { ideal: 2160 } };
+/** A still's long side at most (a 50-megapixel phone camera would hand over 200 MB of pixels). */
+const STILL_MAX = 4096;
+
+/** Phones: the camera's own photo — full resolution, focused for a still — where the browser can take one (ImageCapture,
+ *  Android Chrome); a frame of the live video is about 1920 × 1080 and softer (owner, 21 Nov 2026: the Photo Dictionary
+ *  read a Kindle page worse from the phone than from a webcam). null where there is none or it fails: the frame is used.
+ *  A still that came out the other way round from the live picture (portrait vs landscape) is turned to match it. */
+async function stillOf(track: MediaStreamTrack, video: HTMLVideoElement): Promise<{ data: Uint8ClampedArray; width: number; height: number; canvas: HTMLCanvasElement } | null> {
+  const IC = (window as any).ImageCapture;
+  if (!IC || track.readyState !== 'live') return null;
+  try {
+    const ic = new IC(track);
+    const caps = await Promise.race([ic.getPhotoCapabilities(), new Promise((r) => setTimeout(() => r(null), 1500))]).catch(() => null) as any;
+    const maxW = caps?.imageWidth?.max as number | undefined;
+    const settings = maxW && maxW > STILL_MAX ? { imageWidth: Math.max(caps.imageWidth.min || 0, STILL_MAX) } : undefined;
+    const blob: Blob | null = await Promise.race([ic.takePhoto(settings), new Promise<null>((r) => setTimeout(() => r(null), 5000))]);
+    if (!blob) return null;
+    const bmp = await createImageBitmap(blob); // its EXIF orientation applied
+    let w = bmp.width, h0 = bmp.height;
+    const k = Math.min(1, STILL_MAX / Math.max(w, h0)); w = Math.round(w * k); h0 = Math.round(h0 * k);
+    const turn = !!video.videoWidth && (video.videoWidth > video.videoHeight) !== (w > h0) && w !== h0;
+    const c = document.createElement('canvas'); c.width = turn ? h0 : w; c.height = turn ? w : h0;
+    const g = c.getContext('2d', { willReadFrequently: true })!;
+    if (turn) { g.translate(c.width, 0); g.rotate(Math.PI / 2); } // a back camera's sensor lies a quarter turn clockwise
+    g.drawImage(bmp, 0, 0, w, h0); bmp.close();
+    const d = g.getImageData(0, 0, c.width, c.height);
+    return { data: d.data, width: d.width, height: d.height, canvas: c };
+  } catch { return null; }
+}
 let active: { stop: () => void } | null = null, ids = 0;
 let lastStamp = '', sameStamp = 0;
 
@@ -92,6 +121,8 @@ export function liveCamera(o: LiveCameraOptions) {
     if (!shown) { shown = true; taken = 0; doneBtn.setLabel('Cancel'); o.onOpen?.(); }
     const track = s.getVideoTracks()[0];
     track?.addEventListener('ended', () => { if (stream === s) { stop(); toast('The camera stopped — it was unplugged, or another app took it.', 'err'); } });
+    // keep the picture in focus as the phone moves (text close up): continuous autofocus where the camera offers it
+    try { const fm = (track as any)?.getCapabilities?.().focusMode as string[] | undefined; if (fm?.includes('continuous')) await track.applyConstraints({ advanced: [{ focusMode: 'continuous' } as any] }); } catch { /* the camera's own focus */ }
     // in view with its buttons — again once the picture's size is known (the box grows from the default 300 × 150)
     reveal(el);
     video.addEventListener('loadedmetadata', () => { if (stream === s) reveal(el); }, { once: true });
@@ -110,10 +141,17 @@ export function liveCamera(o: LiveCameraOptions) {
     if (!video.videoWidth) await new Promise<void>((res) => { const t = setTimeout(res, 5000); video.addEventListener('loadeddata', () => { clearTimeout(t); res(); }, { once: true }); });
     if (stream !== s) return; // closed meanwhile
     if (!video.videoWidth) throw new Error(`The camera sends no picture — try again, or ${instead}.`);
-    const c = document.createElement('canvas'); c.width = video.videoWidth; c.height = video.videoHeight;
-    const g = c.getContext('2d', { willReadFrequently: true })!;
-    g.drawImage(video, 0, 0);
-    const d = g.getImageData(0, 0, c.width, c.height);
+    // phones: the camera's full-resolution still where the browser takes one; else (and on PCs) the live frame
+    const track = s.getVideoTracks()[0], st = mobile && track ? await stillOf(track, video) : null;
+    if (stream !== s && !o.multiple) return; // closed while the still was taken
+    let c: HTMLCanvasElement, d: { data: Uint8ClampedArray; width: number; height: number };
+    if (st) { c = st.canvas; d = st; }
+    else {
+      c = document.createElement('canvas'); c.width = video.videoWidth; c.height = video.videoHeight;
+      const g = c.getContext('2d', { willReadFrequently: true })!;
+      g.drawImage(video, 0, 0);
+      d = g.getImageData(0, 0, c.width, c.height);
+    }
     let file: Promise<File> | null = null;
     const asFile = () => (file ??= jpegOf(c));
     if (o.multiple) {
