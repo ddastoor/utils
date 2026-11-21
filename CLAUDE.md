@@ -1947,6 +1947,14 @@ fix):**
 3. **The complete OCR text before the list, on phones and PCs,** where a phrase can be **selected** (touch selection on a
    phone, the mouse on a PC) and **searched on Wikipedia**: the phrase is added to the list — looked up on Wikipedia
    only (a phrase has no dictionary entry).
+4. **Words broken over two lines are one word** (owner, 21 Nov 2026: "If words have a hyphen or a dash between them
+   because they have to go to the next line … treat them as one word"): every line-end mark OCR gives — `-`, `‐`, `–`,
+   `—`, `¬`, the soft hyphen — joins the two halves in the word list, in the shown text (a tap on either half looks up
+   the whole word), in a selected phrase and in the Wikipedia look-up; a real compound that falls at a line end keeps
+   its hyphen (well-known, self-evident). (The ranking already joins a line-end `-` when a half is no word or the joined
+   word is at least as common — `rare.c`; the rest is new.)
+**Owner, 21 Nov 2026: build this upgrade next — after the Indian-accent ranking in progress, before the rest of the
+voice work, the rename and the regex flavours, and before anything from `docs/potentials.md`** (`todo.md` #6).
 (`src/tools/photodict.ts`, engine `src/lib/dictionary.ts`, ranking `wasm/textcore/rare.c`; e2e `tests/e2e/photodict.e2e.mjs`
 49 checks on a photographed-page fixture; unit `tests/unit/rare.test.mjs` 65 checks.) **As built** (bug hunt of Nov 2026:
 `docs/BUGHUNT.md`, tab 99)**:**
