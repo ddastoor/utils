@@ -1908,8 +1908,7 @@
    "licence": "Apache-2.0",
    "personal": false,
    "name": "VoxCPM2 (OpenBMB)",
-   "page": "https://openbmb.github.io/voxcpm2-demopage",
-   "untried": "Not run yet: 5 GB."
+   "page": "https://openbmb.github.io/voxcpm2-demopage"
   },
   "vibevoice-1.5b": {
    "engine": "vibevoice",
@@ -2015,8 +2014,7 @@
    "licence": "MIT",
    "personal": false,
    "name": "Bark (Suno)",
-   "page": "https://huggingface.co/suno/bark",
-   "untried": "Not run here: 4.5 GB (the same program as Bark small)."
+   "page": "https://huggingface.co/suno/bark"
   },
   "bark-small": {
    "engine": "bark",
@@ -10451,7 +10449,12 @@
     "rev": "323332d33f997de8394f24a193e1a76df720e01a",
     "file": "ears/p107/freeform_speech_01.wav"
    },
-   "personal": true
+   "personal": true,
+   "heard": {
+    "indian": -0.1436,
+    "like": "us",
+    "n": 2
+   }
   },
   {
    "id": "kyutai-expresso-ex01-default-001-ch1-168",
@@ -12139,6 +12142,11 @@
     "repo": "kyutai/tts-voices",
     "rev": "323332d33f997de8394f24a193e1a76df720e01a",
     "file": "vctk/p248_023.wav"
+   },
+   "heard": {
+    "indian": 0.2056,
+    "like": "singapore",
+    "n": 2
    }
   },
   {
@@ -12175,6 +12183,11 @@
     "repo": "kyutai/tts-voices",
     "rev": "323332d33f997de8394f24a193e1a76df720e01a",
     "file": "vctk/p251_023.wav"
+   },
+   "heard": {
+    "indian": 0.2062,
+    "like": "england",
+    "n": 2
    }
   },
   {
@@ -13135,6 +13148,11 @@
     "repo": "kyutai/tts-voices",
     "rev": "323332d33f997de8394f24a193e1a76df720e01a",
     "file": "vctk/p376_023.wav"
+   },
+   "heard": {
+    "indian": -0.4883,
+    "like": "us",
+    "n": 2
    }
   },
   {
@@ -13255,6 +13273,11 @@
     "repo": "kyutai/tts-voices",
     "rev": "323332d33f997de8394f24a193e1a76df720e01a",
     "file": "voice-donations/4189_enhanced.wav"
+   },
+   "heard": {
+    "indian": 0.2066,
+    "like": "african",
+    "n": 2
    }
   },
   {
@@ -13279,6 +13302,11 @@
     "repo": "kyutai/tts-voices",
     "rev": "323332d33f997de8394f24a193e1a76df720e01a",
     "file": "voice-donations/4b13_enhanced.wav"
+   },
+   "heard": {
+    "indian": 0.3283,
+    "like": "malaysia",
+    "n": 2
    }
   },
   {
@@ -13327,6 +13355,11 @@
     "repo": "kyutai/tts-voices",
     "rev": "323332d33f997de8394f24a193e1a76df720e01a",
     "file": "voice-donations/617b_enhanced.wav"
+   },
+   "heard": {
+    "indian": 0.3482,
+    "like": "us",
+    "n": 2
    }
   },
   {
@@ -13447,6 +13480,11 @@
     "repo": "kyutai/tts-voices",
     "rev": "323332d33f997de8394f24a193e1a76df720e01a",
     "file": "voice-donations/AHmad_enhanced.wav"
+   },
+   "heard": {
+    "indian": 0.1695,
+    "like": "us",
+    "n": 2
    }
   },
   {
@@ -13471,6 +13509,11 @@
     "repo": "kyutai/tts-voices",
     "rev": "323332d33f997de8394f24a193e1a76df720e01a",
     "file": "voice-donations/Aadi_enhanced.wav"
+   },
+   "heard": {
+    "indian": 0.5464,
+    "like": "malaysia",
+    "n": 2
    }
   },
   {
@@ -13483,6 +13526,11 @@
     "repo": "kyutai/tts-voices",
     "rev": "323332d33f997de8394f24a193e1a76df720e01a",
     "file": "voice-donations/AbD_enhanced.wav"
+   },
+   "heard": {
+    "indian": 0.2176,
+    "like": "us",
+    "n": 1
    }
   },
   {
@@ -13495,6 +13543,11 @@
     "repo": "kyutai/tts-voices",
     "rev": "323332d33f997de8394f24a193e1a76df720e01a",
     "file": "voice-donations/Abhinox_enhanced.wav"
+   },
+   "heard": {
+    "indian": 0.4207,
+    "like": "england",
+    "n": 1
    }
   },
   {
@@ -13531,6 +13584,11 @@
     "repo": "kyutai/tts-voices",
     "rev": "323332d33f997de8394f24a193e1a76df720e01a",
     "file": "voice-donations/Adarsh_Bulla_enhanced.wav"
+   },
+   "heard": {
+    "indian": 0.1037,
+    "like": "england",
+    "n": 1
    }
   },
   {
@@ -13543,6 +13601,11 @@
     "repo": "kyutai/tts-voices",
     "rev": "323332d33f997de8394f24a193e1a76df720e01a",
     "file": "voice-donations/AgentCobra_enhanced.wav"
+   },
+   "heard": {
+    "indian": 0.2503,
+    "like": "singapore",
+    "n": 1
    }
   },
   {
@@ -13555,6 +13618,11 @@
     "repo": "kyutai/tts-voices",
     "rev": "323332d33f997de8394f24a193e1a76df720e01a",
     "file": "voice-donations/Ajith_enhanced.wav"
+   },
+   "heard": {
+    "indian": 0.3716,
+    "like": "us",
+    "n": 1
    }
   },
   {
@@ -13591,6 +13659,11 @@
     "repo": "kyutai/tts-voices",
     "rev": "323332d33f997de8394f24a193e1a76df720e01a",
     "file": "voice-donations/AmitNag_enhanced.wav"
+   },
+   "heard": {
+    "indian": 0.4037,
+    "like": "african",
+    "n": 1
    }
   },
   {
@@ -13663,6 +13736,11 @@
     "repo": "kyutai/tts-voices",
     "rev": "323332d33f997de8394f24a193e1a76df720e01a",
     "file": "voice-donations/Arjun_Z_enhanced.wav"
+   },
+   "heard": {
+    "indian": 0.1848,
+    "like": "hongkong",
+    "n": 1
    }
   },
   {
@@ -13687,6 +13765,11 @@
     "repo": "kyutai/tts-voices",
     "rev": "323332d33f997de8394f24a193e1a76df720e01a",
     "file": "voice-donations/BLUE_enhanced.wav"
+   },
+   "heard": {
+    "indian": -0.1254,
+    "like": "england",
+    "n": 1
    }
   },
   {
@@ -13699,6 +13782,11 @@
     "repo": "kyutai/tts-voices",
     "rev": "323332d33f997de8394f24a193e1a76df720e01a",
     "file": "voice-donations/Bijay_enhanced.wav"
+   },
+   "heard": {
+    "indian": 0.1161,
+    "like": "england",
+    "n": 1
    }
   },
   {
@@ -13771,6 +13859,11 @@
     "repo": "kyutai/tts-voices",
     "rev": "323332d33f997de8394f24a193e1a76df720e01a",
     "file": "voice-donations/CPS_001_enhanced.wav"
+   },
+   "heard": {
+    "indian": 0.2458,
+    "like": "us",
+    "n": 1
    }
   },
   {
@@ -13819,6 +13912,11 @@
     "repo": "kyutai/tts-voices",
     "rev": "323332d33f997de8394f24a193e1a76df720e01a",
     "file": "voice-donations/Curlinvictus_enhanced.wav"
+   },
+   "heard": {
+    "indian": 0.164,
+    "like": "malaysia",
+    "n": 1
    }
   },
   {
@@ -13843,6 +13941,11 @@
     "repo": "kyutai/tts-voices",
     "rev": "323332d33f997de8394f24a193e1a76df720e01a",
     "file": "voice-donations/Darya_khan_enhanced.wav"
+   },
+   "heard": {
+    "indian": 0.2914,
+    "like": "african",
+    "n": 1
    }
   },
   {
@@ -13867,6 +13970,11 @@
     "repo": "kyutai/tts-voices",
     "rev": "323332d33f997de8394f24a193e1a76df720e01a",
     "file": "voice-donations/Dhruv_Rao_enhanced.wav"
+   },
+   "heard": {
+    "indian": 0.2696,
+    "like": "england",
+    "n": 1
    }
   },
   {
@@ -14023,6 +14131,11 @@
     "repo": "kyutai/tts-voices",
     "rev": "323332d33f997de8394f24a193e1a76df720e01a",
     "file": "voice-donations/Goku_enhanced.wav"
+   },
+   "heard": {
+    "indian": 0.3664,
+    "like": "us",
+    "n": 1
    }
   },
   {
@@ -14095,6 +14208,11 @@
     "repo": "kyutai/tts-voices",
     "rev": "323332d33f997de8394f24a193e1a76df720e01a",
     "file": "voice-donations/Hardik_Clone_enhanced.wav"
+   },
+   "heard": {
+    "indian": 0.1836,
+    "like": "african",
+    "n": 1
    }
   },
   {
@@ -14155,6 +14273,11 @@
     "repo": "kyutai/tts-voices",
     "rev": "323332d33f997de8394f24a193e1a76df720e01a",
     "file": "voice-donations/Imran_475_enhanced.wav"
+   },
+   "heard": {
+    "indian": 0.3993,
+    "like": "england",
+    "n": 1
    }
   },
   {
@@ -14167,6 +14290,11 @@
     "repo": "kyutai/tts-voices",
     "rev": "323332d33f997de8394f24a193e1a76df720e01a",
     "file": "voice-donations/Imran_from_I_India_enhanced.wav"
+   },
+   "heard": {
+    "indian": 0.3878,
+    "like": "england",
+    "n": 1
    }
   },
   {
@@ -14179,6 +14307,11 @@
     "repo": "kyutai/tts-voices",
     "rev": "323332d33f997de8394f24a193e1a76df720e01a",
     "file": "voice-donations/Indian_guy_enhanced.wav"
+   },
+   "heard": {
+    "indian": -0.0615,
+    "like": "african",
+    "n": 1
    }
   },
   {
@@ -14263,6 +14396,11 @@
     "repo": "kyutai/tts-voices",
     "rev": "323332d33f997de8394f24a193e1a76df720e01a",
     "file": "voice-donations/Jay_enhanced.wav"
+   },
+   "heard": {
+    "indian": 0.0434,
+    "like": "england",
+    "n": 1
    }
   },
   {
@@ -14539,6 +14677,11 @@
     "repo": "kyutai/tts-voices",
     "rev": "323332d33f997de8394f24a193e1a76df720e01a",
     "file": "voice-donations/Marshal_Indian_enhanced.wav"
+   },
+   "heard": {
+    "indian": 0.3125,
+    "like": "england",
+    "n": 1
    }
   },
   {
@@ -14587,6 +14730,11 @@
     "repo": "kyutai/tts-voices",
     "rev": "323332d33f997de8394f24a193e1a76df720e01a",
     "file": "voice-donations/Mr_captain_enhanced.wav"
+   },
+   "heard": {
+    "indian": 0.45,
+    "like": "england",
+    "n": 1
    }
   },
   {
@@ -14599,6 +14747,11 @@
     "repo": "kyutai/tts-voices",
     "rev": "323332d33f997de8394f24a193e1a76df720e01a",
     "file": "voice-donations/Muhtasim's_Voice_enhanced.wav"
+   },
+   "heard": {
+    "indian": -0.0177,
+    "like": "malaysia",
+    "n": 1
    }
   },
   {
@@ -14671,6 +14824,11 @@
     "repo": "kyutai/tts-voices",
     "rev": "323332d33f997de8394f24a193e1a76df720e01a",
     "file": "voice-donations/Parthiban_enhanced.wav"
+   },
+   "heard": {
+    "indian": 0.0007,
+    "like": "england",
+    "n": 1
    }
   },
   {
@@ -14743,6 +14901,11 @@
     "repo": "kyutai/tts-voices",
     "rev": "323332d33f997de8394f24a193e1a76df720e01a",
     "file": "voice-donations/Rahul_enhanced.wav"
+   },
+   "heard": {
+    "indian": 0.5023,
+    "like": "us",
+    "n": 1
    }
   },
   {
@@ -14779,6 +14942,11 @@
     "repo": "kyutai/tts-voices",
     "rev": "323332d33f997de8394f24a193e1a76df720e01a",
     "file": "voice-donations/Ranjith_enhanced.wav"
+   },
+   "heard": {
+    "indian": 0.0628,
+    "like": "african",
+    "n": 1
    }
   },
   {
@@ -14839,6 +15007,11 @@
     "repo": "kyutai/tts-voices",
     "rev": "323332d33f997de8394f24a193e1a76df720e01a",
     "file": "voice-donations/Rup_enhanced.wav"
+   },
+   "heard": {
+    "indian": 0.3773,
+    "like": "us",
+    "n": 1
    }
   },
   {
@@ -14863,6 +15036,11 @@
     "repo": "kyutai/tts-voices",
     "rev": "323332d33f997de8394f24a193e1a76df720e01a",
     "file": "voice-donations/SS_1684_enhanced.wav"
+   },
+   "heard": {
+    "indian": 0.3581,
+    "like": "malaysia",
+    "n": 1
    }
   },
   {
@@ -14923,6 +15101,11 @@
     "repo": "kyutai/tts-voices",
     "rev": "323332d33f997de8394f24a193e1a76df720e01a",
     "file": "voice-donations/Siddh_Indian_enhanced.wav"
+   },
+   "heard": {
+    "indian": 0.1602,
+    "like": "england",
+    "n": 1
    }
   },
   {
@@ -15007,6 +15190,11 @@
     "repo": "kyutai/tts-voices",
     "rev": "323332d33f997de8394f24a193e1a76df720e01a",
     "file": "voice-donations/Tahii_enhanced.wav"
+   },
+   "heard": {
+    "indian": 0.1404,
+    "like": "us",
+    "n": 1
    }
   },
   {
@@ -15067,6 +15255,11 @@
     "repo": "kyutai/tts-voices",
     "rev": "323332d33f997de8394f24a193e1a76df720e01a",
     "file": "voice-donations/Tonmoy_enhanced.wav"
+   },
+   "heard": {
+    "indian": 0.1838,
+    "like": "african",
+    "n": 1
    }
   },
   {
@@ -15079,6 +15272,11 @@
     "repo": "kyutai/tts-voices",
     "rev": "323332d33f997de8394f24a193e1a76df720e01a",
     "file": "voice-donations/Umair_enhanced.wav"
+   },
+   "heard": {
+    "indian": -0.0158,
+    "like": "canada",
+    "n": 1
    }
   },
   {
@@ -15091,6 +15289,11 @@
     "repo": "kyutai/tts-voices",
     "rev": "323332d33f997de8394f24a193e1a76df720e01a",
     "file": "voice-donations/Vexat_enhanced.wav"
+   },
+   "heard": {
+    "indian": -0.1173,
+    "like": "african",
+    "n": 1
    }
   },
   {

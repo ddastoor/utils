@@ -1526,6 +1526,1070 @@
     }
    ]
   },
+  "kyutai-don-4189": {
+   "scores": [
+    {
+     "england": 0.2744,
+     "us": 0.2142,
+     "canada": -0.0777,
+     "australia": 0.054,
+     "indian": 0.5696,
+     "scotland": 0.0414,
+     "ireland": -0.0507,
+     "african": 0.3423,
+     "malaysia": 0.1442,
+     "newzealand": 0.1934,
+     "southatlandtic": 0.108,
+     "bermuda": 0.0637,
+     "philippines": 0.0393,
+     "hongkong": 0.2141,
+     "wales": 0.0384,
+     "singapore": 0.1542
+    },
+    {
+     "england": 0.0967,
+     "us": 0.2495,
+     "canada": -0.0883,
+     "australia": 0.0145,
+     "indian": 0.5612,
+     "scotland": -0.0584,
+     "ireland": 0.1626,
+     "african": 0.3754,
+     "malaysia": 0.1166,
+     "newzealand": 0.134,
+     "southatlandtic": 0.0744,
+     "bermuda": 0.0849,
+     "philippines": 0.0846,
+     "hongkong": 0.0525,
+     "wales": 0.0416,
+     "singapore": 0.1803
+    }
+   ]
+  },
+  "kyutai-don-4b13": {
+   "scores": [
+    {
+     "england": 0.0326,
+     "us": 0.1558,
+     "canada": -0.0409,
+     "australia": 0.0314,
+     "indian": 0.5776,
+     "scotland": 0.0815,
+     "ireland": -0.0994,
+     "african": 0.0283,
+     "malaysia": 0.2189,
+     "newzealand": -0.036,
+     "southatlandtic": -0.0568,
+     "bermuda": -0.042,
+     "philippines": 0.0711,
+     "hongkong": 0.0649,
+     "wales": -0.0184,
+     "singapore": 0.1156
+    },
+    {
+     "england": -0.0354,
+     "us": 0.2586,
+     "canada": 0.002,
+     "australia": 0.143,
+     "indian": 0.5631,
+     "scotland": 0.0645,
+     "ireland": 0.0163,
+     "african": 0.084,
+     "malaysia": 0.2652,
+     "newzealand": -0.0711,
+     "southatlandtic": 0.01,
+     "bermuda": 0.0553,
+     "philippines": 0.1553,
+     "hongkong": 0.111,
+     "wales": 0.0472,
+     "singapore": 0.2126
+    }
+   ]
+  },
+  "kyutai-don-617b": {
+   "scores": [
+    {
+     "england": 0.1702,
+     "us": 0.2278,
+     "canada": -0.0395,
+     "australia": 0.0356,
+     "indian": 0.5495,
+     "scotland": 0.124,
+     "ireland": 0.0587,
+     "african": 0.0684,
+     "malaysia": 0.1207,
+     "newzealand": -0.0219,
+     "southatlandtic": 0.1032,
+     "bermuda": 0.0113,
+     "philippines": 0.0363,
+     "hongkong": 0.1576,
+     "wales": 0.2255,
+     "singapore": 0.121
+    },
+    {
+     "england": 0.0905,
+     "us": 0.244,
+     "canada": -0.106,
+     "australia": 0.0812,
+     "indian": 0.6186,
+     "scotland": 0.0827,
+     "ireland": -0.0472,
+     "african": -0.0225,
+     "malaysia": 0.1721,
+     "newzealand": 0.054,
+     "southatlandtic": 0.0979,
+     "bermuda": 0.0503,
+     "philippines": -0.0755,
+     "hongkong": 0.0906,
+     "wales": 0.1714,
+     "singapore": 0.1014
+    }
+   ]
+  },
+  "kyutai-don-aadi": {
+   "scores": [
+    {
+     "england": -0.0197,
+     "us": 0.1138,
+     "canada": -0.0696,
+     "australia": -0.1052,
+     "indian": 0.6725,
+     "scotland": -0.0259,
+     "ireland": -0.0355,
+     "african": 0.0086,
+     "malaysia": 0.1559,
+     "newzealand": -0.0026,
+     "southatlandtic": 0.0644,
+     "bermuda": 0.0465,
+     "philippines": 0.0874,
+     "hongkong": 0.072,
+     "wales": 0.0105,
+     "singapore": 0.0369
+    },
+    {
+     "england": 0.0276,
+     "us": 0.1551,
+     "canada": -0.0001,
+     "australia": -0.0399,
+     "indian": 0.7314,
+     "scotland": 0.0382,
+     "ireland": -0.0069,
+     "african": 0.0533,
+     "malaysia": 0.1386,
+     "newzealand": -0.0465,
+     "southatlandtic": 0.0797,
+     "bermuda": 0.1315,
+     "philippines": 0.0978,
+     "hongkong": 0.1266,
+     "wales": 0.0421,
+     "singapore": 0.1061
+    }
+   ]
+  },
+  "kyutai-don-abd": {
+   "scores": [
+    {
+     "england": 0.0412,
+     "us": 0.3426,
+     "canada": 0.0309,
+     "australia": -0.0682,
+     "indian": 0.5602,
+     "scotland": 0.1794,
+     "ireland": -0.1111,
+     "african": -0.0083,
+     "malaysia": 0.2677,
+     "newzealand": 0.1422,
+     "southatlandtic": 0.0343,
+     "bermuda": 0.1236,
+     "philippines": 0.1607,
+     "hongkong": 0.1713,
+     "wales": 0.021,
+     "singapore": 0.2123
+    }
+   ]
+  },
+  "kyutai-don-abhinox": {
+   "scores": [
+    {
+     "england": 0.2574,
+     "us": 0.2435,
+     "canada": -0.1261,
+     "australia": 0.1319,
+     "indian": 0.6781,
+     "scotland": 0.0576,
+     "ireland": 0.1008,
+     "african": 0.1967,
+     "malaysia": 0.1543,
+     "newzealand": 0.0964,
+     "southatlandtic": 0.0281,
+     "bermuda": 0.0914,
+     "philippines": 0.0018,
+     "hongkong": 0.1457,
+     "wales": 0.1782,
+     "singapore": 0.2313
+    }
+   ]
+  },
+  "kyutai-don-adarsh-bulla": {
+   "scores": [
+    {
+     "england": 0.3717,
+     "us": 0.1912,
+     "canada": -0.0632,
+     "australia": 0.0334,
+     "indian": 0.4754,
+     "scotland": -0.0761,
+     "ireland": 0.0766,
+     "african": 0.3221,
+     "malaysia": 0.2136,
+     "newzealand": 0.1428,
+     "southatlandtic": 0.0973,
+     "bermuda": -0.0974,
+     "philippines": 0.0195,
+     "hongkong": 0.1597,
+     "wales": -0.0077,
+     "singapore": 0.1403
+    }
+   ]
+  },
+  "kyutai-don-agentcobra": {
+   "scores": [
+    {
+     "england": 0.2294,
+     "us": 0.179,
+     "canada": 0.0422,
+     "australia": 0.0698,
+     "indian": 0.5133,
+     "scotland": 0.1419,
+     "ireland": 0.074,
+     "african": 0.2289,
+     "malaysia": 0.001,
+     "newzealand": -0.0959,
+     "southatlandtic": 0.0315,
+     "bermuda": 0.0396,
+     "philippines": 0.0719,
+     "hongkong": 0.2005,
+     "wales": 0.0756,
+     "singapore": 0.263
+    }
+   ]
+  },
+  "kyutai-don-ahmad": {
+   "scores": [
+    {
+     "england": 0.008,
+     "us": 0.3132,
+     "canada": -0.0974,
+     "australia": 0.098,
+     "indian": 0.4146,
+     "scotland": -0.0065,
+     "ireland": 0.14,
+     "african": 0.2687,
+     "malaysia": 0.2566,
+     "newzealand": 0.0602,
+     "southatlandtic": 0.1149,
+     "bermuda": 0.0266,
+     "philippines": 0.1079,
+     "hongkong": 0.1408,
+     "wales": 0.0989,
+     "singapore": 0.1934
+    },
+    {
+     "england": 0.0286,
+     "us": 0.1939,
+     "canada": -0.1076,
+     "australia": 0.0354,
+     "indian": 0.4533,
+     "scotland": -0.0583,
+     "ireland": 0.1008,
+     "african": 0.1165,
+     "malaysia": 0.1535,
+     "newzealand": 0.0064,
+     "southatlandtic": 0.0639,
+     "bermuda": 0.1745,
+     "philippines": 0.1458,
+     "hongkong": 0.1275,
+     "wales": 0.1601,
+     "singapore": 0.2158
+    }
+   ]
+  },
+  "kyutai-don-ajith": {
+   "scores": [
+    {
+     "england": 0.116,
+     "us": 0.315,
+     "canada": 0.1528,
+     "australia": 0.0157,
+     "indian": 0.6866,
+     "scotland": 0.1292,
+     "ireland": 0.0047,
+     "african": 0.2352,
+     "malaysia": 0.1457,
+     "newzealand": 0.2082,
+     "southatlandtic": 0.0868,
+     "bermuda": 0.0497,
+     "philippines": 0.1086,
+     "hongkong": 0.111,
+     "wales": 0.001,
+     "singapore": 0.0759
+    }
+   ]
+  },
+  "kyutai-don-amitnag": {
+   "scores": [
+    {
+     "england": 0.0975,
+     "us": 0.041,
+     "canada": -0.1453,
+     "australia": -0.0461,
+     "indian": 0.5466,
+     "scotland": 0.0816,
+     "ireland": -0.0232,
+     "african": 0.1429,
+     "malaysia": 0.0394,
+     "newzealand": 0.0537,
+     "southatlandtic": 0.0166,
+     "bermuda": -0.1013,
+     "philippines": 0.0233,
+     "hongkong": 0.0077,
+     "wales": -0.0063,
+     "singapore": 0.0924
+    }
+   ]
+  },
+  "kyutai-don-arjun-z": {
+   "scores": [
+    {
+     "england": 0.1402,
+     "us": 0.2722,
+     "canada": -0.0502,
+     "australia": -0.0237,
+     "indian": 0.5542,
+     "scotland": 0.0651,
+     "ireland": 0.0597,
+     "african": 0.2871,
+     "malaysia": 0.1178,
+     "newzealand": 0.0222,
+     "southatlandtic": -0.0388,
+     "bermuda": 0.0953,
+     "philippines": 0.1227,
+     "hongkong": 0.3694,
+     "wales": 0.062,
+     "singapore": 0.2675
+    }
+   ]
+  },
+  "kyutai-don-bijay": {
+   "scores": [
+    {
+     "england": 0.3485,
+     "us": -0.0202,
+     "canada": 0.0925,
+     "australia": -0.0448,
+     "indian": 0.4646,
+     "scotland": 0.2192,
+     "ireland": -0.0093,
+     "african": 0.1124,
+     "malaysia": 0.0034,
+     "newzealand": 0.0829,
+     "southatlandtic": 0.1166,
+     "bermuda": 0.0218,
+     "philippines": 0.0428,
+     "hongkong": 0.2374,
+     "wales": 0.0978,
+     "singapore": 0.0742
+    }
+   ]
+  },
+  "kyutai-don-blue": {
+   "scores": [
+    {
+     "england": 0.4053,
+     "us": 0.0563,
+     "canada": -0.129,
+     "australia": -0.1071,
+     "indian": 0.2799,
+     "scotland": 0.0755,
+     "ireland": 0.0622,
+     "african": 0.162,
+     "malaysia": 0.0701,
+     "newzealand": 0.1457,
+     "southatlandtic": 0.1537,
+     "bermuda": 0.2005,
+     "philippines": 0.0889,
+     "hongkong": 0.2707,
+     "wales": 0.2194,
+     "singapore": 0.2945
+    }
+   ]
+  },
+  "kyutai-don-cps-001": {
+   "scores": [
+    {
+     "england": 0.1257,
+     "us": 0.3898,
+     "canada": 0.0266,
+     "australia": -0.0156,
+     "indian": 0.6356,
+     "scotland": 0.1261,
+     "ireland": -0.033,
+     "african": 0.1413,
+     "malaysia": 0.2381,
+     "newzealand": 0.1197,
+     "southatlandtic": 0.0831,
+     "bermuda": 0.1973,
+     "philippines": 0.2566,
+     "hongkong": 0.1457,
+     "wales": 0.0606,
+     "singapore": 0.2943
+    }
+   ]
+  },
+  "kyutai-don-curlinvictus": {
+   "scores": [
+    {
+     "england": 0.2266,
+     "us": 0.1951,
+     "canada": -0.03,
+     "australia": 0.1337,
+     "indian": 0.4518,
+     "scotland": 0.1081,
+     "ireland": -0.0566,
+     "african": 0.0583,
+     "malaysia": 0.2878,
+     "newzealand": -0.0078,
+     "southatlandtic": 0.0781,
+     "bermuda": 0.0277,
+     "philippines": 0.0809,
+     "hongkong": 0.1069,
+     "wales": -0.0098,
+     "singapore": 0.0643
+    }
+   ]
+  },
+  "kyutai-don-darya-khan": {
+   "scores": [
+    {
+     "england": 0.2183,
+     "us": 0.1186,
+     "canada": -0.0346,
+     "australia": 0.0034,
+     "indian": 0.5481,
+     "scotland": 0.1818,
+     "ireland": 0.0882,
+     "african": 0.2567,
+     "malaysia": 0.0361,
+     "newzealand": 0.1944,
+     "southatlandtic": 0.1008,
+     "bermuda": -0.0559,
+     "philippines": -0.0734,
+     "hongkong": 0.0928,
+     "wales": 0.0566,
+     "singapore": 0.1034
+    }
+   ]
+  },
+  "kyutai-don-dhruv-rao": {
+   "scores": [
+    {
+     "england": 0.3438,
+     "us": 0.2959,
+     "canada": 0.1101,
+     "australia": 0.1584,
+     "indian": 0.6134,
+     "scotland": 0.1318,
+     "ireland": -0.1049,
+     "african": 0.1462,
+     "malaysia": 0.1869,
+     "newzealand": 0.1553,
+     "southatlandtic": 0.0911,
+     "bermuda": 0.0428,
+     "philippines": 0.1019,
+     "hongkong": 0.2166,
+     "wales": 0.1288,
+     "singapore": 0.2004
+    }
+   ]
+  },
+  "kyutai-don-goku": {
+   "scores": [
+    {
+     "england": 0.2025,
+     "us": 0.2648,
+     "canada": -0.1231,
+     "australia": 0.1171,
+     "indian": 0.6312,
+     "scotland": 0.0808,
+     "ireland": 0.2032,
+     "african": 0.1728,
+     "malaysia": 0.1746,
+     "newzealand": 0.1011,
+     "southatlandtic": 0.0807,
+     "bermuda": -0.0273,
+     "philippines": 0.1193,
+     "hongkong": 0.0738,
+     "wales": 0.1225,
+     "singapore": 0.1001
+    }
+   ]
+  },
+  "kyutai-don-hardik-clone": {
+   "scores": [
+    {
+     "england": 0.1961,
+     "us": 0.2548,
+     "canada": 0.1559,
+     "australia": 0.0839,
+     "indian": 0.5538,
+     "scotland": 0.1035,
+     "ireland": 0.0713,
+     "african": 0.3702,
+     "malaysia": 0.0972,
+     "newzealand": 0.0362,
+     "southatlandtic": 0.0204,
+     "bermuda": 0.0355,
+     "philippines": 0.1597,
+     "hongkong": 0.2107,
+     "wales": 0.2739,
+     "singapore": 0.164
+    }
+   ]
+  },
+  "kyutai-don-imran-475": {
+   "scores": [
+    {
+     "england": 0.2798,
+     "us": 0.255,
+     "canada": -0.1683,
+     "australia": -0.0279,
+     "indian": 0.6791,
+     "scotland": 0.0365,
+     "ireland": 0.053,
+     "african": 0.0293,
+     "malaysia": 0.1671,
+     "newzealand": -0.019,
+     "southatlandtic": 0.1162,
+     "bermuda": 0.0963,
+     "philippines": 0.0573,
+     "hongkong": 0.1564,
+     "wales": 0.1767,
+     "singapore": 0.2535
+    }
+   ]
+  },
+  "kyutai-don-imran-from-i-india": {
+   "scores": [
+    {
+     "england": 0.2515,
+     "us": 0.2033,
+     "canada": -0.1574,
+     "australia": 0.0535,
+     "indian": 0.6393,
+     "scotland": 0.0711,
+     "ireland": -0.0511,
+     "african": 0.239,
+     "malaysia": 0.2024,
+     "newzealand": -0.0366,
+     "southatlandtic": 0.0875,
+     "bermuda": 0.183,
+     "philippines": 0.0437,
+     "hongkong": 0.2158,
+     "wales": 0.143,
+     "singapore": 0.1987
+    }
+   ]
+  },
+  "kyutai-don-indian-guy": {
+   "scores": [
+    {
+     "england": 0.0421,
+     "us": 0.0737,
+     "canada": 0.133,
+     "australia": 0.0249,
+     "indian": 0.1716,
+     "scotland": 0.1712,
+     "ireland": -0.0694,
+     "african": 0.2331,
+     "malaysia": 0.2104,
+     "newzealand": 0.1951,
+     "southatlandtic": 0.1382,
+     "bermuda": -0.0913,
+     "philippines": 0.1121,
+     "hongkong": 0.1935,
+     "wales": -0.2068,
+     "singapore": -0.0975
+    }
+   ]
+  },
+  "kyutai-don-jay": {
+   "scores": [
+    {
+     "england": 0.4293,
+     "us": 0.4037,
+     "canada": -0.0637,
+     "australia": 0.1853,
+     "indian": 0.4727,
+     "scotland": 0.2505,
+     "ireland": 0.1302,
+     "african": 0.0908,
+     "malaysia": 0.1006,
+     "newzealand": 0.0913,
+     "southatlandtic": 0.196,
+     "bermuda": -0.011,
+     "philippines": 0.144,
+     "hongkong": 0.1229,
+     "wales": 0.1877,
+     "singapore": 0.2219
+    }
+   ]
+  },
+  "kyutai-don-marshal-indian": {
+   "scores": [
+    {
+     "england": 0.3381,
+     "us": 0.0814,
+     "canada": -0.1249,
+     "australia": 0.0806,
+     "indian": 0.6506,
+     "scotland": -0.0283,
+     "ireland": 0.0279,
+     "african": -0.0102,
+     "malaysia": 0.048,
+     "newzealand": -0.0325,
+     "southatlandtic": 0.0181,
+     "bermuda": -0.0467,
+     "philippines": 0.0387,
+     "hongkong": 0.1007,
+     "wales": 0.0809,
+     "singapore": 0.1298
+    }
+   ]
+  },
+  "kyutai-don-mr-captain": {
+   "scores": [
+    {
+     "england": 0.2946,
+     "us": 0.1548,
+     "canada": -0.005,
+     "australia": 0.1177,
+     "indian": 0.7446,
+     "scotland": 0.0379,
+     "ireland": 0.0987,
+     "african": 0.0524,
+     "malaysia": 0.0949,
+     "newzealand": 0.0083,
+     "southatlandtic": 0.0478,
+     "bermuda": -0.0038,
+     "philippines": 0.0637,
+     "hongkong": 0.1443,
+     "wales": 0.0911,
+     "singapore": 0.1276
+    }
+   ]
+  },
+  "kyutai-don-muhtasim-s-voice": {
+   "scores": [
+    {
+     "england": 0.1652,
+     "us": 0.3027,
+     "canada": -0.1994,
+     "australia": 0.2494,
+     "indian": 0.3414,
+     "scotland": -0.0046,
+     "ireland": 0.0958,
+     "african": 0.261,
+     "malaysia": 0.3591,
+     "newzealand": 0.1466,
+     "southatlandtic": 0.1227,
+     "bermuda": 0.0643,
+     "philippines": 0.0833,
+     "hongkong": 0.1601,
+     "wales": 0.0036,
+     "singapore": 0.08
+    }
+   ]
+  },
+  "kyutai-don-parthiban": {
+   "scores": [
+    {
+     "england": 0.2453,
+     "us": 0.1088,
+     "canada": -0.2627,
+     "australia": -0.1578,
+     "indian": 0.246,
+     "scotland": 0.1425,
+     "ireland": -0.1244,
+     "african": 0.1159,
+     "malaysia": 0.125,
+     "newzealand": 0.0211,
+     "southatlandtic": 0.0858,
+     "bermuda": 0.1753,
+     "philippines": 0.1449,
+     "hongkong": 0.2295,
+     "wales": 0.1173,
+     "singapore": 0.2085
+    }
+   ]
+  },
+  "kyutai-don-rahul": {
+   "scores": [
+    {
+     "england": -0.0262,
+     "us": 0.1662,
+     "canada": 0.0295,
+     "australia": -0.2033,
+     "indian": 0.6685,
+     "scotland": 0.0154,
+     "ireland": -0.0086,
+     "african": 0.0908,
+     "malaysia": 0.0955,
+     "newzealand": -0.0281,
+     "southatlandtic": 0.0385,
+     "bermuda": -0.0247,
+     "philippines": 0.0898,
+     "hongkong": 0.0442,
+     "wales": 0.0171,
+     "singapore": 0.0995
+    }
+   ]
+  },
+  "kyutai-don-ranjith": {
+   "scores": [
+    {
+     "england": 0.0921,
+     "us": 0.0867,
+     "canada": -0.0536,
+     "australia": 0.0864,
+     "indian": 0.3991,
+     "scotland": -0.0075,
+     "ireland": 0.0008,
+     "african": 0.3363,
+     "malaysia": 0.2277,
+     "newzealand": 0.1556,
+     "southatlandtic": 0.0105,
+     "bermuda": -0.0806,
+     "philippines": 0.0771,
+     "hongkong": 0.0986,
+     "wales": -0.0947,
+     "singapore": 0.1027
+    }
+   ]
+  },
+  "kyutai-don-rup": {
+   "scores": [
+    {
+     "england": 0.1334,
+     "us": 0.2585,
+     "canada": -0.0272,
+     "australia": 0.051,
+     "indian": 0.6358,
+     "scotland": 0.0899,
+     "ireland": 0.0776,
+     "african": 0.0013,
+     "malaysia": 0.0405,
+     "newzealand": 0.0233,
+     "southatlandtic": 0.1129,
+     "bermuda": 0.074,
+     "philippines": -0.0284,
+     "hongkong": 0.1008,
+     "wales": 0.1073,
+     "singapore": 0.1579
+    }
+   ]
+  },
+  "kyutai-don-siddh-indian": {
+   "scores": [
+    {
+     "england": 0.4606,
+     "us": 0.212,
+     "canada": 0.0656,
+     "australia": 0.1057,
+     "indian": 0.6208,
+     "scotland": 0.102,
+     "ireland": 0.1747,
+     "african": 0.0817,
+     "malaysia": 0.0283,
+     "newzealand": 0.1609,
+     "southatlandtic": 0.0884,
+     "bermuda": -0.0217,
+     "philippines": -0.0033,
+     "hongkong": 0.2169,
+     "wales": 0.1994,
+     "singapore": 0.1415
+    }
+   ]
+  },
+  "kyutai-don-ss-1684": {
+   "scores": [
+    {
+     "england": 0.0832,
+     "us": 0.1467,
+     "canada": -0.1373,
+     "australia": 0.0396,
+     "indian": 0.5569,
+     "scotland": 0.1116,
+     "ireland": -0.1156,
+     "african": -0.0563,
+     "malaysia": 0.1988,
+     "newzealand": 0.0233,
+     "southatlandtic": -0.0047,
+     "bermuda": -0.0498,
+     "philippines": 0.0664,
+     "hongkong": 0.1538,
+     "wales": -0.1148,
+     "singapore": 0.1008
+    }
+   ]
+  },
+  "kyutai-don-tahii": {
+   "scores": [
+    {
+     "england": 0.0961,
+     "us": 0.3825,
+     "canada": 0.0999,
+     "australia": 0.2092,
+     "indian": 0.5229,
+     "scotland": 0.2602,
+     "ireland": 0.0201,
+     "african": 0.2424,
+     "malaysia": 0.1666,
+     "newzealand": 0.1952,
+     "southatlandtic": 0.1772,
+     "bermuda": -0.0147,
+     "philippines": -0.0249,
+     "hongkong": 0.3034,
+     "wales": 0.0265,
+     "singapore": 0.1006
+    }
+   ]
+  },
+  "kyutai-don-tonmoy": {
+   "scores": [
+    {
+     "england": 0.1845,
+     "us": 0.1243,
+     "canada": 0.0987,
+     "australia": -0.0021,
+     "indian": 0.5554,
+     "scotland": 0.0491,
+     "ireland": 0.0607,
+     "african": 0.3716,
+     "malaysia": 0.1551,
+     "newzealand": 0.0408,
+     "southatlandtic": 0.055,
+     "bermuda": 0.0736,
+     "philippines": 0.1047,
+     "hongkong": 0.1749,
+     "wales": 0.1023,
+     "singapore": 0.1301
+    }
+   ]
+  },
+  "kyutai-don-umair": {
+   "scores": [
+    {
+     "england": 0.1723,
+     "us": 0.4274,
+     "canada": 0.4979,
+     "australia": 0.1754,
+     "indian": 0.4821,
+     "scotland": 0.2754,
+     "ireland": 0.0977,
+     "african": 0.2704,
+     "malaysia": 0.0744,
+     "newzealand": 0.1448,
+     "southatlandtic": 0.2344,
+     "bermuda": -0.0197,
+     "philippines": 0.1441,
+     "hongkong": 0.3084,
+     "wales": 0.1807,
+     "singapore": 0.168
+    }
+   ]
+  },
+  "kyutai-don-vexat": {
+   "scores": [
+    {
+     "england": 0.1148,
+     "us": 0.1896,
+     "canada": -0.0518,
+     "australia": 0.0747,
+     "indian": 0.3536,
+     "scotland": -0.1162,
+     "ireland": -0.0581,
+     "african": 0.4709,
+     "malaysia": 0.2246,
+     "newzealand": 0.0904,
+     "southatlandtic": 0.1432,
+     "bermuda": 0.0872,
+     "philippines": 0.1346,
+     "hongkong": 0.1654,
+     "wales": -0.0891,
+     "singapore": 0.0912
+    }
+   ]
+  },
+  "kyutai-ears-p107-free-speech": {
+   "scores": [
+    {
+     "england": 0.0945,
+     "us": 0.4323,
+     "canada": 0.2374,
+     "australia": 0.3521,
+     "indian": 0.3096,
+     "scotland": 0.0248,
+     "ireland": 0.242,
+     "african": 0.2488,
+     "malaysia": 0.184,
+     "newzealand": 0.1207,
+     "southatlandtic": 0.0653,
+     "bermuda": 0.0046,
+     "philippines": 0.2194,
+     "hongkong": 0.1429,
+     "wales": 0.1484,
+     "singapore": 0.0583
+    },
+    {
+     "england": 0.3356,
+     "us": 0.5522,
+     "canada": 0.3497,
+     "australia": 0.3994,
+     "indian": 0.3878,
+     "scotland": 0.1436,
+     "ireland": 0.2927,
+     "african": 0.2594,
+     "malaysia": 0.1342,
+     "newzealand": 0.2158,
+     "southatlandtic": 0.149,
+     "bermuda": 0.0171,
+     "philippines": 0.1727,
+     "hongkong": 0.2601,
+     "wales": 0.1557,
+     "singapore": 0.0505
+    }
+   ]
+  },
+  "kyutai-vctk-p248": {
+   "scores": [
+    {
+     "england": 0.1904,
+     "us": 0.1289,
+     "canada": -0.1122,
+     "australia": -0.0036,
+     "indian": 0.4411,
+     "scotland": -0.0134,
+     "ireland": -0.061,
+     "african": 0.0014,
+     "malaysia": 0.021,
+     "newzealand": 0.0587,
+     "southatlandtic": 0.092,
+     "bermuda": 0.1702,
+     "philippines": -0.076,
+     "hongkong": 0.1451,
+     "wales": 0.0452,
+     "singapore": 0.2681
+    },
+    {
+     "england": 0.082,
+     "us": 0.086,
+     "canada": -0.1041,
+     "australia": -0.0554,
+     "indian": 0.5156,
+     "scotland": -0.0709,
+     "ireland": -0.0076,
+     "african": 0.0413,
+     "malaysia": 0.0394,
+     "newzealand": 0.0948,
+     "southatlandtic": 0.0073,
+     "bermuda": 0.1865,
+     "philippines": -0.0904,
+     "hongkong": 0.087,
+     "wales": -0.0443,
+     "singapore": 0.2774
+    }
+   ]
+  },
+  "kyutai-vctk-p251": {
+   "scores": [
+    {
+     "england": 0.408,
+     "us": 0.0984,
+     "canada": 0.0926,
+     "australia": 0.1351,
+     "indian": 0.4571,
+     "scotland": 0.0893,
+     "ireland": 0.0934,
+     "african": 0.2776,
+     "malaysia": 0.0549,
+     "newzealand": 0.1087,
+     "southatlandtic": -0.0976,
+     "bermuda": -0.1198,
+     "philippines": 0.1557,
+     "hongkong": 0.1173,
+     "wales": 0.1505,
+     "singapore": 0.0974
+    },
+    {
+     "england": 0.2409,
+     "us": 0.2619,
+     "canada": 0.0574,
+     "australia": 0.1211,
+     "indian": 0.6252,
+     "scotland": -0.009,
+     "ireland": 0.0777,
+     "african": 0.1291,
+     "malaysia": 0.0552,
+     "newzealand": 0.1025,
+     "southatlandtic": -0.0259,
+     "bermuda": -0.0027,
+     "philippines": 0.1608,
+     "hongkong": 0.1028,
+     "wales": 0.0854,
+     "singapore": 0.159
+    }
+   ]
+  },
+  "kyutai-vctk-p376": {
+   "scores": [
+    {
+     "england": 0.3195,
+     "us": 0.8001,
+     "canada": 0.3853,
+     "australia": 0.4061,
+     "indian": 0.3091,
+     "scotland": 0.1884,
+     "ireland": 0.1824,
+     "african": 0.2947,
+     "malaysia": 0.2195,
+     "newzealand": 0.1259,
+     "southatlandtic": 0.2421,
+     "bermuda": 0.2566,
+     "philippines": 0.2511,
+     "hongkong": 0.341,
+     "wales": 0.2817,
+     "singapore": 0.216
+    },
+    {
+     "england": 0.2596,
+     "us": 0.7898,
+     "canada": 0.5037,
+     "australia": 0.3161,
+     "indian": 0.3042,
+     "scotland": 0.1232,
+     "ireland": 0.1515,
+     "african": 0.2598,
+     "malaysia": 0.2072,
+     "newzealand": 0.1369,
+     "southatlandtic": 0.2245,
+     "bermuda": 0.243,
+     "philippines": 0.2478,
+     "hongkong": 0.3372,
+     "wales": 0.2211,
+     "singapore": 0.2118
+    }
+   ]
+  },
   "melo-en-india": {
    "scores": [
     {

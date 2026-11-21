@@ -13,6 +13,7 @@ TEXTS = ['Good morning. I do hope you had a pleasant journey. The weather in Lon
          'and the gardens are looking their very best.',
          'Please remember to bring an umbrella this afternoon. We shall meet at the station at half past four, and then '
          'walk to the theatre together.']
+CHUNK = 6  # voices a driver run makes before they are scored
 UV = shutil.which('uv') or os.path.expanduser('~/.local/bin/uv')
 ENV = {**os.environ, 'UV_TORCH_BACKEND': 'cpu', 'HF_HUB_DISABLE_XET': '1', 'HF_HUB_DISABLE_TELEMETRY': '1', 'UV_NO_CONFIG': '1',
        'UV_PYTHON_PREFERENCE': 'only-managed', 'PYTHONUTF8': '1', 'COQUI_TOS_AGREED': '1'}
@@ -50,38 +51,54 @@ def job(cat, ids, text):
 
 
 def main():
-    work, only = os.path.abspath(sys.argv[1]), set(sys.argv[2:])
+    # run.py WORK [--all] [ENGINE …] — --all: also the models tagged "not run here yet" (the gated ones never)
+    args = sys.argv[2:]
+    work, untried, only = os.path.abspath(sys.argv[1]), '--all' in args, {a for a in args if a != '--all'}
     cat = json.load(open(os.path.join(ROOT, 'src/lib/offline-tts/catalogue.json'), encoding='utf-8'))
     by = {}
     for v in cat['voices']:
         m = cat['models'][v['model']]
-        if v['group'] == 'in' and not m.get('gated') and not m.get('untried') and (not only or m['engine'] in only):
+        if v['group'] == 'in' and not m.get('gated') and (untried or not m.get('untried')) and (not only or m['engine'] in only):
             by.setdefault(v['model'], []).append(v['id'])
     # the recordings made before, sentence by sentence (an earlier survey wrote the first sentence's into "out"): a run that
     # stopped (out of memory, a reboot) goes on where it was
     have = [set(), set()]
     for r, _, fs in os.walk(work):
         k = {'out': 0, 'out1': 0, 'out2': 1}.get(os.path.basename(r))
-        if k is not None:
+        if k is not None and os.path.basename(os.path.dirname(r)) in cat['models']:  # not smoke.py's test recordings
             have[k] |= {f[:-4] for f in fs if f.endswith('.wav')}
+    acc = envfor(work, 'accent', ['speechbrain==1.1.2', 'librosa==0.11.0', 'torch', 'torchaudio'])
+
+    def score(wavs):
+        """accent.py adds these recordings' scores to WORK/scores.json (the scores of earlier runs are kept)."""
+        if wavs:
+            subprocess.run([acc, '-I', os.path.join(ROOT, 'scripts/accent-survey/accent.py'), os.path.join(work, 'scores.json'), *sorted(wavs)], env=ENV, check=True)
+
+    scored = set(json.load(open(os.path.join(work, 'scores.json')))) if os.path.exists(os.path.join(work, 'scores.json')) else set()
     for mid, ids in by.items():
-        if all(i in have[0] and i in have[1] for i in ids):
-            continue
         e, d = cat['models'][mid]['engine'], os.path.join(work, mid)
+        # recordings made but never scored (a run stopped before its scoring): scored first
+        score([p for p in (os.path.join(d, f'out{i}', v + '.wav') for v in ids for i in (1, 2)) if os.path.exists(p) and p not in scored])
+        todo = [v for v in ids if not (v in have[0] and v in have[1])]
+        if not todo:
+            continue
         os.makedirs(d, exist_ok=True)
         shutil.copy(os.path.join(ROOT, 'src/lib/offline-tts/driver.py'), d)
         py = envfor(work, e, cat['engines'][e]['packages'], cat['engines'][e].get('lock', ()))
-        for i, t in enumerate(TEXTS, 1):
-            todo = [v for v in ids if v not in have[i - 1]]
-            if not todo:
-                continue
-            json.dump(job(cat, todo, t), open(os.path.join(d, f'job{i}.json'), 'w'), ensure_ascii=False)
-            print(f'== {mid} ({i}): {len(todo)} voices', flush=True)
-            subprocess.run([py, '-I', 'driver.py', f'job{i}.json', e, f'out{i}'], cwd=d, env=ENV)
+        # a few voices at a time, both sentences, then scored: a long survey (VoxCPM2's 64 voices take hours) leaves its
+        # measurements in scores.json as it goes — scripts/make-indian-accents.py can be run at any moment
+        for c in range(0, len(todo), CHUNK):
+            part, made = todo[c:c + CHUNK], []
+            for i, t in enumerate(TEXTS, 1):
+                vs = [v for v in part if v not in have[i - 1]]
+                if not vs:
+                    continue
+                json.dump(job(cat, vs, t), open(os.path.join(d, f'job{i}.json'), 'w'), ensure_ascii=False)
+                print(f'== {mid} ({i}): {len(vs)} voices — {c + len(part)} of {len(todo)}', flush=True)
+                subprocess.run([py, '-I', 'driver.py', f'job{i}.json', e, f'out{i}'], cwd=d, env=ENV)
+                made += [p for p in (os.path.join(d, f'out{i}', v + '.wav') for v in vs) if os.path.exists(p)]
+            score(made)
         shutil.rmtree(os.path.join(d, 'models'), ignore_errors=True)
-    wavs = [os.path.join(r, f) for r, _, fs in os.walk(work) for f in fs if f.endswith('.wav') and os.path.basename(r) in ('out1', 'out2')]
-    py = envfor(work, 'accent', ['speechbrain==1.1.2', 'librosa==0.11.0', 'torch', 'torchaudio'])
-    subprocess.run([py, '-I', os.path.join(ROOT, 'scripts/accent-survey/accent.py'), os.path.join(work, 'scores.json'), *sorted(wavs)], env=ENV, check=True)
 
 
 if __name__ == '__main__':
