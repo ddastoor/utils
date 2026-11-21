@@ -229,6 +229,12 @@ python3 -m pip install --user -q pynacl pyzipper py7zr bcrypt argon2-cffi zxcvbn
 python3 -m pip download -q ziglang==0.17.1 --no-deps -d /tmp/zig && python3 -m zipfile -e /tmp/zig/ziglang-0.17.1-*.whl /tmp/zig/x && chmod +x /tmp/zig/x/ziglang/zig
 export ZIG=/tmp/zig/x/ziglang/zig
 ```
+Network allowlist of the environment (besides package registries): Hugging Face's hosts (models of the offline voices),
+kaikki.org (the Photo Dictionary's data build), and since 21 Nov 2026 **download.pytorch.org + download-r2.pytorch.org**
+(the offline speech scripts install PyTorch's CPU build with `uv pip install --torch-backend auto`; without them a
+PyTorch engine cannot be tried here). Disk is a fixed allowance (about 10 GB free after clearing uv's cache of CUDA
+wheels): delete a model's folder after its run; `uv cache clean <package>` frees packages, and the cached `uv run`
+environments in `~/.cache/uv/archive-v0` (folders with a `pyvenv.cfg`) hold hard links to them.
 
 ## 7. Limits (usage / session time)
 - Commit + push at least every ~45 minutes, with RESUME.md saying exactly what is half-done.

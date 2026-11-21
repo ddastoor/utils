@@ -2539,3 +2539,18 @@ cannot. Three new suites; each fails on the build before its fixes.
   /dev/null (no result changes — measured). Checks: e2e photodict 96 (+4: no hint on the two good photos, the hint on a
   blurred frame — `tests/fixtures/images/kindle-soft.jpg` — and gone with the next photo), ocr 64 (+1, and no hint on the
   good photos).
+- **TTS offline: PyTorch's build did not fit the PC (21 Nov 2026; to-do #7).** The scripts set `UV_TORCH_BACKEND=auto` to
+  get the CUDA build of PyTorch with an NVIDIA card and the processor's without one, and ran each engine with
+  `uv run --with …` — but `uv run` takes no torch backend (uv 0.13.9: only `uv pip` and `uv tool run` do; the variable
+  was ignored). So every Linux PC got PyPI's default build — CUDA, with about 4 GB of NVIDIA libraries and Triton —
+  whether or not it has a graphics card, and a Windows PC with one got the processor's build (PyPI's default there).
+  Found when this sandbox (no graphics card) held 4 GB of CUDA wheels after the OmniVoice test. Now each engine has its
+  own environment, `envs/<engine>`, made once with `uv venv` + `uv pip install` (which takes the backend; Python itself
+  is installed first with its download shown, `uv venv` is quiet); a `.pins` file holds the pins it was made with, new
+  pins make it again, and a later run starts at once. PowerShell: `EnvFor` returns the environment's python.exe, uv's
+  lines go to the screen (`| Out-Host`), and "not found" from `uv python find` is no error (`$ErrorActionPreference`
+  Continue around it). Checked here: the MMS voice through the generated script → `torch 2.15.0+cpu`, no NVIDIA
+  package, a WAV and an MP3; the second run installs nothing; Piper through the real script (OFFLINE_TTS_E2E=1).
+  Tests: unit offline-tts 49 (+5: the engines installed with `uv pip`, not `uv run`; the Windows function; each
+  environment made once and kept; new pins make it again; an engine name that is no folder name refused; a stand-in uv
+  that makes a stand-in python), offline-tts-plan 134 (each engine runs from its own environment); e2e tts-offline 47.

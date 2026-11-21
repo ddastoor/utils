@@ -48,7 +48,8 @@ The owner adds items here in chat ("add … to to do"). Newest instructions win.
     what it holds. Owner, 21 Nov 2026 (answer): "when the user presses enter, you get only one value on a new row … So
     that value will get a new variable name … variable name should be case insensitive, so it doesn't matter if the user
     changes the case of the already existing variable, the value should be the same" — so every result row gets the next
-    name ($a and $A are one variable with one value). bc's own plain lowercase names, which its loops and `define`
+    name ($a and $A are one variable with one value). Asked again on 21 Nov 2026 (the same answer): one Enter → one value on a new row → one new name;
+    where one Enter prints several rows (a loop, `1; 2`), each printed row gets its own name — nothing left to decide. bc's own plain lowercase names, which its loops and `define`
     functions use, work as in bc. Engine unchanged (BusyBox's bc in WebAssembly); the names are TypeScript glue in
     `src/tools/bc-console.ts`, its suite `tests/e2e/bc-console.e2e.mjs`.
 

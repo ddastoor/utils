@@ -56,11 +56,17 @@ const wrap = (s: string, n = 76) => s.replace(new RegExp(`(.{${n}})`, 'g'), '$1\
 
 /** A package pin is a name, ==, a version and optional extras — nothing a shell would read otherwise. */
 const SAFE_PIN = /^[A-Za-z0-9._-]+(\[[A-Za-z0-9._,-]+\])?(==[A-Za-z0-9.+!_-]+)?$/;
-function withArgs(packages: string[]): string[] {
+/** The pins as words for both shells: in single quotes (bash would read "misaki[en]==0.9.4" as a file pattern — a file
+ *  named misakie==0.9.4 in the folder would take its place); no pin holds a quote. */
+function pinWords(packages: string[]): string[] {
   for (const p of packages) if (!SAFE_PIN.test(p)) throw new Error(`Not a package pin: ${p}`);
-  // in single quotes for both shells: bash would read "misaki[en]==0.9.4" as a file pattern (a file named
-  // misakie==0.9.4 in the folder would take its place); no pin holds a quote
-  return packages.flatMap((p) => ['--with', `'${p}'`]);
+  return packages.map((p) => `'${p}'`);
+}
+function withArgs(packages: string[]): string[] { return pinWords(packages).flatMap((p) => ['--with', p]); }
+/** An engine's name is its folder under envs/: letters, digits, - and _. */
+function engineDir(r: EngineRun): string {
+  if (!/^[a-z0-9][a-z0-9_-]*$/.test(r.engine)) throw new Error(`Not an engine name: ${r.engine}`);
+  return r.engine;
 }
 const ascii = (s: string) => s.normalize('NFKD').replace(/[^\x20-\x7e]/g, '');
 /** A setting is NAME=value with nothing a shell would read otherwise. */
@@ -91,7 +97,7 @@ export function linuxScript(o: ScriptInput): string {
     ...(r.first ? [`echo ${shq(firstRunNote(r))}`] : []),
     // an engine that fails does not stop the others (the voices made so far stay; the end says which failed); uv is
     // not quiet: its downloads show (PyTorch is hundreds of MB, GB with CUDA — silent, a first run looked stuck)
-    `if ! ${envOf(r).map(([k, v]) => `${k}=${v} `).join('')}"$DIR/bin/uv" run --python ${PYTHON} --no-project ${withArgs(r.packages).join(' ')} python "$DIR/driver.py" "$RUN/job.json" ${r.engine} "$RUN"; then FAILED="$FAILED, "${shq(r.name)}; fi`,
+    `if ! { envfor ${engineDir(r)} ${pinWords(r.packages).join(' ')} && ${envOf(r).map(([k, v]) => `${k}=${v} `).join('')}"$DIR/envs/${engineDir(r)}/bin/python" "$DIR/driver.py" "$RUN/job.json" ${r.engine} "$RUN"; }; then FAILED="$FAILED, "${shq(r.name)}; fi`,
   ].join('\n')).join('\n');
   const gated = o.gated || [];
   for (const r of gated) if (!REPO.test(r)) throw new Error(`Not a repository: ${r}`);
@@ -106,6 +112,7 @@ fi
 # SuperUtils - offline speech for Linux. Made by ${o.site} on ${o.made}.
 # It runs entirely on this computer and keeps everything in one folder (~/SuperUtils-TTS, or $SUPERUTILS_TTS_DIR):
 #   bin/uv          uv ${UV.version} (Astral's Python manager, from PyPI, SHA-256 checked); it fetches Python and the engines
+#   envs/<engine>/  each engine's Python environment, with its pinned packages
 #   models/         the voices you chose, from Hugging Face (fixed revisions)
 #   output/<time>/  one WAV and one MP3 per voice
 # Run it with:  bash <this file>     Run it again for another text: what is downloaded stays.
@@ -139,6 +146,19 @@ fi
 export UV_CACHE_DIR="$DIR/cache/uv" UV_PYTHON_INSTALL_DIR="$DIR/python" UV_NO_CONFIG=1
 export UV_PYTHON_PREFERENCE="\${UV_PYTHON_PREFERENCE:-only-managed}" UV_TORCH_BACKEND="\${UV_TORCH_BACKEND:-auto}"
 export HF_HOME="$DIR/cache/huggingface" HF_HUB_DISABLE_XET="\${HF_HUB_DISABLE_XET:-1}" HF_HUB_DISABLE_TELEMETRY=1
+# One Python environment per engine (envs/<engine>), made the first time with the engine's pinned packages and kept.
+# uv pip install picks PyTorch's build for this computer (UV_TORCH_BACKEND=auto: CUDA for the NVIDIA card there is,
+# else the processor's — uv run cannot, and gave every Linux computer the 4 GB CUDA build). New pins make it again.
+envfor() {
+  local e="$DIR/envs/$1"; shift
+  if [ -x "$e/bin/python" ] && [ "$(cat "$e/.pins" 2>/dev/null)" = "$*" ]; then return 0; fi
+  echo '  Setting up its Python environment (once)...'
+  "$DIR/bin/uv" python find ${PYTHON} >/dev/null 2>&1 || "$DIR/bin/uv" python install ${PYTHON} || return 1
+  rm -rf "$e"
+  "$DIR/bin/uv" venv --quiet --python ${PYTHON} "$e" || return 1
+  "$DIR/bin/uv" pip install --python "$e/bin/python" "$@" || return 1
+  printf '%s' "$*" > "$e/.pins"
+}
 ${token}RUN="$DIR/output/$(date +%Y-%m-%d_%H%M%S)"
 mkdir -p "$RUN"
 base64 -d > "$DIR/driver.py" <<'SUPERUTILS_DRIVER'
@@ -167,8 +187,9 @@ export function windowsScript(o: ScriptInput): string {
     `Say ${ps(ascii(`${r.name}: ${r.voices} voice${r.voices > 1 ? 's' : ''}`))}`,
     ...(r.first ? [`Write-Host ${ps(ascii(firstRunNote(r)))}`] : []),
     ...envOf(r).map(([k, v]) => `$env:${k} = ${ps(v)}`),
-    `& $uv run --python ${PYTHON} --no-project ${withArgs(r.packages).join(' ')} python "$Dir\\driver.py" "$Run\\job.json" ${r.engine} "$Run"`,
-    `if ($LASTEXITCODE -ne 0) { $failed += ${ps(ascii(r.name))} }`,
+    `$py = EnvFor ${ps(engineDir(r))} @(${pinWords(r.packages).join(', ')})`,
+    `if ($py) { & $py "$Dir\\driver.py" "$Run\\job.json" ${r.engine} "$Run" }`,
+    `if (-not $py -or $LASTEXITCODE -ne 0) { $failed += ${ps(ascii(r.name))} }`,
   ].join('\r\n')).join('\r\n');
   const gated = o.gated || [];
   for (const r of gated) if (!REPO.test(r)) throw new Error(`Not a repository: ${r}`);
@@ -193,6 +214,7 @@ exit /b
 #>
 # It runs entirely on this computer and keeps everything in one folder (SuperUtils-TTS in your user folder):
 #   bin\\uv.exe      uv ${UV.version} (Astral's Python manager, from PyPI, SHA-256 checked); it fetches Python and the engines
+#   envs\\<engine>\\  each engine's Python environment, with its pinned packages
 #   models\\         the voices you chose, from Hugging Face (fixed revisions)
 #   output\\<time>\\  one WAV and one MP3 per voice
 # Run it again for another text: what is downloaded stays. To remove everything, delete the folder.
@@ -221,6 +243,26 @@ try {
   if (-not $env:UV_TORCH_BACKEND) { $env:UV_TORCH_BACKEND = 'auto' }
   if (-not $env:HF_HUB_DISABLE_XET) { $env:HF_HUB_DISABLE_XET = '1' }
   $env:HF_HOME = Join-Path $Dir 'cache\\huggingface'; $env:HF_HUB_DISABLE_TELEMETRY = '1'; $env:PYTHONUTF8 = '1'
+  # One Python environment per engine (envs\\<engine>), made the first time with the engine's pinned packages and kept.
+  # uv pip install picks PyTorch's build for this computer (UV_TORCH_BACKEND=auto: CUDA for the NVIDIA card there is,
+  # else the processor's - uv run cannot). New pins make it again. uv's own lines go to the screen, not into $py.
+  function EnvFor($name, [string[]]$pins) {
+    $e = Join-Path $Dir ('envs\\' + $name); $py = Join-Path $e 'Scripts\\python.exe'; $mark = Join-Path $e '.pins'; $want = $pins -join ' '
+    if ((Test-Path -LiteralPath $py) -and (Test-Path -LiteralPath $mark) -and ([IO.File]::ReadAllText($mark) -eq $want)) { return $py }
+    Write-Host '  Setting up its Python environment (once)...'
+    # Python first, with its download shown (uv venv is quiet); "not found" from uv is no error here
+    $eap = $ErrorActionPreference; $ErrorActionPreference = 'Continue'
+    & $uv python find ${PYTHON} *> $null; $have = $LASTEXITCODE -eq 0
+    $ErrorActionPreference = $eap
+    if (-not $have) { & $uv python install ${PYTHON} | Out-Host; if ($LASTEXITCODE -ne 0) { return $null } }
+    if (Test-Path -LiteralPath $e) { Remove-Item -LiteralPath $e -Recurse -Force }
+    & $uv venv --quiet --python ${PYTHON} $e | Out-Host
+    if ($LASTEXITCODE -ne 0) { return $null }
+    & $uv pip install --python $py @pins | Out-Host
+    if ($LASTEXITCODE -ne 0) { return $null }
+    [IO.File]::WriteAllText($mark, $want)
+    return $py
+  }
 ${token}  $Run = Join-Path $Dir ('output\\' + (Get-Date -Format 'yyyy-MM-dd_HHmmss'))
   New-Item -ItemType Directory -Force -Path $Run | Out-Null
   [IO.File]::WriteAllBytes((Join-Path $Dir 'driver.py'), [Convert]::FromBase64String(${ps(b64(o.driver))}))

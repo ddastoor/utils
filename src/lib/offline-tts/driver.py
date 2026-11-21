@@ -2,7 +2,7 @@
 # SuperUtils — offline speech (written by the Text-to-Speech tab of https://ddastoor.github.io/utils/).
 # Runs on your own computer: reads job.json, makes one WAV and one MP3 per chosen voice in the output folder.
 # Every model comes from where its makers publish it (Hugging Face), pinned to one revision, into ./models.
-# Usage (the .cmd / .sh script does this for you):  uv run --with <engine's packages> python driver.py job.json <engine> <out>
+# Usage (the .cmd / .sh script does this for you):  envs/<engine>/bin/python driver.py job.json <engine> <out>
 import json
 import os
 import re

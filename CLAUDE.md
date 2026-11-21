@@ -480,8 +480,8 @@ from where their makers publish them (Hugging Face, the engines' releases) — n
 the site.
 **Offline mode as built (21 Nov 2026)** (`src/tools/tts-offline.ts`, imported when the mode is chosen — 111 KB / 24 KB
 gzip with the catalogue; `src/lib/offline-tts/`: `catalogue.json` from `python3 scripts/make-offline-tts-catalogue.py`,
-`plan.ts`, `scripts.ts`, `driver.py`; unit `offline-tts.test.mjs` 32 and `offline-tts-plan.test.mjs` 114, e2e
-`tts-offline.e2e.mjs` 33). On a PC a "Mode" switch above the text: **In this browser** (the tab as it was) or **Offline
+`plan.ts`, `scripts.ts`, `driver.py`; unit `offline-tts.test.mjs` 49 (+1 with `OFFLINE_TTS_E2E=1`) and `offline-tts-plan.test.mjs` 134, e2e
+`tts-offline.e2e.mjs` 47). On a PC a "Mode" switch above the text: **In this browser** (the tab as it was) or **Offline
 on this PC**; phones never see the switch.
 - **What the page does:** nothing but write a script. Windows or Linux is detected (client hints, else the user agent;
   another system is told the scripts are for those two) and can be switched; the script for that system holds the text,
@@ -490,7 +490,13 @@ on this PC**; phones never see the switch.
   **uv 0.13.9** from its wheel on PyPI (SHA-256 checked; x86-64 and ARM64) → Python 3.12 (uv's own build) → each engine
   in its own environment with **pinned packages** (`engines` in the catalogue) → the models from **Hugging Face at
   pinned commits** (`fetch()` in driver.py; plain HTTPS, `HF_HUB_DISABLE_XET=1`) → `output/<date_time>/<voice>.wav` and
-  `.mp3` (lameenc, 128 kbps). PyTorch: `UV_TORCH_BACKEND=auto` (CUDA build with an NVIDIA card, else the processor's).
+  `.mp3` (lameenc, 128 kbps). **Each engine's environment is `envs/<engine>`**, made the first time by `uv venv` +
+  `uv pip install` with the engine's pins (a `.pins` file says which; new pins make it again; a later run starts at
+  once), so that **PyTorch's build fits the PC: `UV_TORCH_BACKEND=auto`** — the CUDA build for the NVIDIA card there is,
+  else the processor's (`+cpu`, about 1 GB against 4 – 5 GB). Until 21 Nov 2026 the scripts ran each engine with
+  `uv run --with`, which has no such choice (only `uv pip` and `uv tool run` take `--torch-backend`): every Linux PC got
+  PyPI's CUDA build with 4 GB of NVIDIA libraries, and a Windows PC with an NVIDIA card never got its GPU used (found
+  in this sandbox's cache; checked here by running MMS through the script: `torch 2.15.0+cpu`, no NVIDIA package).
   **What it shows while it works** (owner, 21 Nov 2026 — a first run sat silent after "== Parler-TTS: 1 voice" for
   minutes, "is this stuck?"): uv is not quiet (its download bars and "Installed n packages"); under each engine's heading a
   line says what its first run downloads — its programs (PyTorch with the first engine that needs it, again with an

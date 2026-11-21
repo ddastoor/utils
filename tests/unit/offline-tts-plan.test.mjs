@@ -134,8 +134,8 @@ export default async (t, { load }) => {
   const between = (s, tag) => s.split(`<<'${tag}'\n`)[1].split(`\n${tag}\n`)[0];
   const back = JSON.parse(dec(between(sh, 'SUPERUTILS_JOB')));
   t.eq(back.voices.length, ids.length, 'the job carries every voice'); t.eq(back.text, o.text, 'and the text, untouched');
-  for (const e of P.ENGINE_ORDER) t.ok(sh.includes(` python "$DIR/driver.py" "$RUN/job.json" ${e} "$RUN"`), `the Linux script runs ${e}`);
-  t.ok(/COQUI_TOS_AGREED=1 "\$DIR\/bin\/uv" run/.test(sh), 'XTTS-v2 runs with its licence accepted');
+  for (const e of P.ENGINE_ORDER) t.ok(sh.includes(`"$DIR/envs/${e}/bin/python" "$DIR/driver.py" "$RUN/job.json" ${e} "$RUN"`), `the Linux script runs ${e} in its own environment`);
+  t.ok(sh.includes('COQUI_TOS_AGREED=1 "$DIR/envs/xtts/bin/python" "$DIR/driver.py"'), 'XTTS-v2 runs with its licence accepted');
   t.ok(sh.includes('read -rsp') && sh.includes('https://huggingface.co/ai4bharat/indic-parler-tts') && sh.includes('(umask 077;'), 'the token is asked for, the repository named, the token file private');
   t.ok(!P.scriptFor('linux', cat, P.planOf(cat, ['piper-vctk-p248']), o).includes('read -rsp'), 'no token is asked for without a gated model');
   const cmd = P.scriptFor('windows', cat, all, o);
