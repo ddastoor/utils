@@ -27,8 +27,9 @@ go-ahead for every open to-do, #12 and #13 included: #8 (in progress), #10, #12,
 **Machine rules:** 16 GB of memory, no swap — two big models at once were killed; disk is a fixed allowance — when it
 fills, clean what can be made again and carry on (owner, 21 Nov 2026).
 **#8 Regex Tester flavours — DONE (21 Nov 2026):** ten flavours, each the engine its language runs (CLAUDE.md §3
-`regex`; unit `regex-flavours` 559 against the native engines, e2e `regex-flavours` 84 + `regex` 32). **Next: #10 bc
-variables** (todo.md has the owner's exact rules), then #12, #13, then the potentials process.
+`regex`; unit `regex-flavours` 559 against the native engines, e2e `regex-flavours` 84 + `regex` 32). **#10 bc variables — DONE (21 Nov 2026):** A … ZZ at the end of each result's row,
+`$A` later, `$name = …`, set once (CLAUDE.md §2 "bc console"; unit `bcvars` 35, e2e `bc-console` 30). **Next: #12** (the
+Photo Dictionary's list A → Z), then #13 (Windows / Linux / X11 / Wayland check), then the potentials process.
 **Then, in the owner's order:** #8 Regex Tester flavours (research done: PCRE2 — `pcre2-wasm` 10.49.3 or our own build;
 Google's `re2-wasm` 1.0.2 for RE2 / Go; `vscode-oniguruma` 2.0.1 for Ruby / Oniguruma; Python's `re` through the Python
 tab's CPython and the `regex` module; Perl through ExifTool's zeroperl, already on the site; JavaScript as now; Java and

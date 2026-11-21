@@ -680,7 +680,17 @@ server sends more than it announced; WAV written by the browser's own 16-bit rul
   explicit request; phones show only the keypad). Engine: BusyBox's `bc` (Gavin Howard's bc, arbitrary precision,
   `-l` maths library) from our BusyBox wasm build — **BUILT** (`src/tools/bc-console.ts`, runs in the terminal worker;
   each Enter replays the session through `bc -lq` so variables/functions persist and shows only the new output;
-  errors shown without breaking the session; e2e `tests/e2e/bc-console.e2e.mjs`).
+  errors shown without breaking the session; e2e `tests/e2e/bc-console.e2e.mjs` 30).
+  **Every result in a variable (to-do #10, owner, 21 Nov 2026 — done):** each number bc prints gets the next free name —
+  A … Z, AA … ZZ, AAA …, as Excel names its columns — shown at the right end of its row (a click puts `$A` into the
+  input); one Enter that prints several rows (a loop, `1; 2`) names each row. A later line uses it as `$A`; names are
+  case-insensitive (`$a` is `$A`). `$total = 7 * 6` names a result yourself (a letter first, then letters, digits, _);
+  the automatic names skip a name the user took. **A $ name is set once:** `$A = …` again, `$A++`, `++$A`, `$A += 1` …
+  are refused with what it holds; a name not yet set is said. The names are our glue (`src/lib/bcvars.ts`, unit
+  `tests/unit/bcvars.test.mjs` 35): `$A` is replaced by the number as bc printed it, in brackets, before bc sees the
+  line — never inside strings or comments, never a bc variable (bc's capital letters are hex digits); bc's own lower-case
+  variables, loops and `define` functions work as before. Text rows (`print "…"`) and obase above 16 get no name. "Clear
+  session" starts the names again at A.
 - **Linux Terminal — owner instructions (Nov 16 2026):** include **as many BusyBox applets as possible**; when an
   applet needs a syscall WASI lacks, look for a browser-side shim that covers it (e.g. exec/fork → run another
   BusyBox instance on the same in-memory FS via a host import; identity → /etc/passwd in the FS; uname/nproc/df →

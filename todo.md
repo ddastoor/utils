@@ -14,27 +14,6 @@ The owner adds items here in chat ("add … to to do"). Newest instructions win.
 3. _(withdrawn by the owner on 20 Nov 2026: the "Export Python utility" for the YouTube Clip tab — do not build it.)_
 
 
-10. **bc console (Scientific Calculator tab): every result in a variable** (owner, 21 Nov 2026, added as the last item:
-    "The result of each expression should be stored in a variable, and that variable should be printed at the right
-    side, at the end of the row of that expression value. It should start with A to Z, then AA, AB, AC, AD to AZ, all
-    the way to ZA, ZB, ZC to ZZ, just like Excel column names. The user should be able to, on subsequent rows, use the
-    variables by saying $. So for example, if variable A, they should be able to use it by saying $A, etc. Also,
-    variable name should be case insensitive. Variable values are immutable. The user should not be able to, on
-    subsequent rows, change or reassign the value of an already existing variable. The user should be able to also add
-    their own variable names, starting with alphabets.") Doable — the plan: each row that gives a value gets the next
-    free name (A … Z, AA … ZZ, then AAA … as Excel goes on), shown at the right end of its result (a tap puts $A into
-    the input); `$A` / `$a` in a later row stands for that value exactly as bc printed it (all its digits — bc's own
-    capital letters are hex digits, so the $ names are put in by our glue before bc sees the line, never as bc
-    variables); `$name = expression` names a row yourself (a letter first, then letters, digits, _; case-insensitive),
-    and the automatic names skip any name taken; any change of an existing $ name (`=`, `+=`, `++` …) is refused with
-    what it holds. Owner, 21 Nov 2026 (answer): "when the user presses enter, you get only one value on a new row … So
-    that value will get a new variable name … variable name should be case insensitive, so it doesn't matter if the user
-    changes the case of the already existing variable, the value should be the same" — so every result row gets the next
-    name ($a and $A are one variable with one value). Asked again on 21 Nov 2026 (the same answer): one Enter → one value on a new row → one new name;
-    where one Enter prints several rows (a loop, `1; 2`), each printed row gets its own name — nothing left to decide. bc's own plain lowercase names, which its loops and `define`
-    functions use, work as in bc. Engine unchanged (BusyBox's bc in WebAssembly); the names are TypeScript glue in
-    `src/tools/bc-console.ts`, its suite `tests/e2e/bc-console.e2e.mjs`.
-
 12. **Photo Dictionary: the final list of words in alphabetical order** (owner, 21 Nov 2026: "regarding the final list
     of words that you show to the user with meanings, don't change the list of words, just sort them in alphabetical
     order, that's all, so that I can zoom into the correct word which is in my mind with scrolling purposes. Again, don't
@@ -62,6 +41,9 @@ The owner adds items here in chat ("add … to to do"). Newest instructions win.
     camera) the tab says what Wayland changes and how to work with it.
 
 ## Done
+- **10. bc console: every result in a variable** (owner, 21 Nov 2026) — done 21 Nov 2026: A … Z, AA … ZZ at the end of
+  each result's row, `$A` in later lines (any case), `$name = …` for your own names, a $ name set once (every change
+  refused). `src/lib/bcvars.ts`; unit `bcvars` 35, e2e `bc-console` 30. CLAUDE.md §2, "bc console".
 - **8. Regex Tester: a choice of regex flavours** (owner, 21 Nov 2026) — done 21 Nov 2026: **ten flavours**, each
   the engine its language runs: JavaScript (the browser), PCRE2 (pcre2-wasm), Perl 5.42 (zeroperl), Python's re and the
   regex module (our CPython, mrab-regex built in), Java (OpenJDK 21's java.util.regex compiled by TeaVM), .NET 10
