@@ -1,5 +1,6 @@
 // GST Invoice (#/invoice): MuPDF-made PDF read back in Node — CGST/SGST vs IGST vs UTGST, totals and round-off from
 // mathcore (integer paise), amount in words, GSTIN check, UPI QR, Bill of supply, Hindi text, save/load details.
+import { fileURLToPath } from 'node:url';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { pdfDoc, pdfQr } from '../lib/docgen-check.mjs';
 export default async ({ base, page: newPage, ok, info, download, tmp, devices }) => {
@@ -98,7 +99,7 @@ export default async ({ base, page: newPage, ok, info, download, tmp, devices })
   await page.waitForFunction(() => [...document.querySelectorAll('input')].some((i) => i.value === 'INV-777'));
   ok(!(await page.getByText('Only the first 100 were kept.').count()) && await page.getByRole('button', { name: 'Add item' }).isEnabled(), 'loading a normal file again: no note, Add item on');
   // the logo goes into the details file and comes back from it (it was lost); a download waits for a picture being read
-  await page.locator('input[type=file]').first().setInputFiles(new URL('../fixtures/images/astronaut.png', import.meta.url).pathname);
+  await page.locator('input[type=file]').first().setInputFiles(fileURLToPath(new URL('../fixtures/images/astronaut.png', import.meta.url)));
   const withLogo = await pdf();
   ok(withLogo.images >= 2, `a download straight after choosing the logo has it (${withLogo.images} pictures with the QR code)`);
   const jl = await download(page, () => page.getByRole('button', { name: 'Save details' }).click()), jj = JSON.parse(readFileSync(jl, 'utf8'));

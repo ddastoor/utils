@@ -1,12 +1,13 @@
 // Merge / Split / Organize PDF (src/lib/pdf.ts mergePdfs, subsetPdf): pages keep their annotations (comments,
 // highlights), web links, links between pages (renumbered), the outline and filled-in form fields — MuPDF's graftPage
 // dropped them all. Read back twice: by MuPDF and by pypdf (tests/lib/pdfpages_check.py, an independent reader).
+import { fileURLToPath } from 'node:url';
 import { readFileSync, writeFileSync, mkdtempSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-const root = new URL('../../', import.meta.url).pathname;
+const root = fileURLToPath(new URL('../../', import.meta.url));
 const F = (n) => readFileSync(root + 'tests/fixtures/pdf/' + n);
 const dir = mkdtempSync(join(tmpdir(), 'pdfpages-'));
 let pypdf = true;

@@ -1,8 +1,9 @@
+import { fileURLToPath } from 'node:url';
 import zlib from 'node:zlib';
 // Images → PDF (#/img2pdf): real JPG/PNG/HEIC photos → one page each; JPEG embedded byte-for-byte; A4 / Fit sizes.
 import { readFileSync } from 'node:fs';
 import { pdfInfo, renderGrey } from '../lib/pdfcheck.mjs';
-const I = (n) => new URL(`../fixtures/images/${n}`, import.meta.url).pathname;
+const I = (n) => fileURLToPath(new URL(`../fixtures/images/${n}`, import.meta.url));
 export default async ({ base, page: newPage, ok, download, devices, released }) => {
   const page = await newPage();
   await page.goto(base + '#/img2pdf');

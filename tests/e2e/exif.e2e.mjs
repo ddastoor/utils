@@ -2,10 +2,11 @@
 // EXIF, an iPhone HEIC with its position, a Canon photo with a preview inside, a PNG with only a date, a broken GPS
 // block; "Save without metadata" (ExifTool: the picture untouched, colour profile and orientation kept), read back by
 // the native exiftool where it is installed (apt install libimage-exiftool-perl).
+import { fileURLToPath } from 'node:url';
 import { imageInfo } from '../lib/imgcheck.mjs';
 import { readFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
-const F = (n) => new URL(`../fixtures/images/${n}`, import.meta.url).pathname;
+const F = (n) => fileURLToPath(new URL(`../fixtures/images/${n}`, import.meta.url));
 const nativeTags = (p) => { try { return JSON.parse(execFileSync('exiftool', ['-json', '-n', '-G1', p], { stdio: ['ignore', 'pipe', 'ignore'] }).toString())[0]; } catch { return null; } };
 const DONE = /This photo gives away|carries no metadata|could not be read|not a photo/;
 

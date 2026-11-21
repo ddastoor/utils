@@ -1,7 +1,8 @@
 // PDF Watermark (#/pdf-watermark): vector text (searchable), opacity, tiled, colours, and non-Latin text as an image.
+import { fileURLToPath } from 'node:url';
 import { pdfInfo, renderGrey } from '../lib/pdfcheck.mjs';
 import { makeLong, raceRun } from '../lib/pdfannot.mjs';
-const P = (n) => new URL(`../fixtures/pdf/${n}`, import.meta.url).pathname;
+const P = (n) => fileURLToPath(new URL(`../fixtures/pdf/${n}`, import.meta.url));
 export default async ({ base, page: newPage, ok, download, devices, tmp }) => {
   const page = await newPage();
   await page.goto(base + '#/pdf-watermark');

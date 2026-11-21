@@ -1,6 +1,7 @@
 // Resume Builder (#/resume): three templates, paper sizes, jobs/education/projects, photo, long resumes flow to more pages.
+import { fileURLToPath } from 'node:url';
 import { pdfDoc } from '../lib/docgen-check.mjs';
-const I = (n) => new URL(`../fixtures/images/${n}`, import.meta.url).pathname;
+const I = (n) => fileURLToPath(new URL(`../fixtures/images/${n}`, import.meta.url));
 export default async ({ base, page: newPage, ok, download, devices }) => {
   const page = await newPage({ viewport: { width: 1400, height: 1000 } });
   await page.goto(base + '#/resume');

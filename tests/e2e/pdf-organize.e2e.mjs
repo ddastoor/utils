@@ -1,7 +1,8 @@
+import { fileURLToPath } from 'node:url';
 import { readFileSync, writeFileSync } from 'node:fs';
 // Organize PDF (#/pdf-organize): thumbnails; move, rotate, delete, reset → saved PDF has exactly that order/rotation.
 import { pdfInfo } from '../lib/pdfcheck.mjs';
-const P = (n) => new URL(`../fixtures/pdf/${n}`, import.meta.url).pathname;
+const P = (n) => fileURLToPath(new URL(`../fixtures/pdf/${n}`, import.meta.url));
 import { makeAnnotated, readBack } from '../lib/pdfannot.mjs';
 export default async ({ base, page: newPage, ok, download, devices, tmp }) => {
   const page = await newPage();

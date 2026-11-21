@@ -2,8 +2,9 @@
 // paper (scikit-image "text" sample: dark text on unevenly lit paper) → trimmed transparent PNG / JPEG on white.
 // Also: fonts fetched only for "Type", blank paper, the newest photo, typed swashes not cut off, the ink colour of the
 // whole drawing, a narrower window after signing, the phone's camera button beside a plain picker.
+import { fileURLToPath } from 'node:url';
 import { imageInfo, decodeInPage } from '../lib/imgcheck.mjs';
-const F = (n) => new URL(`../fixtures/images/${n}`, import.meta.url).pathname;
+const F = (n) => fileURLToPath(new URL(`../fixtures/images/${n}`, import.meta.url));
 
 export default async ({ base, page: newPage, ok, download, devices }) => {
   const page = await newPage();

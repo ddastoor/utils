@@ -1,6 +1,7 @@
 // Collage Maker (#/collage): real photos; grid and fixed layouts; canvas sizes; spacing/background; reorder/remove.
+import { fileURLToPath } from 'node:url';
 import { imageInfo, decodeInPage, regionMeans, lum } from '../lib/imgcheck.mjs';
-const F = (n) => new URL(`../fixtures/images/${n}`, import.meta.url).pathname;
+const F = (n) => fileURLToPath(new URL(`../fixtures/images/${n}`, import.meta.url));
 
 export default async ({ base, page: newPage, ok, download, devices }) => {
   const page = await newPage();

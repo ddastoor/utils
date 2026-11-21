@@ -4,10 +4,11 @@
 // the camera (owner, 20 Nov 2026): the PC's webcam and the phone's back camera, live in the page with Snap — a stand-in
 // camera shows a sentence, and what Snap takes is what is read; Switch, Cancel, a file instead, leaving the tab, a late or
 // refused answer, a camera that stops by itself; phone layout with a picker that does not force the camera.
+import { fileURLToPath } from 'node:url';
 import { readFileSync } from 'node:fs';
 import { fakeTextCamera, live, stopped } from './_camera.mjs';
 import { tiltedJpeg, CLOSE_UP } from './_tilt.mjs';
-const F = (n) => new URL(`../fixtures/images/${n}`, import.meta.url).pathname;
+const F = (n) => fileURLToPath(new URL(`../fixtures/images/${n}`, import.meta.url));
 
 export default async ({ base, page: newPage, ok, info, download, devices }) => {
   const page = await newPage();

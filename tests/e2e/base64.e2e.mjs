@@ -3,10 +3,11 @@
 // zero-width characters); a binary result is recognised (PNG…), shown as hex and saved under the right name; a file →
 // data: URL → the same bytes back; long output is cut on screen but Copy and Download give all of it; wrong input says
 // which character is wrong.
+import { fileURLToPath } from 'node:url';
 import { readFileSync } from 'node:fs';
 import { pcOnlyOnPhone } from './_pconly.mjs';
 import { REF, setValue, notes, until, hookClipboard, copied } from './_devdata.mjs';
-const IMG = new URL('../fixtures/images/exif_gps.jpg', import.meta.url).pathname;
+const IMG = fileURLToPath(new URL('../fixtures/images/exif_gps.jpg', import.meta.url));
 export default async (ctx) => {
   const { base, page: newPage, ok, download } = ctx;
   const page = await newPage(); await page.goto(`${base}#/base64`);

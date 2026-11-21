@@ -1,8 +1,9 @@
 // Sign PDF (#/pdf-sign): drawn / typed / photographed signatures placed on real PDFs; position, size, date, every page;
 // read back as pixels (MuPDF in Node) and as an image XObject with transparency.
+import { fileURLToPath } from 'node:url';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { pdfInfo, renderGrey } from '../lib/pdfcheck.mjs';
-const P = (n) => new URL(`../fixtures/pdf/${n}`, import.meta.url).pathname;
+const P = (n) => fileURLToPath(new URL(`../fixtures/pdf/${n}`, import.meta.url));
 export default async ({ base, page: newPage, ok, download, tmp, devices, released }) => {
   const m = await import('mupdf');
   const sigImages = (f) => { const d = m.Document.openDocument(readFileSync(f), 'application/pdf').asPDF(), out = []; for (let k = 1; k < d.countObjects(); k++) { const o = d.newIndirect(k); if (o.isStream() && o.get('Subtype').toString() === '/Image') out.push({ smask: !o.get('SMask').isNull() }); } return out; };

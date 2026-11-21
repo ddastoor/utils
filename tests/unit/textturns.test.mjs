@@ -2,6 +2,7 @@
 // the phone held sideways, in either hand, "can't understand a thing"). The real photos of the Photo Dictionary's and
 // the OCR tab's suites, each turned the four ways round: the whole photo, and the page found and straightened in it,
 // must come back with the turns that set the text upright again.
+import { fileURLToPath } from 'node:url';
 import { readFileSync } from 'node:fs';
 
 export default async (t, { load, wasm }) => {
@@ -9,7 +10,7 @@ export default async (t, { load, wasm }) => {
   const { straighten } = await load('/src/lib/pagecrop.ts');
   const U = await load('/src/lib/upright.ts');
   const ip = bindImgproc(await wasm('imgproc'));
-  const root = new URL('../../', import.meta.url).pathname;
+  const root = fileURLToPath(new URL('../../', import.meta.url));
   const jpeg = await import(root + 'node_modules/@jsquash/jpeg/decode.js');
   await jpeg.init(await WebAssembly.compile(readFileSync(root + 'node_modules/@jsquash/jpeg/codec/dec/mozjpeg_dec.wasm')));
   const decode = async (p) => { const d = await jpeg.default(readFileSync(root + 'tests/fixtures/images/' + p)); return { data: d.data, width: d.width, height: d.height }; };

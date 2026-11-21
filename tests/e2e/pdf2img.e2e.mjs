@@ -1,7 +1,8 @@
 // PDF → Images (#/pdf2img): exact pixel sizes per dpi, JPG / PNG, page ranges, zip of all.
+import { fileURLToPath } from 'node:url';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { imageInfo, zipEntries } from '../lib/imgcheck.mjs';
-const P = (n) => new URL(`../fixtures/pdf/${n}`, import.meta.url).pathname;
+const P = (n) => fileURLToPath(new URL(`../fixtures/pdf/${n}`, import.meta.url));
 export default async ({ base, page: newPage, ok, info, download, devices, tmp, released }) => {
   const page = await newPage();
   // click Convert and wait until the result list holds exactly these files

@@ -1,10 +1,11 @@
 // Generates src/icons.gen.ts with only the Lucide icons the app uses (ISC licence).
 // Any quoted PascalCase string in src/ that names a Lucide icon is included.
+import { fileURLToPath } from 'node:url';
 import { readFileSync, writeFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import * as L from 'lucide-static';
 
-const root = new URL('../src/', import.meta.url).pathname;
+const root = fileURLToPath(new URL('../src/', import.meta.url));
 const files = [];
 (function walk(d) { for (const f of readdirSync(d)) { const p = join(d, f); if (statSync(p).isDirectory()) walk(p); else if (/\.ts$/.test(f) && !f.endsWith('.gen.ts')) files.push(p); } })(root);
 const names = new Set(['Circle']);

@@ -3,11 +3,12 @@
 // and length; strength 0 % is the file sample for sample and 50 % the exact middle of the two; a new strength is mixed, not
 // cleaned again; the newest file wins; Save waits for a file just chosen; a voice on one channel only is found; a 48 kHz
 // file is cleaned without resampling; a file that is no sound leaves the open one; leaving ends the work.
+import { fileURLToPath } from 'node:url';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { readWav, mp3Frames } from './audio.e2e.mjs';
-const F = (n) => new URL(`../fixtures/speech/${n}`, import.meta.url).pathname;
-const MEDIA = (n) => new URL(`../fixtures/media/${n}`, import.meta.url).pathname;
+const F = (n) => fileURLToPath(new URL(`../fixtures/speech/${n}`, import.meta.url));
+const MEDIA = (n) => fileURLToPath(new URL(`../fixtures/media/${n}`, import.meta.url));
 /** 16-bit WAV of planar channels given as 16-bit integers */
 function wav16(chs, sr) {
   const n = chs[0].length, c = chs.length, b = Buffer.alloc(44 + n * c * 2);

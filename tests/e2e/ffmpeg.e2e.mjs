@@ -1,11 +1,12 @@
 // FFmpeg (#/ffmpeg, PC): ffmpeg.wasm presets on real clips; outputs checked by container bytes, MP4 boxes and by
 // decoding them in the browser.
+import { fileURLToPath } from 'node:url';
 import { readFileSync } from 'node:fs';
 import { mp4Info } from './video.e2e.mjs';
 import { mp3Frames, readWav } from './audio.e2e.mjs';
 import { imageInfo } from '../lib/imgcheck.mjs';
-const M = (n) => new URL(`../fixtures/media/${n}`, import.meta.url).pathname;
-const I = (n) => new URL(`../fixtures/images/${n}`, import.meta.url).pathname;
+const M = (n) => fileURLToPath(new URL(`../fixtures/media/${n}`, import.meta.url));
+const I = (n) => fileURLToPath(new URL(`../fixtures/images/${n}`, import.meta.url));
 
 export default async ({ base, page: newPage, ok, info, download }) => {
   let page = await newPage({ viewport: { width: 1280, height: 1100 } }); // a fresh page for the Stop checks: see there

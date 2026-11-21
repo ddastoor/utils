@@ -2,9 +2,10 @@
 // (scripts/make-scanner-reference.py), the glue of src/lib/pagefind.ts, and the model itself — DocCornerNet LEAN on the
 // app's ONNX Runtime Web — on photos whose corners are known exactly (scripts/make-scan-photos.py) and photos with no
 // document in them.
+import { fileURLToPath } from 'node:url';
 import { readFileSync } from 'node:fs';
 
-const root = new URL('../../', import.meta.url).pathname;
+const root = fileURLToPath(new URL('../../', import.meta.url));
 const F = (p) => root + 'tests/fixtures/' + p;
 
 /** The pictures of scripts/make-scanner-reference.py (`picture` there), opaque RGBA. */

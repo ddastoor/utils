@@ -1,9 +1,10 @@
 // Fill PDF Form (#/pdf-fill): a generated AcroForm (text, multi-line, checkbox, radio group, combo box, read-only) and
 // pypdf's real form.pdf; values read back with MuPDF in Node; flatten; type anywhere on a PDF without fields.
+import { fileURLToPath } from 'node:url';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { makeForm } from '../lib/makeform.mjs';
 import { pdfInfo, renderGrey } from '../lib/pdfcheck.mjs';
-const P = (n) => new URL(`../fixtures/pdf/${n}`, import.meta.url).pathname;
+const P = (n) => fileURLToPath(new URL(`../fixtures/pdf/${n}`, import.meta.url));
 export default async ({ base, page: newPage, ok, download, tmp, devices }) => {
   const m = await import('mupdf');
   const values = (f) => { const d = m.Document.openDocument(readFileSync(f), 'application/pdf').asPDF(), v = {}; for (const w of d.loadPage(0).getWidgets()) { const n = w.getName(); if (!(n in v) || w.getValue() !== 'Off') v[n] = w.getValue(); } return v; };

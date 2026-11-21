@@ -1,8 +1,9 @@
 // Compress PDF (#/pdf-compress): a real PDF with a 1800×1200 photo; levels, target size, scanned-pages mode; text and
 // soft masks survive; nothing is downloaded when the file cannot get smaller.
+import { fileURLToPath } from 'node:url';
 import { readFileSync, statSync, writeFileSync } from 'node:fs';
 import { pdfInfo, renderGrey } from '../lib/pdfcheck.mjs';
-const P = (n) => new URL(`../fixtures/pdf/${n}`, import.meta.url).pathname;
+const P = (n) => fileURLToPath(new URL(`../fixtures/pdf/${n}`, import.meta.url));
 export default async ({ base, page: newPage, ok, info, download, devices, tmp }) => {
   const m = await import('mupdf');
   const images = (f) => { const d = m.Document.openDocument(readFileSync(f), 'application/pdf').asPDF(), out = []; for (let k = 1; k < d.countObjects(); k++) { const o = d.newIndirect(k); if (o.isStream() && o.get('Subtype').toString() === '/Image') out.push({ w: o.get('Width').asNumber(), h: o.get('Height').asNumber(), smask: !o.get('SMask').isNull(), filter: String(o.get('Filter')) }); } return out; };
@@ -61,7 +62,7 @@ export default async ({ base, page: newPage, ok, info, download, devices, tmp })
   ok(page.errors.length === 0, `no page errors: ${page.errors.join(' | ')}`);
 
   // a colour-key mask (/Mask [r r g g b b]) cuts out exact colours — after JPEG they are not exact: such an image stays
-  const ck = new m.PDFDocument(), im = ck.addImage(new m.Image(readFileSync(new URL('../fixtures/images/coffee.png', import.meta.url).pathname)));
+  const ck = new m.PDFDocument(), im = ck.addImage(new m.Image(readFileSync(fileURLToPath(new URL('../fixtures/images/coffee.png', import.meta.url)))));
   const key = ck.newArray(); for (const v of [240, 255, 240, 255, 240, 255]) key.push(v);
   im.put('Mask', key);
   ck.insertPage(-1, ck.addPage([0, 0, 595, 842], 0, ck.addObject({ XObject: { I0: im } }), 'q 400 0 0 267 97 400 cm /I0 Do Q'));

@@ -1,9 +1,10 @@
 // PDF Page Numbers (#/pdf-pagenum): styles, start number, skip cover, position — read back as text and as pixels,
 // including a page with /Rotate 90 (number must sit at the visual bottom) and a protected input.
+import { fileURLToPath } from 'node:url';
 import { writeFileSync, readFileSync } from 'node:fs';
 import { pdfInfo, renderGrey } from '../lib/pdfcheck.mjs';
 import { makeLong, raceRun } from '../lib/pdfannot.mjs';
-const P = (n) => new URL(`../fixtures/pdf/${n}`, import.meta.url).pathname;
+const P = (n) => fileURLToPath(new URL(`../fixtures/pdf/${n}`, import.meta.url));
 export default async ({ base, page: newPage, ok, download, tmp, devices }) => {
   const page = await newPage();
   await page.goto(base + '#/pdf-pagenum');

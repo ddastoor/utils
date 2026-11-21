@@ -1,6 +1,7 @@
 // Watermark (#/watermark): real photos; text (corner + tiled) and logo watermarks; batch + zip; formats.
+import { fileURLToPath } from 'node:url';
 import { imageInfo, regionMeans, lum, zipEntries } from '../lib/imgcheck.mjs';
-const F = (n) => new URL(`../fixtures/images/${n}`, import.meta.url).pathname;
+const F = (n) => fileURLToPath(new URL(`../fixtures/images/${n}`, import.meta.url));
 
 export default async ({ base, page: newPage, ok, download, devices, released }) => {
   const page = await newPage();

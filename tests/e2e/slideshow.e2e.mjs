@@ -1,12 +1,13 @@
 // Slideshow Maker (#/slideshow): photos + music → MP4 (WebCodecs + mediabunny, music via our audio.wasm). Checks MP4
 // boxes, length, which photo is on screen at known times (vs the photos drawn the same way), reorder, shape, music.
+import { fileURLToPath } from 'node:url';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { join } from 'node:path';
 import { mp4Info } from './video.e2e.mjs';
 const probeAudio = (f) => { try { return execFileSync('ffprobe', ['-v', 'error', '-select_streams', 'a:0', '-show_entries', 'stream=codec_name', '-of', 'csv=p=0', f], { encoding: 'utf8' }).trim(); } catch { return null; } };
-const I = (n) => new URL(`../fixtures/images/${n}`, import.meta.url).pathname;
-const M = (n) => new URL(`../fixtures/media/${n}`, import.meta.url).pathname;
+const I = (n) => fileURLToPath(new URL(`../fixtures/images/${n}`, import.meta.url));
+const M = (n) => fileURLToPath(new URL(`../fixtures/media/${n}`, import.meta.url));
 
 export default async ({ base, page: newPage, ok, info, download, devices, tmp, released }) => {
   const page = await newPage({ viewport: { width: 1280, height: 1100 } });

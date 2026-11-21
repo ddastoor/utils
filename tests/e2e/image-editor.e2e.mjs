@@ -1,10 +1,11 @@
 // Image Editor (#/image): real photos (EXIF orientation, GPS, HEIC), geometry, adjustments, encoders, target size;
 // a transparent PNG saved as JPEG (white, not black) and as WebP (alpha kept); straightening keeps no empty corner;
 // the size boxes refuse what cannot be made; resizing in linear light (a 1-pixel checkerboard halves to ≈ 187, not 128).
+import { fileURLToPath } from 'node:url';
 import { imageInfo, decodeInPage } from '../lib/imgcheck.mjs';
 import { spawnSync } from 'node:child_process';
 import { join } from 'node:path';
-const F = (n) => new URL(`../fixtures/images/${n}`, import.meta.url).pathname;
+const F = (n) => fileURLToPath(new URL(`../fixtures/images/${n}`, import.meta.url));
 
 export default async ({ base, page: newPage, ok, download, devices, tmp }) => {
   const page = await newPage();

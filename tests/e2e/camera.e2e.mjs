@@ -8,10 +8,11 @@
 //    hidden by another mode, when another camera of the tab opens, and when the tab is left.
 // 3. Phones: the back camera; a résumé photo with the front one, mirrored; pages one after another in the Doc Scanner
 //    with its fixed bar out of the way.
+import { fileURLToPath } from 'node:url';
 import { fakeTextCamera, live, stopped, camButton, openCamera, snap } from './_camera.mjs';
-const F = (n) => new URL(`../fixtures/images/${n}`, import.meta.url).pathname;
-const P = (n) => new URL(`../fixtures/pdf/${n}`, import.meta.url).pathname;
-const M = (n) => new URL(`../fixtures/media/${n}`, import.meta.url).pathname;
+const F = (n) => fileURLToPath(new URL(`../fixtures/images/${n}`, import.meta.url));
+const P = (n) => fileURLToPath(new URL(`../fixtures/pdf/${n}`, import.meta.url));
+const M = (n) => fileURLToPath(new URL(`../fixtures/media/${n}`, import.meta.url));
 
 /** pickers of pictures without a camera beside them, and why */
 const EXEMPT = {

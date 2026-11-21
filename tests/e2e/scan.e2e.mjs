@@ -3,9 +3,10 @@
 // replaced by a canvas stream), Stop releasing the camera; Wi-Fi / UPI / contact / event codes shown field by field
 // (copy the password, save the contact or event), no link for javascript:, a refused camera said in words, a second
 // Start not leaving the first camera on, a pasted image scanned, Clear.
+import { fileURLToPath } from 'node:url';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-const FLOWER = new URL('../fixtures/images/flower.jpg', import.meta.url).pathname;
+const FLOWER = fileURLToPath(new URL('../fixtures/images/flower.jpg', import.meta.url));
 export default async ({ base, page: newPage, ok, download, tmp, devices }) => {
   // make two QR codes with the QR tab
   const g = await newPage(); await g.goto(`${base}#/qr`); await g.locator('.code-preview svg').waitFor();

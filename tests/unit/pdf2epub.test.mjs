@@ -6,13 +6,14 @@
 // the Federal Register (three columns, gutters of 7.5 pt, a stamp in the margin) and an OCR'd scan; generated PDFs for
 // bold run-in headings, broken Unicode maps, unreadable formulas, bookmarks, the language, stamps, sideways and huge
 // pages; the W3C's epubcheck on the EPUBs where it is installed (EPUBCHECK=/path/epubcheck.jar, or under /opt/epubcheck*).
+import { fileURLToPath } from 'node:url';
 import { readFileSync, writeFileSync, existsSync, readdirSync, mkdtempSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { unzipSync, strFromU8 } from 'fflate';
 
-const P = (n) => new URL(`../fixtures/pdf/${n}`, import.meta.url).pathname;
+const P = (n) => fileURLToPath(new URL(`../fixtures/pdf/${n}`, import.meta.url));
 const REF = JSON.parse(readFileSync(new URL('../fixtures/epub/reference.json', import.meta.url), 'utf8')).files;
 const JPEG = readFileSync(new URL('../fixtures/images/coffee.jpg', import.meta.url));
 const jar = process.env.EPUBCHECK || ['/opt/epubcheck', '/opt/epubcheck-dl'].flatMap((d) => (existsSync(d) ? readdirSync(d).map((x) => `${d}/${x}/epubcheck.jar`).concat(`${d}/epubcheck.jar`) : [])).find((x) => existsSync(x));

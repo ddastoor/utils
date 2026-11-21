@@ -1,7 +1,8 @@
 // Protect PDF (#/pdf-protect): AES-256 (V5 R6) with a user password; restrictions via the permissions value;
 // read back with MuPDF in Node: needs the password, wrong one fails, right one opens with the text and permissions.
+import { fileURLToPath } from 'node:url';
 import { readFileSync } from 'node:fs';
-const P = (n) => new URL(`../fixtures/pdf/${n}`, import.meta.url).pathname;
+const P = (n) => fileURLToPath(new URL(`../fixtures/pdf/${n}`, import.meta.url));
 import { makeSigned } from '../lib/pdfannot.mjs';
 export default async ({ base, page: newPage, ok, download, devices, tmp }) => {
   const m = await import('mupdf');

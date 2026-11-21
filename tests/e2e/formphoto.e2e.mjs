@@ -1,9 +1,10 @@
 // Photo & Signature Resizer (#/formphoto): exact pixels + KB ranges for Indian portals with real images:
 // NASA portrait (face auto-framing), scikit-image "text" scan as a signature on paper (clean-up + padding to minimum).
 // KB limits are read the strict way (maximum × 1,000 bytes, minimum × 1,024): the file passes either way of counting.
+import { fileURLToPath } from 'node:url';
 import { readFileSync } from 'node:fs';
 import { imageInfo, decodeInPage, regionMeans } from '../lib/imgcheck.mjs';
-const F = (n) => new URL(`../fixtures/images/${n}`, import.meta.url).pathname;
+const F = (n) => fileURLToPath(new URL(`../fixtures/images/${n}`, import.meta.url));
 
 export default async ({ base, page: newPage, ok, download, devices, released }) => {
   const page = await newPage();

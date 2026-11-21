@@ -1,9 +1,10 @@
 // Video Compressor (#/video): WebCodecs (H.264 / AV1) + mediabunny. Checks the MP4 boxes (codecs, size), plays the
 // result in the browser (duration, dimensions) and compares a decoded frame with the original.
+import { fileURLToPath } from 'node:url';
 import { readFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { join } from 'node:path';
-const M = (n) => new URL(`../fixtures/media/${n}`, import.meta.url).pathname;
+const M = (n) => fileURLToPath(new URL(`../fixtures/media/${n}`, import.meta.url));
 /** the sound as ffprobe (FFmpeg, the independent reader) sees it: codec and bit rate; null without ffprobe */
 const probeAudio = (f) => { try { const [c, br] = execFileSync('ffprobe', ['-v', 'error', '-select_streams', 'a:0', '-show_entries', 'stream=codec_name,bit_rate', '-of', 'csv=p=0', f], { encoding: 'utf8' }).trim().split(','); return { codec: c, br: +br }; } catch { return null; } };
 const hasProbe = (() => { try { execFileSync('ffprobe', ['-version'], { stdio: 'ignore' }); return true; } catch { return false; } })();

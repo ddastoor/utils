@@ -8,6 +8,7 @@
 //     documents, numbers that keep their digits, .inf / .nan, dates;
 //   - the page itself: empty input, the JSON indent control, Copy / Download / Swap (and their guards), file type
 //     detection, download names, the phone note.
+import { fileURLToPath } from 'node:url';
 import { pcOnlyOnPhone } from './_pconly.mjs';
 import { setValue, until, hookClipboard, copied } from './_devdata.mjs';
 import { STRINGS, NUMBERS, rng, typedNum, same, makeDoc, typedFromJson } from '../lib/formats-corpus.mjs';
@@ -77,7 +78,7 @@ export default async (ctx) => {
     if (text && same(got, d.typed, toml)) { pass++; written.push({ id: `d${i}`, kind: to, text, typed: d.typed }); } else info(`document ${i} ${cut(d.json)} → ${cut(text)} → ${cut(back)} (${await notes()})`);
   }
   ok(pass === 40, `${pass}/40 random documents: JSON → YAML / TOML, Swap, the same data back`);
-  const py = spawnSync('python3', [new URL('../lib/formats_check.py', import.meta.url).pathname], { input: JSON.stringify({ cases: written.map(({ id, kind, text }) => ({ id, kind, text })) }), encoding: 'utf8', maxBuffer: 1 << 28 });
+  const py = spawnSync('python3', [fileURLToPath(new URL('../lib/formats_check.py', import.meta.url))], { input: JSON.stringify({ cases: written.map(({ id, kind, text }) => ({ id, kind, text })) }), encoding: 'utf8', maxBuffer: 1 << 28 });
   let res = null; try { res = py.status === 0 ? JSON.parse(py.stdout) : null; } catch { /* no python3 */ }
   for (const [lib, name] of [['pyyaml', 'PyYAML (YAML 1.1)'], ['ruamel', 'ruamel.yaml (YAML 1.2)'], ['tomllib', "Python's tomllib"]]) {
     if (!res?.have[lib]) { info(`${name} is not installed here — its check of the page's output is skipped`); continue; }

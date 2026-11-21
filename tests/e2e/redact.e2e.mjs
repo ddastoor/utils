@@ -1,7 +1,8 @@
 // Blur & Redact (#/redact): MediaPipe face detection on a real portrait (NASA astronaut photo) and on a generated
 // "group photo" of six small faces; pixelate / blur / black bar; manual boxes; toggling a face off.
+import { fileURLToPath } from 'node:url';
 import { imageInfo, regionMeans, lum } from '../lib/imgcheck.mjs';
-const F = (n) => new URL(`../fixtures/images/${n}`, import.meta.url).pathname;
+const F = (n) => fileURLToPath(new URL(`../fixtures/images/${n}`, import.meta.url));
 const STATUS = '[aria-live="polite"].muted';
 
 export default async ({ base, page: newPage, ok, info, download, devices }) => {

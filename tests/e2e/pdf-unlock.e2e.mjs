@@ -1,7 +1,8 @@
 // Unlock PDF (#/pdf-unlock): real encrypted PDFs (AES-256, AES-128, RC4-128; password "asdfzxcv") → copies that open
 // without a password and keep their text; unprotected input is reported.
+import { fileURLToPath } from 'node:url';
 import { pdfInfo } from '../lib/pdfcheck.mjs';
-const P = (n) => new URL(`../fixtures/pdf/${n}`, import.meta.url).pathname;
+const P = (n) => fileURLToPath(new URL(`../fixtures/pdf/${n}`, import.meta.url));
 import { makeSigned } from '../lib/pdfannot.mjs';
 export default async ({ base, page: newPage, ok, download, devices, tmp }) => {
   const page = await newPage();

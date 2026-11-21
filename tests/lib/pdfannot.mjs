@@ -2,9 +2,10 @@
 // vicksburg-ocr.pdf with a comment (page 1), a highlight and a web link (page 2), a link from page 3 to page 5 and an
 // outline (Start → 1, Chapter → 5 › Section → 6); and form.pdf with its field filled in. `readBack` lists what a PDF
 // holds, as MuPDF reads it.
+import { fileURLToPath } from 'node:url';
 import { readFileSync, writeFileSync } from 'node:fs';
 
-const P = (n) => new URL(`../fixtures/pdf/${n}`, import.meta.url).pathname;
+const P = (n) => fileURLToPath(new URL(`../fixtures/pdf/${n}`, import.meta.url));
 
 export async function makeAnnotated(tmp) {
   const m = await import('mupdf');

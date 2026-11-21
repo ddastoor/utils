@@ -3,9 +3,10 @@
 // brighter watercolour, halftone dots), full-size save matches the preview at 2400 px (size-scaled filter parameters).
 // AI styles (Magenta on TF.js): identity at strength 0, colour direction of the Flames / Night swirls styles, own painting
 // as the style, compare button, JPEG save, and WebGL vs WebAssembly giving the same picture.
+import { fileURLToPath } from 'node:url';
 import { readFileSync } from 'node:fs';
 import { imageInfo, decodeInPage } from '../lib/imgcheck.mjs';
-const F = (n) => new URL(`../fixtures/images/${n}`, import.meta.url).pathname;
+const F = (n) => fileURLToPath(new URL(`../fixtures/images/${n}`, import.meta.url));
 const STATUS = '[aria-live="polite"].muted';
 
 // pixel statistics of the result canvas (optionally against window.__orig, the photo at the same size)

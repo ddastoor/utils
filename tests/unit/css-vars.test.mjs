@@ -1,11 +1,12 @@
 // Every CSS custom property the app uses is defined (src/styles.css): an undefined one falls back silently — the
 // Passport tab's colour chips used var(--card, #fff), never defined, and were white with the dark theme's light text.
+import { fileURLToPath } from 'node:url';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 export default async (t) => {
   const css = readFileSync(new URL('../../src/styles.css', import.meta.url), 'utf8');
   const defined = new Set([...css.matchAll(/(--[\w-]+)\s*:/g)].map((m) => m[1]));
-  const files = []; (function walk(d) { for (const f of readdirSync(d)) { const p = join(d, f); if (statSync(p).isDirectory()) walk(p); else if (/\.ts$/.test(f)) files.push(p); } })(new URL('../../src', import.meta.url).pathname);
+  const files = []; (function walk(d) { for (const f of readdirSync(d)) { const p = join(d, f); if (statSync(p).isDirectory()) walk(p); else if (/\.ts$/.test(f)) files.push(p); } })(fileURLToPath(new URL('../../src', import.meta.url)));
   const uses = [...css.matchAll(/var\((--[\w-]+)/g)].map((m) => ['styles.css', m[1]]);
   for (const f of files) for (const m of readFileSync(f, 'utf8').matchAll(/var\((--[\w-]+)|col\('(--[\w-]+)'\)|getPropertyValue\('(--[\w-]+)'\)/g)) uses.push([f.split('/src/')[1], m[1] || m[2] || m[3]]);
   const missing = uses.filter(([, v]) => !defined.has(v));

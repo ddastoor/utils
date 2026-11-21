@@ -1,9 +1,10 @@
 // HEIC → JPG (#/heic): real iPhone-style HEIC files (pillow-heif test images) → JPEG/PNG/WebP, zip of all; Display P3
 // colours turned into sRGB (a patch chart, held to Pillow's ImageCms — tests/fixtures/heic/reference.json); files that
 // are no photo listed, the others converted.
+import { fileURLToPath } from 'node:url';
 import { imageInfo, zipEntries, decodeInPage } from '../lib/imgcheck.mjs';
 import { readFileSync } from 'node:fs';
-const F = (n) => new URL(`../fixtures/images/${n}`, import.meta.url).pathname;
+const F = (n) => fileURLToPath(new URL(`../fixtures/images/${n}`, import.meta.url));
 
 export default async ({ base, page: newPage, ok, download, devices, released }) => {
   const page = await newPage();

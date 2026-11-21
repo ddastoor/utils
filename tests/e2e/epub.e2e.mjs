@@ -3,6 +3,7 @@
 // stand side by side laid out one after another under "Page N, part K" (owner, 21 Nov 2026), running headers removed,
 // de-hyphenation, figures, page breaks, scans kept as their pictures (owner: no OCR of any sort); every XHTML parses as
 // XML; MuPDF can open the result.
+import { fileURLToPath } from 'node:url';
 import { readFileSync, writeFileSync, existsSync, readdirSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { unzipSync, strFromU8 } from 'fflate';
@@ -16,7 +17,7 @@ const epubcheck = (f) => {
   const of = (...sev) => (j.messages || []).filter((x) => sev.includes(x.severity)).map(say);
   return { errors: of('ERROR', 'FATAL'), warnings: of('WARNING'), version: j.checker?.checkerVersion };
 };
-const P = (n) => new URL(`../fixtures/pdf/${n}`, import.meta.url).pathname;
+const P = (n) => fileURLToPath(new URL(`../fixtures/pdf/${n}`, import.meta.url));
 const jpegInfo = (b) => { for (let i = 2; i < b.length - 9;) { if (b[i] !== 0xff) return null; const m = b[i + 1], len = (b[i + 2] << 8) | b[i + 3]; if (m >= 0xc0 && m <= 0xc2) return { h: (b[i + 5] << 8) | b[i + 6], w: (b[i + 7] << 8) | b[i + 8], comps: b[i + 9] }; i += 2 + len; } return null; };
 // a JPEG's or a PNG's size and colour components (PNG colour type 0 grey, 2 RGB, 4 grey + alpha, 6 RGBA)
 const imgInfo = (b) => (b[0] === 0x89 && b[1] === 0x50 ? { png: true, w: Buffer.from(b).readUInt32BE(16), h: Buffer.from(b).readUInt32BE(20), comps: ({ 0: 1, 2: 3, 4: 2, 6: 4, 3: 3 })[b[25]] } : jpegInfo(b));
@@ -97,7 +98,7 @@ export default async ({ base, page: newPage, ok, info, download, tmp, devices, r
   ok(!/vicksburg|dangerous|quarters|siege/i.test(v), 'no word of the OCR layer in the book');
   ok(await page.getByText('image (scanned page — kept as its picture)').count() === 6, 'the page report says why: a scanned page, kept as its picture');
   // a scan without any text layer → the page as a picture
-  const doc = new m.PDFDocument(), im = doc.addImage(new m.Image(readFileSync(new URL('../fixtures/images/page.png', import.meta.url).pathname)));
+  const doc = new m.PDFDocument(), im = doc.addImage(new m.Image(readFileSync(fileURLToPath(new URL('../fixtures/images/page.png', import.meta.url)))));
   doc.insertPage(-1, doc.addPage([0, 0, 400, 500], 0, doc.addObject({ XObject: { I: im } }), 'q 400 0 0 500 0 0 cm /I Do Q'));
   const scan = `${tmp}/scan.pdf`; writeFileSync(scan, doc.saveToBuffer('compress').asUint8Array());
   await load(scan);

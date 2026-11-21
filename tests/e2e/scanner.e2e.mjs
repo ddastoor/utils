@@ -3,10 +3,11 @@
 // photos of scripts/make-scan-photos.py, whose corners are known exactly → straightened, cleaned page → PDF (MuPDF,
 // read back in Node) / JPEG. Also: thumbnails for every page, moving pages, corners that cross, the finder failing to
 // load, "Fit to scan", black and white without JPEG smudges, "Start over", the phone's two pickers.
+import { fileURLToPath } from 'node:url';
 import { imageInfo, decodeInPage } from '../lib/imgcheck.mjs';
 import { readFileSync } from 'node:fs';
-const F = (n) => new URL(`../fixtures/images/${n}`, import.meta.url).pathname;
-const S = (n) => new URL(`../fixtures/scanner/${n}`, import.meta.url).pathname;
+const F = (n) => fileURLToPath(new URL(`../fixtures/images/${n}`, import.meta.url));
+const S = (n) => fileURLToPath(new URL(`../fixtures/scanner/${n}`, import.meta.url));
 const PHOTOS = Object.fromEntries(JSON.parse(readFileSync(S('photos.json'), 'utf8')).photos.map((p) => [p.name, p]));
 
 export default async ({ base, page: newPage, ok, info, download, devices, released }) => {

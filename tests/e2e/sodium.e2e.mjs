@@ -1,11 +1,12 @@
 // Sodium Encrypt (#/sodium): text and file round trips (multi-chunk), the USODIUM1 header fields per strength, the
 // independent PyNaCl reference decryptor (tools/sodium_decrypt.py) opening our files, wrong password, tampering and
 // truncation detected, password checks.
+import { fileURLToPath } from 'node:url';
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
 import { join } from 'node:path';
-const ROOT = new URL('../../', import.meta.url).pathname;
+const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 export default async ({ base, page: newPage, ok, info, download, tmp, devices }) => {
   const page = await newPage(); await page.goto(`${base}#/sodium`);
   const pw = page.locator('input[aria-label="Password"]'), pw2 = page.locator('input[aria-label="Confirm password"]');

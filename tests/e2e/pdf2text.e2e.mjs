@@ -1,6 +1,7 @@
 // PDF → Text (#/pdf2text): known text of real PDFs, page markers, layout option, protected PDF, scanned-PDF hint.
+import { fileURLToPath } from 'node:url';
 import { writeFileSync, readFileSync } from 'node:fs';
-const P = (n) => new URL(`../fixtures/pdf/${n}`, import.meta.url).pathname;
+const P = (n) => fileURLToPath(new URL(`../fixtures/pdf/${n}`, import.meta.url));
 export default async ({ base, page: newPage, ok, info, download, tmp, devices }) => {
   const page = await newPage();
   await page.goto(base + '#/pdf2text');
@@ -27,7 +28,7 @@ export default async ({ base, page: newPage, ok, info, download, tmp, devices })
   ok(true, 'protected PDF opened with its password (Enter key)');
   // a scanned page (image only, no text layer)
   const m = await import('mupdf'), doc = new m.PDFDocument();
-  const img = doc.addImage(new m.Image(readFileSync(new URL('../fixtures/images/page.png', import.meta.url).pathname)));
+  const img = doc.addImage(new m.Image(readFileSync(fileURLToPath(new URL('../fixtures/images/page.png', import.meta.url)))));
   doc.insertPage(-1, doc.addPage([0, 0, 400, 500], 0, doc.addObject({ XObject: { I: img } }), 'q 400 0 0 500 0 0 cm /I Do Q'));
   const scan = `${tmp}/scan.pdf`; writeFileSync(scan, doc.saveToBuffer('compress').asUint8Array());
   await page.locator('input[type=file]').first().setInputFiles(scan);

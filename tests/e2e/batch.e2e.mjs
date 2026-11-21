@@ -1,8 +1,9 @@
 // Batch Images (#/batch, PC only): real photos of several formats → resize/convert/limit size → zip; names that would
 // clash get " (2)"; sizes that cannot be made refused; a file that is no image named in a list, the others made; Stop.
+import { fileURLToPath } from 'node:url';
 import { imageInfo, zipEntries } from '../lib/imgcheck.mjs';
 import { readFileSync } from 'node:fs';
-const F = (n) => new URL(`../fixtures/images/${n}`, import.meta.url).pathname;
+const F = (n) => fileURLToPath(new URL(`../fixtures/images/${n}`, import.meta.url));
 
 export default async ({ base, page: newPage, ok, download, devices, released }) => {
   const page = await newPage();

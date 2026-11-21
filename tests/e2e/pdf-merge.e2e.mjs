@@ -1,7 +1,8 @@
 // Merge PDF (#/pdf-merge): three real PDFs (one AES-256 protected → password box) → one PDF in the chosen order.
+import { fileURLToPath } from 'node:url';
 import { pdfInfo } from '../lib/pdfcheck.mjs';
 import { makeAnnotated, readBack } from '../lib/pdfannot.mjs';
-const P = (n) => new URL(`../fixtures/pdf/${n}`, import.meta.url).pathname;
+const P = (n) => fileURLToPath(new URL(`../fixtures/pdf/${n}`, import.meta.url));
 export default async ({ base, page: newPage, ok, download, devices, tmp }) => {
   const page = await newPage();
   await page.goto(base + '#/pdf-merge');

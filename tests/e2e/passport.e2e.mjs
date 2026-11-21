@@ -2,8 +2,9 @@
 // replaced by each preset's required colour, framed to the head-height rule, 300 dpi, digital upload limits, sheets; a
 // photo without a face after a good one shows no stale result; custom sizes checked; Cancel during the camera's
 // countdown takes no photo; a refused camera said in words.
+import { fileURLToPath } from 'node:url';
 import { imageInfo, decodeInPage, regionMeans } from '../lib/imgcheck.mjs';
-const F = (n) => new URL(`../fixtures/images/${n}`, import.meta.url).pathname;
+const F = (n) => fileURLToPath(new URL(`../fixtures/images/${n}`, import.meta.url));
 
 export default async ({ base, page: newPage, ok, info, download, devices }) => {
   const page = await newPage();

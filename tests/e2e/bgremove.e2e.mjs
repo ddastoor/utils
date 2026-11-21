@@ -1,6 +1,7 @@
 // Background Remover (#/bgremove): real portrait (NASA astronaut photo) → transparent PNG, colour, blur, photo backgrounds.
+import { fileURLToPath } from 'node:url';
 import { imageInfo, decodeInPage, regionMeans, lum } from '../lib/imgcheck.mjs';
-const F = (n) => new URL(`../fixtures/images/${n}`, import.meta.url).pathname;
+const F = (n) => fileURLToPath(new URL(`../fixtures/images/${n}`, import.meta.url));
 
 export default async ({ base, page: newPage, ok, info, download, devices }) => {
   const page = await newPage();

@@ -1,8 +1,9 @@
 // Linux Terminal (#/terminal, PC only): BusyBox wasm in a worker + our shell; real file upload/download round trips.
+import { fileURLToPath } from 'node:url';
 import { readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import zlib from 'node:zlib';
-const F = (n) => new URL(`../fixtures/images/${n}`, import.meta.url).pathname;
+const F = (n) => fileURLToPath(new URL(`../fixtures/images/${n}`, import.meta.url));
 
 export default async ({ base, page: newPage, ok, download, devices }) => {
   const page = await newPage();

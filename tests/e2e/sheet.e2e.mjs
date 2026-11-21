@@ -1,7 +1,8 @@
 // CSV / Excel (#/sheet, PC): real .xlsx/.xls/.xlsb/.ods files, CSV with detected separators, filters, exports read back.
+import { fileURLToPath } from 'node:url';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
-const S = (n) => new URL(`../fixtures/sheets/${n}`, import.meta.url).pathname;
+const S = (n) => fileURLToPath(new URL(`../fixtures/sheets/${n}`, import.meta.url));
 export default async ({ base, page: newPage, ok, info: note, download, tmp, devices }) => {
   const page = await newPage();
   await page.goto(base + '#/sheet');

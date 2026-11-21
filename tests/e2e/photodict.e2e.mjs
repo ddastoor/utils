@@ -4,9 +4,10 @@
 // Wikipedia, words broken over two lines put together).
 // Online fallback is mocked with responses in the real APIs' formats (the sandbox and CI never reach them):
 // snollygoster → Wiktionary REST, mumpsimus → Wiktionary 404 then Free Dictionary API, quidnunc → nowhere (Not found).
+import { fileURLToPath } from 'node:url';
 import { readFileSync } from 'node:fs';
 import { tiltedJpeg, CLOSE_UP } from './_tilt.mjs';
-const F = (n) => new URL(`../fixtures/images/${n}`, import.meta.url).pathname;
+const F = (n) => fileURLToPath(new URL(`../fixtures/images/${n}`, import.meta.url));
 const STATUS = '.pd-top [aria-live="polite"]';
 /** A photo turned `deg` degrees to the right (90: a phone held sideways one way, 270: the other, 180: upside down), as a
  *  JPEG made in the page (the browser's own decoder and encoder: no tool outside the browser). */
