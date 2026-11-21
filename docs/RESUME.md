@@ -26,18 +26,12 @@ done with all the to-dos, then we'll start iteratively looking at potentials.md 
 go-ahead for every open to-do, #12 and #13 included: #8 (in progress), #10, #12, #13 — then the potentials process.
 **Machine rules:** 16 GB of memory, no swap — two big models at once were killed; disk is a fixed allowance — when it
 fills, clean what can be made again and carry on (owner, 21 Nov 2026).
-**#8 Regex Tester flavours — in progress (started 21 Nov 2026, while #7's survey runs):** engines chosen — PCRE2:
-`pcre2-wasm` 10.49.3 (installed; MIT; tried in Node: indexes in UTF-16, named groups, compile errors with offsets);
-Ruby: Microsoft's `vscode-oniguruma` 2.0.1 (installed; Ruby syntax; unmatched groups come back as the string's end —
-override OnigString.convertUtf8OffsetToUtf16 so they read −1); Go: **Go's own regexp** (`wasm/regexgo/`, WASI
-command, JSON out, no encoding/json — 2.6 MB; `re2-wasm` rejected: RE2 C++ of 2022 behind a JavaScript-syntax
-translator that accepts what Go refuses); Python `re`: the Python tab's CPython (a fresh run ≈ 0.1 – 0.2 s); Perl:
-zeroperl (on the site, `ZeroPerl.create()` + `eval`); POSIX ERE: wasi-libc has musl's regcomp (TRE) — or gnulib's
-regex for grep -E's exact behaviour; Python `regex` module: needs a CPython rebuild; Java / .NET: to decide. **Next:**
-`src/lib/regex/` adapters (one per flavour, common result shape), the worker loading them lazily (a 'run' message
-starts the page's time limit), the tab's flavour select + flags per flavour + "Replace every match", unit tests
-against the native engines (Go native build of the same source, uv's Python 3.14, Ruby 3.3, libpcre2 10.42 here),
-e2e.
+**#8 Regex Tester flavours — in progress:** built and live — JavaScript, PCRE2, Python, Go, Ruby (CLAUDE.md §3
+`regex`; unit `regex-flavours` 227 against the native engines, e2e `regex-flavours` 40 + `regex` 32). **Next:** Perl
+(zeroperl, on the site: `ZeroPerl.create()` + `eval`), POSIX ERE (gnulib's regex from GNU grep's source — what grep -E
+runs — held to glibc's regexec), Python's `regex` module (mrab-regex compiled into our CPython: §5.1m build), Java
+and .NET (to decide — no existing WebAssembly build of their engines). Each: an adapter in `src/lib/regex/`, a
+loader in the worker, cases in `scripts/make-regex-reference.py`, the flavour in `FLAVOURS`, e2e checks.
 **Then, in the owner's order:** #8 Regex Tester flavours (research done: PCRE2 — `pcre2-wasm` 10.49.3 or our own build;
 Google's `re2-wasm` 1.0.2 for RE2 / Go; `vscode-oniguruma` 2.0.1 for Ruby / Oniguruma; Python's `re` through the Python
 tab's CPython and the `regex` module; Perl through ExifTool's zeroperl, already on the site; JavaScript as now; Java and

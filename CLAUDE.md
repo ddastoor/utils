@@ -1235,13 +1235,29 @@ unit `tests/unit/devdata.test.mjs`, references `tests/fixtures/devdata/reference
 - `json`: the formatter changes white space only (devcore-json): member order, duplicate keys (pointed out) and the
   spelling of numbers and strings are kept; indent 2 / 4 / tab, minify, sort keys; a worded message with line, column and
   "Show it" for every mistake; accepts exactly what JSON.parse accepts.
-- `regex`: the browser's RegExp in a worker, ended after 2 s (runaway patterns); flag mistakes named; named groups.
-  **To build (owner, 21 Nov 2026 — "make a note of this and build it out when you get a chance"):** a choice of regex
-  flavours the user can select — Python (`re`, and the `regex` module), Perl / PCRE, and the other standard ones (e.g.
-  JavaScript as now, Go / RE2, Java, .NET, POSIX ERE, Ruby / Oniguruma). WebAssembly first (STANDING RULE #1): candidates
-  to check — PCRE2 (C; our own build or an existing wasm one), RE2 (Google's `re2-wasm`), Python's `re` through our
-  CPython 3.14 wasm (the Python tab's), Oniguruma (already compiled into our jq.wasm), Rust `regex` / `fancy-regex`;
-  each flavour's behaviour held to its native engine in the tests.
+- `regex` — **flavours (to-do #8, owner, 21 Nov 2026; built so far: JavaScript, PCRE2, Python, Go, Ruby)**: a Flavour
+  list above the pattern; each flavour is the engine its language runs (`src/lib/regex/`, one adapter each, one answer
+  shape; `src/workers/regex.worker.ts` fetches an engine the first time its flavour is chosen):
+  **JavaScript** — the browser's RegExp, as before (flags g i m s u v y d; without g, Replace changes the first match);
+  **PCRE2** — `pcre2-wasm` 10.49 (the text always UTF; flags i m s x n U J D A u = UCP; PCRE2's own global loop and
+  pcre2_substitute, extended: `$1 ${name} \U…\E`; a runaway pattern stops at PCRE2's own match limit, said);
+  **Python** — the `re` of the Python tab's CPython 3.14 (a fresh interpreter a run, ≈ 0.1 – 0.2 s; flags i m s x a;
+  `\1 \g<name>`; Python's own error words); **Go** — Go's own regexp compiled by us (`wasm/regexgo`, §5.1p; flags i m s
+  U as `(?flags)`; `$1 ${name}`, ReplaceAllString / Expand; no empty match right after a match); **Ruby** — Oniguruma
+  (`vscode-oniguruma` 2.0.1) with Ruby's syntax, and around it what Oniguruma does not do as Ruby (Onigmo) does: \w \d
+  \s \b ASCII (Oniguruma's ASCII options), `{n,m}` with m < n refused, String#scan's walk (an empty match moves one
+  character on), `rb_reg_regsub`'s replacement (`\1 … \9 \k<name> \0 \& \` \' \\`; with named groups plain ones do
+  not capture and \1 gives nothing); flags i m (Ruby's m: . matches a new line — ^ $ are always line anchors) x.
+  The flags box lists the flavour's letters with what each does and refuses others ("“g” is not a flag in Python");
+  JavaScript's g and "Replace every match" (the other flavours) stand for each other when the flavour changes.
+  **Time limits** start when the engine begins the matching (a first download is not counted): JavaScript 2 s, PCRE2
+  and Ruby 5 s, Python and Go 10 s; when a limit fires for an older request the newest runs in a fresh worker (it used
+  to wait behind the stuck one for ever). Matches, groups and names as each engine gives them; indexes in the page's
+  own counting (UTF-16). **Tests:** unit `regex-flavours.test.mjs` 227 — 151 cases held to the native engines
+  (`tests/fixtures/regex/reference.json` from `python3 scripts/make-regex-reference.py`: CPython 3.14 via uv, Go's regexp
+  built natively, the system's libpcre2-8 through `scripts/regex-ref/pcre2ref.c` — needs `libpcre2-dev`, Ruby 3.3; two
+  PCRE2 cases differ by version, 10.49 here and 10.42 there, named in the suite); e2e `regex-flavours.e2e.mjs` 40 and
+  `regex.e2e.mjs` 32. **Still to come (to-do #8):** Perl, POSIX ERE (grep -E), Python's `regex` module, Java, .NET.
 - `base64` (devcore-enc): text or file ⇄ Base64 / URL-safe / data: URL; decoding takes messy input (no padding, line
   breaks, %3D, data: URLs); binary results are recognised by their first bytes, shown as hex and saved under a fitting
   name; long output is cut on screen only.
@@ -2538,6 +2554,9 @@ stay **public** (the source of the deployed site is then available to every user
 | hash-wasm 4.13.0 (hand-tuned C → wasm, one small binary per algorithm, embedded in the package; streaming; HMAC over any of its hashes; Argon2, bcrypt, scrypt, PBKDF2) | C | Dani Biró (`hash-wasm` npm, ~10 M downloads a month) — wrappers `src/lib/hmac.ts`, `src/lib/totp.ts`, `src/lib/pwhash.ts`, `src/lib/hashes.ts` (in `src/workers/hash.worker.ts`); only the algorithms a tab uses are bundled into its chunk, loaded with the tab's first result | hash (23 algorithms), hmac (all of it), totp (the HMAC), pwhash (Argon2id / i / d, bcrypt, scrypt, PBKDF2) — replaced RustCrypto builds and crypto.wasm's hashes of ours in Nov 2026 (`docs/WASM-AUDIT.md`) |
 | ONNX Runtime Web 1.31 (CPU/WebAssembly, SIMD) | C++ | Microsoft (official `onnxruntime-web` wasm build) | tts (Kokoro, Piper); scanner (DocCornerNet LEAN, scanic-ml 0.2.0: the page's corners — `docs/WASM-AUDIT.md`, tab 121) |
 | SQLite 3.54 | C | SQLite project (official `@sqlite.org/sqlite-wasm`), run in `src/workers/sqlite.worker.ts` (terminated on leave) | sqlite |
+| PCRE2 (pcre2-wasm 10.49.3: PCRE2 compiled by Emscripten, the WebAssembly inside the package) | C | gudoshnikovn (`pcre2-wasm`, MIT; PCRE2 BSD-3 with the PCRE2 exception) — in `src/workers/regex.worker.ts` | regex (the PCRE2 flavour: `docs/WASM-AUDIT.md`, tab 178) |
+| Oniguruma (vscode-oniguruma 2.0.1) | C | Microsoft (`vscode-oniguruma`, MIT; Oniguruma BSD-2) — the build VS Code and Shiki run | regex (the Ruby flavour, with Ruby's rules beside it in `src/lib/regex/ruby.ts`) |
+| Go's regexp (Go 1.24.7's standard library, GOOS=wasip1) | Go | **us** (`wasm/regexgo`, 2.6 MB — §5.1p; `re2-wasm` rejected: `docs/WASM-AUDIT.md`, tab 178) | regex (the Go flavour) |
 | Biome 2.6.8 (formatter for JS / JSX / TS / TSX, CSS, SCSS, YAML, GraphQL; 70 MB) | Rust | Biome project (official `@biomejs/wasm-web`), run in `src/workers/codefmt.worker.ts` (terminated on leave) | prettier (Code Formatter) |
 | dprint plugins: `@dprint/json` 0.26 and `dprint-plugin-markup` 0.28 (markup_fmt) — the JSON and HTML / Vue engines of `deno fmt` — behind the host `@dprint/formatter` 0.6 (JavaScript, 40 KB) | Rust | dprint project / g-plane (the plugins are published as WebAssembly: that is how dprint runs them) | prettier (Code Formatter) |
 | FFmpeg | C | ffmpeg.wasm project | ffmpeg |
@@ -2999,6 +3018,15 @@ goes to the crate. No imports beyond the WASI start-up. Wrapper `src/wasm/textki
 — the comparison with ICU needs a Node whose `process.versions.unicode` equals the crate's Unicode version (the
 suite says so when it has to skip it).
 
+### 5.1p regexgo → `src/wasm/bin/regex-go.wasm` (Go)
+`bash wasm/regexgo/build.sh` (needs Go ≥ 1.21; built with 1.24.7): `GOOS=wasip1 GOARCH=wasm go build -trimpath
+-ldflags="-s -w -buildid="` of `wasm/regexgo/main.go` — Go's own regexp package as a WASI command run by
+`src/lib/terminal/wasi.ts`: the request on stdin as "<byte length>:<bytes>" fields (pattern, flags, text, a replacement
+or not, the replacement, every match, shown, counted), the answer as JSON on stdout (UTF-8 byte offsets of
+FindAllStringSubmatchIndex, SubexpNames, ReplaceAllString or one Expand, the compile error with the pattern as typed).
+No encoding/json on purpose (2.6 MB without it, 3.6 MB with it). The same source built natively is the reference of
+the unit suite (`scripts/make-regex-reference.py`). **To update:** a newer Go, build.sh, the reference script, both suites.
+
 ### 5.1e markdown → `src/wasm/bin/markdown.wasm`
 `ZIG=… wasm/markdown/build.sh`: downloads the `cmarkgfm` 2025.10.22 sdist from PyPI (SHA-256 `5bec6100…`), which vendors
 cmark-gfm 0.29.0.gfm.13 (latest upstream) plus its CMake-generated headers (`generated/unix`), and links all of
@@ -3040,6 +3068,9 @@ npm packages (pinned in `package-lock.json`) are bundled by Vite or copied to `p
 | onnxruntime-web 1.31.1 | MIT | Text-to-Speech (Kokoro, Piper), Doc Scanner (page finder) |
 | scanic-ml 0.2.0 (DocCornerNet LEAN, the page-corner network; its own trimmed ONNX Runtime build is not used) | MIT | Doc Scanner |
 | hash-wasm 4.13.0 | MIT | Hash / Checksum, HMAC Generator, TOTP, Password Hash Tool |
+| pcre2-wasm 10.49.3 (PCRE2) | MIT (PCRE2: BSD-3-Clause WITH PCRE2-exception) | Regex Tester (PCRE2) |
+| vscode-oniguruma 2.0.1 (Oniguruma) | MIT (Oniguruma: BSD-2-Clause) | Regex Tester (Ruby) |
+| *built in:* Go's standard library (regexp, the runtime) in regex-go.wasm | BSD-3-Clause (the Go licence) | Regex Tester (Go) |
 | libsodium-wrappers-sumo 0.8.4 (+ libsodium-sumo; libsodium 1.0.22 compiled to WebAssembly by its author) | ISC | Sodium Encrypt, Encrypted Share Link, Password Generator, Passphrase Generator |
 | mediabunny | MPL-2.0 | Video Compressor, Audio Recorder (cut without re-encoding) |
 | @mediabunny/aac-encoder 1.66.2 (FFmpeg's AAC encoder in WebAssembly) | MPL-2.0 (FFmpeg's code: LGPL-2.1) | Video Compressor, Slideshow, Screencast, YouTube Clip |

@@ -1393,3 +1393,24 @@ were 238 MB). What follows is the record of the engine as it was; the code is in
   Veena). MeloTTS's front end is sherpa-onnx's with what it lacks added beside it, as STANDING RULE #1 asks of an existing
   engine that does not cover everything: numbers in words (num2words) and the pronunciation of unknown words by g2p_en's
   network (its predict() ported — importing g2p_en would fetch NLTK data, refused through a proxy).
+
+### 178. `regex` — Regex Tester: the flavours (21 Nov 2026; to-do #8)
+The tab ran only the browser's RegExp. The owner asked for "a choice of regex flavours … Python (re, and the regex
+module), Perl / PCRE, and the other standard ones (JavaScript as now, Go / RE2, Java, .NET, POSIX ERE, Ruby /
+Oniguruma)". Per flavour, the existing modules looked at first (STANDING RULE #1):
+- **PCRE2 → `pcre2-wasm` 10.49.3** (MIT, maintained, current PCRE2; matchAll / replace / named groups / compile errors
+  with offsets / match limits; indexes in UTF-16). Used as it is. `@stephen-riley/pcre2-wasm` (2022, an old PCRE2) not.
+- **Go → our own build of Go's regexp** (`wasm/regexgo`). `re2-wasm` 1.0.2 (Google) was checked: RE2 C++ of 2022 behind
+  a translator from JavaScript syntax (it accepts `\u0041`, which Go refuses), old-style Emscripten glue; and Go's
+  regexp is its own engine (its Unicode tables, FindAll's rule for empty matches, Expand) — no existing module has it.
+- **Ruby → `vscode-oniguruma` 2.0.1** (Microsoft, MIT; the build VS Code and Shiki run) with Ruby's syntax. Ruby runs
+  Onigmo, a fork of Oniguruma: what Oniguruma does differently is put right beside it (the owner's tweak: (c) our own
+  TS for what the module does not cover) — ASCII \w \d \s \b, `{n,m}` with m < n refused, String#scan's walk,
+  rb_reg_regsub's replacement — each found by holding it to Ruby 3.3 (unit suite). An Onigmo build of our own would be
+  exact; not needed for any case found so far.
+- **Python → the Python tab's CPython 3.14** (already on the site): Python's own `re`, nothing to emulate.
+- **JavaScript → the browser's RegExp** (as before).
+Still to come: Perl (ExifTool's zeroperl, on the site), POSIX ERE (gnulib's regex — the one grep -E runs on Linux — or
+musl's), Python's `regex` module (compiled into our CPython), Java and .NET (to decide: no existing WebAssembly build
+of their engines).
+
