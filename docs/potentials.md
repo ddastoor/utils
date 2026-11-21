@@ -201,6 +201,14 @@ it's fine."
   (gzip: app.min.js 2.57, stencils 2.93, shapes 0.19); imports and exports fetch about 1.2 MB more, only when used.
 - Sources: github.com/jgraph/drawio (README, LICENSE), its releases page (draw.war of v32.7.4), Docker Hub
   `jgraph/drawio` (the layer that unpacks draw.war, measured file by file).
+- **Stateless, like the whole site (owner, 21 Nov 2026: "since it's this whole site is stateless … every time an edit
+  has to be made to a file, if it's an existing file, it has to be uploaded to the app, changes made, and then downloaded
+  again. So you should have that functionality"):** the tab keeps nothing between visits — draw.io's own drafts,
+  recent files and settings in browser storage are switched off. Editing an existing diagram = **Open** it from the
+  device (`.drawio`, `.xml`, Visio `.vsdx`, Gliffy, or a PNG / SVG that carries its diagram), edit, **Download** it again
+  (`.drawio` under its own name, or PNG / SVG / PDF). PNG and SVG can be saved **editable** (draw.io puts the diagram
+  inside the picture), so one file is both the picture and the thing to open again next time. A change not yet
+  downloaded is warned about before the tab or the page is left (nothing would keep it).
 - **Not to be built until the owner says so** (the size rule).
 
 ### Need the owner's approval of a new data-API host (like the dictionary APIs)
