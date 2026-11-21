@@ -147,6 +147,14 @@ this file = the owner's latest wishes, how the tests are written, and the traps 
   owner's plan, to build after the PDF → EPUB fix (CLAUDE.md §3 Photo Dictionary, "To build next"): a live Wikipedia
   box under each word's dictionary meaning; as many words as are uncommon (fewer or more than 20); the complete OCR
   text shown first, where a phrase selected on the phone or the PC is searched on Wikipedia and added to the list.
+- **21 Nov 2026 — Indian accents for the offline voices: enough looking.** "If you think you've covered the most important
+  and widely used and best quality Indian accents for text-to-speech, then I think you can stop looking further for Indian
+  accents for the offline mode of text-to-speech." — answered yes (AI4Bharat's Indic Parler, IISc's SYSPIN and Indic Tiny,
+  Maya's Veena, goonj, Kokoro's Hindi voices, MeloTTS's Indian voice, Piper's Indian speakers, OmniVoice, Bark, Kyutai's 61
+  Indian donations and the 60 Indian recordings in every engine that clones). No more searching: to-do #7 is finished by
+  running the engines already listed (so a PC never downloads a model that fails), measuring the fast ones (Kyutai,
+  XTTS-v2) for the ranking and marking the slow ones "not measured: too slow on the test machine" — unless the owner
+  asks for every voice measured — then #8.
 - **21 Nov 2026 — a full disk is no reason to stop:** "If the disk is full, clean out stuff that you don't need anymore
   and continue doing what you're doing in this environment." — delete what can be made again (dist/, build trees under
   /tmp, compiler and model caches, models of engines already run, `uv cache prune`) and carry on without asking. Keep
