@@ -40,6 +40,15 @@ The owner adds items here in chat ("add … to to do"). Newest instructions win.
    VibeVoice; F5 needs each clip's words — Whisper); the engines not yet run here, where the machine allows; every new
    Indian voice measured for the accent ranking. Order (owner): after the accent ranking and the Photo Dictionary upgrade.
 
+8. **Regex Tester: a choice of regex flavours** (owner, 21 Nov 2026: "make a note of this and build it out when you get
+   a chance" — noted in CLAUDE.md §3 "Text & Dev", `regex`, and added here on the owner's question, 21 Nov 2026): the
+   user picks the flavour — Python (`re`, and the `regex` module), Perl / PCRE, and the other standard ones (JavaScript
+   as now, Go / RE2, Java, .NET, POSIX ERE, Ruby / Oniguruma). WebAssembly first (STANDING RULE #1): candidates PCRE2
+   (C; an existing wasm build or ours), RE2 (Google's `re2-wasm`), Python's `re` through our CPython 3.14 wasm (the
+   Python tab's), Oniguruma (already compiled into our jq.wasm), Rust `regex` / `fancy-regex`; each flavour held to its
+   native engine in the tests. Order: with the work in hand (CLAUDE.md, the potentials process), after the TTS work and
+   the Photo Dictionary.
+
 ## Done
 - **2. FFmpeg tab: buttons for more popular jobs** (owner, 20 Nov 2026: "add all the popular new jobs for FFmpeg that don't have buttons yet … search for more out there … and add it") — done 20 Nov 2026: 21 new jobs (39 in all, in eight groups of a task list; no command line needed): the owner's six (join clips; subtitles burn in / add as a track / extract; logo or text on a video; volume; reverse; picture at a chosen moment) and fifteen popular uses found on the web (fades, fit to a shape with a blurred background or bars, remove silence, picture-in-picture, loop / boomerang, stabilise, clean up grain, contact sheet, timelapse, split into parts, sound settings, colours / black and white, cut a part out, background music, deinterlace; sources in docs/BUGHUNT.md). `src/lib/ffjobs.ts`, `src/tools/ffmpeg.ts`; unit `ffjobs.test.mjs` 110 (native FFmpeg 6.1), e2e `ffmpeg.e2e.mjs` 68. Found on the way: the core's JPEG encoder crashed the page (every JPEG is MozJPEG's now).
 - **4. YouTube Clip tab: "Download latest yt-dlp"** (owner, 20 Nov 2026: "Have an export button called download latest
