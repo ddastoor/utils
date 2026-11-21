@@ -174,6 +174,35 @@ libraries whose licences allow redistribution. Overlaps #21 (Excalidraw, sketch 
 (text → diagram); draw.io is the formal drag-and-drop editor. **Owner (16 Nov 2026): keep #21 Excalidraw as well** — they
 are separate candidates, not alternatives.
 
+**#54 draw.io — the owner's question and the answer (21 Nov 2026; the owner: "add draw.io to potentials.md along with
+whatever you said about it").** Owner: "Is there already a draw.io library built out? Already WebAssembly? how easy would
+it be to use an already built out library for draw.io into a new app. Even if it's JavaScript for this particular one,
+it's okay. Don't change the rule, but for this particular draw.io one, if there's already a JavaScript library out there,
+it's fine."
+- **No WebAssembly version exists.** draw.io is JavaScript through and through (its own maintained fork of mxGraph), and
+  no comparable diagram editor exists in WebAssembly. Under the owner's exception for this tab, that is fine.
+- **Nothing like it has to be built.** draw.io itself is open source (Apache-2.0, `jgraph/drawio`), and the complete
+  editor that diagrams.net runs can be served as plain files from our site (its README suggests publishing a copy on
+  GitHub Pages). Its drawing library alone — maxGraph 0.25.2 (TypeScript, Apache-2.0), the successor of the archived
+  mxGraph — would mean rebuilding draw.io's whole editor by hand, so the real draw.io is the way.
+- **How easy: fairly easy, because draw.io is made to be embedded.** It runs in a frame inside the tab (its embed mode,
+  `embed=1&proto=json`) and hands the diagram back to our page through postMessage, so files never leave the device.
+  Its own switches turn off cloud storage (Google Drive, OneDrive, Dropbox, GitHub …), its servers, live collaboration
+  and storage in the browser (`lockdown=1`, `stealth=1`; both present in 32.7.4). The work is locking it down and testing
+  it, not building an editor: a pinned, checksummed copy served from our site (no CDN), the frame page's own strict
+  Content-Security-Policy (code only from our site), no service worker, English only, and a test that sees no outside
+  request at all. Open / save `.drawio`, import Visio (`.vsdx`) and Gliffy, export PNG / SVG all work in the browser;
+  draw.io's web PDF export goes through its own server, so PDF would come from our MuPDF (or the browser's print to
+  PDF). Roughly one to two days of work with its tests.
+- **Size (owner's rule), measured on the newest official build, 32.7.4 of 17 Nov 2026** (the release file draw.war is
+  48.8 MB; unpacked from draw.io's official Docker image `jgraph/drawio`): the whole web app 125.7 MB in 3,136 files; the
+  editor needs **49.5 MB** (2,714 files), 42.2 MB without the templates and the maths typesetting. The site would go from
+  512 MB to about **562 MB** of the 1 GB limit — nothing has to be removed. Opening the tab downloads about 5.7 MB
+  (gzip: app.min.js 2.57, stencils 2.93, shapes 0.19); imports and exports fetch about 1.2 MB more, only when used.
+- Sources: github.com/jgraph/drawio (README, LICENSE), its releases page (draw.war of v32.7.4), Docker Hub
+  `jgraph/drawio` (the layer that unpacks draw.war, measured file by file).
+- **Not to be built until the owner says so** (the size rule).
+
 ### Need the owner's approval of a new data-API host (like the dictionary APIs)
 | # | New tab | Data source | What is sent | Status |
 |---|---|---|---|---|
