@@ -33,6 +33,7 @@ CACHE = '/tmp/offline-tts-cat'
 PIPER_REPO, PIPER_REV = 'rhasspy/piper-voices', 'e9c8a39444359388adaa94255becb37a5a2b8e51'
 KOKORO_REPO, KOKORO_REV = 'hexgrad/Kokoro-82M', 'f3ff3571791e'
 SPACY_REPO, SPACY_REV = 'spacy/en_core_web_sm', '8fb6f8155286360bf5486fe399e2738d1df7ded2'
+GOONJ_REPO, GOONJ_REV = 'BH-Builds/goonj-1-82M', '7056ccc1a0b58beaad09fe2057730545d74261cb'
 INDIC_REPO, INDIC_REV = 'ai4bharat/indic-parler-tts', '660bc53c64ae83150613264111708a0465211237'
 LARGE_REPO, LARGE_REV = 'parler-tts/parler-tts-large-v1', '50cb4b874c83902f930d7c2e753224c15654f11e'
 MINI_REPO, MINI_REV = 'parler-tts/parler-tts-mini-v1.1', 'fbb2dd281092c5b414ef29cf9d8895f386f1feef'
@@ -244,7 +245,7 @@ def kokoro():
     md = get(f'https://huggingface.co/{KOKORO_REPO}/resolve/{KOKORO_REV}/VOICES.md', 'kokoro-VOICES.md').decode()
     t = tree(KOKORO_REPO, KOKORO_REV)
     base = t['kokoro-v1_0.pth'] + t['config.json'] + size_of(SPACY_REPO, SPACY_REV, ['config.cfg', 'meta.json', 'tokenizer', '*/*', '*/*/*'])
-    models = {'kokoro': {'engine': 'kokoro', 'repo': KOKORO_REPO, 'rev': KOKORO_REV, 'mb': mb(base + 32 * 523425), 'page': 'https://huggingface.co/spaces/hexgrad/Kokoro-TTS',
+    models = {'kokoro': {'engine': 'kokoro', 'repo': KOKORO_REPO, 'rev': KOKORO_REV, 'file': 'kokoro-v1_0.pth', 'mb': mb(base + 32 * 523425), 'page': 'https://huggingface.co/spaces/hexgrad/Kokoro-TTS',
                          'licence': 'Apache-2.0', 'personal': False, 'name': 'Kokoro-82M v1.0'}}
     voices = []
     for m in re.finditer(r'^\| \**([abh][fm])\\?_(\w+?)\** \|[^|]*\|([^|]*)\|[^|]*\|\s*\**([A-F][+-]?)\**\s*\|', md, re.M):
@@ -262,7 +263,27 @@ def kokoro():
                                'group': 'in', 'sex': sex, 'model': 'kokoro', 'voice': vid, 'lang': lang})
     if len(voices) != 28 + 12:
         sys.exit(f'Kokoro: {len(voices)} voices read from VOICES.md, expected 40')
+    # goonj-1-82M (BH-Builds, Apache-2.0): Kokoro-82M trained further on Indian speakers — Indian English, Hindi and
+    # Hinglish; its card: "en_*" personas are Indian English speakers, "hi_*" Hindi natives, all read English with
+    # Kokoro's American English reading of the words
+    g = tree(GOONJ_REPO, GOONJ_REV)
+    models['goonj'] = {'engine': 'kokoro', 'repo': GOONJ_REPO, 'rev': GOONJ_REV, 'file': 'kokoro_hindi_final.pth',
+                       'mb': mb(g['kokoro_hindi_final.pth'] + g['config.json'] + base - t['kokoro-v1_0.pth'] - t['config.json'] + 14 * 523824),
+                       'licence': 'Apache-2.0', 'personal': False, 'name': 'goonj-1-82M (Kokoro trained on Indian voices)',
+                       'page': f'https://huggingface.co/{GOONJ_REPO}'}
+    for name, sex in GOONJ:
+        if f'voices/{name}.pt' not in g:
+            sys.exit(f'goonj: voices/{name}.pt is not in {GOONJ_REPO} at {GOONJ_REV}')
+        kind = 'Indian English speaker' if name.startswith('en_') else 'Hindi-native speaker, reading English'
+        voices.append({'id': f'goonj-{name.replace("_", "-")}', 'label': f'{name[3:].title()} — {SEX[sex]}, {kind}',
+                       'group': 'in', 'sex': sex, 'model': 'goonj', 'voice': name, 'lang': 'a'})
     return models, voices
+
+
+# goonj-1-82M's personas (its card) and their sex (checked by the pitch of a sample made here)
+GOONJ = [('en_aman', 'm'), ('en_ananya', 'f'), ('en_arjun', 'm'), ('en_dev', 'm'), ('en_divya', 'f'), ('en_kabir', 'm'),
+         ('en_nisha', 'f'), ('en_priya', 'f'), ('en_sameer', 'm'), ('en_tara', 'f'),
+         ('hi_atul', 'm'), ('hi_meera', 'f'), ('hi_ravi', 'm'), ('hi_shivani', 'f')]
 
 
 # Indic Parler-TTS: its card's English speakers ("officially supports Indian English accents through its English

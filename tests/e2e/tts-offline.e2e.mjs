@@ -27,13 +27,13 @@ export default async ({ base, page: newPage, ok, download, devices }) => {
 
   // the list: Indian voices first, the starters ticked
   const n = async () => page.locator('.otts-list .otts-voice').count();
-  eq(await n(), 49, 'the Indian group lists 49 voices');
+  eq(await n(), 63, 'the Indian group lists 63 voices');
   const ticked = () => page.locator('.otts-list input:checked').evaluateAll((els) => els.map((e) => e.value));
-  eq((await ticked()).sort(), ['indic-parler-mary', 'indic-parler-thoma', 'kokoro-hf_alpha-a', 'piper-vctk-p248'], 'four voices ticked to begin with');
-  ok(/4 voices chosen · 3 models, 4\.2 GB/.test(await page.locator('.otts-summary').innerText()), 'the summary: 4 voices, 3 models, 4.2 GB');
+  eq((await ticked()).sort(), ['goonj-en-arjun', 'goonj-en-priya', 'indic-parler-mary', 'indic-parler-thoma'], 'four Indian English voices ticked to begin with');
+  ok(/4 voices chosen · 2 models, 4\.1 GB/.test(await page.locator('.otts-summary').innerText()), 'the summary: 4 voices, 2 models, 4.1 GB');
   ok(await page.getByText('ai4bharat/indic-parler-tts is free, but Hugging Face asks for an account first').isVisible(), 'the account note for Indic Parler-TTS');
   await page.getByRole('radio', { name: 'All' }).click();
-  eq(await n(), 416, 'All: 416 voices');
+  eq(await n(), 430, 'All: 430 voices');
   await page.getByLabel('Engine').selectOption('pocket');
   eq(await n(), 21, 'Pocket TTS: 21 voices');
   await page.getByLabel('Engine').selectOption('');
@@ -62,7 +62,7 @@ export default async ({ base, page: newPage, ok, download, devices }) => {
   ok(syn.status === 0, `bash -n reads it (${syn.stderr.trim()})`);
   let job = jobOfSh(sh);
   eq(job.text, TEXT, 'the text inside, untouched');
-  eq(job.voices.map((v) => v.id).sort(), ['indic-parler-thoma', 'kokoro-hf_alpha-a', 'piper-vctk-p248', 'piper-vctk-p376'], 'the ticked voices inside');
+  eq(job.voices.map((v) => v.id).sort(), ['goonj-en-arjun', 'goonj-en-priya', 'indic-parler-thoma', 'piper-vctk-p376'], 'the ticked voices inside');
   ok(job.mp3 === true && job.speed === 1, 'MP3 on, speed 1');
   ok(sh.includes('read -rsp') && !sh.includes('COQUI_TOS_AGREED'), 'asks for the Hugging Face token; no XTTS setting');
 

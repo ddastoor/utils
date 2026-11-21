@@ -13,8 +13,9 @@ const cat = catalogue as unknown as Catalogue;
 const SITE = 'https://ddastoor.github.io/utils/#/tts';
 const SEXES: Array<[string, string]> = [['', 'Any voice'], ['f', 'Women'], ['m', 'Men']];
 
-/** The voices picked first: the lightest Indian accents by their documentation, and one each of the others. */
-export const STARTERS = ['indic-parler-thoma', 'indic-parler-mary', 'kokoro-hf_alpha-a', 'piper-vctk-p248'];
+/** The voices ticked to begin with: Indian English speakers of the two models made for it — Indic Parler-TTS's two
+ *  recommended voices (large) and two of goonj-1-82M's (small, quick on a processor). */
+export const STARTERS = ['indic-parler-thoma', 'indic-parler-mary', 'goonj-en-priya', 'goonj-en-arjun'];
 
 export function offlinePanel(o: { text: () => string; speed: number }): HTMLElement {
   const chosen = new Set<string>(STARTERS);

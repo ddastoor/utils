@@ -152,11 +152,23 @@
    "engine": "kokoro",
    "repo": "hexgrad/Kokoro-82M",
    "rev": "f3ff3571791e",
+   "file": "kokoro-v1_0.pth",
    "mb": 359.2,
    "page": "https://huggingface.co/spaces/hexgrad/Kokoro-TTS",
    "licence": "Apache-2.0",
    "personal": false,
    "name": "Kokoro-82M v1.0"
+  },
+  "goonj": {
+   "engine": "kokoro",
+   "repo": "BH-Builds/goonj-1-82M",
+   "rev": "7056ccc1a0b58beaad09fe2057730545d74261cb",
+   "file": "kokoro_hindi_final.pth",
+   "mb": 349.8,
+   "licence": "Apache-2.0",
+   "personal": false,
+   "name": "goonj-1-82M (Kokoro trained on Indian voices)",
+   "page": "https://huggingface.co/BH-Builds/goonj-1-82M"
   },
   "xtts": {
    "engine": "xtts",
@@ -1642,6 +1654,132 @@
    "model": "kokoro",
    "voice": "hm_psi",
    "lang": "h"
+  },
+  {
+   "id": "goonj-en-aman",
+   "label": "Aman — man, Indian English speaker",
+   "group": "in",
+   "sex": "m",
+   "model": "goonj",
+   "voice": "en_aman",
+   "lang": "a"
+  },
+  {
+   "id": "goonj-en-ananya",
+   "label": "Ananya — woman, Indian English speaker",
+   "group": "in",
+   "sex": "f",
+   "model": "goonj",
+   "voice": "en_ananya",
+   "lang": "a"
+  },
+  {
+   "id": "goonj-en-arjun",
+   "label": "Arjun — man, Indian English speaker",
+   "group": "in",
+   "sex": "m",
+   "model": "goonj",
+   "voice": "en_arjun",
+   "lang": "a"
+  },
+  {
+   "id": "goonj-en-dev",
+   "label": "Dev — man, Indian English speaker",
+   "group": "in",
+   "sex": "m",
+   "model": "goonj",
+   "voice": "en_dev",
+   "lang": "a"
+  },
+  {
+   "id": "goonj-en-divya",
+   "label": "Divya — woman, Indian English speaker",
+   "group": "in",
+   "sex": "f",
+   "model": "goonj",
+   "voice": "en_divya",
+   "lang": "a"
+  },
+  {
+   "id": "goonj-en-kabir",
+   "label": "Kabir — man, Indian English speaker",
+   "group": "in",
+   "sex": "m",
+   "model": "goonj",
+   "voice": "en_kabir",
+   "lang": "a"
+  },
+  {
+   "id": "goonj-en-nisha",
+   "label": "Nisha — woman, Indian English speaker",
+   "group": "in",
+   "sex": "f",
+   "model": "goonj",
+   "voice": "en_nisha",
+   "lang": "a"
+  },
+  {
+   "id": "goonj-en-priya",
+   "label": "Priya — woman, Indian English speaker",
+   "group": "in",
+   "sex": "f",
+   "model": "goonj",
+   "voice": "en_priya",
+   "lang": "a"
+  },
+  {
+   "id": "goonj-en-sameer",
+   "label": "Sameer — man, Indian English speaker",
+   "group": "in",
+   "sex": "m",
+   "model": "goonj",
+   "voice": "en_sameer",
+   "lang": "a"
+  },
+  {
+   "id": "goonj-en-tara",
+   "label": "Tara — woman, Indian English speaker",
+   "group": "in",
+   "sex": "f",
+   "model": "goonj",
+   "voice": "en_tara",
+   "lang": "a"
+  },
+  {
+   "id": "goonj-hi-atul",
+   "label": "Atul — man, Hindi-native speaker, reading English",
+   "group": "in",
+   "sex": "m",
+   "model": "goonj",
+   "voice": "hi_atul",
+   "lang": "a"
+  },
+  {
+   "id": "goonj-hi-meera",
+   "label": "Meera — woman, Hindi-native speaker, reading English",
+   "group": "in",
+   "sex": "f",
+   "model": "goonj",
+   "voice": "hi_meera",
+   "lang": "a"
+  },
+  {
+   "id": "goonj-hi-ravi",
+   "label": "Ravi — man, Hindi-native speaker, reading English",
+   "group": "in",
+   "sex": "m",
+   "model": "goonj",
+   "voice": "hi_ravi",
+   "lang": "a"
+  },
+  {
+   "id": "goonj-hi-shivani",
+   "label": "Shivani — woman, Hindi-native speaker, reading English",
+   "group": "in",
+   "sex": "f",
+   "model": "goonj",
+   "voice": "hi_shivani",
+   "lang": "a"
   },
   {
    "id": "xtts-claribel-dervla",

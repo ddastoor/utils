@@ -28,7 +28,8 @@ export default async (t, { load }) => {
   t.ok(count('in') >= 45 && count('us') >= 60 && count('uk') >= 100, `many Indian, American and British voices (in ${count('in')}, us ${count('us')}, uk ${count('uk')})`);
   const per = (e) => cat.voices.filter((v) => cat.models[v.model].engine === e);
   t.ok(per('piper').every((v) => cat.models[v.model].file?.endsWith('.onnx')), 'Piper voices name their .onnx file');
-  t.ok(per('kokoro').every((v) => /^[abh][fm]_[a-z]+$/.test(v.voice) && (!v.lang || 'abh'.includes(v.lang))), 'Kokoro voices name a voice file and a reading');
+  t.ok(per('kokoro').every((v) => (v.model === 'goonj' ? /^(en|hi)_[a-z]+$/ : /^[abh][fm]_[a-z]+$/).test(v.voice) && (!v.lang || 'abh'.includes(v.lang))), 'Kokoro-family voices name a voice file and a reading');
+  t.ok(per('kokoro').filter((v) => v.model === 'goonj').every((v) => v.lang === 'a'), 'goonj’s personas read English with the American reading (their card)');
   t.ok(per('parler').every((v) => v.describe.includes('{pace}')), 'Parler voices are described with the pace left open');
   t.ok(per('xtts').every((v) => (typeof v.speaker === 'string') !== !!v.clip), 'XTTS voices: a studio voice or a clip, never both');
   t.ok(per('pocket').every((v) => /^[a-z_]+$/.test(v.voice)) && per('pocket').length === 21, 'Pocket TTS: its 21 English voices');
@@ -46,7 +47,9 @@ export default async (t, { load }) => {
   t.ok(vv.every((v) => { const r = vctk[v.id.slice(11)]; return r && v.sex === r[2].toLowerCase() && v.label.includes(`, ${r[1]},`); }), 'every VCTK voice has the sex and age of VCTK’s list');
   t.eq(vv.filter((v) => v.group === 'in').map((v) => v.id).sort(), ['piper-vctk-p248', 'piper-vctk-p251', 'piper-vctk-p376'], 'the Indian VCTK speakers are p248, p251 and p376');
   t.ok(/grade A\)/.test(byId.get('kokoro-af_heart').label) && /grade A-\)/.test(byId.get('kokoro-af_bella').label) && /grade B-\)/.test(byId.get('kokoro-bf_emma').label), 'Kokoro grades as VOICES.md gives them (Heart A, Bella A-, Emma B-)');
-  t.eq(per('kokoro').filter((v) => v.group === 'in').length, 12, 'four Hindi Kokoro voices × three readings');
+  t.eq(per('kokoro').filter((v) => v.group === 'in' && v.model === 'kokoro').length, 12, 'four Hindi Kokoro voices × three readings');
+  t.eq(per('kokoro').filter((v) => v.model === 'goonj').map((v) => v.voice).filter((x) => x.startsWith('en_')).length, 10, 'goonj-1-82M: ten Indian English personas');
+  t.ok(cat.models.goonj.file === 'kokoro_hindi_final.pth' && cat.models.kokoro.file === 'kokoro-v1_0.pth', 'each Kokoro-family model names its weights');
   t.ok(cat.models['indic-parler'].gated && !cat.models['parler-large'].gated, 'Indic Parler-TTS needs a Hugging Face account, Parler Large does not');
   t.ok(cat.models.xtts.personal && cat.engines.xtts.accept === 'cpml', 'XTTS-v2: personal use, its licence must be accepted');
 

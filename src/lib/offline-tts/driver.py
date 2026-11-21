@@ -137,24 +137,30 @@ def kokoro(job, voices):
     spacy.load = lambda name, *a, **k: load(sm if name == 'en_core_web_sm' else name, *a, **k)
     spacy.util.is_package = lambda name: name == 'en_core_web_sm' or is_package(name)
     from kokoro import KModel, KPipeline
-    v0 = voices[0]
-    d = fetch(v0['repo'], v0['rev'], ['config.json', 'kokoro-v1_0.pth'] + sorted({f'voices/{v["voice"]}.pt' for v in voices}))
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     log(f'  (on the {"graphics card" if device == "cuda" else "processor"})')
-    model = KModel(repo_id=v0['repo'], config=os.path.join(d, 'config.json'), model=os.path.join(d, 'kokoro-v1_0.pth')).to(device).eval()
-    pipes = {}
+    # one model at a time: Kokoro-82M itself, or a model trained from it (goonj-1-82M) — same architecture, its own
+    # weights file and voice packs
+    groups = {}
     for v in voices:
-        lang = v.get('lang') or v['voice'][0]
-        if lang not in pipes:
-            pipes[lang] = KPipeline(lang_code=lang, repo_id=v0['repo'], model=model, device=device)
-        t0 = time.time()
-        parts = []
-        for _, _, audio in pipes[lang](job['text'], voice=os.path.join(d, 'voices', v['voice'] + '.pt'), speed=float(job['speed'])):
-            if audio is not None:
-                parts.append(audio.detach().cpu().numpy())
-                parts.append(silence(24000, 0.15))
-        secs = write_audio(os.path.join(job['out'], v['id']), np.concatenate(parts) if parts else silence(24000, 0.1), 24000, job.get('mp3', True))
-        log(f'  {v["label"]}: {secs:.1f} s of speech in {time.time() - t0:.1f} s')
+        groups.setdefault((v['repo'], v['rev'], v.get('file') or 'kokoro-v1_0.pth'), []).append(v)
+    for (repo, rev, weights), group in groups.items():
+        d = fetch(repo, rev, ['config.json', weights] + sorted({f'voices/{v["voice"]}.pt' for v in group}))
+        model = KModel(repo_id='hexgrad/Kokoro-82M', config=os.path.join(d, 'config.json'), model=os.path.join(d, weights)).to(device).eval()
+        pipes = {}
+        for v in group:
+            lang = v.get('lang') or ('a' if v['voice'][0] not in 'abh' else v['voice'][0])
+            if lang not in pipes:
+                pipes[lang] = KPipeline(lang_code=lang, repo_id='hexgrad/Kokoro-82M', model=model, device=device)
+            t0 = time.time()
+            parts = []
+            for _, _, audio in pipes[lang](job['text'], voice=os.path.join(d, 'voices', v['voice'] + '.pt'), speed=float(job['speed'])):
+                if audio is not None:
+                    parts.append(audio.detach().cpu().numpy())
+                    parts.append(silence(24000, 0.15))
+            secs = write_audio(os.path.join(job['out'], v['id']), np.concatenate(parts) if parts else silence(24000, 0.1), 24000, job.get('mp3', True))
+            log(f'  {v["label"]}: {secs:.1f} s of speech in {time.time() - t0:.1f} s')
+        del model
 
 
 def pace(speed):
