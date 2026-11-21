@@ -1,4 +1,6 @@
-// Linux display-server detection (owner requirement: auto-detect X11 vs Wayland) for the screen-capture tools.
+// Linux display-server detection (owner requirement: auto-detect X11 vs Wayland; owner, 21 Nov 2026: "all apps on Linux
+// should be aware of … X11 or Wayland") — shared by every tab where the two differ (to-do #13): the capture tabs
+// (Screencast, Screenshot, YouTube Clip) and Screen Info; each may give its own tips.
 // No web API reports it and Chrome's user agent says "X11; Linux" on both, so:
 //  1. passive: Wayland never tells clients their global window position → Chrome reports screenX = screenY = 0.
 //     A non-zero position ⇒ X11 (or XWayland, which behaves as X11). Zero ⇒ Wayland (likely): a maximised X11 window
@@ -27,17 +29,19 @@ export async function confirmDisplay(): Promise<Display> {
   return confirmed;
 }
 
-const TIPS: Record<Display, string> = {
+/** What a capture tab needs to know on each (the default tips of the banner). */
+export const CAPTURE_TIPS: Record<Display, string> = {
   x11: 'X11: Chrome’s own picker lists screens and windows. Minimise the browser with your desktop’s shortcut (often Super+H or Super+↓).',
   wayland: 'Wayland: after Chrome’s picker, the desktop (GNOME/KDE portal) shows its own picker — choose the screen or window there too. Keep the capture running for repeated shots to avoid being asked again. Minimise with Super+H (GNOME). If capturing fails, enable chrome://flags/#enable-webrtc-pipewire-capturer and install xdg-desktop-portal (and -gnome or -kde).',
 };
-/** A small "Detected: X11 / Wayland" note with a Confirm button (Linux desktops only; null elsewhere). */
-export function linuxBanner(): HTMLElement | null {
+/** A small "Detected: X11 / Wayland" note with a Confirm button (Linux desktops only; null elsewhere). `tips`: what the
+ *  tab says on each (default: the capture tips). */
+export function linuxBanner(tips: Record<Display, string> = CAPTURE_TIPS): HTMLElement | null {
   if (!isLinuxDesktop()) return null;
   const box = h('div', { class: 'stack linux-banner' });
   const draw = () => {
     const { display, sure } = detectPassive();
-    box.replaceChildren(note(h('span', null, h('strong', null, `Detected: ${display === 'x11' ? 'X11' : 'Wayland'}${sure ? '' : ' (likely)'}. `), TIPS[display]), 'info'),
+    box.replaceChildren(note(h('span', null, h('strong', null, `Detected: ${display === 'x11' ? 'X11' : 'Wayland'}${sure ? '' : ' (likely)'}. `), tips[display]), 'info'),
       sure ? h('span') : h('div', { class: 'row' }, button('Confirm X11 or Wayland', async () => { await confirmDisplay(); draw(); }, { small: true, icon: 'ScanSearch' })));
   };
   draw();

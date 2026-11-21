@@ -145,7 +145,9 @@ async function main() {
   const shards = new Map();
   for (const [k, v] of sorted) { const s = shardOf(k, split); (shards.get(s) || shards.set(s, {}).get(s))[k] = v; }
   let total = 0;
-  for (const [s, obj] of shards) { const json = JSON.stringify(obj); total += json.length; writeFileSync(join(OUT, `${s}.json`), json); }
+  // a shard named after a Windows device (con, prn …) takes an underscore — as shardFile in src/lib/dictionary.ts
+  const shardFile = (name) => `${/^(con|prn|aux|nul|com[0-9]|lpt[0-9])$/i.test(name) ? `${name}_` : name}.json`;
+  for (const [s, obj] of shards) { const json = JSON.stringify(obj); total += json.length; writeFileSync(join(OUT, shardFile(s)), json); }
   // frequency table: one line per Zipf×10 bucket, highest first
   const byZ = new Map(); for (const [w, z] of zipf) (byZ.get(z) || byZ.set(z, []).get(z)).push(w);
   const freq = [...byZ.keys()].sort((a, b) => b - a).map((z) => `${z} ${byZ.get(z).join(' ')}`).join('\n') + '\n';

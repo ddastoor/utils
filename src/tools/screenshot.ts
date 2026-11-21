@@ -5,7 +5,7 @@
 import { h, card, field, actions, button, select, toggle, stack, note, toast, errMsg, fmtBytes, downloadBlob, sleep, clear, type Mount } from '../ui';
 import { cropBox } from '../lib/imgtools';
 import { encodeImg } from '../lib/imgio';
-import { linuxBanner } from '../linux';
+import { linuxBanner, CAPTURE_TIPS } from '../linux';
 import type { Img } from '../wasm/imgproc';
 
 /** a shot keeps its pixels while it is the one shown; the others are kept as lossless PNG (a 4K screenshot is 33 MB of
@@ -188,7 +188,8 @@ export const mount: Mount = (root) => {
         field('Delay', select<string>([['0', 'None'], ['3', '3 seconds'], ['5', '5 seconds'], ['10', '10 seconds']], String(delay), (v) => { delay = +v; sync(); })),
         pointerT),
       status, video)),
-    ...[linuxBanner()].filter((x): x is HTMLElement => !!x),
+    // Wayland leaves "always on top" to the desktop: the countdown window may not stay above other windows there
+    ...[linuxBanner({ ...CAPTURE_TIPS, wayland: `${CAPTURE_TIPS.wayland} The countdown window may not stay on top here: Wayland leaves that to the desktop (GNOME keeps it among the other windows; on KDE right-click its title bar → More Actions → Keep Above).` })].filter((x): x is HTMLElement => !!x),
     editCard, galleryCard,
     note('A web page cannot take a screenshot silently, minimise the browser or see the active window: share once, then take as many shots as you like. With a delay, a small countdown window stays on top while you minimise the browser.', 'info'),
     actions(shareBtn, snapBtn, stopBtn));

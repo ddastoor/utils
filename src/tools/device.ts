@@ -1,6 +1,7 @@
 // Device tests and phone sensors. Everything uses standard browser APIs on the device; nothing leaves it.
 import { h, card, field, button, segmented, toggle, slider, clear, stack, note, errMsg, downloadBlob, canvasToBlob, type Mount } from '../ui';
 import { isIOS } from '../platform';
+import { linuxBanner } from '../linux';
 import { modernZone } from '../lib/tz';
 import { headingOf, platformName, screenTilt } from '../lib/sensors';
 
@@ -346,7 +347,12 @@ export const screen_: Mount = (root) => {
   const resized = () => { render(); clearTimeout(timer); timer = window.setTimeout(measure, 300); }; // sizes at once, the rate once the window rests
   const dark = matchMedia('(prefers-color-scheme: dark)');
   addEventListener('resize', resized); dark.addEventListener('change', render);
-  root.append(out);
+  // Linux: X11 or Wayland (to-do #13) — what a page is told about its window differs
+  const banner = linuxBanner({
+    x11: 'X11: the browser knows where its windows are on the screen, and a page may read and move them (pop-ups, the Window Management API).',
+    wayland: 'Wayland: a page is never told where its window is (the position reads 0, 0) and cannot move windows or pop-ups; screen size, scaling and refresh rate are reported as on X11. Pages that place windows (multi-screen slideshows) cannot do so here.',
+  });
+  root.append(...(banner ? [banner] : []), out);
   render(); void measure();
   void (async () => { try { if (uad?.getHighEntropyValues) ua = await uad.getHighEntropyValues(['platform', 'platformVersion', 'model', 'fullVersionList']); } catch { /* */ } render(); })();
   void findGpu().then(render);

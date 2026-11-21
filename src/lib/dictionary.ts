@@ -32,6 +32,10 @@ const dataUrl = (f: string) => new URL(`data/dict/${f}`, document.baseURI).href;
 export const keyOf = (w: string) => w.normalize('NFC').replace(/[’ʼ]/g, "'").toLowerCase();
 const fold = (key: string, n: number) => [...key.normalize('NFD').replace(/\p{M}/gu, '').slice(0, n).padEnd(n, '_')].map((c) => (/[a-z]/.test(c) ? c : '_')).join('');
 export const shardOf = (key: string, split: string[] = []) => { const two = fold(key, 2); return split.includes(two) ? fold(key, 3) : two; };
+/** The file of a shard. Windows refuses a file named after a device — CON, PRN, AUX, NUL, COM1 … LPT9, with any
+ *  extension — so such a shard takes an underscore (con_.json): with con.json and prn.json the repository could not
+ *  even be checked out on Windows (to-do #13). scripts/build-dict.mjs writes the same names. */
+export const shardFile = (name: string) => `${/^(con|prn|aux|nul|com[0-9]|lpt[0-9])$/i.test(name) ? `${name}_` : name}.json`;
 type Meta = { split: string[]; files: Set<string> | null };
 let meta: Promise<Meta> | null = null;
 const dictMeta = () => (meta ||= fetch(dataUrl('meta.json')).then((r) => (r.ok ? r.json() : {}))
@@ -52,7 +56,7 @@ export const ranker = () => (freqReady ||= (async () => {
 const shards = new Map<string, Promise<Record<string, Entry[]>>>();
 const shard = (name: string) => {
   let p = shards.get(name);
-  if (!p) { p = fetch(dataUrl(`${name}.json`)).then((r) => (r.ok ? r.json() : {})).catch(() => { shards.delete(name); return {}; }); shards.set(name, p); }
+  if (!p) { p = fetch(dataUrl(shardFile(name))).then((r) => (r.ok ? r.json() : {})).catch(() => { shards.delete(name); return {}; }); shards.set(name, p); }
   return p;
 };
 /** Entries for a word in the bundled dictionary (null if absent). */
