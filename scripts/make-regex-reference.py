@@ -7,6 +7,8 @@
 #   go     — wasm/regexgo built natively with the Go toolchain (the same program the tab runs as WebAssembly);
 #   pcre2  — the system's libpcre2-8 through scripts/regex-ref/pcre2ref.c (cc … -lpcre2-8; apt install libpcre2-dev);
 #   ruby   — Ruby (3.3 here: its Onigmo) — the tab runs Oniguruma, so this is where the two may part;
+#   java   — the JDK whose source java-regex.wasm is built from (openjdk-21): wasm/javaregex/java/superutils/RegexRun.java
+#            and Native.java compiled with its javac, on its own java.util.regex;
 #   perl   — the system's perl (5.38 here) running the very script the tab runs (src/lib/regex/perl.ts) in Perl 5.42;
 #   posix  — glibc's regcomp / regexec through ctypes (the same GNU code), the walk checked against GNU sed -z -E
 #            marking every match, and GNU sed itself for every replacement.
@@ -83,6 +85,36 @@ CASES = {
         C(r'(', '', 'x'), C(r'[a-', '', 'x'), C(r'a{2,1}', '', 'x'), C(r'(?P<1a>x)', '', 'x'), C(r'(?P=nope)', '', 'x'),
         C(r'(a)', '', 'a', r'\2', note='a group the pattern does not have'),
         C(r'(a)', '', 'a', r'\g<x>', note='a name the pattern does not have'),
+    ],
+    'java': [
+        C(r'\d+', '', 'a1 b22 c333', '<$0>'),
+        C(r'(?<y>\d{4})-(?<m>\d\d)', '', 'on 2026-11 and 1999-01', '${m}/${y}'),
+        C(r'(\w+)@(\w+)\.com', '', 'mail ann@example.com or bob@test.com', '$2 at $1'),
+        C(r'(\d)', '', 'a1', '$11', note='$11: group 1, then "1" — there is no group 11'),
+        C(r'(\d)', '', 'a1', '$2', note='no group 2'), C(r'(\d)', '', 'a1', '${x}', note='no group x'),
+        C(r'(\d)', '', 'a1', r'\$1 costs \\', note=r'\$ and \\ for themselves'), C(r'(\d)', '', 'a1', '$', note='a lone $'),
+        C(r'^\w+', 'm', LINES, '#'), C(r'^\w+$', 'm', LINES), C(r'\w+$', '', 'end\n'), C(r'.+', '', LINES), C(r'.+', 'd', LINES),
+        C(r'a.b', '', 'a\nb'), C(r'a.b', 's', 'a\nb'),
+        C(r'straße', 'i', 'STRASSE strasse Straße STRAßE'), C(r'straße', 'iu', 'STRASSE Straße STRAßE'),
+        C(r'σίσυφος', 'iu', UNI), C(r'σίσυφος', 'i', UNI),
+        C(r'\w+', '', UNI), C(r'\w+', 'U', UNI), C(r'\p{IsGreek}+', '', UNI), C(r'\p{InCJKUnifiedIdeographs}+', '', UNI),
+        C(r'\p{L}+', '', UNI), C(r'\p{Lu}', '', UNI), C(r'\p{Alpha}+', 'U', UNI),
+        C(r'\p{IsEmoji}', '', 'a🎉b👍🏽'), C(r'\X', '', 'é 🎉👍🏽 x'), C(r'\b{g}', '', 'éx', '|'),
+        C(r'\N{EM DASH}', '', 'a — b'), C(r'\N{NO SUCH NAME}', '', 'x'),
+        C(r'é', 'c', 'é é'), C(r'é', '', 'é é'),
+        C(r'x*', '', 'axbxx', '-'), C(r'a|', '', 'baab', '-'), C(r'\b', '', 'ab cd', '|'), C(r'', '', '🎉x', '|'),
+        C(r'a|ab', '', 'ab'), C(r'<.+?>', '', '<a><b>'), C(r'a++b', '', 'aaab'), C(r'(?>a+)b', '', 'aaab'),
+        C(r'(\w)\1', '', 'aabbcd eeff', '[$1]'), C(r'(?<=\$)\d+', '', 'cost $40 or $5'), C(r'(?<!\$)\b\d+', '', 'cost $40 or 5'),
+        C(r'(?<=\b\w{1,3} )\w+', '', 'to be or not'),
+        C(r'(a)|b', '', 'ab', '[$1]'), C(r'\R', '', 'a\r\nb c\n', '|'), C(r'\h+', '', 'a \t b'),
+        C(r'\Qa.b\E+', '', 'a.bbb a.b'), C(r'[a-z&&[^aeiou]]+', '', 'hello world'),
+        C(r'''(\d+)  # the number
+              \s* (cm|mm)  # the unit''', 'x', '10 cm, 5mm'),
+        C(r'\d', '', 'a1b2c3', '#', all=False), C(r'.', '', 'x' * 1500), C(r'\D', '', '1🎉2é3', '_'),
+        C(r'(?i)A', '', 'a'), C(r'(?U)\w+', '', 'é'),
+        C(r'(a|b)*', '', 'ab' * 20000, note="Java's recursive matcher runs out of stack"),
+        C(r'(', '', 'x'), C(r'[a-', '', 'x'), C(r'a{2,1}', '', 'x'), C(r'*a', '', 'x'), C(r'(?<1a>x)', '', 'x'),
+        C(r'\k<n>', '', 'x'), C(r'\p{NoSuch}', '', 'x'),
     ],
     'go': [
         C(r'\d+', '', 'a1 b22 c333', '<$0>'),
@@ -252,6 +284,16 @@ def shape(c, a, unit):
     if 'error' in a:
         return {'error': a['error']}
     t, idx = c['text'], u16(c['text'])
+    if unit == 'u16':  # Java: UTF-16 indexes already (and a match may begin between the halves of a surrogate pair)
+        b = t.encode('utf-16-le', 'surrogatepass')
+        sl = lambda s, e: b[2 * s:2 * e].decode('utf-16-le', 'surrogatepass')
+        ms = [[o[0], sl(o[0], o[1])] + [None if o[i] < 0 else sl(o[i], o[i + 1]) for i in range(2, len(o), 2)] for o in a['matches'][:SHOWN]]
+        r = {'names': a.get('names'), 'total': a['total'], 'matches': ms}
+        if c['rep'] is not None:
+            r['replaced'] = a.get('replaced')
+            if a.get('repError'):
+                r['repError'] = a['repError']
+        return r
     cp = (lambda x: x) if unit == 'cp' else (lambda x, m=from_bytes(t): m[x])
     ms = []
     for o in a['matches'][:SHOWN]:
@@ -335,6 +377,16 @@ def main():
             assert a['version'].startswith(f'regex {rxv} '), f"the reference's regex is {a['version']}, the build's {rxv}"
             out['engines']['pyregex'] = a['version']
         out['cases'].setdefault('pyregex', []).append({**c, 'out': shape(c, a, 'cp')})
+    jdk = os.environ.get('JDK_HOME', '/usr/lib/jvm/java-21-openjdk-amd64')
+    jsrc = os.path.join(ROOT, 'wasm/javaregex/java/superutils')
+    subprocess.run([os.path.join(jdk, 'bin', 'javac'), '-nowarn', '-d', os.path.join(tmp, 'java'), os.path.join(jsrc, 'RegexRun.java'),
+                    os.path.join(jsrc, 'Native.java')], check=True)
+    for c in CASES['java']:
+        a = json.loads(subprocess.run([os.path.join(jdk, 'bin', 'java'), '-cp', os.path.join(tmp, 'java'), 'superutils.Native'],
+                                      input=fields(c), capture_output=True, check=True).stdout)
+        if 'version' in a:
+            out['engines']['java'] = a['version']
+        out['cases'].setdefault('java', []).append({**c, 'out': shape(c, a, 'u16')})
     for c in CASES['go']:
         a = json.loads(subprocess.run([gobin], input=fields(c), capture_output=True, check=True).stdout)
         if 'version' in a:
@@ -372,7 +424,9 @@ def main():
         out['engines']['ruby'] = a.get('version', out['engines'].get('ruby'))
         out['cases'].setdefault('ruby', []).append({**c, 'out': shape(c, a, 'cp')})
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
-    json.dump(out, open(OUT, 'w', encoding='utf-8'), ensure_ascii=False, indent=0)
+    # a lone surrogate (Java may match between the halves of a pair) is written as its \\u escape: UTF-8 has no form for it
+    text = _re.sub(r'[\ud800-\udfff]', lambda m: f'\\u{ord(m.group()):04x}', json.dumps(out, ensure_ascii=False, indent=0))
+    open(OUT, 'w', encoding='utf-8').write(text)
     shutil.rmtree(tmp)
     print({k: len(v) for k, v in out['cases'].items()}, out['engines'])
 

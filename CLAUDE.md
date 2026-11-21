@@ -1235,7 +1235,7 @@ unit `tests/unit/devdata.test.mjs`, references `tests/fixtures/devdata/reference
 - `json`: the formatter changes white space only (devcore-json): member order, duplicate keys (pointed out) and the
   spelling of numbers and strings are kept; indent 2 / 4 / tab, minify, sort keys; a worded message with line, column and
   "Show it" for every mistake; accepts exactly what JSON.parse accepts.
-- `regex` — **flavours (to-do #8, owner, 21 Nov 2026; built so far: JavaScript, PCRE2, Perl, Python's re and regex module, Go, Ruby, POSIX ERE)**: a Flavour
+- `regex` — **flavours (to-do #8, owner, 21 Nov 2026; built so far: JavaScript, PCRE2, Perl, Python's re and regex module, Java, Go, Ruby, POSIX ERE)**: a Flavour
   list above the pattern; each flavour is the engine its language runs (`src/lib/regex/`, one adapter each, one answer
   shape; `src/workers/regex.worker.ts` fetches an engine the first time its flavour is chosen):
   **JavaScript** — the browser's RegExp, as before (flags g i m s u v y d; without g, Replace changes the first match);
@@ -1251,7 +1251,11 @@ unit `tests/unit/devdata.test.mjs`, references `tests/fixtures/devdata/reference
   "regex"), built into the same CPython (§5.1m; the one interpreter is fetched once for both Python flavours): fuzzy
   matching `(?:colour){e<=1}`, \p{…}, nested sets, recursion, \G …; flags i m s x a, V (version 1: set operations, full
   case-folding), f (full case-folding), b / e (fuzzy: best match, improved fit), p (POSIX leftmost longest), r (from the
-  end), w (Unicode word boundaries and line breaks); **Go** — Go's own regexp compiled by us (`wasm/regexgo`, §5.1p; flags i m s
+  end), w (Unicode word boundaries and line breaks); **Java** — OpenJDK 21's own java.util.regex (Pattern, Matcher and
+  the JDK's Unicode tables: `\p{…}`, case folding, `\N{name}`) compiled to WebAssembly (GC) by TeaVM (`wasm/javaregex`,
+  §5.1r; 0.86 MB): every answer is Java 21's — flags i m s x d u U c (CANON_EQ through the browser's normalize), `$1`
+  `${name}`, Java's error words, Java's StackOverflowError on patterns that recurse too deep, an empty match between the
+  halves of a surrogate pair as Java makes it; **Go** — Go's own regexp compiled by us (`wasm/regexgo`, §5.1p; flags i m s
   U as `(?flags)`; `$1 ${name}`, ReplaceAllString / Expand; no empty match right after a match); **Ruby** — Oniguruma
   (`vscode-oniguruma` 2.0.1) with Ruby's syntax, and around it what Oniguruma does not do as Ruby (Onigmo) does: \w \d
   \s \b ASCII (Oniguruma's ASCII options), `{n,m}` with m < n refused, String#scan's walk (an empty match moves one
@@ -1264,15 +1268,16 @@ unit `tests/unit/devdata.test.mjs`, references `tests/fixtures/devdata/reference
   The flags box lists the flavour's letters with what each does and refuses others ("“g” is not a flag in Python");
   JavaScript's g and "Replace every match" (the other flavours) stand for each other when the flavour changes.
   **Time limits** start when the engine begins the matching (a first download is not counted): JavaScript 2 s, PCRE2,
-  Perl, Ruby and POSIX 5 s, both Pythons and Go 10 s; when a limit fires for an older request the newest runs in a fresh worker (it used
+  Perl, Java, Ruby and POSIX 5 s, both Pythons and Go 10 s; when a limit fires for an older request the newest runs in a fresh worker (it used
   to wait behind the stuck one for ever). Matches, groups and names as each engine gives them; indexes in the page's
-  own counting (UTF-16). **Tests:** unit `regex-flavours.test.mjs` 401 — 279 cases held to the native engines
+  own counting (UTF-16). **Tests:** unit `regex-flavours.test.mjs` 486 — 343 cases held to the native engines
   (`tests/fixtures/regex/reference.json` from `python3 scripts/make-regex-reference.py`: CPython 3.14 via uv — with the
-  regex module at the build's version from PyPI in a fresh venv —, Go's regexp
+  regex module at the build's version from PyPI in a fresh venv —, the JDK whose source the Java engine is built from
+  (RegexRun.java on its own java.util.regex), Go's regexp
   built natively, the system's libpcre2-8 through `scripts/regex-ref/pcre2ref.c` — needs `libpcre2-dev`, Ruby 3.3, the
   system's perl 5.38, glibc's regex through ctypes with its walk checked against GNU sed marking every match, and GNU
   sed for every POSIX replacement; three cases differ by version — PCRE2 10.49 / 10.42, Perl 5.42 / 5.38, newer Unicode
-  — named in the suite); e2e `regex-flavours.e2e.mjs` 63 and `regex.e2e.mjs` 32. **Still to come (to-do #8):** Java, .NET.
+  — named in the suite); e2e `regex-flavours.e2e.mjs` 73 and `regex.e2e.mjs` 32. **Still to come (to-do #8):** .NET.
 - `base64` (devcore-enc): text or file ⇄ Base64 / URL-safe / data: URL; decoding takes messy input (no padding, line
   breaks, %3D, data: URLs); binary results are recognised by their first bytes, shown as hex and saved under a fitting
   name; long output is cut on screen only.
@@ -2573,6 +2578,7 @@ stay **public** (the source of the deployed site is then available to every user
 | Oniguruma (vscode-oniguruma 2.0.1) | C | Microsoft (`vscode-oniguruma`, MIT; Oniguruma BSD-2) — the build VS Code and Shiki run | regex (the Ruby flavour, with Ruby's rules beside it in `src/lib/regex/ruby.ts`) |
 | Go's regexp (Go 1.24.7's standard library, GOOS=wasip1) | Go | **us** (`wasm/regexgo`, 2.6 MB — §5.1p; `re2-wasm` rejected: `docs/WASM-AUDIT.md`, tab 178) | regex (the Go flavour) |
 | GNU regex (gnulib's regcomp / regexec, from GNU grep 3.12's source; glibc's are the same code) | C | **us** (`wasm/posixre`, 112 KB — §5.1q) | regex (the POSIX ERE flavour) |
+| OpenJDK 21's java.util.regex + java.lang.Character with its Unicode data (the JDK's own source, packages renamed `ojdk.*`) on TeaVM 0.16.0's class library | Java → WebAssembly GC | **us** (`wasm/javaregex`, 0.86 MB — §5.1r; TeaVM's own java.util.regex is Apache Harmony's: other messages, other answers) | regex (the Java flavour) |
 | Biome 2.6.8 (formatter for JS / JSX / TS / TSX, CSS, SCSS, YAML, GraphQL; 70 MB) | Rust | Biome project (official `@biomejs/wasm-web`), run in `src/workers/codefmt.worker.ts` (terminated on leave) | prettier (Code Formatter) |
 | dprint plugins: `@dprint/json` 0.26 and `dprint-plugin-markup` 0.28 (markup_fmt) — the JSON and HTML / Vue engines of `deno fmt` — behind the host `@dprint/formatter` 0.6 (JavaScript, 40 KB) | Rust | dprint project / g-plane (the plugins are published as WebAssembly: that is how dprint runs them) | prettier (Code Formatter) |
 | FFmpeg | C | ffmpeg.wasm project | ffmpeg |
@@ -3061,6 +3067,31 @@ in the C.UTF-8 locale, the walk of GNU sed's s///g with REG_STARTEND (the text b
 back-references), JSON of UTF-8 byte offsets in `px_out()`. Stripped, 112 KB. **To update:** a newer grep source in
 build.sh (URL + SHA-256 from its .dsc), the reference script (glibc's regex is the reference), both suites.
 
+### 5.1r javaregex → `src/wasm/bin/java-regex.wasm` + `src/lib/regex/teavm-runtime.js`
+`bash wasm/javaregex/build.sh` (≈ 1 min; needs `apt install openjdk-21-jdk-headless openjdk-21-source` — the same version,
+because the unit suite's reference is that JDK's own java.util.regex — Maven and python3; TeaVM 0.16.0 comes from Maven
+Central). Steps: **`prepare.py`** writes the sources: OpenJDK's `java/util/regex/*` and `jdk/internal/util/regex/Grapheme`
+from the JDK's `src.zip` as `ojdk.util.regex` / `ojdk.internal.regex` (TeaVM has its own `java.util.regex` — Apache
+Harmony's — which must not be the one compiled), the JDK's `java.lang.Character` with `CharacterData*` and `CharacterName`
+as `ojdk.lang` (so `\p{…}`, case folding and `\N{…}` answer from the JDK's Unicode 15.0 tables, not TeaVM's), our glue
+(`java/superutils/`: `RegexRun` — the run, shared with the native reference `Native` —, `Main` with the one `@JSExport`,
+`Norm`, `Support`) and three generated classes: `Version`, `UniNameData` (the JDK's `uniName.dat`, 157,710 bytes, in
+string constants — TeaVM loads no class-path resources) and `CombiningClass` (the JDK's canonical combining classes,
+dumped by `Dump.java` from `sun.text.Normalizer`, for CANON_EQ). Its changes to OpenJDK's code are exact replacements
+that must apply (`PATCHES`): VM annotations, the CDS archive and constant descriptors left out, `java.text.Normalizer` →
+the browser's `String.prototype.normalize` through a JSO class (decompositions of assigned characters never change),
+`ArraysSupport` → `Support`, `Class.getPrimitiveClass`, `sun.nio.cs`, the old `String(byte[], hibyte, …)` constructor,
+and **`Pattern.namedGroups()` without `Map.copyOf`**: TeaVM's empty immutable map takes a remainder by its size in
+`get()` and traps (`${x}` with no such group — found by the unit suite). **Maven** runs TeaVM (`pom.xml`, target
+WEBASSEMBLY_GC). **`patch-runtime.py`** turns TeaVM's runtime (`wasm-gc-module-runtime.js` from teavm-core) into
+`src/lib/regex/teavm-runtime.js` **without code made from strings**: TeaVM's JSO glue is made with the Function
+constructor (eval — refused by a CSP without 'unsafe-eval'); each such place is a closure now, the one `@JSBody` script
+TeaVM's classes ask for (`return str;`) is in a table, and the build fails if any `new Function` / `eval(` is left.
+Note: TeaVM traps on an integer division by zero where Java throws ArithmeticException; `java.ts` gives a new instance
+after any trap, and after a stack overflow (said in Java's words). WebAssembly GC needs Chrome 119+ (the tab is PC only).
+**To update:** a newer JDK 21 source (apt), or TeaVM (`teavm.version` in `pom.xml`): build.sh, then the reference script
+(`python3 scripts/make-regex-reference.py`), both suites; a patch that no longer applies names itself.
+
 ### 5.1e markdown → `src/wasm/bin/markdown.wasm`
 `ZIG=… wasm/markdown/build.sh`: downloads the `cmarkgfm` 2025.10.22 sdist from PyPI (SHA-256 `5bec6100…`), which vendors
 cmark-gfm 0.29.0.gfm.13 (latest upstream) plus its CMake-generated headers (`generated/unix`), and links all of
@@ -3107,6 +3138,8 @@ npm packages (pinned in `package-lock.json`) are bundled by Vite or copied to `p
 | *built in:* Go's standard library (regexp, the runtime) in regex-go.wasm | BSD-3-Clause (the Go licence) | Regex Tester (Go) |
 | *built in:* gnulib's regex (from GNU grep 3.12) in posix-re.wasm | LGPL-2.1-or-later | Regex Tester (POSIX ERE) |
 | *built in:* regex 2026.11.19 (mrab-regex, PyPI) in python.wasm + python314.zip | Apache-2.0 AND CNRI-Python | Regex Tester (Python regex module), Python Scratchpad |
+| *built in:* OpenJDK 21's java.util.regex, java.lang.Character and its Unicode data (uniName.dat) in java-regex.wasm | GPL-2.0 WITH Classpath-exception-2.0 | Regex Tester (Java) |
+| *built in:* TeaVM 0.16.0's class library in java-regex.wasm, and its WebAssembly GC runtime (`src/lib/regex/teavm-runtime.js`, patched) | Apache-2.0 | Regex Tester (Java) |
 | libsodium-wrappers-sumo 0.8.4 (+ libsodium-sumo; libsodium 1.0.22 compiled to WebAssembly by its author) | ISC | Sodium Encrypt, Encrypted Share Link, Password Generator, Passphrase Generator |
 | mediabunny | MPL-2.0 | Video Compressor, Audio Recorder (cut without re-encoding) |
 | @mediabunny/aac-encoder 1.66.2 (FFmpeg's AAC encoder in WebAssembly) | MPL-2.0 (FFmpeg's code: LGPL-2.1) | Video Compressor, Slideshow, Screencast, YouTube Clip |

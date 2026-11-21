@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- java-regex.wasm: OpenJDK's java.util.regex compiled to WebAssembly (GC) by TeaVM. Run by build.sh, which first
+     writes the sources with prepare.py into ${work}/src/main/java. -->
+<project xmlns="http://maven.apache.org/POM/4.0.0">
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>superutils</groupId>
+  <artifactId>java-regex</artifactId>
+  <version>1</version>
+  <properties>
+    <work>/tmp/javaregex-build</work>
+    <maven.compiler.release>21</maven.compiler.release>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <teavm.version>0.16.0</teavm.version>
+  </properties>
+  <dependencies>
+    <dependency><groupId>org.teavm</groupId><artifactId>teavm-classlib</artifactId><version>${teavm.version}</version><scope>provided</scope></dependency>
+    <dependency><groupId>org.teavm</groupId><artifactId>teavm-jso</artifactId><version>${teavm.version}</version><scope>provided</scope></dependency>
+  </dependencies>
+  <build>
+    <directory>${work}/target</directory>
+    <sourceDirectory>${work}/src/main/java</sourceDirectory>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>3.14.0</version>
+        <configuration><compilerArgs><arg>-nowarn</arg></compilerArgs></configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.teavm</groupId>
+        <artifactId>teavm-maven-plugin</artifactId>
+        <version>${teavm.version}</version>
+        <executions>
+          <execution>
+            <id>wasm-gc</id>
+            <goals><goal>compile</goal></goals>
+            <phase>process-classes</phase>
+            <configuration>
+              <targetType>WEBASSEMBLY_GC</targetType>
+              <mainClass>superutils.Main</mainClass>
+              <targetDirectory>${work}/wasm</targetDirectory>
+              <targetFileName>java-regex.wasm</targetFileName>
+              <minifying>true</minifying>
+              <optimizationLevel>FULL</optimizationLevel>
+              <debugInformationGenerated>false</debugInformationGenerated>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+</project>

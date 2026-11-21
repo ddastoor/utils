@@ -19,10 +19,10 @@ export default async (ctx) => {
   const repIs = (want, ms = 15000) => until(page, (w) => document.querySelectorAll('.card textarea')[1]?.value === w, want, ms);
   const errIs = (re, ms = 15000) => until(page, (s) => new RegExp(s).test(document.querySelector('.note-err')?.textContent || ''), re.source, ms);
   const head = () => page.$$eval('.tbl thead th', (h) => h.map((e) => e.textContent));
-  const engineNote = () => page.evaluate(() => [...document.querySelectorAll('.tool-body > div .note, .note')].map((n) => n.textContent).find((t) => /engine|PCRE2|CPython|regexp|Oniguruma/.test(t)) || '');
+  const engineNote = () => page.evaluate(() => [...document.querySelectorAll('.tool-body > div .note, .note')].map((n) => n.textContent).find((t) => /engine|PCRE2|CPython|regexp|Oniguruma|OpenJDK/.test(t)) || '');
   await pat.waitFor();
 
-  ok(JSON.stringify(await flavourSel.evaluate((s) => [...s.options].map((o) => o.textContent))) === JSON.stringify(['JavaScript (this browser)', 'PCRE2 (PHP, R, grep -P …)', 'Perl 5', 'Python (re)', 'Python (regex module)', 'Go (RE2 syntax)', 'Ruby (Oniguruma)', 'POSIX ERE (grep -E, sed -E)']), 'eight flavours, JavaScript first');
+  ok(JSON.stringify(await flavourSel.evaluate((s) => [...s.options].map((o) => o.textContent))) === JSON.stringify(['JavaScript (this browser)', 'PCRE2 (PHP, R, grep -P …)', 'Perl 5', 'Python (re)', 'Python (regex module)', 'Java (java.util.regex)', 'Go (RE2 syntax)', 'Ruby (Oniguruma)', 'POSIX ERE (grep -E, sed -E)']), 'nine flavours, JavaScript first');
   ok(await marksAre(['555-1234', '555-9876']) && !fetched.length, `JavaScript as before, and no engine fetched at open (${fetched.join(', ')})`);
   ok(!(await every.isVisible()), 'JavaScript: its g flag decides, the "Replace every match" switch is not shown');
 
@@ -82,6 +82,21 @@ export default async (ctx) => {
   await set('\\((?:[^()]++|(?R))*\\)', '', 'f(a(b)c) g(d) h('); ok(await marksAre(['(a(b)c)', '(d)']), 'regex module: recursion and possessive repeats');
   await set('(?P<1a>x)', '', 'x'); ok(await errIs(/bad character in group name at position 6/), "the regex module's own error words");
   await flags.fill('v'); ok(await errIs(/“v” is not a flag in Python\. The flags are i m s x a V f b e p r w\./), 'its flags are listed; version 1 is a capital V');
+  await flags.fill('');
+
+  // ---- Java (OpenJDK's java.util.regex compiled to WebAssembly by TeaVM)
+  await flavourSel.selectOption('java');
+  await set('(?<y>\\d{4})-(\\d\\d)', '', 'on 2026-11 and 1999-01', '${y}/$2');
+  ok(await repIs('on 2026/11 and 1999/01', 30000) && JSON.stringify(await head()) === JSON.stringify(['#', 'Match', 'Index', '$1 y', '$2']), 'Java: (?<y>…), ${y} and $2 in the replacement, the names in the table');
+  ok(/OpenJDK 21\.0\.13(\.\d+)? java\.util\.regex/.test(await engineNote()) && fetched.some((f) => /^java-regex.*\.wasm/.test(f)), 'the note names OpenJDK\'s version; java-regex.wasm is fetched with its flavour');
+  await set('(\\d)', '', 'a1', '${x}'); ok(await errIs(/The replacement could not be made: No group with name \{x\}/), "Java's own words for a name the pattern does not have (TeaVM's empty immutable map trapped here: prepare.py)");
+  await set('\\N{EM DASH}|\\p{IsGreek}+', '', 'a — αβγ b'); ok(await marksAre(['—', 'αβγ']), 'Java: \\N{name} from the JDK\'s own name table, \\p{IsGreek}');
+  await set('é', 'c', 'é é'); ok(await marksAre(['é', 'é']), 'c (CANON_EQ): é matches e + a combining accent');
+  await set('', '', '🎉x', '|'); ok(await repIs('|\ud83c|\udf89|x|'), 'Java puts an empty match between the halves of 🎉, as the JDK does');
+  await set('(a|b)*', '', 'ab'.repeat(20000)); ok(await errIs(/StackOverflowError: Java's regex engine is recursive/), 'Java: a pattern that recurses too deep is said in Java\'s terms (the JDK throws StackOverflowError on it too)');
+  await set('\\w+', '', 'naïve'); ok(await marksAre(['na', 've']), 'the next pattern runs at once (a new instance after the overflow): \\w is ASCII in Java without U');
+  await set('(', '', 'x'); ok(await errIs(/Unclosed group near index 1/), "Java's own error words");
+  await flags.fill('g'); ok(await errIs(/“g” is not a flag in Java\. The flags are i m s x d u U c\./), "Java's flags are listed");
   await flags.fill('');
 
   // ---- Go

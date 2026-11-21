@@ -505,9 +505,9 @@ export { groupNames } from '../lib/regex/flavours';
 export const flagsError = (f: string) => flavourFlagsError(FLAVOURS[0], f);
 /** How long one run may take before the worker is ended (a pattern that backtracks without end never finishes); Python
  *  starts an interpreter for every run, Go never backtracks. */
-const REGEX_LIMIT_MS: Record<FlavourId, number> = { js: 2000, pcre2: 5000, perl: 5000, python: 10000, pyregex: 10000, go: 10000, ruby: 5000, posix: 5000 };
+const REGEX_LIMIT_MS: Record<FlavourId, number> = { js: 2000, pcre2: 5000, perl: 5000, python: 10000, pyregex: 10000, java: 5000, go: 10000, ruby: 5000, posix: 5000 };
 /** What fetching an engine costs, said while it comes (once a visit). */
-const ENGINE_SIZE: Partial<Record<FlavourId, string>> = { pcre2: 'PCRE2, 0.5 MB', perl: 'Perl 5.42, 25 MB', python: 'CPython, 13.5 MB', pyregex: 'CPython, 13.5 MB', go: 'Go\'s regexp, 2.6 MB', ruby: 'Oniguruma, 0.5 MB', posix: 'GNU regex, 0.1 MB' };
+const ENGINE_SIZE: Partial<Record<FlavourId, string>> = { pcre2: 'PCRE2, 0.5 MB', perl: 'Perl 5.42, 25 MB', python: 'CPython, 13.5 MB', pyregex: 'CPython, 13.5 MB', java: 'OpenJDK\'s regex, 0.9 MB', go: 'Go\'s regexp, 2.6 MB', ruby: 'Oniguruma, 0.5 MB', posix: 'GNU regex, 0.1 MB' };
 export const regex: Mount = (root) => {
   let fl = FLAVOURS[0];
   const loaded = new Set<FlavourId>(['js']);

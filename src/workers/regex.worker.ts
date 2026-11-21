@@ -9,6 +9,7 @@ import zipUrl from '../wasm/bin/python314.zip?url';
 import goUrl from '../wasm/bin/regex-go.wasm?url';
 import onigUrl from 'vscode-oniguruma/release/onig.wasm?url';
 import posixUrl from '../wasm/bin/posix-re.wasm?url';
+import javaUrl from '../wasm/bin/java-regex.wasm?url';
 
 export interface RegexReq extends EngineReq { id: number; flavour: FlavourId; /** The site's address (the page's document.baseURI): where Perl's module is. */ base?: string }
 export interface RegexRes extends Partial<EngineOut> {
@@ -50,6 +51,7 @@ const loaders: Record<FlavourId, () => Promise<Run>> = {
   python: async () => { const [m, mod, zip] = await python(); return (q) => m.runPython(mod, zip, q, 're'); },
   pyregex: async () => { const [m, mod, zip] = await python(); return (q) => m.runPython(mod, zip, q, 'regex'); },
   go: async () => { const [m, mod] = await Promise.all([import('../lib/regex/go'), compile(goUrl)]); return (q) => m.runGo(mod, q); },
+  java: async () => { const [m, wasm] = await Promise.all([import('../lib/regex/java'), bytes(javaUrl)]); return m.javaEngine(wasm); },
   ruby: async () => { const [m, wasm] = await Promise.all([import('../lib/regex/ruby'), bytes(onigUrl)]); await m.loadOnig(wasm); return m.runRuby; },
   posix: async () => { const [m, w] = await Promise.all([import('../lib/regex/posix'), import('../wasm/wasi')]); const x = await w.instantiateWasi(posixUrl); return (q) => m.runPosix(x.exports, q); },
 };

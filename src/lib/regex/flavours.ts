@@ -1,7 +1,7 @@
 // The flavours of the Regex Tester (to-do #8): which engine each one is, its flag letters, its replacement syntax and
 // the note under the result. No DOM: the tab, the worker and the unit suite share it.
 
-export type FlavourId = 'js' | 'pcre2' | 'perl' | 'python' | 'pyregex' | 'go' | 'ruby' | 'posix';
+export type FlavourId = 'js' | 'pcre2' | 'perl' | 'python' | 'pyregex' | 'java' | 'go' | 'ruby' | 'posix';
 export interface Flavour {
   id: FlavourId;
   /** In the flavour list. */
@@ -56,6 +56,14 @@ export const FLAVOURS: Flavour[] = [
       ['r', 'search backwards, from the end (regex.R)'], ['w', 'Unicode word boundaries and line breaks (regex.W)']],
     replace: '\\1 … \\99, \\g<1>, \\g<name>, \\g<0> (the match); \\n \\t and the other escapes',
     note: 'The regex module (mrab-regex — what pip installs as "regex"), built into the CPython of the Python tab (WebAssembly): everything re has, and fuzzy matching ((?:colour){e<=1}), \\p{…} properties, nested sets, atomic groups, possessive repeats, look-behind of any length, \\G. Type the pattern as you would inside r\'…\'.',
+  },
+  {
+    id: 'java', label: 'Java (java.util.regex)', start: '',
+    flags: [['i', 'ignore case (ASCII letters; with u, all of Unicode)'], ['m', '^ and $ at every line'], ['s', '. matches a line break'],
+      ['x', 'spaces and # comments ignored'], ['d', 'only \\n ends a line (UNIX_LINES)'], ['u', 'Unicode case folding with i (UNICODE_CASE)'],
+      ['U', 'Unicode \\w \\d \\s \\b and \\p{Alpha} … (UNICODE_CHARACTER_CLASS)'], ['c', 'canonical equivalence: é matches e + ◌́ (CANON_EQ)']],
+    replace: '$1 … $9 (more digits while such a group exists), ${name}, $0 (the match); \\$ and \\\\ for themselves',
+    note: 'OpenJDK 21\'s own java.util.regex — the code of Java\'s Pattern and Matcher, with the JDK\'s Unicode tables — compiled to WebAssembly by TeaVM. Type the pattern as it is meant, not as a Java string literal: \\d, not \\\\d.',
   },
   {
     id: 'go', label: 'Go (RE2 syntax)', start: '',

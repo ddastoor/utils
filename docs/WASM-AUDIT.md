@@ -1420,5 +1420,11 @@ Oniguruma)". Per flavour, the existing modules looked at first (STANDING RULE #1
   existing WebAssembly build of it (Pyodide ships one, but for its own Emscripten Python — not loadable into our WASI
   CPython). Five functions needed their signatures put right for WebAssembly (`wasm/python/regex-wasm.patch`). Held to
   the native module (same version, CPython 3.14): 50 cases, all equal.
-Still to come: Java and .NET (to decide: no existing WebAssembly build of their engines).
+- **Java → OpenJDK 21's own java.util.regex, compiled to WebAssembly by us with TeaVM** (`wasm/javaregex`). Looked at:
+  TeaVM's own java.util.regex (Apache Harmony's port — other error messages, `(` refused as "1, (, "; not Java's
+  answers), CheerpJ (a whole JVM, proprietary — not usable), GraalVM's WebAssembly backend (exact, but its release
+  is on GitHub, which this sandbox cannot reach), J2CL (no java.util.regex). Compiling the JDK's own source keeps
+  Java's behaviour, the JDK's Unicode tables included: 64 cases, all equal to Java 21.0.13.1 (two bugs of TeaVM
+  found on the way and worked around: an empty `Map.copyOf` traps in `get`, division by zero traps).
+Still to come: .NET (to decide: no existing WebAssembly build of its engine).
 
