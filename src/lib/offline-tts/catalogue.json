@@ -841,6 +841,7 @@
    "url": "https://github.com/resemble-ai/chatterbox",
    "packages": [
     "chatterbox-tts==0.1.7",
+    "setuptools==81.0.0",
     "lameenc==1.9.0"
    ],
    "mb": 450,
@@ -939,7 +940,7 @@
     "scikit-learn==1.9.1",
     "scipy==1.17.1 ; python_full_version < '3.13'",
     "semantic-version==2.10.0",
-    "setuptools==84.2.1",
+    "setuptools==81.0.0",
     "shellingham==1.5.4",
     "soundfile==0.14.0",
     "soxr==1.1.0",
@@ -1865,8 +1866,7 @@
    "licence": "Apache-2.0 (SNAC: MIT)",
    "personal": false,
    "name": "Veena (Maya Research)",
-   "page": "https://huggingface.co/maya-research/Veena",
-   "untried": "Not run here: 7.6 GB, made for a graphics card."
+   "page": "https://huggingface.co/maya-research/Veena"
   },
   "kokoro": {
    "engine": "kokoro",
@@ -1918,8 +1918,7 @@
    "licence": "MIT (Microsoft’s card: for research and development); Qwen2.5’s tokenizer Apache-2.0",
    "personal": false,
    "name": "VibeVoice 1.5B (Microsoft)",
-   "page": "https://huggingface.co/microsoft/VibeVoice-1.5B",
-   "untried": "Not run yet: 5.4 GB."
+   "page": "https://huggingface.co/microsoft/VibeVoice-1.5B"
   },
   "kyutai-1.6b": {
    "engine": "kyutai",

@@ -221,7 +221,10 @@ ENGINES = {
     },
     'chatterbox': {
         'name': 'Chatterbox', 'url': 'https://github.com/resemble-ai/chatterbox',
-        'packages': ['chatterbox-tts==0.1.7', 'lameenc==1.9.0'],
+        # setuptools 81: its watermark, resemble-perth 1.0.1 (chatterbox-tts pins it), imports pkg_resources, which
+        # setuptools 82 removed — without it the watermarker is None and every run failed ("'NoneType' object is not
+        # callable"; found by smoke.py, 21 Nov 2026)
+        'packages': ['chatterbox-tts==0.1.7', 'setuptools==81.0.0', 'lameenc==1.9.0'],
         'mb': 450, 'torch': True, 'ownTorch': True, 'speedControl': False, 'licence': 'MIT', 'slow': True,
         'about': "Resemble AI's expressive models: their own voice, or a voice taken from a recording. The program "
                  'marks the speech with an inaudible watermark and runs on its own PyTorch 2.6 (a second copy).',
@@ -1046,8 +1049,6 @@ UNTRIED = {
     'parler-large': 'Not run here: 9.3 GB, more than the test machine had room for (the same program as Parler Mini, which was run).',
     'chatterbox': 'Not run yet: it needs a second PyTorch (2.6) beside the model, more than the test machine had room for.',
     'chatterbox-turbo': 'Not run yet: it needs a second PyTorch (2.6) beside the model, more than the test machine had room for.',
-    'veena': 'Not run here: 7.6 GB, made for a graphics card.',
-    'vibevoice-1.5b': 'Not run yet: 5.4 GB.',
     'pocket-clone': 'Not run here: Hugging Face gives it only to an account that has accepted its conditions.',
 }
 
