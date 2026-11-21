@@ -92,6 +92,9 @@ this file = the owner's latest wishes, how the tests are written, and the traps 
   AJUR_January_2016p5.pdf and the EPUB the tab made (uploaded in chat; ask again in a new session).
   **The owner's rule for it (21 Nov 2026):** side-by-side content goes top to bottom in the EPUB, spaced apart, each
   piece under a marker of our own — "Page 1, part 1", "Page 1, part 2" … — never words from the PDF (CLAUDE.md §3).
+- **21 Nov 2026 — a new potential app:** "PDF/EPUB creator … PC only … like a rich text editor … type, copy, paste, … embed
+  another PDF … paste pictures, insert pictures … convert to either PDF or EPUB. Use all the existing functionality" —
+  added to docs/potentials.md as #72 (not to build until the owner picks it; size check first: ≈ 0 MB new).
 - **21 Nov 2026 — Regex Tester:** "add … different regex styles that the user can select from. For example, Python,
   Perl, Python regex, Perl regex, or any other standard regex styles out there. Make a note of this and build it out when
   you get a chance." — noted in CLAUDE.md §3 (`regex`) and the RESUME queue, after the PDF → EPUB fix and the Photo
