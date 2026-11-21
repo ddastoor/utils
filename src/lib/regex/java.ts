@@ -8,7 +8,7 @@ import { fromOffsets, PatternError, SHOWN, COUNTED, type EngineOut, type EngineR
 export const OVERFLOW = 'StackOverflowError: Java\'s regex engine is recursive, and this pattern goes too deep on this text';
 
 async function instantiate(wasm: Uint8Array) {
-  return (await load(wasm)).exports as { run(p: string, f: string, t: string, r: string, hasRep: boolean, all: boolean, shown: number, counted: number): string };
+  return (await load(wasm as Uint8Array<ArrayBuffer>)).exports as { run(p: string, f: string, t: string, r: string, hasRep: boolean, all: boolean, shown: number, counted: number): string };
 }
 
 /** The engine: `wasm` is java-regex.wasm. A run that exhausts the stack leaves the instance in an unknown state: the

@@ -14,6 +14,10 @@ export function textOf(bytes: Uint8Array): { text: string; how: '' | 'UTF-16' | 
   catch { return { text: new TextDecoder('windows-1252').decode(body), how: 'Windows-1252' }; }
 }
 
+/** Whether a text ends its lines with CR LF, as Windows programs write them (most of its line breaks are). A text box
+ *  gives its text back with LF only, so a tab that saves a file it opened puts them back (to-do #13). */
+export const crlfText = (s: string) => { const crlf = s.split('\r\n').length - 1; return crlf > 0 && crlf * 2 >= s.split('\n').length - 1; };
+
 /** A chosen file as text; a file that is not text is refused in words ("photo.jpg is not a text file — …"). */
 export async function readTextFile(f: Blob & { name: string }, hint = ''): Promise<string> {
   const r = textOf(new Uint8Array(await f.arrayBuffer()));

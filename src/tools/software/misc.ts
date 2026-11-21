@@ -5,7 +5,7 @@ import { h, card, field, input, textarea, select, segmented, toggle, slider, cle
 import { devcore, setZone, type Devcore } from '../../wasm/devcore';
 import { kvRows, show, table, debounce } from './devui';
 import { localZone } from '../../lib/tz';
-import { readTextFile } from '../../lib/textfile';
+import { readTextFile, crlfText } from '../../lib/textfile';
 
 const lines = (s: string) => s.split(/\r?\n/).map((x) => x.trim()).filter(Boolean);
 const chips = (items: Array<[string, string]>, pick: (v: string) => void) => h('div', { class: 'chips' }, items.map(([v, l]) => h('button', { type: 'button', class: 'chip chip-btn', onclick: () => pick(v) }, l)));
@@ -92,18 +92,23 @@ export const patch: Mount = async (root) => {
   const dc = await devcore('patch');
   const orig = textarea({ rows: 10, mono: true, placeholder: 'Original text' }), diff = textarea({ rows: 10, mono: true, placeholder: '--- a/file\n+++ b/file\n@@ -1,3 +1,3 @@\n …' });
   const res = outputBox({ rows: 10, mono: true }); let reverse = false; let name = 'patched.txt';
+  // the original was opened from a file that ends its lines with CR LF (Windows): the saved result keeps them, as GNU
+  // patch keeps them — a text box hands its text back with LF only, and every line of the file would have changed
+  let crlf = false;
   const status = h('div');
   const run = () => show(status, () => {
     res.value = ''; // never leave an old result on screen when this patch fails
     if (!diff.value.trim()) { return note('Paste a unified diff (from git diff or diff -u).', 'info'); }
     const r = dc.json('patch', { original: orig.value, patch: diff.value, reverse });
     res.value = r.result;
-    return [note(`Applied ${r.hunks} hunk${r.hunks === 1 ? '' : 's'}: +${r.added} −${r.removed} lines${r.file ? ` (${r.file})` : ''}.`, 'ok'), ...(r.notes as string[]).map((n) => note(n[0].toUpperCase() + n.slice(1) + '.', 'info'))];
+    return [note(`Applied ${r.hunks} hunk${r.hunks === 1 ? '' : 's'}: +${r.added} −${r.removed} lines${r.file ? ` (${r.file})` : ''}.`, 'ok'), ...(r.notes as string[]).map((n) => note(n[0].toUpperCase() + n.slice(1) + '.', 'info')),
+      ...(crlf ? [note(`${name} ends its lines with CR LF (Windows): Download keeps them.`, 'info')] : [])];
   });
   [orig, diff].forEach((x) => x.addEventListener('input', debounce(run, 150)));
-  const loader = (ta: HTMLTextAreaElement, label: string, setName = false) => filePicker({ label, onFiles: async ([f]) => { ta.value = await readTextFile(f, 'a patch or the file it changes is plain text'); if (setName) name = f.name; run(); } });
+  orig.addEventListener('input', () => { if (!orig.value) crlf = false; });
+  const loader = (ta: HTMLTextAreaElement, label: string, setName = false) => filePicker({ label, onFiles: async ([f]) => { const t = await readTextFile(f, 'a patch or the file it changes is plain text'); ta.value = t; if (setName) { name = f.name; crlf = crlfText(t); } run(); } });
   root.append(h('div', { class: 'grid2' }, card('Original', orig, loader(orig, 'Open original file', true)), card('Patch (unified diff)', diff, loader(diff, 'Open .diff / .patch'))),
-    card(null, toggle('Reverse (undo the patch)', false, (v) => { reverse = v; run(); }), status), card('Result', res, h('div', { class: 'row' }, button('Copy', () => copy(res.value), { small: true, icon: 'Copy' }), button('Download', () => { if (!res.value) throw new Error('Nothing to save yet'); downloadBlob(new Blob([res.value], { type: 'text/plain' }), name); }, { small: true, icon: 'Download' }))));
+    card(null, toggle('Reverse (undo the patch)', false, (v) => { reverse = v; run(); }), status), card('Result', res, h('div', { class: 'row' }, button('Copy', () => copy(res.value), { small: true, icon: 'Copy' }), button('Download', () => { if (!res.value) throw new Error('Nothing to save yet'); downloadBlob(new Blob([crlf ? res.value.replace(/\n/g, '\r\n') : res.value], { type: 'text/plain' }), name); }, { small: true, icon: 'Download' }))));
   run();
 };
 

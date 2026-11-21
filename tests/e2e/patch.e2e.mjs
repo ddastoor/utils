@@ -35,6 +35,20 @@ export default async (ctx) => {
   ok(await res.inputValue() === A, 'files opened from disk (original + .diff), reversed');
   const dl = await ctx.download(page, () => page.getByRole('button', { name: 'Download', exact: true }).click());
   ok(readFileSync(dl, 'utf8') === A && /b\.txt$/.test(dl), 'Download saves the result under the original file name');
+  // a Windows file (CR LF) and its patch as Windows PowerShell 5.1 saves `git diff > fix.diff`: UTF-16 with its mark, CR LF
+  // (to-do #13) — the result keeps the file's line ends; it came back with LF, every line of the file changed
+  await page.locator('label.switch', { hasText: 'Reverse' }).click(); await orig.fill(''); await pt.fill('');
+  writeFileSync(join(dir, 'win.txt'), A.replace(/\n/g, '\r\n'));
+  writeFileSync(join(dir, 'fix.diff'), Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from(diff.replace(/\n/g, '\r\n'), 'utf16le')]));
+  await page.locator('.drop input[type=file]').nth(0).setInputFiles(join(dir, 'win.txt')); await page.locator('.drop input[type=file]').nth(1).setInputFiles(join(dir, 'fix.diff')); await page.waitForTimeout(300);
+  ok(await res.inputValue() === B && /win\.txt ends its lines with CR LF \(Windows\): Download keeps them/.test((await page.locator('.tool-body .note-info').allTextContents()).join(' ')), 'a Windows file and a UTF-16 patch from PowerShell: applied, and the tab says the line ends are kept');
+  const dlw = await ctx.download(page, () => page.getByRole('button', { name: 'Download', exact: true }).click());
+  ok(readFileSync(dlw, 'utf8') === B.replace(/\n/g, '\r\n') && /win\.txt$/.test(dlw), 'the saved file has CR LF line ends, as the original (GNU patch keeps them too)');
+  await orig.fill(''); await page.locator('.drop input[type=file]').nth(0).setInputFiles(join(dir, 'b.txt')); await pt.fill(diff); await page.waitForTimeout(300);
+  await page.locator('label.switch', { hasText: 'Reverse' }).click(); await page.waitForTimeout(300);
+  const dlu = await ctx.download(page, () => page.getByRole('button', { name: 'Download', exact: true }).click());
+  ok(readFileSync(dlu, 'utf8') === A && !(await page.locator('.tool-body .note-info').allTextContents()).some((n) => /CR LF/.test(n)), 'a Unix file opened after it: LF again, no note');
+  await page.locator('label.switch', { hasText: 'Reverse' }).click();
   // ---- bug hunt, Nov 2026: patches as people have them (the old reader refused most of these)
   if (await page.locator('label.switch', { hasText: 'Reverse' }).locator('input').isChecked()) await page.locator('label.switch', { hasText: 'Reverse' }).click();
   const O2 = 'one\ntwo\nthree\nfour\nfive\n', W2 = 'one\nTWO\nthree\nfour\n5\n', H2 = '@@ -1,5 +1,5 @@\n one\n-two\n+TWO\n three\n four\n-five\n+5\n';

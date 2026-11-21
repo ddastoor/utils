@@ -2,7 +2,7 @@
 // Windows-1252 (what Notepad and Excel on Windows save), and binary files refused. Known answers from the encodings'
 // own tables (the bytes written out by hand, and Python's codecs for the long check).
 export default async (t, { load }) => {
-  const { textOf, readTextFile } = await load('/src/lib/textfile.ts');
+  const { textOf, readTextFile, crlfText } = await load('/src/lib/textfile.ts');
   const B = (...x) => new Uint8Array(x.flat());
   const enc = (s) => [...new TextEncoder().encode(s)];
   t.eq(textOf(B(enc('café ₹'))), { text: 'café ₹', how: '' }, 'UTF-8');
@@ -20,4 +20,6 @@ export default async (t, { load }) => {
   let msg = ''; try { await readTextFile(Object.assign(new Blob([B([0, 1, 2])]), { name: 'photo.jpg' }), 'a log file is plain text'); } catch (e) { msg = e.message; }
   t.eq(msg, 'photo.jpg is not a text file — a log file is plain text.', 'a binary file is refused in words');
   t.eq(await readTextFile(Object.assign(new Blob([B([0x63, 0x61, 0x66, 0xe9])]), { name: 'a.sql' })), 'café', 'readTextFile gives the decoded text');
+  // line ends as Windows programs write them (to-do #13: the Patch tab saves its result with the original's)
+  t.eq(['a\r\nb\r\n', 'a\r\nb', 'a\r\nb\nc\r\n', 'a\nb\n', 'a\nb\nc\r\n', 'one line', ''].map(crlfText), [true, true, true, false, false, false, false], 'CR LF when most line breaks are; LF, a single line and nothing are not');
 };
