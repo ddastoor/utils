@@ -31,6 +31,15 @@ The owner adds items here in chat ("add … to to do"). Newest instructions win.
    Indian-accent ranking now in progress. **The owner's first case: a phone photographing a Kindle page** (item 5; the
    standing note at the top of CLAUDE.md).
 
+7. **Text-to-Speech offline, the rest of round 2** (owner, 21 Nov 2026: "Don't leave out any of the other TTS stuff
+   either. Eventually complete everything that you are/were doing in parallel"): Kyutai TTS 1.6B (kyutai/tts-1.6b-en_fr,
+   CC BY 4.0) with its 594 voices of kyutai/tts-voices (228 CC0 voice donations filed by the accent heard, VCTK's 106 by
+   its documented accents, Expresso, EARS, Alba MacKenna — licences in the collection's README); F5-TTS and VibeVoice
+   (adapters waiting in `scripts/wip/offline-tts-engines-next.py`); the 56 voice donations heard clearly as Indian added
+   to every engine that takes a voice from a recording (XTTS-v2, Chatterbox and Turbo, VoxCPM2, Pocket TTS cloning, F5,
+   VibeVoice; F5 needs each clip's words — Whisper); the engines not yet run here, where the machine allows; every new
+   Indian voice measured for the accent ranking. Order (owner): after the accent ranking and the Photo Dictionary upgrade.
+
 ## Done
 - **2. FFmpeg tab: buttons for more popular jobs** (owner, 20 Nov 2026: "add all the popular new jobs for FFmpeg that don't have buttons yet … search for more out there … and add it") — done 20 Nov 2026: 21 new jobs (39 in all, in eight groups of a task list; no command line needed): the owner's six (join clips; subtitles burn in / add as a track / extract; logo or text on a video; volume; reverse; picture at a chosen moment) and fifteen popular uses found on the web (fades, fit to a shape with a blurred background or bars, remove silence, picture-in-picture, loop / boomerang, stabilise, clean up grain, contact sheet, timelapse, split into parts, sound settings, colours / black and white, cut a part out, background music, deinterlace; sources in docs/BUGHUNT.md). `src/lib/ffjobs.ts`, `src/tools/ffmpeg.ts`; unit `ffjobs.test.mjs` 110 (native FFmpeg 6.1), e2e `ffmpeg.e2e.mjs` 68. Found on the way: the core's JPEG encoder crashed the page (every JPEG is MozJPEG's now).
 - **4. YouTube Clip tab: "Download latest yt-dlp"** (owner, 20 Nov 2026: "Have an export button called download latest
