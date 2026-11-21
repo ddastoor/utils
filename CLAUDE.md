@@ -1235,7 +1235,7 @@ unit `tests/unit/devdata.test.mjs`, references `tests/fixtures/devdata/reference
 - `json`: the formatter changes white space only (devcore-json): member order, duplicate keys (pointed out) and the
   spelling of numbers and strings are kept; indent 2 / 4 / tab, minify, sort keys; a worded message with line, column and
   "Show it" for every mistake; accepts exactly what JSON.parse accepts.
-- `regex` — **flavours (to-do #8, owner, 21 Nov 2026; built so far: JavaScript, PCRE2, Perl, Python, Go, Ruby)**: a Flavour
+- `regex` — **flavours (to-do #8, owner, 21 Nov 2026; built so far: JavaScript, PCRE2, Perl, Python, Go, Ruby, POSIX ERE)**: a Flavour
   list above the pattern; each flavour is the engine its language runs (`src/lib/regex/`, one adapter each, one answer
   shape; `src/workers/regex.worker.ts` fetches an engine the first time its flavour is chosen):
   **JavaScript** — the browser's RegExp, as before (flags g i m s u v y d; without g, Replace changes the first match);
@@ -1253,17 +1253,22 @@ unit `tests/unit/devdata.test.mjs`, references `tests/fixtures/devdata/reference
   \s \b ASCII (Oniguruma's ASCII options), `{n,m}` with m < n refused, String#scan's walk (an empty match moves one
   character on), `rb_reg_regsub`'s replacement (`\1 … \9 \k<name> \0 \& \` \' \\`; with named groups plain ones do
   not capture and \1 gives nothing); flags i m (Ruby's m: . matches a new line — ^ $ are always line anchors) x.
+  **POSIX ERE** — GNU's regex, the engine grep -E and sed -E run on Linux (gnulib's regcomp / regexec from GNU grep 3.12's
+  source, compiled by us: `wasm/posixre`, §5.1q, 112 KB; glibc's are the same code): the longest of the leftmost matches,
+  POSIX classes, back-references, GNU's \w \s \b \< \>; flags i, m (REG_NEWLINE); GNU sed's walk (no empty match
+  right after a match) and sed's replacement (`& \1 … \9 \& \\ \n \t \U \L \u \l \E`, `sedSub`); GNU's error words.
   The flags box lists the flavour's letters with what each does and refuses others ("“g” is not a flag in Python");
   JavaScript's g and "Replace every match" (the other flavours) stand for each other when the flavour changes.
   **Time limits** start when the engine begins the matching (a first download is not counted): JavaScript 2 s, PCRE2,
-  Perl and Ruby 5 s, Python and Go 10 s; when a limit fires for an older request the newest runs in a fresh worker (it used
+  Perl, Ruby and POSIX 5 s, Python and Go 10 s; when a limit fires for an older request the newest runs in a fresh worker (it used
   to wait behind the stuck one for ever). Matches, groups and names as each engine gives them; indexes in the page's
-  own counting (UTF-16). **Tests:** unit `regex-flavours.test.mjs` 285 — 193 cases held to the native engines
+  own counting (UTF-16). **Tests:** unit `regex-flavours.test.mjs` 337 — 229 cases held to the native engines
   (`tests/fixtures/regex/reference.json` from `python3 scripts/make-regex-reference.py`: CPython 3.14 via uv, Go's regexp
   built natively, the system's libpcre2-8 through `scripts/regex-ref/pcre2ref.c` — needs `libpcre2-dev`, Ruby 3.3, the
-  system's perl 5.38; three cases differ by version — PCRE2 10.49 / 10.42, Perl 5.42 / 5.38, newer Unicode — named in
-  the suite); e2e `regex-flavours.e2e.mjs` 46 and `regex.e2e.mjs` 32. **Still to come (to-do #8):** POSIX ERE (grep -E),
-  Python's `regex` module, Java, .NET.
+  system's perl 5.38, glibc's regex through ctypes with its walk checked against GNU sed marking every match, and GNU
+  sed for every POSIX replacement; three cases differ by version — PCRE2 10.49 / 10.42, Perl 5.42 / 5.38, newer Unicode
+  — named in the suite); e2e `regex-flavours.e2e.mjs` 53 and `regex.e2e.mjs` 32. **Still to come (to-do #8):** Python's
+  `regex` module, Java, .NET.
 - `base64` (devcore-enc): text or file ⇄ Base64 / URL-safe / data: URL; decoding takes messy input (no padding, line
   breaks, %3D, data: URLs); binary results are recognised by their first bytes, shown as hex and saved under a fitting
   name; long output is cut on screen only.
@@ -2563,6 +2568,7 @@ stay **public** (the source of the deployed site is then available to every user
 | PCRE2 (pcre2-wasm 10.49.3: PCRE2 compiled by Emscripten, the WebAssembly inside the package) | C | gudoshnikovn (`pcre2-wasm`, MIT; PCRE2 BSD-3 with the PCRE2 exception) — in `src/workers/regex.worker.ts` | regex (the PCRE2 flavour: `docs/WASM-AUDIT.md`, tab 178) |
 | Oniguruma (vscode-oniguruma 2.0.1) | C | Microsoft (`vscode-oniguruma`, MIT; Oniguruma BSD-2) — the build VS Code and Shiki run | regex (the Ruby flavour, with Ruby's rules beside it in `src/lib/regex/ruby.ts`) |
 | Go's regexp (Go 1.24.7's standard library, GOOS=wasip1) | Go | **us** (`wasm/regexgo`, 2.6 MB — §5.1p; `re2-wasm` rejected: `docs/WASM-AUDIT.md`, tab 178) | regex (the Go flavour) |
+| GNU regex (gnulib's regcomp / regexec, from GNU grep 3.12's source; glibc's are the same code) | C | **us** (`wasm/posixre`, 112 KB — §5.1q) | regex (the POSIX ERE flavour) |
 | Biome 2.6.8 (formatter for JS / JSX / TS / TSX, CSS, SCSS, YAML, GraphQL; 70 MB) | Rust | Biome project (official `@biomejs/wasm-web`), run in `src/workers/codefmt.worker.ts` (terminated on leave) | prettier (Code Formatter) |
 | dprint plugins: `@dprint/json` 0.26 and `dprint-plugin-markup` 0.28 (markup_fmt) — the JSON and HTML / Vue engines of `deno fmt` — behind the host `@dprint/formatter` 0.6 (JavaScript, 40 KB) | Rust | dprint project / g-plane (the plugins are published as WebAssembly: that is how dprint runs them) | prettier (Code Formatter) |
 | FFmpeg | C | ffmpeg.wasm project | ffmpeg |
@@ -3033,6 +3039,16 @@ FindAllStringSubmatchIndex, SubexpNames, ReplaceAllString or one Expand, the com
 No encoding/json on purpose (2.6 MB without it, 3.6 MB with it). The same source built natively is the reference of
 the unit suite (`scripts/make-regex-reference.py`). **To update:** a newer Go, build.sh, the reference script, both suites.
 
+### 5.1q posixre → `src/wasm/bin/posix-re.wasm`
+`ZIG=… bash wasm/posixre/build.sh`: `grep_3.12.orig.tar.xz` from the Ubuntu archive (SHA-256 `2649b27c…` from the signed
+`grep_3.12-1.dsc`); compiles its `lib/regex.c` (which includes regcomp.c, regexec.c, regex_internal.c — gnulib's regex,
+the same code as glibc's) and `lib/malloc/dynarray_*.c` with `wasm/posixre/config.h` (GNU's own `config.hin` first —
+its `_GL_ATTRIBUTE_*` blocks —, then what configure would find in wasi-libc; no GNULIB_LOCK: single-threaded) and
+`glue.c`: `px_run(pattern, len, text, len, flags, shown, counted)` — regcomp with REG_EXTENDED (+ REG_ICASE, REG_NEWLINE)
+in the C.UTF-8 locale, the walk of GNU sed's s///g with REG_STARTEND (the text before the start stays visible to \b and
+back-references), JSON of UTF-8 byte offsets in `px_out()`. Stripped, 112 KB. **To update:** a newer grep source in
+build.sh (URL + SHA-256 from its .dsc), the reference script (glibc's regex is the reference), both suites.
+
 ### 5.1e markdown → `src/wasm/bin/markdown.wasm`
 `ZIG=… wasm/markdown/build.sh`: downloads the `cmarkgfm` 2025.10.22 sdist from PyPI (SHA-256 `5bec6100…`), which vendors
 cmark-gfm 0.29.0.gfm.13 (latest upstream) plus its CMake-generated headers (`generated/unix`), and links all of
@@ -3077,6 +3093,7 @@ npm packages (pinned in `package-lock.json`) are bundled by Vite or copied to `p
 | pcre2-wasm 10.49.3 (PCRE2) | MIT (PCRE2: BSD-3-Clause WITH PCRE2-exception) | Regex Tester (PCRE2) |
 | vscode-oniguruma 2.0.1 (Oniguruma) | MIT (Oniguruma: BSD-2-Clause) | Regex Tester (Ruby) |
 | *built in:* Go's standard library (regexp, the runtime) in regex-go.wasm | BSD-3-Clause (the Go licence) | Regex Tester (Go) |
+| *built in:* gnulib's regex (from GNU grep 3.12) in posix-re.wasm | LGPL-2.1-or-later | Regex Tester (POSIX ERE) |
 | libsodium-wrappers-sumo 0.8.4 (+ libsodium-sumo; libsodium 1.0.22 compiled to WebAssembly by its author) | ISC | Sodium Encrypt, Encrypted Share Link, Password Generator, Passphrase Generator |
 | mediabunny | MPL-2.0 | Video Compressor, Audio Recorder (cut without re-encoding) |
 | @mediabunny/aac-encoder 1.66.2 (FFmpeg's AAC encoder in WebAssembly) | MPL-2.0 (FFmpeg's code: LGPL-2.1) | Video Compressor, Slideshow, Screencast, YouTube Clip |

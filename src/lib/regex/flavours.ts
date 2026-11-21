@@ -1,7 +1,7 @@
 // The flavours of the Regex Tester (to-do #8): which engine each one is, its flag letters, its replacement syntax and
 // the note under the result. No DOM: the tab, the worker and the unit suite share it.
 
-export type FlavourId = 'js' | 'pcre2' | 'perl' | 'python' | 'go' | 'ruby';
+export type FlavourId = 'js' | 'pcre2' | 'perl' | 'python' | 'go' | 'ruby' | 'posix';
 export interface Flavour {
   id: FlavourId;
   /** In the flavour list. */
@@ -57,6 +57,12 @@ export const FLAVOURS: Flavour[] = [
     flags: [['i', 'ignore case'], ['m', '. matches a new line (Ruby\'s m)'], ['x', 'spaces and # comments ignored']],
     replace: '\\1 … \\9, \\k<name>, \\0 or \\& (the match), \\` and \\\' (before / after it), \\\\',
     note: 'Oniguruma (vscode-oniguruma, WebAssembly) with Ruby\'s syntax; Ruby itself runs Onigmo, a fork of it, and nearly every pattern behaves the same. In Ruby ^ and $ always match at every line: use \\A and \\z for the whole text.',
+  },
+  {
+    id: 'posix', label: 'POSIX ERE (grep -E, sed -E)', start: '',
+    flags: [['i', 'ignore case'], ['m', '^ and $ at every line; . and [^…] stop at a new line']],
+    replace: '& (the match), \\1 … \\9, \\& and \\\\ for themselves, \\n \\t, \\U … \\E and \\L … \\E change case — as sed\'s s/// reads it',
+    note: 'GNU\'s regex — the engine grep -E and sed -E run on Linux (glibc\'s is the same code) — compiled to WebAssembly from GNU grep 3.12\'s source: the longest of the leftmost matches, [[:alpha:]] classes, back-references, GNU\'s \\w \\s \\b \\< \\>. No look-arounds and no lazy repeats in POSIX.',
   },
 ];
 export const flavour = (id: string): Flavour => FLAVOURS.find((f) => f.id === id) ?? FLAVOURS[0];

@@ -5,7 +5,9 @@
 #   go     — wasm/regexgo built natively with the Go toolchain (the same program the tab runs as WebAssembly);
 #   pcre2  — the system's libpcre2-8 through scripts/regex-ref/pcre2ref.c (cc … -lpcre2-8; apt install libpcre2-dev);
 #   ruby   — Ruby (3.3 here: its Onigmo) — the tab runs Oniguruma, so this is where the two may part;
-#   perl   — the system's perl (5.38 here) running the very script the tab runs (src/lib/regex/perl.ts) in Perl 5.42.
+#   perl   — the system's perl (5.38 here) running the very script the tab runs (src/lib/regex/perl.ts) in Perl 5.42;
+#   posix  — glibc's regcomp / regexec through ctypes (the same GNU code), the walk checked against GNU sed -z -E
+#            marking every match, and GNU sed itself for every replacement.
 # Every answer is written in one form: matches as [UTF-16 index, text, group 1, …] (null for a group that took no part),
 # the group names, the count, the replacement (or why it failed) — or the compile error.
 # Run: python3 scripts/make-regex-reference.py [path to python3.14]
@@ -109,6 +111,23 @@ CASES = {
         C(r'\h+', '', 'a \t b'), C(r'\d', '', 'a1b2c3', '#', all=False), C(r'.', '', 'x' * 1500),
         C(r'\D', '', '1🎉2é3', '_'), C(r'\x{e9}', '', 'café'), C(r'\d', '', 'a1', '@{[ 2 * 21 ]}', note='code inside the replacement, as Perl runs it'),
     ],
+    'posix': [
+        C(r'[0-9]+', '', 'a1 b22 c333', '<&>'),
+        C(r'([a-z]+)@([a-z]+)\.com', '', 'mail ann@example.com or bob@test.com', r'\2 at \1'),
+        C(r'^[a-z]+', 'm', LINES, '#'), C(r'^[a-z]+$', 'm', LINES), C(r'[a-z]+$', '', 'end\n'),
+        C(r'a.b', '', 'a\nb'), C(r'a.b', 'm', 'a\nb'), C(r'[^a]', 'm', 'a\nb'), C(r'$', 'm', 'ab\ncd', '|'),
+        C(r'[[:alpha:]]+', '', UNI), C(r'\w+', '', UNI), C(r'[[:upper:]]+', '', UNI),
+        C(r'x*', '', 'axbxx', '-'), C(r'a|', '', 'baab', '-'), C(r'\b', '', 'ab cd', '|'), C(r'a*', '', 'baaac', '[&]'),
+        C(r'a|ab', '', 'ab', note='POSIX: the longest of the leftmost matches'),
+        C(r'(a|ab)(c|bcd)(d*)', '', 'abcd', note='POSIX: how the groups share the longest match'),
+        C(r'(x)(y)?', '', 'x xy', r'[\1|\2]'), C(r'([a-z])\1', '', 'aabbcd eeff', r'[\1]'),
+        C(r'\<the\>', 'i', 'The theme of the day'), C(r'colou?r', '', 'color colour'),
+        C(r'straße', 'i', 'STRASSE Straße STRAßE'), C(r'([a-z]+)', '', 'hello world', r'\U\1\E!'),
+        C(r'([a-z])([a-z]*)', '', 'hello world', r'\u\1\2'), C(r'o', '', 'foo', r'\&\\'),
+        C(r'[0-9]', '', 'a1b2c3', '#', all=False), C(r'.', '', 'x' * 1500), C(r'[^0-9]', '', '1🎉2é3', '_'),
+        C(r'(', '', 'x'), C(r'[a-', '', 'x'), C(r'a{2,1}', '', 'x'), C(r'a**', '', 'aaa'), C(r'(?:a)', '', 'a'),
+        C(r'x{2,3}', '', 'xxxxxxx'), C(r'[[:digit:]]+\.[[:digit:]]{2}', '', 'Rs 10.50 and 3.999'),
+    ],
     'ruby': [
         C(r'\d+', '', 'a1 b22 c333', r'<\0>'),
         C(r'(\w+)@(\w+)\.com', '', 'mail ann@example.com or bob@test.com', r'\2 at \1'),
@@ -210,6 +229,48 @@ def shape(c, a, unit):
     return r
 
 
+def posix_native(c):
+    """glibc's regcomp / regexec (GNU's regex, the code the module is built from) through ctypes, with the module's walk."""
+    import ctypes
+    libc = ctypes.CDLL('libc.so.6')
+    libc.setlocale(6, b'C.UTF-8')  # LC_ALL
+    preg = ctypes.create_string_buffer(256)
+    cf = 1 | (2 if 'i' in c['flags'] else 0) | (4 if 'm' in c['flags'] else 0)  # REG_EXTENDED, REG_ICASE, REG_NEWLINE
+    rc = libc.regcomp(preg, c['pattern'].encode(), cf)
+    if rc:
+        buf = ctypes.create_string_buffer(256)
+        libc.regerror(rc, preg, buf, 256)
+        return {'error': buf.value.decode()}
+    nsub = ctypes.c_size_t.from_buffer(preg, 48).value  # re_nsub in glibc's struct re_pattern_buffer (x86-64)
+
+    class RM(ctypes.Structure):
+        _fields_ = [('so', ctypes.c_int), ('eo', ctypes.c_int)]
+    M = (RM * (nsub + 1))()
+    t = c['text'].encode()
+    n, pos, prev, ms, total = len(t), 0, -1, [], 0
+    clen = lambda i: next((k for k in (4, 3, 2) if t[i] >= (0xf0, 0xe0, 0xc0)[(4, 3, 2).index(k)]), 1)
+    while pos <= n:
+        M[0].so, M[0].eo = pos, n
+        if libc.regexec(preg, t, nsub + 1, M, 4):  # REG_STARTEND
+            break
+        st, en = M[0].so, M[0].eo
+        if not (st == en and st == prev):
+            if len(ms) < SHOWN:
+                ms.append([x for g in range(nsub + 1) for x in ((M[g].so, M[g].eo) if M[g].so >= 0 else (-1, -1))])
+            total += 1
+        prev = en
+        pos = (en + clen(en) if en < n else en + 1) if st == en else en
+    libc.regfree(preg)
+    return {'names': [''] * nsub, 'total': total, 'matches': ms}
+
+
+def sed(c, rep, every=True):
+    """GNU sed -E, s with \\x01 as the delimiter: the whole text one record (-z), or — for m (REG_NEWLINE) — line by line,
+    which is the same there (sed -z's M makes ^ and $ meet the NUL that ends a record, not a new line)."""
+    script = '\x01'.join(['s', c['pattern'], rep, ('g' if every else '') + ('I' if 'i' in c['flags'] else '')])
+    return subprocess.run(['sed', '-E', script] if 'm' in c['flags'] else ['sed', '-z', '-E', script], input=c['text'].encode(), capture_output=True, check=True).stdout.decode()
+
+
 def main():
     py = sys.argv[1] if len(sys.argv) > 1 else subprocess.run([shutil.which('uv') or os.path.expanduser('~/.local/bin/uv'), 'python', 'find', '3.14'], capture_output=True, text=True).stdout.strip()
     tmp = tempfile.mkdtemp()
@@ -239,6 +300,20 @@ def main():
         if 'version' in a:
             out['engines']['perl'] = a['version']
         out['cases'].setdefault('perl', []).append({**c, 'out': shape(c, a, 'cp')})
+    for c in CASES['posix']:
+        a = posix_native(c)
+        if 'error' not in a and a['total'] <= SHOWN:
+            # the walk is GNU sed's: the matches marked must be what sed marks
+            t, b, marked, last = c['text'], c['text'].encode(), b'', 0
+            for o in a['matches']:
+                marked += b[last:o[0]] + b'\x02' + b[o[0]:o[1]] + b'\x03'
+                last = o[1]
+            marked += b[last:]
+            assert marked.decode() == sed(c, '\x02&\x03'), f"the walk is not sed's for {c['pattern']!r} on {c['text']!r}"
+        if c['rep'] is not None and 'error' not in a:
+            a['replaced'] = sed(c, c['rep'], c['all'])
+        out['engines']['posix'] = 'glibc regex (GNU sed for the replacements)'
+        out['cases'].setdefault('posix', []).append({**c, 'out': shape(c, a, 'u8')})
     lines = '\n'.join(json.dumps({k: c[k] for k in ('pattern', 'flags', 'text', 'rep', 'all')}) for c in CASES['ruby']) + '\n'
     answers = subprocess.run(['ruby', '-e', RUBY], input=lines, capture_output=True, text=True, check=True).stdout.splitlines()
     for c, line in zip(CASES['ruby'], answers):

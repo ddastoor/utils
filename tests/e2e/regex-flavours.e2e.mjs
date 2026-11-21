@@ -22,7 +22,7 @@ export default async (ctx) => {
   const engineNote = () => page.evaluate(() => [...document.querySelectorAll('.tool-body > div .note, .note')].map((n) => n.textContent).find((t) => /engine|PCRE2|CPython|regexp|Oniguruma/.test(t)) || '');
   await pat.waitFor();
 
-  ok(JSON.stringify(await flavourSel.evaluate((s) => [...s.options].map((o) => o.textContent))) === JSON.stringify(['JavaScript (this browser)', 'PCRE2 (PHP, R, grep -P …)', 'Perl 5', 'Python (re)', 'Go (RE2 syntax)', 'Ruby (Oniguruma)']), 'six flavours, JavaScript first');
+  ok(JSON.stringify(await flavourSel.evaluate((s) => [...s.options].map((o) => o.textContent))) === JSON.stringify(['JavaScript (this browser)', 'PCRE2 (PHP, R, grep -P …)', 'Perl 5', 'Python (re)', 'Go (RE2 syntax)', 'Ruby (Oniguruma)', 'POSIX ERE (grep -E, sed -E)']), 'seven flavours, JavaScript first');
   ok(await marksAre(['555-1234', '555-9876']) && !fetched.length, `JavaScript as before, and no engine fetched at open (${fetched.join(', ')})`);
   ok(!(await every.isVisible()), 'JavaScript: its g flag decides, the "Replace every match" switch is not shown');
 
@@ -84,6 +84,15 @@ export default async (ctx) => {
   await set('(a+)+$', '', 'a'.repeat(32) + '!');
   ok(await until(page, () => /^0 matches$/.test(document.querySelector('.card .note')?.textContent || ''), null, 4000), 'Ruby: (a+)+$ answers at once — Oniguruma remembers what it tried, as Ruby 3.2 and later do');
 
+  // ---- POSIX ERE (GNU's regex, as grep -E and sed -E)
+  await flavourSel.selectOption('posix');
+  await set('a|ab', '', 'ab'); ok(await marksAre(['ab']), 'POSIX: the longest of the leftmost matches (every other flavour finds "a")');
+  await set('([a-z]+)', '', 'hello world', '\\U\\1\\E!'); ok(await repIs('HELLO! WORLD!'), "POSIX: sed's \\U … \\E and \\1");
+  await set('o', '', 'foo', '[&]'); ok(await repIs('f[o][o]'), "POSIX: & is the match, as in sed");
+  await set('a*', '', 'baaac', '[&]'); ok(await repIs('[]b[aaa]c[]'), "POSIX: sed's walk — no empty match right after a match");
+  await set('\\<the\\>', 'i', 'The theme of the day'); ok(await marksAre(['The', 'the']), "POSIX: GNU's \\< \\> and i");
+  await set('(?:a)', '', 'a'); ok(await errIs(/Invalid preceding regular expression/), "POSIX: no (?:…) — GNU regex's own words");
+  ok(/GNU regex \(grep 3\.12\)/.test(await engineNote()), 'the note names the engine');
   // ---- back to JavaScript: the flags carry over, g from the switch
   await flags.fill('i'); await flavourSel.selectOption('js');
   ok(await until(page, () => document.querySelector('[aria-label="Flags"]').value === 'gi'), 'to JavaScript: "Replace every match" becomes g, i stays');

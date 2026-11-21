@@ -1412,7 +1412,10 @@ Oniguruma)". Per flavour, the existing modules looked at first (STANDING RULE #1
 - **JavaScript → the browser's RegExp** (as before).
 - **Perl → zeroperl** (Perl 5.42 in WebAssembly, already on the site for the EXIF tab): Perl's own engine; nothing to
   emulate, nothing new to ship. PCRE2 was the alternative — close to Perl, but not Perl.
-Still to come: POSIX ERE (gnulib's regex — the one grep -E runs on Linux — or
-musl's), Python's `regex` module (compiled into our CPython), Java and .NET (to decide: no existing WebAssembly build
+- **POSIX ERE → our own build of GNU's regex** (gnulib's, from GNU grep 3.12's source; the engine grep -E and sed -E
+  run on Linux). No existing WebAssembly build of it was found; musl's (TRE, in wasi-libc) was the alternative —
+  POSIX, but not what Linux's tools do (GNU's \w \s \b \< \> and its error words). Held to glibc's own regcomp /
+  regexec and to GNU sed: 36 cases, all equal.
+Still to come: Python's `regex` module (compiled into our CPython), Java and .NET (to decide: no existing WebAssembly build
 of their engines).
 
