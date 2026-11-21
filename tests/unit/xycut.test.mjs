@@ -55,6 +55,18 @@ export default async (t, { load, wasm }) => {
   t.eq(tc.xycut(fig, 8, 2, 150).part, Array(13).fill(0), 'the same boxes without the figure marked heavy: one side counts, no parts');
   const panels = [[50, 100, 280, 250], [320, 100, 550, 250]];
   t.eq(tc.xycut(panels, 8, 2, 150, [true, true]).part, [1, 2], 'two figures side by side: two parts');
+  // a head over the columns: an epigraph at the top of the right-hand column, above where the left-hand one begins
+  // (test_2, 21 Nov 2026) is read before the columns with hd, inside the right-hand column without it
+  const epi = [[400, 82, 573, 90], [500, 100, 573, 107], ...lines(42, 298, 126, 8), ...lines(317, 573, 127, 8)];
+  const re = tc.xycut(epi, 4, 2, 80, undefined, 8);
+  t.eq(re.order.slice(0, 3), [0, 1, 2], 'epigraph first, then the left-hand column');
+  t.eq(re.order.slice(10), [10, 11, 12, 13, 14, 15, 16, 17], 'then the right-hand column, without the epigraph');
+  t.eq([re.part[0], re.part[1], re.part[2], re.part[10]], [0, 0, 1, 2], 'the epigraph is outside the parts; the columns are parts 1 and 2');
+  t.eq(tc.xycut(epi, 4, 2, 80).order.slice(0, 2), [2, 3], 'without hd the left-hand column comes first (the epigraph inside the right-hand one)');
+  const near = [[317, 120, 573, 125], ...lines(42, 298, 126, 8), ...lines(317, 573, 131, 8)];
+  t.eq(tc.xycut(near, 4, 2, 80, undefined, 8).order.slice(0, 2), [1, 2], 'columns that start less than hd apart: no head');
+  const note = [[20, 60, 30, 70], ...lines(42, 298, 126, 8)];
+  t.eq(tc.xycut(note, 4, 2, 80, undefined, 8).order.length, 9, 'a margin note beside one column is no head');
   // ink regions: a drawn box and a "text" area that is skipped
   const W = 200, H = 200, data = new Uint8ClampedArray(W * H * 4).fill(255);
   const fill = (x0, y0, x1, y1) => { for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) { const i = (y * W + x) * 4; data[i] = data[i + 1] = data[i + 2] = 0; } };

@@ -12,7 +12,12 @@
  * it (or, at the right end, the one before). What lies outside every part is 0 (the full-width flow above, between
  * and below). heavy may be NULL.
  * out_order: n box indices in reading order; out_col: column per output position (0 = full width); out_part: part per
- * output position (0 = outside the parts; out_part may be NULL). Returns n. */
+ * output position (0 = outside the parts; out_part may be NULL). Returns n.
+ * A head over the columns (hd > 0): where a region splits into two real columns or more and the boxes at the top of one
+ * of them end at least `hd` above the top of every other column, with a gap of at least gy under them across the whole
+ * region (an epigraph or a quotation set above the start of the right-hand column), the region is cut across that gap
+ * first: the head is read before the columns — read inside the right-hand column it cut a sentence that runs on there
+ * from the left-hand one (test_2, 21 Nov 2026). */
 #include <stdint.h>
 #include <stdlib.h>
 #define API __attribute__((visibility("default")))
@@ -28,7 +33,7 @@ static int by_y(const void *a, const void *b) {
 
 static int *g_order, *g_col, *g_part, g_k, g_parts;
 static const int32_t *g_heavy;
-static float g_minh;
+static float g_minh, g_hd;
 /* a part of a vertical split that reads as a column of its own */
 static int real_column(const int *idx, int n) {
     if (g_minh <= 0) return 1;
@@ -56,6 +61,27 @@ static void cut(int *idx, int n, float gx, float gy, int col, int part, int dept
         int *at = malloc(sizeof(int) * (nv + 2)), np = 0; at[np++] = 0; maxx = B[idx[0]].x1;
         for (int i = 1; i < n; i++) { if (B[idx[i]].x0 - maxx >= gx) at[np++] = i; if (B[idx[i]].x1 > maxx) maxx = B[idx[i]].x1; }
         at[np] = n;
+        /* a head over the columns (see the top): only between real columns — a margin note's side is no column */
+        if (g_hd > 0) {
+            int nreal = 0; float top_hi = -1e30f;
+            for (int p = 0; p < np; p++) {
+                if (!real_column(idx + at[p], at[p + 1] - at[p])) continue;
+                nreal++; float t = 1e30f;
+                for (int i = at[p]; i < at[p + 1]; i++) if (B[idx[i]].y0 < t) t = B[idx[i]].y0;
+                if (t > top_hi) top_hi = t;
+            }
+            int nh = 0; float hb = -1e30f, rt = 1e30f;
+            if (nreal >= 2) for (int i = 0; i < n; i++) { const Box *b = &B[idx[i]]; if (b->y1 <= top_hi - g_hd) { nh++; if (b->y1 > hb) hb = b->y1; } else if (b->y0 < rt) rt = b->y0; }
+            if (nh > 0 && nh < n && nh <= n / 4 + 1 && rt - hb >= gy) {
+                int *head = malloc(sizeof(int) * nh), *rest = malloc(sizeof(int) * (n - nh)), a = 0, r = 0;
+                for (int i = 0; i < n; i++) { if (B[idx[i]].y1 <= top_hi - g_hd) head[a++] = idx[i]; else rest[r++] = idx[i]; }
+                free(at);
+                cut(head, nh, gx, gy, col, part, depth + 1);
+                cut(rest, n - nh, gx, gy, col, part, depth + 1);
+                free(head); free(rest);
+                return;
+            }
+        }
         /* outside any column: number the real columns 1, 2, … when there are at least two of them; the other parts
            (a margin note beside the columns) and a split without two real columns stay outside (0), and a split
            further down may still find the columns */
@@ -89,9 +115,9 @@ static void cut(int *idx, int n, float gx, float gy, int col, int part, int dept
     free(rest);
 }
 
-API int t_xycut(const float *boxes, const int32_t *heavy, int n, float gx, float gy, float minh, int32_t *out_order, int32_t *out_col, int32_t *out_part) {
+API int t_xycut(const float *boxes, const int32_t *heavy, int n, float gx, float gy, float minh, float hd, int32_t *out_order, int32_t *out_col, int32_t *out_part) {
     if (n <= 0) return 0;
-    B = (const Box *)boxes; g_heavy = heavy; g_order = out_order; g_col = out_col; g_part = out_part; g_k = 0; g_parts = 0; g_minh = minh;
+    B = (const Box *)boxes; g_heavy = heavy; g_order = out_order; g_col = out_col; g_part = out_part; g_k = 0; g_parts = 0; g_minh = minh; g_hd = hd;
     int *idx = malloc(sizeof(int) * n);
     for (int i = 0; i < n; i++) idx[i] = i;
     cut(idx, n, gx, gy, 0, 0, 0);

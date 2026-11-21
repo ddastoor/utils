@@ -80,15 +80,19 @@ export default async (t, { load, wasm }) => {
   check(fr, 'Federal Register');
   const frKeep = await convert(open(readFileSync(P('federal-register-3p.pdf'))), { removeHeaders: false, pages: [1] });
   t.ok(/<p class="margin">jbell on DSKJLSW7X2PROD with PROPOSALS<\/p>\s*<\/section>/.test(frKeep.pages[0]) && frKeep.report[0].columns === 3, 'with running headers kept: the stamp is a note at the end of the page, the columns are still three');
+  // a scanned book with an OCR text layer (pypdf's Vicksburg sample): every page stays its picture and the OCR text is not
+  // used (owner, 21 Nov 2026: "maintain original images as images … Don't do OCR of any sort")
   const vb = await convert(open(readFileSync(P('vicksburg-ocr.pdf'))));
-  const ov = order(vb, REF['vicksburg-ocr.pdf']);
-  t.ok(ov.inOrder > 0.95 && ov.found > 0.85, `OCR'd scan: ${(100 * ov.inOrder).toFixed(1)} % in poppler's order, ${(100 * ov.found).toFixed(1)} % found`);
+  t.ok(vb.report.length === 6 && vb.report.every((r) => r.how === 'image' && r.note === 'scanned page — kept as its picture'), `OCR'd scan: every page kept as its picture (${JSON.stringify(vb.report.map((r) => [r.how, r.note]))})`);
+  t.ok(vb.pages.every((p) => (p.match(/<img /g) || []).length === 1 && /alt="page"/.test(p)), 'each scanned page is one picture of the whole page');
+  t.ok(!/vicksburg|dangerous|quarters|siege/i.test(vb.pages.map(vb.plain).join(' ')), 'no word of the OCR layer is in the book');
+  t.ok(vb.drawn.length === 6 && vb.drawn.every((d) => d.w === 1236), `the pictures are as wide as the screen (${JSON.stringify(vb.drawn.map((d) => d.w))})`);
 
   // ── generated PDFs ──────────────────────────────────────────────────────────────────────────────────────────────
   // pages: { box, rotate, content, fonts }; F1 Helvetica, F2 Helvetica-Bold
   const mk = (pages, also) => {
     const d = new m.PDFDocument(), F1 = d.addSimpleFont(new m.Font('Helvetica')), F2 = d.addSimpleFont(new m.Font('Helvetica-Bold'));
-    for (const p of pages) d.insertPage(-1, d.addPage(p.box || [0, 0, 612, 792], p.rotate || 0, d.addObject({ Font: { F1, F2, ...(p.fonts?.(d) || {}) } }), p.content));
+    for (const p of pages) d.insertPage(-1, d.addPage(p.box || [0, 0, 612, 792], p.rotate || 0, d.addObject({ Font: { F1, F2, ...(p.fonts?.(d) || {}) }, ...(p.res?.(d) || {}) }), p.content));
     also?.(d);
     return open(d.saveToBuffer('compress').asUint8Array());
   };
@@ -130,6 +134,40 @@ export default async (t, { load, wasm }) => {
   t.ok(em.drawn.length === 1 && !/A short readable line/.test(em.pages[0]), 'a column that is mostly unreadable: one picture of the whole column');
   check(ef, 'formula picture');
 
+  // ── the owner's PDFs of 21 Nov 2026, in small: what made them come out badly ───────────────────────────────────────
+  // raised and lowered marks (a text rise MuPDF's origin does not show): <sup> / <sub>, no space before them
+  const scr = await convert(mk([{ content: ['BT /F1 11 Tf 72 700 Td (Energy is E = mc) Tj /F1 7 Tf 4 Ts (2) Tj 0 Ts /F1 11 Tf ( and water is H) Tj /F1 7 Tf -3 Ts (2) Tj 0 Ts /F1 11 Tf (O, see the note) Tj /F1 7 Tf 4 Ts (1) Tj 0 Ts /F1 11 Tf (.) Tj ET', para(72, 680, filler(2))].join('\n') }]));
+  t.ok(/E = mc<sup>2<\/sup> and water is H<sub>2<\/sub>O, see the note<sup>1<\/sup>\./.test(scr.pages[0]), `raised and lowered marks: <sup> / <sub> in their line (${(scr.pages[0].match(/Energy[^\n]*/) || [''])[0].slice(0, 160)})`);
+  // a formula in a font without a Unicode map inside a sentence: a small picture in the line, sized in em, no U+FFFD
+  const inl = await convert(mk([{ fonts: fffd, content: [para(72, 720, filler(2)), 'BT /F1 11 Tf 72 680 Td (The first paper on ) Tj /F3 11 Tf (ABAB) Tj /F1 11 Tf ( was published in 1905 and is still read.) Tj ET', para(72, 666, ['by many people who study the history of physics.'])].join('\n') }]));
+  t.ok(/The first paper on <img src="images\/i0001\.jpg" class="m" alt="formula" style="height:[\d.]+em;width:[\d.]+em;vertical-align:-[\d.]+em"\/> was published in 1905/.test(inl.pages[0]) && !/\uFFFD/.test(inl.pages[0]), 'a formula without text inside a sentence: a picture in the line, the sentence goes on');
+  t.ok(inl.drawn.length === 1 && inl.drawn[0].h < 4 * 1236 / 22 && inl.drawn[0].dark > 20, `… drawn once, at a line's height (${JSON.stringify(inl.drawn)})`);
+  // a display equation and its number: one picture, the number as text beside it
+  const disp = await convert(mk([{ fonts: fffd, content: [para(72, 720, filler(3)), para(220, 660, ['ABBA = BAAB'], 'F3', 12), para(520, 660, ['(3)']), para(72, 620, filler(3).map((l) => l.replace(/w/g, 'v')))].join('\n') }]));
+  t.ok(/w0x0[\s\S]*<div class="fig"><img src="[^"]+" alt="equation" style="width:[\d.]+em;max-width:100%;height:auto"\/><\/div>\s*<p class="eqno">\(3\)<\/p>[\s\S]*v0x0/.test(disp.pages[0]) && disp.report[0].equations === 1, 'a numbered equation: one picture sized in em, then its number, between the paragraphs');
+  // a table drawn with rules as Word does (thin filled rectangles), its caption above: one picture, the caption text
+  const rowsT = [['Phase', 'a', 'c', 'Reference'], ['TcB2', '2.917', '3.325', 'This work'], ['Tc2B', '5.451', '4.585', 'Tao et al.'], ['Tc3B', '2.737', '6.543', 'This work']], xsT = [80, 180, 260, 340];
+  const tbl = await convert(mk([{ content: [para(72, 720, ['Table 1. Values compared with the literature.']), '0 g 72 700 360 0.8 re f', ...rowsT.map((r, i) => r.map((c, j) => `BT /F1 10 Tf ${xsT[j]} ${686 - i * 16 - (i ? 6 : 0)} Td (${c}) Tj ET`).join('\n')), '0 g 72 676 360 0.5 re f', '0 g 72 620 360 0.8 re f', para(72, 590, filler(2))].join('\n') }]));
+  t.ok(tbl.report[0].tables === 1 && /<p>Table 1\. Values compared with the literature\.<\/p>\s*<div class="fig tbl"><img [^>]*alt="table"/.test(tbl.pages[0]) && !/Tao et al\.|5\.451/.test(tbl.plain(tbl.pages[0])) && /w0x0/.test(tbl.pages[0]), `a ruled table: one picture, its cells not in the text, the caption and the text after it kept (${JSON.stringify(tbl.report[0])})`);
+  const tblFoot = await convert(mk([{ content: ['0 g 72 700 360 0.8 re f', ...rowsT.map((r, i) => r.map((c, j) => `BT /F1 10 Tf ${xsT[j]} ${686 - i * 16 - (i ? 6 : 0)} Td (${c}) Tj ET`).join('\n')), '0 g 72 676 360 0.5 re f'].join('\n') }]));
+  t.ok(tblFoot.report[0].tables === 1 && !/Tao et al\./.test(tblFoot.plain(tblFoot.pages[0])), 'a table without its bottom rule (it goes on on the next page): its rows below the last rule are in it');
+  // equations side by side in two columns with their numbers: each in its own part, each with its own number
+  const colT = (x, tag, y, n) => para(x, y, Array.from({ length: n }, (_, i) => `${tag}${i} word${i}a word${i}b word${i}c word${i}d`), 'F1', 10, 13);
+  const two = await convert(mk([{ fonts: fffd, content: [colT(72, 'left', 720, 8), colT(320, 'right', 720, 8), para(120, 600, ['ABBA'], 'F3', 11), para(262, 600, ['(1)'], 'F1', 10), para(370, 600, ['BAAB'], 'F3', 11), para(520, 600, ['(2)'], 'F1', 10), colT(72, 'leftafter', 570, 6), colT(320, 'rightafter', 570, 6)].join('\n') }]));
+  t.ok(/Page 1, part 1<\/h4>[\s\S]*left7[\s\S]*alt="equation"[\s\S]*<p class="eqno">\(1\)<\/p>[\s\S]*leftafter0[\s\S]*Page 1, part 2<\/h4>[\s\S]*right7[\s\S]*alt="equation"[\s\S]*<p class="eqno">\(2\)<\/p>[\s\S]*rightafter0/.test(two.pages[0]), 'equations side by side in two columns: each column a part, each equation with its own number (the number in the other column is not taken)');
+  t.ok(two.drawn.length === 2 && two.drawn.every((d) => d.w < 0.5 * 1236 * 3), `… two pictures, neither across both columns (${two.drawn.map((d) => d.w).join(', ')})`);
+  // a footnote's rule: a short rule with a note under it
+  const fnr = await convert(mk([{ content: [para(72, 720, filler(8)), '0 g 72 140 110 0.5 re f', para(72, 128, ['1 A footnote that explains a word in the text above.'], 'F1', 8, 10)].join('\n') }]));
+  t.ok(/<hr class="fn"\/>\s*<p>1 A footnote that explains/.test(fnr.pages[0]) && fnr.drawn.length === 0, 'a footnote\'s rule: a rule in the EPUB, not a picture');
+  // a logo in the running footer of every page (beside the footer text): left out with it
+  const logo = await convert(mk([1, 2, 3].map((k) => ({ content: [para(72, 720, filler(6)), '0 g 72 40 40 22 re f', para(120, 46, [`Volume 13 | Issue 1 | January 2016   ${k}`], 'F1', 9)].join('\n') }))));
+  t.ok(logo.drawn.length === 0 && !/Volume 13/.test(logo.pages.join('')), `a logo in the running footer is left out with the footer (${logo.drawn.length} pictures)`);
+  // TeX's accents and slashed signs put together again; code keeps its backticks
+  t.eq(E.fixTeX('Gr\u00A8obner'), 'Gr\u00F6bner', 'TeX: "¨" before "o" is ö (Gröbner)');
+  t.eq(E.fixTeX('a\u0338 = 0, x \u0338\u2208 A'), 'a \u2260 0, x \u2209 A', 'TeX: a slash over = and ∈ is ≠ and ∉');
+  t.eq(E.fixTeX('Curac\u00B8ao'), 'Cura\u00E7ao', 'TeX: a cedilla after its letter (Curaçao)');
+  t.eq(E.fixTeX('`code`', true), '`code`', 'monospace text keeps its backticks');
+
   // bookmarks: the contents (nested; a bookmark of a page left out goes to the next page that is in)
   const marked = mk([1, 2, 3].map((k) => ({ content: para(72, 720, [`Chapter page ${k}`, ...filler(3)]) })), (d) => {
     const it = d.outlineIterator(), uri = (page) => d.formatLinkURI({ type: 'Fit', page });
@@ -168,6 +206,20 @@ export default async (t, { load, wasm }) => {
   const offset = mk([{ box: [100, 100, 712, 892], content: [para(172, 820, filler(4)), '0 g 200 300 300 200 re f', para(172, 250, filler(4))].join('\n') }]);
   const ex = await convert(offset);
   t.ok(ex.report[0].figures === 1 && ex.drawn.length === 1 && ex.drawn[0].dark > 0.6 * ex.drawn[0].w * ex.drawn[0].h, `a page whose MediaBox starts at 100, 100: the drawn box is the figure (${JSON.stringify(ex.drawn)})`);
+
+  // pictures stay pictures (owner, 21 Nov 2026: "If in the original PDF it's an image, preserve it as an image"): a photo
+  // filling the page with a caption on it is kept (it was left out as if it were a scan); a picture behind a whole page of
+  // visible text (a slide's background) is no figure; a scan under invisible OCR text (3 Tr) is the page's picture
+  const picture = (light) => (d) => { const px = new m.Pixmap(m.ColorSpace.DeviceRGB, [0, 0, 120, 160], false); const b = px.getPixels(); for (let i = 0; i < b.length; i += 3) { const k = i / 3, x = k % 120, y = Math.floor(k / 120); b[i] = light ? 236 + (x % 16) : (x * 2) & 255; b[i + 1] = light ? 236 + (y % 16) : (y * 3) & 255; b[i + 2] = light ? 240 : 90; } return { XObject: { Im0: d.addImage(new m.Image(px)) } }; };
+  const photo = picture(false);
+  const capt = await convert(mk([{ res: photo, content: ['q 612 0 0 792 0 0 cm /Im0 Do Q', para(72, 40, ['Harbour at dawn, 1921.'])].join('\n') }]));
+  t.ok(capt.drawn.length === 1 && capt.drawn[0].h > 1.2 * capt.drawn[0].w && capt.drawn[0].dark > 0.3 * capt.drawn[0].w * capt.drawn[0].h, `a photo filling the page, with a caption on it: kept as a picture (${JSON.stringify(capt.report[0])}, ${JSON.stringify(capt.drawn)})`);
+  const slide = await convert(mk([{ res: picture(true), content: ['q 612 0 0 792 0 0 cm /Im0 Do Q', para(72, 700, filler(8))].join('\n') }]));
+  t.ok(slide.report[0].figures === 0 && /w0x0 w0x1/.test(slide.pages[0]), `a light picture behind a page of visible text (a slide's background): no figure, the text reflowed (${JSON.stringify(slide.report[0])})`);
+  const ocr = await convert(mk([{ res: photo, content: ['q 612 0 0 792 0 0 cm /Im0 Do Q', 'BT 3 Tr /F1 11 Tf 72 700 Td (Hidden words of an OCR layer read here) Tj 0 -14 Td (and more of them on the next line) Tj ET'].join('\n') }]));
+  t.ok(ocr.report[0].how === 'image' && ocr.report[0].note === 'scanned page — kept as its picture' && !/Hidden|OCR/.test(ocr.plain(ocr.pages[0])), `a scan under invisible text: the page's picture, the OCR text not used (${JSON.stringify(ocr.report[0])})`);
+  const shownText = await convert(mk([{ content: ['BT 3 Tr /F1 11 Tf 72 700 Td (A word set invisible) Tj ET', para(72, 650, filler(4))].join('\n') }]));
+  t.ok(shownText.report[0].how !== 'image', 'invisible text on a page without a picture is no scan');
 
   // an image-only page: a picture as wide as the screen; a page 200 inches high stays within 32 megapixels
   const scan = mk([{ content: '0.5 g 0 0 612 792 re f' }]);

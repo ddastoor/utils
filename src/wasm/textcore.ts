@@ -39,15 +39,16 @@ export function bindTextcore(e: any) {
     /** XY-cut reading order of boxes [x0, y0, x1, y1] (y down): vertical gutters of at least `gx`, horizontal gaps of at
      *  least `gy`; a part of a split counts as a column when it holds three boxes and is `minh` high (0: every part).
      *  `heavy[i]` marks a figure or a table: a side of a split that holds one is a part of its own (see xycut.c).
+     *  `hd` > 0: a head set above the start of the other columns (an epigraph) is read before the columns (see xycut.c).
      *  Returns { order, col, part } per position in reading order (col 0 = outside the columns, part 0 = outside the
      *  parts: the page's full-width flow). */
-    xycut(boxes: number[][], gx = 8, gy = 3, minh = 0, heavy?: boolean[]): { order: number[]; col: number[]; part: number[] } {
+    xycut(boxes: number[][], gx = 8, gy = 3, minh = 0, heavy?: boolean[], hd = 0): { order: number[]; col: number[]; part: number[] } {
       const n = boxes.length; if (!n) return { order: [], col: [], part: [] };
       const bp = e.t_malloc(n * 16), hp = e.t_malloc(n * 4), op = e.t_malloc(n * 4), cp = e.t_malloc(n * 4), pp = e.t_malloc(n * 4);
       try {
         new Float32Array(e.memory.buffer, bp, n * 4).set(boxes.flat());
         new Int32Array(e.memory.buffer, hp, n).set(Array.from({ length: n }, (_, i) => (heavy?.[i] ? 1 : 0)));
-        const k = e.t_xycut(bp, hp, n, gx, gy, minh, op, cp, pp);
+        const k = e.t_xycut(bp, hp, n, gx, gy, minh, hd, op, cp, pp);
         const at = (p: number) => Array.from(new Int32Array(e.memory.buffer, p, k));
         return { order: at(op), col: at(cp), part: at(pp) };
       } finally { e.t_free(bp); e.t_free(hp); e.t_free(op); e.t_free(cp); e.t_free(pp); }
