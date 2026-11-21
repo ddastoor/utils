@@ -146,7 +146,7 @@ export async function hardWords(text: string, o: { max?: number; online?: boolea
   let i = 0, budget = o.online === false ? 0 : MAX_ONLINE;
   while (res.cards.length < max && i < cands.length) {
     // look up the next window in parallel, then take results in rank order
-    const win = cands.slice(i, i + Math.max(6, max - res.cards.length + 4)); i += win.length;
+    const win = cands.slice(i, i + Math.min(40, Math.max(6, max - res.cards.length + 4))); i += win.length; // every word (max: Infinity) in windows of 40
     const out = await Promise.all(win.map((c) => resolve(c, tc, false)));
     // words the bundle lacks go online, rarest first, at most MAX_ONLINE per page
     const need = out.map((r, k) => (r.skip === 'missing' ? k : -1)).filter((k) => k >= 0).slice(0, Math.max(0, budget));

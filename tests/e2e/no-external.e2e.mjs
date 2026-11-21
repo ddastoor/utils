@@ -9,7 +9,7 @@ export default async ({ base, page: newPage, ok, devices }) => {
   const routes = ['', ...['all', 'fav', ...CATEGORIES.map((c) => c.id)].map((c) => `c/${c}`), ...TOOLS.map((t) => t.id)];
   const SHARDS = 6;
   // approved data APIs (CLAUDE.md §3a) are the only other hosts the CSP lets scripts contact; code stays 'self'
-  const APPROVED = ['https://en.wiktionary.org', 'https://api.dictionaryapi.dev'];
+  const APPROVED = ['https://en.wiktionary.org', 'https://api.dictionaryapi.dev', 'https://en.wikipedia.org']; // the Photo Dictionary's data APIs (CLAUDE.md §3a)
   const pol = await (async () => { const p = await newPage(); await p.goto(base); const c = await p.locator('meta[http-equiv="Content-Security-Policy"]').getAttribute('content'); await p.close(); return Object.fromEntries(c.split(';').map((d) => d.trim().split(/\s+/)).map(([k, ...v]) => [k, v])); })();
   const hosts = (pol['connect-src'] || []).filter((v) => /^https?:/.test(v));
   ok(hosts.length === APPROVED.length && hosts.every((h) => APPROVED.includes(h)), `CSP connect-src allows only the approved data APIs (${hosts.join(' ')})`);

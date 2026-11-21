@@ -1,5 +1,7 @@
 // Photo Dictionary (#/photodict, PC + mobile — owner, 21 Nov 2026; it was mobile only): a photographed book page (tests/fixtures/images/book-page.jpg, made by
-// scripts/make-page-photo.mjs) → OCR → the hardest words, rarest first, with Wiktionary meanings from the bundle.
+// scripts/make-page-photo.mjs) → OCR → every uncommon word, rarest first, with Wiktionary meanings from the bundle and a
+// Wikipedia summary under each (the upgrade of 21 Nov 2026: also the page's text first, a selected phrase looked up on
+// Wikipedia, words broken over two lines put together).
 // Online fallback is mocked with responses in the real APIs' formats (the sandbox and CI never reach them):
 // snollygoster → Wiktionary REST, mumpsimus → Wiktionary 404 then Free Dictionary API, quidnunc → nowhere (Not found).
 import { readFileSync } from 'node:fs';
@@ -21,7 +23,24 @@ const FREEDICT = {
     { definition: 'A person who obstinately adheres to old customs or ideas, in spite of evidence that they are unreasonable.', example: 'He is a mumpsimus about spelling.' }] }] }],
 };
 
-async function mockApis(page, log, mode = 'ok') {
+// Wikipedia's page summaries (REST API, the format of en.wikipedia.org): an article, a page of several meanings, none
+const WIKI = {
+  Sesquipedalian: { type: 'standard', title: 'Sesquipedalianism', extract: 'Sesquipedalianism is a linguistic style that involves the use of long words. <b>Not HTML</b> is shown as text.', content_urls: { desktop: { page: 'https://en.wikipedia.org/wiki/Sesquipedalianism' } } },
+  Quixotic: { type: 'disambiguation', title: 'Quixotic', extract: 'Quixotic may refer to:', content_urls: { desktop: { page: 'https://en.wikipedia.org/wiki/Quixotic' } } },
+  Courtier: { type: 'standard', title: 'Courtier', extract: 'A courtier is a person who attends the royal court of a monarch or other royalty. The earliest historical examples of courtiers were part of the retinues of rulers. Historically the court was the centre of government as well as the official residence of the monarch. '.repeat(3), content_urls: { desktop: { page: 'https://en.wikipedia.org/wiki/Courtier' } } },
+  'The_scriptorium': { type: 'standard', title: 'Scriptorium', extract: 'A scriptorium is a writing room of medieval European monasteries for the copying and illuminating of manuscripts.', content_urls: { desktop: { page: 'https://en.wikipedia.org/wiki/Scriptorium' } } },
+};
+async function mockWiki(page, log, mode = { now: 'ok' }) {
+  await page.route('https://en.wikipedia.org/**', (route) => {
+    const u = route.request().url(); log.push(u);
+    if (mode.now === 'down') return route.abort('internetdisconnected');
+    const t = decodeURIComponent(u.split('/').pop().split('?')[0]), key = t.charAt(0).toUpperCase() + t.slice(1);
+    const body = WIKI[key] || WIKI[t];
+    return route.fulfill({ status: body ? 200 : 404, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: JSON.stringify(body || { type: 'https://mediawiki.org/wiki/HyperSwitch/errors/not_found', title: 'Not found.' }) });
+  });
+}
+async function mockApis(page, log, mode = 'ok', wikiLog = []) {
+  await mockWiki(page, wikiLog, { now: mode });
   const json = (route, status, body) => route.fulfill({ status, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: JSON.stringify(body) });
   await page.route('https://en.wiktionary.org/**', (route) => {
     const u = route.request().url(); log.push(u);
@@ -38,12 +57,12 @@ async function mockApis(page, log, mode = 'ok') {
   await page.route('https://evil.example/**', (route) => { log.push(route.request().url()); return route.abort(); });
 }
 const cardWords = (page) => page.locator('.pd-list .pd-card').evaluateAll((els) => els.map((e) => e.dataset.word));
-const waitDone = (page) => page.waitForFunction((sel) => /hardest word|No hard words|No text found|went wrong/.test(document.querySelector(sel)?.textContent || ''), STATUS, { timeout: 180000 });
+const waitDone = (page) => page.waitForFunction((sel) => /uncommon word|No uncommon words|No text found|went wrong/.test(document.querySelector(sel)?.textContent || ''), STATUS, { timeout: 180000 });
 
 export default async ({ base, page: newPage, ok, info, devices }) => {
   const phone = { ...devices['iPhone 13'] };
-  const page = await newPage(phone), log = [];
-  await mockApis(page, log);
+  const page = await newPage(phone), log = [], wlog = [];
+  await mockApis(page, log, 'ok', wlog);
   await page.goto(base + '#/photodict');
   await page.getByRole('button', { name: 'Use camera' }).waitFor();
   ok(await page.getByRole('button', { name: 'Use camera' }).isVisible(), 'phone: camera button shown');
@@ -54,8 +73,10 @@ export default async ({ base, page: newPage, ok, info, devices }) => {
   info(st);
   const words = await cardWords(page);
   info(`cards: ${words.join(', ')}`);
-  ok(/^\d+ hardest words?, rarest first/.test(st), `status reports the result: "${st}"`);
-  ok(words.length === 20, `20 words shown (${words.length})`);
+  ok(/^\d+ uncommon words?, rarest first/.test(st), `status reports the result: "${st}"`);
+  // every uncommon word of the page, not a fixed 20 (owner, 21 Nov 2026)
+  const said = +/^(\d+)/.exec(st)[1];
+  ok(words.length === said && words.length > 20 && new Set(words).size === words.length, `every uncommon word is listed, each once: ${words.length} (it was cut at 20)`);
   const missing = RARE.filter((w) => !words.includes(w));
   ok(!missing.length, `all ${RARE.length} rare words of the page are in the list${missing.length ? ` — missing ${missing.join(', ')}` : ''}`);
   ok(!words.some((w) => ['the', 'and', 'of', 'a', 'she', 'went', 'home', 'town'].includes(w)), 'common words left out');
@@ -102,8 +123,56 @@ export default async ({ base, page: newPage, ok, info, devices }) => {
     ok(await many.locator('.pd-senses li').count() > before, '"More meanings" shows all senses');
   } else ok(true, 'no card needed "More meanings"');
 
+  // the Wikipedia box under a meaning: loaded as its card comes near the screen; plain text with its link; a page of
+  // several meanings, no article
+  const box = (w) => page.locator(`.pd-list .pd-card[data-word="${w}"] .pd-wiki`);
+  await page.locator('.pd-card[data-word="sesquipedalian"]').scrollIntoViewIfNeeded();
+  await box('sesquipedalian').getByText('Read on Wikipedia ↗').waitFor({ timeout: 10000 });
+  ok(/Sesquipedalianism — Sesquipedalianism is a linguistic style/.test(await box('sesquipedalian').innerText()) && (await box('sesquipedalian').innerHTML()).includes('&lt;b&gt;Not HTML&lt;/b&gt;'), 'a Wikipedia summary under the meaning, as plain text (HTML in it stays text)');
+  ok(await box('sesquipedalian').getByRole('link').getAttribute('href') === 'https://en.wikipedia.org/wiki/Sesquipedalianism', 'its link opens the article');
+  await page.locator('.pd-card[data-word="quixotic"]').scrollIntoViewIfNeeded();
+  await box('quixotic').getByText(/several meanings/).waitFor({ timeout: 10000 });
+  ok(/“Quixotic” has several meanings on Wikipedia/.test(await box('quixotic').innerText()), 'a page of several meanings: said, with its link');
+  await page.locator('.pd-card[data-word="courtier"]').scrollIntoViewIfNeeded();
+  await box('courtier').getByText('Read on Wikipedia ↗').waitFor({ timeout: 10000 });
+  ok((await box('courtier').innerText()).length < 600, `a long article: a few sentences of it (${(await box('courtier').innerText()).length} characters)`);
+  await page.locator('.pd-card[data-word="punctilious"]').scrollIntoViewIfNeeded();
+  await box('punctilious').getByText(/No Wikipedia article/).waitFor({ timeout: 10000 });
+  ok(true, 'no article: said');
+  const wsent = wlog.map((u) => decodeURIComponent(u.split('/').pop().split('?')[0]));
+  ok(wlog.every((u) => /^https:\/\/en\.wikipedia\.org\/api\/rest_v1\/page\/summary\/[^/?#]+\?redirect=true$/.test(u)) && wsent.every((w) => /^[\p{L}'_-]+$/u.test(w)), `Wikipedia gets one word per request, at the summary endpoint (${wlog.length})`);
+  ok(wlog.length < words.length, `the boxes load as their cards come near the screen: ${wlog.length} of ${words.length} so far`);
+  await page.locator('.pd-list .pd-card').last().scrollIntoViewIfNeeded();
+  await page.waitForTimeout(800);
+  for (const c of await page.locator('.pd-list .pd-card').all()) await c.scrollIntoViewIfNeeded();
+  await page.waitForFunction((n) => document.querySelectorAll('.pd-list .pd-wiki .pd-wiki-body:not(.muted), .pd-list .pd-wiki .pd-wiki-body').length >= n, words.length, { timeout: 20000 });
+  ok(new Set(wlog.map((u) => u.toLowerCase())).size === words.length, `… and every card's box once scrolled to (${new Set(wlog).size} requests for ${words.length} cards)`);
+
+  // the page's text comes first, its words broken over two lines put together ("lugu-" + "brious" in the photo)
+  const text = page.locator('.pd-text');
+  ok(await page.evaluate(() => { const t = document.querySelector('.pd-text'), l = document.querySelector('.pd-list'); return !!(t && l && t.compareDocumentPosition(l) & Node.DOCUMENT_POSITION_FOLLOWING); }), 'the page’s text stands before the word list');
+  ok(/lugubrious/.test(await text.innerText()) && !/lugu-/.test(await text.innerText()), 'the text shows "lugu-/brious" as lugubrious');
+  // a phrase selected in the text → "Look up on Wikipedia" → a phrase card at the top of the list
+  await page.evaluate(() => {
+    const body = document.querySelector('.pd-textbody'), toks = [...body.querySelectorAll('.pd-tok')];
+    const a = toks.find((t) => t.textContent === 'the'), b = toks[toks.indexOf(a) + 1];
+    const r = document.createRange(); r.setStart(a.firstChild, 0); r.setEnd(b.firstChild, b.textContent.length);
+    const s = getSelection(); s.removeAllRanges(); s.addRange(r); window.__phrase = `${a.textContent} ${b.textContent}`;
+  });
+  const sel = page.locator('.pd-selbtn');
+  await sel.waitFor({ state: 'visible', timeout: 5000 });
+  ok(await sel.isVisible(), 'a selected phrase: the "Look up on Wikipedia" button appears beside it');
+  const phrase = await page.evaluate(() => window.__phrase);
+  await sel.click();
+  const pc = page.locator('.pd-list .pd-phrase').first();
+  await pc.waitFor();
+  ok((await pc.locator('.pd-word').innerText()) === `“${phrase}”` && await page.locator('.pd-list .pd-card').first().evaluate((e) => e.classList.contains('pd-phrase')), `the phrase gets a card at the top of the list (“${phrase}”)`);
+  await pc.locator('.pd-wiki-body:not(.muted)').or(pc.getByText(/No Wikipedia article|Read on Wikipedia/)).first().waitFor({ timeout: 10000 });
+  ok(wlog.some((u) => u.includes(`/summary/${encodeURIComponent(phrase.replace(/ /g, '_'))}?`)), `the phrase is looked up on Wikipedia as one title (${phrase.replace(/ /g, '_')})`);
+  ok(await sel.isHidden(), 'the button goes away with the selection');
+  await pc.getByRole('button', { name: `Remove “${phrase}”` }).click();
+  ok(await page.locator('.pd-list .pd-phrase').count() === 0, 'a phrase card can be removed');
   // tap a word in the recognised text: "geese" → goose, "plural of goose"; a common word works too
-  await page.getByText('Recognised text — tap any word to look it up').click();
   await page.locator('.pd-tok', { hasText: /^geese$/ }).first().click();
   await page.waitForSelector('.pd-looked .pd-card');
   const lk = page.locator('.pd-looked .pd-card');
@@ -117,7 +186,7 @@ export default async ({ base, page: newPage, ok, info, devices }) => {
   ok(await page.getByRole('button', { name: 'Share list' }).isVisible(), 'Share list appears once there are results');
   await page.getByRole('button', { name: 'Share list' }).click();
   const shared = await page.evaluate(() => window.__shared?.text || '');
-  ok(/^\w+ \(\w+\): .+/m.test(shared) && shared.split('\n').length === 20, `share sends the 20 words with meanings (${shared.split('\n')[0].slice(0, 60)}…)`);
+  ok(/^\w+ \(\w+\): .+/m.test(shared) && shared.split('\n').length === words.length, `share sends every word with its meaning (${shared.split('\n').length}: ${shared.split('\n')[0].slice(0, 60)}…)`);
   // the browser logs every mocked "not found" (404) answer of the dictionary APIs; anything else is a real error
   const real = (errs) => errs.filter((e) => !/Failed to load resource: (the server responded with a status of 404|net::ERR_INTERNET_DISCONNECTED)/.test(e));
   ok(real(page.errors).length === 0, `no page errors: ${real(page.errors).join(' | ')}`);
@@ -126,14 +195,15 @@ export default async ({ base, page: newPage, ok, info, devices }) => {
   ok(tok >= 44, `phone: collapsible rows are tall enough to tap (${Math.round(tok)} px)`);
 
   // online look-ups turned off: nothing leaves the phone; unknown words go to Not found
-  const p2 = await newPage(phone), log2 = [];
-  await mockApis(p2, log2);
+  const p2 = await newPage(phone), log2 = [], wlog2 = [];
+  await mockApis(p2, log2, 'ok', wlog2);
   await p2.goto(base + '#/photodict');
   await p2.getByText('Look up missing words online').click();
+  await p2.getByText('A Wikipedia summary under each word').click();
   await p2.locator('input[type=file]').first().setInputFiles(F('book-page.jpg'));
   await waitDone(p2);
   const w2 = await cardWords(p2);
-  ok(log2.length === 0, `online off: no requests (${log2.length})`);
+  ok(log2.length === 0 && wlog2.length === 0 && await p2.locator('.pd-wiki').count() === 0, `online and Wikipedia off: no requests, no boxes (${log2.length} + ${wlog2.length})`);
   ok(!w2.includes('snollygoster') && !w2.includes('mumpsimus') && RARE.every((w) => w2.includes(w)), 'online off: bundled words still shown, unknown ones not');
   await p2.getByText(/^Not found \(/).click();
   ok(/snollygoster/.test(await p2.locator('details.pd-more').filter({ hasText: 'Not found' }).textContent()), 'online off: snollygoster listed under Not found');
@@ -145,6 +215,9 @@ export default async ({ base, page: newPage, ok, info, devices }) => {
   await p3.locator('input[type=file]').first().setInputFiles(F('book-page.jpg'));
   await waitDone(p3);
   ok(await p3.getByText('could not be looked up online').count() === 1, 'offline: a note says some words could not be looked up');
+  await p3.locator('.pd-list .pd-card').first().scrollIntoViewIfNeeded();
+  await p3.getByText(/Wikipedia could not be reached/).first().waitFor({ timeout: 15000 });
+  ok(await p3.locator('.pd-wiki').first().getByRole('button', { name: 'Try again' }).isVisible(), 'Wikipedia unreachable: said in the box, with "Try again"');
   ok((await cardWords(p3)).filter((w) => RARE.includes(w)).length === RARE.length, 'offline: bundled results still shown');
   ok(p2.errors.length === 0 && real(p3.errors).length === 0, `no page errors (online off / offline): ${[...p2.errors, ...real(p3.errors)].join(' | ')}`);
 
@@ -159,7 +232,7 @@ export default async ({ base, page: newPage, ok, info, devices }) => {
   await p4.locator('.live-cam-ctl').getByRole('button', { name: 'Snap' }).click();
   await waitDone(p4);
   ok(await p4.locator('.live-cam').isHidden(), 'camera closed after the snap');
-  ok(/No text found|No hard words|hardest word/.test(await p4.locator(STATUS).textContent()), `snap was read: "${await p4.locator(STATUS).textContent()}"`);
+  ok(/No text found|No uncommon words|uncommon word/.test(await p4.locator(STATUS).textContent()), `snap was read: "${await p4.locator(STATUS).textContent()}"`);
 
   // a second photo chosen while the first is being read: the newer one is read, the older result is not shown
   // (the second photo was dropped without a word, and the first page's words stayed on screen)
@@ -168,15 +241,15 @@ export default async ({ base, page: newPage, ok, info, devices }) => {
     await file.setInputFiles(F('astronaut.png')); await p5.waitForTimeout(300);
     await file.setInputFiles(F('book-page.jpg'));
     ok(await p5.waitForFunction((sel) => document.querySelector(sel)?.textContent === 'A new photo — it is read as soon as the one before is done.', STATUS, { timeout: 10000 }).then(() => true, () => false), 'a photo chosen while another is read: the tab says it comes next');
-    await p5.waitForFunction((sel) => /hardest word/.test(document.querySelector(sel)?.textContent || ''), STATUS, { timeout: 180000 });
+    await p5.waitForFunction((sel) => /uncommon word/.test(document.querySelector(sel)?.textContent || ''), STATUS, { timeout: 180000 });
     const w5 = await cardWords(p5);
-    ok(w5.length === 20 && RARE.every((w) => w5.includes(w)), `… and the newer photo (the book page) is the one read: ${w5.length} words`);
+    ok(w5.length === words.length && RARE.every((w) => w5.includes(w)), `… and the newer photo (the book page) is the one read: ${w5.length} words`);
     const thumb = await p5.locator('.pd-thumb').evaluate((c) => c.width / c.height);
     ok(Math.abs(thumb - 480 / 347) < 0.02, `the thumbnail is the newer photo (${thumb.toFixed(2)})`);
     // and the other way round: the page first, then a photo without text — the page's words do not stay
     await file.setInputFiles(F('book-page.jpg')); await p5.waitForTimeout(300);
     await file.setInputFiles(F('astronaut.png'));
-    await p5.waitForFunction((sel) => /No text found|No hard words|hardest word/.test(document.querySelector(sel)?.textContent || '') && !/new photo/.test(document.querySelector(sel).textContent), STATUS, { timeout: 180000 });
+    await p5.waitForFunction((sel) => /No text found|No uncommon words|uncommon word/.test(document.querySelector(sel)?.textContent || '') && !/new photo/.test(document.querySelector(sel).textContent), STATUS, { timeout: 180000 });
     const after = await cardWords(p5);
     ok(!after.some((w) => RARE.includes(w)), `the page read first does not show its words over the newer photo (${await p5.locator(STATUS).textContent()})`);
     ok(real(p5.errors).length === 0, `no page errors ${real(p5.errors).join(' | ')}`); }
@@ -185,10 +258,10 @@ export default async ({ base, page: newPage, ok, info, devices }) => {
     await p6.goto(base + '#/photodict'); await p6.getByRole('button', { name: 'Use camera' }).click();
     await p6.locator('.live-cam-ctl').getByRole('button', { name: 'Snap' }).click();
     await waitDone(p6);
-    ok(await p6.locator('.live-cam').isHidden() && /No text found|No hard words|hardest word/.test(await p6.locator(STATUS).textContent()), 'Snap at once: the picture is taken when the first frame arrives'); }
+    ok(await p6.locator('.live-cam').isHidden() && /No text found|No uncommon words|uncommon word/.test(await p6.locator(STATUS).textContent()), 'Snap at once: the picture is taken when the first frame arrives'); }
 
   // PC (owner, 21 Nov 2026: "PC + phone", the photo from the webcam): a webcam that shows the book page → Snap → the
-  // same 20 words as the photo file; and a photo file on a PC
+  // same words as the photo file; and a photo file on a PC
   { const desk = await newPage({ viewport: { width: 1366, height: 900 } }); await mockApis(desk, []);
     const shot = `data:image/jpeg;base64,${readFileSync(F('book-page.jpg')).toString('base64')}`;
     await desk.addInitScript((url) => {
@@ -207,13 +280,62 @@ export default async ({ base, page: newPage, ok, info, devices }) => {
     await desk.getByRole('button', { name: 'Use webcam' }).click();
     await desk.waitForFunction(() => document.querySelector('video.live-cam-video')?.videoWidth > 0, null, { timeout: 15000 });
     await desk.locator('.live-cam-ctl').getByRole('button', { name: 'Snap' }).click();
-    await desk.waitForFunction((sel) => /hardest word|No text found|went wrong/.test(document.querySelector(sel)?.textContent || ''), STATUS, { timeout: 180000 });
+    await desk.waitForFunction((sel) => /uncommon word|No text found|went wrong/.test(document.querySelector(sel)?.textContent || ''), STATUS, { timeout: 180000 });
+    const [dls] = await Promise.all([desk.waitForEvent('download'), desk.getByRole('button', { name: 'Save this photo' }).click()]);
+    ok(/^camera-\d{8}-\d{6}(-\d+)?\.jpg$/.test(dls.suggestedFilename()), `Save this photo after a Snap: the frame that was read (${dls.suggestedFilename()})`);
     const wd = await cardWords(desk);
-    ok(wd.length === 20 && RARE.every((w) => wd.includes(w)), `PC: the webcam's photo of the page gives the 20 hardest words (${wd.length}: ${wd.slice(0, 5).join(', ')} …)`);
+    ok(wd.length === words.length && RARE.every((w) => wd.includes(w)), `PC: the webcam's photo of the page gives the same words (${wd.length}: ${wd.slice(0, 5).join(', ')} …)`);
     ok(await desk.evaluate(() => window.__tracks.every((t) => t.readyState === 'ended')), 'PC: the webcam is off after the Snap');
     ok(await desk.getByRole('button', { name: 'Share list' }).isVisible(), 'PC: Share list once there is a list');
     await desk.locator('input[type=file]').first().setInputFiles(F('book-page.jpg'));
-    await desk.waitForFunction((sel) => /hardest word/.test(document.querySelector(sel)?.textContent || ''), STATUS, { timeout: 180000 });
-    ok((await cardWords(desk)).length === 20, 'PC: a photo file works as well');
+    await desk.waitForFunction((sel) => !/uncommon word/.test(document.querySelector(sel)?.textContent || ''), STATUS, { timeout: 20000 });
+    ok(true, 'PC: a new photo clears the line of the result before');
+    await desk.waitForFunction((sel) => /uncommon word/.test(document.querySelector(sel)?.textContent || ''), STATUS, { timeout: 180000 });
+    ok((await cardWords(desk)).length === words.length, 'PC: a photo file works as well');
+    // "Save this photo": the picture that was read, as chosen (here: the file itself)
+    const [dlp] = await Promise.all([desk.waitForEvent('download'), desk.getByRole('button', { name: 'Save this photo' }).click()]);
+    ok(dlp.suggestedFilename() === 'book-page.jpg', `Save this photo gives the photo that was read (${dlp.suggestedFilename()})`);
+    // PC: a phrase selected with the mouse (a drag over two words) is no look-up of a word, and gets the button
+    const toks = desk.locator('.pd-textbody .pd-tok');
+    await toks.nth(3).scrollIntoViewIfNeeded();
+    const t1 = await toks.nth(3).boundingBox(), t2 = await toks.nth(4).boundingBox();
+    await desk.mouse.move(t1.x + 1, t1.y + t1.height / 2); await desk.mouse.down();
+    await desk.mouse.move(t2.x + t2.width - 1, t2.y + t2.height / 2, { steps: 6 }); await desk.mouse.up();
+    await desk.locator('.pd-selbtn').waitFor({ state: 'visible', timeout: 5000 });
+    ok(await desk.locator('.pd-looked .pd-card').count() === 0 && (await desk.evaluate(() => getSelection().toString())).trim().split(/\s+/).length >= 2, 'PC: a drag over two words selects them — no look-up of a word, the Wikipedia button shows');
+    await desk.evaluate(() => getSelection().removeAllRanges());
+    // the keyboard: one tab stop for the text; the arrow keys go from word to word, Enter looks the word up
+    await desk.locator('.pd-textbody').focus();
+    for (let k = 0; k < 4; k++) await desk.keyboard.press('ArrowRight');
+    const kwd = await desk.locator('.pd-tok.pd-kw').textContent();
+    ok(kwd === await toks.nth(3).textContent(), `keyboard: the fourth word is the current one (${kwd})`);
+    await desk.keyboard.press('Enter');
+    await desk.locator('.pd-looked .pd-card, .pd-looked .note').first().waitFor({ timeout: 10000 });
+    ok(await desk.locator('.pd-looked').getByText(new RegExp(kwd, 'i')).count() > 0, `keyboard: Enter looks “${kwd}” up`);
+    ok(await desk.locator('.pd-textbody .pd-tok[tabindex]').count() === 0, 'the words are no tab stops of their own (one stop for the text)');
+    // words broken over two lines, read from a photo: a page drawn here with "magnani-", "lugu-", "well-" at line ends
+    const shotB64 = await desk.evaluate(async () => {
+      const c = document.createElement('canvas'); c.width = 1400; c.height = 720; const g = c.getContext('2d');
+      g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height); g.fillStyle = '#111'; g.font = '46px Georgia, serif';
+      ['It was a truly magnani-', 'mous gesture, and the', 'lugu- brious mood of the', 'well- known old hall lifted', 'for a moment at least.']
+        .forEach((l, i) => g.fillText(l.replace('lugu- ', 'lugu-').replace('well- ', 'well-'), 60, 110 + i * 120));
+      return c.toDataURL('image/png').split(',')[1];
+    });
+    // (the third and fourth lines carry the second halves: redraw them as "lugu-" / "brious mood" …)
+    const page2 = await desk.evaluate(async () => {
+      const c = document.createElement('canvas'); c.width = 1400; c.height = 840; const g = c.getContext('2d');
+      g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height); g.fillStyle = '#111'; g.font = '46px Georgia, serif';
+      ['It was a truly magnani-', 'mous gesture, and the lugu-', 'brious mood of the well-', 'known old hall lifted for', 'a moment at least.']
+        .forEach((l, i) => g.fillText(l, 60, 110 + i * 130));
+      return c.toDataURL('image/png').split(',')[1];
+    });
+    void shotB64;
+    await desk.locator('input[type=file]').first().setInputFiles({ name: 'broken-words.png', mimeType: 'image/png', buffer: Buffer.from(page2, 'base64') });
+    await desk.waitForFunction((sel) => !/uncommon word/.test(document.querySelector(sel)?.textContent || ''), STATUS, { timeout: 20000 });
+    await desk.waitForFunction((sel) => /uncommon word|No uncommon words|No text found/.test(document.querySelector(sel)?.textContent || '') && !/new photo/.test(document.querySelector(sel).textContent), STATUS, { timeout: 180000 });
+    const shown = (await desk.locator('.pd-textbody').innerText()).replace(/\s+/g, ' ');
+    ok(/magnanimous/.test(shown) && /lugubrious/.test(shown) && /well-known/.test(shown) && !/magnani-|lugu-/.test(shown), `words broken over two lines are one word in the text (magnanimous, lugubrious) and a compound keeps its hyphen (well-known): “${shown.slice(0, 120)}”`);
+    const bw = await cardWords(desk);
+    ok(bw.includes('magnanimous') && bw.includes('lugubrious') && !bw.includes('magnani') && !bw.includes('mous'), `… and in the word list (${bw.join(', ')})`);
     ok(real(desk.errors).length === 0, `PC: no page errors ${real(desk.errors).join(' | ')}`); }
 };
