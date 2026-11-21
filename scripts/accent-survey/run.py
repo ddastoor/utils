@@ -18,16 +18,20 @@ ENV = {**os.environ, 'UV_TORCH_BACKEND': 'cpu', 'HF_HUB_DISABLE_XET': '1', 'HF_H
        'UV_PYTHON_PREFERENCE': 'only-managed', 'PYTHONUTF8': '1', 'COQUI_TOS_AGREED': '1'}
 
 
-def envfor(work, name, pins):
-    """WORK/envs/<name> with these packages (PyTorch's processor build), made once; its python."""
+def envfor(work, name, pins, lock=()):
+    """WORK/envs/<name> with these packages (PyTorch's processor build) and the engine's lock as constraints — the
+    versions the tab's scripts install — made once; its python."""
     e = os.path.join(work, 'envs', name)
-    py, mark = os.path.join(e, 'bin', 'python'), os.path.join(e, '.pins')
-    if os.path.exists(py) and os.path.exists(mark) and open(mark).read() == ' '.join(pins):
+    py, mark, lockf = os.path.join(e, 'bin', 'python'), os.path.join(e, '.pins'), os.path.join(work, 'envs', name + '.lock')
+    want = ' '.join(pins) + '\n' + '\n'.join(lock)
+    if os.path.exists(py) and os.path.exists(mark) and open(mark).read() == want:
         return py
     shutil.rmtree(e, ignore_errors=True)
+    os.makedirs(os.path.dirname(e), exist_ok=True)
+    open(lockf, 'w').write('\n'.join(lock) + '\n')
     subprocess.run([UV, 'venv', '--quiet', '--python', '3.12', e], env=ENV, check=True)
-    subprocess.run([UV, 'pip', 'install', '--python', py, '--torch-backend', 'cpu', *pins], env=ENV, check=True)
-    open(mark, 'w').write(' '.join(pins))
+    subprocess.run([UV, 'pip', 'install', '--python', py, '--torch-backend', 'cpu', *(['-c', lockf] if lock else []), *pins], env=ENV, check=True)
+    open(mark, 'w').write(want)
     return py
 
 
@@ -66,7 +70,7 @@ def main():
         e, d = cat['models'][mid]['engine'], os.path.join(work, mid)
         os.makedirs(d, exist_ok=True)
         shutil.copy(os.path.join(ROOT, 'src/lib/offline-tts/driver.py'), d)
-        py = envfor(work, e, cat['engines'][e]['packages'])
+        py = envfor(work, e, cat['engines'][e]['packages'], cat['engines'][e].get('lock', ()))
         for i, t in enumerate(TEXTS, 1):
             todo = [v for v in ids if v not in have[i - 1]]
             if not todo:

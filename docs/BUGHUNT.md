@@ -2587,4 +2587,15 @@ cannot. Three new suites; each fails on the build before its fixes.
   photo turned 90° / 270° / 180°: 90 %+ of the upright photo's uncommon words and the line says how it was turned; a
   phone still lying across the picture, either way; a still turned upside down by the tab's own turn to the live
   picture's shape), OCR 67 (the Kindle photo turned three ways: 95 %+ of its words read right).
+- **TTS offline: XTTS-v2 broke on every fresh install — a library released the same day (21 Nov 2026; to-do #7).** The
+  survey of XTTS's new Indian voices stopped at its first voice: `'NoneType' object has no attribute 'get_seq_length'`
+  in coqui-tts's GPT step. coqui-tts 0.28.0 asks only for transformers ≥ 4.57; transformers 5.24.0, out that day, changed
+  what the model's first step gets. Every PC making XTTS's (or SYSPIN's — the same package) environment from then on got
+  it. Pinned transformers 5.23.0 for both (a studio voice and a recorded one speak again), and more: **every engine now
+  installs with a lock** — the exact version of every package (`scripts/make-offline-tts-locks.py`, `uv pip compile
+  --universal`) given to uv as constraints, PyTorch's build still uv's choice — so a release can no longer break an
+  engine on the owner's PC. Tests: unit offline-tts 55 (the lock written and passed with `-c` in both scripts; the same
+  lock keeps the environment, a new one remakes it; a line that is no requirement refused) and, with OFFLINE_TTS_E2E=1,
+  the real Linux script installing exactly the lock's versions of Piper and speaking; offline-tts-plan 168 (every
+  engine's lock holds its own pins, PyTorch without a build, no NVIDIA libraries).
 

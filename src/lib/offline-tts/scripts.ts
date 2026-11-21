@@ -28,7 +28,7 @@ export const PYTHON = '3.12';
  *  need it —, the same with PyTorch's NVIDIA build, its models): said before it starts, so a first run that spends
  *  minutes on PyTorch does not look stuck (owner, 21 Nov 2026). */
 export interface EngineRun {
-  engine: string; name: string; packages: string[]; voices: number; env?: Record<string, string>;
+  engine: string; name: string; packages: string[]; lock?: string[]; voices: number; env?: Record<string, string>;
   first?: { programs: number; cuda: number; models: number };
 }
 
@@ -63,6 +63,15 @@ function pinWords(packages: string[]): string[] {
   return packages.map((p) => `'${p}'`);
 }
 function withArgs(packages: string[]): string[] { return pinWords(packages).flatMap((p) => ['--with', p]); }
+/** A lock line: a pinned package and, after " ; ", an environment marker (sys_platform == 'win32' …). Written through
+ *  Base64, but checked all the same: nothing in it is anything but a requirement. */
+const LOCK_LINE = /^[A-Za-z0-9._-]+(\[[A-Za-z0-9._,-]+\])?===?[A-Za-z0-9.+!_-]+( ; [A-Za-z0-9_.'" =!<>()-]+)?$/;
+/** The lock file of an engine (one requirement a line), checked. */
+export function lockText(r: EngineRun): string {
+  const lock = r.lock || [];
+  for (const l of lock) if (!LOCK_LINE.test(l)) throw new Error(`Not a lock line: ${l}`);
+  return lock.length ? lock.join('\n') + '\n' : '';
+}
 /** An engine's name is its folder under envs/: letters, digits, - and _. */
 function engineDir(r: EngineRun): string {
   if (!/^[a-z0-9][a-z0-9_-]*$/.test(r.engine)) throw new Error(`Not an engine name: ${r.engine}`);
@@ -97,6 +106,8 @@ export function linuxScript(o: ScriptInput): string {
     ...(r.first ? [`echo ${shq(firstRunNote(r))}`] : []),
     // an engine that fails does not stop the others (the voices made so far stay; the end says which failed); uv is
     // not quiet: its downloads show (PyTorch is hundreds of MB, GB with CUDA — silent, a first run looked stuck)
+    // the exact versions that ran on the project's test machine (scripts/make-offline-tts-locks.py)
+    ...(lockText(r) ? [`base64 -d > "$DIR/envs/${engineDir(r)}.lock" <<'SUPERUTILS_LOCK'`, wrap(b64(lockText(r))), 'SUPERUTILS_LOCK'] : [`: > "$DIR/envs/${engineDir(r)}.lock"`]),
     `if ! { envfor ${engineDir(r)} ${pinWords(r.packages).join(' ')} && ${envOf(r).map(([k, v]) => `${k}=${v} `).join('')}"$DIR/envs/${engineDir(r)}/bin/python" "$DIR/driver.py" "$RUN/job.json" ${r.engine} "$RUN"; }; then FAILED="$FAILED, "${shq(r.name)}; fi`,
   ].join('\n')).join('\n');
   const gated = o.gated || [];
@@ -119,7 +130,7 @@ fi
 # To remove everything, delete the folder.
 set -euo pipefail
 DIR="\${SUPERUTILS_TTS_DIR:-$HOME/SuperUtils-TTS}"
-mkdir -p "$DIR/bin" "$DIR/output"
+mkdir -p "$DIR/bin" "$DIR/output" "$DIR/envs"
 say() { printf '\\n== %s\\n' "$*"; }
 fetch() {
   if command -v curl >/dev/null 2>&1; then curl -fL --retry 3 --progress-bar -o "$2" "$1"
@@ -148,16 +159,20 @@ export UV_PYTHON_PREFERENCE="\${UV_PYTHON_PREFERENCE:-only-managed}" UV_TORCH_BA
 export HF_HOME="$DIR/cache/huggingface" HF_HUB_DISABLE_XET="\${HF_HUB_DISABLE_XET:-1}" HF_HUB_DISABLE_TELEMETRY=1
 # One Python environment per engine (envs/<engine>), made the first time with the engine's pinned packages and kept.
 # uv pip install picks PyTorch's build for this computer (UV_TORCH_BACKEND=auto: CUDA for the NVIDIA card there is,
-# else the processor's — uv run cannot, and gave every Linux computer the 4 GB CUDA build). New pins make it again.
+# else the processor's — uv run cannot, and gave every Linux computer the 4 GB CUDA build). envs/<engine>.lock holds
+# the exact version of every package that ran on SuperUtils' test machine, given to uv as constraints (a new release of
+# a library cannot break an engine). New pins or a new lock make the environment again.
 envfor() {
-  local e="$DIR/envs/$1"; shift
-  if [ -x "$e/bin/python" ] && [ "$(cat "$e/.pins" 2>/dev/null)" = "$*" ]; then return 0; fi
+  local e="$DIR/envs/$1" lock="$DIR/envs/$1.lock"; shift
+  local want="$*"; if [ -s "$lock" ]; then want="$want"$'\\n'"$(cat "$lock")"; fi
+  if [ -x "$e/bin/python" ] && [ "$(cat "$e/.pins" 2>/dev/null)" = "$want" ]; then return 0; fi
   echo '  Setting up its Python environment (once)...'
   "$DIR/bin/uv" python find ${PYTHON} >/dev/null 2>&1 || "$DIR/bin/uv" python install ${PYTHON} || return 1
   rm -rf "$e"
   "$DIR/bin/uv" venv --quiet --python ${PYTHON} "$e" || return 1
-  "$DIR/bin/uv" pip install --python "$e/bin/python" "$@" || return 1
-  printf '%s' "$*" > "$e/.pins"
+  if [ -s "$lock" ]; then "$DIR/bin/uv" pip install --python "$e/bin/python" -c "$lock" "$@" || return 1
+  else "$DIR/bin/uv" pip install --python "$e/bin/python" "$@" || return 1; fi
+  printf '%s' "$want" > "$e/.pins"
 }
 ${token}RUN="$DIR/output/$(date +%Y-%m-%d_%H%M%S)"
 mkdir -p "$RUN"
@@ -187,6 +202,7 @@ export function windowsScript(o: ScriptInput): string {
     `Say ${ps(ascii(`${r.name}: ${r.voices} voice${r.voices > 1 ? 's' : ''}`))}`,
     ...(r.first ? [`Write-Host ${ps(ascii(firstRunNote(r)))}`] : []),
     ...envOf(r).map(([k, v]) => `$env:${k} = ${ps(v)}`),
+    `[IO.File]::WriteAllBytes((Join-Path $Dir ${ps(`envs\\${engineDir(r)}.lock`)}), [Convert]::FromBase64String(${ps(b64(lockText(r)))}))`,
     `$py = EnvFor ${ps(engineDir(r))} @(${pinWords(r.packages).join(', ')})`,
     `if ($py) { & $py "$Dir\\driver.py" "$Run\\job.json" ${r.engine} "$Run" }`,
     `if (-not $py -or $LASTEXITCODE -ne 0) { $failed += ${ps(ascii(r.name))} }`,
@@ -224,7 +240,7 @@ $ProgressPreference = 'SilentlyContinue'
 function Say($m) { Write-Host ''; Write-Host "== $m" -ForegroundColor Cyan }
 try {
   $Dir = if ($env:SUPERUTILS_TTS_DIR) { $env:SUPERUTILS_TTS_DIR } else { Join-Path $env:USERPROFILE 'SuperUtils-TTS' }
-  New-Item -ItemType Directory -Force -Path (Join-Path $Dir 'bin'), (Join-Path $Dir 'output') | Out-Null
+  New-Item -ItemType Directory -Force -Path (Join-Path $Dir 'bin'), (Join-Path $Dir 'output'), (Join-Path $Dir 'envs') | Out-Null
   $uv = Join-Path $Dir 'bin\\uv.exe'
   if (-not (Test-Path -LiteralPath $uv)) {
     if ($env:PROCESSOR_ARCHITECTURE -eq 'ARM64' -or $env:PROCESSOR_ARCHITEW6432 -eq 'ARM64') { $url = ${ps(UV.windows.ARM64.url)}; $sha = ${ps(UV.windows.ARM64.sha256)} }
@@ -245,9 +261,12 @@ try {
   $env:HF_HOME = Join-Path $Dir 'cache\\huggingface'; $env:HF_HUB_DISABLE_TELEMETRY = '1'; $env:PYTHONUTF8 = '1'
   # One Python environment per engine (envs\\<engine>), made the first time with the engine's pinned packages and kept.
   # uv pip install picks PyTorch's build for this computer (UV_TORCH_BACKEND=auto: CUDA for the NVIDIA card there is,
-  # else the processor's - uv run cannot). New pins make it again. uv's own lines go to the screen, not into $py.
+  # else the processor's - uv run cannot). envs\\<engine>.lock holds the exact version of every package that ran on
+  # SuperUtils' test machine, given to uv as constraints. New pins or a new lock make it again. uv's own lines go to the
+  # screen, not into $py.
   function EnvFor($name, [string[]]$pins) {
-    $e = Join-Path $Dir ('envs\\' + $name); $py = Join-Path $e 'Scripts\\python.exe'; $mark = Join-Path $e '.pins'; $want = $pins -join ' '
+    $e = Join-Path $Dir ('envs\\' + $name); $py = Join-Path $e 'Scripts\\python.exe'; $mark = Join-Path $e '.pins'
+    $lock = Join-Path $Dir ('envs\\' + $name + '.lock'); $want = ($pins -join ' ') + "\`n" + [IO.File]::ReadAllText($lock)
     if ((Test-Path -LiteralPath $py) -and (Test-Path -LiteralPath $mark) -and ([IO.File]::ReadAllText($mark) -eq $want)) { return $py }
     Write-Host '  Setting up its Python environment (once)...'
     # Python first, with its download shown (uv venv is quiet); "not found" from uv is no error here
@@ -258,7 +277,7 @@ try {
     if (Test-Path -LiteralPath $e) { Remove-Item -LiteralPath $e -Recurse -Force }
     & $uv venv --quiet --python ${PYTHON} $e | Out-Host
     if ($LASTEXITCODE -ne 0) { return $null }
-    & $uv pip install --python $py @pins | Out-Host
+    if ((Get-Item -LiteralPath $lock).Length -gt 0) { & $uv pip install --python $py -c $lock @pins | Out-Host } else { & $uv pip install --python $py @pins | Out-Host }
     if ($LASTEXITCODE -ne 0) { return $null }
     [IO.File]::WriteAllText($mark, $want)
     return $py

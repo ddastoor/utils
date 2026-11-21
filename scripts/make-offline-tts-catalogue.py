@@ -163,7 +163,8 @@ ENGINES = {
         'name': 'XTTS-v2', 'url': 'https://huggingface.co/coqui/XTTS-v2',
         # six: coqui-tts 0.28.0 imports it without asking for it, and nothing else brings it any more (21 Nov 2026:
         # XTTS-v2 stopped with "No module named 'six'" — SYSPIN's engine, the same package, had the pin already)
-        'packages': ['coqui-tts[codec]==0.28.0', 'six==1.17.0', 'lameenc==1.9.0', 'torch', 'torchaudio'],
+        # transformers pinned: coqui-tts asks only for >= 4.57, and 5.24 (out on 21 Nov 2026) breaks XTTS's GPT step
+        'packages': ['coqui-tts[codec]==0.28.0', 'transformers==5.23.0', 'six==1.17.0', 'lameenc==1.9.0', 'torch', 'torchaudio'],
         'mb': 450, 'torch': True, 'speedControl': True, 'accept': 'cpml', 'slow': True,
         'licence': 'Coqui Public Model License (non-commercial use only)',
         'about': "Coqui's large multilingual model: 58 studio voices, and voices taken from short recordings. "
@@ -242,7 +243,7 @@ ENGINES = {
     'coqui': {
         'name': 'Coqui TTS (VITS)', 'url': 'https://github.com/idiap/coqui-ai-TTS',
         # six: coqui-tts 0.28.0 imports it for its VITS models without asking for it (ModuleNotFoundError here)
-        'packages': ['coqui-tts[codec]==0.28.0', 'six==1.17.0', 'num2words==0.5.14', 'lameenc==1.9.0', 'torch', 'torchaudio'],
+        'packages': ['coqui-tts[codec]==0.28.0', 'transformers==5.23.0', 'six==1.17.0', 'num2words==0.5.14', 'lameenc==1.9.0', 'torch', 'torchaudio'],
         'mb': 450, 'torch': True, 'speedControl': True, 'licence': 'MPL-2.0 (the program)',
         'about': "IISc SYSPIN's Indian English voices, trained with Coqui TTS (VITS). Quick, but less clear than the newer models.",
     },
@@ -911,6 +912,7 @@ KYUTAI_FILES = ['config.json', 'dsm_tts_1e68beda@240.safetensors', 'tokenizer-e3
                 'tokenizer_spm_8k_en_fr_audio.model']
 KYUTAI_SUFFIX = '.1e68beda@240.safetensors'
 HEARD_CLIPS = os.path.join(ROOT, 'scripts', 'data', 'kyutai-voices-heard.json')
+LOCKS = os.path.join(ROOT, 'scripts', 'data', 'offline-tts-locks.json')
 CA_GROUP = {'indian': 'in', 'us': 'us', 'england': 'uk', 'scotland': 'uk', 'ireland': 'uk', 'wales': 'uk'}
 CA_WORD = {'england': 'English (England)', 'scotland': 'Scottish', 'wales': 'Welsh', 'ireland': 'Irish', 'us': 'American',
            'canada': 'Canadian', 'australia': 'Australian', 'newzealand': 'New Zealand', 'african': 'African', 'bermuda': 'Bermudian',
@@ -1090,7 +1092,14 @@ def main():
     if len(ids) != len(set(ids)) or not all(re.fullmatch(r'[a-z0-9][a-z0-9_.-]*', i) for i in ids):
         sys.exit('voice ids must be unique and safe as file names')
     survey = heard(voices)
-    cat = {'made': '21 Nov 2026', 'groups': GROUPS, 'engines': ENGINES, 'models': models, 'voices': voices, **({'accentSurvey': survey} if survey else {})}
+    # each engine's exact packages (scripts/make-offline-tts-locks.py): the scripts install with them as constraints
+    locks = json.load(open(LOCKS, encoding='utf-8'))['engines']
+    engines = {}
+    for e, v in ENGINES.items():
+        if e not in locks or locks[e]['packages'] != v['packages']:
+            sys.exit(f'{LOCKS}: no lock for the packages of {e} — run scripts/make-offline-tts-locks.py')
+        engines[e] = {**v, 'lock': locks[e]['lock']}
+    cat = {'made': '21 Nov 2026', 'groups': GROUPS, 'engines': engines, 'models': models, 'voices': voices, **({'accentSurvey': survey} if survey else {})}
     json.dump(cat, open(OUT, 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
     open(OUT, 'a').write('\n')
     by = {}

@@ -103,6 +103,25 @@ export default async (t, { load }) => {
   const bumped = join(fake, 'bumped.sh'); writeFileSync(bumped, S.linuxScript({ ...input, runs: [{ ...three[0], packages: ['piper-tts==1.9.0'] }] }));
   spawnSync('bash', [bumped], { encoding: 'utf8', env: { ...process.env, SUPERUTILS_TTS_DIR: fake, PATH: '/usr/bin:/bin' } });
   t.ok(readFileSync(join(fake, 'uv.log'), 'utf8').includes('pip install --python ' + fake + '/envs/piper/bin/python piper-tts==1.9.0') && readFileSync(join(fake, 'envs', 'piper', '.pins'), 'utf8') === 'piper-tts==1.9.0', 'Linux: new pins make the environment again');
+  // the lock (scripts/make-offline-tts-locks.py): written beside the environment, given to uv as constraints; a new lock
+  // makes the environment again, the same lock keeps it
+  { const lock = ['piper-tts==1.9.0', 'numpy==2.3.5', "colorama==0.4.6 ; sys_platform == 'win32'"];
+    const locked = join(fake, 'locked.sh'); writeFileSync(locked, S.linuxScript({ ...input, runs: [{ ...three[0], packages: ['piper-tts==1.9.0'], lock }] }));
+    writeFileSync(join(fake, 'uv.log'), '');
+    spawnSync('bash', [locked], { encoding: 'utf8', env: { ...process.env, SUPERUTILS_TTS_DIR: fake, PATH: '/usr/bin:/bin' } });
+    const log1 = readFileSync(join(fake, 'uv.log'), 'utf8');
+    t.ok(readFileSync(join(fake, 'envs', 'piper.lock'), 'utf8') === lock.join('\n') + '\n' && log1.includes(`pip install --python ${fake}/envs/piper/bin/python -c ${fake}/envs/piper.lock piper-tts==1.9.0`), `Linux: the lock is written and given to uv as constraints (${log1.trim().split('\n').pop()})`);
+    t.ok(/^venv /m.test(log1), 'Linux: a lock where there was none makes the environment again');
+    writeFileSync(join(fake, 'uv.log'), '');
+    spawnSync('bash', [locked], { encoding: 'utf8', env: { ...process.env, SUPERUTILS_TTS_DIR: fake, PATH: '/usr/bin:/bin' } });
+    t.ok(!/^venv /m.test(readFileSync(join(fake, 'uv.log'), 'utf8')), 'Linux: the same lock keeps the environment');
+    const relocked = join(fake, 'relocked.sh'); writeFileSync(relocked, S.linuxScript({ ...input, runs: [{ ...three[0], packages: ['piper-tts==1.9.0'], lock: [lock[0], 'numpy==2.3.6', lock[2]] }] }));
+    spawnSync('bash', [relocked], { encoding: 'utf8', env: { ...process.env, SUPERUTILS_TTS_DIR: fake, PATH: '/usr/bin:/bin' } });
+    t.ok(/^venv /m.test(readFileSync(join(fake, 'uv.log'), 'utf8')), 'Linux: a new lock makes the environment again');
+    const w = S.windowsScript({ ...input, runs: [{ ...three[0], packages: ['piper-tts==1.9.0'], lock }] });
+    const b64 = (w.match(/\[IO\.File\]::WriteAllBytes\(\(Join-Path \$Dir 'envs\\piper\.lock'\), \[Convert\]::FromBase64String\('([A-Za-z0-9+/=]*)'\)\)/) || [])[1];
+    t.ok(b64 !== undefined && Buffer.from(b64, 'base64').toString('utf8') === lock.join('\n') + '\n' && /& \$uv pip install --python \$py -c \$lock @pins/.test(w), 'Windows: the lock is written and given to uv as constraints');
+    t.throws(() => S.linuxScript({ ...input, runs: [{ ...three[0], lock: ['numpy==2.3.5 ; $(rm -rf ~)'] }] }), 'a lock line that is no requirement is refused'); }
   const good = join(fake, 'good.sh'); writeFileSync(good, S.linuxScript({ ...input, runs: [three[0], three[2]] }));
   const g = spawnSync('bash', [good], { encoding: 'utf8', env: { ...process.env, SUPERUTILS_TTS_DIR: fake, PATH: '/usr/bin:/bin' } });
   t.ok(g.status === 0 && /== Done\. The speech is in /.test(g.stdout), 'Linux: all engines well — "Done", exit 0');
@@ -137,11 +156,16 @@ export default async (t, { load }) => {
   if (process.env.OFFLINE_TTS_E2E === '1') {
     const home = mkdtempSync(join(tmpdir(), 'stts-home-'));
     const small = { ...job, text: 'Hello from the offline mode. This sentence was made on this computer.', voices: [{ id: 'piper-lessac-low', label: 'Lessac (low)', engine: 'piper', repo: 'rhasspy/piper-voices', rev: 'e9c8a39444359388adaa94255becb37a5a2b8e51', file: 'en/en_US/lessac/low/en_US-lessac-low.onnx' }] };
-    const f = join(home, 'tts.sh'); writeFileSync(f, S.linuxScript({ ...input, job: small }));
+    // the catalogue's own Piper — its pins and its lock (the versions installed are the lock's)
+    const catL = JSON.parse(readFileSync(new URL('../../src/lib/offline-tts/catalogue.json', import.meta.url), 'utf8'));
+    const f = join(home, 'tts.sh'); writeFileSync(f, S.linuxScript({ ...input, job: small, runs: [{ ...runs[0], packages: catL.engines.piper.packages, lock: catL.engines.piper.lock }] }));
     // (the sandbox reaches PyPI and Hugging Face but not GitHub, where uv's own Python builds are: a system 3.12 here)
     const r = spawnSync('bash', [f], { encoding: 'utf8', env: { ...process.env, SUPERUTILS_TTS_DIR: join(home, 'SuperUtils-TTS'), UV_PYTHON_PREFERENCE: 'system' }, timeout: 900000 });
     const out = join(home, 'SuperUtils-TTS', 'output'), runDir = existsSync(out) ? readdirSync(out)[0] : '';
     const files = runDir ? readdirSync(join(out, runDir)) : [];
+    const freeze = spawnSync(join(home, 'SuperUtils-TTS', 'bin', 'uv'), ['pip', 'freeze', '--python', join(home, 'SuperUtils-TTS', 'envs', 'piper', 'bin', 'python')], { encoding: 'utf8' }).stdout.trim().split('\n');
+    const lockOf = (l) => l.split(' ; ')[0];
+    t.ok(freeze.length > 5 && freeze.every((l) => catL.engines.piper.lock.map(lockOf).includes(l)), `the Linux script installed exactly the lock's versions (${freeze.filter((l) => !catL.engines.piper.lock.map(lockOf).includes(l)).join(', ') || 'all of them'})`);
     t.ok(r.status === 0 && files.includes('piper-lessac-low.wav') && files.includes('piper-lessac-low.mp3'), `the Linux script ran: uv, Piper, a WAV and an MP3 (${files.join(', ')}; ${(r.stderr || '').slice(-400)})`);
   }
 };

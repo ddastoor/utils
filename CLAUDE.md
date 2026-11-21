@@ -488,7 +488,7 @@ from where their makers publish them (Hugging Face, the engines' releases) — n
 the site.
 **Offline mode as built (21 Nov 2026)** (`src/tools/tts-offline.ts`, imported when the mode is chosen — 111 KB / 24 KB
 gzip with the catalogue; `src/lib/offline-tts/`: `catalogue.json` from `python3 scripts/make-offline-tts-catalogue.py`,
-`plan.ts`, `scripts.ts`, `driver.py`; unit `offline-tts.test.mjs` 49 (+1 with `OFFLINE_TTS_E2E=1`) and `offline-tts-plan.test.mjs` 166, e2e
+`plan.ts`, `scripts.ts`, `driver.py`; unit `offline-tts.test.mjs` 55 (+2 with `OFFLINE_TTS_E2E=1`) and `offline-tts-plan.test.mjs` 168, e2e
 `tts-offline.e2e.mjs` 48). On a PC a "Mode" switch above the text: **In this browser** (the tab as it was) or **Offline
 on this PC**; phones never see the switch.
 - **What the page does:** nothing but write a script. Windows or Linux is detected (client hints, else the user agent;
@@ -505,6 +505,13 @@ on this PC**; phones never see the switch.
   `uv run --with`, which has no such choice (only `uv pip` and `uv tool run` take `--torch-backend`): every Linux PC got
   PyPI's CUDA build with 4 GB of NVIDIA libraries, and a Windows PC with an NVIDIA card never got its GPU used (found
   in this sandbox's cache; checked here by running MMS through the script: `torch 2.15.0+cpu`, no NVIDIA package).
+  **Each engine is installed with its lock** (`envs/<engine>.lock`, from `scripts/data/offline-tts-locks.json` —
+  `python3 scripts/make-offline-tts-locks.py`: `uv pip compile --universal`, Python 3.12, for every engine's packages;
+  PyTorch keeps its version but not its build (+cpu …), NVIDIA's libraries and Triton are left to PyTorch's CUDA build)
+  given to `uv pip install` as constraints (`-c`): a PC gets the versions that ran here, whatever a library releases
+  later (21 Nov 2026: coqui-tts asks only for transformers ≥ 4.57, and transformers 5.24, out that day, broke XTTS-v2 on
+  every fresh install — now pinned 5.23.0 as well). A new lock or new pins make the environment again (`.pins` holds
+  both). The accent survey (`run.py`) installs the same way.
   **What it shows while it works** (owner, 21 Nov 2026 — a first run sat silent after "== Parler-TTS: 1 voice" for
   minutes, "is this stuck?"): uv is not quiet (its download bars and "Installed n packages"); under each engine's heading a
   line says what its first run downloads — its programs (PyTorch with the first engine that needs it, again with an

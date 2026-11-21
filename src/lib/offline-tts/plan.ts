@@ -6,7 +6,7 @@ import { linuxScript, windowsScript, fmtMB, type EngineRun } from './scripts';
 export { fmtMB };
 
 export type OS = 'windows' | 'linux';
-export interface Engine { name: string; url: string; packages: string[]; mb: number; torch: boolean; speedControl: boolean; licence: string; about: string; accept?: string; slow?: boolean; ownTorch?: boolean }
+export interface Engine { name: string; url: string; packages: string[]; lock?: string[]; mb: number; torch: boolean; speedControl: boolean; licence: string; about: string; accept?: string; slow?: boolean; ownTorch?: boolean }
 export interface Model { engine: string; repo: string; rev: string; mb: number; licence: string; personal: boolean; name: string; gated?: boolean; accept?: string; file?: string; descTokenizer?: [string, string]; page?: string; untried?: string }
 export interface Clip { repo: string; rev: string; file: string }
 /** How an accent-recognition model heard the voice (`scripts/data/indian-accents.json`): `indian` = its score for an
@@ -94,7 +94,7 @@ export function runsOf(cat: Catalogue, p: Plan): EngineRun[] {
     if (E.torch && !E.ownTorch) sharedTorch = true;
     const programs = E.mb + (i === 0 ? BASE_MB : 0);
     return {
-      engine: e, name: E.name, packages: E.packages, voices: voices.length,
+      engine: e, name: E.name, packages: E.packages, lock: E.lock, voices: voices.length,
       first: {
         programs: programs + (torch ? TORCH_MB.cpu : 0), cuda: programs + (torch ? TORCH_MB.cuda : 0),
         models: models.reduce((a, m) => a + m.mb, 0) + clips * 0.7,

@@ -74,6 +74,13 @@ export default async (t, { load }) => {
   t.eq(per('veena').map((v) => v.voice).sort(), ['agastya', 'kavya', 'maitri', 'vinaya'], 'Veena: the four speakers of its card');
   t.ok(per('voxcpm').filter((v) => !v.clip).every((v) => v.describe && !v.describe.includes('(') && !v.describe.includes(')')), 'VoxCPM2: descriptions without brackets (the driver puts them in brackets)');
   t.ok(Object.keys(cat.engines).every((e) => P.ENGINE_ORDER.includes(e)) && P.ENGINE_ORDER.every((e) => cat.engines[e]), 'every engine of the catalogue is in the running order (an engine left out would never run)');
+  // each engine's lock (scripts/make-offline-tts-locks.py): its own pins inside at the same versions; PyTorch without a
+  // build (+cpu, +cu…: uv picks it for the PC); no NVIDIA libraries or Triton (they come with PyTorch's CUDA build)
+  { const name = (l) => l.split(/[=<>!~[ ;]/)[0].toLowerCase().replace(/_/g, '-');
+    const bad = Object.entries(cat.engines).filter(([, E]) => !E.lock?.length || E.lock.some((l) => /\+(cpu|cu\d+)/.test(l) || /^(nvidia-|triton=)/i.test(l))
+      || E.packages.some((p) => { const m = p.match(/^([A-Za-z0-9._-]+)(?:\[[^\]]*\])?==(.+)$/); return m && !E.lock.some((l) => name(l) === m[1].toLowerCase().replace(/_/g, '-') && l.includes(`==${m[2]}`)); }));
+    t.eq(bad.map(([e]) => e), [], 'every engine has a lock holding its own pins, PyTorch without a build, no NVIDIA libraries');
+    t.ok(Object.values(cat.engines).filter((E) => E.torch).every((E) => E.lock.some((l) => /^torch==\d/.test(l))), 'every engine that needs PyTorch has its version locked'); }
   // MeloTTS: MeloTTS-English's speaker numbers (its config: EN-US 0, EN-BR 1, EN_INDIA 2, EN-AU 3, EN-Default 4)
   t.eq(per('melo').map((v) => [v.speaker, v.id, v.group]).sort(), [[0, 'melo-en-us', 'us'], [1, 'melo-en-br', 'uk'], [2, 'melo-en-india', 'in'], [3, 'melo-en-au', 'world'], [4, 'melo-en-default', 'any']], 'MeloTTS: its five speakers and their accents');
   t.ok(per('melo').every((v) => v.sex === 'f'), 'MeloTTS: five women’s voices');
