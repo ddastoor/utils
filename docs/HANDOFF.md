@@ -147,6 +147,15 @@ this file = the owner's latest wishes, how the tests are written, and the traps 
   owner's plan, to build after the PDF → EPUB fix (CLAUDE.md §3 Photo Dictionary, "To build next"): a live Wikipedia
   box under each word's dictionary meaning; as many words as are uncommon (fewer or more than 20); the complete OCR
   text shown first, where a phrase selected on the phone or the PC is searched on Wikipedia and added to the list.
+- **21 Nov 2026 — a full disk is no reason to stop:** "If the disk is full, clean out stuff that you don't need anymore
+  and continue doing what you're doing in this environment." — delete what can be made again (dist/, build trees under
+  /tmp, compiler and model caches, models of engines already run, `uv cache prune`) and carry on without asking. Keep
+  what a running job or the next step needs (the survey's models, the voice recordings, the accent model).
+- **21 Nov 2026 — wallpapers:** asked whether free, copyright-free wallpaper APIs exist — answered (Openverse with its
+  CC0 / public-domain filter, NASA's image library, The Met and the Art Institute of Chicago open access, Wikimedia
+  Commons' public-domain files; no key needed; Unsplash / Pexels / Pixabay need a key a static site would expose) and
+  reminded that a Wallpapers tab was declined on 16 Nov (CLAUDE.md §2, "Rejected by the owner"). Nothing added unless
+  the owner asks.
 - **20 Nov 2026 — live:** the owner asked to merge into `main` and make the site live; Pages was switched on by the
   owner (Source: GitHub Actions). The repository's **default branch is `claude/exciting-bohr-b9yfwc`**, and Pages'
   environment lets only the default branch publish — so the site is published from that branch; `main` holds the
