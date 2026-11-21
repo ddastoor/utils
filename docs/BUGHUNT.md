@@ -2656,3 +2656,15 @@ cannot. Three new suites; each fails on the build before its fixes.
   true` first. (6) **Matches found from the end were highlighted in the wrong places** (the regex module's r, .NET's r:
   the highlighter took the list in the order the engine gave it) → laid out by position; the table keeps the engine's
   order. Each has a test: unit regex-flavours / python, e2e regex-flavours / regex.
+- **Windows / Linux (21 Nov 2026; to-do #13).** The first runs of the Windows check (`.github/workflows/windows.yml`,
+  Google Chrome on GitHub's Windows runner) and the review: (1) **the repository could not be checked out on Windows** —
+  `public/data/dict/con.json` and `prn.json` (CON and PRN are device names there, whatever the extension) → `con_.json`,
+  `prn_.json` (`shardFile()` in `src/lib/dictionary.ts`, the same rule in `scripts/build-dict.mjs`); `tests/unit/repo-paths`
+  refuses device names, < > : " \ | ? *, trailing dots and spaces, case-only clashes. (2) **`npm run build` stopped on
+  Windows**: `scripts/gen-icons.mjs` took a folder as `new URL(…).pathname` (`/D:/a/…` → `D:\D:\a\…`); 59 such places
+  (the script and 49 test files) → `fileURLToPath`. (3) **Text files as Windows programs save them**: the Hash tab read a
+  checksum list with `File.text()` (UTF-8 only) — Windows PowerShell 5.1 writes `> SHA256SUMS` in UTF-16, which became
+  garbage and was hashed as a file; Sodium Encrypt did not recognise its encrypted text in a UTF-16 .txt (Notepad's
+  "Unicode") → both through `textOf`. (4) **X11 / Wayland**: Screenshot's countdown window "stays on top" — not on
+  Wayland, which leaves that to the desktop (said there now); Screen Info says what a page is not told on Wayland.
+  `tests/e2e/os.e2e.mjs` opens all 172 PC tabs as Windows (user agent and client hints), X11 and Wayland.

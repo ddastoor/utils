@@ -30,6 +30,14 @@ The owner adds items here in chat ("add … to to do"). Newest instructions win.
     session runs on (the shared detection in `src/linux.ts`, CLAUDE.md's standing note) and is checked on both — where
     they differ (capture, the colour picker, popups and Picture-in-Picture, full screen, drag-and-drop, the clipboard, the
     camera) the tab says what Wayland changes and how to work with it.
+    **Progress (21 Nov 2026):** the real Windows check is `.github/workflows/windows.yml` (the browser suites in Google
+    Chrome on GitHub's Windows runner; run by hand). Its first runs found: the repository could not be checked out on
+    Windows (`public/data/dict/con.json`, `prn.json` — device names there; now `con_.json`, `prn_.json`, and
+    `tests/unit/repo-paths` refuses such names), and the build stopped on a path taken from a file:// URL (59 places,
+    now `fileURLToPath`). Files as Windows programs save them: the Hash tab's checksum lists and Sodium's encrypted
+    text read UTF-16 now. X11 / Wayland: the shared note also in Screen Info, Screenshot's Wayland tip about its
+    countdown window; `tests/e2e/os.e2e.mjs` opens all 172 PC tabs as Windows, X11 and Wayland. Next: the full
+    Windows run's results (in progress), what they find fixed and pinned.
 
 ## Done
 - **12. Photo Dictionary: the final list of words in alphabetical order** (owner, 21 Nov 2026) — done 21 Nov 2026: the

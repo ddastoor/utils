@@ -28,8 +28,12 @@ go-ahead for every open to-do, #12 and #13 included: #8 (in progress), #10, #12,
 fills, clean what can be made again and carry on (owner, 21 Nov 2026).
 **#8 Regex Tester flavours — DONE (21 Nov 2026):** ten flavours, each the engine its language runs (CLAUDE.md §3
 `regex`; unit `regex-flavours` 559 against the native engines, e2e `regex-flavours` 84 + `regex` 32). **#10 bc variables — DONE (21 Nov 2026):** A … ZZ at the end of each result's row,
-`$A` later, `$name = …`, set once (CLAUDE.md §2 "bc console"; unit `bcvars` 35, e2e `bc-console` 30). **#12 the Photo Dictionary's list A → Z — DONE (21 Nov 2026).** **Next: #13** (Windows / Linux / X11 / Wayland check
-across every PC app — todo.md has the owner's words), then the potentials process.
+`$A` later, `$name = …`, set once (CLAUDE.md §2 "bc console"; unit `bcvars` 35, e2e `bc-console` 30). **#12 the Photo Dictionary's list A → Z — DONE (21 Nov 2026).** **#13 (Windows / Linux / X11 / Wayland) — IN PROGRESS:**
+todo.md #13 has the progress. The Windows run: GitHub Actions → "Windows check" (`.github/workflows/windows.yml`,
+workflow_dispatch; trigger it with the GitHub tools, read its log with get_job_logs; the log is also an artifact).
+Done so far: Windows checkout (con.json / prn.json), the build's file:// paths, UTF-16 files in Hash and Sodium,
+X11 / Wayland notes (Screen Info, Screenshot), `os.e2e.mjs`. Next: read the full Windows run, tell failures of the app
+on Windows from suites that need a Linux tool as their reference, fix the first, then the potentials process.
 **Then, in the owner's order:** #8 Regex Tester flavours (research done: PCRE2 — `pcre2-wasm` 10.49.3 or our own build;
 Google's `re2-wasm` 1.0.2 for RE2 / Go; `vscode-oniguruma` 2.0.1 for Ruby / Oniguruma; Python's `re` through the Python
 tab's CPython and the `regex` module; Perl through ExifTool's zeroperl, already on the site; JavaScript as now; Java and
