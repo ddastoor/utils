@@ -2424,6 +2424,9 @@ cannot. Three new suites; each fails on the build before its fixes.
   bash -n, Base64 parts back byte for byte, shell text inert; with OFFLINE_TTS_E2E=1 the Linux script runs for real),
   `offline-tts-plan.test.mjs` 70 (catalogue against VCTK's list and sherpa-onnx's copies of the speaker maps, every voice
   in one script, driver.py's text pieces), e2e `tts-offline.e2e.mjs` 31 (the scripts downloaded and read back).
+  Labels checked against the voices themselves (median pitch by pYIN of a sample of every voice that was run): XTTS-v2's
+  studio names suggested the wrong sex for 13 of 58 voices → they are described by pitch; goonj's "Kabir" has a woman's
+  pitch → its sex left unsaid. The Indian samples were sent to the owner to choose by ear.
   Candidates checked and left for later: MeloTTS (its PyPI package 0.1.1 needs torch < 2.0, no Python 3.12), Chatterbox
   (pins torch 2.6.0 and gradio), Indic-Speak (gated, 7 GB, its inference code unreadable without access), Veena, Maya 2,
   Orpheus (GPU-sized), ZONOS3-Mini (an Indian accent with a dose — on the processor only through its C++ tool).

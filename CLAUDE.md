@@ -477,7 +477,8 @@ on this PC**; phones never see the switch.
     recommended; gated), **Large v1** (9.3 GB) and **Mini v1.1** (3.8 GB) with 34 named speakers each (accents not
     documented). A speaker is described in words ("Thoma speaks at a moderate pace …"; the pace from the speed); the
     text goes in pieces of ≤ 240 characters with one seed.
-  - **XTTS-v2** (coqui-tts[codec] 0.28.0): 58 studio voices (accents not documented) and 8 Indian voices taken from
+  - **XTTS-v2** (coqui-tts[codec] 0.28.0): 58 studio voices (accents not documented; their made-up names say nothing
+    reliable — each is "a deeper / middle / higher voice" by the measured pitch of a sample) and 8 Indian voices taken from
     10-second recordings in kyutai/tts-voices (5 voice donations, CC0; VCTK p248 / p251 / p376, CC BY 4.0). A clip is read
     with librosa — torchaudio ≥ 2.9 hands decoding to torchcodec, which needs FFmpeg on the system.
   - **Pocket TTS** (pocket-tts 4.0.1; the package pins its model files): its 21 English voices, accents from VCTK's list
