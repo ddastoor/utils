@@ -1,0 +1,42 @@
+# To-do #13 (owner, 21 Nov 2026: "make sure that all the apps that work on PC work on both Windows and Linux"): the
+# Text-to-Speech tab's Offline mode writes a .cmd for Windows that sets up uv, Python, an engine and the voices on the PC.
+# This sandbox is Linux (no PowerShell), so that script is run here for real, as a double-click runs it: a Piper voice,
+# about 150 MB of downloads (uv from PyPI, Python from GitHub, Piper from PyPI, the voice from Hugging Face), a WAV and an
+# MP3 checked; then a voice that does not exist, which must end with exit code 1. Run by hand (Actions → "Windows offline
+# speech" → Run workflow, or the API).
+name: Windows offline speech
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: windows-tts-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  offline-tts-windows:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: The offline speech script for Windows, run for real
+        shell: bash
+        env:
+          OFFLINE_TTS_E2E: '1'
+        run: |
+          node -e "console.log(process.platform, process.arch, require('os').release())"
+          set -o pipefail
+          node tests/unit.mjs offline-tts-run 2>&1 | tee offline-tts-windows.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: offline-tts-windows
+          path: offline-tts-windows.txt

@@ -224,9 +224,10 @@ ${tokenSteps(gated).map((l) => `    Write-Host ${ps(ascii(l))}`).join('\n')}
 setlocal
 set "SUPERUTILS_SELF=%~f0"
 powershell -NoProfile -ExecutionPolicy Bypass -Command "iex ([IO.File]::ReadAllText($env:SUPERUTILS_SELF))"
+set "SUPERUTILS_RC=%errorlevel%"
 echo.
 pause
-exit /b
+exit /b %SUPERUTILS_RC%
 #>
 # It runs entirely on this computer and keeps everything in one folder (SuperUtils-TTS in your user folder):
 #   bin\\uv.exe      uv ${UV.version} (Astral's Python manager, from PyPI, SHA-256 checked); it fetches Python and the engines
@@ -291,12 +292,13 @@ ${gated.length ? `  Say ${ps(ascii(`Checking that Hugging Face lets this compute
   if ($LASTEXITCODE -ne 0) { throw 'Hugging Face refused the download (the message above says why and what to do). Nothing else was downloaded; run this again when it is fixed.' }
 ` : ''}  $failed = @()
 ${runs.split('\r\n').map((l) => `  ${l}`).join('\r\n')}
-  Invoke-Item -LiteralPath $Run
+  try { Invoke-Item -LiteralPath $Run } catch { }
   if ($failed.Count) { throw ('Stopped with an error: ' + ($failed -join ', ') + ' (the messages above say why). The other voices are in ' + $Run) }
   Say "Done. The speech is in $Run"
 } catch {
   Write-Host ''
   Write-Host ("It stopped: " + $_.Exception.Message) -ForegroundColor Red
+  exit 1
 }
 `;
   return body.replace(/\r?\n/g, '\r\n');

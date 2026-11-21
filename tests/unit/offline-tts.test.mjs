@@ -1,7 +1,6 @@
 // The Text-to-Speech tab's offline mode (src/lib/offline-tts/): the scripts it writes for Windows (.cmd with PowerShell)
 // and Linux (.sh), and driver.py. bash -n reads the Linux script; the Base64 parts decode to exactly the job and the
-// driver; a text that a shell would act on stays text. With OFFLINE_TTS_E2E=1 the Linux script is run for real here:
-// uv from PyPI (SHA-256), Piper and a voice from Hugging Face, a WAV and an MP3 made (about 150 MB of downloads).
+// driver; a text that a shell would act on stays text. The script run for real: offline-tts-run.test.mjs.
 import { execFileSync, spawnSync } from 'node:child_process';
 import { mkdtempSync, writeFileSync, readFileSync, readdirSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -60,6 +59,8 @@ export default async (t, { load }) => {
   t.eq(dec(psStr('driver.py') || ''), driver, 'Windows: driver.py decodes to exactly driver.py');
   t.ok(cmd.includes(S.UV.windows.AMD64.sha256) && cmd.includes(S.UV.windows.ARM64.sha256) && cmd.includes(S.UV.member.windows), 'Windows: uv for x64 and ARM64, checked by SHA-256');
   t.ok(/\$LASTEXITCODE -ne 0/.test(cmd) && /catch \{/.test(cmd) && /\r\npause\r\n/.test(cmd), 'Windows: a failed engine is said, and the window waits for a key');
+  t.ok(/\r\n  exit 1\r\n\}\r\n$/.test(cmd) && /\r\nset "SUPERUTILS_RC=%errorlevel%"\r\necho\.\r\npause\r\nexit \/b %SUPERUTILS_RC%\r\n/.test(cmd), 'Windows: a run that stopped ends with exit code 1 — after the pause (it was 0 whatever happened)');
+  t.ok(cmd.includes('  try { Invoke-Item -LiteralPath $Run } catch { }\r\n'), 'Windows: opening the output folder cannot fail the run (Linux: xdg-open … || true)');
   // every PowerShell single-quoted string is closed on its line
   t.ok(cmd.split('\r\n').filter((l) => !/^\s*#/.test(l) && !/^@|^setlocal|^set |^powershell|^echo|^pause|^exit|^<#/.test(l)).every((l) => (l.replace(/''/g, '').match(/'/g) || []).length % 2 === 0), 'Windows: quotes balanced on every PowerShell line');
 
@@ -152,20 +153,4 @@ export default async (t, { load }) => {
   const passed = runG({}), ranP = readFileSync(join(gf, 'ran'), 'utf8').trim().split('\n');
   t.ok(passed.status === 0 && ranP.join() === '--check-access,piper' && passed.stdout.includes('== Checking that Hugging Face lets this computer download ai4bharat/indic-parler-tts'), `Linux: an accepted token goes on to the engines (${ranP.join(', ')})`);
 
-  // the real thing (opt-in: downloads uv, Python packages and a 63 MB voice)
-  if (process.env.OFFLINE_TTS_E2E === '1') {
-    const home = mkdtempSync(join(tmpdir(), 'stts-home-'));
-    const small = { ...job, text: 'Hello from the offline mode. This sentence was made on this computer.', voices: [{ id: 'piper-lessac-low', label: 'Lessac (low)', engine: 'piper', repo: 'rhasspy/piper-voices', rev: 'e9c8a39444359388adaa94255becb37a5a2b8e51', file: 'en/en_US/lessac/low/en_US-lessac-low.onnx' }] };
-    // the catalogue's own Piper — its pins and its lock (the versions installed are the lock's)
-    const catL = JSON.parse(readFileSync(new URL('../../src/lib/offline-tts/catalogue.json', import.meta.url), 'utf8'));
-    const f = join(home, 'tts.sh'); writeFileSync(f, S.linuxScript({ ...input, job: small, runs: [{ ...runs[0], packages: catL.engines.piper.packages, lock: catL.engines.piper.lock }] }));
-    // (the sandbox reaches PyPI and Hugging Face but not GitHub, where uv's own Python builds are: a system 3.12 here)
-    const r = spawnSync('bash', [f], { encoding: 'utf8', env: { ...process.env, SUPERUTILS_TTS_DIR: join(home, 'SuperUtils-TTS'), UV_PYTHON_PREFERENCE: 'system' }, timeout: 900000 });
-    const out = join(home, 'SuperUtils-TTS', 'output'), runDir = existsSync(out) ? readdirSync(out)[0] : '';
-    const files = runDir ? readdirSync(join(out, runDir)) : [];
-    const freeze = spawnSync(join(home, 'SuperUtils-TTS', 'bin', 'uv'), ['pip', 'freeze', '--python', join(home, 'SuperUtils-TTS', 'envs', 'piper', 'bin', 'python')], { encoding: 'utf8' }).stdout.trim().split('\n');
-    const lockOf = (l) => l.split(' ; ')[0];
-    t.ok(freeze.length > 5 && freeze.every((l) => catL.engines.piper.lock.map(lockOf).includes(l)), `the Linux script installed exactly the lock's versions (${freeze.filter((l) => !catL.engines.piper.lock.map(lockOf).includes(l)).join(', ') || 'all of them'})`);
-    t.ok(r.status === 0 && files.includes('piper-lessac-low.wav') && files.includes('piper-lessac-low.mp3'), `the Linux script ran: uv, Piper, a WAV and an MP3 (${files.join(', ')}; ${(r.stderr || '').slice(-400)})`);
-  }
 };
