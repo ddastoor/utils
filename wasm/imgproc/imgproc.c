@@ -745,6 +745,20 @@ static float page_try(const uint8_t *g, int sw, int sh, int th, int *lab, int *s
         area = fabsf(area) / 2;
         if (!convex || area < n * 0.04f || area > n * 0.985f) continue;
         float fill = sz / area; if (fill > 1) fill = 1;          /* a page with its lines of text: about 0.7 – 1 */
+        /* a page has something darker around it (a table, a body); a region with light paper all round is a part of a
+           larger page — a newspaper's column when the paper runs off the photo — and the whole photo is the page */
+        int out = 0, light = 0; float off = 0.03f * (sw > sh ? sw : sh);
+        for (int k = 0; k < 4; k++) {
+            float x0 = c[k * 2], y0 = c[k * 2 + 1], x1 = c[((k + 1) % 4) * 2], y1 = c[((k + 1) % 4) * 2 + 1];
+            float len = sqrtf((x1 - x0) * (x1 - x0) + (y1 - y0) * (y1 - y0)); if (len < 1) continue;
+            float nx = (y1 - y0) / len, ny = -(x1 - x0) / len;   /* outwards (the corners go round clockwise) */
+            for (int j = 1; j < 20; j++) {
+                int px = (int)(x0 + (x1 - x0) * j / 20.0f + nx * off), py = (int)(y0 + (y1 - y0) * j / 20.0f + ny * off);
+                if (px < 0 || py < 0 || px >= sw || py >= sh) continue;
+                out++; if (g[py * sw + px] > th) light++;
+            }
+        }
+        if (out >= 16 && light > out * 0.6f) continue;
         float score = sz * fill * fill * fill * (border > (sw + sh) / 50 ? 0.15f : 1.0f);
         if (score > best) { best = score; memcpy(q, c, sizeof c); q[8] = fill; }
     }

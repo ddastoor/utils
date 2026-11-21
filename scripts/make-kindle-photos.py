@@ -290,7 +290,7 @@ def newspaper(rng):
     fnt = font(face, size)
     gutter = 60
     colw = (W - 220 - gutter * (cols - 1)) // cols
-    words = (passage + ' ' + rng.choice(PASSAGES)).split()
+    words = ' '.join(PASSAGES[(PASSAGES.index(passage) + j) % len(PASSAGES)] for j in range(len(PASSAGES) * 2)).split()  # every column full
     lines = set_text(d, words, fnt, colw, rng)
     pitch = int(size * 1.28)
     per = (H - 400) // pitch

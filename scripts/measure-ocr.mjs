@@ -81,7 +81,10 @@ async function prepare(ip, straighten, img, p) {
   if (p === 'page' || p === 'pagescreen') {
     const s = await straighten(cap(img), ip);
     found += s.found ? 1 : 0;
-    return ip.docEnhance(p === 'pagescreen' ? ip.blur(copy(s.img), 1.1) : copy(s.img), 1);
+    const out = ip.docEnhance(p === 'pagescreen' ? ip.blur(copy(s.img), 1.1) : copy(s.img), 1);
+    // as the tab does: a page found that gives fewer than 25 words → the whole photo is read too, the better kept
+    if (s.found) out.whole = () => ip.docEnhance(p === 'pagescreen' ? ip.blur(copy(cap(img)), 1.1) : copy(cap(img)), 1);
+    return out;
   }
   if (p.startsWith('crop')) {
     // the page (a Kindle's screen, a sheet of paper) found and straightened before the clean-up
@@ -112,7 +115,9 @@ async function main() {
     for (const p of preps) {
       const t0 = performance.now();
       const work = await prepare(ip, straighten, img, p);
-      const { data } = await worker.recognize(ppm(work), {}, { text: true });
+      let { data } = await worker.recognize(ppm(work), {}, { text: true, blocks: true });
+      const nWords = (d) => (d.blocks || []).reduce((n, b) => n + b.paragraphs.reduce((m, pa) => m + pa.lines.reduce((k, l) => k + l.words.length, 0), 0), 0);
+      if (work.whole && nWords(data) < 25) { const d2 = (await worker.recognize(ppm(work.whole()), {}, { text: true, blocks: true })).data; if (nWords(d2) > nWords(data)) data = d2; }
       const got = wordsOf(data.text);
       const right = lcs(truth, got), found = [...rare].filter((x) => got.includes(x)).length;
       const acc = right / truth.length, clean = got.length ? right / got.length : 0;
