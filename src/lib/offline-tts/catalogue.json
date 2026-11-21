@@ -83,6 +83,7 @@
    "url": "https://huggingface.co/coqui/XTTS-v2",
    "packages": [
     "coqui-tts[codec]==0.28.0",
+    "six==1.17.0",
     "lameenc==1.9.0",
     "torch",
     "torchaudio"

@@ -156,7 +156,9 @@ ENGINES = {
     },
     'xtts': {
         'name': 'XTTS-v2', 'url': 'https://huggingface.co/coqui/XTTS-v2',
-        'packages': ['coqui-tts[codec]==0.28.0', 'lameenc==1.9.0', 'torch', 'torchaudio'],
+        # six: coqui-tts 0.28.0 imports it without asking for it, and nothing else brings it any more (21 Nov 2026:
+        # XTTS-v2 stopped with "No module named 'six'" — SYSPIN's engine, the same package, had the pin already)
+        'packages': ['coqui-tts[codec]==0.28.0', 'six==1.17.0', 'lameenc==1.9.0', 'torch', 'torchaudio'],
         'mb': 450, 'torch': True, 'speedControl': True, 'accept': 'cpml', 'slow': True,
         'licence': 'Coqui Public Model License (non-commercial use only)',
         'about': "Coqui's large multilingual model: 58 studio voices, and voices taken from short recordings. "
@@ -798,6 +800,30 @@ UNTRIED = {
 }
 
 
+# How each Indian English voice was heard by an accent-recognition model (owner, 21 Nov 2026: the voices ranked "in order
+# of increasing Indian accent thickness"): scripts/data/indian-accents.json, measured by scripts/accent-survey/ (every
+# voice reads the same British sentences; SpeechBrain's CommonAccent classifier scores the 16 accents it knows). A
+# voice's `heard`: its Indian score minus its best other score (above 0 = heard as Indian first; the higher, the
+# stronger), averaged over the sentences, and the other accent it was heard closest to.
+ACCENTS = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'indian-accents.json')
+
+
+def heard(voices):
+    if not os.path.exists(ACCENTS):
+        return None
+    d = json.load(open(ACCENTS, encoding='utf-8'))
+    ids = {v['id']: v for v in voices}
+    unknown = sorted(set(d['voices']) - set(ids))
+    if unknown:
+        sys.exit(f'{ACCENTS}: voices not in the catalogue: {unknown[:5]}')
+    for vid, r in d['voices'].items():
+        sc = r['scores']
+        margins = [s['indian'] - max(x for k, x in s.items() if k != 'indian') for s in sc]
+        others = {k: sum(s[k] for s in sc) / len(sc) for k in sc[0] if k != 'indian'}
+        ids[vid]['heard'] = {'indian': round(sum(margins) / len(margins), 4), 'like': max(others, key=others.get), 'n': len(sc)}
+    return {'tool': d['tool'], 'texts': d['texts'], 'made': d['made']}
+
+
 def main():
     models, voices = {}, []
     # the order of the list: in each accent the larger, newer models first — Indic Parler-TTS leads the Indian voices
@@ -811,7 +837,8 @@ def main():
     ids = [v['id'] for v in voices]
     if len(ids) != len(set(ids)) or not all(re.fullmatch(r'[a-z0-9][a-z0-9_.-]*', i) for i in ids):
         sys.exit('voice ids must be unique and safe as file names')
-    cat = {'made': '21 Nov 2026', 'groups': GROUPS, 'engines': ENGINES, 'models': models, 'voices': voices}
+    survey = heard(voices)
+    cat = {'made': '21 Nov 2026', 'groups': GROUPS, 'engines': ENGINES, 'models': models, 'voices': voices, **({'accentSurvey': survey} if survey else {})}
     json.dump(cat, open(OUT, 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
     open(OUT, 'a').write('\n')
     by = {}
