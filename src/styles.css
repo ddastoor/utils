@@ -837,7 +837,10 @@ details summary { cursor: pointer; font-weight: 600; color: var(--accent); paddi
 /* PDF → EPUB preview */
 .epub-preview { max-height: 70vh; overflow: auto; font-family: Georgia, serif; line-height: 1.5; padding: 0 8px; }
 .epub-preview .pgno { font: 12px system-ui, sans-serif; color: var(--muted); border-bottom: 1px solid var(--border); margin: 18px 0 8px; }
-.epub-preview h4.col { font: 600 12px system-ui, sans-serif; color: var(--accent); margin: 14px 0 4px; }
+.epub-preview h4.part { font: 600 12px system-ui, sans-serif; color: var(--accent); margin: 18px 0 6px; padding-top: 8px; border-top: 1px dashed var(--border); }
+.epub-preview .pgno + h4.part { border-top: 0; padding-top: 0; margin-top: 6px; }
+.epub-preview p.eqno { text-align: right; margin: -4px 0 10px; font-size: 0.9em; } .epub-preview img.m { max-height: none; }
+.epub-preview hr.fn { width: 30%; margin: 14px auto 8px 0; border: 0; border-top: 1px solid var(--border); }
 .epub-preview .fig { text-align: center; } .epub-preview img { max-width: 100%; max-height: 360px; }
 .epub-report { border-collapse: collapse; font-size: 13px; } .epub-report th, .epub-report td { border: 1px solid var(--border); padding: 3px 10px; text-align: left; }
 

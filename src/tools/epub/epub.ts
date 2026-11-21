@@ -1,4 +1,5 @@
-// PDF → EPUB (PC): Kindle-friendly EPUB 3 from PDFs, page by page, column by column (src/lib/pdf2epub.ts).
+// PDF → EPUB (PC): Kindle-friendly EPUB 3 from PDFs, page by page (src/lib/pdf2epub.ts); what stands side by side in a
+// page is laid out top to bottom under "Page N, part K" (the owner's rule, 21 Nov 2026).
 // A conversion keeps the PDF it started with; a PDF chosen meanwhile ends it, and so does leaving the tab.
 import { h, card, field, stack, note, actions, button, segmented, toggle, input, progress, clear, downloadBlob, fmtBytes, type Mount } from '../../ui';
 import { parseRanges } from '../../lib/pdf';
@@ -27,7 +28,7 @@ export const mount: Mount = (root) => {
       field('Kindle', segmented([[String(DEVICES.paperwhite), 'Paperwhite (1236 px)'], [String(DEVICES.scribe), 'Scribe (1860 px)']], String(o.width), (v) => (o.width = +v))),
       toggle('Greyscale pictures (smaller, look the same on e-ink)', o.grey, (v) => (o.grey = v)),
       toggle('Remove running headers, footers and page numbers', o.removeHeaders, (v) => (o.removeHeaders = v)),
-      toggle('Label columns (“Page N · Column K”)', o.labels, (v) => (o.labels = v)),
+      toggle('Mark the parts of a page laid out side by side (“Page N, part K”)', o.labels, (v) => (o.labels = v)),
       h('div', { class: 'grid2' }, field('Title', titleIn), field('Author', authorIn)),
       field('Pages', input({ placeholder: 'All pages (or e.g. 1-20)', onInput: (v) => (spec = v) })))),
     actions(button('Make EPUB', async () => {
@@ -46,7 +47,8 @@ export const mount: Mount = (root) => {
       }
       prog.done();
       const { epub, report } = made;
-      const name = `${stem(file.name)}.epub`, cols = report.filter((r) => r.columns > 1).length, figs = report.reduce((a, r) => a + r.figures, 0), pics = report.filter((r) => r.how === 'image').length;
+      const sum = (k: 'figures' | 'tables' | 'equations') => report.reduce((a, r) => a + r[k], 0);
+      const name = `${stem(file.name)}.epub`, parted = report.filter((r) => r.parts > 0).length, pics = report.filter((r) => r.how === 'image').length;
       // a readable preview of the first pages in reading order (our own generated, escaped XHTML; images as blob URLs)
       const z = unzipSync(epub);
       const pv = h('div', { class: 'epub-preview' });
@@ -58,12 +60,12 @@ export const mount: Mount = (root) => {
         pv.append(document.importNode(sec, true));
       }
       result.append(
-        note(`${name}: ${fmtBytes(epub.length)} · ${plural(report.length, 'page')} · ${cols} with columns · ${plural(figs, 'figure')}${pics ? ` · ${pics} as pictures` : ''} · ${((performance.now() - t0) / 1000).toFixed(1)} s`, 'ok'),
+        note(`${name}: ${fmtBytes(epub.length)} · ${plural(report.length, 'page')} · ${parted} laid out in parts · ${plural(sum('figures'), 'figure')} · ${plural(sum('tables'), 'table')} · ${plural(sum('equations'), 'equation')}${pics ? ` · ${pics} as pictures` : ''} · ${((performance.now() - t0) / 1000).toFixed(1)} s`, 'ok'),
         h('div', { class: 'row' }, button('Download .epub', () => downloadBlob(new Blob([epub as BlobPart], { type: 'application/epub+zip' }), name), { icon: 'Download', variant: 'primary' })),
         note('Send it to your Kindle with Amazon’s “Send to Kindle” (app, website or e-mail); EPUB is converted for the Kindle automatically.'),
         card('Preview (first pages)', pv),
-        h('details', null, h('summary', null, 'Page report'), h('table', { class: 'epub-report' }, h('tr', null, ...['Page', 'Layout', 'Columns', 'Figures'].map((x) => h('th', null, x))),
-          ...report.map((r) => h('tr', null, h('td', null, String(r.page)), h('td', null, r.how + (r.note ? ` (${r.note})` : '')), h('td', null, String(r.columns || 1)), h('td', null, String(r.figures)))))));
+        h('details', null, h('summary', null, 'Page report'), h('table', { class: 'epub-report' }, h('tr', null, ...['Page', 'Layout', 'Parts', 'Figures', 'Tables', 'Equations'].map((x) => h('th', null, x))),
+          ...report.map((r) => h('tr', null, h('td', null, String(r.page)), h('td', null, r.how + (r.note ? ` (${r.note})` : '')), h('td', null, r.parts ? String(r.parts) : '—'), h('td', null, String(r.figures)), h('td', null, String(r.tables)), h('td', null, String(r.equations)))))));
     }, { variant: 'primary', icon: 'BookOpen' })),
     card(null, prog, result));
   return () => { live = false; seq++; forget(); };

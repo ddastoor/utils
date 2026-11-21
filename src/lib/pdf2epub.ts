@@ -1,24 +1,40 @@
 // PDF → EPUB for Kindle (Paperwhite / Scribe). MuPDF (official wasm) gives the text of each page — spans with their
-// fonts — and its images; reading order and columns come from an XY-cut in textcore.wasm (own C); figures (raster and
-// vector) are found as ink outside the text in imgproc.wasm (own C) and drawn by MuPDF at the size the e-reader needs.
-// One XHTML file per PDF page keeps the page breaks; columns are labelled "Page N · Column K". EPUB 3 with a nav
-// document (the PDF's bookmarks when it has them, else a list of the pages; and a page list) and an NCX for older readers.
+// fonts —, its images and, through a device of our own, its ruled lines; reading order, columns and the page's parts
+// come from an XY-cut in textcore.wasm (own C); figures (raster and vector) are found as ink outside the text in
+// imgproc.wasm (own C) and drawn by MuPDF at the size the e-reader needs.
+// The owner's rule (21 Nov 2026): what stands side by side in a PDF page — columns, a figure beside text, blocks left and
+// right — is laid out one after another, top to bottom, spaced apart, each piece under a marker of our own: "Page 1,
+// part 1", "Page 1, part 2" … (never words of the PDF). One XHTML file per PDF page keeps the page breaks. Tables and
+// display equations are pictures, exactly as printed (an equation's number stays text beside it); a formula inside a
+// sentence whose font gives no text is a small picture in the line; raised and lowered marks are <sup> / <sub>.
+// EPUB 3 with a nav document (the PDF's bookmarks when it has them, else a list of the pages; and a page list) and an
+// NCX for older readers.
 import { zipSync, strToU8 } from 'fflate';
 import { mupdf } from './pdf';
 import { textcore } from '../wasm/textcore';
 import { imgprocDirect, type Img } from '../wasm/imgproc';
 
 export interface EpubOptions {
-  mode: 'reflow' | 'columns'; width: number; grey: boolean; removeHeaders: boolean; labels: boolean;
+  mode: 'reflow' | 'columns'; width: number; grey: boolean; removeHeaders: boolean;
+  /** mark the parts of a page laid out side by side: "Page N, part K" */
+  labels: boolean;
   pages?: number[]; title?: string; author?: string;
   /** Asked between pages: false ends the conversion with `Stopped` (a newer PDF was chosen, the tab was left). */
   alive?: () => boolean;
 }
-export interface PageReport { page: number; columns: number; figures: number; how: 'text' | 'columns' | 'image'; note?: string }
+export interface PageReport {
+  page: number;
+  /** text columns side by side (0: one) */
+  columns: number;
+  /** pieces laid out one after another under "Page N, part K" (0: the page reads top to bottom as it is) */
+  parts: number;
+  figures: number; tables: number; equations: number;
+  how: 'text' | 'columns' | 'image'; note?: string;
+}
 /** What the conversion runs on: the app's engines by default; the unit suite brings its own. */
 export interface EpubEngines {
   m: any;
-  tc: { xycut(boxes: number[][], gx?: number, gy?: number, minh?: number): { order: number[]; col: number[] } };
+  tc: { xycut(boxes: number[][], gx?: number, gy?: number, minh?: number, heavy?: boolean[]): { order: number[]; col: number[]; part: number[] } };
   ip: {
     grayscale(i: Img): Img; expand(s: Uint8Array | Uint8ClampedArray, w: number, h: number, comps: number): Img;
     inkRegions(i: Img, skip: Array<[number, number, number, number]>, o?: { thr?: number; dil?: number; minArea?: number; max?: number }): Array<{ x: number; y: number; w: number; h: number }>;
@@ -29,9 +45,29 @@ export interface EpubEngines {
 /** The conversion ended because `alive()` said so. */
 export class Stopped extends Error { constructor() { super('The conversion was stopped.'); this.name = 'Stopped'; } }
 
-type Line = { x0: number; y0: number; x1: number; y1: number; size: number; bold: boolean; italic: boolean; text: string };
-type Fig = { x0: number; y0: number; x1: number; y1: number };
-type Item = { kind: 'line'; l: Line } | { kind: 'fig'; f: Fig };
+type Box = { x0: number; y0: number; x1: number; y1: number };
+type Fig = Box;
+/** A piece of a line: text with its marks, or a piece the PDF gives no text for (a formula in a font without a Unicode
+ *  map) — drawn as a small picture in the line. */
+type Run = { t: string; sup?: boolean; sub?: boolean; b?: boolean; i?: boolean } | { pic: Box; html?: string };
+export type Line = Box & {
+  size: number; bold: boolean; italic: boolean;
+  /** the plain text (U+FFFC where a piece is drawn as a picture) */
+  text: string;
+  runs: Run[];
+  /** baseline of the line's main text; top and bottom of that text (without raised or lowered marks) */
+  base: number; cy0: number; cy1: number;
+  /** characters other than spaces; of them, without a Unicode meaning (U+FFFD, private use, controls); in a maths font */
+  chars: number; bad: number; math: number;
+  /** stretches of the line between gaps of more than an em (a table row's cells) */
+  frags: Array<[number, number]>;
+};
+type Item =
+  | { kind: 'line'; l: Line }
+  | { kind: 'fig'; f: Fig }
+  | { kind: 'table'; f: Fig }
+  | { kind: 'eq'; f: Fig; label: string; lines: Line[] }
+  | { kind: 'hr'; f: Fig };
 type Phase = 'read' | 'pages';
 
 export const DEVICES = { paperwhite: 1236, scribe: 1860 } as const;
@@ -41,12 +77,22 @@ const NOT_XML = /[^\t\n\r\u0020-\u007E\u00A0-\uD7FF\uE000-\uFFFD\u{10000}-\u{10F
 export const xmlText = (s: string) => s.replace(NOT_XML, '');
 const esc = (s: string) => xmlText(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
 const median = (a: number[]) => { if (!a.length) return 0; const b = [...a].sort((x, y) => x - y); return b[b.length >> 1]; };
-/** A line whose text cannot be read: more than a tenth of it is U+FFFD, private-use or control characters (a font
- *  without a Unicode map — often the symbols of a formula). */
-const garbled = (t: string) => { const bad = (t.match(/[\uFFFD\uE000-\uF8FF\u0000-\u0008]/g) || []).length; return bad > 0 && bad / t.length > 0.1; };
+/** Characters without a Unicode meaning: what a font without a Unicode map gives (often the symbols of a formula). */
+const BAD = /[\uFFFD\uE000-\uF8FF\u0000-\u0008]/g;
+/** Fonts of mathematics: TeX's (CMMI, CMSY, CMEX, AMS, Latin Modern Math …), Word's Cambria Math, STIX, Symbol, MathType's. */
+const MATH_FONT = /^(?:CM(?:MI|SY|EX|BSY|MIB)\d*|MSAM|MSBM|EU[FSRB][MB]?\d*|RSFS|LM(?:Math|MathItalic|MathSymbols|MathExtension)|LatinModernMath|STIX|XITS|Cambria ?Math|Asana|TeXGyre\w*Math|NewCM\w*Math|Fira ?Math|Libertinus ?Math|Symbol|MT ?(?:SY|MI|EX|Extra)|Euclid|t[xp](?:sy|ex|mi)|ntx(?:sy|mi|ex)|zxlr|esint|wasy|stmary|bbold|dsrom|MathJax|\w*Math\b)/i;
+/** An equation's number on its own: (3), (S12), (2.1a), (7'), [4], "Equation 7'.", "Eq. (5)". */
+const LABEL = /^\s*(?:\(\s*[A-Za-z]{0,2}\s*\d+(?:[.-]\d+)*\s*[a-z]?\s*['′]*\s*\)|\[\s*\d+(?:\.\d+)*[a-z]?\s*\]|(?:Equation|Eqn?\.?)\s*\(?\s*[A-Z]{0,2}\d+(?:\.\d+)*[a-z]?['′]*\s*\)?\.?)\s*$/i;
 /** A page number on its own: 12, "Page 12", "12 of 30", "– 12 –", or a Roman numeral (xiv — not "ill" or "civil"). */
 export const pageNumberLike = /^\s*[-–—]?\s*(?:page\s*)?(?:\d{1,6}|(?=[ivxlcdm])m{0,3}(?:cm|cd|d?c{0,3})(?:xc|xl|l?x{0,3})(?:ix|iv|v?i{0,3}))(?:\s*(?:of|\/)\s*\d+)?\s*[-–—]?\s*$/i;
 const tick = () => new Promise<void>((r) => setTimeout(r, 0));
+const union = (a: Box, b: Box): Box => ({ x0: Math.min(a.x0, b.x0), y0: Math.min(a.y0, b.y0), x1: Math.max(a.x1, b.x1), y1: Math.max(a.y1, b.y1) });
+const unionAll = (bs: Box[]): Box => bs.reduce(union);
+const area = (b: Box) => Math.max(0, b.x1 - b.x0) * Math.max(0, b.y1 - b.y0);
+const touches = (a: Box, b: Box, pad = 0) => a.x0 <= b.x1 + pad && b.x0 <= a.x1 + pad && a.y0 <= b.y1 + pad && b.y0 <= a.y1 + pad;
+const inside = (b: Box, f: Box, pad = 1) => b.x0 >= f.x0 - pad && b.x1 <= f.x1 + pad && b.y0 >= f.y0 - pad && b.y1 <= f.y1 + pad;
+const centreIn = (b: Box, f: Box, pad = 0) => { const cx = (b.x0 + b.x1) / 2, cy = (b.y0 + b.y1) / 2; return cx >= f.x0 - pad && cx <= f.x1 + pad && cy >= f.y0 - pad && cy <= f.y1 + pad; };
+const box = (b: Box): Box => ({ x0: b.x0, y0: b.y0, x1: b.x1, y1: b.y1 });
 
 /** The PDF's language (/Lang of its catalogue) when it is a language tag, else English. */
 export function pdfLang(doc: any): string {
@@ -56,46 +102,201 @@ export function pdfLang(doc: any): string {
   } catch { return 'en'; }
 }
 
-/** The lines of a page: MuPDF's spans (each in one font) joined into lines, with the size and weight most of the
- *  line's characters have — a line that starts with a bold word ("Theorem 1.") is not a bold line. Lines that run up
- *  or down the page (a stamp in the margin: arXiv's, the Federal Register's) are kept apart. */
+/** TeX sets an accent as a glyph of its own before its letter (\\"o: "¨" then "o") and ≠ as "=" with a slash drawn over
+ *  it (MuPDF puts the slash after the letter before the sign): both are put together again — "Gröbner", "a ≠ 0". A
+ *  cedilla and an ogonek come after their letter. Not in monospace text (code: a backtick is a backtick). */
+const ACCENT_BEFORE: Record<string, string> = { '¨': '\u0308', '´': '\u0301', '`': '\u0300', 'ˆ': '\u0302', '˜': '\u0303', '¯': '\u0304', '˘': '\u0306', '˙': '\u0307', '˚': '\u030A', 'ˇ': '\u030C', '˝': '\u030B' };
+const ACCENT_AFTER: Record<string, string> = { '¸': '\u0327', '˛': '\u0328' };
+export function fixTeX(t: string, mono = false): string {
+  let s = t.replace(/([¨´`ˆ˜¯˘˙˚ˇ˝])(\p{L})/gu, (m, a: string, l: string) => (mono && a === '`' ? m : l + ACCENT_BEFORE[a]));
+  s = s.replace(/(\p{L})([¸˛])/gu, (_m, l: string, a: string) => l + ACCENT_AFTER[a]);
+  s = s.replace(/\u0338(\s*)([=<>∈∋≡∼≃≈⊂⊃⊆⊇∃])/g, '$1$2\u0338');
+  return s.normalize('NFC');
+}
+
+type Span = Box & { size: number; base: number; bold: boolean; italic: boolean; fam: string; math: boolean; text: string; n: number; bad: number; pic: boolean; script: 0 | 1 | -1 };
+type Acc = { spans: Span[]; ms: number; cy0: number; cy1: number; x0: number; x1: number };
+
+/** The lines of a page. MuPDF's spans (each in one font) are joined into lines across its blocks — a block may end in
+ *  the middle of a line —, raised and lowered marks (a footnote number, an exponent, a fraction's parts in a line) with
+ *  the line they belong to; a line takes the size and the weight most of its characters have (a line that starts with
+ *  a bold word, "Theorem 1.", is not a bold line). Spans whose characters have no Unicode meaning become pictures in
+ *  the line. Lines that run up or down the page (a stamp in the margin: arXiv's, the Federal Register's) are kept apart. */
 export function readPage(page: any, W: number, H: number): { lines: Line[]; vertical: Line[]; images: Fig[] } {
   const j = JSON.parse(page.toStructuredText('preserve-images,preserve-whitespace,preserve-spans').asJSON());
-  const lines: Line[] = [], vertical: Line[] = [], images: Fig[] = [];
-  type Acc = Line & { sizes: Map<number, number>; boldN: number; italicN: number; n: number };
+  const images: Fig[] = [], spans: Span[] = [], byFam = new Map<string, number>();
   for (const b of j.blocks || []) {
     if (b.type === 'image') { images.push({ x0: b.bbox.x, y0: b.bbox.y, x1: b.bbox.x + b.bbox.w, y1: b.bbox.y + b.bbox.h }); continue; }
-    let cur: Acc | null = null;
-    const close = () => {
-      if (!cur) return;
-      const c = cur; cur = null;
-      const text = c.text.replace(/\s+/g, ' ').trim();
-      if (!text || c.x1 < 0 || c.x0 > W || c.y1 < 0 || c.y0 > H) return;            // nothing, or off the page
-      let size = c.size, most = -1; for (const [s, k] of c.sizes) if (k > most || (k === most && s > size)) { most = k; size = s; }
-      const l: Line = { x0: Math.max(0, c.x0), y0: Math.max(0, c.y0), x1: Math.min(W, c.x1), y1: Math.min(H, c.y1), size, bold: c.boldN >= 0.85 * c.n, italic: c.italicN >= 0.85 * c.n, text };
-      const h = l.y1 - l.y0;
-      (h > 2.5 * size && h > 3 * (l.x1 - l.x0) ? vertical : lines).push(l);
-    };
     for (const s of b.lines || []) {
-      const raw = String(s.text || ''); if (!raw.trim()) continue;
-      const sp = { x0: s.bbox.x, y0: s.bbox.y, x1: s.bbox.x + s.bbox.w, y1: s.bbox.y + s.bbox.h, size: s.font?.size || 10, bold: s.font?.weight === 'bold', italic: s.font?.style === 'italic' };
-      const n = raw.replace(/\s/g, '').length;
-      const c: Acc | null = cur;
-      // the next span of the same line: on the same baseline, after the last one, not far off (MuPDF also breaks a
-      // justified line at wide word gaps)
-      const same = !!c && Math.min(c.y1, sp.y1) - Math.max(c.y0, sp.y0) > 0.6 * Math.min(c.y1 - c.y0, sp.y1 - sp.y0) && sp.x0 > c.x1 - 0.3 * sp.size && sp.x0 - c.x1 < sp.size * 3;
-      if (c && same) {
-        // a space where the PDF leaves a gap and gives none (a new span right after a word: "x²", "Abstract." + text)
-        if (!/\s$/.test(c.text) && !/^\s/.test(raw) && sp.x0 - c.x1 > 0.15 * sp.size) c.text += ' ';
-        c.text += raw; c.x1 = Math.max(c.x1, sp.x1); c.y0 = Math.min(c.y0, sp.y0); c.y1 = Math.max(c.y1, sp.y1);
-      } else { close(); cur = { ...sp, text: raw, sizes: new Map(), boldN: 0, italicN: 0, n: 0 }; }
-      const a = cur!;
-      a.sizes.set(sp.size, (a.sizes.get(sp.size) || 0) + n); a.n += n;
-      if (sp.bold) a.boldN += n; if (sp.italic) a.italicN += n;
+      if (!String(s.text || '').trim()) continue;
+      const name = String(s.font?.name || '').replace(/#20/g, ' ').replace(/^[A-Z]{6}\+/, '');
+      const text = fixTeX(String(s.text), /TT|Mono|Courier|Consol|Typewriter/i.test(name));
+      const fam = name.replace(/[-,+].*$/, '').replace(/\d+$/, ''), n = text.replace(/\s/g, '').length, size = s.font?.size || 10;
+      const x0 = s.bbox.x, y0 = s.bbox.y, x1 = x0 + s.bbox.w, y1 = y0 + s.bbox.h;
+      spans.push({ x0, y0, x1, y1, size, base: Number.isFinite(s.y) ? s.y : y1 - 0.22 * size, bold: s.font?.weight === 'bold', italic: s.font?.style === 'italic', fam, math: MATH_FONT.test(name) || /^CMR$/i.test(fam), text, n, bad: (text.match(BAD) || []).length, pic: false, script: 0 });
+      byFam.set(fam, (byFam.get(fam) || 0) + n);
     }
-    close();
   }
+  // the face most of the page is set in is its text whatever its name (plain LaTeX sets its text in CMR)
+  const bodyFam = [...byFam].sort((a, b) => b[1] - a[1])[0]?.[0];
+  for (const s of spans) { if (s.fam === bodyFam) s.math = false; s.pic = s.bad > 0 && (s.bad >= 0.3 * s.n || s.n <= 4); }
+
+  const lines: Line[] = [], vertical: Line[] = [];
+  const start = (s: Span): Acc => ({ spans: [s], ms: s.size, cy0: s.y0, cy1: s.y1, x0: s.x0, x1: s.x1 });
+  const grow = (a: Acc, s: Span) => {
+    a.spans.push(s); a.x0 = Math.min(a.x0, s.x0); a.x1 = Math.max(a.x1, s.x1);
+    if (s.size > a.ms) {
+      a.ms = s.size; a.cy0 = Infinity; a.cy1 = -Infinity; // the main text: spans of at least 0.8 of the largest size
+      for (const x of a.spans) if (x.size >= 0.8 * a.ms) { a.cy0 = Math.min(a.cy0, x.y0); a.cy1 = Math.max(a.cy1, x.y1); }
+    } else if (s.size >= 0.8 * a.ms) { a.cy0 = Math.min(a.cy0, s.y0); a.cy1 = Math.max(a.cy1, s.y1); }
+  };
+  const fits = (a: Acc, s: Span) => {
+    const last = a.spans[a.spans.length - 1], small = s.size < 0.8 * a.ms;
+    // not back to the left (a smaller mark may stand a little before the last one: a fraction's parts), and not more than
+    // 1.5 em to the right: wider gaps are a column's gutter (two-column papers leave about 18 pt — equations side by side
+    // in both columns came as one run of spans), a table's next cell or an equation's number
+    if (s.x0 < last.x0 - (small ? 1.5 * s.size : 0.5) || s.x0 - a.x1 > 1.5 * Math.max(s.size, a.ms)) return false;
+    if (!small) { const ov = Math.min(a.cy1, s.y1) - Math.max(a.cy0, s.y0); return ov > 0.6 * Math.min(a.cy1 - a.cy0, s.y1 - s.y0); }
+    // a smaller span close beside the line, at most ¾ em above or below its text: a raised / lowered mark
+    return s.y0 >= a.cy0 - 0.75 * a.ms && s.y1 <= a.cy1 + 0.75 * a.ms && s.x0 - a.x1 <= 0.8 * a.ms;
+  };
+  const close = (a: Acc) => {
+    const ss = a.spans;
+    // the line's size: the largest that holds a quarter of its characters at least (its many small sub- and superscripts
+    // do not make a line of maths a small line), and the baseline of the longest span of that size
+    const bySize = new Map<number, number>(); for (const s of ss) bySize.set(s.size, (bySize.get(s.size) || 0) + s.n);
+    const all = ss.reduce((k, s) => k + s.n, 0);
+    let size = ss[0].size, most = -1; for (const [z, k] of bySize) if (k > most || (k === most && z > size)) { most = k; size = z; }
+    for (const [z, k] of [...bySize].sort((p, q) => q[0] - p[0])) if (k >= 0.25 * all) { size = z; break; }
+    const mains = ss.filter((s) => Math.abs(s.size - size) <= 0.5);
+    let base = mains[0].base, bn = -1; for (const s of mains) if (s.n > bn) { bn = s.n; base = s.base; }
+    const cy0 = Math.min(...mains.map((s) => s.y0)), cy1 = Math.max(...mains.map((s) => s.y1));
+    // a raised / lowered mark: smaller, and off the baseline — by its origin, or by its box (a rise MuPDF's origin does not show)
+    const mid = (cy0 + cy1) / 2;
+    for (const s of ss) {
+      const off = Math.abs(s.base - base) > 0.12 * size ? s.base - base : Math.abs((s.y0 + s.y1) / 2 - mid) > 0.2 * size ? (s.y0 + s.y1) / 2 - mid : 0;
+      s.script = s.size <= 0.85 * size && off ? (off < 0 ? 1 : -1) : 0;
+    }
+    // what stands between two pictures and belongs to their formula (a bracket, a digit, a mark, a maths letter) is
+    // drawn with them; and a raised / lowered mark right after a picture is its own (an exponent)
+    for (let i = 1; i < ss.length - 1; i++) if (!ss[i].pic && ss[i - 1].pic && ss[i + 1].pic && (ss[i].math || ss[i].script || /^[\s\d()[\]{}=+\-−×·.,;:'′^_|/<>]{0,3}$/.test(ss[i].text))) ss[i].pic = true;
+    for (let i = 1; i < ss.length; i++) if (!ss[i].pic && ss[i].script && ss[i - 1].pic && ss[i].x0 - ss[i - 1].x1 < 0.3 * size) ss[i].pic = true;
+    const runs: Run[] = [];
+    let prevX1 = -Infinity;
+    for (const s of ss) {
+      const r = runs[runs.length - 1];
+      if (s.pic) {
+        if (r && 'pic' in r && s.x0 - r.pic.x1 < 0.6 * size) r.pic = union(r.pic, s);
+        else {
+          if (r && !('pic' in r) && !/[\s([{‘“'"/]$/.test(r.t)) r.t += ' '; // a formula is a word of its own
+          runs.push({ pic: box(s) });
+        }
+      } else {
+        let t = s.text;
+        if (r) {
+          const gap = s.x0 - prevX1;
+          if ('pic' in r) { if (!/^[\s.,;:!?)\]}’”'"%]/.test(t)) t = ' ' + t; }
+          // a space where the PDF leaves a gap and gives none — but none before a raised or lowered mark
+          else if (!/\s$/.test(r.t) && !/^\s/.test(t) && gap > 0.15 * s.size && !(s.script && gap < 0.35 * size)) t = ' ' + t;
+        }
+        const f = { sup: s.script === 1, sub: s.script === -1, b: s.bold, i: s.italic };
+        if (s.script) t = t.trim();                                    // a mark keeps no space of its own inside <sup>
+        if (r && !('pic' in r) && !!r.sup === f.sup && !!r.sub === f.sub && !!r.b === f.b && !!r.i === f.i) r.t += t;
+        else runs.push({ t, ...(f.sup ? { sup: true } : {}), ...(f.sub ? { sub: true } : {}), ...(f.b ? { b: true } : {}), ...(f.i ? { i: true } : {}) });
+      }
+      prevX1 = Math.max(prevX1, s.x1);
+    }
+    // white space at the ends of the line and runs of it inside; a slash over a sign two spans brought together
+    for (const r of runs) if (!('pic' in r)) r.t = r.t.replace(/\s+/g, ' ').replace(/\u0338(\s*)([=<>∈∋≡∼≃≈⊂⊃⊆⊇∃])/g, '$1$2\u0338').normalize('NFC');
+    const first = runs[0], last = runs[runs.length - 1];
+    if (first && !('pic' in first)) first.t = first.t.replace(/^\s+/, '');
+    if (last && !('pic' in last)) last.t = last.t.replace(/\s+$/, '');
+    const keep = runs.filter((r) => 'pic' in r || r.t);
+    // a slash drawn over a relation sign that MuPDF put at the end of the span before it (an italic "a", a superscript):
+    // onto the sign (a ≠ 0, b² ≠ 0, N) ≠ ∅)
+    for (let k = 0; k < keep.length - 1; k++) {
+      const r = keep[k], q = keep[k + 1];
+      if ('pic' in r || 'pic' in q) continue;
+      const m = /\u0338(\s*)$/.exec(r.t);
+      if (m && /^\s*[=<>∈∋≡∼≃≈⊂⊃⊆⊇∃]/.test(q.t)) { r.t = r.t.slice(0, m.index) + m[1]; q.t = q.t.replace(/^(\s*)([=<>∈∋≡∼≃≈⊂⊃⊆⊇∃])/, '$1$2\u0338').normalize('NFC'); }
+    }
+    const text = keep.map((r) => ('pic' in r ? '\uFFFC' : r.t)).join('');
+    if (!text.trim() || a.x1 < 0 || a.x0 > W || Math.max(...ss.map((s) => s.y1)) < 0 || Math.min(...ss.map((s) => s.y0)) > H) return; // nothing, or off the page
+    const n = ss.reduce((k, s) => k + s.n, 0);
+    const sorted = [...ss].sort((p, q) => p.x0 - q.x0), frags: Array<[number, number]> = [];
+    for (const s of sorted) { const f = frags[frags.length - 1]; if (f && s.x0 - f[1] <= 1.2 * size) f[1] = Math.max(f[1], s.x1); else frags.push([s.x0, s.x1]); }
+    const l: Line = {
+      x0: Math.max(0, a.x0), y0: Math.max(0, Math.min(...ss.map((s) => s.y0))), x1: Math.min(W, a.x1), y1: Math.min(H, Math.max(...ss.map((s) => s.y1))),
+      size, bold: ss.reduce((k, s) => k + (s.bold ? s.n : 0), 0) >= 0.85 * n, italic: ss.reduce((k, s) => k + (s.italic ? s.n : 0), 0) >= 0.85 * n,
+      text, runs: keep, base, cy0, cy1, chars: n, bad: ss.reduce((k, s) => k + s.bad, 0), math: ss.reduce((k, s) => k + (s.math || s.pic ? s.n : 0), 0), frags,
+    };
+    const h = l.y1 - l.y0;
+    (h > 2.5 * size && h > 3 * (l.x1 - l.x0) ? vertical : lines).push(l);
+  };
+  let a: Acc | null = null;
+  for (const s of spans) {
+    if (a && fits(a, s)) {
+      const last = a.spans[a.spans.length - 1];
+      // the same text printed again a hair to the right (bold made by printing twice): once is enough
+      if (s.text.trim() === last.text.trim() && Math.abs(s.x0 - last.x0) < 0.25 * s.size && Math.abs(s.base - last.base) < 0.25 * s.size) continue;
+      grow(a, s);
+    } else { if (a) close(a); a = start(s); }
+  }
+  if (a) close(a);
   return { lines, vertical, images };
+}
+
+/** The straight ruled lines a page draws (table borders, rules, fraction bars), through a device of our own run over the
+ *  page: thin filled rectangles (how Word and InDesign draw a table's borders), thin stroked paths, and the straight
+ *  sides of other stroked paths (a cell drawn as a rectangle). Collinear pieces are joined.
+ *  Over the page, not its display list: a display list hands a device "packed" paths, which MuPDF says must never be kept
+ *  or dropped — and mupdf.js keeps and drops every path it gives a JavaScript device (the heap was corrupted, 21 Nov 2026). */
+export function readRules(m: any, page: any): { h: Box[]; v: Box[] } {
+  const h: Box[] = [], v: Box[] = [];
+  const thin = (b: number[]) => {
+    const w = b[2] - b[0], ht = b[3] - b[1];
+    if (ht <= 2.5 && w >= 3) { h.push({ x0: b[0], y0: b[1], x1: b[2], y1: b[3] }); return true; }
+    if (w <= 2.5 && ht >= 3) { v.push({ x0: b[0], y0: b[1], x1: b[2], y1: b[3] }); return true; }
+    return false;
+  };
+  let budget = 100000; // straight pieces walked on a page at most (a plot of a million points has no table in it)
+  const dev = new m.Device({
+    fillPath(path: any, _eo: boolean, ctm: number[]) { try { thin(path.getBounds(null, ctm)); } catch { /* a path MuPDF cannot measure */ } },
+    strokePath(path: any, stroke: any, ctm: number[]) {
+      try {
+        if (thin(path.getBounds(stroke, ctm)) || budget <= 0) return;
+        const lw = Math.max(0.3, (stroke.getLineWidth?.() || 1) * Math.hypot(ctm[0], ctm[1]));
+        const xf = (x: number, y: number) => [x * ctm[0] + y * ctm[2] + ctm[4], x * ctm[1] + y * ctm[3] + ctm[5]];
+        let sx = 0, sy = 0, px = 0, py = 0;
+        const seg = (ax: number, ay: number, bx: number, by: number) => {
+          if (--budget < 0) return;
+          if (Math.abs(by - ay) <= 0.5 && Math.abs(bx - ax) >= 3) h.push({ x0: Math.min(ax, bx), y0: (ay + by) / 2 - lw / 2, x1: Math.max(ax, bx), y1: (ay + by) / 2 + lw / 2 });
+          else if (Math.abs(bx - ax) <= 0.5 && Math.abs(by - ay) >= 3) v.push({ x0: (ax + bx) / 2 - lw / 2, y0: Math.min(ay, by), x1: (ax + bx) / 2 + lw / 2, y1: Math.max(ay, by) });
+        };
+        path.walk({
+          moveTo(x: number, y: number) { [px, py] = xf(x, y); sx = px; sy = py; },
+          lineTo(x: number, y: number) { const [qx, qy] = xf(x, y); seg(px, py, qx, qy); px = qx; py = qy; },
+          curveTo(_a: number, _b: number, _c: number, _d: number, x: number, y: number) { [px, py] = xf(x, y); },
+          closePath() { seg(px, py, sx, sy); px = sx; py = sy; },
+        });
+      } catch { /* as above */ }
+    },
+  });
+  try { page.run(dev, m.Matrix.identity); } finally { try { dev.close(); } catch { /* closed */ } dev.destroy?.(); }
+  // pieces of one rule (Word draws a row's border cell by cell) become one
+  const join = (rs: Box[], dir: 'h' | 'v') => {
+    const s = [...rs].sort((p, q) => (dir === 'h' ? p.y0 - q.y0 || p.x0 - q.x0 : p.x0 - q.x0 || p.y0 - q.y0)), out: Box[] = [];
+    for (const r of s) {
+      let at: Box | undefined;
+      for (let k = out.length - 1; k >= 0 && !at; k--) {
+        const q = out[k];
+        if (dir === 'h' ? Math.abs((q.y0 + q.y1) / 2 - (r.y0 + r.y1) / 2) <= 1 && r.x0 <= q.x1 + 2.5 : Math.abs((q.x0 + q.x1) / 2 - (r.x0 + r.x1) / 2) <= 1 && r.y0 <= q.y1 + 2.5) at = q;
+      }
+      if (at) Object.assign(at, union(at, r)); else out.push({ ...r });
+    }
+    return out;
+  };
+  return { h: join(h, 'h'), v: join(v, 'v') };
 }
 
 /** Running headers / footers: lines near the top or bottom that repeat (digits ignored) on many pages, and bare page numbers. */
@@ -112,13 +313,38 @@ function headerKeys(pages: Array<{ lines: Line[]; H: number }>) {
   return (l: Line, H: number) => (l.y1 < H * 0.1 || l.y0 > H * 0.9) && (pageNumberLike.test(l.text) || (count.get(key(l)) || 0) >= min);
 }
 
-/** Paragraphs and headings from the lines of one column, in order. */
+/** A line's HTML: its text escaped, raised / lowered marks as <sup> / <sub>, italic and bold (not in a heading), and its
+ *  formula pictures (made before). */
+function lineHtml(l: Line, marks: boolean, dehyphen = false): string {
+  let out = '';
+  const runs = l.runs;
+  for (const [k, r] of runs.entries()) {
+    if ('pic' in r) { out += r.html || ''; continue; }
+    let t = r.t;
+    if (dehyphen && k === runs.length - 1) t = t.replace(/[-\u00AD]$/, '');
+    let s = esc(t);
+    if (marks && r.i) s = `<i>${s}</i>`;
+    if (marks && r.b) s = `<b>${s}</b>`;
+    if (r.sup) s = `<sup>${s}</sup>`; else if (r.sub) s = `<sub>${s}</sub>`;
+    out += s;
+  }
+  return out;
+}
+
+/** Paragraphs and headings from the lines of one part of a page, in order. A short line that ends without a full stop
+ *  keeps its line break (an address, a list of names, a title block); a hyphen at a line's end joins the word. */
 function toHtml(lines: Line[], body: number, pagePitch: number): string {
   const out: string[] = [];
   // line pitch (top to top) is steadier than the gaps between line boxes
-  const pitch = pagePitch || body * 1.2, width = Math.max(...lines.map((l) => l.x1)) - Math.min(...lines.map((l) => l.x0));
-  let para = '', kind: 'p' | 'h' = 'p', prev: Line | null = null, hsize = 0;
-  const flush = () => { if (para.trim()) out.push(kind === 'h' ? `<h${hsize >= body * 1.6 ? 2 : 3}>${esc(para.trim())}</h${hsize >= body * 1.6 ? 2 : 3}>` : `<p>${esc(para.trim())}</p>`); para = ''; };
+  const pitch = pagePitch || body * 1.2, left = Math.min(...lines.map((l) => l.x0)), width = Math.max(...lines.map((l) => l.x1)) - left;
+  let para: Array<{ l: Line; join: string; cut: boolean }> = [], kind: 'p' | 'h' = 'p', prev: Line | null = null, hsize = 0;
+  const flush = () => {
+    if (!para.length) return;
+    const isH = kind === 'h';
+    const html = para.map((x, k) => (k ? x.join : '') + lineHtml(x.l, !isH, x.cut)).join('').trim();
+    if (html) out.push(isH ? `<h${hsize >= body * 1.6 ? 2 : 3}>${html}</h${hsize >= body * 1.6 ? 2 : 3}>` : `<p>${html}</p>`);
+    para = [];
+  };
   const head = lines.map((l) => l.size >= body * 1.18 || (l.bold && l.text.length < 80 && !/[.,;:]$/.test(l.text) && /^[\p{Lu}\d]/u.test(l.text)));
   // more than three such lines of one size in a row are text set larger than most of the page (a page that is mostly
   // footnotes), not a heading
@@ -130,13 +356,19 @@ function toHtml(lines: Line[], body: number, pagePitch: number): string {
   }
   for (const [li, l] of lines.entries()) {
     const isHead = head[li];
-    const newBlock = !prev || isHead !== (kind === 'h') || (isHead && Math.abs(l.size - hsize) > 0.5) || (Math.abs(l.size - prev.size) > 0.8 && /[.!?:"”)]$/.test(prev.text)) // caption → text (OCR layers vary the size line by line, so only after a sentence end)
-      || l.y0 - prev.y0 > pitch * 1.35 + 0.5                                                                    // blank space
-      || (!isHead && /[.!?:"”)]$/.test(prev.text) && (l.x0 > prev.x0 + body * 0.8 || prev.x1 < prev.x0 + width * 0.8)); // indent / short last line
-    if (newBlock) { flush(); kind = isHead ? 'h' : 'p'; hsize = l.size; para = l.text; }
-    else if (/\p{L}{2,}[-\u00ad]$/u.test(para) && /^\p{Ll}/u.test(l.text)) para = para.replace(/[-\u00ad]$/, '') + l.text; // de-hyphenate ("experi-ment")
-    else if (/[-\u00ad]$/.test(para)) para += l.text; // "e-reader": a one-letter prefix keeps its hyphen
-    else para += ' ' + l.text;
+    const ends = (p: Line) => /[.!?:"”)\]]$/.test(p.text);
+    const newBlock = !prev || isHead !== (kind === 'h') || (isHead && Math.abs(l.size - hsize) > 0.5) || (Math.abs(l.size - prev.size) > 0.8 && ends(prev)) // caption → text (OCR layers vary the size line by line, so only after a sentence end)
+      || (l.cy0 - prev.cy0 > pitch * 1.35 + 0.5 && l.y0 - prev.y1 > 0.35 * pitch)                                 // blank space (a line with a tall formula has more room above it, but no gap)
+      || (!isHead && ends(prev) && (l.x0 > prev.x0 + body * 0.8 || prev.x1 < prev.x0 + width * 0.8));               // indent / short last line
+    if (newBlock) { flush(); kind = isHead ? 'h' : 'p'; hsize = l.size; para = [{ l, join: '', cut: false }]; }
+    else {
+      const pt = prev!.text;
+      let join = ' ';
+      if (/\p{L}{2,}[-\u00AD]$/u.test(pt) && /^\p{Ll}/u.test(l.text)) { join = ''; para[para.length - 1].cut = true; } // de-hyphenate ("experi-ment")
+      else if (/[-\u00AD]$/.test(pt)) join = '';                                                   // "e-reader": a one-letter prefix keeps its hyphen
+      else if (!isHead && prev!.x1 < left + width * 0.7 && !/[,;]$/.test(pt)) join = '<br/>';      // a short line: its break is the author's
+      para.push({ l, join, cut: false });
+    }
     prev = l;
   }
   flush();
@@ -155,6 +387,123 @@ function mergeBoxes(boxes: Fig[], pad = 4): Fig[] {
         out.splice(b, 1); again = true; break;
       }
     }
+  }
+  return out;
+}
+
+/** Rows of lines: the lines on one baseline. */
+function rowsOf(lines: Line[]): Line[][] {
+  const rows: Line[][] = [];
+  for (const l of [...lines].sort((a, b) => a.base - b.base || a.x0 - b.x0)) {
+    const r = rows[rows.length - 1];
+    if (r && Math.abs(r[0].base - l.base) <= 0.4 * Math.max(r[0].size, l.size)) r.push(l); else rows.push([l]);
+  }
+  return rows;
+}
+/** The cells of a row: the stretches of its lines between gaps of more than an em. */
+const cellsOf = (row: Line[]) => row.reduce((k, l) => k + l.frags.length, 0);
+/** A table's row: two cells or more, and short ones — lines of text columns side by side are long (40 characters and
+ *  more), a table's cells are numbers, names, short phrases. */
+const tableRow = (row: Line[]) => { const c = cellsOf(row); return c >= 2 && row.reduce((k, l) => k + l.text.length, 0) / c <= 30; };
+/** Prose: a long line of words that fills most of its region (rules above and below an abstract make no table). */
+const prose = (l: Line, w: number) => l.text.length >= 50 && l.x1 - l.x0 >= 0.7 * w && l.frags.length === 1;
+
+/** Tables drawn with rules: a grid (rules across and down, touching), or rules across of one extent stacked with rows
+ *  of cells between them (booktabs, Word's simple tables). The region holds the rules and the text inside them. */
+function ruledTables(hr: Box[], vr: Box[], lines: Line[], W: number): Box[] {
+  const out: Box[] = [];
+  const valid = (r: Box) => {
+    const ins = lines.filter((l) => centreIn(l, r, 1));
+    if (ins.length < 2) return false;
+    const rows = rowsOf(ins), multi = rows.filter(tableRow).length;
+    return multi >= 2 && ins.filter((l) => prose(l, r.x1 - r.x0)).length <= 0.3 * ins.length;
+  };
+  // a ruled region grows over the table rows just above and below it (a table that goes on past its last rule — on to the
+  // next page —, or whose top rule is on the page before)
+  const grow = (reg: Box) => {
+    const w = reg.x1 - reg.x0, body = median(lines.map((l) => l.size)) || 10;
+    const near = lines.filter((l) => !centreIn(l, reg, 1) && l.x0 >= reg.x0 - 4 && l.x1 <= reg.x1 + 4);
+    const rows = rowsOf(near), ok = (row: Line[]) => tableRow(row) && !row.some((l) => prose(l, w));
+    let r = reg;
+    for (const row of rows.filter((row) => row[0].y0 >= r.y1 - 1)) { const b = unionAll(row); if (b.y0 - r.y1 <= 2.6 * body && ok(row)) r = union(r, b); else break; }
+    for (const row of rows.filter((row) => row[0].y1 <= reg.y0 + 1).reverse()) { const b = unionAll(row); if (r.y0 - b.y1 <= 2.6 * body && ok(row)) r = union(r, b); else break; }
+    return r;
+  };
+  // grids: rules across and down that touch, at least three of one kind
+  const all = [...hr.map((b) => ({ b, h: true })), ...vr.map((b) => ({ b, h: false }))], up = all.map((_, i) => i);
+  const find = (i: number): number => (up[i] === i ? i : (up[i] = find(up[i])));
+  if (all.length <= 3000) for (let i = 0; i < all.length; i++) for (let k = i + 1; k < all.length; k++) if (all[i].h !== all[k].h && touches(all[i].b, all[k].b, 1.5)) up[find(i)] = find(k);
+  const groups = new Map<number, typeof all>();
+  for (let i = 0; i < all.length; i++) { const g = groups.get(find(i)) || []; g.push(all[i]); groups.set(find(i), g); }
+  const used = new Set<Box>();
+  for (const g of groups.values()) {
+    const nh = g.filter((x) => x.h).length, nv = g.length - nh;
+    if (nh < 2 || nv < 2 || (nh < 3 && nv < 3)) continue;
+    const r = grow(unionAll(g.map((x) => x.b)));
+    if (r.x1 - r.x0 < 40 || r.y1 - r.y0 < 16 || !valid(r)) continue;
+    out.push(r); for (const x of g) used.add(x.b);
+  }
+  // rules across of one extent, stacked: split where prose stands between two of them
+  const free = hr.filter((b) => !used.has(b) && b.x1 - b.x0 >= 50 && !out.some((t) => touches(t, b, 1)));
+  const seen = new Set<Box>();
+  for (const r of free) {
+    if (seen.has(r)) continue;
+    const same = free.filter((q) => !seen.has(q) && Math.abs(q.x0 - r.x0) <= 6 && Math.abs(q.x1 - r.x1) <= 6).sort((p, q) => p.y0 - q.y0);
+    let chain: Box[] = [];
+    const end = () => {
+      // two rules or more; or one long rule with table rows beside it
+      if (chain.length >= 2 || (chain.length === 1 && chain[0].x1 - chain[0].x0 >= 0.4 * W)) {
+        const reg = unionAll(chain), ins = lines.filter((l) => centreIn(l, reg, 1));
+        const t = grow(ins.length ? union(reg, unionAll(ins)) : reg);
+        if (t.y1 - t.y0 >= 8 && valid(t)) { out.push(t); for (const c of chain) seen.add(c); }
+      }
+      chain = [];
+    };
+    for (const q of same) {
+      if (chain.length) {
+        const prev = chain[chain.length - 1], gap: Box = { x0: q.x0, y0: prev.y1, x1: q.x1, y1: q.y0 };
+        if (q.y0 - prev.y1 > 0.6 * 792 || lines.some((l) => centreIn(l, gap) && prose(l, q.x1 - q.x0))) end();
+      }
+      chain.push(q);
+    }
+    end();
+    seen.add(r);
+  }
+  // inner rules shorter than the outer ones (a rule under part of the header) are inside a table already
+  return mergeBoxes(out, 1);
+}
+
+/** Tables without rules: three rows or more in a row, each of three short cells or more, whose cells line up (by their
+ *  left or right edges) in at least three places. Text in columns is no table: its "cells" are long lines. */
+function alignedTables(lines: Line[], W: number, body: number): Box[] {
+  const rows = rowsOf(lines), out: Box[] = [];
+  const tabular = (row: Line[]) => {
+    const fr = row.flatMap((l) => l.frags);
+    if (fr.length < 3) return false;
+    const widths = fr.map((f) => f[1] - f[0]), chars = row.reduce((k, l) => k + l.text.length, 0) / fr.length;
+    return median(widths) <= 0.2 * W && Math.max(...widths) <= 0.45 * W && chars <= 24;
+  };
+  for (let i = 0; i < rows.length;) {
+    if (!tabular(rows[i])) { i++; continue; }
+    let j = i + 1;
+    while (j < rows.length && tabular(rows[j]) && rows[j][0].base - rows[j - 1][0].base <= 2.6 * body) j++;
+    if (j - i >= 3) {
+      const run = rows.slice(i, j), fr = run.map((row) => row.flatMap((l) => l.frags));
+      // edges shared by most rows
+      const support = (edge: 0 | 1) => {
+        const xs = fr.flatMap((f, row) => f.map((c) => [c[edge], row])).sort((a, b) => a[0] - b[0]), cl: number[][][] = [];
+        for (const x of xs) { const c = cl[cl.length - 1]; if (c && x[0] - c[c.length - 1][0] <= 3) c.push(x); else cl.push([x]); }
+        return cl.filter((c) => new Set(c.map((x) => x[1])).size >= 0.6 * run.length).length;
+      };
+      if (Math.max(support(0), support(1)) >= 3) {
+        let reg = unionAll(run.flat());
+        // the header row just above: two cells or more
+        const above = rows[i - 1];
+        if (above && run[0][0].base - above[0].base <= 2.6 * body && cellsOf(above) >= 2 && !above.some((l) => prose(l, reg.x1 - reg.x0))) reg = union(reg, unionAll(above));
+        out.push(reg);
+      }
+    }
+    i = j;
   }
   return out;
 }
@@ -185,6 +534,14 @@ async function appEngines(): Promise<EpubEngines> {
 
 /** Pictures larger than this many pixels (or 16,384 a side) are drawn smaller: they are for an e-reader's screen. */
 const MAX_PIXELS = 32e6;
+const STYLE = `body { margin: 0 3%; line-height: 1.45; } p { margin: 0 0 0.6em; text-indent: 0; text-align: left; } h2, h3 { margin: 1em 0 0.4em; line-height: 1.25; }
+.pgno { font-size: 0.75em; color: #666; margin: 0 0 0.8em; border-bottom: 1px solid #bbb; } .page { page-break-before: always; }
+h4.part { font-size: 0.8em; color: #555; font-weight: bold; margin: 1.8em 0 0.6em; padding-top: 0.5em; border-top: 1px dashed #999; text-transform: none; }
+.pgno + h4.part { margin-top: 0.4em; padding-top: 0; border-top: 0; } p.margin { font-size: 0.75em; color: #555; }
+.fig { text-align: center; margin: 0.6em 0; } .fig img { max-width: 100%; height: auto; } .full img { width: 100%; }
+p.eqno { text-align: right; margin: -0.2em 0 0.8em; font-size: 0.9em; } img.m { max-width: 100%; }
+hr.fn { width: 30%; margin: 1.2em auto 0.6em 0; border: 0; border-top: 1px solid #888; } sup, sub { font-size: 0.7em; line-height: 0; }
+`;
 
 export async function pdfToEpub(doc: any, o: EpubOptions, onProgress?: (done: number, of: number, phase: Phase) => void, engines?: EpubEngines): Promise<{ epub: Uint8Array; report: PageReport[] }> {
   const { m, tc, ip, jpeg } = engines || await appEngines();
@@ -194,33 +551,38 @@ export async function pdfToEpub(doc: any, o: EpubOptions, onProgress?: (done: nu
   const n = doc.countPages(), list = (o.pages?.length ? o.pages : Array.from({ length: n }, (_, i) => i)).filter((i) => i >= 0 && i < n);
   if (!list.length) throw new Error(n ? 'None of the chosen pages is in this PDF.' : 'This PDF has no pages.');
   const lang = pdfLang(doc);
-  // pass 1: text of every chosen page (needed to spot running headers)
+  // pass 1: text of every chosen page (needed to spot running headers) and where its images are (a logo in every footer)
   const pages: Array<{ i: number; p: any; W: number; H: number; lines: Line[]; vertical: Line[]; images: Fig[] }> = [];
+  const imageKey = (b: Fig) => [b.x0, b.y0, b.x1, b.y1].map((v) => Math.round(v / 6)).join(',');
+  const imageCount = new Map<string, number>();
   for (const [k, i] of list.entries()) {
     if (k % 10 === 0) onProgress?.(k, list.length, 'read');
     const p = doc.loadPage(i), [x0, y0, x1, y1] = p.getBounds(), W = x1 - x0, H = y1 - y0;
-    pages.push({ i, p, W, H, ...readPage(p, W, H) });
+    const r = readPage(p, W, H);
+    pages.push({ i, p, W, H, ...r });
+    for (const key of new Set(r.images.filter((b) => b.y1 < H * 0.12 || b.y0 > H * 0.88).map(imageKey))) imageCount.set(key, (imageCount.get(key) || 0) + 1);
     await pause();
   }
   const isHeader = o.removeHeaders ? headerKeys(pages) : () => false;
+  const repeatMin = Math.max(2, Math.ceil(pages.length * 0.4));
   const files: Record<string, any> = {}, report: PageReport[] = [], manifest: string[] = [], spine: string[] = [], toc: TocItem[] = [], fileOfPage = new Map<number, string>();
   let imgNo = 0;
-  const addImage = async (img: Img) => {
+  const addImage = async (img: Img, attrs = 'alt=""') => {
     const bytes = await jpeg(o.grey ? ip.grayscale(img) : img, o.grey);
     alive();
     const name = `images/i${String(++imgNo).padStart(4, '0')}.jpg`;
     files[`OEBPS/${name}`] = [bytes, { level: 0 }]; manifest.push(`<item id="img${imgNo}" href="${name}" media-type="image/jpeg"/>`);
-    return `<img src="${name}" alt=""/>`;
+    return `<img src="${name}" ${attrs}/>`;
   };
   for (const [k, pg] of pages.entries()) {
     onProgress?.(k, pages.length, 'pages');
-    const lines = pg.lines.filter((l) => !isHeader(l, pg.H)), dl = pg.p.toDisplayList();
+    const headers = pg.lines.filter((l) => isHeader(l, pg.H)), lines = pg.lines.filter((l) => !isHeader(l, pg.H)), dl = pg.p.toDisplayList();
     // MuPDF draws a part of the page (in points) at `sc` pixels per point, within MAX_PIXELS
     const draw = (r: Fig, sc: number): Img => {
       const w = Math.max(1, r.x1 - r.x0), h = Math.max(1, r.y1 - r.y0);
       sc = Math.min(sc, 16384 / w, 16384 / h, Math.sqrt(MAX_PIXELS / (w * h)));
-      const x0 = Math.floor(r.x0 * sc), y0 = Math.floor(r.y0 * sc), box = [x0, y0, x0 + Math.max(1, Math.round(w * sc)), y0 + Math.max(1, Math.round(h * sc))];
-      const pix = new m.Pixmap(m.ColorSpace.DeviceRGB, box, false);
+      const x0 = Math.floor(r.x0 * sc), y0 = Math.floor(r.y0 * sc), b = [x0, y0, x0 + Math.max(1, Math.round(w * sc)), y0 + Math.max(1, Math.round(h * sc))];
+      const pix = new m.Pixmap(m.ColorSpace.DeviceRGB, b, false);
       try {
         pix.clear(255);
         const dev = new m.DrawDevice(m.Matrix.identity, pix);
@@ -232,76 +594,244 @@ export async function pdfToEpub(doc: any, o: EpubOptions, onProgress?: (done: nu
     let html = '', rep: PageReport;
     const coverage = pg.images.reduce((a, b) => Math.max(a, ((b.x1 - b.x0) * (b.y1 - b.y0)) / (pg.W * pg.H)), 0);
     const vText = pg.vertical.reduce((a, l) => a + l.text.length, 0), hText = lines.reduce((a, l) => a + l.text.length, 0);
+    const blank = { columns: 0, parts: 0, figures: 0, tables: 0, equations: 0 };
     if (vText > hText) {
       // most of the text runs up or down the page (a table turned on its side): the page as a picture
       html = `<div class="fig full">${await addImage(draw(page, o.width / pg.W))}</div>`;
-      rep = { page: pageNo, columns: 0, figures: 0, how: 'image', note: 'text turned sideways' };
+      rep = { page: pageNo, ...blank, how: 'image', note: 'text turned sideways' };
     } else if (lines.length < 2 && (coverage > 0.5 || !lines.length)) {
       // scanned page without a text layer, or an empty page: the page as a picture
       html = `<div class="fig full">${await addImage(draw(page, o.width / pg.W))}</div>`;
-      rep = { page: pageNo, columns: 0, figures: 0, how: 'image', note: lines.length ? undefined : 'no text layer' };
+      rep = { page: pageNo, ...blank, how: 'image', note: lines.length ? undefined : 'no text layer' };
     } else {
-      // figures: raster images (except a full-page scan under an OCR text layer) + vector drawings found as ink outside the text
+      // a small drawing of the page: where the ink is
       const s2 = 1.5, small = draw(page, s2), sx = small.width / pg.W, sy = small.height / pg.H;
-      // every line's ink is text — also of the running headers left out (or their ink would come back as a "figure")
-      const skip = [...pg.lines, ...pg.vertical].map((l) => [l.x0 * sx - 2, l.y0 * sy - 2, (l.x1 - l.x0) * sx + 4, (l.y1 - l.y0) * sy + 4] as [number, number, number, number]);
-      const ink = ip.inkRegions(small, skip, { thr: 215, dil: 7, minArea: Math.round(36 * 36 * sx * sy) }).map((r) => ({ x0: r.x / sx, y0: r.y / sy, x1: (r.x + r.w) / sx, y1: (r.y + r.h) / sy }));
-      const figs = mergeBoxes([...pg.images.filter((b) => ((b.x1 - b.x0) * (b.y1 - b.y0)) / (pg.W * pg.H) < 0.7), ...ink].filter((f) => f.x1 - f.x0 >= 24 && f.y1 - f.y0 >= 18));
-      // lines inside a figure (labels in a diagram) belong to the figure
-      const textLines = lines.filter((l) => !figs.some((f) => l.x0 >= f.x0 - 1 && l.x1 <= f.x1 + 1 && l.y0 >= f.y0 - 1 && l.y1 <= f.y1 + 1));
+      /** the darkest pixel along a ruled line (a white rule draws nothing) */
+      const visible = (r: Box) => {
+        const y = Math.min(small.height - 1, Math.max(0, Math.round(((r.y0 + r.y1) / 2) * sy))), x = Math.min(small.width - 1, Math.max(0, Math.round(((r.x0 + r.x1) / 2) * sx)));
+        let min = 255;
+        for (let k2 = 0; k2 <= 16; k2++) {
+          const px = r.x1 - r.x0 > r.y1 - r.y0 ? Math.min(small.width - 1, Math.max(0, Math.round((r.x0 + ((r.x1 - r.x0) * k2) / 16) * sx))) : x;
+          const py = r.x1 - r.x0 > r.y1 - r.y0 ? y : Math.min(small.height - 1, Math.max(0, Math.round((r.y0 + ((r.y1 - r.y0) * k2) / 16) * sy)));
+          for (let d = -1; d <= 1; d++) {
+            const yy = Math.min(small.height - 1, Math.max(0, py + (r.x1 - r.x0 > r.y1 - r.y0 ? d : 0))), xx = Math.min(small.width - 1, Math.max(0, px + (r.x1 - r.x0 > r.y1 - r.y0 ? 0 : d)));
+            const i = (yy * small.width + xx) * 4; min = Math.min(min, (small.data[i] + small.data[i + 1] + small.data[i + 2]) / 3);
+          }
+        }
+        return min < 235;
+      };
+      // ruled lines; those of the running header / footer (across the page near its top or bottom) are decoration
+      const band = (b: Box) => b.y1 < pg.H * 0.1 || b.y0 > pg.H * 0.9;
+      const rl = readRules(m, pg.p), hr = rl.h.filter((r) => visible(r) && !(band(r) && r.x1 - r.x0 > 0.5 * pg.W)), vr = rl.v.filter(visible);
+      // tables drawn with rules: their text is theirs
+      // a ruled region with drawn ink inside it besides its rules and its text (curves, marks: a plot's frame) is a figure
+      const drawnIn = (t: Box) => {
+        const y0 = Math.max(0, Math.floor(t.y0 * sy)), y1 = Math.min(small.height, Math.ceil(t.y1 * sy)), x0 = Math.max(0, Math.floor(t.x0 * sx)), x1 = Math.min(small.width, Math.ceil(t.x1 * sx));
+        const masks = [...pg.lines.filter((l) => touches(l, t)), ...hr.filter((r) => touches(r, t)), ...vr.filter((r) => touches(r, t))].map((b) => [b.x0 * sx - 1.5, b.y0 * sy - 1.5, b.x1 * sx + 1.5, b.y1 * sy + 1.5]);
+        let dark = 0;
+        for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) {
+          const i = (y * small.width + x) * 4;
+          if (small.data[i] + small.data[i + 1] + small.data[i + 2] < 450 && !masks.some((m2) => x >= m2[0] && x <= m2[2] && y >= m2[1] && y <= m2[3])) dark++;
+        }
+        return dark > 0.004 * (x1 - x0) * (y1 - y0) + 12;
+      };
+      let tables = ruledTables(hr, vr, lines, pg.W).filter((t) => !drawnIn(t) && !pg.images.some((im) => area(im) > 0 && Math.min(im.x1, t.x1) - Math.max(im.x0, t.x0) > 0 && Math.min(im.y1, t.y1) - Math.max(im.y0, t.y0) > 0.3 * (t.y1 - t.y0)));
+      const inTable = (b: Box) => tables.some((t) => centreIn(b, t, 1));
+      // figures: raster images (except a full-page scan under an OCR text layer, and a logo repeated in the running
+      // header / footer) + vector drawings found as ink outside the text (every line's ink is text — also of the running
+      // headers left out, or their ink would come back as a "figure"), minus rules (a footnote's, a table's)
+      const skip = [...pg.lines, ...pg.vertical, ...tables].map((l) => [l.x0 * sx - 2, l.y0 * sy - 2, (l.x1 - l.x0) * sx + 4, (l.y1 - l.y0) * sy + 4] as [number, number, number, number]);
+      const ink = ip.inkRegions(small, skip, { thr: 215, dil: 7, minArea: Math.round(36 * 36 * sx * sy) }).filter((r) => r.w > 4 && r.h > 4).map((r) => ({ x0: r.x / sx, y0: r.y / sy, x1: (r.x + r.w) / sx, y1: (r.y + r.h) / sy }));
+      const decoration = (f: Fig) => o.removeHeaders && band(f) && ((imageCount.get(imageKey(f)) || 0) >= repeatMin || headers.some((l) => Math.min(l.y1, f.y1) - Math.max(l.y0, f.y0) > 0));
+      let figs = mergeBoxes([...pg.images.filter((b) => ((b.x1 - b.x0) * (b.y1 - b.y0)) / (pg.W * pg.H) < 0.7), ...ink].filter((f) => f.x1 - f.x0 >= 24 && f.y1 - f.y0 >= 18 && !decoration(f) && !inTable(f)));
+      // lines inside a figure (labels in a diagram) and short lines touching it belong to the figure
+      const label = (l: Line, f: Fig) => inside(l, f, 1) || (touches(l, f, 6) && l.text.length <= 40 && l.x1 - l.x0 <= 0.6 * (f.x1 - f.x0) && !/^(fig(ure)?|table|tab\.)\s*\d/i.test(l.text));
+      for (let again = true; again;) {
+        again = false;
+        for (const f of figs) for (const l of lines) if (!inside(l, f, 0.5) && !inTable(l) && label(l, f)) { Object.assign(f, union(f, l)); again = true; }
+        if (again) figs = mergeBoxes(figs);
+      }
+      const inFig = (b: Box) => figs.some((f) => inside(b, f, 1));
+      // pieces drawn as pictures that draw nothing (spaces of a font without a Unicode map: Word's before an equation's
+      // number) are left out
+      const inkIn = (b: Box) => {
+        const y0 = Math.max(0, Math.floor(b.y0 * sy)), y1 = Math.min(small.height, Math.ceil(b.y1 * sy)), x0 = Math.max(0, Math.floor(b.x0 * sx)), x1 = Math.min(small.width, Math.ceil(b.x1 * sx));
+        for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) { const i = (y * small.width + x) * 4; if (small.data[i] + small.data[i + 1] + small.data[i + 2] < 600) return true; }
+        return false;
+      };
+      for (const l of lines) {
+        if (!l.runs.some((r) => 'pic' in r && !inkIn(r.pic))) continue;
+        l.runs = l.runs.filter((r) => !('pic' in r) || inkIn(r.pic));
+        const f = l.runs[0], z = l.runs[l.runs.length - 1];
+        if (f && !('pic' in f)) f.t = f.t.replace(/^\s+/, '');
+        if (z && !('pic' in z)) z.t = z.t.replace(/\s+$/, '');
+        l.text = l.runs.map((r) => ('pic' in r ? '\uFFFC' : r.t)).join('');
+        if (!l.runs.some((r) => 'pic' in r)) l.math = Math.min(l.math, l.chars - l.bad);
+      }
+      let rest = lines.filter((l) => !inTable(l) && !inFig(l));
       // the body text's size: the size most characters of the page have
-      const bySize = new Map<number, number>(); for (const l of textLines) { const k = Math.round(l.size * 2) / 2; bySize.set(k, (bySize.get(k) || 0) + l.text.length); }
+      const bySize = new Map<number, number>(); for (const l of rest) { const k2 = Math.round(l.size * 2) / 2; bySize.set(k2, (bySize.get(k2) || 0) + l.text.length); }
       const body = [...bySize].sort((a, b) => b[1] - a[1] || a[0] - b[0])[0]?.[0] || 10;
-      const items: Item[] = [...textLines.map((l) => ({ kind: 'line' as const, l })), ...figs.map((f) => ({ kind: 'fig' as const, f }))];
+      // tables without rules
+      const aligned = alignedTables(rest, pg.W, body);
+      if (aligned.length) { tables = mergeBoxes([...tables, ...aligned], 1); rest = rest.filter((l) => !inTable(l)); }
+      // display equations: lines mostly in a maths font or without text (a formula), with the parts stacked above and below
+      // them (a fraction's numerator and denominator), and what stands inside them; the equation's number beside it
+      const mathy = (l: Line) => (l.math >= 0.5 * l.chars && l.math >= 2) || (l.runs.length > 0 && l.runs.every((r) => 'pic' in r || !/\p{L}{2}/u.test(r.t)) && l.runs.some((r) => 'pic' in r));
+      const cand = rest.filter((l) => mathy(l) && !LABEL.test(l.text)), up = cand.map((_, i) => i);
+      const find = (i: number): number => (up[i] === i ? i : (up[i] = find(up[i])));
+      for (let i = 0; i < cand.length; i++) for (let k2 = i + 1; k2 < cand.length; k2++) {
+        // distances in ems of the page's text (a formula's pieces are often set small: limits, exponents)
+        const p = cand[i], q = cand[k2], z = Math.max(p.size, q.size, body);
+        const vgap = Math.max(p.y0, q.y0) - Math.min(p.y1, q.y1), hgap = Math.max(p.x0, q.x0) - Math.min(p.x1, q.x1);
+        // on one row, up to 1.5 em apart (the space after a big sum); close above / below; or stacked over each other a little
+        // further apart (the top and bottom of a tall bracket whose middle is drawn as a line, the limits of a sum)
+        const over = Math.min(p.x1, q.x1) - Math.max(p.x0, q.x0);
+        if ((vgap < 0 && hgap <= 1.5 * z) || (vgap <= 0.6 * z && hgap <= 1.0 * z) || (over >= 0.5 * Math.min(p.x1 - p.x0, q.x1 - q.x0) && vgap <= 1.5 * z)) up[find(i)] = find(k2);
+      }
+      const groups0 = new Map<number, Line[]>();
+      for (let i = 0; i < cand.length; i++) { const g = groups0.get(find(i)) || []; g.push(cand[i]); groups0.set(find(i), g); }
+      // the lines of one display (an equation over two lines, an array) are less than an em apart and overlap
+      const gl = [...groups0.values()];
+      for (let again = true; again;) {
+        again = false;
+        for (let i = 0; i < gl.length && !again; i++) for (let k2 = i + 1; k2 < gl.length; k2++) {
+          const p = unionAll(gl[i]), q = unionAll(gl[k2]);
+          const vgap = Math.max(p.y0, q.y0) - Math.min(p.y1, q.y1), over = Math.min(p.x1, q.x1) - Math.max(p.x0, q.x0);
+          if (vgap <= 0.9 * body && over >= 0.3 * Math.min(p.x1 - p.x0, q.x1 - q.x0)) { gl[i] = [...gl[i], ...gl[k2]]; gl.splice(k2, 1); again = true; break; }
+        }
+      }
+      // a line of a paragraph that happens to be mostly maths ("Here δξ₊ = … are the") stays text: a display stands apart,
+      // with more room above and below it than the lines of a paragraph have
+      const inPara = (g: Line[]) => {
+        if (g.length !== 1 || !/\p{L}{3}/u.test(g[0].runs.map((r) => ('pic' in r ? '' : r.t)).join(' '))) return false;
+        const l = g[0], col = rest.filter((o) => o !== l && !cand.includes(o) && o.x0 < l.x1 && o.x1 > l.x0);
+        const above = col.filter((o) => o.y1 <= l.y0 + 1).sort((a2, b2) => b2.y1 - a2.y1)[0], below = col.filter((o) => o.y0 >= l.y1 - 1).sort((a2, b2) => a2.y0 - b2.y0)[0];
+        return (!!above && l.y0 - above.y1 <= 0.5 * body && Math.abs(l.x0 - above.x0) <= 2) || (!!below && below.y0 - l.y1 <= 0.5 * body && Math.abs(l.x0 - below.x0) <= 2);
+      };
+      const groups = new Map(gl.filter((g) => !inPara(g)).map((g, i) => [i, g]));
+      const eqs: Array<Item & { kind: 'eq' }> = [], hrs: Array<Item & { kind: 'hr' }> = [];
+      const taken = new Set<Line>();
+      for (const g of groups.values()) {
+        let f = unionAll(g);
+        // what stands inside the formula (a word in a text font: "cos", "for") is part of it, and so are small pieces right
+        // beside it — the limits under a sum, a denominator or a closing comma set in the text font
+        for (let more = true; more;) {
+          more = false;
+          for (const l of rest) {
+            if (g.includes(l) || taken.has(l) || LABEL.test(l.text) || area(l) <= 0) continue;
+            const ov = Math.max(0, Math.min(l.x1, f.x1) - Math.max(l.x0, f.x0)) * Math.max(0, Math.min(l.y1, f.y1) - Math.max(l.y0, f.y0));
+            const z = Math.max(l.size, g[0].size), small = l.chars <= 6 && !/\p{L}{4}/u.test(l.text);
+            const below = l.y0 >= f.y1 - 1 ? l.y0 - f.y1 : f.y0 - l.y1, beside = l.x0 >= f.x1 - 1 ? l.x0 - f.x1 : f.x0 - l.x1;
+            const near = small && ((below <= 0.8 * z && l.x0 < f.x1 && l.x1 > f.x0) || (beside <= 1.2 * z && Math.min(l.y1, f.y1) - Math.max(l.y0, f.y0) > 0));
+            if (ov >= 0.5 * area(l) || near) { g.push(l); f = union(f, l); more = true; }
+          }
+        }
+        // its number: on the same row, to the right, alone
+        // (with nothing else between them on that row: the number of an equation in the next column is not its number)
+        const between = (l: Line) => rest.some((o) => o !== l && !g.includes(o) && o.x0 >= f.x1 - 1 && o.x1 <= l.x0 + 1 && Math.min(o.y1, l.y1) - Math.max(o.y0, l.y0) > -2 && Math.min(o.y1, f.y1) - Math.max(o.y0, f.y0) > 0);
+        const labels = rest.filter((l) => !g.includes(l) && !taken.has(l) && LABEL.test(l.text) && l.x0 >= f.x1 - 1 && l.x0 - f.x1 < 0.6 * pg.W && (l.y0 + l.y1) / 2 >= f.y0 - 2 && (l.y0 + l.y1) / 2 <= f.y1 + 2 && !between(l));
+        for (const l of g) taken.add(l);
+        for (const l of labels) taken.add(l);
+        // a line that only draws a rule (a footnote's separator made of glyphs) is a rule
+        const inkRows = (() => {
+          const y0 = Math.max(0, Math.floor(f.y0 * sy)), y1 = Math.min(small.height, Math.ceil(f.y1 * sy)), x0 = Math.max(0, Math.floor(f.x0 * sx)), x1 = Math.min(small.width, Math.ceil(f.x1 * sx));
+          let rows = 0;
+          for (let y = y0; y < y1; y++) { let dark = false; for (let x = x0; x < x1 && !dark; x++) { const i = (y * small.width + x) * 4; dark = small.data[i] + small.data[i + 1] + small.data[i + 2] < 600; } if (dark) rows++; }
+          return rows;
+        })();
+        if (g.length === 1 && !labels.length && inkRows <= 3 && f.x1 - f.x0 > 30) { hrs.push({ kind: 'hr', f }); continue; }
+        // a lone speck (a stroke, a dot of a font without a Unicode map, off by itself) is no equation
+        if (!labels.length && f.x1 - f.x0 <= 0.6 * g[0].size && f.y1 - f.y0 <= 1.6 * g[0].size) continue;
+        if (labels.length > 1) { f = union(f, unionAll(labels)); eqs.push({ kind: 'eq', f, label: '', lines: g }); }
+        else eqs.push({ kind: 'eq', f, label: labels[0]?.text || '', lines: g });
+      }
+      rest = rest.filter((l) => !taken.has(l));
+      // a footnote's separator: a short rule at the left of the text with notes under it
+      for (const r of hr) {
+        if (inTable(r) || inFig(r) || eqs.some((e) => touches(e.f, r, 1)) || r.x1 - r.x0 < 30 || r.x1 - r.x0 > 0.5 * pg.W || r.y0 < pg.H * 0.4) continue;
+        if (rest.some((l) => l.y0 - 2 <= r.y1 && l.y1 + 2 >= r.y0 && l.x0 <= r.x1 && l.x1 >= r.x0)) continue;   // a rule in a line: an underline
+        if (hrs.some((h) => Math.abs(h.f.y0 - r.y0) <= 6)) continue;                                            // drawn twice (a glyph line over a rule)
+        if (rest.some((l) => l.y0 >= r.y1 && l.y0 - r.y1 <= 18 && Math.abs(l.x0 - r.x0) <= 12)) hrs.push({ kind: 'hr', f: r });
+      }
+      const items: Item[] = [
+        ...rest.map((l) => ({ kind: 'line' as const, l })), ...figs.map((f) => ({ kind: 'fig' as const, f })),
+        ...tables.map((f) => ({ kind: 'table' as const, f })), ...eqs, ...hrs,
+      ];
+      const boxOf = (it: Item) => (it.kind === 'line' ? it.l : it.f);
+      // an equation, a table or a rule stands in its text column: for the reading order it is as wide as the lines just
+      // above and below it (a short line beside a centred equation is no column of its own) — unless something stands
+      // beside it on its own rows
+      const wide = new Map<Item, Box>();
+      for (const it of items) {
+        if (it.kind === 'line' || it.kind === 'fig') continue;
+        const f = it.f;
+        if (rest.some((l) => Math.min(l.y1, f.y1) - Math.max(l.y0, f.y0) > 1 && (l.x1 <= f.x0 || l.x0 >= f.x1))) continue;
+        const near = rest.filter((l) => (l.y1 <= f.y0 + 1 ? f.y0 - l.y1 : l.y0 >= f.y1 - 1 ? l.y0 - f.y1 : Infinity) <= 6 * body && l.x0 < f.x1 && l.x1 > f.x0);
+        if (near.length) wide.set(it, { x0: Math.min(f.x0, ...near.map((l) => l.x0)), y0: f.y0, x1: Math.max(f.x1, ...near.map((l) => l.x1)), y1: f.y1 });
+      }
       // gutters from 0.45 × the body text (the Federal Register's are 7.5 pt); a column holds three lines and is a tenth
-      // of the page high (a note in the margin is none)
-      const r = tc.xycut(items.map((it) => (it.kind === 'line' ? [it.l.x0, it.l.y0, it.l.x1, it.l.y1] : [it.f.x0, it.f.y0, it.f.x1, it.f.y1])), Math.max(3, 0.45 * body), 2, pg.H * 0.1);
+      // of the page high (a note in the margin is none); a figure or a table beside text is a part of its own
+      const heavy = items.map((it) => (it.kind === 'fig' || it.kind === 'table') && area(it.f) >= 0.015 * pg.W * pg.H);
+      const r = tc.xycut(items.map((it) => { const b = wide.get(it) || boxOf(it); return [b.x0, b.y0, b.x1, b.y1]; }), Math.max(3, 0.45 * body), 2, pg.H * 0.1, heavy);
+      const partOf = r.part || r.order.map(() => 0);
+      (globalThis as any).__epubDebug?.(pageNo, items.map((it, i) => ({ kind: it.kind, box: boxOf(it), xy: wide.get(it), text: it.kind === 'line' ? it.l.text : it.kind === 'eq' ? it.label : '', pos: r.order.indexOf(i), part: partOf[r.order.indexOf(i)] })));
       // the page's usual line pitch (top to top, same column) decides what counts as a blank line
-      const sorted = [...textLines].sort((a, b) => a.x0 - b.x0 || a.y0 - b.y0), pagePitch = median(sorted.slice(1).map((l, i) => l.y0 - sorted[i].y0).filter((g, i) => g > 0 && g < 40 && Math.abs(sorted[i + 1].x0 - sorted[i].x0) < 30));
-      // segments: runs of the same column
-      const segs: Array<{ col: number; items: Item[] }> = [];
-      r.order.forEach((ix, p) => { const c = r.col[p]; if (!segs.length || segs[segs.length - 1].col !== c) segs.push({ col: c, items: [] }); segs[segs.length - 1].items.push(items[ix]); });
+      const sorted = [...rest].sort((a, b) => a.x0 - b.x0 || a.cy0 - b.cy0), pagePitch = median(sorted.slice(1).map((l, i) => l.cy0 - sorted[i].cy0).filter((g, i) => g > 0 && g < 40 && Math.abs(sorted[i + 1].x0 - sorted[i].x0) < 30));
+      // segments: runs of one part (the whole page when nothing stands side by side)
+      const sided = partOf.some((p) => p > 0);
+      const segs: Array<{ part: number; items: Item[] }> = [];
+      r.order.forEach((ix, p) => { const c = sided ? partOf[p] : 0; if (!segs.length || segs[segs.length - 1].part !== c) segs.push({ part: c, items: [] }); segs[segs.length - 1].items.push(items[ix]); });
       const columns = new Set(r.col.filter((c) => c > 0)).size;
-      const wOf = (its: Item[]) => { const b = its.map((it) => (it.kind === 'line' ? it.l : it.f)); return Math.max(...b.map((x) => x.x1)) - Math.min(...b.map((x) => x.x0)); };
-      const colW = Math.min(...segs.filter((sg) => sg.col > 0 || columns < 2).map((sg) => wOf(sg.items)).filter((w) => w > 40), pg.W);
-      // figures and column pictures are drawn so that a column is as wide as the e-reader's screen
+      const wOf = (its: Item[]) => { const b = its.map(boxOf); return Math.max(...b.map((x) => x.x1)) - Math.min(...b.map((x) => x.x0)); };
+      const colW = Math.min(...segs.filter((sg) => sg.part > 0 || !sided).map((sg) => wOf(sg.items)).filter((w) => w > 40), pg.W);
+      // figures, tables and equations are drawn so that a column is as wide as the e-reader's screen
       const scale = Math.min(o.width / colW, (3 * o.width) / pg.W);
       // (a figure wider than a column — across the page — is drawn as wide as the screen, not wider)
       const crop = (f: Fig) => { const b = { x0: Math.max(0, f.x0), y0: Math.max(0, f.y0), x1: Math.min(pg.W, f.x1), y1: Math.min(pg.H, f.y1) }; return draw(b, Math.min(scale, o.width / Math.max(1, b.x1 - b.x0))); };
+      // a formula in a line: drawn about 56 px to the em on a Paperwhite, set in the line at the text's size
+      const pxEm = o.width / 22;
+      const inline = async (l: Line) => {
+        for (const run of l.runs) {
+          if (!('pic' in run) || run.html) continue;
+          const b = run.pic, z = l.size;
+          const c = { x0: b.x0 - 0.6, y0: Math.min(b.y0, l.cy0) - 0.4, x1: b.x1 + 0.6, y1: Math.max(b.y1, l.cy1) + 0.4 };
+          const em = (v: number) => `${(v / z).toFixed(2)}em`;
+          run.html = await addImage(draw(c, pxEm / z), `class="m" alt="formula" style="height:${em(c.y1 - c.y0)};width:${em(c.x1 - c.x0)};vertical-align:-${em(Math.max(0, c.y1 - l.base))}"`);
+        }
+      };
       const parts: string[] = [];
+      let partNo = 0;
       for (const s of segs) {
-        if (columns > 1 && s.col > 0 && o.labels) parts.push(`<h4 class="col">Page ${pageNo} · Column ${s.col}</h4>`);
-        const segLines = s.items.filter((it) => it.kind === 'line').map((it) => (it as any).l as Line);
-        const chars = (ls: Line[]) => ls.reduce((a, l) => a + l.text.length, 0);
-        if (o.mode === 'columns' || chars(segLines.filter((l) => garbled(l.text))) > 0.5 * chars(segLines)) {
-          // the column as one picture (chosen, or most of its text cannot be read)
-          const b = s.items.map((it) => (it.kind === 'line' ? it.l : it.f));
+        if (sided) { partNo++; if (o.labels) parts.push(`<h4 class="part">Page ${pageNo}, part ${partNo}</h4>`); }
+        const segLines = s.items.flatMap((it) => (it.kind === 'line' ? [it.l] : it.kind === 'eq' ? it.lines : []));
+        const chars = segLines.reduce((a, l) => a + l.chars, 0), bad = segLines.reduce((a, l) => a + l.bad, 0);
+        if (o.mode === 'columns' || (chars && bad > 0.5 * chars)) {
+          // the part as one picture (chosen, or most of its text cannot be read)
+          const b = s.items.map(boxOf);
           parts.push(`<div class="fig">${await addImage(crop({ x0: Math.min(...b.map((x) => x.x0)) - 2, y0: Math.min(...b.map((x) => x.y0)) - 2, x1: Math.max(...b.map((x) => x.x1)) + 2, y1: Math.max(...b.map((x) => x.y1)) + 2 }))}</div>`);
           continue;
         }
-        // text as text; a figure as a picture; lines that cannot be read (a formula in a font without a Unicode map)
-        // as a picture of those lines, in their place
+        // text as text (formulas in its lines as small pictures); a figure, a table, an equation as a picture
         let run: Line[] = [];
-        const unread: { box: Fig | null } = { box: null };
-        const emit = async () => {
-          if (run.length) parts.push(toHtml(run, body, pagePitch)); run = [];
-          const u = unread.box; unread.box = null;
-          if (u) parts.push(`<div class="fig">${await addImage(crop({ x0: u.x0 - 2, y0: u.y0 - 3, x1: u.x1 + 2, y1: u.y1 + 3 }))}</div>`);
-        };
+        const emit = async () => { if (!run.length) return; for (const l of run) await inline(l); parts.push(toHtml(run, body, pagePitch)); run = []; };
         for (const it of s.items) {
-          if (it.kind === 'line' && garbled(it.l.text)) {
-            if (run.length) await emit();
-            const l = it.l, u = unread.box;
-            unread.box = u ? { x0: Math.min(u.x0, l.x0), y0: Math.min(u.y0, l.y0), x1: Math.max(u.x1, l.x1), y1: Math.max(u.y1, l.y1) } : { x0: l.x0, y0: l.y0, x1: l.x1, y1: l.y1 };
-          } else if (it.kind === 'line') { if (unread.box) await emit(); run.push(it.l); }
-          else { await emit(); parts.push(`<div class="fig">${await addImage(crop({ x0: it.f.x0 - 3, y0: it.f.y0 - 3, x1: it.f.x1 + 3, y1: it.f.y1 + 3 }))}</div>`); }
+          if (it.kind === 'line') { run.push(it.l); continue; }
+          await emit();
+          if (it.kind === 'hr') { parts.push('<hr class="fn"/>'); continue; }
+          const pad = it.kind === 'fig' ? { x: 3, y: 3 } : { x: 2, y: 1.5 }, f = it.f;
+          // an equation or a table is set at the size of the text around it (in em: it grows with the reader's font)
+          const em = it.kind === 'fig' ? '' : ` style="width:${((f.x1 - f.x0 + 2 * pad.x) / body).toFixed(2)}em;max-width:100%;height:auto"`;
+          const img = await addImage(crop({ x0: f.x0 - pad.x, y0: f.y0 - pad.y, x1: f.x1 + pad.x, y1: f.y1 + pad.y }), `alt="${it.kind === 'table' ? 'table' : it.kind === 'eq' ? 'equation' : 'figure'}"${em}`);
+          parts.push(`<div class="fig${it.kind === 'table' ? ' tbl' : ''}">${img}</div>`);
+          if (it.kind === 'eq' && it.label) parts.push(`<p class="eqno">${esc(it.label.trim())}</p>`);
         }
         await emit();
       }
       // text in the margin that runs up or down the page (kept only when running headers are kept)
       if (!o.removeHeaders && pg.vertical.length) parts.push(...pg.vertical.map((l) => `<p class="margin">${esc(l.text)}</p>`));
       html = parts.join('\n');
-      rep = { page: pageNo, columns: columns > 1 ? columns : 0, figures: figs.length, how: o.mode === 'columns' ? 'columns' : 'text' };
+      rep = { page: pageNo, columns: columns > 1 ? columns : 0, parts: sided ? partNo : 0, figures: figs.length, tables: tables.length, equations: eqs.length, how: o.mode === 'columns' ? 'columns' : 'text' };
     }
     dl.destroy?.();
     report.push(rep);
@@ -325,10 +855,7 @@ export async function pdfToEpub(doc: any, o: EpubOptions, onProgress?: (done: nu
   const plays = new Map<string, number>(), play = (f: string) => { if (!plays.has(f)) plays.set(f, plays.size + 1); return plays.get(f)!; };
   const navPoints = (items: TocItem[]): string => items.map((t) => { const k = ++ids; return `<navPoint id="n${k}" playOrder="${play(t.file)}"><navLabel><text>${t.label}</text></navLabel><content src="${t.file}"/>${navPoints(t.kids)}</navPoint>`; }).join('');
   const pageList = `<nav epub:type="page-list" hidden=""><ol>${report.map((r) => `<li><a href="p${String(r.page).padStart(4, '0')}.xhtml#page${r.page}">${r.page}</a></li>`).join('')}</ol></nav>`;
-  files['OEBPS/style.css'] = strToU8(`body { margin: 0 3%; line-height: 1.45; } p { margin: 0 0 0.6em; text-indent: 0; text-align: left; } h2, h3 { margin: 1em 0 0.4em; line-height: 1.25; }
-.pgno { font-size: 0.75em; color: #666; margin: 0 0 0.8em; border-bottom: 1px solid #bbb; } .page { page-break-before: always; }
-h4.col { font-size: 0.8em; color: #555; font-weight: bold; margin: 1em 0 0.4em; text-transform: none; } p.margin { font-size: 0.75em; color: #555; }
-.fig { text-align: center; margin: 0.6em 0; } .fig img { max-width: 100%; height: auto; } .full img { width: 100%; }\n`);
+  files['OEBPS/style.css'] = strToU8(STYLE);
   files['OEBPS/nav.xhtml'] = strToU8(`<?xml version="1.0" encoding="utf-8"?>\n<!DOCTYPE html>\n<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops" lang="${lang}" xml:lang="${lang}"><head><meta charset="utf-8"/><title>${title}</title></head><body><nav epub:type="toc" id="toc"><h1>Contents</h1>${ol(contents)}</nav>${pageList}</body></html>\n`);
   files['OEBPS/toc.ncx'] = strToU8(`<?xml version="1.0" encoding="utf-8"?>\n<ncx xmlns="http://www.daisy.org/z3986/2005/ncx/" version="2005-1"><head><meta name="dtb:uid" content="${id}"/></head><docTitle><text>${title}</text></docTitle><navMap>${navPoints(contents)}</navMap></ncx>\n`);
   files['OEBPS/content.opf'] = strToU8(`<?xml version="1.0" encoding="utf-8"?>\n<package xmlns="http://www.idpf.org/2007/opf" version="3.0" unique-identifier="bookid" xml:lang="${lang}"><metadata xmlns:dc="http://purl.org/dc/elements/1.1/"><dc:identifier id="bookid">${id}</dc:identifier><dc:title>${title}</dc:title>${author ? `<dc:creator>${author}</dc:creator>` : ''}<dc:language>${lang}</dc:language><meta property="dcterms:modified">${modified}</meta></metadata>

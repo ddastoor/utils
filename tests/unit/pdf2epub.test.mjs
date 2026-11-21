@@ -1,5 +1,7 @@
 // PDF → EPUB engine (src/lib/pdf2epub.ts) in Node on its own engines (MuPDF, textcore.wasm, imgproc.wasm; the JPEG
-// encoder is a stand-in that records what it was given). Reading order held to poppler's pdftotext
+// encoder is a stand-in that records what it was given). The owner's rule (21 Nov 2026): what stands side by side in a page
+// is laid out top to bottom, each piece under "Page N, part K"; tables and display equations are pictures, a formula in a
+// sentence a small picture in the line, raised and lowered marks <sup> / <sub>. Reading order held to poppler's pdftotext
 // (tests/fixtures/epub/reference.json — `python3 scripts/make-epub-reference.py`) on a two-column paper, three pages of
 // the Federal Register (three columns, gutters of 7.5 pt, a stamp in the margin) and an OCR'd scan; generated PDFs for
 // bold run-in headings, broken Unicode maps, unreadable formulas, bookmarks, the language, stamps, sideways and huge
@@ -39,7 +41,7 @@ export default async (t, { load, wasm }) => {
     drawn.length = 0;
     const r = await E.pdfToEpub(doc, { ...base, ...o }, undefined, engines), z = unzipSync(r.epub), text = (k) => strFromU8(z[k]);
     const opf = text('OEBPS/content.opf'), spine = [...opf.matchAll(/<itemref idref="pg(\d+)"\/>/g)].map((x) => `OEBPS/p${x[1].padStart(4, '0')}.xhtml`);
-    const pages = spine.map(text), plain = (x) => unesc(x.replace(/<p class="pgno">[^<]*<\/p>|<h4 class="col">[^<]*<\/h4>|<title>[^<]*<\/title>/g, ' ').replace(/<[^>]+>/g, ' ')).replace(/\s+/g, ' ');
+    const pages = spine.map(text), plain = (x) => unesc(x.replace(/<p class="pgno">[^<]*<\/p>|<h4 class="part">[^<]*<\/h4>|<title>[^<]*<\/title>/g, ' ').replace(/<[^>]+>/g, ' ')).replace(/\s+/g, ' ');
     const f = join(tmp, `e${++n}.epub`); writeFileSync(f, r.epub);
     return { ...r, z, text, opf, pages, plain, f, drawn: [...drawn], nav: text('OEBPS/nav.xhtml'), ncx: text('OEBPS/toc.ncx') };
   };
@@ -59,18 +61,21 @@ export default async (t, { load, wasm }) => {
   // (poppler reads this one wrong — the top of the right column before the left one's heading — so it is held to the
   // order its generator wrote, scripts/make-paper-pdf.mjs)
   const paper = await convert(open(readFileSync(P('two-column-paper.pdf'))));
-  const marks = ['Reading Order in Two-Column Documents', 'A. Researcher and B. Scientist', 'Abstract. Columns make', '1 Introduction', 'We measured the effect in a small experiment with twelve readers', 'Figure 1: A cat reading', 'Column 2', '2 Method', '3 Results', '4 Conclusion', 'The converter keeps both columns in order.'];
-  const all = paper.pages.join('\n'), at = marks.map((k) => all.indexOf(k));
+  const marks = ['Reading Order in Two-Column Documents', 'A. Researcher and B. Scientist', 'Abstract. Columns make', '1 Introduction', 'We measured the effect in a small experiment with twelve readers', 'Figure 1: A cat reading', '2 Method', '3 Results', '4 Conclusion', 'The converter keeps both columns in order.'];
+  const all = paper.pages.map(paper.plain).join('\n'), at = marks.map((k) => all.indexOf(k));
   t.ok(at.every((v, i) => v >= 0 && (i === 0 || v > at[i - 1])), `two-column paper: title, authors, abstract, the left column (heading, text, figure, caption), the right column, page 2 in order (${at})`);
-  t.ok(/<h4 class="col">Page 1 · Column 1<\/h4>[\s\S]*1 Introduction[\s\S]*Column 2<\/h4>[\s\S]*2 Method/.test(paper.pages[0]), 'two-column paper: the left column, then the right one, labelled');
+  t.ok(/<h4 class="part">Page 1, part 1<\/h4>\s*<h2>Reading Order in Two-Column Documents<\/h2>[\s\S]*<h4 class="part">Page 1, part 2<\/h4>[\s\S]*1 Introduction[\s\S]*Figure 1: A cat reading[\s\S]*<h4 class="part">Page 1, part 3<\/h4>[\s\S]*2 Method/.test(paper.pages[0]), 'two-column paper (the owner\'s rule): the title band is part 1, the left column part 2 (with its figure), the right column part 3');
+  t.ok(/<h4 class="part">Page 2, part 1<\/h4>[\s\S]*<h4 class="part">Page 2, part 2<\/h4>/.test(paper.pages[1]) && !/Page 2, part 3/.test(paper.pages[1]), 'page 2: its two columns are parts 1 and 2');
   t.eq(paper.report.map((r) => r.columns), [2, 2], 'two-column paper: two columns on each page');
+  t.eq(paper.report.map((r) => r.parts), [3, 2], 'two-column paper: three parts on page 1, two on page 2');
   check(paper, 'two-column paper');
   const fr = await convert(open(readFileSync(P('federal-register-3p.pdf'))));
   const of = order(fr, REF['federal-register-3p.pdf']);
   t.ok(of.inOrder > 0.9 && of.found > 0.85, `Federal Register: ${(100 * of.inOrder).toFixed(1)} % of the words in poppler's order (it was 55 % while gutters had to be 8 pt), ${(100 * of.found).toFixed(1)} % found`);
   t.eq(fr.report.slice(1).map((r) => r.columns), [3, 3], 'Federal Register pages 2 and 3: three columns — the stamp in the margin is not one');
   t.ok(!/jbell|DSKJLSW7X2PROD/.test(fr.pages.join('')), 'the stamp running up the margin is removed with the running headers');
-  t.ok(/<h4 class="col">Page 2 · Column 1<\/h4>\s*<p>Hatta International Airport in Jakarta, Indonesia, resulting in 189 fatalities\./.test(fr.pages[1]), 'page 2 starts with the top of its first column');
+  t.ok(/<h4 class="part">Page 2, part 1<\/h4>\s*<p>Hatta International Airport in Jakarta, Indonesia, resulting in 189 fatalities\./.test(fr.pages[1]) && /Page 2, part 3<\/h4>/.test(fr.pages[1]), 'page 2 starts with the top of its first column, part 1 of 3');
+  t.eq(fr.report.map((r) => r.tables), [0, 0, 0], 'Federal Register: the rule under the masthead with three columns of text below it is no table (rows of column lines are no table rows)');
   t.ok(!/VerDate|Federal Register \/ Vol\. 85/.test(fr.pages.slice(1).join('')), 'the running header and the printer\'s slug at the foot are removed');
   check(fr, 'Federal Register');
   const frKeep = await convert(open(readFileSync(P('federal-register-3p.pdf'))), { removeHeaders: false, pages: [1] });
@@ -99,7 +104,7 @@ export default async (t, { load, wasm }) => {
   ].join('\n') }]);
   const er = await convert(runin);
   t.ok(/<h3>Results<\/h3>/.test(er.pages[0]), 'a bold line of its own is a heading');
-  t.ok(/<p>Theorem 1\. Let x be a real number such that x is greater than zero and the proof follows at once\.<\/p>/.test(er.pages[0]) && !/<h\d>Theorem/.test(er.pages[0]), 'a line that only starts with a bold word stays in its paragraph (MuPDF gives a line the font of its first character)');
+  t.ok(/<p><b>Theorem 1\.<\/b> Let x be a real number such that x is greater than zero and the proof follows at once\.<\/p>/.test(er.pages[0]) && !/<h\d>Theorem/.test(er.pages[0]), `a line that only starts with a bold word stays in its paragraph, the bold word marked bold (${er.pages[0].match(/<p>[^\n]*Theorem[^\n]*/)?.[0]})`);
   t.ok(!/Theorem 1\.Let/.test(er.pages[0]), 'the space between a bold and a regular span is kept');
 
   // a ToUnicode map that gives control characters, U+FFFF and C1 controls: the XHTML stays XML
@@ -152,7 +157,7 @@ export default async (t, { load, wasm }) => {
   const cols = (x, tag) => para(x, 700, Array.from({ length: 30 }, (_, i) => `${tag}${i} ${filler(1, 4)[0]}`), 'F1', 10, 13);
   const stamped = mk([{ content: [cols(72, 'left'), cols(320, 'right'), 'BT /F1 14 Tf 0 1 -1 0 40 260 Tm (arXiv:2611.01234v1 [cs.CL] 20 Nov 2026) Tj ET'].join('\n') }]);
   const es = await convert(stamped);
-  t.ok(es.report[0].columns === 2 && /Column 1<\/h4>\s*<p>left0[\s\S]*left29[\s\S]*Column 2<\/h4>\s*<p>right0/.test(es.pages[0]) && !/arXiv/.test(es.pages[0]), 'a stamp up the margin: removed; the two columns are columns 1 and 2');
+  t.ok(es.report[0].columns === 2 && /Page 1, part 1<\/h4>\s*<p>left0[\s\S]*left29[\s\S]*Page 1, part 2<\/h4>\s*<p>right0/.test(es.pages[0]) && !/arXiv/.test(es.pages[0]), 'a stamp up the margin: removed; the two columns are parts 1 and 2');
 
   // a page whose text runs sideways (/Rotate 90 over upright text): the page as a picture
   const sideways = mk([{ rotate: 90, content: para(72, 700, filler(20)) }]);
