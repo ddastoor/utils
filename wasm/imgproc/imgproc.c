@@ -992,3 +992,152 @@ API int p_ink_regions(const uint8_t *px, int w, int h, int thr, const float *ski
     free(m); free(d); free(cs); free(stack);
     return k;
 }
+
+/* ======================================================================== which way up the text stands */
+/* Owner, 21 Nov 2026: a Kindle page photographed with the phone held sideways (either hand) could not be read. From the
+ * picture alone: (1) ink = pixels clearly darker than the mean of their neighbourhood (light text on a dark screen is
+ * turned round first); (2) its 8-connected components of letter size; (3) the axis of the lines — a letter's nearest
+ * neighbour stands beside it in the line far more often than above or below it (the letters of a word are closer
+ * together than the lines are); (4) the direction along that axis — in Latin script more letters rise above the
+ * x-height (b d f h k l t, capitals, digits, the dots of i and j) than drop below the baseline (g j p q y): in every
+ * run of letters the side more of them stick out of is the top.
+ * out[7]: the quarter turns to the right that make the text upright (0–3; as EXIF orientations 1, 6, 3, 8), the
+ * neighbour votes along and across the lines, the letters sticking out on the low side (top or left) and on the high
+ * side, the letters used, 1 when the lines run across the picture (0: up and down it). Returns the turns; -1 when the
+ * picture holds too little text to say, -2 when the lines' axis is clear but not which end is up (the caller may
+ * compare readings). */
+typedef struct { int x0, y0, x1, y1, n; } tt_box;
+static int tt_cmp(const void *a, const void *b) { int x = *(const int *)a, y = *(const int *)b; return (x > y) - (x < y); }
+/* the exact median (the mean of the middle two for an even count): the same band whichever way round the page lies */
+static float tt_median(int *v, int n) { qsort(v, n, sizeof(int), tt_cmp); return n % 2 ? (float)v[n / 2] : 0.5f * (v[n / 2 - 1] + v[n / 2]); }
+static int tt_find(int *p, int i) { while (p[i] != i) { p[i] = p[p[i]]; i = p[i]; } return i; }
+
+API int p_text_turns(const uint8_t *px, int w, int h, int32_t *out) {
+    for (int k = 0; k < 7; k++) out[k] = 0;
+    int n = w * h;
+    if (w < 32 || h < 32) return -1;
+    uint8_t *g = malloc(n), *ink = calloc(n, 1);
+    uint32_t *ii = malloc(sizeof(uint32_t) * (size_t)(w + 1) * (h + 1));
+    int32_t *stack = malloc(sizeof(int32_t) * n);
+    int cap = 40000; tt_box *bx = malloc(sizeof(tt_box) * cap);
+    if (!g || !ink || !ii || !stack || !bx) { free(g); free(ink); free(ii); free(stack); free(bx); return -1; }
+    unsigned hist[256] = {0};
+    for (int i = 0; i < n; i++) { const uint8_t *p = px + (size_t)i * 4; g[i] = (77 * p[0] + 150 * p[1] + 29 * p[2]) >> 8; hist[g[i]]++; }
+    { int c = 0, med = 0; while (med < 255 && (c += hist[med]) < n / 2) med++; if (med < 100) for (int i = 0; i < n; i++) g[i] = 255 - g[i]; }
+    /* the neighbourhood mean through an integral image; ink is clearly darker than it */
+    for (int x = 0; x <= w; x++) ii[x] = 0;
+    for (int y = 0; y < h; y++) {
+        uint32_t row = 0; ii[(size_t)(y + 1) * (w + 1)] = 0;
+        for (int x = 0; x < w; x++) { row += g[y * w + x]; ii[(size_t)(y + 1) * (w + 1) + x + 1] = ii[(size_t)y * (w + 1) + x + 1] + row; }
+    }
+    int r = (w < h ? w : h) / 40; if (r < 8) r = 8;
+    for (int y = 0; y < h; y++) {
+        int y0 = y - r < 0 ? 0 : y - r, y1 = y + r + 1 > h ? h : y + r + 1;
+        for (int x = 0; x < w; x++) {
+            int x0 = x - r < 0 ? 0 : x - r, x1 = x + r + 1 > w ? w : x + r + 1;
+            uint32_t s = ii[(size_t)y1 * (w + 1) + x1] - ii[(size_t)y0 * (w + 1) + x1] - ii[(size_t)y1 * (w + 1) + x0] + ii[(size_t)y0 * (w + 1) + x0];
+            int m = (int)(s / (uint32_t)((x1 - x0) * (y1 - y0))), d = m * 12 / 100; if (d < 14) d = 14;
+            ink[y * w + x] = g[y * w + x] < m - d;
+        }
+    }
+    free(ii); free(g);
+    /* letter-sized components */
+    int nb = 0;
+    for (int s = 0; s < n && nb < cap; s++) {
+        if (ink[s] != 1) continue;
+        int top = 0, cnt = 0; tt_box b = { w, h, -1, -1, 0 }; stack[top++] = s; ink[s] = 2;
+        while (top) {
+            int i = stack[--top], x = i % w, y = i / w; cnt++;
+            if (x < b.x0) b.x0 = x; if (x > b.x1) b.x1 = x; if (y < b.y0) b.y0 = y; if (y > b.y1) b.y1 = y;
+            for (int dy = -1; dy <= 1; dy++) for (int dx = -1; dx <= 1; dx++) {
+                int xx = x + dx, yy = y + dy; if (xx < 0 || yy < 0 || xx >= w || yy >= h) continue;
+                int j = yy * w + xx; if (ink[j] == 1) { ink[j] = 2; stack[top++] = j; }
+            }
+        }
+        int bw = b.x1 - b.x0 + 1, bh = b.y1 - b.y0 + 1; b.n = cnt;
+        if (cnt >= 3 && bw <= w / 8 && bh <= h / 8 && (bw > 1 || bh > 1)) bx[nb++] = b;
+    }
+    free(ink); free(stack);
+    if (nb < 30) { out[5] = nb; free(bx); return -1; }
+    /* the size of a letter: the median of the larger side of the components */
+    int *tmp = malloc(sizeof(int) * nb);
+    for (int k = 0; k < nb; k++) { int bw = bx[k].x1 - bx[k].x0 + 1, bh = bx[k].y1 - bx[k].y0 + 1; tmp[k] = bw > bh ? bw : bh; }
+    int sz = (int)(tt_median(tmp, nb) + 0.5f); if (sz < 3) sz = 3;
+    /* letters: from half to three times that size (dots, specks, pictures and rules left out) */
+    int nl = 0;
+    for (int k = 0; k < nb; k++) { int bw = bx[k].x1 - bx[k].x0 + 1, bh = bx[k].y1 - bx[k].y0 + 1, m = bw > bh ? bw : bh; if (2 * m >= sz && m <= 3 * sz) bx[nl++] = bx[k]; }
+    out[5] = nl;
+    if (nl < 30) { free(tmp); free(bx); return -1; }
+    /* nearest neighbours through a grid of cells 2 letters wide */
+    int cs = 2 * sz, gw = w / cs + 1, gh = h / cs + 1;
+    int *head = malloc(sizeof(int) * gw * gh), *next = malloc(sizeof(int) * nl);
+    for (int c = 0; c < gw * gh; c++) head[c] = -1;
+    for (int k = 0; k < nl; k++) { int cx = (bx[k].x0 + bx[k].x1) / 2 / cs, cy = (bx[k].y0 + bx[k].y1) / 2 / cs; next[k] = head[cy * gw + cx]; head[cy * gw + cx] = k; }
+    int along_h = 0, along_v = 0;
+    for (int k = 0; k < nl; k++) {
+        float cx = (bx[k].x0 + bx[k].x1) * 0.5f, cy = (bx[k].y0 + bx[k].y1) * 0.5f, best = 1e30f, bdx = 0, bdy = 0;
+        int gx = (int)cx / cs, gy = (int)cy / cs;
+        for (int yy = gy - 1; yy <= gy + 1; yy++) for (int xx = gx - 1; xx <= gx + 1; xx++) {
+            if (xx < 0 || yy < 0 || xx >= gw || yy >= gh) continue;
+            for (int j = head[yy * gw + xx]; j >= 0; j = next[j]) {
+                if (j == k) continue;
+                float dx = (bx[j].x0 + bx[j].x1) * 0.5f - cx, dy = (bx[j].y0 + bx[j].y1) * 0.5f - cy, d = dx * dx + dy * dy;
+                if (d < best) { best = d; bdx = fabsf(dx); bdy = fabsf(dy); }
+            }
+        }
+        if (best > 6.25f * sz * sz) continue;
+        if (bdx > 1.7f * bdy) along_h++; else if (bdy > 1.7f * bdx) along_v++;
+    }
+    int horiz = along_h >= along_v;
+    out[1] = horiz ? along_h : along_v; out[2] = horiz ? along_v : along_h; out[6] = horiz;
+    int sure_axis = out[1] >= 25 && out[1] * 2 >= out[2] * 3;
+    if (!sure_axis) { free(head); free(next); free(tmp); free(bx); return -1; }
+    /* runs of letters along the axis: letters joined to every letter within 1.6 sizes along it and 0.45 across */
+    int *par = malloc(sizeof(int) * nl);
+    for (int k = 0; k < nl; k++) par[k] = k;
+    for (int k = 0; k < nl; k++) {
+        float cx = (bx[k].x0 + bx[k].x1) * 0.5f, cy = (bx[k].y0 + bx[k].y1) * 0.5f;
+        int gx = (int)cx / cs, gy = (int)cy / cs;
+        for (int yy = gy - 1; yy <= gy + 1; yy++) for (int xx = gx - 1; xx <= gx + 1; xx++) {
+            if (xx < 0 || yy < 0 || xx >= gw || yy >= gh) continue;
+            for (int j = head[yy * gw + xx]; j >= 0; j = next[j]) {
+                if (j <= k) continue;
+                float dx = fabsf((bx[j].x0 + bx[j].x1) * 0.5f - cx), dy = fabsf((bx[j].y0 + bx[j].y1) * 0.5f - cy);
+                float a = horiz ? dx : dy, c = horiz ? dy : dx;
+                if (a <= 1.6f * sz && c <= 0.45f * sz) { int ra = tt_find(par, k), rb = tt_find(par, j); if (ra != rb) par[ra] = rb; }
+            }
+        }
+    }
+    /* in each run of five letters or more: the core band (the median low and high ends across the axis) and the
+     * letters that stick out of it on either side */
+    int *order = malloc(sizeof(int) * nl), *lo = malloc(sizeof(int) * nl), *hi = malloc(sizeof(int) * nl);
+    for (int k = 0; k < nl; k++) order[k] = k;
+    int *root = tmp; for (int k = 0; k < nl; k++) root[k] = tt_find(par, k);
+    /* group by root: a counting sort over the roots */
+    int *cnt = calloc(nl, sizeof(int)), *start = malloc(sizeof(int) * (nl + 1));
+    for (int k = 0; k < nl; k++) cnt[root[k]]++;
+    start[0] = 0; for (int k = 0; k < nl; k++) start[k + 1] = start[k] + cnt[k];
+    int *fill = calloc(nl, sizeof(int));
+    for (int k = 0; k < nl; k++) order[start[root[k]] + fill[root[k]]++] = k;
+    long up = 0, down = 0;
+    for (int rt = 0; rt < nl; rt++) {
+        int m = cnt[rt]; if (m < 5) continue;
+        int *mem = order + start[rt];
+        for (int q = 0; q < m; q++) { tt_box *b = bx + mem[q]; lo[q] = horiz ? b->y0 : b->x0; hi[q] = horiz ? b->y1 : b->x1; }
+        float l = tt_median(lo, m), hgh = tt_median(hi, m), core = hgh - l + 1; if (core < 2) continue;
+        float marg = 0.35f * core;
+        for (int q = 0; q < m; q++) {
+            tt_box *b = bx + mem[q]; int a = horiz ? b->y0 : b->x0, z = horiz ? b->y1 : b->x1;
+            if (a < l - marg) up++;      /* sticks out on the low side (the top, if upright or turned left) */
+            if (z > hgh + marg) down++;  /* sticks out on the high side */
+        }
+    }
+    out[3] = (int32_t)up; out[4] = (int32_t)down;
+    free(order); free(lo); free(hi); free(cnt); free(start); free(fill); free(par); free(head); free(next); free(tmp); free(bx);
+    int turns;
+    if (up + down < 20 || (up * 5 < down * 6 && down * 5 < up * 6)) turns = -2; /* within 20 %: not sure which end is up */
+    else if (horiz) turns = up > down ? 0 : 2;
+    else turns = up > down ? 1 : 3; /* tops toward the left: a quarter turn to the right sets them up; toward the right: to the left */
+    out[0] = turns;
+    return turns;
+}

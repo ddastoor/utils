@@ -54,6 +54,17 @@ The owner adds items here in chat ("add … to to do"). Newest instructions win.
     `src/tools/bc-console.ts`, its suite `tests/e2e/bc-console.e2e.mjs`.
 
 ## Done
+- **11. Photo Dictionary and OCR: a photo taken with the phone held sideways** (owner, 21 Nov 2026: "a new requirement in
+    todo.md for the photo dictionary on the mobile phone. Basically, the problem is when I take my phone and turn it 90
+    degrees horizontally, either with my left hand or my right hand, and then take a photo of my Kindle, it gets screwed
+    up. It can't understand a thing. Fix that. Do whatever you have to do internally, rotate the image, and basically the
+    photo dictionary app and the OCR on the phone should work even if my camera is in landscape mode and portrait mode.
+    So make these changes on OCR and the photo dictionary app.") With it (owner, the same day): "both photo dictionary and
+    OCR on the phone and PC should be extremely high quality." The owner asked for the fix at once — **done
+  21 Nov 2026**: both tabs set the text upright before it is read (imgproc's `p_text_turns` + `src/lib/upright.ts`: the
+  lines' axis from each letter's nearest neighbour, the top from the letters above the x-height; where only the axis is
+  clear, a small copy read both ways round); tested on the real Kindle photos turned every way and on a phone still lying
+  across the picture (CLAUDE.md §3 OCR).
 - **6. Photo Dictionary upgrade** (owner, 21 Nov 2026 — "build it out next … before you help me building out new apps
   with potentials.md") — done 21 Nov 2026: a Wikipedia box under every word, every uncommon word (no fixed 20), the
   page's text first with a selected phrase looked up on Wikipedia, words broken over two lines joined (31dbd3e); **the

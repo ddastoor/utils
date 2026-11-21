@@ -41,6 +41,22 @@ export default async ({ base, page: newPage, ok, info, download, devices }) => {
     const low = await page.locator('.ocr-low').evaluateAll((els) => els.map((e) => [parseFloat(e.style.left), parseFloat(e.style.top)]));
     ok(low.every(([x, y]) => x >= 0 && x <= 100 && y >= 0 && y <= 100), `${f}: the unsure words are marked on the page that was read (${low.length})`);
   }
+  // the phone held sideways (owner, 21 Nov 2026 — to-do #11: "either with my left hand or my right hand"): the Kindle
+  // photo turned a quarter either way, or upside down, reads as well as upright; the line says how it was turned
+  { const truth = wordsOf(readFileSync(F('kindle-page.txt'), 'utf8'));
+    const turnedJpeg = async (deg) => Buffer.from(await page.evaluate(async ([b64, deg]) => {
+      const bmp = await createImageBitmap(await (await fetch(`data:image/jpeg;base64,${b64}`)).blob());
+      const q = deg % 180 !== 0, c = new OffscreenCanvas(q ? bmp.height : bmp.width, q ? bmp.width : bmp.height), g = c.getContext('2d');
+      g.translate(c.width / 2, c.height / 2); g.rotate((deg * Math.PI) / 180); g.drawImage(bmp, -bmp.width / 2, -bmp.height / 2);
+      const u = new Uint8Array(await (await c.convertToBlob({ type: 'image/jpeg', quality: 0.95 })).arrayBuffer());
+      let b = ''; for (let i = 0; i < u.length; i += 0x8000) b += String.fromCharCode(...u.subarray(i, i + 0x8000)); return btoa(b);
+    }, [readFileSync(F('kindle-page.jpg')).toString('base64'), deg]), 'base64');
+    for (const [deg, how] of [[90, 'a quarter to the left'], [270, 'a quarter to the right'], [180, 'upside down']]) {
+      const got = await recognise({ name: `kindle-${deg}.jpg`, mimeType: 'image/jpeg', buffer: await turnedJpeg(deg) }, 'English', true);
+      const right = lcs(truth, wordsOf(got)) / truth.length;
+      ok(right >= 0.95 && (await line()).includes(`the picture was turned ${how} to read it`) && /straightened/.test(await line()), `the Kindle photo turned ${deg}°: ${(100 * right).toFixed(1)} % of its words read right, turned ${how} first (${await line()})`);
+    }
+  }
   // a photo too soft to read well (a frame of the live video, out of focus, with moiré): the line says so
   await recognise(F('kindle-soft.jpg'), 'English', true);
   ok(/the text reads poorly: a sharper photo, closer and in good light, reads better/.test(await line()), `a blurred photo: the line says it reads poorly (${await line()})`);

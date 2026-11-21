@@ -2572,3 +2572,19 @@ cannot. Three new suites; each fails on the build before its fixes.
   VCTK's accent, sex and age as VCTK's list gives them; the filing of every undescribed recording worked out again from
   the raw survey; the French recordings and the Hindi one; EARS and Expresso personal use; the pace mapping), e2e
   tts-offline 48 (the counts follow the catalogue; a voice ticked by its id — the label of Piper's p376 is Kyutai's too).
+- **Photo Dictionary and OCR: a photo taken with the phone held sideways could not be read (21 Nov 2026; owner, to-do
+  #11).** Neither tab asked which way up the text stood: a phone turned to landscape (either hand) — its screen locked
+  upright, or a still that came the sensor's way round — handed Tesseract lines running up the picture, and it read
+  nothing ("it can't understand a thing"). The OCR tab's old rescue (a reading below 60 % tried turned the three other
+  ways) cost three readings and did not fire when the sideways reading was confidently wrong; the Photo Dictionary had
+  none. Now imgproc's `p_text_turns` (own C: the lines' axis from each letter's nearest neighbour, the top from the
+  letters that rise above the x-height against those below the baseline) and `src/lib/upright.ts` set the page upright
+  before it is read in both tabs; where only the axis is clear, a small copy is read both ways round. Also found: a
+  first version took the median of an even count as its upper middle value, so the band of a line differed by a pixel
+  between a page and the same page upside down — on soft photos that tipped the count (exact medians now; the four
+  ways round give mirrored counts). Tests: unit `textturns.test.mjs` 36 (four real photos × four turns, the whole photo
+  and the page found in it; a blank sheet, a disc, a tiny picture: nothing to say); e2e Photo Dictionary 103 (the Kindle
+  photo turned 90° / 270° / 180°: 90 %+ of the upright photo's uncommon words and the line says how it was turned; a
+  phone still lying across the picture, either way; a still turned upside down by the tab's own turn to the live
+  picture's shape), OCR 67 (the Kindle photo turned three ways: 95 %+ of its words read right).
+

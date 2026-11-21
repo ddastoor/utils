@@ -15,6 +15,7 @@ import { previewOf, paint } from '../lib/imgio';
 import { imageInput } from '../lib/imgtools';
 import { recognize, POOR, type OcrResult } from '../lib/ocr';
 import { straighten } from '../lib/pagecrop';
+import { uprightByReading, turnWords } from '../lib/upright';
 import { hardWords, lookupWord, rarity, ranker, type WordCard, type Result } from '../lib/dictionary';
 import { wikiSummary, type Summary } from '../lib/wikipedia';
 import { onLeave } from '../lifecycle';
@@ -117,10 +118,21 @@ export const mount: Mount = (root, ctx) => {
       const clean = async (im: Img) => imgproc('docEnhance', screen ? await imgproc('blur', im, 1.1) : im, 1);
       ranker().catch(() => {}); loadFonts(); // word list + reading font load while OCR runs
       const read = async (im: Img) => recognize(new ImageData(new Uint8ClampedArray(im.data), im.width, im.height), 'eng', (p, s) => prog.set(s.includes('recogn') ? p : null, s.includes('recogn') ? `Reading the page… ${Math.round(p * 100)} %` : 'Loading the text engine…'));
-      let r: OcrResult = await read(await clean(page.img));
+      // the text set upright first (owner, 21 Nov 2026: the phone held sideways, in either hand, gave a page that could
+      // not be read): the lines of the page say which way up it stands (src/lib/upright.ts); where they leave it open,
+      // a small copy is read both ways round
+      const glance = async (im: Img) => recognize(new ImageData(new Uint8ClampedArray(im.data), im.width, im.height), 'eng');
+      const setUp = (im: Img) => uprightByReading(im, async (x) => glance(await clean(x))).catch(() => ({ img: im, turns: 0 }));
+      let up = await setUp(page.img);
+      if (stale()) return;
+      let r: OcrResult = await read(await clean(up.img));
       if (stale()) return;
       // an outline that was not the page (little read on it): the whole photo is read too, and the better reading kept
-      if (page.found && r.words.length < 25) { const r2 = await read(await clean(whole)); if (stale()) return; if (r2.words.length > r.words.length) r = r2; }
+      if (page.found && r.words.length < 25) {
+        const w = await setUp(whole); if (stale()) return;
+        const r2 = await read(await clean(w.img)); if (stale()) return;
+        if (r2.words.length > r.words.length) { r = r2; up = w; }
+      }
       if (!r.text.trim()) { prog.done(); status.textContent = isMobile ? 'No text found. Hold the phone straight over the page, in good light, and try again.' : 'No text found. Hold the page flat and close to the webcam, in good light, and try again — or choose a photo of it.'; return; }
       // a photo that could not be read well: what was read is shown, with what to do about it (measured: every reading
       // below POOR had most of its words wrong; a page read as a handful of words was out of focus or far away)
@@ -136,9 +148,10 @@ export const mount: Mount = (root, ctx) => {
       last = res; prog.done();
       cards.replaceChildren(...phrases, ...res.cards.map((c) => withWiki(wordCard(c), c.word)));
       bar.hidden = !res.cards.length;
+      const turnedNote = up.turns ? ` · the photo was turned ${turnWords(up.turns)} to read it` : '';
       status.textContent = res.cards.length
-        ? `${res.cards.length} uncommon word${res.cards.length > 1 ? 's' : ''}, rarest first · ${r.words.length} words read${res.online.tried ? ` · ${res.online.tried} looked up online` : ''}`
-        : 'No uncommon words on this page — tap any word in the text to look it up.';
+        ? `${res.cards.length} uncommon word${res.cards.length > 1 ? 's' : ''}, rarest first · ${r.words.length} words read${res.online.tried ? ` · ${res.online.tried} looked up online` : ''}${turnedNote}`
+        : `No uncommon words on this page — tap any word in the text to look it up.${turnedNote}`;
       if (res.online.failed) extra.append(note('Some words could not be looked up online (no connection?). Results from the dictionary in this app are shown.', 'warn'));
       if (res.notFound.length) extra.append(h('details', { class: 'pd-more' }, h('summary', null, `Not found (${res.notFound.length})`), h('p', { class: 'small' }, res.notFound.join(', '), h('br'), h('span', { class: 'muted' }, 'Usually misread letters or very rare names. Tap a word in the text below to try it.'))));
       if (res.names.length) extra.append(h('details', { class: 'pd-more' }, h('summary', null, `Names skipped (${res.names.length})`), h('p', { class: 'small' }, res.names.join(', '))));

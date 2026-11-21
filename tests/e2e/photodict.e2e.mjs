@@ -7,6 +7,16 @@
 import { readFileSync } from 'node:fs';
 const F = (n) => new URL(`../fixtures/images/${n}`, import.meta.url).pathname;
 const STATUS = '.pd-top [aria-live="polite"]';
+/** A photo turned `deg` degrees to the right (90: a phone held sideways one way, 270: the other, 180: upside down), as a
+ *  JPEG made in the page (the browser's own decoder and encoder: no tool outside the browser). */
+const turnedPhoto = async (pg, file, deg) => Buffer.from(await pg.evaluate(async ([b64, deg]) => {
+  const bmp = await createImageBitmap(await (await fetch(`data:image/jpeg;base64,${b64}`)).blob());
+  const q = deg % 180 !== 0, c = new OffscreenCanvas(q ? bmp.height : bmp.width, q ? bmp.width : bmp.height), g = c.getContext('2d');
+  g.translate(c.width / 2, c.height / 2); g.rotate((deg * Math.PI) / 180); g.drawImage(bmp, -bmp.width / 2, -bmp.height / 2);
+  const u = new Uint8Array(await (await c.convertToBlob({ type: 'image/jpeg', quality: 0.95 })).arrayBuffer());
+  let b = ''; for (let i = 0; i < u.length; i += 0x8000) b += String.fromCharCode(...u.subarray(i, i + 0x8000)); return btoa(b);
+}, [readFileSync(file).toString('base64'), deg]), 'base64');
+let kindleWords = [];
 
 // Zipf×10 of every word, from the same table the tool uses
 const Z = new Map();
@@ -251,8 +261,18 @@ export default async ({ base, page: newPage, ok, info, devices }) => {
     await pick(F('kindle-soft.jpg'));
     const tip = await pk.locator('.pd-advice').innerText();
     ok(/reads poorly|Only \d+ words? (was|were) read/.test(tip) && /Hold the phone steady and a little closer, in good light, and snap again/.test(tip), `a blurred photo: the tab says it reads poorly and to snap again (${tip})`);
-    await pick(F('kindle-page.jpg'));
+    kindleWords = await pick(F('kindle-page.jpg'));
     ok(await pk.locator('.pd-advice').innerText() === '', 'the next, sharp photo: the hint is gone');
+    // the phone held sideways (owner, 21 Nov 2026: "when I take my phone and turn it 90 degrees horizontally, either with
+    // my left hand or my right hand … it can't understand a thing" — to-do #11): the same photo turned a quarter either
+    // way, and upside down, gives the same uncommon words, and the line says how it was turned
+    for (const [deg, how] of [[90, 'a quarter to the left'], [270, 'a quarter to the right'], [180, 'upside down']]) {
+      const got = await pick({ name: `kindle-${deg}.jpg`, mimeType: 'image/jpeg', buffer: await turnedPhoto(pk, F('kindle-page.jpg'), deg) });
+      const share = kindleWords.filter((w) => got.includes(w)).length / kindleWords.length, said = await pk.locator(STATUS).textContent();
+      ok(kindleWords.length >= 8 && share >= 0.9 && said.includes(`the photo was turned ${how} to read it`), `the Kindle photo turned ${deg}°: ${Math.round(100 * share)} % of the upright photo's uncommon words, turned ${how} first (${said})`);
+    }
+    await pick(F('kindle-page.jpg'));
+    ok(!(await pk.locator(STATUS).textContent()).includes('was turned'), 'an upright photo is read as it is (nothing turned)');
     ok(real(pk.errors).length === 0, `no page errors with the Kindle photos ${real(pk.errors).join(' | ')}`); }
 
   // live camera (Chromium's fake camera shows a test pattern: no words) → Snap runs the pipeline
@@ -298,9 +318,9 @@ export default async ({ base, page: newPage, ok, info, devices }) => {
   // full size; a frame of the live video (about 1920 × 1080) is softer and smaller (owner, 21 Nov 2026: the phone read a
   // Kindle page worse than the webcam). Here the video shows a sentence with no rare word, the still the book page: the
   // words found say which one was read.
-  const stillCam = async (mode) => {
+  const stillCam = async (mode, file = 'book-page.jpg') => {
     const p = await newPage(phone); await mockApis(p, []);
-    const still = `data:image/jpeg;base64,${readFileSync(F('book-page.jpg')).toString('base64')}`;
+    const still = `data:image/jpeg;base64,${readFileSync(F(file)).toString('base64')}`;
     await p.addInitScript(([url, mode]) => {
       window.__tracks = []; window.__photos = []; window.__focus = [];
       navigator.mediaDevices.getUserMedia = async () => {
@@ -321,10 +341,13 @@ export default async ({ base, page: newPage, ok, info, devices }) => {
           window.__photos.push(settings || null);
           if (mode === 'refuse') throw new DOMException('the camera is busy', 'OperationError');
           const img = new Image(); img.src = url; await img.decode();
-          if (mode !== 'portrait') return (await fetch(url)).blob();
-          // a still that comes the sensor's way round: the scene turned a quarter to the left (no EXIF turn)
+          // portrait: a still that comes the sensor's way round, the scene turned a quarter to the left (no EXIF turn);
+          // portrait-cw: the same the other way (the tab's turn to the live picture's shape then leaves it upside down);
+          // side-90 / side-270: the phone held sideways, the page lying across the still as in the live picture
+          const deg = { portrait: -90, 'portrait-cw': 90, 'side-90': 90, 'side-270': 270 }[mode];
+          if (!deg) return (await fetch(url)).blob();
           const c = new OffscreenCanvas(img.naturalHeight, img.naturalWidth), g = c.getContext('2d');
-          g.translate(0, c.height); g.rotate(-Math.PI / 2); g.drawImage(img, 0, 0);
+          g.translate(c.width / 2, c.height / 2); g.rotate((deg * Math.PI) / 180); g.drawImage(img, -img.naturalWidth / 2, -img.naturalHeight / 2);
           return c.convertToBlob({ type: 'image/jpeg', quality: 0.92 });
         }
       };
@@ -346,6 +369,13 @@ export default async ({ base, page: newPage, ok, info, devices }) => {
     ok(saved[0] === 0xff && saved[1] === 0xd8 && saved.length > 100000, `Save this photo gives the still that was read (${saved.length} bytes)`); }
   { const r = await stillCam('portrait');
     ok(RARE.filter((w) => r.words.includes(w)).length >= RARE.length - 1, `a still that came the sensor's way round (portrait, the live picture landscape) is turned before it is read (${r.words.length} words)`); }
+  { const r = await stillCam('portrait-cw');
+    ok(RARE.filter((w) => r.words.includes(w)).length >= RARE.length - 1 && /turned upside down to read it/.test(await r.p.locator(STATUS).textContent()), `a still turned the other way (upside down after the turn to the live picture's shape) is set upright before it is read (${await r.p.locator(STATUS).textContent()})`); }
+  // the phone held sideways in either hand (owner, 21 Nov 2026 — to-do #11): the Kindle page lies across the still
+  for (const [mode, how] of [['side-90', 'a quarter to the left'], ['side-270', 'a quarter to the right']]) {
+    const r = await stillCam(mode, 'kindle-page.jpg'), share = kindleWords.filter((w) => r.words.includes(w)).length / Math.max(1, kindleWords.length);
+    ok(kindleWords.length >= 8 && share >= 0.9 && (await r.p.locator(STATUS).textContent()).includes(`turned ${how} to read it`), `the phone held sideways (${mode}): ${Math.round(100 * share)} % of the upright photo's uncommon words (${await r.p.locator(STATUS).textContent()})`);
+  }
   { const r = await stillCam('refuse');
     ok(r.photos.length === 1 && !RARE.some((w) => r.words.includes(w)) && /No uncommon words|uncommon word|No text found/.test(await r.p.locator(STATUS).textContent()), 'a still the camera refuses: the video frame is read instead');
     ok(real(r.p.errors).length === 0, `no page errors when the still is refused ${real(r.p.errors).join(' | ')}`); }

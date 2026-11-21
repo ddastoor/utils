@@ -42,6 +42,14 @@ that affects it.
 > "snap again" hint (§3 Photo Dictionary, "The upgrade", item 5).
 > **The OCR tab too** (owner, 21 Nov 2026: "just like the photo dictionary, the OCR app should also work really well from
 > my phone"): it shares the engine, the camera and the clean-up, and is held to the same phone photos (`todo.md` #9).
+> **Owner, 21 Nov 2026 (later):** "just like photo dictionary on the phone, the OCR on the phone also has to be extremely
+> high quality. In fact, both photo dictionary and OCR on the phone and PC should be extremely high quality." — the two
+> tabs, on phones and on PCs, are judged by the same standard: the photos a person really takes read right.
+> **Phone held sideways (owner, 21 Nov 2026 — `todo.md` #11):** "when I take my phone and turn it 90 degrees
+> horizontally, either with my left hand or my right hand, and then take a photo of my Kindle, it gets screwed up. It
+> can't understand a thing. Fix that. Do whatever you have to do internally, rotate the image … should work even if my
+> camera is in landscape mode and portrait mode." — both tabs find which way up the text stands (the phone's tilt at the
+> moment of the snap where the browser gives it, and the picture itself) and turn the photo before it is read.
 
 > ## 📏 Size check before every new app (owner, 20 Nov 2026; standing)
 > **Owner:** "Whenever next new app I suggest from potentials.md, you do a rough calculation, tell me how much more
@@ -1973,6 +1981,19 @@ read as it is — a white panel in it is no page. Measured on the generated Kind
 1 % of a still in Noto Sans (the black body divided by itself), the photo as it is 81 %, straightened and cleaned 99 %.
 Phones' Snap takes the camera's still (§3 Photo Dictionary, Progress). A reading below 60 % confidence (`POOR`) adds
 "the text reads poorly: a sharper photo, closer and in good light, reads better" to the line under the text.
+**The phone held sideways (owner, 21 Nov 2026 — `todo.md` #11: "turn it 90 degrees horizontally, either with my left hand or my
+right hand … it can't understand a thing"):** both this tab and the Photo Dictionary set the text upright before it is
+read (`src/lib/upright.ts` on imgproc's `p_text_turns`): after the page is found and straightened, the lines' axis
+comes from each letter's nearest neighbour (letters of a word stand closer than the lines) and which end is up from the
+letters that rise above the x-height against those that drop below the baseline (Latin script: more ascenders); looked
+at 1,200 px long, then 800 and 1,800 (letters too small at one size, specks at another). Where only the axis is clear
+(a blurred frame of a whole Kindle photo) a copy of at most 1,000 px is read both ways round and the better reading's
+way kept (`uprightByReading`). The line says "the text stood sideways: the picture was turned a quarter to the left to
+read it"; a picture turned with the buttons is read as it is shown. Works on the picture alone — a phone held either
+way, a gallery photo, a page held sideways to a webcam. Measured: the page found in each of the four real photos turned
+four ways gives the right turn in all 16 cases (unit `textturns.test.mjs` 36); the Kindle photo turned 90°, 270° and
+180° reads 95 %+ of its words in this tab and gives 90 %+ of the upright photo's uncommon words in the Photo Dictionary,
+also from a phone still lying across the picture (e2e).
 
 ### Camera in every tab that takes a picture (owner, 20 Nov 2026)
 Owner: "In all apps that offer to upload an image, also add the option of taking a photo if it's a phone app, and take

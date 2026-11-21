@@ -8,8 +8,7 @@ import { previewOf, paint } from '../lib/imgio';
 import { imageInput } from '../lib/imgtools';
 import { recognize, POOR, type OcrLang, type OcrResult } from '../lib/ocr';
 import { straighten } from '../lib/pagecrop';
-
-const ROT = [1, 6, 3, 8]; // quarter turns to the right as EXIF orientations
+import { uprightByReading, turnWords, ROT } from '../lib/upright';
 /** Light text on a dark ground (a screenshot in dark mode, chalk on a board): the clean-up expects dark text on paper. */
 export const isDark = (luma: Uint32Array | number[]) => {
   let n = 0, sum = 0;
@@ -18,7 +17,8 @@ export const isDark = (luma: Uint32Array | number[]) => {
 };
 
 export const mount: Mount = (root, ctx) => {
-  let src: Img | null = null, name = 'text', lang: OcrLang = 'eng', clean = true, turns = 0, seq = 0, alive = true;
+  // handTurned: the picture was turned with the buttons — then it is read as it is shown, never turned on its own
+  let src: Img | null = null, name = 'text', lang: OcrLang = 'eng', clean = true, turns = 0, seq = 0, alive = true, handTurned = false;
   const canvas = h('canvas', { class: 'ed-canvas' });
   const boxes = h('div', { class: 'ocr-boxes' });
   const stage = h('div', { class: 'crop-wrap' }, canvas, boxes);
@@ -33,11 +33,14 @@ export const mount: Mount = (root, ctx) => {
     if (my === seq && alive) paint(img, canvas);
   };
   const forget = () => { seq++; out.value = ''; info.textContent = ''; boxes.replaceChildren(); prog.done(); };
+  /** The clean-up for reading: light text on a dark ground turned dark on light, then the document enhancement. */
+  const enhance = async (im: Img) => (clean ? imgproc('docEnhance', isDark((await imgproc('histogram', im)).subarray(768, 1024)) ? await imgproc('invert', im) : im, 1) : im);
   /** The picture as the engine reads it (img) and, when a photographed page was found and straightened, that page as
    *  it looks (page: shown instead of the photo, so the highlighted words sit on what was read). straight: false reads
-   *  the photo as it is (the second try when the page found gave little). */
-  const prepare = async (from: Img, t: number, straight = true) => {
-    let img = await turned(from, t), page: Img | null = null;
+   *  the photo as it is (the second try when the page found gave little). auto: the text set upright first (owner,
+   *  21 Nov 2026: a phone held sideways in either hand — src/lib/upright.ts); autoTurns: the quarter turns that took. */
+  const prepare = async (from: Img, t: number, straight = true, auto = false) => {
+    let img = await turned(from, t), page: Img | null = null, autoTurns = 0;
     // Tesseract works best around 300 dpi text height; very large photos are scaled to ≤ 3000 px (wasm resize)
     const L = Math.max(img.width, img.height);
     if (L > 3000) img = await imgproc('resize', img, Math.round((img.width * 3000) / L), Math.round((img.height * 3000) / L));
@@ -46,10 +49,13 @@ export const mount: Mount = (root, ctx) => {
       // Dictionary's (src/lib/pagecrop.ts; owner, 21 Nov 2026: the OCR tab as good on a phone, to-do #9); a screenshot or a
       // scan is left as it is
       if (straight) { const s = await straighten(img).catch(() => ({ img, found: false })); if (s.found) img = page = s.img; }
-      if (isDark((await imgproc('histogram', img)).subarray(768, 1024))) img = await imgproc('invert', img);
-      img = await imgproc('docEnhance', img, 1);
     }
-    return { img, page };
+    if (auto) {
+      const u = await uprightByReading(img, async (im) => read(await enhance(im))).catch(() => null);
+      if (u?.turns) { img = u.img; if (page) page = img; autoTurns = u.turns; }
+    }
+    img = await enhance(img);
+    return { img, page, autoTurns };
   };
   const read = (img: Img, onProgress?: (p: number, s: string) => void) => recognize(new ImageData(new Uint8ClampedArray(img.data), img.width, img.height), lang, onProgress);
   const run = async () => {
@@ -58,32 +64,39 @@ export const mount: Mount = (root, ctx) => {
     out.value = ''; info.textContent = ''; boxes.replaceChildren();
     const live = () => my === seq && alive;
     const onProgress = (p: number, s: string) => { if (live()) prog.set(s.includes('recogn') ? p : null, s.includes('recogn') ? `Recognising… ${Math.round(p * 100)} %` : 'Loading the text engine…'); };
-    let t = turns, { img, page } = await prepare(from, t);
+    const auto = !handTurned;
+    let t = turns, { img, page, autoTurns } = await prepare(from, t, true, auto);
     let r: OcrResult = await read(img, onProgress);
     if (!live()) return;
     // a page found that gave little (it was not the page): the whole picture is read too, and the better reading kept
     if (page && r.words.length < 25) {
-      const w = await prepare(from, t, false), r2 = await read(w.img, onProgress);
+      const w = await prepare(from, t, false, auto), r2 = await read(w.img, onProgress);
       if (!live()) return;
-      if (r2.words.length > r.words.length) { r = r2; img = w.img; page = null; }
+      if (r2.words.length > r.words.length) { r = r2; img = w.img; page = null; autoTurns = w.autoTurns; }
     }
     let note = '';
+    // the text stood sideways or upside down (a phone held the other way): the picture as it was read is shown
+    if (autoTurns) {
+      if (!page) { turns = (turns + autoTurns) % 4; await show(); }
+      note = ` · the text stood ${autoTurns === 2 ? 'upside down' : 'sideways'}: the picture was turned ${turnWords(autoTurns)} to read it`;
+    }
     if (r.confidence < POOR) {
       // sideways or upside down? Read a smaller copy each other way round; take a way that reads clearly better
       prog.set(null, 'The text reads badly — trying the picture turned…');
-      const small = previewOf(from, 1200);
-      let best = { t, conf: r.confidence };
+      // (cur: the way round the picture was just read — its own turns and those the text's lines asked for)
+      const small = previewOf(from, 1200), cur = (t + autoTurns) % 4;
+      let best = { t: cur, conf: r.confidence };
       for (const k of [1, 3, 2]) {
-        const tt = (turns + k) % 4, q = await read((await prepare(small, tt)).img);
+        const tt = (cur + k) % 4, q = await read((await prepare(small, tt)).img);
         if (!live()) return;
         if (q.confidence > best.conf) best = { t: tt, conf: q.confidence };
       }
-      if (best.t !== t && best.conf >= POOR && best.conf >= r.confidence + 20) {
+      if (best.t !== cur && best.conf >= POOR && best.conf >= r.confidence + 20) {
         t = best.t; ({ img, page } = await prepare(from, t));
         r = await read(img, onProgress);
         if (!live()) return;
         turns = t; await show();
-        note = ` · the picture was turned ${t === 2 ? 'upside down' : t === 1 ? 'a quarter to the right' : 'a quarter to the left'} to read it`;
+        note = ` · the picture was turned ${turnWords(t)} to read it`;
       }
     }
     prog.done();
@@ -101,10 +114,10 @@ export const mount: Mount = (root, ctx) => {
   // a file (a photo already taken, a screenshot, a paste) — or the camera: the phone's back camera, the PC's webcam, live
   // in the page with Snap (owner, 20 Nov 2026; the picker's own camera, src/lib/livecam.ts)
   const input$ = imageInput((img, f, how) => {
-    src = img; turns = 0; name = baseName(f.name); forget(); show(); editor.hidden = false;
+    src = img; turns = 0; handTurned = false; name = baseName(f.name); forget(); show(); editor.hidden = false;
     if (how === 'camera') reveal(editor.firstElementChild!); // the photo where the camera was
   }, { label: 'Choose an image with text', instead: 'choose an image instead' });
-  const turn = (k: number) => { if (!src) return; turns = (turns + k) % 4; forget(); show(); };
+  const turn = (k: number) => { if (!src) return; turns = (turns + k) % 4; handTurned = true; forget(); show(); };
   const text = () => { if (!out.value.trim()) throw new Error('There is no text yet — choose an image and press "Extract text".'); return out.value; };
   editor.append(
     card(null, h('div', { class: 'ed-stage' }, stage), h('div', { class: 'row' },
