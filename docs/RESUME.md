@@ -10,6 +10,42 @@ Start a new Claude Code session on the same repository (claude.ai/code or the Cl
 > Continue building SuperUtils. Check out branch `claude/exciting-bohr-b9yfwc` (keep committing and pushing to that
 > branch — I allow it), read CLAUDE.md and docs/RESUME.md, and carry on from "Next steps".
 
+## ▶ SYNC POINT — 21 Nov 2026, evening (read this first; it supersedes the older "NOW" notes below)
+The owner's weekly limit was nearly used up; work resumes on Thursday. Everything below is committed and pushed.
+**Done today (all live):** OCR + Photo Dictionary read photos at any angle — letters + projection profiles, every turn
+tried by a quick reading (CLAUDE.md §3 OCR, "At any angle"; to-do #11 and the angle request); potentials.md: #44, #65,
+#66 removed by the owner, #76 – #102 added (round 7: "things people didn't know they needed"); todo.md #13 added (every PC
+app on Windows and Linux, and X11 / Wayland — also a standing rule at the top of CLAUDE.md).
+**In progress — to-do #7, TTS offline: finish the Indian voices already in the catalogue** (owner, 21 Nov 2026: "whatever
+work you were doing on the existing Indian accents for the offline mode, finish that. But maybe don't look for any new
+ones" — no new models or voices; docs/HANDOFF.md §1):
+1. **Smoke tests with each engine's lock** — `python3 scripts/accent-survey/smoke.py WORK --wait-gb 6 ENGINE:VOICE …` (WORK
+   = a scratch folder, e.g. `$SCRATCH/otts/acc`; uv at ~/.local/bin/uv or on the PATH). **Passed:** piper, supertonic,
+   melo, indictiny, mms, coqui (SYSPIN), kokoro, pocket, bark (small), qwen (0.6B), omnivoice, parler (Mini). **Running
+   when the session paused:** f5 (`f5:f5-clip-imran` — about half an hour for one short sentence on the 4-core sandbox).
+   **To run:** `chatterbox:chatterbox-default chatterbox:chatterbox-turbo-default voxcpm:voxcpm2-design-in-woman-young
+   bark:bark-hi-0`, then — alone, ≈ 12 GB of memory — `vibevoice:vibevoice-clip-imran`, and `veena:veena-kavya` (7.6 GB of
+   disk, bfloat16). Each one that passes loses its `UNTRIED` entry in `scripts/make-offline-tts-catalogue.py`; one that
+   fails is fixed in `src/lib/offline-tts/driver.py` (or keeps its tag with the reason).
+2. **The accent survey of the voices not yet measured** — `python3 scripts/accent-survey/run.py WORK ENGINE` (resumes from
+   the recordings already in WORK, sentence by sentence; a reclaimed container loses them — just run it again). Indian
+   voices left: kyutai 61 (**running when the session paused**, ≈ 34 done), xtts 52, chatterbox 60, chatterbox-turbo 60,
+   voxcpm2 64, vibevoice 60, bark (full) 10, veena 4, f5 59 (measure only if its speed allows — else mark it "not
+   measured: too slow on the test machine" and say so to the owner). Indic Parler and Pocket cloning are gated: never
+   measured here. Then `python3 scripts/make-indian-accents.py WORK` → `python3 scripts/make-offline-tts-catalogue.py`.
+3. **Close #7:** unit `offline-tts-plan` + `offline-tts`, e2e `tts-offline`; CLAUDE.md §3 TTS offline (the counts, what was
+   run, the ranking), docs/BUGHUNT.md "TTS offline", todo.md #7 → Done; commit + push.
+**Machine rules:** 16 GB of memory — the Kyutai survey holds ≈ 9 GB: no build or browser suite beside it, one engine at a
+time; disk is a fixed allowance — delete each model after its run, and when it fills, clean what can be made again and
+carry on (owner, 21 Nov 2026).
+**Then, in the owner's order:** #8 Regex Tester flavours (research done: PCRE2 — `pcre2-wasm` 10.49.3 or our own build;
+Google's `re2-wasm` 1.0.2 for RE2 / Go; `vscode-oniguruma` 2.0.1 for Ruby / Oniguruma; Python's `re` through the Python
+tab's CPython and the `regex` module; Perl through ExifTool's zeroperl, already on the site; JavaScript as now; Java and
+.NET — to decide; native references in the sandbox: Go, Java 21, Perl 5.38, Ruby, Python 3.13 + regex, GNU grep -P / -E),
+then #10 bc variables (todo.md has the owner's exact rules). **Ask the owner before:** #12 (the Photo Dictionary's list
+A → Z — asked, no answer yet) and #13 (the Windows / Linux / X11 / Wayland check). After the to-dos: the potentials
+process (CLAUDE.md top: show the list, the owner picks, the size check, build).
+
 ## Moving to a local machine (owner is moving to Kubuntu, Nov 2026)
 ```bash
 git clone https://github.com/ddastoor/utils.git && cd utils && git checkout claude/exciting-bohr-b9yfwc
