@@ -79,6 +79,11 @@ export default async ({ base, page: newPage, ok, info, download, tmp, devices })
   await page.locator('input[type=file]').setInputFiles(txt); await pw.fill('correct horse 123');
   const fromTxt = await download(page, run);
   ok(readFileSync(fromTxt, 'utf8') === MSG, 'a .txt file holding the encrypted text decrypts (it was "Not a Sodium Encrypt file")');
+  // the same text saved by Notepad as "Unicode" (UTF-16 LE with its mark, CR LF) — to-do #13
+  const txt16 = join(tmp, 'mail-unicode.txt'); writeFileSync(txt16, Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from(`${ct.replace(/(.{76})/g, '$1\r\n')}\r\n`, 'utf16le')]));
+  await page.locator('input[type=file]').setInputFiles(txt16); await pw.fill('correct horse 123');
+  const from16 = await download(page, run);
+  ok(readFileSync(from16, 'utf8') === MSG, 'the encrypted text in a UTF-16 file (Notepad\'s "Unicode") decrypts too');
   // Maximum (1 GiB) on a desktop: there and back
   await seg('Encrypt'); await seg('Text'); await seg('Maximum (1 GiB)');
   await fv(page, 'Text to encrypt').fill('the most careful setting'); await pw.fill('max setting 789'); await pw2.fill('max setting 789'); await run();

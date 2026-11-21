@@ -3,6 +3,7 @@ import {
   downloadBlob, copy, toast, fmtBytes, stack, row, clear, ic, select, errMsg, type Mount,
 } from '../ui';
 import { encryptBlob, decryptBlob, STRENGTH, sodiumVersion } from '../lib/crypto-client';
+import { textOf } from '../lib/textfile';
 import { hashData, stopHashing, Stopped } from '../lib/hash-client';
 import { HASHES, HASH_IDS, COMPARE_ALG, algo, type HashAlgo } from '../lib/hashes';
 import { parseExpected, isChecksumListName, neededAlgs, verify, unmatchedEntries, fmtDigest, sumsText, sumsName, type DigestFormat, type Expected, type ExpectedList } from '../lib/checksums';
@@ -178,7 +179,8 @@ export const hash: Mount = (root) => {
     const ls: typeof lists = [], hs: File[] = [];
     for (const f of fs) {
       if (isChecksumListName(f.name) && f.size < 1 << 20) {
-        const l = parseExpected(await f.text(), f.name);
+        // as Windows programs save it too: PowerShell 5.1's `> SHA256SUMS` writes UTF-16 (to-do #13)
+        const l = parseExpected(textOf(new Uint8Array(await f.arrayBuffer()))?.text ?? '', f.name);
         if (l.entries.length) { ls.push({ name: f.name, list: l }); continue; }
       }
       hs.push(f);

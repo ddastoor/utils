@@ -1,5 +1,7 @@
 // "USODIUM1" container format — see docs/sodium-format.md and tools/sodium_decrypt.py.
 // The 61-byte header is written and parsed in crypto.wasm (wasm/crypto/glue.c: u_sh_write / u_sh_parse).
+import { textOf } from './textfile';
+
 export const MAGIC = 'USODIUM1';
 export const CHUNK = 65536;
 export const HEADER_LEN = 8 + 1 + 4 + 4 + 4 + 16 + 24; // 61
@@ -64,9 +66,10 @@ function decodeB64(t: string): { bytes: Uint8Array } | { error: 'empty' | 'magic
  *  null. Only small files are looked at — the text of a file is a third larger than the file. */
 export async function encryptedTextFile(file: Blob): Promise<Uint8Array | null> {
   if (file.size > 64 << 20) return null;
-  const head = new Uint8Array(await file.slice(0, 64).arrayBuffer());
-  const start = new TextDecoder().decode(head).replace(/^[\s"'“‘﻿]+/, '');
+  // the text as Windows programs save it too (Notepad's "Unicode" is UTF-16): to-do #13
+  const head = textOf(new Uint8Array(await file.slice(0, 128).arrayBuffer()))?.text ?? '';
+  const start = head.replace(/^[\s"'“‘﻿]+/, '');
   if (!start.startsWith(B64_MAGIC) && !/[#?&]d=VVNPRElVTTE/.test(start) && !/^https?:/.test(start)) return null;
-  const r = readEncryptedText(await file.text());
+  const r = readEncryptedText(textOf(new Uint8Array(await file.arrayBuffer()))?.text ?? '');
   return 'bytes' in r ? r.bytes : null;
 }

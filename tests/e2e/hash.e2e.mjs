@@ -129,6 +129,12 @@ export default async ({ base, page: newPage, ok, tmp, devices }) => {
   await page.locator('input[type=file]').setInputFiles([join(dir, 'SHA256SUMS')]);
   await page.getByRole('button', { name: 'Compute' }).click();
   ok(/Choose the files to check as well/.test(await page.locator('.toast').last().textContent({ timeout: 10000 })), 'a list alone: asked for the files');
+  // the same list as Windows PowerShell 5.1 saves it (`sha256sum … > SHA256SUMS`): UTF-16 LE with its mark, CR LF (to-do #13)
+  writeFileSync(join(dir, 'SHA256SUMS'), Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from((sums.replace(/^\S+(\s+c\.bin)$/m, `${sha('not c')}$1`) + `${sha('x')}  missing.iso\n`).replace(/\n/g, '\r\n'), 'utf16le')]));
+  await page.locator('input[type=file]').setInputFiles([f1, f3, join(dir, 'SHA256SUMS')]);
+  ok(/SHA256SUMS — read as the checksum list \(3 checksums\), not hashed/.test(await page.locator('.drop + div, .muted.small').allTextContents().then((t) => t.join(' '))), 'a checksum list saved by Windows PowerShell (UTF-16, CR LF) is read as the list (it was read as UTF-8: garbage, and hashed)');
+  await compute();
+  ok((await notes()).some((n) => n === 'Checksum list: 1 of 2 files match; 1 does not (c.bin); 1 listed file was not chosen (missing.iso).'), '… and checks the files as the plain list does');
   // pasted output of md5sum for two files, one chosen
   await page.locator('input[type=file]').setInputFiles([f1]);
   await expected.fill(spawnSync('md5sum', ['b.bin', 'a.bin'], { cwd: dir, encoding: 'utf8' }).stdout);
