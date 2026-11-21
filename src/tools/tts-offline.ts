@@ -7,7 +7,7 @@
 import { h, card, field, button, segmented, toggle, note, stack, toast, downloadBlob, slider, select } from '../ui';
 import catalogue from '../lib/offline-tts/catalogue.json';
 import driver from '../lib/offline-tts/driver.py?raw';
-import { detectOS, planOf, scriptFor, fmtMB, matches, SCRIPT_NAME, TORCH_MB, type Catalogue, type CVoice, type OS } from '../lib/offline-tts/plan';
+import { detectOS, planOf, scriptFor, fmtMB, matches, rankIndian, strength, ACCENT_WORDS, SCRIPT_NAME, TORCH_MB, type Catalogue, type CVoice, type OS } from '../lib/offline-tts/plan';
 
 const cat = catalogue as unknown as Catalogue;
 const SITE = 'https://ddastoor.github.io/utils/#/tts';
@@ -64,6 +64,50 @@ export function offlinePanel(o: { text: () => string; speed: number }): HTMLElem
     cb.checked = chosen.has(v.id);
     cb.addEventListener('change', () => { if (cb.checked) chosen.add(v.id); else chosen.delete(v.id); render(); });
     return h('label', { class: 'otts-voice' }, cb, h('span', null, v.label));
+  }
+
+  /** The pop-up of the Indian voices, lightest accent first (owner, 21 Nov 2026: "Don't clutter the page … keep a kind
+   *  of text pop-up … when the user clicks a button"). A tick in it chooses the voice as the list does. */
+  const rankBtn = button('Indian accents, lightest first', () => openRanking(), { icon: 'ListOrdered', small: true, title: 'Every Indian English voice ranked from the most British-sounding to the strongest Indian accent' });
+  function openRanking() {
+    const { measured, unmeasured } = rankIndian(cat), survey = cat.accentSurvey;
+    const lo = Math.min(...measured.map((v) => v.heard!.indian)), hi = Math.max(...measured.map((v) => v.heard!.indian));
+    // "Alpha — woman, Kokoro's Hindi voice, British reading of the words": the name, then what tells it from its namesakes
+    const name = (v: CVoice) => v.label.split(' — ')[0], about = (v: CVoice) => v.label.split(' — ').slice(1).join(' — ');
+    const tick = (v: CVoice) => {
+      const cb = h('input', { type: 'checkbox', value: v.id, 'aria-label': `Choose ${v.label}` }) as HTMLInputElement;
+      cb.checked = chosen.has(v.id);
+      cb.addEventListener('change', () => { if (cb.checked) chosen.add(v.id); else chosen.delete(v.id); list(); render(); });
+      return cb;
+    };
+    const rows = measured.map((v, i) => {
+      const m = cat.models[v.model], x = v.heard!, w = hi > lo ? 8 + (92 * (x.indian - lo)) / (hi - lo) : 50;
+      return h('tr', { 'data-id': v.id },
+        h('td', { class: 'otts-rank-n' }, String(i + 1)),
+        h('td', null, tick(v)),
+        h('td', null, h('div', { class: 'otts-rank-voice' }, name(v)), h('div', { class: 'muted small' }, [about(v), m.name].filter(Boolean).join(' · '))),
+        h('td', null, h('div', { class: 'otts-rank-bar', role: 'img', 'aria-label': `Indian accent: ${strength(x.indian)}` }, h('span', { style: `width:${w.toFixed(0)}%` })), h('div', { class: 'small' }, strength(x.indian))),
+        h('td', { class: 'small' }, ACCENT_WORDS[x.like] || x.like));
+    });
+    const dlg = h('dialog', { class: 'otts-rank', 'aria-labelledby': 'otts-rank-title' }) as HTMLDialogElement;
+    const close = () => dlg.close();
+    dlg.append(
+      h('div', { class: 'otts-rank-head' }, h('h3', { id: 'otts-rank-title' }, 'Indian English voices — lightest accent first'),
+        h('button', { type: 'button', class: 'otts-rank-x', 'aria-label': 'Close', onclick: close }, '✕')),
+      h('p', { class: 'muted small' }, 'Top: the most British-sounding; bottom: the strongest Indian accent. Measured here: every voice read the same ',
+        survey ? `${survey.texts.length} British sentences` : 'British sentences', ', and an accent-recognition model (', survey?.tool || 'SpeechBrain CommonAccent',
+        ') judged how Indian each sounds and what it sounds like otherwise. A guide, not a verdict — listen before you choose. A tick chooses the voice.'),
+      h('table', { class: 'otts-rank-table' },
+        h('thead', null, h('tr', null, h('th', null, '#'), h('th', null, h('span', { class: 'sr-only' }, 'Choose')), h('th', null, 'Voice · model'), h('th', null, 'Indian accent'), h('th', null, 'Otherwise sounds'))),
+        h('tbody', null, ...rows)),
+      // the voices that could not be measured here, folded away: the ranking is what the pop-up is for
+      ...(unmeasured.length ? [h('details', { class: 'otts-rank-not' }, h('summary', null, `Not measured yet — ${unmeasured.reduce((n, u) => n + u.voices.length, 0)} voices of ${unmeasured.length} models`),
+        ...unmeasured.map((u) => h('div', { class: 'small' }, h('strong', null, cat.models[u.model].name), ` (${u.voices.length} voice${u.voices.length > 1 ? 's' : ''}): ${u.reason}`)))] : []),
+      h('div', { class: 'otts-rank-foot' }, button('Close', close)));
+    dlg.addEventListener('close', () => { dlg.remove(); rankBtn.focus(); });
+    dlg.addEventListener('click', (e) => { if (e.target === dlg) close(); }); // a click on the backdrop
+    document.body.append(dlg);
+    dlg.showModal();
   }
 
   function render() {
@@ -130,7 +174,7 @@ export function offlinePanel(o: { text: () => string; speed: number }): HTMLElem
   const el = stack(
     note('Large voices that run on this computer instead of in the browser. This page writes a script with your text and the voices you choose; the script downloads the speech programs and the voices from their makers (Hugging Face), keeps them in one folder and makes an MP3 and a WAV of every voice. Nothing is installed into the system, and your text stays on the computer.', 'info'),
     card('This computer', stack(field('System', osSeg), osLine)),
-    card('Voices', stack(groupSeg, h('div', { class: 'otts-filters' }, engineSel, sexSel, search), shown, listBox,
+    card('Voices', stack(h('div', { class: 'otts-groups' }, groupSeg, rankBtn), h('div', { class: 'otts-filters' }, engineSel, sexSel, search), shown, listBox,
       h('div', { class: 'muted small' }, 'Sizes are downloads (MB = 1,000,000 bytes); voices of one model share its download. ',
         `PyTorch, which most engines need, is about ${fmtMB(TORCH_MB.cpu)} (${fmtMB(TORCH_MB.cuda)} for an NVIDIA graphics card).`))),
     card('Your choice', stack(summary, needs,

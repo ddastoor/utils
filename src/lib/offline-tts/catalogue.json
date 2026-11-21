@@ -2219,7 +2219,12 @@
    "sex": "f",
    "model": "kokoro",
    "voice": "hf_alpha",
-   "lang": "a"
+   "lang": "a",
+   "heard": {
+    "indian": 0.0367,
+    "like": "scotland",
+    "n": 2
+   }
   },
   {
    "id": "kokoro-hf_alpha-b",
@@ -2228,7 +2233,12 @@
    "sex": "f",
    "model": "kokoro",
    "voice": "hf_alpha",
-   "lang": "b"
+   "lang": "b",
+   "heard": {
+    "indian": -0.0187,
+    "like": "england",
+    "n": 2
+   }
   },
   {
    "id": "kokoro-hf_alpha-h",
@@ -2237,7 +2247,12 @@
    "sex": "f",
    "model": "kokoro",
    "voice": "hf_alpha",
-   "lang": "h"
+   "lang": "h",
+   "heard": {
+    "indian": -0.0106,
+    "like": "england",
+    "n": 2
+   }
   },
   {
    "id": "kokoro-hf_beta-a",
@@ -2246,7 +2261,12 @@
    "sex": "f",
    "model": "kokoro",
    "voice": "hf_beta",
-   "lang": "a"
+   "lang": "a",
+   "heard": {
+    "indian": 0.2291,
+    "like": "scotland",
+    "n": 2
+   }
   },
   {
    "id": "kokoro-hf_beta-b",
@@ -2255,7 +2275,12 @@
    "sex": "f",
    "model": "kokoro",
    "voice": "hf_beta",
-   "lang": "b"
+   "lang": "b",
+   "heard": {
+    "indian": 0.1557,
+    "like": "hongkong",
+    "n": 2
+   }
   },
   {
    "id": "kokoro-hf_beta-h",
@@ -2264,7 +2289,12 @@
    "sex": "f",
    "model": "kokoro",
    "voice": "hf_beta",
-   "lang": "h"
+   "lang": "h",
+   "heard": {
+    "indian": 0.2068,
+    "like": "england",
+    "n": 2
+   }
   },
   {
    "id": "kokoro-hm_omega-a",
@@ -2273,7 +2303,12 @@
    "sex": "m",
    "model": "kokoro",
    "voice": "hm_omega",
-   "lang": "a"
+   "lang": "a",
+   "heard": {
+    "indian": 0.07,
+    "like": "australia",
+    "n": 2
+   }
   },
   {
    "id": "kokoro-hm_omega-b",
@@ -2282,7 +2317,12 @@
    "sex": "m",
    "model": "kokoro",
    "voice": "hm_omega",
-   "lang": "b"
+   "lang": "b",
+   "heard": {
+    "indian": 0.0839,
+    "like": "australia",
+    "n": 2
+   }
   },
   {
    "id": "kokoro-hm_omega-h",
@@ -2291,7 +2331,12 @@
    "sex": "m",
    "model": "kokoro",
    "voice": "hm_omega",
-   "lang": "h"
+   "lang": "h",
+   "heard": {
+    "indian": 0.0111,
+    "like": "australia",
+    "n": 2
+   }
   },
   {
    "id": "kokoro-hm_psi-a",
@@ -2300,7 +2345,12 @@
    "sex": "m",
    "model": "kokoro",
    "voice": "hm_psi",
-   "lang": "a"
+   "lang": "a",
+   "heard": {
+    "indian": 0.2214,
+    "like": "england",
+    "n": 2
+   }
   },
   {
    "id": "kokoro-hm_psi-b",
@@ -2309,7 +2359,12 @@
    "sex": "m",
    "model": "kokoro",
    "voice": "hm_psi",
-   "lang": "b"
+   "lang": "b",
+   "heard": {
+    "indian": 0.0635,
+    "like": "england",
+    "n": 2
+   }
   },
   {
    "id": "kokoro-hm_psi-h",
@@ -2318,7 +2373,12 @@
    "sex": "m",
    "model": "kokoro",
    "voice": "hm_psi",
-   "lang": "h"
+   "lang": "h",
+   "heard": {
+    "indian": 0.1339,
+    "like": "england",
+    "n": 2
+   }
   },
   {
    "id": "goonj-en-aman",
@@ -2327,7 +2387,12 @@
    "sex": "m",
    "model": "goonj",
    "voice": "en_aman",
-   "lang": "a"
+   "lang": "a",
+   "heard": {
+    "indian": 0.4778,
+    "like": "singapore",
+    "n": 2
+   }
   },
   {
    "id": "goonj-en-ananya",
@@ -2336,7 +2401,12 @@
    "sex": "f",
    "model": "goonj",
    "voice": "en_ananya",
-   "lang": "a"
+   "lang": "a",
+   "heard": {
+    "indian": 0.2805,
+    "like": "singapore",
+    "n": 2
+   }
   },
   {
    "id": "goonj-en-arjun",
@@ -2345,7 +2415,12 @@
    "sex": "m",
    "model": "goonj",
    "voice": "en_arjun",
-   "lang": "a"
+   "lang": "a",
+   "heard": {
+    "indian": 0.4629,
+    "like": "england",
+    "n": 2
+   }
   },
   {
    "id": "goonj-en-dev",
@@ -2354,7 +2429,12 @@
    "sex": "m",
    "model": "goonj",
    "voice": "en_dev",
-   "lang": "a"
+   "lang": "a",
+   "heard": {
+    "indian": 0.3912,
+    "like": "us",
+    "n": 2
+   }
   },
   {
    "id": "goonj-en-divya",
@@ -2363,7 +2443,12 @@
    "sex": "f",
    "model": "goonj",
    "voice": "en_divya",
-   "lang": "a"
+   "lang": "a",
+   "heard": {
+    "indian": 0.4914,
+    "like": "us",
+    "n": 2
+   }
   },
   {
    "id": "goonj-en-kabir",
@@ -2372,7 +2457,12 @@
    "sex": "",
    "model": "goonj",
    "voice": "en_kabir",
-   "lang": "a"
+   "lang": "a",
+   "heard": {
+    "indian": 0.3895,
+    "like": "singapore",
+    "n": 2
+   }
   },
   {
    "id": "goonj-en-nisha",
@@ -2381,7 +2471,12 @@
    "sex": "f",
    "model": "goonj",
    "voice": "en_nisha",
-   "lang": "a"
+   "lang": "a",
+   "heard": {
+    "indian": 0.3425,
+    "like": "singapore",
+    "n": 2
+   }
   },
   {
    "id": "goonj-en-priya",
@@ -2390,7 +2485,12 @@
    "sex": "f",
    "model": "goonj",
    "voice": "en_priya",
-   "lang": "a"
+   "lang": "a",
+   "heard": {
+    "indian": 0.2651,
+    "like": "england",
+    "n": 2
+   }
   },
   {
    "id": "goonj-en-sameer",
@@ -2399,7 +2499,12 @@
    "sex": "m",
    "model": "goonj",
    "voice": "en_sameer",
-   "lang": "a"
+   "lang": "a",
+   "heard": {
+    "indian": 0.3795,
+    "like": "us",
+    "n": 2
+   }
   },
   {
    "id": "goonj-en-tara",
@@ -2408,7 +2513,12 @@
    "sex": "f",
    "model": "goonj",
    "voice": "en_tara",
-   "lang": "a"
+   "lang": "a",
+   "heard": {
+    "indian": 0.2346,
+    "like": "england",
+    "n": 2
+   }
   },
   {
    "id": "goonj-hi-atul",
@@ -2417,7 +2527,12 @@
    "sex": "m",
    "model": "goonj",
    "voice": "hi_atul",
-   "lang": "a"
+   "lang": "a",
+   "heard": {
+    "indian": 0.4746,
+    "like": "us",
+    "n": 2
+   }
   },
   {
    "id": "goonj-hi-meera",
@@ -2426,7 +2541,12 @@
    "sex": "f",
    "model": "goonj",
    "voice": "hi_meera",
-   "lang": "a"
+   "lang": "a",
+   "heard": {
+    "indian": 0.3543,
+    "like": "us",
+    "n": 2
+   }
   },
   {
    "id": "goonj-hi-ravi",
@@ -2435,7 +2555,12 @@
    "sex": "m",
    "model": "goonj",
    "voice": "hi_ravi",
-   "lang": "a"
+   "lang": "a",
+   "heard": {
+    "indian": 0.4502,
+    "like": "singapore",
+    "n": 2
+   }
   },
   {
    "id": "goonj-hi-shivani",
@@ -2444,7 +2569,12 @@
    "sex": "f",
    "model": "goonj",
    "voice": "hi_shivani",
-   "lang": "a"
+   "lang": "a",
+   "heard": {
+    "indian": 0.4089,
+    "like": "us",
+    "n": 2
+   }
   },
   {
    "id": "omni-indian-f-young",
@@ -2452,7 +2582,12 @@
    "group": "in",
    "sex": "f",
    "model": "omnivoice",
-   "describe": "female, young adult, indian accent"
+   "describe": "female, young adult, indian accent",
+   "heard": {
+    "indian": 0.28,
+    "like": "australia",
+    "n": 2
+   }
   },
   {
    "id": "omni-indian-f-middle",
@@ -2460,7 +2595,12 @@
    "group": "in",
    "sex": "f",
    "model": "omnivoice",
-   "describe": "female, middle-aged, indian accent"
+   "describe": "female, middle-aged, indian accent",
+   "heard": {
+    "indian": 0.3098,
+    "like": "singapore",
+    "n": 2
+   }
   },
   {
    "id": "omni-indian-f-older",
@@ -2468,7 +2608,12 @@
    "group": "in",
    "sex": "f",
    "model": "omnivoice",
-   "describe": "female, elderly, indian accent"
+   "describe": "female, elderly, indian accent",
+   "heard": {
+    "indian": 0.3394,
+    "like": "singapore",
+    "n": 2
+   }
   },
   {
    "id": "omni-indian-m-young",
@@ -2476,7 +2621,12 @@
    "group": "in",
    "sex": "m",
    "model": "omnivoice",
-   "describe": "male, young adult, indian accent"
+   "describe": "male, young adult, indian accent",
+   "heard": {
+    "indian": 0.4466,
+    "like": "england",
+    "n": 2
+   }
   },
   {
    "id": "omni-indian-m-middle",
@@ -2484,7 +2634,12 @@
    "group": "in",
    "sex": "m",
    "model": "omnivoice",
-   "describe": "male, middle-aged, indian accent"
+   "describe": "male, middle-aged, indian accent",
+   "heard": {
+    "indian": 0.2035,
+    "like": "england",
+    "n": 2
+   }
   },
   {
    "id": "omni-indian-m-older",
@@ -2492,7 +2647,12 @@
    "group": "in",
    "sex": "m",
    "model": "omnivoice",
-   "describe": "male, elderly, indian accent"
+   "describe": "male, elderly, indian accent",
+   "heard": {
+    "indian": 0.3699,
+    "like": "us",
+    "n": 2
+   }
   },
   {
    "id": "omni-american-f-young",
@@ -2932,7 +3092,12 @@
    "group": "in",
    "sex": "f",
    "model": "melo",
-   "speaker": 2
+   "speaker": 2,
+   "heard": {
+    "indian": -0.2744,
+    "like": "england",
+    "n": 2
+   }
   },
   {
    "id": "melo-en-us",
@@ -2972,7 +3137,12 @@
    "group": "in",
    "sex": "f",
    "model": "indictiny",
-   "voice": "female"
+   "voice": "female",
+   "heard": {
+    "indian": 0.3113,
+    "like": "england",
+    "n": 2
+   }
   },
   {
    "id": "indictiny-male",
@@ -2980,7 +3150,12 @@
    "group": "in",
    "sex": "m",
    "model": "indictiny",
-   "voice": "male"
+   "voice": "male",
+   "heard": {
+    "indian": -0.0618,
+    "like": "england",
+    "n": 2
+   }
   },
   {
    "id": "chatterbox-default",
@@ -3662,6 +3837,11 @@
     "repo": "kyutai/tts-voices",
     "rev": "323332d33f997de8394f24a193e1a76df720e01a",
     "file": "voice-donations/Imran_from_I_India_enhanced.wav"
+   },
+   "heard": {
+    "indian": -0.3448,
+    "like": "african",
+    "n": 2
    }
   },
   {
@@ -3674,6 +3854,11 @@
     "repo": "kyutai/tts-voices",
     "rev": "323332d33f997de8394f24a193e1a76df720e01a",
     "file": "voice-donations/Indian_guy_enhanced.wav"
+   },
+   "heard": {
+    "indian": -0.4334,
+    "like": "us",
+    "n": 2
    }
   },
   {
@@ -3686,6 +3871,11 @@
     "repo": "kyutai/tts-voices",
     "rev": "323332d33f997de8394f24a193e1a76df720e01a",
     "file": "voice-donations/Marshal_Indian_enhanced.wav"
+   },
+   "heard": {
+    "indian": -0.1683,
+    "like": "us",
+    "n": 2
    }
   },
   {
@@ -3698,6 +3888,11 @@
     "repo": "kyutai/tts-voices",
     "rev": "323332d33f997de8394f24a193e1a76df720e01a",
     "file": "voice-donations/Siddh_Indian_enhanced.wav"
+   },
+   "heard": {
+    "indian": -0.247,
+    "like": "england",
+    "n": 2
    }
   },
   {
@@ -3710,6 +3905,11 @@
     "repo": "kyutai/tts-voices",
     "rev": "323332d33f997de8394f24a193e1a76df720e01a",
     "file": "voice-donations/Vinith___English_India_enhanced.wav"
+   },
+   "heard": {
+    "indian": -0.2277,
+    "like": "ireland",
+    "n": 2
    }
   },
   {
@@ -3722,6 +3922,11 @@
     "repo": "kyutai/tts-voices",
     "rev": "323332d33f997de8394f24a193e1a76df720e01a",
     "file": "vctk/p248_023_enhanced.wav"
+   },
+   "heard": {
+    "indian": -0.4604,
+    "like": "us",
+    "n": 2
    }
   },
   {
@@ -3734,6 +3939,11 @@
     "repo": "kyutai/tts-voices",
     "rev": "323332d33f997de8394f24a193e1a76df720e01a",
     "file": "vctk/p251_023_enhanced.wav"
+   },
+   "heard": {
+    "indian": -0.603,
+    "like": "us",
+    "n": 2
    }
   },
   {
@@ -3746,6 +3956,11 @@
     "repo": "kyutai/tts-voices",
     "rev": "323332d33f997de8394f24a193e1a76df720e01a",
     "file": "vctk/p376_023_enhanced.wav"
+   },
+   "heard": {
+    "indian": -0.442,
+    "like": "us",
+    "n": 2
    }
   },
   {
@@ -4010,7 +4225,12 @@
    "group": "in",
    "sex": "f",
    "model": "bark-small",
-   "voice": "v2/hi_speaker_0"
+   "voice": "v2/hi_speaker_0",
+   "heard": {
+    "indian": 0.3364,
+    "like": "malaysia",
+    "n": 2
+   }
   },
   {
    "id": "bark-small-hi-1",
@@ -4018,7 +4238,12 @@
    "group": "in",
    "sex": "",
    "model": "bark-small",
-   "voice": "v2/hi_speaker_1"
+   "voice": "v2/hi_speaker_1",
+   "heard": {
+    "indian": 0.254,
+    "like": "us",
+    "n": 2
+   }
   },
   {
    "id": "bark-small-hi-2",
@@ -4026,7 +4251,12 @@
    "group": "in",
    "sex": "m",
    "model": "bark-small",
-   "voice": "v2/hi_speaker_2"
+   "voice": "v2/hi_speaker_2",
+   "heard": {
+    "indian": -0.2697,
+    "like": "canada",
+    "n": 2
+   }
   },
   {
    "id": "bark-small-hi-3",
@@ -4034,7 +4264,12 @@
    "group": "in",
    "sex": "f",
    "model": "bark-small",
-   "voice": "v2/hi_speaker_3"
+   "voice": "v2/hi_speaker_3",
+   "heard": {
+    "indian": -0.1907,
+    "like": "england",
+    "n": 2
+   }
   },
   {
    "id": "bark-small-hi-4",
@@ -4042,7 +4277,12 @@
    "group": "in",
    "sex": "f",
    "model": "bark-small",
-   "voice": "v2/hi_speaker_4"
+   "voice": "v2/hi_speaker_4",
+   "heard": {
+    "indian": 0.1733,
+    "like": "us",
+    "n": 2
+   }
   },
   {
    "id": "bark-small-hi-5",
@@ -4050,7 +4290,12 @@
    "group": "in",
    "sex": "m",
    "model": "bark-small",
-   "voice": "v2/hi_speaker_5"
+   "voice": "v2/hi_speaker_5",
+   "heard": {
+    "indian": -0.237,
+    "like": "canada",
+    "n": 2
+   }
   },
   {
    "id": "bark-small-hi-6",
@@ -4058,7 +4303,12 @@
    "group": "in",
    "sex": "m",
    "model": "bark-small",
-   "voice": "v2/hi_speaker_6"
+   "voice": "v2/hi_speaker_6",
+   "heard": {
+    "indian": -0.1015,
+    "like": "canada",
+    "n": 2
+   }
   },
   {
    "id": "bark-small-hi-7",
@@ -4066,7 +4316,12 @@
    "group": "in",
    "sex": "",
    "model": "bark-small",
-   "voice": "v2/hi_speaker_7"
+   "voice": "v2/hi_speaker_7",
+   "heard": {
+    "indian": 0.0898,
+    "like": "us",
+    "n": 2
+   }
   },
   {
    "id": "bark-small-hi-8",
@@ -4074,7 +4329,12 @@
    "group": "in",
    "sex": "",
    "model": "bark-small",
-   "voice": "v2/hi_speaker_8"
+   "voice": "v2/hi_speaker_8",
+   "heard": {
+    "indian": 0.1302,
+    "like": "england",
+    "n": 2
+   }
   },
   {
    "id": "bark-small-hi-9",
@@ -4082,7 +4342,12 @@
    "group": "in",
    "sex": "f",
    "model": "bark-small",
-   "voice": "v2/hi_speaker_9"
+   "voice": "v2/hi_speaker_9",
+   "heard": {
+    "indian": -0.2573,
+    "like": "england",
+    "n": 2
+   }
   },
   {
    "id": "bark-small-en-0",
@@ -4169,14 +4434,24 @@
    "label": "SYSPIN — woman, Indian English (IISc)",
    "group": "in",
    "sex": "f",
-   "model": "syspin-female"
+   "model": "syspin-female",
+   "heard": {
+    "indian": 0.3266,
+    "like": "england",
+    "n": 2
+   }
   },
   {
    "id": "syspin-male",
    "label": "SYSPIN — man, Indian English (IISc)",
    "group": "in",
    "sex": "m",
-   "model": "syspin-male"
+   "model": "syspin-male",
+   "heard": {
+    "indian": 0.129,
+    "like": "england",
+    "n": 2
+   }
   },
   {
    "id": "pocket-alba",
@@ -4951,7 +5226,12 @@
    "group": "in",
    "sex": "f",
    "model": "piper-en_GB-vctk-medium",
-   "speaker": 87
+   "speaker": 87,
+   "heard": {
+    "indian": -0.152,
+    "like": "england",
+    "n": 2
+   }
   },
   {
    "id": "piper-vctk-p249",
@@ -4975,7 +5255,12 @@
    "group": "in",
    "sex": "m",
    "model": "piper-en_GB-vctk-medium",
-   "speaker": 92
+   "speaker": 92,
+   "heard": {
+    "indian": -0.2313,
+    "like": "ireland",
+    "n": 2
+   }
   },
   {
    "id": "piper-vctk-p252",
@@ -5639,7 +5924,12 @@
    "group": "in",
    "sex": "m",
    "model": "piper-en_GB-vctk-medium",
-   "speaker": 26
+   "speaker": 26,
+   "heard": {
+    "indian": -0.2867,
+    "like": "us",
+    "n": 2
+   }
   },
   {
    "id": "piper-vctk-s5",
@@ -5757,7 +6047,12 @@
    "group": "in",
    "sex": "m",
    "model": "piper-en_US-arctic-medium",
-   "speaker": 3
+   "speaker": 3,
+   "heard": {
+    "indian": 0.198,
+    "like": "england",
+    "n": 2
+   }
   },
   {
    "id": "piper-arctic-ljm",
@@ -5898,7 +6193,12 @@
    "group": "in",
    "sex": "m",
    "model": "piper-en_US-l2arctic-medium",
-   "speaker": 10
+   "speaker": 10,
+   "heard": {
+    "indian": 0.0274,
+    "like": "england",
+    "n": 2
+   }
   },
   {
    "id": "piper-l2arctic-bwc",
@@ -5994,7 +6294,12 @@
    "group": "in",
    "sex": "m",
    "model": "piper-en_US-l2arctic-medium",
-   "speaker": 19
+   "speaker": 19,
+   "heard": {
+    "indian": 0.1171,
+    "like": "us",
+    "n": 2
+   }
   },
   {
    "id": "piper-l2arctic-ska",
@@ -6010,7 +6315,12 @@
    "group": "in",
    "sex": "f",
    "model": "piper-en_US-l2arctic-medium",
-   "speaker": 2
+   "speaker": 2,
+   "heard": {
+    "indian": 0.1144,
+    "like": "england",
+    "n": 2
+   }
   },
   {
    "id": "piper-l2arctic-thv",
@@ -6034,7 +6344,12 @@
    "group": "in",
    "sex": "f",
    "model": "piper-en_US-l2arctic-medium",
-   "speaker": 9
+   "speaker": 9,
+   "heard": {
+    "indian": 0.1686,
+    "like": "england",
+    "n": 2
+   }
   },
   {
    "id": "piper-l2arctic-txhc",
@@ -6160,5 +6475,13 @@
    "sex": "n",
    "model": "piper-en_US-sam-medium"
   }
- ]
+ ],
+ "accentSurvey": {
+  "tool": "SpeechBrain CommonAccent, an ECAPA-TDNN trained on Common Voice (16 accents)",
+  "texts": [
+   "Good morning. I do hope you had a pleasant journey. The weather in London has been rather lovely this week, and the gardens are looking their very best.",
+   "Please remember to bring an umbrella this afternoon. We shall meet at the station at half past four, and then walk to the theatre together."
+  ],
+  "made": "21 Nov 2026"
+ }
 }

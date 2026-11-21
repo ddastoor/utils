@@ -170,6 +170,31 @@ print(json.dumps({'max': max(map(len, c)), 'same': ' '.join(c).split() == t.spli
   t.eq(r.pace, ['very slowly', 'slowly', 'at a moderate pace', 'slightly fast', 'fast'], 'Parler’s pace words');
   t.eq(r.engines, [...P.ENGINE_ORDER].sort(), 'driver.py has every engine the planner runs');
 
+  // the Indian voices by accent (owner, 21 Nov 2026): every one ranked or listed as not measured, lightest first; the
+  // catalogue's numbers worked out again here from the survey's raw scores (scripts/data/indian-accents.json)
+  {
+    const data = JSON.parse(readFileSync(new URL('../../scripts/data/indian-accents.json', import.meta.url), 'utf8'));
+    const ind = cat.voices.filter((v) => v.group === 'in'), r = P.rankIndian(cat);
+    const all = [...r.measured.map((v) => v.id), ...r.unmeasured.flatMap((u) => u.voices.map((v) => v.id))];
+    t.eq(all.slice().sort(), ind.map((v) => v.id).sort(), 'every Indian voice once: ranked, or listed as not measured');
+    t.ok(r.measured.every((v, i) => !i || r.measured[i - 1].heard.indian <= v.heard.indian), 'ranked lightest first');
+    t.ok(r.unmeasured.every((u) => u.reason.length > 10), `each unmeasured model has its reason (${r.unmeasured.map((u) => u.model).join(', ')})`);
+    t.ok(r.unmeasured.some((u) => u.model === 'indic-parler' && /Hugging Face/.test(u.reason)), 'Indic Parler-TTS: not measured, needs an account');
+    let same = 0, bad = [];
+    for (const [id, d] of Object.entries(data.voices)) {
+      const ms = d.scores.map((s) => s.indian - Math.max(...Object.entries(s).filter(([k]) => k !== 'indian').map(([, x]) => x)));
+      const others = Object.keys(d.scores[0]).filter((k) => k !== 'indian').map((k) => [k, d.scores.reduce((a, s) => a + s[k], 0) / d.scores.length]);
+      const like = others.sort((a, b) => b[1] - a[1])[0][0], v = cat.voices.find((x) => x.id === id);
+      if (v && Math.abs(v.heard.indian - ms.reduce((a, x) => a + x, 0) / ms.length) < 1e-4 && v.heard.like === like && v.heard.n === d.scores.length) same++; else bad.push(id);
+    }
+    t.ok(!bad.length && same === Object.keys(data.voices).length, `each voice's accent in the catalogue is its scores' (${same} voices; ${bad.slice(0, 3).join(', ')})`);
+    t.ok(Object.values(data.voices).every((d) => d.scores.every((s) => Object.keys(s).every((k) => P.ACCENT_WORDS[k]))), 'every accent of the survey has its words');
+    t.eq([-0.6, -0.2, -0.1, 0, 0.01, 0.25, 0.26, 0.49].map(P.strength), ['very light', 'very light', 'light', 'light', 'clear', 'clear', 'strong', 'strong'], 'strength in words, at the thresholds of the survey (−0.2, 0, 0.25)');
+    const words = new Set(r.measured.map((v) => P.strength(v.heard.indian)));
+    t.ok(['very light', 'light', 'clear', 'strong'].every((w) => words.has(w)), `the survey's voices use all four words (${[...words].join(', ')})`);
+    t.eq(data.texts.length, 2, 'two sentences in the survey');
+  }
+
   // a gated model refused: which of the three cases it is, in words (owner, 21 Nov 2026: Indic Parler-TTS refused his
   // token and the message could not say why) — with a stand-in huggingface_hub
   mkdirSync(join(tmp, 'hfstub', 'huggingface_hub'), { recursive: true });

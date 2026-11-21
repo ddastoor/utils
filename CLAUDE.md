@@ -577,9 +577,13 @@ on this PC**; phones never see the switch.
   the page … a kind of text pop-up … when the user clicks a button"): a small button beside the accent groups opens a
   dialog (`openRanking` in `src/tools/tts-offline.ts`, `rankIndian` / `strength` / `ACCENT_WORDS` in `plan.ts`): every
   Indian voice that was measured, lightest first — #, a tick (chooses the voice as the list does), the voice and its
-  model, a bar and words for the Indian accent (very light / light / clear / strong), what it sounds like otherwise
-  (English (England), Scottish, American …); then the Indian voices not measured, by model, with the reason (an account,
-  a size this machine cannot run). **How it is measured** (`scripts/accent-survey/`): every runnable Indian voice reads
+  model, a bar and words for the Indian accent (very light at −0.2 and below — Indian 5th – 15th of the 16 accents —,
+  light up to 0, clear up to 0.25, strong above), what it sounds like otherwise (English (England), Scottish, American …);
+  then, folded under one line, the Indian voices not measured, by model, with the reason (an account, a size this
+  machine cannot run). **The survey of 21 Nov 2026:** 63 voices measured (126 recordings), 43 heard as Indian first;
+  lightest: XTTS-v2's voices made from recordings (VCTK p251 / p248 / p376, heard as American first), Piper's VCTK p376,
+  MeloTTS's Indian voice (English first); strongest: goonj's Indian English voices and OmniVoice's Indian ones. Not
+  measured (71 voices): Indic Parler and Pocket cloning (gated), Veena, VoxCPM2, Chatterbox / Turbo, Bark (full). **How it is measured** (`scripts/accent-survey/`): every runnable Indian voice reads
   the same two British sentences through driver.py; SpeechBrain's CommonAccent classifier (ECAPA-TDNN on Common Voice,
   16 accents, pinned revision) scores each recording; a voice's `heard.indian` = its Indian score minus its best other
   score, averaged over the two sentences (above 0: heard as Indian first), `heard.like` = the closest other accent. The raw

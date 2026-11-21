@@ -2502,3 +2502,15 @@ cannot. Three new suites; each fails on the build before its fixes.
   pagecrop 19; e2e photodict +9 (the still read and not the frame, its size asked for, autofocus, the camera off, "Save
   this photo" gives the still, a still turned, refused → the frame, no ImageCapture → the frame); camera 39 and OCR 57
   unchanged. Left: small text with glare, small text in a video frame, newspaper columns, the OCR tab (to-do #9).
+- **TTS offline — the Indian accents ranked (owner, 21 Nov 2026: "ranked all the Indian accents in order of increasing
+  Indian accent thickness … name the model … a kind of text pop-up").** Every Indian voice that runs here read the same
+  two British sentences (`scripts/accent-survey/run.py`) and SpeechBrain's CommonAccent classifier scored each recording
+  (raw scores: its softmax over cosines is nearly flat). Found on the way: **XTTS-v2 failed at import — coqui-tts 0.28.0
+  imports `six` without declaring it** (a user's run would have stopped the same way) → `six==1.17.0` in its packages
+  (committed before); Bark small makes a preset in about 100 s after its first, slow one (the earlier note "did not
+  finish in 8 minutes" was the download and a shared processor). The pop-up: a button beside the accent groups, a dialog
+  (Esc, the backdrop and Close end it; the focus goes back), 63 voices with a tick that chooses the voice; the 71 voices
+  not measured folded under one line (the first layout left room for three rows of the ranking — seen on a screenshot).
+  Checks: unit offline-tts-plan 134 (every Indian voice once, lightest first, each catalogue number worked out again from
+  the raw scores, the thresholds), e2e tts-offline 47 (the order, the model names, the folded list, a tick chooses the
+  voice and unticks it, Esc and the focus, axe on the dialog in light and dark).

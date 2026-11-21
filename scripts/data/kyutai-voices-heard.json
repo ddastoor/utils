@@ -1,0 +1,10859 @@
+{
+"about": "The recordings of kyutai/tts-voices (revision 323332d33f997de8394f24a193e1a76df720e01a) that have embeddings for Kyutai TTS 1.6B, as SpeechBrain CommonAccent (Jzuluaga/accent-id-commonaccent_ecapa at 14bebf44) heard them: the top three accents with their raw cosine scores, the median pitch (pYIN, Hz) and the seconds measured (at most 30). Made by scripts/accent-survey/recordings.py on 21 Nov 2026.",
+"recordings": {
+"alba-mackenna/a-moment-by.wav": {
+"acc": [
+[
+"ireland",
+0.5993
+],
+[
+"us",
+0.464
+],
+[
+"england",
+0.3426
+]
+],
+"f0": 146.0,
+"secs": 10.0
+},
+"alba-mackenna/announcer.wav": {
+"acc": [
+[
+"us",
+0.7384
+],
+[
+"scotland",
+0.3738
+],
+[
+"canada",
+0.3651
+]
+],
+"f0": 165.8,
+"secs": 10.0
+},
+"alba-mackenna/casual.wav": {
+"acc": [
+[
+"us",
+0.7427
+],
+[
+"ireland",
+0.4358
+],
+[
+"indian",
+0.3775
+]
+],
+"f0": 122.1,
+"secs": 10.0
+},
+"alba-mackenna/merchant.wav": {
+"acc": [
+[
+"us",
+0.5639
+],
+[
+"canada",
+0.4385
+],
+[
+"england",
+0.383
+]
+],
+"f0": 142.7,
+"secs": 10.1
+},
+"ears/p001/freeform_speech_01.wav": {
+"acc": [
+[
+"england",
+0.5923
+],
+[
+"canada",
+0.4849
+],
+[
+"newzealand",
+0.3791
+]
+],
+"f0": 132.4,
+"secs": 10.0
+},
+"ears/p002/freeform_speech_01.wav": {
+"acc": [
+[
+"canada",
+0.5487
+],
+[
+"us",
+0.3948
+],
+[
+"ireland",
+0.3574
+]
+],
+"f0": 177.7,
+"secs": 10.0
+},
+"ears/p003/emo_adoration_freeform.wav": {
+"acc": [
+[
+"us",
+0.7092
+],
+[
+"canada",
+0.6033
+],
+[
+"scotland",
+0.3528
+]
+],
+"f0": 170.7,
+"secs": 17.9
+},
+"ears/p003/emo_amazement_freeform.wav": {
+"acc": [
+[
+"us",
+0.667
+],
+[
+"canada",
+0.4784
+],
+[
+"australia",
+0.3727
+]
+],
+"f0": 198.3,
+"secs": 17.3
+},
+"ears/p003/emo_amusement_freeform.wav": {
+"acc": [
+[
+"us",
+0.6321
+],
+[
+"canada",
+0.4927
+],
+[
+"australia",
+0.3463
+]
+],
+"f0": 218.8,
+"secs": 16.8
+},
+"ears/p003/emo_anger_freeform.wav": {
+"acc": [
+[
+"us",
+0.7678
+],
+[
+"bermuda",
+0.3193
+],
+[
+"ireland",
+0.3174
+]
+],
+"f0": 205.3,
+"secs": 14.4
+},
+"ears/p003/emo_confusion_freeform.wav": {
+"acc": [
+[
+"us",
+0.6479
+],
+[
+"canada",
+0.4301
+],
+[
+"singapore",
+0.3369
+]
+],
+"f0": 223.9,
+"secs": 16.6
+},
+"ears/p003/emo_contentment_freeform.wav": {
+"acc": [
+[
+"us",
+0.757
+],
+[
+"canada",
+0.4738
+],
+[
+"australia",
+0.3457
+]
+],
+"f0": 205.3,
+"secs": 17.2
+},
+"ears/p003/emo_cuteness_freeform.wav": {
+"acc": [
+[
+"us",
+0.6027
+],
+[
+"australia",
+0.399
+],
+[
+"canada",
+0.3943
+]
+],
+"f0": 173.7,
+"secs": 15.9
+},
+"ears/p003/emo_desire_freeform.wav": {
+"acc": [
+[
+"us",
+0.5951
+],
+[
+"canada",
+0.5811
+],
+[
+"philippines",
+0.3409
+]
+],
+"f0": 184.0,
+"secs": 15.5
+},
+"ears/p003/emo_disappointment_freeform.wav": {
+"acc": [
+[
+"us",
+0.7737
+],
+[
+"canada",
+0.5614
+],
+[
+"australia",
+0.4222
+]
+],
+"f0": 230.5,
+"secs": 18.0
+},
+"ears/p003/emo_disgust_freeform.wav": {
+"acc": [
+[
+"canada",
+0.6694
+],
+[
+"us",
+0.6251
+],
+[
+"indian",
+0.2583
+]
+],
+"f0": 162.0,
+"secs": 17.6
+},
+"ears/p003/emo_distress_freeform.wav": {
+"acc": [
+[
+"us",
+0.6315
+],
+[
+"canada",
+0.6167
+],
+[
+"australia",
+0.3416
+]
+],
+"f0": 171.7,
+"secs": 16.4
+},
+"ears/p003/emo_embarassment_freeform.wav": {
+"acc": [
+[
+"canada",
+0.633
+],
+[
+"us",
+0.5859
+],
+[
+"australia",
+0.3059
+]
+],
+"f0": 221.4,
+"secs": 14.3
+},
+"ears/p003/emo_extasy_freeform.wav": {
+"acc": [
+[
+"us",
+0.5811
+],
+[
+"canada",
+0.449
+],
+[
+"bermuda",
+0.3186
+]
+],
+"f0": 288.7,
+"secs": 12.8
+},
+"ears/p003/emo_fear_freeform.wav": {
+"acc": [
+[
+"canada",
+0.6444
+],
+[
+"us",
+0.5016
+],
+[
+"philippines",
+0.3857
+]
+],
+"f0": 223.3,
+"secs": 14.3
+},
+"ears/p003/emo_guilt_freeform.wav": {
+"acc": [
+[
+"us",
+0.7676
+],
+[
+"canada",
+0.4522
+],
+[
+"australia",
+0.4084
+]
+],
+"f0": 234.5,
+"secs": 21.4
+},
+"ears/p003/emo_interest_freeform.wav": {
+"acc": [
+[
+"us",
+0.7493
+],
+[
+"canada",
+0.4911
+],
+[
+"scotland",
+0.347
+]
+],
+"f0": 203.0,
+"secs": 19.2
+},
+"ears/p003/emo_neutral_freeform.wav": {
+"acc": [
+[
+"us",
+0.8145
+],
+[
+"canada",
+0.4297
+],
+[
+"scotland",
+0.3995
+]
+],
+"f0": 166.3,
+"secs": 16.2
+},
+"ears/p003/emo_pain_freeform.wav": {
+"acc": [
+[
+"canada",
+0.6969
+],
+[
+"us",
+0.6247
+],
+[
+"philippines",
+0.4033
+]
+],
+"f0": 212.6,
+"secs": 16.5
+},
+"ears/p003/emo_pride_freeform.wav": {
+"acc": [
+[
+"us",
+0.7131
+],
+[
+"canada",
+0.5136
+],
+[
+"australia",
+0.3424
+]
+],
+"f0": 198.3,
+"secs": 16.8
+},
+"ears/p003/emo_realization_freeform.wav": {
+"acc": [
+[
+"us",
+0.6977
+],
+[
+"canada",
+0.5682
+],
+[
+"australia",
+0.3416
+]
+],
+"f0": 241.4,
+"secs": 30.0
+},
+"ears/p003/emo_relief_freeform.wav": {
+"acc": [
+[
+"us",
+0.7891
+],
+[
+"canada",
+0.3826
+],
+[
+"australia",
+0.3651
+]
+],
+"f0": 226.5,
+"secs": 13.9
+},
+"ears/p003/emo_sadness_freeform.wav": {
+"acc": [
+[
+"us",
+0.7794
+],
+[
+"canada",
+0.324
+],
+[
+"hongkong",
+0.2901
+]
+],
+"f0": 178.2,
+"secs": 16.0
+},
+"ears/p003/emo_serenity_freeform.wav": {
+"acc": [
+[
+"canada",
+0.6711
+],
+[
+"us",
+0.6516
+],
+[
+"scotland",
+0.4563
+]
+],
+"f0": 170.7,
+"secs": 16.5
+},
+"ears/p003/freeform_speech_01.wav": {
+"acc": [
+[
+"us",
+0.7198
+],
+[
+"canada",
+0.4731
+],
+[
+"australia",
+0.4681
+]
+],
+"f0": 161.1,
+"secs": 10.0
+},
+"ears/p004/freeform_speech_01.wav": {
+"acc": [
+[
+"us",
+0.7188
+],
+[
+"australia",
+0.5423
+],
+[
+"scotland",
+0.4433
+]
+],
+"f0": 86.1,
+"secs": 10.0
+},
+"ears/p005/freeform_speech_01.wav": {
+"acc": [
+[
+"us",
+0.6398
+],
+[
+"hongkong",
+0.4398
+],
+[
+"indian",
+0.4374
+]
+],
+"f0": 114.6,
+"secs": 10.0
+},
+"ears/p006/freeform_speech_01.wav": {
+"acc": [
+[
+"us",
+0.5841
+],
+[
+"singapore",
+0.3232
+],
+[
+"indian",
+0.2923
+]
+],
+"f0": 196.1,
+"secs": 10.0
+},
+"ears/p007/freeform_speech_01.wav": {
+"acc": [
+[
+"us",
+0.7541
+],
+[
+"australia",
+0.4689
+],
+[
+"canada",
+0.3549
+]
+],
+"f0": 100.3,
+"secs": 10.0
+},
+"ears/p008/freeform_speech_01.wav": {
+"acc": [
+[
+"us",
+0.6107
+],
+[
+"england",
+0.4718
+],
+[
+"australia",
+0.4589
+]
+],
+"f0": 147.7,
+"secs": 10.0
+},
+"ears/p009/freeform_speech_01.wav": {
+"acc": [
+[
+"us",
+0.7701
+],
+[
+"canada",
+0.4973
+],
+[
+"australia",
+0.4733
+]
+],
+"f0": 103.9,
+"secs": 10.0
+},
+"ears/p010/freeform_speech_01.wav": {
+"acc": [
+[
+"us",
+0.5619
+],
+[
+"hongkong",
+0.3395
+],
+[
+"canada",
+0.2882
+]
+],
+"f0": 100.3,
+"secs": 10.0
+},
+"ears/p011/freeform_speech_01.wav": {
+"acc": [
+[
+"us",
+0.7121
+],
+[
+"canada",
+0.4808
+],
+[
+"scotland",
+0.3445
+]
+],
+"f0": 211.4,
+"secs": 10.0
+},
+"ears/p012/freeform_speech_01.wav": {
+"acc": [
+[
+"us",
+0.7696
+],
+[
+"bermuda",
+0.4395
+],
+[
+"canada",
+0.3692
+]
+],
+"f0": 186.1,
+"secs": 10.0
+},
+"ears/p013/freeform_speech_01.wav": {
+"acc": [
+[
+"us",
+0.5861
+],
+[
+"singapore",
+0.3496
+],
+[
+"african",
+0.2771
+]
+],
+"f0": 225.2,
+"secs": 10.0
+},
+"ears/p014/freeform_speech_01.wav": {
+"acc": [
+[
+"canada",
+0.6668
+],
+[
+"us",
+0.5102
+],
+[
+"scotland",
+0.4282
+]
+],
+"f0": 170.7,
+"secs": 10.0
+},
+"ears/p015/freeform_speech_01.wav": {
+"acc": [
+[
+"us",
+0.7467
+],
+[
+"canada",
+0.3467
+],
+[
+"australia",
+0.269
+]
+],
+"f0": 152.9,
+"secs": 10.0
+},
+"ears/p016/freeform_speech_01.wav": {
+"acc": [
+[
+"us",
+0.6045
+],
+[
+"canada",
+0.4563
+],
+[
+"african",
+0.3783
+]
+],
+"f0": 110.0,
+"secs": 10.0
+},
+"ears/p017/freeform_speech_01.wav": {
+"acc": [
+[
+"us",
+0.6645
+],
+[
+"canada",
+0.5487
+],
+[
+"australia",
+0.5091
+]
+],
+"f0": 81.0,
+"secs": 10.0
+},
+"ears/p018/freeform_speech_01.wav": {
+"acc": [
+[
+"us",
+0.7321
+],
+[
+"canada",
+0.3432
+],
+[
+"australia",
+0.2951
+]
+],
+"f0": 148.6,
+"secs": 10.0
+},
+"ears/p019/freeform_speech_01.wav": {
+"acc": [
+[
+"england",
+0.5887
+],
+[
+"australia",
+0.557
+],
+[
+"wales",
+0.3546
+]
+],
+"f0": 100.9,
+"secs": 10.0
+},
+"ears/p020/freeform_speech_01.wav": {
+"acc": [
+[
+"england",
+0.635
+],
+[
+"canada",
+0.4072
+],
+[
+"wales",
+0.3381
+]
+],
+"f0": 95.2,
+"secs": 10.0
+},
+"ears/p021/freeform_speech_01.wav": {
+"acc": [
+[
+"us",
+0.673
+],
+[
+"canada",
+0.4039
+],
+[
+"australia",
+0.3773
+]
+],
+"f0": 172.2,
+"secs": 10.0
+},
+"ears/p022/freeform_speech_01.wav": {
+"acc": [
+[
+"us",
+0.7488
+],
+[
+"newzealand",
+0.3717
+],
+[
+"canada",
+0.3696
+]
+],
+"f0": 108.8,
+"secs": 10.0
+},
+"ears/p023/freeform_speech_01.wav": {
+"acc": [
+[
+"australia",
+0.4435
+],
+[
+"canada",
+0.3593
+],
+[
+"wales",
+0.3489
+]
+],
+"f0": 140.3,
+"secs": 10.0
+},
+"ears/p024/freeform_speech_01.wav": {
+"acc": [
+[
+"us",
+0.7532
+],
+[
+"canada",
+0.4605
+],
+[
+"australia",
+0.3883
+]
+],
+"f0": 184.0,
+"secs": 10.0
+},
+"ears/p025/freeform_speech_01.wav": {
+"acc": [
+[
+"england",
+0.47
+],
+[
+"scotland",
+0.4422
+],
+[
+"australia",
+0.3609
+]
+],
+"f0": 99.2,
+"secs": 10.0
+},
+"ears/p026/freeform_speech_01.wav": {
+"acc": [
+[
+"us",
+0.7077
+],
+[
+"canada",
+0.3308
+],
+[
+"australia",
+0.3094
+]
+],
+"f0": 196.1,
+"secs": 10.0
+},
+"ears/p027/freeform_speech_01.wav": {
+"acc": [
+[
+"us",
+0.8128
+],
+[
+"australia",
+0.4843
+],
+[
+"canada",
+0.4511
+]
+],
+"f0": 272.5,
+"secs": 10.0
+},
+"ears/p028/freeform_speech_01.wav": {
+"acc": [
+[
+"us",
+0.6288
+],
+[
+"canada",
+0.4154
+],
+[
+"newzealand",
+0.3883
+]
+],
+"f0": 223.3,
+"secs": 10.0
+},
+"ears/p029/freeform_speech_01.wav": {
+"acc": [
+[
+"us",
+0.6428
+],
+[
+"newzealand",
+0.4057
+],
+[
+"canada",
+0.3908
+]
+],
+"f0": 187.2,
+"secs": 10.0
+},
+"ears/p030/freeform_speech_01.wav": {
+"acc": [
+[
+"us",
+0.8022
+],
+[
+"canada",
+0.4885
+],
+[
+"australia",
+0.4123
+]
+],
+"f0": 167.8,
+"secs": 10.0
+},
+"ears/p031/emo_adoration_freeform.wav": {
+"acc": [
+[
+"canada",
+0.6631
+],
+[
+"us",
+0.5727
+],
+[
+"wales",
+0.4411
+]
+],
+"f0": 123.5,
+"secs": 15.7
+},
+"ears/p031/emo_amazement_freeform.wav": {
+"acc": [
+[
+"us",
+0.7063
+],
+[
+"canada",
+0.6093
+],
+[
+"australia",
+0.4339
+]
+],
+"f0": 166.8,
+"secs": 15.4
+},
+"ears/p031/emo_amusement_freeform.wav": {
+"acc": [
+[
+"us",
+0.7481
+],
+[
+"canada",
+0.6133
+],
+[
+"philippines",
+0.4203
+]
+],
+"f0": 127.9,
+"secs": 19.6
+},
+"ears/p031/emo_anger_freeform.wav": {
+"acc": [
+[
+"us",
+0.7968
+],
+[
+"scotland",
+0.3565
+],
+[
+"southatlandtic",
+0.3346
+]
+],
+"f0": 231.8,
+"secs": 15.8
+},
+"ears/p031/emo_confusion_freeform.wav": {
+"acc": [
+[
+"us",
+0.6709
+],
+[
+"canada",
+0.6578
+],
+[
+"scotland",
+0.3823
+]
+],
+"f0": 146.0,
+"secs": 22.3
+},
+"ears/p031/emo_contentment_freeform.wav": {
+"acc": [
+[
+"us",
+0.7461
+],
+[
+"canada",
+0.6199
+],
+[
+"england",
+0.4618
+]
+],
+"f0": 121.4,
+"secs": 17.8
+},
+"ears/p031/emo_cuteness_freeform.wav": {
+"acc": [
+[
+"us",
+0.6891
+],
+[
+"canada",
+0.5343
+],
+[
+"england",
+0.4542
+]
+],
+"f0": 178.8,
+"secs": 16.5
+},
+"ears/p031/emo_desire_freeform.wav": {
+"acc": [
+[
+"us",
+0.6551
+],
+[
+"canada",
+0.5313
+],
+[
+"england",
+0.4091
+]
+],
+"f0": 126.0,
+"secs": 16.0
+},
+"ears/p031/emo_disappointment_freeform.wav": {
+"acc": [
+[
+"us",
+0.6803
+],
+[
+"canada",
+0.5208
+],
+[
+"scotland",
+0.5031
+]
+],
+"f0": 125.0,
+"secs": 14.5
+},
+"ears/p031/emo_disgust_freeform.wav": {
+"acc": [
+[
+"us",
+0.7805
+],
+[
+"canada",
+0.4099
+],
+[
+"australia",
+0.4007
+]
+],
+"f0": 222.6,
+"secs": 16.0
+},
+"ears/p031/emo_distress_freeform.wav": {
+"acc": [
+[
+"us",
+0.7935
+],
+[
+"canada",
+0.4271
+],
+[
+"australia",
+0.4035
+]
+],
+"f0": 194.9,
+"secs": 16.8
+},
+"ears/p031/emo_embarassment_freeform.wav": {
+"acc": [
+[
+"us",
+0.7089
+],
+[
+"canada",
+0.5266
+],
+[
+"australia",
+0.3919
+]
+],
+"f0": 168.7,
+"secs": 16.9
+},
+"ears/p031/emo_extasy_freeform.wav": {
+"acc": [
+[
+"us",
+0.7402
+],
+[
+"canada",
+0.4273
+],
+[
+"scotland",
+0.366
+]
+],
+"f0": 242.8,
+"secs": 17.4
+},
+"ears/p031/emo_fear_freeform.wav": {
+"acc": [
+[
+"us",
+0.6269
+],
+[
+"canada",
+0.5257
+],
+[
+"scotland",
+0.4973
+]
+],
+"f0": 147.7,
+"secs": 20.9
+},
+"ears/p031/emo_guilt_freeform.wav": {
+"acc": [
+[
+"us",
+0.7166
+],
+[
+"canada",
+0.5226
+],
+[
+"scotland",
+0.5007
+]
+],
+"f0": 132.4,
+"secs": 17.1
+},
+"ears/p031/emo_interest_freeform.wav": {
+"acc": [
+[
+"us",
+0.6765
+],
+[
+"canada",
+0.5826
+],
+[
+"philippines",
+0.3696
+]
+],
+"f0": 121.4,
+"secs": 15.7
+},
+"ears/p031/emo_neutral_freeform.wav": {
+"acc": [
+[
+"us",
+0.7489
+],
+[
+"canada",
+0.5384
+],
+[
+"philippines",
+0.3658
+]
+],
+"f0": 100.9,
+"secs": 16.7
+},
+"ears/p031/emo_pain_freeform.wav": {
+"acc": [
+[
+"us",
+0.7539
+],
+[
+"canada",
+0.6435
+],
+[
+"australia",
+0.3978
+]
+],
+"f0": 132.8,
+"secs": 16.1
+},
+"ears/p031/emo_pride_freeform.wav": {
+"acc": [
+[
+"us",
+0.7111
+],
+[
+"canada",
+0.6292
+],
+[
+"scotland",
+0.3925
+]
+],
+"f0": 142.7,
+"secs": 18.7
+},
+"ears/p031/emo_realization_freeform.wav": {
+"acc": [
+[
+"us",
+0.727
+],
+[
+"canada",
+0.5573
+],
+[
+"scotland",
+0.4369
+]
+],
+"f0": 160.2,
+"secs": 15.2
+},
+"ears/p031/emo_relief_freeform.wav": {
+"acc": [
+[
+"us",
+0.7095
+],
+[
+"canada",
+0.638
+],
+[
+"australia",
+0.3942
+]
+],
+"f0": 128.6,
+"secs": 16.1
+},
+"ears/p031/emo_sadness_freeform.wav": {
+"acc": [
+[
+"us",
+0.6625
+],
+[
+"canada",
+0.6313
+],
+[
+"scotland",
+0.497
+]
+],
+"f0": 106.3,
+"secs": 14.7
+},
+"ears/p031/emo_serenity_freeform.wav": {
+"acc": [
+[
+"us",
+0.7897
+],
+[
+"canada",
+0.5427
+],
+[
+"philippines",
+0.4108
+]
+],
+"f0": 106.9,
+"secs": 14.6
+},
+"ears/p031/freeform_speech_01.wav": {
+"acc": [
+[
+"canada",
+0.7031
+],
+[
+"us",
+0.5646
+],
+[
+"newzealand",
+0.3497
+]
+],
+"f0": 147.7,
+"secs": 10.0
+},
+"ears/p032/freeform_speech_01.wav": {
+"acc": [
+[
+"us",
+0.7382
+],
+[
+"indian",
+0.3884
+],
+[
+"canada",
+0.3317
+]
+],
+"f0": 147.7,
+"secs": 10.0
+},
+"ears/p033/freeform_speech_01.wav": {
+"acc": [
+[
+"us",
+0.7256
+],
+[
+"canada",
+0.5359
+],
+[
+"australia",
+0.4672
+]
+],
+"f0": 186.1,
+"secs": 10.0
+},
+"ears/p034/freeform_speech_01.wav": {
+"acc": [
+[
+"us",
+0.6403
+],
+[
+"canada",
+0.415
+],
+[
+"southatlandtic",
+0.3016
+]
+],
+"f0": 178.8,
+"secs": 10.0
+},
+"ears/p035/freeform_speech_01.wav": {
+"acc": [
+[
+"us",
+0.6083
+],
+[
+"australia",
+0.4178
+],
+[
+"canada",
+0.3116
+]
+],
+"f0": 194.9,
+"secs": 10.0
+},
+"ears/p036/freeform_speech_01.wav": {
+"acc": [
+[
+"us",
+0.7874
+],
+[
+"canada",
+0.4544
+],
+[
+"scotland",
+0.3988
+]
+],
+"f0": 175.7,
+"secs": 10.0
+},
+"ears/p037/freeform_speech_01.wav": {
+"acc": [
+[
+"us",
+0.7543
+],
+[
+"african",
+0.3361
+],
+[
+"canada",
+0.3094
+]
+],
+"f0": 213.8,
+"secs": 10.0
+},
+"ears/p038/freeform_speech_01.wav": {
+"acc": [
+[
+"us",
+0.7629
+],
+[
+"scotland",
+0.3658
+],
+[
+"southatlandtic",
+0.3166
+]
+],
+"f0": 129.4,
+"secs": 10.0
+},
+"ears/p039/freeform_speech_01.wav": {
+"acc": [
+[
+"us",
+0.7908
+],
+[
+"canada",
+0.383
+],
+[
+"hongkong",
+0.3674
+]
+],
+"f0": 108.8,
+"secs": 10.0
+},
+"ears/p040/freeform_speech_01.wav": {
+"acc": [
+[
+"us",
+0.756
+],
+[
+"canada",
+0.5329
+],
+[
+"australia",
+0.3622
+]
+],
+"f0": 93.6,
+"secs": 10.0
+},
+"ears/p041/freeform_speech_01.wav": {
+"acc": [
+[
+"canada",
+0.4869
+],
+[
+"us",
+0.4584
+],
+[
+"australia",
+0.3614
+]
+],
+"f0": 162.0,
+"secs": 10.0
+},
+"ears/p042/freeform_speech_01.wav": {
+"acc": [
+[
+"canada",
+0.444
+],
+[
+"scotland",
+0.4212
+],
+[
+"hongkong",
+0.3182
+]
+],
+"f0": 113.9,
+"secs": 10.0
+},
+"ears/p043/freeform_speech_01.wav": {
+"acc": [
+[
+"us",
+0.6528
+],
+[
+"australia",
+0.332
+],
+[
+"canada",
+0.3179
+]
+],
+"f0": 199.5,
+"secs": 10.0
+},
+"ears/p044/freeform_speech_01.wav": {
+"acc": [
+[
+"us",
+0.7356
+],
+[
+"australia",
+0.393
+],
+[
+"canada",
+0.3691
+]
+],
+"f0": 174.7,
+"secs": 10.0
+},
+"ears/p045/freeform_speech_01.wav": {
+"acc": [
+[
+"us",
+0.8111
+],
+[
+"scotland",
+0.4335
+],
+[
+"hongkong",
+0.3853
+]
+],
+"f0": 201.8,
+"secs": 10.0
+},
+"ears/p046/freeform_speech_01.wav": {
+"acc": [
+[
+"us",
+0.7489
+],
+[
+"canada",
+0.6488
+],
+[
+"scotland",
+0.3976
+]
+],
+"f0": 95.8,
+"secs": 10.0
+},
+"ears/p047/freeform_speech_01.wav": {
+"acc": [
+[
+"us",
+0.6687
+],
+[
+"canada",
+0.3877
+],
+[
+"australia",
+0.3155
+]
+],
+"f0": 174.7,
+"secs": 10.0
+},
+"ears/p048/freeform_speech_01.wav": {
+"acc": [
+[
+"us",
+0.6952
+],
+[
+"canada",
+0.4051
+],
+[
+"newzealand",
+0.3397
+]
+],
+"f0": 162.0,
+"secs": 10.0
+},
+"ears/p049/freeform_speech_01.wav": {
+"acc": [
+[
+"us",
+0.4778
+],
+[
+"canada",
+0.4301
+],
+[
+"hongkong",
+0.3982
+]
+],
+"f0": 135.5,
+"secs": 10.0
+},
+"ears/p050/freeform_speech_01.wav": {
+"acc": [
+[
+"us",
+0.7619
+],
+[
+"canada",
+0.3355
+],
+[
+"philippines",
+0.3201
+]
+],
+"f0": 180.8,
+"secs": 10.0
+},
+"ears/p051/freeform_speech_01.wav": {
+"acc": [
+[
+"us",
+0.7978
+],
+[
+"canada",
+0.3914
+],
+[
+"indian",
+0.3897
+]
+],
+"f0": 178.8,
+"secs": 10.0
+},
+"ears/p052/freeform_speech_01.wav": {
+"acc": [
+[
+"us",
+0.7803
+],
+[
+"scotland",
+0.4429
+],
+[
+"canada",
+0.4148
+]
+],
+"f0": 163.0,
+"secs": 10.0
+},
+"ears/p053/freeform_speech_01.wav": {
+"acc": [
+[
+"us",
+0.67
+],
+[
+"african",
+0.3706
+],
+[
+"canada",
+0.3364
+]
+],
+"f0": 226.5,
+"secs": 10.0
+},
+"ears/p054/freeform_speech_01.wav": {
+"acc": [
+[
+"us",
+0.7677
+],
+[
+"england",
+0.4059
+],
+[
+"wales",
+0.3687
+]
+],
+"f0": 76.0,
+"secs": 10.0
+},
+"ears/p055/freeform_speech_01.wav": {
+"acc": [
+[
+"us",
+0.7865
+],
+[
+"australia",
+0.4463
+],
+[
+"canada",
+0.4126
+]
+],
+"f0": 179.8,
+"secs": 10.0
+},
+"ears/p056/freeform_speech_01.wav": {
+"acc": [
+[
+"us",
+0.7256
+],
+[
+"canada",
+0.554
+],
+[
+"ireland",
+0.3837
+]
+],
+"f0": 204.2,
+"secs": 10.0
+},
+"ears/p057/freeform_speech_01.wav": {
+"acc": [
+[
+"us",
+0.7549
+],
+[
+"canada",
+0.4682
+],
+[
+"african",
+0.4122
+]
+],
+"f0": 113.3,
+"secs": 10.0
+},
+"ears/p058/freeform_speech_01.wav": {
+"acc": [
+[
+"canada",
+0.5729
+],
+[
+"us",
+0.5099
+],
+[
+"ireland",
+0.2983
+]
+],
+"f0": 229.2,
+"secs": 10.0
+},
+"ears/p059/freeform_speech_01.wav": {
+"acc": [
+[
+"us",
+0.7032
+],
+[
+"canada",
+0.4446
+],
+[
+"australia",
+0.3662
+]
+],
+"f0": 193.8,
+"secs": 10.0
+},
+"ears/p060/freeform_speech_01.wav": {
+"acc": [
+[
+"us",
+0.7517
+],
+[
+"scotland",
+0.5153
+],
+[
+"canada",
+0.4425
+]
+],
+"f0": 100.9,
+"secs": 10.0
+},
+"ears/p061/freeform_speech_01.wav": {
+"acc": [
+[
+"us",
+0.6666
+],
+[
+"canada",
+0.4623
+],
+[
+"wales",
+0.347
+]
+],
+"f0": 125.7,
+"secs": 10.0
+},
+"ears/p062/freeform_speech_01.wav": {
+"acc": [
+[
+"us",
+0.5594
+],
+[
+"australia",
+0.3954
+],
+[
+"canada",
+0.3951
+]
+],
+"f0": 192.7,
+"secs": 10.0
+},
+"ears/p063/freeform_speech_01.wav": {
+"acc": [
+[
+"us",
+0.6246
+],
+[
+"singapore",
+0.3098
+],
+[
+"newzealand",
+0.2955
+]
+],
+"f0": 174.7,
+"secs": 10.0
+},
+"ears/p064/freeform_speech_01.wav": {
+"acc": [
+[
+"us",
+0.76
+],
+[
+"canada",
+0.3644
+],
+[
+"indian",
+0.3507
+]
+],
+"f0": 153.8,
+"secs": 10.0
+},
+"ears/p065/freeform_speech_01.wav": {
+"acc": [
+[
+"us",
+0.6695
+],
+[
+"england",
+0.4143
+],
+[
+"scotland",
+0.355
+]
+],
+"f0": 137.0,
+"secs": 10.0
+},
+"ears/p066/freeform_speech_01.wav": {
+"acc": [
+[
+"us",
+0.6738
+],
+[
+"canada",
+0.2514
+],
+[
+"scotland",
+0.2495
+]
+],
+"f0": 174.7,
+"secs": 10.0
+},
+"ears/p067/freeform_speech_01.wav": {
+"acc": [
+[
+"canada",
+0.4692
+],
+[
+"us",
+0.4631
+],
+[
+"southatlandtic",
+0.2591
+]
+],
+"f0": 193.8,
+"secs": 10.0
+},
+"ears/p068/freeform_speech_01.wav": {
+"acc": [
+[
+"us",
+0.4954
+],
+[
+"canada",
+0.4699
+],
+[
+"southatlandtic",
+0.2619
+]
+],
+"f0": 208.3,
+"secs": 10.0
+},
+"ears/p069/freeform_speech_01.wav": {
+"acc": [
+[
+"us",
+0.8195
+],
+[
+"canada",
+0.407
+],
+[
+"scotland",
+0.3632
+]
+],
+"f0": 156.5,
+"secs": 10.0
+},
+"ears/p070/freeform_speech_01.wav": {
+"acc": [
+[
+"canada",
+0.4581
+],
+[
+"us",
+0.432
+],
+[
+"indian",
+0.2198
+]
+],
+"f0": 186.1,
+"secs": 10.0
+},
+"ears/p071/freeform_speech_01.wav": {
+"acc": [
+[
+"us",
+0.6467
+],
+[
+"canada",
+0.4713
+],
+[
+"australia",
+0.4708
+]
+],
+"f0": 125.0,
+"secs": 10.0
+},
+"ears/p072/freeform_speech_01.wav": {
+"acc": [
+[
+"us",
+0.7556
+],
+[
+"canada",
+0.3847
+],
+[
+"australia",
+0.3649
+]
+],
+"f0": 206.5,
+"secs": 10.0
+},
+"ears/p073/freeform_speech_01.wav": {
+"acc": [
+[
+"us",
+0.6622
+],
+[
+"canada",
+0.5533
+],
+[
+"scotland",
+0.4284
+]
+],
+"f0": 157.4,
+"secs": 10.0
+},
+"ears/p074/freeform_speech_01.wav": {
+"acc": [
+[
+"australia",
+0.6719
+],
+[
+"us",
+0.6601
+],
+[
+"hongkong",
+0.322
+]
+],
+"f0": 86.3,
+"secs": 10.0
+},
+"ears/p075/freeform_speech_01.wav": {
+"acc": [
+[
+"us",
+0.5823
+],
+[
+"canada",
+0.4125
+],
+[
+"scotland",
+0.3355
+]
+],
+"f0": 172.7,
+"secs": 10.0
+},
+"ears/p076/freeform_speech_01.wav": {
+"acc": [
+[
+"us",
+0.7476
+],
+[
+"canada",
+0.5454
+],
+[
+"philippines",
+0.3828
+]
+],
+"f0": 101.5,
+"secs": 10.0
+},
+"ears/p077/freeform_speech_01.wav": {
+"acc": [
+[
+"us",
+0.7834
+],
+[
+"canada",
+0.3522
+],
+[
+"scotland",
+0.3417
+]
+],
+"f0": 102.1,
+"secs": 10.0
+},
+"ears/p078/freeform_speech_01.wav": {
+"acc": [
+[
+"us",
+0.6604
+],
+[
+"canada",
+0.4028
+],
+[
+"scotland",
+0.3958
+]
+],
+"f0": 221.4,
+"secs": 10.0
+},
+"ears/p079/freeform_speech_01.wav": {
+"acc": [
+[
+"us",
+0.8112
+],
+[
+"canada",
+0.3815
+],
+[
+"singapore",
+0.3265
+]
+],
+"f0": 225.2,
+"secs": 10.0
+},
+"ears/p080/freeform_speech_01.wav": {
+"acc": [
+[
+"us",
+0.6065
+],
+[
+"newzealand",
+0.4097
+],
+[
+"african",
+0.2858
+]
+],
+"f0": 187.2,
+"secs": 10.0
+},
+"ears/p081/freeform_speech_01.wav": {
+"acc": [
+[
+"us",
+0.7143
+],
+[
+"canada",
+0.4629
+],
+[
+"australia",
+0.359
+]
+],
+"f0": 123.9,
+"secs": 10.0
+},
+"ears/p082/freeform_speech_01.wav": {
+"acc": [
+[
+"us",
+0.5376
+],
+[
+"canada",
+0.4498
+],
+[
+"indian",
+0.314
+]
+],
+"f0": 188.8,
+"secs": 10.0
+},
+"ears/p083/freeform_speech_01.wav": {
+"acc": [
+[
+"us",
+0.514
+],
+[
+"england",
+0.392
+],
+[
+"indian",
+0.3887
+]
+],
+"f0": 144.4,
+"secs": 10.0
+},
+"ears/p084/freeform_speech_01.wav": {
+"acc": [
+[
+"us",
+0.7751
+],
+[
+"australia",
+0.3679
+],
+[
+"canada",
+0.3381
+]
+],
+"f0": 140.3,
+"secs": 10.0
+},
+"ears/p085/freeform_speech_01.wav": {
+"acc": [
+[
+"us",
+0.7153
+],
+[
+"canada",
+0.5491
+],
+[
+"england",
+0.4486
+]
+],
+"f0": 91.5,
+"secs": 10.0
+},
+"ears/p086/freeform_speech_01.wav": {
+"acc": [
+[
+"us",
+0.5523
+],
+[
+"newzealand",
+0.3989
+],
+[
+"england",
+0.3635
+]
+],
+"f0": 117.3,
+"secs": 10.0
+},
+"ears/p087/freeform_speech_01.wav": {
+"acc": [
+[
+"us",
+0.6786
+],
+[
+"canada",
+0.5822
+],
+[
+"hongkong",
+0.4406
+]
+],
+"f0": 98.6,
+"secs": 10.0
+},
+"ears/p088/freeform_speech_01.wav": {
+"acc": [
+[
+"us",
+0.7517
+],
+[
+"england",
+0.4783
+],
+[
+"australia",
+0.4146
+]
+],
+"f0": 87.3,
+"secs": 10.0
+},
+"ears/p089/freeform_speech_01.wav": {
+"acc": [
+[
+"us",
+0.6208
+],
+[
+"canada",
+0.3721
+],
+[
+"southatlandtic",
+0.3655
+]
+],
+"f0": 217.6,
+"secs": 10.0
+},
+"ears/p090/freeform_speech_01.wav": {
+"acc": [
+[
+"us",
+0.7959
+],
+[
+"australia",
+0.4224
+],
+[
+"hongkong",
+0.4186
+]
+],
+"f0": 116.6,
+"secs": 10.0
+},
+"ears/p091/freeform_speech_01.wav": {
+"acc": [
+[
+"us",
+0.7504
+],
+[
+"canada",
+0.5881
+],
+[
+"newzealand",
+0.4157
+]
+],
+"f0": 98.6,
+"secs": 10.0
+},
+"ears/p092/freeform_speech_01.wav": {
+"acc": [
+[
+"us",
+0.7785
+],
+[
+"scotland",
+0.4402
+],
+[
+"newzealand",
+0.3993
+]
+],
+"f0": 163.0,
+"secs": 10.0
+},
+"ears/p093/freeform_speech_01.wav": {
+"acc": [
+[
+"us",
+0.7295
+],
+[
+"newzealand",
+0.4202
+],
+[
+"australia",
+0.4157
+]
+],
+"f0": 194.9,
+"secs": 10.0
+},
+"ears/p094/freeform_speech_01.wav": {
+"acc": [
+[
+"us",
+0.6453
+],
+[
+"canada",
+0.4313
+],
+[
+"indian",
+0.2964
+]
+],
+"f0": 123.5,
+"secs": 10.0
+},
+"ears/p095/freeform_speech_01.wav": {
+"acc": [
+[
+"us",
+0.6556
+],
+[
+"canada",
+0.4797
+],
+[
+"newzealand",
+0.4669
+]
+],
+"f0": 99.7,
+"secs": 10.0
+},
+"ears/p096/freeform_speech_01.wav": {
+"acc": [
+[
+"us",
+0.5747
+],
+[
+"canada",
+0.3709
+],
+[
+"singapore",
+0.363
+]
+],
+"f0": 252.8,
+"secs": 10.0
+},
+"ears/p097/freeform_speech_01.wav": {
+"acc": [
+[
+"us",
+0.7621
+],
+[
+"australia",
+0.4362
+],
+[
+"canada",
+0.4296
+]
+],
+"f0": 132.4,
+"secs": 10.0
+},
+"ears/p098/freeform_speech_01.wav": {
+"acc": [
+[
+"us",
+0.6202
+],
+[
+"hongkong",
+0.4594
+],
+[
+"southatlandtic",
+0.3881
+]
+],
+"f0": 184.0,
+"secs": 10.0
+},
+"ears/p099/freeform_speech_01.wav": {
+"acc": [
+[
+"us",
+0.5231
+],
+[
+"england",
+0.4442
+],
+[
+"hongkong",
+0.3394
+]
+],
+"f0": 109.4,
+"secs": 10.0
+},
+"ears/p100/freeform_speech_01.wav": {
+"acc": [
+[
+"us",
+0.8075
+],
+[
+"scotland",
+0.3356
+],
+[
+"hongkong",
+0.325
+]
+],
+"f0": 186.1,
+"secs": 10.0
+},
+"ears/p101/freeform_speech_01.wav": {
+"acc": [
+[
+"us",
+0.4832
+],
+[
+"canada",
+0.4546
+],
+[
+"australia",
+0.372
+]
+],
+"f0": 87.8,
+"secs": 10.0
+},
+"ears/p102/freeform_speech_01.wav": {
+"acc": [
+[
+"us",
+0.682
+],
+[
+"canada",
+0.4807
+],
+[
+"australia",
+0.3215
+]
+],
+"f0": 108.2,
+"secs": 10.0
+},
+"ears/p103/freeform_speech_01.wav": {
+"acc": [
+[
+"us",
+0.6949
+],
+[
+"australia",
+0.5152
+],
+[
+"canada",
+0.4283
+]
+],
+"f0": 193.8,
+"secs": 10.0
+},
+"ears/p104/freeform_speech_01.wav": {
+"acc": [
+[
+"us",
+0.8394
+],
+[
+"canada",
+0.5439
+],
+[
+"scotland",
+0.4052
+]
+],
+"f0": 179.8,
+"secs": 10.0
+},
+"ears/p105/freeform_speech_01.wav": {
+"acc": [
+[
+"us",
+0.4334
+],
+[
+"england",
+0.4098
+],
+[
+"canada",
+0.4024
+]
+],
+"f0": 87.3,
+"secs": 10.0
+},
+"ears/p106/freeform_speech_01.wav": {
+"acc": [
+[
+"us",
+0.7932
+],
+[
+"australia",
+0.4487
+],
+[
+"scotland",
+0.3426
+]
+],
+"f0": 182.9,
+"secs": 10.0
+},
+"ears/p107/freeform_speech_01.wav": {
+"acc": [
+[
+"indian",
+0.5634
+],
+[
+"us",
+0.4517
+],
+[
+"australia",
+0.3558
+]
+],
+"f0": 106.3,
+"secs": 10.0
+},
+"expresso/ex01-ex02_default_001_channel1_168s.wav": {
+"acc": [
+[
+"us",
+0.6674
+],
+[
+"australia",
+0.4452
+],
+[
+"canada",
+0.4372
+]
+],
+"f0": 129.4,
+"secs": 10.0
+},
+"expresso/ex01-ex02_default_001_channel2_198s.wav": {
+"acc": [
+[
+"us",
+0.6554
+],
+[
+"scotland",
+0.4416
+],
+[
+"canada",
+0.4397
+]
+],
+"f0": 163.0,
+"secs": 10.0
+},
+"expresso/ex01-ex02_enunciated_001_channel1_432s.wav": {
+"acc": [
+[
+"us",
+0.8353
+],
+[
+"australia",
+0.4416
+],
+[
+"scotland",
+0.3493
+]
+],
+"f0": 182.9,
+"secs": 10.0
+},
+"expresso/ex01-ex02_enunciated_001_channel2_354s.wav": {
+"acc": [
+[
+"us",
+0.711
+],
+[
+"canada",
+0.5254
+],
+[
+"indian",
+0.4244
+]
+],
+"f0": 193.8,
+"secs": 10.0
+},
+"expresso/ex01-ex02_fast_001_channel1_104s.wav": {
+"acc": [
+[
+"us",
+0.4258
+],
+[
+"southatlandtic",
+0.3775
+],
+[
+"scotland",
+0.3395
+]
+],
+"f0": 167.8,
+"secs": 10.0
+},
+"expresso/ex01-ex02_fast_001_channel2_73s.wav": {
+"acc": [
+[
+"us",
+0.6499
+],
+[
+"australia",
+0.4211
+],
+[
+"canada",
+0.4038
+]
+],
+"f0": 199.5,
+"secs": 10.0
+},
+"expresso/ex01-ex02_projected_001_channel1_46s.wav": {
+"acc": [
+[
+"us",
+0.6955
+],
+[
+"southatlandtic",
+0.4239
+],
+[
+"england",
+0.2854
+]
+],
+"f0": 252.8,
+"secs": 10.0
+},
+"expresso/ex01-ex02_projected_002_channel2_248s.wav": {
+"acc": [
+[
+"us",
+0.629
+],
+[
+"singapore",
+0.3345
+],
+[
+"england",
+0.3059
+]
+],
+"f0": 305.9,
+"secs": 10.0
+},
+"expresso/ex01-ex02_whisper_001_channel1_579s.wav": {
+"acc": [
+[
+"us",
+0.7238
+],
+[
+"canada",
+0.5377
+],
+[
+"philippines",
+0.3909
+]
+],
+"f0": 60.0,
+"secs": 10.0
+},
+"expresso/ex01-ex02_whisper_001_channel2_717s.wav": {
+"acc": [
+[
+"canada",
+0.7353
+],
+[
+"us",
+0.4042
+],
+[
+"philippines",
+0.2341
+]
+],
+"f0": 0,
+"secs": 10.0
+},
+"expresso/ex03-ex01_angry_001_channel1_201s.wav": {
+"acc": [
+[
+"us",
+0.7425
+],
+[
+"canada",
+0.4408
+],
+[
+"australia",
+0.3777
+]
+],
+"f0": 203.0,
+"secs": 10.0
+},
+"expresso/ex03-ex01_angry_001_channel2_181s.wav": {
+"acc": [
+[
+"us",
+0.6811
+],
+[
+"wales",
+0.4214
+],
+[
+"southatlandtic",
+0.4115
+]
+],
+"f0": 221.4,
+"secs": 10.0
+},
+"expresso/ex03-ex01_awe_001_channel1_1323s.wav": {
+"acc": [
+[
+"us",
+0.6711
+],
+[
+"canada",
+0.581
+],
+[
+"australia",
+0.4275
+]
+],
+"f0": 137.0,
+"secs": 10.0
+},
+"expresso/ex03-ex01_awe_001_channel2_1290s.wav": {
+"acc": [
+[
+"us",
+0.6792
+],
+[
+"australia",
+0.5403
+],
+[
+"canada",
+0.4135
+]
+],
+"f0": 120.7,
+"secs": 10.0
+},
+"expresso/ex03-ex01_calm_001_channel1_1143s.wav": {
+"acc": [
+[
+"us",
+0.6399
+],
+[
+"australia",
+0.4724
+],
+[
+"indian",
+0.4392
+]
+],
+"f0": 124.2,
+"secs": 10.0
+},
+"expresso/ex03-ex01_calm_001_channel2_1081s.wav": {
+"acc": [
+[
+"us",
+0.7556
+],
+[
+"scotland",
+0.5403
+],
+[
+"australia",
+0.4047
+]
+],
+"f0": 107.5,
+"secs": 10.0
+},
+"expresso/ex03-ex01_confused_001_channel1_909s.wav": {
+"acc": [
+[
+"australia",
+0.6026
+],
+[
+"us",
+0.4664
+],
+[
+"newzealand",
+0.4604
+]
+],
+"f0": 122.8,
+"secs": 10.0
+},
+"expresso/ex03-ex01_confused_001_channel2_816s.wav": {
+"acc": [
+[
+"us",
+0.567
+],
+[
+"canada",
+0.4269
+],
+[
+"hongkong",
+0.4079
+]
+],
+"f0": 138.6,
+"secs": 10.0
+},
+"expresso/ex03-ex01_desire_004_channel1_545s.wav": {
+"acc": [
+[
+"us",
+0.6973
+],
+[
+"australia",
+0.4685
+],
+[
+"canada",
+0.4315
+]
+],
+"f0": 157.4,
+"secs": 10.0
+},
+"expresso/ex03-ex01_desire_004_channel2_580s.wav": {
+"acc": [
+[
+"us",
+0.6697
+],
+[
+"australia",
+0.5003
+],
+[
+"hongkong",
+0.3688
+]
+],
+"f0": 113.3,
+"secs": 10.0
+},
+"expresso/ex03-ex01_disgusted_004_channel1_170s.wav": {
+"acc": [
+[
+"us",
+0.8504
+],
+[
+"canada",
+0.4599
+],
+[
+"australia",
+0.3997
+]
+],
+"f0": 131.6,
+"secs": 10.0
+},
+"expresso/ex03-ex01_enunciated_001_channel1_388s.wav": {
+"acc": [
+[
+"us",
+0.8135
+],
+[
+"canada",
+0.4502
+],
+[
+"hongkong",
+0.4011
+]
+],
+"f0": 172.7,
+"secs": 10.0
+},
+"expresso/ex03-ex01_enunciated_001_channel2_576s.wav": {
+"acc": [
+[
+"us",
+0.7539
+],
+[
+"australia",
+0.4345
+],
+[
+"canada",
+0.4269
+]
+],
+"f0": 146.9,
+"secs": 10.0
+},
+"expresso/ex03-ex01_happy_001_channel1_334s.wav": {
+"acc": [
+[
+"us",
+0.6673
+],
+[
+"canada",
+0.523
+],
+[
+"australia",
+0.3947
+]
+],
+"f0": 167.8,
+"secs": 10.0
+},
+"expresso/ex03-ex01_happy_001_channel2_257s.wav": {
+"acc": [
+[
+"us",
+0.455
+],
+[
+"canada",
+0.4101
+],
+[
+"england",
+0.3946
+]
+],
+"f0": 205.3,
+"secs": 10.0
+},
+"expresso/ex03-ex01_laughing_001_channel1_188s.wav": {
+"acc": [
+[
+"us",
+0.6883
+],
+[
+"canada",
+0.5461
+],
+[
+"australia",
+0.3003
+]
+],
+"f0": 172.7,
+"secs": 10.0
+},
+"expresso/ex03-ex01_laughing_002_channel2_232s.wav": {
+"acc": [
+[
+"us",
+0.554
+],
+[
+"england",
+0.5154
+],
+[
+"canada",
+0.477
+]
+],
+"f0": 177.2,
+"secs": 10.0
+},
+"expresso/ex03-ex01_nonverbal_001_channel2_37s.wav": {
+"acc": [
+[
+"us",
+0.6047
+],
+[
+"england",
+0.4955
+],
+[
+"scotland",
+0.3933
+]
+],
+"f0": 263.2,
+"secs": 10.0
+},
+"expresso/ex03-ex01_nonverbal_006_channel1_62s.wav": {
+"acc": [
+[
+"us",
+0.729
+],
+[
+"canada",
+0.5447
+],
+[
+"england",
+0.5239
+]
+],
+"f0": 135.5,
+"secs": 10.0
+},
+"expresso/ex03-ex01_sarcastic_001_channel1_435s.wav": {
+"acc": [
+[
+"us",
+0.6156
+],
+[
+"england",
+0.4843
+],
+[
+"australia",
+0.4768
+]
+],
+"f0": 135.5,
+"secs": 10.0
+},
+"expresso/ex03-ex01_sarcastic_001_channel2_491s.wav": {
+"acc": [
+[
+"us",
+0.6676
+],
+[
+"canada",
+0.5374
+],
+[
+"australia",
+0.4276
+]
+],
+"f0": 139.4,
+"secs": 10.0
+},
+"expresso/ex03-ex01_sleepy_001_channel1_619s.wav": {
+"acc": [
+[
+"england",
+0.6765
+],
+[
+"australia",
+0.4317
+],
+[
+"canada",
+0.413
+]
+],
+"f0": 111.3,
+"secs": 10.0
+},
+"expresso/ex03-ex01_sleepy_001_channel2_662s.wav": {
+"acc": [
+[
+"us",
+0.6925
+],
+[
+"australia",
+0.5157
+],
+[
+"canada",
+0.4502
+]
+],
+"f0": 110.7,
+"secs": 10.0
+},
+"expresso/ex03-ex02_animal-animaldir_002_channel2_89s.wav": {
+"acc": [
+[
+"us",
+0.7635
+],
+[
+"canada",
+0.389
+],
+[
+"scotland",
+0.3335
+]
+],
+"f0": 313.0,
+"secs": 10.0
+},
+"expresso/ex03-ex02_animal-animaldir_003_channel1_32s.wav": {
+"acc": [
+[
+"us",
+0.7666
+],
+[
+"england",
+0.4042
+],
+[
+"scotland",
+0.3842
+]
+],
+"f0": 237.2,
+"secs": 10.0
+},
+"expresso/ex03-ex02_animaldir-animal_008_channel1_147s.wav": {
+"acc": [
+[
+"us",
+0.5915
+],
+[
+"canada",
+0.5712
+],
+[
+"england",
+0.4428
+]
+],
+"f0": 118.6,
+"secs": 10.0
+},
+"expresso/ex03-ex02_animaldir-animal_008_channel2_136s.wav": {
+"acc": [
+[
+"us",
+0.5366
+],
+[
+"singapore",
+0.3066
+],
+[
+"australia",
+0.2782
+]
+],
+"f0": 234.5,
+"secs": 10.0
+},
+"expresso/ex03-ex02_child-childdir_001_channel1_291s.wav": {
+"acc": [
+[
+"canada",
+0.5808
+],
+[
+"us",
+0.5799
+],
+[
+"england",
+0.2563
+]
+],
+"f0": 169.7,
+"secs": 10.0
+},
+"expresso/ex03-ex02_child-childdir_001_channel2_69s.wav": {
+"acc": [
+[
+"us",
+0.7315
+],
+[
+"canada",
+0.5411
+],
+[
+"southatlandtic",
+0.3188
+]
+],
+"f0": 226.5,
+"secs": 10.0
+},
+"expresso/ex03-ex02_childdir-child_004_channel1_308s.wav": {
+"acc": [
+[
+"canada",
+0.6321
+],
+[
+"us",
+0.6139
+],
+[
+"england",
+0.3427
+]
+],
+"f0": 149.5,
+"secs": 10.0
+},
+"expresso/ex03-ex02_childdir-child_004_channel2_187s.wav": {
+"acc": [
+[
+"us",
+0.6755
+],
+[
+"canada",
+0.3942
+],
+[
+"singapore",
+0.3575
+]
+],
+"f0": 322.2,
+"secs": 10.0
+},
+"expresso/ex03-ex02_laughing_001_channel1_248s.wav": {
+"acc": [
+[
+"us",
+0.7625
+],
+[
+"canada",
+0.3736
+],
+[
+"australia",
+0.3513
+]
+],
+"f0": 180.3,
+"secs": 10.0
+},
+"expresso/ex03-ex02_laughing_001_channel2_234s.wav": {
+"acc": [
+[
+"us",
+0.627
+],
+[
+"canada",
+0.5936
+],
+[
+"wales",
+0.3323
+]
+],
+"f0": 282.1,
+"secs": 10.0
+},
+"expresso/ex03-ex02_narration_001_channel1_674s.wav": {
+"acc": [
+[
+"us",
+0.7204
+],
+[
+"canada",
+0.4993
+],
+[
+"australia",
+0.3868
+]
+],
+"f0": 200.7,
+"secs": 10.0
+},
+"expresso/ex03-ex02_narration_002_channel2_1136s.wav": {
+"acc": [
+[
+"us",
+0.7877
+],
+[
+"canada",
+0.5121
+],
+[
+"scotland",
+0.4184
+]
+],
+"f0": 184.0,
+"secs": 10.0
+},
+"expresso/ex03-ex02_sad-sympathetic_001_channel1_454s.wav": {
+"acc": [
+[
+"us",
+0.5933
+],
+[
+"newzealand",
+0.4646
+],
+[
+"canada",
+0.4351
+]
+],
+"f0": 125.0,
+"secs": 10.0
+},
+"expresso/ex03-ex02_sad-sympathetic_001_channel2_400s.wav": {
+"acc": [
+[
+"us",
+0.6981
+],
+[
+"canada",
+0.5243
+],
+[
+"scotland",
+0.3408
+]
+],
+"f0": 177.7,
+"secs": 10.0
+},
+"expresso/ex03-ex02_sympathetic-sad_008_channel1_215s.wav": {
+"acc": [
+[
+"us",
+0.8141
+],
+[
+"canada",
+0.4723
+],
+[
+"australia",
+0.4683
+]
+],
+"f0": 125.0,
+"secs": 10.0
+},
+"expresso/ex03-ex02_sympathetic-sad_008_channel2_268s.wav": {
+"acc": [
+[
+"us",
+0.5617
+],
+[
+"canada",
+0.4831
+],
+[
+"england",
+0.4529
+]
+],
+"f0": 280.5,
+"secs": 10.0
+},
+"expresso/ex04-ex01_animal-animaldir_006_channel1_196s.wav": {
+"acc": [
+[
+"us",
+0.7028
+],
+[
+"england",
+0.4248
+],
+[
+"southatlandtic",
+0.4103
+]
+],
+"f0": 311.2,
+"secs": 10.0
+},
+"expresso/ex04-ex01_animal-animaldir_006_channel2_49s.wav": {
+"acc": [
+[
+"us",
+0.5952
+],
+[
+"australia",
+0.4269
+],
+[
+"wales",
+0.4113
+]
+],
+"f0": 168.7,
+"secs": 10.0
+},
+"expresso/ex04-ex01_animaldir-animal_001_channel1_118s.wav": {
+"acc": [
+[
+"us",
+0.5952
+],
+[
+"canada",
+0.5468
+],
+[
+"southatlandtic",
+0.3488
+]
+],
+"f0": 267.8,
+"secs": 10.0
+},
+"expresso/ex04-ex01_animaldir-animal_004_channel2_88s.wav": {
+"acc": [
+[
+"us",
+0.6186
+],
+[
+"england",
+0.4413
+],
+[
+"canada",
+0.4066
+]
+],
+"f0": 180.8,
+"secs": 10.0
+},
+"expresso/ex04-ex01_child-childdir_003_channel2_283s.wav": {
+"acc": [
+[
+"us",
+0.7216
+],
+[
+"canada",
+0.4345
+],
+[
+"scotland",
+0.4224
+]
+],
+"f0": 156.5,
+"secs": 10.0
+},
+"expresso/ex04-ex01_child-childdir_004_channel1_118s.wav": {
+"acc": [
+[
+"us",
+0.6067
+],
+[
+"canada",
+0.4876
+],
+[
+"singapore",
+0.3514
+]
+],
+"f0": 363.8,
+"secs": 10.0
+},
+"expresso/ex04-ex01_childdir-child_001_channel1_228s.wav": {
+"acc": [
+[
+"us",
+0.693
+],
+[
+"canada",
+0.4677
+],
+[
+"southatlandtic",
+0.33
+]
+],
+"f0": 276.5,
+"secs": 10.0
+},
+"expresso/ex04-ex01_childdir-child_001_channel2_420s.wav": {
+"acc": [
+[
+"us",
+0.6794
+],
+[
+"wales",
+0.3727
+],
+[
+"scotland",
+0.3444
+]
+],
+"f0": 160.2,
+"secs": 10.0
+},
+"expresso/ex04-ex01_disgusted_001_channel1_130s.wav": {
+"acc": [
+[
+"us",
+0.717
+],
+[
+"canada",
+0.4219
+],
+[
+"southatlandtic",
+0.4074
+]
+],
+"f0": 298.0,
+"secs": 10.0
+},
+"expresso/ex04-ex01_disgusted_001_channel2_325s.wav": {
+"acc": [
+[
+"us",
+0.6477
+],
+[
+"england",
+0.4713
+],
+[
+"wales",
+0.3971
+]
+],
+"f0": 170.7,
+"secs": 10.0
+},
+"expresso/ex04-ex01_laughing_001_channel1_306s.wav": {
+"acc": [
+[
+"us",
+0.6621
+],
+[
+"canada",
+0.4249
+],
+[
+"wales",
+0.3772
+]
+],
+"f0": 258.7,
+"secs": 10.0
+},
+"expresso/ex04-ex01_laughing_001_channel2_293s.wav": {
+"acc": [
+[
+"us",
+0.6038
+],
+[
+"canada",
+0.4109
+],
+[
+"southatlandtic",
+0.3411
+]
+],
+"f0": 204.2,
+"secs": 10.0
+},
+"expresso/ex04-ex01_narration_001_channel1_605s.wav": {
+"acc": [
+[
+"us",
+0.6291
+],
+[
+"canada",
+0.4838
+],
+[
+"singapore",
+0.2912
+]
+],
+"f0": 260.2,
+"secs": 10.0
+},
+"expresso/ex04-ex01_narration_001_channel2_686s.wav": {
+"acc": [
+[
+"us",
+0.5582
+],
+[
+"australia",
+0.417
+],
+[
+"canada",
+0.3679
+]
+],
+"f0": 140.3,
+"secs": 10.0
+},
+"expresso/ex04-ex01_sad-sympathetic_001_channel1_267s.wav": {
+"acc": [
+[
+"us",
+0.6185
+],
+[
+"canada",
+0.5509
+],
+[
+"england",
+0.4284
+]
+],
+"f0": 223.9,
+"secs": 10.0
+},
+"expresso/ex04-ex01_sad-sympathetic_001_channel2_346s.wav": {
+"acc": [
+[
+"us",
+0.6249
+],
+[
+"australia",
+0.4952
+],
+[
+"scotland",
+0.3907
+]
+],
+"f0": 110.7,
+"secs": 10.0
+},
+"expresso/ex04-ex01_sympathetic-sad_008_channel1_415s.wav": {
+"acc": [
+[
+"canada",
+0.4682
+],
+[
+"us",
+0.4329
+],
+[
+"england",
+0.366
+]
+],
+"f0": 192.7,
+"secs": 10.0
+},
+"expresso/ex04-ex01_sympathetic-sad_008_channel2_453s.wav": {
+"acc": [
+[
+"us",
+0.522
+],
+[
+"england",
+0.4866
+],
+[
+"wales",
+0.4452
+]
+],
+"f0": 178.8,
+"secs": 10.0
+},
+"expresso/ex04-ex02_angry_001_channel1_119s.wav": {
+"acc": [
+[
+"us",
+0.7543
+],
+[
+"singapore",
+0.3516
+],
+[
+"canada",
+0.342
+]
+],
+"f0": 282.1,
+"secs": 10.0
+},
+"expresso/ex04-ex02_angry_001_channel2_150s.wav": {
+"acc": [
+[
+"us",
+0.586
+],
+[
+"canada",
+0.4516
+],
+[
+"singapore",
+0.2938
+]
+],
+"f0": 206.5,
+"secs": 10.0
+},
+"expresso/ex04-ex02_awe_001_channel1_982s.wav": {
+"acc": [
+[
+"us",
+0.64
+],
+[
+"canada",
+0.4146
+],
+[
+"england",
+0.3469
+]
+],
+"f0": 197.2,
+"secs": 10.0
+},
+"expresso/ex04-ex02_awe_001_channel2_1013s.wav": {
+"acc": [
+[
+"us",
+0.7126
+],
+[
+"canada",
+0.4374
+],
+[
+"scotland",
+0.4311
+]
+],
+"f0": 179.8,
+"secs": 10.0
+},
+"expresso/ex04-ex02_bored_001_channel1_254s.wav": {
+"acc": [
+[
+"us",
+0.5799
+],
+[
+"canada",
+0.533
+],
+[
+"newzealand",
+0.3402
+]
+],
+"f0": 189.4,
+"secs": 10.0
+},
+"expresso/ex04-ex02_bored_001_channel2_232s.wav": {
+"acc": [
+[
+"us",
+0.6387
+],
+[
+"canada",
+0.4064
+],
+[
+"scotland",
+0.3619
+]
+],
+"f0": 173.7,
+"secs": 10.0
+},
+"expresso/ex04-ex02_calm_001_channel2_336s.wav": {
+"acc": [
+[
+"us",
+0.7827
+],
+[
+"canada",
+0.4863
+],
+[
+"england",
+0.4019
+]
+],
+"f0": 193.8,
+"secs": 10.0
+},
+"expresso/ex04-ex02_calm_002_channel1_480s.wav": {
+"acc": [
+[
+"us",
+0.7453
+],
+[
+"canada",
+0.5919
+],
+[
+"australia",
+0.4091
+]
+],
+"f0": 192.7,
+"secs": 10.0
+},
+"expresso/ex04-ex02_confused_001_channel1_499s.wav": {
+"acc": [
+[
+"canada",
+0.6803
+],
+[
+"us",
+0.4081
+],
+[
+"australia",
+0.317
+]
+],
+"f0": 200.7,
+"secs": 10.0
+},
+"expresso/ex04-ex02_confused_001_channel2_488s.wav": {
+"acc": [
+[
+"us",
+0.6969
+],
+[
+"canada",
+0.3922
+],
+[
+"southatlandtic",
+0.3554
+]
+],
+"f0": 177.7,
+"secs": 10.0
+},
+"expresso/ex04-ex02_desire_001_channel1_657s.wav": {
+"acc": [
+[
+"us",
+0.5748
+],
+[
+"canada",
+0.5116
+],
+[
+"newzealand",
+0.4204
+]
+],
+"f0": 212.6,
+"secs": 10.0
+},
+"expresso/ex04-ex02_desire_001_channel2_694s.wav": {
+"acc": [
+[
+"us",
+0.622
+],
+[
+"canada",
+0.5413
+],
+[
+"indian",
+0.3252
+]
+],
+"f0": 172.7,
+"secs": 10.0
+},
+"expresso/ex04-ex02_disgusted_001_channel2_98s.wav": {
+"acc": [
+[
+"us",
+0.8297
+],
+[
+"australia",
+0.453
+],
+[
+"canada",
+0.3963
+]
+],
+"f0": 218.8,
+"secs": 10.0
+},
+"expresso/ex04-ex02_disgusted_004_channel1_169s.wav": {
+"acc": [
+[
+"us",
+0.6268
+],
+[
+"canada",
+0.4919
+],
+[
+"southatlandtic",
+0.3866
+]
+],
+"f0": 298.9,
+"secs": 10.0
+},
+"expresso/ex04-ex02_enunciated_001_channel1_496s.wav": {
+"acc": [
+[
+"us",
+0.4483
+],
+[
+"singapore",
+0.4445
+],
+[
+"african",
+0.357
+]
+],
+"f0": 257.2,
+"secs": 10.0
+},
+"expresso/ex04-ex02_enunciated_001_channel2_898s.wav": {
+"acc": [
+[
+"us",
+0.7289
+],
+[
+"canada",
+0.51
+],
+[
+"scotland",
+0.3842
+]
+],
+"f0": 170.2,
+"secs": 10.0
+},
+"expresso/ex04-ex02_fearful_001_channel1_316s.wav": {
+"acc": [
+[
+"canada",
+0.6453
+],
+[
+"us",
+0.5531
+],
+[
+"england",
+0.3766
+]
+],
+"f0": 234.5,
+"secs": 10.0
+},
+"expresso/ex04-ex02_fearful_001_channel2_266s.wav": {
+"acc": [
+[
+"us",
+0.5911
+],
+[
+"canada",
+0.3793
+],
+[
+"australia",
+0.3695
+]
+],
+"f0": 225.2,
+"secs": 10.0
+},
+"expresso/ex04-ex02_happy_001_channel1_118s.wav": {
+"acc": [
+[
+"us",
+0.7375
+],
+[
+"canada",
+0.4269
+],
+[
+"wales",
+0.3341
+]
+],
+"f0": 304.1,
+"secs": 10.0
+},
+"expresso/ex04-ex02_happy_001_channel2_140s.wav": {
+"acc": [
+[
+"canada",
+0.5998
+],
+[
+"us",
+0.5114
+],
+[
+"australia",
+0.2732
+]
+],
+"f0": 271.0,
+"secs": 10.0
+},
+"expresso/ex04-ex02_laughing_001_channel1_147s.wav": {
+"acc": [
+[
+"us",
+0.7521
+],
+[
+"canada",
+0.4117
+],
+[
+"philippines",
+0.351
+]
+],
+"f0": 307.7,
+"secs": 10.0
+},
+"expresso/ex04-ex02_laughing_001_channel2_159s.wav": {
+"acc": [
+[
+"us",
+0.5651
+],
+[
+"canada",
+0.4121
+],
+[
+"scotland",
+0.3534
+]
+],
+"f0": 316.7,
+"secs": 10.0
+},
+"expresso/ex04-ex02_nonverbal_004_channel1_18s.wav": {
+"acc": [
+[
+"us",
+0.7539
+],
+[
+"philippines",
+0.4485
+],
+[
+"canada",
+0.4286
+]
+],
+"f0": 311.2,
+"secs": 10.0
+},
+"expresso/ex04-ex02_nonverbal_004_channel2_71s.wav": {
+"acc": [
+[
+"us",
+0.7513
+],
+[
+"canada",
+0.4229
+],
+[
+"philippines",
+0.3705
+]
+],
+"f0": 243.5,
+"secs": 10.0
+},
+"expresso/ex04-ex02_sarcastic_001_channel1_519s.wav": {
+"acc": [
+[
+"us",
+0.6847
+],
+[
+"canada",
+0.4975
+],
+[
+"england",
+0.3715
+]
+],
+"f0": 192.7,
+"secs": 10.0
+},
+"expresso/ex04-ex02_sarcastic_001_channel2_466s.wav": {
+"acc": [
+[
+"us",
+0.6957
+],
+[
+"canada",
+0.4564
+],
+[
+"scotland",
+0.3529
+]
+],
+"f0": 231.8,
+"secs": 10.0
+},
+"expresso/ex04-ex03_default_001_channel1_3s.wav": {
+"acc": [
+[
+"us",
+0.7252
+],
+[
+"southatlandtic",
+0.3454
+],
+[
+"canada",
+0.3409
+]
+],
+"f0": 297.2,
+"secs": 10.0
+},
+"expresso/ex04-ex03_default_002_channel2_239s.wav": {
+"acc": [
+[
+"us",
+0.6838
+],
+[
+"australia",
+0.4863
+],
+[
+"canada",
+0.4427
+]
+],
+"f0": 137.8,
+"secs": 10.0
+},
+"expresso/ex04-ex03_enunciated_001_channel1_86s.wav": {
+"acc": [
+[
+"us",
+0.5256
+],
+[
+"african",
+0.4133
+],
+[
+"singapore",
+0.3786
+]
+],
+"f0": 297.2,
+"secs": 10.0
+},
+"expresso/ex04-ex03_enunciated_001_channel2_342s.wav": {
+"acc": [
+[
+"us",
+0.8249
+],
+[
+"canada",
+0.4718
+],
+[
+"australia",
+0.417
+]
+],
+"f0": 153.8,
+"secs": 10.0
+},
+"expresso/ex04-ex03_fast_001_channel1_208s.wav": {
+"acc": [
+[
+"us",
+0.6234
+],
+[
+"singapore",
+0.3554
+],
+[
+"southatlandtic",
+0.3534
+]
+],
+"f0": 272.5,
+"secs": 10.0
+},
+"expresso/ex04-ex03_fast_001_channel2_25s.wav": {
+"acc": [
+[
+"us",
+0.7248
+],
+[
+"canada",
+0.437
+],
+[
+"australia",
+0.3926
+]
+],
+"f0": 141.1,
+"secs": 10.0
+},
+"expresso/ex04-ex03_projected_001_channel1_192s.wav": {
+"acc": [
+[
+"us",
+0.7065
+],
+[
+"canada",
+0.3957
+],
+[
+"singapore",
+0.365
+]
+],
+"f0": 314.9,
+"secs": 10.0
+},
+"expresso/ex04-ex03_projected_001_channel2_179s.wav": {
+"acc": [
+[
+"us",
+0.7493
+],
+[
+"canada",
+0.4106
+],
+[
+"southatlandtic",
+0.3088
+]
+],
+"f0": 212.6,
+"secs": 10.0
+},
+"expresso/ex04-ex03_whisper_001_channel1_198s.wav": {
+"acc": [
+[
+"canada",
+0.6937
+],
+[
+"us",
+0.5485
+],
+[
+"indian",
+0.3609
+]
+],
+"f0": 60.0,
+"secs": 10.0
+},
+"expresso/ex04-ex03_whisper_002_channel2_266s.wav": {
+"acc": [
+[
+"canada",
+0.7165
+],
+[
+"us",
+0.6335
+],
+[
+"australia",
+0.3406
+]
+],
+"f0": 60.0,
+"secs": 10.0
+},
+"unmute-prod-website/default_voice.wav": {
+"acc": [
+[
+"us",
+0.6888
+],
+[
+"england",
+0.5176
+],
+[
+"wales",
+0.4018
+]
+],
+"f0": 271.0,
+"secs": 10.0
+},
+"unmute-prod-website/degaulle-2.wav": {
+"acc": [
+[
+"england",
+0.6465
+],
+[
+"us",
+0.4654
+],
+[
+"african",
+0.3156
+]
+],
+"f0": 148.6,
+"secs": 10.0
+},
+"unmute-prod-website/developer-1.mp3": {
+"acc": [
+[
+"us",
+0.6767
+],
+[
+"england",
+0.4914
+],
+[
+"canada",
+0.4838
+]
+],
+"f0": 110.7,
+"secs": 10.0
+},
+"unmute-prod-website/developpeuse-3.wav": {
+"acc": [
+[
+"us",
+0.4541
+],
+[
+"england",
+0.4438
+],
+[
+"indian",
+0.2614
+]
+],
+"f0": 234.5,
+"secs": 13.4
+},
+"unmute-prod-website/ex04_narration_longform_00001.wav": {
+"acc": [
+[
+"canada",
+0.6425
+],
+[
+"us",
+0.5575
+],
+[
+"southatlandtic",
+0.3001
+]
+],
+"f0": 227.8,
+"secs": 20.0
+},
+"unmute-prod-website/fabieng-enhanced-v2.wav": {
+"acc": [
+[
+"england",
+0.5899
+],
+[
+"wales",
+0.4061
+],
+[
+"us",
+0.3653
+]
+],
+"f0": 138.6,
+"secs": 11.5
+},
+"unmute-prod-website/freesound/440565_why-is-there-educationwav.mp3": {
+"acc": [
+[
+"southatlandtic",
+0.3038
+],
+[
+"bermuda",
+0.2588
+],
+[
+"us",
+0.2571
+]
+],
+"f0": 182.9,
+"secs": 10.0
+},
+"unmute-prod-website/freesound/519189_request-42---hmm-i-dont-knowwav.mp3": {
+"acc": [
+[
+"england",
+0.6437
+],
+[
+"southatlandtic",
+0.2004
+],
+[
+"wales",
+0.195
+]
+],
+"f0": 147.7,
+"secs": 10.0
+},
+"unmute-prod-website/p329_022.wav": {
+"acc": [
+[
+"us",
+0.7523
+],
+[
+"newzealand",
+0.328
+],
+[
+"scotland",
+0.3236
+]
+],
+"f0": 198.3,
+"secs": 8.4
+},
+"vctk/p225_023.wav": {
+"acc": [
+[
+"england",
+0.701
+],
+[
+"wales",
+0.2473
+],
+[
+"newzealand",
+0.2239
+]
+],
+"f0": 179.8,
+"secs": 12.2
+},
+"vctk/p226_023.wav": {
+"acc": [
+[
+"england",
+0.741
+],
+[
+"us",
+0.3512
+],
+[
+"african",
+0.3437
+]
+],
+"f0": 110.7,
+"secs": 12.2
+},
+"vctk/p227_023.wav": {
+"acc": [
+[
+"england",
+0.7186
+],
+[
+"wales",
+0.3614
+],
+[
+"us",
+0.2529
+]
+],
+"f0": 115.9,
+"secs": 12.7
+},
+"vctk/p228_023.wav": {
+"acc": [
+[
+"england",
+0.6584
+],
+[
+"us",
+0.4362
+],
+[
+"australia",
+0.3416
+]
+],
+"f0": 196.1,
+"secs": 12.6
+},
+"vctk/p229_023.wav": {
+"acc": [
+[
+"england",
+0.6767
+],
+[
+"us",
+0.3661
+],
+[
+"indian",
+0.2777
+]
+],
+"f0": 177.7,
+"secs": 10.8
+},
+"vctk/p230_023.wav": {
+"acc": [
+[
+"england",
+0.6626
+],
+[
+"us",
+0.4867
+],
+[
+"wales",
+0.2876
+]
+],
+"f0": 190.5,
+"secs": 13.8
+},
+"vctk/p231_023.wav": {
+"acc": [
+[
+"england",
+0.595
+],
+[
+"australia",
+0.2998
+],
+[
+"wales",
+0.142
+]
+],
+"f0": 179.8,
+"secs": 9.2
+},
+"vctk/p232_023.wav": {
+"acc": [
+[
+"england",
+0.6697
+],
+[
+"us",
+0.4934
+],
+[
+"wales",
+0.4103
+]
+],
+"f0": 107.8,
+"secs": 10.0
+},
+"vctk/p233_023.wav": {
+"acc": [
+[
+"england",
+0.5939
+],
+[
+"singapore",
+0.1788
+],
+[
+"australia",
+0.1586
+]
+],
+"f0": 204.2,
+"secs": 10.6
+},
+"vctk/p234_023.wav": {
+"acc": [
+[
+"scotland",
+0.3609
+],
+[
+"canada",
+0.3003
+],
+[
+"ireland",
+0.2388
+]
+],
+"f0": 179.8,
+"secs": 9.5
+},
+"vctk/p236_023.wav": {
+"acc": [
+[
+"england",
+0.3955
+],
+[
+"ireland",
+0.1905
+],
+[
+"wales",
+0.1301
+]
+],
+"f0": 235.9,
+"secs": 10.4
+},
+"vctk/p237_023.wav": {
+"acc": [
+[
+"canada",
+0.4549
+],
+[
+"england",
+0.438
+],
+[
+"newzealand",
+0.3075
+]
+],
+"f0": 77.1,
+"secs": 10.5
+},
+"vctk/p238_023.wav": {
+"acc": [
+[
+"us",
+0.3704
+],
+[
+"african",
+0.2853
+],
+[
+"ireland",
+0.2675
+]
+],
+"f0": 203.0,
+"secs": 13.0
+},
+"vctk/p239_023.wav": {
+"acc": [
+[
+"england",
+0.6105
+],
+[
+"ireland",
+0.2693
+],
+[
+"us",
+0.2576
+]
+],
+"f0": 188.3,
+"secs": 9.4
+},
+"vctk/p240_023.wav": {
+"acc": [
+[
+"england",
+0.566
+],
+[
+"indian",
+0.1589
+],
+[
+"singapore",
+0.1414
+]
+],
+"f0": 233.2,
+"secs": 10.1
+},
+"vctk/p241_023.wav": {
+"acc": [
+[
+"england",
+0.5774
+],
+[
+"scotland",
+0.4886
+],
+[
+"wales",
+0.2687
+]
+],
+"f0": 113.3,
+"secs": 10.3
+},
+"vctk/p243_023.wav": {
+"acc": [
+[
+"england",
+0.6994
+],
+[
+"hongkong",
+0.2211
+],
+[
+"us",
+0.1957
+]
+],
+"f0": 115.2,
+"secs": 12.5
+},
+"vctk/p244_023.wav": {
+"acc": [
+[
+"england",
+0.6595
+],
+[
+"southatlandtic",
+0.216
+],
+[
+"australia",
+0.2038
+]
+],
+"f0": 201.8,
+"secs": 10.5
+},
+"vctk/p245_023.wav": {
+"acc": [
+[
+"us",
+0.5256
+],
+[
+"scotland",
+0.3353
+],
+[
+"australia",
+0.3258
+]
+],
+"f0": 88.9,
+"secs": 12.9
+},
+"vctk/p246_023.wav": {
+"acc": [
+[
+"england",
+0.5296
+],
+[
+"us",
+0.4632
+],
+[
+"scotland",
+0.4306
+]
+],
+"f0": 102.1,
+"secs": 12.1
+},
+"vctk/p247_023.wav": {
+"acc": [
+[
+"scotland",
+0.437
+],
+[
+"england",
+0.4262
+],
+[
+"newzealand",
+0.2856
+]
+],
+"f0": 131.6,
+"secs": 10.5
+},
+"vctk/p248_023.wav": {
+"acc": [
+[
+"indian",
+0.5502
+],
+[
+"singapore",
+0.2793
+],
+[
+"england",
+0.2119
+]
+],
+"f0": 217.6,
+"secs": 13.4
+},
+"vctk/p249_023.wav": {
+"acc": [
+[
+"us",
+0.4126
+],
+[
+"scotland",
+0.388
+],
+[
+"england",
+0.3858
+]
+],
+"f0": 175.7,
+"secs": 11.5
+},
+"vctk/p250_023.wav": {
+"acc": [
+[
+"england",
+0.6401
+],
+[
+"australia",
+0.2689
+],
+[
+"wales",
+0.1704
+]
+],
+"f0": 215.7,
+"secs": 10.0
+},
+"vctk/p251_023.wav": {
+"acc": [
+[
+"indian",
+0.5979
+],
+[
+"england",
+0.2441
+],
+[
+"newzealand",
+0.2051
+]
+],
+"f0": 115.2,
+"secs": 11.1
+},
+"vctk/p252_023.wav": {
+"acc": [
+[
+"scotland",
+0.5505
+],
+[
+"australia",
+0.2887
+],
+[
+"wales",
+0.2721
+]
+],
+"f0": 116.6,
+"secs": 11.3
+},
+"vctk/p253_023.wav": {
+"acc": [
+[
+"england",
+0.7136
+],
+[
+"indian",
+0.296
+],
+[
+"wales",
+0.2867
+]
+],
+"f0": 223.9,
+"secs": 10.5
+},
+"vctk/p254_023.wav": {
+"acc": [
+[
+"england",
+0.6999
+],
+[
+"us",
+0.37
+],
+[
+"wales",
+0.2764
+]
+],
+"f0": 77.1,
+"secs": 10.0
+},
+"vctk/p255_023.wav": {
+"acc": [
+[
+"scotland",
+0.5433
+],
+[
+"indian",
+0.2716
+],
+[
+"wales",
+0.2437
+]
+],
+"f0": 143.5,
+"secs": 12.8
+},
+"vctk/p256_023.wav": {
+"acc": [
+[
+"england",
+0.5633
+],
+[
+"scotland",
+0.4574
+],
+[
+"ireland",
+0.3579
+]
+],
+"f0": 83.4,
+"secs": 12.4
+},
+"vctk/p257_023.wav": {
+"acc": [
+[
+"england",
+0.6478
+],
+[
+"australia",
+0.3258
+],
+[
+"scotland",
+0.1975
+]
+],
+"f0": 200.7,
+"secs": 8.6
+},
+"vctk/p258_023.wav": {
+"acc": [
+[
+"england",
+0.612
+],
+[
+"scotland",
+0.3274
+],
+[
+"wales",
+0.3126
+]
+],
+"f0": 112.6,
+"secs": 10.8
+},
+"vctk/p259_023.wav": {
+"acc": [
+[
+"england",
+0.6455
+],
+[
+"scotland",
+0.3477
+],
+[
+"wales",
+0.2997
+]
+],
+"f0": 112.6,
+"secs": 11.2
+},
+"vctk/p260_023.wav": {
+"acc": [
+[
+"scotland",
+0.5456
+],
+[
+"england",
+0.4401
+],
+[
+"wales",
+0.2475
+]
+],
+"f0": 122.1,
+"secs": 10.0
+},
+"vctk/p261_023.wav": {
+"acc": [
+[
+"england",
+0.4591
+],
+[
+"us",
+0.3797
+],
+[
+"african",
+0.2961
+]
+],
+"f0": 234.5,
+"secs": 9.8
+},
+"vctk/p262_023.wav": {
+"acc": [
+[
+"scotland",
+0.45
+],
+[
+"england",
+0.2973
+],
+[
+"us",
+0.2489
+]
+],
+"f0": 160.2,
+"secs": 11.2
+},
+"vctk/p263_023.wav": {
+"acc": [
+[
+"scotland",
+0.5974
+],
+[
+"canada",
+0.2353
+],
+[
+"newzealand",
+0.2266
+]
+],
+"f0": 102.7,
+"secs": 10.5
+},
+"vctk/p264_023.wav": {
+"acc": [
+[
+"us",
+0.4601
+],
+[
+"england",
+0.4455
+],
+[
+"scotland",
+0.4442
+]
+],
+"f0": 196.1,
+"secs": 13.0
+},
+"vctk/p265_023.wav": {
+"acc": [
+[
+"england",
+0.5048
+],
+[
+"scotland",
+0.3999
+],
+[
+"hongkong",
+0.2502
+]
+],
+"f0": 180.8,
+"secs": 14.7
+},
+"vctk/p266_023.wav": {
+"acc": [
+[
+"england",
+0.5456
+],
+[
+"indian",
+0.2906
+],
+[
+"ireland",
+0.2164
+]
+],
+"f0": 190.5,
+"secs": 10.7
+},
+"vctk/p267_023.wav": {
+"acc": [
+[
+"england",
+0.5962
+],
+[
+"singapore",
+0.1727
+],
+[
+"australia",
+0.1676
+]
+],
+"f0": 187.2,
+"secs": 11.4
+},
+"vctk/p269_023.wav": {
+"acc": [
+[
+"england",
+0.6563
+],
+[
+"wales",
+0.2266
+],
+[
+"indian",
+0.2155
+]
+],
+"f0": 182.9,
+"secs": 10.4
+},
+"vctk/p270_023.wav": {
+"acc": [
+[
+"england",
+0.6761
+],
+[
+"us",
+0.3396
+],
+[
+"australia",
+0.2806
+]
+],
+"f0": 103.9,
+"secs": 12.9
+},
+"vctk/p271_023.wav": {
+"acc": [
+[
+"us",
+0.5503
+],
+[
+"scotland",
+0.5101
+],
+[
+"canada",
+0.3796
+]
+],
+"f0": 114.6,
+"secs": 16.6
+},
+"vctk/p272_023.wav": {
+"acc": [
+[
+"scotland",
+0.5714
+],
+[
+"wales",
+0.1692
+],
+[
+"indian",
+0.1413
+]
+],
+"f0": 121.4,
+"secs": 10.2
+},
+"vctk/p273_023.wav": {
+"acc": [
+[
+"england",
+0.7145
+],
+[
+"wales",
+0.3617
+],
+[
+"us",
+0.3355
+]
+],
+"f0": 147.3,
+"secs": 12.4
+},
+"vctk/p274_023.wav": {
+"acc": [
+[
+"england",
+0.6624
+],
+[
+"scotland",
+0.3342
+],
+[
+"us",
+0.3131
+]
+],
+"f0": 95.2,
+"secs": 11.8
+},
+"vctk/p275_023.wav": {
+"acc": [
+[
+"scotland",
+0.6593
+],
+[
+"england",
+0.4289
+],
+[
+"canada",
+0.3194
+]
+],
+"f0": 102.1,
+"secs": 10.8
+},
+"vctk/p276_023.wav": {
+"acc": [
+[
+"england",
+0.5973
+],
+[
+"singapore",
+0.2399
+],
+[
+"wales",
+0.2061
+]
+],
+"f0": 226.5,
+"secs": 11.3
+},
+"vctk/p277_023.wav": {
+"acc": [
+[
+"england",
+0.5447
+],
+[
+"african",
+0.2401
+],
+[
+"scotland",
+0.2262
+]
+],
+"f0": 203.0,
+"secs": 12.2
+},
+"vctk/p278_023.wav": {
+"acc": [
+[
+"england",
+0.6901
+],
+[
+"newzealand",
+0.3992
+],
+[
+"us",
+0.1991
+]
+],
+"f0": 109.4,
+"secs": 11.1
+},
+"vctk/p279_023.wav": {
+"acc": [
+[
+"england",
+0.6904
+],
+[
+"newzealand",
+0.2941
+],
+[
+"wales",
+0.2882
+]
+],
+"f0": 115.9,
+"secs": 9.1
+},
+"vctk/p280_023.wav": {
+"acc": [
+[
+"england",
+0.6463
+],
+[
+"scotland",
+0.1778
+],
+[
+"australia",
+0.1562
+]
+],
+"f0": 187.2,
+"secs": 11.9
+},
+"vctk/p281_023.wav": {
+"acc": [
+[
+"scotland",
+0.5637
+],
+[
+"australia",
+0.3727
+],
+[
+"england",
+0.2541
+]
+],
+"f0": 88.9,
+"secs": 11.3
+},
+"vctk/p282_023.wav": {
+"acc": [
+[
+"england",
+0.7127
+],
+[
+"newzealand",
+0.2309
+],
+[
+"wales",
+0.2052
+]
+],
+"f0": 194.9,
+"secs": 10.5
+},
+"vctk/p283_023.wav": {
+"acc": [
+[
+"england",
+0.4593
+],
+[
+"ireland",
+0.3102
+],
+[
+"australia",
+0.3017
+]
+],
+"f0": 205.3,
+"secs": 11.7
+},
+"vctk/p284_023.wav": {
+"acc": [
+[
+"england",
+0.5111
+],
+[
+"scotland",
+0.4728
+],
+[
+"us",
+0.4249
+]
+],
+"f0": 95.8,
+"secs": 9.6
+},
+"vctk/p285_023.wav": {
+"acc": [
+[
+"us",
+0.4788
+],
+[
+"australia",
+0.4755
+],
+[
+"scotland",
+0.4151
+]
+],
+"f0": 112.6,
+"secs": 9.9
+},
+"vctk/p286_023.wav": {
+"acc": [
+[
+"england",
+0.6268
+],
+[
+"wales",
+0.3715
+],
+[
+"hongkong",
+0.257
+]
+],
+"f0": 131.6,
+"secs": 12.3
+},
+"vctk/p287_023.wav": {
+"acc": [
+[
+"england",
+0.7431
+],
+[
+"wales",
+0.3591
+],
+[
+"us",
+0.2428
+]
+],
+"f0": 100.9,
+"secs": 11.2
+},
+"vctk/p288_023.wav": {
+"acc": [
+[
+"england",
+0.5233
+],
+[
+"canada",
+0.1626
+],
+[
+"newzealand",
+0.1598
+]
+],
+"f0": 190.5,
+"secs": 11.1
+},
+"vctk/p292_023.wav": {
+"acc": [
+[
+"england",
+0.5524
+],
+[
+"us",
+0.5391
+],
+[
+"canada",
+0.3784
+]
+],
+"f0": 105.7,
+"secs": 11.2
+},
+"vctk/p293_023.wav": {
+"acc": [
+[
+"canada",
+0.4995
+],
+[
+"england",
+0.4285
+],
+[
+"scotland",
+0.2366
+]
+],
+"f0": 193.8,
+"secs": 12.5
+},
+"vctk/p294_023.wav": {
+"acc": [
+[
+"us",
+0.7163
+],
+[
+"canada",
+0.5441
+],
+[
+"australia",
+0.3137
+]
+],
+"f0": 174.7,
+"secs": 13.5
+},
+"vctk/p297_023.wav": {
+"acc": [
+[
+"us",
+0.6528
+],
+[
+"canada",
+0.4574
+],
+[
+"england",
+0.4169
+]
+],
+"f0": 189.4,
+"secs": 12.8
+},
+"vctk/p298_023.wav": {
+"acc": [
+[
+"england",
+0.4994
+],
+[
+"canada",
+0.3876
+],
+[
+"indian",
+0.3275
+]
+],
+"f0": 113.9,
+"secs": 9.8
+},
+"vctk/p299_023.wav": {
+"acc": [
+[
+"us",
+0.6118
+],
+[
+"canada",
+0.4673
+],
+[
+"australia",
+0.3323
+]
+],
+"f0": 186.1,
+"secs": 10.6
+},
+"vctk/p300_023.wav": {
+"acc": [
+[
+"us",
+0.5327
+],
+[
+"canada",
+0.4832
+],
+[
+"singapore",
+0.3431
+]
+],
+"f0": 193.8,
+"secs": 12.7
+},
+"vctk/p301_023.wav": {
+"acc": [
+[
+"us",
+0.6132
+],
+[
+"canada",
+0.4701
+],
+[
+"scotland",
+0.3697
+]
+],
+"f0": 163.0,
+"secs": 11.3
+},
+"vctk/p302_023.wav": {
+"acc": [
+[
+"canada",
+0.5672
+],
+[
+"england",
+0.4976
+],
+[
+"scotland",
+0.3849
+]
+],
+"f0": 115.2,
+"secs": 11.3
+},
+"vctk/p303_023.wav": {
+"acc": [
+[
+"us",
+0.5931
+],
+[
+"canada",
+0.4566
+],
+[
+"ireland",
+0.357
+]
+],
+"f0": 210.1,
+"secs": 12.9
+},
+"vctk/p304_023.wav": {
+"acc": [
+[
+"england",
+0.4602
+],
+[
+"scotland",
+0.4172
+],
+[
+"us",
+0.3599
+]
+],
+"f0": 96.9,
+"secs": 10.7
+},
+"vctk/p305_023.wav": {
+"acc": [
+[
+"canada",
+0.5652
+],
+[
+"us",
+0.4416
+],
+[
+"southatlandtic",
+0.233
+]
+],
+"f0": 227.8,
+"secs": 11.8
+},
+"vctk/p306_023.wav": {
+"acc": [
+[
+"us",
+0.5183
+],
+[
+"canada",
+0.4803
+],
+[
+"england",
+0.4256
+]
+],
+"f0": 180.8,
+"secs": 14.7
+},
+"vctk/p307_023.wav": {
+"acc": [
+[
+"us",
+0.4894
+],
+[
+"canada",
+0.3371
+],
+[
+"england",
+0.2905
+]
+],
+"f0": 241.4,
+"secs": 11.8
+},
+"vctk/p308_023.wav": {
+"acc": [
+[
+"canada",
+0.4782
+],
+[
+"us",
+0.4525
+],
+[
+"england",
+0.3486
+]
+],
+"f0": 176.7,
+"secs": 10.2
+},
+"vctk/p310_023.wav": {
+"acc": [
+[
+"canada",
+0.6015
+],
+[
+"us",
+0.3538
+],
+[
+"philippines",
+0.2915
+]
+],
+"f0": 238.6,
+"secs": 15.4
+},
+"vctk/p311_023.wav": {
+"acc": [
+[
+"us",
+0.8023
+],
+[
+"canada",
+0.4546
+],
+[
+"england",
+0.3879
+]
+],
+"f0": 97.5,
+"secs": 10.8
+},
+"vctk/p312_023.wav": {
+"acc": [
+[
+"canada",
+0.5012
+],
+[
+"singapore",
+0.3445
+],
+[
+"england",
+0.3135
+]
+],
+"f0": 199.5,
+"secs": 11.4
+},
+"vctk/p313_023.wav": {
+"acc": [
+[
+"us",
+0.5351
+],
+[
+"canada",
+0.4803
+],
+[
+"england",
+0.4313
+]
+],
+"f0": 80.3,
+"secs": 14.3
+},
+"vctk/p314_023.wav": {
+"acc": [
+[
+"australia",
+0.4131
+],
+[
+"england",
+0.3298
+],
+[
+"african",
+0.2641
+]
+],
+"f0": 185.1,
+"secs": 11.3
+},
+"vctk/p315_023.wav": {
+"acc": [
+[
+"us",
+0.6491
+],
+[
+"canada",
+0.4877
+],
+[
+"australia",
+0.3747
+]
+],
+"f0": 115.6,
+"secs": 10.0
+},
+"vctk/p316_023.wav": {
+"acc": [
+[
+"us",
+0.7685
+],
+[
+"canada",
+0.534
+],
+[
+"australia",
+0.404
+]
+],
+"f0": 95.2,
+"secs": 12.8
+},
+"vctk/p317_023.wav": {
+"acc": [
+[
+"canada",
+0.5272
+],
+[
+"australia",
+0.3224
+],
+[
+"us",
+0.2882
+]
+],
+"f0": 249.9,
+"secs": 11.2
+},
+"vctk/p318_023.wav": {
+"acc": [
+[
+"canada",
+0.5477
+],
+[
+"us",
+0.4716
+],
+[
+"scotland",
+0.388
+]
+],
+"f0": 193.8,
+"secs": 12.0
+},
+"vctk/p323_023.wav": {
+"acc": [
+[
+"england",
+0.49
+],
+[
+"australia",
+0.3214
+],
+[
+"african",
+0.1773
+]
+],
+"f0": 220.1,
+"secs": 13.8
+},
+"vctk/p326_023.wav": {
+"acc": [
+[
+"australia",
+0.5396
+],
+[
+"england",
+0.4942
+],
+[
+"us",
+0.4122
+]
+],
+"f0": 78.3,
+"secs": 10.7
+},
+"vctk/p329_023.wav": {
+"acc": [
+[
+"us",
+0.69
+],
+[
+"canada",
+0.3895
+],
+[
+"england",
+0.3875
+]
+],
+"f0": 204.2,
+"secs": 13.5
+},
+"vctk/p330_023.wav": {
+"acc": [
+[
+"us",
+0.7215
+],
+[
+"australia",
+0.4794
+],
+[
+"scotland",
+0.3795
+]
+],
+"f0": 185.1,
+"secs": 12.3
+},
+"vctk/p333_023.wav": {
+"acc": [
+[
+"canada",
+0.5903
+],
+[
+"us",
+0.3671
+],
+[
+"newzealand",
+0.191
+]
+],
+"f0": 182.9,
+"secs": 10.0
+},
+"vctk/p334_023.wav": {
+"acc": [
+[
+"us",
+0.4355
+],
+[
+"african",
+0.3928
+],
+[
+"canada",
+0.369
+]
+],
+"f0": 98.0,
+"secs": 9.6
+},
+"vctk/p335_023.wav": {
+"acc": [
+[
+"australia",
+0.6073
+],
+[
+"newzealand",
+0.3995
+],
+[
+"england",
+0.3447
+]
+],
+"f0": 198.3,
+"secs": 14.8
+},
+"vctk/p336_023.wav": {
+"acc": [
+[
+"australia",
+0.3782
+],
+[
+"african",
+0.2715
+],
+[
+"newzealand",
+0.237
+]
+],
+"f0": 197.2,
+"secs": 13.1
+},
+"vctk/p339_023.wav": {
+"acc": [
+[
+"us",
+0.5221
+],
+[
+"canada",
+0.5018
+],
+[
+"australia",
+0.3572
+]
+],
+"f0": 203.0,
+"secs": 11.9
+},
+"vctk/p341_023.wav": {
+"acc": [
+[
+"us",
+0.7614
+],
+[
+"canada",
+0.4831
+],
+[
+"australia",
+0.3808
+]
+],
+"f0": 172.7,
+"secs": 13.4
+},
+"vctk/p343_023.wav": {
+"acc": [
+[
+"us",
+0.6972
+],
+[
+"canada",
+0.5096
+],
+[
+"newzealand",
+0.313
+]
+],
+"f0": 154.7,
+"secs": 12.4
+},
+"vctk/p345_023.wav": {
+"acc": [
+[
+"us",
+0.6034
+],
+[
+"england",
+0.5158
+],
+[
+"canada",
+0.4377
+]
+],
+"f0": 96.9,
+"secs": 11.6
+},
+"vctk/p347_023.wav": {
+"acc": [
+[
+"australia",
+0.5755
+],
+[
+"african",
+0.4828
+],
+[
+"us",
+0.3906
+]
+],
+"f0": 92.0,
+"secs": 13.1
+},
+"vctk/p351_023.wav": {
+"acc": [
+[
+"england",
+0.4738
+],
+[
+"us",
+0.4664
+],
+[
+"newzealand",
+0.3196
+]
+],
+"f0": 215.7,
+"secs": 9.8
+},
+"vctk/p360_023.wav": {
+"acc": [
+[
+"us",
+0.6608
+],
+[
+"canada",
+0.6143
+],
+[
+"england",
+0.3959
+]
+],
+"f0": 95.8,
+"secs": 11.7
+},
+"vctk/p361_023.wav": {
+"acc": [
+[
+"canada",
+0.5288
+],
+[
+"us",
+0.5262
+],
+[
+"australia",
+0.3064
+]
+],
+"f0": 187.2,
+"secs": 10.5
+},
+"vctk/p363_023.wav": {
+"acc": [
+[
+"us",
+0.6649
+],
+[
+"canada",
+0.5814
+],
+[
+"australia",
+0.38
+]
+],
+"f0": 102.4,
+"secs": 10.0
+},
+"vctk/p364_023.wav": {
+"acc": [
+[
+"us",
+0.6522
+],
+[
+"canada",
+0.4339
+],
+[
+"newzealand",
+0.3655
+]
+],
+"f0": 99.7,
+"secs": 13.6
+},
+"vctk/p374_023.wav": {
+"acc": [
+[
+"england",
+0.6633
+],
+[
+"australia",
+0.478
+],
+[
+"canada",
+0.3155
+]
+],
+"f0": 116.6,
+"secs": 13.1
+},
+"vctk/p376_023.wav": {
+"acc": [
+[
+"us",
+0.7228
+],
+[
+"canada",
+0.4632
+],
+[
+"australia",
+0.3747
+]
+],
+"f0": 98.6,
+"secs": 10.6
+},
+"vctk/s5_023.wav": {
+"acc": [
+[
+"england",
+0.4442
+],
+[
+"african",
+0.1844
+],
+[
+"southatlandtic",
+0.1051
+]
+],
+"f0": 211.4,
+"secs": 11.8
+},
+"voice-donations/0a67_enhanced.wav": {
+"acc": [
+[
+"newzealand",
+0.3712
+],
+[
+"england",
+0.3563
+],
+[
+"african",
+0.3298
+]
+],
+"f0": 131.6,
+"secs": 10.0
+},
+"voice-donations/1410_enhanced.wav": {
+"acc": [
+[
+"us",
+0.512
+],
+[
+"england",
+0.4785
+],
+[
+"newzealand",
+0.4356
+]
+],
+"f0": 122.5,
+"secs": 10.0
+},
+"voice-donations/1dd0_enhanced.wav": {
+"acc": [
+[
+"scotland",
+0.4019
+],
+[
+"australia",
+0.3312
+],
+[
+"england",
+0.279
+]
+],
+"f0": 131.6,
+"secs": 10.0
+},
+"voice-donations/2181_enhanced.wav": {
+"acc": [
+[
+"indian",
+0.257
+],
+[
+"scotland",
+0.2406
+],
+[
+"african",
+0.185
+]
+],
+"f0": 123.5,
+"secs": 10.0
+},
+"voice-donations/245e_enhanced.wav": {
+"acc": [
+[
+"newzealand",
+0.4709
+],
+[
+"african",
+0.4472
+],
+[
+"us",
+0.398
+]
+],
+"f0": 125.7,
+"secs": 10.0
+},
+"voice-donations/29da_enhanced.wav": {
+"acc": [
+[
+"england",
+0.6142
+],
+[
+"wales",
+0.333
+],
+[
+"newzealand",
+0.2574
+]
+],
+"f0": 120.0,
+"secs": 10.0
+},
+"voice-donations/30c5_enhanced.wav": {
+"acc": [
+[
+"us",
+0.6581
+],
+[
+"england",
+0.5354
+],
+[
+"indian",
+0.3759
+]
+],
+"f0": 109.4,
+"secs": 10.0
+},
+"voice-donations/3973_enhanced.wav": {
+"acc": [
+[
+"us",
+0.6503
+],
+[
+"canada",
+0.4424
+],
+[
+"ireland",
+0.3895
+]
+],
+"f0": 204.2,
+"secs": 10.0
+},
+"voice-donations/4189_enhanced.wav": {
+"acc": [
+[
+"indian",
+0.6068
+],
+[
+"african",
+0.3998
+],
+[
+"us",
+0.3038
+]
+],
+"f0": 137.0,
+"secs": 10.0
+},
+"voice-donations/468c_enhanced.wav": {
+"acc": [
+[
+"indian",
+0.3725
+],
+[
+"african",
+0.3307
+],
+[
+"scotland",
+0.3133
+]
+],
+"f0": 120.7,
+"secs": 10.0
+},
+"voice-donations/4b13_enhanced.wav": {
+"acc": [
+[
+"indian",
+0.4175
+],
+[
+"malaysia",
+0.327
+],
+[
+"singapore",
+0.2238
+]
+],
+"f0": 129.4,
+"secs": 10.0
+},
+"voice-donations/4b70_enhanced.wav": {
+"acc": [
+[
+"us",
+0.7151
+],
+[
+"ireland",
+0.432
+],
+[
+"canada",
+0.3802
+]
+],
+"f0": 201.2,
+"secs": 10.0
+},
+"voice-donations/5b55_enhanced.wav": {
+"acc": [
+[
+"us",
+0.5763
+],
+[
+"england",
+0.4077
+],
+[
+"newzealand",
+0.3617
+]
+],
+"f0": 125.7,
+"secs": 10.0
+},
+"voice-donations/6148_enhanced.wav": {
+"acc": [
+[
+"us",
+0.6188
+],
+[
+"england",
+0.4593
+],
+[
+"newzealand",
+0.3491
+]
+],
+"f0": 113.3,
+"secs": 10.0
+},
+"voice-donations/617b_enhanced.wav": {
+"acc": [
+[
+"indian",
+0.5752
+],
+[
+"england",
+0.3528
+],
+[
+"wales",
+0.2883
+]
+],
+"f0": 116.6,
+"secs": 10.0
+},
+"voice-donations/7020_enhanced.wav": {
+"acc": [
+[
+"england",
+0.6952
+],
+[
+"us",
+0.5954
+],
+[
+"southatlandtic",
+0.3282
+]
+],
+"f0": 85.3,
+"secs": 10.0
+},
+"voice-donations/7909_enhanced.wav": {
+"acc": [
+[
+"england",
+0.451
+],
+[
+"scotland",
+0.3714
+],
+[
+"indian",
+0.3404
+]
+],
+"f0": 103.3,
+"secs": 10.0
+},
+"voice-donations/7b2b_enhanced.wav": {
+"acc": [
+[
+"england",
+0.6376
+],
+[
+"us",
+0.4987
+],
+[
+"indian",
+0.2501
+]
+],
+"f0": 143.5,
+"secs": 10.0
+},
+"voice-donations/8935_enhanced.wav": {
+"acc": [
+[
+"us",
+0.7243
+],
+[
+"african",
+0.4699
+],
+[
+"canada",
+0.4559
+]
+],
+"f0": 105.7,
+"secs": 10.0
+},
+"voice-donations/8dc9_enhanced.wav": {
+"acc": [
+[
+"us",
+0.439
+],
+[
+"england",
+0.3845
+],
+[
+"canada",
+0.3394
+]
+],
+"f0": 130.1,
+"secs": 10.0
+},
+"voice-donations/8f15_enhanced.wav": {
+"acc": [
+[
+"england",
+0.5375
+],
+[
+"indian",
+0.5216
+],
+[
+"us",
+0.2712
+]
+],
+"f0": 122.1,
+"secs": 10.0
+},
+"voice-donations/92f0_enhanced.wav": {
+"acc": [
+[
+"england",
+0.4746
+],
+[
+"us",
+0.4662
+],
+[
+"hongkong",
+0.2783
+]
+],
+"f0": 108.2,
+"secs": 10.0
+},
+"voice-donations/9a2e_enhanced.wav": {
+"acc": [
+[
+"us",
+0.6013
+],
+[
+"england",
+0.3749
+],
+[
+"ireland",
+0.3675
+]
+],
+"f0": 120.7,
+"secs": 10.0
+},
+"voice-donations/9a66_enhanced.wav": {
+"acc": [
+[
+"us",
+0.5927
+],
+[
+"malaysia",
+0.3945
+],
+[
+"southatlandtic",
+0.3362
+]
+],
+"f0": 199.5,
+"secs": 10.0
+},
+"voice-donations/AHmad_enhanced.wav": {
+"acc": [
+[
+"indian",
+0.6634
+],
+[
+"us",
+0.3161
+],
+[
+"singapore",
+0.3024
+]
+],
+"f0": 138.6,
+"secs": 10.0
+},
+"voice-donations/ASEN_enhanced.wav": {
+"acc": [
+[
+"us",
+0.5121
+],
+[
+"england",
+0.456
+],
+[
+"african",
+0.3863
+]
+],
+"f0": 108.8,
+"secs": 10.0
+},
+"voice-donations/Aadi_enhanced.wav": {
+"acc": [
+[
+"indian",
+0.7943
+],
+[
+"us",
+0.2067
+],
+[
+"wales",
+0.1528
+]
+],
+"f0": 130.1,
+"secs": 10.0
+},
+"voice-donations/AbD_enhanced.wav": {
+"acc": [
+[
+"indian",
+0.5666
+],
+[
+"us",
+0.3838
+],
+[
+"malaysia",
+0.3265
+]
+],
+"f0": 110.7,
+"secs": 10.0
+},
+"voice-donations/Abhinox_enhanced.wav": {
+"acc": [
+[
+"indian",
+0.699
+],
+[
+"us",
+0.4225
+],
+[
+"england",
+0.3105
+]
+],
+"f0": 142.7,
+"secs": 10.0
+},
+"voice-donations/Abo_Ayman_enhanced.wav": {
+"acc": [
+[
+"african",
+0.4103
+],
+[
+"hongkong",
+0.3075
+],
+[
+"us",
+0.2889
+]
+],
+"f0": 100.9,
+"secs": 10.0
+},
+"voice-donations/Abob_Malay_enhanced.wav": {
+"acc": [
+[
+"us",
+0.456
+],
+[
+"england",
+0.4241
+],
+[
+"singapore",
+0.386
+]
+],
+"f0": 113.3,
+"secs": 10.0
+},
+"voice-donations/Adarsh_Bulla_enhanced.wav": {
+"acc": [
+[
+"indian",
+0.6849
+],
+[
+"us",
+0.3799
+],
+[
+"african",
+0.3244
+]
+],
+"f0": 125.0,
+"secs": 10.0
+},
+"voice-donations/AgentCobra_enhanced.wav": {
+"acc": [
+[
+"indian",
+0.5318
+],
+[
+"singapore",
+0.3081
+],
+[
+"african",
+0.2709
+]
+],
+"f0": 139.4,
+"secs": 10.0
+},
+"voice-donations/Ajith_enhanced.wav": {
+"acc": [
+[
+"indian",
+0.7107
+],
+[
+"us",
+0.2561
+],
+[
+"african",
+0.1743
+]
+],
+"f0": 117.9,
+"secs": 10.0
+},
+"voice-donations/Alejandro_espanol_latino_enhanced.wav": {
+"acc": [
+[
+"us",
+0.6041
+],
+[
+"england",
+0.5598
+],
+[
+"hongkong",
+0.333
+]
+],
+"f0": 139.4,
+"secs": 10.0
+},
+"voice-donations/Allen_enhanced.wav": {
+"acc": [
+[
+"us",
+0.8005
+],
+[
+"indian",
+0.3299
+],
+[
+"ireland",
+0.3219
+]
+],
+"f0": 98.0,
+"secs": 10.0
+},
+"voice-donations/AmitNag_enhanced.wav": {
+"acc": [
+[
+"indian",
+0.5654
+],
+[
+"us",
+0.1499
+],
+[
+"scotland",
+0.1387
+]
+],
+"f0": 135.5,
+"secs": 10.0
+},
+"voice-donations/Andrea_(Spanish)_enhanced.wav": {
+"acc": [
+[
+"us",
+0.3052
+],
+[
+"england",
+0.2459
+],
+[
+"newzealand",
+0.2383
+]
+],
+"f0": 172.2,
+"secs": 10.0
+},
+"voice-donations/Andrea_enhanced.wav": {
+"acc": [
+[
+"us",
+0.3852
+],
+[
+"singapore",
+0.2535
+],
+[
+"bermuda",
+0.1627
+]
+],
+"f0": 179.8,
+"secs": 10.0
+},
+"voice-donations/Antoine_Vala_enhanced.wav": {
+"acc": [
+[
+"england",
+0.4848
+],
+[
+"us",
+0.4617
+],
+[
+"wales",
+0.3683
+]
+],
+"f0": 137.8,
+"secs": 10.0
+},
+"voice-donations/Antoni_enhanced.wav": {
+"acc": [
+[
+"us",
+0.7199
+],
+[
+"newzealand",
+0.3937
+],
+[
+"canada",
+0.3894
+]
+],
+"f0": 108.5,
+"secs": 10.0
+},
+"voice-donations/Aon_enhanced.wav": {
+"acc": [
+[
+"indian",
+0.4761
+],
+[
+"bermuda",
+0.4694
+],
+[
+"us",
+0.4269
+]
+],
+"f0": 260.2,
+"secs": 10.0
+},
+"voice-donations/Arjun_Z_enhanced.wav": {
+"acc": [
+[
+"indian",
+0.656
+],
+[
+"hongkong",
+0.3042
+],
+[
+"us",
+0.2774
+]
+],
+"f0": 125.7,
+"secs": 10.0
+},
+"voice-donations/Aryobe_enhanced.wav": {
+"acc": [
+[
+"us",
+0.7854
+],
+[
+"australia",
+0.4291
+],
+[
+"hongkong",
+0.3739
+]
+],
+"f0": 115.9,
+"secs": 10.0
+},
+"voice-donations/BLUE_enhanced.wav": {
+"acc": [
+[
+"indian",
+0.7031
+],
+[
+"us",
+0.3967
+],
+[
+"singapore",
+0.3594
+]
+],
+"f0": 137.0,
+"secs": 10.0
+},
+"voice-donations/Bijay_enhanced.wav": {
+"acc": [
+[
+"indian",
+0.3627
+],
+[
+"african",
+0.2254
+],
+[
+"scotland",
+0.2019
+]
+],
+"f0": 176.2,
+"secs": 10.0
+},
+"voice-donations/Blake_enhanced.wav": {
+"acc": [
+[
+"us",
+0.7202
+],
+[
+"african",
+0.3653
+],
+[
+"australia",
+0.3596
+]
+],
+"f0": 204.2,
+"secs": 10.0
+},
+"voice-donations/Bobby_McFern_enhanced.wav": {
+"acc": [
+[
+"us",
+0.8299
+],
+[
+"newzealand",
+0.3528
+],
+[
+"scotland",
+0.2866
+]
+],
+"f0": 92.0,
+"secs": 10.0
+},
+"voice-donations/Breaking_1_enhanced.wav": {
+"acc": [
+[
+"indian",
+0.3395
+],
+[
+"england",
+0.321
+],
+[
+"us",
+0.2822
+]
+],
+"f0": 137.8,
+"secs": 10.0
+},
+"voice-donations/BrokenHypocrite_enhanced.wav": {
+"acc": [
+[
+"us",
+0.8044
+],
+[
+"canada",
+0.4457
+],
+[
+"southatlandtic",
+0.3363
+]
+],
+"f0": 124.2,
+"secs": 10.0
+},
+"voice-donations/Butter_enhanced.wav": {
+"acc": [
+[
+"us",
+0.7822
+],
+[
+"canada",
+0.4789
+],
+[
+"newzealand",
+0.4112
+]
+],
+"f0": 75.4,
+"secs": 10.0
+},
+"voice-donations/CPS_001_enhanced.wav": {
+"acc": [
+[
+"indian",
+0.6107
+],
+[
+"us",
+0.3631
+],
+[
+"malaysia",
+0.2555
+]
+],
+"f0": 137.0,
+"secs": 10.0
+},
+"voice-donations/Chujus_enhanced.wav": {
+"acc": [
+[
+"us",
+0.5403
+],
+[
+"england",
+0.4908
+],
+[
+"hongkong",
+0.2702
+]
+],
+"f0": 86.3,
+"secs": 10.0
+},
+"voice-donations/Cicada_enhanced.wav": {
+"acc": [
+[
+"us",
+0.6942
+],
+[
+"indian",
+0.4896
+],
+[
+"hongkong",
+0.3722
+]
+],
+"f0": 137.0,
+"secs": 10.0
+},
+"voice-donations/ClassicWizard_enhanced.wav": {
+"acc": [
+[
+"us",
+0.6264
+],
+[
+"canada",
+0.5338
+],
+[
+"indian",
+0.2688
+]
+],
+"f0": 110.0,
+"secs": 10.0
+},
+"voice-donations/Curlinvictus_enhanced.wav": {
+"acc": [
+[
+"indian",
+0.5761
+],
+[
+"england",
+0.3188
+],
+[
+"us",
+0.2835
+]
+],
+"f0": 102.7,
+"secs": 10.0
+},
+"voice-donations/Darius_enhanced.wav": {
+"acc": [
+[
+"us",
+0.5345
+],
+[
+"england",
+0.4945
+],
+[
+"african",
+0.374
+]
+],
+"f0": 73.9,
+"secs": 10.0
+},
+"voice-donations/Darya_khan_enhanced.wav": {
+"acc": [
+[
+"indian",
+0.528
+],
+[
+"african",
+0.4591
+],
+[
+"scotland",
+0.3015
+]
+],
+"f0": 127.1,
+"secs": 10.0
+},
+"voice-donations/Deepak_enhanced.wav": {
+"acc": [
+[
+"england",
+0.7082
+],
+[
+"us",
+0.6063
+],
+[
+"wales",
+0.3748
+]
+],
+"f0": 60.7,
+"secs": 10.0
+},
+"voice-donations/Dhruv_Rao_enhanced.wav": {
+"acc": [
+[
+"indian",
+0.6516
+],
+[
+"england",
+0.3073
+],
+[
+"us",
+0.3033
+]
+],
+"f0": 158.3,
+"secs": 10.0
+},
+"voice-donations/Dil_enhanced.wav": {
+"acc": [
+[
+"us",
+0.4416
+],
+[
+"hongkong",
+0.4356
+],
+[
+"malaysia",
+0.4038
+]
+],
+"f0": 133.1,
+"secs": 10.0
+},
+"voice-donations/Enrique_(Spanish)_enhanced.wav": {
+"acc": [
+[
+"england",
+0.63
+],
+[
+"us",
+0.6111
+],
+[
+"hongkong",
+0.284
+]
+],
+"f0": 102.7,
+"secs": 10.0
+},
+"voice-donations/Enrique_enhanced.wav": {
+"acc": [
+[
+"us",
+0.5149
+],
+[
+"england",
+0.4845
+],
+[
+"hongkong",
+0.3004
+]
+],
+"f0": 103.9,
+"secs": 10.0
+},
+"voice-donations/Erick_enhanced.wav": {
+"acc": [
+[
+"england",
+0.5302
+],
+[
+"african",
+0.3694
+],
+[
+"us",
+0.2988
+]
+],
+"f0": 102.7,
+"secs": 10.0
+},
+"voice-donations/Ernesto_Y_enhanced.wav": {
+"acc": [
+[
+"us",
+0.5519
+],
+[
+"scotland",
+0.435
+],
+[
+"australia",
+0.3374
+]
+],
+"f0": 135.5,
+"secs": 10.0
+},
+"voice-donations/Eshan_enhanced.wav": {
+"acc": [
+[
+"us",
+0.5683
+],
+[
+"england",
+0.4585
+],
+[
+"singapore",
+0.3512
+]
+],
+"f0": 210.1,
+"secs": 10.0
+},
+"voice-donations/Esteban_Aguirre_Arias_enhanced.wav": {
+"acc": [
+[
+"us",
+0.6245
+],
+[
+"england",
+0.3902
+],
+[
+"hongkong",
+0.2861
+]
+],
+"f0": 146.5,
+"secs": 10.0
+},
+"voice-donations/Ferdinand_enhanced.wav": {
+"acc": [
+[
+"us",
+0.5851
+],
+[
+"england",
+0.516
+],
+[
+"african",
+0.3234
+]
+],
+"f0": 100.3,
+"secs": 10.0
+},
+"voice-donations/FlorDaddy_enhanced.wav": {
+"acc": [
+[
+"us",
+0.542
+],
+[
+"england",
+0.4125
+],
+[
+"newzealand",
+0.3766
+]
+],
+"f0": 105.7,
+"secs": 10.0
+},
+"voice-donations/Fred_Mara_enhanced.wav": {
+"acc": [
+[
+"hongkong",
+0.3115
+],
+[
+"england",
+0.2865
+],
+[
+"malaysia",
+0.2771
+]
+],
+"f0": 118.6,
+"secs": 10.0
+},
+"voice-donations/Giovanne_enhanced.wav": {
+"acc": [
+[
+"england",
+0.55
+],
+[
+"us",
+0.3802
+],
+[
+"southatlandtic",
+0.3131
+]
+],
+"f0": 132.8,
+"secs": 10.0
+},
+"voice-donations/Glenn_enhanced.wav": {
+"acc": [
+[
+"us",
+0.4906
+],
+[
+"england",
+0.4048
+],
+[
+"southatlandtic",
+0.3353
+]
+],
+"f0": 327.8,
+"secs": 10.0
+},
+"voice-donations/Goku_enhanced.wav": {
+"acc": [
+[
+"indian",
+0.5924
+],
+[
+"england",
+0.4997
+],
+[
+"us",
+0.2671
+]
+],
+"f0": 124.2,
+"secs": 10.0
+},
+"voice-donations/Gonzalo-1_enhanced.wav": {
+"acc": [
+[
+"us",
+0.5432
+],
+[
+"canada",
+0.3918
+],
+[
+"australia",
+0.3594
+]
+],
+"f0": 142.7,
+"secs": 10.0
+},
+"voice-donations/Gonzalo_enhanced.wav": {
+"acc": [
+[
+"us",
+0.6658
+],
+[
+"indian",
+0.4232
+],
+[
+"southatlandtic",
+0.3469
+]
+],
+"f0": 153.8,
+"secs": 10.0
+},
+"voice-donations/Greggy_enhanced.wav": {
+"acc": [
+[
+"us",
+0.781
+],
+[
+"canada",
+0.3193
+],
+[
+"newzealand",
+0.3088
+]
+],
+"f0": 99.2,
+"secs": 10.0
+},
+"voice-donations/Haku_enhanced.wav": {
+"acc": [
+[
+"us",
+0.804
+],
+[
+"southatlandtic",
+0.2968
+],
+[
+"singapore",
+0.2942
+]
+],
+"f0": 227.8,
+"secs": 10.0
+},
+"voice-donations/Hannah_enhanced.wav": {
+"acc": [
+[
+"us",
+0.5176
+],
+[
+"australia",
+0.3262
+],
+[
+"ireland",
+0.272
+]
+],
+"f0": 227.2,
+"secs": 10.0
+},
+"voice-donations/Hardik_Clone_enhanced.wav": {
+"acc": [
+[
+"indian",
+0.7393
+],
+[
+"us",
+0.3831
+],
+[
+"african",
+0.3058
+]
+],
+"f0": 150.8,
+"secs": 10.0
+},
+"voice-donations/Hillbilly_Jim_enhanced.wav": {
+"acc": [
+[
+"us",
+0.6517
+],
+[
+"ireland",
+0.438
+],
+[
+"southatlandtic",
+0.3645
+]
+],
+"f0": 167.8,
+"secs": 10.0
+},
+"voice-donations/Hkl_enhanced.wav": {
+"acc": [
+[
+"us",
+0.487
+],
+[
+"singapore",
+0.4036
+],
+[
+"indian",
+0.3336
+]
+],
+"f0": 198.3,
+"secs": 10.0
+},
+"voice-donations/Hugo_the_frenchie_enhanced.wav": {
+"acc": [
+[
+"canada",
+0.4254
+],
+[
+"us",
+0.3458
+],
+[
+"england",
+0.2721
+]
+],
+"f0": 140.3,
+"secs": 10.0
+},
+"voice-donations/Ilyass_yea_enhanced.wav": {
+"acc": [
+[
+"us",
+0.5544
+],
+[
+"england",
+0.5248
+],
+[
+"indian",
+0.4297
+]
+],
+"f0": 98.9,
+"secs": 10.0
+},
+"voice-donations/Imran_475_enhanced.wav": {
+"acc": [
+[
+"indian",
+0.7633
+],
+[
+"us",
+0.2724
+],
+[
+"singapore",
+0.2445
+]
+],
+"f0": 164.9,
+"secs": 10.0
+},
+"voice-donations/Imran_from_I_India_enhanced.wav": {
+"acc": [
+[
+"indian",
+0.7425
+],
+[
+"us",
+0.3172
+],
+[
+"hongkong",
+0.2775
+]
+],
+"f0": 163.9,
+"secs": 10.0
+},
+"voice-donations/Indian_guy_enhanced.wav": {
+"acc": [
+[
+"african",
+0.4957
+],
+[
+"newzealand",
+0.3397
+],
+[
+"scotland",
+0.2736
+]
+],
+"f0": 113.9,
+"secs": 10.0
+},
+"voice-donations/Ineedthisnow_enhanced.wav": {
+"acc": [
+[
+"us",
+0.675
+],
+[
+"england",
+0.4539
+],
+[
+"hongkong",
+0.3561
+]
+],
+"f0": 106.9,
+"secs": 10.0
+},
+"voice-donations/JJis2123_enhanced.wav": {
+"acc": [
+[
+"us",
+0.5135
+],
+[
+"scotland",
+0.3375
+],
+[
+"malaysia",
+0.2903
+]
+],
+"f0": 141.1,
+"secs": 10.0
+},
+"voice-donations/JOSHE_enhanced.wav": {
+"acc": [
+[
+"us",
+0.5297
+],
+[
+"australia",
+0.4225
+],
+[
+"malaysia",
+0.3645
+]
+],
+"f0": 103.3,
+"secs": 10.0
+},
+"voice-donations/James_enhanced.wav": {
+"acc": [
+[
+"us",
+0.716
+],
+[
+"african",
+0.4197
+],
+[
+"indian",
+0.3985
+]
+],
+"f0": 210.1,
+"secs": 10.0
+},
+"voice-donations/Jaspino_enhanced.wav": {
+"acc": [
+[
+"england",
+0.5599
+],
+[
+"african",
+0.291
+],
+[
+"newzealand",
+0.2603
+]
+],
+"f0": 73.4,
+"secs": 10.0
+},
+"voice-donations/Jaw_enhanced.wav": {
+"acc": [
+[
+"us",
+0.705
+],
+[
+"australia",
+0.3251
+],
+[
+"hongkong",
+0.3072
+]
+],
+"f0": 120.7,
+"secs": 10.0
+},
+"voice-donations/Jay_enhanced.wav": {
+"acc": [
+[
+"indian",
+0.6055
+],
+[
+"england",
+0.4131
+],
+[
+"scotland",
+0.3587
+]
+],
+"f0": 142.7,
+"secs": 10.0
+},
+"voice-donations/Jeff_Andrew_enhanced.wav": {
+"acc": [
+[
+"us",
+0.6607
+],
+[
+"england",
+0.4869
+],
+[
+"african",
+0.3297
+]
+],
+"f0": 69.1,
+"secs": 10.0
+},
+"voice-donations/Jeffrey_enhanced.wav": {
+"acc": [
+[
+"us",
+0.8309
+],
+[
+"canada",
+0.353
+],
+[
+"australia",
+0.3024
+]
+],
+"f0": 121.4,
+"secs": 10.0
+},
+"voice-donations/Jeremy_Q_enhanced.wav": {
+"acc": [
+[
+"us",
+0.7155
+],
+[
+"england",
+0.5855
+],
+[
+"wales",
+0.3816
+]
+],
+"f0": 90.9,
+"secs": 10.0
+},
+"voice-donations/Jimmy_enhanced.wav": {
+"acc": [
+[
+"us",
+0.7406
+],
+[
+"scotland",
+0.3995
+],
+[
+"african",
+0.3651
+]
+],
+"f0": 120.0,
+"secs": 10.0
+},
+"voice-donations/Joaopedrobil1_enhanced.wav": {
+"acc": [
+[
+"us",
+0.5602
+],
+[
+"african",
+0.4102
+],
+[
+"bermuda",
+0.3604
+]
+],
+"f0": 109.7,
+"secs": 10.0
+},
+"voice-donations/John_Triguero_enhanced.wav": {
+"acc": [
+[
+"england",
+0.4826
+],
+[
+"us",
+0.476
+],
+[
+"newzealand",
+0.3592
+]
+],
+"f0": 144.4,
+"secs": 10.0
+},
+"voice-donations/Juanrestrepo177777_enhanced.wav": {
+"acc": [
+[
+"us",
+0.6815
+],
+[
+"england",
+0.4648
+],
+[
+"ireland",
+0.3182
+]
+],
+"f0": 91.5,
+"secs": 10.0
+},
+"voice-donations/Karti_enhanced.wav": {
+"acc": [
+[
+"us",
+0.4689
+],
+[
+"african",
+0.4622
+],
+[
+"england",
+0.3374
+]
+],
+"f0": 110.7,
+"secs": 10.0
+},
+"voice-donations/Kditz_enhanced.wav": {
+"acc": [
+[
+"england",
+0.5389
+],
+[
+"indian",
+0.5224
+],
+[
+"us",
+0.3372
+]
+],
+"f0": 103.3,
+"secs": 10.0
+},
+"voice-donations/Koorosh_enhanced.wav": {
+"acc": [
+[
+"wales",
+0.291
+],
+[
+"canada",
+0.2457
+],
+[
+"ireland",
+0.2264
+]
+],
+"f0": 109.4,
+"secs": 10.0
+},
+"voice-donations/LC_enhanced.wav": {
+"acc": [
+[
+"england",
+0.4485
+],
+[
+"us",
+0.4414
+],
+[
+"hongkong",
+0.3692
+]
+],
+"f0": 98.0,
+"secs": 10.0
+},
+"voice-donations/L_Roy_enhanced.wav": {
+"acc": [
+[
+"england",
+0.6382
+],
+[
+"us",
+0.3801
+],
+[
+"african",
+0.3472
+]
+],
+"f0": 146.0,
+"secs": 10.0
+},
+"voice-donations/Lake_enhanced.wav": {
+"acc": [
+[
+"us",
+0.8038
+],
+[
+"canada",
+0.3368
+],
+[
+"african",
+0.3266
+]
+],
+"f0": 130.9,
+"secs": 10.0
+},
+"voice-donations/Lammy_enhanced.wav": {
+"acc": [
+[
+"us",
+0.5912
+],
+[
+"malaysia",
+0.4159
+],
+[
+"hongkong",
+0.3778
+]
+],
+"f0": 95.2,
+"secs": 10.0
+},
+"voice-donations/Lara_enhanced.wav": {
+"acc": [
+[
+"us",
+0.6274
+],
+[
+"scotland",
+0.3622
+],
+[
+"hongkong",
+0.3443
+]
+],
+"f0": 174.7,
+"secs": 10.0
+},
+"voice-donations/Latin_Accent_enhanced.wav": {
+"acc": [
+[
+"us",
+0.6158
+],
+[
+"african",
+0.4608
+],
+[
+"bermuda",
+0.3748
+]
+],
+"f0": 258.7,
+"secs": 10.0
+},
+"voice-donations/Liquescent_enhanced.wav": {
+"acc": [
+[
+"us",
+0.5164
+],
+[
+"newzealand",
+0.3123
+],
+[
+"african",
+0.3069
+]
+],
+"f0": 163.0,
+"secs": 10.0
+},
+"voice-donations/Louis_enhanced.wav": {
+"acc": [
+[
+"england",
+0.4689
+],
+[
+"us",
+0.4027
+],
+[
+"hongkong",
+0.3781
+]
+],
+"f0": 96.4,
+"secs": 10.0
+},
+"voice-donations/Lucas_enhanced.wav": {
+"acc": [
+[
+"us",
+0.7499
+],
+[
+"african",
+0.3577
+],
+[
+"hongkong",
+0.356
+]
+],
+"f0": 134.7,
+"secs": 10.0
+},
+"voice-donations/MJDePedro_enhanced.wav": {
+"acc": [
+[
+"us",
+0.4905
+],
+[
+"hongkong",
+0.3205
+],
+[
+"bermuda",
+0.3197
+]
+],
+"f0": 152.1,
+"secs": 10.0
+},
+"voice-donations/Maisako_enhanced.wav": {
+"acc": [
+[
+"us",
+0.4728
+],
+[
+"england",
+0.4059
+],
+[
+"malaysia",
+0.3299
+]
+],
+"f0": 87.8,
+"secs": 10.0
+},
+"voice-donations/Manahen_enhanced.wav": {
+"acc": [
+[
+"england",
+0.5749
+],
+[
+"us",
+0.4144
+],
+[
+"newzealand",
+0.2962
+]
+],
+"f0": 119.0,
+"secs": 10.0
+},
+"voice-donations/Marshal_Indian_enhanced.wav": {
+"acc": [
+[
+"indian",
+0.7475
+],
+[
+"england",
+0.306
+],
+[
+"us",
+0.2101
+]
+],
+"f0": 121.4,
+"secs": 10.0
+},
+"voice-donations/Midlands_Bedfordshire_Dialect_enhanced.wav": {
+"acc": [
+[
+"england",
+0.696
+],
+[
+"us",
+0.2677
+],
+[
+"wales",
+0.2568
+]
+],
+"f0": 80.6,
+"secs": 10.0
+},
+"voice-donations/Moses_enhanced.wav": {
+"acc": [
+[
+"us",
+0.5081
+],
+[
+"england",
+0.456
+],
+[
+"hongkong",
+0.4114
+]
+],
+"f0": 115.9,
+"secs": 10.0
+},
+"voice-donations/MrHat_enhanced.wav": {
+"acc": [
+[
+"us",
+0.6479
+],
+[
+"newzealand",
+0.406
+],
+[
+"england",
+0.3686
+]
+],
+"f0": 116.6,
+"secs": 10.0
+},
+"voice-donations/Mr_captain_enhanced.wav": {
+"acc": [
+[
+"indian",
+0.6715
+],
+[
+"us",
+0.5245
+],
+[
+"england",
+0.3972
+]
+],
+"f0": 108.2,
+"secs": 10.0
+},
+"voice-donations/Muhtasim's_Voice_enhanced.wav": {
+"acc": [
+[
+"indian",
+0.5919
+],
+[
+"us",
+0.4573
+],
+[
+"malaysia",
+0.3849
+]
+],
+"f0": 110.7,
+"secs": 10.0
+},
+"voice-donations/Mystery_Sir_enhanced.wav": {
+"acc": [
+[
+"us",
+0.8379
+],
+[
+"canada",
+0.3487
+],
+[
+"newzealand",
+0.3294
+]
+],
+"f0": 94.7,
+"secs": 10.0
+},
+"voice-donations/Narrum_enhanced.wav": {
+"acc": [
+[
+"us",
+0.6018
+],
+[
+"newzealand",
+0.3997
+],
+[
+"ireland",
+0.31
+]
+],
+"f0": 104.5,
+"secs": 10.0
+},
+"voice-donations/Nick_enhanced.wav": {
+"acc": [
+[
+"us",
+0.718
+],
+[
+"african",
+0.4322
+],
+[
+"scotland",
+0.4173
+]
+],
+"f0": 117.3,
+"secs": 10.0
+},
+"voice-donations/P0LFR_enhanced.wav": {
+"acc": [
+[
+"us",
+0.6273
+],
+[
+"hongkong",
+0.3237
+],
+[
+"wales",
+0.3181
+]
+],
+"f0": 156.5,
+"secs": 10.0
+},
+"voice-donations/Pai_ve_enhanced.wav": {
+"acc": [
+[
+"us",
+0.5436
+],
+[
+"indian",
+0.5258
+],
+[
+"england",
+0.5032
+]
+],
+"f0": 117.9,
+"secs": 10.0
+},
+"voice-donations/Parthiban_enhanced.wav": {
+"acc": [
+[
+"indian",
+0.6217
+],
+[
+"us",
+0.4319
+],
+[
+"singapore",
+0.2193
+]
+],
+"f0": 154.7,
+"secs": 10.0
+},
+"voice-donations/Prakash369_enhanced.wav": {
+"acc": [
+[
+"us",
+0.6219
+],
+[
+"african",
+0.3758
+],
+[
+"indian",
+0.3423
+]
+],
+"f0": 123.5,
+"secs": 10.0
+},
+"voice-donations/Puzzle_enhanced.wav": {
+"acc": [
+[
+"us",
+0.7131
+],
+[
+"england",
+0.3794
+],
+[
+"newzealand",
+0.3508
+]
+],
+"f0": 110.0,
+"secs": 10.0
+},
+"voice-donations/Qasim_Wali_Khan_enhanced.wav": {
+"acc": [
+[
+"england",
+0.4579
+],
+[
+"indian",
+0.4152
+],
+[
+"african",
+0.4133
+]
+],
+"f0": 111.3,
+"secs": 10.0
+},
+"voice-donations/RAJ_enhanced.wav": {
+"acc": [
+[
+"australia",
+0.5241
+],
+[
+"african",
+0.2888
+],
+[
+"scotland",
+0.2494
+]
+],
+"f0": 137.0,
+"secs": 10.0
+},
+"voice-donations/Rafaelpazv_enhanced.wav": {
+"acc": [
+[
+"england",
+0.605
+],
+[
+"us",
+0.305
+],
+[
+"indian",
+0.2537
+]
+],
+"f0": 117.3,
+"secs": 10.0
+},
+"voice-donations/Rahul_enhanced.wav": {
+"acc": [
+[
+"indian",
+0.5602
+],
+[
+"us",
+0.4045
+],
+[
+"malaysia",
+0.2189
+]
+],
+"f0": 135.5,
+"secs": 7.1
+},
+"voice-donations/Raj25_enhanced.wav": {
+"acc": [
+[
+"us",
+0.6856
+],
+[
+"african",
+0.4183
+],
+[
+"england",
+0.3942
+]
+],
+"f0": 111.3,
+"secs": 10.0
+},
+"voice-donations/Ramu_enhanced.wav": {
+"acc": [
+[
+"indian",
+0.5696
+],
+[
+"us",
+0.5434
+],
+[
+"hongkong",
+0.2709
+]
+],
+"f0": 131.6,
+"secs": 10.0
+},
+"voice-donations/Ranjith_enhanced.wav": {
+"acc": [
+[
+"indian",
+0.4912
+],
+[
+"african",
+0.3505
+],
+[
+"england",
+0.2856
+]
+],
+"f0": 123.5,
+"secs": 10.0
+},
+"voice-donations/Richard_cuban_enhanced.wav": {
+"acc": [
+[
+"us",
+0.6782
+],
+[
+"england",
+0.5251
+],
+[
+"southatlandtic",
+0.3412
+]
+],
+"f0": 77.4,
+"secs": 10.0
+},
+"voice-donations/Rony_enhanced.wav": {
+"acc": [
+[
+"us",
+0.5957
+],
+[
+"england",
+0.5112
+],
+[
+"wales",
+0.3686
+]
+],
+"f0": 99.5,
+"secs": 10.0
+},
+"voice-donations/Roscoe_enhanced.wav": {
+"acc": [
+[
+"australia",
+0.4835
+],
+[
+"england",
+0.4381
+],
+[
+"wales",
+0.3786
+]
+],
+"f0": 86.3,
+"secs": 10.0
+},
+"voice-donations/Rs_enhanced.wav": {
+"acc": [
+[
+"us",
+0.4392
+],
+[
+"indian",
+0.3167
+],
+[
+"african",
+0.3043
+]
+],
+"f0": 122.8,
+"secs": 10.0
+},
+"voice-donations/Rup_enhanced.wav": {
+"acc": [
+[
+"indian",
+0.7091
+],
+[
+"us",
+0.3591
+],
+[
+"singapore",
+0.2665
+]
+],
+"f0": 211.4,
+"secs": 10.0
+},
+"voice-donations/SSA150803_enhanced.wav": {
+"acc": [
+[
+"african",
+0.502
+],
+[
+"newzealand",
+0.2404
+],
+[
+"hongkong",
+0.1503
+]
+],
+"f0": 129.4,
+"secs": 10.0
+},
+"voice-donations/SS_1684_enhanced.wav": {
+"acc": [
+[
+"indian",
+0.6254
+],
+[
+"us",
+0.2347
+],
+[
+"singapore",
+0.2286
+]
+],
+"f0": 112.6,
+"secs": 10.0
+},
+"voice-donations/STONE_enhanced.wav": {
+"acc": [
+[
+"hongkong",
+0.3856
+],
+[
+"african",
+0.3235
+],
+[
+"us",
+0.2675
+]
+],
+"f0": 140.3,
+"secs": 10.0
+},
+"voice-donations/Samsewak_enhanced.wav": {
+"acc": [
+[
+"us",
+0.5772
+],
+[
+"indian",
+0.4903
+],
+[
+"hongkong",
+0.2808
+]
+],
+"f0": 109.4,
+"secs": 10.0
+},
+"voice-donations/Selfie_enhanced.wav": {
+"acc": [
+[
+"us",
+0.6655
+],
+[
+"canada",
+0.5513
+],
+[
+"wales",
+0.398
+]
+],
+"f0": 153.4,
+"secs": 10.0
+},
+"voice-donations/Sheddy_enhanced.wav": {
+"acc": [
+[
+"hongkong",
+0.3864
+],
+[
+"england",
+0.362
+],
+[
+"indian",
+0.3594
+]
+],
+"f0": 134.7,
+"secs": 10.0
+},
+"voice-donations/Siddh_Indian_enhanced.wav": {
+"acc": [
+[
+"indian",
+0.7264
+],
+[
+"us",
+0.3146
+],
+[
+"england",
+0.3062
+]
+],
+"f0": 118.6,
+"secs": 10.0
+},
+"voice-donations/Sir_TJ_enhanced.wav": {
+"acc": [
+[
+"us",
+0.5632
+],
+[
+"england",
+0.4263
+],
+[
+"african",
+0.3863
+]
+],
+"f0": 125.7,
+"secs": 10.0
+},
+"voice-donations/Sirajo_x_enhanced.wav": {
+"acc": [
+[
+"us",
+0.4095
+],
+[
+"england",
+0.326
+],
+[
+"indian",
+0.3223
+]
+],
+"f0": 102.7,
+"secs": 10.0
+},
+"voice-donations/Sp46_enhanced.wav": {
+"acc": [
+[
+"england",
+0.7276
+],
+[
+"wales",
+0.355
+],
+[
+"ireland",
+0.218
+]
+],
+"f0": 102.1,
+"secs": 10.0
+},
+"voice-donations/Sr_Erick_enhanced.wav": {
+"acc": [
+[
+"us",
+0.4541
+],
+[
+"malaysia",
+0.4257
+],
+[
+"southatlandtic",
+0.2924
+]
+],
+"f0": 109.4,
+"secs": 10.0
+},
+"voice-donations/Standollars_enhanced.wav": {
+"acc": [
+[
+"england",
+0.4623
+],
+[
+"us",
+0.4316
+],
+[
+"malaysia",
+0.3701
+]
+],
+"f0": 125.7,
+"secs": 10.0
+},
+"voice-donations/TESLLA_enhanced.wav": {
+"acc": [
+[
+"england",
+0.6343
+],
+[
+"us",
+0.4512
+],
+[
+"australia",
+0.4038
+]
+],
+"f0": 142.7,
+"secs": 10.0
+},
+"voice-donations/Tahii_enhanced.wav": {
+"acc": [
+[
+"indian",
+0.6065
+],
+[
+"us",
+0.5072
+],
+[
+"newzealand",
+0.2505
+]
+],
+"f0": 118.6,
+"secs": 10.0
+},
+"voice-donations/TheFin_enhanced.wav": {
+"acc": [
+[
+"england",
+0.6989
+],
+[
+"wales",
+0.414
+],
+[
+"us",
+0.4121
+]
+],
+"f0": 88.9,
+"secs": 10.0
+},
+"voice-donations/The_Sustainabler_enhanced.wav": {
+"acc": [
+[
+"us",
+0.5692
+],
+[
+"england",
+0.4048
+],
+[
+"newzealand",
+0.3098
+]
+],
+"f0": 137.0,
+"secs": 10.0
+},
+"voice-donations/The_other_brother_enhanced.wav": {
+"acc": [
+[
+"australia",
+0.5584
+],
+[
+"newzealand",
+0.5214
+],
+[
+"england",
+0.2718
+]
+],
+"f0": 99.2,
+"secs": 10.0
+},
+"voice-donations/Titorium_enhanced.wav": {
+"acc": [
+[
+"us",
+0.6403
+],
+[
+"hongkong",
+0.3991
+],
+[
+"canada",
+0.3914
+]
+],
+"f0": 104.5,
+"secs": 10.0
+},
+"voice-donations/Tonmoy_enhanced.wav": {
+"acc": [
+[
+"indian",
+0.5361
+],
+[
+"us",
+0.4177
+],
+[
+"african",
+0.3921
+]
+],
+"f0": 133.9,
+"secs": 10.0
+},
+"voice-donations/Umair_enhanced.wav": {
+"acc": [
+[
+"indian",
+0.6455
+],
+[
+"us",
+0.3767
+],
+[
+"african",
+0.3625
+]
+],
+"f0": 115.2,
+"secs": 10.0
+},
+"voice-donations/Vexat_enhanced.wav": {
+"acc": [
+[
+"indian",
+0.6026
+],
+[
+"us",
+0.3472
+],
+[
+"african",
+0.3203
+]
+],
+"f0": 127.1,
+"secs": 10.0
+},
+"voice-donations/Victor_Garcia_enhanced.wav": {
+"acc": [
+[
+"us",
+0.6749
+],
+[
+"malaysia",
+0.3317
+],
+[
+"hongkong",
+0.3285
+]
+],
+"f0": 87.8,
+"secs": 10.0
+},
+"voice-donations/Vinith___English_India_enhanced.wav": {
+"acc": [
+[
+"indian",
+0.4332
+],
+[
+"african",
+0.3193
+],
+[
+"scotland",
+0.2441
+]
+],
+"f0": 123.5,
+"secs": 10.0
+},
+"voice-donations/Vitch_enhanced.wav": {
+"acc": [
+[
+"indian",
+0.6136
+],
+[
+"england",
+0.3689
+],
+[
+"african",
+0.3528
+]
+],
+"f0": 117.3,
+"secs": 10.0
+},
+"voice-donations/Vivaldi_enhanced.wav": {
+"acc": [
+[
+"african",
+0.3783
+],
+[
+"canada",
+0.3514
+],
+[
+"newzealand",
+0.3106
+]
+],
+"f0": 120.7,
+"secs": 10.0
+},
+"voice-donations/W_A_H_enhanced.wav": {
+"acc": [
+[
+"us",
+0.5759
+],
+[
+"newzealand",
+0.4804
+],
+[
+"african",
+0.3542
+]
+],
+"f0": 130.9,
+"secs": 10.0
+},
+"voice-donations/Wealthiest_enhanced.wav": {
+"acc": [
+[
+"african",
+0.5419
+],
+[
+"us",
+0.4423
+],
+[
+"hongkong",
+0.3663
+]
+],
+"f0": 97.5,
+"secs": 10.0
+},
+"voice-donations/WhisperInEar_enhanced.wav": {
+"acc": [
+[
+"canada",
+0.6733
+],
+[
+"us",
+0.5388
+],
+[
+"england",
+0.4857
+]
+],
+"f0": 122.8,
+"secs": 10.0
+},
+"voice-donations/Yesid_enhanced.wav": {
+"acc": [
+[
+"england",
+0.5105
+],
+[
+"us",
+0.4792
+],
+[
+"scotland",
+0.4259
+]
+],
+"f0": 115.2,
+"secs": 10.0
+},
+"voice-donations/Youfied_enhanced.wav": {
+"acc": [
+[
+"us",
+0.7466
+],
+[
+"canada",
+0.4929
+],
+[
+"england",
+0.4176
+]
+],
+"f0": 95.2,
+"secs": 10.0
+},
+"voice-donations/Yuush_enhanced.wav": {
+"acc": [
+[
+"us",
+0.4602
+],
+[
+"england",
+0.4383
+],
+[
+"canada",
+0.4125
+]
+],
+"f0": 112.6,
+"secs": 10.0
+},
+"voice-donations/a59a_enhanced.wav": {
+"acc": [
+[
+"us",
+0.5433
+],
+[
+"canada",
+0.4761
+],
+[
+"england",
+0.3533
+]
+],
+"f0": 122.8,
+"secs": 10.0
+},
+"voice-donations/a6f9_enhanced.wav": {
+"acc": [
+[
+"indian",
+0.5884
+],
+[
+"scotland",
+0.3179
+],
+[
+"african",
+0.2881
+]
+],
+"f0": 104.5,
+"secs": 10.0
+},
+"voice-donations/a96a_enhanced.wav": {
+"acc": [
+[
+"us",
+0.5858
+],
+[
+"newzealand",
+0.3564
+],
+[
+"canada",
+0.3101
+]
+],
+"f0": 126.4,
+"secs": 10.0
+},
+"voice-donations/aepeak_enhanced.wav": {
+"acc": [
+[
+"england",
+0.6639
+],
+[
+"african",
+0.3433
+],
+[
+"wales",
+0.2997
+]
+],
+"f0": 150.3,
+"secs": 10.0
+},
+"voice-donations/albertoforofo007_enhanced.wav": {
+"acc": [
+[
+"us",
+0.3956
+],
+[
+"hongkong",
+0.3837
+],
+[
+"southatlandtic",
+0.3826
+]
+],
+"f0": 102.1,
+"secs": 10.0
+},
+"voice-donations/amazon_box_enhanced.wav": {
+"acc": [
+[
+"us",
+0.6101
+],
+[
+"england",
+0.3592
+],
+[
+"indian",
+0.3166
+]
+],
+"f0": 108.8,
+"secs": 10.0
+},
+"voice-donations/awais_shah_enhanced.wav": {
+"acc": [
+[
+"us",
+0.5577
+],
+[
+"malaysia",
+0.3974
+],
+[
+"newzealand",
+0.3126
+]
+],
+"f0": 192.7,
+"secs": 10.0
+},
+"voice-donations/bathri_enhanced.wav": {
+"acc": [
+[
+"indian",
+0.6372
+],
+[
+"us",
+0.353
+],
+[
+"singapore",
+0.3334
+]
+],
+"f0": 192.7,
+"secs": 9.4
+},
+"voice-donations/bbe4_enhanced.wav": {
+"acc": [
+[
+"indian",
+0.539
+],
+[
+"scotland",
+0.4535
+],
+[
+"african",
+0.3795
+]
+],
+"f0": 130.1,
+"secs": 10.0
+},
+"voice-donations/bc98_enhanced.wav": {
+"acc": [
+[
+"england",
+0.317
+],
+[
+"canada",
+0.3022
+],
+[
+"hongkong",
+0.2577
+]
+],
+"f0": 168.7,
+"secs": 10.0
+},
+"voice-donations/bevi_enhanced.wav": {
+"acc": [
+[
+"indian",
+0.6629
+],
+[
+"us",
+0.3716
+],
+[
+"singapore",
+0.3225
+]
+],
+"f0": 221.4,
+"secs": 10.0
+},
+"voice-donations/boom_enhanced.wav": {
+"acc": [
+[
+"us",
+0.6384
+],
+[
+"england",
+0.4317
+],
+[
+"indian",
+0.3964
+]
+],
+"f0": 0,
+"secs": 10.0
+},
+"voice-donations/c0a0_enhanced.wav": {
+"acc": [
+[
+"indian",
+0.7439
+],
+[
+"england",
+0.1808
+],
+[
+"singapore",
+0.1785
+]
+],
+"f0": 144.4,
+"secs": 10.0
+},
+"voice-donations/cybina_enhanced.wav": {
+"acc": [
+[
+"us",
+0.5819
+],
+[
+"australia",
+0.41
+],
+[
+"england",
+0.4034
+]
+],
+"f0": 108.2,
+"secs": 10.0
+},
+"voice-donations/d4a9_enhanced.wav": {
+"acc": [
+[
+"indian",
+0.4891
+],
+[
+"african",
+0.3805
+],
+[
+"us",
+0.3783
+]
+],
+"f0": 95.2,
+"secs": 10.0
+},
+"voice-donations/dce6_enhanced.wav": {
+"acc": [
+[
+"us",
+0.5723
+],
+[
+"england",
+0.5563
+],
+[
+"african",
+0.3678
+]
+],
+"f0": 115.9,
+"secs": 10.0
+},
+"voice-donations/dwp_enhanced.wav": {
+"acc": [
+[
+"australia",
+0.5879
+],
+[
+"newzealand",
+0.5754
+],
+[
+"us",
+0.372
+]
+],
+"f0": 114.6,
+"secs": 10.0
+},
+"voice-donations/e819_enhanced.wav": {
+"acc": [
+[
+"us",
+0.4752
+],
+[
+"newzealand",
+0.3244
+],
+[
+"indian",
+0.3011
+]
+],
+"f0": 110.7,
+"secs": 10.0
+},
+"voice-donations/edd4_enhanced.wav": {
+"acc": [
+[
+"us",
+0.5668
+],
+[
+"indian",
+0.4417
+],
+[
+"england",
+0.4056
+]
+],
+"f0": 139.4,
+"secs": 10.0
+},
+"voice-donations/efeb_enhanced.wav": {
+"acc": [
+[
+"us",
+0.7759
+],
+[
+"indian",
+0.4681
+],
+[
+"australia",
+0.4495
+]
+],
+"f0": 120.0,
+"secs": 10.0
+},
+"voice-donations/english_with_german_accent_enhanced.wav": {
+"acc": [
+[
+"england",
+0.3388
+],
+[
+"hongkong",
+0.2733
+],
+[
+"malaysia",
+0.2618
+]
+],
+"f0": 110.7,
+"secs": 10.0
+},
+"voice-donations/erihppas_enhanced.wav": {
+"acc": [
+[
+"indian",
+0.5397
+],
+[
+"bermuda",
+0.3302
+],
+[
+"singapore",
+0.2749
+]
+],
+"f0": 242.8,
+"secs": 10.0
+},
+"voice-donations/f179_enhanced.wav": {
+"acc": [
+[
+"us",
+0.7511
+],
+[
+"african",
+0.4574
+],
+[
+"bermuda",
+0.3196
+]
+],
+"f0": 242.8,
+"secs": 10.0
+},
+"voice-donations/f9cf_enhanced.wav": {
+"acc": [
+[
+"us",
+0.6059
+],
+[
+"hongkong",
+0.4053
+],
+[
+"scotland",
+0.384
+]
+],
+"f0": 70.5,
+"secs": 10.0
+},
+"voice-donations/fa52_enhanced.wav": {
+"acc": [
+[
+"us",
+0.47
+],
+[
+"wales",
+0.3982
+],
+[
+"england",
+0.3759
+]
+],
+"f0": 170.7,
+"secs": 10.0
+},
+"voice-donations/fc96_enhanced.wav": {
+"acc": [
+[
+"indian",
+0.6806
+],
+[
+"singapore",
+0.2453
+],
+[
+"us",
+0.2376
+]
+],
+"f0": 161.1,
+"secs": 10.0
+},
+"voice-donations/floyd2026_enhanced.wav": {
+"acc": [
+[
+"us",
+0.4743
+],
+[
+"england",
+0.4201
+],
+[
+"newzealand",
+0.4188
+]
+],
+"f0": 135.5,
+"secs": 10.0
+},
+"voice-donations/gmaskell92_enhanced.wav": {
+"acc": [
+[
+"england",
+0.4898
+],
+[
+"scotland",
+0.3605
+],
+[
+"us",
+0.2622
+]
+],
+"f0": 95.2,
+"secs": 10.0
+},
+"voice-donations/gyroo_enhanced.wav": {
+"acc": [
+[
+"indian",
+0.7083
+],
+[
+"england",
+0.2988
+],
+[
+"us",
+0.2643
+]
+],
+"f0": 123.5,
+"secs": 10.0
+},
+"voice-donations/hielos_1_enhanced.wav": {
+"acc": [
+[
+"indian",
+0.4915
+],
+[
+"scotland",
+0.3646
+],
+[
+"us",
+0.3121
+]
+],
+"f0": 119.3,
+"secs": 10.0
+},
+"voice-donations/hielos_2_enhanced.wav": {
+"acc": [
+[
+"indian",
+0.5773
+],
+[
+"african",
+0.3158
+],
+[
+"us",
+0.3124
+]
+],
+"f0": 127.1,
+"secs": 10.0
+},
+"voice-donations/injul_enhanced.wav": {
+"acc": [
+[
+"indian",
+0.5778
+],
+[
+"england",
+0.389
+],
+[
+"us",
+0.386
+]
+],
+"f0": 125.0,
+"secs": 10.0
+},
+"voice-donations/kbrn1_enhanced.wav": {
+"acc": [
+[
+"england",
+0.6761
+],
+[
+"us",
+0.5408
+],
+[
+"canada",
+0.3448
+]
+],
+"f0": 136.3,
+"secs": 10.0
+},
+"voice-donations/oldNerd2_enhanced.wav": {
+"acc": [
+[
+"us",
+0.7111
+],
+[
+"canada",
+0.3712
+],
+[
+"australia",
+0.3453
+]
+],
+"f0": 99.2,
+"secs": 10.0
+},
+"voice-donations/oldNerd3_enhanced.wav": {
+"acc": [
+[
+"us",
+0.8137
+],
+[
+"canada",
+0.48
+],
+[
+"philippines",
+0.3639
+]
+],
+"f0": 112.0,
+"secs": 10.0
+},
+"voice-donations/oldNerd_enhanced.wav": {
+"acc": [
+[
+"us",
+0.7097
+],
+[
+"canada",
+0.5312
+],
+[
+"philippines",
+0.3555
+]
+],
+"f0": 98.6,
+"secs": 10.0
+},
+"voice-donations/ra_XOr_enhanced.wav": {
+"acc": [
+[
+"england",
+0.4999
+],
+[
+"hongkong",
+0.4193
+],
+[
+"african",
+0.4177
+]
+],
+"f0": 160.2,
+"secs": 10.0
+},
+"voice-donations/rewi_enhanced.wav": {
+"acc": [
+[
+"indian",
+0.6461
+],
+[
+"us",
+0.2625
+],
+[
+"newzealand",
+0.1412
+]
+],
+"f0": 159.3,
+"secs": 10.0
+},
+"voice-donations/robert_enhanced.wav": {
+"acc": [
+[
+"us",
+0.6323
+],
+[
+"newzealand",
+0.5135
+],
+[
+"canada",
+0.4108
+]
+],
+"f0": 108.8,
+"secs": 10.0
+},
+"voice-donations/rshah_1_0_enhanced.wav": {
+"acc": [
+[
+"indian",
+0.6545
+],
+[
+"england",
+0.3241
+],
+[
+"singapore",
+0.2272
+]
+],
+"f0": 127.1,
+"secs": 10.0
+},
+"voice-donations/sanjay_enhanced.wav": {
+"acc": [
+[
+"indian",
+0.7364
+],
+[
+"england",
+0.333
+],
+[
+"african",
+0.2583
+]
+],
+"f0": 117.9,
+"secs": 10.0
+},
+"voice-donations/siddharth_khanna_enhanced.wav": {
+"acc": [
+[
+"indian",
+0.5468
+],
+[
+"us",
+0.4037
+],
+[
+"scotland",
+0.3742
+]
+],
+"f0": 97.5,
+"secs": 10.0
+},
+"voice-donations/solace_enhanced.wav": {
+"acc": [
+[
+"us",
+0.4738
+],
+[
+"african",
+0.4569
+],
+[
+"indian",
+0.4331
+]
+],
+"f0": 106.9,
+"secs": 10.0
+},
+"voice-donations/spanish-limaperu_enhanced.wav": {
+"acc": [
+[
+"us",
+0.3928
+],
+[
+"newzealand",
+0.3038
+],
+[
+"bermuda",
+0.2579
+]
+],
+"f0": 205.3,
+"secs": 7.9
+},
+"voice-donations/stein_enhanced.wav": {
+"acc": [
+[
+"england",
+0.5322
+],
+[
+"hongkong",
+0.3354
+],
+[
+"us",
+0.294
+]
+],
+"f0": 85.3,
+"secs": 10.0
+},
+"voice-donations/sujan_daikoawaj_enhanced.wav": {
+"acc": [
+[
+"indian",
+0.7151
+],
+[
+"us",
+0.3584
+],
+[
+"singapore",
+0.2248
+]
+],
+"f0": 105.7,
+"secs": 10.0
+},
+"voice-donations/surazy_enhanced.wav": {
+"acc": [
+[
+"us",
+0.5879
+],
+[
+"ireland",
+0.5431
+],
+[
+"african",
+0.4225
+]
+],
+"f0": 125.7,
+"secs": 10.0
+},
+"voice-donations/taiyo_enhanced.wav": {
+"acc": [
+[
+"us",
+0.67
+],
+[
+"canada",
+0.4915
+],
+[
+"hongkong",
+0.4271
+]
+],
+"f0": 105.7,
+"secs": 10.0
+},
+"voice-donations/temp-007_enhanced.wav": {
+"acc": [
+[
+"indian",
+0.5508
+],
+[
+"us",
+0.2671
+],
+[
+"african",
+0.1899
+]
+],
+"f0": 130.1,
+"secs": 10.0
+},
+"voice-donations/thepolishdane_enhanced.wav": {
+"acc": [
+[
+"us",
+0.5986
+],
+[
+"african",
+0.4792
+],
+[
+"england",
+0.4321
+]
+],
+"f0": 124.2,
+"secs": 10.0
+},
+"voice-donations/utk_enhanced.wav": {
+"acc": [
+[
+"indian",
+0.5425
+],
+[
+"us",
+0.5406
+],
+[
+"england",
+0.4089
+]
+],
+"f0": 127.9,
+"secs": 10.0
+},
+"voice-donations/vinayak_enhanced.wav": {
+"acc": [
+[
+"us",
+0.5138
+],
+[
+"canada",
+0.4758
+],
+[
+"indian",
+0.432
+]
+],
+"f0": 117.3,
+"secs": 10.0
+},
+"voice-donations/virtu_enhanced.wav": {
+"acc": [
+[
+"us",
+0.5141
+],
+[
+"england",
+0.4246
+],
+[
+"australia",
+0.3586
+]
+],
+"f0": 114.6,
+"secs": 9.7
+},
+"voice-donations/willbas_enhanced.wav": {
+"acc": [
+[
+"us",
+0.6235
+],
+[
+"canada",
+0.3322
+],
+[
+"hongkong",
+0.3136
+]
+],
+"f0": 114.6,
+"secs": 10.0
+},
+"voice-donations/yaemdluffy_enhanced.wav": {
+"acc": [
+[
+"african",
+0.4035
+],
+[
+"us",
+0.3049
+],
+[
+"canada",
+0.2941
+]
+],
+"f0": 110.7,
+"secs": 10.0
+},
+"voice-donations/zerocool_enhanced.wav": {
+"acc": [
+[
+"us",
+0.6179
+],
+[
+"england",
+0.5037
+],
+[
+"hongkong",
+0.319
+]
+],
+"f0": 97.5,
+"secs": 10.0
+}
+}
+}

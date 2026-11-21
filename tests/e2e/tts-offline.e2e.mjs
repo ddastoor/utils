@@ -93,6 +93,40 @@ export default async ({ base, page: newPage, ok, download, devices }) => {
   for (const b of await page.locator('.otts-summary .chip-btn').all()) await page.locator('.otts-summary .chip-btn').first().click();
   ok(/No voice chosen yet/.test(await page.locator('.otts-summary').innerText()) && await page.getByRole('button', { name: /Download the script/ }).isDisabled(), 'no voice: nothing to download');
 
+  // the Indian voices ranked by accent (owner, 21 Nov 2026: "ranked … in order of increasing Indian accent thickness …
+  // name the model … a kind of text pop-up … when the user clicks a button"): lightest first, a tick chooses the voice
+  const cat = JSON.parse(readFileSync(new URL('../../src/lib/offline-tts/catalogue.json', import.meta.url), 'utf8'));
+  const meas = cat.voices.filter((v) => v.group === 'in' && v.heard).sort((a, b) => a.heard.indian - b.heard.indian);
+  const rankB = page.getByRole('button', { name: 'Indian accents, lightest first' });
+  const chosenN = async () => +((/(\d+) voices? chosen/.exec(await page.locator('.otts-summary').innerText()) || [0, 0])[1]);
+  const had = await chosenN();
+  await rankB.click();
+  const dlg = page.getByRole('dialog', { name: 'Indian English voices — lightest accent first' });
+  await dlg.waitFor();
+  const rows = dlg.locator('tbody tr');
+  ok(meas.length > 40, `the survey measured ${meas.length} Indian voices`);
+  eq(await rows.count(), meas.length, 'the pop-up ranks every measured Indian voice');
+  eq(await rows.evaluateAll((rs) => rs.map((r) => r.dataset.id)), meas.map((v) => v.id), 'lightest first, in the order of the measured accent');
+  ok((await rows.first().innerText()).includes(cat.models[meas[0].model].name) && (await rows.last().innerText()).includes(cat.models[meas.at(-1).model].name), 'each row names its model');
+  const notM = dlg.locator('details.otts-rank-not');
+  ok(!(await notM.evaluate((d) => d.open)) && /^Not measured yet — \d+ voices of \d+ models$/.test((await notM.locator('summary').innerText()).trim()), `the voices not measured are folded away under one line (${(await notM.locator('summary').innerText()).trim()})`);
+  await notM.locator('summary').click();
+  ok(/Indic Parler-TTS \(AI4Bharat\) \(21 voices\): .*Hugging Face/.test(await dlg.innerText()), 'not measured: listed under its model with the reason (Indic Parler-TTS: an account)');
+  ok(await rows.nth(5).isVisible() || (await dlg.locator('.otts-rank-table').evaluate((t) => t.clientHeight)) > 300, 'the ranking keeps room to be read');
+  const first = rows.first().locator('input');
+  ok(!(await first.isChecked()), 'the lightest voice is not chosen yet');
+  await first.check();
+  await page.keyboard.press('Escape');
+  await dlg.waitFor({ state: 'detached' });
+  ok(await page.evaluate(() => document.activeElement?.textContent?.includes('Indian accents, lightest first')), 'Esc closes it and the focus is back on the button');
+  ok(await chosenN() === had + 1 && (await page.locator('.otts-summary').innerText()).includes(meas[0].label.split(' — ')[0]), `a tick in the pop-up chooses the voice (${had} → ${await chosenN()})`);
+  await rankB.click(); await dlg.waitFor();
+  ok(await rows.first().locator('input').isChecked(), 'opened again: the chosen voice is ticked');
+  await rows.first().locator('input').uncheck();
+  await dlg.getByRole('button', { name: 'Close', exact: true }).last().click();
+  await dlg.waitFor({ state: 'detached' });
+  ok(await chosenN() === had, 'untick in the pop-up: the voice is no longer chosen; Close closes it');
+
   // back to the browser
   await page.getByRole('radio', { name: 'In this browser' }).click();
   ok(await page.locator('.actions').getByRole('button', { name: 'Speak' }).isVisible() && await page.locator('.otts-list').isHidden(), 'back: the browser mode as it was');
@@ -111,6 +145,11 @@ export default async ({ base, page: newPage, ok, download, devices }) => {
     const v = await a.evaluate(async () => (await window.axe.run(document, { runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'] }, resultTypes: ['violations'] })).violations
       .map((x) => `${x.id}: ${x.nodes.slice(0, 2).map((n) => n.target.join(' ')).join(', ')}`));
     ok(!v.length, `${colorScheme}: no WCAG 2.2 A / AA violation in the offline panel ${v.join(' | ')}`);
+    await a.getByRole('button', { name: 'Indian accents, lightest first' }).click();
+    await a.getByRole('dialog').waitFor();
+    const vd = await a.evaluate(async () => (await window.axe.run(document.querySelector('dialog'), { runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'] }, resultTypes: ['violations'] })).violations
+      .map((x) => `${x.id}: ${x.nodes.slice(0, 2).map((n) => n.target.join(' ')).join(', ')}`));
+    ok(!vd.length, `${colorScheme}: no WCAG 2.2 A / AA violation in the accent pop-up ${vd.join(' | ')}`);
   }
 
   // phones: no offline mode

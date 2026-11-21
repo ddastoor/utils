@@ -9,8 +9,12 @@ export type OS = 'windows' | 'linux';
 export interface Engine { name: string; url: string; packages: string[]; mb: number; torch: boolean; speedControl: boolean; licence: string; about: string; accept?: string; slow?: boolean; ownTorch?: boolean }
 export interface Model { engine: string; repo: string; rev: string; mb: number; licence: string; personal: boolean; name: string; gated?: boolean; accept?: string; file?: string; descTokenizer?: [string, string]; page?: string; untried?: string }
 export interface Clip { repo: string; rev: string; file: string }
-export interface CVoice { id: string; label: string; group: string; sex: string; model: string; speaker?: number | string; voice?: string; lang?: string; describe?: string; clip?: Clip }
-export interface Catalogue { made: string; groups: Array<[string, string]>; engines: Record<string, Engine>; models: Record<string, Model>; voices: CVoice[] }
+/** How an accent-recognition model heard the voice (`scripts/data/indian-accents.json`): `indian` = its score for an
+ *  Indian accent minus its best score for any other (above 0: heard as Indian first; the higher, the stronger),
+ *  averaged over the sentences measured; `like` = the other accent it was heard closest to. */
+export interface Heard { indian: number; like: string; n: number }
+export interface CVoice { id: string; label: string; group: string; sex: string; model: string; speaker?: number | string; voice?: string; lang?: string; describe?: string; clip?: Clip; heard?: Heard }
+export interface Catalogue { made: string; groups: Array<[string, string]>; engines: Record<string, Engine>; models: Record<string, Model>; voices: CVoice[]; accentSurvey?: { tool: string; texts: string[]; made: string } }
 
 /** The order in which the engines run: the quick ones first, so the first files are there soon. */
 export const ENGINE_ORDER = ['piper', 'supertonic', 'melo', 'indictiny', 'mms', 'coqui', 'kokoro', 'pocket', 'chatterbox', 'xtts', 'qwen',
@@ -97,6 +101,36 @@ export function runsOf(cat: Catalogue, p: Plan): EngineRun[] {
       ...(E.accept === 'cpml' ? { env: { COQUI_TOS_AGREED: '1' } } : {}),
     };
   });
+}
+
+/** The accents of CommonAccent (the model of the survey) in words. */
+export const ACCENT_WORDS: Record<string, string> = {
+  england: 'English (England)', scotland: 'Scottish', wales: 'Welsh', ireland: 'Irish', us: 'American', canada: 'Canadian',
+  australia: 'Australian', newzealand: 'New Zealand', african: 'African', bermuda: 'Bermudian', southatlandtic: 'South Atlantic',
+  malaysia: 'Malaysian', philippines: 'Filipino', singapore: 'Singaporean', hongkong: 'Hong Kong', indian: 'Indian',
+};
+/** The strength of the Indian accent heard, in words, by `Heard.indian` (the Indian score minus the best other one, raw
+ *  scores of the classifier). Set on the survey of 21 Nov 2026 (63 voices, −0.60 … +0.49): at −0.2 and below Indian is
+ *  far down the list (5th – 15th of 16) — very light; up to 0 it is close behind another accent — light; above 0 it is
+ *  heard first — clear, and above 0.25 (the middle of those heard first) strong. */
+export function strength(m: number): string {
+  return m <= -0.2 ? 'very light' : m <= 0 ? 'light' : m <= 0.25 ? 'clear' : 'strong';
+}
+/** Every Indian English voice, the lightest accent first (owner, 21 Nov 2026: "ranked … in order of increasing Indian
+ *  accent thickness … the topmost … as British sounding as possible"); those the survey could not run, by model, with
+ *  the reason. A tie keeps the catalogue's order. */
+export function rankIndian(cat: Catalogue): { measured: CVoice[]; unmeasured: Array<{ model: string; reason: string; voices: CVoice[] }> } {
+  const ind = cat.voices.filter((v) => v.group === 'in');
+  const measured = ind.filter((v) => v.heard).sort((a, b) => a.heard!.indian - b.heard!.indian);
+  const rest = new Map<string, CVoice[]>();
+  for (const v of ind) if (!v.heard) rest.set(v.model, [...(rest.get(v.model) || []), v]);
+  return {
+    measured,
+    unmeasured: [...rest].map(([model, voices]) => {
+      const m = cat.models[model];
+      return { model, voices, reason: m.untried || (m.gated ? 'It needs a Hugging Face account, which this survey did not have.' : 'Not measured yet.') };
+    }),
+  };
 }
 
 export const SCRIPT_NAME: Record<OS, string> = { windows: 'superutils-speech.cmd', linux: 'superutils-speech.sh' };
