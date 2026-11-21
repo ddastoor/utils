@@ -27,15 +27,15 @@ export default async ({ base, page: newPage, ok, download, devices }) => {
 
   // the list: Indian voices first, the starters ticked
   const n = async () => page.locator('.otts-list .otts-voice').count();
-  eq(await n(), 64, 'the Indian group lists 64 voices');
+  eq(await n(), 142, 'the Indian group lists 142 voices');
   const ticked = () => page.locator('.otts-list input:checked').evaluateAll((els) => els.map((e) => e.value));
   eq((await ticked()).sort(), ['goonj-en-arjun', 'goonj-en-priya', 'indic-parler-mary', 'indic-parler-thoma'], 'four Indian English voices ticked to begin with');
   ok(/4 voices chosen · 2 models, 4\.1 GB/.test(await page.locator('.otts-summary').innerText()), 'the summary: 4 voices, 2 models, 4.1 GB');
   ok(await page.getByText('ai4bharat/indic-parler-tts is free, but Hugging Face asks for an account first').isVisible(), 'the account note for Indic Parler-TTS');
   await page.getByRole('radio', { name: 'All' }).click();
-  eq(await n(), 465, 'All: 465 voices');
+  eq(await n(), 634, 'All: 634 voices');
   await page.getByLabel('Engine').selectOption('pocket');
-  eq(await n(), 21, 'Pocket TTS: 21 voices');
+  eq(await n(), 29, 'Pocket TTS: 29 voices (21, and 8 taken from recordings)');
   await page.getByLabel('Engine').selectOption('');
   await page.getByLabel('Voices to show').selectOption('f');
   await page.getByLabel('Search the voices').fill('indian');
@@ -68,7 +68,7 @@ export default async ({ base, page: newPage, ok, download, devices }) => {
 
   // XTTS-v2: the download waits for its licence
   await page.getByLabel('Search the voices').fill('Vinith');
-  await page.locator('.otts-voice', { hasText: 'Vinith' }).locator('input').check();
+  await page.locator('.otts-voice input[value="xtts-clip-vinith"]').check();
   const dl = page.getByRole('button', { name: 'Download the script for Linux (.sh)' });
   ok(await dl.isDisabled(), 'an XTTS-v2 voice: the download waits for its licence');
   await page.getByText('I accept the Coqui Public Model License').click();
@@ -106,7 +106,7 @@ export default async ({ base, page: newPage, ok, download, devices }) => {
     await a.getByRole('radio', { name: 'Offline on this PC' }).click();
     await a.locator('.otts-list .otts-voice').first().waitFor();
     await a.getByLabel('Search the voices').fill('Vinith');
-    await a.locator('.otts-voice', { hasText: 'Vinith' }).locator('input').check();
+    await a.locator('.otts-voice input[value="xtts-clip-vinith"]').check();
     await a.addScriptTag({ content: AXE });
     const v = await a.evaluate(async () => (await window.axe.run(document, { runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'] }, resultTypes: ['violations'] })).violations
       .map((x) => `${x.id}: ${x.nodes.slice(0, 2).map((n) => n.target.join(' ')).join(', ')}`));

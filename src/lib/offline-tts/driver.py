@@ -316,11 +316,22 @@ def pocket(job, voices):
     """Kyutai's Pocket TTS (CC BY 4.0): a small model that runs fast on a processor; its catalogue of voices (the
     package fetches the model and each voice from Hugging Face at the revisions written into it)."""
     import numpy as np
+    from pathlib import Path
     from pocket_tts import TTSModel
-    model = TTSModel.load_model()
+    model = TTSModel.load_model()  # with voice cloning when this computer may download kyutai/pocket-tts (gated)
     sr = model.sample_rate
+    # the catalogue's voices first, then the voices taken from recordings (they need the gated model)
+    voices = sorted(voices, key=lambda v: bool(v.get('clip')))
     for v in voices:
-        state = model.get_state_for_audio_prompt(v['voice'])
+        if v.get('clip'):
+            if not model.has_voice_cloning:
+                token = os.path.join(os.environ.get('HF_HOME', ''), 'token')
+                sys.exit('Pocket TTS could not take a voice from a recording: that needs kyutai/pocket-tts, which Hugging Face '
+                         'gives only to an account that has accepted its conditions at https://huggingface.co/kyutai/pocket-tts '
+                         f'(and this computer its token). To be asked for the token again, delete {token} and run the script again.')
+            state = model.get_state_for_audio_prompt(Path(clip(v)))
+        else:
+            state = model.get_state_for_audio_prompt(v['voice'])
         t0 = time.time()
         parts = []
         for c in chunks(job['text'], 600):
@@ -456,6 +467,305 @@ def supertonic(job, voices):
                                     lang=lang, silence_duration=0.3)
             secs = write_audio(os.path.join(job['out'], v['id']), np.asarray(wav).reshape(-1), tts.sample_rate, job.get('mp3', True))
             log(f'  {v["label"]}: {secs:.1f} s of speech in {time.time() - t0:.1f} s')
+
+
+@engine('indictiny')
+def indictiny(job, voices):
+    """Indic Tiny TTS: Indian English (Sulabh Katiyar; weights CC BY 4.0, code MIT) — a woman's and a man's voice from
+    IISc's SYSPIN / LIMMITS corpus, its own small Python package from the same repository, run here on ONNX Runtime
+    (no PyTorch). Its own text rules read Indian conventions (lakh and crore, ₹, Dr., dates)."""
+    import numpy as np
+    v0 = voices[0]
+    d = fetch(v0['repo'], v0['rev'], ['config.json', 'LICENSE.md', 'pyproject.toml', 'indic_tiny_tts/*', 'onnx/*'])
+    sys.path.insert(0, d)
+    from indic_tiny_tts import TinyTTSOnnx
+    tts = TinyTTSOnnx(d, threads=max(1, min(8, os.cpu_count() or 1)))
+    for v in voices:
+        t0 = time.time()
+        wav = tts.synthesize(job['text'], voice=v['voice'], speed=float(job['speed']), seed=0)
+        secs = write_audio(os.path.join(job['out'], v['id']), wav if len(wav) else silence(tts.sample_rate, 0.1), tts.sample_rate, job.get('mp3', True))
+        log(f'  {v["label"]}: {secs:.1f} s of speech in {time.time() - t0:.1f} s')
+
+
+@engine('bark')
+def bark(job, voices):
+    """Suno's Bark (MIT) through transformers: a GPT-style model that speaks in the manner of a voice preset —
+    v2/en_speaker_0 … 9 (English speakers) and v2/hi_speaker_0 … 9 (Hindi speakers: English with an Indian accent). It
+    speaks about 13 seconds at a time, so a text goes a sentence or two at a time, each with the same preset; its pace
+    cannot be set, and on a processor it is slow."""
+    import numpy as np
+    import torch
+    from transformers import AutoProcessor, BarkModel
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    log(f'  (on the {"graphics card" if device == "cuda" else "processor"} — on a processor this takes a while)')
+    groups = {}
+    for v in voices:
+        groups.setdefault((v['repo'], v['rev']), []).append(v)
+    for (repo, rev), group in groups.items():
+        files = ['config.json', 'generation_config.json', 'pytorch_model.bin', 'tokenizer.json', 'tokenizer_config.json',
+                 'vocab.txt', 'special_tokens_map.json', 'speaker_embeddings_path.json']
+        for v in group:
+            files += [f'speaker_embeddings/{v["voice"]}_{k}_prompt.npy' for k in ('semantic', 'coarse', 'fine')]
+        d = fetch(repo, rev, files)
+        processor = AutoProcessor.from_pretrained(d)
+        model = BarkModel.from_pretrained(d).to(device).eval()
+        sr = model.generation_config.sample_rate
+        for v in group:
+            t0 = time.time()
+            parts = []
+            for c in chunks(job['text'], 180):
+                torch.manual_seed(v.get('seed', 0))
+                inputs = processor(c, voice_preset=v['voice']).to(device)
+                with torch.inference_mode():
+                    a = model.generate(**inputs, pad_token_id=processor.tokenizer.pad_token_id)
+                parts.append(a.cpu().numpy().reshape(-1).astype(np.float32))
+                parts.append(silence(sr, 0.25))
+            secs = write_audio(os.path.join(job['out'], v['id']), np.concatenate(parts) if parts else silence(sr, 0.1), sr, job.get('mp3', True))
+            log(f'  {v["label"]}: {secs:.1f} s of speech in {time.time() - t0:.1f} s')
+        del model
+        if device != 'cpu':
+            torch.cuda.empty_cache()
+
+
+@engine('omnivoice')
+def omnivoice(job, voices):
+    """k2-fsa's OmniVoice (Xiaomi; code Apache-2.0, model CC BY-NC — personal use): a diffusion language model that
+    speaks in a voice made from a few words — sex, age, pitch and an accent (American, British, Australian, Canadian,
+    Indian …), the same voice every time (a fixed seed). A long text is spoken in parts, each following the voice of
+    the first part (OmniVoice's own way). Numbers are written in words first."""
+    import numpy as np
+    import torch
+    from omnivoice import OmniVoice
+    device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
+    dtype = torch.float16 if device != 'cpu' else torch.float32
+    log(f'  (on the {"graphics card" if device != "cpu" else "processor"} — on a processor this takes a while)')
+    v0 = voices[0]
+    d = fetch(v0['repo'], v0['rev'], ['config.json', 'model.safetensors', 'tokenizer.json', 'tokenizer_config.json',
+                                      'chat_template.jinja', 'audio_tokenizer/*'])
+    model = OmniVoice.from_pretrained(d, device_map=device, dtype=dtype)
+    sr = model.sampling_rate
+    text = spoken(job['text'])
+    for v in voices:
+        t0 = time.time()
+        torch.manual_seed(v.get('seed', 0))
+        with torch.inference_mode():
+            audio = model.generate(text=text, language='English', instruct=v['describe'], speed=float(job['speed']))
+        secs = write_audio(os.path.join(job['out'], v['id']), np.asarray(audio[0], dtype=np.float32).reshape(-1), sr, job.get('mp3', True))
+        log(f'  {v["label"]}: {secs:.1f} s of speech in {time.time() - t0:.1f} s')
+
+
+@engine('chatterbox')
+def chatterbox(job, voices):
+    """Resemble AI's Chatterbox and Chatterbox Turbo (MIT) through the chatterbox-tts package: the model's own voice, or a
+    voice taken from a 10-second recording. The package marks its output with Resemble's inaudible watermark (Perth).
+    Its pace cannot be set. It runs on its own PyTorch (2.6, which the package pins)."""
+    import numpy as np
+    import torch
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    log(f'  (on the {"graphics card" if device == "cuda" else "processor"})')
+    groups = {}
+    for v in voices:
+        groups.setdefault((v['repo'], v['rev']), []).append(v)
+    for (repo, rev), group in groups.items():
+        if repo.endswith('-turbo'):
+            from chatterbox.tts_turbo import ChatterboxTurboTTS as Model
+        else:
+            from chatterbox.tts import ChatterboxTTS as Model
+        d = fetch(repo, rev, ['ve.safetensors', 't3_turbo_v1.safetensors', 't3_turbo_v1.yaml', 's3gen_meanflow.safetensors', 'vocab.json',
+                              'merges.txt', 'added_tokens.json', 'special_tokens_map.json', 'tokenizer_config.json', 'conds.pt']
+                  if repo.endswith('-turbo') else ['ve.safetensors', 't3_cfg.safetensors', 's3gen.safetensors', 'tokenizer.json', 'conds.pt'])
+        model = Model.from_local(d, device)
+        for v in group:
+            t0 = time.time()
+            prompt = clip(v) if v.get('clip') else None
+            parts = []
+            for c in chunks(job['text'], 300):
+                torch.manual_seed(v.get('seed', 0))
+                wav = model.generate(c, audio_prompt_path=prompt)
+                prompt = None  # the voice stays prepared for the next pieces
+                parts.append(wav.reshape(-1).detach().cpu().numpy().astype(np.float32))
+                parts.append(silence(model.sr, 0.25))
+            secs = write_audio(os.path.join(job['out'], v['id']), np.concatenate(parts) if parts else silence(model.sr, 0.1), model.sr, job.get('mp3', True))
+            log(f'  {v["label"]}: {secs:.1f} s of speech in {time.time() - t0:.1f} s')
+        del model
+
+
+SNAC_24K = ('hubertsiuzdak/snac_24khz', 'd73ad176a12188fcf4f360ba3bf2c2fbbe8f58ec')
+
+
+@engine('veena')
+def veena(job, voices):
+    """Maya Research's Veena (Apache-2.0): a 3-billion-parameter Llama model trained on Indian voices (Kavya, Agastya,
+    Maitri, Vinaya), its speech decoded by SNAC 24 kHz (MIT) — as the model card does it. In bfloat16: about 7 GB of a
+    graphics card's memory; on a processor it is very slow. Spoken a sentence at a time (the card's limit)."""
+    import numpy as np
+    import torch
+    from snac import SNAC
+    from transformers import AutoModelForCausalLM, AutoTokenizer
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    log(f'  (on the {"graphics card" if device == "cuda" else "processor — this takes a long while"})')
+    v0 = voices[0]
+    d = fetch(v0['repo'], v0['rev'], ['config.json', 'generation_config.json', 'model-*.safetensors', 'model.safetensors.index.json',
+                                      'special_tokens_map.json', 'tokenizer.json', 'tokenizer_config.json', 'chat_template.jinja'])
+    tok = AutoTokenizer.from_pretrained(d)
+    model = AutoModelForCausalLM.from_pretrained(d, torch_dtype=torch.bfloat16).to(device).eval()
+    snac = SNAC.from_pretrained(fetch(SNAC_24K[0], SNAC_24K[1], ['config.json', 'pytorch_model.bin'])).eval().to(device)
+    SOS, EOS, SOH, EOH, SOA, EOA, BASE = 128257, 128258, 128259, 128260, 128261, 128262, 128266  # the card's tokens
+    for v in voices:
+        t0 = time.time()
+        parts = []
+        for c in chunks(spoken(job['text']), 120):
+            torch.manual_seed(v.get('seed', 0))
+            ids = [SOH, *tok.encode(f'<spk_{v["voice"]}> {c}', add_special_tokens=False), EOH, SOA, SOS]
+            with torch.inference_mode():
+                out = model.generate(torch.tensor([ids], device=device), max_new_tokens=min(int(len(c) * 1.3) * 7 + 21, 700),
+                                     do_sample=True, temperature=0.4, top_p=0.9, repetition_penalty=1.05,
+                                     pad_token_id=tok.pad_token_id, eos_token_id=[EOS, EOA])
+            codes = [t for t in out[0][len(ids):].tolist() if BASE <= t < BASE + 7 * 4096]
+            codes = codes[:len(codes) // 7 * 7]
+            if not codes:
+                continue
+            lv = [[], [], []]  # the card's de-interleaving: 1 coarse, 2 medium, 4 fine codes a frame
+            for i in range(0, len(codes), 7):
+                f = [codes[i + k] - BASE - k * 4096 for k in range(7)]
+                lv[0].append(f[0]); lv[1] += [f[1], f[4]]; lv[2] += [f[2], f[3], f[5], f[6]]
+            with torch.inference_mode():
+                a = snac.decode([torch.tensor(x, dtype=torch.int32, device=device).clamp(0, 4095).unsqueeze(0) for x in lv])
+            parts.append(a.reshape(-1).float().cpu().numpy())
+            parts.append(silence(24000, 0.2))
+        secs = write_audio(os.path.join(job['out'], v['id']), np.concatenate(parts) if parts else silence(24000, 0.1), 24000, job.get('mp3', True))
+        log(f'  {v["label"]}: {secs:.1f} s of speech in {time.time() - t0:.1f} s')
+
+
+@engine('voxcpm')
+def voxcpm(job, voices):
+    """OpenBMB's VoxCPM2 (Apache-2.0): a voice described in words (in brackets before the text, as its card shows), or
+    a voice taken from a recording. A long text is spoken in parts; from the second part on the voice is taken from the
+    first part, so it stays the same. Numbers are written in words first."""
+    import tempfile
+    import numpy as np
+    import torch
+    from voxcpm import VoxCPM
+    v0 = voices[0]
+    d = fetch(v0['repo'], v0['rev'], ['config.json', 'model.safetensors', 'audiovae.pth', 'special_tokens_map.json',
+                                      'tokenization_voxcpm2.py', 'tokenizer.json', 'tokenizer_config.json'])
+    model = VoxCPM.from_pretrained(d, load_denoiser=False, optimize=False)
+    sr = model.tts_model.sample_rate
+    s = float(job['speed'])
+    pace = '' if 0.9 <= s <= 1.1 else ', speaking slowly' if s < 0.9 else ', speaking quickly'
+    for v in voices:
+        t0 = time.time()
+        parts, ref = [], clip(v) if v.get('clip') else None
+        tmp = None
+        for c in chunks(spoken(job['text']), 300):
+            torch.manual_seed(v.get('seed', 0))
+            if ref:
+                text = f'({pace.lstrip(", ")}){c}' if pace else c
+                wav = model.generate(text=text, reference_wav_path=ref, cfg_value=2.0, inference_timesteps=10)
+            else:
+                wav = model.generate(text=f'({v["describe"]}{pace}){c}', cfg_value=2.0, inference_timesteps=10)
+                with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as f:
+                    tmp = f.name
+                write_audio(tmp[:-4], np.asarray(wav, dtype=np.float32), sr, mp3=False)
+                ref = tmp  # the next parts in the voice of this one
+            parts.append(np.asarray(wav, dtype=np.float32).reshape(-1))
+            parts.append(silence(sr, 0.25))
+        if tmp:
+            os.unlink(tmp)
+        secs = write_audio(os.path.join(job['out'], v['id']), np.concatenate(parts) if parts else silence(sr, 0.1), sr, job.get('mp3', True))
+        log(f'  {v["label"]}: {secs:.1f} s of speech in {time.time() - t0:.1f} s')
+
+
+@engine('coqui')
+def coqui(job, voices):
+    """Models made with Coqui TTS (here IISc SYSPIN's Indian English VITS voices, MIT), run by coqui-tts."""
+    import numpy as np
+    import torch
+    from TTS.api import TTS
+    for v in voices:
+        d = fetch(v['repo'], v['rev'], ['best_model.pth', 'config.json'])
+        tts = TTS(model_path=os.path.join(d, 'best_model.pth'), config_path=os.path.join(d, 'config.json'), progress_bar=False)
+        if torch.cuda.is_available():
+            tts.to('cuda')
+        sr = tts.synthesizer.output_sample_rate
+        m = tts.synthesizer.tts_model
+        if hasattr(m, 'length_scale'):  # VITS: the pace is its length scale
+            m.length_scale = float(m.length_scale) / float(job['speed'])
+        t0 = time.time()
+        parts = []
+        for c in chunks(spoken(job['text']), 250):
+            parts.append(np.asarray(tts.tts(text=c), dtype=np.float32).reshape(-1))
+            parts.append(silence(sr, 0.2))
+        secs = write_audio(os.path.join(job['out'], v['id']), np.concatenate(parts) if parts else silence(sr, 0.1), sr, job.get('mp3', True))
+        log(f'  {v["label"]}: {secs:.1f} s of speech in {time.time() - t0:.1f} s')
+
+
+@engine('mms')
+def mms(job, voices):
+    """Meta's MMS English voice (facebook/mms-tts-eng, CC BY-NC 4.0) through transformers' VITS."""
+    import numpy as np
+    import torch
+    from transformers import AutoTokenizer, VitsModel
+    v0 = voices[0]
+    d = fetch(v0['repo'], v0['rev'], ['config.json', 'model.safetensors', 'special_tokens_map.json', 'tokenizer_config.json', 'vocab.json'])
+    tok = AutoTokenizer.from_pretrained(d)
+    model = VitsModel.from_pretrained(d).eval()
+    model.speaking_rate = float(job['speed'])
+    sr = model.config.sampling_rate
+    for v in voices:
+        t0 = time.time()
+        parts = []
+        for c in chunks(spoken(job['text']), 250):
+            torch.manual_seed(v.get('seed', 0))
+            with torch.inference_mode():
+                parts.append(model(**tok(c, return_tensors='pt')).waveform.reshape(-1).numpy().astype(np.float32))
+            parts.append(silence(sr, 0.2))
+        secs = write_audio(os.path.join(job['out'], v['id']), np.concatenate(parts) if parts else silence(sr, 0.1), sr, job.get('mp3', True))
+        log(f'  {v["label"]}: {secs:.1f} s of speech in {time.time() - t0:.1f} s')
+
+
+def pace_words(speed):
+    """The pace as an instruction, for models that take one (Qwen3-TTS 1.7B)."""
+    s = float(speed)
+    return '' if 0.9 <= s <= 1.1 else 'Speak very slowly.' if s < 0.7 else 'Speak slowly.' if s < 0.9 else 'Speak a little faster than usual.' if s <= 1.4 else 'Speak fast.'
+
+
+@engine('qwen')
+def qwen(job, voices):
+    """Alibaba's Qwen3-TTS (Apache-2.0) through its qwen-tts package: the nine speakers of the CustomVoice models, and
+    the VoiceDesign model, which speaks in a voice described in words. The 1.7B models take the pace as an instruction;
+    the 0.6B model has no instructions (no speed). A text is spoken in parts of up to about 40 seconds."""
+    import numpy as np
+    import torch
+    from qwen_tts import Qwen3TTSModel
+    device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
+    dtype = torch.bfloat16 if device != 'cpu' else torch.float32
+    log(f'  (on the {"graphics card" if device != "cpu" else "processor"} — on a processor this takes a while)')
+    groups = {}
+    for v in voices:
+        groups.setdefault((v['repo'], v['rev']), []).append(v)
+    for (repo, rev), group in groups.items():
+        d = fetch(repo, rev, ['*.json', '*.txt', '*.safetensors', 'speech_tokenizer/*'])
+        model = Qwen3TTSModel.from_pretrained(d, device_map=device, dtype=dtype)
+        for v in group:
+            t0 = time.time()
+            parts, sr = [], 24000
+            for c in chunks(job['text'], 600):
+                torch.manual_seed(v.get('seed', 0))
+                with torch.inference_mode():
+                    if v.get('describe'):
+                        how = (v['describe'] + ' ' + pace_words(job['speed'])).strip()
+                        wavs, sr = model.generate_voice_design(text=c, language='English', instruct=how)
+                    else:
+                        wavs, sr = model.generate_custom_voice(text=c, language='English', speaker=v['speaker'],
+                                                               instruct=pace_words(job['speed']) or None)
+                parts.append(np.asarray(wavs[0], dtype=np.float32).reshape(-1))
+                parts.append(silence(sr, 0.25))
+            secs = write_audio(os.path.join(job['out'], v['id']), np.concatenate(parts) if parts else silence(sr, 0.1), sr, job.get('mp3', True))
+            log(f'  {v["label"]}: {secs:.1f} s of speech in {time.time() - t0:.1f} s')
+        del model
+        if device != 'cpu':
+            torch.cuda.empty_cache()
 
 
 def main():

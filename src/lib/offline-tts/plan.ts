@@ -4,16 +4,18 @@
 import { linuxScript, windowsScript, type EngineRun } from './scripts';
 
 export type OS = 'windows' | 'linux';
-export interface Engine { name: string; url: string; packages: string[]; mb: number; torch: boolean; speedControl: boolean; licence: string; about: string; accept?: string }
-export interface Model { engine: string; repo: string; rev: string; mb: number; licence: string; personal: boolean; name: string; gated?: boolean; accept?: string; file?: string; descTokenizer?: [string, string]; page?: string }
+export interface Engine { name: string; url: string; packages: string[]; mb: number; torch: boolean; speedControl: boolean; licence: string; about: string; accept?: string; slow?: boolean; ownTorch?: boolean }
+export interface Model { engine: string; repo: string; rev: string; mb: number; licence: string; personal: boolean; name: string; gated?: boolean; accept?: string; file?: string; descTokenizer?: [string, string]; page?: string; noSpeed?: boolean; untried?: string }
 export interface Clip { repo: string; rev: string; file: string }
 export interface CVoice { id: string; label: string; group: string; sex: string; model: string; speaker?: number | string; voice?: string; lang?: string; describe?: string; clip?: Clip }
 export interface Catalogue { made: string; groups: Array<[string, string]>; engines: Record<string, Engine>; models: Record<string, Model>; voices: CVoice[] }
 
 /** The order in which the engines run: the quick ones first, so the first files are there soon. */
-export const ENGINE_ORDER = ['piper', 'supertonic', 'melo', 'kokoro', 'pocket', 'xtts', 'parler'];
-/** PyTorch, once for every engine that needs it (uv keeps one copy): the processor build, or the CUDA build with an
- *  NVIDIA graphics card (uv picks it by itself). Python 3.12 and uv come to about 50 MB. */
+export const ENGINE_ORDER = ['piper', 'supertonic', 'melo', 'indictiny', 'mms', 'coqui', 'kokoro', 'pocket', 'chatterbox', 'xtts', 'qwen',
+  'omnivoice', 'voxcpm', 'bark', 'parler', 'veena'];
+/** PyTorch, once for every engine that needs it (uv keeps one copy) — and once more for an engine that pins a version
+ *  of its own (Chatterbox: 2.6): the processor build, or the CUDA build with an NVIDIA graphics card (uv picks it by
+ *  itself). Python 3.12 and uv come to about 50 MB. */
 export const TORCH_MB = { cpu: 300, cuda: 2600 };
 export const BASE_MB = 50;
 
@@ -29,7 +31,7 @@ export function detectOS(ua: string, platform = ''): OS | null {
 export interface Plan {
   voices: CVoice[]; models: Model[]; engines: string[];
   modelMB: number; programMB: number; programMBcuda: number;
-  gated: string[]; accept: string[]; personal: boolean; noSpeed: string[];
+  gated: string[]; accept: string[]; personal: boolean; noSpeed: string[]; slow: string[];
 }
 
 /** What the chosen voices need: models (each once), engines, downloads, licences. */
@@ -41,16 +43,20 @@ export function planOf(cat: Catalogue, ids: Iterable<string>): Plan {
   // a voice taken from a recording also downloads the recording (about 0.6 MB)
   const clips = new Set(voices.filter((v) => v.clip).map((v) => v.clip!.file));
   const engines = ENGINE_ORDER.filter((e) => models.some((m) => m.engine === e));
-  const torch = engines.some((e) => cat.engines[e].torch);
+  const torch = engines.filter((e) => cat.engines[e].torch && !cat.engines[e].ownTorch).length ? 1 : 0;
+  const torches = torch + engines.filter((e) => cat.engines[e].ownTorch).length;
   const programs = engines.reduce((a, e) => a + cat.engines[e].mb, 0) + (engines.length ? BASE_MB : 0);
   return {
     voices, models, engines,
     modelMB: models.reduce((a, m) => a + m.mb, 0) + clips.size * 0.7,
-    programMB: programs + (torch ? TORCH_MB.cpu : 0), programMBcuda: programs + (torch ? TORCH_MB.cuda : 0),
+    programMB: programs + torches * TORCH_MB.cpu, programMBcuda: programs + torches * TORCH_MB.cuda,
     gated: [...new Set(models.filter((m) => m.gated).map((m) => m.repo))],
     accept: [...new Set(models.map((m) => m.accept || cat.engines[m.engine].accept).filter(Boolean) as string[])],
     personal: models.some((m) => m.personal),
-    noSpeed: engines.filter((e) => !cat.engines[e].speedControl).map((e) => cat.engines[e].name),
+    // an engine without speed, or a model of an engine that has it but not this model (Qwen3-TTS 0.6B)
+    noSpeed: [...engines.filter((e) => !cat.engines[e].speedControl).map((e) => cat.engines[e].name),
+      ...models.filter((m) => m.noSpeed && cat.engines[m.engine].speedControl).map((m) => m.name)],
+    slow: engines.filter((e) => cat.engines[e].slow).map((e) => cat.engines[e].name),
   };
 }
 

@@ -43,7 +43,9 @@ export function offlinePanel(o: { text: () => string; speed: number }): HTMLElem
     const m = cat.models[mid], e = cat.engines[m.engine];
     return h('div', { class: 'otts-model' }, h('strong', null, m.name), ` · ${fmtMB(m.mb)} · ${e.name}`,
       m.personal ? tag('personal use only', 'warn') : null, m.gated ? tag('free Hugging Face account', 'info') : null,
-      e.torch && m.mb > 1500 ? tag('slow without a graphics card') : null, h('span', { class: 'muted small' }, ` ${m.licence}`),
+      e.torch && m.mb > 1500 ? tag('slow without a graphics card') : null,
+      m.untried ? h('span', { class: 'otts-tag', title: m.untried }, 'not run by SuperTools yet') : null,
+      h('span', { class: 'muted small' }, ` ${m.licence}`),
       m.page ? h('a', { href: m.page, target: '_blank', rel: 'noopener', class: 'small' }, /piper-samples|spaces|kyutai/.test(m.page) ? 'listen' : 'about it') : null);
   }
   function list() {
@@ -95,8 +97,9 @@ export function offlinePanel(o: { text: () => string; speed: number }): HTMLElem
         '). The script asks for the token once and keeps it in its folder; it is sent only to Hugging Face.'), 'info'));
     }
     if (p.personal) n.push(note('Some chosen voices are licensed for personal, non-commercial use only (marked above).', 'warn'));
-    if (p.noSpeed.length) n.push(note(`${p.noSpeed.join(' and ')} cannot change speed: its voices speak at their own pace.`, 'info'));
-    if (p.engines.some((e) => e === 'parler' || e === 'xtts')) n.push(note('Parler-TTS and XTTS-v2 are large: on a processor alone they take several times as long as the speech lasts (Parler about 5×). With an NVIDIA graphics card they run many times faster — the script uses one by itself.', 'info'));
+    const and = (xs: string[]) => xs.length > 1 ? `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}` : xs[0];
+    if (p.noSpeed.length) n.push(note(`${and(p.noSpeed)} cannot change speed: ${p.noSpeed.length > 1 ? 'their' : 'its'} voices speak at their own pace.`, 'info'));
+    if (p.slow.length) n.push(note(`${and(p.slow)} ${p.slow.length > 1 ? 'are' : 'is'} large: on a processor alone they take several times as long as the speech lasts (Parler-TTS about 5×, Qwen3-TTS 0.6B about 4×). With an NVIDIA graphics card they run many times faster — the script uses one by itself.`, 'info'));
     needs.replaceChildren(...n);
     dl.disabled = !p.voices.length || (p.accept.includes('cpml') && !accepted);
     steps.replaceChildren(...(os === 'windows' ? [

@@ -75,6 +75,7 @@
    "torch": true,
    "speedControl": true,
    "licence": "Apache-2.0",
+   "slow": true,
    "about": "Large models that speak as a sentence describes (a named speaker, a pace, very clear audio). Slow on a processor — a graphics card helps a lot."
   },
   "xtts": {
@@ -90,6 +91,7 @@
    "torch": true,
    "speedControl": true,
    "accept": "cpml",
+   "slow": true,
    "licence": "Coqui Public Model License (non-commercial use only)",
    "about": "Coqui's large multilingual model: 58 studio voices, and voices taken from short recordings. About real time on a fast processor."
   },
@@ -130,6 +132,159 @@
    "licence": "MIT (MeloTTS); sherpa-onnx Apache-2.0",
    "about": "MyShell's MeloTTS: one model with American, British, Indian and Australian accents (women's voices), run by sherpa-onnx — about three times faster than real time on a processor."
   },
+  "indictiny": {
+   "name": "Indic Tiny TTS",
+   "url": "https://huggingface.co/sulabhkatiyar/indic-tiny-tts-english",
+   "packages": [
+    "onnxruntime==1.32.0",
+    "numpy==2.3.5",
+    "huggingface-hub==2.4.0",
+    "lameenc==1.9.0"
+   ],
+   "mb": 50,
+   "torch": false,
+   "speedControl": true,
+   "licence": "MIT (the program); the model CC BY 4.0",
+   "about": "A tiny Indian English model (22.5 million parameters) trained on IISc’s SYSPIN recordings, with its own Indian reading of numbers, ₹, lakh and crore — about seven times faster than real time on one processor core."
+  },
+  "qwen": {
+   "name": "Qwen3-TTS",
+   "url": "https://github.com/QwenLM/Qwen3-TTS",
+   "packages": [
+    "qwen-tts==0.1.1",
+    "transformers==4.57.3",
+    "accelerate==1.12.0",
+    "huggingface-hub==0.36.2",
+    "lameenc==1.9.0",
+    "torch",
+    "torchaudio"
+   ],
+   "mb": 350,
+   "torch": true,
+   "speedControl": true,
+   "licence": "Apache-2.0",
+   "slow": true,
+   "about": "Alibaba's speech language models: nine named speakers, and a model that speaks in a voice described in words. About four times slower than real time on a processor (0.6B); a graphics card is many times faster."
+  },
+  "omnivoice": {
+   "name": "OmniVoice",
+   "url": "https://github.com/k2-fsa/OmniVoice",
+   "packages": [
+    "omnivoice==0.2.1",
+    "transformers==5.23.0",
+    "accelerate==1.16.0",
+    "huggingface-hub==2.4.0",
+    "num2words==0.5.14",
+    "lameenc==1.9.0",
+    "torch",
+    "torchaudio"
+   ],
+   "mb": 350,
+   "torch": true,
+   "speedControl": true,
+   "licence": "Apache-2.0 (the program); the model CC BY-NC",
+   "slow": true,
+   "about": "k2-fsa's (Xiaomi) model that makes a voice from a few words — sex, age, pitch and an accent (Indian, American, British, Australian, Canadian …)."
+  },
+  "bark": {
+   "name": "Bark",
+   "url": "https://github.com/suno-ai/bark",
+   "packages": [
+    "transformers==4.57.3",
+    "huggingface-hub==0.36.2",
+    "lameenc==1.9.0",
+    "torch"
+   ],
+   "mb": 300,
+   "torch": true,
+   "speedControl": false,
+   "licence": "MIT",
+   "slow": true,
+   "about": "Suno's expressive GPT-style model, speaking in the manner of a voice preset — English speakers and Hindi speakers (English with an Indian accent). Slow on a processor; its pace cannot be set."
+  },
+  "chatterbox": {
+   "name": "Chatterbox",
+   "url": "https://github.com/resemble-ai/chatterbox",
+   "packages": [
+    "chatterbox-tts==0.1.7",
+    "lameenc==1.9.0"
+   ],
+   "mb": 450,
+   "torch": true,
+   "ownTorch": true,
+   "speedControl": false,
+   "licence": "MIT",
+   "slow": true,
+   "about": "Resemble AI's expressive models: their own voice, or a voice taken from a 10-second recording. The program marks the speech with an inaudible watermark and runs on its own PyTorch 2.6 (a second copy)."
+  },
+  "veena": {
+   "name": "Veena",
+   "url": "https://huggingface.co/maya-research/Veena",
+   "packages": [
+    "transformers==4.57.3",
+    "accelerate==1.12.0",
+    "snac==1.2.1",
+    "huggingface-hub==0.36.2",
+    "num2words==0.5.14",
+    "lameenc==1.9.0",
+    "torch"
+   ],
+   "mb": 300,
+   "torch": true,
+   "speedControl": false,
+   "licence": "Apache-2.0",
+   "slow": true,
+   "about": "Maya Research's 3-billion-parameter model trained on Indian voices. Made for a graphics card (about 7 GB of its memory); on a processor alone it is very slow."
+  },
+  "voxcpm": {
+   "name": "VoxCPM2",
+   "url": "https://github.com/OpenBMB/VoxCPM",
+   "packages": [
+    "voxcpm==2.0.3",
+    "num2words==0.5.14",
+    "lameenc==1.9.0",
+    "torch",
+    "torchaudio"
+   ],
+   "mb": 700,
+   "torch": true,
+   "speedControl": true,
+   "licence": "Apache-2.0",
+   "slow": true,
+   "about": "OpenBMB's 2-billion-parameter model at 48 kHz: a voice described in words, or taken from a recording."
+  },
+  "coqui": {
+   "name": "Coqui TTS (VITS)",
+   "url": "https://github.com/idiap/coqui-ai-TTS",
+   "packages": [
+    "coqui-tts[codec]==0.28.0",
+    "num2words==0.5.14",
+    "lameenc==1.9.0",
+    "torch",
+    "torchaudio"
+   ],
+   "mb": 450,
+   "torch": true,
+   "speedControl": true,
+   "licence": "MPL-2.0 (the program)",
+   "about": "IISc SYSPIN's Indian English voices, trained with Coqui TTS (VITS). Quick, but less clear than the newer models."
+  },
+  "mms": {
+   "name": "MMS",
+   "url": "https://huggingface.co/facebook/mms-tts-eng",
+   "packages": [
+    "transformers==4.57.3",
+    "huggingface-hub==0.36.2",
+    "num2words==0.5.14",
+    "lameenc==1.9.0",
+    "torch"
+   ],
+   "mb": 300,
+   "torch": true,
+   "speedControl": true,
+   "licence": "Apache-2.0 (transformers)",
+   "about": "Meta's Massively Multilingual Speech: its small English voice (VITS)."
+  },
   "pocket": {
    "name": "Pocket TTS",
    "url": "https://huggingface.co/kyutai/pocket-tts-without-voice-cloning",
@@ -159,7 +314,8 @@
    "mb": 3766.6,
    "licence": "Apache-2.0",
    "personal": false,
-   "name": "Indic Parler-TTS (AI4Bharat)"
+   "name": "Indic Parler-TTS (AI4Bharat)",
+   "untried": "Not run here: Hugging Face gives it only to an account that has accepted its conditions."
   },
   "parler-large": {
    "engine": "parler",
@@ -169,7 +325,8 @@
    "mb": 9335.5,
    "licence": "Apache-2.0",
    "personal": false,
-   "name": "Parler-TTS Large v1"
+   "name": "Parler-TTS Large v1",
+   "untried": "Not run here: 9.3 GB, more than the test machine had room for (the same program as Parler Mini, which was run)."
   },
   "parler-mini": {
    "engine": "parler",
@@ -184,6 +341,50 @@
    "licence": "Apache-2.0",
    "personal": false,
    "name": "Parler-TTS Mini v1.1"
+  },
+  "qwen-design": {
+   "engine": "qwen",
+   "repo": "Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign",
+   "rev": "5ecdb67327fd37bb2e042aab12ff7391903235d3",
+   "mb": 4520.2,
+   "licence": "Apache-2.0",
+   "personal": false,
+   "name": "Qwen3-TTS 1.7B VoiceDesign",
+   "page": "https://huggingface.co/Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign",
+   "untried": "Not run here yet."
+  },
+  "qwen-1.7b": {
+   "engine": "qwen",
+   "repo": "Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice",
+   "rev": "0c0e3051f131929182e2c023b9537f8b1c68adfe",
+   "mb": 4520.2,
+   "licence": "Apache-2.0",
+   "personal": false,
+   "name": "Qwen3-TTS 1.7B CustomVoice",
+   "page": "https://huggingface.co/Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice",
+   "untried": "Not run here: 4.5 GB (the same program as Qwen3-TTS 0.6B, which was run)."
+  },
+  "qwen-0.6b": {
+   "engine": "qwen",
+   "repo": "Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice",
+   "rev": "85e237c12c027371202489a0ec509ded67b5e4b5",
+   "mb": 2498.4,
+   "licence": "Apache-2.0",
+   "personal": false,
+   "name": "Qwen3-TTS 0.6B CustomVoice",
+   "page": "https://huggingface.co/Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice",
+   "noSpeed": true
+  },
+  "veena": {
+   "engine": "veena",
+   "repo": "maya-research/Veena",
+   "rev": "8b770f9e69e6b35ef320d4cd70a99a4ab6dd022f",
+   "mb": 7673.9,
+   "licence": "Apache-2.0 (SNAC: MIT)",
+   "personal": false,
+   "name": "Veena (Maya Research)",
+   "page": "https://huggingface.co/maya-research/Veena",
+   "untried": "Not run here: 7.6 GB, made for a graphics card."
   },
   "kokoro": {
    "engine": "kokoro",
@@ -207,6 +408,28 @@
    "name": "goonj-1-82M (Kokoro trained on Indian voices)",
    "page": "https://huggingface.co/BH-Builds/goonj-1-82M"
   },
+  "omnivoice": {
+   "engine": "omnivoice",
+   "repo": "k2-fsa/OmniVoice",
+   "rev": "3fc979d1cd72492cd679c5ac2611e0d7ac047ba1",
+   "mb": 3267.5,
+   "personal": true,
+   "licence": "CC BY-NC (the model; its audio tokenizer: Boson Higgs Audio 2 Community License)",
+   "name": "OmniVoice (voices made from a few words)",
+   "page": "https://huggingface.co/k2-fsa/OmniVoice",
+   "untried": "Not run here yet."
+  },
+  "voxcpm2": {
+   "engine": "voxcpm",
+   "repo": "openbmb/VoxCPM2",
+   "rev": "7936080b41163874f38610f46f438e2c0757f9fd",
+   "mb": 4960.7,
+   "licence": "Apache-2.0",
+   "personal": false,
+   "name": "VoxCPM2 (OpenBMB)",
+   "page": "https://openbmb.github.io/voxcpm2-demopage",
+   "untried": "Not run yet: 5 GB."
+  },
   "melo": {
    "engine": "melo",
    "repo": "csukuangfj/vits-melo-tts-en",
@@ -216,6 +439,38 @@
    "personal": false,
    "name": "MeloTTS English (MyShell)",
    "page": "https://huggingface.co/myshell-ai/MeloTTS-English"
+  },
+  "indictiny": {
+   "engine": "indictiny",
+   "repo": "sulabhkatiyar/indic-tiny-tts-english",
+   "rev": "eea5d4a578c0f18173825a037487cf9c47ed4247",
+   "mb": 91.3,
+   "licence": "CC BY 4.0",
+   "personal": false,
+   "name": "Indic Tiny TTS: Indian English",
+   "page": "https://huggingface.co/sulabhkatiyar/indic-tiny-tts-english"
+  },
+  "chatterbox": {
+   "engine": "chatterbox",
+   "repo": "ResembleAI/chatterbox",
+   "rev": "5bb1f6ee58e50c3b8d408bc82a6d3740c2db6e18",
+   "mb": 3192.0,
+   "licence": "MIT",
+   "personal": false,
+   "name": "Chatterbox (Resemble AI)",
+   "page": "https://huggingface.co/ResembleAI/chatterbox",
+   "untried": "Not run yet: it needs a second PyTorch (2.6) beside the model, more than the test machine had room for."
+  },
+  "chatterbox-turbo": {
+   "engine": "chatterbox",
+   "repo": "ResembleAI/chatterbox-turbo",
+   "rev": "749d1c1a46eb10492095d68fbcf55691ccf137cd",
+   "mb": 2987.7,
+   "licence": "MIT",
+   "personal": false,
+   "name": "Chatterbox Turbo (Resemble AI)",
+   "page": "https://huggingface.co/ResembleAI/chatterbox-turbo",
+   "untried": "Not run yet: it needs a second PyTorch (2.6) beside the model, more than the test machine had room for."
   },
   "xtts": {
    "engine": "xtts",
@@ -227,6 +482,62 @@
    "personal": true,
    "accept": "cpml",
    "name": "XTTS-v2 (Coqui)"
+  },
+  "pocket-clone": {
+   "engine": "pocket",
+   "repo": "kyutai/pocket-tts",
+   "rev": "db04f0e653473e5c7333c69686ac92b7460b0c1d",
+   "mb": 219.3,
+   "licence": "CC BY 4.0",
+   "personal": false,
+   "gated": true,
+   "name": "Pocket TTS with voice cloning (Kyutai)",
+   "page": "https://kyutai.org/tts",
+   "untried": "Not run here: Hugging Face gives it only to an account that has accepted its conditions."
+  },
+  "bark": {
+   "engine": "bark",
+   "repo": "suno/bark",
+   "rev": "70a8a7d34168586dc5d028fa9666aceade177992",
+   "mb": 4490.7,
+   "licence": "MIT",
+   "personal": false,
+   "name": "Bark (Suno)",
+   "page": "https://huggingface.co/suno/bark",
+   "untried": "Not run here: 4.5 GB (the same program as Bark small)."
+  },
+  "bark-small": {
+   "engine": "bark",
+   "repo": "suno/bark-small",
+   "rev": "1dbd7a128513b8ae4a4e2130fed57b7ac9da5bcd",
+   "mb": 1680.7,
+   "licence": "MIT",
+   "personal": false,
+   "name": "Bark small (Suno)",
+   "page": "https://huggingface.co/suno/bark-small",
+   "untried": "Not run here yet."
+  },
+  "syspin-female": {
+   "engine": "coqui",
+   "repo": "SYSPIN/vits_English_Female",
+   "rev": "ce6219adea6faee308696de3851a7335f9af5dd3",
+   "mb": 997.9,
+   "licence": "MIT",
+   "personal": false,
+   "name": "SYSPIN Indian English VITS (woman)",
+   "page": "https://huggingface.co/SYSPIN/vits_English_Female",
+   "untried": "Not run here yet."
+  },
+  "syspin-male": {
+   "engine": "coqui",
+   "repo": "SYSPIN/vits_English_Male",
+   "rev": "2e095770cf8ad748d974ccf0dd46f5a17e88d27b",
+   "mb": 997.9,
+   "licence": "MIT",
+   "personal": false,
+   "name": "SYSPIN Indian English VITS (man)",
+   "page": "https://huggingface.co/SYSPIN/vits_English_Male",
+   "untried": "Not run here yet."
   },
   "pocket": {
    "engine": "pocket",
@@ -267,6 +578,17 @@
    "personal": false,
    "name": "Supertonic 1 (English only)",
    "page": "https://huggingface.co/Supertone/supertonic"
+  },
+  "mms-eng": {
+   "engine": "mms",
+   "repo": "facebook/mms-tts-eng",
+   "rev": "c71de0fe7204c83f1c10820a7d696d0b450048ba",
+   "mb": 145.2,
+   "licence": "CC BY-NC 4.0",
+   "personal": true,
+   "name": "MMS English (Meta)",
+   "page": "https://huggingface.co/facebook/mms-tts-eng",
+   "untried": "Not run here yet."
   },
   "piper-en_GB-alan-low": {
    "engine": "piper",
@@ -1401,6 +1723,342 @@
    "describe": "Emily's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
   },
   {
+   "id": "qwen-design-in-woman-young",
+   "label": "Indian English, light accent — young woman (a voice described in words)",
+   "group": "in",
+   "sex": "f",
+   "model": "qwen-design",
+   "describe": "A young Indian woman in her twenties with a light, neutral Indian English accent; clear, articulate and warm, like a newsreader; a clean studio recording."
+  },
+  {
+   "id": "qwen-design-in-man-young",
+   "label": "Indian English, light accent — young man (a voice described in words)",
+   "group": "in",
+   "sex": "m",
+   "model": "qwen-design",
+   "describe": "A young Indian man in his twenties with a light, neutral Indian English accent; clear, articulate and friendly, like a newsreader; a clean studio recording."
+  },
+  {
+   "id": "qwen-design-in-woman",
+   "label": "Indian English, light accent — woman in her forties (a voice described in words)",
+   "group": "in",
+   "sex": "f",
+   "model": "qwen-design",
+   "describe": "An Indian woman in her forties with a light, educated Indian English accent; calm, confident and clear, like a radio presenter; a clean studio recording."
+  },
+  {
+   "id": "qwen-design-in-man",
+   "label": "Indian English, light accent — man in his forties (a voice described in words)",
+   "group": "in",
+   "sex": "m",
+   "model": "qwen-design",
+   "describe": "An Indian man in his forties with a light, educated Indian English accent; calm, deep and clear, like a radio presenter; a clean studio recording."
+  },
+  {
+   "id": "qwen-design-in-woman-older",
+   "label": "Indian English, light accent — woman in her sixties (a voice described in words)",
+   "group": "in",
+   "sex": "f",
+   "model": "qwen-design",
+   "describe": "An Indian woman in her sixties with a light Indian English accent; gentle, measured and warm, like a teacher reading aloud; a clean studio recording."
+  },
+  {
+   "id": "qwen-design-in-man-older",
+   "label": "Indian English, light accent — man in his sixties (a voice described in words)",
+   "group": "in",
+   "sex": "m",
+   "model": "qwen-design",
+   "describe": "An Indian man in his sixties with a light Indian English accent; measured, warm and clear, like a professor reading aloud; a clean studio recording."
+  },
+  {
+   "id": "qwen-design-in-woman-standard",
+   "label": "Indian English, clear Indian accent — woman (a voice described in words)",
+   "group": "in",
+   "sex": "f",
+   "model": "qwen-design",
+   "describe": "An Indian woman in her thirties speaking clear standard Indian English with a natural Indian accent; friendly and expressive; a clean studio recording."
+  },
+  {
+   "id": "qwen-design-in-man-standard",
+   "label": "Indian English, clear Indian accent — man (a voice described in words)",
+   "group": "in",
+   "sex": "m",
+   "model": "qwen-design",
+   "describe": "An Indian man in his thirties speaking clear standard Indian English with a natural Indian accent; friendly and expressive; a clean studio recording."
+  },
+  {
+   "id": "qwen-design-us-woman",
+   "label": "General American — woman in her thirties (a voice described in words)",
+   "group": "us",
+   "sex": "f",
+   "model": "qwen-design",
+   "describe": "An American woman in her thirties with a General American accent; warm, clear and natural, like an audiobook narrator; a clean studio recording."
+  },
+  {
+   "id": "qwen-design-us-man",
+   "label": "General American — man in his thirties (a voice described in words)",
+   "group": "us",
+   "sex": "m",
+   "model": "qwen-design",
+   "describe": "An American man in his thirties with a General American accent; warm, clear and natural, like an audiobook narrator; a clean studio recording."
+  },
+  {
+   "id": "qwen-design-us-woman-older",
+   "label": "General American — woman in her sixties (a voice described in words)",
+   "group": "us",
+   "sex": "f",
+   "model": "qwen-design",
+   "describe": "An American woman in her sixties with a General American accent; kind, calm and measured; a clean studio recording."
+  },
+  {
+   "id": "qwen-design-us-man-older",
+   "label": "General American — man in his sixties (a voice described in words)",
+   "group": "us",
+   "sex": "m",
+   "model": "qwen-design",
+   "describe": "An American man in his sixties with a General American accent; deep, calm and measured, like a documentary narrator; a clean studio recording."
+  },
+  {
+   "id": "qwen-design-uk-woman",
+   "label": "Southern English (RP) — woman in her thirties (a voice described in words)",
+   "group": "uk",
+   "sex": "f",
+   "model": "qwen-design",
+   "describe": "An English woman in her thirties with a Received Pronunciation accent from the south of England; clear, poised and warm; a clean studio recording."
+  },
+  {
+   "id": "qwen-design-uk-man",
+   "label": "Southern English (RP) — man in his thirties (a voice described in words)",
+   "group": "uk",
+   "sex": "m",
+   "model": "qwen-design",
+   "describe": "An English man in his thirties with a Received Pronunciation accent from the south of England; clear, poised and warm; a clean studio recording."
+  },
+  {
+   "id": "qwen-design-uk-woman-older",
+   "label": "Southern English (RP) — woman in her sixties (a voice described in words)",
+   "group": "uk",
+   "sex": "f",
+   "model": "qwen-design",
+   "describe": "An English woman in her sixties with a Received Pronunciation accent; gentle, measured and articulate; a clean studio recording."
+  },
+  {
+   "id": "qwen-design-uk-man-older",
+   "label": "Southern English (RP) — man in his sixties (a voice described in words)",
+   "group": "uk",
+   "sex": "m",
+   "model": "qwen-design",
+   "describe": "An English man in his sixties with a Received Pronunciation accent; deep, measured and articulate, like a BBC presenter; a clean studio recording."
+  },
+  {
+   "id": "qwen-design-scottish-woman",
+   "label": "Scottish — woman (a voice described in words)",
+   "group": "uk",
+   "sex": "f",
+   "model": "qwen-design",
+   "describe": "A Scottish woman in her thirties with a soft Edinburgh accent; clear and friendly; a clean studio recording."
+  },
+  {
+   "id": "qwen-design-irish-man",
+   "label": "Irish — man (a voice described in words)",
+   "group": "uk",
+   "sex": "m",
+   "model": "qwen-design",
+   "describe": "An Irish man in his thirties with a gentle Dublin accent; clear and friendly; a clean studio recording."
+  },
+  {
+   "id": "qwen-design-au-woman",
+   "label": "Australian — woman (a voice described in words)",
+   "group": "world",
+   "sex": "f",
+   "model": "qwen-design",
+   "describe": "An Australian woman in her thirties with a natural Australian accent; bright, clear and friendly; a clean studio recording."
+  },
+  {
+   "id": "qwen-design-au-man",
+   "label": "Australian — man (a voice described in words)",
+   "group": "world",
+   "sex": "m",
+   "model": "qwen-design",
+   "describe": "An Australian man in his thirties with a natural Australian accent; relaxed, clear and friendly; a clean studio recording."
+  },
+  {
+   "id": "qwen-17b-aiden",
+   "label": "Aiden — sunny American man, clear midrange",
+   "group": "us",
+   "sex": "m",
+   "model": "qwen-1.7b",
+   "speaker": "Aiden"
+  },
+  {
+   "id": "qwen-17b-ryan",
+   "label": "Ryan — dynamic man, strong rhythm (native English)",
+   "group": "any",
+   "sex": "m",
+   "model": "qwen-1.7b",
+   "speaker": "Ryan"
+  },
+  {
+   "id": "qwen-17b-vivian",
+   "label": "Vivian — bright, slightly edgy young woman (native Chinese)",
+   "group": "any",
+   "sex": "f",
+   "model": "qwen-1.7b",
+   "speaker": "Vivian"
+  },
+  {
+   "id": "qwen-17b-serena",
+   "label": "Serena — warm, gentle young woman (native Chinese)",
+   "group": "any",
+   "sex": "f",
+   "model": "qwen-1.7b",
+   "speaker": "Serena"
+  },
+  {
+   "id": "qwen-17b-uncle-fu",
+   "label": "Uncle Fu — seasoned man, low and mellow (native Chinese)",
+   "group": "any",
+   "sex": "m",
+   "model": "qwen-1.7b",
+   "speaker": "Uncle_Fu"
+  },
+  {
+   "id": "qwen-17b-dylan",
+   "label": "Dylan — youthful Beijing man (native Chinese)",
+   "group": "any",
+   "sex": "m",
+   "model": "qwen-1.7b",
+   "speaker": "Dylan"
+  },
+  {
+   "id": "qwen-17b-eric",
+   "label": "Eric — lively Chengdu man, slightly husky (native Chinese)",
+   "group": "any",
+   "sex": "m",
+   "model": "qwen-1.7b",
+   "speaker": "Eric"
+  },
+  {
+   "id": "qwen-17b-ono-anna",
+   "label": "Ono Anna — playful Japanese woman (native Japanese)",
+   "group": "any",
+   "sex": "f",
+   "model": "qwen-1.7b",
+   "speaker": "Ono_Anna"
+  },
+  {
+   "id": "qwen-17b-sohee",
+   "label": "Sohee — warm Korean woman (native Korean)",
+   "group": "any",
+   "sex": "f",
+   "model": "qwen-1.7b",
+   "speaker": "Sohee"
+  },
+  {
+   "id": "qwen-06b-aiden",
+   "label": "Aiden — sunny American man, clear midrange",
+   "group": "us",
+   "sex": "m",
+   "model": "qwen-0.6b",
+   "speaker": "Aiden"
+  },
+  {
+   "id": "qwen-06b-ryan",
+   "label": "Ryan — dynamic man, strong rhythm (native English)",
+   "group": "any",
+   "sex": "m",
+   "model": "qwen-0.6b",
+   "speaker": "Ryan"
+  },
+  {
+   "id": "qwen-06b-vivian",
+   "label": "Vivian — bright, slightly edgy young woman (native Chinese)",
+   "group": "any",
+   "sex": "f",
+   "model": "qwen-0.6b",
+   "speaker": "Vivian"
+  },
+  {
+   "id": "qwen-06b-serena",
+   "label": "Serena — warm, gentle young woman (native Chinese)",
+   "group": "any",
+   "sex": "f",
+   "model": "qwen-0.6b",
+   "speaker": "Serena"
+  },
+  {
+   "id": "qwen-06b-uncle-fu",
+   "label": "Uncle Fu — seasoned man, low and mellow (native Chinese)",
+   "group": "any",
+   "sex": "m",
+   "model": "qwen-0.6b",
+   "speaker": "Uncle_Fu"
+  },
+  {
+   "id": "qwen-06b-dylan",
+   "label": "Dylan — youthful Beijing man (native Chinese)",
+   "group": "any",
+   "sex": "m",
+   "model": "qwen-0.6b",
+   "speaker": "Dylan"
+  },
+  {
+   "id": "qwen-06b-eric",
+   "label": "Eric — lively Chengdu man, slightly husky (native Chinese)",
+   "group": "any",
+   "sex": "m",
+   "model": "qwen-0.6b",
+   "speaker": "Eric"
+  },
+  {
+   "id": "qwen-06b-ono-anna",
+   "label": "Ono Anna — playful Japanese woman (native Japanese)",
+   "group": "any",
+   "sex": "f",
+   "model": "qwen-0.6b",
+   "speaker": "Ono_Anna"
+  },
+  {
+   "id": "qwen-06b-sohee",
+   "label": "Sohee — warm Korean woman (native Korean)",
+   "group": "any",
+   "sex": "f",
+   "model": "qwen-0.6b",
+   "speaker": "Sohee"
+  },
+  {
+   "id": "veena-kavya",
+   "label": "Kavya — Indian voice (Veena)",
+   "group": "in",
+   "sex": "",
+   "model": "veena",
+   "voice": "kavya"
+  },
+  {
+   "id": "veena-agastya",
+   "label": "Agastya — Indian voice (Veena)",
+   "group": "in",
+   "sex": "",
+   "model": "veena",
+   "voice": "agastya"
+  },
+  {
+   "id": "veena-maitri",
+   "label": "Maitri — Indian voice (Veena)",
+   "group": "in",
+   "sex": "",
+   "model": "veena",
+   "voice": "maitri"
+  },
+  {
+   "id": "veena-vinaya",
+   "label": "Vinaya — Indian voice (Veena)",
+   "group": "in",
+   "sex": "",
+   "model": "veena",
+   "voice": "vinaya"
+  },
+  {
    "id": "kokoro-af_heart",
    "label": "Heart — woman (Kokoro’s grade A)",
    "group": "us",
@@ -1859,6 +2517,486 @@
    "lang": "a"
   },
   {
+   "id": "omni-indian-f-young",
+   "label": "Indian accent — young woman",
+   "group": "in",
+   "sex": "f",
+   "model": "omnivoice",
+   "describe": "female, young adult, indian accent"
+  },
+  {
+   "id": "omni-indian-f-middle",
+   "label": "Indian accent — middle-aged woman",
+   "group": "in",
+   "sex": "f",
+   "model": "omnivoice",
+   "describe": "female, middle-aged, indian accent"
+  },
+  {
+   "id": "omni-indian-f-older",
+   "label": "Indian accent — older woman",
+   "group": "in",
+   "sex": "f",
+   "model": "omnivoice",
+   "describe": "female, elderly, indian accent"
+  },
+  {
+   "id": "omni-indian-m-young",
+   "label": "Indian accent — young man",
+   "group": "in",
+   "sex": "m",
+   "model": "omnivoice",
+   "describe": "male, young adult, indian accent"
+  },
+  {
+   "id": "omni-indian-m-middle",
+   "label": "Indian accent — middle-aged man",
+   "group": "in",
+   "sex": "m",
+   "model": "omnivoice",
+   "describe": "male, middle-aged, indian accent"
+  },
+  {
+   "id": "omni-indian-m-older",
+   "label": "Indian accent — older man",
+   "group": "in",
+   "sex": "m",
+   "model": "omnivoice",
+   "describe": "male, elderly, indian accent"
+  },
+  {
+   "id": "omni-american-f-young",
+   "label": "American accent — young woman",
+   "group": "us",
+   "sex": "f",
+   "model": "omnivoice",
+   "describe": "female, young adult, american accent"
+  },
+  {
+   "id": "omni-american-f-middle",
+   "label": "American accent — middle-aged woman",
+   "group": "us",
+   "sex": "f",
+   "model": "omnivoice",
+   "describe": "female, middle-aged, american accent"
+  },
+  {
+   "id": "omni-american-f-older",
+   "label": "American accent — older woman",
+   "group": "us",
+   "sex": "f",
+   "model": "omnivoice",
+   "describe": "female, elderly, american accent"
+  },
+  {
+   "id": "omni-american-m-young",
+   "label": "American accent — young man",
+   "group": "us",
+   "sex": "m",
+   "model": "omnivoice",
+   "describe": "male, young adult, american accent"
+  },
+  {
+   "id": "omni-american-m-middle",
+   "label": "American accent — middle-aged man",
+   "group": "us",
+   "sex": "m",
+   "model": "omnivoice",
+   "describe": "male, middle-aged, american accent"
+  },
+  {
+   "id": "omni-american-m-older",
+   "label": "American accent — older man",
+   "group": "us",
+   "sex": "m",
+   "model": "omnivoice",
+   "describe": "male, elderly, american accent"
+  },
+  {
+   "id": "omni-british-f-young",
+   "label": "British accent — young woman",
+   "group": "uk",
+   "sex": "f",
+   "model": "omnivoice",
+   "describe": "female, young adult, british accent"
+  },
+  {
+   "id": "omni-british-f-middle",
+   "label": "British accent — middle-aged woman",
+   "group": "uk",
+   "sex": "f",
+   "model": "omnivoice",
+   "describe": "female, middle-aged, british accent"
+  },
+  {
+   "id": "omni-british-f-older",
+   "label": "British accent — older woman",
+   "group": "uk",
+   "sex": "f",
+   "model": "omnivoice",
+   "describe": "female, elderly, british accent"
+  },
+  {
+   "id": "omni-british-m-young",
+   "label": "British accent — young man",
+   "group": "uk",
+   "sex": "m",
+   "model": "omnivoice",
+   "describe": "male, young adult, british accent"
+  },
+  {
+   "id": "omni-british-m-middle",
+   "label": "British accent — middle-aged man",
+   "group": "uk",
+   "sex": "m",
+   "model": "omnivoice",
+   "describe": "male, middle-aged, british accent"
+  },
+  {
+   "id": "omni-british-m-older",
+   "label": "British accent — older man",
+   "group": "uk",
+   "sex": "m",
+   "model": "omnivoice",
+   "describe": "male, elderly, british accent"
+  },
+  {
+   "id": "omni-australian-f-young",
+   "label": "Australian accent — young woman",
+   "group": "world",
+   "sex": "f",
+   "model": "omnivoice",
+   "describe": "female, young adult, australian accent"
+  },
+  {
+   "id": "omni-australian-f-middle",
+   "label": "Australian accent — middle-aged woman",
+   "group": "world",
+   "sex": "f",
+   "model": "omnivoice",
+   "describe": "female, middle-aged, australian accent"
+  },
+  {
+   "id": "omni-australian-f-older",
+   "label": "Australian accent — older woman",
+   "group": "world",
+   "sex": "f",
+   "model": "omnivoice",
+   "describe": "female, elderly, australian accent"
+  },
+  {
+   "id": "omni-australian-m-young",
+   "label": "Australian accent — young man",
+   "group": "world",
+   "sex": "m",
+   "model": "omnivoice",
+   "describe": "male, young adult, australian accent"
+  },
+  {
+   "id": "omni-australian-m-middle",
+   "label": "Australian accent — middle-aged man",
+   "group": "world",
+   "sex": "m",
+   "model": "omnivoice",
+   "describe": "male, middle-aged, australian accent"
+  },
+  {
+   "id": "omni-australian-m-older",
+   "label": "Australian accent — older man",
+   "group": "world",
+   "sex": "m",
+   "model": "omnivoice",
+   "describe": "male, elderly, australian accent"
+  },
+  {
+   "id": "omni-canadian-f-young",
+   "label": "Canadian accent — young woman",
+   "group": "world",
+   "sex": "f",
+   "model": "omnivoice",
+   "describe": "female, young adult, canadian accent"
+  },
+  {
+   "id": "omni-canadian-f-middle",
+   "label": "Canadian accent — middle-aged woman",
+   "group": "world",
+   "sex": "f",
+   "model": "omnivoice",
+   "describe": "female, middle-aged, canadian accent"
+  },
+  {
+   "id": "omni-canadian-f-older",
+   "label": "Canadian accent — older woman",
+   "group": "world",
+   "sex": "f",
+   "model": "omnivoice",
+   "describe": "female, elderly, canadian accent"
+  },
+  {
+   "id": "omni-canadian-m-young",
+   "label": "Canadian accent — young man",
+   "group": "world",
+   "sex": "m",
+   "model": "omnivoice",
+   "describe": "male, young adult, canadian accent"
+  },
+  {
+   "id": "omni-canadian-m-middle",
+   "label": "Canadian accent — middle-aged man",
+   "group": "world",
+   "sex": "m",
+   "model": "omnivoice",
+   "describe": "male, middle-aged, canadian accent"
+  },
+  {
+   "id": "omni-canadian-m-older",
+   "label": "Canadian accent — older man",
+   "group": "world",
+   "sex": "m",
+   "model": "omnivoice",
+   "describe": "male, elderly, canadian accent"
+  },
+  {
+   "id": "omni-chinese-f",
+   "label": "Chinese accent — young woman",
+   "group": "world",
+   "sex": "f",
+   "model": "omnivoice",
+   "describe": "female, young adult, chinese accent"
+  },
+  {
+   "id": "omni-chinese-m",
+   "label": "Chinese accent — young man",
+   "group": "world",
+   "sex": "m",
+   "model": "omnivoice",
+   "describe": "male, young adult, chinese accent"
+  },
+  {
+   "id": "omni-japanese-f",
+   "label": "Japanese accent — young woman",
+   "group": "world",
+   "sex": "f",
+   "model": "omnivoice",
+   "describe": "female, young adult, japanese accent"
+  },
+  {
+   "id": "omni-japanese-m",
+   "label": "Japanese accent — young man",
+   "group": "world",
+   "sex": "m",
+   "model": "omnivoice",
+   "describe": "male, young adult, japanese accent"
+  },
+  {
+   "id": "omni-korean-f",
+   "label": "Korean accent — young woman",
+   "group": "world",
+   "sex": "f",
+   "model": "omnivoice",
+   "describe": "female, young adult, korean accent"
+  },
+  {
+   "id": "omni-korean-m",
+   "label": "Korean accent — young man",
+   "group": "world",
+   "sex": "m",
+   "model": "omnivoice",
+   "describe": "male, young adult, korean accent"
+  },
+  {
+   "id": "omni-russian-f",
+   "label": "Russian accent — young woman",
+   "group": "world",
+   "sex": "f",
+   "model": "omnivoice",
+   "describe": "female, young adult, russian accent"
+  },
+  {
+   "id": "omni-russian-m",
+   "label": "Russian accent — young man",
+   "group": "world",
+   "sex": "m",
+   "model": "omnivoice",
+   "describe": "male, young adult, russian accent"
+  },
+  {
+   "id": "omni-portuguese-f",
+   "label": "Portuguese accent — young woman",
+   "group": "world",
+   "sex": "f",
+   "model": "omnivoice",
+   "describe": "female, young adult, portuguese accent"
+  },
+  {
+   "id": "omni-portuguese-m",
+   "label": "Portuguese accent — young man",
+   "group": "world",
+   "sex": "m",
+   "model": "omnivoice",
+   "describe": "male, young adult, portuguese accent"
+  },
+  {
+   "id": "voxcpm2-design-in-woman-young",
+   "label": "Indian English, light accent — young woman (a voice described in words)",
+   "group": "in",
+   "sex": "f",
+   "model": "voxcpm2",
+   "describe": "A young Indian woman with a light, neutral Indian English accent, clear, warm and articulate"
+  },
+  {
+   "id": "voxcpm2-design-in-man-young",
+   "label": "Indian English, light accent — young man (a voice described in words)",
+   "group": "in",
+   "sex": "m",
+   "model": "voxcpm2",
+   "describe": "A young Indian man with a light, neutral Indian English accent, clear, friendly and articulate"
+  },
+  {
+   "id": "voxcpm2-design-in-woman",
+   "label": "Indian English, light accent — woman in her forties (a voice described in words)",
+   "group": "in",
+   "sex": "f",
+   "model": "voxcpm2",
+   "describe": "An Indian woman in her forties with a light, educated Indian English accent, calm and confident"
+  },
+  {
+   "id": "voxcpm2-design-in-man",
+   "label": "Indian English, light accent — man in his forties (a voice described in words)",
+   "group": "in",
+   "sex": "m",
+   "model": "voxcpm2",
+   "describe": "An Indian man in his forties with a light, educated Indian English accent, calm and deep"
+  },
+  {
+   "id": "voxcpm2-design-us-woman",
+   "label": "General American — woman (a voice described in words)",
+   "group": "us",
+   "sex": "f",
+   "model": "voxcpm2",
+   "describe": "An American woman in her thirties with a General American accent, warm and clear"
+  },
+  {
+   "id": "voxcpm2-design-us-man",
+   "label": "General American — man (a voice described in words)",
+   "group": "us",
+   "sex": "m",
+   "model": "voxcpm2",
+   "describe": "An American man in his thirties with a General American accent, warm and clear"
+  },
+  {
+   "id": "voxcpm2-design-uk-woman",
+   "label": "Southern English (RP) — woman (a voice described in words)",
+   "group": "uk",
+   "sex": "f",
+   "model": "voxcpm2",
+   "describe": "An English woman in her thirties with a Received Pronunciation accent, clear and poised"
+  },
+  {
+   "id": "voxcpm2-design-uk-man",
+   "label": "Southern English (RP) — man (a voice described in words)",
+   "group": "uk",
+   "sex": "m",
+   "model": "voxcpm2",
+   "describe": "An English man in his thirties with a Received Pronunciation accent, clear and poised"
+  },
+  {
+   "id": "voxcpm2-clip-imran",
+   "label": "Imran — man, taken from a 10-second recording (CC0 voice donation)",
+   "group": "in",
+   "sex": "m",
+   "model": "voxcpm2",
+   "clip": {
+    "repo": "kyutai/tts-voices",
+    "rev": "323332d33f997de8394f24a193e1a76df720e01a",
+    "file": "voice-donations/Imran_from_I_India_enhanced.wav"
+   }
+  },
+  {
+   "id": "voxcpm2-clip-indian-guy",
+   "label": "Indian guy — man, taken from a 10-second recording (CC0 voice donation)",
+   "group": "in",
+   "sex": "m",
+   "model": "voxcpm2",
+   "clip": {
+    "repo": "kyutai/tts-voices",
+    "rev": "323332d33f997de8394f24a193e1a76df720e01a",
+    "file": "voice-donations/Indian_guy_enhanced.wav"
+   }
+  },
+  {
+   "id": "voxcpm2-clip-marshal",
+   "label": "Marshal — man, taken from a 10-second recording (CC0 voice donation)",
+   "group": "in",
+   "sex": "m",
+   "model": "voxcpm2",
+   "clip": {
+    "repo": "kyutai/tts-voices",
+    "rev": "323332d33f997de8394f24a193e1a76df720e01a",
+    "file": "voice-donations/Marshal_Indian_enhanced.wav"
+   }
+  },
+  {
+   "id": "voxcpm2-clip-siddh",
+   "label": "Siddh — man, taken from a 10-second recording (CC0 voice donation)",
+   "group": "in",
+   "sex": "m",
+   "model": "voxcpm2",
+   "clip": {
+    "repo": "kyutai/tts-voices",
+    "rev": "323332d33f997de8394f24a193e1a76df720e01a",
+    "file": "voice-donations/Siddh_Indian_enhanced.wav"
+   }
+  },
+  {
+   "id": "voxcpm2-clip-vinith",
+   "label": "Vinith — man, taken from a 10-second recording (CC0 voice donation)",
+   "group": "in",
+   "sex": "m",
+   "model": "voxcpm2",
+   "clip": {
+    "repo": "kyutai/tts-voices",
+    "rev": "323332d33f997de8394f24a193e1a76df720e01a",
+    "file": "voice-donations/Vinith___English_India_enhanced.wav"
+   }
+  },
+  {
+   "id": "voxcpm2-clip-vctk-p248",
+   "label": "VCTK p248 — woman, taken from a 10-second recording (VCTK, CC BY 4.0)",
+   "group": "in",
+   "sex": "f",
+   "model": "voxcpm2",
+   "clip": {
+    "repo": "kyutai/tts-voices",
+    "rev": "323332d33f997de8394f24a193e1a76df720e01a",
+    "file": "vctk/p248_023_enhanced.wav"
+   }
+  },
+  {
+   "id": "voxcpm2-clip-vctk-p251",
+   "label": "VCTK p251 — man, taken from a 10-second recording (VCTK, CC BY 4.0)",
+   "group": "in",
+   "sex": "m",
+   "model": "voxcpm2",
+   "clip": {
+    "repo": "kyutai/tts-voices",
+    "rev": "323332d33f997de8394f24a193e1a76df720e01a",
+    "file": "vctk/p251_023_enhanced.wav"
+   }
+  },
+  {
+   "id": "voxcpm2-clip-vctk-p376",
+   "label": "VCTK p376 — man, taken from a 10-second recording (VCTK, CC BY 4.0)",
+   "group": "in",
+   "sex": "m",
+   "model": "voxcpm2",
+   "clip": {
+    "repo": "kyutai/tts-voices",
+    "rev": "323332d33f997de8394f24a193e1a76df720e01a",
+    "file": "vctk/p376_023_enhanced.wav"
+   }
+  },
+  {
    "id": "melo-en-india",
    "label": "MeloTTS Indian English — woman",
    "group": "in",
@@ -1897,6 +3035,228 @@
    "sex": "f",
    "model": "melo",
    "speaker": 4
+  },
+  {
+   "id": "indictiny-female",
+   "label": "Indic Tiny — woman, Indian English (IISc SYSPIN speaker)",
+   "group": "in",
+   "sex": "f",
+   "model": "indictiny",
+   "voice": "female"
+  },
+  {
+   "id": "indictiny-male",
+   "label": "Indic Tiny — man, Indian English (IISc SYSPIN speaker)",
+   "group": "in",
+   "sex": "m",
+   "model": "indictiny",
+   "voice": "male"
+  },
+  {
+   "id": "chatterbox-default",
+   "label": "Chatterbox’s own voice",
+   "group": "any",
+   "sex": "",
+   "model": "chatterbox"
+  },
+  {
+   "id": "chatterbox-clip-imran",
+   "label": "Imran — man, taken from a 10-second recording (CC0 voice donation)",
+   "group": "in",
+   "sex": "m",
+   "model": "chatterbox",
+   "clip": {
+    "repo": "kyutai/tts-voices",
+    "rev": "323332d33f997de8394f24a193e1a76df720e01a",
+    "file": "voice-donations/Imran_from_I_India_enhanced.wav"
+   }
+  },
+  {
+   "id": "chatterbox-clip-indian-guy",
+   "label": "Indian guy — man, taken from a 10-second recording (CC0 voice donation)",
+   "group": "in",
+   "sex": "m",
+   "model": "chatterbox",
+   "clip": {
+    "repo": "kyutai/tts-voices",
+    "rev": "323332d33f997de8394f24a193e1a76df720e01a",
+    "file": "voice-donations/Indian_guy_enhanced.wav"
+   }
+  },
+  {
+   "id": "chatterbox-clip-marshal",
+   "label": "Marshal — man, taken from a 10-second recording (CC0 voice donation)",
+   "group": "in",
+   "sex": "m",
+   "model": "chatterbox",
+   "clip": {
+    "repo": "kyutai/tts-voices",
+    "rev": "323332d33f997de8394f24a193e1a76df720e01a",
+    "file": "voice-donations/Marshal_Indian_enhanced.wav"
+   }
+  },
+  {
+   "id": "chatterbox-clip-siddh",
+   "label": "Siddh — man, taken from a 10-second recording (CC0 voice donation)",
+   "group": "in",
+   "sex": "m",
+   "model": "chatterbox",
+   "clip": {
+    "repo": "kyutai/tts-voices",
+    "rev": "323332d33f997de8394f24a193e1a76df720e01a",
+    "file": "voice-donations/Siddh_Indian_enhanced.wav"
+   }
+  },
+  {
+   "id": "chatterbox-clip-vinith",
+   "label": "Vinith — man, taken from a 10-second recording (CC0 voice donation)",
+   "group": "in",
+   "sex": "m",
+   "model": "chatterbox",
+   "clip": {
+    "repo": "kyutai/tts-voices",
+    "rev": "323332d33f997de8394f24a193e1a76df720e01a",
+    "file": "voice-donations/Vinith___English_India_enhanced.wav"
+   }
+  },
+  {
+   "id": "chatterbox-clip-vctk-p248",
+   "label": "VCTK p248 — woman, taken from a 10-second recording (VCTK, CC BY 4.0)",
+   "group": "in",
+   "sex": "f",
+   "model": "chatterbox",
+   "clip": {
+    "repo": "kyutai/tts-voices",
+    "rev": "323332d33f997de8394f24a193e1a76df720e01a",
+    "file": "vctk/p248_023_enhanced.wav"
+   }
+  },
+  {
+   "id": "chatterbox-clip-vctk-p251",
+   "label": "VCTK p251 — man, taken from a 10-second recording (VCTK, CC BY 4.0)",
+   "group": "in",
+   "sex": "m",
+   "model": "chatterbox",
+   "clip": {
+    "repo": "kyutai/tts-voices",
+    "rev": "323332d33f997de8394f24a193e1a76df720e01a",
+    "file": "vctk/p251_023_enhanced.wav"
+   }
+  },
+  {
+   "id": "chatterbox-clip-vctk-p376",
+   "label": "VCTK p376 — man, taken from a 10-second recording (VCTK, CC BY 4.0)",
+   "group": "in",
+   "sex": "m",
+   "model": "chatterbox",
+   "clip": {
+    "repo": "kyutai/tts-voices",
+    "rev": "323332d33f997de8394f24a193e1a76df720e01a",
+    "file": "vctk/p376_023_enhanced.wav"
+   }
+  },
+  {
+   "id": "chatterbox-turbo-default",
+   "label": "Chatterbox Turbo’s own voice",
+   "group": "any",
+   "sex": "",
+   "model": "chatterbox-turbo"
+  },
+  {
+   "id": "chatterbox-turbo-clip-imran",
+   "label": "Imran — man, taken from a 10-second recording (CC0 voice donation)",
+   "group": "in",
+   "sex": "m",
+   "model": "chatterbox-turbo",
+   "clip": {
+    "repo": "kyutai/tts-voices",
+    "rev": "323332d33f997de8394f24a193e1a76df720e01a",
+    "file": "voice-donations/Imran_from_I_India_enhanced.wav"
+   }
+  },
+  {
+   "id": "chatterbox-turbo-clip-indian-guy",
+   "label": "Indian guy — man, taken from a 10-second recording (CC0 voice donation)",
+   "group": "in",
+   "sex": "m",
+   "model": "chatterbox-turbo",
+   "clip": {
+    "repo": "kyutai/tts-voices",
+    "rev": "323332d33f997de8394f24a193e1a76df720e01a",
+    "file": "voice-donations/Indian_guy_enhanced.wav"
+   }
+  },
+  {
+   "id": "chatterbox-turbo-clip-marshal",
+   "label": "Marshal — man, taken from a 10-second recording (CC0 voice donation)",
+   "group": "in",
+   "sex": "m",
+   "model": "chatterbox-turbo",
+   "clip": {
+    "repo": "kyutai/tts-voices",
+    "rev": "323332d33f997de8394f24a193e1a76df720e01a",
+    "file": "voice-donations/Marshal_Indian_enhanced.wav"
+   }
+  },
+  {
+   "id": "chatterbox-turbo-clip-siddh",
+   "label": "Siddh — man, taken from a 10-second recording (CC0 voice donation)",
+   "group": "in",
+   "sex": "m",
+   "model": "chatterbox-turbo",
+   "clip": {
+    "repo": "kyutai/tts-voices",
+    "rev": "323332d33f997de8394f24a193e1a76df720e01a",
+    "file": "voice-donations/Siddh_Indian_enhanced.wav"
+   }
+  },
+  {
+   "id": "chatterbox-turbo-clip-vinith",
+   "label": "Vinith — man, taken from a 10-second recording (CC0 voice donation)",
+   "group": "in",
+   "sex": "m",
+   "model": "chatterbox-turbo",
+   "clip": {
+    "repo": "kyutai/tts-voices",
+    "rev": "323332d33f997de8394f24a193e1a76df720e01a",
+    "file": "voice-donations/Vinith___English_India_enhanced.wav"
+   }
+  },
+  {
+   "id": "chatterbox-turbo-clip-vctk-p248",
+   "label": "VCTK p248 — woman, taken from a 10-second recording (VCTK, CC BY 4.0)",
+   "group": "in",
+   "sex": "f",
+   "model": "chatterbox-turbo",
+   "clip": {
+    "repo": "kyutai/tts-voices",
+    "rev": "323332d33f997de8394f24a193e1a76df720e01a",
+    "file": "vctk/p248_023_enhanced.wav"
+   }
+  },
+  {
+   "id": "chatterbox-turbo-clip-vctk-p251",
+   "label": "VCTK p251 — man, taken from a 10-second recording (VCTK, CC BY 4.0)",
+   "group": "in",
+   "sex": "m",
+   "model": "chatterbox-turbo",
+   "clip": {
+    "repo": "kyutai/tts-voices",
+    "rev": "323332d33f997de8394f24a193e1a76df720e01a",
+    "file": "vctk/p251_023_enhanced.wav"
+   }
+  },
+  {
+   "id": "chatterbox-turbo-clip-vctk-p376",
+   "label": "VCTK p376 — man, taken from a 10-second recording (VCTK, CC BY 4.0)",
+   "group": "in",
+   "sex": "m",
+   "model": "chatterbox-turbo",
+   "clip": {
+    "repo": "kyutai/tts-voices",
+    "rev": "323332d33f997de8394f24a193e1a76df720e01a",
+    "file": "vctk/p376_023_enhanced.wav"
+   }
   },
   {
    "id": "xtts-claribel-dervla",
@@ -2459,6 +3819,436 @@
    }
   },
   {
+   "id": "pocket-clip-imran",
+   "label": "Imran — man, taken from a 10-second recording (CC0 voice donation)",
+   "group": "in",
+   "sex": "m",
+   "model": "pocket-clone",
+   "clip": {
+    "repo": "kyutai/tts-voices",
+    "rev": "323332d33f997de8394f24a193e1a76df720e01a",
+    "file": "voice-donations/Imran_from_I_India_enhanced.wav"
+   }
+  },
+  {
+   "id": "pocket-clip-indian-guy",
+   "label": "Indian guy — man, taken from a 10-second recording (CC0 voice donation)",
+   "group": "in",
+   "sex": "m",
+   "model": "pocket-clone",
+   "clip": {
+    "repo": "kyutai/tts-voices",
+    "rev": "323332d33f997de8394f24a193e1a76df720e01a",
+    "file": "voice-donations/Indian_guy_enhanced.wav"
+   }
+  },
+  {
+   "id": "pocket-clip-marshal",
+   "label": "Marshal — man, taken from a 10-second recording (CC0 voice donation)",
+   "group": "in",
+   "sex": "m",
+   "model": "pocket-clone",
+   "clip": {
+    "repo": "kyutai/tts-voices",
+    "rev": "323332d33f997de8394f24a193e1a76df720e01a",
+    "file": "voice-donations/Marshal_Indian_enhanced.wav"
+   }
+  },
+  {
+   "id": "pocket-clip-siddh",
+   "label": "Siddh — man, taken from a 10-second recording (CC0 voice donation)",
+   "group": "in",
+   "sex": "m",
+   "model": "pocket-clone",
+   "clip": {
+    "repo": "kyutai/tts-voices",
+    "rev": "323332d33f997de8394f24a193e1a76df720e01a",
+    "file": "voice-donations/Siddh_Indian_enhanced.wav"
+   }
+  },
+  {
+   "id": "pocket-clip-vinith",
+   "label": "Vinith — man, taken from a 10-second recording (CC0 voice donation)",
+   "group": "in",
+   "sex": "m",
+   "model": "pocket-clone",
+   "clip": {
+    "repo": "kyutai/tts-voices",
+    "rev": "323332d33f997de8394f24a193e1a76df720e01a",
+    "file": "voice-donations/Vinith___English_India_enhanced.wav"
+   }
+  },
+  {
+   "id": "pocket-clip-vctk-p248",
+   "label": "VCTK p248 — woman, taken from a 10-second recording (VCTK, CC BY 4.0)",
+   "group": "in",
+   "sex": "f",
+   "model": "pocket-clone",
+   "clip": {
+    "repo": "kyutai/tts-voices",
+    "rev": "323332d33f997de8394f24a193e1a76df720e01a",
+    "file": "vctk/p248_023_enhanced.wav"
+   }
+  },
+  {
+   "id": "pocket-clip-vctk-p251",
+   "label": "VCTK p251 — man, taken from a 10-second recording (VCTK, CC BY 4.0)",
+   "group": "in",
+   "sex": "m",
+   "model": "pocket-clone",
+   "clip": {
+    "repo": "kyutai/tts-voices",
+    "rev": "323332d33f997de8394f24a193e1a76df720e01a",
+    "file": "vctk/p251_023_enhanced.wav"
+   }
+  },
+  {
+   "id": "pocket-clip-vctk-p376",
+   "label": "VCTK p376 — man, taken from a 10-second recording (VCTK, CC BY 4.0)",
+   "group": "in",
+   "sex": "m",
+   "model": "pocket-clone",
+   "clip": {
+    "repo": "kyutai/tts-voices",
+    "rev": "323332d33f997de8394f24a193e1a76df720e01a",
+    "file": "vctk/p376_023_enhanced.wav"
+   }
+  },
+  {
+   "id": "bark-hi-0",
+   "label": "Preset hi_speaker_0 — woman (a high voice), Hindi speaker reading English (Indian accent)",
+   "group": "in",
+   "sex": "f",
+   "model": "bark",
+   "voice": "v2/hi_speaker_0"
+  },
+  {
+   "id": "bark-hi-1",
+   "label": "Preset hi_speaker_1 — a middle voice, Hindi speaker reading English (Indian accent)",
+   "group": "in",
+   "sex": "",
+   "model": "bark",
+   "voice": "v2/hi_speaker_1"
+  },
+  {
+   "id": "bark-hi-2",
+   "label": "Preset hi_speaker_2 — man (a deep voice), Hindi speaker reading English (Indian accent)",
+   "group": "in",
+   "sex": "m",
+   "model": "bark",
+   "voice": "v2/hi_speaker_2"
+  },
+  {
+   "id": "bark-hi-3",
+   "label": "Preset hi_speaker_3 — woman (a high voice), Hindi speaker reading English (Indian accent)",
+   "group": "in",
+   "sex": "f",
+   "model": "bark",
+   "voice": "v2/hi_speaker_3"
+  },
+  {
+   "id": "bark-hi-4",
+   "label": "Preset hi_speaker_4 — woman (a high voice), Hindi speaker reading English (Indian accent)",
+   "group": "in",
+   "sex": "f",
+   "model": "bark",
+   "voice": "v2/hi_speaker_4"
+  },
+  {
+   "id": "bark-hi-5",
+   "label": "Preset hi_speaker_5 — man (a deep voice), Hindi speaker reading English (Indian accent)",
+   "group": "in",
+   "sex": "m",
+   "model": "bark",
+   "voice": "v2/hi_speaker_5"
+  },
+  {
+   "id": "bark-hi-6",
+   "label": "Preset hi_speaker_6 — man (a deep voice), Hindi speaker reading English (Indian accent)",
+   "group": "in",
+   "sex": "m",
+   "model": "bark",
+   "voice": "v2/hi_speaker_6"
+  },
+  {
+   "id": "bark-hi-7",
+   "label": "Preset hi_speaker_7 — a middle voice, Hindi speaker reading English (Indian accent)",
+   "group": "in",
+   "sex": "",
+   "model": "bark",
+   "voice": "v2/hi_speaker_7"
+  },
+  {
+   "id": "bark-hi-8",
+   "label": "Preset hi_speaker_8 — a middle voice, Hindi speaker reading English (Indian accent)",
+   "group": "in",
+   "sex": "",
+   "model": "bark",
+   "voice": "v2/hi_speaker_8"
+  },
+  {
+   "id": "bark-hi-9",
+   "label": "Preset hi_speaker_9 — woman (a high voice), Hindi speaker reading English (Indian accent)",
+   "group": "in",
+   "sex": "f",
+   "model": "bark",
+   "voice": "v2/hi_speaker_9"
+  },
+  {
+   "id": "bark-en-0",
+   "label": "Preset en_speaker_0 — a middle voice, English speaker",
+   "group": "any",
+   "sex": "",
+   "model": "bark",
+   "voice": "v2/en_speaker_0"
+  },
+  {
+   "id": "bark-en-1",
+   "label": "Preset en_speaker_1 — a middle voice, English speaker",
+   "group": "any",
+   "sex": "",
+   "model": "bark",
+   "voice": "v2/en_speaker_1"
+  },
+  {
+   "id": "bark-en-2",
+   "label": "Preset en_speaker_2 — man (a deep voice), English speaker",
+   "group": "any",
+   "sex": "m",
+   "model": "bark",
+   "voice": "v2/en_speaker_2"
+  },
+  {
+   "id": "bark-en-3",
+   "label": "Preset en_speaker_3 — man (a deep voice), English speaker",
+   "group": "any",
+   "sex": "m",
+   "model": "bark",
+   "voice": "v2/en_speaker_3"
+  },
+  {
+   "id": "bark-en-4",
+   "label": "Preset en_speaker_4 — a middle voice, English speaker",
+   "group": "any",
+   "sex": "",
+   "model": "bark",
+   "voice": "v2/en_speaker_4"
+  },
+  {
+   "id": "bark-en-5",
+   "label": "Preset en_speaker_5 — man (a deep voice), English speaker",
+   "group": "any",
+   "sex": "m",
+   "model": "bark",
+   "voice": "v2/en_speaker_5"
+  },
+  {
+   "id": "bark-en-6",
+   "label": "Preset en_speaker_6 — man (a deep voice), English speaker",
+   "group": "any",
+   "sex": "m",
+   "model": "bark",
+   "voice": "v2/en_speaker_6"
+  },
+  {
+   "id": "bark-en-7",
+   "label": "Preset en_speaker_7 — man (a deep voice), English speaker",
+   "group": "any",
+   "sex": "m",
+   "model": "bark",
+   "voice": "v2/en_speaker_7"
+  },
+  {
+   "id": "bark-en-8",
+   "label": "Preset en_speaker_8 — a middle voice, English speaker",
+   "group": "any",
+   "sex": "",
+   "model": "bark",
+   "voice": "v2/en_speaker_8"
+  },
+  {
+   "id": "bark-en-9",
+   "label": "Preset en_speaker_9 — woman (a high voice), English speaker",
+   "group": "any",
+   "sex": "f",
+   "model": "bark",
+   "voice": "v2/en_speaker_9"
+  },
+  {
+   "id": "bark-small-hi-0",
+   "label": "Preset hi_speaker_0 — woman (a high voice), Hindi speaker reading English (Indian accent)",
+   "group": "in",
+   "sex": "f",
+   "model": "bark-small",
+   "voice": "v2/hi_speaker_0"
+  },
+  {
+   "id": "bark-small-hi-1",
+   "label": "Preset hi_speaker_1 — a middle voice, Hindi speaker reading English (Indian accent)",
+   "group": "in",
+   "sex": "",
+   "model": "bark-small",
+   "voice": "v2/hi_speaker_1"
+  },
+  {
+   "id": "bark-small-hi-2",
+   "label": "Preset hi_speaker_2 — man (a deep voice), Hindi speaker reading English (Indian accent)",
+   "group": "in",
+   "sex": "m",
+   "model": "bark-small",
+   "voice": "v2/hi_speaker_2"
+  },
+  {
+   "id": "bark-small-hi-3",
+   "label": "Preset hi_speaker_3 — woman (a high voice), Hindi speaker reading English (Indian accent)",
+   "group": "in",
+   "sex": "f",
+   "model": "bark-small",
+   "voice": "v2/hi_speaker_3"
+  },
+  {
+   "id": "bark-small-hi-4",
+   "label": "Preset hi_speaker_4 — woman (a high voice), Hindi speaker reading English (Indian accent)",
+   "group": "in",
+   "sex": "f",
+   "model": "bark-small",
+   "voice": "v2/hi_speaker_4"
+  },
+  {
+   "id": "bark-small-hi-5",
+   "label": "Preset hi_speaker_5 — man (a deep voice), Hindi speaker reading English (Indian accent)",
+   "group": "in",
+   "sex": "m",
+   "model": "bark-small",
+   "voice": "v2/hi_speaker_5"
+  },
+  {
+   "id": "bark-small-hi-6",
+   "label": "Preset hi_speaker_6 — man (a deep voice), Hindi speaker reading English (Indian accent)",
+   "group": "in",
+   "sex": "m",
+   "model": "bark-small",
+   "voice": "v2/hi_speaker_6"
+  },
+  {
+   "id": "bark-small-hi-7",
+   "label": "Preset hi_speaker_7 — a middle voice, Hindi speaker reading English (Indian accent)",
+   "group": "in",
+   "sex": "",
+   "model": "bark-small",
+   "voice": "v2/hi_speaker_7"
+  },
+  {
+   "id": "bark-small-hi-8",
+   "label": "Preset hi_speaker_8 — a middle voice, Hindi speaker reading English (Indian accent)",
+   "group": "in",
+   "sex": "",
+   "model": "bark-small",
+   "voice": "v2/hi_speaker_8"
+  },
+  {
+   "id": "bark-small-hi-9",
+   "label": "Preset hi_speaker_9 — woman (a high voice), Hindi speaker reading English (Indian accent)",
+   "group": "in",
+   "sex": "f",
+   "model": "bark-small",
+   "voice": "v2/hi_speaker_9"
+  },
+  {
+   "id": "bark-small-en-0",
+   "label": "Preset en_speaker_0 — a middle voice, English speaker",
+   "group": "any",
+   "sex": "",
+   "model": "bark-small",
+   "voice": "v2/en_speaker_0"
+  },
+  {
+   "id": "bark-small-en-1",
+   "label": "Preset en_speaker_1 — a middle voice, English speaker",
+   "group": "any",
+   "sex": "",
+   "model": "bark-small",
+   "voice": "v2/en_speaker_1"
+  },
+  {
+   "id": "bark-small-en-2",
+   "label": "Preset en_speaker_2 — man (a deep voice), English speaker",
+   "group": "any",
+   "sex": "m",
+   "model": "bark-small",
+   "voice": "v2/en_speaker_2"
+  },
+  {
+   "id": "bark-small-en-3",
+   "label": "Preset en_speaker_3 — man (a deep voice), English speaker",
+   "group": "any",
+   "sex": "m",
+   "model": "bark-small",
+   "voice": "v2/en_speaker_3"
+  },
+  {
+   "id": "bark-small-en-4",
+   "label": "Preset en_speaker_4 — a middle voice, English speaker",
+   "group": "any",
+   "sex": "",
+   "model": "bark-small",
+   "voice": "v2/en_speaker_4"
+  },
+  {
+   "id": "bark-small-en-5",
+   "label": "Preset en_speaker_5 — man (a deep voice), English speaker",
+   "group": "any",
+   "sex": "m",
+   "model": "bark-small",
+   "voice": "v2/en_speaker_5"
+  },
+  {
+   "id": "bark-small-en-6",
+   "label": "Preset en_speaker_6 — man (a deep voice), English speaker",
+   "group": "any",
+   "sex": "m",
+   "model": "bark-small",
+   "voice": "v2/en_speaker_6"
+  },
+  {
+   "id": "bark-small-en-7",
+   "label": "Preset en_speaker_7 — man (a deep voice), English speaker",
+   "group": "any",
+   "sex": "m",
+   "model": "bark-small",
+   "voice": "v2/en_speaker_7"
+  },
+  {
+   "id": "bark-small-en-8",
+   "label": "Preset en_speaker_8 — a middle voice, English speaker",
+   "group": "any",
+   "sex": "",
+   "model": "bark-small",
+   "voice": "v2/en_speaker_8"
+  },
+  {
+   "id": "bark-small-en-9",
+   "label": "Preset en_speaker_9 — woman (a high voice), English speaker",
+   "group": "any",
+   "sex": "f",
+   "model": "bark-small",
+   "voice": "v2/en_speaker_9"
+  },
+  {
+   "id": "syspin-female",
+   "label": "SYSPIN — woman, Indian English (IISc)",
+   "group": "in",
+   "sex": "f",
+   "model": "syspin-female"
+  },
+  {
+   "id": "syspin-male",
+   "label": "SYSPIN — man, Indian English (IISc)",
+   "group": "in",
+   "sex": "m",
+   "model": "syspin-male"
+  },
+  {
    "id": "pocket-alba",
    "label": "Alba",
    "group": "any",
@@ -2865,6 +4655,13 @@
    "sex": "m",
    "model": "supertonic-1",
    "voice": "M5"
+  },
+  {
+   "id": "mms-eng",
+   "label": "MMS English voice",
+   "group": "any",
+   "sex": "",
+   "model": "mms-eng"
   },
   {
    "id": "piper-en_gb-alan-low",

@@ -32,7 +32,15 @@ export default async (t, { load }) => {
   t.ok(per('kokoro').filter((v) => v.model === 'goonj').every((v) => v.lang === 'a'), 'goonj’s personas read English with the American reading (their card)');
   t.ok(per('parler').every((v) => v.describe.includes('{pace}')), 'Parler voices are described with the pace left open');
   t.ok(per('xtts').every((v) => (typeof v.speaker === 'string') !== !!v.clip), 'XTTS voices: a studio voice or a clip, never both');
-  t.ok(per('pocket').every((v) => /^[a-z_]+$/.test(v.voice)) && per('pocket').length === 21, 'Pocket TTS: its 21 English voices');
+  const pk = per('pocket').filter((v) => v.model === 'pocket'), pkc = per('pocket').filter((v) => v.model === 'pocket-clone');
+  t.ok(pk.every((v) => /^[a-z_]+$/.test(v.voice) && !v.clip) && pk.length === 21, 'Pocket TTS: its 21 English voices');
+  t.ok(pkc.length === 8 && pkc.every((v) => v.clip && !v.voice && v.group === 'in') && cat.models['pocket-clone'].gated, 'Pocket TTS with voice cloning: the eight Indian recordings, a gated model');
+  // the voices taken from recordings: the same eight clips for every engine that clones
+  const clips = (m) => cat.voices.filter((v) => v.model === m).filter((v) => v.clip).map((v) => v.clip.file).sort();
+  for (const m of ['chatterbox', 'chatterbox-turbo', 'voxcpm2', 'pocket-clone']) t.eq(clips(m), clips('xtts'), `${m}: the eight Indian recordings of XTTS-v2`);
+  t.ok(cat.engines.chatterbox.ownTorch && P.planOf(cat, ['chatterbox-default', 'kokoro-af_heart']).programMB - P.planOf(cat, ['kokoro-af_heart']).programMB === cat.engines.chatterbox.mb + P.TORCH_MB.cpu, 'Chatterbox brings its own PyTorch (counted again)');
+  t.eq(per('veena').map((v) => v.voice).sort(), ['agastya', 'kavya', 'maitri', 'vinaya'], 'Veena: the four speakers of its card');
+  t.ok(per('voxcpm').filter((v) => !v.clip).every((v) => v.describe && !v.describe.includes('(') && !v.describe.includes(')')), 'VoxCPM2: descriptions without brackets (the driver puts them in brackets)');
   t.ok(Object.keys(cat.engines).every((e) => P.ENGINE_ORDER.includes(e)) && P.ENGINE_ORDER.every((e) => cat.engines[e]), 'every engine of the catalogue is in the running order (an engine left out would never run)');
   // MeloTTS: MeloTTS-English's speaker numbers (its config: EN-US 0, EN-BR 1, EN_INDIA 2, EN-AU 3, EN-Default 4)
   t.eq(per('melo').map((v) => [v.speaker, v.id, v.group]).sort(), [[0, 'melo-en-us', 'us'], [1, 'melo-en-br', 'uk'], [2, 'melo-en-india', 'in'], [3, 'melo-en-au', 'world'], [4, 'melo-en-default', 'any']], 'MeloTTS: its five speakers and their accents');
@@ -41,6 +49,28 @@ export default async (t, { load }) => {
   t.eq(per('supertonic').length, 30, 'Supertonic: 3 models × 10 voices');
   t.ok(per('supertonic').every((v) => /^[FM][1-5]$/.test(v.voice) && v.sex === v.voice[0].toLowerCase()), 'Supertonic: F voices women, M voices men');
   t.eq(['supertonic-1', 'supertonic-2', 'supertonic-3'].map((m) => cat.models[m].repo), ['Supertone/supertonic', 'Supertone/supertonic-2', 'Supertone/supertonic-3'], 'Supertonic: its three models');
+  // Indic Tiny TTS: its two voices (the card: voice="female" / "male"), both Indian English
+  t.eq(per('indictiny').map((v) => [v.voice, v.sex, v.group]).sort(), [['female', 'f', 'in'], ['male', 'm', 'in']], 'Indic Tiny TTS: a woman’s and a man’s voice, Indian English');
+  // Qwen3-TTS: the nine speakers of the qwen-tts readme in both CustomVoice models; the VoiceDesign voices described in words
+  const QWEN9 = ['Aiden', 'Dylan', 'Eric', 'Ono_Anna', 'Ryan', 'Serena', 'Sohee', 'Uncle_Fu', 'Vivian'];
+  for (const m of ['qwen-0.6b', 'qwen-1.7b']) t.eq(per('qwen').filter((v) => v.model === m).map((v) => v.speaker).sort(), QWEN9, `${m}: the nine speakers of the readme`);
+  const design = per('qwen').filter((v) => v.model === 'qwen-design');
+  t.ok(design.length >= 16 && design.every((v) => v.describe && !v.speaker && v.describe.length < 300), `Qwen3-TTS VoiceDesign: ${design.length} voices, each a description`);
+  t.ok(design.filter((v) => v.group === 'in').every((v) => /Indian/.test(v.describe) && /accent/.test(v.describe)) && design.filter((v) => v.group === 'in').length >= 6, 'its Indian voices ask for an Indian English accent');
+  t.ok(cat.models['qwen-0.6b'].noSpeed && !cat.models['qwen-1.7b'].noSpeed && !cat.models['qwen-design'].noSpeed, 'Qwen3-TTS: only the 0.6B model has no speed (it takes no instructions)');
+  // OmniVoice: every description made of omnivoice 0.2.1's own words (omnivoice/utils/voice_design.py)
+  const OMNI_WORDS = new Set(['male', 'female', 'child', 'teenager', 'young adult', 'middle-aged', 'elderly', 'very low pitch', 'low pitch', 'moderate pitch',
+    'high pitch', 'very high pitch', 'whisper', 'american accent', 'british accent', 'australian accent', 'chinese accent', 'canadian accent', 'indian accent',
+    'korean accent', 'portuguese accent', 'russian accent', 'japanese accent']);
+  t.ok(per('omnivoice').length >= 30 && per('omnivoice').every((v) => v.describe.split(', ').every((w) => OMNI_WORDS.has(w))), `OmniVoice: ${per('omnivoice').length} voices, each described in its own words`);
+  t.ok(per('omnivoice').every((v) => v.describe.includes(v.sex === 'f' ? 'female' : 'male') && (v.group !== 'in' || v.describe.includes('indian accent'))), 'OmniVoice: sex and the Indian accent as labelled');
+  t.ok(cat.models.omnivoice.personal, 'OmniVoice: personal use (CC BY-NC)');
+  // Bark: the twenty v2 presets in both models; the Hindi speakers are the Indian ones
+  for (const m of ['bark', 'bark-small']) {
+    const b = per('bark').filter((v) => v.model === m);
+    t.eq(b.map((v) => v.voice).sort(), [...Array(10).keys()].flatMap((i) => [`v2/en_speaker_${i}`, `v2/hi_speaker_${i}`]).sort(), `${m}: presets v2/en_speaker_0 – 9 and v2/hi_speaker_0 – 9`);
+    t.ok(b.every((v) => (v.group === 'in') === v.voice.startsWith('v2/hi_')), `${m}: the Hindi presets in the Indian group`);
+  }
 
   // speaker numbers: the same as in sherpa-onnx's copies of these Piper models
   const spk = { 'piper-vctk-p248': 87, 'piper-vctk-p251': 92, 'piper-vctk-p376': 26, 'piper-l2arctic-svbi': 2, 'piper-l2arctic-tni': 9,
@@ -80,6 +110,10 @@ export default async (t, { load }) => {
   t.eq(p.accept, ['cpml'], 'XTTS-v2 needs its licence accepted'); t.ok(p.personal, 'XTTS-v2 is personal use'); t.eq(p.noSpeed, ['Pocket TTS'], 'Pocket TTS has no speed');
   t.near(p.modelMB, cat.models.xtts.mb + cat.models.pocket.mb + 0.7, 0.01, 'a clip adds its recording');
   t.eq(P.planOf(cat, []).programMB, 0, 'nothing chosen, nothing to download');
+  p = P.planOf(cat, ['qwen-06b-ryan', 'qwen-design-in-woman-young', 'bark-small-hi-0']);
+  t.eq(p.noSpeed, ['Bark', 'Qwen3-TTS 0.6B CustomVoice'], 'no speed: Bark (the engine) and Qwen3-TTS 0.6B (the model)');
+  t.eq(p.slow, ['Qwen3-TTS', 'Bark'], 'slow engines named');
+  t.eq(P.planOf(cat, ['qwen-17b-ryan']).noSpeed, [], 'Qwen3-TTS 1.7B takes the pace as an instruction');
 
   const job = P.buildJob(cat, P.planOf(cat, ['piper-vctk-p248', 'kokoro-hm_psi-b', 'indic-parler-thoma', 'xtts-ana-florence', 'xtts-clip-vctk-p248', 'pocket-anna']), 'Hello.', 1.234, false);
   const jv = Object.fromEntries(job.voices.map((v) => [v.id, v]));

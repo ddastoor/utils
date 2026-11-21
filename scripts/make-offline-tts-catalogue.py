@@ -20,6 +20,19 @@ Sources (each fact below comes from one of them):
                k2-fsa's ONNX conversion (csukuangfj/vits-melo-tts-en); all five are women's voices (pitch, below).
   Supertonic   the supertonic package 1.3.1 (its pinned revision of each model) and the model cards: ten voices a model,
                F1 – F5 and M1 – M5 (pitch, below).
+  Indic Tiny   sulabhkatiyar/indic-tiny-tts-english's card (two voices: LIMMITS 2024 / IISc SYSPIN English, a woman and
+               a man).
+  Qwen3-TTS    the qwen-tts package 0.1.1 readme: the nine speakers of the CustomVoice models with the makers' words
+               and native languages; the VoiceDesign voices are our descriptions.
+  OmniVoice    omnivoice 0.2.1 (omnivoice/utils/voice_design.py): the words a voice can be made of — sex, age, pitch,
+               accent.
+  Bark         suno/bark's speaker presets v2/en_speaker_0 – 9 and v2/hi_speaker_0 – 9 (sex by pitch, below).
+  Chatterbox   chatterbox-tts 0.1.7 (tts.py, tts_turbo.py: the files each model reads); its own voice and the Indian clips.
+  Veena        maya-research/Veena's card (its four speakers and the decoding with SNAC 24 kHz).
+  VoxCPM2      openbmb/VoxCPM2's card (a voice described in brackets before the text, or a recording) and voxcpm 2.0.3.
+  SYSPIN       SYSPIN/vits_English_Female and _Male (IISc; Coqui TTS VITS, characters, 22.05 kHz).
+  MMS          facebook/mms-tts-eng (Meta's Massively Multilingual Speech, English).
+  Pocket clone the gated kyutai/pocket-tts at the revision pocket-tts 4.0.1's config/english.yaml pins (voice cloning).
 Sizes are the bytes of the files the driver fetches, from the Hugging Face API at the pinned revisions (MB = 10^6 bytes).
 
 Run: python3 scripts/make-offline-tts-catalogue.py   (needs huggingface.co; caches its answers in /tmp/offline-tts-cat)
@@ -46,6 +59,25 @@ XTTS_REPO, XTTS_REV = 'coqui/XTTS-v2', '6c2b0d75eae4b7047358e3b6bd9325f857d43f77
 CLIPS_REPO, CLIPS_REV = 'kyutai/tts-voices', '323332d33f997de8394f24a193e1a76df720e01a'
 POCKET_REPO, POCKET_REV = 'kyutai/pocket-tts-without-voice-cloning', 'a7056f505a4a8ca72d8b5fb1440071d6f1a35739'
 MELO_REPO, MELO_REV = 'csukuangfj/vits-melo-tts-en', '9969cf40233d9ee504a6e1cde8aee9bab3ecf985'
+TINY_REPO, TINY_REV = 'sulabhkatiyar/indic-tiny-tts-english', 'eea5d4a578c0f18173825a037487cf9c47ed4247'
+QWEN = [('qwen-1.7b', 'Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice', '0c0e3051f131929182e2c023b9537f8b1c68adfe', 'Qwen3-TTS 1.7B CustomVoice'),
+        ('qwen-0.6b', 'Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice', '85e237c12c027371202489a0ec509ded67b5e4b5', 'Qwen3-TTS 0.6B CustomVoice')]
+QWEN_VD = ('qwen-design', 'Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign', '5ecdb67327fd37bb2e042aab12ff7391903235d3', 'Qwen3-TTS 1.7B VoiceDesign')
+OMNI_REPO, OMNI_REV = 'k2-fsa/OmniVoice', '3fc979d1cd72492cd679c5ac2611e0d7ac047ba1'
+CHATTERBOX = [('chatterbox', 'ResembleAI/chatterbox', '5bb1f6ee58e50c3b8d408bc82a6d3740c2db6e18', 'Chatterbox (Resemble AI)',
+               ['ve.safetensors', 't3_cfg.safetensors', 's3gen.safetensors', 'tokenizer.json', 'conds.pt']),
+              ('chatterbox-turbo', 'ResembleAI/chatterbox-turbo', '749d1c1a46eb10492095d68fbcf55691ccf137cd', 'Chatterbox Turbo (Resemble AI)',
+               ['ve.safetensors', 't3_turbo_v1.safetensors', 't3_turbo_v1.yaml', 's3gen_meanflow.safetensors', 'vocab.json', 'merges.txt',
+                'added_tokens.json', 'special_tokens_map.json', 'tokenizer_config.json', 'conds.pt'])]
+VEENA_REPO, VEENA_REV = 'maya-research/Veena', '8b770f9e69e6b35ef320d4cd70a99a4ab6dd022f'
+SNAC_REPO, SNAC_REV = 'hubertsiuzdak/snac_24khz', 'd73ad176a12188fcf4f360ba3bf2c2fbbe8f58ec'
+VOX_REPO, VOX_REV = 'openbmb/VoxCPM2', '7936080b41163874f38610f46f438e2c0757f9fd'
+SYSPIN = [('syspin-female', 'SYSPIN/vits_English_Female', 'ce6219adea6faee308696de3851a7335f9af5dd3', 'f'),
+          ('syspin-male', 'SYSPIN/vits_English_Male', '2e095770cf8ad748d974ccf0dd46f5a17e88d27b', 'm')]
+MMS_REPO, MMS_REV = 'facebook/mms-tts-eng', 'c71de0fe7204c83f1c10820a7d696d0b450048ba'
+POCKET_CLONE_REPO, POCKET_CLONE_REV = 'kyutai/pocket-tts', 'db04f0e653473e5c7333c69686ac92b7460b0c1d'
+BARK = [('bark', 'suno/bark', '70a8a7d34168586dc5d028fa9666aceade177992', 'Bark (Suno)'),
+        ('bark-small', 'suno/bark-small', '1dbd7a128513b8ae4a4e2130fed57b7ac9da5bcd', 'Bark small (Suno)')]
 # the revisions the supertonic package 1.3.1 pins (supertonic/config.py)
 SUPERTONIC = [('supertonic-3', 'Supertone/supertonic-3', '724fb5abbf5502583fb520898d45929e62f02c0b', 'Supertonic 3'),
               ('supertonic-2', 'Supertone/supertonic-2', '75e6727618a02f323c720cba9478152d4bc16ca4', 'Supertonic 2'),
@@ -118,14 +150,14 @@ ENGINES = {
         'name': 'Parler-TTS', 'url': 'https://github.com/huggingface/parler-tts',
         'packages': ['parler-tts==0.2.3', 'transformers==4.46.1', 'sentencepiece==0.2.0', 'protobuf==4.25.9',
                      'huggingface-hub==0.36.2', 'lameenc==1.9.0', 'numpy==2.5.5', 'torch'],
-        'mb': 450, 'torch': True, 'speedControl': True, 'licence': 'Apache-2.0',
+        'mb': 450, 'torch': True, 'speedControl': True, 'licence': 'Apache-2.0', 'slow': True,
         'about': 'Large models that speak as a sentence describes (a named speaker, a pace, very clear audio). '
                  'Slow on a processor — a graphics card helps a lot.',
     },
     'xtts': {
         'name': 'XTTS-v2', 'url': 'https://huggingface.co/coqui/XTTS-v2',
         'packages': ['coqui-tts[codec]==0.28.0', 'lameenc==1.9.0', 'torch', 'torchaudio'],
-        'mb': 450, 'torch': True, 'speedControl': True, 'accept': 'cpml',
+        'mb': 450, 'torch': True, 'speedControl': True, 'accept': 'cpml', 'slow': True,
         'licence': 'Coqui Public Model License (non-commercial use only)',
         'about': "Coqui's large multilingual model: 58 studio voices, and voices taken from short recordings. "
                  'About real time on a fast processor.',
@@ -144,6 +176,69 @@ ENGINES = {
         'mb': 50, 'torch': False, 'speedControl': True, 'licence': 'MIT (MeloTTS); sherpa-onnx Apache-2.0',
         'about': "MyShell's MeloTTS: one model with American, British, Indian and Australian accents (women's voices), run "
                  'by sherpa-onnx — about three times faster than real time on a processor.',
+    },
+    'indictiny': {
+        'name': 'Indic Tiny TTS', 'url': 'https://huggingface.co/sulabhkatiyar/indic-tiny-tts-english',
+        'packages': ['onnxruntime==1.32.0', 'numpy==2.3.5', 'huggingface-hub==2.4.0', 'lameenc==1.9.0'],
+        'mb': 50, 'torch': False, 'speedControl': True, 'licence': 'MIT (the program); the model CC BY 4.0',
+        'about': 'A tiny Indian English model (22.5 million parameters) trained on IISc’s SYSPIN recordings, with its own '
+                 'Indian reading of numbers, ₹, lakh and crore — about seven times faster than real time on one processor core.',
+    },
+    'qwen': {
+        'name': 'Qwen3-TTS', 'url': 'https://github.com/QwenLM/Qwen3-TTS',
+        'packages': ['qwen-tts==0.1.1', 'transformers==4.57.3', 'accelerate==1.12.0', 'huggingface-hub==0.36.2', 'lameenc==1.9.0',
+                     'torch', 'torchaudio'],
+        'mb': 350, 'torch': True, 'speedControl': True, 'licence': 'Apache-2.0', 'slow': True,
+        'about': "Alibaba's speech language models: nine named speakers, and a model that speaks in a voice described in "
+                 'words. About four times slower than real time on a processor (0.6B); a graphics card is many times faster.',
+    },
+    'omnivoice': {
+        'name': 'OmniVoice', 'url': 'https://github.com/k2-fsa/OmniVoice',
+        'packages': ['omnivoice==0.2.1', 'transformers==5.23.0', 'accelerate==1.16.0', 'huggingface-hub==2.4.0', 'num2words==0.5.14',
+                     'lameenc==1.9.0', 'torch', 'torchaudio'],
+        'mb': 350, 'torch': True, 'speedControl': True, 'licence': 'Apache-2.0 (the program); the model CC BY-NC', 'slow': True,
+        'about': "k2-fsa's (Xiaomi) model that makes a voice from a few words — sex, age, pitch and an accent (Indian, "
+                 'American, British, Australian, Canadian …).',
+    },
+    'bark': {
+        'name': 'Bark', 'url': 'https://github.com/suno-ai/bark',
+        'packages': ['transformers==4.57.3', 'huggingface-hub==0.36.2', 'lameenc==1.9.0', 'torch'],
+        'mb': 300, 'torch': True, 'speedControl': False, 'licence': 'MIT', 'slow': True,
+        'about': "Suno's expressive GPT-style model, speaking in the manner of a voice preset — English speakers and "
+                 'Hindi speakers (English with an Indian accent). Slow on a processor; its pace cannot be set.',
+    },
+    'chatterbox': {
+        'name': 'Chatterbox', 'url': 'https://github.com/resemble-ai/chatterbox',
+        'packages': ['chatterbox-tts==0.1.7', 'lameenc==1.9.0'],
+        'mb': 450, 'torch': True, 'ownTorch': True, 'speedControl': False, 'licence': 'MIT', 'slow': True,
+        'about': "Resemble AI's expressive models: their own voice, or a voice taken from a 10-second recording. The program "
+                 'marks the speech with an inaudible watermark and runs on its own PyTorch 2.6 (a second copy).',
+    },
+    'veena': {
+        'name': 'Veena', 'url': 'https://huggingface.co/maya-research/Veena',
+        'packages': ['transformers==4.57.3', 'accelerate==1.12.0', 'snac==1.2.1', 'huggingface-hub==0.36.2', 'num2words==0.5.14',
+                     'lameenc==1.9.0', 'torch'],
+        'mb': 300, 'torch': True, 'speedControl': False, 'licence': 'Apache-2.0', 'slow': True,
+        'about': "Maya Research's 3-billion-parameter model trained on Indian voices. Made for a graphics card (about 7 GB of its "
+                 'memory); on a processor alone it is very slow.',
+    },
+    'voxcpm': {
+        'name': 'VoxCPM2', 'url': 'https://github.com/OpenBMB/VoxCPM',
+        'packages': ['voxcpm==2.0.3', 'num2words==0.5.14', 'lameenc==1.9.0', 'torch', 'torchaudio'],
+        'mb': 700, 'torch': True, 'speedControl': True, 'licence': 'Apache-2.0', 'slow': True,
+        'about': "OpenBMB's 2-billion-parameter model at 48 kHz: a voice described in words, or taken from a recording.",
+    },
+    'coqui': {
+        'name': 'Coqui TTS (VITS)', 'url': 'https://github.com/idiap/coqui-ai-TTS',
+        'packages': ['coqui-tts[codec]==0.28.0', 'num2words==0.5.14', 'lameenc==1.9.0', 'torch', 'torchaudio'],
+        'mb': 450, 'torch': True, 'speedControl': True, 'licence': 'MPL-2.0 (the program)',
+        'about': "IISc SYSPIN's Indian English voices, trained with Coqui TTS (VITS). Quick, but less clear than the newer models.",
+    },
+    'mms': {
+        'name': 'MMS', 'url': 'https://huggingface.co/facebook/mms-tts-eng',
+        'packages': ['transformers==4.57.3', 'huggingface-hub==0.36.2', 'num2words==0.5.14', 'lameenc==1.9.0', 'torch'],
+        'mb': 300, 'torch': True, 'speedControl': True, 'licence': 'Apache-2.0 (transformers)',
+        'about': "Meta's Massively Multilingual Speech: its small English voice (VITS).",
     },
     'pocket': {
         'name': 'Pocket TTS', 'url': 'https://huggingface.co/kyutai/pocket-tts-without-voice-cloning',
@@ -480,13 +575,258 @@ def supertonic():
     return models, voices
 
 
+def indictiny():
+    size = size_of(TINY_REPO, TINY_REV, ['config.json', 'LICENSE.md', 'pyproject.toml', 'indic_tiny_tts/*', 'onnx/*'])
+    models = {'indictiny': {'engine': 'indictiny', 'repo': TINY_REPO, 'rev': TINY_REV, 'mb': mb(size), 'licence': 'CC BY 4.0',
+                            'personal': False, 'name': 'Indic Tiny TTS: Indian English', 'page': f'https://huggingface.co/{TINY_REPO}'}}
+    # the two speakers of IISc's LIMMITS 2024 English set; pitch of a sample made here: 199 Hz and 169 Hz
+    voices = [{'id': 'indictiny-female', 'label': 'Indic Tiny — woman, Indian English (IISc SYSPIN speaker)', 'group': 'in', 'sex': 'f',
+               'model': 'indictiny', 'voice': 'female'},
+              {'id': 'indictiny-male', 'label': 'Indic Tiny — man, Indian English (IISc SYSPIN speaker)', 'group': 'in', 'sex': 'm',
+               'model': 'indictiny', 'voice': 'male'}]
+    return models, voices
+
+
+# Qwen3-TTS CustomVoice: its nine speakers as the qwen-tts readme describes them (native language; each speaks English).
+# Run here (0.6B): their pitch agrees with the readme's sex (women 207 – 265 Hz, men 109 – 171 Hz); in English the accent
+# model hears mostly American for all but Sohee and Eric — not documented, so only Aiden ("American") is filed by accent.
+QWEN_SPEAKERS = [('Aiden', 'm', 'us', 'sunny American man, clear midrange'), ('Ryan', 'm', 'any', 'dynamic man, strong rhythm (native English)'),
+                 ('Vivian', 'f', 'any', 'bright, slightly edgy young woman (native Chinese)'), ('Serena', 'f', 'any', 'warm, gentle young woman (native Chinese)'),
+                 ('Uncle_Fu', 'm', 'any', 'seasoned man, low and mellow (native Chinese)'), ('Dylan', 'm', 'any', 'youthful Beijing man (native Chinese)'),
+                 ('Eric', 'm', 'any', 'lively Chengdu man, slightly husky (native Chinese)'), ('Ono_Anna', 'f', 'any', 'playful Japanese woman (native Japanese)'),
+                 ('Sohee', 'f', 'any', 'warm Korean woman (native Korean)')]
+# Qwen3-TTS VoiceDesign: voices described in words (ours). For India the owner asked for an accent "as light as possible".
+QWEN_DESIGN = [
+    ('in-woman-young', 'in', 'f', 'Indian English, light accent — young woman',
+     'A young Indian woman in her twenties with a light, neutral Indian English accent; clear, articulate and warm, like a newsreader; a clean studio recording.'),
+    ('in-man-young', 'in', 'm', 'Indian English, light accent — young man',
+     'A young Indian man in his twenties with a light, neutral Indian English accent; clear, articulate and friendly, like a newsreader; a clean studio recording.'),
+    ('in-woman', 'in', 'f', 'Indian English, light accent — woman in her forties',
+     'An Indian woman in her forties with a light, educated Indian English accent; calm, confident and clear, like a radio presenter; a clean studio recording.'),
+    ('in-man', 'in', 'm', 'Indian English, light accent — man in his forties',
+     'An Indian man in his forties with a light, educated Indian English accent; calm, deep and clear, like a radio presenter; a clean studio recording.'),
+    ('in-woman-older', 'in', 'f', 'Indian English, light accent — woman in her sixties',
+     'An Indian woman in her sixties with a light Indian English accent; gentle, measured and warm, like a teacher reading aloud; a clean studio recording.'),
+    ('in-man-older', 'in', 'm', 'Indian English, light accent — man in his sixties',
+     'An Indian man in his sixties with a light Indian English accent; measured, warm and clear, like a professor reading aloud; a clean studio recording.'),
+    ('in-woman-standard', 'in', 'f', 'Indian English, clear Indian accent — woman',
+     'An Indian woman in her thirties speaking clear standard Indian English with a natural Indian accent; friendly and expressive; a clean studio recording.'),
+    ('in-man-standard', 'in', 'm', 'Indian English, clear Indian accent — man',
+     'An Indian man in his thirties speaking clear standard Indian English with a natural Indian accent; friendly and expressive; a clean studio recording.'),
+    ('us-woman', 'us', 'f', 'General American — woman in her thirties',
+     'An American woman in her thirties with a General American accent; warm, clear and natural, like an audiobook narrator; a clean studio recording.'),
+    ('us-man', 'us', 'm', 'General American — man in his thirties',
+     'An American man in his thirties with a General American accent; warm, clear and natural, like an audiobook narrator; a clean studio recording.'),
+    ('us-woman-older', 'us', 'f', 'General American — woman in her sixties',
+     'An American woman in her sixties with a General American accent; kind, calm and measured; a clean studio recording.'),
+    ('us-man-older', 'us', 'm', 'General American — man in his sixties',
+     'An American man in his sixties with a General American accent; deep, calm and measured, like a documentary narrator; a clean studio recording.'),
+    ('uk-woman', 'uk', 'f', 'Southern English (RP) — woman in her thirties',
+     'An English woman in her thirties with a Received Pronunciation accent from the south of England; clear, poised and warm; a clean studio recording.'),
+    ('uk-man', 'uk', 'm', 'Southern English (RP) — man in his thirties',
+     'An English man in his thirties with a Received Pronunciation accent from the south of England; clear, poised and warm; a clean studio recording.'),
+    ('uk-woman-older', 'uk', 'f', 'Southern English (RP) — woman in her sixties',
+     'An English woman in her sixties with a Received Pronunciation accent; gentle, measured and articulate; a clean studio recording.'),
+    ('uk-man-older', 'uk', 'm', 'Southern English (RP) — man in his sixties',
+     'An English man in his sixties with a Received Pronunciation accent; deep, measured and articulate, like a BBC presenter; a clean studio recording.'),
+    ('scottish-woman', 'uk', 'f', 'Scottish — woman', 'A Scottish woman in her thirties with a soft Edinburgh accent; clear and friendly; a clean studio recording.'),
+    ('irish-man', 'uk', 'm', 'Irish — man', 'An Irish man in his thirties with a gentle Dublin accent; clear and friendly; a clean studio recording.'),
+    ('au-woman', 'world', 'f', 'Australian — woman', 'An Australian woman in her thirties with a natural Australian accent; bright, clear and friendly; a clean studio recording.'),
+    ('au-man', 'world', 'm', 'Australian — man', 'An Australian man in his thirties with a natural Australian accent; relaxed, clear and friendly; a clean studio recording.'),
+]
+
+
+def qwen():
+    pat = ['*.json', '*.txt', '*.safetensors', 'speech_tokenizer/*']
+    models, voices = {}, []
+    mid, repo, rev, name = QWEN_VD
+    models[mid] = {'engine': 'qwen', 'repo': repo, 'rev': rev, 'mb': mb(size_of(repo, rev, pat)), 'licence': 'Apache-2.0', 'personal': False,
+                   'name': name, 'page': f'https://huggingface.co/{repo}'}
+    for key, g, sex, label, describe in QWEN_DESIGN:
+        voices.append({'id': f'qwen-design-{key}', 'label': f'{label} (a voice described in words)', 'group': g, 'sex': sex, 'model': mid, 'describe': describe})
+    for mid, repo, rev, name in QWEN:
+        models[mid] = {'engine': 'qwen', 'repo': repo, 'rev': rev, 'mb': mb(size_of(repo, rev, pat)), 'licence': 'Apache-2.0', 'personal': False,
+                       'name': name, 'page': f'https://huggingface.co/{repo}'}
+        if mid == 'qwen-0.6b':
+            models[mid]['noSpeed'] = True  # the 0.6B model takes no instructions, so no pace
+        for sp, sex, g, words in QWEN_SPEAKERS:
+            voices.append({'id': f'{mid.replace(".", "")}-{sp.lower().replace("_", "-")}', 'label': f'{sp.replace("_", " ")} — {words}',
+                           'group': g, 'sex': sex, 'model': mid, 'speaker': sp})
+    return models, voices
+
+
+# OmniVoice: voices made of its own words (omnivoice/utils/voice_design.py) — sex, age and an English accent
+OMNI_MAIN = [('indian', 'in', 'Indian'), ('american', 'us', 'American'), ('british', 'uk', 'British'),
+             ('australian', 'world', 'Australian'), ('canadian', 'world', 'Canadian')]
+OMNI_OTHER = [('chinese', 'Chinese'), ('japanese', 'Japanese'), ('korean', 'Korean'), ('russian', 'Russian'), ('portuguese', 'Portuguese')]
+OMNI_AGES = [('young adult', 'young'), ('middle-aged', 'middle-aged'), ('elderly', 'older')]
+
+
+def omnivoice():
+    size = size_of(OMNI_REPO, OMNI_REV, ['config.json', 'model.safetensors', 'tokenizer.json', 'tokenizer_config.json', 'chat_template.jinja', 'audio_tokenizer/*'])
+    models = {'omnivoice': {'engine': 'omnivoice', 'repo': OMNI_REPO, 'rev': OMNI_REV, 'mb': mb(size), 'personal': True,
+                            'licence': 'CC BY-NC (the model; its audio tokenizer: Boson Higgs Audio 2 Community License)',
+                            'name': 'OmniVoice (voices made from a few words)', 'page': f'https://huggingface.co/{OMNI_REPO}'}}
+    voices = []
+    for acc, g, word in OMNI_MAIN:
+        for sx, sex in (('female', 'f'), ('male', 'm')):
+            for age, aw in OMNI_AGES:
+                voices.append({'id': f'omni-{acc}-{sex}-{aw.replace("-aged", "")}', 'label': f'{word} accent — {aw} {SEX[sex]}', 'group': g, 'sex': sex,
+                               'model': 'omnivoice', 'describe': f'{sx}, {age}, {acc} accent'})
+    for acc, word in OMNI_OTHER:
+        for sx, sex in (('female', 'f'), ('male', 'm')):
+            voices.append({'id': f'omni-{acc}-{sex}', 'label': f'{word} accent — young {SEX[sex]}', 'group': 'world', 'sex': sex,
+                           'model': 'omnivoice', 'describe': f'{sx}, young adult, {acc} accent'})
+    return models, voices
+
+
+# Bark's presets: the median pitch (pYIN) of each preset's own reference audio — its fine prompt, EnCodec 24 kHz codes,
+# decoded with facebook/encodec_24khz (no generation). As for XTTS-v2: a deeper voice (≤ 130 Hz, 'm'), a higher one
+# (≥ 200 Hz, 'f'), and between them a middle voice whose sex is left unsaid.
+BARK_PITCH = {'en_0': 177, 'en_1': 178, 'en_2': 104, 'en_3': 89, 'en_4': 139, 'en_5': 88, 'en_6': 121, 'en_7': 126, 'en_8': 177, 'en_9': 254,
+              'hi_0': 256, 'hi_1': 155, 'hi_2': 109, 'hi_3': 237, 'hi_4': 235, 'hi_5': 98, 'hi_6': 119, 'hi_7': 151, 'hi_8': 161, 'hi_9': 289}
+BARK_SEX = {k: 'm' if hz <= 130 else 'f' if hz >= 200 else '' for k, hz in BARK_PITCH.items()}
+
+
+def bark():
+    models, voices = {}, []
+    for mid, repo, rev, name in BARK:
+        t = tree(repo, rev)
+        base = ['config.json', 'generation_config.json', 'pytorch_model.bin', 'tokenizer.json', 'tokenizer_config.json', 'vocab.txt',
+                'special_tokens_map.json', 'speaker_embeddings_path.json']
+        prompts = [f for f in t if re.fullmatch(r'speaker_embeddings/v2/(en|hi)_speaker_\d_(semantic|coarse|fine)_prompt\.npy', f)]
+        if len(prompts) != 60:
+            sys.exit(f'{repo}: expected 20 voice presets')
+        models[mid] = {'engine': 'bark', 'repo': repo, 'rev': rev, 'mb': mb(sum(t[f] for f in base) + sum(t[f] for f in prompts) / 20), 'licence': 'MIT',
+                       'personal': False, 'name': name, 'page': f'https://huggingface.co/{repo}'}
+        for lang, g, how in (('hi', 'in', 'Hindi speaker reading English (Indian accent)'), ('en', 'any', 'English speaker')):
+            for i in range(10):
+                sex = BARK_SEX[f'{lang}_{i}']
+                who = {'m': 'man (a deep voice)', 'f': 'woman (a high voice)', '': 'a middle voice'}[sex]
+                voices.append({'id': f'{mid}-{lang}-{i}', 'label': f'Preset {lang}_speaker_{i} — {who}, {how}', 'group': g, 'sex': sex,
+                               'model': mid, 'voice': f'v2/{lang}_speaker_{i}'})
+    return models, voices
+
+
+def clip_voices(prefix, mid, word):
+    """The Indian reference recordings (INDIAN_CLIPS) as voices of a model that takes a voice from a recording."""
+    return [{'id': f'{prefix}-clip-' + re.sub(r'[^a-z0-9]+', '-', n.lower()).strip('-'),
+             'label': f'{n} — {SEX[sx]}, taken from a 10-second recording ({lic}){word}', 'group': 'in', 'sex': sx, 'model': mid,
+             'clip': {'repo': CLIPS_REPO, 'rev': CLIPS_REV, 'file': f}} for n, f, sx, lic in INDIAN_CLIPS]
+
+
+def chatterbox():
+    models, voices = {}, []
+    for mid, repo, rev, name, files in CHATTERBOX:
+        t = tree(repo, rev)
+        models[mid] = {'engine': 'chatterbox', 'repo': repo, 'rev': rev, 'mb': mb(sum(t[f] for f in files)), 'licence': 'MIT', 'personal': False,
+                       'name': name, 'page': f'https://huggingface.co/{repo}'}
+        voices.append({'id': f'{mid}-default', 'label': f'{name.split(" (")[0]}’s own voice', 'group': 'any', 'sex': CHATTERBOX_SEX.get(mid, ''),
+                       'model': mid})
+        voices += clip_voices(mid, mid, '')
+    return models, voices
+
+
+# the sex of the Chatterbox models' own voices by pitch (filled in when measured)
+CHATTERBOX_SEX = {}
+
+
+def veena():
+    t = tree(VEENA_REPO, VEENA_REV)
+    files = [f for f in t if f.endswith(('.json', '.safetensors', '.jinja'))]
+    snac = tree(SNAC_REPO, SNAC_REV)
+    models = {'veena': {'engine': 'veena', 'repo': VEENA_REPO, 'rev': VEENA_REV, 'mb': mb(sum(t[f] for f in files) + snac['config.json'] + snac['pytorch_model.bin']),
+                        'licence': 'Apache-2.0 (SNAC: MIT)', 'personal': False, 'name': 'Veena (Maya Research)', 'page': f'https://huggingface.co/{VEENA_REPO}'}}
+    # the card names the four speakers only (not their sex)
+    voices = [{'id': f'veena-{n}', 'label': f'{n.title()} — Indian voice (Veena)', 'group': 'in', 'sex': '', 'model': 'veena', 'voice': n}
+              for n in ('kavya', 'agastya', 'maitri', 'vinaya')]
+    return models, voices
+
+
+VOX_DESIGN = [
+    ('in-woman-young', 'in', 'f', 'Indian English, light accent — young woman', 'A young Indian woman with a light, neutral Indian English accent, clear, warm and articulate'),
+    ('in-man-young', 'in', 'm', 'Indian English, light accent — young man', 'A young Indian man with a light, neutral Indian English accent, clear, friendly and articulate'),
+    ('in-woman', 'in', 'f', 'Indian English, light accent — woman in her forties', 'An Indian woman in her forties with a light, educated Indian English accent, calm and confident'),
+    ('in-man', 'in', 'm', 'Indian English, light accent — man in his forties', 'An Indian man in his forties with a light, educated Indian English accent, calm and deep'),
+    ('us-woman', 'us', 'f', 'General American — woman', 'An American woman in her thirties with a General American accent, warm and clear'),
+    ('us-man', 'us', 'm', 'General American — man', 'An American man in his thirties with a General American accent, warm and clear'),
+    ('uk-woman', 'uk', 'f', 'Southern English (RP) — woman', 'An English woman in her thirties with a Received Pronunciation accent, clear and poised'),
+    ('uk-man', 'uk', 'm', 'Southern English (RP) — man', 'An English man in his thirties with a Received Pronunciation accent, clear and poised'),
+]
+
+
+def voxcpm():
+    t = tree(VOX_REPO, VOX_REV)
+    files = ['config.json', 'model.safetensors', 'audiovae.pth', 'special_tokens_map.json', 'tokenization_voxcpm2.py', 'tokenizer.json', 'tokenizer_config.json']
+    models = {'voxcpm2': {'engine': 'voxcpm', 'repo': VOX_REPO, 'rev': VOX_REV, 'mb': mb(sum(t[f] for f in files)), 'licence': 'Apache-2.0', 'personal': False,
+                          'name': 'VoxCPM2 (OpenBMB)', 'page': 'https://openbmb.github.io/voxcpm2-demopage'}}
+    voices = [{'id': f'voxcpm2-design-{k}', 'label': f'{label} (a voice described in words)', 'group': g, 'sex': sx, 'model': 'voxcpm2', 'describe': d}
+              for k, g, sx, label, d in VOX_DESIGN]
+    voices += clip_voices('voxcpm2', 'voxcpm2', '')
+    return models, voices
+
+
+def syspin():
+    models, voices = {}, []
+    for mid, repo, rev, sx in SYSPIN:
+        t = tree(repo, rev)
+        models[mid] = {'engine': 'coqui', 'repo': repo, 'rev': rev, 'mb': mb(t['best_model.pth'] + t['config.json']), 'licence': 'MIT', 'personal': False,
+                       'name': f'SYSPIN Indian English VITS ({SEX[sx]})', 'page': f'https://huggingface.co/{repo}'}
+        voices.append({'id': f'{mid}', 'label': f'SYSPIN — {SEX[sx]}, Indian English (IISc)', 'group': 'in', 'sex': sx, 'model': mid})
+    return models, voices
+
+
+def mms():
+    t = tree(MMS_REPO, MMS_REV)
+    files = ['config.json', 'model.safetensors', 'special_tokens_map.json', 'tokenizer_config.json', 'vocab.json']
+    models = {'mms-eng': {'engine': 'mms', 'repo': MMS_REPO, 'rev': MMS_REV, 'mb': mb(sum(t[f] for f in files)), 'licence': 'CC BY-NC 4.0', 'personal': True,
+                          'name': 'MMS English (Meta)', 'page': f'https://huggingface.co/{MMS_REPO}'}}
+    voices = [{'id': 'mms-eng', 'label': 'MMS English voice', 'group': 'any', 'sex': MMS_SEX, 'model': 'mms-eng'}]
+    return models, voices
+
+
+MMS_SEX = ''
+
+
+def pocket_clone():
+    t = tree(POCKET_CLONE_REPO, POCKET_CLONE_REV)
+    size = t['languages/english/model.safetensors'] + t['languages/english/tokenizer.json'] + t['languages/english/tokenizer.model']
+    models = {'pocket-clone': {'engine': 'pocket', 'repo': POCKET_CLONE_REPO, 'rev': POCKET_CLONE_REV, 'mb': mb(size), 'licence': 'CC BY 4.0', 'personal': False,
+                               'gated': True, 'name': 'Pocket TTS with voice cloning (Kyutai)', 'page': 'https://kyutai.org/tts'}}
+    return models, clip_voices('pocket', 'pocket-clone', '')
+
+
+# Models whose engine was not run here, with the reason (shown as a tag in the tab; everything else was run on this
+# project's test machine — Linux, a 4-core processor, no graphics card — and its output read back by Whisper)
+UNTRIED = {
+    'indic-parler': 'Not run here: Hugging Face gives it only to an account that has accepted its conditions.',
+    'parler-large': 'Not run here: 9.3 GB, more than the test machine had room for (the same program as Parler Mini, which was run).',
+    'qwen-1.7b': 'Not run here: 4.5 GB (the same program as Qwen3-TTS 0.6B, which was run).',
+    'qwen-design': 'Not run here yet.',
+    'omnivoice': 'Not run here yet.',
+    'bark': 'Not run here: 4.5 GB (the same program as Bark small).',
+    'bark-small': 'Not run here yet.',
+    'chatterbox': 'Not run yet: it needs a second PyTorch (2.6) beside the model, more than the test machine had room for.',
+    'chatterbox-turbo': 'Not run yet: it needs a second PyTorch (2.6) beside the model, more than the test machine had room for.',
+    'veena': 'Not run here: 7.6 GB, made for a graphics card.',
+    'voxcpm2': 'Not run yet: 5 GB.',
+    'syspin-female': 'Not run here yet.',
+    'syspin-male': 'Not run here yet.',
+    'mms-eng': 'Not run here yet.',
+    'pocket-clone': 'Not run here: Hugging Face gives it only to an account that has accepted its conditions.',
+}
+
+
 def main():
     models, voices = {}, []
     # the order of the list: in each accent the larger, newer models first — Indic Parler-TTS leads the Indian voices
-    for part in (parler, kokoro, melo, xtts, pocket, supertonic, piper):
+    for part in (parler, qwen, veena, kokoro, omnivoice, voxcpm, melo, indictiny, chatterbox, xtts, pocket_clone, bark, syspin, pocket,
+                 supertonic, mms, piper):
         m, v = part()
         models.update(m)
         voices.extend(v)
+    for mid, why in UNTRIED.items():
+        models[mid]['untried'] = why
     ids = [v['id'] for v in voices]
     if len(ids) != len(set(ids)) or not all(re.fullmatch(r'[a-z0-9][a-z0-9_.-]*', i) for i in ids):
         sys.exit('voice ids must be unique and safe as file names')
