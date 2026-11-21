@@ -44,7 +44,7 @@ jobs:
           py="$(command -v python)"; cp "$py" "$(dirname "$py")/python3.exe"
           python -m pip install --quiet cryptography argon2-cffi bcrypt py7zr pyzipper pypdf openpyxl sqlparse sqlglot pyyaml zxcvbn numpy pillow python-gnupg ruamel.yaml
           choco install ffmpeg -y --no-progress > /dev/null
-          python3 --version; ffprobe -version | head -1; gpg --version | head -1; 7z | head -2
+          { python3 --version; ffprobe -version; gpg --version; 7z; } 2>&1 | grep -E '^(Python |ffprobe version|gpg \(GnuPG\)|7-Zip)' || true
       # the Playwright the suites are written for; the browser is the runner's own Google Chrome (channel "chrome")
       - run: npm install --no-save playwright@1.63.0
       - name: Browser suites in Chrome on Windows
