@@ -92,6 +92,8 @@ this file = the owner's latest wishes, how the tests are written, and the traps 
   AJUR_January_2016p5.pdf and the EPUB the tab made (uploaded in chat; ask again in a new session).
   **The owner's rule for it (21 Nov 2026):** side-by-side content goes top to bottom in the EPUB, spaced apart, each
   piece under a marker of our own — "Page 1, part 1", "Page 1, part 2" … — never words from the PDF (CLAUDE.md §3).
+- **21 Nov 2026 — another potential app:** a World Clock, live ticking, city presets (New York, San Francisco, London, Mumbai,
+  Sydney, Hong Kong, Singapore …), reusing the Time Zone Converter's code — docs/potentials.md #73 (waiting for the owner's pick).
 - **21 Nov 2026 — a new potential app:** "PDF/EPUB creator … PC only … like a rich text editor … type, copy, paste, … embed
   another PDF … paste pictures, insert pictures … convert to either PDF or EPUB. Use all the existing functionality" —
   added to docs/potentials.md as #72 (not to build until the owner picks it; size check first: ≈ 0 MB new).
