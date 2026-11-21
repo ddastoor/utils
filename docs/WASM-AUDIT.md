@@ -1410,7 +1410,9 @@ Oniguruma)". Per flavour, the existing modules looked at first (STANDING RULE #1
   exact; not needed for any case found so far.
 - **Python → the Python tab's CPython 3.14** (already on the site): Python's own `re`, nothing to emulate.
 - **JavaScript → the browser's RegExp** (as before).
-Still to come: Perl (ExifTool's zeroperl, on the site), POSIX ERE (gnulib's regex — the one grep -E runs on Linux — or
+- **Perl → zeroperl** (Perl 5.42 in WebAssembly, already on the site for the EXIF tab): Perl's own engine; nothing to
+  emulate, nothing new to ship. PCRE2 was the alternative — close to Perl, but not Perl.
+Still to come: POSIX ERE (gnulib's regex — the one grep -E runs on Linux — or
 musl's), Python's `regex` module (compiled into our CPython), Java and .NET (to decide: no existing WebAssembly build
 of their engines).
 

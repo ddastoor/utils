@@ -1,7 +1,7 @@
 // The flavours of the Regex Tester (to-do #8): which engine each one is, its flag letters, its replacement syntax and
 // the note under the result. No DOM: the tab, the worker and the unit suite share it.
 
-export type FlavourId = 'js' | 'pcre2' | 'python' | 'go' | 'ruby';
+export type FlavourId = 'js' | 'pcre2' | 'perl' | 'python' | 'go' | 'ruby';
 export interface Flavour {
   id: FlavourId;
   /** In the flavour list. */
@@ -31,6 +31,13 @@ export const FLAVOURS: Flavour[] = [
       ['D', '$ only at the very end'], ['A', 'anchored at the start'], ['u', 'Unicode \\w \\d \\s \\b and [:classes:]']],
     replace: '$1 or ${1}, ${name}, $0 or $& (the match), $$; \\U … \\E and \\L … \\E change case',
     note: 'PCRE2 (pcre2-wasm 10.49, WebAssembly) — the library behind PHP\'s preg_ functions, R, grep -P and many more. The text is read as Unicode; without u, \\w \\d \\s and \\b see ASCII only, as in PCRE2 itself.',
+  },
+  {
+    id: 'perl', label: 'Perl 5', start: '',
+    flags: [['i', 'ignore case'], ['m', '^ and $ at every line'], ['s', '. matches a new line'], ['x', 'spaces and # comments ignored'],
+      ['n', 'plain ( ) do not capture'], ['a', '\\d \\s \\w and [[:classes:]] ASCII only']],
+    replace: '$1, ${1}, $+{name}, $& (the match), \\U … \\E, \\n — read as a Perl double-quoted string, as s/// reads it',
+    note: 'Perl\'s own regex engine: Perl 5.42 compiled to WebAssembly (zeroperl — the Perl the EXIF tab runs ExifTool on, 25 MB, fetched once). The text is read as characters (Unicode).',
   },
   {
     id: 'python', label: 'Python (re)', start: '',

@@ -26,9 +26,8 @@ done with all the to-dos, then we'll start iteratively looking at potentials.md 
 go-ahead for every open to-do, #12 and #13 included: #8 (in progress), #10, #12, #13 — then the potentials process.
 **Machine rules:** 16 GB of memory, no swap — two big models at once were killed; disk is a fixed allowance — when it
 fills, clean what can be made again and carry on (owner, 21 Nov 2026).
-**#8 Regex Tester flavours — in progress:** built and live — JavaScript, PCRE2, Python, Go, Ruby (CLAUDE.md §3
-`regex`; unit `regex-flavours` 227 against the native engines, e2e `regex-flavours` 40 + `regex` 32). **Next:** Perl
-(zeroperl, on the site: `ZeroPerl.create()` + `eval`), POSIX ERE (gnulib's regex from GNU grep's source — what grep -E
+**#8 Regex Tester flavours — in progress:** built and live — JavaScript, PCRE2, Perl, Python, Go, Ruby (CLAUDE.md §3
+`regex`; unit `regex-flavours` 285 against the native engines, e2e `regex-flavours` 46 + `regex` 32). **Next:** POSIX ERE (gnulib's regex from GNU grep's source — what grep -E
 runs — held to glibc's regexec), Python's `regex` module (mrab-regex compiled into our CPython: §5.1m build), Java
 and .NET (to decide — no existing WebAssembly build of their engines). Each: an adapter in `src/lib/regex/`, a
 loader in the worker, cases in `scripts/make-regex-reference.py`, the flavour in `FLAVOURS`, e2e checks.

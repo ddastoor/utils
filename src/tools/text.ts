@@ -505,9 +505,9 @@ export { groupNames } from '../lib/regex/flavours';
 export const flagsError = (f: string) => flavourFlagsError(FLAVOURS[0], f);
 /** How long one run may take before the worker is ended (a pattern that backtracks without end never finishes); Python
  *  starts an interpreter for every run, Go never backtracks. */
-const REGEX_LIMIT_MS: Record<FlavourId, number> = { js: 2000, pcre2: 5000, python: 10000, go: 10000, ruby: 5000 };
+const REGEX_LIMIT_MS: Record<FlavourId, number> = { js: 2000, pcre2: 5000, perl: 5000, python: 10000, go: 10000, ruby: 5000 };
 /** What fetching an engine costs, said while it comes (once a visit). */
-const ENGINE_SIZE: Partial<Record<FlavourId, string>> = { pcre2: 'PCRE2, 0.5 MB', python: 'CPython, 12 MB', go: 'Go\'s regexp, 2.6 MB', ruby: 'Oniguruma, 0.5 MB' };
+const ENGINE_SIZE: Partial<Record<FlavourId, string>> = { pcre2: 'PCRE2, 0.5 MB', perl: 'Perl 5.42, 25 MB', python: 'CPython, 12 MB', go: 'Go\'s regexp, 2.6 MB', ruby: 'Oniguruma, 0.5 MB' };
 export const regex: Mount = (root) => {
   let fl = FLAVOURS[0];
   const loaded = new Set<FlavourId>(['js']);
@@ -592,7 +592,7 @@ export const regex: Mount = (root) => {
     clearTimeout(slow);
     sent.set(id, f.id);
     if (!loaded.has(f.id)) slow = window.setTimeout(() => { if (id === seq) clear(groups).append(note(`Fetching the ${f.label.replace(/ \(.*/, '')} engine (${ENGINE_SIZE[f.id]}, once a visit)…`, 'info')); }, 300);
-    worker.postMessage({ id, flavour: f.id, pattern: pat.value, flags: flags.value, text: text.value, replacement: rep.value ? rep.value : null, all: every.checked } satisfies RegexReq);
+    worker.postMessage({ id, flavour: f.id, pattern: pat.value, flags: flags.value, text: text.value, replacement: rep.value ? rep.value : null, all: every.checked, base: document.baseURI } satisfies RegexReq);
   };
   let deb = 0; const runD = () => { clearTimeout(deb); deb = window.setTimeout(run, 60); };
   [pat, flags, text, rep].forEach((x) => x.addEventListener('input', runD));

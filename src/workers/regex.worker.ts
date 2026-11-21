@@ -9,7 +9,7 @@ import zipUrl from '../wasm/bin/python314.zip?url';
 import goUrl from '../wasm/bin/regex-go.wasm?url';
 import onigUrl from 'vscode-oniguruma/release/onig.wasm?url';
 
-export interface RegexReq extends EngineReq { id: number; flavour: FlavourId }
+export interface RegexReq extends EngineReq { id: number; flavour: FlavourId; /** The site's address (the page's document.baseURI): where Perl's module is. */ base?: string }
 export interface RegexRes extends Partial<EngineOut> {
   id: number;
   /** 'run': the engine is ready and this request is being matched. */
@@ -22,7 +22,22 @@ export interface RegexRes extends Partial<EngineOut> {
 const bytes = async (u: string) => { const r = await fetch(u); if (!r.ok) throw new Error(`HTTP ${r.status}`); return new Uint8Array(await r.arrayBuffer()); };
 const compile = (u: string) => WebAssembly.compileStreaming(fetch(u)).catch(async () => WebAssembly.compile(await bytes(u)));
 type Run = (q: EngineReq) => EngineOut | Promise<EngineOut>;
+let base = '';
+/** zeroperl (the EXIF tab's Perl) decides it runs in a browser by `window` and `document` — a worker has neither — and
+ *  would otherwise reach for Node's file system; the two names are set for it (as src/workers/exiftool.worker.ts does). */
+async function makePerl(): Promise<Run> {
+  (self as any).window ??= self; (self as any).document ??= {};
+  const [{ ZeroPerl }, m] = await Promise.all([import('@6over3/zeroperl-ts'), import('../lib/regex/perl')]);
+  const out = { text: '' }, dec = new TextDecoder();
+  const perl = await ZeroPerl.create({
+    stdout: (d: string | Uint8Array) => { out.text += typeof d === 'string' ? d : dec.decode(d, { stream: true }); },
+    stderr: () => {},
+    fetch: (() => fetch(new URL('vendor/exiftool/zeroperl.wasm', base))) as any,
+  });
+  return (q) => m.runPerl(perl, out, q);
+}
 const loaders: Record<FlavourId, () => Promise<Run>> = {
+  perl: makePerl,
   js: async () => (await import('../lib/regex/js')).runJs,
   pcre2: async () => { const m = await import('../lib/regex/pcre2'); await m.loadPcre2(); return m.runPcre2; },
   python: async () => { const [m, mod, zip] = await Promise.all([import('../lib/regex/python'), compile(pyUrl), bytes(zipUrl)]); return (q) => m.runPython(mod, zip, q); },
@@ -54,4 +69,4 @@ async function work() {
   }
   busy = false;
 }
-self.onmessage = (ev: MessageEvent<RegexReq>) => { next = ev.data; if (!busy) void work(); };
+self.onmessage = (ev: MessageEvent<RegexReq>) => { next = ev.data; if (ev.data.base) base = ev.data.base; if (!busy) void work(); };

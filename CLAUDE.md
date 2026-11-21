@@ -1235,12 +1235,17 @@ unit `tests/unit/devdata.test.mjs`, references `tests/fixtures/devdata/reference
 - `json`: the formatter changes white space only (devcore-json): member order, duplicate keys (pointed out) and the
   spelling of numbers and strings are kept; indent 2 / 4 / tab, minify, sort keys; a worded message with line, column and
   "Show it" for every mistake; accepts exactly what JSON.parse accepts.
-- `regex` — **flavours (to-do #8, owner, 21 Nov 2026; built so far: JavaScript, PCRE2, Python, Go, Ruby)**: a Flavour
+- `regex` — **flavours (to-do #8, owner, 21 Nov 2026; built so far: JavaScript, PCRE2, Perl, Python, Go, Ruby)**: a Flavour
   list above the pattern; each flavour is the engine its language runs (`src/lib/regex/`, one adapter each, one answer
   shape; `src/workers/regex.worker.ts` fetches an engine the first time its flavour is chosen):
   **JavaScript** — the browser's RegExp, as before (flags g i m s u v y d; without g, Replace changes the first match);
   **PCRE2** — `pcre2-wasm` 10.49 (the text always UTF; flags i m s x n U J D A u = UCP; PCRE2's own global loop and
   pcre2_substitute, extended: `$1 ${name} \U…\E`; a runaway pattern stops at PCRE2's own match limit, said);
+  **Perl** — Perl 5.42's own engine: zeroperl, the Perl the EXIF tab runs ExifTool on (`public/vendor/exiftool/zeroperl.wasm`,
+  nothing new on the site; one interpreter kept warm; `window` / `document` set for it as in the EXIF worker); flags i m s
+  x n a; m//g's matches, @- / @+; the replacement read as Perl reads s///'s (`$1 $+{name} \U…\E`, code in `@{[ … ]}`
+  runs); Perl's own error words. One script (`SCRIPT` in `src/lib/regex/perl.ts`) runs in the tab and, as the
+  reference, in the native perl;
   **Python** — the `re` of the Python tab's CPython 3.14 (a fresh interpreter a run, ≈ 0.1 – 0.2 s; flags i m s x a;
   `\1 \g<name>`; Python's own error words); **Go** — Go's own regexp compiled by us (`wasm/regexgo`, §5.1p; flags i m s
   U as `(?flags)`; `$1 ${name}`, ReplaceAllString / Expand; no empty match right after a match); **Ruby** — Oniguruma
@@ -1250,14 +1255,15 @@ unit `tests/unit/devdata.test.mjs`, references `tests/fixtures/devdata/reference
   not capture and \1 gives nothing); flags i m (Ruby's m: . matches a new line — ^ $ are always line anchors) x.
   The flags box lists the flavour's letters with what each does and refuses others ("“g” is not a flag in Python");
   JavaScript's g and "Replace every match" (the other flavours) stand for each other when the flavour changes.
-  **Time limits** start when the engine begins the matching (a first download is not counted): JavaScript 2 s, PCRE2
-  and Ruby 5 s, Python and Go 10 s; when a limit fires for an older request the newest runs in a fresh worker (it used
+  **Time limits** start when the engine begins the matching (a first download is not counted): JavaScript 2 s, PCRE2,
+  Perl and Ruby 5 s, Python and Go 10 s; when a limit fires for an older request the newest runs in a fresh worker (it used
   to wait behind the stuck one for ever). Matches, groups and names as each engine gives them; indexes in the page's
-  own counting (UTF-16). **Tests:** unit `regex-flavours.test.mjs` 227 — 151 cases held to the native engines
+  own counting (UTF-16). **Tests:** unit `regex-flavours.test.mjs` 285 — 193 cases held to the native engines
   (`tests/fixtures/regex/reference.json` from `python3 scripts/make-regex-reference.py`: CPython 3.14 via uv, Go's regexp
-  built natively, the system's libpcre2-8 through `scripts/regex-ref/pcre2ref.c` — needs `libpcre2-dev`, Ruby 3.3; two
-  PCRE2 cases differ by version, 10.49 here and 10.42 there, named in the suite); e2e `regex-flavours.e2e.mjs` 40 and
-  `regex.e2e.mjs` 32. **Still to come (to-do #8):** Perl, POSIX ERE (grep -E), Python's `regex` module, Java, .NET.
+  built natively, the system's libpcre2-8 through `scripts/regex-ref/pcre2ref.c` — needs `libpcre2-dev`, Ruby 3.3, the
+  system's perl 5.38; three cases differ by version — PCRE2 10.49 / 10.42, Perl 5.42 / 5.38, newer Unicode — named in
+  the suite); e2e `regex-flavours.e2e.mjs` 46 and `regex.e2e.mjs` 32. **Still to come (to-do #8):** POSIX ERE (grep -E),
+  Python's `regex` module, Java, .NET.
 - `base64` (devcore-enc): text or file ⇄ Base64 / URL-safe / data: URL; decoding takes messy input (no padding, line
   breaks, %3D, data: URLs); binary results are recognised by their first bytes, shown as hex and saved under a fitting
   name; long output is cut on screen only.
@@ -2550,7 +2556,7 @@ stay **public** (the source of the deployed site is then available to every user
 | cmark-gfm 0.29.0.gfm.13 (GitHub Flavored Markdown) | C | **us** (`wasm/markdown`, source from the PyPI `cmarkgfm` sdist, SHA-256 pinned) | markdown |
 | libyaml 0.2.5 + toml++ 3 | C / C++ | **us** (`wasm/formats`) | yaml |
 | MuPDF 1.28 | C | Artifex (official `mupdf` npm) | all PDF tools, PDF → EPUB |
-| ExifTool 13.42 on zeroperl (Perl 5 compiled to WebAssembly with ExifTool's library inside) | Perl / C | Phil Harvey (ExifTool), uswriting / 6over3 (`@uswriting/exiftool` 1.0.9, `@6over3/zeroperl-ts` 1.0.10) — run in `src/workers/exiftool.worker.ts` | exif (replaced metacore's reader and stripper in Nov 2026: `docs/WASM-AUDIT.md`, tab 120) |
+| ExifTool 13.42 on zeroperl (Perl 5 compiled to WebAssembly with ExifTool's library inside) | Perl / C | Phil Harvey (ExifTool), uswriting / 6over3 (`@uswriting/exiftool` 1.0.9, `@6over3/zeroperl-ts` 1.0.10) — run in `src/workers/exiftool.worker.ts` | exif (replaced metacore's reader and stripper in Nov 2026: `docs/WASM-AUDIT.md`, tab 120); regex (the Perl flavour, the same module: `src/lib/regex/perl.ts`) |
 | hash-wasm 4.13.0 (hand-tuned C → wasm, one small binary per algorithm, embedded in the package; streaming; HMAC over any of its hashes; Argon2, bcrypt, scrypt, PBKDF2) | C | Dani Biró (`hash-wasm` npm, ~10 M downloads a month) — wrappers `src/lib/hmac.ts`, `src/lib/totp.ts`, `src/lib/pwhash.ts`, `src/lib/hashes.ts` (in `src/workers/hash.worker.ts`); only the algorithms a tab uses are bundled into its chunk, loaded with the tab's first result | hash (23 algorithms), hmac (all of it), totp (the HMAC), pwhash (Argon2id / i / d, bcrypt, scrypt, PBKDF2) — replaced RustCrypto builds and crypto.wasm's hashes of ours in Nov 2026 (`docs/WASM-AUDIT.md`) |
 | ONNX Runtime Web 1.31 (CPU/WebAssembly, SIMD) | C++ | Microsoft (official `onnxruntime-web` wasm build) | tts (Kokoro, Piper); scanner (DocCornerNet LEAN, scanic-ml 0.2.0: the page's corners — `docs/WASM-AUDIT.md`, tab 121) |
 | SQLite 3.54 | C | SQLite project (official `@sqlite.org/sqlite-wasm`), run in `src/workers/sqlite.worker.ts` (terminated on leave) | sqlite |

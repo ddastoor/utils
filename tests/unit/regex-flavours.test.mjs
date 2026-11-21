@@ -15,32 +15,40 @@ export default async (t, { load }) => {
   const py = await WebAssembly.compile(readFileSync('src/wasm/bin/python.wasm')), zip = new Uint8Array(readFileSync('src/wasm/bin/python314.zip'));
   const go = await WebAssembly.compile(readFileSync('src/wasm/bin/regex-go.wasm'));
   await R.loadOnig(readFileSync('node_modules/vscode-oniguruma/release/onig.wasm'));
-  const engines = { python: (q) => runPython(py, zip, q), go: (q) => runGo(go, q), pcre2: (q) => runPcre2(q), ruby: (q) => R.runRuby(q) };
+  const P = await load('src/lib/regex/perl.ts');
+  const { ZeroPerl } = await import(new URL('../../node_modules/@6over3/zeroperl-ts/dist/esm/index.js', import.meta.url).href);
+  const zpWasm = readFileSync('node_modules/@6over3/zeroperl-ts/dist/esm/zeroperl.wasm'), zpOut = { text: '' };
+  const perl = await ZeroPerl.create({ stdout: (d) => { zpOut.text += typeof d === 'string' ? d : new TextDecoder().decode(d); }, stderr: () => {}, fetch: async () => new Response(zpWasm, { headers: { 'content-type': 'application/wasm' } }) });
+  const engines = { python: (q) => runPython(py, zip, q), go: (q) => runGo(go, q), pcre2: (q) => runPcre2(q), ruby: (q) => R.runRuby(q), perl: (q) => P.runPerl(perl, zpOut, q) };
 
   // where Oniguruma (the tab's Ruby engine) is not Onigmo (Ruby's own): each one named, with what Ruby does
   const RUBY_DIFFERS = {};
   // the tab's PCRE2 (pcre2-wasm 10.49) is newer than the reference here (the system's 10.42): with u (UCP) \w also
   // takes a combining mark, and \p{Greek} goes by Unicode's Script Extensions (U+0301 is used by Greek too) — as Perl does
+  // the tab's Perl (zeroperl, 5.42: Unicode 16) is newer than the reference here (5.38: Unicode 15): U+0301's Script
+  // Extensions include Greek since Unicode 16
+  const PERL_NEWER = { '\\p{Greek}+|': 'Unicode 16: U+0301 belongs to Greek by its Script Extensions' };
   const PCRE2_NEWER = { '\\w+|u': 'UCP \\w takes combining marks (e + U+0301 is one word)', '\\p{Greek}+|': '\\p{Greek} by Script Extensions (U+0301)' };
 
   const shape = (r) => ({ names: r.names, total: r.total, matches: r.matches.map((m) => [m.index, m.text, ...m.groups]) });
-  t.ok(Object.keys(REF.cases).sort().join() === 'go,pcre2,python,ruby', `reference of ${Object.entries(REF.engines).map(([k, v]) => `${k}: ${v}`).join(', ')}`);
+  t.ok(Object.keys(REF.cases).sort().join() === 'go,pcre2,perl,python,ruby', `reference of ${Object.entries(REF.engines).map(([k, v]) => `${k}: ${v}`).join(', ')}`);
   for (const [fl, cases] of Object.entries(REF.cases)) {
     for (const c of cases) {
       const q = { pattern: c.pattern, flags: c.flags, text: c.text, replacement: c.rep, all: c.all };
       const what = `${fl} /${c.pattern.length > 40 ? c.pattern.slice(0, 40) + '…' : c.pattern}/${c.flags} on ${JSON.stringify(c.text.length > 30 ? c.text.slice(0, 30) + '…' : c.text)}${c.rep !== null ? ` → ${JSON.stringify(c.rep)}${c.all ? '' : ' (first)'}` : ''}`;
       let r, err = null;
       try { r = await engines[fl](q); } catch (e) { err = e; }
-      const want = c.out, known = (fl === 'ruby' && RUBY_DIFFERS[c.pattern]) || (fl === 'pcre2' && PCRE2_NEWER[`${c.pattern}|${c.flags}`]);
+      const want = c.out, known = (fl === 'ruby' && RUBY_DIFFERS[c.pattern]) || (fl === 'pcre2' && PCRE2_NEWER[`${c.pattern}|${c.flags}`])
+        || (fl === 'perl' && PERL_NEWER[`${c.pattern}|${c.flags}`]);
       if (want.error !== undefined) {
         // the same engine gives the same words (Python, Go); PCRE2 10.42 here and 10.49 in the tab, Onigmo and Oniguruma,
         // word some errors differently — that it is refused is what must agree
-        const same = fl === 'python' || fl === 'go' ? err?.message === want.error : !!err;
+        const same = fl === 'python' || fl === 'go' ? err?.message === want.error : fl === 'perl' ? err?.message.split(' in regex')[0] === want.error.split(' in regex')[0] : !!err;
         t.ok(err instanceof C.PatternError && same, `${what}: refused as the native engine refuses it — ${JSON.stringify(want.error)}${err ? ` (ours: ${JSON.stringify(err.message)})` : ' (ours compiled it)'}`);
         continue;
       }
       if (err) { t.ok(!!known, `${what}: ${err.message}${known ? ` — known: ${known}` : ''}`); continue; }
-      const got = shape(r), exp = { names: want.names, total: want.total, matches: want.matches };
+      const got = shape(r), exp = { names: want.names ?? got.names, total: want.total, matches: want.matches }; // Perl: no names by number to compare
       const eq = JSON.stringify(got) === JSON.stringify(exp);
       t.ok(eq || !!known, `${what}: the matches, groups and names of the native engine${eq ? '' : ` — ours ${JSON.stringify(got).slice(0, 300)}, native ${JSON.stringify(exp).slice(0, 300)}${known ? ` (known: ${known})` : ''}`}`);
       if (c.rep !== null) {

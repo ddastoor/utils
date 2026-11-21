@@ -22,7 +22,7 @@ export default async (ctx) => {
   const engineNote = () => page.evaluate(() => [...document.querySelectorAll('.tool-body > div .note, .note')].map((n) => n.textContent).find((t) => /engine|PCRE2|CPython|regexp|Oniguruma/.test(t)) || '');
   await pat.waitFor();
 
-  ok(JSON.stringify(await flavourSel.evaluate((s) => [...s.options].map((o) => o.textContent))) === JSON.stringify(['JavaScript (this browser)', 'PCRE2 (PHP, R, grep -P …)', 'Python (re)', 'Go (RE2 syntax)', 'Ruby (Oniguruma)']), 'five flavours, JavaScript first');
+  ok(JSON.stringify(await flavourSel.evaluate((s) => [...s.options].map((o) => o.textContent))) === JSON.stringify(['JavaScript (this browser)', 'PCRE2 (PHP, R, grep -P …)', 'Perl 5', 'Python (re)', 'Go (RE2 syntax)', 'Ruby (Oniguruma)']), 'six flavours, JavaScript first');
   ok(await marksAre(['555-1234', '555-9876']) && !fetched.length, `JavaScript as before, and no engine fetched at open (${fetched.join(', ')})`);
   ok(!(await every.isVisible()), 'JavaScript: its g flag decides, the "Replace every match" switch is not shown');
 
@@ -44,6 +44,15 @@ export default async (ctx) => {
   await set('(', '', 'x'); ok(await errIs(/missing closing parenthesis \(at character 2\)/) && await pat.evaluate((e) => e.classList.contains('bad')), 'PCRE2\'s own error words, the pattern box marked');
   await flags.fill('g'); ok(await errIs(/“g” is not a flag in PCRE2\. The flags are i m s x n U J D A u\./), 'a flag PCRE2 does not have is named');
 
+  // ---- Perl (zeroperl, the EXIF tab's Perl; before Python, Go and Ruby: they must load in the worker after it)
+  await flavourSel.selectOption('perl');
+  await set('(?<y>\\d{4})-(?<m>\\d\\d)', '', 'on 2026-11 and 1999-01', '$+{m}/$+{y}');
+  ok(await repIs('on 11/2026 and 01/1999', 60000), 'Perl: named groups, $+{name} in the replacement (read as a Perl string)');
+  ok(JSON.stringify(await head()) === JSON.stringify(['#', 'Match', 'Index', '$1 y', '$2 m']) && /Perl 5\.42/.test(await engineNote()), 'Perl: the names in the table; the note says Perl 5.42');
+  await set('(\\w+)', '', 'hello world', '\\U$1\\E!'); ok(await repIs('HELLO! WORLD!'), 'Perl: \\U … \\E');
+  await set('\\d', '', 'a1', '@{[ 2 * 21 ]}'); ok(await repIs('a42'), 'Perl: code in the replacement runs, as in s///');
+  await set('(', '', 'x'); ok(await errIs(/Unmatched \( in regex/), "Perl's own error words");
+  await set('\\w+', 'a', 'naïve'); ok(await marksAre(['na', 've']), 'Perl a: \\w ASCII');
   // ---- Python
   await flavourSel.selectOption('python');
   await set('(?P<y>\\d{4})-(\\d\\d)', '', 'on 2026-11 and 1999-01', '\\g<y>/\\2');

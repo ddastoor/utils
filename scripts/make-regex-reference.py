@@ -4,7 +4,8 @@
 #   python — CPython 3.14 (`uv python install 3.14`), running the very script the tab runs (src/lib/regex/python.ts);
 #   go     — wasm/regexgo built natively with the Go toolchain (the same program the tab runs as WebAssembly);
 #   pcre2  — the system's libpcre2-8 through scripts/regex-ref/pcre2ref.c (cc … -lpcre2-8; apt install libpcre2-dev);
-#   ruby   — Ruby (3.3 here: its Onigmo) — the tab runs Oniguruma, so this is where the two may part.
+#   ruby   — Ruby (3.3 here: its Onigmo) — the tab runs Oniguruma, so this is where the two may part;
+#   perl   — the system's perl (5.38 here) running the very script the tab runs (src/lib/regex/perl.ts) in Perl 5.42.
 # Every answer is written in one form: matches as [UTF-16 index, text, group 1, …] (null for a group that took no part),
 # the group names, the count, the replacement (or why it failed) — or the compile error.
 # Run: python3 scripts/make-regex-reference.py [path to python3.14]
@@ -85,6 +86,29 @@ CASES = {
         C(r'\h+', '', 'a \t b'), C(r'\d', '', 'a1b2c3', '#', all=False), C(r'.', '', 'x' * 1500),
         C(r'\D', '', '1🎉2é3', '_'), C(r'\x{e9}', '', 'café'),
     ],
+    'perl': [
+        C(r'\d+', '', 'a1 b22 c333', '<$&>'),
+        C(r'(\w+)@(\w+)\.com', '', 'mail ann@example.com or bob@test.com', '$2 at $1'),
+        C(r'(?<y>\d{4})-(?<m>\d\d)', '', 'on 2026-11 and 1999-01', '$+{m}/$+{y}'),
+        C(r"(?'y'\d{4})-(?P<m>\d\d)", '', 'on 2026-11', '$+{m}.$+{y}'),
+        C(r'(\w+)', '', 'hello world', r'\U$1\E!'),
+        C(r'(\d)', '', 'a1', '${1}x|$1x', note='$1x is the variable $1x (empty)'),
+        C(r'^\w+', 'm', LINES, '#'), C(r'^\w+$', 'm', LINES), C(r'\w+$', '', 'end\n'), C(r'.+', '', LINES),
+        C(r'a.b', '', 'a\nb'), C(r'a.b', 's', 'a\nb'),
+        C(r'straße', 'i', 'STRASSE strasse Straße'),
+        C(r'\w+', '', UNI), C(r'\w+', 'a', UNI), C(r'σίσυφος', 'i', UNI), C(r'\p{Greek}+', '', UNI),
+        C(r'x*', '', 'axbxx', '-'), C(r'a|', '', 'baab', '-'), C(r'\b', '', 'ab cd', '|'),
+        C(r'a|ab', '', 'ab'), C(r'<.+?>', '', '<a><b>'),
+        C(r'(\w)\1', '', 'aabbcd eeff', '[$1]'), C(r'(?<=\$)\d+', '', 'cost $40 or $5'), C(r'a++b', '', 'aaab'),
+        C(r'(?>a+)b', '', 'aaab'), C(r'\((?:[^()]++|(?R))*\)', '', 'f(a(b)c) g((x)(y)) (z'),
+        C(r'foo\Kbar', '', 'foobar foobaz', '#'), C(r'\d+(*SKIP)(*FAIL)|\w+', '', 'ab 12 cd3'),
+        C(r'(a)|b', '', 'ab', '[$1]'), C(r'(', '', 'x'), C(r'[a-', '', 'x'), C(r'a{2,1}', '', 'x'), C(r'*a', '', 'x'),
+        C(r'''(\d+)  # the number
+              \s* (cm|mm)  # the unit''', 'x', '10 cm, 5mm'),
+        C(r'(\d+)(x)?', 'n', '12x 34', note='n: plain groups do not capture'),
+        C(r'\h+', '', 'a \t b'), C(r'\d', '', 'a1b2c3', '#', all=False), C(r'.', '', 'x' * 1500),
+        C(r'\D', '', '1🎉2é3', '_'), C(r'\x{e9}', '', 'café'), C(r'\d', '', 'a1', '@{[ 2 * 21 ]}', note='code inside the replacement, as Perl runs it'),
+    ],
     'ruby': [
         C(r'\d+', '', 'a1 b22 c333', r'<\0>'),
         C(r'(\w+)@(\w+)\.com', '', 'mail ann@example.com or bob@test.com', r'\2 at \1'),
@@ -109,6 +133,7 @@ CASES = {
 }
 
 # ---------------------------------------------------------------------------------------------------- the engines
+PERL_SCRIPT = _re.search(r'String\.raw`(.*?)`;', open(os.path.join(ROOT, 'src/lib/regex/perl.ts'), encoding='utf-8').read(), _re.S).group(1)
 PY_SCRIPT = _re.search(r'String\.raw`(.*?)`;', open(os.path.join(ROOT, 'src/lib/regex/python.ts'), encoding='utf-8').read(), _re.S).group(1)
 RUBY = r'''
 require 'json'
@@ -177,7 +202,7 @@ def shape(c, a, unit):
     for o in a['matches'][:SHOWN]:
         s, e = cp(o[0]), cp(o[1])
         ms.append([idx[s], t[s:e]] + [None if o[i] < 0 else t[cp(o[i]):cp(o[i + 1])] for i in range(2, len(o), 2)])
-    r = {'names': a['names'], 'total': a['total'], 'matches': ms}
+    r = {'names': a.get('names'), 'total': a['total'], 'matches': ms}  # Perl gives no names by number: None
     if c['rep'] is not None:
         r['replaced'] = a.get('replaced')
         if a.get('repError'):
@@ -208,6 +233,12 @@ def main():
         if 'version' in a:
             out['engines']['pcre2'] = f"PCRE2 {a['version']} (libpcre2-8)"
         out['cases'].setdefault('pcre2', []).append({**c, 'out': shape(c, a, 'u8')})
+    for c in CASES['perl']:
+        q = {'pattern': c['pattern'], 'flags': c['flags'], 'text': c['text'], 'rep': c['rep'], 'all': c['all'], 'shown': SHOWN, 'counted': COUNTED}
+        a = json.loads(subprocess.run(['perl', '-e', PERL_SCRIPT], input=json.dumps(q).encode(), capture_output=True, check=True).stdout)
+        if 'version' in a:
+            out['engines']['perl'] = a['version']
+        out['cases'].setdefault('perl', []).append({**c, 'out': shape(c, a, 'cp')})
     lines = '\n'.join(json.dumps({k: c[k] for k in ('pattern', 'flags', 'text', 'rep', 'all')}) for c in CASES['ruby']) + '\n'
     answers = subprocess.run(['ruby', '-e', RUBY], input=lines, capture_output=True, text=True, check=True).stdout.splitlines()
     for c, line in zip(CASES['ruby'], answers):
