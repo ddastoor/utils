@@ -630,14 +630,17 @@ on this PC**; phones never see the switch.
   real time, 3 ≈ 2.6×; Indic Tiny ≈ 7×; MeloTTS ≈ 3.5×; MMS ≈ 2.7×; Kokoro ≈ 4×; Pocket ≈ 2×; XTTS-v2 ≈ 1.7× slower (studio
   voice), 2.6× with a clip; Qwen3-TTS 0.6B ≈ 3.5× slower, 1.7B CustomVoice and VoiceDesign ≈ 4.5×; OmniVoice ≈ 6×; Parler Mini ≈ 5.5×; Bark
   small ≈ 8× slower (13 s of speech in 100 s, after its 1.6 GB download); SYSPIN ≈ 4× faster; Kyutai 1.6B ≈ 8.5× slower
-  (float32; 15 GB of memory — said in the tab). The accent of every Indian
-  voice that runs here: the ranking below. Qwen's voices sound North American. Not run here
-  (tagged in the tab): Indic Parler and Pocket cloning (gated), Parler Large, Bark (full), Veena,
-  VoxCPM2 (size), Chatterbox / Turbo (a second PyTorch). The Windows script was read by its text only
+  (float32; 15 GB of memory — said in the tab); with their downloads included, Bark (full) 13.5 s of speech in 8 minutes,
+  VoxCPM2 6 s in 5, VibeVoice 1.5B 8 s in 5, Veena 6 s in 7, F5-TTS 10 s in 34 (≈ 200× slower: a 4-core processor). Every
+  engine was run here with its lock as the scripts make it (`python3 scripts/accent-survey/smoke.py WORK ENGINE:VOICE …`,
+  21 Nov 2026). The accent of every Indian voice that runs here: the ranking below. Qwen's voices sound North American.
+  Not run here (tagged in the tab): Indic Parler and Pocket cloning (gated), Parler Large (9.3 GB, the program of Parler
+  Mini), Chatterbox / Turbo (re-test running at the sync point: docs/RESUME.md). The Windows script was read by its text only
   (PowerShell could not be installed in the sandbox). Left out (docs/BUGHUNT.md, "TTS offline"): Indic-Speak (gated; its
   inference code cannot be read without access), Maya 2 (no pinnable release; Linux and NVIDIA only), ZONOS3-Mini (an
-  Indian accent with a dose; on a processor only through its C++ tool). Next (to-do #7): F5-TTS and VibeVoice, the Indian
-  voice donations for every engine that clones, the engines not run here yet, and the new Indian voices measured.
+  Indian accent with a dose; on a processor only through its C++ tool). To-do #7 (round 2's rest): F5-TTS, VibeVoice, the
+  Indian voice donations for every engine that clones and the engines not run here — done; the new Indian voices
+  measured — in progress (docs/RESUME.md: `scripts/accent-survey/finish-7.sh`).
 - **Indian accents, lightest first** (owner, 21 Nov 2026: "keep a note that shows ranked all the Indian accents in order
   of increasing Indian accent thickness … the topmost … as British sounding as possible … name the model … Don't clutter
   the page … a kind of text pop-up … when the user clicks a button"): a small button beside the accent groups opens a
@@ -656,8 +659,9 @@ on this PC**; phones never see the switch.
   scores are committed (`scripts/data/indian-accents.json`, from `python3 scripts/make-indian-accents.py WORK`); the
   generator turns them into the catalogue's `heard`, and the unit suite works them out again from the raw scores. To
   measure again: `python3 scripts/accent-survey/run.py WORK` (hours on a processor), then the two scripts.
-- **To update:** change a pin or a revision in `scripts/make-offline-tts-catalogue.py` (packages: `ENGINES`), run it,
-  run an engine through driver.py on a short text (the commands are in the unit suite's header), both suites.
+- **To update:** change a pin or a revision in `scripts/make-offline-tts-catalogue.py` (packages: `ENGINES`), make its lock
+  again (`python3 scripts/make-offline-tts-locks.py ENGINE`), run the generator, run the engine on a short text with its
+  lock (`smoke.py` above), both suites.
 Tests: Kokoro 24 kHz mono, plausible length and energy, female median F0 > male + 40 Hz (Heart vs Michael), British
 voice, 2× speed ≈ half the length, Piper 22.05 kHz with female above male pitch, MP3 frames, sentence progress, stop,
 markdown → text.

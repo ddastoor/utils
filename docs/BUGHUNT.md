@@ -2629,4 +2629,17 @@ cannot. Three new suites; each fails on the build before its fixes.
   lock keeps the environment, a new one remakes it; a line that is no requirement refused) and, with OFFLINE_TTS_E2E=1,
   the real Linux script installing exactly the lock's versions of Piper and speaking; offline-tts-plan 168 (every
   engine's lock holds its own pins, PyTorch without a build, no NVIDIA libraries).
+- **TTS offline: every engine run here with its lock — Chatterbox could not start anywhere (21 Nov 2026; to-do #7).**
+  `scripts/accent-survey/smoke.py` makes each engine's environment as the tab's scripts do (its packages, its lock as
+  constraints, PyTorch's processor build) and has it speak one sentence. All passed — Bark (full), VoxCPM2, VibeVoice
+  1.5B, Veena and F5-TTS run here for the first time — except Chatterbox and Chatterbox Turbo, which failed twice:
+  **its lock asked for two versions of PyTorch at once** (torch 2.6.0 and 2.15.0, torchaudio 2.6.0 and 2.11.1, each line
+  without a marker: `uv pip compile --universal` writes a line per platform it splits on, some of them for platforms no
+  script runs on — uv refused the constraints on every PC) → the lock maker keeps only the lines whose marker fits a
+  platform the scripts serve (Python 3.12 on Linux and Windows, x86-64 and ARM64) and stops on two versions left without a
+  marker; and then **every run stopped at start: `'NoneType' object is not callable`** — its watermark, resemble-perth
+  1.0.1 (chatterbox-tts pins it), imports `pkg_resources`, which setuptools 82 removed, and swallows the ImportError
+  (the watermarker class is None) → setuptools 81.0.0, the last with pkg_resources, is one of the engine's packages.
+  Both would have stopped the owner's run. Tests: unit offline-tts-plan 169 (+1: no lock asks for two versions of a
+  package without a marker).
 
