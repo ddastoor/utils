@@ -25,6 +25,18 @@ that affects it.
 > apps of `docs/potentials.md` → the owner picks one or several → **the size check below for each** (wait for the
 > decision) → build and test them → remove them from `docs/potentials.md` → show the list again.
 
+> ## 📖 The Photo Dictionary matters most (owner, 21 Nov 2026; standing)
+> **Owner:** "photo dictionary, particularly as an app, is very important to me, and it has to work extremely well on my
+> phone, especially when I take pictures of my Kindle, because I read a lot on my Kindle. It also obviously has to work
+> very well on the PC using a webcam, but my primary use case for photo dictionary is while using it with my phone to take
+> pictures of Kindle page so that I can quickly look up stuff."
+> So: **its first case is a phone photographing a Kindle page** (an e-ink screen: moiré, glare, a slight tilt, the camera's
+> focus), then a PC's webcam. Every change to it, to its OCR (`src/lib/ocr.ts`), to the shared live camera
+> (`src/lib/livecam.ts`) or to the image clean-up it uses is judged first by how well a phone's photo of a Kindle page
+> reads; its suite measures that (§3 Photo Dictionary). The owner's report of 21 Nov 2026: on the phone the OCR was
+> worse than with the webcam (the Kindle's "Comforta" font) — the same engine on both; the phone's Snap gives one frame of
+> the live video, not a photo (§3 Photo Dictionary, "To build next").
+
 > ## 📏 Size check before every new app (owner, 20 Nov 2026; standing)
 > **Owner:** "Whenever next new app I suggest from potentials.md, you do a rough calculation, tell me how much more
 > space it will occupy, and potentially if you can get rid of an existing app to make space, and then I'll make a
@@ -1953,6 +1965,13 @@ fix):**
    the whole word), in a selected phrase and in the Wikipedia look-up; a real compound that falls at a line end keeps
    its hyphen (well-known, self-evident). (The ranking already joins a line-end `-` when a half is no word or the joined
    word is at least as common — `rare.c`; the rest is new.)
+5. **The phone's photo of a Kindle page reads as well as it can** (owner, 21 Nov 2026: "it has to work extremely well on
+   my phone, especially when I take pictures of my Kindle" — the standing note at the top; his report: worse on the
+   phone than with the webcam): Snap takes the camera's full-resolution still where the browser can (ImageCapture
+   `takePhoto`, Android Chrome; continuous autofocus), else the frame; a set of Kindle-page photos (generated: e-ink
+   grey, moiré, tilt, blur, noise; and the owner's own when he sends them — "Save this photo" under the thumbnail saves
+   exactly what was read) with the words read right measured for each clean-up (moiré, contrast, straightening, scale),
+   the best kept, and the suite holds that accuracy.
 **Owner, 21 Nov 2026: build this upgrade next — after the Indian-accent ranking in progress, before the rest of the
 voice work, the rename and the regex flavours, and before anything from `docs/potentials.md`** (`todo.md` #6).
 (`src/tools/photodict.ts`, engine `src/lib/dictionary.ts`, ranking `wasm/textcore/rare.c`; e2e `tests/e2e/photodict.e2e.mjs`

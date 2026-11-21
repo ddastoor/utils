@@ -21,6 +21,11 @@ this file = the owner's latest wishes, how the tests are written, and the traps 
   or time" banner means this session's machine/time is used up (the fix is a new session — work is safe in Git); the
   previous session started this one with `create_session` and stopped itself so two sessions never edit the branch.
 
+- **21 Nov 2026 — the Photo Dictionary matters most** (standing note at the top of CLAUDE.md): "it has to work extremely
+  well on my phone, especially when I take pictures of my Kindle … my primary use case". His report: on the phone the
+  OCR was worse than with the webcam — the same Tesseract on both; the phone's Snap is one frame of the live video. Asked
+  for: his bad phone photo, a webcam shot and a camera-app photo of the same page ("Save this photo" saves what was
+  read); not into the public repository.
 - **21 Nov 2026 — how the potentials go from here (agreed):** "after all the to-dos, we'll start going through
   potentials.md. So you show me potentials.md apps. Then I will select either one app or a bunch of apps, and you build
   them out and then remove them from potential.md, and then we repeat this process." Before that: the offline voices in
