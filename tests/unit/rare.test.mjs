@@ -103,4 +103,35 @@ export default async (t, { load, wasm }) => {
   t.ok(words('The prof said the capt was here.', 999).includes('prof'), '… the same word without a full stop is an ordinary word');
   { const long = 'word ' + 'a' + "'a".repeat(400) + ' perspicacious ' + 'b' + '-b'.repeat(400) + ' quixotic';
     t.eq(words(long, 999).sort(), ['perspicacious', 'quixotic', 'word'], 'a token of 800 apostrophes or hyphens between letters is too long for a word and is dropped — written within its 256-byte buffer (the apostrophes and hyphens were written past it)'); }
+
+  // ---- words broken over two lines (owner, 21 Nov 2026: "If words have a hyphen or a dash between them because they
+  // have to go to the next line … treat them as one word"): t_dehyphen, with the real table
+  const dh = (x) => tc.dehyphen(x);
+  t.eq(dh('an extra-\nordinary day'), 'an extraordinary\nday', 'a hyphen at a line end: one word, the rest of the line starts the next');
+  t.eq(dh('a well-\nknown fact'), 'a well-known\nfact', 'a compound of two words keeps its hyphen');
+  t.eq(dh('quite magnani\u00ad\nmous of him'), 'quite magnanimous\nof him', 'the soft hyphen always joins');
+  t.eq(dh('an extra\u2013\nordinary day'), 'an extraordinary\nday', 'an en dash OCR read for a hyphen: joined');
+  t.eq(dh('an extra\u2014\nordinary day'), 'an extraordinary\nday', 'an em dash OCR read for a hyphen: joined');
+  t.eq(dh('He waited\u2014\nthen he left.'), 'He waited\u2014\nthen he left.', 'a real dash at a line end is left as it was');
+  t.eq(dh('the inter\u00ac\nnational desk'), 'the international\ndesk', 'the not sign (Fraktur / OCR hyphen): joined');
+  t.eq(dh('co\u2010\noperate now'), 'cooperate\nnow', 'the Unicode hyphen U+2010: joined');
+  t.eq(dh('an extra-\nordinary, said he'), 'an extraordinary,\nsaid he', 'punctuation right after the word stays with it');
+  t.eq(dh('an extra-\nordinary\nNext line'), 'an extraordinary\nNext line', 'a second half alone on its line: no empty line');
+  t.eq(dh('a lugu- :\n. brious tale'), 'a lugubrious\ntale', 'stray marks of the page edge around the break are dropped');
+  t.eq(dh('from 1990-\n2000 on'), 'from 1990-\n2000 on', 'numbers are not words: left alone');
+  t.eq(dh('my mother-in-\nlaw came'), 'my mother-in-law\ncame', 'a compound of three: the hyphens stay');
+  t.eq(dh('an extra-\r\nordinary day'), 'an extraordinary\nday', 'CR LF line ends');
+  t.eq(dh('Ex-\nample text'), 'Example\ntext', 'a capital is kept as written');
+  t.eq(dh('a well- \n known fact'), 'a well-known\nfact', 'spaces around the line break');
+  t.eq(dh('a word -\nthen more'), 'a word -\nthen more', 'a mark after a space is not a broken word');
+  t.eq(dh('end of line-\n\nNew paragraph'), 'end of line-\n\nNew paragraph', 'a blank line after the mark: not a broken word');
+  t.eq(dh('naïve-\ntés'), dh('naïve-\ntés'), 'letters with accents are read (stable)');
+  const plain = 'A long text without broken words. Line two — with a dash, mid-line hyphens (well-known) and “quotes”.\nLine three.';
+  t.eq(dh(plain), plain, 'a text without broken words comes back unchanged, byte for byte');
+  t.eq(tc.rare(dh('the extra-\nordinary quixotic-\nness')).map((x) => x.w).includes('extraordinary'), true, 'the ranking sees the joined word');
+  // the same rule as the ranking's own (which joins a plain hyphen): every case agrees
+  for (const [a, b] of [['magnani', 'mous'], ['re', 'turn'], ['well', 'known'], ['self', 'evident'], ['sur', 'veillance'], ['high', 'way']]) {
+    const joined = !dh(`${a}-\n${b}`).includes('-'), ranked = tc.rare(`${a}-\n${b}`, 99).some((x) => x.w === a + b);
+    t.eq(joined, ranked, `${a}-${b}: the shown text and the ranking decide alike (${joined ? 'joined' : 'kept'})`);
+  }
 };

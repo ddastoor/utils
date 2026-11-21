@@ -175,6 +175,77 @@ static int lemma_d(const char *w, int n, char *out, int depth) {
     return 0;
 }
 
+/* ------------------------------------------------------------------ words broken over two lines */
+/* The joining rule (a = the first half, b = the second, both lower case, j = the two together): join when the joined
+   word is known and a half is not a word ("magnani-mous"), or the joined word is common ("re-turn"), or at least as
+   common as the rarer half; keep compounds of two words ("well-known": "wellknown" is only a rare misspelling). */
+static int join_ok(const char *j, int jl, const char *a, int al, const char *b, int bl) {
+    int zj = fget(j, jl), za = fget(a, al), zb = fget(b, bl);
+    return zj >= 0 && (za < 0 || zb < 0 || zj >= 30 || zj >= (za < zb ? za : zb));
+}
+/* the marks a line can end with when a word goes on in the next one: the hyphen, the Unicode hyphens, the figure dash,
+   the en and em dashes (OCR reads a hyphen as one of those), the not sign (the hyphen of Fraktur and of some OCR) and
+   the soft hyphen */
+static int is_break_mark(int c) { return c == '-' || c == 0x2010 || c == 0x2011 || c == 0x2012 || c == 0x2013 || c == 0x2014 || c == 0xac || c == 0xad; }
+static int is_dash(int c) { return c == 0x2013 || c == 0x2014; }
+
+/* Where a word broken at offset i (a mark right after letters) goes on: the offset of its second half's first letter
+   (after the line break, spaces and up to 4 stray marks before it and 3 after — the noise at a page's edge, as
+   t_rare reads it), or -1 when the mark is not at a line end or the next line does not start with letters. */
+static int broken_at(const uint8_t *s, int len, int i, int cl) {
+    int k = i + cl, junkc = 0, l2;
+    while (k < len && s[k] != '\n' && junkc <= 4) { int cc = dec(s + k, len - k, &l2); if (is_letter(cc) || is_digit(cc)) return -1; if (s[k] != ' ' && s[k] != '\r' && s[k] != '\t') junkc++; k += l2; }
+    if (k >= len || s[k] != '\n' || junkc > 4) return -1;
+    k++; junkc = 0;
+    while (k < len && junkc <= 3) { int cc = dec(s + k, len - k, &l2); if (is_letter(cc)) return k; if (is_digit(cc) || cc == '\n') return -1; if (s[k] != ' ' && s[k] != '\r' && s[k] != '\t') junkc++; k += l2; }
+    return -1;
+}
+
+/* t_dehyphen: the OCR text with the words broken over two lines put together (owner, 21 Nov 2026: "If words have a
+   hyphen or a dash between them because they have to go to the next line … treat them as one word") — for the text
+   shown and everything taken from it (a tap on a word, a selected phrase, the ranking). A line-end mark between
+   letters, the next line starting with letters, is
+     joined ("extra-" + "ordinary" → "extraordinary") when join_ok says so — and always for the soft hyphen, which
+       only marks where a word may be broken;
+     kept as a compound ("well-" + "known" → "well-known") for a hyphen or the not sign that is not joined;
+     left as it was for an en or em dash that is not joined (at a line end a dash is punctuation as often as not).
+   A word put together ends its first line: the rest of the second line, after its spaces, starts the next line
+   (punctuation right after the word stays with it). Nothing else of the text is changed. UTF-8 into out (cap bytes;
+   the result is never longer than the text); returns its length. */
+API int t_dehyphen(const char *text, int len, char *out, int cap) {
+    const uint8_t *s = (const uint8_t *)text;
+    int p = 0, i = 0, wl = 0, bad = 0; /* wl: the letters of the word being read, lower case, in w */
+    char w[256];
+    #define OUT(b, n) do { if (p + (n) <= cap) memcpy(out + p, b, n); p += (n); } while (0)
+    while (i < len) {
+        int cl = 1, c = dec(s + i, len - i, &cl);
+        if (is_letter(c)) { if (wl < 200) wl += enc(lower(c), w + wl); else bad = 1; OUT(text + i, cl); i += cl; continue; }
+        int k = wl && is_break_mark(c) ? broken_at(s, len, i, cl) : -1;
+        if (k > 0) {
+            /* the second half: its letters (lower case for the rule) */
+            char j[256]; int jl = wl, e = k, l2; memcpy(j, w, wl);
+            while (e < len) { int cc = dec(s + e, len - e, &l2); if (!is_letter(cc)) break; if (jl < 200) jl += enc(lower(cc), j + jl); e += l2; }
+            int join = c == 0xad || (!bad && join_ok(j, jl, w, wl, j + wl, jl - wl));
+            if (join || !is_dash(c)) {
+                if (!join) OUT(text + i, cl);  /* the compound keeps its hyphen */
+                OUT(text + k, e - k);            /* the second half, as written */
+                /* punctuation right after it stays with it; then the rest of the line starts a new one */
+                while (e < len && s[e] != ' ' && s[e] != '\t' && s[e] != '\n' && s[e] != '\r') { int cc = dec(s + e, len - e, &l2); if (is_letter(cc)) break; OUT(text + e, l2); e += l2; }
+                while (e < len && (s[e] == ' ' || s[e] == '\t')) e++;
+                if (e < len && s[e] != '\n' && s[e] != '\r') OUT("\n", 1);
+                i = e; wl = 0; bad = 0;
+                /* the word goes on with letters after punctuation (rare): read it as a new word */
+                continue;
+            }
+        }
+        wl = 0; bad = 0;
+        OUT(text + i, cl); i += cl;
+    }
+    #undef OUT
+    if (p < cap) out[p] = 0;
+    return p;
+}
+
 /* ------------------------------------------------------------------ candidates */
 typedef struct { char w[64]; char b[64]; int wl, bl, z, n, first, caps, midcap; } Cand;
 static Cand *cands; static int ncand, capc;
@@ -240,8 +311,7 @@ API int t_rare(const char *text, int len, int max_z, char *out, int cap) {
                     while (k < len) { int cc = dec(s + k, len - k, &l2); if (!is_letter(cc)) break; if (wl2 < 200) wl2 += enc(lower(cc), tmp + wl2); k += l2; }
                     /* join when a half is not a word ("magnani-mous") or the joined word is common ("re-turn"); keep
                        compounds of two words ("well-known": "wellknown" is only a rare misspelling) */
-                    int zj = fget(tmp, wl2), za = fget(w, wl), zb = fget(tmp + wl, wl2 - wl);
-                    if (zj >= 0 && (za < 0 || zb < 0 || zj >= 30 || zj >= (za < zb ? za : zb))) { memcpy(w, tmp, wl2); wl = wl2; i = k; continue; }
+                    if (join_ok(tmp, wl2, w, wl, tmp + wl, wl2 - wl)) { memcpy(w, tmp, wl2); wl = wl2; i = k; continue; }
                 }
                 if (wl < 200) w[wl++] = '-';
                 i = j; continue;

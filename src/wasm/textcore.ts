@@ -36,6 +36,13 @@ export function bindTextcore(e: any) {
         return JSON.parse(new TextDecoder().decode(new Uint8Array(e.memory.buffer, o, k)));
       } finally { e.t_free(p); e.t_free(o); }
     },
+    /** The OCR text with the words broken over two lines put together (see t_dehyphen in wasm/textcore/rare.c): joined
+     *  ("extra-" + "ordinary" → "extraordinary"), kept as a compound ("well-known"), or a dash left as it was. Uses the
+     *  frequency table: load it first (without it only soft hyphens are joined). */
+    dehyphen(text: string): string {
+      const [p, n] = putStr(text), o = e.t_malloc(n + 1);
+      try { const k = e.t_dehyphen(p, n, o, n + 1); return new TextDecoder().decode(new Uint8Array(e.memory.buffer, o, k)); } finally { e.t_free(p); e.t_free(o); }
+    },
     /** XY-cut reading order of boxes [x0, y0, x1, y1] (y down): vertical gutters of at least `gx`, horizontal gaps of at
      *  least `gy`; a part of a split counts as a column when it holds three boxes and is `minh` high (0: every part).
      *  `heavy[i]` marks a figure or a table: a side of a split that holds one is a part of its own (see xycut.c).
