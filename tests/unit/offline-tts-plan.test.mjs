@@ -90,6 +90,42 @@ export default async (t, { load }) => {
   t.ok(cat.models.goonj.file === 'kokoro_hindi_final.pth' && cat.models.kokoro.file === 'kokoro-v1_0.pth', 'each Kokoro-family model names its weights');
   t.ok(cat.models['indic-parler'].gated && !cat.models['parler-large'].gated, 'Indic Parler-TTS needs a Hugging Face account, Parler Large does not');
   t.ok(cat.models.xtts.personal && cat.engines.xtts.accept === 'cpml', 'XTTS-v2: personal use, its licence must be accepted');
+  // Kyutai TTS 1.6B: a voice for every recording of kyutai/tts-voices that has an embedding for it (as surveyed in
+  // scripts/data/kyutai-voices-heard.json) but the two Freesound clips, whose licence the README does not give
+  {
+    const heardK = JSON.parse(readFileSync(new URL('../../scripts/data/kyutai-voices-heard.json', import.meta.url), 'utf8')).recordings;
+    const kv = per('kyutai'), xclip = per('xtts').find((v) => v.clip).clip;
+    t.eq(kv.map((v) => v.clip?.file).sort(), Object.keys(heardK).filter((f) => !f.includes('/freesound/')).sort(), `Kyutai: a voice for each recording with an embedding (${kv.length}), the Freesound clips left out`);
+    t.ok(kv.every((v) => v.clip.repo === xclip.repo && v.clip.rev === xclip.rev && !v.speaker && !v.voice), 'Kyutai: every voice a recording of kyutai/tts-voices at the revision the clips of XTTS-v2 come from');
+    t.ok(cat.engines.kyutai.ownTorch && cat.engines.kyutai.speedControl && cat.engines.kyutai.slow && cat.engines.kyutai.packages.some((p) => /^moshi==/.test(p)), 'Kyutai: moshi with a PyTorch of its own (below 2.10), a speed, slow on a processor');
+    // VCTK's speakers filed as VCTK's own list files them — as the Piper voices of the same speakers are
+    // (p315 and s5 have no Piper voice: their accent straight from the list)
+    const kvctk = kv.filter((v) => v.clip.file.startsWith('vctk/'));
+    t.ok(kvctk.length >= 100 && kvctk.every((v) => {
+      const s = v.clip.file.slice(5).split('_')[0], r = vctk[s], p = byId.get(`piper-vctk-${s}`);
+      return r && v.sex === r[2].toLowerCase() && v.label.includes(`, ${r[1]},`) && !v.label.includes('unavailable') && (p ? p.group === v.group : v.group === { American: 'us', British: 'uk' }[r[3]]);
+    }), `Kyutai: its ${kvctk.length} VCTK voices have the accent, sex and age of VCTK’s list`);
+    // the recordings without a description: a language Whisper is sure of (0.8+) → its speakers (an Indian language under
+    // Indian, any other under other accents); else the accent our accent model heard first by 0.05 and more; else not
+    // documented. Worked out again here from the raw survey.
+    const CA = { indian: 'in', us: 'us', england: 'uk', scotland: 'uk', ireland: 'uk', wales: 'uk' };
+    const expect = (r) => {
+      const [lang, p] = r.lang || ['en', 1];
+      if (lang !== 'en' && p >= 0.8) return ['hi', 'bn', 'ta', 'te', 'mr', 'gu', 'kn', 'ml', 'pa', 'or', 'as'].includes(lang) ? 'in' : 'world';
+      return r.acc[0][1] - r.acc[1][1] >= 0.05 ? CA[r.acc[0][0]] || 'world' : 'any';
+    };
+    const free = kv.filter((v) => !v.clip.file.startsWith('vctk/') && !/^voice-donations\/.*india/i.test(v.clip.file));
+    const wrong = free.filter((v) => v.group !== expect(heardK[v.clip.file]));
+    t.eq(wrong.map((v) => v.id), [], `Kyutai: the ${free.length} recordings without a described accent filed by the language and accent heard`);
+    t.ok(kv.filter((v) => /^voice-donations\/.*india/i.test(v.clip.file)).every((v) => v.group === 'in' && /the donor says so/.test(v.label)), 'Kyutai: a donor whose name says India is Indian, and the label says why');
+    t.ok(free.every((v) => /accent heard in our test: |accent not clear in our test|a [A-Z][a-z]+ speaker \(the recording is in [A-Z][a-z]+\)/.test(v.label)), 'Kyutai: every label says how its accent was found');
+    t.eq(['kyutai-unmute-degaulle-2', 'kyutai-unmute-developpeuse-3', 'kyutai-unmute-fabieng-enhanced-v2', 'kyutai-don-2181'].map((i) => byId.get(i)?.group), ['world', 'world', 'world', 'world'], 'Kyutai: the French recordings are French speakers, not an English accent');
+    t.ok(byId.get('kyutai-don-4189').group === 'in' && /Hindi speaker/.test(byId.get('kyutai-don-4189').label), 'Kyutai: a recording in Hindi is an Indian voice');
+    // EARS and Expresso recordings are CC BY-NC: personal use, whatever the model's licence (CC BY 4.0)
+    const nc = kv.filter((v) => /^(ears|expresso)\//.test(v.clip.file));
+    t.ok(nc.length > 200 && nc.every((v) => v.personal && /personal use only/.test(v.label)) && !cat.models['kyutai-1.6b'].personal, 'Kyutai: EARS and Expresso voices are personal use, the model is not');
+    t.ok(P.planOf(cat, [nc[0].id]).personal && !P.planOf(cat, ['kyutai-vctk-p248']).personal, 'Kyutai: a personal recording makes the choice personal use, a VCTK one does not');
+  }
 
   // ---- the planner
   t.eq(P.detectOS('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/140 Safari/537.36'), 'windows', 'Windows from the user agent');
@@ -165,10 +201,11 @@ export default async (t, { load }) => {
   const r = JSON.parse(py(`import sys, json; sys.path.insert(0, '.'); import driver
 t = ' '.join(['Sentence number %d is here, with a clause.' % i for i in range(60)]) + '\\n\\nA new paragraph.'
 c = driver.chunks(t, 240)
-print(json.dumps({'max': max(map(len, c)), 'same': ' '.join(c).split() == t.split(), 'n': len(c), 'pace': [driver.pace(s) for s in (0.5, 0.8, 1, 1.3, 2)], 'engines': sorted(driver.ENGINES)}))`));
+print(json.dumps({'max': max(map(len, c)), 'same': ' '.join(c).split() == t.split(), 'n': len(c), 'pace': [driver.pace(s) for s in (0.5, 0.8, 1, 1.3, 2)], 'kyutai': [round(driver.kyutai_bonus(s), 6) for s in (0.25, 0.5, 1, 1.3, 2, 4)], 'engines': sorted(driver.ENGINES)}))`));
   t.ok(r.max <= 240 && r.same && r.n > 5, `driver.py cuts a long text into pieces of at most 240 characters, every word kept (${r.n} pieces)`);
   t.eq(r.pace, ['very slowly', 'slowly', 'at a moderate pace', 'slightly fast', 'fast'], 'Parler’s pace words');
   t.eq(r.engines, [...P.ENGINE_ORDER].sort(), 'driver.py has every engine the planner runs');
+  t.eq(r.kyutai, [2.25, 1.5, 0, -0.9, -3, -3], 'Kyutai’s pace: padding between words, more when slower, held within ±3 (measured: 0.62× – 1.3× the normal pace)');
 
   // the Indian voices by accent (owner, 21 Nov 2026): every one ranked or listed as not measured, lightest first; the
   // catalogue's numbers worked out again here from the survey's raw scores (scripts/data/indian-accents.json)

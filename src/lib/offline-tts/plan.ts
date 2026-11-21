@@ -13,12 +13,13 @@ export interface Clip { repo: string; rev: string; file: string }
  *  Indian accent minus its best score for any other (above 0: heard as Indian first; the higher, the stronger),
  *  averaged over the sentences measured; `like` = the other accent it was heard closest to. */
 export interface Heard { indian: number; like: string; n: number }
-export interface CVoice { id: string; label: string; group: string; sex: string; model: string; speaker?: number | string; voice?: string; lang?: string; describe?: string; clip?: Clip; heard?: Heard }
+/** `personal`: the voice's own recording is for personal use only (Kyutai's EARS and Expresso voices), whatever the model's licence. */
+export interface CVoice { id: string; label: string; group: string; sex: string; model: string; speaker?: number | string; voice?: string; lang?: string; describe?: string; clip?: Clip; heard?: Heard; personal?: boolean }
 export interface Catalogue { made: string; groups: Array<[string, string]>; engines: Record<string, Engine>; models: Record<string, Model>; voices: CVoice[]; accentSurvey?: { tool: string; texts: string[]; made: string } }
 
 /** The order in which the engines run: the quick ones first, so the first files are there soon. */
 export const ENGINE_ORDER = ['piper', 'supertonic', 'melo', 'indictiny', 'mms', 'coqui', 'kokoro', 'pocket', 'chatterbox', 'xtts', 'qwen',
-  'omnivoice', 'voxcpm', 'bark', 'parler', 'veena'];
+  'omnivoice', 'kyutai', 'voxcpm', 'bark', 'parler', 'veena'];
 /** PyTorch, once for every engine that needs it (uv keeps one copy) — and once more for an engine that pins a version
  *  of its own (Chatterbox: 2.6): the processor build, or the CUDA build with an NVIDIA graphics card (uv picks it by
  *  itself). Python 3.12 and uv come to about 50 MB. */
@@ -58,7 +59,7 @@ export function planOf(cat: Catalogue, ids: Iterable<string>): Plan {
     programMB: programs + torches * TORCH_MB.cpu, programMBcuda: programs + torches * TORCH_MB.cuda,
     gated: [...new Set(models.filter((m) => m.gated).map((m) => m.repo))],
     accept: [...new Set(models.map((m) => m.accept || cat.engines[m.engine].accept).filter(Boolean) as string[])],
-    personal: models.some((m) => m.personal),
+    personal: models.some((m) => m.personal) || voices.some((v) => v.personal),
     noSpeed: engines.filter((e) => !cat.engines[e].speedControl).map((e) => cat.engines[e].name),
     slow: engines.filter((e) => cat.engines[e].slow).map((e) => cat.engines[e].name),
   };

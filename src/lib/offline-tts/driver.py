@@ -780,6 +780,50 @@ def mms(job, voices):
         log(f'  {v["label"]}: {secs:.1f} s of speech in {time.time() - t0:.1f} s')
 
 
+@engine('kyutai')
+def kyutai(job, voices):
+    """Kyutai TTS 1.6B (CC BY 4.0) through Kyutai's moshi package: English in the voice of a recording from
+    kyutai/tts-voices, conditioned on the embedding Kyutai computed from that recording for this model (the recording
+    itself is not processed here). The pace: the model's bonus for the pauses it puts between words (positive is slower).
+    moshi asks for a PyTorch below 2.10 (its own pin)."""
+    import numpy as np
+    import torch
+    from pathlib import Path
+    from moshi.models.loaders import CheckpointInfo
+    from moshi.models.tts import TTSModel
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    log(f'  (on the {"graphics card" if device == "cuda" else "processor — this takes a while"})')
+    v0 = voices[0]
+    d = fetch(v0['repo'], v0['rev'], ['config.json'])
+    cfg = json.load(open(os.path.join(d, 'config.json'), encoding='utf-8'))
+    names = [cfg['moshi_name'], cfg['mimi_name'], cfg['tokenizer_name']]
+    d = fetch(v0['repo'], v0['rev'], ['config.json'] + names)
+    info = CheckpointInfo.from_hf_repo(v0['repo'], moshi_weights=Path(d, names[0]), mimi_weights=Path(d, names[1]),
+                                       tokenizer=Path(d, names[2]), config_path=Path(d, 'config.json'), revision=v0['rev'])
+    tts = TTSModel.from_checkpoint_info(info, n_q=32, temp=0.6, padding_bonus=kyutai_bonus(float(job['speed'])), device=device,
+                                        dtype=torch.bfloat16 if device == 'cuda' else torch.float32)
+    sr = tts.mimi.sample_rate
+    for v in voices:
+        c = v['clip']
+        name = c['file'] + tts.voice_suffix
+        emb = os.path.join(fetch(c['repo'], c['rev'], [name]), name)
+        t0 = time.time()
+        parts = []
+        for piece in chunks(spoken(job['text']), 400):
+            torch.manual_seed(v.get('seed', 0))
+            with torch.inference_mode():
+                pcm = tts.simple_generate(piece, emb, cfg_coef=2.0, show_progress=False)[0]
+            parts.append(pcm.float().cpu().numpy().reshape(-1))
+            parts.append(silence(sr, 0.2))
+        secs = write_audio(os.path.join(job['out'], v['id']), np.concatenate(parts) if parts else silence(sr, 0.1), sr, job.get('mp3', True))
+        log(f'  {v["label"]}: {secs:.1f} s of speech in {time.time() - t0:.1f} s')
+
+
+def kyutai_bonus(speed):
+    """The speed asked for → Kyutai's padding bonus (0 at 1×; more pauses below, fewer above)."""
+    return max(-3.0, min(3.0, 3.0 * (1.0 - speed)))
+
+
 @engine('qwen')
 def qwen(job, voices):
     """Alibaba's Qwen3-TTS (Apache-2.0) through its qwen-tts package: the nine speakers of the CustomVoice models, and

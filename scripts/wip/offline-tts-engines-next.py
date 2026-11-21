@@ -1,58 +1,9 @@
-# IN PROGRESS (21 Nov 2026) — engine adapters for driver.py that are not in it yet: Kyutai TTS 1.6B, F5-TTS, VibeVoice.
+# IN PROGRESS (21 Nov 2026) — engine adapters for driver.py that are not in it yet: F5-TTS, VibeVoice (Kyutai TTS 1.6B
+# went into driver.py on 21 Nov 2026).
 # They go into src/lib/offline-tts/driver.py (before @engine('qwen')) together with their entries in
 # scripts/make-offline-tts-catalogue.py and ENGINE_ORDER in src/lib/offline-tts/plan.ts — the unit suite demands that
 # driver.py's engines and the planner's are the same, so they wait here until then. Not run by anything.
 # flake8: noqa
-
-@engine('kyutai')
-def kyutai(job, voices):
-    """Kyutai TTS 1.6B (CC BY 4.0) through Kyutai's moshi package: English in the voice of a recording from
-    kyutai/tts-voices, whose embeddings Kyutai computed for this model (no recording is processed here). The pace is the
-    model's padding between words. Runs on its own PyTorch (moshi needs a version below 2.10)."""
-    import numpy as np
-    import torch
-    from pathlib import Path
-    from moshi.models.loaders import CheckpointInfo
-    from moshi.models.tts import TTSModel
-    device = 'cuda' if torch.cuda.is_available() else 'cpu'
-    log(f'  (on the {"graphics card" if device == "cuda" else "processor — this takes a while"})')
-    v0 = voices[0]
-    d = fetch(v0['repo'], v0['rev'], ['config.json', '*.safetensors', '*.model'])
-    cfg = json.load(open(os.path.join(d, 'config.json'), encoding='utf-8'))
-    info = CheckpointInfo.from_hf_repo(v0['repo'], moshi_weights=os.path.join(d, cfg['moshi_name']),
-                                       mimi_weights=os.path.join(d, cfg['mimi_name']), tokenizer=os.path.join(d, cfg['tokenizer_name']),
-                                       config_path=os.path.join(d, 'config.json'))
-    s = float(job['speed'])
-    tts = TTSModel.from_checkpoint_info(info, n_q=32, temp=0.6, cfg_coef=2.0, max_padding=8, initial_padding=2, final_padding=4,
-                                        padding_bonus=max(-2.0, min(2.0, 2.5 * (1.0 - s))), device=device,
-                                        dtype=torch.bfloat16 if device == 'cuda' else torch.float32)
-    cfg_cond, no_text = None, True
-    if tts.valid_cfg_conditionings:  # trained with CFG distillation: the coefficient goes in as a condition
-        cfg_cond, tts.cfg_coef, no_text = tts.cfg_coef, 1.0, False
-    mimi = tts.mimi
-    sr = mimi.sample_rate
-    for v in voices:
-        c = v['clip']
-        emb = os.path.join(fetch(c['repo'], c['rev'], [c['file'] + tts.voice_suffix]), c['file'] + tts.voice_suffix)
-        attrs = tts.make_condition_attributes([Path(emb)], cfg_cond)
-        t0 = time.time()
-        parts = []
-        for piece in chunks(spoken(job['text']), 400):
-            torch.manual_seed(v.get('seed', 0))
-            entries = tts.prepare_script([piece], padding_between=1)
-            with torch.inference_mode():
-                result = tts.generate([entries], [attrs], cfg_is_no_prefix=no_text, cfg_is_no_text=no_text)
-                with mimi.streaming(1):
-                    pcm = [mimi.decode(f[:, 1:]) for f in result.frames[tts.delay_steps:]]
-            wav = torch.cat(pcm, dim=-1)[0, 0].float().cpu().numpy()
-            end = result.end_steps[0]
-            if end is not None:
-                wav = wav[:int(sr * (end + tts.final_padding) / mimi.frame_rate)]
-            parts.append(wav.astype(np.float32))
-            parts.append(silence(sr, 0.2))
-        secs = write_audio(os.path.join(job['out'], v['id']), np.concatenate(parts) if parts else silence(sr, 0.1), sr, job.get('mp3', True))
-        log(f'  {v["label"]}: {secs:.1f} s of speech in {time.time() - t0:.1f} s')
-
 
 def read_wav_torch(path, *a, **k):
     """torchaudio.load without torchcodec: torchaudio ≥ 2.9 decodes through torchcodec, which needs FFmpeg installed

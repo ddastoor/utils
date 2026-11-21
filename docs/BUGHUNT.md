@@ -2554,3 +2554,21 @@ cannot. Three new suites; each fails on the build before its fixes.
   Tests: unit offline-tts 49 (+5: the engines installed with `uv pip`, not `uv run`; the Windows function; each
   environment made once and kept; new pins make it again; an engine name that is no folder name refused; a stand-in uv
   that makes a stand-in python), offline-tts-plan 134 (each engine runs from its own environment); e2e tts-offline 47.
+- **TTS offline: Kyutai TTS 1.6B (21 Nov 2026; to-do #7).** The engine (moshi 0.2.13, its own PyTorch 2.9) with 601
+  voices, one for every recording of kyutai/tts-voices with an embedding for the model. Found while adding it:
+  - **Kyutai's VCTK embeddings exist only for `pNNN_023.wav`**, not for the `_enhanced` clips XTTS-v2 uses: the
+    generator takes the voices from the repository's file list and stops on a recording without its embedding.
+  - **Recordings in another language were filed by an English accent.** CommonAccent knows only accents of English, so
+    de Gaulle's appeal (French) came out "heard as English (England)" and a French donation "nearest: Indian". Whisper
+    base (pinned) now names each undescribed recording's language (`scripts/accent-survey/languages.py`): 25 of the 237
+    are surely another language (16 Spanish, 7 French, 1 Malay, 1 Hindi) and are filed as its speakers — the Hindi one
+    under Indian, the rest under other accents. Below 0.8 the language decides nothing (Whisper says "Latin" or
+    "Yoruba" for many accented English recordings).
+  - **Labels read "heard as English (England) English"**: now "accent heard in our test: English (England)".
+  - **VCTK's remarks were in the labels** ("(Text and mic2 files unavailable)", "(new speaker, more data would be
+    released …)") — of Kyutai's p315 and s5 and of Piper's p280 and s5: the region drops what is in brackets.
+  - On a processor it needs about 16 GB of memory (measured 15 GB in float32): said in the engine's note.
+  Tests: unit offline-tts-plan 147 (+13: a voice for each recording with an embedding, the Freesound clips left out;
+  VCTK's accent, sex and age as VCTK's list gives them; the filing of every undescribed recording worked out again from
+  the raw survey; the French recordings and the Hindi one; EARS and Expresso personal use; the pace mapping), e2e
+  tts-offline 48 (the counts follow the catalogue; a voice ticked by its id — the label of Piper's p376 is Kyutai's too).

@@ -480,8 +480,8 @@ from where their makers publish them (Hugging Face, the engines' releases) — n
 the site.
 **Offline mode as built (21 Nov 2026)** (`src/tools/tts-offline.ts`, imported when the mode is chosen — 111 KB / 24 KB
 gzip with the catalogue; `src/lib/offline-tts/`: `catalogue.json` from `python3 scripts/make-offline-tts-catalogue.py`,
-`plan.ts`, `scripts.ts`, `driver.py`; unit `offline-tts.test.mjs` 49 (+1 with `OFFLINE_TTS_E2E=1`) and `offline-tts-plan.test.mjs` 134, e2e
-`tts-offline.e2e.mjs` 47). On a PC a "Mode" switch above the text: **In this browser** (the tab as it was) or **Offline
+`plan.ts`, `scripts.ts`, `driver.py`; unit `offline-tts.test.mjs` 49 (+1 with `OFFLINE_TTS_E2E=1`) and `offline-tts-plan.test.mjs` 147, e2e
+`tts-offline.e2e.mjs` 48). On a PC a "Mode" switch above the text: **In this browser** (the tab as it was) or **Offline
 on this PC**; phones never see the switch.
 - **What the page does:** nothing but write a script. Windows or Linux is detected (client hints, else the user agent;
   another system is told the scripts are for those two) and can be switched; the script for that system holds the text,
@@ -512,12 +512,13 @@ on this PC**; phones never see the switch.
   conditions (its name, the page, "Agree and access repository"), a fine-grained token without "Read access to contents
   of all public gated repos" — and stops before any engine ("Nothing else was downloaded"). A later refusal (fetch) says
   the same. The libraries' SyntaxWarning / FutureWarning / DeprecationWarning lines are filtered out (they read as errors).
-- **The voices (626 in 64 models, 16 engines; round 2 on 21 Nov 2026 — owner: "include them all"):** grouped Indian (134)
-  / American (84) / British and Irish (117) / other accents (60) / accent not documented (231); filters by engine, sex and
+- **The voices (1,227 in 65 models, 17 engines; round 2 on 21 Nov 2026 — owner: "include them all"):** grouped Indian
+  (195) / American (408) / British and Irish (207) / other accents (120) / accent not documented (297); filters by engine, sex and
   words; sizes counted once per model; licences shown, "personal use only" marked; XTTS-v2 (Coqui Public Model License,
   non-commercial) needs its licence ticked before the download; a model not run here carries the tag "not run by
   SuperUtils yet" with the reason (`UNTRIED` in the generator). **Accents are filed only where the makers document
-  them**; where they do not, the voice is under "accent not documented" and its label says what our test heard.
+  them**; where they do not, the voice is under "accent not documented" and its label says what our test heard — except
+  Kyutai's recordings that come with no word about the speaker (below), which are filed as heard and say so.
   - **Piper** (piper-tts 1.8.0): every English voice of rhasspy/piper-voices except LibriTTS — VCTK's 109 speakers by
     VCTK's own accent list (Indian: p248, p251, p376), L2-ARCTIC's 24 (Hindi L1: ASI, RRBI, SVBI, TNI), CMU ARCTIC's 18
     (ksp Indian; eleven not described), ARU's 12, SEMAINE's 4, and the single voices.
@@ -567,18 +568,34 @@ on this PC**; phones never see the switch.
     its card shows; the later parts of a long text take the first part's voice) and the 8 Indian recordings.
   - **SYSPIN** (IISc, MIT; Coqui TTS VITS, characters): Indian English woman and man. **MMS** (Meta, CC BY-NC; transformers
     VITS): its English voice.
+  - **Kyutai TTS 1.6B** (Kyutai, CC BY 4.0; moshi 0.2.13, which needs PyTorch below 2.10 — its own PyTorch 2.9; 4.1 GB):
+    **601 voices**, one for every recording of kyutai/tts-voices that has Kyutai's embedding for this model (the model
+    takes the embedding, so nothing is recorded or analysed on the PC; the two Freesound clips are left out — the README
+    gives no licence): VCTK's 106 speakers (VCTK's own list), EARS and Expresso (CC BY-NC: "personal use only", marked per
+    voice — `personal` on the voice), Alba MacKenna, Unmute's voices and **228 voice donations** (CC0). The pace is the
+    model's padding between words (`kyutai_bonus` in driver.py: 3 × (1 − speed), held within ±3; measured 0.62× – 1.3× of
+    the normal pace, every word read back by Whisper at each). **How a recording without a description is filed**
+    (`heard_accent` in the generator; `scripts/data/kyutai-voices-heard.json` from `scripts/accent-survey/recordings.py` and
+    `languages.py`): a donor whose name says India → Indian ("the donor says so"); a recording in another language —
+    Whisper base sure of it, 0.8 and more: 16 Spanish, 7 French (de Gaulle's appeal among them), 1 Malay, 1 Hindi — → "a
+    Spanish speaker (the recording is in Spanish)", under other accents (an Indian language under Indian); an English one
+    by SpeechBrain's CommonAccent when it hears one accent first by 0.05 and more ("accent heard in our test: Indian"),
+    else under "accent not documented" ("accent not clear in our test (nearest: …)"). Sex: VCTK's list, the README (EARS
+    p003, p031), Expresso by each speaker's pitch, the rest "a deeper / middle / higher voice" by the recording's pitch.
+    57 of the donations are Indian.
 - **Measured here (Linux, 4-core processor, no graphics card; every voice run was read back by Whisper small.en, its
   pitch measured with pYIN and its accent heard by SpeechBrain's CommonAccent model):** Supertonic 1 / 2 ≈ 8× faster than
   real time, 3 ≈ 2.6×; Indic Tiny ≈ 7×; MeloTTS ≈ 3.5×; MMS ≈ 2.7×; Kokoro ≈ 4×; Pocket ≈ 2×; XTTS-v2 ≈ 1.7× slower (studio
   voice), 2.6× with a clip; Qwen3-TTS 0.6B ≈ 3.5× slower, 1.7B CustomVoice and VoiceDesign ≈ 4.5×; OmniVoice ≈ 6×; Parler Mini ≈ 5.5×; Bark
-  small ≈ 8× slower (13 s of speech in 100 s, after its 1.6 GB download); SYSPIN ≈ 4× faster. The accent of every Indian
+  small ≈ 8× slower (13 s of speech in 100 s, after its 1.6 GB download); SYSPIN ≈ 4× faster; Kyutai 1.6B ≈ 8.5× slower
+  (float32; 15 GB of memory — said in the tab). The accent of every Indian
   voice that runs here: the ranking below. Qwen's voices sound North American. Not run here
   (tagged in the tab): Indic Parler and Pocket cloning (gated), Parler Large, Bark (full), Veena,
   VoxCPM2 (size), Chatterbox / Turbo (a second PyTorch). The Windows script was read by its text only
   (PowerShell could not be installed in the sandbox). Left out (docs/BUGHUNT.md, "TTS offline"): Indic-Speak (gated; its
   inference code cannot be read without access), Maya 2 (no pinnable release; Linux and NVIDIA only), ZONOS3-Mini (an
-  Indian accent with a dose; on a processor only through its C++ tool). Not looked at yet: Kyutai TTS 1.6B, VibeVoice,
-  F5-TTS.
+  Indian accent with a dose; on a processor only through its C++ tool). Next (to-do #7): F5-TTS and VibeVoice, the Indian
+  voice donations for every engine that clones, the engines not run here yet, and the new Indian voices measured.
 - **Indian accents, lightest first** (owner, 21 Nov 2026: "keep a note that shows ranked all the Indian accents in order
   of increasing Indian accent thickness … the topmost … as British sounding as possible … name the model … Don't clutter
   the page … a kind of text pop-up … when the user clicks a button"): a small button beside the accent groups opens a

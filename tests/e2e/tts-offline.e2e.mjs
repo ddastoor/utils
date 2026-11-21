@@ -5,6 +5,10 @@
 import { readFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 
+const CAT = JSON.parse(readFileSync(new URL('../../src/lib/offline-tts/catalogue.json', import.meta.url), 'utf8'));
+const SEX = new Map(CAT.voices.map((v) => [v.id, v.sex]));
+const inGroup = (g) => CAT.voices.filter((v) => v.group === g).length;
+
 const dec = (s) => Buffer.from(s.replace(/\s+/g, ''), 'base64').toString('utf8');
 const jobOfSh = (sh) => JSON.parse(dec(sh.split(`<<'SUPERUTILS_JOB'\n`)[1].split('\nSUPERUTILS_JOB\n')[0]));
 const jobOfCmd = (cmd) => JSON.parse(dec(/job\.json'\), \[Convert\]::FromBase64String\('([A-Za-z0-9+/=]+)'\)/.exec(cmd)[1]));
@@ -27,20 +31,21 @@ export default async ({ base, page: newPage, ok, download, devices }) => {
 
   // the list: Indian voices first, the starters ticked
   const n = async () => page.locator('.otts-list .otts-voice').count();
-  eq(await n(), 134, 'the Indian group lists 134 voices');
+  eq(await n(), inGroup('in'), `the Indian group lists all ${inGroup('in')} Indian voices of the catalogue`);
+  ok(inGroup('in') >= 190, `many Indian voices (${inGroup('in')})`);
   const ticked = () => page.locator('.otts-list input:checked').evaluateAll((els) => els.map((e) => e.value));
   eq((await ticked()).sort(), ['goonj-en-arjun', 'goonj-en-priya', 'indic-parler-mary', 'indic-parler-thoma'], 'four Indian English voices ticked to begin with');
   ok(/4 voices chosen · 2 models, 4\.1 GB/.test(await page.locator('.otts-summary').innerText()), 'the summary: 4 voices, 2 models, 4.1 GB');
   ok(await page.getByText('ai4bharat/indic-parler-tts is free, but Hugging Face asks for an account first').isVisible(), 'the account note for Indic Parler-TTS');
   await page.getByRole('radio', { name: 'All' }).click();
-  eq(await n(), 626, 'All: 626 voices');
+  eq(await n(), CAT.voices.length, `All: ${CAT.voices.length} voices`);
   await page.getByLabel('Engine').selectOption('pocket');
   eq(await n(), 29, 'Pocket TTS: 29 voices (21, and 8 taken from recordings)');
   await page.getByLabel('Engine').selectOption('');
   await page.getByLabel('Voices to show').selectOption('f');
   await page.getByLabel('Search the voices').fill('indian');
-  const women = await page.locator('.otts-list .otts-voice').allInnerTexts();
-  ok(women.length >= 3 && women.every((t) => /woman/.test(t)), `women, "indian": ${women.length} voices, all women`);
+  const women = await page.locator('.otts-list .otts-voice input').evaluateAll((els) => els.map((e) => e.value));
+  ok(women.length >= 3 && women.every((id) => SEX.get(id) === 'f'), `women, "indian": ${women.length} voices, all women`);
   await page.getByLabel('Search the voices').fill('zzzz');
   ok(await page.getByText('No voice matches.').isVisible(), 'a search that finds nothing says so');
   await page.getByLabel('Search the voices').fill('');
@@ -50,7 +55,7 @@ export default async ({ base, page: newPage, ok, download, devices }) => {
   await page.getByRole('button', { name: 'Mary · Parler-TTS — remove' }).click();
   ok(!(await ticked()).includes('indic-parler-mary'), 'the chip’s ✕ removes the voice');
   await page.getByLabel('Search the voices').fill('p376');
-  await page.locator('.otts-voice', { hasText: 'VCTK p376 — man, 22, Indian' }).first().locator('input').check();
+  await page.locator('.otts-voice input[value="piper-vctk-p376"]').check();
   await page.getByLabel('Search the voices').fill('');
 
   // Linux script

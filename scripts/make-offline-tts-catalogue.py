@@ -33,6 +33,10 @@ Sources (each fact below comes from one of them):
   SYSPIN       SYSPIN/vits_English_Female and _Male (IISc; Coqui TTS VITS, characters, 22.05 kHz).
   MMS          facebook/mms-tts-eng (Meta's Massively Multilingual Speech, English).
   Pocket clone the gated kyutai/pocket-tts at the revision pocket-tts 4.0.1's config/english.yaml pins (voice cloning).
+  Kyutai 1.6B  kyutai/tts-1.6b-en_fr at KYUTAI_REV (CC BY 4.0) and the recordings of kyutai/tts-voices at CLIPS_REV that
+               have an embedding for it (its README: the licence of each collection; EARS p003 a woman, p031 a man); the
+               accent each recording was heard with and its pitch: scripts/data/kyutai-voices-heard.json (CommonAccent and
+               pYIN on the recordings, scripts/accent-survey/recordings.py).
 Sizes are the bytes of the files the driver fetches, from the Hugging Face API at the pinned revisions (MB = 10^6 bytes).
 
 Run: python3 scripts/make-offline-tts-catalogue.py   (needs huggingface.co; caches its answers in /tmp/offline-tts-cat)
@@ -128,9 +132,10 @@ GROUPS = [
     ['any', 'English — accent not documented'],
 ]
 
-# The engines: the Python packages each one runs with (uv installs them into a cache of its own on the PC), about how
-# much they download the first time, and what the person should know. "torch": PyTorch (uv picks the build for the
-# graphics card there is: CUDA for NVIDIA, else the processor's — the processor build is far smaller).
+# The engines: the Python packages each one runs with (the script installs them with `uv pip install` into an
+# environment of the engine's own, envs/<engine> in its folder — made the first time, made again when the pins change),
+# about how much they download the first time, and what the person should know. "torch": PyTorch (UV_TORCH_BACKEND=auto:
+# uv picks the build for the graphics card there is — CUDA for NVIDIA, else the processor's, which is far smaller).
 ENGINES = {
     'piper': {
         'name': 'Piper', 'url': 'https://github.com/OHF-Voice/piper1-gpl',
@@ -247,6 +252,17 @@ ENGINES = {
         'mb': 300, 'torch': True, 'speedControl': True, 'licence': 'Apache-2.0 (transformers)',
         'about': "Meta's Massively Multilingual Speech: its small English voice (VITS).",
     },
+    'kyutai': {
+        'name': 'Kyutai TTS', 'url': 'https://github.com/kyutai-labs/delayed-streams-modeling',
+        # moshi 0.2.13 asks for numpy < 2.3, huggingface-hub < 1.0 and PyTorch < 2.10: a PyTorch of its own (2.9)
+        'packages': ['moshi==0.2.13', 'numpy==2.2.6', 'huggingface-hub==0.36.2', 'num2words==0.5.14', 'lameenc==1.9.0', 'torch'],
+        'mb': 200, 'torch': True, 'ownTorch': True, 'speedControl': True, 'licence': 'CC BY 4.0 (the model); moshi MIT', 'slow': True,
+        'about': "Kyutai's 1.6-billion-parameter model in the voice of any of 601 recordings — voice donations from around "
+                 'the world, VCTK, EARS, Expresso — from the embedding Kyutai made of each (nothing is recorded or analysed '
+                 'on your computer). About eight times slower than real time on a processor; a graphics card is many times '
+                 'faster. On a processor it needs about 16 GB of memory (measured: 15 GB). Its pace is set through the pauses '
+                 'between words: slower works well, faster only up to about 1.3×.',
+    },
     'pocket': {
         'name': 'Pocket TTS', 'url': 'https://huggingface.co/kyutai/pocket-tts-without-voice-cloning',
         'packages': ['pocket-tts==4.0.1', 'lameenc==1.9.0', 'torch'],
@@ -261,7 +277,8 @@ def vctk_speakers():
     for line in open(os.path.join(ROOT, 'scripts', 'data', 'vctk-speaker-info.txt'), encoding='utf-8').read().splitlines()[1:]:
         p = line.split()
         if len(p) >= 4:
-            rows[p[0]] = {'age': p[1], 'sex': p[2].lower(), 'accent': p[3], 'region': ' '.join(p[4:])}
+            # the region without the list's remarks in brackets ("(Text and mic2 files unavailable)")
+            rows[p[0]] = {'age': p[1], 'sex': p[2].lower(), 'accent': p[3], 'region': re.sub(r'\s*\(.*', '', ' '.join(p[4:])).strip()}
     return rows
 
 
@@ -786,6 +803,134 @@ def pocket_clone():
     return models, clip_voices('pocket', 'pocket-clone', '')
 
 
+# Kyutai TTS 1.6B: the model and the recordings of kyutai/tts-voices that have an embedding for it (".1e68beda@240"). The
+# accent is filed as documented (VCTK's speaker list; a donor whose name says India) or, for recordings that come with
+# no description (scripts/data/kyutai-voices-heard.json): a recording in another language — Whisper sure of it, 0.8 and
+# more (scripts/accent-survey/languages.py) — as a speaker of that language (an Indian language: under Indian; the
+# others under other accents); an English one as our accent model heard it, when it heard one accent clearly first (a
+# margin of 0.05 over the next), else under "accent not documented" — the label says which it is. The sex: VCTK's list,
+# the README (EARS p003, p031), Expresso by each speaker's median pitch (ex01 147 Hz, ex02 197, ex03 141, ex04 260 — the
+# dataset's two men and two women), the rest in words by the recording's pitch.
+KYUTAI_REPO, KYUTAI_REV = 'kyutai/tts-1.6b-en_fr', 'f65439609986c392cb12df63938abcc550c3fb15'
+KYUTAI_FILES = ['config.json', 'dsm_tts_1e68beda@240.safetensors', 'tokenizer-e351c8d8-checkpoint125.safetensors',
+                'tokenizer_spm_8k_en_fr_audio.model']
+KYUTAI_SUFFIX = '.1e68beda@240.safetensors'
+HEARD_CLIPS = os.path.join(ROOT, 'scripts', 'data', 'kyutai-voices-heard.json')
+CA_GROUP = {'indian': 'in', 'us': 'us', 'england': 'uk', 'scotland': 'uk', 'ireland': 'uk', 'wales': 'uk'}
+CA_WORD = {'england': 'English (England)', 'scotland': 'Scottish', 'wales': 'Welsh', 'ireland': 'Irish', 'us': 'American',
+           'canada': 'Canadian', 'australia': 'Australian', 'newzealand': 'New Zealand', 'african': 'African', 'bermuda': 'Bermudian',
+           'southatlandtic': 'South Atlantic', 'malaysia': 'Malaysian', 'philippines': 'Filipino', 'singapore': 'Singaporean',
+           'hongkong': 'Hong Kong', 'indian': 'Indian'}
+EXPRESSO_SEX = {'ex01': 'm', 'ex02': 'f', 'ex03': 'm', 'ex04': 'f'}
+EXPRESSO_STYLE = {'default': 'plain', 'enunciated': 'enunciating', 'projected': 'projecting', 'nonverbal': 'nonverbal sounds',
+                  'animal': 'talking to a pet', 'animaldir': 'talking with someone who talks to a pet', 'child': 'talking to a child',
+                  'childdir': 'talking with someone who talks to a child'}
+EARS_SEX = {'p003': 'f', 'p031': 'm'}
+ALBA = {'casual': 'casual', 'merchant': 'a merchant', 'announcer': 'an announcer', 'a-moment-by': 'quiet narration'}
+# Unmute's voices: the two Freesound clips are left out (the README does not give their licence)
+UNMUTE = {'default_voice.wav': ('Unmute’s default voice', 'CC0', False),
+          'degaulle-2.wav': ('Charles de Gaulle (his appeal of 18 June 1940)', 'public domain', False),
+          'developer-1.mp3': ('Unmute “developer” voice', 'CC0', False),
+          'developpeuse-3.wav': ('Unmute “développeuse” voice', 'CC0', False),
+          'ex04_narration_longform_00001.wav': ('Expresso ex04, a long narration', 'CC BY-NC 4.0', True),
+          'fabieng-enhanced-v2.wav': ('Unmute “Fabien” voice', 'CC0', False),
+          'p329_022.wav': ('VCTK p329, another sentence', 'CC BY 4.0', False)}
+# The languages Whisper heard in recordings of kyutai/tts-voices (a new one stops the generator until it is named here)
+LANG_NAME = {'es': 'Spanish', 'fr': 'French', 'hi': 'Hindi', 'ms': 'Malay', 'bn': 'Bengali', 'pt': 'Portuguese', 'ru': 'Russian',
+             'ar': 'Arabic', 'el': 'Greek', 'sw': 'Swahili', 'yo': 'Yoruba', 'la': 'Latin'}
+INDIAN_LANGS = {'hi', 'bn', 'ta', 'te', 'mr', 'gu', 'kn', 'ml', 'pa', 'or', 'as'}
+
+
+def pitch_words(hz):
+    """The sex in the filter and words for the label, from the median pitch of a recording (as for XTTS's studio voices)."""
+    return ('m', 'a deeper voice') if hz <= 125 else ('f', 'a higher voice') if hz >= 175 else ('', 'a middle voice')
+
+
+def heard_accent(rec):
+    """(group, words) for a recording without a described accent: a speaker of another language when Whisper heard
+    that language (0.8 and more), else the accent heard first, when heard clearly."""
+    lang, p = rec.get('lang', ['en', 1.0])
+    if lang != 'en' and p >= 0.8:
+        if lang not in LANG_NAME:
+            sys.exit(f'Whisper heard the language "{lang}" in a recording: name it in LANG_NAME')
+        return ('in' if lang in INDIAN_LANGS else 'world'), f'a {LANG_NAME[lang]} speaker (the recording is in {LANG_NAME[lang]})'
+    (a1, s1), (a2, s2) = rec['acc'][0], rec['acc'][1]
+    if s1 - s2 >= 0.05:
+        return CA_GROUP.get(a1, 'world'), f'accent heard in our test: {CA_WORD[a1]}'
+    return 'any', f'accent not clear in our test (nearest: {CA_WORD[a1]})'
+
+
+def kyutai():
+    t = tree(KYUTAI_REPO, KYUTAI_REV)
+    clips = tree(CLIPS_REPO, CLIPS_REV)
+    models = {'kyutai-1.6b': {'engine': 'kyutai', 'repo': KYUTAI_REPO, 'rev': KYUTAI_REV, 'mb': mb(sum(t[f] for f in KYUTAI_FILES)),
+                              'licence': 'CC BY 4.0 (the model); each voice’s recording: its own licence, in its label',
+                              'personal': False, 'name': 'Kyutai TTS 1.6B', 'page': 'https://kyutai.org/next/tts'}}
+    recs = json.load(open(HEARD_CLIPS, encoding='utf-8'))['recordings']
+    vctk = vctk_speakers()
+    voices = []
+
+    def add(path, vid, label, group, sex, personal=False):
+        if path + KYUTAI_SUFFIX not in clips:
+            sys.exit(f'{path}{KYUTAI_SUFFIX} is not in {CLIPS_REPO} at {CLIPS_REV}')
+        v = {'id': vid, 'label': label, 'group': group, 'sex': sex, 'model': 'kyutai-1.6b',
+             'clip': {'repo': CLIPS_REPO, 'rev': CLIPS_REV, 'file': path}}
+        if personal:
+            v['personal'] = True
+        voices.append(v)
+
+    def slug(x):
+        return re.sub(r'[^a-z0-9]+', '-', x.lower()).strip('-')
+    for path, rec in sorted(recs.items()):
+        coll, rest = path.split('/', 1)
+        sex, how = pitch_words(rec['f0'])
+        if coll == 'vctk':
+            spk = rest.split('_')[0]
+            s = vctk[spk]
+            acc = ACCENT_WORD.get(s['accent'], s['accent'])
+            where = f', {s["region"]}' if s['region'] else ''
+            add(path, f'kyutai-vctk-{spk}', f'VCTK {spk} — {SEX[s["sex"]]}, {s["age"]}, {acc}{where} (CC BY 4.0)',
+                ACCENT_GROUP[s['accent']], s['sex'])
+        elif coll == 'voice-donations':
+            name = re.sub(r'\s+', ' ', rest[:-len('_enhanced.wav')].replace('_', ' ')).strip()
+            title = f'Voice donation {name}' if re.fullmatch(r'[0-9a-f]{4}', name) else name
+            if re.search(r'india', name, re.I):
+                group, acc = 'in', 'Indian (the donor says so)'
+            else:
+                group, acc = heard_accent(rec)
+            add(path, 'kyutai-don-' + slug(name), f'{title} — {how}, {acc} (voice donation, CC0)', group, sex)
+        elif coll == 'ears':
+            spk, f = rest.split('/')
+            style = 'free speech' if f.startswith('freeform') else f.split('_')[1]
+            sx = EARS_SEX.get(spk, sex)
+            who = SEX[sx] if spk in EARS_SEX else how
+            group, acc = heard_accent(rec)
+            add(path, f'kyutai-ears-{spk}-' + slug(style), f'EARS {spk} — {style}, {who}, {acc} (personal use only: CC BY-NC 4.0)',
+                group, sx, True)
+        elif coll == 'expresso':
+            m = re.match(r'(ex\d\d)-(ex\d\d)_(.+?)_(\d{3})_channel([12])_(\d+)s\.wav$', rest)
+            spk = m.group(1) if m.group(5) == '1' else m.group(2)
+            kinds = m.group(3).split('-')
+            kind = kinds[0] if m.group(5) == '1' or len(kinds) == 1 else kinds[1]
+            group, acc = heard_accent(rec)
+            add(path, f'kyutai-expresso-{spk}-' + slug(f'{m.group(3)}-{m.group(4)}-ch{m.group(5)}-{m.group(6)}'),
+                f'Expresso {spk} — {EXPRESSO_STYLE.get(kind, kind)}, {SEX[EXPRESSO_SEX[spk]]}, {acc} (personal use only: CC BY-NC 4.0)',
+                group, EXPRESSO_SEX[spk], True)
+        elif coll == 'alba-mackenna':
+            k = rest[:-4]
+            group, acc = heard_accent(rec)
+            add(path, f'kyutai-alba-{k}', f'Alba MacKenna — {ALBA[k]}, {how}, {acc} (voice actress, CC BY 4.0)', group, sex)
+        elif coll == 'unmute-prod-website':
+            if rest not in UNMUTE:
+                continue  # the Freesound clips: no licence given
+            title, lic, nc = UNMUTE[rest]
+            group, acc = heard_accent(rec)
+            add(path, 'kyutai-unmute-' + slug(rest.rsplit('.', 1)[0]), f'{title} — {how}, {acc} ({lic})', group, sex, nc)
+        else:
+            sys.exit(f'{path}: a collection of kyutai/tts-voices not described here')
+    return models, voices
+
+
 # Models whose engine was not run here, with the reason (shown as a tag in the tab; everything else was run on this
 # project's test machine — Linux, a 4-core processor, no graphics card — and its output read back by Whisper)
 UNTRIED = {
@@ -827,8 +972,8 @@ def heard(voices):
 def main():
     models, voices = {}, []
     # the order of the list: in each accent the larger, newer models first — Indic Parler-TTS leads the Indian voices
-    for part in (parler, qwen, veena, kokoro, omnivoice, voxcpm, melo, indictiny, chatterbox, xtts, pocket_clone, bark, syspin, pocket,
-                 supertonic, mms, piper):
+    for part in (parler, qwen, veena, kokoro, omnivoice, voxcpm, kyutai, melo, indictiny, chatterbox, xtts, pocket_clone, bark, syspin,
+                 pocket, supertonic, mms, piper):
         m, v = part()
         models.update(m)
         voices.extend(v)
