@@ -180,6 +180,16 @@ that affects it.
 >   word (21 Nov 2026: "also add it for exif too"; FFmpeg's webcam had been only in the picture box of three tasks).
 >   Details: §3 "Camera in every tab that takes a picture"; checklist §8 item 5.
 
+> ## 🐧 Linux: every app knows X11 or Wayland (owner, 21 Nov 2026; standing)
+> **Owner:** "make a note that all apps on Linux should be aware of or auto-detect or have some way of detecting on Linux
+> if I'm using X11 or Wayland." — on a Linux PC every tab can tell which display server the session runs on: one shared
+> detection (`src/linux.ts`: the passive guess at once — Wayland never tells a page its window's position —, the
+> one-click popup check to confirm; kept in memory for the visit, nothing stored), and **every tab uses it wherever X11
+> and Wayland behave differently**: screen and window capture (Wayland's portal asks again; Screencast, Screenshot,
+> YouTube Clip), the colour picker outside the window (the EyeDropper), popups and Picture-in-Picture windows placed by
+> the page, full screen and the pointer lock, global keys, drag-and-drop from the file manager, the clipboard, the camera
+> (PipeWire) — the tab says what Wayland changes and how to work with it. Checked across all PC tabs in `todo.md` #13.
+
 > ## 🗣️ Languages — don't bother about Hindi (owner, 20 Nov 2026; standing)
 > **Owner:** "going forward, as far as languages is concerned, don't bother about hindi … make a note of this."
 > No new work, features or test cases for Hindi (Devanagari) in any tab from now on — English first (the OCR tab's
@@ -2451,6 +2461,8 @@ cannot be started twice; the MP4's sound is AAC (`finishRecording`); minutes and
 are rounded before they are written (no "0:60").
 
 ### Linux X11 vs Wayland (owner requirement: auto-detect)
+**Every app, not only the capture tabs (owner, 21 Nov 2026 — the standing note at the top):** the detection below is
+shared by all tabs on Linux; each uses it where the two display servers differ.
 No web API reports the display server and Chrome's UA says `X11; Linux` on both, so `src/linux.ts` detects it:
 1. **Passive** (instant): Wayland never tells clients their global window position, so Chrome reports
    `screenX == screenY == 0` there. Non-zero position ⇒ **X11** (or Chrome under XWayland, which behaves as X11).

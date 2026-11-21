@@ -73,6 +73,11 @@ The owner adds items here in chat ("add … to to do"). Newest instructions win.
     yt-dlp's file per system. What fails is fixed and pinned by a check in the tab's suite. How: this sandbox is Linux;
     Windows by its behaviour where it can be stood in for (Windows-made files, Windows user-agent and client hints,
     CR LF), and the rest on a Windows PC — the owner's, through the Claude app, or a Windows runner of GitHub Actions.
+    **And on Linux, X11 or Wayland** (owner, 21 Nov 2026: "make a note that all apps on Linux should be aware of or
+    auto-detect or have some way of detecting on Linux if I'm using X11 or Wayland"): every PC tab knows which one the
+    session runs on (the shared detection in `src/linux.ts`, CLAUDE.md's standing note) and is checked on both — where
+    they differ (capture, the colour picker, popups and Picture-in-Picture, full screen, drag-and-drop, the clipboard, the
+    camera) the tab says what Wayland changes and how to work with it.
 
 ## Done
 - **11. Photo Dictionary and OCR: a photo taken with the phone held sideways** (owner, 21 Nov 2026: "a new requirement in
