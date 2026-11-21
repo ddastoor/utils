@@ -109,6 +109,76 @@
   }
  },
  "models": {
+  "indic-parler": {
+   "engine": "parler",
+   "repo": "ai4bharat/indic-parler-tts",
+   "rev": "660bc53c64ae83150613264111708a0465211237",
+   "descTokenizer": [
+    "google/flan-t5-large",
+    "0613663d0d48ea86ba8cb3d7a44f0f65dc596a2a"
+   ],
+   "gated": true,
+   "page": "https://huggingface.co/spaces/ai4bharat/indic-parler-tts",
+   "mb": 3766.6,
+   "licence": "Apache-2.0",
+   "personal": false,
+   "name": "Indic Parler-TTS (AI4Bharat)"
+  },
+  "parler-large": {
+   "engine": "parler",
+   "repo": "parler-tts/parler-tts-large-v1",
+   "rev": "50cb4b874c83902f930d7c2e753224c15654f11e",
+   "page": "https://huggingface.co/parler-tts/parler-tts-large-v1",
+   "mb": 9335.5,
+   "licence": "Apache-2.0",
+   "personal": false,
+   "name": "Parler-TTS Large v1"
+  },
+  "parler-mini": {
+   "engine": "parler",
+   "repo": "parler-tts/parler-tts-mini-v1.1",
+   "rev": "fbb2dd281092c5b414ef29cf9d8895f386f1feef",
+   "descTokenizer": [
+    "google/flan-t5-large",
+    "0613663d0d48ea86ba8cb3d7a44f0f65dc596a2a"
+   ],
+   "page": "https://huggingface.co/parler-tts/parler-tts-mini-v1.1",
+   "mb": 3766.6,
+   "licence": "Apache-2.0",
+   "personal": false,
+   "name": "Parler-TTS Mini v1.1"
+  },
+  "kokoro": {
+   "engine": "kokoro",
+   "repo": "hexgrad/Kokoro-82M",
+   "rev": "f3ff3571791e",
+   "mb": 359.2,
+   "page": "https://huggingface.co/spaces/hexgrad/Kokoro-TTS",
+   "licence": "Apache-2.0",
+   "personal": false,
+   "name": "Kokoro-82M v1.0"
+  },
+  "xtts": {
+   "engine": "xtts",
+   "repo": "coqui/XTTS-v2",
+   "rev": "6c2b0d75eae4b7047358e3b6bd9325f857d43f77",
+   "mb": 1876.1,
+   "page": "https://huggingface.co/coqui/XTTS-v2",
+   "licence": "Coqui Public Model License — non-commercial use only",
+   "personal": true,
+   "accept": "cpml",
+   "name": "XTTS-v2 (Coqui)"
+  },
+  "pocket": {
+   "engine": "pocket",
+   "repo": "kyutai/pocket-tts-without-voice-cloning",
+   "rev": "a7056f505a4a8ca72d8b5fb1440071d6f1a35739",
+   "page": "https://kyutai.org/tts",
+   "mb": 355.8,
+   "licence": "CC BY 4.0",
+   "personal": false,
+   "name": "Pocket TTS (Kyutai)"
+  },
   "piper-en_GB-alan-low": {
    "engine": "piper",
    "repo": "rhasspy/piper-voices",
@@ -526,79 +596,1781 @@
    "name": "Piper sam (medium)",
    "licence": "Apache-2.0",
    "personal": false
-  },
-  "kokoro": {
-   "engine": "kokoro",
-   "repo": "hexgrad/Kokoro-82M",
-   "rev": "f3ff3571791e",
-   "mb": 359.2,
-   "page": "https://huggingface.co/spaces/hexgrad/Kokoro-TTS",
-   "licence": "Apache-2.0",
-   "personal": false,
-   "name": "Kokoro-82M v1.0"
-  },
-  "indic-parler": {
-   "engine": "parler",
-   "repo": "ai4bharat/indic-parler-tts",
-   "rev": "660bc53c64ae83150613264111708a0465211237",
-   "descTokenizer": [
-    "google/flan-t5-large",
-    "0613663d0d48ea86ba8cb3d7a44f0f65dc596a2a"
-   ],
-   "gated": true,
-   "page": "https://huggingface.co/spaces/ai4bharat/indic-parler-tts",
-   "mb": 3766.6,
-   "licence": "Apache-2.0",
-   "personal": false,
-   "name": "Indic Parler-TTS (AI4Bharat)"
-  },
-  "parler-large": {
-   "engine": "parler",
-   "repo": "parler-tts/parler-tts-large-v1",
-   "rev": "50cb4b874c83902f930d7c2e753224c15654f11e",
-   "page": "https://huggingface.co/parler-tts/parler-tts-large-v1",
-   "mb": 9335.5,
-   "licence": "Apache-2.0",
-   "personal": false,
-   "name": "Parler-TTS Large v1"
-  },
-  "parler-mini": {
-   "engine": "parler",
-   "repo": "parler-tts/parler-tts-mini-v1.1",
-   "rev": "fbb2dd281092c5b414ef29cf9d8895f386f1feef",
-   "descTokenizer": [
-    "google/flan-t5-large",
-    "0613663d0d48ea86ba8cb3d7a44f0f65dc596a2a"
-   ],
-   "page": "https://huggingface.co/parler-tts/parler-tts-mini-v1.1",
-   "mb": 3766.6,
-   "licence": "Apache-2.0",
-   "personal": false,
-   "name": "Parler-TTS Mini v1.1"
-  },
-  "xtts": {
-   "engine": "xtts",
-   "repo": "coqui/XTTS-v2",
-   "rev": "6c2b0d75eae4b7047358e3b6bd9325f857d43f77",
-   "mb": 1876.1,
-   "page": "https://huggingface.co/coqui/XTTS-v2",
-   "licence": "Coqui Public Model License — non-commercial use only",
-   "personal": true,
-   "accept": "cpml",
-   "name": "XTTS-v2 (Coqui)"
-  },
-  "pocket": {
-   "engine": "pocket",
-   "repo": "kyutai/pocket-tts-without-voice-cloning",
-   "rev": "a7056f505a4a8ca72d8b5fb1440071d6f1a35739",
-   "page": "https://kyutai.org/tts",
-   "mb": 355.8,
-   "licence": "CC BY 4.0",
-   "personal": false,
-   "name": "Pocket TTS (Kyutai)"
   }
  },
  "voices": [
+  {
+   "id": "indic-parler-thoma",
+   "label": "Thoma — man (recommended by AI4Bharat)",
+   "group": "in",
+   "sex": "m",
+   "model": "indic-parler",
+   "describe": "Thoma speaks {pace} with a clear, expressive voice, in a very close recording that has almost no background noise."
+  },
+  {
+   "id": "indic-parler-mary",
+   "label": "Mary — woman (recommended by AI4Bharat)",
+   "group": "in",
+   "sex": "f",
+   "model": "indic-parler",
+   "describe": "Mary speaks {pace} with a clear, expressive voice, in a very close recording that has almost no background noise."
+  },
+  {
+   "id": "indic-parler-swapna",
+   "label": "Swapna — woman",
+   "group": "in",
+   "sex": "f",
+   "model": "indic-parler",
+   "describe": "Swapna speaks {pace} with a clear, expressive voice, in a very close recording that has almost no background noise."
+  },
+  {
+   "id": "indic-parler-dinesh",
+   "label": "Dinesh — man",
+   "group": "in",
+   "sex": "m",
+   "model": "indic-parler",
+   "describe": "Dinesh speaks {pace} with a clear, expressive voice, in a very close recording that has almost no background noise."
+  },
+  {
+   "id": "indic-parler-meera",
+   "label": "Meera — woman",
+   "group": "in",
+   "sex": "f",
+   "model": "indic-parler",
+   "describe": "Meera speaks {pace} with a clear, expressive voice, in a very close recording that has almost no background noise."
+  },
+  {
+   "id": "indic-parler-jatin",
+   "label": "Jatin — man",
+   "group": "in",
+   "sex": "m",
+   "model": "indic-parler",
+   "describe": "Jatin speaks {pace} with a clear, expressive voice, in a very close recording that has almost no background noise."
+  },
+  {
+   "id": "indic-parler-aakash",
+   "label": "Aakash — man",
+   "group": "in",
+   "sex": "m",
+   "model": "indic-parler",
+   "describe": "Aakash speaks {pace} with a clear, expressive voice, in a very close recording that has almost no background noise."
+  },
+  {
+   "id": "indic-parler-sneha",
+   "label": "Sneha — woman",
+   "group": "in",
+   "sex": "f",
+   "model": "indic-parler",
+   "describe": "Sneha speaks {pace} with a clear, expressive voice, in a very close recording that has almost no background noise."
+  },
+  {
+   "id": "indic-parler-kabir",
+   "label": "Kabir — man",
+   "group": "in",
+   "sex": "m",
+   "model": "indic-parler",
+   "describe": "Kabir speaks {pace} with a clear, expressive voice, in a very close recording that has almost no background noise."
+  },
+  {
+   "id": "indic-parler-tisha",
+   "label": "Tisha — woman",
+   "group": "in",
+   "sex": "f",
+   "model": "indic-parler",
+   "describe": "Tisha speaks {pace} with a clear, expressive voice, in a very close recording that has almost no background noise."
+  },
+  {
+   "id": "indic-parler-chingkhei",
+   "label": "Chingkhei — woman",
+   "group": "in",
+   "sex": "f",
+   "model": "indic-parler",
+   "describe": "Chingkhei speaks {pace} with a clear, expressive voice, in a very close recording that has almost no background noise."
+  },
+  {
+   "id": "indic-parler-thoibi",
+   "label": "Thoibi — woman",
+   "group": "in",
+   "sex": "f",
+   "model": "indic-parler",
+   "describe": "Thoibi speaks {pace} with a clear, expressive voice, in a very close recording that has almost no background noise."
+  },
+  {
+   "id": "indic-parler-priya",
+   "label": "Priya — woman",
+   "group": "in",
+   "sex": "f",
+   "model": "indic-parler",
+   "describe": "Priya speaks {pace} with a clear, expressive voice, in a very close recording that has almost no background noise."
+  },
+  {
+   "id": "indic-parler-tarun",
+   "label": "Tarun — man",
+   "group": "in",
+   "sex": "m",
+   "model": "indic-parler",
+   "describe": "Tarun speaks {pace} with a clear, expressive voice, in a very close recording that has almost no background noise."
+  },
+  {
+   "id": "indic-parler-gauri",
+   "label": "Gauri — woman",
+   "group": "in",
+   "sex": "f",
+   "model": "indic-parler",
+   "describe": "Gauri speaks {pace} with a clear, expressive voice, in a very close recording that has almost no background noise."
+  },
+  {
+   "id": "indic-parler-nisha",
+   "label": "Nisha — woman",
+   "group": "in",
+   "sex": "f",
+   "model": "indic-parler",
+   "describe": "Nisha speaks {pace} with a clear, expressive voice, in a very close recording that has almost no background noise."
+  },
+  {
+   "id": "indic-parler-raghav",
+   "label": "Raghav — man",
+   "group": "in",
+   "sex": "m",
+   "model": "indic-parler",
+   "describe": "Raghav speaks {pace} with a clear, expressive voice, in a very close recording that has almost no background noise."
+  },
+  {
+   "id": "indic-parler-kavya",
+   "label": "Kavya — woman",
+   "group": "in",
+   "sex": "f",
+   "model": "indic-parler",
+   "describe": "Kavya speaks {pace} with a clear, expressive voice, in a very close recording that has almost no background noise."
+  },
+  {
+   "id": "indic-parler-ravi",
+   "label": "Ravi — man",
+   "group": "in",
+   "sex": "m",
+   "model": "indic-parler",
+   "describe": "Ravi speaks {pace} with a clear, expressive voice, in a very close recording that has almost no background noise."
+  },
+  {
+   "id": "indic-parler-vikas",
+   "label": "Vikas — man",
+   "group": "in",
+   "sex": "m",
+   "model": "indic-parler",
+   "describe": "Vikas speaks {pace} with a clear, expressive voice, in a very close recording that has almost no background noise."
+  },
+  {
+   "id": "indic-parler-riya",
+   "label": "Riya — woman",
+   "group": "in",
+   "sex": "f",
+   "model": "indic-parler",
+   "describe": "Riya speaks {pace} with a clear, expressive voice, in a very close recording that has almost no background noise."
+  },
+  {
+   "id": "parler-large-laura",
+   "label": "Laura — woman (one of its steadiest voices)",
+   "group": "any",
+   "sex": "f",
+   "model": "parler-large",
+   "describe": "Laura's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-large-gary",
+   "label": "Gary — man",
+   "group": "any",
+   "sex": "m",
+   "model": "parler-large",
+   "describe": "Gary's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-large-jon",
+   "label": "Jon — man",
+   "group": "any",
+   "sex": "m",
+   "model": "parler-large",
+   "describe": "Jon's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-large-lea",
+   "label": "Lea — woman",
+   "group": "any",
+   "sex": "f",
+   "model": "parler-large",
+   "describe": "Lea's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-large-karen",
+   "label": "Karen — woman",
+   "group": "any",
+   "sex": "f",
+   "model": "parler-large",
+   "describe": "Karen's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-large-rick",
+   "label": "Rick — man",
+   "group": "any",
+   "sex": "m",
+   "model": "parler-large",
+   "describe": "Rick's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-large-brenda",
+   "label": "Brenda — woman",
+   "group": "any",
+   "sex": "f",
+   "model": "parler-large",
+   "describe": "Brenda's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-large-david",
+   "label": "David — man",
+   "group": "any",
+   "sex": "m",
+   "model": "parler-large",
+   "describe": "David's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-large-eileen",
+   "label": "Eileen — woman",
+   "group": "any",
+   "sex": "f",
+   "model": "parler-large",
+   "describe": "Eileen's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-large-jordan",
+   "label": "Jordan — man",
+   "group": "any",
+   "sex": "m",
+   "model": "parler-large",
+   "describe": "Jordan's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-large-mike",
+   "label": "Mike — man",
+   "group": "any",
+   "sex": "m",
+   "model": "parler-large",
+   "describe": "Mike's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-large-yann",
+   "label": "Yann — man",
+   "group": "any",
+   "sex": "m",
+   "model": "parler-large",
+   "describe": "Yann's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-large-joy",
+   "label": "Joy — woman",
+   "group": "any",
+   "sex": "f",
+   "model": "parler-large",
+   "describe": "Joy's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-large-james",
+   "label": "James — man",
+   "group": "any",
+   "sex": "m",
+   "model": "parler-large",
+   "describe": "James's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-large-eric",
+   "label": "Eric — man (one of its steadiest voices)",
+   "group": "any",
+   "sex": "m",
+   "model": "parler-large",
+   "describe": "Eric's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-large-lauren",
+   "label": "Lauren — woman",
+   "group": "any",
+   "sex": "f",
+   "model": "parler-large",
+   "describe": "Lauren's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-large-rose",
+   "label": "Rose — woman",
+   "group": "any",
+   "sex": "f",
+   "model": "parler-large",
+   "describe": "Rose's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-large-will",
+   "label": "Will — man (one of its steadiest voices)",
+   "group": "any",
+   "sex": "m",
+   "model": "parler-large",
+   "describe": "Will's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-large-jason",
+   "label": "Jason — man",
+   "group": "any",
+   "sex": "m",
+   "model": "parler-large",
+   "describe": "Jason's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-large-aaron",
+   "label": "Aaron — man",
+   "group": "any",
+   "sex": "m",
+   "model": "parler-large",
+   "describe": "Aaron's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-large-naomie",
+   "label": "Naomie — woman",
+   "group": "any",
+   "sex": "f",
+   "model": "parler-large",
+   "describe": "Naomie's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-large-alisa",
+   "label": "Alisa — woman (one of its steadiest voices)",
+   "group": "any",
+   "sex": "f",
+   "model": "parler-large",
+   "describe": "Alisa's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-large-patrick",
+   "label": "Patrick — man (one of its steadiest voices)",
+   "group": "any",
+   "sex": "m",
+   "model": "parler-large",
+   "describe": "Patrick's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-large-jerry",
+   "label": "Jerry — man",
+   "group": "any",
+   "sex": "m",
+   "model": "parler-large",
+   "describe": "Jerry's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-large-tina",
+   "label": "Tina — woman",
+   "group": "any",
+   "sex": "f",
+   "model": "parler-large",
+   "describe": "Tina's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-large-jenna",
+   "label": "Jenna — woman",
+   "group": "any",
+   "sex": "f",
+   "model": "parler-large",
+   "describe": "Jenna's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-large-bill",
+   "label": "Bill — man",
+   "group": "any",
+   "sex": "m",
+   "model": "parler-large",
+   "describe": "Bill's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-large-tom",
+   "label": "Tom — man",
+   "group": "any",
+   "sex": "m",
+   "model": "parler-large",
+   "describe": "Tom's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-large-carol",
+   "label": "Carol — woman",
+   "group": "any",
+   "sex": "f",
+   "model": "parler-large",
+   "describe": "Carol's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-large-barbara",
+   "label": "Barbara — woman",
+   "group": "any",
+   "sex": "f",
+   "model": "parler-large",
+   "describe": "Barbara's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-large-rebecca",
+   "label": "Rebecca — woman",
+   "group": "any",
+   "sex": "f",
+   "model": "parler-large",
+   "describe": "Rebecca's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-large-anna",
+   "label": "Anna — woman",
+   "group": "any",
+   "sex": "f",
+   "model": "parler-large",
+   "describe": "Anna's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-large-bruce",
+   "label": "Bruce — man",
+   "group": "any",
+   "sex": "m",
+   "model": "parler-large",
+   "describe": "Bruce's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-large-emily",
+   "label": "Emily — woman",
+   "group": "any",
+   "sex": "f",
+   "model": "parler-large",
+   "describe": "Emily's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-mini-laura",
+   "label": "Laura — woman",
+   "group": "any",
+   "sex": "f",
+   "model": "parler-mini",
+   "describe": "Laura's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-mini-gary",
+   "label": "Gary — man (one of its steadiest voices)",
+   "group": "any",
+   "sex": "m",
+   "model": "parler-mini",
+   "describe": "Gary's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-mini-jon",
+   "label": "Jon — man (one of its steadiest voices)",
+   "group": "any",
+   "sex": "m",
+   "model": "parler-mini",
+   "describe": "Jon's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-mini-lea",
+   "label": "Lea — woman (one of its steadiest voices)",
+   "group": "any",
+   "sex": "f",
+   "model": "parler-mini",
+   "describe": "Lea's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-mini-karen",
+   "label": "Karen — woman",
+   "group": "any",
+   "sex": "f",
+   "model": "parler-mini",
+   "describe": "Karen's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-mini-rick",
+   "label": "Rick — man",
+   "group": "any",
+   "sex": "m",
+   "model": "parler-mini",
+   "describe": "Rick's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-mini-brenda",
+   "label": "Brenda — woman",
+   "group": "any",
+   "sex": "f",
+   "model": "parler-mini",
+   "describe": "Brenda's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-mini-david",
+   "label": "David — man",
+   "group": "any",
+   "sex": "m",
+   "model": "parler-mini",
+   "describe": "David's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-mini-eileen",
+   "label": "Eileen — woman",
+   "group": "any",
+   "sex": "f",
+   "model": "parler-mini",
+   "describe": "Eileen's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-mini-jordan",
+   "label": "Jordan — man",
+   "group": "any",
+   "sex": "m",
+   "model": "parler-mini",
+   "describe": "Jordan's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-mini-mike",
+   "label": "Mike — man (one of its steadiest voices)",
+   "group": "any",
+   "sex": "m",
+   "model": "parler-mini",
+   "describe": "Mike's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-mini-yann",
+   "label": "Yann — man",
+   "group": "any",
+   "sex": "m",
+   "model": "parler-mini",
+   "describe": "Yann's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-mini-joy",
+   "label": "Joy — woman",
+   "group": "any",
+   "sex": "f",
+   "model": "parler-mini",
+   "describe": "Joy's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-mini-james",
+   "label": "James — man",
+   "group": "any",
+   "sex": "m",
+   "model": "parler-mini",
+   "describe": "James's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-mini-eric",
+   "label": "Eric — man",
+   "group": "any",
+   "sex": "m",
+   "model": "parler-mini",
+   "describe": "Eric's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-mini-lauren",
+   "label": "Lauren — woman",
+   "group": "any",
+   "sex": "f",
+   "model": "parler-mini",
+   "describe": "Lauren's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-mini-rose",
+   "label": "Rose — woman",
+   "group": "any",
+   "sex": "f",
+   "model": "parler-mini",
+   "describe": "Rose's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-mini-will",
+   "label": "Will — man",
+   "group": "any",
+   "sex": "m",
+   "model": "parler-mini",
+   "describe": "Will's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-mini-jason",
+   "label": "Jason — man",
+   "group": "any",
+   "sex": "m",
+   "model": "parler-mini",
+   "describe": "Jason's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-mini-aaron",
+   "label": "Aaron — man",
+   "group": "any",
+   "sex": "m",
+   "model": "parler-mini",
+   "describe": "Aaron's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-mini-naomie",
+   "label": "Naomie — woman",
+   "group": "any",
+   "sex": "f",
+   "model": "parler-mini",
+   "describe": "Naomie's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-mini-alisa",
+   "label": "Alisa — woman",
+   "group": "any",
+   "sex": "f",
+   "model": "parler-mini",
+   "describe": "Alisa's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-mini-patrick",
+   "label": "Patrick — man",
+   "group": "any",
+   "sex": "m",
+   "model": "parler-mini",
+   "describe": "Patrick's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-mini-jerry",
+   "label": "Jerry — man",
+   "group": "any",
+   "sex": "m",
+   "model": "parler-mini",
+   "describe": "Jerry's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-mini-tina",
+   "label": "Tina — woman",
+   "group": "any",
+   "sex": "f",
+   "model": "parler-mini",
+   "describe": "Tina's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-mini-jenna",
+   "label": "Jenna — woman (one of its steadiest voices)",
+   "group": "any",
+   "sex": "f",
+   "model": "parler-mini",
+   "describe": "Jenna's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-mini-bill",
+   "label": "Bill — man",
+   "group": "any",
+   "sex": "m",
+   "model": "parler-mini",
+   "describe": "Bill's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-mini-tom",
+   "label": "Tom — man",
+   "group": "any",
+   "sex": "m",
+   "model": "parler-mini",
+   "describe": "Tom's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-mini-carol",
+   "label": "Carol — woman",
+   "group": "any",
+   "sex": "f",
+   "model": "parler-mini",
+   "describe": "Carol's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-mini-barbara",
+   "label": "Barbara — woman",
+   "group": "any",
+   "sex": "f",
+   "model": "parler-mini",
+   "describe": "Barbara's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-mini-rebecca",
+   "label": "Rebecca — woman",
+   "group": "any",
+   "sex": "f",
+   "model": "parler-mini",
+   "describe": "Rebecca's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-mini-anna",
+   "label": "Anna — woman",
+   "group": "any",
+   "sex": "f",
+   "model": "parler-mini",
+   "describe": "Anna's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-mini-bruce",
+   "label": "Bruce — man",
+   "group": "any",
+   "sex": "m",
+   "model": "parler-mini",
+   "describe": "Bruce's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "parler-mini-emily",
+   "label": "Emily — woman",
+   "group": "any",
+   "sex": "f",
+   "model": "parler-mini",
+   "describe": "Emily's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
+  },
+  {
+   "id": "kokoro-af_heart",
+   "label": "Heart — woman (Kokoro’s grade A)",
+   "group": "us",
+   "sex": "f",
+   "model": "kokoro",
+   "voice": "af_heart"
+  },
+  {
+   "id": "kokoro-af_alloy",
+   "label": "Alloy — woman (Kokoro’s grade C)",
+   "group": "us",
+   "sex": "f",
+   "model": "kokoro",
+   "voice": "af_alloy"
+  },
+  {
+   "id": "kokoro-af_aoede",
+   "label": "Aoede — woman (Kokoro’s grade C+)",
+   "group": "us",
+   "sex": "f",
+   "model": "kokoro",
+   "voice": "af_aoede"
+  },
+  {
+   "id": "kokoro-af_bella",
+   "label": "Bella — woman (Kokoro’s grade A-)",
+   "group": "us",
+   "sex": "f",
+   "model": "kokoro",
+   "voice": "af_bella"
+  },
+  {
+   "id": "kokoro-af_jessica",
+   "label": "Jessica — woman (Kokoro’s grade D)",
+   "group": "us",
+   "sex": "f",
+   "model": "kokoro",
+   "voice": "af_jessica"
+  },
+  {
+   "id": "kokoro-af_kore",
+   "label": "Kore — woman (Kokoro’s grade C+)",
+   "group": "us",
+   "sex": "f",
+   "model": "kokoro",
+   "voice": "af_kore"
+  },
+  {
+   "id": "kokoro-af_nicole",
+   "label": "Nicole — woman (Kokoro’s grade B-)",
+   "group": "us",
+   "sex": "f",
+   "model": "kokoro",
+   "voice": "af_nicole"
+  },
+  {
+   "id": "kokoro-af_nova",
+   "label": "Nova — woman (Kokoro’s grade C)",
+   "group": "us",
+   "sex": "f",
+   "model": "kokoro",
+   "voice": "af_nova"
+  },
+  {
+   "id": "kokoro-af_river",
+   "label": "River — woman (Kokoro’s grade D)",
+   "group": "us",
+   "sex": "f",
+   "model": "kokoro",
+   "voice": "af_river"
+  },
+  {
+   "id": "kokoro-af_sarah",
+   "label": "Sarah — woman (Kokoro’s grade C+)",
+   "group": "us",
+   "sex": "f",
+   "model": "kokoro",
+   "voice": "af_sarah"
+  },
+  {
+   "id": "kokoro-af_sky",
+   "label": "Sky — woman (Kokoro’s grade C-)",
+   "group": "us",
+   "sex": "f",
+   "model": "kokoro",
+   "voice": "af_sky"
+  },
+  {
+   "id": "kokoro-am_adam",
+   "label": "Adam — man (Kokoro’s grade F+)",
+   "group": "us",
+   "sex": "m",
+   "model": "kokoro",
+   "voice": "am_adam"
+  },
+  {
+   "id": "kokoro-am_echo",
+   "label": "Echo — man (Kokoro’s grade D)",
+   "group": "us",
+   "sex": "m",
+   "model": "kokoro",
+   "voice": "am_echo"
+  },
+  {
+   "id": "kokoro-am_eric",
+   "label": "Eric — man (Kokoro’s grade D)",
+   "group": "us",
+   "sex": "m",
+   "model": "kokoro",
+   "voice": "am_eric"
+  },
+  {
+   "id": "kokoro-am_fenrir",
+   "label": "Fenrir — man (Kokoro’s grade C+)",
+   "group": "us",
+   "sex": "m",
+   "model": "kokoro",
+   "voice": "am_fenrir"
+  },
+  {
+   "id": "kokoro-am_liam",
+   "label": "Liam — man (Kokoro’s grade D)",
+   "group": "us",
+   "sex": "m",
+   "model": "kokoro",
+   "voice": "am_liam"
+  },
+  {
+   "id": "kokoro-am_michael",
+   "label": "Michael — man (Kokoro’s grade C+)",
+   "group": "us",
+   "sex": "m",
+   "model": "kokoro",
+   "voice": "am_michael"
+  },
+  {
+   "id": "kokoro-am_onyx",
+   "label": "Onyx — man (Kokoro’s grade D)",
+   "group": "us",
+   "sex": "m",
+   "model": "kokoro",
+   "voice": "am_onyx"
+  },
+  {
+   "id": "kokoro-am_puck",
+   "label": "Puck — man (Kokoro’s grade C+)",
+   "group": "us",
+   "sex": "m",
+   "model": "kokoro",
+   "voice": "am_puck"
+  },
+  {
+   "id": "kokoro-am_santa",
+   "label": "Santa — man (Kokoro’s grade D-)",
+   "group": "us",
+   "sex": "m",
+   "model": "kokoro",
+   "voice": "am_santa"
+  },
+  {
+   "id": "kokoro-bf_alice",
+   "label": "Alice — woman (Kokoro’s grade D)",
+   "group": "uk",
+   "sex": "f",
+   "model": "kokoro",
+   "voice": "bf_alice"
+  },
+  {
+   "id": "kokoro-bf_emma",
+   "label": "Emma — woman (Kokoro’s grade B-)",
+   "group": "uk",
+   "sex": "f",
+   "model": "kokoro",
+   "voice": "bf_emma"
+  },
+  {
+   "id": "kokoro-bf_isabella",
+   "label": "Isabella — woman (Kokoro’s grade C)",
+   "group": "uk",
+   "sex": "f",
+   "model": "kokoro",
+   "voice": "bf_isabella"
+  },
+  {
+   "id": "kokoro-bf_lily",
+   "label": "Lily — woman (Kokoro’s grade D)",
+   "group": "uk",
+   "sex": "f",
+   "model": "kokoro",
+   "voice": "bf_lily"
+  },
+  {
+   "id": "kokoro-bm_daniel",
+   "label": "Daniel — man (Kokoro’s grade D)",
+   "group": "uk",
+   "sex": "m",
+   "model": "kokoro",
+   "voice": "bm_daniel"
+  },
+  {
+   "id": "kokoro-bm_fable",
+   "label": "Fable — man (Kokoro’s grade C)",
+   "group": "uk",
+   "sex": "m",
+   "model": "kokoro",
+   "voice": "bm_fable"
+  },
+  {
+   "id": "kokoro-bm_george",
+   "label": "George — man (Kokoro’s grade C)",
+   "group": "uk",
+   "sex": "m",
+   "model": "kokoro",
+   "voice": "bm_george"
+  },
+  {
+   "id": "kokoro-bm_lewis",
+   "label": "Lewis — man (Kokoro’s grade D+)",
+   "group": "uk",
+   "sex": "m",
+   "model": "kokoro",
+   "voice": "bm_lewis"
+  },
+  {
+   "id": "kokoro-hf_alpha-a",
+   "label": "Alpha — woman, Kokoro’s Hindi voice, American reading of the words",
+   "group": "in",
+   "sex": "f",
+   "model": "kokoro",
+   "voice": "hf_alpha",
+   "lang": "a"
+  },
+  {
+   "id": "kokoro-hf_alpha-b",
+   "label": "Alpha — woman, Kokoro’s Hindi voice, British reading of the words",
+   "group": "in",
+   "sex": "f",
+   "model": "kokoro",
+   "voice": "hf_alpha",
+   "lang": "b"
+  },
+  {
+   "id": "kokoro-hf_alpha-h",
+   "label": "Alpha — woman, Kokoro’s Hindi voice, Hindi reading rules (eSpeak NG)",
+   "group": "in",
+   "sex": "f",
+   "model": "kokoro",
+   "voice": "hf_alpha",
+   "lang": "h"
+  },
+  {
+   "id": "kokoro-hf_beta-a",
+   "label": "Beta — woman, Kokoro’s Hindi voice, American reading of the words",
+   "group": "in",
+   "sex": "f",
+   "model": "kokoro",
+   "voice": "hf_beta",
+   "lang": "a"
+  },
+  {
+   "id": "kokoro-hf_beta-b",
+   "label": "Beta — woman, Kokoro’s Hindi voice, British reading of the words",
+   "group": "in",
+   "sex": "f",
+   "model": "kokoro",
+   "voice": "hf_beta",
+   "lang": "b"
+  },
+  {
+   "id": "kokoro-hf_beta-h",
+   "label": "Beta — woman, Kokoro’s Hindi voice, Hindi reading rules (eSpeak NG)",
+   "group": "in",
+   "sex": "f",
+   "model": "kokoro",
+   "voice": "hf_beta",
+   "lang": "h"
+  },
+  {
+   "id": "kokoro-hm_omega-a",
+   "label": "Omega — man, Kokoro’s Hindi voice, American reading of the words",
+   "group": "in",
+   "sex": "m",
+   "model": "kokoro",
+   "voice": "hm_omega",
+   "lang": "a"
+  },
+  {
+   "id": "kokoro-hm_omega-b",
+   "label": "Omega — man, Kokoro’s Hindi voice, British reading of the words",
+   "group": "in",
+   "sex": "m",
+   "model": "kokoro",
+   "voice": "hm_omega",
+   "lang": "b"
+  },
+  {
+   "id": "kokoro-hm_omega-h",
+   "label": "Omega — man, Kokoro’s Hindi voice, Hindi reading rules (eSpeak NG)",
+   "group": "in",
+   "sex": "m",
+   "model": "kokoro",
+   "voice": "hm_omega",
+   "lang": "h"
+  },
+  {
+   "id": "kokoro-hm_psi-a",
+   "label": "Psi — man, Kokoro’s Hindi voice, American reading of the words",
+   "group": "in",
+   "sex": "m",
+   "model": "kokoro",
+   "voice": "hm_psi",
+   "lang": "a"
+  },
+  {
+   "id": "kokoro-hm_psi-b",
+   "label": "Psi — man, Kokoro’s Hindi voice, British reading of the words",
+   "group": "in",
+   "sex": "m",
+   "model": "kokoro",
+   "voice": "hm_psi",
+   "lang": "b"
+  },
+  {
+   "id": "kokoro-hm_psi-h",
+   "label": "Psi — man, Kokoro’s Hindi voice, Hindi reading rules (eSpeak NG)",
+   "group": "in",
+   "sex": "m",
+   "model": "kokoro",
+   "voice": "hm_psi",
+   "lang": "h"
+  },
+  {
+   "id": "xtts-claribel-dervla",
+   "label": "Claribel Dervla — woman (studio voice)",
+   "group": "any",
+   "sex": "f",
+   "model": "xtts",
+   "speaker": "Claribel Dervla"
+  },
+  {
+   "id": "xtts-daisy-studious",
+   "label": "Daisy Studious — woman (studio voice)",
+   "group": "any",
+   "sex": "f",
+   "model": "xtts",
+   "speaker": "Daisy Studious"
+  },
+  {
+   "id": "xtts-gracie-wise",
+   "label": "Gracie Wise — woman (studio voice)",
+   "group": "any",
+   "sex": "f",
+   "model": "xtts",
+   "speaker": "Gracie Wise"
+  },
+  {
+   "id": "xtts-tammie-ema",
+   "label": "Tammie Ema — woman (studio voice)",
+   "group": "any",
+   "sex": "f",
+   "model": "xtts",
+   "speaker": "Tammie Ema"
+  },
+  {
+   "id": "xtts-alison-dietlinde",
+   "label": "Alison Dietlinde — woman (studio voice)",
+   "group": "any",
+   "sex": "f",
+   "model": "xtts",
+   "speaker": "Alison Dietlinde"
+  },
+  {
+   "id": "xtts-ana-florence",
+   "label": "Ana Florence — woman (studio voice)",
+   "group": "any",
+   "sex": "f",
+   "model": "xtts",
+   "speaker": "Ana Florence"
+  },
+  {
+   "id": "xtts-annmarie-nele",
+   "label": "Annmarie Nele — woman (studio voice)",
+   "group": "any",
+   "sex": "f",
+   "model": "xtts",
+   "speaker": "Annmarie Nele"
+  },
+  {
+   "id": "xtts-asya-anara",
+   "label": "Asya Anara — woman (studio voice)",
+   "group": "any",
+   "sex": "f",
+   "model": "xtts",
+   "speaker": "Asya Anara"
+  },
+  {
+   "id": "xtts-brenda-stern",
+   "label": "Brenda Stern — woman (studio voice)",
+   "group": "any",
+   "sex": "f",
+   "model": "xtts",
+   "speaker": "Brenda Stern"
+  },
+  {
+   "id": "xtts-gitta-nikolina",
+   "label": "Gitta Nikolina — woman (studio voice)",
+   "group": "any",
+   "sex": "f",
+   "model": "xtts",
+   "speaker": "Gitta Nikolina"
+  },
+  {
+   "id": "xtts-henriette-usha",
+   "label": "Henriette Usha — woman (studio voice)",
+   "group": "any",
+   "sex": "f",
+   "model": "xtts",
+   "speaker": "Henriette Usha"
+  },
+  {
+   "id": "xtts-sofia-hellen",
+   "label": "Sofia Hellen — woman (studio voice)",
+   "group": "any",
+   "sex": "f",
+   "model": "xtts",
+   "speaker": "Sofia Hellen"
+  },
+  {
+   "id": "xtts-tammy-grit",
+   "label": "Tammy Grit — woman (studio voice)",
+   "group": "any",
+   "sex": "f",
+   "model": "xtts",
+   "speaker": "Tammy Grit"
+  },
+  {
+   "id": "xtts-tanja-adelina",
+   "label": "Tanja Adelina — woman (studio voice)",
+   "group": "any",
+   "sex": "f",
+   "model": "xtts",
+   "speaker": "Tanja Adelina"
+  },
+  {
+   "id": "xtts-vjollca-johnnie",
+   "label": "Vjollca Johnnie — woman (studio voice)",
+   "group": "any",
+   "sex": "f",
+   "model": "xtts",
+   "speaker": "Vjollca Johnnie"
+  },
+  {
+   "id": "xtts-andrew-chipper",
+   "label": "Andrew Chipper — man (studio voice)",
+   "group": "any",
+   "sex": "m",
+   "model": "xtts",
+   "speaker": "Andrew Chipper"
+  },
+  {
+   "id": "xtts-badr-odhiambo",
+   "label": "Badr Odhiambo — man (studio voice)",
+   "group": "any",
+   "sex": "m",
+   "model": "xtts",
+   "speaker": "Badr Odhiambo"
+  },
+  {
+   "id": "xtts-dionisio-schuyler",
+   "label": "Dionisio Schuyler — man (studio voice)",
+   "group": "any",
+   "sex": "m",
+   "model": "xtts",
+   "speaker": "Dionisio Schuyler"
+  },
+  {
+   "id": "xtts-royston-min",
+   "label": "Royston Min — man (studio voice)",
+   "group": "any",
+   "sex": "m",
+   "model": "xtts",
+   "speaker": "Royston Min"
+  },
+  {
+   "id": "xtts-viktor-eka",
+   "label": "Viktor Eka — man (studio voice)",
+   "group": "any",
+   "sex": "m",
+   "model": "xtts",
+   "speaker": "Viktor Eka"
+  },
+  {
+   "id": "xtts-abrahan-mack",
+   "label": "Abrahan Mack — man (studio voice)",
+   "group": "any",
+   "sex": "m",
+   "model": "xtts",
+   "speaker": "Abrahan Mack"
+  },
+  {
+   "id": "xtts-adde-michal",
+   "label": "Adde Michal — man (studio voice)",
+   "group": "any",
+   "sex": "m",
+   "model": "xtts",
+   "speaker": "Adde Michal"
+  },
+  {
+   "id": "xtts-baldur-sanjin",
+   "label": "Baldur Sanjin — man (studio voice)",
+   "group": "any",
+   "sex": "m",
+   "model": "xtts",
+   "speaker": "Baldur Sanjin"
+  },
+  {
+   "id": "xtts-craig-gutsy",
+   "label": "Craig Gutsy — man (studio voice)",
+   "group": "any",
+   "sex": "m",
+   "model": "xtts",
+   "speaker": "Craig Gutsy"
+  },
+  {
+   "id": "xtts-damien-black",
+   "label": "Damien Black — man (studio voice)",
+   "group": "any",
+   "sex": "m",
+   "model": "xtts",
+   "speaker": "Damien Black"
+  },
+  {
+   "id": "xtts-gilberto-mathias",
+   "label": "Gilberto Mathias — man (studio voice)",
+   "group": "any",
+   "sex": "m",
+   "model": "xtts",
+   "speaker": "Gilberto Mathias"
+  },
+  {
+   "id": "xtts-ilkin-urbano",
+   "label": "Ilkin Urbano — man (studio voice)",
+   "group": "any",
+   "sex": "m",
+   "model": "xtts",
+   "speaker": "Ilkin Urbano"
+  },
+  {
+   "id": "xtts-kazuhiko-atallah",
+   "label": "Kazuhiko Atallah — man (studio voice)",
+   "group": "any",
+   "sex": "m",
+   "model": "xtts",
+   "speaker": "Kazuhiko Atallah"
+  },
+  {
+   "id": "xtts-ludvig-milivoj",
+   "label": "Ludvig Milivoj — man (studio voice)",
+   "group": "any",
+   "sex": "m",
+   "model": "xtts",
+   "speaker": "Ludvig Milivoj"
+  },
+  {
+   "id": "xtts-suad-qasim",
+   "label": "Suad Qasim — man (studio voice)",
+   "group": "any",
+   "sex": "m",
+   "model": "xtts",
+   "speaker": "Suad Qasim"
+  },
+  {
+   "id": "xtts-torcull-diarmuid",
+   "label": "Torcull Diarmuid — man (studio voice)",
+   "group": "any",
+   "sex": "m",
+   "model": "xtts",
+   "speaker": "Torcull Diarmuid"
+  },
+  {
+   "id": "xtts-viktor-menelaos",
+   "label": "Viktor Menelaos — man (studio voice)",
+   "group": "any",
+   "sex": "m",
+   "model": "xtts",
+   "speaker": "Viktor Menelaos"
+  },
+  {
+   "id": "xtts-zacharie-aimilios",
+   "label": "Zacharie Aimilios — man (studio voice)",
+   "group": "any",
+   "sex": "m",
+   "model": "xtts",
+   "speaker": "Zacharie Aimilios"
+  },
+  {
+   "id": "xtts-nova-hogarth",
+   "label": "Nova Hogarth — woman (studio voice)",
+   "group": "any",
+   "sex": "f",
+   "model": "xtts",
+   "speaker": "Nova Hogarth"
+  },
+  {
+   "id": "xtts-maja-ruoho",
+   "label": "Maja Ruoho — woman (studio voice)",
+   "group": "any",
+   "sex": "f",
+   "model": "xtts",
+   "speaker": "Maja Ruoho"
+  },
+  {
+   "id": "xtts-uta-obando",
+   "label": "Uta Obando — woman (studio voice)",
+   "group": "any",
+   "sex": "f",
+   "model": "xtts",
+   "speaker": "Uta Obando"
+  },
+  {
+   "id": "xtts-lidiya-szekeres",
+   "label": "Lidiya Szekeres — woman (studio voice)",
+   "group": "any",
+   "sex": "f",
+   "model": "xtts",
+   "speaker": "Lidiya Szekeres"
+  },
+  {
+   "id": "xtts-chandra-macfarland",
+   "label": "Chandra MacFarland — woman (studio voice)",
+   "group": "any",
+   "sex": "f",
+   "model": "xtts",
+   "speaker": "Chandra MacFarland"
+  },
+  {
+   "id": "xtts-szofi-granger",
+   "label": "Szofi Granger — woman (studio voice)",
+   "group": "any",
+   "sex": "f",
+   "model": "xtts",
+   "speaker": "Szofi Granger"
+  },
+  {
+   "id": "xtts-camilla-holmstr-m",
+   "label": "Camilla Holmström — woman (studio voice)",
+   "group": "any",
+   "sex": "f",
+   "model": "xtts",
+   "speaker": "Camilla Holmström"
+  },
+  {
+   "id": "xtts-lilya-stainthorpe",
+   "label": "Lilya Stainthorpe — woman (studio voice)",
+   "group": "any",
+   "sex": "f",
+   "model": "xtts",
+   "speaker": "Lilya Stainthorpe"
+  },
+  {
+   "id": "xtts-zofija-kendrick",
+   "label": "Zofija Kendrick — woman (studio voice)",
+   "group": "any",
+   "sex": "f",
+   "model": "xtts",
+   "speaker": "Zofija Kendrick"
+  },
+  {
+   "id": "xtts-narelle-moon",
+   "label": "Narelle Moon — woman (studio voice)",
+   "group": "any",
+   "sex": "f",
+   "model": "xtts",
+   "speaker": "Narelle Moon"
+  },
+  {
+   "id": "xtts-barbora-maclean",
+   "label": "Barbora MacLean — woman (studio voice)",
+   "group": "any",
+   "sex": "f",
+   "model": "xtts",
+   "speaker": "Barbora MacLean"
+  },
+  {
+   "id": "xtts-alexandra-hisakawa",
+   "label": "Alexandra Hisakawa — woman (studio voice)",
+   "group": "any",
+   "sex": "f",
+   "model": "xtts",
+   "speaker": "Alexandra Hisakawa"
+  },
+  {
+   "id": "xtts-alma-mar-a",
+   "label": "Alma María — woman (studio voice)",
+   "group": "any",
+   "sex": "f",
+   "model": "xtts",
+   "speaker": "Alma María"
+  },
+  {
+   "id": "xtts-rosemary-okafor",
+   "label": "Rosemary Okafor — woman (studio voice)",
+   "group": "any",
+   "sex": "f",
+   "model": "xtts",
+   "speaker": "Rosemary Okafor"
+  },
+  {
+   "id": "xtts-ige-behringer",
+   "label": "Ige Behringer — man (studio voice)",
+   "group": "any",
+   "sex": "m",
+   "model": "xtts",
+   "speaker": "Ige Behringer"
+  },
+  {
+   "id": "xtts-filip-traverse",
+   "label": "Filip Traverse — man (studio voice)",
+   "group": "any",
+   "sex": "m",
+   "model": "xtts",
+   "speaker": "Filip Traverse"
+  },
+  {
+   "id": "xtts-damjan-chapman",
+   "label": "Damjan Chapman — man (studio voice)",
+   "group": "any",
+   "sex": "m",
+   "model": "xtts",
+   "speaker": "Damjan Chapman"
+  },
+  {
+   "id": "xtts-wulf-carlevaro",
+   "label": "Wulf Carlevaro — man (studio voice)",
+   "group": "any",
+   "sex": "m",
+   "model": "xtts",
+   "speaker": "Wulf Carlevaro"
+  },
+  {
+   "id": "xtts-aaron-dreschner",
+   "label": "Aaron Dreschner — man (studio voice)",
+   "group": "any",
+   "sex": "m",
+   "model": "xtts",
+   "speaker": "Aaron Dreschner"
+  },
+  {
+   "id": "xtts-kumar-dahl",
+   "label": "Kumar Dahl — man (studio voice)",
+   "group": "any",
+   "sex": "m",
+   "model": "xtts",
+   "speaker": "Kumar Dahl"
+  },
+  {
+   "id": "xtts-eugenio-matarac",
+   "label": "Eugenio Mataracı — man (studio voice)",
+   "group": "any",
+   "sex": "m",
+   "model": "xtts",
+   "speaker": "Eugenio Mataracı"
+  },
+  {
+   "id": "xtts-ferran-simen",
+   "label": "Ferran Simen — man (studio voice)",
+   "group": "any",
+   "sex": "m",
+   "model": "xtts",
+   "speaker": "Ferran Simen"
+  },
+  {
+   "id": "xtts-xavier-hayasaka",
+   "label": "Xavier Hayasaka — man (studio voice)",
+   "group": "any",
+   "sex": "m",
+   "model": "xtts",
+   "speaker": "Xavier Hayasaka"
+  },
+  {
+   "id": "xtts-luis-moray",
+   "label": "Luis Moray — man (studio voice)",
+   "group": "any",
+   "sex": "m",
+   "model": "xtts",
+   "speaker": "Luis Moray"
+  },
+  {
+   "id": "xtts-marcos-rudaski",
+   "label": "Marcos Rudaski — man (studio voice)",
+   "group": "any",
+   "sex": "m",
+   "model": "xtts",
+   "speaker": "Marcos Rudaski"
+  },
+  {
+   "id": "xtts-clip-imran",
+   "label": "Imran — man, taken from a 10-second recording (CC0 voice donation)",
+   "group": "in",
+   "sex": "m",
+   "model": "xtts",
+   "clip": {
+    "repo": "kyutai/tts-voices",
+    "rev": "323332d33f997de8394f24a193e1a76df720e01a",
+    "file": "voice-donations/Imran_from_I_India_enhanced.wav"
+   }
+  },
+  {
+   "id": "xtts-clip-indian-guy",
+   "label": "Indian guy — man, taken from a 10-second recording (CC0 voice donation)",
+   "group": "in",
+   "sex": "m",
+   "model": "xtts",
+   "clip": {
+    "repo": "kyutai/tts-voices",
+    "rev": "323332d33f997de8394f24a193e1a76df720e01a",
+    "file": "voice-donations/Indian_guy_enhanced.wav"
+   }
+  },
+  {
+   "id": "xtts-clip-marshal",
+   "label": "Marshal — man, taken from a 10-second recording (CC0 voice donation)",
+   "group": "in",
+   "sex": "m",
+   "model": "xtts",
+   "clip": {
+    "repo": "kyutai/tts-voices",
+    "rev": "323332d33f997de8394f24a193e1a76df720e01a",
+    "file": "voice-donations/Marshal_Indian_enhanced.wav"
+   }
+  },
+  {
+   "id": "xtts-clip-siddh",
+   "label": "Siddh — man, taken from a 10-second recording (CC0 voice donation)",
+   "group": "in",
+   "sex": "m",
+   "model": "xtts",
+   "clip": {
+    "repo": "kyutai/tts-voices",
+    "rev": "323332d33f997de8394f24a193e1a76df720e01a",
+    "file": "voice-donations/Siddh_Indian_enhanced.wav"
+   }
+  },
+  {
+   "id": "xtts-clip-vinith",
+   "label": "Vinith — man, taken from a 10-second recording (CC0 voice donation)",
+   "group": "in",
+   "sex": "m",
+   "model": "xtts",
+   "clip": {
+    "repo": "kyutai/tts-voices",
+    "rev": "323332d33f997de8394f24a193e1a76df720e01a",
+    "file": "voice-donations/Vinith___English_India_enhanced.wav"
+   }
+  },
+  {
+   "id": "xtts-clip-vctk-p248",
+   "label": "VCTK p248 — woman, taken from a 10-second recording (VCTK, CC BY 4.0)",
+   "group": "in",
+   "sex": "f",
+   "model": "xtts",
+   "clip": {
+    "repo": "kyutai/tts-voices",
+    "rev": "323332d33f997de8394f24a193e1a76df720e01a",
+    "file": "vctk/p248_023_enhanced.wav"
+   }
+  },
+  {
+   "id": "xtts-clip-vctk-p251",
+   "label": "VCTK p251 — man, taken from a 10-second recording (VCTK, CC BY 4.0)",
+   "group": "in",
+   "sex": "m",
+   "model": "xtts",
+   "clip": {
+    "repo": "kyutai/tts-voices",
+    "rev": "323332d33f997de8394f24a193e1a76df720e01a",
+    "file": "vctk/p251_023_enhanced.wav"
+   }
+  },
+  {
+   "id": "xtts-clip-vctk-p376",
+   "label": "VCTK p376 — man, taken from a 10-second recording (VCTK, CC BY 4.0)",
+   "group": "in",
+   "sex": "m",
+   "model": "xtts",
+   "clip": {
+    "repo": "kyutai/tts-voices",
+    "rev": "323332d33f997de8394f24a193e1a76df720e01a",
+    "file": "vctk/p376_023_enhanced.wav"
+   }
+  },
+  {
+   "id": "pocket-alba",
+   "label": "Alba",
+   "group": "any",
+   "sex": "",
+   "model": "pocket",
+   "voice": "alba"
+  },
+  {
+   "id": "pocket-anna",
+   "label": "Anna — woman, English (from VCTK p228)",
+   "group": "uk",
+   "sex": "f",
+   "model": "pocket",
+   "voice": "anna"
+  },
+  {
+   "id": "pocket-azelma",
+   "label": "Azelma — woman, Canadian (from VCTK p303)",
+   "group": "world",
+   "sex": "f",
+   "model": "pocket",
+   "voice": "azelma"
+  },
+  {
+   "id": "pocket-bill-boerst",
+   "label": "Bill Boerst — man",
+   "group": "any",
+   "sex": "m",
+   "model": "pocket",
+   "voice": "bill_boerst"
+  },
+  {
+   "id": "pocket-caro-davy",
+   "label": "Caro Davy — woman",
+   "group": "any",
+   "sex": "f",
+   "model": "pocket",
+   "voice": "caro_davy"
+  },
+  {
+   "id": "pocket-charles",
+   "label": "Charles — man, English (from VCTK p254)",
+   "group": "uk",
+   "sex": "m",
+   "model": "pocket",
+   "voice": "charles"
+  },
+  {
+   "id": "pocket-cosette",
+   "label": "Cosette — woman",
+   "group": "any",
+   "sex": "f",
+   "model": "pocket",
+   "voice": "cosette"
+  },
+  {
+   "id": "pocket-eponine",
+   "label": "Eponine — woman, Scottish (from VCTK p262)",
+   "group": "uk",
+   "sex": "f",
+   "model": "pocket",
+   "voice": "eponine"
+  },
+  {
+   "id": "pocket-eve",
+   "label": "Eve — woman, American (from VCTK p361)",
+   "group": "us",
+   "sex": "f",
+   "model": "pocket",
+   "voice": "eve"
+  },
+  {
+   "id": "pocket-fantine",
+   "label": "Fantine — woman, English (from VCTK p244)",
+   "group": "uk",
+   "sex": "f",
+   "model": "pocket",
+   "voice": "fantine"
+  },
+  {
+   "id": "pocket-george",
+   "label": "George — man, American (from VCTK p315)",
+   "group": "us",
+   "sex": "m",
+   "model": "pocket",
+   "voice": "george"
+  },
+  {
+   "id": "pocket-jane",
+   "label": "Jane — woman, American (from VCTK p339)",
+   "group": "us",
+   "sex": "f",
+   "model": "pocket",
+   "voice": "jane"
+  },
+  {
+   "id": "pocket-jean",
+   "label": "Jean — man",
+   "group": "any",
+   "sex": "m",
+   "model": "pocket",
+   "voice": "jean"
+  },
+  {
+   "id": "pocket-javert",
+   "label": "Javert — man",
+   "group": "any",
+   "sex": "m",
+   "model": "pocket",
+   "voice": "javert"
+  },
+  {
+   "id": "pocket-marius",
+   "label": "Marius — man",
+   "group": "any",
+   "sex": "m",
+   "model": "pocket",
+   "voice": "marius"
+  },
+  {
+   "id": "pocket-mary",
+   "label": "Mary — woman, American (from VCTK p333)",
+   "group": "us",
+   "sex": "f",
+   "model": "pocket",
+   "voice": "mary"
+  },
+  {
+   "id": "pocket-michael",
+   "label": "Michael — man, American (from VCTK p360)",
+   "group": "us",
+   "sex": "m",
+   "model": "pocket",
+   "voice": "michael"
+  },
+  {
+   "id": "pocket-paul",
+   "label": "Paul — man, English (from VCTK p259)",
+   "group": "uk",
+   "sex": "m",
+   "model": "pocket",
+   "voice": "paul"
+  },
+  {
+   "id": "pocket-peter-yearsley",
+   "label": "Peter Yearsley — man",
+   "group": "any",
+   "sex": "m",
+   "model": "pocket",
+   "voice": "peter_yearsley"
+  },
+  {
+   "id": "pocket-stuart-bell",
+   "label": "Stuart Bell — man",
+   "group": "any",
+   "sex": "m",
+   "model": "pocket",
+   "voice": "stuart_bell"
+  },
+  {
+   "id": "pocket-vera",
+   "label": "Vera — woman, English (from VCTK p229)",
+   "group": "uk",
+   "sex": "f",
+   "model": "pocket",
+   "voice": "vera"
+  },
   {
    "id": "piper-en_gb-alan-low",
    "label": "Alan · low quality",
@@ -2165,1778 +3937,6 @@
    "group": "us",
    "sex": "n",
    "model": "piper-en_US-sam-medium"
-  },
-  {
-   "id": "kokoro-af_heart",
-   "label": "Heart — woman (Kokoro’s grade A)",
-   "group": "us",
-   "sex": "f",
-   "model": "kokoro",
-   "voice": "af_heart"
-  },
-  {
-   "id": "kokoro-af_alloy",
-   "label": "Alloy — woman (Kokoro’s grade C)",
-   "group": "us",
-   "sex": "f",
-   "model": "kokoro",
-   "voice": "af_alloy"
-  },
-  {
-   "id": "kokoro-af_aoede",
-   "label": "Aoede — woman (Kokoro’s grade C+)",
-   "group": "us",
-   "sex": "f",
-   "model": "kokoro",
-   "voice": "af_aoede"
-  },
-  {
-   "id": "kokoro-af_bella",
-   "label": "Bella — woman (Kokoro’s grade A-)",
-   "group": "us",
-   "sex": "f",
-   "model": "kokoro",
-   "voice": "af_bella"
-  },
-  {
-   "id": "kokoro-af_jessica",
-   "label": "Jessica — woman (Kokoro’s grade D)",
-   "group": "us",
-   "sex": "f",
-   "model": "kokoro",
-   "voice": "af_jessica"
-  },
-  {
-   "id": "kokoro-af_kore",
-   "label": "Kore — woman (Kokoro’s grade C+)",
-   "group": "us",
-   "sex": "f",
-   "model": "kokoro",
-   "voice": "af_kore"
-  },
-  {
-   "id": "kokoro-af_nicole",
-   "label": "Nicole — woman (Kokoro’s grade B-)",
-   "group": "us",
-   "sex": "f",
-   "model": "kokoro",
-   "voice": "af_nicole"
-  },
-  {
-   "id": "kokoro-af_nova",
-   "label": "Nova — woman (Kokoro’s grade C)",
-   "group": "us",
-   "sex": "f",
-   "model": "kokoro",
-   "voice": "af_nova"
-  },
-  {
-   "id": "kokoro-af_river",
-   "label": "River — woman (Kokoro’s grade D)",
-   "group": "us",
-   "sex": "f",
-   "model": "kokoro",
-   "voice": "af_river"
-  },
-  {
-   "id": "kokoro-af_sarah",
-   "label": "Sarah — woman (Kokoro’s grade C+)",
-   "group": "us",
-   "sex": "f",
-   "model": "kokoro",
-   "voice": "af_sarah"
-  },
-  {
-   "id": "kokoro-af_sky",
-   "label": "Sky — woman (Kokoro’s grade C-)",
-   "group": "us",
-   "sex": "f",
-   "model": "kokoro",
-   "voice": "af_sky"
-  },
-  {
-   "id": "kokoro-am_adam",
-   "label": "Adam — man (Kokoro’s grade F+)",
-   "group": "us",
-   "sex": "m",
-   "model": "kokoro",
-   "voice": "am_adam"
-  },
-  {
-   "id": "kokoro-am_echo",
-   "label": "Echo — man (Kokoro’s grade D)",
-   "group": "us",
-   "sex": "m",
-   "model": "kokoro",
-   "voice": "am_echo"
-  },
-  {
-   "id": "kokoro-am_eric",
-   "label": "Eric — man (Kokoro’s grade D)",
-   "group": "us",
-   "sex": "m",
-   "model": "kokoro",
-   "voice": "am_eric"
-  },
-  {
-   "id": "kokoro-am_fenrir",
-   "label": "Fenrir — man (Kokoro’s grade C+)",
-   "group": "us",
-   "sex": "m",
-   "model": "kokoro",
-   "voice": "am_fenrir"
-  },
-  {
-   "id": "kokoro-am_liam",
-   "label": "Liam — man (Kokoro’s grade D)",
-   "group": "us",
-   "sex": "m",
-   "model": "kokoro",
-   "voice": "am_liam"
-  },
-  {
-   "id": "kokoro-am_michael",
-   "label": "Michael — man (Kokoro’s grade C+)",
-   "group": "us",
-   "sex": "m",
-   "model": "kokoro",
-   "voice": "am_michael"
-  },
-  {
-   "id": "kokoro-am_onyx",
-   "label": "Onyx — man (Kokoro’s grade D)",
-   "group": "us",
-   "sex": "m",
-   "model": "kokoro",
-   "voice": "am_onyx"
-  },
-  {
-   "id": "kokoro-am_puck",
-   "label": "Puck — man (Kokoro’s grade C+)",
-   "group": "us",
-   "sex": "m",
-   "model": "kokoro",
-   "voice": "am_puck"
-  },
-  {
-   "id": "kokoro-am_santa",
-   "label": "Santa — man (Kokoro’s grade D-)",
-   "group": "us",
-   "sex": "m",
-   "model": "kokoro",
-   "voice": "am_santa"
-  },
-  {
-   "id": "kokoro-bf_alice",
-   "label": "Alice — woman (Kokoro’s grade D)",
-   "group": "uk",
-   "sex": "f",
-   "model": "kokoro",
-   "voice": "bf_alice"
-  },
-  {
-   "id": "kokoro-bf_emma",
-   "label": "Emma — woman (Kokoro’s grade B-)",
-   "group": "uk",
-   "sex": "f",
-   "model": "kokoro",
-   "voice": "bf_emma"
-  },
-  {
-   "id": "kokoro-bf_isabella",
-   "label": "Isabella — woman (Kokoro’s grade C)",
-   "group": "uk",
-   "sex": "f",
-   "model": "kokoro",
-   "voice": "bf_isabella"
-  },
-  {
-   "id": "kokoro-bf_lily",
-   "label": "Lily — woman (Kokoro’s grade D)",
-   "group": "uk",
-   "sex": "f",
-   "model": "kokoro",
-   "voice": "bf_lily"
-  },
-  {
-   "id": "kokoro-bm_daniel",
-   "label": "Daniel — man (Kokoro’s grade D)",
-   "group": "uk",
-   "sex": "m",
-   "model": "kokoro",
-   "voice": "bm_daniel"
-  },
-  {
-   "id": "kokoro-bm_fable",
-   "label": "Fable — man (Kokoro’s grade C)",
-   "group": "uk",
-   "sex": "m",
-   "model": "kokoro",
-   "voice": "bm_fable"
-  },
-  {
-   "id": "kokoro-bm_george",
-   "label": "George — man (Kokoro’s grade C)",
-   "group": "uk",
-   "sex": "m",
-   "model": "kokoro",
-   "voice": "bm_george"
-  },
-  {
-   "id": "kokoro-bm_lewis",
-   "label": "Lewis — man (Kokoro’s grade D+)",
-   "group": "uk",
-   "sex": "m",
-   "model": "kokoro",
-   "voice": "bm_lewis"
-  },
-  {
-   "id": "kokoro-hf_alpha-a",
-   "label": "Alpha — woman, Kokoro’s Hindi voice, American reading of the words",
-   "group": "in",
-   "sex": "f",
-   "model": "kokoro",
-   "voice": "hf_alpha",
-   "lang": "a"
-  },
-  {
-   "id": "kokoro-hf_alpha-b",
-   "label": "Alpha — woman, Kokoro’s Hindi voice, British reading of the words",
-   "group": "in",
-   "sex": "f",
-   "model": "kokoro",
-   "voice": "hf_alpha",
-   "lang": "b"
-  },
-  {
-   "id": "kokoro-hf_alpha-h",
-   "label": "Alpha — woman, Kokoro’s Hindi voice, Hindi reading rules (eSpeak NG)",
-   "group": "in",
-   "sex": "f",
-   "model": "kokoro",
-   "voice": "hf_alpha",
-   "lang": "h"
-  },
-  {
-   "id": "kokoro-hf_beta-a",
-   "label": "Beta — woman, Kokoro’s Hindi voice, American reading of the words",
-   "group": "in",
-   "sex": "f",
-   "model": "kokoro",
-   "voice": "hf_beta",
-   "lang": "a"
-  },
-  {
-   "id": "kokoro-hf_beta-b",
-   "label": "Beta — woman, Kokoro’s Hindi voice, British reading of the words",
-   "group": "in",
-   "sex": "f",
-   "model": "kokoro",
-   "voice": "hf_beta",
-   "lang": "b"
-  },
-  {
-   "id": "kokoro-hf_beta-h",
-   "label": "Beta — woman, Kokoro’s Hindi voice, Hindi reading rules (eSpeak NG)",
-   "group": "in",
-   "sex": "f",
-   "model": "kokoro",
-   "voice": "hf_beta",
-   "lang": "h"
-  },
-  {
-   "id": "kokoro-hm_omega-a",
-   "label": "Omega — man, Kokoro’s Hindi voice, American reading of the words",
-   "group": "in",
-   "sex": "m",
-   "model": "kokoro",
-   "voice": "hm_omega",
-   "lang": "a"
-  },
-  {
-   "id": "kokoro-hm_omega-b",
-   "label": "Omega — man, Kokoro’s Hindi voice, British reading of the words",
-   "group": "in",
-   "sex": "m",
-   "model": "kokoro",
-   "voice": "hm_omega",
-   "lang": "b"
-  },
-  {
-   "id": "kokoro-hm_omega-h",
-   "label": "Omega — man, Kokoro’s Hindi voice, Hindi reading rules (eSpeak NG)",
-   "group": "in",
-   "sex": "m",
-   "model": "kokoro",
-   "voice": "hm_omega",
-   "lang": "h"
-  },
-  {
-   "id": "kokoro-hm_psi-a",
-   "label": "Psi — man, Kokoro’s Hindi voice, American reading of the words",
-   "group": "in",
-   "sex": "m",
-   "model": "kokoro",
-   "voice": "hm_psi",
-   "lang": "a"
-  },
-  {
-   "id": "kokoro-hm_psi-b",
-   "label": "Psi — man, Kokoro’s Hindi voice, British reading of the words",
-   "group": "in",
-   "sex": "m",
-   "model": "kokoro",
-   "voice": "hm_psi",
-   "lang": "b"
-  },
-  {
-   "id": "kokoro-hm_psi-h",
-   "label": "Psi — man, Kokoro’s Hindi voice, Hindi reading rules (eSpeak NG)",
-   "group": "in",
-   "sex": "m",
-   "model": "kokoro",
-   "voice": "hm_psi",
-   "lang": "h"
-  },
-  {
-   "id": "indic-parler-thoma",
-   "label": "Thoma — man (recommended by AI4Bharat)",
-   "group": "in",
-   "sex": "m",
-   "model": "indic-parler",
-   "describe": "Thoma speaks {pace} with a clear, expressive voice, in a very close recording that has almost no background noise."
-  },
-  {
-   "id": "indic-parler-mary",
-   "label": "Mary — woman (recommended by AI4Bharat)",
-   "group": "in",
-   "sex": "f",
-   "model": "indic-parler",
-   "describe": "Mary speaks {pace} with a clear, expressive voice, in a very close recording that has almost no background noise."
-  },
-  {
-   "id": "indic-parler-swapna",
-   "label": "Swapna — woman",
-   "group": "in",
-   "sex": "f",
-   "model": "indic-parler",
-   "describe": "Swapna speaks {pace} with a clear, expressive voice, in a very close recording that has almost no background noise."
-  },
-  {
-   "id": "indic-parler-dinesh",
-   "label": "Dinesh — man",
-   "group": "in",
-   "sex": "m",
-   "model": "indic-parler",
-   "describe": "Dinesh speaks {pace} with a clear, expressive voice, in a very close recording that has almost no background noise."
-  },
-  {
-   "id": "indic-parler-meera",
-   "label": "Meera — woman",
-   "group": "in",
-   "sex": "f",
-   "model": "indic-parler",
-   "describe": "Meera speaks {pace} with a clear, expressive voice, in a very close recording that has almost no background noise."
-  },
-  {
-   "id": "indic-parler-jatin",
-   "label": "Jatin — man",
-   "group": "in",
-   "sex": "m",
-   "model": "indic-parler",
-   "describe": "Jatin speaks {pace} with a clear, expressive voice, in a very close recording that has almost no background noise."
-  },
-  {
-   "id": "indic-parler-aakash",
-   "label": "Aakash — man",
-   "group": "in",
-   "sex": "m",
-   "model": "indic-parler",
-   "describe": "Aakash speaks {pace} with a clear, expressive voice, in a very close recording that has almost no background noise."
-  },
-  {
-   "id": "indic-parler-sneha",
-   "label": "Sneha — woman",
-   "group": "in",
-   "sex": "f",
-   "model": "indic-parler",
-   "describe": "Sneha speaks {pace} with a clear, expressive voice, in a very close recording that has almost no background noise."
-  },
-  {
-   "id": "indic-parler-kabir",
-   "label": "Kabir — man",
-   "group": "in",
-   "sex": "m",
-   "model": "indic-parler",
-   "describe": "Kabir speaks {pace} with a clear, expressive voice, in a very close recording that has almost no background noise."
-  },
-  {
-   "id": "indic-parler-tisha",
-   "label": "Tisha — woman",
-   "group": "in",
-   "sex": "f",
-   "model": "indic-parler",
-   "describe": "Tisha speaks {pace} with a clear, expressive voice, in a very close recording that has almost no background noise."
-  },
-  {
-   "id": "indic-parler-chingkhei",
-   "label": "Chingkhei — woman",
-   "group": "in",
-   "sex": "f",
-   "model": "indic-parler",
-   "describe": "Chingkhei speaks {pace} with a clear, expressive voice, in a very close recording that has almost no background noise."
-  },
-  {
-   "id": "indic-parler-thoibi",
-   "label": "Thoibi — woman",
-   "group": "in",
-   "sex": "f",
-   "model": "indic-parler",
-   "describe": "Thoibi speaks {pace} with a clear, expressive voice, in a very close recording that has almost no background noise."
-  },
-  {
-   "id": "indic-parler-priya",
-   "label": "Priya — woman",
-   "group": "in",
-   "sex": "f",
-   "model": "indic-parler",
-   "describe": "Priya speaks {pace} with a clear, expressive voice, in a very close recording that has almost no background noise."
-  },
-  {
-   "id": "indic-parler-tarun",
-   "label": "Tarun — man",
-   "group": "in",
-   "sex": "m",
-   "model": "indic-parler",
-   "describe": "Tarun speaks {pace} with a clear, expressive voice, in a very close recording that has almost no background noise."
-  },
-  {
-   "id": "indic-parler-gauri",
-   "label": "Gauri — woman",
-   "group": "in",
-   "sex": "f",
-   "model": "indic-parler",
-   "describe": "Gauri speaks {pace} with a clear, expressive voice, in a very close recording that has almost no background noise."
-  },
-  {
-   "id": "indic-parler-nisha",
-   "label": "Nisha — woman",
-   "group": "in",
-   "sex": "f",
-   "model": "indic-parler",
-   "describe": "Nisha speaks {pace} with a clear, expressive voice, in a very close recording that has almost no background noise."
-  },
-  {
-   "id": "indic-parler-raghav",
-   "label": "Raghav — man",
-   "group": "in",
-   "sex": "m",
-   "model": "indic-parler",
-   "describe": "Raghav speaks {pace} with a clear, expressive voice, in a very close recording that has almost no background noise."
-  },
-  {
-   "id": "indic-parler-kavya",
-   "label": "Kavya — woman",
-   "group": "in",
-   "sex": "f",
-   "model": "indic-parler",
-   "describe": "Kavya speaks {pace} with a clear, expressive voice, in a very close recording that has almost no background noise."
-  },
-  {
-   "id": "indic-parler-ravi",
-   "label": "Ravi — man",
-   "group": "in",
-   "sex": "m",
-   "model": "indic-parler",
-   "describe": "Ravi speaks {pace} with a clear, expressive voice, in a very close recording that has almost no background noise."
-  },
-  {
-   "id": "indic-parler-vikas",
-   "label": "Vikas — man",
-   "group": "in",
-   "sex": "m",
-   "model": "indic-parler",
-   "describe": "Vikas speaks {pace} with a clear, expressive voice, in a very close recording that has almost no background noise."
-  },
-  {
-   "id": "indic-parler-riya",
-   "label": "Riya — woman",
-   "group": "in",
-   "sex": "f",
-   "model": "indic-parler",
-   "describe": "Riya speaks {pace} with a clear, expressive voice, in a very close recording that has almost no background noise."
-  },
-  {
-   "id": "parler-large-laura",
-   "label": "Laura — woman (one of its steadiest voices)",
-   "group": "any",
-   "sex": "f",
-   "model": "parler-large",
-   "describe": "Laura's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
-  },
-  {
-   "id": "parler-large-gary",
-   "label": "Gary — man",
-   "group": "any",
-   "sex": "m",
-   "model": "parler-large",
-   "describe": "Gary's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
-  },
-  {
-   "id": "parler-large-jon",
-   "label": "Jon — man",
-   "group": "any",
-   "sex": "m",
-   "model": "parler-large",
-   "describe": "Jon's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
-  },
-  {
-   "id": "parler-large-lea",
-   "label": "Lea — woman",
-   "group": "any",
-   "sex": "f",
-   "model": "parler-large",
-   "describe": "Lea's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
-  },
-  {
-   "id": "parler-large-karen",
-   "label": "Karen — woman",
-   "group": "any",
-   "sex": "f",
-   "model": "parler-large",
-   "describe": "Karen's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
-  },
-  {
-   "id": "parler-large-rick",
-   "label": "Rick — man",
-   "group": "any",
-   "sex": "m",
-   "model": "parler-large",
-   "describe": "Rick's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
-  },
-  {
-   "id": "parler-large-brenda",
-   "label": "Brenda — woman",
-   "group": "any",
-   "sex": "f",
-   "model": "parler-large",
-   "describe": "Brenda's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
-  },
-  {
-   "id": "parler-large-david",
-   "label": "David — man",
-   "group": "any",
-   "sex": "m",
-   "model": "parler-large",
-   "describe": "David's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
-  },
-  {
-   "id": "parler-large-eileen",
-   "label": "Eileen — woman",
-   "group": "any",
-   "sex": "f",
-   "model": "parler-large",
-   "describe": "Eileen's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
-  },
-  {
-   "id": "parler-large-jordan",
-   "label": "Jordan — man",
-   "group": "any",
-   "sex": "m",
-   "model": "parler-large",
-   "describe": "Jordan's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
-  },
-  {
-   "id": "parler-large-mike",
-   "label": "Mike — man",
-   "group": "any",
-   "sex": "m",
-   "model": "parler-large",
-   "describe": "Mike's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
-  },
-  {
-   "id": "parler-large-yann",
-   "label": "Yann — man",
-   "group": "any",
-   "sex": "m",
-   "model": "parler-large",
-   "describe": "Yann's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
-  },
-  {
-   "id": "parler-large-joy",
-   "label": "Joy — woman",
-   "group": "any",
-   "sex": "f",
-   "model": "parler-large",
-   "describe": "Joy's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
-  },
-  {
-   "id": "parler-large-james",
-   "label": "James — man",
-   "group": "any",
-   "sex": "m",
-   "model": "parler-large",
-   "describe": "James's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
-  },
-  {
-   "id": "parler-large-eric",
-   "label": "Eric — man (one of its steadiest voices)",
-   "group": "any",
-   "sex": "m",
-   "model": "parler-large",
-   "describe": "Eric's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
-  },
-  {
-   "id": "parler-large-lauren",
-   "label": "Lauren — woman",
-   "group": "any",
-   "sex": "f",
-   "model": "parler-large",
-   "describe": "Lauren's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
-  },
-  {
-   "id": "parler-large-rose",
-   "label": "Rose — woman",
-   "group": "any",
-   "sex": "f",
-   "model": "parler-large",
-   "describe": "Rose's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
-  },
-  {
-   "id": "parler-large-will",
-   "label": "Will — man (one of its steadiest voices)",
-   "group": "any",
-   "sex": "m",
-   "model": "parler-large",
-   "describe": "Will's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
-  },
-  {
-   "id": "parler-large-jason",
-   "label": "Jason — man",
-   "group": "any",
-   "sex": "m",
-   "model": "parler-large",
-   "describe": "Jason's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
-  },
-  {
-   "id": "parler-large-aaron",
-   "label": "Aaron — man",
-   "group": "any",
-   "sex": "m",
-   "model": "parler-large",
-   "describe": "Aaron's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
-  },
-  {
-   "id": "parler-large-naomie",
-   "label": "Naomie — woman",
-   "group": "any",
-   "sex": "f",
-   "model": "parler-large",
-   "describe": "Naomie's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
-  },
-  {
-   "id": "parler-large-alisa",
-   "label": "Alisa — woman (one of its steadiest voices)",
-   "group": "any",
-   "sex": "f",
-   "model": "parler-large",
-   "describe": "Alisa's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
-  },
-  {
-   "id": "parler-large-patrick",
-   "label": "Patrick — man (one of its steadiest voices)",
-   "group": "any",
-   "sex": "m",
-   "model": "parler-large",
-   "describe": "Patrick's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
-  },
-  {
-   "id": "parler-large-jerry",
-   "label": "Jerry — man",
-   "group": "any",
-   "sex": "m",
-   "model": "parler-large",
-   "describe": "Jerry's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
-  },
-  {
-   "id": "parler-large-tina",
-   "label": "Tina — woman",
-   "group": "any",
-   "sex": "f",
-   "model": "parler-large",
-   "describe": "Tina's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
-  },
-  {
-   "id": "parler-large-jenna",
-   "label": "Jenna — woman",
-   "group": "any",
-   "sex": "f",
-   "model": "parler-large",
-   "describe": "Jenna's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
-  },
-  {
-   "id": "parler-large-bill",
-   "label": "Bill — man",
-   "group": "any",
-   "sex": "m",
-   "model": "parler-large",
-   "describe": "Bill's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
-  },
-  {
-   "id": "parler-large-tom",
-   "label": "Tom — man",
-   "group": "any",
-   "sex": "m",
-   "model": "parler-large",
-   "describe": "Tom's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
-  },
-  {
-   "id": "parler-large-carol",
-   "label": "Carol — woman",
-   "group": "any",
-   "sex": "f",
-   "model": "parler-large",
-   "describe": "Carol's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
-  },
-  {
-   "id": "parler-large-barbara",
-   "label": "Barbara — woman",
-   "group": "any",
-   "sex": "f",
-   "model": "parler-large",
-   "describe": "Barbara's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
-  },
-  {
-   "id": "parler-large-rebecca",
-   "label": "Rebecca — woman",
-   "group": "any",
-   "sex": "f",
-   "model": "parler-large",
-   "describe": "Rebecca's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
-  },
-  {
-   "id": "parler-large-anna",
-   "label": "Anna — woman",
-   "group": "any",
-   "sex": "f",
-   "model": "parler-large",
-   "describe": "Anna's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
-  },
-  {
-   "id": "parler-large-bruce",
-   "label": "Bruce — man",
-   "group": "any",
-   "sex": "m",
-   "model": "parler-large",
-   "describe": "Bruce's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
-  },
-  {
-   "id": "parler-large-emily",
-   "label": "Emily — woman",
-   "group": "any",
-   "sex": "f",
-   "model": "parler-large",
-   "describe": "Emily's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
-  },
-  {
-   "id": "parler-mini-laura",
-   "label": "Laura — woman",
-   "group": "any",
-   "sex": "f",
-   "model": "parler-mini",
-   "describe": "Laura's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
-  },
-  {
-   "id": "parler-mini-gary",
-   "label": "Gary — man (one of its steadiest voices)",
-   "group": "any",
-   "sex": "m",
-   "model": "parler-mini",
-   "describe": "Gary's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
-  },
-  {
-   "id": "parler-mini-jon",
-   "label": "Jon — man (one of its steadiest voices)",
-   "group": "any",
-   "sex": "m",
-   "model": "parler-mini",
-   "describe": "Jon's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
-  },
-  {
-   "id": "parler-mini-lea",
-   "label": "Lea — woman (one of its steadiest voices)",
-   "group": "any",
-   "sex": "f",
-   "model": "parler-mini",
-   "describe": "Lea's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
-  },
-  {
-   "id": "parler-mini-karen",
-   "label": "Karen — woman",
-   "group": "any",
-   "sex": "f",
-   "model": "parler-mini",
-   "describe": "Karen's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
-  },
-  {
-   "id": "parler-mini-rick",
-   "label": "Rick — man",
-   "group": "any",
-   "sex": "m",
-   "model": "parler-mini",
-   "describe": "Rick's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
-  },
-  {
-   "id": "parler-mini-brenda",
-   "label": "Brenda — woman",
-   "group": "any",
-   "sex": "f",
-   "model": "parler-mini",
-   "describe": "Brenda's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
-  },
-  {
-   "id": "parler-mini-david",
-   "label": "David — man",
-   "group": "any",
-   "sex": "m",
-   "model": "parler-mini",
-   "describe": "David's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
-  },
-  {
-   "id": "parler-mini-eileen",
-   "label": "Eileen — woman",
-   "group": "any",
-   "sex": "f",
-   "model": "parler-mini",
-   "describe": "Eileen's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
-  },
-  {
-   "id": "parler-mini-jordan",
-   "label": "Jordan — man",
-   "group": "any",
-   "sex": "m",
-   "model": "parler-mini",
-   "describe": "Jordan's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
-  },
-  {
-   "id": "parler-mini-mike",
-   "label": "Mike — man (one of its steadiest voices)",
-   "group": "any",
-   "sex": "m",
-   "model": "parler-mini",
-   "describe": "Mike's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
-  },
-  {
-   "id": "parler-mini-yann",
-   "label": "Yann — man",
-   "group": "any",
-   "sex": "m",
-   "model": "parler-mini",
-   "describe": "Yann's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
-  },
-  {
-   "id": "parler-mini-joy",
-   "label": "Joy — woman",
-   "group": "any",
-   "sex": "f",
-   "model": "parler-mini",
-   "describe": "Joy's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
-  },
-  {
-   "id": "parler-mini-james",
-   "label": "James — man",
-   "group": "any",
-   "sex": "m",
-   "model": "parler-mini",
-   "describe": "James's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
-  },
-  {
-   "id": "parler-mini-eric",
-   "label": "Eric — man",
-   "group": "any",
-   "sex": "m",
-   "model": "parler-mini",
-   "describe": "Eric's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
-  },
-  {
-   "id": "parler-mini-lauren",
-   "label": "Lauren — woman",
-   "group": "any",
-   "sex": "f",
-   "model": "parler-mini",
-   "describe": "Lauren's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
-  },
-  {
-   "id": "parler-mini-rose",
-   "label": "Rose — woman",
-   "group": "any",
-   "sex": "f",
-   "model": "parler-mini",
-   "describe": "Rose's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
-  },
-  {
-   "id": "parler-mini-will",
-   "label": "Will — man",
-   "group": "any",
-   "sex": "m",
-   "model": "parler-mini",
-   "describe": "Will's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
-  },
-  {
-   "id": "parler-mini-jason",
-   "label": "Jason — man",
-   "group": "any",
-   "sex": "m",
-   "model": "parler-mini",
-   "describe": "Jason's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
-  },
-  {
-   "id": "parler-mini-aaron",
-   "label": "Aaron — man",
-   "group": "any",
-   "sex": "m",
-   "model": "parler-mini",
-   "describe": "Aaron's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
-  },
-  {
-   "id": "parler-mini-naomie",
-   "label": "Naomie — woman",
-   "group": "any",
-   "sex": "f",
-   "model": "parler-mini",
-   "describe": "Naomie's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
-  },
-  {
-   "id": "parler-mini-alisa",
-   "label": "Alisa — woman",
-   "group": "any",
-   "sex": "f",
-   "model": "parler-mini",
-   "describe": "Alisa's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
-  },
-  {
-   "id": "parler-mini-patrick",
-   "label": "Patrick — man",
-   "group": "any",
-   "sex": "m",
-   "model": "parler-mini",
-   "describe": "Patrick's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
-  },
-  {
-   "id": "parler-mini-jerry",
-   "label": "Jerry — man",
-   "group": "any",
-   "sex": "m",
-   "model": "parler-mini",
-   "describe": "Jerry's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
-  },
-  {
-   "id": "parler-mini-tina",
-   "label": "Tina — woman",
-   "group": "any",
-   "sex": "f",
-   "model": "parler-mini",
-   "describe": "Tina's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
-  },
-  {
-   "id": "parler-mini-jenna",
-   "label": "Jenna — woman (one of its steadiest voices)",
-   "group": "any",
-   "sex": "f",
-   "model": "parler-mini",
-   "describe": "Jenna's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
-  },
-  {
-   "id": "parler-mini-bill",
-   "label": "Bill — man",
-   "group": "any",
-   "sex": "m",
-   "model": "parler-mini",
-   "describe": "Bill's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
-  },
-  {
-   "id": "parler-mini-tom",
-   "label": "Tom — man",
-   "group": "any",
-   "sex": "m",
-   "model": "parler-mini",
-   "describe": "Tom's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
-  },
-  {
-   "id": "parler-mini-carol",
-   "label": "Carol — woman",
-   "group": "any",
-   "sex": "f",
-   "model": "parler-mini",
-   "describe": "Carol's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
-  },
-  {
-   "id": "parler-mini-barbara",
-   "label": "Barbara — woman",
-   "group": "any",
-   "sex": "f",
-   "model": "parler-mini",
-   "describe": "Barbara's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
-  },
-  {
-   "id": "parler-mini-rebecca",
-   "label": "Rebecca — woman",
-   "group": "any",
-   "sex": "f",
-   "model": "parler-mini",
-   "describe": "Rebecca's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
-  },
-  {
-   "id": "parler-mini-anna",
-   "label": "Anna — woman",
-   "group": "any",
-   "sex": "f",
-   "model": "parler-mini",
-   "describe": "Anna's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
-  },
-  {
-   "id": "parler-mini-bruce",
-   "label": "Bruce — man",
-   "group": "any",
-   "sex": "m",
-   "model": "parler-mini",
-   "describe": "Bruce's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
-  },
-  {
-   "id": "parler-mini-emily",
-   "label": "Emily — woman",
-   "group": "any",
-   "sex": "f",
-   "model": "parler-mini",
-   "describe": "Emily's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
-  },
-  {
-   "id": "xtts-claribel-dervla",
-   "label": "Claribel Dervla — woman (studio voice)",
-   "group": "any",
-   "sex": "f",
-   "model": "xtts",
-   "speaker": "Claribel Dervla"
-  },
-  {
-   "id": "xtts-daisy-studious",
-   "label": "Daisy Studious — woman (studio voice)",
-   "group": "any",
-   "sex": "f",
-   "model": "xtts",
-   "speaker": "Daisy Studious"
-  },
-  {
-   "id": "xtts-gracie-wise",
-   "label": "Gracie Wise — woman (studio voice)",
-   "group": "any",
-   "sex": "f",
-   "model": "xtts",
-   "speaker": "Gracie Wise"
-  },
-  {
-   "id": "xtts-tammie-ema",
-   "label": "Tammie Ema — woman (studio voice)",
-   "group": "any",
-   "sex": "f",
-   "model": "xtts",
-   "speaker": "Tammie Ema"
-  },
-  {
-   "id": "xtts-alison-dietlinde",
-   "label": "Alison Dietlinde — woman (studio voice)",
-   "group": "any",
-   "sex": "f",
-   "model": "xtts",
-   "speaker": "Alison Dietlinde"
-  },
-  {
-   "id": "xtts-ana-florence",
-   "label": "Ana Florence — woman (studio voice)",
-   "group": "any",
-   "sex": "f",
-   "model": "xtts",
-   "speaker": "Ana Florence"
-  },
-  {
-   "id": "xtts-annmarie-nele",
-   "label": "Annmarie Nele — woman (studio voice)",
-   "group": "any",
-   "sex": "f",
-   "model": "xtts",
-   "speaker": "Annmarie Nele"
-  },
-  {
-   "id": "xtts-asya-anara",
-   "label": "Asya Anara — woman (studio voice)",
-   "group": "any",
-   "sex": "f",
-   "model": "xtts",
-   "speaker": "Asya Anara"
-  },
-  {
-   "id": "xtts-brenda-stern",
-   "label": "Brenda Stern — woman (studio voice)",
-   "group": "any",
-   "sex": "f",
-   "model": "xtts",
-   "speaker": "Brenda Stern"
-  },
-  {
-   "id": "xtts-gitta-nikolina",
-   "label": "Gitta Nikolina — woman (studio voice)",
-   "group": "any",
-   "sex": "f",
-   "model": "xtts",
-   "speaker": "Gitta Nikolina"
-  },
-  {
-   "id": "xtts-henriette-usha",
-   "label": "Henriette Usha — woman (studio voice)",
-   "group": "any",
-   "sex": "f",
-   "model": "xtts",
-   "speaker": "Henriette Usha"
-  },
-  {
-   "id": "xtts-sofia-hellen",
-   "label": "Sofia Hellen — woman (studio voice)",
-   "group": "any",
-   "sex": "f",
-   "model": "xtts",
-   "speaker": "Sofia Hellen"
-  },
-  {
-   "id": "xtts-tammy-grit",
-   "label": "Tammy Grit — woman (studio voice)",
-   "group": "any",
-   "sex": "f",
-   "model": "xtts",
-   "speaker": "Tammy Grit"
-  },
-  {
-   "id": "xtts-tanja-adelina",
-   "label": "Tanja Adelina — woman (studio voice)",
-   "group": "any",
-   "sex": "f",
-   "model": "xtts",
-   "speaker": "Tanja Adelina"
-  },
-  {
-   "id": "xtts-vjollca-johnnie",
-   "label": "Vjollca Johnnie — woman (studio voice)",
-   "group": "any",
-   "sex": "f",
-   "model": "xtts",
-   "speaker": "Vjollca Johnnie"
-  },
-  {
-   "id": "xtts-andrew-chipper",
-   "label": "Andrew Chipper — man (studio voice)",
-   "group": "any",
-   "sex": "m",
-   "model": "xtts",
-   "speaker": "Andrew Chipper"
-  },
-  {
-   "id": "xtts-badr-odhiambo",
-   "label": "Badr Odhiambo — man (studio voice)",
-   "group": "any",
-   "sex": "m",
-   "model": "xtts",
-   "speaker": "Badr Odhiambo"
-  },
-  {
-   "id": "xtts-dionisio-schuyler",
-   "label": "Dionisio Schuyler — man (studio voice)",
-   "group": "any",
-   "sex": "m",
-   "model": "xtts",
-   "speaker": "Dionisio Schuyler"
-  },
-  {
-   "id": "xtts-royston-min",
-   "label": "Royston Min — man (studio voice)",
-   "group": "any",
-   "sex": "m",
-   "model": "xtts",
-   "speaker": "Royston Min"
-  },
-  {
-   "id": "xtts-viktor-eka",
-   "label": "Viktor Eka — man (studio voice)",
-   "group": "any",
-   "sex": "m",
-   "model": "xtts",
-   "speaker": "Viktor Eka"
-  },
-  {
-   "id": "xtts-abrahan-mack",
-   "label": "Abrahan Mack — man (studio voice)",
-   "group": "any",
-   "sex": "m",
-   "model": "xtts",
-   "speaker": "Abrahan Mack"
-  },
-  {
-   "id": "xtts-adde-michal",
-   "label": "Adde Michal — man (studio voice)",
-   "group": "any",
-   "sex": "m",
-   "model": "xtts",
-   "speaker": "Adde Michal"
-  },
-  {
-   "id": "xtts-baldur-sanjin",
-   "label": "Baldur Sanjin — man (studio voice)",
-   "group": "any",
-   "sex": "m",
-   "model": "xtts",
-   "speaker": "Baldur Sanjin"
-  },
-  {
-   "id": "xtts-craig-gutsy",
-   "label": "Craig Gutsy — man (studio voice)",
-   "group": "any",
-   "sex": "m",
-   "model": "xtts",
-   "speaker": "Craig Gutsy"
-  },
-  {
-   "id": "xtts-damien-black",
-   "label": "Damien Black — man (studio voice)",
-   "group": "any",
-   "sex": "m",
-   "model": "xtts",
-   "speaker": "Damien Black"
-  },
-  {
-   "id": "xtts-gilberto-mathias",
-   "label": "Gilberto Mathias — man (studio voice)",
-   "group": "any",
-   "sex": "m",
-   "model": "xtts",
-   "speaker": "Gilberto Mathias"
-  },
-  {
-   "id": "xtts-ilkin-urbano",
-   "label": "Ilkin Urbano — man (studio voice)",
-   "group": "any",
-   "sex": "m",
-   "model": "xtts",
-   "speaker": "Ilkin Urbano"
-  },
-  {
-   "id": "xtts-kazuhiko-atallah",
-   "label": "Kazuhiko Atallah — man (studio voice)",
-   "group": "any",
-   "sex": "m",
-   "model": "xtts",
-   "speaker": "Kazuhiko Atallah"
-  },
-  {
-   "id": "xtts-ludvig-milivoj",
-   "label": "Ludvig Milivoj — man (studio voice)",
-   "group": "any",
-   "sex": "m",
-   "model": "xtts",
-   "speaker": "Ludvig Milivoj"
-  },
-  {
-   "id": "xtts-suad-qasim",
-   "label": "Suad Qasim — man (studio voice)",
-   "group": "any",
-   "sex": "m",
-   "model": "xtts",
-   "speaker": "Suad Qasim"
-  },
-  {
-   "id": "xtts-torcull-diarmuid",
-   "label": "Torcull Diarmuid — man (studio voice)",
-   "group": "any",
-   "sex": "m",
-   "model": "xtts",
-   "speaker": "Torcull Diarmuid"
-  },
-  {
-   "id": "xtts-viktor-menelaos",
-   "label": "Viktor Menelaos — man (studio voice)",
-   "group": "any",
-   "sex": "m",
-   "model": "xtts",
-   "speaker": "Viktor Menelaos"
-  },
-  {
-   "id": "xtts-zacharie-aimilios",
-   "label": "Zacharie Aimilios — man (studio voice)",
-   "group": "any",
-   "sex": "m",
-   "model": "xtts",
-   "speaker": "Zacharie Aimilios"
-  },
-  {
-   "id": "xtts-nova-hogarth",
-   "label": "Nova Hogarth — woman (studio voice)",
-   "group": "any",
-   "sex": "f",
-   "model": "xtts",
-   "speaker": "Nova Hogarth"
-  },
-  {
-   "id": "xtts-maja-ruoho",
-   "label": "Maja Ruoho — woman (studio voice)",
-   "group": "any",
-   "sex": "f",
-   "model": "xtts",
-   "speaker": "Maja Ruoho"
-  },
-  {
-   "id": "xtts-uta-obando",
-   "label": "Uta Obando — woman (studio voice)",
-   "group": "any",
-   "sex": "f",
-   "model": "xtts",
-   "speaker": "Uta Obando"
-  },
-  {
-   "id": "xtts-lidiya-szekeres",
-   "label": "Lidiya Szekeres — woman (studio voice)",
-   "group": "any",
-   "sex": "f",
-   "model": "xtts",
-   "speaker": "Lidiya Szekeres"
-  },
-  {
-   "id": "xtts-chandra-macfarland",
-   "label": "Chandra MacFarland — woman (studio voice)",
-   "group": "any",
-   "sex": "f",
-   "model": "xtts",
-   "speaker": "Chandra MacFarland"
-  },
-  {
-   "id": "xtts-szofi-granger",
-   "label": "Szofi Granger — woman (studio voice)",
-   "group": "any",
-   "sex": "f",
-   "model": "xtts",
-   "speaker": "Szofi Granger"
-  },
-  {
-   "id": "xtts-camilla-holmstr-m",
-   "label": "Camilla Holmström — woman (studio voice)",
-   "group": "any",
-   "sex": "f",
-   "model": "xtts",
-   "speaker": "Camilla Holmström"
-  },
-  {
-   "id": "xtts-lilya-stainthorpe",
-   "label": "Lilya Stainthorpe — woman (studio voice)",
-   "group": "any",
-   "sex": "f",
-   "model": "xtts",
-   "speaker": "Lilya Stainthorpe"
-  },
-  {
-   "id": "xtts-zofija-kendrick",
-   "label": "Zofija Kendrick — woman (studio voice)",
-   "group": "any",
-   "sex": "f",
-   "model": "xtts",
-   "speaker": "Zofija Kendrick"
-  },
-  {
-   "id": "xtts-narelle-moon",
-   "label": "Narelle Moon — woman (studio voice)",
-   "group": "any",
-   "sex": "f",
-   "model": "xtts",
-   "speaker": "Narelle Moon"
-  },
-  {
-   "id": "xtts-barbora-maclean",
-   "label": "Barbora MacLean — woman (studio voice)",
-   "group": "any",
-   "sex": "f",
-   "model": "xtts",
-   "speaker": "Barbora MacLean"
-  },
-  {
-   "id": "xtts-alexandra-hisakawa",
-   "label": "Alexandra Hisakawa — woman (studio voice)",
-   "group": "any",
-   "sex": "f",
-   "model": "xtts",
-   "speaker": "Alexandra Hisakawa"
-  },
-  {
-   "id": "xtts-alma-mar-a",
-   "label": "Alma María — woman (studio voice)",
-   "group": "any",
-   "sex": "f",
-   "model": "xtts",
-   "speaker": "Alma María"
-  },
-  {
-   "id": "xtts-rosemary-okafor",
-   "label": "Rosemary Okafor — woman (studio voice)",
-   "group": "any",
-   "sex": "f",
-   "model": "xtts",
-   "speaker": "Rosemary Okafor"
-  },
-  {
-   "id": "xtts-ige-behringer",
-   "label": "Ige Behringer — man (studio voice)",
-   "group": "any",
-   "sex": "m",
-   "model": "xtts",
-   "speaker": "Ige Behringer"
-  },
-  {
-   "id": "xtts-filip-traverse",
-   "label": "Filip Traverse — man (studio voice)",
-   "group": "any",
-   "sex": "m",
-   "model": "xtts",
-   "speaker": "Filip Traverse"
-  },
-  {
-   "id": "xtts-damjan-chapman",
-   "label": "Damjan Chapman — man (studio voice)",
-   "group": "any",
-   "sex": "m",
-   "model": "xtts",
-   "speaker": "Damjan Chapman"
-  },
-  {
-   "id": "xtts-wulf-carlevaro",
-   "label": "Wulf Carlevaro — man (studio voice)",
-   "group": "any",
-   "sex": "m",
-   "model": "xtts",
-   "speaker": "Wulf Carlevaro"
-  },
-  {
-   "id": "xtts-aaron-dreschner",
-   "label": "Aaron Dreschner — man (studio voice)",
-   "group": "any",
-   "sex": "m",
-   "model": "xtts",
-   "speaker": "Aaron Dreschner"
-  },
-  {
-   "id": "xtts-kumar-dahl",
-   "label": "Kumar Dahl — man (studio voice)",
-   "group": "any",
-   "sex": "m",
-   "model": "xtts",
-   "speaker": "Kumar Dahl"
-  },
-  {
-   "id": "xtts-eugenio-matarac",
-   "label": "Eugenio Mataracı — man (studio voice)",
-   "group": "any",
-   "sex": "m",
-   "model": "xtts",
-   "speaker": "Eugenio Mataracı"
-  },
-  {
-   "id": "xtts-ferran-simen",
-   "label": "Ferran Simen — man (studio voice)",
-   "group": "any",
-   "sex": "m",
-   "model": "xtts",
-   "speaker": "Ferran Simen"
-  },
-  {
-   "id": "xtts-xavier-hayasaka",
-   "label": "Xavier Hayasaka — man (studio voice)",
-   "group": "any",
-   "sex": "m",
-   "model": "xtts",
-   "speaker": "Xavier Hayasaka"
-  },
-  {
-   "id": "xtts-luis-moray",
-   "label": "Luis Moray — man (studio voice)",
-   "group": "any",
-   "sex": "m",
-   "model": "xtts",
-   "speaker": "Luis Moray"
-  },
-  {
-   "id": "xtts-marcos-rudaski",
-   "label": "Marcos Rudaski — man (studio voice)",
-   "group": "any",
-   "sex": "m",
-   "model": "xtts",
-   "speaker": "Marcos Rudaski"
-  },
-  {
-   "id": "xtts-clip-imran",
-   "label": "Imran — man, taken from a 10-second recording (CC0 voice donation)",
-   "group": "in",
-   "sex": "m",
-   "model": "xtts",
-   "clip": {
-    "repo": "kyutai/tts-voices",
-    "rev": "323332d33f997de8394f24a193e1a76df720e01a",
-    "file": "voice-donations/Imran_from_I_India_enhanced.wav"
-   }
-  },
-  {
-   "id": "xtts-clip-indian-guy",
-   "label": "Indian guy — man, taken from a 10-second recording (CC0 voice donation)",
-   "group": "in",
-   "sex": "m",
-   "model": "xtts",
-   "clip": {
-    "repo": "kyutai/tts-voices",
-    "rev": "323332d33f997de8394f24a193e1a76df720e01a",
-    "file": "voice-donations/Indian_guy_enhanced.wav"
-   }
-  },
-  {
-   "id": "xtts-clip-marshal",
-   "label": "Marshal — man, taken from a 10-second recording (CC0 voice donation)",
-   "group": "in",
-   "sex": "m",
-   "model": "xtts",
-   "clip": {
-    "repo": "kyutai/tts-voices",
-    "rev": "323332d33f997de8394f24a193e1a76df720e01a",
-    "file": "voice-donations/Marshal_Indian_enhanced.wav"
-   }
-  },
-  {
-   "id": "xtts-clip-siddh",
-   "label": "Siddh — man, taken from a 10-second recording (CC0 voice donation)",
-   "group": "in",
-   "sex": "m",
-   "model": "xtts",
-   "clip": {
-    "repo": "kyutai/tts-voices",
-    "rev": "323332d33f997de8394f24a193e1a76df720e01a",
-    "file": "voice-donations/Siddh_Indian_enhanced.wav"
-   }
-  },
-  {
-   "id": "xtts-clip-vinith",
-   "label": "Vinith — man, taken from a 10-second recording (CC0 voice donation)",
-   "group": "in",
-   "sex": "m",
-   "model": "xtts",
-   "clip": {
-    "repo": "kyutai/tts-voices",
-    "rev": "323332d33f997de8394f24a193e1a76df720e01a",
-    "file": "voice-donations/Vinith___English_India_enhanced.wav"
-   }
-  },
-  {
-   "id": "xtts-clip-vctk-p248",
-   "label": "VCTK p248 — woman, taken from a 10-second recording (VCTK, CC BY 4.0)",
-   "group": "in",
-   "sex": "f",
-   "model": "xtts",
-   "clip": {
-    "repo": "kyutai/tts-voices",
-    "rev": "323332d33f997de8394f24a193e1a76df720e01a",
-    "file": "vctk/p248_023_enhanced.wav"
-   }
-  },
-  {
-   "id": "xtts-clip-vctk-p251",
-   "label": "VCTK p251 — man, taken from a 10-second recording (VCTK, CC BY 4.0)",
-   "group": "in",
-   "sex": "m",
-   "model": "xtts",
-   "clip": {
-    "repo": "kyutai/tts-voices",
-    "rev": "323332d33f997de8394f24a193e1a76df720e01a",
-    "file": "vctk/p251_023_enhanced.wav"
-   }
-  },
-  {
-   "id": "xtts-clip-vctk-p376",
-   "label": "VCTK p376 — man, taken from a 10-second recording (VCTK, CC BY 4.0)",
-   "group": "in",
-   "sex": "m",
-   "model": "xtts",
-   "clip": {
-    "repo": "kyutai/tts-voices",
-    "rev": "323332d33f997de8394f24a193e1a76df720e01a",
-    "file": "vctk/p376_023_enhanced.wav"
-   }
-  },
-  {
-   "id": "pocket-alba",
-   "label": "Alba",
-   "group": "any",
-   "sex": "",
-   "model": "pocket",
-   "voice": "alba"
-  },
-  {
-   "id": "pocket-anna",
-   "label": "Anna — woman, English (from VCTK p228)",
-   "group": "uk",
-   "sex": "f",
-   "model": "pocket",
-   "voice": "anna"
-  },
-  {
-   "id": "pocket-azelma",
-   "label": "Azelma — woman, Canadian (from VCTK p303)",
-   "group": "world",
-   "sex": "f",
-   "model": "pocket",
-   "voice": "azelma"
-  },
-  {
-   "id": "pocket-bill-boerst",
-   "label": "Bill Boerst — man",
-   "group": "any",
-   "sex": "m",
-   "model": "pocket",
-   "voice": "bill_boerst"
-  },
-  {
-   "id": "pocket-caro-davy",
-   "label": "Caro Davy — woman",
-   "group": "any",
-   "sex": "f",
-   "model": "pocket",
-   "voice": "caro_davy"
-  },
-  {
-   "id": "pocket-charles",
-   "label": "Charles — man, English (from VCTK p254)",
-   "group": "uk",
-   "sex": "m",
-   "model": "pocket",
-   "voice": "charles"
-  },
-  {
-   "id": "pocket-cosette",
-   "label": "Cosette — woman",
-   "group": "any",
-   "sex": "f",
-   "model": "pocket",
-   "voice": "cosette"
-  },
-  {
-   "id": "pocket-eponine",
-   "label": "Eponine — woman, Scottish (from VCTK p262)",
-   "group": "uk",
-   "sex": "f",
-   "model": "pocket",
-   "voice": "eponine"
-  },
-  {
-   "id": "pocket-eve",
-   "label": "Eve — woman, American (from VCTK p361)",
-   "group": "us",
-   "sex": "f",
-   "model": "pocket",
-   "voice": "eve"
-  },
-  {
-   "id": "pocket-fantine",
-   "label": "Fantine — woman, English (from VCTK p244)",
-   "group": "uk",
-   "sex": "f",
-   "model": "pocket",
-   "voice": "fantine"
-  },
-  {
-   "id": "pocket-george",
-   "label": "George — man, American (from VCTK p315)",
-   "group": "us",
-   "sex": "m",
-   "model": "pocket",
-   "voice": "george"
-  },
-  {
-   "id": "pocket-jane",
-   "label": "Jane — woman, American (from VCTK p339)",
-   "group": "us",
-   "sex": "f",
-   "model": "pocket",
-   "voice": "jane"
-  },
-  {
-   "id": "pocket-jean",
-   "label": "Jean — man",
-   "group": "any",
-   "sex": "m",
-   "model": "pocket",
-   "voice": "jean"
-  },
-  {
-   "id": "pocket-javert",
-   "label": "Javert — man",
-   "group": "any",
-   "sex": "m",
-   "model": "pocket",
-   "voice": "javert"
-  },
-  {
-   "id": "pocket-marius",
-   "label": "Marius — man",
-   "group": "any",
-   "sex": "m",
-   "model": "pocket",
-   "voice": "marius"
-  },
-  {
-   "id": "pocket-mary",
-   "label": "Mary — woman, American (from VCTK p333)",
-   "group": "us",
-   "sex": "f",
-   "model": "pocket",
-   "voice": "mary"
-  },
-  {
-   "id": "pocket-michael",
-   "label": "Michael — man, American (from VCTK p360)",
-   "group": "us",
-   "sex": "m",
-   "model": "pocket",
-   "voice": "michael"
-  },
-  {
-   "id": "pocket-paul",
-   "label": "Paul — man, English (from VCTK p259)",
-   "group": "uk",
-   "sex": "m",
-   "model": "pocket",
-   "voice": "paul"
-  },
-  {
-   "id": "pocket-peter-yearsley",
-   "label": "Peter Yearsley — man",
-   "group": "any",
-   "sex": "m",
-   "model": "pocket",
-   "voice": "peter_yearsley"
-  },
-  {
-   "id": "pocket-stuart-bell",
-   "label": "Stuart Bell — man",
-   "group": "any",
-   "sex": "m",
-   "model": "pocket",
-   "voice": "stuart_bell"
-  },
-  {
-   "id": "pocket-vera",
-   "label": "Vera — woman, English (from VCTK p229)",
-   "group": "uk",
-   "sex": "f",
-   "model": "pocket",
-   "voice": "vera"
   }
  ]
 }

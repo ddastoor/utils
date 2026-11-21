@@ -389,7 +389,8 @@ def pocket():
 
 def main():
     models, voices = {}, []
-    for part in (piper, kokoro, parler, xtts, pocket):
+    # the order of the list: in each accent the larger, newer models first — Indic Parler-TTS leads the Indian voices
+    for part in (parler, kokoro, xtts, pocket, piper):
         m, v = part()
         models.update(m)
         voices.extend(v)
