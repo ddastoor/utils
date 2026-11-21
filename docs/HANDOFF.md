@@ -73,6 +73,9 @@ this file = the owner's latest wishes, how the tests are written, and the traps 
   apps also. Once finished, check in merge to main and push." Built into the shared pickers; a new picture picker gets
   it by using `imageInput` / `imagePicker`, and `tests/e2e/camera.e2e.mjs` fails on one without (EXEMPT: EXIF, SVG
   Optimizer, FFmpeg's main input, QR Scanner, Photo Dictionary — with reasons).
+- **21 Nov 2026 — the camera rule repeated:** "make note of this new rule that wherever you need to upload a picture, an
+  image, also have the facility of taking a photo with the phone's camera if the app is a mobile app, and taking the
+  same with the PC's webcam if the app is a PC based app." Now a banner at the top of CLAUDE.md (standing rule).
 - **20 Nov 2026 — live:** the owner asked to merge into `main` and make the site live; Pages was switched on by the
   owner (Source: GitHub Actions). The repository's **default branch is `claude/exciting-bohr-b9yfwc`**, and Pages'
   environment lets only the default branch publish — so the site is published from that branch; `main` holds the

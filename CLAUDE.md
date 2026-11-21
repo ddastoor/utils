@@ -132,6 +132,17 @@ that affects it.
 > - The complete suites still run at the end of each area; what they find is fixed and pushed as its own commit.
 > - Push to the working branch only (see the session's branch rule); never force-push.
 
+> ## 📷 STANDING RULE — a camera wherever a picture is taken in (owner, 20 Nov 2026; repeated 21 Nov 2026)
+> **Owner, 20 Nov 2026:** "In all apps that offer to upload an image, also add the option of taking a photo if it's a
+> phone app, and take the photo with a webcam if it's a PC app." **Again, 21 Nov 2026:** "make note of this new rule
+> that wherever you need to upload a picture, an image, also have the facility of taking a photo with the phone's
+> camera if the app is a mobile app, and taking the same with the PC's webcam if the app is a PC based app."
+> - Every picture picker — in every tab, existing and new — is `imageInput` or `imagePicker` (`src/lib/imgtools.ts`),
+>   which carry the live camera (`src/lib/livecam.ts`): the phone's camera (back first) on phones, the webcam on PCs.
+> - `tests/e2e/camera.e2e.mjs` fails on a picture picker without one, unless its EXEMPT list names the tab and the
+>   reason (today: EXIF / Photo Info, SVG Optimizer, FFmpeg's main input; the QR Scanner and the Photo Dictionary have
+>   cameras of their own). Details: §3 "Camera in every tab that takes a picture"; checklist §8 item 5.
+
 > ## 🗣️ Languages — don't bother about Hindi (owner, 20 Nov 2026; standing)
 > **Owner:** "going forward, as far as languages is concerned, don't bother about hindi … make a note of this."
 > No new work, features or test cases for Hindi (Devanagari) in any tab from now on — English first (the OCR tab's
