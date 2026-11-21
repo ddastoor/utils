@@ -334,18 +334,21 @@ def parler():
     return models, voices
 
 
-XTTS_STUDIO = [('Claribel Dervla', 'f'), ('Daisy Studious', 'f'), ('Gracie Wise', 'f'), ('Tammie Ema', 'f'), ('Alison Dietlinde', 'f'),
-               ('Ana Florence', 'f'), ('Annmarie Nele', 'f'), ('Asya Anara', 'f'), ('Brenda Stern', 'f'), ('Gitta Nikolina', 'f'),
-               ('Henriette Usha', 'f'), ('Sofia Hellen', 'f'), ('Tammy Grit', 'f'), ('Tanja Adelina', 'f'), ('Vjollca Johnnie', 'f'),
-               ('Andrew Chipper', 'm'), ('Badr Odhiambo', 'm'), ('Dionisio Schuyler', 'm'), ('Royston Min', 'm'), ('Viktor Eka', 'm'),
-               ('Abrahan Mack', 'm'), ('Adde Michal', 'm'), ('Baldur Sanjin', 'm'), ('Craig Gutsy', 'm'), ('Damien Black', 'm'),
-               ('Gilberto Mathias', 'm'), ('Ilkin Urbano', 'm'), ('Kazuhiko Atallah', 'm'), ('Ludvig Milivoj', 'm'), ('Suad Qasim', 'm'),
-               ('Torcull Diarmuid', 'm'), ('Viktor Menelaos', 'm'), ('Zacharie Aimilios', 'm'), ('Nova Hogarth', 'f'), ('Maja Ruoho', 'f'),
-               ('Uta Obando', 'f'), ('Lidiya Szekeres', 'f'), ('Chandra MacFarland', 'f'), ('Szofi Granger', 'f'), ('Camilla Holmström', 'f'),
-               ('Lilya Stainthorpe', 'f'), ('Zofija Kendrick', 'f'), ('Narelle Moon', 'f'), ('Barbora MacLean', 'f'), ('Alexandra Hisakawa', 'f'),
-               ('Alma María', 'f'), ('Rosemary Okafor', 'f'), ('Ige Behringer', 'm'), ('Filip Traverse', 'm'), ('Damjan Chapman', 'm'),
-               ('Wulf Carlevaro', 'm'), ('Aaron Dreschner', 'm'), ('Kumar Dahl', 'm'), ('Eugenio Mataracı', 'm'), ('Ferran Simen', 'm'),
-               ('Xavier Hayasaka', 'm'), ('Luis Moray', 'm'), ('Marcos Rudaski', 'm')]
+# XTTS-v2's studio voices: their names say nothing reliable about the voice (made-up names), so each voice is
+# described by the median pitch of a sample made here (pYIN, "This is how my voice sounds when I read aloud."):
+# 75 – 121 Hz a deeper voice (sex 'm'), 177 – 235 Hz a higher one ('f'), 126 – 173 Hz left unsaid.
+XTTS_PITCH = {'Aaron Dreschner': 98, 'Abrahan Mack': 94, 'Adde Michal': 98, 'Alexandra Hisakawa': 183, 'Alison Dietlinde': 216, 'Alma María': 216, 'Ana Florence': 136, 'Andrew Chipper': 213, 'Annmarie Nele': 192, 'Asya Anara': 168, 'Badr Odhiambo': 225, 'Baldur Sanjin': 89, 'Barbora MacLean': 201, 'Brenda Stern': 196, 'Camilla Holmström': 205, 'Chandra MacFarland': 203, 'Claribel Dervla': 126, 'Craig Gutsy': 177, 'Daisy Studious': 235, 'Damien Black': 75, 'Damjan Chapman': 96, 'Dionisio Schuyler': 78, 'Eugenio Mataracı': 116, 'Ferran Simen': 103, 'Filip Traverse': 101, 'Gilberto Mathias': 100, 'Gitta Nikolina': 189, 'Gracie Wise': 190, 'Henriette Usha': 188, 'Ige Behringer': 120, 'Ilkin Urbano': 101, 'Kazuhiko Atallah': 108, 'Kumar Dahl': 86, 'Lidiya Szekeres': 202, 'Lilya Stainthorpe': 192, 'Ludvig Milivoj': 101, 'Luis Moray': 103, 'Maja Ruoho': 208, 'Marcos Rudaski': 121, 'Narelle Moon': 211, 'Nova Hogarth': 164, 'Rosemary Okafor': 210, 'Royston Min': 100, 'Sofia Hellen': 142, 'Suad Qasim': 184, 'Szofi Granger': 204, 'Tammie Ema': 173, 'Tammy Grit': 138, 'Tanja Adelina': 161, 'Torcull Diarmuid': 107, 'Uta Obando': 207, 'Viktor Eka': 92, 'Viktor Menelaos': 116, 'Vjollca Johnnie': 150, 'Wulf Carlevaro': 138, 'Xavier Hayasaka': 107, 'Zacharie Aimilios': 106, 'Zofija Kendrick': 219}
+XTTS_STUDIO = ['Claribel Dervla', 'Daisy Studious', 'Gracie Wise', 'Tammie Ema', 'Alison Dietlinde', 'Ana Florence',
+               'Annmarie Nele', 'Asya Anara', 'Brenda Stern', 'Gitta Nikolina', 'Henriette Usha', 'Sofia Hellen',
+               'Tammy Grit', 'Tanja Adelina', 'Vjollca Johnnie', 'Andrew Chipper', 'Badr Odhiambo',
+               'Dionisio Schuyler', 'Royston Min', 'Viktor Eka', 'Abrahan Mack', 'Adde Michal', 'Baldur Sanjin',
+               'Craig Gutsy', 'Damien Black', 'Gilberto Mathias', 'Ilkin Urbano', 'Kazuhiko Atallah',
+               'Ludvig Milivoj', 'Suad Qasim', 'Torcull Diarmuid', 'Viktor Menelaos', 'Zacharie Aimilios',
+               'Nova Hogarth', 'Maja Ruoho', 'Uta Obando', 'Lidiya Szekeres', 'Chandra MacFarland', 'Szofi Granger',
+               'Camilla Holmström', 'Lilya Stainthorpe', 'Zofija Kendrick', 'Narelle Moon', 'Barbora MacLean',
+               'Alexandra Hisakawa', 'Alma María', 'Rosemary Okafor', 'Ige Behringer', 'Filip Traverse',
+               'Damjan Chapman', 'Wulf Carlevaro', 'Aaron Dreschner', 'Kumar Dahl', 'Eugenio Mataracı',
+               'Ferran Simen', 'Xavier Hayasaka', 'Luis Moray', 'Marcos Rudaski']
 # Indian reference clips of kyutai/tts-voices: the voice donations (CC0) say "India" / "Indian" in their names; the three
 # VCTK speakers whose accent is Indian (CC BY 4.0). The cleaned ("enhanced") recordings.
 INDIAN_CLIPS = [('Imran', 'voice-donations/Imran_from_I_India_enhanced.wav', 'm', 'CC0 voice donation'),
@@ -365,8 +368,15 @@ def xtts():
                        'licence': 'Coqui Public Model License — non-commercial use only', 'personal': True, 'accept': 'cpml',
                        'name': 'XTTS-v2 (Coqui)'}}
     clips = tree(CLIPS_REPO, CLIPS_REV)
-    voices = [{'id': 'xtts-' + re.sub(r'[^a-z0-9]+', '-', n.lower()).strip('-'), 'label': f'{n} — {SEX[s]} (studio voice)', 'group': 'any',
-               'sex': s, 'model': 'xtts', 'speaker': n} for n, s in XTTS_STUDIO]
+    def studio(n):
+        hz = XTTS_PITCH[n]
+        sex = 'm' if hz <= 125 else 'f' if hz >= 175 else ''
+        how = {'m': 'a deeper voice', 'f': 'a higher voice', '': 'a middle voice'}[sex]
+        return {'id': 'xtts-' + re.sub(r'[^a-z0-9]+', '-', n.lower()).strip('-'), 'label': f'{n} — studio voice, {how}', 'group': 'any',
+                'sex': sex, 'model': 'xtts', 'speaker': n}
+    if set(XTTS_PITCH) != set(XTTS_STUDIO):
+        sys.exit('XTTS_PITCH must have every studio voice')
+    voices = [studio(n) for n in XTTS_STUDIO]
     for n, f, s, lic in INDIAN_CLIPS:
         if f not in clips:
             sys.exit(f'{f} is not in {CLIPS_REPO} at {CLIPS_REV}')

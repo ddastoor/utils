@@ -1783,15 +1783,15 @@
   },
   {
    "id": "xtts-claribel-dervla",
-   "label": "Claribel Dervla — woman (studio voice)",
+   "label": "Claribel Dervla — studio voice, a middle voice",
    "group": "any",
-   "sex": "f",
+   "sex": "",
    "model": "xtts",
    "speaker": "Claribel Dervla"
   },
   {
    "id": "xtts-daisy-studious",
-   "label": "Daisy Studious — woman (studio voice)",
+   "label": "Daisy Studious — studio voice, a higher voice",
    "group": "any",
    "sex": "f",
    "model": "xtts",
@@ -1799,7 +1799,7 @@
   },
   {
    "id": "xtts-gracie-wise",
-   "label": "Gracie Wise — woman (studio voice)",
+   "label": "Gracie Wise — studio voice, a higher voice",
    "group": "any",
    "sex": "f",
    "model": "xtts",
@@ -1807,15 +1807,15 @@
   },
   {
    "id": "xtts-tammie-ema",
-   "label": "Tammie Ema — woman (studio voice)",
+   "label": "Tammie Ema — studio voice, a middle voice",
    "group": "any",
-   "sex": "f",
+   "sex": "",
    "model": "xtts",
    "speaker": "Tammie Ema"
   },
   {
    "id": "xtts-alison-dietlinde",
-   "label": "Alison Dietlinde — woman (studio voice)",
+   "label": "Alison Dietlinde — studio voice, a higher voice",
    "group": "any",
    "sex": "f",
    "model": "xtts",
@@ -1823,15 +1823,15 @@
   },
   {
    "id": "xtts-ana-florence",
-   "label": "Ana Florence — woman (studio voice)",
+   "label": "Ana Florence — studio voice, a middle voice",
    "group": "any",
-   "sex": "f",
+   "sex": "",
    "model": "xtts",
    "speaker": "Ana Florence"
   },
   {
    "id": "xtts-annmarie-nele",
-   "label": "Annmarie Nele — woman (studio voice)",
+   "label": "Annmarie Nele — studio voice, a higher voice",
    "group": "any",
    "sex": "f",
    "model": "xtts",
@@ -1839,15 +1839,15 @@
   },
   {
    "id": "xtts-asya-anara",
-   "label": "Asya Anara — woman (studio voice)",
+   "label": "Asya Anara — studio voice, a middle voice",
    "group": "any",
-   "sex": "f",
+   "sex": "",
    "model": "xtts",
    "speaker": "Asya Anara"
   },
   {
    "id": "xtts-brenda-stern",
-   "label": "Brenda Stern — woman (studio voice)",
+   "label": "Brenda Stern — studio voice, a higher voice",
    "group": "any",
    "sex": "f",
    "model": "xtts",
@@ -1855,7 +1855,7 @@
   },
   {
    "id": "xtts-gitta-nikolina",
-   "label": "Gitta Nikolina — woman (studio voice)",
+   "label": "Gitta Nikolina — studio voice, a higher voice",
    "group": "any",
    "sex": "f",
    "model": "xtts",
@@ -1863,7 +1863,7 @@
   },
   {
    "id": "xtts-henriette-usha",
-   "label": "Henriette Usha — woman (studio voice)",
+   "label": "Henriette Usha — studio voice, a higher voice",
    "group": "any",
    "sex": "f",
    "model": "xtts",
@@ -1871,55 +1871,55 @@
   },
   {
    "id": "xtts-sofia-hellen",
-   "label": "Sofia Hellen — woman (studio voice)",
+   "label": "Sofia Hellen — studio voice, a middle voice",
    "group": "any",
-   "sex": "f",
+   "sex": "",
    "model": "xtts",
    "speaker": "Sofia Hellen"
   },
   {
    "id": "xtts-tammy-grit",
-   "label": "Tammy Grit — woman (studio voice)",
+   "label": "Tammy Grit — studio voice, a middle voice",
    "group": "any",
-   "sex": "f",
+   "sex": "",
    "model": "xtts",
    "speaker": "Tammy Grit"
   },
   {
    "id": "xtts-tanja-adelina",
-   "label": "Tanja Adelina — woman (studio voice)",
+   "label": "Tanja Adelina — studio voice, a middle voice",
    "group": "any",
-   "sex": "f",
+   "sex": "",
    "model": "xtts",
    "speaker": "Tanja Adelina"
   },
   {
    "id": "xtts-vjollca-johnnie",
-   "label": "Vjollca Johnnie — woman (studio voice)",
+   "label": "Vjollca Johnnie — studio voice, a middle voice",
    "group": "any",
-   "sex": "f",
+   "sex": "",
    "model": "xtts",
    "speaker": "Vjollca Johnnie"
   },
   {
    "id": "xtts-andrew-chipper",
-   "label": "Andrew Chipper — man (studio voice)",
+   "label": "Andrew Chipper — studio voice, a higher voice",
    "group": "any",
-   "sex": "m",
+   "sex": "f",
    "model": "xtts",
    "speaker": "Andrew Chipper"
   },
   {
    "id": "xtts-badr-odhiambo",
-   "label": "Badr Odhiambo — man (studio voice)",
+   "label": "Badr Odhiambo — studio voice, a higher voice",
    "group": "any",
-   "sex": "m",
+   "sex": "f",
    "model": "xtts",
    "speaker": "Badr Odhiambo"
   },
   {
    "id": "xtts-dionisio-schuyler",
-   "label": "Dionisio Schuyler — man (studio voice)",
+   "label": "Dionisio Schuyler — studio voice, a deeper voice",
    "group": "any",
    "sex": "m",
    "model": "xtts",
@@ -1927,7 +1927,7 @@
   },
   {
    "id": "xtts-royston-min",
-   "label": "Royston Min — man (studio voice)",
+   "label": "Royston Min — studio voice, a deeper voice",
    "group": "any",
    "sex": "m",
    "model": "xtts",
@@ -1935,7 +1935,7 @@
   },
   {
    "id": "xtts-viktor-eka",
-   "label": "Viktor Eka — man (studio voice)",
+   "label": "Viktor Eka — studio voice, a deeper voice",
    "group": "any",
    "sex": "m",
    "model": "xtts",
@@ -1943,7 +1943,7 @@
   },
   {
    "id": "xtts-abrahan-mack",
-   "label": "Abrahan Mack — man (studio voice)",
+   "label": "Abrahan Mack — studio voice, a deeper voice",
    "group": "any",
    "sex": "m",
    "model": "xtts",
@@ -1951,7 +1951,7 @@
   },
   {
    "id": "xtts-adde-michal",
-   "label": "Adde Michal — man (studio voice)",
+   "label": "Adde Michal — studio voice, a deeper voice",
    "group": "any",
    "sex": "m",
    "model": "xtts",
@@ -1959,7 +1959,7 @@
   },
   {
    "id": "xtts-baldur-sanjin",
-   "label": "Baldur Sanjin — man (studio voice)",
+   "label": "Baldur Sanjin — studio voice, a deeper voice",
    "group": "any",
    "sex": "m",
    "model": "xtts",
@@ -1967,15 +1967,15 @@
   },
   {
    "id": "xtts-craig-gutsy",
-   "label": "Craig Gutsy — man (studio voice)",
+   "label": "Craig Gutsy — studio voice, a higher voice",
    "group": "any",
-   "sex": "m",
+   "sex": "f",
    "model": "xtts",
    "speaker": "Craig Gutsy"
   },
   {
    "id": "xtts-damien-black",
-   "label": "Damien Black — man (studio voice)",
+   "label": "Damien Black — studio voice, a deeper voice",
    "group": "any",
    "sex": "m",
    "model": "xtts",
@@ -1983,7 +1983,7 @@
   },
   {
    "id": "xtts-gilberto-mathias",
-   "label": "Gilberto Mathias — man (studio voice)",
+   "label": "Gilberto Mathias — studio voice, a deeper voice",
    "group": "any",
    "sex": "m",
    "model": "xtts",
@@ -1991,7 +1991,7 @@
   },
   {
    "id": "xtts-ilkin-urbano",
-   "label": "Ilkin Urbano — man (studio voice)",
+   "label": "Ilkin Urbano — studio voice, a deeper voice",
    "group": "any",
    "sex": "m",
    "model": "xtts",
@@ -1999,7 +1999,7 @@
   },
   {
    "id": "xtts-kazuhiko-atallah",
-   "label": "Kazuhiko Atallah — man (studio voice)",
+   "label": "Kazuhiko Atallah — studio voice, a deeper voice",
    "group": "any",
    "sex": "m",
    "model": "xtts",
@@ -2007,7 +2007,7 @@
   },
   {
    "id": "xtts-ludvig-milivoj",
-   "label": "Ludvig Milivoj — man (studio voice)",
+   "label": "Ludvig Milivoj — studio voice, a deeper voice",
    "group": "any",
    "sex": "m",
    "model": "xtts",
@@ -2015,15 +2015,15 @@
   },
   {
    "id": "xtts-suad-qasim",
-   "label": "Suad Qasim — man (studio voice)",
+   "label": "Suad Qasim — studio voice, a higher voice",
    "group": "any",
-   "sex": "m",
+   "sex": "f",
    "model": "xtts",
    "speaker": "Suad Qasim"
   },
   {
    "id": "xtts-torcull-diarmuid",
-   "label": "Torcull Diarmuid — man (studio voice)",
+   "label": "Torcull Diarmuid — studio voice, a deeper voice",
    "group": "any",
    "sex": "m",
    "model": "xtts",
@@ -2031,7 +2031,7 @@
   },
   {
    "id": "xtts-viktor-menelaos",
-   "label": "Viktor Menelaos — man (studio voice)",
+   "label": "Viktor Menelaos — studio voice, a deeper voice",
    "group": "any",
    "sex": "m",
    "model": "xtts",
@@ -2039,7 +2039,7 @@
   },
   {
    "id": "xtts-zacharie-aimilios",
-   "label": "Zacharie Aimilios — man (studio voice)",
+   "label": "Zacharie Aimilios — studio voice, a deeper voice",
    "group": "any",
    "sex": "m",
    "model": "xtts",
@@ -2047,15 +2047,15 @@
   },
   {
    "id": "xtts-nova-hogarth",
-   "label": "Nova Hogarth — woman (studio voice)",
+   "label": "Nova Hogarth — studio voice, a middle voice",
    "group": "any",
-   "sex": "f",
+   "sex": "",
    "model": "xtts",
    "speaker": "Nova Hogarth"
   },
   {
    "id": "xtts-maja-ruoho",
-   "label": "Maja Ruoho — woman (studio voice)",
+   "label": "Maja Ruoho — studio voice, a higher voice",
    "group": "any",
    "sex": "f",
    "model": "xtts",
@@ -2063,7 +2063,7 @@
   },
   {
    "id": "xtts-uta-obando",
-   "label": "Uta Obando — woman (studio voice)",
+   "label": "Uta Obando — studio voice, a higher voice",
    "group": "any",
    "sex": "f",
    "model": "xtts",
@@ -2071,7 +2071,7 @@
   },
   {
    "id": "xtts-lidiya-szekeres",
-   "label": "Lidiya Szekeres — woman (studio voice)",
+   "label": "Lidiya Szekeres — studio voice, a higher voice",
    "group": "any",
    "sex": "f",
    "model": "xtts",
@@ -2079,7 +2079,7 @@
   },
   {
    "id": "xtts-chandra-macfarland",
-   "label": "Chandra MacFarland — woman (studio voice)",
+   "label": "Chandra MacFarland — studio voice, a higher voice",
    "group": "any",
    "sex": "f",
    "model": "xtts",
@@ -2087,7 +2087,7 @@
   },
   {
    "id": "xtts-szofi-granger",
-   "label": "Szofi Granger — woman (studio voice)",
+   "label": "Szofi Granger — studio voice, a higher voice",
    "group": "any",
    "sex": "f",
    "model": "xtts",
@@ -2095,7 +2095,7 @@
   },
   {
    "id": "xtts-camilla-holmstr-m",
-   "label": "Camilla Holmström — woman (studio voice)",
+   "label": "Camilla Holmström — studio voice, a higher voice",
    "group": "any",
    "sex": "f",
    "model": "xtts",
@@ -2103,7 +2103,7 @@
   },
   {
    "id": "xtts-lilya-stainthorpe",
-   "label": "Lilya Stainthorpe — woman (studio voice)",
+   "label": "Lilya Stainthorpe — studio voice, a higher voice",
    "group": "any",
    "sex": "f",
    "model": "xtts",
@@ -2111,7 +2111,7 @@
   },
   {
    "id": "xtts-zofija-kendrick",
-   "label": "Zofija Kendrick — woman (studio voice)",
+   "label": "Zofija Kendrick — studio voice, a higher voice",
    "group": "any",
    "sex": "f",
    "model": "xtts",
@@ -2119,7 +2119,7 @@
   },
   {
    "id": "xtts-narelle-moon",
-   "label": "Narelle Moon — woman (studio voice)",
+   "label": "Narelle Moon — studio voice, a higher voice",
    "group": "any",
    "sex": "f",
    "model": "xtts",
@@ -2127,7 +2127,7 @@
   },
   {
    "id": "xtts-barbora-maclean",
-   "label": "Barbora MacLean — woman (studio voice)",
+   "label": "Barbora MacLean — studio voice, a higher voice",
    "group": "any",
    "sex": "f",
    "model": "xtts",
@@ -2135,7 +2135,7 @@
   },
   {
    "id": "xtts-alexandra-hisakawa",
-   "label": "Alexandra Hisakawa — woman (studio voice)",
+   "label": "Alexandra Hisakawa — studio voice, a higher voice",
    "group": "any",
    "sex": "f",
    "model": "xtts",
@@ -2143,7 +2143,7 @@
   },
   {
    "id": "xtts-alma-mar-a",
-   "label": "Alma María — woman (studio voice)",
+   "label": "Alma María — studio voice, a higher voice",
    "group": "any",
    "sex": "f",
    "model": "xtts",
@@ -2151,7 +2151,7 @@
   },
   {
    "id": "xtts-rosemary-okafor",
-   "label": "Rosemary Okafor — woman (studio voice)",
+   "label": "Rosemary Okafor — studio voice, a higher voice",
    "group": "any",
    "sex": "f",
    "model": "xtts",
@@ -2159,7 +2159,7 @@
   },
   {
    "id": "xtts-ige-behringer",
-   "label": "Ige Behringer — man (studio voice)",
+   "label": "Ige Behringer — studio voice, a deeper voice",
    "group": "any",
    "sex": "m",
    "model": "xtts",
@@ -2167,7 +2167,7 @@
   },
   {
    "id": "xtts-filip-traverse",
-   "label": "Filip Traverse — man (studio voice)",
+   "label": "Filip Traverse — studio voice, a deeper voice",
    "group": "any",
    "sex": "m",
    "model": "xtts",
@@ -2175,7 +2175,7 @@
   },
   {
    "id": "xtts-damjan-chapman",
-   "label": "Damjan Chapman — man (studio voice)",
+   "label": "Damjan Chapman — studio voice, a deeper voice",
    "group": "any",
    "sex": "m",
    "model": "xtts",
@@ -2183,15 +2183,15 @@
   },
   {
    "id": "xtts-wulf-carlevaro",
-   "label": "Wulf Carlevaro — man (studio voice)",
+   "label": "Wulf Carlevaro — studio voice, a middle voice",
    "group": "any",
-   "sex": "m",
+   "sex": "",
    "model": "xtts",
    "speaker": "Wulf Carlevaro"
   },
   {
    "id": "xtts-aaron-dreschner",
-   "label": "Aaron Dreschner — man (studio voice)",
+   "label": "Aaron Dreschner — studio voice, a deeper voice",
    "group": "any",
    "sex": "m",
    "model": "xtts",
@@ -2199,7 +2199,7 @@
   },
   {
    "id": "xtts-kumar-dahl",
-   "label": "Kumar Dahl — man (studio voice)",
+   "label": "Kumar Dahl — studio voice, a deeper voice",
    "group": "any",
    "sex": "m",
    "model": "xtts",
@@ -2207,7 +2207,7 @@
   },
   {
    "id": "xtts-eugenio-matarac",
-   "label": "Eugenio Mataracı — man (studio voice)",
+   "label": "Eugenio Mataracı — studio voice, a deeper voice",
    "group": "any",
    "sex": "m",
    "model": "xtts",
@@ -2215,7 +2215,7 @@
   },
   {
    "id": "xtts-ferran-simen",
-   "label": "Ferran Simen — man (studio voice)",
+   "label": "Ferran Simen — studio voice, a deeper voice",
    "group": "any",
    "sex": "m",
    "model": "xtts",
@@ -2223,7 +2223,7 @@
   },
   {
    "id": "xtts-xavier-hayasaka",
-   "label": "Xavier Hayasaka — man (studio voice)",
+   "label": "Xavier Hayasaka — studio voice, a deeper voice",
    "group": "any",
    "sex": "m",
    "model": "xtts",
@@ -2231,7 +2231,7 @@
   },
   {
    "id": "xtts-luis-moray",
-   "label": "Luis Moray — man (studio voice)",
+   "label": "Luis Moray — studio voice, a deeper voice",
    "group": "any",
    "sex": "m",
    "model": "xtts",
@@ -2239,7 +2239,7 @@
   },
   {
    "id": "xtts-marcos-rudaski",
-   "label": "Marcos Rudaski — man (studio voice)",
+   "label": "Marcos Rudaski — studio voice, a deeper voice",
    "group": "any",
    "sex": "m",
    "model": "xtts",
