@@ -42,7 +42,8 @@ export function offlinePanel(o: { text: () => string; speed: number }): HTMLElem
     const m = cat.models[mid], e = cat.engines[m.engine];
     return h('div', { class: 'otts-model' }, h('strong', null, m.name), ` · ${fmtMB(m.mb)} · ${e.name}`,
       m.personal ? tag('personal use only', 'warn') : null, m.gated ? tag('free Hugging Face account', 'info') : null,
-      e.torch && m.mb > 1500 ? tag('slow without a graphics card') : null, h('span', { class: 'muted small' }, ` ${m.licence}`));
+      e.torch && m.mb > 1500 ? tag('slow without a graphics card') : null, h('span', { class: 'muted small' }, ` ${m.licence}`),
+      m.page ? h('a', { href: m.page, target: '_blank', rel: 'noopener', class: 'small' }, /piper-samples|spaces|kyutai/.test(m.page) ? 'listen' : 'about it') : null);
   }
   function list() {
     const vs = cat.voices.filter((v) => (!group || v.group === group) && (!engine || cat.models[v.model].engine === engine) && (!sex || v.sex === sex) && matches(cat, v, query));

@@ -196,7 +196,7 @@ def piper():
         onnx = next(p for p in v['files'] if p.endswith('.onnx'))
         name, quality = key.rsplit('-', 1)
         mid = f'piper-{key}'
-        models[mid] = {'engine': 'piper', 'repo': PIPER_REPO, 'rev': PIPER_REV, 'file': onnx,
+        models[mid] = {'engine': 'piper', 'repo': PIPER_REPO, 'rev': PIPER_REV, 'file': onnx, 'page': 'https://rhasspy.github.io/piper-samples/',
                        'mb': mb(sum(f['size_bytes'] for p, f in v['files'].items() if not p.endswith('MODEL_CARD'))),
                        'name': f'Piper {name.split("-", 1)[1].replace("_", " ")} ({quality})'}
         q = '' if quality == 'medium' else f' · {quality} quality'
@@ -244,7 +244,7 @@ def kokoro():
     md = get(f'https://huggingface.co/{KOKORO_REPO}/resolve/{KOKORO_REV}/VOICES.md', 'kokoro-VOICES.md').decode()
     t = tree(KOKORO_REPO, KOKORO_REV)
     base = t['kokoro-v1_0.pth'] + t['config.json'] + size_of(SPACY_REPO, SPACY_REV, ['config.cfg', 'meta.json', 'tokenizer', '*/*', '*/*/*'])
-    models = {'kokoro': {'engine': 'kokoro', 'repo': KOKORO_REPO, 'rev': KOKORO_REV, 'mb': mb(base + 32 * 523425),
+    models = {'kokoro': {'engine': 'kokoro', 'repo': KOKORO_REPO, 'rev': KOKORO_REV, 'mb': mb(base + 32 * 523425), 'page': 'https://huggingface.co/spaces/hexgrad/Kokoro-TTS',
                          'licence': 'Apache-2.0', 'personal': False, 'name': 'Kokoro-82M v1.0'}}
     voices = []
     for m in re.finditer(r'^\| \**([abh][fm])\\?_(\w+?)\** \|[^|]*\|([^|]*)\|[^|]*\|\s*\**([A-F][+-]?)\**\s*\|', md, re.M):
@@ -284,13 +284,13 @@ PARLER_FILES = ['config.json', 'generation_config.json', 'preprocessor_config.js
 def parler():
     t5 = size_of(T5_TOK[0], T5_TOK[1], ['tokenizer*', 'spiece.model', 'special_tokens_map.json', 'config.json'])
     models = {
-        'indic-parler': {'engine': 'parler', 'repo': INDIC_REPO, 'rev': INDIC_REV, 'descTokenizer': T5_TOK, 'gated': True,
+        'indic-parler': {'engine': 'parler', 'repo': INDIC_REPO, 'rev': INDIC_REV, 'descTokenizer': T5_TOK, 'gated': True, 'page': 'https://huggingface.co/spaces/ai4bharat/indic-parler-tts',
                          'mb': mb(size_of(INDIC_REPO, INDIC_REV, PARLER_FILES) + t5), 'licence': 'Apache-2.0', 'personal': False,
                          'name': 'Indic Parler-TTS (AI4Bharat)'},
-        'parler-large': {'engine': 'parler', 'repo': LARGE_REPO, 'rev': LARGE_REV,
+        'parler-large': {'engine': 'parler', 'repo': LARGE_REPO, 'rev': LARGE_REV, 'page': f'https://huggingface.co/{LARGE_REPO}',
                          'mb': mb(size_of(LARGE_REPO, LARGE_REV, PARLER_FILES)), 'licence': 'Apache-2.0', 'personal': False,
                          'name': 'Parler-TTS Large v1'},
-        'parler-mini': {'engine': 'parler', 'repo': MINI_REPO, 'rev': MINI_REV, 'descTokenizer': T5_TOK,
+        'parler-mini': {'engine': 'parler', 'repo': MINI_REPO, 'rev': MINI_REV, 'descTokenizer': T5_TOK, 'page': f'https://huggingface.co/{MINI_REPO}',
                         'mb': mb(size_of(MINI_REPO, MINI_REV, PARLER_FILES) + t5), 'licence': 'Apache-2.0', 'personal': False,
                         'name': 'Parler-TTS Mini v1.1'},
     }
@@ -336,7 +336,7 @@ INDIAN_CLIPS = [('Imran', 'voice-donations/Imran_from_I_India_enhanced.wav', 'm'
 def xtts():
     t = tree(XTTS_REPO, XTTS_REV)
     need = ['config.json', 'model.pth', 'vocab.json', 'speakers_xtts.pth', 'mel_stats.pth', 'LICENSE.txt']
-    models = {'xtts': {'engine': 'xtts', 'repo': XTTS_REPO, 'rev': XTTS_REV, 'mb': mb(sum(t[f] for f in need)),
+    models = {'xtts': {'engine': 'xtts', 'repo': XTTS_REPO, 'rev': XTTS_REV, 'mb': mb(sum(t[f] for f in need)), 'page': f'https://huggingface.co/{XTTS_REPO}',
                        'licence': 'Coqui Public Model License — non-commercial use only', 'personal': True, 'accept': 'cpml',
                        'name': 'XTTS-v2 (Coqui)'}}
     clips = tree(CLIPS_REPO, CLIPS_REV)
@@ -366,7 +366,7 @@ POCKET_SEX = {'cosette': 'f', 'caro_davy': 'f', 'javert': 'm', 'jean': 'm', 'mar
 
 def pocket():
     t = tree(POCKET_REPO, POCKET_REV)
-    models = {'pocket': {'engine': 'pocket', 'repo': POCKET_REPO, 'rev': POCKET_REV,
+    models = {'pocket': {'engine': 'pocket', 'repo': POCKET_REPO, 'rev': POCKET_REV, 'page': 'https://kyutai.org/tts',
                          'mb': mb(t['languages/english/model.safetensors'] + t['languages/english/tokenizer.json'] + 21 * 6.5e6),
                          'licence': 'CC BY 4.0', 'personal': False, 'name': 'Pocket TTS (Kyutai)'}}
     vctk = vctk_speakers()
