@@ -97,7 +97,18 @@ this file = the owner's latest wishes, how the tests are written, and the traps 
 - **21 Nov 2026 — a new potential app:** "PDF/EPUB creator … PC only … like a rich text editor … type, copy, paste, … embed
   another PDF … paste pictures, insert pictures … convert to either PDF or EPUB. Use all the existing functionality" —
   added to docs/potentials.md as #72 (not to build until the owner picks it; size check first: ≈ 0 MB new).
-- **21 Nov 2026 — Text-to-Speech offline mode (to build next, PC only):** first asked as a self-contained HTML; then the owner:
+- **21 Nov 2026 — Text-to-Speech offline mode: BUILT** (CLAUDE.md §3 "Offline mode as built"). Later the same day the
+  owner: only the mode is PC only, the tab stays PC + mobile; "Knock yourself out and include many more large,
+  sophisticated models … US accent, UK accent … the Indian accent to be as light as possible"; then "include as many
+  different variants of Indian, US and [UK] accents as you can, even if they are large in size … it doesn't affect the
+  size of … my GitHub project." → 416 voices in 44 models, five engines; samples of the Indian ones sent for listening.
+  **How to run an engine by hand** (what the unit suite's real-run option does for Piper): copy `src/lib/offline-tts/driver.py`
+  into a scratch folder, write a job.json (voices as `buildJob` makes them: id, label, engine, repo, rev + the engine's
+  fields), then `HF_HUB_DISABLE_XET=1 uv run --python 3.12 --no-project --with '<each pin of ENGINES[e].packages>' python
+  driver.py job.json <engine> out`. The sandbox reaches PyPI and Hugging Face, not github.com or download.pytorch.org
+  (so uv's own Python builds fail here: `UV_PYTHON_PREFERENCE=system`; PyTorch comes from PyPI with its CUDA libraries,
+  ~5 GB in uv's cache). Hugging Face rate-limits this machine (429) after many requests — wait a few minutes.
+  The earlier note: **(to build next, PC only):** first asked as a self-contained HTML; then the owner:
   "I intend that this runs entirely from the user's PC, not in the browser … find out whether this operating system is
   Linux or Windows, and appropriately download whatever is needed … give instructions … PC only. Okay, go ahead to build
   out this offline mode next whenever you get a chance." Plan: CLAUDE.md §3 Text-to-Speech, "Offline mode".
