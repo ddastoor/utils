@@ -6,8 +6,9 @@
 // the text upright, square on and as large as the photo allows — and leaves the body, the table and the hand out, which
 // the OCR otherwise reads as letters. Measured on photos of Kindle pages and newspapers (scripts/make-kindle-photos.py,
 // scripts/measure-ocr.mjs): the words read right went from 31 % to 64 % over six photos, and from 14 – 91 % to 79 – 100 % on
-// the camera's stills. Nothing changes when no page is found, when it is too small to be the page (a lamp, a white mug)
-// or when it fills the photo anyway (a scan, a screenshot).
+// the camera's stills. Nothing changes when no page is found, when it is too small to be the page (a lamp, a white mug),
+// when it fills the photo anyway (a scan), or when the picture is no camera's photo (a screenshot: large areas exactly
+// one colour, where a camera has noise everywhere).
 import { imgproc, type Img } from '../wasm/imgproc';
 import { isPageQuad } from './pagefind';
 
@@ -15,11 +16,13 @@ import { isPageQuad } from './pagefind';
 export interface PageOps {
   resize(img: Img, w: number, h: number): Img | Promise<Img>;
   pageQuad(img: Img): { corners: number[]; confidence: number } | Promise<{ corners: number[]; confidence: number }>;
+  flatShare(img: Img): number | Promise<number>;
   warp(img: Img, corners: number[], w: number, h: number): Img | Promise<Img>;
 }
 const workerOps: PageOps = {
   resize: (img, w, h) => imgproc('resize', img, w, h),
   pageQuad: (img) => imgproc('pageQuad', img),
+  flatShare: (img) => imgproc('flatShare', img),
   warp: (img, c, w, h) => imgproc('warp', img, c, w, h),
 };
 
@@ -27,6 +30,8 @@ const workerOps: PageOps = {
 const FIND_SIZE = 1200;
 /** The page found must cover between these shares of the photo. */
 export const MIN_SHARE = 0.1, MAX_SHARE = 0.92;
+/** A picture with more than this share exactly flat is no camera's photo (a screenshot, a drawing): left as it is. */
+export const DIGITAL = 0.2;
 
 /** The size of the straightened page: its longer opposite sides (no detail is lost). */
 export function pageSize(c: number[]): [number, number] {
@@ -48,6 +53,7 @@ export function usable(corners: number[], w: number, h: number): boolean {
 export async function straighten(img: Img, ops: PageOps = workerOps): Promise<{ img: Img; found: boolean; corners?: number[] }> {
   const L = Math.max(img.width, img.height), k = L > FIND_SIZE ? FIND_SIZE / L : 1;
   const small = k < 1 ? await ops.resize(img, Math.round(img.width * k), Math.round(img.height * k)) : img;
+  if ((await ops.flatShare(small)) > DIGITAL) return { img, found: false }; // a screenshot: square on already, and a white panel in it is no page
   const q = await ops.pageQuad(small);
   if (!(q.confidence > 0) || !usable(q.corners, small.width, small.height)) return { img, found: false };
   const corners = q.corners.map((v) => v / k);

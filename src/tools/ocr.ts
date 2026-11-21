@@ -7,6 +7,7 @@ import { imgproc, type Img } from '../wasm/imgproc';
 import { previewOf, paint } from '../lib/imgio';
 import { imageInput } from '../lib/imgtools';
 import { recognize, type OcrLang, type OcrResult } from '../lib/ocr';
+import { straighten } from '../lib/pagecrop';
 
 const ROT = [1, 6, 3, 8]; // quarter turns to the right as EXIF orientations
 /** Below this average confidence a reading is suspect: the picture is also tried turned. */
@@ -34,16 +35,23 @@ export const mount: Mount = (root, ctx) => {
     if (my === seq && alive) paint(img, canvas);
   };
   const forget = () => { seq++; out.value = ''; info.textContent = ''; boxes.replaceChildren(); prog.done(); };
-  const prepare = async (img: Img, t: number) => {
-    img = await turned(img, t);
+  /** The picture as the engine reads it (img) and, when a photographed page was found and straightened, that page as
+   *  it looks (page: shown instead of the photo, so the highlighted words sit on what was read). straight: false reads
+   *  the photo as it is (the second try when the page found gave little). */
+  const prepare = async (from: Img, t: number, straight = true) => {
+    let img = await turned(from, t), page: Img | null = null;
     // Tesseract works best around 300 dpi text height; very large photos are scaled to ≤ 3000 px (wasm resize)
     const L = Math.max(img.width, img.height);
     if (L > 3000) img = await imgproc('resize', img, Math.round((img.width * 3000) / L), Math.round((img.height * 3000) / L));
     if (clean) {
+      // a photographed page (a Kindle in its black body, a sheet on a table) found and straightened first — the Photo
+      // Dictionary's (src/lib/pagecrop.ts; owner, 21 Nov 2026: the OCR tab as good on a phone, to-do #9); a screenshot or a
+      // scan is left as it is
+      if (straight) { const s = await straighten(img).catch(() => ({ img, found: false })); if (s.found) img = page = s.img; }
       if (isDark((await imgproc('histogram', img)).subarray(768, 1024))) img = await imgproc('invert', img);
       img = await imgproc('docEnhance', img, 1);
     }
-    return img;
+    return { img, page };
   };
   const read = (img: Img, onProgress?: (p: number, s: string) => void) => recognize(new ImageData(new Uint8ClampedArray(img.data), img.width, img.height), lang, onProgress);
   const run = async () => {
@@ -52,9 +60,15 @@ export const mount: Mount = (root, ctx) => {
     out.value = ''; info.textContent = ''; boxes.replaceChildren();
     const live = () => my === seq && alive;
     const onProgress = (p: number, s: string) => { if (live()) prog.set(s.includes('recogn') ? p : null, s.includes('recogn') ? `Recognising… ${Math.round(p * 100)} %` : 'Loading the text engine…'); };
-    let t = turns, img = await prepare(from, t);
+    let t = turns, { img, page } = await prepare(from, t);
     let r: OcrResult = await read(img, onProgress);
     if (!live()) return;
+    // a page found that gave little (it was not the page): the whole picture is read too, and the better reading kept
+    if (page && r.words.length < 25) {
+      const w = await prepare(from, t, false), r2 = await read(w.img, onProgress);
+      if (!live()) return;
+      if (r2.words.length > r.words.length) { r = r2; img = w.img; page = null; }
+    }
     let note = '';
     if (r.confidence < POOR) {
       // sideways or upside down? Read a smaller copy each other way round; take a way that reads clearly better
@@ -62,12 +76,12 @@ export const mount: Mount = (root, ctx) => {
       const small = previewOf(from, 1200);
       let best = { t, conf: r.confidence };
       for (const k of [1, 3, 2]) {
-        const tt = (turns + k) % 4, q = await read(await prepare(small, tt));
+        const tt = (turns + k) % 4, q = await read((await prepare(small, tt)).img);
         if (!live()) return;
         if (q.confidence > best.conf) best = { t: tt, conf: q.confidence };
       }
       if (best.t !== t && best.conf >= POOR && best.conf >= r.confidence + 20) {
-        t = best.t; img = await prepare(from, t);
+        t = best.t; ({ img, page } = await prepare(from, t));
         r = await read(img, onProgress);
         if (!live()) return;
         turns = t; await show();
@@ -75,6 +89,8 @@ export const mount: Mount = (root, ctx) => {
       }
     }
     prog.done();
+    // the straightened page is shown in place of the photo: the highlighted words sit on what was read
+    if (page) { paint(previewOf(page, 1400), canvas); note += ' · the page was found and straightened'; }
     out.value = r.text;
     info.textContent = r.text
       ? `${r.words.length} words · average confidence ${Math.round(r.confidence)} % · ${((performance.now() - t0) / 1000).toFixed(1)} s${note}`

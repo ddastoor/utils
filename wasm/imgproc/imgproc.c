@@ -840,6 +840,19 @@ API int p_page_quad(const uint8_t *rgba, int w, int h, float *out) {
     free(small); free(g); free(lab); free(stack);
     return conf;
 }
+/* How much of a picture is exactly flat (a pixel equal to its right and lower neighbours in R, G and B), in 1/10000 of
+   it. A camera's photo has noise everywhere (about 0); a screenshot, a scan made by a program, a drawing has large flat
+   areas — the reading tabs leave such a picture as it is (it is square on already). */
+API int p_flat_share(const uint8_t *px, int w, int h) {
+    if (w < 2 || h < 2) return 0;
+    long long flat = 0, n = 0;                                   /* 64 bits: long is 32 in WebAssembly */
+    for (int y = 0; y < h - 1; y += 2) for (int x = 0; x < w - 1; x += 2) {
+        const uint8_t *a = px + ((size_t)y * w + x) * 4, *r = a + 4, *d = a + (size_t)w * 4;
+        n++;
+        if (a[0] == r[0] && a[1] == r[1] && a[2] == r[2] && a[0] == d[0] && a[1] == d[1] && a[2] == d[2]) flat++;
+    }
+    return n ? (int)(flat * 10000 / n) : 0;
+}
 /* Perspective warp: H (row-major 3x3) maps destination (x,y,1) to source coordinates. */
 API void p_warp(const uint8_t *src, int sw, int sh, uint8_t *dst, int dw, int dh, const float *H);
 /* 3×3 homography (row-major, h33 = 1) mapping the dw×dh output rectangle onto the quad q = TL,TR,BR,BL (x,y pairs).

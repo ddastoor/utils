@@ -27,6 +27,24 @@ export default async ({ base, page: newPage, ok, info, download, devices }) => {
   const txt = readFileSync(await download(page, () => page.getByRole('button', { name: 'Download .txt' }).click()), 'utf8');
   ok(txt === t1, '.txt download equals the recognised text');
 
+  // a phone's photo of a Kindle page (owner, 21 Nov 2026: the OCR tab as good on a phone as the Photo Dictionary — to-do #9):
+  // the page found and straightened before it is read. The words read right are held to the page's own words
+  // (tests/fixtures/images/kindle-*.txt, from scripts/make-kindle-photos.py): a still and a frame of the live video.
+  const wordsOf = (x) => (x.normalize('NFC').replace(/[’‘]/g, "'").toLowerCase().match(/[a-z0-9']+/g) || []).map((w) => w.replace(/^'+|'+$/g, '')).filter(Boolean);
+  const lcs = (a, b) => { let prev = new Uint16Array(b.length + 1), cur = new Uint16Array(b.length + 1); for (let i = 1; i <= a.length; i++) { cur[0] = 0; for (let j = 1; j <= b.length; j++) cur[j] = a[i - 1] === b[j - 1] ? prev[j - 1] + 1 : Math.max(prev[j], cur[j - 1]); [prev, cur] = [cur, prev]; } return prev[b.length]; };
+  const line = () => page.locator('.ocr-text ~ [aria-live="polite"]').innerText();
+  const readRight = {};
+  for (const [f, min] of [['kindle-page.jpg', 0.95], ['kindle-frame.jpg', 0.9]]) {
+    const got = await recognise(F(f), 'English', true), truth = wordsOf(readFileSync(F(f.replace('.jpg', '.txt')), 'utf8'));
+    const right = readRight[f] = lcs(truth, wordsOf(got)) / truth.length;
+    ok(right >= min && /the page was found and straightened/.test(await line()), `${f}: ${(100 * right).toFixed(1)} % of the page's words read right (at least ${100 * min} %), the page straightened first (${await line()})`);
+    const low = await page.locator('.ocr-low').evaluateAll((els) => els.map((e) => [parseFloat(e.style.left), parseFloat(e.style.top)]));
+    ok(low.every(([x, y]) => x >= 0 && x <= 100 && y >= 0 && y <= 100), `${f}: the unsure words are marked on the page that was read (${low.length})`);
+  }
+  { const got = await recognise(F('kindle-page.jpg'), 'English', false), truth = wordsOf(readFileSync(F('kindle-page.txt'), 'utf8'));
+    const raw = lcs(truth, wordsOf(got)) / truth.length;
+    ok(!/straightened/.test(await line()) && raw < readRight['kindle-page.jpg'], `without the clean-up the photo is read as it is: ${(100 * raw).toFixed(1)} % against ${(100 * readRight['kindle-page.jpg']).toFixed(1)} % with it (the clean-up of before, without the straightening, read 1 %)`); }
+
   // render a sentence as an image in the browser (system serif font, black on white)
   const render = async (s) => Buffer.from(await page.evaluate(async (s) => {
     const c = new OffscreenCanvas(1500, 160), g = c.getContext('2d');
@@ -35,6 +53,8 @@ export default async ({ base, page: newPage, ok, info, download, devices }) => {
     const u = new Uint8Array(await (await c.convertToBlob({ type: 'image/png' })).arrayBuffer());
     let b = ''; for (let i = 0; i < u.length; i += 0x8000) b += String.fromCharCode(...u.subarray(i, i + 0x8000)); return btoa(b);
   }, s), 'base64');
+  { await recognise({ name: 'shot.png', mimeType: 'image/png', buffer: await render('A screenshot is square on already.') }, 'English', true);
+    ok(!/straightened/.test(await line()) && /screenshot is square/i.test(await page.locator('.ocr-text').inputValue()), `a screenshot (exactly flat colours) is read as it is, not cut to a "page" (${await line()})`); }
   const cases = [
     ['Français', 'Le cœur a ses raisons que la raison ne connaît point.', ['raisons', 'connaît', 'cœur']],
     ['Español', 'El niño comió una manzana en España mañana.', ['niño', 'España', 'mañana']],

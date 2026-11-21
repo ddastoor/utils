@@ -78,10 +78,15 @@ async function prepare(ip, straighten, img, p) {
   if (p === 'raw') return cap(img);
   if (p === 'app') return ip.docEnhance(copy(cap(img)), 1);
   if (p === 'screen') return ip.docEnhance(ip.blur(copy(cap(img)), 1.1), 1);
-  if (p === 'page' || p === 'pagescreen') {
+  if (p === 'page' || p === 'pagescreen' || p === 'pageup' || p === 'pagesharp') {
     const s = await straighten(cap(img), ip);
     found += s.found ? 1 : 0;
-    const out = ip.docEnhance(p === 'pagescreen' ? ip.blur(copy(s.img), 1.1) : copy(s.img), 1);
+    let pg = copy(s.img);
+    if (p === 'pagescreen') pg = ip.blur(pg, 1.1);
+    if (p === 'pagesharp') pg = ip.sharpen(pg, 1, 1.2);
+    // small text (a video frame, a page far away): twice the size for the engine, which reads x-heights of 20 – 30 px best
+    if (p === 'pageup' && Math.max(pg.width, pg.height) < 2000) pg = ip.resize(pg, pg.width * 2, pg.height * 2);
+    const out = ip.docEnhance(pg, 1);
     // as the tab does: a page found that gives fewer than 25 words → the whole photo is read too, the better kept
     if (s.found) out.whole = () => ip.docEnhance(p === 'pagescreen' ? ip.blur(copy(cap(img)), 1.1) : copy(cap(img)), 1);
     return out;

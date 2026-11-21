@@ -221,6 +221,30 @@ export default async ({ base, page: newPage, ok, info, devices }) => {
   ok((await cardWords(p3)).filter((w) => RARE.includes(w)).length === RARE.length, 'offline: bundled results still shown');
   ok(p2.errors.length === 0 && real(p3.errors).length === 0, `no page errors (online off / offline): ${[...p2.errors, ...real(p3.errors)].join(' | ')}`);
 
+  // a phone's photo of a Kindle page (owner, 21 Nov 2026: "especially when I take pictures of my Kindle"): the same
+  // uncommon words as a clean copy of the page — the page's own words (tests/fixtures/images/kindle-page.txt) drawn large
+  // on white — found and straightened first; a frame of the live video too
+  { const pk = await newPage(phone); await mockApis(pk, []);
+    await pk.goto(base + '#/photodict');
+    const pick = async (file) => {
+      await pk.locator('input[type=file]').first().setInputFiles(file);
+      await pk.waitForFunction((sel) => /uncommon word|No uncommon words|No text found|went wrong/.test(document.querySelector(sel)?.textContent || '') && !/new photo/.test(document.querySelector(sel).textContent), STATUS, { timeout: 180000 });
+      return cardWords(pk);
+    };
+    const cleanCopy = async (txt) => Buffer.from(await pk.evaluate(async (ws) => {
+      const c = new OffscreenCanvas(2000, 2600), g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, 2000, 2600); g.fillStyle = '#111'; g.font = '44px "DejaVu Serif", "Liberation Serif", serif';
+      let y = 90, l = '';
+      for (const w of ws) { if (g.measureText(l + ' ' + w).width > 1840) { g.fillText(l, 80, y); y += 66; l = w; } else l = l ? l + ' ' + w : w; }
+      g.fillText(l, 80, y);
+      const u = new Uint8Array(await (await c.convertToBlob({ type: 'image/png' })).arrayBuffer()); let b = ''; for (let i = 0; i < u.length; i += 0x8000) b += String.fromCharCode(...u.subarray(i, i + 0x8000)); return btoa(b);
+    }, readFileSync(F(txt), 'utf8').trim().split(/\s+/)), 'base64');
+    for (const [photo, txt, min, what] of [['kindle-page.jpg', 'kindle-page.txt', 0.9, "a phone's still"], ['kindle-frame.jpg', 'kindle-frame.txt', 0.8, 'a frame of the live video']]) {
+      const ref = await pick({ name: 'clean-copy.png', mimeType: 'image/png', buffer: await cleanCopy(txt) });
+      const got = await pick(F(photo)), share = ref.filter((w) => got.includes(w)).length / ref.length;
+      ok(ref.length >= 8 && share >= min, `${what} of a Kindle page finds ${Math.round(100 * share)} % (at least ${100 * min} %) of the ${ref.length} uncommon words of a clean copy of it — missing: ${ref.filter((w) => !got.includes(w)).join(', ') || 'none'}`);
+    }
+    ok(real(pk.errors).length === 0, `no page errors with the Kindle photos ${real(pk.errors).join(' | ')}`); }
+
   // live camera (Chromium's fake camera shows a test pattern: no words) → Snap runs the pipeline
   const p4 = await newPage(phone);
   await mockApis(p4, []);

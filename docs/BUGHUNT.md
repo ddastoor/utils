@@ -2514,3 +2514,14 @@ cannot. Three new suites; each fails on the build before its fixes.
   Checks: unit offline-tts-plan 134 (every Indian voice once, lightest first, each catalogue number worked out again from
   the raw scores, the thresholds), e2e tts-offline 47 (the order, the model names, the folded list, a tick chooses the
   voice and unticks it, Esc and the focus, axe on the dialog in light and dark).
+- **OCR tab on a phone (owner, 21 Nov 2026: "just like the photo dictionary, the OCR app should also work really well from
+  my phone"; to-do #9).** The OCR tab's clean-up had the Photo Dictionary's fault: on a photo of a Kindle the black body
+  was divided by itself — the still in Noto Sans read 1 % of its words with the clean-up and 81 % without it. Now the
+  page is straightened first (shown in place of the photo, so the unsure words sit on what was read) and the same still
+  reads 99 %, a video frame 97 %. Found while adding it: **a screenshot's white panel would be taken for the page** (the
+  finder sees a light quadrilateral in a dark app) → a picture with more than a fifth of it exactly one colour (imgproc
+  `p_flat_share`; a camera has noise everywhere) is read as it is; and `p_flat_share` itself overflowed (long is 32 bits
+  in WebAssembly — the share came out negative; caught by the new unit check). Checks: unit pagecrop 22 (camera noise in
+  the synthetic photos; a screenshot left alone), e2e ocr 63 (+6: the two Kindle fixtures held to their own words, the
+  unsure words inside the page, the clean-up off reads less, a screenshot not cut), photodict 92 (+3: a Kindle still and
+  a video frame find 90 % / 80 % of the uncommon words of a clean copy of the same page).

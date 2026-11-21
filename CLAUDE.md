@@ -1939,6 +1939,15 @@ PC"; the first tab with it — then every picture tab: §3 "Camera in every tab 
 picker's own camera; Snap takes the full frame into the editor, scrolled into view (`reveal`), and its text downloads
 under the photo's name (camera-20261120-211503.txt). The picker does not force the camera (screenshots, photos already
 taken; an iPhone's picker also offers its camera app).
+**A photographed page straightened first (owner, 21 Nov 2026: "just like the photo dictionary, the OCR app should also
+work really well from my phone" — `todo.md` #9; e2e 63):** with the clean-up on, the page of a camera's photo (a Kindle's
+screen in its black body, a sheet on a table) is found and straightened before it is read (`src/lib/pagecrop.ts`, the
+Photo Dictionary's) and shown in place of the photo, so the unsure words are marked on what was read; the line says
+"the page was found and straightened". A page that gives fewer than 25 words → the whole picture is read too, the better
+kept. A screenshot or a scan made by a program (more than a fifth of it exactly one colour: imgproc `p_flat_share`) is
+read as it is — a white panel in it is no page. Measured on the generated Kindle photos: the clean-up of before read
+1 % of a still in Noto Sans (the black body divided by itself), the photo as it is 81 %, straightened and cleaned 99 %.
+Phones' Snap takes the camera's still (§3 Photo Dictionary, Progress).
 
 ### Camera in every tab that takes a picture (owner, 20 Nov 2026)
 Owner: "In all apps that offer to upload an image, also add the option of taking a photo if it's a phone app, and take

@@ -11,11 +11,13 @@ export default async (t, { load, wasm }) => {
     for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
       let v = dark + ((x * 7 + y * 13) % 9);
       if (inside(x + 0.5, y + 0.5)) v = stripes && y % 24 < 6 && x % 40 < 30 ? 50 : light;
+      v += noise();
       d.set([v, v, v, 255], (y * W + x) * 4);
     }
     return { data: d, width: W, height: H };
   };
   const near = (a, b, tol) => a.every((v, i) => Math.abs(v - b[i]) <= tol);
+  let seed = 1; const noise = () => { seed = (seed * 1103515245 + 12345) >>> 0; return (seed >>> 16) % 7 - 3; }; // a camera's sensor noise
 
   // pageSize: the longer opposite sides
   t.eq(pc.pageSize([0, 0, 300, 0, 300, 200, 0, 200]), [300, 200], 'pageSize of an upright rectangle');
@@ -59,6 +61,7 @@ export default async (t, { load, wasm }) => {
       if (inq(body, x, y)) v = 26;                                                         // the black body
       if (inq(scr, x, y)) v = y % 30 < 7 && x % 37 < 28 ? 45 : 205;                       // the screen and its text
       if (glare) { const r = Math.hypot(x - 1090, y - 620); if (r < 160) v = Math.min(255, v + (255 - v) * 0.8 * (1 - r / 160)); }
+      v += noise();
       d.set([v, v, v, 255], (y * W + x) * 4);
     }
     return { img: { data: d, width: W, height: H }, scr };
@@ -69,8 +72,16 @@ export default async (t, { load, wasm }) => {
     const old = ip.detectQuad(k.img);
     if (!glare) t.ok(!near(old.corners, k.scr.flat(), 16), 'the Doc Scanner\'s outline (the largest bright region) takes the desk here — why the reading tabs have their own');
   }
+  // a screenshot (a white panel in a dark app, no noise): no camera's photo — left as it is (a white panel is no page)
+  const shot = (() => { const W = 1200, H = 900, d = new Uint8ClampedArray(W * H * 4);
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { const panel = x > 200 && x < 1000 && y > 150 && y < 750; const v = panel ? (y % 30 < 8 && x % 50 < 40 && y > 200 ? 30 : 250) : 32; d.set([v, v, v, 255], (y * W + x) * 4); }
+    return { data: d, width: W, height: H }; })();
+  t.ok(ip.flatShare(shot) > 0.5 && ip.flatShare(img) < 0.05, `flat share: a screenshot ${ip.flatShare(shot).toFixed(2)}, a camera's photo ${ip.flatShare(img).toFixed(3)}`);
+  const ss = await pc.straighten(shot, ip);
+  t.ok(!ss.found && ss.img === shot, 'a screenshot is left as it is (its white panel would have been taken for the page)');
+  t.ok(ip.pageQuad(shot).confidence > 0, '… the page finder alone would have found the panel');
   // the operations may answer with promises (the worker's) as well as at once (the module's)
-  const asyncOps = { resize: async (...a) => ip.resize(...a), pageQuad: async (i) => ip.pageQuad(i), warp: async (...a) => ip.warp(...a) };
+  const asyncOps = { resize: async (...a) => ip.resize(...a), pageQuad: async (i) => ip.pageQuad(i), warp: async (...a) => ip.warp(...a), flatShare: async (i) => ip.flatShare(i) };
   const sa = await pc.straighten(img, asyncOps);
   t.ok(sa.found && sa.img.width === s.img.width && sa.img.height === s.img.height, 'the same with operations that answer with promises (the worker)');
 };

@@ -45,7 +45,8 @@ The owner adds items here in chat ("add … to to do"). Newest instructions win.
    full-resolution still instead of a video frame, continuous autofocus, the clean-up chosen by measuring photos of
    Kindle pages, newspapers and printed pages — is held for the OCR tab too: its suite measures the words read right on
    the same photo set. What is the OCR tab's own (a whole page of running text, columns, the four languages, the text
-   kept in its lines) is tuned and measured on its own. Done together with #6.
+   kept in its lines) is tuned and measured on its own. Done together with #6. **Progress 21 Nov 2026:** the OCR tab straightens a
+   photographed page too (CLAUDE.md §3 OCR); its suite reads the Kindle fixtures (99 % and 97 % of the words).
 
 10. **bc console (Scientific Calculator tab): every result in a variable** (owner, 21 Nov 2026, added as the last item:
     "The result of each expression should be stored in a variable, and that variable should be printed at the right
