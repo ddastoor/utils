@@ -160,12 +160,22 @@ export const unzip: Mount = (root) => {
         // names as this system can create them (Windows: no device names …), and no two that the folder cannot tell
         // apart (Windows and macOS: README and readme are one file)
         const foldCase = isWindows || isMac, taken = new Map<string, Set<string>>();
+        // elsewhere a name is tried as it is; if the browser refuses it (its File System Access may hold names to what
+        // every system can create: "Name is not allowed" — a device name, a dot at the end), its safe form is used
+        const open = async (d: any, name: string, used?: Set<string>): Promise<any> => {
+          const get = (n: string) => (used ? d.getFileHandle(n, { create: true }) : d.getDirectoryHandle(n, { create: true }));
+          try { return await get(name); } catch (e) {
+            const safe = safeParts(name, true)[0];
+            if (!(e instanceof TypeError) || !safe || safe === name) throw e;
+            return get(used ? freeName(safe, used, foldCase) : safe);
+          }
+        };
         for (const f of got) {
           const parts = safeParts(f.path, isWindows); let d = dir;
-          for (const p of parts.slice(0, -1)) d = await d.getDirectoryHandle(p, { create: true });
+          for (const p of parts.slice(0, -1)) d = await open(d, p);
           const folder = parts.slice(0, -1).join('/'), key = foldCase ? folder.toLowerCase() : folder;
           if (!taken.has(key)) taken.set(key, new Set());
-          const fh = await d.getFileHandle(freeName(parts[parts.length - 1], taken.get(key)!, foldCase), { create: true }), w = await fh.createWritable();
+          const used = taken.get(key)!, fh = await open(d, freeName(parts[parts.length - 1], used, foldCase), used), w = await fh.createWritable();
           await w.write(f.data); await w.close(); prog.set(++n / got.length, f.path);
         }
         prog.done(); toast(`${n} file${n === 1 ? '' : 's'} saved.`);

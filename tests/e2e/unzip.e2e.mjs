@@ -117,17 +117,18 @@ open(out+'/junk.zip','wb').write(b'this is not an archive at all'*10)`, src, tmp
   const unexpected = page.errors.filter((x) => !/password|Could not open|not an archive|Invalid|signature|Zip|damaged/i.test(x));
   ok(!unexpected.length, `no unexpected page errors ${unexpected.join(' | ')}`);
   // ---- "Save all to a folder" writes names the computer's system can hold (to-do #13). The folder is a stand-in that
-  // behaves as Windows' does (no device names, no name ending with a dot or a space, README = readme) or as Linux's.
+  // behaves as Windows' does (no device names, no name ending with a dot or a space, README = readme), as a browser that
+  // holds names to what every system can create ("Name is not allowed", a TypeError) or as Linux's.
   const mkn = spawnSync('python3', ['-c', `import zipfile,sys
 with zipfile.ZipFile(sys.argv[1],'w') as z:
   for n,b in [('linux/drivers/aux.c','int aux;'),('README','upper'),('readme','lower'),('notes.','dot'),('con/x.txt','in con'),('docs/Readme.md','one'),('Docs/readme.md','two')]: z.writestr(n,b)`, join(tmp, 'names.zip')], { encoding: 'utf8' });
   ok(mkn.status === 0, `names.zip built ${mkn.stderr}`);
-  const saveAll = async (ua, windows) => {
+  const saveAll = async (ua, windows, strict = windows) => {
     const p = await newPage(ua ? { userAgent: ua } : {});
-    await p.addInitScript((windows) => {
+    await p.addInitScript(([windows, strict]) => {
       const saved = {}; window.__saved = saved;
       const DEV = /^(con|prn|aux|nul|com[0-9]|lpt[0-9])$/i;
-      const check = (n) => { if (windows && (DEV.test(n.split('.')[0]) || /[. ]$/.test(n))) throw new DOMException(`Windows cannot create "${n}"`, 'InvalidModificationError'); };
+      const check = (n) => { if (strict && (DEV.test(n.split('.')[0]) || /[. ]$/.test(n))) throw new TypeError('Name is not allowed.'); };
       const dir = (path, subs = new Map()) => ({
         kind: 'directory', name: path,
         async getDirectoryHandle(n) { check(n); const k = windows ? n.toLowerCase() : n; if (!subs.has(k)) subs.set(k, dir(`${path}${n}/`)); return subs.get(k); },
@@ -138,7 +139,7 @@ with zipfile.ZipFile(sys.argv[1],'w') as z:
       });
       window.showDirectoryPicker = async () => dir('');
       if (!('showSaveFilePicker' in window)) window.showSaveFilePicker = async () => { throw new Error('not used'); };
-    }, windows);
+    }, [windows, strict]);
     await p.goto(`${base}#/unzip`);
     await p.locator('input[type=file]').setInputFiles(join(tmp, 'names.zip'));
     await p.locator('.file-row').first().waitFor({ timeout: 30000 });
@@ -155,6 +156,9 @@ with zipfile.ZipFile(sys.argv[1],'w') as z:
   const lin = await saveAll(null, false);
   ok(lin.toasts.some((t) => t === '7 files saved.') && JSON.stringify(lin.files) === JSON.stringify(['Docs/readme.md=two', 'README=upper', 'con/x.txt=in con', 'docs/Readme.md=one', 'linux/drivers/aux.c=int aux;', 'notes.=dot', 'readme=lower']),
     `Linux: every name as it is in the archive (${lin.files.join(', ')})`);
+  const strict = await saveAll(null, false, true);
+  ok(strict.toasts.some((t) => t === '7 files saved.') && JSON.stringify(strict.files) === JSON.stringify(['Docs/readme.md=two', 'README=upper', 'con_/x.txt=in con', 'docs/Readme.md=one', 'linux/drivers/aux_.c=int aux;', 'notes_=dot', 'readme=lower']),
+    `Linux, a browser that refuses names other systems cannot hold: those take their safe form, the rest stay (${strict.files.join(', ')}; ${strict.toasts.join(' | ')})`);
   const ph = await newPage(devices['iPhone 13']); await ph.goto(`${base}#/unzip`); await ph.locator('input[type=file]').waitFor({ state: 'attached' });
   ok(await ph.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'phone: no horizontal scroll');
 };
