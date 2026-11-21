@@ -8,15 +8,8 @@ The owner adds items here in chat ("add … to to do"). Newest instructions win.
 > ones to do** — and do only those. Tick an item off here with the date and the commit.
 
 ## Open
-1. **JS/TS → WebAssembly sweep** (owner, 17 Nov 2026; **not to be started until the owner says so**): "Do another sweep and as far as possible replace as much JS/TS
-   code as you can into WebAssembly modules (JS/TS to WebAssembly build-out) if possible, only if doable and possible."
-   Follow CLAUDE.md STANDING RULE #1 (owner's latest wording, 18 Nov 2026): first an existing tried-and-tested
-   WebAssembly module (a famous, good one — only if it satisfies everything asked for the utility); if there is none
-   or none fits, our own WebAssembly build from open-source code (where
-   the code exists only as JS/TS, try to make a WebAssembly module out of it); keep JS/TS as it is only where that
-   is not doable (note why in CLAUDE.md §3a). Everything stays hosted in the app. And STANDING RULE #2: extensive tests for whatever is moved. Starting points: the "JavaScript-only components" table and the audit list in CLAUDE.md §3a
-   (zip.js, mediabunny, OpenPGP.js, Mermaid, Prettier, TensorFlow.js) and the "Deliberately left in TypeScript" notes;
-   then every `src/tools/**/*.ts` and `src/lib/*.ts` for loops, parsers and maths still done in TypeScript.
+1. _(moved to `docs/potentials.md` #74 by the owner, 21 Nov 2026: "for now move 'JS/TS → WebAssembly sweep' from
+   to-do to potentials.md" — the JS/TS → WebAssembly sweep waits there for the owner's pick.)_
 
 3. _(withdrawn by the owner on 20 Nov 2026: the "Export Python utility" for the YouTube Clip tab — do not build it.)_
 

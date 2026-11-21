@@ -21,6 +21,8 @@ this file = the owner's latest wishes, how the tests are written, and the traps 
   or time" banner means this session's machine/time is used up (the fix is a new session — work is safe in Git); the
   previous session started this one with `create_session` and stopped itself so two sessions never edit the branch.
 
+- **21 Nov 2026 — the JS/TS → WebAssembly sweep moved to the potentials:** "for now move 'JS/TS → WebAssembly sweep' from
+  to-do to potentials.md" → `docs/potentials.md` #74 (todo.md item 1 points there). Not to be started until the owner picks it.
 - **21 Nov 2026 — rename:** "Also make a note to change this app's name from SuperTools to 'SuperUtils'" → `todo.md` #5
   (what it touches and the two points to settle are written there). A note, not started — the to-do rule applies.
 - **17 Nov 2026:** asked for a second, exhaustive bug hunt over every tab ("don't leave out any app") and to

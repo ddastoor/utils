@@ -102,8 +102,8 @@ that affects it.
 >   tesseract.js-core, zxing-wasm, 7z-wasm (7-Zip; replaced libarchive.js in Nov 2026), ffmpeg.wasm, MuPDF, SQLite,
 >   ONNX Runtime, MediaPipe) and our own
 >   builds (crypto, imgproc, BusyBox, jq, Graphviz, CPython, devcore, formats, …).
-> - The owner's to-do list (`todo.md`) has an item for it: sweep the code again and move as much JS/TS as possible
->   into WebAssembly modules, where doable — **only when the owner picks that item** (see the to-do note below).
+> - A sweep to move as much JS/TS as possible into WebAssembly modules, where doable, is in `docs/potentials.md` (#74 —
+>   moved there from `todo.md` by the owner on 21 Nov 2026) — **only when the owner picks it**.
 
 > ## ⚠️ STANDING RULE #2 — Test extensively, fix, test again (owner, 17 Nov 2026; permanent; every utility)
 > **Owner:** "For whatever utility you write, make extensive tests and test them. If those tests find bugs, then fix
@@ -2307,7 +2307,7 @@ stay **public** (the source of the deployed site is then available to every user
 JavaScript-only components (no C/C++ equivalent exists for the job):
 | Library | Why JS | Used by |
 |---|---|---|
-| own `src/lib/curl.ts` (shell word splitting for bash and cmd.exe, curl option table, code generators) | no tried-and-tested WebAssembly build of a curl command-line parser exists (curl's own parser is tied to libcurl and its tool's globals); it is string parsing of one short line and code templating. A Rust port into devcore is on the to-do sweep (`todo.md`) | curl |
+| own `src/lib/curl.ts` (shell word splitting for bash and cmd.exe, curl option table, code generators) | no tried-and-tested WebAssembly build of a curl command-line parser exists (curl's own parser is tied to libcurl and its tool's globals); it is string parsing of one short line and code templating. A Rust port into devcore is part of the JS/TS → WebAssembly sweep (`docs/potentials.md` #74) | curl |
 | OpenPGP.js 6 (LGPL-3.0) — both standards of the tab (GnuPG-compatible and RFC 9580) | the audited browser OpenPGP implementation (Proton Mail); no WebAssembly OpenPGP module exists, and the Rust one that could be built (rPGP) is low-level — which key to use and whether it is valid is left to the caller, and its semantics layer (rpgpie) is marked experimental by its authors: swapping it in would lower the tab's security (`docs/WASM-AUDIT.md`, tab 100; to look at again) | pgp |
 | Mermaid 12 (MIT) | Mermaid exists only as JavaScript; `securityLevel: 'strict'` (labels sanitised), bundled by Vite | mermaid |
 | Prettier 3 standalone (MIT) | Markdown: both WebAssembly Markdown formatters (Biome's, dprint's) change what a document renders to (`docs/WASM-AUDIT.md`, tab 54). And the fallback for text the WebAssembly engines of the other nine languages cannot read (owner's tweak: (b) an existing JS library for what the module does not cover); each parser is fetched only then | prettier |
@@ -2331,7 +2331,7 @@ WebAssembly where a route exists:
 | zip.js (AES-256 zip creation) | 7-Zip (7z-wasm) makes the archives since Nov 2026; zip.js only for zips that do not fit in memory | done (tab 107) |
 | mediabunny (MP4/WebM mux + demux around WebCodecs) | minimp4 (C, CC0) muxer around WebCodecs | optional |
 | semver (npm, used only by tests now — the Semver tab runs our Rust port of it in devcore-semver.wasm, checked against the package over 16,380 version × range pairs) | — | done |
-| `src/lib/curl.ts` (cURL command parser, Nov 2026) | Rust module in devcore (`devcore-curl.wasm`) | to do (`todo.md` item 1) |
+| `src/lib/curl.ts` (cURL command parser, Nov 2026) | Rust module in devcore (`devcore-curl.wasm`) | waiting (`docs/potentials.md` #74) |
 | own TS parsers for future tools | write them in C/Rust from the start | EXIF/strip/DPI/sniff **done** (metacore); search ranking **done** (textcore `search.c`, identical rankings verified) |
 **Audit of our own TypeScript (done Nov 2026, owner request "convert everything you can"):** moved to C — image
 geometry (orient/crop/homography → imgproc), EXIF/strip/DPI/sniff (→ metacore), search ranking + word frequency
