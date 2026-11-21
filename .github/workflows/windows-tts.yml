@@ -3,11 +3,18 @@
 # This sandbox is Linux (no PowerShell), so that script is run here for real, as a double-click runs it: a Piper voice,
 # about 150 MB of downloads (uv from PyPI, Python from GitHub, Piper from PyPI, the voice from Hugging Face), a WAV and an
 # MP3 checked; then a voice that does not exist, which must end with exit code 1. Run by hand (Actions → "Windows offline
-# speech" → Run workflow, or the API).
+# speech" → Run workflow, or the API). The input "voices" runs voices of the catalogue instead, one job per entry (an
+# entry: voice ids joined by commas — one engine each), in the script the tab writes for them: a WAV and an MP3 of every
+# voice, every engine's packages held to its lock. A job may take an hour (F5-TTS, Veena on 4 cores).
 name: Windows offline speech
 
 on:
   workflow_dispatch:
+    inputs:
+      voices:
+        description: 'JSON list, one job each: voice ids joined by commas (empty = the Piper check)'
+        required: false
+        default: '[""]'
 
 permissions:
   contents: read
@@ -18,8 +25,13 @@ concurrency:
 
 jobs:
   offline-tts-windows:
+    name: offline speech ${{ matrix.voices || 'piper' }}
     runs-on: windows-latest
-    timeout-minutes: 45
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        voices: ${{ fromJSON(inputs.voices || '[""]') }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -31,6 +43,7 @@ jobs:
         shell: bash
         env:
           OFFLINE_TTS_E2E: '1'
+          OFFLINE_TTS_VOICES: ${{ matrix.voices }}
         run: |
           node -e "console.log(process.platform, process.arch, require('os').release())"
           set -o pipefail
@@ -38,5 +51,5 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: offline-tts-windows
+          name: offline-tts-windows-${{ strategy.job-index }}
           path: offline-tts-windows.txt
