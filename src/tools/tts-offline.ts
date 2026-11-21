@@ -73,10 +73,13 @@ export function offlinePanel(o: { text: () => string; speed: number }): HTMLElem
         ` · ${p.models.length} model${p.models.length > 1 ? 's' : ''}, ${fmtMB(p.modelMB)} · programs about ${fmtMB(p.programMB)}` +
         (p.programMBcuda !== p.programMB ? ` (${fmtMB(p.programMBcuda)} with an NVIDIA graphics card)` : '') +
         ' — downloaded the first time only.',
-        h('div', { class: 'chips' }, ...p.voices.map((v) => h('button', {
-          type: 'button', class: 'chip chip-btn', title: 'Remove', 'aria-label': `Remove ${v.label}`,
-          onclick: () => { chosen.delete(v.id); list(); render(); },
-        }, `${v.label.split(' — ')[0]} · ${cat.engines[cat.models[v.model].engine].name} ✕`))));
+        h('div', { class: 'chips' }, ...p.voices.map((v) => {
+          const short = `${v.label.split(' — ')[0]} · ${cat.engines[cat.models[v.model].engine].name}`;
+          return h('button', {
+            type: 'button', class: 'chip chip-btn', title: `Remove ${v.label}`, 'aria-label': `${short} — remove`,
+            onclick: () => { chosen.delete(v.id); list(); render(); },
+          }, short, h('span', { 'aria-hidden': 'true' }, ' ✕'));
+        })));
     }
     const n: Node[] = [];
     if (p.accept.includes('cpml')) {

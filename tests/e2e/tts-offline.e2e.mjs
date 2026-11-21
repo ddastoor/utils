@@ -47,7 +47,7 @@ export default async ({ base, page: newPage, ok, download, devices }) => {
   await page.getByLabel('Voices to show').selectOption('');
 
   // a chip removes a voice; ticking adds one
-  await page.getByRole('button', { name: /^Remove Mary/ }).click();
+  await page.getByRole('button', { name: 'Mary · Parler-TTS — remove' }).click();
   ok(!(await ticked()).includes('indic-parler-mary'), 'the chip’s ✕ removes the voice');
   await page.getByLabel('Search the voices').fill('p376');
   await page.locator('.otts-voice', { hasText: 'VCTK p376 — man, 22, Indian' }).first().locator('input').check();
@@ -97,6 +97,21 @@ export default async ({ base, page: newPage, ok, download, devices }) => {
   await page.getByRole('radio', { name: 'In this browser' }).click();
   ok(await page.locator('.actions').getByRole('button', { name: 'Speak' }).isVisible() && await page.locator('.otts-list').isHidden(), 'back: the browser mode as it was');
   ok(!page.errors.length, `no page errors ${page.errors.join(' | ')}`);
+
+  // accessibility of the panel (axe-core, WCAG 2.2 A / AA), light and dark, with an XTTS voice chosen (its licence switch)
+  const AXE = readFileSync(new URL('../../node_modules/axe-core/axe.min.js', import.meta.url), 'utf8');
+  for (const colorScheme of ['light', 'dark']) {
+    const a = await newPage({ viewport: { width: 1366, height: 900 }, colorScheme, bypassCSP: true });
+    await a.goto(`${base}#/tts`);
+    await a.getByRole('radio', { name: 'Offline on this PC' }).click();
+    await a.locator('.otts-list .otts-voice').first().waitFor();
+    await a.getByLabel('Search the voices').fill('Vinith');
+    await a.locator('.otts-voice', { hasText: 'Vinith' }).locator('input').check();
+    await a.addScriptTag({ content: AXE });
+    const v = await a.evaluate(async () => (await window.axe.run(document, { runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'] }, resultTypes: ['violations'] })).violations
+      .map((x) => `${x.id}: ${x.nodes.slice(0, 2).map((n) => n.target.join(' ')).join(', ')}`));
+    ok(!v.length, `${colorScheme}: no WCAG 2.2 A / AA violation in the offline panel ${v.join(' | ')}`);
+  }
 
   // phones: no offline mode
   const ph = await newPage(devices['iPhone 13']);

@@ -902,7 +902,7 @@ details summary { cursor: pointer; font-weight: 600; color: var(--accent); paddi
 .otts-voice { display: flex; align-items: center; gap: 10px; min-height: 32px; padding: 2px 4px; border-radius: 6px; cursor: pointer; font-size: 14px; }
 .otts-voice:hover { background: var(--surface-2); }
 .otts-voice input { width: 18px; height: 18px; flex: none; }
-.otts-tag { font-size: 12px; padding: 1px 8px; border-radius: 999px; background: var(--surface-2); color: var(--hint); }
+.otts-tag { font-size: 12px; padding: 1px 8px; border-radius: 999px; background: var(--surface-2); }
 .otts-tag.warn { font-weight: 600; }
 .otts-summary .chips { margin-top: 8px; }
 .otts-steps { margin: 0; padding-left: 22px; display: grid; gap: 8px; line-height: 1.5; }
