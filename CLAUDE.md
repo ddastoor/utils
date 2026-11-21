@@ -208,7 +208,8 @@ Wayland) and **mobile browsers** (Android Chrome, iPhone Safari).
     this site only when that tab is used, and released when it is left — see §4 "Lazy dependencies".
 
 ### Owner's answers to open questions
-- App name: **SuperTools** (title, header brand, `document.title` suffix).
+- App name: **SuperTools** (title, header brand, `document.title` suffix). **To be renamed "SuperUtils"** — owner, 21 Nov
+  2026: "make a note to change this app's name from SuperTools to 'SuperUtils'"; on the to-do list (`todo.md` #5), not started.
 - Commit and push **each tool as soon as it works** — never batch many finished tools into one push. (17 Nov 2026:
   more often still — see STANDING RULE #3: push after every meaningful step, without waiting for the whole utility or
   the complete test run.)

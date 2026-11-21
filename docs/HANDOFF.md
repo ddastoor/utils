@@ -21,6 +21,8 @@ this file = the owner's latest wishes, how the tests are written, and the traps 
   or time" banner means this session's machine/time is used up (the fix is a new session — work is safe in Git); the
   previous session started this one with `create_session` and stopped itself so two sessions never edit the branch.
 
+- **21 Nov 2026 — rename:** "Also make a note to change this app's name from SuperTools to 'SuperUtils'" → `todo.md` #5
+  (what it touches and the two points to settle are written there). A note, not started — the to-do rule applies.
 - **17 Nov 2026:** asked for a second, exhaustive bug hunt over every tab ("don't leave out any app") and to
   "increase test coverage significantly for each app/utility" — tracker `docs/BUGHUNT.md`, method in RESUME.md.
 - **17 Nov 2026 — engine rule, final wording** (CLAUDE.md STANDING RULE #1): "Existing tested WebAssembly builds from other
