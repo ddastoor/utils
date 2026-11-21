@@ -1,6 +1,8 @@
 // PDF → EPUB (#/epub, PC): a two-column paper (made by scripts/make-paper-pdf.mjs) and real scanned book pages with an
-// OCR layer (pypdf's Vicksburg sample). The EPUB is unpacked in Node: structure, reading order, column labels, running
-// headers removed, de-hyphenation, figures, page breaks; every XHTML parses as XML; MuPDF can open the result.
+// OCR layer (pypdf's Vicksburg sample). The EPUB is unpacked in Node: structure, reading order, the parts of a page that
+// stand side by side laid out one after another under "Page N, part K" (owner, 21 Nov 2026), running headers removed,
+// de-hyphenation, figures, page breaks, scans kept as their pictures (owner: no OCR of any sort); every XHTML parses as
+// XML; MuPDF can open the result.
 import { readFileSync, writeFileSync, existsSync, readdirSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { unzipSync, strFromU8 } from 'fflate';
@@ -16,6 +18,8 @@ const epubcheck = (f) => {
 };
 const P = (n) => new URL(`../fixtures/pdf/${n}`, import.meta.url).pathname;
 const jpegInfo = (b) => { for (let i = 2; i < b.length - 9;) { if (b[i] !== 0xff) return null; const m = b[i + 1], len = (b[i + 2] << 8) | b[i + 3]; if (m >= 0xc0 && m <= 0xc2) return { h: (b[i + 5] << 8) | b[i + 6], w: (b[i + 7] << 8) | b[i + 8], comps: b[i + 9] }; i += 2 + len; } return null; };
+// a JPEG's or a PNG's size and colour components (PNG colour type 0 grey, 2 RGB, 4 grey + alpha, 6 RGBA)
+const imgInfo = (b) => (b[0] === 0x89 && b[1] === 0x50 ? { png: true, w: Buffer.from(b).readUInt32BE(16), h: Buffer.from(b).readUInt32BE(20), comps: ({ 0: 1, 2: 3, 4: 2, 6: 4, 3: 3 })[b[25]] } : jpegInfo(b));
 export default async ({ base, page: newPage, ok, info, download, tmp, devices, released }) => {
   const page = await newPage({ viewport: { width: 1400, height: 1000 } });
   await page.goto(base + '#/epub');
@@ -50,14 +54,18 @@ export default async ({ base, page: newPage, ok, info, download, tmp, devices, r
   const p1 = e.body(e.pages[0]), x1 = e.text(e.pages[0]);
   const at = (s) => p1.indexOf(s);
   ok(/<h2>Reading Order in Two-Column Documents<\/h2>/.test(x1), 'title becomes a heading');
-  ok(at('Page 1 · Column 1') > 0 && at('Page 1 · Column 2') > at('Page 1 · Column 1'), 'columns labelled “Page 1 · Column 1/2”');
-  ok(at('1 Introduction') < at('Figure 1') && at('Figure 1') < at('Column 2') && at('Column 2') < at('2 Method'), 'reading order: left column (with its figure) before the right column');
+  ok(at('Page 1, part 1') >= 0 && at('Page 1, part 1') < at('Reading Order') && at('Page 1, part 2') > at('Reading Order') && at('Page 1, part 3') > at('Page 1, part 2'), 'the parts laid out one after another, marked “Page 1, part 1 / 2 / 3” (the title block, the left column, the right column)');
+  ok(!/Column \d/.test(p1), 'no words of the old “Column K” labels');
+  ok(at('1 Introduction') < at('Figure 1') && at('Figure 1') < at('Page 1, part 3') && at('Page 1, part 3') < at('2 Method'), 'reading order: left column (with its figure) before the right column');
   ok(/<h3>1 Introduction<\/h3>/.test(x1) && /<h3>2 Method<\/h3>/.test(x1), 'section headings found');
   ok(/experiment with twelve readers/.test(p1) && /e-reader/.test(p1), 'line-end hyphen removed (experi-ment), real hyphen kept (e-reader)');
   ok(!/Journal of Synthetic Testing/.test(p1) && !/ 1 $/.test(p1.trim()), 'running header and page number removed');
-  ok(/<p>A\. Researcher and B\. Scientist<\/p>/.test(x1) && /<p>Figure 1: A cat reading a two-column paper\.<\/p>/.test(x1), 'author line and caption are their own paragraphs');
-  const img = /src="(images\/[^"]+)"/.exec(x1)?.[1], ji = jpegInfo(e.z[`OEBPS/${img}`]);
-  ok(img && ji && ji.w > 400 && ji.w <= 1236 && ji.comps === 1, `figure saved as a greyscale JPEG ≤ 1236 px (${JSON.stringify(ji)})`);
+  ok(/<p><i>A\. Researcher and B\. Scientist<\/i><\/p>/.test(x1) && /<p>Figure 1: A cat reading a two-column paper\.<\/p>/.test(x1), 'author line (set in italics) and caption are their own paragraphs');
+  // the owner's strict rule (21 Nov 2026): a picture of the PDF is kept exactly — the figure is the paper's own 451 × 300
+  // picture (lossless in the PDF: its own pixels as PNG), in colour although greyscale pictures are chosen
+  const img = /src="(images\/[^"]+)"/.exec(x1)?.[1], ji = imgInfo(e.z[`OEBPS/${img}`]);
+  ok(img && ji?.png && ji.w === 451 && ji.h === 300 && ji.comps === 3, `the figure is the PDF's own picture, its own 451 × 300 pixels (${img} ${JSON.stringify(ji)})`);
+  ok(/alt="figure" style="width:\d+(\.\d)?%"/.test(x1), 'the figure is as wide on the screen as it is in its column');
   ok(/3 Results[\s\S]*4 Conclusion/.test(e.body(e.pages[1])), 'page 2 in order');
   ok(/page-break-before: always/.test(e.text('OEBPS/style.css')), 'each PDF page starts a new page');
   // MuPDF can read our EPUB
@@ -69,7 +77,7 @@ export default async ({ base, page: newPage, ok, info, download, tmp, devices, r
   await page.getByRole('radio', { name: 'Scribe (1860 px)' }).click();
   await page.getByText('Greyscale pictures').click();
   e = await make();
-  const c1 = e.text(e.pages[0]), imgs = [...c1.matchAll(/src="(images\/[^"]+)"/g)].map((x) => jpegInfo(e.z[`OEBPS/${x[1]}`]));
+  const c1 = e.text(e.pages[0]), imgs = [...c1.matchAll(/src="(images\/[^"]+)"/g)].map((x) => imgInfo(e.z[`OEBPS/${x[1]}`]));
   ok(imgs.length >= 3 && !/<p>(?!.*pgno)[^<]*Introduction/.test(c1), `columns as pictures (${imgs.length} images, no text)`);
   ok(imgs.some((i) => i.w > 800) && imgs.every((i) => i.w <= 1860 && i.comps === 3), 'Scribe width, colour JPEGs');
   // page range
@@ -84,8 +92,10 @@ export default async ({ base, page: newPage, ok, info, download, tmp, devices, r
   const v = e.pages.map((k) => e.body(k)).join(' ');
   info(`vicksburg: ${e.pages.length} pages, ${v.length} chars`);
   ok(e.pages.length === 6, 'six pages');
-  ok(!/SIEGE\s+OF\s+VICKSBU/i.test(v), 'running header (incl. OCR misspellings) removed');
-  ok(/dangerous for use/.test(v) && /improve our quarters/.test(v), 'OCR text de-hyphenated (dan-gerous, im-prove)');
+  // owner, 21 Nov 2026: "maintain original images as images … Don't do OCR of any sort" — the OCR layer is not used
+  ok(e.pages.every((k) => (e.text(k).match(/<img /g) || []).length === 1 && /alt="page"/.test(e.text(k))), 'each scanned page is kept as its picture');
+  ok(!/vicksburg|dangerous|quarters|siege/i.test(v), 'no word of the OCR layer in the book');
+  ok(await page.getByText('image (scanned page — kept as its picture)').count() === 6, 'the page report says why: a scanned page, kept as its picture');
   // a scan without any text layer → the page as a picture
   const doc = new m.PDFDocument(), im = doc.addImage(new m.Image(readFileSync(new URL('../fixtures/images/page.png', import.meta.url).pathname)));
   doc.insertPage(-1, doc.addPage([0, 0, 400, 500], 0, doc.addObject({ XObject: { I: im } }), 'q 400 0 0 500 0 0 cm /I Do Q'));
@@ -94,13 +104,13 @@ export default async ({ base, page: newPage, ok, info, download, tmp, devices, r
   e = await make();
   ok(/class="fig full"/.test(e.text(e.pages[0])) && !/<p>(?!.*pgno)/.test(e.text(e.pages[0]).replace(/<p class="pgno">[^<]*<\/p>/, '')), 'page without text → full-page picture');
   ok(await page.getByText('image (no text layer)').count() === 1, 'page report says why (no text layer)');
-  ok(await page.getByText(/scan\.epub: [\d.]+ KB · 1 page · 0 with columns · 0 figures · 1 as pictures/).count() === 1, 'the summary counts in words that agree with the numbers (1 page, 0 figures)');
+  ok(await page.getByText(/scan\.epub: [\d.]+ KB · 1 page · 0 laid out in parts · 0 figures · 0 tables · 0 equations · 1 as pictures/).count() === 1, 'the summary counts in words that agree with the numbers (1 page, 0 figures)');
   // the Federal Register (public domain): three columns with gutters of 7.5 pt and a stamp up the margin
   await load(P('federal-register-3p.pdf'));
   e = await make();
   const f2 = e.text(e.pages[1]);
-  ok(/Page 2 · Column 1<\/h4>\s*<p>Hatta International Airport in Jakarta/.test(f2) && /Page 2 · Column 3<\/h4>/.test(f2) && !/jbell|<h3>Hatta/.test(f2), 'Federal Register: three columns read one after the other, the stamp in the margin left out, the body text not taken for headings');
-  ok(!/<div class="fig">/.test(f2.split('Column 1')[0]), 'the running header that is left out does not come back as a picture of it');
+  ok(/Page 2, part 1<\/h4>\s*<p>Hatta International Airport in Jakarta/.test(f2) && /Page 2, part 3<\/h4>/.test(f2) && !/jbell|<h3>Hatta/.test(f2), 'Federal Register: three columns read one after the other (parts 1 – 3), the stamp in the margin left out, the body text not taken for headings');
+  ok(!/<div class="fig">/.test(f2.split('Page 2, part 1')[0]), 'the running header that is left out does not come back as a picture of it');
   // the PDF's bookmarks are the contents; a page list; the PDF's language
   const md = new m.PDFDocument(), F1 = md.addSimpleFont(new m.Font('Helvetica'));
   for (let k = 1; k <= 3; k++) md.insertPage(-1, md.addPage([0, 0, 612, 792], 0, md.addObject({ Font: { F1 } }), `BT /F1 12 Tf 72 700 Td (Kapitel ${k} beginnt hier mit etwas Text.) Tj 0 -16 Td (Und noch eine Zeile Text auf Seite ${k}.) Tj ET`));

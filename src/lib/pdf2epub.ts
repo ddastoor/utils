@@ -39,8 +39,8 @@ export interface EpubEngines {
     grayscale(i: Img): Img; expand(s: Uint8Array | Uint8ClampedArray, w: number, h: number, comps: number): Img;
     inkRegions(i: Img, skip: Array<[number, number, number, number]>, o?: { thr?: number; dil?: number; minArea?: number; max?: number }): Array<{ x: number; y: number; w: number; h: number }>;
   };
-  /** RGBA → JPEG bytes (greyscale JPEG when `grey`). */
-  jpeg(img: Img, grey: boolean): Promise<Uint8Array>;
+  /** RGBA → JPEG bytes (greyscale JPEG when `grey`; quality 80 unless given). */
+  jpeg(img: Img, grey: boolean, quality?: number): Promise<Uint8Array>;
 }
 /** The conversion ended because `alive()` said so. */
 export class Stopped extends Error { constructor() { super('The conversion was stopped.'); this.name = 'Stopped'; } }
@@ -272,11 +272,63 @@ export function readPage(page: any, W: number, H: number): { lines: Line[]; vert
  *  sides of other stroked paths (a cell drawn as a rectangle). Collinear pieces are joined.
  *  Over the page, not its display list: a display list hands a device "packed" paths, which MuPDF says must never be kept
  *  or dropped — and mupdf.js keeps and drops every path it gives a JavaScript device (the heap was corrupted, 21 Nov 2026). */
-export function readRules(m: any, page: any): { h: Box[]; v: Box[]; shown: number; hidden: number } {
+/** A picture the page draws (an image, or an image mask painted in a colour) — the owner's strict rule (21 Nov 2026):
+ *  every picture of the PDF is kept, exactly. `vis`: the part a clip leaves visible; `plain`: drawn upright, opaque, not
+ *  clipped and not inside a soft mask or a blended group; `over`: something visible is drawn over it afterwards; `x`: its
+ *  image object in the PDF (for the exact bytes); `lossy`: its data is JPEG or JPEG 2000. */
+export type Pic = Box & { vis: Box; seq: number; mask: boolean; plain: boolean; over: boolean; w: number; h: number; lossy: boolean; x?: { img: any; o: any } };
+const xform = (ctm: number[], x: number, y: number) => [x * ctm[0] + y * ctm[2] + ctm[4], x * ctm[1] + y * ctm[3] + ctm[5]];
+const unitBox = (ctm: number[]): Box => {
+  const c = [xform(ctm, 0, 0), xform(ctm, 1, 0), xform(ctm, 0, 1), xform(ctm, 1, 1)];
+  return { x0: Math.min(...c.map((p) => p[0])), y0: Math.min(...c.map((p) => p[1])), x1: Math.max(...c.map((p) => p[0])), y1: Math.max(...c.map((p) => p[1])) };
+};
+const meet = (a: Box, b: Box): Box => ({ x0: Math.max(a.x0, b.x0), y0: Math.max(a.y0, b.y0), x1: Math.min(a.x1, b.x1), y1: Math.min(a.y1, b.y1) });
+
+export function readRules(m: any, page: any, doc?: any): { h: Box[]; v: Box[]; shown: number; hidden: number; pics: Pic[]; release(): void } {
   const h: Box[] = [], v: Box[] = [];
   // characters drawn, and characters set invisible (render mode 3: the OCR layer over a scanned page)
-  let shown = 0, hidden = 0;
-  const glyphs = (t: any) => { let n = 0; try { t.walk({ showGlyph() { n++; } }); } catch { n = 1; } return n; };
+  let shown = 0, hidden = 0, seq = 0;
+  // what is drawn, in order: the points where visible characters stand, the boxes of paths (for what lies over a picture)
+  const pts: number[] = [], paths: Array<Box & { seq: number; stroke: boolean }> = [];
+  const glyphs = (t: any, ctm?: number[], keep = false) => {
+    let n = 0;
+    try { t.walk({ showGlyph(_f: any, trm: number[]) { n++; if (keep && ctm && pts.length < 300000) { const [x, y] = xform(ctm, trm[4], trm[5]); pts.push(x, y, seq); } } }); } catch { n = 1; }
+    return n;
+  };
+  // the page's image objects (also inside its forms), by the image MuPDF hands the device — the same object, so a picture
+  // drawn can be traced to its bytes in the PDF
+  const xo = new Map<number, { img: any; o: any }>();
+  if (doc?.loadImage) {
+    const seen = new Set<number>();
+    const walk = (res: any, depth: number) => {
+      if (!res || depth > 6) return;
+      let x: any; try { x = res.get('XObject'); if (!x?.isDictionary?.()) return; } catch { return; }
+      x.forEach((val: any) => {
+        try {
+          if (val.isIndirect()) { const k = val.asIndirect(); if (seen.has(k)) return; seen.add(k); }
+          // (the reference, not the resolved dictionary: a stream's bytes are read through its object number)
+          const o = val.resolve(), st = o.get('Subtype');
+          if (st.isName() && st.asName() === 'Image') { const img = doc.loadImage(val); xo.set(img.pointer, { img, o: val.isIndirect() ? val : o }); }
+          else if (st.isName() && st.asName() === 'Form') walk(o.get('Resources'), depth + 1);
+        } catch { /* an object MuPDF cannot read: that picture is drawn from the page */ }
+      });
+    };
+    try { walk(page.getObject().getInheritable('Resources'), 0); } catch { /* no resources */ }
+  }
+  const pics: Pic[] = [], clips: Array<Box | null> = [], groups: boolean[] = [];
+  let maskDef = 0;
+  const clipNow = () => clips.reduce<Box | null | undefined>((a, c) => (a === null || c === null ? null : a ? meet(a, c) : c), undefined);
+  const pic = (image: any, ctm: number[], alpha: number, mask: boolean) => {
+    if (maskDef) return;
+    const b = unitBox(ctm), cl = clipNow(), vis = cl === null ? b : cl ? meet(b, cl) : b;
+    if (vis.x1 - vis.x0 <= 0.1 || vis.y1 - vis.y0 <= 0.1) return;
+    const clipped = cl === null || (!!cl && (vis.x0 > b.x0 + 0.5 || vis.y0 > b.y0 + 0.5 || vis.x1 < b.x1 - 0.5 || vis.y1 < b.y1 - 0.5));
+    const x = mask ? undefined : xo.get(image.pointer);
+    let lossy = true;
+    try { const f = x?.o.get('Filter'); const names = !f || f.isNull() ? [] : f.isArray() ? Array.from({ length: f.length }, (_, i) => f.get(i).asName()) : [f.asName()]; lossy = !x || names.some((n) => n === 'DCTDecode' || n === 'JPXDecode' || n === 'DCT'); } catch { /* lossy */ }
+    pics.push({ ...b, vis, seq: seq++, mask, over: false, w: image.getWidth(), h: image.getHeight(), lossy: mask ? false : lossy, x,
+      plain: !mask && alpha >= 0.999 && !clipped && !groups.some(Boolean) && Math.abs(ctm[1]) < 1e-6 && Math.abs(ctm[2]) < 1e-6 && ctm[0] > 0 && ctm[3] > 0 });
+  };
   const thin = (b: number[]) => {
     const w = b[2] - b[0], ht = b[3] - b[1];
     if (ht <= 2.5 && w >= 3) { h.push({ x0: b[0], y0: b[1], x1: b[2], y1: b[3] }); return true; }
@@ -284,12 +336,26 @@ export function readRules(m: any, page: any): { h: Box[]; v: Box[]; shown: numbe
     return false;
   };
   let budget = 100000; // straight pieces walked on a page at most (a plot of a million points has no table in it)
+  const drawn = (b: number[], stroke: boolean) => { if (!maskDef && paths.length < 50000) paths.push({ x0: b[0], y0: b[1], x1: b[2], y1: b[3], seq: seq++, stroke }); };
   const dev = new m.Device({
-    fillText(t: any) { shown += glyphs(t); }, strokeText(t: any) { shown += glyphs(t); }, clipText(t: any) { shown += glyphs(t); }, ignoreText(t: any) { hidden += glyphs(t); },
-    fillPath(path: any, _eo: boolean, ctm: number[]) { try { thin(path.getBounds(null, ctm)); } catch { /* a path MuPDF cannot measure */ } },
+    fillText(t: any, ctm: number[]) { shown += glyphs(t, ctm, !maskDef); seq++; }, strokeText(t: any, _s: any, ctm: number[]) { shown += glyphs(t, ctm, !maskDef); seq++; },
+    clipText(t: any) { shown += glyphs(t); clips.push(null); }, clipStrokeText() { clips.push(null); }, ignoreText(t: any) { hidden += glyphs(t); },
+    fillImage(image: any, ctm: number[], alpha: number) { try { pic(image, ctm, alpha, false); } catch { /* an image MuPDF cannot measure */ } },
+    fillImageMask(image: any, ctm: number[]) { try { pic(image, ctm, 1, true); } catch { /* as above */ } },
+    clipPath(path: any, _eo: boolean, ctm: number[]) { try { const b = path.getBounds(null, ctm); clips.push({ x0: b[0], y0: b[1], x1: b[2], y1: b[3] }); } catch { clips.push(null); } },
+    clipStrokePath(path: any, stroke: any, ctm: number[]) { try { const b = path.getBounds(stroke, ctm); clips.push({ x0: b[0], y0: b[1], x1: b[2], y1: b[3] }); } catch { clips.push(null); } },
+    clipImageMask(image: any, ctm: number[]) { try { clips.push(unitBox(ctm)); } catch { clips.push(null); } void image; },
+    popClip() { clips.pop(); },
+    // a soft mask: what defines it draws nothing; what it masks is clipped by it (until its popClip)
+    beginMask() { maskDef++; }, endMask() { maskDef = Math.max(0, maskDef - 1); clips.push(null); },
+    beginGroup(_b: any, _cs: any, _iso: boolean, _ko: boolean, blend: string, alpha: number) { groups.push(alpha < 0.999 || (!!blend && blend !== 'Normal')); },
+    endGroup() { groups.pop(); },
+    fillShade() { seq++; },
+    fillPath(path: any, _eo: boolean, ctm: number[]) { try { const b = path.getBounds(null, ctm); drawn(b, false); thin(b); } catch { /* a path MuPDF cannot measure */ } },
     strokePath(path: any, stroke: any, ctm: number[]) {
       try {
-        if (thin(path.getBounds(stroke, ctm)) || budget <= 0) return;
+        const sb = path.getBounds(stroke, ctm); drawn(sb, true);
+        if (thin(sb) || budget <= 0) return;
         const lw = Math.max(0.3, (stroke.getLineWidth?.() || 1) * Math.hypot(ctm[0], ctm[1]));
         const xf = (x: number, y: number) => [x * ctm[0] + y * ctm[2] + ctm[4], x * ctm[1] + y * ctm[3] + ctm[5]];
         let sx = 0, sy = 0, px = 0, py = 0;
@@ -308,6 +374,14 @@ export function readRules(m: any, page: any): { h: Box[]; v: Box[]; shown: numbe
     },
   });
   try { page.run(dev, m.Matrix.identity); } finally { try { dev.close(); } catch { /* closed */ } dev.destroy?.(); }
+  // over a picture: a visible character, a path (not a frame stroked around it) or another picture drawn after it
+  for (const p of pics) {
+    const inner = { x0: p.vis.x0 + 1, y0: p.vis.y0 + 1, x1: p.vis.x1 - 1, y1: p.vis.y1 - 1 };
+    const cuts = (b: Box) => b.x0 < inner.x1 && b.x1 > inner.x0 && b.y0 < inner.y1 && b.y1 > inner.y0;
+    let over = pics.some((q) => q.seq > p.seq && cuts(q.vis)) || paths.some((q) => q.seq > p.seq && cuts(q) && !(q.stroke && q.x0 <= p.vis.x0 + 1 && q.y0 <= p.vis.y0 + 1 && q.x1 >= p.vis.x1 - 1 && q.y1 >= p.vis.y1 - 1));
+    for (let i = 0; i < pts.length && !over; i += 3) if (pts[i + 2] > p.seq && pts[i] > inner.x0 && pts[i] < inner.x1 && pts[i + 1] > inner.y0 && pts[i + 1] < inner.y1) over = true;
+    p.over = over;
+  }
   // pieces of one rule (Word draws a row's border cell by cell) become one
   const join = (rs: Box[], dir: 'h' | 'v') => {
     const s = [...rs].sort((p, q) => (dir === 'h' ? p.y0 - q.y0 || p.x0 - q.x0 : p.x0 - q.x0 || p.y0 - q.y0)), out: Box[] = [];
@@ -321,7 +395,29 @@ export function readRules(m: any, page: any): { h: Box[]; v: Box[]; shown: numbe
     }
     return out;
   };
-  return { h: join(h, 'h'), v: join(v, 'v'), shown, hidden };
+  return { h: join(h, 'h'), v: join(v, 'v'), shown, hidden, pics, release: () => { for (const x of xo.values()) x.img.destroy?.(); } };
+}
+
+/** A picture's exact bytes: a JPEG in the PDF (grey or RGB, no Decode array, no mask) is copied byte for byte; any other
+ *  image is its own pixels, losslessly as PNG (colours of another space turned to RGB, which the reader shows). Null when
+ *  it cannot be done (a mask painted in a colour, an image without its object, a picture beyond the size limit). */
+export function picBytes(m: any, p: Pic, maxPixels: number): { bytes: Uint8Array; mime: 'image/jpeg' | 'image/png'; w: number; h: number } | null {
+  if (!p.x || p.mask || p.w * p.h > maxPixels || p.w > 16384 || p.h > 16384) return null;
+  const { img, o } = p.x;
+  try {
+    const none = (k: string) => { const v = o.get(k); return !v || v.isNull(); };
+    if (!none('SMask') || !none('Mask') || img.getImageMask()) return null;
+    const f = o.get('Filter'), names = f.isNull() ? [] : f.isArray() ? Array.from({ length: f.length }, (_, i) => f.get(i).asName()) : [f.asName()];
+    const comps = img.getNumberOfComponents();
+    if (names.length === 1 && (names[0] === 'DCTDecode' || names[0] === 'DCT') && (comps === 1 || comps === 3) && none('Decode')) {
+      const raw = o.readRawStream(), bytes = new Uint8Array(raw.asUint8Array()); raw.destroy?.();
+      if (bytes[0] === 0xff && bytes[1] === 0xd8) return { bytes, mime: 'image/jpeg', w: p.w, h: p.h };
+    }
+    let pix = img.toPixmap();
+    const cs = pix.getColorSpace();
+    if (cs && !cs.isRGB() && !cs.isGray()) { const rgb = pix.convertToColorSpace(m.ColorSpace.DeviceRGB, false); pix.destroy?.(); pix = rgb; }
+    try { return { bytes: new Uint8Array(pix.asPNG()), mime: 'image/png', w: pix.getWidth(), h: pix.getHeight() }; } finally { pix.destroy?.(); }
+  } catch { return null; }
 }
 
 /** Running headers / footers: lines near the top or bottom that repeat (digits ignored) on many pages, and bare page numbers. */
@@ -416,6 +512,9 @@ function mergeBoxes(boxes: Fig[], pad = 4): Fig[] {
   }
   return out;
 }
+
+/** Running text: a line of words (a column's, a paragraph's). */
+const running = (l: Line) => l.frags.length === 1 && l.text.length >= 40 && (l.text.match(/\p{L}{2,}/gu) || []).length >= 5;
 
 /** Rows of lines: the lines on one baseline. */
 function rowsOf(lines: Line[]): Line[][] {
@@ -555,7 +654,7 @@ function outlineToc(doc: any, fileOf: (page: number) => string | null): TocItem[
 
 async function appEngines(): Promise<EpubEngines> {
   const [m, tc, ip, { encodeImg }] = await Promise.all([mupdf(), textcore(), imgprocDirect(), import('./imgio')]);
-  return { m, tc, ip, jpeg: async (img, grey) => new Uint8Array(await (await encodeImg(img, 'jpeg', 80, grey ? { color_space: 1 } : {})).arrayBuffer()) };
+  return { m, tc, ip, jpeg: async (img, grey, quality) => new Uint8Array(await (await encodeImg(img, 'jpeg', quality ?? 80, grey ? { color_space: 1 } : {})).arrayBuffer()) };
 }
 
 /** Pictures larger than this many pixels (or 16,384 a side) are drawn smaller: they are for an e-reader's screen. */
@@ -593,18 +692,22 @@ export async function pdfToEpub(doc: any, o: EpubOptions, onProgress?: (done: nu
   const repeatMin = Math.max(2, Math.ceil(pages.length * 0.4));
   const files: Record<string, any> = {}, report: PageReport[] = [], manifest: string[] = [], spine: string[] = [], toc: TocItem[] = [], fileOfPage = new Map<number, string>();
   let imgNo = 0;
-  const addImage = async (img: Img, attrs = 'alt=""') => {
-    const bytes = await jpeg(o.grey ? ip.grayscale(img) : img, o.grey);
-    alive();
-    const name = `images/i${String(++imgNo).padStart(4, '0')}.jpg`;
-    files[`OEBPS/${name}`] = [bytes, { level: 0 }]; manifest.push(`<item id="img${imgNo}" href="${name}" media-type="image/jpeg"/>`);
+  const addFile = (bytes: Uint8Array, mime: 'image/jpeg' | 'image/png', attrs: string) => {
+    const name = `images/i${String(++imgNo).padStart(4, '0')}.${mime === 'image/png' ? 'png' : 'jpg'}`;
+    files[`OEBPS/${name}`] = [bytes, { level: 0 }]; manifest.push(`<item id="img${imgNo}" href="${name}" media-type="${mime}"/>`);
     return `<img src="${name}" ${attrs}/>`;
+  };
+  /** a drawing of ours (a formula, a table, a vector figure): greyscale when chosen; a picture of the PDF keeps its colours */
+  const addImage = async (img: Img, attrs = 'alt=""', colour = false, quality?: number) => {
+    const grey = o.grey && !colour, bytes = await jpeg(grey ? ip.grayscale(img) : img, grey, quality);
+    alive();
+    return addFile(bytes, 'image/jpeg', attrs);
   };
   for (const [k, pg] of pages.entries()) {
     onProgress?.(k, pages.length, 'pages');
     const headers = pg.lines.filter((l) => isHeader(l, pg.H)), lines = pg.lines.filter((l) => !isHeader(l, pg.H)), dl = pg.p.toDisplayList();
     // MuPDF draws a part of the page (in points) at `sc` pixels per point, within MAX_PIXELS
-    const draw = (r: Fig, sc: number): Img => {
+    const drawPix = (r: Fig, sc: number): any => {
       const w = Math.max(1, r.x1 - r.x0), h = Math.max(1, r.y1 - r.y0);
       sc = Math.min(sc, 16384 / w, 16384 / h, Math.sqrt(MAX_PIXELS / (w * h)));
       const x0 = Math.floor(r.x0 * sc), y0 = Math.floor(r.y0 * sc), b = [x0, y0, x0 + Math.max(1, Math.round(w * sc)), y0 + Math.max(1, Math.round(h * sc))];
@@ -613,29 +716,57 @@ export async function pdfToEpub(doc: any, o: EpubOptions, onProgress?: (done: nu
         pix.clear(255);
         const dev = new m.DrawDevice(m.Matrix.identity, pix);
         try { dl.run(dev, m.Matrix.scale(sc, sc)); dev.close(); } finally { dev.destroy?.(); }
-        return ip.expand(pix.getPixels(), pix.getWidth(), pix.getHeight(), pix.getNumberOfComponents());
-      } finally { pix.destroy?.(); }
+        return pix;
+      } catch (e) { pix.destroy?.(); throw e; }
     };
+    const draw = (r: Fig, sc: number): Img => { const pix = drawPix(r, sc); try { return ip.expand(pix.getPixels(), pix.getWidth(), pix.getHeight(), pix.getNumberOfComponents()); } finally { pix.destroy?.(); } };
+    const drawPNG = (r: Fig, sc: number): Uint8Array => { const pix = drawPix(r, sc); try { return new Uint8Array(pix.asPNG()); } finally { pix.destroy?.(); } };
     const pageNo = pg.i + 1, file = `p${String(pageNo).padStart(4, '0')}.xhtml`, page = { x0: 0, y0: 0, x1: pg.W, y1: pg.H };
     let html = '', rep: PageReport;
     const coverage = pg.images.reduce((a, b) => Math.max(a, ((b.x1 - b.x0) * (b.y1 - b.y0)) / (pg.W * pg.H)), 0);
     const vText = pg.vertical.reduce((a, l) => a + l.text.length, 0), hText = lines.reduce((a, l) => a + l.text.length, 0);
     const blank = { columns: 0, parts: 0, figures: 0, tables: 0, equations: 0 };
-    // what the page draws: its ruled lines, and how much of its text is visible
-    const rl = readRules(m, pg.p);
-    if (pg.images.length && rl.hidden > 0 && rl.hidden >= 0.8 * (rl.hidden + rl.shown)) {
+    // what the page draws: its ruled lines, its pictures, and how much of its text is visible
+    const rl = readRules(m, pg.p, doc), pics = rl.pics.map((p) => ({ ...p, vis: meet(p.vis, page) })).filter((p) => p.vis.x1 - p.vis.x0 > 0.1 && p.vis.y1 - p.vis.y0 > 0.1);
+    const meetArea = (a: Box, b: Box) => Math.max(0, Math.min(a.x1, b.x1) - Math.max(a.x0, b.x0)) * Math.max(0, Math.min(a.y1, b.y1) - Math.max(a.y0, b.y0));
+    /** a region as a picture. Pictures of the PDF in it keep their colours and their own resolution (never less than the
+     *  screen's), losslessly as PNG when none of them is a JPEG (the owner's strict rule, 21 Nov 2026: "preserve all original
+     *  images exactly") */
+    const region = async (r: Fig, sc: number, attrs: string): Promise<string> => {
+      const ps = pics.filter((p) => meetArea(p.vis, r) > 0.25 * area(p.vis));
+      if (!ps.length) return addImage(draw(r, sc), attrs);
+      const native = Math.max(sc, ...ps.map((p) => Math.max(p.w / Math.max(0.5, p.x1 - p.x0), p.h / Math.max(0.5, p.y1 - p.y0))));
+      if (ps.every((p) => !p.lossy)) { const png = drawPNG(r, native); alive(); return addFile(png, 'image/png', attrs); }
+      return addImage(draw(r, native), attrs, true, 92);
+    };
+    /** one picture of the PDF exactly as it is (its own bytes) when nothing is drawn over it; else its region */
+    const exact = async (p: Pic & { vis: Box }, r: Fig, sc: number, attrs: string, force = false): Promise<string> => {
+      const b = (force || (p.plain && !p.over)) ? picBytes(m, p, MAX_PIXELS) : null;
+      return b ? addFile(b.bytes, b.mime, attrs) : region(r, sc, attrs);
+    };
+    /** the page as a picture: the one picture that fills it exactly as it is (its own bytes), and what visible text the page
+     *  has after it as text (a caption on a photo); else the page drawn */
+    const wholePage = async (attrs: string, text: Line[]): Promise<string> => {
+      const big = pics.filter((p) => area(p.vis) >= 0.9 * pg.W * pg.H);
+      if (big.length === 1 && pics.length === 1) {
+        const b = picBytes(m, big[0], MAX_PIXELS);
+        if (b) return `<div class="fig full">${addFile(b.bytes, b.mime, `${attrs} style="width:100%"`)}</div>${text.length ? `\n${toHtml(text, text[0].size, 0)}` : ''}`;
+      }
+      return `<div class="fig full">${await region(page, o.width / pg.W, `${attrs} style="width:100%"`)}</div>`;
+    };
+    if (pics.length && rl.hidden > 0 && rl.hidden >= 0.8 * (rl.hidden + rl.shown)) {
       // a scanned page: its text is someone's OCR set invisible over the picture — the page stays its picture and the OCR
       // text is not used (owner, 21 Nov 2026: "maintain original images as images … Don't do OCR of any sort. If in the
       // original PDF it's an image, preserve it as an image in the new EPUB")
-      html = `<div class="fig full">${await addImage(draw(page, o.width / pg.W), 'alt="page"')}</div>`;
+      html = await wholePage('alt="page"', []);
       rep = { page: pageNo, ...blank, how: 'image', note: 'scanned page — kept as its picture' };
     } else if (vText > hText) {
       // most of the text runs up or down the page (a table turned on its side): the page as a picture
-      html = `<div class="fig full">${await addImage(draw(page, o.width / pg.W))}</div>`;
+      html = `<div class="fig full">${await region(page, o.width / pg.W, 'alt="page" style="width:100%"')}</div>`;
       rep = { page: pageNo, ...blank, how: 'image', note: 'text turned sideways' };
     } else if (lines.length < 2 && (coverage > 0.5 || !lines.length)) {
       // scanned page without a text layer, or an empty page: the page as a picture
-      html = `<div class="fig full">${await addImage(draw(page, o.width / pg.W))}</div>`;
+      html = await wholePage('alt="page"', lines);
       rep = { page: pageNo, ...blank, how: 'image', note: lines.length ? undefined : 'no text layer' };
     } else {
       // a small drawing of the page: where the ink is
@@ -669,18 +800,23 @@ export async function pdfToEpub(doc: any, o: EpubOptions, onProgress?: (done: nu
         }
         return dark > 0.004 * (x1 - x0) * (y1 - y0) + 12;
       };
-      let tables = ruledTables(hr, vr, lines, pg.W).filter((t) => !drawnIn(t) && !pg.images.some((im) => area(im) > 0 && Math.min(im.x1, t.x1) - Math.max(im.x0, t.x0) > 0 && Math.min(im.y1, t.y1) - Math.max(im.y0, t.y0) > 0.3 * (t.y1 - t.y0)));
+      let tables = ruledTables(hr, vr, lines, pg.W).filter((t) => !drawnIn(t) && !pics.some(({ vis: im }) => area(im) > 0 && Math.min(im.x1, t.x1) - Math.max(im.x0, t.x0) > 0 && Math.min(im.y1, t.y1) - Math.max(im.y0, t.y0) > 0.3 * (t.y1 - t.y0)));
       const inTable = (b: Box) => tables.some((t) => centreIn(b, t, 1));
-      // figures: raster images — every one is kept as a picture (owner, 21 Nov 2026), except a picture behind a whole page
-      // of visible text (a slide's background: drawn as a figure it would carry the page's text a second time) and a logo
-      // repeated in the running
-      // header / footer) + vector drawings found as ink outside the text (every line's ink is text — also of the running
-      // headers left out, or their ink would come back as a "figure"), minus rules (a footnote's, a table's)
+      // figures: every picture of the PDF — the owner's strict rule (21 Nov 2026: "Don't drop any images from the original
+      // page at all … preserve all original images exactly"): whatever its size, also a logo repeated in the running header
+      // or footer, also one that fills the page — + drawings found as ink outside the text and outside the pictures (every
+      // line's ink is text — also of the running headers left out, or their ink would come back as a "figure"), minus rules
+      // (a footnote's, a table's)
       const skip = [...pg.lines, ...pg.vertical, ...tables].map((l) => [l.x0 * sx - 2, l.y0 * sy - 2, (l.x1 - l.x0) * sx + 4, (l.y1 - l.y0) * sy + 4] as [number, number, number, number]);
       const ink = ip.inkRegions(small, skip, { thr: 215, dil: 7, minArea: Math.round(36 * 36 * sx * sy) }).filter((r) => r.w > 4 && r.h > 4).map((r) => ({ x0: r.x / sx, y0: r.y / sy, x1: (r.x + r.w) / sx, y1: (r.y + r.h) / sy }));
       const decoration = (f: Fig) => o.removeHeaders && band(f) && ((imageCount.get(imageKey(f)) || 0) >= repeatMin || headers.some((l) => Math.min(l.y1, f.y1) - Math.max(l.y0, f.y0) > 0));
-      const behindText = (b: Box) => area(b) >= 0.7 * pg.W * pg.H && lines.reduce((k, l) => k + (centreIn(l, b, 1) ? l.chars : 0), 0) >= 200;
-      let figs = mergeBoxes([...pg.images.filter((b) => !behindText(b)), ...ink].filter((f) => f.x1 - f.x0 >= 24 && f.y1 - f.y0 >= 18 && !decoration(f) && !inTable(f)));
+      // a picture with running text over it (a slide's background) stands before the page's text exactly as it is, and the
+      // text is read as text
+      const backdrops = pics.filter((p) => area(p.vis) >= 0.3 * pg.W * pg.H && lines.some((l) => running(l) && centreIn(l, p.vis, 1)));
+      const shown = pics.filter((p) => !backdrops.includes(p)).map((p) => ({ x0: p.vis.x0, y0: p.vis.y0, x1: p.vis.x1, y1: p.vis.y1 }));
+      // a picture's own ink is no drawing (it would widen its figure)
+      const drawings = ink.filter((f) => f.x1 - f.x0 >= 24 && f.y1 - f.y0 >= 18 && !decoration(f) && !pics.some((p) => meetArea(f, { x0: p.vis.x0 - 6, y0: p.vis.y0 - 6, x1: p.vis.x1 + 6, y1: p.vis.y1 + 6 }) >= 0.9 * area(f)));
+      let figs = mergeBoxes([...shown, ...drawings].filter((f) => !inTable(f)));
       // lines inside a figure (labels in a diagram) and short lines touching it belong to the figure
       const label = (l: Line, f: Fig) => inside(l, f, 1) || (touches(l, f, 6) && l.text.length <= 40 && l.x1 - l.x0 <= 0.6 * (f.x1 - f.x0) && !/^(fig(ure)?|table|tab\.)\s*\d/i.test(l.text));
       for (let again = true; again;) {
@@ -716,7 +852,6 @@ export async function pdfToEpub(doc: any, o: EpubOptions, onProgress?: (done: nu
       const body = [...bySize].sort((a, b) => b[1] - a[1] || a[0] - b[0])[0]?.[0] || 10;
       // running text: a line of words (a column's, a paragraph's); maths: a line mostly in a maths font, or without text (a
       // formula)
-      const running = (l: Line) => l.frags.length === 1 && l.text.length >= 40 && (l.text.match(/\p{L}{2,}/gu) || []).length >= 5;
       const mathy = (l: Line) => (l.math >= 0.5 * l.chars && l.math >= 2) || (l.runs.length > 0 && l.runs.every((r) => 'pic' in r || !/\p{L}{2}/u.test(r.t)) && l.runs.some((r) => 'pic' in r));
       // a contents page: page numbers flush right (three or more sharing their right edge) belong to the entry on their
       // row — on their own they made a narrow column, a "part" of 3, 4, 5, 7 … (test_2, 21 Nov 2026)
@@ -865,7 +1000,7 @@ export async function pdfToEpub(doc: any, o: EpubOptions, onProgress?: (done: nu
       for (const r of hr) {
         if (inTable(r) || inFig(r) || eqs.some((e) => touches(e.f, r, 1)) || r.x1 - r.x0 < 30 || r.x1 - r.x0 > 0.5 * pg.W || r.y0 < pg.H * 0.4) continue;
         if (rest.some((l) => l.y0 - 2 <= r.y1 && l.y1 + 2 >= r.y0 && l.x0 <= r.x1 && l.x1 >= r.x0)) continue;   // a rule in a line: an underline
-        if (hrs.some((h) => Math.abs(h.f.y0 - r.y0) <= 6)) continue;                                            // drawn twice (a glyph line over a rule)
+        if (hrs.some((h) => (r.y0 + r.y1) / 2 >= h.f.y0 - 1 && (r.y0 + r.y1) / 2 <= h.f.y1 + 1 && Math.min(r.x1, h.f.x1) - Math.max(r.x0, h.f.x0) > 0.5 * (r.x1 - r.x0))) continue; // drawn twice: a rule inside a line of rule glyphs (AJUR)
         if (rest.some((l) => l.y0 >= r.y1 && l.y0 - r.y1 <= 18 && Math.abs(l.x0 - r.x0) <= 12)) hrs.push({ kind: 'hr', f: r });
       }
       const items: Item[] = [
@@ -902,7 +1037,8 @@ export async function pdfToEpub(doc: any, o: EpubOptions, onProgress?: (done: nu
       // figures, tables and equations are drawn so that a column is as wide as the e-reader's screen
       const scale = Math.min(o.width / colW, (3 * o.width) / pg.W);
       // (a figure wider than a column — across the page — is drawn as wide as the screen, not wider)
-      const crop = (f: Fig) => { const b = { x0: Math.max(0, f.x0), y0: Math.max(0, f.y0), x1: Math.min(pg.W, f.x1), y1: Math.min(pg.H, f.y1) }; return draw(b, Math.min(scale, o.width / Math.max(1, b.x1 - b.x0))); };
+      const clampBox = (f: Fig) => ({ x0: Math.max(0, f.x0), y0: Math.max(0, f.y0), x1: Math.min(pg.W, f.x1), y1: Math.min(pg.H, f.y1) });
+      const crop = (f: Fig, attrs: string) => { const b = clampBox(f); return region(b, Math.min(scale, o.width / Math.max(1, b.x1 - b.x0)), attrs); };
       // a formula in a line: drawn about 56 px to the em on a Paperwhite, set in the line at the text's size
       const pxEm = o.width / 22;
       const inline = async (l: Line) => {
@@ -923,7 +1059,7 @@ export async function pdfToEpub(doc: any, o: EpubOptions, onProgress?: (done: nu
         if (o.mode === 'columns' || (chars && bad > 0.5 * chars)) {
           // the part as one picture (chosen, or most of its text cannot be read)
           const b = s.items.map(boxOf);
-          parts.push(`<div class="fig">${await addImage(crop({ x0: Math.min(...b.map((x) => x.x0)) - 2, y0: Math.min(...b.map((x) => x.y0)) - 2, x1: Math.max(...b.map((x) => x.x1)) + 2, y1: Math.max(...b.map((x) => x.y1)) + 2 }))}</div>`);
+          parts.push(`<div class="fig">${await crop({ x0: Math.min(...b.map((x) => x.x0)) - 2, y0: Math.min(...b.map((x) => x.y0)) - 2, x1: Math.max(...b.map((x) => x.x1)) + 2, y1: Math.max(...b.map((x) => x.y1)) + 2 }, 'alt=""')}</div>`);
           continue;
         }
         // text as text (formulas in its lines as small pictures); a figure, a table, an equation as a picture
@@ -936,18 +1072,30 @@ export async function pdfToEpub(doc: any, o: EpubOptions, onProgress?: (done: nu
           const pad = it.kind === 'fig' ? { x: 3, y: 3 } : { x: 2, y: 1.5 }, f = it.f;
           // an equation or a table is set at the size of the text around it (in em: it grows with the reader's font)
           const em = it.kind === 'fig' ? '' : ` style="width:${((f.x1 - f.x0 + 2 * pad.x) / body).toFixed(2)}em;max-width:100%;height:auto"`;
-          const img = await addImage(crop({ x0: f.x0 - pad.x, y0: f.y0 - pad.y, x1: f.x1 + pad.x, y1: f.y1 + pad.y }), `alt="${it.kind === 'table' ? 'table' : it.kind === 'eq' ? 'equation' : 'figure'}"${em}`);
+          const box = { x0: f.x0 - pad.x, y0: f.y0 - pad.y, x1: f.x1 + pad.x, y1: f.y1 + pad.y };
+          let img: string;
+          if (it.kind === 'fig') {
+            // a figure is as wide on the screen as it is in its column; a figure that is one picture of the PDF and nothing
+            // else is that picture's own bytes (the strict rule)
+            const attrs = `alt="figure" style="width:${Math.min(100, ((f.x1 - f.x0) / colW) * 100).toFixed(1)}%"`;
+            const ps = pics.filter((p) => meetArea(p.vis, f) > 0.5 * area(p.vis));
+            const one = ps.length === 1 && Math.abs(ps[0].vis.x0 - f.x0) <= 1.5 && Math.abs(ps[0].vis.y0 - f.y0) <= 1.5 && Math.abs(ps[0].vis.x1 - f.x1) <= 1.5 && Math.abs(ps[0].vis.y1 - f.y1) <= 1.5 ? ps[0] : null;
+            const b = clampBox(box), sc = Math.min(scale, o.width / Math.max(1, b.x1 - b.x0));
+            img = one ? await exact(one, b, sc, attrs) : await region(b, sc, attrs);
+          } else img = await crop(box, `alt="${it.kind === 'table' ? 'table' : 'equation'}"${em}`);
           parts.push(`<div class="fig${it.kind === 'table' ? ' tbl' : ''}">${img}</div>`);
           if (it.kind === 'eq' && it.label) parts.push(`<p class="eqno">${esc(it.label.trim())}</p>`);
         }
         await emit();
       }
+      // a picture under the page's running text (a slide's background): first, exactly as it is
+      for (const b of [...backdrops].reverse()) parts.unshift(`<div class="fig full">${await exact(b, b.vis, o.width / pg.W, 'alt="picture" style="width:100%"', true)}</div>`);
       // text in the margin that runs up or down the page (kept only when running headers are kept)
       if (!o.removeHeaders && pg.vertical.length) parts.push(...pg.vertical.map((l) => `<p class="margin">${esc(l.text)}</p>`));
       html = parts.join('\n');
-      rep = { page: pageNo, columns: columns > 1 ? columns : 0, parts: sided ? partNo : 0, figures: figs.length, tables: tables.length, equations: eqs.length, how: o.mode === 'columns' ? 'columns' : 'text' };
+      rep = { page: pageNo, columns: columns > 1 ? columns : 0, parts: sided ? partNo : 0, figures: figs.length + backdrops.length, tables: tables.length, equations: eqs.length, how: o.mode === 'columns' ? 'columns' : 'text' };
     }
-    dl.destroy?.();
+    dl.destroy?.(); rl.release();
     report.push(rep);
     const firstHeading = /<h[23]>([^<]{1,80})<\/h[23]>/.exec(html)?.[1];
     files[`OEBPS/${file}`] = strToU8(`<?xml version="1.0" encoding="utf-8"?>\n<!DOCTYPE html>\n<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops" lang="${lang}" xml:lang="${lang}"><head><meta charset="utf-8"/><title>Page ${pageNo}</title><link rel="stylesheet" type="text/css" href="style.css"/></head>\n<body><section class="page" id="page${pageNo}" epub:type="chapter"><p class="pgno">Page ${pageNo}</p>\n${html}\n</section></body></html>\n`);

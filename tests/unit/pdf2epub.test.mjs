@@ -86,7 +86,7 @@ export default async (t, { load, wasm }) => {
   t.ok(vb.report.length === 6 && vb.report.every((r) => r.how === 'image' && r.note === 'scanned page — kept as its picture'), `OCR'd scan: every page kept as its picture (${JSON.stringify(vb.report.map((r) => [r.how, r.note]))})`);
   t.ok(vb.pages.every((p) => (p.match(/<img /g) || []).length === 1 && /alt="page"/.test(p)), 'each scanned page is one picture of the whole page');
   t.ok(!/vicksburg|dangerous|quarters|siege/i.test(vb.pages.map(vb.plain).join(' ')), 'no word of the OCR layer is in the book');
-  t.ok(vb.drawn.length === 6 && vb.drawn.every((d) => d.w === 1236), `the pictures are as wide as the screen (${JSON.stringify(vb.drawn.map((d) => d.w))})`);
+  t.ok(vb.drawn.length === 6 && vb.drawn.every((d) => d.w >= 1236 && !d.grey), `each scan (a picture over a picture: drawn as the page shows them) in colour, at least as wide as the screen (${JSON.stringify(vb.drawn.map((d) => [d.w, d.grey]))})`);
 
   // ── generated PDFs ──────────────────────────────────────────────────────────────────────────────────────────────
   // pages: { box, rotate, content, fonts }; F1 Helvetica, F2 Helvetica-Bold
@@ -159,6 +159,11 @@ export default async (t, { load, wasm }) => {
   // a footnote's rule: a short rule with a note under it
   const fnr = await convert(mk([{ content: [para(72, 720, filler(8)), '0 g 72 140 110 0.5 re f', para(72, 128, ['1 A footnote that explains a word in the text above.'], 'F1', 8, 10)].join('\n') }]));
   t.ok(/<hr class="fn"\/>\s*<p>1 A footnote that explains/.test(fnr.pages[0]) && fnr.drawn.length === 0, 'a footnote\'s rule: a rule in the EPUB, not a picture');
+  // the separator drawn twice — a line of rule glyphs without a Unicode map and a rule inside its box (AJUR, 21 Nov 2026):
+  // one rule in the EPUB
+  const under = (d) => fontWith([['5F', 'FFFD']])(d);
+  const fn2 = await convert(mk([{ fonts: under, content: [para(72, 720, filler(8)), para(72, 146, ['__________________'], 'F3', 11), '0 g 72 145 110 0.6 re f', para(72, 128, ['1 A footnote that explains a word in the text above.'], 'F1', 8, 10)].join('\n') }]));
+  t.ok((fn2.pages[0].match(/<hr class="fn"\/>/g) || []).length === 1 && /<p>1 A footnote that explains/.test(fn2.pages[0]), `a separator drawn as glyphs and as a rule: one rule (${(fn2.pages[0].match(/<hr[^>]*>|<img[^>]*>/g) || []).join(' ')})`);
   // a logo in the running footer of every page (beside the footer text): left out with it
   const logo = await convert(mk([1, 2, 3].map((k) => ({ content: [para(72, 720, filler(6)), '0 g 72 40 40 22 re f', para(120, 46, [`Volume 13 | Issue 1 | January 2016   ${k}`], 'F1', 9)].join('\n') }))));
   t.ok(logo.drawn.length === 0 && !/Volume 13/.test(logo.pages.join('')), `a logo in the running footer is left out with the footer (${logo.drawn.length} pictures)`);
@@ -212,10 +217,31 @@ export default async (t, { load, wasm }) => {
   // visible text (a slide's background) is no figure; a scan under invisible OCR text (3 Tr) is the page's picture
   const picture = (light) => (d) => { const px = new m.Pixmap(m.ColorSpace.DeviceRGB, [0, 0, 120, 160], false); const b = px.getPixels(); for (let i = 0; i < b.length; i += 3) { const k = i / 3, x = k % 120, y = Math.floor(k / 120); b[i] = light ? 236 + (x % 16) : (x * 2) & 255; b[i + 1] = light ? 236 + (y % 16) : (y * 3) & 255; b[i + 2] = light ? 240 : 90; } return { XObject: { Im0: d.addImage(new m.Image(px)) } }; };
   const photo = picture(false);
+  // (the owner's strict rule, 21 Nov 2026: "Don't drop any images from the original page at all … preserve all original
+  // images exactly" — a picture of the PDF is its own bytes: a JPEG byte for byte, another image its own pixels as PNG)
+  const imgs = (e) => Object.entries(e.z).filter(([k]) => /^OEBPS\/images\//.test(k)).map(([k, v]) => ({ k, v, png: k.endsWith('.png'), w: k.endsWith('.png') ? Buffer.from(v).readUInt32BE(16) : 0, h: k.endsWith('.png') ? Buffer.from(v).readUInt32BE(20) : 0 }));
   const capt = await convert(mk([{ res: photo, content: ['q 612 0 0 792 0 0 cm /Im0 Do Q', para(72, 40, ['Harbour at dawn, 1921.'])].join('\n') }]));
-  t.ok(capt.drawn.length === 1 && capt.drawn[0].h > 1.2 * capt.drawn[0].w && capt.drawn[0].dark > 0.3 * capt.drawn[0].w * capt.drawn[0].h, `a photo filling the page, with a caption on it: kept as a picture (${JSON.stringify(capt.report[0])}, ${JSON.stringify(capt.drawn)})`);
-  const slide = await convert(mk([{ res: picture(true), content: ['q 612 0 0 792 0 0 cm /Im0 Do Q', para(72, 700, filler(8))].join('\n') }]));
-  t.ok(slide.report[0].figures === 0 && /w0x0 w0x1/.test(slide.pages[0]), `a light picture behind a page of visible text (a slide's background): no figure, the text reflowed (${JSON.stringify(slide.report[0])})`);
+  const ci = imgs(capt);
+  t.ok(ci.length === 1 && ci[0].png && ci[0].w === 120 && ci[0].h === 160 && capt.drawn.length === 0, `a photo filling the page: the photo itself, its own 120 × 160 pixels (${JSON.stringify(ci.map((x) => [x.k, x.w, x.h]))})`);
+  t.ok(/<p>Harbour at dawn, 1921\.<\/p>/.test(capt.pages[0]) && capt.pages[0].indexOf('<img') < capt.pages[0].indexOf('Harbour'), 'and its caption after it as text');
+  const sentences = Array.from({ length: 8 }, (_, i) => `Line ${i + 1} of the slide says what the speaker will talk about next.`);
+  const slide = await convert(mk([{ res: picture(true), content: ['q 612 0 0 792 0 0 cm /Im0 Do Q', para(72, 700, sentences)].join('\n') }]));
+  const si = imgs(slide);
+  t.ok(si.length === 1 && si[0].w === 120 && /Line 1 of the slide says/.test(slide.pages[0]) && slide.pages[0].indexOf('<img') < slide.pages[0].indexOf('Line 1 of'), `a picture under a page of visible text (a slide's background): the picture first, exactly, then the text as text (${JSON.stringify(slide.report[0])})`);
+  // a JPEG figure on a page of text: copied byte for byte (also with greyscale chosen); with a label drawn over it, the
+  // region as the page shows it — in colour, at the picture's own resolution
+  const jpg = (d) => ({ XObject: { J: d.addImage(new m.Image(JPEG)) } });
+  const jw = new m.Image(JPEG).getWidth();
+  const fig = await convert(mk([{ res: jpg, content: [para(72, 740, filler(3)), 'q 300 0 0 200 150 450 cm /J Do Q', para(72, 400, filler(3))].join('\n') }]), { grey: true });
+  const fi = imgs(fig);
+  t.ok(fi.length === 1 && !fi[0].png && Buffer.compare(Buffer.from(fi[0].v), Buffer.from(fig.z[fi[0].k])) === 0 && Buffer.from(fi[0].v).equals(Buffer.from(JPEG)), `a JPEG figure is the JPEG of the PDF, byte for byte (${fi.map((x) => x.k)}, ${fi[0] && fi[0].v.length} of ${JPEG.length} bytes)`);
+  t.ok(fig.report[0].figures === 1 && /alt="figure" style="width:\d/.test(fig.pages[0]), 'it is a figure, as wide on the screen as in its column');
+  const lab = await convert(mk([{ res: jpg, content: [para(72, 740, filler(3)), 'q 300 0 0 200 150 450 cm /J Do Q', 'BT /F1 14 Tf 200 540 Td (Label) Tj ET', para(72, 400, filler(3))].join('\n') }]), { grey: true });
+  t.ok(lab.drawn.length === 1 && !lab.drawn[0].grey && lab.drawn[0].w >= jw, `a picture with a label over it: drawn as the page shows it, in colour, at least its own width (${JSON.stringify(lab.drawn)}, the picture ${jw} px)`);
+  // a tiny picture and a logo repeated in every footer are kept
+  const footLogo = (d) => ({ XObject: { L: d.addImage(new m.Image(JPEG)) } });
+  const lp = await convert(mk([1, 2, 3].map((k) => ({ res: footLogo, content: [para(72, 700, filler(4)), `q 20 0 0 14 290 24 cm /L Do Q`, `q 8 0 0 8 500 600 cm /L Do Q`, para(72, 500, [`page ${k} text goes on here`])].join('\n') }))));
+  t.ok(lp.report.every((r) => r.figures >= 2) && lp.pages.every((p) => (p.match(/<img /g) || []).length >= 2), `a logo in the footer of every page and a picture of 8 × 8 pt: kept on every page (${JSON.stringify(lp.report.map((r) => r.figures))})`);
   const ocr = await convert(mk([{ res: photo, content: ['q 612 0 0 792 0 0 cm /Im0 Do Q', 'BT 3 Tr /F1 11 Tf 72 700 Td (Hidden words of an OCR layer read here) Tj 0 -14 Td (and more of them on the next line) Tj ET'].join('\n') }]));
   t.ok(ocr.report[0].how === 'image' && ocr.report[0].note === 'scanned page — kept as its picture' && !/Hidden|OCR/.test(ocr.plain(ocr.pages[0])), `a scan under invisible text: the page's picture, the OCR text not used (${JSON.stringify(ocr.report[0])})`);
   const shownText = await convert(mk([{ content: ['BT 3 Tr /F1 11 Tf 72 700 Td (A word set invisible) Tj ET', para(72, 650, filler(4))].join('\n') }]));
