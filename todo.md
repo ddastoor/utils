@@ -70,9 +70,12 @@ The owner adds items here in chat ("add … to to do"). Newest instructions win.
     capital letters are hex digits, so the $ names are put in by our glue before bc sees the line, never as bc
     variables); `$name = expression` names a row yourself (a letter first, then letters, digits, _; case-insensitive),
     and the automatic names skip any name taken; any change of an existing $ name (`=`, `+=`, `++` …) is refused with
-    what it holds. To settle with the owner: a row that prints several values (one name each, or the last); bc's own
-    lowercase variables, which loops and `define` functions need, stay as bc has them. Engine unchanged (BusyBox's bc in
-    WebAssembly); the names are TypeScript glue in `src/tools/bc-console.ts`, its suite `tests/e2e/bc-console.e2e.mjs`.
+    what it holds. Owner, 21 Nov 2026 (answer): "when the user presses enter, you get only one value on a new row … So
+    that value will get a new variable name … variable name should be case insensitive, so it doesn't matter if the user
+    changes the case of the already existing variable, the value should be the same" — so every result row gets the next
+    name ($a and $A are one variable with one value). bc's own plain lowercase names, which its loops and `define`
+    functions use, work as in bc. Engine unchanged (BusyBox's bc in WebAssembly); the names are TypeScript glue in
+    `src/tools/bc-console.ts`, its suite `tests/e2e/bc-console.e2e.mjs`.
 
 ## Done
 - **2. FFmpeg tab: buttons for more popular jobs** (owner, 20 Nov 2026: "add all the popular new jobs for FFmpeg that don't have buttons yet … search for more out there … and add it") — done 20 Nov 2026: 21 new jobs (39 in all, in eight groups of a task list; no command line needed): the owner's six (join clips; subtitles burn in / add as a track / extract; logo or text on a video; volume; reverse; picture at a chosen moment) and fifteen popular uses found on the web (fades, fit to a shape with a blurred background or bars, remove silence, picture-in-picture, loop / boomerang, stabilise, clean up grain, contact sheet, timelapse, split into parts, sound settings, colours / black and white, cut a part out, background music, deinterlace; sources in docs/BUGHUNT.md). `src/lib/ffjobs.ts`, `src/tools/ffmpeg.ts`; unit `ffjobs.test.mjs` 110 (native FFmpeg 6.1), e2e `ffmpeg.e2e.mjs` 68. Found on the way: the core's JPEG encoder crashed the page (every JPEG is MozJPEG's now).
