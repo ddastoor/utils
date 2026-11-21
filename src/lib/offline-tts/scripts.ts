@@ -1,0 +1,168 @@
+// The scripts of the Text-to-Speech tab's offline mode (owner, 21 Nov 2026: "I intend that this runs entirely from the
+// user's PC, not in the browser … find out whether this operating system is Linux or Windows, and appropriately download
+// whatever is needed"). One file per system — a .cmd for Windows (double-click; PowerShell inside) and a .sh for Linux —
+// that keeps everything in one folder (SuperTools-TTS in the home folder): uv (Astral's Python manager, from PyPI,
+// SHA-256 checked) fetches Python and the speech engines; the engines fetch the chosen models from Hugging Face at pinned
+// revisions; driver.py (the same on both systems) makes one WAV and one MP3 per voice. The page itself fetches nothing.
+// The text, the job and driver.py are carried as Base64 (any character is safe, and the .cmd file stays ASCII).
+
+/** uv, from its wheels on PyPI (a wheel is a zip; the program is inside it). */
+export const UV = {
+  version: '0.13.9',
+  linux: {
+    x86_64: { url: 'https://files.pythonhosted.org/packages/3d/aa/26d64642d808de4a652579ef950d7cd2d37f080a8babf9c67c6b75fc4c3f/uv-0.13.9-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl', sha256: 'd7f459fe4fd247d830351c75686d3996ace3c6f3f728eb0e85a30b7ada0cef19', mb: 17.6 },
+    aarch64: { url: 'https://files.pythonhosted.org/packages/57/15/94b6cd62ac3ff6550288328e8035288875197cbc183f51554b266a69877b/uv-0.13.9-py3-none-manylinux_2_17_aarch64.manylinux2014_aarch64.musllinux_1_1_aarch64.whl', sha256: '5435c5ce14a56431208ca0996416d310f1598e8c2c8ba707688985a16bb82dbe', mb: 18.0 },
+  },
+  windows: {
+    AMD64: { url: 'https://files.pythonhosted.org/packages/dd/ef/ceeabf3631117f7354787d9fb1ffe943899e59ed4b887a696ed547e47e76/uv-0.13.9-py3-none-win_amd64.whl', sha256: '6a44b2ed8111d2f60d2b92627c5dccda3f7ed7570b18ce115e569cd68c28246b', mb: 15.7 },
+    ARM64: { url: 'https://files.pythonhosted.org/packages/da/d1/d97a5db1f27e077e4d6329223f6b3f719c02c97e4092043f13e628558d05/uv-0.13.9-py3-none-win_arm64.whl', sha256: 'eeb92051c2123b9730c46b04cc843cfa4bc7d7b0aec56df431a2215ef4cb0273', mb: 15.8 },
+  },
+  member: { linux: 'uv-0.13.9.data/scripts/uv', windows: 'uv-0.13.9.data/scripts/uv.exe' },
+} as const;
+/** The Python every engine runs on (uv downloads its own build: nothing is installed on the system). */
+export const PYTHON = '3.12';
+
+/** One engine's run: its packages (pinned) and a line for the person. */
+export interface EngineRun { engine: string; name: string; packages: string[]; voices: number }
+
+/** UTF-8 → Base64 (the browser's btoa takes Latin-1 only). */
+export function b64(s: string): string {
+  const u = new TextEncoder().encode(s);
+  let bin = '';
+  for (let i = 0; i < u.length; i += 0x8000) bin += String.fromCharCode(...u.subarray(i, i + 0x8000));
+  return btoa(bin);
+}
+const wrap = (s: string, n = 76) => s.replace(new RegExp(`(.{${n}})`, 'g'), '$1\n').replace(/\n$/, '');
+
+/** A package pin is a name, ==, a version and optional extras — nothing a shell would read otherwise. */
+const SAFE_PIN = /^[A-Za-z0-9._-]+(\[[A-Za-z0-9._,-]+\])?(==[A-Za-z0-9.+!_-]+)?$/;
+function withArgs(packages: string[]): string[] {
+  for (const p of packages) if (!SAFE_PIN.test(p)) throw new Error(`Not a package pin: ${p}`);
+  return packages.flatMap((p) => ['--with', p]);
+}
+const ascii = (s: string) => s.normalize('NFKD').replace(/[^\x20-\x7e]/g, '');
+
+export interface ScriptInput { job: object; driver: string; runs: EngineRun[]; made: string; site: string }
+
+/** Linux: bash, curl or wget, sha256sum; uv taken out of its wheel by python3, unzip or bsdtar (whichever is there). */
+export function linuxScript(o: ScriptInput): string {
+  const runs = o.runs.map((r) => [
+    `say ${shq(`${r.name}: ${r.voices} voice${r.voices > 1 ? 's' : ''}`)}`,
+    `"$DIR/bin/uv" run --quiet --python ${PYTHON} --no-project ${withArgs(r.packages).join(' ')} python "$DIR/driver.py" "$RUN/job.json" ${r.engine} "$RUN"`,
+  ].join('\n')).join('\n');
+  return `#!/usr/bin/env bash
+# SuperTools - offline speech for Linux. Made by ${o.site} on ${o.made}.
+# It runs entirely on this computer and keeps everything in one folder (~/SuperTools-TTS, or $SUPERTOOLS_TTS_DIR):
+#   bin/uv          uv ${UV.version} (Astral's Python manager, from PyPI, SHA-256 checked); it fetches Python and the engines
+#   models/         the voices you chose, from Hugging Face (fixed revisions)
+#   output/<time>/  one WAV and one MP3 per voice
+# Run it with:  bash <this file>     Run it again for another text: what is downloaded stays.
+# To remove everything, delete the folder.
+set -euo pipefail
+DIR="\${SUPERTOOLS_TTS_DIR:-$HOME/SuperTools-TTS}"
+mkdir -p "$DIR/bin" "$DIR/output"
+say() { printf '\\n== %s\\n' "$*"; }
+fetch() {
+  if command -v curl >/dev/null 2>&1; then curl -fL --retry 3 --progress-bar -o "$2" "$1"
+  elif command -v wget >/dev/null 2>&1; then wget -q --show-progress -O "$2" "$1"
+  else echo "Neither curl nor wget is installed: install one of them (sudo apt install curl) and run this again." >&2; exit 1; fi
+}
+if [ ! -x "$DIR/bin/uv" ]; then
+  case "$(uname -m)" in
+    x86_64|amd64) URL='${UV.linux.x86_64.url}'; SHA='${UV.linux.x86_64.sha256}' ;;
+    aarch64|arm64) URL='${UV.linux.aarch64.url}'; SHA='${UV.linux.aarch64.sha256}' ;;
+    *) echo "This computer's processor ($(uname -m)) is not one uv is made for." >&2; exit 1 ;;
+  esac
+  say 'Downloading uv ${UV.version} (about 18 MB)'
+  fetch "$URL" "$DIR/uv.whl"
+  if ! echo "$SHA  $DIR/uv.whl" | sha256sum -c --status -; then rm -f "$DIR/uv.whl"; echo "The download of uv is damaged (its SHA-256 does not match); run this again." >&2; exit 1; fi
+  if command -v python3 >/dev/null 2>&1; then python3 -c 'import sys, zipfile; open(sys.argv[2], "wb").write(zipfile.ZipFile(sys.argv[1]).read(sys.argv[3]))' "$DIR/uv.whl" "$DIR/bin/uv" '${UV.member.linux}'
+  elif command -v unzip >/dev/null 2>&1; then unzip -p "$DIR/uv.whl" '${UV.member.linux}' > "$DIR/bin/uv"
+  elif command -v bsdtar >/dev/null 2>&1; then bsdtar -xOf "$DIR/uv.whl" '${UV.member.linux}' > "$DIR/bin/uv"
+  else echo "Unpacking uv needs python3, unzip or bsdtar: install one of them (sudo apt install unzip) and run this again." >&2; exit 1; fi
+  chmod +x "$DIR/bin/uv"; rm -f "$DIR/uv.whl"
+fi
+# (settings already made in the environment are kept: UV_PYTHON_PREFERENCE=system uses a Python 3.12 of the system,
+# UV_TORCH_BACKEND=cu128 a given CUDA, HF_HUB_DISABLE_XET=0 Hugging Face's faster Xet downloads)
+export UV_CACHE_DIR="$DIR/cache/uv" UV_PYTHON_INSTALL_DIR="$DIR/python" UV_NO_CONFIG=1
+export UV_PYTHON_PREFERENCE="\${UV_PYTHON_PREFERENCE:-only-managed}" UV_TORCH_BACKEND="\${UV_TORCH_BACKEND:-auto}"
+export HF_HOME="$DIR/cache/huggingface" HF_HUB_DISABLE_XET="\${HF_HUB_DISABLE_XET:-1}" HF_HUB_DISABLE_TELEMETRY=1
+RUN="$DIR/output/$(date +%Y-%m-%d_%H%M%S)"
+mkdir -p "$RUN"
+base64 -d > "$DIR/driver.py" <<'SUPERTOOLS_DRIVER'
+${wrap(b64(o.driver))}
+SUPERTOOLS_DRIVER
+base64 -d > "$RUN/job.json" <<'SUPERTOOLS_JOB'
+${wrap(b64(JSON.stringify(o.job)))}
+SUPERTOOLS_JOB
+${runs}
+say "Done. The speech is in $RUN"
+if command -v xdg-open >/dev/null 2>&1; then xdg-open "$RUN" >/dev/null 2>&1 || true; fi
+`;
+}
+
+/** Windows: a .cmd file that runs the PowerShell under it (a hybrid: "<# :" is a label to cmd and opens a comment
+ *  in PowerShell). Windows PowerShell 5.1 is part of Windows 10 and 11; nothing else is needed. ASCII only. */
+export function windowsScript(o: ScriptInput): string {
+  const ps = (s: string) => `'${s.replace(/'/g, "''")}'`;
+  const runs = o.runs.map((r) => [
+    `Say ${ps(ascii(`${r.name}: ${r.voices} voice${r.voices > 1 ? 's' : ''}`))}`,
+    `& $uv run --quiet --python ${PYTHON} --no-project ${withArgs(r.packages).join(' ')} python "$Dir\\driver.py" "$Run\\job.json" ${r.engine} "$Run"`,
+    `if ($LASTEXITCODE -ne 0) { throw ${ps(ascii(`${r.name} stopped with an error.`))} + " (code $LASTEXITCODE)" }`,
+  ].join('\r\n')).join('\r\n');
+  const body = `<# : SuperTools - offline speech for Windows. Made by ${ascii(o.site)} on ${ascii(o.made)}. Double-click this file.
+@echo off
+setlocal
+set "SUPERTOOLS_SELF=%~f0"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "iex ([IO.File]::ReadAllText($env:SUPERTOOLS_SELF))"
+echo.
+pause
+exit /b
+#>
+# It runs entirely on this computer and keeps everything in one folder (SuperTools-TTS in your user folder):
+#   bin\\uv.exe      uv ${UV.version} (Astral's Python manager, from PyPI, SHA-256 checked); it fetches Python and the engines
+#   models\\         the voices you chose, from Hugging Face (fixed revisions)
+#   output\\<time>\\  one WAV and one MP3 per voice
+# Run it again for another text: what is downloaded stays. To remove everything, delete the folder.
+$ErrorActionPreference = 'Stop'
+$ProgressPreference = 'SilentlyContinue'
+[Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
+function Say($m) { Write-Host ''; Write-Host "== $m" -ForegroundColor Cyan }
+try {
+  $Dir = if ($env:SUPERTOOLS_TTS_DIR) { $env:SUPERTOOLS_TTS_DIR } else { Join-Path $env:USERPROFILE 'SuperTools-TTS' }
+  New-Item -ItemType Directory -Force -Path (Join-Path $Dir 'bin'), (Join-Path $Dir 'output') | Out-Null
+  $uv = Join-Path $Dir 'bin\\uv.exe'
+  if (-not (Test-Path -LiteralPath $uv)) {
+    if ($env:PROCESSOR_ARCHITECTURE -eq 'ARM64' -or $env:PROCESSOR_ARCHITEW6432 -eq 'ARM64') { $url = ${ps(UV.windows.ARM64.url)}; $sha = ${ps(UV.windows.ARM64.sha256)} }
+    else { $url = ${ps(UV.windows.AMD64.url)}; $sha = ${ps(UV.windows.AMD64.sha256)} }
+    Say 'Downloading uv ${UV.version} (about 16 MB)'
+    $whl = Join-Path $Dir 'uv.whl'
+    Invoke-WebRequest -Uri $url -OutFile $whl -UseBasicParsing
+    if ((Get-FileHash -Algorithm SHA256 -LiteralPath $whl).Hash -ne $sha) { Remove-Item -LiteralPath $whl; throw 'The download of uv is damaged (its SHA-256 does not match); run this again.' }
+    Add-Type -AssemblyName System.IO.Compression.FileSystem
+    $z = [IO.Compression.ZipFile]::OpenRead($whl)
+    try { $e = $z.Entries | Where-Object { $_.FullName -eq ${ps(UV.member.windows)} }; [IO.Compression.ZipFileExtensions]::ExtractToFile($e, $uv, $true) } finally { $z.Dispose() }
+    Remove-Item -LiteralPath $whl
+  }
+  $env:UV_CACHE_DIR = Join-Path $Dir 'cache\\uv'; $env:UV_PYTHON_INSTALL_DIR = Join-Path $Dir 'python'; $env:UV_NO_CONFIG = '1'
+  if (-not $env:UV_PYTHON_PREFERENCE) { $env:UV_PYTHON_PREFERENCE = 'only-managed' }
+  if (-not $env:UV_TORCH_BACKEND) { $env:UV_TORCH_BACKEND = 'auto' }
+  if (-not $env:HF_HUB_DISABLE_XET) { $env:HF_HUB_DISABLE_XET = '1' }
+  $env:HF_HOME = Join-Path $Dir 'cache\\huggingface'; $env:HF_HUB_DISABLE_TELEMETRY = '1'; $env:PYTHONUTF8 = '1'
+  $Run = Join-Path $Dir ('output\\' + (Get-Date -Format 'yyyy-MM-dd_HHmmss'))
+  New-Item -ItemType Directory -Force -Path $Run | Out-Null
+  [IO.File]::WriteAllBytes((Join-Path $Dir 'driver.py'), [Convert]::FromBase64String(${ps(b64(o.driver))}))
+  [IO.File]::WriteAllBytes((Join-Path $Run 'job.json'), [Convert]::FromBase64String(${ps(b64(JSON.stringify(o.job)))}))
+${runs.split('\r\n').map((l) => `  ${l}`).join('\r\n')}
+  Say "Done. The speech is in $Run"
+  Invoke-Item -LiteralPath $Run
+} catch {
+  Write-Host ''
+  Write-Host ("It stopped: " + $_.Exception.Message) -ForegroundColor Red
+}
+`;
+  return body.replace(/\r?\n/g, '\r\n');
+}
+
+/** A single-quoted shell word. */
+function shq(s: string): string { return `'${s.replace(/'/g, `'\\''`)}'`; }
