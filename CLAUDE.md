@@ -438,6 +438,11 @@ Include many more voices in offline mode." → no size limit of the site applies
 onto GitHub Pages): a catalogue of many large, high-quality voices — US, UK and Indian English (the Indian ones chosen
 for the lightest accent with clear diction), more accents and options beside them — each with its size, licence and a
 note on what it sounds like; the person picks the voices, the tab gives the downloads and the script for them.
+**Owner, 21 Nov 2026 (third message):** "include as many different variants of Indian, US and [UK] accents as you can, even
+if they are large in size. That's the whole point of it being offline mode … it doesn't affect the size of … my GitHub
+project." → every good offline voice found goes into the catalogue, whatever its size; the files are downloaded by the PC
+from where their makers publish them (Hugging Face, the engines' releases) — nothing of them is in the repository or on
+the site.
 Tests: Kokoro 24 kHz mono, plausible length and energy, female median F0 > male + 40 Hz (Heart vs Michael), British
 voice, 2× speed ≈ half the length, Piper 22.05 kHz with female above male pitch, MP3 frames, sentence progress, stop,
 markdown → text.
@@ -1970,6 +1975,11 @@ in the vertical form … Don't write the word from the original PDF, but just sa
 part 3, that kind of thing." → everything that stands side by side in a PDF page (columns, blocks left and right) is
 laid out one after another, top to bottom, spaced apart, each piece introduced by a marker of our own — "Page 1, part
 1", "Page 1, part 2" … (the labels "Page N · Column K" became these) — never words taken from the PDF.
+**Purpose (owner, 21 Nov 2026):** "this new PDF to EPUB functionality … is so that technical and scientific PDFs, or any
+PDFs that have things in multiple columns or sections in one page, can nicely flow onto an EPUB in a normal vertical
+fashion with word reflow … vanilla PDFs with text only will also … get rendered into EPUBs that way." → text is always
+real, reflowable text (the reader's font and size); what cannot reflow without losing its layout — figures, tables,
+display equations — is a picture sized to its column; a page with nothing side by side has no part markers.
 **Owner's strict rule for pictures (21 Nov 2026; standing):** "maintain original images as images in the new EPUB. Don't
 do OCR of any sort. If in the original PDF it's an image, preserve it as an image in the new EPUB", and then: "Don't drop
 any images from the original page at all. That's a strict rule. If it's a full page image in the original PDF, then
