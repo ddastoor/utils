@@ -291,10 +291,13 @@ export const mount: Mount = (root) => {
   }
 
   const info = h('pre', { class: 'ff-info muted small' });
-  const picker = filePicker({ accept: 'video/*,audio/*,image/*,.mkv,.flv,.avi,.ts,.m2ts,.wmv,.wma,.opus,.flac', label: 'Choose a video or audio file', hint: 'Any format FFmpeg reads — up to about 2 GB', onFiles: ([f]) => {
+  const takeMain = (f: File) => {
     stopJob(`Stopped: a new file was chosen (${f.name}).`); // the running job was of the file before
     main = f; second = null; p2 = undefined; p1 = EMPTY_PROBE; clips = []; clipSeq = 2; secondInfo.textContent = ''; work.hidden = false; picker.classList.add('drop-compact'); info.textContent = f.name; renderOpts(); probe();
-  } });
+  };
+  const picker = filePicker({ accept: 'video/*,audio/*,image/*,.mkv,.flv,.avi,.ts,.m2ts,.wmv,.wma,.opus,.flac', label: 'Choose a video or audio file', hint: 'Any format FFmpeg reads — up to about 2 GB', onFiles: ([f]) => { mainCam.stop(); takeMain(f); } });
+  // a picture from the webcam as the file to work on (owner, 21 Nov 2026: the camera wherever a picture can be chosen)
+  const mainCam = liveCamera({ instead: 'choose a file instead', onSnap: async (_img, file) => takeMain(await file()) });
   // the task list, in groups (a native select: keyboard, type-ahead and screen readers as everywhere)
   const jobSel = h('select', { class: 'input select', 'aria-label': 'Task' }, ...JOB_GROUPS.map(([g, list]) => h('optgroup', { label: g }, ...list.map(([v, l]) => h('option', { value: v }, l)))));
   jobSel.value = job;
@@ -307,7 +310,7 @@ export const mount: Mount = (root) => {
     card('What to do', stack(field('Task', jobSel), joinBox, opts, field('Command (copy it to run FFmpeg on your computer)', cmd), h('div', { class: 'row' }, editRaw))),
     prog, status, outCard,
     h('details', { class: 'rec-opts' }, h('summary', null, 'FFmpeg log'), logBox));
-  root.append(card(null, picker), work, actions(runBtn, stopBtn),
+  root.append(card(null, stack(picker, mainCam.el)), work, actions(runBtn, stopBtn),
     note('FFmpeg 5.1 runs here as WebAssembly on one CPU core: re-encoding is ~10–20× slower than native FFmpeg. Fast tasks (trim without re-encoding, extract audio, remove audio) take seconds.', 'info'));
   return () => { live = false; stopNote = 'left'; urls.forEach(URL.revokeObjectURL); };
 };

@@ -15,16 +15,14 @@ const M = (n) => new URL(`../fixtures/media/${n}`, import.meta.url).pathname;
 
 /** pickers of pictures without a camera beside them, and why */
 const EXEMPT = {
-  exif: 'EXIF / Photo Info shows what a photo file says about itself — a photo taken in the page carries nothing (no camera, place or date)',
   svgo: 'SVG Optimizer takes SVG drawings, which no camera makes',
-  ffmpeg: 'its main input is a video or a sound file (the pictures it asks for have the webcam: checked below)',
   scan: 'the QR & Barcode Scanner has its own camera above its image picker',
   photodict: 'Photo Dictionary has its own camera, the main button of its bottom bar',
 };
 
 export default async ({ base, page: newPage, ok, info, devices }) => {
   // ------------------------------------------------------------------ 1. coverage, PC and phone
-  for (const [kind, opts, least] of [['PC', { viewport: { width: 1280, height: 900 } }, 17], ['phone', { ...devices['iPhone 13'] }, 15]]) {
+  for (const [kind, opts, least] of [['PC', { viewport: { width: 1280, height: 900 } }, 21], ['phone', { ...devices['iPhone 13'] }, 19]]) {
     const page = await newPage(opts);
     await page.goto(base); await page.waitForSelector('.tile');
     const ids = [...new Set(await page.evaluate(() => [...document.querySelectorAll('a.tile')].map((a) => a.getAttribute('href').replace(/^#\//, '')).filter((x) => x && !x.startsWith('c/'))))];
@@ -153,7 +151,20 @@ export default async ({ base, page: newPage, ok, info, devices }) => {
     await openCamera(pg, pickerOf('Choose the logo picture'));
     await pg.getByRole('combobox', { name: /^Task/ }).selectOption({ label: 'Resize' });
     await pg.waitForTimeout(400);
-    return shot && await closed() && await camButton(pg).count() === 0 ? true : `after Snap closed: ${shot}`;
+    const hiddenCam = await camButton(pickerOf('Choose the logo picture')).count() === 0; // the picture box's own (the main picker keeps its webcam)
+    return shot && await closed() && hiddenCam ? true : `after Snap closed: ${shot}, the box's camera hidden: ${hiddenCam}`;
+  });
+  // EXIF / Photo Info (owner, 21 Nov 2026: "also add it for exif too"): a photo taken here says what it carries
+  await step('exif: the webcam → Snap → the photo is read, and the tab says a photo taken in the browser carries no metadata', async () => {
+    await go('exif'); await openCamera(pg); await snap(pg);
+    await pg.locator('.note', { hasText: 'Taken here in the browser' }).waitFor({ timeout: 90000 }); // ExifTool (8 MB) reads it first
+    return await closed() && /camera-\d{8}-\d{6}(-\d+)?\.jpg/.test(await body());
+  });
+  // FFmpeg: a picture from the webcam as the file to work on (the main picker takes pictures too)
+  await step('ffmpeg: "Use webcam" beside the main picker → Snap → the photo is the file to work on', async () => {
+    await go('ffmpeg'); await openCamera(pg); await snap(pg);
+    await pg.waitForFunction(() => /camera-\d{8}-\d{6}(-\d+)?\.jpg/.test(document.querySelector('.ff-info')?.textContent || ''), null, { timeout: 30000 });
+    return closed();
   });
   // leaving the tab with the camera open closes it, and the tab keeps nothing of it
   await step('leaving a tab with its camera open: the camera is closed, nothing of it is kept', async () => {

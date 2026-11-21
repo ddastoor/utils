@@ -76,6 +76,9 @@ this file = the owner's latest wishes, how the tests are written, and the traps 
 - **21 Nov 2026 — the camera rule repeated:** "make note of this new rule that wherever you need to upload a picture, an
   image, also have the facility of taking a photo with the phone's camera if the app is a mobile app, and taking the
   same with the PC's webcam if the app is a PC based app." Now a banner at the top of CLAUDE.md (standing rule).
+- **21 Nov 2026 — EXIF and FFmpeg:** asked why some tabs had no camera, then: "i can't see the take a photo thingie for
+  ffmpeg... and yes, also add it for exif too" — both have it now (FFmpeg beside its main picker too). Only the SVG
+  Optimizer stays without one (SVG drawings).
 - **20 Nov 2026 — live:** the owner asked to merge into `main` and make the site live; Pages was switched on by the
   owner (Source: GitHub Actions). The repository's **default branch is `claude/exciting-bohr-b9yfwc`**, and Pages'
   environment lets only the default branch publish — so the site is published from that branch; `main` holds the

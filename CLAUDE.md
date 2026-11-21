@@ -140,8 +140,10 @@ that affects it.
 > - Every picture picker — in every tab, existing and new — is `imageInput` or `imagePicker` (`src/lib/imgtools.ts`),
 >   which carry the live camera (`src/lib/livecam.ts`): the phone's camera (back first) on phones, the webcam on PCs.
 > - `tests/e2e/camera.e2e.mjs` fails on a picture picker without one, unless its EXEMPT list names the tab and the
->   reason (today: EXIF / Photo Info, SVG Optimizer, FFmpeg's main input; the QR Scanner and the Photo Dictionary have
->   cameras of their own). Details: §3 "Camera in every tab that takes a picture"; checklist §8 item 5.
+>   reason (today only the SVG Optimizer — it takes SVG drawings, which no camera makes; the QR Scanner and the Photo
+>   Dictionary have cameras of their own). EXIF / Photo Info and FFmpeg's main picker got the camera at the owner's
+>   word (21 Nov 2026: "also add it for exif too"; FFmpeg's webcam had been only in the picture box of three tasks).
+>   Details: §3 "Camera in every tab that takes a picture"; checklist §8 item 5.
 
 > ## 🗣️ Languages — don't bother about Hindi (owner, 20 Nov 2026; standing)
 > **Owner:** "going forward, as far as languages is concerned, don't bother about hindi … make a note of this."
@@ -1756,11 +1758,13 @@ the photo with a webcam if it's a PC app." No engine to fetch: the browser's get
   have cameras of their own); `imagePicker` (a file picker with the camera, photos arriving as files) — Batch Images,
   HEIC → JPG, Watermark (photos and the logo), Collage, Doc Scanner, Images → PDF, Slideshow (several photos each), the
   Cartoonizer's own style painting, the Background Remover's background photo, the logo / signature / photo of GST
-  Invoice, Rent Receipt and Resume; FFmpeg's picture inputs (logo, the picture for a sound, picture-in-picture). The
-  phones' native camera inputs (Doc Scanner, Signature Maker, Sign PDF) are gone — the live camera does it on both.
-- **Without a camera, on purpose** (EXEMPT in the sweep): EXIF / Photo Info (a photo taken in the page carries no
-  metadata — nothing to show), SVG Optimizer (SVG drawings), FFmpeg's main input (video and sound); the QR & Barcode
-  Scanner keeps its own camera.
+  Invoice, Rent Receipt and Resume; EXIF / Photo Info (owner, 21 Nov 2026 — a photo taken in the page carries no
+  metadata, and the tab says so: "Taken here in the browser …"); FFmpeg's main picker (owner, 21 Nov 2026 — the
+  snapped photo is the file to work on) and its picture inputs (logo, the picture for a sound, picture-in-picture;
+  shown when a task asks for one). The phones' native camera inputs (Doc Scanner, Signature Maker, Sign PDF) are gone
+  — the live camera does it on both.
+- **Without a camera, on purpose** (EXEMPT in the sweep): SVG Optimizer (it takes SVG drawings, which no camera makes);
+  the QR & Barcode Scanner and the Photo Dictionary keep cameras of their own.
 - **Tests:** `tests/e2e/camera.e2e.mjs` — every picture picker a tab shows, on a PC and a phone, has the camera in its
   card; in every tab the stand-in camera (`tests/e2e/_camera.mjs`: a canvas stream showing a sentence) is opened, Snap
   pressed (twice and Done where a tab takes several) and the tab's result checked; modes, one camera at a time,

@@ -2377,3 +2377,7 @@ cannot. Three new suites; each fails on the build before its fixes.
   tab's status line and found the camera's, which now comes first on the page: the camera's line is `role="status"`
   (the same announcement), and the six pass (267 / 267 with camera, OCR and a11y). FFmpeg 72 / 72, lazy, a11y, touch
   targets, junk files, no-external, engine-download, shell: green. Unit suites: 21,757 / 21,757.
+  **Then (owner, 21 Nov 2026): "i can't see the take a photo thingie for ffmpeg … and yes, also add it for exif too".**
+  FFmpeg's webcam was only in the picture box of three tasks, which shows after a video is chosen — now also beside the
+  main picker (the snapped photo is the file to work on); EXIF / Photo Info has the camera and says what a photo taken
+  in the browser carries (nothing). The sweep's EXEMPT list is down to the SVG Optimizer; camera 38 / 38, EXIF 33 / 33.

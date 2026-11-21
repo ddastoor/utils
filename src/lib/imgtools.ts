@@ -46,12 +46,12 @@ export function imageInput(onImage: (img: Img, file: File, how: 'file' | 'camera
 /** A picker of pictures for a tab that reads the files itself, with the camera beside it (as `imageInput`): a photo from
  *  the camera arrives through the same `onFiles` as a JPEG file (camera-<date>-<time>.jpg); with `multiple` the camera
  *  stays open and every Snap adds one. A file chosen closes the camera. */
-export function imagePicker(o: PickOpts & { facing?: 'user' | 'environment'; instead?: string }) {
+export function imagePicker(o: Omit<PickOpts, 'onFiles'> & { onFiles: (files: File[], how: 'file' | 'camera') => void | Promise<unknown>; facing?: 'user' | 'environment'; instead?: string }) {
   const cam = liveCamera({
     multiple: o.multiple, facing: o.facing, instead: o.instead ?? 'choose a photo instead',
-    onSnap: async (_img, file) => { await o.onFiles([await file()]); },
+    onSnap: async (_img, file) => { await o.onFiles([await file()], 'camera'); },
   });
-  const picker = filePicker({ ...o, onFiles: (fs) => { cam.stop(); return o.onFiles(fs); } });
+  const picker = filePicker({ ...o, onFiles: (fs) => { cam.stop(); return o.onFiles(fs, 'file'); } });
   return Object.assign(h('div', { class: 'stack' }, picker, cam.el), { picker, camera: cam });
 }
 
