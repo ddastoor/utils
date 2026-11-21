@@ -52,6 +52,14 @@ export default async (ctx) => {
   ok(await page.locator('.kb-nav .kb-key.hit').count() === 3 && /· 4 more \(navigation and number pad\)/.test(await tested()), `Delete, Home, Page Down light up (they were not drawn) — "${await tested()}"`);
   for (const code of ['F13', 'IntlBackslash']) await page.evaluate((code) => { for (const t of ['keydown', 'keyup']) document.activeElement.dispatchEvent(new KeyboardEvent(t, { code, key: code === 'F13' ? 'F13' : '\\', bubbles: true })); }, code);
   ok(/other keys: F13, IntlBackslash/.test(await tested()), `keys on no drawing are named (${await tested()})`);
+  // Windows keeps PrintScreen's key-down for itself: the page gets only its release (to-do #13) — it registers on that
+  const ups = (code, key, keyCode) => page.evaluate(([code, key, keyCode]) => { const ev = new KeyboardEvent('keyup', { code, key, keyCode, bubbles: true, cancelable: true }); document.activeElement.dispatchEvent(ev); return ev.defaultPrevented; }, [code, key, keyCode]);
+  await ups('PrintScreen', 'PrintScreen', 44); e = await last();
+  ok(await page.locator('.kb-PrintScreen').evaluate((k) => k.classList.contains('hit')) && e.code === 'PrintScreen' && /only its release arrived \(Windows keeps the key-down of PrintScreen/.test(e.note ?? ''), `PrtSc registers on its release alone, as Windows sends it (${JSON.stringify(e)})`);
+  await ups('F14', 'F14', 125); ok(/other keys: F13, IntlBackslash, F14/.test(await tested()), 'a key on no drawing that sends only its release is named too');
+  // Windows: a lone Alt's release moves the focus to Chrome's menu unless the page takes it — the key-up is taken here
+  ok(await ups('AltLeft', 'Alt', 18), 'the release of a key is taken by the test (a lone Alt on Windows would move the focus to the browser\'s menu)');
+  ok((await last()).code === 'PrintScreen' || (await last()).code === 'F14', 'a release of a key already tested does not replace the last event');
   // a key held while the window loses the focus never sends its key-up: it must not show as stuck
   await page.keyboard.down('AltLeft'); await page.evaluate(() => dispatchEvent(new Event('blur')));
   ok(!await page.locator('.kb-AltLeft').evaluate((k) => k.classList.contains('down')), 'Alt held during Alt+Tab (the window loses the focus): not left showing as stuck');

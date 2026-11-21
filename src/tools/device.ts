@@ -217,15 +217,29 @@ export const keyboard: Mount = (root) => {
     const hit = [...keys].filter(([, k]) => k.classList.contains('hit')), m = hit.filter(([c]) => main.has(c)).length, x = hit.length - m;
     tested.textContent = `${m} of ${main.size} keys tested${x ? ` · ${x} more (navigation and number pad)` : ''}${other.size ? ` · other keys: ${[...other].join(', ')}` : ''}`;
   };
+  const focused = () => kb.contains(document.activeElement) || document.activeElement === kb;
+  const show = (e: KeyboardEvent, upOnly = false) => clear(last).append(...([['key', JSON.stringify(e.key)], ['code', e.code], ['keyCode', String(e.keyCode)], ['location', String(e.location)], ['modifiers', [e.ctrlKey && 'Ctrl', e.shiftKey && 'Shift', e.altKey && 'Alt', e.metaKey && 'Meta'].filter(Boolean).join(' + ') || 'none'], ['repeat', String(e.repeat)],
+    ...(upOnly ? [['note', 'only its release arrived (Windows keeps the key-down of PrintScreen for itself)']] : [])] as Array<[string, string]>).flatMap(([a, b]) => [h('span', null, a), h('code', null, b)]));
   const down = (e: KeyboardEvent) => {
-    if (!kb.contains(document.activeElement) && document.activeElement !== kb) return;
+    if (!focused()) return;
     e.preventDefault(); e.stopPropagation(); // the app's own shortcuts (/ and Ctrl+K → search) must not steal the focus
     const k = keys.get(e.code);
     if (k) k.classList.add('down', 'hit'); else if (e.code && e.code !== 'Unidentified') other.add(e.code);
-    clear(last).append(...([['key', JSON.stringify(e.key)], ['code', e.code], ['keyCode', String(e.keyCode)], ['location', String(e.location)], ['modifiers', [e.ctrlKey && 'Ctrl', e.shiftKey && 'Shift', e.altKey && 'Alt', e.metaKey && 'Meta'].filter(Boolean).join(' + ') || 'none'], ['repeat', String(e.repeat)]] as Array<[string, string]>).flatMap(([a, b]) => [h('span', null, a), h('code', null, b)]));
-    count();
+    show(e); count();
   };
-  const up = (e: KeyboardEvent) => keys.get(e.code)?.classList.remove('down');
+  const up = (e: KeyboardEvent) => {
+    const k = keys.get(e.code);
+    k?.classList.remove('down');
+    if (!focused()) return;
+    // Windows: a lone Alt's release moves the focus to Chrome's menu (every key after it went to the browser), unless the
+    // page takes the key-up too (to-do #13)
+    e.preventDefault(); e.stopPropagation();
+    // a key whose key-down the system keeps (Windows: PrintScreen) is tested by its release
+    if (k ? !k.classList.contains('hit') : e.code && e.code !== 'Unidentified' && !other.has(e.code)) {
+      if (k) k.classList.add('hit'); else other.add(e.code);
+      show(e, true); count();
+    }
+  };
   // a key held while the window loses the focus (Alt+Tab, Win+D) never sends its key-up: it showed as stuck
   const lost = () => keys.forEach((k) => k.classList.remove('down'));
   addEventListener('keydown', down, true); addEventListener('keyup', up, true); addEventListener('blur', lost); // capture: runs before document listeners
