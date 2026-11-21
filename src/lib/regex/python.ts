@@ -1,19 +1,27 @@
-// The Python flavour: Python's own re module, in the CPython 3.14 the Python tab runs (our WebAssembly build, §5.1m).
-// A fresh interpreter for each request (≈ 0.1 – 0.2 s), the request as JSON on its stdin, the answer as JSON on its
-// stdout: compile errors, finditer's matches (Python's rule for empty matches), sub with its own template syntax —
-// all Python's. Offsets are code points; the page turns them into its own.
+// The two Python flavours: Python's own re module, and the regex module (mrab-regex, PyPI "regex" — built into the same
+// interpreter), in the CPython 3.14 the Python tab runs (our WebAssembly build, §5.1m). A fresh interpreter for each
+// request (≈ 0.1 – 0.2 s), the request as JSON on its stdin, the answer as JSON on its stdout: compile errors,
+// finditer's matches (Python's rule for empty matches), sub with its own template syntax — all the module's. Offsets
+// are code points; the page turns them into its own.
 import { runWasi, ProcExit } from '../terminal/wasi';
 import { VFS } from '../terminal/vfs';
 import { codePointIndex, COUNTED, fromOffsets, PatternError, SHOWN, type EngineOut, type EngineReq } from './common';
 
 const SCRIPT = String.raw`
-import json, re, sys
+import json, sys
 q = json.load(sys.stdin)
-F = {'i': re.I, 'm': re.M, 's': re.S, 'x': re.X, 'a': re.A}
+if q.get('module') == 'regex':
+    import regex as re
+    F = {'i': re.I, 'm': re.M, 's': re.S, 'x': re.X, 'a': re.A, 'V': re.V1, 'f': re.F, 'b': re.B, 'e': re.E, 'p': re.P, 'r': re.R, 'w': re.W}
+    version = 'regex ' + re.__version__ + ' · Python ' + sys.version.split()[0]
+else:
+    import re
+    F = {'i': re.I, 'm': re.M, 's': re.S, 'x': re.X, 'a': re.A}
+    version = 'Python ' + sys.version.split()[0]
 fl = 0
 for c in q['flags']:
     fl |= F[c]
-out = {'version': sys.version.split()[0]}
+out = {'version': version}
 try:
     rx = re.compile(q['pattern'], fl)
 except re.error as e:
@@ -36,19 +44,19 @@ else:
     if q['rep'] is not None:
         try:
             out['replaced'] = rx.sub(q['rep'], q['text'], count=0 if q['all'] else 1)
-        except (re.error, IndexError) as e:
+        except (re.error, IndexError, ValueError) as e:
             out['repError'] = str(e)
 sys.stdout.write(json.dumps(out))
 `;
 
 const enc = new TextEncoder();
 
-/** `mod`: python.wasm compiled; `zip`: python314.zip (the standard library). */
-export function runPython(mod: WebAssembly.Module, zip: Uint8Array, q: EngineReq): EngineOut {
+/** `mod`: python.wasm compiled; `zip`: python314.zip (the standard library); `module`: re or regex. */
+export function runPython(mod: WebAssembly.Module, zip: Uint8Array, q: EngineReq, module: 're' | 'regex' = 're'): EngineOut {
   const vfs = new VFS(); vfs.mkdirp('/lib'); vfs.mkdirp('/tmp'); vfs.writeFile('/lib/python314.zip', zip);
   let out = '', err = '';
   const dO = new TextDecoder(), dE = new TextDecoder();
-  const req = { pattern: q.pattern, flags: q.flags, text: q.text, rep: q.replacement, all: q.all, shown: SHOWN, counted: COUNTED };
+  const req = { module, pattern: q.pattern, flags: q.flags, text: q.text, rep: q.replacement, all: q.all, shown: SHOWN, counted: COUNTED };
   let rc = 0;
   try {
     rc = runWasi(mod, {
@@ -63,7 +71,7 @@ export function runPython(mod: WebAssembly.Module, zip: Uint8Array, q: EngineReq
   if (a.error) throw new PatternError(a.error);
   const map = codePointIndex(q.text);
   return {
-    total: a.total, names: a.names, version: `Python ${a.version}`,
+    total: a.total, names: a.names, version: a.version,
     matches: a.matches.map((o: number[]) => fromOffsets(q.text, o, map)),
     replaced: a.replaced ?? null, repError: a.repError,
   };

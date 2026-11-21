@@ -64,9 +64,12 @@ export default async (t, { load }) => {
   let t0 = performance.now(); r = py('print(sum(i * i for i in range(3_000_000)))'); let ms = performance.now() - t0;
   t.ok(r.out === '8999995500000500000\n' && ms < 20000, `3 million iterations (${Math.round(ms)} ms including start-up)`);
   const size = statSync('src/wasm/bin/python.wasm').size + statSync('src/wasm/bin/python314.zip').size;
-  t.ok(size > 12.2e6 && size < 13.4e6, `the page says "the first run loads about 13 MB": interpreter + library are ${(size / 1e6).toFixed(1)} MB`);
+  t.ok(size > 13.1e6 && size < 13.9e6, `the page says "the first run loads about 13.5 MB": interpreter + library are ${(size / 1e6).toFixed(1)} MB`);
 
   // ------------------------------------------------------------------ 2b. what we changed in CPython
+  r = py('import regex\nm = regex.search(r"(?P<w>a)+(b)", "aaab")\nprint(regex.__version__, regex.compile(r"(?P<w>x)(y)").groupindex, m.capturesdict(), m.allcaptures(), m.allspans())\nimport pickle; print(pickle.loads(pickle.dumps(regex.compile(r"(?:colour){e<=1}", regex.V1))).findall("color kolor colour"))');
+  t.eq(r.out, "2026.11.19 {'w': 1} {'w': ['a', 'a', 'a']} (['aaab'], ['a', 'a', 'a'], ['b']) ([(0, 4)], [(0, 1), (1, 2), (2, 3)], [(3, 4)])\n['color', ' colour']\n",
+    'the regex module (mrab-regex) is built in: groupindex, capturesdict, allcaptures, allspans and pickling — five functions regex-wasm.patch gives the signature CPython calls them with (they trapped)');
   r = py('import sys, functools\nprint(sys.getrecursionlimit(), type(functools.lru_cache(len)).__name__)');
   t.eq(r.out, '2000 function\n', 'a program starts with a recursion limit of 2000, and lru_cache is the Python wrapper');
   r = py('from functools import cache\n@cache\ndef fib(n): return n if n < 2 else fib(n - 1) + fib(n - 2)\nprint(fib(900) % 10 ** 12, fib.cache_info())');

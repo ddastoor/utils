@@ -23,8 +23,9 @@ The owner adds items here in chat ("add … to to do"). Newest instructions win.
    native engine in the tests. Order: with the work in hand (CLAUDE.md, the potentials process), after the TTS work and
    the Photo Dictionary.
    **Progress (21 Nov 2026):** built — JavaScript, PCRE2 (pcre2-wasm), Perl (zeroperl), Python (re, CPython), Go (Go's
-   regexp, our build), Ruby (Oniguruma + Ruby's rules), POSIX ERE (GNU's regex, our build); unit 337 against the native
-   engines, e2e 53 + 32. Next: Python's `regex` module, Java, .NET (CLAUDE.md §3 `regex`).
+   regexp, our build), Ruby (Oniguruma + Ruby's rules), POSIX ERE (GNU's regex, our build), Python's `regex` module
+   (mrab-regex, built into our CPython); unit 401 against the native engines, e2e 63 + 32. Next: Java, .NET (CLAUDE.md §3
+   `regex`).
 
 10. **bc console (Scientific Calculator tab): every result in a variable** (owner, 21 Nov 2026, added as the last item:
     "The result of each expression should be stored in a variable, and that variable should be printed at the right

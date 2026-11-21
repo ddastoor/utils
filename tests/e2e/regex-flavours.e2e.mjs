@@ -22,7 +22,7 @@ export default async (ctx) => {
   const engineNote = () => page.evaluate(() => [...document.querySelectorAll('.tool-body > div .note, .note')].map((n) => n.textContent).find((t) => /engine|PCRE2|CPython|regexp|Oniguruma/.test(t)) || '');
   await pat.waitFor();
 
-  ok(JSON.stringify(await flavourSel.evaluate((s) => [...s.options].map((o) => o.textContent))) === JSON.stringify(['JavaScript (this browser)', 'PCRE2 (PHP, R, grep -P …)', 'Perl 5', 'Python (re)', 'Go (RE2 syntax)', 'Ruby (Oniguruma)', 'POSIX ERE (grep -E, sed -E)']), 'seven flavours, JavaScript first');
+  ok(JSON.stringify(await flavourSel.evaluate((s) => [...s.options].map((o) => o.textContent))) === JSON.stringify(['JavaScript (this browser)', 'PCRE2 (PHP, R, grep -P …)', 'Perl 5', 'Python (re)', 'Python (regex module)', 'Go (RE2 syntax)', 'Ruby (Oniguruma)', 'POSIX ERE (grep -E, sed -E)']), 'eight flavours, JavaScript first');
   ok(await marksAre(['555-1234', '555-9876']) && !fetched.length, `JavaScript as before, and no engine fetched at open (${fetched.join(', ')})`);
   ok(!(await every.isVisible()), 'JavaScript: its g flag decides, the "Replace every match" switch is not shown');
 
@@ -66,6 +66,23 @@ export default async (ctx) => {
   await set('(a+)+$', '', 'a'.repeat(28) + '!');
   ok(await errIs(/Stopped after 10 seconds/, 25000) && await page.evaluate(() => 1 + 1) === 2, 'Python: a runaway pattern (re has no limit of its own) is stopped after 10 s; the page stays responsive');
   await set('\\d', '', 'a1'); ok(await marksAre(['1'], 30000), 'the next pattern runs in a fresh worker (CPython fetched again)');
+
+  // ---- Python's regex module (mrab-regex, built into the same CPython)
+  const pyFetches = () => fetched.filter((f) => /^python\b.*\.wasm/.test(f)).length, before = pyFetches();
+  await flavourSel.selectOption('pyregex');
+  await set('(?P<y>\\d{4})-(\\d\\d)', '', 'on 2026-11 and 1999-01', '\\g<y>/\\2');
+  ok(await repIs('on 2026/11 and 1999/01', 30000) && JSON.stringify(await head()) === JSON.stringify(['#', 'Match', 'Index', '$1 y', '$2']), 'regex module: named groups in the table (Pattern.groupindex — a getter patched for WebAssembly) and \\g<y> in the replacement');
+  ok(/regex 2026\.11\.19 · Python 3\.14\.8/.test(await engineNote()) && before > 0 && pyFetches() === before, `the note gives the module's version; the interpreter of "Python (re)" is used again, not fetched (${before} fetches before, ${pyFetches() - before} more)`);
+  await set('(?:colour){e<=1}', '', 'color colour colours kolor', '[\\g<0>]');
+  ok(await marksAre(['color', 'colour', 'colour']) && await repIs('[color] [colour] [colour]s kolor'), 'regex module: fuzzy matching — at most one error');
+  await set('(?:hello){e<=2}', 'b', 'yellow hallo hello'); ok(await marksAre(['hello']), 'b (BESTMATCH): the best fuzzy match, not the first');
+  await set('[[a-z]--[aeiou]]+', 'V', 'hello world'); ok(await marksAre(['h', 'll', 'w', 'rld']), 'V (version 1): set difference in a class');
+  await set('strasse', 'if', 'STRASSE Straße'); ok(await marksAre(['STRASSE', 'Straße']), 'f: full case-folding — ß matches ss');
+  await set('\\w+', 'r', 'one two three', '<\\g<0>>'); ok(await marksAre(['three', 'two', 'one']) && await repIs('<one> <two> <three>'), 'r: the matches from the end');
+  await set('\\((?:[^()]++|(?R))*\\)', '', 'f(a(b)c) g(d) h('); ok(await marksAre(['(a(b)c)', '(d)']), 'regex module: recursion and possessive repeats');
+  await set('(?P<1a>x)', '', 'x'); ok(await errIs(/bad character in group name at position 6/), "the regex module's own error words");
+  await flags.fill('v'); ok(await errIs(/“v” is not a flag in Python\. The flags are i m s x a V f b e p r w\./), 'its flags are listed; version 1 is a capital V');
+  await flags.fill('');
 
   // ---- Go
   await flavourSel.selectOption('go');

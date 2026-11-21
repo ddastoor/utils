@@ -1416,6 +1416,9 @@ Oniguruma)". Per flavour, the existing modules looked at first (STANDING RULE #1
   run on Linux). No existing WebAssembly build of it was found; musl's (TRE, in wasi-libc) was the alternative —
   POSIX, but not what Linux's tools do (GNU's \w \s \b \< \> and its error words). Held to glibc's own regcomp /
   regexec and to GNU sed: 36 cases, all equal.
-Still to come: Python's `regex` module (compiled into our CPython), Java and .NET (to decide: no existing WebAssembly build
-of their engines).
+- **Python's regex module → mrab-regex built into our CPython** (the module itself, its C code: nothing to emulate). No
+  existing WebAssembly build of it (Pyodide ships one, but for its own Emscripten Python — not loadable into our WASI
+  CPython). Five functions needed their signatures put right for WebAssembly (`wasm/python/regex-wasm.patch`). Held to
+  the native module (same version, CPython 3.14): 50 cases, all equal.
+Still to come: Java and .NET (to decide: no existing WebAssembly build of their engines).
 

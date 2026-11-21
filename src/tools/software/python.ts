@@ -99,7 +99,7 @@ export const mount: Mount = (root) => {
   async function run() {
     if (running) return;
     running = true; runBtn.disabled = true; stopBtn.hidden = false; view.clear(); clear(produced); errTail = '';
-    clear(status).append(note(firstRun ? 'Starting Python (the first run loads about 13 MB)…' : 'Running…', 'info'));
+    clear(status).append(note(firstRun ? 'Starting Python (the first run loads about 13.5 MB)…' : 'Running…', 'info'));
     try {
       const r = await runPython(code.value, { stdin: stdin.value, files, io: (text, stream) => {
         view.write(text, stream);

@@ -1,7 +1,7 @@
 // The flavours of the Regex Tester (to-do #8): which engine each one is, its flag letters, its replacement syntax and
 // the note under the result. No DOM: the tab, the worker and the unit suite share it.
 
-export type FlavourId = 'js' | 'pcre2' | 'perl' | 'python' | 'go' | 'ruby' | 'posix';
+export type FlavourId = 'js' | 'pcre2' | 'perl' | 'python' | 'pyregex' | 'go' | 'ruby' | 'posix';
 export interface Flavour {
   id: FlavourId;
   /** In the flavour list. */
@@ -45,6 +45,17 @@ export const FLAVOURS: Flavour[] = [
       ['x', 'verbose: spaces and # comments ignored (re.X)'], ['a', '\\w \\d \\s \\b ASCII only (re.A)']],
     replace: '\\1 … \\99, \\g<1>, \\g<name>, \\g<0> (the match); \\n \\t and the other escapes',
     note: 'Python\'s re module, run in the CPython of the Python tab (WebAssembly). Type the pattern as you would inside r\'…\'.',
+  },
+  {
+    id: 'pyregex', label: 'Python (regex module)', start: '',
+    flags: [['i', 'ignore case (regex.I)'], ['m', '^ and $ at every line (regex.M)'], ['s', '. matches a new line (regex.S)'],
+      ['x', 'verbose: spaces and # comments ignored (regex.X)'], ['a', '\\w \\d \\s \\b ASCII only (regex.A)'],
+      ['V', 'version 1: nested sets and set operations [[a-z]--[aeiou]], full case-folding with i (regex.V1)'],
+      ['f', 'full case-folding with i: ß matches SS (regex.F)'], ['b', 'fuzzy: the best match, not the first (regex.B)'],
+      ['e', 'fuzzy: improve the fit of each match (regex.E)'], ['p', 'POSIX: the leftmost longest match (regex.P)'],
+      ['r', 'search backwards, from the end (regex.R)'], ['w', 'Unicode word boundaries and line breaks (regex.W)']],
+    replace: '\\1 … \\99, \\g<1>, \\g<name>, \\g<0> (the match); \\n \\t and the other escapes',
+    note: 'The regex module (mrab-regex — what pip installs as "regex"), built into the CPython of the Python tab (WebAssembly): everything re has, and fuzzy matching ((?:colour){e<=1}), \\p{…} properties, nested sets, atomic groups, possessive repeats, look-behind of any length, \\G. Type the pattern as you would inside r\'…\'.',
   },
   {
     id: 'go', label: 'Go (RE2 syntax)', start: '',

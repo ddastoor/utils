@@ -26,11 +26,10 @@ done with all the to-dos, then we'll start iteratively looking at potentials.md 
 go-ahead for every open to-do, #12 and #13 included: #8 (in progress), #10, #12, #13 — then the potentials process.
 **Machine rules:** 16 GB of memory, no swap — two big models at once were killed; disk is a fixed allowance — when it
 fills, clean what can be made again and carry on (owner, 21 Nov 2026).
-**#8 Regex Tester flavours — in progress:** built and live — JavaScript, PCRE2, Perl, Python, Go, Ruby, POSIX ERE
-(CLAUDE.md §3 `regex`; unit `regex-flavours` 337 against the native engines, e2e `regex-flavours` 53 + `regex` 32).
-**Next:** ~~POSIX ERE~~ (done) (gnulib's regex from GNU grep's source — what grep -E
-runs — held to glibc's regexec), Python's `regex` module (mrab-regex compiled into our CPython: §5.1m build), Java
-and .NET (to decide — no existing WebAssembly build of their engines). Each: an adapter in `src/lib/regex/`, a
+**#8 Regex Tester flavours — in progress:** built and live — JavaScript, PCRE2, Perl, Python (re), Python (regex
+module), Go, Ruby, POSIX ERE (CLAUDE.md §3 `regex`; unit `regex-flavours` 401 against the native engines, e2e
+`regex-flavours` 63 + `regex` 32). **Next:** Java and .NET (to decide — no existing WebAssembly build of their engines; reachable here: Maven Central
+(TeaVM), NuGet and the Ubuntu archive (.NET); GitHub releases are blocked, so no GraalVM download). Each: an adapter in `src/lib/regex/`, a
 loader in the worker, cases in `scripts/make-regex-reference.py`, the flavour in `FLAVOURS`, e2e checks.
 **Then, in the owner's order:** #8 Regex Tester flavours (research done: PCRE2 — `pcre2-wasm` 10.49.3 or our own build;
 Google's `re2-wasm` 1.0.2 for RE2 / Go; `vscode-oniguruma` 2.0.1 for Ruby / Oniguruma; Python's `re` through the Python

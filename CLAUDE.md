@@ -1235,7 +1235,7 @@ unit `tests/unit/devdata.test.mjs`, references `tests/fixtures/devdata/reference
 - `json`: the formatter changes white space only (devcore-json): member order, duplicate keys (pointed out) and the
   spelling of numbers and strings are kept; indent 2 / 4 / tab, minify, sort keys; a worded message with line, column and
   "Show it" for every mistake; accepts exactly what JSON.parse accepts.
-- `regex` — **flavours (to-do #8, owner, 21 Nov 2026; built so far: JavaScript, PCRE2, Perl, Python, Go, Ruby, POSIX ERE)**: a Flavour
+- `regex` — **flavours (to-do #8, owner, 21 Nov 2026; built so far: JavaScript, PCRE2, Perl, Python's re and regex module, Go, Ruby, POSIX ERE)**: a Flavour
   list above the pattern; each flavour is the engine its language runs (`src/lib/regex/`, one adapter each, one answer
   shape; `src/workers/regex.worker.ts` fetches an engine the first time its flavour is chosen):
   **JavaScript** — the browser's RegExp, as before (flags g i m s u v y d; without g, Replace changes the first match);
@@ -1247,7 +1247,11 @@ unit `tests/unit/devdata.test.mjs`, references `tests/fixtures/devdata/reference
   runs); Perl's own error words. One script (`SCRIPT` in `src/lib/regex/perl.ts`) runs in the tab and, as the
   reference, in the native perl;
   **Python** — the `re` of the Python tab's CPython 3.14 (a fresh interpreter a run, ≈ 0.1 – 0.2 s; flags i m s x a;
-  `\1 \g<name>`; Python's own error words); **Go** — Go's own regexp compiled by us (`wasm/regexgo`, §5.1p; flags i m s
+  `\1 \g<name>`; Python's own error words); **Python (regex module)** — mrab-regex 2026.11.19 (what pip installs as
+  "regex"), built into the same CPython (§5.1m; the one interpreter is fetched once for both Python flavours): fuzzy
+  matching `(?:colour){e<=1}`, \p{…}, nested sets, recursion, \G …; flags i m s x a, V (version 1: set operations, full
+  case-folding), f (full case-folding), b / e (fuzzy: best match, improved fit), p (POSIX leftmost longest), r (from the
+  end), w (Unicode word boundaries and line breaks); **Go** — Go's own regexp compiled by us (`wasm/regexgo`, §5.1p; flags i m s
   U as `(?flags)`; `$1 ${name}`, ReplaceAllString / Expand; no empty match right after a match); **Ruby** — Oniguruma
   (`vscode-oniguruma` 2.0.1) with Ruby's syntax, and around it what Oniguruma does not do as Ruby (Onigmo) does: \w \d
   \s \b ASCII (Oniguruma's ASCII options), `{n,m}` with m < n refused, String#scan's walk (an empty match moves one
@@ -1260,15 +1264,15 @@ unit `tests/unit/devdata.test.mjs`, references `tests/fixtures/devdata/reference
   The flags box lists the flavour's letters with what each does and refuses others ("“g” is not a flag in Python");
   JavaScript's g and "Replace every match" (the other flavours) stand for each other when the flavour changes.
   **Time limits** start when the engine begins the matching (a first download is not counted): JavaScript 2 s, PCRE2,
-  Perl, Ruby and POSIX 5 s, Python and Go 10 s; when a limit fires for an older request the newest runs in a fresh worker (it used
+  Perl, Ruby and POSIX 5 s, both Pythons and Go 10 s; when a limit fires for an older request the newest runs in a fresh worker (it used
   to wait behind the stuck one for ever). Matches, groups and names as each engine gives them; indexes in the page's
-  own counting (UTF-16). **Tests:** unit `regex-flavours.test.mjs` 337 — 229 cases held to the native engines
-  (`tests/fixtures/regex/reference.json` from `python3 scripts/make-regex-reference.py`: CPython 3.14 via uv, Go's regexp
+  own counting (UTF-16). **Tests:** unit `regex-flavours.test.mjs` 401 — 279 cases held to the native engines
+  (`tests/fixtures/regex/reference.json` from `python3 scripts/make-regex-reference.py`: CPython 3.14 via uv — with the
+  regex module at the build's version from PyPI in a fresh venv —, Go's regexp
   built natively, the system's libpcre2-8 through `scripts/regex-ref/pcre2ref.c` — needs `libpcre2-dev`, Ruby 3.3, the
   system's perl 5.38, glibc's regex through ctypes with its walk checked against GNU sed marking every match, and GNU
   sed for every POSIX replacement; three cases differ by version — PCRE2 10.49 / 10.42, Perl 5.42 / 5.38, newer Unicode
-  — named in the suite); e2e `regex-flavours.e2e.mjs` 53 and `regex.e2e.mjs` 32. **Still to come (to-do #8):** Python's
-  `regex` module, Java, .NET.
+  — named in the suite); e2e `regex-flavours.e2e.mjs` 63 and `regex.e2e.mjs` 32. **Still to come (to-do #8):** Java, .NET.
 - `base64` (devcore-enc): text or file ⇄ Base64 / URL-safe / data: URL; decoding takes messy input (no padding, line
   breaks, %3D, data: URLs); binary results are recognised by their first bytes, shown as hex and saved under a fitting
   name; long output is cut on screen only.
@@ -2544,7 +2548,7 @@ stay **public** (the source of the deployed site is then available to every user
 | metacore (EXIF → JSON, lossless metadata strip JPEG/PNG/WebP, JPEG DPI, image sniffing) | C (own code) | **us** (`wasm/metacore`) | exif, image loading, passport/formphoto DPI |
 | BusyBox 1.38.0 (130 applets) + compat shims | C | **us** (`wasm/busybox`) | terminal, bc console |
 | jq 1.8.2 (+ oniguruma) | C | **us** (`wasm/jq`) | jq |
-| CPython 3.14.8 (+ zlib 1.3.2; stdlib as .pyc in python314.zip with tzdata 2026.6) **+ our changes** (§5.1m: recursion guard for a browser's two stacks, lru_cache in Python, pbkdf2_hmac fallback, socket stand-in + asyncio loop without sockets, local time from the host) | C | **us** (`wasm/python`, python.wasm 7 MB + python314.zip 5.4 MB, loaded on the first Run; run by our WASI host `src/lib/terminal/wasi.ts` in `src/workers/python.worker.ts`) | python |
+| CPython 3.14.8 (+ zlib 1.3.2; stdlib as .pyc in python314.zip with tzdata 2026.6; **the regex module 2026.11.19** — mrab-regex's C extension built in as `_regex`) **+ our changes** (§5.1m: recursion guard for a browser's two stacks, lru_cache in Python, pbkdf2_hmac fallback, socket stand-in + asyncio loop without sockets, local time from the host, regex-wasm.patch) | C | **us** (`wasm/python`, python.wasm 7.8 MB + python314.zip 5.75 MB, loaded on the first Run; run by our WASI host `src/lib/terminal/wasi.ts` in `src/workers/python.worker.ts`) | python; regex (the Python re and regex-module flavours, `src/lib/regex/python.ts`) |
 | Graphviz **16.1.0** (cgraph, gvc, dot/neato/fdp/sfdp/circo/twopi/osage/patchwork, core renderers; the official release archive) + Expat 2.9.0 **+ our changes** (§5.1l: `storeline.patch` — an upstream crash on labels that start with an empty line; `triangulation.patch` + `st_delaunay.h` — prism overlap removal on our C port of Delaunator instead of GTS; glibc's `qsort` and `rand`; assertions kept; text measured by the host through a "textlayout" plugin) | C / C++ | **us** (`wasm/graphviz`, 1.65 MB / 0.56 MB gz, a fresh instance per drawing in `src/workers/graphviz.worker.ts`; the existing builds — Viz.js, hpcc — trap on valid graphs: `docs/WASM-AUDIT.md`, tab 55) | graphviz |
 | audio: **LAME 4.0** libmp3lame (MP3 encoder) + own C (WAV writer — 16-bit by the browser's own rule, waveform peaks, levels, gain/fades, scale, mix, Kaiser windowed-sinc resampler) | C | **us** (`wasm/audio`) | audio (and tts, noise, pitch, slideshow) |
 | Signalsmith Stretch 1.3.2 (tempo and pitch, polyphonic) | C++ | Signalsmith Audio (official `signalsmith-stretch`, WebAssembly in an AudioWorklet) — rendered offline by `src/lib/stretch.ts` | pitch (replaced our WSOLA in Nov 2026: `docs/WASM-AUDIT.md`, tab 145) |
@@ -2940,8 +2944,8 @@ Licences of what is compiled in: Graphviz EPL-2.0, Expat MIT, Delaunator ISC, ro
 domain); the two glibc routines are written anew from the published algorithm (no glibc code).
 
 ### 5.1m python → `src/wasm/bin/python.wasm` + `python314.zip`
-`ZIG=… wasm/python/build.sh` (≈ 10 min; host C compiler, make, xz): CPython 3.14.8 and zlib 1.3.2 from the Ubuntu archive
-and tzdata 2026.6 from PyPI (all SHA-256 pinned). A native CPython is built first (the cross build's "build Python"),
+`ZIG=… wasm/python/build.sh` (≈ 3 min on 4 cores; host C compiler, make, xz, patch): CPython 3.14.8 and zlib 1.3.2 from the
+Ubuntu archive, tzdata 2026.6 and the regex module 2026.11.19 from PyPI (all SHA-256 pinned). A native CPython is built first (the cross build's "build Python"),
 then CPython's **own** WASI configuration (`Tools/wasm/wasi/config.site-wasm32-wasi` + our `config.site.extra`: no
 socket module; functions zig's wasi-libc declares but lacks) with zig cc (a wrapper drops `--stack-first`, which zig
 rejects). `wasi_start.c` (linked in through LIBS, constructors): links the main thread into musl's thread list — zig's
@@ -2974,6 +2978,14 @@ deadlines).
   per zone "offset/isdst=NAME …" newest first, plus the periods in which the simple rule — daylight = the larger of
   the year's two offsets — is wrong, e.g. Moscow 2011, Lisbon 1996). The Python worker fetches the table with the
   interpreter. **Run make-tzabbr.py again after every rebuild of python314.zip with another tzdata.**
+- **The regex module** (mrab-regex 2026.11.19, Apache-2.0 AND CNRI-Python; the Regex Tester's "Python (regex module)" and
+  `import regex` in the Python tab): its C extension is compiled in as the built-in module `_regex` (`Modules/Setup.local`
+  written before configure — a WebAssembly program cannot load an extension from a file, and makesetup cannot give a
+  built-in a dotted name); its package is zipped with `regex_ext.py` as `regex/_regex.py`, which hands the package the
+  built-in module. **`regex-wasm.patch`:** five functions were declared with fewer parameters than CPython calls them
+  with (two getters, three METH_NOARGS methods); native code does not notice, WebAssembly traps on the indirect call —
+  Pattern.groupindex, pickling, Match.capturesdict(), allcaptures(), allspans() (the unit suite calls each; worth
+  reporting upstream). +0.8 MB.
 - Absent, with a hint in the tab (`src/lib/python-hints.ts`): sqlite3, bz2, lzma, ctypes, curses, readline, ssl,
   tkinter, turtle, mmap, fcntl, termios, pwd, grp, resource, syslog, venv, ensurepip (the unit suite checks that this
   list is exactly what fails to import); threads, processes, the network.
@@ -3094,6 +3106,7 @@ npm packages (pinned in `package-lock.json`) are bundled by Vite or copied to `p
 | vscode-oniguruma 2.0.1 (Oniguruma) | MIT (Oniguruma: BSD-2-Clause) | Regex Tester (Ruby) |
 | *built in:* Go's standard library (regexp, the runtime) in regex-go.wasm | BSD-3-Clause (the Go licence) | Regex Tester (Go) |
 | *built in:* gnulib's regex (from GNU grep 3.12) in posix-re.wasm | LGPL-2.1-or-later | Regex Tester (POSIX ERE) |
+| *built in:* regex 2026.11.19 (mrab-regex, PyPI) in python.wasm + python314.zip | Apache-2.0 AND CNRI-Python | Regex Tester (Python regex module), Python Scratchpad |
 | libsodium-wrappers-sumo 0.8.4 (+ libsodium-sumo; libsodium 1.0.22 compiled to WebAssembly by its author) | ISC | Sodium Encrypt, Encrypted Share Link, Password Generator, Passphrase Generator |
 | mediabunny | MPL-2.0 | Video Compressor, Audio Recorder (cut without re-encoding) |
 | @mediabunny/aac-encoder 1.66.2 (FFmpeg's AAC encoder in WebAssembly) | MPL-2.0 (FFmpeg's code: LGPL-2.1) | Video Compressor, Slideshow, Screencast, YouTube Clip |

@@ -55,7 +55,7 @@ export default async (ctx) => {
   const page = await open();
   ok(!page.reqs.some((u) => /python\.worker|python[-.][^/]*\.wasm|python314/.test(u)), 'nothing of Python is downloaded before the first Run');
   await start(page, 'print("first")');
-  ok(/Starting Python \(the first run loads about 13 MB\)/.test(await page.locator('.note-info').first().textContent().catch(() => '')), 'the first run says what it is loading');
+  ok(/Starting Python \(the first run loads about 13\.5 MB\)/.test(await page.locator('.note-info').first().textContent().catch(() => '')), 'the first run says what it is loading');
   let r = await finish(page, 90000);
   ok(r.text === 'first\n' && /^Finished in [\d.]+ s\.$/.test(r.status), `first run (${r.status})`);
   ok(page.reqs.filter((u) => /python[-.][^/]*\.wasm|python314/.test(u)).length === 2, 'the first Run fetched the interpreter and its library, once each');

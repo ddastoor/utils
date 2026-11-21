@@ -2,7 +2,8 @@
 # Builds src/wasm/bin/python.wasm (CPython 3.14.8, PSF licence) for wasm32-wasi with zig, and src/wasm/bin/python314.zip
 # (its standard library, precompiled .pyc, plus the tzdata time-zone package). Sources: the Ubuntu archive's
 # python3.14_3.14.8.orig.tar.xz and zlib 1.3.2 (SHA-256 from the signed .dsc files; python.org/github are not reachable
-# from the sandbox) and tzdata 2026.6 from PyPI (SHA-256 published by PyPI).
+# from the sandbox), tzdata 2026.6 and the regex module 2026.11.19 (mrab-regex, Apache-2.0 / CNRI-Python — the Regex
+# Tester's "Python (regex module)" flavour, and import regex in the Python tab) from PyPI (SHA-256 published by PyPI).
 # Steps: native CPython (the "build Python" a cross build needs) → zlib for wasm → CPython's own WASI configure
 # (Tools/wasm/wasi/config.site + config.site.extra) with zig cc → make. wasi_start.c links zig's single-threaded
 # libc main thread into its own thread list (else pthread_key_delete loops forever at exit), starts in $PWD and
@@ -23,16 +24,25 @@ WORK="${WORK:-/tmp/python-build}"; mkdir -p "$WORK"; cd "$WORK"
 PY=python3.14_3.14.8.orig.tar.xz; PYSHA=c2215904f02b175596dc49351585104f4bc20341e1c47378b26a2c274360ce73
 ZL=zlib_1.3.dfsg+really1.3.2.orig.tar.gz; ZLSHA=7b6903eb019983987b7112eccf90f1703f1c6c0e0cede36564bf611d19ca579d
 TZ=tzdata-2026.6-py2.py3-none-any.whl; TZSHA=0a10eec6e13ef16b627fabed9a5f2ba61a62b1c67f327305f4e7e412a70b4aec
+RX=regex-2026.11.19.tar.gz; RXSHA=2826a006b68acfd3ed5074433caafe21d7f9d026eb82cb856724a4a893a70915
 [ -f "$PY" ] || curl -fsSL --retry 4 -o "$PY" "https://archive.ubuntu.com/ubuntu/pool/main/p/python3.14/$PY"
 [ -f "$ZL" ] || curl -fsSL --retry 4 -o "$ZL" "https://archive.ubuntu.com/ubuntu/pool/main/z/zlib/$ZL"
 [ -f "$TZ" ] || curl -fsSL --retry 4 -o "$TZ" "https://files.pythonhosted.org/packages/0a/66/9a06c2227fedfd4919f0eaaa8b94377d9730882a7e4f95823c9a331ab5e1/$TZ"
-printf '%s  %s\n%s  %s\n%s  %s\n' "$PYSHA" "$PY" "$ZLSHA" "$ZL" "$TZSHA" "$TZ" | sha256sum -c -
-rm -rf Python-3.14.8 zsrc zlib native wasi zipsrc tz && tar xJf "$PY" && mkdir zsrc zlib native wasi tz && tar xzf "$ZL" -C zsrc
+[ -f "$RX" ] || curl -fsSL --retry 4 -o "$RX" "https://files.pythonhosted.org/packages/b8/17/ef8c46a9e7cf2304968eb260f594bbd4220fab6281e64c090cdd85884511/$RX"
+printf '%s  %s\n%s  %s\n%s  %s\n%s  %s\n' "$PYSHA" "$PY" "$ZLSHA" "$ZL" "$TZSHA" "$TZ" "$RXSHA" "$RX" | sha256sum -c -
+rm -rf Python-3.14.8 zsrc zlib native wasi zipsrc tz regex-2026.11.19 && tar xJf "$PY" && mkdir zsrc zlib native wasi tz && tar xzf "$ZL" -C zsrc
 (cd Python-3.14.8 && patch -p1 --no-backup-if-mismatch < "$HERE/stack-guard.patch")
 GUARD="-DSUPERTOOLS_STACK_PAD=512 -DSUPERTOOLS_EVAL_PAD=384 -DSUPERTOOLS_C_STACK=580000"
 # local time comes from the host (wasi-libc has no time zones): see wasi_start.c
 LOCALTIME="-Dlocaltime_r=supertools_localtime_r -Dmktime=supertools_mktime"
 S="$WORK/Python-3.14.8"; J=$(nproc)
+# the regex module (mrab-regex, PyPI "regex"): its C extension is built in as the module _regex (Modules/Setup.local);
+# its Python package goes into the zip with regex_ext.py as regex/_regex.py, which hands the package the built-in module
+# (regex-wasm.patch: five functions declared with fewer parameters than CPython calls them with — a trap in WebAssembly)
+tar xzf "$RX" && (cd regex-2026.11.19 && patch -p1 --no-backup-if-mismatch < "$HERE/regex-wasm.patch") \
+  && cp regex-2026.11.19/src/_regex.c regex-2026.11.19/src/_regex.h regex-2026.11.19/src/_regex_unicode.c \
+  regex-2026.11.19/src/_regex_unicode.h "$S/Modules/"
+mkdir -p wasi/Modules && printf '*static*\n_regex _regex.c _regex_unicode.c\n' > wasi/Modules/Setup.local
 # 1. native build Python
 (cd native && "$S/configure" -q && make -j"$J" -s >/dev/null)
 # 2. zlib for wasm32-wasi
@@ -61,6 +71,8 @@ cp -r "$S/Lib" zipsrc && cp wasi/build/lib.wasi-wasm32-3.14/_sysconfig* zipsrc/
 # our own additions (wasm/python/lib): a no-network stand-in for _socket (so that socket, asyncio, doctest, logging.handlers,
 # email.utils, urllib.request … import), an asyncio event loop that needs no sockets or threads, sitecustomize
 cp "$HERE"/lib/*.py zipsrc/
+mkdir zipsrc/regex && cp regex-2026.11.19/regex/__init__.py regex-2026.11.19/regex/_main.py regex-2026.11.19/regex/_regex_core.py zipsrc/regex/ \
+  && cp "$HERE/regex_ext.py" zipsrc/regex/_regex.py
 python3 "$HERE/patch-stdlib.py" zipsrc
 (cd tz && python3 -m zipfile -e "../$TZ" . && cp -r tzdata ../zipsrc/)
 (cd zipsrc && rm -rf test idlelib tkinter turtledemo ensurepip venv __phello__ site-packages turtle.py sqlite3 dbm/sqlite3.py dbm/gnu.py dbm/ndbm.py curses \

@@ -2,6 +2,8 @@
 # make-regex-reference.py — tests/fixtures/regex/reference.json: what the native engines answer for the Regex Tester's
 # cases (to-do #8; tests/unit/regex-flavours.test.mjs holds each flavour of the tab to it):
 #   python — CPython 3.14 (`uv python install 3.14`), running the very script the tab runs (src/lib/regex/python.ts);
+#   pyregex — the same script with the regex module (mrab-regex) at the version wasm/python/build.sh builds in, installed
+#            from PyPI into a fresh venv of that Python by uv (or $PYREGEX: a python that has it);
 #   go     — wasm/regexgo built natively with the Go toolchain (the same program the tab runs as WebAssembly);
 #   pcre2  — the system's libpcre2-8 through scripts/regex-ref/pcre2ref.c (cc … -lpcre2-8; apt install libpcre2-dev);
 #   ruby   — Ruby (3.3 here: its Onigmo) — the tab runs Oniguruma, so this is where the two may part;
@@ -47,6 +49,40 @@ CASES = {
         C(r'.', '', 'x' * 1500), C(r'\s', '', 'a\tb c d'),
         C(r'é', '', 'café café'), C(r'\N{EM DASH}', '', 'a — b'),
         C(r'\d', '', 'a1', r'\q', note='a bad escape in the replacement'),
+    ],
+    'pyregex': [
+        C(r'\d+', '', 'a1 b22 c333', r'<\g<0>>'),
+        C(r'(?P<y>\d{4})-(?P<m>\d\d)', '', 'on 2026-11 and 1999-01', r'\g<m>/\g<y>'),
+        C(r'(?:colour){e<=1}', '', 'color colour colours kolor', r'[\g<0>]', note='fuzzy: at most one error'),
+        C(r'(?:cat){s<=1}', '', 'cat bat cut cart ct', note='fuzzy: substitutions only'),
+        C(r'(?:Saturday){i<=1,d<=1,s<=1,e<=2}', '', 'Satrday Saturdays Sunday Sarturday'),
+        C(r'(?:hello){e<=2}', '', 'yellow hallo hello', note='without b: the first match that fits'),
+        C(r'(?:hello){e<=2}', 'b', 'yellow hallo hello', note='b: the best match'),
+        C(r'(?:hello){e<=2}', 'e', 'yellow hallo hello', note='e: each match improved'),
+        C(r'[[a-z]--[aeiou]]+', 'V', 'hello world', '_', note='V1: set difference'),
+        C(r'[\p{L}&&\p{Greek}]+', 'V', UNI, note='V1: set intersection'),
+        C(r'[[a-z]--[aeiou]]+', '', 'hello world -]', note='V0: no nested sets'),
+        C(r'strasse', 'if', 'STRASSE Straße straße', note='f: full case-folding'),
+        C(r'strasse', 'i', 'STRASSE Straße straße', note='simple case-folding'),
+        C(r'strasse', 'iV', 'STRASSE Straße', note='V1: full case-folding with i'),
+        C(r'\w+', 'r', 'one two three', r'<\g<0>>', note='r: from the end'),
+        C(r'\w+', 'r', 'one two three', r'<\g<0>>', all=False),
+        C(r'a|ab', 'p', 'ab', note='p: leftmost longest'), C(r'(a|ab)(c|bcd)(d*)', 'p', 'abcd'),
+        C(r'a|ab', '', 'ab'),
+        C(r'\p{Greek}+', '', UNI), C(r'\p{Lu}', '', UNI), C(r'\p{Script=Han}+', '', UNI),
+        C(r'(?>a+)b', '', 'aaab aaa'), C(r'a++b', '', 'aaab'),
+        C(r'(?<=\b\w{2,4} )\w+', '', 'to be or not to be', note='look-behind of any length'),
+        C(r'\G\d', '', '123a45'), C(r'\((?:[^()]++|(?R))*\)', '', 'f(a(b)c) g(d) h('),
+        C(r'(?|(a)|(b))c', '', 'ac bc'), C(r"\b\w+\b", 'w', "can't stop", note="w: Unicode's word boundaries"),
+        C(r'\b\w+\b', '', "can't stop"), C(r'\X', '', 'é 🎉👍🏽'),
+        C(r'\mcat\M', '', 'cat concat cats cat.'), C(r'^.+$', 'mw', 'a\r\nb c'), C(r'^.+$', 'm', 'a\r\nb c'),
+        C(r'x*', '', 'axbxx', '-'), C(r'a|', '', 'baab', '-'),
+        C(r'^\w+', 'm', LINES, '#'), C(r'\w+', 'a', UNI), C(r'(x)(y)?', '', 'x xy', r'[\1|\2]'),
+        C(r'(?i)σίσυφος', '', UNI), C(r'\N{EM DASH}', '', 'a — b'),
+        C(r'.', '', 'x' * 1500), C(r'\d', '', 'a1b2c3', '#', all=False),
+        C(r'(', '', 'x'), C(r'[a-', '', 'x'), C(r'a{2,1}', '', 'x'), C(r'(?P<1a>x)', '', 'x'), C(r'(?P=nope)', '', 'x'),
+        C(r'(a)', '', 'a', r'\2', note='a group the pattern does not have'),
+        C(r'(a)', '', 'a', r'\g<x>', note='a name the pattern does not have'),
     ],
     'go': [
         C(r'\d+', '', 'a1 b22 c333', '<$0>'),
@@ -282,8 +318,23 @@ def main():
         q = {'pattern': c['pattern'], 'flags': c['flags'], 'text': c['text'], 'rep': c['rep'], 'all': c['all'], 'shown': SHOWN, 'counted': COUNTED}
         a = json.loads(subprocess.run([py, '-I', '-S', '-c', PY_SCRIPT], input=json.dumps(q), capture_output=True, text=True, check=True).stdout)
         if 'version' in a:
-            out['engines']['python'] = f"Python {a['version']}"
+            out['engines']['python'] = a['version']
         out['cases'].setdefault('python', []).append({**c, 'out': shape(c, a, 'cp')})
+    rxv = _re.search(r'RX=regex-([0-9.]+)\.tar\.gz', open(os.path.join(ROOT, 'wasm/python/build.sh')).read()).group(1)
+    pyrx = os.environ.get('PYREGEX')
+    if not pyrx:
+        uv = shutil.which('uv') or os.path.expanduser('~/.local/bin/uv')
+        venv = os.path.join(tmp, 'pyregex')
+        subprocess.run([uv, 'venv', '-q', '--python', py, venv], check=True)
+        pyrx = os.path.join(venv, 'bin', 'python')
+        subprocess.run([uv, 'pip', 'install', '-q', '--python', pyrx, f'regex=={rxv}'], check=True)
+    for c in CASES['pyregex']:
+        q = {'module': 'regex', 'pattern': c['pattern'], 'flags': c['flags'], 'text': c['text'], 'rep': c['rep'], 'all': c['all'], 'shown': SHOWN, 'counted': COUNTED}
+        a = json.loads(subprocess.run([pyrx, '-I', '-c', PY_SCRIPT], input=json.dumps(q), capture_output=True, text=True, check=True).stdout)
+        if 'version' in a:
+            assert a['version'].startswith(f'regex {rxv} '), f"the reference's regex is {a['version']}, the build's {rxv}"
+            out['engines']['pyregex'] = a['version']
+        out['cases'].setdefault('pyregex', []).append({**c, 'out': shape(c, a, 'cp')})
     for c in CASES['go']:
         a = json.loads(subprocess.run([gobin], input=fields(c), capture_output=True, check=True).stdout)
         if 'version' in a:

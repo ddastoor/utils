@@ -1,0 +1,54 @@
+regex 2026.11.19 (mrab-regex), src/_regex.c, for WebAssembly: five functions get the signatures CPython calls them
+with. CPython calls a getter as getter(self, closure) and a METH_NOARGS method as meth(self, NULL); these five were
+declared with one parameter and cast to the two-parameter type. Native code never notices the extra argument, but
+WebAssembly checks the type of every indirect call and traps ("null function or function signature mismatch"):
+Pattern.groupindex, pickling a pattern, Match.capturesdict(), allcaptures() and allspans() all failed. Worth reporting
+upstream. Applied by build.sh.
+
+--- a/src/_regex.c
++++ b/src/_regex.c
+@@ -19456,7 +19456,7 @@
+ }
+ 
+ /* MatchObject's 'allspans' method. */
+-static PyObject* match_allspans(MatchObject* self) {
++static PyObject* match_allspans(MatchObject* self, PyObject* Py_UNUSED(ignored)) {
+     PyObject* list;
+     size_t i;
+     PyObject* result;
+@@ -19495,7 +19495,7 @@
+ }
+ 
+ /* MatchObject's 'allcaptures' method. */
+-static PyObject* match_allcaptures(MatchObject* self) {
++static PyObject* match_allcaptures(MatchObject* self, PyObject* Py_UNUSED(ignored)) {
+     PyObject* list;
+     size_t i;
+     PyObject* result;
+@@ -19614,7 +19614,7 @@
+ }
+ 
+ /* MatchObject's 'capturesdict' method. */
+-static PyObject* match_capturesdict(MatchObject* self) {
++static PyObject* match_capturesdict(MatchObject* self, PyObject* Py_UNUSED(ignored)) {
+     PyObject* result;
+     PyObject* keys;
+     Py_ssize_t g;
+@@ -23167,7 +23167,7 @@
+ }
+ 
+ /* PatternObject's 'groupindex' method. */
+-static PyObject* pattern_groupindex(PyObject* self_) {
++static PyObject* pattern_groupindex(PyObject* self_, void* Py_UNUSED(closure)) {
+     PatternObject* self;
+ 
+     self = (PatternObject*)self_;
+@@ -23176,7 +23176,7 @@
+ }
+ 
+ /* PatternObject's '_pickled_data' method. */
+-static PyObject* pattern_pickled_data(PyObject* self_) {
++static PyObject* pattern_pickled_data(PyObject* self_, void* Py_UNUSED(closure)) {
+     PatternObject* self;
+     PyObject* pickled_data;
+ 

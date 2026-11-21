@@ -37,11 +37,18 @@ async function makePerl(): Promise<Run> {
   });
   return (q) => m.runPerl(perl, out, q);
 }
+/** The two Python flavours run the same interpreter: it is fetched and compiled once. */
+let py: Promise<[typeof import('../lib/regex/python'), WebAssembly.Module, Uint8Array]> | null = null;
+const python = () => {
+  if (!py) { py = Promise.all([import('../lib/regex/python'), compile(pyUrl), bytes(zipUrl)]); py.catch(() => { py = null; }); }
+  return py;
+};
 const loaders: Record<FlavourId, () => Promise<Run>> = {
   perl: makePerl,
   js: async () => (await import('../lib/regex/js')).runJs,
   pcre2: async () => { const m = await import('../lib/regex/pcre2'); await m.loadPcre2(); return m.runPcre2; },
-  python: async () => { const [m, mod, zip] = await Promise.all([import('../lib/regex/python'), compile(pyUrl), bytes(zipUrl)]); return (q) => m.runPython(mod, zip, q); },
+  python: async () => { const [m, mod, zip] = await python(); return (q) => m.runPython(mod, zip, q, 're'); },
+  pyregex: async () => { const [m, mod, zip] = await python(); return (q) => m.runPython(mod, zip, q, 'regex'); },
   go: async () => { const [m, mod] = await Promise.all([import('../lib/regex/go'), compile(goUrl)]); return (q) => m.runGo(mod, q); },
   ruby: async () => { const [m, wasm] = await Promise.all([import('../lib/regex/ruby'), bytes(onigUrl)]); await m.loadOnig(wasm); return m.runRuby; },
   posix: async () => { const [m, w] = await Promise.all([import('../lib/regex/posix'), import('../wasm/wasi')]); const x = await w.instantiateWasi(posixUrl); return (q) => m.runPosix(x.exports, q); },
