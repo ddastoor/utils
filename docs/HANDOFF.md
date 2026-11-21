@@ -86,6 +86,8 @@ this file = the owner's latest wishes, how the tests are written, and the traps 
 - **21 Nov 2026 — PDF → EPUB, the owner's user testing:** "this PDF was rendered very badly … see if you can fix it, and
   if you can, please note it … after the OpenPGP thing … please do this PDF to EPUB stuff also." The files:
   AJUR_January_2016p5.pdf and the EPUB the tab made (uploaded in chat; ask again in a new session).
+  **The owner's rule for it (21 Nov 2026):** side-by-side content goes top to bottom in the EPUB, spaced apart, each
+  piece under a marker of our own — "Page 1, part 1", "Page 1, part 2" … — never words from the PDF (CLAUDE.md §3).
 - **20 Nov 2026 — live:** the owner asked to merge into `main` and make the site live; Pages was switched on by the
   owner (Source: GitHub Actions). The repository's **default branch is `claude/exciting-bohr-b9yfwc`**, and Pages'
   environment lets only the default branch publish — so the site is published from that branch; `main` holds the

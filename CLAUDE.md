@@ -1897,6 +1897,15 @@ ASS; picture subtitles (DVD / Blu-ray) are refused with the reason), **Expert** 
   `tests/fixtures/media/` subs.srt, clip-subs.mkv, silent-320.mp4, pauses.wav, kf6.mp4.
 
 ### PDF → EPUB (PC) — BUILT (`src/tools/epub/epub.ts`, engine `src/lib/pdf2epub.ts`; unit `tests/unit/pdf2epub.test.mjs` 64, e2e `tests/e2e/epub.e2e.mjs` 48)
+**Owner's rule for the reading order (21 Nov 2026; standing):** "in the original PDF, whenever there are multiple columns
+or things which are not exactly top to bottom, then you should make it top to bottom in the EPUB and space it out
+correctly, and add your own little text and markers saying … this section of the original page is now the next section
+in the vertical form … Don't write the word from the original PDF, but just say page 1, part 1, page 1, part 2, page 1,
+part 3, that kind of thing." → everything that stands side by side in a PDF page (columns, blocks left and right) is
+laid out one after another, top to bottom, spaced apart, each piece introduced by a marker of our own — "Page 1, part
+1", "Page 1, part 2" … (the labels "Page N · Column K" become these) — never words taken from the PDF. **Pending (owner's
+user testing, 21 Nov 2026):** the owner's AJUR_January_2016p5.pdf came out "very badly" — fix it under this rule
+(docs/RESUME.md queue).
 As built after the Nov 2026 bug hunt (docs/BUGHUNT.md tab 139, docs/WASM-AUDIT.md 136):
 - **Text:** MuPDF's structured text with `preserve-spans` — each span in one font — joined into lines (same baseline,
   close after one another; a space where the PDF leaves a gap without one); a line takes the size and the weight most
