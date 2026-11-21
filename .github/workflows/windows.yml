@@ -1,0 +1,49 @@
+# To-do #13 (owner, 21 Nov 2026: "make sure that all the apps that work on PC work on both Windows and Linux"): the
+# browser suites in Google Chrome on Windows — the owner's browser on the owner's system. Run by hand (Actions → "Windows
+# check" → Run workflow, or the API); a list of suites narrows it (names or parts of names, as `node tests/e2e.mjs` takes
+# them). Suites that call a Linux tool as their reference (ffprobe, zbar, gpg, python3 …) say so and are told apart from
+# what Windows itself does to a tab. Not run on every push: a full run takes the better part of an hour.
+name: Windows check
+
+on:
+  workflow_dispatch:
+    inputs:
+      suites:
+        description: 'e2e suites to run (space-separated names or parts of names; empty = all)'
+        required: false
+        default: ''
+
+permissions:
+  contents: read
+
+concurrency:
+  group: windows-check-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  e2e-windows:
+    runs-on: windows-latest
+    timeout-minutes: 150
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      # the Playwright the suites are written for; the browser is the runner's own Google Chrome (channel "chrome")
+      - run: npm install --no-save playwright@1.63.0
+      - name: Browser suites in Chrome on Windows
+        shell: bash
+        env:
+          E2E_CHANNEL: chrome
+          E2E_CONCURRENCY: '6'
+        run: |
+          node -e "console.log(process.platform, process.arch, require('os').release())"
+          node tests/e2e.mjs ${{ inputs.suites }} 2>&1 | tee e2e-windows.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: e2e-windows
+          path: e2e-windows.txt
