@@ -57,6 +57,23 @@ The owner adds items here in chat ("add … to to do"). Newest instructions win.
    the same photo set. What is the OCR tab's own (a whole page of running text, columns, the four languages, the text
    kept in its lines) is tuned and measured on its own. Done together with #6.
 
+10. **bc console (Scientific Calculator tab): every result in a variable** (owner, 21 Nov 2026, added as the last item:
+    "The result of each expression should be stored in a variable, and that variable should be printed at the right
+    side, at the end of the row of that expression value. It should start with A to Z, then AA, AB, AC, AD to AZ, all
+    the way to ZA, ZB, ZC to ZZ, just like Excel column names. The user should be able to, on subsequent rows, use the
+    variables by saying $. So for example, if variable A, they should be able to use it by saying $A, etc. Also,
+    variable name should be case insensitive. Variable values are immutable. The user should not be able to, on
+    subsequent rows, change or reassign the value of an already existing variable. The user should be able to also add
+    their own variable names, starting with alphabets.") Doable — the plan: each row that gives a value gets the next
+    free name (A … Z, AA … ZZ, then AAA … as Excel goes on), shown at the right end of its result (a tap puts $A into
+    the input); `$A` / `$a` in a later row stands for that value exactly as bc printed it (all its digits — bc's own
+    capital letters are hex digits, so the $ names are put in by our glue before bc sees the line, never as bc
+    variables); `$name = expression` names a row yourself (a letter first, then letters, digits, _; case-insensitive),
+    and the automatic names skip any name taken; any change of an existing $ name (`=`, `+=`, `++` …) is refused with
+    what it holds. To settle with the owner: a row that prints several values (one name each, or the last); bc's own
+    lowercase variables, which loops and `define` functions need, stay as bc has them. Engine unchanged (BusyBox's bc in
+    WebAssembly); the names are TypeScript glue in `src/tools/bc-console.ts`, its suite `tests/e2e/bc-console.e2e.mjs`.
+
 ## Done
 - **2. FFmpeg tab: buttons for more popular jobs** (owner, 20 Nov 2026: "add all the popular new jobs for FFmpeg that don't have buttons yet … search for more out there … and add it") — done 20 Nov 2026: 21 new jobs (39 in all, in eight groups of a task list; no command line needed): the owner's six (join clips; subtitles burn in / add as a track / extract; logo or text on a video; volume; reverse; picture at a chosen moment) and fifteen popular uses found on the web (fades, fit to a shape with a blurred background or bars, remove silence, picture-in-picture, loop / boomerang, stabilise, clean up grain, contact sheet, timelapse, split into parts, sound settings, colours / black and white, cut a part out, background music, deinterlace; sources in docs/BUGHUNT.md). `src/lib/ffjobs.ts`, `src/tools/ffmpeg.ts`; unit `ffjobs.test.mjs` 110 (native FFmpeg 6.1), e2e `ffmpeg.e2e.mjs` 68. Found on the way: the core's JPEG encoder crashed the page (every JPEG is MozJPEG's now).
 - **4. YouTube Clip tab: "Download latest yt-dlp"** (owner, 20 Nov 2026: "Have an export button called download latest
