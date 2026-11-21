@@ -79,6 +79,13 @@ this file = the owner's latest wishes, how the tests are written, and the traps 
 - **21 Nov 2026 — EXIF and FFmpeg:** asked why some tabs had no camera, then: "i can't see the take a photo thingie for
   ffmpeg... and yes, also add it for exif too" — both have it now (FFmpeg beside its main picker too). Only the SVG
   Optimizer stays without one (SVG drawings).
+- **21 Nov 2026 — OpenPGP:** "in the OpenPGP app, keep the existing functionality exactly the same and add another, new
+  mode which uses the latest OpenPGP standard, which may or may not be compatible with GPG." References for its tests
+  (not in the repository): `cargo install --locked rsop` (rPGP 0.21's SOP tool) and `cargo install --locked
+  sequoia-sop --no-default-features --features cli,crypto-openssl` (Sequoia 2; needs libssl-dev).
+- **21 Nov 2026 — PDF → EPUB, the owner's user testing:** "this PDF was rendered very badly … see if you can fix it, and
+  if you can, please note it … after the OpenPGP thing … please do this PDF to EPUB stuff also." The files:
+  AJUR_January_2016p5.pdf and the EPUB the tab made (uploaded in chat; ask again in a new session).
 - **20 Nov 2026 — live:** the owner asked to merge into `main` and make the site live; Pages was switched on by the
   owner (Source: GitHub Actions). The repository's **default branch is `claude/exciting-bohr-b9yfwc`**, and Pages'
   environment lets only the default branch publish — so the site is published from that branch; `main` holds the
