@@ -13,7 +13,7 @@ import { isMobile } from '../platform';
 import { imgproc, type Img } from '../wasm/imgproc';
 import { previewOf, paint } from '../lib/imgio';
 import { imageInput } from '../lib/imgtools';
-import { recognize, type OcrResult } from '../lib/ocr';
+import { recognize, POOR, type OcrResult } from '../lib/ocr';
 import { straighten } from '../lib/pagecrop';
 import { hardWords, lookupWord, rarity, ranker, type WordCard, type Result } from '../lib/dictionary';
 import { wikiSummary, type Summary } from '../lib/wikipedia';
@@ -86,6 +86,8 @@ export const mount: Mount = (root, ctx) => {
   const thumb = h('canvas', { class: 'pd-thumb', 'aria-label': 'Your photo' });
   const prog = progress();
   const status = h('div', { class: 'muted small', 'aria-live': 'polite' });
+  /** what to do when the photo could not be read well (out of focus, shaken, taken from too far away) */
+  const advice = h('div', { class: 'pd-advice' });
   const cards = h('div', { class: 'pd-list' });
   const looked = h('div', { class: 'pd-looked' });
   const extra = h('div', { class: 'stack' });
@@ -95,14 +97,14 @@ export const mount: Mount = (root, ctx) => {
   // ---------------------------------------------------------------- pipeline
   const run = async (img: Img, file: File | null = null): Promise<void> => {
     if (busy) { // the engine is busy with the photo before: this one is read as soon as it is free
-      pending = img; pendingFile = file; photo = file; saveBtn.hidden = !file; paint(previewOf(img, 480), thumb); cards.replaceChildren(); extra.replaceChildren(); textBox.replaceChildren(); bar.hidden = true; last = null;
+      pending = img; pendingFile = file; photo = file; saveBtn.hidden = !file; paint(previewOf(img, 480), thumb); cards.replaceChildren(); extra.replaceChildren(); advice.replaceChildren(); textBox.replaceChildren(); bar.hidden = true; last = null;
       status.textContent = 'A new photo — it is read as soon as the one before is done.';
       return;
     }
     busy = true;
     photo = file; saveBtn.hidden = !file;
     const stale = () => gone || pending !== null; // a newer photo is waiting, or the tab was left
-    results.hidden = false; bar.hidden = true; cards.replaceChildren(); looked.replaceChildren(); extra.replaceChildren(); textBox.replaceChildren(); last = null;
+    results.hidden = false; bar.hidden = true; cards.replaceChildren(); looked.replaceChildren(); extra.replaceChildren(); advice.replaceChildren(); textBox.replaceChildren(); last = null;
     phrases.length = 0; selBtn.hidden = true; // the phrases of the page before go with it
     status.textContent = ''; // the line said the page before's result while the new one was read
     paint(previewOf(img, 480), thumb);
@@ -120,6 +122,10 @@ export const mount: Mount = (root, ctx) => {
       // an outline that was not the page (little read on it): the whole photo is read too, and the better reading kept
       if (page.found && r.words.length < 25) { const r2 = await read(await clean(whole)); if (stale()) return; if (r2.words.length > r.words.length) r = r2; }
       if (!r.text.trim()) { prog.done(); status.textContent = isMobile ? 'No text found. Hold the phone straight over the page, in good light, and try again.' : 'No text found. Hold the page flat and close to the webcam, in good light, and try again — or choose a photo of it.'; return; }
+      // a photo that could not be read well: what was read is shown, with what to do about it (measured: every reading
+      // below POOR had most of its words wrong; a page read as a handful of words was out of focus or far away)
+      const few = r.words.length < 25, poor = r.confidence < POOR;
+      if (few || poor) advice.replaceChildren(note(`${few ? `Only ${r.words.length} word${r.words.length === 1 ? ' was' : 's were'} read. If the page holds more, the photo may be blurred or taken from too far away.` : 'The text reads poorly — the photo looks blurred, or its letters are small, so some words below are misread.'} ${isMobile ? 'Hold the phone steady and a little closer, in good light, and snap again.' : 'Hold the page steady and closer to the webcam, in good light, and snap again — or choose a sharper photo.'}`, 'warn'));
       // the words broken over two lines put together, for the text shown, a tap, a selection and the ranking
       const text = (await ranker()).dehyphen(r.text);
       if (stale()) return;
@@ -235,7 +241,7 @@ export const mount: Mount = (root, ctx) => {
   };
 
   results.append(
-    card(null, h('div', { class: 'pd-top' }, thumb, h('div', { class: 'stack' }, prog, status, h('div', null, saveBtn)))),
+    card(null, h('div', { class: 'pd-top' }, thumb, h('div', { class: 'stack' }, prog, status, h('div', null, saveBtn))), advice),
     textBox, looked, cards, extra,
     h('p', { class: 'muted small pd-attr' }, 'Definitions: English Wiktionary (CC BY-SA 4.0 / GFDL), extracted by wiktextract / kaikki.org. Word frequencies: wordfreq by Robyn Speer (CC BY-SA 4.0). Summaries: Wikipedia (CC BY-SA 4.0). Online look-ups send only the single word, or the phrase you chose.'));
   root.append(

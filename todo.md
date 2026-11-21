@@ -14,13 +14,6 @@ The owner adds items here in chat ("add … to to do"). Newest instructions win.
 3. _(withdrawn by the owner on 20 Nov 2026: the "Export Python utility" for the YouTube Clip tab — do not build it.)_
 
 
-6. **Photo Dictionary upgrade** (owner, 21 Nov 2026 — "build it out next … before you help me building out new apps
-   with potentials.md"): a Wikipedia box under every word, all the uncommon words (not a fixed 20), the complete OCR
-   text first with phrase selection looked up on Wikipedia, and words broken over two lines by a hyphen or dash
-   treated as one word. The plan: CLAUDE.md §3 Photo Dictionary, "To build next" (items 1 – 5). Next after the
-   Indian-accent ranking now in progress. **The owner's first case: a phone photographing a Kindle page** (item 5; the
-   standing note at the top of CLAUDE.md).
-
 7. **Text-to-Speech offline, the rest of round 2** (owner, 21 Nov 2026: "Don't leave out any of the other TTS stuff
    either. Eventually complete everything that you are/were doing in parallel"): Kyutai TTS 1.6B (kyutai/tts-1.6b-en_fr,
    CC BY 4.0) with its 594 voices of kyutai/tts-voices (228 CC0 voice donations filed by the accent heard, VCTK's 106 by
@@ -38,15 +31,6 @@ The owner adds items here in chat ("add … to to do"). Newest instructions win.
    Python tab's), Oniguruma (already compiled into our jq.wasm), Rust `regex` / `fancy-regex`; each flavour held to its
    native engine in the tests. Order: with the work in hand (CLAUDE.md, the potentials process), after the TTS work and
    the Photo Dictionary.
-
-9. **OCR on the phone, as good as the Photo Dictionary** (owner, 21 Nov 2026: "just like the photo dictionary, the OCR
-   app should also work really well from my phone"): the OCR tab shares the engine (`src/lib/ocr.ts`), the live camera
-   (`src/lib/livecam.ts`) and the picture clean-up with the Photo Dictionary, so the phone work of #6 — the camera's
-   full-resolution still instead of a video frame, continuous autofocus, the clean-up chosen by measuring photos of
-   Kindle pages, newspapers and printed pages — is held for the OCR tab too: its suite measures the words read right on
-   the same photo set. What is the OCR tab's own (a whole page of running text, columns, the four languages, the text
-   kept in its lines) is tuned and measured on its own. Done together with #6. **Progress 21 Nov 2026:** the OCR tab straightens a
-   photographed page too (CLAUDE.md §3 OCR); its suite reads the Kindle fixtures (99 % and 97 % of the words).
 
 10. **bc console (Scientific Calculator tab): every result in a variable** (owner, 21 Nov 2026, added as the last item:
     "The result of each expression should be stored in a variable, and that variable should be printed at the right
@@ -69,6 +53,18 @@ The owner adds items here in chat ("add … to to do"). Newest instructions win.
     `src/tools/bc-console.ts`, its suite `tests/e2e/bc-console.e2e.mjs`.
 
 ## Done
+- **6. Photo Dictionary upgrade** (owner, 21 Nov 2026 — "build it out next … before you help me building out new apps
+  with potentials.md") — done 21 Nov 2026: a Wikipedia box under every word, every uncommon word (no fixed 20), the
+  page's text first with a selected phrase looked up on Wikipedia, words broken over two lines joined (31dbd3e); **the
+  owner's first case, a phone photographing a Kindle page** (item 5): Snap takes the camera's still, the page is found and
+  straightened before it is read (most generated photos of Kindle pages read 93 – 100 %), and a photo too soft to read
+  says "snap again" (abe1d69, cd07746, 5617e29, the hint after d4f5b2d). CLAUDE.md §3 Photo Dictionary, "The upgrade".
+  Measured and not kept: sharpening, upscaling, Sauvola thresholding, PaddleOCR PP-OCRv6 (docs/WASM-AUDIT.md, tab 122).
+  The owner's own Kindle photos ("Save this photo" under the thumbnail) are welcome for more tuning.
+- **9. OCR on the phone, as good as the Photo Dictionary** (owner, 21 Nov 2026: "just like the photo dictionary, the OCR
+  app should also work really well from my phone") — done 21 Nov 2026 (d4f5b2d and the hint after it): the OCR tab
+  shares the camera's still, straightens a photographed page (a screenshot or a program's scan is read as it is) and says
+  when a photo reads poorly; its suite reads the Kindle fixtures (≥ 95 % and ≥ 90 % of their words). CLAUDE.md §3 OCR.
 - **5. Rename the app from SuperTools to "SuperUtils"** (owner, 21 Nov 2026: "make sure you rename it everywhere. For
   example, in the text-to-speech download utility also") — done 21 Nov 2026 (650388c): the page, the header, the tab
   titles, the terminal (prompt, hostname, uname — busybox.wasm rebuilt), the samples, the JSON → Types header, the

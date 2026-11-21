@@ -34,6 +34,11 @@ export async function ocrWorker(langs: OcrLang): Promise<TWorker> {
     gzip: true, cacheMethod: 'none', workerBlobURL: false,
     logger: (m: any) => progressCb?.(m.progress ?? 0, m.status || ''),
     errorHandler: (e: unknown) => { const err = ocrError(e); fail(err); failCb?.(err); },
+  }).then(async (x) => {
+    // Tesseract's own diagnostics ("Estimating resolution as 274", "Line cannot be recognized!!" on a blurred photo) are
+    // printed as console errors: they go nowhere (they change no result — measured)
+    await x.setParameters({ debug_file: '/dev/null' } as any);
+    return x;
   });
   const w = Promise.race([made, failed]);
   const entry = { langs, w };
@@ -42,6 +47,12 @@ export async function ocrWorker(langs: OcrLang): Promise<TWorker> {
   onLeave('ocr-worker', () => { const c = current; current = null; c?.w.then((x) => x.terminate()).catch(() => {}); });
   return w;
 }
+
+/** Below this average confidence a reading is poor: the OCR tab tries the picture turned, and both tabs say that a sharper
+ *  photo would read better. Measured on photographed pages (scripts/measure-ocr.mjs, 21 Nov 2026): sharp photos average
+ *  94 – 95; every reading below 60 had most of its words wrong (the photo out of focus, shaken, or its text a few pixels
+ *  high). */
+export const POOR = 60;
 
 export interface OcrResult { text: string; confidence: number; words: Array<{ text: string; conf: number; x0: number; y0: number; x1: number; y1: number }> }
 export async function recognize(img: ImageData | HTMLCanvasElement | Blob, langs: OcrLang, onProgress?: (p: number, status: string) => void): Promise<OcrResult> {

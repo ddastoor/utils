@@ -1080,6 +1080,18 @@ One entry per tab, written before its bug hunt: our module → candidates → ch
   reading a sideways or upside-down picture — is added beside it in the tab (rule 1c, our own glue): a reading below 60 %
   confidence is tried on a smaller copy turned the three other ways, and the picture is read the way that is clearly
   better. PaddleOCR on ONNX Runtime is the thing to try if real camera photos read badly.
+- **Tried, 21 Nov 2026 (the Photo Dictionary's phone work, to-do #6 / #9):** PaddleOCR's newest models — PP-OCRv6 small
+  detection (9.9 MB) and recognition (21 MB) on ONNX Runtime, through RapidOCR 3.10 in Python — against the tab's
+  Tesseract on the 24 generated photos of Kindle pages and newspapers (`scripts/make-kindle-photos.py`; the same words,
+  the same metrics as `scripts/measure-ocr.mjs`). Mean words read right: PaddleOCR 67.4 % on the photo, 67.8 % on the
+  straightened page; Tesseract on the straightened page 67.0 %. Uncommon words found: 68.8 % against 64.5 %. Better on
+  soft pictures (a blurred video frame 45 % against 9 %, a newspaper with glare and moiré 66 % against 32 %), worse on
+  columns (it reads across them: a three-column page 38 % against 98 %), and both fail on the same photos (out of focus,
+  shaken, text a few pixels high). Not worth a second engine of 31 MB: **Tesseract stays**; a photo it cannot read well
+  is said in both tabs (below 60 % confidence: "snap again"). Also measured on Tesseract and not kept: Sauvola
+  thresholding (`thresholding_method=2`: the newspaper 32 → 82 %, but blurred Kindle pages down to 0 – 7 %; mean 55 %),
+  sharpening the page (+2 points on one set of photos, −2 on another; Tesseract's confidence picked the worse reading on
+  two of them), upscaling small pages (no gain).
 
 ### 123. `signature` — Signature Maker (20 Nov 2026)
 - **Engines:** the browser's canvas draws the strokes (its own compiled Skia) and the typed name (its HarfBuzz);

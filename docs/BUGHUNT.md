@@ -2525,3 +2525,17 @@ cannot. Three new suites; each fails on the build before its fixes.
   the synthetic photos; a screenshot left alone), e2e ocr 63 (+6: the two Kindle fixtures held to their own words, the
   unsure words inside the page, the clean-up off reads less, a screenshot not cut), photodict 92 (+3: a Kindle still and
   a video frame find 90 % / 80 % of the uncommon words of a clean copy of the same page).
+- **A photo too soft to read: said, not passed off (21 Nov 2026; to-do #6 item 5, #9).** What is left after the
+  straightening was measured on three sets of generated photos: the photos that still read badly are out of focus, shaken
+  (the generator's hand shake streaks 12 – 36 px of a 4032 px still) or hold text a few pixels high (a Kindle at arm's
+  length in a 1080p video frame). Neither Tesseract with any clean-up (sharpening, upscaling, Sauvola) nor PaddleOCR's
+  newest models read them (docs/WASM-AUDIT.md, tab 122). Tesseract's confidence tells them apart: sharp photos read at
+  94 – 95 %, every reading below 60 % had most of its words wrong. So **the Photo Dictionary says "The text reads poorly …
+  snap again"** (or "Only n words were read …" when a page gave fewer than 25) above its list, and the OCR tab adds it to
+  its line. Found on the way: **the suite's Kindle checks could read the result of the photo before** (the status line
+  still showed it until the new photo was decoded, so the check compared a clean copy with itself — it passed, but proved
+  nothing) → the line is emptied before each photo and the checks still pass on their own result; **Tesseract's own
+  diagnostics reached the console as errors** ("Line cannot be recognized!!" on a blurred photo) → its `debug_file` is
+  /dev/null (no result changes — measured). Checks: e2e photodict 96 (+4: no hint on the two good photos, the hint on a
+  blurred frame — `tests/fixtures/images/kindle-soft.jpg` — and gone with the next photo), ocr 64 (+1, and no hint on the
+  good photos).

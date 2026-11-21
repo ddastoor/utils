@@ -37,8 +37,9 @@ that affects it.
 > change to it, to its OCR (`src/lib/ocr.ts`), to the shared live camera (`src/lib/livecam.ts`) or to the image clean-up
 > it uses is judged first by how well a phone's photo of a Kindle page reads; its suite measures that (§3 Photo
 > Dictionary). The owner's report of 21 Nov 2026: on the phone the OCR was worse than with the webcam (the Kindle's
-> "Comforta" font) — the same engine on both; the phone's Snap gives one frame of the live video, not a photo (§3 Photo
-> Dictionary, "To build next").
+> "Comforta" font) — the same engine on both; the phone's Snap gave one frame of the live video, not a photo — it takes
+> the camera's still now, the page is found and straightened before it is read, and a photo too soft to read gets a
+> "snap again" hint (§3 Photo Dictionary, "The upgrade", item 5).
 > **The OCR tab too** (owner, 21 Nov 2026: "just like the photo dictionary, the OCR app should also work really well from
 > my phone"): it shares the engine, the camera and the clean-up, and is held to the same phone photos (`todo.md` #9).
 
@@ -1940,14 +1941,15 @@ picker's own camera; Snap takes the full frame into the editor, scrolled into vi
 under the photo's name (camera-20261120-211503.txt). The picker does not force the camera (screenshots, photos already
 taken; an iPhone's picker also offers its camera app).
 **A photographed page straightened first (owner, 21 Nov 2026: "just like the photo dictionary, the OCR app should also
-work really well from my phone" — `todo.md` #9; e2e 63):** with the clean-up on, the page of a camera's photo (a Kindle's
+work really well from my phone" — `todo.md` #9; e2e 64):** with the clean-up on, the page of a camera's photo (a Kindle's
 screen in its black body, a sheet on a table) is found and straightened before it is read (`src/lib/pagecrop.ts`, the
 Photo Dictionary's) and shown in place of the photo, so the unsure words are marked on what was read; the line says
 "the page was found and straightened". A page that gives fewer than 25 words → the whole picture is read too, the better
 kept. A screenshot or a scan made by a program (more than a fifth of it exactly one colour: imgproc `p_flat_share`) is
 read as it is — a white panel in it is no page. Measured on the generated Kindle photos: the clean-up of before read
 1 % of a still in Noto Sans (the black body divided by itself), the photo as it is 81 %, straightened and cleaned 99 %.
-Phones' Snap takes the camera's still (§3 Photo Dictionary, Progress).
+Phones' Snap takes the camera's still (§3 Photo Dictionary, Progress). A reading below 60 % confidence (`POOR`) adds
+"the text reads poorly: a sharper photo, closer and in good light, reads better" to the line under the text.
 
 ### Camera in every tab that takes a picture (owner, 20 Nov 2026)
 Owner: "In all apps that offer to upload an image, also add the option of taking a photo if it's a phone app, and take
@@ -1989,8 +1991,9 @@ the photo with a webcam if it's a PC app." No engine to fetch: the browser's get
 Its own camera gave way to the shared live camera of every picture tab (`imageInput` — the back camera on phones, the
 webcam on PCs, "Switch camera", closed on leave); "Share list" sits in the phone's fixed bar once there is a list. e2e
 55: a PC's webcam showing the book page → Snap → the same 20 words as the photo file.
-**To build next (owner, 21 Nov 2026 — "make a note of this and build it out when you come to it"; after the PDF → EPUB
-fix):**
+**The upgrade (owner, 21 Nov 2026 — "make a note of this and build it out when you come to it"; after the PDF → EPUB
+fix) — BUILT 21 Nov 2026** (items 1 – 4: 31dbd3e; item 5: abe1d69, cd07746, 5617e29, d4f5b2d and the "snap again" hint
+after them):
 1. **Wikipedia under every word:** after the OCR and the word list, each word gets — besides its dictionary meaning — a
    **live look-up on the Wikipedia API**, shown in a little box under the meaning (a summary of the article). This adds
    `en.wikipedia.org` (Wikimedia REST, e.g. `/api/rest_v1/page/summary/<title>`, CORS without a key) to the approved
@@ -2024,12 +2027,15 @@ fix):**
    a video frame 0 → 97 %); the Photo Dictionary reads the straightened page and, when it gives fewer than 25 words, the
    whole photo too (the better kept). **Snap on a phone takes the camera's still** (`stillOf` in `src/lib/livecam.ts`:
    ImageCapture `takePhoto`, at most 4096 px wide, turned to the live picture's way round; continuous autofocus asked
-   for; the frame where there is none — Safari — or it fails). Left: small text with glare, small text in a video
-   frame, newspapers' columns, the OCR tab (#9).
+   for; the frame where there is none — Safari — or it fails). The OCR tab straightens a photographed page too (#9).
+   **What is left reads badly because the photo does** (out of focus, shaken, text a few pixels high in a video frame):
+   no clean-up and no other engine read those (sharpening, upscaling, Sauvola thresholding; PaddleOCR PP-OCRv6 —
+   docs/WASM-AUDIT.md, tab 122), so a reading below 60 % confidence (`POOR` in `src/lib/ocr.ts`; sharp photos read at
+   94 – 95 %), or a page read as fewer than 25 words, gets a "snap again" hint above the list (the OCR tab: in its line).
 **Owner, 21 Nov 2026: build this upgrade next — after the Indian-accent ranking in progress, before the rest of the
 voice work, the rename and the regex flavours, and before anything from `docs/potentials.md`** (`todo.md` #6).
 (`src/tools/photodict.ts`, engine `src/lib/dictionary.ts`, ranking `wasm/textcore/rare.c`; e2e `tests/e2e/photodict.e2e.mjs`
-49 checks on a photographed-page fixture; unit `tests/unit/rare.test.mjs` 65 checks.) **As built** (bug hunt of Nov 2026:
+96 checks on photographed-page fixtures — a book page, Kindle stills and video frames; unit `tests/unit/rare.test.mjs` 65 checks.) **As built** (bug hunt of Nov 2026:
 `docs/BUGHUNT.md`, tab 99)**:**
 - Data (`public/data/dict/`, **committed**, 38 MB raw / 11 MB gzip, rebuilt by hand with `node scripts/build-dict.mjs`):
   `freq.txt` = wordfreq 3.1.1 `large_en` (311,698 words, Zipf×10 buckets; wheel SHA-256 pinned from PyPI);
@@ -2511,8 +2517,10 @@ only when a tool needs live data and the owner has accepted that tool. **Approve
 |---|---|---|---|
 | `en.wiktionary.org` (Wikimedia REST: `/api/rest_v1/page/definition/<word>`) | `photodict` | one word | online fallback for words missing from the bundled dictionary (owner request) |
 | `api.dictionaryapi.dev` (Free Dictionary API: `/api/v2/entries/en/<word>`) | `photodict` | one word | second fallback if Wiktionary has no entry or is down |
-Both are free, need no key or account, send CORS headers, set no cookies we read. **Live in the CSP since the Photo
-Dictionary shipped** (`connect-src 'self' blob: data: https://en.wiktionary.org https://api.dictionaryapi.dev`);
+| `en.wikipedia.org` (Wikimedia REST: `/api/rest_v1/page/summary/<title>`) | `photodict` | one word, or the phrase the reader selected | a short summary under each word and phrase (owner, 21 Nov 2026; `src/lib/wikipedia.ts`; a switch turns it off) |
+All three are free, need no key or account, send CORS headers, set no cookies we read. **Live in the CSP since the
+Photo Dictionary shipped** (`connect-src 'self' blob: data: https://en.wiktionary.org https://api.dictionaryapi.dev
+https://en.wikipedia.org` — Wikipedia since 21 Nov 2026);
 `no-external.e2e.mjs` asserts that connect-src lists exactly these hosts and that no code directive allows any host. e2e tests never hit them: Playwright `page.route` serves recorded responses (the dev sandbox cannot
 reach them anyway). Candidate tools offered to the owner: currency converter (frankfurter.app, ECB rates),
 weather (Open-Meteo), IP/network info, clock-accuracy check (network time).

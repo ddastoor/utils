@@ -227,6 +227,8 @@ export default async ({ base, page: newPage, ok, info, devices }) => {
   { const pk = await newPage(phone); await mockApis(pk, []);
     await pk.goto(base + '#/photodict');
     const pick = async (file) => {
+      // the line still says the photo before's result until the new one is decoded: wait for this photo's own result
+      await pk.evaluate((sel) => { document.querySelector(sel).textContent = ''; }, STATUS);
       await pk.locator('input[type=file]').first().setInputFiles(file);
       await pk.waitForFunction((sel) => /uncommon word|No uncommon words|No text found|went wrong/.test(document.querySelector(sel)?.textContent || '') && !/new photo/.test(document.querySelector(sel).textContent), STATUS, { timeout: 180000 });
       return cardWords(pk);
@@ -242,7 +244,15 @@ export default async ({ base, page: newPage, ok, info, devices }) => {
       const ref = await pick({ name: 'clean-copy.png', mimeType: 'image/png', buffer: await cleanCopy(txt) });
       const got = await pick(F(photo)), share = ref.filter((w) => got.includes(w)).length / ref.length;
       ok(ref.length >= 8 && share >= min, `${what} of a Kindle page finds ${Math.round(100 * share)} % (at least ${100 * min} %) of the ${ref.length} uncommon words of a clean copy of it — missing: ${ref.filter((w) => !got.includes(w)).join(', ') || 'none'}`);
+      ok(await pk.locator('.pd-advice').innerText() === '', `${what}: read well, so no "snap again" hint`);
     }
+    // a photo too soft to read well (a frame of the live video, out of focus, with moiré): what was read is shown, and
+    // the tab says why and what to do — not a list of misread words passed off as the page's
+    await pick(F('kindle-soft.jpg'));
+    const tip = await pk.locator('.pd-advice').innerText();
+    ok(/reads poorly|Only \d+ words? (was|were) read/.test(tip) && /Hold the phone steady and a little closer, in good light, and snap again/.test(tip), `a blurred photo: the tab says it reads poorly and to snap again (${tip})`);
+    await pick(F('kindle-page.jpg'));
+    ok(await pk.locator('.pd-advice').innerText() === '', 'the next, sharp photo: the hint is gone');
     ok(real(pk.errors).length === 0, `no page errors with the Kindle photos ${real(pk.errors).join(' | ')}`); }
 
   // live camera (Chromium's fake camera shows a test pattern: no words) → Snap runs the pipeline

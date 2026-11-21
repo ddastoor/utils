@@ -37,10 +37,13 @@ export default async ({ base, page: newPage, ok, info, download, devices }) => {
   for (const [f, min] of [['kindle-page.jpg', 0.95], ['kindle-frame.jpg', 0.9]]) {
     const got = await recognise(F(f), 'English', true), truth = wordsOf(readFileSync(F(f.replace('.jpg', '.txt')), 'utf8'));
     const right = readRight[f] = lcs(truth, wordsOf(got)) / truth.length;
-    ok(right >= min && /the page was found and straightened/.test(await line()), `${f}: ${(100 * right).toFixed(1)} % of the page's words read right (at least ${100 * min} %), the page straightened first (${await line()})`);
+    ok(right >= min && /the page was found and straightened/.test(await line()) && !/reads poorly/.test(await line()), `${f}: ${(100 * right).toFixed(1)} % of the page's words read right (at least ${100 * min} %), the page straightened first (${await line()})`);
     const low = await page.locator('.ocr-low').evaluateAll((els) => els.map((e) => [parseFloat(e.style.left), parseFloat(e.style.top)]));
     ok(low.every(([x, y]) => x >= 0 && x <= 100 && y >= 0 && y <= 100), `${f}: the unsure words are marked on the page that was read (${low.length})`);
   }
+  // a photo too soft to read well (a frame of the live video, out of focus, with moiré): the line says so
+  await recognise(F('kindle-soft.jpg'), 'English', true);
+  ok(/the text reads poorly: a sharper photo, closer and in good light, reads better/.test(await line()), `a blurred photo: the line says it reads poorly (${await line()})`);
   { const got = await recognise(F('kindle-page.jpg'), 'English', false), truth = wordsOf(readFileSync(F('kindle-page.txt'), 'utf8'));
     const raw = lcs(truth, wordsOf(got)) / truth.length;
     ok(!/straightened/.test(await line()) && raw < readRight['kindle-page.jpg'], `without the clean-up the photo is read as it is: ${(100 * raw).toFixed(1)} % against ${(100 * readRight['kindle-page.jpg']).toFixed(1)} % with it (the clean-up of before, without the straightening, read 1 %)`); }

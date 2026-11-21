@@ -1,11 +1,11 @@
-// measure-ocr.mjs DIR [--prep a,b,…] [--psm N] [--only TEXT] — how many of a photo's words the OCR reads right, for
+// measure-ocr.mjs DIR [--prep a,b,…] [--psm N] [--only TEXT] [--param name=value,…] — how many of a photo's words the OCR reads right, for
 // every photo of DIR (made by scripts/make-kindle-photos.py: <name>.jpg + <name>.txt). The engine is the app's own:
 // tesseract.js with the English model the site serves (4.0.0_best_int), in Node; the clean-up steps are imgproc.wasm's,
 // as the tab runs them (src/wasm/imgproc.ts through Vite's loader). Prints one line per photo and the means: the words
 // read right (the longest common subsequence of the two word lists, over the words of the page), the uncommon words
 // found (those a reader looks up) and how clean the reading is (the words read that are right).
 // Needs python3 with Pillow (to decode the JPEGs).
-import { readFileSync, readdirSync } from 'node:fs';
+import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -21,7 +21,7 @@ const opt = (k, d) => { const i = args.indexOf(k); return i >= 0 ? args[i + 1] :
 const preps = opt('--prep', 'app').split(',');
 const psm = opt('--psm', '3');
 const only = opt('--only', '');
-let found = 0; // photos whose page was found (page / pagescreen)
+let found = 0; // photos whose page was found (the page… variants)
 
 /** Words as a reader counts them: letters, digits and the apostrophe; case and punctuation ignored. */
 export const wordsOf = (s) => (s.normalize('NFC').replace(/[’‘]/g, "'").toLowerCase().match(/[a-z0-9']+/g) || []).map((w) => w.replace(/^'+|'+$/g, '')).filter(Boolean);
@@ -78,17 +78,23 @@ async function prepare(ip, straighten, img, p) {
   if (p === 'raw') return cap(img);
   if (p === 'app') return ip.docEnhance(copy(cap(img)), 1);
   if (p === 'screen') return ip.docEnhance(ip.blur(copy(cap(img)), 1.1), 1);
-  if (p === 'page' || p === 'pagescreen' || p === 'pageup' || p === 'pagesharp') {
+  if (p.startsWith('page')) {
+    // page[+step…]: the page found and straightened, then the steps in order — blur (a screen's moiré), up<f> (larger by
+    // f, default 2, while the longer side is under 2000 px — the engine reads x-heights of 20 – 30 px best), sharp<a>
+    // (unsharp mask, amount a, default 1, σ 1.2; sharp1.5s2 = amount 1.5, σ 2), bw (black and white instead of grey). Old names: pagescreen = page+blur, pageup = page+up, pagesharp = page+sharp.
+    const steps = { pagescreen: ['blur'], pageup: ['up'], pagesharp: ['sharp'] }[p] || p.split('+').slice(1);
     const s = await straighten(cap(img), ip);
     found += s.found ? 1 : 0;
     let pg = copy(s.img);
-    if (p === 'pagescreen') pg = ip.blur(pg, 1.1);
-    if (p === 'pagesharp') pg = ip.sharpen(pg, 1, 1.2);
-    // small text (a video frame, a page far away): twice the size for the engine, which reads x-heights of 20 – 30 px best
-    if (p === 'pageup' && Math.max(pg.width, pg.height) < 2000) pg = ip.resize(pg, pg.width * 2, pg.height * 2);
-    const out = ip.docEnhance(pg, 1);
+    for (const st of steps) {
+      if (st === 'blur') pg = ip.blur(pg, 1.1);
+      else if (st.startsWith('sharp')) { const [a, sg] = st.slice(5).split('s'); pg = ip.sharpen(pg, parseFloat(a) || 1, parseFloat(sg) || 1.2); }
+      else if (st.startsWith('up')) { const f = parseFloat(st.slice(2)) || 2; if (Math.max(pg.width, pg.height) < 2000) pg = ip.resize(pg, pg.width * f, pg.height * f); }
+      else if (st !== 'bw') throw new Error('unknown step ' + st);
+    }
+    const out = ip.docEnhance(pg, steps.includes('bw') ? 2 : 1);
     // as the tab does: a page found that gives fewer than 25 words → the whole photo is read too, the better kept
-    if (s.found) out.whole = () => ip.docEnhance(p === 'pagescreen' ? ip.blur(copy(cap(img)), 1.1) : copy(cap(img)), 1);
+    if (s.found) out.whole = () => ip.docEnhance(steps.includes('blur') ? ip.blur(copy(cap(img)), 1.1) : copy(cap(img)), 1);
     return out;
   }
   if (p.startsWith('crop')) {
@@ -109,8 +115,10 @@ async function prepare(ip, straighten, img, p) {
 async function main() {
   const { ip, straighten, close } = await imgprocNode();
   const worker = await createWorker('eng', OEM.LSTM_ONLY, { langPath: join(root, 'node_modules/@tesseract.js-data/eng/4.0.0_best_int'), gzip: true, cacheMethod: 'none' });
-  await worker.setParameters({ tessedit_pageseg_mode: psm });
-  const names = readdirSync(dir).filter((f) => f.endsWith('.jpg') && f !== 'sheet.jpg' && !f.startsWith('crop') && (!only || f.includes(only))).map((f) => f.slice(0, -4)).sort();
+  // --param name=value,…: Tesseract parameters for the run (e.g. thresholding_method=2, Sauvola instead of Otsu)
+  const params = Object.fromEntries(opt('--param', '').split(',').filter(Boolean).map((kv) => kv.split('=')));
+  await worker.setParameters({ tessedit_pageseg_mode: psm, ...params });
+  const names = readdirSync(dir).filter((f) => f.endsWith('.jpg') && existsSync(join(dir, f.slice(0, -4) + '.txt')) && (!only || f.includes(only))).map((f) => f.slice(0, -4)).sort(); // a photo without its words is no test photo
   const totals = {};
   for (const name of names) {
     const truth = wordsOf(readFileSync(join(dir, name + '.txt'), 'utf8'));
@@ -127,7 +135,7 @@ async function main() {
       const right = lcs(truth, got), found = [...rare].filter((x) => got.includes(x)).length;
       const acc = right / truth.length, clean = got.length ? right / got.length : 0;
       (totals[p] ||= []).push([acc, rare.size ? found / rare.size : 1, clean]);
-      row.push(`${p}: ${(100 * acc).toFixed(1)}% ${found}/${rare.size} rare ${(100 * clean).toFixed(0)}% clean ${((performance.now() - t0) / 1000).toFixed(1)} s`);
+      row.push(`${p}: ${(100 * acc).toFixed(1)}% ${found}/${rare.size} rare ${(100 * clean).toFixed(0)}% clean conf ${Math.round(data.confidence)} n ${got.length} ${((performance.now() - t0) / 1000).toFixed(1)} s`);
     }
     console.log(row.join(' | '));
   }

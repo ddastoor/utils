@@ -728,6 +728,7 @@ details summary { cursor: pointer; font-weight: 600; color: var(--accent); paddi
 .pd-top { display: flex; gap: 12px; align-items: center; }
 .pd-thumb { width: 72px; height: auto; border-radius: 8px; border: 1px solid var(--border); flex: none; }
 .pd-top > .stack { flex: 1; min-width: 0; }
+.pd-advice:not(:empty) { margin-top: 10px; }
 .pd-list { display: flex; flex-direction: column; gap: 12px; }
 .pd-card { font-family: Literata, Georgia, 'Times New Roman', serif; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 14px 16px; line-height: 1.55; }
 .pd-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }

@@ -6,12 +6,10 @@ import { h, card, field, segmented, toggle, stack, note, progress, button, actio
 import { imgproc, type Img } from '../wasm/imgproc';
 import { previewOf, paint } from '../lib/imgio';
 import { imageInput } from '../lib/imgtools';
-import { recognize, type OcrLang, type OcrResult } from '../lib/ocr';
+import { recognize, POOR, type OcrLang, type OcrResult } from '../lib/ocr';
 import { straighten } from '../lib/pagecrop';
 
 const ROT = [1, 6, 3, 8]; // quarter turns to the right as EXIF orientations
-/** Below this average confidence a reading is suspect: the picture is also tried turned. */
-export const POOR = 60;
 /** Light text on a dark ground (a screenshot in dark mode, chalk on a board): the clean-up expects dark text on paper. */
 export const isDark = (luma: Uint32Array | number[]) => {
   let n = 0, sum = 0;
@@ -91,6 +89,8 @@ export const mount: Mount = (root, ctx) => {
     prog.done();
     // the straightened page is shown in place of the photo: the highlighted words sit on what was read
     if (page) { paint(previewOf(page, 1400), canvas); note += ' · the page was found and straightened'; }
+    // a poor reading after all that: the photo itself (out of focus, shaken, the text a few pixels high) — say so
+    if (r.text && r.confidence < POOR) note += ' · the text reads poorly: a sharper photo, closer and in good light, reads better';
     out.value = r.text;
     info.textContent = r.text
       ? `${r.words.length} words · average confidence ${Math.round(r.confidence)} % · ${((performance.now() - t0) / 1000).toFixed(1)} s${note}`
