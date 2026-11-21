@@ -45,7 +45,7 @@ from the sandbox (GitHub is not reachable there): measure it before building.
 - **Nothing new — about 0 – 0.3 MB, the tab's own code; its engines are already on the site:** 3 Make PDF Searchable,
   9 Shamir Secret Split, 14 Audiobook, 15 PDF Compare, 16 PDF Tables → Excel, 17 Video Face Blur,
   18 Label Sheets, 20 Duplicate Photos, 27 WireGuard, 30 Aadhaar / e-Invoice QR, 31 DIGIPIN, 34 Calendar Converter,
-  36 Metadata Remover, 44 Anki Flashcards, 61 PDF Redact, 62 Authenticator Export, 63 Photo Organizer, 64 Subtitle
+  36 Metadata Remover, 61 PDF Redact, 62 Authenticator Export, 63 Photo Organizer, 64 Subtitle
   Sync, 65 Kindle Highlights, 71 EPUB Reader; and 29 Breach Check, 52 Food Label, 53 Book Lookup (each needs its data-API host
   approved first).
 - **Small — under 10 MB:** 1 Image to SVG 0.2 (vtracer / potrace) · 2 Photo Upscaler 4.8 (Real-ESRGAN general x4v3;
@@ -151,7 +151,6 @@ from the sandbox (GitHub is not reachable there): measure it before building.
 | 41 | **Favicon & App-Icon Maker**: one logo → favicon.ico + all PNG sizes + SVG render | resvg (Rust, permissive) + own ICO writer | own wasm build | both | waiting |
 | 42 | **Audio Effects**: equaliser, bass boost, reverb, echo, chorus, fade, normalise | SoX (GPL/LGPL, C, SourceForge) | own wasm build | both | waiting |
 | 43 | **MIDI Player → MP3**: play .mid files with real instruments and save audio | FluidSynth (LGPL, C) + a free General MIDI SoundFont | own wasm build + our LAME | both | waiting |
-| 44 | **Anki Flashcards from CSV**: make an .apkg deck (front/back, images) for the Anki app | Anki deck format | our SQLite + zip (on the site) | both | waiting |
 
 ### Science, makers, software
 | # | New tab | Open-source project | Engine | Platform | Status |
@@ -276,7 +275,7 @@ the owner said "add all ten". Every one runs in the browser on the device; none 
 - **JavaScript-only (tier 4, reason recorded if accepted):** Excalidraw and CircuitJS1 have no compiled equivalent.
 - **Data API:** only #29, #52 and #53 contact another host, each only after the owner approves it (CLAUDE.md §3a
   "Approved data APIs").
-- **Round 3 cheapest wins:** DIGIPIN & Plus Codes, Calendar Converter, Aadhaar/e-Invoice QR Verifier, Anki Flashcards,
+- **Round 3 cheapest wins:** DIGIPIN & Plus Codes, Calendar Converter, Aadhaar/e-Invoice QR Verifier,
   Favicon Maker, JBIG2 for scans.
 
 ## Removed by the owner (16 – 21 Nov 2026) — do not suggest again
@@ -288,6 +287,7 @@ the owner said "add all ten". Every one runs in the browser on the device; none 
   (Speech to Text was taken off the site to make room for apps used more often)
 - XIRR / Mutual-fund Returns (#66: the real return from actual SIP and redemption dates, CAGR) — owner, 21 Nov 2026: "remove
   XIRR / Mutual-fund Returns"
+- Anki Flashcards from CSV (#44: an .apkg deck for the Anki app) — owner, 21 Nov 2026: "remove 44 Anki Flashcards"
 
 ## Related
 `docs/IDEAS.md` is an earlier, longer research list from 15 Nov 2026, also waiting for the owner. It overlaps with this
