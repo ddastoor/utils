@@ -51,6 +51,11 @@ export default async (ctx) => {
   ok(await until(page, () => /Stopped after 2 seconds: this pattern takes too long/.test(document.querySelector('.note-err')?.textContent || ''), null, 9000), `a runaway pattern is stopped (${Date.now() - t0} ms) with an explanation`);
   ok(await page.evaluate(() => 1 + 1) === 2 && await page.locator('.regex-hl').textContent() === 'a'.repeat(40) + '!', 'the page stayed responsive and the text is still shown');
   await set('a{3}', 'g', 'aaaaaa'); ok(await marksAre(['aaa', 'aaa']), 'the next pattern runs in a fresh worker');
+  // a new pattern typed while the worker is still stuck on a runaway one: it waits behind it, then runs in a fresh
+  // worker (it used to wait for ever: the new request reset the stuck one's time limit)
+  await set('(a+)+$', 'g', 'a'.repeat(40) + '!'); await page.waitForTimeout(300);
+  await set('a{2}', 'g', 'aaaa');
+  ok(await marksAre(['aa', 'aa']) && !(await page.locator('.note-err').count()), 'a pattern typed while the worker is stuck gets its own answer (a fresh worker), not a "Stopped"');
   ok((await page.evaluate(() => globalThis.__superutilsLive())).workers === 1, 'one worker is alive');
   ok(!page.errors.length, `no page errors ${page.errors.join(' | ')}`);
   await page.goto(`${base}#/`); ok(await until(page, () => globalThis.__superutilsLive().workers === 0), 'the worker is ended when the tab is left');

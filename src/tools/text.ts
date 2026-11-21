@@ -522,7 +522,10 @@ export const regex: Mount = (root) => {
   const repOut = outputBox({ rows: 4 });
   const engineNote = h('div');
   let worker: Worker | null = null, seq = 0, timer = 0, slow = 0, version = '';
-  const stop = () => { clearTimeout(timer); clearTimeout(slow); if (worker) { releaseNow('regex'); worker = null; } };
+  // the request the worker is matching now (its "run" message came, its answer not yet) and the flavour of each request
+  let running = 0;
+  const sent = new Map<number, FlavourId>();
+  const stop = () => { clearTimeout(timer); clearTimeout(slow); running = 0; if (worker) { releaseNow('regex'); worker = null; } };
   const describe = () => {
     clear(flagHint).append(...fl.flags.map(([c, what], i) => h('span', null, i ? ' · ' : '', h('code', null, c), ` ${what}`)));
     repHint.textContent = `Groups in the replacement: ${fl.replace}.`;
@@ -559,30 +562,37 @@ export const regex: Mount = (root) => {
   const run = () => {
     const fe = flavourFlagsError(fl, flags.value); flags.classList.toggle('bad', !!fe);
     if (fe) { stop(); seq++; pat.classList.remove('bad'); show({ id: 0, error: fe }, text.value); return; }
-    const id = ++seq, s = text.value, f = fl;
+    const id = ++seq, f = fl;
     if (!worker) {
       worker = trackWorker(new Worker(new URL('../workers/regex.worker.ts', import.meta.url), { type: 'module' }), 'regex', () => { worker = null; });
       worker.onmessage = (ev: MessageEvent<RegexRes>) => {
         const r = ev.data;
-        if (r.id !== seq) return;
-        if (r.phase === 'run') { // the engine is ready: the time limit starts now
-          clearTimeout(slow); loaded.add(fl.id);
-          clearTimeout(timer);
-          const limit = REGEX_LIMIT_MS[fl.id], txt = text.value;
+        if (r.phase === 'run') {
+          // the engine is ready and matches request r.id: its time limit starts now, whichever request is the newest — a
+          // newer one waits behind it in the worker
+          running = r.id; clearTimeout(timer);
+          const fid = sent.get(r.id) ?? 'js', limit = REGEX_LIMIT_MS[fid];
+          if (r.id === seq) { clearTimeout(slow); loaded.add(fid); }
           timer = window.setTimeout(() => {
-            if (r.id !== seq) return;
+            const stuck = running;
             stop();
-            show({ id: r.id, error: `Stopped after ${limit / 1000} seconds: this pattern takes too long on this text. Nested repeats such as (a+)+ or (.*)* make the engine try a huge number of ways to match — rewrite the pattern without them.` }, txt);
+            // the newest request is the one that took too long: say so; else it waited behind an older one — run it afresh
+            if (stuck === seq) show({ id: stuck, error: `Stopped after ${limit / 1000} seconds: this pattern takes too long on this text. Nested repeats such as (a+)+ or (.*)* make the engine try a huge number of ways to match — rewrite the pattern without them.` }, text.value);
+            else run();
           }, limit);
           return;
         }
-        clearTimeout(timer); clearTimeout(slow);
+        if (r.id === running) { clearTimeout(timer); running = 0; }
+        sent.delete(r.id);
+        if (r.id !== seq) return;
+        clearTimeout(slow);
         show(r, text.value);
       };
     }
-    clearTimeout(timer); clearTimeout(slow);
+    clearTimeout(slow);
+    sent.set(id, f.id);
     if (!loaded.has(f.id)) slow = window.setTimeout(() => { if (id === seq) clear(groups).append(note(`Fetching the ${f.label.replace(/ \(.*/, '')} engine (${ENGINE_SIZE[f.id]}, once a visit)…`, 'info')); }, 300);
-    worker.postMessage({ id, flavour: f.id, pattern: pat.value, flags: flags.value, text: s, replacement: rep.value ? rep.value : null, all: every.checked } satisfies RegexReq);
+    worker.postMessage({ id, flavour: f.id, pattern: pat.value, flags: flags.value, text: text.value, replacement: rep.value ? rep.value : null, all: every.checked } satisfies RegexReq);
   };
   let deb = 0; const runD = () => { clearTimeout(deb); deb = window.setTimeout(run, 60); };
   [pat, flags, text, rep].forEach((x) => x.addEventListener('input', runD));
