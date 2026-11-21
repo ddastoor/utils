@@ -19,10 +19,10 @@ export default async (ctx) => {
   const repIs = (want, ms = 15000) => until(page, (w) => document.querySelectorAll('.card textarea')[1]?.value === w, want, ms);
   const errIs = (re, ms = 15000) => until(page, (s) => new RegExp(s).test(document.querySelector('.note-err')?.textContent || ''), re.source, ms);
   const head = () => page.$$eval('.tbl thead th', (h) => h.map((e) => e.textContent));
-  const engineNote = () => page.evaluate(() => [...document.querySelectorAll('.tool-body > div .note, .note')].map((n) => n.textContent).find((t) => /engine|PCRE2|CPython|regexp|Oniguruma|OpenJDK/.test(t)) || '');
+  const engineNote = () => page.evaluate(() => [...document.querySelectorAll('.tool-body > div .note, .note')].map((n) => n.textContent).find((t) => /engine|PCRE2|CPython|regexp|Oniguruma|OpenJDK|RegularExpressions/.test(t)) || '');
   await pat.waitFor();
 
-  ok(JSON.stringify(await flavourSel.evaluate((s) => [...s.options].map((o) => o.textContent))) === JSON.stringify(['JavaScript (this browser)', 'PCRE2 (PHP, R, grep -P …)', 'Perl 5', 'Python (re)', 'Python (regex module)', 'Java (java.util.regex)', 'Go (RE2 syntax)', 'Ruby (Oniguruma)', 'POSIX ERE (grep -E, sed -E)']), 'nine flavours, JavaScript first');
+  ok(JSON.stringify(await flavourSel.evaluate((s) => [...s.options].map((o) => o.textContent))) === JSON.stringify(['JavaScript (this browser)', 'PCRE2 (PHP, R, grep -P …)', 'Perl 5', 'Python (re)', 'Python (regex module)', 'Java (java.util.regex)', '.NET (C#, PowerShell)', 'Go (RE2 syntax)', 'Ruby (Oniguruma)', 'POSIX ERE (grep -E, sed -E)']), 'ten flavours, JavaScript first');
   ok(await marksAre(['555-1234', '555-9876']) && !fetched.length, `JavaScript as before, and no engine fetched at open (${fetched.join(', ')})`);
   ok(!(await every.isVisible()), 'JavaScript: its g flag decides, the "Replace every match" switch is not shown');
 
@@ -78,7 +78,8 @@ export default async (ctx) => {
   await set('(?:hello){e<=2}', 'b', 'yellow hallo hello'); ok(await marksAre(['hello']), 'b (BESTMATCH): the best fuzzy match, not the first');
   await set('[[a-z]--[aeiou]]+', 'V', 'hello world'); ok(await marksAre(['h', 'll', 'w', 'rld']), 'V (version 1): set difference in a class');
   await set('strasse', 'if', 'STRASSE Straße'); ok(await marksAre(['STRASSE', 'Straße']), 'f: full case-folding — ß matches ss');
-  await set('\\w+', 'r', 'one two three', '<\\g<0>>'); ok(await marksAre(['three', 'two', 'one']) && await repIs('<one> <two> <three>'), 'r: the matches from the end');
+  await set('\\w+', 'r', 'one two three', '<\\g<0>>'); ok(await marksAre(['one', 'two', 'three']) && await repIs('<one> <two> <three>') && await page.locator('.regex-hl').textContent() === 'one two three', 'r: the matches from the end — highlighted in their places');
+  ok(JSON.stringify(await page.$$eval('.tbl tbody tr td:nth-child(2)', (t) => t.map((e) => e.textContent))) === '["three","two","one"]', 'r: the table lists them as the engine found them, last first');
   await set('\\((?:[^()]++|(?R))*\\)', '', 'f(a(b)c) g(d) h('); ok(await marksAre(['(a(b)c)', '(d)']), 'regex module: recursion and possessive repeats');
   await set('(?P<1a>x)', '', 'x'); ok(await errIs(/bad character in group name at position 6/), "the regex module's own error words");
   await flags.fill('v'); ok(await errIs(/“v” is not a flag in Python\. The flags are i m s x a V f b e p r w\./), 'its flags are listed; version 1 is a capital V');
@@ -97,6 +98,21 @@ export default async (ctx) => {
   await set('\\w+', '', 'naïve'); ok(await marksAre(['na', 've']), 'the next pattern runs at once (a new instance after the overflow): \\w is ASCII in Java without U');
   await set('(', '', 'x'); ok(await errIs(/Unclosed group near index 1/), "Java's own error words");
   await flags.fill('g'); ok(await errIs(/“g” is not a flag in Java\. The flags are i m s x d u U c\./), "Java's flags are listed");
+  await flags.fill('');
+
+  // ---- .NET (System.Text.RegularExpressions on Microsoft's WebAssembly runtime)
+  await flavourSel.selectOption('dotnet');
+  await set('(?<y>\\d{4})-(\\d\\d)', '', 'on 2026-11 and 1999-01', '${y}/$1');
+  ok(await repIs('on 2026/11 and 1999/01', 60000) && JSON.stringify(await head()) === JSON.stringify(['#', 'Match', 'Index', '$1', '$2 y']), '.NET: the unnamed group is 1 and y is 2 (.NET numbers the named groups last); ${y} and $1 in the replacement');
+  ok(/\.NET 10\.0\.\d+ System\.Text\.RegularExpressions/.test(await engineNote()) && fetched.some((f) => /^dotnet\.native.*\.wasm/.test(f)), 'the note gives the .NET version; Microsoft\'s runtime is fetched with its flavour');
+  await set('^(?:(?<o>\\()|(?<-o>\\))|[^()])*(?(o)(?!))$', '', '(a(b)c)'); ok(await marksAre(['(a(b)c)']), '.NET: balancing groups — brackets that match');
+  await set('^(?:(?<o>\\()|(?<-o>\\))|[^()])*(?(o)(?!))$', '', '(a(b)c'); ok(await until(page, () => /0 matches/.test(document.querySelector('.note-info, .note-ok')?.textContent || '')), '… and none where a bracket is left open');
+  await set('\\w+', 'r', 'one two three', '<$0>'); ok(await marksAre(['one', 'two', 'three']) && await repIs('<one> <two> <three>') && await page.locator('.regex-hl').textContent() === 'one two three', '.NET r (RightToLeft): found from the right, highlighted in their places');
+  await set('(\\d)', '', 'a1b', '[$2|${x}|$$|$&]'); ok(await repIs('a[$2|${x}|$|1]b'), '.NET: a group the pattern does not have stays as text; $$ and $&');
+  await set('(\\w)\\1', 'N', 'aa'); ok(await errIs(/NonBacktracking is not supported in conjunction with expressions containing: 'backreference/), 'N (NonBacktracking): .NET\'s own refusal of a back-reference');
+  await set('[a-z-[aeiou]]+', '', 'hello'); ok(await marksAre(['h', 'll']), '.NET: class subtraction');
+  await set('(', '', 'x'); ok(await errIs(/Invalid pattern '\(' at offset 1\. Not enough \)'s\./), ".NET's own error words");
+  await flags.fill('g'); ok(await errIs(/“g” is not a flag in \.NET\. The flags are i m s n x r e N\./), ".NET's flags are listed");
   await flags.fill('');
 
   // ---- Go

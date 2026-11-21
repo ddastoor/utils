@@ -2,6 +2,7 @@
 // it, held to the native engine — tests/fixtures/regex/reference.json, from scripts/make-regex-reference.py (CPython 3.14,
 // Go's regexp built natively, the system's libpcre2-8 through scripts/regex-ref/pcre2ref.c, Ruby 3.3).
 import { readFileSync } from 'node:fs';
+import { pathToFileURL } from 'node:url';
 
 export default async (t, { load, wasm }) => {
   const C = await load('src/lib/regex/common.ts');
@@ -23,7 +24,9 @@ export default async (t, { load, wasm }) => {
   const px = await wasm('posix-re');
   const J = await load('src/lib/regex/java.ts');
   const javaRun = await J.javaEngine(new Uint8Array(readFileSync('src/wasm/bin/java-regex.wasm')));
-  const engines = { java: (q) => javaRun(q), posix: (q) => runPosix(px, q), python: (q) => runPython(py, zip, q), pyregex: (q) => runPython(py, zip, q, 'regex'), go: (q) => runGo(go, q), pcre2: (q) => runPcre2(q), ruby: (q) => R.runRuby(q), perl: (q) => P.runPerl(perl, zpOut, q) };
+  const D = await load('src/lib/regex/dotnet.ts');
+  const dotnetRun = await D.dotnetEngine(pathToFileURL('public/engines/dotnet-regex/_framework/dotnet.js').href);
+  const engines = { dotnet: (q) => dotnetRun(q), java: (q) => javaRun(q), posix: (q) => runPosix(px, q), python: (q) => runPython(py, zip, q), pyregex: (q) => runPython(py, zip, q, 'regex'), go: (q) => runGo(go, q), pcre2: (q) => runPcre2(q), ruby: (q) => R.runRuby(q), perl: (q) => P.runPerl(perl, zpOut, q) };
 
   // where Oniguruma (the tab's Ruby engine) is not Onigmo (Ruby's own): each one named, with what Ruby does
   const RUBY_DIFFERS = {};
@@ -35,7 +38,7 @@ export default async (t, { load, wasm }) => {
   const PCRE2_NEWER = { '\\w+|u': 'UCP \\w takes combining marks (e + U+0301 is one word)', '\\p{Greek}+|': '\\p{Greek} by Script Extensions (U+0301)' };
 
   const shape = (r) => ({ names: r.names, total: r.total, matches: r.matches.map((m) => [m.index, m.text, ...m.groups]) });
-  t.ok(Object.keys(REF.cases).sort().join() === 'go,java,pcre2,perl,posix,pyregex,python,ruby', `reference of ${Object.entries(REF.engines).map(([k, v]) => `${k}: ${v}`).join(', ')}`);
+  t.ok(Object.keys(REF.cases).sort().join() === 'dotnet,go,java,pcre2,perl,posix,pyregex,python,ruby', `reference of ${Object.entries(REF.engines).map(([k, v]) => `${k}: ${v}`).join(', ')}`);
   for (const [fl, cases] of Object.entries(REF.cases)) {
     for (const c of cases) {
       const q = { pattern: c.pattern, flags: c.flags, text: c.text, replacement: c.rep, all: c.all };
@@ -47,7 +50,7 @@ export default async (t, { load, wasm }) => {
       if (want.error !== undefined) {
         // the same engine gives the same words (Python, Go); PCRE2 10.42 here and 10.49 in the tab, Onigmo and Oniguruma,
         // word some errors differently — that it is refused is what must agree
-        const same = fl === 'python' || fl === 'pyregex' || fl === 'java' || fl === 'go' || fl === 'posix' ? err?.message === want.error : fl === 'perl' ? err?.message.split(' in regex')[0] === want.error.split(' in regex')[0] : !!err;
+        const same = fl === 'python' || fl === 'pyregex' || fl === 'java' || fl === 'dotnet' || fl === 'go' || fl === 'posix' ? err?.message === want.error : fl === 'perl' ? err?.message.split(' in regex')[0] === want.error.split(' in regex')[0] : !!err;
         t.ok(err instanceof C.PatternError && same, `${what}: refused as the native engine refuses it — ${JSON.stringify(want.error)}${err ? ` (ours: ${JSON.stringify(err.message)})` : ' (ours compiled it)'}`);
         continue;
       }
@@ -56,7 +59,7 @@ export default async (t, { load, wasm }) => {
       const eq = JSON.stringify(got) === JSON.stringify(exp);
       t.ok(eq || !!known, `${what}: the matches, groups and names of the native engine${eq ? '' : ` — ours ${JSON.stringify(got).slice(0, 300)}, native ${JSON.stringify(exp).slice(0, 300)}${known ? ` (known: ${known})` : ''}`}`);
       if (c.rep !== null) {
-        const ok = want.repError ? !!r.repError && (!(fl.startsWith('py') || fl === 'java') || r.repError === want.repError) : r.replaced === want.replaced && !r.repError;
+        const ok = want.repError ? !!r.repError && (!(fl.startsWith('py') || fl === 'java' || fl === 'dotnet') || r.repError === want.repError) : r.replaced === want.replaced && !r.repError;
         t.ok(ok || !!known, `${what}: the replacement — ${want.repError ? `refused (${JSON.stringify(want.repError)}; ours ${JSON.stringify(r.repError)})` : JSON.stringify(want.replaced?.slice(0, 80))}${ok ? '' : ` — ours ${JSON.stringify(r.repError || r.replaced?.slice(0, 80))}`}`);
       }
     }
@@ -87,7 +90,7 @@ export default async (t, { load, wasm }) => {
   t.eq(F.namedGroups('(a)(b)', { noCapture: true }), [], "PCRE2's n: plain groups do not capture");
   t.eq(F.namedGroups('(a) # (b)\n(c)', { extended: true }), ['', ''], 'x: a # comment is skipped');
   const fl = (id, f) => F.flagsError(F.flavour(id), f);
-  t.eq([fl('js', 'gi'), fl('python', 'imsxa'), fl('pyregex', 'imsxaVfbepwr'), fl('go', 'imsU'), fl('ruby', 'imx'), fl('pcre2', 'imsxnUJDAu'), fl('perl', 'imsxna'), fl('posix', 'im'), fl('java', 'imsxduUc')], [null, null, null, null, null, null, null, null, null], 'every flavour\'s own flags are accepted');
+  t.eq([fl('js', 'gi'), fl('python', 'imsxa'), fl('pyregex', 'imsxaVfbepwr'), fl('go', 'imsU'), fl('ruby', 'imx'), fl('pcre2', 'imsxnUJDAu'), fl('perl', 'imsxna'), fl('posix', 'im'), fl('java', 'imsxduUc'), fl('dotnet', 'imsnxreN')], [null, null, null, null, null, null, null, null, null, null], 'every flavour\'s own flags are accepted');
   t.eq(fl('pyregex', 'v'), '“v” is not a flag in Python. The flags are i m s x a V f b e p r w.', 'the regex module: V (version 1) is a capital');
   t.eq(fl('python', 'g'), '“g” is not a flag in Python. The flags are i m s x a.', 'Python has no g (Replace every match does it)');
   t.eq(fl('go', 'ii'), 'Flag i is given twice.', 'a repeated flag');

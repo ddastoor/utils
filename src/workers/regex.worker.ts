@@ -52,6 +52,8 @@ const loaders: Record<FlavourId, () => Promise<Run>> = {
   pyregex: async () => { const [m, mod, zip] = await python(); return (q) => m.runPython(mod, zip, q, 'regex'); },
   go: async () => { const [m, mod] = await Promise.all([import('../lib/regex/go'), compile(goUrl)]); return (q) => m.runGo(mod, q); },
   java: async () => { const [m, wasm] = await Promise.all([import('../lib/regex/java'), bytes(javaUrl)]); return m.javaEngine(wasm); },
+  // .NET's files stay as dotnet publish wrote them (dotnet.js loads its siblings by name): public/engines/dotnet-regex
+  dotnet: async () => (await import('../lib/regex/dotnet')).dotnetEngine(new URL('engines/dotnet-regex/_framework/dotnet.js', base).href),
   ruby: async () => { const [m, wasm] = await Promise.all([import('../lib/regex/ruby'), bytes(onigUrl)]); await m.loadOnig(wasm); return m.runRuby; },
   posix: async () => { const [m, w] = await Promise.all([import('../lib/regex/posix'), import('../wasm/wasi')]); const x = await w.instantiateWasi(posixUrl); return (q) => m.runPosix(x.exports, q); },
 };

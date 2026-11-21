@@ -7,6 +7,8 @@
 #   go     — wasm/regexgo built natively with the Go toolchain (the same program the tab runs as WebAssembly);
 #   pcre2  — the system's libpcre2-8 through scripts/regex-ref/pcre2ref.c (cc … -lpcre2-8; apt install libpcre2-dev);
 #   ruby   — Ruby (3.3 here: its Onigmo) — the tab runs Oniguruma, so this is where the two may part;
+#   dotnet — the .NET runtime of this machine (apt install dotnet-sdk-10.0; the same System.Text.RegularExpressions as the
+#            tab's browser-wasm build): wasm/dotnetregex/RegexRun.cs and native/Native.cs, invariant culture;
 #   java   — the JDK whose source java-regex.wasm is built from (openjdk-21): wasm/javaregex/java/superutils/RegexRun.java
 #            and Native.java compiled with its javac, on its own java.util.regex;
 #   perl   — the system's perl (5.38 here) running the very script the tab runs (src/lib/regex/perl.ts) in Perl 5.42;
@@ -115,6 +117,36 @@ CASES = {
         C(r'(a|b)*', '', 'ab' * 20000, note="Java's recursive matcher runs out of stack"),
         C(r'(', '', 'x'), C(r'[a-', '', 'x'), C(r'a{2,1}', '', 'x'), C(r'*a', '', 'x'), C(r'(?<1a>x)', '', 'x'),
         C(r'\k<n>', '', 'x'), C(r'\p{NoSuch}', '', 'x'),
+    ],
+    'dotnet': [
+        C(r'\d+', '', 'a1 b22 c333', '<$0>'),
+        C(r'(?<y>\d{4})-(\d\d)', '', 'on 2026-11 and 1999-01', '${y}/$1', note='.NET numbers the unnamed groups first: (\d\d) is 1, y is 2'),
+        C(r'(\w+)@(\w+)\.com', '', 'mail ann@example.com or bob@test.com', '$2 at $1'),
+        C(r'(\d)', '', 'a1b', "[$2|${x}|$$|$&|$`|$'|$+|$_]", note='an unknown group stays as text'),
+        C(r'(\d)', '', 'a1', '$11'), C(r'(\d)', '', 'a1', '${1}1'),
+        C(r'^\w+', 'm', LINES, '#'), C(r'^\w+$', 'm', LINES), C(r'\w+$', '', 'end\n'), C(r'.+', '', LINES),
+        C(r'a.b', '', 'a\nb'), C(r'a.b', 's', 'a\nb'),
+        C(r'straße', 'i', 'STRASSE strasse Straße STRAßE'), C(r'σίσυφος', 'i', UNI),
+        C(r'\w+', '', UNI), C(r'\w+', 'e', UNI), C(r'\p{IsGreek}+', '', UNI), C(r'\p{L}+', '', UNI), C(r'\p{Lu}', '', UNI),
+        C(r'x*', '', 'axbxx', '-'), C(r'a|', '', 'baab', '-'), C(r'\b', '', 'ab cd', '|'), C(r'', '', '🎉x', '|'),
+        C(r'a|ab', '', 'ab'), C(r'<.+?>', '', '<a><b>'), C(r'(?>a+)b', '', 'aaab'),
+        C(r'(\w)\1', '', 'aabbcd eeff', '[$1]'), C(r'(?<=\$)\d+', '', 'cost $40 or $5'),
+        C(r'(?<=\b\w+ )\w+', '', 'to be or not', note='look-behind of any length'),
+        C(r'\w+', 'r', 'one two three', '<$0>', note='r: from the right'), C(r'\w+', 'r', 'one two three', '<$0>', all=False),
+        C(r'(?<open>\()|(?<-open>\))|[^()]', '', '(a(b)c))', note='balancing groups'),
+        C(r'^(?:(?<o>\()|(?<-o>\))|[^()])*(?(o)(?!))$', '', '(a(b)c)', note='balanced brackets with a condition'),
+        C(r'^(?:(?<o>\()|(?<-o>\))|[^()])*(?(o)(?!))$', '', '(a(b)c', note='unbalanced'),
+        C(r'(?<w>\w)+', '', 'abc', '[${w}]', note='a repeated group keeps its last capture'),
+        C(r'\d+', 'N', 'a1 b22 c333', '<$0>', note='NonBacktracking'), C(r'(\w)\1', 'N', 'aa', note='NonBacktracking: no back-references'),
+        C(r'(a+)+$', 'N', 'a' * 30 + '!', note='NonBacktracking: linear time'),
+        C(r'(?n)(a)(?<b>b)', '', 'ab', note='n inline: plain ( ) do not capture'), C(r'(a)(?<b>b)', 'n', 'ab'),
+        C(r'''(\d+)  # the number
+              \s* (cm|mm)  # the unit''', 'x', '10 cm, 5mm'),
+        C(r'[a-z-[aeiou]]+', '', 'hello world', note='class subtraction'),
+        C(r'\d', '', 'a1b2c3', '#', all=False), C(r'.', '', 'x' * 1500), C(r'\D', '', '1🎉2é3', '_'),
+        C(r'\d', 'e', '١٢3', note='ECMAScript: \d is [0-9]'), C(r'\d', '', '١٢3'),
+        C(r'(', '', 'x'), C(r'[a-', '', 'x'), C(r'a{2,1}', '', 'x'), C(r'*a', '', 'x'), C(r'(?<1a>x)', '', 'x'),
+        C(r'\k<n>', '', 'x'), C(r'\p{NoSuch}', '', 'x'), C(r'a', 'es', 'a', note='ECMAScript cannot be combined with s'),
     ],
     'go': [
         C(r'\d+', '', 'a1 b22 c333', '<$0>'),
@@ -381,6 +413,17 @@ def main():
     jsrc = os.path.join(ROOT, 'wasm/javaregex/java/superutils')
     subprocess.run([os.path.join(jdk, 'bin', 'javac'), '-nowarn', '-d', os.path.join(tmp, 'java'), os.path.join(jsrc, 'RegexRun.java'),
                     os.path.join(jsrc, 'Native.java')], check=True)
+    dn = os.path.join(tmp, 'dotnet')
+    shutil.copytree(os.path.join(ROOT, 'wasm/dotnetregex/native'), os.path.join(dn, 'native'))
+    shutil.copy(os.path.join(ROOT, 'wasm/dotnetregex/RegexRun.cs'), dn)
+    env = {**os.environ, 'DOTNET_CLI_TELEMETRY_OPTOUT': '1', 'DOTNET_NOLOGO': '1', 'DOTNET_SYSTEM_GLOBALIZATION_INVARIANT': '1'}
+    subprocess.run(['dotnet', 'build', '-c', 'Release', '-o', os.path.join(dn, 'bin'), '-nologo', '-v', 'quiet', os.path.join(dn, 'native', 'Native.csproj')],
+                   check=True, env=env, capture_output=True)
+    for c in CASES['dotnet']:
+        a = json.loads(subprocess.run(['dotnet', os.path.join(dn, 'bin', 'Native.dll')], input=fields(c), capture_output=True, check=True, env=env).stdout)
+        if 'version' in a:
+            out['engines']['dotnet'] = a['version']
+        out['cases'].setdefault('dotnet', []).append({**c, 'out': shape(c, a, 'u16')})
     for c in CASES['java']:
         a = json.loads(subprocess.run([os.path.join(jdk, 'bin', 'java'), '-cp', os.path.join(tmp, 'java'), 'superutils.Native'],
                                       input=fields(c), capture_output=True, check=True).stdout)

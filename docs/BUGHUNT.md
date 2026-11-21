@@ -2642,4 +2642,17 @@ cannot. Three new suites; each fails on the build before its fixes.
   (the watermarker class is None) → setuptools 81.0.0, the last with pkg_resources, is one of the engine's packages.
   Both would have stopped the owner's run; with them fixed, Chatterbox and Turbo speak (5 s of speech each). Tests: unit
   offline-tts-plan 169 (+1: no lock asks for two versions of a package without a marker).
-
+- **Regex Tester flavours: six faults found while building them (21 Nov 2026; to-do #8).** (1) **A request waited
+  behind a stuck worker for ever**: the time limit of a request was reset by the next one, so a runaway pattern held the
+  worker and the tab showed an old answer — the limit belongs to the request being matched (`running` / `sent` in
+  `src/tools/text.ts`), and when it fires for an older one the newest runs in a fresh worker. (2) **Python's regex module
+  trapped in WebAssembly** on `Pattern.groupindex`, pickling, `capturesdict()`, `allcaptures()`, `allspans()`: five
+  functions declared with fewer parameters than CPython calls them with (native code does not notice, WebAssembly checks
+  every indirect call) → `wasm/python/regex-wasm.patch`. (3) **TeaVM: an empty `Map.copyOf` traps in `get()`**
+  ("remainder by zero") — Java's `${x}` for a group the pattern does not have → `Pattern.namedGroups()` patched in
+  `wasm/javaregex/prepare.py`. (4) **TeaVM: integer division by zero traps** where Java throws ArithmeticException →
+  `src/lib/regex/java.ts` gives a new instance after any trap, and says so. (5) **.NET waited for ever in the worker**:
+  `dotnet.js` runs as a worker's "sidecar" only when the worker has no `onmessage` handler → `globalThis.dotnetSidecar =
+  true` first. (6) **Matches found from the end were highlighted in the wrong places** (the regex module's r, .NET's r:
+  the highlighter took the list in the order the engine gave it) → laid out by position; the table keeps the engine's
+  order. Each has a test: unit regex-flavours / python, e2e regex-flavours / regex.

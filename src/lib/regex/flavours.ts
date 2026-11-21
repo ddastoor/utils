@@ -1,7 +1,7 @@
 // The flavours of the Regex Tester (to-do #8): which engine each one is, its flag letters, its replacement syntax and
 // the note under the result. No DOM: the tab, the worker and the unit suite share it.
 
-export type FlavourId = 'js' | 'pcre2' | 'perl' | 'python' | 'pyregex' | 'java' | 'go' | 'ruby' | 'posix';
+export type FlavourId = 'js' | 'pcre2' | 'perl' | 'python' | 'pyregex' | 'java' | 'dotnet' | 'go' | 'ruby' | 'posix';
 export interface Flavour {
   id: FlavourId;
   /** In the flavour list. */
@@ -64,6 +64,14 @@ export const FLAVOURS: Flavour[] = [
       ['U', 'Unicode \\w \\d \\s \\b and \\p{Alpha} … (UNICODE_CHARACTER_CLASS)'], ['c', 'canonical equivalence: é matches e + ◌́ (CANON_EQ)']],
     replace: '$1 … $9 (more digits while such a group exists), ${name}, $0 (the match); \\$ and \\\\ for themselves',
     note: 'OpenJDK 21\'s own java.util.regex — the code of Java\'s Pattern and Matcher, with the JDK\'s Unicode tables — compiled to WebAssembly by TeaVM. Type the pattern as it is meant, not as a Java string literal: \\d, not \\\\d.',
+  },
+  {
+    id: 'dotnet', label: '.NET (C#, PowerShell)', start: '',
+    flags: [['i', 'ignore case'], ['m', '^ and $ at every line'], ['s', '. matches a line break (Singleline)'],
+      ['n', 'plain ( ) do not capture (ExplicitCapture)'], ['x', 'spaces and # comments ignored'],
+      ['r', 'search from the right (RightToLeft)'], ['e', 'ECMAScript behaviour: \\w \\d \\s ASCII'], ['N', 'NonBacktracking: the linear-time engine']],
+    replace: '$1, ${name}, $0 or $& (the match), $` and $\' (before / after it), $+ (the last group), $_ (the whole text), $$',
+    note: '.NET 10\'s own System.Text.RegularExpressions on Microsoft\'s WebAssembly runtime (5 MB, fetched once): balancing groups (?<-name>…), class subtraction [a-z-[aeiou]], look-behind of any length. .NET numbers the unnamed groups first, then the named ones; an unknown $n in the replacement stays as text.',
   },
   {
     id: 'go', label: 'Go (RE2 syntax)', start: '',

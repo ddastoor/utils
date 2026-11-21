@@ -1,0 +1,21 @@
+<!-- The .NET flavour's engine: System.Text.RegularExpressions of .NET 10 on Microsoft's WebAssembly runtime (browser-wasm,
+     the runtime pack from NuGet; no workload needed). Built by build.sh; the output goes to public/engines/dotnet-regex. -->
+<Project Sdk="Microsoft.NET.Sdk.WebAssembly">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <Nullable>enable</Nullable>
+    <!-- the reference runs with the invariant culture too: the same case folding (RegexOptions.IgnoreCase) on both -->
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <!-- .NET's own words in the error messages (a trimmed build keeps only the resource keys by default) -->
+    <UseSystemResourceKeys>false</UseSystemResourceKeys>
+    <CompressionEnabled>false</CompressionEnabled>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="RegexRun.cs" />
+    <Compile Include="Exports.cs" />
+  </ItemGroup>
+</Project>

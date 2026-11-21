@@ -14,19 +14,6 @@ The owner adds items here in chat ("add … to to do"). Newest instructions win.
 3. _(withdrawn by the owner on 20 Nov 2026: the "Export Python utility" for the YouTube Clip tab — do not build it.)_
 
 
-8. **Regex Tester: a choice of regex flavours** (owner, 21 Nov 2026: "make a note of this and build it out when you get
-   a chance" — noted in CLAUDE.md §3 "Text & Dev", `regex`, and added here on the owner's question, 21 Nov 2026): the
-   user picks the flavour — Python (`re`, and the `regex` module), Perl / PCRE, and the other standard ones (JavaScript
-   as now, Go / RE2, Java, .NET, POSIX ERE, Ruby / Oniguruma). WebAssembly first (STANDING RULE #1): candidates PCRE2
-   (C; an existing wasm build or ours), RE2 (Google's `re2-wasm`), Python's `re` through our CPython 3.14 wasm (the
-   Python tab's), Oniguruma (already compiled into our jq.wasm), Rust `regex` / `fancy-regex`; each flavour held to its
-   native engine in the tests. Order: with the work in hand (CLAUDE.md, the potentials process), after the TTS work and
-   the Photo Dictionary.
-   **Progress (21 Nov 2026):** built — JavaScript, PCRE2 (pcre2-wasm), Perl (zeroperl), Python (re, CPython), Go (Go's
-   regexp, our build), Ruby (Oniguruma + Ruby's rules), POSIX ERE (GNU's regex, our build), Python's `regex` module
-   (mrab-regex, built into our CPython), Java (OpenJDK 21's java.util.regex compiled by TeaVM); unit 486 against the
-   native engines, e2e 73 + 32. Next: .NET (CLAUDE.md §3 `regex`).
-
 10. **bc console (Scientific Calculator tab): every result in a variable** (owner, 21 Nov 2026, added as the last item:
     "The result of each expression should be stored in a variable, and that variable should be printed at the right
     side, at the end of the row of that expression value. It should start with A to Z, then AA, AB, AC, AD to AZ, all
@@ -75,6 +62,11 @@ The owner adds items here in chat ("add … to to do"). Newest instructions win.
     camera) the tab says what Wayland changes and how to work with it.
 
 ## Done
+- **8. Regex Tester: a choice of regex flavours** (owner, 21 Nov 2026) — done 21 Nov 2026: **ten flavours**, each
+  the engine its language runs: JavaScript (the browser), PCRE2 (pcre2-wasm), Perl 5.42 (zeroperl), Python's re and the
+  regex module (our CPython, mrab-regex built in), Java (OpenJDK 21's java.util.regex compiled by TeaVM), .NET 10
+  (Microsoft's WebAssembly runtime), Go (our build of its regexp), Ruby (Oniguruma + Ruby's rules), POSIX ERE (GNU's
+  regex, our build). Unit 559 against the native engines (398 cases), e2e 84 + 32. CLAUDE.md §3 `regex`.
 - **7. Text-to-Speech offline, the rest of round 2** (owner, 21 Nov 2026: "Don't leave out any of the other TTS stuff
   either") — done 21 Nov 2026: Kyutai TTS 1.6B with 601 voices, F5-TTS, VibeVoice 1.5B, the 57 Indian voice donations
   for every engine that clones; **every engine run here** with its lock (`scripts/accent-survey/smoke.py`) except the
