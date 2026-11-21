@@ -147,7 +147,7 @@ export function offlinePanel(o: { text: () => string; speed: number }): HTMLElem
     needs.replaceChildren(...n);
     dl.disabled = !p.voices.length || (p.accept.includes('cpml') && !accepted);
     steps.replaceChildren(...(os === 'windows' ? [
-      h('li', null, 'Download the script (', h('code', null, SCRIPT_NAME.windows), ') and double-click it. If Windows asks whether to run it, choose ', h('em', null, 'More info → Run anyway'), ' (it is a text file: open it in Notepad to read it first).'),
+      h('li', null, 'Download the script (', h('code', null, SCRIPT_NAME.windows), ') and double-click it. If Chrome asks whether to keep the file, choose ', h('em', null, 'Keep'), '; if Windows asks whether to run it, choose ', h('em', null, 'More info → Run anyway'), ' (it is a text file: open it in Notepad to read it first).'),
       h('li', null, `The first run downloads the programs and the voices (about ${fmtMB(p.modelMB + p.programMB)}) into the folder `, h('code', null, 'SuperUtils-TTS'), ' in your user folder; later runs reuse them.'),
       h('li', null, 'When it is done, the folder with the speech opens: one MP3 and one WAV per voice.'),
       h('li', null, 'For another text, make a new script here: the downloads stay. To remove everything, delete the SuperUtils-TTS folder.'),

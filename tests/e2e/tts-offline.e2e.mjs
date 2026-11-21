@@ -93,7 +93,7 @@ export default async ({ base, page: newPage, ok, download, devices }) => {
   eq(job.text, TEXT, 'Windows: the text inside, untouched');
   ok(job.voices.some((v) => v.id === 'xtts-clip-vinith' && v.clip?.file?.includes('Vinith')) && job.speed === 0.8 && job.mp3 === false, 'Windows: the XTTS clip voice, speed 0.8, WAV only');
   ok(cmd.includes("$env:COQUI_TOS_AGREED = '1'") && cmd.includes('Read-Host -AsSecureString'), 'Windows: XTTS licence setting, token asked for');
-  ok(/Double-click|double-click/.test(await page.locator('.otts-steps').innerText()), 'Windows instructions');
+  ok(/double-click it\. If Chrome asks whether to keep the file, choose Keep; if Windows asks whether to run it, choose More info → Run anyway/.test(await page.locator('.otts-steps').innerText()), 'Windows instructions: double-click; Chrome\'s "keep the file?" and Windows\' SmartScreen ("Run anyway") said beforehand');
 
   // nothing chosen: no download
   for (const b of await page.locator('.otts-summary .chip-btn').all()) await page.locator('.otts-summary .chip-btn').first().click();
