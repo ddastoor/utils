@@ -14,15 +14,6 @@ The owner adds items here in chat ("add … to to do"). Newest instructions win.
 3. _(withdrawn by the owner on 20 Nov 2026: the "Export Python utility" for the YouTube Clip tab — do not build it.)_
 
 
-12. **Photo Dictionary: the final list of words in alphabetical order** (owner, 21 Nov 2026: "regarding the final list
-    of words that you show to the user with meanings, don't change the list of words, just sort them in alphabetical
-    order, that's all, so that I can zoom into the correct word which is in my mind with scrolling purposes. Again, don't
-    change the actual content of that list that you finally show, just sort it in alphabetical order.") The same cards
-    as now — the same words, meanings and rarity labels; nothing added or taken out — shown A → Z (without regard to
-    case or accents) instead of rarest first; the line above them says so, and "Share list" gives them in the same
-    order. Owner, the same day: "I don't mean zoom in as in zoom into a picture. What I mean is quickly locate the word
-    which is in my mind because it is sorted in alphabetical order." — no picture zoom: the list is only put in order.
-
 13. **Every PC app on both Windows and Linux: a quick check across all the apps** (owner, 21 Nov 2026: "Just do a quick
     test across all the apps and make sure that all the apps that work on PC work on both Windows and Linux.") Every tab
     that runs on a PC (the PC-only ones and the PC + mobile ones) is opened and used for its main job on Windows and on
@@ -41,6 +32,9 @@ The owner adds items here in chat ("add … to to do"). Newest instructions win.
     camera) the tab says what Wayland changes and how to work with it.
 
 ## Done
+- **12. Photo Dictionary: the final list of words in alphabetical order** (owner, 21 Nov 2026) — done 21 Nov 2026: the
+  same cards, A → Z without regard to case or accents; the line above says so; Share list in the same order. Unit
+  `photodict-order` 6, e2e `photodict` 115.
 - **10. bc console: every result in a variable** (owner, 21 Nov 2026) — done 21 Nov 2026: A … Z, AA … ZZ at the end of
   each result's row, `$A` in later lines (any case), `$name = …` for your own names, a $ name set once (every change
   refused). `src/lib/bcvars.ts`; unit `bcvars` 35, e2e `bc-console` 30. CLAUDE.md §2, "bc console".

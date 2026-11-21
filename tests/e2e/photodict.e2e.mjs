@@ -84,19 +84,19 @@ export default async ({ base, page: newPage, ok, info, devices }) => {
   info(st);
   const words = await cardWords(page);
   info(`cards: ${words.join(', ')}`);
-  ok(/^\d+ uncommon words?, rarest first/.test(st), `status reports the result: "${st}"`);
+  ok(/^\d+ uncommon words?, A → Z/.test(st), `status reports the result: "${st}"`);
   // every uncommon word of the page, not a fixed 20 (owner, 21 Nov 2026)
   const said = +/^(\d+)/.exec(st)[1];
   ok(words.length === said && words.length > 20 && new Set(words).size === words.length, `every uncommon word is listed, each once: ${words.length} (it was cut at 20)`);
   const missing = RARE.filter((w) => !words.includes(w));
   ok(!missing.length, `all ${RARE.length} rare words of the page are in the list${missing.length ? ` — missing ${missing.join(', ')}` : ''}`);
   ok(!words.some((w) => ['the', 'and', 'of', 'a', 'she', 'went', 'home', 'town'].includes(w)), 'common words left out');
-  // order: rarest first (Zipf of the form on the page; online words are unknown to wordfreq → first)
-  const zs = await page.locator('.pd-list .pd-card').evaluateAll((els) => els.map((e) => e.dataset.word));
-  const zOf = (w) => (Z.has(w) ? Z.get(w) : -1);
-  const local = zs.filter((w) => RARE.includes(w));
-  ok(local.every((w, i) => i === 0 || zOf(local[i - 1]) <= zOf(w)), `rarest first (${local.map((w) => `${w} ${zOf(w)}`).join(' · ')})`);
-  ok(words.indexOf('snollygoster') >= 0 && words.indexOf('snollygoster') < words.indexOf('sesquipedalian'), 'words unknown to the frequency list come first');
+  // order: A → Z (to-do #12, owner: "don't change the list of words, just sort them in alphabetical order") — case and
+  // accents not counted; the list is the same words the ranking chose (the checks above)
+  const AZ = new Intl.Collator('en', { sensitivity: 'base', numeric: true });
+  ok(words.every((w, i) => i === 0 || AZ.compare(words[i - 1], w) <= 0), `A → Z (${words.slice(0, 6).join(' · ')} …)`);
+  ok(words.includes('snollygoster') && words.includes('sesquipedalian') && words.indexOf('sesquipedalian') < words.indexOf('snollygoster'), 'sesquipedalian before snollygoster: by the letters, not by rarity');
+  void Z;
 
   // a card: word, rarity, part of speech · IPA, meanings with an example, in the reading font
   const sesq = page.locator('.pd-card[data-word="sesquipedalian"]');
@@ -198,6 +198,7 @@ export default async ({ base, page: newPage, ok, info, devices }) => {
   await page.getByRole('button', { name: 'Share list' }).click();
   const shared = await page.evaluate(() => window.__shared?.text || '');
   ok(/^\w+ \(\w+\): .+/m.test(shared) && shared.split('\n').length === words.length, `share sends every word with its meaning (${shared.split('\n').length}: ${shared.split('\n')[0].slice(0, 60)}…)`);
+  ok(JSON.stringify(shared.split('\n').map((l) => l.split(' (')[0])) === JSON.stringify(await page.locator('.pd-list .pd-card:not(.pd-phrase) .pd-word').allTextContents()), 'Share list gives the words in the order shown, A → Z');
   // the browser logs every mocked "not found" (404) answer of the dictionary APIs; anything else is a real error
   const real = (errs) => errs.filter((e) => !/Failed to load resource: (the server responded with a status of 404|net::ERR_INTERNET_DISCONNECTED)/.test(e));
   ok(real(page.errors).length === 0, `no page errors: ${real(page.errors).join(' | ')}`);

@@ -19,6 +19,11 @@ export interface WordCard {
 export interface Result { cards: WordCard[]; notFound: string[]; names: string[]; online: { tried: number; failed: boolean } }
 
 export const DICT_COMMON = 45; // Zipf ≥ 4.5: common words are never shown
+
+/** The cards A → Z by the word shown (to-do #12, owner, 21 Nov 2026: "don't change the list of words, just sort them in
+ *  alphabetical order"): compared without regard to case or accents; cards that compare equal keep their order. */
+const AZ = new Intl.Collator('en', { sensitivity: 'base', numeric: true });
+export const alphabetical = (cards: WordCard[]): WordCard[] => [...cards].sort((a, b) => AZ.compare(a.word, b.word));
 const MAX_ONLINE = 25, ONLINE_TIMEOUT = 5000;
 
 // ------------------------------------------------------------------ bundled data

@@ -1,6 +1,6 @@
 // Photo Dictionary (PC + mobile — owner, 21 Nov 2026; it was mobile only): photograph a page (book, newspaper, Kindle)
 // with the phone's back camera or the PC's webcam (the shared live camera of every picture tab), or choose a photo → OCR (Tesseract wasm) →
-// rank the words by English frequency in textcore.wasm (own C) → every uncommon word, rarest first, with its meanings from
+// rank the words by English frequency in textcore.wasm (own C) → every uncommon word (the rarest first while looking up; shown A → Z — to-do #12), with its meanings from
 // the bundled English Wiktionary (words the bundle lacks are looked up online one word at a time: Wiktionary, then the
 // Free Dictionary API) and a short Wikipedia summary under it. The page's text comes first, its words broken over two
 // lines put together (t_dehyphen); a tap looks a word up, a selected phrase is looked up on Wikipedia (owner, 21 Nov
@@ -16,7 +16,7 @@ import { imageInput } from '../lib/imgtools';
 import { recognize, POOR, type OcrResult } from '../lib/ocr';
 import { straighten } from '../lib/pagecrop';
 import { uprightByReading, uprightWords } from '../lib/upright';
-import { hardWords, lookupWord, rarity, ranker, type WordCard, type Result } from '../lib/dictionary';
+import { alphabetical, hardWords, lookupWord, rarity, ranker, type WordCard, type Result } from '../lib/dictionary';
 import { wikiSummary, type Summary } from '../lib/wikipedia';
 import { onLeave } from '../lifecycle';
 
@@ -143,14 +143,16 @@ export const mount: Mount = (root, ctx) => {
       if (stale()) return;
       showText(text);
       prog.set(null, 'Finding the uncommon words…');
-      const res = await hardWords(text, { max: Infinity, online, onProgress: (d, n) => { if (!stale()) prog.set(n ? d / n : null, 'Looking up words…'); } });
+      const found = await hardWords(text, { max: Infinity, online, onProgress: (d, n) => { if (!stale()) prog.set(n ? d / n : null, 'Looking up words…'); } });
       if (stale()) return;
+      // the same cards, A → Z (owner: "quickly locate the word which is in my mind"); Share list gives this order too
+      const res = { ...found, cards: alphabetical(found.cards) };
       last = res; prog.done();
       cards.replaceChildren(...phrases, ...res.cards.map((c) => withWiki(wordCard(c), c.word)));
       bar.hidden = !res.cards.length;
       const turnedNote = up.turns || up.slant ? ` · the photo was ${uprightWords(up)} to read it` : '';
       status.textContent = res.cards.length
-        ? `${res.cards.length} uncommon word${res.cards.length > 1 ? 's' : ''}, rarest first · ${r.words.length} words read${res.online.tried ? ` · ${res.online.tried} looked up online` : ''}${turnedNote}`
+        ? `${res.cards.length} uncommon word${res.cards.length > 1 ? 's' : ''}, A → Z · ${r.words.length} words read${res.online.tried ? ` · ${res.online.tried} looked up online` : ''}${turnedNote}`
         : `No uncommon words on this page — tap any word in the text to look it up.${turnedNote}`;
       if (res.online.failed) extra.append(note('Some words could not be looked up online (no connection?). Results from the dictionary in this app are shown.', 'warn'));
       if (res.notFound.length) extra.append(h('details', { class: 'pd-more' }, h('summary', null, `Not found (${res.notFound.length})`), h('p', { class: 'small' }, res.notFound.join(', '), h('br'), h('span', { class: 'muted' }, 'Usually misread letters or very rare names. Tap a word in the text below to try it.'))));
@@ -259,7 +261,7 @@ export const mount: Mount = (root, ctx) => {
     h('p', { class: 'muted small pd-attr' }, 'Definitions: English Wiktionary (CC BY-SA 4.0 / GFDL), extracted by wiktextract / kaikki.org. Word frequencies: wordfreq by Robyn Speer (CC BY-SA 4.0). Summaries: Wikipedia (CC BY-SA 4.0). Online look-ups send only the single word, or the phrase you chose.'));
   root.append(
     card(null, stack(
-      h('p', { class: 'pd-intro' }, 'Photograph a page of a book, newspaper or Kindle. You get its uncommon words, rarest first, with their meanings and a short Wikipedia summary.'),
+      h('p', { class: 'pd-intro' }, 'Photograph a page of a book, newspaper or Kindle. You get its uncommon words in alphabetical order, with their meanings and a short Wikipedia summary.'),
       input$.el,
       toggle('Photo of a screen (Kindle, phone, monitor)', false, (v) => (screen = v)),
       toggle('Look up missing words online (sends only that word)', true, (v) => (online = v)),

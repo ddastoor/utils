@@ -2174,6 +2174,11 @@ after them):
    reply shown as plain text; mocked in the tests.
 2. **As many words as are uncommon, not a fixed 20:** the list stops where the words turn common ("the" …) — fewer than
    20 when the page has fewer uncommon words, more than 20 when it has more.
+   **Shown A → Z (to-do #12, owner, 21 Nov 2026 — done):** "don't change the list of words, just sort them in alphabetical
+   order … so that I can quickly locate the word which is in my mind": the same cards — the words the ranking chose,
+   their meanings and rarity labels — in alphabetical order without regard to case or accents (`alphabetical` in
+   `src/lib/dictionary.ts`; the ranking still decides which words, and looks the rarest up first); the line above says
+   "A → Z", Share list gives the same order; a phrase you select stays at the top. Unit `photodict-order` 6, e2e 115.
 3. **The complete OCR text before the list, on phones and PCs,** where a phrase can be **selected** (touch selection on a
    phone, the mouse on a PC) and **searched on Wikipedia**: the phrase is added to the list — looked up on Wikipedia
    only (a phrase has no dictionary entry).
