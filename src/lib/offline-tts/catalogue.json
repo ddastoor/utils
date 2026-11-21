@@ -93,6 +93,43 @@
    "licence": "Coqui Public Model License (non-commercial use only)",
    "about": "Coqui's large multilingual model: 58 studio voices, and voices taken from short recordings. About real time on a fast processor."
   },
+  "supertonic": {
+   "name": "Supertonic",
+   "url": "https://github.com/supertone-inc/supertonic",
+   "packages": [
+    "supertonic==1.3.1",
+    "onnxruntime==1.32.0",
+    "numpy==2.3.5",
+    "soundfile==0.14.0",
+    "huggingface-hub==2.4.0",
+    "lameenc==1.9.0"
+   ],
+   "mb": 60,
+   "torch": false,
+   "speedControl": true,
+   "licence": "MIT (the program); the models OpenRAIL-M",
+   "about": "Supertone's small ONNX models — three to eight times faster than real time on a processor."
+  },
+  "melo": {
+   "name": "MeloTTS",
+   "url": "https://github.com/myshell-ai/MeloTTS",
+   "packages": [
+    "sherpa-onnx==2.0.2",
+    "numpy==2.3.5",
+    "huggingface-hub==2.4.0",
+    "lameenc==1.9.0",
+    "num2words==0.5.14",
+    "g2p-en==2.1.0",
+    "nltk==3.10.4",
+    "inflect==7.6.0",
+    "distance==0.1.3"
+   ],
+   "mb": 50,
+   "torch": false,
+   "speedControl": true,
+   "licence": "MIT (MeloTTS); sherpa-onnx Apache-2.0",
+   "about": "MyShell's MeloTTS: one model with American, British, Indian and Australian accents (women's voices), run by sherpa-onnx — about three times faster than real time on a processor."
+  },
   "pocket": {
    "name": "Pocket TTS",
    "url": "https://huggingface.co/kyutai/pocket-tts-without-voice-cloning",
@@ -170,6 +207,16 @@
    "name": "goonj-1-82M (Kokoro trained on Indian voices)",
    "page": "https://huggingface.co/BH-Builds/goonj-1-82M"
   },
+  "melo": {
+   "engine": "melo",
+   "repo": "csukuangfj/vits-melo-tts-en",
+   "rev": "9969cf40233d9ee504a6e1cde8aee9bab3ecf985",
+   "mb": 175.4,
+   "licence": "MIT",
+   "personal": false,
+   "name": "MeloTTS English (MyShell)",
+   "page": "https://huggingface.co/myshell-ai/MeloTTS-English"
+  },
   "xtts": {
    "engine": "xtts",
    "repo": "coqui/XTTS-v2",
@@ -190,6 +237,36 @@
    "licence": "CC BY 4.0",
    "personal": false,
    "name": "Pocket TTS (Kyutai)"
+  },
+  "supertonic-3": {
+   "engine": "supertonic",
+   "repo": "Supertone/supertonic-3",
+   "rev": "724fb5abbf5502583fb520898d45929e62f02c0b",
+   "mb": 401.3,
+   "licence": "OpenRAIL-M",
+   "personal": false,
+   "name": "Supertonic 3",
+   "page": "https://huggingface.co/Supertone/supertonic-3"
+  },
+  "supertonic-2": {
+   "engine": "supertonic",
+   "repo": "Supertone/supertonic-2",
+   "rev": "75e6727618a02f323c720cba9478152d4bc16ca4",
+   "mb": 267.3,
+   "licence": "OpenRAIL-M",
+   "personal": false,
+   "name": "Supertonic 2",
+   "page": "https://huggingface.co/Supertone/supertonic-2"
+  },
+  "supertonic-1": {
+   "engine": "supertonic",
+   "repo": "Supertone/supertonic",
+   "rev": "b6856d033f622c63ea29441795be266a1133e227",
+   "mb": 267.2,
+   "licence": "OpenRAIL-M",
+   "personal": false,
+   "name": "Supertonic 1 (English only)",
+   "page": "https://huggingface.co/Supertone/supertonic"
   },
   "piper-en_GB-alan-low": {
    "engine": "piper",
@@ -1782,6 +1859,46 @@
    "lang": "a"
   },
   {
+   "id": "melo-en-india",
+   "label": "MeloTTS Indian English — woman",
+   "group": "in",
+   "sex": "f",
+   "model": "melo",
+   "speaker": 2
+  },
+  {
+   "id": "melo-en-us",
+   "label": "MeloTTS American English — woman",
+   "group": "us",
+   "sex": "f",
+   "model": "melo",
+   "speaker": 0
+  },
+  {
+   "id": "melo-en-br",
+   "label": "MeloTTS British English — woman",
+   "group": "uk",
+   "sex": "f",
+   "model": "melo",
+   "speaker": 1
+  },
+  {
+   "id": "melo-en-au",
+   "label": "MeloTTS Australian English — woman",
+   "group": "world",
+   "sex": "f",
+   "model": "melo",
+   "speaker": 3
+  },
+  {
+   "id": "melo-en-default",
+   "label": "MeloTTS its default English voice — woman",
+   "group": "any",
+   "sex": "f",
+   "model": "melo",
+   "speaker": 4
+  },
+  {
    "id": "xtts-claribel-dervla",
    "label": "Claribel Dervla — studio voice, a middle voice",
    "group": "any",
@@ -2508,6 +2625,246 @@
    "sex": "f",
    "model": "pocket",
    "voice": "vera"
+  },
+  {
+   "id": "supertonic-3-f1",
+   "label": "Supertonic 3 F1 — woman",
+   "group": "any",
+   "sex": "f",
+   "model": "supertonic-3",
+   "voice": "F1"
+  },
+  {
+   "id": "supertonic-3-f2",
+   "label": "Supertonic 3 F2 — woman",
+   "group": "any",
+   "sex": "f",
+   "model": "supertonic-3",
+   "voice": "F2"
+  },
+  {
+   "id": "supertonic-3-f3",
+   "label": "Supertonic 3 F3 — woman",
+   "group": "any",
+   "sex": "f",
+   "model": "supertonic-3",
+   "voice": "F3"
+  },
+  {
+   "id": "supertonic-3-f4",
+   "label": "Supertonic 3 F4 — woman",
+   "group": "any",
+   "sex": "f",
+   "model": "supertonic-3",
+   "voice": "F4"
+  },
+  {
+   "id": "supertonic-3-f5",
+   "label": "Supertonic 3 F5 — woman",
+   "group": "any",
+   "sex": "f",
+   "model": "supertonic-3",
+   "voice": "F5"
+  },
+  {
+   "id": "supertonic-3-m1",
+   "label": "Supertonic 3 M1 — man",
+   "group": "any",
+   "sex": "m",
+   "model": "supertonic-3",
+   "voice": "M1"
+  },
+  {
+   "id": "supertonic-3-m2",
+   "label": "Supertonic 3 M2 — man",
+   "group": "any",
+   "sex": "m",
+   "model": "supertonic-3",
+   "voice": "M2"
+  },
+  {
+   "id": "supertonic-3-m3",
+   "label": "Supertonic 3 M3 — man",
+   "group": "any",
+   "sex": "m",
+   "model": "supertonic-3",
+   "voice": "M3"
+  },
+  {
+   "id": "supertonic-3-m4",
+   "label": "Supertonic 3 M4 — man",
+   "group": "any",
+   "sex": "m",
+   "model": "supertonic-3",
+   "voice": "M4"
+  },
+  {
+   "id": "supertonic-3-m5",
+   "label": "Supertonic 3 M5 — man",
+   "group": "any",
+   "sex": "m",
+   "model": "supertonic-3",
+   "voice": "M5"
+  },
+  {
+   "id": "supertonic-2-f1",
+   "label": "Supertonic 2 F1 — woman",
+   "group": "any",
+   "sex": "f",
+   "model": "supertonic-2",
+   "voice": "F1"
+  },
+  {
+   "id": "supertonic-2-f2",
+   "label": "Supertonic 2 F2 — woman",
+   "group": "any",
+   "sex": "f",
+   "model": "supertonic-2",
+   "voice": "F2"
+  },
+  {
+   "id": "supertonic-2-f3",
+   "label": "Supertonic 2 F3 — woman",
+   "group": "any",
+   "sex": "f",
+   "model": "supertonic-2",
+   "voice": "F3"
+  },
+  {
+   "id": "supertonic-2-f4",
+   "label": "Supertonic 2 F4 — woman",
+   "group": "any",
+   "sex": "f",
+   "model": "supertonic-2",
+   "voice": "F4"
+  },
+  {
+   "id": "supertonic-2-f5",
+   "label": "Supertonic 2 F5 — woman",
+   "group": "any",
+   "sex": "f",
+   "model": "supertonic-2",
+   "voice": "F5"
+  },
+  {
+   "id": "supertonic-2-m1",
+   "label": "Supertonic 2 M1 — man",
+   "group": "any",
+   "sex": "m",
+   "model": "supertonic-2",
+   "voice": "M1"
+  },
+  {
+   "id": "supertonic-2-m2",
+   "label": "Supertonic 2 M2 — man",
+   "group": "any",
+   "sex": "m",
+   "model": "supertonic-2",
+   "voice": "M2"
+  },
+  {
+   "id": "supertonic-2-m3",
+   "label": "Supertonic 2 M3 — man",
+   "group": "any",
+   "sex": "m",
+   "model": "supertonic-2",
+   "voice": "M3"
+  },
+  {
+   "id": "supertonic-2-m4",
+   "label": "Supertonic 2 M4 — man",
+   "group": "any",
+   "sex": "m",
+   "model": "supertonic-2",
+   "voice": "M4"
+  },
+  {
+   "id": "supertonic-2-m5",
+   "label": "Supertonic 2 M5 — man",
+   "group": "any",
+   "sex": "m",
+   "model": "supertonic-2",
+   "voice": "M5"
+  },
+  {
+   "id": "supertonic-1-f1",
+   "label": "Supertonic 1 F1 — woman",
+   "group": "any",
+   "sex": "f",
+   "model": "supertonic-1",
+   "voice": "F1"
+  },
+  {
+   "id": "supertonic-1-f2",
+   "label": "Supertonic 1 F2 — woman",
+   "group": "any",
+   "sex": "f",
+   "model": "supertonic-1",
+   "voice": "F2"
+  },
+  {
+   "id": "supertonic-1-f3",
+   "label": "Supertonic 1 F3 — woman",
+   "group": "any",
+   "sex": "f",
+   "model": "supertonic-1",
+   "voice": "F3"
+  },
+  {
+   "id": "supertonic-1-f4",
+   "label": "Supertonic 1 F4 — woman",
+   "group": "any",
+   "sex": "f",
+   "model": "supertonic-1",
+   "voice": "F4"
+  },
+  {
+   "id": "supertonic-1-f5",
+   "label": "Supertonic 1 F5 — woman",
+   "group": "any",
+   "sex": "f",
+   "model": "supertonic-1",
+   "voice": "F5"
+  },
+  {
+   "id": "supertonic-1-m1",
+   "label": "Supertonic 1 M1 — man",
+   "group": "any",
+   "sex": "m",
+   "model": "supertonic-1",
+   "voice": "M1"
+  },
+  {
+   "id": "supertonic-1-m2",
+   "label": "Supertonic 1 M2 — man",
+   "group": "any",
+   "sex": "m",
+   "model": "supertonic-1",
+   "voice": "M2"
+  },
+  {
+   "id": "supertonic-1-m3",
+   "label": "Supertonic 1 M3 — man",
+   "group": "any",
+   "sex": "m",
+   "model": "supertonic-1",
+   "voice": "M3"
+  },
+  {
+   "id": "supertonic-1-m4",
+   "label": "Supertonic 1 M4 — man",
+   "group": "any",
+   "sex": "m",
+   "model": "supertonic-1",
+   "voice": "M4"
+  },
+  {
+   "id": "supertonic-1-m5",
+   "label": "Supertonic 1 M5 — man",
+   "group": "any",
+   "sex": "m",
+   "model": "supertonic-1",
+   "voice": "M5"
   },
   {
    "id": "piper-en_gb-alan-low",

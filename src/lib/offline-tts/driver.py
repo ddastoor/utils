@@ -69,6 +69,54 @@ def silence(sr, seconds):
     return np.zeros(int(sr * seconds), dtype=np.float32)
 
 
+MONEY = {'₹': ('rupee', 'rupees', 'paisa', 'paise'), '$': ('dollar', 'dollars', 'cent', 'cents'),
+         '£': ('pound', 'pounds', 'penny', 'pence'), '€': ('euro', 'euros', 'cent', 'cents')}
+
+
+def spoken(text):
+    """Numbers, money, times and percentages in words, typographic marks as plain ones — for an engine that reads
+    only words (MeloTTS through sherpa-onnx drops every digit). num2words writes the numbers."""
+    from num2words import num2words
+
+    def words(n, **k):
+        return num2words(n, lang='en', **k).replace('-', ' ').replace(',', '')
+    t = text.replace('’', "'").replace('‘', "'").replace('“', '"').replace('”', '"').replace('…', '...')
+    t = re.sub(r'\s*[–—]\s*', ', ', t)
+    # titles and the commonest abbreviations (a full stop would end the sentence; "Dr" alone is "drive" to MeloTTS)
+    for a, w in (('Dr', 'Doctor'), ('Mr', 'Mister'), ('Mrs', 'Missus'), ('Ms', 'Miz'), ('Prof', 'Professor'),
+                 ('Sr', 'Senior'), ('Jr', 'Junior'), ('Smt', 'Shrimati'), ('Shri', 'Shri')):
+        t = re.sub(r'\b' + a + r'\.?(?=\s+[A-Z])', w, t)
+    t = re.sub(r'\bSt\.?(?=\s+[A-Z])', 'Saint', t)
+    for a, w in (('e.g.', 'for example'), ('i.e.', 'that is'), ('etc.', 'et cetera'), ('vs.', 'versus'), ('No.', 'number')):
+        t = re.sub(r'(?<![\w.])' + re.escape(a) + (r'(?=\s*\d)' if a == 'No.' else ''), w, t)
+
+    def money(m):
+        sign = '₹' if m.group(1).lower().startswith(('rs', 'inr')) else m.group(1)
+        one, many, sub1, subs = MONEY[sign]
+        whole, frac = m.group(2).replace(',', ''), m.group(3)
+        c = int(frac.ljust(2, '0')[:2]) if frac else 0
+        out = [f'{words(int(whole))} {one if int(whole) == 1 else many}'] if int(whole) or not c else []
+        if c:
+            out.append(f'{words(c)} {sub1 if c == 1 else subs}')
+        return ' '.join(out)
+    num = r'\d+(?:,\d{2,3})*'  # 1,500 and 1,50,000: commas between groups of digits only
+    t = re.sub(r'(₹|\bRs\.?|\bINR|\$|£|€)\s?(' + num + r')(?:\.(\d+))?', money, t)
+    t = re.sub(r'(' + num + r'(?:\.\d+)?)\s?%', lambda m: m.group(1) + ' percent', t)
+
+    def clock(m):
+        h, mi = int(m.group(1)), int(m.group(2))
+        return f"{words(h)} o'clock" if mi == 0 else f'{words(h)} oh {words(mi)}' if mi < 10 else f'{words(h)} {words(mi)}'
+    t = re.sub(r'\b([01]?\d|2[0-3]):([0-5]\d)\b', clock, t)
+    t = re.sub(r'\b(\d+)(st|nd|rd|th)\b', lambda m: words(int(m.group(1)), to='ordinal'), t)
+    month = r'(January|February|March|April|May|June|July|August|September|October|November|December|Jan|Feb|Mar|Apr|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)\b'
+    t = re.sub(r'\b([12]?\d|3[01])(?=\s+' + month + ')', lambda m: words(int(m.group(1)), to='ordinal'), t)
+    t = re.sub(r'\b' + month + r'\s+([12]?\d|3[01])\b(?!,\d|\.\d|\d)', lambda m: m.group(1) + ' ' + words(int(m.group(2)), to='ordinal'), t)
+    t = re.sub(r'\b(' + num + r')\.(\d+)\b', lambda m: words(int(m.group(1).replace(',', ''))) + ' point ' + ' '.join(words(int(c)) for c in m.group(2)), t)
+    t = re.sub(r'(?<![\d,.])(1[1-9]\d\d|20\d\d)(?!\d|[.,]\d)', lambda m: words(int(m.group(1)), to='year'), t)
+    t = re.sub(num, lambda m: words(int(m.group(0).replace(',', ''))), t)
+    return t
+
+
 def fetch(repo, revision, files=None):
     """The model's files from Hugging Face at a fixed revision, into ./models/<repo> (kept for the next run).
     Files named exactly are fetched one by one: listing a large repository (Piper's voices, Kyutai's clips — thousands
@@ -280,6 +328,134 @@ def pocket(job, voices):
             parts.append(silence(sr, 0.2))
         secs = write_audio(os.path.join(job['out'], v['id']), np.concatenate(parts) if parts else silence(sr, 0.1), sr, job.get('mp3', True))
         log(f'  {v["label"]}: {secs:.1f} s of speech in {time.time() - t0:.1f} s')
+
+
+class G2pNet:
+    """g2p_en's pronunciation network (Kyubyong Park and Jongseok Kim, Apache-2.0: a GRU encoder and decoder trained
+    on the CMU dictionary) with the weights of the installed g2p_en package — its predict(), as g2p_en writes it.
+    g2p_en itself is not imported: on import it downloads NLTK's data, which NLTK refuses to fetch through a proxy."""
+    PH = ['<pad>', '<unk>', '<s>', '</s>', 'AA0', 'AA1', 'AA2', 'AE0', 'AE1', 'AE2', 'AH0', 'AH1', 'AH2', 'AO0', 'AO1', 'AO2',
+          'AW0', 'AW1', 'AW2', 'AY0', 'AY1', 'AY2', 'B', 'CH', 'D', 'DH', 'EH0', 'EH1', 'EH2', 'ER0', 'ER1', 'ER2', 'EY0',
+          'EY1', 'EY2', 'F', 'G', 'HH', 'IH0', 'IH1', 'IH2', 'IY0', 'IY1', 'IY2', 'JH', 'K', 'L', 'M', 'N', 'NG', 'OW0',
+          'OW1', 'OW2', 'OY0', 'OY1', 'OY2', 'P', 'R', 'S', 'SH', 'T', 'TH', 'UH0', 'UH1', 'UH2', 'UW', 'UW0', 'UW1', 'UW2',
+          'V', 'W', 'Y', 'Z', 'ZH']
+
+    def __init__(self):
+        import importlib.util
+        import numpy as np
+        self.np = np
+        where = importlib.util.find_spec('g2p_en').submodule_search_locations[0]
+        self.v = dict(np.load(os.path.join(where, 'checkpoint20.npz')))
+        self.g2idx = {g: i for i, g in enumerate(['<pad>', '<unk>', '</s>'] + list('abcdefghijklmnopqrstuvwxyz'))}
+
+    def cell(self, x, h, k):
+        np, v = self.np, self.v
+        a = x @ v[k + '_w_ih'].T + v[k + '_b_ih']
+        b = h @ v[k + '_w_hh'].T + v[k + '_b_hh']
+        n3 = a.shape[-1] * 2 // 3
+        r, z = np.split(1 / (1 + np.exp(-(a[:, :n3] + b[:, :n3]))), 2, -1)
+        n = np.tanh(a[:, n3:] + r * b[:, n3:])
+        return (1 - z) * n + z * h
+
+    def predict(self, word):
+        np, v = self.np, self.v
+        x = np.take(v['enc_emb'], np.expand_dims([self.g2idx.get(c, 1) for c in list(word) + ['</s>']], 0), axis=0)
+        h = np.zeros((1, v['enc_w_hh'].shape[-1]), np.float32)
+        for t in range(len(word) + 1):
+            h = self.cell(x[:, t, :], h, 'enc')
+        dec, out = np.take(v['dec_emb'], [2], axis=0), []
+        for _ in range(20):
+            h = self.cell(dec, h, 'dec')
+            p = int((h @ v['fc_w'].T + v['fc_b']).argmax())
+            if p == 3:
+                break
+            out.append(self.PH[p] if p < len(self.PH) else '<unk>')
+            dec = np.take(v['dec_emb'], [p], axis=0)
+        return out
+
+
+@engine('melo')
+def melo(job, voices):
+    """MyShell's MeloTTS English (MIT) as k2-fsa converted it for sherpa-onnx: one model, five accents (American,
+    British, Indian, Australian and its default). sherpa-onnx reads only the words of the model's pronouncing
+    dictionary — it spells out or leaves out the others, and every number — so the numbers are written in words first
+    and every other word the dictionary lacks is added to a copy of it, pronounced by g2p_en (what MeloTTS itself does
+    with such words). The dictionary's ARPAbet with MeloTTS's tones: 7 for a consonant, 8 – 10 for a vowel by stress."""
+    import tempfile
+    import numpy as np
+    import sherpa_onnx
+    v0 = voices[0]
+    d = fetch(v0['repo'], v0['rev'], ['model.onnx', 'lexicon.txt', 'tokens.txt', 'LICENSE'])
+    import unicodedata
+    text = spoken(job['text'])
+    # accents off (café → cafe: sherpa-onnx would cut the word at the é), other scripts left out (English model)
+    text = unicodedata.normalize('NFKD', text).encode('ascii', 'ignore').decode()
+    text = re.sub(r"(?<![A-Za-z])'|'(?![A-Za-z])", ' ', text)  # an apostrophe used as a quotation mark
+    lex = open(os.path.join(d, 'lexicon.txt'), encoding='utf-8').read()
+    known = {line.split(' ', 1)[0] for line in lex.splitlines()}
+    # sherpa-onnx's words: letters, digits and apostrophes between the other signs, in lower case
+    new = sorted({w for w in re.findall(r"[a-z0-9']+", text.lower()) if w not in known and re.search('[a-z]', w)})
+    lines = []
+    if new:
+        g2p = G2pNet()
+        for w in new:
+            ph = [p for p in g2p.predict(re.sub('[^a-z]', '', w)) if re.fullmatch('[A-Z]+[0-2]?', p)]
+            if ph:
+                tones = [str(7 + (int(p[-1]) + 1 if p[-1].isdigit() else 0)) for p in ph]
+                lines.append(f"{w} {' '.join(p.rstrip('012').lower() for p in ph)} {' '.join(tones)}")
+        log(f'  ({len(lines)} word{"s" if len(lines) != 1 else ""} not in its dictionary, pronounced by g2p_en: {", ".join(l.split()[0] for l in lines[:12])}{" …" if len(lines) > 12 else ""})')
+    with tempfile.NamedTemporaryFile('w', suffix='.txt', encoding='utf-8', delete=False) as f:
+        f.write(lex.rstrip('\n') + '\n' + ''.join(l + '\n' for l in lines))
+        lexicon = f.name
+    try:
+        cfg = sherpa_onnx.OfflineTtsConfig(model=sherpa_onnx.OfflineTtsModelConfig(
+            vits=sherpa_onnx.OfflineTtsVitsModelConfig(model=os.path.join(d, 'model.onnx'), lexicon=lexicon,
+                                                      tokens=os.path.join(d, 'tokens.txt')),
+            num_threads=max(1, min(8, os.cpu_count() or 1)), provider='cpu'), max_num_sentences=1)
+        tts = sherpa_onnx.OfflineTts(cfg)
+        for v in voices:
+            t0 = time.time()
+            parts, sr = [], 44100
+            for c in chunks(text, 400):
+                a = tts.generate(c, sid=int(v['speaker']), speed=float(job['speed']))
+                sr = a.sample_rate
+                parts.append(np.asarray(a.samples, dtype=np.float32))
+                parts.append(silence(sr, 0.25))
+            secs = write_audio(os.path.join(job['out'], v['id']), np.concatenate(parts) if parts else silence(sr, 0.1), sr, job.get('mp3', True))
+            log(f'  {v["label"]}: {secs:.1f} s of speech in {time.time() - t0:.1f} s')
+    finally:
+        os.unlink(lexicon)
+
+
+@engine('supertonic')
+def supertonic(job, voices):
+    """Supertone's Supertonic (models OpenRAIL-M, package MIT): small ONNX models, many times faster than real time
+    on a processor; ten voices a model (F1 – F5, M1 – M5). Version 1 reads English only, 2 and 3 are multilingual
+    and are told the text is English."""
+    import numpy as np
+    from supertonic import TTS
+    groups = {}
+    for v in voices:
+        groups.setdefault((v['repo'], v['rev']), []).append(v)
+    for (repo, rev), group in groups.items():
+        d = fetch(repo, rev, ['config.json', 'LICENSE', 'onnx/*', 'voice_styles/*.json'])
+        name = repo.split('/', 1)[1]
+        tts = TTS(model=name, model_dir=d, auto_download=False)
+        # characters the model has no symbol for would stop it ("₹", some dashes and quotes): said and left out
+        ok, missing = tts.model.text_processor.validate_text(job['text'])
+        text = job['text']
+        if not ok:
+            text = ''.join(' ' if c in missing else c for c in text)
+            log(f'  ({name} cannot read these characters, left out: {" ".join(missing)})')
+        lang = None if name == 'supertonic' else 'en'
+        for v in group:
+            t0 = time.time()
+            style = tts.get_voice_style(v['voice'])
+            # 1.05 is the makers' own pace for "normal"; 16 steps instead of their 8 — better sound, still quick
+            wav, _ = tts.synthesize(text, voice_style=style, total_steps=16, speed=1.05 * float(job['speed']),
+                                    lang=lang, silence_duration=0.3)
+            secs = write_audio(os.path.join(job['out'], v['id']), np.asarray(wav).reshape(-1), tts.sample_rate, job.get('mp3', True))
+            log(f'  {v["label"]}: {secs:.1f} s of speech in {time.time() - t0:.1f} s')
 
 
 def main():

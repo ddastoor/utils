@@ -33,6 +33,14 @@ export default async (t, { load }) => {
   t.ok(per('parler').every((v) => v.describe.includes('{pace}')), 'Parler voices are described with the pace left open');
   t.ok(per('xtts').every((v) => (typeof v.speaker === 'string') !== !!v.clip), 'XTTS voices: a studio voice or a clip, never both');
   t.ok(per('pocket').every((v) => /^[a-z_]+$/.test(v.voice)) && per('pocket').length === 21, 'Pocket TTS: its 21 English voices');
+  t.ok(Object.keys(cat.engines).every((e) => P.ENGINE_ORDER.includes(e)) && P.ENGINE_ORDER.every((e) => cat.engines[e]), 'every engine of the catalogue is in the running order (an engine left out would never run)');
+  // MeloTTS: MeloTTS-English's speaker numbers (its config: EN-US 0, EN-BR 1, EN_INDIA 2, EN-AU 3, EN-Default 4)
+  t.eq(per('melo').map((v) => [v.speaker, v.id, v.group]).sort(), [[0, 'melo-en-us', 'us'], [1, 'melo-en-br', 'uk'], [2, 'melo-en-india', 'in'], [3, 'melo-en-au', 'world'], [4, 'melo-en-default', 'any']], 'MeloTTS: its five speakers and their accents');
+  t.ok(per('melo').every((v) => v.sex === 'f'), 'MeloTTS: five women’s voices');
+  // Supertonic: three models, ten voices each, F1 – F5 women and M1 – M5 men
+  t.eq(per('supertonic').length, 30, 'Supertonic: 3 models × 10 voices');
+  t.ok(per('supertonic').every((v) => /^[FM][1-5]$/.test(v.voice) && v.sex === v.voice[0].toLowerCase()), 'Supertonic: F voices women, M voices men');
+  t.eq(['supertonic-1', 'supertonic-2', 'supertonic-3'].map((m) => cat.models[m].repo), ['Supertone/supertonic', 'Supertone/supertonic-2', 'Supertone/supertonic-3'], 'Supertonic: its three models');
 
   // speaker numbers: the same as in sherpa-onnx's copies of these Piper models
   const spk = { 'piper-vctk-p248': 87, 'piper-vctk-p251': 92, 'piper-vctk-p376': 26, 'piper-l2arctic-svbi': 2, 'piper-l2arctic-tni': 9,

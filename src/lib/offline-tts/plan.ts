@@ -11,7 +11,7 @@ export interface CVoice { id: string; label: string; group: string; sex: string;
 export interface Catalogue { made: string; groups: Array<[string, string]>; engines: Record<string, Engine>; models: Record<string, Model>; voices: CVoice[] }
 
 /** The order in which the engines run: the quick ones first, so the first files are there soon. */
-export const ENGINE_ORDER = ['piper', 'kokoro', 'pocket', 'xtts', 'parler'];
+export const ENGINE_ORDER = ['piper', 'supertonic', 'melo', 'kokoro', 'pocket', 'xtts', 'parler'];
 /** PyTorch, once for every engine that needs it (uv keeps one copy): the processor build, or the CUDA build with an
  *  NVIDIA graphics card (uv picks it by itself). Python 3.12 and uv come to about 50 MB. */
 export const TORCH_MB = { cpu: 300, cuda: 2600 };

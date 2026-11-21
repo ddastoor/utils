@@ -16,6 +16,10 @@ Sources (each fact below comes from one of them):
   XTTS-v2      the 58 studio voices of coqui/XTTS-v2 (speakers_xtts.pth); reference clips from kyutai/tts-voices
                (voice donations CC0, VCTK CC BY 4.0).
   Pocket TTS   the voice table of pocket-tts 4.0.1 (pocket_tts/utils/utils.py) and the clips it was made from.
+  MeloTTS      MeloTTS-English's config (speakers EN-US 0, EN-BR 1, EN_INDIA 2, EN-AU 3, EN-Default 4), the same in
+               k2-fsa's ONNX conversion (csukuangfj/vits-melo-tts-en); all five are women's voices (pitch, below).
+  Supertonic   the supertonic package 1.3.1 (its pinned revision of each model) and the model cards: ten voices a model,
+               F1 – F5 and M1 – M5 (pitch, below).
 Sizes are the bytes of the files the driver fetches, from the Hugging Face API at the pinned revisions (MB = 10^6 bytes).
 
 Run: python3 scripts/make-offline-tts-catalogue.py   (needs huggingface.co; caches its answers in /tmp/offline-tts-cat)
@@ -41,6 +45,11 @@ T5_TOK = ['google/flan-t5-large', '0613663d0d48ea86ba8cb3d7a44f0f65dc596a2a']
 XTTS_REPO, XTTS_REV = 'coqui/XTTS-v2', '6c2b0d75eae4b7047358e3b6bd9325f857d43f77'
 CLIPS_REPO, CLIPS_REV = 'kyutai/tts-voices', '323332d33f997de8394f24a193e1a76df720e01a'
 POCKET_REPO, POCKET_REV = 'kyutai/pocket-tts-without-voice-cloning', 'a7056f505a4a8ca72d8b5fb1440071d6f1a35739'
+MELO_REPO, MELO_REV = 'csukuangfj/vits-melo-tts-en', '9969cf40233d9ee504a6e1cde8aee9bab3ecf985'
+# the revisions the supertonic package 1.3.1 pins (supertonic/config.py)
+SUPERTONIC = [('supertonic-3', 'Supertone/supertonic-3', '724fb5abbf5502583fb520898d45929e62f02c0b', 'Supertonic 3'),
+              ('supertonic-2', 'Supertone/supertonic-2', '75e6727618a02f323c720cba9478152d4bc16ca4', 'Supertonic 2'),
+              ('supertonic-1', 'Supertone/supertonic', 'b6856d033f622c63ea29441795be266a1133e227', 'Supertonic 1 (English only)')]
 
 
 def get(url, name):
@@ -120,6 +129,21 @@ ENGINES = {
         'licence': 'Coqui Public Model License (non-commercial use only)',
         'about': "Coqui's large multilingual model: 58 studio voices, and voices taken from short recordings. "
                  'About real time on a fast processor.',
+    },
+    'supertonic': {
+        'name': 'Supertonic', 'url': 'https://github.com/supertone-inc/supertonic',
+        'packages': ['supertonic==1.3.1', 'onnxruntime==1.32.0', 'numpy==2.3.5', 'soundfile==0.14.0', 'huggingface-hub==2.4.0',
+                     'lameenc==1.9.0'],
+        'mb': 60, 'torch': False, 'speedControl': True, 'licence': 'MIT (the program); the models OpenRAIL-M',
+        'about': "Supertone's small ONNX models — three to eight times faster than real time on a processor.",
+    },
+    'melo': {
+        'name': 'MeloTTS', 'url': 'https://github.com/myshell-ai/MeloTTS',
+        'packages': ['sherpa-onnx==2.0.2', 'numpy==2.3.5', 'huggingface-hub==2.4.0', 'lameenc==1.9.0', 'num2words==0.5.14',
+                     'g2p-en==2.1.0', 'nltk==3.10.4', 'inflect==7.6.0', 'distance==0.1.3'],
+        'mb': 50, 'torch': False, 'speedControl': True, 'licence': 'MIT (MeloTTS); sherpa-onnx Apache-2.0',
+        'about': "MyShell's MeloTTS: one model with American, British, Indian and Australian accents (women's voices), run "
+                 'by sherpa-onnx — about three times faster than real time on a processor.',
     },
     'pocket': {
         'name': 'Pocket TTS', 'url': 'https://huggingface.co/kyutai/pocket-tts-without-voice-cloning',
@@ -422,10 +446,44 @@ def pocket():
     return models, voices
 
 
+# MeloTTS English: the speaker numbers of its config, and the median pitch of a sample made here (pYIN) — all five are
+# women's voices (174 – 274 Hz)
+MELO = [('en-india', 2, 'in', 'Indian English', 274), ('en-us', 0, 'us', 'American English', 239),
+        ('en-br', 1, 'uk', 'British English', 243), ('en-au', 3, 'world', 'Australian English', 205),
+        ('en-default', 4, 'any', 'its default English voice', 174)]
+
+
+def melo():
+    size = size_of(MELO_REPO, MELO_REV, ['model.onnx', 'lexicon.txt', 'tokens.txt', 'LICENSE'])
+    models = {'melo': {'engine': 'melo', 'repo': MELO_REPO, 'rev': MELO_REV, 'mb': mb(size), 'licence': 'MIT', 'personal': False,
+                       'name': 'MeloTTS English (MyShell)', 'page': 'https://huggingface.co/myshell-ai/MeloTTS-English'}}
+    voices = [{'id': f'melo-{k}', 'label': f'MeloTTS {acc} — woman', 'group': g, 'sex': 'f', 'model': 'melo', 'speaker': n}
+              for k, n, g, acc, _ in MELO]
+    return models, voices
+
+
+# Supertonic's voices: F1 – F5 women, M1 – M5 men, as the makers name them — the median pitch of a sample of every voice of
+# the three models made here agrees (pYIN: F 157 – 224 Hz, M 85 – 147 Hz). Their accents are not documented.
+def supertonic():
+    models, voices = {}, []
+    for mid, repo, rev, name in SUPERTONIC:
+        t = tree(repo, rev)
+        files = [f for f in t if f in ('config.json', 'LICENSE') or f.startswith('onnx/') or re.fullmatch(r'voice_styles/[FM][1-5]\.json', f)]
+        if sum(1 for f in files if f.startswith('voice_styles/')) != 10:
+            sys.exit(f'{repo} at {rev}: expected ten voices')
+        models[mid] = {'engine': 'supertonic', 'repo': repo, 'rev': rev, 'mb': mb(sum(t[f] for f in files)), 'licence': 'OpenRAIL-M',
+                       'personal': False, 'name': name, 'page': f'https://huggingface.co/{repo}'}
+        for sex in 'FM':
+            for i in range(1, 6):
+                voices.append({'id': f'{mid}-{sex.lower()}{i}', 'label': f'{name.split(" (")[0]} {sex}{i} — {SEX[sex.lower()]}',
+                               'group': 'any', 'sex': sex.lower(), 'model': mid, 'voice': f'{sex}{i}'})
+    return models, voices
+
+
 def main():
     models, voices = {}, []
     # the order of the list: in each accent the larger, newer models first — Indic Parler-TTS leads the Indian voices
-    for part in (parler, kokoro, xtts, pocket, piper):
+    for part in (parler, kokoro, melo, xtts, pocket, supertonic, piper):
         m, v = part()
         models.update(m)
         voices.extend(v)

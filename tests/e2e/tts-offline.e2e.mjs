@@ -27,13 +27,13 @@ export default async ({ base, page: newPage, ok, download, devices }) => {
 
   // the list: Indian voices first, the starters ticked
   const n = async () => page.locator('.otts-list .otts-voice').count();
-  eq(await n(), 63, 'the Indian group lists 63 voices');
+  eq(await n(), 64, 'the Indian group lists 64 voices');
   const ticked = () => page.locator('.otts-list input:checked').evaluateAll((els) => els.map((e) => e.value));
   eq((await ticked()).sort(), ['goonj-en-arjun', 'goonj-en-priya', 'indic-parler-mary', 'indic-parler-thoma'], 'four Indian English voices ticked to begin with');
   ok(/4 voices chosen · 2 models, 4\.1 GB/.test(await page.locator('.otts-summary').innerText()), 'the summary: 4 voices, 2 models, 4.1 GB');
   ok(await page.getByText('ai4bharat/indic-parler-tts is free, but Hugging Face asks for an account first').isVisible(), 'the account note for Indic Parler-TTS');
   await page.getByRole('radio', { name: 'All' }).click();
-  eq(await n(), 430, 'All: 430 voices');
+  eq(await n(), 465, 'All: 465 voices');
   await page.getByLabel('Engine').selectOption('pocket');
   eq(await n(), 21, 'Pocket TTS: 21 voices');
   await page.getByLabel('Engine').selectOption('');
