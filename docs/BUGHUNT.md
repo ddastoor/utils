@@ -2416,8 +2416,10 @@ cannot. Three new suites; each fails on the build before its fixes.
   spacy.load by its folder. Parler-TTS: sentencepiece 0.2.3's protobuf code needs protobuf 5, the audio codec's package
   forbids it (ImportError `runtime_version`) → sentencepiece 0.2.0. XTTS-v2: coqui-tts refuses to start without
   torchaudio and torchcodec, and torchcodec decodes through FFmpeg installed on the system → coqui-tts[codec] and the
-  clip read with librosa. Hugging Face answers HEAD requests of many small files with 429 (rate limit) when nobody is
-  signed in — huggingface_hub waits and retries; said in the docs. A gated model refused (no token, conditions not
+  clip read with librosa. Hugging Face answers with 429 (rate limit) when nobody is signed in and many requests come
+  at once — and fetching two files of a large repository (Piper's voices, Kyutai's clips: thousands of files) listed
+  the whole repository, page after page, first → files named exactly are now fetched one by one (`fetch()` in
+  driver.py); huggingface_hub waits and retries the rest. A gated model refused (no token, conditions not
   accepted) now ends the engine with a sentence instead of a traceback. Tests: unit `offline-tts.test.mjs` (scripts:
   bash -n, Base64 parts back byte for byte, shell text inert; with OFFLINE_TTS_E2E=1 the Linux script runs for real),
   `offline-tts-plan.test.mjs` 70 (catalogue against VCTK's list and sherpa-onnx's copies of the speaker maps, every voice

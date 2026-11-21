@@ -70,10 +70,17 @@ def silence(sr, seconds):
 
 
 def fetch(repo, revision, files=None):
-    """The model's files from Hugging Face at a fixed revision, into ./models/<repo> (kept for the next run)."""
-    from huggingface_hub import snapshot_download
+    """The model's files from Hugging Face at a fixed revision, into ./models/<repo> (kept for the next run).
+    Files named exactly are fetched one by one: listing a large repository (Piper's voices, Kyutai's clips — thousands
+    of files, many pages) to find two files made Hugging Face answer "429 Too Many Requests"."""
+    from huggingface_hub import hf_hub_download, snapshot_download
+    local = os.path.join(MODELS, repo.replace('/', '--'))
     try:
-        return snapshot_download(repo, revision=revision, allow_patterns=files, local_dir=os.path.join(MODELS, repo.replace('/', '--')))
+        if files and not any(c in f for f in files for c in '*?['):
+            for f in files:
+                hf_hub_download(repo, f, revision=revision, local_dir=local)
+            return local
+        return snapshot_download(repo, revision=revision, allow_patterns=files, local_dir=local)
     except Exception as e:
         if 'Gated' in type(e).__name__ or re.search(r'\b(401|403)\b', str(e)):
             token = os.path.join(os.environ.get('HF_HOME', ''), 'token')
