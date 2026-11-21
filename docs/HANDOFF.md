@@ -39,7 +39,7 @@ this file = the owner's latest wishes, how the tests are written, and the traps 
   downloads, driver.py says when it starts and what model it downloads.
 - **21 Nov 2026 — the JS/TS → WebAssembly sweep moved to the potentials:** "for now move 'JS/TS → WebAssembly sweep' from
   to-do to potentials.md" → `docs/potentials.md` #74 (todo.md item 1 points there). Not to be started until the owner picks it.
-- **21 Nov 2026 — rename:** "Also make a note to change this app's name from SuperTools to 'SuperUtils'" → `todo.md` #5
+- **21 Nov 2026 — rename:** "Also make a note to change this app's name from SuperTools to 'SuperUtils'" → `todo.md` #5 — **done 21 Nov 2026** (CLAUDE.md §1, "App name")
   (what it touches and the two points to settle are written there). A note, not started — the to-do rule applies.
 - **17 Nov 2026:** asked for a second, exhaustive bug hunt over every tab ("don't leave out any app") and to
   "increase test coverage significantly for each app/utility" — tracker `docs/BUGHUNT.md`, method in RESUME.md.
@@ -235,7 +235,7 @@ export ZIG=/tmp/zig/x/ziglang/zig
 - If a usage limit is close, schedule a `send_later` to this session for just after the reset time.
 - **No scheduled check-ins exist** (creating them was blocked by the session's permission check on 16 Nov 2026). If a
   session stops (usage limit, time limit), its pushed work is safe; the owner starts a new session with the standard
-  message in RESUME.md ("Continue building SuperTools…"), or the session schedules its own `send_later` before a limit.
+  message in RESUME.md ("Continue building SuperUtils…"), or the session schedules its own `send_later` before a limit.
 
 ## Bug hunt — lessons so far (17 Nov 2026)
 - **Usage limit:** 12 reviewer sub-agents in parallel exhausted the owner's 5-hour limit before most had written a
@@ -289,7 +289,7 @@ export ZIG=/tmp/zig/x/ziglang/zig
   file that mentions them, check: `python3 -c "import re,sys; print(re.findall('[\u200b-\u200f\u202a-\u202e\u2028\u2029\ufeff]', open(sys.argv[1], encoding='utf-8').read()))" <file>`.
 - **Playwright's fake clock:** `page.clock.install()` lets time run; use `pauseAt()` when a check needs a fixed
   "now". Under an installed clock `performance.getEntriesByType('resource')` is empty — ask
-  `__supertoolsLive().resources` instead to see which engine a tab loaded.
+  `__superutilsLive().resources` instead to see which engine a tab loaded.
 - **Round-trip tests need the reference's own limits:** Go's `omitempty` cannot tell null / {} / [] from absent,
   serde refuses duplicate keys, encoding/json has no tag for keys with a comma, a quote or a combining mark, Chrome's
   canvas clips out-of-gamut colours while CSS Color 4 maps them. Encode each such limit as an explicit exception list

@@ -1,4 +1,4 @@
-# SuperTools — project spec & runbook
+# SuperUtils — project spec & runbook
 
 This file is the **single source of truth** for this repository. It records every requirement the owner
 gave, every design decision made on their behalf, and the exact procedures to rebuild, extend, test and
@@ -178,7 +178,7 @@ that affects it.
 
 ## 1. What this is
 
-**SuperTools** (owner-chosen name; repo `ddastoor/utils`) — a personal **utilities web app**: one static
+**SuperUtils** (owner-chosen name; called SuperTools until the owner renamed it on 21 Nov 2026; repo `ddastoor/utils`) — a personal **utilities web app**: one static
 single-page app (SPA) hosted on **GitHub Pages**
 (`https://ddastoor.github.io/utils/`), used from **desktop browsers** (Chrome on Windows and Linux, X11 or
 Wayland) and **mobile browsers** (Android Chrome, iPhone Safari).
@@ -186,7 +186,8 @@ Wayland) and **mobile browsers** (Android Chrome, iPhone Safari).
 ### Hard requirements (from the owner — do not violate)
 1. **Static and stateless.** No backend, no login, no accounts, no analytics, no cookies, no service worker,
    **no PWA / offline install**. Nothing is saved between visits **except the owner-requested Favorites list**
-   (tool ids in `localStorage` key `supertools.favorites.v1`, `src/favorites.ts`; never leaves the browser).
+   (tool ids in `localStorage` key `superutils.favorites.v1` — the stars of the old key `supertools.favorites.v1` are
+   moved to it once —, `src/favorites.ts`; never leaves the browser).
 2. **No online *code* dependencies (owner clarification).** Every library, script, WebAssembly module, ML model,
    font and icon is embedded in / served from this site — WebAssembly first, else a locally hosted open-source JS
    library. Never a CDN or remote script. **Fetching *data* from a public online API is allowed** (e.g. network
@@ -226,8 +227,17 @@ Wayland) and **mobile browsers** (Android Chrome, iPhone Safari).
     this site only when that tab is used, and released when it is left — see §4 "Lazy dependencies".
 
 ### Owner's answers to open questions
-- App name: **SuperTools** (title, header brand, `document.title` suffix). **To be renamed "SuperUtils"** — owner, 21 Nov
-  2026: "make a note to change this app's name from SuperTools to 'SuperUtils'"; on the to-do list (`todo.md` #5), not started.
+- App name: **SuperUtils** (title, header brand, `document.title` suffix) — **renamed from SuperTools on 21 Nov 2026**
+  (owner: "make a note to change this app's name from SuperTools to 'SuperUtils'" and "make sure you rename it
+  everywhere. For example, in the text-to-speech download utility also"; `todo.md` #5, done): the page, the terminal
+  (prompt `user@superutils`, hostname, uname — busybox.wasm rebuilt), the samples, the JSON → Types header
+  (devcore-j2t.wasm rebuilt), the Python tab's helper module (`_superutils_asyncio`), the offline speech scripts
+  (`superutils-speech.sh` / `.cmd`, the folder `SuperUtils-TTS` — owner: no migration of the old folder, he deletes it),
+  the Favorites key (old stars moved over once). **Kept, on purpose:** the internal name of the import module through
+  which our WebAssembly builds talk to the page, `supertools.*` (spawn, ncpu, tz_info, text_width — compiled into
+  BusyBox, CPython, jq and Graphviz; never shown), the C names inside those builds (`SUPERTOOLS_STACK_PAD`,
+  `supertools_localtime_r` …), and test data that carries the old name (fixture photos' camera "SuperToolsCam",
+  the test certificates, a subtitle file).
 - Commit and push **each tool as soon as it works** — never batch many finished tools into one push. (17 Nov 2026:
   more often still — see STANDING RULE #3: push after every meaningful step, without waiting for the whole utility or
   the complete test run.)
@@ -470,7 +480,7 @@ on this PC**; phones never see the switch.
 - **What the page does:** nothing but write a script. Windows or Linux is detected (client hints, else the user agent;
   another system is told the scripts are for those two) and can be switched; the script for that system holds the text,
   the chosen voices (the job) and `driver.py` as Base64. The CSP is unchanged; no request leaves the page.
-- **What the script does on the PC:** everything in one folder (`%USERPROFILE%\SuperTools-TTS`, `~/SuperTools-TTS`):
+- **What the script does on the PC:** everything in one folder (`%USERPROFILE%\SuperUtils-TTS`, `~/SuperUtils-TTS`):
   **uv 0.13.9** from its wheel on PyPI (SHA-256 checked; x86-64 and ARM64) → Python 3.12 (uv's own build) → each engine
   in its own environment with **pinned packages** (`engines` in the catalogue) → the models from **Hugging Face at
   pinned commits** (`fetch()` in driver.py; plain HTTPS, `HF_HUB_DISABLE_XET=1`) → `output/<date_time>/<voice>.wav` and
@@ -494,7 +504,7 @@ on this PC**; phones never see the switch.
   / American (84) / British and Irish (117) / other accents (60) / accent not documented (231); filters by engine, sex and
   words; sizes counted once per model; licences shown, "personal use only" marked; XTTS-v2 (Coqui Public Model License,
   non-commercial) needs its licence ticked before the download; a model not run here carries the tag "not run by
-  SuperTools yet" with the reason (`UNTRIED` in the generator). **Accents are filed only where the makers document
+  SuperUtils yet" with the reason (`UNTRIED` in the generator). **Accents are filed only where the makers document
   them**; where they do not, the voice is under "accent not documented" and its label says what our test heard.
   - **Piper** (piper-tts 1.8.0): every English voice of rhasspy/piper-voices except LibriTTS — VCTK's 109 speakers by
     VCTK's own accent list (Indian: p248, p251, p376), L2-ARCTIC's 24 (Hindi L1: ASI, RRBI, SVBI, TNI), CMU ARCTIC's 18
@@ -591,7 +601,7 @@ server sends more than it announced; WAV written by the browser's own 16-bit rul
   which help source sh exit break continue, `tar -z/-j` turned into pipelines), `system.ts` boot (/home/user, /etc/passwd
   + group, /bin symlinks for every applet). BusyBox shims (`wasm/busybox/compat.h`, `wasi_stubs.c`): exec/spawn → host
   runs another instance on the same FS (xargs, find -exec, env, nice, nohup, flock); identity (user, uid 0, host
-  "supertools"); uname; nproc; chmod accepted without effect (WASI cannot store permissions); stat adds 755/644 bits;
+  "superutils"); uname; nproc; chmod accepted without effect (WASI cannot store permissions); stat adds 755/644 bits;
   own realpath; dup2 via fd_renumber; setjmp/longjmp via wasm exception handling. UI (`src/tools/software/terminal.ts`):
   colour output, history, Tab completion, Ctrl+L, multi-line paste runs as a script, drag-drop upload, file panel with
   **Upload**, per-file **Download**, folder download as .tar, click-to-cd. Left out (cannot work in a browser tab):
@@ -2512,7 +2522,7 @@ Owner: "make the full site faster, more responsive and memory efficient — load
    (textcore, mathcore, metacore, markdown, sheet, sodium, imgproc direct), MediaPipe tasks are `close()`d,
    dictionary tables/shards and PDF fonts are dropped. Pending calls of a released worker are dropped silently
    (the tab is gone; no stray error toast). Coming back re-creates them (HTTP cache makes it fast).
-   `globalThis.__supertoolsLive()` → `{ workers, resources }` (used by the test: 0 after leaving).
+   `globalThis.__superutilsLive()` → `{ workers, resources }` (used by the test: 0 after leaving).
 4. **Limitation:** libraries that load into the main thread as ES modules stay in memory until the page reloads
    (the browser never unloads an imported module): MuPDF (its wasm heap), zxing-cpp, the MediaPipe runtime,
    libheif, OpenPGP.js. Their *data* is released; only the code/heap stays. Moving MuPDF into a worker (so it can
@@ -2747,7 +2757,7 @@ deadlines).
   fallback again (CPython ≥ 3.12 takes it from OpenSSL only; no OpenSSL here; `scrypt` stays absent).
 - `lib/_socket.py` (stand-in: constants and helpers exist, opening a connection raises OSError "there is no network
   here") — without it `import socket` failed and with it asyncio, doctest, pdb, logging.handlers, email.utils,
-  http.client, urllib.request; `lib/_supertools_asyncio.py` + `sitecustomize.py`: an asyncio event loop without
+  http.client, urllib.request; `lib/_superutils_asyncio.py` + `sitecustomize.py`: an asyncio event loop without
   sockets and threads (to_thread / run_in_executor run inline). `pydoc_data` (help("if")) and `dbm.dumb` (shelve) are
   kept in the zip.
 - **Local time:** wasi-libc has no time-zone database. `wasi_start.c` renames `localtime_r` / `mktime`
