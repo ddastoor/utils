@@ -164,7 +164,10 @@ this file = the owner's latest wishes, how the tests are written, and the traps 
   Commons' public-domain files; no key needed; Unsplash / Pexels / Pixabay need a key a static site would expose) and
   reminded that a Wallpapers tab was declined on 16 Nov (CLAUDE.md §2, "Rejected by the owner"). Nothing added unless
   the owner asks.
-  **Changed his mind the same day: "I changed my mind. You can use the wallpaper tab. Make a note of this."** — wallpapers are allowed again; "Wallpapers from Wikimedia and Museums" (#115) and the "NASA Image Explorer" (#114) wait in docs/potentials.md (round 8, free online data) for his pick, the size check and the approval of their hosts.
+  **The same day the owner changed their mind: "I changed my mind. You can use the wallpaper tab. Make a note of
+  this."** — wallpapers are allowed again; "Wallpapers from Wikimedia and Museums" (#115) and the "NASA Image
+  Explorer" (#114) wait in docs/potentials.md (round 8, free online data) for the owner's pick, the size check and
+  the approval of their hosts.
 - **20 Nov 2026 — live:** the owner asked to merge into `main` and make the site live; Pages was switched on by the
   owner (Source: GitHub Actions). The repository's **default branch is `claude/exciting-bohr-b9yfwc`**, and Pages'
   environment lets only the default branch publish — so the site is published from that branch; `main` holds the
