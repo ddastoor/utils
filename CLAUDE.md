@@ -712,7 +712,8 @@ Removed by the owner from batch 3: Spin the Wheel, Tambola/Housie, Secret Santa,
 Rejected by the owner: Typing Speed Test, Tuner, Metronome, Discount Calculator, Unit Price Compare, News Shorts
 (hourly AI news summaries — considered via GitHub Actions + llama.cpp; owner declined), Local AI / LLM tab and
 Key-Sentence Summariser (in-browser llama.cpp/WebLLM with ~1.7B model — owner declined), Wallpapers (photo
-wallpapers via Wikimedia Commons/NASA, or a procedural generator — owner declined), and from `docs/potentials.md` (Nov 16 2026): Chess Board + Analysis (Stockfish),
+wallpapers via Wikimedia Commons/NASA, or a procedural generator — owner declined; on 21 Nov 2026 the owner asked for
+free-API ideas and added "Wallpapers from Wikimedia and museums" and the "NASA Image Explorer" to docs/potentials.md, #114 – 115), and from `docs/potentials.md` (Nov 16 2026): Chess Board + Analysis (Stockfish),
 Python/JS Linter & Formatter (Ruff/Biome), Offline Translation (Mozilla Bergamot); and (20 Nov 2026) **v86** — a real Linux
 in an emulated PC, for the Terminal or a tab of its own: "leave out V86 completely"; and (20 Nov 2026, to make room for
 apps used more often) **Speech to Text** — removed from the site — with **Auto Subtitles** (potentials #13).

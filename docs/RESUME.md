@@ -14,7 +14,7 @@ Start a new Claude Code session on the same repository (claude.ai/code or the Cl
 The owner's weekly limit is nearly used up; work resumes on Thursday. Everything below is committed and pushed.
 **Done on 21 Nov (all live):** OCR + Photo Dictionary read photos at any angle — letters + projection profiles, every turn
 tried by a quick reading (CLAUDE.md §3 OCR, "At any angle"; to-do #11 and the angle request); potentials.md: #44, #65,
-#66 removed by the owner, #76 – #113 added (round 7); todo.md #13 added (every PC app on Windows and Linux, and X11 /
+#66 removed by the owner, #76 – #113 added (round 7) and #114 – #115 (round 8: free online data); todo.md #13 added (every PC app on Windows and Linux, and X11 /
 Wayland — also a standing rule at the top of CLAUDE.md).
 **In progress — to-do #7, TTS offline: finish the Indian voices already in the catalogue** (owner, 21 Nov 2026: "whatever
 work you were doing on the existing Indian accents for the offline mode, finish that. But maybe don't look for any new
