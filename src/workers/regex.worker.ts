@@ -1,21 +1,57 @@
 // Regex Tester: matching runs here, not on the page, so a pattern that backtracks without end ((a+)+$ on a long run of
-// "a") cannot freeze the tab — the page ends this worker after a time limit and starts a new one.
-// The engine is the browser's own RegExp (compiled C++); this file is only the loop around it.
-export interface RegexReq { id: number; pattern: string; flags: string; text: string; replacement: string | null }
-export interface RegexMatch { index: number; text: string; groups: Array<string | null>; named: Record<string, string | null> | null }
-export interface RegexRes { id: number; error?: string; total?: number; matches?: RegexMatch[]; names?: string[]; replaced?: string | null }
-const SHOWN = 1000, COUNTED = 1_000_000;
-self.onmessage = (ev: MessageEvent<RegexReq>) => {
-  const { id, pattern, flags, text, replacement } = ev.data;
-  try {
-    const re = new RegExp(pattern, flags.includes('g') ? flags : `${flags}g`); // every match is listed whether or not g is set
-    const matches: RegexMatch[] = []; let total = 0; const names = new Set<string>();
-    for (const m of text.matchAll(re)) {
-      if (matches.length < SHOWN) { matches.push({ index: m.index!, text: m[0], groups: m.slice(1).map((g) => g ?? null), named: m.groups ? Object.fromEntries(Object.entries(m.groups).map(([k, v]) => [k, v ?? null])) : null }); if (m.groups) Object.keys(m.groups).forEach((k) => names.add(k)); }
-      if (++total >= COUNTED) break;
-    }
-    // Replace follows the flags as typed: without g only the first match is replaced, as String.replace does
-    const replaced = replacement === null ? null : text.replace(new RegExp(pattern, flags), replacement);
-    (self as any).postMessage({ id, total, matches, names: [...names], replaced } satisfies RegexRes);
-  } catch (e: any) { (self as any).postMessage({ id, error: String(e?.message || e) } satisfies RegexRes); }
+// "a") cannot freeze the tab — the page ends this worker after a time limit and starts a new one. Each flavour's engine
+// (to-do #8: src/lib/regex/) is fetched the first time that flavour is chosen and kept while the tab is open; a
+// "run" message tells the page that the engine is ready and the matching itself has begun (its time limit starts then).
+import { PatternError, type EngineOut, type EngineReq } from '../lib/regex/common';
+import { flavour, type FlavourId } from '../lib/regex/flavours';
+import pyUrl from '../wasm/bin/python.wasm?url';
+import zipUrl from '../wasm/bin/python314.zip?url';
+import goUrl from '../wasm/bin/regex-go.wasm?url';
+import onigUrl from 'vscode-oniguruma/release/onig.wasm?url';
+
+export interface RegexReq extends EngineReq { id: number; flavour: FlavourId }
+export interface RegexRes extends Partial<EngineOut> {
+  id: number;
+  /** 'run': the engine is ready and this request is being matched. */
+  phase?: 'run';
+  error?: string;
+  /** The error is the pattern's (it does not compile), not the engine's. */
+  pattern?: boolean;
+}
+
+const bytes = async (u: string) => { const r = await fetch(u); if (!r.ok) throw new Error(`HTTP ${r.status}`); return new Uint8Array(await r.arrayBuffer()); };
+const compile = (u: string) => WebAssembly.compileStreaming(fetch(u)).catch(async () => WebAssembly.compile(await bytes(u)));
+type Run = (q: EngineReq) => EngineOut | Promise<EngineOut>;
+const loaders: Record<FlavourId, () => Promise<Run>> = {
+  js: async () => (await import('../lib/regex/js')).runJs,
+  pcre2: async () => { const m = await import('../lib/regex/pcre2'); await m.loadPcre2(); return m.runPcre2; },
+  python: async () => { const [m, mod, zip] = await Promise.all([import('../lib/regex/python'), compile(pyUrl), bytes(zipUrl)]); return (q) => m.runPython(mod, zip, q); },
+  go: async () => { const [m, mod] = await Promise.all([import('../lib/regex/go'), compile(goUrl)]); return (q) => m.runGo(mod, q); },
+  ruby: async () => { const [m, wasm] = await Promise.all([import('../lib/regex/ruby'), bytes(onigUrl)]); await m.loadOnig(wasm); return m.runRuby; },
 };
+const engines = new Map<FlavourId, Promise<Run>>();
+const engine = (f: FlavourId) => {
+  let p = engines.get(f);
+  if (!p) { p = loaders[f](); p.catch(() => engines.delete(f)); engines.set(f, p); } // a failed download is tried again next time
+  return p;
+};
+
+const post = (r: RegexRes) => (self as any).postMessage(r);
+let next: RegexReq | null = null, busy = false;
+async function work() {
+  busy = true;
+  while (next) {
+    // let requests that arrived meanwhile replace this one: only the newest is matched
+    await new Promise((r) => setTimeout(r, 0));
+    const q = next!; next = null;
+    let run: Run;
+    try { run = await engine(q.flavour); }
+    catch (e: any) { post({ id: q.id, error: `The ${flavour(q.flavour).label.replace(/ \(.*/, '')} engine could not be fetched (${e?.message || e}). Check the connection; the next change tries again.` }); continue; }
+    if (next) continue;
+    post({ id: q.id, phase: 'run' });
+    try { post({ id: q.id, ...(await run(q)) }); }
+    catch (e: any) { post({ id: q.id, error: String(e?.message || e), pattern: e instanceof PatternError }); }
+  }
+  busy = false;
+}
+self.onmessage = (ev: MessageEvent<RegexReq>) => { next = ev.data; if (!busy) void work(); };

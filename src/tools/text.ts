@@ -20,6 +20,7 @@ import { sodium } from '../wasm/crypto';
 import { devcore, type Devcore } from '../wasm/devcore';
 import { trackWorker, releaseNow } from '../lifecycle';
 import type { RegexReq, RegexRes } from '../workers/regex.worker';
+import { FLAVOURS, flavour, flagsError as flavourFlagsError, type FlavourId } from '../lib/regex/flavours';
 
 const fmt = (n: number) => n.toLocaleString('en-IN');
 
@@ -152,7 +153,7 @@ export const replace: Mount = (root) => {
     if (!worker) {
       worker = trackWorker(new Worker(new URL('../workers/regex.worker.ts', import.meta.url), { type: 'module' }), 'replace', () => { worker = null; });
       worker.onmessage = (ev: MessageEvent<RegexRes>) => {
-        if (ev.data.id !== seq) return; // an answer to an earlier text
+        if (ev.data.id !== seq || ev.data.phase) return; // an answer to an earlier text, or only "started"
         clearTimeout(timer);
         if (ev.data.error) return fail(`The search could not be run: ${ev.data.error}`);
         find.classList.remove('bad'); clear(problem);
@@ -165,7 +166,7 @@ export const replace: Mount = (root) => {
       stop();
       fail(`Stopped after ${REPLACE_LIMIT_MS / 1000} seconds: this pattern takes too long on this text. Nested repeats such as (a+)+ or (.*)* make the engine try a huge number of ways to match — rewrite the pattern without them.`);
     }, REPLACE_LIMIT_MS);
-    worker.postMessage({ id, pattern: p.pattern, flags: p.flags, text, replacement: p.replacement } satisfies RegexReq);
+    worker.postMessage({ id, flavour: 'js', pattern: p.pattern, flags: p.flags, text, replacement: p.replacement, all: true } satisfies RegexReq);
   };
   const runSoon = () => { clearTimeout(deb); deb = window.setTimeout(run, ta.value.length > 200_000 ? 250 : 30); };
   [ta, find, rep].forEach((x) => x.addEventListener('input', runSoon));
@@ -498,79 +499,97 @@ export const json: Mount = (root) => {
 };
 
 // ================================================================== Regex tester (Software)
-/** Why a flags text is not usable, or null. (The browser's own message for a bad flag names neither the flag nor the rule.) */
-export function flagsError(f: string): string | null {
-  const bad = [...f].find((c) => !'dgimsuvy'.includes(c));
-  if (bad) return `“${bad}” is not a flag. The flags are g i m s u v y d.`;
-  const twice = [...f].find((c, i) => f.indexOf(c) !== i);
-  if (twice) return `Flag ${twice} is given twice.`;
-  if (f.includes('u') && f.includes('v')) return 'Flags u and v cannot be used together (v includes u).';
-  return null;
-}
-/** The names of the capture groups of `pattern`, by group number (index 0 = group 1); '' for an unnamed group. */
-export function groupNames(pattern: string): string[] {
-  const out: string[] = []; let inClass = false;
-  for (let i = 0; i < pattern.length; i++) {
-    const c = pattern[i];
-    if (c === '\\') { i++; continue; }
-    if (inClass) { if (c === ']') inClass = false; continue; }
-    if (c === '[') { inClass = true; continue; }
-    if (c !== '(') continue;
-    if (pattern[i + 1] !== '?') { out.push(''); continue; }
-    const m = /^\(\?<([^>=!][^>]*)>/.exec(pattern.slice(i));
-    if (m) out.push(m[1]);
-  }
-  return out;
-}
-/** How long one run may take before the worker is ended (a pattern that backtracks without end never finishes). */
-const REGEX_LIMIT_MS = 2000;
+// Flavours (to-do #8): the engines and their rules are src/lib/regex/; matching runs in the regex worker.
+export { groupNames } from '../lib/regex/flavours';
+/** Why a JavaScript flags text is not usable, or null. (The browser's own message for a bad flag names neither the flag nor the rule.) */
+export const flagsError = (f: string) => flavourFlagsError(FLAVOURS[0], f);
+/** How long one run may take before the worker is ended (a pattern that backtracks without end never finishes); Python
+ *  starts an interpreter for every run, Go never backtracks. */
+const REGEX_LIMIT_MS: Record<FlavourId, number> = { js: 2000, pcre2: 5000, python: 10000, go: 10000, ruby: 5000 };
+/** What fetching an engine costs, said while it comes (once a visit). */
+const ENGINE_SIZE: Partial<Record<FlavourId, string>> = { pcre2: 'PCRE2, 0.5 MB', python: 'CPython, 12 MB', go: 'Go\'s regexp, 2.6 MB', ruby: 'Oniguruma, 0.5 MB' };
 export const regex: Mount = (root) => {
+  let fl = FLAVOURS[0];
+  const loaded = new Set<FlavourId>(['js']);
   const pat = input({ value: '(\\d{3})-(\\d{4})', attrs: { spellcheck: 'false', class: 'input mono', 'aria-label': 'Pattern' } });
   const flags = input({ value: 'g', attrs: { spellcheck: 'false', class: 'input mono', 'aria-label': 'Flags' } });
   const text = textarea({ rows: 6, value: 'Call 555-1234 or 555-9876 today.' });
   const rep = input({ placeholder: 'Replacement (optional, $1 for groups)', attrs: { spellcheck: 'false', 'aria-label': 'Replacement' } });
+  const every = toggle('Replace every match', true, () => runD());
+  const flagHint = h('div', { class: 'small muted regex-flags' }), repHint = h('div', { class: 'small muted' });
   const hl = h('div', { class: 'regex-hl' });
   const groups = h('div');
   const repOut = outputBox({ rows: 4 });
-  let worker: Worker | null = null, seq = 0, timer = 0;
-  const stop = () => { clearTimeout(timer); if (worker) { releaseNow('regex'); worker = null; } };
+  const engineNote = h('div');
+  let worker: Worker | null = null, seq = 0, timer = 0, slow = 0, version = '';
+  const stop = () => { clearTimeout(timer); clearTimeout(slow); if (worker) { releaseNow('regex'); worker = null; } };
+  const describe = () => {
+    clear(flagHint).append(...fl.flags.map(([c, what], i) => h('span', null, i ? ' · ' : '', h('code', null, c), ` ${what}`)));
+    repHint.textContent = `Groups in the replacement: ${fl.replace}.`;
+    rep.placeholder = fl.id === 'python' || fl.id === 'ruby' ? 'Replacement (optional, \\1 for groups)' : 'Replacement (optional, $1 for groups)';
+    every.style.display = fl.id === 'js' ? 'none' : '';
+    clear(engineNote).append(note(`${fl.note}${version ? ` (${version})` : ''}`));
+  };
+  const setFlavour = (id: FlavourId) => {
+    const prev = fl; fl = flavour(id); version = '';
+    // the letters both flavours have stay; JavaScript's g and "Replace every match" stand for each other
+    const allow = new Set(fl.flags.map(([c]) => c));
+    if (prev.id === 'js') every.checked = flags.value.includes('g');
+    let f = [...new Set(flags.value)].filter((c) => allow.has(c) && c !== 'g').join('');
+    if (fl.id === 'js' && every.checked) f = `g${f}`;
+    flags.value = f;
+    describe(); run();
+  };
   const show = (r: RegexRes, s: string) => {
     clear(groups); clear(hl);
-    if (r.error) { groups.append(note(r.error, 'err')); hl.textContent = s; repOut.value = ''; return; }
+    if (r.error) { groups.append(note(r.error, 'err')); hl.textContent = s; repOut.value = ''; pat.classList.toggle('bad', !!r.pattern); return; }
+    pat.classList.remove('bad');
+    if (r.version && r.version !== version) { version = r.version; describe(); }
     const ms = r.matches!, total = r.total!;
     let last = 0;
     for (const m of ms) { hl.append(s.slice(last, m.index), h('mark', { class: m.text ? null : 'empty' }, m.text || '∅')); last = m.index + m.text.length; }
     hl.append(s.slice(last));
     groups.append(note(`${total.toLocaleString('en-US')}${total >= 1000000 ? '+' : ''} match${total === 1 ? '' : 'es'}${total > ms.length ? ` (first ${ms.length.toLocaleString('en-US')} highlighted, ${Math.min(200, ms.length)} in the table)` : ms.length > 200 ? ' (first 200 in the table)' : ''}`, total ? 'ok' : 'info'));
-    const ng = Math.max(0, ...ms.map((m) => m.groups.length)), names = groupNames(pat.value);
+    const ng = Math.max(0, ...ms.map((m) => m.groups.length)), names = r.names ?? [];
     if (ms.length) groups.append(h('div', { class: 'scroll-x' }, h('table', { class: 'tbl' }, h('thead', null, h('tr', null, h('th', null, '#'), h('th', null, 'Match'), h('th', null, 'Index'), ...Array.from({ length: ng }, (_, i) => h('th', null, `$${i + 1}${names[i] ? ` ${names[i]}` : ''}`)))),
       h('tbody', null, ms.slice(0, 200).map((m, i) => h('tr', null, h('td', null, String(i + 1)), h('td', { class: 'mono' }, m.text), h('td', null, String(m.index)), ...Array.from({ length: ng }, (_, j) => h('td', { class: 'mono' }, m.groups[j] ?? '—'))))))));
     repOut.value = r.replaced ?? '';
+    if (r.repError) groups.append(note(`The replacement could not be made: ${r.repError}`, 'err'));
   };
   const run = () => {
-    const fe = flagsError(flags.value); flags.classList.toggle('bad', !!fe);
-    let pe: string | null = null;
-    if (!fe) { try { new RegExp(pat.value, flags.value); } catch (e: any) { pe = String(e.message).replace(/^Invalid regular expression: /, ''); } }
-    pat.classList.toggle('bad', !!pe);
-    if (fe || pe) { stop(); seq++; show({ id: 0, error: fe || pe! }, text.value); return; }
-    const id = ++seq, s = text.value;
+    const fe = flavourFlagsError(fl, flags.value); flags.classList.toggle('bad', !!fe);
+    if (fe) { stop(); seq++; pat.classList.remove('bad'); show({ id: 0, error: fe }, text.value); return; }
+    const id = ++seq, s = text.value, f = fl;
     if (!worker) {
       worker = trackWorker(new Worker(new URL('../workers/regex.worker.ts', import.meta.url), { type: 'module' }), 'regex', () => { worker = null; });
-      worker.onmessage = (ev: MessageEvent<RegexRes>) => { if (ev.data.id !== seq) return; clearTimeout(timer); show(ev.data, text.value); };
+      worker.onmessage = (ev: MessageEvent<RegexRes>) => {
+        const r = ev.data;
+        if (r.id !== seq) return;
+        if (r.phase === 'run') { // the engine is ready: the time limit starts now
+          clearTimeout(slow); loaded.add(fl.id);
+          clearTimeout(timer);
+          const limit = REGEX_LIMIT_MS[fl.id], txt = text.value;
+          timer = window.setTimeout(() => {
+            if (r.id !== seq) return;
+            stop();
+            show({ id: r.id, error: `Stopped after ${limit / 1000} seconds: this pattern takes too long on this text. Nested repeats such as (a+)+ or (.*)* make the engine try a huge number of ways to match — rewrite the pattern without them.` }, txt);
+          }, limit);
+          return;
+        }
+        clearTimeout(timer); clearTimeout(slow);
+        show(r, text.value);
+      };
     }
-    clearTimeout(timer);
-    timer = window.setTimeout(() => {
-      if (id !== seq) return;
-      stop();
-      show({ id, error: `Stopped after ${REGEX_LIMIT_MS / 1000} seconds: this pattern takes too long on this text. Nested repeats such as (a+)+ or (.*)* make the engine try a huge number of ways to match — rewrite the pattern without them.` }, s);
-    }, REGEX_LIMIT_MS);
-    worker.postMessage({ id, pattern: pat.value, flags: flags.value, text: s, replacement: rep.value ? rep.value : null } satisfies RegexReq);
+    clearTimeout(timer); clearTimeout(slow);
+    if (!loaded.has(f.id)) slow = window.setTimeout(() => { if (id === seq) clear(groups).append(note(`Fetching the ${f.label.replace(/ \(.*/, '')} engine (${ENGINE_SIZE[f.id]}, once a visit)…`, 'info')); }, 300);
+    worker.postMessage({ id, flavour: f.id, pattern: pat.value, flags: flags.value, text: s, replacement: rep.value ? rep.value : null, all: every.checked } satisfies RegexReq);
   };
   let deb = 0; const runD = () => { clearTimeout(deb); deb = window.setTimeout(run, 60); };
   [pat, flags, text, rep].forEach((x) => x.addEventListener('input', runD));
-  root.append(card(null, stack(h('div', { class: 'regex-row' }, field('Pattern', pat), field('Flags', flags)), field('Test text', text))), card('Matches', hl, groups), card('Replace', rep, repOut),
-    note('Uses the browser\'s JavaScript (ECMAScript) regex engine, run off the page so a runaway pattern cannot freeze it. Flags: g i m s u v y d. Without g, Replace changes only the first match.'));
-  run();
-  return () => { clearTimeout(timer); clearTimeout(deb); };
+  const flavourSel = select(FLAVOURS.map((x) => [x.id, x.label] as [FlavourId, string]), 'js', (v) => setFlavour(v), 'Flavour');
+  root.append(card(null, stack(field('Flavour', flavourSel), h('div', { class: 'regex-row' }, field('Pattern', pat), field('Flags', flags)), flagHint, field('Test text', text))), card('Matches', hl, groups), card('Replace', rep, repHint, every, repOut),
+    engineNote);
+  describe(); run();
+  return () => { clearTimeout(timer); clearTimeout(deb); clearTimeout(slow); };
 };
 void select; void row;
