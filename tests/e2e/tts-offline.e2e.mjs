@@ -40,7 +40,8 @@ export default async ({ base, page: newPage, ok, download, devices }) => {
   await page.getByRole('radio', { name: 'All' }).click();
   eq(await n(), CAT.voices.length, `All: ${CAT.voices.length} voices`);
   await page.getByLabel('Engine').selectOption('pocket');
-  eq(await n(), 29, 'Pocket TTS: 29 voices (21, and 8 taken from recordings)');
+  const pocketN = CAT.voices.filter((v) => CAT.models[v.model].engine === 'pocket').length;
+  eq(await n(), pocketN, `Pocket TTS: ${pocketN} voices (21, and the rest taken from recordings)`);
   await page.getByLabel('Engine').selectOption('');
   await page.getByLabel('Voices to show').selectOption('f');
   await page.getByLabel('Search the voices').fill('indian');

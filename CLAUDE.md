@@ -488,7 +488,7 @@ from where their makers publish them (Hugging Face, the engines' releases) — n
 the site.
 **Offline mode as built (21 Nov 2026)** (`src/tools/tts-offline.ts`, imported when the mode is chosen — 111 KB / 24 KB
 gzip with the catalogue; `src/lib/offline-tts/`: `catalogue.json` from `python3 scripts/make-offline-tts-catalogue.py`,
-`plan.ts`, `scripts.ts`, `driver.py`; unit `offline-tts.test.mjs` 49 (+1 with `OFFLINE_TTS_E2E=1`) and `offline-tts-plan.test.mjs` 147, e2e
+`plan.ts`, `scripts.ts`, `driver.py`; unit `offline-tts.test.mjs` 49 (+1 with `OFFLINE_TTS_E2E=1`) and `offline-tts-plan.test.mjs` 166, e2e
 `tts-offline.e2e.mjs` 48). On a PC a "Mode" switch above the text: **In this browser** (the tab as it was) or **Offline
 on this PC**; phones never see the switch.
 - **What the page does:** nothing but write a script. Windows or Linux is detected (client hints, else the user agent;
@@ -520,8 +520,8 @@ on this PC**; phones never see the switch.
   conditions (its name, the page, "Agree and access repository"), a fine-grained token without "Read access to contents
   of all public gated repos" — and stops before any engine ("Nothing else was downloaded"). A later refusal (fetch) says
   the same. The libraries' SyntaxWarning / FutureWarning / DeprecationWarning lines are filtered out (they read as errors).
-- **The voices (1,227 in 65 models, 17 engines; round 2 on 21 Nov 2026 — owner: "include them all"):** grouped Indian
-  (195) / American (408) / British and Irish (207) / other accents (120) / accent not documented (297); filters by engine, sex and
+- **The voices (2,327 in 67 models, 19 engines; round 2 on 21 Nov 2026 — owner: "include them all"):** grouped Indian
+  (574) / American (555) / British and Irish (669) / other accents (225) / accent not documented (304); filters by engine, sex and
   words; sizes counted once per model; licences shown, "personal use only" marked; XTTS-v2 (Coqui Public Model License,
   non-commercial) needs its licence ticked before the download; a model not run here carries the tag "not run by
   SuperUtils yet" with the reason (`UNTRIED` in the generator). **Accents are filed only where the makers document
@@ -543,12 +543,18 @@ on this PC**; phones never see the switch.
     documented). A speaker is described in words ("Thoma speaks at a moderate pace …"; the pace from the speed); the
     text goes in pieces of ≤ 240 characters with one seed.
   - **XTTS-v2** (coqui-tts[codec] 0.28.0): 58 studio voices (accents not documented; their made-up names say nothing
-    reliable — each is "a deeper / middle / higher voice" by the measured pitch of a sample) and 8 Indian voices taken from
-    10-second recordings in kyutai/tts-voices (5 voice donations, CC0; VCTK p248 / p251 / p376, CC BY 4.0). A clip is read
-    with librosa — torchaudio ≥ 2.9 hands decoding to torchcodec, which needs FFmpeg on the system.
+    reliable — each is "a deeper / middle / higher voice" by the measured pitch of a sample) and the **163 recordings of the
+    engines that clone** (below). A clip is read with librosa — torchaudio ≥ 2.9 hands decoding to torchcodec, which needs
+    FFmpeg on the system.
   - **Pocket TTS** (pocket-tts 4.0.1; the package pins its model files): its 21 English voices, accents from VCTK's list
     where a voice was made from VCTK; no speed control (said). The sex of the others from the pitch of a sample. **With
-    voice cloning** (the gated kyutai/pocket-tts at the revision the package pins): the 8 Indian recordings.
+    voice cloning** (the gated kyutai/pocket-tts at the revision the package pins): the 163 recordings (below).
+  - **The recordings of the engines that clone** (XTTS-v2, Pocket cloning, Chatterbox and Turbo, VoxCPM2, VibeVoice, F5;
+    `clone_clips()` in the generator; owner, 21 Nov 2026: "as many different variants of Indian, US and UK accents as you
+    can"): the cleaned ("enhanced") recordings of kyutai/tts-voices — **the 57 voice donations Kyutai's voices file as
+    Indian** (a donor whose name says India, a recording in Hindi, an Indian accent heard clearly; the five named ones
+    keep their old ids, `xtts-clip-imran` …) and **VCTK's 106 speakers** with the accents, sexes and ages of VCTK's list
+    (p248, p251, p376 Indian) — 60 Indian, 66 British and Irish, 21 American, 15 other, 1 not documented.
   - **MeloTTS** (MyShell, MIT; k2-fsa's ONNX conversion `csukuangfj/vits-melo-tts-en` on sherpa-onnx 2.0.2): American,
     British, Indian, Australian and its default voice — five women's voices. sherpa-onnx reads only the words of the
     model's dictionary (it spelled out or left out the others, and every digit): `spoken()` in driver.py writes numbers,
@@ -570,10 +576,18 @@ on this PC**; phones never see the switch.
     Hindi ones read English with an Indian accent); sex from each preset's own reference audio (EnCodec codes decoded,
     pitch measured; a middle voice left unsaid). No speed. Very slow on a processor.
   - **Chatterbox** and **Chatterbox Turbo** (Resemble AI, MIT; chatterbox-tts 0.1.7, which pins PyTorch 2.6 — counted as
-    a second PyTorch): their own voice and the 8 Indian recordings; Resemble's inaudible watermark (Perth).
+    a second PyTorch): their own voice and the 163 recordings; Resemble's inaudible watermark (Perth).
   - **Veena** (Maya Research, Apache-2.0; 3B Llama + SNAC 24 kHz, as its card decodes): Kavya, Agastya, Maitri, Vinaya.
   - **VoxCPM2** (OpenBMB, Apache-2.0; voxcpm 2.0.3): 8 described voices (the description in brackets before the text, as
-    its card shows; the later parts of a long text take the first part's voice) and the 8 Indian recordings.
+    its card shows; the later parts of a long text take the first part's voice) and the 163 recordings.
+  - **F5-TTS** (SWivid; f5-tts 1.1.22; code MIT, model CC BY-NC 4.0 — personal use; v1 Base, 336 M parameters, 1.4 GB with
+    Vocos 24 kHz): the 162 English recordings of the engines that clone (the Hindi one is left out: its vocabulary has no
+    Devanagari), each with **what is said in it** — F5 needs the words of its reference: `scripts/data/clip-transcripts.json`
+    from `scripts/make-clip-transcripts.py` (Whisper large-v3 turbo, pinned; no recording is above F5's 12 s, so none is
+    cut). torchaudio's file reading (torchcodec → FFmpeg) is replaced by soundfile (`wav_tensor` in driver.py).
+  - **VibeVoice 1.5B** (Microsoft, MIT; its card: for research and development; Microsoft's own `vibevoice` 0.0.1 on PyPI,
+    the 1.5B inference code, transformers 4.51.3; 5.4 GB; text tokenizer Qwen2.5's at a pinned revision): the 163
+    recordings; no speed; about 12 GB of memory on a processor.
   - **SYSPIN** (IISc, MIT; Coqui TTS VITS, characters): Indian English woman and man. **MMS** (Meta, CC BY-NC; transformers
     VITS): its English voice.
   - **Kyutai TTS 1.6B** (Kyutai, CC BY 4.0; moshi 0.2.13, which needs PyTorch below 2.10 — its own PyTorch 2.9; 4.1 GB):

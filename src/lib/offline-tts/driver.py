@@ -824,6 +824,111 @@ def kyutai_bonus(speed):
     return max(-3.0, min(3.0, 3.0 * (1.0 - speed)))
 
 
+def wav_tensor(path, *a, **k):
+    """torchaudio.load without torchcodec: torchaudio 2.9 and later decode files through torchcodec, which needs FFmpeg
+    installed on the system (Windows has none). soundfile reads a WAV by itself."""
+    import soundfile as sf
+    import torch
+    x, sr = sf.read(path, dtype='float32', always_2d=True)
+    return torch.from_numpy(x.T.copy()), sr
+
+
+VOCOS_24K = ('charactr/vocos-mel-24khz', '0feb3fdd929bcd6649e0e7c5a688cf7dd012ef21')  # Vocos 24 kHz (MIT): F5-TTS's vocoder
+
+
+def clip_upto(v):
+    """A voice's recording, cut at clip['end'] seconds where the catalogue says so: F5-TTS cuts a reference longer than
+    12 seconds wherever it likes, and the words of the transcript would no longer match; the catalogue's cut falls after
+    a whole word, where its transcript ends."""
+    path, end = clip(v), v['clip'].get('end')
+    if not end:
+        return path
+    import soundfile as sf
+    x, sr = sf.read(path, dtype='float32', always_2d=True)
+    out = os.path.join(MODELS, 'cut', f'{v["id"]}.wav')
+    os.makedirs(os.path.dirname(out), exist_ok=True)
+    sf.write(out, x[:int(float(end) * sr)], sr)
+    return out
+
+
+@engine('f5')
+def f5(job, voices):
+    """F5-TTS v1 (SWivid; code MIT, model CC BY-NC 4.0 — personal use) through the f5-tts package: English in the voice
+    of a recording, given the words said in it (the catalogue carries a transcript of each recording, made with Whisper
+    large-v3 turbo; nothing is transcribed on this computer). Vocos 24 kHz turns its spectrograms into sound. The same
+    seed every time, so a voice sounds the same from run to run; the library's chatter is kept off the screen."""
+    import contextlib
+    import io
+    import numpy as np
+    import torchaudio
+    torchaudio.load = wav_tensor
+    from f5_tts.api import F5TTS
+    v0 = voices[0]
+    d = fetch(v0['repo'], v0['rev'], ['F5TTS_v1_Base/model_1250000.safetensors', 'F5TTS_v1_Base/vocab.txt'])
+    voc = fetch(VOCOS_24K[0], VOCOS_24K[1], ['config.yaml', 'pytorch_model.bin'])
+    with contextlib.redirect_stdout(io.StringIO()):
+        tts = F5TTS(model='F5TTS_v1_Base', ckpt_file=os.path.join(d, 'F5TTS_v1_Base', 'model_1250000.safetensors'),
+                    vocab_file=os.path.join(d, 'F5TTS_v1_Base', 'vocab.txt'), vocoder_local_path=voc)
+    log(f'  (on the {"processor — this takes a while" if str(tts.device) == "cpu" else "graphics card"})')
+    text = spoken(job['text'])
+    for v in voices:
+        t0 = time.time()
+        with contextlib.redirect_stdout(io.StringIO()):
+            wav, sr, _ = tts.infer(ref_file=clip_upto(v), ref_text=v['clip']['text'], gen_text=text, speed=float(job['speed']),
+                                   seed=v.get('seed', 0), show_info=lambda *a, **k: None)
+        secs = write_audio(os.path.join(job['out'], v['id']), np.asarray(wav, dtype=np.float32).reshape(-1), sr, job.get('mp3', True))
+        log(f'  {v["label"]}: {secs:.1f} s of speech in {time.time() - t0:.1f} s')
+
+
+QWEN25_TOKENIZER = ('Qwen/Qwen2.5-1.5B', '8faed761d45a263340a0528343f099c05c9a4323')  # VibeVoice's text tokenizer
+
+
+@engine('vibevoice')
+def vibevoice(job, voices):
+    """Microsoft's VibeVoice 1.5B (MIT; its card: for research and development) through Microsoft's vibevoice package:
+    long-form speech in the voice of a recording — Qwen2.5 1.5B with a diffusion head, 7.5 sound frames a second. Its text
+    tokenizer is Qwen2.5's, fetched at a fixed revision (the package would take the newest). On a processor slow; with an
+    NVIDIA card in bfloat16. The pace cannot be set."""
+    import numpy as np
+    import torch
+    import librosa
+    from vibevoice.modular.modeling_vibevoice_inference import VibeVoiceForConditionalGenerationInference
+    from vibevoice.processor.vibevoice_processor import VibeVoiceProcessor
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    log(f'  (on the {"graphics card" if device == "cuda" else "processor — this takes a long while"})')
+    v0 = voices[0]
+    d = fetch(v0['repo'], v0['rev'], ['config.json', 'preprocessor_config.json', 'model.safetensors.index.json',
+                                      'model-00001-of-00003.safetensors', 'model-00002-of-00003.safetensors', 'model-00003-of-00003.safetensors'])
+    tok = fetch(QWEN25_TOKENIZER[0], QWEN25_TOKENIZER[1], ['tokenizer.json', 'tokenizer_config.json', 'vocab.json', 'merges.txt'])
+    # the processor takes its tokenizer from the name in preprocessor_config.json: a copy that names the fetched folder
+    # (its path holds "qwen", which is how the processor knows the kind of tokenizer)
+    pdir = os.path.join(MODELS, 'vibevoice-processor')
+    os.makedirs(pdir, exist_ok=True)
+    pc = json.load(open(os.path.join(d, 'preprocessor_config.json'), encoding='utf-8'))
+    pc['language_model_pretrained_name'] = tok
+    json.dump(pc, open(os.path.join(pdir, 'preprocessor_config.json'), 'w', encoding='utf-8'))
+    processor = VibeVoiceProcessor.from_pretrained(pdir)
+    model = VibeVoiceForConditionalGenerationInference.from_pretrained(
+        d, torch_dtype=torch.bfloat16 if device == 'cuda' else torch.float32, device_map=device, attn_implementation='sdpa').eval()
+    model.set_ddpm_inference_steps(num_steps=10)
+    for v in voices:
+        t0 = time.time()
+        ref, _ = librosa.load(clip(v), sr=24000, mono=True)
+        parts = []
+        for c in chunks(spoken(job['text']), 1000):
+            torch.manual_seed(v.get('seed', 0))
+            inputs = processor(text=[f'Speaker 1: {c}'], voice_samples=[[ref]], padding=True, return_tensors='pt', return_attention_mask=True)
+            inputs = {k: (x.to(device) if torch.is_tensor(x) else x) for k, x in inputs.items()}
+            with torch.inference_mode():
+                out = model.generate(**inputs, max_new_tokens=None, cfg_scale=1.3, tokenizer=processor.tokenizer,
+                                     generation_config={'do_sample': False}, verbose=False)
+            if out.speech_outputs and out.speech_outputs[0] is not None:
+                parts.append(out.speech_outputs[0].reshape(-1).float().cpu().numpy())
+                parts.append(silence(24000, 0.25))
+        secs = write_audio(os.path.join(job['out'], v['id']), np.concatenate(parts) if parts else silence(24000, 0.1), 24000, job.get('mp3', True))
+        log(f'  {v["label"]}: {secs:.1f} s of speech in {time.time() - t0:.1f} s')
+
+
 @engine('qwen')
 def qwen(job, voices):
     """Alibaba's Qwen3-TTS (Apache-2.0) through its qwen-tts package: the nine speakers of the CustomVoice models, and

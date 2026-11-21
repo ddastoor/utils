@@ -222,7 +222,7 @@ ENGINES = {
         'name': 'Chatterbox', 'url': 'https://github.com/resemble-ai/chatterbox',
         'packages': ['chatterbox-tts==0.1.7', 'lameenc==1.9.0'],
         'mb': 450, 'torch': True, 'ownTorch': True, 'speedControl': False, 'licence': 'MIT', 'slow': True,
-        'about': "Resemble AI's expressive models: their own voice, or a voice taken from a 10-second recording. The program "
+        'about': "Resemble AI's expressive models: their own voice, or a voice taken from a recording. The program "
                  'marks the speech with an inaudible watermark and runs on its own PyTorch 2.6 (a second copy).',
     },
     'veena': {
@@ -262,6 +262,27 @@ ENGINES = {
                  'on your computer). About eight times slower than real time on a processor; a graphics card is many times '
                  'faster. On a processor it needs about 16 GB of memory (measured: 15 GB). Its pace is set through the pauses '
                  'between words: slower works well, faster only up to about 1.3×.',
+    },
+    'f5': {
+        'name': 'F5-TTS', 'url': 'https://github.com/SWivid/F5-TTS',
+        # f5-tts 1.1.22 with the versions it ran with here; torchaudio 2.9 and later read files through torchcodec, which
+        # needs FFmpeg on the system — driver.py reads the recordings with soundfile instead
+        'packages': ['f5-tts==1.1.22', 'x-transformers==2.32.1', 'vocos==0.1.0', 'transformers==5.24.0', 'num2words==0.5.14',
+                     'lameenc==1.9.0', 'torch'],
+        'mb': 700, 'torch': True, 'speedControl': True, 'licence': 'MIT (the model: CC BY-NC 4.0)', 'slow': True,
+        'about': "SWivid's F5-TTS v1 (a flow-matching model of 336 million parameters, trained on 95,000 hours of English "
+                 'and Chinese): English in the voice of a recording, given the words said in it — the catalogue carries a '
+                 'transcript of each recording (Whisper large-v3 turbo). Personal use only (the model is CC BY-NC).',
+    },
+    'vibevoice': {
+        'name': 'VibeVoice', 'url': 'https://github.com/microsoft/VibeVoice',
+        # Microsoft's own package (its 1.5B inference code; it pins transformers 4.51.3 and accelerate 1.6.0 itself)
+        'packages': ['vibevoice==0.0.1', 'diffusers==0.39.0', 'huggingface-hub==0.36.2', 'num2words==0.5.14', 'lameenc==1.9.0', 'torch'],
+        'mb': 500, 'torch': True, 'speedControl': False, 'licence': 'MIT', 'slow': True,
+        'about': "Microsoft's VibeVoice 1.5B: long-form speech (up to 90 minutes in one go) in the voice of a recording — Qwen2.5 "
+                 '1.5B with a diffusion head. Microsoft’s card calls it a research model (English and Chinese; not for '
+                 'commercial use without more testing). On a processor it needs about 12 GB of memory and is slow; an NVIDIA '
+                 'card runs it in bfloat16. Its pace cannot be set.',
     },
     'pocket': {
         'name': 'Pocket TTS', 'url': 'https://huggingface.co/kyutai/pocket-tts-without-voice-cloning',
@@ -492,16 +513,13 @@ XTTS_STUDIO = ['Claribel Dervla', 'Daisy Studious', 'Gracie Wise', 'Tammie Ema',
                'Alexandra Hisakawa', 'Alma María', 'Rosemary Okafor', 'Ige Behringer', 'Filip Traverse',
                'Damjan Chapman', 'Wulf Carlevaro', 'Aaron Dreschner', 'Kumar Dahl', 'Eugenio Mataracı',
                'Ferran Simen', 'Xavier Hayasaka', 'Luis Moray', 'Marcos Rudaski']
-# Indian reference clips of kyutai/tts-voices: the voice donations (CC0) say "India" / "Indian" in their names; the three
-# VCTK speakers whose accent is Indian (CC BY 4.0). The cleaned ("enhanced") recordings.
-INDIAN_CLIPS = [('Imran', 'voice-donations/Imran_from_I_India_enhanced.wav', 'm', 'CC0 voice donation'),
-                ('Indian guy', 'voice-donations/Indian_guy_enhanced.wav', 'm', 'CC0 voice donation'),
-                ('Marshal', 'voice-donations/Marshal_Indian_enhanced.wav', 'm', 'CC0 voice donation'),
-                ('Siddh', 'voice-donations/Siddh_Indian_enhanced.wav', 'm', 'CC0 voice donation'),
-                ('Vinith', 'voice-donations/Vinith___English_India_enhanced.wav', 'm', 'CC0 voice donation'),
-                ('VCTK p248', 'vctk/p248_023_enhanced.wav', 'f', 'VCTK, CC BY 4.0'),
-                ('VCTK p251', 'vctk/p251_023_enhanced.wav', 'm', 'VCTK, CC BY 4.0'),
-                ('VCTK p376', 'vctk/p376_023_enhanced.wav', 'm', 'VCTK, CC BY 4.0')]
+# The voice donations (CC0) of kyutai/tts-voices whose names say India — the first Indian recordings the engines that
+# clone were given (their voice ids stay as they were: xtts-clip-imran …); the sex as heard.
+NAMED_DONATIONS = [('Imran', 'voice-donations/Imran_from_I_India_enhanced.wav', 'm'),
+                   ('Indian guy', 'voice-donations/Indian_guy_enhanced.wav', 'm'),
+                   ('Marshal', 'voice-donations/Marshal_Indian_enhanced.wav', 'm'),
+                   ('Siddh', 'voice-donations/Siddh_Indian_enhanced.wav', 'm'),
+                   ('Vinith', 'voice-donations/Vinith___English_India_enhanced.wav', 'm')]
 
 
 def xtts():
@@ -510,7 +528,7 @@ def xtts():
     models = {'xtts': {'engine': 'xtts', 'repo': XTTS_REPO, 'rev': XTTS_REV, 'mb': mb(sum(t[f] for f in need)), 'page': f'https://huggingface.co/{XTTS_REPO}',
                        'licence': 'Coqui Public Model License — non-commercial use only', 'personal': True, 'accept': 'cpml',
                        'name': 'XTTS-v2 (Coqui)'}}
-    clips = tree(CLIPS_REPO, CLIPS_REV)
+
     def studio(n):
         hz = XTTS_PITCH[n]
         sex = 'm' if hz <= 125 else 'f' if hz >= 175 else ''
@@ -519,13 +537,7 @@ def xtts():
                 'sex': sex, 'model': 'xtts', 'speaker': n}
     if set(XTTS_PITCH) != set(XTTS_STUDIO):
         sys.exit('XTTS_PITCH must have every studio voice')
-    voices = [studio(n) for n in XTTS_STUDIO]
-    for n, f, s, lic in INDIAN_CLIPS:
-        if f not in clips:
-            sys.exit(f'{f} is not in {CLIPS_REPO} at {CLIPS_REV}')
-        voices.append({'id': 'xtts-clip-' + re.sub(r'[^a-z0-9]+', '-', n.lower()).strip('-'),
-                       'label': f'{n} — {SEX[s]}, taken from a 10-second recording ({lic})', 'group': 'in', 'sex': s, 'model': 'xtts',
-                       'clip': {'repo': CLIPS_REPO, 'rev': CLIPS_REV, 'file': f}})
+    voices = [studio(n) for n in XTTS_STUDIO] + clip_voices('xtts', 'xtts')
     return models, voices
 
 
@@ -714,11 +726,94 @@ def bark():
     return models, voices
 
 
-def clip_voices(prefix, mid, word):
-    """The Indian reference recordings (INDIAN_CLIPS) as voices of a model that takes a voice from a recording."""
-    return [{'id': f'{prefix}-clip-' + re.sub(r'[^a-z0-9]+', '-', n.lower()).strip('-'),
-             'label': f'{n} — {SEX[sx]}, taken from a 10-second recording ({lic}){word}', 'group': 'in', 'sex': sx, 'model': mid,
-             'clip': {'repo': CLIPS_REPO, 'rev': CLIPS_REV, 'file': f}} for n, f, sx, lic in INDIAN_CLIPS]
+# The recordings every engine that takes a voice from a recording is given (owner, 21 Nov 2026: "include as many
+# different variants of Indian, US and UK accents as you can"): the five of NAMED_DONATIONS, the other
+# Indian voice donations of kyutai/tts-voices (filed as for Kyutai: a donor whose name says India, a recording in an
+# Indian language, an Indian accent heard clearly) and VCTK's speakers with the accents of VCTK's list — the
+# cleaned ("enhanced") recordings. F5-TTS also needs the words said in each: scripts/data/clip-transcripts.json, from
+# scripts/make-clip-transcripts.py (Whisper); it leaves out a recording in another language than English (its
+# vocabulary has no other script).
+TRANSCRIPTS = os.path.join(ROOT, 'scripts', 'data', 'clip-transcripts.json')
+
+
+def clone_clips():
+    """[{key, file, sex, group, who, lang}] — the recordings for the engines that clone, in their order."""
+    clips = tree(CLIPS_REPO, CLIPS_REV)
+    recs = json.load(open(HEARD_CLIPS, encoding='utf-8'))['recordings']
+    out = []
+
+    def add(key, f, sex, group, who, lang='en'):
+        if f not in clips:
+            sys.exit(f'{f} is not in {CLIPS_REPO} at {CLIPS_REV}')
+        out.append({'key': key, 'file': f, 'sex': sex, 'group': group, 'who': who, 'lang': lang})
+    for n, f, sx in NAMED_DONATIONS:
+        add(slug(n), f, sx, 'in', f'{n} — {SEX[sx]}, Indian (the donor says so) (voice donation, CC0)')
+    have = {c['file'] for c in out}
+    for path, rec in sorted(recs.items()):
+        if path.startswith('voice-donations/') and path not in have:
+            d = donation(path, rec)
+            if d['group'] == 'in':
+                add('don-' + d['slug'], path, d['sex'], 'in', f'{d["title"]} — {d["how"]}, {d["acc"]} (voice donation, CC0)', d['lang'])
+    for spk, r in sorted(vctk_speakers().items()):
+        f = f'vctk/{spk}_023_enhanced.wav'
+        if f not in clips:
+            continue  # a speaker kyutai/tts-voices has no recording of
+        where = f', {r["region"]}' if r['region'] else ''
+        add('vctk-' + spk, f, r['sex'], ACCENT_GROUP[r['accent']],
+            f'VCTK {spk} — {SEX[r["sex"]]}, {r["age"]}, {ACCENT_WORD.get(r["accent"], r["accent"])}{where} (CC BY 4.0)')
+    return out
+
+
+def clip_voices(prefix, mid, word='', transcribed=False):
+    """The recordings of clone_clips() as voices of a model that takes a voice from a recording; with `transcribed`, each
+    with the words said in it (and only the English ones)."""
+    t = json.load(open(TRANSCRIPTS, encoding='utf-8')) if transcribed else {}
+    said, cuts = t.get('clips', {}), t.get('cuts', {})
+    out = []
+    for c in clone_clips():
+        v = {'id': f'{prefix}-clip-{c["key"]}', 'label': c['who'] + word, 'group': c['group'], 'sex': c['sex'], 'model': mid,
+             'clip': {'repo': CLIPS_REPO, 'rev': CLIPS_REV, 'file': c['file']}}
+        if transcribed:
+            if c['lang'] != 'en':
+                continue
+            if not said.get(c['file']):
+                sys.exit(f'{c["file"]}: no transcript in {TRANSCRIPTS} — run scripts/make-clip-transcripts.py')
+            v['clip']['text'] = said[c['file']]
+            if c['file'] in cuts:  # longer than F5's 12 s: cut after a whole word, the transcript ending there
+                v['clip']['end'] = cuts[c['file']]
+        out.append(v)
+    return out
+
+
+# F5-TTS v1 Base (SWivid; CC BY-NC 4.0 — trained on Emilia) and its vocoder, Vocos 24 kHz (charactr; MIT)
+F5_REPO, F5_REV = 'SWivid/F5-TTS', '84e5a410d9cead4de2f847e7c9369a6440bdfaca'
+F5_FILES = ['F5TTS_v1_Base/model_1250000.safetensors', 'F5TTS_v1_Base/vocab.txt']
+VOCOS_REPO, VOCOS_REV = 'charactr/vocos-mel-24khz', '0feb3fdd929bcd6649e0e7c5a688cf7dd012ef21'
+
+
+def f5():
+    t, voc = tree(F5_REPO, F5_REV), tree(VOCOS_REPO, VOCOS_REV)
+    models = {'f5': {'engine': 'f5', 'repo': F5_REPO, 'rev': F5_REV, 'mb': mb(sum(t[f] for f in F5_FILES) + voc['config.yaml'] + voc['pytorch_model.bin']),
+                     'licence': 'CC BY-NC 4.0 — personal use (Vocos: MIT)', 'personal': True, 'name': 'F5-TTS v1 Base',
+                     'page': f'https://huggingface.co/{F5_REPO}'}}
+    return models, clip_voices('f5', 'f5', transcribed=True)
+
+
+# VibeVoice 1.5B (Microsoft; MIT) and its text tokenizer, Qwen2.5 1.5B's (Apache-2.0)
+VIBEVOICE_REPO, VIBEVOICE_REV = 'microsoft/VibeVoice-1.5B', 'c00898d257e6b46004e3e2866a47534085fb685a'
+VIBEVOICE_FILES = ['config.json', 'preprocessor_config.json', 'model.safetensors.index.json', 'model-00001-of-00003.safetensors',
+                   'model-00002-of-00003.safetensors', 'model-00003-of-00003.safetensors']
+QWEN25_REPO, QWEN25_REV = 'Qwen/Qwen2.5-1.5B', '8faed761d45a263340a0528343f099c05c9a4323'
+QWEN25_FILES = ['tokenizer.json', 'tokenizer_config.json', 'vocab.json', 'merges.txt']
+
+
+def vibevoice():
+    t, q = tree(VIBEVOICE_REPO, VIBEVOICE_REV), tree(QWEN25_REPO, QWEN25_REV)
+    models = {'vibevoice-1.5b': {'engine': 'vibevoice', 'repo': VIBEVOICE_REPO, 'rev': VIBEVOICE_REV,
+                                 'mb': mb(sum(t[f] for f in VIBEVOICE_FILES) + sum(q[f] for f in QWEN25_FILES)),
+                                 'licence': 'MIT (Microsoft’s card: for research and development); Qwen2.5’s tokenizer Apache-2.0',
+                                 'personal': False, 'name': 'VibeVoice 1.5B (Microsoft)', 'page': f'https://huggingface.co/{VIBEVOICE_REPO}'}}
+    return models, clip_voices('vibevoice', 'vibevoice-1.5b')
 
 
 def chatterbox():
@@ -860,6 +955,24 @@ def heard_accent(rec):
     return 'any', f'accent not clear in our test (nearest: {CA_WORD[a1]})'
 
 
+def slug(x):
+    return re.sub(r'[^a-z0-9]+', '-', x.lower()).strip('-')
+
+
+def donation(path, rec):
+    """A voice donation of kyutai/tts-voices: its name, the accent it is filed under and why, its sex by its pitch, and
+    the language of the recording (another than English only when Whisper was sure of it)."""
+    name = re.sub(r'\s+', ' ', path.split('/', 1)[1][:-len('_enhanced.wav')].replace('_', ' ')).strip()
+    if re.search(r'india', name, re.I):
+        group, acc = 'in', 'Indian (the donor says so)'
+    else:
+        group, acc = heard_accent(rec)
+    lang, p = rec.get('lang', ['en', 1.0])
+    sex, how = pitch_words(rec['f0'])
+    return {'slug': slug(name), 'title': f'Voice donation {name}' if re.fullmatch(r'[0-9a-f]{4}', name) else name, 'group': group,
+            'acc': acc, 'sex': sex, 'how': how, 'lang': lang if p >= 0.8 else 'en'}
+
+
 def kyutai():
     t = tree(KYUTAI_REPO, KYUTAI_REV)
     clips = tree(CLIPS_REPO, CLIPS_REV)
@@ -879,8 +992,6 @@ def kyutai():
             v['personal'] = True
         voices.append(v)
 
-    def slug(x):
-        return re.sub(r'[^a-z0-9]+', '-', x.lower()).strip('-')
     for path, rec in sorted(recs.items()):
         coll, rest = path.split('/', 1)
         sex, how = pitch_words(rec['f0'])
@@ -892,13 +1003,8 @@ def kyutai():
             add(path, f'kyutai-vctk-{spk}', f'VCTK {spk} — {SEX[s["sex"]]}, {s["age"]}, {acc}{where} (CC BY 4.0)',
                 ACCENT_GROUP[s['accent']], s['sex'])
         elif coll == 'voice-donations':
-            name = re.sub(r'\s+', ' ', rest[:-len('_enhanced.wav')].replace('_', ' ')).strip()
-            title = f'Voice donation {name}' if re.fullmatch(r'[0-9a-f]{4}', name) else name
-            if re.search(r'india', name, re.I):
-                group, acc = 'in', 'Indian (the donor says so)'
-            else:
-                group, acc = heard_accent(rec)
-            add(path, 'kyutai-don-' + slug(name), f'{title} — {how}, {acc} (voice donation, CC0)', group, sex)
+            d = donation(path, rec)
+            add(path, 'kyutai-don-' + d['slug'], f'{d["title"]} — {how}, {d["acc"]} (voice donation, CC0)', d['group'], sex)
         elif coll == 'ears':
             spk, f = rest.split('/')
             style = 'free speech' if f.startswith('freeform') else f.split('_')[1]
@@ -941,6 +1047,7 @@ UNTRIED = {
     'chatterbox-turbo': 'Not run yet: it needs a second PyTorch (2.6) beside the model, more than the test machine had room for.',
     'veena': 'Not run here: 7.6 GB, made for a graphics card.',
     'voxcpm2': 'Not run yet: 5 GB.',
+    'vibevoice-1.5b': 'Not run yet: 5.4 GB.',
     'pocket-clone': 'Not run here: Hugging Face gives it only to an account that has accepted its conditions.',
 }
 
@@ -972,7 +1079,7 @@ def heard(voices):
 def main():
     models, voices = {}, []
     # the order of the list: in each accent the larger, newer models first — Indic Parler-TTS leads the Indian voices
-    for part in (parler, qwen, veena, kokoro, omnivoice, voxcpm, kyutai, melo, indictiny, chatterbox, xtts, pocket_clone, bark, syspin,
+    for part in (parler, qwen, veena, kokoro, omnivoice, voxcpm, vibevoice, kyutai, f5, melo, indictiny, chatterbox, xtts, pocket_clone, bark, syspin,
                  pocket, supertonic, mms, piper):
         m, v = part()
         models.update(m)

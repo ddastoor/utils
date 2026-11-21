@@ -18,8 +18,8 @@ export interface CVoice { id: string; label: string; group: string; sex: string;
 export interface Catalogue { made: string; groups: Array<[string, string]>; engines: Record<string, Engine>; models: Record<string, Model>; voices: CVoice[]; accentSurvey?: { tool: string; texts: string[]; made: string } }
 
 /** The order in which the engines run: the quick ones first, so the first files are there soon. */
-export const ENGINE_ORDER = ['piper', 'supertonic', 'melo', 'indictiny', 'mms', 'coqui', 'kokoro', 'pocket', 'chatterbox', 'xtts', 'qwen',
-  'omnivoice', 'kyutai', 'voxcpm', 'bark', 'parler', 'veena'];
+export const ENGINE_ORDER = ['piper', 'supertonic', 'melo', 'indictiny', 'mms', 'coqui', 'kokoro', 'pocket', 'chatterbox', 'xtts', 'f5', 'qwen',
+  'omnivoice', 'kyutai', 'voxcpm', 'vibevoice', 'bark', 'parler', 'veena'];
 /** PyTorch, once for every engine that needs it (uv keeps one copy) — and once more for an engine that pins a version
  *  of its own (Chatterbox: 2.6): the processor build, or the CUDA build with an NVIDIA graphics card (uv picks it by
  *  itself). Python 3.12 and uv come to about 50 MB. */

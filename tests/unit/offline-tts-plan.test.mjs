@@ -13,6 +13,9 @@ export default async (t, { load }) => {
   const cat = JSON.parse(readFileSync(new URL('../../src/lib/offline-tts/catalogue.json', import.meta.url), 'utf8'));
   const driver = readFileSync(new URL('../../src/lib/offline-tts/driver.py', import.meta.url), 'utf8');
   const byId = new Map(cat.voices.map((v) => [v.id, v]));
+  // VCTK's own speaker list: id, age, sex, accent, region
+  const vctk = Object.fromEntries(readFileSync(new URL('../../scripts/data/vctk-speaker-info.txt', import.meta.url), 'utf8').split('\n').slice(1)
+    .map((l) => l.trim().split(/\s+/)).filter((p) => p.length >= 4).map((p) => [p[0], p]));
   const tmp = mkdtempSync(join(tmpdir(), 'otts-plan-'));
   const dec = (s) => Buffer.from(s.replace(/\s+/g, ''), 'base64').toString('utf8');
 
@@ -32,12 +35,41 @@ export default async (t, { load }) => {
   t.ok(per('kokoro').filter((v) => v.model === 'goonj').every((v) => v.lang === 'a'), 'goonj’s personas read English with the American reading (their card)');
   t.ok(per('parler').every((v) => v.describe.includes('{pace}')), 'Parler voices are described with the pace left open');
   t.ok(per('xtts').every((v) => (typeof v.speaker === 'string') !== !!v.clip), 'XTTS voices: a studio voice or a clip, never both');
+  const heardK0 = JSON.parse(readFileSync(new URL('../../scripts/data/kyutai-voices-heard.json', import.meta.url), 'utf8')).recordings;
   const pk = per('pocket').filter((v) => v.model === 'pocket'), pkc = per('pocket').filter((v) => v.model === 'pocket-clone');
   t.ok(pk.every((v) => /^[a-z_]+$/.test(v.voice) && !v.clip) && pk.length === 21, 'Pocket TTS: its 21 English voices');
-  t.ok(pkc.length === 8 && pkc.every((v) => v.clip && !v.voice && v.group === 'in') && cat.models['pocket-clone'].gated, 'Pocket TTS with voice cloning: the eight Indian recordings, a gated model');
-  // the voices taken from recordings: the same eight clips for every engine that clones
+  t.ok(pkc.length >= 160 && pkc.every((v) => v.clip && !v.voice) && cat.models['pocket-clone'].gated, `Pocket TTS with voice cloning: ${pkc.length} recordings, a gated model`);
+  // the voices taken from recordings: the same recordings for every engine that clones (owner, 21 Nov 2026: "as many
+  // different variants of Indian, US and UK accents as you can") — the Indian voice donations as Kyutai's voices file
+  // them, and VCTK's speakers; F5-TTS the English ones, each with what is said in it
   const clips = (m) => cat.voices.filter((v) => v.model === m).filter((v) => v.clip).map((v) => v.clip.file).sort();
-  for (const m of ['chatterbox', 'chatterbox-turbo', 'voxcpm2', 'pocket-clone']) t.eq(clips(m), clips('xtts'), `${m}: the eight Indian recordings of XTTS-v2`);
+  for (const m of ['chatterbox', 'chatterbox-turbo', 'voxcpm2', 'pocket-clone', 'vibevoice-1.5b']) t.eq(clips(m), clips('xtts'), `${m}: the recordings of XTTS-v2`);
+  {
+    const heardC = JSON.parse(readFileSync(new URL('../../scripts/data/kyutai-voices-heard.json', import.meta.url), 'utf8')).recordings;
+    const said = JSON.parse(readFileSync(new URL('../../scripts/data/clip-transcripts.json', import.meta.url), 'utf8')).clips;
+    const xc = per('xtts').filter((v) => v.clip), byFile = new Map(xc.map((v) => [v.clip.file, v]));
+    const indianDon = cat.voices.filter((v) => v.model === 'kyutai-1.6b' && v.group === 'in' && v.clip.file.startsWith('voice-donations/')).map((v) => v.clip.file).sort();
+    t.eq(xc.filter((v) => v.clip.file.startsWith('voice-donations/')).map((v) => v.clip.file).sort(), indianDon, `the cloning engines: the ${indianDon.length} voice donations Kyutai's voices file as Indian`);
+    t.ok(xc.filter((v) => v.clip.file.startsWith('voice-donations/')).every((v) => v.group === 'in'), 'and they are Indian voices there too');
+    const vrec = Object.keys(heardK0).filter((f) => f.startsWith('vctk/')).map((f) => f.replace('.wav', '_enhanced.wav')).sort();
+    t.eq(xc.filter((v) => v.clip.file.startsWith('vctk/')).map((v) => v.clip.file).sort(), vrec, `the cloning engines: VCTK's ${vrec.length} speakers, each its cleaned recording`);
+    t.ok(xc.filter((v) => v.clip.file.startsWith('vctk/')).every((v) => { const s = v.clip.file.slice(5).split('_')[0], r = vctk[s], k = byId.get(`kyutai-vctk-${s}`);
+      return r && v.sex === r[2].toLowerCase() && v.label.includes(`, ${r[1]},`) && k && k.group === v.group; }), 'their sex, age and accent as VCTK’s list (as Kyutai’s VCTK voices)');
+    t.eq(['imran', 'indian-guy', 'marshal', 'siddh', 'vinith', 'vctk-p248', 'vctk-p251', 'vctk-p376'].map((k) => byId.get(`xtts-clip-${k}`)?.group), Array(8).fill('in'), 'the eight first Indian recordings keep their voice ids');
+    // F5-TTS: the English recordings (its vocabulary has no other script), each with its transcript, none above the 12
+    // seconds F5 cuts a reference to (the transcript would no longer match)
+    const f5 = per('f5'), foreign = new Set(Object.entries(heardC).filter(([, r]) => r.lang && r.lang[0] !== 'en' && r.lang[1] >= 0.8).map(([f]) => f));
+    t.eq(f5.map((v) => v.clip.file).sort(), clips('xtts').filter((f) => !foreign.has(f)), `F5-TTS: the ${f5.length} English recordings of the cloning engines`);
+    t.ok(f5.every((v) => v.clip.text && v.clip.text === said[v.clip.file] && /[a-z]/i.test(v.clip.text)), 'F5-TTS: each with the words said in it (scripts/data/clip-transcripts.json)');
+    t.eq(Object.keys(said).sort(), f5.map((v) => v.clip.file).sort(), 'the transcripts: exactly the recordings F5-TTS takes');
+    const secs = (f) => (heardC[f] || heardC[f.replace('_enhanced.wav', '.wav')])?.secs;
+    t.ok(f5.every((v) => (v.clip.end ? v.clip.end > 4 && v.clip.end <= 11.5 && secs(v.clip.file) > v.clip.end : secs(v.clip.file) > 0 && secs(v.clip.file) <= 11.5)), 'F5-TTS: every recording 11.5 seconds or shorter, or cut there after a whole word (F5 cuts one above 12 s anywhere, and the transcript would not match)');
+    const cutT = JSON.parse(readFileSync(new URL('../../scripts/data/clip-transcripts.json', import.meta.url), 'utf8')).cuts || {};
+    t.ok(f5.filter((v) => secs(v.clip.file) > 11.5).every((v) => v.clip.end === cutT[v.clip.file]), `F5-TTS: each longer recording carries its cut (${f5.filter((v) => v.clip.end).length})`);
+    t.ok(cat.models.f5.personal && !cat.models.f5.gated && cat.engines.f5.speedControl, 'F5-TTS: personal use (CC BY-NC), no account needed, a speed');
+    // VibeVoice 1.5B: Microsoft's own package and model; its text tokenizer Qwen2.5's at a fixed revision (driver.py)
+    t.ok(cat.engines.vibevoice.packages.includes('vibevoice==0.0.1') && !cat.engines.vibevoice.speedControl && cat.models['vibevoice-1.5b'].repo === 'microsoft/VibeVoice-1.5B', 'VibeVoice: Microsoft’s package and model, no speed');
+  }
   t.ok(cat.engines.chatterbox.ownTorch && P.planOf(cat, ['chatterbox-default', 'kokoro-af_heart']).programMB - P.planOf(cat, ['kokoro-af_heart']).programMB === cat.engines.chatterbox.mb + P.TORCH_MB.cpu, 'Chatterbox brings its own PyTorch (counted again)');
   t.eq(per('veena').map((v) => v.voice).sort(), ['agastya', 'kavya', 'maitri', 'vinaya'], 'Veena: the four speakers of its card');
   t.ok(per('voxcpm').filter((v) => !v.clip).every((v) => v.describe && !v.describe.includes('(') && !v.describe.includes(')')), 'VoxCPM2: descriptions without brackets (the driver puts them in brackets)');
@@ -78,8 +110,6 @@ export default async (t, { load }) => {
   for (const [id, n] of Object.entries(spk)) t.eq(byId.get(id)?.speaker, n, `${id} is speaker ${n}`);
   t.ok(Object.keys(spk).every((id) => byId.get(id).group === 'in'), 'those eight are Indian English');
   // VCTK: each voice's accent as VCTK's list says
-  const vctk = Object.fromEntries(readFileSync(new URL('../../scripts/data/vctk-speaker-info.txt', import.meta.url), 'utf8').split('\n').slice(1)
-    .map((l) => l.trim().split(/\s+/)).filter((p) => p.length >= 4).map((p) => [p[0], p]));
   const vv = cat.voices.filter((v) => v.id.startsWith('piper-vctk-'));
   t.eq(vv.length, 109, 'all 109 VCTK speakers');
   t.ok(vv.every((v) => { const r = vctk[v.id.slice(11)]; return r && v.sex === r[2].toLowerCase() && v.label.includes(`, ${r[1]},`); }), 'every VCTK voice has the sex and age of VCTK’s list');
@@ -205,6 +235,16 @@ print(json.dumps({'max': max(map(len, c)), 'same': ' '.join(c).split() == t.spli
   t.ok(r.max <= 240 && r.same && r.n > 5, `driver.py cuts a long text into pieces of at most 240 characters, every word kept (${r.n} pieces)`);
   t.eq(r.pace, ['very slowly', 'slowly', 'at a moderate pace', 'slightly fast', 'fast'], 'Parler’s pace words');
   t.eq(r.engines, [...P.ENGINE_ORDER].sort(), 'driver.py has every engine the planner runs');
+  {
+    const gen = readFileSync(new URL('../../scripts/make-offline-tts-catalogue.py', import.meta.url), 'utf8');
+    // driver.py: NAME = ('repo', 'revision'); the generator: NAME_REPO, NAME_REV = 'repo', 'revision'
+    const pinD = (name) => (driver.match(new RegExp(`^${name}\\s*=\\s*\\('([^']+)',\\s*'([0-9a-f]{40})'\\)`, 'm')) || []).slice(1).join('@');
+    const pinG = (name) => (gen.match(new RegExp(`^${name}_REPO,\\s*${name}_REV\\s*=\\s*'([^']+)',\\s*'([0-9a-f]{40})'`, 'm')) || []).slice(1).join('@');
+    for (const [d, g] of [['SPACY_SM', 'SPACY'], ['SNAC_24K', 'SNAC'], ['VOCOS_24K', 'VOCOS'], ['QWEN25_TOKENIZER', 'QWEN25']]) {
+      const a = pinD(d), b = pinG(g);
+      t.ok(a && a === b, `${d}: driver.py fetches the revision the catalogue counts (${a} / ${b})`);
+    }
+  }
   t.eq(r.kyutai, [2.25, 1.5, 0, -0.9, -3, -3], 'Kyutai’s pace: padding between words, more when slower, held within ±3 (measured: 0.62× – 1.3× the normal pace)');
 
   // the Indian voices by accent (owner, 21 Nov 2026): every one ranked or listed as not measured, lightest first; the

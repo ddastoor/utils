@@ -18,7 +18,7 @@ The owner adds items here in chat ("add … to to do"). Newest instructions win.
    either. Eventually complete everything that you are/were doing in parallel"): Kyutai TTS 1.6B (kyutai/tts-1.6b-en_fr,
    CC BY 4.0) with its 594 voices of kyutai/tts-voices (228 CC0 voice donations filed by the accent heard, VCTK's 106 by
    its documented accents, Expresso, EARS, Alba MacKenna — licences in the collection's README); F5-TTS and VibeVoice
-   (adapters waiting in `scripts/wip/offline-tts-engines-next.py`); the 56 voice donations heard clearly as Indian added
+   (both in driver.py since 21 Nov 2026); the voice donations heard clearly as Indian (57) added
    to every engine that takes a voice from a recording (XTTS-v2, Chatterbox and Turbo, VoxCPM2, Pocket TTS cloning, F5,
    VibeVoice; F5 needs each clip's words — Whisper); the engines not yet run here, where the machine allows; every new
    Indian voice measured for the accent ranking. Order (owner): after the accent ranking and the Photo Dictionary upgrade.
@@ -52,6 +52,15 @@ The owner adds items here in chat ("add … to to do"). Newest instructions win.
     where one Enter prints several rows (a loop, `1; 2`), each printed row gets its own name — nothing left to decide. bc's own plain lowercase names, which its loops and `define`
     functions use, work as in bc. Engine unchanged (BusyBox's bc in WebAssembly); the names are TypeScript glue in
     `src/tools/bc-console.ts`, its suite `tests/e2e/bc-console.e2e.mjs`.
+
+12. **Photo Dictionary: the final list of words in alphabetical order** (owner, 21 Nov 2026: "regarding the final list
+    of words that you show to the user with meanings, don't change the list of words, just sort them in alphabetical
+    order, that's all, so that I can zoom into the correct word which is in my mind with scrolling purposes. Again, don't
+    change the actual content of that list that you finally show, just sort it in alphabetical order.") The same cards
+    as now — the same words, meanings and rarity labels; nothing added or taken out — shown A → Z (without regard to
+    case or accents) instead of rarest first; the line above them says so, and "Share list" gives them in the same
+    order. Owner, the same day: "I don't mean zoom in as in zoom into a picture. What I mean is quickly locate the word
+    which is in my mind because it is sorted in alphabetical order." — no picture zoom: the list is only put in order.
 
 ## Done
 - **11. Photo Dictionary and OCR: a photo taken with the phone held sideways** (owner, 21 Nov 2026: "a new requirement in
