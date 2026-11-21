@@ -164,7 +164,7 @@
    "speedControl": true,
    "licence": "Apache-2.0",
    "slow": true,
-   "about": "Alibaba's speech language models: nine named speakers, and a model that speaks in a voice described in words. About four times slower than real time on a processor (0.6B); a graphics card is many times faster."
+   "about": "Alibaba's speech language models: nine named speakers, and a model that speaks in a voice described in words (sex, age, manner — an accent asked for does not come through in English). About four times slower than real time on a processor (0.6B; 1.7B about five); a graphics card is many times faster."
   },
   "omnivoice": {
    "name": "OmniVoice",
@@ -350,8 +350,7 @@
    "licence": "Apache-2.0",
    "personal": false,
    "name": "Qwen3-TTS 1.7B VoiceDesign",
-   "page": "https://huggingface.co/Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign",
-   "untried": "Not run here yet."
+   "page": "https://huggingface.co/Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign"
   },
   "qwen-1.7b": {
    "engine": "qwen",
@@ -416,8 +415,7 @@
    "personal": true,
    "licence": "CC BY-NC (the model; its audio tokenizer: Boson Higgs Audio 2 Community License)",
    "name": "OmniVoice (voices made from a few words)",
-   "page": "https://huggingface.co/k2-fsa/OmniVoice",
-   "untried": "Not run here yet."
+   "page": "https://huggingface.co/k2-fsa/OmniVoice"
   },
   "voxcpm2": {
    "engine": "voxcpm",
@@ -587,8 +585,7 @@
    "licence": "CC BY-NC 4.0",
    "personal": true,
    "name": "MMS English (Meta)",
-   "page": "https://huggingface.co/facebook/mms-tts-eng",
-   "untried": "Not run here yet."
+   "page": "https://huggingface.co/facebook/mms-tts-eng"
   },
   "piper-en_GB-alan-low": {
    "engine": "piper",
@@ -1723,164 +1720,100 @@
    "describe": "Emily's voice is clear and expressive, speaking {pace}, with very clear audio and no background noise."
   },
   {
-   "id": "qwen-design-in-woman-young",
-   "label": "Indian English, light accent — young woman (a voice described in words)",
-   "group": "in",
+   "id": "qwen-design-woman-young",
+   "label": "Young woman, bright and friendly (a voice described in words; sounds North American)",
+   "group": "any",
    "sex": "f",
    "model": "qwen-design",
-   "describe": "A young Indian woman in her twenties with a light, neutral Indian English accent; clear, articulate and warm, like a newsreader; a clean studio recording."
+   "describe": "A young woman in her twenties with a bright, clear and friendly voice, like a podcast host; a clean studio recording."
   },
   {
-   "id": "qwen-design-in-man-young",
-   "label": "Indian English, light accent — young man (a voice described in words)",
-   "group": "in",
+   "id": "qwen-design-man-young",
+   "label": "Young man, clear and energetic (a voice described in words; sounds North American)",
+   "group": "any",
    "sex": "m",
    "model": "qwen-design",
-   "describe": "A young Indian man in his twenties with a light, neutral Indian English accent; clear, articulate and friendly, like a newsreader; a clean studio recording."
+   "describe": "A young man in his twenties with a clear, friendly and energetic voice, like a podcast host; a clean studio recording."
   },
   {
-   "id": "qwen-design-in-woman",
-   "label": "Indian English, light accent — woman in her forties (a voice described in words)",
-   "group": "in",
+   "id": "qwen-design-woman-narrator",
+   "label": "Woman in her thirties, warm narrator (a voice described in words; sounds North American)",
+   "group": "any",
    "sex": "f",
    "model": "qwen-design",
-   "describe": "An Indian woman in her forties with a light, educated Indian English accent; calm, confident and clear, like a radio presenter; a clean studio recording."
+   "describe": "A woman in her thirties with a warm, natural voice, like an audiobook narrator; a clean studio recording."
   },
   {
-   "id": "qwen-design-in-man",
-   "label": "Indian English, light accent — man in his forties (a voice described in words)",
-   "group": "in",
+   "id": "qwen-design-man-narrator",
+   "label": "Man in his thirties, warm narrator (a voice described in words; sounds North American)",
+   "group": "any",
    "sex": "m",
    "model": "qwen-design",
-   "describe": "An Indian man in his forties with a light, educated Indian English accent; calm, deep and clear, like a radio presenter; a clean studio recording."
+   "describe": "A man in his thirties with a warm, natural voice, like an audiobook narrator; a clean studio recording."
   },
   {
-   "id": "qwen-design-in-woman-older",
-   "label": "Indian English, light accent — woman in her sixties (a voice described in words)",
-   "group": "in",
+   "id": "qwen-design-woman-presenter",
+   "label": "Woman in her forties, calm presenter (a voice described in words; sounds North American)",
+   "group": "any",
    "sex": "f",
    "model": "qwen-design",
-   "describe": "An Indian woman in her sixties with a light Indian English accent; gentle, measured and warm, like a teacher reading aloud; a clean studio recording."
+   "describe": "A woman in her forties with a calm, confident and clear voice, like a radio presenter; a clean studio recording."
   },
   {
-   "id": "qwen-design-in-man-older",
-   "label": "Indian English, light accent — man in his sixties (a voice described in words)",
-   "group": "in",
+   "id": "qwen-design-man-presenter",
+   "label": "Man in his forties, deep presenter (a voice described in words; sounds North American)",
+   "group": "any",
    "sex": "m",
    "model": "qwen-design",
-   "describe": "An Indian man in his sixties with a light Indian English accent; measured, warm and clear, like a professor reading aloud; a clean studio recording."
+   "describe": "A man in his forties with a calm, deep and clear voice, like a radio presenter; a clean studio recording."
   },
   {
-   "id": "qwen-design-in-woman-standard",
-   "label": "Indian English, clear Indian accent — woman (a voice described in words)",
-   "group": "in",
+   "id": "qwen-design-woman-older",
+   "label": "Woman in her sixties, gentle and measured (a voice described in words; sounds North American)",
+   "group": "any",
    "sex": "f",
    "model": "qwen-design",
-   "describe": "An Indian woman in her thirties speaking clear standard Indian English with a natural Indian accent; friendly and expressive; a clean studio recording."
+   "describe": "A woman in her sixties with a gentle, measured and warm voice, like a teacher reading aloud; a clean studio recording."
   },
   {
-   "id": "qwen-design-in-man-standard",
-   "label": "Indian English, clear Indian accent — man (a voice described in words)",
-   "group": "in",
+   "id": "qwen-design-man-older",
+   "label": "Man in his sixties, documentary narrator (a voice described in words; sounds North American)",
+   "group": "any",
    "sex": "m",
    "model": "qwen-design",
-   "describe": "An Indian man in his thirties speaking clear standard Indian English with a natural Indian accent; friendly and expressive; a clean studio recording."
+   "describe": "A man in his sixties with a deep, calm and measured voice, like a documentary narrator; a clean studio recording."
   },
   {
-   "id": "qwen-design-us-woman",
-   "label": "General American — woman in her thirties (a voice described in words)",
-   "group": "us",
+   "id": "qwen-design-woman-news",
+   "label": "Woman, crisp newsreader (a voice described in words; sounds North American)",
+   "group": "any",
    "sex": "f",
    "model": "qwen-design",
-   "describe": "An American woman in her thirties with a General American accent; warm, clear and natural, like an audiobook narrator; a clean studio recording."
+   "describe": "A woman in her thirties with a crisp, formal and precise voice, like a newsreader; a clean studio recording."
   },
   {
-   "id": "qwen-design-us-man",
-   "label": "General American — man in his thirties (a voice described in words)",
-   "group": "us",
+   "id": "qwen-design-man-news",
+   "label": "Man, crisp newsreader (a voice described in words; sounds North American)",
+   "group": "any",
    "sex": "m",
    "model": "qwen-design",
-   "describe": "An American man in his thirties with a General American accent; warm, clear and natural, like an audiobook narrator; a clean studio recording."
+   "describe": "A man in his thirties with a crisp, formal and precise voice, like a newsreader; a clean studio recording."
   },
   {
-   "id": "qwen-design-us-woman-older",
-   "label": "General American — woman in her sixties (a voice described in words)",
-   "group": "us",
+   "id": "qwen-design-woman-soft",
+   "label": "Young woman, soft and soothing (a voice described in words; sounds North American)",
+   "group": "any",
    "sex": "f",
    "model": "qwen-design",
-   "describe": "An American woman in her sixties with a General American accent; kind, calm and measured; a clean studio recording."
+   "describe": "A young woman with a soft, gentle and soothing voice, like a bedtime story; a clean studio recording."
   },
   {
-   "id": "qwen-design-us-man-older",
-   "label": "General American — man in his sixties (a voice described in words)",
-   "group": "us",
+   "id": "qwen-design-man-soft",
+   "label": "Man, soft and soothing (a voice described in words; sounds North American)",
+   "group": "any",
    "sex": "m",
    "model": "qwen-design",
-   "describe": "An American man in his sixties with a General American accent; deep, calm and measured, like a documentary narrator; a clean studio recording."
-  },
-  {
-   "id": "qwen-design-uk-woman",
-   "label": "Southern English (RP) — woman in her thirties (a voice described in words)",
-   "group": "uk",
-   "sex": "f",
-   "model": "qwen-design",
-   "describe": "An English woman in her thirties with a Received Pronunciation accent from the south of England; clear, poised and warm; a clean studio recording."
-  },
-  {
-   "id": "qwen-design-uk-man",
-   "label": "Southern English (RP) — man in his thirties (a voice described in words)",
-   "group": "uk",
-   "sex": "m",
-   "model": "qwen-design",
-   "describe": "An English man in his thirties with a Received Pronunciation accent from the south of England; clear, poised and warm; a clean studio recording."
-  },
-  {
-   "id": "qwen-design-uk-woman-older",
-   "label": "Southern English (RP) — woman in her sixties (a voice described in words)",
-   "group": "uk",
-   "sex": "f",
-   "model": "qwen-design",
-   "describe": "An English woman in her sixties with a Received Pronunciation accent; gentle, measured and articulate; a clean studio recording."
-  },
-  {
-   "id": "qwen-design-uk-man-older",
-   "label": "Southern English (RP) — man in his sixties (a voice described in words)",
-   "group": "uk",
-   "sex": "m",
-   "model": "qwen-design",
-   "describe": "An English man in his sixties with a Received Pronunciation accent; deep, measured and articulate, like a BBC presenter; a clean studio recording."
-  },
-  {
-   "id": "qwen-design-scottish-woman",
-   "label": "Scottish — woman (a voice described in words)",
-   "group": "uk",
-   "sex": "f",
-   "model": "qwen-design",
-   "describe": "A Scottish woman in her thirties with a soft Edinburgh accent; clear and friendly; a clean studio recording."
-  },
-  {
-   "id": "qwen-design-irish-man",
-   "label": "Irish — man (a voice described in words)",
-   "group": "uk",
-   "sex": "m",
-   "model": "qwen-design",
-   "describe": "An Irish man in his thirties with a gentle Dublin accent; clear and friendly; a clean studio recording."
-  },
-  {
-   "id": "qwen-design-au-woman",
-   "label": "Australian — woman (a voice described in words)",
-   "group": "world",
-   "sex": "f",
-   "model": "qwen-design",
-   "describe": "An Australian woman in her thirties with a natural Australian accent; bright, clear and friendly; a clean studio recording."
-  },
-  {
-   "id": "qwen-design-au-man",
-   "label": "Australian — man (a voice described in words)",
-   "group": "world",
-   "sex": "m",
-   "model": "qwen-design",
-   "describe": "An Australian man in his thirties with a natural Australian accent; relaxed, clear and friendly; a clean studio recording."
+   "describe": "A man with a soft, low and soothing voice, like a meditation guide; a clean studio recording."
   },
   {
    "id": "qwen-17b-aiden",
@@ -4658,9 +4591,9 @@
   },
   {
    "id": "mms-eng",
-   "label": "MMS English voice",
+   "label": "MMS English voice — man (sounds American in our test)",
    "group": "any",
-   "sex": "",
+   "sex": "m",
    "model": "mms-eng"
   },
   {

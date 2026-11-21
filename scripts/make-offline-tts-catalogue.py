@@ -190,7 +190,8 @@ ENGINES = {
                      'torch', 'torchaudio'],
         'mb': 350, 'torch': True, 'speedControl': True, 'licence': 'Apache-2.0', 'slow': True,
         'about': "Alibaba's speech language models: nine named speakers, and a model that speaks in a voice described in "
-                 'words. About four times slower than real time on a processor (0.6B); a graphics card is many times faster.',
+                 'words (sex, age, manner — an accent asked for does not come through in English). About four times slower '
+                 'than real time on a processor (0.6B; 1.7B about five); a graphics card is many times faster.',
     },
     'omnivoice': {
         'name': 'OmniVoice', 'url': 'https://github.com/k2-fsa/OmniVoice',
@@ -595,44 +596,24 @@ QWEN_SPEAKERS = [('Aiden', 'm', 'us', 'sunny American man, clear midrange'), ('R
                  ('Uncle_Fu', 'm', 'any', 'seasoned man, low and mellow (native Chinese)'), ('Dylan', 'm', 'any', 'youthful Beijing man (native Chinese)'),
                  ('Eric', 'm', 'any', 'lively Chengdu man, slightly husky (native Chinese)'), ('Ono_Anna', 'f', 'any', 'playful Japanese woman (native Japanese)'),
                  ('Sohee', 'f', 'any', 'warm Korean woman (native Korean)')]
-# Qwen3-TTS VoiceDesign: voices described in words (ours). For India the owner asked for an accent "as light as possible".
+# Qwen3-TTS VoiceDesign: voices described in words (ours) by sex, age and manner. Tested here (21 Nov 2026): it speaks
+# them clearly and the pitch follows the sex asked for, but in English it gives no accent asked for — descriptions of a
+# light, a mild and a strong Indian accent, of a South Indian one and of RP all came out North American to the accent
+# model (SpeechBrain CommonAccent: US or Canada first for all ten). So no accent is promised; like every voice whose
+# accent its makers do not document, they are filed under "accent not documented", the label saying what the test heard.
 QWEN_DESIGN = [
-    ('in-woman-young', 'in', 'f', 'Indian English, light accent — young woman',
-     'A young Indian woman in her twenties with a light, neutral Indian English accent; clear, articulate and warm, like a newsreader; a clean studio recording.'),
-    ('in-man-young', 'in', 'm', 'Indian English, light accent — young man',
-     'A young Indian man in his twenties with a light, neutral Indian English accent; clear, articulate and friendly, like a newsreader; a clean studio recording.'),
-    ('in-woman', 'in', 'f', 'Indian English, light accent — woman in her forties',
-     'An Indian woman in her forties with a light, educated Indian English accent; calm, confident and clear, like a radio presenter; a clean studio recording.'),
-    ('in-man', 'in', 'm', 'Indian English, light accent — man in his forties',
-     'An Indian man in his forties with a light, educated Indian English accent; calm, deep and clear, like a radio presenter; a clean studio recording.'),
-    ('in-woman-older', 'in', 'f', 'Indian English, light accent — woman in her sixties',
-     'An Indian woman in her sixties with a light Indian English accent; gentle, measured and warm, like a teacher reading aloud; a clean studio recording.'),
-    ('in-man-older', 'in', 'm', 'Indian English, light accent — man in his sixties',
-     'An Indian man in his sixties with a light Indian English accent; measured, warm and clear, like a professor reading aloud; a clean studio recording.'),
-    ('in-woman-standard', 'in', 'f', 'Indian English, clear Indian accent — woman',
-     'An Indian woman in her thirties speaking clear standard Indian English with a natural Indian accent; friendly and expressive; a clean studio recording.'),
-    ('in-man-standard', 'in', 'm', 'Indian English, clear Indian accent — man',
-     'An Indian man in his thirties speaking clear standard Indian English with a natural Indian accent; friendly and expressive; a clean studio recording.'),
-    ('us-woman', 'us', 'f', 'General American — woman in her thirties',
-     'An American woman in her thirties with a General American accent; warm, clear and natural, like an audiobook narrator; a clean studio recording.'),
-    ('us-man', 'us', 'm', 'General American — man in his thirties',
-     'An American man in his thirties with a General American accent; warm, clear and natural, like an audiobook narrator; a clean studio recording.'),
-    ('us-woman-older', 'us', 'f', 'General American — woman in her sixties',
-     'An American woman in her sixties with a General American accent; kind, calm and measured; a clean studio recording.'),
-    ('us-man-older', 'us', 'm', 'General American — man in his sixties',
-     'An American man in his sixties with a General American accent; deep, calm and measured, like a documentary narrator; a clean studio recording.'),
-    ('uk-woman', 'uk', 'f', 'Southern English (RP) — woman in her thirties',
-     'An English woman in her thirties with a Received Pronunciation accent from the south of England; clear, poised and warm; a clean studio recording.'),
-    ('uk-man', 'uk', 'm', 'Southern English (RP) — man in his thirties',
-     'An English man in his thirties with a Received Pronunciation accent from the south of England; clear, poised and warm; a clean studio recording.'),
-    ('uk-woman-older', 'uk', 'f', 'Southern English (RP) — woman in her sixties',
-     'An English woman in her sixties with a Received Pronunciation accent; gentle, measured and articulate; a clean studio recording.'),
-    ('uk-man-older', 'uk', 'm', 'Southern English (RP) — man in his sixties',
-     'An English man in his sixties with a Received Pronunciation accent; deep, measured and articulate, like a BBC presenter; a clean studio recording.'),
-    ('scottish-woman', 'uk', 'f', 'Scottish — woman', 'A Scottish woman in her thirties with a soft Edinburgh accent; clear and friendly; a clean studio recording.'),
-    ('irish-man', 'uk', 'm', 'Irish — man', 'An Irish man in his thirties with a gentle Dublin accent; clear and friendly; a clean studio recording.'),
-    ('au-woman', 'world', 'f', 'Australian — woman', 'An Australian woman in her thirties with a natural Australian accent; bright, clear and friendly; a clean studio recording.'),
-    ('au-man', 'world', 'm', 'Australian — man', 'An Australian man in his thirties with a natural Australian accent; relaxed, clear and friendly; a clean studio recording.'),
+    ('woman-young', 'f', 'young woman, bright and friendly', 'A young woman in her twenties with a bright, clear and friendly voice, like a podcast host; a clean studio recording.'),
+    ('man-young', 'm', 'young man, clear and energetic', 'A young man in his twenties with a clear, friendly and energetic voice, like a podcast host; a clean studio recording.'),
+    ('woman-narrator', 'f', 'woman in her thirties, warm narrator', 'A woman in her thirties with a warm, natural voice, like an audiobook narrator; a clean studio recording.'),
+    ('man-narrator', 'm', 'man in his thirties, warm narrator', 'A man in his thirties with a warm, natural voice, like an audiobook narrator; a clean studio recording.'),
+    ('woman-presenter', 'f', 'woman in her forties, calm presenter', 'A woman in her forties with a calm, confident and clear voice, like a radio presenter; a clean studio recording.'),
+    ('man-presenter', 'm', 'man in his forties, deep presenter', 'A man in his forties with a calm, deep and clear voice, like a radio presenter; a clean studio recording.'),
+    ('woman-older', 'f', 'woman in her sixties, gentle and measured', 'A woman in her sixties with a gentle, measured and warm voice, like a teacher reading aloud; a clean studio recording.'),
+    ('man-older', 'm', 'man in his sixties, documentary narrator', 'A man in his sixties with a deep, calm and measured voice, like a documentary narrator; a clean studio recording.'),
+    ('woman-news', 'f', 'woman, crisp newsreader', 'A woman in her thirties with a crisp, formal and precise voice, like a newsreader; a clean studio recording.'),
+    ('man-news', 'm', 'man, crisp newsreader', 'A man in his thirties with a crisp, formal and precise voice, like a newsreader; a clean studio recording.'),
+    ('woman-soft', 'f', 'young woman, soft and soothing', 'A young woman with a soft, gentle and soothing voice, like a bedtime story; a clean studio recording.'),
+    ('man-soft', 'm', 'man, soft and soothing', 'A man with a soft, low and soothing voice, like a meditation guide; a clean studio recording.'),
 ]
 
 
@@ -642,8 +623,9 @@ def qwen():
     mid, repo, rev, name = QWEN_VD
     models[mid] = {'engine': 'qwen', 'repo': repo, 'rev': rev, 'mb': mb(size_of(repo, rev, pat)), 'licence': 'Apache-2.0', 'personal': False,
                    'name': name, 'page': f'https://huggingface.co/{repo}'}
-    for key, g, sex, label, describe in QWEN_DESIGN:
-        voices.append({'id': f'qwen-design-{key}', 'label': f'{label} (a voice described in words)', 'group': g, 'sex': sex, 'model': mid, 'describe': describe})
+    for key, sex, label, describe in QWEN_DESIGN:
+        voices.append({'id': f'qwen-design-{key}', 'label': f'{label.capitalize()} (a voice described in words; sounds North American)', 'group': 'any',
+                       'sex': sex, 'model': mid, 'describe': describe})
     for mid, repo, rev, name in QWEN:
         models[mid] = {'engine': 'qwen', 'repo': repo, 'rev': rev, 'mb': mb(size_of(repo, rev, pat)), 'licence': 'Apache-2.0', 'personal': False,
                        'name': name, 'page': f'https://huggingface.co/{repo}'}
@@ -655,7 +637,10 @@ def qwen():
     return models, voices
 
 
-# OmniVoice: voices made of its own words (omnivoice/utils/voice_design.py) — sex, age and an English accent
+# OmniVoice: voices made of its own words (omnivoice/utils/voice_design.py) — sex, age and an English accent. Run here
+# (21 Nov 2026, eight of them): the accent comes through — the accent model put Indian first for three of the four Indian
+# voices (third for the older man), Australian, British and American first for theirs (the Canadian: US, then Canada);
+# pitch follows the sex asked for (women 187 – 232 Hz, men 102 – 146 Hz); Whisper read every one back.
 OMNI_MAIN = [('indian', 'in', 'Indian'), ('american', 'us', 'American'), ('british', 'uk', 'British'),
              ('australian', 'world', 'Australian'), ('canadian', 'world', 'Canadian')]
 OMNI_OTHER = [('chinese', 'Chinese'), ('japanese', 'Japanese'), ('korean', 'Korean'), ('russian', 'Russian'), ('portuguese', 'Portuguese')]
@@ -781,11 +766,11 @@ def mms():
     files = ['config.json', 'model.safetensors', 'special_tokens_map.json', 'tokenizer_config.json', 'vocab.json']
     models = {'mms-eng': {'engine': 'mms', 'repo': MMS_REPO, 'rev': MMS_REV, 'mb': mb(sum(t[f] for f in files)), 'licence': 'CC BY-NC 4.0', 'personal': True,
                           'name': 'MMS English (Meta)', 'page': f'https://huggingface.co/{MMS_REPO}'}}
-    voices = [{'id': 'mms-eng', 'label': 'MMS English voice', 'group': 'any', 'sex': MMS_SEX, 'model': 'mms-eng'}]
+    voices = [{'id': 'mms-eng', 'label': 'MMS English voice — man (sounds American in our test)', 'group': 'any', 'sex': MMS_SEX, 'model': 'mms-eng'}]
     return models, voices
 
 
-MMS_SEX = ''
+MMS_SEX = 'm'  # run here: 121 Hz; the accent model hears American (not documented, so the label says so)
 
 
 def pocket_clone():
@@ -802,8 +787,6 @@ UNTRIED = {
     'indic-parler': 'Not run here: Hugging Face gives it only to an account that has accepted its conditions.',
     'parler-large': 'Not run here: 9.3 GB, more than the test machine had room for (the same program as Parler Mini, which was run).',
     'qwen-1.7b': 'Not run here: 4.5 GB (the same program as Qwen3-TTS 0.6B, which was run).',
-    'qwen-design': 'Not run here yet.',
-    'omnivoice': 'Not run here yet.',
     'bark': 'Not run here: 4.5 GB (the same program as Bark small).',
     'bark-small': 'Not run here yet.',
     'chatterbox': 'Not run yet: it needs a second PyTorch (2.6) beside the model, more than the test machine had room for.',
@@ -812,7 +795,6 @@ UNTRIED = {
     'voxcpm2': 'Not run yet: 5 GB.',
     'syspin-female': 'Not run here yet.',
     'syspin-male': 'Not run here yet.',
-    'mms-eng': 'Not run here yet.',
     'pocket-clone': 'Not run here: Hugging Face gives it only to an account that has accepted its conditions.',
 }
 

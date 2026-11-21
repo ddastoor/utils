@@ -55,8 +55,8 @@ export default async (t, { load }) => {
   const QWEN9 = ['Aiden', 'Dylan', 'Eric', 'Ono_Anna', 'Ryan', 'Serena', 'Sohee', 'Uncle_Fu', 'Vivian'];
   for (const m of ['qwen-0.6b', 'qwen-1.7b']) t.eq(per('qwen').filter((v) => v.model === m).map((v) => v.speaker).sort(), QWEN9, `${m}: the nine speakers of the readme`);
   const design = per('qwen').filter((v) => v.model === 'qwen-design');
-  t.ok(design.length >= 16 && design.every((v) => v.describe && !v.speaker && v.describe.length < 300), `Qwen3-TTS VoiceDesign: ${design.length} voices, each a description`);
-  t.ok(design.filter((v) => v.group === 'in').every((v) => /Indian/.test(v.describe) && /accent/.test(v.describe)) && design.filter((v) => v.group === 'in').length >= 6, 'its Indian voices ask for an Indian English accent');
+  t.ok(design.length >= 12 && design.every((v) => v.describe && !v.speaker && v.describe.length < 300), `Qwen3-TTS VoiceDesign: ${design.length} voices, each a description`);
+  t.ok(design.every((v) => v.group === 'any' && !/accent/i.test(v.describe) && /North American/.test(v.label)), 'VoiceDesign promises no accent (tested: Indian and British descriptions came out North American)');
   t.ok(cat.models['qwen-0.6b'].noSpeed && !cat.models['qwen-1.7b'].noSpeed && !cat.models['qwen-design'].noSpeed, 'Qwen3-TTS: only the 0.6B model has no speed (it takes no instructions)');
   // OmniVoice: every description made of omnivoice 0.2.1's own words (omnivoice/utils/voice_design.py)
   const OMNI_WORDS = new Set(['male', 'female', 'child', 'teenager', 'young adult', 'middle-aged', 'elderly', 'very low pitch', 'low pitch', 'moderate pitch',

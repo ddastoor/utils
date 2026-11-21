@@ -446,8 +446,8 @@ from where their makers publish them (Hugging Face, the engines' releases) — n
 the site.
 **Offline mode as built (21 Nov 2026)** (`src/tools/tts-offline.ts`, imported when the mode is chosen — 111 KB / 24 KB
 gzip with the catalogue; `src/lib/offline-tts/`: `catalogue.json` from `python3 scripts/make-offline-tts-catalogue.py`,
-`plan.ts`, `scripts.ts`, `driver.py`; unit `offline-tts.test.mjs` 25 and `offline-tts-plan.test.mjs` 70, e2e
-`tts-offline.e2e.mjs` 31). On a PC a "Mode" switch above the text: **In this browser** (the tab as it was) or **Offline
+`plan.ts`, `scripts.ts`, `driver.py`; unit `offline-tts.test.mjs` 32 and `offline-tts-plan.test.mjs` 114, e2e
+`tts-offline.e2e.mjs` 33). On a PC a "Mode" switch above the text: **In this browser** (the tab as it was) or **Offline
 on this PC**; phones never see the switch.
 - **What the page does:** nothing but write a script. Windows or Linux is detected (client hints, else the user agent;
   another system is told the scripts are for those two) and can be switched; the script for that system holds the text,
@@ -460,9 +460,12 @@ on this PC**; phones never see the switch.
   Windows: a `.cmd` that runs the PowerShell under it (ASCII, CRLF; Windows PowerShell 5.1 is part of Windows 10 / 11).
   Linux: bash with curl or wget. A gated model (Indic Parler-TTS) makes the script ask once for a Hugging Face token
   (hidden input), kept in the folder's `cache/huggingface/token`; a refused download is explained by driver.py.
-- **The voices (430 in 45 models):** grouped Indian (63) / American (73) / British and Irish (108) / other accents (37) /
-  accent not documented (149); filters by engine, sex and words; sizes counted once per model; licences shown, "personal
-  use only" marked; XTTS-v2 (Coqui Public Model License, non-commercial) needs its licence ticked before the download.
+- **The voices (626 in 64 models, 16 engines; round 2 on 21 Nov 2026 — owner: "include them all"):** grouped Indian (134)
+  / American (84) / British and Irish (117) / other accents (60) / accent not documented (231); filters by engine, sex and
+  words; sizes counted once per model; licences shown, "personal use only" marked; XTTS-v2 (Coqui Public Model License,
+  non-commercial) needs its licence ticked before the download; a model not run here carries the tag "not run by
+  SuperTools yet" with the reason (`UNTRIED` in the generator). **Accents are filed only where the makers document
+  them**; where they do not, the voice is under "accent not documented" and its label says what our test heard.
   - **Piper** (piper-tts 1.8.0): every English voice of rhasspy/piper-voices except LibriTTS — VCTK's 109 speakers by
     VCTK's own accent list (Indian: p248, p251, p376), L2-ARCTIC's 24 (Hindi L1: ASI, RRBI, SVBI, TNI), CMU ARCTIC's 18
     (ksp Indian; eleven not described), ARU's 12, SEMAINE's 4, and the single voices.
@@ -483,12 +486,46 @@ on this PC**; phones never see the switch.
     10-second recordings in kyutai/tts-voices (5 voice donations, CC0; VCTK p248 / p251 / p376, CC BY 4.0). A clip is read
     with librosa — torchaudio ≥ 2.9 hands decoding to torchcodec, which needs FFmpeg on the system.
   - **Pocket TTS** (pocket-tts 4.0.1; the package pins its model files): its 21 English voices, accents from VCTK's list
-    where a voice was made from VCTK; no speed control (said). The sex of the others from the pitch of a sample.
-- **Measured here (Linux, CPU only):** Kokoro ≈ 4× faster than real time; Pocket ≈ 2× faster; XTTS-v2 ≈ 1.7× slower
-  (studio voice), 2.6× with a clip; Parler Mini ≈ 5.5× slower. The Windows script was read by its text only (PowerShell
-  could not be installed in the sandbox). Not added yet (docs/BUGHUNT.md, "TTS offline"): MeloTTS EN_INDIA (its PyPI
-  package needs torch < 2.0; sherpa-onnx 2.x drops unknown words), Chatterbox (pins torch 2.6), Indic-Speak and Veena
-  (GPU-sized, gated), ZONOS3-Mini (an Indian accent with a dose; a C++ tool on Windows).
+    where a voice was made from VCTK; no speed control (said). The sex of the others from the pitch of a sample. **With
+    voice cloning** (the gated kyutai/pocket-tts at the revision the package pins): the 8 Indian recordings.
+  - **MeloTTS** (MyShell, MIT; k2-fsa's ONNX conversion `csukuangfj/vits-melo-tts-en` on sherpa-onnx 2.0.2): American,
+    British, Indian, Australian and its default voice — five women's voices. sherpa-onnx reads only the words of the
+    model's dictionary (it spelled out or left out the others, and every digit): `spoken()` in driver.py writes numbers,
+    money, times, dates and titles in words (num2words), and every other unknown word is added to a copy of the dictionary
+    with **g2p_en's** pronunciation (`G2pNet`: g2p_en's predict() with its weights — importing g2p_en would download NLTK
+    data, which NLTK 3.10 refuses through a proxy; the port gives g2p_en's own phonemes).
+  - **Supertonic** (Supertone; package supertonic 1.3.1, MIT; models OpenRAIL-M, at the revisions the package pins):
+    versions 1, 2 and 3, ten voices each (F1 – F5 women, M1 – M5 men — pitch agrees), 16 steps.
+  - **Indic Tiny TTS** (sulabhkatiyar/indic-tiny-tts-english; weights CC BY 4.0, code MIT): IISc SYSPIN's two Indian
+    English speakers, its own small package from the repository, run on ONNX Runtime (no PyTorch); reads ₹, lakh, crore.
+  - **Qwen3-TTS** (Alibaba, Apache-2.0; qwen-tts 0.1.1): the nine speakers of the 0.6B (no instructions, so no speed) and
+    1.7B CustomVoice models, and 12 VoiceDesign voices described by sex, age and manner. **VoiceDesign gives no accent in
+    English**: light, mild and strong Indian accents, a South Indian one and RP all came out North American (tested).
+  - **OmniVoice** (k2-fsa / Xiaomi; code Apache-2.0, model CC BY-NC): 40 voices made of its own words — sex, age and an
+    accent (Indian, American, British, Australian, Canadian × young / middle-aged / older; Chinese, Japanese, Korean,
+    Russian, Portuguese). **Its accents do come through** (tested: Indian first for 3 of 4 Indian voices).
+  - **Bark** and **Bark small** (Suno, MIT; transformers 4.57.3): the 20 v2 presets (English and Hindi speakers — the
+    Hindi ones read English with an Indian accent); sex from each preset's own reference audio (EnCodec codes decoded,
+    pitch measured; a middle voice left unsaid). No speed. Very slow on a processor.
+  - **Chatterbox** and **Chatterbox Turbo** (Resemble AI, MIT; chatterbox-tts 0.1.7, which pins PyTorch 2.6 — counted as
+    a second PyTorch): their own voice and the 8 Indian recordings; Resemble's inaudible watermark (Perth).
+  - **Veena** (Maya Research, Apache-2.0; 3B Llama + SNAC 24 kHz, as its card decodes): Kavya, Agastya, Maitri, Vinaya.
+  - **VoxCPM2** (OpenBMB, Apache-2.0; voxcpm 2.0.3): 8 described voices (the description in brackets before the text, as
+    its card shows; the later parts of a long text take the first part's voice) and the 8 Indian recordings.
+  - **SYSPIN** (IISc, MIT; Coqui TTS VITS, characters): Indian English woman and man. **MMS** (Meta, CC BY-NC; transformers
+    VITS): its English voice.
+- **Measured here (Linux, 4-core processor, no graphics card; every voice run was read back by Whisper small.en, its
+  pitch measured with pYIN and its accent heard by SpeechBrain's CommonAccent model):** Supertonic 1 / 2 ≈ 8× faster than
+  real time, 3 ≈ 2.6×; Indic Tiny ≈ 7×; MeloTTS ≈ 3.5×; MMS ≈ 2.7×; Kokoro ≈ 4×; Pocket ≈ 2×; XTTS-v2 ≈ 1.7× slower (studio
+  voice), 2.6× with a clip; Qwen3-TTS 0.6B ≈ 3.5× slower, VoiceDesign 1.7B ≈ 4.5×; OmniVoice ≈ 6×; Parler Mini ≈ 5.5×; Bark
+  small did not finish a preset in 8 minutes beside another run. Accents heard: Indic Tiny Indian (first), MeloTTS's
+  Indian voice mildly Indian (third), OmniVoice's Indian voices Indian; Qwen's voices North American. Not run here
+  (tagged in the tab): Indic Parler and Pocket cloning (gated), Parler Large, Qwen 1.7B CustomVoice, Bark (full), Veena,
+  VoxCPM2 (size), Chatterbox / Turbo (a second PyTorch), SYSPIN (pending). The Windows script was read by its text only
+  (PowerShell could not be installed in the sandbox). Left out (docs/BUGHUNT.md, "TTS offline"): Indic-Speak (gated; its
+  inference code cannot be read without access), Maya 2 (no pinnable release; Linux and NVIDIA only), ZONOS3-Mini (an
+  Indian accent with a dose; on a processor only through its C++ tool). Not looked at yet: Kyutai TTS 1.6B, VibeVoice,
+  F5-TTS.
 - **To update:** change a pin or a revision in `scripts/make-offline-tts-catalogue.py` (packages: `ENGINES`), run it,
   run an engine through driver.py on a short text (the commands are in the unit suite's header), both suites.
 Tests: Kokoro 24 kHz mono, plausible length and energy, female median F0 > male + 40 Hz (Heart vs Michael), British

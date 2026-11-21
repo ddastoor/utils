@@ -2430,3 +2430,22 @@ cannot. Three new suites; each fails on the build before its fixes.
   Candidates checked and left for later: MeloTTS (its PyPI package 0.1.1 needs torch < 2.0, no Python 3.12), Chatterbox
   (pins torch 2.6.0 and gradio), Indic-Speak (gated, 7 GB, its inference code unreadable without access), Veena, Maya 2,
   Orpheus (GPU-sized), ZONOS3-Mini (an Indian accent with a dose — on the processor only through its C++ tool).
+- **TTS offline, round 2 (21 Nov 2026; owner: "include them all") — found while adding twelve engines, each run here on
+  the CPU where the disk allowed; every voice run was read back by Whisper small.en (word error rate against the text),
+  its median pitch measured (pYIN) and its accent heard by SpeechBrain's CommonAccent model (13 of 13 of its own reference
+  recordings named right).** sherpa-onnx's MeloTTS spelled out every word its dictionary lacks and dropped every digit →
+  `spoken()` writes numbers, money, times, ordinals, dates and titles in words ("Dr" alone was "drive"), and the missing
+  words are pronounced by g2p_en's network; importing g2p_en downloads NLTK data, which NLTK 3.10 refuses through a proxy
+  (SSRF guard) → its predict() ported (`G2pNet`), giving g2p_en's own phonemes on every test word. Qwen3-TTS VoiceDesign:
+  descriptions of a light, mild or strong Indian accent, a South Indian one and RP all came out North American (US or
+  Canada first for ten of ten) → its voices are described by sex, age and manner only and promise no accent. OmniVoice's
+  accents do come through (Indian first for three of four Indian voices, third for the fourth; Australian, British,
+  American first for theirs). Qwen's named speakers sound North American in English whatever their native language →
+  filed under "accent not documented", the native language in the label. Bark's presets: sex from each preset's own
+  reference audio (its EnCodec codes decoded with facebook/encodec_24khz, then pitch) — no generation needed; three
+  English and three Hindi presets sit in the overlap and are "a middle voice". Bark small generating 20 presets beside
+  another run did not finish one in 8 minutes (to run alone). Pocket TTS falls back silently to the model without voice
+  cloning when the gated one is refused → driver.py makes the catalogue voices first and then says why the recorded ones
+  cannot be made. Chatterbox pins PyTorch 2.6 → the planner counts a second PyTorch for it. A model not run here is
+  tagged in the tab with the reason. The Vinith check of the e2e suite matched five voices once the other cloning
+  engines had the same recordings → it ticks XTTS's by its id.

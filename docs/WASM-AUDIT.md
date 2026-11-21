@@ -1359,3 +1359,9 @@ were 238 MB). What follows is the record of the engine as it was; the code is in
 - **Choices made for the PC:** hexgrad's own Kokoro pipeline over sherpa-onnx (sherpa-onnx's front end drops unknown
   words; 2.x has no eSpeak at all); uv over a system Python (nothing installed into the system, one folder to delete);
   lameenc for MP3 (LAME, no FFmpeg needed).
+- **Round 2 (21 Nov 2026, owner: "include them all"):** twelve more engines, all native on the PC. Where a model comes in
+  ONNX form it runs on ONNX Runtime or sherpa-onnx without PyTorch (MeloTTS, Supertonic, Indic Tiny TTS); the rest on
+  each maker's own Python package (qwen-tts, omnivoice, chatterbox-tts, voxcpm, coqui-tts, transformers for Bark, MMS and
+  Veena). MeloTTS's front end is sherpa-onnx's with what it lacks added beside it, as STANDING RULE #1 asks of an existing
+  engine that does not cover everything: numbers in words (num2words) and the pronunciation of unknown words by g2p_en's
+  network (its predict() ported — importing g2p_en would fetch NLTK data, refused through a proxy).
