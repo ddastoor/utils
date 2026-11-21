@@ -1051,6 +1051,24 @@ UNTRIED = {
 }
 
 
+# Models run here whose Indian voices were not put through the accent survey, with the reason (the ranking's folded
+# list). Owner, 21 Nov 2026: "if there are enough top Indian accents ranked, then can we stop the remaining ranking
+# altogether and get on with building the other apps without loss of any functionality" — the survey stopped with 104
+# voices measured; every voice is in the catalogue and its scripts as before.
+_CLONES = ('Not measured: the survey was stopped once enough voices were ranked (21 Nov 2026). These voices are made '
+           'from the same recordings as the Kyutai and XTTS-v2 voices measured above.')
+NOT_MEASURED = {
+    'f5': 'Not measured: F5-TTS takes about 34 minutes a sentence on the test machine (a 4-core processor). Its voices are '
+          'made from the same recordings as the Kyutai and XTTS-v2 voices measured above.',
+    'chatterbox': _CLONES, 'chatterbox-turbo': _CLONES, 'voxcpm2': _CLONES, 'vibevoice-1.5b': _CLONES,
+    'xtts': _CLONES,
+    'kyutai-1.6b': 'Not measured: the survey was stopped once enough voices were ranked (21 Nov 2026).',
+    'bark': 'Not measured: the survey was stopped once enough voices were ranked (21 Nov 2026). The same speakers in Bark '
+            'small are measured above.',
+    'veena': 'Not measured: the survey was stopped once enough voices were ranked (21 Nov 2026).',
+}
+
+
 # How each Indian English voice was heard by an accent-recognition model (owner, 21 Nov 2026: the voices ranked "in order
 # of increasing Indian accent thickness"): scripts/data/indian-accents.json, measured by scripts/accent-survey/ (every
 # voice reads the same British sentences; SpeechBrain's CommonAccent classifier scores the 16 accents it knows). A
@@ -1085,6 +1103,8 @@ def main():
         voices.extend(v)
     for mid, why in UNTRIED.items():
         models[mid]['untried'] = why
+    for mid, why in NOT_MEASURED.items():
+        models[mid]['notMeasured'] = why
     ids = [v['id'] for v in voices]
     if len(ids) != len(set(ids)) or not all(re.fullmatch(r'[a-z0-9][a-z0-9_.-]*', i) for i in ids):
         sys.exit('voice ids must be unique and safe as file names')

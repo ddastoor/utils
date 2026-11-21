@@ -14,15 +14,6 @@ The owner adds items here in chat ("add … to to do"). Newest instructions win.
 3. _(withdrawn by the owner on 20 Nov 2026: the "Export Python utility" for the YouTube Clip tab — do not build it.)_
 
 
-7. **Text-to-Speech offline, the rest of round 2** (owner, 21 Nov 2026: "Don't leave out any of the other TTS stuff
-   either. Eventually complete everything that you are/were doing in parallel"): Kyutai TTS 1.6B (kyutai/tts-1.6b-en_fr,
-   CC BY 4.0) with its 594 voices of kyutai/tts-voices (228 CC0 voice donations filed by the accent heard, VCTK's 106 by
-   its documented accents, Expresso, EARS, Alba MacKenna — licences in the collection's README); F5-TTS and VibeVoice
-   (both in driver.py since 21 Nov 2026); the voice donations heard clearly as Indian (57) added
-   to every engine that takes a voice from a recording (XTTS-v2, Chatterbox and Turbo, VoxCPM2, Pocket TTS cloning, F5,
-   VibeVoice; F5 needs each clip's words — Whisper); the engines not yet run here, where the machine allows; every new
-   Indian voice measured for the accent ranking. Order (owner): after the accent ranking and the Photo Dictionary upgrade.
-
 8. **Regex Tester: a choice of regex flavours** (owner, 21 Nov 2026: "make a note of this and build it out when you get
    a chance" — noted in CLAUDE.md §3 "Text & Dev", `regex`, and added here on the owner's question, 21 Nov 2026): the
    user picks the flavour — Python (`re`, and the `regex` module), Perl / PCRE, and the other standard ones (JavaScript
@@ -80,6 +71,17 @@ The owner adds items here in chat ("add … to to do"). Newest instructions win.
     camera) the tab says what Wayland changes and how to work with it.
 
 ## Done
+- **7. Text-to-Speech offline, the rest of round 2** (owner, 21 Nov 2026: "Don't leave out any of the other TTS stuff
+  either") — done 21 Nov 2026: Kyutai TTS 1.6B with 601 voices, F5-TTS, VibeVoice 1.5B, the 57 Indian voice donations
+  for every engine that clones; **every engine run here** with its lock (`scripts/accent-survey/smoke.py`) except the
+  two gated ones and Parler Large — two Chatterbox faults found and fixed (a lock with two PyTorch versions; its
+  watermark needing setuptools < 82). **The accent ranking: 104 Indian voices measured** (192 recordings, 77 heard as
+  Indian first; lightest: XTTS-v2's VCTK p251, Kyutai's VCTK p376, XTTS-v2's p248). Owner, 21 Nov 2026: "if there are
+  enough top Indian accents ranked, then can we stop the remaining ranking altogether and get on with building the
+  other apps without loss of any functionality" — stopped there: every voice is in the catalogue and its scripts as
+  before; the 470 not measured are listed in the ranking with the reason (mostly copies of recordings already
+  measured; F5 too slow here; Indic Parler and Pocket cloning gated). To measure more: `scripts/accent-survey/finish-7.sh
+  WORK --surveys`, then `make-indian-accents.py` and the generator.
 - **11. Photo Dictionary and OCR: a photo taken with the phone held sideways** (owner, 21 Nov 2026: "a new requirement in
     todo.md for the photo dictionary on the mobile phone. Basically, the problem is when I take my phone and turn it 90
     degrees horizontally, either with my left hand or my right hand, and then take a photo of my Kindle, it gets screwed

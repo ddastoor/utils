@@ -16,32 +16,16 @@ The owner's weekly limit is nearly used up; work resumes on Thursday. Everything
 tried by a quick reading (CLAUDE.md §3 OCR, "At any angle"; to-do #11 and the angle request); potentials.md: #44, #65,
 #66 removed by the owner, #76 – #113 added (round 7) and #114 – #116 (round 8: free online data); todo.md #13 added (every PC app on Windows and Linux, and X11 /
 Wayland — also a standing rule at the top of CLAUDE.md).
-**In progress — to-do #7, TTS offline: finish the Indian voices already in the catalogue** (owner, 21 Nov 2026: "whatever
-work you were doing on the existing Indian accents for the offline mode, finish that. But maybe don't look for any new
-ones" — no new models or voices; docs/HANDOFF.md §1). **One command does all that is left:**
-`scripts/accent-survey/finish-7.sh WORK` (WORK = a scratch folder, e.g. `$SCRATCH/otts/acc`; uv at ~/.local/bin/uv or on
-the PATH; 16 GB of memory: run nothing heavy beside it). It runs, one at a time:
-1. **Smoke tests with each engine's lock** (`smoke.py`). **Passed:** piper, supertonic, melo, indictiny, mms, coqui
-   (SYSPIN), kokoro, pocket, bark small and **bark (full)** (13.5 s of speech in 8 min, its 4.5 GB download included),
-   qwen 0.6B, omnivoice, parler Mini, **f5** (10 s in 34 min), **voxcpm2** (6 s in 5 min). **vibevoice** (8 s in 5 min), **veena** (6 s in 7 min), **chatterbox** and **turbo** (5 s in 10 / 9 min, after
-   the setuptools 81 pin: their watermark, resemble-perth 1.0.1, imports pkg_resources). All of them lost their
-   `UNTRIED` tags — every engine has run here except the gated two and Parler Large. **Smoke tests: done.** Each that passes loses its `UNTRIED` entry in
-   `scripts/make-offline-tts-catalogue.py`; one that fails is fixed in `src/lib/offline-tts/driver.py` or keeps its tag
-   with the reason.
-2. **The accent survey of the Indian voices not yet measured** (`run.py WORK --all ENGINE`, six voices at a time, each
-   batch scored into WORK/scores.json at once; a stopped run goes on where it was; a reclaimed container loses WORK, but
-   the committed scripts/data/indian-accents.json keeps every voice measured so far — make-indian-accents.py merges).
-   **Measured:** 104 Indian voices (63 on 21 Nov + 41 of Kyutai's, 32 of them on one sentence so far). **Left:** kyutai 52,
-   xtts 52, voxcpm2 64, chatterbox 60, chatterbox-turbo 60, bark 10, vibevoice 60, veena 4 — in that order. **F5's 59 are
-   not measured: about 34 minutes a sentence on the 4-core test machine** (say so in the ranking and to the owner).
-   Indic Parler and Pocket cloning are gated: never measured here.
-3. **At every sync point:** `python3 scripts/make-indian-accents.py WORK && python3 scripts/make-offline-tts-catalogue.py
-   && node tests/unit.mjs offline-tts`, commit, push.
-4. **Close #7:** e2e `tts-offline`; CLAUDE.md §3 TTS offline (the counts, what was run, the ranking), docs/BUGHUNT.md "TTS
-   offline", todo.md #7 → Done; commit + push.
-**Machine rules:** 16 GB of memory — Kyutai holds ≈ 9 GB, VibeVoice ≈ 12 GB: no build or browser suite beside the survey;
-disk is a fixed allowance — the models are deleted after each run; when it fills, clean what can be made again and carry
-on (owner, 21 Nov 2026).
+**To-do #7 — done (21 Nov 2026):** every engine of the offline catalogue run here with its lock; the accent ranking at
+104 Indian voices — the owner stopped the survey there ("if there are enough top Indian accents ranked, then can we
+stop the remaining ranking altogether and get on with building the other apps"; todo.md Done #7). More, should it be
+wanted: `scripts/accent-survey/finish-7.sh WORK --surveys` (resumes engine by engine), then `make-indian-accents.py
+WORK` and the generator.
+**The owner's plan (21 Nov 2026): "Continue all the to-dos. Make regular sync points. Commit, check-in. Once you're
+done with all the to-dos, then we'll start iteratively looking at potentials.md to build out new apps."** That is the
+go-ahead for every open to-do, #12 and #13 included: #8 (in progress), #10, #12, #13 — then the potentials process.
+**Machine rules:** 16 GB of memory, no swap — two big models at once were killed; disk is a fixed allowance — when it
+fills, clean what can be made again and carry on (owner, 21 Nov 2026).
 **#8 Regex Tester flavours — in progress (started 21 Nov 2026, while #7's survey runs):** engines chosen — PCRE2:
 `pcre2-wasm` 10.49.3 (installed; MIT; tried in Node: indexes in UTF-16, named groups, compile errors with offsets);
 Ruby: Microsoft's `vscode-oniguruma` 2.0.1 (installed; Ruby syntax; unmatched groups come back as the string's end —
@@ -58,8 +42,8 @@ e2e.
 Google's `re2-wasm` 1.0.2 for RE2 / Go; `vscode-oniguruma` 2.0.1 for Ruby / Oniguruma; Python's `re` through the Python
 tab's CPython and the `regex` module; Perl through ExifTool's zeroperl, already on the site; JavaScript as now; Java and
 .NET — to decide; native references in the sandbox: Go, Java 21, Perl 5.38, Ruby, Python 3.13 + regex, GNU grep -P / -E),
-then #10 bc variables (todo.md has the owner's exact rules). **Ask the owner before:** #12 (the Photo Dictionary's list
-A → Z — asked, no answer yet) and #13 (the Windows / Linux / X11 / Wayland check). After the to-dos: the potentials
+then #10 bc variables (todo.md has the owner's exact rules). #12 (the Photo Dictionary's list A → Z) and #13 (the
+Windows / Linux / X11 / Wayland check) — the owner's go-ahead: "Continue all the to-dos". After the to-dos: the potentials
 process (CLAUDE.md top: show the list, the owner picks, the size check, build).
 
 ## Moving to a local machine (owner is moving to Kubuntu, Nov 2026)

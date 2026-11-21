@@ -101,7 +101,7 @@ export function offlinePanel(o: { text: () => string; speed: number }): HTMLElem
         h('thead', null, h('tr', null, h('th', null, '#'), h('th', null, h('span', { class: 'sr-only' }, 'Choose')), h('th', null, 'Voice · model'), h('th', null, 'Indian accent'), h('th', null, 'Otherwise sounds'))),
         h('tbody', null, ...rows)),
       // the voices that could not be measured here, folded away: the ranking is what the pop-up is for
-      ...(unmeasured.length ? [h('details', { class: 'otts-rank-not' }, h('summary', null, `Not measured yet — ${unmeasured.reduce((n, u) => n + u.voices.length, 0)} voices of ${unmeasured.length} models`),
+      ...(unmeasured.length ? [h('details', { class: 'otts-rank-not' }, h('summary', null, `Not measured — ${unmeasured.reduce((n, u) => n + u.voices.length, 0)} voices of ${unmeasured.length} models`),
         ...unmeasured.map((u) => h('div', { class: 'small' }, h('strong', null, cat.models[u.model].name), ` (${u.voices.length} voice${u.voices.length > 1 ? 's' : ''}): ${u.reason}`)))] : []),
       h('div', { class: 'otts-rank-foot' }, button('Close', close)));
     dlg.addEventListener('close', () => { dlg.remove(); rankBtn.focus(); });

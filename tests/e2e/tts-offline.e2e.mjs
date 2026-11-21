@@ -115,7 +115,7 @@ export default async ({ base, page: newPage, ok, download, devices }) => {
   eq(await rows.evaluateAll((rs) => rs.map((r) => r.dataset.id)), meas.map((v) => v.id), 'lightest first, in the order of the measured accent');
   ok((await rows.first().innerText()).includes(cat.models[meas[0].model].name) && (await rows.last().innerText()).includes(cat.models[meas.at(-1).model].name), 'each row names its model');
   const notM = dlg.locator('details.otts-rank-not');
-  ok(!(await notM.evaluate((d) => d.open)) && /^Not measured yet — \d+ voices of \d+ models$/.test((await notM.locator('summary').innerText()).trim()), `the voices not measured are folded away under one line (${(await notM.locator('summary').innerText()).trim()})`);
+  ok(!(await notM.evaluate((d) => d.open)) && /^Not measured — \d+ voices of \d+ models$/.test((await notM.locator('summary').innerText()).trim()), `the voices not measured are folded away under one line (${(await notM.locator('summary').innerText()).trim()})`);
   await notM.locator('summary').click();
   ok(/Indic Parler-TTS \(AI4Bharat\) \(21 voices\): .*Hugging Face/.test(await dlg.innerText()), 'not measured: listed under its model with the reason (Indic Parler-TTS: an account)');
   ok(await rows.nth(5).isVisible() || (await dlg.locator('.otts-rank-table').evaluate((t) => t.clientHeight)) > 300, 'the ranking keeps room to be read');

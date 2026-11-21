@@ -159,6 +159,11 @@ this file = the owner's latest wishes, how the tests are written, and the traps 
   and continue doing what you're doing in this environment." — delete what can be made again (dist/, build trees under
   /tmp, compiler and model caches, models of engines already run, `uv cache prune`) and carry on without asking. Keep
   what a running job or the next step needs (the survey's models, the voice recordings, the accent model).
+- **21 Nov 2026 — the accent survey stopped, and the plan:** "if there are enough top Indian accents ranked, then can we
+  stop the remaining ranking altogether and get on with building the other apps without loss of any functionality" —
+  stopped at 104 voices (todo.md Done #7). Then: "Continue all the to-dos. Make regular sync points. Commit, check-in.
+  Once you're done with all the to-dos, then we'll start iteratively looking at potentials.md to build out new apps." —
+  the go-ahead for every open to-do (#8, #10, #12, #13).
 - **21 Nov 2026 — wallpapers:** asked whether free, copyright-free wallpaper APIs exist — answered (Openverse with its
   CC0 / public-domain filter, NASA's image library, The Met and the Art Institute of Chicago open access, Wikimedia
   Commons' public-domain files; no key needed; Unsplash / Pexels / Pixabay need a key a static site would expose) and

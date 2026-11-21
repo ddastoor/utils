@@ -1705,6 +1705,24 @@
      "hongkong": 0.1713,
      "wales": 0.021,
      "singapore": 0.2123
+    },
+    {
+     "england": 0.0553,
+     "us": 0.3526,
+     "canada": -0.0486,
+     "australia": 0.0889,
+     "indian": 0.4632,
+     "scotland": 0.2242,
+     "ireland": 0.0041,
+     "african": 0.0453,
+     "malaysia": 0.3125,
+     "newzealand": 0.1869,
+     "southatlandtic": 0.0471,
+     "bermuda": 0.1394,
+     "philippines": 0.1058,
+     "hongkong": 0.2023,
+     "wales": -0.0777,
+     "singapore": 0.2067
     }
    ]
   },
@@ -1727,6 +1745,24 @@
      "hongkong": 0.1457,
      "wales": 0.1782,
      "singapore": 0.2313
+    },
+    {
+     "england": 0.2685,
+     "us": 0.4093,
+     "canada": -0.0916,
+     "australia": 0.2434,
+     "indian": 0.3016,
+     "scotland": 0.0596,
+     "ireland": 0.1649,
+     "african": 0.3385,
+     "malaysia": 0.0862,
+     "newzealand": 0.182,
+     "southatlandtic": 0.1127,
+     "bermuda": 0.1179,
+     "philippines": 0.0377,
+     "hongkong": 0.2666,
+     "wales": 0.213,
+     "singapore": 0.2674
     }
    ]
   },
@@ -1749,6 +1785,24 @@
      "hongkong": 0.1597,
      "wales": -0.0077,
      "singapore": 0.1403
+    },
+    {
+     "england": 0.3355,
+     "us": 0.1925,
+     "canada": -0.0908,
+     "australia": 0.0465,
+     "indian": 0.5725,
+     "scotland": -0.0491,
+     "ireland": 0.1473,
+     "african": 0.2817,
+     "malaysia": 0.218,
+     "newzealand": 0.1291,
+     "southatlandtic": 0.05,
+     "bermuda": -0.015,
+     "philippines": 0.0443,
+     "hongkong": 0.1101,
+     "wales": -0.0126,
+     "singapore": 0.1046
     }
    ]
   },
@@ -1771,6 +1825,24 @@
      "hongkong": 0.2005,
      "wales": 0.0756,
      "singapore": 0.263
+    },
+    {
+     "england": 0.0865,
+     "us": -0.1007,
+     "canada": 0.0796,
+     "australia": -0.0249,
+     "indian": 0.5517,
+     "scotland": 0.0505,
+     "ireland": 0.0771,
+     "african": 0.1302,
+     "malaysia": -0.072,
+     "newzealand": -0.2006,
+     "southatlandtic": -0.0652,
+     "bermuda": -0.0347,
+     "philippines": -0.0594,
+     "hongkong": 0.1023,
+     "wales": -0.0477,
+     "singapore": 0.1126
     }
    ]
   },
@@ -1833,6 +1905,24 @@
      "hongkong": 0.111,
      "wales": 0.001,
      "singapore": 0.0759
+    },
+    {
+     "england": 0.1524,
+     "us": 0.2877,
+     "canada": -0.0781,
+     "australia": -0.0034,
+     "indian": 0.7129,
+     "scotland": 0.0459,
+     "ireland": 0.0554,
+     "african": 0.1761,
+     "malaysia": 0.1771,
+     "newzealand": 0.0655,
+     "southatlandtic": 0.0494,
+     "bermuda": 0.0656,
+     "philippines": 0.0891,
+     "hongkong": 0.0537,
+     "wales": 0.0545,
+     "singapore": 0.1317
     }
    ]
   },
@@ -1855,6 +1945,24 @@
      "hongkong": 0.0077,
      "wales": -0.0063,
      "singapore": 0.0924
+    },
+    {
+     "england": 0.1042,
+     "us": 0.1106,
+     "canada": -0.1214,
+     "australia": 0.0557,
+     "indian": 0.6478,
+     "scotland": -0.0169,
+     "ireland": -0.0628,
+     "african": 0.039,
+     "malaysia": 0.0888,
+     "newzealand": 0.0655,
+     "southatlandtic": 0.0461,
+     "bermuda": 0.0247,
+     "philippines": -0.0056,
+     "hongkong": -0.0592,
+     "wales": -0.0082,
+     "singapore": 0.1479
     }
    ]
   },
@@ -1877,6 +1985,24 @@
      "hongkong": 0.3694,
      "wales": 0.062,
      "singapore": 0.2675
+    },
+    {
+     "england": 0.2099,
+     "us": 0.1257,
+     "canada": -0.1214,
+     "australia": -0.0261,
+     "indian": 0.628,
+     "scotland": 0.0176,
+     "ireland": 0.0841,
+     "african": 0.2558,
+     "malaysia": 0.0468,
+     "newzealand": 0.0175,
+     "southatlandtic": -0.0821,
+     "bermuda": 0.0632,
+     "philippines": 0.0243,
+     "hongkong": 0.2441,
+     "wales": 0.1253,
+     "singapore": 0.2559
     }
    ]
   },
@@ -1899,6 +2025,24 @@
      "hongkong": 0.2374,
      "wales": 0.0978,
      "singapore": 0.0742
+    },
+    {
+     "england": 0.1871,
+     "us": -0.0835,
+     "canada": 0.018,
+     "australia": -0.0456,
+     "indian": 0.5412,
+     "scotland": 0.1066,
+     "ireland": -0.079,
+     "african": 0.0196,
+     "malaysia": -0.1107,
+     "newzealand": -0.0277,
+     "southatlandtic": -0.024,
+     "bermuda": -0.0444,
+     "philippines": 0.009,
+     "hongkong": 0.124,
+     "wales": 0.0436,
+     "singapore": 0.0424
     }
    ]
   },
@@ -1921,6 +2065,24 @@
      "hongkong": 0.2707,
      "wales": 0.2194,
      "singapore": 0.2945
+    },
+    {
+     "england": 0.1216,
+     "us": 0.1307,
+     "canada": 0.021,
+     "australia": -0.0601,
+     "indian": 0.4242,
+     "scotland": -0.2489,
+     "ireland": -0.0059,
+     "african": 0.1542,
+     "malaysia": 0.1062,
+     "newzealand": 0.1095,
+     "southatlandtic": 0.0759,
+     "bermuda": 0.3354,
+     "philippines": 0.1556,
+     "hongkong": 0.1911,
+     "wales": 0.1285,
+     "singapore": 0.2978
     }
    ]
   },
@@ -1943,6 +2105,24 @@
      "hongkong": 0.1457,
      "wales": 0.0606,
      "singapore": 0.2943
+    },
+    {
+     "england": 0.2122,
+     "us": 0.4357,
+     "canada": 0.0025,
+     "australia": -0.0403,
+     "indian": 0.5664,
+     "scotland": 0.1392,
+     "ireland": 0.0139,
+     "african": 0.203,
+     "malaysia": 0.2714,
+     "newzealand": 0.1642,
+     "southatlandtic": 0.1116,
+     "bermuda": 0.2994,
+     "philippines": 0.1712,
+     "hongkong": 0.156,
+     "wales": 0.1092,
+     "singapore": 0.2591
     }
    ]
   },
@@ -1965,6 +2145,24 @@
      "hongkong": 0.1069,
      "wales": -0.0098,
      "singapore": 0.0643
+    },
+    {
+     "england": 0.1701,
+     "us": 0.1169,
+     "canada": -0.1514,
+     "australia": 0.1041,
+     "indian": 0.5221,
+     "scotland": 0.088,
+     "ireland": -0.0304,
+     "african": 0.0597,
+     "malaysia": 0.1615,
+     "newzealand": -0.0599,
+     "southatlandtic": -0.0543,
+     "bermuda": -0.0082,
+     "philippines": 0.0304,
+     "hongkong": -0.0192,
+     "wales": 0.012,
+     "singapore": 0.0769
     }
    ]
   },
@@ -1987,6 +2185,24 @@
      "hongkong": 0.0928,
      "wales": 0.0566,
      "singapore": 0.1034
+    },
+    {
+     "england": 0.2551,
+     "us": 0.3712,
+     "canada": 0.1649,
+     "australia": 0.0251,
+     "indian": 0.4579,
+     "scotland": 0.2703,
+     "ireland": 0.1818,
+     "african": 0.3,
+     "malaysia": -0.0061,
+     "newzealand": 0.2336,
+     "southatlandtic": 0.1422,
+     "bermuda": 0.0363,
+     "philippines": 0.0186,
+     "hongkong": 0.1494,
+     "wales": 0.201,
+     "singapore": 0.0875
     }
    ]
   },
@@ -2009,6 +2225,24 @@
      "hongkong": 0.2166,
      "wales": 0.1288,
      "singapore": 0.2004
+    },
+    {
+     "england": 0.2954,
+     "us": 0.2737,
+     "canada": 0.08,
+     "australia": 0.1406,
+     "indian": 0.6809,
+     "scotland": 0.1187,
+     "ireland": 0.0211,
+     "african": 0.3061,
+     "malaysia": 0.1057,
+     "newzealand": 0.1632,
+     "southatlandtic": 0.0106,
+     "bermuda": 0.1034,
+     "philippines": 0.0752,
+     "hongkong": 0.1586,
+     "wales": 0.1517,
+     "singapore": 0.2478
     }
    ]
   },
@@ -2031,6 +2265,24 @@
      "hongkong": 0.0738,
      "wales": 0.1225,
      "singapore": 0.1001
+    },
+    {
+     "england": 0.3424,
+     "us": 0.36,
+     "canada": -0.0225,
+     "australia": 0.2263,
+     "indian": 0.4985,
+     "scotland": 0.1901,
+     "ireland": 0.3657,
+     "african": 0.2397,
+     "malaysia": 0.2738,
+     "newzealand": 0.1655,
+     "southatlandtic": 0.1527,
+     "bermuda": 0.0239,
+     "philippines": 0.0869,
+     "hongkong": 0.1691,
+     "wales": 0.0373,
+     "singapore": 0.1297
     }
    ]
   },
@@ -2053,6 +2305,24 @@
      "hongkong": 0.2107,
      "wales": 0.2739,
      "singapore": 0.164
+    },
+    {
+     "england": 0.2074,
+     "us": 0.228,
+     "canada": -0.0578,
+     "australia": -0.0139,
+     "indian": 0.62,
+     "scotland": -0.0323,
+     "ireland": 0.0434,
+     "african": 0.2972,
+     "malaysia": 0.1391,
+     "newzealand": 0.0673,
+     "southatlandtic": 0.0412,
+     "bermuda": 0.0033,
+     "philippines": -0.0316,
+     "hongkong": 0.1631,
+     "wales": 0.0705,
+     "singapore": 0.1659
     }
    ]
   },
@@ -2075,6 +2345,24 @@
      "hongkong": 0.1564,
      "wales": 0.1767,
      "singapore": 0.2535
+    },
+    {
+     "england": 0.1967,
+     "us": 0.2133,
+     "canada": -0.1872,
+     "australia": 0.0183,
+     "indian": 0.7187,
+     "scotland": -0.0134,
+     "ireland": 0.0667,
+     "african": 0.0953,
+     "malaysia": 0.1064,
+     "newzealand": -0.0353,
+     "southatlandtic": 0.037,
+     "bermuda": 0.1231,
+     "philippines": 0.0453,
+     "hongkong": 0.0689,
+     "wales": 0.1291,
+     "singapore": 0.2352
     }
    ]
   },

@@ -1866,7 +1866,8 @@
    "licence": "Apache-2.0 (SNAC: MIT)",
    "personal": false,
    "name": "Veena (Maya Research)",
-   "page": "https://huggingface.co/maya-research/Veena"
+   "page": "https://huggingface.co/maya-research/Veena",
+   "notMeasured": "Not measured: the survey was stopped once enough voices were ranked (21 Nov 2026)."
   },
   "kokoro": {
    "engine": "kokoro",
@@ -1908,7 +1909,8 @@
    "licence": "Apache-2.0",
    "personal": false,
    "name": "VoxCPM2 (OpenBMB)",
-   "page": "https://openbmb.github.io/voxcpm2-demopage"
+   "page": "https://openbmb.github.io/voxcpm2-demopage",
+   "notMeasured": "Not measured: the survey was stopped once enough voices were ranked (21 Nov 2026). These voices are made from the same recordings as the Kyutai and XTTS-v2 voices measured above."
   },
   "vibevoice-1.5b": {
    "engine": "vibevoice",
@@ -1918,7 +1920,8 @@
    "licence": "MIT (Microsoft’s card: for research and development); Qwen2.5’s tokenizer Apache-2.0",
    "personal": false,
    "name": "VibeVoice 1.5B (Microsoft)",
-   "page": "https://huggingface.co/microsoft/VibeVoice-1.5B"
+   "page": "https://huggingface.co/microsoft/VibeVoice-1.5B",
+   "notMeasured": "Not measured: the survey was stopped once enough voices were ranked (21 Nov 2026). These voices are made from the same recordings as the Kyutai and XTTS-v2 voices measured above."
   },
   "kyutai-1.6b": {
    "engine": "kyutai",
@@ -1928,7 +1931,8 @@
    "licence": "CC BY 4.0 (the model); each voice’s recording: its own licence, in its label",
    "personal": false,
    "name": "Kyutai TTS 1.6B",
-   "page": "https://kyutai.org/next/tts"
+   "page": "https://kyutai.org/next/tts",
+   "notMeasured": "Not measured: the survey was stopped once enough voices were ranked (21 Nov 2026)."
   },
   "f5": {
    "engine": "f5",
@@ -1938,7 +1942,8 @@
    "licence": "CC BY-NC 4.0 — personal use (Vocos: MIT)",
    "personal": true,
    "name": "F5-TTS v1 Base",
-   "page": "https://huggingface.co/SWivid/F5-TTS"
+   "page": "https://huggingface.co/SWivid/F5-TTS",
+   "notMeasured": "Not measured: F5-TTS takes about 34 minutes a sentence on the test machine (a 4-core processor). Its voices are made from the same recordings as the Kyutai and XTTS-v2 voices measured above."
   },
   "melo": {
    "engine": "melo",
@@ -1968,7 +1973,8 @@
    "licence": "MIT",
    "personal": false,
    "name": "Chatterbox (Resemble AI)",
-   "page": "https://huggingface.co/ResembleAI/chatterbox"
+   "page": "https://huggingface.co/ResembleAI/chatterbox",
+   "notMeasured": "Not measured: the survey was stopped once enough voices were ranked (21 Nov 2026). These voices are made from the same recordings as the Kyutai and XTTS-v2 voices measured above."
   },
   "chatterbox-turbo": {
    "engine": "chatterbox",
@@ -1978,7 +1984,8 @@
    "licence": "MIT",
    "personal": false,
    "name": "Chatterbox Turbo (Resemble AI)",
-   "page": "https://huggingface.co/ResembleAI/chatterbox-turbo"
+   "page": "https://huggingface.co/ResembleAI/chatterbox-turbo",
+   "notMeasured": "Not measured: the survey was stopped once enough voices were ranked (21 Nov 2026). These voices are made from the same recordings as the Kyutai and XTTS-v2 voices measured above."
   },
   "xtts": {
    "engine": "xtts",
@@ -1989,7 +1996,8 @@
    "licence": "Coqui Public Model License — non-commercial use only",
    "personal": true,
    "accept": "cpml",
-   "name": "XTTS-v2 (Coqui)"
+   "name": "XTTS-v2 (Coqui)",
+   "notMeasured": "Not measured: the survey was stopped once enough voices were ranked (21 Nov 2026). These voices are made from the same recordings as the Kyutai and XTTS-v2 voices measured above."
   },
   "pocket-clone": {
    "engine": "pocket",
@@ -2011,7 +2019,8 @@
    "licence": "MIT",
    "personal": false,
    "name": "Bark (Suno)",
-   "page": "https://huggingface.co/suno/bark"
+   "page": "https://huggingface.co/suno/bark",
+   "notMeasured": "Not measured: the survey was stopped once enough voices were ranked (21 Nov 2026). The same speakers in Bark small are measured above."
   },
   "bark-small": {
    "engine": "bark",
@@ -13525,9 +13534,9 @@
     "file": "voice-donations/AbD_enhanced.wav"
    },
    "heard": {
-    "indian": 0.2176,
+    "indian": 0.1641,
     "like": "us",
-    "n": 1
+    "n": 2
    }
   },
   {
@@ -13542,9 +13551,9 @@
     "file": "voice-donations/Abhinox_enhanced.wav"
    },
    "heard": {
-    "indian": 0.4207,
-    "like": "england",
-    "n": 1
+    "indian": 0.1565,
+    "like": "us",
+    "n": 2
    }
   },
   {
@@ -13583,9 +13592,9 @@
     "file": "voice-donations/Adarsh_Bulla_enhanced.wav"
    },
    "heard": {
-    "indian": 0.1037,
+    "indian": 0.1704,
     "like": "england",
-    "n": 1
+    "n": 2
    }
   },
   {
@@ -13600,9 +13609,9 @@
     "file": "voice-donations/AgentCobra_enhanced.wav"
    },
    "heard": {
-    "indian": 0.2503,
+    "indian": 0.3359,
     "like": "singapore",
-    "n": 1
+    "n": 2
    }
   },
   {
@@ -13617,9 +13626,9 @@
     "file": "voice-donations/Ajith_enhanced.wav"
    },
    "heard": {
-    "indian": 0.3716,
+    "indian": 0.3984,
     "like": "us",
-    "n": 1
+    "n": 2
    }
   },
   {
@@ -13658,9 +13667,9 @@
     "file": "voice-donations/AmitNag_enhanced.wav"
    },
    "heard": {
-    "indian": 0.4037,
-    "like": "african",
-    "n": 1
+    "indian": 0.4518,
+    "like": "singapore",
+    "n": 2
    }
   },
   {
@@ -13735,9 +13744,9 @@
     "file": "voice-donations/Arjun_Z_enhanced.wav"
    },
    "heard": {
-    "indian": 0.1848,
+    "indian": 0.2784,
     "like": "hongkong",
-    "n": 1
+    "n": 2
    }
   },
   {
@@ -13764,9 +13773,9 @@
     "file": "voice-donations/BLUE_enhanced.wav"
    },
    "heard": {
-    "indian": -0.1254,
-    "like": "england",
-    "n": 1
+    "indian": -0.0183,
+    "like": "singapore",
+    "n": 2
    }
   },
   {
@@ -13781,9 +13790,9 @@
     "file": "voice-donations/Bijay_enhanced.wav"
    },
    "heard": {
-    "indian": 0.1161,
+    "indian": 0.2351,
     "like": "england",
-    "n": 1
+    "n": 2
    }
   },
   {
@@ -13858,9 +13867,9 @@
     "file": "voice-donations/CPS_001_enhanced.wav"
    },
    "heard": {
-    "indian": 0.2458,
+    "indian": 0.1883,
     "like": "us",
-    "n": 1
+    "n": 2
    }
   },
   {
@@ -13911,9 +13920,9 @@
     "file": "voice-donations/Curlinvictus_enhanced.wav"
    },
    "heard": {
-    "indian": 0.164,
+    "indian": 0.258,
     "like": "malaysia",
-    "n": 1
+    "n": 2
    }
   },
   {
@@ -13940,9 +13949,9 @@
     "file": "voice-donations/Darya_khan_enhanced.wav"
    },
    "heard": {
-    "indian": 0.2914,
+    "indian": 0.1891,
     "like": "african",
-    "n": 1
+    "n": 2
    }
   },
   {
@@ -13969,9 +13978,9 @@
     "file": "voice-donations/Dhruv_Rao_enhanced.wav"
    },
    "heard": {
-    "indian": 0.2696,
+    "indian": 0.3222,
     "like": "england",
-    "n": 1
+    "n": 2
    }
   },
   {
@@ -14130,9 +14139,9 @@
     "file": "voice-donations/Goku_enhanced.wav"
    },
    "heard": {
-    "indian": 0.3664,
+    "indian": 0.2496,
     "like": "us",
-    "n": 1
+    "n": 2
    }
   },
   {
@@ -14207,9 +14216,9 @@
     "file": "voice-donations/Hardik_Clone_enhanced.wav"
    },
    "heard": {
-    "indian": 0.1836,
+    "indian": 0.2532,
     "like": "african",
-    "n": 1
+    "n": 2
    }
   },
   {
@@ -14272,9 +14281,9 @@
     "file": "voice-donations/Imran_475_enhanced.wav"
    },
    "heard": {
-    "indian": 0.3993,
-    "like": "england",
-    "n": 1
+    "indian": 0.4414,
+    "like": "singapore",
+    "n": 2
    }
   },
   {

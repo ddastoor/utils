@@ -7,7 +7,7 @@ export { fmtMB };
 
 export type OS = 'windows' | 'linux';
 export interface Engine { name: string; url: string; packages: string[]; lock?: string[]; mb: number; torch: boolean; speedControl: boolean; licence: string; about: string; accept?: string; slow?: boolean; ownTorch?: boolean }
-export interface Model { engine: string; repo: string; rev: string; mb: number; licence: string; personal: boolean; name: string; gated?: boolean; accept?: string; file?: string; descTokenizer?: [string, string]; page?: string; untried?: string }
+export interface Model { engine: string; repo: string; rev: string; mb: number; licence: string; personal: boolean; name: string; gated?: boolean; accept?: string; file?: string; descTokenizer?: [string, string]; page?: string; untried?: string; notMeasured?: string }
 export interface Clip { repo: string; rev: string; file: string }
 /** How an accent-recognition model heard the voice (`scripts/data/indian-accents.json`): `indian` = its score for an
  *  Indian accent minus its best score for any other (above 0: heard as Indian first; the higher, the stronger),
@@ -129,7 +129,7 @@ export function rankIndian(cat: Catalogue): { measured: CVoice[]; unmeasured: Ar
     measured,
     unmeasured: [...rest].map(([model, voices]) => {
       const m = cat.models[model];
-      return { model, voices, reason: m.untried || (m.gated ? 'It needs a Hugging Face account, which this survey did not have.' : 'Not measured yet.') };
+      return { model, voices, reason: m.untried || (m.gated ? 'It needs a Hugging Face account, which this survey did not have.' : m.notMeasured || 'Not measured.') };
     }),
   };
 }
