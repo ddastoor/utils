@@ -1702,9 +1702,9 @@
   },
   {
    "id": "goonj-en-kabir",
-   "label": "Kabir — man, Indian English speaker",
+   "label": "Kabir — Indian English speaker, a high voice",
    "group": "in",
-   "sex": "m",
+   "sex": "",
    "model": "goonj",
    "voice": "en_kabir",
    "lang": "a"

@@ -275,13 +275,17 @@ def kokoro():
         if f'voices/{name}.pt' not in g:
             sys.exit(f'goonj: voices/{name}.pt is not in {GOONJ_REPO} at {GOONJ_REV}')
         kind = 'Indian English speaker' if name.startswith('en_') else 'Hindi-native speaker, reading English'
-        voices.append({'id': f'goonj-{name.replace("_", "-")}', 'label': f'{name[3:].title()} — {SEX[sex]}, {kind}',
+        who = f'{SEX[sex]}, {kind}' if sex else f'{kind}, a high voice'
+        voices.append({'id': f'goonj-{name.replace("_", "-")}', 'label': f'{name[3:].title()} — {who}',
                        'group': 'in', 'sex': sex, 'model': 'goonj', 'voice': name, 'lang': 'a'})
     return models, voices
 
 
-# goonj-1-82M's personas (its card) and their sex (checked by the pitch of a sample made here)
-GOONJ = [('en_aman', 'm'), ('en_ananya', 'f'), ('en_arjun', 'm'), ('en_dev', 'm'), ('en_divya', 'f'), ('en_kabir', 'm'),
+# goonj-1-82M's personas (its card names them only). The sex from the name, checked against the pitch of a sample made
+# here (median F0 by pYIN): sameer 101 Hz, atul 155, dev 177, arjun 182, aman 184, ravi 188 — men; divya 177, tara 251,
+# priya 253, shivani 241, meera 269, ananya 282, nisha 320 — women; kabir 282 Hz — a man's name with a woman's pitch, so
+# its sex is left unsaid and its label says it is a high voice.
+GOONJ = [('en_aman', 'm'), ('en_ananya', 'f'), ('en_arjun', 'm'), ('en_dev', 'm'), ('en_divya', 'f'), ('en_kabir', ''),
          ('en_nisha', 'f'), ('en_priya', 'f'), ('en_sameer', 'm'), ('en_tara', 'f'),
          ('hi_atul', 'm'), ('hi_meera', 'f'), ('hi_ravi', 'm'), ('hi_shivani', 'f')]
 
