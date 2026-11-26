@@ -317,7 +317,7 @@ The owner adds items here in chat ("add … to to do"). Newest instructions win.
 29. **Markdown Editor: "Copy with formatting" — the rendered document onto the clipboard for Word and other rich-text
     places** (owner, 26 Nov 2026: "Markdown editor new feature. The user should additionally be able to copy the
     rendered markdown with formatting so that he can paste it in, say, another Microsoft Word or any rich text setting.
-    so basically a \"copy with formatting\" toggle")
+    so basically a 'copy with formatting' toggle")
     - **Today:** no copy button — Save .md, Download .html and Print; a part of the preview selected by hand and copied
       with Ctrl+C keeps some formatting (the browser's own copy), with the site's styles and the preview's ids.
     - **To do:** a **Copy** button with a toggle **"Copy with formatting"**: on — the rendered document as rich text
