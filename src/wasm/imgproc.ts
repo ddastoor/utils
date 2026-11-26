@@ -270,9 +270,39 @@ export function bindImgproc(e: any) {
       } finally { e.p_free(pp); e.p_free(cp); e.p_free(rp); e.p_free(sp); }
     },
     histogram(img: Img) { const s = put(img.data), o = e.p_malloc(4096); try { e.p_histogram(s, n(img), o); return new Uint32Array(mem().slice(o, o + 4096)); } finally { e.p_free(s); e.p_free(o); } },
+    /** The views of a scrolling screenshot, w × h each, placed against the one kept before (p_scroll_match; to-do #28).
+     *  Two frames and their row signatures stay in the module's memory: `first` and `keep` say which is the reference. */
+    scrollMatcher(w: number, h: number) {
+      const K = e.p_scroll_bands(w), bytes = w * h * 4;
+      let pa = e.p_malloc(bytes), pb = e.p_malloc(bytes), sa = e.p_malloc(h * K * 4), sb = e.p_malloc(h * K * 4);
+      const out = e.p_malloc(36);
+      const load = (px: Uint8ClampedArray, to: number, sig: number) => { new Uint8Array(mem(), to, bytes).set(px.subarray(0, bytes)); e.p_scroll_sig(to, w, h, sig); };
+      return {
+        /** the first view: the reference of the next */
+        first(px: Uint8ClampedArray) { load(px, pa, sa); },
+        /** a new view against the reference; `prior` = the shift expected, if any; `cap` = the fewest rows that stayed put
+         *  at the top and the bottom so far (−1: none known) */
+        match(px: Uint8ClampedArray, prior?: number, cap: { top: number; bottom: number } = { top: -1, bottom: -1 }): ScrollFit {
+          load(px, pb, sb);
+          e.p_scroll_match(pa, sa, pb, sb, w, h, prior ?? 0, prior === undefined ? 0 : 1, cap.top, cap.bottom, out);
+          const o = new Int32Array(mem(), out, 9);
+          return { status: o[0], d: o[1], top: o[2], bottom: o[3], fit: o[4] / 1e4, other: o[5] / 1e4, mean: o[6] / 1000, bad: o[7] / 1e6, overlap: o[8] };
+        },
+        /** the view just matched becomes the reference */
+        keep() { [pa, pb] = [pb, pa]; [sa, sb] = [sb, sa]; },
+        /** rows y0 … y1 − 1 of the reference (`kept`) or of the view just matched — copies */
+        rows(y0: number, y1: number, kept = false) { const p = kept ? pa : pb; return new Uint8ClampedArray(mem().slice(p + y0 * w * 4, p + y1 * w * 4)); },
+        free() { for (const p of [pa, pb, sa, sb, out]) e.p_free(p); pa = pb = sa = sb = 0; },
+      };
+    },
   };
 }
 export type Imgproc = ReturnType<typeof bindImgproc>;
+/** What p_scroll_match found (see imgproc.c): status 0 nothing moved, 1 a shift, 2 nothing fits, 3 more than one fits
+ *  (the nearest the expected one given), 4 too little in the overlap to tell; d the shift in rows; the rows that stay put
+ *  at the top and the bottom; the fit (0 = the same) and the best other; the overlap's pixels: mean |Δ| of a channel and
+ *  the share of pixels off by more than 24; its rows. */
+export interface ScrollFit { status: number; d: number; top: number; bottom: number; fit: number; other: number; mean: number; bad: number; overlap: number }
 
 // ------------------------------------------------------------------ worker client (browser)
 let worker: Worker | null = null, seq = 0;

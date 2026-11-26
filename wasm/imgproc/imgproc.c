@@ -2692,3 +2692,152 @@ API int p_ctc(const float *pr, int T, int C, int32_t *cls, float *prob, int32_t 
     }
     return n;
 }
+
+/* ======================================================================== scrolling screenshots (Screenshot, to-do #28)
+ * A page scrolled while views of it are taken; each new view is placed against the one before by its rows. A row is
+ * known by its signature: its luma summed over K bands of its width (p_scroll_sig). Between two views: the rows that stay
+ * put at the top and the bottom (a sticky header, a footer, a chat's input box — the same signature at the same place),
+ * and between them the shift d of the rest: b's row y shows what a showed at row y + d (d > 0 when the page went down).
+ * The shift is the one under which the overlapping rows differ least measured against how much detail they hold — a
+ * stretch of blank rows fits any shift and says nothing, so an overlap with too little detail is no evidence. Every
+ * shift is tried (the rows of the overlap taken two by two), then the pixels of the overlap are compared at the shift
+ * found. A screen is captured as it is drawn (no compression), so at the right shift the overlap is the same. */
+#define SC_KMAX 48
+/* how many bands a row of w pixels is summed over */
+API int p_scroll_bands(int w) { int k = w / 24; if (k < 4) k = w < 4 ? (w < 1 ? 1 : w) : 4; return k > SC_KMAX ? SC_KMAX : k; }
+/* sig[y·K + k] = the mean luma (BT.601 in integers) of band k of row y, in sixteenths (0 – 4080): a mean, not a sum, so
+   that bands one pixel wider than others do not make an even row look detailed; returns K */
+API int p_scroll_sig(const uint8_t *px, int w, int h, int32_t *sig) {
+    int K = p_scroll_bands(w);
+    int x0[SC_KMAX + 1];
+    for (int k = 0; k <= K; k++) x0[k] = (int)((int64_t)k * w / K);
+    for (int y = 0; y < h; y++) {
+        const uint8_t *r = px + (size_t)y * w * 4; int32_t *s = sig + (size_t)y * K;
+        for (int k = 0; k < K; k++) {
+            int32_t acc = 0, bw = x0[k + 1] - x0[k];
+            for (int x = x0[k]; x < x0[k + 1]; x++) { const uint8_t *p = r + x * 4; acc += (p[0] * 77 + p[1] * 150 + p[2] * 29) >> 8; }
+            s[k] = bw ? (acc * 16 + bw / 2) / bw : 0;
+        }
+    }
+    return K;
+}
+static inline int64_t sc_diff(const int32_t *a, const int32_t *b, int K) {
+    int64_t d = 0;
+    for (int k = 0; k < K; k++) { int32_t t = a[k] - b[k]; d += t < 0 ? -t : t; }
+    return d;
+}
+/* the fit of shift d over the rows of b from y0 to y1 (exclusive), every `step`th: the difference over the detail;
+   `*info` = the detail (0 when there is none) */
+static double sc_fit(const int32_t *sa, const int32_t *sb, const int64_t *tex, int K, int d, int y0, int y1, int step, int64_t *info) {
+    int64_t num = 0, den = 0;
+    for (int y = y0; y < y1; y += step) { num += sc_diff(sb + (size_t)y * K, sa + (size_t)(y + d) * K, K); den += tex[y]; }
+    *info = den;
+    return den > 0 ? (double)num / (double)den : (num ? 1e9 : 0);
+}
+/* out: [0] what was found — 0 nothing moved, 1 the shift, 2 nothing fits (scrolled too far, or sideways), 3 more than
+   one shift fits (repeated rows): the one nearest `prior` (or the smallest move) given, 4 the overlapping rows hold too
+   little to tell (blank) · cap_top / cap_bottom: the fewest rows that stayed put before (−1: none known) · [1] the shift d · [2] rows that stay put at the top · [3] at the bottom · [4] the fit at d
+   ×10⁴ (difference over detail, 0 = the same) · [5] the best fit of any other shift ×10⁴ · [6] the overlap's pixels at d:
+   mean |Δ| of a channel ×1000 · [7] the share of its pixels with a channel off by more than 24, ×10⁶ · [8] the rows of
+   the overlap */
+API void p_scroll_match(const uint8_t *a, const int32_t *sa, const uint8_t *b, const int32_t *sb, int w, int h, int prior, int has_prior,
+                        int cap_top, int cap_bottom, int32_t *out) {
+    for (int i = 0; i < 9; i++) out[i] = 0;
+    int K = p_scroll_bands(w), T = 0, B = 0;
+    int64_t same = (int64_t)K * 16;       /* a row "stays put" when its bands differ by a level on average (a capture's
+                                             rounding); a changed row of text differs by hundreds in a band */
+    while (T < h && sc_diff(sa + (size_t)T * K, sb + (size_t)T * K, K) <= same) T++;
+    if (T >= h) { out[2] = h; return; }                                   /* nothing moved */
+    while (B < h - T && sc_diff(sa + (size_t)(h - 1 - B) * K, sb + (size_t)(h - 1 - B) * K, K) <= same) B++;
+    /* blank rows next to a header or a footer stay put too, and would narrow the shifts searched: a header is never
+       taller than the smallest seen before (cap_top, cap_bottom ≥ 0 when known) */
+    if (cap_top >= 0 && T > cap_top) T = cap_top;
+    if (cap_bottom >= 0 && B > cap_bottom) B = cap_bottom;
+    out[2] = T; out[3] = B;
+    int Hr = h - T - B;
+    if (Hr < 16) return;                                                   /* a caret, a spinner: no scroll */
+    int minov = Hr / 10 > 12 ? Hr / 10 : 12, D = Hr - minov;
+    if (D < 1) return;
+    int64_t *tex = calloc((size_t)h, sizeof(int64_t));
+    double *fit = malloc(sizeof(double) * (size_t)(2 * D + 1));
+    uint8_t *inf = calloc((size_t)(2 * D + 1), 1);
+    if (!tex || !fit || !inf) { free(tex); free(fit); free(inf); out[0] = 2; return; }
+    for (int y = T; y < h - B; y++) {                                      /* the detail of b's rows: across and down */
+        const int32_t *s = sb + (size_t)y * K; int64_t t = 0;
+        for (int k = 1; k < K; k++) { int32_t q = s[k] - s[k - 1]; t += q < 0 ? -q : q; }
+        if (y > T) { const int32_t *u = s - K; for (int k = 0; k < K; k++) { int32_t q = s[k] - u[k]; t += q < 0 ? -q : q; } }
+        tex[y] = t;
+    }
+    int64_t texmin = (int64_t)K * 32;    /* less detail than this tells nothing (a blank overlap has none at all; a
+                                             faint gradient over a few rows has more) */
+    double best = 1e18; int bd = 0, any = 0;
+    for (int d = -D; d <= D; d++) {
+        int y0 = d >= 0 ? T : T - d, y1 = d >= 0 ? h - B - d : h - B; int64_t info;
+        double f = sc_fit(sa, sb, tex, K, d, y0, y1, 2, &info);
+        fit[d + D] = f; inf[d + D] = info >= texmin;
+        if (inf[d + D]) { any = 1; if (f < best || (f == best && abs(d) < abs(bd))) { best = f; bd = d; } }
+    }
+    double second = 1e18;
+    for (int d = -D; d <= D; d++) if (inf[d + D] && abs(d - bd) > 2 && fit[d + D] < second) second = fit[d + D];
+    /* a fit: the same rows (≤ 0.15 — a screen captured exactly gives 0), or, where a capture's rounding is large against
+       little detail (a faint gradient), clearly better than any other shift */
+    int good = any && (best <= 0.15 || (best <= 0.6 && second >= 2.0 * best));
+    int blank_at_prior = has_prior && prior >= -D && prior <= D && !inf[prior + D];
+    if (!any || (!good && blank_at_prior)) {
+        /* blank: nothing to tell the shift by — or the overlap at the shift expected is blank and no other shift fits
+           (new rows entering below a blank stretch): the expected shift, its pixels checked */
+        int d = has_prior && prior >= -D && prior <= D ? prior : 0;
+        int y0 = d >= 0 ? T : T - d, y1 = d >= 0 ? h - B - d : h - B;
+        uint64_t sum = 0, bad = 0, n = 0;
+        for (int y = y0; y < y1; y++) {
+            const uint8_t *p = b + (size_t)y * w * 4, *q = a + (size_t)(y + d) * w * 4;
+            for (int x = 0; x < w; x++, p += 4, q += 4) {
+                int d0 = abs(p[0] - q[0]), d1 = abs(p[1] - q[1]), d2 = abs(p[2] - q[2]);
+                sum += (uint64_t)(d0 + d1 + d2); if (d0 > 24 || d1 > 24 || d2 > 24) bad++;
+            }
+            n += (uint64_t)w;
+        }
+        out[0] = 4; out[1] = d; out[4] = out[5] = 0;
+        out[6] = n ? (int32_t)((double)sum * 1000.0 / (3.0 * (double)n)) : 0;
+        out[7] = n ? (int32_t)((double)bad * 1e6 / (double)n) : 0;
+        out[8] = y1 - y0;
+        free(tex); free(fit); free(inf); return;
+    }
+    int status = 1;
+    double tie = best * 1.25 + 0.01;
+    if (second <= tie) {                                                   /* repeated rows: more than one shift fits */
+        status = 3; int pick = bd, want = has_prior ? prior : 0;
+        for (int d = -D; d <= D; d++) if (inf[d + D] && fit[d + D] <= tie && abs(d - want) < abs(pick - want)) pick = d;
+        bd = pick;
+    }
+    /* every row at the shift and its neighbours (rows taken two by two can miss a smooth stretch by one) */
+    { double bf = 1e18; int bb = bd;
+      for (int d = bd - 1; d <= bd + 1; d++) {
+        if (d < -D || d > D) continue;
+        int y0 = d >= 0 ? T : T - d, y1 = d >= 0 ? h - B - d : h - B; int64_t info;
+        double f = sc_fit(sa, sb, tex, K, d, y0, y1, 1, &info);
+        if (info >= texmin && f < bf) { bf = f; bb = d; }
+      }
+      if (bf < 1e17) { bd = bb; best = bf; } }
+    int y0 = bd >= 0 ? T : T - bd, y1 = bd >= 0 ? h - B - bd : h - B;
+    if (bd == 0) status = status == 3 ? 3 : 1;
+    /* the pixels of the overlap at the shift */
+    uint64_t sum = 0, bad = 0, n = 0;
+    for (int y = y0; y < y1; y++) {
+        const uint8_t *p = b + (size_t)y * w * 4, *q = a + (size_t)(y + bd) * w * 4;
+        for (int x = 0; x < w; x++, p += 4, q += 4) {
+            int d0 = abs(p[0] - q[0]), d1 = abs(p[1] - q[1]), d2 = abs(p[2] - q[2]);
+            sum += (uint64_t)(d0 + d1 + d2);
+            if (d0 > 24 || d1 > 24 || d2 > 24) bad++;
+        }
+        n += (uint64_t)w;
+    }
+    out[0] = good ? status : 2;
+    out[1] = bd;
+    out[4] = (int32_t)(best > 1e5 ? 1e9 : best * 1e4);
+    out[5] = (int32_t)(second > 1e5 ? 1e9 : second * 1e4);
+    out[6] = n ? (int32_t)((double)sum * 1000.0 / (3.0 * (double)n)) : 0;
+    out[7] = n ? (int32_t)((double)bad * 1e6 / (double)n) : 0;
+    out[8] = y1 - y0;
+    free(tex); free(fit); free(inf);
+}
