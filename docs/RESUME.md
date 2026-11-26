@@ -36,6 +36,15 @@ second reader, 04c555e) started at about 12:20 UTC — read it; if it is green, 
 page's formatting (bullets, check boxes, indentation); the Photo Dictionary's stays plain. **The owner chose: text with
 bullets (• ◦ ▪ ☐ ☑ at the line starts, nested items indented — in the text box, Copy and the .txt), lists only (no
 headings or tables), and next: right after #13 closes, before batch 3.**
+**#31 status (26 Nov 2026, 14:10 UTC — in progress, pushed):** built — imgproc lists the marks it clears (kinds), the
+reading keeps its lines (`readingOf`), `src/lib/listtext.ts` sets the text out (unit `listtext` 71), the OCR tab shows it
+(Copy, .txt); the clean-up now also clears checklist boxes after a word space, finds faint marks on the light ink, keeps a
+soft "a." / "ii." as letters (as tall as the x-height; out[7] counts them with the marks for the reading's decisions —
+`listSigns`), and `MAX_ASPECT` (no outline above 6 : 1 is a page — the Windows OCR failure of #13). **Left:** compare the
+measurement (scratch: rounds A = old build, C = 13:49 build, D = final, `cmp2.py`; all eight photo sets — any photo worse
+beyond its own noise is looked into: shift it by 2 px and read both builds), score the lists, run e2e `ocr` and
+`photodict` on a fresh build, write CLAUDE.md §3 OCR "The page's lists" (draft wording: lists kept, the levels, run-on
+lines, measured numbers), BUGHUNT, todo.md Done #31; then the Windows check with suites "ocr photodict" to close #13.
 **Next (the owner's order):** batch 3 — #23 FFmpeg volume, #22 FFmpeg MP3, #21 Screencast countdowns + sound level; then
 batch 4 (#24, #28 Screenshot), 5 (#15, #17, #16), 6 (#14 Text Diff), 7 (#20 Studio voice); then the potentials process.
 
