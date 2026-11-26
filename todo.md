@@ -145,14 +145,14 @@ The owner adds items here in chat ("add … to to do"). Newest instructions win.
       where and why the OCR tab reads worse — then **one shared reading path for both tabs**, so a photo reads the same
       in each and every improvement reaches both.
     - **Rich formatting:** bullet points (• ◦ ▪ – ✓), numbered and lettered lists, indentation and nested lists, headings,
-      bold and italic, tables, two columns, text boxes, headers and footers. What goes wrong today: a bullet is read as
-      "e", "©", "«", "*" or "o", or dropped and its item glued to the line before; indentation and blank lines are lost
-      (the text comes out as plain lines); a narrow column is read across the gutter; a table's cells run together. To
-      do: Tesseract's layout (blocks, paragraphs, lines with their boxes — it gives them already) and its page
-      segmentation settings tried on the set; bullets recognised by their shape and place (a small round or square mark
-      where a line starts, at the height of the small letters) and written as •; indentation written from where each
-      line starts (nested lists keep their levels); paragraphs and headings kept apart by a blank line; "Keep the
-      layout" (bullets, indents, blank lines) or "Plain text" for the result.
+      bold and italic, tables, two columns, text boxes, headers and footers. **The owner, 26 Nov 2026: "no need to keep
+      bullets and indentation in the text;.. but the ocr shold not get confused by them"** — the result stays plain text;
+      what must not happen: a bullet read as a letter or a sign ("e", "©", "«", "*", "o") or glued to the item's first
+      word, an item run into the line before, an indented or hanging line split from its item or read out of order, a
+      narrow column read across the gutter, a table's cells run together. To do: Tesseract's layout (blocks, paragraphs,
+      lines with their boxes — it gives them already) and its page segmentation settings tried on the set; bullet marks
+      (a small round or square mark where a line starts, at the height of the small letters) found and left out before
+      or after reading; every item and its continuation lines kept together, in order.
     - **Watermarks:** a light or coloured mark behind the text (CONFIDENTIAL, DRAFT, a logo, a name tiled across the
       page — our Watermark tab's diagonal and tiled ones too) taken out before reading: the text is the darkest ink, so
       marks clearly lighter than it, and coloured marks where the text is black or dark grey, are removed (the two levels
@@ -163,7 +163,8 @@ The owner adds items here in chat ("add … to to do"). Newest instructions win.
       GST Invoice, Rent Receipt and Resume — each page rendered and photographed by the camera of
       `scripts/make-kindle-photos.py` (tilt, focus, noise, shadow, glare, held sideways) and also taken by a webcam;
       the owner's own photos when he sends them (never in the repository). Scored by the words read right, the
-      characters (CER) and the layout (bullets, indent levels, line order); the suites hold the measured level.
+      characters (CER), the reading order, and no stray letters or signs where bullets stood; the suites hold the measured
+      level.
     - **Engines** (STANDING RULE #1): Tesseract stays unless another engine reads the set better — measured, not
       guessed: Tesseract's best models (tessdata_best beside best_int), PaddleOCR PP-OCRv5 on ONNX Runtime (on the site
       already; the earlier test, docs/WASM-AUDIT.md tab 122, was on blurred Kindle photos only), a layout model for lists
