@@ -74,7 +74,7 @@ export const mount: Mount = (root, ctx) => {
   const finishBox = toggle('Studio finish (level, warmth and presence, −16 LUFS)', true, (v) => { finish = v; later(); });
   finishBox.hidden = true;
   const kindSeg = segmented<Engine>([['rnnoise', 'Remove noise'], ['studio', 'Studio voice']], 'rnnoise', (v) => {
-    kind = v; what.textContent = NOTES[v]; finishBox.hidden = v !== 'studio';
+    kind = v; (what.lastElementChild as HTMLElement).textContent = NOTES[v]; finishBox.hidden = v !== 'studio';
     if (src) { clearTimeout(timer); timer = 0; cleaned = null; job = clean(); }
   });
 
@@ -168,9 +168,10 @@ export const mount: Mount = (root, ctx) => {
   const bar = actions(editor.playBtn, save.saveButton());
   bar.hidden = true;
   work.append(
-    card('Cleaning', stack(field('Kind of cleaning', kindSeg), finishBox, strength, h('div', { class: 'row' }, abBtn), what)),
+    card('Cleaning', stack(strength, h('div', { class: 'row' }, abBtn), what)),
     card('Result', editor.el),
     card('Save', save.el));
-  root.append(card(null, picker, recBox, status), work, bar);
+  // the kind of cleaning comes first: chosen before a file is opened, the file is cleaned once
+  root.append(card(null, field('Kind of cleaning', kindSeg), finishBox, picker, recBox, status), work, bar);
   return () => { live = false; fileSeq++; gen++; clearTimeout(timer); rec.dispose(); editor.dispose(); };
 };

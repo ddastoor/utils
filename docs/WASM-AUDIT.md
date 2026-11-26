@@ -1342,6 +1342,41 @@ or a table is a part) and `hd` (a head over the columns is read first) — and r
   every channel; in audio.wasm: resampling, `a_scale` (×32768 unclamped, new) and `a_mix2`. wasm/rnnoise/ is gone; the
   native build stays as the test reference only.
 
+**144b. `noise` — Studio voice (to-do #20, 26 Nov 2026).** The owner: "it should sound as if I'm speaking in the studio" —
+"Just use your discretion and get the best quality". Every candidate run on the same mixtures: the LibriSpeech sentence
+(tests/fixtures/speech/librispeech-1.flac) with DEMAND's channel-1 recordings of street traffic, a public square, a train
+station and a café (SPARCO-project/benchmark_DEMAND_noise, 4 s segments) at 0, 5 and 10 dB; SI-SDR against the clean speech;
+DNSMOS P.835 (Microsoft's sig_bak_ovr.onnx as dnsmos_local.py runs it). Means of the 12 mixtures:
+
+| | SI-SDR | DNSMOS SIG | BAK | OVRL | size |
+|---|---:|---:|---:|---:|---:|
+| noisy | 5.0 | 3.42 | 2.81 | 2.55 | — |
+| RNNoise 0.2 (Remove noise) | 10.6 | 3.32 | 4.14 | 3.10 | 1.3 MB gz |
+| **DeepFilterNet 3** (soniqo's ONNX of the v0.5.6 checkpoint) | **14.6** | 3.41 | 4.13 | **3.18** | 8.6 MB |
+| DPDFNet-8 48 kHz HR (Ceva, ONNX, streaming) | 13.6 | 3.36 | 4.12 | 3.12 | 14.9 MB |
+| DPDFNet-2 48 kHz HR | 12.6 | 3.29 | 4.10 | 3.04 | 10.5 MB |
+| MossFormer2_SE_48K (ClearerVoice, TigreGotico's ONNX; its fbank front-end ported) | 14.9 | 3.39 | 4.16 | 3.16 | 229 MB |
+| **DeepFilterNet 3 + the studio finish** (Studio voice) | — (the EQ changes the waveform) | **3.54** | 4.07 | **3.30** | + 21 KB of C |
+
+- MossFormer2 is level with it on balance and the better one only on café chatter (OVRL 2.86 / 3.03 against DeepFilterNet's 2.59 / 2.92 at 0 / 5 dB) and
+  weaker at the square and the station; 27 times the size and about 20 times the computation — not added. DPDFNet's 16 kHz
+  model scores higher on this 16 kHz material, but cuts every recording's band at 8 kHz.
+- **DeepFilterNet 3's DSP:** libDF is Rust inside DeepFilterNet's Python package (PyO3), with no WebAssembly build; the ONNX
+  export takes the features and gives a mask and coefficients — so the DSP is **our C in audio.wasm** (`wasm/audio/studio.c`:
+  STFT, ERB bands, the two norms, the deep filter, overlap-add; a mixed-radix FFT of our own for 960 points), held to libDF
+  (natively 130 dB apart; unit `dfn`: the STFT 4e-9, the features 5e-7, the cleaned sound > 70 dB apart). ONNX Runtime Web runs
+  the network (the existing official build). Segments: the network carries its GRUs' memory from a segment's start; 10 s
+  segments read from 3 s before to 1 s after, with 0.5 s crossfades, are 40 dB from one pass (features restarting too).
+- **Dereverberation:** WPE (nara_wpe 0.0.11, 10 taps, delay 3, 3 iterations) before DeepFilterNet 3 on the sentence in
+  synthetic rooms (RT60 0.4 / 0.7 / 1.0 s): +0.3 – 0.9 dB SI-SDR, DNSMOS +0.06 in a dry room and none (or −0.07) with
+  traffic — not added. Neural restoration (VoiceFixer 415 MB, Resemble Enhance): generative, the tab's recordings are full
+  band already — not added.
+- **The finish's settings were chosen by DNSMOS on the same set** (`a_studio_param` changes one for the measuring scripts):
+  the expander ±0.00 OVRL (it is there for the pauses' quiet); the EQ +0.06; the compressor (3 : 1 from 6 dB under the voice)
+  +0.03; −16 LUFS on a mono file's one channel let the limiter take 3 dB and more off 38 % of the sound's 10 ms frames
+  (OVRL 3.21) — as heard on two speakers (−19 on the one channel) 7 % (3.26 → 3.30 with the EQ at ±3 dB). Our BS.1770 and
+  true peak agree with FFmpeg's ebur128 to its printed 0.1 dB.
+
 ### 145. `pitch` — Pitch & Speed (20 Nov 2026)
 - **Ours:** WSOLA time stretch + Kaiser windowed-sinc resampling in audio.wasm (own C). **Candidates:** **signalsmith-
   stretch 1.3.2** (Signalsmith Audio's official WebAssembly / AudioWorklet release of Signalsmith Stretch, MIT, 264 k

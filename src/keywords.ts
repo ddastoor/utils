@@ -45,7 +45,7 @@ export const KEYWORDS: Record<string, string> = {
   'video': 'video, compress, reduce size, mp4, whatsapp, email, mb, smaller, resize',
   'audio': 'record, voice, audio, microphone, memo, trim, wav, recorder',
   'tts': 'tts, speech, read aloud, voice, speak, narrate, text to speech',
-  'noise': 'noise, denoise, noise removal, noise remover, noise reduction, remove noise, clean audio, hiss, background noise, rnnoise, voice',
+  'noise': 'noise, denoise, noise removal, noise remover, noise reduction, remove noise, clean audio, hiss, background noise, rnnoise, voice, studio voice, studio sound, voice enhancer, enhance voice, enhance speech, podcast voice, professional voice, traffic noise, street noise, wind noise, deepfilternet, voice over, voiceover, dialogue cleanup',
   'pitch': 'pitch, speed, tempo, slow down song, slow down audio, speed up audio, slow down, speed up, transpose, key change, time stretch, practice, playback rate',
   'slideshow': 'slideshow, photos to video, images to video, music video, montage, mp4, reel',
   'ffmpeg': 'mp4 to mp3, wav to mp4, video to audio, mkv to mp4, mov to mp4, webm to mp4, avi to mp4, mp3 to wav, audio converter, video converter, ffmpeg, convert, video, audio, mp4, mp3, wav, extract audio, trim, cut, gif, mkv, webm, mov, flac, ogg, remux',

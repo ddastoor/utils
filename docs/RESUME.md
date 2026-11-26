@@ -106,21 +106,22 @@ reach (Wikimedia is blocked).
 **#14 Text Diff: DONE (26 Nov 2026)** (todo.md Done #14; CLAUDE.md §3 Text Diff, "Two files, a file on GitHub …"): two files,
 a file of a public GitHub repository at two commits (raw.githubusercontent.com + api.github.com — in the CSP now), proper
 .patch files (GNU patch, git apply). Checked against the real GitHub. **Batch 6 is complete.**
-**#20 Studio voice: IN PROGRESS (26 Nov 2026, night)** — chosen by measurement (DEMAND street noise — traffic, a square, a
-station, a café — mixed into the LibriSpeech sentence at 0 / 5 / 10 dB; SI-SDR against the clean speech, DNSMOS P.835):
-**DeepFilterNet 3** (8.6 MB, `soniqo/DeepFilterNet3-ONNX`, MIT) — SI-SDR 14.6 dB on average against RNNoise's 10.6, DNSMOS
-OVRL 3.18 against 3.10 (noisy 2.55); Ceva's DPDFNet-8 48 kHz (14.9 MB) level or below it, MossFormer2 48 kHz (229 MB) better
-only on café chatter; WPE dereverberation measured and not added (+0.5 dB SI-SDR, no DNSMOS gain in noise). Its DSP is our C in
-audio.wasm (`wasm/audio/studio.c`, held to libDF: 130 dB apart natively), the network on ONNX Runtime Web in the noise worker,
-recordings in 10 s segments (40 dB from one pass); then **the studio finish** (also studio.c): rumble filter, expander,
-warmth / presence EQ, compressor, de-esser, −16 LUFS as heard on two speakers, true peak −1.5 dBTP — DNSMOS OVRL 3.18 → 3.30.
-Decisions taken without the owner: the loudness of a mono file is measured as dual mono (at −16 on its one channel natural
-speech needed its peaks limited 3 dB and more half the time, which DNSMOS marked down); the EQ moves at ±3 dB (±4 scored
-higher still on DNSMOS — not chased). Done: the C port, the worker, the tab's "Studio voice" choice, unit `dfn` 33. **Next:**
-the e2e suite (noise-studio), docs (CLAUDE.md §3 Noise Remover, §3a, §6, WASM-AUDIT, BUGHUNT, fixtures README), todo.md Done
-#20, the size line (555 → 564 MB).
-**Next (the owner's order):** finish 7 (#20); then the potentials process. #32 (22 FFmpeg jobs) is not in the order: ask the
-owner when he is back.
+**#20 Studio voice: DONE (26 Nov 2026, night)** (todo.md Done #20; CLAUDE.md §3 Noise Remover, "Studio voice";
+docs/WASM-AUDIT.md 144b) — chosen by measurement (DEMAND street noise — traffic, a square, a station, a café — in the
+LibriSpeech sentence at 0 / 5 / 10 dB; SI-SDR, DNSMOS P.835): **DeepFilterNet 3** (8.6 MB, `soniqo/DeepFilterNet3-ONNX`, MIT)
+— SI-SDR 14.6 dB on average against RNNoise's 10.6, DNSMOS overall 3.18 against 3.10 (noisy 2.55); DPDFNet 48 kHz below it,
+MossFormer2 48 kHz (229 MB) level on balance; WPE dereverberation measured and not added. Its DSP is our C in audio.wasm
+(`wasm/audio/studio.c`, held to libDF), the network on ONNX Runtime Web in the noise worker, recordings in 10 s segments; then
+**the studio finish** — DNSMOS overall 3.18 → 3.30. In the browser: 10.4 s cleaned in 3.1 s; SI-SDR 5.0 → 15.5 dB (RNNoise
+11.2). **Decisions taken without the owner (to show him):** the loudness of a mono file is −16 LUFS as heard on two speakers
+(−19 on its one channel: at −16 there natural speech needed its peaks limited 3 dB and more half the time); the EQ at ±3 dB
+(±4 scored higher on DNSMOS — not chased); no dereverberation and no restoration network (measured / not needed). Unit dfn 33,
+e2e noise-studio 28 (+ noise 25); the site 563 MB. **Batch 7 is complete — the owner's batch order is finished.**
+**Next:** the potentials process — it needs the owner (he picks the apps): when he is back, show him `docs/potentials.md`,
+and ask (1) when to do #32 (22 FFmpeg jobs, not in the order); (2) remind him to allow `main` in Settings → Environments →
+github-pages (the site is not published from main until then); (3) offer the AnimeGAN / White-box styles for the Cartoonizer;
+(4) tell him the decisions taken tonight (#16, #17, #20 above). Until he answers: nothing new is started (the owner's rule:
+never start a to-do item on your own).
 
 ## ▶ SYNC POINT — 21 Nov 2026, night (read this first; it supersedes the older "NOW" notes below)
 The owner's weekly limit is nearly used up; work resumes on Thursday. Everything below is committed and pushed.

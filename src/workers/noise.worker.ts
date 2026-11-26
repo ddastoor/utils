@@ -22,7 +22,7 @@ type Reply = { chs: Float32Array[]; vad?: Float32Array; ms?: number; report?: Fi
 const MODEL = 'models/deepfilternet3/deepfilter.onnx', MODEL_BYTES = 8608859;
 let au: Promise<AudioEngine> | null = null, rn: Promise<Rnnoise> | null = null, dfn: Promise<ort.InferenceSession> | null = null;
 /** Standard: the input and the fully cleaned sound at the file's rate. Studio: both at 48 kHz, and the file's rate. */
-let kept: { engine: 'rnnoise'; src: Float32Array[]; full: Float32Array[] } | { engine: 'studio'; src: Float32Array[]; src48: Float32Array[]; full48: Float32Array[]; sr: number } | null = null;
+let kept: { engine: 'rnnoise'; src: Float32Array[]; full: Float32Array[] } | { engine: 'studio'; src: Float32Array[]; src48: Float32Array[]; full48: Float32Array[]; sr: number; full?: Float32Array[] } | null = null;
 const post = (m: unknown, t: Transferable[] = []) => (self as any).postMessage(m, t);
 // a failed download is tried again with the next message
 const audioEngine = () => (au ||= instantiateWasi(audioUrl).then((x) => bindAudio(x.exports)).catch((e) => { au = null; throw e; }));
@@ -32,8 +32,8 @@ function network(base: string, id: number) {
   return (dfn ||= (async () => {
     ort.env.wasm.numThreads = 1; // GitHub Pages cannot enable cross-origin isolation (no threads)
     ort.env.wasm.proxy = false;
-    const r = await fetch(new URL(MODEL, base).href);
-    if (!r.ok) throw new Error(`the studio voice model could not be fetched (HTTP ${r.status})`);
+    const r = await fetch(new URL(MODEL, base).href).catch(() => { throw new Error('the studio voice model could not be fetched — check the connection and try again'); });
+    if (!r.ok) throw new Error(`the studio voice model could not be fetched (HTTP ${r.status}) — try again`);
     let bytes: Uint8Array;
     if (!r.body) bytes = new Uint8Array(await r.arrayBuffer());
     else {
@@ -55,13 +55,17 @@ function network(base: string, id: number) {
 const blend = (a: AudioEngine, full: Float32Array[], src: Float32Array[], mix: number) => mix >= 1 ? full.map((c) => c.slice()) : mix <= 0 ? src.map((c) => c.slice()) : a.mix2(full, src, mix, 1 - mix);
 const fitTo = (n: number) => (c: Float32Array) => (c.length === n ? c : (() => { const x = new Float32Array(n); x.set(c.subarray(0, n)); return x; })());
 
-/** The Studio result at a strength: the cleaned sound mixed with the input at 48 kHz, then the finish, then the file's rate */
+/** The Studio result at a strength. Without the finish: the cleaned sound at the file's rate mixed with the file itself
+ *  (as Remove noise mixes: 0 % is the file sample for sample, 50 % the exact middle). With it: mixed at 48 kHz, finished,
+ *  then brought to the file's rate. */
 function studioOut(a: AudioEngine, mix: number, finish: boolean): Reply {
   const k = kept as Extract<typeof kept, { engine: 'studio' }>, n = k.src[0].length;
-  if (!finish && mix <= 0) return { chs: k.src.map((c) => c.slice()) }; // the file sample for sample
-  let at48 = blend(a, k.full48, k.src48, mix), report: FinishReport | undefined;
-  if (finish) { const f = a.studioFinish(at48, FINISH.all); at48 = f.chs; report = f.report; }
-  return { chs: (k.sr === SR ? at48 : a.resample(at48, k.sr / SR)).map(fitTo(n)), report };
+  if (!finish) {
+    k.full ??= (k.sr === SR ? k.full48.map((c) => c.slice()) : a.resample(k.full48, k.sr / SR)).map(fitTo(n));
+    return { chs: blend(a, k.full, k.src, mix) };
+  }
+  const f = a.studioFinish(blend(a, k.full48, k.src48, mix), FINISH.all);
+  return { chs: (k.sr === SR ? f.chs : a.resample(f.chs, k.sr / SR)).map(fitTo(n)), report: f.report };
 }
 
 async function handle(m: Msg): Promise<Reply> {

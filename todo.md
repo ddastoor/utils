@@ -13,29 +13,6 @@ The owner adds items here in chat ("add … to to do"). Newest instructions win.
 
 3. _(withdrawn by the owner on 20 Nov 2026: the "Export Python utility" for the YouTube Clip tab — do not build it.)_
 
-
-20. **Noise Remover: "Studio voice" — a voice recorded outdoors made to sound as if spoken in a studio** (owner, 26 Nov
-    2026: "In the noise remover app, it should be that when I record my voice, say out in the open, in traffic or
-    outside, when I remove the noise, there should be a new option so that it should sound as if I'm speaking in the
-    studio, like they do in movie studio editing")
-    - **Today:** RNNoise 0.2 removes steady noise (fans, hum, hiss, a constant traffic roar) and keeps the voice; horns,
-      passing engines and the echo of the street get through, and the voice keeps the phone microphone's thin, distant
-      sound.
-    - **"Studio voice", a new option:** (1) stronger noise removal for traffic — a newer speech-enhancement network
-      chosen by measurement: DeepFilterNet 3 (48 kHz), GTCRN, ClearerVoice's MossFormer2 and others, on ONNX Runtime
-      (on the site already — WebAssembly first); (2) the room and street echo taken out (dereverberation); (3) a
-      restoration network where one earns its size (Resemble Enhance, VoiceFixer and newer: they also restore the high
-      frequencies a phone loses); (4) the studio finish in our own C (audio.wasm): rumble filter, de-esser, an EQ for
-      presence and warmth, a compressor for an even level, loudness to −16 LUFS (EBU R128), a gentle gate in the pauses.
-      Each model's size said against the site's 1 GB before it is added (the size check); A/B with the original; the
-      present cleaning stays as it is.
-    - **Measured, not guessed:** speech with real traffic and street noise mixed in (the suite's speech fixture with
-      recorded street noise; outdoor recordings) — the noise left, the speech kept, DNSMOS (Microsoft's open
-      speech-quality predictor) before and after.
-    - **Owner, 26 Nov 2026: "Just use your discretion and get the best quality"** — no samples for him to judge first and no
-      size decision to wait for: the models are chosen by the measurements above, for the best quality the site can hold
-      (within GitHub Pages' 1 GB; the size is said when it is built). Still batch 7, after batches 4 – 6.
-
 32. **FFmpeg tab: 22 new jobs** (owner, 26 Nov 2026 — asked "Any interesting / cool new ffmpeg uses you can think of?", then:
     "include all the new cool FFmpeg features that you just mentioned above, leaving out the 3 that would require you to
     build the new FFmpeg module. Add this currently to todo.md" — the three, a stabiliser, high-quality pitch change and
@@ -88,6 +65,17 @@ The owner adds items here in chat ("add … to to do"). Newest instructions win.
       it on the tab's FFmpeg — on mono, stereo and 5.1 files.
 
 ## Done
+- **20. Noise Remover: "Studio voice" — a voice recorded outdoors made to sound as if spoken in a studio** (owner, 26 Nov 2026:
+  "In the noise remover app, it should be that when I record my voice, say out in the open, in traffic or outside, when I
+  remove the noise, there should be a new option so that it should sound as if I'm speaking in the studio, like they do in
+  movie studio editing"; then "Just use your discretion and get the best quality") — done 26 Nov 2026: "Kind of cleaning"
+  Remove noise (RNNoise, as it was) / **Studio voice**: **DeepFilterNet 3** (8.6 MB, its DSP our C in audio.wasm, held to
+  libDF; the network on ONNX Runtime Web; recordings in 10 s segments) and **the studio finish** (rumble filter, quieter pauses,
+  warmth and presence, compressor, de-esser, −16 LUFS as heard on two speakers, true peak −1.5 dBTP). Chosen by measurement on
+  speech in DEMAND's traffic, square, station and café noise: SI-SDR 5.0 → 14.6 dB (RNNoise 10.6), DNSMOS overall 2.55 → 3.18
+  → 3.30 with the finish (RNNoise 3.10); DPDFNet 48 kHz and MossFormer2 48 kHz (229 MB) measured and not better on balance;
+  WPE dereverberation measured and not added; no restoration network needed (full-band recordings). The site: 563 MB. Unit
+  dfn 33, e2e noise-studio 28 (+ noise 25). CLAUDE.md §3 Noise Remover, "Studio voice".
 - **14. Text Diff: two local files, a file of a public GitHub repository at two commits, the difference as a patch file**
   (owner, 26 Nov 2026: "In the text diff app, add 2 more text input options. One is to upload two local files. The second
   option is to name a file in a public GitHub repository with two different commit hashes. Also, add the option to download

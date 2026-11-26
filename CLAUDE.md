@@ -75,7 +75,7 @@ that affects it.
 > 3. Name what could be removed to make room, when room is short — an app, or a big model of one (the biggest today:
 >    Text-to-Speech's voices 167 MB — Kokoro 94 MB + Piper 73 MB; Code Formatter's Biome 67 MB; Photo Dictionary's
 >    data 34 MB; FFmpeg 31 MB; PaddleOCR, the OCR's second reader, 31 MB; Tesseract 27 MB; ExifTool 24 MB). 26 Nov 2026,
->    with PaddleOCR: **555 MB**.
+>    with PaddleOCR: **555 MB**; with the Noise Remover's Studio voice (DeepFilterNet 3, 8.6 MB): **563 MB**.
 > 4. **Wait for the owner's decision.** Build nothing until the owner has decided.
 
 > ## ⚠️ STANDING RULE #1 — WebAssembly first (owner; permanent; applies to every line of new code)
@@ -2150,7 +2150,9 @@ of 10 s: inside the frame, the shape kept; Fill and Fit equal to the formula the
 the four squares whole in every frame read, from the first to the last frame of each photo; the colour around; the
 control — Fit with the zoom, unchanged, cuts the panorama, and the check sees it).
 
-### Noise Remover — BUILT (`src/tools/noise.ts`, worker `src/workers/noise.worker.ts`; e2e `tests/e2e/noise.e2e.mjs` 25)
+### Noise Remover — BUILT (`src/tools/noise.ts`, worker `src/workers/noise.worker.ts`; e2e `tests/e2e/noise.e2e.mjs` 25, `noise-studio.e2e.mjs` 28)
+"Kind of cleaning", chosen above the file picker: **Remove noise** (RNNoise, as below — the default, unchanged) or **Studio
+voice** (to-do #20, below).
 **Xiph RNNoise 0.2** (recurrent network trained on speech + noise, C, BSD-3) as **Jitsi builds it** —
 `@jitsi/rnnoise-wasm` 0.2.1 (Apache-2.0; its "sync" file, which carries the 0.2 model with the WebAssembly inlined,
 1.9 MB / 1.34 MB gzipped; the package's `rnnoise.wasm` still has the 0.1 model and is not used), fetched only when the
@@ -2173,6 +2175,51 @@ noise at 5 dB SNR (`tests/fixtures/speech/`, `scripts/make-speech-fixtures.mjs`)
 from 5.0 to 11.5 dB, rate and length kept, strength 0 / 50 % exact, a strength is a mix, Save right after another file,
 the newest file, a 4-minute file superseded, a voice on the right channel only, 48 kHz without resampling, a file that
 is no sound, the microphone, leaving mid-clean, phone layout.
+**Studio voice (to-do #20; owner, 26 Nov 2026: "when I record my voice, say out in the open, in traffic or outside, when I remove
+the noise, there should be a new option so that it should sound as if I'm speaking in the studio, like they do in movie studio
+editing"; then: "Just use your discretion and get the best quality" — chosen by measurement, no samples first):**
+- **The noise taken out: DeepFilterNet 3** (Schröter et al., 48 kHz; the official v0.5.6 checkpoint as an ONNX graph —
+  `soniqo/DeepFilterNet3-ONNX`, MIT, 8.6 MB, SHA-256 pinned in `scripts/assets.json`, `public/models/deepfilternet3/`) on ONNX
+  Runtime Web (the app's copy) in the noise worker, fetched from this site the first time Studio voice cleans something, once
+  a visit, with its progress. **Its signal processing is our C in audio.wasm** (`wasm/audio/studio.c`, a port of DeepFilterNet's
+  libDF — no WebAssembly build of it exists): a 960-point STFT with a 480-sample hop and the Vorbis window, 32 ERB bands of at
+  least two bins, their powers in dB less a running mean (α 0.99), the first 96 bins over their running magnitude, the
+  network's mask on the bands, its deep filter (order 5, two frames ahead) on the noisy spectrum below bin 96, overlap-add,
+  the STFT's 480 samples of delay taken off — held to libDF to float precision (130 dB apart natively; unit `dfn`).
+  **Recordings of any length** (`src/lib/studio.ts`): segments of 10 s, each read from 3 s before to 1 s after it, joined by
+  0.5 s crossfades (the network's GRUs keep a memory from a segment's start): 40 dB apart from one pass over 31 s and as clean,
+  the network's memory and time those of 14.5 s. Two channels of one sound are cleaned once.
+- **Chosen by measurement** (the LibriSpeech sentence with DEMAND's street traffic, public square, train station and café
+  recordings mixed in at 0 / 5 / 10 dB; SI-SDR against the clean speech; DNSMOS P.835 — Microsoft's speech-quality predictor):
+  mean SI-SDR noisy 5.0 → RNNoise 10.6 → **DeepFilterNet 3 14.6 dB**; DNSMOS overall 2.55 → 3.10 → **3.18**; Ceva's DPDFNet-8
+  48 kHz (ONNX, 14.9 MB) level with it or below; MossFormer2 48 kHz (ONNX, 229 MB, 27 × the size) better only on café chatter
+  (−0.3 OVRL elsewhere at the square and the station); WPE dereverberation (nara_wpe) before it: +0.3 – 0.9 dB SI-SDR in a room,
+  no DNSMOS gain in noise — not added; restoration networks (VoiceFixer, Resemble Enhance — generative, hundreds of MB) not
+  needed: the tab's own recordings and phone files carry the full band (docs/WASM-AUDIT.md, Noise Remover).
+- **The studio finish** ("Studio finish" switch, on; `a_studio_finish` in studio.c, at 48 kHz): a 4th-order Butterworth
+  rumble filter at 75 Hz; a downward expander 25 dB below the voice's level (1 : 2, at most 10 dB — quieter pauses); warmth and
+  presence (+3 dB below 160 Hz, −3 dB at 350 Hz, +3 dB at 3.5 kHz, +2.25 dB above 10 kHz); a compressor (3 : 1 from 6 dB under
+  the voice's level, 5 ms / 100 ms, channels linked); a de-esser (the band above 6 kHz lowered by up to 8 dB while it holds
+  more than −8 dB of the energy); the loudness brought to **−16 LUFS as heard on two speakers** (ITU-R BS.1770-4, gated; a mono
+  file counted on both — BS.1770's dual mono —, so it is measured −19 on its one channel) and the true peak held at **−1.5 dBTP**
+  (4× oversampled, a look-ahead limiter of ±1.5 ms, 80 ms release; measured again and brought back up to four times). The
+  thresholds follow the voice's own gated loudness. DNSMOS overall 3.18 → **3.30** (signal 3.41 → 3.54). Measured and not
+  taken: −16 LUFS on a mono file's one channel (natural speech's peaks then limited by 3 dB and more half the time — DNSMOS
+  marked it down, 3.21); the EQ at ±4 dB (scored higher still — not chased: DNSMOS likes brightness); a peak compressor
+  before the limiter (changed nothing measurable); a phase rotator (−0.4 to −1.4 dB of peak only). The line under the
+  result says what it did ("Studio finish: −24.0 → −16.1 LUFS, peaks at −1.5 dBTP · the pauses lowered by 3.2 dB · …").
+- **Strength** mixes as in Remove noise: without the finish at the file's rate (0 % is the file sample for sample, 50 % the
+  exact middle); with it, mixed at 48 kHz and then finished. The finish switched or a new strength is mixed in the worker,
+  never cleaned again. Saved as `<name>-studio.mp3 / .wav`. Speed: 10.4 s cleaned in 3.1 s in headless Chromium (one thread).
+- **Tests:** unit `tests/unit/dfn.test.mjs` 33 — the STFT, the features, the network on ONNX Runtime Web and the cleaned sound
+  held to DeepFilterNet's own libDF + ONNX Runtime (`python3 scripts/make-dfn-reference.py` → `tests/fixtures/dfn/
+  reference.json`; needs `pip install deepfilterlib==0.5.6 onnxruntime soundfile numpy`), an identity network through the
+  segments (25 s back sample for sample), 31 s in segments against one pass, loudness and true peak against FFmpeg's ebur128
+  (the native ffmpeg), every step of the finish on signals with a known answer, silence; e2e `noise-studio` 28 — the traffic
+  fixture (`tests/fixtures/speech/traffic-speech.wav`, made by the same script) SI-SDR 5.0 → 15.5 dB (RNNoise 11.2), −16 LUFS
+  as heard on two speakers by a BS.1770 written in the suite and by FFmpeg, nothing fetched for Remove noise, the model once
+  a visit with its progress, strength 0 / 50 % exact, the finish and the strength mixed not cleaned, A/B, a stereo file of
+  one voice cleaned once, leaving mid-clean, a model that cannot be fetched said and fetched at the next try, the phone.
 
 ### Pitch & Speed — BUILT (`src/tools/pitch.ts`, engine `src/lib/stretch.ts`; e2e `tests/e2e/pitch.e2e.mjs` 18)
 Open any audio/video file → speed 0.5–2× (pitch kept) and pitch −12…+12 semitones (length kept), both by **Signalsmith
@@ -3073,7 +3120,7 @@ difference over its detail, the overlap's pixels), ruled lines and list marks cl
 | jq 1.8.2 (+ oniguruma) | C | **us** (`wasm/jq`) | jq |
 | CPython 3.14.8 (+ zlib 1.3.2; stdlib as .pyc in python314.zip with tzdata 2026.6; **the regex module 2026.11.19** — mrab-regex's C extension built in as `_regex`) **+ our changes** (§5.1m: recursion guard for a browser's two stacks, lru_cache in Python, pbkdf2_hmac fallback, socket stand-in + asyncio loop without sockets, local time from the host, regex-wasm.patch) | C | **us** (`wasm/python`, python.wasm 7.8 MB + python314.zip 5.75 MB, loaded on the first Run; run by our WASI host `src/lib/terminal/wasi.ts` in `src/workers/python.worker.ts`) | python; regex (the Python re and regex-module flavours, `src/lib/regex/python.ts`) |
 | Graphviz **16.1.0** (cgraph, gvc, dot/neato/fdp/sfdp/circo/twopi/osage/patchwork, core renderers; the official release archive) + Expat 2.9.0 **+ our changes** (§5.1l: `storeline.patch` — an upstream crash on labels that start with an empty line; `triangulation.patch` + `st_delaunay.h` — prism overlap removal on our C port of Delaunator instead of GTS; glibc's `qsort` and `rand`; assertions kept; text measured by the host through a "textlayout" plugin) | C / C++ | **us** (`wasm/graphviz`, 1.65 MB / 0.56 MB gz, a fresh instance per drawing in `src/workers/graphviz.worker.ts`; the existing builds — Viz.js, hpcc — trap on valid graphs: `docs/WASM-AUDIT.md`, tab 55) | graphviz |
-| audio: **LAME 4.0** libmp3lame (MP3 encoder) + own C (WAV writer — 16-bit by the browser's own rule, waveform peaks, levels, gain/fades, scale, mix, Kaiser windowed-sinc resampler) | C | **us** (`wasm/audio`) | audio (and tts, noise, pitch, slideshow) |
+| audio: **LAME 4.0** libmp3lame (MP3 encoder) + own C (WAV writer — 16-bit by the browser's own rule, waveform peaks, levels, gain/fades, scale, mix, Kaiser windowed-sinc resampler) + `studio.c`: **DeepFilterNet 3's signal processing** (a C port of libDF's STFT, ERB features, norms, mask and deep filter — held to libDF) and **the studio finish** (rumble filter, expander, EQ, compressor, de-esser, BS.1770-4 loudness, 4× oversampled true-peak limiter — held to FFmpeg's ebur128) | C | **us** (`wasm/audio`) | audio (and tts, noise — Studio voice —, pitch, slideshow) |
 | Signalsmith Stretch 1.3.2 (tempo and pitch, polyphonic) | C++ | Signalsmith Audio (official `signalsmith-stretch`, WebAssembly in an AudioWorklet) — rendered offline by `src/lib/stretch.ts` | pitch (replaced our WSOLA in Nov 2026: `docs/WASM-AUDIT.md`, tab 145) |
 | espeak: **eSpeak NG 1.52.0** (+ English phoneme tables and dictionary compiled from the same release, linked in, served to its fopen/stat from memory) + glue (IPA for Kokoro, piper-phonemize-style sentences) | C | **us** (`wasm/espeak`) | tts |
 | geo: Charles Karney's **geodesic.c 2.2** (GeographicLib's geodesic routines in C, MIT; the two files unmodified from the PROJ 9.9.0 release) + glue (inverse problem on WGS-84, half-way point, the haversine great circle for comparison) | C | **us** (`wasm/geo`, 36 KB, loaded by the Coordinates tab only; no tried-and-tested WebAssembly geodesic module exists: `docs/WASM-AUDIT.md`, tab 82) | coords |
@@ -3090,7 +3137,7 @@ difference over its detail, the overlap's pixels), ruled lines and list marks cl
 | MuPDF 1.28 | C | Artifex (official `mupdf` npm) | all PDF tools, PDF → EPUB, Watermark (PDFs: to-do #17) |
 | ExifTool 13.42 on zeroperl (Perl 5 compiled to WebAssembly with ExifTool's library inside) | Perl / C | Phil Harvey (ExifTool), uswriting / 6over3 (`@uswriting/exiftool` 1.0.9, `@6over3/zeroperl-ts` 1.0.10) — run in `src/workers/exiftool.worker.ts` | exif (replaced metacore's reader and stripper in Nov 2026: `docs/WASM-AUDIT.md`, tab 120); regex (the Perl flavour, the same module: `src/lib/regex/perl.ts`) |
 | hash-wasm 4.13.0 (hand-tuned C → wasm, one small binary per algorithm, embedded in the package; streaming; HMAC over any of its hashes; Argon2, bcrypt, scrypt, PBKDF2) | C | Dani Biró (`hash-wasm` npm, ~10 M downloads a month) — wrappers `src/lib/hmac.ts`, `src/lib/totp.ts`, `src/lib/pwhash.ts`, `src/lib/hashes.ts` (in `src/workers/hash.worker.ts`); only the algorithms a tab uses are bundled into its chunk, loaded with the tab's first result | hash (23 algorithms), hmac (all of it), totp (the HMAC), pwhash (Argon2id / i / d, bcrypt, scrypt, PBKDF2) — replaced RustCrypto builds and crypto.wasm's hashes of ours in Nov 2026 (`docs/WASM-AUDIT.md`) |
-| ONNX Runtime Web 1.31 (CPU/WebAssembly, SIMD) | C++ | Microsoft (official `onnxruntime-web` wasm build) | tts (Kokoro, Piper); scanner (DocCornerNet LEAN, scanic-ml 0.2.0: the page's corners — `docs/WASM-AUDIT.md`, tab 121); ocr and photodict (the same network, asked where the Kindle finder's outline is not a page's — to-do #18; and **PaddleOCR's PP-OCRv6 detector and recogniser, the second reader for soft photos** — owner, 26 Nov 2026: `src/lib/paddle.ts` in `src/workers/paddle.worker.ts`) |
+| ONNX Runtime Web 1.31 (CPU/WebAssembly, SIMD) | C++ | Microsoft (official `onnxruntime-web` wasm build) | tts (Kokoro, Piper); scanner (DocCornerNet LEAN, scanic-ml 0.2.0: the page's corners — `docs/WASM-AUDIT.md`, tab 121); ocr and photodict (the same network, asked where the Kindle finder's outline is not a page's — to-do #18; and **PaddleOCR's PP-OCRv6 detector and recogniser, the second reader for soft photos** — owner, 26 Nov 2026: `src/lib/paddle.ts` in `src/workers/paddle.worker.ts`); noise (**DeepFilterNet 3**, the Studio voice — to-do #20: `src/workers/noise.worker.ts`) |
 | SQLite 3.54 | C | SQLite project (official `@sqlite.org/sqlite-wasm`), run in `src/workers/sqlite.worker.ts` (terminated on leave) | sqlite |
 | PCRE2 (pcre2-wasm 10.49.3: PCRE2 compiled by Emscripten, the WebAssembly inside the package) | C | gudoshnikovn (`pcre2-wasm`, MIT; PCRE2 BSD-3 with the PCRE2 exception) — in `src/workers/regex.worker.ts` | regex (the PCRE2 flavour: `docs/WASM-AUDIT.md`, tab 178) |
 | Oniguruma (vscode-oniguruma 2.0.1) | C | Microsoft (`vscode-oniguruma`, MIT; Oniguruma BSD-2) — the build VS Code and Shiki run | regex (the Ruby flavour, with Ruby's rules beside it in `src/lib/regex/ruby.ts`) |
@@ -3277,7 +3324,8 @@ Owner: "make the full site faster, more responsive and memory efficient — load
    Literata while OCR runs; PDF tabs load MuPDF when a PDF is chosen; the OCR tab and the Photo Dictionary fetch the Doc
    Scanner's page network (its worker, ONNX Runtime and DocCornerNet) only for a photo whose page the Kindle finder
    cannot outline (to-do #18), and PaddleOCR, the second reader (its worker and 31.2 MB of models), only for a photo
-   Tesseract reads unsurely (owner, 26 Nov 2026).
+   Tesseract reads unsurely (owner, 26 Nov 2026); the Noise Remover fetches DeepFilterNet 3 (8.6 MB) only when Studio
+   voice cleans something (to-do #20).
 3. **Release on leave** (`src/lifecycle.ts`): engine loaders are made with `lazyEngine(key, load)` (one promise for
    every caller, forgotten when the tab is left — **and when the load fails, so that the next call tries again**;
    `.reset()` after a trap) or register `onLeave(key, release)` themselves; workers are created
@@ -3742,6 +3790,10 @@ Current entries (all Apache-2.0, Google MediaPipe, versioned URLs `…/float16|f
   alphabet (18,708 characters) is written beside it from the model's metadata (`"metadata": "character"` →
   `PP-OCRv6_rec_small.onnx.character.txt`: ONNX Runtime Web cannot read a model's metadata). RapidOCR's direction
   classifier (PP-OCRv4, 0.6 MB) is left out (§3 OCR, "The second reader").
+- `deepfilternet3/deepfilter.onnx` (8.6 MB) — noise (Studio voice): DeepFilterNet 3's v0.5.6 checkpoint as an FP32 ONNX graph
+  (`huggingface.co/soniqo/DeepFilterNet3-ONNX`, revision 63d8ba44, SHA-256 `e1157049…`). **MIT** (DeepFilterNet by Hendrik
+  Schröter and contributors, MIT OR Apache-2.0; the export published under MIT). The graph only — its signal processing is
+  ours (`wasm/audio/studio.c`).
 **MediaPipe telemetry removed:** tasks-vision ≥ 1.2 has a usage logger that POSTs to `odml.pa.googleapis.com` every
 60 s and on `close()`; `vite.config.ts` (`noMediapipeTelemetry`) turns its flush into a no-op at build time and fails
 the build if that code changes shape; `no-external.e2e.mjs` checks no telemetry host is left in `dist/`.

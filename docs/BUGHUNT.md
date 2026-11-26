@@ -3003,3 +3003,16 @@ cannot. Three new suites; each fails on the build before its fixes.
   a page only because GitHub lists them in Access-Control-Expose-Headers — the suite's stand-in left that out and the tab
   said "GitHub answered 403" (the stand-in now sends what GitHub sends, and a 403 whose message says "rate limit" is read
   as the limit too). The old suite's `getByLabel('Original')` met "Original commit" (the commits are "From" / "To" now).
+- **Noise Remover: Studio voice (to-do #20, 26 Nov 2026):** found while building — the binding read a wasm pointer after
+  taking the memory's buffer: the call grew the memory and the view's buffer was detached ("Cannot perform Construct on a
+  detached ArrayBuffer"; pointers first now, `src/wasm/audio.ts`); the true peak read white noise 0.8 dB lower than FFmpeg's
+  ebur128 — 16 taps a phase fell off too early below 24 kHz (32 now; speech agreed either way); the de-esser reported a
+  reduction on silence (it ran where there is no voice; skipped then, as the expander and the compressor are); the strength
+  mixed at 48 kHz without the finish made 50 % not the exact middle of the file and the cleaned sound (the resampler's round
+  trip; mixed at the file's rate now, as Remove noise mixes); the info note lost its icon when its text was changed; a
+  failed download said "Failed to fetch" (said in words now). **Measured and changed:** −16 LUFS on a mono file's one
+  channel made the limiter take 3 dB and more off 38 % of the voice (DNSMOS marked it down) — the loudness is that as heard
+  on two speakers now; a peak compressor before the limiter did nothing measurable (taken out). The new suite's own slips:
+  the status watcher read the recorder's live region (the first of the page), an A/B check read the line before it changed,
+  sample indexes of 48000 × 2.3 that are not whole numbers, a peak bound of −1.5 dBFS at 16 kHz for a true peak held at
+  48 kHz (−1.45 now: the resampling and the 16-bit steps move it by hundredths).

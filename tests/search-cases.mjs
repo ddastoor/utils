@@ -167,7 +167,7 @@ export default [
   ['invoice', 'invoice'], ['gst invoice', 'invoice'], ['bill generator', 'invoice'],
   ['rent receipt', 'rent'], ['hra receipt', 'rent'],
   ['resume', 'resume'], ['cv maker', 'resume'], ['biodata', 'resume'],
-  ['noise removal', 'noise'], ['denoise audio', 'noise'], ['remove background noise', 'noise'],
+  ['noise removal', 'noise'], ['denoise audio', 'noise'], ['remove background noise', 'noise'], ['studio voice', 'noise'], ['enhance my voice', 'noise'], ['podcast voice', 'noise'], ['traffic noise', 'noise'],
   ['change pitch', 'pitch'], ['slow down song', 'pitch'], ['tempo', 'pitch'],
   ['slideshow', 'slideshow'], ['photos to video', 'slideshow'],
   ['prepayment', 'prepay'], ['loan part payment', 'prepay'],
