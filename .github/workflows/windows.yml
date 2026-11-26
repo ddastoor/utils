@@ -41,7 +41,8 @@ jobs:
       - name: Reference tools (Python packages, FFmpeg)
         shell: bash
         run: |
-          py="$(command -v python)"; cp "$py" "$(dirname "$py")/python3.exe"
+          # (setup-python's Windows build may already carry python3.exe — then it is the same file and cp refuses)
+          py="$(command -v python)"; d="$(dirname "$py")"; [ -e "$d/python3.exe" ] || cp "$py" "$d/python3.exe"
           python -m pip install --quiet cryptography argon2-cffi bcrypt py7zr pyzipper pypdf openpyxl sqlparse sqlglot pyyaml zxcvbn numpy pillow python-gnupg ruamel.yaml
           choco install ffmpeg -y --no-progress > /dev/null
           { python3 --version; ffprobe -version; gpg --version; 7z; } 2>&1 | grep -E '^(Python |ffprobe version|gpg \(GnuPG\)|7-Zip)' || true

@@ -264,6 +264,38 @@ The owner adds items here in chat ("add … to to do"). Newest instructions win.
       its reason. Unit `bcvars.test.mjs` and the e2e suite: the owner's three lines, a change after, a loop, `define`,
       Clear session.
 
+26. **Key Codes: key combinations such as Alt+W shown as one** (owner, 26 Nov 2026: "In the key codes app, can you make alt
+    keys to work? Alt+key seems to be recognized separately. When I press alt+W, I'm not getting the alt+W code. Is this
+    even possible? if so do it.")
+    - **Possible — the browser does say it:** the W key's event carries "Alt held" (`altKey`); the tab shows only the
+      last key pressed — "Alt", then "w" — and the Alt only in the Modifiers row of the table. There is no single code
+      for Alt+W in a browser: it is the key W (code KeyW, keyCode 87) with Alt held.
+    - **To do:** the combination as one, large: "Alt + W" (Ctrl, Alt, Shift, Win / ⌘ in the usual order; the letter from
+      the key's position, so a Mac's Option+W, which types "∑", is still Option + W; AltGr named as AltGr); the list of
+      recent keys gives combinations, a modifier held alone replaced by the combination it starts; a row "As a shortcut"
+      with the forms people paste — `Alt+W`, `alt+w` (VS Code, hotkeys), `e.altKey && e.code === 'KeyW'` (JavaScript),
+      what a terminal receives (Esc w); Windows' lone Alt (it moves the focus to Chrome's menu, and the next key then
+      never reaches the page) held back, as the Keyboard Test does. The combinations Windows or Chrome keep for
+      themselves (Alt+Tab, Alt+F4, Alt+Space; Chrome's Alt+D, Alt+E, Alt+F) are named in the tab — which of them reach
+      a page checked on the Windows runner. The suite: Alt+W, Ctrl+Shift+K, AltGr, a modifier alone, Windows' Alt.
+
+27. **More room for the tab in use: the category's list of apps folds away** (owner, 26 Nov 2026: "the actual real estate on
+    the browser for the actual app selected that I'm currently using is considerably reduced because of all the apps listed
+    out in the current category. To improve the situation and increase the working area real estate for the app selected,
+    when each category is selected, make the list of apps in this category in a collapsible pane. By default, keep the app
+    pane expanded, but the user should be able to, once that particular app is selected, the user should be able to
+    collapse the list of all apps in that category so that the real estate for the currently selected app increases.")
+    - **Today:** on a PC the second row lists every app of the category and wraps — Software's 60-odd apps fill several
+      rows above the tab in use; on a phone it is one row that scrolls sideways, sticky with the category row.
+    - **To do:** the list of apps in a pane that folds: open by default; once an app is open a button at the row's end
+      ("Hide the list of apps", a chevron) folds it to one slim line — the open app's name and "All n apps of Software ▾"
+      — and opens it again; the category row and the search box stay. Folded stays folded while moving between apps
+      and categories, kept for the visit only (nothing is stored between visits — the site's rule; only Favorites are
+      kept). Keyboard: the button reachable with Tab, its state said to screen readers (aria-expanded). Phones: the same
+      for the sticky rows, which then take less of the screen. The suite: open, fold, the tab's height gained, unfold, a
+      route change keeps it, every category, phone and PC, the accessibility sweep (a11y.e2e.mjs) and the touch-target
+      sweep.
+
 ## Done
 - **12. Photo Dictionary: the final list of words in alphabetical order** (owner, 21 Nov 2026) — done 21 Nov 2026: the
   same cards, A → Z without regard to case or accents; the line above says so; Share list in the same order. Unit
