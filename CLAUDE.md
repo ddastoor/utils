@@ -1955,7 +1955,7 @@ above the original's own bitrate (a target above the file's size made it bigger;
 under); a target of 0 is refused; the target is named as chosen ("50 MB"); a run keeps its own file and a new file
 ends it; Cancel works between the size mode's retries; the newest file wins.
 
-### Slideshow Maker — BUILT (`src/tools/slideshow.ts`; e2e `tests/e2e/slideshow.e2e.mjs` 15)
+### Slideshow Maker — BUILT (`src/tools/slideshow.ts`; e2e `tests/e2e/slideshow.e2e.mjs` 20 + `slideshow-whole.e2e.mjs` 21)
 Photos (our loader: HEIC, EXIF orientation, downscaled to the output size) + optional music → MP4. Frames composed
 on an OffscreenCanvas at 30 fps: crossfade (≤ 0.8 s, fade in/out from black), gentle zoom/pan (Ken Burns, on by
 default), "Fill" (cover) or "Fit" with a blurred background (a 24 px copy stretched — works on Safari without
@@ -1969,6 +1969,16 @@ the others); reorder; 9:16 → 720×1280; fit to music → 2 s; music frequency;
 the browser has no AAC encoder); a video is made from a copy of the photos and settings taken when it starts (a photo
 removed meanwhile is closed afterwards — drawing it failed the video; a shape changed halfway changed the rest); the
 newest music wins.
+**Whole pictures (to-do #19; owner, 26 Nov 2026: "none of the pictures get cut at all … the original pictures in their
+full, original uncut form") — a third look beside Fill and Fit, which stay exactly as they were:** every photo is entire
+on screen for all its time (`placement` in `src/lib/slideshow-geom.ts`): fitted inside the frame, the gentle zoom from
+92 % of the fitted size up to it (never past it), the pan only within the room left beside the photo; around it the
+blurred photo, black, white or any colour (the start and the end fade from and to that colour); the thumbnails whole
+too. Unit `slideshow-geom.test.mjs` 12 (46,000 placements — 8 video shapes × 8 photo shapes, zoom on and off, every frame
+of 10 s: inside the frame, the shape kept; Fill and Fit equal to the formula they always had); e2e `slideshow-whole` 21 (a
+4 : 1 panorama, a 1 : 3 strip and a square with a coloured square in each corner, made into videos of all four shapes:
+the four squares whole in every frame read, from the first to the last frame of each photo; the colour around; the
+control — Fit with the zoom, unchanged, cuts the panorama, and the check sees it).
 
 ### Noise Remover — BUILT (`src/tools/noise.ts`, worker `src/workers/noise.worker.ts`; e2e `tests/e2e/noise.e2e.mjs` 25)
 **Xiph RNNoise 0.2** (recurrent network trained on speech + noise, C, BSD-3) as **Jitsi builds it** —

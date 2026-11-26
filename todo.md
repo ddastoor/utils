@@ -181,22 +181,6 @@ The owner adds items here in chat ("add … to to do"). Newest instructions win.
       guessed: Tesseract's best models (tessdata_best beside best_int), PaddleOCR PP-OCRv5 on ONNX Runtime (on the site
       already; the earlier test, docs/WASM-AUDIT.md tab 122, was on blurred Kindle photos only), a layout model for lists
       and tables (PP-DocLayout, DocLayout-YOLO); each model's size said against the site's 1 GB before it is added.
-19. **Slideshow Maker: every picture whole, nothing cut** (owner, 26 Nov 2026: "in the slideshow maker app, some of the
-    pictures that I added are getting cut. Add a new option whereby when the slideshow happens, none of the pictures get
-    cut at all. So the slideshow should have two options, one that already exists and one a new option where the
-    slideshow should contain the original pictures in their full, original uncut form.")
-    - **Why pictures are cut today:** a photo of another shape than the video (a portrait photo in a 16:9 slideshow) is
-      cropped by "Fill (crop edges)", the default; and even with "Fit (blurred background)" the gentle zoom (Ken Burns,
-      on by default) grows each photo by 8 % and pans it, which cuts its edges too.
-    - **The new option, "Whole pictures (nothing cut)":** every photo is shown entire for all its time on screen —
-      fitted inside the frame; the gentle zoom, when on, moves only within the frame (from a little smaller up to the
-      frame, never past it) and pans only where there is room; around the photo the blurred background or a plain colour
-      (black, white, any); crossfades as before. The existing way stays as it is beside it.
-    - Also considered: a shape "Like the photos" (the shape most of the photos have), so whole pictures fill the frame
-      with no bars at all.
-    - **The suite:** photos of extreme shapes (a 4 : 1 panorama, a 1 : 3 strip, a square) with a coloured mark in each
-      corner, in every video shape, zoom on and off: every frame of the video holds all four corners of the photo on
-      screen; the existing modes unchanged.
 20. **Noise Remover: "Studio voice" — a voice recorded outdoors made to sound as if spoken in a studio** (owner, 26 Nov
     2026: "In the noise remover app, it should be that when I record my voice, say out in the open, in traffic or
     outside, when I remove the noise, there should be a new option so that it should sound as if I'm speaking in the
@@ -364,6 +348,13 @@ The owner adds items here in chat ("add … to to do"). Newest instructions win.
       two boxes; the boxes emptied by a change of mode.
 
 ## Done
+- **19. Slideshow Maker: every picture whole, nothing cut** (owner, 26 Nov 2026: "Add a new option whereby when the
+  slideshow happens, none of the pictures get cut at all") — done 26 Nov 2026: a third look, **"Whole pictures (nothing
+  cut)"**, beside Fill and Fit (both as they were): every photo entire for all its time on screen, the gentle zoom only
+  inside the frame (92 – 100 % of the fitted size), the pan only within the room beside it; around it the blurred photo,
+  black, white or any colour. `src/lib/slideshow-geom.ts`; unit `slideshow-geom` 12, e2e `slideshow-whole` 21 (every
+  frame read keeps all four corners of a panorama, a strip and a square) and `slideshow` 20. Not built: a video shape
+  "Like the photos" (it was only considered).
 - **12. Photo Dictionary: the final list of words in alphabetical order** (owner, 21 Nov 2026) — done 21 Nov 2026: the
   same cards, A → Z without regard to case or accents; the line above says so; Share list in the same order. Unit
   `photodict-order` 6, e2e `photodict` 115.

@@ -3,24 +3,30 @@
 // muxed by mediabunny; music is looped/trimmed and faded with our audio.wasm, encoded as AAC (where the browser has no
 // AAC encoder — Chromium on Linux, Firefox — by mediabunny's WebAssembly AAC encoder, src/lib/aac.ts; it was Opus inside
 // the MP4). Photos are decoded by our loader (HEIC, EXIF orientation, huge photos). A video is made from a copy of the
-// settings and the photo list taken when it starts: changes meanwhile wait for the next one.
-import { h, card, field, actions, button, select, slider, segmented, toggle, stack, note, progress, filePicker, toast, errMsg, fmtTime, fmtBytes, baseName, downloadBlob, shareOrDownload, clear, type Mount } from '../ui';
+// settings and the photo list taken when it starts: changes meanwhile wait for the next one. Where a photo is drawn:
+// src/lib/slideshow-geom.ts — "Fill" crops, "Fit" lays it on a blurred copy, "Whole pictures" never cuts a photo (to-do #19).
+import { h, card, field, input, actions, button, select, slider, segmented, toggle, stack, note, progress, filePicker, toast, errMsg, fmtTime, fmtBytes, baseName, downloadBlob, shareOrDownload, clear, type Mount } from '../ui';
 import { imagePicker } from '../lib/imgtools';
 import { loadImg, previewOf } from '../lib/imgio';
 import { audio, decodeAudio, channelsOf } from '../lib/audio-client';
 import { ensureAac } from '../lib/aac';
+import { placement, type FitMode } from '../lib/slideshow-geom';
 
 type Aspect = '16:9' | '9:16' | '1:1' | '4:5';
 const ASPECTS: Array<[Aspect, string]> = [['16:9', 'Landscape 16:9'], ['9:16', 'Reels / Stories 9:16'], ['1:1', 'Square 1:1'], ['4:5', 'Portrait 4:5']];
 const FPS = 30;
 interface Photo { name: string; bmp: ImageBitmap; tiny: ImageBitmap; w: number; h: number }
-/** what a frame is drawn from: the live settings for the preview, a copy of them for a video being made */
-interface Plan { photos: Photo[]; per: number; total: number; fit: 'fill' | 'fit'; zoom: boolean; fade: boolean }
+/** what a frame is drawn from: the live settings for the preview, a copy of them for a video being made; `bg` = around a
+ *  whole picture: 'blur' (a blurred copy of the photo) or a plain colour (#rrggbb) */
+interface Plan { photos: Photo[]; per: number; total: number; fit: FitMode; zoom: boolean; fade: boolean; bg: string }
+type Around = 'blur' | 'black' | 'white' | 'colour';
+const AROUND: Array<[Around, string]> = [['blur', 'Blurred photo'], ['black', 'Black'], ['white', 'White'], ['colour', 'Colour']];
 
 export const mount: Mount = (root, ctx) => {
   const photos: Photo[] = [];
   let music: { name: string; buf: AudioBuffer } | null = null;
-  let secs = 3, fade = true, zoom = true, aspect: Aspect = ctx.isMobile ? '9:16' : '16:9', res = 1080, fit: 'fill' | 'fit' = 'fill', matchMusic = false, busy = false, cancel = false;
+  let secs = 3, fade = true, zoom = true, aspect: Aspect = ctx.isMobile ? '9:16' : '16:9', res = 1080, fit: FitMode = 'fill', matchMusic = false, busy = false, cancel = false;
+  let around: Around = 'blur', colour = '#2b2b2b';
   let outBlob: Blob | null = null, outUrl = '', playing = 0, ac: AudioContext | null = null, musicSeq = 0, live = true;
   const doomed = new Set<Photo>(); // removed while a video is being made: closed when it is done (it drew a closed bitmap)
   const free = (p: Photo) => { if (busy) doomed.add(p); else { p.bmp.close(); p.tiny.close(); } };
@@ -28,7 +34,8 @@ export const mount: Mount = (root, ctx) => {
   const size = (): [number, number] => { const [a, b] = aspect.split(':').map(Number), r2 = (v: number) => Math.round(v / 2) * 2; return a >= b ? [r2((res * a) / b), res] : [res, r2((res * b) / a)]; };
   const perPhoto = () => (matchMusic && music && photos.length ? Math.max(1, music.buf.duration / photos.length) : secs);
   const total = () => photos.length * perPhoto();
-  const livePlan = (): Plan => ({ photos, per: perPhoto(), total: total(), fit, zoom, fade });
+  const bgOf = () => (around === 'blur' ? 'blur' : around === 'black' ? '#000000' : around === 'white' ? '#ffffff' : colour);
+  const livePlan = (): Plan => ({ photos, per: perPhoto(), total: total(), fit, zoom, fade, bg: bgOf() });
 
   const list = h('div', { class: 'ss-list' });
   const info = h('div', { class: 'muted small', 'aria-live': 'polite' });
@@ -44,17 +51,21 @@ export const mount: Mount = (root, ctx) => {
   function drawPhoto(g: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D, pl: Plan, p: Photo, W: number, H: number, prog01: number, k: number, alpha: number) {
     const { fit, zoom } = pl;
     g.globalAlpha = alpha;
-    const cover = Math.max(W / p.w, H / p.h), contain = Math.min(W / p.w, H / p.h);
-    if (fit === 'fit') { // blurred, darkened cover of the same photo behind it
+    if (fit === 'fit' || (fit === 'whole' && pl.bg === 'blur')) { // blurred, darkened cover of the same photo behind it
+      const cover = Math.max(W / p.w, H / p.h);
       g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'low';
       const s = cover * 1.1; g.drawImage(p.tiny, (W - p.w * s) / 2, (H - p.h * s) / 2, p.w * s, p.h * s);
       g.fillStyle = `rgba(0,0,0,${0.35 * alpha})`; g.fillRect(0, 0, W, H);
-    }
-    const z = zoom ? 1 + 0.08 * prog01 : 1, s = (fit === 'fill' ? cover : contain) * z;
-    const pan = zoom ? (k % 2 ? 1 : -1) * 0.025 * W * (prog01 - 0.5) : 0;
+    } else if (fit === 'whole') { g.fillStyle = pl.bg; g.fillRect(0, 0, W, H); } // a plain colour around the picture
+    const r = placement(fit, zoom, prog01, k, W, H, p.w, p.h);
     g.imageSmoothingQuality = 'high';
-    g.drawImage(p.bmp, (W - p.w * s) / 2 + pan, (H - p.h * s) / 2, p.w * s, p.h * s);
+    g.drawImage(p.bmp, r.x, r.y, r.w, r.h);
     g.globalAlpha = 1;
+  }
+  /** the start fades in from black and the end out to it — or from and to the plain colour around whole pictures */
+  function veil(g: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D, pl: Plan, a: number, W: number, H: number) {
+    if (pl.fit === 'whole' && pl.bg !== 'blur') { g.globalAlpha = a; g.fillStyle = pl.bg; g.fillRect(0, 0, W, H); g.globalAlpha = 1; }
+    else { g.fillStyle = `rgba(0,0,0,${a})`; g.fillRect(0, 0, W, H); }
   }
   function frameAt(g: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D, t: number, W: number, H: number, pl: Plan = livePlan()) {
     const { photos: ps, per: d, total: T, fade: fd } = pl, n = ps.length, tf = fd ? Math.min(0.8, d / 3) : 0;
@@ -63,8 +74,8 @@ export const mount: Mount = (root, ctx) => {
     const i = Math.min(n - 1, Math.floor(t / d)), local = t - i * d;
     drawPhoto(g, pl, ps[i], W, H, (local + tf) / (d + tf), i, 1);
     if (tf && i + 1 < n && local > d - tf) { const a = (local - (d - tf)) / tf; drawPhoto(g, pl, ps[i + 1], W, H, (local - (d - tf)) / (d + tf), i + 1, a); }
-    if (tf && i === 0 && local < tf / 2) { g.fillStyle = `rgba(0,0,0,${1 - local / (tf / 2)})`; g.fillRect(0, 0, W, H); } // fade in from black
-    if (tf && t > T - tf / 2) { g.fillStyle = `rgba(0,0,0,${Math.min(1, (t - (T - tf / 2)) / (tf / 2))})`; g.fillRect(0, 0, W, H); } // and out
+    if (tf && i === 0 && local < tf / 2) veil(g, pl, 1 - local / (tf / 2), W, H); // fade in from black
+    if (tf && t > T - tf / 2) veil(g, pl, Math.min(1, (t - (T - tf / 2)) / (tf / 2)), W, H); // and out
   }
   function drawPreview(t = 0) {
     const [W, H] = size(), maxH = Math.max(240, innerHeight * 0.55), cw = Math.round(Math.min(preview.parentElement?.clientWidth || 640, 720, (maxH * W) / H)), ch = Math.round((cw * H) / W);
@@ -81,7 +92,8 @@ export const mount: Mount = (root, ctx) => {
   function renderList() {
     clear(list).append(...photos.map((p, i) => {
       const c = h('canvas', { class: 'ss-thumb', width: 96, height: 72 }) as HTMLCanvasElement;
-      const g = c.getContext('2d')!, s = Math.max(96 / p.w, 72 / p.h); g.drawImage(p.bmp, (96 - p.w * s) / 2, (72 - p.h * s) / 2, p.w * s, p.h * s);
+      const g = c.getContext('2d')!, s = (fit === 'whole' ? Math.min : Math.max)(96 / p.w, 72 / p.h); // whole pictures: whole here too
+      g.drawImage(p.bmp, (96 - p.w * s) / 2, (72 - p.h * s) / 2, p.w * s, p.h * s);
       const move = (d: number) => { const j = i + d; if (j < 0 || j >= photos.length) return; [photos[i], photos[j]] = [photos[j], photos[i]]; refresh(); };
       return h('div', { class: 'ss-item' }, h('span', { class: 'ss-num' }, String(i + 1)), c,
         h('div', { class: 'ss-btns' },
@@ -197,6 +209,12 @@ export const mount: Mount = (root, ctx) => {
   const saveBtn = button(ctx.isMobile ? 'Save' : 'Download', async () => { if (!outBlob) return; const n = `slideshow-${new Date().toISOString().slice(0, 10)}.mp4`; ctx.isMobile ? await shareOrDownload(outBlob, n) : downloadBlob(outBlob, n); }, { icon: 'Download', variant: 'primary' }); saveBtn.hidden = true;
   const playBtn = button('Preview', () => playPreview(), { icon: 'Play' });
   const secsS = slider({ label: 'Seconds per photo', min: 1, max: 10, step: 0.5, value: secs, fmt: (v) => `${v} s`, onInput: (v) => { secs = v; refresh(); } });
+  const wholeHint = 'Whole pictures: every photo stays entire on screen for all its time — the gentle zoom only moves it inside the frame.';
+  const colourIn = input({ type: 'color', value: colour, attrs: { 'aria-label': 'Colour around the pictures' }, onInput: (v) => { colour = v; refresh(); } });
+  colourIn.hidden = true;
+  const aroundBox = field('Around the whole picture', h('div', { class: 'row' },
+    segmented<Around>(AROUND, around, (v) => { around = v; colourIn.hidden = v !== 'colour'; refresh(); }), colourIn), wholeHint);
+  aroundBox.hidden = true;
 
   work.append(
     card('Photos', list, info),
@@ -204,7 +222,8 @@ export const mount: Mount = (root, ctx) => {
     card('Look', stack(
       field('Shape', segmented(ASPECTS, aspect, (v) => { aspect = v; refresh(); })),
       field('Quality', segmented<string>([['1080', '1080p (sharper)'], ['720', '720p (smaller)']], String(res), (v) => { res = +v; refresh(); })),
-      field('Photos that do not match the shape', segmented<string>([['fill', 'Fill (crop edges)'], ['fit', 'Fit (blurred background)']], fit, (v) => { fit = v as any; refresh(); })),
+      field('Photos that do not match the shape', segmented<FitMode>([['fill', 'Fill (crop edges)'], ['fit', 'Fit (blurred background)'], ['whole', 'Whole pictures (nothing cut)']], fit, (v) => { fit = v; aroundBox.hidden = v !== 'whole'; refresh(); })),
+      aroundBox,
       secsS,
       toggle('Crossfade between photos', fade, (v) => { fade = v; refresh(); }),
       toggle('Gentle zoom (Ken Burns)', zoom, (v) => { zoom = v; refresh(); }))),
