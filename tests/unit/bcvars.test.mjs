@@ -46,4 +46,61 @@ export default async (t, { load }) => {
   t.eq([last, many.get('zz')?.value, many.get('aaa')?.value], ['AAA', '701', '702'], 'after ZZ comes AAA (Excel goes on so)');
   many.clear();
   t.eq([many.assign('1'), many.size], ['A', 1], 'a new session starts again at A');
+
+  // ---- bc's own variables as $ names (to-do #25; owner: "> interest=20.78 / > $interest … should also be set")
+  const b = new BcVars();
+  /** what the console does with a line: prepare it, and learn what it set once bc ran it (here: when it has no error) */
+  const line = (src) => { const p = b.prepare(src); if (!p.error) b.learn(p.sets); return p; };
+  t.eq(line('interest=20.78').sets, ['interest'], 'interest=20.78 sets bc\'s variable interest');
+  t.eq(line('$interest').line, '(interest)', '$interest stands for the variable itself — the value bc holds at that point');
+  t.eq(line('$Interest * 2').line, '(interest) * 2', '$Interest is $interest: bc\'s names are lower case');
+  t.eq([...b.bcVariables], ['interest'], 'the session\'s bc variables are listed once');
+  let p = line('rate = 7.5; years = 10; $rate * $years');
+  t.eq([p.line, p.sets], ['rate = 7.5; years = 10; (rate) * (years)', ['rate', 'years']], 'set inside a line with other statements: reached later in the same line');
+  t.ok(/^\$later is not set/.test(b.prepare('$later + 1; later = 5').error ?? ''), 'a variable set only further on in the line is not set yet where $ reads it');
+  t.eq(line('for (i = 0; i < 3; i++) total += i').sets, ['i', 'total'], 'a loop: its counter and what it adds to');
+  t.eq([b.prepare('++count').sets, b.prepare('n--').sets, b.prepare('--m; k++').sets], [['count'], ['n'], ['m', 'k']], '++ and -- before or after a name set it');
+  t.eq(b.prepare('if (k == 1) q = 2; if (k <= 1) q2 = 2; k != 1; k >= 1').sets, ['q', 'q2'], 'comparisons set nothing (== <= != >=)');
+  t.eq(b.prepare('a[1] = 5; s(1); f(2)').sets, [], 'an array element and function calls are not variables');
+  t.eq(b.prepare('print "z = 5\\n"; /* w = 1 */ # q = 2').sets, [], 'nothing inside strings and comments');
+  t.eq(line('define f(x, y[]) { auto t, u[]; t = x * 2; g = t; y[0] = 1; return t }').sets, ['g'], 'define: parameters and auto variables are the function\'s own — only g, a global, is the session\'s');
+  t.eq(b.prepare('define void h(x) { w = x }').sets, ['w'], 'define void: the same');
+  t.eq(b.prepare('x = 1; define e2(x) { return x }; x').sets, ['x'], 'a name set outside a function is the session\'s even when a function takes it as a parameter');
+  t.ok(/^\$t is not set/.test(b.prepare('$t').error ?? '') && /^\$x is not set/.test(b.prepare('$x').error ?? ''), 'a function\'s own variables are no $ names');
+  t.eq([b.prepare('$scale').line, b.prepare('$ibase + $obase').line], ['(scale)', '(ibase) + (obase)'], 'scale, ibase and obase hold a value from the start');
+  // a $ name of a bc variable is for reading
+  for (const change of ['$interest += 1', '$interest++', '++$interest', '$interest -= 2', '$rate ^= 2']) {
+    t.ok(/is bc's own variable (interest|rate): change it without the \$/.test(b.prepare(change).error ?? ''), `“${change}” is refused: bc's variable is changed without the $`);
+  }
+  t.ok(/^\$interest is bc's own variable interest: set it without the \$ \(interest = …\), or choose another \$ name/.test(b.prepare('$interest = 5').error ?? ''), '$interest = 5 is refused: it would hide bc\'s variable behind a $ name');
+  t.ok(/^\$scale is bc's own variable scale/.test(b.prepare('$scale = 3').error ?? ''), '… and so is $scale = 3');
+  // not set: the reason, the way to set it, and the names so far — the results' and the bc variables'
+  const ns = b.prepare('$principal').error ?? '';
+  t.ok(/^\$principal is not set — set it with principal = … \(a bc variable\) or \$principal = … \(a \$ name, set once\)/.test(ns), `a variable never set: the reason and both ways (${ns})`);
+  t.ok(/the names so far: .*\$interest \$rate \$years \$i \$total \$g/.test(ns), 'the names so far include bc\'s variables');
+  // a result's name and a bc variable of the same name: the result comes first, and that is said once
+  const c = new BcVars();
+  c.assign('1'); // A
+  t.eq(c.prepare('a = 5').sets, ['a'], 'a = 5 sets bc\'s a');
+  c.learn(['a']);
+  p = c.prepare('$a + 1');
+  t.eq(p.line, '(1) + 1', '$a is the result A where both exist');
+  t.ok(/^\$a is the result named A \(1\): a result's name comes first — bc's own variable a is written a, without the \$/.test(p.note ?? ''), 'and the tab says so');
+  t.eq(c.prepare('$a * 2').note, undefined, '… once');
+  t.eq(c.prepare('$A').line, '(1)', 'in any case');
+  c.clear();
+  t.ok(/^\$a is not set/.test(c.prepare('$a').error ?? '') && c.bcVariables.length === 0, 'Clear session forgets bc\'s variables too');
+  const d = new BcVars();
+  d.prepare('nope = 1'); // the console learns only what bc ran: this line failed in bc, say
+  t.ok(/^\$nope is not set/.test(d.prepare('$nope').error ?? ''), 'a line bc refused teaches nothing');
+
+  // the substituted session run by the native GNU bc gives the values the owner expects (where /usr/bin/bc is installed)
+  const { spawnSync } = await import('node:child_process');
+  const e = new BcVars(), session = [];
+  for (const src of ['interest=20.78', '$interest', 'interest = 21', '$interest', '$Interest * 2', 'rate = 7.5; years = 10; $rate * $years', 'for (i = 1; i <= 4; i++) total += i', '$total', 'define sq(x) { auto y; y = x * x; z = y; return y }', 'sq(5)', '$z']) {
+    const q = e.prepare(src); t.ok(!q.error, `prepared: ${src}`); session.push(q.line); e.learn(q.sets);
+  }
+  const r = spawnSync('bc', ['-lq'], { input: session.join('\n') + '\n', encoding: 'utf8' });
+  if (r.error) t.ok(true, 'native bc not installed: the session was not run (apt install bc)');
+  else t.eq(r.stdout.trim().split('\n'), ['20.78', '21', '42', '75.0', '10', '25', '25'], `the native bc runs the session: $interest is 20.78, then 21 after interest = 21; $rate * $years; a loop's total; a global set in define (${JSON.stringify(r.stdout.trim().split('\n'))})`);
 };

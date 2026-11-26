@@ -63,6 +63,32 @@ export default async ({ base, page: newPage, ok, devices }) => {
   await page.getByRole('button', { name: 'Clear session' }).click();
   r = await rows('1 + 1');
   ok(JSON.stringify(r) === JSON.stringify([['2', '$A']]), `Clear session starts the names again at A (${JSON.stringify(r)})`);
+
+  // ---- bc's own variables as $ names (to-do #25 — the owner's lines: "> interest=20.78 / > $interest")
+  r = await rows('interest=20.78');
+  ok(r.length === 0, 'interest=20.78 prints nothing (an assignment)');
+  r = await rows('$interest');
+  ok(JSON.stringify(r) === JSON.stringify([['20.78', '$B']]), `$interest is what interest holds — and the result gets its name (${JSON.stringify(r)})`);
+  await rows('interest = 21');
+  r = await rows('$Interest');
+  ok(JSON.stringify(r) === JSON.stringify([['21', '$C']]), `a later interest = 21 is seen; $Interest is $interest (${JSON.stringify(r)})`);
+  ok((await ask('$B')) === '20.78', 'the result named B keeps the value it was given');
+  ok((await ask('rate = 7.5; years = 10; $rate * $years')) === '75.0', 'variables set inside a line with other statements, used in it');
+  await rows('for (i = 1; i <= 4; i++) total += i');
+  ok((await ask('$total')) === '10', "a loop's total (1 + 2 + 3 + 4)");
+  await rows('define sq2(x) { auto y; y = x * x; z = y; return y }');
+  ok((await ask('sq2(5)')) === '25' && (await ask('$z')) === '25', 'a global set inside define is a $ name');
+  await rows('$y'); ok(/^\$y is not set/.test(await lastErr()), "the function's auto variable is not");
+  await rows('$interest += 1'); ok(/^\$interest is bc's own variable interest: change it without the \$/.test(await lastErr()), '$interest += 1 refused: bc\'s variable is changed without the $');
+  await rows('$principal');
+  ok(/^\$principal is not set — set it with principal = … \(a bc variable\) or \$principal = …[^]*the names so far: [^]*\$interest \$rate \$years \$i \$total \$z/.test(await lastErr()), `a variable never set: the reason, and the names so far with bc's variables (${await lastErr()})`);
+  ok((await ask('$scale')) === '20', "$scale: the maths library's 20");
+  await rows('a = 5');
+  r = await rows('$a');
+  ok(r.length === 2 && /^\$a is the result named A \(2\): a result's name comes first — bc's own variable a is written a/.test(r[0][0]) && r[1][0] === '2', `$a is the result A where bc has an a too — said (${JSON.stringify(r)})`);
+  ok((await ask('a * 2')) === '10' && (await rows('$a + 0')).length === 1, "bc's a is a; the note comes once");
+  await page.getByRole('button', { name: 'Clear session' }).click();
+  await rows('$interest'); ok(/^\$interest is not set/.test(await lastErr()), "Clear session forgets bc's variables too");
   ok((await page.locator('.calc-expr').count()) === 1, 'keypad calculator still present beside it');
   ok(page.errors.length === 0, `no page errors: ${page.errors.join(' | ')}`);
   const phone = await newPage({ ...devices['iPhone 13'] });

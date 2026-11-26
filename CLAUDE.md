@@ -709,6 +709,16 @@ server sends more than it announced; WAV written by the browser's own 16-bit rul
   line — never inside strings or comments, never a bc variable (bc's capital letters are hex digits); bc's own lower-case
   variables, loops and `define` functions work as before. Text rows (`print "…"`) and obase above 16 get no name. "Clear
   session" starts the names again at A.
+  **bc's own variables are $ names too (to-do #25, owner, 26 Nov 2026 — done):** "> interest=20.78 / > $interest … The interest
+  variable should also be set, and the user should be able to use this interest variable as $interest subsequently." A
+  variable the session has set — `interest=20.78`, `rate = 7.5` inside a line with other statements, a loop's `i++` and
+  `total += i`, a global set inside `define` (not its parameters or `auto` variables), and `scale`, `ibase`, `obase` — is
+  reached as `$interest` (`$Interest` too); it is put in as the variable itself, `(interest)`, so it is the value bc holds
+  at that point (a later `interest = 21` is seen; a result's name keeps its number). Where a result has the same name
+  (`$a` and bc's `a`), the result's name comes first and the console says so once; a $ name of a bc variable is for
+  reading (`$interest += 1`, `$interest = 5` refused: change it without the $); "not set" names both ways to set a name
+  and lists bc's variables with the results' names. Unit `bcvars` 79 (the substituted session also run by the native GNU
+  bc), e2e `bc-console` 44.
 - **Linux Terminal — owner instructions (Nov 16 2026):** include **as many BusyBox applets as possible**; when an
   applet needs a syscall WASI lacks, look for a browser-side shim that covers it (e.g. exec/fork → run another
   BusyBox instance on the same in-memory FS via a host import; identity → /etc/passwd in the FS; uname/nproc/df →

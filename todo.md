@@ -250,18 +250,6 @@ The owner adds items here in chat ("add … to to do"). Newest instructions win.
       rectangle is drawn on the frozen screen. With a delay, the countdown first, then the rectangle. Touch works too.
     - **The suite:** a known picture shared, a rectangle dragged → exactly those pixels saved (PNG read back); Esc;
       adjusting a corner; a delay; a window shared instead of a screen.
-25. **bc console: a bc variable usable as a $ name** (owner, 26 Nov 2026, in the Scientific Calculator's bc console:
-    "> interest=20.78 / > $interest / $interest is not set (the names so far: $A $B $C) — The interest variable should also
-    be set, and the user should be able to use this interest variable as $interest subsequently.")
-    - **Today:** `interest=20.78` sets bc's own variable `interest` (bc prints nothing for an assignment, so no row gets
-      a name); `$interest` looks only at the $ names (the automatic $A, $B … and those set with `$x = …`) and says it is
-      not set.
-    - **To do:** a variable set in bc (`interest=20.78`, `rate = 7.5`, also inside a line with other statements) can be
-      used as `$interest` from then on — the value bc holds at that moment (a later `interest = 21` is seen); `$Interest`
-      as `$interest` (bc's names are lower case); the names list in the messages includes them; a clash with an
-      automatic name (`$a` is `$A` today) settled by a clear rule and said; a variable never set still answered with
-      its reason. Unit `bcvars.test.mjs` and the e2e suite: the owner's three lines, a change after, a loop, `define`,
-      Clear session.
 
 26. **Key Codes: key combinations such as Alt+W shown as one** (owner, 26 Nov 2026: "In the key codes app, can you make alt
     keys to work? Alt+key seems to be recognized separately. When I press alt+W, I'm not getting the alt+W code. Is this
@@ -348,6 +336,12 @@ The owner adds items here in chat ("add … to to do"). Newest instructions win.
       two boxes; the boxes emptied by a change of mode.
 
 ## Done
+- **25. bc console: a bc variable usable as a $ name** (owner, 26 Nov 2026: "> interest=20.78 / > $interest … The interest
+  variable should also be set") — done 26 Nov 2026: a variable the session has set (also inside a line with other
+  statements, in a loop, a global set in `define`) and scale / ibase / obase are reached as `$interest` (`$Interest`
+  too) — the value bc holds at that point; a result's name comes first where both exist (said once); a change through
+  the $ refused with how to make it; "not set" lists bc's variables too. `src/lib/bcvars.ts`; unit `bcvars` 79 (with the
+  native GNU bc), e2e `bc-console` 44. CLAUDE.md §2 "bc console".
 - **19. Slideshow Maker: every picture whole, nothing cut** (owner, 26 Nov 2026: "Add a new option whereby when the
   slideshow happens, none of the pictures get cut at all") — done 26 Nov 2026: a third look, **"Whole pictures (nothing
   cut)"**, beside Fill and Fit (both as they were): every photo entire for all its time on screen, the gentle zoom only
