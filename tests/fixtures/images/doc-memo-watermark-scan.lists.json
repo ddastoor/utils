@@ -1,0 +1,377 @@
+[
+ {
+  "mark": "•",
+  "label": null,
+  "level": 0,
+  "lines": [
+   [
+    "Organize",
+    "the",
+    "project's",
+    "conference",
+    "(if",
+    "they",
+    "have",
+    "one)"
+   ]
+  ]
+ },
+ {
+  "mark": "•",
+  "label": null,
+  "level": 0,
+  "lines": [
+   [
+    "Help",
+    "community",
+    "members",
+    "find",
+    "the",
+    "right",
+    "conferences",
+    "and",
+    "submit",
+    "proposals",
+    "for",
+    "speaking"
+   ]
+  ]
+ },
+ {
+  "mark": "◦",
+  "label": null,
+  "level": 1,
+  "lines": [
+   [
+    "Restructure",
+    "layouts",
+    "to",
+    "improve",
+    "the",
+    "project's",
+    "usability"
+   ]
+  ]
+ },
+ {
+  "mark": "◦",
+  "label": null,
+  "level": 1,
+  "lines": [
+   [
+    "Conduct",
+    "user",
+    "research",
+    "to",
+    "reorganize",
+    "and",
+    "refine",
+    "the",
+    "project's",
+    "navigation"
+   ]
+  ]
+ },
+ {
+  "mark": "▪",
+  "label": null,
+  "level": 2,
+  "lines": [
+   [
+    "Put",
+    "together",
+    "a",
+    "style",
+    "guide",
+    "to",
+    "help",
+    "the",
+    "project"
+   ]
+  ]
+ },
+ {
+  "mark": "•",
+  "label": null,
+  "level": 0,
+  "lines": [
+   [
+    "Create",
+    "art",
+    "for",
+    "t-shirts",
+    "or",
+    "a",
+    "new",
+    "logo,",
+    "like",
+    "hapi.js's",
+    "contributors",
+    "did"
+   ]
+  ]
+ },
+ {
+  "mark": "•",
+  "label": null,
+  "level": 0,
+  "lines": [
+   [
+    "Write",
+    "and",
+    "improve",
+    "the",
+    "project's",
+    "documentation,",
+    "like",
+    "@CBID2",
+    "did",
+    "for",
+    "OpenSauced's"
+   ],
+   [
+    "documentation"
+   ]
+  ]
+ },
+ {
+  "mark": null,
+  "label": "1.",
+  "level": 0,
+  "lines": [
+   [
+    "Service",
+    "discovery",
+    "and",
+    "load",
+    "balancing",
+    "Kubernetes",
+    "can",
+    "expose",
+    "a",
+    "container",
+    "using",
+    "a",
+    "DNS",
+    "name",
+    "or",
+    "its"
+   ],
+   [
+    "own",
+    "IP",
+    "address.",
+    "If",
+    "traffic",
+    "to",
+    "a",
+    "container",
+    "is",
+    "high,",
+    "Kubernetes",
+    "is",
+    "able",
+    "to",
+    "load",
+    "balance",
+    "and",
+    "distribute"
+   ],
+   [
+    "the",
+    "network",
+    "traffic",
+    "so",
+    "that",
+    "the",
+    "deployment",
+    "is",
+    "stable."
+   ]
+  ]
+ },
+ {
+  "mark": null,
+  "label": "2.",
+  "level": 0,
+  "lines": [
+   [
+    "Storage",
+    "orchestration",
+    "Kubernetes",
+    "allows",
+    "you",
+    "to",
+    "automatically",
+    "mount",
+    "a",
+    "storage",
+    "system",
+    "of",
+    "your"
+   ],
+   [
+    "choice,",
+    "such",
+    "as",
+    "local",
+    "storage,",
+    "public",
+    "cloud",
+    "providers,",
+    "and",
+    "more."
+   ]
+  ]
+ },
+ {
+  "mark": null,
+  "label": "a.",
+  "level": 1,
+  "lines": [
+   [
+    "Automated",
+    "rollouts",
+    "and",
+    "rollbacks",
+    "You",
+    "can",
+    "describe",
+    "the",
+    "desired",
+    "state",
+    "for"
+   ]
+  ]
+ },
+ {
+  "mark": null,
+  "label": "b.",
+  "level": 1,
+  "lines": [
+   [
+    "Automatic",
+    "bin",
+    "packing",
+    "You",
+    "provide",
+    "Kubernetes",
+    "with",
+    "a",
+    "cluster",
+    "of",
+    "nodes"
+   ]
+  ]
+ },
+ {
+  "mark": null,
+  "label": "c.",
+  "level": 1,
+  "lines": [
+   [
+    "Self-healing",
+    "Kubernetes",
+    "restarts",
+    "containers",
+    "that",
+    "fail,",
+    "replaces",
+    "containers,",
+    "kills",
+    "containers"
+   ],
+   [
+    "that"
+   ]
+  ]
+ },
+ {
+  "mark": null,
+  "label": "3.",
+  "level": 0,
+  "lines": [
+   [
+    "Secret",
+    "and",
+    "configuration",
+    "management",
+    "Kubernetes",
+    "lets",
+    "you",
+    "store",
+    "and",
+    "manage",
+    "sensitive"
+   ],
+   [
+    "information,",
+    "such",
+    "as",
+    "passwords,",
+    "OAuth",
+    "tokens,",
+    "and",
+    "SSH",
+    "keys.",
+    "You",
+    "can",
+    "deploy",
+    "and",
+    "update",
+    "secrets"
+   ],
+   [
+    "and",
+    "application",
+    "configuration",
+    "without",
+    "rebuilding",
+    "your",
+    "container",
+    "images,",
+    "and",
+    "without",
+    "exposing"
+   ],
+   [
+    "secrets",
+    "in",
+    "your",
+    "stack",
+    "configuration."
+   ]
+  ]
+ },
+ {
+  "mark": null,
+  "label": "4.",
+  "level": 0,
+  "lines": [
+   [
+    "Batch",
+    "execution",
+    "In",
+    "addition",
+    "to",
+    "services,",
+    "Kubernetes",
+    "can",
+    "manage",
+    "your",
+    "batch",
+    "and",
+    "CI",
+    "workloads,"
+   ],
+   [
+    "replacing",
+    "containers",
+    "that",
+    "fail,",
+    "if",
+    "desired."
+   ]
+  ]
+ }
+]

@@ -29,17 +29,23 @@ const ROMAN = /^(?=[ivx])x{0,3}(?:ix|iv|v?i{0,3})$|^(?=[IVX])X{0,3}(?:IX|IV|V?I{
 /** A list's label as the reader read it: a mark it read as a character, or a number, letter or roman numeral with its
  *  full stop or bracket — 1. 12) (3) a. B) (c) iv. (XI). Not "1.2" (numbered headings) nor a number alone. */
 export function isLabel(t: string): boolean {
-  if (/^[•·∙◦○●▪■□☐☑☒✓✔✗✘➢➤►▸»\-–—*+]$/u.test(t)) return true;
+  if (/^[•·∙◦○●▪■□☐☑☒✓✔✗✘➢➤►▸»>\-–—*+]$/u.test(t) || /^[>»➢➤►▸]{2}$/u.test(t)) return true;   // ➢ read as ">" or ">»"
   const m = /^(\()?([0-9]{1,3}|[A-Za-z]|[ivxIVX]{2,6})([.)])$/.exec(t);
   if (!m || (m[1] && m[3] !== ')')) return false;
-  return /^[0-9A-Za-z]{1,3}$/.test(m[2]) && (/^[0-9]+$/.test(m[2]) || m[2].length === 1 || ROMAN.test(m[2]));
+  return m[2].length === 1 || /^[0-9]+$/.test(m[2]) || ROMAN.test(m[2]);
 }
 
-interface Row { words: OcrWord[]; para: number; block: number }
+/** a line: its words, its paragraph and block, its height, top and bottom (the medians of its words': a dash or a dot read
+ *  as a word is a few pixels high and stands half way up) */
+interface Row { words: OcrWord[]; para: number; block: number; h: number; top: number; bot: number }
 interface Item { markX: number; textX: number; lead: number }
 
 export function listText(r: Pick<OcrResult, 'text' | 'words' | 'lines'>, marks: ListMark[] = [], xh = 0): string {
-  const rows: Row[] = (r.lines || []).map((l) => ({ words: r.words.slice(l.w0, l.w1), para: l.para, block: l.block })).filter((l) => l.words.length);
+  const median = (v: number[]) => { const s = [...v].sort((a, b) => a - b); return s.length ? s[s.length >> 1] : 0; };
+  const rows: Row[] = (r.lines || []).map((l) => {
+    const words = r.words.slice(l.w0, l.w1);
+    return { words, para: l.para, block: l.block, h: Math.max(1, median(words.map((w) => w.y1 - w.y0 + 1))), top: median(words.map((w) => w.y0)), bot: median(words.map((w) => w.y1)) };
+  }).filter((l) => l.words.length);
   if (!rows.length) return r.text;
   // the x-height: imgproc's on the page read, else from the words' heights (a word's box reaches from its ascenders to its
   // descenders)
@@ -60,7 +66,7 @@ export function listText(r: Pick<OcrResult, 'text' | 'words' | 'lines'>, marks: 
       const k = row.words.findIndex((w) => w.x0 > mx);
       if (k < 0) return;
       const w = row.words[k], gap = w.x0 - m.x1, dy = Math.abs(midY(w) - my);
-      if (gap > 12 * X || dy > 0.6 * hOf(w)) return;
+      if (gap > 12 * X || dy > 0.6 * Math.max(hOf(w), row.h)) return;
       if (!best || dy < best.dy) best = { ri, k, dy, gap };
     });
     if (!best) continue;
@@ -77,13 +83,14 @@ export function listText(r: Pick<OcrResult, 'text' | 'words' | 'lines'>, marks: 
 
   // 2. the lines in their order: items, the lines they run on to, the rest
   const out: string[] = [];
-  let stack: Item[] = [], prev: OcrWord | null = null, prevRow: Row | null = null, prevIn = false, changed = false;
+  let stack: Item[] = [], prevRow: Row | null = null, prevIn = false, changed = false;
   rows.forEach((row, ri) => {
     const kept = row.words.map((w, j) => j).filter((j) => !skip[ri].has(j));
     if (!kept.length) return;
     const first = row.words[kept[0]], mark = at[ri].get(kept[0]);
     // a list ends at the top of a new column (the line starts above the one before) and well below its last line
-    if (prev && (first.y0 < prev.y0 - 0.5 * hOf(prev) || first.y0 - prev.y1 > 3 * hOf(prev))) stack = [];
+    const fresh = !!prevRow && (row.top < prevRow.top - 0.5 * prevRow.h || row.top - prevRow.bot > 3 * prevRow.h);
+    if (fresh) stack = [];
     let item: { markX: number; textX: number; label: string } | null = null;
     if (mark) item = { markX: mark.x0, textX: first.x0, label: mark.glyph };
     else if (kept.length >= 2 && isLabel(first.text)) item = { markX: first.x0, textX: row.words[kept[1]].x0, label: first.text };
@@ -102,16 +109,17 @@ export function listText(r: Pick<OcrResult, 'text' | 'words' | 'lines'>, marks: 
       while (k >= 0 && first.x0 < stack[k].textX - tol) k--;
       if (k >= 0) { stack.length = k + 1; indent = stack[k].lead; inList = true; } else stack = [];
     }
-    // the paragraph break before it, left out between the lines of one list that stand as close as lines
+    // the paragraph break before it, left out between the lines of one list that stand as close as lines (below the line
+    // before, at most a line's height under it)
     if (prevRow && (row.para !== prevRow.para || row.block !== prevRow.block)) {
-      if (inList && prevIn && prev && first.y0 - prev.y1 <= hOf(prev)) changed = true;
+      if (inList && prevIn && !fresh && row.top > prevRow.top && row.top - prevRow.bot <= prevRow.h) changed = true;
       else out.push('');
     }
     const parts: string[] = [];
     for (const j of kept) { const mk = at[ri].get(j); if (mk) parts.push(mk.glyph); parts.push(row.words[j].text); }
     if (indent || at[ri].size || skip[ri].size) changed = true;
     out.push(' '.repeat(indent) + parts.join(' '));
-    prev = first; prevRow = row; prevIn = inList;
+    prevRow = row; prevIn = inList;
   });
   if (!changed) return r.text;
   return out.join('\n').replace(/\n{3,}/g, '\n\n').replace(/^\n+/, '').replace(/\s+$/, '');

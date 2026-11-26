@@ -238,6 +238,15 @@ the 47 Software stub tabs (each with its own suite) first, then ask about potent
   `getpass` reads the Windows console, never a pipe — a tool that takes a password must read stdin when it is no
   terminal, and a suite's synchronous child processes come from `tests/lib/child.mjs` (a time limit: one that waits for
   ever froze every suite of run 8).
+- **Measuring a change to the OCR's reading** (owner: none may read worse): `OCR_IMGPROC=old.wasm node
+  scripts/measure-ocr.mjs SET --prep read --paddle` against the tree's build on the same set at the same time (two shards
+  each: `OCR_SHARD=k/2`), every photo's "words read right", "clean" and "stray" compared; the photo sets are made by
+  `scripts/make-kindle-photos.py`, `scripts/make-format-docs.mjs` + `scripts/make-doc-photos.py` (see CLAUDE.md §3 OCR).
+  A change that only adds information (the list of marks, to-do #31) is checked by comparing the cleaned pictures byte
+  for byte instead. `OCR_LIST=DIR` dumps the OCR tab's text with its lists; `tests/lib/listscore.mjs` scores it against
+  `<page>.lists.json`. On the measuring machine, CPU contention slows the e2e suites: run them after a measurement.
+- **The Windows check's log cannot be fetched from here** (its host is refused by the proxy): a check that fails only on
+  Windows must say in its own message what is needed to understand it (which reader, the line under the text …).
 - **zig's wasm32-wasi libc** (single-threaded): an implicitly declared function gets the wrong wasm signature and traps
   at run time (force-include prototypes — wasm/graphviz/compat.h); the main thread's musl thread list is unlinked, so
   `pthread_key_delete` loops forever (wasm/python/wasi_start.c); the process starts in "/" whatever PWD says; zig cc

@@ -2730,6 +2730,17 @@ cannot. Three new suites; each fails on the build before its fixes.
   sodium passed (the hang is gone), screencast passed (run 8's failure did not come back: the load of four suites at
   once); pgp9580 ran plain `gpg` with a Windows home folder, the pgp suite's fault of run 5 again → both suites take gpg
   and its home folder from `tests/e2e/_gpg.mjs`.
+  (14) **Runs 10 and 11** (26 Nov 2026: pgp9580, ocr, photodict, zip, unzip; then ocr alone): 299 of 300 — the OCR
+  suite's light-on-dark sentence came back "The quick brown fox iumps over the lazv doa near the river bank.", its
+  descenders lost, on Windows only (the suite draws it in the browser in "DejaVu Sans", which Windows does not have:
+  Arial). Taken at first for PaddleOCR's reading, wrongly — the commit before run 11 says it was new since PaddleOCR, but
+  run 9 never ran the OCR suite. Run 11's check named the reader and the page step: Tesseract, at 93 %, and "the page was
+  found and straightened" — in a screenshot of one flat colour, the outline of its single line of text was taken for a
+  page (not square on, so not a screenshot's panel) and straightened, the descenders outside it. → No outline more
+  elongated than 6 : 1 is a page (`MAX_ASPECT`, src/lib/pagecrop.ts: the most elongated page found in the measured photos
+  is 1.49 : 1, so no measured reading changes); unit pagecrop 50 (+3: a tilted strip round a line is outlined and left
+  alone). Arial cannot be drawn here, and the picture's bytes, printed into the run's log, could not be fetched from the
+  log's host: the next Windows run checks the fix.
 - **OCR and Photo Dictionary: documents with formatting read poorly, above all from a phone (26 Nov 2026; owner, to-do
   #18: "works very poorly for a document that has formatting, rich text formatting like bullet points, indentation, etc.,
   especially using the phone camera. Also improve the quality when the document has a watermark").** Measured on 150

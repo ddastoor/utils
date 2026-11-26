@@ -8,10 +8,11 @@ import { fileURLToPath } from 'node:url';
 import { readFileSync } from 'node:fs';
 import { fakeTextCamera, live, stopped } from './_camera.mjs';
 import { tiltedJpeg, CLOSE_UP } from './_tilt.mjs';
+import { scoreLists } from '../lib/listscore.mjs';
 const F = (n) => fileURLToPath(new URL(`../fixtures/images/${n}`, import.meta.url));
 
 export default async ({ base, page: newPage, ok, info, download, devices }) => {
-  const page = await newPage();
+  const page = await newPage({ permissions: ['clipboard-read', 'clipboard-write'] });
   await page.goto(base + '#/ocr');
   const recognise = async (file, langLabel, clean = true) => {
     await page.locator('input[type=file]').setInputFiles(file);
@@ -55,15 +56,29 @@ export default async ({ base, page: newPage, ok, info, download, devices }) => {
   // (src/lib/readpage.ts): a checklist with bullets, check boxes, a table and a red DRAFT on a smooth desk (it passed for a
   // screenshot and was never straightened: 15 % before), a two-column newsletter in a video frame (read straight across
   // the columns: 56 % before), a Word memo close up, its page running off the photo (63 %). No list mark is read as a
-  // letter ("e", "o", "©", "71") and no table rule as "|" (the owner: "no need to keep bullets and indentation in the
-  // text;.. but the ocr should not get confused by them").
-  const STRAY = /^\s*(?:[eoOcC©®«»*•◦▪●○■□☐☑✓✔>¢°·~=+]|71|\(?[eo©]\)?|[eo][.,])\s+\S/;
-  for (const [f, min] of [['doc-checklist-draft-still.jpg', 0.85], ['doc-newsletter-frame.jpg', 0.9], ['doc-memo-still.jpg', 0.92]]) {
+  // letter ("e", "o", "©", "71") and no table rule as "|" (the owner: "the ocr should not get confused by them"). And the
+  // page's lists are kept in the text (to-do #31; owner, 26 Nov 2026: "In the OCR app, the rich formatting should be
+  // preserved, the bullet points, etc."): each item with its mark (• ◦ ▪ ☐ ☑, put back where the clean-up cleared it) or
+  // its number, four spaces a level, the lines it runs on to under its text — held to the page's own lists
+  // (<photo>.lists.json, from scripts/make-format-docs.mjs). A mark put back is no stray: the strays are the marks the
+  // reader read as letters.
+  const STRAY = /^\s*(?:[eoOcC©®«¢°~=]|71|\(?[eo©]\)?|[eo][.,])\s+\S/;
+  for (const [f, min, items, runOn] of [['doc-checklist-draft-still.jpg', 0.85, 8, 1], ['doc-newsletter-frame.jpg', 0.9, 3, 4], ['doc-memo-still.jpg', 0.92, 14, 9]]) {
     const got = await recognise(F(f), 'English', true), truth = wordsOf(readFileSync(F(f.replace('.jpg', '.txt')), 'utf8'));
     const right = lcs(truth, wordsOf(got)) / truth.length;
     ok(right >= min && /the page was found and straightened/.test(await line()), `${f}: ${(100 * right).toFixed(1)} % of the page's words read right, in reading order (at least ${100 * min} %; ${await line()})`);
     const strays = got.split('\n').filter((l) => STRAY.test(l)), bars = (got.match(/(^|\s)\|(?=\s|$)/g) || []).length;
     ok(strays.length <= 1 && bars <= 1, `${f}: no list mark read as a letter, no table rule as | (${strays.length} lines ${JSON.stringify(strays.slice(0, 3))}, ${bars} bars)`);
+    const sc = scoreLists(got, JSON.parse(readFileSync(F(f.replace('.jpg', '.lists.json')), 'utf8')));
+    ok(sc.right >= items && sc.contRight >= runOn, `${f}: the page's lists kept — ${sc.right} of ${sc.items} items with their mark or number at their level (at least ${items}), ${sc.contRight} of ${sc.conts} lines run on to under their item's text (at least ${runOn})${sc.wrong.length ? ': ' + sc.wrong.slice(0, 4).join(' | ') : ''}`);
+    if (f === 'doc-memo-still.jpg') {
+      info(`${f} as the tab gives it:\n${got.split('\n').slice(3, 18).map((l) => '      | ' + l).join('\n')}`);
+      // Copy and the .txt give the text as the box shows it, marks and spaces and all
+      const txtM = readFileSync(await download(page, () => page.getByRole('button', { name: 'Download .txt' }).click()), 'utf8');
+      await page.getByRole('button', { name: 'Copy' }).click();
+      const clip = await page.evaluate(() => navigator.clipboard.readText()).catch((e) => `(clipboard: ${e.message})`);
+      ok(txtM === got && clip === got && /\n {4}◦ /.test(got) && /\n {8}▪ /.test(got), `${f}: the .txt and Copy give the text with its marks and indentation (${txtM === got}, ${clip === got})`);
+    }
   }
   // a scan with CONFIDENTIAL across it as strong as printers make it: the white area its letters fence in is no page (it
   // passed for one, and the page was read from half way down — 47 % of its words); the scan is read whole
@@ -211,12 +226,9 @@ export default async ({ base, page: newPage, ok, info, download, devices }) => {
     let b = ''; for (let i = 0; i < u.length; i += 0x8000) b += String.fromCharCode(...u.subarray(i, i + 0x8000)); return btoa(b);
   }), 'base64');
   const dk = await recognise({ name: 'dark.png', mimeType: 'image/png', buffer: dark }, 'English', true);
-  // (the line under the text says which reader's text it is and how sure it was: on Windows, where "DejaVu Sans" is
-  // Arial, this sentence once came back as "iumps … lazv doa")
-  const dkOk = dk.replace(/\s+/g, ' ') === 'The quick brown fox jumps over the lazy dog near the river bank.';
-  ok(dkOk, `light text on dark, cleaned up: exactly the sentence (${JSON.stringify(dk)}; ${await page.locator('.ocr-text + div').textContent()})`);
-  // (in progress, to-do #13: the picture this browser drew, to read it again elsewhere)
-  if (!dkOk) console.log(`OCR-DARK-PNG ${process.platform} ${dark.toString('base64')}`);
+  // (on Windows, where "DejaVu Sans" is Arial, the outline of its line was taken for a page and straightened, the
+  // descenders cut off: "iumps … lazv doa" — no page is shaped like a line of text: src/lib/pagecrop.ts MAX_ASPECT)
+  ok(dk.replace(/\s+/g, ' ') === 'The quick brown fox jumps over the lazy dog near the river bank.' && !/straightened/.test(await line()), `light text on dark, cleaned up: exactly the sentence, read as it is (${JSON.stringify(dk)}; ${await line()})`);
 
   // Copy and Download with nothing read yet are refused in words
   await page.locator('input[type=file]').setInputFiles(F('coffee.jpg'));

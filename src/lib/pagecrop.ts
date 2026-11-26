@@ -79,12 +79,19 @@ export function pageSize(c: number[]): [number, number] {
   return [Math.max(1, Math.round(Math.max(d(0, 1), d(3, 2)))), Math.max(1, Math.round(Math.max(d(0, 3), d(1, 2))))];
 }
 
-/** Is this outline the page? Convex, in the photo, and of a page's share of it. `beyond`: the share of the photo's size
- *  a corner may lie outside it (the network's page refined: a page that runs off the photo has its corners outside),
- *  and then the page may cover the photo up to as much. */
+/** A page is never more elongated than this (its longer side over its shorter): the most elongated page found in the
+ *  photos of scripts/measure-ocr.mjs is 1.49 : 1, a long receipt is about 4 : 1. An outline round a line of text in a
+ *  screenshot is 30 : 1 and more (to-do #13: on Windows, where Chrome draws the OCR suite's dark test sentence in Arial,
+ *  the outline of its line was taken for a page and straightened — the descenders cut off: "iumps … lazv doa"). */
+export const MAX_ASPECT = 6;
+/** Is this outline the page? Convex, in the photo, of a page's shape and of a page's share of it. `beyond`: the share of
+ *  the photo's size a corner may lie outside it (the network's page refined: a page that runs off the photo has its
+ *  corners outside), and then the page may cover the photo up to as much. */
 export function usable(corners: number[], w: number, h: number, beyond = 0): boolean {
   const q = corners.map((v, k) => v / (k % 2 ? h : w));
   if (!isPageQuad(q) || !q.every((v) => v >= -0.01 - beyond && v <= 1.01 + beyond)) return false;
+  const [pw, ph] = pageSize(corners);
+  if (Math.max(pw, ph) > MAX_ASPECT * Math.min(pw, ph)) return false;
   let area = 0;
   for (let i = 0; i < 4; i++) { const j = (i + 1) % 4; area += q[i * 2] * q[j * 2 + 1] - q[j * 2] * q[i * 2 + 1]; }
   const share = Math.abs(area) / 2;

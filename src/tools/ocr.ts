@@ -1,8 +1,9 @@
 // OCR: photo / scan / screenshot → text in English, French, Spanish or German (Tesseract LSTM in WebAssembly). The reading
 // is the Photo Dictionary's own (src/lib/readpage.ts — to-do #18, owner, 26 Nov 2026: "make the ocr app's ocr capability
 // the same quality as the Photo Dictionary's"): a photographed page found and straightened, set upright and level, cleaned
-// up, its ruled lines and list marks cleared, a page of columns read column by column. Low-confidence words highlighted,
-// copy / .txt download. Pictures can be turned by hand; a picture that reads badly is tried the other ways round.
+// up, its ruled lines and list marks cleared, a page of columns read column by column. The text keeps the page's lists
+// (src/lib/listtext.ts — to-do #31): the marks put back at the line starts, nested items indented. Low-confidence words
+// highlighted, copy / .txt download. Pictures can be turned by hand; a picture that reads badly is tried the other ways round.
 // A picture comes from a file or from the camera (the phone's back camera, the PC's webcam: src/lib/livecam.ts).
 import { h, card, field, segmented, toggle, stack, note, progress, button, actions, copy, downloadBlob, shareOrDownload, baseName, reveal, type Mount } from '../ui';
 import { imgproc, type Img } from '../wasm/imgproc';
@@ -10,6 +11,7 @@ import { previewOf, paint } from '../lib/imgio';
 import { imageInput } from '../lib/imgtools';
 import type { OcrLang } from '../lib/ocr';
 import { readPage, readsPoorly, unsureWord, secondWords } from '../lib/readpage';
+import { listText } from '../lib/listtext';
 import { uprightWords, turnWords, ROT } from '../lib/upright';
 
 export const mount: Mount = (root, ctx) => {
@@ -60,7 +62,10 @@ export const mount: Mount = (root, ctx) => {
     else if (res.secondError) note += ` · the photo was soft, and the second reader could not be loaded (${res.secondError})`;
     // a poor reading after all that: the photo itself (out of focus, shaken, the text a few pixels high) — say so
     if (r.text && readsPoorly(res)) note += ' · the text reads poorly: a sharper photo, closer and in good light, reads better';
-    out.value = r.text;
+    // the page's lists as they stand on it — bullets and check boxes at the line starts, nested items indented (to-do #31;
+    // owner, 26 Nov 2026: "In the OCR app, the rich formatting should be preserved, the bullet points, etc."): the text box,
+    // Copy and the .txt; the Photo Dictionary keeps its text plain
+    out.value = listText(r, res.listMarks, res.xh);
     info.textContent = r.text
       ? `${r.words.length} words · average confidence ${Math.round(r.confidence)} % · ${((performance.now() - t0) / 1000).toFixed(1)} s${note}`
       : 'No text found. Try better light, a straighter photo, or another language.';

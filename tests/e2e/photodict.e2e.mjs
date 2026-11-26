@@ -277,6 +277,9 @@ export default async ({ base, page: newPage, ok, info, devices }) => {
       const strays = text.split('\n').filter((l) => STRAY.test(l));
       ok(ref.length >= 5 && share >= min, `${what}: ${Math.round(100 * share)} % (at least ${100 * min} %) of the ${ref.length} uncommon words of a clean copy — missing: ${ref.filter((w) => !got.includes(w)).join(', ') || 'none'}`);
       ok(right >= 0.85 && strays.length <= 1, `${what}: the page's text ${(100 * right).toFixed(0)} % in reading order; list marks read as letters: ${strays.length} ${JSON.stringify(strays.slice(0, 2))}`);
+      // the Photo Dictionary's text stays plain (owner, 26 Nov 2026: "In the photo dictionary app, it need not be" — the
+      // OCR tab puts the list marks back, to-do #31): no mark the clean-up cleared comes back here
+      ok(!/[•◦▪◆►☐☑☒◉]/.test(text), `${what}: the text stays plain — no list mark put back`);
     }
     // the second reader for soft photos (owner, 26 Nov 2026: "Ok use PaddleOCR fallback for soft photos"): a frame of the
     // live video of a checklist that Tesseract reads unsurely (60 % of its words) is read by PaddleOCR too and its reading

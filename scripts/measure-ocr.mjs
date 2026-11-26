@@ -89,7 +89,8 @@ async function imgprocNode() {
   const { readPage } = await vite.ssrLoadModule('/src/lib/readpage.ts');
   const { readingOf } = await vite.ssrLoadModule('/src/lib/ocr.ts');
   const { listText } = await vite.ssrLoadModule('/src/lib/listtext.ts');
-  const mod = await WebAssembly.compile(readFileSync(join(root, 'src/wasm/bin/imgproc.wasm')));
+  // OCR_IMGPROC=FILE: another build of imgproc.wasm (to measure a change of it against the one before)
+  const mod = await WebAssembly.compile(readFileSync(process.env.OCR_IMGPROC || join(root, 'src/wasm/bin/imgproc.wasm')));
   let memory; const w = {};
   for (const i of WebAssembly.Module.imports(mod)) if (i.module === 'wasi_snapshot_preview1') w[i.name] = () => 52;
   w.fd_prestat_get = () => 8; w.proc_exit = (c) => { throw new Error('exit ' + c); };

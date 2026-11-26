@@ -1,0 +1,77 @@
+[
+ {
+  "mark": "•",
+  "label": null,
+  "level": 0,
+  "lines": [
+   [
+    "Horizontal",
+    "scaling",
+    "Scale",
+    "your",
+    "application",
+    "up"
+   ],
+   [
+    "and",
+    "down",
+    "with",
+    "a",
+    "simple",
+    "command,",
+    "with",
+    "a"
+   ]
+  ]
+ },
+ {
+  "mark": "•",
+  "label": null,
+  "level": 0,
+  "lines": [
+   [
+    "IPv4/IPv6",
+    "dual-stack",
+    "Allocation",
+    "of",
+    "IPv4",
+    "and"
+   ],
+   [
+    "IPv6",
+    "addresses",
+    "to",
+    "Pods",
+    "and",
+    "Services."
+   ]
+  ]
+ },
+ {
+  "mark": "•",
+  "label": null,
+  "level": 0,
+  "lines": [
+   [
+    "Designed",
+    "for",
+    "extensibility",
+    "Add",
+    "features",
+    "to"
+   ],
+   [
+    "your",
+    "Kubernetes",
+    "cluster",
+    "without",
+    "changing"
+   ],
+   [
+    "upstream",
+    "source",
+    "code."
+   ]
+  ]
+ }
+]

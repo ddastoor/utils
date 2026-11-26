@@ -12,7 +12,9 @@
 // Drawn by Chromium at A4 (794 × 1123 CSS px, × 2.5: about 240 dpi): OUT/pages/<name>.png, and OUT/pages/<name>.txt =
 // the words a reader sees on the page, in reading order (from the page itself: every word drawn inside it), without the
 // bullet marks and the watermark (the owner: "no need to keep bullets and indentation in the text;.. but the ocr should
-// not get confused by them") — list numbers and letters are text and stay. scripts/make-doc-photos.py photographs them.
+// not get confused by them") — list numbers and letters are text and stay; OUT/pages/<name>.lists.json = the page's
+// lists, item by item: the mark (or number, letter), the level, the words of each of its lines (to-do #31: the OCR tab
+// keeps the lists). scripts/make-doc-photos.py photographs them.
 import { writeFileSync, readFileSync, mkdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -179,9 +181,33 @@ async function main() {
       }
       return out;
     });
+    // the lists as they stand on the page (to-do #31: the OCR tab keeps them): every item in order with its mark (or its
+    // number / letter), its level and the words of each line it takes up
+    const lists = await page.evaluate(() => {
+      const pg = document.querySelector('.page'), pr = pg.getBoundingClientRect(), out = [];
+      for (const li of pg.querySelectorAll('li')) {
+        const bul = li.querySelector(':scope > .bul'), num = li.querySelector(':scope > .num'), t = li.querySelector(':scope > .t');
+        const lines = [], walk = document.createTreeWalker(t, NodeFilter.SHOW_TEXT);
+        for (let n; (n = walk.nextNode());) {
+          const re = /\S+/g; let m;
+          while ((m = re.exec(n.textContent))) {
+            const rg = document.createRange(); rg.setStart(n, m.index); rg.setEnd(n, m.index + m[0].length);
+            const b = rg.getClientRects()[0];
+            if (!b || !(b.width > 0 && b.top >= pr.top && b.bottom <= pr.bottom - 1)) continue;
+            let line = lines.find((l) => Math.abs(l.top - b.top) < 4);
+            if (!line) lines.push((line = { top: b.top, words: [] }));
+            line.words.push(m[0]);
+          }
+        }
+        lines.sort((a, b) => a.top - b.top);
+        if (lines.length) out.push({ mark: bul ? bul.textContent : null, label: num ? num.textContent : null, level: +((li.parentElement.className.match(/l(\d)/) || [0, 0])[1]), lines: lines.map((l) => l.words) });
+      }
+      return out;
+    });
     const name = wm ? `${d.name}-${wm}${strong ? '-strong' : ''}` : d.name;
     await page.locator('.page').screenshot({ path: join(OUT, 'pages', `${name}.png`) });
     writeFileSync(join(OUT, 'pages', `${name}.txt`), words.join(' ') + '\n');
+    writeFileSync(join(OUT, 'pages', `${name}.lists.json`), JSON.stringify(lists, null, 1) + '\n');
     index.push({ name, theme: d.theme, watermark: wm, strong, words: words.length });
     console.log(`${name.padEnd(26)} ${d.theme.padEnd(8)} ${words.length} words`);
   }

@@ -32,6 +32,16 @@ export default async (t, { load, wasm }) => {
   t.ok(!pc.usable([2, 2, 998, 2, 998, 798, 2, 798], 1000, 800), 'an outline that is the whole photo is left alone (a scan, a screenshot)');
   t.ok(!pc.usable([100, 100, 880, 700, 900, 120, 90, 690], 1000, 800), 'corners that cross are no page');
   t.ok(!pc.usable([100, 100, 900, 120, NaN, 700, 90, 690], 1000, 800), 'NaN corners are no page');
+  // no page is shaped like a line of text (to-do #13: on Windows the outline of a screenshot's line was straightened as a
+  // page and its descenders cut off); a long receipt is
+  t.ok(!pc.usable([20, 20, 880, 26, 880, 52, 20, 46], 900, 72), `an outline 33 times as long as it is high is no page (at most ${pc.MAX_ASPECT} : 1)`);
+  t.ok(pc.usable([100, 50, 300, 52, 298, 850, 98, 848], 400, 900), 'a long receipt (4 : 1) is a page');
+  {
+    // a light strip round a line on a dark screen, slightly tilted: the outline finder finds it; it is not taken for a page
+    const strip = photo(900, 150, [[20, 50], [880, 62], [880, 92], [20, 80]], { stripes: false });
+    const o = await ip.pageQuad(strip), ss = await pc.straighten(strip, ip);
+    t.ok(o.confidence > 0 && !ss.found, `a strip round a line of text: outlined (${o.confidence > 0}), and left as it is (${!ss.found})`);
+  }
 
   // a tilted page on a dark table: found, its corners where they are, straightened to an upright page
   const quad = [[260, 140], [1180, 210], [1120, 1460], [200, 1380]];
