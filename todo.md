@@ -60,7 +60,8 @@ The owner adds items here in chat ("add … to to do"). Newest instructions win.
       `api.github.com` for what that cannot do — a short hash made full, a path missing at a commit explained (60
       requests an hour without an account; said when used up) — added to the CSP's connect-src, §3a's table of approved
       data APIs and `no-external.e2e.mjs`; only the repository, the path and the hashes are sent, nothing typed in the
-      page. Mocked in the suites (`page.route`), checked against GitHub by hand.
+      page. Mocked in the suites (`page.route`), checked against GitHub by hand. **Approved by the owner, 26 Nov 2026:**
+      "for #14, yes u may contact raw.githubusercontent.com and api.github.com in real time" (CLAUDE.md §3a).
     - **The difference as a patch file** (the unified diff format that `patch` and `git apply` read): the tab already
       has "Copy as patch / Download .diff", with the headers `--- original` / `+++ changed` and the name `changes.diff`
       — `patch` cannot tell which file such a patch is for. Make it a proper patch: the real names in the headers
@@ -291,8 +292,8 @@ The owner adds items here in chat ("add … to to do"). Newest instructions win.
     - **To do:** the list of apps in a pane that folds: open by default; once an app is open a button at the row's end
       ("Hide the list of apps", a chevron) folds it to one slim line — the open app's name and "All n apps of Software ▾"
       — and opens it again; the category row and the search box stay. Folded stays folded while moving between apps
-      and categories, kept for the visit only (nothing is stored between visits — the site's rule; only Favorites are
-      kept). Keyboard: the button reachable with Tab, its state said to screen readers (aria-expanded). Phones: the same
+      and categories, and **remembered between visits like Favorites** (owner, 26 Nov 2026: "for #27, remembered between
+      visits like Favorites.." — `localStorage` beside Favorites; CLAUDE.md §1 rule 1 notes the exception). Keyboard: the button reachable with Tab, its state said to screen readers (aria-expanded). Phones: the same
       for the sticky rows, which then take less of the screen. The suite: open, fold, the tab's height gained, unfold, a
       route change keeps it, every category, phone and PC, the accessibility sweep (a11y.e2e.mjs) and the touch-target
       sweep.

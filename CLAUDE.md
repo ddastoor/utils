@@ -224,7 +224,8 @@ Wayland) and **mobile browsers** (Android Chrome, iPhone Safari).
 1. **Static and stateless.** No backend, no login, no accounts, no analytics, no cookies, no service worker,
    **no PWA / offline install**. Nothing is saved between visits **except the owner-requested Favorites list**
    (tool ids in `localStorage` key `superutils.favorites.v1` — the stars of the old key `supertools.favorites.v1` are
-   moved to it once —, `src/favorites.ts`; never leaves the browser).
+   moved to it once —, `src/favorites.ts`; never leaves the browser) **and, since the owner's word of 26 Nov 2026, whether the category's list of apps is folded**
+   (to-do #27 — owner: "remembered between visits like Favorites"; `localStorage` beside Favorites, nothing else).
 2. **No online *code* dependencies (owner clarification).** Every library, script, WebAssembly module, ML model,
    font and icon is embedded in / served from this site — WebAssembly first, else a locally hosted open-source JS
    library. Never a CDN or remote script. **Fetching *data* from a public online API is allowed** (e.g. network
@@ -2717,8 +2718,10 @@ only when a tool needs live data and the owner has accepted that tool. **Approve
 |---|---|---|---|
 | `en.wiktionary.org` (Wikimedia REST: `/api/rest_v1/page/definition/<word>`) | `photodict` | one word | online fallback for words missing from the bundled dictionary (owner request) |
 | `api.dictionaryapi.dev` (Free Dictionary API: `/api/v2/entries/en/<word>`) | `photodict` | one word | second fallback if Wiktionary has no entry or is down |
+| `raw.githubusercontent.com` (a file of a public repository at a commit: `/<owner>/<repo>/<commit>/<path>`) | `diff` (to-do #14) | the repository, the file's path and a commit | the Text Diff's "a file of a public GitHub repository at two commits" — approved by the owner, 26 Nov 2026: "yes u may contact raw.githubusercontent.com and api.github.com in real time"; **goes into the CSP when #14 is built** |
+| `api.github.com` (REST, no key: a short hash or a branch made a full commit, a path missing at a commit explained) | `diff` (to-do #14) | the repository, the path, the commits | what the raw files cannot say (60 requests an hour without an account, said when used up) — approved with the host above |
 | `en.wikipedia.org` (Wikimedia REST: `/api/rest_v1/page/summary/<title>`) | `photodict` | one word, or the phrase the reader selected | a short summary under each word and phrase (owner, 21 Nov 2026; `src/lib/wikipedia.ts`; a switch turns it off) |
-All three are free, need no key or account, send CORS headers, set no cookies we read. **Live in the CSP since the
+All are free, need no key or account, send CORS headers, set no cookies we read (the two GitHub hosts: approved, not live yet — with to-do #14). **Live in the CSP since the
 Photo Dictionary shipped** (`connect-src 'self' blob: data: https://en.wiktionary.org https://api.dictionaryapi.dev
 https://en.wikipedia.org` — Wikipedia since 21 Nov 2026);
 `no-external.e2e.mjs` asserts that connect-src lists exactly these hosts and that no code directive allows any host. e2e tests never hit them: Playwright `page.route` serves recorded responses (the dev sandbox cannot
