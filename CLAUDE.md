@@ -858,8 +858,20 @@ how much of the photo the person fills. The newest photo and the newest backgrou
 and animals would need another model (docs/WASM-AUDIT.md, 114).
 
 ### Blur & Redact, Watermark, Text on Image, Collage — as built after the Nov 2026 bug hunt
-- `redact` (e2e 27): Save is refused while faces are still being looked for (it would save every face visible); the
+- `redact` (e2e 47): Save is refused while faces are still being looked for (it would save every face visible); the
   newest photo wins; boxes drawn during the search are kept; a failed search is said in the status line.
+  **Every face at once, or only the faces chosen (to-do #15; owner, 26 Nov 2026: "a toggle to find all faces and redact,
+  or … selectively choose only that face he wants to redact … any number of faces manually to redact and undo them, or
+  select all the faces in one shot"):** a switch **"Redact every face found"** — on (the default, as before): every face
+  hidden when it is found; off: the faces are found and outlined, none hidden until chosen; it keeps its setting for
+  the next photo (while the page is open), and flipped it does the same to the photo shown. A tap (click, Enter) on a
+  face hides it, another shows it again (`aria-pressed`); **"Redact all faces"** / **"Show all faces"** in one go; boxes
+  drawn by hand stay as they are. **Undo** (and Ctrl+Z / ⌘Z) takes back the last change, step by step, back to how the
+  photo began — taps, all / none, the switch, a box drawn, "Remove my boxes" (a box drawn during the face search keeps
+  its Undo: the faces are added to what Undo brings back). The line under the photo: "6 faces found · 2 hidden · 1 box
+  of your own"; Save saves what is shown. e2e: a group photo of six faces, black bars — the saved file's pixels at each
+  face (hidden or the photo's own) with the switch on and off, two taps and one taken back, Undo and Ctrl+Z, all and
+  none, Undo to the beginning; the switch kept for the portrait and undone there; phone touch targets.
 - `watermark` (e2e 18): the preview is the first photo that opens; "Clear photos"; empty text refused; photos that
   fail are listed under the results; the saved photos' logo resized with @jsquash/resize.
 - `caption` (unit `textwrap.test.mjs` 18, e2e 14): `wrapLines` in `src/lib/textwrap.ts` breaks an over-long word

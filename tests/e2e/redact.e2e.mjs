@@ -1,6 +1,10 @@
 // Blur & Redact (#/redact): MediaPipe face detection on a real portrait (NASA astronaut photo) and on a generated
-// "group photo" of six small faces; pixelate / blur / black bar; manual boxes; toggling a face off.
+// "group photo" of six small faces; pixelate / blur / black bar; manual boxes; toggling a face off; every face at once
+// or only the faces chosen, all / none and Undo (to-do #15) — the saved file's pixels at each face.
 import { fileURLToPath } from 'node:url';
+import { mkdtempSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { imageInfo, regionMeans, lum } from '../lib/imgcheck.mjs';
 const F = (n) => fileURLToPath(new URL(`../fixtures/images/${n}`, import.meta.url));
 const STATUS = '[aria-live="polite"].muted';
@@ -69,10 +73,59 @@ export default async ({ base, page: newPage, ok, info, download, devices }) => {
   info(`group photo: ${n6} faces`);
   ok(n6 === 6, `group photo: all 6 small faces found (got ${n6})`);
 
+  // ---- to-do #15 (owner, 26 Nov 2026): "a toggle to find all faces and redact, or … selectively choose only that face
+  // he wants to redact … choose any number of faces manually to redact and undo them, or select all the faces in one shot"
+  const groupFile = join(mkdtempSync(join(tmpdir(), 'redact-')), 'group.png');
+  writeFileSync(groupFile, Buffer.from(groupBuf, 'base64'));
+  const say = () => page.locator(STATUS).first().textContent();
+  // the picture is redrawn after each change (asynchronously) and Save writes its own line there: wait for the count
+  const sayIs = (want) => page.waitForFunction((w) => document.querySelector('[aria-live="polite"].muted')?.textContent === w, want, { timeout: 10000 }).then(() => true, () => false);
+  const faceRects = async () => (await page.locator('.redact-box.face').evaluateAll((els) => els.map((e) => [parseFloat(e.style.left), parseFloat(e.style.top), parseFloat(e.style.width), parseFloat(e.style.height)].map((v) => v / 100))))
+    .map(([x, y, w, h]) => [x + w * 0.3, y + h * 0.3, x + w * 0.7, y + h * 0.7]);
+  await page.getByRole('radio', { name: 'Black bar' }).click();
+  const rects = await faceRects(), origFaces = (await regionMeans(page, groupFile, rects)).map(lum);
+  /** which faces the saved file hides: black where hidden, the photo's own where not */
+  const savedHides = async () => { const m = (await regionMeans(page, await save(), rects)).map(lum); return m.map((v, i) => (v < 8 ? 'hidden' : Math.abs(v - origFaces[i]) < 4 ? 'shown' : `? ${v.toFixed(0)}`)); };
+  const pressed = () => page.locator('.redact-box.face').evaluateAll((els) => els.map((e) => e.getAttribute('aria-pressed') === 'true'));
+  ok(await sayIs('6 faces found · 6 hidden') && (await savedHides()).every((x) => x === 'hidden'), `the switch on (as before): every face hidden at once, in the saved file too (${await say()})`);
+  const sw = page.locator('label.switch', { hasText: 'Redact every face found' });
+  await sw.click();
+  ok(await sayIs('6 faces found · 0 hidden') && await page.locator('.redact-box.face.off').count() === 6, `switched off: the faces are outlined, none hidden (${await say()})`);
+  ok((await savedHides()).every((x) => x === 'shown'), 'switched off: the saved file shows every face');
+  const tap = (i) => page.locator('.redact-box.face').nth(i).click();
+  await tap(0); await tap(3);
+  ok(await sayIs('6 faces found · 2 hidden'), `two faces chosen by tap (${await say()})`);
+  await tap(0);
+  ok(await sayIs('6 faces found · 1 hidden'), `one taken back by a second tap (${await say()})`);
+  const one = await savedHides();
+  ok(one.join() === 'shown,shown,shown,hidden,shown,shown', `the saved file hides exactly the face left chosen (${one.join(', ')})`);
+  await page.getByRole('button', { name: 'Undo', exact: true }).click();
+  ok(await sayIs('6 faces found · 2 hidden') && (await pressed()).join() === 'true,false,false,true,false,false', `Undo: the tap taken back (${await say()})`);
+  await page.keyboard.press('Control+z');
+  ok(await sayIs('6 faces found · 1 hidden') && (await pressed()).join() === 'true,false,false,false,false,false', `Ctrl+Z: one step further back (${await say()})`);
+  await page.getByRole('button', { name: 'Redact all faces' }).click();
+  ok(await sayIs('6 faces found · 6 hidden') && (await savedHides()).every((x) => x === 'hidden'), '“Redact all faces”: every face in one go, saved so');
+  await page.getByRole('button', { name: 'Show all faces' }).click();
+  ok(await sayIs('6 faces found · 0 hidden') && (await savedHides()).every((x) => x === 'shown'), '“Show all faces”: none, saved so');
+  await page.getByRole('button', { name: 'Undo', exact: true }).click();
+  ok(await sayIs('6 faces found · 6 hidden'), `Undo after “Show all faces”: all hidden again (${await say()})`);
+  for (let i = 0; i < 10; i++) { if (await page.getByRole('button', { name: 'Undo', exact: true }).isDisabled()) break; await page.getByRole('button', { name: 'Undo', exact: true }).click(); }
+  ok(await sayIs('6 faces found · 6 hidden') && await page.getByRole('button', { name: 'Undo', exact: true }).isDisabled(), `Undo goes back to where the photo began and stops there: every face hidden, as the switch was then (${await say()})`);
+  // the switch keeps its setting for the next photo (off here: the portrait's face is only outlined), and turning it on
+  // hides the faces of the photo shown — undoable like any change
+  ok(!(await sw.locator('input').isChecked()), 'the switch itself is not part of the photo\'s history: it stays off');
+  await open(F('astronaut.png'));
+  ok(await sayIs('1 face found · 0 hidden') && !(await sw.locator('input').isChecked()), `another photo: the switch stays off and its face is only outlined (${await say()})`);
+  await sw.click();
+  ok(await sayIs('1 face found · 1 hidden'), `switched on: the face of the photo shown is hidden (${await say()})`);
+  await page.getByRole('button', { name: 'Undo', exact: true }).click();
+  ok(await sayIs('1 face found · 0 hidden') && await sw.locator('input').isChecked(), 'Undo takes back what the switch did to this photo; the switch stays as set for the photos to come');
+  ok(await sw.locator('input').isChecked(), 'the switch on for the rest of the suite');
+
   // no faces
   const n0 = await open(F('page.png'));
   ok(n0 === 0, `scanned page: no faces (got ${n0})`);
-  ok(/^0 faces found · 0 areas hidden$/.test(await page.locator(STATUS).first().textContent()), 'status: 0 faces found · 0 areas hidden');
+  ok(/^0 faces found · 0 hidden$/.test(await page.locator(STATUS).first().textContent()), 'status: 0 faces found · 0 hidden');
 
   // a big group photo (the search takes a while): Save waits for it, a box drawn meanwhile is kept, and the newest
   // photo wins
@@ -103,12 +156,12 @@ export default async ({ base, page: newPage, ok, info, download, devices }) => {
   await page.waitForFunction(() => /faces? found/.test(document.querySelector('[aria-live="polite"].muted')?.textContent || ''), null, { timeout: 120000 });
   ok(got === null, '… and nothing was downloaded');
   // the picture is redrawn with the new box (the half-drawn ghost stays until then)
-  await page.waitForFunction(() => /7 areas hidden/.test(document.querySelector('[aria-live="polite"].muted')?.textContent || ''), null, { timeout: 30000 }).catch(() => {});
+  await page.waitForFunction(() => /1 box of your own/.test(document.querySelector('[aria-live="polite"].muted')?.textContent || ''), null, { timeout: 30000 }).catch(() => {});
   const nFaces = await page.locator('.redact-box.face').count(), nMine = await page.locator('.redact-box:not(.face):not(.ghost)').count();
   await page.unroute('**/blaze_face_short_range.tflite', slow);
   ok(stillSearching, 'the box was drawn while the search was still running');
   ok(nFaces === 6 && nMine === 1, `the box drawn during the search is kept beside the 6 faces (${nFaces} + ${nMine})`);
-  ok(/^6 faces found · 7 areas hidden$/.test(await page.locator(STATUS).first().textContent()), `status counts both (${await page.locator(STATUS).first().textContent()})`);
+  ok(/^6 faces found · 6 hidden · 1 box of your own$/.test(await page.locator(STATUS).first().textContent()), `status counts both (${await page.locator(STATUS).first().textContent()})`);
   // a cancelled pointer leaves no half-drawn box
   await page.getByRole('button', { name: 'Draw a box' }).click();
   await page.evaluate(() => {
@@ -147,7 +200,7 @@ export default async ({ base, page: newPage, ok, info, download, devices }) => {
   await phone.locator('input[type=file]').setInputFiles(F('astronaut.png'));
   await phone.waitForSelector('.redact-box', { timeout: 60000 });
   ok(await phone.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'phone: no horizontal scroll');
-  for (const n of ['Save', 'Share', 'Draw a box']) {
+  for (const n of ['Save', 'Share', 'Draw a box', 'Redact all faces', 'Show all faces', 'Undo']) {
     const b = await phone.getByRole('button', { name: n, exact: true }).boundingBox();
     ok(b && b.height >= 44, `phone: ${n} is a touch target (${b && Math.round(b.height)} px)`);
   }

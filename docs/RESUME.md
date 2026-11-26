@@ -86,8 +86,9 @@ window itself. **Batch 4 is complete.** The FFmpeg suite was split (the sound ch
 **Work is on `main` now** (owner, 26 Nov 2026, evening). **The site was not updated after the morning** (every publishing
 run failed in `npm test` since #26 — fixed); it is published from main once the owner allows main in the github-pages
 environment (CLAUDE.md §7 Deploy).
-**Next (the owner's order):** batch 5 (#15 Blur & Redact, #17 Watermark, #16 Cartoonizer), 6 (#14 Text Diff), 7 (#20 Studio
-voice); then the potentials process. #32 (22 FFmpeg jobs) is not in the order: ask the owner when he is back.
+**#15 Blur & Redact: DONE (26 Nov 2026)** (todo.md Done #15): the switch, a tap per face, all / none, Undo (Ctrl+Z); e2e 47.
+**Next (the owner's order):** batch 5's #17 Watermark, then #16 Cartoonizer; 6 (#14 Text Diff), 7 (#20 Studio voice); then
+the potentials process. #32 (22 FFmpeg jobs) is not in the order: ask the owner when he is back.
 
 ## ▶ SYNC POINT — 21 Nov 2026, night (read this first; it supersedes the older "NOW" notes below)
 The owner's weekly limit is nearly used up; work resumes on Thursday. Everything below is committed and pushed.

@@ -38,23 +38,6 @@ The owner adds items here in chat ("add … to to do"). Newest instructions win.
       `<file>.patch`; held to GNU `diff -u` / `git diff` and applied by GNU `patch`, `git apply` and the Patch tab in the
       suite.
 
-15. **Blur & Redact: every face found at once, or only the faces chosen** (owner, 26 Nov 2026: "In the blur and redact
-    app, the user should be able to have a toggle to find all faces and redact, or to remove that toggle and selectively
-    choose only that face he wants to redact, or choose one or more multiple faces manually. The user should have an
-    option to choose any number of faces manually to redact and undo them, or select all the faces in one shot to
-    redact.")
-    - Today: every face the finder sees is hidden at once; a tap on a box shows that face again, "Hide all" hides them
-      all again; boxes can be drawn by hand.
-    - **A switch "Redact every face found"** — on: as today, every face hidden; off: the faces are found and outlined,
-      but none is hidden until it is chosen.
-    - **Choosing by hand:** a tap (or click) on a face hides it, another tap shows it again — any number of faces, one
-      or several; **"Redact all faces"** hides every face found in one go and **"Show all faces"** takes that back;
-      **Undo** (and Ctrl+Z) takes back the last change, step by step; boxes drawn by hand stay as they are.
-    - The line under the photo says how many faces were found and how many are hidden; Save saves exactly what is shown;
-      the switch keeps its setting when another photo is chosen.
-    - The suite: a group photo — every face hidden with the switch on, none with it off, two chosen by tap and one taken
-      back, Undo, all in one shot and back; the saved file's pixels at each face (hidden or not).
-
 16. **Cartoonizer: finer, more detailed results, more like the Prisma app** (owner, 26 Nov 2026: "The Cartoonizer app's
     output is too is too coarse-grained. Make it more fine-grained with more detail, more like the Prisma app. If you need
     to use a better library," — the message ended there; read as: a better library or model may be used. To confirm.)
@@ -175,6 +158,13 @@ The owner adds items here in chat ("add … to to do"). Newest instructions win.
       it on the tab's FFmpeg — on mono, stereo and 5.1 files.
 
 ## Done
+- **15. Blur & Redact: every face found at once, or only the faces chosen** (owner, 26 Nov 2026: "the user should be able
+  to have a toggle to find all faces and redact, or to remove that toggle and selectively choose only that face he wants
+  to redact … any number of faces manually to redact and undo them, or select all the faces in one shot to redact.") —
+  done 26 Nov 2026: the switch "Redact every face found" (on as before; off: faces only outlined until chosen; kept for
+  the next photo), a tap per face hides or shows it, "Redact all faces" / "Show all faces", Undo and Ctrl+Z step by
+  step, the count of faces found and hidden under the photo; Save saves what is shown. e2e redact 47 (the saved file's
+  pixels at each face of a six-face group photo). CLAUDE.md §3 "Blur & Redact …".
 - **28. Screenshot: scrolling screenshots** (owner, 26 Nov 2026: "Make a new option also for scrolling screenshots in the
   screenshot app.") — done 26 Nov 2026: "Take" → **A scrolling page**. A shared tab is shown in the tab and scrolled with the
   mouse wheel over its picture (Chrome's Captured Surface Control forwards the wheel; it has no way for a page to scroll

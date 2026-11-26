@@ -1,7 +1,8 @@
 // Blur & Redact: automatic face detection (MediaPipe BlazeFace, official C++ → wasm) on the whole photo plus
 // overlapping tiles so small faces in group photos are found; boxes merged with NMS in imgproc.wasm. Manual boxes
 // for number plates, documents, screens. Effects (pixelate / blur / solid bar) run in imgproc.wasm.
-import { h, card, field, button, segmented, slider, stack, note, actions, errMsg, baseName, downloadBlob, shareOrDownload, fmtBytes, clear, type Mount } from '../ui';
+// Every face found hidden at once, or only the ones chosen (to-do #15): a switch, a tap per face, all / none, Undo.
+import { h, card, field, button, segmented, slider, stack, note, actions, toggle, errMsg, baseName, downloadBlob, shareOrDownload, fmtBytes, clear, type Mount } from '../ui';
 import { imgproc, imgprocDirect, type Img } from '../wasm/imgproc';
 import { encodeImg, previewOf, EXT, type Fmt } from '../lib/imgio';
 import { imageInput } from '../lib/imgtools';
@@ -59,8 +60,18 @@ export async function applyRedaction(img: Img, boxes: Box[], effect: Effect, str
   return out;
 }
 
+/** "Redact every face found" (to-do #15 — owner, 26 Nov 2026: "a toggle to find all faces and redact, or … selectively
+ *  choose only that face he wants to redact"), kept while the page is open: through other photos and other tabs */
+const kept = { all: true };
+const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
+
 export const mount: Mount = (root, ctx) => {
   let orig: Img | null = null, small: Img | null = null, name = 'photo', fmt: Fmt = 'jpeg';
+  /** the boxes as they were before each change, newest last (Undo, Ctrl+Z) — for the photo shown */
+  let history: Box[][] = [];
+  const syncUndo = () => { undoBtn.disabled = !history.length; };
+  const remember = () => { history.push(boxes.map((b) => ({ ...b }))); if (history.length > 300) history.shift(); syncUndo(); };
+  const undo = () => { const last = history.pop(); if (!last) return; boxes = last; syncUndo(); render(); };
   let effect: Effect = 'pixelate', strength = 6, pad = 18, drawing = false;
   let boxes: Box[] = [], detecting = false, photoSeq = 0, detectNote = '';
   const canvas = h('canvas', { class: 'ed-canvas' });
@@ -76,14 +87,15 @@ export const mount: Mount = (root, ctx) => {
     canvas.width = out.width; canvas.height = out.height;
     canvas.getContext('2d')!.putImageData(toImageData(out), 0, 0);
     clear(layer).append(...boxes.map((b, i) => h('button', {
-      type: 'button', class: ['redact-box', !b.on && 'off', b.face && 'face'], title: b.on ? 'Tap to keep this area visible' : 'Tap to hide this area', 'aria-label': `${b.face ? 'Face' : 'Area'} ${i + 1}: ${b.on ? 'hidden' : 'visible'}`,
+      type: 'button', class: ['redact-box', !b.on && 'off', b.face && 'face'], title: b.on ? 'Hidden — tap to show it again' : 'Shown — tap to hide it',
+      'aria-label': `${b.face ? 'Face' : 'Your box'} ${i + 1}`, 'aria-pressed': String(b.on),
       style: { left: `${b.x * 100}%`, top: `${b.y * 100}%`, width: `${b.w * 100}%`, height: `${b.h * 100}%` },
       'data-score': b.score?.toFixed(2),
-      onclick: (e: Event) => { e.stopPropagation(); if (!drawing) { b.on = !b.on; render(); } },
+      onclick: (e: Event) => { e.stopPropagation(); if (!drawing) { remember(); b.on = !b.on; render(); } },
     })));
     if (detecting) return;
-    const faces = boxes.filter((b) => b.face).length, hidden = boxes.filter((b) => b.on).length;
-    status.textContent = detectNote || `${faces} face${faces === 1 ? '' : 's'} found · ${hidden} area${hidden === 1 ? '' : 's'} hidden`;
+    const faces = boxes.filter((b) => b.face), mine = boxes.filter((b) => !b.face), shut = faces.filter((b) => b.on).length, mineShut = mine.filter((b) => b.on).length;
+    status.textContent = detectNote || `${plural(faces.length, 'face')} found · ${shut} hidden${mine.length ? ` · ${plural(mine.length, 'box', 'boxes')} of your own${mineShut !== mine.length ? ` (${mineShut} hidden)` : ''}` : ''}`;
   };
   // draw manual boxes
   let start: { x: number; y: number } | null = null, ghost: HTMLElement | null = null;
@@ -93,7 +105,7 @@ export const mount: Mount = (root, ctx) => {
   layer.addEventListener('pointerup', (e) => {
     if (!start) return;
     const p = norm(e), w = Math.abs(p.x - start.x), hh = Math.abs(p.y - start.y);
-    if (w > 0.01 && hh > 0.01) boxes.push({ x: Math.min(p.x, start.x), y: Math.min(p.y, start.y), w, h: hh, on: true, face: false });
+    if (w > 0.01 && hh > 0.01) { remember(); boxes.push({ x: Math.min(p.x, start.x), y: Math.min(p.y, start.y), w, h: hh, on: true, face: false }); }
     start = null; ghost = null; render();
   });
   // a gesture the browser takes over (a scroll, a second finger, a call) leaves no half-drawn box behind
@@ -101,7 +113,7 @@ export const mount: Mount = (root, ctx) => {
   const drawBtn = button('Draw a box', () => { drawing = !drawing; drawBtn.setLabel(drawing ? 'Done drawing' : 'Draw a box'); wrap.classList.toggle('drawing', drawing); }, { icon: 'SquareDashed' });
   const input$ = imageInput(async (img, f) => {
     const my = ++photoSeq; // a photo chosen while faces are being looked for in another wins
-    orig = img; name = baseName(f.name); small = previewOf(img, ctx.isMobile ? 1000 : 1400); boxes = []; editor.hidden = false;
+    orig = img; name = baseName(f.name); small = previewOf(img, ctx.isMobile ? 1000 : 1400); boxes = []; history = []; syncUndo(); editor.hidden = false;
     status.textContent = 'Looking for faces…'; detecting = true; detectNote = ''; render();
     let faces: Box[] = [];
     try { faces = await detectFaces(img); }
@@ -110,7 +122,9 @@ export const mount: Mount = (root, ctx) => {
       detectNote = `Faces could not be looked for (${errMsg(e)}) — draw boxes by hand over what to hide.`;
     }
     if (my !== photoSeq) return;
+    for (const b of faces) b.on = kept.all; // every face hidden at once — or none until it is chosen
     boxes = [...faces, ...boxes]; // boxes drawn while the search ran are kept
+    history = history.map((was) => [...faces.map((b) => ({ ...b })), ...was]); // and what Undo brings back has the faces too
     detecting = false; render();
   });
   const save = async (share: boolean) => {
@@ -122,18 +136,29 @@ export const mount: Mount = (root, ctx) => {
     status.textContent = `Saved ${fmtBytes(blob.size)} · ${out.width}×${out.height} · no metadata`;
     share ? await shareOrDownload(blob, fname) : downloadBlob(blob, fname);
   };
+  const setFaces = (on: boolean) => { if (!boxes.some((b) => b.face && b.on !== on)) return; remember(); for (const b of boxes) if (b.face) b.on = on; render(); };
+  const allSwitch = toggle('Redact every face found', kept.all, (v) => { kept.all = v; setFaces(v); });
+  const undoBtn = button('Undo', () => undo(), { icon: 'Undo2', small: true, variant: 'ghost', title: 'Take back the last change (Ctrl+Z)', disabled: true });
+  // Ctrl+Z / ⌘Z anywhere in the tab but a box being typed in
+  const onKey = (e: KeyboardEvent) => {
+    const t = e.target as HTMLElement | null;
+    if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 'z' && !editor.hidden && !(t && /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName) && (t as HTMLInputElement).type !== 'range' && (t as HTMLInputElement).type !== 'checkbox')) { e.preventDefault(); undo(); }
+  };
+  document.addEventListener('keydown', onKey);
   editor.append(
-    card(null, h('div', { class: 'ed-stage' }, wrap), status, h('div', { class: 'row' }, drawBtn,
-      button('Hide all', () => { boxes.forEach((b) => (b.on = true)); render(); }, { small: true, variant: 'ghost' }),
-      button('Remove my boxes', () => { boxes = boxes.filter((b) => b.face); render(); }, { small: true, variant: 'ghost' }))),
+    card(null, h('div', { class: 'ed-stage' }, wrap), status, h('div', { class: 'row' }, allSwitch), h('div', { class: 'row' }, drawBtn,
+      button('Redact all faces', () => setFaces(true), { small: true, variant: 'ghost', title: 'Hide every face found' }),
+      button('Show all faces', () => setFaces(false), { small: true, variant: 'ghost', title: 'Hide none of the faces found' }),
+      undoBtn,
+      button('Remove my boxes', () => { if (!boxes.some((b) => !b.face)) return; remember(); boxes = boxes.filter((b) => b.face); render(); }, { small: true, variant: 'ghost' }))),
     card('Effect', stack(
       segmented([['pixelate', 'Pixelate'], ['blur', 'Blur'], ['bar', 'Black bar']], effect, (v) => { effect = v; render(); }),
       slider({ label: 'Strength', min: 1, max: 10, value: strength, onChange: (v) => { strength = v; render(); } }),
       slider({ label: 'Extra margin around faces', min: 0, max: 50, value: pad, unit: '%', onChange: (v) => { pad = v; render(); } }),
       field('Format', segmented([['jpeg', 'JPEG'], ['png', 'PNG'], ['webp', 'WebP']], fmt, (v) => (fmt = v))),
-      note('Tap a box to keep that area visible. Pixelation and blur at low strength can sometimes be reversed — use "Black bar" for documents, card numbers and number plates.'))),
+      note('Tap a face to hide it, tap it again to show it; Undo (Ctrl+Z) takes back the last change. With “Redact every face found” off, the faces are only outlined until you choose them. Pixelation and blur at low strength can sometimes be reversed — use "Black bar" for documents, card numbers and number plates.'))),
     actions(button('Save', () => save(false), { variant: 'primary', icon: 'Download' }), ctx.isMobile ? button('Share', () => save(true), { icon: 'Share2' }) : null),
   );
   root.append(card(null, input$.el), editor);
-  return () => input$.dispose();
+  return () => { input$.dispose(); document.removeEventListener('keydown', onKey); };
 };
