@@ -1686,7 +1686,11 @@ API int p_clear_wash(uint8_t *px, int w, int h, int32_t *out) {
  *    square, diamond or triangle (● ■ ▪ ◆ ►), a ring or an empty box (○ ◦ □ ☐), a box with a tick or a cross in it
  *    (☑ ☒) — painted the paper's colour (read as e, o, ©, ®, «, 71 …). A ring the size and shape of the letter o counts
  *    only after the gap of a tab (Word's second-level bullet is an o; the word "o" — Spanish for "or" — is followed by
- *    a space).
+ *    a space). A box (a frame with ink in its four corners) counts after any gap (a checklist sets it off by a word
+ *    space). On a soft page (its letters pale) a solid blob as dark as the letters is a letter whose hole the blur closed
+ *    (a lettered list's "a."), no mark. Faint marks — a box or a ring in thin grey strokes that a phone's photo breaks up
+ *    in the ink — are looked for on the light ink: paler than the letters after them, and only in a list (another mark
+ *    at the same place on another line) (to-do #31).
  * The x-height and the slant of the lines are measured on the page (the letters' heights; their nearest neighbours).
  * Then, with bit 2, the columns of text are counted: gutters — a band at least an x-height wide with almost no ink,
  * text on both sides of it down the page, the lines on its left running up to it, the columns either side at least
@@ -1696,7 +1700,9 @@ API int p_clear_wash(uint8_t *px, int w, int h, int32_t *out) {
  * columns were read straight across; a form read as columns lost its order).
  * what: bit 0 the lines, bit 1 the marks, bit 2 the columns. out[0] = pixels of lines cleared, out[1] = marks cleared,
  * out[2] = the x-height (px), out[3] = the slant used (hundredths of a degree), out[4] = the columns of text (1 when one
- * or none), out[5] = pixels of the lines cleared inside the page (not along its edges: a table's, a form's). Returns
+ * or none), out[5] = pixels of the lines cleared inside the page (not along its edges: a table's, a form's), out[7] = the
+ * labels of a list kept where a mark would have been cleared (a soft "a." or "ii.", below: counted as list marks are by
+ * the reading path's decisions). Returns
  * out[0] + out[1] > 0 (0: the page as it was).
  * list (when not null): every mark cleared, five numbers each — its box x0, y0, x1, y1 (px, the ink) and what it was
  * (CM_DOT …) — at most `cap` of them, their number in out[6]: the OCR tab puts them back at the start of their
@@ -1723,6 +1729,24 @@ static int cm_tick(const long q[4]) {
     for (int k = 1; k < 4; k++) if (q[k] < m) m = q[k];
     if (t <= 0) return CM_BOX;
     return m >= 0.12 * t ? CM_CROSSED : CM_TICKED;
+}
+/* ink in all four corners of a component's box (a frame: □ ☐ ☑ ☒ — no letter has it: D, O and 0 are round at two or
+   four corners) — each corner a square of `frac` of the box's shorter side (a tenth; a fifth for a frame a phone's photo
+   has softened, its corners rounded), at least a pixel */
+static int cm_corners(const int32_t *pix, int n, int w, int x0, int y0, int bw, int bh, float frac) {
+    int r = (int)lroundf(frac * (bw < bh ? bw : bh)); if (r < 1) r = 1;
+    int seen[4] = {0, 0, 0, 0};
+    for (int k = 0; k < n; k++) {
+        int x = pix[k] % w - x0, y = pix[k] / w - y0, left = x < r, right = x >= bw - r, top = y < r, bottom = y >= bh - r;
+        if (top && left) seen[0] = 1; if (top && right) seen[1] = 1; if (bottom && left) seen[2] = 1; if (bottom && right) seen[3] = 1;
+    }
+    return seen[0] && seen[1] && seen[2] && seen[3];
+}
+/* the darkest grey of a component's pixels */
+static int cm_darkest(const uint8_t *px, const int32_t *pix, int n) {
+    int m = 255;
+    for (int k = 0; k < n; k++) { const uint8_t *p = px + (size_t)pix[k] * 4; int v = (77 * p[0] + 150 * p[1] + 29 * p[2]) >> 8; if (v < m) m = v; }
+    return m;
 }
 /* the quarter of a box (x0, y0)–(x1, y1) a pixel lies in: 0 top left, 1 top right, 2 bottom left, 3 bottom right */
 #define CM_QUARTER(x, y, x0, y0, x1, y1) ((2 * (y) > (y0) + (y1) ? 2 : 0) + (2 * (x) > (x0) + (x1) ? 1 : 0))
@@ -1853,7 +1877,7 @@ API void p_quad_text(const uint8_t *px, int w, int h, const float *q, int32_t *o
 }
 API int p_clear_marks(uint8_t *px, int w, int h, int what, int32_t *out, int32_t *list, int cap_list) {
     for (int k = 0; k < 6; k++) out[k] = 0;
-    out[4] = 1;
+    out[4] = 1; out[7] = 0;
     if (!list) cap_list = 0;
     else out[6] = 0;
     int nlist = 0;      /* the marks put in the list */
@@ -2049,7 +2073,7 @@ API int p_clear_marks(uint8_t *px, int w, int h, int what, int32_t *out, int32_t
         for (int c = 0; c < gw * gh; c++) head[c] = -1;
         for (int k = 0; k < nc; k++) { int cx = (cs[k].x0 + cs[k].x1) / 2 / cell, cy = (cs[k].y0 + cs[k].y1) / 2 / cell; next[k] = head[cy * gw + cx]; head[cy * gw + cx] = k; }
         uint8_t *gone = calloc(nc, 1);
-        int marks = 0;
+        int marks = 0, labels = 0;
         for (int k = 0; k < nc; k++) {
             cm_comp *c = &cs[k];
             int bw = c->x1 - c->x0 + 1, bh = c->y1 - c->y0 + 1, m = bw > bh ? bw : bh;
@@ -2089,19 +2113,6 @@ API int p_clear_marks(uint8_t *px, int w, int h, int what, int32_t *out, int32_t
 #endif
             if (left || right < 0 || rgap > 9 * xh) continue;
             { cm_comp *o = &cs[right]; int oh = o->y1 - o->y0 + 1; if (oh < 0.5f * xh || oh > 3 * xh) continue; }   /* letters follow */
-            /* a list's mark is set off from its text by more than any word space of its line (a tab, an indent); the first
-               word of a line of running text by one of them — "a" on a soft photo, its hole closed by the blur, is a solid
-               blob (it was cleared from the start of Kindle lines: "a pod of dolphins"). Two more gaps on the line about as
-               wide (justified text stretches its spaces alike): a word space, no mark. */
-            {
-                for (int q = 1; q < nr; q++) { int a0 = rx0[q], a1 = rx1[q], r2 = q; while (r2 > 0 && rx0[r2 - 1] > a0) { rx0[r2] = rx0[r2 - 1]; rx1[r2] = rx1[r2 - 1]; r2--; } rx0[r2] = a0; rx1[r2] = a1; }
-                int wide = 0, end = nr ? rx1[0] : 0;
-                for (int q = 1; q < nr; q++) { int gp = rx0[q] - end - 1; if (gp >= 0.75f * rgap) wide++; if (rx1[q] > end) end = rx1[q]; }
-#ifdef CM_DEBUG
-                fprintf(stderr, "  gap after it %d; gaps on its line as wide: %d\n", rgap, wide);
-#endif
-                if (wide >= 2) continue;
-            }
             /* the shape */
             int harea = 0, holes = cm_holes(pix + c->off, c->n, w, c->x0, c->y0, bw, bh, &harea);
             double hull = cm_hull(pix + c->off, c->n, w, c->x0, c->y0, bw, bh), box = (double)bw * bh;
@@ -2130,6 +2141,44 @@ API int p_clear_marks(uint8_t *px, int w, int h, int what, int32_t *out, int32_t
             fprintf(stderr, "  shape holes=%d harea=%d hull=%.0f box=%.0f fill=%.2f hullfill=%.2f ring=%.2f gmin=%.1f rgap=%d\n", holes, harea, hull, box, c->n / box, (c->n + harea) / hull, harea / (double)(harea + c->n), gmin, rgap);
 #endif
             if (gmin <= 0 || rgap < gmin) continue;
+            /* a small mark without a hole, paler than the letter after it by a quarter of the way from its ink to the paper,
+               was drawn with thin strokes: a ring whose hole the blur closed (◦ in a soft video frame: its darkest grey 161 –
+               176 where the letters' is 111 and the solid dots' 19 – 36) — for the list of marks only */
+            int pale = 0, letter = 0;
+            if ((cls == 1 || cls == 2) && !holes) {
+                int lt = cm_darkest(px, pix + cs[right].off, cs[right].n), dk = cm_darkest(px, pix + c->off, c->n);
+                pale = cls == 1 && dk > lt + (255 - lt) / 4;
+                /* on a soft page (its letters pale: thin strokes, blurred) a solid mark stays far darker than the letters (dots
+                   19 – 36, letters 111); a blob as dark as they are and as tall as the x-height is a letter whose hole the blur
+                   closed — the "a." of a lettered list (122; 1.0 and 0.91 of the x-height on two frames), set off by a tab, or
+                   "ii." run together: kept. A small mark drawn with thin strokes is as pale as the letters but shorter (the ►
+                   of a soft frame of a report: 0.67 – 0.78 of the x-height; kept, they made Tesseract read 33 % of its words
+                   instead of 46 %) */
+#ifdef CM_DEBUG
+                { double sx = 0; for (int q = 0; q < c->n; q++) sx += pix[c->off + q] % w - c->x0 + 0.5;
+                  fprintf(stderr, "  letter? dk=%d lt=%d pale=%d bh/xh=%.2f centroid %.3f\n", dk, lt, pale, bh / xh, sx / c->n / bw - 0.5); }
+#endif
+                letter = lt > 80 && !pale && dk >= lt * 3 / 4 && bh >= 0.85f * xh;
+            }
+            /* a list's mark is set off from its text by more than any word space of its line (a tab, an indent); the first
+               word of a line of running text by one of them — "a" on a soft photo, its hole closed by the blur, is a solid
+               blob (it was cleared from the start of Kindle lines: "a pod of dolphins"). Two more gaps on the line about as
+               wide (justified text stretches its spaces alike): a word space, no mark. Not asked of a box (□ ☐ ☑ ☒: a frame
+               with ink in its four corners, which no letter has), which a checklist sets off by no more than a word space
+               (to-do #31: the boxes of a Google Docs checklist stayed and were read as "[J" and "[0") */
+            int boxish = cls == 4 || (cls == 3 && filled >= 0.88f && asp >= 0.8f && asp <= 1.25f && cm_corners(pix + c->off, c->n, w, c->x0, c->y0, bw, bh, 0.1f));
+            if (!boxish) {
+                for (int q = 1; q < nr; q++) { int a0 = rx0[q], a1 = rx1[q], r2 = q; while (r2 > 0 && rx0[r2 - 1] > a0) { rx0[r2] = rx0[r2 - 1]; rx1[r2] = rx1[r2 - 1]; r2--; } rx0[r2] = a0; rx1[r2] = a1; }
+                int wide = 0, end = nr ? rx1[0] : 0;
+                for (int q = 1; q < nr; q++) { int gp = rx0[q] - end - 1; if (gp >= 0.75f * rgap) wide++; if (rx1[q] > end) end = rx1[q]; }
+#ifdef CM_DEBUG
+                fprintf(stderr, "  gap after it %d; gaps on its line as wide: %d\n", rgap, wide);
+#endif
+                if (wide >= 2) continue;
+            }
+            /* a list's label kept (see above): counted, as the marks are, for what they tell of the page — a list (the
+               reading path decides with them which picture PaddleOCR reads, and whether to read the page again) */
+            if (letter) { labels++; continue; }
             cm_clear(px, w, h, pix + c->off, c->n); gone[k] = 1; marks++;
             long quarter[4] = {0, 0, 0, 0};   /* the ink inside a box (a tick, a cross), by the quarters of the box */
             if (inner) for (int gy = c->y0 / cell; gy <= c->y1 / cell; gy++) for (int gx = c->x0 / cell; gx <= c->x1 / cell; gx++) {
@@ -2141,7 +2190,7 @@ API int p_clear_marks(uint8_t *px, int w, int h, int what, int32_t *out, int32_t
             }
             if (nlist < cap_list) {
                 int kind;
-                if (cls == 1) kind = holes ? CM_RING : cm_solid(pix + c->off, c->n, w, c->x0, bw, bh);
+                if (cls == 1) kind = holes || pale ? CM_RING : cm_solid(pix + c->off, c->n, w, c->x0, bw, bh);
                 else if (cls == 2) kind = cm_solid(pix + c->off, c->n, w, c->x0, bw, bh);
                 else if (cls == 3) {
                     /* a square (☐, or ☑ ☒ with their tick or cross inside, not touching it) or a ring (○, Word's o; ◉ with a dot) */
@@ -2160,8 +2209,109 @@ API int p_clear_marks(uint8_t *px, int w, int h, int what, int32_t *out, int32_t
                 int32_t *e = list + 5 * nlist++; e[0] = c->x0; e[1] = c->y0; e[2] = c->x1; e[3] = c->y1; e[4] = kind;
             }
         }
+        /* faint marks (to-do #31): a box or a ring drawn in thin grey strokes, which a phone's photo softens below the ink
+           threshold in places — a Google Docs checklist's ☐ whose top and bottom came out fainter than its sides (two bars
+           in the ink), its ○ in pieces — but keeps whole in the light ink. On the light ink (what is not cleared yet): a
+           frame (its four corners inked) or a ring with its hole, between half and twice the x-height, the first thing on
+           its line, letters after it beyond a gap, and paler than them (a letter o, O, D or 0 is as dark as the rest);
+           taken only where another mark of the page stands at the same place on another line — a list (a pale letter of
+           a light watermark stands alone) */
+        {
+            uint8_t *lm = malloc(n);
+            int32_t *pix2 = malloc(sizeof(int32_t) * n);
+            cm_comp *cs2 = malloc(sizeof(cm_comp) * cap);
+            int maxf = 256, nf = 0, *fk = malloc(sizeof(int) * maxf), *fholes = malloc(sizeof(int) * maxf), *fkind = malloc(sizeof(int) * maxf);
+            if (lm && pix2 && cs2 && fk && fholes && fkind) {
+                for (int i = 0; i < n; i++) { const uint8_t *p = px + (size_t)i * 4; lm[i] = lite[i] && ((77 * p[0] + 150 * p[1] + 29 * p[2]) >> 8) < 250; }
+                int nc2 = cm_label(lm, w, h, pix2, cs2, cap);
+                for (int k2 = 0; k2 < nc2 && nf < maxf; k2++) {
+                    cm_comp *f = &cs2[k2];
+                    int bw = f->x1 - f->x0 + 1, bh = f->y1 - f->y0 + 1, m = bw > bh ? bw : bh;
+                    float asp = (float)bw / bh;
+#ifdef CM_DEBUG
+                    if (f->x0 < 320 && m >= 0.4f * xh && m <= 2.5f * xh) fprintf(stderr, "faint cand (%d,%d) %dx%d n=%d asp=%.2f\n", f->x0, f->y0, bw, bh, f->n, asp);
+#endif
+                    if (m < 0.5f * xh || m > 1.9f * xh || asp < 0.7f || asp > 1.45f || f->n < 8) continue;
+                    /* nothing just before it, letters after it on its line (the ink's components, the grid above) */
+                    float fcx = (f->x0 + f->x1) * 0.5f, ftop = f->y0 - fcx * t, fbot = f->y1 - fcx * t;
+                    int right = -1, rgap = 1 << 30, left = 0;
+                    int gx0 = (int)((f->x0 - 3 * xh) / cell) - 1, gx1 = (int)((f->x1 + 10 * xh) / cell) + 1, gy0 = (int)((f->y0 - 2 * xh) / cell) - 1, gy1 = (int)((f->y1 + 2 * xh) / cell) + 1;
+                    for (int gy = gy0; gy <= gy1 && !left; gy++) for (int gx = gx0; gx <= gx1 && !left; gx++) {
+                        if (gx < 0 || gy < 0 || gx >= gw || gy >= gh) continue;
+                        for (int j = head[gy * gw + gx]; j >= 0; j = next[j]) {
+                            cm_comp *o = &cs[j];
+                            if (gone[j] || (o->x0 >= f->x0 - 1 && o->x1 <= f->x1 + 1 && o->y0 >= f->y0 - 1 && o->y1 <= f->y1 + 1)) continue;   /* its own strokes, a tick */
+                            int ow = o->x1 - o->x0 + 1, oh = o->y1 - o->y0 + 1, om = ow > oh ? ow : oh;
+                            if (om < 0.25f * xh || om > 8 * xh) continue;
+                            float ox = (o->x0 + o->x1) * 0.5f, otop = o->y0 - ox * t, obot = o->y1 - ox * t;
+                            float ov = (fbot < obot ? fbot : obot) - (ftop > otop ? ftop : otop) + 1;
+                            if (o->x1 < f->x0 && f->x0 - o->x1 <= 2.5f * xh && obot >= ftop - 0.5f * xh && otop <= fbot + 0.5f * xh) { left = 1; break; }
+                            if (ov < 0.4f * (bh < oh ? bh : oh) || o->x1 < f->x0) continue;
+                            if (o->x0 <= f->x1) { left = 1; break; }     /* beside it up and down: inside something */
+                            int gap = o->x0 - f->x1 - 1;
+                            if (gap < rgap) { rgap = gap; right = j; }
+                        }
+                    }
+#ifdef CM_DEBUG
+                    fprintf(stderr, "  left=%d right=%d rgap=%d darkest %d letter %d\n", left, right, rgap, cm_darkest(px, pix2 + f->off, f->n), right >= 0 ? cm_darkest(px, pix + cs[right].off, cs[right].n) : -1);
+#endif
+                    /* (the light ink widens both the mark and the letter after it: the gap between them narrows) */
+                    if (left || right < 0 || rgap < 0.3f * xh || rgap > 9 * xh) continue;
+                    { int oh = cs[right].y1 - cs[right].y0 + 1; if (oh < 0.5f * xh || oh > 3 * xh) continue; }
+                    int lt = cm_darkest(px, pix + cs[right].off, cs[right].n);
+                    if (cm_darkest(px, pix2 + f->off, f->n) <= lt + (255 - lt) / 4) continue;
+                    /* the shape — looked at last: most components are letters, which the checks above leave out */
+                    int harea = 0, holes = cm_holes(pix2 + f->off, f->n, w, f->x0, f->y0, bw, bh, &harea);
+                    double hull = cm_hull(pix2 + f->off, f->n, w, f->x0, f->y0, bw, bh), box = (double)bw * bh;
+                    /* a box (its hole large, its corners inked near the corner: softened, they are round) or a round mark —
+                       a ring whose hole the light ink fills (the light ink takes in the blur around thin strokes) */
+                    int frame = (f->n + harea) >= 0.85 * box && asp >= 0.8f && asp <= 1.25f && holes >= 1 && harea >= 0.08 * box && cm_corners(pix2 + f->off, f->n, w, f->x0, f->y0, bw, bh, 0.22f);
+                    int ring = !frame && f->n + harea >= 0.85 * hull;
+#ifdef CM_DEBUG
+                    if (f->x0 < 320) fprintf(stderr, "  holes=%d harea=%d fill=%.2f hullfill=%.2f corners=%d frame=%d ring=%d\n", holes, harea, (f->n + harea) / box, (f->n + harea) / hull, cm_corners(pix2 + f->off, f->n, w, f->x0, f->y0, bw, bh, 0.22f), frame, ring);
+#endif
+                    if (!frame && !ring) continue;
+                    fk[nf] = k2; fholes[nf] = holes; fkind[nf] = frame ? CM_BOX : CM_RING; nf++;
+                }
+                /* a list: another mark — faint, or cleared above — at the same place (within half an x-height) on another line */
+                for (int q = 0; q < nf; q++) {
+                    cm_comp *f = &cs2[fk[q]];
+                    int pair = 0;
+                    for (int r2 = 0; r2 < nf && !pair; r2++) { cm_comp *g2 = &cs2[fk[r2]]; if (r2 != q && abs(g2->x0 - f->x0) <= 0.5f * xh && (g2->y0 > f->y1 || g2->y1 < f->y0)) pair = 1; }
+                    for (int r2 = 0; r2 < nlist && !pair; r2++) { const int32_t *e = list + 5 * r2; if (abs(e[0] - f->x0) <= 0.5f * xh && (e[1] > f->y1 || e[3] < f->y0)) pair = 1; }
+                    if (!pair) continue;
+                    /* what is inside a box — a tick or a cross: it splits the box's hole (a soft frame's own blur thickens its
+                       inner edge, so the ink near the frame says nothing), or it stands apart inside — by the quarters it fills */
+                    long quarter[4] = {0, 0, 0, 0};
+                    int apart = 0;
+                    int bw = f->x1 - f->x0 + 1, bh = f->y1 - f->y0 + 1, b = (int)lroundf(0.18f * (bw < bh ? bw : bh)); if (b < 1) b = 1;
+                    for (int q2 = 0; q2 < f->n; q2++) {
+                        int i = pix2[f->off + q2], x = i % w, y = i / w;
+                        if (x - f->x0 < b || f->x1 - x < b || y - f->y0 < b || f->y1 - y < b) continue;
+                        const uint8_t *p = px + (size_t)i * 4;
+                        if (ink[i] && ((77 * p[0] + 150 * p[1] + 29 * p[2]) >> 8) < 250) quarter[CM_QUARTER(x, y, f->x0, f->y0, f->x1, f->y1)]++;
+                    }
+                    for (int gy = f->y0 / cell; gy <= f->y1 / cell; gy++) for (int gx = f->x0 / cell; gx <= f->x1 / cell; gx++) {
+                        if (gx < 0 || gy < 0 || gx >= gw || gy >= gh) continue;
+                        /* (clear of the frame's band: the frame's own sides are shapes of their own in the ink) */
+                        for (int j = head[gy * gw + gx]; j >= 0; j = next[j]) { cm_comp *o = &cs[j]; if (!gone[j] && o->x0 >= f->x0 + b && o->x1 <= f->x1 - b && o->y0 >= f->y0 + b && o->y1 <= f->y1 - b) {
+                            for (int q2 = 0; q2 < o->n; q2++) { int i = pix[o->off + q2]; quarter[CM_QUARTER(i % w, i / w, f->x0, f->y0, f->x1, f->y1)]++; }
+                            cm_clear(px, w, h, pix + o->off, o->n); gone[j] = 1; apart += o->n;
+                        } }
+                    }
+                    int any = fholes[q] >= 2 || apart >= 0.04 * bw * bh;   /* (a speck of the photo's noise is no tick) */
+                    int kind = fkind[q] == CM_BOX ? (any ? cm_tick(quarter) : CM_BOX) : CM_RING;   /* (a soft ring's own strokes fill it) */
+                    cm_clear(px, w, h, pix2 + f->off, f->n); marks++;
+#ifdef CM_DEBUG
+                    fprintf(stderr, "faint mark %d at (%d,%d) %dx%d\n", kind, f->x0, f->y0, bw, bh);
+#endif
+                    if (nlist < cap_list) { int32_t *e = list + 5 * nlist++; e[0] = f->x0; e[1] = f->y0; e[2] = f->x1; e[3] = f->y1; e[4] = kind; }
+                }
+            }
+            free(lm); free(pix2); free(cs2); free(fk); free(fholes); free(fkind);
+        }
         free(gone); free(head); free(next);
-        out[1] = marks;
+        out[1] = marks; out[7] = labels;
         if (list) out[6] = nlist;
     }
     if (what & 4) {

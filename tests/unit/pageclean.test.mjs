@@ -9,6 +9,7 @@
 // - p_refine_quad: a page that runs off the photo — the edges fitted to the photo's, the hidden corner outside it.
 import { fileURLToPath } from 'node:url';
 import { readFileSync } from 'node:fs';
+import { readPng } from '../lib/png.mjs';
 
 export default async (t, { load, wasm }) => {
   const { bindImgproc } = await load('/src/wasm/imgproc.ts');
@@ -42,6 +43,34 @@ export default async (t, { load, wasm }) => {
     t.ok(inside.length === 1 && name(inside[0].kind) === KIND[m.text], `the mark ${m.text} is listed as a ${KIND[m.text].toLowerCase()} (${inside.map((l) => `${name(l.kind)} at ${l.x0},${l.y0}–${l.x1},${l.y1}`).join('; ') || 'not listed'})`);
   }
   t.ok(ip.clearMarks(page, 1).list.length === 0, 'the lines alone: no marks listed');
+  // a phone's still of a Google Docs checklist (docs2/checklist-still, the page as p_clear_marks gets it): its ○ and ☐ are
+  // drawn in thin grey strokes and the photo softened them — the boxes' tops and bottoms fainter than their sides, two bars
+  // in the ink; found on the light ink, paler than the letters, in a list: every mark of the page, as what it is (the
+  // first box ticked)
+  const faint = readPng(readFileSync(root + 'tests/fixtures/ocr/faint-marks.png')), rf = ip.clearMarks(faint, 7);
+  t.eq(rf.list.map((m) => name(m.kind)).join(' '), 'DOT DOT DOT RING RING TICKED BOX BOX BOX', 'a phone\'s still of a checklist: its faint rings and boxes found and named');
+  t.ok(rf.labels === 0 && rf.list.slice(5).every((m) => Math.abs(m.x0 - rf.list[5].x0) <= 2), `… the boxes one under the other, no label counted (${rf.list.slice(5).map((m) => `${m.x0},${m.y0}`).join(' ')})`);
+  // two soft video frames as p_clear_marks gets them, kept lossless (a JPEG's blocks change the shape of a blurred letter:
+  // the "a." below was no longer a candidate in a JPEG copy, and the test passed without the rule it checks)
+  const darkest = (im, [x, y, w, h]) => {
+    let m = 255;
+    for (let yy = y; yy < y + h; yy++) for (let xx = x; xx < x + w; xx++) { const i = (yy * im.width + xx) * 4; m = Math.min(m, Math.round(0.299 * im.data[i] + 0.587 * im.data[i + 1] + 0.114 * im.data[i + 2])); }
+    return m;
+  };
+  // - a Word memo (docs2/memo-confidential-frame): the ◦ rings, their holes closed by the blur, listed as rings — paler
+  //   than the letters after them, where the solid dots are darker; and the lettered list's "a." — a blob as dark as the
+  //   letters and as tall as they are, set off by a tab — kept (to-do #18 cleared it; #31 would have written • for it)
+  const memo = readPng(readFileSync(root + 'tests/fixtures/ocr/soft-memo.png')), rs = ip.clearMarks(memo, 7), aDot = [136, 458, 9, 9];
+  t.eq(rs.list.map((m) => name(m.kind)).join(' '), 'DOT DOT RING RING DOT DOT DOT', 'a soft frame: dots, the closed rings named rings');
+  t.ok(rs.labels === 1 && rs.marks === 7, `… the kept "a." counted as a list's label (${rs.labels}; ${rs.marks} marks cleared)`);
+  t.ok(!rs.list.some((m) => m.y0 > 440) && darkest(rs.img, aDot) === darkest(memo, aDot) && darkest(memo, aDot) < 140, `… and the lettered list's "a." stays (its darkest grey ${darkest(memo, aDot)} → ${darkest(rs.img, aDot)})`);
+  // - a report (fmtdocs/report-frame): its ➢ marks are as pale as the letters on this frame but shorter than they are
+  //   (0.67 – 0.78 of the x-height): cleared — kept as letters, they made Tesseract read 33 % of the page's words where it
+  //   read 46 % —; the roman "ii." of its sub-list, run together into one blob as tall as the letters: kept (#18 cleared it)
+  const rep = readPng(readFileSync(root + 'tests/fixtures/ocr/soft-report.png')), rr = ip.clearMarks(rep, 7);
+  const arrows = [[74, 447, 8, 6], [74, 464, 8, 7], [74, 518, 7, 6]], ii = [110, 499, 7, 9];
+  t.ok(arrows.every((b) => rr.list.some((m) => Math.abs(m.x0 - b[0]) <= 1 && Math.abs(m.y0 - b[1]) <= 1) && darkest(rr.img, b) > 200 && darkest(rep, b) < 140), `a soft report: its three ➢ cleared and listed (${arrows.map((b) => `${darkest(rep, b)} → ${darkest(rr.img, b)}`).join(', ')})`);
+  t.ok(!rr.list.some((m) => m.x0 >= 100 && m.x0 <= 120) && darkest(rr.img, ii) === darkest(rep, ii) && rr.labels === 1, `… and its "ii." stays, counted as a label (${darkest(rep, ii)} → ${darkest(rr.img, ii)}; ${rr.labels} label)`);
   t.ok(Math.abs(r.slant) < 0.3, `a level page measures level (${r.slant}°)`);
   // the table: its grid gone (a band along each cell's edges), its words there (the middle of each cell)
   const edge = (b, s) => [b[0] - 1, b[1] + Math.round(b[3] * s), 3, 2];

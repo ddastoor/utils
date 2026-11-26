@@ -13,6 +13,7 @@ import { spawnSync } from 'node:child_process';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
+import { writePng } from '../tests/lib/png.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const require = createRequire(import.meta.url);
@@ -276,7 +277,17 @@ async function main() {
         if (res.page) found++;
         if (res.by === 'network') byNet++;
         if (res.layout !== (res.columns >= 2 ? 'page' : 'block')) other++;
-        if (process.env.OCR_SAVE) { writeFileSync(join(process.env.OCR_SAVE, `${name}.${p}.ppm`), ppm(res.img)); writeFileSync(join(process.env.OCR_SAVE, `${name}.${p}.pre.ppm`), ppm(res.pre)); }
+        if (process.env.OCR_SAVE) {
+          writeFileSync(join(process.env.OCR_SAVE, `${name}.${p}.ppm`), ppm(res.img));
+          writeFileSync(join(process.env.OCR_SAVE, `${name}.${p}.pre.ppm`), ppm(res.pre));
+          // the picture imgproc's p_clear_marks gets (readPage's clean-up up to it), lossless: the unit fixtures of
+          // tests/unit/pageclean.test.mjs (soft-memo.png, soft-report.png)
+          let x = { width: res.pre.width, height: res.pre.height, data: new Uint8ClampedArray(res.pre.data) };
+          if (res.inverted) x = ip.invert(x);
+          if (p.includes('screen')) x = ip.blur(x, 1.1);
+          x = ip.clearWash(ip.docEnhance(x, 1)).img;
+          writeFileSync(join(process.env.OCR_SAVE, `${name}.${p}.marks.png`), writePng(x));
+        }
         data = res.r;
         // OCR_LIST=DIR: the OCR tab's text, the page's lists set out (src/lib/listtext.ts — to-do #31), and the marks
         if (process.env.OCR_LIST) writeFileSync(join(process.env.OCR_LIST, `${name}.${p}.json`), JSON.stringify({ text: eng.listText(res.r, res.listMarks, res.xh), plain: res.r.text, marks: res.listMarks, xh: res.xh, engine: res.engine, layout: res.layout, r: res.r }));

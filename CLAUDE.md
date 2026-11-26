@@ -53,9 +53,9 @@ that affects it.
 > **The OCR tab keeps the page's formatting (owner, 26 Nov 2026, later — correcting #18):** "In the OCR app, the rich
 > formatting should be preserved, the bullet points, etc. In the photo dictionary app, it need not be, only because the
 > actual OCR rendition is needed for me to further select a phrase that I could then look up in Wikipedia." — the OCR
-> tab's text keeps bullets, check boxes and indentation (to-do #31; the owner's choices: plain text with the marks at the
-> line starts and nested items indented — in the text box, Copy and the .txt —, lists only); the Photo Dictionary's
-> stays plain.
+> tab's text keeps bullets, check boxes and indentation (to-do #31, built 26 Nov 2026 — §3 OCR, "The page's lists"; the
+> owner's choices: plain text with the marks at the line starts and nested items indented — in the text box, Copy and the
+> .txt —, lists only); the Photo Dictionary's stays plain.
 > **OCR quality is paramount (owner, 26 Nov 2026):** "make sure no functionality is compramised.. the high quality of the
 > ocr is paramount !!!" — said of to-do #18 (one shared reading path for the OCR tab and the Photo Dictionary): every
 > feature of both tabs stays, and every change to their reading is measured before and after — none may read worse.
@@ -2226,7 +2226,10 @@ ways round, four languages; the Photo Dictionary: "Photo of a screen". The engin
    corner may lie outside the photo where the page runs off it), and the outline with more real edges is taken. **An
    outline that leaves a fifth of the photo's letters outside is no page** (`p_quad_text`: on a scan with a strong
    CONFIDENTIAL the white area its letters fence in passed for the page; pages leave 0 – 8 % outside, such regions 25 –
-   73 %). A flat picture's outline square on is a screenshot's panel (left alone). Straightened; a strip of the desk or
+   73 %). A flat picture's outline square on is a screenshot's panel (left alone); **no outline more elongated than 6 : 1
+   is a page** (`MAX_ASPECT`: the most elongated page found in the measured photos is 1.49 : 1 — on Windows, where Chrome
+   draws the OCR suite's dark test sentence in Arial, the outline of its one line was straightened as a page and its
+   descenders cut off: "iumps … lazv doa"). Straightened; a strip of the desk or
    of a screen's bezel along its edges painted the paper's colour (`p_clear_border`: with a dark strip down its side
    Tesseract dropped a form's title);
 3. upright and level (`src/lib/upright.ts`, above); its quick readings look at the window with the most ink
@@ -2234,7 +2237,19 @@ ways round, four languages; the Photo Dictionary: "Photo of a screen". The engin
 4. the clean-up: (OCR tab) a dark picture turned over; ("Photo of a screen") the moiré blurred; the document clean-up;
    **a watermark taken out** (`p_clear_wash`, below); **ruled lines and list marks cleared, the columns counted**
    (`p_clear_marks`, own C): a mark is the first thing on its
-   line, followed by a gap wider than every word space of that line — ● ○ ■ ▪ ◆ ► □ ☐ ☑ ☒, Word's "o" after a tab — and
+   line, followed by a gap wider than every word space of that line — ● ○ ■ ▪ ◆ ► □ ☐ ☑ ☒, Word's "o" after a tab; a box
+   (□ ☐ ☑ ☒: a frame with ink in its four corners, which no letter has) by any gap, as a checklist sets it off by a word
+   space (to-do #31: a Google Docs checklist's boxes stayed and were read as "[J" and "[0"); **faint marks** — a box or a
+   ring drawn in thin grey strokes, which a phone's photo softens below the ink threshold in places (a checklist's ☐ whose
+   top and bottom came out fainter than its sides: two bars in the ink) — are looked for on the light ink: a frame or a
+   round mark, the first thing on its line, paler than the letters after it, and only where another mark of the page
+   stands at the same place on another line (a list: a pale letter of a light watermark stands alone); on a soft page
+   (its letters pale) a blob without a hole as dark as the letters and as tall as they are (0.85 of the x-height and
+   more) is a letter whose hole the blur closed — the "a." of a lettered list, set off by a tab, which #18's clean-up
+   erased as a dot, or a roman "ii." run together — and stays; a small mark drawn thin is as pale but shorter (the ➢ of a
+   soft frame, 0.67 – 0.78 of the x-height: kept, they made Tesseract read 33 % of the page instead of 46 %) and is
+   cleared. Every mark cleared is listed where it
+   stood and as what it was (the OCR tab puts it back: "The page's lists", below); and
    what only looks like one stays (the Spanish "o" after a word space, "i.", a colon, the dot of an i, a bullet between
    two words, a degree sign; and the word "a" at the start of a Kindle line, which a soft photo makes a solid blob — the
    first version cleared it); a rule is a long thin run with paper beside it from 2 px out (a table's grid, a signature
@@ -2862,6 +2877,9 @@ Nov 2026 (OCR's second reader, PaddleOCR): `src/lib/paddle.ts` — RapidOCR's si
 rounding), sorting a page's few hundred line boxes, and the lines made into a reading (words, their boxes along each line,
 the text in order); `expectedRight` in `src/lib/readpage.ts` — a table look-up per word. The networks are ONNX Runtime's,
 every pixel loop, the box finding and the decoding imgproc.wasm's (`docs/WASM-AUDIT.md`, tab 122).
+Nov 2026 (the OCR tab's lists, to-do #31): `src/lib/listtext.ts` — the reading's lines and the marks' boxes compared, a
+list's label matched by a regular expression, the levels counted from where the items stand: string glue around the
+readers' output; what each mark was and where it stood is imgproc.wasm's (`p_clear_marks` lists it — own C).
 Nov 2026 (Key Codes, to-do #26): `src/lib/keycombo.ts` — a key event named as a combination and the bytes a terminal
 receives: tables of key codes and names (xterm.js's rules, held to xterm.js itself), string glue around the browser's
 KeyboardEvent; no WebAssembly module exists for it and none would have work to do (`docs/WASM-AUDIT.md`, tab `keycode`).

@@ -1145,6 +1145,16 @@ One entry per tab, written before its bug hunt: our module → candidates → ch
   lines, boxes and text on three photos (unit `paddle`). **Left out:** RapidOCR's direction classifier (PP-LCNet, 0.6 MB):
   on the straightened pages it turned 134 of 3,611 upright lines over, every one of them read as garbage; the page is set
   upright before it is read (`src/lib/upright.ts`).
+- **The lists kept in the OCR tab's text, 26 Nov 2026 (to-do #31; owner: "In the OCR app, the rich formatting should be
+  preserved, the bullet points, etc.").** No module to look for: nothing sets an OCR reading out as lists — Tesseract's
+  own output has no list marks (the clean-up takes them away before it reads, as it must: they were read as e, o, ©) and no
+  indentation. **Decision:** imgproc.wasm's `p_clear_marks` (own C) lists every mark it clears — its box and what it was
+  (a dot, a ring, a square, a diamond, a triangle, an empty box, a ticked or crossed box, by the quarters of the box its
+  ink fills; a ring whose hole the blur closed by its paleness against the letter after it), and finds two more kinds it
+  used to leave: boxes set off by a word space, and faint marks on the light ink (thin grey strokes a phone's photo
+  breaks up); on a soft page it keeps a letter-dark blob (a lettered list's "a.") it used to erase; the text is set out in TS
+  (`src/lib/listtext.ts`: the marks matched to the reading's lines, labels, levels, the lines an item runs on to) — glue
+  over the readers' output, which stays as they gave it.
 
 ### 123. `signature` — Signature Maker (20 Nov 2026)
 - **Engines:** the browser's canvas draws the strokes (its own compiled Skia) and the typed name (its HarfBuzz);

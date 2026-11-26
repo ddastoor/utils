@@ -138,6 +138,10 @@ export default async (t, { load, wasm }) => {
   r = await RP.readPage(lists, { lang: 'eng', clean: true, auto: false, again: false, onProgress: progress }, { ops, read: f.read, paddle: sc.paddle });
   t.ok(sc.calls.length === 1 && r.cleared.marks >= RP.SECOND_MARKS && sc.calls[0].img === r.img, `lists and a table (${r.cleared.marks} marks cleared): PaddleOCR reads the cleaned page`);
   t.ok(RP.secondPicture({ cleared: { marks: 1 } }) === 'pre' && RP.secondPicture({ cleared: { marks: RP.SECOND_MARKS } }) === 'img' && RP.secondPicture({ cleared: { marks: 0 }, inverted: true }) === 'img', 'secondPicture: the page as it stands, cleaned when marks were cleared or a dark page turned over');
+  // to-do #31: a list's label kept where a mark would have been cleared (a soft "ii." — before, cleared and counted) still
+  // tells of a list: a soft report with one ➢ cleared and its "ii." kept went to PaddleOCR as it stood and read 70 % of its
+  // words instead of 74 %
+  t.ok(RP.secondPicture({ cleared: { marks: 1, labels: 1 } }) === 'img' && RP.listSigns({ marks: 1, labels: 1 }) === 2 && RP.listSigns({ marks: 3 }) === 3, 'secondPicture: the labels a list keeps count with its marks');
   // a sure reading: PaddleOCR is not asked
   f = reader((c) => (c.main ? { n: 40, conf: 93 } : null)); sc = second(many);
   r = await RP.readPage(kindle, { lang: 'eng', clean: true, auto: true, onProgress: progress }, { ops, read: f.read, paddle: sc.paddle });

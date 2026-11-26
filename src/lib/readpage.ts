@@ -21,7 +21,7 @@ import { straighten, type PageOps } from './pagecrop';
 import { uprightByReading, score, ROT, type TurnOps } from './upright';
 
 /** What imgproc's p_clear_marks did (src/wasm/imgproc.ts clearMarks). */
-type Cleared = { img: Img; lines: number; inner: number; marks: number; columns: number; xh?: number; list?: ListMark[] };
+type Cleared = { img: Img; lines: number; inner: number; marks: number; columns: number; xh?: number; list?: ListMark[]; labels?: number };
 /** imgproc's operations the reading uses — the worker's in the tabs, the module's in Node. */
 export interface ReadOps extends PageOps, TurnOps {
   histogram(img: Img): Uint32Array | Promise<Uint32Array>;
@@ -114,8 +114,9 @@ export interface PageReading {
    *  not turned */
   turned: number | null;
   /** what the clean-up cleared: pixels of ruled lines (`inner`: of those inside the page, not along its edges), list marks,
-   *  pixels of a watermark */
-  cleared: { lines: number; inner: number; marks: number; wash: number };
+   *  pixels of a watermark; `labels`: a list's labels it kept where a mark would have been cleared (a soft "a.", "ii.") —
+   *  they count with the marks wherever the marks tell of a list (`listSigns`) */
+  cleared: { lines: number; inner: number; marks: number; wash: number; labels?: number };
   /** the list marks cleared — where each stood on the picture read and what it was (the OCR tab puts them back at the
    *  start of their lines: src/lib/listtext.ts, to-do #31) — and the letters' x-height there (0: not measured) */
   listMarks: ListMark[];
@@ -168,7 +169,10 @@ export const SECOND_MARKS = 2;
  *  grey e-ink it cost PaddleOCR up to 10 points a photo (6 of 7 soft Kindle photos read better as they stood), while on
  *  formatted documents the marks and rules it clears are what PaddleOCR misread (a memo 51 → 77 %, a report 33 → 46 %).
  *  Measured on both sets of photos: either picture alone did worse than the choice. */
-export const secondPicture = (p: { cleared: { marks: number }; inverted?: boolean }): 'pre' | 'img' => (p.inverted || p.cleared.marks >= SECOND_MARKS ? 'img' : 'pre');
+export const secondPicture = (p: { cleared: { marks: number; labels?: number }; inverted?: boolean }): 'pre' | 'img' => (p.inverted || listSigns(p.cleared) >= SECOND_MARKS ? 'img' : 'pre');
+/** The signs of a list the clean-up saw at the lines' starts: the marks it cleared and the labels it kept where a mark
+ *  would have been cleared (to-do #31: a soft "a." or "ii." is a label, kept — it tells of a list as a cleared one did). */
+export const listSigns = (c: { marks: number; labels?: number }): number => c.marks + (c.labels ?? 0);
 export const SOFT = 88;
 export const soft = (r: OcrResult) => r.confidence < SOFT;
 /** the confidences' bins (from … to the next) and the share of words of three letters and more read right in each */
@@ -213,18 +217,18 @@ export async function readPage(photo: Img, o: ReadOptions, eng: ReadEngines = br
   const cap = async (im: Img, L: number) => { const s = Math.max(im.width, im.height); return s > L ? ops.resize(im, Math.round((im.width * L) / s), Math.round((im.height * L) / s)) : im; };
   /** the clean-up for reading; `final`: the picture read in full — ruled lines and list marks cleared too */
   const enhance = async (im: Img, final: boolean) => {
-    if (!o.clean) return { img: im, lines: 0, inner: 0, marks: 0, wash: 0, columns: 1, inverted: false, list: [] as ListMark[], xh: 0 };
+    if (!o.clean) return { img: im, lines: 0, inner: 0, marks: 0, labels: 0, wash: 0, columns: 1, inverted: false, list: [] as ListMark[], xh: 0 };
     let x = im, inverted = false;
     if (o.invertDark && isDark((await ops.histogram(x)).subarray(768, 1024))) { x = await ops.invert(x); inverted = true; }
     if (o.screen) x = await ops.blur(x, 1.1);
     x = await ops.docEnhance(x, 1);
-    if (!final) return { img: x, lines: 0, inner: 0, marks: 0, wash: 0, columns: 1, inverted, list: [] as ListMark[], xh: 0 };
+    if (!final) return { img: x, lines: 0, inner: 0, marks: 0, labels: 0, wash: 0, columns: 1, inverted, list: [] as ListMark[], xh: 0 };
     // a watermark washed over the page (a second, lighter level of ink in broad strokes): laid out as a page, Tesseract
     // took the text under CONFIDENTIAL's big letters for a picture and left a paragraph out
     const wsh = ops.clearWash ? await ops.clearWash(x) : null;
     if (wsh) x = wsh.img;
     const c = await ops.clearMarks(x, 7); // the lines, the marks, and the columns counted
-    return { img: c.img, lines: c.lines, inner: c.inner, marks: c.marks, wash: wsh?.painted ?? 0, columns: c.columns, inverted, list: c.list ?? [], xh: c.xh ?? 0 };
+    return { img: c.img, lines: c.lines, inner: c.inner, marks: c.marks, labels: c.labels ?? 0, wash: wsh?.painted ?? 0, columns: c.columns, inverted, list: c.list ?? [], xh: c.xh ?? 0 };
   };
   /** a quick reading, to decide which way up the text stands (the clean-up without clearing marks; no progress shown) */
   const glance = async (im: Img) => eng.read((await enhance(im, false)).img, o.lang, undefined, GLANCE_LAYOUT);
@@ -241,7 +245,7 @@ export async function readPage(photo: Img, o: ReadOptions, eng: ReadEngines = br
     }
     const shown = page || up.turns || up.slant ? img : null;
     const e = await enhance(img, true);
-    return { img: e.img, pre: img, shown, page, by, up, cleared: { lines: e.lines, inner: e.inner, marks: e.marks, wash: e.wash }, inverted: e.inverted, columns: e.columns, listMarks: e.list, xh: e.xh };
+    return { img: e.img, pre: img, shown, page, by, up, cleared: { lines: e.lines, inner: e.inner, marks: e.marks, labels: e.labels, wash: e.wash }, inverted: e.inverted, columns: e.columns, listMarks: e.list, xh: e.xh };
   };
   const t0 = ((o.turns ?? 0) % 4 + 4) % 4;
   let p = await prepare(photo, t0, true, o.auto);
@@ -257,7 +261,7 @@ export async function readPage(photo: Img, o: ReadOptions, eng: ReadEngines = br
     if (r2.words.length > r.words.length) { r = r2; p = w; }
   }
   let layout = layoutFor(p.columns);
-  if ((o.again ?? true) && r.confidence < AGAIN && (p.cleared.inner > 0 || p.cleared.marks > 0 || p.columns >= 2)) {
+  if ((o.again ?? true) && r.confidence < AGAIN && (p.cleared.inner > 0 || listSigns(p.cleared) > 0 || p.columns >= 2)) {
     const other: Layout = layout === 'block' ? 'page' : 'block', r2 = await eng.read(p.img, o.lang, o.onProgress, other);
     if (!live()) return null;
     if (score(r2) > score(r) * AGAIN_BY) { r = r2; layout = other; }

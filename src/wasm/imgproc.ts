@@ -186,14 +186,15 @@ export function bindImgproc(e: any) {
      *  before a gap wider than its word spaces), bit 2 count the columns of text; `lines` = pixels cleared (`inner`: of
      *  lines inside the page, not along its edges), `marks` = marks cleared, `xh` = the x-height found, `slant` in
      *  degrees, `columns` = the columns of text (1: one, or not counted); `list`: every mark cleared, where it stood and
-     *  what it was (the OCR tab puts them back at the start of their lines — to-do #31). */
-    clearMarks(img: Img, what = 3): { img: Img; lines: number; inner: number; marks: number; xh: number; slant: number; columns: number; list: ListMark[] } {
-      const p = put(img.data), o = e.p_malloc(28), L = e.p_malloc(MAX_MARKS * 20);
+     *  what it was (the OCR tab puts them back at the start of their lines — to-do #31); `labels`: a list's labels kept
+     *  where a mark would have been cleared (a soft "a." or "ii.": letters, not marks). */
+    clearMarks(img: Img, what = 3): { img: Img; lines: number; inner: number; marks: number; xh: number; slant: number; columns: number; list: ListMark[]; labels: number } {
+      const p = put(img.data), o = e.p_malloc(32), L = e.p_malloc(MAX_MARKS * 20);
       try {
         e.p_clear_marks(p, img.width, img.height, what, o, L, MAX_MARKS);
-        const v = Array.from(new Int32Array(mem(), o, 7)), m = new Int32Array(mem(), L, v[6] * 5), list: ListMark[] = [];
+        const v = Array.from(new Int32Array(mem(), o, 8)), m = new Int32Array(mem(), L, v[6] * 5), list: ListMark[] = [];
         for (let k = 0; k < v[6]; k++) list.push({ x0: m[5 * k], y0: m[5 * k + 1], x1: m[5 * k + 2], y1: m[5 * k + 3], kind: m[5 * k + 4] });
-        return { img: { width: img.width, height: img.height, data: new Uint8ClampedArray(mem().slice(p, p + img.data.length)) }, lines: v[0], inner: v[5], marks: v[1], xh: v[2], slant: v[3] / 100, columns: v[4], list };
+        return { img: { width: img.width, height: img.height, data: new Uint8ClampedArray(mem().slice(p, p + img.data.length)) }, lines: v[0], inner: v[5], marks: v[1], xh: v[2], slant: v[3] / 100, columns: v[4], list, labels: v[7] };
       } finally { e.p_free(p); e.p_free(o); e.p_free(L); }
     },
     /** Which way up the text of a picture stands (p_text_turns): the quarter turns to the right that set it upright
