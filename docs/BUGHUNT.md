@@ -2685,3 +2685,10 @@ cannot. Three new suites; each fails on the build before its fixes.
   convenience as xdg-open is on Linux; **run for real on GitHub's Windows runner** (`.github/workflows/windows-tts.yml`,
   `tests/unit/offline-tts-run.test.mjs`): Piper — the lock's versions, a WAV and an MP3, exit 1 for a voice that cannot
   be made; then one job per engine. The Windows steps also say that Chrome may ask to keep the .cmd.
+  (9) **Every engine of the offline speech run on Windows** (26 Nov 2026; "Windows offline speech", one job per engine,
+  the .cmd as a double-click runs it): 16 of 18 made speech at once. **Kyutai** stopped with "Compiler: cl is not found" —
+  moshi compiles some functions with torch.compile, which needs a C++ compiler (an ordinary Windows PC has none, a fresh
+  Linux desktop no g++ either) → driver.py sets moshi's own `NO_TORCH_COMPILE` when no compiler is on the PATH, and
+  says so. **F5-TTS** spoke, but its environment held tzdata, which no lock had chosen: pandas 3 needs it on Windows, and
+  `scripts/make-offline-tts-locks.py` dropped every line naming emscripten — also "emscripten or win32" → that rule is
+  gone, the line is in F5's lock. Both jobs run again: **18 of 18 engines make speech on Windows**.

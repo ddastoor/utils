@@ -42,8 +42,9 @@ The owner adds items here in chat ("add … to to do"). Newest instructions win.
     Keyboard Test registers PrintScreen by its release (Windows keeps its key-down) and takes the key-up (a lone Alt
     moved the focus to Chrome's menu); the offline speech script for Windows ends with its real exit code and **was run
     for real on Windows** (`.github/workflows/windows-tts.yml`: Piper — the lock's versions, a WAV and an MP3, exit 1 for
-    a voice that cannot be made; then one job per engine). Next: the per-engine Windows results and the full browser
-    run's (both in progress), what they find fixed and pinned.
+    a voice that cannot be made; then one job per engine): **all 18 engines make speech on Windows** (Kyutai without a
+    C++ compiler, F5-TTS's lock fixed on 26 Nov). Next: the targeted browser run's results (30 suites, in progress), what
+    they find fixed and pinned.
 
 14. **Text Diff: two local files, a file of a public GitHub repository at two commits, the difference as a patch file**
     (owner, 26 Nov 2026: "In the text diff app, add 2 more text input options. One is to upload two local files. The
