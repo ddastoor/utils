@@ -123,24 +123,6 @@ The owner adds items here in chat ("add … to to do"). Newest instructions win.
       size decision to wait for: the models are chosen by the measurements above, for the best quality the site can hold
       (within GitHub Pages' 1 GB; the size is said when it is built). Still batch 7, after batches 4 – 6.
 
-28. **Screenshot: scrolling screenshots** (owner, 26 Nov 2026: "Make a new option also for scrolling screenshots in the
-    screenshot app.")
-    - **What it is:** one tall picture of something longer than the screen — a whole web page, a chat, a document, a long
-      list — made of the views taken while it scrolls, joined where they overlap.
-    - **How, in a web page** (it cannot scroll other windows by itself): **a shared Chrome tab is scrolled by the tab** —
-      Chrome's Captured Surface Control (`CaptureController.sendWheel`, Chrome 136 and later; Chrome asks the user once)
-      scrolls it step by step while each view is taken, to the end or until Stop; **a window or a screen is scrolled by
-      the user** — the mouse wheel or the scroll bar, at any pace — while the tab takes the views. The views are joined by
-      finding each one's offset against the one before (own C in imgproc.wasm: rows compared; parts that stay put — a
-      sticky header, a footer, a chat's input box — kept once, at the top and the bottom), at full resolution; a view that
-      does not fit (scrolled too fast, or sideways) is said, and the picture so far kept.
-    - **Then** the editor as today (crop, PNG, JPEG, copy); very tall pictures within the browser's canvas limits (made in
-      pieces where needed, or saved as several parts — said).
-    - **The suite:** a long test page shared and scrolled (the tab's own scrolling, and scrolling by hand simulated) — the
-      joined picture equal, pixel for pixel, to the page drawn whole; a sticky header kept once; a fast scroll said;
-      Windows, X11 and Wayland notes where they differ (Wayland's portal).
-
-
 32. **FFmpeg tab: 22 new jobs** (owner, 26 Nov 2026 — asked "Any interesting / cool new ffmpeg uses you can think of?", then:
     "include all the new cool FFmpeg features that you just mentioned above, leaving out the 3 that would require you to
     build the new FFmpeg module. Add this currently to todo.md" — the three, a stabiliser, high-quality pitch change and
@@ -193,6 +175,14 @@ The owner adds items here in chat ("add … to to do"). Newest instructions win.
       it on the tab's FFmpeg — on mono, stereo and 5.1 files.
 
 ## Done
+- **28. Screenshot: scrolling screenshots** (owner, 26 Nov 2026: "Make a new option also for scrolling screenshots in the
+  screenshot app.") — done 26 Nov 2026: "Take" → **A scrolling page**. A shared tab is shown in the tab and scrolled with the
+  mouse wheel over its picture (Chrome's Captured Surface Control forwards the wheel; it has no way for a page to scroll
+  by itself — the to-do's `sendWheel` shipped as `forwardWheel`), a window or a screen is scrolled by hand; the views are
+  joined where they overlap by our C in imgproc.wasm (sticky headers and footers kept once), the picture pixel for pixel
+  the page; a view scrolled too far or sideways, a blank stretch longer than the view, a resize and the 100-megapixel
+  limit are said, the picture so far kept; above 32,000 rows in parts. Unit scrollstitch 24, e2e screenshot 68. CLAUDE.md
+  §3 Screenshot, "Scrolling screenshots".
 - **24. Screenshot: draw a rectangle with the mouse to take the screenshot** (owner, 26 Nov 2026: "In the screenshot app, add
   the ability for the user to draw a rectangular area with his mouse also as an option to take the screenshot") — done 26
   Nov 2026: "Take" → **An area (draw a rectangle)**: the frame is taken (after the countdown, with a delay) and shown frozen

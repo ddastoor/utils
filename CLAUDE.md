@@ -2819,7 +2819,7 @@ confirm this. If it is actually so, then fix it."; e2e 50):**
   saved straight to a file are pointed to the FFmpeg tab's "Normalise loudness". e2e: a quiet MP4 with a changing level
   (linear) and a steady WebM tone (dynamic) both −16 ± 0.5 LUFS, the picture's packets identical; one already at −16.
 
-### Screenshot (PC) — BUILT (`src/tools/screenshot.ts`; e2e `tests/e2e/screenshot.e2e.mjs` 55)
+### Screenshot (PC) — BUILT (`src/tools/screenshot.ts`; e2e `tests/e2e/screenshot.e2e.mjs` 68)
 Share once (Chrome's picker: screen, window or tab; own tab excluded; optional mouse pointer) → "Take screenshot"
 now or after 3/5/10 s. With a delay, a small always-on-top **Document Picture-in-Picture** window counts down with
 "Snap now" and "Cancel" (the owner minimises the browser: Win+↓ / Super+H); it closes itself 250 ms before the
@@ -2854,6 +2854,29 @@ moves, edges and corners, turning over; the crop against a pixel-by-pixel copy);
 rectangle one pixel off never matches), the area's PNG byte for byte the same rectangle of the whole shot: dragged with the
 mouse, a corner and a side adjusted and moved and taken by a double-click, the keys alone, a finger (CDP touches), "Whole
 picture", Esc, a 3 s delay (full screen offered or taken), a 1920 × 1080 screen fitted into the view, leaving the tab.
+**Scrolling screenshots (to-do #28; owner, 26 Nov 2026: "Make a new option also for scrolling screenshots in the
+screenshot app."):** "Take" → **A scrolling page**: one tall picture of something longer than the screen, made of the views
+taken while it scrolls. **Who scrolls:** a page cannot scroll another window, and Chrome's Captured Surface Control has no
+programmatic scrolling (the early `sendWheel` proposal shipped as `CaptureController.forwardWheel(element)`, Chrome 136,
+which forwards the user's own wheel turned over an element to the shared tab; checked in this sandbox's Chromium: no
+`sendWheel`) — so **a shared tab** is shown here and scrolled with the mouse wheel over its picture (Chrome asks once; the
+share keeps this tab in front, `setFocusBehavior('focus-capturing-application')`), and **a window or a screen** is scrolled
+by hand where it is, at any pace (the tab says so on a line of its own for the whole capture; come back and press Stop). A
+countdown first, if one is set. **Joining** (`src/workers/scrollshot.worker.ts` → `src/lib/scrollstitch.ts` → imgproc.wasm's
+`p_scroll_match`): every new frame (the newest one when the joining falls behind) is placed against the view kept before
+by its rows — rows that stay put at the top and bottom (a sticky header, a footer, a chat's input box) are kept once; the
+shift of the rest is the one under which the overlap differs least against the detail it holds (a blank overlap is no
+evidence); the overlap's pixels are checked. Screens are captured exactly, so the picture is pixel for pixel the page.
+Said as it happens: the views and the picture's size; a view that does not fit (scrolled too fast — more than a view at
+once — or sideways): scroll back a little and it goes on; a blank stretch longer than the view (nothing to place by);
+the window resized, or the picture at 100 million pixels — stopped, the picture so far kept. **The result** goes to the
+editor (crop, PNG, JPEG, Copy; a long picture in a box that scrolls); above 32,000 rows it comes in parts (a browser's
+canvas holds 32,767 a side), part 1 shown, the others in the gallery. Unit `scrollstitch` 24 (synthetic pages: header +
+page + footer pixel for pixel — steady, scrolled back, up first, after a jump, repeated rows, parts, the pixel limit; a
+jump, sideways, resized, a blank stretch said; a capture off by 2 in every pixel still placed); e2e screenshot (a made-up
+640 × 480 view of a 2,400-row page with a sticky header and footer: a tab scrolled by the wheel over its picture and a
+window by hand with a jump of 600 rows on the way — every row of the PNG as the page drawn whole; Stop lets the wheel go;
+leaving the tab ends it).
 
 ### YouTube Clip (PC) — BUILT (`src/tools/youtube.ts`; e2e `tests/e2e/youtube.e2e.mjs` 13)
 Inputs: "Two links" (YouTube's Share → Start at… / right-click → "Copy video URL at current time" at the start and
@@ -2929,7 +2952,9 @@ stay **public** (the source of the deployed site is then available to every user
 |---|---|---|---|
 | libsodium 1.0.20 + own MD5/SHA-1/SHA-3/CRC-32 + OpenBSD bcrypt + own CSPRNG helpers (shuffle, sampling, UUID v4/v7 — v7 values always increase: RFC 9562 §6.2 method 2, a random step inside one millisecond, clock steps back of up to 10 s tolerated) + USODIUM1 header | C | **us** (`wasm/crypto`) | rng, picker, teams (draws without repeats, shuffles — what libsodium.js lacks: `docs/WASM-AUDIT.md` 155), uuid, mock data, line shuffle; the USODIUM1 header for sodium and sharelink (beside libsodium.js); its hashes (`u_hash_*`) are no longer called (hash-wasm since Nov 2026) |
 | **libsodium.js** — `libsodium-wrappers-sumo` 0.8.4 (libsodium **1.0.22**; the sumo build: the standard one has no Argon2) | C | the libsodium project (official WebAssembly build, embedded in the module) — binding `src/wasm/libsodium.ts`, format `src/lib/usodium.ts`, in `src/workers/crypto.worker.ts` | sodium, sharelink: Argon2id + XChaCha20-Poly1305 secretstream (`docs/WASM-AUDIT.md`, tab 101); password, passphrase, dice, coin: randombytes_uniform (tabs 104, 105, 155) |
-| imgproc (adjustments, resize, OpenCV's area resize (`p_resize_area`, equal to cv2's INTER_AREA), lossless orient/crop, filters, matting, warp + homography, doc enhance, the page in a photo (`p_page_quad`) and whether an outline is a page's (`p_quad_steps`: the step across each edge; `p_quad_text`: the letters it leaves outside), an outline fitted to the photo's edges (`p_refine_quad`), strips of the desk along a straightened page painted (`p_clear_border`), which way up the text stands and how its lines slant (`p_text_turns`: the letters; `p_text_lines`: projection profiles), where the text is (`p_ink_window`), a watermark's broad strokes taken out (`p_clear_wash`), ruled lines and list marks cleared and the columns counted (`p_clear_marks`); PaddleOCR's steps around its networks, as RapidOCR takes them in OpenCV's arithmetic (`p_resize_linear` / `p_net_planes`: cv2.resize INTER_LINEAR in its own fixed point; `p_db_boxes`: DBPostProcess, its box score over cv2.fillPoly's exact pixels; `p_crop_quad`: get_rotate_crop_image; `p_ctc`: CTC's greedy reading)) | C (own code) | **us** (`wasm/imgproc`) | image tools, scanner, passport, cartoon, ocr and photodict (pages found, set upright and level, rules and list marks cleared — to-do #18; the second reader's pixel work) |
+| imgproc (adjustments, resize, OpenCV's area resize (`p_resize_area`, equal to cv2's INTER_AREA), lossless orient/crop, filters, matting, warp + homography, doc enhance, the page in a photo (`p_page_quad`) and whether an outline is a page's (`p_quad_steps`: the step across each edge; `p_quad_text`: the letters it leaves outside), an outline fitted to the photo's edges (`p_refine_quad`), strips of the desk along a straightened page painted (`p_clear_border`), which way up the text stands and how its lines slant (`p_text_turns`: the letters; `p_text_lines`: projection profiles), where the text is (`p_ink_window`), a watermark's broad strokes taken out (`p_clear_wash`), the views of a scrolling
+screenshot placed against each other (`p_scroll_sig`, `p_scroll_match`: rows that stay put, the shift by the overlap's
+difference over its detail, the overlap's pixels), ruled lines and list marks cleared and the columns counted (`p_clear_marks`); PaddleOCR's steps around its networks, as RapidOCR takes them in OpenCV's arithmetic (`p_resize_linear` / `p_net_planes`: cv2.resize INTER_LINEAR in its own fixed point; `p_db_boxes`: DBPostProcess, its box score over cv2.fillPoly's exact pixels; `p_crop_quad`: get_rotate_crop_image; `p_ctc`: CTC's greedy reading)) | C (own code) | **us** (`wasm/imgproc`) | image tools, scanner, passport, cartoon, ocr and photodict (pages found, set upright and level, rules and list marks cleared — to-do #18; the second reader's pixel work) |
 | metacore (EXIF → JSON, lossless metadata strip JPEG/PNG/WebP, JPEG DPI, image sniffing) | C (own code) | **us** (`wasm/metacore`) | exif, image loading, passport/formphoto DPI |
 | BusyBox 1.38.0 (130 applets) + compat shims | C | **us** (`wasm/busybox`) | terminal, bc console |
 | jq 1.8.2 (+ oniguruma) | C | **us** (`wasm/jq`) | jq |
@@ -3038,6 +3063,9 @@ every pixel loop, the box finding and the decoding imgproc.wasm's (`docs/WASM-AU
 Nov 2026 (the OCR tab's lists, to-do #31): `src/lib/listtext.ts` — the reading's lines and the marks' boxes compared, a
 list's label matched by a regular expression, the levels counted from where the items stand: string glue around the
 readers' output; what each mark was and where it stood is imgproc.wasm's (`p_clear_marks` lists it — own C).
+Nov 2026 (Screenshot's scrolling capture, to-do #28): `src/lib/scrollstitch.ts` — the bookkeeping of which rows of which
+view join the picture, and the rows copied (`TypedArray.set`); every comparison of rows and pixels is imgproc.wasm's
+(`p_scroll_sig`, `p_scroll_match`, own C — no WebAssembly module joins scrolled views).
 Nov 2026 (Screenshot's area, to-do #24): `src/lib/areageom.ts` — the rectangle's arithmetic (where the frame stands, a
 drag, a move, an edge) and the area copied row by row with `TypedArray.set` (a memory copy per row, no pixel computed);
 `src/lib/areapick.ts` draws the frozen frame with the browser's canvas. No engine has anything to do here.

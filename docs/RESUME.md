@@ -78,8 +78,16 @@ own: the part that checks the MP3 choice is kept ran on a fresh page since the f
 the suite (another page) does not exist; it now chooses MP3 at 320 kb/s itself (checked alone: 5 / 5).
 **#24 Screenshot area drawn with the mouse: DONE (26 Nov 2026)** (todo.md Done #24; CLAUDE.md §3 Screenshot, "An area drawn
 with the mouse"): `src/lib/areapick.ts` + `src/lib/areageom.ts`; unit areageom 37, e2e screenshot 55.
-**Next (the owner's order):** #28 scrolling screenshots (batch 4), then batch 5 (#15, #17, #16), 6 (#14 Text Diff), 7 (#20
-Studio voice); then the potentials process. #32 (22 FFmpeg jobs) is not in the order: ask the owner when he is back.
+**#28 Scrolling screenshots: DONE (26 Nov 2026)** (todo.md Done #28; CLAUDE.md §3 Screenshot, "Scrolling screenshots"):
+decision taken without the owner — Chrome has no way for a page to scroll another tab by itself (`sendWheel` shipped as
+`forwardWheel`, which forwards the user's own wheel), so the user scrolls: over the shared tab's picture here, or the shared
+window itself. **Batch 4 is complete.** The FFmpeg suite was split (the sound checks: `ffmpeg-sound.e2e.mjs`, 15 / 15 here)
+— Windows check run 15 had timed out at 30 minutes on the joined suite.
+**Work is on `main` now** (owner, 26 Nov 2026, evening). **The site was not updated after the morning** (every publishing
+run failed in `npm test` since #26 — fixed); it is published from main once the owner allows main in the github-pages
+environment (CLAUDE.md §7 Deploy).
+**Next (the owner's order):** batch 5 (#15 Blur & Redact, #17 Watermark, #16 Cartoonizer), 6 (#14 Text Diff), 7 (#20 Studio
+voice); then the potentials process. #32 (22 FFmpeg jobs) is not in the order: ask the owner when he is back.
 
 ## ▶ SYNC POINT — 21 Nov 2026, night (read this first; it supersedes the older "NOW" notes below)
 The owner's weekly limit is nearly used up; work resumes on Thursday. Everything below is committed and pushed.

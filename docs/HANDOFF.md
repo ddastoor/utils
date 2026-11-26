@@ -192,7 +192,10 @@ this file = the owner's latest wishes, how the tests are written, and the traps 
   `.github/workflows/pages.yml` builds on pushes to main and publishes from main. GitHub refuses a deployment from a
   branch the `github-pages` environment does not allow, and the session's tools cannot change that setting: **the owner
   allows main under Settings → Environments → github-pages → Deployment branches and tags** (and makes main the default
-  branch under Settings → General). Until then the site stays at 1d5e8dc.
+  branch under Settings → General). Until then the site stays at the last version published.
+- **After a push, look at the "Deploy to GitHub Pages" run** (actions_list on pages.yml): on 26 Nov 2026 it failed at
+  `npm test` for a whole day (a unit suite that could not load a module reading `window`) and the site stayed at the
+  morning's version — the local runs had covered only the suites a change touched.
 
 ## 2. Status at hand-off (commit 5f87b87)
 Own e2e suites now exist for **Calculators 27/27, Math & Science 7/7, Text 9/9, the 8 developer tabs (json, regex,

@@ -282,4 +282,118 @@ export default async ({ base, page: newPage, ok, info, download }) => {
   await a.waitForTimeout(500);
   ok(!(await a.locator('.area-pick').count()) && await a.evaluate(() => [...document.body.children].every((e) => !e.inert) && !document.fullscreenElement), 'leaving the tab closes the frozen screen and gives the page back');
   ok(!a.errors.length, `no page errors with the area ${a.errors.slice(0, 3).join(' | ')}`);
+
+  // ---------------------------------------------------------------- scrolling screenshots (to-do #28)
+  // owner, 26 Nov 2026: "Make a new option also for scrolling screenshots in the screenshot app." The shared surface is a
+  // made-up page seen through a 640 × 480 view: a sticky header (40 rows), 410 rows of the page, a footer (30 rows); the
+  // page — 2,400 rows of glyph-like lines and coloured boxes, every row its own — is moved by window.__scroll. Chrome's
+  // forwardWheel is stood in for: the wheel over the element scrolls the made-up page. The joined picture must be the
+  // header, the whole page and the footer, row for row (FNV-1a of every row of the PNG against the page drawn whole).
+  const sp = await newPage({ viewport: { width: 1280, height: 900 } });
+  await sp.addInitScript(() => {
+    const W = 640, VH = 480, HEAD = 40, FOOT = 30, REG = VH - HEAD - FOOT, PH = 2400;
+    window.__surface = 'browser'; window.__scroll = 0; window.__fwdCalls = [];
+    const pageCanvas = () => {
+      if (window.__page) return window.__page;
+      const pc = document.createElement('canvas'); pc.width = W; pc.height = PH;
+      const g = pc.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, W, PH);
+      let s = 9; const r = () => ((s = (Math.imul(s, 1103515245) + 12345) >>> 0) >>> 8) / 16777216;
+      for (let y = 10; y < PH - 24; y += 22) {
+        let x = 12 + Math.floor(r() * 20); const end = W - 20 - Math.floor(r() * 200);
+        while (x < end) { const gw = 4 + Math.floor(r() * 8), gh = 8 + Math.floor(r() * 6); g.fillStyle = `rgb(${Math.floor(r() * 80)},${Math.floor(r() * 80)},${100 + Math.floor(r() * 120)})`; g.fillRect(x, y + 14 - gh, gw, gh); x += gw + 2 + (r() < 0.2 ? 6 : 0); }
+        if (r() < 0.15) { g.fillStyle = `hsl(${Math.floor(r() * 360)} 70% 60%)`; g.fillRect(Math.floor(r() * (W - 120)), y, 100, 18); }
+      }
+      return (window.__page = pc);
+    };
+    const head = (g) => { g.fillStyle = '#1e293b'; g.fillRect(0, 0, W, HEAD); g.fillStyle = '#fbbf24'; g.fillRect(16, 10, 90, 20); g.fillRect(W - 120, 10, 100, 20); };
+    const foot = (g, y) => { g.fillStyle = '#e2e8f0'; g.fillRect(0, y, W, FOOT); g.fillStyle = '#64748b'; g.fillRect(W / 2 - 40, y + 8, 80, 14); };
+    navigator.mediaDevices.getDisplayMedia = async () => {
+      const c = document.createElement('canvas'); c.width = W; c.height = VH;
+      const g = c.getContext('2d'), pg = pageCanvas();
+      const draw = () => { head(g); g.drawImage(pg, 0, window.__scroll, W, REG, 0, HEAD, W, REG); foot(g, VH - FOOT); };
+      draw(); const iv = setInterval(draw, 30);
+      const st = c.captureStream(30), t = st.getVideoTracks()[0], gs = t.getSettings.bind(t);
+      t.getSettings = () => ({ ...gs(), displaySurface: window.__surface, width: W, height: VH });
+      t.addEventListener('ended', () => clearInterval(iv));
+      return st;
+    };
+    // Chrome forwards the wheel turned over the element to the shared tab: here it moves the made-up page
+    CaptureController.prototype.forwardWheel = async function (el) {
+      window.__fwdCalls.push(el ? el.tagName : null);
+      if (window.__fwdEl) window.__fwdEl.removeEventListener('wheel', window.__fwdFn);
+      window.__fwdEl = el;
+      if (!el) return;
+      window.__fwdFn = (e) => { window.__scroll = Math.max(0, Math.min(PH - REG, window.__scroll + Math.round(e.deltaY))); };
+      el.addEventListener('wheel', window.__fwdFn, { passive: true });
+    };
+    // the picture the capture must make: header, the page whole, footer — FNV-1a of every row
+    window.__wantRows = () => {
+      const c = document.createElement('canvas'); c.width = W; c.height = HEAD + PH + FOOT;
+      const g = c.getContext('2d'); head(g); g.drawImage(pageCanvas(), 0, HEAD); foot(g, HEAD + PH);
+      const d = g.getImageData(0, 0, W, c.height).data, rows = [];
+      for (let y = 0; y < c.height; y++) { let hsh = 0x811c9dc5; for (let i = y * W * 4; i < (y + 1) * W * 4; i++) hsh = Math.imul(hsh ^ d[i], 16777619) >>> 0; rows.push(hsh); }
+      return rows;
+    };
+  });
+  await sp.goto(`${base}#/screenshot`);
+  const sbtn = (name) => sp.locator('.actions').getByRole('button', { name, exact: true });
+  const sstat = () => sp.locator('.tool-body [aria-live="polite"]').first().textContent();
+  const rowsOf = (img) => { const o = []; for (let y = 0; y < img.height; y++) { let hsh = 0x811c9dc5; for (let i = y * img.width * 4; i < (y + 1) * img.width * 4; i++) hsh = Math.imul(hsh ^ img.data[i], 16777619) >>> 0; o.push(hsh); } return o; };
+  const wantRows = await sp.evaluate(() => window.__wantRows());
+  const compare = (img) => { const got = rowsOf(img); const n = Math.min(got.length, wantRows.length); for (let y = 0; y < n; y++) if (got[y] !== wantRows[y]) return `row ${y} differs`; return got.length === wantRows.length ? 'the same' : `${got.length} rows, not ${wantRows.length}`; };
+  await sp.getByRole('combobox', { name: /^Delay/ }).selectOption('0');
+  await sp.getByRole('radio', { name: 'A scrolling page' }).click();
+  ok(await sbtn('Start a scrolling capture').isVisible(), 'the button says what it does: “Start a scrolling capture”');
+
+  // a shared tab, scrolled with the wheel over its picture here (Chrome's Captured Surface Control)
+  await sbtn('Start a scrolling capture').click();
+  await sp.waitForFunction(() => /1 view · 640 × 480 px/.test(document.querySelector('.tool-body [aria-live="polite"]')?.textContent || ''), null, { timeout: 15000 });
+  ok(await sp.locator('video.shot-live').isVisible() && (await sp.evaluate(() => window.__fwdCalls)).join() === 'VIDEO' && await sp.getByText(/^Scroll with the mouse wheel over the picture of the shared tab below/).isVisible(), 'a shared tab: its picture is shown here, the wheel over it is forwarded to it (forwardWheel), and the tab says so');
+  ok(await sbtn('Stop').isVisible() && await sbtn('Capturing…').isDisabled(), '“Stop” is offered while it runs (the start button says “Capturing…”)');
+  for (let i = 0; i < 60 && await sp.evaluate(() => window.__scroll) < 1990; i++) {
+    const b = await sp.locator('video.shot-live').boundingBox();
+    await sp.mouse.move(b.x + b.width / 2, b.y + b.height / 2);
+    await sp.mouse.wheel(0, 100);
+    await sp.waitForTimeout(140);
+  }
+  await sp.waitForTimeout(600);
+  const mid = await sstat();
+  ok(/\d+ views · 640 × 2,470 px/.test(mid), `the picture grows as the tab is scrolled to its end: ${mid.slice(0, 60)}`);
+  await sbtn('Stop').click();
+  await sp.getByText(/^Captured a scrolling picture 640 × 2,470 px from \d+ views\./).waitFor({ timeout: 20000 });
+  ok((await sp.evaluate(() => window.__fwdCalls)).join() === 'VIDEO,' && !(await sp.locator('video.shot-live').count()), 'Stop: the wheel is no longer forwarded and the picture of the tab goes away');
+  const t1 = readPng(readFileSync(await download(sp, () => sp.getByRole('button', { name: 'PNG', exact: true }).click())));
+  ok(t1.width === 640 && t1.height === 2470 && compare(t1) === 'the same', `the PNG is the header once, the whole page and the footer once — every row as the page drawn whole (${t1.width}×${t1.height}: ${compare(t1)})`);
+  ok(/640×2470 · a scrolling capture of \d+ views · /.test(await sp.locator('.shot-stage + .muted').textContent()) && await sp.locator('.shot-stage.tall').count() === 1, 'the editor says it is a scrolling capture and shows the long picture in a box that scrolls');
+
+  // a window (no wheel to forward): scrolled by hand while the tab takes the views; a jump too far is said, and going
+  // back to where it fits carries on
+  await sbtn('Stop sharing').click();
+  await sp.evaluate(() => { window.__surface = 'window'; window.__scroll = 0; });
+  await sbtn('Start a scrolling capture').click();
+  await sp.getByText(/^Now scroll the shared window yourself/).waitFor({ timeout: 15000 });
+  ok(!(await sp.locator('video.shot-live').count()) && (await sp.evaluate(() => window.__fwdCalls)).length === 2, 'a window: no picture of it here, nothing forwarded — scrolled by hand, as the tab says');
+  const to = async (y) => { await sp.evaluate((v) => { window.__scroll = v; }, y); await sp.waitForTimeout(220); };
+  for (let y = 70; y <= 700; y += 70) await to(y);
+  await to(1300); // 600 rows at once: more than the 410 the view shows
+  await sp.waitForFunction(() => /does not fit the picture/.test(document.querySelector('.tool-body [aria-live="polite"]')?.textContent || ''), null, { timeout: 8000 }).catch(() => {});
+  ok(/that view does not fit the picture \(scrolled too fast, or sideways\)/.test(await sstat()), `a jump of 600 rows is said: ${(await sstat()).slice(0, 90)}`);
+  for (let y = 900; y <= 1990; y += 90) await to(Math.min(y, 1990));
+  await to(1990);
+  await sbtn('Stop').click();
+  await sp.getByText(/^Captured a scrolling picture 640 × 2,470 px/).waitFor({ timeout: 20000 });
+  const t2 = readPng(readFileSync(await download(sp, () => sp.getByRole('button', { name: 'PNG', exact: true }).click())));
+  ok(compare(t2) === 'the same', `scrolled by hand, with a jump on the way: still every row of the page (${t2.width}×${t2.height}: ${compare(t2)})`);
+  ok(await sp.locator('.shot-thumb').count() === 2, 'both pictures are in the gallery');
+
+  // leaving the tab during a capture: it ends, nothing left running
+  await sp.evaluate(() => { window.__scroll = 0; });
+  await sbtn('Start a scrolling capture').click();
+  await sp.getByText(/^Now scroll the shared window yourself/).waitFor({ timeout: 15000 });
+  await to(100);
+  await sp.evaluate(() => { location.hash = '#/stopwatch'; });
+  await sp.waitForTimeout(800);
+  const live = await sp.evaluate(() => globalThis.__superutilsLive?.());
+  ok(!live || live.workers === 0, `leaving the tab during a scrolling capture ends it: no worker left (${JSON.stringify(live)})`);
+  ok(!sp.errors.length, `no page errors with the scrolling capture ${sp.errors.slice(0, 3).join(' | ')}`);
 };

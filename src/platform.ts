@@ -13,10 +13,10 @@ export const isChromium = !!uad?.brands?.some((b: any) => /Chromium|Google Chrom
 export const has = {
   displayMedia: !!navigator.mediaDevices?.getDisplayMedia,
   userMedia: !!navigator.mediaDevices?.getUserMedia,
-  docPiP: 'documentPictureInPicture' in window,
-  cropTarget: 'CropTarget' in window,
-  webcodecs: 'VideoEncoder' in window,
-  savePicker: 'showSaveFilePicker' in window,
+  docPiP: 'documentPictureInPicture' in globalThis,
+  cropTarget: 'CropTarget' in globalThis,
+  webcodecs: 'VideoEncoder' in globalThis,
+  savePicker: 'showSaveFilePicker' in globalThis,
   wakeLock: 'wakeLock' in navigator,
   share: 'share' in navigator,
 };

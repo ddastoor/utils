@@ -2959,6 +2959,19 @@ cannot. Three new suites; each fails on the build before its fixes.
   runs on a page of its own, where the choice was never made (the tab keeps it while its page is open — as it should). The
   part chooses MP3 at 320 kb/s itself now; run alone: 5 / 5 (kept for another file and through leaving the tab, the MP3's
   320 kb/s frames and the loudness of the original).
+- **The site was not updated after the morning of 26 Nov 2026** — every publishing run from the Key Codes change (#26,
+  de86095, 06:12 UTC) on failed in `npm test`: `bitsweb` loads `src/tools/software/ref.ts`, which now imports
+  `src/platform.ts`, and that read `window` as it loaded (`'documentPictureInPicture' in window` …) — no `window` in Node,
+  where the unit suites run ("ReferenceError: window is not defined"). Unseen because only the suites a change touched
+  were run here, and the workflow's failures were not looked at. Fixed with `globalThis` (the same object in a browser).
+  Lesson (HANDOFF): after a push, look at the "Deploy to GitHub Pages" run.
+- **Scrolling screenshots (to-do #28, 26 Nov 2026):** while building — every row looked "detailed" (band sums over bands of
+  unequal width; now band means), blank rows beside a header shrank the shifts searched (the header capped at the fewest
+  rows seen), a capture's rounding hid a static header (tolerance a level a band) and a faint gradient under noise was
+  refused although it fit far better than any other shift (accepted when 2× better); the first instruction to the user
+  was overwritten by the first view's progress at once (now a line of its own); the start button said "Waiting…" during a
+  capture ("Capturing…"). The unit suite's own slips: steps that crossed the made-up page's blank band with nothing in
+  common (no method can place those — the test asks for steps that keep detail in common).
 - **Screenshot, an area drawn with the mouse (to-do #24, 26 Nov 2026):** built with its checks; found on the way only slips
   of the new suite (an equidistant pointer that takes the top edge, as specified; a full-screen request still on its way when
   checked).

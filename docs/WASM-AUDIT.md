@@ -1399,6 +1399,12 @@ were 238 MB). What follows is the record of the engine as it was; the code is in
 - **Screenshot, "An area" (to-do #24, 26 Nov 2026):** no engine — the frozen frame is drawn by the browser's canvas and the
   area copied row by row (`cropImg` in `src/lib/areageom.ts`: `TypedArray.set`, a memory copy a row). Looked at: imgproc's
   own crop would need its worker and module fetched for a memory copy. Nothing to move into WebAssembly.
+- **Screenshot, "A scrolling page" (to-do #28, 26 Nov 2026):** the views are joined by **our own C in imgproc.wasm**
+  (`p_scroll_sig`, `p_scroll_match`). Looked for an existing module first: image stitching in WebAssembly exists only as
+  OpenCV.js's Stitcher (panoramas: feature matching and warping, 8 – 10 MB, no notion of a page scrolled straight down with
+  a sticky header) — the wrong tool and far too large for one vertical shift a frame; scrolling-capture tools (ShareX's
+  scrolling capture, in C#) are not WebAssembly. Row signatures and a shift search over every offset are a few dozen lines
+  of C; the bookkeeping of rows (`src/lib/scrollstitch.ts`) is TypeScript glue, row copies only.
 
 ### 153. `terminal` — Linux Terminal (20 Nov 2026)
 - **Ours:** BusyBox 1.38.0 compiled by us to wasm32-wasi (130 applets), our WASI host and our shell (`src/lib/terminal/`).

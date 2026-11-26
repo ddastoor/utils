@@ -1056,3 +1056,8 @@ details summary { cursor: pointer; font-weight: 600; color: var(--accent); paddi
 .area-bar.top { bottom: auto; top: 16px; }
 .area-btns { display: flex; flex-wrap: wrap; gap: 8px; }
 .area-say { font-size: 13.5px; }
+/* Screenshot: the shared tab's picture while it is scrolled from here, and a long picture in the editor (to-do #28) */
+.shot-src.shot-live { display: block; max-width: 100%; max-height: 60vh; width: auto; height: auto; margin: 4px auto 0; border-radius: 8px; background: #000; cursor: ns-resize; }
+.shot-stage.tall { max-height: 70vh; overflow: auto; }
+.shot-stage.tall .shot-canvas { max-height: none; width: 100%; height: auto; }
+.shot-hint { padding: 8px 12px; border-radius: 8px; background: var(--surface-2); }
