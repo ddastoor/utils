@@ -2220,6 +2220,7 @@ editing"; then: "Just use your discretion and get the best quality" — chosen b
   as heard on two speakers by a BS.1770 written in the suite and by FFmpeg, nothing fetched for Remove noise, the model once
   a visit with its progress, strength 0 / 50 % exact, the finish and the strength mixed not cleaned, A/B, a stereo file of
   one voice cleaned once, leaving mid-clean, a model that cannot be fetched said and fetched at the next try, the phone.
+  Both suites also in Chrome on Windows (the Windows check, run 16: noise-studio 28 / 28, noise 25 / 25).
 
 ### Pitch & Speed — BUILT (`src/tools/pitch.ts`, engine `src/lib/stretch.ts`; e2e `tests/e2e/pitch.e2e.mjs` 18)
 Open any audio/video file → speed 0.5–2× (pitch kept) and pitch −12…+12 semitones (length kept), both by **Signalsmith

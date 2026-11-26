@@ -116,7 +116,7 @@ MossFormer2 48 kHz (229 MB) level on balance; WPE dereverberation measured and n
 11.2). **Decisions taken without the owner (to show him):** the loudness of a mono file is −16 LUFS as heard on two speakers
 (−19 on its one channel: at −16 there natural speech needed its peaks limited 3 dB and more half the time); the EQ at ±3 dB
 (±4 scored higher on DNSMOS — not chased); no dereverberation and no restoration network (measured / not needed). Unit dfn 33,
-e2e noise-studio 28 (+ noise 25); the site 563 MB. **Batch 7 is complete — the owner's batch order is finished.**
+e2e noise-studio 28 (+ noise 25) — **both passed on Windows too** (the Windows check, run 16: 28 / 28, 25 / 25); the site 563 MB. **Batch 7 is complete — the owner's batch order is finished.**
 **Next:** the potentials process — it needs the owner (he picks the apps): when he is back, show him `docs/potentials.md`,
 and ask (1) when to do #32 (22 FFmpeg jobs, not in the order); (2) remind him to allow `main` in Settings → Environments →
 github-pages (the site is not published from main until then); (3) offer the AnimeGAN / White-box styles for the Cartoonizer;

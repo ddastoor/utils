@@ -3016,3 +3016,5 @@ cannot. Three new suites; each fails on the build before its fixes.
   the status watcher read the recorder's live region (the first of the page), an A/B check read the line before it changed,
   sample indexes of 48000 × 2.3 that are not whole numbers, a peak bound of −1.5 dBFS at 16 kHz for a true peak held at
   48 kHz (−1.45 now: the resampling and the 16-bit steps move it by hundredths).
+  **On Windows** (the Windows check, run 16, Chrome on Windows 10.0.26100, on de92742): noise-studio 28 / 28 (10.4 s cleaned
+  in 3.6 s; SI-SDR 5.0 → 15.5 dB, as here; FFmpeg 9.1's ebur128 agreeing on −16 LUFS), noise 25 / 25 — nothing found.
