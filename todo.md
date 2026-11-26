@@ -104,6 +104,30 @@ The owner adds items here in chat ("add … to to do"). Newest instructions win.
     - **Measured, not guessed:** how much of the photo's fine detail each result keeps (edges, fine-scale structure) for
       the current output and each option; the suite holds the chosen level.
 
+17. **Watermark: a diagonal watermark across the picture; PDFs and Word documents, every page** (owner, 26 Nov 2026: "in
+    the Watermark app, add two new options. First option, a watermark-style option; the watermark should be from the
+    bottom left to the top right, diagonally right across the picture. And the second option is that I should be able to
+    upload a PDF or a Word document, and the style of the watermark chosen should be applied to every page of this PDF or
+    Word document.")
+    - Today: the text or a logo in one of nine positions, or tiled at an angle; size, opacity, margin, font, colour,
+      shadow. (PDFs have their own tab, PDF Watermark: vector text, opacity, tiled.)
+    - **"Diagonal", a new position:** one watermark along the line from the bottom-left corner to the top-right one —
+      turned by the picture's own diagonal (the angle atan(height ÷ width): steeper on a tall photo), centred, as large
+      as the diagonal holds within the margin; text or logo; the size slider then sets how much of the diagonal it fills.
+    - **A PDF or a Word document instead of photos:** every page gets the watermark as chosen (a position, tiled or
+      diagonal — each page by its own shape). **PDF:** the PDF Watermark tab's engine (MuPDF: vector text, sharp at any
+      zoom; the logo as an image with its transparency; opacity); the pages' text stays text (searchable, copyable); a
+      password asked for where the PDF has one. **Word (.docx):** Word's own watermark — the shape Word puts in each
+      section's header with Design → Watermark ("Diagonal" text runs from the bottom left to the top right; or a
+      picture) — so the document stays editable and Word, LibreOffice and Google Docs show it on every page; the old .doc
+      format: said to be saved as .docx first. The downloads keep their format (name-watermarked.pdf / .docx).
+    - **Engines:** MuPDF (on the site); for .docx, a zip with XML inside — a WebAssembly route first (STANDING RULE #1:
+      7z-wasm for the zip, already on the site, and the browser's DOMParser for the XML, or a small Rust module),
+      written down in docs/WASM-AUDIT.md.
+    - **The suite:** the diagonal's angle and reach measured on photos of three shapes; a PDF of mixed page sizes and
+      rotations (/Rotate) watermarked on every page (read back by MuPDF: the drawn pixels, the text still there); a .docx
+      with several sections opened by LibreOffice (converted to PDF: the watermark on every page) and by python-docx.
+
 ## Done
 - **12. Photo Dictionary: the final list of words in alphabetical order** (owner, 21 Nov 2026) — done 21 Nov 2026: the
   same cards, A → Z without regard to case or accents; the line above says so; Share list in the same order. Unit
