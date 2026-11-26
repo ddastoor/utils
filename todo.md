@@ -93,14 +93,17 @@ The owner adds items here in chat ("add … to to do"). Newest instructions win.
     - **Why it is coarse now:** the AI styles (Magenta's arbitrary style transfer) paint at 512 px (1024 on a real
       graphics card) and the result is saved at that size — the network paints strokes at a fixed scale of its input,
       so a small input gives big strokes; the Cartoon filter flattens to a few k-means colours with thick lines.
-    - **What to try, chosen by measured results and sample pictures shown to the owner first:**
+    - **Owner, 26 Nov 2026 (on showing samples and sizes first): "go ahead and use your discrestion.. if needed, i'll ask u
+      to change later.."** — Claude chooses by measurement and by eye, without asking first; the sizes are written down
+      (commit, CLAUDE.md, docs/WASM-AUDIT.md) and kept to a sensible share of the site's room (488 MB of the 1 GB).
+    - **What to try, chosen by measured results and sample pictures:**
       (1) the AI styles at the photo's own resolution — painted in overlapping tiles whose seams are blended, so the
       strokes stay fine at full size (slower on a processor: progress shown);
       (2) better models where they look more like Prisma, on ONNX Runtime Web (already on the site — WebAssembly
       first): per-style networks trained on one painting each (Johnson et al.'s fast neural style — the ONNX model zoo's
       candy, mosaic, rain princess, udnie, pointillism, about 7 MB each), White-box Cartoonization (CVPR 2020) and
       AnimeGAN v2 / v3 for the cartoon look; newer arbitrary-style networks (AdaAttN, StyTr²) looked at too. Licences
-      checked; **each model's size said against the site's 1 GB before it is added** (the size check);
+      checked; each model's size written down against the site's 1 GB (Claude's discretion — the owner's word);
       (3) the filters: a finer Cartoon — more colours, an edge-preserving smoothing that keeps detail (the detail layer
       added back), lines that thin as the picture grows.
     - **Measured, not guessed:** how much of the photo's fine detail each result keeps (edges, fine-scale structure) for
