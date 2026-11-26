@@ -128,6 +128,142 @@ The owner adds items here in chat ("add … to to do"). Newest instructions win.
       rotations (/Rotate) watermarked on every page (read back by MuPDF: the drawn pixels, the text still there); a .docx
       with several sections opened by LibreOffice (converted to PDF: the watermark on every page) and by python-docx.
 
+18. **OCR and Photo Dictionary: the OCR tab as good as the Photo Dictionary; documents with rich formatting and with
+    watermarks, above all from a phone's camera; measured on many real documents** (owner, 26 Nov 2026: "for the OCR app
+    and Photo Dictionary app — can u make the ocr app's ocr capability the same quality as the Photo Dictionary's? the OCR
+    engine on the OCR app and I think for the photo dictionary app also, works very poorly for a document that has
+    formatting, rich text formatting like bullet points, indentation, etc., especially using the phone camera. Also
+    improve the quality when the document has a watermark. use many real documents with a lot of rich text formatting,
+    etc to further improve the ocr quality")
+    - **Today:** both tabs run the same engine (Tesseract 5, `src/lib/ocr.ts`) on nearly the same preparation — the page
+      found and straightened, set upright and level, the document clean-up. Where they differ: the OCR tab's clean-up can
+      be switched off and it turns light-on-dark pictures over; it reads four languages; it shows the whole text, every
+      mistake in view — the Photo Dictionary shows the uncommon words and joins words broken over two lines; only the
+      Photo Dictionary has "Photo of a screen" (moiré). First step: the same photos through both tabs, measured, to find
+      where and why the OCR tab reads worse — then **one shared reading path for both tabs**, so a photo reads the same
+      in each and every improvement reaches both.
+    - **Rich formatting:** bullet points (• ◦ ▪ – ✓), numbered and lettered lists, indentation and nested lists, headings,
+      bold and italic, tables, two columns, text boxes, headers and footers. What goes wrong today: a bullet is read as
+      "e", "©", "«", "*" or "o", or dropped and its item glued to the line before; indentation and blank lines are lost
+      (the text comes out as plain lines); a narrow column is read across the gutter; a table's cells run together. To
+      do: Tesseract's layout (blocks, paragraphs, lines with their boxes — it gives them already) and its page
+      segmentation settings tried on the set; bullets recognised by their shape and place (a small round or square mark
+      where a line starts, at the height of the small letters) and written as •; indentation written from where each
+      line starts (nested lists keep their levels); paragraphs and headings kept apart by a blank line; "Keep the
+      layout" (bullets, indents, blank lines) or "Plain text" for the result.
+    - **Watermarks:** a light or coloured mark behind the text (CONFIDENTIAL, DRAFT, a logo, a name tiled across the
+      page — our Watermark tab's diagonal and tiled ones too) taken out before reading: the text is the darkest ink, so
+      marks clearly lighter than it, and coloured marks where the text is black or dark grey, are removed (the two levels
+      of ink found per page); measured with and without, on the same pages watermarked and not.
+    - **Many real documents** (the owner's words): documents with open licences full of formatting — public-domain
+      government documents (forms, guides, the Federal Register's lists), Wikipedia articles with lists and tables,
+      open-source projects' documentation, Word and LibreOffice documents with bullets and numbering, the site's own
+      GST Invoice, Rent Receipt and Resume — each page rendered and photographed by the camera of
+      `scripts/make-kindle-photos.py` (tilt, focus, noise, shadow, glare, held sideways) and also taken by a webcam;
+      the owner's own photos when he sends them (never in the repository). Scored by the words read right, the
+      characters (CER) and the layout (bullets, indent levels, line order); the suites hold the measured level.
+    - **Engines** (STANDING RULE #1): Tesseract stays unless another engine reads the set better — measured, not
+      guessed: Tesseract's best models (tessdata_best beside best_int), PaddleOCR PP-OCRv5 on ONNX Runtime (on the site
+      already; the earlier test, docs/WASM-AUDIT.md tab 122, was on blurred Kindle photos only), a layout model for lists
+      and tables (PP-DocLayout, DocLayout-YOLO); each model's size said against the site's 1 GB before it is added.
+19. **Slideshow Maker: every picture whole, nothing cut** (owner, 26 Nov 2026: "in the slideshow maker app, some of the
+    pictures that I added are getting cut. Add a new option whereby when the slideshow happens, none of the pictures get
+    cut at all. So the slideshow should have two options, one that already exists and one a new option where the
+    slideshow should contain the original pictures in their full, original uncut form.")
+    - **Why pictures are cut today:** a photo of another shape than the video (a portrait photo in a 16:9 slideshow) is
+      cropped by "Fill (crop edges)", the default; and even with "Fit (blurred background)" the gentle zoom (Ken Burns,
+      on by default) grows each photo by 8 % and pans it, which cuts its edges too.
+    - **The new option, "Whole pictures (nothing cut)":** every photo is shown entire for all its time on screen —
+      fitted inside the frame; the gentle zoom, when on, moves only within the frame (from a little smaller up to the
+      frame, never past it) and pans only where there is room; around the photo the blurred background or a plain colour
+      (black, white, any); crossfades as before. The existing way stays as it is beside it.
+    - Also considered: a shape "Like the photos" (the shape most of the photos have), so whole pictures fill the frame
+      with no bars at all.
+    - **The suite:** photos of extreme shapes (a 4 : 1 panorama, a 1 : 3 strip, a square) with a coloured mark in each
+      corner, in every video shape, zoom on and off: every frame of the video holds all four corners of the photo on
+      screen; the existing modes unchanged.
+20. **Noise Remover: "Studio voice" — a voice recorded outdoors made to sound as if spoken in a studio** (owner, 26 Nov
+    2026: "In the noise remover app, it should be that when I record my voice, say out in the open, in traffic or
+    outside, when I remove the noise, there should be a new option so that it should sound as if I'm speaking in the
+    studio, like they do in movie studio editing")
+    - **Today:** RNNoise 0.2 removes steady noise (fans, hum, hiss, a constant traffic roar) and keeps the voice; horns,
+      passing engines and the echo of the street get through, and the voice keeps the phone microphone's thin, distant
+      sound.
+    - **"Studio voice", a new option:** (1) stronger noise removal for traffic — a newer speech-enhancement network
+      chosen by measurement: DeepFilterNet 3 (48 kHz), GTCRN, ClearerVoice's MossFormer2 and others, on ONNX Runtime
+      (on the site already — WebAssembly first); (2) the room and street echo taken out (dereverberation); (3) a
+      restoration network where one earns its size (Resemble Enhance, VoiceFixer and newer: they also restore the high
+      frequencies a phone loses); (4) the studio finish in our own C (audio.wasm): rumble filter, de-esser, an EQ for
+      presence and warmth, a compressor for an even level, loudness to −16 LUFS (EBU R128), a gentle gate in the pauses.
+      Each model's size said against the site's 1 GB before it is added (the size check); A/B with the original; the
+      present cleaning stays as it is.
+    - **Measured, not guessed:** speech with real traffic and street noise mixed in (the suite's speech fixture with
+      recorded street noise; outdoor recordings) — the noise left, the speech kept, DNSMOS (Microsoft's open
+      speech-quality predictor) before and after; samples for the owner to hear before a model is chosen.
+21. **Screencast: more countdowns; the sound level of the recording checked** (owner, 26 Nov 2026: "I want you to fix and
+    confirm two things in the screencast app. Firstly, I want you to add another countdown preset. Right now there's a
+    3-second countdown. I want you to add, say for example, a 5-second countdown, an 8-second countdown, and a custom
+    countdown in seconds. The second thing I noticed is whenever I recorded my video, the volume of the output video
+    seemed a little lower than the normal. Please check and confirm this. If it is actually so, then fix it.")
+    - **Countdown:** Off, 3 s, 5 s, 8 s or a number of seconds typed in (whole seconds, within limits, said when outside);
+      the choice kept while the tab is open. Also: the countdown in a small always-on-top window, as the Screenshot tab
+      has, so it can be seen when the browser is minimised or another window is in front — closed before the recording
+      starts, so it is not recorded.
+    - **The sound level:** our code changes no level — the shared sound is recorded as the browser gives it; with the
+      microphone, both are added in Web Audio; an MP4's sound is re-encoded as AAC (160 kbps) where the browser wrote
+      Opus; the microphone is asked for with echo cancellation and noise suppression (and the browser's automatic gain
+      control). To check: a known tone played in a shared tab and recorded — its level in the file against the tone's,
+      with and without the microphone, MP4 and WebM — here on Linux and on the Windows runner (to-do #13's), and Windows'
+      own system-sound capture against what is heard. If the recording is quieter: fix where it is lost; if the captured
+      sound itself is quieter than what one hears, offer "Bring the sound to a normal loudness" (EBU R128, as the FFmpeg
+      tab's loudness job). The suite holds the level to within 0.5 dB.
+
+22. **FFmpeg, "Extract audio": MP3 for the download** (owner, 26 Nov 2026: "in the extract audio option of the FFmpeg app,
+    the extracted audio is by default in the .m4a format. Add an MP3 audio formats also for the download.")
+    - **Today:** the job has a list "Audio as" — "Keep the original codec (no quality loss)" first and chosen (a video's
+      AAC sound comes out as .m4a), then MP3 (LAME, V2 ≈ 190 kbps) and WAV. It was not found: a list under the job,
+      its first entry already chosen.
+    - **To do:** the choice in plain sight — buttons for the format (as it is · MP3 · WAV · FLAC · OGG Opus), MP3 with
+      its quality (128 / 192 / 320 kbps or V2); and on the result, beside the .m4a, **"Download as MP3"** made from the
+      sound just extracted (no second run); the format chosen kept while the tab is open. The suite: MP3 frames, the
+      bitrate, the length and the level equal to the original's.
+23. **FFmpeg: the sound of the results quieter than the original?** (owner, 26 Nov 2026: "In the FFmpeg app, the audio
+    volume of the output resultant videos and audio files seems to be lower than when I hear it from the original.
+    Please confirm if this is the case. If this is indeed the case, then please fix.")
+    - **To check:** every job's result measured against its original — loudness (EBU R128) and peak per channel, by the
+      native FFmpeg the unit suite uses and in the browser — with mono, stereo and 5.1 sound, into MP4, M4A, MP3, WAV,
+      OGG. Suspects found in the code: **Join clips** makes every clip's sound stereo (`aformat=…channel_layouts=stereo`)
+      — FFmpeg spreads a mono sound over the two channels 3 dB lower each, so a mono phone video plays quieter; **5.1
+      sound** into MP3 (LAME takes two channels) or into stereo is mixed down by FFmpeg's rule that keeps the sum from
+      clipping — up to about 8 dB quieter; **"Normalise loudness"** brings a loud original down to −16 LUFS by design
+      (to be said in the tab). Also the Screencast's sound (to-do #21) — the two checked together.
+    - **If confirmed — fixed where it is lost:** mono kept mono, or put on both channels at its own level; a mix-down
+      that keeps the loudness (with a limiter where it would clip); the jobs that do not set out to change the level
+      keep it. The suite holds every such job to the original's loudness within 0.5 dB.
+24. **Screenshot: draw a rectangle with the mouse to take the screenshot** (owner, 26 Nov 2026: "In the screenshot app, add
+    the ability for the user to draw a rectangular area with his mouse also as an option to take the screenshot")
+    - **Today:** share a screen, a window or a tab once → "Take screenshot" (now or after 3 / 5 / 10 s) takes the whole
+      picture; it can be cropped afterwards in the editor.
+    - **"An area", a new way to take it** (like Windows' Snipping Tool's rectangle): the frame is taken first, then shown
+      full screen at the screen's own pixels, dimmed; the mouse drags a rectangle (its size in pixels shown as it
+      grows; corners and edges adjustable; Esc cancels, Enter or a double-click takes it) → that part goes into the
+      editor at full resolution. A page cannot draw over the desktop itself (as the Screencast's "An area" says), so the
+      rectangle is drawn on the frozen screen. With a delay, the countdown first, then the rectangle. Touch works too.
+    - **The suite:** a known picture shared, a rectangle dragged → exactly those pixels saved (PNG read back); Esc;
+      adjusting a corner; a delay; a window shared instead of a screen.
+25. **bc console: a bc variable usable as a $ name** (owner, 26 Nov 2026, in the Scientific Calculator's bc console:
+    "> interest=20.78 / > $interest / $interest is not set (the names so far: $A $B $C) — The interest variable should also
+    be set, and the user should be able to use this interest variable as $interest subsequently.")
+    - **Today:** `interest=20.78` sets bc's own variable `interest` (bc prints nothing for an assignment, so no row gets
+      a name); `$interest` looks only at the $ names (the automatic $A, $B … and those set with `$x = …`) and says it is
+      not set.
+    - **To do:** a variable set in bc (`interest=20.78`, `rate = 7.5`, also inside a line with other statements) can be
+      used as `$interest` from then on — the value bc holds at that moment (a later `interest = 21` is seen); `$Interest`
+      as `$interest` (bc's names are lower case); the names list in the messages includes them; a clash with an
+      automatic name (`$a` is `$A` today) settled by a clear rule and said; a variable never set still answered with
+      its reason. Unit `bcvars.test.mjs` and the e2e suite: the owner's three lines, a change after, a loop, `define`,
+      Clear session.
+
 ## Done
 - **12. Photo Dictionary: the final list of words in alphabetical order** (owner, 21 Nov 2026) — done 21 Nov 2026: the
   same cards, A → Z without regard to case or accents; the line above says so; Share list in the same order. Unit
