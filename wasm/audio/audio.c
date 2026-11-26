@@ -8,6 +8,7 @@
 //   a_levels     peak + RMS
 //   a_gain, a_fade, a_mix_mono
 //   a_resample   windowed-sinc (Kaiser) resampler, any ratio
+//   a_dfn_*, a_studio_finish, a_loudness, a_true_peak   the Noise Remover's Studio voice (studio.c)
 #include <math.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -181,3 +182,5 @@ API float *a_resample(const float *x, uint32_t frames, uint32_t ch, double ratio
   return o;
 }
 
+// ------------------------------------------------------------------ Studio voice (DeepFilterNet 3's DSP, the studio finish)
+#include "studio.c"

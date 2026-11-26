@@ -262,5 +262,14 @@
     "metadata": "character",
     "sha256": "6f327246b50388f3c176ae304bd95767ea6dc0c9ae92153ef8cbe210b3c14884",
     "size": 21234383
+  },
+  "deepfilternet3/deepfilter.onnx": {
+    "url": "https://huggingface.co/soniqo/DeepFilterNet3-ONNX/resolve/63d8ba442ba900143c468b798e94a04009b2f0c9/deepfilter.onnx",
+    "license": "MIT (DeepFilterNet by Hendrik Schröter, MIT OR Apache-2.0; the ONNX export of its v0.5.6 checkpoint by soniqo)",
+    "usedBy": [
+      "noise"
+    ],
+    "sha256": "e1157049059434ae0d5857e32c812abea227b975e946b2eb64d001abbce156d3",
+    "size": 8608859
   }
 }

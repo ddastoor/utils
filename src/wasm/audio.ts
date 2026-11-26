@@ -1,8 +1,16 @@
 // Wrapper for audio.wasm (wasm/audio): LAME 4.0 MP3 encoder (C, LGPL-2.0) + our own audio C — WAV writer, waveform
-// peaks, levels, gain/fades, windowed-sinc resampler (tempo and pitch: Signalsmith Stretch, src/lib/stretch.ts). Audio is planar Float32Array per channel.
+// peaks, levels, gain/fades, windowed-sinc resampler (tempo and pitch: Signalsmith Stretch, src/lib/stretch.ts), and the
+// Noise Remover's Studio voice (wasm/audio/studio.c: DeepFilterNet 3's signal processing, the studio finish, BS.1770
+// loudness and true peak). Audio is planar Float32Array per channel.
 // In the browser call it through src/lib/audio-client.ts (runs in a worker); bindAudio() is used there and in tests.
 
 export interface Mp3Options { vbr?: boolean; rate?: number; quality?: number }
+/** What the studio finish did (wasm/audio/studio.c): loudness before and after (LUFS as heard on two speakers), the true
+ *  peak after (dBTP), the expander's mean reduction below its threshold, the compressor's, de-esser's and limiter's
+ *  largest reductions (dB), and the gain of the loudness step (dB). */
+export interface FinishReport { before: number; after: number; peak: number; expander: number; compressor: number; deesser: number; gain: number; limiter: number }
+/** The finish's steps (bits of a_studio_finish's flags) */
+export const FINISH = { rumble: 1, expander: 2, eq: 4, compressor: 8, deesser: 16, loudness: 32, all: 63 } as const;
 export function bindAudio(e: any) {
   const mem = () => e.memory.buffer as ArrayBuffer;
   const err = () => { const p = e.a_error(), m = new Uint8Array(mem()); let n = p; while (m[n]) n++; return new TextDecoder().decode(m.subarray(p, n)) || 'audio engine error'; };
@@ -67,6 +75,38 @@ export function bindAudio(e: any) {
       if (chs.length === 1) return chs[0];
       const { p, n } = putPlanar(chs), o = e.a_malloc(n * 4);
       try { e.a_mix_mono(p, n, chs.length, o); return new Float32Array(mem(), o, n).slice(); } finally { e.a_free(p); e.a_free(o); }
+    },
+    /** DeepFilterNet 3, one segment of mono 48 kHz sound: its STFT is kept in the module; returns the frames T and the
+     *  network's inputs feat_erb [1, 1, T, 32] and feat_spec [1, 2, T, 96] (copies). */
+    dfnPrepare(x: Float32Array): { T: number; ferb: Float32Array; fspec: Float32Array } {
+      const T = withMono(x, (p) => e.a_dfn_prepare(p, x.length));
+      if (!T) throw new Error(err());
+      const pe = e.a_dfn_ferb(), ps = e.a_dfn_fspec(); // (pointers first: a call may grow the memory and detach a view's buffer)
+      return { T, ferb: new Float32Array(mem(), pe, T * 32).slice(), fspec: new Float32Array(mem(), ps, T * 96 * 2).slice() };
+    },
+    /** The noisy STFT of the prepared segment, [T][481][2] (the tests) */
+    dfnSpec(T: number): Float32Array { const p = e.a_dfn_spec(); return new Float32Array(mem(), p, T * 481 * 2).slice(); },
+    /** The network's erb_mask [1, 1, T, 32] and df_coefs [1, 5, T, 96, 2] → the cleaned segment, as long as the input */
+    dfnApply(mask: Float32Array, coefs: Float32Array): Float32Array {
+      const pm = e.a_malloc(mask.length * 4), pc = e.a_malloc(coefs.length * 4);
+      try {
+        new Float32Array(mem(), pm, mask.length).set(mask); new Float32Array(mem(), pc, coefs.length).set(coefs);
+        return takePlanar(e.a_dfn_apply(pm, pc), 1)[0];
+      } finally { e.a_free(pm); e.a_free(pc); e.a_dfn_release(); }
+    },
+    dfnErbWidths(): Int32Array { const p = e.a_dfn_erb_widths(); return new Int32Array(mem(), p, 32).slice(); },
+    /** ITU-R BS.1770-4 integrated loudness (LUFS; each channel weighted 1, as FFmpeg's ebur128 measures) of 48 kHz audio */
+    loudness(chs: Float32Array[]): number { const { p, n } = putPlanar(chs); try { return e.a_loudness(p, n, chs.length); } finally { e.a_free(p); } },
+    /** The true peak (dBTP, 4× oversampled) */
+    truePeak(chs: Float32Array[]): number { const { p, n } = putPlanar(chs); try { return e.a_true_peak(p, n, chs.length); } finally { e.a_free(p); } },
+    /** The studio finish of 48 kHz audio (FINISH flags; −16 LUFS as heard on two speakers, −1.5 dBTP) */
+    studioFinish(chs: Float32Array[], flags: number = FINISH.all, target = -16, ceiling = -1.5): { chs: Float32Array[]; report: FinishReport } {
+      const { p, n } = putPlanar(chs), r = e.a_malloc(64);
+      try {
+        const out = takePlanar(e.a_studio_finish(p, n, chs.length, flags, target, ceiling, r), chs.length);
+        const v = new Float64Array(mem(), r, 8);
+        return { chs: out, report: { before: v[0], after: v[1], peak: v[2], expander: v[3], compressor: v[4], deesser: v[5], gain: v[6], limiter: v[7] } };
+      } finally { e.a_free(p); e.a_free(r); }
     },
     /** Resample by ratio = new rate / old rate (windowed sinc, Kaiser β 8.6). */
     resample(chs: Float32Array[], ratio: number): Float32Array[] {
