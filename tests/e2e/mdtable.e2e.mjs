@@ -4,7 +4,7 @@
 // semicolons, line breaks in cells (<br>), a table inside other text, CJK / emoji widths, the output read by cmark-gfm
 // (the Markdown Editor tab), 3,000 rows, download; phone note.
 import { pcOnlyOnPhone } from './_pconly.mjs';
-import { execFileSync } from 'node:child_process';
+import { execFileSync } from '../lib/child.mjs';
 import { readFileSync } from 'node:fs';
 const parse = (md) => JSON.parse(execFileSync('python3', ['-c', `import sys, json, markdown, html.parser
 h = markdown.markdown(sys.stdin.read(), extensions=["tables"])

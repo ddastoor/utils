@@ -6,7 +6,7 @@
 // that shadow built-ins, optional vs nullable, unions, numbers beyond 64 bits, keys Go cannot tag, control and bidi
 // characters in keys, deep nesting, duplicate keys. Plus the tab itself: languages, notes, errors, root name, download.
 import { pcOnlyOnPhone } from './_pconly.mjs';
-import { execFileSync } from 'node:child_process';
+import { execFileSync } from '../lib/child.mjs';
 import { mkdtempSync, writeFileSync, mkdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';

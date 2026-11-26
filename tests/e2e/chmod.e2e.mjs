@@ -4,7 +4,7 @@
 // presets; every printed command and 1,152 chmod expressions are run with the real chmod (files and folders) and read
 // back with stat; phone note.
 import { pcOnlyOnPhone } from './_pconly.mjs';
-import { execFileSync } from 'node:child_process';
+import { execFileSync } from '../lib/child.mjs';
 import { mkdtempSync, writeFileSync, mkdirSync, rmSync, chmodSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';

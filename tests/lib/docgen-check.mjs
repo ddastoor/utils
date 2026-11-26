@@ -1,7 +1,7 @@
 // Helpers for the document-generator suites: read a generated PDF in Node — its text, fonts, images (JPEG ones counted
 // apart), links, and (with zbarimg, `apt install zbar-tools`) the QR code drawn on its first page.
 import { readFileSync, writeFileSync } from 'node:fs';
-import { spawnSync } from 'node:child_process';
+import { spawnSync } from './child.mjs';
 export async function pdfDoc(path) {
   const m = await import('mupdf');
   const buf = readFileSync(path), d = m.Document.openDocument(buf, 'application/pdf').asPDF();

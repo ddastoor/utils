@@ -7,7 +7,7 @@
 // non-ASCII -u, -F parts with ;type= / ;filename=, notes for what is left out; errors; phone note.
 import { pcOnlyOnPhone } from './_pconly.mjs';
 import { createServer } from 'node:http';
-import { execFileSync, execFile } from 'node:child_process';
+import { execFileSync, execFile } from '../lib/child.mjs';
 import { writeFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 // async: the HTTP server lives in this process, a synchronous child would deadlock it

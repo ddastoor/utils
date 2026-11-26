@@ -3,7 +3,7 @@
 // for the Linux script, ASCII and CRLF for the Windows one, the job inside each decoded and compared with the text typed
 // and the voices ticked. The page itself must fetch nothing for this mode but its own chunk.
 import { readFileSync } from 'node:fs';
-import { spawnSync } from 'node:child_process';
+import { spawnSync } from '../lib/child.mjs';
 
 const CAT = JSON.parse(readFileSync(new URL('../../src/lib/offline-tts/catalogue.json', import.meta.url), 'utf8'));
 const SEX = new Map(CAT.voices.map((v) => [v.id, v.sex]));

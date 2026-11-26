@@ -2,7 +2,7 @@
 // shell output run through a real POSIX shell, Python unescape via Python's own literal parser, CSV read back by
 // Python's csv module), and unescape(escape(x)) = x for tricky strings; invalid input messages; swap; phone note.
 import { pcOnlyOnPhone } from './_pconly.mjs';
-import { execFileSync } from 'node:child_process';
+import { execFileSync } from '../lib/child.mjs';
 const TRICKY = ['He said "hi"\n\tit\'s 5\\6', 'नमस्ते ₹500 😀', 'a\u0000b\u001fc', '<script>alert("x & y")</script>', "O'Reilly; DROP TABLE x;--", 'a,b\n"c"', '$HOME `ls` \\ !!', '.*+?^${}()|[]\\/'];
 export default async (ctx) => {
   const { base, page: newPage, ok } = ctx;

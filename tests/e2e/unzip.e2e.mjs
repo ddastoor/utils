@@ -4,7 +4,7 @@
 // files, also encrypted) checked against the native 7z — listing, sizes, single-file download and "Download all as
 // .zip" byte-identical; "../" names made safe; a non-archive and a damaged archive reported.
 import { writeFileSync, readFileSync, mkdirSync } from 'node:fs';
-import { spawnSync } from 'node:child_process';
+import { spawnSync } from '../lib/child.mjs';
 import { randomBytes, createHash } from 'node:crypto';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';

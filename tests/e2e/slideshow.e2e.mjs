@@ -2,7 +2,7 @@
 // boxes, length, which photo is on screen at known times (vs the photos drawn the same way), reorder, shape, music.
 import { fileURLToPath } from 'node:url';
 import { readFileSync, writeFileSync } from 'node:fs';
-import { execFileSync } from 'node:child_process';
+import { execFileSync } from '../lib/child.mjs';
 import { join } from 'node:path';
 import { mp4Info } from './video.e2e.mjs';
 const probeAudio = (f) => { try { return execFileSync('ffprobe', ['-v', 'error', '-select_streams', 'a:0', '-show_entries', 'stream=codec_name', '-of', 'csv=p=0', f], { encoding: 'utf8' }).trim(); } catch { return null; } };

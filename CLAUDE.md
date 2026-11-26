@@ -3425,6 +3425,10 @@ DEBUG=pw:browser E2E_CHROME_ARGS="--enable-logging=stderr --v=0" node tests/e2e.
   paths and writes binary-mode lines — a reference list in `--text`); a Python snippet takes paths as arguments, not in
   its source (`\U…` is an escape); `import()` of a path through `pathToFileURL`; the gpg program from `$GPG`; native
   Python's output with `\r\n` turned back. `.gitattributes` (`* -text`) checks every file out as stored, on Windows too.
+  A suite runs its reference tools through `tests/lib/child.mjs` (node:child_process with a time limit — 3 minutes unless
+  a call sets its own — on the synchronous calls: every suite shares one Node process, so a tool that waits for ever, as
+  Python's `getpass` does on Windows with a pipe for its input, stopped every suite of a run); a tool that takes a
+  password reads it from its standard input when that is no terminal.
 - `no-external.e2e.mjs` visits every route on desktop + phone (sharded) and fails on any request to another host,
   any CSP violation or any page error.
 - **Sweeps over every tab** (Nov 2026): `touch-targets.e2e.mjs` — on a phone, the hit area of every visible control of

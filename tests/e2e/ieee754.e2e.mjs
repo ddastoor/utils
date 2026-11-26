@@ -4,7 +4,7 @@
 // (tests/fixtures/ieee/reference.json); −0, subnormals, Infinity, NaN payloads; too large / too small notes; a
 // million-digit exponent does not freeze the page; invalid input; chips; hex → value; phone note.
 import { pcOnlyOnPhone } from './_pconly.mjs';
-import { execFileSync } from 'node:child_process';
+import { execFileSync } from '../lib/child.mjs';
 import { readFileSync } from 'node:fs';
 const bits64 = (x) => { const b = Buffer.alloc(8); b.writeDoubleBE(x); return b.toString('hex').toUpperCase(); }, bits32 = (x) => { const b = Buffer.alloc(4); b.writeFloatBE(x); return b.toString('hex').toUpperCase(); };
 const next64 = (x, d) => { const b = Buffer.alloc(8); b.writeDoubleBE(x); let v = b.readBigUInt64BE(); v = x === 0 ? (d > 0 ? 1n : (1n << 63n) | 1n) : (x > 0) === (d > 0) ? v + 1n : v - 1n; b.writeBigUInt64BE(v); return b.readDoubleBE(); };

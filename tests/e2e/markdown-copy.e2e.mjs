@@ -8,7 +8,7 @@
 // in the copy (as the .html download has it) and is not fetched by the page.
 import { writeFileSync, readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { spawnSync } from 'node:child_process';
+import { spawnSync } from '../lib/child.mjs';
 import { unzipSync, strFromU8 } from 'fflate';
 
 const DOC = `# Title one

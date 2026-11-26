@@ -5,7 +5,7 @@
 // case, 0x / colons, data: URLs); a 9 MB file (it used to trap the engine at 8 MiB) with a cut display and a complete
 // download; decoding a saved file back to the original name and bytes; Base58 kept to short values; phone note.
 import { pcOnlyOnPhone } from './_pconly.mjs';
-import { execFileSync } from 'node:child_process';
+import { execFileSync } from '../lib/child.mjs';
 import { randomBytes } from 'node:crypto';
 import { writeFileSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';

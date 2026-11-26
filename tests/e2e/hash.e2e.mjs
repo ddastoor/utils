@@ -6,7 +6,7 @@ import { createHash } from 'node:crypto';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { spawnSync } from 'node:child_process';
+import { spawnSync } from '../lib/child.mjs';
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const ref = JSON.parse(readFileSync(join(ROOT, 'tests/fixtures/hash/reference.json'), 'utf8'));
 const gen = (n, seed) => { const out = Buffer.alloc(n); let x = seed; for (let i = 0; i < n; i++) { x = (Math.imul(x, 1103515245) + 12345) & 0x7fffffff; out[i] = (x >>> 16) & 0xff; } return out; };

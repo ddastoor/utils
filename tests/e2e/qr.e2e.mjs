@@ -3,7 +3,7 @@
 // `apt install zbar-tools`) — exact text; checks on what was typed (amounts, Wi-Fi passwords, event times, colours);
 // error-correction levels change the symbol size; colours; PNG size; SVG; too much data reported.
 import { readFileSync } from 'node:fs';
-import { spawnSync } from 'node:child_process';
+import { spawnSync } from '../lib/child.mjs';
 import { scanFile } from './_scanback.mjs';
 const hasZbar = spawnSync('sh', ['-c', 'command -v zbarimg']).status === 0;
 /** zbar's reading of a PNG: the bytes of the symbol as UTF-8 (null when zbar is not installed). */

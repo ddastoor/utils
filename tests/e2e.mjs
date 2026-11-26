@@ -77,6 +77,7 @@ async function runOne(f) {
   const r = { f, fails, infos, passed, ms: performance.now() - s0 };
   results.push(r);
   console.log(`  … ${line(r)}`); // as it ends: a run stopped from outside still shows what finished
+  for (const m of fails.slice(0, 15)) console.log(`      ✗ ${m}`); // … and why (the summary at the end may never come)
 }
 await Promise.all(Array.from({ length: Math.min(CONCURRENCY, files.length) }, async () => { while (queue.length) await runOne(queue.shift()); }));
 // A suite that failed while the others were running is run once more on its own: recorders, timers and media encoders

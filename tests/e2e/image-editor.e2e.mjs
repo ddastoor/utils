@@ -3,7 +3,7 @@
 // the size boxes refuse what cannot be made; resizing in linear light (a 1-pixel checkerboard halves to ≈ 187, not 128).
 import { fileURLToPath } from 'node:url';
 import { imageInfo, decodeInPage } from '../lib/imgcheck.mjs';
-import { spawnSync } from 'node:child_process';
+import { spawnSync } from '../lib/child.mjs';
 import { join } from 'node:path';
 const F = (n) => fileURLToPath(new URL(`../fixtures/images/${n}`, import.meta.url));
 

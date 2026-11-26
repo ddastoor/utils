@@ -2,7 +2,7 @@
 // result in the browser (duration, dimensions) and compares a decoded frame with the original.
 import { fileURLToPath } from 'node:url';
 import { readFileSync } from 'node:fs';
-import { execFileSync } from 'node:child_process';
+import { execFileSync } from '../lib/child.mjs';
 import { join } from 'node:path';
 const M = (n) => fileURLToPath(new URL(`../fixtures/media/${n}`, import.meta.url));
 /** the sound as ffprobe (FFmpeg, the independent reader) sees it: codec and bit rate; null without ffprobe */

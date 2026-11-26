@@ -3,7 +3,7 @@
 // classes, negation (last match wins), case option, dot files, bad pattern message, counts, phone note.
 import { pcOnlyOnPhone } from './_pconly.mjs';
 import { readFileSync } from 'node:fs';
-import { execFileSync } from 'node:child_process';
+import { execFileSync } from '../lib/child.mjs';
 const PATHS = ['package.json', 'README.md', 'src/main.ts', 'src/ui.ts', 'src/tools/text.ts', 'src/tools/text.test.ts', 'src/a/b/c/deep.ts', 'tests/e2e.mjs', '.env', 'docs/notes.md', 'docs/Guide.MD', 'img/logo.png', 'img/photo.JPG', 'file1.txt', 'file10.txt', 'a.b.c'];
 export default async (ctx) => {
   const { base, page: newPage, ok } = ctx;

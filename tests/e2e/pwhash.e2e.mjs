@@ -3,7 +3,7 @@
 // hashes made by Python are verified by the tab (also PBKDF2-SHA1, scrypt, Argon2d); parameters appear in the PHC string;
 // out-of-range settings and hashes that would freeze or crash the tab are refused; wrong password; bad hash; phone note.
 import { pcOnlyOnPhone } from './_pconly.mjs';
-import { execFileSync } from 'node:child_process';
+import { execFileSync } from '../lib/child.mjs';
 export default async (ctx) => {
   const { base, page: newPage, ok, info } = ctx;
   const page = await newPage(); await page.goto(`${base}#/pwhash`);

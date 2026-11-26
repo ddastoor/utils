@@ -5,7 +5,7 @@
 // tests/fixtures/ssh/keys.json), several keys in one paste, authorized_keys / known_hosts lines, any line wrapping,
 // MD5 fingerprints, clear messages for damaged input; every key different; phone note.
 import { pcOnlyOnPhone } from './_pconly.mjs';
-import { execFileSync } from 'node:child_process';
+import { execFileSync } from '../lib/child.mjs';
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 export default async (ctx) => {

@@ -4,7 +4,7 @@
 // names) and the native 7z; the password typed twice; non-ASCII zip passwords refused with the reason; Stop; zip.js for
 // what does not fit in memory (on a phone, 256 MB); file removal, name, checks.
 import { writeFileSync, readFileSync, utimesSync } from 'node:fs';
-import { spawnSync } from 'node:child_process';
+import { spawnSync } from '../lib/child.mjs';
 import { randomBytes, createHash } from 'node:crypto';
 import { join } from 'node:path';
 const py = (code, ...args) => spawnSync('python3', ['-c', code, ...args], { encoding: 'utf8' });

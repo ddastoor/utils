@@ -4,7 +4,7 @@
 // documents compared before / after by Chrome's XML parser; declaration, DOCTYPE, entities and text kept as typed;
 // xml: and default-namespace prefixes in XPath; ISO-8859-1 and UTF-16 files; a 1.3 MB document; phone note.
 import { pcOnlyOnPhone } from './_pconly.mjs';
-import { execFileSync } from 'node:child_process';
+import { execFileSync } from '../lib/child.mjs';
 import { readFileSync } from 'node:fs';
 import { REF, setValue } from './_devdata.mjs';
 const c14n = (x) => execFileSync('python3', ['-c', `import sys, xml.etree.ElementTree as ET

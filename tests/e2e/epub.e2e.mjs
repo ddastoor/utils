@@ -5,7 +5,7 @@
 // XML; MuPDF can open the result.
 import { fileURLToPath } from 'node:url';
 import { readFileSync, writeFileSync, existsSync, readdirSync } from 'node:fs';
-import { execFileSync } from 'node:child_process';
+import { execFileSync } from '../lib/child.mjs';
 import { unzipSync, strFromU8 } from 'fflate';
 // the W3C's epubcheck (Java) — the reference validator — where installed: EPUBCHECK=/path/epubcheck.jar, or a release
 // unpacked under /opt/epubcheck* (https://github.com/w3c/epubcheck/releases)

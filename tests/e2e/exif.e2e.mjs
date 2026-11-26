@@ -5,7 +5,7 @@
 import { fileURLToPath } from 'node:url';
 import { imageInfo } from '../lib/imgcheck.mjs';
 import { readFileSync } from 'node:fs';
-import { execFileSync } from 'node:child_process';
+import { execFileSync } from '../lib/child.mjs';
 const F = (n) => fileURLToPath(new URL(`../fixtures/images/${n}`, import.meta.url));
 const nativeTags = (p) => { try { return JSON.parse(execFileSync('exiftool', ['-json', '-n', '-G1', p], { stdio: ['ignore', 'pipe', 'ignore'] }).toString())[0]; } catch { return null; } };
 const DONE = /This photo gives away|carries no metadata|could not be read|not a photo/;

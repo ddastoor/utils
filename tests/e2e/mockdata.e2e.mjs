@@ -4,7 +4,7 @@
 // adding/removing fields; number ranges beyond 32 bits, swapped / unreadable ranges, dates typed day first, id start,
 // duplicate / empty / __proto__ field names, quoted SQL names, same rows in every format, downloads, word-count limit.
 import { pcOnlyOnPhone } from './_pconly.mjs';
-import { execFileSync } from 'node:child_process';
+import { execFileSync } from '../lib/child.mjs';
 import { readFileSync } from 'node:fs';
 import { chiUniform } from './_stats.mjs';
 const GST = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';

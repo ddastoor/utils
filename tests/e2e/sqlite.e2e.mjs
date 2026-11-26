@@ -7,7 +7,7 @@
 // files, names that need quoting, undo of a replaced database, the time limit, the open-transaction note, the busy
 // guard, nothing loaded before first use, the worker ended on leaving, the phone note.
 import { pcOnlyOnPhone } from './_pconly.mjs';
-import { execFileSync } from 'node:child_process';
+import { execFileSync } from '../lib/child.mjs';
 import { writeFileSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';

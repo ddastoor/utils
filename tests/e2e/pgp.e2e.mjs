@@ -2,9 +2,9 @@
 // signatures detached and clear-signed, symmetric, the revocation certificate — the RFC 9580 (v6, AEAD) vectors of the
 // RFC's Appendix A (tests/fixtures/pgp/rfc9580/), the file name stored in a message, armor inside an e-mail, and every
 // refusal in words. Skips the gpg parts gracefully if gpg is not installed.
-import { execFileSync } from 'node:child_process';
+import { execFileSync } from '../lib/child.mjs';
 import { writeFileSync, readFileSync, mkdtempSync } from 'node:fs';
-import { spawnSync } from 'node:child_process';
+import { spawnSync } from '../lib/child.mjs';
 const V = (n) => readFileSync(new URL(`../fixtures/pgp/rfc9580/${n}`, import.meta.url), 'utf8');
 export default async ({ base, page: newPage, ok, tmp: tmpRoot, download, devices }) => {
   // GPG: the gpg program ($GPG, else gpg on the PATH). On Windows that is Git for Windows' gpg, a POSIX (MSYS) build: it

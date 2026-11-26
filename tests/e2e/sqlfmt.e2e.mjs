@@ -9,7 +9,7 @@
 // what the text was read as, warnings, files in and out, copy, a large script, the phone note.
 import { pcOnlyOnPhone } from './_pconly.mjs';
 import { setValue, until, notes, hookClipboard, copied } from './_devdata.mjs';
-import { execFileSync } from 'node:child_process';
+import { execFileSync } from '../lib/child.mjs';
 import { writeFileSync, readFileSync } from 'node:fs';
 import { join, basename } from 'node:path';
 import { fileURLToPath } from 'node:url';

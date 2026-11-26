@@ -2717,6 +2717,15 @@ cannot. Three new suites; each fails on the build before its fixes.
   suite that hung took all the others' results with it. Now each suite's start and result are printed as they happen,
   and a suite still running after `E2E_SUITE_TIMEOUT` minutes (30) is reported as timed out, its pages closed, and not
   run again; run 8 says which suite hangs.
+  (12) **One reference tool stopped the whole run** (run 8, 26 Nov 2026): 15 suites finished (pgp9580 and screencast with
+  failures), then nothing for 2 h 24 min. The sodium suite runs the reference decryptor `tools/sodium_decrypt.py` with the
+  password on its standard input, and Python's `getpass` on Windows reads the console, never a pipe — it waited for a key
+  (run 5 passed: PyNaCl was not installed then, and the step was skipped with a note). The suites share one Node process
+  and call their tools synchronously, so the wait froze every suite with it, and the harness's own timeout could not fire.
+  → The decryptor takes a password from a pipe or a script as the first line of its standard input (a Windows pipe's
+  CR LF taken off — the old version kept the CR in the password even on Linux); `tests/lib/child.mjs` gives every
+  synchronous child process of the suites a time limit (3 minutes unless a call sets its own); a failing suite's reasons
+  are printed as it ends, not only in the summary, which a stopped run never reaches.
 - **OCR and Photo Dictionary: documents with formatting read poorly, above all from a phone (26 Nov 2026; owner, to-do
   #18: "works very poorly for a document that has formatting, rich text formatting like bullet points, indentation, etc.,
   especially using the phone camera. Also improve the quality when the document has a watermark").** Measured on 150

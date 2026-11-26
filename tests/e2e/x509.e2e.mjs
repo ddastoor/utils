@@ -5,7 +5,7 @@
 // indentation, JSON \n; PKCS #7 bundles; lone public keys; private-key warning; garbage input; phone note.
 // Fixtures: tests/fixtures/x509 (scripts/make-x509-fixtures.py).
 import { pcOnlyOnPhone } from './_pconly.mjs';
-import { execFileSync } from 'node:child_process';
+import { execFileSync } from '../lib/child.mjs';
 import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 export default async (ctx) => {

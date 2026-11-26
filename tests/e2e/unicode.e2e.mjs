@@ -2,7 +2,7 @@
 // counts (code points vs graphemes vs UTF-16 units vs bytes, Intl.Segmenter), general categories and scripts checked
 // against Python's unicodedata, invisible / look-alike detection, homograph warning, clean-up buttons, phone note.
 import { pcOnlyOnPhone } from './_pconly.mjs';
-import { execFileSync } from 'node:child_process';
+import { execFileSync } from '../lib/child.mjs';
 export default async (ctx) => {
   const { base, page: newPage, ok } = ctx;
   const page = await newPage({ permissions: ['clipboard-read', 'clipboard-write'] }); await page.goto(`${base}#/unicode`);

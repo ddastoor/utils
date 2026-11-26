@@ -2,7 +2,7 @@
 // right format and text, and by independent decoders where there is one — zbar for the 1-D codes, libdmtx (dmtxread)
 // for Data Matrix (`apt install zbar-tools dmtx-utils`); EAN/UPC check digits computed here; what zint would do
 // without a word (zeros in front, capitals) said; zint's errors in words; a typed value survives a change of format.
-import { spawnSync } from 'node:child_process';
+import { spawnSync } from '../lib/child.mjs';
 import { scanFile } from './_scanback.mjs';
 const has = (c) => spawnSync('sh', ['-c', `command -v ${c}`]).status === 0;
 const ZBAR = { EAN13: 'EAN-13', EAN8: 'EAN-8', UPCA: 'EAN-13', UPCE: 'EAN-13', Code128: 'CODE-128', Code39: 'CODE-39', Code93: 'CODE-93', ITF: 'I2/5', Codabar: 'Codabar' };

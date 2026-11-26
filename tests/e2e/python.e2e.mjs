@@ -17,7 +17,7 @@
 //   Ctrl+Enter), .py open / download, Clear, worker released on leave, phone note.
 import { pcOnlyOnPhone } from './_pconly.mjs';
 import { hookClipboard, copied } from './_devdata.mjs';
-import { execFileSync } from 'node:child_process';
+import { execFileSync } from '../lib/child.mjs';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { createRequire } from 'node:module';

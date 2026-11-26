@@ -12,7 +12,7 @@ import { fileURLToPath } from 'node:url';
 import { pcOnlyOnPhone } from './_pconly.mjs';
 import { setValue, until, hookClipboard, copied } from './_devdata.mjs';
 import { STRINGS, NUMBERS, rng, typedNum, same, makeDoc, typedFromJson } from '../lib/formats-corpus.mjs';
-import { spawnSync } from 'node:child_process';
+import { spawnSync } from '../lib/child.mjs';
 import { writeFileSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 const REF = JSON.parse(readFileSync(new URL('../fixtures/formats/reference.json', import.meta.url), 'utf8'));

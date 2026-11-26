@@ -3,7 +3,7 @@
 // (dictionary, keyboard, date, sequence, repeat), guess counts on the page against the reference fixture, the 2^64
 // ceiling, personal words, odd input, the engine loads only with the first password, phone note.
 import { pcOnlyOnPhone } from './_pconly.mjs';
-import { execFileSync } from 'node:child_process';
+import { execFileSync } from '../lib/child.mjs';
 import { readFileSync } from 'node:fs';
 const PWS = ['password', 'P@ssw0rd', '123456', 'qwerty', 'asdfghjkl', 'iloveyou', 'abc123', 'Tr0ub4dor&3', 'correcthorsebatterystaple', 'aaaaaaaaaa', '19/11/1988', 'abcdefgh', 'Mumbai2026', 'xK9#mQ2$vL7!', 'dragon', 'zxcvbnm', 'Th1s1sMyP@ss', 'ilovechai', 'q8T!vR2#nZ5&wL', '1234567890'];
 export default async (ctx) => {

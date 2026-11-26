@@ -4,7 +4,7 @@
 // long texts (the engine before gave up at 8,000 lines), folded unchanged runs, phone layout.
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { spawnSync } from 'node:child_process';
+import { spawnSync } from '../lib/child.mjs';
 import { setValue, until, hookClipboard, copied, notes } from './_devdata.mjs';
 
 const REF = JSON.parse(readFileSync(new URL('../fixtures/diff/reference.json', import.meta.url), 'utf8'));

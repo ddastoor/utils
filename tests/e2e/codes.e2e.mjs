@@ -1,6 +1,6 @@
 // QR/barcode generate → download → scan back; zip with AES password round trip; tar.gz via 7-Zip (7z-wasm).
 import { writeFileSync, mkdirSync } from 'node:fs';
-import { execFileSync } from 'node:child_process';
+import { execFileSync } from '../lib/child.mjs';
 export default async ({ base, page: newPage, ok, download, tmp }) => {
   const page = await newPage();
   await page.goto(base + '#/qr'); await page.waitForSelector('.code-preview svg', { timeout: 15000 });

@@ -4,7 +4,7 @@
 // and clear-signed signatures go both ways; each result says its format. A GnuPG key in this mode gets SEIPDv1 (named),
 // which gpg 2.4 decrypts; gpg cannot import the v6 key. The tools are found by $RSOP / $SQOP or on the PATH (see
 // tests/unit/pgp9580.test.mjs for how to build them); their checks are skipped with a note where they are missing.
-import { execFileSync } from 'node:child_process';
+import { execFileSync } from '../lib/child.mjs';
 import { writeFileSync, readFileSync, mkdtempSync } from 'node:fs';
 
 const find = (name, env) => {

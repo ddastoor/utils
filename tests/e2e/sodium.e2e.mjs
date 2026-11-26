@@ -3,7 +3,7 @@
 // truncation detected, password checks.
 import { fileURLToPath } from 'node:url';
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
-import { spawnSync } from 'node:child_process';
+import { spawnSync } from '../lib/child.mjs';
 import { randomBytes } from 'node:crypto';
 import { join } from 'node:path';
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));

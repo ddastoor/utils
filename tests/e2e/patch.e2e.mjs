@@ -1,7 +1,7 @@
 // Patch Applier (#/patch, PC only): diffs made here by GNU diff -u and by git diff are applied and the result compared
 // byte for byte with GNU patch; reverse; counts; mismatching patch refused; no newline at end; files; phone note.
 import { pcOnlyOnPhone } from './_pconly.mjs';
-import { execFileSync } from 'node:child_process';
+import { execFileSync } from '../lib/child.mjs';
 import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 export default async (ctx) => {

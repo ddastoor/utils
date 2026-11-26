@@ -1,7 +1,7 @@
 // Screencast (#/screencast, PC): getDisplayMedia (Chromium's fake picker picks the screen) → MediaRecorder → remuxed
 // file. Checks length (pause excluded), area crop size, WebM with a real duration, mic track, streaming to a file.
 import { readFileSync } from 'node:fs';
-import { execFileSync } from 'node:child_process';
+import { execFileSync } from '../lib/child.mjs';
 import { mp4Info } from './video.e2e.mjs';
 const probeAudio = (f) => { try { return execFileSync('ffprobe', ['-v', 'error', '-select_streams', 'a:0', '-show_entries', 'stream=codec_name', '-of', 'csv=p=0', f], { encoding: 'utf8' }).trim(); } catch { return null; } };
 
