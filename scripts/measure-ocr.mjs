@@ -8,7 +8,7 @@
 // holds every corner, with a camera's noise — a phone held at an angle (owner, 21 Nov 2026: "when I click it at different
 // angles"); 90, 180, 270: turned a quarter, a half, three quarters (the phone held sideways).
 // Needs python3 with Pillow (to decode the JPEGs).
-import { readFileSync, readdirSync, existsSync } from 'node:fs';
+import { readFileSync, readdirSync, existsSync, writeFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -30,6 +30,25 @@ let found = 0; // photos whose page was found (the page… variants)
 
 /** Words as a reader counts them: letters, digits and the apostrophe; case and punctuation ignored. */
 export const wordsOf = (s) => (s.normalize('NFC').replace(/[’‘]/g, "'").toLowerCase().match(/[a-z0-9']+/g) || []).map((w) => w.replace(/^'+|'+$/g, '')).filter(Boolean);
+
+/** The character error rate: the edit distance between the page's words and the words read (each list joined by single
+ *  spaces), over the page's characters. */
+export function cer(truth, got) {
+  const a = truth.join(' '), b = got.join(' ');
+  if (!a.length) return b.length ? 1 : 0;
+  let prev = new Uint32Array(b.length + 1), cur = new Uint32Array(b.length + 1);
+  for (let j = 0; j <= b.length; j++) prev[j] = j;
+  for (let i = 1; i <= a.length; i++) {
+    cur[0] = i;
+    for (let j = 1; j <= b.length; j++) cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+    [prev, cur] = [cur, prev];
+  }
+  return prev[b.length] / a.length;
+}
+/** Lines that begin with a lone mark where a bullet stood (to-do #18: "a bullet read as 'e', '©', '«', '*' or 'o'"):
+ *  the first token of a line one character of what bullets are read as, or two dashes. */
+export const BULLETLIKE = /^(?:[eoOcC©®«»*•◦▪●○■□☐☑✓✔vV>¢°·~=+\-–—]|[-–—]{2}|\(?[eo©]\)?|[eo][.,])$/;
+export const strays = (text) => text.split('\n').filter((l) => { const t = l.trim().split(/\s+/); return t.length > 1 && BULLETLIKE.test(t[0]); }).length;
 
 /** The longest common subsequence of two word lists: the words read right, in order. */
 export function lcs(a, b) {
@@ -61,7 +80,8 @@ async function imgprocNode() {
   const { createServer } = await import('vite');
   const vite = await createServer({ root, server: { middlewareMode: true, hmr: false, ws: false, watch: null }, logLevel: 'error', optimizeDeps: { noDiscovery: true, include: [] } });
   const { bindImgproc } = await vite.ssrLoadModule('/src/wasm/imgproc.ts');
-  const { straighten } = await vite.ssrLoadModule('/src/lib/pagecrop.ts');
+  const { straighten, pageSize } = await vite.ssrLoadModule('/src/lib/pagecrop.ts');
+  const pf = await vite.ssrLoadModule('/src/lib/pagefind.ts');
   const { uprightByReading } = await vite.ssrLoadModule('/src/lib/upright.ts');
   const mod = await WebAssembly.compile(readFileSync(join(root, 'src/wasm/bin/imgproc.wasm')));
   let memory; const w = {};
@@ -73,17 +93,47 @@ async function imgprocNode() {
   w.environ_get = () => 0;
   const inst = await WebAssembly.instantiate(mod, { wasi_snapshot_preview1: w });
   memory = inst.exports.memory; inst.exports._initialize?.();
-  return { ip: bindImgproc(inst.exports), straighten, uprightByReading, close: () => vite.close() };
+  // the Doc Scanner's page finder: DocCornerNet LEAN on the app's ONNX Runtime Web (as tests/unit/pagefind.test.mjs runs it)
+  const ort = await import(join(root, 'node_modules/onnxruntime-web/dist/ort.wasm.min.mjs'));
+  ort.env.wasm.numThreads = 1;
+  const session = await ort.InferenceSession.create(new Uint8Array(readFileSync(join(root, 'node_modules/scanic-ml/dist/doccornernet_lean.ort'))), { executionProviders: ['wasm'], graphOptimizationLevel: 'all' });
+  const ip = bindImgproc(inst.exports);
+  const docCorners = async (im) => {
+    const s = ip.resizeArea(im, pf.SIZE, pf.SIZE);
+    return pf.readOutput(await session.run({ [session.inputNames[0]]: new ort.Tensor('float32', pf.modelInput(s.data), [1, pf.SIZE, pf.SIZE, 3]) }));
+  };
+  return { ip, straighten, uprightByReading, pageSize, pf, docCorners, close: () => vite.close() };
 }
 
 /** The clean-up variants. app = what the Photo Dictionary did until 21 Nov 2026 (≤ 3000 px, the document clean-up, grey);
  *  page = the page found and straightened first by src/lib/pagecrop.ts (what the tab does now). */
-async function prepare({ ip, straighten, uprightByReading }, img, p) {
+async function prepare({ ip, straighten, uprightByReading, pageSize, pf, docCorners }, img, p) {
   const cap = (im, L = 3000) => { const s = Math.max(im.width, im.height); return s > L ? ip.resize(im, (im.width * L) / s, (im.height * L) / s) : im; };
   const copy = (im) => ({ width: im.width, height: im.height, data: new Uint8ClampedArray(im.data) });
   if (p === 'raw') return cap(img);
   if (p === 'app') return ip.docEnhance(copy(cap(img)), 1);
   if (p === 'screen') return ip.docEnhance(ip.blur(copy(cap(img)), 1.1), 1);
+  if (p.startsWith('doc')) {
+    // doc[+step…]: the page found by the Doc Scanner's network (DocCornerNet) when it is sure, else as page… does; then the
+    // same steps (level …)
+    const steps = p.split('+').slice(1), im = cap(img);
+    const m = await docCorners(im);
+    let pg, ok = false;
+    if (m && m.score >= pf.MIN_SCORE && pf.isPageQuad(pf.clampQuad(m.corners), im.width, im.height)) {
+      const c = pf.clampQuad(m.corners).map((v, k) => v * (k % 2 ? im.height : im.width)), [w, h] = pageSize(c);
+      pg = ip.warp(im, c, w, h); ok = true;
+    } else { const s2 = await straighten(im, ip); pg = s2.img; ok = s2.found; }
+    found += ok ? 1 : 0;
+    pg = copy(pg);
+    for (const st of steps) {
+      if (st === 'level') pg = (await uprightByReading(pg, readSmall, ip)).img;
+      else if (st === 'blur') pg = ip.blur(pg, 1.1);
+      else throw new Error('unknown step ' + st);
+    }
+    const out = ip.docEnhance(pg, 1);
+    if (ok) out.whole = async () => { let w = copy(cap(img)); if (steps.includes('level')) w = (await uprightByReading(w, readSmall, ip)).img; return ip.docEnhance(w, 1); };
+    return out;
+  }
   if (p.startsWith('page')) {
     // page[+step…]: the page found and straightened, then the steps in order — blur (a screen's moiré), up<f> (larger by
     // f, default 2, while the longer side is under 2000 px — the engine reads x-heights of 20 – 30 px best), sharp<a>
@@ -155,20 +205,22 @@ async function main() {
     for (const p of preps) {
       const t0 = performance.now();
       const work = await prepare(eng, img, p);
+      if (process.env.OCR_SAVE) writeFileSync(join(process.env.OCR_SAVE, `${name}.${p}.ppm`), ppm(work)); // the picture the engine reads
       let { data } = await worker.recognize(ppm(work), {}, { text: true, blocks: true });
       const nWords = (d) => (d.blocks || []).reduce((n, b) => n + b.paragraphs.reduce((m, pa) => m + pa.lines.reduce((k, l) => k + l.words.length, 0), 0), 0);
       if (work.whole && nWords(data) < 25) { const d2 = (await worker.recognize(ppm(await work.whole()), {}, { text: true, blocks: true })).data; if (nWords(d2) > nWords(data)) data = d2; }
       const got = wordsOf(data.text);
       const right = lcs(truth, got), found = [...rare].filter((x) => got.includes(x)).length;
-      const acc = right / truth.length, clean = got.length ? right / got.length : 0;
-      (totals[p] ||= []).push([acc, rare.size ? found / rare.size : 1, clean]);
-      row.push(`${p}: ${(100 * acc).toFixed(1)}% ${found}/${rare.size} rare ${(100 * clean).toFixed(0)}% clean conf ${Math.round(data.confidence)} n ${got.length} ${((performance.now() - t0) / 1000).toFixed(1)} s`);
+      const acc = right / truth.length, clean = got.length ? right / got.length : 0, ce = cer(truth, got), st = strays(data.text);
+      (totals[p] ||= []).push([acc, rare.size ? found / rare.size : 1, clean, ce, st]);
+      if (process.env.OCR_DUMP) writeFileSync(join(process.env.OCR_DUMP, `${name}.${p}.txt`), data.text);
+      row.push(`${p}: ${(100 * acc).toFixed(1)}% ${found}/${rare.size} rare ${(100 * clean).toFixed(0)}% clean cer ${(100 * ce).toFixed(1)}% stray ${st} conf ${Math.round(data.confidence)} n ${got.length} ${((performance.now() - t0) / 1000).toFixed(1)} s`);
     }
     console.log(row.join(' | '));
   }
   for (const [p, t] of Object.entries(totals)) {
     const m = (k) => (100 * t.reduce((s, x) => s + x[k], 0) / t.length).toFixed(1);
-    console.log(`MEAN ${p.padEnd(8)} words ${m(0)}%  rare ${m(1)}%  clean ${m(2)}%  (${t.length} photos, psm ${psm})`);
+    console.log(`MEAN ${p.padEnd(8)} words ${m(0)}%  rare ${m(1)}%  clean ${m(2)}%  cer ${m(3)}%  stray lines ${t.reduce((s, x) => s + x[4], 0)}  (${t.length} photos, psm ${psm})`);
   }
   if (found) console.log(`page found in ${found} of the runs that looked for it`);
   await worker.terminate(); await close();

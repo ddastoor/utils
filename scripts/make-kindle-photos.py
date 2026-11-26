@@ -208,8 +208,10 @@ def rng_normal(rng, shape, sd):
     return np.random.default_rng(rng.randrange(1 << 30)).normal(0, sd, shape)
 
 
-def photograph(rng, page, mask, corners, out_w, out_h, still):
-    """The phone over the page: a homography (turn, tilt, scale), focus and shake, the light, noise, glare, moiré."""
+def photograph(rng, page, mask, corners, out_w, out_h, still, soft=(0.8, 3.0), shake=(0.35, 3, 9)):
+    """The phone over the page: a homography (turn, tilt, scale), focus and shake, the light, noise, glare, moiré.
+    soft: the still's blur σ range (px of 4032); shake: (how often, the shortest and longest streak) — the defaults are the
+    Kindle set's; a page photographed on purpose (scripts/make-doc-photos.py) is held steadier."""
     ph, pw = page.shape[:2]
     fill = rng.uniform(0.55, 0.95)
     s = min(out_w * fill / pw, out_h * fill / ph)
@@ -257,10 +259,10 @@ def photograph(rng, page, mask, corners, out_w, out_h, still):
     # the lens and the focus: a still from slightly soft to in focus (σ 0.8 – 3 px of 4032), a video frame a little softer
     # than its own pixels (σ 0.6 – 1.6 px of 1080 – 1920: compressed, no still processing)
     k = max(out_w, out_h) / 4032
-    blur = rng.uniform(0.8, 3.0) * k if still else rng.uniform(0.6, 1.6)
+    blur = rng.uniform(*soft) * k if still else rng.uniform(0.6, 1.6)
     img = cv2.GaussianBlur(img.astype(np.float32), (0, 0), max(0.3, blur))
-    if rng.random() < 0.35:
-        n = max(3, int(rng.uniform(3, 9) * k * 4)) | 1
+    if rng.random() < shake[0]:
+        n = max(3, int(rng.uniform(shake[1], shake[2]) * k * 4)) | 1
         kern = np.zeros((n, n), np.float32); a = rng.uniform(0, math.pi)
         cv2.line(kern, (n // 2 - int(n / 2 * math.cos(a)), n // 2 - int(n / 2 * math.sin(a))), (n // 2 + int(n / 2 * math.cos(a)), n // 2 + int(n / 2 * math.sin(a))), 1, 1)
         img = cv2.filter2D(img, -1, kern / kern.sum())
