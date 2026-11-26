@@ -2726,6 +2726,10 @@ cannot. Three new suites; each fails on the build before its fixes.
   CR LF taken off — the old version kept the CR in the password even on Linux); `tests/lib/child.mjs` gives every
   synchronous child process of the suites a time limit (3 minutes unless a call sets its own); a failing suite's reasons
   are printed as it ends, not only in the summary, which a stopped run never reaches.
+  (13) **Run 9** (26 Nov 2026: pgp9580, screencast, sodium, slideshow, unzip, youtube, sqlfmt): 227 of 228 checks in 68 s —
+  sodium passed (the hang is gone), screencast passed (run 8's failure did not come back: the load of four suites at
+  once); pgp9580 ran plain `gpg` with a Windows home folder, the pgp suite's fault of run 5 again → both suites take gpg
+  and its home folder from `tests/e2e/_gpg.mjs`.
 - **OCR and Photo Dictionary: documents with formatting read poorly, above all from a phone (26 Nov 2026; owner, to-do
   #18: "works very poorly for a document that has formatting, rich text formatting like bullet points, indentation, etc.,
   especially using the phone camera. Also improve the quality when the document has a watermark").** Measured on 150

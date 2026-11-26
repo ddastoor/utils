@@ -5,6 +5,7 @@
 // which gpg 2.4 decrypts; gpg cannot import the v6 key. The tools are found by $RSOP / $SQOP or on the PATH (see
 // tests/unit/pgp9580.test.mjs for how to build them); their checks are skipped with a note where they are missing.
 import { execFileSync } from '../lib/child.mjs';
+import { gnupg } from './_gpg.mjs';
 import { writeFileSync, readFileSync, mkdtempSync } from 'node:fs';
 
 const find = (name, env) => {
@@ -146,16 +147,15 @@ export default async ({ base, page: newPage, ok, info, tmp: tmpRoot, download, d
   }
 
   // a GnuPG key in the latest-standard mode: SEIPDv1, said and named; gpg 2.4 reads it, but cannot import the v6 key
-  let gpgOk = true; try { execFileSync('gpg', ['--version']); } catch { gpgOk = false; }
-  if (gpgOk) {
-    const GNUPGHOME = mkdtempSync(tmpRoot + '/gnupg9580-');
-    const gpg = (...a) => execFileSync('gpg', ['--batch', '--yes', '--pinentry-mode', 'loopback', ...a], { env: { ...process.env, GNUPGHOME }, stdio: ['pipe', 'pipe', 'pipe'] }).toString();
+  const gn = gnupg(tmpRoot, 'gnupg9580-'); // tests/e2e/_gpg.mjs: on Windows, Git for Windows' POSIX gpg takes its home as /d/a/…
+  if (gn) {
+    const { gpg } = gn;
     gpg('--passphrase', 'gnupass', '--quick-generate-key', 'Gnu User <gnu@example.com>', 'future-default', 'default', 'never');
     writeFileSync(`${tmp}/gnu.pub.asc`, gpg('--armor', '--export', 'gnu@example.com'));
     const g = await encryptText('to gnupg, from the latest-standard mode\n', { to: `${tmp}/gnu.pub.asc` });
     ok(/Format: SEIPDv1/.test(g.shown) && /Gnu User <gnu@example\.com>: this key does not offer SEIPDv2 \(v4\)/.test(g.shown), 'to a GnuPG key: SEIPDv1, and the tab names the key that does not offer SEIPDv2');
     writeFileSync(`${tmp}/to-gnu.asc`, g.armored);
-    ok(execFileSync('gpg', ['--batch', '--pinentry-mode', 'loopback', '--passphrase', 'gnupass', '--decrypt', `${tmp}/to-gnu.asc`], { env: { ...process.env, GNUPGHOME }, stdio: ['ignore', 'pipe', 'ignore'] }).toString().replace(/\r\n/g, '\n') === 'to gnupg, from the latest-standard mode\n', 'gpg 2.4 decrypts it');
+    ok(gn.run(['--batch', '--pinentry-mode', 'loopback', '--passphrase', 'gnupass', '--decrypt', `${tmp}/to-gnu.asc`]).replace(/\r\n/g, '\n') === 'to gnupg, from the latest-standard mode\n', 'gpg 2.4 decrypts it');
     let imported = true; try { gpg('--import', pubPath); } catch { imported = false; }
     info(`gpg 2.4 ${imported ? 'imported' : 'refused'} the tab's v6 key (the tab says GnuPG 2.4 cannot read v6 keys)`);
     ok(!imported || !/tab9580@example\.com/.test(gpg('--list-keys')), 'gpg 2.4 does not take the v6 key — as the tab says');

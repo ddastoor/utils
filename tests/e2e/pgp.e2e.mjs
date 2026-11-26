@@ -3,21 +3,16 @@
 // RFC's Appendix A (tests/fixtures/pgp/rfc9580/), the file name stored in a message, armor inside an e-mail, and every
 // refusal in words. Skips the gpg parts gracefully if gpg is not installed.
 import { execFileSync } from '../lib/child.mjs';
+import { gnupg } from './_gpg.mjs';
 import { writeFileSync, readFileSync, mkdtempSync } from 'node:fs';
 import { spawnSync } from '../lib/child.mjs';
 const V = (n) => readFileSync(new URL(`../fixtures/pgp/rfc9580/${n}`, import.meta.url), 'utf8');
 export default async ({ base, page: newPage, ok, tmp: tmpRoot, download, devices }) => {
-  // GPG: the gpg program ($GPG, else gpg on the PATH). On Windows that is Git for Windows' gpg, a POSIX (MSYS) build: it
-  // takes a Windows GNUPGHOME (D:\a\…) for a relative path — every call failed (to-do #13, run 5) —, so it is given
-  // the folder as /d/a/…; a build that says "Home: C:\…" (GnuPG for Windows) takes the Windows form
-  const GPG = process.env.GPG || 'gpg';
-  let version = '';
-  try { version = execFileSync(GPG, ['--version'], { stdio: ['ignore', 'pipe', 'ignore'] }).toString(); } catch { ok(true, 'gpg not installed — interop skipped'); return; }
-  const posixHome = process.platform === 'win32' && /^Home: \//m.test(version);
+  // the gpg program and its home folder (tests/e2e/_gpg.mjs: on Windows, Git for Windows' POSIX gpg needs it as /d/a/…)
+  const gn = gnupg(tmpRoot);
+  if (!gn) { ok(true, 'gpg not installed — interop skipped'); return; }
+  const { GPG, version, GNUPGHOME, gpg } = gn;
   const tmp = mkdtempSync(tmpRoot + '/pgp-');
-  const homeDir = mkdtempSync(tmpRoot + '/gnupg-');
-  const GNUPGHOME = posixHome ? homeDir.replace(/^([A-Za-z]):/, (_, d) => '/' + d.toLowerCase()).replace(/\\/g, '/') : homeDir;
-  const gpg = (...a) => execFileSync(GPG, ['--batch', '--yes', '--pinentry-mode', 'loopback', ...a], { env: { ...process.env, GNUPGHOME }, stdio: ['ignore', 'pipe', 'ignore'] }).toString();
   const page = await newPage();
   const save = (btn) => download(page, () => btn.click());
 // 1. generate key pair in browser

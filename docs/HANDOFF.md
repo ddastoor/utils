@@ -231,9 +231,13 @@ the 47 Software stub tabs (each with its own suite) first, then ask about potent
   navigator.userAgentData / platform saying what the machine is — `asOS` (`tests/e2e/_os.mjs`); `import('D:\\…')` is
   refused (use `pathToFileURL`); `split('/')` keeps a Windows path whole (`basename`); Git Bash's `sha256sum` writes
   `hash *name` and starts a line with `\` for a path with backslashes; `\U` in a Windows path inside Python source is an
-  escape; Git Bash's gpg cannot use a Windows GNUPGHOME (`$GPG` = GnuPG for Windows); native Python writes `\r\n` and
+  escape; Git Bash's gpg takes a Windows GNUPGHOME for a relative path (`tests/e2e/_gpg.mjs` gives it /d/a/… — every
+  suite that runs gpg uses it); native Python writes `\r\n` and
   reads stdin in the ANSI code page (`PYTHONUTF8=1`), and its C runtime reads no IANA zone from TZ; Google Chrome on
-  Windows ran an `<img onerror>` inside a DOMParser document (CSP-blocked) where Chromium here did not.
+  Windows ran an `<img onerror>` inside a DOMParser document (CSP-blocked) where Chromium here did not; Python's
+  `getpass` reads the Windows console, never a pipe — a tool that takes a password must read stdin when it is no
+  terminal, and a suite's synchronous child processes come from `tests/lib/child.mjs` (a time limit: one that waits for
+  ever froze every suite of run 8).
 - **zig's wasm32-wasi libc** (single-threaded): an implicitly declared function gets the wrong wasm signature and traps
   at run time (force-include prototypes — wasm/graphviz/compat.h); the main thread's musl thread list is unlinked, so
   `pthread_key_delete` loops forever (wasm/python/wasi_start.c); the process starts in "/" whatever PWD says; zig cc
