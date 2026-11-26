@@ -3,7 +3,10 @@
 // .html, print or save as PDF (the preview only — also with Ctrl+P). The rendered HTML is parsed into an inert
 // document first: pictures from other sites are not fetched (shown as a note), links inside the document scroll the
 // preview (a "#fn-1" in the address would have taken the app to its start page), headings get GitHub's ids.
-import { h, card, actions, button, segmented, toggle, filePicker, downloadBlob, shareOrDownload, baseName, toast, errMsg, type Mount } from '../ui';
+// Copy (to-do #29): the rendered document with its formatting, for Word, Google Docs or an e-mail (src/lib/mdcopy.ts),
+// or — with "Copy with formatting" off — the Markdown as typed.
+import { h, card, actions, button, segmented, toggle, filePicker, downloadBlob, shareOrDownload, baseName, toast, errMsg, copy, type Mount } from '../ui';
+import { forPasting, readingText, copyBoth } from '../lib/mdcopy';
 import { markdown } from '../wasm/markdown';
 import { decodeText } from '../lib/sheetdata';
 import { slugger } from '../lib/mdslug';
@@ -68,6 +71,9 @@ function tidyA11y(root: Element) {
     if (text) box.setAttribute('aria-label', text);
   }
 }
+/** "Copy with formatting": kept while the page is open (to-do #29) */
+let copyRich = true;
+
 export const mount: Mount = async (root, ctx) => {
   const md = await markdown();
   let smart = true, breaks = false, name = 'document', view: 'write' | 'preview' = 'write', tok = 0, timer: ReturnType<typeof setTimeout> | undefined;
@@ -168,6 +174,15 @@ export const mount: Mount = async (root, ctx) => {
     return `<!doctype html>\n<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${escapeHtml(t)}</title>\n<style>body{margin:0;padding:32px 16px}${MD_CSS}</style></head>\n<body><article class="markdown-body">\n${doc.body.innerHTML}</article></body></html>\n`;
   };
   const save = (blob: Blob, file: string) => (ctx.isMobile ? shareOrDownload(blob, file) : downloadBlob(blob, file));
+  const copyDoc = async () => {
+    if (!copyRich) { await copy(ta.value); return; }
+    try {
+      const doc = new DOMParser().parseFromString(md.html(ta.value, { smart, hardBreaks: breaks }), 'text/html');
+      forPasting(doc.body);
+      await copyBoth(`<html><head><meta charset="utf-8"></head><body>${doc.body.innerHTML}</body></html>`, readingText(doc.body));
+      toast('Copied with formatting — paste it into Word, Google Docs or an e-mail', 'ok');
+    } catch (e) { toast(`Could not copy: ${errMsg(e)}`, 'err'); }
+  };
   // printing (the button, Ctrl+P or the browser's menu) shows the preview only
   const before = () => { clearTimeout(timer); draw(); document.documentElement.classList.add('print-md'); };
   const after = () => document.documentElement.classList.remove('print-md');
@@ -190,10 +205,12 @@ export const mount: Mount = async (root, ctx) => {
   root.append(
     card(null, h('div', { class: 'row md-top' },
       ctx.isMobile ? segmented([['write', 'Write'], ['preview', 'Preview']], view, setView) : null,
-      toggle('Smart quotes', smart, (v) => { smart = v; render(); }), toggle('Line breaks as typed', breaks, (v) => { breaks = v; render(); }), stats)),
+      toggle('Smart quotes', smart, (v) => { smart = v; render(); }), toggle('Line breaks as typed', breaks, (v) => { breaks = v; render(); }),
+      toggle('Copy with formatting', copyRich, (v) => { copyRich = v; }), stats)),
     h('div', { class: 'md-split' }, editorPane, previewPane),
     card(null, open),
     actions(
+      button('Copy', () => copyDoc(), { icon: 'Copy', title: 'Copy the document — with its formatting (for Word, Google Docs, an e-mail), or the Markdown as typed when "Copy with formatting" is off' }),
       button(ctx.isMobile ? '.md' : 'Download .md', () => save(new Blob([ta.value], { type: 'text/markdown;charset=utf-8' }), `${name}.md`), { icon: 'Download' }),
       button(ctx.isMobile ? '.html' : 'Download .html', () => save(new Blob([standalone()], { type: 'text/html;charset=utf-8' }), `${name}.html`), { icon: 'FileCode' }),
       button(ctx.isMobile ? 'PDF' : 'Print / PDF', () => window.print(), { icon: 'Printer', variant: 'primary' })),

@@ -270,23 +270,6 @@ The owner adds items here in chat ("add … to to do"). Newest instructions win.
       joined picture equal, pixel for pixel, to the page drawn whole; a sticky header kept once; a fast scroll said;
       Windows, X11 and Wayland notes where they differ (Wayland's portal).
 
-29. **Markdown Editor: "Copy with formatting" — the rendered document onto the clipboard for Word and other rich-text
-    places** (owner, 26 Nov 2026: "Markdown editor new feature. The user should additionally be able to copy the
-    rendered markdown with formatting so that he can paste it in, say, another Microsoft Word or any rich text setting.
-    so basically a 'copy with formatting' toggle")
-    - **Today:** no copy button — Save .md, Download .html and Print; a part of the preview selected by hand and copied
-      with Ctrl+C keeps some formatting (the browser's own copy), with the site's styles and the preview's ids.
-    - **To do:** a **Copy** button with a toggle **"Copy with formatting"**: on — the rendered document as rich text
-      (HTML and plain text together on the clipboard, `ClipboardItem`; where a browser lacks it, the preview selected
-      and copied), so Word, Google Docs, Outlook, Gmail, LibreOffice and Notion paste headings as headings, bold and
-      italic, lists with their levels, numbered lists, tables with borders, code in a fixed-width font, block quotes,
-      links; off — the Markdown as typed. The toggle kept for the visit. Made for pasting: styles written on each
-      element (Word ignores most style sheets), task-list boxes as ☐ / ☑, footnotes as superscript numbers with the
-      notes at the end, the preview's "md-" ids taken off, pictures as the .html download has them; "Copied with
-      formatting" said.
-    - **The suite:** the clipboard read back (both forms): the HTML parsed — headings, nested lists, a table, code,
-      links, footnotes; the plain text as the preview reads; LibreOffice opens the copied HTML and saves it as .docx —
-      Heading 1 – 3 styles, list levels, the table's cells (an independent reader, as Word would take it).
 
 30. **OpenPGP: every password or passphrase of an encrypting mode typed twice** (owner, 26 Nov 2026: "in OpenPGP, for all
     possible encrypt modes where a password or passphrase is asked, it should be asked twice (2 input fields), not just
@@ -306,6 +289,12 @@ The owner adds items here in chat ("add … to to do"). Newest instructions win.
       two boxes; the boxes emptied by a change of mode.
 
 ## Done
+- **29. Markdown Editor: "Copy with formatting"** (owner, 26 Nov 2026: "copy the rendered markdown with formatting so
+  that he can paste it in, say, another Microsoft Word or any rich text setting") — done 26 Nov 2026: a Copy button and
+  the toggle "Copy with formatting" (on by default, kept while the page is open): the rendered document as HTML + plain
+  text, made for pasting (styles on each element, ☐ / ☑, footnotes, no ids); off, the Markdown as typed.
+  `src/lib/mdcopy.ts`; e2e `markdown-copy` 21 (LibreOffice makes a .docx of the copy: Heading 1 – 3, list levels, the
+  table, the code's font), `markdown` 46.
 - **27. More room for the tab in use: the category's list of apps folds away** (owner, 26 Nov 2026; "for #27, remembered
   between visits like Favorites..") — done 26 Nov 2026: "Hide apps" at the end of the category row folds the tool row
   away ("All n apps" opens it); kept through apps, categories, reloads and other tabs (localStorage beside Favorites);

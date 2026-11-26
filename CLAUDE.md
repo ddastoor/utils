@@ -1732,6 +1732,17 @@ rendered text. Above 200,000 characters the preview is drawn when the typing pau
 UTF-8 or Windows-1252, CR LF → LF, Ctrl+Z brings the text before back; a file dropped on the editor is opened.
 Printing — the button, Ctrl+P or the menu — shows the preview only (beforeprint / afterprint). The .html: the first
 rendered h1 as its title, GitHub's ids.
+**Copy, "Copy with formatting" (to-do #29; owner, 26 Nov 2026: "copy the rendered markdown with formatting so that he can
+paste it in, say, another Microsoft Word or any rich text setting. so basically a 'copy with formatting' toggle"):** on (the
+default, kept while the page is open) the rendered document goes onto the clipboard as HTML and plain text together
+(`ClipboardItem`; without it the page's own copy event carries both) — made for pasting (`src/lib/mdcopy.ts`): styles
+written on each element (code in Consolas / Courier New, the table's borders and the columns' alignment, the quote's bar,
+strike-through — Word, Google Docs and mail drop style sheets), headings, lists and links left to the program pasted
+into, task boxes as ☐ / ☑, footnotes as superscript numbers with the notes after a rule, no ids or links inside the
+document, a code block's language out of `lang`, pictures as the .html has them (nothing fetched by the page); the plain
+text as the document reads (laid out off the screen for a moment). Off: the Markdown as typed. e2e `markdown-copy` 21 —
+the clipboard read back in both forms, and **LibreOffice** turns the copied HTML into a .docx as Word would take it:
+Heading 1 – 3, the nested list's level, the table's 6 cells, the code's font.
 
 ### SQLite Playground (PC) — as built after the Nov 2026 bug hunt
 (`src/tools/software/sqlite.ts`, engine `src/lib/sqlite-engine.ts`, worker `src/workers/sqlite.worker.ts`; unit
