@@ -5,6 +5,10 @@ session knows everything that was only said in chat. CLAUDE.md = rules and spec,
 this file = the owner's latest wishes, how the tests are written, and the traps already found. Keep it current.
 
 ## 1. The owner (from chat)
+- **Tests after a change: only the ones it needs (owner, 26 Nov 2026)** — "When you make a change, don't run the entire
+  test suite. Just run whichever test suites or tests that you think is necessary. Run the full test suite only when I
+  tell you to run the full test suite." The suites of what a change touches (and of the tabs that share a changed
+  file); the complete unit + e2e suites, and the whole Windows check, only at his word (CLAUDE.md, STANDING RULE #2).
 - Wants **"amazing", extensive test cases for every utility** — one independent e2e suite per tab with known answers,
   edge cases, invalid input, phone layout. Real app bugs found by tests are fixed in the app, never hidden in the test.
 - Wants work to **continue autonomously** ("continue building everything out") and to be able to stop at any moment:

@@ -151,9 +151,14 @@ that affects it.
 >   test is wrong (a slip in the expectation, a race, a stale selector): fix the test, run again. Repeat until green.
 > - **Never get to green by weakening a check**, skipping a test or deleting a case that shows a real bug.
 > - A bug found any other way (a probe, the owner, a review) gets a test that would have caught it, in the same commit.
-> - Run the tests of what was touched as the work goes on; the complete suites (`npm test`, then
->   `npm run build && node tests/e2e.mjs`) at the end of each area. **Pushing does not wait for them** (STANDING
->   RULE #3). Record what was found and fixed in `docs/BUGHUNT.md`.
+> - **Run only the tests a change needs; the full suite only when the owner says so** (owner, 26 Nov 2026: "When you
+>   make a change, don't run the entire test suite. Just run whichever test suites or tests that you think is
+>   necessary. Run the full test suite only when I tell you to run the full test suite."): after a change, the unit
+>   suites and e2e suites of what it touches (`node tests/unit.mjs <names>`, `node tests/e2e.mjs <names>` on a fresh
+>   build) — and, where a shared file changed, the suites of the tabs that use it. The complete suites (`npm test`, then
+>   `npm run build && node tests/e2e.mjs`) — and the whole "Windows check" (`.github/workflows/windows.yml` without
+>   `suites`) — **only at the owner's word**; the Windows check otherwise takes the suites needed in its `suites`
+>   input. **Pushing does not wait for tests** (STANDING RULE #3). Record what was found and fixed in `docs/BUGHUNT.md`.
 
 > ## ⚠️ STANDING RULE #3 — Commit and push regularly and often (owner, 17 Nov 2026; permanent)
 > **Owner:** "Commit and push regularly and often. Don't wait for the entire test suite to get over or the entire
@@ -164,7 +169,8 @@ that affects it.
 > - What a push needs: the project builds (`npm run build`) and the tests of the files just touched have been run.
 >   Work that is not finished is pushed too — say so in the commit message ("in progress: …") and in
 >   `docs/RESUME.md`.
-> - The complete suites still run at the end of each area; what they find is fixed and pushed as its own commit.
+> - The complete suites run only when the owner asks for them (26 Nov 2026, STANDING RULE #2); what they find is fixed
+>   and pushed as its own commit.
 > - Push to the working branch only (see the session's branch rule); never force-push.
 
 > ## 📷 STANDING RULE — a camera wherever a picture is taken in (owner, 20 Nov 2026; repeated 21 Nov 2026)
