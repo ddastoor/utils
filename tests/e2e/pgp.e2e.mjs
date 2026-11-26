@@ -7,12 +7,16 @@ import { writeFileSync, readFileSync, mkdtempSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 const V = (n) => readFileSync(new URL(`../fixtures/pgp/rfc9580/${n}`, import.meta.url), 'utf8');
 export default async ({ base, page: newPage, ok, tmp: tmpRoot, download, devices }) => {
-  // GPG: the gpg program (the Windows check points it at GnuPG for Windows: Git Bash's gpg is a POSIX build that takes
-  // a Windows GNUPGHOME for a relative path, and every call failed — to-do #13); else gpg on the PATH
+  // GPG: the gpg program ($GPG, else gpg on the PATH). On Windows that is Git for Windows' gpg, a POSIX (MSYS) build: it
+  // takes a Windows GNUPGHOME (D:\a\…) for a relative path — every call failed (to-do #13, run 5) —, so it is given
+  // the folder as /d/a/…; a build that says "Home: C:\…" (GnuPG for Windows) takes the Windows form
   const GPG = process.env.GPG || 'gpg';
-  try { execFileSync(GPG, ['--version']); } catch { ok(true, 'gpg not installed — interop skipped'); return; }
+  let version = '';
+  try { version = execFileSync(GPG, ['--version'], { stdio: ['ignore', 'pipe', 'ignore'] }).toString(); } catch { ok(true, 'gpg not installed — interop skipped'); return; }
+  const posixHome = process.platform === 'win32' && /^Home: \//m.test(version);
   const tmp = mkdtempSync(tmpRoot + '/pgp-');
-  const GNUPGHOME = mkdtempSync(tmpRoot + '/gnupg-');
+  const homeDir = mkdtempSync(tmpRoot + '/gnupg-');
+  const GNUPGHOME = posixHome ? homeDir.replace(/^([A-Za-z]):/, (_, d) => '/' + d.toLowerCase()).replace(/\\/g, '/') : homeDir;
   const gpg = (...a) => execFileSync(GPG, ['--batch', '--yes', '--pinentry-mode', 'loopback', ...a], { env: { ...process.env, GNUPGHOME }, stdio: ['ignore', 'pipe', 'ignore'] }).toString();
   const page = await newPage();
   const save = (btn) => download(page, () => btn.click());

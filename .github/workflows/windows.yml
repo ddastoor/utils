@@ -42,16 +42,17 @@ jobs:
           python-version: '3.12'
       - name: Reference tools (Python packages, FFmpeg)
         shell: bash
+        timeout-minutes: 25 # run 6 hung here for an hour: a tool waiting for input fails in minutes now
         run: |
           # (setup-python's Windows build may already carry python3.exe — then it is the same file and cp refuses)
           py="$(command -v python)"; d="$(dirname "$py")"; [ -e "$d/python3.exe" ] || cp "$py" "$d/python3.exe"
           python -m pip install --quiet cryptography argon2-cffi bcrypt py7zr pyzipper pypdf openpyxl sqlparse sqlglot pyyaml zxcvbn numpy pillow python-gnupg ruamel.yaml tzdata pynacl
-          choco install ffmpeg gnupg exiftool -y --no-progress > /dev/null
-          # the suites take GnuPG for Windows by its path (GPG): on the PATH Git Bash's own gpg comes first
-          for g in "/c/Program Files/GnuPG/bin/gpg.exe" "/c/Program Files (x86)/GnuPG/bin/gpg.exe" "/c/Program Files (x86)/gnupg/bin/gpg.exe"; do
-            if [ -x "$g" ]; then echo "GPG=$(cygpath -w "$g")" >> "$GITHUB_ENV"; "$g" --version | sed -n 1p; break; fi
-          done
-          { python3 --version; ffprobe -version; exiftool -ver; 7z; } 2>&1 | grep -E '^(Python |ffprobe version|[0-9]+\.[0-9]+$|7-Zip)' || true
+          # (no GnuPG package: Chocolatey's GnuPG 2.5.21 installer never finished — run 6 hung an hour on it; the OpenPGP
+          # suite uses Git for Windows' own gpg and hands it its folders as /d/a/…)
+          /usr/bin/timeout 900 choco install ffmpeg exiftool -y --no-progress < /dev/null > /dev/null
+          # every tool with nothing on its input and a time limit: ExifTool's Windows program is "exiftool(-k).exe",
+          # which waits for Enter when it is done
+          for t in "python3 --version" "ffprobe -version" "exiftool -ver" "7z" "gpg --version"; do /usr/bin/timeout 60 $t < /dev/null 2>&1 | grep -E '^(Python |ffprobe version|[0-9]+\.[0-9]+$|7-Zip|gpg |Home:)' || echo "($t: no answer)"; done
       # the Playwright the suites are written for; the browser is the runner's own Google Chrome (channel "chrome")
       - run: npm install --no-save playwright@1.63.0
       - name: Browser suites in Chrome on Windows
