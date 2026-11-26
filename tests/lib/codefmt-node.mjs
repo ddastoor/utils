@@ -3,10 +3,12 @@
 // scripts that record or compare what the engines print.
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { dirname, join } from 'node:path';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..'), nm = (p) => join(root, 'node_modules', p);
+// import() takes a URL: on Windows a path (D:\a\…) reads as the URL scheme "d:" and is refused
+const importFile = (p) => import(pathToFileURL(p).href);
 const require = createRequire(import.meta.url);
 const PLUGINS = {
   babel: ['babel', 'estree'], typescript: ['typescript', 'estree'], css: ['postcss'], scss: ['postcss'], json: ['babel', 'estree'], yaml: ['yaml'], markdown: ['markdown'], graphql: ['graphql'],
@@ -18,7 +20,7 @@ let biome = null;
 export const loaders = {
   async biome() {
     loaded.biome++;
-    if (!biome) { biome = await import(nm('@biomejs/wasm-web/biome_wasm.js')); biome.initSync({ module: readFileSync(nm('@biomejs/wasm-web/biome_wasm_bg.wasm')) }); }
+    if (!biome) { biome = await importFile(nm('@biomejs/wasm-web/biome_wasm.js')); biome.initSync({ module: readFileSync(nm('@biomejs/wasm-web/biome_wasm_bg.wasm')) }); }
     return biome;
   },
   async dprint(plugin) {
@@ -28,8 +30,8 @@ export const loaders = {
   },
   async prettier(parser) {
     loaded.prettier.push(parser);
-    const core = await import(nm('prettier/standalone.mjs'));
-    const plugins = await Promise.all(PLUGINS[parser].map((p) => import(nm(`prettier/plugins/${p}.mjs`)).then((m) => m.default ?? m)));
+    const core = await importFile(nm('prettier/standalone.mjs'));
+    const plugins = await Promise.all(PLUGINS[parser].map((p) => importFile(nm(`prettier/plugins/${p}.mjs`)).then((m) => m.default ?? m)));
     return (text, options) => core.format(text, { ...options, parser, plugins });
   },
 };

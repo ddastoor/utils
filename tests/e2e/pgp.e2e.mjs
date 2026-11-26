@@ -7,10 +7,13 @@ import { writeFileSync, readFileSync, mkdtempSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 const V = (n) => readFileSync(new URL(`../fixtures/pgp/rfc9580/${n}`, import.meta.url), 'utf8');
 export default async ({ base, page: newPage, ok, tmp: tmpRoot, download, devices }) => {
-  try { execFileSync('gpg', ['--version']); } catch { ok(true, 'gpg not installed — interop skipped'); return; }
+  // GPG: the gpg program (the Windows check points it at GnuPG for Windows: Git Bash's gpg is a POSIX build that takes
+  // a Windows GNUPGHOME for a relative path, and every call failed — to-do #13); else gpg on the PATH
+  const GPG = process.env.GPG || 'gpg';
+  try { execFileSync(GPG, ['--version']); } catch { ok(true, 'gpg not installed — interop skipped'); return; }
   const tmp = mkdtempSync(tmpRoot + '/pgp-');
   const GNUPGHOME = mkdtempSync(tmpRoot + '/gnupg-');
-  const gpg = (...a) => execFileSync('gpg', ['--batch', '--yes', '--pinentry-mode', 'loopback', ...a], { env: { ...process.env, GNUPGHOME }, stdio: ['ignore', 'pipe', 'ignore'] }).toString();
+  const gpg = (...a) => execFileSync(GPG, ['--batch', '--yes', '--pinentry-mode', 'loopback', ...a], { env: { ...process.env, GNUPGHOME }, stdio: ['ignore', 'pipe', 'ignore'] }).toString();
   const page = await newPage();
   const save = (btn) => download(page, () => btn.click());
 // 1. generate key pair in browser
@@ -36,9 +39,10 @@ export default async ({ base, page: newPage, ok, tmp: tmpRoot, download, devices
   await page.locator('input[type=file]').nth(2).setInputFiles(secPath);
   await page.getByPlaceholder('Private key passphrase').fill('alicepass');
   const encPath = await save(page.getByRole('button', { name: 'Encrypt' }).last());
-  const dec = execFileSync('gpg', ['--batch', '--pinentry-mode', 'loopback', '--passphrase', 'alicepass', '--decrypt', encPath], { env: { ...process.env, GNUPGHOME }, stdio: ['ignore', 'pipe', 'ignore'] });
+  const dec = execFileSync(GPG, ['--batch', '--pinentry-mode', 'loopback', '--passphrase', 'alicepass', '--decrypt', encPath], { env: { ...process.env, GNUPGHOME }, stdio: ['ignore', 'pipe', 'ignore'] });
   ok(dec.toString() === 'quarterly numbers 42\n', 'gpg decrypts browser-encrypted file');
-  const status = execFileSync('sh', ['-c', `GNUPGHOME=${GNUPGHOME} gpg --batch --pinentry-mode loopback --passphrase alicepass --status-fd 1 --decrypt ${encPath} 2>/dev/null`]).toString();
+  // (no shell: a Windows path's backslashes do not survive sh)
+  const status = execFileSync(GPG, ['--batch', '--pinentry-mode', 'loopback', '--passphrase', 'alicepass', '--status-fd', '1', '--decrypt', encPath], { env: { ...process.env, GNUPGHOME }, stdio: ['ignore', 'pipe', 'ignore'] }).toString();
   ok(/GOODSIG/.test(status), 'gpg verifies the browser signature');
   
   // 3. gpg encrypts to Alice (armored) → browser decrypts
@@ -69,7 +73,7 @@ export default async ({ base, page: newPage, ok, tmp: tmpRoot, download, devices
   
 
   // ---- Nov 2026 bug hunt
-  const gpgs = (...a) => spawnSync('gpg', ['--batch', '--yes', '--pinentry-mode', 'loopback', '--status-fd', '2', ...a], { env: { ...process.env, GNUPGHOME } });
+  const gpgs = (...a) => spawnSync(GPG, ['--batch', '--yes', '--pinentry-mode', 'loopback', '--status-fd', '2', ...a], { env: { ...process.env, GNUPGHOME } });
   const toasts = () => page.evaluate(() => [...document.querySelectorAll('.toast')].map((t) => t.textContent).join(' | '));
   const lastToast = async (re) => page.waitForFunction((r) => [...document.querySelectorAll('.toast')].some((t) => new RegExp(r).test(t.textContent)), re.source, { timeout: 15000 }).then(() => true, () => false);
   const go = async (op) => { await page.goto(base + '#/c/all'); await page.goto(base + '#/pgp'); await page.getByRole('radio', { name: op }).click(); };

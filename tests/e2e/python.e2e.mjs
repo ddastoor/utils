@@ -23,7 +23,8 @@ import { join } from 'node:path';
 import { createRequire } from 'node:module';
 const { unzipSync } = createRequire(import.meta.url)('fflate');
 
-const native = (src, input = '', env = {}) => { try { return execFileSync('python3', ['-c', src], { input, env: { ...process.env, PYTHONUTF8: '1', TZ: 'UTC', ...env } }).toString(); } catch { return null; } };
+// (Windows: a text-mode stdout writes every "\n" as "\r\n" — turned back, which gives a program's own "\r\n" back too)
+const native = (src, input = '', env = {}) => { try { const out = execFileSync('python3', ['-c', src], { input, env: { ...process.env, PYTHONUTF8: '1', TZ: 'UTC', ...env } }).toString(); return process.platform === 'win32' ? out.replace(/\r\n/g, '\n') : out; } catch { return null; } };
 
 export default async (ctx) => {
   const { base, page: newPage, ok, tmp, download, info } = ctx;
@@ -277,11 +278,17 @@ for ts in (1750000000, 1765000000, 946684800, 1111111111):
 print(int(time.mktime((2025, 6, 15, 12, 0, 0, 0, 0, -1))), int(time.mktime((2025, 12, 15, 12, 0, 0, 0, 0, -1))), int(datetime.datetime(2025, 3, 9, 2, 30).timestamp()), int(datetime.datetime(2025, 11, 2, 1, 30).timestamp()))
 print(datetime.datetime(2026, 1, 26, 9, 0).astimezone().strftime("%d %b %Y %H:%M %Z (UTC%z)"))
 `;
+  // the reference needs a C library that reads IANA names from TZ: Windows' does not (it takes "EST5EDT" forms only), so
+  // on the Windows runner only Linux's runs make them (the tab's answers are the same in every browser; the wall clock
+  // in each zone is still checked)
+  if (process.platform === 'win32') info('native CPython on Windows cannot read TZ=Asia/Kolkata (the C runtime takes only "EST5EDT" forms): the six comparisons with it run on Linux');
   for (const zone of ['Asia/Kolkata', 'America/New_York', 'Europe/London', 'Australia/Sydney', 'Asia/Dubai', 'UTC']) {
     const p = await open({ timezoneId: zone });
     r = await run(p, TZ_SRC, undefined, 90000);
-    const want = native(TZ_SRC, '', { TZ: zone });
-    ok(want != null && r.text === want, `${zone}: tzname, offsets, daylight time, localtime, mktime and astimezone equal native CPython with TZ=${zone} (${r.text.split('\n')[0]})`);
+    if (process.platform !== 'win32') {
+      const want = native(TZ_SRC, '', { TZ: zone });
+      ok(want != null && r.text === want, `${zone}: tzname, offsets, daylight time, localtime, mktime and astimezone equal native CPython with TZ=${zone} (${r.text.split('\n')[0]})`);
+    }
     r = await run(p, 'import datetime\nprint(datetime.datetime.now().strftime("%Y-%m-%d %H:%M"))');
     const fmt = (t) => new Date(t).toLocaleString('sv-SE', { timeZone: zone }).slice(0, 16);
     ok([fmt(Date.now()), fmt(Date.now() - 60000)].includes(r.text.trim()), `${zone}: datetime.now() is the wall clock there (${r.text.trim()})`);

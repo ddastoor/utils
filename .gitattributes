@@ -1,0 +1,5 @@
+# Every file is checked out exactly as it is stored — no line-end conversion on any system. Git for Windows converts LF
+# to CR LF by default (core.autocrlf): the Windows check then tested files the repository does not hold (fixtures,
+# hazard texts, samples), and the site is built from these files as they are. The tabs themselves read CR LF files —
+# their suites write such files on purpose (to-do #13).
+* -text

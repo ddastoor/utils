@@ -8,6 +8,7 @@ import { spawnSync } from 'node:child_process';
 import { randomBytes, createHash } from 'node:crypto';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { LINUX_UA } from './_os.mjs';
 const sha = (b) => createHash('sha256').update(b).digest('hex');
 export default async ({ base, page: newPage, ok, info, download, tmp, devices }) => {
   const src = join(tmp, 'src'); mkdirSync(join(src, 'docs', 'deep'), { recursive: true });
@@ -153,10 +154,10 @@ with zipfile.ZipFile(sys.argv[1],'w') as z:
   ok(win.toasts.some((t) => t === '7 files saved.'), `Windows: every file of the archive is saved (${win.toasts.join(' | ')}) — "aux.c", "notes." and "con" stopped the saving there`);
   ok(JSON.stringify(win.files) === JSON.stringify(['README=upper', 'con_/x.txt=in con', 'docs/Readme.md=one', 'docs/readme (2).md=two', 'linux/drivers/aux_.c=int aux;', 'notes_=dot', 'readme (2)=lower']),
     `Windows: aux.c → aux_.c, "con" → con_, "notes." → notes_, and README / readme, docs/Readme.md / Docs/readme.md both kept — the second overwrote the first (${win.files.join(', ')})`);
-  const lin = await saveAll(null, false);
+  const lin = await saveAll(LINUX_UA, false); // Linux, also on the Windows runner (_os.mjs)
   ok(lin.toasts.some((t) => t === '7 files saved.') && JSON.stringify(lin.files) === JSON.stringify(['Docs/readme.md=two', 'README=upper', 'con/x.txt=in con', 'docs/Readme.md=one', 'linux/drivers/aux.c=int aux;', 'notes.=dot', 'readme=lower']),
     `Linux: every name as it is in the archive (${lin.files.join(', ')})`);
-  const strict = await saveAll(null, false, true);
+  const strict = await saveAll(LINUX_UA, false, true);
   ok(strict.toasts.some((t) => t === '7 files saved.') && JSON.stringify(strict.files) === JSON.stringify(['Docs/readme.md=two', 'README=upper', 'con_/x.txt=in con', 'docs/Readme.md=one', 'linux/drivers/aux_.c=int aux;', 'notes_=dot', 'readme=lower']),
     `Linux, a browser that refuses names other systems cannot hold: those take their safe form, the rest stay (${strict.files.join(', ')}; ${strict.toasts.join(' | ')})`);
   const ph = await newPage(devices['iPhone 13']); await ph.goto(`${base}#/unzip`); await ph.locator('input[type=file]').waitFor({ state: 'attached' });

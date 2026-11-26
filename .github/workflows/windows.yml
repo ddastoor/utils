@@ -32,9 +32,11 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
-      # what the suites compare the tabs with: Python 3 (as python3) with the packages they read results with, and FFmpeg;
-      # gpg, sha256sum, patch, diff and sh come with Git for Windows, 7-Zip with the runner (zbar, unar, exiftool: not on
-      # Windows — those checks say so)
+      # what the suites compare the tabs with: Python 3 (as python3) with the packages they read results with (tzdata: Windows
+      # has no zone database for zoneinfo; PyNaCl: the Sodium file format's reference decryptor), FFmpeg, GnuPG for Windows
+      # (Git Bash's gpg is a POSIX build: a Windows GNUPGHOME reads to it as a relative path — every call failed) and
+      # ExifTool; sha256sum, patch, diff and sh come with Git for Windows, 7-Zip with the runner (zbar, unar: not on Windows
+      # — those checks say so)
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -43,15 +45,22 @@ jobs:
         run: |
           # (setup-python's Windows build may already carry python3.exe — then it is the same file and cp refuses)
           py="$(command -v python)"; d="$(dirname "$py")"; [ -e "$d/python3.exe" ] || cp "$py" "$d/python3.exe"
-          python -m pip install --quiet cryptography argon2-cffi bcrypt py7zr pyzipper pypdf openpyxl sqlparse sqlglot pyyaml zxcvbn numpy pillow python-gnupg ruamel.yaml
-          choco install ffmpeg -y --no-progress > /dev/null
-          { python3 --version; ffprobe -version; gpg --version; 7z; } 2>&1 | grep -E '^(Python |ffprobe version|gpg \(GnuPG\)|7-Zip)' || true
+          python -m pip install --quiet cryptography argon2-cffi bcrypt py7zr pyzipper pypdf openpyxl sqlparse sqlglot pyyaml zxcvbn numpy pillow python-gnupg ruamel.yaml tzdata pynacl
+          choco install ffmpeg gnupg exiftool -y --no-progress > /dev/null
+          # the suites take GnuPG for Windows by its path (GPG): on the PATH Git Bash's own gpg comes first
+          for g in "/c/Program Files/GnuPG/bin/gpg.exe" "/c/Program Files (x86)/GnuPG/bin/gpg.exe" "/c/Program Files (x86)/gnupg/bin/gpg.exe"; do
+            if [ -x "$g" ]; then echo "GPG=$(cygpath -w "$g")" >> "$GITHUB_ENV"; "$g" --version | sed -n 1p; break; fi
+          done
+          { python3 --version; ffprobe -version; exiftool -ver; 7z; } 2>&1 | grep -E '^(Python |ffprobe version|[0-9]+\.[0-9]+$|7-Zip)' || true
       # the Playwright the suites are written for; the browser is the runner's own Google Chrome (channel "chrome")
       - run: npm install --no-save playwright@1.63.0
       - name: Browser suites in Chrome on Windows
         shell: bash
         env:
           E2E_CHANNEL: chrome
+          # Python reads its input and files as UTF-8 (on Windows it reads them in the ANSI code page: the SQL checker's
+          # input came out with \udc8d in it)
+          PYTHONUTF8: '1'
           # four at a time: with six the runner was lost 48 minutes into the full run of 21 Nov (no log, no artifact)
           E2E_CONCURRENCY: '4'
         run: |

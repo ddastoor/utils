@@ -5,7 +5,7 @@
 // what does not fit in memory (on a phone, 256 MB); file removal, name, checks.
 import { writeFileSync, readFileSync, utimesSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
-import { randomBytes } from 'node:crypto';
+import { randomBytes, createHash } from 'node:crypto';
 import { join } from 'node:path';
 const py = (code, ...args) => spawnSync('python3', ['-c', code, ...args], { encoding: 'utf8' });
 const has = (c) => spawnSync('sh', ['-c', `command -v ${c}`]).status === 0;
@@ -37,7 +37,8 @@ z=zipfile.ZipFile(sys.argv[1]);t=z.testzip()
 print(json.dumps({'bad':t,'files':{i.filename:[i.file_size,i.compress_type,hashlib.sha256(z.read(i)).hexdigest(),list(i.date_time[:3]),i.flag_bits] for i in z.infolist()}}))`;
   const r = py(CHECK, z);
   if (r.status !== 0) { ok(false, `python zipfile: ${r.stderr}`); return; }
-  const j = JSON.parse(r.stdout), sha = (f) => spawnSync('sha256sum', [f], { encoding: 'utf8' }).stdout.split(' ')[0];
+  // (in Node: sha256sum escapes a name with backslashes — every Windows path — and starts its line with "\")
+  const j = JSON.parse(r.stdout), sha = (f) => createHash('sha256').update(readFileSync(f)).digest('hex');
   ok(j.bad === null && Object.keys(j.files).sort().join() === ['data.bin', 'notes.txt', 'notes (2).txt', 'नमस्ते.txt'].sort().join(), `Python zipfile: CRC OK, names incl. Unicode (${Object.keys(j.files)})`);
   ok(j.files['notes.txt'][2] === sha(a) && j.files['data.bin'][2] === sha(c) && j.files['नमस्ते.txt'][2] === sha(b), 'every file byte-identical');
   ok(j.files['notes.txt'][1] === 8 && (j.files['नमस्ते.txt'][4] & 0x800), 'deflate at level 6; the Unicode name flagged as UTF-8 (bit 11)');

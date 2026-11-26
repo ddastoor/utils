@@ -3,6 +3,7 @@
 // postMessage protocol (listening → onReady / infoDelivery; seekTo / playVideo / pauseVideo / mute / unMute) and draws
 // its current time; the recording is checked for its length and the reported crop state.
 import { readFileSync } from 'node:fs';
+import { asOS } from './_os.mjs';
 const FAKE = `<!doctype html><html><body style="margin:0;background:#000;overflow:hidden">
 <canvas id="c" width="640" height="360" style="width:100vw;height:100vh;display:block"></canvas><script>
 const q = new URLSearchParams(location.search); let t = +q.get('start') || 0, playing = false, last = performance.now();
@@ -21,13 +22,14 @@ setInterval(() => post({ event: 'infoDelivery', info: { currentTime: t, playerSt
 
 export default async ({ base, page: newPage, ok, info, download, released }) => {
   const page = await newPage({ viewport: { width: 1280, height: 1000 } });
+  await asOS(page, 'linux'); // the checks below mean Linux x86-64, also on the Windows runner (_os.mjs)
   const hits = [];
   await page.route('https://www.youtube-nocookie.com/**', (route) => { hits.push(route.request().url()); route.fulfill({ status: 200, contentType: 'text/html', body: FAKE }); });
   await page.goto(`${base}#/youtube`);
   const summary = () => page.locator('[aria-live]').filter({ hasText: /Video |link|end|Enter/ }).first().textContent();
 
   // "Download latest yt-dlp": a link to GitHub's latest-release address, the file for this computer first (headless
-  // Chromium on Linux x86-64), every other system under "Other systems"; nothing is requested from GitHub
+  // Chromium on Linux x86-64 — asOS), every other system under "Other systems"; nothing is requested from GitHub
   const gh = [];
   page.on('request', (r) => { if (/github\.com/.test(r.url())) gh.push(r.url()); });
   const main = page.getByRole('link', { name: /^Download latest yt-dlp/ });

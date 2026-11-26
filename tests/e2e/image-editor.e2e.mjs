@@ -108,19 +108,21 @@ export default async ({ base, page: newPage, ok, download, devices, tmp }) => {
   ok(String(await dims()) === '384,191', 'greyscale PNG opens at 384×191');
 
   // test pictures: a transparent one, a checkerboard, a white sheet with a mark
-  const mk = spawnSync('python3', ['-c', `from PIL import Image
+  // (the paths go as arguments: inside Python's source a Windows path's \U… is an escape)
+  const mk = spawnSync('python3', ['-c', `import sys
+from PIL import Image
 im=Image.new('RGBA',(200,100),(0,0,0,0))
 for x in range(100,200):
   for y in range(100): im.putpixel((x,y),(220,20,20,255))
-im.save('${join(tmp, 'alpha.png')}')
+im.save(sys.argv[1])
 cb=Image.new('RGB',(64,64))
 for x in range(64):
   for y in range(64): cb.putpixel((x,y),(255,255,255) if (x+y)%2 else (0,0,0))
-cb.save('${join(tmp, 'checker.png')}')
+cb.save(sys.argv[2])
 wh=Image.new('RGB',(384,191),(255,255,255))
 for x in range(180,204):
   for y in range(85,105): wh.putpixel((x,y),(0,0,0))
-wh.save('${join(tmp, 'white.png')}')`]);
+wh.save(sys.argv[3])`, join(tmp, 'alpha.png'), join(tmp, 'checker.png'), join(tmp, 'white.png')]);
   if (mk.status !== 0) ok(false, `test images: ${mk.stderr}`);
   const openPath = async (p) => { await page.goto(base + '#/'); await page.goto(base + '#/image'); await page.locator('input[type=file]').setInputFiles(p); await page.waitForFunction(() => /\d+×\d+ · original/.test(document.querySelector('.ed-stage')?.closest('.card')?.textContent || ''), null, { timeout: 30000 }); };
   // 12. Straighten: no empty corners; the size boxes follow

@@ -30,7 +30,11 @@ export default async ({ base, page: newPage, ok, info, download, released }) => 
     return { duration: v.duration, w: v.videoWidth, h: v.videoHeight };
   }, readFileSync(path).toString('base64'));
 
-  ok(await page.getByText(/Detected: (X11|Wayland)/).isVisible(), 'Linux display server shown (X11 / Wayland)');
+  // the X11 / Wayland note on Linux only — the suite runs on Linux and on the Windows runner (the os suite stands in for
+  // each system in every tab)
+  const onLinux = await page.evaluate(() => /Linux/.test(navigator.userAgent));
+  const noted = await page.getByText(/Detected: (X11|Wayland)/).waitFor({ timeout: onLinux ? 10000 : 1500 }).then(() => true, () => false); // (it was read at once: under load, before it was drawn)
+  ok(noted === onLinux, onLinux ? 'Linux display server shown (X11 / Wayland)' : 'no X11 / Wayland note on Windows');
   await page.getByText('3-second countdown').click(); // off for the test
   await recordFor(2200);
   const f1 = await download(page, () => btn('Download').click()), m1 = await meta(f1), i1 = /\.mp4$/.test(f1) ? mp4Info(readFileSync(f1)) : null;

@@ -2,6 +2,7 @@
 import { fileURLToPath } from 'node:url';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
+import { basename, join } from 'node:path';
 const S = (n) => fileURLToPath(new URL(`../fixtures/sheets/${n}`, import.meta.url));
 export default async ({ base, page: newPage, ok, info: note, download, tmp, devices }) => {
   const page = await newPage();
@@ -45,11 +46,22 @@ export default async ({ base, page: newPage, ok, info: note, download, tmp, devi
   const tf = await download(page, () => page.getByRole('button', { name: 'TSV', exact: true }).click());
   ok(readFileSync(tf, 'utf8') === 'id\ttags\tname\n1\t"[""a"",""b""]"\t\n2\t\tx\n', 'JSON objects → columns (union of keys) → TSV');
   // "Excel" files that are web pages (as banks save them): every table, its spans on the grid (the HTML table model)
-  const opened = async (f, name = f.split('/').pop()) => { await fileIn.setInputFiles(f); await page.getByText(`Opened ${name}`, { exact: true }).last().waitFor({ timeout: 30000 }); };
+  // (the name by basename: a Windows path has backslashes — split('/') kept the whole path, and the suite waited 30 s for
+  // "Opened D:\a\…\bank.xls" on the Windows runner; what the tab said instead is reported, not a crash)
+  const opened = async (f, name = basename(f)) => {
+    await fileIn.setInputFiles(f);
+    if (await page.getByText(`Opened ${name}`, { exact: true }).last().waitFor({ timeout: 30000 }).then(() => true, () => false)) return true;
+    ok(false, `${name} opens (the tab said: ${(await page.locator('.toast').allTextContents()).join(' | ') || await info.textContent()})`); return false;
+  };
   const grid = () => page.evaluate(() => [...document.querySelectorAll('.sheet-table tbody tr')].map((tr) => [...tr.querySelectorAll('td')].slice(1).map((td) => td.textContent)));
   const trim = (rows) => rows.map((r) => { const a = [...r]; while (a.length && a[a.length - 1] === '') a.pop(); return a; });
   await opened(S('bank.xls'));
   ok(JSON.stringify(trim(await grid())) === JSON.stringify([['Account statement — Asha Rao'], ['Date', 'Narration', 'Amount (₹)', 'Balance'], ['01/11/2026', 'UPI/CHAI STALL', '-45.00', '1,23,455.00'], ['02/11/2026', 'Salary & bonus', '50,000.00'], ['03/11/2026', 'NEFT to Ravi', '-2,500.50', '1,70,954.50']]) && await page.locator('.sheet-tabs [role=radio]').count() === 0, `a bank's .xls that is a web page: its table (the layout table around it left out), colspan and rowspan on the grid, spaces tidied (${JSON.stringify(trim(await grid())).slice(0, 160)})`);
+  // the same statement as Windows programs save it: CR LF line ends (the repository keeps LF — .gitattributes)
+  const crlf = join(tmp, 'bank-crlf.xls'); writeFileSync(crlf, readFileSync(S('bank.xls'), 'utf8').replace(/\n/g, '\r\n'));
+  const lf = JSON.stringify(trim(await grid()));
+  await opened(crlf);
+  ok(JSON.stringify(trim(await grid())) === lf, 'a web-page "Excel" file with CR LF line ends (saved on Windows) gives the same sheet');
   // Excel 2003 XML (SpreadsheetML): sheets, ss:Index, MergeAcross, types
   await opened(S('xml2003.xml'));
   ok(JSON.stringify(trim(await grid())) === JSON.stringify([['Item', 'Qty', 'Paid', 'When'], ['Tea', '3', 'TRUE', '2026-11-20'], ['Coffee', '2.5', 'FALSE', '2026-11-21 10:30:00'], [], ['Total', '', '', '5.5']]) && await page.getByRole('radio', { name: 'Notes' }).count() === 1, `Excel 2003 XML: two sheets, row 5 by ss:Index, the merged Total, numbers, booleans and dates (${JSON.stringify(trim(await grid()))})`);

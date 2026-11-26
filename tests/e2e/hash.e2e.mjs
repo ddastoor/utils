@@ -118,11 +118,16 @@ export default async ({ base, page: newPage, ok, tmp, devices }) => {
   }
 
   // ---- checksum lists
-  const dir = tmp, sums = spawnSync('sha256sum', ['a.bin', 'c.bin'], { cwd: dir, encoding: 'utf8' }).stdout;
+  // the tools in text mode: Git Bash's sha256sum on Windows reads in binary mode when its input is not a terminal and
+  // writes "hash *name" — the same hashes; that form is read below too (to-do #13)
+  const tool = (cmd, files) => spawnSync(cmd, ['--text', ...files], { cwd: dir, encoding: 'utf8' }).stdout;
+  const dir = tmp, sums = tool('sha256sum', ['a.bin', 'c.bin']);
   writeFileSync(join(dir, 'SHA256SUMS'), sums.replace(/^\S+(\s+c\.bin)$/m, `${sha('not c')}$1`) + `${sha('x')}  missing.iso\n`);
   await setAlgs(['MD5']);
+  // the note comes when the list has been read (the file is read after the input event: waited for, not read at once)
+  const listNote = async () => { await page.waitForFunction(() => /SHA256SUMS — read as the checksum list/.test([...document.querySelectorAll('.drop + div, .muted.small')].map((e) => e.textContent).join(' ')), null, { timeout: 10000 }).catch(() => {}); return page.locator('.drop + div, .muted.small').allTextContents().then((t) => t.join(' ')); };
   await page.locator('input[type=file]').setInputFiles([f1, f3, join(dir, 'SHA256SUMS')]);
-  ok(/SHA256SUMS — read as the checksum list \(3 checksums\), not hashed/.test(await page.locator('.drop + div, .muted.small').allTextContents().then((t) => t.join(' '))), 'a checksum list chosen with the files is read, not hashed');
+  ok(/SHA256SUMS — read as the checksum list \(3 checksums\), not hashed/.test(await listNote()), 'a checksum list chosen with the files is read, not hashed');
   const rl = await compute();
   ok((await notes()).some((n) => n === 'Checksum list: 1 of 2 files match; 1 does not (c.bin); 1 listed file was not chosen (missing.iso).'), `a summary of the list: ${(await notes()).find((n) => /Checksum list/.test(n))}`);
   ok(/✓ Matches the expected SHA-256 checksum \(line 1 of the list, "a\.bin"\)/.test(rl[0].note) && /✗ Does not match/.test(rl[1].note), `each file against its own line (SHA-256 worked out though only MD5 was chosen): ${rl[0].note} | ${rl[1].note}`);
@@ -132,12 +137,18 @@ export default async ({ base, page: newPage, ok, tmp, devices }) => {
   // the same list as Windows PowerShell 5.1 saves it (`sha256sum … > SHA256SUMS`): UTF-16 LE with its mark, CR LF (to-do #13)
   writeFileSync(join(dir, 'SHA256SUMS'), Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from((sums.replace(/^\S+(\s+c\.bin)$/m, `${sha('not c')}$1`) + `${sha('x')}  missing.iso\n`).replace(/\n/g, '\r\n'), 'utf16le')]));
   await page.locator('input[type=file]').setInputFiles([f1, f3, join(dir, 'SHA256SUMS')]);
-  ok(/SHA256SUMS — read as the checksum list \(3 checksums\), not hashed/.test(await page.locator('.drop + div, .muted.small').allTextContents().then((t) => t.join(' '))), 'a checksum list saved by Windows PowerShell (UTF-16, CR LF) is read as the list (it was read as UTF-8: garbage, and hashed)');
+  ok(/SHA256SUMS — read as the checksum list \(3 checksums\), not hashed/.test(await listNote()), 'a checksum list saved by Windows PowerShell (UTF-16, CR LF) is read as the list (it was read as UTF-8: garbage, and hashed)');
   await compute();
   ok((await notes()).some((n) => n === 'Checksum list: 1 of 2 files match; 1 does not (c.bin); 1 listed file was not chosen (missing.iso).'), '… and checks the files as the plain list does');
+  // the list as Git Bash's sha256sum writes it on Windows (binary mode: "hash *name") — read the same way
+  writeFileSync(join(dir, 'SHA256SUMS'), (sums.replace(/^\S+(\s+c\.bin)$/m, `${sha('not c')}$1`) + `${sha('x')}  missing.iso\n`).replace(/^(\S+) {2}/gm, '$1 *'));
+  await page.locator('input[type=file]').setInputFiles([f1, f3, join(dir, 'SHA256SUMS')]);
+  ok(/SHA256SUMS — read as the checksum list \(3 checksums\), not hashed/.test(await listNote()), 'a list in binary mode ("hash *name", as Git Bash writes it) is read as the list');
+  await compute();
+  ok((await notes()).some((n) => n === 'Checksum list: 1 of 2 files match; 1 does not (c.bin); 1 listed file was not chosen (missing.iso).'), '… and checks the files the same way');
   // pasted output of md5sum for two files, one chosen
   await page.locator('input[type=file]').setInputFiles([f1]);
-  await expected.fill(spawnSync('md5sum', ['b.bin', 'a.bin'], { cwd: dir, encoding: 'utf8' }).stdout);
+  await expected.fill(tool('md5sum', ['b.bin', 'a.bin']));
   [r] = await compute();
   ok(/✓ Matches the expected MD5 checksum \(line 2 of the list, "a\.bin"\)/.test(r.note), `pasted md5sum output: the chosen file found by its name (${r.note})`);
   await expected.fill('');
@@ -147,12 +158,12 @@ export default async ({ base, page: newPage, ok, tmp, devices }) => {
   await page.locator('input[type=file]').setInputFiles([f1, f3]); await compute();
   const listCard = page.locator('.card').filter({ has: page.locator('.card-title', { hasText: /^Checksum list$/ }) });
   const listBox = listCard.locator('textarea');
-  ok(await listBox.inputValue() === spawnSync('sha256sum', ['a.bin', 'c.bin'], { cwd: dir, encoding: 'utf8' }).stdout, 'the checksum list = what sha256sum prints for the same files');
+  ok(await listBox.inputValue() === tool('sha256sum', ['a.bin', 'c.bin']), 'the checksum list = what sha256sum prints for the same files');
   const [dl] = await Promise.all([page.waitForEvent('download'), listCard.getByRole('button', { name: 'Download' }).click()]);
   const saved = join(dir, 'saved-SHA256SUMS'); await dl.saveAs(saved);
   ok(dl.suggestedFilename() === 'SHA256SUMS' && spawnSync('sha256sum', ['-c', 'saved-SHA256SUMS'], { cwd: dir }).status === 0, `downloaded as ${dl.suggestedFilename()}; sha256sum -c accepts it`);
   await listCard.locator('select').selectOption('BLAKE2b-512');
-  ok(await listBox.inputValue() === spawnSync('b2sum', ['a.bin', 'c.bin'], { cwd: dir, encoding: 'utf8' }).stdout, '… BLAKE2b-512: what b2sum prints');
+  ok(await listBox.inputValue() === tool('b2sum', ['a.bin', 'c.bin']), '… BLAKE2b-512: what b2sum prints');
 
   // ---- Stop
   const huge = join(dir, 'zeros.bin'); writeFileSync(huge, Buffer.alloc(256 << 20));

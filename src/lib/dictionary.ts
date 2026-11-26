@@ -67,7 +67,18 @@ export async function lookupLocal(word: string): Promise<Entry[] | null> {
 }
 
 // ------------------------------------------------------------------ online fallback (approved hosts, see CLAUDE.md §3a)
-const plain = (html: string) => (new DOMParser().parseFromString(html, 'text/html').body.textContent || '').replace(/\s+/g, ' ').trim();
+/** HTML from another site as text, with its tags taken out before any parser sees it — so none of it ever becomes an
+ *  element: a DOMParser document is not inert in every browser (Google Chrome on Windows tried to run the onerror of an
+ *  <img> in a definition, which the CSP refused — the Windows check, to-do #13). Scripts, styles and comments go with
+ *  what they hold; a tag left open runs to the end; a quoted attribute may hold a ">". What is left is text and
+ *  character references (`&lt;b&gt;` stays the text "<b>"). */
+export const stripTags = (html: string) => html
+  .replace(/<(script|style)\b[\s\S]*?(?:<\/\1\s*>|$)/gi, '')
+  .replace(/<!--[\s\S]*?(?:-->|$)/g, '')
+  .replace(/<(?:[^>"']|"[^"]*(?:"|$)|'[^']*(?:'|$))*(?:>|$)/g, '');
+/** The text of an online definition: the tags taken out (stripTags), then the character references read by the
+ *  browser's parser — a text without a single "<" gives it nothing to make an element of. */
+const plain = (html: string) => (new DOMParser().parseFromString(stripTags(html), 'text/html').body.textContent || '').replace(/\s+/g, ' ').trim();
 const online = new Map<string, Promise<{ source: Source; entries: WordCard['entries'] } | null>>();
 async function getJson(url: string): Promise<any | null> {
   const r = await fetch(url, { signal: AbortSignal.timeout(ONLINE_TIMEOUT), credentials: 'omit', referrerPolicy: 'no-referrer', headers: { Accept: 'application/json' } });

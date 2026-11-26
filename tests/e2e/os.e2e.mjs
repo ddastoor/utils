@@ -1,18 +1,13 @@
 // Every PC tab on Windows and on Linux, X11 and Wayland (to-do #13, owner, 21 Nov 2026: "make sure that all the apps that
 // work on PC work on both Windows and Linux"; and every app on Linux knows X11 from Wayland — src/linux.ts).
-// This sandbox is Linux: Windows is stood in for by its user agent AND its client hints (CDP — Playwright's userAgent
-// alone leaves navigator.userAgentData saying "Linux"), X11 / Wayland by the window position the page is told (Wayland
-// never tells it: 0, 0). The real Windows run is .github/workflows/windows.yml (Chrome on a Windows runner).
+// Each system is stood in for by its user agent AND its client hints (CDP — `asOS` in _os.mjs: Playwright's userAgent
+// alone leaves navigator.userAgentData saying what the machine is, and the suite runs on Linux and on Windows), X11 /
+// Wayland by the window position the page is told as well (Wayland never tells it: 0, 0). The real Windows run is .github/workflows/windows.yml (Chrome on a Windows runner).
 // For every tab that runs on a PC: it opens without an uncaught error on each system; the X11 / Wayland note is there
 // in the tabs where the two differ — and only there, and never on Windows — with the right answer; the parts that
 // depend on the system pick the right thing (yt-dlp's file, the offline speech script).
 import { createServer } from 'vite';
-const WIN_UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36';
-const WIN_META = {
-  brands: [{ brand: 'Google Chrome', version: '141' }, { brand: 'Chromium', version: '141' }, { brand: 'Not?A_Brand', version: '24' }],
-  fullVersionList: [{ brand: 'Google Chrome', version: '141.0.7390.55' }, { brand: 'Chromium', version: '141.0.7390.55' }],
-  fullVersion: '141.0.7390.55', platform: 'Windows', platformVersion: '15.0.0', architecture: 'x86', model: '', mobile: false, bitness: '64', wow64: false,
-};
+import { asOS } from './_os.mjs';
 // the tabs where X11 and Wayland differ, and so say which one this is
 const BANNER = ['screencast', 'screenshot', 'youtube', 'screen'];
 export default async ({ base, page: newPage, ok, info }) => {
@@ -21,9 +16,9 @@ export default async ({ base, page: newPage, ok, info }) => {
   await vs.close();
   const tabs = TOOLS.filter((t) => t.platform !== 'mobile').map((t) => t.id);
   const systems = {
-    windows: async (page) => { const cdp = await page.context().newCDPSession(page); await cdp.send('Emulation.setUserAgentOverride', { userAgent: WIN_UA, platform: 'Win32', userAgentMetadata: WIN_META }); },
-    x11: async (page) => page.addInitScript(() => { for (const [k, v] of [['screenX', 140], ['screenY', 60], ['screenLeft', 140], ['screenTop', 60]]) Object.defineProperty(window, k, { get: () => v, configurable: true }); }),
-    wayland: async (page) => page.addInitScript(() => { for (const k of ['screenX', 'screenY', 'screenLeft', 'screenTop']) Object.defineProperty(window, k, { get: () => 0, configurable: true }); }),
+    windows: async (page) => asOS(page, 'windows'),
+    x11: async (page) => (await asOS(page, 'linux'), page.addInitScript(() => { for (const [k, v] of [['screenX', 140], ['screenY', 60], ['screenLeft', 140], ['screenTop', 60]]) Object.defineProperty(window, k, { get: () => v, configurable: true }); })),
+    wayland: async (page) => (await asOS(page, 'linux'), page.addInitScript(() => { for (const k of ['screenX', 'screenY', 'screenLeft', 'screenTop']) Object.defineProperty(window, k, { get: () => 0, configurable: true }); })),
   };
   const BAD = /^(pageerror|.*(TypeError|ReferenceError|RangeError|SyntaxError|RuntimeError|is not a function|Cannot read))/i;
   const SHARDS = 3;
