@@ -257,8 +257,10 @@ the 47 Software stub tabs (each with its own suite) first, then ask about potent
   44.5 % after three other newspapers, by either build. Compare two builds with the same `OCR_SHARD` split (the same
   photos in the same order in each process), or each photo alone (`--only`); a comparison across different splits shows
   differences that are only the order (26 Nov 2026, to-do #31).
-- **The Windows check's log cannot be fetched from here** (its host is refused by the proxy): a check that fails only on
-  Windows must say in its own message what is needed to understand it (which reader, the line under the text …).
+- **The Windows check's log:** its download link points at a host the proxy refuses, but the GitHub tool reads it —
+  `get_job_logs` with `job_id` (from `list_workflow_jobs`), `return_content: true` and `tail_lines` (26 Nov 2026, run 12).
+  A check that can fail only on Windows still says in its own message what is needed to understand it (which reader,
+  the line under the text, where two texts part …). Windows' clipboard holds a line break as \r\n.
 - **zig's wasm32-wasi libc** (single-threaded): an implicitly declared function gets the wrong wasm signature and traps
   at run time (force-include prototypes — wasm/graphviz/compat.h); the main thread's musl thread list is unlinked, so
   `pthread_key_delete` loops forever (wasm/python/wasi_start.c); the process starts in "/" whatever PWD says; zig cc

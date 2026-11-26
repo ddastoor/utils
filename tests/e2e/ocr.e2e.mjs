@@ -76,8 +76,10 @@ export default async ({ base, page: newPage, ok, info, download, devices }) => {
       // Copy and the .txt give the text as the box shows it, marks and spaces and all
       const txtM = readFileSync(await download(page, () => page.getByRole('button', { name: 'Download .txt' }).click()), 'utf8');
       await page.getByRole('button', { name: 'Copy' }).click();
-      const clip = await page.evaluate(() => navigator.clipboard.readText()).catch((e) => `(clipboard: ${e.message})`);
-      ok(txtM === got && clip === got && /\n {4}◦ /.test(got) && /\n {8}▪ /.test(got), `${f}: the .txt and Copy give the text with its marks and indentation (${txtM === got}, ${clip === got})`);
+      // (Windows' clipboard keeps a line break as \r\n: Chrome writes and reads it so there — Windows check run 12)
+      const clip = (await page.evaluate(() => navigator.clipboard.readText()).catch((e) => `(clipboard: ${e.message})`)).replace(/\r\n/g, '\n');
+      const apart = (a) => { let i = 0; while (i < a.length && a[i] === got[i]) i++; return a === got ? 'same' : `apart at ${i} of ${a.length} / ${got.length}: ${JSON.stringify(a.slice(i, i + 24))} for ${JSON.stringify(got.slice(i, i + 24))}`; };
+      ok(txtM === got && clip === got && /\n {4}◦ /.test(got) && /\n {8}▪ /.test(got), `${f}: the .txt and Copy give the text with its marks and indentation (.txt ${apart(txtM)}; Copy ${apart(clip)})`);
     }
   }
   // a scan with CONFIDENTIAL across it as strong as printers make it: the white area its letters fence in is no page (it
