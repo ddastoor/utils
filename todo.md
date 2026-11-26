@@ -144,6 +144,14 @@ The owner adds items here in chat ("add … to to do"). Newest instructions win.
       Photo Dictionary has "Photo of a screen" (moiré). First step: the same photos through both tabs, measured, to find
       where and why the OCR tab reads worse — then **one shared reading path for both tabs**, so a photo reads the same
       in each and every improvement reaches both.
+    - **The owner's conditions for the shared path (26 Nov 2026): "One shared reading path is fine.. but make sure no
+      functionality is compramised.. the high quality of the ocr is paramount !!!"** — every feature of both tabs stays:
+      the OCR tab's languages, its clean-up switch, light-on-dark pictures turned over, the turn buttons, the unsure words
+      marked, the camera; the Photo Dictionary's "Photo of a screen", its "snap again" advice, the words joined over a
+      line end; both tabs' page finding, levelling and setting upright, and the second try with the whole photo. Where the
+      two tabs' steps differ, the better one by measurement for both, or kept per tab. **Nothing may read worse:** the
+      measuring run (`scripts/measure-ocr.mjs`: the Kindle and newspaper photos, the e2e fixtures, the new documents) before
+      the change and after, for each tab — no photo read worse beyond noise, the totals better — and the suites hold it.
     - **Rich formatting:** bullet points (• ◦ ▪ – ✓), numbered and lettered lists, indentation and nested lists, headings,
       bold and italic, tables, two columns, text boxes, headers and footers. **The owner, 26 Nov 2026: "no need to keep
       bullets and indentation in the text;.. but the ocr shold not get confused by them"** — the result stays plain text;

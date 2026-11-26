@@ -50,6 +50,9 @@ that affects it.
 > can't understand a thing. Fix that. Do whatever you have to do internally, rotate the image … should work even if my
 > camera is in landscape mode and portrait mode." — both tabs find which way up the text stands (the phone's tilt at the
 > moment of the snap where the browser gives it, and the picture itself) and turn the photo before it is read.
+> **OCR quality is paramount (owner, 26 Nov 2026):** "make sure no functionality is compramised.. the high quality of the
+> ocr is paramount !!!" — said of to-do #18 (one shared reading path for the OCR tab and the Photo Dictionary): every
+> feature of both tabs stays, and every change to their reading is measured before and after — none may read worse.
 > **At any angle (owner, 21 Nov 2026):** "the OCR app also should be extremely good, especially on the phone, when I click
 > it at different angles … Just like what you're doing for the photo dictionary app." — both tabs also measure the slant
 > of the lines and level the photo before the quarter turns (§3 OCR, "At any angle").
