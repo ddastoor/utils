@@ -29,6 +29,7 @@ let readSmall; // a quick reading of a picture (the tabs' "glance"), set in main
 let found = 0; // photos whose page was found (the page… variants)
 let byNet = 0; // … by the Doc Scanner's network (the net… variants)
 let other = 0; // read again laid out the other way, and that reading kept (read…)
+let secondTried = 0, secondKept = 0; // soft photos read by PaddleOCR too, and its reading kept (read… with --paddle)
 
 /** Words as a reader counts them: letters, digits and the apostrophe; case and punctuation ignored. */
 export const wordsOf = (s) => (s.normalize('NFC').replace(/[’‘]/g, "'").toLowerCase().match(/[a-z0-9']+/g) || []).map((w) => w.replace(/^'+|'+$/g, '')).filter(Boolean);
@@ -107,20 +108,30 @@ async function imgprocNode() {
   if (args.includes('--paddle')) {
     const P = await vite.ssrLoadModule('/src/lib/paddle.ts');
     const sess = async (f) => ort.InferenceSession.create(new Uint8Array(readFileSync(join(root, 'public/models/paddleocr', f))), { executionProviders: ['wasm'], graphOptimizationLevel: 'all' });
-    const [det, cls, rec] = [await sess('PP-OCRv6_det_small.onnx'), await sess('ch_ppocr_mobile_v2.0_cls_mobile.onnx'), await sess('PP-OCRv6_rec_small.onnx')];
+    const [det, rec] = [await sess('PP-OCRv6_det_small.onnx'), await sess('PP-OCRv6_rec_small.onnx')];
     const alphabet = readFileSync(join(root, 'public/models/paddleocr/PP-OCRv6_rec_small.onnx.character.txt'), 'utf8').split('\n');
     const nets = {
       det: async (x, w, h) => (await det.run({ [det.inputNames[0]]: new ort.Tensor('float32', x, [1, 3, h, w]) }))[det.outputNames[0]].data,
-      cls: async (x, n) => (await cls.run({ [cls.inputNames[0]]: new ort.Tensor('float32', x, [n, 3, 48, 192]) }))[cls.outputNames[0]].data,
       rec: async (x, w) => { const o = (await rec.run({ [rec.inputNames[0]]: new ort.Tensor('float32', x, [1, 3, 48, w]) }))[rec.outputNames[0]]; return { data: o.data, T: o.dims[1], C: o.dims[2] }; },
     };
     paddleRead = (im) => P.paddleRead(im, nets, ip, alphabet);
   }
+  // textcore's XY-cut (the reading order of PaddleOCR's lines on a page of columns)
+  const { bindTextcore } = await vite.ssrLoadModule('/src/wasm/textcore.ts');
+  const tmod = await WebAssembly.compile(readFileSync(join(root, 'src/wasm/bin/textcore.wasm')));
+  let tmem; const tw = { ...w };
+  tw.random_get = (p, n) => { crypto.getRandomValues(new Uint8Array(tmem.buffer, p, n)); return 0; };
+  tw.clock_time_get = (_i, _p, out) => { new DataView(tmem.buffer).setBigUint64(out, BigInt(Date.now()) * 1000000n, true); return 0; };
+  tw.environ_sizes_get = (a, b) => { const dv = new DataView(tmem.buffer); dv.setUint32(a, 0, true); dv.setUint32(b, 0, true); return 0; };
+  const tinst = await WebAssembly.instantiate(tmod, { wasi_snapshot_preview1: tw });
+  tmem = tinst.exports.memory; tinst.exports._initialize?.();
+  const tc = bindTextcore(tinst.exports);
+  const xycut = (boxes, gx, gy) => tc.xycut(boxes, gx, gy).order;
   const docCorners = async (im) => {
     const s = ip.resizeArea(im, pf.SIZE, pf.SIZE);
     return pf.readOutput(await session.run({ [session.inputNames[0]]: new ort.Tensor('float32', pf.modelInput(s.data), [1, pf.SIZE, pf.SIZE, 3]) }));
   };
-  return { ip, straighten, uprightByReading, pageSize, pf, docCorners, readPage, paddleRead, close: () => vite.close() };
+  return { ip, straighten, uprightByReading, pageSize, pf, docCorners, readPage, paddleRead, xycut, close: () => vite.close() };
 }
 
 /** The clean-up variants. app = what the Photo Dictionary did until 21 Nov 2026 (≤ 3000 px, the document clean-up, grey);
@@ -213,6 +224,8 @@ async function main() {
   const without = opt('--without', '').split(',').filter(Boolean);
   const readEngines = {
     ops: Object.fromEntries(Object.entries({ ...ip, docCorners: (sm) => eng.docCorners(sm) }).filter(([k]) => !without.includes(k))),
+    // the second reader (with --paddle): PaddleOCR for soft photos, as the tabs run it (src/lib/readpage.ts)
+    ...(eng.paddleRead ? { paddle: (im) => eng.paddleRead(im), xycut: eng.xycut } : {}),
     read: async (im, _lang, _progress, layout) => {
       // the layout the reading path asks for (src/lib/ocr.ts PSM: 'page' 3, 'block' 6); --psm N overrides it for all
       const d = (await worker.recognize(ppm(im), { tessedit_pageseg_mode: args.includes('--psm') ? psm : { page: '3', block: '6' }[layout] }, { text: true, blocks: true })).data, words = [];
@@ -220,7 +233,11 @@ async function main() {
       return { text: (d.text || '').replace(/\n{3,}/g, '\n\n').trim(), confidence: d.confidence, words };
     },
   };
-  const names = readdirSync(dir).filter((f) => f.endsWith('.jpg') && existsSync(join(dir, f.slice(0, -4) + '.txt')) && (!only || f.includes(only))).map((f) => f.slice(0, -4)).sort(); // a photo without its words is no test photo
+  // OCR_SHARD=k/n: every n-th photo from the k-th (several processes on one set); OCR_JSON_SKIP=1: photos already dumped
+  // to OCR_JSON are left out (a run carried on)
+  const [shard, shards] = (process.env.OCR_SHARD || '0/1').split('/').map(Number);
+  const names = readdirSync(dir).filter((f) => f.endsWith('.jpg') && existsSync(join(dir, f.slice(0, -4) + '.txt')) && (!only || f.includes(only))).map((f) => f.slice(0, -4)).sort() // a photo without its words is no test photo
+    .filter((n, i) => i % shards === shard && !(process.env.OCR_JSON_SKIP && preps.every((p) => existsSync(join(process.env.OCR_JSON, `${n}.${p}.json`)))));
   const totals = {};
   for (const name of names) {
     const truth = wordsOf(readFileSync(join(dir, name + '.txt'), 'utf8'));
@@ -249,7 +266,10 @@ async function main() {
         // read[+screen][+retry][+once]: the tabs' own reading path (src/lib/readpage.ts) on imgproc.wasm, the Doc Scanner's
         // network and this Tesseract — read = the Photo Dictionary's options, +retry = the OCR tab's (a poor reading tried
         // the other ways round), +screen = "Photo of a screen", +once = an unsure reading not read again the other way
-        const res = await eng.readPage(img, { lang: 'eng', clean: true, auto: true, screen: p.includes('screen'), retryTurns: p.includes('retry'), again: !p.includes('once') }, readEngines);
+        // +first: the first reader only (Tesseract; the JSON dumps of OCR_JSON are made so, for working a rule out)
+        const res = await eng.readPage(img, { lang: 'eng', clean: true, auto: true, screen: p.includes('screen'), retryTurns: p.includes('retry'), again: !p.includes('once'), second: !p.includes('first') && !process.env.OCR_JSON }, readEngines);
+        if (res.engine === 'paddle') secondKept++;
+        if (res.second) secondTried++;
         if (res.page) found++;
         if (res.by === 'network') byNet++;
         if (res.layout !== (res.columns >= 2 ? 'page' : 'block')) other++;
@@ -258,7 +278,9 @@ async function main() {
         if (process.env.OCR_JSON) {
           // everything a rule needs to be worked out afterwards: Tesseract's reading with its words, how the page was
           // prepared, and (with --paddle) PaddleOCR's lines on the page before and after the clean-up
-          const t1 = performance.now(), pre = eng.paddleRead ? await eng.paddleRead(res.pre) : null, t2 = performance.now(), clean = eng.paddleRead ? await eng.paddleRead(res.img) : null, t3 = performance.now();
+          // OCR_JSON_MAXCONF: PaddleOCR only for readings less sure than this (no rule reads a sure one again)
+          const want = eng.paddleRead && !(res.r.confidence >= +(process.env.OCR_JSON_MAXCONF || Infinity));
+          const t1 = performance.now(), pre = want ? await eng.paddleRead(res.pre) : null, t2 = performance.now(), clean = want ? await eng.paddleRead(res.img) : null, t3 = performance.now();
           writeFileSync(join(process.env.OCR_JSON, `${name}.${p}.json`), JSON.stringify({ name, set: dir, r: res.r, page: res.page, by: res.by, columns: res.columns, layout: res.layout, cleared: res.cleared, up: res.up, size: [res.img.width, res.img.height], tessSeconds: (t1 - t0) / 1000, paddle: { pre, clean, preSeconds: (t2 - t1) / 1000, cleanSeconds: (t3 - t2) / 1000 } }));
         }
       } else {
@@ -283,6 +305,7 @@ async function main() {
   }
   if (found) console.log(`page found in ${found} of the runs that looked for it${byNet ? ` (${byNet} by the Doc Scanner's network)` : ''}`);
   if (other) console.log(`${other} readings kept from the other layout (an unsure reading read again)`);
+  if (secondTried) console.log(`${secondTried} soft photos read by PaddleOCR too, its reading kept for ${secondKept}`);
   await worker.terminate(); await close();
 }
 main().catch((e) => { console.error(e); process.exit(1); });

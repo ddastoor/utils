@@ -8,8 +8,8 @@ import { h, card, field, segmented, toggle, stack, note, progress, button, actio
 import { imgproc, type Img } from '../wasm/imgproc';
 import { previewOf, paint } from '../lib/imgio';
 import { imageInput } from '../lib/imgtools';
-import { POOR, type OcrLang } from '../lib/ocr';
-import { readPage } from '../lib/readpage';
+import type { OcrLang } from '../lib/ocr';
+import { readPage, readsPoorly, unsureWord, secondWords } from '../lib/readpage';
 import { uprightWords, turnWords, ROT } from '../lib/upright';
 
 export const mount: Mount = (root, ctx) => {
@@ -39,6 +39,8 @@ export const mount: Mount = (root, ctx) => {
     const res = await readPage(from, {
       lang, clean, auto: !handTurned, turns, retryTurns: true, invertDark: true, onProgress, stale: () => !live(),
       onRetry: () => { if (live()) prog.set(null, 'The text reads badly — trying the picture turned…'); },
+      // a soft photo: PaddleOCR, the second reader, reads it too (its models fetched the first time)
+      onSecond: (q) => { if (live()) { const w = secondWords(q); prog.set(w.p, w.text); } },
     });
     if (!res || !live()) return;
     const { r, img } = res;
@@ -53,14 +55,17 @@ export const mount: Mount = (root, ctx) => {
     // highlighted words sit on what was read
     if (res.shown) paint(previewOf(res.shown, 1400), canvas);
     if (res.page) note += ' · the page was found and straightened';
+    // the photo was soft and PaddleOCR read it better (or could not be fetched: Tesseract's reading stands)
+    if (res.engine === 'paddle') note += ' · the photo was soft: PaddleOCR read it';
+    else if (res.secondError) note += ` · the photo was soft, and the second reader could not be loaded (${res.secondError})`;
     // a poor reading after all that: the photo itself (out of focus, shaken, the text a few pixels high) — say so
-    if (r.text && r.confidence < POOR) note += ' · the text reads poorly: a sharper photo, closer and in good light, reads better';
+    if (r.text && readsPoorly(res)) note += ' · the text reads poorly: a sharper photo, closer and in good light, reads better';
     out.value = r.text;
     info.textContent = r.text
       ? `${r.words.length} words · average confidence ${Math.round(r.confidence)} % · ${((performance.now() - t0) / 1000).toFixed(1)} s${note}`
       : 'No text found. Try better light, a straighter photo, or another language.';
     // highlight words the engine is unsure about (over the picture as it was read)
-    for (const w of r.words) if (w.conf < 60) boxes.append(h('span', { class: 'ocr-low', title: `${w.text} (${Math.round(w.conf)} %)`, style: { left: `${(w.x0 / img.width) * 100}%`, top: `${(w.y0 / img.height) * 100}%`, width: `${((w.x1 - w.x0) / img.width) * 100}%`, height: `${((w.y1 - w.y0) / img.height) * 100}%` } }));
+    for (const w of r.words) if (unsureWord(w.conf, res.engine)) boxes.append(h('span', { class: 'ocr-low', title: `${w.text} (${Math.round(w.conf)} %)`, style: { left: `${(w.x0 / img.width) * 100}%`, top: `${(w.y0 / img.height) * 100}%`, width: `${((w.x1 - w.x0) / img.width) * 100}%`, height: `${((w.y1 - w.y0) / img.height) * 100}%` } }));
   };
   // a file (a photo already taken, a screenshot, a paste) — or the camera: the phone's back camera, the PC's webcam, live
   // in the page with Snap (owner, 20 Nov 2026; the picker's own camera, src/lib/livecam.ts)

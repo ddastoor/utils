@@ -1,6 +1,6 @@
 // PaddleOCR in a worker — the second reader of the OCR tab and the Photo Dictionary, for soft photos (src/lib/paddle.ts;
-// owner, 26 Nov 2026). PP-OCRv6's detector and recogniser and PP-OCRv4's direction classifier (31.7 MB in
-// public/models/paddleocr, SHA-256 pinned in scripts/assets.json) are fetched from this site the first time a photo
+// owner, 26 Nov 2026). PP-OCRv6's detector and recogniser (31.2 MB in public/models/paddleocr, SHA-256 pinned in
+// scripts/assets.json) are fetched from this site the first time a photo
 // needs them — once per visit — and run by ONNX Runtime Web (the app's copy of Microsoft's WebAssembly build, shared
 // with Text-to-Speech and the Doc Scanner); imgproc.wasm does the pixel work around them. One reading at a time; a
 // reading the page no longer wants ends at its next line.
@@ -12,13 +12,13 @@ import { paddleRead, type PaddleNets, type PaddleLine } from '../lib/paddle';
 
 type Msg = { id: number; op: 'read'; base: string; img: { data: Uint8ClampedArray; width: number; height: number } } | { id: number; op: 'cancel' };
 const post = (m: unknown) => (self as any).postMessage(m);
-const MODELS = [['det', 'PP-OCRv6_det_small.onnx', 9929594], ['cls', 'ch_ppocr_mobile_v2.0_cls_mobile.onnx', 585532], ['rec', 'PP-OCRv6_rec_small.onnx', 21234383]] as const;
+const MODELS = [['det', 'PP-OCRv6_det_small.onnx', 9929594], ['rec', 'PP-OCRv6_rec_small.onnx', 21234383]] as const;
 const ALPHABET = 'PP-OCRv6_rec_small.onnx.character.txt';
 let engine: Promise<{ nets: PaddleNets; ip: Imgproc; alphabet: string[] }> | null = null;
 const cancelled = new Set<number>();
 let chain: Promise<unknown> = Promise.resolve();
 
-/** The three models, fetched with progress (bytes of all three together). */
+/** The two models, fetched with progress (bytes of both together). */
 function open(base: string, id: number) {
   engine ??= (async () => {
     ort.env.wasm.numThreads = 1; // GitHub Pages cannot enable cross-origin isolation (no threads)
@@ -49,7 +49,6 @@ function open(base: string, id: number) {
     const run = async (s: ort.InferenceSession, x: Float32Array, dims: number[]) => (await s.run({ [s.inputNames[0]]: new ort.Tensor('float32', x, dims) }))[s.outputNames[0]];
     const nets: PaddleNets = {
       det: async (x, w, h) => (await run(sess.det, x, [1, 3, h, w])).data as Float32Array,
-      cls: async (x, n) => (await run(sess.cls, x, [n, 3, 48, 192])).data as Float32Array,
       rec: async (x, w) => { const o = await run(sess.rec, x, [1, 3, 48, w]); return { data: o.data as Float32Array, T: o.dims[1], C: o.dims[2] }; },
     };
     const ip = bindImgproc((await instantiateWasi(wasmUrl)).exports);

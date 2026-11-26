@@ -13,8 +13,7 @@ import { isMobile } from '../platform';
 import type { Img } from '../wasm/imgproc';
 import { previewOf, paint } from '../lib/imgio';
 import { imageInput } from '../lib/imgtools';
-import { POOR } from '../lib/ocr';
-import { readPage } from '../lib/readpage';
+import { readPage, readsPoorly, secondWords } from '../lib/readpage';
 import { uprightWords } from '../lib/upright';
 import { alphabetical, hardWords, lookupWord, rarity, ranker, type WordCard, type Result } from '../lib/dictionary';
 import { wikiSummary, type Summary } from '../lib/wikipedia';
@@ -119,13 +118,15 @@ export const mount: Mount = (root, ctx) => {
       const reading = await readPage(img, {
         lang: 'eng', clean: true, screen, auto: true, stale,
         onProgress: (p, s) => prog.set(s.includes('recogn') ? p : null, s.includes('recogn') ? `Reading the page… ${Math.round(p * 100)} %` : 'Loading the text engine…'),
+        // a soft photo: PaddleOCR, the second reader, reads it too (its models fetched the first time)
+        onSecond: (q) => { if (!stale()) { const w = secondWords(q); prog.set(w.p, w.text); } },
       });
       if (!reading || stale()) return;
       const { r, up } = reading;
       if (!r.text.trim()) { prog.done(); status.textContent = isMobile ? 'No text found. Hold the phone straight over the page, in good light, and try again.' : 'No text found. Hold the page flat and close to the webcam, in good light, and try again — or choose a photo of it.'; return; }
       // a photo that could not be read well: what was read is shown, with what to do about it (measured: every reading
       // below POOR had most of its words wrong; a page read as a handful of words was out of focus or far away)
-      const few = r.words.length < 25, poor = r.confidence < POOR;
+      const few = r.words.length < 25, poor = readsPoorly(reading);
       if (few || poor) advice.replaceChildren(note(`${few ? `Only ${r.words.length} word${r.words.length === 1 ? ' was' : 's were'} read. If the page holds more, the photo may be blurred or taken from too far away.` : 'The text reads poorly — the photo looks blurred, or its letters are small, so some words below are misread.'} ${isMobile ? 'Hold the phone steady and a little closer, in good light, and snap again.' : 'Hold the page steady and closer to the webcam, in good light, and snap again — or choose a sharper photo.'}`, 'warn'));
       // the words broken over two lines put together, for the text shown, a tap, a selection and the ranking
       const text = (await ranker()).dehyphen(r.text);
@@ -139,7 +140,8 @@ export const mount: Mount = (root, ctx) => {
       last = res; prog.done();
       cards.replaceChildren(...phrases, ...res.cards.map((c) => withWiki(wordCard(c), c.word)));
       bar.hidden = !res.cards.length;
-      const turnedNote = up.turns || up.slant ? ` · the photo was ${uprightWords(up)} to read it` : '';
+      const turnedNote = (up.turns || up.slant ? ` · the photo was ${uprightWords(up)} to read it` : '')
+        + (reading.engine === 'paddle' ? ' · the photo was soft: PaddleOCR read it' : reading.secondError ? ' · the photo was soft, and the second reader could not be loaded' : '');
       status.textContent = res.cards.length
         ? `${res.cards.length} uncommon word${res.cards.length > 1 ? 's' : ''}, A → Z · ${r.words.length} words read${res.online.tried ? ` · ${res.online.tried} looked up online` : ''}${turnedNote}`
         : `No uncommon words on this page — tap any word in the text to look it up.${turnedNote}`;

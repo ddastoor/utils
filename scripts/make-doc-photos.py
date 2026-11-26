@@ -7,7 +7,9 @@
 #                         under the phone — turned, tilted, on a table or in a hand, soft or shaken a little, the room's
 #                         light, noise, a lamp's glare (paper: no moiré)
 #   OUT/<name>-frame.jpg  a frame of the live video (1080 × 1920): the whole page small in the picture, as a webcam sees it
-# each with <name>-….txt (the page's words) and OUT/index.json. Deterministic (the seed is the page's name).
+# each with <name>-….txt (the page's words) and OUT/index.json. Deterministic (the seed is the page's name; with
+# PHOTO_SALT=<text> in the environment, the name and the salt: the same pages photographed anew — a second set to check
+# a rule worked out on the first).
 import importlib.util, json, os, random, sys, zlib
 import numpy as np
 import cv2
@@ -34,7 +36,7 @@ def main():
         mask = np.full(page.shape[:2], 255, np.uint8)
         none = np.float32([[0, 0], [1, 0], [1, 1], [0, 1]])  # no screen on paper: no moiré
         for kind, (ow, oh), still in (('still', (3024, 4032), True), ('frame', (1080, 1920), False)):
-            rng = random.Random(zlib.crc32(f'{name}-{kind}'.encode()))
+            rng = random.Random(zlib.crc32(f'{os.environ.get("PHOTO_SALT", "")}{name}-{kind}'.encode()))
             # held steadier than a hurried shot of a Kindle: a softer focus at worst, a short streak of shake now and then
             photo, cam = kindle.photograph(rng, page, mask, none, ow, oh, still, soft=(0.7, 1.8), shake=(0.25, 1, 3))
             q = rng.randrange(82, 93)

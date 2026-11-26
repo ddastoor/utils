@@ -13,7 +13,10 @@
 // The engines are passed in (`ReadEngines`): the tabs use imgproc's worker and Tesseract.js; scripts/measure-ocr.mjs and
 // the unit suite run exactly this code on imgproc.wasm and Tesseract in Node.
 import { imgproc, type Img } from '../wasm/imgproc';
+import { textcore } from '../wasm/textcore';
 import { recognize, POOR, type OcrLang, type OcrResult, type Layout } from './ocr';
+import { paddleResult, lineBoxes, cutGaps, type PaddleLine } from './paddle';
+import type { PaddleProgress } from './paddle-client';
 import { straighten, type PageOps } from './pagecrop';
 import { uprightByReading, score, ROT, type TurnOps } from './upright';
 
@@ -31,6 +34,11 @@ export interface ReadEngines {
   ops: ReadOps;
   /** Tesseract: the picture read in the language(s) given, laid out as a page or as one block (src/lib/ocr.ts). */
   read(img: Img, lang: OcrLang, onProgress: ((p: number, status: string) => void) | undefined, layout: Layout): Promise<OcrResult>;
+  /** PaddleOCR, the second reader for soft photos (src/lib/paddle.ts in src/workers/paddle.worker.ts): the lines of a
+   *  picture (null: ended because `stale()` said so). */
+  paddle?(img: Img, progress?: (p: PaddleProgress) => void, stale?: () => boolean): Promise<PaddleLine[] | null>;
+  /** textcore's XY-cut: the reading order of boxes (PaddleOCR's lines on a page of columns). */
+  xycut?(boxes: number[][], gx: number, gy: number): Promise<number[]> | number[];
 }
 const op = <T>(name: string) => (...a: any[]) => imgproc(name as any, ...a) as Promise<T>;
 export const browserEngines: ReadEngines = {
@@ -42,6 +50,9 @@ export const browserEngines: ReadEngines = {
     histogram: op('histogram'), invert: op('invert'), blur: op('blur'), docEnhance: op('docEnhance'), clearMarks: op('clearMarks'), clearWash: op('clearWash'),
   } as ReadOps,
   read: (img, lang, onProgress, layout) => recognize(new ImageData(new Uint8ClampedArray(img.data), img.width, img.height), lang, onProgress, layout),
+  // the worker and its 31.7 MB of models are fetched the first time a soft photo needs them
+  paddle: (img, progress, stale) => import('./paddle-client').then((m) => m.paddleLines(img, progress, stale)),
+  xycut: async (boxes, gx, gy) => (await textcore()).xycut(boxes, gx, gy).order,
 };
 /** How a page is read (to-do #18): Tesseract.js reads one block unless told — straight across a newsletter's two columns,
  *  "meaning helmsman or pilot. K8s as an Note. The TTS Handbook documents the". A page whose text stands in columns
@@ -79,6 +90,10 @@ export interface ReadOptions {
   onRetry?: () => void;
   /** A newer picture or the tab left: the reading stops (null). */
   stale?: () => boolean;
+  /** A soft photo (Tesseract's reading unsure: `soft`) read by PaddleOCR too, the better reading kept (default: on). */
+  second?: boolean;
+  /** Told when PaddleOCR reads the photo again (null), and how far it has come (its models fetched, its lines read). */
+  onSecond?: (p: PaddleProgress | null) => void;
 }
 export interface PageReading {
   r: OcrResult;
@@ -103,6 +118,11 @@ export interface PageReading {
   columns: number;
   /** how the reading kept was laid out */
   layout: Layout;
+  /** the reader whose text was kept: Tesseract, or PaddleOCR (the photo was soft and PaddleOCR read it better) */
+  engine: 'tesseract' | 'paddle';
+  /** PaddleOCR read the photo too (it was soft); `secondError`: it could not (its models not fetched …) */
+  second: boolean;
+  secondError?: string;
 }
 
 /** Light text on a dark ground (a screenshot in dark mode, chalk on a board, a Kindle in dark mode): the clean-up expects
@@ -123,6 +143,29 @@ export const FEW = 25;
  *  scripts/measure-ocr.mjs: it read 4 document photos better, none worse — and never changed a page of plain text (a
  *  Kindle's), which is read once (a second reading costs a phone seconds). Sharp photos read at 87 – 95 %. */
 export const AGAIN = 85, AGAIN_BY = 1.03;
+
+/** PaddleOCR, the second reader (in progress: off until its rule is measured — the owner's rule for every change to the
+ *  reading): which picture it reads, when a reading is soft, which one is kept. */
+export const SECOND_ON = false;
+export const SECOND_READS: 'pre' | 'img' = 'pre';
+export const SOFT = 88;
+export const soft = (r: OcrResult) => r.confidence < SOFT;
+export const secondBetter = (paddle: OcrResult, tess: OcrResult) => score(paddle) > score(tess) * 1.1;
+
+/** PaddleOCR's confidences run higher than Tesseract's (a character's probability against a word's certainty): its
+ *  reading reads poorly below PADDLE_POOR, and a word of it is unsure below PADDLE_UNSURE (measured). */
+export const PADDLE_POOR = 80, PADDLE_UNSURE = 85;
+/** A reading that reads poorly: both tabs say a sharper photo would read better. */
+export const readsPoorly = (res: Pick<PageReading, 'r' | 'engine'>) => res.r.confidence < (res.engine === 'paddle' ? PADDLE_POOR : POOR);
+/** A word its reader is unsure of (the OCR tab marks it on the picture). */
+export const unsureWord = (conf: number, engine: PageReading['engine']) => conf < (engine === 'paddle' ? PADDLE_UNSURE : 60);
+/** What the second reader is doing, in words (both tabs' progress line): null = starting. */
+export function secondWords(q: PaddleProgress | null): { p: number | null; text: string } {
+  if (!q) return { p: null, text: 'The photo is soft — reading it again with PaddleOCR, the second reader…' };
+  const mb = (n: number) => (n / 1e6).toFixed(1);
+  if (q.phase === 'fetch') return { p: q.total ? q.done / q.total : null, text: `Fetching PaddleOCR, the second reader (${mb(q.done)} of ${mb(q.total)} MB, once a visit)…` };
+  return { p: q.total ? q.done / q.total : null, text: `PaddleOCR is reading the soft photo: line ${Math.min(q.done + 1, Math.max(1, q.total))} of ${q.total}…` };
+}
 
 export async function readPage(photo: Img, o: ReadOptions, eng: ReadEngines = browserEngines): Promise<PageReading | null> {
   const { ops } = eng, live = () => !o.stale?.();
@@ -197,5 +240,21 @@ export async function readPage(photo: Img, o: ReadOptions, eng: ReadEngines = br
       turned = best.t;
     }
   }
-  return { r, img: p.img, pre: p.pre, shown: p.shown, page: p.page, by: p.by, up: p.up, turned, cleared: p.cleared, columns: p.columns, layout };
+  // a soft photo: PaddleOCR reads the page too (the page as Tesseract read it), and the reading with more words read
+  // surely is kept (owner, 26 Nov 2026: "Ok use PaddleOCR fallback for soft photos")
+  let engine: PageReading['engine'] = 'tesseract', second = false, secondError: string | undefined;
+  if ((o.second ?? SECOND_ON) && eng.paddle && soft(r)) {
+    second = true;
+    o.onSecond?.(null);
+    const pic = SECOND_READS === 'pre' ? p.pre : p.img;
+    const lines = await eng.paddle(pic, (q) => { if (live()) o.onSecond?.(q); }, () => !live()).catch((e) => { secondError = String((e as Error)?.message ?? e); return null; });
+    if (!live()) return null;
+    if (lines?.length) {
+      let order: number[] | undefined;
+      if (p.columns >= 2 && lines.length > 1 && eng.xycut) { const bb = lineBoxes(lines), g = cutGaps(bb); order = await eng.xycut(bb, g.gx, g.gy); }
+      const r2 = paddleResult(lines, { order });
+      if (secondBetter(r2, r)) { r = r2; engine = 'paddle'; }
+    }
+  }
+  return { r, img: p.img, pre: p.pre, shown: p.shown, page: p.page, by: p.by, up: p.up, turned, cleared: p.cleared, columns: p.columns, layout, engine, second, secondError };
 }

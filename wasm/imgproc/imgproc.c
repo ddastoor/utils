@@ -2172,57 +2172,72 @@ API int p_clear_marks(uint8_t *px, int w, int h, int what, int32_t *out) {
  * utils/process_img.py, ch_ppocr_cls/main.py, ch_ppocr_rec/main.py and utils.py), in OpenCV's conventions wherever a
  * result depends on them; src/lib/paddle.ts is the glue, and tests/unit/paddle.test.mjs holds the whole to RapidOCR. */
 
-/* OpenCV's INTER_LINEAR taps along one axis: half-pixel centres, the edge pixel repeated (resize.cpp) */
-static void lin_taps(int sn, int dn, int *i0, float *f) {
-    double s = (double)sn / dn;
+/* cv2.resize with INTER_LINEAR on an 8-bit picture, in OpenCV's own integer arithmetic (imgproc/src/resize.cpp, 4.x):
+   per axis a source index and two weights of 2048 (fx = (d + 0.5)·scale − 0.5, cut at the edges, cvRound); the rows
+   combined from 32-bit sums as its vector code does — ((S0 >> 4)·b0 >> 16) + ((S1 >> 4)·b1 >> 16), + 2, >> 2 — for the
+   values its vector loops cover (16, then 8 at a time, along a row of 3 × dw values in its B, G, R order) and as its
+   scalar code does for the rest ((S0·b0 + S1·b1 + 2^21) >> 22); a picture made exactly half as large both ways is made
+   with INTER_AREA, as cv::resize does. RapidOCR resizes so (the photo to 2000 px, the detector's and the recogniser's
+   inputs). */
+static void lin_taps(int sn, int dn, int *idx, short *wt) {
+    double scale = 1. / ((double)dn / sn);
     for (int d = 0; d < dn; d++) {
-        float x = (float)((d + 0.5) * s - 0.5);
-        int i = (int)floorf(x); float a = x - i;
-        if (i < 0) { i = 0; a = 0; }
-        if (i >= sn - 1) { i = sn - 1; a = 0; }
-        i0[d] = i; f[d] = a;
+        float fx = (float)((d + 0.5) * scale - 0.5);
+        int sx = (int)floorf(fx); fx -= sx;
+        if (sx < 0) { fx = 0; sx = 0; }
+        if (sx >= sn - 1) { fx = 0; sx = sn - 1; }
+        idx[d] = sx;
+        wt[d * 2] = (short)nearbyintf((1.f - fx) * 2048); wt[d * 2 + 1] = (short)nearbyintf(fx * 2048);
     }
 }
-/* one pixel channel of an INTER_LINEAR resize, rounded to 8 bits as cv2.resize gives an 8-bit image */
-static inline uint8_t lin_at(const uint8_t *r0, const uint8_t *r1, int i, int j, float a, float b, int c) {
-    float t0 = r0[i + c] + (r0[j + c] - r0[i + c]) * a, t1 = r1[i + c] + (r1[j + c] - r1[i + c]) * a;
-    return u8_even(t0 + (t1 - t0) * b);
+typedef struct { int sw, sh, dw, dh, *xi, *yi, *h0, *h1; short *xa, *yb; } Lin;
+static Lin lin_open(int sw, int sh, int dw, int dh) {
+    Lin L = {sw, sh, dw, dh, malloc(sizeof(int) * dw), malloc(sizeof(int) * dh), malloc(sizeof(int) * dw * 4), malloc(sizeof(int) * dw * 4), malloc(sizeof(short) * dw * 2), malloc(sizeof(short) * dh * 2)};
+    lin_taps(sw, dw, L.xi, L.xa); lin_taps(sh, dh, L.yi, L.yb);
+    return L;
 }
-/* cv2.resize(img, (dw, dh)) of 8-bit RGBA with INTER_LINEAR (RapidOCR makes a photo at most 2000 px a side so) */
+static void lin_close(Lin *L) { free(L->xi); free(L->yi); free(L->h0); free(L->h1); free(L->xa); free(L->yb); }
+/* the horizontal pass of one source row: 32-bit sums (the last source pixel alone, × 2048, past the right edge) */
+static void lin_hrow(const Lin *L, const uint8_t *row, int *h) {
+    for (int x = 0; x < L->dw; x++) {
+        int sx = L->xi[x];
+        for (int c = 0; c < 4; c++) h[x * 4 + c] = sx + 1 < L->sw ? row[sx * 4 + c] * L->xa[x * 2] + row[(sx + 1) * 4 + c] * L->xa[x * 2 + 1] : row[sx * 4 + c] * 2048;
+    }
+}
+/* target row y: 4 × dw values (RGBA; alpha by the scalar rule) */
+static void lin_row(Lin *L, const uint8_t *src, int y, int *out) {
+    int sy = L->yi[y], sy1 = sy + 1 < L->sh ? sy + 1 : sy, b0 = L->yb[y * 2], b1 = L->yb[y * 2 + 1];
+    lin_hrow(L, src + (size_t)sy * L->sw * 4, L->h0); lin_hrow(L, src + (size_t)sy1 * L->sw * 4, L->h1);
+    int width = L->dw * 3, x1 = width / 16 * 16, x2 = width - x1 > 8 ? x1 + 8 : x1;
+    for (int x = 0; x < L->dw; x++) for (int c = 0; c < 4; c++) {
+        int s0 = L->h0[x * 4 + c], s1 = L->h1[x * 4 + c], v, oc = c == 3 ? -1 : 2 - c;
+        if (oc >= 0 && x * 3 + oc < x2) v = ((((s0 >> 4) * b0) >> 16) + (((s1 >> 4) * b1) >> 16) + 2) >> 2;
+        else v = (s0 * b0 + s1 * b1 + (1 << 21)) >> 22;
+        out[x * 4 + c] = v < 0 ? 0 : v > 255 ? 255 : v;
+    }
+}
 API void p_resize_linear(const uint8_t *src, int sw, int sh, uint8_t *dst, int dw, int dh) {
-    int *xi = malloc(sizeof(int) * dw), *yi = malloc(sizeof(int) * dh);
-    float *xf = malloc(sizeof(float) * dw), *yf = malloc(sizeof(float) * dh);
-    lin_taps(sw, dw, xi, xf); lin_taps(sh, dh, yi, yf);
-    for (int y = 0; y < dh; y++) {
-        const uint8_t *r0 = src + (size_t)yi[y] * sw * 4, *r1 = src + (size_t)(yi[y] + 1 < sh ? yi[y] + 1 : yi[y]) * sw * 4;
-        uint8_t *o = dst + (size_t)y * dw * 4;
-        for (int x = 0; x < dw; x++) {
-            int i = xi[x] * 4, j = (xi[x] + 1 < sw ? xi[x] + 1 : xi[x]) * 4;
-            for (int c = 0; c < 4; c++) o[x * 4 + c] = lin_at(r0, r1, i, j, xf[x], yf[y], c);
-        }
-    }
-    free(xi); free(yi); free(xf); free(yf);
+    if (sw == 2 * dw && sh == 2 * dh) { p_resize_area(src, sw, sh, dst, dw, dh); return; }
+    if (sw == dw && sh == dh) { memcpy(dst, src, (size_t)sw * sh * 4); return; }
+    Lin L = lin_open(sw, sh, dw, dh);
+    int *row = malloc(sizeof(int) * dw * 4);
+    for (int y = 0; y < dh; y++) { lin_row(&L, src, y, row); uint8_t *o = dst + (size_t)y * dw * 4; for (int i = 0; i < dw * 4; i++) o[i] = (uint8_t)row[i]; }
+    free(row); lin_close(&L);
 }
-/* RGBA → a network's input: resized to dw × dh with INTER_LINEAR (8-bit, as cv2.resize), as three planes in OpenCV's
-   order B, G, R (PaddleOCR reads images with cv2), each value v / 127.5 − 1 (= (v / 255 − 0.5) / 0.5); the planes are
-   pw ≥ dw wide and the columns from dw on are 0 (the recogniser's and the classifier's inputs are padded so). */
+/* RGBA → a network's input: resized to dw × dh as cv2.resize does (p_resize_linear), as three planes in OpenCV's order
+   B, G, R (PaddleOCR reads images with cv2), each value v / 127.5 − 1 (= (v / 255 − 0.5) / 0.5); the planes are pw ≥ dw
+   wide and the columns from dw on are 0 (the recogniser's input is padded so). */
 API void p_net_planes(const uint8_t *src, int sw, int sh, int dw, int dh, int pw, float *out) {
-    int *xi = malloc(sizeof(int) * dw), *yi = malloc(sizeof(int) * dh);
-    float *xf = malloc(sizeof(float) * dw), *yf = malloc(sizeof(float) * dh);
-    lin_taps(sw, dw, xi, xf); lin_taps(sh, dh, yi, yf);
     size_t plane = (size_t)dh * pw;
+    uint8_t *tmp = (sw == dw && sh == dh) ? (uint8_t *)src : malloc((size_t)dw * dh * 4);
+    if (tmp != src) p_resize_linear(src, sw, sh, tmp, dw, dh);
     for (int y = 0; y < dh; y++) {
-        const uint8_t *r0 = src + (size_t)yi[y] * sw * 4, *r1 = src + (size_t)(yi[y] + 1 < sh ? yi[y] + 1 : yi[y]) * sw * 4;
+        const uint8_t *r = tmp + (size_t)y * dw * 4;
         float *ob = out + (size_t)y * pw, *og = ob + plane, *or_ = og + plane;
-        for (int x = 0; x < dw; x++) {
-            int i = xi[x] * 4, j = (xi[x] + 1 < sw ? xi[x] + 1 : xi[x]) * 4;
-            or_[x] = lin_at(r0, r1, i, j, xf[x], yf[y], 0) / 127.5f - 1.f;
-            og[x] = lin_at(r0, r1, i, j, xf[x], yf[y], 1) / 127.5f - 1.f;
-            ob[x] = lin_at(r0, r1, i, j, xf[x], yf[y], 2) / 127.5f - 1.f;
-        }
+        for (int x = 0; x < dw; x++) { or_[x] = r[x * 4] / 127.5f - 1.f; og[x] = r[x * 4 + 1] / 127.5f - 1.f; ob[x] = r[x * 4 + 2] / 127.5f - 1.f; }
         for (int x = dw; x < pw; x++) ob[x] = og[x] = or_[x] = 0;
     }
-    free(xi); free(yi); free(xf); free(yf);
+    if (tmp != src) free(tmp);
 }
 
 typedef struct { double x, y; } Pt;
@@ -2264,32 +2279,55 @@ static void rect_corners(MinRect r, Pt c[4]) {
     double us[4] = {r.u0, r.u1, r.u1, r.u0}, vs[4] = {r.v0, r.v0, r.v1, r.v1};
     for (int q = 0; q < 4; q++) { c[q].x = us[q] * r.ux - vs[q] * r.uy; c[q].y = us[q] * r.uy + vs[q] * r.ux; }
 }
-/* the mean of `pr` (w wide) over the quad c, as box_score_fast: the quad's pixel box (floor / ceil, inside the map), the
-   quad filled into it with its corners cut to whole pixels (np.int32), every filled pixel counted */
+/* a line of OpenCV's 8-connected Bresenham, traced from its left end (cv::line, LINE_8 — LineIterator), into a mask */
+static void line8(uint8_t *m, int mw, int mh, int x0, int y0, int x1, int y1) {
+    if (x0 > x1) { int t = x0; x0 = x1; x1 = t; t = y0; y0 = y1; y1 = t; }
+    int dx = x1 - x0, dy = y1 - y0, sy = dy < 0 ? -1 : 1; dy = dy < 0 ? -dy : dy;
+    int swap = dy > dx;
+    if (swap) { int t = dx; dx = dy; dy = t; }
+    int err = dx - 2 * dy, plus = 2 * dx, minus = -2 * dy, x = x0, y = y0;
+    for (int i = 0; i <= dx; i++) {
+        if (x >= 0 && y >= 0 && x < mw && y < mh) m[(size_t)y * mw + x] = 1;
+        int step = err < 0;
+        err += minus + (step ? plus : 0);
+        if (swap) { y += sy; if (step) x++; } else { x++; if (step) y += sy; }
+    }
+}
+/* floor(n / d) for d > 0 */
+static inline long long fdiv(long long n, long long d) { return n >= 0 ? n / d : -((-n + d - 1) / d); }
+/* the mean of `pr` (w wide) over the quad c, as box_score_fast takes it: the quad's pixel box (floor / ceil, inside the
+   map), the quad's corners shifted into it and cut to whole pixels (np.int32), the pixels cv2.fillPoly sets — its
+   edges drawn as lines (LINE_8) and each row filled between its edges, to the last pixel whose centre lies left of the
+   right edge + ½ (OpenCV 5.1, held to cv2.fillPoly exactly on 266,196 pixels of random quads) — counted */
 static float quad_mean(const float *pr, int w, int h, const Pt c[4]) {
     double xmn = c[0].x, xmx = c[0].x, ymn = c[0].y, ymx = c[0].y;
     for (int q = 1; q < 4; q++) { if (c[q].x < xmn) xmn = c[q].x; if (c[q].x > xmx) xmx = c[q].x; if (c[q].y < ymn) ymn = c[q].y; if (c[q].y > ymx) ymx = c[q].y; }
     int x0 = CLAMP((int)floor(xmn), 0, w - 1), x1 = CLAMP((int)ceil(xmx), 0, w - 1), y0 = CLAMP((int)floor(ymn), 0, h - 1), y1 = CLAMP((int)ceil(ymx), 0, h - 1);
-    int px[4], py[4];
-    for (int q = 0; q < 4; q++) { px[q] = (int)(c[q].x - x0); py[q] = (int)(c[q].y - y0); }
-    double sum = 0; long cnt = 0;
-    for (int y = 0; y <= y1 - y0; y++) {
-        double lo = INFINITY, hi = -INFINITY;
+    int mw = x1 - x0 + 1, mh = y1 - y0 + 1, px[4], py[4], ylo = INT32_MAX, yhi = INT32_MIN;
+    for (int q = 0; q < 4; q++) { px[q] = (int)(c[q].x - x0); py[q] = (int)(c[q].y - y0); if (py[q] < ylo) ylo = py[q]; if (py[q] > yhi) yhi = py[q]; }
+    uint8_t *m = calloc((size_t)mw * mh, 1);
+    for (int q = 0; q < 4; q++) { int a = (q + 3) & 3; line8(m, mw, mh, px[a], py[a], px[q], py[q]); }
+    for (int y = ylo < 0 ? 0 : ylo; y < yhi && y < mh; y++) {
+        /* the edges this row crosses (each from its top to the row before its bottom): x = xa + (xb − xa)(y − ya) / (yb − ya) */
+        long long ln = 0, ld = 1, rn = 0, rd = 1; int k = 0;
         for (int q = 0; q < 4; q++) {
-            int a = q, b = (q + 1) & 3;
-            double ya = py[a], yb = py[b];
-            if ((y < ya && y < yb) || (y > ya && y > yb)) continue;
-            double x;
-            if (ya == yb) { double xa = px[a], xb = px[b]; if (xa < lo) lo = xa; if (xb < lo) lo = xb; if (xa > hi) hi = xa; if (xb > hi) hi = xb; continue; }
-            x = px[a] + (px[b] - px[a]) * (y - ya) / (yb - ya);
-            if (x < lo) lo = x; if (x > hi) hi = x;
+            int a = (q + 3) & 3, xa = px[a], ya = py[a], xb = px[q], yb = py[q];
+            if (ya == yb) continue;
+            if (ya > yb) { int t = xa; xa = xb; xb = t; t = ya; ya = yb; yb = t; }
+            if (y < ya || y >= yb) continue;
+            long long n = (long long)xa * (yb - ya) + (long long)(xb - xa) * (y - ya), d = yb - ya;
+            if (!k) { ln = rn = n; ld = rd = d; }
+            else { if (n * ld < ln * d) { ln = n; ld = d; } if (n * rd > rn * d) { rn = n; rd = d; } }
+            k++;
         }
-        if (lo > hi) continue;
-        int a = (int)ceil(lo - 1e-9), b = (int)floor(hi + 1e-9);
-        if (a < 0) a = 0; if (b > x1 - x0) b = x1 - x0;
-        const float *row = pr + (size_t)(y + y0) * w + x0;
-        for (int x = a; x <= b; x++) { sum += row[x]; cnt++; }
+        if (k < 2) continue;
+        long long a = fdiv(2 * ln + ld, 2 * ld), b = -fdiv(-(2 * rn + rd), 2 * rd) - 1; /* ⌊xl + ½⌋, ⌈xr + ½⌉ − 1 */
+        if (a < 0) a = 0; if (b > mw - 1) b = mw - 1;
+        for (long long x = a; x <= b; x++) m[(size_t)y * mw + x] = 1;
     }
+    double sum = 0; long cnt = 0;
+    for (int y = 0; y < mh; y++) for (int x = 0; x < mw; x++) if (m[(size_t)y * mw + x]) { sum += pr[(size_t)(y + y0) * w + x + x0]; cnt++; }
+    free(m);
     return cnt ? (float)(sum / cnt) : 0.f;
 }
 /* the boxes of text in the detector's probability map (DBPostProcess: thresh, box_thresh, unclip_ratio,
