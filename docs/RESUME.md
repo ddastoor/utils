@@ -61,6 +61,10 @@ was deleted on 26 Nov to free space — the survey's results are committed; `scr
 **To-do #32 added (26 Nov 2026, the owner):** 22 new FFmpeg jobs (the uses listed in chat, all on today's core) — not yet in the
 batch order: ask when. The three that need our own FFmpeg build (a good stabiliser, Rubber Band pitch, VP9 / H.265) are
 potentials.md U3 "Our own FFmpeg build".
+**#20 Studio voice (batch 7), owner, 26 Nov 2026: "Just use your discretion and get the best quality"** — no samples to judge
+and no size decision to wait for: choose by measurement (DNSMOS, noise left, speech kept), the best quality within the 1 GB.
+**Screencast "Bring the sound to a normal loudness" — the owner said yes (26 Nov 2026):** being built (`src/lib/normalize.ts`:
+FFmpeg's loudnorm two passes on the sound, mediabunny joins it to the picture).
 **Next (the owner's order):** batch 4 (#24, #28 Screenshot), 5 (#15, #17, #16), 6 (#14 Text Diff), 7 (#20 Studio voice); then the potentials process.
 
 ## ▶ SYNC POINT — 21 Nov 2026, night (read this first; it supersedes the older "NOW" notes below)

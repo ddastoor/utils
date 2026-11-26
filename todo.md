@@ -118,7 +118,10 @@ The owner adds items here in chat ("add … to to do"). Newest instructions win.
       present cleaning stays as it is.
     - **Measured, not guessed:** speech with real traffic and street noise mixed in (the suite's speech fixture with
       recorded street noise; outdoor recordings) — the noise left, the speech kept, DNSMOS (Microsoft's open
-      speech-quality predictor) before and after; samples for the owner to hear before a model is chosen.
+      speech-quality predictor) before and after.
+    - **Owner, 26 Nov 2026: "Just use your discretion and get the best quality"** — no samples for him to judge first and no
+      size decision to wait for: the models are chosen by the measurements above, for the best quality the site can hold
+      (within GitHub Pages' 1 GB; the size is said when it is built). Still batch 7, after batches 4 – 6.
 
 24. **Screenshot: draw a rectangle with the mouse to take the screenshot** (owner, 26 Nov 2026: "In the screenshot app, add
     the ability for the user to draw a rectangular area with his mouse also as an option to take the screenshot")
