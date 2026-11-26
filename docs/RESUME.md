@@ -35,10 +35,14 @@ Done so far: Windows checkout (con.json / prn.json), the build's file:// paths, 
 X11 / Wayland notes (Screen Info, Screenshot), `os.e2e.mjs`, Extract Archive's folder names, the Patch tab's CR LF, the
 Keyboard Test's PrintScreen / Alt, the offline speech script's exit code. **The offline speech script runs on Windows**
 ("Windows offline speech", `.github/workflows/windows-tts.yml`; input `voices` = a JSON list, one job per entry of voice
-ids — `tests/unit/offline-tts-run.test.mjs` with OFFLINE_TTS_E2E=1 and OFFLINE_TTS_VOICES): Piper passed; one job per
-engine was started on 21 Nov 2026 (18 jobs). Next: read those (get_job_logs per job), fix what fails on Windows; read
-the full browser run ("Windows check" run 3, id 44951297119), tell failures of the app on Windows from suites that need
-a Linux tool as their reference, fix the first; then the potentials process.
+ids — `tests/unit/offline-tts-run.test.mjs` with OFFLINE_TTS_E2E=1 and OFFLINE_TTS_VOICES): one job per engine (18) —
+16 passed; Kyutai (torch.compile needs a C++ compiler → moshi's NO_TORCH_COMPILE where there is none) and F5-TTS (its
+lock had lost a Windows-only tzdata line: the lock generator dropped every "emscripten" line) fixed on 26 Nov and run
+again (those two jobs). The full browser run of 21 Nov ("Windows check" run 3) lost its runner mid-run (no log): a
+targeted run of 30 suites (four at a time) was started on 26 Nov — read it (get_job_logs, or the artifact
+`e2e-windows`), tell failures of the app on Windows from suites that need a Linux tool, fix the first; then #13 is
+done (docs: todo.md, CLAUDE.md) and the potentials process starts. **Owner, 26 Nov 2026: after a change run only the
+tests it needs; the full suite only at his word** (CLAUDE.md STANDING RULE #2).
 **Then, in the owner's order:** #8 Regex Tester flavours (research done: PCRE2 — `pcre2-wasm` 10.49.3 or our own build;
 Google's `re2-wasm` 1.0.2 for RE2 / Go; `vscode-oniguruma` 2.0.1 for Ruby / Oniguruma; Python's `re` through the Python
 tab's CPython and the `regex` module; Perl through ExifTool's zeroperl, already on the site; JavaScript as now; Java and
