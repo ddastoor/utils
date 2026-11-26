@@ -32,6 +32,10 @@ also failed pgp9580 and screencast without saying why (the harness prints the re
 Git's POSIX gpg; fixed with `tests/e2e/_gpg.mjs`, aeece3b). **Run 10** (pgp9580 ocr photodict zip — the OCR tabs with the
 second reader, 04c555e) started at about 12:20 UTC — read it; if it is green, every suite has passed on Windows: close
 #13 (todo.md).
+**New, 26 Nov 2026 (after the second reader): to-do #31** — the owner corrected #18 for the OCR tab: its text keeps the
+page's formatting (bullets, check boxes, indentation); the Photo Dictionary's stays plain. Asked the owner for the form
+(text with bullets / copy with formatting / .docx), the scope (headings, tables) and where it goes in the order — build
+nothing until answered.
 **Next (the owner's order):** batch 3 — #23 FFmpeg volume, #22 FFmpeg MP3, #21 Screencast countdowns + sound level; then
 batch 4 (#24, #28 Screenshot), 5 (#15, #17, #16), 6 (#14 Text Diff), 7 (#20 Studio voice); then the potentials process.
 

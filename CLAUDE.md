@@ -50,6 +50,10 @@ that affects it.
 > can't understand a thing. Fix that. Do whatever you have to do internally, rotate the image … should work even if my
 > camera is in landscape mode and portrait mode." — both tabs find which way up the text stands (the phone's tilt at the
 > moment of the snap where the browser gives it, and the picture itself) and turn the photo before it is read.
+> **The OCR tab keeps the page's formatting (owner, 26 Nov 2026, later — correcting #18):** "In the OCR app, the rich
+> formatting should be preserved, the bullet points, etc. In the photo dictionary app, it need not be, only because the
+> actual OCR rendition is needed for me to further select a phrase that I could then look up in Wikipedia." — the OCR
+> tab's text keeps bullets, check boxes and indentation (to-do #31); the Photo Dictionary's stays plain.
 > **OCR quality is paramount (owner, 26 Nov 2026):** "make sure no functionality is compramised.. the high quality of the
 > ocr is paramount !!!" — said of to-do #18 (one shared reading path for the OCR tab and the Photo Dictionary): every
 > feature of both tabs stays, and every change to their reading is measured before and after — none may read worse.
@@ -2205,7 +2209,8 @@ photos the first version spoiled (`kindle-blur`, `kindle-comfortaa`) read as the
 **Documents — one reading path for both tabs (to-do #18; owner, 26 Nov 2026: "can u make the ocr app's ocr capability the
 same quality as the Photo Dictionary's … works very poorly for a document that has formatting, rich text formatting like
 bullet points, indentation, etc., especially using the phone camera. Also improve the quality when the document has a
-watermark"; "no need to keep bullets and indentation in the text;.. but the ocr shold not get confused by them"; "One
+watermark"; "no need to keep bullets and indentation in the text;.. but the ocr shold not get confused by them" — corrected
+later the same day for the OCR tab, whose text is to keep them: to-do #31; "One
 shared reading path is fine.. but make sure no functionality is compramised.. the high quality of the ocr is paramount
 !!!"):** both tabs read through `readPage` (`src/lib/readpage.ts`), and each asks for its own steps (`ReadOptions`) — the
 OCR tab: its clean-up switch, light text on a dark ground turned over, the turn buttons, a poor reading tried the other

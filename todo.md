@@ -225,6 +225,22 @@ The owner adds items here in chat ("add … to to do"). Newest instructions win.
 
 
 
+31. **OCR tab: keep the page's formatting — bullets, sub-bullets, check boxes, indentation** (owner, 26 Nov 2026: "I stand
+    corrected. In the OCR app, the rich formatting should be preserved, the bullet points, etc. In the photo dictionary
+    app, it need not be, only because the actual OCR rendition is needed for me to further select a phrase that I could
+    then look up in Wikipedia.") — corrects #18's "no need to keep bullets and indentation in the text" **for the OCR tab
+    only**; the Photo Dictionary's text stays plain, as it is.
+    - **The reading stays exactly as it is** (the owner: "the high quality of the ocr is paramount"): the marks are still
+      cleared before Tesseract and PaddleOCR read, so they never turn into stray letters, and every photo of the sets is
+      measured before and after — no word may read worse.
+    - **What is kept:** `p_clear_marks` (imgproc) already finds every list mark it clears; it records each one — where it
+      stands and what it is (● ○ ■ ▪ ◆ ► – ☐ ☑ ☒) — and the tab puts it back at the start of its line, with the levels of
+      the list as indentation (from where the lines start against the page's margin). Numbered and lettered items keep
+      their numbers and letters (they are text already).
+    - **The form of the output, and whether headings or tables are kept too:** the owner's choice (asked 26 Nov 2026).
+    - The suite: the formatted documents of `scripts/make-format-docs.mjs` (bullets nested two and three deep, check boxes
+      ticked and not, Word's "o", numbered and lettered lists), photographed — each mark back on its line, at its level.
+
 ## Done
 - **18. OCR and Photo Dictionary: the OCR tab as good as the Photo Dictionary; documents with rich formatting and with
   watermarks, above all from a phone's camera; measured on many real documents** (owner, 26 Nov 2026; "One shared reading
