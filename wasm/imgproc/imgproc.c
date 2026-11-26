@@ -1588,6 +1588,89 @@ API int p_text_lines(const uint8_t *px, int w, int h, float *out) {
     return turns;
 }
 
+/* ================================================================================ a watermark washed over the page */
+/* To-do #18 (owner, 26 Nov 2026: "Also improve the quality when the document has a watermark"): a watermark as strong as
+ * printers make them (CONFIDENTIAL across the page, a red DRAFT, a stamp) is a second, lighter level of ink under the text.
+ * Laid out as a page, Tesseract took the text under its big letters for a picture and left a paragraph out. On a page set
+ * upright and cleaned up (grey, dark text on light paper): the histogram of the ink has, beside the text and its soft
+ * edges — which rise smoothly towards the paper — a peak of its own in the greys when a watermark is there (plain pages
+ * and a Kindle's soft text have none: nothing is done). The pixels of that grey that form broad strokes — wider than any
+ * letter's stroke, they survive an erosion by a square of 2r + 1 px — and the grey within three times r of them (between the
+ * letters where text crosses the watermark) are painted the paper's colour, and the strokes' soft edges next to them; the
+ * text over the watermark is darker and stays. out[0] = pixels painted, out[1] and out[2] = the grey band (luma). */
+API int p_clear_wash(uint8_t *px, int w, int h, int32_t *out) {
+    out[0] = out[1] = out[2] = 0;
+    int n = w * h;
+    if (w < 64 || h < 64) return 0;
+    uint8_t *g = malloc(n);
+    if (!g) return 0;
+    uint32_t hist[256] = {0};
+    for (int i = 0; i < n; i++) { const uint8_t *p = px + (size_t)i * 4; g[i] = (77 * p[0] + 150 * p[1] + 29 * p[2]) >> 8; hist[g[i]]++; }
+    int paper = 255; { long long acc = 0; for (int v = 0; v < 256; v++) { acc += hist[v]; if (acc * 100 >= (long long)n * 80) { paper = v; break; } } }
+    int median = 255; { long long acc = 0; for (int v = 0; v < 256; v++) { acc += hist[v]; if (acc * 2 >= n) { median = v; break; } } }
+    if (median < 200) { free(g); return 0; }              /* not mostly light paper (a screen in dark mode): nothing to take */
+    /* bins of 8 levels; a peak bin b: at least 1 % of the page with its two neighbours, at least 2.2 × the bins 24 – 39
+       levels either side (the text's soft edges are a smooth slope there), between 96 and the paper − 32 */
+    double bin[32] = {0};
+    for (int v = 0; v < 256; v++) bin[v >> 3] += hist[v];
+    int best = -1; double bestv = 0;
+    for (int b = 12; b <= 28 && b * 8 + 8 <= paper - 32; b++) {
+        double c = bin[b - 1] + bin[b] + bin[b + 1], side = (bin[b - 4] + bin[b - 3] + bin[b + 3] + (b + 4 < 32 ? bin[b + 4] : bin[b + 3])) / 4;
+        if (bin[b] >= bin[b - 1] && bin[b] >= bin[b + 1] && c >= 0.01 * n && bin[b] >= 2.2 * side && bin[b] > bestv) { best = b; bestv = bin[b]; }
+    }
+    if (best < 0) { free(g); return 0; }
+    int lo = best, hi = best;
+    while (lo > 0 && bin[lo - 1] >= 0.5 * bestv) lo--;
+    while (hi < 31 && bin[hi + 1] >= 0.5 * bestv) hi++;
+    int vlo = lo * 8 - 4, vhi = hi * 8 + 11;              /* the band, a little wider than its bins (a stroke's own edges) */
+    if (vhi > paper - 12) vhi = paper - 12;
+    /* a watermark is a second level of ink: a minority of the page (not its ground), one even grey (a narrow band — the
+       grey text of a Kindle spreads over half the scale), and lighter than the text, which is there below it (a Kindle's
+       text is the grey itself, with nothing darker: the first version painted a whole Kindle page white) */
+    { long long inb = 0, dark = 0; for (int v = vlo < 0 ? 0 : vlo; v <= vhi; v++) inb += hist[v];
+      for (int v = 0; v < vlo - 16 && v < 256; v++) dark += hist[v];
+      if (inb * 4 > n || vhi - vlo > 64 || dark * 2 < inb) { free(g); return 0; } }
+    out[1] = vlo; out[2] = vhi;
+    /* the opening: in-band pixels whose (2r + 1)² square is all in band, grown back by the same square */
+    int r = (w > h ? w : h) / 300; if (r < 4) r = 4;       /* strokes of 2r + 1 px and wider: 21 at 3,000 px — no letter's */
+    uint32_t *ii = malloc(sizeof(uint32_t) * (size_t)(w + 1) * (h + 1));
+    uint8_t *core = calloc(n, 1);
+    if (!ii || !core) { free(g); free(ii); free(core); return 0; }
+    #define WASH_II(mask) do { for (int x = 0; x <= w; x++) ii[x] = 0; \
+        for (int y = 0; y < h; y++) { uint32_t row = 0; ii[(size_t)(y + 1) * (w + 1)] = 0; \
+            for (int x = 0; x < w; x++) { row += (mask); ii[(size_t)(y + 1) * (w + 1) + x + 1] = ii[(size_t)y * (w + 1) + x + 1] + row; } } } while (0)
+    #define WASH_BOX(x, y) ({ int x0_ = (x) - r < 0 ? 0 : (x) - r, y0_ = (y) - r < 0 ? 0 : (y) - r, x1_ = (x) + r + 1 > w ? w : (x) + r + 1, y1_ = (y) + r + 1 > h ? h : (y) + r + 1; \
+        ii[(size_t)y1_ * (w + 1) + x1_] - ii[(size_t)y0_ * (w + 1) + x1_] - ii[(size_t)y1_ * (w + 1) + x0_] + ii[(size_t)y0_ * (w + 1) + x0_]; })
+    WASH_II(g[y * w + x] >= vlo && g[y * w + x] <= vhi);
+    int side = 2 * r + 1;
+    for (int y = r; y < h - r; y++) for (int x = r; x < w - r; x++) if (WASH_BOX(x, y) == (uint32_t)(side * side)) core[y * w + x] = 1;
+    /* grown back further than the square (three times): the grey between the letters where text crosses the watermark
+       goes too (the letters are darker than the band and stay) */
+    WASH_II(core[y * w + x]);
+    int painted = 0, rr = r; r = 3 * rr;
+    uint8_t *done = calloc(n, 1);
+    if (!done) { free(g); free(ii); free(core); return 0; }
+    for (int y = 0; y < h; y++) for (int x = 0; x < w; x++) {
+        int i = y * w + x;
+        if (g[i] < vlo || g[i] > vhi || !WASH_BOX(x, y)) continue;
+        uint8_t *p = px + (size_t)i * 4; p[0] = p[1] = p[2] = (uint8_t)paper; done[i] = 1; painted++;
+    }
+    /* the strokes' soft edges, lighter than the band, next to what was painted (2 px): its faint outline */
+    r = 2;
+    WASH_II(done[y * w + x]);
+    for (int y = 0; y < h; y++) for (int x = 0; x < w; x++) {
+        int i = y * w + x;
+        if (done[i] || g[i] <= vhi || g[i] >= paper || !WASH_BOX(x, y)) continue;
+        uint8_t *p = px + (size_t)i * 4; p[0] = p[1] = p[2] = (uint8_t)paper; painted++;
+    }
+    r = rr;
+    #undef WASH_II
+    #undef WASH_BOX
+    free(g); free(ii); free(core); free(done);
+    out[0] = painted;
+    return painted;
+}
+
 /* ======================================================================== ruled lines and list marks (to-do #18) */
 /* Owner, 26 Nov 2026: documents "that have formatting, rich text formatting like bullet points, indentation" read poorly,
  * "especially using the phone camera"; "no need to keep bullets and indentation in the text;.. but the ocr should not get

@@ -1122,8 +1122,12 @@ One entry per tab, written before its bug hunt: our module → candidates → ch
   Tesseract stays (rule 1); the Doc Scanner's network is reused for the page where the Kindle finder's outline is not a
   page's; the rest is our own C in imgproc.wasm (rule 1a — what the module does not cover): `p_quad_steps` and
   `p_quad_text` (is an outline the page?), `p_refine_quad` (the network's corners fitted to the photo's edges),
-  `p_clear_border`, `p_ink_window`, `p_clear_marks` (ruled lines, list marks, columns). Measured before and after on 150
-  photos (CLAUDE.md §3 OCR, "Documents").
+  `p_clear_border`, `p_ink_window`, `p_clear_marks` (ruled lines, list marks, columns), `p_clear_wash` (a strong
+  watermark's broad strokes). Measured before and after on 150 photos (CLAUDE.md §3 OCR, "Documents"). **PaddleOCR again,
+  on the documents** (PP-OCRv6 through RapidOCR 3.10, on the photos as they are): less than the new Tesseract path on every
+  set — Kindle 67.4 against 68.0 %, documents 81.6 against 87.1 %, harder layouts 72.7 against 75.3 %, watermarked 81.6
+  against 85.5 % — and more on soft video frames (watermarked frames 68.5 against 61.0 %); it reads across columns. Tesseract
+  stays; PaddleOCR as a fallback for soft photos (about 31 MB) is offered to the owner (the size check).
 
 ### 123. `signature` — Signature Maker (20 Nov 2026)
 - **Engines:** the browser's canvas draws the strokes (its own compiled Skia) and the typed name (its HarfBuzz);

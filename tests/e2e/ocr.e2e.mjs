@@ -16,6 +16,9 @@ export default async ({ base, page: newPage, ok, info, download, devices }) => {
   const recognise = async (file, langLabel, clean = true) => {
     await page.locator('input[type=file]').setInputFiles(file);
     await page.waitForSelector('.ed-canvas', { state: 'visible' });
+    // the new picture has arrived when the last result is cleared (a large photo takes a moment to open: pressed before,
+    // Extract read the picture before it, and that reading was dropped when the new one came — the run waited for ever)
+    await page.waitForFunction(() => !/confidence|No text found/.test(document.querySelector('.ocr-text')?.parentElement?.textContent || ''));
     if (langLabel) await page.getByRole('radio', { name: langLabel }).click();
     const sw = page.locator('label.switch', { hasText: 'Clean up' }).locator('input');
     if ((await sw.isChecked()) !== clean) await page.locator('label.switch', { hasText: 'Clean up' }).click();
@@ -147,6 +150,7 @@ export default async ({ base, page: newPage, ok, info, download, devices }) => {
   }
   // turning by hand: the buttons turn the picture that is read
   await page.locator('input[type=file]').setInputFiles({ name: 'by-hand.png', mimeType: 'image/png', buffer: await turnedPng(90) });
+  await page.waitForFunction(() => !/confidence|No text found/.test(document.querySelector('.ocr-text')?.parentElement?.textContent || ''));
   await page.getByRole('button', { name: 'Turn the picture left' }).click();
   await page.waitForTimeout(300);
   const [cw, chh] = await page.locator('.ed-canvas').evaluate((c) => [c.width, c.height]);
@@ -168,6 +172,7 @@ export default async ({ base, page: newPage, ok, info, download, devices }) => {
 
   // Copy and Download with nothing read yet are refused in words
   await page.locator('input[type=file]').setInputFiles(F('coffee.jpg'));
+  await page.waitForFunction(() => !/confidence|No text found/.test(document.querySelector('.ocr-text')?.parentElement?.textContent || ''));
   await page.getByRole('button', { name: 'Copy' }).click();
   ok(await page.locator('.toast', { hasText: 'There is no text yet' }).first().waitFor({ timeout: 5000 }).then(() => true, () => false), 'Copy with no text: "There is no text yet …"');
   ok(page.errors.filter((e) => !/There is no text yet/.test(e)).length === 0, `no page errors: ${page.errors.join(' | ')}`);

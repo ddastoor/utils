@@ -74,6 +74,37 @@ export default async (t, { load, wasm }) => {
   t.ok(sc.marks === 0 && first.every((f) => same(f.box)), `soft justified lines: no word taken for a list mark — every line's first letter stays (${sc.marks} marks; ${first.map((f) => f.text).join(' ')})`);
   t.ok(sc.columns === 1, `six lines of justified text are one column (${sc.columns})`);
 
+  // ---- a watermark washed over the page (p_clear_wash): a second, lighter level of ink in broad strokes is painted the
+  // paper's colour; the text over it stays. A page whose text is the grey itself (a Kindle's soft text, nothing darker
+  // below it) is never touched — the first version painted a whole Kindle page white
+  const sheet = (W, H, { text = 40, band = 0, paper = 248 } = {}) => {
+    const d = new Uint8ClampedArray(W * H * 4);
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      let v = paper;
+      if (band && Math.abs((x - W * 0.1) * 0.8 - (H * 0.9 - y) * 0.6) < 50) v = band;      // a diagonal stroke 100 px wide
+      if (y > 80 && y < H - 80 && y % 40 < 12 && x > 60 && x < W - 60 && x % 26 < 16) v = text; // lines of words
+      d.set([v, v, v, 255], (y * W + x) * 4);
+    }
+    return { data: d, width: W, height: H };
+  };
+  const lum = (im, x, y) => im.data[(y * im.width + x) * 4];
+  const wm = sheet(1200, 1600, { band: 172 }), ww = ip.clearWash(wm);
+  // a point of the band between lines (paper there now) and a point of a word over the band (still dark)
+  let bandPt = null, wordPt = null;
+  for (let y = 300; y < 1300 && (!bandPt || !wordPt); y++) for (let x = 100; x < 1100; x++) {
+    const v = lum(wm, x, y);
+    if (!bandPt && v === 172 && y % 40 > 20) bandPt = [x, y];
+    if (!wordPt && v === 40 && Math.abs((x - 120) * 0.8 - (1440 - y) * 0.6) < 30) wordPt = [x, y];
+  }
+  t.ok(ww.painted > 50000 && ww.band[0] <= 172 && ww.band[1] >= 172 && lum(ww.img, ...bandPt) >= 240 && lum(ww.img, ...wordPt) === 40, `a broad grey stroke under the text: taken out (${ww.painted} px, band ${ww.band.join('–')}), the words over it stay`);
+  t.ok(ip.clearWash(sheet(1200, 1600)).painted === 0, 'a page without a watermark: nothing taken');
+  t.ok(ip.clearWash(sheet(1200, 1600, { text: 150 })).painted === 0 && ip.clearWash(sheet(1200, 1600, { text: 150, band: 172 })).painted === 0, 'grey text with nothing darker (a Kindle\'s soft text): never taken, even beside a grey band');
+  t.ok(ip.clearWash(sheet(1200, 1600, { paper: 40, text: 220, band: 120 })).painted === 0, 'a dark page (light text on a dark ground): left alone');
+  const wscan = ip.docEnhance(await decode('tests/fixtures/images/doc-memo-watermark-scan.jpg'), 1), wws = ip.clearWash(wscan);
+  t.ok(wws.painted > 20000, `the real scan with CONFIDENTIAL as strong as printers make it: taken out (${wws.painted} px, band ${wws.band.join('–')})`);
+  const kp = ip.docEnhance(await decode('tests/fixtures/images/kindle-page.jpg'), 1);
+  t.ok(ip.clearWash(kp).painted === 0, 'the Kindle photo: nothing taken');
+
   // ---- where the text is
   const W = 1600, H = 2200, form = { width: W, height: H, data: new Uint8ClampedArray(W * H * 4).fill(255) };
   for (let y = 180; y < 700; y++) if (y % 40 < 14) for (let x = 150; x < 1450; x++) if (x % 23 < 15) form.data.fill(20, (y * W + x) * 4, (y * W + x) * 4 + 3);

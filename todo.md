@@ -134,53 +134,6 @@ The owner adds items here in chat ("add … to to do"). Newest instructions win.
       rotations (/Rotate) watermarked on every page (read back by MuPDF: the drawn pixels, the text still there); a .docx
       with several sections opened by LibreOffice (converted to PDF: the watermark on every page) and by python-docx.
 
-18. **OCR and Photo Dictionary: the OCR tab as good as the Photo Dictionary; documents with rich formatting and with
-    watermarks, above all from a phone's camera; measured on many real documents** (owner, 26 Nov 2026: "for the OCR app
-    and Photo Dictionary app — can u make the ocr app's ocr capability the same quality as the Photo Dictionary's? the OCR
-    engine on the OCR app and I think for the photo dictionary app also, works very poorly for a document that has
-    formatting, rich text formatting like bullet points, indentation, etc., especially using the phone camera. Also
-    improve the quality when the document has a watermark. use many real documents with a lot of rich text formatting,
-    etc to further improve the ocr quality")
-    - **Today:** both tabs run the same engine (Tesseract 5, `src/lib/ocr.ts`) on nearly the same preparation — the page
-      found and straightened, set upright and level, the document clean-up. Where they differ: the OCR tab's clean-up can
-      be switched off and it turns light-on-dark pictures over; it reads four languages; it shows the whole text, every
-      mistake in view — the Photo Dictionary shows the uncommon words and joins words broken over two lines; only the
-      Photo Dictionary has "Photo of a screen" (moiré). First step: the same photos through both tabs, measured, to find
-      where and why the OCR tab reads worse — then **one shared reading path for both tabs**, so a photo reads the same
-      in each and every improvement reaches both.
-    - **The owner's conditions for the shared path (26 Nov 2026): "One shared reading path is fine.. but make sure no
-      functionality is compramised.. the high quality of the ocr is paramount !!!"** — every feature of both tabs stays:
-      the OCR tab's languages, its clean-up switch, light-on-dark pictures turned over, the turn buttons, the unsure words
-      marked, the camera; the Photo Dictionary's "Photo of a screen", its "snap again" advice, the words joined over a
-      line end; both tabs' page finding, levelling and setting upright, and the second try with the whole photo. Where the
-      two tabs' steps differ, the better one by measurement for both, or kept per tab. **Nothing may read worse:** the
-      measuring run (`scripts/measure-ocr.mjs`: the Kindle and newspaper photos, the e2e fixtures, the new documents) before
-      the change and after, for each tab — no photo read worse beyond noise, the totals better — and the suites hold it.
-    - **Rich formatting:** bullet points (• ◦ ▪ – ✓), numbered and lettered lists, indentation and nested lists, headings,
-      bold and italic, tables, two columns, text boxes, headers and footers. **The owner, 26 Nov 2026: "no need to keep
-      bullets and indentation in the text;.. but the ocr shold not get confused by them"** — the result stays plain text;
-      what must not happen: a bullet read as a letter or a sign ("e", "©", "«", "*", "o") or glued to the item's first
-      word, an item run into the line before, an indented or hanging line split from its item or read out of order, a
-      narrow column read across the gutter, a table's cells run together. To do: Tesseract's layout (blocks, paragraphs,
-      lines with their boxes — it gives them already) and its page segmentation settings tried on the set; bullet marks
-      (a small round or square mark where a line starts, at the height of the small letters) found and left out before
-      or after reading; every item and its continuation lines kept together, in order.
-    - **Watermarks:** a light or coloured mark behind the text (CONFIDENTIAL, DRAFT, a logo, a name tiled across the
-      page — our Watermark tab's diagonal and tiled ones too) taken out before reading: the text is the darkest ink, so
-      marks clearly lighter than it, and coloured marks where the text is black or dark grey, are removed (the two levels
-      of ink found per page); measured with and without, on the same pages watermarked and not.
-    - **Many real documents** (the owner's words): documents with open licences full of formatting — public-domain
-      government documents (forms, guides, the Federal Register's lists), Wikipedia articles with lists and tables,
-      open-source projects' documentation, Word and LibreOffice documents with bullets and numbering, the site's own
-      GST Invoice, Rent Receipt and Resume — each page rendered and photographed by the camera of
-      `scripts/make-kindle-photos.py` (tilt, focus, noise, shadow, glare, held sideways) and also taken by a webcam;
-      the owner's own photos when he sends them (never in the repository). Scored by the words read right, the
-      characters (CER), the reading order, and no stray letters or signs where bullets stood; the suites hold the measured
-      level.
-    - **Engines** (STANDING RULE #1): Tesseract stays unless another engine reads the set better — measured, not
-      guessed: Tesseract's best models (tessdata_best beside best_int), PaddleOCR PP-OCRv5 on ONNX Runtime (on the site
-      already; the earlier test, docs/WASM-AUDIT.md tab 122, was on blurred Kindle photos only), a layout model for lists
-      and tables (PP-DocLayout, DocLayout-YOLO); each model's size said against the site's 1 GB before it is added.
 20. **Noise Remover: "Studio voice" — a voice recorded outdoors made to sound as if spoken in a studio** (owner, 26 Nov
     2026: "In the noise remover app, it should be that when I record my voice, say out in the open, in traffic or
     outside, when I remove the noise, there should be a new option so that it should sound as if I'm speaking in the
@@ -273,6 +226,21 @@ The owner adds items here in chat ("add … to to do"). Newest instructions win.
 
 
 ## Done
+- **18. OCR and Photo Dictionary: the OCR tab as good as the Photo Dictionary; documents with rich formatting and with
+  watermarks, above all from a phone's camera; measured on many real documents** (owner, 26 Nov 2026; "One shared reading
+  path is fine.. but make sure no functionality is compramised.. the high quality of the ocr is paramount !!!") — done
+  26 Nov 2026: **one reading path** for both tabs (`src/lib/readpage.ts`; every feature of each tab kept, asked for by
+  option); the page found on a light desk too (edges checked, the Doc Scanner's network where the outline is not a
+  page's, an outline that leaves the photo's text outside refused); bullets, check boxes and table rules cleared
+  (`p_clear_marks` — the text's own look-alikes kept: "o", "i.", a colon, the word "a" on a soft Kindle line); pages of
+  columns read column by column; a strong watermark taken out (`p_clear_wash`); an unsure page with a structure read
+  again the other way. Measured on 150 photos (the Kindle and newspaper set and 126 photos of documents with formatting
+  and watermarks — phone stills, video frames, scans), each before and after, worse only beyond its own noise: Kindle
+  65.4 → 68.0 %, documents 71.6 → 87.1 %, harder layouts 63.3 → 75.3 %, watermarked 72.5 → 85.5 % (strong watermark
+  74.4 → 82.3), stray signs where bullets stood 148 → 73 lines; **no photo reads worse**; Kindle photos read and take as
+  long as before. PaddleOCR (PP-OCRv6) measured too: less overall, more on soft video frames — a fallback for soft photos
+  (about 31 MB) is offered for the owner's decision. CLAUDE.md §3 OCR, "Documents"; unit pageclean 50, readpage 22,
+  pagecrop 47; e2e OCR 83, Photo Dictionary 121.
 - **30. OpenPGP: every password or passphrase of an encrypting mode typed twice** (owner, 26 Nov 2026) — done 26 Nov
   2026: Encrypt, in both standards — the message password with "Repeat password", the signing key's passphrase with
   "Repeat passphrase"; two that differ are said under the boxes and refused (nothing made); Enter in the second box

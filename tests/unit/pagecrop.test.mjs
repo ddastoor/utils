@@ -103,6 +103,13 @@ export default async (t, { load, wasm }) => {
   const wrongOutline = { ...ip, pageQuad: outlineAt(inner) };
   const a2 = await pc.straighten(img, { ...wrongOutline, docCorners: net(frac(quad.flat())) });
   t.ok(a2.found && a2.by === 'network' && asked === 1 && near(a2.corners, quad.flat(), 10), `a wrong outline (inside the page): the network is asked and its page taken, its edges fitted to the photo's (the made-up page's text runs to its edge) (${a2.found} ${a2.by} ${a2.corners?.map(Math.round).join(', ')})`);
+  // the strip along the edges is painted on a page the network found (its corners can lie a little outside the page),
+  // not on the Kindle finder's (its outline is the page's own edge)
+  let painted = 0;
+  const counting = { clearBorder: (im, f) => { painted++; return ip.clearBorder(im, f); } };
+  await pc.straighten(img, { ...ip, ...counting });
+  const byNet = await pc.straighten(img, { ...wrongOutline, ...counting, docCorners: net(frac(quad.flat())) });
+  t.ok(painted === 1 && byNet.by === 'network', `the desk's strips are looked for on the network's page only (${painted} of 2)`);
   const a3 = await pc.straighten(img, wrongOutline);
   t.ok(!a3.found && a3.img === img, 'a wrong outline and no network: the photo is read as it is (not a part of the page)');
   const a4 = await pc.straighten(img, { ...wrongOutline, docCorners: async () => { throw new Error('offline'); } });
@@ -149,8 +156,8 @@ export default async (t, { load, wasm }) => {
   const cb = ip.clearBorder(strip, pc.BORDER);
   t.ok(cb.painted > 0 && at(cb.img, 3, 100) > 220 && at(cb.img, 7, 200) > 220 && at(cb.img, 200, 2) > 220, `the desk's strips along the left and the top: painted the paper's colour (${cb.painted} px)`);
   t.ok(at(cb.img, 45, 72) < 80 && at(cb.img, 675, 320) < 80 && at(cb.img, 300, 400) === at(strip, 300, 400), 'the text from 30 px in and a black mark near the right edge stay; the rest is untouched');
-  const clean = ip.clearBorder(s.img, pc.BORDER);
-  t.ok(clean.painted === 0, `a page straightened without a strip: nothing painted (${clean.painted})`);
+  const again = ip.clearBorder(cb.img, pc.BORDER);
+  t.ok(again.painted === 0, `a page whose strips are painted: nothing more to paint (${again.painted})`);
   const darkPage = { width: 400, height: 500, data: new Uint8ClampedArray(400 * 500 * 4).map((_, i) => (i % 4 === 3 ? 255 : 25)) };
   t.ok(ip.clearBorder(darkPage, pc.BORDER).painted === 0, 'a dark page (light text on dark): left alone');
   // the operations may answer with promises (the worker's) as well as at once (the module's)

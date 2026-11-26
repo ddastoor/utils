@@ -10,6 +10,21 @@ Start a new Claude Code session on the same repository (claude.ai/code or the Cl
 > Continue building SuperUtils. Check out branch `claude/exciting-bohr-b9yfwc` (keep committing and pushing to that
 > branch — I allow it), read CLAUDE.md and docs/RESUME.md, and carry on from "Next steps".
 
+## ▶ NOW — 26 Nov 2026, morning (read this first)
+**Batch 1 done; batch 2 (#18 OCR + Photo Dictionary) DONE** (todo.md Done #18; CLAUDE.md §3 OCR, "Documents — one reading
+path"): both tabs read through `src/lib/readpage.ts`; documents with bullets, tables, columns and watermarks read far
+better, no photo of the 150 measured reads worse (Kindle 65.4 → 68.0 %, documents 71.6 → 87.1 %). Measuring: `node
+scripts/measure-ocr.mjs DIR --prep read` (the tabs' own code; `--without op,…` takes a step out); the photo sets are made by
+`scripts/make-kindle-photos.py`, `scripts/make-format-docs.mjs` + `scripts/make-doc-photos.py` (not in the repository).
+**Open question for the owner:** PaddleOCR (PP-OCRv6) reads soft video frames better (watermarked frames 68.5 against
+61.0 %) but less overall — a fallback for soft photos would add about 31 MB: his decision (size check).
+**#13 (Windows / Linux):** "Windows check" run 7 hung 150 minutes without a line of output (the e2e runner printed only at
+the end — it now prints each suite as it ends and stops a suite after 30 minutes, E2E_SUITE_TIMEOUT); **run 8** (19 suites,
+ocr among them) was started at 08:52 UTC — read it (the job's log, or the artifact `e2e-windows`), fix what fails on
+Windows (likely the pgp suite with Git's gpg), then close #13.
+**Next (the owner's order):** batch 3 — #23 FFmpeg volume, #22 FFmpeg MP3, #21 Screencast countdowns + sound level; then
+batch 4 (#24, #28 Screenshot), 5 (#15, #17, #16), 6 (#14 Text Diff), 7 (#20 Studio voice); then the potentials process.
+
 ## ▶ SYNC POINT — 21 Nov 2026, night (read this first; it supersedes the older "NOW" notes below)
 The owner's weekly limit is nearly used up; work resumes on Thursday. Everything below is committed and pushed.
 **Done on 21 Nov (all live):** OCR + Photo Dictionary read photos at any angle — letters + projection profiles, every turn

@@ -165,6 +165,17 @@ export function bindImgproc(e: any) {
         return { img: { width: img.width, height: img.height, data: new Uint8ClampedArray(mem().slice(p, p + img.data.length)) }, painted };
       } finally { e.p_free(p); }
     },
+    /** A watermark washed over a page set upright and cleaned up (p_clear_wash; to-do #18): when the ink has a second,
+     *  lighter level of its own, its broad strokes painted the paper's colour; `band` = the grey taken (luma), `painted` =
+     *  pixels (0: no watermark found, the page as it was). */
+    clearWash(img: Img): { img: Img; painted: number; band: [number, number] } {
+      const p = put(img.data), o = e.p_malloc(12);
+      try {
+        e.p_clear_wash(p, img.width, img.height, o);
+        const v = new Int32Array(mem(), o, 3);
+        return { img: { width: img.width, height: img.height, data: new Uint8ClampedArray(mem().slice(p, p + img.data.length)) }, painted: v[0], band: [v[1], v[2]] };
+      } finally { e.p_free(p); e.p_free(o); }
+    },
     /** Ruled lines and list marks painted the paper's colour on a page set upright and cleaned up (p_clear_marks; to-do
      *  #18): what — bit 0 the lines (a table's grid, rules, underlines), bit 1 the marks (● ○ ■ □ ☐ ☑ … at a line's start
      *  before a gap wider than its word spaces), bit 2 count the columns of text; `lines` = pixels cleared (`inner`: of

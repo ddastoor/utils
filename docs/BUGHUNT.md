@@ -2711,3 +2711,61 @@ cannot. Three new suites; each fails on the build before its fixes.
   ANSI code page (sqlfmt's checker skipped: `PYTHONUTF8=1`). And Git for Windows had turned LF into CR LF in every
   fixture: `.gitattributes` (`* -text`) checks every file out as stored. All passed here after the fixes; the 15 suites
   run on Windows again (run 6).
+  (11) **A run that hangs shows nothing** (26 Nov 2026): run 6 never got past Chocolatey's GnuPG 2.5.21 installer (an
+  hour; the workflow installs no GnuPG now — the suite uses Git for Windows' gpg); run 7 printed its first line and then
+  nothing for 150 minutes, when GitHub stopped it — `tests/e2e.mjs` printed every result only at the very end, so one
+  suite that hung took all the others' results with it. Now each suite's start and result are printed as they happen,
+  and a suite still running after `E2E_SUITE_TIMEOUT` minutes (30) is reported as timed out, its pages closed, and not
+  run again; run 8 says which suite hangs.
+- **OCR and Photo Dictionary: documents with formatting read poorly, above all from a phone (26 Nov 2026; owner, to-do
+  #18: "works very poorly for a document that has formatting, rich text formatting like bullet points, indentation, etc.,
+  especially using the phone camera. Also improve the quality when the document has a watermark").** Measured on 150
+  photos — the 24 Kindle and newspaper photos and 126 photos of documents made for it (`node scripts/make-format-docs.mjs`:
+  a Google Docs checklist with check boxes and a table, a Word memo with nested bullets and numbered and lettered lists, a
+  form, a report, a two-column newsletter with a text box, a handout; each also with a watermark — CONFIDENTIAL, a red
+  DRAFT, a tiled name, a stamp — light and as strong as printers make them; photographed by `python3
+  scripts/make-doc-photos.py` as a phone's still, a video frame and a flat scan). Found:
+  - **The tabs never told Tesseract how to lay a page out** — Tesseract.js reads one block unless told (mode 6): straight
+    across a newsletter's two columns ("meaning helmsman or pilot. K8s as an Note. The TTS Handbook documents the") — and
+    the measuring script read every page in mode 3, which the tabs never did, so the earlier measurements were of another
+    layout. Now per reading: one block, or a page where the page has columns.
+  - **A white sheet on a light desk:** the Kindle finder took a part of the page for it (a column, the white space under a
+    table), and a tilted sheet on a smooth desk, which JPEG makes exactly flat in places (0.22 – 0.34), passed for a
+    screenshot and was read as it was. Every outline is checked across its edges now (`p_quad_steps`); where it is not a
+    page's on all four, the Doc Scanner's network is asked, its corners fitted to the photo's edges (`p_refine_quad`, a
+    corner may lie outside the photo: straightened with its corner inside, a page that runs off the photo came out
+    sheared); a screenshot's panel must stand square on.
+  - **The quick readings that set a page upright read its middle** — blank paper on many forms — and decided nothing: they
+    read the window with the most ink (`p_ink_window`).
+  - **Bullets read as letters and signs** ("e", "©", "«", "*", "o" at the start of 148 lines of one set) and **table
+    rules as | and _**: `p_clear_marks` paints the marks and the rules the paper's colour. Its first version took serifs
+    along a long word's baseline for rules (paper on both sides required), a form's label column for a column of text
+    (columns at least eighteen x-heights wide, the lines on their left reaching the gutter), the middle of a soft word and
+    a bold word's top and bottom for rules ("Department", "configuration", "comments" erased on a video frame of a form —
+    paper beside a rule from 2 px out, another run along it counts as ink), the word "a" at the start of a soft Kindle
+    line for a bullet (its hole closed by the blur; "a pod of dolphins" — a mark's gap must be wider than every word space
+    of its line), a comma hanging below the baseline for a mark at a line's start, and six justified lines for two columns.
+  - **A strong watermark's letters fenced in a white area that passed for the page**: a scanned memo was read from half way
+    down (97.7 % of its words → 46.7 %). An outline that leaves a fifth of the photo's letters outside is no page now
+    (`p_quad_text`; pages leave 0 – 8 %, such regions 25 – 73 %).
+  - **The network's corners a little outside the page** left a strip of the desk down its side, and Tesseract (one block)
+    dropped the form's title: strips along the edges are painted the paper's colour (`p_clear_border`).
+  - **One block can lose a whole line on a soft photo** (a table's row, a title) that its layout analysis reads: a page with
+    rules, marks or columns read below 85 % is read again the other way and the better reading kept (never a page of plain
+    text: it gained nothing there, and a phone pays seconds).
+  - **A strong watermark under a newsletter's text**: laid out as a page, Tesseract took the text under CONFIDENTIAL's big
+    letters for a picture and left a 50-word paragraph out. A second, lighter level of ink in broad strokes is taken out
+    now (`p_clear_wash`). Its first version found the "second level" on a Kindle photo whose e-ink text is grey with
+    nothing darker, and painted the whole page white — caught by the survey of every photo before measuring: the band
+    must be narrow, the text darker than it must be there, the strokes wider than any letter's (21 px at 3,000 px), the
+    page mostly light paper.
+  - **Painting the desk's strips on a Kindle's straightened screen** moved a soft photo's reading (93.3 → 90.8 %) for
+    nothing: strips are looked for only on pages the network found.
+  - The OCR suite's helper pressed Extract before a large photo had opened, so the previous picture was read and that
+    reading dropped when the new one came — the run waited for ever; it waits for the last result to clear now.
+  Result (each photo measured before and after; worse only beyond its own noise — the old code on the photo shifted by
+  2 px): Kindle and newspaper photos 65.4 → 68.0 % of the words read right, documents 71.6 → 87.1 %, harder layouts 63.3 →
+  75.3 %, watermarked 72.5 → 85.5 % (plain pages 73.7 → 85.8, light watermark 69.6 → 88.4, strong 74.4 → 82.3); stray
+  signs where bullets stood 148 → 73 lines; no photo worse. Tests: unit pageclean 50, readpage 22, pagecrop 47 (the real
+  watermark scan as a fixture, with the network), textturns 74; e2e OCR 83 (three photographed documents, the watermark
+  scan read whole), Photo Dictionary 121.

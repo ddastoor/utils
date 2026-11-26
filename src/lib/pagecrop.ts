@@ -138,9 +138,10 @@ export async function straighten(img: Img, ops: PageOps = workerOps): Promise<{ 
   const corners = o.corners.map((v) => v / k);
   const [w, h] = pageSize(corners);
   let page = await ops.warp(img, corners, w, h);
-  // a strip of the desk or of a screen's bezel left along an edge (an outline a little outside the page) painted the
-  // paper's colour: with a dark strip down its side Tesseract read a form without its title
-  if (ops.clearBorder) page = (await ops.clearBorder(page, BORDER)).img;
+  // the network's corners (a 224 px look) can lie a little outside the page: a strip of the desk left along an edge is
+  // painted the paper's colour — with a dark strip down its side Tesseract read a form without its title. The Kindle
+  // finder's outline follows the page's own edge (painting a Kindle's thin bezel line only moved a soft photo's reading)
+  if (ops.clearBorder && o.by === 'network') page = (await ops.clearBorder(page, BORDER)).img;
   return { img: page, found: true, corners, by: o.by };
 }
 /** How far in from each edge of the straightened page a dark strip is looked for (of its size). */

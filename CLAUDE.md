@@ -2201,6 +2201,73 @@ four orientations); e2e: the whole Kindle photo turned 30° and −40° reads 95
 (no edge, words cut at the sides) turned 20° and −25° 90 %+ of the words of the close-up as it is, the two soft upright
 photos the first version spoiled (`kindle-blur`, `kindle-comfortaa`) read as they stand — and the Photo Dictionary gives
 90 %+ of the same uncommon words (`tests/e2e/_tilt.mjs`).
+**Documents — one reading path for both tabs (to-do #18; owner, 26 Nov 2026: "can u make the ocr app's ocr capability the
+same quality as the Photo Dictionary's … works very poorly for a document that has formatting, rich text formatting like
+bullet points, indentation, etc., especially using the phone camera. Also improve the quality when the document has a
+watermark"; "no need to keep bullets and indentation in the text;.. but the ocr shold not get confused by them"; "One
+shared reading path is fine.. but make sure no functionality is compramised.. the high quality of the ocr is paramount
+!!!"):** both tabs read through `readPage` (`src/lib/readpage.ts`), and each asks for its own steps (`ReadOptions`) — the
+OCR tab: its clean-up switch, light text on a dark ground turned over, the turn buttons, a poor reading tried the other
+ways round, four languages; the Photo Dictionary: "Photo of a screen". The engines are passed in (`ReadEngines`), so
+`scripts/measure-ocr.mjs` (`--prep read`) and the unit suites run exactly the tabs' code. In order:
+1. the picture turned as the reader turned it; at most 3,000 px;
+2. **the page** (clean-up on): the Kindle finder's outline (`p_page_quad`) is checked edge by edge — a page is lighter
+   than what lies around it (`p_quad_steps`: a step of 20 and more; an edge along the photo's border counts); with fewer
+   than four such edges (a white sheet on a light desk) the Doc Scanner's network is asked too (DocCornerNet on ONNX
+   Runtime, src/lib/pagefind.ts — fetched only then), its 224 px look fitted to the photo's edges (`p_refine_quad`; a
+   corner may lie outside the photo where the page runs off it), and the outline with more real edges is taken. **An
+   outline that leaves a fifth of the photo's letters outside is no page** (`p_quad_text`: on a scan with a strong
+   CONFIDENTIAL the white area its letters fence in passed for the page; pages leave 0 – 8 % outside, such regions 25 –
+   73 %). A flat picture's outline square on is a screenshot's panel (left alone). Straightened; a strip of the desk or
+   of a screen's bezel along its edges painted the paper's colour (`p_clear_border`: with a dark strip down its side
+   Tesseract dropped a form's title);
+3. upright and level (`src/lib/upright.ts`, above); its quick readings look at the window with the most ink
+   (`p_ink_window` — the middle of a form is often blank paper) and read one block;
+4. the clean-up: (OCR tab) a dark picture turned over; ("Photo of a screen") the moiré blurred; the document clean-up;
+   **a watermark taken out** (`p_clear_wash`, below); **ruled lines and list marks cleared, the columns counted**
+   (`p_clear_marks`, own C): a mark is the first thing on its
+   line, followed by a gap wider than every word space of that line — ● ○ ■ ▪ ◆ ► □ ☐ ☑ ☒, Word's "o" after a tab — and
+   what only looks like one stays (the Spanish "o" after a word space, "i.", a colon, the dot of an i, a bullet between
+   two words, a degree sign; and the word "a" at the start of a Kindle line, which a soft photo makes a solid blob — the
+   first version cleared it); a rule is a long thin run with paper beside it from 2 px out (a table's grid, a signature
+   line — not the middle of a soft word, not a bold word's top and bottom: the first version erased "Department" and
+   "configuration" on a video frame of a form);
+5. read as one block (Tesseract's mode 6, what Tesseract.js does unless told), or **as a page** (mode 3: its layout
+   analysis reads each column on its own) when the page has two columns or more — gutters on a page of at least twelve
+   bands of text, columns at least eighteen x-heights wide, the lines on the left reaching the gutter (a form's labels and
+   a table's cells are no columns). A page with rules, list marks or columns read less surely than 85 % is **read again
+   the other way** and the reading with more words surely read kept (`score`, by 3 %);
+6. a page found that gave fewer than 25 words: the whole photo read too, the better kept; (OCR tab) a reading below
+   60 % tried the other ways round.
+**Watermarks:** one as strong as printers make them (CONFIDENTIAL in grey, a red DRAFT, a blue stamp) is a second,
+lighter level of ink under the text — laid out as a page, Tesseract took the text under CONFIDENTIAL's big letters for a
+picture and left a paragraph out. When the ink of a light page has such a level of its own (a narrow peak in the greys,
+with darker text below it), its broad strokes — wider than any letter's — are painted the paper's colour
+(`p_clear_wash`); the text over it is darker and stays. Never on a page whose text is the grey itself (a Kindle's — the
+first version painted a whole Kindle page white) or on a dark page. A light watermark needed nothing of its own: the
+document clean-up and the page checks above read it as well as a plain page. Measured on the same six pages plain, with
+a light watermark and with a strong one (each a phone's still, a video frame and a scan): plain 73.7 → 85.8 %, light
+watermark 69.6 → 88.4 %, strong 74.4 → 82.3 % (a newsletter under a strong CONFIDENTIAL 50.3 → 90.6 %).
+**Measured** (`node scripts/measure-ocr.mjs DIR --prep read` against the code before #18, checked out at d456729 and run
+as the tabs ran it — `--prep page+level --psm 6`): the Kindle and newspaper photos 65.4 → 68.0 % of their words read right;
+36 photos of the documents of `scripts/make-format-docs.mjs` (a phone's still, a video frame, a scan each) 71.6 → 87.1 %;
+the same pages laid out harder 63.3 → 75.3 %; with watermarks (54) 72.5 → 85.5 %; lines that begin with a stray sign (a
+bullet read as a letter) 148 → 73, 136 → 65, 225 → 116. **No photo reads worse:** a photo counts as worse only beyond
+its own noise — the old code on the same photo shifted by 2 px moves up to 9 points on soft document photos (a form's
+video frame 86.3 → 77.5 %), Kindle photos hardly at all. Time (Node, a quiet 4-core machine, 12 photos): 6.6 → 7.2 s a
+photo, the Kindle photos as before. **PaddleOCR** (PP-OCRv6, RapidOCR 3.10, on the photos as they are) read less than the
+new path on every set — Kindle 67.4, documents 81.6, harder 72.7, watermarks 81.6 % — but more on soft video frames
+(watermarked frames 68.5 against 61.0 %): Tesseract stays; a PaddleOCR fallback for soft photos (about 31 MB of models)
+is the owner's decision (the size check). The measuring script used to read every page in mode 3,
+which the tabs never did (Tesseract.js reads mode 6 unless told): the earlier numbers of this section were of mode 3.
+Not measured: Tesseract's float "best" models (the tabs use best_int, the same network in 8 bits) — the host refused
+the download here. Unit `pageclean.test.mjs` 50 (`tests/fixtures/ocr/`: marks.jpg — every kind of mark and its
+look-alikes, a table; columns.jpg; soft.jpg — blurred justified lines that begin with "a"; the watermark taken out, grey
+text and dark pages left alone), `readpage.test.mjs` 22 (a stand-in reader: every step of both tabs), `pagecrop.test.mjs`
+47 (with the real watermark scan
+`doc-memo-watermark-scan.jpg` and the network); e2e OCR and Photo Dictionary: three photographed documents
+(`doc-checklist-draft-still`, `doc-newsletter-frame`, `doc-memo-still`: 85 – 92 %+ of their words in reading order, no
+mark read as a letter, no rule as |) and the watermark scan read whole (95 %+).
 
 ### Camera in every tab that takes a picture (owner, 20 Nov 2026)
 Owner: "In all apps that offer to upload an image, also add the option of taking a photo if it's a phone app, and take
@@ -2647,7 +2714,7 @@ stay **public** (the source of the deployed site is then available to every user
 |---|---|---|---|
 | libsodium 1.0.20 + own MD5/SHA-1/SHA-3/CRC-32 + OpenBSD bcrypt + own CSPRNG helpers (shuffle, sampling, UUID v4/v7 — v7 values always increase: RFC 9562 §6.2 method 2, a random step inside one millisecond, clock steps back of up to 10 s tolerated) + USODIUM1 header | C | **us** (`wasm/crypto`) | rng, picker, teams (draws without repeats, shuffles — what libsodium.js lacks: `docs/WASM-AUDIT.md` 155), uuid, mock data, line shuffle; the USODIUM1 header for sodium and sharelink (beside libsodium.js); its hashes (`u_hash_*`) are no longer called (hash-wasm since Nov 2026) |
 | **libsodium.js** — `libsodium-wrappers-sumo` 0.8.4 (libsodium **1.0.22**; the sumo build: the standard one has no Argon2) | C | the libsodium project (official WebAssembly build, embedded in the module) — binding `src/wasm/libsodium.ts`, format `src/lib/usodium.ts`, in `src/workers/crypto.worker.ts` | sodium, sharelink: Argon2id + XChaCha20-Poly1305 secretstream (`docs/WASM-AUDIT.md`, tab 101); password, passphrase, dice, coin: randombytes_uniform (tabs 104, 105, 155) |
-| imgproc (adjustments, resize, OpenCV's area resize (`p_resize_area`, equal to cv2's INTER_AREA), lossless orient/crop, filters, matting, warp + homography, doc enhance, the page in a photo (`p_page_quad`), which way up the text stands and how its lines slant (`p_text_turns`: the letters; `p_text_lines`: projection profiles)) | C (own code) | **us** (`wasm/imgproc`) | image tools, scanner, passport, cartoon, ocr and photodict (pages found, set upright and level) |
+| imgproc (adjustments, resize, OpenCV's area resize (`p_resize_area`, equal to cv2's INTER_AREA), lossless orient/crop, filters, matting, warp + homography, doc enhance, the page in a photo (`p_page_quad`) and whether an outline is a page's (`p_quad_steps`: the step across each edge; `p_quad_text`: the letters it leaves outside), an outline fitted to the photo's edges (`p_refine_quad`), strips of the desk along a straightened page painted (`p_clear_border`), which way up the text stands and how its lines slant (`p_text_turns`: the letters; `p_text_lines`: projection profiles), where the text is (`p_ink_window`), a watermark's broad strokes taken out (`p_clear_wash`), ruled lines and list marks cleared and the columns counted (`p_clear_marks`)) | C (own code) | **us** (`wasm/imgproc`) | image tools, scanner, passport, cartoon, ocr and photodict (pages found, set upright and level, rules and list marks cleared — to-do #18) |
 | metacore (EXIF → JSON, lossless metadata strip JPEG/PNG/WebP, JPEG DPI, image sniffing) | C (own code) | **us** (`wasm/metacore`) | exif, image loading, passport/formphoto DPI |
 | BusyBox 1.38.0 (130 applets) + compat shims | C | **us** (`wasm/busybox`) | terminal, bc console |
 | jq 1.8.2 (+ oniguruma) | C | **us** (`wasm/jq`) | jq |
@@ -2670,7 +2737,7 @@ stay **public** (the source of the deployed site is then available to every user
 | MuPDF 1.28 | C | Artifex (official `mupdf` npm) | all PDF tools, PDF → EPUB |
 | ExifTool 13.42 on zeroperl (Perl 5 compiled to WebAssembly with ExifTool's library inside) | Perl / C | Phil Harvey (ExifTool), uswriting / 6over3 (`@uswriting/exiftool` 1.0.9, `@6over3/zeroperl-ts` 1.0.10) — run in `src/workers/exiftool.worker.ts` | exif (replaced metacore's reader and stripper in Nov 2026: `docs/WASM-AUDIT.md`, tab 120); regex (the Perl flavour, the same module: `src/lib/regex/perl.ts`) |
 | hash-wasm 4.13.0 (hand-tuned C → wasm, one small binary per algorithm, embedded in the package; streaming; HMAC over any of its hashes; Argon2, bcrypt, scrypt, PBKDF2) | C | Dani Biró (`hash-wasm` npm, ~10 M downloads a month) — wrappers `src/lib/hmac.ts`, `src/lib/totp.ts`, `src/lib/pwhash.ts`, `src/lib/hashes.ts` (in `src/workers/hash.worker.ts`); only the algorithms a tab uses are bundled into its chunk, loaded with the tab's first result | hash (23 algorithms), hmac (all of it), totp (the HMAC), pwhash (Argon2id / i / d, bcrypt, scrypt, PBKDF2) — replaced RustCrypto builds and crypto.wasm's hashes of ours in Nov 2026 (`docs/WASM-AUDIT.md`) |
-| ONNX Runtime Web 1.31 (CPU/WebAssembly, SIMD) | C++ | Microsoft (official `onnxruntime-web` wasm build) | tts (Kokoro, Piper); scanner (DocCornerNet LEAN, scanic-ml 0.2.0: the page's corners — `docs/WASM-AUDIT.md`, tab 121) |
+| ONNX Runtime Web 1.31 (CPU/WebAssembly, SIMD) | C++ | Microsoft (official `onnxruntime-web` wasm build) | tts (Kokoro, Piper); scanner (DocCornerNet LEAN, scanic-ml 0.2.0: the page's corners — `docs/WASM-AUDIT.md`, tab 121); ocr and photodict (the same network, asked where the Kindle finder's outline is not a page's — to-do #18) |
 | SQLite 3.54 | C | SQLite project (official `@sqlite.org/sqlite-wasm`), run in `src/workers/sqlite.worker.ts` (terminated on leave) | sqlite |
 | PCRE2 (pcre2-wasm 10.49.3: PCRE2 compiled by Emscripten, the WebAssembly inside the package) | C | gudoshnikovn (`pcre2-wasm`, MIT; PCRE2 BSD-3 with the PCRE2 exception) — in `src/workers/regex.worker.ts` | regex (the PCRE2 flavour: `docs/WASM-AUDIT.md`, tab 178) |
 | Oniguruma (vscode-oniguruma 2.0.1) | C | Microsoft (`vscode-oniguruma`, MIT; Oniguruma BSD-2) — the build VS Code and Shiki run | regex (the Ruby flavour, with Ruby's rules beside it in `src/lib/regex/ruby.ts`) |
@@ -2834,7 +2901,9 @@ Owner: "make the full site faster, more responsive and memory efficient — load
    and worker). Adding to that list needs a reason in the test.
    Examples of deferral: bc console starts BusyBox on its first Enter; Image Editor instantiates imgproc with
    the first photo; CSV/Excel loads sheet.wasm with the first file; Photo Dictionary loads the word list and
-   Literata while OCR runs; PDF tabs load MuPDF when a PDF is chosen.
+   Literata while OCR runs; PDF tabs load MuPDF when a PDF is chosen; the OCR tab and the Photo Dictionary fetch the Doc
+   Scanner's page network (its worker, ONNX Runtime and DocCornerNet) only for a photo whose page the Kindle finder
+   cannot outline (to-do #18).
 3. **Release on leave** (`src/lifecycle.ts`): engine loaders are made with `lazyEngine(key, load)` (one promise for
    every caller, forgotten when the tab is left — **and when the load fails, so that the next call tries again**;
    `.reset()` after a trap) or register `onLeave(key, release)` themselves; workers are created

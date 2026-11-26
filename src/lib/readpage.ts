@@ -6,7 +6,7 @@
 //   found and straightened (src/lib/pagecrop.ts: the Kindle finder, the Doc Scanner's network where its outline is not a
 //   page's) → the text set upright and level (src/lib/upright.ts; not when turned by hand) → with the clean-up: (OCR tab)
 //   light text on a dark ground turned dark on light, (Photo Dictionary) a screen's moiré blurred (Photo Dictionary: "Photo of a screen"), the document
-//   clean-up (imgproc docEnhance), ruled lines and list marks cleared (p_clear_marks: the owner — "no need to keep
+//   clean-up (imgproc docEnhance), a watermark taken out (p_clear_wash), ruled lines and list marks cleared (p_clear_marks: the owner — "no need to keep
 //   bullets and indentation in the text;.. but the ocr should not get confused by them") → read → a page found that
 //   gave fewer than 25 words: the whole photo read too, the better kept → (OCR tab) a poor reading tried the three other
 //   ways round on a smaller copy, a way that reads clearly better taken.
@@ -24,6 +24,8 @@ export interface ReadOps extends PageOps, TurnOps {
   blur(img: Img, sigma: number): Img | Promise<Img>;
   docEnhance(img: Img, mode: 0 | 1 | 2): Img | Promise<Img>;
   clearMarks(img: Img, what: number): { img: Img; lines: number; inner: number; marks: number; columns: number } | Promise<{ img: Img; lines: number; inner: number; marks: number; columns: number }>;
+  /** A watermark washed over the page taken out (p_clear_wash): its broad strokes of a second, lighter level of ink. */
+  clearWash?(img: Img): { img: Img; painted: number } | Promise<{ img: Img; painted: number }>;
 }
 export interface ReadEngines {
   ops: ReadOps;
@@ -37,7 +39,7 @@ export const browserEngines: ReadEngines = {
     // the Doc Scanner's network: its worker and ONNX Runtime are fetched the first time a photo needs them
     docCorners: async (small: Img) => (await import('./pagefind-client')).findPage((await imgproc('resizeArea', small, 224, 224)).data),
     textTurns: op('textTurns'), textLines: op('textLines'), orient: op('orient'), rotate: op('rotate'), crop: op('crop'), inkWindow: op('inkWindow'),
-    histogram: op('histogram'), invert: op('invert'), blur: op('blur'), docEnhance: op('docEnhance'), clearMarks: op('clearMarks'),
+    histogram: op('histogram'), invert: op('invert'), blur: op('blur'), docEnhance: op('docEnhance'), clearMarks: op('clearMarks'), clearWash: op('clearWash'),
   } as ReadOps,
   read: (img, lang, onProgress, layout) => recognize(new ImageData(new Uint8ClampedArray(img.data), img.width, img.height), lang, onProgress, layout),
 };
@@ -92,8 +94,9 @@ export interface PageReading {
   /** the poor reading's retry: the quarter turns to the right (from the photo as given) that read clearly better; null:
    *  not turned */
   turned: number | null;
-  /** what the clean-up cleared: pixels of ruled lines (`inner`: of those inside the page, not along its edges), list marks */
-  cleared: { lines: number; inner: number; marks: number };
+  /** what the clean-up cleared: pixels of ruled lines (`inner`: of those inside the page, not along its edges), list marks,
+   *  pixels of a watermark */
+  cleared: { lines: number; inner: number; marks: number; wash: number };
   /** the columns of text found (2 and more: read as a page) */
   columns: number;
   /** how the reading kept was laid out */
@@ -124,14 +127,18 @@ export async function readPage(photo: Img, o: ReadOptions, eng: ReadEngines = br
   const cap = async (im: Img, L: number) => { const s = Math.max(im.width, im.height); return s > L ? ops.resize(im, Math.round((im.width * L) / s), Math.round((im.height * L) / s)) : im; };
   /** the clean-up for reading; `final`: the picture read in full — ruled lines and list marks cleared too */
   const enhance = async (im: Img, final: boolean) => {
-    if (!o.clean) return { img: im, lines: 0, inner: 0, marks: 0, columns: 1 };
+    if (!o.clean) return { img: im, lines: 0, inner: 0, marks: 0, wash: 0, columns: 1 };
     let x = im;
     if (o.invertDark && isDark((await ops.histogram(x)).subarray(768, 1024))) x = await ops.invert(x);
     if (o.screen) x = await ops.blur(x, 1.1);
     x = await ops.docEnhance(x, 1);
-    if (!final) return { img: x, lines: 0, inner: 0, marks: 0, columns: 1 };
+    if (!final) return { img: x, lines: 0, inner: 0, marks: 0, wash: 0, columns: 1 };
+    // a watermark washed over the page (a second, lighter level of ink in broad strokes): laid out as a page, Tesseract
+    // took the text under CONFIDENTIAL's big letters for a picture and left a paragraph out
+    const wsh = ops.clearWash ? await ops.clearWash(x) : null;
+    if (wsh) x = wsh.img;
     const c = await ops.clearMarks(x, 7); // the lines, the marks, and the columns counted
-    return { img: c.img, lines: c.lines, inner: c.inner, marks: c.marks, columns: c.columns };
+    return { img: c.img, lines: c.lines, inner: c.inner, marks: c.marks, wash: wsh?.painted ?? 0, columns: c.columns };
   };
   /** a quick reading, to decide which way up the text stands (the clean-up without clearing marks; no progress shown) */
   const glance = async (im: Img) => eng.read((await enhance(im, false)).img, o.lang, undefined, GLANCE_LAYOUT);
@@ -148,7 +155,7 @@ export async function readPage(photo: Img, o: ReadOptions, eng: ReadEngines = br
     }
     const shown = page || up.turns || up.slant ? img : null;
     const e = await enhance(img, true);
-    return { img: e.img, shown, page, by, up, cleared: { lines: e.lines, inner: e.inner, marks: e.marks }, columns: e.columns };
+    return { img: e.img, shown, page, by, up, cleared: { lines: e.lines, inner: e.inner, marks: e.marks, wash: e.wash }, columns: e.columns };
   };
   const t0 = ((o.turns ?? 0) % 4 + 4) % 4;
   let p = await prepare(photo, t0, true, o.auto);
