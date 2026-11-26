@@ -136,7 +136,7 @@ export default async ({ base, page: newPage, ok, info, devices }) => {
     const bc = p.getByLabel('bc input');
     await bc.fill('scale=20; 4*a(1)'); await bc.press('Enter');
     await p.locator('.bc-a').first().waitFor({ timeout: 30000 });
-    ok((await p.locator('.bc-a').first().textContent()).startsWith('3.14159265358979323'), 'bc console answers after loading on first use');
+    ok((await p.locator('.bc-a .bc-v').first().textContent()).startsWith('3.14159265358979323'), 'bc console answers after loading on first use');
     ok((await live()).workers === 1, 'bc worker is running');
     await p.goto(`${base}#/`); await p.waitForTimeout(200);
     const l = await live();
@@ -144,7 +144,7 @@ export default async ({ base, page: newPage, ok, info, devices }) => {
     await p.goto(`${base}#/calc`); await p.waitForTimeout(300);
     await bc.fill('2^100'); await bc.press('Enter');
     await p.locator('.bc-a').first().waitFor({ timeout: 30000 });
-    ok((await p.locator('.bc-a').first().textContent()).trim() === '1267650600228229401496703205376', 'bc works again after coming back');
+    ok((await p.locator('.bc-a .bc-v').first().textContent()).trim() === '1267650600228229401496703205376' && (await p.locator('.bc-a .bc-var').first().textContent()) === '$A', 'bc works again after coming back (and its names start again at $A)');
 
     // a wasm engine instance (imgproc) is created with the first photo and dropped on leaving
     await p.goto(`${base}#/image`); await p.waitForTimeout(300);

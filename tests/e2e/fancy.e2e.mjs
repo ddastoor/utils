@@ -23,7 +23,7 @@ export default async ({ base, page: newPage, ok, devices }) => {
   // ---- as the tab opens
   let r = await rows();
   ok(Object.keys(r).join('|') === NAMES.join('|'), `eighteen styles in their order (${Object.keys(r).length})`);
-  ok(r.Bold === '𝐒𝐮𝐩𝐞𝐫𝐓𝐨𝐨𝐥𝐬' && r['Upside down'] === 'slooꓕɹǝdnS' && r.Squared === '🅂🅄🄿🄴🅁🅃🄾🄾🄻🅂', `the sample is styled at once (${r.Bold}, ${r['Upside down']})`);
+  ok(r.Bold === '𝐒𝐮𝐩𝐞𝐫𝐔𝐭𝐢𝐥𝐬' && r['Upside down'] === 'slᴉʇՈɹǝdnS' && r.Squared === '🅂🅄🄿🄴🅁🅄🅃🄸🄻🅂', `the sample is styled at once (${r.Bold}, ${r['Upside down']})`);
   ok(!fetched.some((u) => /\.wasm|\/vendor\/|\/models\/|\/data\//.test(u)), 'nothing is fetched as the tab opens: the styles are tables');
   ok(await ta.evaluate((e) => e.tagName === 'TEXTAREA' && e.rows >= 2), 'the text goes into a box of several lines (it was a one-line field)');
 

@@ -17,7 +17,8 @@ export default async ({ base, page: newPage, ok, info, download, devices, releas
   page.on('request', (r) => requests.push(r.url()));
   await page.goto(base + '#/scanner');
   await page.waitForSelector('input[type=file]', { state: 'attached' });
-  ok(!requests.some((u) => /doccornernet|ort-wasm|pagefind/.test(u)), 'nothing of the page finder is fetched before a photo is chosen');
+  // (the corner geometry shared with the OCR's page crop is a small chunk named after src/lib/pagefind.ts — not the finder)
+  ok(!requests.some((u) => /doccornernet|ort-wasm|pagefind\.worker/.test(u)), `nothing of the page finder (its worker, ONNX Runtime, the model) is fetched before a photo is chosen (${requests.filter((u) => /doccornernet|ort-wasm|pagefind\.worker/.test(u)).join(', ')})`);
   const handles = () => page.locator('.quad-h').evaluateAll((els) => els.map((e) => [parseFloat(e.style.left) / 100, parseFloat(e.style.top) / 100]));
   const cornerErr = (got, truth, aspect) => Math.max(...got.map((p, i) => Math.hypot(p[0] - truth[i * 2], (p[1] - truth[i * 2 + 1]) * aspect)));
   const thumbs = (n) => page.waitForFunction((k) => document.querySelectorAll('.scan-thumb').length === k && [...document.querySelectorAll('.scan-thumb')].every((b) => b.querySelector('img')), n, { timeout: 60000 });

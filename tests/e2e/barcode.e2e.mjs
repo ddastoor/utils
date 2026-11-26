@@ -18,7 +18,7 @@ export default async ({ base, page: newPage, ok, download, devices }) => {
   const val = page.locator('input[aria-label="Value"]');
   await page.locator('.code-preview svg').waitFor();
   const FMT = [['EAN13', '890123456789', /EAN-?13/i, '890123456789' + check('890123456789')], ['EAN8', '9031101', /EAN-?8/i, '9031101' + check('9031101')], ['UPCA', '03600029145', /UPC-?A|EAN-?13/i, '036000291452'],
-    ['UPCE', '0425261', /UPC-?E/i, '0042100005264'], ['Code128', 'SUPERTOOLS-2026', /Code ?128/i, 'SUPERTOOLS-2026'], ['Code39', 'ABC-1234', /Code ?39/i, 'ABC-1234'], ['Code93', 'CODE93', /Code ?93/i, 'CODE93'],
+    ['UPCE', '0425261', /UPC-?E/i, '0042100005264'], ['Code128', 'SUPERUTILS-2026', /Code ?128/i, 'SUPERUTILS-2026'], ['Code39', 'ABC-1234', /Code ?39/i, 'ABC-1234'], ['Code93', 'CODE93', /Code ?93/i, 'CODE93'],
     ['ITF', '12345678', /ITF/i, '12345678'], ['Codabar', 'A12345B', /Codabar/i, null], ['DataMatrix', 'Hello DataMatrix', /Data ?Matrix/i, 'Hello DataMatrix'], ['PDF417', 'PDF417 example', /PDF ?417/i, 'PDF417 example'], ['Aztec', 'Aztec example', /Aztec/i, 'Aztec example']];
   for (const [fmt, def, rx, want] of FMT) {
     await page.getByLabel('Format').selectOption(fmt);
