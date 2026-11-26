@@ -225,7 +225,7 @@ export function pageGeom(page: MPage): { W: number; H: number; rot: number; m: [
 // Helvetica is added with WinAnsiEncoding (Windows-1252): Latin-1 plus these characters in 0x80–0x9F
 const CP1252: Record<number, number> = { 0x20ac: 0x80, 0x201a: 0x82, 0x0192: 0x83, 0x201e: 0x84, 0x2026: 0x85, 0x2020: 0x86, 0x2021: 0x87, 0x02c6: 0x88, 0x2030: 0x89, 0x0160: 0x8a, 0x2039: 0x8b, 0x0152: 0x8c, 0x017d: 0x8e,
   0x2018: 0x91, 0x2019: 0x92, 0x201c: 0x93, 0x201d: 0x94, 0x2022: 0x95, 0x2013: 0x96, 0x2014: 0x97, 0x02dc: 0x98, 0x2122: 0x99, 0x0161: 0x9a, 0x203a: 0x9b, 0x0153: 0x9c, 0x017e: 0x9e, 0x0178: 0x9f };
-const winAnsi = (s: string) => Uint8Array.from(s, (c) => { const u = c.charCodeAt(0); return u < 0x80 || (u >= 0xa0 && u <= 0xff) ? u : CP1252[u] ?? 0x3f; });
+export const winAnsi = (s: string) => Uint8Array.from(s, (c) => { const u = c.charCodeAt(0); return u < 0x80 || (u >= 0xa0 && u <= 0xff) ? u : CP1252[u] ?? 0x3f; });
 export const pdfString = (s: string) => `(${s.replace(/[\\()]/g, (c) => `\\${c}`).replace(/[\r\n]/g, ' ')})`;
 /** Ticks and crosses, which WinAnsi lacks, from ZapfDingbats (a standard PDF font, in every viewer): its codes. */
 export const TICKS: Record<string, string> = { '✓': '3', '✔': '4', '✗': '7', '✘': '8' };
@@ -248,7 +248,7 @@ export const isLatin1 = (s: string) => [...s].every((c) => { const u = c.codePoi
 /** Draw extra content on a page in its visual coordinate system. `ops` gets the visual size and returns PDF content
  *  operators; resources: Helvetica as /STF (when font) and an opacity state /STGS (when opacity < 1), images as named. */
 const TICK_CMAP = '/CIDInit /ProcSet findresource begin 12 dict begin begincmap /CIDSystemInfo << /Registry (Adobe) /Ordering (UCS) /Supplement 0 >> def /CMapName /Adobe-Identity-UCS def /CMapType 2 def 1 begincodespacerange <00> <FF> endcodespacerange 4 beginbfchar <33> <2713> <34> <2714> <37> <2717> <38> <2718> endbfchar endcmap CMapName currentdict /CMap defineresource pop end end';
-export async function stampPage(doc: MDoc, index: number, ops: (W: number, H: number) => string, o: { font?: boolean; ticks?: boolean; opacity?: number; images?: Record<string, any> } = {}) {
+export async function stampPage(doc: MDoc, index: number, ops: (W: number, H: number) => string, o: { font?: boolean | string; ticks?: boolean; opacity?: number; images?: Record<string, any> } = {}) {
   const m = await mupdf();
   const page = doc.loadPage(index), obj = page.getObject(), g = pageGeom(page);
   // own Resources dictionary (copy an inherited one so other pages are not changed)
@@ -259,7 +259,8 @@ export async function stampPage(doc: MDoc, index: number, ops: (W: number, H: nu
     obj.put('Resources', copy); res = obj.get('Resources');
   }
   const sub = (key: string) => { let d = res.get(key); if (!d.isDictionary()) { res.put(key, doc.newDictionary()); d = res.get(key); } return d; };
-  if (o.font) sub('Font').put('STF', doc.addSimpleFont(new m.Font('Helvetica')));
+  // /STF: Helvetica, or another of PDF's 14 standard fonts by name (Times-Roman, Courier, Helvetica-Bold …)
+  if (o.font) sub('Font').put('STF', doc.addSimpleFont(new m.Font(typeof o.font === 'string' ? o.font : 'Helvetica')));
   // ZapfDingbats with a ToUnicode map, so that a copied or searched tick is ✓ (without it MuPDF reads U+0013)
   if (o.ticks) sub('Font').put('STZ', doc.addObject({ Type: 'Font', Subtype: 'Type1', BaseFont: 'ZapfDingbats', ToUnicode: doc.addStream(TICK_CMAP, {}) }));
   if (o.opacity !== undefined && o.opacity < 1) sub('ExtGState').put('STGS', doc.addObject({ Type: 'ExtGState', ca: o.opacity, CA: o.opacity }));
@@ -276,11 +277,13 @@ export async function stampPage(doc: MDoc, index: number, ops: (W: number, H: nu
 }
 
 let helv: any = null;
-/** Width of `text` in Helvetica at `size` points. */
-export async function textWidth(text: string, size: number) {
+/** Width of `text` in Helvetica (or another standard font, by name) at `size` points. */
+const stdFonts = new Map<string, any>();
+export async function textWidth(text: string, size: number, font = 'Helvetica') {
   const m = await mupdf();
-  helv ||= new m.Font('Helvetica');
-  let w = 0; for (const ch of text) w += helv.advanceGlyph(helv.encodeCharacter(ch.codePointAt(0)!), 0);
+  if (font === 'Helvetica') helv ||= new m.Font('Helvetica');
+  const f = font === 'Helvetica' ? helv : stdFonts.get(font) ?? (stdFonts.set(font, new m.Font(font)), stdFonts.get(font));
+  let w = 0; for (const ch of text) w += f.advanceGlyph(f.encodeCharacter(ch.codePointAt(0)!), 0);
   return w * size;
 }
 

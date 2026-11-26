@@ -44,7 +44,7 @@ export default async ({ base, page: newPage, ok, download, devices, released }) 
 
   // logo watermark (astronaut photo as the "logo"), PNG output
   await page.getByRole('radio', { name: 'Logo' }).click();
-  await page.locator('input[type=file]').nth(1).setInputFiles(F('astronaut.png'));
+  await page.locator('.card', { hasText: 'Choose a logo' }).locator('input[type=file]').setInputFiles(F('astronaut.png'));
   await page.getByRole('radio', { name: '↘' }).click();
   await page.locator('.slider', { hasText: 'Size' }).locator('input').fill('10');
   await page.locator('.slider', { hasText: 'Opacity' }).locator('input').fill('100');
@@ -56,7 +56,7 @@ export default async ({ base, page: newPage, ok, download, devices, released }) 
   const [lbr, ltl] = await regionMeans(page, lp, [[0.7, 0.7, 0.95, 0.95], TL]);
   ok(Math.abs(lum(lbr) - lum(origBR)) > 8 && Math.abs(lum(ltl) - lum(origTL)) < 3, 'logo drawn bottom-right only');
   // a logo that cannot be opened is said with its name
-  await page.locator('input[type=file]').nth(1).setInputFiles({ name: 'broken-logo.png', mimeType: 'image/png', buffer: Buffer.from('not a picture') });
+  await page.locator('.card', { hasText: 'Choose a logo' }).locator('input[type=file]').setInputFiles({ name: 'broken-logo.png', mimeType: 'image/png', buffer: Buffer.from('not a picture') });
   ok(await page.locator('.toast', { hasText: 'broken-logo.png' }).first().waitFor({ timeout: 8000 }).then(() => true, () => false), 'a logo that cannot be opened: said with its name');
 
   // empty text is refused

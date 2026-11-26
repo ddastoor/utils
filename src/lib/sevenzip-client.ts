@@ -21,7 +21,7 @@ function w() {
 }
 
 /** An archive (zip or 7z) of the files, each under its path. */
-export function createArchive(files: Array<{ path: string; file: File }>, o: { format: 'zip' | '7z'; level: number; password: string; encryptNames: boolean }, onProgress?: (pct: number) => void): Promise<Uint8Array> {
+export function createArchive(files: Array<{ path: string; file: File }>, o: { format: 'zip' | '7z'; level: number; password: string; encryptNames: boolean; exact?: boolean }, onProgress?: (pct: number) => void): Promise<Uint8Array> {
   const wk = w(), id = ++seq;
   return new Promise((resolve, reject) => { pending.set(id, { resolve, reject, onProgress }); wk.postMessage({ id, op: 'create', files, ...o }); });
 }

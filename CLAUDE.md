@@ -872,8 +872,50 @@ and animals would need another model (docs/WASM-AUDIT.md, 114).
   of your own"; Save saves what is shown. e2e: a group photo of six faces, black bars — the saved file's pixels at each
   face (hidden or the photo's own) with the switch on and off, two taps and one taken back, Undo and Ctrl+Z, all and
   none, Undo to the beginning; the switch kept for the portrait and undone there; phone touch targets.
-- `watermark` (e2e 18): the preview is the first photo that opens; "Clear photos"; empty text refused; photos that
+- `watermark` (e2e 19): the preview is the first photo that opens; "Clear photos"; empty text refused; photos that
   fail are listed under the results; the saved photos' logo resized with @jsquash/resize.
+  **The diagonal, and PDFs and Word documents (to-do #17; owner, 26 Nov 2026: "a watermark-style option; the watermark should
+  be from the bottom left to the top right, diagonally right across the picture … I should be able to upload a PDF or a Word
+  document, and the style of the watermark chosen should be applied to every page of this PDF or Word document"):**
+  - **"Diagonal"**, a position beside the nine and "Tiled": one mark from the bottom left to the top right, turned by the
+    picture's (or page's) own diagonal (atan(height ÷ width) — steeper on a tall photo), centred, as large as the diagonal
+    holds inside the margin (the glyphs' own box, turned, touches it on the side that limits it); "Length along the
+    diagonal" (20 – 100 %) takes the Size slider's place. Text or logo. The geometry of every document mark is
+    `src/lib/wmlayout.ts` (`placeMarks`: the nine positions from the edges, the tiles, the diagonal — sizes a share of the
+    page's shorter side, as on a photo; unit `wmlayout` 49).
+  - **"Add PDFs or Word documents"** beside "Add photos": every page gets the mark as chosen, each page by its own shape
+    (/Rotate and size); the preview shows the first document's first page (a PDF exactly as the file gets it; a Word page
+    as Word will draw the mark, the page's own text left out). **PDF** (`markPdf` in `src/lib/docmark.ts`, MuPDF, as the
+    PDF Watermark tab): drawn into each page's own content under an ExtGState for the opacity; the pages' text stays text.
+    Text in Sans, Serif and Mono is vector text in PDF's standard fonts (Helvetica, Times-Roman, Courier; its glyph box
+    measured from MuPDF's own drawing of it); Meme (Anton), Script and other scripts are a picture of the text made by the
+    browser at up to 300 dpi; the shadow as on a photo — under vector text a picture of the same glyphs drawn by MuPDF and
+    blurred by imgproc.wasm; a logo as chosen, with its transparency. A password is asked for (the shared prompt of the
+    PDF tabs, `passwordAsker` in `src/lib/pdfui.ts`); the copy has none, and a signed PDF is said to lose its signature.
+    **Word** (`markDocx` in `src/lib/docxmark.ts`; .docx and .docm; the old .doc and password-protected files are sent back
+    with what to do): Word's own watermark — VML shapes in the headers, as Design → Watermark writes them (a text path:
+    the font — Impact, Arial, Georgia, Courier New, Segoe Script for the tab's five —, colour, opacity, Word's shadow, which
+    is not blurred; a logo as a picture with its opacity in its transparency), behind the text. **Every section gets a
+    header part of its own for each header that shows on its pages** (default; first page with "Different first page";
+    even pages with "Different odd and even pages"): a section that used the one before it ("Link to previous") gets a
+    copy of it, so each mark is placed for its own page shape and nothing else in the headers changes; the mark goes at
+    the start of the header's first paragraph (no new line in the header). One mark is named as Word names its
+    watermarks (PowerPlusWaterMarkObject, WordPictureWatermark — Design → Watermark → Remove takes it away); tiles are
+    shapes of their own; an earlier watermark is replaced. 7-Zip (7z-wasm) takes the zip apart and makes it again —
+    `[Content_Types].xml` first, no folder entries (`exact` in the 7-Zip worker); the browser's DOMParser and
+    XMLSerializer edit the XML. **Found with LibreOffice:** it keeps one shape of a `w:pict` (each shape is a run of its
+    own); it sizes a text watermark by its width with its own line height (its letters taller than Word's) and grows it
+    down from a top given in points — so a mark in the page's middle is centred by alignment, as Word writes its own.
+    White text on a document: "shows only by its shadow" (or "does not show on a white page" without one).
+  - e2e `watermark-docs` 57: photos of three shapes (angle within 1.5°, centred, the glyphs' turned box inside the margin
+    reaching 97 %+; 50 % → half; a 5 : 1 logo's pixels as the fit worked out in the test); a PDF of five pages of four
+    shapes, two turned by /Rotate and one with its box away from 0, 0, read back by MuPDF (the mark along each page's own
+    diagonal, centred, inside the margin; the pages' text and the mark still text; tiled in every quarter; bottom right
+    at the margin; the shadow; Meme as a picture; a password-protected PDF); `tests/fixtures/docs/sections.docx`
+    (`scripts/make-docx-fixture.py`: four sections, A4 portrait and landscape and US Letter, own, linked, first-page and
+    even-page headers, a table at the top of a header) read back by **python-docx** (every header a page shows has one
+    mark; the headers' and the body's text as they were) and drawn by **LibreOffice** (all six pages, each along its own
+    diagonal; tiled; a logo); watermarked again → replaced; the old .doc and a file that is no Word document said.
 - `caption` (unit `textwrap.test.mjs` 18, e2e 14): `wrapLines` in `src/lib/textwrap.ts` breaks an over-long word
   (a web address, Chinese / Japanese without spaces) between grapheme clusters; text is made smaller until each block
   is at most 45 % of the height.
@@ -2986,7 +3028,7 @@ difference over its detail, the overlap's pixels), ruled lines and list marks cl
 | devcore: ipnet (CIDR), croner + chrono (cron; zone offsets from the browser's Intl via an `env.tz_offset` import, so no tz database), **own port of npm's semver** (`semver_npm.rs`: the package's range / comparator / inc logic with its own regular expressions on regex-lite — the nodejs-semver crate gave different answers), **own Unicode-aware glob matcher** (`globm`; globset matches bytes), **own unified-diff reader / applier** (`patchm`: offsets, white space, fuzz, like GNU patch; diffy refused most real patches), data-encoding + bs58 + own Ascii85/Z85 (long inputs go through data-encoding in pieces: it refuses 8 MiB and more on a 32-bit target), **own protobuf, MessagePack and CBOR readers** (`bin.rs`; rmpv and ciborium could not show CBOR `undefined` / simple values / long bignums or MessagePack's unused 0xc1, and reported errors as Rust debug text), x509-parser + sha1/sha2 (+ own PEM / PKCS #7 reader), **own SQL formatter** (`sqlfmt.rs`: a tokenizer for standard SQL, PostgreSQL, MySQL, SQLite, SQL Server and Oracle; changes white space and the case of keywords only and checks its result against the input — the sqlformat crate changed the meaning of SQL), own hex dump + search, **own lossless JSON reader / formatter** (`jsonfmt.rs`: changes white space only — member order, duplicate keys and number spelling kept; worded errors with line / column; JSON.parse → JSON.stringify reordered keys, dropped duplicates and rounded big numbers), **own JSON diff** (`jsondiff.rs`, RFC 6902 on that reader: lists aligned by equal elements (LCS) and records by `id`, numbers by value and never rounded), **own XML formatter** (`xmlfmt.rs`: re-indents elements that hold only elements, everything else byte-for-byte — declaration, DOCTYPE, entities, CDATA, text; the DOM round trip lost or rewrote all of these), **own JSON → types generator** (`j2t.rs`: TypeScript / Go / Rust serde / Java records / Python dataclasses; the e2e suite compiles its output with tsc, go, rustc, javac and python; crates unicode-ident (MIT / Apache-2.0 + Unicode-3.0) for Python identifiers and unicode-general-category (Apache-2.0) for what Go's struct tags accept) | Rust | **us** (`wasm/devcore`, crates.io via `Cargo.lock`, wasm32-wasip1; one `dc_call(op, input)` entry; **one module per tab** via Cargo features → `devcore-<feature>.wasm`, 67–650 KB) | cidr, x509, cron, semver, glob, patch, sqlfmt, hexview, baseenc, bindecode, base64 (devcore-enc), json + jwt (devcore-json), jsondiff, xml, json2types (devcore-j2t) |
 | cmark-gfm 0.29.0.gfm.13 (GitHub Flavored Markdown) | C | **us** (`wasm/markdown`, source from the PyPI `cmarkgfm` sdist, SHA-256 pinned) | markdown |
 | libyaml 0.2.5 + toml++ 3 | C / C++ | **us** (`wasm/formats`) | yaml |
-| MuPDF 1.28 | C | Artifex (official `mupdf` npm) | all PDF tools, PDF → EPUB |
+| MuPDF 1.28 | C | Artifex (official `mupdf` npm) | all PDF tools, PDF → EPUB, Watermark (PDFs: to-do #17) |
 | ExifTool 13.42 on zeroperl (Perl 5 compiled to WebAssembly with ExifTool's library inside) | Perl / C | Phil Harvey (ExifTool), uswriting / 6over3 (`@uswriting/exiftool` 1.0.9, `@6over3/zeroperl-ts` 1.0.10) — run in `src/workers/exiftool.worker.ts` | exif (replaced metacore's reader and stripper in Nov 2026: `docs/WASM-AUDIT.md`, tab 120); regex (the Perl flavour, the same module: `src/lib/regex/perl.ts`) |
 | hash-wasm 4.13.0 (hand-tuned C → wasm, one small binary per algorithm, embedded in the package; streaming; HMAC over any of its hashes; Argon2, bcrypt, scrypt, PBKDF2) | C | Dani Biró (`hash-wasm` npm, ~10 M downloads a month) — wrappers `src/lib/hmac.ts`, `src/lib/totp.ts`, `src/lib/pwhash.ts`, `src/lib/hashes.ts` (in `src/workers/hash.worker.ts`); only the algorithms a tab uses are bundled into its chunk, loaded with the tab's first result | hash (23 algorithms), hmac (all of it), totp (the HMAC), pwhash (Argon2id / i / d, bcrypt, scrypt, PBKDF2) — replaced RustCrypto builds and crypto.wasm's hashes of ours in Nov 2026 (`docs/WASM-AUDIT.md`) |
 | ONNX Runtime Web 1.31 (CPU/WebAssembly, SIMD) | C++ | Microsoft (official `onnxruntime-web` wasm build) | tts (Kokoro, Piper); scanner (DocCornerNet LEAN, scanic-ml 0.2.0: the page's corners — `docs/WASM-AUDIT.md`, tab 121); ocr and photodict (the same network, asked where the Kindle finder's outline is not a page's — to-do #18; and **PaddleOCR's PP-OCRv6 detector and recogniser, the second reader for soft photos** — owner, 26 Nov 2026: `src/lib/paddle.ts` in `src/workers/paddle.worker.ts`) |
@@ -3005,7 +3047,7 @@ difference over its detail, the overlap's pixels), ruled lines and list marks cl
 | Little CMS 2.16 | C | lcms-wasm (Matt DesLauriers; npm 1.0.5) — in the codec worker, fetched for a HEIC with a non-sRGB ICC profile | heic and every tab that opens HEIC: Display P3 → sRGB (`docs/WASM-AUDIT.md`, tab 111) |
 | Tesseract 5 | C++ | tesseract.js-core | ocr |
 | zxing-cpp | C++ | zxing-wasm | qr, barcode, scan |
-| 7-Zip 24.09 (`7zz`, the command line, Emscripten build with WORKERFS) | C++ | use-strict (`7z-wasm` npm 1.2.0) — run in `src/workers/sevenzip.worker.ts`, a fresh instance per archive | zip (zip and 7z with AES-256; `docs/WASM-AUDIT.md`, tab 107), unzip (reads every archive; tab 108) |
+| 7-Zip 24.09 (`7zz`, the command line, Emscripten build with WORKERFS) | C++ | use-strict (`7z-wasm` npm 1.2.0) — run in `src/workers/sevenzip.worker.ts`, a fresh instance per archive | zip (zip and 7z with AES-256; `docs/WASM-AUDIT.md`, tab 107), unzip (reads every archive; tab 108), watermark (a Word document taken apart and zipped again: to-do #17) |
 | MediaPipe Tasks (TFLite) | C++ | Google (official) | passport, bgremove, redact |
 | RNNoise 0.2 (Xiph, BSD-3; the 0.2 model, 8-bit weights — the release as its configure builds it) | C | Jitsi (`@jitsi/rnnoise-wasm` 0.2.1, Emscripten; the "sync" file) — frames, lag and voice probability in `src/wasm/rnnoise.ts`, resampling / scaling / mixing in audio.wasm (`src/workers/noise.worker.ts`) | noise (replaced our own build in Nov 2026: `docs/WASM-AUDIT.md`, tab 144) |
 | Browser-native C++ (WebCodecs, WebCrypto, Web Speech, MediaRecorder) | — | the browser | video (H.264/AV1 encode + decode, hardware-accelerated), audio recorder, tts, screencast, pbkdf2 |
@@ -3078,6 +3120,13 @@ readers' output; what each mark was and where it stood is imgproc.wasm's (`p_cle
 Nov 2026 (Screenshot's scrolling capture, to-do #28): `src/lib/scrollstitch.ts` — the bookkeeping of which rows of which
 view join the picture, and the rows copied (`TypedArray.set`); every comparison of rows and pixels is imgproc.wasm's
 (`p_scroll_sig`, `p_scroll_match`, own C — no WebAssembly module joins scrolled views).
+Nov 2026 (Watermark's diagonal and documents, to-do #17): `src/lib/wmlayout.ts` — where a mark goes on a page (a few
+multiplications and a rotation per mark); `src/lib/docxmark.ts` — which header part each section shows, and VML shapes put
+into them: the XML is read and written by the browser's DOMParser and XMLSerializer (compiled C++), the zip by 7-Zip
+(7z-wasm); `src/lib/docmark.ts` — PDF content-stream text around MuPDF, whose drawing of the glyphs gives their box and the
+shadow (blurred by imgproc.wasm). No WebAssembly module edits a Word document in place (docx-rs, a Rust crate, builds documents
+from its own model of them; a header changed in place, everything else byte for byte, is what a document needs —
+`docs/WASM-AUDIT.md`, Watermark).
 Nov 2026 (Screenshot's area, to-do #24): `src/lib/areageom.ts` — the rectangle's arithmetic (where the frame stands, a
 drag, a move, an edge) and the area copied row by row with `TypedArray.set` (a memory copy per row, no pixel computed);
 `src/lib/areapick.ts` draws the frozen frame with the browser's canvas. No engine has anything to do here.

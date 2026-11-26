@@ -87,8 +87,17 @@ window itself. **Batch 4 is complete.** The FFmpeg suite was split (the sound ch
 run failed in `npm test` since #26 — fixed); it is published from main once the owner allows main in the github-pages
 environment (CLAUDE.md §7 Deploy).
 **#15 Blur & Redact: DONE (26 Nov 2026)** (todo.md Done #15): the switch, a tap per face, all / none, Undo (Ctrl+Z); e2e 47.
-**Next (the owner's order):** batch 5's #17 Watermark, then #16 Cartoonizer; 6 (#14 Text Diff), 7 (#20 Studio voice); then
-the potentials process. #32 (22 FFmpeg jobs) is not in the order: ask the owner when he is back.
+**#17 Watermark: DONE (26 Nov 2026)** (todo.md Done #17; CLAUDE.md §3 "Blur & Redact, Watermark …"): "Diagonal" for photos and
+documents; "Add PDFs or Word documents" — PDFs through MuPDF (vector text in PDF's standard fonts; Meme / Script as a picture of
+the text), Word documents with Word's own watermark in every header a page shows (each section its own header parts). Decisions
+taken without the owner: **the shadow goes onto documents too** ("the style chosen" — and the photo's white default shows on
+paper only by its shadow): in PDFs the photo's soft shadow (a blurred picture of the glyphs under the vector text), in Word its
+own VML shadow (not blurred; LibreOffice does not draw it); **fonts for documents:** Sans / Serif / Mono → Helvetica /
+Times-Roman / Courier in PDFs and Arial / Georgia / Courier New in Word, Meme → a picture of Anton in PDFs and Impact in Word,
+Script → a picture in PDFs and Segoe Script in Word; a protected PDF's copy has no password (as the other PDF tabs);
+an existing Word watermark is replaced (as Word does). Unit wmlayout 49, e2e watermark-docs 57 + watermark 19.
+**Next (the owner's order):** batch 5's #16 Cartoonizer; 6 (#14 Text Diff), 7 (#20 Studio voice); then the potentials
+process. #32 (22 FFmpeg jobs) is not in the order: ask the owner when he is back.
 
 ## ▶ SYNC POINT — 21 Nov 2026, night (read this first; it supersedes the older "NOW" notes below)
 The owner's weekly limit is nearly used up; work resumes on Thursday. Everything below is committed and pushed.

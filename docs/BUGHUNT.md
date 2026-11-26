@@ -2975,3 +2975,15 @@ cannot. Three new suites; each fails on the build before its fixes.
 - **Screenshot, an area drawn with the mouse (to-do #24, 26 Nov 2026):** built with its checks; found on the way only slips
   of the new suite (an equidistant pointer that takes the top edge, as specified; a full-screen request still on its way when
   checked).
+- **Watermark: the diagonal, PDFs and Word documents (to-do #17, 26 Nov 2026):** found while building — MuPDF's
+  `getNumberOfComponents()` counts the alpha channel already (4 for RGB with alpha): the glyph box of vector text was read
+  as five samples a pixel and came out a quarter too big (marks 78 % of the size they should have been, off the middle),
+  and the page could crash; tiles whose centre lay within reach of the page but whose turned box did not touch it were
+  kept (the unit suite counts them now). **LibreOffice and Word's VML watermarks** (found by drawing the results with
+  LibreOffice 24.2): it keeps only the last shape of a `w:pict` (tiles vanished but one — each shape is a run of its own
+  now); it sizes a text watermark by its width with its own line height and stretches the capitals to it (letters taller
+  than in Word, which fits the text path to the box we give: the glyphs' own box); and from a top given in points it grows
+  the taller box down — the diagonal sat 30 pt low → a mark in the page's middle is centred by alignment, as Word writes its
+  own. A header shared by sections of other page shapes (Word's "Link to previous") put every section's mark at the first
+  section's angle (seen in LibreOffice: a landscape page's mark at the portrait's 54.7°) → every section gets its own header
+  parts. The suite's own slips: the fixture's 10 headers counted as 9; a download kept under a time-stamped name.

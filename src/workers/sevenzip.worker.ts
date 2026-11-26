@@ -6,7 +6,7 @@ import { walk } from '../lib/fswalk';
 import wasmUrl from '7z-wasm/7zz.wasm?url';
 import { parseList } from '../lib/sevenzip-text';
 
-export type CreateJob = { id: number; op: 'create'; files: Array<{ path: string; file: File }>; format: 'zip' | '7z'; level: number; password: string; encryptNames: boolean };
+export type CreateJob = { id: number; op: 'create'; files: Array<{ path: string; file: File }>; format: 'zip' | '7z'; level: number; password: string; encryptNames: boolean; exact?: boolean };
 export type ListJob = { id: number; op: 'list'; file: Blob; name: string; password: string };
 export type ExtractJob = { id: number; op: 'extract'; file: Blob; name: string; password: string; paths: string[] | null; zip: boolean };
 type Job = CreateJob | ListJob | ExtractJob;
@@ -94,7 +94,8 @@ self.onmessage = async (ev: MessageEvent<Job>) => {
       const args = ['a', `-t${j.format}`, `-mx${j.level}`, '-bsp1', '-bso0', '-y'];
       if (j.format === 'zip') args.push('-mcu=on'); // UTF-8 names (the zip "language encoding" flag)
       if (j.password) { args.push(`-p${j.password}`); if (j.format === 'zip') args.push('-mem=AES256'); else if (j.encryptNames) args.push('-mhe=on'); }
-      args.push(out, '*');
+      // `exact`: the files by name, so that no folder gets an entry of its own (a Word document's zip has none)
+      if (j.exact) args.push(out, '--', ...j.files.map((f) => f.path)); else args.push(out, '*');
       const { z, rc, err } = await run(j.id, (z) => {
         z.FS.mkdir('/in'); z.FS.mkdir('/out');
         z.FS.mount(z.WORKERFS, { blobs: j.files.map((f) => ({ name: f.path, data: f.file })) }, '/in');

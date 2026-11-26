@@ -3,12 +3,14 @@
 // text shaping/rasterising and compositing use the browser's native canvas (compiled C++); encoding uses
 // MozJPEG / libwebp / OxiPNG (wasm). Fonts: system fonts + Anton (OFL-1.1) served from this site.
 import antonUrl from '@fontsource/anton/files/anton-latin-400-normal.woff2?url';
-import { h, card, field, input, textarea, button, segmented, slider, toggle, stack, grid2, note, clear, actions, toast, errMsg, baseName, downloadBlob, shareOrDownload, fmtBytes, type Mount } from '../ui';
+import { h, card, field, input, textarea, button, segmented, slider, toggle, stack, grid2, note, clear, actions, toast, errMsg, baseName, downloadBlob, shareOrDownload, fmtBytes, filePicker, type Mount } from '../ui';
+import { passwordAsker } from '../lib/pdfui';
 import { imgproc, type Img } from '../wasm/imgproc';
 import { loadImg, encodeImg, previewOf, resizeImg, setJpegDpi, EXT, type Fmt } from '../lib/imgio';
 import { imageInput, imagePicker, resultList } from '../lib/imgtools';
 import { isIOS } from '../platform';
 import { wrapLines } from '../lib/textwrap';
+import { diagonalFit, type Pos } from '../lib/wmlayout';
 
 // ------------------------------------------------------------------ shared
 let fontsReady: Promise<void> | null = null;
@@ -34,22 +36,37 @@ function toBitmapSource(img: Img) { const { c } = canvasOf(img); return c; }
 const fmtSeg = (cur: Fmt, on: (v: Fmt) => void) => field('Format', segmented([['jpeg', 'JPEG'], ['png', 'PNG'], ['webp', 'WebP']], cur, on));
 
 // ================================================================== Watermark
-type Pos = 'tl' | 'tc' | 'tr' | 'ml' | 'c' | 'mr' | 'bl' | 'bc' | 'br' | 'tile';
-export interface WmOpts { kind: 'text' | 'logo'; text: string; font: string; color: string; opacity: number; size: number; pos: Pos; margin: number; angle: number; shadow: boolean; logo: Img | null }
+export type { Pos } from '../lib/wmlayout';
+export { diagonalFit } from '../lib/wmlayout';
+/** `fill`: for 'diag', the share (0.2 – 1) of the longest mark the picture's diagonal holds within the margin */
+export interface WmOpts { kind: 'text' | 'logo'; text: string; font: string; color: string; opacity: number; size: number; pos: Pos; margin: number; angle: number; shadow: boolean; logo: Img | null; fill: number }
 /** Draw the watermark onto a copy of img. Sizes are % of the image's shorter side, so previews match exports. */
 export async function applyWatermark(img: Img, o: WmOpts, fine = false): Promise<Img> {
   const { c, g } = canvasOf(img), W = img.width, H = img.height, S = Math.min(W, H);
   const m = (o.margin / 100) * S;
   let ow = 0, oh = 0, logoSrc: OffscreenCanvas | null = null;
+  const diag = o.pos === 'diag';
+  let th = 0, tb = { l: 0, r: 0, a: 0, d: 0 }; // the diagonal's angle; the text's tight box at its drawn size
   if (o.kind === 'logo') {
     if (!o.logo) return img;
-    ow = Math.max(1, Math.round((o.size * 4 / 100) * S)); oh = Math.max(1, Math.round((ow * o.logo.height) / o.logo.width));
+    if (diag) { const f = diagonalFit(W, H, m, o.logo.width, o.logo.height, o.fill); th = f.th; ow = Math.max(1, Math.round(o.logo.width * f.k)); oh = Math.max(1, Math.round(o.logo.height * f.k)); }
+    else { ow = Math.max(1, Math.round((o.size * 4 / 100) * S)); oh = Math.max(1, Math.round((ow * o.logo.height) / o.logo.width)); }
     // the saved photos: Squoosh's Lanczos-3 in linear light (jSquash); the preview: imgproc's (instant)
     logoSrc = toBitmapSource(fine ? await resizeImg(o.logo, ow, oh) : await imgproc('resize', o.logo, ow, oh));
   } else {
     await loadFonts();
-    g.font = `${Math.max(6, (o.size / 100) * S)}px ${o.font}`;
-    ow = g.measureText(o.text).width; oh = (o.size / 100) * S;
+    if (diag) { // the text's own tight box at 100 px, then the size that fits the diagonal
+      g.font = `100px ${o.font}`;
+      const t = g.measureText(o.text), L0 = t.actualBoundingBoxLeft + t.actualBoundingBoxRight, h0 = t.actualBoundingBoxAscent + t.actualBoundingBoxDescent;
+      const f = diagonalFit(W, H, m, Math.max(1, L0), Math.max(1, h0), o.fill), px = Math.max(4, 100 * f.k);
+      th = f.th; g.font = `${px}px ${o.font}`;
+      const u = g.measureText(o.text);
+      tb = { l: u.actualBoundingBoxLeft, r: u.actualBoundingBoxRight, a: u.actualBoundingBoxAscent, d: u.actualBoundingBoxDescent };
+      ow = tb.l + tb.r; oh = tb.a + tb.d;
+    } else {
+      g.font = `${Math.max(6, (o.size / 100) * S)}px ${o.font}`;
+      ow = g.measureText(o.text).width; oh = (o.size / 100) * S;
+    }
   }
   g.globalAlpha = o.opacity;
   const drawAt = (x: number, y: number) => {
@@ -60,7 +77,17 @@ export async function applyWatermark(img: Img, o: WmOpts, fine = false): Promise
       g.shadowColor = 'transparent';
     }
   };
-  if (o.pos === 'tile') {
+  if (diag) { // centred on the picture, turned to its diagonal: the tight box's middle on the picture's middle
+    g.save(); g.translate(W / 2, H / 2); g.rotate(-th);
+    if (logoSrc) g.drawImage(logoSrc, -ow / 2, -oh / 2);
+    else {
+      if (o.shadow) { g.shadowColor = 'rgba(0,0,0,0.55)'; g.shadowBlur = oh * 0.12; g.shadowOffsetX = g.shadowOffsetY = oh * 0.04; }
+      g.fillStyle = o.color; g.textBaseline = 'alphabetic'; g.textAlign = 'left';
+      g.fillText(o.text, -(tb.r - tb.l) / 2, (tb.a - tb.d) / 2);
+      g.shadowColor = 'transparent';
+    }
+    g.restore();
+  } else if (o.pos === 'tile') {
     g.save(); g.translate(W / 2, H / 2); g.rotate((o.angle * Math.PI) / 180);
     const stepX = ow + Math.max(ow * 0.6, S * 0.08), stepY = oh * 3.2, R = Math.hypot(W, H) / 2 + Math.max(ow, oh);
     for (let y = -R, row = 0; y < R; y += stepY, row++) for (let x = -R + (row % 2 ? stepX / 2 : 0); x < R; x += stepX) drawAt(x, y);
@@ -75,26 +102,75 @@ export async function applyWatermark(img: Img, o: WmOpts, fine = false): Promise
   return imgOf(c, g);
 }
 
+/** The tab's font label for a CSS font of FONTS (documents get fonts by label: src/lib/docmark.ts) */
+const fontLabel = (css: string) => FONTS.find(([f]) => f === css)?.[1] ?? 'Sans';
+/** a PDF or a Word document chosen in the Watermark tab (to-do #17) */
+interface WmDoc { file: File; kind: 'pdf' | 'docx'; bytes?: Uint8Array; password?: string; pages?: number; first?: Uint8Array; page?: { W: number; H: number } }
+const isDocx = (f: File) => /\.(docx|docm)$/i.test(f.name) || /wordprocessingml\.document|ms-word\.document\.macroEnabled/i.test(f.type);
+const isPdf = (f: File) => /\.pdf$/i.test(f.name) || f.type === 'application/pdf';
+const luminance = (hex: string) => { const n = parseInt(hex.replace('#', '').padEnd(6, '0').slice(0, 6), 16); return (0.2126 * ((n >> 16) & 255) + 0.7152 * ((n >> 8) & 255) + 0.0722 * (n & 255)) / 255; };
+
 export const watermark: Mount = (root, ctx) => {
   const files: File[] = [];
+  const docs: WmDoc[] = [];
   let preview: Img | null = null, fmt: Fmt = 'jpeg';
-  const o: WmOpts = { kind: 'text', text: '© My Name', font: FONTS[1][0], color: '#ffffff', opacity: 0.6, size: 5, pos: 'br', margin: 3, angle: -30, shadow: true, logo: null };
+  const o: WmOpts = { kind: 'text', text: '© My Name', font: FONTS[1][0], color: '#ffffff', opacity: 0.6, size: 5, pos: 'br', margin: 3, angle: -30, shadow: true, logo: null, fill: 0.9 };
   const canvas = h('canvas', { class: 'ed-canvas' });
   const list = h('div', { class: 'muted small' });
+  const docList = h('div', { class: 'muted small' });
   const failed = h('div');
+  const shownAs = h('div', { class: 'muted small', id: 'wm-shown' });
+  const paperNote = h('div', { class: 'small', id: 'wm-paper' });
   const results = resultList({ zipName: () => 'watermarked.zip', isMobile: ctx.isMobile });
-  let tok = 0;
-  const redraw = async () => {
-    if (!preview) return;
-    const my = ++tok, out = await applyWatermark(preview, o);
-    if (my !== tok) return;
+  const { el: pwAsks, ask } = passwordAsker();
+  let tok = 0, alive = true, docTimer = 0;
+  const show = (out: Img) => {
     canvas.width = out.width; canvas.height = out.height;
     canvas.getContext('2d')!.putImageData(new ImageData(new Uint8ClampedArray(out.data), out.width, out.height), 0, 0);
   };
-  const clearBtn = button('Clear photos', () => { files.length = 0; preview = null; stage.hidden = true; showList(); results.clear(); clear(failed); }, { small: true, variant: 'ghost', icon: 'X' });
+  /** what the first document's first page gets (photos come first in the preview) */
+  const docPreview = async (d: WmDoc): Promise<Img> => {
+    const dm = await import('../lib/docmark'), px = ctx.isMobile ? 900 : 1100;
+    await loadFonts();
+    if (d.kind === 'pdf') {
+      if (!d.first) { const { subsetPdf } = await import('../lib/pdf'); d.first = await subsetPdf(d.bytes!, d.password, [0]); }
+      return dm.previewPdf(d.first, o, fontLabel(o.font), px);
+    }
+    return dm.previewWordPage(d.page?.W ?? 595.3, d.page?.H ?? 841.9, o, fontLabel(o.font), px);
+  };
+  const paper = () => { // white text on white paper shows only by its shadow
+    const light = docs.length > 0 && o.kind === 'text' && luminance(o.color) > 0.85;
+    paperNote.textContent = !light ? '' : o.shadow ? 'On a white page, text this light shows only by its shadow.' : 'Text this light does not show on a white page: choose a darker colour, or turn the shadow on.';
+    paperNote.hidden = !light;
+  };
+  const redraw = async () => {
+    paper();
+    const my = ++tok;
+    if (preview) {
+      const out = await applyWatermark(preview, o);
+      if (my === tok && alive) { show(out); shownAs.textContent = ''; }
+      return;
+    }
+    const d = docs[0];
+    if (!d) return;
+    clearTimeout(docTimer); // a document's page is made again when the sliders rest
+    docTimer = window.setTimeout(async () => {
+      try {
+        const out = await docPreview(d);
+        if (my !== tok || !alive) return;
+        show(out); stage.hidden = false;
+        shownAs.textContent = d.kind === 'pdf' ? `Page 1 of ${d.file.name}, as the file gets it.` : `${d.file.name}: the first page's size, the mark as Word draws it (the page's own text is not shown).`;
+      } catch (e) { if (my === tok && alive) shownAs.textContent = errMsg(e); }
+    }, 150);
+  };
+  const clearBtn = button('Clear photos', () => { files.length = 0; preview = null; stage.hidden = !docs.length; showList(); results.clear(); clear(failed); redraw(); }, { small: true, variant: 'ghost', icon: 'X' });
+  const clearDocsBtn = button('Clear documents', () => { docs.length = 0; stage.hidden = !preview; showList(); results.clear(); clear(failed); redraw(); }, { small: true, variant: 'ghost', icon: 'X' });
   const showList = () => {
     clear(list).append(files.length ? `${files.length} photo${files.length > 1 ? 's' : ''}: ${files.map((f) => f.name).join(', ')}` : '');
     clearBtn.hidden = !files.length;
+    clear(docList).append(docs.length ? `${docs.length} document${docs.length > 1 ? 's' : ''}: ${docs.map((d) => d.file.name + (d.pages ? ` (${d.pages} page${d.pages > 1 ? 's' : ''})` : '')).join(', ')}` : '');
+    clearDocsBtn.hidden = !docs.length;
+    paper();
   };
   /** The preview is the first photo that opens (a file that cannot be read is said and left out). */
   const addFiles = async (fs: File[]) => {
@@ -107,6 +183,29 @@ export const watermark: Mount = (root, ctx) => {
     }
     showList();
   };
+  /** PDFs (a password asked for where one is needed) and Word documents; the old .doc is sent back with the reason */
+  const addDocs = async (fs: File[]) => {
+    for (const f of fs) {
+      if (/\.doc$/i.test(f.name) || f.type === 'application/msword') { toast(`${f.name}: this is Word's old format (.doc) — open it in Word and save it as a Word Document (.docx) first.`, 'err'); continue; }
+      if (isDocx(f)) {
+        const d: WmDoc = { file: f, kind: 'docx' };
+        try { // the first section's page, for the preview
+          const { extractArchive } = await import('../lib/sevenzip-client');
+          const [x] = await extractArchive(f, f.name, '', ['word/document.xml']);
+          const xml = x ? new TextDecoder().decode(x.data) : '';
+          const m = /<w:pgSz\b[^>]*>/.exec(xml), num = (a: string) => +(new RegExp(`w:${a}="(\\d+)"`).exec(m?.[0] ?? '')?.[1] ?? 0);
+          if (m && num('w') && num('h')) d.page = { W: num('w') / 20, H: num('h') / 20 };
+        } catch { /* the preview takes A4; the watermarking says what is wrong with the file */ }
+        docs.push(d);
+      } else if (isPdf(f)) {
+        const { openWithPassword } = await import('../lib/pdfui');
+        const x = await openWithPassword(f, ask);
+        if (x) docs.push({ file: f, kind: 'pdf', bytes: x.bytes, password: x.password, pages: x.pages });
+      } else toast(`${f.name}: not a PDF or a Word document (.docx).`, 'err');
+    }
+    showList();
+    if (!preview && docs.length) { stage.hidden = false; redraw(); }
+  };
   const textBox = stack(field('Text', input({ value: o.text, onInput: (v) => { o.text = v; redraw(); } })),
     field('Font', segmented(FONTS.map(([f, l]) => [f, l]) as Array<[string, string]>, o.font, (v) => { o.font = v; redraw(); })),
     field('Colour', input({ type: 'color', value: o.color, onInput: (v) => { o.color = v; redraw(); } })),
@@ -117,41 +216,71 @@ export const watermark: Mount = (root, ctx) => {
   logoBox.hidden = true;
   const angle = slider({ label: 'Tile angle', min: -90, max: 90, value: o.angle, unit: '°', onInput: (v) => { o.angle = v; redraw(); } });
   angle.hidden = true;
-  const stage = card(null, h('div', { class: 'ed-stage' }, canvas));
+  const sizeS = slider({ label: 'Size', min: 1, max: 25, step: 0.5, value: o.size, unit: '%', onInput: (v) => { o.size = v; redraw(); } });
+  const fillS = slider({ label: 'Length along the diagonal', min: 20, max: 100, value: o.fill * 100, unit: '%', onInput: (v) => { o.fill = v / 100; redraw(); } });
+  fillS.hidden = true;
+  const stage = card(null, h('div', { class: 'ed-stage' }, canvas), shownAs);
   stage.hidden = true;
   const run = async () => {
-    if (!files.length) throw new Error('Add photos first.');
+    if (!files.length && !docs.length) throw new Error('Add photos, a PDF or a Word document first.');
     if (o.kind === 'logo' && !o.logo) throw new Error('Choose a logo image.');
     if (o.kind === 'text' && !o.text.trim()) throw new Error('Type the text of the watermark.');
     results.clear(); clear(failed);
     const bad: string[] = [];
+    let badDocs = 0;
     for (const f of files) {
       try {
         const { img, scaled } = await fitForCanvas(await loadImg(f));
         const out = await applyWatermark(img, o, true);
         results.add(`${baseName(f.name)}-watermarked.${EXT[fmt]}`, await encodeImg(out, fmt, 88), `${out.width}×${out.height}${scaled ? ' (reduced for iPhone)' : ''}`);
       } catch (e) { bad.push(`${f.name}: ${errMsg(e)}`); }
+      if (!alive) return;
     }
-    if (bad.length) failed.append(note(h('div', null, `${bad.length} photo${bad.length === 1 ? '' : 's'} could not be watermarked:`, h('ul', null, bad.map((x) => h('li', null, x)))), 'err'));
+    if (docs.length) await loadFonts();
+    for (const d of [...docs]) {
+      try {
+        if (d.kind === 'pdf') {
+          const { markPdf } = await import('../lib/docmark');
+          const r = await markPdf(d.bytes!, d.password, o, fontLabel(o.font), async (i) => { if (i % 20 === 0) await new Promise((res) => setTimeout(res)); return alive; });
+          if (!r || !alive) return;
+          const notes = [`${r.pages} page${r.pages > 1 ? 's' : ''}`, ...(d.password !== undefined ? ['it had a password: the copy has none (Protect PDF adds one)'] : []), ...(r.signed ? ['it was digitally signed: the copy no longer proves the signature'] : [])];
+          results.add(`${baseName(d.file.name)}-watermarked.pdf`, new Blob([r.bytes as BlobPart], { type: 'application/pdf' }), notes.join(' · '));
+        } else {
+          const { markDocx } = await import('../lib/docxmark');
+          const r = await markDocx(d.file, d.file.name, o, fontLabel(o.font));
+          if (!alive) return;
+          const ext = /\.docm$/i.test(d.file.name) ? 'docm' : 'docx';
+          const notes = [`${r.sections} section${r.sections > 1 ? 's' : ''}, ${r.headers} header${r.headers > 1 ? 's' : ''}`, ...(r.replaced ? ['the earlier watermark was replaced'] : []), ...(r.signed ? ['it was digitally signed: the copy no longer proves the signature'] : [])];
+          results.add(`${baseName(d.file.name)}-watermarked.${ext}`, new Blob([r.bytes as BlobPart], { type: ext === 'docm' ? 'application/vnd.ms-word.document.macroEnabled.12' : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' }), notes.join(' · '));
+        }
+      } catch (e) { bad.push(`${d.file.name}: ${errMsg(e)}`); badDocs++; }
+    }
+    if (bad.length) {
+      const what = badDocs === 0 ? 'photo' : badDocs === bad.length ? 'document' : 'file';
+      failed.append(note(h('div', null, `${bad.length} ${what}${bad.length === 1 ? '' : 's'} could not be watermarked:`, h('ul', null, bad.map((x) => h('li', null, x)))), 'err'));
+    }
   };
   root.append(
-    card(null, stack(imagePicker({ accept: 'image/*,.heic,.heif', multiple: true, label: 'Add photos', hint: 'one or many — the same watermark goes on all', onFiles: (f) => addFiles(f).catch((e) => toast(errMsg(e), 'err')) }), h('div', { class: 'row' }, list, clearBtn))),
+    card(null, stack(
+      imagePicker({ accept: 'image/*,.heic,.heif', multiple: true, label: 'Add photos', hint: 'one or many — the same watermark goes on all', onFiles: (f) => addFiles(f).catch((e) => toast(errMsg(e), 'err')) }), h('div', { class: 'row' }, list, clearBtn),
+      filePicker({ accept: '.pdf,application/pdf,.docx,.docm,.doc,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/msword', multiple: true, compact: true, label: 'Add PDFs or Word documents', hint: 'every page gets the watermark (.pdf, .docx)', onFiles: (f) => addDocs(f) }),
+      h('div', { class: 'row' }, docList, clearDocsBtn), pwAsks)),
     stage,
     card('Watermark', stack(
       segmented([['text', 'Text'], ['logo', 'Logo']], o.kind, (v) => { o.kind = v; textBox.hidden = v !== 'text'; logoBox.hidden = v !== 'logo'; redraw(); }),
       textBox, logoBox,
-      field('Position', segmented([['tl', '↖'], ['tc', '↑'], ['tr', '↗'], ['ml', '←'], ['c', '•'], ['mr', '→'], ['bl', '↙'], ['bc', '↓'], ['br', '↘'], ['tile', 'Tiled']], o.pos, (v) => { o.pos = v; angle.hidden = v !== 'tile'; redraw(); })),
-      angle,
-      slider({ label: 'Size', min: 1, max: 25, step: 0.5, value: o.size, unit: '%', onInput: (v) => { o.size = v; redraw(); } }),
+      field('Position', segmented([['tl', '↖'], ['tc', '↑'], ['tr', '↗'], ['ml', '←'], ['c', '•'], ['mr', '→'], ['bl', '↙'], ['bc', '↓'], ['br', '↘'], ['tile', 'Tiled'], ['diag', 'Diagonal']], o.pos, (v) => { o.pos = v; angle.hidden = v !== 'tile'; sizeS.hidden = v === 'diag'; fillS.hidden = v !== 'diag'; redraw(); })),
+      angle, sizeS, fillS,
       slider({ label: 'Opacity', min: 5, max: 100, value: o.opacity * 100, unit: '%', onInput: (v) => { o.opacity = v / 100; redraw(); } }),
       slider({ label: 'Margin', min: 0, max: 15, step: 0.5, value: o.margin, unit: '%', onInput: (v) => { o.margin = v; redraw(); } }),
-      fmtSeg(fmt, (v) => (fmt = v)))),
+      paperNote,
+      field('Photo format', segmented([['jpeg', 'JPEG'], ['png', 'PNG'], ['webp', 'WebP']], fmt, (v) => (fmt = v))))),
     actions(button('Watermark all', run, { variant: 'primary', icon: 'Stamp' })),
     card('Results', failed, results.el),
   );
   showList();
   loadFonts().then(redraw);
-  return () => results.clear();
+  return () => { alive = false; clearTimeout(docTimer); results.clear(); };
 };
 
 // ================================================================== Text on Image (captions / memes)

@@ -23,7 +23,7 @@ export default async ({ base, page: newPage, ok, info, download, tmp, devices })
   await page.waitForFunction(() => /3 files/.test(document.querySelector('.file-list')?.textContent || ''));
   await page.locator('.drop input[type=file]').setInputFiles([{ name: 'नमस्ते.txt', mimeType: 'text/plain', buffer: readFileSync(b) }]);
   await page.waitForFunction(() => /4 files/.test(document.querySelector('.file-list')?.textContent || ''));
-  ok(!asked.some((u) => /7zz|sevenzip/.test(u)), 'four files listed; 7-Zip is not fetched yet');
+  ok(!asked.some((u) => /7zz|sevenzip\.worker/.test(u)), "four files listed; 7-Zip is not fetched yet (its engine and worker — the client chunk is glue shared with the Watermark tab)");
   await page.getByRole('button', { name: 'Remove extra.txt' }).click();
   ok(/3 files/.test(await page.locator('.file-list').textContent()), 'remove a file');
   await page.locator('.drop input[type=file]').setInputFiles([{ name: 'notes.txt', mimeType: 'text/plain', buffer: Buffer.from('the other notes') }]);

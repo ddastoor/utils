@@ -1012,6 +1012,19 @@ One entry per tab, written before its bug hunt: our module → candidates → ch
   jSquash for encoding. **Decision:** the canvas stays (a WebAssembly HarfBuzz + FreeType would repeat the browser's
   own compiled text engine and need fonts for every script); the logo of the saved photos and the iPhone downscale go
   to @jsquash/resize (entry 109).
+- **PDFs and Word documents (to-do #17, 26 Nov 2026).** *PDF:* **MuPDF** (Artifex's official build, on the site for the PDF
+  tabs) — the mark drawn into each page's content (the PDF Watermark tab's `stampPage`), vector text in PDF's standard
+  fonts; the glyphs' box and the shadow taken from MuPDF's own drawing of them, the shadow blurred by **imgproc.wasm**
+  (`p_blur`, ours). Nothing new. *Word:* a .docx is a zip of XML parts. Candidates — **docx-rs** (Rust, MIT; it has a reader
+  and a writer, and WebAssembly builds exist for its writer): it reads a document into its own model and writes what that
+  model holds, so a document's other parts (styles it does not model, custom XML, content controls, embedded objects) would
+  not survive the trip — the job is to put shapes into the headers and leave everything else byte for byte; **docx (npm)**,
+  **docxtemplater**: JavaScript, and they too build or fill documents rather than edit one in place. **Decision:** the zip by
+  **7-Zip (7z-wasm**, entry 107 — a new `exact` option names the files so that no folder gets an entry of its own, as Word
+  writes its zips), the XML by the browser's **DOMParser / XMLSerializer** (compiled C++, like JSON.parse in the inventory),
+  our TypeScript for which header part each section shows and the VML shapes (`src/lib/docxmark.ts`). The geometry of the
+  marks is `src/lib/wmlayout.ts` (a few multiplications per mark: TypeScript, unit `wmlayout` 49). Checked: python-docx
+  and LibreOffice read every result (e2e `watermark-docs` 57).
 
 ### 118. `caption` — Text on Image (20 Nov 2026)
 - **Engines:** as entry 117 (canvas text). Line breaking is ours (`src/lib/textwrap.ts`: words by spaces, an over-long
