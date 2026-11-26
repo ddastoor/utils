@@ -28,8 +28,10 @@ readings) were scratch work; the readings come from `OCR_JSON=DIR OCR_JSON_MAXCO
 reference decryptor waited for a password from the Windows console (Python's getpass ignores a pipe) — fixed in
 `tools/sodium_decrypt.py`, and every suite's child processes now have a time limit (`tests/lib/child.mjs`; 9484594). Run 8
 also failed pgp9580 and screencast without saying why (the harness prints the reasons as a suite ends now). **Run 9**
-(pgp9580 screencast sodium slideshow unzip youtube sqlfmt) was started at 11:31 UTC — read it, fix what fails on Windows;
-then one more run of ocr, photodict and zip (never run on Windows since the second reader); then close #13.
+(pgp9580 screencast sodium slideshow unzip youtube sqlfmt): 227 of 228 — only pgp9580's gpg (a Windows GNUPGHOME given to
+Git's POSIX gpg; fixed with `tests/e2e/_gpg.mjs`, aeece3b). **Run 10** (pgp9580 ocr photodict zip — the OCR tabs with the
+second reader, 04c555e) started at about 12:20 UTC — read it; if it is green, every suite has passed on Windows: close
+#13 (todo.md).
 **Next (the owner's order):** batch 3 — #23 FFmpeg volume, #22 FFmpeg MP3, #21 Screencast countdowns + sound level; then
 batch 4 (#24, #28 Screenshot), 5 (#15, #17, #16), 6 (#14 Text Diff), 7 (#20 Studio voice); then the potentials process.
 
