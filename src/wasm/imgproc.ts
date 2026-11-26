@@ -191,6 +191,7 @@ export function bindImgproc(e: any) {
     clearMarks(img: Img, what = 3): { img: Img; lines: number; inner: number; marks: number; xh: number; slant: number; columns: number; list: ListMark[]; labels: number } {
       const p = put(img.data), o = e.p_malloc(32), L = e.p_malloc(MAX_MARKS * 20);
       try {
+        new Int32Array(mem(), o, 8).fill(0); // an output a module does not write reads 0 (an older build has no labels: out[7])
         e.p_clear_marks(p, img.width, img.height, what, o, L, MAX_MARKS);
         const v = Array.from(new Int32Array(mem(), o, 8)), m = new Int32Array(mem(), L, v[6] * 5), list: ListMark[] = [];
         for (let k = 0; k < v[6]; k++) list.push({ x0: m[5 * k], y0: m[5 * k + 1], x1: m[5 * k + 2], y1: m[5 * k + 3], kind: m[5 * k + 4] });

@@ -245,6 +245,13 @@ the 47 Software stub tabs (each with its own suite) first, then ask about potent
   A change that only adds information (the list of marks, to-do #31) is checked by comparing the cleaned pictures byte
   for byte instead. `OCR_LIST=DIR` dumps the OCR tab's text with its lists; `tests/lib/listscore.mjs` scores it against
   `<page>.lists.json`. On the measuring machine, CPU contention slows the e2e suites: run them after a measurement.
+- **`OCR_IMGPROC=old.wasm` runs the old module with the tree's binding** (`src/wasm/imgproc.ts`): when the binding reads
+  an output the old module never writes, the old build is measured with whatever stood in that memory. Found on 26 Nov
+  2026: clearMarks reads `labels` (out[7]) since to-do #31; with an older imgproc.wasm it read 81 and the reading's
+  decisions followed it (a Kindle photo 55.5 → 48.9 %, as if the change had cost it). The binding fills clearMarks'
+  outputs with 0 before the call since then (an output an old module does not write reads 0: "nothing"); for any other
+  change of a binding, measure the old build with the binding it was made for (a checkout of its commit, as #18 did with
+  d456729).
 - **The Windows check's log cannot be fetched from here** (its host is refused by the proxy): a check that fails only on
   Windows must say in its own message what is needed to understand it (which reader, the line under the text …).
 - **zig's wasm32-wasi libc** (single-threaded): an implicitly declared function gets the wrong wasm signature and traps
