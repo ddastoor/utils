@@ -121,6 +121,12 @@ const CORNER: Record<string, (m: number) => string> = {
   tl: (m) => `${m}:${m}`, tr: (m) => `W-w-${m}:${m}`, bl: (m) => `${m}:H-h-${m}`, br: (m) => `W-w-${m}:H-h-${m}`, c: () => '(W-w)/2:(H-h)/2',
 };
 const AUDIO_EXT: Record<string, string> = { aac: 'm4a', mp3: 'mp3', opus: 'ogg', vorbis: 'ogg', flac: 'flac', pcm_s16le: 'wav', alac: 'm4a' };
+/** The file a sound is kept in as it is (no re-encoding): AAC in .m4a, Opus and Vorbis in .ogg …, else Matroska audio. */
+export const keptAudioExt = (p: Probe) => AUDIO_EXT[p.acodec] || 'mka';
+/** MP3 by LAME at `q`: "v2" — LAME's VBR -V 2, its recommended setting (≈ 190 kb/s) — or a constant 128 / 192 / 320 kb/s. */
+export const mp3Args = (q = 'v2') => ['-c:a', 'libmp3lame', ...(/^(128|192|320)$/.test(q) ? ['-b:a', `${q}k`] : ['-q:a', '2'])];
+/** "Download as MP3" on an extracted sound (to-do #22): that file made MP3, at the quality chosen for MP3. */
+export const mp3Of = (input: string, q = 'v2'): Built => ({ args: ['-i', input, '-vn', ...mp3Args(q), 'mp3.mp3'], outputs: ['mp3.mp3'] });
 const SUB_EXT = /^(srt|vtt|ass|ssa)$/;
 const BITMAP_SUBS = /^(dvd_subtitle|hdmv_pgs_subtitle|dvb_subtitle|xsub)$/;
 /** Reversing keeps every decoded frame in memory; the limit leaves room in the browser's 2 GB. */
@@ -151,7 +157,7 @@ export const DEFAULTS: Record<string, any> = {
   loopKind: '2', fitShape: '9:16', fitBg: 'blur', bright: 0, contrast: 100, sat: 100, bw: false, denoise: 'medium', fadeLen: '1', fadeWhich: 'both',
   text: 'Hello!', textPos: 'bottom', textSize: 'medium', textColour: 'white', textBox: false, logoSize: '15', logoPos: 'br', logoOpacity: '100',
   pipSize: '33', pipPos: 'br', tlx: '8', vol: '1.5', silWhere: 'ends', silMin: '1', silLevel: '-50', mergeMode: 'replace', musicVol: '30',
-  channels: 'keep', rate: 'keep', subLang: 'eng', subFmt: 'srt',
+  channels: 'keep', rate: 'keep', subLang: 'eng', subFmt: 'srt', mp3q: 'v2',
 };
 
 const needVideo = (p: Probe) => { if (!p.video) throw new Error('This task needs a video — this file has no picture.'); };
@@ -179,9 +185,12 @@ export function buildJob(job: Job, o: Record<string, any>, c: JobCtx): Built {
     }
     case 'audio': {
       needAudio(p);
-      if (o.aud === 'copy') { const out = `audio.${AUDIO_EXT[p.acodec] || 'mka'}`; return { args: [...I, '-vn', '-c:a', 'copy', out], outputs: [out] }; }
+      if (o.aud === 'copy') { const out = `audio.${keptAudioExt(p)}`; return { args: [...I, '-vn', '-c:a', 'copy', out], outputs: [out] }; }
+      // to-do #22: MP3 (with its quality), WAV, FLAC, OGG (Opus) — the sound at its own level (to-do #23)
+      const enc: Record<string, string[]> = { mp3: mp3Args(o.mp3q), wav: ['-c:a', 'pcm_s16le'], flac: ['-c:a', 'flac'], ogg: opusArgs(128, p.channels, p.layout) };
+      if (!enc[o.aud]) throw new Error(`"${o.aud}" is not a sound format here — choose MP3, WAV, FLAC or OGG.`);
       const out = `audio.${o.aud}`;
-      return { args: [...I, '-vn', ...(o.aud === 'mp3' ? ['-c:a', 'libmp3lame', '-q:a', '2'] : ['-c:a', 'pcm_s16le']), out], outputs: [out] };
+      return { args: [...I, '-vn', ...enc[o.aud], out], outputs: [out] };
     }
     case 'mute': { needVideo(p); const out = `out.${base}`; return { args: [...I, '-c:v', 'copy', '-an', out], outputs: [out] }; }
     case 'thumb': {

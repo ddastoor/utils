@@ -25,13 +25,14 @@ export function mp3Frames(b) {
   const BR1 = [0, 32, 40, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320], BR2 = [0, 8, 16, 24, 32, 40, 48, 56, 64, 80, 96, 112, 128, 144, 160];
   const SR = { 3: [44100, 48000, 32000], 2: [22050, 24000, 16000], 0: [11025, 12000, 8000] };
   let o = 0, n = 0, sr = 0;
+  const rates = []; // the bitrate of every frame, kb/s (the first of LAME's files is its Info / Xing frame)
   if (b[0] === 0x49 && b[1] === 0x44 && b[2] === 0x33) o = 10 + ((b[6] << 21) | (b[7] << 14) | (b[8] << 7) | b[9]); // skip an ID3v2 tag
   while (o + 4 <= b.length) {
-    if (b[o] !== 0xff || (b[o + 1] & 0xe0) !== 0xe0) return { ok: false, frames: n, sr };
-    const ver = (b[o + 1] >> 3) & 3, br = (ver === 3 ? BR1 : BR2)[b[o + 2] >> 4]; sr = SR[ver][(b[o + 2] >> 2) & 3];
+    if (b[o] !== 0xff || (b[o + 1] & 0xe0) !== 0xe0) return { ok: false, frames: n, sr, rates };
+    const ver = (b[o + 1] >> 3) & 3, br = (ver === 3 ? BR1 : BR2)[b[o + 2] >> 4]; sr = SR[ver][(b[o + 2] >> 2) & 3]; rates.push(br);
     o += Math.floor(((ver === 3 ? 144 : 72) * br * 1000) / sr) + ((b[o + 2] >> 1) & 1); n++;
   }
-  return { ok: o === b.length, frames: n, sr, samplesPerFrame: 1152 };
+  return { ok: o === b.length, frames: n, sr, samplesPerFrame: 1152, rates };
 }
 
 export default async ({ base, page: newPage, ok, info, download, tmp }) => {

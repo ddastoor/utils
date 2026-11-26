@@ -137,15 +137,6 @@ The owner adds items here in chat ("add … to to do"). Newest instructions win.
       sound itself is quieter than what one hears, offer "Bring the sound to a normal loudness" (EBU R128, as the FFmpeg
       tab's loudness job). The suite holds the level to within 0.5 dB.
 
-22. **FFmpeg, "Extract audio": MP3 for the download** (owner, 26 Nov 2026: "in the extract audio option of the FFmpeg app,
-    the extracted audio is by default in the .m4a format. Add an MP3 audio formats also for the download.")
-    - **Today:** the job has a list "Audio as" — "Keep the original codec (no quality loss)" first and chosen (a video's
-      AAC sound comes out as .m4a), then MP3 (LAME, V2 ≈ 190 kbps) and WAV. It was not found: a list under the job,
-      its first entry already chosen.
-    - **To do:** the choice in plain sight — buttons for the format (as it is · MP3 · WAV · FLAC · OGG Opus), MP3 with
-      its quality (128 / 192 / 320 kbps or V2); and on the result, beside the .m4a, **"Download as MP3"** made from the
-      sound just extracted (no second run); the format chosen kept while the tab is open. The suite: MP3 frames, the
-      bitrate, the length and the level equal to the original's.
 24. **Screenshot: draw a rectangle with the mouse to take the screenshot** (owner, 26 Nov 2026: "In the screenshot app, add
     the ability for the user to draw a rectangular area with his mouse also as an option to take the screenshot")
     - **Today:** share a screen, a window or a tab once → "Take screenshot" (now or after 3 / 5 / 10 s) takes the whole
@@ -180,6 +171,13 @@ The owner adds items here in chat ("add … to to do"). Newest instructions win.
 
 
 ## Done
+- **22. FFmpeg, "Extract audio": MP3 for the download** (owner, 26 Nov 2026: "in the extract audio option of the FFmpeg app,
+  the extracted audio is by default in the .m4a format. Add an MP3 audio formats also for the download.") — done 26 Nov
+  2026: the formats are buttons in plain sight — As it is (.m4a, named after the file's own sound) · MP3 · WAV · FLAC · OGG
+  (Opus) —, MP3 with its quality (VBR V2 ≈ 190 kb/s, the default; 128 / 192 / 320 kb/s); an extracted sound that is not MP3
+  has **"Download as MP3"** beside its Download (made from the file just extracted, by the same FFmpeg, no second run);
+  the format and quality kept while the page is open. Checked: LAME's frames, the bitrate in every frame, the length and
+  the loudness of the original (unit ffjobs 202, e2e ffmpeg). CLAUDE.md §3 FFmpeg, "Extract audio in plain sight".
 - **23. FFmpeg: the sound of the results quieter than the original?** (owner, 26 Nov 2026: "In the FFmpeg app, the audio
   volume of the output resultant videos and audio files seems to be lower than when I hear it from the original. Please
   confirm if this is the case. If this is indeed the case, then please fix.") — **confirmed, and fixed 26 Nov 2026.**

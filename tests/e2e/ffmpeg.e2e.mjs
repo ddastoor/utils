@@ -52,13 +52,24 @@ export default async ({ base, page: newPage, ok, info, download }) => {
   const wm = await media(w);
   ok(Math.abs(wm.duration - 3) < 0.2 && wm.w === 640, `WebM plays: ${wm.duration.toFixed(2)} s, ${wm.w}×${wm.h}`);
 
-  // extract audio: copy (AAC in M4A), and as MP3
+  // extract audio: copy (AAC in M4A), and as MP3 — the formats in plain sight, MP3 with its quality, "Download as MP3"
+  // on the .m4a (to-do #22: the owner found only the .m4a — the list's first entry, already chosen)
   await task('Extract audio');
-  const a1 = mp4Info(readFileSync(await run()));
+  const radio = (name) => page.getByRole('radio', { name, exact: true });
+  const fmts = await page.getByRole('radiogroup').first().getByRole('radio').allTextContents();
+  ok(fmts.join(' · ') === 'As it is (.m4a) · MP3 · WAV · FLAC · OGG (Opus)' && await radio('As it is (.m4a)').getAttribute('aria-checked') === 'true', `the formats as buttons, the file's own kind named: ${fmts.join(' · ')}`);
+  const a1p = await run(), a1 = mp4Info(readFileSync(a1p));
   ok(a1.audio?.codec === 'mp4a' && !a1.video, 'audio copied to .m4a without re-encoding');
-  await combo('Audio as').selectOption('mp3');
+  const am = await download(page, () => page.locator('.ff-out').first().getByRole('button', { name: 'Download as MP3' }).click());
+  const amf = mp3Frames(readFileSync(am)), amu = await audioOf(am), mmed = amf.rates.slice(1).sort((x, y) => x - y)[amf.rates.length >> 1];
+  ok(/-audio\.mp3$/.test(am) && amf.ok && Math.abs(amu.freq - 440) < 3 && Math.abs(amu.duration - 3) < 0.1 && new Set(amf.rates.slice(1)).size > 1,
+    `"Download as MP3" on the .m4a: ${am.split(/[\\/]/).pop()}, valid frames, ${amu.duration.toFixed(2)} s, 440 Hz, VBR V2 (frames at ${[...new Set(amf.rates.slice(1))].sort((x, y) => x - y).join(', ')} kb/s, median ${mmed})`);
+  await radio('MP3').click();
+  ok(await page.getByText('MP3 quality').isVisible() && await radio('VBR V2 (≈ 190 kb/s)').getAttribute('aria-checked') === 'true', 'MP3 shows its quality, VBR V2 first');
+  await radio('320 kb/s').click();
   const a2 = await run(), f2 = mp3Frames(readFileSync(a2)), au2 = await audioOf(a2);
-  ok(f2.ok && Math.abs(au2.freq - 440) < 3, `audio as MP3: valid frames, 440 Hz (${au2.freq.toFixed(1)})`);
+  ok(f2.ok && Math.abs(au2.freq - 440) < 3 && f2.rates.slice(1).every((r) => r === 320) && Math.abs(au2.duration - 3) < 0.1 && !(await page.locator('.ff-out').first().getByRole('button', { name: 'Download as MP3' }).count()),
+    `audio as MP3 at 320 kb/s: every frame 320 kb/s, ${au2.duration.toFixed(2)} s, 440 Hz (${au2.freq.toFixed(1)}); no "Download as MP3" beside an MP3`);
 
   // remove audio
   await task('Remove audio');
@@ -386,6 +397,23 @@ export default async ({ base, page: newPage, ok, info, download }) => {
   await page.locator('input[type=file]').nth(2).setInputFiles(M('clip.mp4'));
   await page.waitForTimeout(1500);
   await level(M('clip.mp4'), 'join two mono clips: mono, the same loudness', /^aac,1,mono$/);
+  // to-do #22: the MP3 at the original's loudness; the format and quality kept through another file, and through
+  // leaving the tab and coming back (while the page is open — nothing is stored)
+  await choose(M('stereo.mp4'), /Audio: aac.*stereo/);
+  await task('Extract audio');
+  ok(await radio('MP3').getAttribute('aria-checked') === 'true' && await radio('320 kb/s').getAttribute('aria-checked') === 'true', 'MP3 at 320 kb/s still chosen for another file');
+  await level(M('stereo.mp4'), 'the stereo sound as MP3 at 320 kb/s: the same loudness', /^mp3,2,stereo$/);
+  await page.goto(`${base}#/hash`); await page.getByRole('heading', { name: /Hash/ }).first().waitFor();
+  await page.goto(`${base}#/ffmpeg`);
+  await choose(M('stereo.mp4'), /Audio: aac.*stereo/);
+  await task('Extract audio');
+  ok(await radio('MP3').getAttribute('aria-checked') === 'true' && await radio('320 kb/s').getAttribute('aria-checked') === 'true', 'the choice kept after leaving the tab and coming back');
+  await radio('As it is (.m4a)').click();
+  await run();
+  const sm = await download(page, () => page.locator('.ff-out').first().getByRole('button', { name: 'Download as MP3' }).click());
+  const smf = mp3Frames(readFileSync(sm));
+  if (nativeFF) { const a = loud(M('stereo.mp4')), b = loud(sm); ok(smf.ok && smf.rates.slice(1).every((r) => r === 320) && Math.abs(b - a) <= 0.5 && /^mp3,2,stereo$/.test(lay(sm)), `"Download as MP3" of the stereo .m4a: 320 kb/s as chosen, ${lay(sm)}, ${a} → ${b} LUFS`); }
+  else ok(smf.ok && smf.rates.slice(1).every((r) => r === 320), '"Download as MP3" of the stereo .m4a: 320 kb/s as chosen');
   const errs = [...longErrors, ...page.errors].filter((e) => !/FFmpeg failed|only 3 s long|change nothing|Type the text|Choose the logo|under half a second|at least one more clip|differ in size|needs a video/.test(e)); // refusals, logged by the button
   ok(!errs.length, `no page errors ${errs.slice(0, 3).join(' | ')}`);
   info('ffmpeg.wasm 0.12 core (FFmpeg 5.1.4)');

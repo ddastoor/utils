@@ -50,7 +50,10 @@ bitrate, an AC-3's 5.1(side) failed as WebM / was "unknown" in MP4; all fixed in
 (`OPUS_SAFE`). New fixtures `stereo.mp4`, `surround.mkv` (`node scripts/make-sound-fixtures.mjs`). The owner asked (26 Nov)
 for cool new FFmpeg uses (22 listed in chat — none built; add to todo.md only if he picks) and whether an own FFmpeg build
 would undo these fixes (no: they are FFmpeg arguments; it would be its own to-do, after batch 3, only at his word).
-**Next (the owner's order):** batch 3 — #22 FFmpeg MP3, then #21 Screencast countdowns + sound level (todo.md Open); then
+**#22 FFmpeg "Extract audio" MP3: DONE (26 Nov 2026)** (todo.md Done #22): format buttons (As it is · MP3 · WAV · FLAC ·
+OGG), MP3 quality (V2 / 128 / 192 / 320), "Download as MP3" on an extracted sound (`mp3Of`), the choice kept while the page
+is open (`keptAudio` in `src/tools/ffmpeg.ts`).
+**Next (the owner's order):** batch 3 — #21 Screencast countdowns + sound level (todo.md Open); then
 batch 4 (#24, #28 Screenshot), 5 (#15, #17, #16), 6 (#14 Text Diff), 7 (#20 Studio voice); then the potentials process.
 
 ## ▶ SYNC POINT — 21 Nov 2026, night (read this first; it supersedes the older "NOW" notes below)

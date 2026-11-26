@@ -4,13 +4,17 @@
 // line is shown so it can be copied to a real terminal, or edited in "Your own arguments".
 import { h, card, field, actions, button, select, input, segmented, toggle, slider, stack, note, progress, filePicker, outputBox, toast, errMsg, fmtBytes, fmtTime, baseName, extOf, downloadBlob, clear, type Mount } from '../ui';
 import { onLeave } from '../lifecycle';
-import { JOB_GROUPS, DEFAULTS, EMPTY_PROBE, buildJob, parseProbe, secondFor, asJpegName, type Job, type Probe, type JobCtx } from '../lib/ffjobs';
+import { JOB_GROUPS, DEFAULTS, EMPTY_PROBE, buildJob, parseProbe, secondFor, asJpegName, keptAudioExt, mp3Of, type Job, type Probe, type JobCtx } from '../lib/ffjobs';
 import { loadImg, encodeImg } from '../lib/imgio';
 import { liveCamera } from '../lib/livecam';
 
 const FORMATS: Array<[string, string]> = [['mp4', 'MP4 (H.264 + AAC)'], ['webm', 'WebM (VP8 + Opus)'], ['mkv', 'MKV (copy streams)'], ['mov', 'MOV (H.264 + AAC)'], ['mp3', 'MP3 audio'], ['m4a', 'M4A audio (AAC)'], ['wav', 'WAV audio'], ['flac', 'FLAC audio'], ['ogg', 'OGG audio (Opus)'], ['gif', 'GIF']];
 const quote = (s: string) => (/^[\w.\-/:=]+$/.test(s) ? s : `"${s.replace(/(["\\$`])/g, '\\$1')}"`);
 const FONTS = ['NotoSans_400Regular.ttf', 'NotoSans_700Bold.ttf'];
+/** "Extract audio"'s format and MP3 quality, kept while the page is open — through other files and other tabs (to-do
+ *  #22: "the format chosen kept while the tab is open"); nothing is stored (stateless site). */
+const keptAudio = { aud: DEFAULTS.aud as string, mp3q: DEFAULTS.mp3q as string };
+const MP3Q: Array<[string, string]> = [['v2', 'VBR V2 (≈ 190 kb/s)'], ['128', '128 kb/s'], ['192', '192 kb/s'], ['320', '320 kb/s']];
 
 export const mount: Mount = (root) => {
   let ff: any = null, loading: Promise<any> | null = null, running = false, onProg: ((p: number) => void) | null = null;
@@ -23,7 +27,7 @@ export const mount: Mount = (root) => {
   /** the clips of "Join clips": the chosen file first; each added clip gets the name in3, in4 … inside FFmpeg */
   let clips: Array<{ file: File; name: string; probe: Probe }> = [], clipSeq = 2;
   let job: Job = 'convert';
-  const o: Record<string, any> = { ...DEFAULTS };
+  const o: Record<string, any> = { ...DEFAULTS, ...keptAudio };
   const prog = progress();
   const status = h('div', { class: 'muted small', 'aria-live': 'polite' });
   const cmd = outputBox({ rows: 3, mono: true });
@@ -75,7 +79,14 @@ export const mount: Mount = (root) => {
     if (job === 'join') renderClips();
     const parts: Record<Job, () => Array<Node | null>> = {
       convert: () => [sel('To', 'fmt', FORMATS)],
-      audio: () => [sel('Audio as', 'aud', [['copy', 'Keep the original codec (no quality loss)'], ['mp3', 'MP3'], ['wav', 'WAV']])],
+      // to-do #22 (owner: "the extracted audio is by default in the .m4a format. Add an MP3 audio formats also"): the
+      // formats in plain sight (they were a list whose first entry was already chosen), MP3 with its quality
+      audio: () => [field('Save the sound as', segmented<string>([['copy', p1.audio ? `As it is (.${keptAudioExt(p1)})` : 'As it is'], ['mp3', 'MP3'], ['wav', 'WAV'], ['flac', 'FLAC'], ['ogg', 'OGG (Opus)']], o.aud, (v) => { o.aud = keptAudio.aud = v; renderOpts(); })),
+        o.aud === 'mp3' ? field('MP3 quality', segmented<string>(MP3Q, o.mp3q, (v) => { o.mp3q = keptAudio.mp3q = v; update(); })) : null,
+        info2(({ copy: 'The sound exactly as it is in the file: nothing lost, done in seconds. The result can be made MP3 with one click ("Download as MP3").',
+          mp3: 'VBR V2 is LAME\'s recommended setting — hard to tell from the original at about 190 kb/s; 320 kb/s is the most MP3 holds; 128 kb/s for speech and small files.',
+          wav: 'Uncompressed (16-bit PCM): large, opens everywhere.', flac: 'Lossless, about half the size of WAV.',
+          ogg: 'Opus at 128 kb/s (more for 5.1): small and very good.' } as Record<string, string>)[o.aud] ?? '')],
       mute: () => [info2('The video is copied as it is; only the sound is removed.')],
       thumb: () => [h('div', { class: 'row' }, inp('At (seconds or mm:ss)', 'thumbAt'), sel('As', 'thumbFmt', [['jpg', 'JPEG'], ['png', 'PNG']]))],
       frames: () => [h('div', { class: 'row' }, sel('One picture every', 'frameFps', [['1', 'second'], ['0.2', '5 seconds'], ['0.1', '10 seconds'], ['5', '0.2 seconds']]), sel('As', 'frameFmt', [['png', 'PNG'], ['jpg', 'JPEG']]))],
@@ -200,6 +211,7 @@ export const mount: Mount = (root) => {
         const why = !pr.video && !pr.audio && !pr.subs ? (logLines.find((l) => /Invalid data|could not find codec|no such file|end of file|moov atom not found|EBML header parsing failed/i.test(l)) || '').replace(/^.*?: /, '') : '';
         info.textContent = `${my.name} · ${fmtBytes(my.size)}${pr.dur ? ` · ${fmtTime(pr.dur)}` : ''}\n${!pr.video && !pr.audio && !pr.subs ? `FFmpeg finds no video, sound or subtitles in this file${why ? ` (${why.trim()})` : ''} — is it a media file?` : streams.replace(/^\s+/gm, '')}`;
         if (job === 'join') renderClips();
+        if (job === 'audio') renderOpts(); // "As it is (.m4a)" names the file's own kind
         update();
       } catch (e) { info.textContent = `${my.name}: ${errMsg(e)}`; }
     })();
@@ -215,7 +227,7 @@ export const mount: Mount = (root) => {
   async function runJob() {
     if (!main || running) return;
     running = true; stopNote = ''; runBtn.hidden = true; stopBtn.hidden = false; outCard.hidden = true; status.textContent = ''; status.classList.remove('err-text');
-    const t0 = performance.now(), m = main, my = ++jobSeq; // the outputs are named after the file the job was run on
+    const t0 = performance.now(), m = main, my = ++jobSeq, myJob = job; // the outputs are named after the file the job was run on
     // a job stopped before FFmpeg's command began (FFmpeg still loading, the file being mounted) ends at its next step —
     // it used to go on once FFmpeg had loaded and run to the end, after Stop or a new file
     const alive = () => { if (my !== jobSeq) throw new Error('stopped'); };
@@ -252,7 +264,7 @@ export const mount: Mount = (root) => {
       if (!files.length) throw new Error('No output file was produced.');
       if (!live || m !== main) return;
       status.textContent = '';
-      showOutputs(files, performance.now() - t0, b.zip, m);
+      showOutputs(files, performance.now() - t0, b.zip, m, myJob);
     } catch (e) {
       if (!live) return;
       if (stopNote) { status.textContent = stopNote; return; } // stopped on purpose: no error
@@ -274,7 +286,7 @@ export const mount: Mount = (root) => {
   function fresh() { try { ff?.terminate(); } catch { /* gone */ } ff = null; loading = null; fontsIn = false; }
   const mimeOf = (n: string) => ({ mp4: 'video/mp4', mov: 'video/quicktime', webm: 'video/webm', mkv: 'video/x-matroska', gif: 'image/gif', mp3: 'audio/mpeg', m4a: 'audio/mp4', wav: 'audio/wav', flac: 'audio/flac', ogg: 'audio/ogg', png: 'image/png', jpg: 'image/jpeg', mka: 'audio/x-matroska', srt: 'application/x-subrip', vtt: 'text/vtt', ass: 'text/x-ssa' } as Record<string, string>)[extOf(n)] || 'application/octet-stream';
   let urls: string[] = [];
-  async function showOutputs(files: Array<{ name: string; blob: Blob }>, ms: number, zip = 'files', m: File = main!) {
+  async function showOutputs(files: Array<{ name: string; blob: Blob }>, ms: number, zip = 'files', m: File = main!, of: Job = job) {
     urls.forEach(URL.revokeObjectURL); urls = [];
     clear(outs);
     const total = files.reduce((a, f) => a + f.blob.size, 0);
@@ -285,10 +297,51 @@ export const mount: Mount = (root) => {
     for (const f of files.slice(0, 60)) {
       const u = URL.createObjectURL(f.blob); urls.push(u);
       const t = f.blob.type, media = t.startsWith('video/') ? h('video', { src: u, controls: true, class: 'ff-media' }) : t.startsWith('audio/') ? h('audio', { src: u, controls: true }) : t.startsWith('image/') ? h('img', { src: u, class: 'ff-media', alt: f.name }) : null;
+      // an extracted sound that is not MP3 can be had as MP3 at once (to-do #22: "Download as MP3" beside the .m4a)
+      const asMp3 = of === 'audio' && files.length === 1 && extOf(f.name).toLowerCase() !== 'mp3'
+        ? button('Download as MP3', (e: Event) => toMp3(f, e.currentTarget as HTMLButtonElement), { icon: 'Music', small: true, variant: 'secondary', title: 'The sound just extracted, made MP3 at the quality chosen under MP3' }) : null;
       outs.append(h('div', { class: 'ff-out' }, h('div', { class: 'row' }, h('strong', null, f.name), h('span', { class: 'muted small' }, fmtBytes(f.blob.size)),
-        button('Download', () => downloadBlob(f.blob, f.name), { icon: 'Download', small: true, variant: files.length > 1 ? 'secondary' : 'primary' })), files.length <= 6 ? media : null));
+        button('Download', () => downloadBlob(f.blob, f.name), { icon: 'Download', small: true, variant: files.length > 1 ? 'secondary' : 'primary' }), asMp3), files.length <= 6 ? media : null));
     }
     outCard.hidden = false;
+  }
+
+  /** The extracted sound made MP3 by the same FFmpeg — no second run of the job; once made, a second click downloads it. */
+  const mp3Made = new WeakMap<Blob, Blob>();
+  async function toMp3(f: { name: string; blob: Blob }, btn: HTMLButtonElement) {
+    const name = f.name.replace(/\.[^.]+$/, '') + '.mp3', done = mp3Made.get(f.blob);
+    if (done) { downloadBlob(done, name); return; }
+    if (running) { toast('A job is running — wait for it to end.', 'info'); return; }
+    running = true; stopNote = ''; runBtn.hidden = true; stopBtn.hidden = false; btn.disabled = true; status.textContent = ''; status.classList.remove('err-text');
+    const my = ++jobSeq, alive = () => { if (my !== jobSeq) throw new Error('stopped'); };
+    let ran = false;
+    try {
+      const fx = await engine(); alive();
+      try { await fx.unmount('/mp3in'); } catch { /* not mounted */ }
+      try { await fx.createDir('/mp3in'); } catch { /* exists */ }
+      const src = `sound.${extOf(f.name).toLowerCase() || 'bin'}`;
+      await fx.mount('WORKERFS', { files: [new File([f.blob], src, { type: f.blob.type })] }, '/mp3in'); alive();
+      const b = mp3Of(`/mp3in/${src}`, o.mp3q);
+      logLines = []; onProg = (p) => prog.set(p, `Making the MP3… ${Math.round(p * 100)} %`); prog.set(null, 'Making the MP3…');
+      ran = true;
+      let code: number;
+      execing = true;
+      try { code = await fx.exec(['-hide_banner', '-y', ...b.args]); } finally { execing = false; }
+      alive();
+      try { await fx.unmount('/mp3in'); } catch { /* */ }
+      if (code) throw new Error(`FFmpeg failed (exit ${code}): ${logLines.filter((l) => /error|invalid|failed/i.test(l)).slice(0, 2).join(' · ') || 'see the log'}`);
+      const data = await fx.readFile(b.outputs[0]); await fx.deleteFile(b.outputs[0]);
+      const mp3 = new Blob([data as BlobPart], { type: 'audio/mpeg' });
+      mp3Made.set(f.blob, mp3);
+      if (!live) return;
+      downloadBlob(mp3, name);
+      status.textContent = `${name} · ${fmtBytes(mp3.size)}`;
+    } catch (e) {
+      if (!live) return;
+      if (stopNote) { status.textContent = stopNote; return; }
+      if (ran) fresh();
+      status.textContent = errMsg(e); status.classList.add('err-text'); toast(errMsg(e), 'err'); logBox.textContent = logLines.slice(-60).join('\n');
+    } finally { running = false; prog.done(); runBtn.hidden = false; stopBtn.hidden = true; btn.disabled = false; }
   }
 
   const info = h('pre', { class: 'ff-info muted small' });

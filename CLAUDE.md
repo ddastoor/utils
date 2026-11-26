@@ -2591,7 +2591,7 @@ ASS; picture subtitles (DVD / Blu-ray) are refused with the reason), **Expert** 
   renderer when, after about 60 jobs on one FFmpeg, Stop ends a command and Run starts a new FFmpeg; the full Chromium
   build does not (`E2E_CHANNEL=chromium E2E_FF_SAME_PAGE=1 node tests/e2e.mjs ffmpeg`: 72 / 72). The suite therefore runs
   its Stop checks on a fresh page; look again with a newer Playwright (docs/BUGHUNT.md, "FFmpeg after a long session").
-- Tests: unit `tests/unit/ffjobs.test.mjs` (193) — every job's command run by a **native FFmpeg 6.1** (`apt install
+- Tests: unit `tests/unit/ffjobs.test.mjs` (202) — every job's command run by a **native FFmpeg 6.1** (`apt install
   ffmpeg`) on the fixtures and read back with ffprobe, decoded pixels and sound levels; every refusal; the probe reader
   against ffprobe. e2e `tests/e2e/ffmpeg.e2e.mjs` runs every new job on ffmpeg.wasm in the browser. Fixtures
   `tests/fixtures/media/` subs.srt, clip-subs.mkv, silent-320.mp4, pauses.wav, kf6.mp4.
@@ -2626,7 +2626,19 @@ an AC-3's 5.1(side), by the native FFmpeg 6.1 and by the tab's FFmpeg 5.1 in the
 - **Kept, and said:** "Normalise loudness" brings the file to −16 LUFS on purpose — louder or quieter (the tab says so);
   a speed change of noise-like sound (rain, applause) loses up to 1.3 dB — atempo's WSOLA crossfades its pieces, which
   adds unrelated sound in power — while speech and music keep their level (within 0.4 dB).
-Tests: unit `ffjobs` 193 (the arguments; 14 jobs × mono, stereo and 5.1 files run natively within 0.5 dB of the
+**"Extract audio" in plain sight (to-do #22; owner, 26 Nov 2026: "the extracted audio is by default in the .m4a format. Add
+an MP3 audio formats also for the download.")** — MP3 was there, in a list whose first entry ("Keep the original codec")
+was already chosen, and was not found. Now buttons: **As it is (.m4a)** — the file's own kind named after the probe
+(`keptAudioExt`) — · **MP3** · **WAV** · **FLAC** · **OGG (Opus)**; MP3 shows its quality — **VBR V2** (LAME's recommended
+setting, ≈ 190 kb/s; the default), **128**, **192** or **320 kb/s** (`mp3Args`). An extracted sound that is not MP3 gets
+**"Download as MP3"** beside its Download: the file just extracted is made MP3 by the same FFmpeg at the quality chosen
+under MP3 (`mp3Of`; no second run of the job; Stop works; a second click downloads the same MP3). The format and the
+quality are kept while the page is open — through other files and other tabs (module memory; nothing stored). Unit
+`ffjobs`: the arguments; MP3 at V2 / 128 / 320 natively — LAME's frames, the bitrate, 3.00 s, the original's loudness;
+"Download as MP3" of an .m4a. e2e: the five buttons, "Download as MP3" on the .m4a (valid frames, VBR, 440 Hz, the length),
+320 kb/s in every frame, the choice kept through another file and through leaving the tab, the MP3 of a stereo .m4a at the
+original's loudness.
+Tests: unit `ffjobs` 202 (the arguments; 14 jobs × mono, stereo and 5.1 files run natively within 0.5 dB of the
 original — a trimmed or cut file against the same part —, 5.1 mixed down within −1 – 0 dB, mono → stereo, joins, the
 music under a mono voice against a reference mix); e2e `ffmpeg` (stereo → WebM / OGG and own arguments with Opus run;
 5.1(side) → WebM / MP4 as 5.1; mono → stereo and joins at the original's loudness — read by the native FFmpeg where it is

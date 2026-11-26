@@ -93,6 +93,12 @@ export default async (t, { load, root }) => {
   t.eq([raw('-i in1.wav -c:a libopus out.ogg'), raw('-i in1.mp4 -c:v libvpx out.webm'), raw('-i in1.mp4 -c:a libopus -compression_level 10 out.ogg'), raw('-i in1.mp4 -c copy out.webm'), raw('-i in1.mp4 -an -c:v libvpx out.webm')],
     ['-i in1.wav -c:a libopus -compression_level:a 4 out.ogg', '-i in1.mp4 -c:v libvpx -compression_level:a 4 out.webm', '-i in1.mp4 -c:a libopus -compression_level 10 out.ogg', '-i in1.mp4 -c copy out.webm', '-i in1.mp4 -an -c:v libvpx out.webm'],
     'own arguments that make Opus get complexity 4, unless they set one (or copy, or have no sound)');
+  // ---------------------------------------------------------------- "Extract audio" in five formats (to-do #22)
+  t.eq(['copy', 'mp3', 'wav', 'flac', 'ogg'].map((aud) => J.buildJob('audio', { ...J.DEFAULTS, aud }, C(st)).outputs[0]), ['audio.m4a', 'audio.mp3', 'audio.wav', 'audio.flac', 'audio.ogg'], 'extract audio: as it is (AAC in .m4a), MP3, WAV, FLAC, OGG');
+  t.eq(['v2', '128', '192', '320'].map((mp3q) => A('audio', { aud: 'mp3', mp3q }, C(st))), ['-i in1.mp4 -vn -c:a libmp3lame -q:a 2 audio.mp3', '-i in1.mp4 -vn -c:a libmp3lame -b:a 128k audio.mp3', '-i in1.mp4 -vn -c:a libmp3lame -b:a 192k audio.mp3', '-i in1.mp4 -vn -c:a libmp3lame -b:a 320k audio.mp3'], 'MP3 at VBR V2 (the default) or a constant 128 / 192 / 320 kb/s');
+  t.eq([J.keptAudioExt(P({ acodec: 'aac' })), J.keptAudioExt(P({ acodec: 'opus' })), J.keptAudioExt(P({ acodec: 'ac3' }))], ['m4a', 'ogg', 'mka'], 'the file a sound is kept in as it is');
+  t.eq(J.mp3Of('/mp3in/sound.m4a', '192').args, ['-i', '/mp3in/sound.m4a', '-vn', '-c:a', 'libmp3lame', '-b:a', '192k', 'mp3.mp3'], '"Download as MP3": the extracted file made MP3 at the quality chosen');
+  refuse('audio', { aud: 'aiff' }, C(st), /not a sound format here/, 'an unknown sound format');
   const tw = J.buildJob('trim', { ...J.DEFAULTS, start: '1', end: '2', exact: true }, C(P({ ...vid, vcodec: 'vp8', acodec: 'vorbis', channels: 2, layout: 'stereo' }), { in1: 'in1.webm', ext: 'webm' }));
   t.ok(tw.outputs[0] === 'out.mp4' && /-c:a aac -b:a 160k out\.mp4$/.test(tw.args.join(' ')), 'exact trim of a WebM: H.264 needs an MP4 (it went into the WebM and failed)');
   // the ASS text file
@@ -306,6 +312,23 @@ export default async (t, { load, root }) => {
     const ref = join(r.dir, 'ref.wav');
     execFileSync('ffmpeg', ['-v', 'error', '-y', '-i', M('clip.mp4'), '-stream_loop', '-1', '-i', st3, '-filter_complex', '[0:a]pan=stereo|c0=c0|c1=c0[s];[1:a]volume=0.3[m];[s][m]amix=inputs=2:duration=first:normalize=0[a]', '-map', '[a]', ref]);
     t.ok(info(r.out).a.channels === 2 && near(loud(r.out), loud(ref), 0.5), `music under a mono voice: as loud as the voice at full level + the music (${loud(ref)} / ${loud(r.out)} LUFS)`);
+  }
+  // "Extract audio" as MP3 (to-do #22): LAME's frames, the bitrate chosen, the length and the loudness of the original
+  for (const q of ['v2', '128', '320']) {
+    r = runJob('audio', { aud: 'mp3', mp3q: q }, [stereo]);
+    if (ok(r, `MP3 ${q}`)) {
+      const a = info(r.out).a, br = +a.bit_rate / 1000, d = loud(r.out) - loud(stereo);
+      t.ok(a.codec_name === 'mp3' && a.channels === 2 && near(info(r.out).dur, 3, 0.06) && Math.abs(d) <= 0.5 && (q === 'v2' ? br > 64 && br < 260 : near(br, +q, +q * 0.02)),
+        `extract as MP3 ${q === 'v2' ? 'VBR V2' : `${q} kb/s`}: ${br.toFixed(0)} kb/s, ${info(r.out).dur} s, ${d >= 0 ? '+' : ''}${d.toFixed(1)} dB`);
+    }
+  }
+  r = runJob('audio', { aud: 'copy' }, [stereo]);
+  if (ok(r, 'extract as it is')) {
+    const mdir = join(r.dir, 'mp3in'); mkdirSync(mdir); copyFileSync(r.out, join(mdir, 'sound.m4a'));
+    const b = J.mp3Of(join(mdir, 'sound.m4a'), 'v2');
+    execFileSync('ffmpeg', ['-hide_banner', '-loglevel', 'error', '-y', ...b.args], { cwd: r.dir, stdio: 'pipe' });
+    const mp3 = join(r.dir, 'mp3.mp3'), d = loud(mp3) - loud(stereo);
+    t.ok(info(mp3).a.codec_name === 'mp3' && near(info(mp3).dur, 3, 0.06) && Math.abs(d) <= 0.5, `"Download as MP3" of the extracted .m4a: MP3, ${info(mp3).dur} s, ${d >= 0 ? '+' : ''}${d.toFixed(1)} dB`);
   }
   // own arguments making stereo Opus: complexity 4 is added — the command runs (natively it ran before too; the e2e
   // suite runs it on the tab's FFmpeg, where it crashed)
