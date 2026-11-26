@@ -7,6 +7,7 @@
 # One lock for every system (uv pip compile --universal, Python 3.12); PyTorch's own packages keep their version but not
 # their build (+cpu …: uv picks the build for the PC's graphics card), and NVIDIA's libraries and Triton are left to that
 # build. Needs uv. Run after a change to an engine's packages, then the generator; run the engine (driver.py) after.
+# To lock again as of a day (the versions that ran then), give uv that day: UV_EXCLUDE_NEWER=2026-11-21T23:59:59Z.
 import importlib.util, json, os, re, subprocess, sys, tempfile
 from packaging.markers import Marker
 here = os.path.dirname(os.path.abspath(__file__))
@@ -42,12 +43,12 @@ def lock(packages):
             continue
         spec, _, mark = line.partition(' ; ')
         if mark and not any(Marker(mark).evaluate(t) for t in TARGETS):
-            continue  # for no system the scripts install on (another Python, macOS …)
+            continue  # for no system the scripts install on (another Python, macOS, a browser's Python …)
+        # (a line for Windows *or* a browser's Python stays: pandas 3 needs tzdata on both — it was dropped with every line
+        # that named emscripten, and F5-TTS's Windows run installed a tzdata no lock had chosen; to-do #13)
         name = re.split(r'[=<>!~\[ ]', spec, maxsplit=1)[0].lower()
         if name.startswith('nvidia-') or name == 'triton':
             continue  # what PyTorch's CUDA build needs comes with that build
-        if re.search(r"sys_platform == 'emscripten'", mark) and '!=' not in mark:
-            continue  # a browser's Python: never on a PC
         spec = re.sub(r'\+(cpu|cu\d+|rocm[\d.]+|xpu)$', '', spec)
         if name in TORCH:
             mark = ''  # the same version everywhere; the build is uv's choice (UV_TORCH_BACKEND=auto)

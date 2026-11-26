@@ -786,6 +786,13 @@ def kyutai(job, voices):
     kyutai/tts-voices, conditioned on the embedding Kyutai computed from that recording for this model (the recording
     itself is not processed here). The pace: the model's bonus for the pauses it puts between words (positive is slower).
     moshi asks for a PyTorch below 2.10 (its own pin)."""
+    import shutil
+    # moshi compiles some of its functions with torch.compile, which needs a C++ compiler on the PC — Microsoft's cl on
+    # Windows (an ordinary PC has none: the first run on Windows stopped with "Compiler: cl is not found"), g++ or clang++
+    # on Linux (not there on a fresh desktop). Without one, moshi's own switch runs them as they are (to-do #13).
+    if not os.environ.get('NO_TORCH_COMPILE') and not any(shutil.which(c) for c in (('cl',) if os.name == 'nt' else ('g++', 'c++', 'clang++'))):
+        os.environ['NO_TORCH_COMPILE'] = '1'
+        log('  (no C++ compiler on this PC: Kyutai runs without torch.compile, a little more slowly)')
     import numpy as np
     import torch
     from pathlib import Path
