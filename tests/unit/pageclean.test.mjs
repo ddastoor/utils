@@ -71,6 +71,11 @@ export default async (t, { load, wasm }) => {
   const arrows = [[74, 447, 8, 6], [74, 464, 8, 7], [74, 518, 7, 6]], ii = [110, 499, 7, 9];
   t.ok(arrows.every((b) => rr.list.some((m) => Math.abs(m.x0 - b[0]) <= 1 && Math.abs(m.y0 - b[1]) <= 1) && darkest(rr.img, b) > 200 && darkest(rep, b) < 140), `a soft report: its three ➢ cleared and listed (${arrows.map((b) => `${darkest(rep, b)} → ${darkest(rr.img, b)}`).join(', ')})`);
   t.ok(!rr.list.some((m) => m.x0 >= 100 && m.x0 <= 120) && darkest(rr.img, ii) === darkest(rep, ii) && rr.labels === 1, `… and its "ii." stays, counted as a label (${darkest(rep, ii)} → ${darkest(rr.img, ii)}; ${rr.labels} label)`);
+  // - a form (the docs' check set, form-frame): "Scuba Configuration UI" — on this frame "Scuba Configuration" is one blob,
+  //   longer than the search for a mark's neighbours reaches, and "UI" after it passed for a ticked box (cleared — #18 —,
+  //   and #31 listed it: the OCR tab dropped the word PaddleOCR had read there and wrote ☑): not the first thing on its line
+  const softForm = readPng(readFileSync(root + 'tests/fixtures/ocr/soft-form.png')), rfm = ip.clearMarks(softForm, 7), ui = [183, 304, 10, 9];
+  t.ok(rfm.marks === 0 && rfm.list.length === 0 && darkest(rfm.img, ui) === darkest(softForm, ui) && darkest(softForm, ui) < 170, `a soft form: "UI" after a word run together is no mark (${rfm.marks} cleared; its darkest grey ${darkest(softForm, ui)} → ${darkest(rfm.img, ui)})`);
   t.ok(Math.abs(r.slant) < 0.3, `a level page measures level (${r.slant}°)`);
   // the table: its grid gone (a band along each cell's edges), its words there (the middle of each cell)
   const edge = (b, s) => [b[0] - 1, b[1] + Math.round(b[3] * s), 3, 2];

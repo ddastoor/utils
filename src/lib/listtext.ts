@@ -50,7 +50,11 @@ export function listText(r: Pick<OcrResult, 'text' | 'words' | 'lines'>, marks: 
   // the x-height: imgproc's on the page read, else from the words' heights (a word's box reaches from its ascenders to its
   // descenders)
   const hs = r.words.map((w) => w.y1 - w.y0).filter((v) => v > 0).sort((a, b) => a - b);
-  const X = xh > 0 ? xh : hs.length ? 0.6 * hs[hs.length >> 1] : 10, tol = Math.max(4, 1.5 * X);
+  // tol: how far apart two marks may stand and be at one level; run: how far left of an item's text a line may start and
+  // still run on from it (it starts right under that text — a table after a checklist began 1.0 – 1.3 x-heights left of
+  // its items' text and was set out as the last item's run-on lines; measured: 59 → 33 lines set out where the page has
+  // none, every run-on line kept)
+  const X = xh > 0 ? xh : hs.length ? 0.6 * hs[hs.length >> 1] : 10, tol = Math.max(4, 1.5 * X), run = Math.max(4, 0.75 * X);
   const hOf = (w: OcrWord) => Math.max(1, w.y1 - w.y0 + 1), midY = (w: { y0: number; y1: number }) => (w.y0 + w.y1) / 2;
 
   // 1. each mark to the word it stood before: the first word that starts right of the mark's middle, on the line whose
@@ -106,7 +110,7 @@ export function listText(r: Pick<OcrResult, 'text' | 'words' | 'lines'>, marks: 
     } else if (stack.length) {
       // a line an item runs on to: it starts under the text of an open item (the deepest one it stands under)
       let k = stack.length - 1;
-      while (k >= 0 && first.x0 < stack[k].textX - tol) k--;
+      while (k >= 0 && first.x0 < stack[k].textX - run) k--;
       if (k >= 0) { stack.length = k + 1; indent = stack[k].lead; inList = true; } else stack = [];
     }
     // the paragraph break before it, left out between the lines of one list that stand as close as lines (below the line

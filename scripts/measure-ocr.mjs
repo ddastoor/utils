@@ -280,13 +280,17 @@ async function main() {
         if (process.env.OCR_SAVE) {
           writeFileSync(join(process.env.OCR_SAVE, `${name}.${p}.ppm`), ppm(res.img));
           writeFileSync(join(process.env.OCR_SAVE, `${name}.${p}.pre.ppm`), ppm(res.pre));
-          // the picture imgproc's p_clear_marks gets (readPage's clean-up up to it), lossless: the unit fixtures of
-          // tests/unit/pageclean.test.mjs (soft-memo.png, soft-report.png)
+        }
+        // the picture imgproc's p_clear_marks gets (readPage's clean-up up to it), lossless — OCR_SAVE with the rest, or
+        // OCR_MARKS=DIR alone: the unit fixtures of tests/unit/pageclean.test.mjs (soft-memo.png …), and a change to
+        // p_clear_marks checked on every photo at once (the photos whose cleared picture changes are the ones to read again)
+        const marksDir = process.env.OCR_MARKS || process.env.OCR_SAVE;
+        if (marksDir) {
           let x = { width: res.pre.width, height: res.pre.height, data: new Uint8ClampedArray(res.pre.data) };
           if (res.inverted) x = ip.invert(x);
           if (p.includes('screen')) x = ip.blur(x, 1.1);
           x = ip.clearWash(ip.docEnhance(x, 1)).img;
-          writeFileSync(join(process.env.OCR_SAVE, `${name}.${p}.marks.png`), writePng(x));
+          writeFileSync(join(marksDir, `${name}.${p}.marks.png`), writePng(x));
         }
         data = res.r;
         // OCR_LIST=DIR: the OCR tab's text, the page's lists set out (src/lib/listtext.ts — to-do #31), and the marks

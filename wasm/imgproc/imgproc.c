@@ -1748,6 +1748,23 @@ static int cm_darkest(const uint8_t *px, const int32_t *pix, int n) {
     for (int k = 0; k < n; k++) { const uint8_t *p = px + (size_t)pix[k] * 4; int v = (77 * p[0] + 150 * p[1] + 29 * p[2]) >> 8; if (v < m) m = v; }
     return m;
 }
+/* a run of ink just before a component on its line that the search for its neighbours does not look at — a word or words
+   run together on a soft photo, longer than the search reaches (it looks at what has its middle within about five
+   x-heights): then the component is not the first thing on its line (to-do #31: "Scuba Configuration UI" on a soft frame
+   of a form — "Scuba Configuration" one blob, unseen, and "UI" cleared as a ticked box). Tall ink (a picture, a rule
+   standing up) does not count, as in the search. Asked only of what would be cleared — a few components a page. */
+static int cm_run_before(const cm_comp *cs, int nc, const uint8_t *gone, const cm_comp *c, float xh, float t) {
+    float ccx = (c->x0 + c->x1) * 0.5f, ctop = c->y0 - ccx * t, cbot = c->y1 - ccx * t;
+    for (int j = 0; j < nc; j++) {
+        const cm_comp *o = &cs[j];
+        if (gone[j] || o->x1 >= c->x0 || c->x0 - o->x1 > 2.5f * xh) continue;
+        int ow = o->x1 - o->x0 + 1, oh = o->y1 - o->y0 + 1;
+        if (ow <= 5 * xh || oh > 3 * xh) continue;
+        float ox = (o->x0 + o->x1) * 0.5f, otop = o->y0 - ox * t, obot = o->y1 - ox * t;
+        if (obot >= ctop - 0.5f * xh && otop <= cbot + 0.5f * xh) return 1;
+    }
+    return 0;
+}
 /* the quarter of a box (x0, y0)–(x1, y1) a pixel lies in: 0 top left, 1 top right, 2 bottom left, 3 bottom right */
 #define CM_QUARTER(x, y, x0, y0, x1, y1) ((2 * (y) > (y0) + (y1) ? 2 : 0) + (2 * (x) > (x0) + (x1) ? 1 : 0))
 static int cm_cmpi(const void *a, const void *b) { int x = *(const int *)a, y = *(const int *)b; return (x > y) - (x < y); }
@@ -2176,6 +2193,7 @@ API int p_clear_marks(uint8_t *px, int w, int h, int what, int32_t *out, int32_t
 #endif
                 if (wide >= 2) continue;
             }
+            if (cm_run_before(cs, nc, gone, c, xh, t)) continue;
             /* a list's label kept (see above): counted, as the marks are, for what they tell of the page — a list (the
                reading path decides with them which picture PaddleOCR reads, and whether to read the page again) */
             if (letter) { labels++; continue; }
@@ -2271,6 +2289,7 @@ API int p_clear_marks(uint8_t *px, int w, int h, int what, int32_t *out, int32_t
                     if (f->x0 < 320) fprintf(stderr, "  holes=%d harea=%d fill=%.2f hullfill=%.2f corners=%d frame=%d ring=%d\n", holes, harea, (f->n + harea) / box, (f->n + harea) / hull, cm_corners(pix2 + f->off, f->n, w, f->x0, f->y0, bw, bh, 0.22f), frame, ring);
 #endif
                     if (!frame && !ring) continue;
+                    if (cm_run_before(cs, nc, gone, f, xh, t)) continue;
                     fk[nf] = k2; fholes[nf] = holes; fkind[nf] = frame ? CM_BOX : CM_RING; nf++;
                 }
                 /* a list: another mark — faint, or cleared above — at the same place (within half an x-height) on another line */
