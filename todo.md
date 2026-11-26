@@ -251,20 +251,6 @@ The owner adds items here in chat ("add … to to do"). Newest instructions win.
     - **The suite:** a known picture shared, a rectangle dragged → exactly those pixels saved (PNG read back); Esc;
       adjusting a corner; a delay; a window shared instead of a screen.
 
-26. **Key Codes: key combinations such as Alt+W shown as one** (owner, 26 Nov 2026: "In the key codes app, can you make alt
-    keys to work? Alt+key seems to be recognized separately. When I press alt+W, I'm not getting the alt+W code. Is this
-    even possible? if so do it.")
-    - **Possible — the browser does say it:** the W key's event carries "Alt held" (`altKey`); the tab shows only the
-      last key pressed — "Alt", then "w" — and the Alt only in the Modifiers row of the table. There is no single code
-      for Alt+W in a browser: it is the key W (code KeyW, keyCode 87) with Alt held.
-    - **To do:** the combination as one, large: "Alt + W" (Ctrl, Alt, Shift, Win / ⌘ in the usual order; the letter from
-      the key's position, so a Mac's Option+W, which types "∑", is still Option + W; AltGr named as AltGr); the list of
-      recent keys gives combinations, a modifier held alone replaced by the combination it starts; a row "As a shortcut"
-      with the forms people paste — `Alt+W`, `alt+w` (VS Code, hotkeys), `e.altKey && e.code === 'KeyW'` (JavaScript),
-      what a terminal receives (Esc w); Windows' lone Alt (it moves the focus to Chrome's menu, and the next key then
-      never reaches the page) held back, as the Keyboard Test does. The combinations Windows or Chrome keep for
-      themselves (Alt+Tab, Alt+F4, Alt+Space; Chrome's Alt+D, Alt+E, Alt+F) are named in the tab — which of them reach
-      a page checked on the Windows runner. The suite: Alt+W, Ctrl+Shift+K, AltGr, a modifier alone, Windows' Alt.
 
 27. **More room for the tab in use: the category's list of apps folds away** (owner, 26 Nov 2026: "the actual real estate on
     the browser for the actual app selected that I'm currently using is considerably reduced because of all the apps listed
@@ -336,6 +322,14 @@ The owner adds items here in chat ("add … to to do"). Newest instructions win.
       two boxes; the boxes emptied by a change of mode.
 
 ## Done
+- **26. Key Codes: key combinations such as Alt+W shown as one** (owner, 26 Nov 2026: "When I press alt+W, I'm not
+  getting the alt+W code. Is this even possible? if so do it.") — done 26 Nov 2026: possible — the W key's event says
+  "Alt held"; the tab now shows "Alt + W" large (AltGr, Win / Super / Command named per system, the key by its place),
+  the recent keys as combinations (a modifier's row taken over by the key pressed while it is held), "As a shortcut"
+  (Alt+W, alt+w, the JavaScript test, what a terminal receives — held to xterm.js itself), Windows' lone Alt taken so
+  Chrome's menu does not steal the next key, and the combinations each system keeps named. `src/lib/keycombo.ts`; unit
+  `keycombo` 28, e2e `keycode` 41. Not done: which reserved combinations reach a page cannot be checked from a test
+  (its keys go straight to the page) — named from Microsoft's and Google's lists.
 - **25. bc console: a bc variable usable as a $ name** (owner, 26 Nov 2026: "> interest=20.78 / > $interest … The interest
   variable should also be set") — done 26 Nov 2026: a variable the session has set (also inside a line with other
   statements, in a loop, a global set in `define`) and scale / ibase / obase are reached as `$interest` (`$Interest`

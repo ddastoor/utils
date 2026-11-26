@@ -1,6 +1,8 @@
 // Software reference tabs: HTTP status codes, MIME types, port numbers, ASCII table, key-code inspector.
 // Static tables + a filter box; nothing to compute (plain TypeScript per the compute rule).
 import { h, card, input, clear, note, copy, toggle, button, type Mount } from '../../ui';
+import { isMac, isWindows } from '../../platform';
+import { describe, terminal, showBytes, modsOf, heldFlags, within, isModifier, MOD_NAMES, type KeyEv, type Mods, type OS } from '../../lib/keycombo';
 
 type Row = string[];
 /** A searchable table: every whitespace-separated word of the query must appear in the row (case-insensitive). */
@@ -258,14 +260,23 @@ export const ascii: Mount = (root) => {
 
 // ------------------------------------------------------------------ Key codes (live event inspector)
 export const keycode: Mount = (root) => {
+  // to-do #26: a key pressed with modifiers is shown as one combination — "Alt + W" — with the forms people paste
+  const os: OS = isMac ? 'mac' : isWindows ? 'windows' : 'linux';
+  let layout: ReadonlyMap<string, string> | undefined; // the keyboard's own characters by place (German: KeyY is Z)
+  (navigator as any).keyboard?.getLayoutMap?.().then((m: ReadonlyMap<string, string>) => { layout = m; }, () => {});
   const big = h('div', { class: 'keycode-big mono' }, '—'), sub = h('div', { class: 'muted center' }, 'Press any key');
-  const tbl = h('tbody'), hist = h('tbody');
+  const tbl = h('tbody'), hist = h('tbody'), forms = h('tbody');
+  const formsCard = card('As a shortcut', h('table', { class: 'tbl' }, forms)); formsCard.hidden = true;
   const fields = (e: KeyboardEvent): Array<[string, string]> => [['event.key', JSON.stringify(e.key)], ['event.code', e.code || '""'], ['event.keyCode (legacy)', String(e.keyCode)], ['event.which (legacy)', String(e.which)],
     ['event.location', `${e.location} (${['standard', 'left', 'right', 'numpad'][e.location] || '?'})`], ['Modifiers', (e.getModifierState?.('AltGraph') ? ['AltGr', e.shiftKey && 'Shift', e.metaKey && 'Meta'] : [e.ctrlKey && 'Ctrl', e.shiftKey && 'Shift', e.altKey && 'Alt', e.metaKey && 'Meta']).filter(Boolean).join(' + ') || 'none'],
     ['event.repeat', String(e.repeat)], ['event.isComposing', String(e.isComposing)], ['getModifierState("CapsLock")', String(e.getModifierState?.('CapsLock') ?? false)]];
+  const row = (k: string, v: string, note?: string) => h('tr', null, h('td', null, k, note ? h('div', { class: 'muted small' }, note) : null), h('td', { class: 'mono' }, v, ' ', h('button', { type: 'button', class: 'btn btn-ghost btn-sm', 'aria-label': `Copy ${k}`, onclick: () => copy(v) }, 'Copy')));
+  /** the row of the recent keys a modifier pressed alone made: the key pressed while it is held takes its place */
+  let open: { tr: HTMLTableRowElement; held: Mods } | null = null;
+  const typing = (e: KeyboardEvent) => { const tgt = e.target as HTMLElement; return !!tgt && /^(INPUT|TEXTAREA|SELECT)$/.test(tgt.tagName); };
   const onKey = (e: KeyboardEvent) => {
+    if (typing(e)) return; // typing in the search box etc.
     const tgt = e.target as HTMLElement;
-    if (tgt && /^(INPUT|TEXTAREA|SELECT)$/.test(tgt.tagName)) return; // typing in the search box etc.
     e.stopPropagation(); // capture phase: the app's own shortcuts (/, Ctrl+K) must not fire here
     // The key is shown, but the browser keeps its own keys: Tab still moves the focus (no keyboard trap), F5 / Ctrl+R
     // still reload, Ctrl+L / Ctrl+T / Ctrl+W, the F-keys and Alt+arrows work. Everything else (letters, Space, arrows,
@@ -273,15 +284,39 @@ export const keycode: Mount = (root) => {
     const browsers = e.key === 'Tab' || /^F\d{1,2}$/.test(e.key) || ((e.ctrlKey || e.metaKey) && !['k', 'K', 's', 'S', 'p', 'P', 'f', 'F'].includes(e.key)) || (e.altKey && /^Arrow|^Home$/.test(e.key));
     const pressing = (e.key === 'Enter' || e.key === ' ') && !!tgt?.closest?.('button, a[href], summary, [role="button"], [role="tab"]'); // a focused button must stay usable from the keyboard
     if (!browsers && !pressing) e.preventDefault();
-    big.textContent = e.key === ' ' ? 'Space' : e.key.length === 1 ? e.key : e.key;
-    sub.textContent = `code ${e.code} · keyCode ${e.keyCode}`;
-    clear(tbl).append(...fields(e).map(([k, v]) => h('tr', null, h('td', null, k), h('td', { class: 'mono' }, v, ' ', h('button', { type: 'button', class: 'btn btn-ghost btn-sm', onclick: () => copy(v) }, 'Copy')))));
-    hist.prepend(h('tr', null, h('td', { class: 'mono' }, JSON.stringify(e.key)), h('td', { class: 'mono' }, e.code), h('td', { class: 'mono num' }, String(e.keyCode))));
+    const ev: KeyEv = { key: e.key, code: e.code, keyCode: e.keyCode, ctrlKey: e.ctrlKey, altKey: e.altKey, shiftKey: e.shiftKey, metaKey: e.metaKey, altGraph: !!e.getModifierState?.('AltGraph') };
+    const c = describe(ev, os, layout), m = modsOf(ev), plain = !c.modOnly && !m.ctrl && !m.alt && !m.altgr && !m.shift && !m.meta;
+    big.textContent = plain ? (e.key === ' ' ? 'Space' : e.key) : c.text;
+    sub.textContent = `code ${e.code} · keyCode ${e.keyCode}${c.types ? ` · types "${c.types}"` : ''}`;
+    clear(tbl).append(...fields(e).map(([k, v]) => row(k, v)));
+    const term = terminal(ev, os), tb = term.bytes != null ? showBytes(term.bytes) : null;
+    clear(forms).append(row('Shortcut', c.short), row('VS Code, hotkeys', c.vscode), row('JavaScript', c.js),
+      tb ? row('A terminal receives', `${tb.text} (${tb.hex})`, 'as xterm.js — the terminal of VS Code — sends it; most terminals agree') : h('tr', null, h('td', null, 'A terminal receives'), h('td', { class: 'muted' }, `nothing — ${term.why}`)));
+    formsCard.hidden = false;
+    // the recent keys, as combinations: Ctrl, then Ctrl + Shift, then Ctrl + Shift + K is one row
+    const cells = [h('td', { class: 'mono' }, plain ? (e.key === ' ' ? 'Space' : e.key) : c.text), h('td', { class: 'mono' }, JSON.stringify(e.key)), h('td', { class: 'mono' }, e.code), h('td', { class: 'mono num' }, String(e.keyCode))];
+    if (open && open.tr.isConnected && within(open.held, heldFlags(ev)) && (c.modOnly || !e.repeat)) {
+      open.tr.replaceChildren(...cells);
+      open = c.modOnly ? { tr: open.tr, held: heldFlags(ev) } : null;
+    } else {
+      const tr = h('tr', null, ...cells) as HTMLTableRowElement;
+      hist.prepend(tr);
+      open = c.modOnly ? { tr, held: heldFlags(ev) } : null;
+    }
     while (hist.children.length > 20) hist.lastElementChild!.remove();
   };
-  addEventListener('keydown', onKey, true);
-  root.append(card(null, big, sub), card('Event properties', h('table', { class: 'tbl' }, tbl)),
-    card('Recent keys', h('table', { class: 'tbl' }, h('thead', null, h('tr', null, h('th', null, 'key'), h('th', null, 'code'), h('th', { class: 'num' }, 'keyCode'))), hist), button('Clear', () => clear(hist), { small: true, icon: 'Eraser' })),
-    note('Use event.key for the character and event.code for the physical key (layout independent). keyCode/which are deprecated but still sent. Browser and OS shortcuts (Ctrl+W, Alt+Tab, Win) may never reach the page.', 'info'));
-  return () => removeEventListener('keydown', onKey, true);
+  // Windows: a lone Alt's release moves the focus to Chrome's menu, and the next key then never reaches the page —
+  // unless the page takes the release too (as the Keyboard Test does)
+  const onUp = (e: KeyboardEvent) => {
+    if (typing(e)) return;
+    if (isModifier(e)) open = null; // a modifier let go ends the combination: the next press is a row of its own
+    if (e.key === 'Alt' || e.key === 'AltGraph') { e.preventDefault(); e.stopPropagation(); }
+  };
+  addEventListener('keydown', onKey, true); addEventListener('keyup', onUp, true);
+  root.append(card(null, big, sub), formsCard, card('Event properties', h('table', { class: 'tbl' }, tbl)),
+    card('Recent keys', h('table', { class: 'tbl' }, h('thead', null, h('tr', null, h('th', null, 'Keys'), h('th', null, 'key'), h('th', null, 'code'), h('th', { class: 'num' }, 'keyCode'))), hist), button('Clear', () => { clear(hist); open = null; }, { small: true, icon: 'Eraser' })),
+    note('A key pressed with Ctrl, Alt, Shift or the ' + MOD_NAMES[os].meta + ' key is one combination — Alt + W — but the browser sends it as the key W (code KeyW, keyCode 87) with "Alt held" (altKey): there is no single code for it. Use event.key for the character and event.code for the physical key (layout independent); keyCode / which are deprecated but still sent.', 'info'),
+    note(os === 'mac' ? 'Some combinations never reach a web page: macOS keeps Command + Tab, Command + Space, Command + Q and Control + arrows (Spaces); Chrome keeps Command + T, Command + W, Command + N and its other window and tab keys.'
+      : `Some combinations never reach a web page: ${os === 'windows' ? 'Windows keeps Alt + Tab, Alt + Esc, Alt + F4, Alt + Space (the window menu), Ctrl + Alt + Del, Ctrl + Shift + Esc and most Win + … keys' : 'the desktop keeps Alt + Tab, Alt + F2, Ctrl + Alt + arrows and most Super + … keys (they differ between GNOME, KDE and others)'}; Chrome keeps Ctrl + N, Ctrl + T, Ctrl + W, Ctrl + Tab, Ctrl + Shift + N / T / W and its other window and tab keys. Alt + D, Alt + E and Alt + F are Chrome's too (the address bar, its menu): this tab asks Chrome to leave them to the page, so they show here.`, 'info'));
+  return () => { removeEventListener('keydown', onKey, true); removeEventListener('keyup', onUp, true); };
 };

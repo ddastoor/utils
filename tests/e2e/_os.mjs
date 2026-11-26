@@ -10,12 +10,15 @@ const meta = (platform, platformVersion) => ({
   fullVersionList: [{ brand: 'Google Chrome', version: '141.0.7390.55' }, { brand: 'Chromium', version: '141.0.7390.55' }],
   fullVersion: '141.0.7390.55', platform, platformVersion, architecture: 'x86', model: '', mobile: false, bitness: '64', wow64: false,
 });
+export const MAC_UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36';
 export const WIN_META = meta('Windows', '15.0.0');
 export const LINUX_META = meta('Linux', '6.8.0');
-/** Make `page` (before it navigates) believe it runs on Windows or on Linux (x86-64). */
+export const MAC_META = meta('macOS', '15.0.0');
+/** Make `page` (before it navigates) believe it runs on Windows, on Linux (x86-64) or on a Mac. */
 export async function asOS(page, os) {
   const cdp = await page.context().newCDPSession(page);
   await cdp.send('Emulation.setUserAgentOverride', os === 'windows'
     ? { userAgent: WIN_UA, platform: 'Win32', userAgentMetadata: WIN_META }
-    : { userAgent: LINUX_UA, platform: 'Linux x86_64', userAgentMetadata: LINUX_META });
+    : os === 'mac' ? { userAgent: MAC_UA, platform: 'MacIntel', userAgentMetadata: MAC_META }
+      : { userAgent: LINUX_UA, platform: 'Linux x86_64', userAgentMetadata: LINUX_META });
 }

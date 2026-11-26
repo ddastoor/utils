@@ -1350,6 +1350,21 @@ unit `tests/unit/devdata.test.mjs`, references `tests/fixtures/devdata/reference
   the first 200 rows of a big table.
 - `mockdata`: 22 field types (India-first); ranges validated and explained (swapped, not a number, dates as
   yyyy-mm-dd or dd/mm/yyyy); 53-bit uniform integers; unique column names; quoted SQL names; same rows in every format.
+- `keycode` (Key Codes; to-do #26, owner, 26 Nov 2026: "When I press alt+W, I'm not getting the alt+W code. Is this even
+  possible? if so do it." — possible: the W key's event carries "Alt held"; there is no single code): a key pressed with
+  modifiers is shown as one combination, large — "Alt + W" (Ctrl, Alt, AltGr, Shift, Win / Super / Command in that order;
+  the key by its place, with the keyboard's own letters from `navigator.keyboard.getLayoutMap()` where Latin, so a Mac's
+  Option + W that types "∑" is Option + W; what it types under the codes where it is not the key's name). **As a
+  shortcut:** `Alt+W`, VS Code's `alt+w` (win / meta / cmd), the JavaScript test (`e.altKey && e.code === 'KeyW'`), and
+  what a terminal receives — **xterm.js's rules** (the terminal of VS Code: Esc w, ^W, Esc [1;5A …; AltGr and Option give
+  the character typed), held to xterm.js 6.0.0's own `evaluateKeyboardEvent` and keydown / keypress handling over 4,642
+  key events on Windows, Linux and the Mac (`tests/unit/keycombo.test.mjs`, `@xterm/xterm` a devDependency). Recent keys
+  are combinations: a modifier pressed alone opens a row that the key pressed while it is held takes over (Ctrl → Ctrl +
+  Shift → Ctrl + Shift + K is one row; Windows' AltGr — a Ctrl of its own, then Ctrl + Alt — too); letting a modifier go
+  ends it. **Windows' lone Alt:** its release is taken by the page (else Chrome's menu takes the focus and the next key
+  never arrives). The combinations the system and Chrome keep are named per system (they cannot be tested from a page:
+  Playwright's keys go straight to the page, past them). `src/lib/keycombo.ts`; unit `keycombo` 28, e2e `keycode` 41
+  (Linux, Windows and a Mac through `asOS`).
 
 ### Graphing Calculator — as built after the Nov 2026 bug hunt
 (`graph` in `src/tools/math.ts`, view arithmetic `src/lib/graph.ts`, engine mathcore `m_expr_*`; unit
@@ -2709,6 +2724,9 @@ Nov 2026 (Line Tools): `src/lib/linetools.ts` — split, trim, a `Set` for dupli
 the shuffle is crypto.wasm's and the line lengths are textkit.wasm's.
 Nov 2026 (Lorem Ipsum): `src/lib/lorem.ts` — reading the count, the `<p>` layout and the line under the text; the
 text is textkit-lorem.wasm's (`docs/WASM-AUDIT.md`, tab 98).
+Nov 2026 (Key Codes, to-do #26): `src/lib/keycombo.ts` — a key event named as a combination and the bytes a terminal
+receives: tables of key codes and names (xterm.js's rules, held to xterm.js itself), string glue around the browser's
+KeyboardEvent; no WebAssembly module exists for it and none would have work to do (`docs/WASM-AUDIT.md`, tab `keycode`).
 Nov 2026 (Morse Code): `src/lib/morse.ts` — a table of 62 codes, a look-up per character and a list of tone times for
 the browser's Web Audio; no WebAssembly Morse module exists and none would have work to do (`docs/WASM-AUDIT.md`, tab 97).
 Nov 2026 (Emoji & Symbols): `src/lib/emoji.ts` (records for the search engine, the pick of a skin-tone variant) and
@@ -3233,6 +3251,7 @@ npm packages (pinned in `package-lock.json`) are bundled by Vite or copied to `p
 | *test only:* github-slugger 2.0.0 | ISC | the reference of the Markdown Editor's heading ids (`tests/unit/markdown.test.mjs`) |
 | *test only:* @fontsource/comfortaa 5.3.0 (Comfortaa) | OFL-1.1 | a Kindle font of the owner's in the test photos of `scripts/make-kindle-photos.py` (Photo Dictionary) |
 | *test only:* unicode-emoji-json 0.9.0 | MIT | another reading of Unicode's emoji list, which the Emoji tab's data is held to (`tests/unit/emoji.test.mjs`) |
+| *test only:* @xterm/xterm 6.0.0 (its TypeScript source, transpiled in the test) | MIT | what a terminal receives for a key, which the Key Codes tab's "A terminal receives" is held to (`tests/unit/keycombo.test.mjs`) |
 | *test only:* axe-core 4.14.1 (Deque's accessibility checker) | MPL-2.0 | `tests/e2e/a11y.e2e.mjs`: WCAG 2.2 A / AA on every page, desktop light and dark, phone dark |
 | @expo-google-fonts/noto-sans (Noto Sans TTF: regular, bold, italic) | OFL-1.1 (package MIT) | PDFs made by GST Invoice, Rent Receipt, Resume Builder |
 
