@@ -45,6 +45,29 @@ The owner adds items here in chat ("add … to to do"). Newest instructions win.
     a voice that cannot be made; then one job per engine). Next: the per-engine Windows results and the full browser
     run's (both in progress), what they find fixed and pinned.
 
+14. **Text Diff: two local files, a file of a public GitHub repository at two commits, the difference as a patch file**
+    (owner, 26 Nov 2026: "In the text diff app, add 2 more text input options. One is to upload two local files. The
+    second option is to name a file in a public GitHub repository with two different commit hashes. Also, add the option
+    to download the difference as a universal patch file format.")
+    - **Two local files:** a picker (and drop) for the original and one for the changed text, read as the other text
+      tabs read files (`readTextFile`: UTF-16 by its mark, UTF-8, else Windows-1252; a file that is not text refused in
+      words); the files' names go into the patch's headers; a pair that differs only in line ends (CR LF / LF) is said.
+    - **A file of a public GitHub repository at two commits:** the repository (owner/name, or its github.com address — a
+      file's own address fills the boxes), the file's path and two commit hashes (full or short; a branch or a tag name
+      too); the tab fetches the file as it was at each commit and compares them. This makes **GitHub a data host** of
+      the site (CLAUDE.md §1: data, never code): `raw.githubusercontent.com` for the file at a commit (CORS, no key) and
+      `api.github.com` for what that cannot do — a short hash made full, a path missing at a commit explained (60
+      requests an hour without an account; said when used up) — added to the CSP's connect-src, §3a's table of approved
+      data APIs and `no-external.e2e.mjs`; only the repository, the path and the hashes are sent, nothing typed in the
+      page. Mocked in the suites (`page.route`), checked against GitHub by hand.
+    - **The difference as a patch file** (the unified diff format that `patch` and `git apply` read): the tab already
+      has "Copy as patch / Download .diff", with the headers `--- original` / `+++ changed` and the name `changes.diff`
+      — `patch` cannot tell which file such a patch is for. Make it a proper patch: the real names in the headers
+      (`a/<path>` / `b/<path>` for the repository's file, with the two commits named, so `git apply` and `patch -p1` take
+      it at the repository's root; the two files' names for local files), `\ No newline at end of file` as now, saved as
+      `<file>.patch`; held to GNU `diff -u` / `git diff` and applied by GNU `patch`, `git apply` and the Patch tab in the
+      suite.
+
 ## Done
 - **12. Photo Dictionary: the final list of words in alphabetical order** (owner, 21 Nov 2026) — done 21 Nov 2026: the
   same cards, A → Z without regard to case or accents; the line above says so; Share list in the same order. Unit
