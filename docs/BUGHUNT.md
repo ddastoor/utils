@@ -2692,3 +2692,22 @@ cannot. Three new suites; each fails on the build before its fixes.
   says so. **F5-TTS** spoke, but its environment held tzdata, which no lock had chosen: pandas 3 needs it on Windows, and
   `scripts/make-offline-tts-locks.py` dropped every line naming emscripten — also "emscripten or win32" → that rule is
   gone, the line is in F5's lock. Both jobs run again: **18 of 18 engines make speech on Windows**.
+  (10) **The browser suites in Google Chrome on Windows** ("Windows check" run 5, 26 Nov 2026: 30 suites, 1,159 of 1,217
+  checks). 19 suites passed as they are — camera, epub, every-tab, exif, ffmpeg (72 / 72), graphviz, junk-files, keyboard,
+  markdown, ocr, patch, pdf-merge, pwhash, regex-flavours, screenshot, sodium, sqlfmt, terminal, tts-offline. Of the 12
+  that failed, **one fault was the app's**: the Photo Dictionary turned an online definition into text with DOMParser, and
+  Google Chrome on Windows tried to run the `onerror` of an `<img>` in it (the CSP refused it: "Executing inline event
+  handler violates …"; Chromium here never did) → `stripTags` takes every tag out before any parser sees the HTML (unit
+  `dictionary-html` 30). **The other eleven were the suites' own faults on Windows:** the "Linux" checks did nothing to be
+  Linux ("this sandbox is Linux") — `tests/e2e/_os.mjs` `asOS()` sets the user agent, client hints and platform (os,
+  youtube, unzip; Screencast checks the system it runs on); `import()` of a plain path (`D:\a\…` reads as the URL scheme
+  "d:") — by file URL (codefmt-node: the Code Formatter); Git Bash's `sha256sum` writes `hash *name` and escapes a Windows
+  path with a leading `\` (hash: `--text`, and the binary form a check of its own; zip: hashes in Node); a list's note
+  read before it was drawn (hash); Windows paths inside Python source, where `\U` is an escape (image-editor: arguments);
+  a file name by `split('/')` (sheet: 30 s waiting for "Opened D:\a\…\bank.xls" — `basename`; and a CR LF statement as
+  Windows saves it is now a check); native CPython's text-mode `\r\n` and a C runtime that cannot read `TZ=Asia/Kolkata`
+  (python: turned back; the six comparisons with TZ run on Linux); Git Bash's gpg, a POSIX build that takes a Windows
+  GNUPGHOME for a relative path (pgp: `$GPG`, GnuPG for Windows installed by the workflow); Python reading stdin in the
+  ANSI code page (sqlfmt's checker skipped: `PYTHONUTF8=1`). And Git for Windows had turned LF into CR LF in every
+  fixture: `.gitattributes` (`* -text`) checks every file out as stored. All passed here after the fixes; the 15 suites
+  run on Windows again (run 6).

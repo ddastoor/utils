@@ -43,8 +43,9 @@ The owner adds items here in chat ("add … to to do"). Newest instructions win.
     moved the focus to Chrome's menu); the offline speech script for Windows ends with its real exit code and **was run
     for real on Windows** (`.github/workflows/windows-tts.yml`: Piper — the lock's versions, a WAV and an MP3, exit 1 for
     a voice that cannot be made; then one job per engine): **all 18 engines make speech on Windows** (Kyutai without a
-    C++ compiler, F5-TTS's lock fixed on 26 Nov). Next: the targeted browser run's results (30 suites, in progress), what
-    they find fixed and pinned.
+    C++ compiler, F5-TTS's lock fixed on 26 Nov). The browser suites in Chrome on Windows (run 5, 26 Nov): 19 of 30 passed; one
+    app fault (the Photo Dictionary's online HTML: tags now taken out before parsing) and eleven faults of the suites on
+    Windows fixed (ef43da3; docs/BUGHUNT.md "Windows / Linux" (10)). Next: run 6 (the 15 suites touched) green → #13 done.
 
 14. **Text Diff: two local files, a file of a public GitHub repository at two commits, the difference as a patch file**
     (owner, 26 Nov 2026: "In the text diff app, add 2 more text input options. One is to upload two local files. The

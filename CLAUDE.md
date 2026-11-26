@@ -3286,6 +3286,12 @@ DEBUG=pw:browser E2E_CHROME_ARGS="--enable-logging=stderr --v=0" node tests/e2e.
   (fake-clock timers), `_media.mjs` (fake camera/microphone), `_scanback.mjs`, `tests/lib/calc.mjs`, `tests/lib/pdfcheck.mjs`.
   Timers use Playwright's fake clock; device tabs use fake media streams, CDP touches and dispatched orientation events
   (see `docs/HANDOFF.md` §3–5).
+- **Suites run on Linux and on the Windows runner** (to-do #13): a check that means one system says so with
+  `asOS(page, 'windows' | 'linux')` (`tests/e2e/_os.mjs`: user agent, client hints, platform) — never by doing nothing;
+  file names by `basename` / `join` (never `split('/')`); file hashes in Node (Git Bash's `sha256sum` escapes Windows
+  paths and writes binary-mode lines — a reference list in `--text`); a Python snippet takes paths as arguments, not in
+  its source (`\U…` is an escape); `import()` of a path through `pathToFileURL`; the gpg program from `$GPG`; native
+  Python's output with `\r\n` turned back. `.gitattributes` (`* -text`) checks every file out as stored, on Windows too.
 - `no-external.e2e.mjs` visits every route on desktop + phone (sharded) and fails on any request to another host,
   any CSP violation or any page error.
 - **Sweeps over every tab** (Nov 2026): `touch-targets.e2e.mjs` — on a phone, the hit area of every visible control of
