@@ -296,6 +296,23 @@ The owner adds items here in chat ("add … to to do"). Newest instructions win.
       route change keeps it, every category, phone and PC, the accessibility sweep (a11y.e2e.mjs) and the touch-target
       sweep.
 
+28. **Screenshot: scrolling screenshots** (owner, 26 Nov 2026: "Make a new option also for scrolling screenshots in the
+    screenshot app.")
+    - **What it is:** one tall picture of something longer than the screen — a whole web page, a chat, a document, a long
+      list — made of the views taken while it scrolls, joined where they overlap.
+    - **How, in a web page** (it cannot scroll other windows by itself): **a shared Chrome tab is scrolled by the tab** —
+      Chrome's Captured Surface Control (`CaptureController.sendWheel`, Chrome 136 and later; Chrome asks the user once)
+      scrolls it step by step while each view is taken, to the end or until Stop; **a window or a screen is scrolled by
+      the user** — the mouse wheel or the scroll bar, at any pace — while the tab takes the views. The views are joined by
+      finding each one's offset against the one before (own C in imgproc.wasm: rows compared; parts that stay put — a
+      sticky header, a footer, a chat's input box — kept once, at the top and the bottom), at full resolution; a view that
+      does not fit (scrolled too fast, or sideways) is said, and the picture so far kept.
+    - **Then** the editor as today (crop, PNG, JPEG, copy); very tall pictures within the browser's canvas limits (made in
+      pieces where needed, or saved as several parts — said).
+    - **The suite:** a long test page shared and scrolled (the tab's own scrolling, and scrolling by hand simulated) — the
+      joined picture equal, pixel for pixel, to the page drawn whole; a sticky header kept once; a fast scroll said;
+      Windows, X11 and Wayland notes where they differ (Wayland's portal).
+
 ## Done
 - **12. Photo Dictionary: the final list of words in alphabetical order** (owner, 21 Nov 2026) — done 21 Nov 2026: the
   same cards, A → Z without regard to case or accents; the line above says so; Share list in the same order. Unit
