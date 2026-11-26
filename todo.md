@@ -14,30 +14,6 @@ The owner adds items here in chat ("add … to to do"). Newest instructions win.
 3. _(withdrawn by the owner on 20 Nov 2026: the "Export Python utility" for the YouTube Clip tab — do not build it.)_
 
 
-14. **Text Diff: two local files, a file of a public GitHub repository at two commits, the difference as a patch file**
-    (owner, 26 Nov 2026: "In the text diff app, add 2 more text input options. One is to upload two local files. The
-    second option is to name a file in a public GitHub repository with two different commit hashes. Also, add the option
-    to download the difference as a universal patch file format.")
-    - **Two local files:** a picker (and drop) for the original and one for the changed text, read as the other text
-      tabs read files (`readTextFile`: UTF-16 by its mark, UTF-8, else Windows-1252; a file that is not text refused in
-      words); the files' names go into the patch's headers; a pair that differs only in line ends (CR LF / LF) is said.
-    - **A file of a public GitHub repository at two commits:** the repository (owner/name, or its github.com address — a
-      file's own address fills the boxes), the file's path and two commit hashes (full or short; a branch or a tag name
-      too); the tab fetches the file as it was at each commit and compares them. This makes **GitHub a data host** of
-      the site (CLAUDE.md §1: data, never code): `raw.githubusercontent.com` for the file at a commit (CORS, no key) and
-      `api.github.com` for what that cannot do — a short hash made full, a path missing at a commit explained (60
-      requests an hour without an account; said when used up) — added to the CSP's connect-src, §3a's table of approved
-      data APIs and `no-external.e2e.mjs`; only the repository, the path and the hashes are sent, nothing typed in the
-      page. Mocked in the suites (`page.route`), checked against GitHub by hand. **Approved by the owner, 26 Nov 2026:**
-      "for #14, yes u may contact raw.githubusercontent.com and api.github.com in real time" (CLAUDE.md §3a).
-    - **The difference as a patch file** (the unified diff format that `patch` and `git apply` read): the tab already
-      has "Copy as patch / Download .diff", with the headers `--- original` / `+++ changed` and the name `changes.diff`
-      — `patch` cannot tell which file such a patch is for. Make it a proper patch: the real names in the headers
-      (`a/<path>` / `b/<path>` for the repository's file, with the two commits named, so `git apply` and `patch -p1` take
-      it at the repository's root; the two files' names for local files), `\ No newline at end of file` as now, saved as
-      `<file>.patch`; held to GNU `diff -u` / `git diff` and applied by GNU `patch`, `git apply` and the Patch tab in the
-      suite.
-
 20. **Noise Remover: "Studio voice" — a voice recorded outdoors made to sound as if spoken in a studio** (owner, 26 Nov
     2026: "In the noise remover app, it should be that when I record my voice, say out in the open, in traffic or
     outside, when I remove the noise, there should be a new option so that it should sound as if I'm speaking in the
@@ -112,6 +88,15 @@ The owner adds items here in chat ("add … to to do"). Newest instructions win.
       it on the tab's FFmpeg — on mono, stereo and 5.1 files.
 
 ## Done
+- **14. Text Diff: two local files, a file of a public GitHub repository at two commits, the difference as a patch file**
+  (owner, 26 Nov 2026: "In the text diff app, add 2 more text input options. One is to upload two local files. The second
+  option is to name a file in a public GitHub repository with two different commit hashes. Also, add the option to download
+  the difference as a universal patch file format.") — done 26 Nov 2026: "Compare" Typed text / Two files / A file on
+  GitHub (a repository as people paste it — a file's github.com address fills the path and the first commit —, the path,
+  two commits: full or short hashes, branches, tags; raw.githubusercontent.com and api.github.com, now in the CSP; every
+  refusal said in words, the hour's limit with when it starts again); "Download .patch" with the files' names, or git's
+  a/ b/ headers and the two commits for a repository's file — GNU patch, patch -p1 and git apply take them, the hunks are
+  GNU diff -u's. Checked against the real GitHub. Unit ghdiff 37, e2e diff-sources 22 (+ diff 30). CLAUDE.md §3 Text Diff.
 - **16. Cartoonizer: finer, more detailed results, more like the Prisma app** (owner, 26 Nov 2026: "The Cartoonizer app's
   output is too coarse-grained. Make it more fine-grained with more detail, more like the Prisma app. If you need to use a
   better library," — models at Claude's discretion) — done 26 Nov 2026: AI styles get **"Brush strokes"** Finest 4096 /

@@ -653,6 +653,10 @@ One entry per tab, written before its bug hunt: our module → candidates → ch
   original into the changed text with the module's unified diff (over 100 patches, final line breaks included);
   characters: the fewest changes the longest common subsequence allows on 400 random pairs; 100,000 lines with two
   changes in 0.2 s and 18 MB. The old routine left textcore.wasm (38 → 34 KB).
+- **Two files and a file on GitHub (to-do #14, 26 Nov 2026):** the comparing stays textkit-diff.wasm's. New, TypeScript glue
+  with nothing to compute (`src/lib/ghdiff.ts`): reading what people paste for a repository (one regular expression per
+  form), the browser's `fetch` for GitHub's two hosts, the patch's header lines; files decoded by `textOf`
+  (`src/lib/textfile.ts`, the browser's TextDecoder). No WebAssembly module has work to do here.
 
 ### 95. `fancy` — Fancy Text (19 Nov 2026)
 - **Ours before:** no WebAssembly; tables of Unicode characters in TypeScript, and the styles that work character

@@ -1684,6 +1684,32 @@ the `similar` crate, §5.1o; wrapper `src/wasm/textdiff.ts`; unit `tests/unit/te
 - A time limit of 2 s on the search for the shortest diff; past it the diff shown is still correct and a note says
   it may not be the shortest. Texts above 20,000 characters are compared when the typing pauses. The sample pair is
   compared as the tab opens (so the module is fetched at open — on the lazy test's list).
+- **Two files, a file on GitHub at two commits, a proper patch (to-do #14; owner, 26 Nov 2026: "add 2 more text input
+  options. One is to upload two local files. The second option is to name a file in a public GitHub repository with two
+  different commit hashes. Also, add the option to download the difference as a universal patch file format."):**
+  "Compare": **Typed text** (as before) · **Two files** · **A file on GitHub** (`src/lib/ghdiff.ts`, no DOM; unit `ghdiff`
+  37, e2e `diff-sources` 22).
+  - **Two files:** "Original file" / "Changed file", read as the other text tabs read files (`readTextFile`: UTF-16 by its
+    mark, UTF-8, else Windows-1252; a file that is not text said under the pickers); each named with its lines. The texts
+    are compared **as they are, line ends included** (a text box would give them back with LF only); a pair that differs
+    only in its line ends is said, and so is a pair whose line ends differ (every line then shows as changed).
+  - **A file on GitHub:** the repository (owner/name; a github.com address of the repository, a file — which fills the
+    path and the first commit —, a folder or a commit; a raw.githubusercontent.com address; a clone address), the file's
+    path, "From commit" and "To commit" (a hash, full or short, a branch or a tag), Compare (or Enter). A full hash goes
+    straight to `raw.githubusercontent.com/<owner>/<repo>/<commit>/<path>`; anything else is first made a full commit by
+    `api.github.com/repos/<owner>/<repo>/commits/<ref>`. Said in words: no public repository of that name (a private one
+    cannot be read without an account), no such commit, branch or tag, no such file at that commit ("it may have been
+    added later, moved or deleted"), a file that is not text or above 20 MB, GitHub's 60 look-ups an hour used up (with
+    when it starts again — GitHub exposes its X-RateLimit headers to pages, or says "rate limit" in its message), no
+    connection. Only the repository, the path and the commits are sent. Checked by hand against GitHub (26 Nov 2026):
+    this repository's todo.md from b8e3a26 to 846158b, the patch applied by git apply gives the later file exactly.
+  - **Download .patch** (was .diff; Copy as patch as before): two files — `--- <original's name>` / `+++ <changed's name>`,
+    saved as `<changed file>.patch` (GNU patch applies it to the original; the hunks are GNU diff -u's); a file of a
+    repository — a note of the repository and the two commits (full hashes, with what was typed), then `diff --git
+    a/<path> b/<path>`, `--- a/<path>`, `+++ b/<path>`, as git diff writes them (git apply and patch -p1 take it at the
+    repository's root), saved as `<file>.patch`; typed text — `original` / `changed`, `changes.patch`.
+  - **GitHub as a data host** (approved by the owner): the CSP's connect-src, §3a's table and `no-external.e2e.mjs` list
+    `raw.githubusercontent.com` and `api.github.com`; the suites stand in for both with `page.route`.
 
 ### Fancy Text — as built after the Nov 2026 bug hunt
 (`fancy` in `src/tools/text.ts`, the styles `src/lib/fancy.ts`, characters by textkit.wasm `tk_clusters` — §5.1o; unit
@@ -3198,12 +3224,12 @@ only when a tool needs live data and the owner has accepted that tool. **Approve
 |---|---|---|---|
 | `en.wiktionary.org` (Wikimedia REST: `/api/rest_v1/page/definition/<word>`) | `photodict` | one word | online fallback for words missing from the bundled dictionary (owner request) |
 | `api.dictionaryapi.dev` (Free Dictionary API: `/api/v2/entries/en/<word>`) | `photodict` | one word | second fallback if Wiktionary has no entry or is down |
-| `raw.githubusercontent.com` (a file of a public repository at a commit: `/<owner>/<repo>/<commit>/<path>`) | `diff` (to-do #14) | the repository, the file's path and a commit | the Text Diff's "a file of a public GitHub repository at two commits" — approved by the owner, 26 Nov 2026: "yes u may contact raw.githubusercontent.com and api.github.com in real time"; **goes into the CSP when #14 is built** |
+| `raw.githubusercontent.com` (a file of a public repository at a commit: `/<owner>/<repo>/<commit>/<path>`) | `diff` (to-do #14) | the repository, the file's path and a commit | the Text Diff's "a file of a public GitHub repository at two commits" — approved by the owner, 26 Nov 2026: "yes u may contact raw.githubusercontent.com and api.github.com in real time"; in the CSP since #14 was built (26 Nov 2026) |
 | `api.github.com` (REST, no key: a short hash or a branch made a full commit, a path missing at a commit explained) | `diff` (to-do #14) | the repository, the path, the commits | what the raw files cannot say (60 requests an hour without an account, said when used up) — approved with the host above |
 | `en.wikipedia.org` (Wikimedia REST: `/api/rest_v1/page/summary/<title>`) | `photodict` | one word, or the phrase the reader selected | a short summary under each word and phrase (owner, 21 Nov 2026; `src/lib/wikipedia.ts`; a switch turns it off) |
-All are free, need no key or account, send CORS headers, set no cookies we read (the two GitHub hosts: approved, not live yet — with to-do #14). **Live in the CSP since the
-Photo Dictionary shipped** (`connect-src 'self' blob: data: https://en.wiktionary.org https://api.dictionaryapi.dev
-https://en.wikipedia.org` — Wikipedia since 21 Nov 2026);
+All are free, need no key or account, send CORS headers, set no cookies we read. **Live in the CSP** (`connect-src 'self' blob:
+data: https://en.wiktionary.org https://api.dictionaryapi.dev https://en.wikipedia.org https://raw.githubusercontent.com
+https://api.github.com` — Wikipedia since 21 Nov 2026, the two GitHub hosts since 26 Nov 2026);
 `no-external.e2e.mjs` asserts that connect-src lists exactly these hosts and that no code directive allows any host. e2e tests never hit them: Playwright `page.route` serves recorded responses (the dev sandbox cannot
 reach them anyway). Candidate tools offered to the owner: currency converter (frankfurter.app, ECB rates),
 weather (Open-Meteo), IP/network info, clock-accuracy check (network time).

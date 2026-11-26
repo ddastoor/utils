@@ -1,7 +1,7 @@
 // Text tools + the JSON formatter and the regex tester (the other small developer tabs are in software/dev1.ts).
 // Counting, case conversion and comparing are textkit.wasm's and textkit-diff.wasm's (wasm/textkit); sorting and
 // regular expressions are the browser's own (Intl.Collator, RegExp); each tab's rules are in src/lib/.
-import { h, card, field, input, textarea, button, segmented, toggle, select, clear, stack, row, note, copy, outputBox, downloadBlob, slider, type Mount } from '../ui';
+import { h, card, field, input, textarea, button, segmented, toggle, select, clear, stack, row, note, copy, outputBox, downloadBlob, slider, filePicker, type Mount } from '../ui';
 import { textkit, type Textkit } from '../wasm/textkit';
 import type { bindTextcore } from '../wasm/textcore';
 type Textcore = ReturnType<typeof bindTextcore>;
@@ -12,6 +12,8 @@ import { processLines, summary, type LineOptions, type LineDeps, type SortMode }
 import { plan, countText, type FindOptions, type Plan } from '../lib/findreplace';
 import { textdiff, type Textdiff, type DiffRow, type LineDiff, type SpanDiff } from '../wasm/textdiff';
 import { foldRows, lineSummary, spanSummary, APPROX, MAX_ROWS, MAX_SPAN_CHARS } from '../lib/textdiff';
+import { parseRepo, cleanPath, resolveRef, fileAt, namedPatch, patchName, type RepoRef } from '../lib/ghdiff';
+import { readTextFile, crlfText } from '../lib/textfile';
 import * as M from '../lib/morse';
 import { LIMITS, readCount, asText, summary as loremSummary, newSeed } from '../lib/lorem';
 import { loremEngine, type LoremUnit, type LoremEngine } from '../wasm/lorem';
@@ -185,14 +187,19 @@ export const replace: Mount = (root) => {
 
 // ================================================================== Diff
 // The comparing is textkit-diff.wasm's (the `similar` crate: Myers' algorithm with a time limit); src/lib/textdiff.ts
-// folds long unchanged runs and words the summary; this draws.
+// folds long unchanged runs and words the summary; this draws. The texts come from the two boxes, from two files, or from
+// a file of a public GitHub repository at two commits (to-do #14, src/lib/ghdiff.ts); the patch names what it is for.
 export const diff: Mount = (root) => {
   const A = textarea({ rows: 8, mono: true, value: 'apple\nbanana\ncherry\ndate' }), B = textarea({ rows: 8, mono: true, value: 'apple\nblueberry\ncherry\ndate\nelderberry' });
-  let mode: 'lines' | 'words' | 'chars' = 'lines';
+  let mode: 'lines' | 'words' | 'chars' = 'lines', src: 'text' | 'files' | 'github' = 'text';
+  // the files' texts as they are (with their own line ends: a text box would give them back with LF only)
+  let fa: { name: string; text: string } | null = null, fb: { name: string; text: string } | null = null;
+  let gh: { repo: RepoRef; path: string; a: string; b: string; refA: string; refB: string; ta: string; tb: string } | null = null;
   const out = h('div', { class: 'diff-out' }), info = h('div', { class: 'muted small' }), problem = h('div', { class: 'stack' });
   let engine: Textdiff | null = null, gone = false, timer = 0, patch = '';
+  const patchSrc = () => (src === 'files' && fa && fb ? { kind: 'files' as const, a: fa.name, b: fb.name } : src === 'github' && gh ? { kind: 'github' as const, ...gh } : { kind: 'text' as const });
   const copyBtn = button('Copy as patch', () => { if (patch) copy(patch); }, { small: true, icon: 'Copy' });
-  const saveBtn = button('Download .diff', () => { if (patch) downloadBlob(new Blob([patch], { type: 'text/x-diff' }), 'changes.diff'); }, { small: true, icon: 'Download' });
+  const saveBtn = button('Download .patch', () => { if (patch) downloadBlob(new Blob([patch], { type: 'text/x-diff' }), patchName(patchSrc())); }, { small: true, icon: 'Download' });
   const actions = h('div', { class: 'row' }, copyBtn, saveBtn);
   const lineRow = ([kind, a, b, parts]: DiffRow) => {
     const partly = parts.some(([m]) => m) && parts.some(([m]) => !m); // a line that changed in part: mark the part
@@ -211,7 +218,7 @@ export const diff: Mount = (root) => {
     }
     clear(out).append(wrap);
     if (cut) out.append(note(`The first ${MAX_ROWS.toLocaleString('en-IN')} lines of the differences are shown. The patch holds all of them.`, 'info'));
-    info.textContent = lineSummary(d); patch = d.unified; actions.hidden = !patch;
+    info.textContent = lineSummary(d); patch = namedPatch(d.unified, patchSrc()); actions.hidden = !patch;
   };
   const showSpans = (d: SpanDiff) => {
     let left = MAX_SPAN_CHARS, cut = false; const els: Node[] = [];
@@ -220,21 +227,89 @@ export const diff: Mount = (root) => {
     if (cut) out.append(note(`The first ${MAX_SPAN_CHARS.toLocaleString('en-IN')} characters are shown.`, 'info'));
     info.textContent = spanSummary(d); patch = ''; actions.hidden = true;
   };
+  /** the two texts to compare, or null while a source is not complete */
+  const texts = (): [string, string] | null => src === 'text' ? [A.value, B.value] : src === 'files' ? (fa && fb ? [fa.text, fb.text] : null) : gh ? [gh.ta, gh.tb] : null;
   const run = async () => {
     try {
+      const t = texts();
+      if (!t) { clear(out); clear(problem); info.textContent = src === 'files' ? 'Choose both files.' : 'Name the repository, the file and two commits, then Compare.'; patch = ''; actions.hidden = true; return; }
       if (!engine) { engine = await textdiff(); if (gone) return; }
       clear(problem);
-      const d = mode === 'lines' ? engine.diff(A.value, B.value, 0) : engine.diff(A.value, B.value, mode === 'words' ? 1 : 2); // the texts as they are now
+      const d = mode === 'lines' ? engine.diff(t[0], t[1], 0) : engine.diff(t[0], t[1], mode === 'words' ? 1 : 2); // the texts as they are now
       if (d.mode === 0) showLines(d); else showSpans(d);
       if (d.approx) problem.append(note(APPROX, 'warn'));
+      // line ends: Windows' CR LF against LF makes every line differ
+      if (t[0] !== t[1]) {
+        const lf = (x: string) => x.replace(/\r\n/g, '\n'), ca = crlfText(t[0]), cb = crlfText(t[1]);
+        if (lf(t[0]) === lf(t[1])) problem.append(note('The two differ only in their line ends: one is written with Windows line ends (CR LF), the other with Unix ones (LF).', 'info'));
+        else if (ca !== cb) problem.append(note(`The ${ca ? 'original' : 'changed'} text has Windows line ends (CR LF) and the ${ca ? 'changed' : 'original'} one Unix ones (LF): its lines show as changed even where only that differs.`, 'warn'));
+      }
     } catch (e: any) { clear(problem).append(note(`The comparison could not be loaded — ${e?.message || e}. Type again to retry.`, 'err')); }
   };
   // longer texts are compared when the typing pauses (comparing and drawing 8,000 lines at every key made typing sluggish)
   const soon = () => { clearTimeout(timer); if (A.value.length + B.value.length > 20_000) timer = window.setTimeout(run, 200); else void run(); };
   [A, B].forEach((x) => x.addEventListener('input', soon));
   actions.hidden = true;
-  root.append(card(null, stack(h('div', { class: 'grid2' }, field('Original', A), field('Changed', B)), segmented([['lines', 'Lines'], ['words', 'Words'], ['chars', 'Characters']], mode, (v) => { mode = v; void run(); }))),
+
+  // ---- two files
+  const fileLine = (f: { name: string; text: string } | null) => (f ? `${f.name} · ${f.text.split('\n').length - (f.text.endsWith('\n') ? 1 : 0)} lines` : '');
+  const saidA = h('div', { class: 'muted small', id: 'diff-file-a' }), saidB = h('div', { class: 'muted small', id: 'diff-file-b' }), fileErr = h('div', { class: 'stack' });
+  const pick = (which: 'a' | 'b') => filePicker({ compact: true, label: which === 'a' ? 'Original file' : 'Changed file', hint: 'any text file', onFiles: async ([f]) => {
+    try {
+      const text = await readTextFile(f, 'only text files can be compared');
+      if (which === 'a') fa = { name: f.name, text }; else fb = { name: f.name, text };
+      clear(fileErr);
+    } catch (e: any) { if (which === 'a') fa = null; else fb = null; clear(fileErr).append(note(e?.message || String(e), 'err')); }
+    saidA.textContent = fileLine(fa); saidB.textContent = fileLine(fb);
+    void run();
+  } });
+  const filesBox = stack(h('div', { class: 'grid2' }, stack(pick('a'), saidA), stack(pick('b'), saidB)), fileErr);
+
+  // ---- a file of a public GitHub repository at two commits
+  const repoIn = input({ placeholder: 'owner/name, or a github.com address' }) as HTMLInputElement, pathIn = input({ placeholder: 'path/to/the/file.txt' }) as HTMLInputElement;
+  const refAIn = input({ placeholder: 'a commit hash, a branch or a tag' }) as HTMLInputElement, refBIn = input({ placeholder: 'a commit hash, a branch or a tag' }) as HTMLInputElement;
+  const ghSay = h('div', { class: 'small', id: 'diff-gh', 'aria-live': 'polite' });
+  // a file's own address fills the path and the commit
+  repoIn.addEventListener('input', () => {
+    const r = parseRepo(repoIn.value);
+    if (r?.path && !pathIn.value) pathIn.value = r.path;
+    if (r?.ref && !refAIn.value) refAIn.value = r.ref;
+  });
+  let ghSeq = 0;
+  const compareGh = async () => {
+    const r = parseRepo(repoIn.value), path = cleanPath(pathIn.value || r?.path || ''), refA = refAIn.value.trim(), refB = refBIn.value.trim();
+    if (!r) throw new Error('Name the repository as owner/name (or paste its github.com address).');
+    if (!path) throw new Error('Name the file: its path in the repository, such as src/main.ts.');
+    if (!refA || !refB) throw new Error('Name both commits: a hash (full or short), a branch or a tag.');
+    const my = ++ghSeq, f = (u: string, i?: RequestInit) => fetch(u, i);
+    ghSay.className = 'small'; ghSay.textContent = `Asking GitHub for ${path} at ${refA} and ${refB}…`;
+    try {
+      const [a, b] = await Promise.all([resolveRef(f, r, refA), resolveRef(f, r, refB)]);
+      const [ta, tb] = await Promise.all([fileAt(f, r, a, path), fileAt(f, r, b, path)]);
+      if (my !== ghSeq || gone) return;
+      gh = { repo: r, path, a, b, refA, refB, ta, tb };
+      ghSay.textContent = `${r.owner}/${r.repo} · ${path} · ${a.slice(0, 7)} → ${b.slice(0, 7)}`;
+      void run();
+    } catch (e: any) {
+      if (my !== ghSeq || gone) return;
+      gh = null; ghSay.className = 'small err-text'; ghSay.textContent = e?.message || String(e); void run();
+    }
+  };
+  const ghBox = stack(
+    field('Repository', repoIn), field('File', pathIn),
+    h('div', { class: 'grid2' }, field('From commit', refAIn), field('To commit', refBIn)),
+    h('div', { class: 'row' }, button('Compare', compareGh, { variant: 'primary', small: true, icon: 'GitCompare' })), ghSay,
+    h('p', { class: 'muted small' }, 'Public repositories only. The page asks GitHub for the file as it was at each commit (raw.githubusercontent.com) and, for a short hash, a branch or a tag, which commit it names (api.github.com — 60 look-ups an hour without an account). Only the repository, the path and the commits are sent.'));
+  [repoIn, pathIn, refAIn, refBIn].forEach((x) => x.addEventListener('keydown', (e) => { if ((e as KeyboardEvent).key === 'Enter') compareGh().catch((err) => { ghSay.className = 'small err-text'; ghSay.textContent = err.message; }); }));
+
+  const textBox = h('div', { class: 'grid2' }, field('Original', A), field('Changed', B));
+  const show = () => { textBox.hidden = src !== 'text'; filesBox.hidden = src !== 'files'; ghBox.hidden = src !== 'github'; void run(); };
+  root.append(card(null, stack(
+    field('Compare', segmented([['text', 'Typed text'], ['files', 'Two files'], ['github', 'A file on GitHub']], src, (v) => { src = v; show(); })),
+    textBox, filesBox, ghBox,
+    segmented([['lines', 'Lines'], ['words', 'Words'], ['chars', 'Characters']], mode, (v) => { mode = v; void run(); }))),
     card('Differences', info, problem, out, actions));
+  filesBox.hidden = true; ghBox.hidden = true;
   void run();
   return () => { gone = true; clearTimeout(timer); };
 };

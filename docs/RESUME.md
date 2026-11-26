@@ -103,8 +103,12 @@ matches its preview. **Batch 5 is complete.** To show the owner when he is back:
 Hayao, Shinkai, Paprika, a face portrait; ONNX on the site's ONNX Runtime, 4 – 8.6 MB each) and White-box Cartoonization
 were looked at and not added — new styles of their own, his call; real paintings as styles need a source this sandbox can
 reach (Wikimedia is blocked).
-**Next (the owner's order):** 6 (#14 Text Diff), 7 (#20 Studio voice); then the potentials process. #32 (22 FFmpeg jobs) is
-not in the order: ask the owner when he is back.
+**#14 Text Diff: DONE (26 Nov 2026)** (todo.md Done #14; CLAUDE.md §3 Text Diff, "Two files, a file on GitHub …"): two files,
+a file of a public GitHub repository at two commits (raw.githubusercontent.com + api.github.com — in the CSP now), proper
+.patch files (GNU patch, git apply). Checked against the real GitHub. **Batch 6 is complete.**
+**Next (the owner's order):** 7 (#20 Studio voice: choose by measurement, the best quality within the site's room, no
+samples first — the owner's word); then the potentials process. #32 (22 FFmpeg jobs) is not in the order: ask the owner
+when he is back.
 
 ## ▶ SYNC POINT — 21 Nov 2026, night (read this first; it supersedes the older "NOW" notes below)
 The owner's weekly limit is nearly used up; work resumes on Thursday. Everything below is committed and pushed.

@@ -55,8 +55,8 @@ export default async ({ base, page: newPage, ok, tmp, download, devices }) => {
   const unified = (await copied(page)).at(-1);
   ok(unified.startsWith('--- original\n+++ changed\n@@ -1,5 +1,5 @@\n one\n-two\n+2\n three\n') && /No newline at end of file/.test(unified), 'Copy as patch gives a unified diff (three lines of context, "No newline at end of file" where it applies)');
   ok(!hasPatch || patched(pa, unified) === pb, hasPatch ? 'GNU patch turns the original into the changed text with it — the final line break included' : '(GNU patch is not installed here)');
-  const file = await download(page, () => page.getByRole('button', { name: 'Download .diff' }).click());
-  ok(readFileSync(file, 'utf8') === unified && /changes\.diff$/.test(file), 'Download .diff saves the same patch as changes.diff');
+  const file = await download(page, () => page.getByRole('button', { name: 'Download .patch' }).click());
+  ok(readFileSync(file, 'utf8') === unified && /changes\.patch$/.test(file), 'Download .patch saves the same patch as changes.patch');
 
   // ---- identical, empty, only the final line break
   await set('same\ntext', 'same\ntext'); ok((await info.textContent()) === 'The texts are identical.' && await page.getByRole('button', { name: 'Copy as patch' }).isHidden(), 'identical texts: said, and no patch offered');

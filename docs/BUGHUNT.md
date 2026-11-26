@@ -2996,3 +2996,10 @@ cannot. Three new suites; each fails on the build before its fixes.
   band) → the whole picture's statistics are fed to every tile. The new suite's own slip: a guess at the level of
   "detail kept" for a painting (0.45) — the style's own strokes carry most of a painting's edges; it measures 0.147
   against Bold's 0.045.
+- **Text Diff: two files and a file on GitHub (to-do #14, 26 Nov 2026):** found while building — files must not go through
+  the text boxes: a text box gives its text back with LF line ends only, so a Windows file (CR LF) compared through one
+  would lose what makes it differ (the texts are kept as read now); a file error shown with the comparison's notes was
+  cleared at once by the next comparison (it has a line of its own under the pickers); GitHub's rate-limit headers reach
+  a page only because GitHub lists them in Access-Control-Expose-Headers — the suite's stand-in left that out and the tab
+  said "GitHub answered 403" (the stand-in now sends what GitHub sends, and a 403 whose message says "rate limit" is read
+  as the limit too). The old suite's `getByLabel('Original')` met "Original commit" (the commits are "From" / "To" now).
