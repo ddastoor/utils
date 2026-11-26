@@ -23,7 +23,7 @@ export interface ReadOps extends PageOps, TurnOps {
   invert(img: Img): Img | Promise<Img>;
   blur(img: Img, sigma: number): Img | Promise<Img>;
   docEnhance(img: Img, mode: 0 | 1 | 2): Img | Promise<Img>;
-  clearMarks(img: Img, what: number): { img: Img; lines: number; marks: number; columns: number } | Promise<{ img: Img; lines: number; marks: number; columns: number }>;
+  clearMarks(img: Img, what: number): { img: Img; lines: number; inner: number; marks: number; columns: number } | Promise<{ img: Img; lines: number; inner: number; marks: number; columns: number }>;
 }
 export interface ReadEngines {
   ops: ReadOps;
@@ -68,7 +68,8 @@ export interface ReadOptions {
   turns?: number;
   /** A poor reading tried the three other ways round (the OCR tab). */
   retryTurns?: boolean;
-  /** An unsure reading read again laid out the other way, the better kept (default: on). */
+  /** An unsure reading of a page with rules, list marks or columns read again laid out the other way, the better kept
+   *  (default: on). */
   again?: boolean;
   /** Tesseract's progress, for the main readings (not the quick ones that decide which way up). */
   onProgress?: (p: number, status: string) => void;
@@ -91,8 +92,8 @@ export interface PageReading {
   /** the poor reading's retry: the quarter turns to the right (from the photo as given) that read clearly better; null:
    *  not turned */
   turned: number | null;
-  /** what the clean-up cleared: pixels of ruled lines, list marks */
-  cleared: { lines: number; marks: number };
+  /** what the clean-up cleared: pixels of ruled lines (`inner`: of those inside the page, not along its edges), list marks */
+  cleared: { lines: number; inner: number; marks: number };
   /** the columns of text found (2 and more: read as a page) */
   columns: number;
   /** how the reading kept was laid out */
@@ -110,10 +111,12 @@ export const isDark = (luma: ArrayLike<number>) => {
 export const MAX_SIDE = 3000;
 /** A page found that gives fewer words than this was not the page: the whole photo is read too. */
 export const FEW = 25;
-/** A reading less sure than this (Tesseract's mean confidence) is read again laid out the other way — one block ⇄ a page —
- *  and the one that reads more words surely is kept (`score`, by at least AGAIN_BY): on a soft photo Tesseract laid out
- *  as one block can lose a whole line (a form's title, a table's row) that its layout analysis reads, and the other way
- *  round. Sharp photos read at 87 – 95 % and are read once. */
+/** A page with a structure — a table's or a form's rules, a list's marks, columns — read less surely than this
+ *  (Tesseract's mean confidence) is read again laid out the other way — one block ⇄ a page — and the one that reads more
+ *  words surely is kept (`score`, by at least AGAIN_BY): on a soft photo Tesseract laid out as one block can lose a whole
+ *  line (a form's title, a table's row) that its layout analysis reads, and the other way round. Measured on the photos of
+ *  scripts/measure-ocr.mjs: it read 4 document photos better, none worse — and never changed a page of plain text (a
+ *  Kindle's), which is read once (a second reading costs a phone seconds). Sharp photos read at 87 – 95 %. */
 export const AGAIN = 85, AGAIN_BY = 1.03;
 
 export async function readPage(photo: Img, o: ReadOptions, eng: ReadEngines = browserEngines): Promise<PageReading | null> {
@@ -121,14 +124,14 @@ export async function readPage(photo: Img, o: ReadOptions, eng: ReadEngines = br
   const cap = async (im: Img, L: number) => { const s = Math.max(im.width, im.height); return s > L ? ops.resize(im, Math.round((im.width * L) / s), Math.round((im.height * L) / s)) : im; };
   /** the clean-up for reading; `final`: the picture read in full — ruled lines and list marks cleared too */
   const enhance = async (im: Img, final: boolean) => {
-    if (!o.clean) return { img: im, lines: 0, marks: 0, columns: 1 };
+    if (!o.clean) return { img: im, lines: 0, inner: 0, marks: 0, columns: 1 };
     let x = im;
     if (o.invertDark && isDark((await ops.histogram(x)).subarray(768, 1024))) x = await ops.invert(x);
     if (o.screen) x = await ops.blur(x, 1.1);
     x = await ops.docEnhance(x, 1);
-    if (!final) return { img: x, lines: 0, marks: 0, columns: 1 };
+    if (!final) return { img: x, lines: 0, inner: 0, marks: 0, columns: 1 };
     const c = await ops.clearMarks(x, 7); // the lines, the marks, and the columns counted
-    return { img: c.img, lines: c.lines, marks: c.marks, columns: c.columns };
+    return { img: c.img, lines: c.lines, inner: c.inner, marks: c.marks, columns: c.columns };
   };
   /** a quick reading, to decide which way up the text stands (the clean-up without clearing marks; no progress shown) */
   const glance = async (im: Img) => eng.read((await enhance(im, false)).img, o.lang, undefined, GLANCE_LAYOUT);
@@ -145,7 +148,7 @@ export async function readPage(photo: Img, o: ReadOptions, eng: ReadEngines = br
     }
     const shown = page || up.turns || up.slant ? img : null;
     const e = await enhance(img, true);
-    return { img: e.img, shown, page, by, up, cleared: { lines: e.lines, marks: e.marks }, columns: e.columns };
+    return { img: e.img, shown, page, by, up, cleared: { lines: e.lines, inner: e.inner, marks: e.marks }, columns: e.columns };
   };
   const t0 = ((o.turns ?? 0) % 4 + 4) % 4;
   let p = await prepare(photo, t0, true, o.auto);
@@ -161,7 +164,7 @@ export async function readPage(photo: Img, o: ReadOptions, eng: ReadEngines = br
     if (r2.words.length > r.words.length) { r = r2; p = w; }
   }
   let layout = layoutFor(p.columns);
-  if ((o.again ?? true) && r.confidence < AGAIN) {
+  if ((o.again ?? true) && r.confidence < AGAIN && (p.cleared.inner > 0 || p.cleared.marks > 0 || p.columns >= 2)) {
     const other: Layout = layout === 'block' ? 'page' : 'block', r2 = await eng.read(p.img, o.lang, o.onProgress, other);
     if (!live()) return null;
     if (score(r2) > score(r) * AGAIN_BY) { r = r2; layout = other; }

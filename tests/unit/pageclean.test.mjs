@@ -64,6 +64,16 @@ export default async (t, { load, wasm }) => {
   t.ok(rc.lines === 0 && rc.marks === 0, `small serif text in columns: nothing taken for a rule or a mark (${rc.lines} px, ${rc.marks} marks)`);
   t.ok(ip.clearMarks(page, 3).columns === 1, 'the columns are counted only when asked (bit 2)');
 
+  // running text on a soft photo (a Kindle's): lines that begin with the word "a", whose hole the blur closes — a solid
+  // blob like a bullet. It is followed by a word space like the line's others (justified text stretches them alike), so
+  // it is a word: the old rule cleared it from the start of five lines here ("a pod of dolphins") and took the justified
+  // word spaces of six lines, lined up by chance, for two gutters
+  const soft = await decode('tests/fixtures/ocr/soft.jpg'), { first } = JSON.parse(readFileSync(root + 'tests/fixtures/ocr/soft.json', 'utf8'));
+  const se = ip.docEnhance(soft, 1), sc = ip.clearMarks(se, 7);
+  const same = (b) => { const [x, y, w, h] = b; for (let yy = y; yy < y + h; yy++) for (let xx = x; xx < x + w; xx++) { const i = (yy * se.width + xx) * 4; if (se.data[i] !== sc.img.data[i]) return false; } return true; };
+  t.ok(sc.marks === 0 && first.every((f) => same(f.box)), `soft justified lines: no word taken for a list mark — every line's first letter stays (${sc.marks} marks; ${first.map((f) => f.text).join(' ')})`);
+  t.ok(sc.columns === 1, `six lines of justified text are one column (${sc.columns})`);
+
   // ---- where the text is
   const W = 1600, H = 2200, form = { width: W, height: H, data: new Uint8ClampedArray(W * H * 4).fill(255) };
   for (let y = 180; y < 700; y++) if (y % 40 < 14) for (let x = 150; x < 1450; x++) if (x % 23 < 15) form.data.fill(20, (y * W + x) * 4, (y * W + x) * 4 + 3);

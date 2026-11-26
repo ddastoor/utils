@@ -5,7 +5,7 @@
 // roman numeral "i.", a colon, the dot of an i, the letter o inside words, a bullet between two words (a separator, not
 // a list), a degree sign. marks.json: the box (px of the picture) of every mark that must go and of everything that must
 // stay. Run by hand: node scripts/make-marks-fixture.mjs (the JPEG — a camera's format, its artefacts too — and the JSON
-// are committed).
+// are committed). Also columns.jpg (a page of two columns) and soft.jpg (blurred justified lines that begin with "a").
 import { writeFileSync, mkdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -81,4 +81,21 @@ await page.evaluate(() => document.fonts.ready);
 await page.locator('.page').screenshot({ path: join(out, 'columns.jpg'), type: 'jpeg', quality: 88 });
 writeFileSync(join(out, 'columns.txt'), ['Why you need Kubernetes', para(0), para(1), para(2), para(3), para(0), para(1)].join(' ') + '\n');
 console.log('columns.jpg: a heading over two columns');
+
+// soft.jpg: lines of justified running text that begin with the one-letter word "a", blurred as a soft photo blurs them —
+// the hole of an "a" closes and it is a solid blob like a bullet (it was cleared from the start of Kindle lines); soft.json:
+// the box of each line's first letter (it must stay)
+const LINES = ['a pod of dolphins came close to the bow of the ship', 'a small, sardonic smile crossed the face of the captain',
+  'and the gulls wheeled above the mast in the evening wind', 'a stick whittled into something like a heron by the fire',
+  'a quiet morning, the fog lifting over the green islands', 'of all the passengers only the professor stayed below'];
+await page.setViewportSize({ width: 640, height: 400 });
+await page.setContent(`<!doctype html><html><head><meta charset="utf-8"><style>
+  body { margin: 0; background: #f2efe6; } .page { width: 560px; padding: 22px 30px; font: 19px/1.6 'Liberation Serif', serif; color: #222; filter: blur(1.8px); }
+  .l { text-align: justify; text-align-last: justify; } .f { display: inline; }
+</style></head><body><div class="page">${LINES.map((l) => `<div class="l"><span class="f">${l[0]}</span>${l.slice(1)}</div>`).join('')}</div></body></html>`, { waitUntil: 'load' });
+await page.evaluate(() => document.fonts.ready);
+const firsts = await page.evaluate((S) => { const pg = document.querySelector('.page').getBoundingClientRect(); return [...document.querySelectorAll('.f')].map((e) => { const b = e.getBoundingClientRect(); return { text: e.textContent, box: [Math.round((b.left - pg.left) * S), Math.round((b.top - pg.top) * S), Math.round(b.width * S), Math.round(b.height * S)] }; }); }, SCALE);
+await page.locator('.page').screenshot({ path: join(out, 'soft.jpg'), type: 'jpeg', quality: 88 });
+writeFileSync(join(out, 'soft.json'), JSON.stringify({ scale: SCALE, first: firsts }, null, 1) + '\n');
+console.log('soft.jpg: justified lines starting with "a", blurred');
 await browser.close();

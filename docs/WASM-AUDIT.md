@@ -1110,6 +1110,21 @@ One entry per tab, written before its bug hunt: our module → candidates → ch
   67.0 / 63.0 / 59.3 / 66.0 / 65.8 % of the words read right (the page found and straightened alone: 67.0 / 53.9 / 46.1 /
   55.8 / 1.8 %); the profiles give the axis of all 112 straightened pages (4 orientations × 28 photos) at 800 px.
 
+- **Documents, 26 Nov 2026 (to-do #18: rich formatting, watermarks, a phone's camera; one reading path for both tabs —
+  `src/lib/readpage.ts`).** What a document needs beside Tesseract: the page found on a light desk, its ruled lines and
+  list marks out of the way, its columns read one by one. **Candidates:** Tesseract's own layout analysis (page
+  segmentation mode 3) — in the module already, and used now for pages of columns (the tabs had always read mode 6, one
+  block); Leptonica's line removal (`pixExtractBoundary`, the morphological tricks of its `livre` programs) is compiled
+  into tesseract.js-core but not exported; OpenCV.js (morphology for rules, contours for bullets) — 8 MB for what a few
+  hundred lines of C do; layout models (PP-DocLayout, DocLayout-YOLO on ONNX Runtime) find tables and lists but not the
+  marks to take out, and add 20 – 70 MB; the Doc Scanner's DocCornerNet (on the site) for the page. Tesseract's float
+  "best" English model could not be fetched here to compare with best_int (the same network in 8 bits). **Decision:**
+  Tesseract stays (rule 1); the Doc Scanner's network is reused for the page where the Kindle finder's outline is not a
+  page's; the rest is our own C in imgproc.wasm (rule 1a — what the module does not cover): `p_quad_steps` and
+  `p_quad_text` (is an outline the page?), `p_refine_quad` (the network's corners fitted to the photo's edges),
+  `p_clear_border`, `p_ink_window`, `p_clear_marks` (ruled lines, list marks, columns). Measured before and after on 150
+  photos (CLAUDE.md §3 OCR, "Documents").
+
 ### 123. `signature` — Signature Maker (20 Nov 2026)
 - **Engines:** the browser's canvas draws the strokes (its own compiled Skia) and the typed name (its HarfBuzz);
   imgproc.wasm (ours) takes the ink off a photo of paper (`inkToAlpha`), trims and crops; jSquash's OxiPNG and MozJPEG

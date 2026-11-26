@@ -12,6 +12,12 @@ const { chromium, devices } = createRequire(import.meta.url)('playwright');
 const here = dirname(fileURLToPath(import.meta.url));
 const filters = process.argv.slice(2).flatMap((a) => a.split(',')).filter(Boolean);
 const CONCURRENCY = Number(process.env.E2E_CONCURRENCY || Math.min(10, Math.max(4, cpus().length * 2)));
+// E2E_SUITE_TIMEOUT (minutes, default 30): a suite still running then is reported as timed out and its pages closed, so
+// that one suite that hangs (a program it starts waiting for input) cannot hold up the run and lose every result — the
+// Windows runner stopped such a run after 150 minutes without a line of output (26 Nov 2026)
+const SUITE_TIMEOUT = Number(process.env.E2E_SUITE_TIMEOUT || 30) * 60000;
+/** One suite's result line (printed as it ends, and again in the sorted summary). */
+const line = (r) => `${r.fails.length ? '✗' : '✓'} ${r.f.padEnd(30)} ${String(r.passed).padStart(4)} passed  ${(r.ms / 1000).toFixed(1).padStart(5)} s`;
 const t0 = performance.now();
 // E2E_DIST=<folder>: serve another build (e.g. `npx vite build --outDir <folder>`) while a long run uses dist/
 const server = await preview({ root: join(here, '..'), preview: { port: 0 }, logLevel: 'error', ...(process.env.E2E_DIST ? { build: { outDir: process.env.E2E_DIST } } : {}) });
@@ -36,6 +42,7 @@ const BLOBS = () => {
 };
 async function runOne(f) {
   const fails = [], infos = [], s0 = performance.now(); let passed = 0;
+  console.log(`  ▶ ${f}`);
   const contexts = [];
   const ctx = {
     base, tmp, devices,
@@ -61,17 +68,22 @@ async function runOne(f) {
     info(msg) { infos.push(msg); },
     async download(page, click) { const d = page.waitForEvent('download', { timeout: Number(process.env.E2E_DL_TIMEOUT || 90000) }); await click(); const dl = await d; const p = join(tmp, `${Date.now()}-${dl.suggestedFilename()}`); await dl.saveAs(p); return p; },
   };
-  try { await (await import(pathToFileURL(join(here, 'e2e', f)).href)).default(ctx); }
+  let timer;
+  const limit = new Promise((_, reject) => { timer = setTimeout(() => reject(new Error(`timed out after ${SUITE_TIMEOUT / 60000} min (E2E_SUITE_TIMEOUT)`)), SUITE_TIMEOUT); });
+  try { await Promise.race([(async () => (await import(pathToFileURL(join(here, 'e2e', f)).href)).default(ctx))(), limit]); }
   catch (e) { fails.push(`crashed: ${e.message.split('\n')[0]}${process.env.E2E_STACK ? `\n${(e.stack || '').split('\n').filter((l) => l.includes('.e2e.mjs')).join('\n')}` : ''}`); }
+  finally { clearTimeout(timer); }
   for (const c of contexts) await c.close().catch(() => {});
-  results.push({ f, fails, infos, passed, ms: performance.now() - s0 });
+  const r = { f, fails, infos, passed, ms: performance.now() - s0 };
+  results.push(r);
+  console.log(`  … ${line(r)}`); // as it ends: a run stopped from outside still shows what finished
 }
 await Promise.all(Array.from({ length: Math.min(CONCURRENCY, files.length) }, async () => { while (queue.length) await runOne(queue.shift()); }));
 // A suite that failed while the others were running is run once more on its own: recorders, timers and media encoders
 // are timing-sensitive, and this machine runs more browsers than it has cores. A real bug fails both times; a suite that
 // passes alone is reported as passed, with a note of what it failed under load (E2E_NO_RETRY=1 switches this off).
 if (files.length > 1 && !process.env.E2E_NO_RETRY) {
-  for (const first of results.filter((r) => r.fails.length)) {
+  for (const first of results.filter((r) => r.fails.length && !/^crashed: timed out/.test(r.fails[0]))) { // a hang is not run again
     results.splice(results.indexOf(first), 1);
     await runOne(first.f);
     const again = results[results.length - 1];
@@ -84,7 +96,7 @@ if (!process.env.E2E_KEEP) rmSync(tmp, { recursive: true, force: true }); // dow
 let failed = 0, total = 0;
 for (const r of results.sort((a, b) => a.f.localeCompare(b.f))) {
   total += r.passed + r.fails.length; failed += r.fails.length;
-  console.log(`${r.fails.length ? '✗' : '✓'} ${r.f.padEnd(30)} ${String(r.passed).padStart(4)} passed  ${(r.ms / 1000).toFixed(1).padStart(5)} s`);
+  console.log(line(r));
   for (const m of r.fails.slice(0, 15)) console.log(`    ✗ ${m}`);
   for (const m of r.infos) console.log(`    ℹ ${m}`);
 }

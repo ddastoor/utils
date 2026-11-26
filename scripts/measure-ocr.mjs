@@ -1,4 +1,4 @@
-// measure-ocr.mjs DIR [--prep a,b,…] [--psm N] [--only TEXT] [--param name=value,…] [--tilt DEG] — how many of a photo's words the OCR reads right, for
+// measure-ocr.mjs DIR [--prep a,b,…] [--psm N] [--only TEXT] [--param name=value,…] [--tilt DEG] [--without op,…] — how many of a photo's words the OCR reads right, for
 // every photo of DIR (made by scripts/make-kindle-photos.py: <name>.jpg + <name>.txt). The engine is the app's own:
 // tesseract.js with the English model the site serves (4.0.0_best_int), in Node; the clean-up steps are imgproc.wasm's,
 // as the tab runs them (src/wasm/imgproc.ts through Vite's loader). Prints one line per photo and the means: the words
@@ -194,8 +194,10 @@ async function main() {
   };
   // the engines of the tabs' reading path in Node (src/lib/readpage.ts ReadEngines): imgproc.wasm with the Doc Scanner's
   // network, and this Tesseract (the text as recognize() of src/lib/ocr.ts gives it)
+  // --without op,…: steps of imgproc taken out of the reading path (e.g. clearBorder, quadText), to measure what each does
+  const without = opt('--without', '').split(',').filter(Boolean);
   const readEngines = {
-    ops: { ...ip, docCorners: (sm) => eng.docCorners(sm) },
+    ops: Object.fromEntries(Object.entries({ ...ip, docCorners: (sm) => eng.docCorners(sm) }).filter(([k]) => !without.includes(k))),
     read: async (im, _lang, _progress, layout) => {
       // the layout the reading path asks for (src/lib/ocr.ts PSM: 'page' 3, 'block' 6); --psm N overrides it for all
       const d = (await worker.recognize(ppm(im), { tessedit_pageseg_mode: args.includes('--psm') ? psm : { page: '3', block: '6' }[layout] }, { text: true, blocks: true })).data, words = [];

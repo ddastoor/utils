@@ -71,20 +71,26 @@ export default async (t, { load, wasm }) => {
   r = await RP.readPage(book, { lang: 'eng', clean: false, auto: false, turns: 1, onProgress: progress }, { ops, read: f.read });
   t.ok(mains(f)[0].w === book.height && mains(f)[0].h === book.width && f.calls.length === 1 && r.up.turns === 0, 'turned a quarter by hand: read that way round, nothing decided on its own');
 
-  // an unsure reading (below 85 %) read again laid out the other way; the one that reads more words surely is kept — on a
-  // soft photo Tesseract laid out as one block can lose a whole line (a form's title, a table's row)
+  // a page with rules, list marks or columns read unsurely (below 85 %) is read again laid out the other way; the one that
+  // reads more words surely is kept — on a soft photo Tesseract laid out as one block can lose a whole line (a form's
+  // title, a table's row). A page of plain text (a Kindle's, a book's) is read once: it never gained, and a second
+  // reading costs a phone seconds
+  const lists = await decode('tests/fixtures/ocr/marks.jpg');
   f = reader((c) => (c.main ? (c.layout === 'block' ? { n: 80, conf: 76 } : { n: 100, conf: 83 }) : null));
-  r = await RP.readPage(book, { lang: 'eng', clean: true, auto: false, onProgress: progress }, { ops, read: f.read });
-  t.ok(mains(f).length === 2 && mains(f)[1].layout === 'page' && r.layout === 'page' && r.r.words.length === 100, `an unsure reading (76 %): read again as a page, which read more words surely, kept (${mains(f).map((c) => c.layout).join(' → ')})`);
+  r = await RP.readPage(lists, { lang: 'eng', clean: true, auto: false, onProgress: progress }, { ops, read: f.read });
+  t.ok(r.cleared.marks > 0 && r.cleared.inner > 0 && mains(f).length === 2 && mains(f)[1].layout === 'page' && r.layout === 'page' && r.r.words.length === 100, `lists and a table read unsurely (76 %): read again as a page, which read more words surely, kept (${mains(f).map((c) => c.layout).join(' → ')}; ${r.cleared.marks} marks, ${r.cleared.inner} px of rules inside)`);
   f = reader((c) => (c.main ? (c.layout === 'block' ? { n: 100, conf: 80 } : { n: 101, conf: 80 }) : null));
-  r = await RP.readPage(book, { lang: 'eng', clean: true, auto: false, onProgress: progress }, { ops, read: f.read });
+  r = await RP.readPage(lists, { lang: 'eng', clean: true, auto: false, onProgress: progress }, { ops, read: f.read });
   t.ok(mains(f).length === 2 && r.layout === 'block' && r.r.words.length === 100, '… one that reads barely more (within 3 %): the first kept');
   f = reader((c) => (c.main ? { n: 100, conf: 90 } : null));
-  r = await RP.readPage(book, { lang: 'eng', clean: true, auto: false, onProgress: progress }, { ops, read: f.read });
+  r = await RP.readPage(lists, { lang: 'eng', clean: true, auto: false, onProgress: progress }, { ops, read: f.read });
   t.ok(mains(f).length === 1 && r.layout === 'block', 'a sure reading (90 %): read once');
   f = reader((c) => (c.main ? (c.layout === 'block' ? { n: 80, conf: 76 } : { n: 100, conf: 83 }) : null));
-  r = await RP.readPage(book, { lang: 'eng', clean: true, auto: false, again: false, onProgress: progress }, { ops, read: f.read });
+  r = await RP.readPage(lists, { lang: 'eng', clean: true, auto: false, again: false, onProgress: progress }, { ops, read: f.read });
   t.ok(mains(f).length === 1 && r.layout === 'block', 'again: false — read once');
+  f = reader((c) => (c.main ? (c.layout === 'block' ? { n: 80, conf: 76 } : { n: 100, conf: 83 }) : null));
+  r = await RP.readPage(kindle, { lang: 'eng', clean: true, auto: false, onProgress: progress }, { ops, read: f.read });
+  t.ok(r.cleared.marks === 0 && r.cleared.inner === 0 && r.columns === 1 && mains(f).length === 1, `a Kindle page read unsurely (76 %): plain text — no rules inside, no marks, one column — read once (${r.cleared.lines} px of its edges cleared; ${r.cleared.marks} marks, ${r.cleared.inner} inner, ${r.columns} columns, ${mains(f).length} readings)`);
   f = reader((c) => (c.main ? (c.layout === 'page' ? { n: 60, conf: 70 } : { n: 120, conf: 82 }) : null));
   r = await RP.readPage(cols0 ??= await decode('tests/fixtures/ocr/columns.jpg'), { lang: 'eng', clean: true, auto: false, onProgress: progress }, { ops, read: f.read });
   t.ok(r.columns === 2 && mains(f)[0].layout === 'page' && mains(f)[1].layout === 'block' && r.layout === 'block', `columns read as a page, unsure: read again as one block, kept when it reads more (${mains(f).map((c) => c.layout).join(' → ')})`);

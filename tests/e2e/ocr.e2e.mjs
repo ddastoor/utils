@@ -62,6 +62,11 @@ export default async ({ base, page: newPage, ok, info, download, devices }) => {
     const strays = got.split('\n').filter((l) => STRAY.test(l)), bars = (got.match(/(^|\s)\|(?=\s|$)/g) || []).length;
     ok(strays.length <= 1 && bars <= 1, `${f}: no list mark read as a letter, no table rule as | (${strays.length} lines ${JSON.stringify(strays.slice(0, 3))}, ${bars} bars)`);
   }
+  // a scan with CONFIDENTIAL across it as strong as printers make it: the white area its letters fence in is no page (it
+  // passed for one, and the page was read from half way down — 47 % of its words); the scan is read whole
+  { const f = 'doc-memo-watermark-scan.jpg', got = await recognise(F(f), 'English', true), truth = wordsOf(readFileSync(F(f.replace('.jpg', '.txt')), 'utf8'));
+    const right = lcs(truth, wordsOf(got)) / truth.length;
+    ok(right >= 0.95 && !/the page was found/.test(await line()), `${f}: ${(100 * right).toFixed(1)} % of its words read right, the scan read whole (${await line()})`); }
 
   // the phone held sideways (owner, 21 Nov 2026 — to-do #11: "either with my left hand or my right hand"): the Kindle
   // photo turned a quarter either way, or upside down, reads as well as upright; the line says how it was turned

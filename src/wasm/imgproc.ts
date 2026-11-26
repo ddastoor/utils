@@ -145,10 +145,6 @@ export function bindImgproc(e: any) {
       try { new Float32Array(mem(), q, 8).set(corners); const n = e.p_refine_quad(s, img.width, img.height, q, search, o); return { corners: Array.from(new Float32Array(mem(), o, 8)), edges: n }; }
       finally { e.p_free(s); e.p_free(q); e.p_free(o); }
     },
-    /** Ruled lines and list marks painted the paper's colour on a page set upright and cleaned up (p_clear_marks; to-do
-     *  #18): what — bit 0 the lines (a table's grid, rules, underlines), bit 1 the marks (● ○ ■ □ ☐ ☑ … at a line's start
-     *  before a gap), bit 2 count the columns of text; `lines` = pixels cleared, `marks` = marks cleared, `xh` = the
-     *  x-height found, `slant` in degrees, `columns` = the columns of text (1: one, or not counted). */
     /** The letters of a picture inside an outline (TL, TR, BR, BL, px) and outside it (p_quad_text): a page's outline
      *  holds nearly all of them. */
     quadText(img: Img, corners: number[]): { inside: number; outside: number } {
@@ -169,12 +165,17 @@ export function bindImgproc(e: any) {
         return { img: { width: img.width, height: img.height, data: new Uint8ClampedArray(mem().slice(p, p + img.data.length)) }, painted };
       } finally { e.p_free(p); }
     },
-    clearMarks(img: Img, what = 3): { img: Img; lines: number; marks: number; xh: number; slant: number; columns: number } {
-      const p = put(img.data), o = e.p_malloc(20);
+    /** Ruled lines and list marks painted the paper's colour on a page set upright and cleaned up (p_clear_marks; to-do
+     *  #18): what — bit 0 the lines (a table's grid, rules, underlines), bit 1 the marks (● ○ ■ □ ☐ ☑ … at a line's start
+     *  before a gap wider than its word spaces), bit 2 count the columns of text; `lines` = pixels cleared (`inner`: of
+     *  lines inside the page, not along its edges), `marks` = marks cleared, `xh` = the x-height found, `slant` in
+     *  degrees, `columns` = the columns of text (1: one, or not counted). */
+    clearMarks(img: Img, what = 3): { img: Img; lines: number; inner: number; marks: number; xh: number; slant: number; columns: number } {
+      const p = put(img.data), o = e.p_malloc(24);
       try {
         e.p_clear_marks(p, img.width, img.height, what, o);
-        const v = Array.from(new Int32Array(mem(), o, 5));
-        return { img: { width: img.width, height: img.height, data: new Uint8ClampedArray(mem().slice(p, p + img.data.length)) }, lines: v[0], marks: v[1], xh: v[2], slant: v[3] / 100, columns: v[4] };
+        const v = Array.from(new Int32Array(mem(), o, 6));
+        return { img: { width: img.width, height: img.height, data: new Uint8ClampedArray(mem().slice(p, p + img.data.length)) }, lines: v[0], inner: v[5], marks: v[1], xh: v[2], slant: v[3] / 100, columns: v[4] };
       } finally { e.p_free(p); e.p_free(o); }
     },
     /** Which way up the text of a picture stands (p_text_turns): the quarter turns to the right that set it upright

@@ -1596,7 +1596,10 @@ API int p_text_lines(const uint8_t *px, int w, int h, float *out) {
  *    along the lines of the text or across them, at most 0.45 of an x-height thick, with paper on both sides along most
  *    of their length (an underline, with the letters on it, stays) — painted the paper's colour (Tesseract read them as
  *    | and _);
- *  - list marks: the first thing on a line, followed by a gap wider than a word space and then letters — a solid dot,
+ *  - list marks: the first thing on a line (nothing just before it, even half an x-height up or down: a comma hangs
+ *    below the baseline), followed by a gap wider than every word space of its line (two more gaps on the line as wide:
+ *    a word — "a" on a soft photo, its hole closed, is a solid blob; justified text stretches its spaces alike) and then
+ *    letters — a solid dot,
  *    square, diamond or triangle (● ■ ▪ ◆ ►), a ring or an empty box (○ ◦ □ ☐), a box with a tick or a cross in it
  *    (☑ ☒) — painted the paper's colour (read as e, o, ©, ®, «, 71 …). A ring the size and shape of the letter o counts
  *    only after the gap of a tab (Word's second-level bullet is an o; the word "o" — Spanish for "or" — is followed by
@@ -1604,12 +1607,14 @@ API int p_text_lines(const uint8_t *px, int w, int h, float *out) {
  * The x-height and the slant of the lines are measured on the page (the letters' heights; their nearest neighbours).
  * Then, with bit 2, the columns of text are counted: gutters — a band at least an x-height wide with almost no ink,
  * text on both sides of it down the page, the lines on its left running up to it, the columns either side at least
- * eighteen x-heights wide (a form's labels and a table's cells are narrower, and stop short) — the reading tabs read a
+ * eighteen x-heights wide (a form's labels and a table's cells are narrower, and stop short), on a page of at least
+ * twelve bands of text (in six lines of justified text the word spaces lined up by chance) — the reading tabs read a
  * page of columns as a page (Tesseract's layout analysis), anything else as one block (to-do #18: a newsletter's two
  * columns were read straight across; a form read as columns lost its order).
  * what: bit 0 the lines, bit 1 the marks, bit 2 the columns. out[0] = pixels of lines cleared, out[1] = marks cleared,
  * out[2] = the x-height (px), out[3] = the slant used (hundredths of a degree), out[4] = the columns of text (1 when one
- * or none). Returns out[0] + out[1] > 0 (0: the page as it was). */
+ * or none), out[5] = pixels of the lines cleared inside the page (not along its edges: a table's, a form's). Returns
+ * out[0] + out[1] > 0 (0: the page as it was). */
 typedef struct { int x0, y0, x1, y1, n, off; } cm_comp;
 static int cm_cmpi(const void *a, const void *b) { int x = *(const int *)a, y = *(const int *)b; return (x > y) - (x < y); }
 /* 8-connected components of mask == 1 (set to 2 when visited): pixel lists in pix (the components' pixels one after
@@ -1737,7 +1742,7 @@ API void p_quad_text(const uint8_t *px, int w, int h, const float *q, int32_t *o
     free(g); free(ink); free(mean); free(ii); free(pix); free(cs);
 }
 API int p_clear_marks(uint8_t *px, int w, int h, int what, int32_t *out) {
-    for (int k = 0; k < 5; k++) out[k] = 0;
+    for (int k = 0; k < 6; k++) out[k] = 0;
     out[4] = 1;
     int n = w * h;
     if (w < 64 || h < 64) return 0;
@@ -1867,7 +1872,7 @@ API int p_clear_marks(uint8_t *px, int w, int h, int what, int32_t *out) {
         }
         /* each direction's runs: thin, with paper beside them along most of their length */
         uint8_t *dm = malloc(n);
-        int cleared = 0;
+        int cleared = 0, inner = 0;
         float thick = 0.45f * xh; if (thick < 3) thick = 3;
         int side = (int)lroundf(0.2f * xh) + 2;
         for (int dir = 1; dir <= 2; dir++) {
@@ -1914,10 +1919,13 @@ API int p_clear_marks(uint8_t *px, int w, int h, int what, int32_t *out) {
                 cm_clear(px, w, h, pix + c->off, c->n);
                 for (int q = 0; q < c->n; q++) ink[pix[c->off + q]] = 0;
                 cleared += c->n;
+                /* a rule inside the page (a table's, a form's), not a line along its edge (a page straightened from a photo
+                   keeps a trace of its edge — every Kindle photo has two) */
+                if (dir == 1 ? c->y0 > 0.02f * h && c->y1 < 0.98f * h : c->x0 > 0.02f * w && c->x1 < 0.98f * w) inner += c->n;
             }
         }
         free(dm); free(rm);
-        out[0] = cleared;
+        out[0] = cleared; out[5] = inner;
     }
     if (what & 2) {
         /* list marks: the components again (without the lines just cleared) */
@@ -1937,8 +1945,8 @@ API int p_clear_marks(uint8_t *px, int w, int h, int what, int32_t *out) {
             /* the line it stands on: neighbours overlapping it up and down (along the slant); the nearest one to the
                right, and anything just to its left */
             float ccx = (c->x0 + c->x1) * 0.5f, ctop = c->y0 - ccx * t, cbot = c->y1 - ccx * t;
-            int right = -1, rgap = 1 << 30, left = 0;
-            int gx0 = (int)((c->x0 - 3 * xh) / cell) - 1, gx1 = (int)((c->x1 + 9 * xh) / cell) + 1, gy0 = (int)((c->y0 - 2 * xh) / cell) - 1, gy1 = (int)((c->y1 + 2 * xh) / cell) + 1;
+            int right = -1, rgap = 1 << 30, left = 0, nr = 0, rx0[64], rx1[64];
+            int gx0 = (int)((c->x0 - 3 * xh) / cell) - 1, gx1 = (int)((c->x1 + 25 * xh) / cell) + 1, gy0 = (int)((c->y0 - 2 * xh) / cell) - 1, gy1 = (int)((c->y1 + 2 * xh) / cell) + 1;
             for (int gy = gy0; gy <= gy1 && !left; gy++) for (int gx = gx0; gx <= gx1 && !left; gx++) {
                 if (gx < 0 || gy < 0 || gx >= gw || gy >= gh) continue;
                 for (int j = head[gy * gw + gx]; j >= 0; j = next[j]) {
@@ -1952,11 +1960,15 @@ API int p_clear_marks(uint8_t *px, int w, int h, int what, int32_t *out) {
                     /* something right above or below it (the dot of an i or a j, a colon's other dot): no mark */
                     int hov = (c->x1 < o->x1 ? c->x1 : o->x1) - (c->x0 > o->x0 ? c->x0 : o->x0) + 1;
                     if (ov <= 0 && hov >= 0.3f * (bw < ow ? bw : ow) && (otop - cbot < 0.6f * xh && ctop - obot < 0.6f * xh)) { left = 1; break; }
+                    /* something just before it, up to half an x-height above or below (a comma hangs below the baseline:
+                       the word before it): not the start of a line */
+                    if (o->x1 < c->x0 && c->x0 - o->x1 <= 2.5f * xh && obot >= ctop - 0.5f * xh && otop <= cbot + 0.5f * xh) { left = 1; break; }
                     if (ov < 0.4f * (bh < oh ? bh : oh)) continue;                     /* not on its line */
                     if (o->x1 >= c->x0 && o->x0 <= c->x1) { left = 1; break; }        /* beside it up and down: inside something */
                     if (o->x1 < c->x0) { if (c->x0 - o->x1 <= 2.5f * xh) { left = 1; break; } continue; }
                     int gap = o->x0 - c->x1 - 1;
                     if (gap < rgap) { rgap = gap; right = j; }
+                    if (gap <= 25 * xh && nr < 64) { rx0[nr] = o->x0; rx1[nr] = o->x1; nr++; }   /* the line's text, for its word spaces */
                 }
             }
 #ifdef CM_DEBUG
@@ -1964,6 +1976,19 @@ API int p_clear_marks(uint8_t *px, int w, int h, int what, int32_t *out) {
 #endif
             if (left || right < 0 || rgap > 9 * xh) continue;
             { cm_comp *o = &cs[right]; int oh = o->y1 - o->y0 + 1; if (oh < 0.5f * xh || oh > 3 * xh) continue; }   /* letters follow */
+            /* a list's mark is set off from its text by more than any word space of its line (a tab, an indent); the first
+               word of a line of running text by one of them — "a" on a soft photo, its hole closed by the blur, is a solid
+               blob (it was cleared from the start of Kindle lines: "a pod of dolphins"). Two more gaps on the line about as
+               wide (justified text stretches its spaces alike): a word space, no mark. */
+            {
+                for (int q = 1; q < nr; q++) { int a0 = rx0[q], a1 = rx1[q], r2 = q; while (r2 > 0 && rx0[r2 - 1] > a0) { rx0[r2] = rx0[r2 - 1]; rx1[r2] = rx1[r2 - 1]; r2--; } rx0[r2] = a0; rx1[r2] = a1; }
+                int wide = 0, end = nr ? rx1[0] : 0;
+                for (int q = 1; q < nr; q++) { int gp = rx0[q] - end - 1; if (gp >= 0.75f * rgap) wide++; if (rx1[q] > end) end = rx1[q]; }
+#ifdef CM_DEBUG
+                fprintf(stderr, "  gap after it %d; gaps on its line as wide: %d\n", rgap, wide);
+#endif
+                if (wide >= 2) continue;
+            }
             /* the shape */
             int harea = 0, holes = cm_holes(pix + c->off, c->n, w, c->x0, c->y0, bw, bh, &harea);
             double hull = cm_hull(pix + c->off, c->n, w, c->x0, c->y0, bw, bh), box = (double)bw * bh;
@@ -2014,7 +2039,9 @@ API int p_clear_marks(uint8_t *px, int w, int h, int what, int32_t *out) {
             prof[(y / bh) * nb + b]++; tot[y / bh]++; if (b < X0) X0 = b; if (b > X1) X1 = b;
         }
         int textb = 0; for (int k = 0; k < nbands; k++) if (tot[k] >= xh * xh) textb++;      /* a band with a few letters in it */
-        if (X1 - X0 > 14 * xh && textb >= 4) {
+        /* (a few lines are one column: in six lines of justified text the word spaces lined up in six of eight bands and
+           passed for two gutters; real column pages have 14 – 68 bands of text, their gutters empty in 72 – 100 %) */
+        if (X1 - X0 > 14 * xh && textb >= 12) {
             int *empty = calloc(nb, sizeof(int));
             for (int k = 0; k < nbands; k++) if (tot[k] >= xh * xh) for (int b = X0; b <= X1; b++) if (!prof[k * nb + b]) empty[b]++;
             /* the text's sides: where text bands begin and end (the outermost x' that is not empty in a fifth of them) */
