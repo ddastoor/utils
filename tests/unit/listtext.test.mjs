@@ -123,6 +123,19 @@ export default async (t, { load }) => {
   check('the second column: its own list from level 0', cols, [M(60, 100), M(60, 130), M(540, 100), M(600, 130, 2)],
     '• left one\n• left two\n\n• right one\n    ◦ right nested');
 
+  // ---- a table right after a checklist: it starts a little left of the items' text (1.0 – 1.3 x-heights on the
+  // checklist's video frames — they were set out as the last item's run-on lines); a line that runs on starts right under
+  // the text
+  const tbl = R([
+    { x: 80, y: 100, words: 'Write tutorials for the project' },
+    { x: 80, y: 130, words: 'Go through open issues and' },
+    { x: 81, y: 160, words: 'suggest closing old ones' },
+    { x: 69, y: 200, words: 'Phase Owner Status Notes' },
+    { x: 69, y: 230, words: 'Planning Asha Done Power BI' },
+  ]);
+  check('a table after a checklist: no run-on lines of its last item', tbl, [M(60, 100, 6), M(60, 130, 6)],
+    '☐ Write tutorials for the project\n☐ Go through open issues and\n  suggest closing old ones\nPhase Owner Status Notes\nPlanning Asha Done Power BI');
+
   // ---- a page not quite level: the lines drift, each mark goes to the line whose first word stands at its height
   const drift = R([{ x: 80, y: 100, words: 'one two three four five six seven eight nine ten eleven twelve', gap: 8 }, { x: 80, y: 118, words: 'second line' }]);
   for (const [k, w] of drift.words.entries()) if (k < 12) { w.y0 += k * 3; w.y1 += k * 3; } // the first line falls 33 px to its end

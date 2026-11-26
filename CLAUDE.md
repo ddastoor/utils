@@ -2362,7 +2362,7 @@ by `tests/lib/listscore.mjs`): MEASURED.
 **Not kept:** a ✓ used as a bullet (the clean-up does not clear it; Tesseract reads "v" or "+"), ➢ (read as ">" or ">»":
 its indentation is kept, not its look; on a soft photo, its point blurred round, it is cleared and written •), a mark too
 soft or too small to see; headings and tables (the owner: lists only).
-Tests: unit `listtext` 71 (marks, levels, run-on lines, numbers and letters, paragraphs, columns, a slanted page,
+Tests: unit `listtext` 73 (marks, levels, run-on lines, numbers and letters, paragraphs, columns, a table after a checklist, a slanted page,
 PaddleOCR's reading of a mark, Tesseract's real reading of the memo photo: 14 of 14 items, 9 of 9 run-on lines),
 `pageclean` 71 (each mark of marks.jpg listed as what it is; four lossless pictures of what `p_clear_marks` gets —
 `OCR_MARKS=DIR node scripts/measure-ocr.mjs … --only PHOTO` writes them as `PHOTO.read.marks.png`: a phone's still of a
