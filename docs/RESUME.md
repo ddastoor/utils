@@ -58,6 +58,9 @@ page is open, in an always-on-top window too (`src/lib/pipcount.ts`, shared with
 tones (MP4 / WebM, ± microphone): within 0.02 dB — not lower. Offered to the owner (not built): an R128 "normal
 loudness" button for the Screencast. **Batch 3 is complete.** (Disk: the scratchpad's 13 GB offline-TTS work folder `otts`
 was deleted on 26 Nov to free space — the survey's results are committed; `scripts/accent-survey/` makes it again.)
+**To-do #32 added (26 Nov 2026, the owner):** 22 new FFmpeg jobs (the uses listed in chat, all on today's core) — not yet in the
+batch order: ask when. The three that need our own FFmpeg build (a good stabiliser, Rubber Band pitch, VP9 / H.265) are
+potentials.md U3 "Our own FFmpeg build".
 **Next (the owner's order):** batch 4 (#24, #28 Screenshot), 5 (#15, #17, #16), 6 (#14 Text Diff), 7 (#20 Studio voice); then the potentials process.
 
 ## ▶ SYNC POINT — 21 Nov 2026, night (read this first; it supersedes the older "NOW" notes below)

@@ -2553,7 +2553,9 @@ arguments (in1.ext / in2.ext, last word = output). Non-zero exit = failure: FFmp
 log opens. Stop = terminate the worker ("Stopped.", no error); a new file chosen during a job ends it (its probe reset the job's log and the outputs took the new name), probes of a second file or of clips wait for a running job, outputs are named after the file the job ran on (Nov 2026 hunt, tab 152; libav.js checked as a replacement: docs/WASM-AUDIT.md 149). **Known limits of this core:** libvpx-vp9 and libx265 wait forever for
 threads (so presets use VP8/x264 and the raw box warns); FFmpeg 5.1 ignores input `-to` and `-shortest` with a looped
 picture (handled with `-t`); **its Opus encoder crashes on two channels and more** at complexity 5 and above (made at 4 —
-"Sound at its own level" below). Replacing it with our own build of current FFmpeg stays on the §3a audit list.
+"Sound at its own level" below). Replacing it with our own build of current FFmpeg stays on the §3a audit list — and is
+`docs/potentials.md` U3 (owner, 26 Nov 2026: with the stabiliser, Rubber Band and VP9 / H.265 it would bring). The 22 new
+jobs the core can do as it is: to-do #32.
 Tests: clip.mp4/tone.wav/tone.mp3 → WebM plays, AAC copy, MP3 440 Hz, no-sound copy, fast trim ≈ 1 s and exact 1.00 s,
 426×240, rotate 360×640, square crop, GIF89a 320 px, 2× = 1.5 s, 3 frames zipped, merge 660 Hz, raw hflip, bad filter
 reported, loudness changed, waveform 1280×720, picture + sound 2 s.

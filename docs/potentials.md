@@ -80,7 +80,8 @@ from the sandbox (GitHub is not reachable there): measure it before building.
 - **Large — over 60 MB:** 5 Vocal Remover 180.5 (HTDemucs; 113.1 for vocals only with Open-Unmix) · 22 LaTeX ≈ 175 (est.)
   · 50 Packet Capture 76 (Wiregasm: 73.4 + 2.6) · 51 Scratch 87 (the GUI) + the sprite and sound library it normally
   fetches from Scratch's servers · 67 Object Eraser 208 (LaMa) · 69 Data Notebook ≈ 70 (JupyterLite, est.).
-- **Off the list:** U1 Hindi voices (owner's rule, 20 Nov 2026: no Hindi work); U3 needs our own FFmpeg build first.
+- **Off the list:** U1 Hindi voices (owner's rule, 20 Nov 2026: no Hindi work).
+- **In place of a tab's engine:** U3 our own FFmpeg build ≈ 36 – 46 MB in place of FFmpeg's 31 today (est.: + 5 – 15).
 - **What could make room, biggest first** (Speech to Text, 238 MB, was removed on 20 Nov 2026): Text-to-Speech's Kokoro voices (US / UK) 94 MB or Piper's (Indian English) 73 MB · Code
   Formatter's Biome 67 MB (Prettier, JavaScript, would format those languages instead) · a whole tab's engine: Photo
   Dictionary 34, FFmpeg 31, OCR 27, EXIF 24. Or, removing nothing: a **second GitHub Pages site** of the owner's
@@ -136,7 +137,7 @@ from the sandbox (GitHub is not reachable there): measure it before building.
 |---|---|---|---|---|
 | U1 | **Hindi voices** in Text-to-Speech | Piper `hi_IN` voices (pratham, rohan) | same Piper engine already on the site; dataset licence is non-commercial (personal use is fine). The owner skipped Hindi for OCR, so ask first. | waiting |
 | U2 | **"Full Python"** option in the planned Python tab | Pyodide (MPL-2.0, official CPython wasm) | numpy / pandas / matplotlib beside the built-in CPython 3.14 (standard library only); ≈ 10–30 MB, loaded only when chosen | waiting |
-| U3 | **Video Stabilizer** | vid.stab (GPL) inside our own FFmpeg build | possible only after the own-FFmpeg build on the §3a audit list | waiting |
+| U3 | **Our own FFmpeg build** for the FFmpeg tab (owner, 26 Nov 2026: the three new FFmpeg uses that need it go here — the other 22 are to-do #32): **(1) a good video stabiliser** — vid.stab (GPL-2.0; `vidstabdetect` + `vidstabtransform`, two passes; FFmpeg 5.1's `deshake` only moves the picture against the shake); **(2) high-quality pitch and speed change** — Rubber Band (GPL-2.0; `rubberband`; `atempo` crossfades its pieces — 1.3 dB lower on noise-like sound, to-do #23); **(3) VP9 and H.265 encoding** — libvpx-vp9 and x265 built without threads (in ffmpeg.wasm 0.12 they wait for ever for worker threads; GitHub Pages cannot give SharedArrayBuffer) | current FFmpeg (8.x) + the libraries the tab uses now (x264, LAME, Opus, Vorbis, libvpx, libwebp, freetype / fribidi / libass, zimg) + vid.stab + Rubber Band, compiled by us to WebAssembly (Emscripten, as ffmpeg.wasm's own build scripts, or libav.js's "fat" variant — docs/WASM-AUDIT.md, tab 149) | ≈ 1 – 2 days, then every FFmpeg job's suites again (FFmpeg changed some filters since 5.1: `silenceremove`); the stereo Opus workaround of to-do #23 (`OPUS_SAFE`) comes out if the new build passes the stereo checks; size ≈ 36 – 46 MB in place of today's 31 (est.) | waiting |
 
 ## Round 3 — open-source projects from anywhere (not only GitHub)
 
