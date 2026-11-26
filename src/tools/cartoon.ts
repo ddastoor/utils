@@ -12,12 +12,16 @@ import { styleEngine, styleVector, stylize, disposeStyleEngine } from '../lib/st
 
 type Fx = 'cartoon' | 'oil' | 'watercolor' | 'sketch' | 'colorsketch' | 'comic';
 export const FILTERS: Array<[Fx, string]> = [['cartoon', 'Cartoon'], ['oil', 'Oil paint'], ['watercolor', 'Watercolour'], ['sketch', 'Pencil sketch'], ['colorsketch', 'Colour pencil'], ['comic', 'Comic']];
-interface FxOpts { colors: number; lines: number; smooth: number; brush: number; soft: number; dots: number }
-const DEFAULTS: FxOpts = { colors: 10, lines: 0.9, smooth: 2, brush: 5, soft: 8, dots: 6 };
+/** `detail`: the size (px) a filter's lines, brushes and smoothing are drawn for — finer details at larger values (to-do
+ *  #16: "too coarse-grained … more fine-grained with more detail"); the preview and the full-size save scale alike. */
+interface FxOpts { colors: number; lines: number; smooth: number; brush: number; soft: number; dots: number; detail: number }
+const DEFAULTS: FxOpts = { colors: 14, lines: 0.9, smooth: 2, brush: 5, soft: 8, dots: 6, detail: 2000 };
+export const DETAILS: Array<[string, string]> = [['2000', 'Fine'], ['1000', 'Medium'], ['600', 'Bold']];
 
-/** Apply a filter. Sizes are tuned for images up to 1000 px and grow with larger ones, so preview and full-size save match. */
+/** Apply a filter. Sizes are tuned for pictures of `o.detail` px and grow with larger ones, so preview and full-size save
+ *  match (s is at least 0.25: imgproc's smallest scale). */
 export async function applyFilter(img: Img, fx: Fx, o: FxOpts): Promise<Img> {
-  const s = Math.max(1, Math.max(img.width, img.height) / 1000);
+  const s = Math.max(0.25, Math.max(img.width, img.height) / (o.detail || 1000));
   switch (fx) {
     case 'cartoon': return imgproc('cartoon', img, o.colors, o.lines, o.smooth, s);
     case 'oil': return imgproc('kuwahara', img, Math.max(1, Math.round(o.brush * s)));
@@ -34,10 +38,18 @@ export const mount: Mount = (root, ctx) => {
   const PREVIEW = ctx.isMobile ? 900 : 1200, SAVE_MAX = ctx.isMobile ? 2400 : 4000;
   let orig: Img | null = null, small: Img | null = null, thumb: Img | null = null, result: Img | null = null, name = 'photo';
   let engine: 'filters' | 'ai' = 'filters', fx: Fx = 'cartoon', styleId = ART_STYLES[0].id, strength = 0.7;
-  let aiSide = 512, sideChosen = false;
+  // the painting's size: the network paints strokes of a fixed size in pixels, so a larger painting has finer strokes
+  // (to-do #16). Above WHOLE px it is painted in tiles (src/workers/style.worker.ts); never larger than the photo.
+  const SIDES: Array<[string, string]> = ctx.isMobile ? [['1536', 'Fine'], ['1024', 'Medium'], ['512', 'Bold']] : [['4096', 'Finest'], ['2048', 'Fine'], ['1024', 'Medium'], ['512', 'Bold']];
+  const WHOLE = ctx.isMobile ? 768 : 1024;
+  let aiSide = 1024, sideChosen = false;
   const o: FxOpts = { ...DEFAULTS };
   // diagnostic: #/cartoon?backend=wasm (or webgl / cpu) forces a TF.js backend instead of the automatic choice
-  const prefer = (new URLSearchParams(location.hash.split('?')[1] || '').get('backend') || undefined) as 'webgl' | 'wasm' | 'cpu' | undefined;
+  const query = new URLSearchParams(location.hash.split('?')[1] || '');
+  const prefer = (query.get('backend') || undefined) as 'webgl' | 'wasm' | 'cpu' | undefined;
+  // diagnostic: #/cartoon?tiles=same paints in tiles at every size, with the statistics of the whole picture at the
+  // painting's own size — the tiles must then give the one-pass painting back (the e2e suite compares them)
+  const sameTiles = query.get('tiles') === 'same';
   const vectors = new Map<string, Float32Array>(), styleImgs = new Map<string, Img>();
   const canvas = h('canvas', { class: 'ed-canvas', 'aria-label': 'Result' });
   const status = h('div', { class: 'muted small', 'aria-live': 'polite' });
@@ -46,6 +58,7 @@ export const mount: Mount = (root, ctx) => {
   // what the shown result was made from — Save gives the AI result only when it matches the current settings
   let photoN = 0, resultKey = '', aiError = '', aiRunning = false, aiAgain = false, modelReady = false;
   const aiKey = () => `ai|${photoN}|${styleId}|${strength}|${aiSide}`;
+  const sideFor = (img: Img) => Math.min(aiSide, Math.max(img.width, img.height));
 
   // ---------------------------------------------------------------- rendering
   const render = async () => {
@@ -68,14 +81,15 @@ export const mount: Mount = (root, ctx) => {
           const backend = await styleEngine(prefer);
           modelReady = true;
           if (my !== tok) return;
-          // on a real GPU 1024 px takes about a second; on the CPU paths start small (the user can still pick larger)
-          if (!sideChosen && backend === 'webgl' && !ctx.isMobile) { aiSide = 1024; sizeSeg.value = '1024'; }
+          // on a real graphics card Fine (2048 px) takes seconds; on the processor start at Medium (the user can still pick finer)
+          if (!sideChosen && backend === 'webgl' && !ctx.isMobile) { aiSide = 2048; sizeSeg.value = '2048'; }
           const key = aiKey();
           status.textContent = 'Reading the painting’s style…';
           const vec = await vectorFor(styleId);
           if (my !== tok) return;
-          status.textContent = `Painting your photo… (${backendLabel(backend)})`;
-          const r = await stylize(orig!, vec, strength, aiSide);
+          const side = sideFor(orig!);
+          status.textContent = `Painting your photo at ${side} px… (${backendLabel(backend)})`;
+          const r = await stylize(orig!, vec, strength, side, sameTiles ? 0 : WHOLE, (f) => { if (my === tok) status.textContent = `Painting your photo at ${side} px… ${Math.round(f * 100)} % (${backendLabel(backend)})`; }, sameTiles ? side : WHOLE);
           if (my !== tok) return;
           result = r.img; resultKey = key; paint(r.img, canvas); canvas.dataset.n = String(++renders);
           status.textContent = `${styleName(styleId)} · ${r.img.width}×${r.img.height} · ${(r.ms / 1000).toFixed(1)} s on ${backendLabel(backend)}`;
@@ -112,17 +126,18 @@ export const mount: Mount = (root, ctx) => {
   const sl = (label: string, k: keyof FxOpts, min: number, max: number, step = 1) =>
     slider({ label, min, max, step, value: o[k], onChange: (v) => { o[k] = v; render(); drawFxTiles(); } });
   const params: Record<Fx, HTMLElement[]> = {
-    cartoon: [sl('Colours', 'colors', 4, 24), sl('Ink lines', 'lines', 0, 2, 0.1), sl('Smoothing', 'smooth', 1, 5)],
+    cartoon: [sl('Colours', 'colors', 4, 32), sl('Ink lines', 'lines', 0, 2, 0.1), sl('Smoothing', 'smooth', 1, 5)],
     oil: [sl('Brush size', 'brush', 2, 12)], watercolor: [], sketch: [sl('Stroke softness', 'soft', 2, 20)],
     colorsketch: [sl('Stroke softness', 'soft', 2, 20)], comic: [sl('Dot size', 'dots', 3, 14)],
   };
   const paramBox = h('div', { class: 'stack' });
   const showParams = () => paramBox.replaceChildren(...(params[fx].length ? params[fx] : [note('Watercolour has no settings: it softens, simplifies the colours and adds paper grain.')]));
-  const filtersBox = stack(fxGrid, paramBox);
+  const detailSeg = segmented<string>(DETAILS, String(o.detail), (v) => { o.detail = +v; render(); drawFxTiles(); });
+  const filtersBox = stack(fxGrid, field('Detail', detailSeg), paramBox);
 
   // ---------------------------------------------------------------- AI styles
   const styleGrid = h('div', { class: 'fx-grid', role: 'radiogroup', 'aria-label': 'Art style' });
-  const sizeSeg = segmented<string>((ctx.isMobile ? [['512', '512 px'], ['768', '768 px']] : [['512', '512 px'], ['1024', '1024 px'], ['1600', '1600 px']]) as Array<[string, string]>, String(aiSide), (v) => { aiSide = +v; sideChosen = true; render(); });
+  const sizeSeg = segmented<string>(SIDES, String(aiSide), (v) => { aiSide = +v; sideChosen = true; render(); });
   const styleTile = (id: string, label: string, img: Img) =>
     h('button', { type: 'button', role: 'radio', 'aria-checked': String(id === styleId), class: ['fx-tile', id === styleId && 'on'], 'data-style': id, onclick: () => { styleId = id; markOn(styleGrid, id); render(); } }, thumbOf(img, 160), h('span', null, label));
   const own = imagePicker({ accept: 'image/*,.heic,.heif', compact: true, label: 'Use your own painting as the style', onFiles: async (f) => {
@@ -135,8 +150,8 @@ export const mount: Mount = (root, ctx) => {
   styleGrid.append(...ART_STYLES.map((s) => styleTile(s.id, s.name, artImage(s.id))));
   const aiBox = stack(styleGrid, own,
     slider({ label: 'Strength', min: 0, max: 100, step: 5, value: 70, unit: '%', onChange: (v) => { strength = v / 100; render(); } }),
-    field('Size', sizeSeg),
-    note('Larger sizes give finer brush strokes but take longer. The built-in styles are drawn by this page, not copied from real paintings.'));
+    field('Brush strokes', sizeSeg),
+    note(`Finer strokes paint the photo larger — ${SIDES.map(([v, l]) => `${l} ${v} px`).join(', ')} (never above the photo's own size) — and take longer, minutes for Finest without a graphics card. The built-in styles are drawn by this page, not copied from real paintings.`));
   aiBox.hidden = true;
 
   // ---------------------------------------------------------------- compare + save

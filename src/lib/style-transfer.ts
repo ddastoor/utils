@@ -3,16 +3,20 @@ import { imgprocDirect, type Img } from '../wasm/imgproc';
 import { trackWorker } from '../lifecycle';
 
 let worker: Worker | null = null, seq = 0, ready: Promise<string> | null = null;
-const pend = new Map<number, { res: (v: any) => void; rej: (e: Error) => void }>();
+const pend = new Map<number, { res: (v: any) => void; rej: (e: Error) => void; progress?: (f: number) => void }>();
 
-function call(op: string, data: any = {}, transfer: Transferable[] = []): Promise<any> {
+function call(op: string, data: any = {}, transfer: Transferable[] = [], progress?: (f: number) => void): Promise<any> {
   if (!worker) {
     worker = trackWorker(new Worker(new URL('../workers/style.worker.ts', import.meta.url), { type: 'module' }), 'style-worker', () => { worker = null; ready = null; pend.clear(); });
-    worker.onmessage = (e) => { const m = e.data, p = pend.get(m.id); if (!p) return; pend.delete(m.id); m.error ? p.rej(new Error(m.error)) : p.res(m); };
+    worker.onmessage = (e) => {
+      const m = e.data, p = pend.get(m.id); if (!p) return;
+      if (m.progress !== undefined) { p.progress?.(m.progress); return; } // a tile done
+      pend.delete(m.id); m.error ? p.rej(new Error(m.error)) : p.res(m);
+    };
     worker.onerror = (e) => { for (const p of pend.values()) p.rej(new Error(e.message || 'Style engine crashed')); pend.clear(); };
   }
   const id = ++seq;
-  return new Promise((res, rej) => { pend.set(id, { res, rej }); worker!.postMessage({ id, op, ...data }, transfer); });
+  return new Promise((res, rej) => { pend.set(id, { res, rej, progress }); worker!.postMessage({ id, op, ...data }, transfer); });
 }
 
 /** Loads TF.js + both models. Resolves to the backend name: 'webgl' (GPU), 'wasm' (WebAssembly) or 'cpu'. */
@@ -33,11 +37,14 @@ export async function styleVector(style: Img): Promise<Float32Array> {
   return (await call('vector', { img: s })).vector;
 }
 
-/** Paints `img` (scaled to ≤ side px) in the style `vector`. strength 0..1 blends from the photo's own style. */
-export async function stylize(img: Img, vector: Float32Array, strength: number, side: number): Promise<{ img: Img; ms: number }> {
+/** Paints `img` (scaled to ≤ side px) in the style `vector`. strength 0..1 blends from the photo's own style. Above
+ *  `whole` px the picture is painted in tiles, normalised by the statistics of the whole picture at `whole` px (see
+ *  the worker); `progress` hears of each tile. */
+export async function stylize(img: Img, vector: Float32Array, strength: number, side: number, whole = Infinity, progress?: (f: number) => void, statsSide = whole): Promise<{ img: Img; ms: number }> {
   await styleEngine();
   const content = await fit(img, side), own = await fit(img, 256);
-  const r = await call('stylize', { img: content, ownStyle: own, vector, strength });
+  const stats = Math.max(content.width, content.height) > whole ? await fit(img, statsSide) : undefined;
+  const r = await call('stylize', { img: content, ownStyle: own, vector, strength, stats }, [], progress);
   let out: Img = r.img;
   // the network's strided layers can trim a few pixels: bring it back to the input size
   if (out.width !== content.width || out.height !== content.height) out = (await imgprocDirect()).resize(out, content.width, content.height);

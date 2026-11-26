@@ -2987,3 +2987,12 @@ cannot. Three new suites; each fails on the build before its fixes.
   own. A header shared by sections of other page shapes (Word's "Link to previous") put every section's mark at the first
   section's angle (seen in LibreOffice: a landscape page's mark at the portrait's 54.7°) → every section gets its own header
   parts. The suite's own slips: the fixture's 10 headers counted as 9; a download kept under a time-stamped name.
+- **Cartoonizer: finer, more detailed results (to-do #16, 26 Nov 2026):** found on the way — **the full-size save of the
+  Cartoon filter did not look like its preview once the detail was finer**: the line finder's blur (three boxes) cannot go
+  below σ ≈ 1.4, so the preview's lines were as thick in pixels as the save's (an exact Gaussian below σ 3 now), and the
+  colour quantiser started from pixels picked by their index — another start at each size, sometimes other colours
+  (the luminance quantiles now): measured on the astronaut, 9.5 → 2.0 of 255 between the save and its preview. Tiles of
+  the AI painting, each normalised by its own statistics, showed bands at their seams (a book page: a bright vertical
+  band) → the whole picture's statistics are fed to every tile. The new suite's own slip: a guess at the level of
+  "detail kept" for a painting (0.45) — the style's own strokes carry most of a painting's edges; it measures 0.147
+  against Bold's 0.045.

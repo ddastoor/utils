@@ -96,8 +96,15 @@ own VML shadow (not blurred; LibreOffice does not draw it); **fonts for document
 Times-Roman / Courier in PDFs and Arial / Georgia / Courier New in Word, Meme → a picture of Anton in PDFs and Impact in Word,
 Script → a picture in PDFs and Segoe Script in Word; a protected PDF's copy has no password (as the other PDF tabs);
 an existing Word watermark is replaced (as Word does). Unit wmlayout 49, e2e watermark-docs 57 + watermark 19.
-**Next (the owner's order):** batch 5's #16 Cartoonizer; 6 (#14 Text Diff), 7 (#20 Studio voice); then the potentials
-process. #32 (22 FFmpeg jobs) is not in the order: ask the owner when he is back.
+**#16 Cartoonizer: DONE (26 Nov 2026)** (todo.md Done #16; CLAUDE.md §3 Cartoonizer, "Finer, more detailed results"): AI
+styles painted up to the photo's size in tiles (each fed the whole picture's normalisation statistics — seamless), "Brush
+strokes" Finest / Fine / Medium / Bold; the filters' "Detail" Fine / Medium / Bold (Fine by default); the Cartoon save
+matches its preview. **Batch 5 is complete.** To show the owner when he is back: **AnimeGAN v2 / v3 styles** (anime looks:
+Hayao, Shinkai, Paprika, a face portrait; ONNX on the site's ONNX Runtime, 4 – 8.6 MB each) and White-box Cartoonization
+were looked at and not added — new styles of their own, his call; real paintings as styles need a source this sandbox can
+reach (Wikimedia is blocked).
+**Next (the owner's order):** 6 (#14 Text Diff), 7 (#20 Studio voice); then the potentials process. #32 (22 FFmpeg jobs) is
+not in the order: ask the owner when he is back.
 
 ## ▶ SYNC POINT — 21 Nov 2026, night (read this first; it supersedes the older "NOW" notes below)
 The owner's weekly limit is nearly used up; work resumes on Thursday. Everything below is committed and pushed.

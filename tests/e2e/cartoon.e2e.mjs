@@ -255,7 +255,7 @@ export default async ({ base, page: newPage, ok, info, download, devices }) => {
   await phone.locator('input[type=file]').first().setInputFiles(F('chelsea.png'));
   await waitStatus(phone, /^Cartoon · \d+ ms$/);
   await phone.getByRole('radio', { name: 'AI art styles' }).click();
-  ok(await phone.getByRole('radio', { name: '768 px' }).count() === 1 && await phone.getByRole('radio', { name: '1600 px' }).count() === 0, 'phone: sizes 512 / 768 only');
+  ok(await phone.getByRole('radio', { name: 'Fine', exact: true }).count() === 1 && await phone.getByRole('radio', { name: 'Finest' }).count() === 0, 'phone: brush strokes Fine (1536 px) / Medium / Bold — no Finest (4096 px)');
   ok(await phone.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'phone: no horizontal scroll');
   const tileW = await phone.locator('.fx-tile[data-style]').first().evaluate((e) => e.getBoundingClientRect().height);
   ok(tileW >= 44, `phone: style tiles are big enough to tap (${Math.round(tileW)} px)`);

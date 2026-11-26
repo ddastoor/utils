@@ -940,7 +940,7 @@ group; a broken GPS block or 0, 0 is no position. "Save without metadata": `-q -
 again (a position left would be refused); formats ExifTool cannot write are re-saved as JPEG. A file that is no
 picture is named for what it is.
 
-### Cartoonizer ("Prisma-like") — BUILT (`src/tools/cartoon.ts`, e2e `tests/e2e/cartoon.e2e.mjs`, 37 checks)
+### Cartoonizer ("Prisma-like") — BUILT (`src/tools/cartoon.ts`, e2e `tests/e2e/cartoon.e2e.mjs` 45, `cartoon-detail.e2e.mjs` 10)
 Two engines, picked with a "Filters | AI art styles" switch; tiles show live thumbnails of the user's photo / the style.
 - **Filters** (own C in `imgproc.wasm`, instant): Cartoon (bilateral smoothing → DoG edge lines (Winnemöller, τ≈0.985)
   → k-means colours; settings: colours, ink lines, smoothing), Oil paint (Kuwahara; brush size), Watercolour (abstraction
@@ -964,6 +964,39 @@ Two engines, picked with a "Filters | AI art styles" switch; tiles show live thu
 - **As built after the Nov 2026 bug hunt** (e2e 45): a see-through photo or painting is put on white first (`onWhite`
   in `src/lib/imgio.ts`); one AI painting at a time — a change meanwhile waits and only the newest settings follow;
   Save in AI mode gives only a painting made with the current photo, style, strength and size (else the reason).
+- **Finer, more detailed results (to-do #16; owner, 26 Nov 2026: "The Cartoonizer app's output is too coarse-grained. Make it
+  more fine-grained with more detail, more like the Prisma app"; the models at Claude's discretion):**
+  - **Why it was coarse:** the AI styles painted at 512 px on a processor (1024 on a real graphics card) and saved at that
+    size; the network paints strokes of a fixed size in pixels, so a small painting has big strokes. The filters were
+    tuned for 1000 px pictures, with ten colours.
+  - **AI styles — "Brush strokes"** (in place of Size): Finest 4096 px (PC), Fine 2048 px (phones 1536), Medium 1024, Bold
+    512 — never above the photo's own size; the painting is saved at that size. Defaults: Fine on a real graphics card,
+    Medium on WebAssembly and the CPU. **Above 1024 px (768 on phones) the picture is painted in tiles** of 512 px
+    overlapping by 96, blended linearly (`tiled` in `src/workers/style.worker.ts`), with the progress in the status line:
+    the transformer normalises every layer by its features' mean and variance over the whole picture (conditional
+    instance norm), so a tile normalised by its own statistics differs from its neighbours — **the whole picture is run
+    once at 1024 px for those 26 statistics, and every tile is run with them fed to the graph in place of its own**
+    (TF.js executes from fed intermediate nodes). Measured: tiles with their own statistics left visible bands; tiles
+    fed the statistics of the whole picture at their own scale give the one-pass painting back (e2e: 0.9 of 255 and
+    less); fed them at a smaller scale they are seamless and keep the style, the strokes as fine as the tiles' scale.
+    Time on this sandbox's processor (WebAssembly, one thread): Medium (1024 × 740, one pass) 14.9 s, Fine (1800 × 1300,
+    15 tiles) 77.7 s; a graphics card does it in seconds. `#/cartoon?tiles=same` (diagnostic) paints in tiles at every size with the statistics at the
+    painting's own size — the suite compares that with the one-pass painting.
+  - **Filters — "Detail"** Fine (the default) / Medium / Bold: the size (2000 / 1000 / 600 px) a filter's lines, brushes and
+    smoothing are drawn for — the preview and the full-size save scale alike; Colours 14 by default (4 – 32). Two fixes
+    in imgproc.wasm made the save look like its preview at fine detail: the line finder's blur is an exact Gaussian below
+    σ 3 (`gauss_exact_f`: the three-box approximation cannot go below σ ≈ 1.4), and the colour quantiser starts from the
+    luminance quantiles of the picture, not from pixels picked by index (each size started elsewhere and could settle on
+    other colours) — the save against its preview, measured on the astronaut: 9.5 → 2.0 of 255.
+  - **Measured** (e2e `cartoon-detail` 10; "detail kept" = the correlation of the edges, Sobel magnitudes, of the result
+    and of the photo at the photo's size): AI style on a photo of a book page (1800 × 1300) — Fine 0.147 against Bold 0.045
+    (the page readable through the strokes at Fine, blobs at Bold — the style's own strokes carry most of a painting's
+    edges); Cartoon filter at 1200 px — Fine 0.946 against Bold 0.888.
+  - **Looked at, not added:** AnimeGAN v2 / v3 (ONNX, 4 – 8.6 MB a style: Hayao, Shinkai, Paprika, a face portrait) and
+    White-box Cartoonization (a TensorFlow model) — an anime / cartoon look rather than a painting's, each a model of its
+    own; offered to the owner as new styles (docs/RESUME.md). Real paintings as styles (public-domain Van Gogh, Hokusai …)
+    would look more like Prisma's; Wikimedia is not reachable from this sandbox, and the built-in styles stay drawn by
+    the page.
 
 ### OpenPGP
 Generate key pair (name, email, passphrase) → download armored public/private keys. Encrypt file

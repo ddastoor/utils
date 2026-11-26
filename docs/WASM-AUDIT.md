@@ -997,6 +997,16 @@ One entry per tab, written before its bug hunt: our module → candidates → ch
   Text-to-Speech) after converting the graph with tf2onnx — the same XNNPACK kernels on the CPU, and no maintained
   WebGL path (ORT's WebGL backend is deprecated; WebGPU needs the 29 MB JSEP build). **Decision:** TF.js stays (its
   WebAssembly backend is the WebAssembly engine; the GPU path would be lost).
+- **Finer results (to-do #16, 26 Nov 2026).** Engines unchanged — Magenta's network on TF.js (WebGL → its WebAssembly backend,
+  XNNPACK), the filters in imgproc.wasm (ours). New: the painting in tiles with the whole picture's normalisation
+  statistics fed to the graph (`src/workers/style.worker.ts`; the blending of the tiles is a weighted sum per pixel in the
+  worker — TypeScript, as the rest of the glue around TF.js); in imgproc.wasm an exact Gaussian for the line finder's small
+  σ and a size-independent start for the colour quantiser (own C). **Candidates looked at:** AnimeGAN v2 (Hayao, Shinkai,
+  Paprika; ONNX, 8.6 MB each, on Hugging Face) and v3 (JP face 6.1 MB, portrait sketch 4.2 MB), AnimeGAN v2's face portrait
+  (bryandlee's weights, 8.6 MB) — they would run on ONNX Runtime Web, on the site already — and White-box Cartoonization (a
+  TensorFlow SavedModel, 5.9 MB; CC BY-NC-SA): an anime or cartoon look of their own, not finer painting; offered to the
+  owner as new styles. Johnson's fast-style networks (one painting each) were not looked at again: the model zoo on GitHub
+  is not reachable from this sandbox, and Magenta's network already paints any style.
 
 ### 116. `redact` — Blur & Redact (20 Nov 2026)
 - **Engines:** MediaPipe Tasks 1.2.3 Face Detector with BlazeFace short range (Google's build, the latest — the one

@@ -449,22 +449,49 @@ static float *luma_f(const uint8_t *px, int n) { float *l = malloc(sizeof(float)
 
 /* Edge lines (Winnemöller DoG): D = G_sigma - tau * G_k*sigma on luminance 0..1. Flat areas give D > 0 (no ink); the dark
    side of an edge gives D < 0 → darkness 1 - (1 + tanh(phi * D)). Only real edges get ink, whatever the brightness. */
+/* An exact Gaussian (separable, clamped edges, radius 3σ) for one plane: the three-box approximation of gauss_f cannot
+   go below σ ≈ 1.4 (one box of radius 1), and the Cartoonizer's finest lines need σ 0.25 – 3 (to-do #16). */
+static void gauss_exact_f(float *buf, int w, int h, float sigma) {
+    if (sigma <= 0.05f) return;
+    int r = (int)ceilf(3 * sigma); if (r < 1) r = 1;
+    float *k = malloc(sizeof(float) * (2 * r + 1)), sum = 0;
+    for (int i = -r; i <= r; i++) { k[i + r] = expf(-(float)(i * i) / (2 * sigma * sigma)); sum += k[i + r]; }
+    for (int i = 0; i <= 2 * r; i++) k[i] /= sum;
+    float *tmp = malloc(sizeof(float) * (size_t)w * h);
+    for (int y = 0; y < h; y++) for (int x = 0; x < w; x++) {
+        float a = 0; for (int i = -r; i <= r; i++) a += k[i + r] * buf[(size_t)y * w + CLAMP(x + i, 0, w - 1)];
+        tmp[(size_t)y * w + x] = a;
+    }
+    for (int y = 0; y < h; y++) for (int x = 0; x < w; x++) {
+        float a = 0; for (int i = -r; i <= r; i++) a += k[i + r] * tmp[(size_t)CLAMP(y + i, 0, h - 1) * w + x];
+        buf[(size_t)y * w + x] = a;
+    }
+    free(tmp); free(k);
+}
+static void gauss_fine_f(float *buf, int w, int h, float sigma) { if (sigma < 3) gauss_exact_f(buf, w, h, sigma); else gauss_f(buf, w, h, 1, sigma); }
 static float *dog_lines(const uint8_t *px, int w, int h, float sigma, float tau, float phi) {
     int n = w * h;
     float *a = luma_f(px, n), *b = malloc(sizeof(float) * n);
     for (int i = 0; i < n; i++) { a[i] /= 255.0f; b[i] = a[i]; }
-    gauss_f(a, w, h, 1, sigma); gauss_f(b, w, h, 1, sigma * 1.6f);
+    gauss_fine_f(a, w, h, sigma); gauss_fine_f(b, w, h, sigma * 1.6f);
     for (int i = 0; i < n; i++) { float d = a[i] - tau * b[i]; a[i] = d >= 0 ? 0.0f : CLAMP(-tanhf(phi * d), 0.0f, 1.0f); }
     free(b);
     return a;
 }
 
 /* k-means colour quantisation (k ≤ 32) on a subsample, then nearest-centre mapping. */
+static int cmp_u64(const void *a, const void *b) { const uint64_t x = *(const uint64_t *)a, y = *(const uint64_t *)b; return x < y ? -1 : x > y; }
 static void kmeans_quantize(uint8_t *px, int n, int k) {
     if (k < 2) return; if (k > 32) k = 32;
     float c[32][3]; int samples = n < 40000 ? n : 40000, step = n / samples;
-    uint32_t seed = 12345;
-    for (int i = 0; i < k; i++) { seed = seed * 1103515245u + 12345u; int j = (int)((seed >> 8) % (uint32_t)n); for (int q = 0; q < 3; q++) c[i][q] = px[j * 4 + q]; }
+    /* the starting colours at the k luminance quantiles of the samples: the same picture at another size starts from the
+       same colours, so the Cartoonizer's full-size save gets the palette its preview showed (to-do #16 — random pixels
+       picked by index started elsewhere at each size and could settle on other colours) */
+    uint64_t *pr = malloc(sizeof(uint64_t) * (size_t)samples);
+    for (int i = 0; i < samples; i++) { const uint8_t *p = px + (size_t)i * step * 4; pr[i] = ((uint64_t)(p[0] * 77 + p[1] * 150 + p[2] * 29) << 32) | (uint32_t)i; }
+    qsort(pr, (size_t)samples, sizeof(uint64_t), cmp_u64);
+    for (int i = 0; i < k; i++) { int j = (int)(pr[(size_t)((i + 0.5) * samples / k)] & 0xffffffffu); const uint8_t *p = px + (size_t)j * step * 4; for (int q = 0; q < 3; q++) c[i][q] = p[q]; }
+    free(pr);
     for (int it = 0; it < 12; it++) {
         double s[32][3] = {{0}}; int cnt[32] = {0};
         for (int i = 0; i < samples; i++) {

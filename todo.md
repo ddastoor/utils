@@ -38,28 +38,6 @@ The owner adds items here in chat ("add … to to do"). Newest instructions win.
       `<file>.patch`; held to GNU `diff -u` / `git diff` and applied by GNU `patch`, `git apply` and the Patch tab in the
       suite.
 
-16. **Cartoonizer: finer, more detailed results, more like the Prisma app** (owner, 26 Nov 2026: "The Cartoonizer app's
-    output is too is too coarse-grained. Make it more fine-grained with more detail, more like the Prisma app. If you need
-    to use a better library," — the message ended there; read as: a better library or model may be used. To confirm.)
-    - **Why it is coarse now:** the AI styles (Magenta's arbitrary style transfer) paint at 512 px (1024 on a real
-      graphics card) and the result is saved at that size — the network paints strokes at a fixed scale of its input,
-      so a small input gives big strokes; the Cartoon filter flattens to a few k-means colours with thick lines.
-    - **Owner, 26 Nov 2026 (on showing samples and sizes first): "go ahead and use your discrestion.. if needed, i'll ask u
-      to change later.."** — Claude chooses by measurement and by eye, without asking first; the sizes are written down
-      (commit, CLAUDE.md, docs/WASM-AUDIT.md) and kept to a sensible share of the site's room (488 MB of the 1 GB).
-    - **What to try, chosen by measured results and sample pictures:**
-      (1) the AI styles at the photo's own resolution — painted in overlapping tiles whose seams are blended, so the
-      strokes stay fine at full size (slower on a processor: progress shown);
-      (2) better models where they look more like Prisma, on ONNX Runtime Web (already on the site — WebAssembly
-      first): per-style networks trained on one painting each (Johnson et al.'s fast neural style — the ONNX model zoo's
-      candy, mosaic, rain princess, udnie, pointillism, about 7 MB each), White-box Cartoonization (CVPR 2020) and
-      AnimeGAN v2 / v3 for the cartoon look; newer arbitrary-style networks (AdaAttN, StyTr²) looked at too. Licences
-      checked; each model's size written down against the site's 1 GB (Claude's discretion — the owner's word);
-      (3) the filters: a finer Cartoon — more colours, an edge-preserving smoothing that keeps detail (the detail layer
-      added back), lines that thin as the picture grows.
-    - **Measured, not guessed:** how much of the photo's fine detail each result keeps (edges, fine-scale structure) for
-      the current output and each option; the suite holds the chosen level.
-
 20. **Noise Remover: "Studio voice" — a voice recorded outdoors made to sound as if spoken in a studio** (owner, 26 Nov
     2026: "In the noise remover app, it should be that when I record my voice, say out in the open, in traffic or
     outside, when I remove the noise, there should be a new option so that it should sound as if I'm speaking in the
@@ -134,6 +112,16 @@ The owner adds items here in chat ("add … to to do"). Newest instructions win.
       it on the tab's FFmpeg — on mono, stereo and 5.1 files.
 
 ## Done
+- **16. Cartoonizer: finer, more detailed results, more like the Prisma app** (owner, 26 Nov 2026: "The Cartoonizer app's
+  output is too coarse-grained. Make it more fine-grained with more detail, more like the Prisma app. If you need to use a
+  better library," — models at Claude's discretion) — done 26 Nov 2026: AI styles get **"Brush strokes"** Finest 4096 /
+  Fine 2048 / Medium 1024 / Bold 512 px (never above the photo; Fine by default on a graphics card, Medium on a
+  processor), painted in tiles above 1024 px, each tile normalised by the whole picture's statistics (seamless; the
+  tiles give the one-pass painting back); filters get **"Detail"** Fine / Medium / Bold (Fine by default, 14 colours),
+  and the save matches its preview at fine detail (an exact small Gaussian and a size-independent colour start in
+  imgproc.wasm). Measured: the edges of the photo kept — AI Fine 0.147 against Bold 0.045, Cartoon Fine 0.946 against
+  0.888. AnimeGAN / White-box looked at and offered as new styles (not added). e2e cartoon 45, cartoon-detail 10.
+  CLAUDE.md §3 Cartoonizer, "Finer, more detailed results".
 - **17. Watermark: a diagonal watermark across the picture; PDFs and Word documents, every page** (owner, 26 Nov 2026: "in
   the Watermark app, add two new options. First option, a watermark-style option; the watermark should be from the bottom
   left to the top right, diagonally right across the picture. And the second option is that I should be able to upload a
