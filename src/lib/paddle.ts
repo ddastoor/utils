@@ -175,8 +175,8 @@ export function cutInput(lines: PaddleLine[]): { boxes: number[][]; gx: number; 
  *  bottom, then left to right), or `order` (a page of columns: textcore's XY-cut of the lines' boxes, column by column)
  *  —, lines side by side joined into one, a list mark at a line's start left out; each word with a confidence (its
  *  characters' mean probability × 100) and its box on the picture (where its characters stand along the line); the
- *  reading's confidence the mean of its words'. */
-export function paddleResult(lines: PaddleLine[], o: { order?: number[] } = {}): { text: string; confidence: number; words: PaddleWord[] } {
+ *  reading's confidence the mean of its words'; and its lines, all of one paragraph (the text has no blank lines). */
+export function paddleResult(lines: PaddleLine[], o: { order?: number[] } = {}): { text: string; confidence: number; words: PaddleWord[]; lines: Array<{ w0: number; w1: number; para: number; block: number }> } {
   const bb = lineBoxes(lines);
   const order = o.order && o.order.length === lines.length ? o.order : lines.map((_, i) => i);
   const rows: number[][] = [];
@@ -187,9 +187,9 @@ export function paddleResult(lines: PaddleLine[], o: { order?: number[] } = {}):
     if (row && bb[i][0] >= bb[last][2] - 0.5 * (bb[last][3] - bb[last][1]) && mid >= bb[last][1] && mid <= bb[last][3]) row.push(i);
     else rows.push([i]);
   }
-  const words: PaddleWord[] = [], text: string[] = [];
+  const words: PaddleWord[] = [], text: string[] = [], out: Array<{ w0: number; w1: number; para: number; block: number }> = [];
   for (const row of rows) {
-    const parts: string[] = [];
+    const parts: string[] = [], w0 = words.length;
     row.forEach((i, k) => {
       const l = lines[i];
       let chars = l.chars;
@@ -216,7 +216,8 @@ export function paddleResult(lines: PaddleLine[], o: { order?: number[] } = {}):
       for (const c of chars) { if (/\s/u.test(c.c)) flush(); else cur.push(c); }
       flush();
     });
-    if (parts.length) text.push(parts.join(' '));
+    if (parts.length) { text.push(parts.join(' ')); out.push({ w0, w1: words.length, para: 0, block: 0 }); }
   }
-  return { text: text.join('\n'), confidence: words.length ? words.reduce((s, w) => s + w.conf, 0) / words.length : 0, words };
+  // the lines of the text (one paragraph: PaddleOCR's text has no blank lines) — the OCR tab sets its lists out by them
+  return { text: text.join('\n'), confidence: words.length ? words.reduce((s, w) => s + w.conf, 0) / words.length : 0, words, lines: out };
 }

@@ -211,7 +211,12 @@ export default async ({ base, page: newPage, ok, info, download, devices }) => {
     let b = ''; for (let i = 0; i < u.length; i += 0x8000) b += String.fromCharCode(...u.subarray(i, i + 0x8000)); return btoa(b);
   }), 'base64');
   const dk = await recognise({ name: 'dark.png', mimeType: 'image/png', buffer: dark }, 'English', true);
-  ok(dk.replace(/\s+/g, ' ') === 'The quick brown fox jumps over the lazy dog near the river bank.', `light text on dark, cleaned up: exactly the sentence (${JSON.stringify(dk)})`);
+  // (the line under the text says which reader's text it is and how sure it was: on Windows, where "DejaVu Sans" is
+  // Arial, this sentence once came back as "iumps … lazv doa")
+  const dkOk = dk.replace(/\s+/g, ' ') === 'The quick brown fox jumps over the lazy dog near the river bank.';
+  ok(dkOk, `light text on dark, cleaned up: exactly the sentence (${JSON.stringify(dk)}; ${await page.locator('.ocr-text + div').textContent()})`);
+  // (in progress, to-do #13: the picture this browser drew, to read it again elsewhere)
+  if (!dkOk) console.log(`OCR-DARK-PNG ${process.platform} ${dark.toString('base64')}`);
 
   // Copy and Download with nothing read yet are refused in words
   await page.locator('input[type=file]').setInputFiles(F('coffee.jpg'));

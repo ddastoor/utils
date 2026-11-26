@@ -32,6 +32,16 @@ export default async (t, { load, wasm }) => {
   t.ok(r.marks === F.go.length, `every list mark cleared, nothing else taken for one (${r.marks} of ${F.go.length}; x-height ${r.xh} px)`);
   for (const m of F.go) t.ok(inkIn(page, m.box) > 0.05 && inkIn(r.img, m.box, 2) < 0.005, `the mark ${m.text} is cleared (ink ${(100 * inkIn(page, m.box)).toFixed(0)} % → ${(100 * inkIn(r.img, m.box, 2)).toFixed(1)} %)`);
   for (const m of F.keep) t.ok(inkIn(r.img, m.box) >= 0.9 * inkIn(page, m.box), `“${m.text}” is text and stays (ink ${(100 * inkIn(page, m.box)).toFixed(0)} % → ${(100 * inkIn(r.img, m.box)).toFixed(0)} %)`);
+  // every mark cleared is listed where it stood, with what it was (to-do #31: the OCR tab puts it back at the start of
+  // its line): one listed mark inside each mark's box, of the mark's kind
+  const KIND = { '●': 'DOT', '○': 'RING', '■': 'SQUARE', '▪': 'SQUARE', '◆': 'DIAMOND', '►': 'TRIANGLE', '□': 'BOX', '☐': 'BOX', '☑': 'TICKED', '☒': 'CROSSED', o: 'RING' };
+  const { MARK } = await load('/src/wasm/imgproc.ts'), name = (k) => Object.keys(MARK).find((n) => MARK[n] === k);
+  t.ok(r.list.length === r.marks, `every mark cleared is listed (${r.list.length} of ${r.marks})`);
+  for (const m of F.go) {
+    const [x, y, w, h] = m.box, inside = r.list.filter((l) => l.x0 >= x - 2 && l.x1 <= x + w + 2 && l.y0 >= y - 2 && l.y1 <= y + h + 2);
+    t.ok(inside.length === 1 && name(inside[0].kind) === KIND[m.text], `the mark ${m.text} is listed as a ${KIND[m.text].toLowerCase()} (${inside.map((l) => `${name(l.kind)} at ${l.x0},${l.y0}–${l.x1},${l.y1}`).join('; ') || 'not listed'})`);
+  }
+  t.ok(ip.clearMarks(page, 1).list.length === 0, 'the lines alone: no marks listed');
   t.ok(Math.abs(r.slant) < 0.3, `a level page measures level (${r.slant}°)`);
   // the table: its grid gone (a band along each cell's edges), its words there (the middle of each cell)
   const edge = (b, s) => [b[0] - 1, b[1] + Math.round(b[3] * s), 3, 2];

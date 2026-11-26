@@ -54,7 +54,33 @@ export async function ocrWorker(langs: OcrLang): Promise<TWorker> {
  *  high). */
 export const POOR = 60;
 
-export interface OcrResult { text: string; confidence: number; words: Array<{ text: string; conf: number; x0: number; y0: number; x1: number; y1: number }> }
+export interface OcrWord { text: string; conf: number; x0: number; y0: number; x1: number; y1: number }
+/** A line of a reading: its words (`words[w0]` up to, not with, `words[w1]`) and the paragraph and block it belongs to —
+ *  Tesseract's text puts a blank line between paragraphs. The OCR tab sets a page's lists out by them (to-do #31). */
+export interface OcrLine { w0: number; w1: number; para: number; block: number }
+export interface OcrResult { text: string; confidence: number; words: OcrWord[]; lines?: OcrLine[] }
+/** Tesseract's block types (PolyBlockType) its text leaves out — pictures and rules (TessBaseAPI::GetUTF8Text) */
+const NOT_TEXT = new Set([9, 10, 11, 12, 13]);
+/** Tesseract.js's result (`text`, `confidence`, `blocks`) as the tabs' reading: the text, the words with their boxes and
+ *  the lines of the text — each line's words joined by single spaces are the text's line, its paragraphs apart by a blank
+ *  line (GetUTF8Text's own rule). No DOM: scripts/measure-ocr.mjs reads Tesseract in Node through it. */
+export function readingOf(data: { text?: string | null; confidence?: number | null; blocks?: any[] | null }): OcrResult {
+  const words: OcrWord[] = [], lines: OcrLine[] = [];
+  let para = 0, block = 0;
+  for (const b of data.blocks || []) {
+    const text = !NOT_TEXT.has(b.blocktype);
+    for (const p of b.paragraphs || []) {
+      for (const l of p.lines || []) {
+        const w0 = words.length;
+        for (const wd of l.words || []) words.push({ text: wd.text, conf: wd.confidence, x0: wd.bbox.x0, y0: wd.bbox.y0, x1: wd.bbox.x1, y1: wd.bbox.y1 });
+        if (text && words.length > w0) lines.push({ w0, w1: words.length, para, block });
+      }
+      para++;
+    }
+    block++;
+  }
+  return { text: (data.text || '').replace(/\n{3,}/g, '\n\n').trim(), confidence: data.confidence ?? 0, words, lines };
+}
 /** How Tesseract lays the picture out (its page segmentation mode): 'page' finds the blocks of a page — columns, a
  *  sidebar, a table's cells — and reads each on its own (mode 3); 'block' reads the picture as one block of lines (mode
  *  6: what Tesseract.js does unless told — lines run straight across columns; and text lying sideways is garbage, which
@@ -70,8 +96,6 @@ export async function recognize(img: ImageData | HTMLCanvasElement | Blob, langs
     const failed = new Promise<never>((_, reject) => { failCb = reject; });
     failed.catch(() => {});
     const { data } = await Promise.race([w.recognize(src as any, { tessedit_pageseg_mode: PSM[layout] } as any, { text: true, blocks: true }), failed]).catch((e) => { throw e instanceof Error && /text engine/.test(e.message) ? e : ocrError(e); });
-    const words: OcrResult['words'] = [];
-    for (const b of (data as any).blocks || []) for (const p of b.paragraphs || []) for (const l of p.lines || []) for (const wd of l.words || []) words.push({ text: wd.text, conf: wd.confidence, x0: wd.bbox.x0, y0: wd.bbox.y0, x1: wd.bbox.x1, y1: wd.bbox.y1 });
-    return { text: (data.text || '').replace(/\n{3,}/g, '\n\n').trim(), confidence: data.confidence, words };
+    return readingOf(data as any);
   } finally { progressCb = null; failCb = null; }
 }

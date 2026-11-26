@@ -5,6 +5,11 @@ import wasmUrl from './bin/imgproc.wasm?url';
 import { onLeave, trackWorker } from '../lifecycle';
 
 export interface Img { data: Uint8ClampedArray; width: number; height: number }
+/** A list mark p_clear_marks cleared (to-do #31): its ink's box on the picture and what it was (MARK). */
+export interface ListMark { x0: number; y0: number; x1: number; y1: number; kind: number }
+export const MARK = { DOT: 1, RING: 2, SQUARE: 3, DIAMOND: 4, TRIANGLE: 5, BOX: 6, TICKED: 7, CROSSED: 8, RADIO: 9 } as const;
+/** At most this many marks are listed (a page of lists has a few dozen). */
+export const MAX_MARKS = 1024;
 export interface Adjust { bright?: number; contrast?: number; exposure?: number; gamma?: number; sat?: number; vib?: number; hue?: number; temp?: number; tint?: number; highlights?: number; shadows?: number }
 
 export function bindImgproc(e: any) {
@@ -180,14 +185,16 @@ export function bindImgproc(e: any) {
      *  #18): what — bit 0 the lines (a table's grid, rules, underlines), bit 1 the marks (● ○ ■ □ ☐ ☑ … at a line's start
      *  before a gap wider than its word spaces), bit 2 count the columns of text; `lines` = pixels cleared (`inner`: of
      *  lines inside the page, not along its edges), `marks` = marks cleared, `xh` = the x-height found, `slant` in
-     *  degrees, `columns` = the columns of text (1: one, or not counted). */
-    clearMarks(img: Img, what = 3): { img: Img; lines: number; inner: number; marks: number; xh: number; slant: number; columns: number } {
-      const p = put(img.data), o = e.p_malloc(24);
+     *  degrees, `columns` = the columns of text (1: one, or not counted); `list`: every mark cleared, where it stood and
+     *  what it was (the OCR tab puts them back at the start of their lines — to-do #31). */
+    clearMarks(img: Img, what = 3): { img: Img; lines: number; inner: number; marks: number; xh: number; slant: number; columns: number; list: ListMark[] } {
+      const p = put(img.data), o = e.p_malloc(28), L = e.p_malloc(MAX_MARKS * 20);
       try {
-        e.p_clear_marks(p, img.width, img.height, what, o);
-        const v = Array.from(new Int32Array(mem(), o, 6));
-        return { img: { width: img.width, height: img.height, data: new Uint8ClampedArray(mem().slice(p, p + img.data.length)) }, lines: v[0], inner: v[5], marks: v[1], xh: v[2], slant: v[3] / 100, columns: v[4] };
-      } finally { e.p_free(p); e.p_free(o); }
+        e.p_clear_marks(p, img.width, img.height, what, o, L, MAX_MARKS);
+        const v = Array.from(new Int32Array(mem(), o, 7)), m = new Int32Array(mem(), L, v[6] * 5), list: ListMark[] = [];
+        for (let k = 0; k < v[6]; k++) list.push({ x0: m[5 * k], y0: m[5 * k + 1], x1: m[5 * k + 2], y1: m[5 * k + 3], kind: m[5 * k + 4] });
+        return { img: { width: img.width, height: img.height, data: new Uint8ClampedArray(mem().slice(p, p + img.data.length)) }, lines: v[0], inner: v[5], marks: v[1], xh: v[2], slant: v[3] / 100, columns: v[4], list };
+      } finally { e.p_free(p); e.p_free(o); e.p_free(L); }
     },
     /** Which way up the text of a picture stands (p_text_turns): the quarter turns to the right that set it upright
      *  (0–3), -1 when there is too little text to say, -2 when the lines' axis is clear but not which end is up; with

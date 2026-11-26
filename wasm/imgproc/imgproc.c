@@ -1697,8 +1697,35 @@ API int p_clear_wash(uint8_t *px, int w, int h, int32_t *out) {
  * what: bit 0 the lines, bit 1 the marks, bit 2 the columns. out[0] = pixels of lines cleared, out[1] = marks cleared,
  * out[2] = the x-height (px), out[3] = the slant used (hundredths of a degree), out[4] = the columns of text (1 when one
  * or none), out[5] = pixels of the lines cleared inside the page (not along its edges: a table's, a form's). Returns
- * out[0] + out[1] > 0 (0: the page as it was). */
+ * out[0] + out[1] > 0 (0: the page as it was).
+ * list (when not null): every mark cleared, five numbers each — its box x0, y0, x1, y1 (px, the ink) and what it was
+ * (CM_DOT …) — at most `cap` of them, their number in out[6]: the OCR tab puts them back at the start of their
+ * lines (to-do #31; owner, 26 Nov 2026: "In the OCR app, the rich formatting should be preserved, the bullet points"). */
 typedef struct { int x0, y0, x1, y1, n, off; } cm_comp;
+/* what a list mark was (p_clear_marks' list): a dot (• ●), a ring (◦ ○, Word's o), a square (▪ ■), a diamond (◆), a
+   triangle (► ▸), an empty box (☐ □), a box with a tick (☑), a box with a cross (☒), a ring round a dot (◉, a radio
+   button chosen) — the size of a mark (• or ●) is not told: on the marks of tests/fixtures/ocr/marks.jpg ● measured 0.79
+   of the x-height and ■ 0.86, Word's letter o 0.93 */
+enum { CM_DOT = 1, CM_RING = 2, CM_SQUARE = 3, CM_DIAMOND = 4, CM_TRIANGLE = 5, CM_BOX = 6, CM_TICKED = 7, CM_CROSSED = 8, CM_RADIO = 9 };
+/* a solid mark's shape by how much of its box it fills (a square all of it, a disc π/4, a diamond or a triangle half) and,
+   for the last two, where its ink lies (a diamond's in the middle, a triangle's towards its flat side) */
+static int cm_solid(const int32_t *pix, int n, int w, int x0, int bw, int bh) {
+    if ((bw > bh ? bw : bh) <= 5) return CM_DOT;                    /* a few pixels: no shape to tell */
+    double fill = (double)n / ((double)bw * bh), sx = 0;
+    if (fill >= 0.88) return CM_SQUARE;
+    if (fill >= 0.66) return CM_DOT;
+    for (int k = 0; k < n; k++) sx += pix[k] % w - x0 + 0.5;
+    return fabs(sx / n / bw - 0.5) < 0.08 ? CM_DIAMOND : CM_TRIANGLE;
+}
+/* a box's contents: a cross (✗) has ink in all four quarters of the box, a tick (✓) leaves the top left one empty */
+static int cm_tick(const long q[4]) {
+    long t = q[0] + q[1] + q[2] + q[3], m = q[0];
+    for (int k = 1; k < 4; k++) if (q[k] < m) m = q[k];
+    if (t <= 0) return CM_BOX;
+    return m >= 0.12 * t ? CM_CROSSED : CM_TICKED;
+}
+/* the quarter of a box (x0, y0)–(x1, y1) a pixel lies in: 0 top left, 1 top right, 2 bottom left, 3 bottom right */
+#define CM_QUARTER(x, y, x0, y0, x1, y1) ((2 * (y) > (y0) + (y1) ? 2 : 0) + (2 * (x) > (x0) + (x1) ? 1 : 0))
 static int cm_cmpi(const void *a, const void *b) { int x = *(const int *)a, y = *(const int *)b; return (x > y) - (x < y); }
 /* 8-connected components of mask == 1 (set to 2 when visited): pixel lists in pix (the components' pixels one after
    another, found breadth first), boxes in cs (at most cap). Returns the number of components. */
@@ -1824,9 +1851,12 @@ API void p_quad_text(const uint8_t *px, int w, int h, const float *q, int32_t *o
     }
     free(g); free(ink); free(mean); free(ii); free(pix); free(cs);
 }
-API int p_clear_marks(uint8_t *px, int w, int h, int what, int32_t *out) {
+API int p_clear_marks(uint8_t *px, int w, int h, int what, int32_t *out, int32_t *list, int cap_list) {
     for (int k = 0; k < 6; k++) out[k] = 0;
     out[4] = 1;
+    if (!list) cap_list = 0;
+    else out[6] = 0;
+    int nlist = 0;      /* the marks put in the list */
     int n = w * h;
     if (w < 64 || h < 64) return 0;
     uint8_t *g = malloc(n), *ink = calloc(n, 1), *lite = calloc(n, 1);
@@ -2076,10 +2106,11 @@ API int p_clear_marks(uint8_t *px, int w, int h, int what, int32_t *out) {
             int harea = 0, holes = cm_holes(pix + c->off, c->n, w, c->x0, c->y0, bw, bh, &harea);
             double hull = cm_hull(pix + c->off, c->n, w, c->x0, c->y0, bw, bh), box = (double)bw * bh;
             float gmin = 0, filled = (float)((c->n + harea) / box);    /* the shape with its hole filled, of its box */
-            int inner = 0;
-            if (m >= 0.35f * xh && m < 0.8f * xh && holes <= 1 && c->n + harea >= 0.85 * hull && asp >= 0.6f && asp <= 1.7f) gmin = 0.6f * xh;   /* • ◦ ○ smaller than a letter (a soft photo closes a small ring's hole) */
-            else if (holes == 0 && c->n >= 0.85 * hull && c->n >= 0.45 * box && m >= 0.35f * xh && m <= 2.0f * xh) gmin = 0.6f * xh;   /* ● ■ ▪ ◆ ► (no letter is a solid convex blob) */
+            int inner = 0, cls = 0;     /* cls: which of the four shapes below it is (for the list of marks) */
+            if (m >= 0.35f * xh && m < 0.8f * xh && holes <= 1 && c->n + harea >= 0.85 * hull && asp >= 0.6f && asp <= 1.7f) { gmin = 0.6f * xh; cls = 1; }   /* • ◦ ○ smaller than a letter (a soft photo closes a small ring's hole) */
+            else if (holes == 0 && c->n >= 0.85 * hull && c->n >= 0.45 * box && m >= 0.35f * xh && m <= 2.0f * xh) { gmin = 0.6f * xh; cls = 2; }   /* ● ■ ▪ ◆ ► (no letter is a solid convex blob) */
             else if (holes == 1 && harea >= 0.3 * box && c->n + harea >= 0.85 * hull && asp >= 0.7f && asp <= 1.45f && m >= 0.4f * xh && m <= 1.9f * xh) {
+                cls = 3;
                 /* a hollow square (□ ☐: it fills its box, as no letter does), or a thin ring (○: the hole 0.6 and more of
                    the shape it fills) after the gap of a list; a ring as thick as a letter's (o, O, 0 — Word's
                    second-level bullet is an o) only after a tab */
@@ -2093,20 +2124,45 @@ API int p_clear_marks(uint8_t *px, int w, int h, int what, int32_t *out) {
                 for (int x = 0; x < bw; x++) { edge += 2; on += bm[x] | (bh > 1 ? bm[bw + x] : 0); on += bm[(bh - 1) * bw + x] | (bh > 1 ? bm[(bh - 2) * bw + x] : 0); }
                 for (int y = 0; y < bh; y++) { edge += 2; on += bm[y * bw] | (bw > 1 ? bm[y * bw + 1] : 0); on += bm[y * bw + bw - 1] | (bw > 1 ? bm[y * bw + bw - 2] : 0); }
                 free(bm);
-                if (on >= 0.75 * edge) { gmin = 0.6f * xh; inner = 1; }
+                if (on >= 0.75 * edge) { gmin = 0.6f * xh; inner = 1; cls = 4; }
             }
 #ifdef CM_DEBUG
             fprintf(stderr, "  shape holes=%d harea=%d hull=%.0f box=%.0f fill=%.2f hullfill=%.2f ring=%.2f gmin=%.1f rgap=%d\n", holes, harea, hull, box, c->n / box, (c->n + harea) / hull, harea / (double)(harea + c->n), gmin, rgap);
 #endif
             if (gmin <= 0 || rgap < gmin) continue;
             cm_clear(px, w, h, pix + c->off, c->n); gone[k] = 1; marks++;
+            long quarter[4] = {0, 0, 0, 0};   /* the ink inside a box (a tick, a cross), by the quarters of the box */
             if (inner) for (int gy = c->y0 / cell; gy <= c->y1 / cell; gy++) for (int gx = c->x0 / cell; gx <= c->x1 / cell; gx++) {
                 if (gx < 0 || gy < 0 || gx >= gw || gy >= gh) continue;
-                for (int j = head[gy * gw + gx]; j >= 0; j = next[j]) { cm_comp *o = &cs[j]; if (!gone[j] && o->x0 > c->x0 && o->x1 < c->x1 && o->y0 > c->y0 && o->y1 < c->y1) { cm_clear(px, w, h, pix + o->off, o->n); gone[j] = 1; } }
+                for (int j = head[gy * gw + gx]; j >= 0; j = next[j]) { cm_comp *o = &cs[j]; if (!gone[j] && o->x0 > c->x0 && o->x1 < c->x1 && o->y0 > c->y0 && o->y1 < c->y1) {
+                    cm_clear(px, w, h, pix + o->off, o->n); gone[j] = 1;
+                    for (int q = 0; q < o->n; q++) { int i = pix[o->off + q]; quarter[CM_QUARTER(i % w, i / w, c->x0, c->y0, c->x1, c->y1)]++; }
+                } }
+            }
+            if (nlist < cap_list) {
+                int kind;
+                if (cls == 1) kind = holes ? CM_RING : cm_solid(pix + c->off, c->n, w, c->x0, bw, bh);
+                else if (cls == 2) kind = cm_solid(pix + c->off, c->n, w, c->x0, bw, bh);
+                else if (cls == 3) {
+                    /* a square (☐, or ☑ ☒ with their tick or cross inside, not touching it) or a ring (○, Word's o; ◉ with a dot) */
+                    int square = filled >= 0.88f && asp >= 0.8f && asp <= 1.25f, any = quarter[0] + quarter[1] + quarter[2] + quarter[3] > 0;
+                    kind = square ? (any ? cm_tick(quarter) : CM_BOX) : (any ? CM_RADIO : CM_RING);
+                } else {
+                    /* a frame round its tick or cross (they touch it): the ink of the component away from the frame */
+                    int b = (int)lroundf(0.18f * (bw < bh ? bw : bh)); if (b < 1) b = 1;
+                    for (int q = 0; q < c->n; q++) {
+                        int i = pix[c->off + q], x = i % w, y = i / w;
+                        if (x - c->x0 < b || c->x1 - x < b || y - c->y0 < b || c->y1 - y < b) continue;
+                        quarter[CM_QUARTER(x, y, c->x0, c->y0, c->x1, c->y1)]++;
+                    }
+                    kind = cm_tick(quarter);
+                }
+                int32_t *e = list + 5 * nlist++; e[0] = c->x0; e[1] = c->y0; e[2] = c->x1; e[3] = c->y1; e[4] = kind;
             }
         }
         free(gone); free(head); free(next);
         out[1] = marks;
+        if (list) out[6] = nlist;
     }
     if (what & 4) {
         /* the columns of text, band by band (bands three x-heights high, across the lines' slant: x' = x + y·t): a gutter

@@ -87,6 +87,8 @@ async function imgprocNode() {
   const pf = await vite.ssrLoadModule('/src/lib/pagefind.ts');
   const { uprightByReading } = await vite.ssrLoadModule('/src/lib/upright.ts');
   const { readPage } = await vite.ssrLoadModule('/src/lib/readpage.ts');
+  const { readingOf } = await vite.ssrLoadModule('/src/lib/ocr.ts');
+  const { listText } = await vite.ssrLoadModule('/src/lib/listtext.ts');
   const mod = await WebAssembly.compile(readFileSync(join(root, 'src/wasm/bin/imgproc.wasm')));
   let memory; const w = {};
   for (const i of WebAssembly.Module.imports(mod)) if (i.module === 'wasi_snapshot_preview1') w[i.name] = () => 52;
@@ -131,7 +133,7 @@ async function imgprocNode() {
     const s = ip.resizeArea(im, pf.SIZE, pf.SIZE);
     return pf.readOutput(await session.run({ [session.inputNames[0]]: new ort.Tensor('float32', pf.modelInput(s.data), [1, pf.SIZE, pf.SIZE, 3]) }));
   };
-  return { ip, straighten, uprightByReading, pageSize, pf, docCorners, readPage, paddleRead, xycut, close: () => vite.close() };
+  return { ip, straighten, uprightByReading, pageSize, pf, docCorners, readPage, readingOf, listText, paddleRead, xycut, close: () => vite.close() };
 }
 
 /** The clean-up variants. app = what the Photo Dictionary did until 21 Nov 2026 (≤ 3000 px, the document clean-up, grey);
@@ -228,9 +230,8 @@ async function main() {
     ...(eng.paddleRead ? { paddle: (im) => eng.paddleRead(im), xycut: eng.xycut } : {}),
     read: async (im, _lang, _progress, layout) => {
       // the layout the reading path asks for (src/lib/ocr.ts PSM: 'page' 3, 'block' 6); --psm N overrides it for all
-      const d = (await worker.recognize(ppm(im), { tessedit_pageseg_mode: args.includes('--psm') ? psm : { page: '3', block: '6' }[layout] }, { text: true, blocks: true })).data, words = [];
-      for (const b of d.blocks || []) for (const pa of b.paragraphs) for (const l of pa.lines) for (const wd of l.words) words.push({ text: wd.text, conf: wd.confidence, x0: wd.bbox.x0, y0: wd.bbox.y0, x1: wd.bbox.x1, y1: wd.bbox.y1 });
-      return { text: (d.text || '').replace(/\n{3,}/g, '\n\n').trim(), confidence: d.confidence, words };
+      // (the reading as src/lib/ocr.ts makes it: the text, the words and the lines)
+      return eng.readingOf((await worker.recognize(ppm(im), { tessedit_pageseg_mode: args.includes('--psm') ? psm : { page: '3', block: '6' }[layout] }, { text: true, blocks: true })).data);
     },
   };
   // OCR_SHARD=k/n: every n-th photo from the k-th (several processes on one set); OCR_JSON_SKIP=1: photos already dumped
@@ -263,18 +264,21 @@ async function main() {
         const lines = await eng.paddleRead(img);
         data = { text: lines.map((l) => l.text).join('\n'), confidence: 100 * (lines.reduce((a, l) => a + l.score, 0) / Math.max(1, lines.length)) };
       } else if (p.startsWith('read')) {
-        // read[+screen][+retry][+once]: the tabs' own reading path (src/lib/readpage.ts) on imgproc.wasm, the Doc Scanner's
-        // network and this Tesseract — read = the Photo Dictionary's options, +retry = the OCR tab's (a poor reading tried
-        // the other ways round), +screen = "Photo of a screen", +once = an unsure reading not read again the other way
+        // read[+screen][+retry][+dark][+once]: the tabs' own reading path (src/lib/readpage.ts) on imgproc.wasm, the Doc
+        // Scanner's network and this Tesseract — read = the Photo Dictionary's options, +retry +dark = the OCR tab's (a poor
+        // reading tried the other ways round; light text on a dark ground turned over), +screen = "Photo of a screen",
+        // +once = an unsure reading not read again the other way
         // +first: the first reader only (Tesseract; the JSON dumps of OCR_JSON are made so, for working a rule out)
-        const res = await eng.readPage(img, { lang: 'eng', clean: true, auto: true, screen: p.includes('screen'), retryTurns: p.includes('retry'), again: !p.includes('once'), second: !p.includes('first') && !process.env.OCR_JSON }, readEngines);
+        const res = await eng.readPage(img, { lang: 'eng', clean: true, auto: true, screen: p.includes('screen'), retryTurns: p.includes('retry'), invertDark: p.includes('dark'), again: !p.includes('once'), second: !p.includes('first') && !process.env.OCR_JSON }, readEngines);
         if (res.engine === 'paddle') secondKept++;
         if (res.second) secondTried++;
         if (res.page) found++;
         if (res.by === 'network') byNet++;
         if (res.layout !== (res.columns >= 2 ? 'page' : 'block')) other++;
-        if (process.env.OCR_SAVE) writeFileSync(join(process.env.OCR_SAVE, `${name}.${p}.ppm`), ppm(res.img));
+        if (process.env.OCR_SAVE) { writeFileSync(join(process.env.OCR_SAVE, `${name}.${p}.ppm`), ppm(res.img)); writeFileSync(join(process.env.OCR_SAVE, `${name}.${p}.pre.ppm`), ppm(res.pre)); }
         data = res.r;
+        // OCR_LIST=DIR: the OCR tab's text, the page's lists set out (src/lib/listtext.ts — to-do #31), and the marks
+        if (process.env.OCR_LIST) writeFileSync(join(process.env.OCR_LIST, `${name}.${p}.json`), JSON.stringify({ text: eng.listText(res.r, res.listMarks, res.xh), plain: res.r.text, marks: res.listMarks, xh: res.xh, engine: res.engine, layout: res.layout, r: res.r }));
         if (process.env.OCR_JSON) {
           // everything a rule needs to be worked out afterwards: Tesseract's reading with its words, how the page was
           // prepared, and (with --paddle) PaddleOCR's lines on the page before and after the clean-up
