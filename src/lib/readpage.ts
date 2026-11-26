@@ -84,6 +84,8 @@ export interface PageReading {
   r: OcrResult;
   /** the picture as it was read (the words' boxes are on it) */
   img: Img;
+  /** the same picture before the clean-up: the page straightened, set upright and level (the words' boxes fit it too) */
+  pre: Img;
   /** the picture to show in place of the photo (the page straightened, levelled, turned) — null: the photo as it is */
   shown: Img | null;
   /** the page was found and straightened (and how) */
@@ -155,7 +157,7 @@ export async function readPage(photo: Img, o: ReadOptions, eng: ReadEngines = br
     }
     const shown = page || up.turns || up.slant ? img : null;
     const e = await enhance(img, true);
-    return { img: e.img, shown, page, by, up, cleared: { lines: e.lines, inner: e.inner, marks: e.marks, wash: e.wash }, columns: e.columns };
+    return { img: e.img, pre: img, shown, page, by, up, cleared: { lines: e.lines, inner: e.inner, marks: e.marks, wash: e.wash }, columns: e.columns };
   };
   const t0 = ((o.turns ?? 0) % 4 + 4) % 4;
   let p = await prepare(photo, t0, true, o.auto);
@@ -195,5 +197,5 @@ export async function readPage(photo: Img, o: ReadOptions, eng: ReadEngines = br
       turned = best.t;
     }
   }
-  return { r, img: p.img, shown: p.shown, page: p.page, by: p.by, up: p.up, turned, cleared: p.cleared, columns: p.columns, layout };
+  return { r, img: p.img, pre: p.pre, shown: p.shown, page: p.page, by: p.by, up: p.up, turned, cleared: p.cleared, columns: p.columns, layout };
 }

@@ -237,5 +237,42 @@
     ],
     "sha256": "a97e2ba653e9efcdc1bdcec64a398c8beb19ae5e8dfdbfe4ad6841983e56c07c",
     "size": 5252
+  },
+  "paddleocr/PP-OCRv6_det_small.onnx": {
+    "url": "https://files.pythonhosted.org/packages/59/07/203065283bba0c5e9c10af3602dc25ab3e59ee54dc2d1d22c8faeabf5ed8/rapidocr-3.10.0-py3-none-any.whl",
+    "archiveSha256": "2fc34e26cd0f48514804a94f8832283039c7334076bff60768b1fed9ad068050",
+    "member": "rapidocr/models/PP-OCRv6_det_small.onnx",
+    "license": "Apache-2.0 (PaddleOCR PP-OCRv6 / PP-OCRv4, PaddlePaddle; converted to ONNX by RapidAI, shipped in the RapidOCR 3.10.0 wheel on PyPI)",
+    "usedBy": [
+      "ocr",
+      "photodict"
+    ],
+    "sha256": "090f04abcd9d9a7498bc4ebf677e4cb9bdce1fe4197ddb7e529f1ef44e1ff94f",
+    "size": 9929594
+  },
+  "paddleocr/PP-OCRv6_rec_small.onnx": {
+    "url": "https://files.pythonhosted.org/packages/59/07/203065283bba0c5e9c10af3602dc25ab3e59ee54dc2d1d22c8faeabf5ed8/rapidocr-3.10.0-py3-none-any.whl",
+    "archiveSha256": "2fc34e26cd0f48514804a94f8832283039c7334076bff60768b1fed9ad068050",
+    "member": "rapidocr/models/PP-OCRv6_rec_small.onnx",
+    "license": "Apache-2.0 (PaddleOCR PP-OCRv6 / PP-OCRv4, PaddlePaddle; converted to ONNX by RapidAI, shipped in the RapidOCR 3.10.0 wheel on PyPI)",
+    "usedBy": [
+      "ocr",
+      "photodict"
+    ],
+    "metadata": "character",
+    "sha256": "6f327246b50388f3c176ae304bd95767ea6dc0c9ae92153ef8cbe210b3c14884",
+    "size": 21234383
+  },
+  "paddleocr/ch_ppocr_mobile_v2.0_cls_mobile.onnx": {
+    "url": "https://files.pythonhosted.org/packages/59/07/203065283bba0c5e9c10af3602dc25ab3e59ee54dc2d1d22c8faeabf5ed8/rapidocr-3.10.0-py3-none-any.whl",
+    "archiveSha256": "2fc34e26cd0f48514804a94f8832283039c7334076bff60768b1fed9ad068050",
+    "member": "rapidocr/models/ch_ppocr_mobile_v2.0_cls_mobile.onnx",
+    "license": "Apache-2.0 (PaddleOCR PP-OCRv6 / PP-OCRv4, PaddlePaddle; converted to ONNX by RapidAI, shipped in the RapidOCR 3.10.0 wheel on PyPI)",
+    "usedBy": [
+      "ocr",
+      "photodict"
+    ],
+    "sha256": "e47acedf663230f8863ff1ab0e64dd2d82b838fceb5957146dab185a89d6215c",
+    "size": 585532
   }
 }

@@ -101,11 +101,26 @@ async function imgprocNode() {
   ort.env.wasm.numThreads = 1;
   const session = await ort.InferenceSession.create(new Uint8Array(readFileSync(join(root, 'node_modules/scanic-ml/dist/doccornernet_lean.ort'))), { executionProviders: ['wasm'], graphOptimizationLevel: 'all' });
   const ip = bindImgproc(inst.exports);
+  // PaddleOCR (src/lib/paddle.ts, the second reader for soft photos) on the same ONNX Runtime and the site's models — only
+  // with --paddle (the models: node scripts/fetch-assets.mjs)
+  let paddleRead = null;
+  if (args.includes('--paddle')) {
+    const P = await vite.ssrLoadModule('/src/lib/paddle.ts');
+    const sess = async (f) => ort.InferenceSession.create(new Uint8Array(readFileSync(join(root, 'public/models/paddleocr', f))), { executionProviders: ['wasm'], graphOptimizationLevel: 'all' });
+    const [det, cls, rec] = [await sess('PP-OCRv6_det_small.onnx'), await sess('ch_ppocr_mobile_v2.0_cls_mobile.onnx'), await sess('PP-OCRv6_rec_small.onnx')];
+    const alphabet = readFileSync(join(root, 'public/models/paddleocr/PP-OCRv6_rec_small.onnx.character.txt'), 'utf8').split('\n');
+    const nets = {
+      det: async (x, w, h) => (await det.run({ [det.inputNames[0]]: new ort.Tensor('float32', x, [1, 3, h, w]) }))[det.outputNames[0]].data,
+      cls: async (x, n) => (await cls.run({ [cls.inputNames[0]]: new ort.Tensor('float32', x, [n, 3, 48, 192]) }))[cls.outputNames[0]].data,
+      rec: async (x, w) => { const o = (await rec.run({ [rec.inputNames[0]]: new ort.Tensor('float32', x, [1, 3, 48, w]) }))[rec.outputNames[0]]; return { data: o.data, T: o.dims[1], C: o.dims[2] }; },
+    };
+    paddleRead = (im) => P.paddleRead(im, nets, ip, alphabet);
+  }
   const docCorners = async (im) => {
     const s = ip.resizeArea(im, pf.SIZE, pf.SIZE);
     return pf.readOutput(await session.run({ [session.inputNames[0]]: new ort.Tensor('float32', pf.modelInput(s.data), [1, pf.SIZE, pf.SIZE, 3]) }));
   };
-  return { ip, straighten, uprightByReading, pageSize, pf, docCorners, readPage, close: () => vite.close() };
+  return { ip, straighten, uprightByReading, pageSize, pf, docCorners, readPage, paddleRead, close: () => vite.close() };
 }
 
 /** The clean-up variants. app = what the Photo Dictionary did until 21 Nov 2026 (≤ 3000 px, the document clean-up, grey);
@@ -226,7 +241,11 @@ async function main() {
     for (const p of preps) {
       const t0 = performance.now();
       let data;
-      if (p.startsWith('read')) {
+      if (p === 'paddle') {
+        // paddle: PaddleOCR alone on the photo as it is (as RapidOCR read it for docs/WASM-AUDIT.md, tab 122) — needs --paddle
+        const lines = await eng.paddleRead(img);
+        data = { text: lines.map((l) => l.text).join('\n'), confidence: 100 * (lines.reduce((a, l) => a + l.score, 0) / Math.max(1, lines.length)) };
+      } else if (p.startsWith('read')) {
         // read[+screen][+retry][+once]: the tabs' own reading path (src/lib/readpage.ts) on imgproc.wasm, the Doc Scanner's
         // network and this Tesseract — read = the Photo Dictionary's options, +retry = the OCR tab's (a poor reading tried
         // the other ways round), +screen = "Photo of a screen", +once = an unsure reading not read again the other way
@@ -236,6 +255,12 @@ async function main() {
         if (res.layout !== (res.columns >= 2 ? 'page' : 'block')) other++;
         if (process.env.OCR_SAVE) writeFileSync(join(process.env.OCR_SAVE, `${name}.${p}.ppm`), ppm(res.img));
         data = res.r;
+        if (process.env.OCR_JSON) {
+          // everything a rule needs to be worked out afterwards: Tesseract's reading with its words, how the page was
+          // prepared, and (with --paddle) PaddleOCR's lines on the page before and after the clean-up
+          const t1 = performance.now(), pre = eng.paddleRead ? await eng.paddleRead(res.pre) : null, t2 = performance.now(), clean = eng.paddleRead ? await eng.paddleRead(res.img) : null, t3 = performance.now();
+          writeFileSync(join(process.env.OCR_JSON, `${name}.${p}.json`), JSON.stringify({ name, set: dir, r: res.r, page: res.page, by: res.by, columns: res.columns, layout: res.layout, cleared: res.cleared, up: res.up, size: [res.img.width, res.img.height], tessSeconds: (t1 - t0) / 1000, paddle: { pre, clean, preSeconds: (t2 - t1) / 1000, cleanSeconds: (t3 - t2) / 1000 } }));
+        }
       } else {
       const work = await prepare(eng, img, p);
       if (process.env.OCR_SAVE) writeFileSync(join(process.env.OCR_SAVE, `${name}.${p}.ppm`), ppm(work)); // the picture the engine reads

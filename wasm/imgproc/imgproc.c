@@ -2164,3 +2164,268 @@ API int p_clear_marks(uint8_t *px, int w, int h, int what, int32_t *out) {
     free(ink); free(lite); free(pix); free(cs);
     return out[0] + out[1] > 0;
 }
+
+/* ======================================================================== PaddleOCR, around its networks
+ * The second reader of the OCR tab and the Photo Dictionary, for soft photos (owner, 26 Nov 2026: "Ok use PaddleOCR
+ * fallback for soft photos"): PaddleOCR's PP-OCRv6 detector and recogniser and PP-OCRv4's direction classifier on
+ * ONNX Runtime Web. These are the steps RapidOCR 3.10 takes around the networks (rapidocr/ch_ppocr_det/utils.py,
+ * utils/process_img.py, ch_ppocr_cls/main.py, ch_ppocr_rec/main.py and utils.py), in OpenCV's conventions wherever a
+ * result depends on them; src/lib/paddle.ts is the glue, and tests/unit/paddle.test.mjs holds the whole to RapidOCR. */
+
+/* OpenCV's INTER_LINEAR taps along one axis: half-pixel centres, the edge pixel repeated (resize.cpp) */
+static void lin_taps(int sn, int dn, int *i0, float *f) {
+    double s = (double)sn / dn;
+    for (int d = 0; d < dn; d++) {
+        float x = (float)((d + 0.5) * s - 0.5);
+        int i = (int)floorf(x); float a = x - i;
+        if (i < 0) { i = 0; a = 0; }
+        if (i >= sn - 1) { i = sn - 1; a = 0; }
+        i0[d] = i; f[d] = a;
+    }
+}
+/* one pixel channel of an INTER_LINEAR resize, rounded to 8 bits as cv2.resize gives an 8-bit image */
+static inline uint8_t lin_at(const uint8_t *r0, const uint8_t *r1, int i, int j, float a, float b, int c) {
+    float t0 = r0[i + c] + (r0[j + c] - r0[i + c]) * a, t1 = r1[i + c] + (r1[j + c] - r1[i + c]) * a;
+    return u8_even(t0 + (t1 - t0) * b);
+}
+/* cv2.resize(img, (dw, dh)) of 8-bit RGBA with INTER_LINEAR (RapidOCR makes a photo at most 2000 px a side so) */
+API void p_resize_linear(const uint8_t *src, int sw, int sh, uint8_t *dst, int dw, int dh) {
+    int *xi = malloc(sizeof(int) * dw), *yi = malloc(sizeof(int) * dh);
+    float *xf = malloc(sizeof(float) * dw), *yf = malloc(sizeof(float) * dh);
+    lin_taps(sw, dw, xi, xf); lin_taps(sh, dh, yi, yf);
+    for (int y = 0; y < dh; y++) {
+        const uint8_t *r0 = src + (size_t)yi[y] * sw * 4, *r1 = src + (size_t)(yi[y] + 1 < sh ? yi[y] + 1 : yi[y]) * sw * 4;
+        uint8_t *o = dst + (size_t)y * dw * 4;
+        for (int x = 0; x < dw; x++) {
+            int i = xi[x] * 4, j = (xi[x] + 1 < sw ? xi[x] + 1 : xi[x]) * 4;
+            for (int c = 0; c < 4; c++) o[x * 4 + c] = lin_at(r0, r1, i, j, xf[x], yf[y], c);
+        }
+    }
+    free(xi); free(yi); free(xf); free(yf);
+}
+/* RGBA → a network's input: resized to dw × dh with INTER_LINEAR (8-bit, as cv2.resize), as three planes in OpenCV's
+   order B, G, R (PaddleOCR reads images with cv2), each value v / 127.5 − 1 (= (v / 255 − 0.5) / 0.5); the planes are
+   pw ≥ dw wide and the columns from dw on are 0 (the recogniser's and the classifier's inputs are padded so). */
+API void p_net_planes(const uint8_t *src, int sw, int sh, int dw, int dh, int pw, float *out) {
+    int *xi = malloc(sizeof(int) * dw), *yi = malloc(sizeof(int) * dh);
+    float *xf = malloc(sizeof(float) * dw), *yf = malloc(sizeof(float) * dh);
+    lin_taps(sw, dw, xi, xf); lin_taps(sh, dh, yi, yf);
+    size_t plane = (size_t)dh * pw;
+    for (int y = 0; y < dh; y++) {
+        const uint8_t *r0 = src + (size_t)yi[y] * sw * 4, *r1 = src + (size_t)(yi[y] + 1 < sh ? yi[y] + 1 : yi[y]) * sw * 4;
+        float *ob = out + (size_t)y * pw, *og = ob + plane, *or_ = og + plane;
+        for (int x = 0; x < dw; x++) {
+            int i = xi[x] * 4, j = (xi[x] + 1 < sw ? xi[x] + 1 : xi[x]) * 4;
+            or_[x] = lin_at(r0, r1, i, j, xf[x], yf[y], 0) / 127.5f - 1.f;
+            og[x] = lin_at(r0, r1, i, j, xf[x], yf[y], 1) / 127.5f - 1.f;
+            ob[x] = lin_at(r0, r1, i, j, xf[x], yf[y], 2) / 127.5f - 1.f;
+        }
+        for (int x = dw; x < pw; x++) ob[x] = og[x] = or_[x] = 0;
+    }
+    free(xi); free(yi); free(xf); free(yf);
+}
+
+typedef struct { double x, y; } Pt;
+static int pt_cmp(const void *a, const void *b) {
+    const Pt *p = a, *q = b;
+    return p->x < q->x ? -1 : p->x > q->x ? 1 : p->y < q->y ? -1 : p->y > q->y;
+}
+static double pt_cross(Pt o, Pt a, Pt b) { return (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x); }
+/* the convex hull of n points (Andrew's monotone chain; p is sorted in place, h has room for n + 1); returns its size */
+static int convex_hull(Pt *p, int n, Pt *h) {
+    qsort(p, n, sizeof(Pt), pt_cmp);
+    if (n < 3) { memcpy(h, p, sizeof(Pt) * n); return n; }
+    int k = 0;
+    for (int i = 0; i < n; i++) { while (k >= 2 && pt_cross(h[k - 2], h[k - 1], p[i]) <= 0) k--; h[k++] = p[i]; }
+    for (int i = n - 2, t = k + 1; i >= 0; i--) { while (k >= t && pt_cross(h[k - 2], h[k - 1], p[i]) <= 0) k--; h[k++] = p[i]; }
+    return k - 1;
+}
+/* the rectangle of least area round a convex hull (cv2.minAreaRect): one side along an edge of the hull; `u` the unit
+   vector of that edge, the rectangle u0…u1 along it and v0…v1 across it (v = u turned a quarter) */
+typedef struct { double ux, uy, u0, u1, v0, v1; } MinRect;
+static MinRect min_area_rect(const Pt *h, int n) {
+    MinRect r = {1, 0, 0, 0, 0, 0}; double best = INFINITY;
+    if (n == 1) { r.u0 = r.u1 = h[0].x; r.v0 = r.v1 = h[0].y; return r; }
+    for (int i = 0; i < n; i++) {
+        Pt a = h[i], b = h[(i + 1) % n]; double dx = b.x - a.x, dy = b.y - a.y, L = sqrt(dx * dx + dy * dy);
+        if (L == 0) continue;
+        double ux = dx / L, uy = dy / L, u0 = INFINITY, u1 = -INFINITY, v0 = INFINITY, v1 = -INFINITY;
+        for (int k = 0; k < n; k++) {
+            double u = h[k].x * ux + h[k].y * uy, v = -h[k].x * uy + h[k].y * ux;
+            if (u < u0) u0 = u; if (u > u1) u1 = u; if (v < v0) v0 = v; if (v > v1) v1 = v;
+        }
+        double area = (u1 - u0) * (v1 - v0);
+        if (area < best - 1e-9) { best = area; r = (MinRect){ux, uy, u0, u1, v0, v1}; }
+    }
+    return r;
+}
+/* the rectangle's corners in order round it */
+static void rect_corners(MinRect r, Pt c[4]) {
+    double us[4] = {r.u0, r.u1, r.u1, r.u0}, vs[4] = {r.v0, r.v0, r.v1, r.v1};
+    for (int q = 0; q < 4; q++) { c[q].x = us[q] * r.ux - vs[q] * r.uy; c[q].y = us[q] * r.uy + vs[q] * r.ux; }
+}
+/* the mean of `pr` (w wide) over the quad c, as box_score_fast: the quad's pixel box (floor / ceil, inside the map), the
+   quad filled into it with its corners cut to whole pixels (np.int32), every filled pixel counted */
+static float quad_mean(const float *pr, int w, int h, const Pt c[4]) {
+    double xmn = c[0].x, xmx = c[0].x, ymn = c[0].y, ymx = c[0].y;
+    for (int q = 1; q < 4; q++) { if (c[q].x < xmn) xmn = c[q].x; if (c[q].x > xmx) xmx = c[q].x; if (c[q].y < ymn) ymn = c[q].y; if (c[q].y > ymx) ymx = c[q].y; }
+    int x0 = CLAMP((int)floor(xmn), 0, w - 1), x1 = CLAMP((int)ceil(xmx), 0, w - 1), y0 = CLAMP((int)floor(ymn), 0, h - 1), y1 = CLAMP((int)ceil(ymx), 0, h - 1);
+    int px[4], py[4];
+    for (int q = 0; q < 4; q++) { px[q] = (int)(c[q].x - x0); py[q] = (int)(c[q].y - y0); }
+    double sum = 0; long cnt = 0;
+    for (int y = 0; y <= y1 - y0; y++) {
+        double lo = INFINITY, hi = -INFINITY;
+        for (int q = 0; q < 4; q++) {
+            int a = q, b = (q + 1) & 3;
+            double ya = py[a], yb = py[b];
+            if ((y < ya && y < yb) || (y > ya && y > yb)) continue;
+            double x;
+            if (ya == yb) { double xa = px[a], xb = px[b]; if (xa < lo) lo = xa; if (xb < lo) lo = xb; if (xa > hi) hi = xa; if (xb > hi) hi = xb; continue; }
+            x = px[a] + (px[b] - px[a]) * (y - ya) / (yb - ya);
+            if (x < lo) lo = x; if (x > hi) hi = x;
+        }
+        if (lo > hi) continue;
+        int a = (int)ceil(lo - 1e-9), b = (int)floor(hi + 1e-9);
+        if (a < 0) a = 0; if (b > x1 - x0) b = x1 - x0;
+        const float *row = pr + (size_t)(y + y0) * w + x0;
+        for (int x = a; x <= b; x++) { sum += row[x]; cnt++; }
+    }
+    return cnt ? (float)(sum / cnt) : 0.f;
+}
+/* the boxes of text in the detector's probability map (DBPostProcess: thresh, box_thresh, unclip_ratio,
+   max_candidates; RapidOCR's settings 0.3, 0.5, 1.6, 1000, with the 2 × 2 dilation): the map above `thresh`, grown by a
+   pixel to the right and down; for each 8-connected region the rectangle of least area round it (no side below 3 px)
+   scored by the mean probability inside it (at least box_thresh), grown on every side by area × unclip / perimeter
+   (the round offset of pyclipper, whose least rectangle this is, made of the corners cut to whole pixels), no side
+   below 5 px; scaled to the dw × dh picture the map was made from (rounded half to even, kept inside it) and its
+   corners put in the order TL, TR, BR, BL (order_points_clockwise), whole pixels inside the picture; a box less than 4 px
+   wide or high left out. out: 9 floats a box (the corners, the score); returns how many (at most max). */
+API int p_db_boxes(const float *pr, int w, int h, float thresh, float box_thresh, float unclip, int max_cand, int dw, int dh, float *out, int max) {
+    size_t n = (size_t)w * h;
+    uint8_t *seg = malloc(n), *m = calloc(n, 1);
+    for (size_t i = 0; i < n; i++) seg[i] = pr[i] > thresh;
+    for (int y = 0; y < h; y++) for (int x = 0; x < w; x++) {   /* cv2.dilate with [[1,1],[1,1]], anchor (1,1) */
+        size_t i = (size_t)y * w + x;
+        m[i] = seg[i] || (x && seg[i - 1]) || (y && seg[i - w]) || (x && y && seg[i - w - 1]);
+    }
+    free(seg);
+    int32_t *stack = malloc(sizeof(int32_t) * n);
+    int *rmin = malloc(sizeof(int) * h), *rmax = malloc(sizeof(int) * h);
+    for (int y = 0; y < h; y++) { rmin[y] = INT32_MAX; rmax[y] = -1; }
+    Pt *pts = malloc(sizeof(Pt) * (2 * h + 8)), *hull = malloc(sizeof(Pt) * (2 * h + 8));
+    int k = 0, cand = 0;
+    for (size_t s = 0; s < n && cand < max_cand && k < max; s++) {
+        if (m[s] != 1) continue;
+        cand++;
+        int top = 0, ylo = h, yhi = -1;
+        stack[top++] = (int32_t)s; m[s] = 2;
+        while (top) {
+            int32_t p = stack[--top]; int y = p / w, x = p % w;
+            if (x < rmin[y]) rmin[y] = x; if (x > rmax[y]) rmax[y] = x;
+            if (y < ylo) ylo = y; if (y > yhi) yhi = y;
+            for (int dy = -1; dy <= 1; dy++) for (int dx = -1; dx <= 1; dx++) {
+                int xx = x + dx, yy = y + dy;
+                if (xx < 0 || yy < 0 || xx >= w || yy >= h) continue;
+                size_t q = (size_t)yy * w + xx;
+                if (m[q] == 1) { m[q] = 2; stack[top++] = (int32_t)q; }
+            }
+        }
+        int np = 0;
+        for (int y = ylo; y <= yhi; y++) {
+            if (rmax[y] >= 0) { pts[np++] = (Pt){rmin[y], y}; if (rmax[y] != rmin[y]) pts[np++] = (Pt){rmax[y], y}; }
+            rmin[y] = INT32_MAX; rmax[y] = -1;
+        }
+        int nh = convex_hull(pts, np, hull);
+        MinRect r = min_area_rect(hull, nh);
+        if (fmin(r.u1 - r.u0, r.v1 - r.v0) < 3) continue;
+        Pt c[4]; rect_corners(r, c);
+        float score = quad_mean(pr, w, h, c);
+        if (box_thresh > score) continue;
+        double sw = r.u1 - r.u0, sh = r.v1 - r.v0, dist = sw * sh * unclip / (2 * (sw + sh));
+        Pt ci[4];
+        for (int q = 0; q < 4; q++) ci[q] = (Pt){(double)(int)c[q].x, (double)(int)c[q].y};
+        int ni = convex_hull(ci, 4, hull);
+        MinRect e = min_area_rect(hull, ni);
+        e.u0 -= dist; e.u1 += dist; e.v0 -= dist; e.v1 += dist;
+        if (fmin(e.u1 - e.u0, e.v1 - e.v0) < 5) continue;
+        Pt b[4]; rect_corners(e, b);
+        float bx[4], by[4];
+        for (int q = 0; q < 4; q++) {
+            bx[q] = CLAMP(rintf((float)(b[q].x / w * dw)), 0.f, (float)dw);
+            by[q] = CLAMP(rintf((float)(b[q].y / h * dh)), 0.f, (float)dh);
+        }
+        /* order_points_clockwise: the two of least x (in their order on ties) are TL / BL by y, the other two TR / BR */
+        int ix[4] = {0, 1, 2, 3};
+        for (int i = 1; i < 4; i++) for (int j = i; j > 0 && bx[ix[j]] < bx[ix[j - 1]]; j--) { int t = ix[j]; ix[j] = ix[j - 1]; ix[j - 1] = t; }
+        int tl = ix[0], bl = ix[1], tr = ix[2], br = ix[3];
+        if (by[bl] < by[tl]) { int t = tl; tl = bl; bl = t; }
+        if (by[br] < by[tr]) { int t = tr; tr = br; br = t; }
+        int ord[4] = {tl, tr, br, bl};
+        float *o = out + (size_t)k * 9;
+        for (int q = 0; q < 4; q++) {
+            o[q * 2] = (float)(int)fminf(fmaxf(bx[ord[q]], 0.f), (float)(dw - 1));
+            o[q * 2 + 1] = (float)(int)fminf(fmaxf(by[ord[q]], 0.f), (float)(dh - 1));
+        }
+        if ((int)hypotf(o[0] - o[2], o[1] - o[3]) <= 3 || (int)hypotf(o[0] - o[6], o[1] - o[7]) <= 3) continue;
+        o[8] = score;
+        k++;
+    }
+    free(m); free(stack); free(rmin); free(rmax); free(pts); free(hull);
+    return k;
+}
+/* OpenCV's bicubic weight (a = −0.75) */
+static inline float cubic_w(float t) {
+    const float A = -0.75f;
+    t = fabsf(t);
+    return t <= 1 ? ((A + 2) * t - (A + 3)) * t * t + 1 : t < 2 ? ((A * t - 5 * A) * t + 8 * A) * t - 4 * A : 0;
+}
+/* A line of text cut out of the picture and straightened as get_rotate_crop_image does it: the quad (TL, TR, BR, BL)
+   warped onto a rectangle as wide as the longer of its top and bottom edges and as high as the longer of its sides
+   (whole pixels), each pixel sampled bicubically (cv2.warpPerspective, INTER_CUBIC, the edge pixels repeated); a crop
+   at least 1.5 times as high as wide turned a quarter to the left (np.rot90). wh gets the crop's size; out = NULL: only
+   the size. Returns 0 for a quad of no size. */
+API int p_crop_quad(const uint8_t *src, int sw, int sh, const float *q, uint8_t *out, int32_t *wh) {
+    double d01 = hypot(q[0] - q[2], q[1] - q[3]), d23 = hypot(q[4] - q[6], q[5] - q[7]);
+    double d03 = hypot(q[0] - q[6], q[1] - q[7]), d12 = hypot(q[2] - q[4], q[3] - q[5]);
+    int cw = (int)(d01 > d23 ? d01 : d23), ch = (int)(d03 > d12 ? d03 : d12);
+    if (cw < 1 || ch < 1) return 0;
+    int rot = ch * 1.0 / cw >= 1.5;
+    wh[0] = rot ? ch : cw; wh[1] = rot ? cw : ch;
+    if (!out) return 1;
+    float H[9];
+    if (!quad_homography(q, cw, ch, H)) return 0;
+    uint8_t *tmp = rot ? malloc((size_t)cw * ch * 4) : out;
+    for (int y = 0; y < ch; y++) for (int x = 0; x < cw; x++) {
+        double z = H[6] * x + H[7] * y + H[8], u = (H[0] * x + H[1] * y + H[2]) / z, v = (H[3] * x + H[4] * y + H[5]) / z;
+        int iu = (int)floor(u), iv = (int)floor(v); float fu = (float)(u - iu), fv = (float)(v - iv);
+        float wx[4], wy[4], acc[4] = {0, 0, 0, 0};
+        for (int t = 0; t < 4; t++) { wx[t] = cubic_w(fu - (t - 1)); wy[t] = cubic_w(fv - (t - 1)); }
+        for (int j = 0; j < 4; j++) {
+            const uint8_t *row = src + (size_t)CLAMP(iv - 1 + j, 0, sh - 1) * sw * 4;
+            for (int i = 0; i < 4; i++) {
+                const uint8_t *p = row + CLAMP(iu - 1 + i, 0, sw - 1) * 4; float wgt = wx[i] * wy[j];
+                acc[0] += p[0] * wgt; acc[1] += p[1] * wgt; acc[2] += p[2] * wgt; acc[3] += p[3] * wgt;
+            }
+        }
+        uint8_t *o = tmp + ((size_t)y * cw + x) * 4;
+        for (int c = 0; c < 4; c++) o[c] = u8_even(acc[c]);
+    }
+    if (rot) {   /* np.rot90: out[r][c] = crop[c][cw − 1 − r] — cw rows of ch pixels */
+        for (int r = 0; r < cw; r++) for (int c = 0; c < ch; c++) memcpy(out + ((size_t)r * ch + c) * 4, tmp + ((size_t)c * cw + (cw - 1 - r)) * 4, 4);
+        free(tmp);
+    }
+    return 1;
+}
+/* CTC's greedy reading of one line (T steps × C classes of probabilities, CTCLabelDecode): per step the likeliest class
+   (the first of equals); a class that repeats the step before and class 0 (the blank) left out. Writes the classes kept,
+   their probabilities and their steps; returns how many. */
+API int p_ctc(const float *pr, int T, int C, int32_t *cls, float *prob, int32_t *step) {
+    int n = 0, prev = -1;
+    for (int t = 0; t < T; t++) {
+        const float *r = pr + (size_t)t * C; int k = 0; float m = r[0];
+        for (int c = 1; c < C; c++) if (r[c] > m) { m = r[c]; k = c; }
+        if (k != prev && k != 0) { cls[n] = k; prob[n] = m; step[n] = t; n++; }
+        prev = k;
+    }
+    return n;
+}

@@ -219,6 +219,47 @@ export function bindImgproc(e: any) {
       try { return into(img, w, h, (s, d) => { if (!e.p_warp_quad(s, img.width, img.height, d, w, h, qp)) throw new Error('Those corners do not form a usable page outline.'); }); } finally { e.p_free(qp); }
     },
     docEnhance: (img: Img, mode: 0 | 1 | 2) => inplace(img, (p) => e.p_doc_enhance(p, img.width, img.height, mode)),
+    // ---- PaddleOCR around its networks (the second reader for soft photos: src/lib/paddle.ts)
+    /** cv2.resize with INTER_LINEAR (8-bit RGBA). */
+    resizeLinear: (img: Img, w: number, h: number) => into(img, w, h, (s, d) => e.p_resize_linear(s, img.width, img.height, d, w, h)),
+    /** A network's input (p_net_planes): the picture resized to w × h (INTER_LINEAR, 8-bit), as planes B, G, R of
+     *  v / 127.5 − 1, `pw` wide (the columns from w on 0). */
+    netPlanes(img: Img, w: number, h: number, pw = w): Float32Array {
+      const s = put(img.data), o = e.p_malloc(pw * h * 12);
+      try { e.p_net_planes(s, img.width, img.height, w, h, pw, o); return new Float32Array(mem().slice(o, o + pw * h * 12)); } finally { e.p_free(s); e.p_free(o); }
+    },
+    /** The boxes of text in the detector's w × h probability map, scaled to the dw × dh picture it was made from
+     *  (p_db_boxes: RapidOCR's DBPostProcess): corners TL, TR, BR, BL and the mean probability inside. */
+    dbBoxes(prob: Float32Array, w: number, h: number, dw: number, dh: number, o: { thresh?: number; boxThresh?: number; unclip?: number; maxCandidates?: number } = {}): Array<{ box: number[]; score: number }> {
+      const max = o.maxCandidates ?? 1000, pp = e.p_malloc(prob.length * 4), op = e.p_malloc(max * 36);
+      try {
+        new Float32Array(mem(), pp, prob.length).set(prob);
+        const k = e.p_db_boxes(pp, w, h, o.thresh ?? 0.3, o.boxThresh ?? 0.5, o.unclip ?? 1.6, max, dw, dh, op, max), v = new Float32Array(mem(), op, k * 9), r: Array<{ box: number[]; score: number }> = [];
+        for (let i = 0; i < k; i++) r.push({ box: Array.from(v.subarray(i * 9, i * 9 + 8)), score: v[i * 9 + 8] });
+        return r;
+      } finally { e.p_free(pp); e.p_free(op); }
+    },
+    /** A line of text cut out and straightened (p_crop_quad: get_rotate_crop_image — bicubic, a tall crop turned a
+     *  quarter to the left); null for a quad of no size. */
+    cropQuad(img: Img, quad: number[]): Img | null {
+      const s = put(img.data), qp = e.p_malloc(32), wp = e.p_malloc(8);
+      try {
+        new Float32Array(mem(), qp, 8).set(quad.slice(0, 8));
+        if (!e.p_crop_quad(s, img.width, img.height, qp, 0, wp)) return null;
+        const [w, h] = Array.from(new Int32Array(mem(), wp, 2)), d = e.p_malloc(w * h * 4);
+        try { e.p_crop_quad(s, img.width, img.height, qp, d, wp); return { data: take(d, w * h * 4), width: w, height: h }; } finally { e.p_free(d); }
+      } finally { e.p_free(s); e.p_free(qp); e.p_free(wp); }
+    },
+    /** CTC's greedy reading of one line of the recogniser's output (T steps × C classes): the classes kept, their
+     *  probabilities and steps (p_ctc). */
+    ctc(probs: Float32Array, T: number, C: number): { cls: Int32Array; prob: Float32Array; step: Int32Array } {
+      const pp = e.p_malloc(T * C * 4), cp = e.p_malloc(T * 4), rp = e.p_malloc(T * 4), sp = e.p_malloc(T * 4);
+      try {
+        new Float32Array(mem(), pp, T * C).set(probs.subarray(0, T * C));
+        const n = e.p_ctc(pp, T, C, cp, rp, sp);
+        return { cls: new Int32Array(mem().slice(cp, cp + n * 4)), prob: new Float32Array(mem().slice(rp, rp + n * 4)), step: new Int32Array(mem().slice(sp, sp + n * 4)) };
+      } finally { e.p_free(pp); e.p_free(cp); e.p_free(rp); e.p_free(sp); }
+    },
     histogram(img: Img) { const s = put(img.data), o = e.p_malloc(4096); try { e.p_histogram(s, n(img), o); return new Uint32Array(mem().slice(o, o + 4096)); } finally { e.p_free(s); e.p_free(o); } },
   };
 }
