@@ -1129,6 +1129,23 @@ One entry per tab, written before its bug hunt: our module → candidates → ch
   against 85.5 % — and more on soft video frames (watermarked frames 68.5 against 61.0 %); it reads across columns. Tesseract
   stays; PaddleOCR as a fallback for soft photos (about 31 MB) is offered to the owner (the size check).
 
+- **The second reader, 26 Nov 2026 (owner: "Ok use PaddleOCR fallback for soft photos").** A reading Tesseract is unsure
+  of is read by PaddleOCR too, and the better kept (CLAUDE.md §3 OCR, "The second reader"). **Module:** ONNX Runtime Web
+  1.31 — Microsoft's official WebAssembly build, on the site already (Text-to-Speech, the Doc Scanner) — runs PaddleOCR's
+  own networks, PP-OCRv6's small detector and recogniser (Apache-2.0; RapidAI's ONNX conversion, taken out of the
+  RapidOCR 3.10.0 wheel on PyPI, its SHA-256 checked). **Candidates for the steps around the networks:** the community
+  browser wrappers (ppu-paddle-ocr, @gutenye/ocr-browser: JavaScript re-writes of the pre- and post-processing on
+  OpenCV.js — 8 MB — or a canvas, with older models, and no ordering of a page's columns); RapidOCR itself (Python — the
+  reference). **Decision (rules 1 and 1a):** the existing module for the networks; the steps around them our own C in
+  imgproc.wasm — `p_resize_linear` / `p_net_planes` (OpenCV's INTER_LINEAR in its own 11-bit fixed point: the float
+  version differed in 12 % of the values), `p_db_boxes` (DBPostProcess; the box score over cv2.fillPoly's exact pixels —
+  a polygon filled another way moved scores by up to 0.034 and dropped boxes near the 0.5 threshold), `p_crop_quad`
+  (get_rotate_crop_image, bicubic), `p_ctc` (greedy CTC); TS glue in `src/lib/paddle.ts` for RapidOCR's size rules
+  (Python's rounding) and the reading order (textcore's XY-cut on the middles of the boxes). Held to RapidOCR: the same
+  lines, boxes and text on three photos (unit `paddle`). **Left out:** RapidOCR's direction classifier (PP-LCNet, 0.6 MB):
+  on the straightened pages it turned 134 of 3,611 upright lines over, every one of them read as garbage; the page is set
+  upright before it is read (`src/lib/upright.ts`).
+
 ### 123. `signature` — Signature Maker (20 Nov 2026)
 - **Engines:** the browser's canvas draws the strokes (its own compiled Skia) and the typed name (its HarfBuzz);
   imgproc.wasm (ours) takes the ink off a photo of paper (`inkToAlpha`), trims and crops; jSquash's OxiPNG and MozJPEG

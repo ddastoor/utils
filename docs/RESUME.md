@@ -16,25 +16,20 @@ path"): both tabs read through `src/lib/readpage.ts`; documents with bullets, ta
 better, no photo of the 150 measured reads worse (Kindle 65.4 → 68.0 %, documents 71.6 → 87.1 %). Measuring: `node
 scripts/measure-ocr.mjs DIR --prep read` (the tabs' own code; `--without op,…` takes a step out); the photo sets are made by
 `scripts/make-kindle-photos.py`, `scripts/make-format-docs.mjs` + `scripts/make-doc-photos.py` (not in the repository).
-**PaddleOCR as the second reader for soft photos — IN PROGRESS** (the owner, 26 Nov 2026, queued at 09:49 and lost in a
-context reset, asked again at 10:15: "Ok use PaddleOCR fallback for soft photos..."; todo/RESUME task #51). Done and pushed:
-the models (PP-OCRv6 det + rec small, 31.2 MB, from the RapidOCR 3.10.0 wheel on PyPI — `scripts/assets.json`, the
-fetcher reads a wheel's member and the alphabet out of the model's metadata); RapidOCR's pipeline in `src/lib/paddle.ts` +
-imgproc C (`p_resize_linear`/`p_net_planes` = OpenCV's fixed-point INTER_LINEAR, `p_db_boxes` = DBPostProcess with
-cv2.fillPoly's exact rasterisation, `p_crop_quad`, `p_ctc`); **no direction classifier** (it turned 134 of 3,611 upright
-lines over — all garbage); the worker + client (`src/workers/paddle.worker.ts`, `src/lib/paddle-client.ts`); readPage's
-second step and both tabs' progress / notes / hints — **switched off (`SECOND_ON = false` in readpage.ts) until the rule is
-measured**; unit `paddle` 49 (RapidOCR is the reference: `scripts/make-paddle-reference.py`). **Next:** the collected
-readings (`OCR_JSON=… node scripts/measure-ocr.mjs SET --prep read --paddle`, env `OCR_JSON_MAXCONF=92 OCR_JSON_SKIP=1`,
-the photo sets in the scratchpad: kindle24c, docs2, fmtdocs, wm (strong only); a fresh check set: v-kindle (`make-kindle-
-photos.py --first 100`), v-docs2 / v-fmtdocs / v-wm (`PHOTO_SALT=check1 make-doc-photos.py`)) → the rule (`SOFT`, which
-reading is kept: calibrated word confidences) → measured before / after with the noise rule on all sets → `SECOND_ON` true,
-e2e for both tabs (a soft frame read by PaddleOCR, the models fetched only then — lazy), docs (CLAUDE.md §3 OCR, §3a, §6,
-WASM-AUDIT 122, BUGHUNT, todo).
-**#13 (Windows / Linux):** "Windows check" run 7 hung 150 minutes without a line of output (the e2e runner printed only at
-the end — it now prints each suite as it ends and stops a suite after 30 minutes, E2E_SUITE_TIMEOUT); **run 8** (19 suites,
-ocr among them) was started at 08:52 UTC — read it (the job's log, or the artifact `e2e-windows`), fix what fails on
-Windows (likely the pgp suite with Git's gpg), then close #13.
+**PaddleOCR as the second reader for soft photos — DONE** (the owner, 26 Nov 2026: "Ok use PaddleOCR fallback for soft
+photos"; CLAUDE.md §3 OCR, "The second reader"; task #51): a reading Tesseract is unsure of (below 88) is read by PaddleOCR
+too (PP-OCRv6 small, 31.2 MB, fetched with the first soft photo) — the page as it stands, or cleaned where marks were
+cleared (`secondPicture`) — and the reading with more words right as each reader's confidences say is kept; columns
+ordered by the XY-cut on the middles of the boxes (`cutInput`). Measured: training 80.6 → 86.6 %, a second set made afresh
+83.8 → 93.4 %, 20 newspapers 52.6 → 65.6 %, no photo worse. The measuring scripts of the rule (analysis of the recorded
+readings) were scratch work; the readings come from `OCR_JSON=DIR OCR_JSON_MAXCONF=92 node scripts/measure-ocr.mjs SET
+--prep read --paddle`.
+**#13 (Windows / Linux):** "Windows check" run 8 finished 15 suites and then hung for 2 h 24 min: the sodium suite's
+reference decryptor waited for a password from the Windows console (Python's getpass ignores a pipe) — fixed in
+`tools/sodium_decrypt.py`, and every suite's child processes now have a time limit (`tests/lib/child.mjs`; 9484594). Run 8
+also failed pgp9580 and screencast without saying why (the harness prints the reasons as a suite ends now). **Run 9**
+(pgp9580 screencast sodium slideshow unzip youtube sqlfmt) was started at 11:31 UTC — read it, fix what fails on Windows;
+then one more run of ocr, photodict and zip (never run on Windows since the second reader); then close #13.
 **Next (the owner's order):** batch 3 — #23 FFmpeg volume, #22 FFmpeg MP3, #21 Screencast countdowns + sound level; then
 batch 4 (#24, #28 Screenshot), 5 (#15, #17, #16), 6 (#14 Text Diff), 7 (#20 Studio voice); then the potentials process.
 

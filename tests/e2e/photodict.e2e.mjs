@@ -239,13 +239,14 @@ export default async ({ base, page: newPage, ok, info, devices }) => {
   // on white — found and straightened first; a frame of the live video too
   { const pk = await newPage(phone); await mockApis(pk, []);
     await pk.goto(base + '#/photodict');
-    const pick = async (file) => {
+    const pickOn = (pg) => async (file) => {
       // the line still says the photo before's result until the new one is decoded: wait for this photo's own result
-      await pk.evaluate((sel) => { document.querySelector(sel).textContent = ''; }, STATUS);
-      await pk.locator('input[type=file]').first().setInputFiles(file);
-      await pk.waitForFunction((sel) => /uncommon word|No uncommon words|No text found|went wrong/.test(document.querySelector(sel)?.textContent || '') && !/new photo/.test(document.querySelector(sel).textContent), STATUS, { timeout: 180000 });
-      return cardWords(pk);
+      await pg.evaluate((sel) => { document.querySelector(sel).textContent = ''; }, STATUS);
+      await pg.locator('input[type=file]').first().setInputFiles(file);
+      await pg.waitForFunction((sel) => /uncommon word|No uncommon words|No text found|went wrong/.test(document.querySelector(sel)?.textContent || '') && !/new photo/.test(document.querySelector(sel).textContent), STATUS, { timeout: 180000 });
+      return cardWords(pg);
     };
+    const pick = pickOn(pk);
     const cleanCopy = async (txt) => Buffer.from(await pk.evaluate(async (ws) => {
       const c = new OffscreenCanvas(2000, 2600), g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, 2000, 2600); g.fillStyle = '#111'; g.font = '44px "DejaVu Serif", "Liberation Serif", serif';
       let y = 90, l = '';
@@ -277,6 +278,22 @@ export default async ({ base, page: newPage, ok, info, devices }) => {
       ok(ref.length >= 5 && share >= min, `${what}: ${Math.round(100 * share)} % (at least ${100 * min} %) of the ${ref.length} uncommon words of a clean copy — missing: ${ref.filter((w) => !got.includes(w)).join(', ') || 'none'}`);
       ok(right >= 0.85 && strays.length <= 1, `${what}: the page's text ${(100 * right).toFixed(0)} % in reading order; list marks read as letters: ${strays.length} ${JSON.stringify(strays.slice(0, 2))}`);
     }
+    // the second reader for soft photos (owner, 26 Nov 2026: "Ok use PaddleOCR fallback for soft photos"): a frame of the
+    // live video of a checklist that Tesseract reads unsurely (60 % of its words) is read by PaddleOCR too and its reading
+    // kept, and the line says so — far more of the uncommon words of a clean copy than Tesseract's reading gives (measured:
+    // 84 %; the words it misses are long words misread in the soft frame — "collaboraton", "inteilligence" —, as RapidOCR
+    // reads them too). With PaddleOCR's models refused, the same photo: Tesseract's reading, and the line says why
+    { const txt = 'doc-checklist-frame.txt', ref = await pick({ name: 'clean-copy.png', mimeType: 'image/png', buffer: await cleanCopy(txt) });
+      const got = await pick(F('doc-checklist-frame.jpg')), share = ref.filter((w) => got.includes(w)).length / ref.length, said = await pk.locator(STATUS).textContent();
+      const text = await pk.locator('.pd-textbody').evaluate((e) => e.textContent), right = lcs(wordsOf(readFileSync(F(txt), 'utf8')), wordsOf(text)) / wordsOf(readFileSync(F(txt), 'utf8')).length;
+      ok(ref.length >= 5 && share >= 0.8 && right >= 0.88 && /the photo was soft: PaddleOCR read it/.test(said), `a soft video frame of a checklist: PaddleOCR's reading kept — ${Math.round(100 * share)} % (at least 80 %) of the ${ref.length} uncommon words of a clean copy (missing: ${ref.filter((w) => !got.includes(w)).join(', ') || 'none'}), ${(100 * right).toFixed(0)} % of the page's words (${said})`);
+      ok(await pk.locator('.pd-advice').innerText() === '', 'read well by PaddleOCR: no "snap again" hint');
+      const pk2 = await newPage(phone); await mockApis(pk2, []); await pk2.route('**/models/paddleocr/**', (r) => r.abort());
+      await pk2.goto(base + '#/photodict'); await pk2.waitForSelector(STATUS, { state: 'attached' });
+      const alone = await pickOn(pk2)(F('doc-checklist-frame.jpg')), said2 = await pk2.locator(STATUS).textContent();
+      const nPaddle = ref.filter((w) => got.includes(w)).length, nAlone = ref.filter((w) => alone.includes(w)).length; // measured: 21 and 16 of 25
+      ok(nPaddle - nAlone >= 4 && /the second reader could not be loaded/.test(said2), `… PaddleOCR's models refused: Tesseract's reading, ${nAlone} of those ${ref.length} uncommon words against PaddleOCR's ${nPaddle}, and the line says why (${said2})`);
+      await pk2.close(); }
     // a photo too soft to read well (a frame of the live video, out of focus, with moiré): what was read is shown, and
     // the tab says why and what to do — not a list of misread words passed off as the page's
     await pick(F('kindle-soft.jpg'));

@@ -239,8 +239,12 @@ The owner adds items here in chat ("add … to to do"). Newest instructions win.
   65.4 → 68.0 %, documents 71.6 → 87.1 %, harder layouts 63.3 → 75.3 %, watermarked 72.5 → 85.5 % (strong watermark
   74.4 → 82.3), stray signs where bullets stood 148 → 73 lines; **no photo reads worse**; Kindle photos read and take as
   long as before. PaddleOCR (PP-OCRv6) measured too: less overall, more on soft video frames — a fallback for soft photos
-  (about 31 MB) is offered for the owner's decision. CLAUDE.md §3 OCR, "Documents"; unit pageclean 50, readpage 22,
-  pagecrop 47; e2e OCR 83, Photo Dictionary 121.
+  (about 31 MB) was offered for the owner's decision, and **built at the owner's word the same day** ("Ok use PaddleOCR
+  fallback for soft photos"): a reading Tesseract is unsure of (below 88) is read by PaddleOCR too and the reading with more
+  words right as each reader's confidences say is kept — 80.6 → 86.6 % on the photos the rule was worked out on, 83.8 → 93.4 %
+  on a second set made afresh, no photo worse (CLAUDE.md §3 OCR, "The second reader"). CLAUDE.md §3 OCR, "Documents";
+  unit pageclean 50, readpage 22 (38 with the second reader), pagecrop 47; e2e OCR 83, Photo Dictionary 121 (with the
+  second reader 91 and 124).
 - **30. OpenPGP: every password or passphrase of an encrypting mode typed twice** (owner, 26 Nov 2026) — done 26 Nov
   2026: Encrypt, in both standards — the message password with "Repeat password", the signing key's passphrase with
   "Repeat passphrase"; two that differ are said under the boxes and refused (nothing made); Enter in the second box
@@ -317,7 +321,8 @@ The owner adds items here in chat ("add … to to do"). Newest instructions win.
   owner's first case, a phone photographing a Kindle page** (item 5): Snap takes the camera's still, the page is found and
   straightened before it is read (most generated photos of Kindle pages read 93 – 100 %), and a photo too soft to read
   says "snap again" (abe1d69, cd07746, 5617e29, the hint after d4f5b2d). CLAUDE.md §3 Photo Dictionary, "The upgrade".
-  Measured and not kept: sharpening, upscaling, Sauvola thresholding, PaddleOCR PP-OCRv6 (docs/WASM-AUDIT.md, tab 122).
+  Measured and not kept: sharpening, upscaling, Sauvola thresholding, PaddleOCR PP-OCRv6 (docs/WASM-AUDIT.md, tab 122) —
+  PaddleOCR since 26 Nov 2026 the second reader for soft photos (CLAUDE.md §3 OCR, "The second reader").
   The owner's own Kindle photos ("Save this photo" under the thumbnail) are welcome for more tuning.
 - **9. OCR on the phone, as good as the Photo Dictionary** (owner, 21 Nov 2026: "just like the photo dictionary, the OCR
   app should also work really well from my phone") — done 21 Nov 2026 (d4f5b2d and the hint after it): the OCR tab

@@ -111,6 +111,49 @@ export default async ({ base, page: newPage, ok, info, download, devices }) => {
     // (the page is not looked for without the clean-up; the photo may still be levelled — that is no clean-up)
     ok(!/straightened/.test(await line()), `without the clean-up the page is not cut out and straightened: ${(100 * raw).toFixed(1)} % against ${(100 * readRight['kindle-page.jpg']).toFixed(1)} % with it (${await line()}; the clean-up of before, without the straightening, read 1 %)`); }
 
+  // the second reader for soft photos (owner, 26 Nov 2026: "Ok use PaddleOCR fallback for soft photos"): in a fresh tab a
+  // sharp photo is read by Tesseract alone and nothing of PaddleOCR is fetched; a frame of the live video of a checklist,
+  // which Tesseract reads unsurely (60 % of its words, confidence 69), is read by PaddleOCR too — its models fetched then,
+  // from this site, once a visit — and its reading kept (93 % of the words when measured); its unsure words marked
+  const readOn = async (pg, file) => {
+    await pg.locator('input[type=file]').setInputFiles(file);
+    await pg.waitForSelector('.ed-canvas', { state: 'visible' });
+    await pg.waitForFunction(() => !/confidence|No text found/.test(document.querySelector('.ocr-text')?.parentElement?.textContent || ''));
+    await pg.getByRole('button', { name: 'Extract text' }).click();
+    await pg.waitForFunction(() => /confidence|No text found/.test(document.querySelector('.ocr-text')?.parentElement?.textContent || ''), null, { timeout: 300000 });
+    return { text: await pg.locator('.ocr-text').inputValue(), line: await pg.locator('.ocr-text ~ [aria-live="polite"]').innerText() };
+  };
+  { const p2 = await newPage(), models = [], said = [];
+    p2.on('request', (r) => { if (r.url().includes('/models/paddleocr/')) models.push(r.url().split('/models/paddleocr/')[1]); });
+    await p2.goto(base + '#/ocr');
+    const sharp = await readOn(p2, F('kindle-page.jpg'));
+    ok(models.length === 0 && !/PaddleOCR/.test(sharp.line), `a sharp photo: Tesseract alone, nothing of PaddleOCR fetched (${sharp.line})`);
+    // the progress line while it reads (a soft photo takes a few seconds more)
+    const watch = setInterval(() => p2.locator('.ocr-text').locator('xpath=..').innerText().then((x) => { if (/PaddleOCR/.test(x)) said.push(x.split('\n').find((l) => /PaddleOCR/.test(l))); }).catch(() => {}), 300);
+    const soft = await readOn(p2, F('doc-checklist-frame.jpg')), truth = wordsOf(readFileSync(F('doc-checklist-frame.txt'), 'utf8'));
+    clearInterval(watch);
+    const right = lcs(truth, wordsOf(soft.text)) / truth.length;
+    ok(right >= 0.88 && /the photo was soft: PaddleOCR read it/.test(soft.line) && !/reads poorly/.test(soft.line), `a soft frame of a checklist: ${(100 * right).toFixed(1)} % of its words read right (Tesseract alone: 60 %; ${soft.line})`);
+    ok(['PP-OCRv6_det_small.onnx', 'PP-OCRv6_rec_small.onnx', 'PP-OCRv6_rec_small.onnx.character.txt'].every((m) => models.includes(m)) && models.length === 3, `… PaddleOCR's models fetched then, from this site (${models.join(', ')})`);
+    ok(said.some((x) => /PaddleOCR/.test(x)), `… the progress line said what it was doing (${[...new Set(said)].slice(0, 3).join(' | ')})`);
+    const low = await p2.locator('.ocr-low').evaluateAll((els) => els.map((e) => [parseFloat(e.style.left), parseFloat(e.style.top), parseFloat(e.style.width)]));
+    ok(low.every(([x, y, w]) => x >= 0 && x <= 100 && y >= 0 && y <= 100 && w > 0), `… its unsure words marked on the page as read (${low.length})`);
+    const again = await readOn(p2, F('doc-checklist-frame.jpg'));
+    ok(models.length === 3 && /PaddleOCR read it/.test(again.line), `read again: the models kept for the visit (${models.length} files fetched in all)`);
+    // a soft frame of a newsletter of two columns under a heading: PaddleOCR's lines column by column (Tesseract alone:
+    // 72.5 %; PaddleOCR with its whole boxes given to the XY-cut read across the columns: 56 %)
+    const nl = await readOn(p2, F('doc-newsletter-soft-frame.jpg')), nlTruth = wordsOf(readFileSync(F('doc-newsletter-soft-frame.txt'), 'utf8'));
+    const nlRight = lcs(nlTruth, wordsOf(nl.text)) / nlTruth.length;
+    ok(nlRight >= 0.88 && /PaddleOCR read it/.test(nl.line), `a soft frame of a two-column newsletter: ${(100 * nlRight).toFixed(1)} % of its words read right, in reading order (${nl.line})`);
+    await p2.close(); }
+  // its models cannot be fetched: Tesseract's reading stands, and the line says so
+  { const p3 = await newPage();
+    await p3.route('**/models/paddleocr/**', (r) => r.abort());
+    await p3.goto(base + '#/ocr');
+    const res = await readOn(p3, F('doc-checklist-frame.jpg'));
+    ok(/the second reader could not be loaded/.test(res.line) && wordsOf(res.text).length > 100, `PaddleOCR's models refused: Tesseract's reading shown (${wordsOf(res.text).length} words), the line says why (${res.line})`);
+    await p3.close(); }
+
   // render a sentence as an image in the browser (system serif font, black on white)
   const render = async (s) => Buffer.from(await page.evaluate(async (s) => {
     const c = new OffscreenCanvas(1500, 160), g = c.getContext('2d');

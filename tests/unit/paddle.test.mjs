@@ -138,9 +138,21 @@ export default async (t, { load, wasm }) => {
   const L = (text, box, o = {}) => ({ text, score: 0.95, box, tall: false, chars: [...text].map((c, i, a) => ({ c, p: c === 'x' ? 0.4 : 0.98, x0: i / a.length, x1: (i + 1) / a.length })), ...o });
   const two = [L('Left one', [10, 10, 200, 10, 200, 30, 10, 30]), L('Right one', [300, 12, 500, 12, 500, 32, 300, 32]), L('Left two', [10, 40, 200, 40, 200, 60, 10, 60]), L('Right two', [300, 42, 500, 42, 500, 62, 300, 62])];
   t.eq(P.paddleResult(two).text, 'Left one Right one\nLeft two Right two', "one column: RapidOCR's order — a row's boxes side by side joined into one line");
-  const cut = P.cutGaps(P.lineBoxes(two));
   t.eq(P.paddleResult(two, { order: [0, 2, 1, 3] }).text, 'Left one\nLeft two\nRight one\nRight two', 'columns: the order given (the XY-cut), column by column');
-  t.ok(cut.gx === 16 && cut.gy === 10, `the XY-cut's gaps from the median line (20 px high): a gutter of 0.8 of it, a gap of half (${cut.gx}, ${cut.gy})`);
+  const cut = P.cutInput(two);
+  t.ok(cut.boxes[0].join() === '18,18,192,22' && Math.abs(cut.gx - 3.2) < 1e-9 && cut.gy === 2, `what the XY-cut is given: the middle fifth of each box (20 px high → 18 … 22), as much off its ends; the gaps from that middle — 0.8 and half of it (${cut.boxes[0]}; ${cut.gx}, ${cut.gy})`);
+  t.eq(P.cutInput([L('a', [100, 10, 104, 10, 104, 30, 100, 30])]).boxes[0], [102, 18, 102, 22], 'a box narrower than its height: cut to its middle, never turned inside out');
+  // a newsletter's video frame as PaddleOCR boxed it (tests/fixtures/images/doc-newsletter-soft-frame.jpg): a title 11 px
+  // above two columns whose lines interleave and whose boxes, wider than the text, touch — with the whole boxes the
+  // XY-cut finds neither the gap under the title nor the gutter and reads across the columns; with their middles it
+  // reads the title, the left column, then the right one
+  const { bindTextcore } = await load('/src/wasm/textcore.ts'), tc = bindTextcore(await wasm('textcore'));
+  const news = [L('Why you need Kubernetes and what it can do', [110, 104, 817, 104, 817, 145, 110, 145])];
+  for (let k = 0; k < 8; k++) news.push(L(`Left line ${k}`, [110, 156 + 20.5 * k, 470, 156 + 20.5 * k, 470, 181 + 20.5 * k, 110, 181 + 20.5 * k]));
+  for (let k = 0; k < 8; k++) news.push(L(`Right line ${k}`, [505, 170 + 20.5 * k, 860, 170 + 20.5 * k, 860, 193 + 20.5 * k, 505, 193 + 20.5 * k]));
+  const cols = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16].join();
+  const whole = tc.xycut(P.lineBoxes(news), 0.8 * 25, 0.5 * 25).order, mid = P.cutInput(news), got = tc.xycut(mid.boxes, mid.gx, mid.gy).order;
+  t.ok(whole.join() !== cols && got.join() === cols, `a title close above two columns of touching boxes: the whole boxes give no way in (${whole.slice(0, 6).join(' ')} …), their middles give the title, the left column, the right one (${got.join(' ')})`);
   const marks = P.paddleResult([L('● First point', [10, 10, 300, 10, 300, 30, 10, 30]), L('☐ Second point', [10, 40, 300, 40, 300, 60, 10, 60]), L('o Spanish o stays', [10, 70, 300, 70, 300, 90, 10, 90]), L('- a dash stays', [10, 100, 300, 100, 300, 120, 10, 120])]);
   t.eq(marks.text, 'First point\nSecond point\no Spanish o stays\n- a dash stays', 'a list mark read as a character at a line\'s start left out (●, ☐); letters and dashes kept');
   t.ok(marks.words.length === 12 && marks.words[0].text === 'First', `the words of the lines without the marks (${marks.words.map((w) => w.text).join(' ')})`);

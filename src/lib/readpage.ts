@@ -15,7 +15,7 @@
 import { imgproc, type Img } from '../wasm/imgproc';
 import { textcore } from '../wasm/textcore';
 import { recognize, POOR, type OcrLang, type OcrResult, type Layout } from './ocr';
-import { paddleResult, lineBoxes, cutGaps, type PaddleLine } from './paddle';
+import { paddleResult, cutInput, type PaddleLine } from './paddle';
 import type { PaddleProgress } from './paddle-client';
 import { straighten, type PageOps } from './pagecrop';
 import { uprightByReading, score, ROT, type TurnOps } from './upright';
@@ -144,17 +144,52 @@ export const FEW = 25;
  *  Kindle's), which is read once (a second reading costs a phone seconds). Sharp photos read at 87 – 95 %. */
 export const AGAIN = 85, AGAIN_BY = 1.03;
 
-/** PaddleOCR, the second reader (in progress: off until its rule is measured — the owner's rule for every change to the
- *  reading): which picture it reads, when a reading is soft, which one is kept. */
-export const SECOND_ON = false;
-export const SECOND_READS: 'pre' | 'img' = 'pre';
+/** PaddleOCR, the second reader for soft photos (owner, 26 Nov 2026: "Ok use PaddleOCR fallback for soft photos"; the
+ *  rule measured on the photos of scripts/measure-ocr.mjs and checked on a second set made afresh — CLAUDE.md §3 OCR,
+ *  "The second reader"):
+ *  - a reading less sure than SOFT (Tesseract's mean confidence) is read by PaddleOCR too — the page Tesseract read, as
+ *    it stands or cleaned up (secondPicture);
+ *  - the reading kept is the one with more words read right as its reader's confidences say (`expectedRight`): each
+ *    reader's confidences mean something else — Tesseract's words at 95 are right 97 times in 100, PaddleOCR's at 99.9
+ *    only 91 (it is sure of words that are not there, a tiled watermark's) — so each word of three letters and more
+ *    counts the share of words its reader gets right at its confidence (RIGHT: measured, made monotone). */
+export const SECOND_ON = true;
+/** A page whose clean-up cleared at least this many list marks is given to PaddleOCR cleaned (see secondPicture). */
+export const SECOND_MARKS = 2;
+/** Which picture PaddleOCR reads: the page as it stands (straightened, set upright and level — `pre`), or as Tesseract
+ *  read it, cleaned up (`img`) when the clean-up cleared list marks (SECOND_MARKS or more: bullets, check boxes — and
+ *  with them a form's or a table's rules) or turned a dark page over. The clean-up is made for Tesseract: on a Kindle's
+ *  grey e-ink it cost PaddleOCR up to 10 points a photo (6 of 7 soft Kindle photos read better as they stood), while on
+ *  formatted documents the marks and rules it clears are what PaddleOCR misread (a memo 51 → 77 %, a report 33 → 46 %).
+ *  Measured on both sets of photos: either picture alone did worse than the choice. */
+export const secondPicture = (p: { cleared: { marks: number }; inverted?: boolean }): 'pre' | 'img' => (p.inverted || p.cleared.marks >= SECOND_MARKS ? 'img' : 'pre');
 export const SOFT = 88;
 export const soft = (r: OcrResult) => r.confidence < SOFT;
-export const secondBetter = (paddle: OcrResult, tess: OcrResult) => score(paddle) > score(tess) * 1.1;
+/** the confidences' bins (from … to the next) and the share of words of three letters and more read right in each */
+export const CONF_EDGES = [0, 20, 40, 50, 60, 70, 80, 85, 90, 93, 95, 97, 98, 99, 99.5, 99.9];
+export const RIGHT = {
+  tesseract: [0.057, 0.136, 0.31, 0.517, 0.688, 0.835, 0.869, 0.903, 0.911, 0.955, 0.972, 0.972, 0.972, 0.972, 0.972, 0.972],
+  paddle: [0.042, 0.042, 0.061, 0.061, 0.171, 0.298, 0.477, 0.604, 0.649, 0.788, 0.845, 0.856, 0.9, 0.907, 0.907, 0.907],
+};
+/** The words of a reading as the measuring counts them (letters, digits, apostrophes; case left aside) — each with the
+ *  confidence of the word it came from. */
+const TOKENS = /[\p{L}\p{N}']+/gu;
+export function expectedRight(r: Pick<OcrResult, 'words'>, table: number[]): number {
+  let s = 0;
+  for (const w of r.words) {
+    const c = Math.max(0, Math.min(100, w.conf));
+    let b = 0; while (b + 1 < CONF_EDGES.length && c >= CONF_EDGES[b + 1]) b++;
+    for (const t of w.text.normalize('NFC').replace(/[’‘]/g, "'").match(TOKENS) || []) if (t.replace(/^'+|'+$/g, '').length >= 3) s += table[b];
+  }
+  return s;
+}
+export const secondBetter = (paddle: Pick<OcrResult, 'words'>, tess: Pick<OcrResult, 'words'>) => expectedRight(paddle, RIGHT.paddle) > expectedRight(tess, RIGHT.tesseract);
 
-/** PaddleOCR's confidences run higher than Tesseract's (a character's probability against a word's certainty): its
- *  reading reads poorly below PADDLE_POOR, and a word of it is unsure below PADDLE_UNSURE (measured). */
-export const PADDLE_POOR = 80, PADDLE_UNSURE = 85;
+/** PaddleOCR's confidences run higher than Tesseract's (its characters' probabilities against a word's certainty): its
+ *  reading reads poorly below PADDLE_POOR (measured: every one below it had most of its words wrong, as Tesseract's
+ *  below POOR), and a word of it is unsure below PADDLE_UNSURE (its words there are right less than 6 times in 10, as
+ *  Tesseract's below 60). */
+export const PADDLE_POOR = 85, PADDLE_UNSURE = 85;
 /** A reading that reads poorly: both tabs say a sharper photo would read better. */
 export const readsPoorly = (res: Pick<PageReading, 'r' | 'engine'>) => res.r.confidence < (res.engine === 'paddle' ? PADDLE_POOR : POOR);
 /** A word its reader is unsure of (the OCR tab marks it on the picture). */
@@ -172,18 +207,18 @@ export async function readPage(photo: Img, o: ReadOptions, eng: ReadEngines = br
   const cap = async (im: Img, L: number) => { const s = Math.max(im.width, im.height); return s > L ? ops.resize(im, Math.round((im.width * L) / s), Math.round((im.height * L) / s)) : im; };
   /** the clean-up for reading; `final`: the picture read in full — ruled lines and list marks cleared too */
   const enhance = async (im: Img, final: boolean) => {
-    if (!o.clean) return { img: im, lines: 0, inner: 0, marks: 0, wash: 0, columns: 1 };
-    let x = im;
-    if (o.invertDark && isDark((await ops.histogram(x)).subarray(768, 1024))) x = await ops.invert(x);
+    if (!o.clean) return { img: im, lines: 0, inner: 0, marks: 0, wash: 0, columns: 1, inverted: false };
+    let x = im, inverted = false;
+    if (o.invertDark && isDark((await ops.histogram(x)).subarray(768, 1024))) { x = await ops.invert(x); inverted = true; }
     if (o.screen) x = await ops.blur(x, 1.1);
     x = await ops.docEnhance(x, 1);
-    if (!final) return { img: x, lines: 0, inner: 0, marks: 0, wash: 0, columns: 1 };
+    if (!final) return { img: x, lines: 0, inner: 0, marks: 0, wash: 0, columns: 1, inverted };
     // a watermark washed over the page (a second, lighter level of ink in broad strokes): laid out as a page, Tesseract
     // took the text under CONFIDENTIAL's big letters for a picture and left a paragraph out
     const wsh = ops.clearWash ? await ops.clearWash(x) : null;
     if (wsh) x = wsh.img;
     const c = await ops.clearMarks(x, 7); // the lines, the marks, and the columns counted
-    return { img: c.img, lines: c.lines, inner: c.inner, marks: c.marks, wash: wsh?.painted ?? 0, columns: c.columns };
+    return { img: c.img, lines: c.lines, inner: c.inner, marks: c.marks, wash: wsh?.painted ?? 0, columns: c.columns, inverted };
   };
   /** a quick reading, to decide which way up the text stands (the clean-up without clearing marks; no progress shown) */
   const glance = async (im: Img) => eng.read((await enhance(im, false)).img, o.lang, undefined, GLANCE_LAYOUT);
@@ -200,7 +235,7 @@ export async function readPage(photo: Img, o: ReadOptions, eng: ReadEngines = br
     }
     const shown = page || up.turns || up.slant ? img : null;
     const e = await enhance(img, true);
-    return { img: e.img, pre: img, shown, page, by, up, cleared: { lines: e.lines, inner: e.inner, marks: e.marks, wash: e.wash }, columns: e.columns };
+    return { img: e.img, pre: img, shown, page, by, up, cleared: { lines: e.lines, inner: e.inner, marks: e.marks, wash: e.wash }, inverted: e.inverted, columns: e.columns };
   };
   const t0 = ((o.turns ?? 0) % 4 + 4) % 4;
   let p = await prepare(photo, t0, true, o.auto);
@@ -246,12 +281,12 @@ export async function readPage(photo: Img, o: ReadOptions, eng: ReadEngines = br
   if ((o.second ?? SECOND_ON) && eng.paddle && soft(r)) {
     second = true;
     o.onSecond?.(null);
-    const pic = SECOND_READS === 'pre' ? p.pre : p.img;
+    const pic = secondPicture(p) === 'pre' ? p.pre : p.img;
     const lines = await eng.paddle(pic, (q) => { if (live()) o.onSecond?.(q); }, () => !live()).catch((e) => { secondError = String((e as Error)?.message ?? e); return null; });
     if (!live()) return null;
     if (lines?.length) {
       let order: number[] | undefined;
-      if (p.columns >= 2 && lines.length > 1 && eng.xycut) { const bb = lineBoxes(lines), g = cutGaps(bb); order = await eng.xycut(bb, g.gx, g.gy); }
+      if (p.columns >= 2 && lines.length > 1 && eng.xycut) { const c = cutInput(lines); order = await eng.xycut(c.boxes, c.gx, c.gy); }
       const r2 = paddleResult(lines, { order });
       if (secondBetter(r2, r)) { r = r2; engine = 'paddle'; }
     }

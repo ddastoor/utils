@@ -154,11 +154,22 @@ const MARK = /^[•‣⁃⁌⁍∙■-◿☐-☒✓✔✗✘➢➤⦾⦿·‧◦
 export interface PaddleWord { text: string; conf: number; x0: number; y0: number; x1: number; y1: number }
 /** The lines' boxes, upright (x0, y0, x1, y1), for the reading order. */
 export const lineBoxes = (lines: PaddleLine[]) => lines.map((l) => { const xs = [l.box[0], l.box[2], l.box[4], l.box[6]], ys = [l.box[1], l.box[3], l.box[5], l.box[7]]; return [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)]; });
-/** The gaps of the XY-cut that orders a page of columns (textcore's t_xycut): a gutter at least 0.8 of a line's height
- *  wide, a gap between blocks at least half a line high (the median line). */
-export function cutGaps(boxes: number[][]): { gx: number; gy: number } {
+/** How much of each box's height is taken off at its top, its bottom and both ends before the XY-cut (cutInput). */
+export const CUT_SHRINK = 0.4;
+/** What textcore's XY-cut (t_xycut) is given to order a page of columns: the middle of each line's box — CUT_SHRINK of
+ *  its height off at the top and the bottom, as much off at both ends (never past its middle) — and the gaps it needs,
+ *  a gutter at least 0.8 and a gap between blocks at least half of that middle's height (the median line). PaddleOCR's
+ *  boxes reach past their text (the detector's region is widened by 1.6 × its area over its perimeter), so neighbouring
+ *  lines touch and the gap under a title above two columns was narrower than half a box: the XY-cut found no way into
+ *  the columns and read them across, line by line (a newsletter's video frame: 192 of its 342 words in order, 322 with
+ *  the middles — measured on every photo with columns, docs/BUGHUNT.md). */
+export function cutInput(lines: PaddleLine[]): { boxes: number[][]; gx: number; gy: number } {
+  const boxes = lineBoxes(lines).map(([x0, y0, x1, y1]) => {
+    const m = CUT_SHRINK * (y1 - y0), cx = (x0 + x1) / 2;
+    return [Math.min(x0 + m, cx), y0 + m, Math.max(x1 - m, cx), y1 - m];
+  });
   const hs = boxes.map((b) => b[3] - b[1]).sort((a, b) => a - b), h = hs.length ? hs[hs.length >> 1] : 10;
-  return { gx: Math.max(3, 0.8 * h), gy: Math.max(2, 0.5 * h) };
+  return { boxes, gx: Math.max(3, 0.8 * h), gy: Math.max(2, 0.5 * h) };
 }
 /** PaddleOCR's lines as a reading of the tabs (src/lib/ocr.ts OcrResult): the text in reading order — RapidOCR's (top to
  *  bottom, then left to right), or `order` (a page of columns: textcore's XY-cut of the lines' boxes, column by column)

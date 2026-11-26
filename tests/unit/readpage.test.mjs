@@ -118,4 +118,56 @@ export default async (t, { load, wasm }) => {
   const meanRead = async (img, opts) => { let mean = -1; const rd = async (im, _l, p) => { if (p) mean = lum(im); return { text: 'x', confidence: 90, words: words(40) }; }; await RP.readPage(img, { lang: 'eng', clean: true, auto: false, onProgress: progress, ...opts }, { ops, read: rd }); return mean; };
   const light = await meanRead(scr, {}), inv = await meanRead(dark, { invertDark: true }), asIs = await meanRead(dark, {});
   t.ok(Math.abs(inv - light) < 8 && Math.abs(asIs - light) > 15, `the OCR tab reads the dark screen as it reads the light one (mean ${inv.toFixed(0)} against ${light.toFixed(0)}); the Photo Dictionary as it is (${asIs.toFixed(0)})`);
+
+  // ---- the second reader for soft photos (owner, 26 Nov 2026: "Ok use PaddleOCR fallback for soft photos")
+  const line = (text, y, p = 0.99) => ({ text, score: p, box: [10, y, 400, y, 400, y + 20, 10, y + 20], tall: false, chars: [...text].map((c, i, a) => ({ c, p, x0: i / a.length, x1: (i + 1) / a.length })) });
+  const second = (lines, fail) => { const calls = []; return { calls, paddle: async (img, progress, stale) => { calls.push({ w: img.width, h: img.height, img }); progress?.({ phase: 'fetch', done: 1, total: 2 }); progress?.({ phase: 'read', done: 0, total: lines.length }); if (fail) throw new Error(fail); return stale?.() ? null : lines; } }; };
+  const many = Array.from({ length: 30 }, (_, i) => line(`Sentence number ${i} reads clearly here`, 30 * i));
+  // a soft reading: PaddleOCR reads the page as Tesseract read it, cleaned up; its reading, with more words read right as
+  // each reader's confidences say, is kept
+  f = reader((c) => (c.main ? { n: 40, conf: 62 } : null));
+  let sc = second(many), seen = [];
+  r = await RP.readPage(kindle, { lang: 'eng', clean: true, auto: true, onProgress: progress, onSecond: (q) => seen.push(q) }, { ops, read: f.read, paddle: sc.paddle });
+  t.ok(sc.calls.length === 1 && sc.calls[0].img === r.pre && r.pre !== r.img && r.cleared.marks < RP.SECOND_MARKS && sc.calls[0].w === r.img.width && sc.calls[0].h === r.img.height, `a soft reading (Tesseract's confidence 62 < ${RP.SOFT}): PaddleOCR reads the page Tesseract read as it stands — found, straightened, before the clean-up (a Kindle page: no list marks) — the same size (${sc.calls.map((c) => `${c.w}×${c.h}`)})`);
+  t.ok(r.second && r.engine === 'paddle' && r.r.text.startsWith('Sentence number 0 reads clearly here') && r.r.words.length === 180, `… and its reading kept (${r.engine}, ${r.r.words.length} words)`);
+  t.ok(seen[0] === null && seen.some((q) => q?.phase === 'fetch') && seen.some((q) => q?.phase === 'read'), '… the tab told when it starts and how far it has come');
+  t.ok(RP.readsPoorly(r) === false && RP.readsPoorly({ ...r, r: { ...r.r, confidence: 80 } }) === true && RP.readsPoorly({ r: { confidence: 70 }, engine: 'tesseract' }) === false, `… "reads poorly" by its reader's own scale (PaddleOCR below ${RP.PADDLE_POOR}, Tesseract below 60)`);
+  t.ok(RP.unsureWord(80, 'paddle') && !RP.unsureWord(90, 'paddle') && RP.unsureWord(55, 'tesseract') && !RP.unsureWord(70, 'tesseract'), 'an unsure word by its reader\'s own scale');
+  // a page whose clean-up cleared list marks: PaddleOCR reads it cleaned (the marks and rules are what it misread)
+  f = reader((c) => (c.main ? { n: 40, conf: 62 } : null)); sc = second(many);
+  r = await RP.readPage(lists, { lang: 'eng', clean: true, auto: false, again: false, onProgress: progress }, { ops, read: f.read, paddle: sc.paddle });
+  t.ok(sc.calls.length === 1 && r.cleared.marks >= RP.SECOND_MARKS && sc.calls[0].img === r.img, `lists and a table (${r.cleared.marks} marks cleared): PaddleOCR reads the cleaned page`);
+  t.ok(RP.secondPicture({ cleared: { marks: 1 } }) === 'pre' && RP.secondPicture({ cleared: { marks: RP.SECOND_MARKS } }) === 'img' && RP.secondPicture({ cleared: { marks: 0 }, inverted: true }) === 'img', 'secondPicture: the page as it stands, cleaned when marks were cleared or a dark page turned over');
+  // a sure reading: PaddleOCR is not asked
+  f = reader((c) => (c.main ? { n: 40, conf: 93 } : null)); sc = second(many);
+  r = await RP.readPage(kindle, { lang: 'eng', clean: true, auto: true, onProgress: progress }, { ops, read: f.read, paddle: sc.paddle });
+  t.ok(sc.calls.length === 0 && !r.second && r.engine === 'tesseract', 'a sure reading (93): PaddleOCR not asked');
+  // PaddleOCR reads fewer words right than Tesseract's reading promises: Tesseract's stays
+  f = reader((c) => (c.main ? { n: 120, conf: 80 } : null)); sc = second(many.slice(0, 5));
+  r = await RP.readPage(kindle, { lang: 'eng', clean: true, auto: true, onProgress: progress }, { ops, read: f.read, paddle: sc.paddle });
+  t.ok(sc.calls.length === 1 && r.second && r.engine === 'tesseract' && r.r.words.length === 120, 'PaddleOCR read, but its reading promises fewer right words: Tesseract\'s kept');
+  // it fails (its models cannot be fetched): Tesseract's reading stands, the reason given
+  f = reader((c) => (c.main ? { n: 40, conf: 50 } : null)); sc = second(many, 'the second reader\'s model PP-OCRv6_det_small.onnx could not be fetched (HTTP 404)');
+  r = await RP.readPage(kindle, { lang: 'eng', clean: true, auto: true, onProgress: progress }, { ops, read: f.read, paddle: sc.paddle });
+  t.ok(r && r.engine === 'tesseract' && /HTTP 404/.test(r.secondError || '') && r.r.words.length === 40, `PaddleOCR failing: Tesseract's reading stands, the reason said (${r.secondError})`);
+  // off, or a newer photo while it reads
+  f = reader((c) => (c.main ? { n: 40, conf: 50 } : null)); sc = second(many);
+  r = await RP.readPage(kindle, { lang: 'eng', clean: true, auto: true, second: false, onProgress: progress }, { ops, read: f.read, paddle: sc.paddle });
+  t.ok(sc.calls.length === 0 && !r.second, 'second: false — not asked');
+  let gone = false;
+  f = reader((c) => (c.main ? { n: 40, conf: 50 } : null));
+  r = await RP.readPage(kindle, { lang: 'eng', clean: true, auto: true, onProgress: progress, stale: () => gone, onSecond: () => { gone = true; } }, { ops, read: f.read, paddle: second(many).paddle });
+  t.eq(r, null, 'a newer photo while PaddleOCR reads: nothing (null)');
+  // a page of columns: its lines ordered by the XY-cut
+  const sides = [line('Left column first line', 10), line('Left column second line', 40), { ...line('Right column first line', 10), box: [500, 10, 900, 10, 900, 30, 500, 30] }, { ...line('Right column second line', 40), box: [500, 40, 900, 40, 900, 60, 500, 60] }];
+  const cuts = [], { bindTextcore } = await load('/src/wasm/textcore.ts'), tc = bindTextcore(await wasm('textcore'));
+  const xy = (boxes, gx, gy) => { cuts.push({ n: boxes.length, gx, gy }); return tc.xycut(boxes, gx, gy).order; }; // textcore's own
+  const cpage = await decode('tests/fixtures/ocr/columns.jpg');
+  f = reader((c) => (c.main ? { n: 30, conf: 30 } : null)); // a soft reading that promises little (30 × 0.136)
+  r = await RP.readPage(cpage, { lang: 'eng', clean: true, auto: true, onProgress: progress }, { ops, read: f.read, paddle: second([sides[0], sides[2], sides[1], sides[3]]).paddle, xycut: xy });
+  t.ok(r.columns >= 2 && cuts.length === 1 && cuts[0].n === 4 && r.engine === 'paddle' && r.r.text === 'Left column first line\nLeft column second line\nRight column first line\nRight column second line', `a page of ${r.columns} columns: PaddleOCR's lines in the XY-cut's order, column by column (${JSON.stringify(cuts)}; ${JSON.stringify(r.r.text.split('\n').slice(0, 2))})`);
+  // what counts: words of three letters and more, each at its reader's share right
+  t.near(RP.expectedRight({ words: [{ text: 'word', conf: 96 }, { text: 'ab', conf: 96 }, { text: "it's", conf: 96 }] }, RP.RIGHT.tesseract), 0.972 * 2, 1e-9, 'expectedRight: words of 3 letters and more (not "ab"), at Tesseract\'s share for 95 – 97');
+  t.near(RP.expectedRight({ words: [{ text: 'three-words-here', conf: 99.95 }, { text: 'élève', conf: 84.9 }] }, RP.RIGHT.paddle), 0.907 * 3 + 0.477, 1e-9, '… a hyphenated word counts its parts; the bins by the edges (99.9 →, 80 – 85)');
+  t.ok(RP.RIGHT.tesseract.every((v, i, a) => !i || v >= a[i - 1]) && RP.RIGHT.paddle.every((v, i, a) => !i || v >= a[i - 1]) && RP.RIGHT.tesseract.length === RP.CONF_EDGES.length && RP.RIGHT.paddle.length === RP.CONF_EDGES.length, 'the tables rise with the confidence, one value a bin');
 };

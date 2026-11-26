@@ -68,7 +68,8 @@ that affects it.
 >    dist` after `npm run build`, in bytes: 1 GB is read as 10⁹ bytes; `du -sh` shows MiB), and for a large model the 100 GB / month soft bandwidth limit.
 > 3. Name what could be removed to make room, when room is short — an app, or a big model of one (the biggest today:
 >    Text-to-Speech's voices 167 MB — Kokoro 94 MB + Piper 73 MB; Code Formatter's Biome 67 MB; Photo Dictionary's
->    data 34 MB; FFmpeg 31 MB; Tesseract 27 MB; ExifTool 24 MB).
+>    data 34 MB; FFmpeg 31 MB; PaddleOCR, the OCR's second reader, 31 MB; Tesseract 27 MB; ExifTool 24 MB). 26 Nov 2026,
+>    with PaddleOCR: **555 MB**.
 > 4. **Wait for the owner's decision.** Build nothing until the owner has decided.
 
 > ## ⚠️ STANDING RULE #1 — WebAssembly first (owner; permanent; applies to every line of new code)
@@ -2257,8 +2258,8 @@ its own noise — the old code on the same photo shifted by 2 px moves up to 9 p
 video frame 86.3 → 77.5 %), Kindle photos hardly at all. Time (Node, a quiet 4-core machine, 12 photos): 6.6 → 7.2 s a
 photo, the Kindle photos as before. **PaddleOCR** (PP-OCRv6, RapidOCR 3.10, on the photos as they are) read less than the
 new path on every set — Kindle 67.4, documents 81.6, harder 72.7, watermarks 81.6 % — but more on soft video frames
-(watermarked frames 68.5 against 61.0 %): Tesseract stays; a PaddleOCR fallback for soft photos (about 31 MB of models)
-is the owner's decision (the size check). The measuring script used to read every page in mode 3,
+(watermarked frames 68.5 against 61.0 %): Tesseract stays the first reader; PaddleOCR became the second, for soft photos,
+at the owner's word (below). The measuring script used to read every page in mode 3,
 which the tabs never did (Tesseract.js reads mode 6 unless told): the earlier numbers of this section were of mode 3.
 Not measured: Tesseract's float "best" models (the tabs use best_int, the same network in 8 bits) — the host refused
 the download here. Unit `pageclean.test.mjs` 50 (`tests/fixtures/ocr/`: marks.jpg — every kind of mark and its
@@ -2268,6 +2269,39 @@ text and dark pages left alone), `readpage.test.mjs` 22 (a stand-in reader: ever
 `doc-memo-watermark-scan.jpg` and the network); e2e OCR and Photo Dictionary: three photographed documents
 (`doc-checklist-draft-still`, `doc-newsletter-frame`, `doc-memo-still`: 85 – 92 %+ of their words in reading order, no
 mark read as a letter, no rule as |) and the watermark scan read whole (95 %+).
+**The second reader: PaddleOCR for soft photos (owner, 26 Nov 2026: "Ok use PaddleOCR fallback for soft photos").** A
+reading Tesseract is unsure of — its confidence below 88 (`SOFT` in `src/lib/readpage.ts`: soft video frames, a shaken
+still) — is read again by **PaddleOCR**: PP-OCRv6's small detector and recogniser (Apache-2.0, 31.2 MB, out of the RapidOCR
+3.10.0 wheel on PyPI — `scripts/assets.json`) on ONNX Runtime Web in a worker of its own (`src/workers/paddle.worker.ts`),
+fetched from this site with the first soft photo and kept for the visit. It reads the page Tesseract read (found,
+straightened, set upright and level) as it stands, or cleaned up where the clean-up cleared list marks or turned a dark
+page over (`secondPicture`: the clean-up is made for Tesseract — on a Kindle's grey e-ink it cost PaddleOCR up to 10 points
+a photo, and on formatted documents the marks and rules it clears are what PaddleOCR misread). **The reading with more
+words read right as each reader's own confidences say is kept** (`expectedRight`: every word of three letters and more
+counts the share of words its reader gets right at its confidence — `RIGHT`, measured on the training photos and made
+monotone; Tesseract's words at 95 are right 97 times in 100, PaddleOCR's at 99.9 only 91: it is sure of words that are not
+there). The pipeline is RapidOCR's, ported (`src/lib/paddle.ts`; the pixel steps in imgproc.wasm in OpenCV's own
+arithmetic — INTER_LINEAR's fixed point, fillPoly's pixels for the box scores) and held to RapidOCR's Python (unit
+`paddle` 51, `scripts/make-paddle-reference.py`), **without its direction classifier** (it turned 134 of 3,611 upright
+lines over, every one then read as garbage; the page is set upright before). A page of columns is read column by column:
+textcore's XY-cut is given the middles of PaddleOCR's boxes (`cutInput` — the boxes reach past their text, neighbouring
+lines touch, and the narrow gap under a title above two columns hid the way into them: in order, 19,986 → 26,547 of the
+27,859 words PaddleOCR read on the multi-column photos). Both tabs say it in the line ("the photo was soft: PaddleOCR
+read it"), show the progress ("Fetching PaddleOCR, the second reader (12.0 of 31.2 MB, once a visit)…", "PaddleOCR is reading
+the soft photo: line 12 of 41…"), mark its words below 85 as unsure and give the "snap again" hint below 85
+(`PADDLE_UNSURE`, `PADDLE_POOR`); models that cannot be fetched leave Tesseract's reading, the reason in the line.
+**Measured** (the readings of `OCR_JSON=DIR OCR_JSON_MAXCONF=92 node scripts/measure-ocr.mjs SET --prep read --paddle`;
+the rule worked out on 114 photos, checked on 78 made afresh — `make-kindle-photos.py --first 100`, `PHOTO_SALT=check1
+make-doc-photos.py` — and on 12 newspapers more, `--first 200`): training 80.6 → 86.6 % of the words read right (Kindle
+and newspapers 67.9 → 71.9, documents 87.1 → 93.1, harder 75.3 → 81.6, watermarked 85.5 → 92.2); the second set 83.8 →
+93.4 % (Kindle and newspapers 80.0 → 89.7, documents 85.3 → 94.3, watermarked 84.4 → 94.5); 20 newspapers 52.6 → 65.6 %;
+**no photo worse.** A newspaper whose columns stand closer than PaddleOCR's boxes reach is read across them (one box for
+two columns' lines: newspaper-101, 75.5 % against Tesseract's 97.9) — such pages were read surely by Tesseract and never
+reached the second reader. The cost: a soft photo is read once more — 15 – 30 s in Node on a 4-core machine, a phone
+longer, with the progress shown; a sharp photo nothing. Unit `readpage` 38 (both readers, the picture, the columns, the
+rule), `paddle` 51; e2e OCR 91 (a soft checklist frame 60 → 93 % and a two-column newsletter frame 72.5 → 94 %, the
+models fetched only then — three files, once a visit —, refused models), Photo Dictionary 124 (the checklist frame: 21 of
+the 25 uncommon words of a clean copy, Tesseract alone 16).
 
 ### Camera in every tab that takes a picture (owner, 20 Nov 2026)
 Owner: "In all apps that offer to upload an image, also add the option of taking a photo if it's a phone app, and take
@@ -2352,9 +2386,10 @@ after them):
    ImageCapture `takePhoto`, at most 4096 px wide, turned to the live picture's way round; continuous autofocus asked
    for; the frame where there is none — Safari — or it fails). The OCR tab straightens a photographed page too (#9).
    **What is left reads badly because the photo does** (out of focus, shaken, text a few pixels high in a video frame):
-   no clean-up and no other engine read those (sharpening, upscaling, Sauvola thresholding; PaddleOCR PP-OCRv6 —
-   docs/WASM-AUDIT.md, tab 122), so a reading below 60 % confidence (`POOR` in `src/lib/ocr.ts`; sharp photos read at
-   94 – 95 %), or a page read as fewer than 25 words, gets a "snap again" hint above the list (the OCR tab: in its line).
+   no clean-up read those (sharpening, upscaling, Sauvola thresholding — docs/WASM-AUDIT.md, tab 122), and PaddleOCR, the
+   second reader for soft photos since 26 Nov 2026 (§3 OCR, "The second reader"), reads only some of them; so a reading
+   below 60 % confidence (`POOR` in `src/lib/ocr.ts`; sharp photos read at 94 – 95 %; PaddleOCR's below 85), or a page read
+   as fewer than 25 words, gets a "snap again" hint above the list (the OCR tab: in its line).
 **Owner, 21 Nov 2026: build this upgrade next — after the Indian-accent ranking in progress, before the rest of the
 voice work, the rename and the regex flavours, and before anything from `docs/potentials.md`** (`todo.md` #6).
 (`src/tools/photodict.ts`, engine `src/lib/dictionary.ts`, ranking `wasm/textcore/rare.c`; e2e `tests/e2e/photodict.e2e.mjs`
@@ -2714,7 +2749,7 @@ stay **public** (the source of the deployed site is then available to every user
 |---|---|---|---|
 | libsodium 1.0.20 + own MD5/SHA-1/SHA-3/CRC-32 + OpenBSD bcrypt + own CSPRNG helpers (shuffle, sampling, UUID v4/v7 — v7 values always increase: RFC 9562 §6.2 method 2, a random step inside one millisecond, clock steps back of up to 10 s tolerated) + USODIUM1 header | C | **us** (`wasm/crypto`) | rng, picker, teams (draws without repeats, shuffles — what libsodium.js lacks: `docs/WASM-AUDIT.md` 155), uuid, mock data, line shuffle; the USODIUM1 header for sodium and sharelink (beside libsodium.js); its hashes (`u_hash_*`) are no longer called (hash-wasm since Nov 2026) |
 | **libsodium.js** — `libsodium-wrappers-sumo` 0.8.4 (libsodium **1.0.22**; the sumo build: the standard one has no Argon2) | C | the libsodium project (official WebAssembly build, embedded in the module) — binding `src/wasm/libsodium.ts`, format `src/lib/usodium.ts`, in `src/workers/crypto.worker.ts` | sodium, sharelink: Argon2id + XChaCha20-Poly1305 secretstream (`docs/WASM-AUDIT.md`, tab 101); password, passphrase, dice, coin: randombytes_uniform (tabs 104, 105, 155) |
-| imgproc (adjustments, resize, OpenCV's area resize (`p_resize_area`, equal to cv2's INTER_AREA), lossless orient/crop, filters, matting, warp + homography, doc enhance, the page in a photo (`p_page_quad`) and whether an outline is a page's (`p_quad_steps`: the step across each edge; `p_quad_text`: the letters it leaves outside), an outline fitted to the photo's edges (`p_refine_quad`), strips of the desk along a straightened page painted (`p_clear_border`), which way up the text stands and how its lines slant (`p_text_turns`: the letters; `p_text_lines`: projection profiles), where the text is (`p_ink_window`), a watermark's broad strokes taken out (`p_clear_wash`), ruled lines and list marks cleared and the columns counted (`p_clear_marks`)) | C (own code) | **us** (`wasm/imgproc`) | image tools, scanner, passport, cartoon, ocr and photodict (pages found, set upright and level, rules and list marks cleared — to-do #18) |
+| imgproc (adjustments, resize, OpenCV's area resize (`p_resize_area`, equal to cv2's INTER_AREA), lossless orient/crop, filters, matting, warp + homography, doc enhance, the page in a photo (`p_page_quad`) and whether an outline is a page's (`p_quad_steps`: the step across each edge; `p_quad_text`: the letters it leaves outside), an outline fitted to the photo's edges (`p_refine_quad`), strips of the desk along a straightened page painted (`p_clear_border`), which way up the text stands and how its lines slant (`p_text_turns`: the letters; `p_text_lines`: projection profiles), where the text is (`p_ink_window`), a watermark's broad strokes taken out (`p_clear_wash`), ruled lines and list marks cleared and the columns counted (`p_clear_marks`); PaddleOCR's steps around its networks, as RapidOCR takes them in OpenCV's arithmetic (`p_resize_linear` / `p_net_planes`: cv2.resize INTER_LINEAR in its own fixed point; `p_db_boxes`: DBPostProcess, its box score over cv2.fillPoly's exact pixels; `p_crop_quad`: get_rotate_crop_image; `p_ctc`: CTC's greedy reading)) | C (own code) | **us** (`wasm/imgproc`) | image tools, scanner, passport, cartoon, ocr and photodict (pages found, set upright and level, rules and list marks cleared — to-do #18; the second reader's pixel work) |
 | metacore (EXIF → JSON, lossless metadata strip JPEG/PNG/WebP, JPEG DPI, image sniffing) | C (own code) | **us** (`wasm/metacore`) | exif, image loading, passport/formphoto DPI |
 | BusyBox 1.38.0 (130 applets) + compat shims | C | **us** (`wasm/busybox`) | terminal, bc console |
 | jq 1.8.2 (+ oniguruma) | C | **us** (`wasm/jq`) | jq |
@@ -2737,7 +2772,7 @@ stay **public** (the source of the deployed site is then available to every user
 | MuPDF 1.28 | C | Artifex (official `mupdf` npm) | all PDF tools, PDF → EPUB |
 | ExifTool 13.42 on zeroperl (Perl 5 compiled to WebAssembly with ExifTool's library inside) | Perl / C | Phil Harvey (ExifTool), uswriting / 6over3 (`@uswriting/exiftool` 1.0.9, `@6over3/zeroperl-ts` 1.0.10) — run in `src/workers/exiftool.worker.ts` | exif (replaced metacore's reader and stripper in Nov 2026: `docs/WASM-AUDIT.md`, tab 120); regex (the Perl flavour, the same module: `src/lib/regex/perl.ts`) |
 | hash-wasm 4.13.0 (hand-tuned C → wasm, one small binary per algorithm, embedded in the package; streaming; HMAC over any of its hashes; Argon2, bcrypt, scrypt, PBKDF2) | C | Dani Biró (`hash-wasm` npm, ~10 M downloads a month) — wrappers `src/lib/hmac.ts`, `src/lib/totp.ts`, `src/lib/pwhash.ts`, `src/lib/hashes.ts` (in `src/workers/hash.worker.ts`); only the algorithms a tab uses are bundled into its chunk, loaded with the tab's first result | hash (23 algorithms), hmac (all of it), totp (the HMAC), pwhash (Argon2id / i / d, bcrypt, scrypt, PBKDF2) — replaced RustCrypto builds and crypto.wasm's hashes of ours in Nov 2026 (`docs/WASM-AUDIT.md`) |
-| ONNX Runtime Web 1.31 (CPU/WebAssembly, SIMD) | C++ | Microsoft (official `onnxruntime-web` wasm build) | tts (Kokoro, Piper); scanner (DocCornerNet LEAN, scanic-ml 0.2.0: the page's corners — `docs/WASM-AUDIT.md`, tab 121); ocr and photodict (the same network, asked where the Kindle finder's outline is not a page's — to-do #18) |
+| ONNX Runtime Web 1.31 (CPU/WebAssembly, SIMD) | C++ | Microsoft (official `onnxruntime-web` wasm build) | tts (Kokoro, Piper); scanner (DocCornerNet LEAN, scanic-ml 0.2.0: the page's corners — `docs/WASM-AUDIT.md`, tab 121); ocr and photodict (the same network, asked where the Kindle finder's outline is not a page's — to-do #18; and **PaddleOCR's PP-OCRv6 detector and recogniser, the second reader for soft photos** — owner, 26 Nov 2026: `src/lib/paddle.ts` in `src/workers/paddle.worker.ts`) |
 | SQLite 3.54 | C | SQLite project (official `@sqlite.org/sqlite-wasm`), run in `src/workers/sqlite.worker.ts` (terminated on leave) | sqlite |
 | PCRE2 (pcre2-wasm 10.49.3: PCRE2 compiled by Emscripten, the WebAssembly inside the package) | C | gudoshnikovn (`pcre2-wasm`, MIT; PCRE2 BSD-3 with the PCRE2 exception) — in `src/workers/regex.worker.ts` | regex (the PCRE2 flavour: `docs/WASM-AUDIT.md`, tab 178) |
 | Oniguruma (vscode-oniguruma 2.0.1) | C | Microsoft (`vscode-oniguruma`, MIT; Oniguruma BSD-2) — the build VS Code and Shiki run | regex (the Ruby flavour, with Ruby's rules beside it in `src/lib/regex/ruby.ts`) |
@@ -2816,6 +2851,10 @@ Nov 2026 (Line Tools): `src/lib/linetools.ts` — split, trim, a `Set` for dupli
 the shuffle is crypto.wasm's and the line lengths are textkit.wasm's.
 Nov 2026 (Lorem Ipsum): `src/lib/lorem.ts` — reading the count, the `<p>` layout and the line under the text; the
 text is textkit-lorem.wasm's (`docs/WASM-AUDIT.md`, tab 98).
+Nov 2026 (OCR's second reader, PaddleOCR): `src/lib/paddle.ts` — RapidOCR's size rules (a few multiplications and Python's
+rounding), sorting a page's few hundred line boxes, and the lines made into a reading (words, their boxes along each line,
+the text in order); `expectedRight` in `src/lib/readpage.ts` — a table look-up per word. The networks are ONNX Runtime's,
+every pixel loop, the box finding and the decoding imgproc.wasm's (`docs/WASM-AUDIT.md`, tab 122).
 Nov 2026 (Key Codes, to-do #26): `src/lib/keycombo.ts` — a key event named as a combination and the bytes a terminal
 receives: tables of key codes and names (xterm.js's rules, held to xterm.js itself), string glue around the browser's
 KeyboardEvent; no WebAssembly module exists for it and none would have work to do (`docs/WASM-AUDIT.md`, tab `keycode`).
@@ -2903,7 +2942,8 @@ Owner: "make the full site faster, more responsive and memory efficient — load
    the first photo; CSV/Excel loads sheet.wasm with the first file; Photo Dictionary loads the word list and
    Literata while OCR runs; PDF tabs load MuPDF when a PDF is chosen; the OCR tab and the Photo Dictionary fetch the Doc
    Scanner's page network (its worker, ONNX Runtime and DocCornerNet) only for a photo whose page the Kindle finder
-   cannot outline (to-do #18).
+   cannot outline (to-do #18), and PaddleOCR, the second reader (its worker and 31.2 MB of models), only for a photo
+   Tesseract reads unsurely (owner, 26 Nov 2026).
 3. **Release on leave** (`src/lifecycle.ts`): engine loaders are made with `lazyEngine(key, load)` (one promise for
    every caller, forgotten when the tab is left — **and when the load fails, so that the next call tries again**;
    `.reset()` after a trap) or register `onLeave(key, release)` themselves; workers are created
@@ -3318,7 +3358,7 @@ npm packages (pinned in `package-lock.json`) are bundled by Vite or copied to `p
 | @fontsource/great-vibes, /dancing-script, /caveat | OFL-1.1 | Signature Maker (typed signatures) |
 | @fontsource/literata (Literata, Google's reading typeface) | OFL-1.1 | Photo Dictionary cards |
 | emojibase-data 18.0.0 (Unicode's emoji list with CLDR names and keywords; shortcodes of GitHub's gemoji and Slack's emoji-data) — a devDependency: `scripts/make-emoji-data.py` cuts it down to `src/lib/emoji-data.json`, which is what ships | MIT (the Unicode data: Unicode License v3) | Emoji & Symbols |
-| onnxruntime-web 1.31.1 | MIT | Text-to-Speech (Kokoro, Piper), Doc Scanner (page finder) |
+| onnxruntime-web 1.31.1 | MIT | Text-to-Speech (Kokoro, Piper), Doc Scanner (page finder), OCR and Photo Dictionary (the page finder; PaddleOCR) |
 | scanic-ml 0.2.0 (DocCornerNet LEAN, the page-corner network; its own trimmed ONNX Runtime build is not used) | MIT | Doc Scanner |
 | hash-wasm 4.13.0 | MIT | Hash / Checksum, HMAC Generator, TOTP, Password Hash Tool |
 | pcre2-wasm 10.49.3 (PCRE2) | MIT (PCRE2: BSD-3-Clause WITH PCRE2-exception) | Regex Tester (PCRE2) |
@@ -3361,6 +3401,13 @@ Current entries (all Apache-2.0, Google MediaPipe, versioned URLs `…/float16|f
 - `mediapipe/blaze_face_short_range.tflite` (0.2 MB) — redact (and passport framing)
 - `mediapipe/face_landmarker.task` (3.8 MB) — passport
 - `mediapipe/selfie_multiclass_256x256.tflite` (16.4 MB) — passport, bgremove
+- `paddleocr/PP-OCRv6_det_small.onnx` (9.9 MB) and `paddleocr/PP-OCRv6_rec_small.onnx` (21.2 MB) — ocr, photodict: the
+  second reader for soft photos. **Apache-2.0** (PaddleOCR, PaddlePaddle; converted to ONNX by RapidAI). Not from a URL of
+  their own: `"member"` entries — the file inside the **RapidOCR 3.10.0 wheel on PyPI**, the wheel's SHA-256 checked
+  (`"archiveSha256"`, kept in `node_modules/.cache/superutils-assets`, never deployed), then the file's; the recogniser's
+  alphabet (18,708 characters) is written beside it from the model's metadata (`"metadata": "character"` →
+  `PP-OCRv6_rec_small.onnx.character.txt`: ONNX Runtime Web cannot read a model's metadata). RapidOCR's direction
+  classifier (PP-OCRv4, 0.6 MB) is left out (§3 OCR, "The second reader").
 **MediaPipe telemetry removed:** tasks-vision ≥ 1.2 has a usage logger that POSTs to `odml.pa.googleapis.com` every
 60 s and on `close()`; `vite.config.ts` (`noMediapipeTelemetry`) turns its flush into a no-op at build time and fails
 the build if that code changes shape; `no-external.e2e.mjs` checks no telemetry host is left in `dist/`.

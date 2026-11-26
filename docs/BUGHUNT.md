@@ -2782,3 +2782,34 @@ cannot. Three new suites; each fails on the build before its fixes.
   signs where bullets stood 148 → 73 lines; no photo worse. Tests: unit pageclean 50, readpage 22, pagecrop 47 (the real
   watermark scan as a fixture, with the network), textturns 74; e2e OCR 83 (three photographed documents, the watermark
   scan read whole), Photo Dictionary 121.
+- **OCR and Photo Dictionary: PaddleOCR as the second reader for soft photos (26 Nov 2026; owner: "Ok use PaddleOCR
+  fallback for soft photos").** RapidOCR 3.10's pipeline ported (`src/lib/paddle.ts`, imgproc.wasm) around PP-OCRv6's
+  networks on ONNX Runtime; a reading Tesseract is unsure of (below 88) is read again and the reading with more words right
+  as each reader's confidences say is kept (CLAUDE.md §3 OCR, "The second reader"). Found on the way:
+  - **RapidOCR's direction classifier turned upright lines over** — 134 of the 3,611 lines of the straightened pages, every
+    one then read as garbage → left out: the page is set upright before it is read.
+  - **OpenCV's arithmetic, not the textbook's:** INTER_LINEAR in floating point differed from cv2.resize in 12 % of the
+    values (OpenCV works in 11-bit fixed point, a vector part and a scalar tail that round apart) → ported as it is;
+    DBPostProcess scores a box by the mean probability inside it as cv2.fillPoly fills it (edges at x + ½, the right end at
+    ⌈x + ½⌉ − 1, LINE_8 edges drawn from their left ends) — a polygon filled another way moved scores by up to 0.034 and
+    dropped boxes at the 0.5 threshold → ported: 0 of 266,196 pixels differ.
+  - **The suite's own expectations were worked out by hand and wrong** (the size RapidOCR gives a 3024 × 4032 still, its
+    padding, the order of boxes on a tilted table) → each held to RapidOCR's Python; RapidOCR's own sorted_boxes orders a
+    tilted table's boxes 2 px apart unstably, so the photos are matched by box and sorted_boxes is checked exactly on
+    RapidOCR's boxes.
+  - **A page of columns was read across** — the only photo of the second set the rule made worse (a newsletter's video
+    frame: Tesseract 72.5 %, PaddleOCR's reading kept, 56 %): PaddleOCR's boxes reach past their text, neighbouring lines
+    touch, and the gap under the title was narrower than the XY-cut's half-line, so it found no way into the columns and
+    kept them line by line. The XY-cut is given the middles of the boxes now (`cutInput`): on every multi-column photo
+    19,986 → 26,547 of the 27,859 words PaddleOCR read stand in order; that frame 94 % (a fixture now,
+    `doc-newsletter-soft-frame.jpg`).
+  - **The clean-up is Tesseract's:** PaddleOCR read 6 of 7 soft Kindle photos better before it (up to 10 points) and
+    formatted documents better after it (the marks and rules it clears) → `secondPicture`; one calibration table for the
+    readings the rule gives it.
+  - **A newspaper whose gutter is narrower than PaddleOCR's boxes reach** is read across: one box holds lines of two columns
+    ("The laboratory smelled of solder and | to find another way…"), which no ordering mends. On the photos measured such
+    pages were read surely by Tesseract (newspaper-101: 97.9 % — PaddleOCR 75.5 %) and never reached the second reader.
+  - **Two folders of the second set held the same photos** (made with the same salt) — counted once.
+  Result: training 80.6 → 86.6 % of the words read right, the second set 83.8 → 93.4 %, 20 newspapers 52.6 → 65.6 %, no
+  photo worse; unit paddle 51, readpage 38; e2e OCR 91, Photo Dictionary 124 (soft frames read by PaddleOCR, its models
+  fetched only then, refused models).
