@@ -67,10 +67,11 @@ export default async ({ base, page: newPage, ok, info, tmp: tmpRoot, download, d
   const encryptText = async (text, { to, password, signWith, signPass } = {}) => {
     await go('Encrypt'); await page.getByRole('radio', { name: 'Text', exact: true }).click();
     await page.locator('textarea').first().fill(text);
-    if (password) { await page.getByRole('radio', { name: 'Password (symmetric)' }).click(); await page.getByPlaceholder('Password').fill(password); }
+    // every password and passphrase of Encrypt is typed twice (to-do #30)
+    if (password) { await page.getByRole('radio', { name: 'Password (symmetric)' }).click(); await page.getByPlaceholder('Password', { exact: true }).fill(password); await page.getByPlaceholder('Password again', { exact: true }).fill(password); }
     else {
       await page.locator('textarea').nth(1).fill(readFileSync(to, 'utf8'));
-      if (signWith) { await page.locator('textarea').nth(2).fill(readFileSync(signWith, 'utf8')); await page.getByPlaceholder('Private key passphrase').fill(signPass); }
+      if (signWith) { await page.locator('textarea').nth(2).fill(readFileSync(signWith, 'utf8')); await page.getByPlaceholder('Private key passphrase', { exact: true }).fill(signPass); await page.getByPlaceholder('Passphrase again', { exact: true }).fill(signPass); }
     }
     await page.getByRole('button', { name: 'Encrypt' }).last().click();
     await page.waitForSelector('text=Format:', { timeout: 60000 });

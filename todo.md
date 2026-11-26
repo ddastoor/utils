@@ -271,24 +271,12 @@ The owner adds items here in chat ("add … to to do"). Newest instructions win.
       Windows, X11 and Wayland notes where they differ (Wayland's portal).
 
 
-30. **OpenPGP: every password or passphrase of an encrypting mode typed twice** (owner, 26 Nov 2026: "in OpenPGP, for all
-    possible encrypt modes where a password or passphrase is asked, it should be asked twice (2 input fields), not just
-    once")
-    - **Today:** Generate asks twice already (Passphrase + Repeat passphrase, in both standards). **Encrypt asks once:**
-      "Password (symmetric)" — a typo there locks the message with a password nobody knows — and, with a signing key,
-      "Signing key passphrase".
-    - **To do:** in Encrypt, in both standards (GnuPG-compatible and RFC 9580): the message password with **Repeat
-      password**, and the signing key's passphrase with **Repeat passphrase** (the owner's words: every encrypt mode —
-      though a typo there is caught at once, the key does not open); Encrypt runs only when the two agree, and says so
-      under the boxes when they do not ("The two passwords differ"); Enter in the second box encrypts; the password
-      managers' "new password" hint on the message password. Decrypt and Sign only open what exists — one box, as now.
-      (The other tabs that set a password ask twice already: Sodium Encrypt, Encrypted Share Link, Create Zip, Protect
-      PDF, SSH Key Generator.)
-    - **The suite** (`pgp.e2e.mjs`, `pgp9580.e2e.mjs`): two different passwords refused with the message and nothing
-      made; the same twice → gpg (GnuPG-compatible) and rPGP / Sequoia (RFC 9580) decrypt the result; the signing key's
-      two boxes; the boxes emptied by a change of mode.
 
 ## Done
+- **30. OpenPGP: every password or passphrase of an encrypting mode typed twice** (owner, 26 Nov 2026) — done 26 Nov
+  2026: Encrypt, in both standards — the message password with "Repeat password", the signing key's passphrase with
+  "Repeat passphrase"; two that differ are said under the boxes and refused (nothing made); Enter in the second box
+  encrypts. e2e `pgp` 40 (gpg decrypts what was encrypted with the password typed twice), `pgp9580`.
 - **29. Markdown Editor: "Copy with formatting"** (owner, 26 Nov 2026: "copy the rendered markdown with formatting so
   that he can paste it in, say, another Microsoft Word or any rich text setting") — done 26 Nov 2026: a Copy button and
   the toggle "Copy with formatting" (on by default, kept while the page is open): the rendered document as HTML + plain

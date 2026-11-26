@@ -41,7 +41,14 @@ export default async ({ base, page: newPage, ok, tmp: tmpRoot, download, devices
   await page.locator('input[type=file]').nth(0).setInputFiles(`${tmp}/report.txt`);
   await page.locator('input[type=file]').nth(1).setInputFiles(pubPath);
   await page.locator('input[type=file]').nth(2).setInputFiles(secPath);
-  await page.getByPlaceholder('Private key passphrase').fill('alicepass');
+  // the signing key's passphrase is typed twice (to-do #30): two that differ are refused, nothing is made
+  await page.getByPlaceholder('Private key passphrase', { exact: true }).fill('alicepass');
+  await page.getByPlaceholder('Passphrase again', { exact: true }).fill('alicepas');
+  ok(await page.getByText('The two passphrases differ.').isVisible(), 'two passphrases that differ are said under the boxes as they are typed');
+  await page.getByRole('button', { name: 'Encrypt' }).last().click();
+  ok(await page.locator('.toast', { hasText: 'The two passphrases differ' }).first().waitFor({ timeout: 15000 }).then(() => true, () => false), 'Encrypt refuses two different signing passphrases');
+  await page.getByPlaceholder('Passphrase again', { exact: true }).fill('alicepass');
+  ok(!(await page.getByText('The two passphrases differ.').isVisible()), '… and the line goes when they agree');
   const encPath = await save(page.getByRole('button', { name: 'Encrypt' }).last());
   const dec = execFileSync(GPG, ['--batch', '--pinentry-mode', 'loopback', '--passphrase', 'alicepass', '--decrypt', encPath], { env: { ...process.env, GNUPGHOME }, stdio: ['ignore', 'pipe', 'ignore'] });
   ok(dec.toString() === 'quarterly numbers 42\n', 'gpg decrypts browser-encrypted file');
@@ -183,12 +190,18 @@ export default async ({ base, page: newPage, ok, tmp: tmpRoot, download, devices
   writeFileSync(`${tmp}/both.asc`, await page.locator('.outbox textarea').last().inputValue());
   const forA = gpgs('--passphrase', 'alicepass', '--decrypt', `${tmp}/both.asc`);
   ok(forA.stdout.toString() === 'for both of you — नमस्ते' && (forA.stderr.toString().match(/ENC_TO/g) || []).length === 2, `two recipients: the message is for both keys, and gpg decrypts it (Hindi and dashes kept) — ${JSON.stringify(forA.stdout.toString())} ${(forA.stderr.toString().match(/ENC_TO \S+/g) || []).join(' ')}`);
-  await page.getByRole('radio', { name: 'Password (symmetric)' }).click(); await page.getByPlaceholder('Password').fill('');
+  await page.getByRole('radio', { name: 'Password (symmetric)' }).click(); await page.getByPlaceholder('Password', { exact: true }).fill('');
+  ok(await page.getByPlaceholder('Password again', { exact: true }).isVisible() && await page.getByText('Repeat password').isVisible(), 'the message password has a second box, "Repeat password" (to-do #30)');
   await page.getByRole('button', { name: 'Encrypt' }).last().click();
   ok(await lastToast(/Enter a password/), 'an empty password is refused');
-  await page.getByPlaceholder('Password').fill('sympw'); await page.getByRole('button', { name: 'Encrypt' }).last().click(); await page.waitForTimeout(1500);
+  const before = await page.locator('.outbox textarea').last().inputValue();
+  await page.getByPlaceholder('Password', { exact: true }).fill('sympw'); await page.getByPlaceholder('Password again', { exact: true }).fill('sympv');
+  ok(await page.getByText('The two passwords differ.').isVisible(), 'two passwords that differ are said under the boxes');
+  await page.getByRole('button', { name: 'Encrypt' }).last().click();
+  ok(await lastToast(/The two passwords differ/) && await page.locator('.outbox textarea').last().inputValue() === before, 'Encrypt refuses them, and makes nothing (a typo would lock the message for good)');
+  await page.getByPlaceholder('Password again', { exact: true }).fill('sympw'); await page.getByPlaceholder('Password again', { exact: true }).press('Enter'); await page.waitForTimeout(1500);
   writeFileSync(`${tmp}/s.asc`, await page.locator('.outbox textarea').last().inputValue());
-  ok(gpgs('--passphrase', 'sympw', '--decrypt', `${tmp}/s.asc`).stdout.toString() === 'for both of you — नमस्ते', 'gpg decrypts a message the browser encrypted with a password');
+  ok(gpgs('--passphrase', 'sympw', '--decrypt', `${tmp}/s.asc`).stdout.toString() === 'for both of you — नमस्ते', 'the same password twice, Enter in the second box: gpg decrypts the message the browser encrypted with it');
   const revPath = await (async () => { await go('Generate keys'); await page.getByPlaceholder('Your name').fill('Rex'); await page.locator('input[type=password]').nth(0).fill('r'); await page.locator('input[type=password]').nth(1).fill('r'); await page.getByRole('button', { name: 'Generate key pair' }).click(); await page.waitForSelector('text=Your new key pair', { timeout: 30000 }); const pub = await save(page.getByRole('button', { name: 'Public key (.asc)' })); gpg('--import', pub); return save(page.getByRole('button', { name: 'Revocation cert' })); })();
   gpgs('--import', revPath);
   ok(/^pub:r:/m.test(gpg('--list-keys', '--with-colons', 'Rex')), 'gpg imports the revocation certificate and marks the key revoked');

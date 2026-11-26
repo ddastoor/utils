@@ -938,6 +938,12 @@ SEIPDv1 messages this mode writes to its keys. A message encrypted with `format:
 keeps its data as a stream: `readOut` joins what `armor()` / `write()` give (the tab showed "[object Object]"). **Not there: post-quantum keys** (RFC 9980,
 ML-KEM-768 + X25519 / ML-DSA-65 + Ed25519 — rPGP and Sequoia have them); OpenPGP.js 6.3.2, the newest release, does not.
 A later step when the library has them (engine unchanged: docs/WASM-AUDIT.md, tab 100).
+**Every password and passphrase of Encrypt is typed twice (to-do #30; owner, 26 Nov 2026: "in OpenPGP, for all possible
+encrypt modes where a password or passphrase is asked, it should be asked twice (2 input fields), not just once"), in
+both standards:** the message password with "Repeat password" (a typo there locks the message for good) and the signing
+key's passphrase with "Repeat passphrase"; a line under the boxes says, as they are typed, when the two differ; Encrypt
+refuses two that differ and makes nothing; Enter in the second box encrypts. Generate asked twice already; Decrypt and
+Sign open what exists — one box. e2e `pgp` 40 (+6), `pgp9580` (its encrypting helper fills both boxes).
 
 ### Sodium Encrypt (libsodium, symmetric only)
 Files **and** typed text. Argon2id (`crypto_pwhash`) derives a key; data encrypted with

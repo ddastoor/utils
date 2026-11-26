@@ -138,6 +138,14 @@ async function readMsg(bytes: Uint8Array) {
   } catch (e) { throw new Error(e instanceof Error && /^That is/.test(e.message) ? e.message : pgpError(e, 'message')); }
 }
 
+/** Two boxes for one secret (to-do #30): a line under them says, as they are typed, when they differ. */
+function twice(first: HTMLInputElement, second: HTMLInputElement, what: 'password' | 'passphrase') {
+  const line = h('div', { class: 'field-hint', role: 'status', 'aria-live': 'polite' });
+  const check = () => { line.textContent = first.value && second.value && first.value !== second.value ? `The two ${what}s differ.` : ''; };
+  first.addEventListener('input', check); second.addEventListener('input', check);
+  return line;
+}
+
 /** Generate keys in the latest standard: a v6 key (RFC 9580) — Ed25519 + X25519, or Ed448 + X448 — whose secret parts
  *  are locked with Argon2 and AES-256 in OCB mode, asking for SEIPDv2 (AES-256 / OCB first). */
 function generateLatest(body: HTMLElement, out: HTMLElement) {
@@ -230,15 +238,21 @@ export const mount: Mount = (root) => {
       const data = dataInput();
       let mode: 'key' | 'pass' = 'key';
       const pubs = keyInput('Recipient public key(s)', 'public', true);
+      // every password or passphrase of Encrypt is typed twice (to-do #30; owner, 26 Nov 2026: "for all possible encrypt
+      // modes where a password or passphrase is asked, it should be asked twice") — a typo in the message password locks
+      // the message for good
       const pass = input({ type: 'password', placeholder: 'Password', attrs: { autocomplete: 'new-password' } });
+      const pass2 = input({ type: 'password', placeholder: 'Password again', attrs: { autocomplete: 'new-password' } });
       const signer = keyInput('Your private key (optional, to sign)', 'private');
-      const signPass = input({ type: 'password', placeholder: 'Private key passphrase' });
+      const signPass = input({ type: 'password', placeholder: 'Private key passphrase', attrs: { autocomplete: 'current-password' } });
+      const signPass2 = input({ type: 'password', placeholder: 'Passphrase again', attrs: { autocomplete: 'current-password' } });
       const armor = toggle('ASCII-armored output (.asc)', false);
-      const modeArea = h('div', { class: 'stack' });
-      const renderMode = () => clear(modeArea).append(...(mode === 'key' ? [pubs.el, signer.el, field('Signing key passphrase', signPass)] : [field('Password', pass)]));
+      const modeArea = h('div', { class: 'stack' }), passLine = twice(pass, pass2, 'password'), signLine = twice(signPass, signPass2, 'passphrase');
+      const renderMode = () => clear(modeArea).append(...(mode === 'key'
+        ? [pubs.el, signer.el, h('div', { class: 'grid2' }, field('Signing key passphrase', signPass), field('Repeat passphrase', signPass2)), signLine]
+        : [h('div', { class: 'grid2' }, field('Password', pass), field('Repeat password', pass2)), passLine]));
       renderMode();
-      body.append(card(null, stack(data.el, field('Encrypt with', segmented([['key', 'Public key'], ['pass', 'Password (symmetric)']], mode, (v) => { mode = v; renderMode(); })), modeArea, armor)), out,
-        actions(button('Encrypt', async () => {
+      const encBtn = button('Encrypt', async () => {
         await ready();
           const bytes = await data.bytes();
           const message = data.kind === "text" ? await openpgp.createMessage({ text: data.text }) : await openpgp.createMessage({ binary: bytes, filename: data.name });
@@ -250,9 +264,13 @@ export const mount: Mount = (root) => {
             if (!keys.length) throw new Error('Add at least one recipient public key.');
             opts.encryptionKeys = keys;
             const sk = await signer.keys();
-            if (sk.length) opts.signingKeys = await unlock(sk, signPass.value);
+            if (sk.length) {
+              if (signPass.value !== signPass2.value) throw new Error('The two passphrases differ — type the signing key\'s passphrase in both boxes.');
+              opts.signingKeys = await unlock(sk, signPass.value);
+            }
           } else {
             if (!pass.value) throw new Error('Enter a password.');
+            if (pass.value !== pass2.value) throw new Error('The two passwords differ — type the same password in both boxes (a typo would lock the message for good).');
             opts.passwords = [pass.value];
           }
           let res: any = await openpgp.encrypt(opts).catch((e: unknown) => { throw new Error(pgpError(e, 'encrypt')); });
@@ -267,7 +285,10 @@ export const mount: Mount = (root) => {
           const name = `${data.name}.${asText ? 'asc' : 'gpg'}`;
           if (asText) { const box = outputBox({ rows: 8, mono: true }); box.value = res as string; result(out, [card('Encrypted', box, row(button('Download', () => downloadBlob(new Blob([res as string]), name), { variant: 'primary', icon: 'Download' }))), how]); }
           else { downloadBlob(new Blob([res as Uint8Array<ArrayBuffer>]), name); result(out, [note(`Encrypted → ${name}`, 'ok'), how]); }
-        }, { variant: 'primary', icon: 'Lock' })));
+        }, { variant: 'primary', icon: 'Lock' });
+      for (const box of [pass2, signPass2]) box.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); encBtn.click(); } }); // Enter in the second box encrypts
+      body.append(card(null, stack(data.el, field('Encrypt with', segmented([['key', 'Public key'], ['pass', 'Password (symmetric)']], mode, (v) => { mode = v; renderMode(); })), modeArea, armor)), out,
+        actions(encBtn));
       return;
     }
 
