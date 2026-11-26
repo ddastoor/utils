@@ -41,7 +41,7 @@ lock had lost a Windows-only tzdata line: the lock generator dropped every "emsc
 again (those two jobs). The full browser run of 21 Nov ("Windows check" run 3) lost its runner mid-run (no log): a
 targeted run of 30 suites (four at a time) was started on 26 Nov — read it (get_job_logs, or the artifact
 `e2e-windows`), tell failures of the app on Windows from suites that need a Linux tool, fix the first; then #13 is
-done (docs: todo.md, CLAUDE.md) and the potentials process starts. **To-do #14 added on 26 Nov** (Text Diff: two local files, a file of a public GitHub repository at two commits — GitHub as a new data host —, a proper .patch download): the owner was asked whether to build it right after #13, before the potentials list. **Owner, 26 Nov 2026: after a change run only the
+done (docs: todo.md, CLAUDE.md) and the potentials process starts. **To-do #14 added on 26 Nov** (Text Diff: two local files, a file of a public GitHub repository at two commits — GitHub as a new data host —, a proper .patch download): **#15 added on 26 Nov** (Blur & Redact: a switch "Redact every face found", faces chosen one by one, Undo, all at once and back). The owner was asked whether to build #14 and #15 right after #13, before the potentials list. **Owner, 26 Nov 2026: after a change run only the
 tests it needs; the full suite only at his word** (CLAUDE.md STANDING RULE #2).
 **Then, in the owner's order:** #8 Regex Tester flavours (research done: PCRE2 — `pcre2-wasm` 10.49.3 or our own build;
 Google's `re2-wasm` 1.0.2 for RE2 / Go; `vscode-oniguruma` 2.0.1 for Ruby / Oniguruma; Python's `re` through the Python

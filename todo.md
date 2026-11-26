@@ -68,6 +68,23 @@ The owner adds items here in chat ("add … to to do"). Newest instructions win.
       `<file>.patch`; held to GNU `diff -u` / `git diff` and applied by GNU `patch`, `git apply` and the Patch tab in the
       suite.
 
+15. **Blur & Redact: every face found at once, or only the faces chosen** (owner, 26 Nov 2026: "In the blur and redact
+    app, the user should be able to have a toggle to find all faces and redact, or to remove that toggle and selectively
+    choose only that face he wants to redact, or choose one or more multiple faces manually. The user should have an
+    option to choose any number of faces manually to redact and undo them, or select all the faces in one shot to
+    redact.")
+    - Today: every face the finder sees is hidden at once; a tap on a box shows that face again, "Hide all" hides them
+      all again; boxes can be drawn by hand.
+    - **A switch "Redact every face found"** — on: as today, every face hidden; off: the faces are found and outlined,
+      but none is hidden until it is chosen.
+    - **Choosing by hand:** a tap (or click) on a face hides it, another tap shows it again — any number of faces, one
+      or several; **"Redact all faces"** hides every face found in one go and **"Show all faces"** takes that back;
+      **Undo** (and Ctrl+Z) takes back the last change, step by step; boxes drawn by hand stay as they are.
+    - The line under the photo says how many faces were found and how many are hidden; Save saves exactly what is shown;
+      the switch keeps its setting when another photo is chosen.
+    - The suite: a group photo — every face hidden with the switch on, none with it off, two chosen by tap and one taken
+      back, Undo, all in one shot and back; the saved file's pixels at each face (hidden or not).
+
 ## Done
 - **12. Photo Dictionary: the final list of words in alphabetical order** (owner, 21 Nov 2026) — done 21 Nov 2026: the
   same cards, A → Z without regard to case or accents; the line above says so; Share list in the same order. Unit
