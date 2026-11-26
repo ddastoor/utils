@@ -237,7 +237,10 @@ The owner adds items here in chat ("add … to to do"). Newest instructions win.
       stands and what it is (● ○ ■ ▪ ◆ ► – ☐ ☑ ☒) — and the tab puts it back at the start of its line, with the levels of
       the list as indentation (from where the lines start against the page's margin). Numbered and lettered items keep
       their numbers and letters (they are text already).
-    - **The form of the output, and whether headings or tables are kept too:** the owner's choice (asked 26 Nov 2026).
+    - **The owner's choices (26 Nov 2026):** **text with bullets** — the text box, Copy and the .txt show the marks at the
+      start of their lines (• ◦ ▪ for bullets, ☐ ☑ for check boxes) and nested items indented, as on the page; **lists
+      only** — bullets, check boxes, numbered and lettered items and indentation (no headings, no tables); **next** —
+      right after #13 closes, before batch 3.
     - The suite: the formatted documents of `scripts/make-format-docs.mjs` (bullets nested two and three deep, check boxes
       ticked and not, Word's "o", numbered and lettered lists), photographed — each mark back on its line, at its level.
 

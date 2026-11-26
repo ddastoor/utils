@@ -53,7 +53,9 @@ that affects it.
 > **The OCR tab keeps the page's formatting (owner, 26 Nov 2026, later — correcting #18):** "In the OCR app, the rich
 > formatting should be preserved, the bullet points, etc. In the photo dictionary app, it need not be, only because the
 > actual OCR rendition is needed for me to further select a phrase that I could then look up in Wikipedia." — the OCR
-> tab's text keeps bullets, check boxes and indentation (to-do #31); the Photo Dictionary's stays plain.
+> tab's text keeps bullets, check boxes and indentation (to-do #31; the owner's choices: plain text with the marks at the
+> line starts and nested items indented — in the text box, Copy and the .txt —, lists only); the Photo Dictionary's
+> stays plain.
 > **OCR quality is paramount (owner, 26 Nov 2026):** "make sure no functionality is compramised.. the high quality of the
 > ocr is paramount !!!" — said of to-do #18 (one shared reading path for the OCR tab and the Photo Dictionary): every
 > feature of both tabs stays, and every change to their reading is measured before and after — none may read worse.
