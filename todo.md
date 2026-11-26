@@ -332,6 +332,23 @@ The owner adds items here in chat ("add … to to do"). Newest instructions win.
       links, footnotes; the plain text as the preview reads; LibreOffice opens the copied HTML and saves it as .docx —
       Heading 1 – 3 styles, list levels, the table's cells (an independent reader, as Word would take it).
 
+30. **OpenPGP: every password or passphrase of an encrypting mode typed twice** (owner, 26 Nov 2026: "in OpenPGP, for all
+    possible encrypt modes where a password or passphrase is asked, it should be asked twice (2 input fields), not just
+    once")
+    - **Today:** Generate asks twice already (Passphrase + Repeat passphrase, in both standards). **Encrypt asks once:**
+      "Password (symmetric)" — a typo there locks the message with a password nobody knows — and, with a signing key,
+      "Signing key passphrase".
+    - **To do:** in Encrypt, in both standards (GnuPG-compatible and RFC 9580): the message password with **Repeat
+      password**, and the signing key's passphrase with **Repeat passphrase** (the owner's words: every encrypt mode —
+      though a typo there is caught at once, the key does not open); Encrypt runs only when the two agree, and says so
+      under the boxes when they do not ("The two passwords differ"); Enter in the second box encrypts; the password
+      managers' "new password" hint on the message password. Decrypt and Sign only open what exists — one box, as now.
+      (The other tabs that set a password ask twice already: Sodium Encrypt, Encrypted Share Link, Create Zip, Protect
+      PDF, SSH Key Generator.)
+    - **The suite** (`pgp.e2e.mjs`, `pgp9580.e2e.mjs`): two different passwords refused with the message and nothing
+      made; the same twice → gpg (GnuPG-compatible) and rPGP / Sequoia (RFC 9580) decrypt the result; the signing key's
+      two boxes; the boxes emptied by a change of mode.
+
 ## Done
 - **12. Photo Dictionary: the final list of words in alphabetical order** (owner, 21 Nov 2026) — done 21 Nov 2026: the
   same cards, A → Z without regard to case or accents; the line above says so; Share list in the same order. Unit
