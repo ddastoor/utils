@@ -1,8 +1,10 @@
 name: Deploy to GitHub Pages
 
+# The site is published from main (owner, 26 Nov 2026: "merge the branch to main, push main, and start making subsequent
+# changes to main, and also … make the site live off of main"); work is committed to main from then on.
 on:
   push:
-    branches: [main, claude/exciting-bohr-b9yfwc]
+    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -10,7 +12,7 @@ permissions:
   pages: write
   id-token: write
 
-# one queue per branch: a build of main never cancels the publishing run of the default branch
+# one queue per branch
 concurrency:
   group: pages-${{ github.ref }}
   cancel-in-progress: true
@@ -32,8 +34,9 @@ jobs:
           path: dist
   deploy:
     needs: build
-    # Pages' github-pages environment lets only the repository's default branch publish; other branches build and test
-    if: github.ref_name == github.event.repository.default_branch
+    # main publishes. GitHub's github-pages environment must allow main to deploy (Settings → Environments → github-pages
+    # → Deployment branches and tags: add main) — until then this job is refused there and the site stays as it was
+    if: github.ref_name == 'main'
     runs-on: ubuntu-latest
     environment:
       name: github-pages

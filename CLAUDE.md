@@ -3686,15 +3686,18 @@ Playwright is the pre-installed global one (no `playwright install`); CI runs bu
 **Compute rule (owner):** algorithms and loops run in WebAssembly (own C where practical); TypeScript only builds
 UI, formats output and does trivial glue arithmetic (unit factors, a single multiplication, Date/Intl handling).
 
-**Deploy:** `.github/workflows/pages.yml` builds and runs the unit suites on every push to `main` or the working
-branch, and **publishes only from the repository's default branch** — the `github-pages` environment that Pages
-creates lets only that branch deploy. **Live since 20 Nov 2026 at https://ddastoor.github.io/utils/**: the owner
-switched Pages on (Settings → Pages → Source: GitHub Actions); the default branch is `claude/exciting-bohr-b9yfwc`, so
-every push there that passes the unit suites goes live within about four minutes; `main` holds the same commits
-(fast-forwarded at the owner's word). GitHub's runner is Ubuntu 26.04 (`ubuntu-latest`): its coreutils are uutils
-(Rust), not GNU — a unit check that runs a system tool must work with both. To publish from `main` instead, the owner
-makes `main` the default branch (Settings → General) and allows it under Settings → Environments → github-pages →
-Deployment branches. GitHub Pages limits: a published site ≤ 1 GB (512 MB on 20 Nov 2026, after Speech to Text was removed: 488 MB of room), 100 GB / month soft
+**Deploy — from `main` (owner, 26 Nov 2026: "commit the current changes to the branch, then merge the branch to main,
+push main, and start making subsequent changes to main, and also … tell GitHub to make the site live off of main"):**
+`.github/workflows/pages.yml` builds and runs the unit suites on every push to `main` and publishes that build. **All
+work is committed and pushed to `main` since 26 Nov 2026** (the working branch `claude/exciting-bohr-b9yfwc` was merged
+into it — a fast-forward — and is no longer pushed to). **Live since 20 Nov 2026 at https://ddastoor.github.io/utils/**
+(Settings → Pages → Source: GitHub Actions). GitHub lets a branch publish only when the `github-pages` environment allows
+it: **the owner allows `main` under Settings → Environments → github-pages → Deployment branches and tags** (and makes
+`main` the default branch, Settings → General, so new sessions and the repository page start there) — the session's tools
+cannot change repository settings; until then the deploy job is refused and the site stays at the last published build
+(1d5e8dc, published from the old default branch). A push that passes the unit suites goes live within about four minutes.
+GitHub's runner is Ubuntu 26.04 (`ubuntu-latest`): its coreutils are uutils (Rust), not GNU — a unit check that runs a
+system tool must work with both. GitHub Pages limits: a published site ≤ 1 GB (512 MB on 20 Nov 2026, after Speech to Text was removed: 488 MB of room), 100 GB / month soft
 bandwidth, 10 minutes per deployment.
 
 ## 8. Adding a new tool (checklist)

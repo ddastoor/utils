@@ -186,6 +186,13 @@ this file = the owner's latest wishes, how the tests are written, and the traps 
   owner (Source: GitHub Actions). The repository's **default branch is `claude/exciting-bohr-b9yfwc`**, and Pages'
   environment lets only the default branch publish — so the site is published from that branch; `main` holds the
   same commits.
+- **26 Nov 2026 — main from now on:** the owner: "commit the current changes to the branch, then merge the branch to
+  main, push main, and start making subsequent changes to main, and also … tell GitHub to make the site live off of
+  main." Done: the branch merged into main (fast-forward to 1d5e8dc) and pushed; **every later commit goes to main**;
+  `.github/workflows/pages.yml` builds on pushes to main and publishes from main. GitHub refuses a deployment from a
+  branch the `github-pages` environment does not allow, and the session's tools cannot change that setting: **the owner
+  allows main under Settings → Environments → github-pages → Deployment branches and tags** (and makes main the default
+  branch under Settings → General). Until then the site stays at 1d5e8dc.
 
 ## 2. Status at hand-off (commit 5f87b87)
 Own e2e suites now exist for **Calculators 27/27, Math & Science 7/7, Text 9/9, the 8 developer tabs (json, regex,

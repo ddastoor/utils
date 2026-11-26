@@ -7,8 +7,13 @@ continues from "Next steps" without asking the owner anything already decided.
 ## How to resume in a NEW session (owner instructions)
 Start a new Claude Code session on the same repository (claude.ai/code or the Claude app → New session → repo
 `ddastoor/utils`, same environment) and send:
-> Continue building SuperUtils. Check out branch `claude/exciting-bohr-b9yfwc` (keep committing and pushing to that
-> branch — I allow it), read CLAUDE.md and docs/RESUME.md, and carry on from "Next steps".
+> Continue building SuperUtils. Check out `main` (keep committing and pushing to main — I allow it), read CLAUDE.md
+> and docs/RESUME.md, and carry on from "Next steps".
+
+**Since 26 Nov 2026 all work goes to `main`** (owner: "merge the branch to main, push main, and start making subsequent
+changes to main, and also … make the site live off of main"). The old working branch `claude/exciting-bohr-b9yfwc` was
+merged into main (fast-forward, 1d5e8dc) and is no longer pushed to; the Pages workflow publishes from main once GitHub's
+`github-pages` environment allows main (CLAUDE.md §7, Deploy — a setting only the owner can change).
 
 ## ▶ NOW — 26 Nov 2026, morning (read this first)
 **Batch 1 done; batch 2 (#18 OCR + Photo Dictionary) DONE** (todo.md Done #18; CLAUDE.md §3 OCR, "Documents — one reading
