@@ -51,7 +51,8 @@ jobs:
         shell: bash
         env:
           E2E_CHANNEL: chrome
-          E2E_CONCURRENCY: '6'
+          # four at a time: with six the runner was lost 48 minutes into the full run of 21 Nov (no log, no artifact)
+          E2E_CONCURRENCY: '4'
         run: |
           node -e "console.log(process.platform, process.arch, require('os').release())"
           node tests/e2e.mjs ${{ inputs.suites }} 2>&1 | tee e2e-windows.txt
