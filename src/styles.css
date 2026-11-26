@@ -1048,3 +1048,11 @@ details summary { cursor: pointer; font-weight: 600; color: var(--accent); paddi
 .hexdump mark.hexhit { background: color-mix(in srgb, var(--accent) 28%, transparent); color: inherit; border-radius: 3px; }
 /* Code Formatter: a parser's message with its code frame */
 .fmt-err { margin: 0; white-space: pre-wrap; word-break: break-word; font: 12.5px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color: inherit; background: none; }
+/* Screenshot: choosing an area on the frozen screen (to-do #24, src/lib/areapick.ts) */
+.area-pick { position: fixed; inset: 0; z-index: 2000; background: #0b0b0f; }
+.area-canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; cursor: crosshair; touch-action: none; outline: none; }
+.area-canvas:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.area-bar { position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%); display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px 14px; max-width: calc(100% - 32px); padding: 8px 12px; border-radius: var(--radius); background: var(--surface); color: var(--text); box-shadow: var(--shadow-lg); }
+.area-bar.top { bottom: auto; top: 16px; }
+.area-btns { display: flex; flex-wrap: wrap; gap: 8px; }
+.area-say { font-size: 13.5px; }

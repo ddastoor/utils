@@ -65,7 +65,16 @@ potentials.md U3 "Our own FFmpeg build".
 and no size decision to wait for: choose by measurement (DNSMOS, noise left, speech kept), the best quality within the 1 GB.
 **Screencast "Bring the sound to a normal loudness" — the owner said yes (26 Nov 2026): DONE** (`src/lib/normalize.ts`: FFmpeg's
 loudnorm, two passes on the sound, mediabunny joins it to the picture's own packets; e2e screencast 53).
-**Next (the owner's order):** batch 4 (#24, #28 Screenshot), 5 (#15, #17, #16), 6 (#14 Text Diff), 7 (#20 Studio voice); then the potentials process.
+**The owner is asleep (26 Nov 2026, evening, for 9 hours): "if you have any questions, use your own discretion and take your
+own recommended approach."** So: carry on in the batch order; decisions taken without him are written here (and in the
+commit), to be shown to him when he is back.
+**Batch 3 checks:** the Linux FFmpeg suite (with the fresh-page and speed fixes): 85 / 89 — the 4 failures were the suite's
+own: the part that checks the MP3 choice is kept ran on a fresh page since the fixes, where the choice made at the start of
+the suite (another page) does not exist; it now chooses MP3 at 320 kb/s itself (checked alone: 5 / 5).
+**#24 Screenshot area drawn with the mouse: DONE (26 Nov 2026)** (todo.md Done #24; CLAUDE.md §3 Screenshot, "An area drawn
+with the mouse"): `src/lib/areapick.ts` + `src/lib/areageom.ts`; unit areageom 37, e2e screenshot 55.
+**Next (the owner's order):** #28 scrolling screenshots (batch 4), then batch 5 (#15, #17, #16), 6 (#14 Text Diff), 7 (#20
+Studio voice); then the potentials process. #32 (22 FFmpeg jobs) is not in the order: ask the owner when he is back.
 
 ## ▶ SYNC POINT — 21 Nov 2026, night (read this first; it supersedes the older "NOW" notes below)
 The owner's weekly limit is nearly used up; work resumes on Thursday. Everything below is committed and pushed.

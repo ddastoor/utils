@@ -2,20 +2,27 @@
 // "Arm": a tiny always-on-top countdown window (Document Picture-in-Picture) lets the owner minimise the browser; the
 // frame is grabbed after the delay or on "Snap now" (the countdown window closes itself first). Crop, save PNG (OxiPNG)
 // or JPEG (MozJPEG) through our image encoders, or copy to the clipboard. The share stays alive for more shots.
-import { h, card, field, actions, button, select, toggle, stack, note, toast, errMsg, fmtBytes, downloadBlob, sleep, clear, type Mount } from '../ui';
+// "An area" (to-do #24): the frame is frozen and a rectangle drawn on it with the mouse (src/lib/areapick.ts).
+import { h, card, field, actions, button, select, segmented, toggle, stack, note, toast, errMsg, fmtBytes, downloadBlob, sleep, clear, type Mount } from '../ui';
 import { cropBox } from '../lib/imgtools';
 import { encodeImg } from '../lib/imgio';
 import { linuxBanner, CAPTURE_TIPS } from '../linux';
 import { countdownWindow, showCount } from '../lib/pipcount';
+import { pickArea, type AreaPicker } from '../lib/areapick';
+import { cropImg, type Rect } from '../lib/areageom';
 import type { Img } from '../wasm/imgproc';
 
 /** a shot keeps its pixels while it is the one shown; the others are kept as lossless PNG (a 4K screenshot is 33 MB of
  *  pixels — every shot of a visit was kept that way) and decoded again when opened */
-interface Shot { img?: Img; png?: Promise<Blob>; w: number; h: number; at: Date }
+interface Shot { img?: Img; png?: Promise<Blob>; w: number; h: number; at: Date; area?: Rect; of?: [number, number] }
+type How = 'whole' | 'area';
+/** how shots are taken, kept while the page is open (through other tabs; nothing stored) */
+const kept: { how: How } = { how: 'whole' };
 const toCanvas = (img: Img) => { const c = new OffscreenCanvas(img.width, img.height); c.getContext('2d')!.putImageData(new ImageData(new Uint8ClampedArray(img.data), img.width, img.height), 0, 0); return c; };
 
 export const mount: Mount = (root) => {
   let stream: MediaStream | null = null, delay = 3, cursor = false, armed = false, cancelArm = false, pip: Window | null = null, cancelWait: (() => void) | null = null;
+  let how: How = kept.how, picker: AreaPicker | null = null;
   const shots: Shot[] = [];
   let cur: Shot | null = null;
   const video = h('video', { muted: true, playsinline: true, autoplay: true, class: 'shot-src' }) as HTMLVideoElement;
@@ -85,17 +92,27 @@ export const mount: Mount = (root) => {
       for (let i = 0; i < 10 && !snapNow && !cancelArm; i++) await sleep(100);
     }
     if (pip) { pip.close(); pip = null; await sleep(250); } // let the countdown window disappear before the shot
-    armed = false;
-    if (cancelArm) { status.textContent = 'Cancelled.'; sync(); return; }
-    if (!stream || stream.getVideoTracks()[0]?.readyState !== 'live') { status.textContent = 'Sharing ended before the shot. Share again to take one.'; stream = null; sync(); return; }
+    if (cancelArm) { armed = false; status.textContent = 'Cancelled.'; sync(); return; }
+    if (!stream || stream.getVideoTracks()[0]?.readyState !== 'live') { armed = false; status.textContent = 'Sharing ended before the shot. Share again to take one.'; stream = null; sync(); return; }
     try {
       const img = await grab();
-      const shot: Shot = { img, w: img.width, h: img.height, at: new Date() };
-      shot.png = toCanvas(img).convertToBlob({ type: 'image/png' });
+      let take = img, area: Rect | undefined;
+      if (how === 'area') {
+        // the frame is frozen; the rectangle is drawn on it (full screen at once while the click that started it lasts)
+        status.textContent = 'The screen is frozen: drag a rectangle on it, then press Enter (Esc cancels).';
+        picker = pickArea(img, { full: !!(navigator as any).userActivation?.isActive });
+        const p = await picker.done;
+        picker = null;
+        if (!p) { status.textContent = 'Cancelled — no shot was taken.'; return; }
+        if (p !== 'whole') { area = p; take = cropImg(img, p); }
+      }
+      const shot: Shot = { img: take, w: take.width, h: take.height, at: new Date(), area, of: area ? [img.width, img.height] : undefined };
+      shot.png = toCanvas(take).convertToBlob({ type: 'image/png' });
       shots.unshift(shot); await show(shot); renderGallery();
-      status.textContent = `Captured ${img.width}×${img.height}. Crop it if you like, then save or copy.`;
+      status.textContent = area ? `Captured ${take.width}×${take.height}: the area at ${area.x}, ${area.y} of the ${img.width}×${img.height} screen. Crop it further if you like, then save or copy.`
+        : `Captured ${img.width}×${img.height}. Crop it if you like, then save or copy.`;
     } catch (e) { toast(`Could not capture: ${errMsg(e)}`, 'err'); }
-    sync();
+    finally { armed = false; sync(); }
   }
   async function show(s: Shot) {
     if (cur && cur !== s && cur.png) cur.img = undefined; // the one shown before keeps only its PNG
@@ -110,7 +127,7 @@ export const mount: Mount = (root) => {
     canvas.width = s.w; canvas.height = s.h;
     canvas.getContext('2d')!.putImageData(new ImageData(new Uint8ClampedArray(s.img.data), s.w, s.h), 0, 0);
     crop.reset(); cropOn.querySelector('input')!.checked = false;
-    shotInfo.textContent = `${s.w}×${s.h} · ${s.at.toLocaleTimeString()}`;
+    shotInfo.textContent = `${s.w}×${s.h}${s.area && s.of ? ` · an area at ${s.area.x}, ${s.area.y} of ${s.of[0]}×${s.of[1]}` : ''} · ${s.at.toLocaleTimeString()}`;
     editCard.hidden = false;
   }
   async function cropped(): Promise<Img> {
@@ -149,7 +166,8 @@ export const mount: Mount = (root) => {
   }
   function sync() {
     shareBtn.setLabel(stream ? 'Share something else' : 'Share a screen, window or tab');
-    snapBtn.disabled = armed; snapBtn.setLabel(armed ? 'Waiting…' : delay ? `Take screenshot in ${delay} s` : 'Take screenshot');
+    const what = how === 'area' ? 'Choose an area' : 'Take screenshot';
+    snapBtn.disabled = armed; snapBtn.setLabel(armed ? 'Waiting…' : delay ? `${what} in ${delay} s` : what);
     shareBtn.disabled = armed; stopBtn.disabled = false; // another share during the countdown left the shot without a picture
     (pointerT.querySelector('input') as HTMLInputElement).disabled = armed;
     stopBtn.hidden = !stream;
@@ -171,6 +189,7 @@ export const mount: Mount = (root) => {
   editCard.querySelector('.actions')!.classList.add('inline');
   root.append(
     card('Take a screenshot', stack(
+      field('Take', segmented<How>([['whole', 'The whole picture'], ['area', 'An area (draw a rectangle)']], how, (v) => { how = kept.how = v; sync(); })),
       h('div', { class: 'row' },
         field('Delay', select<string>([['0', 'None'], ['3', '3 seconds'], ['5', '5 seconds'], ['10', '10 seconds']], String(delay), (v) => { delay = +v; sync(); })),
         pointerT),
@@ -178,8 +197,8 @@ export const mount: Mount = (root) => {
     // Wayland leaves "always on top" to the desktop: the countdown window may not stay above other windows there
     ...[linuxBanner({ ...CAPTURE_TIPS, wayland: `${CAPTURE_TIPS.wayland} The countdown window may not stay on top here: Wayland leaves that to the desktop (GNOME keeps it among the other windows; on KDE right-click its title bar → More Actions → Keep Above).` })].filter((x): x is HTMLElement => !!x),
     editCard, galleryCard,
-    note('A web page cannot take a screenshot silently, minimise the browser or see the active window: share once, then take as many shots as you like. With a delay, a small countdown window stays on top while you minimise the browser.', 'info'),
+    note('A web page cannot take a screenshot silently, minimise the browser or see the active window: share once, then take as many shots as you like. With a delay, a small countdown window stays on top while you minimise the browser. A web page cannot draw over the desktop either: for an area, the screen is frozen when the shot is taken and the rectangle is drawn on the frozen screen, full screen at its own pixels — as the Snipping Tool does.', 'info'),
     actions(shareBtn, snapBtn, stopBtn));
   sync();
-  return () => { cancelArm = true; pip?.close(); stopShare(); };
+  return () => { cancelArm = true; pip?.close(); picker?.close(); stopShare(); };
 };

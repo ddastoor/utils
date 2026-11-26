@@ -123,20 +123,6 @@ The owner adds items here in chat ("add … to to do"). Newest instructions win.
       size decision to wait for: the models are chosen by the measurements above, for the best quality the site can hold
       (within GitHub Pages' 1 GB; the size is said when it is built). Still batch 7, after batches 4 – 6.
 
-24. **Screenshot: draw a rectangle with the mouse to take the screenshot** (owner, 26 Nov 2026: "In the screenshot app, add
-    the ability for the user to draw a rectangular area with his mouse also as an option to take the screenshot")
-    - **Today:** share a screen, a window or a tab once → "Take screenshot" (now or after 3 / 5 / 10 s) takes the whole
-      picture; it can be cropped afterwards in the editor.
-    - **"An area", a new way to take it** (like Windows' Snipping Tool's rectangle): the frame is taken first, then shown
-      full screen at the screen's own pixels, dimmed; the mouse drags a rectangle (its size in pixels shown as it
-      grows; corners and edges adjustable; Esc cancels, Enter or a double-click takes it) → that part goes into the
-      editor at full resolution. A page cannot draw over the desktop itself (as the Screencast's "An area" says), so the
-      rectangle is drawn on the frozen screen. With a delay, the countdown first, then the rectangle. Touch works too.
-    - **The suite:** a known picture shared, a rectangle dragged → exactly those pixels saved (PNG read back); Esc;
-      adjusting a corner; a delay; a window shared instead of a screen.
-
-
-
 28. **Screenshot: scrolling screenshots** (owner, 26 Nov 2026: "Make a new option also for scrolling screenshots in the
     screenshot app.")
     - **What it is:** one tall picture of something longer than the screen — a whole web page, a chat, a document, a long
@@ -207,6 +193,16 @@ The owner adds items here in chat ("add … to to do"). Newest instructions win.
       it on the tab's FFmpeg — on mono, stereo and 5.1 files.
 
 ## Done
+- **24. Screenshot: draw a rectangle with the mouse to take the screenshot** (owner, 26 Nov 2026: "In the screenshot app, add
+  the ability for the user to draw a rectangular area with his mouse also as an option to take the screenshot") — done 26
+  Nov 2026: "Take" → **An area (draw a rectangle)**: the frame is taken (after the countdown, with a delay) and shown frozen
+  over the whole window — full screen at once while the click lasts, else a "Full screen" button —, at the screen's own
+  pixels, dimmed; a rectangle dragged with the mouse or a finger (its size beside it), corners and sides adjustable, moved
+  by a drag inside, the arrow keys for single pixels (Ctrl sizes, Shift steps of 10); Enter, a double-click or "Take this
+  area" take it, Esc cancels, "Whole picture" takes all. The area goes to the editor at full resolution. Checked: unit
+  areageom 37; e2e screenshot 55 — the area's PNG byte for byte the same rectangle of the whole shot (mouse, adjusted
+  corner and side, move, keys, touch, a fitted 1920 × 1080 screen), Esc, a delay, leaving the tab. CLAUDE.md §3
+  Screenshot, "An area drawn with the mouse".
 - **21. Screencast: more countdowns; the sound level of the recording checked** (owner, 26 Nov 2026: "add … a 5-second
   countdown, an 8-second countdown, and a custom countdown in seconds … the volume of the output video seemed a little
   lower than the normal. Please check and confirm this. If it is actually so, then fix it.") — done 26 Nov 2026: the

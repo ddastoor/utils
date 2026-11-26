@@ -2954,3 +2954,11 @@ cannot. Three new suites; each fails on the build before its fixes.
   the same page, "memory access out of bounds" in 5.1 → MP4 — the step at which the Linux page crashed too; on fresh pages
   it ran every time (also right after two stereo Opus encodes at complexity 4, and with 10 ms frames) → the new checks
   run on a page of their own (the long-session weakness of one FFmpeg core on one page: its memory only grows).
+- **The FFmpeg suite after those fixes (Linux, 26 Nov 2026): 85 / 89** — the four failures were the suite's: its check
+  that the MP3 choice is kept "for another file" counted on the choice made at the start of the suite, but that part now
+  runs on a page of its own, where the choice was never made (the tab keeps it while its page is open — as it should). The
+  part chooses MP3 at 320 kb/s itself now; run alone: 5 / 5 (kept for another file and through leaving the tab, the MP3's
+  320 kb/s frames and the loudness of the original).
+- **Screenshot, an area drawn with the mouse (to-do #24, 26 Nov 2026):** built with its checks; found on the way only slips
+  of the new suite (an equidistant pointer that takes the top edge, as specified; a full-screen request still on its way when
+  checked).

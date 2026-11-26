@@ -412,7 +412,10 @@ export default async ({ base, page: newPage, ok, info, download }) => {
   await page.waitForTimeout(1500);
   await level(M('clip.mp4'), 'join two mono clips: mono, the same loudness', /^aac,1,mono$/);
   // to-do #22: the MP3 at the original's loudness; the format and quality kept through another file, and through
-  // leaving the tab and coming back (while the page is open — nothing is stored)
+  // leaving the tab and coming back (while the page is open — nothing is stored). Chosen here for the file open (this
+  // part runs on a page of its own: the choice made at the start of the suite was on the other page)
+  await task('Extract audio');
+  await radio('MP3').click(); await radio('320 kb/s').click();
   await choose(M('stereo.mp4'), /Audio: aac.*stereo/);
   await task('Extract audio');
   ok(await radio('MP3').getAttribute('aria-checked') === 'true' && await radio('320 kb/s').getAttribute('aria-checked') === 'true', 'MP3 at 320 kb/s still chosen for another file');

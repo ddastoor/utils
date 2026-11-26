@@ -2819,7 +2819,7 @@ confirm this. If it is actually so, then fix it."; e2e 50):**
   saved straight to a file are pointed to the FFmpeg tab's "Normalise loudness". e2e: a quiet MP4 with a changing level
   (linear) and a steady WebM tone (dynamic) both −16 ± 0.5 LUFS, the picture's packets identical; one already at −16.
 
-### Screenshot (PC) — BUILT (`src/tools/screenshot.ts`; e2e `tests/e2e/screenshot.e2e.mjs` 12)
+### Screenshot (PC) — BUILT (`src/tools/screenshot.ts`; e2e `tests/e2e/screenshot.e2e.mjs` 55)
 Share once (Chrome's picker: screen, window or tab; own tab excluded; optional mouse pointer) → "Take screenshot"
 now or after 3/5/10 s. With a delay, a small always-on-top **Document Picture-in-Picture** window counts down with
 "Snap now" and "Cancel" (the owner minimises the browser: Win+↓ / Super+H); it closes itself 250 ms before the
@@ -2835,6 +2835,25 @@ when opened; sharing stopped during the countdown is said; no new share during t
 **21 Nov 2026 (e2e 22):** "Show the mouse pointer" (off by default) did nothing when changed during a share (Chrome keeps
 a live track's `cursor`): a change now ends the share ("… share again"), also while the picker is open; the status line
 says what the browser reports for the pointer; the switch is locked during the countdown.
+**An area drawn with the mouse (to-do #24; owner, 26 Nov 2026: "add the ability for the user to draw a rectangular area with
+his mouse also as an option to take the screenshot"):** "Take": **The whole picture** (as before) or **An area (draw a
+rectangle)**, kept while the page is open. A page cannot draw over the desktop, so — as Windows' Snipping Tool does — the
+frame is taken first (after the countdown, which comes first with a delay) and shown frozen over the whole window
+(`src/lib/areapick.ts`): **full screen at once while the click that started it lasts** (Chrome keeps a click 5 s; a long
+countdown leaves a "Full screen" button), at the screen's own pixels — one device pixel a frame pixel when it fits, the
+screen in a full-screen window of its size lies exactly over it; a larger frame fitted (`layoutOf` in
+`src/lib/areageom.ts`) — and dimmed. The mouse or a finger drags a rectangle (its size in pixels beside it as it grows);
+its four corners and four sides adjust it, a drag inside moves it, a drag outside starts anew; the keys: an arrow starts
+the middle half, arrows move it (Shift: 10 px), Ctrl with an arrow sizes it, Ctrl+A takes all; **Enter, a double-click or
+"Take this area"** take it, **Esc or Cancel** cancel (in full screen Esc reaches the page through the Keyboard Lock API: a
+short press cancels, a long one leaves full screen), "Whole picture" takes all of it. Points are pixel edges, so the
+rectangle drawn is the pixels taken; the area goes to the editor at full resolution (`cropImg`: rows copied as they are)
+and the editor says where it was ("an area at 100, 50 of 640×360"). The rest of the page is inert meanwhile; leaving the
+tab closes it. Tests: unit `areageom` 37 (every pixel edge found again from where it is drawn, at 1:1 and fitted; drags,
+moves, edges and corners, turning over; the crop against a pixel-by-pixel copy); e2e — a known noise picture shared (a
+rectangle one pixel off never matches), the area's PNG byte for byte the same rectangle of the whole shot: dragged with the
+mouse, a corner and a side adjusted and moved and taken by a double-click, the keys alone, a finger (CDP touches), "Whole
+picture", Esc, a 3 s delay (full screen offered or taken), a 1920 × 1080 screen fitted into the view, leaving the tab.
 
 ### YouTube Clip (PC) — BUILT (`src/tools/youtube.ts`; e2e `tests/e2e/youtube.e2e.mjs` 13)
 Inputs: "Two links" (YouTube's Share → Start at… / right-click → "Copy video URL at current time" at the start and
@@ -3019,6 +3038,9 @@ every pixel loop, the box finding and the decoding imgproc.wasm's (`docs/WASM-AU
 Nov 2026 (the OCR tab's lists, to-do #31): `src/lib/listtext.ts` — the reading's lines and the marks' boxes compared, a
 list's label matched by a regular expression, the levels counted from where the items stand: string glue around the
 readers' output; what each mark was and where it stood is imgproc.wasm's (`p_clear_marks` lists it — own C).
+Nov 2026 (Screenshot's area, to-do #24): `src/lib/areageom.ts` — the rectangle's arithmetic (where the frame stands, a
+drag, a move, an edge) and the area copied row by row with `TypedArray.set` (a memory copy per row, no pixel computed);
+`src/lib/areapick.ts` draws the frozen frame with the browser's canvas. No engine has anything to do here.
 Nov 2026 (Key Codes, to-do #26): `src/lib/keycombo.ts` — a key event named as a combination and the bytes a terminal
 receives: tables of key codes and names (xterm.js's rules, held to xterm.js itself), string glue around the browser's
 KeyboardEvent; no WebAssembly module exists for it and none would have work to do (`docs/WASM-AUDIT.md`, tab `keycode`).

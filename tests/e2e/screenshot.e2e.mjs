@@ -1,6 +1,8 @@
 // Screenshot (#/screenshot, PC): share once (Chromium's fake picker), take shots now / after a delay (with the
-// Document Picture-in-Picture countdown and its "Snap now" / "Cancel"), crop, PNG / JPEG / clipboard, gallery.
+// Document Picture-in-Picture countdown and its "Snap now" / "Cancel"), crop, PNG / JPEG / clipboard, gallery; an area
+// drawn on the frozen screen with the mouse, the keys or a finger (to-do #24), its pixels held to the whole shot's.
 import { readFileSync } from 'node:fs';
+import { readPng } from '../lib/png.mjs';
 
 export default async ({ base, page: newPage, ok, info, download }) => {
   const page = await newPage({ viewport: { width: 1280, height: 900 }, permissions: ['clipboard-read', 'clipboard-write'] });
@@ -113,4 +115,171 @@ export default async ({ base, page: newPage, ok, info, download }) => {
   ok(await pointerSw.locator('input').isDisabled(), 'the pointer switch is locked during the countdown');
   await page.getByText(/^Captured/).first().waitFor({ timeout: 10000 });
   ok(!page.errors.length, `no page errors ${page.errors.slice(0, 3).join(' | ')}`);
+
+  // ---------------------------------------------------------------- an area drawn on the frozen screen (to-do #24)
+  // owner, 26 Nov 2026: "add the ability for the user to draw a rectangular area with his mouse also as an option to take
+  // the screenshot". The shared picture is a known one — fixed noise, every pixel unlike its neighbours, so a rectangle
+  // one pixel off never matches — and the area's PNG is held, byte for byte, to the same rectangle of the whole shot.
+  const a = await newPage({ viewport: { width: 1280, height: 900 }, hasTouch: true });
+  await a.addInitScript(() => {
+    window.__share = { w: 640, h: 360, surface: 'window' };
+    navigator.mediaDevices.getDisplayMedia = async () => {
+      const { w, h, surface } = window.__share, c = document.createElement('canvas'); c.width = w; c.height = h;
+      const g = c.getContext('2d'), id = g.createImageData(w, h);
+      let s = 99;
+      for (let i = 0; i < id.data.length; i += 4) { s = (Math.imul(s, 1103515245) + 12345) >>> 0; id.data[i] = s >>> 24; id.data[i + 1] = (s >>> 16) & 255; id.data[i + 2] = (s >>> 8) & 255; id.data[i + 3] = 255; }
+      const draw = () => g.putImageData(id, 0, 0); // a canvas sends a frame when it is drawn
+      draw(); const iv = setInterval(draw, 50);
+      const st = c.captureStream(20), t = st.getVideoTracks()[0], gs = t.getSettings.bind(t);
+      t.getSettings = () => ({ ...gs(), displaySurface: surface, width: w, height: h });
+      t.addEventListener('ended', () => clearInterval(iv));
+      return st;
+    };
+  });
+  await a.goto(`${base}#/screenshot`);
+  const abtn = (name) => a.locator('.actions').getByRole('button', { name, exact: true });
+  const say = () => a.locator('.area-say').textContent();
+  await a.getByRole('combobox', { name: /^Delay/ }).selectOption('0');
+  const takeWhole = async () => {
+    await a.getByRole('radio', { name: 'The whole picture' }).click();
+    await abtn('Take screenshot').click();
+    await a.getByText(/^Captured \d+×\d+\. Crop/).waitFor({ timeout: 15000 });
+    return readPng(readFileSync(await download(a, () => a.getByRole('button', { name: 'PNG', exact: true }).click())));
+  };
+  const crop = (img, x, y, w, h) => { const o = new Uint8ClampedArray(w * h * 4); for (let r = 0; r < h; r++) o.set(img.data.subarray(((y + r) * img.width + x) * 4, ((y + r) * img.width + x + w) * 4), r * w * 4); return o; };
+  const same = (p, img, [x, y, w, h]) => p.width === w && p.height === h && Buffer.from(p.data).equals(Buffer.from(crop(img, x, y, w, h)));
+  const whole = await takeWhole();
+  ok(whole.width === 640 && whole.height === 360, `the whole shared window first: ${whole.width}×${whole.height}`);
+  const lastPng = async () => readPng(readFileSync(await download(a, () => a.getByRole('button', { name: 'PNG', exact: true }).click())));
+  const thumbs = () => a.locator('.shot-thumb').count();
+  // where the frame is drawn: 1:1 and centred on whole pixels when it fits (src/lib/areageom.ts layoutOf), else fitted
+  const frameOn = async (W, H) => {
+    const b = await a.locator('.area-canvas').boundingBox(), s = Math.min(1, b.width / W, b.height / H);
+    return { b, s, ox: s === 1 ? Math.floor((b.width - W) / 2) : (b.width - W * s) / 2, oy: s === 1 ? Math.floor((b.height - H) / 2) : (b.height - H * s) / 2 };
+  };
+  const at = (F, fx, fy) => [F.b.x + F.ox + fx * F.s, F.b.y + F.oy + fy * F.s];
+  const dragOn = async (from, to) => { await a.mouse.move(...from); await a.mouse.down(); await a.mouse.move(...to, { steps: 8 }); await a.mouse.up(); };
+  const openArea = async () => {
+    await a.getByRole('radio', { name: 'An area (draw a rectangle)' }).click();
+    await abtn('Choose an area').click();
+    await a.locator('.area-pick').waitFor({ timeout: 15000 });
+    await a.waitForFunction(() => document.querySelector('.area-canvas')?.width > 0);
+  };
+
+  // the mouse: a rectangle dragged, its size shown as it grows, Enter takes it
+  await openArea();
+  ok(await a.getByText(/^The screen is frozen: drag a rectangle on it/).count() === 1, 'the tab says the screen is frozen');
+  ok(await a.evaluate(() => document.fullscreenElement?.classList.contains('area-pick')), 'the frozen screen is shown full screen at once (the click that started it is still fresh: the share was open)');
+  ok(await a.evaluate(() => [...document.body.children].filter((e) => !e.classList.contains('area-pick')).every((e) => e.inert)), 'the rest of the page cannot be reached meanwhile');
+  let F = await frameOn(640, 360);
+  ok(F.s === 1, `the 640 × 360 window at its own pixels in the ${Math.round(F.b.width)} × ${Math.round(F.b.height)} view`);
+  await a.mouse.move(...at(F, 100, 50)); await a.mouse.down(); await a.mouse.move(...at(F, 200, 100), { steps: 4 });
+  ok(/^Area 100 × 50 at 100, 50/.test(await say()), `its size is shown as it grows (${await say()})`);
+  await a.mouse.move(...at(F, 300, 150), { steps: 4 }); await a.mouse.up();
+  ok(/^Area 200 × 100 at 100, 50/.test(await say()), `the rectangle dragged: ${await say()}`);
+  await a.keyboard.press('Enter');
+  await a.getByText(/^Captured 200×100: the area at 100, 50 of the 640×360 screen/).waitFor({ timeout: 10000 });
+  ok(!(await a.locator('.area-pick').count()) && !(await a.evaluate(() => document.fullscreenElement)) && await a.evaluate(() => [...document.body.children].every((e) => !e.inert)), 'Enter takes it: the frozen screen and full screen are gone, the page is back');
+  ok(same(await lastPng(), whole, [100, 50, 200, 100]), 'the PNG holds exactly those pixels: byte for byte the same rectangle of the whole shot, at full resolution');
+  ok(/200×100 · an area at 100, 50 of 640×360 · /.test(await a.locator('.shot-stage + .muted').textContent()), 'the editor says where the area was');
+
+  // a corner adjusted, the rectangle moved, a double-click takes it
+  await openArea(); F = await frameOn(640, 360);
+  await dragOn(at(F, 50, 40), at(F, 250, 140));
+  await dragOn(at(F, 250, 140), at(F, 290, 160));
+  ok(/^Area 240 × 120 at 50, 40/.test(await say()), `the bottom right corner dragged out by (40, 20): ${await say()}`);
+  await dragOn(at(F, 290, 100), at(F, 270, 100));
+  ok(/^Area 220 × 120 at 50, 40/.test(await say()), `the right edge dragged in by 20: ${await say()}`);
+  await dragOn(at(F, 150, 100), at(F, 180, 120));
+  ok(/^Area 220 × 120 at 80, 60/.test(await say()), `a drag inside moves it by (30, 20): ${await say()}`);
+  await a.mouse.move(...at(F, 181, 121));
+  ok(await a.locator('.area-canvas').evaluate((c) => c.style.cursor) === 'move', 'the pointer shows "move" over the area');
+  await a.mouse.move(...at(F, 300, 121));
+  ok(await a.locator('.area-canvas').evaluate((c) => c.style.cursor) === 'ew-resize', '… and a sideways arrow over its right edge');
+  await a.mouse.dblclick(...at(F, 150, 100));
+  await a.getByText(/^Captured 220×120/).waitFor({ timeout: 10000 });
+  ok(same(await lastPng(), whole, [80, 60, 220, 120]), 'a double-click takes it: exactly the adjusted rectangle');
+
+  // Esc cancels: nothing taken
+  const before = await thumbs();
+  await openArea(); F = await frameOn(640, 360);
+  await dragOn(at(F, 10, 10), at(F, 60, 60));
+  await a.keyboard.press('Escape');
+  await a.getByText('Cancelled — no shot was taken.').waitFor({ timeout: 5000 });
+  ok(!(await a.locator('.area-pick').count()) && await thumbs() === before && !(await a.evaluate(() => document.fullscreenElement)), 'Esc cancels: no shot, the frozen screen gone');
+
+  // the keys alone: an arrow key starts the middle half, Shift moves by 10, Ctrl with an arrow sizes it
+  await openArea();
+  await a.locator('.area-canvas').focus();
+  await a.keyboard.press('ArrowRight');
+  ok(/^Area 320 × 180 at 160, 90/.test(await say()), `an arrow key without an area starts one: the middle half (${await say()})`);
+  await a.keyboard.press('Shift+ArrowRight'); await a.keyboard.press('Shift+ArrowDown'); await a.keyboard.press('Control+ArrowDown'); await a.keyboard.press('Control+ArrowLeft');
+  await a.keyboard.press('ArrowLeft');
+  ok(/^Area 319 × 181 at 169, 100/.test(await say()), `Shift + → / ↓ move by 10, Ctrl + ↓ / ← size by one, ← moves by one (${await say()})`);
+  await a.keyboard.press('Enter');
+  await a.getByText(/^Captured 319×181/).waitFor({ timeout: 10000 });
+  ok(same(await lastPng(), whole, [169, 100, 319, 181]), 'taken with the keys: exactly that rectangle');
+
+  // "Whole picture" from the frozen screen
+  await openArea();
+  await a.locator('.area-bar').getByRole('button', { name: 'Whole picture' }).click();
+  await a.getByText(/^Captured 640×360\. Crop/).waitFor({ timeout: 10000 });
+  ok(same(await lastPng(), whole, [0, 0, 640, 360]), '“Whole picture” takes all of it');
+
+  // a finger: a touch drag draws the rectangle too
+  await openArea(); F = await frameOn(640, 360);
+  { const cdp = await a.context().newCDPSession(a), touch = (type, pts) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints: pts.map(([x, y]) => ({ x, y, id: 1, force: 0.5, radiusX: 4, radiusY: 4 })) });
+    await touch('touchStart', [at(F, 400, 200)]);
+    for (const k of [0.25, 0.5, 0.75, 1]) await touch('touchMove', [at(F, 400 + 160 * k, 200 + 100 * k)]);
+    await touch('touchEnd', []); }
+  ok(/^Area 160 × 100 at 400, 200/.test(await say()), `a finger's drag draws it too (${await say()})`);
+  await a.locator('.area-bar').getByRole('button', { name: 'Take this area' }).click();
+  await a.getByText(/^Captured 160×100/).waitFor({ timeout: 10000 });
+  ok(same(await lastPng(), whole, [400, 200, 160, 100]), '“Take this area” takes the finger\'s rectangle');
+
+  // with a delay: the countdown first, then the frozen screen
+  await a.getByRole('combobox', { name: /^Delay/ }).selectOption('3');
+  const ta = Date.now();
+  await abtn('Choose an area in 3 s').click();
+  await a.locator('.area-pick').waitFor({ timeout: 10000 });
+  const waited = (Date.now() - ta) / 1000;
+  ok(waited >= 2.8 && waited < 6, `with a 3 s delay the frozen screen comes after the countdown (${waited.toFixed(1)} s)`);
+  // full screen at once only while the click that started it lasts (Chrome: 5 s, used up by the countdown window where
+  // there is one); else the button offers it
+  if (await a.evaluate(() => !!document.fullscreenElement)) {
+    info('after the 3 s countdown the frozen screen came full screen at once (the click was still fresh)');
+    await a.locator('.area-bar').getByRole('button', { name: 'Leave full screen' }).click();
+    await a.waitForFunction(() => !document.fullscreenElement);
+  }
+  ok(await a.locator('.area-bar').getByRole('button', { name: 'Full screen' }).isVisible(), 'not full screen: a “Full screen” button offers it');
+  await a.locator('.area-bar').getByRole('button', { name: 'Full screen' }).click();
+  await a.waitForFunction(() => document.fullscreenElement?.classList.contains('area-pick'), null, { timeout: 5000 }).catch(() => {});
+  ok(await a.evaluate(() => document.fullscreenElement?.classList.contains('area-pick')) && await a.locator('.area-bar').getByRole('button', { name: 'Leave full screen' }).isVisible(), '… which shows it full screen');
+  await a.locator('.area-bar').getByRole('button', { name: 'Cancel' }).click();
+  await a.getByText('Cancelled — no shot was taken.').waitFor({ timeout: 5000 });
+  ok(!(await a.evaluate(() => document.fullscreenElement)), 'Cancel leaves full screen too');
+  await a.getByRole('combobox', { name: /^Delay/ }).selectOption('0');
+
+  // a whole screen larger than the view: fitted, and the pointer still lands on the right pixels
+  await abtn('Stop sharing').click();
+  await a.evaluate(() => (window.__share = { w: 1920, h: 1080, surface: 'monitor' }));
+  const big = await takeWhole();
+  ok(big.width === 1920 && big.height === 1080, `a 1920 × 1080 screen shared (${big.width}×${big.height})`);
+  await openArea(); F = await frameOn(1920, 1080);
+  ok(F.s < 1, `fitted into the view (scale ${F.s.toFixed(3)})`);
+  const m0 = [Math.round(F.b.x + F.ox + 300 * F.s), Math.round(F.b.y + F.oy + 200 * F.s)], m1 = [Math.round(F.b.x + F.ox + 1500 * F.s), Math.round(F.b.y + F.oy + 900 * F.s)];
+  await dragOn(m0, m1);
+  const want = [m0, m1].map(([x, y]) => [Math.round((x - F.b.x - F.ox) / F.s), Math.round((y - F.b.y - F.oy) / F.s)]);
+  const rr = [want[0][0], want[0][1], want[1][0] - want[0][0], want[1][1] - want[0][1]];
+  ok((await say()).startsWith(`Area ${rr[2]} × ${rr[3]} at ${rr[0]}, ${rr[1]}`), `the drag on the fitted screen: ${await say()} (the pointer's points: ${rr.join(', ')})`);
+  await a.keyboard.press('Enter');
+  await a.getByText(new RegExp(`^Captured ${rr[2]}×${rr[3]}`)).waitFor({ timeout: 10000 });
+  ok(same(await lastPng(), big, rr), 'at full resolution: the area of the 1920 × 1080 screen, not of its picture on the view');
+
+  // leaving the tab with the frozen screen open closes it
+  await openArea();
+  await a.evaluate(() => { location.hash = '#/stopwatch'; });
+  await a.waitForTimeout(500);
+  ok(!(await a.locator('.area-pick').count()) && await a.evaluate(() => [...document.body.children].every((e) => !e.inert) && !document.fullscreenElement), 'leaving the tab closes the frozen screen and gives the page back');
+  ok(!a.errors.length, `no page errors with the area ${a.errors.slice(0, 3).join(' | ')}`);
 };

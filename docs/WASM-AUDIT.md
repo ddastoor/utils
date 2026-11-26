@@ -1396,6 +1396,9 @@ were 238 MB). What follows is the record of the engine as it was; the code is in
   (OxiPNG, MozJPEG). No WebAssembly module can capture a screen. **Added beside them:** @mediabunny/aac-encoder (tab
   147) — the MP4 recordings of Linux Chromium carried Opus; their sound is re-encoded to AAC as the file is finished
   (`finishRecording` in `src/lib/aac.ts`), the picture copied.
+- **Screenshot, "An area" (to-do #24, 26 Nov 2026):** no engine — the frozen frame is drawn by the browser's canvas and the
+  area copied row by row (`cropImg` in `src/lib/areageom.ts`: `TypedArray.set`, a memory copy a row). Looked at: imgproc's
+  own crop would need its worker and module fetched for a memory copy. Nothing to move into WebAssembly.
 
 ### 153. `terminal` — Linux Terminal (20 Nov 2026)
 - **Ours:** BusyBox 1.38.0 compiled by us to wasm32-wasi (130 applets), our WASI host and our shell (`src/lib/terminal/`).
