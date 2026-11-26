@@ -6,6 +6,7 @@ import { h, card, field, actions, button, select, toggle, stack, note, toast, er
 import { cropBox } from '../lib/imgtools';
 import { encodeImg } from '../lib/imgio';
 import { linuxBanner, CAPTURE_TIPS } from '../linux';
+import { countdownWindow, showCount } from '../lib/pipcount';
 import type { Img } from '../wasm/imgproc';
 
 /** a shot keeps its pixels while it is the one shown; the others are kept as lossless PNG (a 4K screenshot is 33 MB of
@@ -71,22 +72,8 @@ export const mount: Mount = (root) => {
     return { data: id.data, width: c.width, height: c.height };
   }
 
-  /** The always-on-top countdown (Document Picture-in-Picture), or null where it is not available. */
-  async function openPip(onSnap: () => void, onCancel: () => void) {
-    const dpip = (window as any).documentPictureInPicture;
-    if (!dpip) return null;
-    try {
-      const w: Window = await dpip.requestWindow({ width: 240, height: 140 });
-      const d = w.document;
-      d.body.innerHTML = '';
-      const css = d.createElement('style');
-      css.textContent = 'body{margin:0;font:600 15px system-ui,sans-serif;background:#1e1b4b;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;height:100vh}#n{font:800 44px system-ui}button{font:600 14px system-ui;border:0;border-radius:8px;padding:8px 12px;cursor:pointer}#s{background:#818cf8;color:#fff}#c{background:#334155;color:#fff}';
-      d.head.append(css);
-      d.body.innerHTML = '<div id="n"></div><div><button id="s">Snap now</button> <button id="c">Cancel</button></div>';
-      d.getElementById('s')!.onclick = onSnap; d.getElementById('c')!.onclick = onCancel;
-      return w;
-    } catch { return null; }
-  }
+  /** The always-on-top countdown (Document Picture-in-Picture, src/lib/pipcount.ts), or null where it is not available. */
+  const openPip = (onSnap: () => void, onCancel: () => void) => countdownWindow('Snap now', onSnap, onCancel);
   async function arm() {
     if (!stream) { await share(); if (!stream) return; }
     armed = true; cancelArm = false; sync();
@@ -94,7 +81,7 @@ export const mount: Mount = (root) => {
     pip = delay > 0 ? await openPip(() => (snapNow = true), () => (cancelArm = true)) : null;
     for (let k = delay; k > 0 && !snapNow && !cancelArm; k--) {
       status.textContent = `Screenshot in ${k} s — minimise this browser now if needed${pip ? ' (the small window stays on top)' : ''}.`;
-      if (pip) pip.document.getElementById('n')!.textContent = String(k);
+      showCount(pip, k);
       for (let i = 0; i < 10 && !snapNow && !cancelArm; i++) await sleep(100);
     }
     if (pip) { pip.close(); pip = null; await sleep(250); } // let the countdown window disappear before the shot

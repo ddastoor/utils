@@ -53,8 +53,12 @@ would undo these fixes (no: they are FFmpeg arguments; it would be its own to-do
 **#22 FFmpeg "Extract audio" MP3: DONE (26 Nov 2026)** (todo.md Done #22): format buttons (As it is · MP3 · WAV · FLAC ·
 OGG), MP3 quality (V2 / 128 / 192 / 320), "Download as MP3" on an extracted sound (`mp3Of`), the choice kept while the page
 is open (`keptAudio` in `src/tools/ffmpeg.ts`).
-**Next (the owner's order):** batch 3 — #21 Screencast countdowns + sound level (todo.md Open); then
-batch 4 (#24, #28 Screenshot), 5 (#15, #17, #16), 6 (#14 Text Diff), 7 (#20 Studio voice); then the potentials process.
+**#21 Screencast: DONE (26 Nov 2026)** (todo.md Done #21): countdowns Off / 3 / 5 / 8 s / custom (1 – 120 s), kept while the
+page is open, in an always-on-top window too (`src/lib/pipcount.ts`, shared with Screenshot); the level checked with known
+tones (MP4 / WebM, ± microphone): within 0.02 dB — not lower. Offered to the owner (not built): an R128 "normal
+loudness" button for the Screencast. **Batch 3 is complete.** (Disk: the scratchpad's 13 GB offline-TTS work folder `otts`
+was deleted on 26 Nov to free space — the survey's results are committed; `scripts/accent-survey/` makes it again.)
+**Next (the owner's order):** batch 4 (#24, #28 Screenshot), 5 (#15, #17, #16), 6 (#14 Text Diff), 7 (#20 Studio voice); then the potentials process.
 
 ## ▶ SYNC POINT — 21 Nov 2026, night (read this first; it supersedes the older "NOW" notes below)
 The owner's weekly limit is nearly used up; work resumes on Thursday. Everything below is committed and pushed.

@@ -119,23 +119,6 @@ The owner adds items here in chat ("add … to to do"). Newest instructions win.
     - **Measured, not guessed:** speech with real traffic and street noise mixed in (the suite's speech fixture with
       recorded street noise; outdoor recordings) — the noise left, the speech kept, DNSMOS (Microsoft's open
       speech-quality predictor) before and after; samples for the owner to hear before a model is chosen.
-21. **Screencast: more countdowns; the sound level of the recording checked** (owner, 26 Nov 2026: "I want you to fix and
-    confirm two things in the screencast app. Firstly, I want you to add another countdown preset. Right now there's a
-    3-second countdown. I want you to add, say for example, a 5-second countdown, an 8-second countdown, and a custom
-    countdown in seconds. The second thing I noticed is whenever I recorded my video, the volume of the output video
-    seemed a little lower than the normal. Please check and confirm this. If it is actually so, then fix it.")
-    - **Countdown:** Off, 3 s, 5 s, 8 s or a number of seconds typed in (whole seconds, within limits, said when outside);
-      the choice kept while the tab is open. Also: the countdown in a small always-on-top window, as the Screenshot tab
-      has, so it can be seen when the browser is minimised or another window is in front — closed before the recording
-      starts, so it is not recorded.
-    - **The sound level:** our code changes no level — the shared sound is recorded as the browser gives it; with the
-      microphone, both are added in Web Audio; an MP4's sound is re-encoded as AAC (160 kbps) where the browser wrote
-      Opus; the microphone is asked for with echo cancellation and noise suppression (and the browser's automatic gain
-      control). To check: a known tone played in a shared tab and recorded — its level in the file against the tone's,
-      with and without the microphone, MP4 and WebM — here on Linux and on the Windows runner (to-do #13's), and Windows'
-      own system-sound capture against what is heard. If the recording is quieter: fix where it is lost; if the captured
-      sound itself is quieter than what one hears, offer "Bring the sound to a normal loudness" (EBU R128, as the FFmpeg
-      tab's loudness job). The suite holds the level to within 0.5 dB.
 
 24. **Screenshot: draw a rectangle with the mouse to take the screenshot** (owner, 26 Nov 2026: "In the screenshot app, add
     the ability for the user to draw a rectangular area with his mouse also as an option to take the screenshot")
@@ -171,6 +154,17 @@ The owner adds items here in chat ("add … to to do"). Newest instructions win.
 
 
 ## Done
+- **21. Screencast: more countdowns; the sound level of the recording checked** (owner, 26 Nov 2026: "add … a 5-second
+  countdown, an 8-second countdown, and a custom countdown in seconds … the volume of the output video seemed a little
+  lower than the normal. Please check and confirm this. If it is actually so, then fix it.") — done 26 Nov 2026: the
+  countdown is Off · 3 s · 5 s · 8 s · Custom (whole seconds 1 – 120, a wrong number said), kept while the page is open,
+  and also shown in a small always-on-top window (as the Screenshot tab's) with "Start now" and "Cancel", closed before
+  the first frame; a Cancel on the page too. **The level, checked:** known tones as the shared sound and as the
+  microphone, recorded as MP4 and WebM, with and without the microphone — every tone in the file at the level played
+  within 0.02 dB (the suite holds 0.5 dB): the recording does not lower the sound. Not seen by the tab: Chrome's
+  processing of a real microphone and Windows lowering other sounds while a communications microphone is open. Offered
+  to the owner: a "Bring the sound to a normal loudness" button (R128 to −16 LUFS) — built only at his word. e2e
+  screencast 50, screenshot 22. CLAUDE.md §3 Screencast, "Countdowns and the sound level".
 - **22. FFmpeg, "Extract audio": MP3 for the download** (owner, 26 Nov 2026: "in the extract audio option of the FFmpeg app,
   the extracted audio is by default in the .m4a format. Add an MP3 audio formats also for the download.") — done 26 Nov
   2026: the formats are buttons in plain sight — As it is (.m4a, named after the file's own sound) · MP3 · WAV · FLAC · OGG

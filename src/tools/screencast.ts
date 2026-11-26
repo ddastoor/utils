@@ -2,16 +2,28 @@
 // shared sound and optionally the microphone; the mouse pointer in the picture or not (the capture's `cursor`).
 // MediaRecorder (browser's own encoders) → MP4 (H.264) where the browser can, else WebM; long recordings can stream straight to a file (File System Access). WebM/MP4 from MediaRecorder
 // lack a duration index, so files kept in memory are remuxed by mediabunny (packet copy, seconds).
-import { h, card, field, actions, button, segmented, toggle, select, stack, note, toast, errMsg, fmtBytes, fmtTime, downloadBlob, sleep, type Mount } from '../ui';
+import { h, card, field, actions, button, segmented, toggle, select, input, stack, note, toast, errMsg, fmtBytes, fmtTime, downloadBlob, sleep, type Mount } from '../ui';
 import { linuxBanner } from '../linux';
 import { finishRecording } from '../lib/aac';
+import { countdownWindow, showCount } from '../lib/pipcount';
 
 type Mode = 'whole' | 'area';
 const MIMES = ['video/mp4;codecs=avc1,mp4a.40.2', 'video/mp4;codecs=avc1,opus', 'video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm'];
 const even = (v: number) => Math.max(2, Math.floor(v / 2) * 2);
+/** The countdown before a recording (to-do #21; owner, 26 Nov 2026: "add … a 5-second countdown, an 8-second countdown,
+ *  and a custom countdown in seconds"): Off, 3, 5, 8 s or whole seconds typed in — kept while the page is open (through
+ *  other tabs; nothing is stored). */
+const COUNT_MAX = 120;
+const keptCount = { choice: '3', custom: '10' };
+/** The seconds of the countdown chosen, or NaN when the typed number is no whole number of 1 to COUNT_MAX seconds. */
+export const countdownSecs = (choice: string, custom: string) => {
+  if (choice !== 'custom') return +choice;
+  const t = custom.trim();
+  return /^\d+$/.test(t) && +t >= 1 && +t <= COUNT_MAX ? +t : NaN;
+};
 
 export const mount: Mount = (root) => {
-  let mode: Mode = 'whole', withAudio = true, withMic = false, countdown = true, toDisk = false, fps = 30, fmt: 'mp4' | 'webm' = 'mp4', pointer = true;
+  let mode: Mode = 'whole', withAudio = true, withMic = false, toDisk = false, fps = 30, fmt: 'mp4' | 'webm' = 'mp4', pointer = true, cancelCount: (() => void) | null = null;
   let display: MediaStream | null = null, mic: MediaStream | null = null, ac: AudioContext | null = null, rec: MediaRecorder | null = null;
   let chunks: Blob[] = [], bytes = 0, writable: any = null, t0 = 0, pausedAt = 0, pausedTotal = 0, timer = 0, area: [number, number, number, number] | null = null, stopCrop: (() => void) | null = null;
   let outUrl = '', outBlob: Blob | null = null, outName = '', starting = false, live = true, cancelWait: (() => void) | null = null;
@@ -130,6 +142,8 @@ export const mount: Mount = (root) => {
     try { await begin(); } finally { starting = false; setButtons(); }
   }
   async function begin() {
+    const secs = countdownSecs(keptCount.choice, keptCount.custom);
+    if (Number.isNaN(secs)) { stateEl.textContent = `The countdown is whole seconds, 1 to ${COUNT_MAX} — or choose Off.`; return; }
     if (!display && !(await pick())) return;
     if (mode === 'area' && !area) { toast('Drag on the preview to choose an area first.', 'info'); return; }
     const mime = mimeFor(), ext = mime.includes('mp4') ? 'mp4' : 'webm';
@@ -138,7 +152,25 @@ export const mount: Mount = (root) => {
       try { const fh = await (window as any).showSaveFilePicker({ suggestedName: outName, types: [{ description: 'Video', accept: { [ext === 'mp4' ? 'video/mp4' : 'video/webm']: [`.${ext}`] } }] }); writable = await fh.createWritable(); }
       catch { return; }
     }
-    if (countdown) for (let k = 3; k > 0; k--) { stateEl.textContent = `Starting in ${k}…`; timeEl.textContent = String(k); await sleep(1000); if (!live || !display) break; }
+    if (secs > 0) {
+      // the countdown also in a small window that stays on top (as the Screenshot tab's): it can be seen with the browser
+      // minimised or another window in front — closed before the recording starts, so it is never recorded
+      let goNow = false, cancelled = false;
+      cancelCount = () => (cancelled = true); setButtons();
+      const pip = await countdownWindow('Start now', () => (goNow = true), () => (cancelled = true));
+      for (let k = secs; k > 0 && !goNow && !cancelled && live && display; k--) {
+        stateEl.textContent = `Starting in ${k}…${pip ? ' The small window stays on top: minimise this browser if you like.' : ''}`;
+        timeEl.textContent = String(k); showCount(pip, k);
+        for (let i = 0; i < 10 && !goNow && !cancelled && live && display; i++) await sleep(100);
+      }
+      if (pip) { pip.close(); await sleep(250); } // gone from the screen before the first frame is recorded
+      cancelCount = null;
+      if (cancelled) {
+        try { await writable?.abort?.(); } catch { /* */ } writable = null;
+        if (live) { stateEl.textContent = 'Cancelled.'; timeEl.textContent = '0:00'; }
+        return;
+      }
+    }
     if (!live || !display || display.getVideoTracks()[0]?.readyState !== 'live') { // sharing ended or the tab was left meanwhile
       try { await writable?.abort?.(); } catch { /* */ } writable = null;
       if (live) { stopAll(); stateEl.textContent = 'Sharing ended before the recording started.'; timeEl.textContent = '0:00'; } // the next Start asks again
@@ -184,6 +216,7 @@ export const mount: Mount = (root) => {
     for (const t of [pointerT, soundT]) (t.querySelector('input') as HTMLInputElement).disabled = live || starting;
     fpsSel.disabled = live || starting;
     pickBtn.hidden = live; startBtn.hidden = live; pauseBtn.hidden = !live; stopBtn.hidden = !live;
+    cancelBtn.hidden = !(starting && cancelCount); countSel.disabled = live || starting;
     pickBtn.disabled = starting; startBtn.disabled = starting;
     pauseBtn.setLabel(rec?.state === 'paused' ? 'Resume' : 'Pause');
     if (!starting) startBtn.disabled = mode === 'area' && !!display && !area;
@@ -195,8 +228,21 @@ export const mount: Mount = (root) => {
   const startBtn = button('Start recording', () => start(), { icon: 'Circle', variant: 'primary' });
   const pauseBtn = button('Pause', () => togglePause(), { icon: 'Pause' });
   const stopBtn = button('Stop', () => stop(), { icon: 'Square', variant: 'danger' });
+  const cancelBtn = button('Cancel', () => cancelCount?.(), { icon: 'X' });
   const saveBtn = button('Download', () => outBlob && downloadBlob(outBlob, outName), { icon: 'Download', variant: 'primary' });
   const hasFsa = !!(window as any).showSaveFilePicker;
+  const customHint = h('div', { class: 'muted small', 'aria-live': 'polite' });
+  const customIn = input({ type: 'number', value: keptCount.custom, min: 1, max: COUNT_MAX, step: 1, attrs: { 'aria-label': 'Countdown in seconds' },
+    onInput: (v) => { keptCount.custom = v; checkCustom(); } });
+  const checkCustom = () => {
+    const bad = keptCount.choice === 'custom' && Number.isNaN(countdownSecs('custom', keptCount.custom));
+    customHint.textContent = bad ? `Whole seconds, 1 to ${COUNT_MAX}.` : '';
+    customIn.classList.toggle('bad', bad); if (bad) customIn.setAttribute('aria-invalid', 'true'); else customIn.removeAttribute('aria-invalid');
+  };
+  const customBox = h('div', { class: 'row' }, field('Seconds', customIn), customHint);
+  const countSel = segmented<string>([['0', 'Off'], ['3', '3 s'], ['5', '5 s'], ['8', '8 s'], ['custom', 'Custom']], keptCount.choice, (v) => { keptCount.choice = v; customBox.hidden = v !== 'custom'; checkCustom(); }) as HTMLElement & { disabled?: boolean };
+  Object.defineProperty(countSel, 'disabled', { set(v: boolean) { countSel.querySelectorAll('button').forEach((b) => ((b as HTMLButtonElement).disabled = v)); customIn.disabled = v; } });
+  customBox.hidden = keptCount.choice !== 'custom'; checkCustom();
   const pointerT = toggle('Show the mouse pointer', pointer, (v) => { pointer = v; shareSetting('The mouse pointer'); });
   const soundT = toggle('Record the sound of the tab or screen (tick “Share audio” in the picker)', withAudio, (v) => { withAudio = v; shareSetting('The sound'); });
   const fpsSel = select<string>([['30', '30 fps'], ['60', '60 fps'], ['15', '15 fps (small files)']], String(fps), (v) => {
@@ -212,13 +258,13 @@ export const mount: Mount = (root) => {
       soundT,
       pointerT,
       toggle('Add my microphone', withMic, (v) => (withMic = v)),
-      toggle('3-second countdown', countdown, (v) => (countdown = v)),
+      field('Countdown before recording', countSel), customBox,
       hasFsa ? toggle('Save straight to a file while recording (for long recordings)', toDisk, (v) => (toDisk = v)) : null,
       h('div', { class: 'row sc-status' }, timeEl, stateEl))),
     ...[linuxBanner()].filter((x): x is HTMLElement => !!x),
     stageCard, resultCard,
     note('A web page cannot draw on your desktop, so an area is chosen on the preview. Windows shares system sound with “Entire screen”; on Linux pick the “Monitor of …” input as a microphone to record system sound.', 'info'),
-    actions(pickBtn, startBtn, pauseBtn, stopBtn, saveBtn));
+    actions(pickBtn, startBtn, cancelBtn, pauseBtn, stopBtn, saveBtn));
   setButtons();
-  return () => { live = false; stopAll(); clearInterval(timer); URL.revokeObjectURL(outUrl); };
+  return () => { live = false; cancelCount?.(); stopAll(); clearInterval(timer); URL.revokeObjectURL(outUrl); };
 };

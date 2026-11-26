@@ -2927,3 +2927,12 @@ cannot. Three new suites; each fails on the build before its fixes.
   After the fix, natively: 14 jobs (convert to MP4 / WebM / M4A / OGG / FLAC, extract, exact trim, cut out, join, reverse,
   compress, speed, 44.1 kHz) × mono, stereo and 5.1 files within 0.5 dB (mostly 0.0 – 0.2); in the browser the same on
   the cases that failed. Fixtures `stereo.mp4` and `surround.mkv` (`node scripts/make-sound-fixtures.mjs`).
+- **Screencast: the sound of the recordings lower than normal? — checked, not lower (26 Nov 2026; owner, to-do #21).** A
+  known tone as the shared sound (440 Hz, 0.3) and as the microphone (1 kHz, 0.2) — stand-ins for getDisplayMedia and
+  getUserMedia — recorded as MP4 (Linux Chromium writes Opus, re-encoded as AAC by `finishRecording`) and WebM, with and
+  without the microphone: every tone's amplitude in the file (ffmpeg decoding, Goertzel at the tone over the middle
+  second) within 0.02 dB of what was played — MediaRecorder, the Web Audio mix (sources added; mono on both sides at
+  full level) and the AAC re-encode keep the level. Not visible from a page: Chrome's processing of a real microphone
+  (echo cancellation, noise suppression, automatic gain) and Windows' "reduce other sounds when communicating". The
+  e2e suite holds the level within 0.5 dB; countdowns Off / 3 / 5 / 8 / custom built with it (and a Cancel — the
+  in-page countdown had none).

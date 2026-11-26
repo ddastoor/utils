@@ -1,8 +1,9 @@
 // Screencast (#/screencast, PC): getDisplayMedia (Chromium's fake picker picks the screen) → MediaRecorder → remuxed
 // file. Checks length (pause excluded), area crop size, WebM with a real duration, mic track, streaming to a file.
 import { readFileSync } from 'node:fs';
-import { execFileSync } from '../lib/child.mjs';
+import { execFileSync, spawnSync } from '../lib/child.mjs';
 import { mp4Info } from './video.e2e.mjs';
+import { fakeMedia } from './_media.mjs';
 const probeAudio = (f) => { try { return execFileSync('ffprobe', ['-v', 'error', '-select_streams', 'a:0', '-show_entries', 'stream=codec_name', '-of', 'csv=p=0', f], { encoding: 'utf8' }).trim(); } catch { return null; } };
 
 export default async ({ base, page: newPage, ok, info, download, released }) => {
@@ -35,7 +36,12 @@ export default async ({ base, page: newPage, ok, info, download, released }) => 
   const onLinux = await page.evaluate(() => /Linux/.test(navigator.userAgent));
   const noted = await page.getByText(/Detected: (X11|Wayland)/).waitFor({ timeout: onLinux ? 10000 : 1500 }).then(() => true, () => false); // (it was read at once: under load, before it was drawn)
   ok(noted === onLinux, onLinux ? 'Linux display server shown (X11 / Wayland)' : 'no X11 / Wayland note on Windows');
-  await page.getByText('3-second countdown').click(); // off for the test
+  const radio = (name, p = page) => p.getByRole('radio', { name, exact: true });
+  const countNow = () => page.getByRole('radiogroup').filter({ has: radio('8 s') }).getByRole('radio', { checked: true }).textContent();
+  // the countdown (to-do #21: "add … a 5-second countdown, an 8-second countdown, and a custom countdown in seconds")
+  const counts = await page.getByRole('radiogroup').filter({ has: radio('8 s') }).getByRole('radio').allTextContents();
+  ok(counts.join(' · ') === 'Off · 3 s · 5 s · 8 s · Custom' && await countNow() === '3 s', `countdown: ${counts.join(' · ')}, 3 s first chosen`);
+  await radio('Off').click(); // off for the tests that record
   await recordFor(2200);
   const f1 = await download(page, () => btn('Download').click()), m1 = await meta(f1), i1 = /\.mp4$/.test(f1) ? mp4Info(readFileSync(f1)) : null;
   ok(/\.mp4$/.test(f1) && i1?.video?.codec === 'avc1', `MP4 with H.264 (${i1?.video?.codec}, ${f1.split('/').pop()})`);
@@ -83,7 +89,7 @@ export default async ({ base, page: newPage, ok, info, download, released }) => 
 
   // the countdown: a second click on Start does not start a second recorder; sharing ended meanwhile is said
   await page.getByText('Add my microphone').click();
-  await page.getByText('3-second countdown').click(); // on again
+  await radio('3 s').click(); // on again
   const recorders = await page.evaluate(() => { const R = window.MediaRecorder; window.__recs = 0; window.MediaRecorder = class extends R { constructor(...a) { super(...a); window.__recs++; } }; window.MediaRecorder.isTypeSupported = R.isTypeSupported; return true; });
   await btn('Start recording').click({ force: true });
   await page.waitForTimeout(300);
@@ -97,7 +103,56 @@ export default async ({ base, page: newPage, ok, info, download, released }) => 
   await page.evaluate(() => document.querySelector('.sc-preview').srcObject.getVideoTracks()[0].stop());
   await page.getByText('Sharing ended before the recording started.').waitFor({ timeout: 8000 }).catch(() => {});
   ok(await page.getByText('Sharing ended before the recording started.').isVisible(), 'sharing ended during the countdown: said, nothing recorded');
-  await page.getByText('3-second countdown').click(); // off
+  // 5 s: the recording begins after five seconds; Cancel (on the page) ends the countdown without a recording; a custom
+  // number is whole seconds 1 – 120, refused with the reason otherwise; the choice is kept through another tab
+  const startsAfter = async () => { const t = Date.now(); await btn('Start recording').click(); await page.getByText(/^Recording ·/).waitFor({ timeout: 20000 }); const s = (Date.now() - t) / 1000; await btn('Stop').click(); await page.getByText(/^Recorded /).first().waitFor({ timeout: 30000 }); return s; };
+  await radio('5 s').click();
+  const s5 = await startsAfter();
+  ok(s5 > 4.6 && s5 < 7, `a 5 s countdown: the recording began ${s5.toFixed(1)} s after Start`);
+  await page.evaluate(() => { window.__recs = 0; });
+  await btn('Start recording').click();
+  await page.getByText(/^Starting in [45]…/).waitFor({ timeout: 5000 });
+  await btn('Cancel').click();
+  await page.getByText('Cancelled.', { exact: true }).waitFor({ timeout: 5000 });
+  await page.waitForTimeout(1200);
+  ok(await page.evaluate(() => window.__recs) === 0 && await btn('Start recording').isEnabled() && !(await btn('Cancel').isVisible()), 'Cancel during the countdown: "Cancelled.", no recording, Start again');
+  await radio('Custom').click();
+  const secs = page.getByLabel('Countdown in seconds');
+  for (const bad of ['0', '2.5', '121', '']) {
+    await secs.fill(bad);
+    ok(await page.getByText('Whole seconds, 1 to 120.').isVisible() && await secs.getAttribute('aria-invalid') === 'true', `a custom countdown of "${bad}": "Whole seconds, 1 to 120."`);
+  }
+  await btn('Start recording').click();
+  ok(await page.getByText('The countdown is whole seconds, 1 to 120 — or choose Off.').isVisible() && await page.evaluate(() => window.__recs) === 0, 'Start with a wrong custom countdown: refused with the reason, nothing recorded');
+  await secs.fill('2');
+  ok(!(await page.getByText('Whole seconds, 1 to 120.').isVisible()), 'a custom countdown of 2 s is taken');
+  const s2 = await startsAfter();
+  ok(s2 > 1.6 && s2 < 4, `a custom 2 s countdown: the recording began ${s2.toFixed(1)} s after Start`);
+  // the countdown in a small window that stays on top (Document Picture-in-Picture, where the browser has it): its number,
+  // "Start now" starts at once, Cancel ends it — and it is closed before the recording begins (never in the recording)
+  await radio('5 s').click();
+  { const t = Date.now(); await btn('Start recording').click();
+    const pipN = () => page.evaluate(() => window.documentPictureInPicture?.window?.document.getElementById('n')?.textContent ?? null);
+    const opened = await page.waitForFunction(() => /^[2-5]$/.test(window.documentPictureInPicture?.window?.document.getElementById('n')?.textContent ?? ''), null, { timeout: 3000 }).then(() => true, () => false);
+    info(`the countdown window: ${opened ? `opened (showing ${await pipN()})` : 'not available in this browser — the countdown is in the page'}`);
+    if (opened) {
+      await page.evaluate(() => window.documentPictureInPicture.window.document.getElementById('s').click());
+      await page.getByText(/^Recording ·/).waitFor({ timeout: 5000 });
+      const s = (Date.now() - t) / 1000;
+      ok(s < 3.5 && await page.evaluate(() => !window.documentPictureInPicture.window), `"Start now" in the countdown window starts the recording at once (${s.toFixed(1)} s), the window closed before it`);
+      await btn('Stop').click(); await page.getByText(/^Recorded /).first().waitFor({ timeout: 30000 });
+      await btn('Start recording').click();
+      await page.waitForFunction(() => !!window.documentPictureInPicture?.window?.document.getElementById('c'), null, { timeout: 3000 });
+      await page.evaluate(() => window.documentPictureInPicture.window.document.getElementById('c').click());
+      await page.getByText('Cancelled.', { exact: true }).waitFor({ timeout: 5000 });
+      ok(await page.evaluate(() => !window.documentPictureInPicture.window) && !(await page.getByText(/^Recording ·/).isVisible()), 'Cancel in the countdown window: no recording, the window closed');
+    } else { await page.getByText(/^Recording ·/).waitFor({ timeout: 10000 }); await btn('Stop').click(); await page.getByText(/^Recorded /).first().waitFor({ timeout: 30000 }); }
+  }
+  await radio('8 s').click();
+  await page.goto(`${base}#/screenshot`); await page.getByRole('heading', { name: /Screenshot/ }).first().waitFor();
+  await page.goto(`${base}#/screencast`); await radio('Off').waitFor();
+  ok(await countNow() === '8 s', `the countdown chosen is kept through another tab (${await countNow()})`);
+  await radio('Off').click();
 
   // the mouse pointer (owner, 21 Nov 2026: "add an option to exclude the mouse"): asked for when sharing starts; Chrome
   // keeps a live track's setting, so a change on an open share ends it and the next share has it
@@ -167,7 +222,7 @@ export default async ({ base, page: newPage, ok, info, download, released }) => 
   });
   await p2.goto(`${base}#/screencast`);
   const btn2 = (name) => p2.locator('.actions').getByRole('button', { name, exact: true });
-  await p2.getByText('3-second countdown').click();
+  await radio('Off', p2).click();
   await p2.getByRole('radio', { name: 'An area (rectangle)' }).click();
   await btn2('Choose a screen').click();
   const v2 = p2.locator('.sc-preview');
@@ -193,4 +248,49 @@ export default async ({ base, page: newPage, ok, info, download, released }) => 
   const wrong = Object.entries(at).filter(([, [x, y, c]]) => !near(px(x, y), want[c])).map(([k, [x, y, c]]) => `${k}: ${px(x, y).join('/')} instead of ${c}`);
   ok(rgb.length === W * H * 3 && !wrong.length, `the recording's pixels are the rectangle at 1:1 — its corners are the area's colours, none of the red around it, and the area's middle lines fall on the video's middle (${wrong.join('; ') || 'all eight points right'})`);
   ok(!p2.errors.length, `no page errors in the pattern recording ${p2.errors.slice(0, 3).join(' | ')}`);
+
+  // the sound level (to-do #21: "the volume of the output video seemed a little lower than the normal"): a known tone as
+  // the shared sound (440 Hz, amplitude 0.3, both sides) and another as the microphone (1 kHz, 0.2), recorded as MP4 and
+  // WebM, with and without the microphone; each tone's amplitude in the file is read back (ffmpeg decodes, a Goertzel
+  // filter at the tone's frequency over the middle second) and must be the one played, within 0.5 dB — the recording,
+  // the mix with the microphone and an MP4's sound re-encoded as AAC change no level
+  const p3 = await newPage({ viewport: { width: 1280, height: 900 } });
+  await p3.addInitScript(fakeMedia, { freq: 1000, amp: 0.2 });
+  await p3.addInitScript(() => {
+    navigator.mediaDevices.getDisplayMedia = async () => {
+      const c = document.createElement('canvas'); c.width = 640; c.height = 360; const g = c.getContext('2d');
+      const draw = () => { g.fillStyle = '#1e1b4b'; g.fillRect(0, 0, 640, 360); g.fillStyle = '#fff'; g.fillRect((Date.now() / 5) % 600, 150, 40, 40); };
+      draw(); setInterval(draw, 33);
+      const ac = new AudioContext(); await ac.resume();
+      const o = ac.createOscillator(), gn = ac.createGain(), d = ac.createMediaStreamDestination();
+      o.frequency.value = 440; gn.gain.value = 0.3; o.connect(gn).connect(d); o.start();
+      window.__sharedAc = ac;
+      return new MediaStream([...c.captureStream(30).getVideoTracks(), ...d.stream.getAudioTracks()]);
+    };
+  });
+  await p3.goto(`${base}#/screencast`);
+  const btn3 = (name) => p3.locator('.actions').getByRole('button', { name, exact: true });
+  await radio('Off', p3).click();
+  /** each channel's amplitude of a tone, from the decoded file's middle second (48 kHz: the tones fall on whole bins) */
+  const tone = (f, hz) => {
+    const raw = execFileSync('ffmpeg', ['-v', 'error', '-ss', '1', '-t', '1', '-i', f, '-vn', '-ac', '2', '-ar', '48000', '-f', 'f32le', '-'], { maxBuffer: 1 << 26 });
+    const x = new Float32Array(raw.buffer, raw.byteOffset, raw.length / 4), N = Math.floor(x.length / 2);
+    return [0, 1].map((ch) => { let re = 0, im = 0; for (let n = 0; n < N; n++) { const v = x[2 * n + ch], a = (2 * Math.PI * hz * n) / 48000; re += v * Math.cos(a); im -= v * Math.sin(a); } return (2 * Math.hypot(re, im)) / N; });
+  };
+  const db = (a, ref) => 20 * Math.log10(a / ref);
+  const haveFF = spawnSync('ffmpeg', ['-version']).status === 0;
+  for (const [fmt, mic] of [['mp4', false], ['mp4', true], ['webm', false], ['webm', true]]) {
+    await p3.getByRole('combobox', { name: /^Format/ }).selectOption(fmt);
+    const micSw = p3.locator('label.switch', { hasText: 'Add my microphone' }).locator('input');
+    if ((await micSw.isChecked()) !== mic) await p3.getByText('Add my microphone').click();
+    await btn3('Start recording').click(); await p3.getByText(/^Recording ·/).waitFor({ timeout: 15000 });
+    await p3.waitForTimeout(3200); await btn3('Stop').click(); await p3.getByText(/^Recorded /).first().waitFor({ timeout: 30000 });
+    const f = await download(p3, () => btn3('Download').click());
+    if (!haveFF) { ok(true, `${fmt}${mic ? ' with the microphone' : ''}: recorded (no native FFmpeg here — the level is not measured)`); continue; }
+    const t440 = tone(f, 440).map((a) => db(a, 0.3)), t1k = mic ? tone(f, 1000).map((a) => db(a, 0.2)) : [];
+    const all = [...t440, ...t1k], line = `${fmt.toUpperCase()}${mic ? ' with the microphone' : ''}: the shared tone ${t440.map((d) => `${d >= 0 ? '+' : ''}${d.toFixed(2)}`).join(' / ')} dB${mic ? `, the microphone's ${t1k.map((d) => `${d >= 0 ? '+' : ''}${d.toFixed(2)}`).join(' / ')} dB` : ''} (left / right, against what was played)`;
+    ok(all.every((d) => Math.abs(d) <= 0.5), line);
+    info(`sound level — ${line}`);
+  }
+  ok(!p3.errors.length, `no page errors in the level recordings ${p3.errors.slice(0, 3).join(' | ')}`);
 };

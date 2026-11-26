@@ -20,7 +20,7 @@ export default async ({ base, page: newPage, ok, info, download }) => {
     await page.waitForFunction(() => { const o = document.querySelector('.ff-out'); return (o && !o.closest('[hidden]')) || document.querySelector('.err-text'); }, null, { timeout: 180000 });
     const err = await page.locator('.err-text').first().textContent().catch(() => null);
     if (err) throw new Error(`the run failed: ${err} — log: ${(await page.locator('.ff-log').textContent()).slice(-400)}`);
-    const p = await download(page, () => page.locator('.ff-out').first().getByRole('button', { name: dlName }).click());
+    const p = await download(page, () => page.locator('.ff-out').first().getByRole('button', { name: dlName, exact: true }).click());
     return p;
   };
   const runFails = async (re) => {
@@ -121,7 +121,7 @@ export default async ({ base, page: newPage, ok, info, download }) => {
   await page.locator('.actions').getByRole('button', { name: 'Run FFmpeg' }).click();
   await page.getByText(/^3 files/).waitFor({ timeout: 120000 });
   const jnames = await page.locator('.ff-out strong').allTextContents();
-  const j1 = imageInfo(readFileSync(await download(page, () => page.locator('.ff-out').first().getByRole('button', { name: 'Download' }).click())));
+  const j1 = imageInfo(readFileSync(await download(page, () => page.locator('.ff-out').first().getByRole('button', { name: 'Download', exact: true }).click())));
   ok(jnames.join() === 'frame-0001.jpg,frame-0002.jpg,frame-0003.jpg' && j1.type === 'jpeg' && j1.width === 640, `three JPEG frames, made by MozJPEG, the page alive (${jnames.join(', ')})`);
   await combo('As').selectOption('png');
 

@@ -2757,7 +2757,7 @@ or math-heavy column → that column as image; scanned page → page image. Mode
 Column images. EPUB 3 + NCX (EPUB 2 fallback), validated with epubcheck in development, compatible with
 Send-to-Kindle. Image width presets: Paperwhite 1236 px / Scribe 1860 px; greyscale option.
 
-### Screencast (PC) — BUILT (`src/tools/screencast.ts`; e2e `tests/e2e/screencast.e2e.mjs` 13)
+### Screencast (PC) — BUILT (`src/tools/screencast.ts`; e2e `tests/e2e/screencast.e2e.mjs` 50)
 Chrome on Windows/Linux. "Screen, window or tab" (Chrome's picker; own tab excluded; surface switching allowed) or
 "An area": choose a screen, drag a rectangle on the live preview (a page cannot draw on the desktop); the rectangle is
 cut from every frame live with WebCodecs `VideoFrame` `visibleRect` (MediaStreamTrackProcessor → Generator; canvas
@@ -2786,6 +2786,24 @@ picker is open), the frame rate is applied to the open share; the line under the
 still record" where it reports nothing — whether Chrome honours 'never' depends on its version and the system; its test
 screen has no pointer, so the suite sets the report). The switches are locked while recording. A share ended while its
 picture was on its way no longer leaves the tab waiting.
+**Countdowns and the sound level (to-do #21; owner, 26 Nov 2026: "add … a 5-second countdown, an 8-second countdown, and a
+custom countdown in seconds … the volume of the output video seemed a little lower than the normal. Please check and
+confirm this. If it is actually so, then fix it."; e2e 50):**
+- **Countdown before recording:** Off · 3 s (the default) · 5 s · 8 s · Custom — whole seconds, 1 to 120 (`countdownSecs`;
+  another number is marked "Whole seconds, 1 to 120." and Start says why it does not begin). The choice is kept while the
+  page is open (module memory, through other tabs; nothing stored). The countdown also shows in a small window that
+  stays on top (Document Picture-in-Picture, `src/lib/pipcount.ts`, shared with the Screenshot tab), so it can be seen
+  with the browser minimised — "Start now" and "Cancel" in it; it is closed 250 ms before the first frame, so it is never
+  recorded. A Cancel button on the page ends the countdown too ("Cancelled.", nothing recorded). Where the browser gives
+  no such window (or no click is left for it — after the save dialog), the countdown is in the page only.
+- **The sound level — checked, not lower:** a known tone as the shared sound (440 Hz, amplitude 0.3) and another as the
+  microphone (1 kHz, 0.2), recorded as MP4 and WebM with and without the microphone: each tone's amplitude in the file
+  (Goertzel over the middle second, ffmpeg decoding) is the one played within 0.02 dB — the recorder, the mix with the
+  microphone (Web Audio: sources added, a mono source on both sides at full level) and an MP4's Opus re-encoded as AAC
+  (Linux Chromium) change no level; the suite holds it within 0.5 dB. The tab records the shared sound at the level the
+  browser hands it over (the system's or the tab's playback before the volume control); what it cannot see: Chrome's
+  processing of a real microphone (echo cancellation, noise suppression, automatic gain — asked for, as calls do), and
+  Windows lowering other sounds while a "communications" microphone is open (Sound settings → Communications).
 
 ### Screenshot (PC) — BUILT (`src/tools/screenshot.ts`; e2e `tests/e2e/screenshot.e2e.mjs` 12)
 Share once (Chrome's picker: screen, window or tab; own tab excluded; optional mouse pointer) → "Take screenshot"
