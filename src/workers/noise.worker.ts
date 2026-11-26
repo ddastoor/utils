@@ -8,7 +8,7 @@
 //     10 ms (Standard), what the finish did (Studio), the time taken. The input and the fully cleaned sound are kept, so that
 //   { op: 'mix', mix, finish }  → the same sound at another strength (or with the finish on or off), without cleaning it again.
 // Messages are handled one after the other (a 'mix' sent while a 'clean' runs gets the new sound). While a Studio clean
-// runs, { id, progress: { phase: 'fetch' | 'clean', done, total } } messages tell how far it is.
+// runs, { id, progress: { phase: 'fetch' | 'clean' | 'finish', done, total } } messages tell how far it is.
 import * as ort from 'onnxruntime-web/wasm';
 import { instantiateWasi } from '../wasm/wasi';
 import { bindAudio, FINISH, type AudioEngine, type FinishReport } from '../wasm/audio';
@@ -97,6 +97,7 @@ async function handle(m: Msg): Promise<Reply> {
   }
   while (full48.length < at48.length) full48.push(full48[0].slice());
   kept = { engine: 'studio', src: chs, src48: at48, full48, sr };
+  if (m.finish) post({ id: m.id, progress: { phase: 'finish', done: 0, total: 1 } });
   return { ...studioOut(a, m.mix, m.finish), ms: performance.now() - t0 };
 }
 

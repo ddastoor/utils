@@ -17,7 +17,7 @@ import { trackWorker } from '../lifecycle';
 
 type Engine = 'rnnoise' | 'studio';
 type Reply = { chs: Float32Array[]; vad?: Float32Array; ms?: number; report?: FinishReport };
-type Progress = { phase: 'fetch' | 'clean'; done: number; total: number };
+type Progress = { phase: 'fetch' | 'clean' | 'finish'; done: number; total: number };
 let worker: Worker | null = null, seq = 0;
 const pend = new Map<number, { res: (v: Reply) => void; rej: (e: Error) => void; progress?: (p: Progress) => void }>();
 function engine(msg: { op: 'clean'; engine: Engine; chs: Float32Array[]; sr: number; mix: number; finish: boolean; base: string } | { op: 'mix'; mix: number; finish: boolean }, progress?: (p: Progress) => void): Promise<Reply> {
@@ -104,7 +104,8 @@ export const mount: Mount = (root, ctx) => {
     status.textContent = k === 'studio' ? 'Making a studio voice…' : 'Removing noise…'; failed = '';
     const progress = (p: Progress) => {
       if (!live || my !== gen) return;
-      status.textContent = p.phase === 'fetch' ? `Fetching the studio voice model (${MB(p.done)} of ${MB(p.total)} MB, once a visit)…` : `Cleaning with DeepFilterNet 3… ${Math.floor((p.done / p.total) * 100)} %`;
+      status.textContent = p.phase === 'fetch' ? `Fetching the studio voice model (${MB(p.done)} of ${MB(p.total)} MB, once a visit)…`
+        : p.phase === 'finish' ? 'The studio finish: level, warmth and presence…' : `Cleaning with DeepFilterNet 3… ${Math.floor((p.done / p.total) * 100)} %`;
     };
     try {
       const r = await engine({ op: 'clean', engine: k, chs: channelsOf(s), sr: s.sampleRate, mix, finish, base: document.baseURI }, progress);

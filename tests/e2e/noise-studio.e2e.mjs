@@ -77,7 +77,7 @@ export default async ({ base, page: newPage, ok, info, download, devices, tmp })
   ok(await finishSwitch.isVisible() && /DeepFilterNet 3/.test(await page.locator('.note').filter({ hasText: 'Studio voice' }).textContent()), 'Studio voice: the finish switch and what it does');
   await studioDone();
   const lines = await said();
-  ok(lines.some((l) => /^Fetching the studio voice model \([\d.]+ of 8\.6 MB, once a visit\)…$/.test(l)) && lines.some((l) => /^Cleaning with DeepFilterNet 3… \d+ %$/.test(l)), `the download and the cleaning say how far they are (${lines.filter((l) => /Fetching|Cleaning/.test(l)).slice(0, 3).join(' · ')} …)`);
+  ok(lines.some((l) => /^Fetching the studio voice model \([\d.]+ of 8\.6 MB, once a visit\)…$/.test(l)) && lines.some((l) => /^Cleaning with DeepFilterNet 3… \d+ %$/.test(l)) && lines.includes('The studio finish: level, warmth and presence…'), `the download, the cleaning and the finish say how far they are (${lines.filter((l) => /Fetching|Cleaning|finish:/.test(l)).slice(0, 4).join(' · ')} …)`);
   ok(model.length === 1, `the model is fetched once (${model.map((u) => basename(u)).join(', ')})`);
   const line = await status();
   info(line);
