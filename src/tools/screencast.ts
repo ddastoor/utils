@@ -27,6 +27,7 @@ export const mount: Mount = (root) => {
   let display: MediaStream | null = null, mic: MediaStream | null = null, ac: AudioContext | null = null, rec: MediaRecorder | null = null;
   let chunks: Blob[] = [], bytes = 0, writable: any = null, t0 = 0, pausedAt = 0, pausedTotal = 0, timer = 0, area: [number, number, number, number] | null = null, stopCrop: (() => void) | null = null;
   let outUrl = '', outBlob: Blob | null = null, outName = '', starting = false, live = true, cancelWait: (() => void) | null = null;
+  let recSound = false, original: Blob | null = null, louder = false; // the recording has sound; the one before the loudness was changed
   const mimeFor = () => (fmt === 'mp4' ? MIMES.slice(0, 2) : MIMES.slice(2)).find((m) => MediaRecorder.isTypeSupported(m)) || MIMES.find((m) => MediaRecorder.isTypeSupported(m)) || '';
 
   const preview = h('video', { class: 'sc-preview', muted: true, autoplay: true, playsinline: true }) as HTMLVideoElement;
@@ -177,6 +178,7 @@ export const mount: Mount = (root) => {
       return;
     }
     const stream = new MediaStream([videoTrack(), ...(await audioTracks())]);
+    recSound = stream.getAudioTracks().length > 0;
     rec = new MediaRecorder(stream, mime ? { mimeType: mime, videoBitsPerSecond: 8_000_000 } : undefined);
     chunks = []; bytes = 0; pausedTotal = 0;
     let writing = Promise.resolve();
@@ -193,13 +195,15 @@ export const mount: Mount = (root) => {
     const secs = elapsed(); clearInterval(timer);
     stopCrop?.(); stopCrop = null; mic?.getTracks().forEach((t) => t.stop()); mic = null; ac?.close(); ac = null; rec = null;
     timeEl.textContent = fmtTime(secs);
-    if (writable) { await writable.close(); writable = null; stateEl.textContent = `Saved ${outName} (${fmtBytes(bytes)})`; result.replaceChildren(note(`Saved straight to ${outName} — ${fmtBytes(bytes)}, ${fmtTime(secs)}.`, 'ok')); resultCard.hidden = false; setButtons(); return; }
+    if (writable) { await writable.close(); writable = null; stateEl.textContent = `Saved ${outName} (${fmtBytes(bytes)})`; result.replaceChildren(note(`Saved straight to ${outName} — ${fmtBytes(bytes)}, ${fmtTime(secs)}.${recSound ? ' To bring its sound to a normal loudness, open it in the FFmpeg tab → Normalise loudness.' : ''}`, 'ok')); resultCard.hidden = false; setButtons(); return; }
     stateEl.textContent = 'Finishing…';
     let blob = new Blob(chunks, { type: mime.split(';')[0] || `video/${ext}` });
     blob = await finishRecording(blob, ext as 'mp4' | 'webm'); // duration index; an MP4's sound as AAC
-    outBlob = blob; URL.revokeObjectURL(outUrl); outUrl = URL.createObjectURL(blob); after.src = outUrl;
+    outBlob = blob; original = null; louder = false; URL.revokeObjectURL(outUrl); outUrl = URL.createObjectURL(blob); after.src = outUrl;
     const v = display?.getVideoTracks()[0]?.getSettings();
-    result.replaceChildren(h('div', { class: 'vid-big' }, fmtBytes(blob.size)), h('div', { class: 'muted small' }, `${fmtTime(secs)} · ${area ? `${area[2]}×${area[3]} area` : `${v?.width || ''}×${v?.height || ''}`} · ${mime || 'browser default'}`), after);
+    sizeEl.textContent = fmtBytes(blob.size); loudInfo.textContent = ''; loudBtn.hidden = false; origBtn.hidden = true;
+    result.replaceChildren(sizeEl, h('div', { class: 'muted small' }, `${fmtTime(secs)} · ${area ? `${area[2]}×${area[3]} area` : `${v?.width || ''}×${v?.height || ''}`} · ${mime || 'browser default'}`), after,
+      ...(recSound ? [h('div', { class: 'row' }, loudBtn, origBtn), loudInfo] : []));
     resultCard.hidden = false; stateEl.textContent = `Recorded ${fmtTime(secs)}`;
     setButtons();
   }
@@ -230,6 +234,32 @@ export const mount: Mount = (root) => {
   const stopBtn = button('Stop', () => stop(), { icon: 'Square', variant: 'danger' });
   const cancelBtn = button('Cancel', () => cancelCount?.(), { icon: 'X' });
   const saveBtn = button('Download', () => outBlob && downloadBlob(outBlob, outName), { icon: 'Download', variant: 'primary' });
+  // "Bring the sound to a normal loudness" (to-do #21; owner, 26 Nov 2026: "Yes"): −16 LUFS by FFmpeg's loudnorm
+  // (src/lib/normalize.ts) — the recording keeps the level it was played at (checked), and that can be quieter than the
+  // videos one compares it with
+  const sizeEl = h('div', { class: 'vid-big' });
+  const loudInfo = h('div', { class: 'muted small', 'aria-live': 'polite' });
+  const loudBtn = button('Bring the sound to a normal loudness', () => louden(), { icon: 'Volume2', title: 'EBU R128: −16 LUFS, the level of podcasts and of the FFmpeg tab’s “Normalise loudness” — measured first; the picture is copied as it is' });
+  const origBtn = button('Download the original', () => original && downloadBlob(original, outName.replace(/(\.\w+)$/, '-original$1')), { icon: 'Download', variant: 'ghost', small: true });
+  origBtn.hidden = true;
+  async function louden() {
+    if (!outBlob || louder || loudBtn.disabled) return;
+    const mine = outBlob, ext = outName.endsWith('.webm') ? 'webm' : 'mp4';
+    loudBtn.disabled = true; saveBtn.disabled = true;
+    const say = (what: string, share?: number) => { if (outBlob === mine) loudInfo.textContent = share === undefined ? what : `${what} ${Math.round(share * 100)} %`; };
+    try {
+      const { normalizeRecording } = await import('../lib/normalize');
+      const r = await normalizeRecording(mine, ext as 'mp4' | 'webm', say);
+      if (!live || outBlob !== mine) return; // a new recording meanwhile
+      if ('unchanged' in r) { loudInfo.textContent = r.unchanged; return; }
+      original = mine; outBlob = r.blob; louder = true;
+      URL.revokeObjectURL(outUrl); outUrl = URL.createObjectURL(r.blob); after.src = outUrl;
+      sizeEl.textContent = fmtBytes(r.blob.size); loudBtn.hidden = true; origBtn.hidden = false;
+      const up = r.after.i - r.before.i;
+      loudInfo.textContent = `The sound: ${r.before.i.toFixed(1)} → ${r.after.i.toFixed(1)} LUFS (${up >= 0 ? '+' : ''}${up.toFixed(1)} dB)${r.linear ? ', one gain for the whole recording' : ', the gain adjusted along the recording by FFmpeg (its dynamic mode, with the peaks kept below −1.5 dB)'}. The picture is as it was. Download saves this one.`;
+    } catch (e) { if (live && outBlob === mine) loudInfo.textContent = `The sound could not be changed: ${errMsg(e)}`; }
+    finally { loudBtn.disabled = false; saveBtn.disabled = false; }
+  }
   const hasFsa = !!(window as any).showSaveFilePicker;
   const customHint = h('div', { class: 'muted small', 'aria-live': 'polite' });
   const customIn = input({ type: 'number', value: keptCount.custom, min: 1, max: COUNT_MAX, step: 1, attrs: { 'aria-label': 'Countdown in seconds' },

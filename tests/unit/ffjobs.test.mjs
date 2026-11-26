@@ -256,6 +256,15 @@ export default async (t, { load, root }) => {
   // play it. The owner: "the audio volume of the output … seems to be lower than … the original".
   const loud = (p) => { const e = spawnSync('ffmpeg', ['-hide_banner', '-nostats', '-i', p, '-map', '0:a:0', '-af', 'ebur128=dualmono=true', '-f', 'null', '-'], { encoding: 'utf8' }).stderr; return +/I:\s+(-?[\d.]+) LUFS/.exec(e.slice(e.lastIndexOf('Summary:')))?.[1]; };
   const lay = (p) => { const a = info(p).a; return `${a.codec_name} ${a.channels} ${a.channel_layout ?? ''}`.trim(); };
+  /** the level of what is heard: the loudest half of 50 ms frames, as power (dB) — for speed changes, whose new time scale
+   *  moves the R128 integrated loudness of a 3 s clip by up to ±1 LU while the voice's own level stays within 0.2 dB */
+  const active = (p) => {
+    const raw = execFileSync('ffmpeg', ['-v', 'error', '-i', p, '-vn', '-ac', '2', '-ar', '48000', '-f', 'f32le', '-'], { maxBuffer: 1 << 28 });
+    const x = new Float32Array(raw.buffer, raw.byteOffset, raw.length / 4), n = 4800, e = [];
+    for (let i = 0; i + n <= x.length; i += n) { let s2 = 0; for (let k = i; k < i + n; k++) s2 += x[k] * x[k]; e.push(s2 / n); }
+    e.sort((a, b) => b - a); const top = e.slice(0, Math.max(1, e.length >> 1));
+    return 10 * Math.log10(top.reduce((a, b) => a + b, 0) / top.length);
+  };
   const LEVEL = [ // [what, job, options, the files, extra] — jobs that do not set out to change the level
     ['convert to MP4', 'convert', { fmt: 'mp4' }], ['convert to WebM', 'convert', { fmt: 'webm' }], ['convert to M4A', 'convert', { fmt: 'm4a' }], ['convert to OGG', 'convert', { fmt: 'ogg' }],
     ['convert to FLAC', 'convert', { fmt: 'flac' }], ['extract (as it is)', 'audio', { aud: 'copy' }], ['extract as WAV', 'audio', { aud: 'wav' }],
@@ -274,9 +283,9 @@ export default async (t, { load, root }) => {
       const res = runJob(job, o, extra === 'join' ? [file, file] : [file], extra === 'join' ? { join: true } : {});
       if (!ok(res, `${kinds} ${what}`)) continue;
       const base = extra === 'part' ? part('part', 'atrim=0.5:2.5') : extra === 'cut' ? part('cut', 'aselect=not(between(t\\,1\\,1.5)),asetpts=N/SR/TB') : whole;
-      const d = loud(res.out) - base;
+      const d = /speed/.test(what) ? active(res.out) - active(file) : loud(res.out) - base;
       rows.push(`${what} ${d >= 0 ? '+' : ''}${d.toFixed(1)}`);
-      t.ok(Math.abs(d) <= 0.5, `${kinds} (${file.split('/').pop()}) — ${what}: the same loudness (${base} → ${loud(res.out)} LUFS, ${lay(res.out)})`);
+      t.ok(Math.abs(d) <= 0.5, `${kinds} (${file.split('/').pop()}) — ${what}: ${/speed/.test(what) ? `the voice at its level (${d >= 0 ? '+' : ''}${d.toFixed(2)} dB, the loudest half of the frames)` : `the same loudness (${base} → ${loud(res.out)} LUFS)`}, ${lay(res.out)}`);
       if (kinds === '5.1' && /WebM|MP4|M4A|OGG|join|reverse/.test(what)) t.ok(/ 6 5\.1$/.test(lay(res.out)), `5.1(side) — ${what}: 5.1 as the encoders write it (${lay(res.out)})`);
       if (kinds !== '5.1' && /WebM|OGG/.test(what)) t.ok(lay(res.out).startsWith(`opus ${kinds === 'mono' ? 1 : 2}`), `${kinds} — ${what}: Opus in ${kinds} (${lay(res.out)})`);
     }

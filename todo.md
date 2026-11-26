@@ -215,9 +215,10 @@ The owner adds items here in chat ("add … to to do"). Newest instructions win.
   the first frame; a Cancel on the page too. **The level, checked:** known tones as the shared sound and as the
   microphone, recorded as MP4 and WebM, with and without the microphone — every tone in the file at the level played
   within 0.02 dB (the suite holds 0.5 dB): the recording does not lower the sound. Not seen by the tab: Chrome's
-  processing of a real microphone and Windows lowering other sounds while a communications microphone is open. Offered
-  to the owner: a "Bring the sound to a normal loudness" button (R128 to −16 LUFS) — built only at his word. e2e
-  screencast 50, screenshot 22. CLAUDE.md §3 Screencast, "Countdowns and the sound level".
+  processing of a real microphone and Windows lowering other sounds while a communications microphone is open. And
+  (owner, 26 Nov 2026: "Yes") **"Bring the sound to a normal loudness"**: FFmpeg's loudnorm in two passes brings the sound
+  to −16 LUFS (one gain where it can, its dynamic mode where it must), the picture's packets copied — measured −30.7 →
+  −16.0 LUFS. e2e screencast 53, screenshot 22. CLAUDE.md §3 Screencast, "Countdowns and the sound level".
 - **22. FFmpeg, "Extract audio": MP3 for the download** (owner, 26 Nov 2026: "in the extract audio option of the FFmpeg app,
   the extracted audio is by default in the .m4a format. Add an MP3 audio formats also for the download.") — done 26 Nov
   2026: the formats are buttons in plain sight — As it is (.m4a, named after the file's own sound) · MP3 · WAV · FLAC · OGG

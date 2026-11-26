@@ -263,7 +263,10 @@ export default async ({ base, page: newPage, ok, info, download, released }) => 
       draw(); setInterval(draw, 33);
       const ac = new AudioContext(); await ac.resume();
       const o = ac.createOscillator(), gn = ac.createGain(), d = ac.createMediaStreamDestination();
-      o.frequency.value = 440; gn.gain.value = 0.3; o.connect(gn).connect(d); o.start();
+      o.frequency.value = 440; gn.gain.value = window.__sharedAmp ?? 0.3; o.connect(gn).connect(d); o.start();
+      // a level that changes (window.__sharedSwing: the amplitude doubles every other second) has a loudness range — the
+      // steady tone has none, and FFmpeg's loudnorm then uses its dynamic mode
+      if (window.__sharedSwing) { let hi = false; setInterval(() => { hi = !hi; gn.gain.value = (window.__sharedAmp ?? 0.3) * (hi ? 2 : 1); }, 1000); }
       window.__sharedAc = ac;
       return new MediaStream([...c.captureStream(30).getVideoTracks(), ...d.stream.getAudioTracks()]);
     };
@@ -292,5 +295,36 @@ export default async ({ base, page: newPage, ok, info, download, released }) => 
     ok(all.every((d) => Math.abs(d) <= 0.5), line);
     info(`sound level — ${line}`);
   }
+  // "Bring the sound to a normal loudness" (owner, 26 Nov 2026: "Yes"): a quiet recording (the tone at 0.03 — about −31 LUFS)
+  // made −16 LUFS by FFmpeg's loudnorm, the picture's packets the original's byte for byte (ffmpeg's md5 of the video
+  // stream, copied), "Download the original" kept; a recording already at −16 LUFS is left as it is and said so
+  const r128 = (f) => { const e = spawnSync('ffmpeg', ['-hide_banner', '-nostats', '-i', f, '-map', '0:a:0', '-af', 'ebur128', '-f', 'null', '-'], { encoding: 'utf8' }).stderr; return +/I:\s+(-?[\d.]+) LUFS/.exec(e.slice(e.lastIndexOf('Summary:')))?.[1]; };
+  const vmd5 = (f) => execFileSync('ffmpeg', ['-v', 'error', '-i', f, '-map', '0:v:0', '-c', 'copy', '-f', 'md5', '-'], { encoding: 'utf8' }).trim();
+  const loudBtn = () => p3.getByRole('button', { name: 'Bring the sound to a normal loudness' });
+  if ((await p3.locator('label.switch', { hasText: 'Add my microphone' }).locator('input').isChecked())) await p3.getByText('Add my microphone').click();
+  for (const [fmt, swing] of [['mp4', true], ['webm', false]]) {
+    await p3.evaluate((sw) => { window.__sharedAmp = 0.02; window.__sharedSwing = sw; }, swing);
+    await p3.getByRole('combobox', { name: /^Format/ }).selectOption(fmt);
+    await btn3('Choose again').click().catch(() => {}); // a new share: the tone at its new level
+    await p3.waitForFunction(() => document.querySelector('.sc-preview')?.srcObject, null, { timeout: 15000 });
+    await btn3('Start recording').click(); await p3.getByText(/^Recording ·/).waitFor({ timeout: 15000 });
+    await p3.waitForTimeout(swing ? 8200 : 3200); await btn3('Stop').click(); await p3.getByText(/^Recorded /).first().waitFor({ timeout: 30000 });
+    await loudBtn().click();
+    await p3.getByText(/^The sound: .* LUFS/).waitFor({ timeout: 240000 }).catch(() => {});
+    const said = await p3.locator('.card', { hasText: 'Recording' }).locator('[aria-live]').last().textContent();
+    const after = await download(p3, () => btn3('Download').click()), orig = await download(p3, () => p3.getByRole('button', { name: 'Download the original' }).click());
+    if (!haveFF) { ok(/^The sound: /.test(said), `${fmt}: the sound brought up (${said})`); continue; }
+    const a = r128(orig), b = r128(after), same = vmd5(orig) === vmd5(after), codec = execFileSync('ffprobe', ['-v', 'error', '-select_streams', 'a:0', '-show_entries', 'stream=codec_name,channels', '-of', 'csv=p=0', after], { encoding: 'utf8' }).trim();
+    ok(Math.abs(b + 16) <= 0.5 && a < -28 && same && codec === (fmt === 'mp4' ? 'aac,2' : 'opus,2') && !(await loudBtn().isVisible()) && (swing ? /one gain for the whole recording/ : /its dynamic mode/).test(said),
+      `${fmt.toUpperCase()}: the sound ${a} → ${b} LUFS (${codec}), the picture's packets the original's: ${same} — "${said}"`);
+    info(`normal loudness — ${fmt.toUpperCase()}: ${a} → ${b} LUFS (${codec}), picture packets identical: ${same}; the tab: "${said}"`);
+  }
+  await p3.evaluate(() => { window.__sharedAmp = 0.172; window.__sharedSwing = false; }); // about −16 LUFS already
+  await btn3('Choose again').click(); await p3.waitForFunction(() => document.querySelector('.sc-preview')?.srcObject, null, { timeout: 15000 });
+  await btn3('Start recording').click(); await p3.getByText(/^Recording ·/).waitFor({ timeout: 15000 });
+  await p3.waitForTimeout(3200); await btn3('Stop').click(); await p3.getByText(/^Recorded /).first().waitFor({ timeout: 30000 });
+  await loudBtn().click();
+  await p3.getByText(/already at a normal loudness/).waitFor({ timeout: 240000 }).catch(() => {});
+  ok(await p3.getByText(/already at a normal loudness \(-1[56]\.\d LUFS\): nothing was changed/).isVisible(), 'a recording already at −16 LUFS: said, nothing changed');
   ok(!p3.errors.length, `no page errors in the level recordings ${p3.errors.slice(0, 3).join(' | ')}`);
 };

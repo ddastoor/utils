@@ -2936,3 +2936,13 @@ cannot. Three new suites; each fails on the build before its fixes.
   (echo cancellation, noise suppression, automatic gain) and Windows' "reduce other sounds when communicating". The
   e2e suite holds the level within 0.5 dB; countdowns Off / 3 / 5 / 8 / custom built with it (and a Cancel — the
   in-page countdown had none).
+- **Batch 3's browser runs (26 Nov 2026):** (1) **a speed change "lost 1 dB" on the stereo speech fixture** — natively too
+  (FFmpeg 6.1: −1.0 at 2×, −0.4 at 1.5×, +0.7 at 0.5×), while the loudest half of its 50 ms frames moved by −0.21, −0.22,
+  −0.16 dB: on a 3 s clip the R128 integrated loudness is no measure of a speed change (its 400 ms blocks and gating fall
+  otherwise when the time scale changes) → speed is held to the voice's level (the loudest half of the frames), in both
+  suites. (2) **The FFmpeg suite's page crashed** ("Target crashed") at 5.1 → MP4 after the Stop checks' new FFmpegs and a
+  few jobs — the same job on a fresh page ran three times in 31 s each → the new checks run on a page of their own (the
+  long-session crash of the headless shell). (3) **The disk filled** (13 GB of offline-TTS work in the scratchpad) and
+  Chrome's renderer crashed mid-run → deleted; a run that fails as "Target crashed" is worth a `df` first. (4) **FFmpeg's
+  loudnorm keeps its one-gain ("linear") mode only for a sound with a loudness range above 0** — a steady test tone is
+  normalised in its dynamic mode (the Screencast's line now says which); the suite tests both.

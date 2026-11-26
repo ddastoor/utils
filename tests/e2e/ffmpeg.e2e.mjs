@@ -358,17 +358,31 @@ export default async ({ base, page: newPage, ok, info, download }) => {
   // stereo (joins, "Stereo": 3 dB lower) and for 5.1 as Opus; and this core's Opus encoder crashed on stereo ("memory
   // access out of bounds"), unseen while every fixture was mono. The loudness (EBU R128, a mono file as heard on two
   // speakers) and the channels are read by the native FFmpeg where it is installed (apt; choco on the Windows runner).
+  // On a fresh page: the headless shell's renderer crashed here once after the Stop checks' new FFmpegs and a few jobs
+  // (5.1 → MP4, which runs on a fresh page every time) — the long-session crash noted above
+  const stopPageErrors = process.env.E2E_FF_SAME_PAGE ? [] : page.errors;
+  if (!process.env.E2E_FF_SAME_PAGE) { page = await newPage({ viewport: { width: 1280, height: 1100 } }); await page.goto(`${base}#/ffmpeg`); }
   const nativeFF = spawnSync('ffmpeg', ['-version']).status === 0 && spawnSync('ffprobe', ['-version']).status === 0;
   const loud = (p) => { const e = spawnSync('ffmpeg', ['-hide_banner', '-nostats', '-i', p, '-map', '0:a:0', '-af', 'ebur128=dualmono=true', '-f', 'null', '-'], { encoding: 'utf8' }).stderr; return +/I:\s+(-?[\d.]+) LUFS/.exec(e.slice(e.lastIndexOf('Summary:')))?.[1]; };
   const lay = (p) => execFileSync('ffprobe', ['-v', 'error', '-select_streams', 'a:0', '-show_entries', 'stream=codec_name,channels,channel_layout', '-of', 'csv=p=0', p]).toString().trim();
+  /** the level of what is heard — the loudest half of 50 ms frames, as power, in dB — for a speed change: a new time scale
+   *  moves the R128 integrated loudness of a 3 s clip by up to ±1 LU (its gating and 400 ms blocks fall otherwise) while
+   *  the voice's own level stays within 0.2 dB (measured natively, docs/BUGHUNT.md) */
+  const active = (p) => {
+    const raw = execFileSync('ffmpeg', ['-v', 'error', '-i', p, '-vn', '-ac', '2', '-ar', '48000', '-f', 'f32le', '-'], { maxBuffer: 1 << 28 });
+    const x = new Float32Array(raw.buffer, raw.byteOffset, raw.length / 4), n = 4800, e = [];
+    for (let i = 0; i + n <= x.length; i += n) { let s = 0; for (let k = i; k < i + n; k++) s += x[k] * x[k]; e.push(s / n); }
+    e.sort((a, b) => b - a); const top = e.slice(0, Math.max(1, e.length >> 1));
+    return +(10 * Math.log10(top.reduce((a, b) => a + b, 0) / top.length)).toFixed(2);
+  };
   /** the run's output against `src`: its sound `want` (codec,channels,layout), its loudness within [lo, hi] dB of src's */
-  const level = async (src, what, want, [lo, hi] = [-0.5, 0.5], cut = 0) => {
+  const level = async (src, what, want, [lo, hi] = [-0.5, 0.5], cut = 0, measure = loud) => {
     let out;
     try { out = await run(); } catch (e) { ok(false, `${what}: ${e.message.slice(0, 300)}`); return; }
     if (!nativeFF) { ok(true, `${what}: made (no native FFmpeg here — the loudness is not measured)`); return; }
     let m = out;
     if (cut) { m = `${out}.part.wav`; execFileSync('ffmpeg', ['-v', 'error', '-y', '-i', out, '-t', String(cut), '-vn', m]); }
-    const a = loud(src), b = loud(m), l = lay(out);
+    const a = measure(src), b = measure(m), l = lay(out);
     ok(b - a >= lo && b - a <= hi && want.test(l), `${what}: ${l}, ${a} → ${b} LUFS`);
   };
   await choose(M('stereo.mp4'), /Audio: aac.*stereo/);
@@ -379,7 +393,7 @@ export default async ({ base, page: newPage, ok, info, download }) => {
   await task('Your own arguments'); await page.getByLabel('FFmpeg arguments').fill('-i in1.mp4 -vn -c:a libopus -b:a 96k out.ogg');
   await level(M('stereo.mp4'), 'own arguments making stereo Opus: "-compression_level:a 4" added, it runs', /^opus,2,stereo$/);
   await task('Speed up / slow down');
-  await level(M('stereo.mp4'), 'stereo speech at 2×: the same loudness', /^aac,2,stereo$/);
+  await level(M('stereo.mp4'), 'stereo speech at 2×: the voice at the same level', /^aac,2,stereo$/, [-0.5, 0.5], 0, active);
   await choose(M('surround.mkv'), /Audio: ac3/);
   await task('Convert format'); await combo('To').selectOption('webm');
   await level(M('surround.mkv'), '5.1(side) AC-3 → WebM: it runs (libopus refused the layout), Opus in 5.1, the same loudness', /^opus,6,5\.1$/);
@@ -414,7 +428,7 @@ export default async ({ base, page: newPage, ok, info, download }) => {
   const smf = mp3Frames(readFileSync(sm));
   if (nativeFF) { const a = loud(M('stereo.mp4')), b = loud(sm); ok(smf.ok && smf.rates.slice(1).every((r) => r === 320) && Math.abs(b - a) <= 0.5 && /^mp3,2,stereo$/.test(lay(sm)), `"Download as MP3" of the stereo .m4a: 320 kb/s as chosen, ${lay(sm)}, ${a} → ${b} LUFS`); }
   else ok(smf.ok && smf.rates.slice(1).every((r) => r === 320), '"Download as MP3" of the stereo .m4a: 320 kb/s as chosen');
-  const errs = [...longErrors, ...page.errors].filter((e) => !/FFmpeg failed|only 3 s long|change nothing|Type the text|Choose the logo|under half a second|at least one more clip|differ in size|needs a video/.test(e)); // refusals, logged by the button
+  const errs = [...longErrors, ...stopPageErrors, ...page.errors].filter((e) => !/FFmpeg failed|only 3 s long|change nothing|Type the text|Choose the logo|under half a second|at least one more clip|differ in size|needs a video/.test(e)); // refusals, logged by the button
   ok(!errs.length, `no page errors ${errs.slice(0, 3).join(' | ')}`);
   info('ffmpeg.wasm 0.12 core (FFmpeg 5.1.4)');
 };

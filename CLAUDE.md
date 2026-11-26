@@ -2806,6 +2806,18 @@ confirm this. If it is actually so, then fix it."; e2e 50):**
   browser hands it over (the system's or the tab's playback before the volume control); what it cannot see: Chrome's
   processing of a real microphone (echo cancellation, noise suppression, automatic gain — asked for, as calls do), and
   Windows lowering other sounds while a "communications" microphone is open (Sound settings → Communications).
+- **"Bring the sound to a normal loudness"** (owner, 26 Nov 2026: "Yes" — offered after the check): a button under a
+  recording that has sound (`src/lib/normalize.ts`). FFmpeg's loudnorm (the FFmpeg tab's ffmpeg.wasm — the existing
+  module that measures EBU R128 and limits true peaks; fetched on the first press, let go on leave) in two passes on the
+  sound alone: the first measures; the second brings it to **−16 LUFS** with **one gain for the whole recording**
+  (`linear`), or — where one gain would push a peak above −1.5 dBTP, the loudness range is above 20 LU, or the sound has
+  no range at all (a steady tone) — loudnorm's dynamic mode. The new sound (AAC 160 kb/s in an MP4, Opus in a WebM — the
+  stereo Opus at complexity 4) is joined to the recording's own video packets by mediabunny (`joinSound`, the two tracks
+  in time order; the picture never re-encoded, ffmpeg's md5 of the video stream equal before and after). The line under
+  it says before → after ("−30.8 → −15.9 LUFS (+14.8 dB), one gain for the whole recording"); silence, no sound, or
+  already within 0.5 LU of −16 is said and nothing changes; "Download the original" keeps the one before. Recordings
+  saved straight to a file are pointed to the FFmpeg tab's "Normalise loudness". e2e: a quiet MP4 with a changing level
+  (linear) and a steady WebM tone (dynamic) both −16 ± 0.5 LUFS, the picture's packets identical; one already at −16.
 
 ### Screenshot (PC) — BUILT (`src/tools/screenshot.ts`; e2e `tests/e2e/screenshot.e2e.mjs` 12)
 Share once (Chrome's picker: screen, window or tab; own tab excluded; optional mouse pointer) → "Take screenshot"

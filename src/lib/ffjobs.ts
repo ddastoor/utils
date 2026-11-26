@@ -87,13 +87,13 @@ const layoutFix = (std: Record<number, string>, ch: number, layout: string) => (
  *  loudness — the upper bands went). One channel keeps the rate given. */
 const kbpsFor = (kbps: number, ch: number) => `${ch > 2 ? Math.round((kbps * ch) / 2) : kbps}k`;
 /** AAC at `kbps` (for two channels) for a sound of `ch` channels in `layout`. */
-const aacArgs = (kbps: number, ch = 2, layout = '') => ['-c:a', 'aac', '-b:a', kbpsFor(kbps, ch), ...layoutFix(AAC_LAYOUT, ch, layout)];
+export const aacArgs = (kbps: number, ch = 2, layout = '') => ['-c:a', 'aac', '-b:a', kbpsFor(kbps, ch), ...layoutFix(AAC_LAYOUT, ch, layout)];
 /** Opus, likewise. **The Opus encoder of this build (libopus 1.3.1 in ffmpeg.wasm 0.12) crashes on two channels and
  *  more** — "memory access out of bounds" at the first frame, with 20 ms frames (and 40, 60) and complexity 5 and above,
  *  which turn on its pitch pre-filter and its late transient check — so they are made at complexity 4, which a
  *  noise-to-mask measure put level with the default at these bitrates (docs/BUGHUNT.md); one channel keeps the default. */
 export const OPUS_SAFE = ['-compression_level:a', '4'];
-const opusArgs = (kbps: number, ch = 2, layout = '') => ['-c:a', 'libopus', '-b:a', kbpsFor(kbps, ch), ...(ch === 1 ? [] : OPUS_SAFE), ...layoutFix(OPUS_LAYOUT, ch, layout)];
+export const opusArgs = (kbps: number, ch = 2, layout = '') => ['-c:a', 'libopus', '-b:a', kbpsFor(kbps, ch), ...(ch === 1 ? [] : OPUS_SAFE), ...layoutFix(OPUS_LAYOUT, ch, layout)];
 /** The start of a filter chain that takes a sound of `from` channels to `layout`: a mono sound goes on both sides at full
  *  level, as players play it — FFmpeg's own upmix puts it 3 dB lower on each side, and a mono phone video came out
  *  quieter; anything else is left to FFmpeg (a downmix of more channels as players make it). */
