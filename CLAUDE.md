@@ -2358,7 +2358,18 @@ where the marks decide which picture PaddleOCR reads and whether a page is read 
 counted as the marks are, a soft report frame with its "ii." kept went to PaddleOCR as it stood and read 70 % of its words
 where it had read 74 %). **Measured** (`OCR_LIST=DIR node scripts/measure-ocr.mjs SET --prep read --paddle` against the
 build before #31 on the same sets; every list line of the pages held to `scripts/make-format-docs.mjs`'s `<page>.lists.json`
-by `tests/lib/listscore.mjs`): MEASURED.
+by `tests/lib/listscore.mjs`): **the reading as before** — the same photos read in the same order by both builds
+(Tesseract learns from the pages read before it in a process): the documents (108 photos of 18 pages — a phone's still,
+a video frame and a scan of each, photographed twice) 92.2 → 92.2 % and 94.5 → 94.5 % of their words read right, the
+harder set 81.7 → 81.6 %, the Kindle sets 71.9 → 71.9 % and 89.7 → 89.7 % (every photo as before), newspapers 66.4 →
+66.3 %; no photo worse beyond its own noise — the most, a soft memo frame 92.1 → 89.8 % (shifted by 2 px it reads alike
+or better: 91.1 / 92.4 / 92.8 against 91.1 / 91.8 / 92.8) and a soft checklist frame 81.7 → 80.2 % (one ○ more cleared,
+PaddleOCR reads its line a little otherwise; shifted: −2.0, 0, 0, where the old build alone moves 3.5 points); stray
+signs where bullets stood 193 → 189 lines; every photo's text holds exactly the reading's words. **The lists** on those
+108 photos (before: none — no marks, no indentation): 565 of the 756 list items set out as on the page, mark or number
+and level (74.7 %: scans 90.5 %, phone stills 79.8 %, soft video frames 54.0 %), 285 of the 334 lines an item runs on to
+set under its text (85.3 %), the marks the clean-up clears written as what they were 89.4 %; 20 lines set out as list
+lines where the page has none.
 **Not kept:** a ✓ used as a bullet (the clean-up does not clear it; Tesseract reads "v" or "+"), ➢ (read as ">" or ">»":
 its indentation is kept, not its look; on a soft photo, its point blurred round, it is cleared and written •), a mark too
 soft or too small to see; headings and tables (the owner: lists only).
@@ -2368,8 +2379,8 @@ PaddleOCR's reading of a mark, Tesseract's real reading of the memo photo: 14 of
 `OCR_MARKS=DIR node scripts/measure-ocr.mjs … --only PHOTO` writes them as `PHOTO.read.marks.png`: a phone's still of a
 checklist — faint rings and boxes —, a soft memo frame — closed rings, the "a." kept —, a soft report frame — its ➢
 cleared, its "ii." kept —, a soft form frame — "UI" after a word run together kept), `readpage` 39 (`listSigns`),
-`pagecrop` 50; e2e OCR E2EOCR (the photographed memo, checklist and
-newsletter held to their pages' lists; .txt and Copy with the marks), Photo Dictionary E2EPD (its text stays plain).
+`pagecrop` 50; e2e OCR 95 (the photographed memo, checklist and
+newsletter held to their pages' lists; .txt and Copy with the marks), Photo Dictionary 127 (its text stays plain) — both also on Windows (the Windows check, runs 12 – 13).
 
 ### Camera in every tab that takes a picture (owner, 20 Nov 2026)
 Owner: "In all apps that offer to upload an image, also add the option of taking a photo if it's a phone app, and take

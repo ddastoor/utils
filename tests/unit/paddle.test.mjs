@@ -77,7 +77,10 @@ export default async (t, { load, wasm }) => {
 
   // ---- CTCLabelDecode (repeats folded, blanks dropped, the mean probability)
   {
-    const c = ref.ctc, probs = new Float32Array(b64(c.probs).buffer.slice(b64(c.probs).byteOffset, b64(c.probs).byteOffset + c.T * c.C * 4));
+    // (decoded once: a small Buffer lives in Node's shared pool, and three decodings sliced the first one's memory at the
+    // second one's offset — the same bytes while both stood in one pool, garbage when the pool ran out between them, which
+    // depended on how much of it the suites running beside this one had taken)
+    const c = ref.ctc, raw = b64(c.probs), probs = new Float32Array(raw.buffer.slice(raw.byteOffset, raw.byteOffset + c.T * c.C * 4));
     const r = ip.ctc(probs, c.T, c.C), chars = ['', ...c.chars, ' '];
     const text = Array.from(r.cls, (k) => chars[k]).join(''), score = r.prob.reduce((s, p) => s + Math.round(p * 1e5) / 1e5, 0) / r.prob.length;
     t.eq(text, c.text, `CTC: the text CTCLabelDecode reads (${JSON.stringify(c.text)})`);

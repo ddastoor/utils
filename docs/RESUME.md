@@ -30,22 +30,21 @@ reference decryptor waited for a password from the Windows console (Python's get
 also failed pgp9580 and screencast without saying why (the harness prints the reasons as a suite ends now). **Run 9**
 (pgp9580 screencast sodium slideshow unzip youtube sqlfmt): 227 of 228 — only pgp9580's gpg (a Windows GNUPGHOME given to
 Git's POSIX gpg; fixed with `tests/e2e/_gpg.mjs`, aeece3b). **Run 10** (pgp9580 ocr photodict zip — the OCR tabs with the
-second reader, 04c555e) started at about 12:20 UTC — read it; if it is green, every suite has passed on Windows: close
-#13 (todo.md).
+second reader, 04c555e): 299 / 300 — the dark sentence in Arial (a one-line screenshot outlined as a page; the 6 : 1 rule);
+runs 12 – 13 with #31: all green — #13 closed (below).
 **New, 26 Nov 2026 (after the second reader): to-do #31** — the owner corrected #18 for the OCR tab: its text keeps the
 page's formatting (bullets, check boxes, indentation); the Photo Dictionary's stays plain. **The owner chose: text with
 bullets (• ◦ ▪ ☐ ☑ at the line starts, nested items indented — in the text box, Copy and the .txt), lists only (no
 headings or tables), and next: right after #13 closes, before batch 3.**
-**#31 status (26 Nov 2026, 14:10 UTC — in progress, pushed):** built — imgproc lists the marks it clears (kinds), the
-reading keeps its lines (`readingOf`), `src/lib/listtext.ts` sets the text out (unit `listtext` 71), the OCR tab shows it
-(Copy, .txt); the clean-up now also clears checklist boxes after a word space, finds faint marks on the light ink, keeps a
-soft "a." / "ii." as letters (as tall as the x-height; out[7] counts them with the marks for the reading's decisions —
-`listSigns`), and `MAX_ASPECT` (no outline above 6 : 1 is a page — the Windows OCR failure of #13). **Left:** compare the
-measurement (scratch: rounds A = old build, C = 13:49 build, D = final, `cmp2.py`; all eight photo sets — any photo worse
-beyond its own noise is looked into: shift it by 2 px and read both builds), score the lists, run e2e `ocr` and
-`photodict` on a fresh build, write CLAUDE.md §3 OCR "The page's lists" (draft wording: lists kept, the levels, run-on
-lines, measured numbers), BUGHUNT, todo.md Done #31; then the Windows check with suites "ocr photodict" to close #13.
-**Next (the owner's order):** batch 3 — #23 FFmpeg volume, #22 FFmpeg MP3, #21 Screencast countdowns + sound level; then
+**#31 — DONE (26 Nov 2026)** (todo.md Done #31; CLAUDE.md §3 OCR, "The page's lists"): the OCR tab's text keeps the
+page's lists (marks, levels, run-on lines; box, Copy and .txt); the Photo Dictionary's stays plain. Measured with both
+builds reading the same photos in the same order: the reading as before on every set (Kindle photo for photo), the lists
+565 of 756 items as on the page. **#13 — DONE (26 Nov 2026)**: Windows check runs 12 – 13 — OCR 95 / 95, Photo Dictionary
+127 / 127; every suite has passed on Windows. Measuring scratch (not in the repository): the clean-up's input of every
+photo of the sets (`OCR_MARKS`) checks a later change of p_clear_marks quickly; HANDOFF lists the traps (an old module
+with a new binding; the photo order).
+**Next (the owner's order):** batch 3 — #23 FFmpeg volume, #22 FFmpeg MP3, #21 Screencast countdowns + sound level (todo.md
+Open; start with #23); then
 batch 4 (#24, #28 Screenshot), 5 (#15, #17, #16), 6 (#14 Text Diff), 7 (#20 Studio voice); then the potentials process.
 
 ## ▶ SYNC POINT — 21 Nov 2026, night (read this first; it supersedes the older "NOW" notes below)

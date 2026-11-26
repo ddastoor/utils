@@ -14,39 +14,6 @@ The owner adds items here in chat ("add … to to do"). Newest instructions win.
 3. _(withdrawn by the owner on 20 Nov 2026: the "Export Python utility" for the YouTube Clip tab — do not build it.)_
 
 
-13. **Every PC app on both Windows and Linux: a quick check across all the apps** (owner, 21 Nov 2026: "Just do a quick
-    test across all the apps and make sure that all the apps that work on PC work on both Windows and Linux.") Every tab
-    that runs on a PC (the PC-only ones and the PC + mobile ones) is opened and used for its main job on Windows and on
-    Linux (Chrome; on Linux X11 and Wayland), and what differs between the two is looked at on purpose: file and folder
-    pickers and drag-and-drop, file names and paths (backslashes, drive letters, case), line endings (CR LF / LF) in the
-    files a tab opens and saves, text encodings (Windows-1252 / UTF-16 from Windows programs), keyboard shortcuts
-    (Ctrl / Super / AltGr), fonts the page falls back on, the clipboard, screen capture (Screencast, Screenshot — the
-    portal on Wayland), camera and microphone, downloads, the offline speech scripts (.cmd on Windows, .sh on Linux) and
-    yt-dlp's file per system. What fails is fixed and pinned by a check in the tab's suite. How: this sandbox is Linux;
-    Windows by its behaviour where it can be stood in for (Windows-made files, Windows user-agent and client hints,
-    CR LF), and the rest on a Windows PC — the owner's, through the Claude app, or a Windows runner of GitHub Actions.
-    **And on Linux, X11 or Wayland** (owner, 21 Nov 2026: "make a note that all apps on Linux should be aware of or
-    auto-detect or have some way of detecting on Linux if I'm using X11 or Wayland"): every PC tab knows which one the
-    session runs on (the shared detection in `src/linux.ts`, CLAUDE.md's standing note) and is checked on both — where
-    they differ (capture, the colour picker, popups and Picture-in-Picture, full screen, drag-and-drop, the clipboard, the
-    camera) the tab says what Wayland changes and how to work with it.
-    **Progress (21 Nov 2026):** the real Windows check is `.github/workflows/windows.yml` (the browser suites in Google
-    Chrome on GitHub's Windows runner; run by hand). Its first runs found: the repository could not be checked out on
-    Windows (`public/data/dict/con.json`, `prn.json` — device names there; now `con_.json`, `prn_.json`, and
-    `tests/unit/repo-paths` refuses such names), and the build stopped on a path taken from a file:// URL (59 places,
-    now `fileURLToPath`). Files as Windows programs save them: the Hash tab's checksum lists and Sodium's encrypted
-    text read UTF-16 now. X11 / Wayland: the shared note also in Screen Info, Screenshot's Wayland tip about its
-    countdown window; `tests/e2e/os.e2e.mjs` opens all 172 PC tabs as Windows, X11 and Wayland. Then: Extract
-    Archive's "Save all to a folder" makes names Windows can create (aux.c → aux_.c, `notes.` → notes_, README / readme
-    kept apart; elsewhere a name the browser refuses takes that form); the Patch tab keeps a Windows file's CR LF; the
-    Keyboard Test registers PrintScreen by its release (Windows keeps its key-down) and takes the key-up (a lone Alt
-    moved the focus to Chrome's menu); the offline speech script for Windows ends with its real exit code and **was run
-    for real on Windows** (`.github/workflows/windows-tts.yml`: Piper — the lock's versions, a WAV and an MP3, exit 1 for
-    a voice that cannot be made; then one job per engine): **all 18 engines make speech on Windows** (Kyutai without a
-    C++ compiler, F5-TTS's lock fixed on 26 Nov). The browser suites in Chrome on Windows (run 5, 26 Nov): 19 of 30 passed; one
-    app fault (the Photo Dictionary's online HTML: tags now taken out before parsing) and eleven faults of the suites on
-    Windows fixed (ef43da3; docs/BUGHUNT.md "Windows / Linux" (10)). Next: run 6 (the 15 suites touched) green → #13 done.
-
 14. **Text Diff: two local files, a file of a public GitHub repository at two commits, the difference as a patch file**
     (owner, 26 Nov 2026: "In the text diff app, add 2 more text input options. One is to upload two local files. The
     second option is to name a file in a public GitHub repository with two different commit hashes. Also, add the option
@@ -225,26 +192,58 @@ The owner adds items here in chat ("add … to to do"). Newest instructions win.
 
 
 
-31. **OCR tab: keep the page's formatting — bullets, sub-bullets, check boxes, indentation** (owner, 26 Nov 2026: "I stand
-    corrected. In the OCR app, the rich formatting should be preserved, the bullet points, etc. In the photo dictionary
-    app, it need not be, only because the actual OCR rendition is needed for me to further select a phrase that I could
-    then look up in Wikipedia.") — corrects #18's "no need to keep bullets and indentation in the text" **for the OCR tab
-    only**; the Photo Dictionary's text stays plain, as it is.
-    - **The reading stays exactly as it is** (the owner: "the high quality of the ocr is paramount"): the marks are still
-      cleared before Tesseract and PaddleOCR read, so they never turn into stray letters, and every photo of the sets is
-      measured before and after — no word may read worse.
-    - **What is kept:** `p_clear_marks` (imgproc) already finds every list mark it clears; it records each one — where it
-      stands and what it is (● ○ ■ ▪ ◆ ► – ☐ ☑ ☒) — and the tab puts it back at the start of its line, with the levels of
-      the list as indentation (from where the lines start against the page's margin). Numbered and lettered items keep
-      their numbers and letters (they are text already).
-    - **The owner's choices (26 Nov 2026):** **text with bullets** — the text box, Copy and the .txt show the marks at the
-      start of their lines (• ◦ ▪ for bullets, ☐ ☑ for check boxes) and nested items indented, as on the page; **lists
-      only** — bullets, check boxes, numbered and lettered items and indentation (no headings, no tables); **next** —
-      right after #13 closes, before batch 3.
-    - The suite: the formatted documents of `scripts/make-format-docs.mjs` (bullets nested two and three deep, check boxes
-      ticked and not, Word's "o", numbered and lettered lists), photographed — each mark back on its line, at its level.
-
 ## Done
+- **31. OCR tab: keep the page's formatting — bullets, sub-bullets, check boxes, indentation** (owner, 26 Nov 2026: "In
+  the OCR app, the rich formatting should be preserved, the bullet points, etc. In the photo dictionary app, it need not
+  be"; the owner's choices: text with bullets, lists only) — done 26 Nov 2026: the OCR tab's text — the box, Copy and
+  the .txt — has the page's lists as they stand on it: • ◦ ▪ ◆ ► ☐ ☑ ☒ ◉ at the line starts, numbers and letters as
+  read, four spaces a level, the lines an item runs on to under its text (`src/lib/listtext.ts`; the marks are the ones
+  the clean-up clears, listed by imgproc's p_clear_marks with what each was). The Photo Dictionary's text stays plain.
+  The clean-up itself: checklist boxes cleared after a word space, faint marks of a phone's photo found on the light
+  ink, a soft "a." or "ii." kept as letters (counted with the marks for the reading's decisions), a word run together
+  before a candidate honoured. Measured — the build before against this one, the same photos in the same order
+  (Tesseract learns from the pages it read before): the reading as before (documents 92.2 → 92.2 % and 94.5 → 94.5 % of
+  their words read right, harder layouts 81.7 → 81.6, Kindle 71.9 → 71.9 and 89.7 → 89.7 — every Kindle photo as before
+  —, newspapers 66.4 → 66.3; no photo worse beyond its own noise); the lists, against the pages' own (108 photos of 18
+  pages): 565 of 756 list items set out as on the page, mark or number and level (scans 90.5 %, phone stills 79.8 %,
+  soft video frames 54.0 %), 85.3 % of the lines an item runs on to under its text, every photo's words the reading's;
+  e2e OCR 95 and Photo Dictionary 127, on Windows too. CLAUDE.md §3 OCR, "The page's lists"; docs/BUGHUNT.md.
+- **13. Every PC app on both Windows and Linux: a quick check across all the apps** (owner, 21 Nov 2026: "Just do a quick
+  test across all the apps and make sure that all the apps that work on PC work on both Windows and Linux.") Every tab
+  that runs on a PC (the PC-only ones and the PC + mobile ones) is opened and used for its main job on Windows and on
+  Linux (Chrome; on Linux X11 and Wayland), and what differs between the two is looked at on purpose: file and folder
+  pickers and drag-and-drop, file names and paths (backslashes, drive letters, case), line endings (CR LF / LF) in the
+  files a tab opens and saves, text encodings (Windows-1252 / UTF-16 from Windows programs), keyboard shortcuts
+  (Ctrl / Super / AltGr), fonts the page falls back on, the clipboard, screen capture (Screencast, Screenshot — the
+  portal on Wayland), camera and microphone, downloads, the offline speech scripts (.cmd on Windows, .sh on Linux) and
+  yt-dlp's file per system. What fails is fixed and pinned by a check in the tab's suite. How: this sandbox is Linux;
+  Windows by its behaviour where it can be stood in for (Windows-made files, Windows user-agent and client hints,
+  CR LF), and the rest on a Windows PC — the owner's, through the Claude app, or a Windows runner of GitHub Actions.
+  **And on Linux, X11 or Wayland** (owner, 21 Nov 2026: "make a note that all apps on Linux should be aware of or
+  auto-detect or have some way of detecting on Linux if I'm using X11 or Wayland"): every PC tab knows which one the
+  session runs on (the shared detection in `src/linux.ts`, CLAUDE.md's standing note) and is checked on both — where
+  they differ (capture, the colour picker, popups and Picture-in-Picture, full screen, drag-and-drop, the clipboard, the
+  camera) the tab says what Wayland changes and how to work with it.
+  **Progress (21 Nov 2026):** the real Windows check is `.github/workflows/windows.yml` (the browser suites in Google
+  Chrome on GitHub's Windows runner; run by hand). Its first runs found: the repository could not be checked out on
+  Windows (`public/data/dict/con.json`, `prn.json` — device names there; now `con_.json`, `prn_.json`, and
+  `tests/unit/repo-paths` refuses such names), and the build stopped on a path taken from a file:// URL (59 places,
+  now `fileURLToPath`). Files as Windows programs save them: the Hash tab's checksum lists and Sodium's encrypted
+  text read UTF-16 now. X11 / Wayland: the shared note also in Screen Info, Screenshot's Wayland tip about its
+  countdown window; `tests/e2e/os.e2e.mjs` opens all 172 PC tabs as Windows, X11 and Wayland. Then: Extract
+  Archive's "Save all to a folder" makes names Windows can create (aux.c → aux_.c, `notes.` → notes_, README / readme
+  kept apart; elsewhere a name the browser refuses takes that form); the Patch tab keeps a Windows file's CR LF; the
+  Keyboard Test registers PrintScreen by its release (Windows keeps its key-down) and takes the key-up (a lone Alt
+  moved the focus to Chrome's menu); the offline speech script for Windows ends with its real exit code and **was run
+  for real on Windows** (`.github/workflows/windows-tts.yml`: Piper — the lock's versions, a WAV and an MP3, exit 1 for
+  a voice that cannot be made; then one job per engine): **all 18 engines make speech on Windows** (Kyutai without a
+  C++ compiler, F5-TTS's lock fixed on 26 Nov). The browser suites in Chrome on Windows (run 5, 26 Nov): 19 of 30 passed; one
+  app fault (the Photo Dictionary's online HTML: tags now taken out before parsing) and eleven faults of the suites on
+  Windows fixed (ef43da3; docs/BUGHUNT.md "Windows / Linux" (10)).
+  **Done 26 Nov 2026:** runs 6 – 13 of the Windows check ran every browser suite; what they found was fixed and pinned
+  (docs/BUGHUNT.md "Windows / Linux" (1) – (15): a reference program that waited for a password from the Windows console,
+  Git's gpg given Windows folders, a one-line screenshot outlined as a page in Arial, the clipboard's \r\n …). Every suite
+  has passed on Windows — the last ones the OCR tabs with to-do #31: OCR 95 / 95, Photo Dictionary 127 / 127.
 - **18. OCR and Photo Dictionary: the OCR tab as good as the Photo Dictionary; documents with rich formatting and with
   watermarks, above all from a phone's camera; measured on many real documents** (owner, 26 Nov 2026; "One shared reading
   path is fine.. but make sure no functionality is compramised.. the high quality of the ocr is paramount !!!") — done

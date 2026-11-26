@@ -2740,7 +2740,11 @@ cannot. Three new suites; each fails on the build before its fixes.
   elongated than 6 : 1 is a page (`MAX_ASPECT`, src/lib/pagecrop.ts: the most elongated page found in the measured photos
   is 1.49 : 1, so no measured reading changes); unit pagecrop 50 (+3: a tilted strip round a line is outlined and left
   alone). Arial cannot be drawn here, and the picture's bytes, printed into the run's log, could not be fetched from the
-  log's host: the next Windows run checks the fix.
+  log's host: the next Windows run checks the fix. (15) **Runs 12 – 13 (the build with to-do #31):** the dark sentence
+  reads on Windows now (the 6 : 1 rule); the one failure was #31's new check — the copied text compared with the box byte
+  for byte, and Windows' clipboard keeps a line break as \r\n (Chrome writes and reads it so there) → compared as the
+  platform writes line breaks. OCR 95 / 95, Photo Dictionary 127 / 127: **every suite has passed on Windows — to-do #13
+  closed.** The run's log is readable after all: the GitHub tool's `get_job_logs` with `return_content` (HANDOFF).
 - **OCR and Photo Dictionary: documents with formatting read poorly, above all from a phone (26 Nov 2026; owner, to-do
   #18: "works very poorly for a document that has formatting, rich text formatting like bullet points, indentation, etc.,
   especially using the phone camera. Also improve the quality when the document has a watermark").** Measured on 150
@@ -2824,3 +2828,62 @@ cannot. Three new suites; each fails on the build before its fixes.
   Result: training 80.6 → 86.6 % of the words read right, the second set 83.8 → 93.4 %, 20 newspapers 52.6 → 65.6 %, no
   photo worse; unit paddle 51, readpage 38; e2e OCR 91, Photo Dictionary 124 (soft frames read by PaddleOCR, its models
   fetched only then, refused models).
+- **OCR tab: the page's lists kept in its text (26 Nov 2026; owner, to-do #31: "In the OCR app, the rich formatting should be
+  preserved, the bullet points, etc.").** The clean-up lists the marks it clears and `src/lib/listtext.ts` puts them back,
+  with the levels and the lines an item runs on to (CLAUDE.md §3 OCR, "The page's lists"). Measured on the photo sets of
+  #18 against the pages' own lists (`scripts/make-format-docs.mjs` now writes them). Found on the way:
+  - **A Google Docs checklist's boxes were never cleared** — the rule "a mark is set off by more than every word space of
+    its line" (it keeps the word "a" of a soft Kindle line) refused them: a checklist sets its boxes off by one word space.
+    Tesseract read them "[J", "[0" or "C". → A frame with ink in its four corners (no letter has one) is exempt.
+  - **A phone's photo breaks thin grey marks up:** a checklist's ☐ came out with its top and bottom fainter than its sides
+    (two bars in the ink), its ○ in pieces — never found. → Faint marks are looked for on the light ink (the grid's mask):
+    paler than the letters after them, the first thing on their line, and only in a list (another mark at the same place
+    on another line).
+  - **#18's clean-up erased a lettered list's "a." and a roman "ii."** on soft frames (a hole closed by the blur, letters
+    run together: a solid blob set off by a tab) — and #31 would have written • for them. → On a soft page a blob as dark
+    as the letters is a letter: kept.
+  - **That rule kept a soft frame's ➢ too** — as pale as the letters there (darkest grey 119 – 138 against the letters'
+    138 – 161), and kept they made Tesseract read 33.1 % of the report frame's words where it had read 46.0 %. → A letter
+    is as tall as the x-height (the "a." 0.91 – 1.0, "ii." 1.0 – 1.12), the ➢ are shorter (0.67 – 0.78): the rule asks
+    for 0.85 and more.
+  - **A label kept took a sign of a list away from the reading's decisions:** the number of marks cleared decides which
+    picture PaddleOCR reads (cleaned from two marks on) and whether a page is read again; a soft report frame with one ➢
+    cleared and its "ii." kept counted one, went to PaddleOCR as it stood and read 70.2 % where it had read 74.2 %. →
+    p_clear_marks counts the labels it keeps where a mark would have been cleared (out[7]); `listSigns` counts them with
+    the marks — the decisions are again those of the build before.
+  - **A word run together hid the start of a line:** on a soft form frame "Scuba Configuration" was one blob, longer than the
+    search for a mark's neighbours reaches (it looks at what has its middle within about five x-heights, and passes over
+    blobs longer than eight as pictures), so "UI" after it looked like the first thing on its line — and its letters, run
+    together, passed for a ticked box: cleared since #18; with #31 listed, and the OCR tab dropped the word PaddleOCR had
+    read there and wrote ☑. → What would be cleared is asked once more for a flat run of ink just before it on its line
+    (`cm_run_before`; pinned by soft-form.png).
+  - **A table after a checklist was set out as the last item's run-on lines** (two spaces in): on the checklist's video
+    frames the table began 1.0 – 1.3 x-heights left of the items' text, inside the 1.5 x-heights a run-on line was allowed.
+    → A run-on line starts within 0.75 x-heights of its item's text: 59 → 33 lines set out where the page has none on 180
+    photos, every run-on line kept.
+  - **A ring whose hole the blur closed was listed as a dot** → told by its paleness against the letter after it (a solid
+    dot stays darker than the letters on a soft page). At 5 px and less a blurred dot is as pale: some dots of a soft frame
+    are written ◦.
+  - **listtext:** a line's height and top were its first word's — a dash read as a word is 3 px high and stands half way
+    up, so a normal line gap looked like a jump and every dash list was cut after its first item (the lines' medians
+    now); a list at the top of a new column lost the blank line before it; ">" (➢ as Tesseract reads it) and roman numerals
+    of five letters were no labels.
+  - **A unit fixture that never reached its rule:** the soft memo frame saved as JPEG for pageclean — the JPEG's blocks
+    changed the "a." blob so much that it was no candidate any more, and the check "the a. stays" passed without the rule
+    it was written for. → The pictures of what p_clear_marks gets are kept lossless (`OCR_SAVE` writes them:
+    `PHOTO.read.marks.png`; `tests/lib/png.mjs` reads and writes PNG in the suites); with the build before #31 the four
+    checks on them fail.
+  - **The OCR suite's stray check** counted every line that starts with • ◦ ☐ as a mark read as a letter — the marks put
+    back would fail it → only marks read as letters (e, o, ©, 71 …).
+  - **Measuring trap:** `OCR_IMGPROC=old.wasm` runs an old module with the tree's binding, and the binding now reads
+    out[7], which old modules never write: the old build read 81 "labels" from stale memory and a Kindle photo went from
+    55.5 to 48.9 % — as if the change had cost it (HANDOFF, traps). Measured again with each build's own binding.
+  - **The paddle suite's CTC check failed now and then, beside other suites** (a mean probability of 9.6e35): it decoded
+    its Base64 data three times and sliced the first copy's memory at the second copy's offset — the same bytes while
+    both stood in Node's shared Buffer pool, garbage when the pool ran out between them → decoded once.
+  Result: the reading as before (the same photos in the same order by both builds — documents 92.2 → 92.2 % and 94.5 →
+  94.5 %, harder layouts 81.7 → 81.6, Kindle 71.9 → 71.9 and 89.7 → 89.7 with every photo as before, newspapers 66.4 →
+  66.3; no photo worse beyond its own noise); the lists on 108 photos of 18 pages: 565 of 756 items set out as on the page
+  (scans 90.5 %, phone stills 79.8 %, soft video frames 54.0 %), 85.3 % of the lines an item runs on to under its text, 20
+  lines set out where the page has none, every photo's words the reading's. Unit listtext 73, pageclean 71, readpage 39;
+  e2e OCR 95, Photo Dictionary 127 (both on Windows too).
