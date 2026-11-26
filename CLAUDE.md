@@ -943,7 +943,7 @@ encrypt modes where a password or passphrase is asked, it should be asked twice 
 both standards:** the message password with "Repeat password" (a typo there locks the message for good) and the signing
 key's passphrase with "Repeat passphrase"; a line under the boxes says, as they are typed, when the two differ; Encrypt
 refuses two that differ and makes nothing; Enter in the second box encrypts. Generate asked twice already; Decrypt and
-Sign open what exists — one box. e2e `pgp` 40 (+6), `pgp9580` (its encrypting helper fills both boxes).
+Sign open what exists — one box. e2e `pgp` 40 (+6), `pgp9580` 27 with rPGP's rsop (its encrypting helper fills both boxes).
 
 ### Sodium Encrypt (libsodium, symmetric only)
 Files **and** typed text. Argon2id (`crypto_pwhash`) derives a key; data encrypted with
