@@ -122,6 +122,41 @@ export function bindImgproc(e: any) {
       try { const c = e.p_page_quad(s, img.width, img.height, o); return { corners: Array.from(new Float32Array(mem(), o, 8)), confidence: c }; }
       finally { e.p_free(s); e.p_free(o); }
     },
+    /** The brightness step across each edge of an outline (p_quad_steps; corners TL TR BR BL in px): inside − outside,
+     *  the median along the edge; 9999 where the edge lies along the photo's border (nothing outside to compare). A page
+     *  or a screen is lighter than what lies around it: a real edge steps by tens of levels, a wrong one by a few. */
+    quadSteps(img: Img, corners: number[], dfrac = 0.015): number[] {
+      const s = put(img.data), q = e.p_malloc(32), o = e.p_malloc(16);
+      try { new Float32Array(mem(), q, 8).set(corners); e.p_quad_steps(s, img.width, img.height, q, dfrac, o); return Array.from(new Int32Array(mem(), o, 4)); }
+      finally { e.p_free(s); e.p_free(q); e.p_free(o); }
+    },
+    /** Where the text of a picture is (p_ink_window): the top-left corner of the ww × wh window holding the most ink
+     *  (the middle when nothing stands out), and the share of it that is ink. */
+    inkWindow(img: Img, ww: number, wh: number): { x: number; y: number; ink: number } {
+      const s = put(img.data), o = e.p_malloc(8);
+      try { const v = e.p_ink_window(s, img.width, img.height, ww, wh, o), r = new Int32Array(mem(), o, 2); return { x: r[0], y: r[1], ink: v / 10000 }; }
+      finally { e.p_free(s); e.p_free(o); }
+    },
+    /** A page's outline refined against the photo (p_refine_quad): each edge fitted to where the brightness steps from
+     *  outside to inside within ±search px of it, the corners where the fitted lines meet — outside the photo where the
+     *  page runs off it. `edges`: how many were refitted (0: the corners as they were). */
+    refineQuad(img: Img, corners: number[], search: number): { corners: number[]; edges: number } {
+      const s = put(img.data), q = e.p_malloc(32), o = e.p_malloc(32);
+      try { new Float32Array(mem(), q, 8).set(corners); const n = e.p_refine_quad(s, img.width, img.height, q, search, o); return { corners: Array.from(new Float32Array(mem(), o, 8)), edges: n }; }
+      finally { e.p_free(s); e.p_free(q); e.p_free(o); }
+    },
+    /** Ruled lines and list marks painted the paper's colour on a page set upright and cleaned up (p_clear_marks; to-do
+     *  #18): what — bit 0 the lines (a table's grid, rules, underlines), bit 1 the marks (● ○ ■ □ ☐ ☑ … at a line's start
+     *  before a gap), bit 2 count the columns of text; `lines` = pixels cleared, `marks` = marks cleared, `xh` = the
+     *  x-height found, `slant` in degrees, `columns` = the columns of text (1: one, or not counted). */
+    clearMarks(img: Img, what = 3): { img: Img; lines: number; marks: number; xh: number; slant: number; columns: number } {
+      const p = put(img.data), o = e.p_malloc(20);
+      try {
+        e.p_clear_marks(p, img.width, img.height, what, o);
+        const v = Array.from(new Int32Array(mem(), o, 5));
+        return { img: { width: img.width, height: img.height, data: new Uint8ClampedArray(mem().slice(p, p + img.data.length)) }, lines: v[0], marks: v[1], xh: v[2], slant: v[3] / 100, columns: v[4] };
+      } finally { e.p_free(p); e.p_free(o); }
+    },
     /** Which way up the text of a picture stands (p_text_turns): the quarter turns to the right that set it upright
      *  (0–3), -1 when there is too little text to say, -2 when the lines' axis is clear but not which end is up; with
      *  the evidence — neighbour votes along / across the lines, letters sticking out on the low / high side, letters,

@@ -10,12 +10,12 @@ import literata400i from '@fontsource/literata/files/literata-latin-400-italic.w
 import literata600 from '@fontsource/literata/files/literata-latin-600-normal.woff2?url';
 import { h, card, stack, note, toggle, button, progress, errMsg, copy, downloadBlob, type Mount } from '../ui';
 import { isMobile } from '../platform';
-import { imgproc, type Img } from '../wasm/imgproc';
+import type { Img } from '../wasm/imgproc';
 import { previewOf, paint } from '../lib/imgio';
 import { imageInput } from '../lib/imgtools';
-import { recognize, POOR, type OcrResult } from '../lib/ocr';
-import { straighten } from '../lib/pagecrop';
-import { uprightByReading, uprightWords } from '../lib/upright';
+import { POOR } from '../lib/ocr';
+import { readPage } from '../lib/readpage';
+import { uprightWords } from '../lib/upright';
 import { alphabetical, hardWords, lookupWord, rarity, ranker, type WordCard, type Result } from '../lib/dictionary';
 import { wikiSummary, type Summary } from '../lib/wikipedia';
 import { onLeave } from '../lifecycle';
@@ -110,29 +110,18 @@ export const mount: Mount = (root, ctx) => {
     status.textContent = ''; // the line said the page before's result while the new one was read
     paint(previewOf(img, 480), thumb);
     try {
-      // camera photos: ≤ 3000 px; the page found and straightened (a Kindle's screen in its black body, a sheet on a
-      // table: src/lib/pagecrop.ts); optional moiré removal for screens; then the document clean-up (grey, even light)
-      let work = img; const L = Math.max(img.width, img.height);
-      if (L > 3000) work = await imgproc('resize', work, Math.round((work.width * 3000) / L), Math.round((work.height * 3000) / L));
-      const whole = work, page = await straighten(work).catch(() => ({ img: work, found: false })); // no page: the photo as it is
-      const clean = async (im: Img) => imgproc('docEnhance', screen ? await imgproc('blur', im, 1.1) : im, 1);
+      // the page read the shared way (src/lib/readpage.ts — the OCR tab's too): camera photos ≤ 3000 px; the page found and
+      // straightened (a Kindle's screen in its black body, a sheet on a table: src/lib/pagecrop.ts); the text set upright
+      // and level (owner, 21 Nov 2026: the phone held sideways, in either hand); moiré blurred for screens ("Photo of a
+      // screen"); the document clean-up; ruled lines and list marks cleared; a page of columns read column by column; an
+      // outline that was not the page (little read on it): the whole photo read too, the better reading kept
       ranker().catch(() => {}); loadFonts(); // word list + reading font load while OCR runs
-      const read = async (im: Img) => recognize(new ImageData(new Uint8ClampedArray(im.data), im.width, im.height), 'eng', (p, s) => prog.set(s.includes('recogn') ? p : null, s.includes('recogn') ? `Reading the page… ${Math.round(p * 100)} %` : 'Loading the text engine…'));
-      // the text set upright first (owner, 21 Nov 2026: the phone held sideways, in either hand, gave a page that could
-      // not be read): the lines of the page say which way up it stands (src/lib/upright.ts); where they leave it open,
-      // a small copy is read both ways round
-      const glance = async (im: Img) => recognize(new ImageData(new Uint8ClampedArray(im.data), im.width, im.height), 'eng');
-      const setUp = (im: Img) => uprightByReading(im, async (x) => glance(await clean(x))).catch(() => ({ img: im, turns: 0, slant: 0 }));
-      let up = await setUp(page.img);
-      if (stale()) return;
-      let r: OcrResult = await read(await clean(up.img));
-      if (stale()) return;
-      // an outline that was not the page (little read on it): the whole photo is read too, and the better reading kept
-      if (page.found && r.words.length < 25) {
-        const w = await setUp(whole); if (stale()) return;
-        const r2 = await read(await clean(w.img)); if (stale()) return;
-        if (r2.words.length > r.words.length) { r = r2; up = w; }
-      }
+      const reading = await readPage(img, {
+        lang: 'eng', clean: true, screen, auto: true, stale,
+        onProgress: (p, s) => prog.set(s.includes('recogn') ? p : null, s.includes('recogn') ? `Reading the page… ${Math.round(p * 100)} %` : 'Loading the text engine…'),
+      });
+      if (!reading || stale()) return;
+      const { r, up } = reading;
       if (!r.text.trim()) { prog.done(); status.textContent = isMobile ? 'No text found. Hold the phone straight over the page, in good light, and try again.' : 'No text found. Hold the page flat and close to the webcam, in good light, and try again — or choose a photo of it.'; return; }
       // a photo that could not be read well: what was read is shown, with what to do about it (measured: every reading
       // below POOR had most of its words wrong; a page read as a handful of words was out of focus or far away)

@@ -27,6 +27,7 @@ const only = opt('--only', '');
 const tilt = parseFloat(opt('--tilt', '0')) || 0;
 let readSmall; // a quick reading of a picture (the tabs' "glance"), set in main(): uprightByReading's reader
 let found = 0; // photos whose page was found (the page… variants)
+let byNet = 0; // … by the Doc Scanner's network (the net… variants)
 
 /** Words as a reader counts them: letters, digits and the apostrophe; case and punctuation ignored. */
 export const wordsOf = (s) => (s.normalize('NFC').replace(/[’‘]/g, "'").toLowerCase().match(/[a-z0-9']+/g) || []).map((w) => w.replace(/^'+|'+$/g, '')).filter(Boolean);
@@ -83,6 +84,7 @@ async function imgprocNode() {
   const { straighten, pageSize } = await vite.ssrLoadModule('/src/lib/pagecrop.ts');
   const pf = await vite.ssrLoadModule('/src/lib/pagefind.ts');
   const { uprightByReading } = await vite.ssrLoadModule('/src/lib/upright.ts');
+  const { readPage } = await vite.ssrLoadModule('/src/lib/readpage.ts');
   const mod = await WebAssembly.compile(readFileSync(join(root, 'src/wasm/bin/imgproc.wasm')));
   let memory; const w = {};
   for (const i of WebAssembly.Module.imports(mod)) if (i.module === 'wasi_snapshot_preview1') w[i.name] = () => 52;
@@ -102,7 +104,7 @@ async function imgprocNode() {
     const s = ip.resizeArea(im, pf.SIZE, pf.SIZE);
     return pf.readOutput(await session.run({ [session.inputNames[0]]: new ort.Tensor('float32', pf.modelInput(s.data), [1, pf.SIZE, pf.SIZE, 3]) }));
   };
-  return { ip, straighten, uprightByReading, pageSize, pf, docCorners, close: () => vite.close() };
+  return { ip, straighten, uprightByReading, pageSize, pf, docCorners, readPage, close: () => vite.close() };
 }
 
 /** The clean-up variants. app = what the Photo Dictionary did until 21 Nov 2026 (≤ 3000 px, the document clean-up, grey);
@@ -134,27 +136,32 @@ async function prepare({ ip, straighten, uprightByReading, pageSize, pf, docCorn
     if (ok) out.whole = async () => { let w = copy(cap(img)); if (steps.includes('level')) w = (await uprightByReading(w, readSmall, ip)).img; return ip.docEnhance(w, 1); };
     return out;
   }
-  if (p.startsWith('page')) {
+  if (p.startsWith('page') || p.startsWith('net')) {
+    // net[+step…]: as page, with the Doc Scanner's network asked where the outline is not a page's on all four edges (as the
+    // tabs do since to-do #18; page… leaves the network out).
     // page[+step…]: the page found and straightened, then the steps in order — blur (a screen's moiré), up<f> (larger by
     // f, default 2, while the longer side is under 2000 px — the engine reads x-heights of 20 – 30 px best), sharp<a>
     // (unsharp mask, amount a, default 1, σ 1.2; sharp1.5s2 = amount 1.5, σ 2), bw (black and white instead of grey). Old names: pagescreen = page+blur, pageup = page+up, pagesharp = page+sharp. level: the text levelled and set upright (src/lib/upright.ts, as both tabs do now).
     const steps = { pagescreen: ['blur'], pageup: ['up'], pagesharp: ['sharp'] }[p] || p.split('+').slice(1);
-    const s = await straighten(cap(img), ip);
+    const s = await straighten(cap(img), p.startsWith('net') ? { ...ip, docCorners: async (sm) => docCorners(sm) } : ip);
     found += s.found ? 1 : 0;
+    if (s.by === 'network') byNet++;
     let pg = copy(s.img);
     for (const st of steps) {
       if (st === 'blur') pg = ip.blur(pg, 1.1);
       else if (st.startsWith('sharp')) { const [a, sg] = st.slice(5).split('s'); pg = ip.sharpen(pg, parseFloat(a) || 1, parseFloat(sg) || 1.2); }
       else if (st.startsWith('up')) { const f = parseFloat(st.slice(2)) || 2; if (Math.max(pg.width, pg.height) < 2000) pg = ip.resize(pg, pg.width * f, pg.height * f); }
       else if (st === 'level') pg = (await uprightByReading(pg, readSmall, ip)).img;
-      else if (st !== 'bw') throw new Error('unknown step ' + st);
+      else if (st !== 'bw' && st !== 'marks') throw new Error('unknown step ' + st);
     }
-    const out = ip.docEnhance(pg, steps.includes('bw') ? 2 : 1);
+    // marks: ruled lines and list marks cleared after the clean-up (imgproc p_clear_marks; to-do #18)
+    const tidy = (im) => (steps.includes('marks') ? ip.clearMarks(im, 3).img : im);
+    const out = tidy(ip.docEnhance(pg, steps.includes('bw') ? 2 : 1));
     // as the tab does: a page found that gives fewer than 25 words → the whole photo is read too, the better kept
     if (s.found) out.whole = async () => {
       let w = steps.includes('blur') ? ip.blur(copy(cap(img)), 1.1) : copy(cap(img));
       if (steps.includes('level')) w = (await uprightByReading(w, readSmall, ip)).img;
-      return ip.docEnhance(w, 1);
+      return tidy(ip.docEnhance(w, 1));
     };
     return out;
   }
@@ -184,6 +191,17 @@ async function main() {
     const words = []; for (const b of d.blocks || []) for (const pa of b.paragraphs) for (const l of pa.lines) for (const wd of l.words) words.push({ text: wd.text, conf: wd.confidence });
     return { confidence: d.confidence, words };
   };
+  // the engines of the tabs' reading path in Node (src/lib/readpage.ts ReadEngines): imgproc.wasm with the Doc Scanner's
+  // network, and this Tesseract (the text as recognize() of src/lib/ocr.ts gives it)
+  const readEngines = {
+    ops: { ...ip, docCorners: (sm) => eng.docCorners(sm) },
+    read: async (im, _lang, _progress, layout) => {
+      // the layout the reading path asks for (src/lib/ocr.ts PSM: 'page' 3, 'block' 6); --psm N overrides it for all
+      const d = (await worker.recognize(ppm(im), { tessedit_pageseg_mode: args.includes('--psm') ? psm : { page: '3', block: '6' }[layout] }, { text: true, blocks: true })).data, words = [];
+      for (const b of d.blocks || []) for (const pa of b.paragraphs) for (const l of pa.lines) for (const wd of l.words) words.push({ text: wd.text, conf: wd.confidence, x0: wd.bbox.x0, y0: wd.bbox.y0, x1: wd.bbox.x1, y1: wd.bbox.y1 });
+      return { text: (d.text || '').replace(/\n{3,}/g, '\n\n').trim(), confidence: d.confidence, words };
+    },
+  };
   const names = readdirSync(dir).filter((f) => f.endsWith('.jpg') && existsSync(join(dir, f.slice(0, -4) + '.txt')) && (!only || f.includes(only))).map((f) => f.slice(0, -4)).sort(); // a photo without its words is no test photo
   const totals = {};
   for (const name of names) {
@@ -204,17 +222,29 @@ async function main() {
     const row = [name.padEnd(14)];
     for (const p of preps) {
       const t0 = performance.now();
+      let data;
+      if (p.startsWith('read')) {
+        // read[+screen][+retry]: the tabs' own reading path (src/lib/readpage.ts) on imgproc.wasm, the Doc Scanner's
+        // network and this Tesseract — read = the Photo Dictionary's options, +retry = the OCR tab's (a poor reading tried
+        // the other ways round), +screen = "Photo of a screen"
+        const res = await eng.readPage(img, { lang: 'eng', clean: true, auto: true, screen: p.includes('screen'), retryTurns: p.includes('retry') }, readEngines);
+        if (res.page) found++;
+        if (res.by === 'network') byNet++;
+        if (process.env.OCR_SAVE) writeFileSync(join(process.env.OCR_SAVE, `${name}.${p}.ppm`), ppm(res.img));
+        data = res.r;
+      } else {
       const work = await prepare(eng, img, p);
       if (process.env.OCR_SAVE) writeFileSync(join(process.env.OCR_SAVE, `${name}.${p}.ppm`), ppm(work)); // the picture the engine reads
-      let { data } = await worker.recognize(ppm(work), {}, { text: true, blocks: true });
+      ({ data } = await worker.recognize(ppm(work), {}, { text: true, blocks: true }));
       const nWords = (d) => (d.blocks || []).reduce((n, b) => n + b.paragraphs.reduce((m, pa) => m + pa.lines.reduce((k, l) => k + l.words.length, 0), 0), 0);
       if (work.whole && nWords(data) < 25) { const d2 = (await worker.recognize(ppm(await work.whole()), {}, { text: true, blocks: true })).data; if (nWords(d2) > nWords(data)) data = d2; }
+      }
       const got = wordsOf(data.text);
-      const right = lcs(truth, got), found = [...rare].filter((x) => got.includes(x)).length;
+      const right = lcs(truth, got), rareFound = [...rare].filter((x) => got.includes(x)).length;
       const acc = right / truth.length, clean = got.length ? right / got.length : 0, ce = cer(truth, got), st = strays(data.text);
-      (totals[p] ||= []).push([acc, rare.size ? found / rare.size : 1, clean, ce, st]);
+      (totals[p] ||= []).push([acc, rare.size ? rareFound / rare.size : 1, clean, ce, st]);
       if (process.env.OCR_DUMP) writeFileSync(join(process.env.OCR_DUMP, `${name}.${p}.txt`), data.text);
-      row.push(`${p}: ${(100 * acc).toFixed(1)}% ${found}/${rare.size} rare ${(100 * clean).toFixed(0)}% clean cer ${(100 * ce).toFixed(1)}% stray ${st} conf ${Math.round(data.confidence)} n ${got.length} ${((performance.now() - t0) / 1000).toFixed(1)} s`);
+      row.push(`${p}: ${(100 * acc).toFixed(1)}% ${rareFound}/${rare.size} rare ${(100 * clean).toFixed(0)}% clean cer ${(100 * ce).toFixed(1)}% stray ${st} conf ${Math.round(data.confidence)} n ${got.length} ${((performance.now() - t0) / 1000).toFixed(1)} s`);
     }
     console.log(row.join(' | '));
   }
@@ -222,7 +252,7 @@ async function main() {
     const m = (k) => (100 * t.reduce((s, x) => s + x[k], 0) / t.length).toFixed(1);
     console.log(`MEAN ${p.padEnd(8)} words ${m(0)}%  rare ${m(1)}%  clean ${m(2)}%  cer ${m(3)}%  stray lines ${t.reduce((s, x) => s + x[4], 0)}  (${t.length} photos, psm ${psm})`);
   }
-  if (found) console.log(`page found in ${found} of the runs that looked for it`);
+  if (found) console.log(`page found in ${found} of the runs that looked for it${byNet ? ` (${byNet} by the Doc Scanner's network)` : ''}`);
   await worker.terminate(); await close();
 }
 main().catch((e) => { console.error(e); process.exit(1); });

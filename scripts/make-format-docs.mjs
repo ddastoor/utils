@@ -6,7 +6,9 @@
 // Word (Carlito = Calibri's metrics, • ◦ ▪), Google Docs (Liberation Sans = Arial's, ● ○ ■), LibreOffice (Liberation
 // Serif, ▪ – ➢), a two-column newsletter with a text box, a form with a table, a handout with ✓ / ☐ — bullets with
 // hanging indents, nested and lettered lists, numbered headings, quotes, tables, columns, headers and footers — each also
-// with a watermark (a diagonal CONFIDENTIAL in light grey, a red DRAFT, a name tiled across, a blue stamp).
+// with a watermark (a diagonal CONFIDENTIAL in light grey, a red DRAFT, a name tiled across, a blue stamp), and once
+// more with the same watermark as strong as printers and scanners make them (name-<watermark>-strong: CONFIDENTIAL at
+// 32 % grey, DRAFT at 45 % red, the name at 28 %, a stamp in ink).
 // Drawn by Chromium at A4 (794 × 1123 CSS px, × 2.5: about 240 dpi): OUT/pages/<name>.png, and OUT/pages/<name>.txt =
 // the words a reader sees on the page, in reading order (from the page itself: every word drawn inside it), without the
 // bullet marks and the watermark (the owner: "no need to keep bullets and indentation in the text;.. but the ocr should
@@ -142,11 +144,12 @@ doc('handout', 'word', (r) => {
 }, { size: 19, gap: 10, indent: 30 });
 
 // the watermarks: each page above once more, with one of them (not in the words a reader reads: class wm)
+// (strong: as printers and scanners make them at their darkest)
 const WATERMARKS = {
-  confidential: () => `<div class="wm" style="left:50%;top:50%;transform:translate(-50%,-50%) rotate(-54deg);font:700 112px 'Liberation Sans';color:rgba(0,0,0,.13)">CONFIDENTIAL</div>`,
-  draft: () => `<div class="wm" style="left:50%;top:50%;transform:translate(-50%,-50%) rotate(-38deg);font:700 190px 'Liberation Sans';color:rgba(220,40,40,.2)">DRAFT</div>`,
-  tiled: () => { let s = ''; for (let y = -200; y < 1400; y += 150) for (let x = -300; x < 1000; x += 330) s += `<div class="wm" style="left:${x}px;top:${y}px;transform:rotate(-30deg);font:400 26px 'Liberation Sans';color:rgba(0,0,0,.12)">Asha Verma · Internal</div>`; return s; },
-  stamp: () => `<div class="wm" style="right:96px;top:430px;width:230px;height:230px;border:7px solid rgba(30,90,200,.35);border-radius:50%;display:flex;align-items:center;justify-content:center;transform:rotate(-18deg);font:700 40px 'Liberation Sans';color:rgba(30,90,200,.35)">APPROVED</div>`,
+  confidential: (strong) => `<div class="wm" style="left:50%;top:50%;transform:translate(-50%,-50%) rotate(-54deg);font:700 112px 'Liberation Sans';color:rgba(0,0,0,${strong ? 0.32 : 0.13})">CONFIDENTIAL</div>`,
+  draft: (strong) => `<div class="wm" style="left:50%;top:50%;transform:translate(-50%,-50%) rotate(-38deg);font:700 190px 'Liberation Sans';color:rgba(220,40,40,${strong ? 0.45 : 0.2})">DRAFT</div>`,
+  tiled: (strong) => { let s = ''; for (let y = -200; y < 1400; y += 150) for (let x = -300; x < 1000; x += 330) s += `<div class="wm" style="left:${x}px;top:${y}px;transform:rotate(-30deg);font:400 26px 'Liberation Sans';color:rgba(0,0,0,${strong ? 0.28 : 0.12})">Asha Verma · Internal</div>`; return s; },
+  stamp: (strong) => `<div class="wm" style="right:96px;top:430px;width:230px;height:230px;border:7px solid rgba(30,90,200,${strong ? 0.85 : 0.35});border-radius:50%;display:flex;align-items:center;justify-content:center;transform:rotate(-18deg);font:700 40px 'Liberation Sans';color:rgba(30,90,200,${strong ? 0.85 : 0.35})">APPROVED</div>`,
 };
 const WITH = { memo: 'confidential', checklist: 'draft', report: 'tiled', form: 'stamp', newsletter: 'confidential', handout: 'draft' };
 
@@ -155,9 +158,9 @@ async function main() {
   const browser = await chromium.launch();
   const page = await browser.newPage({ viewport: { width: 794, height: 1123 }, deviceScaleFactor: 2.5 });
   const index = [];
-  for (const [i, d] of DOCS.entries()) for (const wm of [null, WITH[d.name]]) {
+  for (const [i, d] of DOCS.entries()) for (const [wm, strong] of [[null, false], [WITH[d.name], false], [WITH[d.name], true]]) {
     const t = THEMES[d.theme], r = rand(1000 + i);
-    const html = `<!doctype html><html><head><meta charset="utf-8"><style>${css(t, d.o)}</style></head><body><div class="page">${wm ? WATERMARKS[wm]() : ''}${d.body(r)}</div></body></html>`;
+    const html = `<!doctype html><html><head><meta charset="utf-8"><style>${css(t, d.o)}</style></head><body><div class="page">${wm ? WATERMARKS[wm](strong) : ''}${d.body(r)}</div></body></html>`;
     await page.setContent(html, { waitUntil: 'load' });
     await page.evaluate(() => document.fonts.ready);
     // the words a reader sees on the page, in reading order: every word drawn inside it, without bullets and watermark
@@ -176,10 +179,10 @@ async function main() {
       }
       return out;
     });
-    const name = wm ? `${d.name}-${wm}` : d.name;
+    const name = wm ? `${d.name}-${wm}${strong ? '-strong' : ''}` : d.name;
     await page.locator('.page').screenshot({ path: join(OUT, 'pages', `${name}.png`) });
     writeFileSync(join(OUT, 'pages', `${name}.txt`), words.join(' ') + '\n');
-    index.push({ name, theme: d.theme, watermark: wm, words: words.length });
+    index.push({ name, theme: d.theme, watermark: wm, strong, words: words.length });
     console.log(`${name.padEnd(26)} ${d.theme.padEnd(8)} ${words.length} words`);
   }
   writeFileSync(join(OUT, 'pages', 'index.json'), JSON.stringify(index, null, 1));

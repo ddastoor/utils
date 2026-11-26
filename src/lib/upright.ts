@@ -21,6 +21,8 @@ export interface TurnOps {
   orient(img: Img, o: number): Img | Promise<Img>;
   rotate(img: Img, deg: number, w: number, h: number, fill: number): Img | Promise<Img>;
   crop(img: Img, x: number, y: number, w: number, h: number): Img | Promise<Img>;
+  /** Where the text is (p_ink_window): the window of that size holding the most ink; absent: the middle. */
+  inkWindow?(img: Img, w: number, h: number): { x: number; y: number } | Promise<{ x: number; y: number }>;
 }
 const workerOps: TurnOps = {
   resize: (img, w, h) => imgproc('resize', img, w, h),
@@ -29,6 +31,7 @@ const workerOps: TurnOps = {
   orient: (img, o) => imgproc('orient', img, o),
   rotate: (img, deg, w, h, fill) => imgproc('rotate', img, deg, w, h, fill),
   crop: (img, x, y, w, h) => imgproc('crop', img, x, y, w, h),
+  inkWindow: (img, w, h) => imgproc('inkWindow', img, w, h),
 };
 /** A slant of the lines smaller than this is left to Tesseract (it takes a few degrees in its stride). */
 const LEVEL_FROM = 5;
@@ -38,9 +41,10 @@ const BETTER_BY = 1.15;
 /** A quick reading of the picture as it is this confident (and of a dozen words or more), with its lines running across
  *  it and nothing to level, settles it: text upside down reads far below this. */
 const READS_WELL = 65;
-/** The quick reading is of the middle of the picture, at most this many pixels a side, at the picture's own scale — the
- *  letters as large as the reading proper will see them (a copy made smaller left the text of a whole photo too small to
- *  read either way round). */
+/** The quick reading is of the part of the picture holding the most text (p_ink_window — the middle of a form or a short
+ *  letter is blank paper: to-do #18), at most this many pixels a side, at the picture's own scale — the letters as large
+ *  as the reading proper will see them (a copy made smaller left the text of a whole photo too small to read either way
+ *  round). */
 export const GLANCE = 1000;
 /** Quarter turns to the right as EXIF orientations (p_orient). */
 export const ROT = [1, 6, 3, 8];
@@ -122,7 +126,7 @@ export const score = (r: Reading) => { let s = 0; for (const w of Array.from(r.w
 /** The picture set upright and level for reading. What the two looks say is a suggestion: on a soft photo the letters
  *  run together into words and a suggestion can be wrong — even upside down (the Kindle photo set, 21 Nov 2026: an
  *  upright page turned over read 2 % of its words instead of 98 %). So the picture as it is and each picture the
- *  suggestion gives are read quickly (`read` gets the middle of it, GLANCE) and a change is kept only when it reads
+ *  suggestion gives are read quickly (`read` gets the part with the most text, GLANCE) and a change is kept only when it reads
  *  clearly better (score, BETTER_BY). Nothing is read when both looks say upright and level; only the picture as it is
  *  when its lines run across it, nothing needs levelling and it reads well (READS_WELL). `how`: 'text' (upright and
  *  level, as both looks say), 'reading' (the readings decided), 'none' (too little text to say: left as it was). */
@@ -142,7 +146,9 @@ export async function uprightByReading(img: Img, read: (im: Img) => Promise<Read
   if (!tries.length) return { img, turns: 0, slant: 0, how: 'none' };
   const glance = async (im: Img) => {
     const w = Math.min(GLANCE, im.width), h = Math.min(GLANCE, im.height);
-    return read(w < im.width || h < im.height ? await ops.crop(im, (im.width - w) >> 1, (im.height - h) >> 1, w, h) : im);
+    if (w >= im.width && h >= im.height) return read(im);
+    const at = ops.inkWindow ? await ops.inkWindow(im, w, h) : { x: (im.width - w) >> 1, y: (im.height - h) >> 1 };
+    return read(await ops.crop(im, at.x, at.y, w, h));
   };
   const first = await glance(img), asIs = score(first);
   // lines across, nothing to level, and it reads well as it is: the right way up (only a half turn was left to try)

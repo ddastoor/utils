@@ -36,9 +36,9 @@ export default async (t, { load, wasm }) => {
   // as it is first, then each suggestion.
   { const page = (await straighten(await decode('kindle-page.jpg'), ip)).img;
     const fake = (...m) => { const calls = []; return { calls, read: async (im) => { calls.push(im.width + 'x' + im.height); const [c, n] = m[calls.length - 1] ?? [0, 0]; return { confidence: c, words: Array.from({ length: n }, (_, i) => ({ text: i % 5 ? 'word' : '|', conf: c })) }; } }; };
-    // a reader that knows the page: the middle of the upright page (byte for byte — quarter turns are lossless) reads
-    // `good`, anything else `other`
-    const middle = (im) => { const w = Math.min(U.GLANCE, im.width), h = Math.min(U.GLANCE, im.height); return ip.crop(im, (im.width - w) >> 1, (im.height - h) >> 1, w, h); };
+    // a reader that knows the page: the part of the upright page that is read quickly — the window with the most text
+    // (p_ink_window; to-do #18) — byte for byte (quarter turns are lossless) reads `good`, anything else `other`
+    const middle = (im) => { const w = Math.min(U.GLANCE, im.width), h = Math.min(U.GLANCE, im.height), at = ip.inkWindow(im, w, h); return ip.crop(im, at.x, at.y, w, h); };
     const sameAs = (a, b) => a.width === b.width && a.height === b.height && Buffer.compare(Buffer.from(a.data.buffer, a.data.byteOffset, a.data.length), Buffer.from(b.data.buffer, b.data.byteOffset, b.data.length)) === 0;
     const knows = (ref, good, other) => { const calls = []; return { calls, read: async (im) => { calls.push(im.width + 'x' + im.height); const [c, n] = sameAs(im, ref) ? good : other; return { confidence: c, words: Array.from({ length: n }, (_, i) => ({ text: i % 5 ? 'word' : '|', conf: c })) }; } }; };
     const good = [92, 120], poor = [35, 6], fair = [70, 40];

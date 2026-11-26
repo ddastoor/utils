@@ -80,8 +80,47 @@ export default async (t, { load, wasm }) => {
   const ss = await pc.straighten(shot, ip);
   t.ok(!ss.found && ss.img === shot, 'a screenshot is left as it is (its white panel would have been taken for the page)');
   t.ok(ip.pageQuad(shot).confidence > 0, '… the page finder alone would have found the panel');
+  // to-do #18 — paper (owner, 26 Nov 2026: documents photographed with a phone read "very poorly"). Every outline is
+  // checked across its edges: a page is lighter than what lies around it.
+  const steps = ip.quadSteps(img, quad.flat());
+  t.ok(steps.every((v) => v > 100) && pc.realEdges(steps) === 4, `the page's own outline: four real edges (${steps.join(', ')})`);
+  const inner = [420, 400, 900, 430, 880, 1000, 400, 960]; // a region inside the page (a column, the space under a table)
+  const si = ip.quadSteps(img, inner);
+  t.ok(pc.realEdges(si) === 0, `a region inside the page: no real edge (${si.join(', ')})`);
+  const off = [0, 0, 700, 0, 700, 800, 0, 800], so = ip.quadSteps(photo(1400, 1600, [[-50, -50], [700, -50], [700, 800], [-50, 800]]), off);
+  t.ok(so[0] === 9999 && so[3] === 9999 && pc.realEdges(so) === 4, `a page running off the photo: its edges along the border count (${so.join(', ')})`);
+  // the Doc Scanner's network is asked only where the outline is not a page's on all four edges
+  let asked = 0;
+  const net = (corners, score = 0.99) => async () => { asked++; return { corners, score }; };
+  const frac = (q) => q.map((v, i) => v / (i % 2 ? 1600 : 1400));
+  const a1 = await pc.straighten(img, { ...ip, docCorners: net(frac(inner)) });
+  t.ok(a1.found && a1.by === 'outline' && asked === 0, 'an outline with four real edges: taken, the network never asked');
+  // (an outline is given on the copy the finders look at, ≤ 1200 px: scaled from the photo's pixels)
+  const outlineAt = (q) => (im) => ({ corners: q.map((v, i) => v * (i % 2 ? im.height / 1600 : im.width / 1400)), confidence: 1 });
+  const wrongOutline = { ...ip, pageQuad: outlineAt(inner) };
+  const a2 = await pc.straighten(img, { ...wrongOutline, docCorners: net(frac(quad.flat())) });
+  t.ok(a2.found && a2.by === 'network' && asked === 1 && near(a2.corners, quad.flat(), 10), `a wrong outline (inside the page): the network is asked and its page taken, its edges fitted to the photo's (the made-up page's text runs to its edge) (${a2.found} ${a2.by} ${a2.corners?.map(Math.round).join(', ')})`);
+  const a3 = await pc.straighten(img, wrongOutline);
+  t.ok(!a3.found && a3.img === img, 'a wrong outline and no network: the photo is read as it is (not a part of the page)');
+  const a4 = await pc.straighten(img, { ...wrongOutline, docCorners: async () => { throw new Error('offline'); } });
+  t.ok(!a4.found && a4.img === img, 'the network cannot be fetched: the same, no error');
+  const a5 = await pc.straighten(img, { ...wrongOutline, docCorners: net(frac(quad.flat()), 0.2) });
+  t.ok(!a5.found, 'the network not sure there is a document (P < 0.5): its corners are not used');
+  const threeReal = [260, 140, 1180, 210, 1150, 830, 230, 760]; // the upper part of the page: its bottom edge inside it
+  const before = asked;
+  const a6 = await pc.straighten(img, { ...ip, pageQuad: outlineAt(threeReal), docCorners: net(frac(inner)) });
+  t.ok(a6.found && a6.by === 'outline' && asked === before + 1, 'an outline with three real edges: the network is asked, its worse corners are not taken');
+  // a tilted page on a smooth desk that JPEG made exactly flat (measured 0.22 – 0.34 flat): a camera's photo all the same
+  const smooth = (() => { const W = 1200, H = 1400, d = new Uint8ClampedArray(W * H * 4), q = [[230, 150], [1000, 210], [950, 1250], [180, 1190]];
+    const inq = (x, y) => { let c = 0; for (let i = 0; i < 4; i++) { const [x1, y1] = q[i], [x2, y2] = q[(i + 1) % 4]; if ((x2 - x1) * (y - y1) - (y2 - y1) * (x - x1) < 0) c++; } return c === 0 || c === 4; };
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { let v = 190 + ((x >> 4) + (y >> 4)) % 2; if (inq(x + 0.5, y + 0.5)) v = y % 26 < 7 && x % 41 < 30 ? 60 + noise() : 243 + noise(); d.set([v, v, v, 255], (y * W + x) * 4); }
+    return { img: { data: d, width: W, height: H }, q }; })();
+  t.ok(ip.flatShare(smooth.img) > 0.2, `the smooth desk: as flat as a screenshot by the old rule (${ip.flatShare(smooth.img).toFixed(2)})`);
+  const sm = await pc.straighten(smooth.img, ip);
+  t.ok(sm.found && near(sm.corners, smooth.q.flat(), 16), `… its tilted page is found and straightened all the same (${sm.corners?.map(Math.round).join(', ')})`);
+  t.ok(pc.squareOn([200, 150, 1000, 151, 1001, 750, 199, 749]) && !pc.squareOn(smooth.q.flat()), 'square on: a screenshot\'s panel is, a photographed page is not');
   // the operations may answer with promises (the worker's) as well as at once (the module's)
-  const asyncOps = { resize: async (...a) => ip.resize(...a), pageQuad: async (i) => ip.pageQuad(i), warp: async (...a) => ip.warp(...a), flatShare: async (i) => ip.flatShare(i) };
+  const asyncOps = { resize: async (...a) => ip.resize(...a), pageQuad: async (i) => ip.pageQuad(i), warp: async (...a) => ip.warp(...a), flatShare: async (i) => ip.flatShare(i), quadSteps: async (...a) => ip.quadSteps(...a) };
   const sa = await pc.straighten(img, asyncOps);
   t.ok(sa.found && sa.img.width === s.img.width && sa.img.height === s.img.height, 'the same with operations that answer with promises (the worker)');
 };
