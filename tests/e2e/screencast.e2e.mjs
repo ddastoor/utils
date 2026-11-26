@@ -274,11 +274,17 @@ export default async ({ base, page: newPage, ok, info, download, released }) => 
   await p3.goto(`${base}#/screencast`);
   const btn3 = (name) => p3.locator('.actions').getByRole('button', { name, exact: true });
   await radio('Off', p3).click();
-  /** each channel's amplitude of a tone, from the decoded file's middle second (48 kHz: the tones fall on whole bins) */
+  /** each channel's amplitude of a tone: the median over the 100 ms pieces of 0.5 – 2.5 s (48 kHz: the tones fall on whole
+   *  bins). The median, as a level change moves every piece and a dropout only some: under load on the Windows runner the
+   *  test's own tone source once left gaps in the middle second (−2.4 dB there, every piece right when run alone) */
   const tone = (f, hz) => {
-    const raw = execFileSync('ffmpeg', ['-v', 'error', '-ss', '1', '-t', '1', '-i', f, '-vn', '-ac', '2', '-ar', '48000', '-f', 'f32le', '-'], { maxBuffer: 1 << 26 });
-    const x = new Float32Array(raw.buffer, raw.byteOffset, raw.length / 4), N = Math.floor(x.length / 2);
-    return [0, 1].map((ch) => { let re = 0, im = 0; for (let n = 0; n < N; n++) { const v = x[2 * n + ch], a = (2 * Math.PI * hz * n) / 48000; re += v * Math.cos(a); im -= v * Math.sin(a); } return (2 * Math.hypot(re, im)) / N; });
+    const raw = execFileSync('ffmpeg', ['-v', 'error', '-ss', '0.5', '-t', '2', '-i', f, '-vn', '-ac', '2', '-ar', '48000', '-f', 'f32le', '-'], { maxBuffer: 1 << 26 });
+    const x = new Float32Array(raw.buffer, raw.byteOffset, raw.length / 4), F = Math.floor(x.length / 2), N = 4800;
+    return [0, 1].map((ch) => {
+      const amps = [];
+      for (let s0 = 0; s0 + N <= F; s0 += N) { let re = 0, im = 0; for (let n = 0; n < N; n++) { const v = x[2 * (s0 + n) + ch], a = (2 * Math.PI * hz * n) / 48000; re += v * Math.cos(a); im -= v * Math.sin(a); } amps.push((2 * Math.hypot(re, im)) / N); }
+      amps.sort((p, q) => p - q); return amps[amps.length >> 1];
+    });
   };
   const db = (a, ref) => 20 * Math.log10(a / ref);
   const haveFF = spawnSync('ffmpeg', ['-version']).status === 0;

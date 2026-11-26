@@ -2946,3 +2946,11 @@ cannot. Three new suites; each fails on the build before its fixes.
   Chrome's renderer crashed mid-run → deleted; a run that fails as "Target crashed" is worth a `df` first. (4) **FFmpeg's
   loudnorm keeps its one-gain ("linear") mode only for a sound with a loudness range above 0** — a steady test tone is
   normalised in its dynamic mode (the Screencast's line now says which); the suite tests both.
+- **Windows check run 14 (26 Nov 2026; screencast, screenshot, ffmpeg on a395eac):** screenshot 22 / 22; screencast 50 / 50
+  when run alone — under load (four suites at once) its "MP4 with the microphone" saw the shared tone 2.4 dB low over the
+  middle second, the microphone's exact: the test's own tone source (a Web Audio oscillator in the page) left gaps on a
+  busy runner → each tone is now the median of the 100 ms pieces of 0.5 – 2.5 s (a level change moves every piece, a
+  gap only some). ffmpeg: the 2× speed check (fixed since: the voice's level) and, after the Stop checks' new FFmpegs on
+  the same page, "memory access out of bounds" in 5.1 → MP4 — the step at which the Linux page crashed too; on fresh pages
+  it ran every time (also right after two stereo Opus encodes at complexity 4, and with 10 ms frames) → the new checks
+  run on a page of their own (the long-session weakness of one FFmpeg core on one page: its memory only grows).
