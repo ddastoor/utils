@@ -306,6 +306,14 @@ Wayland) and **mobile browsers** (Android Chrome, iPhone Safari).
   category with tool cards) and **★ Favorites** (`#/c/fav`), then one tab per category (`#/c/<cat>` = card grid of
   that category). Every tool page and card has a ☆ star toggle; starred tools appear in Favorites (count badge on
   the tab). Tool URLs: `#/<toolId>` (`?from=fav` keeps the Favorites row active).
+- **The category's list of apps folds away (to-do #27; owner, 26 Nov 2026: "make the list of apps in this category in a
+  collapsible pane … By default, keep the app pane expanded … collapse the list of all apps in that category so that
+  the real estate for the currently selected app increases"; "remembered between visits like Favorites"):** a button at
+  the end of the category row (outside the tool row, a tab list): "Hide apps" (aria-expanded) folds the tool row away —
+  then "All n apps" opens it again; folded stays folded through other apps and categories, after a reload and in other
+  tabs (`src/applist.ts`: `localStorage` key `superutils.applist.v1` = "folded"; open is the default and stored as
+  nothing; private mode: for the visit). Software's tool rows on a PC: about 330 px given back to the app; a phone: one
+  row. e2e `applist` 20.
 - **Camera wherever a picture is taken in (owner, 20 Nov 2026; standing):** "in all apps that offer to upload an image,
   also add the option of taking a photo if it's a phone app, and take the photo with a webcam if it's a PC app". Every
   picture picker is `imageInput` or `imagePicker` (`src/lib/imgtools.ts` — the camera is built in); a new one without a

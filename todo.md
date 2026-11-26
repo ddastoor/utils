@@ -252,22 +252,6 @@ The owner adds items here in chat ("add … to to do"). Newest instructions win.
       adjusting a corner; a delay; a window shared instead of a screen.
 
 
-27. **More room for the tab in use: the category's list of apps folds away** (owner, 26 Nov 2026: "the actual real estate on
-    the browser for the actual app selected that I'm currently using is considerably reduced because of all the apps listed
-    out in the current category. To improve the situation and increase the working area real estate for the app selected,
-    when each category is selected, make the list of apps in this category in a collapsible pane. By default, keep the app
-    pane expanded, but the user should be able to, once that particular app is selected, the user should be able to
-    collapse the list of all apps in that category so that the real estate for the currently selected app increases.")
-    - **Today:** on a PC the second row lists every app of the category and wraps — Software's 60-odd apps fill several
-      rows above the tab in use; on a phone it is one row that scrolls sideways, sticky with the category row.
-    - **To do:** the list of apps in a pane that folds: open by default; once an app is open a button at the row's end
-      ("Hide the list of apps", a chevron) folds it to one slim line — the open app's name and "All n apps of Software ▾"
-      — and opens it again; the category row and the search box stay. Folded stays folded while moving between apps
-      and categories, and **remembered between visits like Favorites** (owner, 26 Nov 2026: "for #27, remembered between
-      visits like Favorites.." — `localStorage` beside Favorites; CLAUDE.md §1 rule 1 notes the exception). Keyboard: the button reachable with Tab, its state said to screen readers (aria-expanded). Phones: the same
-      for the sticky rows, which then take less of the screen. The suite: open, fold, the tab's height gained, unfold, a
-      route change keeps it, every category, phone and PC, the accessibility sweep (a11y.e2e.mjs) and the touch-target
-      sweep.
 
 28. **Screenshot: scrolling screenshots** (owner, 26 Nov 2026: "Make a new option also for scrolling screenshots in the
     screenshot app.")
@@ -322,6 +306,12 @@ The owner adds items here in chat ("add … to to do"). Newest instructions win.
       two boxes; the boxes emptied by a change of mode.
 
 ## Done
+- **27. More room for the tab in use: the category's list of apps folds away** (owner, 26 Nov 2026; "for #27, remembered
+  between visits like Favorites..") — done 26 Nov 2026: "Hide apps" at the end of the category row folds the tool row
+  away ("All n apps" opens it); kept through apps, categories, reloads and other tabs (localStorage beside Favorites);
+  Software on a PC gains about 330 px, a phone one row. `src/applist.ts`, `src/main.ts`; e2e `applist` 20; the shell,
+  accessibility, touch-target and lazy-loading sweeps run with it. (The button is beside the category row, not at the
+  tool row's end as planned: the tool row is a tab list, which may hold only tabs.)
 - **26. Key Codes: key combinations such as Alt+W shown as one** (owner, 26 Nov 2026: "When I press alt+W, I'm not
   getting the alt+W code. Is this even possible? if so do it.") — done 26 Nov 2026: possible — the W key's event says
   "Alt held"; the tab now shows "Alt + W" large (AltGr, Win / Super / Command named per system, the key by its place),

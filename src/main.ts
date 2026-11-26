@@ -5,6 +5,7 @@ import { releaseAll, setIdle } from './lifecycle';
 import { h, ic, clear, errMsg, toast, DOWNLOAD_FAILED, type Cleanup } from './ui';
 import { isMobile } from './platform';
 import { favs, isFav, toggleFav, onFavChange } from './favorites';
+import { appListFolded, setAppListFolded, onAppListChange } from './applist';
 
 const available = (t: Tool) => t.platform === 'both' || (t.platform === 'pc') !== isMobile;
 const visible = TOOLS.filter(available);
@@ -25,7 +26,10 @@ const searchInput = h('input', {
 const results = h('div', { class: 'search-results', role: 'listbox', hidden: true });
 const search = h('div', { class: 'search' }, h('span', { class: 'search-ic' }, ic('Search')), searchInput, results);
 const catBar = h('nav', { class: 'tabs tabs-cat', role: 'tablist', 'aria-label': 'Categories' });
-const toolBar = h('nav', { class: 'tabs tabs-tool', role: 'tablist', 'aria-label': 'Tools' });
+const toolBar = h('nav', { class: 'tabs tabs-tool', role: 'tablist', 'aria-label': 'Tools', id: 'tool-tabs' });
+// the list of apps folds away for more room for the app in use (to-do #27); the button stands beside the category row —
+// not in the tool row, a tab list, which may hold only tabs
+const foldBtn = h('button', { type: 'button', class: 'tab tab-fold', 'aria-controls': 'tool-tabs', hidden: true }) as HTMLButtonElement;
 const view = h('main', { class: 'view', id: 'view' });
 
 document.getElementById('app')!.append(
@@ -33,7 +37,7 @@ document.getElementById('app')!.append(
     h('a', { class: 'brand', href: '#/', 'aria-label': 'SuperUtils home' }, h('span', { class: 'brand-mark' }, ic('Zap')), h('span', { class: 'brand-name' }, 'SuperUtils')),
     search,
     h('span', { class: 'privacy', title: 'Everything runs in your browser. Files never leave your device.' }, ic('ShieldCheck'), h('span', null, 'Private · on-device'))),
-  h('div', { class: 'navwrap' }, catBar, toolBar),
+  h('div', { class: 'navwrap' }, h('div', { class: 'catline' }, catBar, foldBtn), toolBar),
   view,
 );
 
@@ -45,6 +49,20 @@ function centerActive(bar: HTMLElement) {
   const on = bar.querySelector<HTMLElement>('.on');
   if (on) bar.scrollTo({ left: on.offsetLeft - (bar.clientWidth - on.offsetWidth) / 2, behavior: 'instant' as ScrollBehavior });
 }
+
+/** the tool row's list: how many apps, of which section — for the fold button */
+let shown = { n: 0, of: '' };
+function applyFold() {
+  const folded = appListFolded(), has = shown.n > 0;
+  foldBtn.hidden = !has;
+  toolBar.hidden = !has || folded;
+  foldBtn.setAttribute('aria-expanded', String(!folded));
+  foldBtn.title = folded ? `Show the list of apps of ${shown.of}` : `Hide the list of apps of ${shown.of} — more room for the app in use`;
+  clear(foldBtn).append(ic(folded ? 'ChevronDown' : 'ChevronUp'), h('span', null, folded ? `All ${shown.n} app${shown.n === 1 ? '' : 's'}` : 'Hide apps'));
+  if (has && !folded) centerActive(toolBar);
+}
+foldBtn.addEventListener('click', () => setAppListFolded(!appListFolded()));
+onAppListChange(applyFold);
 
 function renderTabs(section: Section, activeTool?: Tool) {
   const favCount = favTools().length;
@@ -58,12 +76,12 @@ function renderTabs(section: Section, activeTool?: Tool) {
     ...cats.map((c) => sectionTab(c.id, c.title, c.icon)),
   );
   const list = section === 'all' ? [] : section === 'fav' ? favTools() : toolsIn(section);
-  toolBar.hidden = !list.length;
+  shown = { n: list.length, of: section === 'fav' ? 'Favorites' : CATEGORIES.find((c) => c.id === section)?.title ?? '' };
   clear(toolBar).append(...list.map((t) => h('a', {
     class: ['tab', 'tab-tool', t.id === activeTool?.id && 'on'], role: 'tab', 'aria-selected': String(t.id === activeTool?.id),
     href: section === 'fav' ? `#/${t.id}?from=fav` : `#/${t.id}`,
   }, ic(t.icon), h('span', null, t.title))));
-  centerActive(catBar); centerActive(toolBar);
+  centerActive(catBar); applyFold();
 }
 
 // ------------------------------------------------------------------ star button & tiles
