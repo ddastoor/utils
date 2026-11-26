@@ -26,6 +26,7 @@ export default async (t, { load, wasm }) => {
     } };
   };
   const ops = { ...ip }; // no network in the unit suite (src/lib/pagecrop.ts asks it only when it is there)
+  let cols0;
   const progress = () => {};
   const kindle = await decode('tests/fixtures/images/kindle-page.jpg');
 
@@ -50,17 +51,17 @@ export default async (t, { load, wasm }) => {
   t.ok(mains(f).length === 2 && r.r.words.length === 45 && !r.page && mains(f)[1].w === kindle.width, `the page gave ${RP.FEW - 17} words: the whole photo read too, and kept (${r.r.words.length} words)`);
   first = true;
   f = reader((c) => (c.main ? (first ? ((first = false), { n: 8, conf: 70 }) : { n: 3, conf: 60 }) : null));
-  r = await RP.readPage(kindle, { lang: 'eng', clean: true, auto: true, onProgress: progress }, { ops, read: f.read });
+  r = await RP.readPage(kindle, { lang: 'eng', clean: true, auto: true, again: false, onProgress: progress }, { ops, read: f.read });
   t.ok(mains(f).length === 2 && r.r.words.length === 8 && r.page, '… and the page kept when the whole photo reads less');
 
   // the OCR tab: a poor reading tried the three other ways round; one that reads clearly better is taken
   const book = await decode('tests/fixtures/images/book-page.jpg');
   let retried = 0;
   f = reader((c) => (c.main ? (c.n === f.calls.findIndex((x) => x.main) ? { n: 40, conf: 30 } : { n: 120, conf: 88 }) : (c.w === c.h ? null : { n: 50, conf: c.n % 3 === 2 ? 85 : 20 })));
-  r = await RP.readPage(book, { lang: 'eng', clean: true, auto: false, retryTurns: true, onProgress: progress, onRetry: () => retried++ }, { ops, read: f.read });
+  r = await RP.readPage(book, { lang: 'eng', clean: true, auto: false, retryTurns: true, again: false, onProgress: progress, onRetry: () => retried++ }, { ops, read: f.read });
   t.ok(retried === 1 && r.turned !== null && r.r.confidence === 88, `a poor reading (30 %): tried the other ways round, the one that reads clearly better taken (turned ${r.turned}, ${mains(f).length} readings in full)`);
   f = reader((c) => (c.main ? { n: 40, conf: 30 } : { n: 30, conf: 45 }));
-  r = await RP.readPage(book, { lang: 'eng', clean: true, auto: false, retryTurns: true, onProgress: progress }, { ops, read: f.read });
+  r = await RP.readPage(book, { lang: 'eng', clean: true, auto: false, retryTurns: true, again: false, onProgress: progress }, { ops, read: f.read });
   t.ok(r.turned === null && mains(f).length === 1, '… none reads clearly better (45 %, under 60): left as it was');
   f = reader((c) => (c.main ? { n: 40, conf: 30 } : null));
   r = await RP.readPage(book, { lang: 'eng', clean: true, auto: true, onProgress: progress }, { ops, read: f.read });
@@ -70,6 +71,24 @@ export default async (t, { load, wasm }) => {
   r = await RP.readPage(book, { lang: 'eng', clean: false, auto: false, turns: 1, onProgress: progress }, { ops, read: f.read });
   t.ok(mains(f)[0].w === book.height && mains(f)[0].h === book.width && f.calls.length === 1 && r.up.turns === 0, 'turned a quarter by hand: read that way round, nothing decided on its own');
 
+  // an unsure reading (below 85 %) read again laid out the other way; the one that reads more words surely is kept — on a
+  // soft photo Tesseract laid out as one block can lose a whole line (a form's title, a table's row)
+  f = reader((c) => (c.main ? (c.layout === 'block' ? { n: 80, conf: 76 } : { n: 100, conf: 83 }) : null));
+  r = await RP.readPage(book, { lang: 'eng', clean: true, auto: false, onProgress: progress }, { ops, read: f.read });
+  t.ok(mains(f).length === 2 && mains(f)[1].layout === 'page' && r.layout === 'page' && r.r.words.length === 100, `an unsure reading (76 %): read again as a page, which read more words surely, kept (${mains(f).map((c) => c.layout).join(' → ')})`);
+  f = reader((c) => (c.main ? (c.layout === 'block' ? { n: 100, conf: 80 } : { n: 101, conf: 80 }) : null));
+  r = await RP.readPage(book, { lang: 'eng', clean: true, auto: false, onProgress: progress }, { ops, read: f.read });
+  t.ok(mains(f).length === 2 && r.layout === 'block' && r.r.words.length === 100, '… one that reads barely more (within 3 %): the first kept');
+  f = reader((c) => (c.main ? { n: 100, conf: 90 } : null));
+  r = await RP.readPage(book, { lang: 'eng', clean: true, auto: false, onProgress: progress }, { ops, read: f.read });
+  t.ok(mains(f).length === 1 && r.layout === 'block', 'a sure reading (90 %): read once');
+  f = reader((c) => (c.main ? (c.layout === 'block' ? { n: 80, conf: 76 } : { n: 100, conf: 83 }) : null));
+  r = await RP.readPage(book, { lang: 'eng', clean: true, auto: false, again: false, onProgress: progress }, { ops, read: f.read });
+  t.ok(mains(f).length === 1 && r.layout === 'block', 'again: false — read once');
+  f = reader((c) => (c.main ? (c.layout === 'page' ? { n: 60, conf: 70 } : { n: 120, conf: 82 }) : null));
+  r = await RP.readPage(cols0 ??= await decode('tests/fixtures/ocr/columns.jpg'), { lang: 'eng', clean: true, auto: false, onProgress: progress }, { ops, read: f.read });
+  t.ok(r.columns === 2 && mains(f)[0].layout === 'page' && mains(f)[1].layout === 'block' && r.layout === 'block', `columns read as a page, unsure: read again as one block, kept when it reads more (${mains(f).map((c) => c.layout).join(' → ')})`);
+
   // a newer photo (or the tab left): the reading stops, nothing is returned
   let stop = false;
   f = reader((c) => { if (c.main) stop = true; return { n: 8, conf: 50 }; });
@@ -77,7 +96,7 @@ export default async (t, { load, wasm }) => {
   t.ok(r === null && mains(f).length === 1, 'a newer photo after the first reading: stopped, no result');
 
   // a page of two columns is read as a page (Tesseract's layout analysis reads each column on its own)
-  const cols = await decode('tests/fixtures/ocr/columns.jpg');
+  const cols = cols0;
   f = reader(() => ({ n: 120, conf: 92 }));
   r = await RP.readPage(cols, { lang: 'eng', clean: true, auto: true, onProgress: progress }, { ops, read: f.read });
   t.ok(r.columns === 2 && mains(f)[0].layout === 'page', `two columns: read as a page (${r.columns} columns, layout ${mains(f)[0].layout})`);

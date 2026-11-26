@@ -263,6 +263,20 @@ export default async ({ base, page: newPage, ok, info, devices }) => {
       ok(await pk.locator('.pd-advice').innerText() === '', `${what}: read well, so no "snap again" hint`);
       ok(!/turned/.test(said), `${what}: upright, read the way it stands — not turned (${said})`);
     }
+    // documents with rich formatting, photographed (to-do #18; owner, 26 Nov 2026: documents with bullets, indentation and
+    // watermarks read "very poorly … especially using the phone camera"): the same uncommon words as a clean copy of the
+    // page, the page's text in reading order (a newsletter column by column), no list mark read as a letter
+    const wordsOf = (x) => (x.normalize('NFC').replace(/[’‘]/g, "'").toLowerCase().match(/[a-z0-9']+/g) || []).map((w) => w.replace(/^'+|'+$/g, '')).filter(Boolean);
+    const lcs = (a, b) => { let prev = new Uint16Array(b.length + 1), cur = new Uint16Array(b.length + 1); for (let i = 1; i <= a.length; i++) { cur[0] = 0; for (let j = 1; j <= b.length; j++) cur[j] = a[i - 1] === b[j - 1] ? prev[j - 1] + 1 : Math.max(prev[j], cur[j - 1]); [prev, cur] = [cur, prev]; } return prev[b.length]; };
+    const STRAY = /^\s*(?:[eoOcC©®«»*•◦▪●○■□☐☑✓✔>¢°·~=+]|71|\(?[eo©]\)?|[eo][.,])\s+\S/;
+    for (const [photo, min, what] of [['doc-checklist-draft-still.jpg', 0.85, 'a checklist with a table and a red DRAFT, on a smooth desk'], ['doc-newsletter-frame.jpg', 0.85, 'a two-column newsletter in a video frame'], ['doc-memo-still.jpg', 0.9, 'a Word memo close up, running off the photo']]) {
+      const txt = photo.replace('.jpg', '.txt'), ref = await pick({ name: 'clean-copy.png', mimeType: 'image/png', buffer: await cleanCopy(txt) });
+      const got = await pick(F(photo)), share = ref.filter((w) => got.includes(w)).length / ref.length;
+      const text = await pk.locator('.pd-textbody').evaluate((e) => e.textContent), right = lcs(wordsOf(readFileSync(F(txt), 'utf8')), wordsOf(text)) / wordsOf(readFileSync(F(txt), 'utf8')).length;
+      const strays = text.split('\n').filter((l) => STRAY.test(l));
+      ok(ref.length >= 5 && share >= min, `${what}: ${Math.round(100 * share)} % (at least ${100 * min} %) of the ${ref.length} uncommon words of a clean copy — missing: ${ref.filter((w) => !got.includes(w)).join(', ') || 'none'}`);
+      ok(right >= 0.85 && strays.length <= 1, `${what}: the page's text ${(100 * right).toFixed(0)} % in reading order; list marks read as letters: ${strays.length} ${JSON.stringify(strays.slice(0, 2))}`);
+    }
     // a photo too soft to read well (a frame of the live video, out of focus, with moiré): what was read is shown, and
     // the tab says why and what to do — not a list of misread words passed off as the page's
     await pick(F('kindle-soft.jpg'));

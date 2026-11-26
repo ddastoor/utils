@@ -15,7 +15,7 @@
 import { imgproc, type Img } from '../wasm/imgproc';
 import { recognize, POOR, type OcrLang, type OcrResult, type Layout } from './ocr';
 import { straighten, type PageOps } from './pagecrop';
-import { uprightByReading, ROT, type TurnOps } from './upright';
+import { uprightByReading, score, ROT, type TurnOps } from './upright';
 
 /** imgproc's operations the reading uses — the worker's in the tabs, the module's in Node. */
 export interface ReadOps extends PageOps, TurnOps {
@@ -33,7 +33,7 @@ export interface ReadEngines {
 const op = <T>(name: string) => (...a: any[]) => imgproc(name as any, ...a) as Promise<T>;
 export const browserEngines: ReadEngines = {
   ops: {
-    resize: op('resize'), pageQuad: op('pageQuad'), flatShare: op('flatShare'), warp: op('warp'), quadSteps: op('quadSteps'), refineQuad: op('refineQuad'),
+    resize: op('resize'), pageQuad: op('pageQuad'), flatShare: op('flatShare'), warp: op('warp'), quadSteps: op('quadSteps'), refineQuad: op('refineQuad'), quadText: op('quadText'), clearBorder: op('clearBorder'),
     // the Doc Scanner's network: its worker and ONNX Runtime are fetched the first time a photo needs them
     docCorners: async (small: Img) => (await import('./pagefind-client')).findPage((await imgproc('resizeArea', small, 224, 224)).data),
     textTurns: op('textTurns'), textLines: op('textLines'), orient: op('orient'), rotate: op('rotate'), crop: op('crop'), inkWindow: op('inkWindow'),
@@ -68,6 +68,8 @@ export interface ReadOptions {
   turns?: number;
   /** A poor reading tried the three other ways round (the OCR tab). */
   retryTurns?: boolean;
+  /** An unsure reading read again laid out the other way, the better kept (default: on). */
+  again?: boolean;
   /** Tesseract's progress, for the main readings (not the quick ones that decide which way up). */
   onProgress?: (p: number, status: string) => void;
   /** Told when the poor reading is tried the other ways round. */
@@ -93,6 +95,8 @@ export interface PageReading {
   cleared: { lines: number; marks: number };
   /** the columns of text found (2 and more: read as a page) */
   columns: number;
+  /** how the reading kept was laid out */
+  layout: Layout;
 }
 
 /** Light text on a dark ground (a screenshot in dark mode, chalk on a board, a Kindle in dark mode): the clean-up expects
@@ -106,6 +110,11 @@ export const isDark = (luma: ArrayLike<number>) => {
 export const MAX_SIDE = 3000;
 /** A page found that gives fewer words than this was not the page: the whole photo is read too. */
 export const FEW = 25;
+/** A reading less sure than this (Tesseract's mean confidence) is read again laid out the other way — one block ⇄ a page —
+ *  and the one that reads more words surely is kept (`score`, by at least AGAIN_BY): on a soft photo Tesseract laid out
+ *  as one block can lose a whole line (a form's title, a table's row) that its layout analysis reads, and the other way
+ *  round. Sharp photos read at 87 – 95 % and are read once. */
+export const AGAIN = 85, AGAIN_BY = 1.03;
 
 export async function readPage(photo: Img, o: ReadOptions, eng: ReadEngines = browserEngines): Promise<PageReading | null> {
   const { ops } = eng, live = () => !o.stale?.();
@@ -151,6 +160,12 @@ export async function readPage(photo: Img, o: ReadOptions, eng: ReadEngines = br
     if (!live()) return null;
     if (r2.words.length > r.words.length) { r = r2; p = w; }
   }
+  let layout = layoutFor(p.columns);
+  if ((o.again ?? true) && r.confidence < AGAIN) {
+    const other: Layout = layout === 'block' ? 'page' : 'block', r2 = await eng.read(p.img, o.lang, o.onProgress, other);
+    if (!live()) return null;
+    if (score(r2) > score(r) * AGAIN_BY) { r = r2; layout = other; }
+  }
   let turned: number | null = null;
   if (o.retryTurns && r.confidence < POOR) {
     // sideways or upside down after all? A smaller copy read each other way round; a way that reads clearly better is taken
@@ -165,10 +180,10 @@ export async function readPage(photo: Img, o: ReadOptions, eng: ReadEngines = br
     if (best.t !== cur && best.conf >= POOR && best.conf >= r.confidence + 20) {
       p = await prepare(photo, best.t, true, false);
       if (!live()) return null;
-      r = await eng.read(p.img, o.lang, o.onProgress, layoutFor(p.columns));
+      r = await eng.read(p.img, o.lang, o.onProgress, (layout = layoutFor(p.columns)));
       if (!live()) return null;
       turned = best.t;
     }
   }
-  return { r, img: p.img, shown: p.shown, page: p.page, by: p.by, up: p.up, turned, cleared: p.cleared, columns: p.columns };
+  return { r, img: p.img, shown: p.shown, page: p.page, by: p.by, up: p.up, turned, cleared: p.cleared, columns: p.columns, layout };
 }

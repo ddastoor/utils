@@ -45,6 +45,24 @@ export default async ({ base, page: newPage, ok, info, download, devices }) => {
     const low = await page.locator('.ocr-low').evaluateAll((els) => els.map((e) => [parseFloat(e.style.left), parseFloat(e.style.top)]));
     ok(low.every(([x, y]) => x >= 0 && x <= 100 && y >= 0 && y <= 100), `${f}: the unsure words are marked on the page that was read (${low.length})`);
   }
+  // documents with rich formatting, photographed (to-do #18; owner, 26 Nov 2026: "works very poorly for a document that has
+  // formatting, rich text formatting like bullet points, indentation, etc., especially using the phone camera. Also
+  // improve the quality when the document has a watermark"): pages of real text laid out as Google Docs, Word and a
+  // newsletter (scripts/make-format-docs.mjs, photographed by scripts/make-doc-photos.py) — read the shared way
+  // (src/lib/readpage.ts): a checklist with bullets, check boxes, a table and a red DRAFT on a smooth desk (it passed for a
+  // screenshot and was never straightened: 15 % before), a two-column newsletter in a video frame (read straight across
+  // the columns: 56 % before), a Word memo close up, its page running off the photo (63 %). No list mark is read as a
+  // letter ("e", "o", "©", "71") and no table rule as "|" (the owner: "no need to keep bullets and indentation in the
+  // text;.. but the ocr should not get confused by them").
+  const STRAY = /^\s*(?:[eoOcC©®«»*•◦▪●○■□☐☑✓✔>¢°·~=+]|71|\(?[eo©]\)?|[eo][.,])\s+\S/;
+  for (const [f, min] of [['doc-checklist-draft-still.jpg', 0.85], ['doc-newsletter-frame.jpg', 0.9], ['doc-memo-still.jpg', 0.92]]) {
+    const got = await recognise(F(f), 'English', true), truth = wordsOf(readFileSync(F(f.replace('.jpg', '.txt')), 'utf8'));
+    const right = lcs(truth, wordsOf(got)) / truth.length;
+    ok(right >= min && /the page was found and straightened/.test(await line()), `${f}: ${(100 * right).toFixed(1)} % of the page's words read right, in reading order (at least ${100 * min} %; ${await line()})`);
+    const strays = got.split('\n').filter((l) => STRAY.test(l)), bars = (got.match(/(^|\s)\|(?=\s|$)/g) || []).length;
+    ok(strays.length <= 1 && bars <= 1, `${f}: no list mark read as a letter, no table rule as | (${strays.length} lines ${JSON.stringify(strays.slice(0, 3))}, ${bars} bars)`);
+  }
+
   // the phone held sideways (owner, 21 Nov 2026 — to-do #11: "either with my left hand or my right hand"): the Kindle
   // photo turned a quarter either way, or upside down, reads as well as upright; the line says how it was turned
   { const truth = wordsOf(readFileSync(F('kindle-page.txt'), 'utf8'));

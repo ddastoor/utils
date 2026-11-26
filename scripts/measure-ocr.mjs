@@ -28,6 +28,7 @@ const tilt = parseFloat(opt('--tilt', '0')) || 0;
 let readSmall; // a quick reading of a picture (the tabs' "glance"), set in main(): uprightByReading's reader
 let found = 0; // photos whose page was found (the page… variants)
 let byNet = 0; // … by the Doc Scanner's network (the net… variants)
+let other = 0; // read again laid out the other way, and that reading kept (read…)
 
 /** Words as a reader counts them: letters, digits and the apostrophe; case and punctuation ignored. */
 export const wordsOf = (s) => (s.normalize('NFC').replace(/[’‘]/g, "'").toLowerCase().match(/[a-z0-9']+/g) || []).map((w) => w.replace(/^'+|'+$/g, '')).filter(Boolean);
@@ -224,12 +225,13 @@ async function main() {
       const t0 = performance.now();
       let data;
       if (p.startsWith('read')) {
-        // read[+screen][+retry]: the tabs' own reading path (src/lib/readpage.ts) on imgproc.wasm, the Doc Scanner's
+        // read[+screen][+retry][+once]: the tabs' own reading path (src/lib/readpage.ts) on imgproc.wasm, the Doc Scanner's
         // network and this Tesseract — read = the Photo Dictionary's options, +retry = the OCR tab's (a poor reading tried
-        // the other ways round), +screen = "Photo of a screen"
-        const res = await eng.readPage(img, { lang: 'eng', clean: true, auto: true, screen: p.includes('screen'), retryTurns: p.includes('retry') }, readEngines);
+        // the other ways round), +screen = "Photo of a screen", +once = an unsure reading not read again the other way
+        const res = await eng.readPage(img, { lang: 'eng', clean: true, auto: true, screen: p.includes('screen'), retryTurns: p.includes('retry'), again: !p.includes('once') }, readEngines);
         if (res.page) found++;
         if (res.by === 'network') byNet++;
+        if (res.layout !== (res.columns >= 2 ? 'page' : 'block')) other++;
         if (process.env.OCR_SAVE) writeFileSync(join(process.env.OCR_SAVE, `${name}.${p}.ppm`), ppm(res.img));
         data = res.r;
       } else {
@@ -253,6 +255,7 @@ async function main() {
     console.log(`MEAN ${p.padEnd(8)} words ${m(0)}%  rare ${m(1)}%  clean ${m(2)}%  cer ${m(3)}%  stray lines ${t.reduce((s, x) => s + x[4], 0)}  (${t.length} photos, psm ${psm})`);
   }
   if (found) console.log(`page found in ${found} of the runs that looked for it${byNet ? ` (${byNet} by the Doc Scanner's network)` : ''}`);
+  if (other) console.log(`${other} readings kept from the other layout (an unsure reading read again)`);
   await worker.terminate(); await close();
 }
 main().catch((e) => { console.error(e); process.exit(1); });

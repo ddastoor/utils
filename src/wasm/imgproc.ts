@@ -149,6 +149,26 @@ export function bindImgproc(e: any) {
      *  #18): what — bit 0 the lines (a table's grid, rules, underlines), bit 1 the marks (● ○ ■ □ ☐ ☑ … at a line's start
      *  before a gap), bit 2 count the columns of text; `lines` = pixels cleared, `marks` = marks cleared, `xh` = the
      *  x-height found, `slant` in degrees, `columns` = the columns of text (1: one, or not counted). */
+    /** The letters of a picture inside an outline (TL, TR, BR, BL, px) and outside it (p_quad_text): a page's outline
+     *  holds nearly all of them. */
+    quadText(img: Img, corners: number[]): { inside: number; outside: number } {
+      const s = put(img.data), qp = e.p_malloc(32), o = e.p_malloc(8);
+      try {
+        new Float32Array(mem(), qp, 8).set(corners);
+        e.p_quad_text(s, img.width, img.height, qp, o);
+        const v = new Int32Array(mem(), o, 2);
+        return { inside: v[0], outside: v[1] };
+      } finally { e.p_free(s); e.p_free(qp); e.p_free(o); }
+    },
+    /** What lay round a straightened page along its edges (a strip of the desk, a screen's bezel) painted the paper's
+     *  colour (p_clear_border): `maxfrac` of the page at most from each edge. */
+    clearBorder(img: Img, maxfrac = 0.03): { img: Img; painted: number } {
+      const p = put(img.data);
+      try {
+        const painted = e.p_clear_border(p, img.width, img.height, maxfrac);
+        return { img: { width: img.width, height: img.height, data: new Uint8ClampedArray(mem().slice(p, p + img.data.length)) }, painted };
+      } finally { e.p_free(p); }
+    },
     clearMarks(img: Img, what = 3): { img: Img; lines: number; marks: number; xh: number; slant: number; columns: number } {
       const p = put(img.data), o = e.p_malloc(20);
       try {

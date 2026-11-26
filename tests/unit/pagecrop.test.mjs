@@ -1,16 +1,19 @@
 // src/lib/pagecrop.ts — the page of a photo found and straightened before it is read (the Photo Dictionary; owner,
 // 21 Nov 2026: a phone's photo of a Kindle page "extremely well"): synthetic photos with known corners, on imgproc.wasm.
+import { fileURLToPath } from 'node:url';
+import { readFileSync } from 'node:fs';
+
 export default async (t, { load, wasm }) => {
   const { bindImgproc } = await load('/src/wasm/imgproc.ts');
   const pc = await load('/src/lib/pagecrop.ts');
   const ip = bindImgproc(await wasm('imgproc'));
   // a photo: a dark table (or a Kindle's black body) with a light quadrilateral on it, text-like stripes inside
-  const photo = (W, H, quad, { light = 228, dark = 40, stripes = true } = {}) => {
+  const photo = (W, H, quad, { light = 228, dark = 40, stripes = true, textTo = Infinity } = {}) => {
     const d = new Uint8ClampedArray(W * H * 4);
     const inside = (x, y) => { let s = 0; for (let i = 0; i < 4; i++) { const [x1, y1] = quad[i], [x2, y2] = quad[(i + 1) % 4]; if ((x2 - x1) * (y - y1) - (y2 - y1) * (x - x1) < 0) s++; } return s === 0 || s === 4; };
     for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
       let v = dark + ((x * 7 + y * 13) % 9);
-      if (inside(x + 0.5, y + 0.5)) v = stripes && y % 24 < 6 && x % 40 < 30 ? 50 : light;
+      if (inside(x + 0.5, y + 0.5)) v = stripes && y < textTo && y % 24 < 6 && x % 40 < 30 ? 50 : light;
       v += noise();
       d.set([v, v, v, 255], (y * W + x) * 4);
     }
@@ -107,9 +110,22 @@ export default async (t, { load, wasm }) => {
   const a5 = await pc.straighten(img, { ...wrongOutline, docCorners: net(frac(quad.flat()), 0.2) });
   t.ok(!a5.found, 'the network not sure there is a document (P < 0.5): its corners are not used');
   const threeReal = [260, 140, 1180, 210, 1150, 830, 230, 760]; // the upper part of the page: its bottom edge inside it
-  const before = asked;
-  const a6 = await pc.straighten(img, { ...ip, pageQuad: outlineAt(threeReal), docCorners: net(frac(inner)) });
-  t.ok(a6.found && a6.by === 'outline' && asked === before + 1, 'an outline with three real edges: the network is asked, its worse corners are not taken');
+  // … on a page whose text ends above that edge (the rest of the page blank): the outline holds the text — taken
+  const upper = photo(1400, 1600, quad, { textTo: 700 });
+  let before = asked;
+  const a6 = await pc.straighten(upper, { ...ip, pageQuad: outlineAt(threeReal), docCorners: net(frac(inner)) });
+  t.ok(a6.found && a6.by === 'outline' && asked === before + 1, 'an outline with three real edges that holds the text: the network is asked, its worse corners are not taken');
+  // … on a page with text below that edge: a region inside the page (to-do #18: a big watermark's letters fence in such
+  // regions) — its letters are counted inside and outside, and an outline that leaves a fifth outside is no page
+  const tIn = ip.quadText(img, quad.flat()), tUp = ip.quadText(img, threeReal), tInner = ip.quadText(img, inner), tUpper = ip.quadText(upper, threeReal);
+  t.ok(tIn.inside > 500 && tIn.outside === 0 && pc.holdsText(tIn), `the page's own outline holds every letter (${tIn.inside} inside, ${tIn.outside} outside)`);
+  t.ok(tUp.outside >= 0.3 * (tUp.inside + tUp.outside) && !pc.holdsText(tUp), `the page's upper part leaves its lower text outside: no page (${tUp.inside} inside, ${tUp.outside} outside)`);
+  t.ok(!pc.holdsText(tInner) && pc.holdsText(tUpper), `a region in the middle: no page (${tInner.inside} / ${tInner.outside}); the upper part of a page whose text ends there: the page (${tUpper.inside} / ${tUpper.outside})`);
+  t.ok(pc.holdsText({ inside: 1000, outside: 24 }) && pc.holdsText({ inside: 30, outside: 24 }) && !pc.holdsText({ inside: 100, outside: 25 }) && pc.holdsText({ inside: 1000, outside: 200 }), 'holdsText: a few letters outside (a bezel\'s logo) or less than a fifth are allowed');
+  before = asked;
+  const a7 = await pc.straighten(img, { ...ip, pageQuad: outlineAt(threeReal), docCorners: net(frac(inner)) });
+  t.ok(!a7.found && a7.img === img && asked === before + 1, 'an outline with three real edges that leaves text outside: not taken, the network asked (no page either), the photo read as it is');
+  t.ok((await pc.straighten(img, { ...ip, quadText: undefined, pageQuad: outlineAt(threeReal) })).found, '… without the count of letters it would have been taken');
   // a tilted page on a smooth desk that JPEG made exactly flat (measured 0.22 – 0.34 flat): a camera's photo all the same
   const smooth = (() => { const W = 1200, H = 1400, d = new Uint8ClampedArray(W * H * 4), q = [[230, 150], [1000, 210], [950, 1250], [180, 1190]];
     const inq = (x, y) => { let c = 0; for (let i = 0; i < 4; i++) { const [x1, y1] = q[i], [x2, y2] = q[(i + 1) % 4]; if ((x2 - x1) * (y - y1) - (y2 - y1) * (x - x1) < 0) c++; } return c === 0 || c === 4; };
@@ -119,8 +135,43 @@ export default async (t, { load, wasm }) => {
   const sm = await pc.straighten(smooth.img, ip);
   t.ok(sm.found && near(sm.corners, smooth.q.flat(), 16), `… its tilted page is found and straightened all the same (${sm.corners?.map(Math.round).join(', ')})`);
   t.ok(pc.squareOn([200, 150, 1000, 151, 1001, 750, 199, 749]) && !pc.squareOn(smooth.q.flat()), 'square on: a screenshot\'s panel is, a photographed page is not');
+  // what lay round the page, left along its edges once straightened (the network's corners a little outside the page, a
+  // screen's bezel): painted the paper's colour — with a dark strip down its side Tesseract read a form without its title
+  const strip = (() => { const W = 700, H = 900, d = new Uint8ClampedArray(W * H * 4);
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      let v = 236 + noise();                                                          // the paper
+      if (y > 60 && y < 800 && y % 24 < 6 && x > 30 && x < 640 && x % 40 < 30) v = 45;  // text, from 30 px in
+      if (x < 9 - (y > 450 ? 3 : 0) || y < 5) v = 70 + noise();                        // a strip of the desk on the left and the top
+      if (y > 300 && y < 340 && x > 660 && x < 690) v = 30;                            // a black mark near the right edge (not a strip)
+      d.set([v, v, v, 255], (y * W + x) * 4);
+    }
+    return { data: d, width: W, height: H }; })();
+  const cb = ip.clearBorder(strip, pc.BORDER);
+  t.ok(cb.painted > 0 && at(cb.img, 3, 100) > 220 && at(cb.img, 7, 200) > 220 && at(cb.img, 200, 2) > 220, `the desk's strips along the left and the top: painted the paper's colour (${cb.painted} px)`);
+  t.ok(at(cb.img, 45, 72) < 80 && at(cb.img, 675, 320) < 80 && at(cb.img, 300, 400) === at(strip, 300, 400), 'the text from 30 px in and a black mark near the right edge stay; the rest is untouched');
+  const clean = ip.clearBorder(s.img, pc.BORDER);
+  t.ok(clean.painted === 0, `a page straightened without a strip: nothing painted (${clean.painted})`);
+  const darkPage = { width: 400, height: 500, data: new Uint8ClampedArray(400 * 500 * 4).map((_, i) => (i % 4 === 3 ? 255 : 25)) };
+  t.ok(ip.clearBorder(darkPage, pc.BORDER).painted === 0, 'a dark page (light text on dark): left alone');
   // the operations may answer with promises (the worker's) as well as at once (the module's)
   const asyncOps = { resize: async (...a) => ip.resize(...a), pageQuad: async (i) => ip.pageQuad(i), warp: async (...a) => ip.warp(...a), flatShare: async (i) => ip.flatShare(i), quadSteps: async (...a) => ip.quadSteps(...a) };
   const sa = await pc.straighten(img, asyncOps);
   t.ok(sa.found && sa.img.width === s.img.width && sa.img.height === s.img.height, 'the same with operations that answer with promises (the worker)');
+
+  // a real scan with a big watermark (to-do #18; tests/fixtures/images/doc-memo-watermark-scan.jpg): the white area that
+  // the letters of CONFIDENTIAL fence in passed for the page — with the Doc Scanner's network, as the tabs run it — and
+  // the page was read from half way down; the letters outside it say it is no page
+  const root = fileURLToPath(new URL('../../', import.meta.url));
+  const ort = await import(root + 'node_modules/onnxruntime-web/dist/ort.wasm.min.mjs');
+  ort.env.wasm.numThreads = 1;
+  const session = await ort.InferenceSession.create(new Uint8Array(readFileSync(root + 'node_modules/scanic-ml/dist/doccornernet_lean.ort')), { executionProviders: ['wasm'], graphOptimizationLevel: 'all' });
+  const pf = await load('/src/lib/pagefind.ts');
+  const docCorners = async (im) => { const r = ip.resizeArea(im, pf.SIZE, pf.SIZE); return pf.readOutput(await session.run({ [session.inputNames[0]]: new ort.Tensor('float32', pf.modelInput(r.data), [1, pf.SIZE, pf.SIZE, 3]) })); };
+  const jpeg = await import(root + 'node_modules/@jsquash/jpeg/decode.js');
+  await jpeg.init(await WebAssembly.compile(readFileSync(root + 'node_modules/@jsquash/jpeg/codec/dec/mozjpeg_dec.wasm')));
+  const dj = await jpeg.default(readFileSync(root + 'tests/fixtures/images/doc-memo-watermark-scan.jpg')), scan = { data: dj.data, width: dj.width, height: dj.height };
+  const wrong = await pc.straighten(scan, { ...ip, quadText: undefined, docCorners });
+  t.ok(wrong.found && wrong.img.height < scan.height / 3, `the watermark scan without the count of letters: a region of ${wrong.img?.width} × ${wrong.img?.height} taken for the page (of ${scan.width} × ${scan.height})`);
+  const right = await pc.straighten(scan, { ...ip, docCorners });
+  t.ok(!right.found && right.img === scan, '… with it: no page, the scan read whole');
 };

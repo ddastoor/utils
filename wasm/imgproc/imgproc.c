@@ -856,6 +856,54 @@ API int p_flat_share(const uint8_t *px, int w, int h) {
     }
     return n ? (int)(flat * 10000 / n) : 0;
 }
+/* What lay round the page, left along its edges once it is straightened (to-do #18): an outline a few pixels outside
+   the page (the Doc Scanner's network looks at 224 px; a soft photo's blur), a screen's dark bezel. With such a dark
+   strip down its side Tesseract read a form without its title (laid out as one block). Along each edge, in 16 pieces,
+   the lines from the border inward that are mostly dark against the paper — three quarters of the piece below three
+   quarters of the paper's brightness (the 80th percentile of the page) — up to maxfrac of the page, and the line after
+   them (the strip's soft edge), are painted the paper's colour. Text never darkens three quarters of a line, and a strip
+   has to start at the border. A dark page (light text on a dark ground) is left alone. Returns the pixels painted. */
+API int p_clear_border(uint8_t *px, int w, int h, float maxfrac) {
+    if (w < 32 || h < 32) return 0;
+    int n = w * h;
+    uint32_t hist[256] = {0};
+    for (int i = 0; i < n; i++) { const uint8_t *p = px + (size_t)i * 4; hist[(77 * p[0] + 150 * p[1] + 29 * p[2]) >> 8]++; }
+    int p80 = 255; { long long acc = 0; for (int v = 0; v < 256; v++) { acc += hist[v]; if (acc * 100 >= (long long)n * 80) { p80 = v; break; } } }
+    if (p80 < 96) return 0;
+    double sr = 0, sg = 0, sb = 0; long long cnt = 0;
+    for (int i = 0; i < n; i += 3) {
+        const uint8_t *p = px + (size_t)i * 4; int l = (77 * p[0] + 150 * p[1] + 29 * p[2]) >> 8;
+        if (l >= p80 - 8 && l <= p80 + 8) { sr += p[0]; sg += p[1]; sb += p[2]; cnt++; }
+    }
+    if (!cnt) return 0;
+    uint8_t paper[4] = { (uint8_t)(sr / cnt), (uint8_t)(sg / cnt), (uint8_t)(sb / cnt), 255 };
+    int dark = p80 * 3 / 4, painted = 0;
+    for (int side = 0; side < 4; side++) {
+        int along = side < 2 ? w : h, across = side < 2 ? h : w, maxd = (int)(maxfrac * across);
+        for (int sg2 = 0; sg2 < 16; sg2++) {
+            int a0 = along * sg2 / 16, a1 = along * (sg2 + 1) / 16, len = a1 - a0, depth = 0;
+            if (len < 4) continue;
+            for (int d = 0; d < maxd; d++) {
+                int nd = 0;
+                for (int a = a0; a < a1; a++) {
+                    int x = side == 0 || side == 1 ? a : side == 2 ? d : w - 1 - d, y = side == 0 ? d : side == 1 ? h - 1 - d : a;
+                    const uint8_t *p = px + ((size_t)y * w + x) * 4;
+                    if (((77 * p[0] + 150 * p[1] + 29 * p[2]) >> 8) < dark) nd++;
+                }
+                if (nd * 4 < len * 3) break;
+                depth = d + 1;
+            }
+            if (!depth) continue;
+            if (depth < across) depth++;
+            for (int d = 0; d < depth; d++) for (int a = a0; a < a1; a++) {
+                int x = side == 0 || side == 1 ? a : side == 2 ? d : w - 1 - d, y = side == 0 ? d : side == 1 ? h - 1 - d : a;
+                memcpy(px + ((size_t)y * w + x) * 4, paper, 4);
+            }
+            painted += depth * len;
+        }
+    }
+    return painted;
+}
 /* Is this outline the edge of a page? (to-do #18: the page finders of the reading tabs — the Kindle finder above and
    the Doc Scanner's network — each take a wrong outline at times: a region inside the page, a corner in the Kindle's
    bezel.) Across each edge of quad (TL, TR, BR, BL, px) the brightness steps from inside to outside: a page or a screen
@@ -1555,8 +1603,10 @@ API int p_text_lines(const uint8_t *px, int w, int h, float *out) {
  *    a space).
  * The x-height and the slant of the lines are measured on the page (the letters' heights; their nearest neighbours).
  * Then, with bit 2, the columns of text are counted: gutters — a band at least an x-height wide with almost no ink,
- * text on both sides of it down the page — the reading tabs read a page of columns as a page (Tesseract's layout
- * analysis), anything else as one block (to-do #18: a newsletter's two columns were read straight across).
+ * text on both sides of it down the page, the lines on its left running up to it, the columns either side at least
+ * eighteen x-heights wide (a form's labels and a table's cells are narrower, and stop short) — the reading tabs read a
+ * page of columns as a page (Tesseract's layout analysis), anything else as one block (to-do #18: a newsletter's two
+ * columns were read straight across; a form read as columns lost its order).
  * what: bit 0 the lines, bit 1 the marks, bit 2 the columns. out[0] = pixels of lines cleared, out[1] = marks cleared,
  * out[2] = the x-height (px), out[3] = the slant used (hundredths of a degree), out[4] = the columns of text (1 when one
  * or none). Returns out[0] + out[1] > 0 (0: the page as it was). */
@@ -1632,6 +1682,59 @@ static int cm_holes(const int32_t *pix, int n, int w, int x0, int y0, int bw, in
     }
     free(m); free(q);
     return holes;
+}
+/* Does an outline hold the photo's text? (to-do #18: on a scan with a large watermark the Kindle finder took the white
+   area that the watermark's letters fence in for the page, and the page was read from half way down.) The letters of
+   the picture — small components a quarter darker than their neighbourhood (print, not a desk's grain), of a letter's, a word's or a line of small print's size — counted
+   inside the quad (TL, TR, BR, BL, px) and outside it: out[0] inside, out[1] outside. Only marks on a ground as light as
+   paper count (the picture's 95th percentile × 0.7): the grain of a wooden desk and a newspaper's dark print on a
+   brown table are no letters. A page's outline holds nearly all of them (outside lies the desk, a screen's bezel, a
+   hand); a region inside the page leaves most outside. */
+API void p_quad_text(const uint8_t *px, int w, int h, const float *q, int32_t *out) {
+    out[0] = out[1] = 0;
+    int n = w * h;
+    if (w < 32 || h < 32) return;
+    uint8_t *g = malloc(n), *ink = calloc(n, 1), *mean = malloc(n);
+    uint32_t *ii = malloc(sizeof(uint32_t) * (size_t)(w + 1) * (h + 1));
+    int32_t *pix = malloc(sizeof(int32_t) * n);
+    int cap = 200000; cm_comp *cs = malloc(sizeof(cm_comp) * cap);
+    if (!g || !ink || !mean || !ii || !pix || !cs) { free(g); free(ink); free(mean); free(ii); free(pix); free(cs); return; }
+    uint32_t hist[256] = {0};
+    for (int i = 0; i < n; i++) { const uint8_t *p = px + (size_t)i * 4; g[i] = (77 * p[0] + 150 * p[1] + 29 * p[2]) >> 8; hist[g[i]]++; }
+    int p95 = 255; { long long acc = 0; for (int v = 0; v < 256; v++) { acc += hist[v]; if (acc * 100 >= (long long)n * 95) { p95 = v; break; } } }
+    int paper = p95 * 7 / 10;
+    for (int x = 0; x <= w; x++) ii[x] = 0;
+    for (int y = 0; y < h; y++) {
+        uint32_t row = 0; ii[(size_t)(y + 1) * (w + 1)] = 0;
+        for (int x = 0; x < w; x++) { row += g[y * w + x]; ii[(size_t)(y + 1) * (w + 1) + x + 1] = ii[(size_t)y * (w + 1) + x + 1] + row; }
+    }
+    int r = (w < h ? w : h) / 40; if (r < 8) r = 8;
+    for (int y = 0; y < h; y++) {
+        int y0 = y - r < 0 ? 0 : y - r, y1 = y + r + 1 > h ? h : y + r + 1;
+        for (int x = 0; x < w; x++) {
+            int x0 = x - r < 0 ? 0 : x - r, x1 = x + r + 1 > w ? w : x + r + 1;
+            uint32_t s = ii[(size_t)y1 * (w + 1) + x1] - ii[(size_t)y0 * (w + 1) + x1] - ii[(size_t)y1 * (w + 1) + x0] + ii[(size_t)y0 * (w + 1) + x0];
+            int m = (int)(s / (uint32_t)((x1 - x0) * (y1 - y0))), d = m / 4; if (d < 20) d = 20;   /* print, not a desk's grain */
+            ink[y * w + x] = g[y * w + x] < m - d;
+            mean[y * w + x] = (uint8_t)m;
+        }
+    }
+    int nc = cm_label(ink, w, h, pix, cs, cap), sh = w < h ? w : h;
+    for (int k = 0; k < nc; k++) {
+        cm_comp *c = &cs[k];
+        int bw = c->x1 - c->x0 + 1, bh = c->y1 - c->y0 + 1;
+        if (c->n < 4 || bh < 3 || bh > sh / 20 || bw > 25 * bh || bw > sh / 6) continue;  /* no letter, word or line of small print */
+        float cx = (c->x0 + c->x1) * 0.5f, cy = (c->y0 + c->y1) * 0.5f;
+        if (mean[(int)cy * w + (int)cx] < paper) continue;                                 /* not on paper */
+        int pos = 0, neg = 0;
+        for (int e = 0; e < 4; e++) {
+            const float *a = q + e * 2, *b = q + ((e + 1) % 4) * 2;
+            float cr = (b[0] - a[0]) * (cy - a[1]) - (b[1] - a[1]) * (cx - a[0]);
+            if (cr > 0) pos++; else if (cr < 0) neg++;
+        }
+        if (!pos || !neg) out[0]++; else out[1]++;
+    }
+    free(g); free(ink); free(mean); free(ii); free(pix); free(cs);
 }
 API int p_clear_marks(uint8_t *px, int w, int h, int what, int32_t *out) {
     for (int k = 0; k < 5; k++) out[k] = 0;
@@ -1779,19 +1882,27 @@ API int p_clear_marks(uint8_t *px, int w, int h, int what, int32_t *out) {
                 if (c->n > 200) fprintf(stderr, "rule dir=%d (%d,%d)-(%d,%d) n=%d thick=%.1f max=%.1f\n", dir, c->x0, c->y0, c->x1, c->y1, c->n, hi - lo + 1, thick);
 #endif
                 if (hi - lo + 1 > thick) continue;
-                /* paper beside it: along most of its length, ink-free on both sides (a table's rule has its cells' padding
-                   either side; the serifs along a long word's baseline, which run as long, have the letters above them) */
+                /* paper beside it: along most of its length, ink-free on both sides from two pixels off it to `side` + 1
+                   (a table's rule has its cells' padding either side; the serifs along a long word's baseline, which run
+                   as long, have the letters above them; the middle of a soft word without ascenders — its letters run
+                   together there — has the rest of the letters just above and below it, and a bold word's top and bottom
+                   are two such runs with the strokes between them). Ink of a rule across it (a table's grid) does not
+                   count; another run along it does (two runs that close are a word's, or a double rule — left as it is). */
                 int seen = 0, clear = 0; float mid = (lo + hi) / 2, half = (hi - lo) / 2;
                 int a0 = dir == 1 ? c->x0 : c->y0, a1 = dir == 1 ? c->x1 : c->y1;
                 for (int a = a0; a <= a1; a += 2) {
                     int ok[2] = {1, 1}, any = 0;
                     for (int sgn = 0; sgn < 2; sgn++) {
-                        float off = (sgn ? 1 : -1) * (half + side);
-                        int x, y;
-                        if (dir == 1) { x = a; y = (int)lroundf(mid + off + a * t); } else { y = a; x = (int)lroundf(mid + off - a * t); }
-                        if (x < 0 || y < 0 || x >= w || y >= h) { ok[sgn] = 1; continue; }
-                        any = 1;
-                        for (int e = -1; e <= 1 && ok[sgn]; e++) { int xx = dir == 1 ? x : x + e * (sgn ? 1 : -1), yy = dir == 1 ? y + e * (sgn ? 1 : -1) : y; if (xx >= 0 && yy >= 0 && xx < w && yy < h && ink[yy * w + xx] && !rm[yy * w + xx]) ok[sgn] = 0; }
+                        float s = sgn ? 1.0f : -1.0f;
+                        for (int d = 2; d <= side + 1 && ok[sgn]; d++) {
+                            float v = mid + s * (half + d);
+                            int x, y;
+                            if (dir == 1) { x = a; y = (int)lroundf(v + a * t); } else { y = a; x = (int)lroundf(v - a * t); }
+                            if (x < 0 || y < 0 || x >= w || y >= h) continue;
+                            any = 1;
+                            int j = y * w + x;
+                            if ((ink[j] && !(rm[j] & (3 - dir))) || (rm[j] & dir)) ok[sgn] = 0;
+                        }
                     }
                     if (!any) continue;
                     seen++; if (ok[0] && ok[1]) clear++;
@@ -1856,16 +1967,18 @@ API int p_clear_marks(uint8_t *px, int w, int h, int what, int32_t *out) {
             /* the shape */
             int harea = 0, holes = cm_holes(pix + c->off, c->n, w, c->x0, c->y0, bw, bh, &harea);
             double hull = cm_hull(pix + c->off, c->n, w, c->x0, c->y0, bw, bh), box = (double)bw * bh;
-            float gmin = 0;
+            float gmin = 0, filled = (float)((c->n + harea) / box);    /* the shape with its hole filled, of its box */
             int inner = 0;
-            if (holes == 0 && c->n >= 0.85 * hull && c->n >= 0.45 * box && m >= 0.35f * xh && m <= 2.0f * xh) gmin = 0.6f * xh;   /* ● ■ ▪ ◆ ► (no letter is a solid convex blob) */
+            if (m >= 0.35f * xh && m < 0.8f * xh && holes <= 1 && c->n + harea >= 0.85 * hull && asp >= 0.6f && asp <= 1.7f) gmin = 0.6f * xh;   /* • ◦ ○ smaller than a letter (a soft photo closes a small ring's hole) */
+            else if (holes == 0 && c->n >= 0.85 * hull && c->n >= 0.45 * box && m >= 0.35f * xh && m <= 2.0f * xh) gmin = 0.6f * xh;   /* ● ■ ▪ ◆ ► (no letter is a solid convex blob) */
             else if (holes == 1 && harea >= 0.3 * box && c->n + harea >= 0.85 * hull && asp >= 0.7f && asp <= 1.45f && m >= 0.4f * xh && m <= 1.9f * xh) {
-                /* a thin ring or box (○ ◦ □ ☐: the hole 0.6 and more of the shape it fills) after the gap of a list;
-                   a ring as thick as a letter's (o, O, 0 — Word's second-level bullet is an o) only after a tab */
-                gmin = harea < 0.6 * (harea + c->n) ? 1.3f * xh : 0.6f * xh;
+                /* a hollow square (□ ☐: it fills its box, as no letter does), or a thin ring (○: the hole 0.6 and more of
+                   the shape it fills) after the gap of a list; a ring as thick as a letter's (o, O, 0 — Word's
+                   second-level bullet is an o) only after a tab */
+                gmin = (filled >= 0.88f && asp >= 0.8f && asp <= 1.25f) || harea >= 0.6 * (harea + c->n) ? 0.6f * xh : 1.3f * xh;
                 inner = 1;                                                                                              /* ☑ ☒ whose tick does not touch the box */
             }
-            else if (holes >= 1 && asp >= 0.75f && asp <= 1.33f && m >= 0.8f * xh && m <= 2.0f * xh) {                  /* ☑ ☒: a frame round something */
+            else if (asp >= 0.75f && asp <= 1.33f && m >= 0.8f * xh && m <= 2.0f * xh) {                                 /* ☑ ☒: a frame round something (its border may be broken) */
                 int edge = 0, on = 0;
                 uint8_t *bm = calloc((size_t)bw * bh, 1);
                 for (int q = 0; q < c->n; q++) { int i = pix[c->off + q]; bm[(i / w - c->y0) * bw + i % w - c->x0] = 1; }
@@ -1908,23 +2021,28 @@ API int p_clear_marks(uint8_t *px, int w, int h, int what, int32_t *out) {
             int L0 = X0, L1 = X1;
             while (L0 < X1 && empty[L0] > 0.8 * textb) L0++;
             while (L1 > X0 && empty[L1] > 0.8 * textb) L1--;
-            int cols = 1, wmin = (int)ceilf(xh), side = (int)ceilf(6 * xh);
+            /* a column of running text is wide — eighteen x-heights and more (a newspaper's narrowest, some 20
+               characters); a form's labels or a table's columns are narrower */
+            int cols = 1, wmin = (int)ceilf(xh), side = (int)ceilf(6 * xh), colw = (int)ceilf(18 * xh), prev = L0;
             for (int b = L0 + side; b <= L1 - side; b++) {
                 if (empty[b] < 0.7 * textb) continue;
                 int e = b; while (e + 1 <= L1 - side && empty[e + 1] >= 0.7 * textb) e++;
                 if (e - b + 1 >= wmin) {
-                    /* text on both sides: bands with ink within six x-heights left of it, and right of it */
-                    int lt = 0, rt = 0;
+                    /* text on both sides: bands with ink within six x-heights left of it, and right of it; and the lines on
+                       its left run up to it (within 1.5 x-heights) in most of those bands — a column of text is filled
+                       to its edge, a form's labels and a table's short cells stop well short of the gap after them */
+                    int lt = 0, rt = 0, full = 0;
                     for (int k = 0; k < nbands; k++) {
                         if (tot[k] < xh * xh) continue;
-                        int l = 0, r2 = 0;
-                        for (int q = 1; q <= side; q++) { l += prof[k * nb + b - q]; r2 += prof[k * nb + e + q]; }
-                        if (l >= xh) lt++; if (r2 >= xh) rt++;
+                        int l = 0, r2 = 0, reach = side + 1;
+                        for (int q = 1; q <= side; q++) { l += prof[k * nb + b - q]; r2 += prof[k * nb + e + q]; if (reach > side && prof[k * nb + b - q]) reach = q; }
+                        if (l >= xh) { lt++; if (reach <= 1.5f * xh) full++; }
+                        if (r2 >= xh) rt++;
                     }
 #ifdef CM_DEBUG
-                    fprintf(stderr, "gutter %d..%d (%d wide) empty in %d of %d bands; text left %d right %d\n", b, e, e - b + 1, empty[b], textb, lt, rt);
+                    fprintf(stderr, "gutter %d..%d (%d wide) empty in %d of %d bands; text left %d right %d, left lines up to it %d\n", b, e, e - b + 1, empty[b], textb, lt, rt, full);
 #endif
-                    if (lt >= 0.5 * textb && rt >= 0.5 * textb) cols++;
+                    if (lt >= 0.5 * textb && rt >= 0.5 * textb && full >= 0.5 * lt && b - prev >= colw && L1 - e >= colw) { cols++; prev = e; }
                 }
                 b = e;
             }

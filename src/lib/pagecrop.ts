@@ -33,6 +33,10 @@ export interface PageOps {
   docCorners?(small: Img): Promise<Found | null>;
   /** An outline's edges fitted to the photo's (p_refine_quad) — the network's corners are a 224 px look's. */
   refineQuad?(img: Img, corners: number[], search: number): { corners: number[]; edges: number } | Promise<{ corners: number[]; edges: number }>;
+  /** The letters of the picture inside an outline and outside it (p_quad_text). */
+  quadText?(img: Img, corners: number[]): { inside: number; outside: number } | Promise<{ inside: number; outside: number }>;
+  /** A strip of what lay round the page, left along its edges, painted the paper's colour (p_clear_border). */
+  clearBorder?(img: Img, maxfrac: number): { img: Img; painted: number } | Promise<{ img: Img; painted: number }>;
 }
 const workerOps: PageOps = {
   resize: (img, w, h) => imgproc('resize', img, w, h),
@@ -41,6 +45,8 @@ const workerOps: PageOps = {
   warp: (img, c, w, h) => imgproc('warp', img, c, w, h),
   quadSteps: (img, c) => imgproc('quadSteps', img, c),
   refineQuad: (img, c, search) => imgproc('refineQuad', img, c, search),
+  quadText: (img, c) => imgproc('quadText', img, c),
+  clearBorder: (img, f) => imgproc('clearBorder', img, f),
   // its worker and ONNX Runtime are fetched the first time a photo needs them (ended with the tab)
   docCorners: async (small) => (await import('./pagefind-client')).findPage((await imgproc('resizeArea', small, SIZE, SIZE)).data),
 };
@@ -88,11 +94,18 @@ export function usable(corners: number[], w: number, h: number, beyond = 0): boo
  *  looked for either side (3 % of the shorter side: the network's corners are a 224 px look's). */
 export const BEYOND = 0.25, SEARCH = 0.03;
 
+/** A page's outline holds the photo's text: one that leaves at least this share of its letters (and LEFT_OUT letters)
+ *  outside is a region inside the page — the white area a big watermark's letters fence in (measured: pages leave 0 –
+ *  8 % outside, such regions 25 – 73 %). */
+export const OUTSIDE = 0.2, LEFT_OUT = 25;
+export const holdsText = (t: { inside: number; outside: number }) => !(t.outside >= LEFT_OUT && t.outside >= OUTSIDE * (t.inside + t.outside));
+
 /** The outline of the page in a ≤ 1200 px copy (px of it) and how it was found, or null. */
 export async function findOutline(small: Img, ops: PageOps = workerOps): Promise<{ corners: number[]; edges: number; by: 'outline' | 'network' } | null> {
   let best: { corners: number[]; edges: number; by: 'outline' | 'network' } | null = null;
+  const text = async (c: number[]) => !ops.quadText || holdsText(await ops.quadText(small, c));
   const q = await ops.pageQuad(small);
-  if (q.confidence > 0 && usable(q.corners, small.width, small.height)) best = { corners: q.corners, edges: realEdges(await ops.quadSteps(small, q.corners)), by: 'outline' };
+  if (q.confidence > 0 && usable(q.corners, small.width, small.height) && (await text(q.corners))) best = { corners: q.corners, edges: realEdges(await ops.quadSteps(small, q.corners)), by: 'outline' };
   // not a page's outline on every edge (paper on a light desk): the network is asked as well
   if ((!best || best.edges < 4) && ops.docCorners) {
     const m = await ops.docCorners(small).catch(() => null); // it could not be fetched: the outline alone decides
@@ -106,7 +119,7 @@ export async function findOutline(small: Img, ops: PageOps = workerOps): Promise
       }
       if (usable(c, small.width, small.height, beyond)) {
         const edges = realEdges(await ops.quadSteps(small, c));
-        if (edges >= 3 && edges > (best?.edges ?? -1)) best = { corners: c, edges, by: 'network' };
+        if (edges >= 3 && edges > (best?.edges ?? -1) && (await text(c))) best = { corners: c, edges, by: 'network' };
       }
     }
   }
@@ -124,5 +137,11 @@ export async function straighten(img: Img, ops: PageOps = workerOps): Promise<{ 
   if (!o || (flat && squareOn(o.corners))) return { img, found: false };
   const corners = o.corners.map((v) => v / k);
   const [w, h] = pageSize(corners);
-  return { img: await ops.warp(img, corners, w, h), found: true, corners, by: o.by };
+  let page = await ops.warp(img, corners, w, h);
+  // a strip of the desk or of a screen's bezel left along an edge (an outline a little outside the page) painted the
+  // paper's colour: with a dark strip down its side Tesseract read a form without its title
+  if (ops.clearBorder) page = (await ops.clearBorder(page, BORDER)).img;
+  return { img: page, found: true, corners, by: o.by };
 }
+/** How far in from each edge of the straightened page a dark strip is looked for (of its size). */
+export const BORDER = 0.03;
