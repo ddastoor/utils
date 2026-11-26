@@ -95,7 +95,12 @@ export default async ({ base, page: newPage, ok, info, download, devices, tmp })
     const e = spawnSync('ffmpeg', ['-hide_banner', '-nostats', '-i', fileOn, '-af', 'ebur128=peak=true:dualmono=true', '-f', 'null', '-'], { encoding: 'utf8' }).stderr, s = e.slice(e.lastIndexOf('Summary:'));
     const I = +/I:\s+(-?[\d.]+) LUFS/.exec(s)[1], P = +/Peak:\s+(-?[\d.]+) dBFS/.exec(s)[1];
     ok(Math.abs(I + 16) <= 0.5 && P <= -1.2, `FFmpeg's ebur128 (dual mono): ${I} LUFS, true peak ${P} dBTP`);
-  } else ok(true, 'NOTE: no native ffmpeg — the loudness checked by this file\'s BS.1770 only');
+    // said in the run's summary, so a log (the Windows check's) shows which reference measured it
+    info(`FFmpeg's ebur128 (${(ff.stdout.match(/^ffmpeg version (\S+)/m) || [, '?'])[1]}, dual mono): ${I} LUFS, true peak ${P} dBTP`);
+  } else {
+    ok(true, 'NOTE: no native ffmpeg — the loudness checked by this file\'s BS.1770 only');
+    info('no native ffmpeg: the loudness was checked by this file\'s BS.1770 only');
+  }
 
   // the finish off: DeepFilterNet 3 alone — far closer to the clean speech than the noisy file and than RNNoise
   const before = (await ops()).filter((o) => o.startsWith('clean')).length;
