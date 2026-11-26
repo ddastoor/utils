@@ -26,8 +26,14 @@ export const JOB_GROUPS: Array<[string, Array<[Job, string]>]> = [
 export const JOBS: Array<[Job, string]> = JOB_GROUPS.flatMap(([, j]) => j);
 
 /** What FFmpeg says about a file (`ffmpeg -i`). */
-export interface Probe { dur: number; w: number; h: number; fps: number; video: boolean; vcodec: string; audio: boolean; acodec: string; rate: number; channels: number; subs: number; scodec: string }
-export const EMPTY_PROBE: Probe = { dur: 0, w: 0, h: 0, fps: 0, video: false, vcodec: '', audio: false, acodec: '', rate: 0, channels: 0, subs: 0, scodec: '' };
+export interface Probe { dur: number; w: number; h: number; fps: number; video: boolean; vcodec: string; audio: boolean; acodec: string; rate: number; channels: number; layout: string; subs: number; scodec: string }
+export const EMPTY_PROBE: Probe = { dur: 0, w: 0, h: 0, fps: 0, video: false, vcodec: '', audio: false, acodec: '', rate: 0, channels: 0, layout: '', subs: 0, scodec: '' };
+/** The channels of FFmpeg's layout names (`ffmpeg -layouts`). */
+const LAYOUT_CH: Record<string, number> = {
+  mono: 1, stereo: 2, '2.1': 3, '3.0': 3, '3.0(back)': 3, '4.0': 4, quad: 4, 'quad(side)': 4, '3.1': 4, '5.0': 5, '5.0(side)': 5, '4.1': 5,
+  '5.1': 6, '5.1(side)': 6, '6.0': 6, '6.0(front)': 6, hexagonal: 6, '6.1': 7, '6.1(back)': 7, '6.1(front)': 7, '7.0': 7, '7.0(front)': 7,
+  '7.1': 8, '7.1(wide)': 8, '7.1(wide-side)': 8, octagonal: 8, downmix: 2,
+};
 export function parseProbe(log: string): Probe {
   const p = { ...EMPTY_PROBE };
   const d = /Duration: (\d+):(\d+):([\d.]+)/.exec(log);
@@ -42,7 +48,9 @@ export function parseProbe(log: string): Probe {
     } else if (s[1] === 'Audio' && !p.audio) {
       p.audio = true; p.acodec = s[2];
       const r = /, (\d+) Hz/.exec(line); if (r) p.rate = +r[1];
-      p.channels = /\bmono\b/.test(line) ? 1 : /\bstereo\b/.test(line) ? 2 : /5\.1/.test(line) ? 6 : /(\d+) channels/.test(line) ? +/(\d+) channels/.exec(line)![1] : 0;
+      // "…, 48000 Hz, 5.1(side), fltp, …": the layout as FFmpeg names it ("6 channels" when it knows none)
+      p.layout = /, \d+ Hz, ([^,]+)/.exec(line)?.[1].trim() ?? '';
+      p.channels = LAYOUT_CH[p.layout] ?? (/^(\d+) channels/.test(p.layout) ? +/^(\d+)/.exec(p.layout)![1] : 0);
     } else if (s[1] === 'Subtitle') { if (!p.subs) p.scodec = s[2]; p.subs++; }
   }
   return p;
@@ -67,17 +75,47 @@ export function secs(t: string): number {
 }
 const fmtS = (s: number) => String(+s.toFixed(3));
 const X264 = (crf = 20) => ['-c:v', 'libx264', '-preset', 'veryfast', '-crf', String(crf), '-pix_fmt', 'yuv420p'];
+// ---------------------------------------------------------------- sound kept at its level (to-do #23)
+/** The layouts the AAC and Opus encoders take as they are, by number of channels. FFmpeg's AAC encoder writes any other
+ *  layout with a PCE, which ffprobe and players read as "unknown" (the "5.1(side)" of an AC-3 or a DTS); libopus refuses
+ *  it ("Invalid channel layout 5.1(side) for specified mapping family -1"). Asked for the standard one, FFmpeg moves the
+ *  side channels to the back as they are (gain 1). */
+const AAC_LAYOUT: Record<number, string> = { 3: '3.0', 4: '4.0', 5: '5.0', 6: '5.1', 8: '7.1' };
+const OPUS_LAYOUT: Record<number, string> = { 3: '3.0', 4: 'quad', 5: '5.0', 6: '5.1', 7: '6.1', 8: '7.1' };
+const layoutFix = (std: Record<number, string>, ch: number, layout: string) => (std[ch] && layout && layout !== std[ch] ? ['-ch_layout', std[ch]] : []);
+/** A bitrate given for two channels, as much a channel for more: 5.1 at the stereo rate lost detail (Opus 2 dB of its
+ *  loudness — the upper bands went). One channel keeps the rate given. */
+const kbpsFor = (kbps: number, ch: number) => `${ch > 2 ? Math.round((kbps * ch) / 2) : kbps}k`;
+/** AAC at `kbps` (for two channels) for a sound of `ch` channels in `layout`. */
+const aacArgs = (kbps: number, ch = 2, layout = '') => ['-c:a', 'aac', '-b:a', kbpsFor(kbps, ch), ...layoutFix(AAC_LAYOUT, ch, layout)];
+/** Opus, likewise. **The Opus encoder of this build (libopus 1.3.1 in ffmpeg.wasm 0.12) crashes on two channels and
+ *  more** — "memory access out of bounds" at the first frame, with 20 ms frames (and 40, 60) and complexity 5 and above,
+ *  which turn on its pitch pre-filter and its late transient check — so they are made at complexity 4, which a
+ *  noise-to-mask measure put level with the default at these bitrates (docs/BUGHUNT.md); one channel keeps the default. */
+export const OPUS_SAFE = ['-compression_level:a', '4'];
+const opusArgs = (kbps: number, ch = 2, layout = '') => ['-c:a', 'libopus', '-b:a', kbpsFor(kbps, ch), ...(ch === 1 ? [] : OPUS_SAFE), ...layoutFix(OPUS_LAYOUT, ch, layout)];
+/** The start of a filter chain that takes a sound of `from` channels to `layout`: a mono sound goes on both sides at full
+ *  level, as players play it — FFmpeg's own upmix puts it 3 dB lower on each side, and a mono phone video came out
+ *  quieter; anything else is left to FFmpeg (a downmix of more channels as players make it). */
+const upmix = (from: number, layout: string) => (from === 1 && layout === 'stereo' ? 'pan=stereo|c0=c0|c1=c0,' : '');
+/** Two sides made one: their average, as Audacity's "Mix Stereo Down to Mono" — the same sound on both sides keeps its
+ *  level (FFmpeg's -ac 1 adds them at 0.71 each: 3 dB louder, and clipping at full scale). More channels are mixed to
+ *  two first, as players do. */
+const toMono = (from: number) => `${from > 2 ? 'aformat=channel_layouts=stereo,' : ''}pan=mono|c0=0.5*c0+0.5*c1`;
 /** Sound into an MP4: copied when MP4 can hold it, else AAC. */
-const ACOPY = (p: Probe) => (!p.audio ? [] : /^(aac|mp3|ac3|eac3|alac|opus)$/.test(p.acodec) ? ['-c:a', 'copy'] : ['-c:a', 'aac', '-b:a', '160k']);
-const AUDIO_OUT: Record<string, [string, string[]]> = {
-  mp3: ['mp3', ['-c:a', 'libmp3lame', '-q:a', '2']], wav: ['wav', ['-c:a', 'pcm_s16le']], flac: ['flac', ['-c:a', 'flac']],
-  ogg: ['ogg', ['-c:a', 'libopus', '-b:a', '128k']], opus: ['ogg', ['-c:a', 'libopus', '-b:a', '128k']],
-};
-/** The sound file a job on sound makes: the input's own kind where that is a plain sound format, else M4A (AAC). */
-const audioOut = (ext: string): [string, string[]] => AUDIO_OUT[ext] || ['m4a', ['-c:a', 'aac', '-b:a', '192k']];
+const ACOPY = (p: Probe) => (!p.audio ? [] : /^(aac|mp3|ac3|eac3|alac|opus)$/.test(p.acodec) ? ['-c:a', 'copy'] : aacArgs(160, p.channels, p.layout));
+/** The sound file a job on sound makes: the input's own kind where that is a plain sound format, else M4A (AAC);
+ *  `ch` / `layout`: the sound it holds. */
+function audioOut(ext: string, ch = 2, layout = ''): [string, string[]] {
+  if (ext === 'mp3') return ['mp3', ['-c:a', 'libmp3lame', '-q:a', '2']];
+  if (ext === 'wav') return ['wav', ['-c:a', 'pcm_s16le']];
+  if (ext === 'flac') return ['flac', ['-c:a', 'flac']];
+  if (ext === 'ogg' || ext === 'opus') return ['ogg', opusArgs(128, ch, layout)];
+  return ['m4a', aacArgs(192, ch, layout)];
+}
 /** A video whose picture is copied and whose sound is re-encoded: the input's container where that is a common one. */
 const videoOutExt = (ext: string) => (/^(mp4|mov|m4v|mkv|webm)$/.test(ext) ? ext : 'mkv');
-const reAudioFor = (ext: string) => (ext === 'webm' ? ['-c:a', 'libopus', '-b:a', '128k'] : ['-c:a', 'aac', '-b:a', '192k']);
+const reAudioFor = (ext: string, ch = 2, layout = '') => (ext === 'webm' ? opusArgs(128, ch, layout) : aacArgs(192, ch, layout));
 const even = (n: number) => Math.max(2, Math.round(n / 2) * 2);
 const CORNER: Record<string, (m: number) => string> = {
   tl: (m) => `${m}:${m}`, tr: (m) => `W-w-${m}:${m}`, bl: (m) => `${m}:H-h-${m}`, br: (m) => `W-w-${m}:H-h-${m}`, c: () => '(W-w)/2:(H-h)/2',
@@ -127,14 +165,14 @@ export function buildJob(job: Job, o: Record<string, any>, c: JobCtx): Built {
   switch (job) {
     // ---------------------------------------------------------------- convert and extract
     case 'convert': {
-      const f = o.fmt, out = `out.${f}`;
+      const f = o.fmt, out = `out.${f}`, ch = p.channels, ly = p.layout;
       const enc: Record<string, string[]> = {
-        mp4: ['-c:v', 'libx264', '-preset', 'veryfast', '-crf', '23', '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-b:a', '160k', '-movflags', '+faststart'],
-        mov: ['-c:v', 'libx264', '-preset', 'veryfast', '-crf', '23', '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-b:a', '160k'],
+        mp4: ['-c:v', 'libx264', '-preset', 'veryfast', '-crf', '23', '-pix_fmt', 'yuv420p', ...aacArgs(160, ch, ly), '-movflags', '+faststart'],
+        mov: ['-c:v', 'libx264', '-preset', 'veryfast', '-crf', '23', '-pix_fmt', 'yuv420p', ...aacArgs(160, ch, ly)],
         // VP8: libvpx-vp9 and libx265 wait forever for worker threads in this single-threaded core
-        webm: ['-c:v', 'libvpx', '-b:v', '1M', '-crf', '10', '-deadline', 'realtime', '-cpu-used', '8', '-c:a', 'libopus', '-b:a', '128k'],
-        mkv: ['-c', 'copy'], mp3: ['-vn', '-c:a', 'libmp3lame', '-q:a', '2'], m4a: ['-vn', '-c:a', 'aac', '-b:a', '192k'], wav: ['-vn', '-c:a', 'pcm_s16le'],
-        flac: ['-vn', '-c:a', 'flac'], ogg: ['-vn', '-c:a', 'libopus', '-b:a', '128k'],
+        webm: ['-c:v', 'libvpx', '-b:v', '1M', '-crf', '10', '-deadline', 'realtime', '-cpu-used', '8', ...opusArgs(128, ch, ly)],
+        mkv: ['-c', 'copy'], mp3: ['-vn', '-c:a', 'libmp3lame', '-q:a', '2'], m4a: ['-vn', ...aacArgs(192, ch, ly)], wav: ['-vn', '-c:a', 'pcm_s16le'],
+        flac: ['-vn', '-c:a', 'flac'], ogg: ['-vn', ...opusArgs(128, ch, ly)],
         gif: ['-vf', 'fps=12,scale=480:-1:flags=lanczos,split[a][b];[a]palettegen[p];[b][p]paletteuse', '-loop', '0'],
       };
       return { args: [...I, ...enc[f], out], outputs: [out] };
@@ -163,13 +201,14 @@ export function buildJob(job: Job, o: Record<string, any>, c: JobCtx): Built {
     case 'gif': needVideo(p); return { args: [...I, '-vf', `fps=${o.gifFps},scale=${o.gifW}:-1:flags=lanczos,split[a][b];[a]palettegen=stats_mode=diff[p];[b][p]paletteuse=dither=bayer:bayer_scale=4`, '-loop', '0', 'out.gif'], outputs: ['out.gif'] };
     case 'audio2mp4': {
       needAudio(p);
-      if (o.a2m === 'm4a') return { args: [...I, '-vn', '-c:a', 'aac', '-b:a', '192k', 'out.m4a'], outputs: ['out.m4a'] };
+      const aac = aacArgs(192, p.channels, p.layout);
+      if (o.a2m === 'm4a') return { args: [...I, '-vn', ...aac, 'out.m4a'], outputs: ['out.m4a'] };
       if (o.a2m === 'still') {
-        if (!c.in2) return { args: [...I, '-f', 'lavfi', '-i', 'color=c=0x1e1b4b:s=1280x720:r=2', '-map', '1:v', '-map', '0:a', '-c:v', 'libx264', '-tune', 'stillimage', '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-b:a', '192k', ...(p.dur ? ['-t', String(p.dur)] : ['-shortest']), 'out.mp4'], outputs: ['out.mp4'] };
+        if (!c.in2) return { args: [...I, '-f', 'lavfi', '-i', 'color=c=0x1e1b4b:s=1280x720:r=2', '-map', '1:v', '-map', '0:a', '-c:v', 'libx264', '-tune', 'stillimage', '-pix_fmt', 'yuv420p', ...aac, ...(p.dur ? ['-t', String(p.dur)] : ['-shortest']), 'out.mp4'], outputs: ['out.mp4'] };
         // -t (not -shortest): FFmpeg 5.1 keeps a looped picture going past the end of the sound with -shortest
-        return { args: ['-loop', '1', '-framerate', '2', '-i', c.in2, ...I, '-map', '0:v', '-map', '1:a', '-vf', 'scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2,format=yuv420p', '-c:v', 'libx264', '-tune', 'stillimage', '-c:a', 'aac', '-b:a', '192k', ...(p.dur ? ['-t', String(p.dur)] : ['-shortest']), 'out.mp4'], outputs: ['out.mp4'] };
+        return { args: ['-loop', '1', '-framerate', '2', '-i', c.in2, ...I, '-map', '0:v', '-map', '1:a', '-vf', 'scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2,format=yuv420p', '-c:v', 'libx264', '-tune', 'stillimage', ...aac, ...(p.dur ? ['-t', String(p.dur)] : ['-shortest']), 'out.mp4'], outputs: ['out.mp4'] };
       }
-      return { args: [...I, '-filter_complex', '[0:a]showwaves=s=1280x720:mode=cline:rate=25:colors=0x818cf8,format=yuv420p[v]', '-map', '[v]', '-map', '0:a', '-c:v', 'libx264', '-preset', 'veryfast', '-c:a', 'aac', '-b:a', '192k', 'out.mp4'], outputs: ['out.mp4'] };
+      return { args: [...I, '-filter_complex', '[0:a]showwaves=s=1280x720:mode=cline:rate=25:colors=0x818cf8,format=yuv420p[v]', '-map', '[v]', '-map', '0:a', '-c:v', 'libx264', '-preset', 'veryfast', ...aac, 'out.mp4'], outputs: ['out.mp4'] };
     }
     // ---------------------------------------------------------------- cut and join
     case 'trim': {
@@ -179,8 +218,12 @@ export function buildJob(job: Job, o: Record<string, any>, c: JobCtx): Built {
       if (o.end && !(s1 > s0)) throw new Error('The end must be after the start.');
       if (p.dur && s0 >= p.dur) throw new Error(`The file is only ${fmtS(p.dur)} s long.`);
       const ss = ['-ss', fmtS(s0)], dur = o.end ? ['-t', fmtS(s1 - s0)] : [];
-      return o.exact ? { args: [...I, ...ss, ...dur, ...(isAudio ? [] : X264(20)), out], outputs: [out] }
-        : { args: [...ss, ...I, ...dur, '-c', 'copy', out], outputs: [out] }; // the MP4 edit list starts playback at the cut
+      if (!o.exact) return { args: [...ss, ...I, ...dur, '-c', 'copy', out], outputs: [out] }; // the MP4 edit list starts playback at the cut
+      // exact: re-encoded — the sound with its own encoder (the container's default was AAC at 128 kb/s for any number
+      // of channels, or libopus, which this build cannot run in stereo); a WebM's picture as H.264 into an MP4
+      if (isAudio) { const [ext, enc] = audioOut(base, p.channels, p.layout); return { args: [...I, ...ss, ...dur, ...enc, `out.${ext}`], outputs: [`out.${ext}`] }; }
+      const vout = /^(mp4|mov|m4v|mkv)$/.test(base) ? out : 'out.mp4';
+      return { args: [...I, ...ss, ...dur, ...X264(20), ...(p.audio ? aacArgs(160, p.channels, p.layout) : []), vout], outputs: [vout] };
     }
     case 'cutout': {
       needDur(p);
@@ -200,8 +243,8 @@ export function buildJob(job: Job, o: Record<string, any>, c: JobCtx): Built {
       const pads = parts.map((_, i) => `${p.video ? `[v${i}]` : ''}${p.audio ? `[a${i}]` : ''}`).join('');
       f.push(`${pads}concat=n=${parts.length}:v=${p.video ? 1 : 0}:a=${p.audio ? 1 : 0}${p.video ? '[v]' : ''}${p.audio ? '[a]' : ''}`);
       const maps = [...(p.video ? ['-map', '[v]'] : []), ...(p.audio ? ['-map', '[a]'] : [])];
-      if (isAudio) { const [ext, enc] = audioOut(base); return { args: [...I, '-filter_complex', f.join(';'), ...maps, ...enc, `out.${ext}`], outputs: [`out.${ext}`] }; }
-      return { args: [...I, '-filter_complex', f.join(';'), ...maps, ...X264(20), ...(p.audio ? ['-c:a', 'aac', '-b:a', '160k'] : []), 'out.mp4'], outputs: ['out.mp4'] };
+      if (isAudio) { const [ext, enc] = audioOut(base, p.channels, p.layout); return { args: [...I, '-filter_complex', f.join(';'), ...maps, ...enc, `out.${ext}`], outputs: [`out.${ext}`] }; }
+      return { args: [...I, '-filter_complex', f.join(';'), ...maps, ...X264(20), ...(p.audio ? aacArgs(160, p.channels, p.layout) : []), 'out.mp4'], outputs: ['out.mp4'] };
     }
     case 'join': {
       const ins = c.ins || [c.in1], ps = c.ps || [p];
@@ -216,24 +259,29 @@ export function buildJob(job: Job, o: Record<string, any>, c: JobCtx): Built {
         return { args: ['-f', 'concat', '-safe', '0', '-i', '/work/list.txt', '-c', 'copy', out], outputs: [out], writes: [['/work/list.txt', ins.map((n) => `file '/in/${n}'`).join('\n') + '\n']] };
       }
       const anyAudio = ps.some((x) => x.audio);
+      // the sound of the joined file: mono when every clip with sound is mono, 5.1 or 7.1 when all are, else stereo —
+      // a mono clip on both sides at full level (FFmpeg's own upmix put it 3 dB lower: the "quieter" joins)
+      const counts = [...new Set(ps.filter((x) => x.audio).map((x) => x.channels || 2))];
+      const outCh = counts.length === 1 && [1, 2, 6, 8].includes(counts[0]) ? counts[0] : 2;
+      const outLy = ({ 1: 'mono', 2: 'stereo', 6: '5.1', 8: '7.1' } as Record<number, string>)[outCh];
       const args: string[] = ins.flatMap((n) => ['-i', n]);
       const f: string[] = [];
       let extra = ins.length;
       const audioSrc = ps.map((x) => {
         if (!anyAudio || x.audio) return null;
         if (!(x.dur > 0)) throw new Error('A clip without sound must have a known length to be joined with clips that have sound.');
-        args.push('-f', 'lavfi', '-t', fmtS(x.dur), '-i', 'anullsrc=r=48000:cl=stereo'); // silence where a clip has no sound
+        args.push('-f', 'lavfi', '-t', fmtS(x.dur), '-i', `anullsrc=r=48000:cl=${outLy}`); // silence where a clip has no sound
         return extra++;
       });
       if (videos) {
         const W = even(ps[0].w || 1280), H = even(ps[0].h || 720);
         ps.forEach((_, i) => f.push(`[${i}:v]scale=${W}:${H}:force_original_aspect_ratio=decrease,pad=${W}:${H}:(ow-iw)/2:(oh-ih)/2:color=black,setsar=1,fps=30,format=yuv420p[v${i}]`));
       }
-      if (anyAudio) ps.forEach((_, i) => f.push(`[${audioSrc[i] ?? i}:a]aresample=48000,aformat=sample_fmts=fltp:channel_layouts=stereo[a${i}]`));
+      if (anyAudio) ps.forEach((x, i) => f.push(`[${audioSrc[i] ?? i}:a]${x.audio ? upmix(x.channels, outLy) : ''}aresample=48000,aformat=sample_fmts=fltp:channel_layouts=${outLy}[a${i}]`));
       f.push(`${ps.map((_, i) => `${videos ? `[v${i}]` : ''}${anyAudio ? `[a${i}]` : ''}`).join('')}concat=n=${ps.length}:v=${videos ? 1 : 0}:a=${anyAudio ? 1 : 0}${videos ? '[v]' : ''}${anyAudio ? '[a]' : ''}`);
       const maps = [...(videos ? ['-map', '[v]'] : []), ...(anyAudio ? ['-map', '[a]'] : [])];
-      if (!videos) { const [ext, enc] = audioOut(base); return { args: [...args, '-filter_complex', f.join(';'), ...maps, ...enc, `out.${ext}`], outputs: [`out.${ext}`] }; }
-      return { args: [...args, '-filter_complex', f.join(';'), ...maps, ...X264(21), ...(anyAudio ? ['-c:a', 'aac', '-b:a', '160k'] : []), '-movflags', '+faststart', 'out.mp4'], outputs: ['out.mp4'] };
+      if (!videos) { const [ext, enc] = audioOut(base, outCh); return { args: [...args, '-filter_complex', f.join(';'), ...maps, ...enc, `out.${ext}`], outputs: [`out.${ext}`] }; }
+      return { args: [...args, '-filter_complex', f.join(';'), ...maps, ...X264(21), ...(anyAudio ? aacArgs(160, outCh) : []), '-movflags', '+faststart', 'out.mp4'], outputs: ['out.mp4'] };
     }
     case 'split': {
       let t: number;
@@ -252,13 +300,13 @@ export function buildJob(job: Job, o: Record<string, any>, c: JobCtx): Built {
       return { args: ['-stream_loop', String(n - 1), ...I, '-c', 'copy', out], outputs: [out] };
     }
     case 'reverse': {
-      if (isAudio) { needAudio(p); const [ext, enc] = audioOut(base); return { args: [...I, '-af', 'areverse', ...enc, `out.${ext}`], outputs: [`out.${ext}`] }; }
+      if (isAudio) { needAudio(p); const [ext, enc] = audioOut(base, p.channels, p.layout); return { args: [...I, '-af', 'areverse', ...enc, `out.${ext}`], outputs: [`out.${ext}`] }; }
       const max = maxReverseSeconds(p);
       if (p.dur > max) throw new Error(`Reversing keeps every frame in memory: a ${p.w}×${p.h} video can be reversed up to about ${max} s here — trim it first (this one is ${fmtS(p.dur)} s).`);
-      return { args: [...I, '-vf', 'reverse', ...(p.audio ? ['-af', 'areverse'] : []), ...X264(20), ...(p.audio ? ['-c:a', 'aac', '-b:a', '160k'] : []), 'out.mp4'], outputs: ['out.mp4'] };
+      return { args: [...I, '-vf', 'reverse', ...(p.audio ? ['-af', 'areverse'] : []), ...X264(20), ...(p.audio ? aacArgs(160, p.channels, p.layout) : []), 'out.mp4'], outputs: ['out.mp4'] };
     }
     // ---------------------------------------------------------------- size and shape
-    case 'compress': needVideo(p); return { args: [...I, '-c:v', 'libx264', '-preset', o.speedPreset, '-crf', String(o.crf), '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-b:a', '128k', '-movflags', '+faststart', 'out.mp4'], outputs: ['out.mp4'] };
+    case 'compress': needVideo(p); return { args: [...I, '-c:v', 'libx264', '-preset', o.speedPreset, '-crf', String(o.crf), '-pix_fmt', 'yuv420p', ...aacArgs(128, p.channels, p.layout), '-movflags', '+faststart', 'out.mp4'], outputs: ['out.mp4'] };
     case 'resize': needVideo(p); return { args: [...I, '-vf', `scale=-2:${o.height}:flags=lanczos,setsar=1`, ...X264(23), ...ACOPY(p), 'out.mp4'], outputs: ['out.mp4'] };
     case 'fps': needVideo(p); return { args: [...I, '-vf', `fps=${o.fps}`, ...X264(23), ...ACOPY(p), 'out.mp4'], outputs: ['out.mp4'] };
     case 'rotate': {
@@ -300,8 +348,8 @@ export function buildJob(job: Job, o: Record<string, any>, c: JobCtx): Built {
       const st = fmtS(p.dur - d);
       const vf = [inn && `fade=t=in:st=0:d=${d}`, out && `fade=t=out:st=${st}:d=${d}`].filter(Boolean).join(',');
       const af = [inn && `afade=t=in:st=0:d=${d}`, out && `afade=t=out:st=${st}:d=${d}`].filter(Boolean).join(',');
-      if (isAudio) { needAudio(p); const [ext, enc] = audioOut(base); return { args: [...I, '-af', af, ...enc, `out.${ext}`], outputs: [`out.${ext}`] }; }
-      return { args: [...I, '-vf', vf, ...(p.audio ? ['-af', af, '-c:a', 'aac', '-b:a', '160k'] : []), ...X264(20), 'out.mp4'], outputs: ['out.mp4'] };
+      if (isAudio) { needAudio(p); const [ext, enc] = audioOut(base, p.channels, p.layout); return { args: [...I, '-af', af, ...enc, `out.${ext}`], outputs: [`out.${ext}`] }; }
+      return { args: [...I, '-vf', vf, ...(p.audio ? ['-af', af, ...aacArgs(160, p.channels, p.layout)] : []), ...X264(20), 'out.mp4'], outputs: ['out.mp4'] };
     }
     case 'text': {
       needVideo(p);
@@ -327,9 +375,9 @@ export function buildJob(job: Job, o: Record<string, any>, c: JobCtx): Built {
     case 'speed': {
       const x = +o.speed, at: string[] = []; let r = x;
       while (r > 2) { at.push('atempo=2'); r /= 2; } while (r < 0.5) { at.push('atempo=0.5'); r /= 0.5; } at.push(`atempo=${+r.toFixed(4)}`);
-      if (isAudio) { needAudio(p); const [ext, enc] = audioOut(base === 'mp3' ? 'mp3' : 'm4a'); return { args: [...I, '-af', at.join(','), ...enc, `out.${ext}`], outputs: [`out.${ext}`] }; }
+      if (isAudio) { needAudio(p); const [ext, enc] = audioOut(base === 'mp3' ? 'mp3' : 'm4a', p.channels, p.layout); return { args: [...I, '-af', at.join(','), ...enc, `out.${ext}`], outputs: [`out.${ext}`] }; }
       if (!p.audio) return { args: [...I, '-vf', `setpts=PTS/${x}`, ...X264(21), 'out.mp4'], outputs: ['out.mp4'] };
-      return { args: [...I, '-filter_complex', `[0:v]setpts=PTS/${x}[v];[0:a]${at.join(',')}[a]`, '-map', '[v]', '-map', '[a]', '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '21', '-pix_fmt', 'yuv420p', '-c:a', 'aac', 'out.mp4'], outputs: ['out.mp4'] };
+      return { args: [...I, '-filter_complex', `[0:v]setpts=PTS/${x}[v];[0:a]${at.join(',')}[a]`, '-map', '[v]', '-map', '[a]', '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '21', '-pix_fmt', 'yuv420p', ...aacArgs(160, p.channels, p.layout), 'out.mp4'], outputs: ['out.mp4'] };
     }
     case 'timelapse': {
       needVideo(p);
@@ -341,14 +389,14 @@ export function buildJob(job: Job, o: Record<string, any>, c: JobCtx): Built {
     case 'volume': {
       needAudio(p);
       const af = `volume=${o.vol}`;
-      if (isAudio) { const [ext, enc] = audioOut(base); return { args: [...I, '-af', af, ...enc, `out.${ext}`], outputs: [`out.${ext}`] }; }
+      if (isAudio) { const [ext, enc] = audioOut(base, p.channels, p.layout); return { args: [...I, '-af', af, ...enc, `out.${ext}`], outputs: [`out.${ext}`] }; }
       const ext = videoOutExt(base);
-      return { args: [...I, '-af', af, '-c:v', 'copy', ...reAudioFor(ext), `out.${ext}`], outputs: [`out.${ext}`] };
+      return { args: [...I, '-af', af, '-c:v', 'copy', ...reAudioFor(ext, p.channels, p.layout), `out.${ext}`], outputs: [`out.${ext}`] };
     }
     case 'loudnorm': {
       needAudio(p);
       const out = isAudio ? `out.${base === 'mp3' ? 'mp3' : 'm4a'}` : 'out.mp4';
-      const a = out.endsWith('mp3') ? ['-c:a', 'libmp3lame', '-q:a', '2'] : ['-c:a', 'aac', '-b:a', '192k'];
+      const a = out.endsWith('mp3') ? ['-c:a', 'libmp3lame', '-q:a', '2'] : aacArgs(192, p.channels, p.layout);
       return { args: [...I, '-af', 'loudnorm=I=-16:TP=-1.5:LRA=11', ...(isAudio ? ['-vn'] : ['-c:v', 'copy']), ...a, '-ar', '48000', out], outputs: [out] };
     }
     case 'silence': {
@@ -357,7 +405,7 @@ export function buildJob(job: Job, o: Record<string, any>, c: JobCtx): Built {
       const af = o.silWhere === 'ends'
         ? `silenceremove=start_periods=1:start_threshold=${L}:start_silence=0.1,areverse,silenceremove=start_periods=1:start_threshold=${L}:start_silence=0.1,areverse`
         : `silenceremove=start_periods=1:start_threshold=${L}:start_silence=0.1:stop_periods=-1:stop_duration=${o.silMin}:stop_threshold=${L}:stop_silence=0.25`;
-      const [ext, enc] = audioOut(isAudio ? base : 'm4a');
+      const [ext, enc] = audioOut(isAudio ? base : 'm4a', p.channels, p.layout);
       return { args: [...I, '-vn', '-af', af, ...enc, `out.${ext}`], outputs: [`out.${ext}`] };
     }
     case 'merge': {
@@ -365,20 +413,28 @@ export function buildJob(job: Job, o: Record<string, any>, c: JobCtx): Built {
       if (c.p2 && !c.p2.audio) throw new Error('The second file has no sound.');
       if (o.mergeMode === 'mix') {
         if (!p.audio) throw new Error('This file has no sound to put the music under — choose "Replace the sound".');
-        const fc = `[1:a]volume=${fmtS(+o.musicVol / 100)}[m];[0:a][m]amix=inputs=2:duration=first:dropout_transition=0:normalize=0[a]`;
-        if (isAudio) { const [ext, enc] = audioOut(base); return { args: [...I, '-stream_loop', '-1', '-i', c.in2, '-filter_complex', fc, '-map', '[a]', ...enc, `out.${ext}`], outputs: [`out.${ext}`] }; }
-        return { args: [...I, '-stream_loop', '-1', '-i', c.in2, '-filter_complex', fc, '-map', '0:v', '-map', '[a]', '-c:v', 'copy', '-c:a', 'aac', '-b:a', '192k', 'out.mp4'], outputs: ['out.mp4'] };
+        // both brought to one layout before they are mixed — the file's own (mono when both are mono), a mono one on both
+        // sides at full level (amix took FFmpeg's upmix: a mono voice under stereo music came out 3 dB lower)
+        const m = c.p2?.channels || 2, outCh = p.channels === 1 && m === 1 ? 1 : p.channels > 2 && [6, 8].includes(p.channels) ? p.channels : 2;
+        const ly = ({ 1: 'mono', 2: 'stereo', 6: '5.1', 8: '7.1' } as Record<number, string>)[outCh];
+        const fc = `[0:a]${upmix(p.channels, ly)}aformat=channel_layouts=${ly}[s];[1:a]volume=${fmtS(+o.musicVol / 100)},${upmix(m, ly)}aformat=channel_layouts=${ly}[m];[s][m]amix=inputs=2:duration=first:dropout_transition=0:normalize=0[a]`;
+        if (isAudio) { const [ext, enc] = audioOut(base, outCh); return { args: [...I, '-stream_loop', '-1', '-i', c.in2, '-filter_complex', fc, '-map', '[a]', ...enc, `out.${ext}`], outputs: [`out.${ext}`] }; }
+        return { args: [...I, '-stream_loop', '-1', '-i', c.in2, '-filter_complex', fc, '-map', '0:v', '-map', '[a]', '-c:v', 'copy', ...aacArgs(192, outCh), 'out.mp4'], outputs: ['out.mp4'] };
       }
       needVideo(p);
-      return { args: [...I, '-i', c.in2, '-map', '0:v:0', '-map', '1:a:0', '-c:v', 'copy', '-c:a', 'aac', '-b:a', '192k', '-shortest', 'out.mp4'], outputs: ['out.mp4'] };
+      return { args: [...I, '-i', c.in2, '-map', '0:v:0', '-map', '1:a:0', '-c:v', 'copy', ...aacArgs(192, c.p2?.channels || 2, c.p2?.layout || ''), '-shortest', 'out.mp4'], outputs: ['out.mp4'] };
     }
     case 'sound': {
       needAudio(p);
-      const ch = o.channels === 'keep' ? [] : ['-ac', o.channels], ar = o.rate === 'keep' ? [] : ['-ar', o.rate];
-      if (!ch.length && !ar.length) throw new Error('Choose mono or stereo, or a sample rate — this would change nothing.');
-      if (isAudio) { const [ext, enc] = audioOut(base); return { args: [...I, ...ch, ...ar, ...enc, `out.${ext}`], outputs: [`out.${ext}`] }; }
+      const want = o.channels === 'keep' ? 0 : +o.channels, from = p.channels, ar = o.rate === 'keep' ? [] : ['-ar', o.rate];
+      // stereo: a mono sound on both sides at full level (FFmpeg's -ac 2 put it 3 dB lower on each), more channels mixed
+      // down as players do (-ac 2); mono: the average of the two sides
+      const ch = !want || want === from ? [] : want === 1 ? ['-af', toMono(from)] : from === 1 ? ['-af', 'pan=stereo|c0=c0|c1=c0'] : ['-ac', '2'];
+      if (!ch.length && !ar.length) throw new Error(want ? `The sound is already ${want === 1 ? 'mono' : 'stereo'} — choose the other, or a sample rate.` : 'Choose mono or stereo, or a sample rate — this would change nothing.');
+      const outCh = want || from, ly = want ? '' : p.layout;
+      if (isAudio) { const [ext, enc] = audioOut(base, outCh, ly); return { args: [...I, ...ch, ...ar, ...enc, `out.${ext}`], outputs: [`out.${ext}`] }; }
       const ext = videoOutExt(base);
-      return { args: [...I, '-c:v', 'copy', ...ch, ...ar, ...reAudioFor(ext), `out.${ext}`], outputs: [`out.${ext}`] };
+      return { args: [...I, '-c:v', 'copy', ...ch, ...ar, ...reAudioFor(ext, outCh, ly), `out.${ext}`], outputs: [`out.${ext}`] };
     }
     // ---------------------------------------------------------------- subtitles
     case 'subBurn': {
@@ -417,6 +473,12 @@ export function buildJob(job: Job, o: Record<string, any>, c: JobCtx): Built {
       const mjpeg = args.some((a, i) => /^-(c|codec|vcodec)(:v)?$/.test(a) && /^mjpeg$/i.test(args[i + 1] || ''));
       if (mjpeg || args.some((a, i) => i > 0 && !/^-/.test(args[i - 1] || '-') && /\.(jpe?g|mjpe?g)$/i.test(a)) || /\.(jpe?g|mjpe?g)$/i.test(out || ''))
         throw new Error('This FFmpeg build can crash the page while writing JPEG — write .png instead, or use "Picture at a moment" or "Extract frames", which make their JPEGs with MozJPEG.');
+      // its Opus encoder crashes on two channels and more at the default complexity (OPUS_SAFE): a command that makes
+      // Opus — named, or a .webm / .opus output without an audio codec of its own — and sets no complexity gets 4
+      const codec = (i: number) => /^-(c|codec|acodec)(:a)?(:\d+)?$/.test(args[i]) && i + 1 < args.length;
+      const opus = args.some((a, i) => codec(i) && /^libopus$/i.test(args[i + 1]))
+        || (/\.(webm|opus)$/i.test(out || '') && !args.includes('-an') && !args.some((a, i) => codec(i)));
+      if (opus && out && !args.some((a) => /^-compression_level(:a)?(:\d+)?$/.test(a))) args.splice(args.length - 1, 0, ...OPUS_SAFE);
       return { args, outputs: out && !out.startsWith('-') && !/^in\d+\./.test(out) ? [out] : [] };
     }
   }

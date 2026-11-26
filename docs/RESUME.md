@@ -43,8 +43,14 @@ builds reading the same photos in the same order: the reading as before on every
 127 / 127; every suite has passed on Windows. Measuring scratch (not in the repository): the clean-up's input of every
 photo of the sets (`OCR_MARKS`) checks a later change of p_clear_marks quickly; HANDOFF lists the traps (an old module
 with a new binding; the photo order).
-**Next (the owner's order):** batch 3 — #23 FFmpeg volume, #22 FFmpeg MP3, #21 Screencast countdowns + sound level (todo.md
-Open; start with #23); then
+**Batch 3 — #23 FFmpeg loudness: DONE (26 Nov 2026)** (todo.md Done #23; CLAUDE.md §3 FFmpeg, "Sound at its own level"):
+confirmed — mono made stereo was 3 dB lower (Sound settings → Stereo, Join, music under a mono voice), 5.1 got the stereo
+bitrate, an AC-3's 5.1(side) failed as WebM / was "unknown" in MP4; all fixed in `src/lib/ffjobs.ts`. Found on the way:
+**the tab's FFmpeg (libopus 1.3.1 in ffmpeg.wasm 0.12) crashes on every stereo Opus at complexity ≥ 5** — made at 4
+(`OPUS_SAFE`). New fixtures `stereo.mp4`, `surround.mkv` (`node scripts/make-sound-fixtures.mjs`). The owner asked (26 Nov)
+for cool new FFmpeg uses (22 listed in chat — none built; add to todo.md only if he picks) and whether an own FFmpeg build
+would undo these fixes (no: they are FFmpeg arguments; it would be its own to-do, after batch 3, only at his word).
+**Next (the owner's order):** batch 3 — #22 FFmpeg MP3, then #21 Screencast countdowns + sound level (todo.md Open); then
 batch 4 (#24, #28 Screenshot), 5 (#15, #17, #16), 6 (#14 Text Diff), 7 (#20 Studio voice); then the potentials process.
 
 ## ▶ SYNC POINT — 21 Nov 2026, night (read this first; it supersedes the older "NOW" notes below)

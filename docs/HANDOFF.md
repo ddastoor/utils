@@ -227,6 +227,13 @@ the 47 Software stub tabs (each with its own suite) first, then ask about potent
 - Router: same tab + changed own hash parameters → re-mounted (`?from=` ignored).
 
 ## 5. Traps already found
+- **Media fixtures of one kind hide whole classes of faults** (to-do #23, 26 Nov 2026): every sound fixture was mono, so
+  the FFmpeg tab's crash on stereo Opus (libopus 1.3.1 in ffmpeg.wasm 0.12, complexity ≥ 5: "memory access out of bounds")
+  and the 3 dB loss of mono made stereo stayed unseen. `stereo.mp4` and `surround.mkv` (AC-3 5.1(side)) exist now — a
+  new sound job is tried on mono, stereo and 5.1. Loudness is compared with EBU R128 *dualmono* (a mono file as heard on
+  two speakers, as players play it); a trimmed result against the same part of the original; noise loses ~1.25 dB in
+  any WSOLA speed change (not a fault — test speed on speech or music). The browser's FFmpeg is probed quickest with
+  "Your own arguments" on a fresh page per command (one crash breaks the core for what follows).
 - **The suites on Windows** (the Windows check, 26 Nov 2026): Playwright's `userAgent` option leaves
   navigator.userAgentData / platform saying what the machine is — `asOS` (`tests/e2e/_os.mjs`); `import('D:\\…')` is
   refused (use `pathToFileURL`); `split('/')` keeps a Windows path whole (`basename`); Git Bash's `sha256sum` writes

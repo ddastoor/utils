@@ -2887,3 +2887,43 @@ cannot. Three new suites; each fails on the build before its fixes.
   (scans 90.5 %, phone stills 79.8 %, soft video frames 54.0 %), 85.3 % of the lines an item runs on to under its text, 20
   lines set out where the page has none, every photo's words the reading's. Unit listtext 73, pageclean 71, readpage 39;
   e2e OCR 95, Photo Dictionary 127 (both on Windows too).
+- **FFmpeg: the sound of the results quieter than the original — confirmed (26 Nov 2026; owner, to-do #23: "the audio
+  volume of the output resultant videos and audio files seems to be lower than when I hear it from the original").**
+  Every job measured against its original — EBU R128 integrated loudness, a mono file as heard on two speakers
+  (`ebur128=dualmono=true`) — on mono, stereo, 5.1 and an AC-3's 5.1(side) (6 s of shaped noise; speech; music), by the
+  native FFmpeg 6.1 and by the tab's FFmpeg 5.1 in the browser. Found:
+  - **A mono sound made stereo: 3 dB lower** (−3.1 in both FFmpegs) — "Sound settings → Stereo" (`-ac 2`), Join clips
+    (every clip was made stereo: two mono phone videos joined came out 3 dB quieter), the music under a mono voice (amix
+    takes FFmpeg's upmix). FFmpeg's rematrix puts a mono channel on each side at 0.71 (−3 dB); players play mono on both
+    speakers at full level (Web Audio's up-mix rule) → `pan=stereo|c0=c0|c1=c0`, and joins of mono clips stay mono.
+  - **5.1 at the stereo bitrate:** Opus at 128 kb/s for six channels lost 2.0 dB natively (its upper bands — K-weighting
+    counts them); AAC at 160 kb/s for six added up to +1.1 dB (reverse). → as much a channel as stereo gets.
+  - **5.1(side) (AC-3, DTS):** libopus refused it ("Invalid channel layout 5.1(side) for specified mapping family -1":
+    Convert → WebM failed); the AAC encoder wrote it with a PCE, read back as "6 channels, unknown" (and the native
+    meter could not even measure the browser's output) → `-ch_layout 5.1` (FFmpeg 5.1 and 6.1 take it; the sides go to
+    the back at gain 1).
+  - **The browser's Opus encoder crashed on every stereo sound** — "RuntimeError: memory access out of bounds" 0.1 s in,
+    on noise, on a sine, on speech, from MP4 or WAV, at 64 and 128 kb/s, applications audio and voip; `-application
+    lowdelay` failed otherwise ("Error submitting audio frame"). It runs with `-frame_duration 10` or 5, and with
+    `-compression_level` 0 – 4; 5 – 10 crash with 20, 40 and 60 ms frames. In libopus 1.3.1 complexity 5 turns on two
+    things only: the pitch pre-filter (`run_prefilter`'s search) and the late transient check (`patch_transient_decision`,
+    which recomputes the MDCTs) — one of them, at 20 ms frames and with a coupled (stereo) stream, overruns in this build
+    (mono runs at any complexity). Unseen since the tab was built: **every media fixture was mono** (clip.mp4, clip.webm, tone.*). →
+    two channels and more are made at `-compression_level:a 4` (`OPUS_SAFE`); "Your own arguments" that make Opus and set
+    no complexity get it too. Chosen over 10 ms frames because it switches off exactly the two features the crash needs at
+    any frame size; by a crude noise-to-mask ratio (half-Bark bands, spread masking, the coding noise against the
+    original's threshold; native libopus 1.4) the two are level with the default at 128 and 96 kb/s — speech −2.3 (default)
+    / −2.9 (complexity 4) / −1.7 dB (10 ms), a harmonic "piano" 18.3 / 19.3 / 18.7, noise 2.9 / 2.3 / 3.0 (lower is better).
+  - **Exact trim of a WebM** put H.264 into the WebM, which the muxer refuses — now an MP4; an exact trim's sound took the
+    container's default encoder (AAC at 128 kb/s for any number of channels; libopus for .opus) → named.
+  - **"Mono"** (`-ac 1`) added the two sides at 0.71: the same sound on both sides came out 3 dB louder, and clipped at
+    full scale → their average (as Audacity's "Mix Stereo Down to Mono"): identical sides keep their level, a voice as two
+    microphones 15 cm apart hear it comes out 1.4 dB quieter (the sides partly cancel above 1.7 kHz), sides that differ
+    completely 3 dB — said in the tab.
+  - **Not faults, said:** 5.1 mixed into two (MP3, "Stereo") measures −0.6 to −0.8 dB — R128 weights the surround
+    channels +1.5 dB in 5.1, a stereo mix cannot; a speed change loses 0.7 – 1.4 dB on noise (atempo's WSOLA crossfades
+    unrelated pieces, which add in power: a Hann crossfade of uncorrelated sound is −1.25 dB) and keeps speech and music
+    within 0.4 dB; "Normalise loudness" makes −16 LUFS on purpose (said in the tab).
+  After the fix, natively: 14 jobs (convert to MP4 / WebM / M4A / OGG / FLAC, extract, exact trim, cut out, join, reverse,
+  compress, speed, 44.1 kHz) × mono, stereo and 5.1 files within 0.5 dB (mostly 0.0 – 0.2); in the browser the same on
+  the cases that failed. Fixtures `stereo.mp4` and `surround.mkv` (`node scripts/make-sound-fixtures.mjs`).

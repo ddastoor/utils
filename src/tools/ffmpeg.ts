@@ -112,19 +112,20 @@ export const mount: Mount = (root) => {
       speed: () => [sel('Speed', 'speed', [['0.5', '0.5× (half speed)'], ['0.75', '0.75×'], ['1.25', '1.25×'], ['1.5', '1.5×'], ['2', '2×'], ['4', '4×']])],
       timelapse: () => [sel('Faster by', 'tlx', [['8', '8×'], ['16', '16×'], ['30', '30×'], ['60', '60× (a minute in a second)']]), info2('Without sound, at 30 frames a second.')],
       volume: () => [sel('Volume', 'vol', [['0.25', '25 % (much quieter)'], ['0.5', '50 %'], ['0.75', '75 %'], ['1.25', '125 %'], ['1.5', '150 %'], ['2', '200 % (twice as loud)'], ['3', '300 %']]), info2('Loud parts can clip above 100 % — "Normalise loudness" raises the level without clipping.')],
-      loudnorm: () => [info2('EBU R128 loudness normalisation to −16 LUFS (streaming / podcast level), true peak −1.5 dB.')],
+      loudnorm: () => [info2('EBU R128 loudness normalisation to −16 LUFS (streaming / podcast level), true peak −1.5 dB: a quiet file comes out louder, a loud one quieter — on purpose. Every other task keeps the sound at its own level.')],
       silence: () => [field('Remove', segmented<string>([['ends', 'At the start and end'], ['all', 'Every pause']], o.silWhere, (v) => { o.silWhere = v; renderOpts(); })),
         h('div', { class: 'row' }, o.silWhere === 'all' ? sel('Pauses longer than', 'silMin', [['0.5', '0.5 s'], ['1', '1 s'], ['2', '2 s']]) : null, sel('Counts as silence', 'silLevel', [['-40', 'Quiet (−40 dB)'], ['-50', 'Very quiet (−50 dB)'], ['-60', 'Almost nothing (−60 dB)']])),
         info2('The result is the sound only (removing time from a video would put picture and sound out of step).')],
       merge: () => [field('The new sound', segmented<string>([['replace', 'Replace the sound'], ['mix', 'Music under the sound']], o.mergeMode, (v) => { o.mergeMode = v; renderOpts(); })),
         o.mergeMode === 'mix' ? sel('Music volume', 'musicVol', [['10', '10 %'], ['20', '20 %'], ['30', '30 %'], ['50', '50 %'], ['100', '100 %']]) : null,
         info2(o.mergeMode === 'mix' ? 'The music repeats until the video ends; the video\'s own sound stays as it is.' : 'Video from the first file, sound from the second (re-encoded to AAC). The output stops at the shorter one.')],
-      sound: () => [h('div', { class: 'row' }, sel('Channels', 'channels', [['keep', 'As they are'], ['1', 'Mono'], ['2', 'Stereo']]), sel('Sample rate', 'rate', [['keep', 'As it is'], ['44100', '44.1 kHz'], ['48000', '48 kHz']]))],
+      sound: () => [h('div', { class: 'row' }, sel('Channels', 'channels', [['keep', 'As they are'], ['1', 'Mono'], ['2', 'Stereo']]), sel('Sample rate', 'rate', [['keep', 'As it is'], ['44100', '44.1 kHz'], ['48000', '48 kHz']])),
+        info2('Stereo puts a mono sound on both sides at its full level; 5.1 is mixed down as players do. Mono is the average of the two sides (as Audacity mixes them): a voice that is the same on both sides keeps its loudness, sound that differs between the sides comes out up to 3 dB quieter.')],
       subBurn: () => [info2('The subtitles become part of the picture (they show in every player). Text in Noto Sans.')],
       subAdd: () => [sel('Language', 'subLang', [['eng', 'English'], ['hin', 'Hindi'], ['mar', 'Marathi'], ['tam', 'Tamil'], ['tel', 'Telugu'], ['ben', 'Bengali'], ['fra', 'French'], ['spa', 'Spanish'], ['deu', 'German'], ['und', 'Not given']]), info2('A track the viewer can switch on and off. MP4 keeps text subtitles as "mov_text"; MKV keeps them as they are.')],
       subExtract: () => [sel('Save as', 'subFmt', [['srt', 'SRT'], ['vtt', 'WebVTT'], ['ass', 'ASS']])],
       raw: () => [field('Arguments (inputs are in1.<ext>, in2.<ext>; the last name is the output)', input({ value: o.raw, onInput: (v: string) => { o.raw = v; update(); }, attrs: { class: 'input mono', spellcheck: 'false', 'aria-label': 'FFmpeg arguments' } })),
-        note('This single-threaded build cannot use libvpx-vp9 or libx265 (they wait for threads): use libvpx (VP8) or libx264. Press Stop if a command hangs.', 'warn')],
+        note('This single-threaded build cannot use libvpx-vp9 or libx265 (they wait for threads): use libvpx (VP8) or libx264. Its Opus encoder crashes on stereo at the default complexity, so a command that makes Opus without "-compression_level" gets "-compression_level:a 4". Press Stop if a command hangs.', 'warn')],
     };
     clear(opts).append(...parts[job]().filter((x): x is Node => !!x));
     update();

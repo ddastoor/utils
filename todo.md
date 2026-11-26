@@ -146,19 +146,6 @@ The owner adds items here in chat ("add … to to do"). Newest instructions win.
       its quality (128 / 192 / 320 kbps or V2); and on the result, beside the .m4a, **"Download as MP3"** made from the
       sound just extracted (no second run); the format chosen kept while the tab is open. The suite: MP3 frames, the
       bitrate, the length and the level equal to the original's.
-23. **FFmpeg: the sound of the results quieter than the original?** (owner, 26 Nov 2026: "In the FFmpeg app, the audio
-    volume of the output resultant videos and audio files seems to be lower than when I hear it from the original.
-    Please confirm if this is the case. If this is indeed the case, then please fix.")
-    - **To check:** every job's result measured against its original — loudness (EBU R128) and peak per channel, by the
-      native FFmpeg the unit suite uses and in the browser — with mono, stereo and 5.1 sound, into MP4, M4A, MP3, WAV,
-      OGG. Suspects found in the code: **Join clips** makes every clip's sound stereo (`aformat=…channel_layouts=stereo`)
-      — FFmpeg spreads a mono sound over the two channels 3 dB lower each, so a mono phone video plays quieter; **5.1
-      sound** into MP3 (LAME takes two channels) or into stereo is mixed down by FFmpeg's rule that keeps the sum from
-      clipping — up to about 8 dB quieter; **"Normalise loudness"** brings a loud original down to −16 LUFS by design
-      (to be said in the tab). Also the Screencast's sound (to-do #21) — the two checked together.
-    - **If confirmed — fixed where it is lost:** mono kept mono, or put on both channels at its own level; a mix-down
-      that keeps the loudness (with a limiter where it would clip); the jobs that do not set out to change the level
-      keep it. The suite holds every such job to the original's loudness within 0.5 dB.
 24. **Screenshot: draw a rectangle with the mouse to take the screenshot** (owner, 26 Nov 2026: "In the screenshot app, add
     the ability for the user to draw a rectangular area with his mouse also as an option to take the screenshot")
     - **Today:** share a screen, a window or a tab once → "Take screenshot" (now or after 3 / 5 / 10 s) takes the whole
@@ -193,6 +180,19 @@ The owner adds items here in chat ("add … to to do"). Newest instructions win.
 
 
 ## Done
+- **23. FFmpeg: the sound of the results quieter than the original?** (owner, 26 Nov 2026: "In the FFmpeg app, the audio
+  volume of the output resultant videos and audio files seems to be lower than when I hear it from the original. Please
+  confirm if this is the case. If this is indeed the case, then please fix.") — **confirmed, and fixed 26 Nov 2026.**
+  Every job measured (EBU R128, mono as heard on two speakers) on mono, stereo and 5.1 files, natively and in the
+  browser: a mono sound made stereo came out 3 dB lower (Sound settings → Stereo, Join clips, the music under a mono
+  voice) — now on both sides at full level, and mono joins stay mono; 5.1 got the stereo bitrate (Opus lost 2 dB) — now as
+  much a channel; an AC-3's 5.1(side) failed as WebM and was written as an "unknown" layout in MP4 — now 5.1. Found on the
+  way: **the tab's FFmpeg crashed on every stereo sound made Opus** (Convert → WebM / OGG; "memory access out of bounds" —
+  every test file had been mono) — now made at a complexity the build runs; an exact trim of a WebM failed — now an MP4.
+  "Mono" averages the two sides (FFmpeg's made it 3 dB louder and could clip). Kept, and said in the tab: "Normalise
+  loudness" makes −16 LUFS on purpose; 5.1 mixed into two measures 0.6 – 0.8 dB lower (R128's surround weighting); a
+  speed change of noise loses up to 1.3 dB (speech and music keep theirs). Every other job within 0.5 dB of the original
+  (unit ffjobs 193; e2e ffmpeg). CLAUDE.md §3 FFmpeg, "Sound at its own level"; docs/BUGHUNT.md.
 - **31. OCR tab: keep the page's formatting — bullets, sub-bullets, check boxes, indentation** (owner, 26 Nov 2026: "In
   the OCR app, the rich formatting should be preserved, the bullet points, etc. In the photo dictionary app, it need not
   be"; the owner's choices: text with bullets, lists only) — done 26 Nov 2026: the OCR tab's text — the box, Copy and

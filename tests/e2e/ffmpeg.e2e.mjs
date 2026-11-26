@@ -5,6 +5,7 @@ import { readFileSync } from 'node:fs';
 import { mp4Info } from './video.e2e.mjs';
 import { mp3Frames, readWav } from './audio.e2e.mjs';
 import { imageInfo } from '../lib/imgcheck.mjs';
+import { spawnSync, execFileSync } from '../lib/child.mjs';
 const M = (n) => fileURLToPath(new URL(`../fixtures/media/${n}`, import.meta.url));
 const I = (n) => fileURLToPath(new URL(`../fixtures/images/${n}`, import.meta.url));
 
@@ -340,6 +341,51 @@ export default async ({ base, page: newPage, ok, info, download }) => {
   await task('Remove audio');
   const kn = await run();
   ok(/kf6-out\.mp4$/.test(kn), `the next job is of the new file and named after it (${kn.split('/').pop()})`);
+
+  // ================================================================ sound at its own level (to-do #23)
+  // The owner: "the audio volume of the output … seems to be lower than … the original" — it was, for a mono sound made
+  // stereo (joins, "Stereo": 3 dB lower) and for 5.1 as Opus; and this core's Opus encoder crashed on stereo ("memory
+  // access out of bounds"), unseen while every fixture was mono. The loudness (EBU R128, a mono file as heard on two
+  // speakers) and the channels are read by the native FFmpeg where it is installed (apt; choco on the Windows runner).
+  const nativeFF = spawnSync('ffmpeg', ['-version']).status === 0 && spawnSync('ffprobe', ['-version']).status === 0;
+  const loud = (p) => { const e = spawnSync('ffmpeg', ['-hide_banner', '-nostats', '-i', p, '-map', '0:a:0', '-af', 'ebur128=dualmono=true', '-f', 'null', '-'], { encoding: 'utf8' }).stderr; return +/I:\s+(-?[\d.]+) LUFS/.exec(e.slice(e.lastIndexOf('Summary:')))?.[1]; };
+  const lay = (p) => execFileSync('ffprobe', ['-v', 'error', '-select_streams', 'a:0', '-show_entries', 'stream=codec_name,channels,channel_layout', '-of', 'csv=p=0', p]).toString().trim();
+  /** the run's output against `src`: its sound `want` (codec,channels,layout), its loudness within [lo, hi] dB of src's */
+  const level = async (src, what, want, [lo, hi] = [-0.5, 0.5], cut = 0) => {
+    let out;
+    try { out = await run(); } catch (e) { ok(false, `${what}: ${e.message.slice(0, 300)}`); return; }
+    if (!nativeFF) { ok(true, `${what}: made (no native FFmpeg here — the loudness is not measured)`); return; }
+    let m = out;
+    if (cut) { m = `${out}.part.wav`; execFileSync('ffmpeg', ['-v', 'error', '-y', '-i', out, '-t', String(cut), '-vn', m]); }
+    const a = loud(src), b = loud(m), l = lay(out);
+    ok(b - a >= lo && b - a <= hi && want.test(l), `${what}: ${l}, ${a} → ${b} LUFS`);
+  };
+  await choose(M('stereo.mp4'), /Audio: aac.*stereo/);
+  await task('Convert format'); await combo('To').selectOption('webm');
+  await level(M('stereo.mp4'), 'stereo → WebM: it runs (this build\'s Opus crashed on stereo), Opus in stereo, the same loudness', /^opus,2,stereo$/);
+  await combo('To').selectOption('ogg');
+  await level(M('stereo.mp4'), 'stereo → OGG: Opus in stereo, the same loudness', /^opus,2,stereo$/);
+  await task('Your own arguments'); await page.getByLabel('FFmpeg arguments').fill('-i in1.mp4 -vn -c:a libopus -b:a 96k out.ogg');
+  await level(M('stereo.mp4'), 'own arguments making stereo Opus: "-compression_level:a 4" added, it runs', /^opus,2,stereo$/);
+  await task('Speed up / slow down');
+  await level(M('stereo.mp4'), 'stereo speech at 2×: the same loudness', /^aac,2,stereo$/);
+  await choose(M('surround.mkv'), /Audio: ac3/);
+  await task('Convert format'); await combo('To').selectOption('webm');
+  await level(M('surround.mkv'), '5.1(side) AC-3 → WebM: it runs (libopus refused the layout), Opus in 5.1, the same loudness', /^opus,6,5\.1$/);
+  await combo('To').selectOption('mp4');
+  await level(M('surround.mkv'), '5.1(side) AC-3 → MP4: AAC in 5.1 (the layout was written as "unknown"), the same loudness', /^aac,6,5\.1$/);
+  await task('Sound settings (mono, stereo, sample rate)'); await combo('Channels').selectOption('2');
+  await level(M('surround.mkv'), '5.1 → stereo: mixed down as players do (R128 counts the surround channels 1.5 dB more in 5.1)', /^aac,2,stereo$/, [-1, 0]);
+  await choose(M('clip.mp4'), /Video: h264/);
+  await level(M('clip.mp4'), 'mono → stereo: on both sides at full level (it was 3 dB lower)', /^aac,2,stereo$/);
+  await task('Join clips');
+  await page.locator('input[type=file]').nth(2).setInputFiles(M('stereo.mp4'));
+  await page.locator('.ff-clips li').nth(1).waitFor({ timeout: 30000 });
+  await level(M('clip.mp4'), 'join a mono clip and a stereo one: stereo, the mono clip at its own loudness (it was 3 dB lower)', /^aac,2,stereo$/, [-0.5, 0.5], 2.9);
+  await page.getByRole('button', { name: 'Remove clip 2' }).click();
+  await page.locator('input[type=file]').nth(2).setInputFiles(M('clip.mp4'));
+  await page.waitForTimeout(1500);
+  await level(M('clip.mp4'), 'join two mono clips: mono, the same loudness', /^aac,1,mono$/);
   const errs = [...longErrors, ...page.errors].filter((e) => !/FFmpeg failed|only 3 s long|change nothing|Type the text|Choose the logo|under half a second|at least one more clip|differ in size|needs a video/.test(e)); // refusals, logged by the button
   ok(!errs.length, `no page errors ${errs.slice(0, 3).join(' | ')}`);
   info('ffmpeg.wasm 0.12 core (FFmpeg 5.1.4)');

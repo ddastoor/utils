@@ -2552,7 +2552,8 @@ frames (PNG/JPEG → zip), audio → MP4 (picture + sound with `-t` = probed len
 arguments (in1.ext / in2.ext, last word = output). Non-zero exit = failure: FFmpeg's own error line is shown and the
 log opens. Stop = terminate the worker ("Stopped.", no error); a new file chosen during a job ends it (its probe reset the job's log and the outputs took the new name), probes of a second file or of clips wait for a running job, outputs are named after the file the job ran on (Nov 2026 hunt, tab 152; libav.js checked as a replacement: docs/WASM-AUDIT.md 149). **Known limits of this core:** libvpx-vp9 and libx265 wait forever for
 threads (so presets use VP8/x264 and the raw box warns); FFmpeg 5.1 ignores input `-to` and `-shortest` with a looped
-picture (handled with `-t`). Replacing it with our own build of current FFmpeg stays on the §3a audit list.
+picture (handled with `-t`); **its Opus encoder crashes on two channels and more** at complexity 5 and above (made at 4 —
+"Sound at its own level" below). Replacing it with our own build of current FFmpeg stays on the §3a audit list.
 Tests: clip.mp4/tone.wav/tone.mp3 → WebM plays, AAC copy, MP3 440 Hz, no-sound copy, fast trim ≈ 1 s and exact 1.00 s,
 426×240, rotate 360×640, square crop, GIF89a 320 px, 2× = 1.5 s, 3 frames zipped, merge 660 Hz, raw hflip, bad filter
 reported, loudness changed, waveform 1280×720, picture + sound 2 s.
@@ -2590,10 +2591,47 @@ ASS; picture subtitles (DVD / Blu-ray) are refused with the reason), **Expert** 
   renderer when, after about 60 jobs on one FFmpeg, Stop ends a command and Run starts a new FFmpeg; the full Chromium
   build does not (`E2E_CHANNEL=chromium E2E_FF_SAME_PAGE=1 node tests/e2e.mjs ffmpeg`: 72 / 72). The suite therefore runs
   its Stop checks on a fresh page; look again with a newer Playwright (docs/BUGHUNT.md, "FFmpeg after a long session").
-- Tests: unit `tests/unit/ffjobs.test.mjs` (110) — every job's command run by a **native FFmpeg 6.1** (`apt install
+- Tests: unit `tests/unit/ffjobs.test.mjs` (193) — every job's command run by a **native FFmpeg 6.1** (`apt install
   ffmpeg`) on the fixtures and read back with ffprobe, decoded pixels and sound levels; every refusal; the probe reader
   against ffprobe. e2e `tests/e2e/ffmpeg.e2e.mjs` runs every new job on ffmpeg.wasm in the browser. Fixtures
   `tests/fixtures/media/` subs.srt, clip-subs.mkv, silent-320.mp4, pauses.wav, kf6.mp4.
+**Sound at its own level (to-do #23; owner, 26 Nov 2026: "the audio volume of the output resultant videos and audio files
+seems to be lower than when I hear it from the original. Please confirm … If this is indeed the case, then please fix.")**
+— confirmed, and fixed in `src/lib/ffjobs.ts` ("sound kept at its level"). Every job was measured against its original —
+EBU R128 integrated loudness, a mono file as heard on two speakers (`ebur128=dualmono=true`) — on mono, stereo, 5.1 and
+an AC-3's 5.1(side), by the native FFmpeg 6.1 and by the tab's FFmpeg 5.1 in the browser:
+- **A mono sound made stereo was 3 dB lower:** FFmpeg's own upmix puts mono on each side at 0.71 — "Sound settings →
+  Stereo" (`-ac 2`), **Join clips** (every clip was made stereo), the music under a mono voice (amix's layout). Now on
+  both sides at full level (`pan=stereo|c0=c0|c1=c0`, `upmix`), as players play mono; a join of mono clips stays mono, of
+  5.1 clips 5.1 (a mix of kinds: stereo).
+- **"Mono"** is the average of the two sides (`toMono`, as Audacity mixes them): the same sound on both sides keeps its
+  level, a two-microphone recording comes out about 1.4 dB quieter (the sides partly cancel), sides that differ
+  completely 3 dB — said in the tab. (FFmpeg's `-ac 1` adds them at 0.71: 3 dB louder for the same sound on both sides,
+  and clipping.) "Mono" of a mono sound and "Stereo" of a stereo one are refused with that reason.
+- **5.1:** AAC and Opus got the stereo bitrate for six channels (Opus lost 2 dB — its upper bands); now as much a channel
+  as stereo gets (`kbpsFor`: AAC 160 → 480 kb/s, Opus 128 → 384). An AC-3 / DTS "5.1(side)" was refused by libopus
+  ("Invalid channel layout 5.1(side) for specified mapping family -1") and written by the AAC encoder with a PCE, which
+  ffprobe and players read as "unknown": now asked for as 5.1 (`-ch_layout 5.1`; the side channels go to the back at
+  gain 1). 5.1 mixed into two (MP3, "Stereo") measures 0.6 – 0.8 dB lower: R128 counts the surround channels 1.5 dB
+  more in 5.1 than in a stereo mix — players mix it down the same way.
+- **This core's Opus encoder crashed on every stereo sound** — "RuntimeError: memory access out of bounds" at the first
+  frame (libopus 1.3.1 in ffmpeg.wasm 0.12): 20, 40 and 60 ms frames at complexity 5 and above, which turn on its pitch
+  pre-filter and its late transient check (10 ms frames and complexity 4 and below run; mono runs). Convert → WebM / OGG
+  and Volume / Sound settings of a WebM failed on any stereo or 5.1 file — unseen, as every media fixture was mono. Now
+  two channels and more are made at `-compression_level:a 4` (`OPUS_SAFE`; a noise-to-mask measure put it level with
+  the default at these bitrates, docs/BUGHUNT.md), and "Your own arguments" that make Opus and set no complexity get it
+  too (the warning says so).
+- **Exact trim of a WebM** put H.264 into the WebM, which the muxer refused: now an MP4; the sound of an exact trim with
+  its encoder named (it was the container's default: AAC at 128 kb/s for any number of channels, or libopus).
+- **Kept, and said:** "Normalise loudness" brings the file to −16 LUFS on purpose — louder or quieter (the tab says so);
+  a speed change of noise-like sound (rain, applause) loses up to 1.3 dB — atempo's WSOLA crossfades its pieces, which
+  adds unrelated sound in power — while speech and music keep their level (within 0.4 dB).
+Tests: unit `ffjobs` 193 (the arguments; 14 jobs × mono, stereo and 5.1 files run natively within 0.5 dB of the
+original — a trimmed or cut file against the same part —, 5.1 mixed down within −1 – 0 dB, mono → stereo, joins, the
+music under a mono voice against a reference mix); e2e `ffmpeg` (stereo → WebM / OGG and own arguments with Opus run;
+5.1(side) → WebM / MP4 as 5.1; mono → stereo and joins at the original's loudness — read by the native FFmpeg where it is
+installed). Fixtures `stereo.mp4` (the voice as two microphones hear it) and `surround.mkv` (AC-3 5.1(side)): `node
+scripts/make-sound-fixtures.mjs`.
 
 ### PDF → EPUB (PC) — BUILT (`src/tools/epub/epub.ts`, engine `src/lib/pdf2epub.ts`; unit `tests/unit/pdf2epub.test.mjs` 94 + `xycut.test.mjs` 33, e2e `tests/e2e/epub.e2e.mjs` 52)
 **Owner's rule for the reading order (21 Nov 2026; standing):** "in the original PDF, whenever there are multiple columns

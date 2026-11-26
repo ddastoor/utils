@@ -1382,6 +1382,13 @@ were 238 MB). What follows is the record of the engine as it was; the code is in
   ffmpeg command. **Decision:** ffmpeg.wasm stays (rule 1: the famous build, and the only one with the codecs the
   tab's jobs need). A libav.js "fat" build of our own (FFmpeg 8 + x264 + LAME + libass + libvpx …) is the upgrade path
   (rule 2) — it would also end FFmpeg 5.1's limits recorded in CLAUDE.md (§3 FFmpeg); not started without the owner.
+- **26 Nov 2026 (to-do #23): a defect found, put right beside it.** The core's libopus 1.3.1 crashes on every sound of two
+  channels and more — "memory access out of bounds" at the first frame, with 20 / 40 / 60 ms frames at complexity 5 and
+  above (its pitch pre-filter and late transient check; 10 ms frames and complexity ≤ 4 run, mono runs). Our arguments
+  give such Opus complexity 4 (`OPUS_SAFE` in `src/lib/ffjobs.ts`; level with the default by a noise-to-mask measure at
+  these bitrates), so the module stays (rule 1: the fault is inside the engine, and what is placed beside it puts the
+  tab's results right). Our own FFmpeg build (above) would make it unnecessary; the stereo Opus checks of the suites are
+  what such a build must pass.
 
 ### 150 – 152. `screencast`, `screenshot`, `youtube` (20 Nov 2026)
 - **Ours:** the browser's own capture and recorders (getDisplayMedia, MediaStreamTrackProcessor, MediaRecorder — the

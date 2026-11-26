@@ -2,7 +2,7 @@
 // command run by a native FFmpeg (Ubuntu's 6.1, `apt install ffmpeg`) on the media fixtures — the results read back
 // by ffprobe (streams, sizes, lengths) and by decoded pixels / sound levels. The e2e suite runs the same jobs on
 // ffmpeg.wasm (FFmpeg 5.1) in the browser.
-import { execFileSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
 import { mkdtempSync, mkdirSync, copyFileSync, writeFileSync, readFileSync, readdirSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -67,6 +67,34 @@ export default async (t, { load, root }) => {
   const jf = J.buildJob('join', { ...J.DEFAULTS, joinFast: true }, C(vid, { ins: ['in1.mp4', 'in3.mp4'], ps: [vid, vid] }));
   t.eq([jf.args, jf.writes], [['-f', 'concat', '-safe', '0', '-i', '/work/list.txt', '-c', 'copy', 'out.mp4'], [['/work/list.txt', "file '/in/in1.mp4'\nfile '/in/in3.mp4'\n"]]], 'fast join: the concat list');
   t.eq(J.parseProbe('  Duration: 00:01:02.50, start: 0\n  Stream #0:0: Video: mjpeg, yuvj420p, 600x600, 90k tbr (attached pic)\n  Stream #0:1: Audio: mp3, 44100 Hz, stereo, fltp, 128 kb/s').video, false, 'cover art is not a picture stream');
+  // ---------------------------------------------------------------- sound at its own level (to-do #23): the arguments
+  const au = (line) => { const q = J.parseProbe(`  Duration: 00:00:03.00, start: 0\n  Stream #0:0: Audio: ${line}`); return [q.channels, q.layout]; };
+  t.eq([au('ac3, 48000 Hz, 5.1(side), fltp, 320 kb/s'), au('pcm_s16le ([1][0][0][0] / 0x0001), 48000 Hz, 2 channels, s16, 1536 kb/s'), au('aac (LC), 48000 Hz, 7.1, fltp'), au('opus, 48000 Hz, mono, fltp'), au('aac (LC), 44100 Hz, stereo, fltp, 128 kb/s (default)')],
+    [[6, '5.1(side)'], [2, '2 channels'], [8, '7.1'], [1, 'mono'], [2, 'stereo']], 'the probe reads the layout and its channels (5.1(side), "2 channels", 7.1)');
+  const st = P({ ...vid, channels: 2, layout: 'stereo' }), sur = P({ ...vid, acodec: 'ac3', channels: 6, layout: '5.1(side)' }), mo = P({ ...vid, layout: 'mono' });
+  const A = (job, o, c) => J.buildJob(job, { ...J.DEFAULTS, ...o }, c).args.join(' ');
+  t.ok(/-c:a libopus -b:a 128k -compression_level:a 4 out\.webm$/.test(A('convert', { fmt: 'webm' }, C(st))) && !/compression_level/.test(A('convert', { fmt: 'webm' }, C(mo))),
+    'Opus in stereo at complexity 4 (this build\'s stereo encoder crashes above it), mono at the default');
+  t.ok(/-c:a libopus -b:a 384k -compression_level:a 4 -ch_layout 5\.1 out\.webm$/.test(A('convert', { fmt: 'webm' }, C(sur))) && /-c:a aac -b:a 480k -ch_layout 5\.1 /.test(A('convert', { fmt: 'mp4' }, C(sur))),
+    '5.1(side): the bitrate per channel as for stereo (384 / 480 kb/s), the layout the encoders take (5.1)');
+  t.ok(/-c:a aac -b:a 160k -movflags/.test(A('convert', { fmt: 'mp4' }, C(st))) && /-c:a aac -b:a 160k -movflags/.test(A('convert', { fmt: 'mp4' }, C(mo))), 'mono and stereo keep the bitrates they had');
+  t.ok(/-af pan=stereo\|c0=c0\|c1=c0 /.test(A('sound', { channels: '2' }, C(mo))) && /-af pan=mono\|c0=0\.5\*c0\+0\.5\*c1 /.test(A('sound', { channels: '1' }, C(st))) && /-af aformat=channel_layouts=stereo,pan=mono/.test(A('sound', { channels: '1' }, C(sur))) && /-ac 2 /.test(A('sound', { channels: '2' }, C(sur))),
+    'stereo from mono: the sound on both sides at full level; mono: the average of the sides (5.1 mixed to two first); 5.1 to stereo: FFmpeg\'s downmix');
+  refuse('sound', { channels: '1' }, C(mo), /already mono — choose the other, or a sample rate/, 'mono of a mono sound');
+  refuse('sound', { channels: '2' }, C(st), /already stereo/, 'stereo of a stereo sound');
+  const jm = A('join', {}, C(mo, { ins: ['in1.mp4', 'in3.mp4', 'in4.mp4'], ps: [mo, mo, P({ ...vid, audio: false, acodec: '', channels: 0 })] }));
+  t.ok(/anullsrc=r=48000:cl=mono/.test(jm) && /\[0:a\]aresample=48000,aformat=sample_fmts=fltp:channel_layouts=mono\[a0\]/.test(jm) && /-c:a aac -b:a 160k/.test(jm), 'join of mono clips (and one without sound): mono, silence in mono');
+  const jx = A('join', {}, C(mo, { ins: ['in1.mp4', 'in3.mp4'], ps: [mo, st] }));
+  t.ok(/\[0:a\]pan=stereo\|c0=c0\|c1=c0,aresample=48000,aformat=sample_fmts=fltp:channel_layouts=stereo\[a0\]/.test(jx) && /\[1:a\]aresample=48000,aformat=sample_fmts=fltp:channel_layouts=stereo\[a1\]/.test(jx), 'join of a mono and a stereo clip: stereo, the mono one on both sides at full level');
+  t.ok(/channel_layouts=5\.1\[a1\]/.test(A('join', {}, C(sur, { ins: ['in1.mkv', 'in3.mkv'], ps: [sur, sur] }))) && /-b:a 480k/.test(A('join', {}, C(sur, { ins: ['in1.mkv', 'in3.mkv'], ps: [sur, sur] }))), 'join of 5.1 clips: 5.1 at 480 kb/s');
+  const mx = A('merge', { mergeMode: 'mix' }, C(mo, { in2: 'in2.mp3', ext2: 'mp3', p2: P({ ...aud, channels: 2, layout: 'stereo' }) }));
+  t.ok(/\[0:a\]pan=stereo\|c0=c0\|c1=c0,aformat=channel_layouts=stereo\[s\];\[1:a\]volume=0\.3,aformat=channel_layouts=stereo\[m\]/.test(mx), 'music under a mono voice: the voice on both sides at full level');
+  const raw = (x) => J.buildJob('raw', { ...J.DEFAULTS, raw: x }, C(vid)).args.join(' ');
+  t.eq([raw('-i in1.wav -c:a libopus out.ogg'), raw('-i in1.mp4 -c:v libvpx out.webm'), raw('-i in1.mp4 -c:a libopus -compression_level 10 out.ogg'), raw('-i in1.mp4 -c copy out.webm'), raw('-i in1.mp4 -an -c:v libvpx out.webm')],
+    ['-i in1.wav -c:a libopus -compression_level:a 4 out.ogg', '-i in1.mp4 -c:v libvpx -compression_level:a 4 out.webm', '-i in1.mp4 -c:a libopus -compression_level 10 out.ogg', '-i in1.mp4 -c copy out.webm', '-i in1.mp4 -an -c:v libvpx out.webm'],
+    'own arguments that make Opus get complexity 4, unless they set one (or copy, or have no sound)');
+  const tw = J.buildJob('trim', { ...J.DEFAULTS, start: '1', end: '2', exact: true }, C(P({ ...vid, vcodec: 'vp8', acodec: 'vorbis', channels: 2, layout: 'stereo' }), { in1: 'in1.webm', ext: 'webm' }));
+  t.ok(tw.outputs[0] === 'out.mp4' && /-c:a aac -b:a 160k out\.mp4$/.test(tw.args.join(' ')), 'exact trim of a WebM: H.264 needs an MP4 (it went into the WebM and failed)');
   // the ASS text file
   const a = J.assFor('Line one\n{bold} a\\b', { pos: 'top', size: 'large', colour: 'yellow', box: true }, 640, 360);
   t.ok(/PlayResX: 640\nPlayResY: 360/.test(a) && /Style: T,Noto Sans,32,&H0000FFFF,&H0000FFFF,&H80000000,/.test(a) && /,3,8,0,8,26,26,18,1$/m.test(a), 'ASS style: size 9 % of the height, yellow, box, top');
@@ -195,8 +223,9 @@ export default async (t, { load, root }) => {
   if (ok(r, 'replace sound')) t.ok(info(r.out).a.codec_name === 'aac', 'replace the sound');
   r = runJob('sound', { channels: '2', rate: '44100' }, [M('clip.mp4')]);
   if (ok(r, 'sound settings')) { const i = info(r.out); t.ok(i.a.channels === 2 && +i.a.sample_rate === 44100 && i.v.codec_name === 'h264', 'sound: stereo at 44.1 kHz, picture copied'); }
-  r = runJob('sound', { channels: '1' }, [M('tone.mp3')]);
-  if (ok(r, 'mono')) t.ok(info(r.out).a.channels === 1 && r.outs[0] === 'out.mp3', 'mono MP3');
+  const st3 = join(tmp, 'stereo.mp3'); execFileSync('ffmpeg', ['-v', 'error', '-y', '-i', M('stereo.mp4'), '-vn', '-c:a', 'libmp3lame', '-q:a', '2', st3]);
+  r = runJob('sound', { channels: '1' }, [st3]);
+  if (ok(r, 'mono')) t.ok(info(r.out).a.channels === 1 && r.outs[0] === 'out.mp3', 'mono MP3 from a stereo one');
   // subtitles
   r = runJob('subAdd', { subLang: 'fra' }, [M('clip.mp4'), M('subs.srt')], { second: true });
   if (ok(r, 'add subtitles')) { const i = info(r.out); t.ok(i.s && i.s.codec_name === 'mov_text' && i.s.tags?.language === 'fra' && i.v.codec_name === 'h264', 'subtitles added to an MP4 as mov_text, language fra'); }
@@ -216,6 +245,73 @@ export default async (t, { load, root }) => {
     r = runJob('subBurn', {}, files, extra);
     if (ok(r, `burn ${what}`)) { const sh = changed(files[0], r.out, 0.6, [0.2, 0.82, 0.8, 1]), top = changed(files[0], r.out, 0.6, [0.2, 0.3, 0.8, 0.6]); /* against its own input */ t.ok(sh > 0.03 && top < 0.01, `burn in ${what}: the text is in the picture at the bottom (${(sh * 100).toFixed(1)} % of it changed, the middle ${(top * 100).toFixed(1)} %)`); }
   }
+  // ---------------------------------------------------------------- sound at its own level (to-do #23): run natively
+  // integrated loudness (EBU R128) of input and output — a mono file as heard on two speakers (dualmono), as players
+  // play it. The owner: "the audio volume of the output … seems to be lower than … the original".
+  const loud = (p) => { const e = spawnSync('ffmpeg', ['-hide_banner', '-nostats', '-i', p, '-map', '0:a:0', '-af', 'ebur128=dualmono=true', '-f', 'null', '-'], { encoding: 'utf8' }).stderr; return +/I:\s+(-?[\d.]+) LUFS/.exec(e.slice(e.lastIndexOf('Summary:')))?.[1]; };
+  const lay = (p) => { const a = info(p).a; return `${a.codec_name} ${a.channels} ${a.channel_layout ?? ''}`.trim(); };
+  const LEVEL = [ // [what, job, options, the files, extra] — jobs that do not set out to change the level
+    ['convert to MP4', 'convert', { fmt: 'mp4' }], ['convert to WebM', 'convert', { fmt: 'webm' }], ['convert to M4A', 'convert', { fmt: 'm4a' }], ['convert to OGG', 'convert', { fmt: 'ogg' }],
+    ['convert to FLAC', 'convert', { fmt: 'flac' }], ['extract (as it is)', 'audio', { aud: 'copy' }], ['extract as WAV', 'audio', { aud: 'wav' }],
+    ['exact trim', 'trim', { start: '0.5', end: '2.5', exact: true }, 'part'], ['cut out', 'cutout', { cutFrom: '1', cutTo: '1.5' }, 'cut'], ['join (twice)', 'join', {}, 'join'],
+    ['reverse', 'reverse', {}], ['compress', 'compress', { crf: 30, speedPreset: 'ultrafast' }], ['speed 1.5×', 'speed', { speed: '1.5' }], ['44.1 kHz', 'sound', { rate: '44100' }],
+  ];
+  const surround = M('surround.mkv'), stereo = M('stereo.mp4');
+  for (const [file, kinds] of [[M('clip.mp4'), 'mono'], [M('tone.wav'), 'mono'], [stereo, 'stereo'], [surround, '5.1']]) {
+    const whole = loud(file), rows = [];
+    // a part of the file is compared with the same part of the original, decoded losslessly
+    const part = (name, af) => { const q = join(tmp, `${name}-${file.split('/').pop()}.wav`); execFileSync('ffmpeg', ['-v', 'error', '-y', '-i', file, '-vn', '-af', af, '-c:a', 'pcm_f32le', q]); return loud(q); };
+    for (const [what, job, o, extra] of LEVEL) {
+      if (file.endsWith('.wav') && /MP4|WebM|exact trim|compress|M4A/.test(what)) continue; // jobs for videos, or the same as for MP4
+      // the stretch crossfades its pieces: sound like noise (the room noise on 5.1's sides) loses up to 1.3 dB — below
+      if (kinds === '5.1' && /speed/.test(what)) continue;
+      const res = runJob(job, o, extra === 'join' ? [file, file] : [file], extra === 'join' ? { join: true } : {});
+      if (!ok(res, `${kinds} ${what}`)) continue;
+      const base = extra === 'part' ? part('part', 'atrim=0.5:2.5') : extra === 'cut' ? part('cut', 'aselect=not(between(t\\,1\\,1.5)),asetpts=N/SR/TB') : whole;
+      const d = loud(res.out) - base;
+      rows.push(`${what} ${d >= 0 ? '+' : ''}${d.toFixed(1)}`);
+      t.ok(Math.abs(d) <= 0.5, `${kinds} (${file.split('/').pop()}) — ${what}: the same loudness (${base} → ${loud(res.out)} LUFS, ${lay(res.out)})`);
+      if (kinds === '5.1' && /WebM|MP4|M4A|OGG|join|reverse/.test(what)) t.ok(/ 6 5\.1$/.test(lay(res.out)), `5.1(side) — ${what}: 5.1 as the encoders write it (${lay(res.out)})`);
+      if (kinds !== '5.1' && /WebM|OGG/.test(what)) t.ok(lay(res.out).startsWith(`opus ${kinds === 'mono' ? 1 : 2}`), `${kinds} — ${what}: Opus in ${kinds} (${lay(res.out)})`);
+    }
+  }
+  // the stretch on 5.1 with room noise on the sides: noise-like sound loses up to 1.3 dB as the stretch crossfades it (the
+  // voice and the chords keep theirs — speed on speech and on music: within 0.4 dB, docs/BUGHUNT.md)
+  r = runJob('speed', { speed: '1.5' }, [surround]);
+  if (ok(r, '5.1 speed')) { const d = loud(r.out) - loud(surround); t.ok(d < 0 && d > -1.0, `5.1 with room noise at 1.5×: ${d.toFixed(1)} dB (the crossfaded noise)`); }
+  // mono → stereo: on both sides at full level (FFmpeg's -ac 2 put it 3 dB lower — what made mono phone videos quieter)
+  for (const f of [M('clip.mp4'), M('tone.wav')]) {
+    r = runJob('sound', { channels: '2' }, [f]);
+    if (ok(r, 'stereo from mono')) t.ok(info(r.out).a.channels === 2 && near(loud(r.out), loud(f), 0.5), `${f.split('/').pop()}: stereo from mono at the same loudness (${loud(f)} → ${loud(r.out)} LUFS)`);
+  }
+  r = runJob('join', {}, [M('clip.mp4'), stereo], { join: true });
+  if (ok(r, 'join mono + stereo')) {
+    const first = join(r.dir, 'first.wav'); execFileSync('ffmpeg', ['-v', 'error', '-y', '-i', r.out, '-t', '2.9', '-vn', first]);
+    t.ok(info(r.out).a.channels === 2 && near(loud(first), loud(M('clip.mp4')), 0.5), `join a mono clip and a stereo one: stereo, the mono part at its loudness (${loud(M('clip.mp4'))} → ${loud(first)} LUFS)`);
+  }
+  // mono from the same sound on both sides: the average keeps it (FFmpeg's -ac 1 made it 3 dB louder)
+  const twin = join(tmp, 'twin.wav'); execFileSync('ffmpeg', ['-v', 'error', '-y', '-i', M('tone.wav'), '-af', 'pan=stereo|c0=c0|c1=c0', twin]);
+  r = runJob('sound', { channels: '1' }, [twin]);
+  if (ok(r, 'mono from twins')) t.ok(info(r.out).a.channels === 1 && near(loud(r.out), loud(twin), 0.3), `mono from the same sound on both sides: the same loudness (${loud(twin)} → ${loud(r.out)} LUFS)`);
+  // 5.1 mixed into two (MP3 holds two; "Stereo"): FFmpeg's downmix, as players make it — R128 counts the surround
+  // channels 1.5 dB more in 5.1 than in two, so the two-channel file measures up to a dB lower
+  for (const [what, job, o] of [['stereo', 'sound', { channels: '2' }], ['MP3', 'convert', { fmt: 'mp3' }]]) {
+    r = runJob(job, o, [surround]);
+    if (ok(r, `5.1 to ${what}`)) { const d = loud(r.out) - loud(surround); t.ok(info(r.out).a.channels === 2 && d <= 0 && d > -1.0, `5.1 to ${what}: two channels, ${d.toFixed(1)} dB (the downmix)`); }
+  }
+  // the music under a mono voice: the voice on both sides at full level — the mix measures as the voice alone, put on
+  // both sides as it is, with the music added at 30 %
+  r = runJob('merge', { mergeMode: 'mix', musicVol: '30' }, [M('clip.mp4'), st3], { second: true });
+  if (ok(r, 'music under a mono voice')) {
+    const ref = join(r.dir, 'ref.wav');
+    execFileSync('ffmpeg', ['-v', 'error', '-y', '-i', M('clip.mp4'), '-stream_loop', '-1', '-i', st3, '-filter_complex', '[0:a]pan=stereo|c0=c0|c1=c0[s];[1:a]volume=0.3[m];[s][m]amix=inputs=2:duration=first:normalize=0[a]', '-map', '[a]', ref]);
+    t.ok(info(r.out).a.channels === 2 && near(loud(r.out), loud(ref), 0.5), `music under a mono voice: as loud as the voice at full level + the music (${loud(ref)} / ${loud(r.out)} LUFS)`);
+  }
+  // own arguments making stereo Opus: complexity 4 is added — the command runs (natively it ran before too; the e2e
+  // suite runs it on the tab's FFmpeg, where it crashed)
+  r = runJob('raw', { raw: '-i in1.mp4 -vn -c:a libopus -b:a 128k out.ogg' }, [stereo]);
+  if (ok(r, 'own arguments, Opus')) t.ok(lay(r.out).startsWith('opus 2') && near(loud(r.out), loud(stereo), 0.5), `own arguments making stereo Opus: ${lay(r.out)}, the same loudness`);
+
   // the rest of the old jobs still run
   for (const [job, o] of [['convert', { fmt: 'webm' }], ['audio', { aud: 'copy' }], ['mute', {}], ['trim', { start: '1', end: '2', exact: true }], ['compress', { crf: 30, speedPreset: 'ultrafast' }], ['resize', { height: '240' }], ['fps', { fps: '15' }], ['rotate', { rot: 'cw' }], ['crop', { crop: '1:1' }], ['gif', {}], ['speed', { speed: '2' }], ['loudnorm', {}], ['frames', { frameFps: '1' }]]) {
     r = runJob(job, o, [M('clip.mp4')]);
