@@ -85,6 +85,25 @@ The owner adds items here in chat ("add … to to do"). Newest instructions win.
     - The suite: a group photo — every face hidden with the switch on, none with it off, two chosen by tap and one taken
       back, Undo, all in one shot and back; the saved file's pixels at each face (hidden or not).
 
+16. **Cartoonizer: finer, more detailed results, more like the Prisma app** (owner, 26 Nov 2026: "The Cartoonizer app's
+    output is too is too coarse-grained. Make it more fine-grained with more detail, more like the Prisma app. If you need
+    to use a better library," — the message ended there; read as: a better library or model may be used. To confirm.)
+    - **Why it is coarse now:** the AI styles (Magenta's arbitrary style transfer) paint at 512 px (1024 on a real
+      graphics card) and the result is saved at that size — the network paints strokes at a fixed scale of its input,
+      so a small input gives big strokes; the Cartoon filter flattens to a few k-means colours with thick lines.
+    - **What to try, chosen by measured results and sample pictures shown to the owner first:**
+      (1) the AI styles at the photo's own resolution — painted in overlapping tiles whose seams are blended, so the
+      strokes stay fine at full size (slower on a processor: progress shown);
+      (2) better models where they look more like Prisma, on ONNX Runtime Web (already on the site — WebAssembly
+      first): per-style networks trained on one painting each (Johnson et al.'s fast neural style — the ONNX model zoo's
+      candy, mosaic, rain princess, udnie, pointillism, about 7 MB each), White-box Cartoonization (CVPR 2020) and
+      AnimeGAN v2 / v3 for the cartoon look; newer arbitrary-style networks (AdaAttN, StyTr²) looked at too. Licences
+      checked; **each model's size said against the site's 1 GB before it is added** (the size check);
+      (3) the filters: a finer Cartoon — more colours, an edge-preserving smoothing that keeps detail (the detail layer
+      added back), lines that thin as the picture grows.
+    - **Measured, not guessed:** how much of the photo's fine detail each result keeps (edges, fine-scale structure) for
+      the current output and each option; the suite holds the chosen level.
+
 ## Done
 - **12. Photo Dictionary: the final list of words in alphabetical order** (owner, 21 Nov 2026) — done 21 Nov 2026: the
   same cards, A → Z without regard to case or accents; the line above says so; Share list in the same order. Unit
