@@ -52,7 +52,7 @@ export default async (t, { load, wasm }) => {
   const run = (pg, Ss, o = {}) => {
     const W = pg.width, H = o.H ?? 240, st = stitcher(ip, o.opts), steps = [];
     let last = Ss[0];
-    for (const S of Ss) { steps.push(st.add(o.frame ? o.frame(S) : view(pg, S, o.head, o.foot, H), W, H, o.hint ? S - last : undefined)); if (['added', 'back', 'first'].includes(steps.at(-1).kind)) last = S; }
+    for (const S of Ss) { steps.push(st.add(o.frame ? o.frame(S) : view(pg, S, o.head, o.foot, H), W, H, o.hint ? S - last : undefined, !!o.hint)); if (['added', 'back', 'first'].includes(steps.at(-1).kind)) last = S; }
     return { steps, parts: st.finish(), kinds: steps.map((s) => s.kind) };
   };
   const W = 320, P = 3000;
@@ -128,7 +128,7 @@ export default async (t, { load, wasm }) => {
   { const rep = page(W, 1200, []); const line = page(W, 24, [['text', 0, 24]]);
     for (let y = 0; y + 24 <= 1200; y += 24) rep.data.set(line.data, y * W * 4);
     const st = stitcher(ip); st.add(view(rep, 0, head, foot, 240), W, 240);
-    const s1 = st.add(view(rep, 50, head, foot, 240), W, 240, 50);
+    const s1 = st.add(view(rep, 50, head, foot, 240), W, 240, 50); // a hint, not trusted: it only chooses among shifts that fit
     t.ok(s1.kind === 'added' && s1.d === 50 && s1.fit.status === 3, `identical lines every 24 rows: with the shift expected (50) it is the one taken (${s1.kind} ${s1.d}, status ${s1.fit?.status})`); st.drop(); }
 
   // parts: a page taller than one part comes out in parts that together are the page

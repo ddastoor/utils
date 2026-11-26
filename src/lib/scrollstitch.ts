@@ -36,14 +36,14 @@ export function stitcher(ip: Imgproc, o: { partH?: number; maxPx?: number } = {}
   return {
     get width() { return w; },
     get views() { return views; },
-    /** A view (RGBA, fw × fh). `hint` = the shift expected from the scrolling seen (rows; the forwarded wheel), which also
-     *  places a view whose overlap is blank. */
-    add(px: Uint8ClampedArray, fw: number, fh: number, hint?: number): Step {
+    /** A view (RGBA, fw × fh). `hint` = the shift expected from the scrolling seen (rows), the choice among shifts that fit
+     *  equally; `trust`: it is exact (a view whose overlap is blank is then placed by it). */
+    add(px: Uint8ClampedArray, fw: number, fh: number, hint?: number, trust = false): Step {
       if (full) return step('full');
       if (!m) { w = fw; h = fh; m = ip.scrollMatcher(w, h); m.first(px); views = 1; return step('first'); }
       if (fw !== w || fh !== h) return step('size');
       const f = m.match(px, hint ?? prior, edge);
-      const known = hint !== undefined && Math.round(hint) !== 0;
+      const known = trust && hint !== undefined && Math.round(hint) !== 0;
       let d = f.d;
       if (f.status === 0 && known) { d = Math.round(hint!); f.top = Math.max(0, edge.top); f.bottom = Math.max(0, edge.bottom); } // all its rows alike: blank — placed where the scrolling seen puts it
       else if (f.status === 0 || ((f.status === 1 || f.status === 3) && f.d === 0)) return step('still', 0, f);
