@@ -252,6 +252,11 @@ the 47 Software stub tabs (each with its own suite) first, then ask about potent
   outputs with 0 before the call since then (an output an old module does not write reads 0: "nothing"); for any other
   change of a binding, measure the old build with the binding it was made for (a checkout of its commit, as #18 did with
   d456729).
+- **A photo's reading depends on the photos read before it in the same process:** Tesseract's adaptive classifier keeps
+  what it learnt from earlier pages (in the tabs too: one worker for the visit). newspaper-233 read 9.0 % alone and
+  44.5 % after three other newspapers, by either build. Compare two builds with the same `OCR_SHARD` split (the same
+  photos in the same order in each process), or each photo alone (`--only`); a comparison across different splits shows
+  differences that are only the order (26 Nov 2026, to-do #31).
 - **The Windows check's log cannot be fetched from here** (its host is refused by the proxy): a check that fails only on
   Windows must say in its own message what is needed to understand it (which reader, the line under the text …).
 - **zig's wasm32-wasi libc** (single-threaded): an implicitly declared function gets the wrong wasm signature and traps

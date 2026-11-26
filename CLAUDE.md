@@ -2237,7 +2237,9 @@ ways round, four languages; the Photo Dictionary: "Photo of a screen". The engin
 4. the clean-up: (OCR tab) a dark picture turned over; ("Photo of a screen") the moiré blurred; the document clean-up;
    **a watermark taken out** (`p_clear_wash`, below); **ruled lines and list marks cleared, the columns counted**
    (`p_clear_marks`, own C): a mark is the first thing on its
-   line, followed by a gap wider than every word space of that line — ● ○ ■ ▪ ◆ ► □ ☐ ☑ ☒, Word's "o" after a tab; a box
+   line (nothing just before it — also no word run together on a soft photo, longer than the search for neighbours
+   reaches: "UI" after a blob "Scuba Configuration" was cleared as a ticked box; `cm_run_before`, to-do #31),
+   followed by a gap wider than every word space of that line — ● ○ ■ ▪ ◆ ► □ ☐ ☑ ☒, Word's "o" after a tab; a box
    (□ ☐ ☑ ☒: a frame with ink in its four corners, which no letter has) by any gap, as a checklist sets it off by a word
    space (to-do #31: a Google Docs checklist's boxes stayed and were read as "[J" and "[0"); **faint marks** — a box or a
    ring drawn in thin grey strokes, which a phone's photo softens below the ink threshold in places (a checklist's ☐ whose
@@ -2324,6 +2326,50 @@ longer, with the progress shown; a sharp photo nothing. Unit `readpage` 38 (both
 rule), `paddle` 51; e2e OCR 91 (a soft checklist frame 60 → 93 % and a two-column newsletter frame 72.5 → 94 %, the
 models fetched only then — three files, once a visit —, refused models), Photo Dictionary 124 (the checklist frame: 21 of
 the 25 uncommon words of a clean copy, Tesseract alone 16).
+
+**The page's lists kept in the OCR tab's text (to-do #31; owner, 26 Nov 2026: "In the OCR app, the rich formatting should be
+preserved, the bullet points, etc. In the photo dictionary app, it need not be, only because the actual OCR rendition is
+needed for me to further select a phrase that I could then look up in Wikipedia"; the owner's choices: plain text with the
+marks at the line starts and nested items indented — in the text box, Copy and the .txt —, lists only: bullets, check
+boxes, numbered and lettered items, indentation).** The reading is not changed — its words, their order and its lines stay
+as the reader gave them (`readingOf` in src/lib/ocr.ts gives Tesseract's lines; PaddleOCR's reading has its lines too). The
+marks the clean-up clears before the page is read (step 4) are listed by `p_clear_marks` — where each stood and what it
+was: a dot, a ring (Word's o; a ring whose hole the blur closed, by being paler than the letter after it), a square, a
+diamond, a triangle, an empty box, a box with a tick or a cross (by the quarters of the box its ink fills — a cross fills
+all four, a tick leaves the top left empty), a ring round a dot — and `src/lib/listtext.ts` sets the reading out with them:
+- each mark is put back before the word that followed it — • ◦ ▪ ◆ ► ☐ ☑ ☒ ◉ (the size of a mark is not told: ● and • are
+  one) — matched by the height of that word, so a page not quite level keeps its marks on their lines; a mark PaddleOCR
+  read as a character (it reads the page as it stands when the clean-up saw fewer than two signs of a list) is left out;
+- a line that begins with a list's label as text — a number, letter or roman numeral (i … xxxix) with its full stop or
+  bracket (1. 2) (3) a. B) iv.), or a mark the reader read itself (– - * + > ➢ ✓ …) — is an item too; "1.2" (a numbered
+  heading) and a number alone are not;
+- an item is indented four spaces a level: the levels are the places the items' marks or labels stand at, left to right,
+  counted afresh for each list — a list ends at a line that starts left of its items' text, at the top of a new column,
+  or well below its last line (three lines' heights);
+- a line an item runs on to (it starts under the item's text, within three quarters of an x-height — a table right after
+  a checklist starts a little left of it and is no part of the last item) is set under that text — four spaces a level
+  and the mark's or label's width and a space; a line under a parent item after its sub-list belongs to the parent;
+- the blank lines Tesseract puts between one list's items (its paragraphs) are left out where they stand as close as
+  lines; around a list they stay.
+A page without a list keeps the reading's text exactly. The Photo Dictionary keeps its text plain (its e2e suite checks
+that no mark comes back). **The reading itself** changed only where the clean-up did: checklist boxes cleared after a word
+space, faint marks cleared, a soft "a." or "ii." kept as letters (step 4) — and a label kept counts with the cleared marks
+where the marks decide which picture PaddleOCR reads and whether a page is read again (`listSigns` in src/lib/readpage.ts:
+counted as the marks are, a soft report frame with its "ii." kept went to PaddleOCR as it stood and read 70 % of its words
+where it had read 74 %). **Measured** (`OCR_LIST=DIR node scripts/measure-ocr.mjs SET --prep read --paddle` against the
+build before #31 on the same sets; every list line of the pages held to `scripts/make-format-docs.mjs`'s `<page>.lists.json`
+by `tests/lib/listscore.mjs`): MEASURED.
+**Not kept:** a ✓ used as a bullet (the clean-up does not clear it; Tesseract reads "v" or "+"), ➢ (read as ">" or ">»":
+its indentation is kept, not its look; on a soft photo, its point blurred round, it is cleared and written •), a mark too
+soft or too small to see; headings and tables (the owner: lists only).
+Tests: unit `listtext` 71 (marks, levels, run-on lines, numbers and letters, paragraphs, columns, a slanted page,
+PaddleOCR's reading of a mark, Tesseract's real reading of the memo photo: 14 of 14 items, 9 of 9 run-on lines),
+`pageclean` 71 (each mark of marks.jpg listed as what it is; four lossless pictures of what `p_clear_marks` gets —
+`OCR_MARKS=DIR node scripts/measure-ocr.mjs … --only PHOTO` writes them as `PHOTO.read.marks.png`: a phone's still of a
+checklist — faint rings and boxes —, a soft memo frame — closed rings, the "a." kept —, a soft report frame — its ➢
+cleared, its "ii." kept —, a soft form frame — "UI" after a word run together kept), `readpage` 39 (`listSigns`),
+`pagecrop` 50; e2e OCR E2EOCR (the photographed memo, checklist and
+newsletter held to their pages' lists; .txt and Copy with the marks), Photo Dictionary E2EPD (its text stays plain).
 
 ### Camera in every tab that takes a picture (owner, 20 Nov 2026)
 Owner: "In all apps that offer to upload an image, also add the option of taking a photo if it's a phone app, and take
