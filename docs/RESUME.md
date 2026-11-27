@@ -92,9 +92,10 @@ bigger than said: stop and ask). **Order chosen:** group 2 — #84 Number Detect
 PDF Searchable, #15 PDF Compare, #16 PDF Tables → Excel; then group 4 — #88 Router Sticker → Wi-Fi QR, #89 Visiting Card →
 Contact, #77 Paper Deadlines → Calendar, #78 Bill Splitter by Photo, #81 Camera Reader; then group 3 — #73 World Clock, #10
 Spell Checker, #1 Image to SVG with #117 Clipart Maker, #75 SliceDiceGrapher (covering #25 Chart Maker), #54 Diagram Editor.
-Each app: its tab, unit + e2e suites, docs, taken off potentials.md, committed and pushed. **Then to-dos #38 and #39** (owner,
-27 Nov 2026, evening: "After you finish all these, finish off the items in the todo.md also."). Open questions for the owner: keep the EPUB Reader's
-place between visits (as Favorites are)? **New, open: to-do #38** (owner, 27 Nov 2026, before the potentials: the OCR's and the
+Each app: its tab, unit + e2e suites, docs, taken off potentials.md, committed and pushed. **Then to-dos #38, #39 and #40** (owner,
+27 Nov 2026, evening: "After you finish all these, finish off the items in the todo.md also."; #40, added the same evening:
+the EPUB Reader's "Remember book" — a hash of the book, its place and the reading voice in the Settings — after #39). The open question (keep the EPUB Reader's place between visits?) is
+answered by #40: yes, for the books the reader asks it to remember. **New, open: to-do #38** (owner, 27 Nov 2026, before the potentials: the OCR's and the
 Photo Dictionary's text copied to the clipboard as soon as it is read) — not started; **the owner: later** ("will come back
 to do later", 27 Nov 2026) — do not start it until the owner says so.
 **Batch 1 done; batch 2 (#18 OCR + Photo Dictionary) DONE** (todo.md Done #18; CLAUDE.md §3 OCR, "Documents — one reading

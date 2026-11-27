@@ -58,6 +58,40 @@ The owner adds items here in chat ("add … to to do"). Newest instructions win.
     - **Which controls become settings** is the owner's choice, app by app (CLAUDE.md §1 rule 1: nothing else is stored) —
       to be listed with him before building (e.g. the EPUB Reader's look and place, the voice and speed of the speech tabs).
 
+40. **EPUB Reader: "Remember book", its place and its reading voice in the Settings** (owner, 27 Nov 2026, evening: "Add an EPUB
+    Reader app section in settings. Now on the EPUB Reader app page, have a toggle saying remember book. This will, at the
+    moment the reader selects remember book, you should show a pop-up blocking the screen saying processing. What this does
+    is it generates a hash of the entire ebook. Choose the fastest hash but also accurate, maybe SHA-1, MD5, whatever you
+    think fit, and store that hash in the settings. Also remember the page number, the exact position of the book, so that
+    next time the user opens the book … each time the user opens the book, it should, in the loading section, it should
+    regenerate the hash and check if the hash is there in the settings. If it's there in the settings, it should then reload
+    the current page number and stuff where it left off. Additionally, in the little play icon for text to speech for that
+    particular page number, only that particular page should be read, and the site should not jump to the text to speech
+    app at all. It should stay on that app, and it should give a pop-up of all the voices, and once the user selects which
+    voice he or she wants, that is also saved in the settings section. So that the idea is that a user can keep loading the
+    book EPUB into the app, remember it, keep reading, and at any point of time, if he or she is lazy, to read that page
+    through text to speech."). Builds on #39 (the Settings page, its file and its import) — this is its "EPUB Reader"
+    section; it answers the open question of 27 Nov 2026 (keep the reader's place between visits: yes, for the books the
+    reader asks it to remember — the owner's word for this storage, CLAUDE.md §1 rule 1).
+    - **"Remember book"**, a switch on the reader's page for the open book. Switched on: a dialog over the whole screen,
+      "Processing…" (nothing else can be pressed meanwhile), while the whole file is hashed; then the book's hash, its title
+      and its exact place go into the settings (browser storage and the settings file of #39). The hash: the fastest that is
+      still sure to tell books apart — XXH3-128 or BLAKE3 by hash-wasm (on the site already; MD5 / SHA-1 are slower and no
+      surer for this); measured on a large EPUB in Chrome and on a phone before choosing.
+    - **The place:** the exact position, not only the page number — the reader keeps it as the first words of the page and
+      their share of the book (`anchorOf` / `findAnchor`), which survives another font, size or window; the page number with
+      it. Kept up to date as the pages turn while the book is remembered.
+    - **Opening a book:** while it loads, its hash is worked out again and looked for in the settings; found → the book opens
+      where it was left ("Back where you left off: page 212"), and "Remember book" shows on. Switched off → the book and its
+      place are taken out of the settings.
+    - **The ▷ read-aloud on the page:** reads that page only, here — the reader stays (no jump to the Text-to-Speech tab):
+      the first time, a dialog with all the voices (the Text-to-Speech tab's: Kokoro's US and British voices, Piper's Indian
+      English ones); the voice chosen is kept in the settings and used from then on (changeable in the dialog and on the
+      Settings page). Stop, and the words being read marked on the page, to decide when building.
+    - **The Settings page's "EPUB Reader" section:** the remembered books (title, last read, the place) with "Forget", and the
+      reading voice. To ask when building: how many books are remembered (all of them, or the last ones read).
+    When: after #39 (owner, 27 Nov 2026: after groups 2 – 4, "finish off the items in the todo.md also").
+
 ## Done
 - **37. OCR and Photo Dictionary: an image from the clipboard** (owner, 27 Nov 2026: "Make both ocr app and photo dictionary app
   take images, as input, from the clipboard", then "Make a paste button for ocr and photo dictionary apps on the pc too") —
