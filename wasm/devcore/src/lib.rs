@@ -10,6 +10,10 @@ mod bin;
 mod cidr;
 #[cfg(feature = "enc")]
 mod enc;
+#[cfg(feature = "ids")]
+mod ids;
+#[cfg(feature = "ids")]
+mod ids_tables;
 #[cfg(feature = "j2t")]
 mod j2t;
 #[cfg(feature = "jsondiff")]
@@ -81,6 +85,14 @@ pub unsafe extern "C" fn dc_call(op: *const u8, op_n: usize, inp: *const u8, in_
         "jsonpatch" => misc::jsonpatch(input),
         #[cfg(feature = "x509")]
         "x509" => x509::run(input),
+        #[cfg(feature = "ids")]
+        "ids" => ids::run(input),
+        #[cfg(feature = "ids")]
+        "ids:info" => ids::info(),
+        #[cfg(feature = "ids")]
+        "ids:phone" => ids::phone_info(input),
+        #[cfg(feature = "ids")]
+        "ids:card" => ids::card_info(input),
 
         #[cfg(feature = "bin")]
         "bin:protobuf" => bin::protobuf(input, false),

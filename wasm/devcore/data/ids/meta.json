@@ -1,0 +1,29 @@
+{
+ "pins": {
+  "pins": 19586,
+  "districts": 754,
+  "states": 36,
+  "version": "2025.10.03",
+  "package": "@devzoy/indian-pincode 2.1.0"
+ },
+ "ifsc": {
+  "codes": 176918,
+  "banks": 1510,
+  "banks_listed": 257,
+  "version": "2.0.50",
+  "date": "14 Nov 2025"
+ },
+ "phone": {
+  "geo": 8823,
+  "version": "9.0.44"
+ },
+ "isbn": {
+  "date": "Sun, 4 Jan 2026 16:49:25 GMT",
+  "agencies": 142
+ },
+ "versions": {
+  "stdnum": "2.2",
+  "phonenumbers": "9.0.44",
+  "vininfo": "2.0.0"
+ }
+}

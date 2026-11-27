@@ -41,6 +41,7 @@ jsondiff = ["dep:json-patch"]
 json = []
 xml = []
 j2t = ["dep:unicode-ident", "dep:unicode-general-category"]
+ids = ["dep:regex-lite"]
 
 [profile.release]
 opt-level = "s"
