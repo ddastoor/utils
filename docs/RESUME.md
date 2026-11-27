@@ -51,14 +51,14 @@ the pieces vector — the page as a Form XObject clipped to the piece, the text 
 rectangles a character's height off, bands through the centres of the nearer outside characters); scans as greyscale
 pictures. Unit `kindlepdf` 68 (fixtures of `node scripts/make-kindle-pdfs.mjs`: every line once in order, figures, formulas,
 tables whole, every vector piece the page's pixels at 3 px/pt), e2e `kindlepdf` 36; docs/WASM-AUDIT.md 181; taken off
-potentials.md. **#71 EPUB Reader — IN PROGRESS (27 Nov 2026):** engine `src/lib/ebook.ts` on MuPDF (EPUB 2/3, MOBI,
-FictionBook, CBZ/CBT, plain text made a web page, HTML; DRM and KFX refused in words; MOBI's EXTH title, ComicInfo.xml;
-the reader's look as user CSS; Literata (new: `@expo-google-fonts/literata`, 4 TTFs ≈ 1 MB — MuPDF reads no WOFF) and Noto
-Sans by `fontHook`; the place kept by the words at the top of the page; search, links, selection, word under a finger),
-fixtures `tests/fixtures/ebooks/` (`python3 scripts/make-ebooks.py`: epubcheck-clean EPUBs, a MOBI read back by
-KindleUnpack), unit `ebook` 147 green. **Next:** the worker (`src/workers/ebook.worker.ts`), the tab (`src/tools/ebook.ts`:
-page turning by tap / swipe / keys / wheel, contents, search, look, reading mode, two pages side by side on wide screens,
-CBR / CB7 through 7-Zip, Read aloud → Text-to-Speech), vendoring Literata, registry, e2e, docs. **Then in group
+potentials.md. **#71 EPUB Reader — BUILT (27 Nov 2026):** the tab `ebook` (Documents, PC + mobile; CLAUDE.md §3 "EPUB Reader"): EPUB, MOBI,
+FictionBook, comics (CBZ, CBT; CBR / CB7 through 7-Zip), plain text and web pages, laid out and drawn by MuPDF in the tab's
+worker; contents, Go to page, Back, two pages side by side on a wide window, keys / taps / swipe / wheel, search, selection with
+Copy, the look (Literata — new TTFs, 1.0 MB —, Serif, Sans, the book's own; size, line spacing, margins, justified, the book's
+styles; Light / Sepia / Dark / Black), the place kept, reading mode, Read aloud → Text-to-Speech, DRM refused in words. Unit
+`ebook` 148, e2e `ebook` 59 (+ the site-wide sweeps); fixtures `python3 scripts/make-ebooks.py`; docs/WASM-AUDIT.md 182;
+taken off potentials.md. **Question for the owner (later, not blocking):** keep the place in a book between visits, as
+Favorites are? (hard rule 1 — not done.) **Then in group
 1:** #106 Articles → Kindle · #14 PDF / EPUB → Audiobook;
 then the flattener as a measured step of the OCR and the Photo Dictionary (no photo may read worse). **New, open: to-do #38** (owner, 27 Nov 2026, before the potentials: the OCR's and the
 Photo Dictionary's text copied to the clipboard as soon as it is read) — not started; **the owner: later** ("will come back

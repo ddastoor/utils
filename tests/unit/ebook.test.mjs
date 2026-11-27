@@ -23,9 +23,9 @@ export default async (t, { load }) => {
 
   const LOOK = { font: 'literata', size: 18, line: 1.5, justify: true, theme: 'light', publisher: true };
   const open = (name, look = LOOK, w = 400, h = 640) => {
-    const o = E.openFile(F(name), name), doc = E.openDoc(m, o);
+    const o = E.openFile(F(name), name), doc = E.openDoc(m, o), meta = E.metaOf(doc);   // as the worker does
     E.layOut(doc, o.kind, look, w, h);
-    return { o, doc, info: E.info(doc, o, name) };
+    return { o, doc, info: E.info(doc, o, name, meta) };
   };
   const words = (s) => (s.normalize('NFC').toLowerCase().match(/[\p{L}\p{N}]+/gu) || []);
   const bookWords = (doc) => { const out = []; for (let i = 0; i < doc.countPages(); i++) out.push(...words(E.pageText(doc, i))); return out; };
@@ -56,6 +56,8 @@ export default async (t, { load }) => {
   refused('pic.bin', new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0, 0, 0, 0x0d, 0, 1, 2, 3]), /not an e-book/, 'a picture');
   try { E.openFile(new Uint8Array([0x52, 0x61, 0x72, 0x21, 0x1a, 0x07, 0x01, 0]), 'x.cbr'); t.ok(false, 'a RAR file: opened'); }
   catch (e) { t.ok(e instanceof E.NeedsUnpacking && e.format === 'RAR', 'a CBR (RAR) asks for 7-Zip'); }
+  try { E.openFile(F('comic.cb7'), 'comic.cb7'); t.ok(false, 'a CB7: opened'); }
+  catch (e) { t.ok(e instanceof E.NeedsUnpacking && e.format === '7z', 'a CB7 (7z) asks for 7-Zip'); }
   {
     const { zipSync, strToU8 } = await import('fflate');
     refused('w.docx', zipSync({ '[Content_Types].xml': strToU8('<x/>'), 'word/document.xml': strToU8('<w/>') }), /Word document/, 'a Word document');

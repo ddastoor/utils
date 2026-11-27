@@ -4,6 +4,8 @@
 import { ICONS } from './icons.gen';
 
 Object.assign(ICONS, {
+  AArrowDown: "<path d=\"m14 12 4 4 4-4\" /><path d=\"M18 16V7\" /><path d=\"m2 16 4.039-9.69a.5.5 0 0 1 .923 0L11 16\" /><path d=\"M3.304 13h6.392\" />",
+  AArrowUp: "<path d=\"m14 11 4-4 4 4\" /><path d=\"M18 16V7\" /><path d=\"m2 16 4.039-9.69a.5.5 0 0 1 .923 0L11 16\" /><path d=\"M3.304 13h6.392\" />",
   Accessibility: "<circle cx=\"16\" cy=\"4\" r=\"1\" /><path d=\"m18 19 1-7-6 1\" /><path d=\"m5 8 3-3 5.5 3-2.36 3.5\" /><path d=\"M4.24 14.5a5 5 0 0 0 6.88 6\" /><path d=\"M13.76 17.5a5 5 0 0 0-6.88-6\" />",
   Angle: "<path d=\"M3 3v16a2 2 0 0 0 2 2h16\" /><path d=\"M3 11a10 10 0 0 1 10 10\" />",
   Aperture: "<circle cx=\"12\" cy=\"12\" r=\"10\" /><path d=\"m14.31 8 5.74 9.94\" /><path d=\"M9.69 8h11.48\" /><path d=\"m7.38 12 5.74-9.94\" /><path d=\"M9.69 16 3.95 6.06\" /><path d=\"M14.31 16H2.83\" /><path d=\"m16.62 12-5.74 9.94\" />",
@@ -57,11 +59,13 @@ Object.assign(ICONS, {
   Lens: "<path d=\"M15.725 7.296h.01\" /><path d=\"M6 12a6 6 0 016-6\" /><circle cx=\"12\" cy=\"12\" r=\"10\" />",
   List: "<path d=\"M3 5h.01\" /><path d=\"M3 12h.01\" /><path d=\"M3 19h.01\" /><path d=\"M8 5h13\" /><path d=\"M8 12h13\" /><path d=\"M8 19h13\" />",
   ListTodo: "<path d=\"M13 5h8\" /><path d=\"M13 12h8\" /><path d=\"M13 19h8\" /><path d=\"m3 17 2 2 4-4\" /><rect x=\"3\" y=\"4\" width=\"6\" height=\"6\" rx=\"1\" />",
+  ListTree: "<path d=\"M8 5h13\" /><path d=\"M13 12h8\" /><path d=\"M13 19h8\" /><path d=\"M3 10a2 2 0 0 0 2 2h3\" /><path d=\"M3 5v12a2 2 0 0 0 2 2h3\" />",
   Mailbox: "<path d=\"M22 17a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9.5C2 7 4 5 6.5 5H18c2.2 0 4 1.8 4 4v8Z\" /><polyline points=\"15,9 18,9 18,11\" /><path d=\"M6.5 5C9 5 11 7 11 9.5V17a2 2 0 0 1-2 2\" /><line x1=\"6\" x2=\"7\" y1=\"10\" y2=\"10\" />",
   Margin: "<rect x=\"9\" y=\"9\" width=\"6\" height=\"6\" rx=\"1\" /><path d=\"M21 6v12\" /><path d=\"M3 6v12\" /><path d=\"M6 21h12\" /><path d=\"M6 3h12\" />",
   Maximize: "<path d=\"M8 3H5a2 2 0 0 0-2 2v3\" /><path d=\"M21 8V5a2 2 0 0 0-2-2h-3\" /><path d=\"M3 16v3a2 2 0 0 0 2 2h3\" /><path d=\"M16 21h3a2 2 0 0 0 2-2v-3\" />",
   Maximize2: "<path d=\"M15 3h6v6\" /><path d=\"m21 3-7 7\" /><path d=\"m3 21 7-7\" /><path d=\"M9 21H3v-6\" />",
   Menu: "<path d=\"M4 5h16\" /><path d=\"M4 12h16\" /><path d=\"M4 19h16\" />",
+  Minimize: "<path d=\"M8 3v3a2 2 0 0 1-2 2H3\" /><path d=\"M21 8h-3a2 2 0 0 1-2-2V3\" /><path d=\"M3 16h3a2 2 0 0 1 2 2v3\" /><path d=\"M16 21v-3a2 2 0 0 1 2-2h3\" />",
   Minus: "<path d=\"M5 12h14\" />",
   MonitorOff: "<path d=\"M12 17v4\" /><path d=\"M17 17H4a2 2 0 0 1-2-2V5a2 2 0 0 1 1.184-1.826\" /><path d=\"m2 2 20 20\" /><path d=\"M8 21h8\" /><path d=\"M8.656 3H20a2 2 0 0 1 2 2v10a2 2 0 0 1-.293 1.042\" />",
   MonitorUp: "<path d=\"m9 10 3-3 3 3\" /><path d=\"M12 13V7\" /><rect width=\"20\" height=\"14\" x=\"2\" y=\"3\" rx=\"2\" /><path d=\"M12 17v4\" /><path d=\"M8 21h8\" />",

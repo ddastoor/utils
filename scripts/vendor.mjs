@@ -26,6 +26,9 @@ const copies = [
   // resume): MuPDF's FreeType reads TTF, not WOFF
   ...[['400Regular', 'NotoSans_400Regular'], ['700Bold', 'NotoSans_700Bold'], ['400Regular_Italic', 'NotoSans_400Regular_Italic']]
     .map(([dir, f]) => [['@expo-google-fonts', 'noto-sans', dir, `${f}.ttf`], ['fonts', `${f}.ttf`]]),
+  // Literata (OFL) TTFs: the EPUB Reader's text font, laid out by MuPDF in its worker (MuPDF's FreeType reads no WOFF, so the
+  // WOFF files of @fontsource/literata the Photo Dictionary uses cannot serve)
+  ...['400Regular', '400Regular_Italic', '700Bold', '700Bold_Italic'].map((s) => [['@expo-google-fonts', 'literata', s, `Literata_${s}.ttf`], ['fonts', `Literata_${s}.ttf`]]),
   // TF.js WebAssembly backend (XNNPACK, C++ → wasm): the CPU path for the Cartoonizer's style transfer when WebGL is missing
   ...['tfjs-backend-wasm.wasm', 'tfjs-backend-wasm-simd.wasm'].map((f) => [['@tensorflow', 'tfjs-backend-wasm', 'dist', f], ['tfjs', f]]),
   // ExifTool 13.42 on zeroperl (Perl 5 compiled to WebAssembly, ExifTool's library inside): the EXIF / Photo Info tab

@@ -191,7 +191,7 @@ export function textToHtml(text: string, name = ''): string {
     if (one && (HEADING.test(one) || one.length <= 60 && /[A-Z]/.test(one) && one === one.toUpperCase() && /[A-Z]{3}/.test(one))) return `<h2>${esc(one)}</h2>`;
     const long = lines.slice(0, -1).filter((l) => l.trim().length >= 45).length;
     const wrapped = lines.length > 1 && long >= Math.max(1, (lines.length - 1) * 0.8);
-    const inner = wrapped ? esc(lines.map((l) => l.trim()).join(' ')) : lines.map((l) => esc(l.replace(/^ +/, (s) => ' '.repeat(s.length)))).join('<br/>');
+    const inner = wrapped ? esc(lines.map((l) => l.trim()).join(' ')) : lines.map((l) => esc(l.replace(/^ +/, (s) => '\u00a0'.repeat(s.length)))).join('<br/>');
     return `<p${wrapped ? '' : ' class="lines"'}>${inner}</p>`;
   }).join('\n');
   const t = title || name.replace(/\.[^.]+$/, '');
@@ -268,6 +268,11 @@ export const rgb = (hex: string): [number, number, number] => [parseInt(hex.slic
 export interface Entry { title: string; depth: number; page: number }
 export interface BookInfo { kind: Kind; title: string; author: string; language: string; pages: number; contents: Entry[]; fixed: boolean }
 
+/** `f(x)`, then x's MuPDF memory freed at once (a page, its text): a search through a long book loads every page, and
+ *  waiting for the garbage collector's finalizers let MuPDF's heap grow by hundreds of megabytes. */
+export function use<T, R>(x: T, f: (x: T) => R): R {
+  try { return f(x); } finally { (x as any)?.destroy?.(); }
+}
 /** Open the bytes of `openFile` with MuPDF. */
 export function openDoc(m: Mu, o: Opened): Doc {
   return m.Document.openDocument(o.bytes, MAGIC[o.kind]);
@@ -278,13 +283,20 @@ export function layOut(doc: Doc, kind: Kind, look: Look, w: number, h: number) {
   doc.style(look.publisher, readerCSS(kind, look));
   doc.layout(Math.max(120, w), Math.max(160, h), look.size);
 }
-export function info(doc: Doc, o: Opened, name: string): BookInfo {
+export interface Meta { title: string; author: string; language: string }
+/** The title, author and language MuPDF reads from the book. Read right after opening, before the book is styled and laid
+ *  out: MuPDF keeps a FictionBook's title with the parsed document, and styling it again parses it anew without it (the
+ *  tab showed "tale" for "The Shore Tale" — found in the browser's worker). */
+export function metaOf(doc: Doc): Meta {
   const meta = (k: string) => { try { return (doc.getMetaData(k) || '').trim(); } catch { return ''; } };
+  return { title: meta('info:Title'), author: meta('info:Author'), language: meta('info:Language') };
+}
+export function info(doc: Doc, o: Opened, name: string, meta: Meta): BookInfo {
   return {
     kind: o.kind,
-    title: meta('info:Title') || o.title || name.replace(/\.[^.]+$/, ''),
-    author: meta('info:Author') || o.author || '',
-    language: meta('info:Language') || '',
+    title: meta.title || o.title || name.replace(/\.[^.]+$/, ''),
+    author: meta.author || o.author || '',
+    language: meta.language,
     pages: doc.countPages(),
     contents: contents(doc),
     fixed: isFixed(o.kind),
@@ -332,16 +344,15 @@ export function drawPage(m: Mu, doc: Doc, i: number, scale: number, bg: string):
 }
 /** A page's size in CSS px (a comic's page: the picture's). */
 export function pageSize(doc: Doc, i: number): [number, number] {
-  const b = doc.loadPage(i).getBounds();
-  return [b[2] - b[0], b[3] - b[1]];
+  return use(doc.loadPage(i), (p) => { const b = p.getBounds(); return [b[2] - b[0], b[3] - b[1]]; });
 }
 
 /** A page's text, line by line. */
 export function pageText(doc: Doc, i: number): string {
-  return doc.loadPage(i).toStructuredText('preserve-whitespace').asText();
+  return use(doc.loadPage(i), (p) => use(p.toStructuredText('preserve-whitespace'), (st) => st.asText()));
 }
 /** Text as the place finder compares it: soft hyphens out, white space single. */
-export const flat = (s: string) => s.replace(/­/g, '').replace(/\s+/g, ' ').trim();
+export const flat = (s: string) => s.replace(/\u00ad/g, '').replace(/\s+/g, ' ').trim();
 
 /** What marks the top of a page: its first words (about 48 characters, whole words). '' for a page without text. */
 export function anchorOf(doc: Doc, i: number): string {
@@ -373,14 +384,16 @@ export function findAnchor(doc: Doc, anchor: string, guess: number): number {
 export interface Hit { page: number; quads: number[][]; before: string; match: string; after: string }
 /** Every place a text is found on a page (case and accents ignored, as MuPDF searches), with the words around it. */
 export function searchPage(doc: Doc, i: number, query: string): Hit[] {
-  const page = doc.loadPage(i);
-  let found: number[][][] = [];
-  try { found = page.search(query, 'ignore-case,ignore-diacritics'); } catch { found = []; }
+  let found: number[][][] = [], json = '';
+  use(doc.loadPage(i), (page) => {
+    try { found = page.search(query, 'ignore-case,ignore-diacritics'); } catch { found = []; }
+    if (found.length) json = use(page.toStructuredText('preserve-whitespace'), (s) => s.asJSON());
+  });
   if (!found.length) return [];
-  const st = JSON.parse(page.toStructuredText('preserve-whitespace').asJSON());
+  const st = JSON.parse(json);
   const lines: { bbox: { x: number; y: number; w: number; h: number }; text: string }[] = [];
   for (const b of st.blocks || []) for (const l of b.lines || []) lines.push(l);
-  const fold = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+  const fold = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
   const q = fold(flat(query));
   return found.slice(0, 200).map((quads) => {
     const q0 = quads[0], cx = (q0[0] + q0[2] + q0[4] + q0[6]) / 4, cy = (q0[1] + q0[3] + q0[5] + q0[7]) / 4;
@@ -403,27 +416,31 @@ export interface PageLink { rect: [number, number, number, number]; page?: numbe
 /** The links of a page: to another page of the book, or to the web (http, https, mailto). */
 export function linksOf(doc: Doc, i: number): PageLink[] {
   const out: PageLink[] = [];
-  for (const l of doc.loadPage(i).getLinks()) {
-    const r = l.getBounds() as [number, number, number, number], uri = l.getURI() || '';
-    if (l.isExternal()) { if (/^(https?:|mailto:)/i.test(uri)) out.push({ rect: r, uri }); continue; }
-    let page = -1;
-    try { page = doc.resolveLink(l); } catch { page = -1; }
-    if (page >= 0) out.push({ rect: r, page });
-  }
+  use(doc.loadPage(i), (p) => {
+    for (const l of p.getLinks()) {
+      const r = l.getBounds() as [number, number, number, number], uri = l.getURI() || '';
+      if (l.isExternal()) { if (/^(https?:|mailto:)/i.test(uri)) out.push({ rect: r, uri }); }
+      else {
+        let page = -1;
+        try { page = doc.resolveLink(l); } catch { page = -1; }
+        if (page >= 0) out.push({ rect: r, page });
+      }
+      l.destroy?.();
+    }
+  });
   return out;
 }
 
 /** The text between two points of a page (a selection) and the boxes to mark it. */
 export function selectText(doc: Doc, i: number, a: [number, number], b: [number, number]): { text: string; quads: number[][] } {
-  const st = doc.loadPage(i).toStructuredText('preserve-whitespace');
-  return { text: st.copy(a, b), quads: st.highlight(a, b, 2000) };
+  return use(doc.loadPage(i), (p) => use(p.toStructuredText('preserve-whitespace'), (st) => ({ text: st.copy(a, b), quads: st.highlight(a, b, 2000) })));
 }
 /** The word under a point (a long press), as the two ends to select it; null where no word is (a margin, a picture,
  *  the space between two words). A word: the letters, digits and joining marks (’ ' - ‐) around the point on its line. */
 export function wordAt(doc: Doc, i: number, at: [number, number]): { a: [number, number]; b: [number, number] } | null {
   const lines: { c: string; q: number[] }[][] = [];
   let cur: { c: string; q: number[] }[] = [];
-  doc.loadPage(i).toStructuredText('preserve-whitespace').walk({ beginLine() { cur = []; lines.push(cur); }, onChar(c: string, _o: any, _f: any, _s: number, q: number[]) { cur.push({ c, q }); } });
+  use(doc.loadPage(i), (p) => use(p.toStructuredText('preserve-whitespace'), (st) => st.walk({ beginLine() { cur = []; lines.push(cur); }, onChar(c: string, _o: any, _f: any, _s: number, q: number[]) { cur.push({ c, q }); } })));
   const box = (q: number[]) => [Math.min(q[0], q[2], q[4], q[6]), Math.min(q[1], q[3], q[5], q[7]), Math.max(q[0], q[2], q[4], q[6]), Math.max(q[1], q[3], q[5], q[7])];
   const isWord = (c: string) => /[\p{L}\p{N}\p{M}'’\-‐]/u.test(c);
   for (const line of lines) {

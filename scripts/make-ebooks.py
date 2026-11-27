@@ -17,8 +17,16 @@ written here from original text, with the truth each test needs in tests/fixture
 - comic.cbz    twelve pages p1 … p12 stored out of order, each a colour of its own; ComicInfo.xml
 - plain.txt    a plain-text book
 """
-import io, json, os, random, shutil, struct, subprocess, sys, zipfile
+import io, json, os, random, shutil, struct, subprocess, sys, tempfile, zipfile
 from PIL import Image, ImageDraw, ImageFont
+
+# every file in an archive dated the same, so the books come out byte for byte the same each time
+WHEN = (2026, 11, 27, 0, 0, 0)
+def put(z, name, data, stored=False):
+    info = zipfile.ZipInfo(name, date_time=WHEN)
+    info.compress_type = zipfile.ZIP_STORED if stored else zipfile.ZIP_DEFLATED
+    info.external_attr = 0o644 << 16
+    z.writestr(info, data)
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, 'tests', 'fixtures', 'ebooks')
@@ -128,11 +136,11 @@ def xhtml(title, body, css=('style.css',), epub3=True, lang='en'):
 def write_epub(path, files, opf):
     """files: [(name under OEBPS/, bytes or str)]; mimetype first and stored, as OCF requires."""
     with zipfile.ZipFile(path, 'w', zipfile.ZIP_DEFLATED) as z:
-        z.writestr(zipfile.ZipInfo('mimetype'), 'application/epub+zip', compress_type=zipfile.ZIP_STORED)
-        z.writestr('META-INF/container.xml', CONTAINER)
-        z.writestr('OEBPS/content.opf', opf)
+        put(z, 'mimetype', 'application/epub+zip', stored=True)
+        put(z, 'META-INF/container.xml', CONTAINER)
+        put(z, 'OEBPS/content.opf', opf)
         for name, data in files:
-            z.writestr('OEBPS/' + name, data)
+            put(z, 'OEBPS/' + name, data)
 
 def media_type(name):
     return {'xhtml': 'application/xhtml+xml', 'css': 'text/css', 'png': 'image/png', 'jpg': 'image/jpeg', 'ttf': 'font/ttf', 'ncx': 'application/x-dtbncx+xml'}[name.rsplit('.', 1)[1]]
@@ -301,12 +309,12 @@ def drm_epub():
             data = src.read(it.filename)
             if it.filename == 'OEBPS/ch2.xhtml':
                 data = bytes(b ^ 0x5A for b in data)  # stands for AES: unreadable without the key
-            z.writestr(it.filename, data, compress_type=zipfile.ZIP_STORED if it.filename == 'mimetype' else zipfile.ZIP_DEFLATED)
-        z.writestr('META-INF/encryption.xml', '<?xml version="1.0" encoding="UTF-8"?>\n<encryption xmlns="urn:oasis:names:tc:opendocument:xmlns:container" '
+            put(z, it.filename, data, stored=it.filename == 'mimetype')
+        put(z, 'META-INF/encryption.xml', '<?xml version="1.0" encoding="UTF-8"?>\n<encryption xmlns="urn:oasis:names:tc:opendocument:xmlns:container" '
                    'xmlns:enc="http://www.w3.org/2001/04/xmlenc#"><enc:EncryptedData><enc:EncryptionMethod Algorithm="http://www.w3.org/2001/04/xmlenc#aes128-cbc"/>'
                    '<KeyInfo xmlns="http://www.w3.org/2000/09/xmldsig#"><resource xmlns="http://ns.adobe.com/adept">urn:uuid:00000000-0000-0000-0000-000000000000</resource></KeyInfo>'
                    '<enc:CipherData><enc:CipherReference URI="OEBPS/ch2.xhtml"/></enc:CipherData></enc:EncryptedData></encryption>\n')
-        z.writestr('META-INF/rights.xml', '<?xml version="1.0"?><adept:rights xmlns:adept="http://ns.adobe.com/adept"><adept:licenseToken/></adept:rights>\n')
+        put(z, 'META-INF/rights.xml', '<?xml version="1.0"?><adept:rights xmlns:adept="http://ns.adobe.com/adept"><adept:licenseToken/></adept:rights>\n')
     return {'kind': 'epub', 'drm': True}
 
 # ---------------------------------------------------------------------------------------------------- MOBI writer
@@ -439,10 +447,22 @@ def comic():
             hue = (k * 29) % 360
             im = Image.new('HSV', (1, 1), (int(hue / 360 * 255), 160, 230)).convert('RGB')
             col = im.getpixel((0, 0))
-            z.writestr(f'p{k}.jpg', picture(480, 720, col, str(k), 'JPEG', ink=(0, 0, 0)))
+            put(z, f'p{k}.jpg', picture(480, 720, col, str(k), 'JPEG', ink=(0, 0, 0)), stored=True)
             pages.append((k, col))
-        z.writestr('ComicInfo.xml', '<?xml version="1.0" encoding="utf-8"?>\n<ComicInfo><Title>Twelve Panels</Title><Writer>Ann Artist</Writer><PageCount>12</PageCount></ComicInfo>\n')
+        put(z, 'ComicInfo.xml', '<?xml version="1.0" encoding="utf-8"?>\n<ComicInfo><Title>Twelve Panels</Title><Writer>Ann Artist</Writer><PageCount>12</PageCount></ComicInfo>\n')
     pages.sort()
+    # the first three pages as a CB7 comic (7z): the tab hands it to 7-Zip
+    try:
+        import py7zr
+        with tempfile.TemporaryDirectory() as tmp:
+            for k in (1, 2, 3):
+                f = os.path.join(tmp, f'p{k}.jpg')
+                with open(f, 'wb') as fh: fh.write(picture(480, 720, pages[k - 1][1], str(k), 'JPEG', ink=(0, 0, 0)))
+                os.utime(f, (1764201600, 1764201600))
+            with py7zr.SevenZipFile(os.path.join(OUT, 'comic.cb7'), 'w') as a:
+                for k in (3, 1, 2): a.write(os.path.join(tmp, f'p{k}.jpg'), f'p{k}.jpg')
+    except ImportError:
+        print('  py7zr (pip install py7zr) not found: comic.cb7 not made')
     return {'kind': 'cbz', 'title': 'Twelve Panels', 'author': 'Ann Artist', 'pages': [list(c) for _, c in pages], 'size': [480, 720], 'storedOrder': order}
 
 # ---------------------------------------------------------------------------------------------------- plain.txt

@@ -1118,3 +1118,58 @@ details summary { cursor: pointer; font-weight: 600; color: var(--accent); paddi
 .shot-stage.tall { max-height: 70vh; overflow: auto; }
 .shot-stage.tall .shot-canvas { max-height: none; width: 100%; height: auto; }
 .shot-hint { padding: 8px 12px; border-radius: 8px; background: var(--surface-2); }
+
+/* EPUB Reader (src/tools/ebook.ts): the page area fills the window below the sticky rows; reading mode fills the screen */
+.ebr { position: relative; display: flex; flex-direction: column; gap: 8px; height: calc(100dvh - var(--navh, 0px) - 24px); min-height: 440px; }
+.ebr[hidden] { display: none; }
+.ebr-top { display: flex; align-items: center; gap: 8px; justify-content: space-between; min-width: 0; }
+.ebr-title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 15px; }
+.ebr-tools { display: flex; gap: 4px; flex: none; }
+.ebr-stage { position: relative; flex: 1; min-height: 0; overflow: hidden; border: 1px solid var(--border); border-radius: var(--radius-sm); touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; cursor: default; }
+.ebr-stage:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.ebr-page, .ebr-marks { position: absolute; left: 0; top: 0; }
+.ebr-marks { pointer-events: none; }
+.ebr-bottom { display: flex; align-items: center; gap: 8px; }
+.ebr-mid { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.ebr-slider { width: 100%; }
+.ebr-wherebox { display: flex; align-items: center; justify-content: space-between; gap: 8px; height: 36px; } /* fixed: Back coming and going must not change the page's size (a new layout each time) */
+.ebr-where { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; color: var(--muted); }
+.ebr-notes:empty { display: none; }
+/* over the page, not beside it: a bar taking room would shrink the page and lay the book out again (and clear the selection) */
+.ebr-selbar { position: absolute; z-index: 5; left: 50%; bottom: 76px; transform: translateX(-50%); display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; width: max-content; max-width: calc(100% - 24px); padding: 6px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); box-shadow: var(--shadow-lg); }
+.ebr-selbar[hidden] { display: none; }
+.ebr-full { position: fixed; inset: 0; z-index: 60; height: 100dvh; min-height: 0; margin: 0; background: var(--bg);
+  padding: max(6px, env(safe-area-inset-top)) max(8px, env(safe-area-inset-right)) max(6px, env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left)); }
+.ebr-full .ebr-stage { border: 0; border-radius: 0; }
+.ebr-full.ebr-bare .ebr-top, .ebr-full.ebr-bare .ebr-bottom, .ebr-full.ebr-bare .ebr-notes { display: none; }
+html.ebr-reading { overflow: hidden; }
+.ebr-panel { width: min(460px, calc(100vw - 24px)); max-height: min(86vh, 860px); padding: 0; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); color: var(--text); box-shadow: var(--shadow-lg); }
+.ebr-panel[open] { display: flex; flex-direction: column; }
+.ebr-panel::backdrop { background: rgb(0 0 0 / 40%); }
+.ebr-panel-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px 0 18px; }
+.ebr-panel-head h3 { margin: 0; font-size: 17px; }
+.ebr-panel-body { padding: 12px 18px 18px; overflow: auto; }
+.ebr-toc, .ebr-hits { list-style: none; margin: 8px 0 0; padding: 0; }
+.ebr-toc-item, .ebr-hit { display: flex; width: 100%; gap: 10px; align-items: baseline; justify-content: space-between; min-height: var(--tap); padding: 8px 12px; border: 0; border-radius: var(--radius-sm); background: none; color: var(--text); font: inherit; text-align: left; cursor: pointer; }
+.ebr-toc-item:hover, .ebr-hit:hover, .ebr-toc-item.on, .ebr-hit.on { background: var(--accent-soft); }
+.ebr-toc-item.on, .ebr-hit.on { font-weight: 600; }
+.ebr-toc-item:disabled { color: var(--hint); cursor: default; }
+.ebr-toc-p, .ebr-hit-p { flex: none; color: var(--muted); font-variant-numeric: tabular-nums; }
+.ebr-hit { justify-content: flex-start; }
+.ebr-hit-t { min-width: 0; }
+.ebr-hit mark { background: #ffe36b; color: #141824; border-radius: 3px; padding: 0 1px; }
+.ebr-search .input { flex: 1; min-width: 0; }
+.ebr-goto { align-items: center; }
+.ebr-goto .input { width: 7em; }
+.ebr-themes { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.ebr-theme { display: flex; flex-direction: column; align-items: center; gap: 2px; min-height: 64px; padding: 8px 4px; border: 2px solid var(--border); border-radius: var(--radius-sm); font: inherit; font-size: 13px; cursor: pointer; }
+.ebr-theme[aria-checked="true"] { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); }
+.ebr-theme-a { font-family: Georgia, "Times New Roman", serif; font-size: 20px; }
+.ebr-sizes { align-items: center; gap: 12px; }
+.ebr-size { min-width: 4.5em; text-align: center; font-variant-numeric: tabular-nums; }
+@media (max-width: 640px) {
+  .ebr { height: calc(100dvh - var(--navh, 0px) - 12px); min-height: 380px; gap: 6px; }
+  .ebr-tools { gap: 0; }
+  .ebr-title { font-size: 14px; }
+  .ebr-panel { width: 100vw; max-width: 100vw; max-height: 88dvh; margin: auto 0 0; border-radius: var(--radius) var(--radius) 0 0; }
+}

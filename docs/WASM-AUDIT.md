@@ -1685,3 +1685,28 @@ Looked at first (STANDING RULE #1):
   every line, order, figure, formula, table, caption, label, bookmark, option, rotation, tall figure, sideways table, scan;
   every vector piece drawn as the page draws it — pixels at 3 px/pt; the repository's real PDFs), e2e `kindlepdf` 36.
 
+
+### 182. `ebook` — EPUB Reader (27 Nov 2026; potentials #71)
+- **What the tab does:** an e-book (EPUB, MOBI, FictionBook, a comic, plain text, a web page) laid out at the reader's size,
+  font and theme and drawn a page at a time; contents, search, links, selection, Read aloud.
+- **Engines — all on the site already:** **MuPDF** (Artifex's official WebAssembly build: it parses EPUB 2 / 3, MOBI, FB2, CBZ,
+  CBT and HTML, lays reflowable books out with HarfBuzz at any page size and em, draws pages, gives the structured text for
+  search, selection and the place kept, the outline, the links) in a worker of the tab's own; **7-Zip** (7z-wasm) unpacks CBR /
+  CB7 comics into a zip. New on the site: **Literata as TTF** (four files, 1.0 MB — MuPDF's FreeType reads no WOFF, and the
+  site's Literata was WOFF / WOFF2 only).
+- **Candidates looked at:** **foliate-js** and **epub.js** (JavaScript; they render the book's XHTML in the browser's own
+  iframe — the book's scripts and styles in the page's origin, a CSP of their own; MOBI only in foliate-js, no FB2 or comics)
+  — MuPDF already reads every format asked for, draws text the same in every browser, and keeps the book out of the DOM.
+  **Readium** (Kotlin / Swift; no WebAssembly). **KOReader's crengine** (C++, GPL; no WebAssembly build; would be a second
+  layout engine beside MuPDF). Decision: MuPDF — the existing WebAssembly module covers every feature asked for.
+- **What is ours (TypeScript glue around MuPDF, no DOM):** what a file is from its bytes; DRM and KFX refused (MuPDF reads past
+  a MOBI's encryption field); MOBI's EXTH title and author and a comic's ComicInfo.xml (MuPDF reads neither); a plain text
+  turned into a web page (paragraph joining, chapter headings); the look as a user style sheet; the place kept across layouts
+  (the page's first words found on the new pages); the words around each search hit; the word under a finger. Pixel work,
+  layout, text extraction, search: MuPDF's.
+- **Not there:** automatic hyphenation (MuPDF parses `hyphens: auto` and does nothing with it; a WebAssembly hyphenator would
+  have to rewrite each chapter's XHTML with soft hyphens before MuPDF reads it — not done; phones default to left-aligned text).
+- **Tests:** unit `ebook` 148 (every word of six books on their pages in order at four looks, contents on their pages, the place
+  kept at four other sizes and shapes, search, links, themes drawn, the comic's order, DRM and other refusals); e2e `ebook` 59
+  (the tab held to MuPDF in Node at the same size and look: page count, pixels, contents, search hits, links; keys, slider,
+  panels, selection, reading mode, Read aloud and back, every format, refusals, a phone's taps, swipe and long press).

@@ -3153,6 +3153,32 @@ cannot. Three new suites; each fails on the build before its fixes.
   candidates measured (docs/WASM-AUDIT.md 179): page-dewarp 0.3.4 takes the photo's rectangle less fixed margins for the
   page — it cut the words nearest the spine of a page cut out at the gutter (95 → 76 % of a frame's words read) and kept
   the table round the page; Leptonica 1.86's `dewarpSinglePage` gave up on 1080p video frames (too few lines found).
+- **EPUB Reader (potentials #71, 27 Nov 2026), found while building it — each with a check that would catch it:**
+  - **The first book never opened** ("Opening…" for ever): MuPDF's module waits for its WebAssembly (a top-level await); in a
+    module worker that imports it statically, a message that arrives during the wait finds no `onmessage` yet and is lost.
+    MuPDF is imported dynamically now, after the handler is set (CLAUDE.md §4; the e2e suite opens a book first thing).
+  - **The book was laid out again and again:** the "Back to page" button and then the selection bar appeared in the column of the
+    reader and took room from the page; a smaller page is a new layout, which clears Back and the selection, which gives the
+    room back — a loop (and a selection that vanished at once). The bar under the page has a fixed height, the selection bar
+    floats over the page (e2e: Back, then a drag-selection and Copy).
+  - **A FictionBook's title became its file name:** MuPDF keeps a FictionBook's title with the parsed document, and styling the
+    book parses it anew without it — only in the browser's worker (Node kept it). The title and author are read right after
+    opening (`metaOf`; e2e: the title shown).
+  - **MuPDF ignores `page-break-before` in a user style sheet** (`page-break-after` works): a MOBI's chapters ran on after
+    `<mbp:pagebreak/>`; the page now breaks after that element (unit: each chapter at the top of its page).
+  - **MuPDF reads past a MOBI's DRM** (its reader skips the encryption field) and would draw the ciphertext; the tab refuses it in
+    words (unit and e2e: drm.mobi). An EPUB with Adobe's DRM gets only MuPDF's warning: refused in words too.
+  - **Code ran off the page** at large sizes (`<pre>` does not wrap): words of the book were lost; code wraps now (unit: every word
+    of the novel at 30 px).
+  - **`mupdf.js`:** `search()` is case-sensitive unless told `ignore-case`; `isReflowable()` returns nothing (no `return`);
+    `getPixels()` is a view into MuPDF's memory (copied before the next drawing); the font hook cannot load WOFF.
+  - **The tests' own slips:** "epub" leads to PDF → EPUB (its id is "epub"), not the reader — the search case kept as it was; the
+    phone's window is 664 px high in Playwright's iPhone 13 (not 844); the label of a spread was read before the key had turned
+    it.
+  - **Two older suites raced under load** (the site-wide sweep with the reader in it, eight suites at once): `lazy` gave the search
+    box half a second to fetch textcore.wasm and the keywords and rank them, and `scroll-focus` counted the invoice's controls on a
+    phone while its tab still said "Loading…". Both passed alone. They wait now — for the results to show (and the page Enter
+    opens), for the tab's view to be built — with the same checks (1,095 / 1,095 in 11 suites; both again under load).
 - **PDF for Kindle (potentials #109, 27 Nov 2026), found while building it — each with a check that would catch it:**
   - **The first or the last line of every piece was missing.** MuPDF's redaction removes a character whose box touches a
     redaction area — and that box is the advance by the font's ascent and descent, taller than the ink: the boxes of two

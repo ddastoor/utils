@@ -24,10 +24,13 @@ export default async ({ base, page: newPage, ok, devices }) => {
     await p.keyboard.press('Tab');
     return p.evaluate(() => document.activeElement?.dataset.sfk);
   };
+  /** the tab's code has arrived and built its view (the title shows first, over a "Loading…" — with many suites on the
+   *  machine the form came later than the controls were counted) */
+  const mounted = (p) => p.locator('.tool-body > .loading').waitFor({ state: 'detached', timeout: 20000 }).catch(() => {});
   // ---------------------------------------------------------------- a PC: the GST invoice (a long form), tool row open, then folded
   const pc = await newPage({ viewport: { width: 1280, height: 800 } });
   for (const [route, fold] of [['#/sqlfmt', false], ['#/sqlfmt', true], ['#/invoice', false]]) {
-    await pc.goto(`${base}${route}`); await pc.locator('.tool-title').waitFor();
+    await pc.goto(`${base}${route}`); await pc.locator('.tool-title').waitFor(); await mounted(pc);
     if (fold && (await pc.locator('.tab-fold').getAttribute('aria-expanded')) === 'true') await pc.locator('.tab-fold').click();
     if (!fold && (await pc.locator('.tab-fold').getAttribute('aria-expanded')) === 'false') await pc.locator('.tab-fold').click();
     await pc.waitForTimeout(200);
@@ -42,7 +45,8 @@ export default async ({ base, page: newPage, ok, devices }) => {
   }
   // ---------------------------------------------------------------- a phone: the invoice's fixed "Download PDF" bar
   const ph = await newPage({ ...devices['iPhone 13'] });
-  await ph.goto(`${base}#/invoice`); await ph.locator('.tool-title').waitFor();
+  await ph.goto(`${base}#/invoice`); await ph.locator('.tool-title').waitFor(); await mounted(ph);
+  await ph.locator('.actions').first().waitFor({ state: 'attached', timeout: 20000 }).catch(() => {});
   const cs = await controls(ph), pair = cs.map((c, i) => [c, cs[i + 1]]).find(([a, b]) => b && a.k + 1 === b.k && b.top - a.top > 30 && a.top > 600 && !a.seg && !b.seg);
   if (!pair) ok(false, 'phone: no two neighbouring controls found');
   else {

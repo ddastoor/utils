@@ -2,7 +2,7 @@
 
 Generated from `src/registry.ts` by `npm run docs` — do not edit by hand.
 
-**178 tabs** in 11 categories — 111 PC + mobile, 64 PC only, 3 mobile only.
+**179 tabs** in 11 categories — 112 PC + mobile, 64 PC only, 3 mobile only.
 
 ## Images (17)
 
@@ -26,7 +26,7 @@ Generated from `src/registry.ts` by `npm run docs` — do not edit by hand.
 | `ocr` | OCR | PC + mobile | Extract text from an image (English, French, Spanish, German). | copy text from image, copy text from photo, extract text from image, text from photo, extract text from photo, handwriting, ocr, text recognition, … |
 | `signature` | Signature Maker | PC + mobile | Draw your signature and save a transparent PNG. | signature, sign, draw signature, transparent signature, signature png, autograph, handwritten, e signature image |
 
-## Documents (20)
+## Documents (21)
 
 | id | Tab | Platform | What it does | Search keywords |
 |---|---|---|---|---|
@@ -45,6 +45,7 @@ Generated from `src/registry.ts` by `npm run docs` — do not edit by hand.
 | `pdf-watermark` | PDF Watermark | PC + mobile | Stamp text like CONFIDENTIAL on every page. | watermark, stamp, confidential, draft, pdf, text |
 | `epub` | PDF → EPUB | **PC only** | Convert PDFs to Kindle-friendly EPUB, column by column. | pdf to epub, pdf to kindle, send to kindle, epub, kindle, ebook, pdf, convert, … |
 | `kindlepdf` | PDF for Kindle | PC + mobile | Read technical PDFs on a Kindle exactly as typeset: margins trimmed, columns cut into screen-high pieces, text kept. | pdf for kindle, kindle pdf, read pdf on kindle, k2pdfopt, crop pdf margins, trim margins, two column pdf, columns, … |
+| `ebook` | EPUB Reader | PC + mobile | Read e-books — EPUB, MOBI, FB2, comics, text — with contents, search, fonts, sizes and themes. | epub reader, ebook reader, e-book reader, read epub, read ebook, read a book, book reader, epub viewer, … |
 | `sheet` | CSV / Excel | **PC only** | View CSV and Excel files; convert CSV ⇄ XLSX ⇄ JSON. | excel viewer, xlsx to csv, csv to xlsx, excel to csv, csv to json, xls, csv, excel, … |
 | `markdown` | Markdown Editor | PC + mobile | Write Markdown with live preview; export HTML or PDF. | markdown, md, editor, preview, html, notes, readme, print |
 | `invoice` | GST Invoice | PC + mobile | Create a GST invoice and save it as PDF. | invoice, gst invoice, bill generator, invoice generator, invoice maker, bill, billing, tax invoice, … |

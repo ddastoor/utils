@@ -333,7 +333,7 @@ Wayland) and **mobile browsers** (Android Chrome, iPhone Safari).
 Platform is PC + mobile unless marked **PC**. Tab ids are the URL hash (`#/<id>`).
 
 **The authoritative, always-current list is `docs/TOOLS.md`, generated from `src/registry.ts` (`npm run docs`).**
-Current total: **178 tabs in 11 categories — 111 PC + mobile, 64 PC only, 3 Mobile only** (regenerate with
+Current total: **179 tabs in 11 categories — 112 PC + mobile, 64 PC only, 3 Mobile only** (regenerate with
 `npm run docs` after every registry change; the owner asked for the registry to always be noted).
 The per-category notes below record decisions; when they disagree with the registry, the registry wins.
 
@@ -442,6 +442,7 @@ warned. Resume: the photo is a JPEG (quality 85); file names are made safe (`saf
 | `pdf-watermark` | PDF Watermark | both |
 | `epub` | PDF → EPUB (Kindle) | **PC** — **BUILT** (see §3) |
 | `kindlepdf` | PDF for Kindle | both — **BUILT** (27 Nov 2026; potentials #109 — §3 "PDF for Kindle") |
+| `ebook` | EPUB Reader | both — **BUILT** (27 Nov 2026; potentials #71 — §3 "EPUB Reader": EPUB, MOBI, FictionBook, comics, text) |
 | `sheet` | CSV / Excel Viewer & Converter | **PC** — **BUILT** (sheet.wasm; open xlsx/xlsm/xlsb/xls/ods/csv/tsv/json and the "Excel" files that are web pages or Excel 2003 XML, sheet tabs incl. hidden, separator override, filter, export CSV (BOM) / TSV / JSON / XLSX; as built: §3 "CSV / Excel"; unit `sheet.test.mjs` 120 + `sheetdata.test.mjs` 42, e2e 32) |
 | `markdown` | Markdown Editor | both — **BUILT** (cmark-gfm wasm; live preview, toolbar + Ctrl+B/I/K, .md open/save, standalone .html, print of the preview only; as built: §3 "Markdown Editor"; unit 29 incl. the 744 GFM spec examples, e2e 46) |
 
@@ -3233,6 +3234,54 @@ The pieces stay vector … pictures only for scanned pages (greyscale, contrast 
   no "convert" in an e-mail's subject: converting reflows it), a preview a screen at a time (Previous / Next), the page report.
   The choices are kept while the page is open. A newer PDF or leaving the tab ends a conversion.
 
+### EPUB Reader — BUILT (potentials #71; owner, 20 Nov 2026; built 27 Nov 2026 — group 1 of the suggested order)
+(`ebook` in `src/tools/ebook.ts`, engine `src/lib/ebook.ts` (no DOM), worker `src/workers/ebook.worker.ts` + `src/lib/ebook-client.ts`;
+unit `tests/unit/ebook.test.mjs` 148, e2e `tests/e2e/ebook.e2e.mjs` 59; fixtures `tests/fixtures/ebooks/` with every word of each
+book, made by `python3 scripts/make-ebooks.py`.) The owner's words (potentials #71): "read .epub books (and FB2, CBZ comics — MuPDF
+reads those too; MOBI to be checked) — contents, page turning (tap, swipe, keys), font size and margins, light / dark / sepia,
+search in the book, go to a page or chapter; the book never leaves the device".
+- **What opens** (`openFile`: what a file is, from its bytes, not its name): **EPUB** 2 and 3 (nav or NCX), **MOBI** (Mobipocket,
+  PalmDOC-compressed — what Calibre writes; its title and author from its EXTH header, which MuPDF does not read; a KF8-only
+  AZW3 gets a note: its text is read, its pictures and styles may be missing — no such file to test with), **FictionBook** (also
+  zipped), comics — **CBZ**, **CBT**, and **CBR** / **CB7** handed to **7-Zip** (on the site) and opened as the zip it makes (a
+  comic's title and writer from ComicInfo.xml) —, **plain text** made a web page (`textToHtml`: lines broken by hand joined so
+  the text reflows, short lines kept, chapter lines and short lines in capitals made headings — the contents), **web pages**.
+  **Refused in words:** a book with DRM (Adobe ADEPT, Readium LCP, Apple FairPlay, Mobipocket encryption — MuPDF reads past a
+  MOBI's encryption field and would show garbage; font obfuscation alone is no DRM), Amazon's KFX, MOBI's HUFF/CDIC compression,
+  a PDF (the browser shows PDFs; PDF for Kindle cuts them for a Kindle), a Word document, a zip without a book or pictures.
+- **Laid out by MuPDF in the reader's worker** at the page's size in CSS px with the font size as its em; **the look is a user
+  style sheet** (`readerCSS`; MuPDF lets user CSS win at equal specificity): the reader's margins in place of the book's (`@page`
+  and body margins off; the margins are the space the tab draws round the page — Narrow / Normal / Wide), the font for the body
+  text (**Literata** (TTF, on the site since this tab), **Serif** — MuPDF's Times —, **Sans** — Noto Sans, on the site —, or
+  **the book's own**; code stays monospace and wraps instead of running off the page), line spacing (the book's, or 1.25 – 2),
+  justified (PCs) or left-aligned (phones: MuPDF does not hyphenate, and a phone's justified lines open wide), the book's own
+  styles on or off, and **Light / Sepia / Dark / Black** — in all but Light every text takes the theme's colour and no box paints
+  a background; the page is drawn on the theme's colour (a pixmap filled first: no premultiplied edges). Fonts reach MuPDF through
+  its font hook (`fontHook`); a script none of MuPDF's built-in fonts covers (Latin, Greek, Cyrillic, Chinese / Japanese /
+  Korean) is recorded and the tab says that text is left out (Arabic, Hebrew, Indic scripts — unless the book's own fonts have
+  them). MOBI's `<mbp:pagebreak/>` breaks the page (`page-break-after`: MuPDF ignores page-break-before in user CSS).
+- **The place is kept** when the look or the window changes (`anchorOf` / `findAnchor`): the first words of the page are looked
+  for on the new pages, from the same share of the book outwards; a page without words (the cover) keeps the share. Measured in
+  the unit suite at four other sizes and shapes, and in the browser after a larger font and a narrower window.
+- **The tab:** the page area fills the window under the sticky rows (`--navh`); a wide window shows **two pages side by side**
+  (Auto / One page / Two pages; a spread is named by its right page's chapter); **turning:** the arrows, Page Up / Down, Space,
+  Home / End, the wheel (a pause between turns), a tap at the left third (back) or the right two thirds (forward), a swipe,
+  buttons, a slider; **Contents** (the book's own, nested, each entry with its page; the current one marked) and **Go to page**;
+  **Back to page n** after any jump (a link, the contents, a search hit); **links** inside the book followed, links to the web
+  opened in a new tab; **search** (case and accents ignored, MuPDF's search with the line round each hit, from this page round the
+  book, hits as they are found, Stop; the hits marked on the page); **selection** — a drag with the mouse, a long press on a word
+  on a phone (then the finger extends it) — with Copy, Search the book, Read aloud; **Read aloud** hands the text from this page on
+  (30,000 characters at most) to the Text-to-Speech tab (`give('tts', …)`); **reading mode** (the reader fills the screen, real
+  full screen where the browser allows; Esc leaves; a tap in the middle shows or hides the bars). **Nothing is stored** (CLAUDE.md
+  §1): the look and the book last read — its file handle and place — are kept while the page is open, and coming back offers
+  "Go back to “Title” — page n of N". The owner may allow keeping the place between visits as Favorites are (potentials #71) —
+  not asked yet.
+- **Lazy:** nothing at the tab's start; the worker, MuPDF and Literata's four files (1.0 MB) with the first book; Noto Sans only
+  when chosen; 7-Zip only for a CBR / CB7. The worker ends when the tab is left (the book's memory with it).
+- **Found while building it** (docs/BUGHUNT.md): the worker lost the first book (MuPDF's top-level await in a module worker, see
+  §4); the page area changed size when Back or the selection bar appeared and laid the book out again in a loop (both now take no
+  room from it); a FictionBook's title is lost once the book is styled (read right after opening, `metaOf`).
+
 ### Screencast (PC) — BUILT (`src/tools/screencast.ts`; e2e `tests/e2e/screencast.e2e.mjs` 50)
 Chrome on Windows/Linux. "Screen, window or tab" (Chrome's picker; own tab excluded; surface switching allowed) or
 "An area": choose a screen, drag a rectangle on the live preview (a page cannot draw on the desktop); the rectangle is
@@ -3448,7 +3497,7 @@ difference over its detail, the overlap's pixels), ruled lines and list marks cl
 | devcore: ipnet (CIDR), croner + chrono (cron; zone offsets from the browser's Intl via an `env.tz_offset` import, so no tz database), **own port of npm's semver** (`semver_npm.rs`: the package's range / comparator / inc logic with its own regular expressions on regex-lite — the nodejs-semver crate gave different answers), **own Unicode-aware glob matcher** (`globm`; globset matches bytes), **own unified-diff reader / applier** (`patchm`: offsets, white space, fuzz, like GNU patch; diffy refused most real patches), data-encoding + bs58 + own Ascii85/Z85 (long inputs go through data-encoding in pieces: it refuses 8 MiB and more on a 32-bit target), **own protobuf, MessagePack and CBOR readers** (`bin.rs`; rmpv and ciborium could not show CBOR `undefined` / simple values / long bignums or MessagePack's unused 0xc1, and reported errors as Rust debug text), x509-parser + sha1/sha2 (+ own PEM / PKCS #7 reader), **own SQL formatter** (`sqlfmt.rs`: a tokenizer for standard SQL, PostgreSQL, MySQL, SQLite, SQL Server and Oracle; changes white space and the case of keywords only and checks its result against the input — the sqlformat crate changed the meaning of SQL), own hex dump + search, **own lossless JSON reader / formatter** (`jsonfmt.rs`: changes white space only — member order, duplicate keys and number spelling kept; worded errors with line / column; JSON.parse → JSON.stringify reordered keys, dropped duplicates and rounded big numbers), **own JSON diff** (`jsondiff.rs`, RFC 6902 on that reader: lists aligned by equal elements (LCS) and records by `id`, numbers by value and never rounded), **own XML formatter** (`xmlfmt.rs`: re-indents elements that hold only elements, everything else byte-for-byte — declaration, DOCTYPE, entities, CDATA, text; the DOM round trip lost or rewrote all of these), **own JSON → types generator** (`j2t.rs`: TypeScript / Go / Rust serde / Java records / Python dataclasses; the e2e suite compiles its output with tsc, go, rustc, javac and python; crates unicode-ident (MIT / Apache-2.0 + Unicode-3.0) for Python identifiers and unicode-general-category (Apache-2.0) for what Go's struct tags accept) | Rust | **us** (`wasm/devcore`, crates.io via `Cargo.lock`, wasm32-wasip1; one `dc_call(op, input)` entry; **one module per tab** via Cargo features → `devcore-<feature>.wasm`, 67–650 KB) | cidr, x509, cron, semver, glob, patch, sqlfmt, hexview, baseenc, bindecode, base64 (devcore-enc), json + jwt (devcore-json), jsondiff, xml, json2types (devcore-j2t) |
 | cmark-gfm 0.29.0.gfm.13 (GitHub Flavored Markdown) | C | **us** (`wasm/markdown`, source from the PyPI `cmarkgfm` sdist, SHA-256 pinned) | markdown |
 | libyaml 0.2.5 + toml++ 3 | C / C++ | **us** (`wasm/formats`) | yaml |
-| MuPDF 1.28 | C | Artifex (official `mupdf` npm) | all PDF tools, PDF → EPUB, PDF for Kindle (the pieces: the page grafted, redacted, drawn as a form), Watermark (PDFs: to-do #17), Book Page Flattener and Newspaper Clipper (their PDFs) |
+| MuPDF 1.28 | C | Artifex (official `mupdf` npm) | all PDF tools, PDF → EPUB, PDF for Kindle (the pieces: the page grafted, redacted, drawn as a form), Watermark (PDFs: to-do #17), Book Page Flattener and Newspaper Clipper (their PDFs), EPUB Reader (EPUB, MOBI, FictionBook, comics, text laid out at any size with HarfBuzz and drawn — in the reader's worker, `src/workers/ebook.worker.ts`) |
 | ExifTool 13.42 on zeroperl (Perl 5 compiled to WebAssembly with ExifTool's library inside) | Perl / C | Phil Harvey (ExifTool), uswriting / 6over3 (`@uswriting/exiftool` 1.0.9, `@6over3/zeroperl-ts` 1.0.10) — run in `src/workers/exiftool.worker.ts` | exif (replaced metacore's reader and stripper in Nov 2026: `docs/WASM-AUDIT.md`, tab 120); regex (the Perl flavour, the same module: `src/lib/regex/perl.ts`) |
 | hash-wasm 4.13.0 (hand-tuned C → wasm, one small binary per algorithm, embedded in the package; streaming; HMAC over any of its hashes; Argon2, bcrypt, scrypt, PBKDF2) | C | Dani Biró (`hash-wasm` npm, ~10 M downloads a month) — wrappers `src/lib/hmac.ts`, `src/lib/totp.ts`, `src/lib/pwhash.ts`, `src/lib/hashes.ts` (in `src/workers/hash.worker.ts`); only the algorithms a tab uses are bundled into its chunk, loaded with the tab's first result | hash (23 algorithms), hmac (all of it), totp (the HMAC), pwhash (Argon2id / i / d, bcrypt, scrypt, PBKDF2) — replaced RustCrypto builds and crypto.wasm's hashes of ours in Nov 2026 (`docs/WASM-AUDIT.md`) |
 | ONNX Runtime Web 1.31 (CPU/WebAssembly, SIMD) | C++ | Microsoft (official `onnxruntime-web` wasm build) | tts (Kokoro, Piper); scanner (DocCornerNet LEAN, scanic-ml 0.2.0: the page's corners — `docs/WASM-AUDIT.md`, tab 121); ocr, photodict and clipper (the same network, asked where the Kindle finder's outline is not a page's — to-do #18; and **PaddleOCR's PP-OCRv6 detector and recogniser, the second reader for soft photos** — owner, 26 Nov 2026: `src/lib/paddle.ts` in `src/workers/paddle.worker.ts`); noise (**DeepFilterNet 3**, the Studio voice — to-do #20: `src/workers/noise.worker.ts`) |
@@ -3467,7 +3516,7 @@ difference over its detail, the overlap's pixels), ruled lines and list marks cl
 | Little CMS 2.16 | C | lcms-wasm (Matt DesLauriers; npm 1.0.5) — in the codec worker, fetched for a HEIC with a non-sRGB ICC profile | heic and every tab that opens HEIC: Display P3 → sRGB (`docs/WASM-AUDIT.md`, tab 111) |
 | Tesseract 5 | C++ | tesseract.js-core | ocr, photodict, clipper (laid out as a page: its blocks) |
 | zxing-cpp | C++ | zxing-wasm | qr, barcode, scan |
-| 7-Zip 24.09 (`7zz`, the command line, Emscripten build with WORKERFS) | C++ | use-strict (`7z-wasm` npm 1.2.0) — run in `src/workers/sevenzip.worker.ts`, a fresh instance per archive | zip (zip and 7z with AES-256; `docs/WASM-AUDIT.md`, tab 107), unzip (reads every archive; tab 108), watermark (a Word document taken apart and zipped again: to-do #17) |
+| 7-Zip 24.09 (`7zz`, the command line, Emscripten build with WORKERFS) | C++ | use-strict (`7z-wasm` npm 1.2.0) — run in `src/workers/sevenzip.worker.ts`, a fresh instance per archive | zip (zip and 7z with AES-256; `docs/WASM-AUDIT.md`, tab 107), unzip (reads every archive; tab 108), watermark (a Word document taken apart and zipped again: to-do #17), ebook (a CBR or CB7 comic unpacked into a zip for MuPDF) |
 | MediaPipe Tasks (TFLite) | C++ | Google (official) | passport, bgremove, redact |
 | RNNoise 0.2 (Xiph, BSD-3; the 0.2 model, 8-bit weights — the release as its configure builds it) | C | Jitsi (`@jitsi/rnnoise-wasm` 0.2.1, Emscripten; the "sync" file) — frames, lag and voice probability in `src/wasm/rnnoise.ts`, resampling / scaling / mixing in audio.wasm (`src/workers/noise.worker.ts`) | noise (replaced our own build in Nov 2026: `docs/WASM-AUDIT.md`, tab 144) |
 | Browser-native C++ (WebCodecs, WebCrypto, Web Speech, MediaRecorder) | — | the browser | video (H.264/AV1 encode + decode, hardware-accelerated), audio recorder, tts, screencast, pbkdf2 |
@@ -3665,7 +3714,10 @@ Owner: "make the full site faster, more responsive and memory efficient — load
 4. **Limitation:** libraries that load into the main thread as ES modules stay in memory until the page reloads
    (the browser never unloads an imported module): MuPDF (its wasm heap), zxing-cpp, the MediaPipe runtime,
    libheif, OpenPGP.js. Their *data* is released; only the code/heap stays. Moving MuPDF into a worker (so it can
-   be terminated) is a possible later improvement.
+   be terminated) is a possible later improvement — the EPUB Reader does so already (`src/workers/ebook.worker.ts`: the
+   book and MuPDF's heap end with the worker when the tab is left). **In a module worker, import a module with a top-level
+   await (MuPDF waits for its WebAssembly) dynamically, after `onmessage` is set:** a message that arrives while a static
+   import still waits finds no handler and is lost (the reader's first book never opened).
 5. New tools: put every heavy import behind a function called on first use; wrap a wasm engine in `lazyEngine`;
    create workers with `trackWorker`; register caches with `onLeave`; never start work in `mount` that the first view does not show.
 
@@ -4100,7 +4152,8 @@ npm packages (pinned in `package-lock.json`) are bundled by Vite or copied to `p
 | *test only:* unicode-emoji-json 0.9.0 | MIT | another reading of Unicode's emoji list, which the Emoji tab's data is held to (`tests/unit/emoji.test.mjs`) |
 | *test only:* @xterm/xterm 6.0.0 (its TypeScript source, transpiled in the test) | MIT | what a terminal receives for a key, which the Key Codes tab's "A terminal receives" is held to (`tests/unit/keycombo.test.mjs`) |
 | *test only:* axe-core 4.14.1 (Deque's accessibility checker) | MPL-2.0 | `tests/e2e/a11y.e2e.mjs`: WCAG 2.2 A / AA on every page, desktop light and dark, phone dark |
-| @expo-google-fonts/noto-sans (Noto Sans TTF: regular, bold, italic) | OFL-1.1 (package MIT) | PDFs made by GST Invoice, Rent Receipt, Resume Builder |
+| @expo-google-fonts/noto-sans (Noto Sans TTF: regular, bold, italic) | OFL-1.1 (package MIT) | PDFs made by GST Invoice, Rent Receipt, Resume Builder; EPUB Reader (its Sans) |
+| @expo-google-fonts/literata 0.4.3 (Literata TTF: regular, italic, bold, bold italic — four files, 1.0 MB on the site) | OFL-1.1 (package MIT) | EPUB Reader (the text's font; MuPDF's FreeType reads no WOFF, so @fontsource/literata's files cannot serve) |
 
 **Data files committed in `public/data/`**: EFF large wordlist (CC-BY 3.0); `dict/` — English Wiktionary via
 wiktextract/kaikki.org (CC-BY-SA 4.0 + GFDL, Wiktionary contributors) and wordfreq 3.1.1 English frequencies (CC-BY-SA

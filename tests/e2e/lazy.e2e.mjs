@@ -92,11 +92,13 @@ export default async ({ base, page: newPage, ok, info, devices }) => {
     p.on('request', (r) => before.push(rel(r.url())));
     ok(!before.some((u) => /textcore.*\.wasm/.test(u)), 'search engine not loaded before the search box is used');
     await p.locator('.search-input').first().fill('merge pdf');
-    await p.waitForTimeout(500);
+    // the engine and the keywords arrive over the network: waited for (a fixed half second was too short when many suites
+    // share the machine), not assumed
+    const shown = await p.locator('.search-results').first().waitFor({ state: 'visible', timeout: 15000 }).then(() => true, () => false);
     ok(before.some((u) => /textcore.*\.wasm/.test(u)), 'search engine loads on first use of the search box');
-    ok(await p.locator('.search-results').first().isVisible(), 'search results are shown');
+    ok(shown, 'search results are shown');
     await p.keyboard.press('Enter');
-    await p.waitForTimeout(400);
+    await p.waitForURL(/#\/pdf-merge$/, { timeout: 5000 }).catch(() => {});
     ok(p.url().endsWith('#/pdf-merge'), `Enter on the search box opens the top match after lazy loading (${p.url().split('#')[1]})`);
     await p.close();
   }
