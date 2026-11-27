@@ -77,7 +77,7 @@ export const mount: Mount = (root, ctx) => {
   const input$ = imageInput((img, f, how) => {
     src = img; turns = 0; handTurned = false; name = baseName(f.name); forget(); show(); editor.hidden = false;
     if (how === 'camera') reveal(editor.firstElementChild!); // the photo where the camera was
-  }, { label: 'Choose an image with text', instead: 'choose an image instead' });
+  }, { label: 'Choose an image with text', instead: 'choose an image instead', paste: true });
   const turn = (k: number) => { if (!src) return; turns = (turns + k) % 4; handTurned = true; forget(); show(); };
   const text = () => { if (!out.value.trim()) throw new Error('There is no text yet — choose an image and press "Extract text".'); return out.value; };
   editor.append(

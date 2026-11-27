@@ -13,17 +13,14 @@ The owner adds items here in chat ("add … to to do"). Newest instructions win.
 
 3. _(withdrawn by the owner on 20 Nov 2026: the "Export Python utility" for the YouTube Clip tab — do not build it.)_
 
-37. **OCR and Photo Dictionary: an image from the clipboard** (owner, 27 Nov 2026: "Make both ocr app and photo dictionary app
-    take images, as input, from the clipboard"). Today both take a picture pasted with Ctrl+V on a PC (the shared picker,
-    `imageInput` in `src/lib/imgtools.ts`, listens for the page's paste — the picker's line says "or drop / paste (Ctrl+V)"),
-    but there is no button for it, and a phone has no Ctrl+V. **Owner, the same day: "Make a paste button for ocr and photo
-    dictionary apps on the pc too"** — so: a visible **"Paste image" button in both tabs, on PCs and on phones** (Ctrl+V stays
-    as it is). The browser's Async Clipboard API, `navigator.clipboard.read()` — Chrome on Windows, Linux and Android asks once
-    for leave to read the clipboard; iPhone Safari shows its own "Paste" button to tap —, with words for an empty clipboard,
-    text instead of a picture, and a refusal; the picture then read as a chosen photo is. When: at the owner's word (not yet
-    started).
-
 ## Done
+- **37. OCR and Photo Dictionary: an image from the clipboard** (owner, 27 Nov 2026: "Make both ocr app and photo dictionary app
+  take images, as input, from the clipboard", then "Make a paste button for ocr and photo dictionary apps on the pc too") —
+  done 27 Nov 2026: a **"Paste image"** button beside "Use webcam" / "Use camera" in both tabs, on PCs and phones. It reads
+  the picture on the clipboard (Chrome asks once for leave; iPhone Safari shows its own "Paste" to tap) and reads it as a
+  chosen photo is — the same text, the same words; the text saves as clipboard-<date>-<time>.txt. Text instead of a
+  picture, an empty clipboard and a refusal are said in the device's words, with how to copy a picture or where to allow
+  it. Ctrl+V as before. CLAUDE.md §3 OCR ("Paste image"); unit `clipimage` 37, e2e `paste-image` 29.
 - **35. Text Diff: an interactive side-by-side diff, hunk by hunk** (owner, 27 Nov 2026: "In the text diff app, add an
   additional option to actually do an interactive side-by-side diff with next and previous. as in to cycle through next and
   previous diff hunks") — done 27 Nov 2026: a fourth view, **Side by side** (Lines, Words and Characters as they were): the

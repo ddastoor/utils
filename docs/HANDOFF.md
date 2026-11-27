@@ -342,7 +342,11 @@ environments in `~/.cache/uv/archive-v0` (folders with a `pyvenv.cfg`) hold hard
   to the checksum-verified crate at build time). Check a port against its reference implementation before trusting it.
 - **Traps in the tests:** Playwright's `setInputFiles` cannot open a path with non-ASCII characters in this sandbox's
   C locale — pass `{ name, mimeType, buffer }`; run bash with `LC_ALL=C.UTF-8` when it must decode `\uXXXX`;
-  `console.log` inside a unit suite shows only its first line — write debug output to a file.
+  `console.log` inside a unit suite shows only its first line — write debug output to a file. **The clipboard is one for the
+  whole run:** the suites share one browser, so a suite that copies and reads back (hash, gradient, keycode, markdown-copy,
+  the OCR …) can meet another suite's copy in between — keep real clipboard writes few (paste-image has two: the button's
+  round trip and Ctrl+V's, each tried again when another copy came in between) and stand in for `navigator.clipboard.read`
+  in the page for everything else.
 - **Runner:** `node tests/e2e.mjs cidr chmod. x509` and `node tests/unit.mjs keys devcore` take several filters
   (`chmod.` = the whole name, so `chmod` does not also pick another suite).
 - **Push often (owner, 17 Nov 2026 — CLAUDE.md STANDING RULE #3):** commit and push after every meaningful step; do

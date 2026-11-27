@@ -28,6 +28,8 @@ export interface LiveCameraOptions {
   label?: string;
   /** the photo: its pixels, and — for a tab that works on files — the same photo as a JPEG file (made when asked) */
   onSnap: (img: Img, file: () => Promise<File>) => void | Promise<void>;
+  /** more ways in beside the start button (the clipboard's "Paste image"), hidden with it while the camera is open */
+  beside?: HTMLElement[];
   /** the live view opened / closed */
   onOpen?: () => void;
   onClose?: () => void;
@@ -93,6 +95,7 @@ export function liveCamera(o: LiveCameraOptions) {
   const stop = () => {
     req++; release();
     box.hidden = true; ctl.hidden = true; startBtn.hidden = false; status.textContent = '';
+    for (const x of o.beside ?? []) x.hidden = false;
     if (active === self) { active = null; document.documentElement.classList.remove('cam-open'); }
     if (shown) { shown = false; o.onClose?.(); }
   };
@@ -117,6 +120,7 @@ export function liveCamera(o: LiveCameraOptions) {
     stream = s; video.srcObject = s; video.play().catch(() => { /* autoplay plays it; play() only nudges Safari */ });
     video.classList.toggle('mirror', facing === 'user');
     box.hidden = false; ctl.hidden = false; startBtn.hidden = true; status.textContent = '';
+    for (const x of o.beside ?? []) x.hidden = true;
     document.documentElement.classList.add('cam-open');
     if (!shown) { shown = true; taken = 0; doneBtn.setLabel('Cancel'); o.onOpen?.(); }
     const track = s.getVideoTracks()[0];
@@ -173,7 +177,7 @@ export function liveCamera(o: LiveCameraOptions) {
   const switchBtn = button(mobile ? '' : 'Switch camera', switchCam, { icon: 'SwitchCamera', title: 'Switch camera' }); switchBtn.hidden = true;
   const doneBtn = button('Cancel', () => { stop(); reveal(el); }, { variant: 'ghost' });
   const ctl = h('div', { class: 'row live-cam-ctl', hidden: true }, button('Snap', snap, { variant: 'primary', icon: 'Camera' }), switchBtn, doneBtn);
-  const el = h('div', { class: 'stack live-cam-wrap' }, h('div', { class: 'row' }, startBtn), box, ctl, status);
+  const el = h('div', { class: 'stack live-cam-wrap' }, h('div', { class: 'row' }, startBtn, ...(o.beside ?? [])), box, ctl, status);
   // hidden with what holds it (another mode chosen, the box closed) or taken off the page: the camera closes
   const seen = new ResizeObserver(() => { if (stream && !el.getClientRects().length) stop(); });
   seen.observe(el);

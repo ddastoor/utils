@@ -1,6 +1,8 @@
 // Small shared helpers for image tools: input widgets (pick / drop / paste / camera), flips, 90° rotations, crop.
 import { h, filePicker, toast, button, downloadBlob, shareOrDownload, fmtBytes, type PickOpts } from '../ui';
 import { liveCamera } from './livecam';
+import { clipboardPicture, type ClipWhere } from './clipimage';
+import { isIOS, isAndroid, isMac } from '../platform';
 import { zipFiles } from './zip';
 import type { Img } from '../wasm/imgproc';
 import { loadImg } from './imgio';
@@ -10,12 +12,37 @@ import { loadImg } from './imgio';
  *  for a tab with a camera of its own). Calls onImage with the decoded image and its file; a photo from the camera comes
  *  as its pixels and the same photo as a JPEG (camera-<date>-<time>.jpg), `how` = 'camera'. The picker never forces the
  *  camera (with the capture attribute a phone opens the camera and nothing else, so photos and screenshots already on
- *  it could not be chosen). A file chosen, dropped or pasted closes the camera. */
+ *  it could not be chosen). A file chosen, dropped or pasted closes the camera.
+ *  `paste`: a "Paste image" button beside the camera (the OCR and the Photo Dictionary — to-do #37), on PCs and phones: the
+ *  picture on the clipboard, read with the browser's clipboard API (src/lib/clipimage.ts), arrives as a chosen file does,
+ *  named clipboard-<date>-<time>.png; what is there instead is said under it. Shown where the browser can read the
+ *  clipboard from a button (Ctrl+V works everywhere). */
 export function imageInput(onImage: (img: Img, file: File, how: 'file' | 'camera') => void | Promise<void>,
-  opts: { label?: string; multiple?: boolean; camera?: false | { facing?: 'user' | 'environment' }; instead?: string } = {}) {
+  opts: { label?: string; multiple?: boolean; camera?: false | { facing?: 'user' | 'environment' }; instead?: string; paste?: boolean } = {}) {
   const busy = h('div', { class: 'muted small' });
+  // ---- the clipboard's picture, by a button
+  const where: ClipWhere = isIOS ? 'ios' : isAndroid ? 'android' : isMac ? 'mac' : 'pc';
+  const canPaste = !!opts.paste && typeof navigator.clipboard?.read === 'function';
+  const pasteSay = h('div', { class: 'small', role: 'status', id: 'paste-say' });
+  let pasteSeq = 0;
+  const pasteNow = async () => {
+    const my = ++pasteSeq; // the clipboard is read in this tap (Safari asks for it there) — nothing is awaited before it
+    const asking = clipboardPicture(navigator.clipboard, where);
+    pasteSay.className = 'muted small'; pasteSay.textContent = where === 'ios' ? 'Reading the clipboard — tap “Paste” when Safari offers it…' : 'Reading the clipboard…';
+    try {
+      const f = await asking;
+      if (my !== pasteSeq) return;
+      pasteSay.textContent = '';
+      await handle([f]);
+    } catch (e: any) {
+      if (my !== pasteSeq) return;
+      pasteSay.className = 'small err-text'; pasteSay.textContent = e?.message || String(e);
+    }
+  };
+  const pasteBtn = canPaste ? button('Paste image', () => { void pasteNow(); }, { icon: 'ClipboardPaste', title: 'The picture on the clipboard — a copied picture or a screenshot' }) : null;
   const handle = async (files: File[]) => {
     cam?.stop();
+    pasteSeq++; pasteSay.textContent = ''; // a picture chosen, dropped or pasted: an older clipboard answer is not wanted
     for (const f of files) {
       busy.textContent = `Opening ${f.name}…`;
       try {
@@ -34,13 +61,14 @@ export function imageInput(onImage: (img: Img, file: File, how: 'file' | 'camera
   const cam = opts.camera === false ? null : liveCamera({
     multiple: opts.multiple, facing: opts.camera?.facing, instead: opts.instead ?? 'choose a photo instead',
     onSnap: async (img, file) => { await onImage(img, await file(), 'camera'); compact(); },
+    beside: pasteBtn ? [pasteBtn] : undefined, onOpen: () => { pasteSeq++; pasteSay.textContent = ''; },
   });
   const onPaste = (e: ClipboardEvent) => {
     const fs = [...(e.clipboardData?.files || [])].filter((f) => f.type.startsWith('image/'));
     if (fs.length) { e.preventDefault(); handle(opts.multiple ? fs : fs.slice(0, 1)); }
   };
   addEventListener('paste', onPaste);
-  return { el: h('div', { class: 'stack' }, picker, cam?.el ?? null, busy), dispose: () => { removeEventListener('paste', onPaste); cam?.dispose(); }, compact, camera: cam };
+  return { el: h('div', { class: 'stack' }, picker, cam?.el ?? null, pasteBtn && !cam ? h('div', { class: 'row' }, pasteBtn) : null, pasteBtn ? pasteSay : null, busy), dispose: () => { removeEventListener('paste', onPaste); cam?.dispose(); }, compact, camera: cam };
 }
 
 /** A picker of pictures for a tab that reads the files itself, with the camera beside it (as `imageInput`): a photo from

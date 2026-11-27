@@ -2387,6 +2387,20 @@ PC"; the first tab with it — then every picture tab: §3 "Camera in every tab 
 picker's own camera; Snap takes the full frame into the editor, scrolled into view (`reveal`), and its text downloads
 under the photo's name (camera-20261120-211503.txt). The picker does not force the camera (screenshots, photos already
 taken; an iPhone's picker also offers its camera app).
+**Paste image (to-do #37; owner, 27 Nov 2026: "Make both ocr app and photo dictionary app take images, as input, from the
+clipboard", "Make a paste button for ocr and photo dictionary apps on the pc too"; this tab and the Photo Dictionary):** a
+"Paste image" button beside "Use webcam" / "Use camera", on PCs and phones (`imageInput(…, { paste: true })`; the button steps
+aside with the camera's while the camera is open). It reads the clipboard with the browser's Async Clipboard API
+(`src/lib/clipimage.ts`; read in the tap itself — Safari reads only there): Chrome on Windows, Linux and Android asks once
+for leave, iPhone Safari shows its own "Paste" to tap. The picture (PNG first, then JPEG, WebP …; an SVG drawing last)
+arrives as a chosen file does, named clipboard-20261127-091503.png (-2 … within a second), so the text downloads as
+clipboard-….txt. Said under the buttons, in the device's words: text instead of a picture or an empty clipboard (how to
+copy a picture there — a right-click's Copy image, a screenshot to the clipboard: Win+Shift+S, Shift+PrtScn; press and hold
+on Android; Photos → Share → Copy Photo on an iPhone; a picture *file* copied in a file manager arrives only with Ctrl+V),
+a refusal (where to allow it: the site settings' Clipboard; on an iPhone, tap Safari's Paste), a page without the focus.
+A newer picture wins over a slow clipboard. Ctrl+V as before (it needs no leave). Where the browser cannot read the
+clipboard from a button, there is no button. Unit `clipimage` 37, e2e `paste-image` 29 (Chromium's real clipboard granted
+and refused, a stand-in for the rest; the OCR's text and the Photo Dictionary's words the same as the file's).
 **A photographed page straightened first (owner, 21 Nov 2026: "just like the photo dictionary, the OCR app should also
 work really well from my phone" — `todo.md` #9; e2e 64):** with the clean-up on, the page of a camera's photo (a Kindle's
 screen in its black body, a sheet on a table) is found and straightened before it is read (`src/lib/pagecrop.ts`, the
@@ -2640,7 +2654,8 @@ the photo with a webcam if it's a PC app." No engine to fetch: the browser's get
   metadata, and the tab says so: "Taken here in the browser …"); FFmpeg's main picker (owner, 21 Nov 2026 — the
   snapped photo is the file to work on) and its picture inputs (logo, the picture for a sound, picture-in-picture;
   shown when a task asks for one). The phones' native camera inputs (Doc Scanner, Signature Maker, Sign PDF) are gone
-  — the live camera does it on both.
+  — the live camera does it on both. **Beside the camera button, "Paste image"** where a tab asks for it (`paste: true`:
+  the OCR and the Photo Dictionary — to-do #37; `liveCamera`'s `beside` holds it in the camera's row).
 - **Without a camera, on purpose** (EXEMPT in the sweep): SVG Optimizer (it takes SVG drawings, which no camera makes);
   the QR & Barcode Scanner keeps a camera of its own.
 - **Tests:** `tests/e2e/camera.e2e.mjs` — every picture picker a tab shows, on a PC and a phone, has the camera in its
@@ -2654,7 +2669,8 @@ the photo with a webcam if it's a PC app." No engine to fetch: the browser's get
 16 Nov), so a PC showed only "made for phones"; asked, the owner chose **PC + phone, the photo from the webcam on a PC**.
 Its own camera gave way to the shared live camera of every picture tab (`imageInput` — the back camera on phones, the
 webcam on PCs, "Switch camera", closed on leave); "Share list" sits in the phone's fixed bar once there is a list. e2e
-55: a PC's webcam showing the book page → Snap → the same 20 words as the photo file.
+55: a PC's webcam showing the book page → Snap → the same 20 words as the photo file. **"Paste image"** beside the camera
+button, on PCs and phones (to-do #37 — as the OCR tab: §3 OCR, "Paste image").
 **The upgrade (owner, 21 Nov 2026 — "make a note of this and build it out when you come to it"; after the PDF → EPUB
 fix) — BUILT 21 Nov 2026** (items 1 – 4: 31dbd3e; item 5: abe1d69, cd07746, 5617e29, d4f5b2d and the "snap again" hint
 after them):
@@ -3363,6 +3379,8 @@ into them: the XML is read and written by the browser's DOMParser and XMLSeriali
 shadow (blurred by imgproc.wasm). No WebAssembly module edits a Word document in place (docx-rs, a Rust crate, builds documents
 from its own model of them; a header changed in place, everything else byte for byte, is what a document needs —
 `docs/WASM-AUDIT.md`, Watermark).
+Nov 2026 (Paste image, to-do #37): `src/lib/clipimage.ts` — the browser's Async Clipboard API, a choice among the formats
+it offers and a file name; no engine has work to do.
 Nov 2026 (Screenshot's area, to-do #24): `src/lib/areageom.ts` — the rectangle's arithmetic (where the frame stands, a
 drag, a move, an edge) and the area copied row by row with `TypedArray.set` (a memory copy per row, no pixel computed);
 `src/lib/areapick.ts` draws the frozen frame with the browser's canvas. No engine has anything to do here.

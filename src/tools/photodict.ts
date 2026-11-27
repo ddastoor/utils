@@ -235,7 +235,7 @@ export const mount: Mount = (root, ctx) => {
   // ---------------------------------------------------------------- input: the camera (phone: back; PC: webcam) or a photo
   // the shared live camera of every picture tab (src/lib/livecam.ts): Snap gives the frame at full size; a photo chosen
   // instead closes it; leaving the tab closes it. The reading runs on its own (the picker is free for the next photo).
-  const input$ = imageInput((img, file) => { void run(img, file); }, { label: 'Choose a photo of a page', instead: 'choose a photo of the page instead' });
+  const input$ = imageInput((img, file) => { void run(img, file); }, { label: 'Choose a photo of a page', instead: 'choose a photo of the page instead', paste: true });
   const shareBtn = button('Share list', () => shareList(), { icon: 'Share2' });
   const bar = h('div', { class: 'actions', hidden: true }, shareBtn); // phones: a fixed bar, once there is a list to share
 
