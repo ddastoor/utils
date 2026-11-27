@@ -82,6 +82,13 @@ The owner adds items here in chat ("add … to to do"). Newest instructions win.
     the original on the left and the changed text on the right, their lines side by side, with Next and Previous going from
     one hunk (a run of changes) to the next. When: at the owner's word (not yet started).
 
+36. **The start page tells of the apps the other kind of device has** (owner, 27 Nov 2026: "When the app opens in the mobile
+    on the landing page indicate to the user that there are additional PC-only apps and when the app opens in the PC, notify
+    to the user that there are additional mobile-only apps"). Today PC-only apps are hidden on phones and mobile-only apps on
+    PCs (CLAUDE.md §2, the platform model: of 175 tabs, 64 are PC only and 3 mobile only — Bubble Level, Compass, Touch Test),
+    and nothing on the start page says so. On a phone the landing page says that there are more apps for the PC; on a PC,
+    that there are more for the phone. When: at the owner's word (not yet started).
+
 ## Done
 - **20. Noise Remover: "Studio voice" — a voice recorded outdoors made to sound as if spoken in a studio** (owner, 26 Nov 2026:
   "In the noise remover app, it should be that when I record my voice, say out in the open, in traffic or outside, when I
