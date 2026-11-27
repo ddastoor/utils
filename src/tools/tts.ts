@@ -9,15 +9,9 @@ import { audio, int16Asymmetric } from '../lib/audio-client';
 import { decodeText } from '../lib/sheetdata';
 import { trackWorker } from '../lifecycle';
 import { take } from '../lib/handoff';
+import { VOICES, V, type Voice } from '../lib/voices';
 
-interface Voice { id: string; label: string; engine: 'kokoro' | 'piper' | 'system'; lang: 'a' | 'b'; speaker: number }
-const V = (id: string, label: string, engine: Voice['engine'], lang: Voice['lang'] = 'a', speaker = 0): Voice => ({ id, label, engine, lang, speaker });
-export const VOICES: Array<[string, Voice[]]> = [
-  ['US English', [V('af_heart', 'Heart — female', 'kokoro'), V('af_bella', 'Bella — female', 'kokoro'), V('af_nicole', 'Nicole — female, soft', 'kokoro'), V('af_sarah', 'Sarah — female', 'kokoro'),
-    V('am_michael', 'Michael — male', 'kokoro'), V('am_fenrir', 'Fenrir — male', 'kokoro'), V('am_puck', 'Puck — male', 'kokoro')]],
-  ['British English', [V('bf_emma', 'Emma — female', 'kokoro', 'b'), V('bf_isabella', 'Isabella — female', 'kokoro', 'b'), V('bm_george', 'George — male', 'kokoro', 'b'), V('bm_fable', 'Fable — male', 'kokoro', 'b')]],
-  ['Indian English', [V('in_svbi', 'Female voice 1 (SVBI)', 'piper', 'a', 2), V('in_tni', 'Female voice 2 (TNI)', 'piper', 'a', 9), V('in_asi', 'Male voice 1 (ASI)', 'piper', 'a', 10), V('in_rrbi', 'Male voice 2 (RRBI)', 'piper', 'a', 19)]],
-];
+export { VOICES };
 const SAMPLE = 'Welcome to SuperUtils. This voice is made on your own device, so the text you type never leaves it. You can change the speed, pick another voice, and save the result as an MP3.';
 /** Markdown → plain text for reading aloud (headings, emphasis, links, code fences, list markers). */
 export const mdToText = (s: string) => s.replace(/```[\s\S]*?```/g, ' ').replace(/`([^`]*)`/g, '$1').replace(/!\[[^\]]*\]\([^)]*\)/g, '').replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')

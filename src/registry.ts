@@ -99,6 +99,7 @@ export const TOOLS: Tool[] = [
   t('kindlepdf', 'PDF for Kindle', 'Read technical PDFs on a Kindle exactly as typeset: margins trimmed, columns cut into screen-high pieces, text kept.', 'documents', 'Tablet', () => import('./tools/kindlepdf').then((m) => m.mount)),
   t('articles', 'Articles → Kindle', 'Saved web articles made into one e-book for a Kindle: the article alone, with its pictures, title, author and date.', 'documents', 'BookUp', () => import('./tools/articles').then((m) => m.mount)),
   t('ebook', 'EPUB Reader', 'Read e-books — EPUB, MOBI, FB2, comics, text — with contents, search, fonts, sizes and themes.', 'documents', 'BookOpenText', () => import('./tools/ebook').then((m) => m.mount)),
+  t('audiobook', 'PDF / EPUB → Audiobook', 'A book read aloud into MP3s, one per chapter, by natural voices made on this device — US, British or Indian English.', 'documents', 'BookAudio', () => import('./tools/audiobook').then((m) => m.mount)),
   t('sheet', 'CSV / Excel', 'View CSV and Excel files; convert CSV ⇄ XLSX ⇄ JSON.', 'documents', 'Sheet', () => import('./tools/sheet').then((m) => m.mount), 'pc'),
   t('markdown', 'Markdown Editor', 'Write Markdown with live preview; export HTML or PDF.', 'documents', 'NotebookPen', () => import('./tools/markdown').then((m) => m.mount)),
   t('invoice', 'GST Invoice', 'Create a GST invoice and save it as PDF.', 'documents', 'ReceiptText', () => docgen().then((m) => m.invoice)),

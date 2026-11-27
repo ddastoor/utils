@@ -725,6 +725,23 @@ details summary { cursor: pointer; font-weight: 600; color: var(--accent); paddi
 .kpdf-nav { justify-content: space-between; align-items: center; flex-wrap: nowrap; }
 .kpdf-nav [role=status] { text-align: center; flex: 1; min-width: 0; }
 /* Articles → Kindle */
+/* PDF / EPUB → Audiobook */
+.ab-book { display: flex; gap: 16px; align-items: flex-start; }
+.ab-book > .stack { flex: 1; min-width: 0; }
+.ab-cover:empty { display: none; }
+.ab-cover-img { display: block; width: 96px; height: auto; border-radius: var(--radius-sm); border: 1px solid var(--border); }
+.ab-all { gap: 8px; }
+.ab-list { display: grid; gap: 8px; }
+.ab-row { display: grid; grid-template-columns: auto 1fr auto; gap: 8px; align-items: start; padding: 8px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); }
+.ab-check { display: flex; align-items: center; gap: 6px; min-height: var(--tap); min-width: var(--tap); cursor: pointer; }
+.ab-check input { width: 20px; height: 20px; margin: 0; accent-color: var(--accent); }
+.ab-num { min-width: 2ch; color: var(--muted); font-variant-numeric: tabular-nums; }
+.ab-main { min-width: 0; display: grid; gap: 4px; }
+.ab-main .ab-title { width: 100%; min-width: 0; font-weight: 600; }
+.ab-res:empty { display: none; }
+.ab-made { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.ab-player { width: 100%; max-width: 440px; height: 40px; }
+@media (max-width: 640px) { .ab-cover-img { width: 72px; } }
 .art-list { display: grid; gap: 12px; }
 .art-item { display: grid; gap: 6px; padding: 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); }
 .art-head { display: flex; align-items: center; gap: 8px; }

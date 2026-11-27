@@ -18,6 +18,9 @@
 import { unzipSync, zipSync, strFromU8, strToU8 } from 'fflate';
 import { openDoc, metaOf, type Opened, type Kind } from './ebook';
 import { pdfToEpub, pdfLang, type EpubEngines } from './pdf2epub';
+import { countWords, speechText } from './speechtext';
+
+export { countWords, speechText };
 
 export type BlockKind = 'heading' | 'text' | 'break';
 /** A paragraph, a heading, or a break between scenes (* * *): its text, the page it is on and its height on the page (in
@@ -38,28 +41,12 @@ export interface ReadOptions { notes?: boolean }
 /** An entry of the contents: its title, depth and where it begins (page, height). */
 export interface Entry { title: string; depth: number; page: number; y: number }
 
-const WORD = /[\p{L}\p{N}]+(?:['’][\p{L}]+)*/gu;
-/** Words as a listener counts them (letters and digits). */
-export const countWords = (s: string) => (s.match(WORD) || []).length;
 const norm = (s: string) => s.normalize('NFKD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
 
 /** Titles that are not read by default (ticked off at first). */
 export const SKIP = /^(?:table of )?contents$|^index\b|^copyright\b|^(?:front |back )?cover$|^(?:also by|other books by|books by)\b|^about the (?:author|publisher)\b|^colophon$/i;
 /** Front matter whose name is no name for a track it is joined to. */
 const GENERIC = /^(?:cover|title(?: page)?|half[- ]?title|frontispiece|copyright(?: page)?|dedication|epigraph|imprint)$/i;
-
-// ---------------------------------------------------------------------------------------------------- text for speech
-/** A paragraph's text as it should be spoken: soft hyphens and zero-width characters out; a web address as its site
- *  ("example.com"); bracketed note marks ([12], [*]) out; white space single. Kokoro's own normaliser reads the rest
- *  (numbers, money, times, titles). */
-export function speechText(t: string): string {
-  return t.normalize('NFC')
-    .replace(/[­​-‍⁠﻿]/g, '')
-    .replace(/\bhttps?:\/\/(?:www\.)?([^\s/?#]+)[^\s]*?(?=[.,;:!?)\]]*(?:\s|$))/gi, '$1')
-    .replace(/\bwww\.([^\s/?#]+\.[a-z]{2,})[^\s]*?(?=[.,;:!?)\]]*(?:\s|$))/gi, '$1')
-    .replace(/\s*\[(?:\d{1,3}|[*†‡§¶]{1,3})\]/g, '')
-    .replace(/\s+/g, ' ').trim();
-}
 
 // ---------------------------------------------------------------------------------------------------- footnote marks
 const HREF_HASH = String.raw`\bhref\s*=\s*["'][^"']*#[^"']*["']`;

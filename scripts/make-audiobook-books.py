@@ -15,6 +15,8 @@ in order — and what must not be heard (running heads, page numbers, a figure's
                  notes in <aside epub:type="footnote">, a drop cap, scene breaks, a web address, and paragraphs set without
                  space between them (text-indent only)
 - noheads.txt    a plain text of about 9,000 words without a heading: made into parts by length
+- tiny.epub      three chapters of three short sentences each and a cover picture: quick to say aloud (the browser suite
+                 makes real MP3s of it)
 """
 import json, os, random, zipfile
 
@@ -264,6 +266,34 @@ def make_epub():
         put(z, 'OEBPS/content.opf', opf); put(z, 'OEBPS/nav.xhtml', nav); put(z, 'OEBPS/style.css', css); put(z, 'OEBPS/book.xhtml', xhtml)
     return truth
 
+# ---------------------------------------------------------------------------------------------------- tiny.epub
+def make_tiny():
+    """Three chapters of three short sentences and a cover: quick to say (the browser suite makes real MP3s of it)."""
+    import io
+    from PIL import Image, ImageDraw
+    im = Image.new('RGB', (300, 450), (32, 72, 120)); d = ImageDraw.Draw(im)
+    d.rectangle([20, 20, 280, 430], outline=(240, 200, 80), width=6); d.ellipse([110, 160, 190, 240], fill=(240, 200, 80))
+    buf = io.BytesIO(); im.save(buf, 'PNG'); cover = buf.getvalue()
+    chapters = [('The Harbour', ['The ferry left the harbour at dawn with three passengers aboard.', 'Mara watched it go from the end of the long stone pier.', 'Gulls followed it until it was a small grey shape on the sea.']),
+                ('The Light', ['At night the great lamp turned slowly above the sleeping island.', 'Its beam swept across the bay and over the black rocks.', 'Far out at sea the fishing boats counted its flashes.']),
+                ('The Letter', ['A letter came on Thursday in the bag of the supply boat.', 'She read it twice by the stove before she put it away.', 'Then she climbed the stairs to wind the clockwork of the lamp.'])]
+    truth = {'title': 'Three Small Chapters', 'author': 'Ines Farrow', 'tracks': []}
+    files = []
+    for k, (title, sents) in enumerate(chapters, 1):
+        files.append((f'c{k}.xhtml', f'<?xml version="1.0" encoding="UTF-8"?>\n<!DOCTYPE html>\n<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en"><head><title>{title}</title></head><body><h1>{title}</h1>' + ''.join(f'<p>{x}</p>' for x in sents) + '</body></html>'))
+        truth['tracks'].append({'title': title, 'words': words(title + ' ' + ' '.join(sents)), 'sentences': sents})
+    nav = '<?xml version="1.0" encoding="UTF-8"?>\n<!DOCTYPE html>\n<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops"><head><title>Contents</title></head><body><nav epub:type="toc"><ol>' + ''.join(f'<li><a href="c{k}.xhtml">{t}</a></li>' for k, (t, _) in enumerate(chapters, 1)) + '</ol></nav></body></html>'
+    opf = '<?xml version="1.0" encoding="UTF-8"?>\n<package xmlns="http://www.idpf.org/2007/opf" version="3.0" unique-identifier="id"><metadata xmlns:dc="http://purl.org/dc/elements/1.1/"><dc:identifier id="id">urn:uuid:5a1c3d0e-2b4f-4c55-9d1e-0b7a9e7f2a33</dc:identifier><dc:title>Three Small Chapters</dc:title><dc:creator>Ines Farrow</dc:creator><dc:language>en</dc:language><meta property="dcterms:modified">2026-11-27T00:00:00Z</meta><meta name="cover" content="cover"/></metadata><manifest><item id="nav" href="nav.xhtml" media-type="application/xhtml+xml" properties="nav"/><item id="cover" href="cover.png" media-type="image/png" properties="cover-image"/>' + ''.join(f'<item id="c{k}" href="c{k}.xhtml" media-type="application/xhtml+xml"/>' for k in range(1, 4)) + '</manifest><spine>' + ''.join(f'<itemref idref="c{k}"/>' for k in range(1, 4)) + '</spine></package>'
+    def put(z, name, data, stored=False):
+        info = zipfile.ZipInfo(name, date_time=WHEN); info.compress_type = zipfile.ZIP_STORED if stored else zipfile.ZIP_DEFLATED; info.external_attr = 0o644 << 16; z.writestr(info, data)
+    with zipfile.ZipFile(os.path.join(OUT, 'tiny.epub'), 'w') as z:
+        put(z, 'mimetype', 'application/epub+zip', stored=True)
+        put(z, 'META-INF/container.xml', '<?xml version="1.0"?><container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container"><rootfiles><rootfile full-path="OEBPS/content.opf" media-type="application/oebps-package+xml"/></rootfiles></container>')
+        put(z, 'OEBPS/content.opf', opf); put(z, 'OEBPS/nav.xhtml', nav); put(z, 'OEBPS/cover.png', cover)
+        for name, x in files: put(z, f'OEBPS/{name}', x)
+    truth['coverBytes'] = len(cover)
+    return truth
+
 # ---------------------------------------------------------------------------------------------------- noheads.txt
 def make_txt():
     paras, ws = [], []
@@ -273,7 +303,7 @@ def make_txt():
         f.write('\n\n'.join(paras) + '\n')
     return {'words': ws, 'paragraphs': len(paras)}
 
-index = {'book.pdf': make_pdf(), 'gutenberg.epub': make_epub(), 'noheads.txt': make_txt()}
+index = {'book.pdf': make_pdf(), 'gutenberg.epub': make_epub(), 'noheads.txt': make_txt(), 'tiny.epub': make_tiny()}
 with open(os.path.join(OUT, 'index.json'), 'w') as f:
     json.dump(index, f, indent=1)
 print({k: (len(v.get('tracks', [])), sum(len(t['words']) for t in v.get('tracks', [])) or len(v.get('words', []))) for k, v in index.items()})

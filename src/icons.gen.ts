@@ -16,6 +16,7 @@ export const ICONS: Record<string, string> = {
   Barcode: "<path d=\"M3 5v14\" /><path d=\"M8 5v14\" /><path d=\"M12 5v14\" /><path d=\"M17 5v14\" /><path d=\"M21 5v14\" />",
   Binary: "<rect x=\"14\" y=\"14\" width=\"4\" height=\"6\" rx=\"2\" /><rect x=\"6\" y=\"4\" width=\"4\" height=\"6\" rx=\"2\" /><path d=\"M6 20h4\" /><path d=\"M14 10h4\" /><path d=\"M6 14h2v6\" /><path d=\"M14 4h2v6\" />",
   Blend: "<circle cx=\"15\" cy=\"9\" r=\"7\" /><circle cx=\"9\" cy=\"15\" r=\"7\" />",
+  BookAudio: "<path d=\"M12 6v7\" /><path d=\"M16 8v3\" /><path d=\"M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H19a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1H6.5a1 1 0 0 1 0-5H20\" /><path d=\"M8 8v3\" />",
   BookKey: "<path d=\"M13 2H6.5A2.5 2.5 0 0 0 4 4.5v15\" /><path d=\"M17 2v6\" /><path d=\"M17 4h2\" /><path d=\"M20 15.2V21a1 1 0 0 1-1 1H6.5a1 1 0 0 1 0-5H20\" /><circle cx=\"17\" cy=\"10\" r=\"2\" />",
   BookOpen: "<path d=\"M12 5v16\" /><path d=\"M20.001 19A2 2 0 0022 17V5a2 2 0 00-1.999-2L16 3.002A5 5 0 0012 5a5 5 0 00-4-2H4a2 2 0 00-2 2v12a2 2 0 001.999 2H8a5 5 0 014 2 5 5 0 014-2z\" />",
   BookOpenText: "<path d=\"M12 5v16\" /><path d=\"M16 13h2\" /><path d=\"M16 9h2\" /><path d=\"M20.001 19A2 2 0 0022 17V5a2 2 0 00-1.999-2L16 3.002A5 5 0 0012 5a5 5 0 00-4-2H4a2 2 0 00-2 2v12a2 2 0 001.999 2H8a5 5 0 014 2 5 5 0 014-2z\" /><path d=\"M6 13h2\" /><path d=\"M6 9h2\" />",
