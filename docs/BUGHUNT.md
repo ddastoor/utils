@@ -3071,3 +3071,7 @@ cannot. Three new suites; each fails on the build before its fixes.
   ResizeObserver in `src/main.ts`) and, on phones, `scroll-padding-bottom` for the tab's fixed action bar;
   `tests/e2e/scroll-focus.e2e.mjs` (10 checks: Shift+Tab and scrollIntoView on a PC with the rows open and folded, Tab,
   Shift+Tab and scrollIntoView on a phone) fails five of them on a build without the padding.
+- **Windows check run 18 (27 Nov 2026; `ffmpeg scroll-focus` on 9a8545a):** 206 / 206 in Google Chrome on Windows
+  10.0.26100 — ffmpeg 75, ffmpeg-sound 15, ffmpeg-fixes 51, ffmpeg-effects 55 (the results read back by the native FFmpeg 9.1
+  there, gyan.dev's build), scroll-focus 10; 206 s at concurrency 4, ffmpeg.e2e.mjs 202 s. Run 15's 30-minute time-out of the
+  joined FFmpeg suite does not come back: it was the 30 s wait after every successful job (above).

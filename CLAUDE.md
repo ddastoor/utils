@@ -2863,7 +2863,8 @@ commands, not a leak; a new core loads from the browser's cache in a second or t
   every job run by the native FFmpeg and measured — pixels, samples, levels, loudness, packets), `ffjobs` 202; e2e
   `ffmpeg-fixes` 51 and `ffmpeg-effects` 55 — the same jobs in the browser, on mono, stereo and 5.1 files, read
   back by the native FFmpeg (`tests/lib/ffread.mjs`, shared with the unit suite). Fixtures: `node
-  scripts/make-ffmpeg-fixtures.mjs` (17 files; the HDR clips by BT.2100's formulas, not by zscale).
+  scripts/make-ffmpeg-fixtures.mjs` (17 files; the HDR clips by BT.2100's formulas, not by zscale). All four FFmpeg suites
+  also in Chrome on Windows (the Windows check, run 18: 196 / 196, read back by the native FFmpeg 9.1 there).
 
 ### PDF → EPUB (PC) — BUILT (`src/tools/epub/epub.ts`, engine `src/lib/pdf2epub.ts`; unit `tests/unit/pdf2epub.test.mjs` 94 + `xycut.test.mjs` 33, e2e `tests/e2e/epub.e2e.mjs` 52)
 **Owner's rule for the reading order (21 Nov 2026; standing):** "in the original PDF, whenever there are multiple columns

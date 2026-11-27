@@ -68,7 +68,9 @@ FFmpeg, "22 new jobs"): 22 new FFmpeg jobs on the tab's FFmpeg 5.1 as it is — 
 one side, mains hum, a lecture evened out, HDR → SDR, black bars, a logo removed, metadata removed) and thirteen effects;
 61 jobs in ten groups. A job can measure first (`then`), report (`report`), name its outputs from the log (`names`), try
 again smaller (`next`). Unit `ffjobs2` 136 (native FFmpeg), e2e `ffmpeg-fixes` + `ffmpeg-effects` (the tab's FFmpeg in
-the browser, read back natively by `tests/lib/ffread.mjs`); fixtures `node scripts/make-ffmpeg-fixtures.mjs`. **To-do #33 added (27 Nov
+the browser, read back natively by `tests/lib/ffread.mjs`); fixtures `node scripts/make-ffmpeg-fixtures.mjs`. **On Windows too** (the Windows
+check, run 18, on 9a8545a): 206 / 206 in Chrome — ffmpeg 75, ffmpeg-sound 15, ffmpeg-fixes 51, ffmpeg-effects 55 (read back by
+the native FFmpeg 9.1 there), scroll-focus 10; the FFmpeg suites in 3.4 minutes. **To-do #33 added (27 Nov
 2026, the owner):** the Cartoonizer's Cartoon filter in grades, less to more cartoony — not started (ask when). **To-do #34 added (27 Nov 2026, the owner):** the Watermark tab's documents with or without the mark on the first (cover) page — not started (ask when). **To-do #35 added (27 Nov 2026, the owner):** the Text Diff side by side, Next / Previous through the hunks — not started (ask when). **Found while testing #32 and fixed (27 Nov 2026):** a control the browser scrolls into view landed under the sticky tab rows (WCAG 2.4.11) — `html` has scroll padding from the rows' height now (`--navh`, src/main.ts) and above the phone's action bar; e2e `scroll-focus` 10. **To-do #36 added (27 Nov 2026, the owner):** the start page tells a phone that there are PC-only apps and a PC that there are mobile-only apps — not started (ask when). The three that need our own FFmpeg build (a good stabiliser, Rubber Band pitch, VP9 / H.265) are
 potentials.md U3 "Our own FFmpeg build".
 **#20 Studio voice (batch 7), owner, 26 Nov 2026: "Just use your discretion and get the best quality"** — no samples to judge
