@@ -211,7 +211,9 @@ export default async ({ base, page: newPage, ok, devices }) => {
     return out; });
   ok(Object.values(hit).every((v) => v >= 44), `phone: the shell's touch targets are ≥ 44 px tall ${JSON.stringify(hit)} (search 40, tabs 36 / 34, star 42 before)`);
   await phone.goto(base); await phone.waitForSelector('.tile');
-  const tileStar = await phone.evaluate(() => { const el = document.querySelector('.tile-star'), b = el.getBoundingClientRect(), y = b.top + b.height / 2; let lo = b.left, hi = b.right;
+  // (scrolled into view first: below the start page's notes the first card can begin under the fold, where
+  // elementFromPoint finds nothing — the note of the PC's apps, to-do #36, put it there)
+  const tileStar = await phone.evaluate(() => { const el = document.querySelector('.tile-star'); el.scrollIntoView({ block: 'center' }); const b = el.getBoundingClientRect(), y = b.top + b.height / 2; let lo = b.left, hi = b.right;
     while (el.contains(document.elementFromPoint(lo - 1, y))) lo--; while (el.contains(document.elementFromPoint(hi, y))) hi++; let t = b.top, bt = b.bottom; const x = b.left + b.width / 2;
     while (el.contains(document.elementFromPoint(x, t - 1))) t--; while (el.contains(document.elementFromPoint(x, bt))) bt++; return [Math.round(hi - lo), Math.round(bt - t)]; });
   ok(tileStar.every((v) => v >= 44), `phone: a card's star takes taps over 44 × 44 px (${tileStar.join(' × ')}; 32 before)`);

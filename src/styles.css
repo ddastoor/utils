@@ -415,6 +415,12 @@ details summary { cursor: pointer; font-weight: 600; color: var(--accent); paddi
 .home-hero { margin: 4px 0 18px; }
 .home-hero h1 { font-size: 26px; font-weight: 750; letter-spacing: -.01em; }
 .home-hero p { margin: 4px 0 0; }
+/* the apps this device does not offer (to-do #36): PC-only ones on a phone, mobile-only ones on a PC */
+.other-apps { margin-top: 12px; }
+.other-apps p { margin: 0; }
+.other-site { font-weight: 600; overflow-wrap: anywhere; }
+.other-list ul { margin: 2px 0 0; padding-left: 18px; }
+.other-list li { margin: 4px 0; }
 .home-sec { margin-bottom: 26px; }
 .sec-title { display: flex; align-items: center; gap: 8px; font-size: 16px; font-weight: 700; margin-bottom: 10px; }
 .sec-title a { color: var(--text); text-decoration: none; }

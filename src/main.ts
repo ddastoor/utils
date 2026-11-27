@@ -126,6 +126,31 @@ function teardown() {
   releaseAll(); // workers, wasm instances, models and caches of the tool we are leaving (src/lifecycle.ts)
 }
 
+/** "a, b and c" */
+const andList = (xs: string[]) => xs.length < 2 ? xs.join('') : `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}`;
+
+/** The apps this device does not offer, said on the start page (to-do #36): a phone hides the PC-only apps, a PC the
+ *  mobile-only ones (CLAUDE.md §2, the platform model) — without a word, nobody could know they are there. A few are
+ *  named; more are counted by category, with every name under "Show the n apps". */
+function otherDevice(): HTMLElement | null {
+  const other = TOOLS.filter((t) => !available(t));
+  if (!other.length) return null;
+  const n = other.length, apps = `${n} more app${n === 1 ? '' : 's'}`;
+  const site = `${location.host}${location.pathname.replace(/\/(index\.html)?$/, '')}`;
+  const groups = CATEGORIES.map((c) => ({ c, list: other.filter((t) => t.cat === c.id) })).filter((g) => g.list.length);
+  const few = n <= 6;
+  // a few apps by name (A → Z); more by category, the largest first (the list under it keeps the order of the tab row)
+  const what = few ? andList(other.map((t) => t.title).sort((a, b) => a.localeCompare(b, 'en')))
+    : andList([...groups].sort((a, b) => b.list.length - a.list.length).map((g) => `${g.c.title} (${g.list.length})`));
+  return h('div', { class: 'note other-apps' }, ic(isMobile ? 'Monitor' : 'Smartphone'), h('div', null,
+    h('p', null, h('strong', null, `${apps} on ${isMobile ? 'a computer' : 'a phone'}:`), ` ${what} — `,
+      isMobile ? `made for a PC, ${n === 1 ? 'it is' : 'they are'} hidden on phones. ` : `${n === 1 ? 'it needs' : 'they need'} a phone’s sensors or touchscreen and ${n === 1 ? 'is' : 'are'} hidden on computers. `,
+      'Open ', h('span', { class: 'other-site' }, site), ` on ${isMobile ? 'a computer' : 'your phone'} to use ${n === 1 ? 'it' : 'them'}.`),
+    few ? null : h('details', { class: 'other-list' },
+      h('summary', null, `Show the ${n} apps`),
+      h('ul', null, groups.map((g) => h('li', null, h('strong', null, `${g.c.title} (${g.list.length}): `), g.list.map((t) => t.title).join(' · ')))))));
+}
+
 function showHome() {
   teardown(); setIdle(true);
   lastSection = 'all';
@@ -135,7 +160,8 @@ function showHome() {
   clear(view).append(
     h('section', { class: 'home-hero' },
       h('h1', null, 'SuperUtils'),
-      h('p', { class: 'muted' }, `${visible.length} private tools that run entirely in your browser. Browse by category, search, or star your favorites.`)),
+      h('p', { class: 'muted' }, `${visible.length} private tools that run entirely in your browser. Browse by category, search, or star your favorites.`),
+      otherDevice()),
     h('section', { class: 'home-sec' }, h('h2', { class: 'sec-title' }, ic('Star'), 'Favorites'), fv.length ? h('div', { class: 'tiles' }, fv.map((t) => tile(t, 'fav'))) : favEmpty()),
     ...cats.map((c) => h('section', { class: 'home-sec' },
       h('h2', { class: 'sec-title' }, ic(c.icon), h('a', { href: `#/c/${c.id}` }, c.title), h('span', { class: 'sec-count' }, String(toolsIn(c.id).length))),

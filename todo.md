@@ -30,14 +30,15 @@ The owner adds items here in chat ("add … to to do"). Newest instructions win.
     the original on the left and the changed text on the right, their lines side by side, with Next and Previous going from
     one hunk (a run of changes) to the next. When: at the owner's word (not yet started).
 
-36. **The start page tells of the apps the other kind of device has** (owner, 27 Nov 2026: "When the app opens in the mobile
-    on the landing page indicate to the user that there are additional PC-only apps and when the app opens in the PC, notify
-    to the user that there are additional mobile-only apps"). Today PC-only apps are hidden on phones and mobile-only apps on
-    PCs (CLAUDE.md §2, the platform model: of 175 tabs, 64 are PC only and 3 mobile only — Bubble Level, Compass, Touch Test),
-    and nothing on the start page says so. On a phone the landing page says that there are more apps for the PC; on a PC,
-    that there are more for the phone. When: at the owner's word (not yet started).
-
 ## Done
+- **36. The start page tells of the apps the other kind of device has** (owner, 27 Nov 2026: "When the app opens in the
+  mobile on the landing page indicate to the user that there are additional PC-only apps and when the app opens in the PC,
+  notify to the user that there are additional mobile-only apps") — done 27 Nov 2026: a note under the start page's first
+  lines — on a PC "3 more apps on a phone: Bubble Level, Compass and Touch Test — they need a phone's sensors or touchscreen
+  and are hidden on computers. Open <the site> on your phone to use them."; on a phone "64 more apps on a computer: Software
+  (56), Media (4), Documents (2), Images (1) and Device (1) — …" with every name under "Show the 64 apps" (by category, in
+  the order of the tab row). Counted from the registry, so a new app changes it by itself; the start page only. CLAUDE.md
+  §2 (the platform model); e2e `other-device` 36.
 - **32. FFmpeg tab: 22 new jobs** (owner, 26 Nov 2026: "include all the new cool FFmpeg features that you just mentioned
   above, leaving out the 3 that would require you to build the new FFmpeg module"; 27 Nov 2026: "yes go ahead with #32") —
   done 27 Nov 2026, all on the tab's FFmpeg 5.1 as it is (nothing added to the site; the three left out are potentials.md

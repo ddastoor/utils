@@ -16,6 +16,10 @@ merged into main (fast-forward, 1d5e8dc) and is no longer pushed to. **The site 
 (the owner allowed main in the `github-pages` environment; first deploy 754d1b5 — CLAUDE.md §7, Deploy).
 
 ## ▶ NOW — 26 Nov 2026, morning (read this first)
+**▶▶ 27 Nov 2026 — IN PROGRESS: the owner's "Go ahead with all items in todo" (to-do #33 – #36).** Order: **#36 DONE** (the
+start page's note of the other device's apps); then **#34** (Watermark: the first page of a document with or without the mark),
+**#33** (Cartoonizer: how cartoony, in grades), **#35** (Text Diff side by side, Next / Previous hunk). Each is committed and
+pushed when it is done; todo.md's Done says which are.
 **Batch 1 done; batch 2 (#18 OCR + Photo Dictionary) DONE** (todo.md Done #18; CLAUDE.md §3 OCR, "Documents — one reading
 path"): both tabs read through `src/lib/readpage.ts`; documents with bullets, tables, columns and watermarks read far
 better, no photo of the 150 measured reads worse (Kindle 65.4 → 68.0 %, documents 71.6 → 87.1 %). Measuring: `node
@@ -71,7 +75,7 @@ again smaller (`next`). Unit `ffjobs2` 136 (native FFmpeg), e2e `ffmpeg-fixes` +
 the browser, read back natively by `tests/lib/ffread.mjs`); fixtures `node scripts/make-ffmpeg-fixtures.mjs`. **On Windows too** (the Windows
 check, run 18, on 9a8545a): 206 / 206 in Chrome — ffmpeg 75, ffmpeg-sound 15, ffmpeg-fixes 51, ffmpeg-effects 55 (read back by
 the native FFmpeg 9.1 there), scroll-focus 10; the FFmpeg suites in 3.4 minutes. **To-do #33 added (27 Nov
-2026, the owner):** the Cartoonizer's Cartoon filter in grades, less to more cartoony — not started (ask when). **To-do #34 added (27 Nov 2026, the owner):** the Watermark tab's documents with or without the mark on the first (cover) page — not started (ask when). **To-do #35 added (27 Nov 2026, the owner):** the Text Diff side by side, Next / Previous through the hunks — not started (ask when). **Found while testing #32 and fixed (27 Nov 2026):** a control the browser scrolls into view landed under the sticky tab rows (WCAG 2.4.11) — `html` has scroll padding from the rows' height now (`--navh`, src/main.ts) and above the phone's action bar; e2e `scroll-focus` 10. **To-do #36 added (27 Nov 2026, the owner):** the start page tells a phone that there are PC-only apps and a PC that there are mobile-only apps — not started (ask when). The three that need our own FFmpeg build (a good stabiliser, Rubber Band pitch, VP9 / H.265) are
+2026, the owner):** the Cartoonizer's Cartoon filter in grades, less to more cartoony — not started (ask when). **To-do #34 added (27 Nov 2026, the owner):** the Watermark tab's documents with or without the mark on the first (cover) page — not started (ask when). **To-do #35 added (27 Nov 2026, the owner):** the Text Diff side by side, Next / Previous through the hunks — not started (ask when). **Found while testing #32 and fixed (27 Nov 2026):** a control the browser scrolls into view landed under the sticky tab rows (WCAG 2.4.11) — `html` has scroll padding from the rows' height now (`--navh`, src/main.ts) and above the phone's action bar; e2e `scroll-focus` 10. **To-do #36 added (27 Nov 2026, the owner):** the start page tells a phone that there are PC-only apps and a PC that there are mobile-only apps — **DONE 27 Nov 2026** (the owner: "Go ahead with all items in todo" — #33 – #36; #36 first: a note on the start page, e2e `other-device` 36). The three that need our own FFmpeg build (a good stabiliser, Rubber Band pitch, VP9 / H.265) are
 potentials.md U3 "Our own FFmpeg build".
 **#20 Studio voice (batch 7), owner, 26 Nov 2026: "Just use your discretion and get the best quality"** — no samples to judge
 and no size decision to wait for: choose by measurement (DNSMOS, noise left, speech kept), the best quality within the 1 GB.
@@ -124,8 +128,8 @@ MossFormer2 48 kHz (229 MB) level on balance; WPE dereverberation measured and n
 (±4 scored higher on DNSMOS — not chased); no dereverberation and no restoration network (measured / not needed). Unit dfn 33,
 e2e noise-studio 28 (+ noise 25) — **both passed on Windows too** (the Windows check, run 16: 28 / 28, 25 / 25; run 17: FFmpeg 9.1's ebur128 there reads the result as −16 LUFS, true peak −1.5 dBTP); the site 563 MB. **Batch 7 is complete — the owner's batch order is finished.**
 **Next:** the potentials process — it needs the owner (he picks the apps): when he is back, show him `docs/potentials.md`,
-and ask (1) ~~when to do #32~~ — done on 27 Nov 2026; when to do #33 – #35 (the Cartoonizer's grades, the Watermark's
-cover page, the Text Diff side by side); (2) ~~remind him to allow `main` in github-pages~~ — done by
+and ask (1) ~~when to do #32~~ — done on 27 Nov 2026; ~~when to do #33 – #35~~ — the owner: "Go ahead with all items in
+todo" (27 Nov 2026), in progress (above); (2) ~~remind him to allow `main` in github-pages~~ — done by
 the owner on 27 Nov 2026: the site is live from main (754d1b5); (3) offer the AnimeGAN / White-box styles for the Cartoonizer;
 (4) tell him the decisions taken tonight (#16, #17, #20 above). (5) potentials #118 – #119 added at the owner's word (27 Nov 2026:
 "Ok, add both to potentials") after the question of one WebAssembly module for everything (answered no — the reasons in

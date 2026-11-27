@@ -3075,3 +3075,7 @@ cannot. Three new suites; each fails on the build before its fixes.
   10.0.26100 — ffmpeg 75, ffmpeg-sound 15, ffmpeg-fixes 51, ffmpeg-effects 55 (the results read back by the native FFmpeg 9.1
   there, gyan.dev's build), scroll-focus 10; 206 s at concurrency 4, ffmpeg.e2e.mjs 202 s. Run 15's 30-minute time-out of the
   joined FFmpeg suite does not come back: it was the 30 s wait after every successful job (above).
+- **The start page's note of the other device's apps (to-do #36, 27 Nov 2026):** the shell suite measured the first card's
+  star on a phone without scrolling it into view; the note put the first card below the fold, where `elementFromPoint`
+  finds nothing, and the star measured 32 × 32 (its drawing alone). The check scrolls the star into view first, as the
+  touch-target sweep does: 44 × 44 again. A slip of the test.

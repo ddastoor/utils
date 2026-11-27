@@ -342,6 +342,15 @@ hidden on phones) or **Mobile only** (`'mobile'`, hidden on desktops) — the `p
 `src/registry.ts`. Mobile only = needs phone hardware: `level` Bubble Level, `compass` Compass, `touch` Touch
 Test. (`photodict` Photo Dictionary was mobile only until the owner made it PC + mobile on 21 Nov 2026 — the webcam on a
 PC.) `keyboard` Keyboard Test is PC only (physical keyboard). Opening a hidden tool by URL shows an explanation.
+**The start page says what the other kind of device has** (to-do #36; owner, 27 Nov 2026: "When the app opens in the mobile
+on the landing page indicate to the user that there are additional PC-only apps and when the app opens in the PC, notify to
+the user that there are additional mobile-only apps"): a note under its first lines (`otherDevice()` in `src/main.ts`) —
+on a PC the mobile-only apps by name ("3 more apps on a phone: Bubble Level, Compass and Touch Test — they need a phone's
+sensors or touchscreen …"), on a phone the PC-only ones counted by category, the largest first ("64 more apps on a
+computer: Software (56), Media (4) …"), every name under "Show the 64 apps" (by category, in the order of the tab row);
+up to six apps are named in the sentence, more are counted. The site's address to open on the other device. Counted from
+the registry; on the start page only. e2e `other-device` 36 (a PC, an iPhone and an Android phone; held to the registry
+and to the counts of `docs/TOOLS.md`; axe in both themes).
 
 **Images**
 | id | Tab | Platform | Engine |
@@ -3361,7 +3370,7 @@ weather (Open-Meteo), IP/network info, clock-accuracy check (network time).
 Owner: "make the full site faster, more responsive and memory efficient — load dependencies from the site's host
 **per app/tab, only when the user selects that tab**". Rules (enforced by `tests/e2e/lazy.e2e.mjs`):
 1. **The shell loads no engine.** Home and category pages fetch only `index.html`, the entry JS/CSS and icons
-   (≈ 161 KB; the test's budget is 180 KB): no `.wasm`, `vendor/`, `models/`, `data/` or font file. The search box's
+   (≈ 177 KB on 27 Nov 2026; the test's budget is 180 KB): no `.wasm`, `vendor/`, `models/`, `data/` or font file. The search box's
    engine (textcore.wasm, own instance via `newTextcore()`) **and the search keywords of all tabs** (`src/keywords.ts`,
    22 KB, by `loadKeywords()` in `src/registry.ts`) load when the box is first focused/typed in (`ensureSearch()` in
    `src/main.ts` → `initSearch()` in `src/search.ts`). Until then `kw` of every registry entry is empty: code that
