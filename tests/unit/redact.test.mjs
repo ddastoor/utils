@@ -65,6 +65,22 @@ export default async (t, { load, wasm }) => {
   const inRaw = values.filter((v) => raw.includes(v) || raw.includes(v.replace(/ /g, '')));
   t.ok(!inRaw.length, `the file with every stream decompressed holds none of them as text (${inRaw.join(', ')})`);
 
+  // ---- a box drawn by hand over one line set solid: that line goes, every letter of the lines above and below stays
+  {
+    const bx = open('statement.pdf'), pg = bx.loadPage(0), base = 72 + 80; // the last line's baseline, from the top
+    const box = [50, base - 8.5, 560, base + 2.5];
+    const before = pg.toStructuredText().asText();
+    await R.redact(bx, [{ id: 'b1', page: 0, kind: 'box', value: '', text: '', rects: [box], source: 'box', on: true }], { scrub: false });
+    const after = mupdf.Document.openDocument(R.saveRedacted(bx), 'application/pdf');
+    const tx = after.loadPage(0).toStructuredText().asText().replace(/\s+/g, ' ');
+    const above = 'These lines are set solid so that each line touches the next: the words around a number must stay.';
+    t.ok(before.includes('Closing balance') && !tx.includes('Closing balance') && !tx.includes('working day'), 'a box drawn over the last line: its text is gone');
+    t.ok(tx.includes(above), `… and the line above it, set solid, keeps every letter (${tx.slice(tx.indexOf('These'), tx.indexOf('These') + 110)})`);
+    const pm = after.loadPage(0).toPixmap(mupdf.Matrix.scale(2, 2), mupdf.ColorSpace.DeviceRGB, false, true), pp = pm.getPixels(), pw = pm.getWidth();
+    let n = 0, all = 0; for (let y = Math.round(box[1] * 2) + 2; y < Math.round(box[3] * 2) - 2; y++) for (let x = Math.round(box[0] * 2) + 2; x < Math.round(box[2] * 2) - 2; x++) { all++; const k = (y * pw + x) * 3; if (pp[k] + pp[k + 1] + pp[k + 2] < 60) n++; }
+    t.ok(n / all > 0.97, `… and the box is black (${Math.round((100 * n) / all)} %)`);
+  }
+
   // ---- black boxes where they stood
   const outDoc = mupdf.Document.openDocument(out, 'application/pdf');
   const pix = outDoc.loadPage(0).toPixmap(mupdf.Matrix.scale(2, 2), mupdf.ColorSpace.DeviceRGB, false, true);

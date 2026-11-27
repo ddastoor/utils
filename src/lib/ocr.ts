@@ -19,7 +19,7 @@ export function ocrError(e: unknown): Error {
 export async function ocrWorker(langs: OcrLang): Promise<TWorker> {
   if (current?.langs === langs) return current.w;
   const old = current; current = null;
-  if (old) old.w.then((x) => x.terminate()).catch(() => {});
+  if (old) old.w.then(end).catch(() => {});
   const { createWorker, OEM } = await import('tesseract.js');
   let fail!: (e: Error) => void;
   const failed = new Promise<never>((_, reject) => { fail = reject; });
@@ -43,9 +43,23 @@ export async function ocrWorker(langs: OcrLang): Promise<TWorker> {
   const w = Promise.race([made, failed]);
   const entry = { langs, w };
   current = entry;
-  w.catch(() => { if (current === entry) current = null; made.then((x) => x.terminate()).catch(() => {}); }); // the next call starts afresh
-  onLeave('ocr-worker', () => { const c = current; current = null; c?.w.then((x) => x.terminate()).catch(() => {}); });
+  w.catch(() => { if (current === entry) current = null; made.then(end).catch(() => {}); }); // the next call starts afresh
+  onLeave('ocr-worker', () => { const c = current; current = null; c?.w.then(end).catch(() => {}); });
   return w;
+}
+/** Workers this file ended: a reading that reaches one is refused (Tesseract.js would send it to no worker — below). */
+const ended = new WeakSet<object>();
+const end = (x: TWorker) => { ended.add(x); return x.terminate(); };
+
+/** The picture as the bytes of an image file — what Tesseract.js makes of a canvas itself (canvas.toBlob, PNG) after it is
+ *  called. A tab left in that moment ended the worker, and Tesseract.js then sent the job to no worker: an uncaught
+ *  error (found by the PDF Redact suite, 27 Nov 2026). Made here, the job is sent at once and the bytes are the same. */
+async function imageBytes(img: ImageData | HTMLCanvasElement | Blob): Promise<Uint8Array> {
+  if (img instanceof Blob) return new Uint8Array(await img.arrayBuffer());
+  const c = img instanceof ImageData ? (() => { const x = document.createElement('canvas'); x.width = img.width; x.height = img.height; x.getContext('2d')!.putImageData(img, 0, 0); return x; })() : img;
+  const blob = await new Promise<Blob | null>((res) => c.toBlob(res));
+  if (!blob) throw new Error('The picture could not be handed to the text engine.');
+  return new Uint8Array(await blob.arrayBuffer());
 }
 
 /** Below this average confidence a reading is poor: the OCR tab tries the picture turned, and both tabs say that a sharper
@@ -99,7 +113,8 @@ export async function recognize(img: ImageData | HTMLCanvasElement | Blob, langs
   progressCb = onProgress || null;
   try {
     const w = await ocrWorker(langs);
-    const src = img instanceof ImageData ? (() => { const c = document.createElement('canvas'); c.width = img.width; c.height = img.height; c.getContext('2d')!.putImageData(img, 0, 0); return c; })() : img;
+    const src = await imageBytes(img);
+    if (ended.has(w)) throw new Error('The text engine was stopped: the tab was left.');
     // a job that fails is reported to errorHandler as well as rejected: whichever comes first ends the wait
     const failed = new Promise<never>((_, reject) => { failCb = reject; });
     failed.catch(() => {});

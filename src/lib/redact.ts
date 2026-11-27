@@ -5,7 +5,8 @@
 //    birth, the reader's words) → a hit per match, a box per line it covers;
 //  - redact, in two passes of MuPDF's own redaction: (1) the text — a band through the middle of each hit's line, so a
 //    character is removed only when it stands in that line (MuPDF removes every character whose box, taller than its ink,
-//    touches a redaction: boxes of lines set solid overlap, and the line above went with the first try); (2) the cover — the
+//    touches a redaction: boxes of lines set solid overlap, and the line above went with the first try) — for a box drawn by
+//    hand, a band through each run of the characters whose middle it covers (`boxRuns`); (2) the cover — the
 //    hit's whole box: the pixels of any picture under it made black, vector drawings inside it removed, a black box drawn;
 //  - hidden places: comments and form fields baked into the pages before the search (their text is then page text);
 //    afterwards the document's information and XMP metadata, attachments, scripts, page thumbnails and the tag tree are
@@ -84,6 +85,24 @@ export function bakeAll(doc: MDoc): { annots: number; widgets: number } {
   return { annots, widgets };
 }
 
+/** A box drawn by hand, as the characters it covers: those whose middle third it reaches (a character's box runs from the
+ *  font's ascent to its descent — on lines set solid it reaches into the lines next to it, and MuPDF removes every character
+ *  whose box touches a redaction: the whole box drawn over one line took letters of the lines above and below, which then
+ *  stood missing beside the black box). One rectangle a line of each run; their `band` is redacted. */
+export function boxRuns(pt: PageText, r: Rect): Rect[] {
+  const out: Rect[] = []; let s = -1;
+  const flush = (e: number) => { if (s >= 0) out.push(...rectsOf(pt, s, e)); s = -1; };
+  for (let i = 0; i < pt.quads.length; i++) {
+    const q = pt.quads[i];
+    if (!q) { flush(i); continue; }
+    const xs = [q[0], q[2], q[4], q[6]], ys = [q[1], q[3], q[5], q[7]];
+    const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys), third = (y1 - y0) / 3;
+    if (x1 > r[0] && x0 < r[2] && y1 - third > r[1] && y0 + third < r[3]) { if (s < 0) s = i; } else flush(i);
+  }
+  flush(pt.quads.length);
+  return out;
+}
+
 /** The band of a line box that only that line's characters reach: its middle third, a hair in from both ends. */
 export function band(r: Rect): Rect {
   const h = r[3] - r[1], m = (r[1] + r[3]) / 2, inset = Math.min(h * 0.08, (r[2] - r[0]) / 4);
@@ -99,9 +118,13 @@ export async function redact(doc: MDoc, hits: Hit[], o: { scrub: boolean }): Pro
   const pages = [...new Set(on.map((h) => h.page))].sort((a, b) => a - b);
   for (const i of pages) {
     const page: any = doc.loadPage(i), mine = on.filter((h) => h.page === i);
-    // (1) the text: a band through each line for text found in the page's text; the whole box for boxes the reader drew
-    //     and for text read in a picture (an invisible text layer under it goes too)
-    for (const h of mine) for (const r of h.rects) { const a = page.createAnnotation('Redact'); a.setRect(h.source === 'text' ? band(r) : r); }
+    // (1) the text: a band through each line for text found in the page's text and for the characters a box drawn by hand
+    //     covers; the whole box for text read in a picture (an invisible text layer under it goes too)
+    let pt: PageText | null = null;
+    for (const h of mine) for (const r of h.rects) {
+      const rs = h.source === 'text' ? [band(r)] : h.source === 'box' ? boxRuns((pt ||= pageText(page)), r).map(band) : [r];
+      for (const x of rs) { const a = page.createAnnotation('Redact'); a.setRect(x); }
+    }
     page.applyRedactions(false, P.REDACT_IMAGE_NONE, P.REDACT_LINE_ART_NONE, P.REDACT_TEXT_REMOVE);
     // (2) the cover: pictures' pixels, vector drawings inside, a black box — the text around stays
     for (const h of mine) for (const r of h.rects) { const a = page.createAnnotation('Redact'); a.setRect(r); }

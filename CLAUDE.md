@@ -336,7 +336,7 @@ Wayland) and **mobile browsers** (Android Chrome, iPhone Safari).
 Platform is PC + mobile unless marked **PC**. Tab ids are the URL hash (`#/<id>`).
 
 **The authoritative, always-current list is `docs/TOOLS.md`, generated from `src/registry.ts` (`npm run docs`).**
-Current total: **182 tabs in 11 categories — 115 PC + mobile, 64 PC only, 3 Mobile only** (regenerate with
+Current total: **183 tabs in 11 categories — 116 PC + mobile, 64 PC only, 3 Mobile only** (regenerate with
 `npm run docs` after every registry change; the owner asked for the registry to always be noted).
 The per-category notes below record decisions; when they disagree with the registry, the registry wins.
 
@@ -443,6 +443,7 @@ warned. Resume: the photo is a JPEG (quality 85); file names are made safe (`saf
 | `pdf2text` | PDF → Text | both |
 | `pdf-pagenum` | PDF Page Numbers | both |
 | `pdf-watermark` | PDF Watermark | both |
+| `pdf-redact` | PDF Redact | both — **BUILT** (27 Nov 2026; potentials #61 — §3 "PDF Redact": numbers, words and areas taken out for good) |
 | `epub` | PDF → EPUB (Kindle) | **PC** — **BUILT** (see §3) |
 | `kindlepdf` | PDF for Kindle | both — **BUILT** (27 Nov 2026; potentials #109 — §3 "PDF for Kindle") |
 | `articles` | Articles → Kindle | both — **BUILT** (27 Nov 2026; potentials #106 — §3 "Articles → Kindle": saved web articles made into one EPUB) |
@@ -2404,6 +2405,56 @@ docs/WASM-AUDIT.md 124 – 135; unit `tests/unit/pdfpages.test.mjs`, read back b
 - **Unlock / Protect:** a digitally signed PDF (an e-Aadhaar) is unlocked or protected with a warning that the copy no
   longer proves the signature (`signatureCount`); a password outside SASLprep's tables (₹, emoji) is warned about.
 
+### PDF Redact — BUILT (potentials #61; owner's pick of 27 Nov 2026 — group 2 of the suggested order)
+(`pdf-redact` in `src/tools/pdfredact.ts`, the library `src/lib/redact.ts` and `src/lib/redact-pictures.ts` (no DOM: the unit suite
+runs them in Node on the real MuPDF, Tesseract and zxing-cpp); unit `tests/unit/redact.test.mjs` 26, e2e
+`tests/e2e/pdf-redact.e2e.mjs` 45; fixtures `tests/fixtures/redact/` with what is in them (`truth.json`), made by
+`python3 scripts/make-redact-pdfs.py` — needs reportlab, pypdf, Pillow and segno.) The owner's words (potentials #61): "black out an
+Aadhaar number, PAN, account number or address so the text is really gone from the PDF (not a box over it)".
+- **Finding:** each page's text with every character's box (MuPDF's structured text) → the Number Detective's scan
+  (devcore-ids.wasm `ids:scan`: Aadhaar numbers and VIDs (Verhoeff), masked Aadhaar, PAN, GSTIN, card numbers (Luhn and a
+  network's length), Indian phone numbers (libphonenumber's patterns), e-mail addresses, UPI IDs, IFSC codes, account numbers
+  (9 – 18 digits after "A/c", "Account No." …), dates of birth (after "DOB", "Date of birth"), and the reader's words — any line
+  typed, whole words, without regard to case or spacing) → a place per match, a box per line it covers. The chips choose the
+  kinds (Aadhaar, PAN, phone, e-mail, account, card, UPI and date of birth at first; IFSC and GSTIN when chosen — an invoice
+  needs its own). **Comments and form fields are made part of the pages first** (`bakeAll`): a phone number in a sticky note
+  or a PAN in a form field is found and removed like the rest. **Pictures** (on at first, "OCR — slower"): a page that is a
+  picture without text (a scan: under 20 characters, over 40 % picture) is drawn at 3 px a point and read by the OCR tab's
+  Tesseract laid out as a page; every page, drawn at 2 px a point, is searched for QR codes and barcodes by zxing-cpp (an
+  e-Aadhaar's QR code holds the number and the address) — a code's box with its quiet zone.
+- **The list and the pages:** the places by kind (in the chips' order), each with its page, its text and a tick; "Keep all" /
+  "Redact all" a kind; the pages drawn as they come into view, a box over each place (red: redacted; grey, dashed: kept) — a
+  click on a box keeps or redacts it (a pointer's shortcut: the list's ticks are the control for the keyboard and screen
+  readers — the boxes are as small as the text, WCAG 2.5.8's "equivalent"); **Draw a box** over anything else — a photo, a
+  signature, an address — with the mouse or a finger.
+- **Redacting** (`redact`, on a fresh copy of the file each time): two passes of MuPDF's own redaction a page — (1) the text: a
+  band through the middle third of each place's line (`band`), so only that line's characters go: **MuPDF removes every
+  character whose box (the font's ascent to its descent, taller than its ink) touches a redaction — on lines set solid a box over
+  one line took letters of the lines above and below**; for a box drawn by hand, a band through each run of the characters whose
+  middle it covers (`boxRuns`); for text read in a picture, the whole box (an invisible text layer under it goes too); (2) the
+  cover: each place's whole box — the pixels of any picture under it made black, vector drawings inside it removed, a black box
+  drawn. **Hidden places** ("Also remove hidden information", on): the document's information (title, author, subject …), its
+  XMP metadata, attached files, scripts (document JavaScript, open and additional actions), the tag tree for screen readers (it
+  holds the text), page thumbnails (pictures of the pages as they were) and editors' private page data; a bookmark that names a
+  redacted value is renamed "(redacted)" in any case. Saved whole — no incremental update (the old text would stay in the file),
+  objects deduplicated and unused ones dropped, no encryption: a protected PDF is asked for its password and the copy has none
+  (said); a digitally signed PDF is said to lose its signature.
+- **Read again before it is offered** (`check`): the saved file opened afresh, every page's text, the document's details,
+  bookmarks and comments scanned once more with the same kinds and words — "Read again: none of the redacted text is anywhere in
+  the new file", or the values still there and where.
+- **Measured** on the test PDFs (a statement of three pages — 17 places of 12 kinds on 10-point lines set solid, a sticky note, a
+  form field, the PAN in the title, the Aadhaar number in the subject and in a bookmark, a page turned by /Rotate 90, a page in an
+  embedded font; a scan of two pages — a picture only, and a picture under an invisible OCR layer — with a QR code that holds an
+  Aadhaar number): every value gone as MuPDF, **poppler's pdftotext** and **pypdf** read the saved file (text, details,
+  bookmarks) and from the file with every stream decompressed; every word around them kept, on the lines set solid too; black
+  over every place; the scan's numbers no longer read by OCR and no code found by zxing-cpp or **zbar**, the rest of the letter
+  still read; the invisible layer without the numbers.
+- **The tab:** a PDF (a password asked for) → "What to find" (the chips, words, the two switches, Find; a search runs at once with
+  the chosen kinds) → "Places found" (the line "16 places to redact on 3 pages", the list, Draw a box, the pages) → "Redact and
+  save" (the phone's bar) → what was removed, the check, the hidden information removed, Download (phones: Share or save)
+  `<name>-redacted.pdf`. The chips, words and switches are kept while the page is open. Nothing at open: MuPDF and
+  devcore-ids.wasm with the first PDF, Tesseract with a scanned page, zxing-cpp with the first search for codes.
+
 ### Doc Scanner
 Camera or upload; automatic page detection with draggable corners; perspective correction; enhance modes (Colour
 clean, Grey, B/W adaptive threshold); multi-page → PDF (A4/Letter/fit) or JPEGs.
@@ -2549,7 +2600,9 @@ clipboard; optional pre-clean (imgproc doc enhance, grey); low-confidence words 
 **As built after the Nov 2026 bug hunt** (`src/tools/ocr.ts`, engine `src/lib/ocr.ts` — shared with the Photo
 Dictionary; e2e `tests/e2e/ocr.e2e.mjs` 24): tesseract.js 7.0.0 (docs/WASM-AUDIT.md 122). A failed download of the engine
 or a language is caught through Tesseract.js's error handler (it otherwise waits for ever) and said in words; the next
-try starts afresh. A reading below 60 % confidence is tried turned the three other ways (a copy of ≤ 1,200 px) and the
+try starts afresh. The picture goes to Tesseract.js as the PNG bytes it would make of it itself (`imageBytes`; it made them
+after it was called, and a tab left in that moment had its worker ended under it — an uncaught error, found by the PDF
+Redact suite); a worker ended so is refused in words. A reading below 60 % confidence is tried turned the three other ways (a copy of ≤ 1,200 px) and the
 picture read the way that is clearly better (≥ 60 % and 20 points more), the line says so; buttons turn the picture
 by hand. With the clean-up on, a dark picture (mean luma < 110) is inverted first. The newest picture or language wins.
 **Camera (owner, 20 Nov 2026: "take a photo with the camera if it's on the phone, or with the webcam if it's on the
@@ -3703,10 +3756,10 @@ difference over its detail, the overlap's pixels), ruled lines and list marks cl
 | keys — the **supplement** to hash-wasm for the key tabs (owner's tweak of 18 Nov 2026: what the existing module does not cover): lenient Base32 secrets, HOTP counters and truncation; checked parameters, random salts, PHC strings for scrypt / PBKDF2 and the reader of pasted hashes; RustCrypto **argon2** for Argon2 version 1.0 hashes (v=16 or no version, keyid / data), which hash-wasm does not read; RustCrypto **ssh-key** (OpenSSH Ed25519 generation), **aes + ctr + bcrypt-pbkdf** and our own OpenSSH wire reader (inspect Ed25519 / RSA / ECDSA / DSA keys, encrypted private keys, authorized_keys / known_hosts lines); API keys | Rust | **us** (`wasm/keys`, 0.31 MB; no existing WebAssembly module makes or reads OpenSSH key files) | totp, pwhash (with hash-wasm); sshkey, apikey |
 | zxcvbn 3.1.1 (Rust port of Dropbox's estimator + its word lists) **+ our four fixes** (`wasm/zxcvbn/zxcvbn-fixes.patch`, applied by build.sh to the SHA-256-checked crate: ALL-CAPS words with a digit, repeats taken for sequences, single-character l33t words, keyboard-walk degree divided in integers) | Rust | **us** (`wasm/zxcvbn`, 2.2 MB, loaded with the first password; guesses + scores equal the Python reference for 304 passwords — `tests/unit/zxcvbn.test.mjs`) | pwstrength |
 | formats: **serde_yaml_ng** (unsafe-libyaml = libyaml translated to Rust), **toml**, **jsonschema** 0.61 (no network/file resolvers) + own schema inference | Rust | **us** (`wasm/formats`, two modules: formats-yaml 0.42 MB, formats-schema 2.7 MB) | yaml, jsonschema |
-| devcore: ipnet (CIDR), croner + chrono (cron; zone offsets from the browser's Intl via an `env.tz_offset` import, so no tz database), **own port of npm's semver** (`semver_npm.rs`: the package's range / comparator / inc logic with its own regular expressions on regex-lite — the nodejs-semver crate gave different answers), **own Unicode-aware glob matcher** (`globm`; globset matches bytes), **own unified-diff reader / applier** (`patchm`: offsets, white space, fuzz, like GNU patch; diffy refused most real patches), data-encoding + bs58 + own Ascii85/Z85 (long inputs go through data-encoding in pieces: it refuses 8 MiB and more on a 32-bit target), **own protobuf, MessagePack and CBOR readers** (`bin.rs`; rmpv and ciborium could not show CBOR `undefined` / simple values / long bignums or MessagePack's unused 0xc1, and reported errors as Rust debug text), x509-parser + sha1/sha2 (+ own PEM / PKCS #7 reader), **own SQL formatter** (`sqlfmt.rs`: a tokenizer for standard SQL, PostgreSQL, MySQL, SQLite, SQL Server and Oracle; changes white space and the case of keywords only and checks its result against the input — the sqlformat crate changed the meaning of SQL), own hex dump + search, **own lossless JSON reader / formatter** (`jsonfmt.rs`: changes white space only — member order, duplicate keys and number spelling kept; worded errors with line / column; JSON.parse → JSON.stringify reordered keys, dropped duplicates and rounded big numbers), **own JSON diff** (`jsondiff.rs`, RFC 6902 on that reader: lists aligned by equal elements (LCS) and records by `id`, numbers by value and never rounded), **own XML formatter** (`xmlfmt.rs`: re-indents elements that hold only elements, everything else byte-for-byte — declaration, DOCTYPE, entities, CDATA, text; the DOM round trip lost or rewrote all of these), **own JSON → types generator** (`j2t.rs`: TypeScript / Go / Rust serde / Java records / Python dataclasses; the e2e suite compiles its output with tsc, go, rustc, javac and python; crates unicode-ident (MIT / Apache-2.0 + Unicode-3.0) for Python identifiers and unicode-general-category (Apache-2.0) for what Go's struct tags accept) | Rust | **us** (`wasm/devcore`, crates.io via `Cargo.lock`, wasm32-wasip1; one `dc_call(op, input)` entry; **one module per tab** via Cargo features → `devcore-<feature>.wasm`, 67–650 KB) | cidr, x509, cron, semver, glob, patch, sqlfmt, hexview, baseenc, bindecode, base64 (devcore-enc), json + jwt (devcore-json), jsondiff, xml, json2types (devcore-j2t); numcheck (devcore-ids: **our Number Detective** — Verhoeff, Luhn and mod 36 / 97 / 11 checks, India Post's PIN directory, RBI's IFSC list, libphonenumber's Indian patterns on regex-lite, the ISBN ranges walked as stdnum's numdb walks them; no WebAssembly module checks Indian IDs: `docs/WASM-AUDIT.md`, tab 186) |
+| devcore: ipnet (CIDR), croner + chrono (cron; zone offsets from the browser's Intl via an `env.tz_offset` import, so no tz database), **own port of npm's semver** (`semver_npm.rs`: the package's range / comparator / inc logic with its own regular expressions on regex-lite — the nodejs-semver crate gave different answers), **own Unicode-aware glob matcher** (`globm`; globset matches bytes), **own unified-diff reader / applier** (`patchm`: offsets, white space, fuzz, like GNU patch; diffy refused most real patches), data-encoding + bs58 + own Ascii85/Z85 (long inputs go through data-encoding in pieces: it refuses 8 MiB and more on a 32-bit target), **own protobuf, MessagePack and CBOR readers** (`bin.rs`; rmpv and ciborium could not show CBOR `undefined` / simple values / long bignums or MessagePack's unused 0xc1, and reported errors as Rust debug text), x509-parser + sha1/sha2 (+ own PEM / PKCS #7 reader), **own SQL formatter** (`sqlfmt.rs`: a tokenizer for standard SQL, PostgreSQL, MySQL, SQLite, SQL Server and Oracle; changes white space and the case of keywords only and checks its result against the input — the sqlformat crate changed the meaning of SQL), own hex dump + search, **own lossless JSON reader / formatter** (`jsonfmt.rs`: changes white space only — member order, duplicate keys and number spelling kept; worded errors with line / column; JSON.parse → JSON.stringify reordered keys, dropped duplicates and rounded big numbers), **own JSON diff** (`jsondiff.rs`, RFC 6902 on that reader: lists aligned by equal elements (LCS) and records by `id`, numbers by value and never rounded), **own XML formatter** (`xmlfmt.rs`: re-indents elements that hold only elements, everything else byte-for-byte — declaration, DOCTYPE, entities, CDATA, text; the DOM round trip lost or rewrote all of these), **own JSON → types generator** (`j2t.rs`: TypeScript / Go / Rust serde / Java records / Python dataclasses; the e2e suite compiles its output with tsc, go, rustc, javac and python; crates unicode-ident (MIT / Apache-2.0 + Unicode-3.0) for Python identifiers and unicode-general-category (Apache-2.0) for what Go's struct tags accept) | Rust | **us** (`wasm/devcore`, crates.io via `Cargo.lock`, wasm32-wasip1; one `dc_call(op, input)` entry; **one module per tab** via Cargo features → `devcore-<feature>.wasm`, 67–650 KB) | cidr, x509, cron, semver, glob, patch, sqlfmt, hexview, baseenc, bindecode, base64 (devcore-enc), json + jwt (devcore-json), jsondiff, xml, json2types (devcore-j2t); numcheck (devcore-ids: **our Number Detective** — Verhoeff, Luhn and mod 36 / 97 / 11 checks, India Post's PIN directory, RBI's IFSC list, libphonenumber's Indian patterns on regex-lite, the ISBN ranges walked as stdnum's numdb walks them; no WebAssembly module checks Indian IDs: `docs/WASM-AUDIT.md`, tab 186); pdf-redact (devcore-ids `ids:scan`: the numbers in a page's text) |
 | cmark-gfm 0.29.0.gfm.13 (GitHub Flavored Markdown) | C | **us** (`wasm/markdown`, source from the PyPI `cmarkgfm` sdist, SHA-256 pinned) | markdown |
 | libyaml 0.2.5 + toml++ 3 | C / C++ | **us** (`wasm/formats`) | yaml |
-| MuPDF 1.28 | C | Artifex (official `mupdf` npm) | all PDF tools, PDF → EPUB, PDF for Kindle (the pieces: the page grafted, redacted, drawn as a form), Watermark (PDFs: to-do #17), Book Page Flattener and Newspaper Clipper (their PDFs), EPUB Reader (EPUB, MOBI, FictionBook, comics, text laid out at any size with HarfBuzz and drawn — in the reader's worker, `src/workers/ebook.worker.ts`), Audiobook (a book's text: laid out on pages 100,000 px tall, its contents resolved to page and height — in `src/workers/bookread.worker.ts`; a PDF through the PDF → EPUB engine) |
+| MuPDF 1.28 | C | Artifex (official `mupdf` npm) | all PDF tools, PDF → EPUB, PDF for Kindle (the pieces: the page grafted, redacted, drawn as a form), Watermark (PDFs: to-do #17), Book Page Flattener and Newspaper Clipper (their PDFs), EPUB Reader (EPUB, MOBI, FictionBook, comics, text laid out at any size with HarfBuzz and drawn — in the reader's worker, `src/workers/ebook.worker.ts`), Audiobook (a book's text: laid out on pages 100,000 px tall, its contents resolved to page and height — in `src/workers/bookread.worker.ts`; a PDF through the PDF → EPUB engine), PDF Redact (its redaction in two passes — the text by a band through each line, then pictures' pixels, drawings and a black box; comments and form fields baked first; the saved file read again) |
 | ExifTool 13.42 on zeroperl (Perl 5 compiled to WebAssembly with ExifTool's library inside) | Perl / C | Phil Harvey (ExifTool), uswriting / 6over3 (`@uswriting/exiftool` 1.0.9, `@6over3/zeroperl-ts` 1.0.10) — run in `src/workers/exiftool.worker.ts` | exif (replaced metacore's reader and stripper in Nov 2026: `docs/WASM-AUDIT.md`, tab 120); regex (the Perl flavour, the same module: `src/lib/regex/perl.ts`) |
 | hash-wasm 4.13.0 (hand-tuned C → wasm, one small binary per algorithm, embedded in the package; streaming; HMAC over any of its hashes; Argon2, bcrypt, scrypt, PBKDF2) | C | Dani Biró (`hash-wasm` npm, ~10 M downloads a month) — wrappers `src/lib/hmac.ts`, `src/lib/totp.ts`, `src/lib/pwhash.ts`, `src/lib/hashes.ts` (in `src/workers/hash.worker.ts`); only the algorithms a tab uses are bundled into its chunk, loaded with the tab's first result | hash (23 algorithms), hmac (all of it), totp (the HMAC), pwhash (Argon2id / i / d, bcrypt, scrypt, PBKDF2) — replaced RustCrypto builds and crypto.wasm's hashes of ours in Nov 2026 (`docs/WASM-AUDIT.md`) |
 | ONNX Runtime Web 1.31 (CPU/WebAssembly, SIMD) | C++ | Microsoft (official `onnxruntime-web` wasm build) | tts and audiobook (Kokoro, Piper — `src/lib/speech.ts`, one session a worker; the Audiobook runs one to four workers at once); scanner (DocCornerNet LEAN, scanic-ml 0.2.0: the page's corners — `docs/WASM-AUDIT.md`, tab 121); ocr, photodict and clipper (the same network, asked where the Kindle finder's outline is not a page's — to-do #18; and **PaddleOCR's PP-OCRv6 detector and recogniser, the second reader for soft photos** — owner, 26 Nov 2026: `src/lib/paddle.ts` in `src/workers/paddle.worker.ts`); noise (**DeepFilterNet 3**, the Studio voice — to-do #20: `src/workers/noise.worker.ts`) |
@@ -3723,8 +3776,8 @@ difference over its detail, the overlap's pixels), ruled lines and list marks cl
 | MozJPEG, libwebp, OxiPNG, Squoosh's resize (Lanczos-3 in linear light) | C / Rust | jSquash (Squoosh codecs; `@jsquash/resize` since Nov 2026) | image encoders; resizing in the Image Editor and Batch Images (`docs/WASM-AUDIT.md`, tabs 109, 110) |
 | libheif + libde265 | C++ | libheif-js | heic |
 | Little CMS 2.16 | C | lcms-wasm (Matt DesLauriers; npm 1.0.5) — in the codec worker, fetched for a HEIC with a non-sRGB ICC profile | heic and every tab that opens HEIC: Display P3 → sRGB (`docs/WASM-AUDIT.md`, tab 111) |
-| Tesseract 5 | C++ | tesseract.js-core | ocr, photodict, clipper (laid out as a page: its blocks) |
-| zxing-cpp | C++ | zxing-wasm | qr, barcode, scan |
+| Tesseract 5 | C++ | tesseract.js-core | ocr, photodict, clipper (laid out as a page: its blocks), pdf-redact (a scanned page's numbers) |
+| zxing-cpp | C++ | zxing-wasm | qr, barcode, scan, pdf-redact (QR codes and barcodes on the pages) |
 | 7-Zip 24.09 (`7zz`, the command line, Emscripten build with WORKERFS) | C++ | use-strict (`7z-wasm` npm 1.2.0) — run in `src/workers/sevenzip.worker.ts`, a fresh instance per archive | zip (zip and 7z with AES-256; `docs/WASM-AUDIT.md`, tab 107), unzip (reads every archive; tab 108), watermark (a Word document taken apart and zipped again: to-do #17), ebook (a CBR or CB7 comic unpacked into a zip for MuPDF) |
 | MediaPipe Tasks (TFLite) | C++ | Google (official) | passport, bgremove, redact |
 | RNNoise 0.2 (Xiph, BSD-3; the 0.2 model, 8-bit weights — the release as its configure builds it) | C | Jitsi (`@jitsi/rnnoise-wasm` 0.2.1, Emscripten; the "sync" file) — frames, lag and voice probability in `src/wasm/rnnoise.ts`, resampling / scaling / mixing in audio.wasm (`src/workers/noise.worker.ts`) | noise (replaced our own build in Nov 2026: `docs/WASM-AUDIT.md`, tab 144) |
@@ -3814,6 +3867,10 @@ Nov 2026 (PDF / EPUB → Audiobook, potentials #14): `src/lib/audiobook.ts` — 
 XHTML) made into paragraphs and tracks: string glue and rules over a few thousand blocks a book (which block begins a chapter,
 which line is a running head, which link is a footnote mark); the layout is MuPDF's, the speech ONNX Runtime's and
 espeak.wasm's, the MP3 and its tags audio.wasm's (LAME). No WebAssembly module makes audiobooks (`docs/WASM-AUDIT.md`, tab 184).
+Nov 2026 (PDF Redact, potentials #61): `src/lib/redact.ts`, `src/lib/redact-pictures.ts` — which characters a place covers (a
+few comparisons per character box), the rectangles handed to MuPDF's redaction, and the PDF objects that hold hidden text named
+and deleted: glue around MuPDF (the redaction, drawing and saving), devcore-ids.wasm (the finding), Tesseract and zxing-cpp; no
+WebAssembly module redacts a PDF but MuPDF (`docs/WASM-AUDIT.md`, tab 187).
 Nov 2026 (Articles → Kindle, potentials #106): `src/lib/articles.ts` — which file is what (its first bytes), the HTML's character set
 (the browser's TextDecoder), a picture's addresses matched with the saved files' (the browser's URL parser), the EPUB's files
 written as text and zipped by fflate; the article, its XHTML and the readers of the saved files are article.wasm's; the

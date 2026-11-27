@@ -50,7 +50,7 @@ based on common implementation … make the suggestions". The site then: **563.5
 4. **Camera helpers** (the OCR and the QR tab's writers; ≈ 0 MB): 89 Visiting Card → Contact · 88 Router Sticker → Wi-Fi QR ·
    77 Paper Deadlines → Calendar · 78 Bill Splitter by Photo · 81 Camera Reader.
 **Groups 2 – 4 picked by the owner, 27 Nov 2026 ("Okay, go for it. Build out all the groups, all the remaining groups in
-whichever order you feel best") — being built (docs/RESUME.md); built: 84 Number Detective (the tab `numcheck`, 27 Nov 2026).** All four: about 620 MB of the 1 GB. Held back for now: the large models (5 Vocal Remover 180 MB, 67 Object Eraser 208 MB,
+whichever order you feel best") — being built (docs/RESUME.md); built: 84 Number Detective (the tab `numcheck`, 27 Nov 2026), 61 PDF Redact (the tab `pdf-redact`, 27 Nov 2026).** All four: about 620 MB of the 1 GB. Held back for now: the large models (5 Vocal Remover 180 MB, 67 Object Eraser 208 MB,
 22 LaTeX ≈ 175 MB), 4 Document Converter (58.6 MB), and the niche PC tools. The size check of the rule is made again,
 measured, for each app the owner picks.
 
@@ -278,7 +278,6 @@ Asked by the owner: "any other cool open source projects out there that I could 
 the owner said "add all ten". Every one runs in the browser on the device; none uploads anything. Build none until picked.
 | # | New tab | Engine | Platform | Status |
 |---|---|---|---|---|
-| 61 | **PDF Redact**: black out an Aadhaar number, PAN, account number or address so the text is really gone from the PDF (not a box over it) | MuPDF (on the site): redaction annotations applied | both | waiting |
 | 62 | **Authenticator Export Reader**: read Google Authenticator's "Transfer accounts" QR (`otpauth-migration://`) → each account with its own QR, to back up 2FA or move it to another app | zxing-wasm + devcore's protobuf reader (on the site) | both | waiting |
 | 63 | **Photo Organizer**: rename photos by the date taken, shift a wrong camera clock, find photos without a date | ExifTool (on the site) + File System Access | PC | waiting |
 | 64 | **Subtitle Sync**: shift or stretch an .srt to match a video, or line it up with the speech automatically (ffsubsync's method, MIT) | audio.wasm + a voice detector (RNNoise's, on the site) | both | waiting |

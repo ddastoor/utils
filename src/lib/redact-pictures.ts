@@ -5,7 +5,7 @@
 import type { OcrResult } from './ocr';
 import { rectsOf, type Hit, type PageText, type Rect, type Scan } from './redact';
 
-export interface Img { data: Uint8ClampedArray; width: number; height: number }
+export interface Img { data: Uint8ClampedArray<ArrayBuffer>; width: number; height: number }
 export interface Code { text: string; format: string; box: Rect }
 export interface PicEngines {
   /** the page drawn at `scale` pixels a point, RGBA */

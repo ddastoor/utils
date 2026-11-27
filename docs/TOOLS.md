@@ -2,7 +2,7 @@
 
 Generated from `src/registry.ts` by `npm run docs` — do not edit by hand.
 
-**182 tabs** in 11 categories — 115 PC + mobile, 64 PC only, 3 mobile only.
+**183 tabs** in 11 categories — 116 PC + mobile, 64 PC only, 3 mobile only.
 
 ## Images (17)
 
@@ -26,7 +26,7 @@ Generated from `src/registry.ts` by `npm run docs` — do not edit by hand.
 | `ocr` | OCR | PC + mobile | Extract text from an image (English, French, Spanish, German). | copy text from image, copy text from photo, extract text from image, text from photo, extract text from photo, handwriting, ocr, text recognition, … |
 | `signature` | Signature Maker | PC + mobile | Draw your signature and save a transparent PNG. | signature, sign, draw signature, transparent signature, signature png, autograph, handwritten, e signature image |
 
-## Documents (23)
+## Documents (24)
 
 | id | Tab | Platform | What it does | Search keywords |
 |---|---|---|---|---|
@@ -38,6 +38,7 @@ Generated from `src/registry.ts` by `npm run docs` — do not edit by hand.
 | `pdf-compress` | Compress PDF | PC + mobile | Make a PDF smaller, optionally under a size limit. | pdf, compress, reduce size, smaller, kb, mb, optimize, shrink |
 | `pdf-sign` | Sign PDF | PC + mobile | Draw or type your signature and place it on a PDF. | esign, signature on pdf, digital signature, sign document, sign, signature, pdf, e-sign, … |
 | `pdf-fill` | Fill PDF Form | PC + mobile | Fill in PDF form fields or type on any PDF. | fill, form, pdf, type on pdf, fields, checkbox, application |
+| `pdf-redact` | PDF Redact | PC + mobile | Take Aadhaar, PAN, phone and account numbers, names or any part of a page out of a PDF for good — not a box over them. | redact pdf, pdf redaction, redact, redaction, black out, blackout, hide text in pdf, remove text from pdf, … |
 | `pdf-unlock` | Unlock PDF | PC + mobile | Remove the password from a PDF you can open. | unlock, remove password, decrypt, pdf, aadhaar, bank statement, form 16 |
 | `pdf-protect` | Protect PDF | PC + mobile | Add a password to a PDF (AES-256). | protect, password, encrypt, lock, pdf, secure |
 | `pdf2text` | PDF → Text | PC + mobile | Extract all text from a PDF. | pdf to text, extract text, txt, copy, pdf |
@@ -207,7 +208,7 @@ Generated from `src/registry.ts` by `npm run docs` — do not edit by hand.
 | `qr` | QR Generator | PC + mobile | QR codes for links, Wi-Fi, UPI, contacts… | qr, qr code, generate, wifi, upi, payment, link, url, … |
 | `barcode` | Barcode Generator | PC + mobile | EAN, UPC, Code 128, Data Matrix, PDF417… | ean13, ean-13, ean 13, upc-a, upc a, isbn barcode, barcode, ean, … |
 | `scan` | QR & Barcode Scanner | PC + mobile | Scan with the camera or from an image. | qr reader, barcode reader, read qr, read barcode, qr scanner, scan, scanner, read, … |
-| `numcheck` | Number Detective | PC + mobile | Paste any number or code: what it is and whether it is valid — Aadhaar, PAN, GSTIN, IFSC, UPI, PIN, phone, IMEI, card, ISBN, IBAN … | number detective, what is this number, identify number, check number, validate, valid, is it valid, verify, … |
+| `numcheck` | Number Detective | PC + mobile | Paste any number or code: what it is and whether it is valid — Aadhaar, PAN, GSTIN, IFSC, UPI, PIN, phone, IMEI, card, ISBN, IBAN … | number detective, what is this number, vehicle number state, state code, which state, which bank, identify number, check number, … |
 | `zip` | Create Zip | PC + mobile | Zip files, optionally with a password. | zip, compress, archive, password zip, aes |
 | `unzip` | Extract Archive | PC + mobile | Open zip, 7z, rar, tar, gz files. | unzip, extract, open, zip, 7z, rar, tar, gz, … |
 

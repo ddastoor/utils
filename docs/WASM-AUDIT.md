@@ -1786,3 +1786,20 @@ Looked at first (STANDING RULE #1):
 - **Measured:** 8,503 reference answers of python-stdnum 2.2, libphonenumber 9.0.44 and vininfo 2.0.0 all agree; every PIN code of
   a second reading of the directory found, 99 %+ in the same state; credit-card-type's network for 4,000 random numbers (RuPay's
   ranges, which it lacks, as RuPay); RBI's list itself where the generator cached it.
+
+### 187. `pdf-redact` — PDF Redact (27 Nov 2026; potentials #61)
+- **What it does:** numbers, codes, words and areas taken out of a PDF for good (CLAUDE.md §3 "PDF Redact").
+- **Existing WebAssembly modules:** **MuPDF** (Artifex's official build, on the site) has true redaction —
+  `PDFPage.applyRedactions` with choices for text, pictures (their pixels made black) and line art; it is the only WebAssembly PDF
+  engine that does. PDF.js and pdf-lib (JavaScript) cannot remove text; QPDF's WebAssembly builds rewrite a file's structure, not
+  its content. → **used** (rule 1).
+- **What it does not cover, beside it:** the finding — the Number Detective's devcore-ids.wasm (`ids:scan`, our Rust: each kind's
+  matches in a page's text with their UTF-16 offsets; rule 1a); scanned pages — Tesseract (tesseract.js-core, on the site); codes —
+  zxing-cpp (zxing-wasm, on the site); which characters a place covers, the rectangles handed to MuPDF and the hidden places
+  (TS glue, rule 1c: a few comparisons per character box).
+- **Found:** MuPDF removes every character whose box — the font's ascent to its descent, taller than the ink — touches a
+  redaction. On lines set solid a place's box reached the lines above and below and took their letters (`tests/unit/redact.test.mjs`
+  fails without the fix): the text is redacted by a band through the middle third of each line, and a box drawn by hand by bands
+  through the characters whose middle it covers; the whole box is used only to cover (pictures' pixels, drawings, the black box).
+  Read back by MuPDF, poppler and pypdf.
+- **Decision:** MuPDF stays the engine; nothing new on the site (the tab's code, ≈ 25 KB).

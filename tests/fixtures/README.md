@@ -137,3 +137,10 @@ generates media with the project's own ffmpeg.wasm and Chromium). Used only by t
 ## numcheck/
 - `reference.json` — the Number Detective's reference answers (8,503): python-stdnum 2.2, phonenumbers 9.0.44 (Google's
   libphonenumber) and vininfo 2.0.0 on numbers drawn by a seeded generator (`python3 scripts/make-numcheck-reference.py`).
+
+## redact/
+- `statement.pdf`, `scan.pdf`, `truth.json` — PDF Redact's test PDFs, made by `python3 scripts/make-redact-pdfs.py` (reportlab,
+  pypdf, Pillow, segno; DejaVu Sans for the embedded font): a statement of three pages (numbers of twelve kinds on 10-point lines
+  set solid, a sticky note, a form field, the PAN in the title, the Aadhaar number in the subject and a bookmark, a page turned
+  by /Rotate 90, a page in an embedded font) and a scan of two pages (a picture only; a picture under an invisible OCR layer),
+  each with a QR code holding an Aadhaar number. Every number is made up (valid check digits); `truth.json` says what is where.

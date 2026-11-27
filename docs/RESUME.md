@@ -96,7 +96,14 @@ Each app: its tab, unit + e2e suites, docs, taken off potentials.md, committed a
 2026):** the tab `numcheck` (Codes & Files, PC + mobile; CLAUDE.md §3 "Number Detective"), engine devcore-ids.wasm (our Rust, 1.1 MB
 with India Post's PIN directory, RBI's IFSC list, libphonenumber's Indian rules, the ISBN ranges …; `scripts/make-ids-data.py`), unit
 `numcheck` 68 (8,503 answers of stdnum / libphonenumber / vininfo — `scripts/make-numcheck-reference.py` —, credit-card-type, second
-readings of the PIN directory and the GS1 prefixes), e2e `numcheck` 33; docs/WASM-AUDIT.md 186. **Next: #61 PDF Redact.**
+readings of the PIN directory and the GS1 prefixes), e2e `numcheck` 33; docs/WASM-AUDIT.md 186. **#61 PDF Redact — BUILT (27 Nov
+2026):** the tab `pdf-redact` (Documents, PC + mobile; CLAUDE.md §3 "PDF Redact"): the places found by devcore-ids `ids:scan` in each
+page's text, by Tesseract in scanned pages and by zxing-cpp (QR codes); comments and form fields baked first; MuPDF's redaction in
+two passes (a band through each line for the text — a box over solid-set lines took the neighbours' letters —, then pictures'
+pixels, drawings and a black box); hidden places removed; the saved file read again. Unit `redact` 26, e2e `pdf-redact` 45 (read
+back by MuPDF, poppler, pypdf, zbar); fixtures `python3 scripts/make-redact-pdfs.py`; docs/WASM-AUDIT.md 187. With it,
+`src/lib/ocr.ts` hands Tesseract.js the picture's PNG bytes itself (a tab left during its start-up gave an uncaught error).
+**Next: #93 Safe ID Copy.**
 **Then to-dos #38, #39 and #40** (owner,
 27 Nov 2026, evening: "After you finish all these, finish off the items in the todo.md also."; #40, added the same evening:
 the EPUB Reader's "Remember book" — a hash of the book, its place and the reading voice in the Settings — after #39). The open question (keep the EPUB Reader's place between visits?) is

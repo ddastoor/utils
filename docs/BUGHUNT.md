@@ -3343,3 +3343,20 @@ Found while building it, each with a check in `tests/unit/numcheck.test.mjs`:
 - **libphonenumber places only landlines in India** (`isNumberGeographical`): 1860 numbers had been given Pathankot's place.
 - **Braintree's credit-card-type has no RuPay**, and its Maestro range 506779 – 508999 holds RuPay's 508500 – 508999: RuPay's
   ranges are tried first.
+
+## PDF Redact (27 Nov 2026; built — potentials #61)
+Found while building it, each with a check in its suites:
+- **A redaction took letters of the lines next to it** (`tests/unit/redact.test.mjs`): MuPDF removes every character whose box (the
+  font's ascent to its descent) touches a redaction, and on lines set solid those boxes reach into the neighbouring lines. The
+  text is redacted by a band through the middle of each line; a box drawn by hand over one line had taken letters of the line
+  above, which then stood missing beside the black box — it is redacted by bands through the characters whose middle it covers
+  (the test fails without the fix).
+- **Leaving the tab while Tesseract started up gave an uncaught error** ("Cannot read properties of null (reading
+  'postMessage')", `tests/e2e/pdf-redact.e2e.mjs`): Tesseract.js made the picture's PNG itself (canvas.toBlob, a task of its own)
+  after it was called, the tab's leave ended the worker meanwhile, and the job was then sent to no worker — a rejection no
+  `catch` of ours received. `src/lib/ocr.ts` hands over the PNG bytes itself (the same bytes) and refuses a worker it ended; the
+  OCR, Photo Dictionary, Newspaper Clipper, paste and book suites run again on it.
+- **The boxes over the places failed WCAG 2.2's target size** (24 px; axe-core): they are as small as the text they cover. They
+  are a pointer's shortcut now, hidden from screen readers, and the list's ticks — rows of 44 px on phones — are the control
+  (2.5.8's "equivalent" exception).
+- **The result's Download stood in a second fixed bar on phones** (`actions()` is the phone's bottom bar): a row in the card now.

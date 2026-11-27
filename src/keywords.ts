@@ -27,6 +27,7 @@ export const KEYWORDS: Record<string, string> = {
   'pdf-compress': 'pdf, compress, reduce size, smaller, kb, mb, optimize, shrink',
   'pdf-sign': 'esign, signature on pdf, digital signature, sign document, sign, signature, pdf, e-sign, initials, date',
   'pdf-fill': 'fill, form, pdf, type on pdf, fields, checkbox, application',
+  'pdf-redact': 'redact pdf, pdf redaction, redact, redaction, black out, blackout, hide text in pdf, remove text from pdf, remove aadhaar from pdf, hide aadhaar number, mask aadhaar, hide pan number, hide account number, hide phone number, hide address, censor pdf, sanitize pdf, sanitise, remove personal information, remove personal details, privacy, kyc copy, bank statement, black box, permanently remove, really delete text, scrub metadata, remove metadata, qr code, scanned pdf',
   'pdf-unlock': 'unlock, remove password, decrypt, pdf, aadhaar, bank statement, form 16',
   'pdf-protect': 'protect, password, encrypt, lock, pdf, secure',
   'pdf2text': 'pdf to text, extract text, txt, copy, pdf',
