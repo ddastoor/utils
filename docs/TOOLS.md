@@ -2,9 +2,9 @@
 
 Generated from `src/registry.ts` by `npm run docs` — do not edit by hand.
 
-**176 tabs** in 11 categories — 109 PC + mobile, 64 PC only, 3 mobile only.
+**177 tabs** in 11 categories — 110 PC + mobile, 64 PC only, 3 mobile only.
 
-## Images (16)
+## Images (17)
 
 | id | Tab | Platform | What it does | Search keywords |
 |---|---|---|---|---|
@@ -21,6 +21,7 @@ Generated from `src/registry.ts` by `npm run docs` — do not edit by hand.
 | `collage` | Collage Maker | PC + mobile | Combine photos into a grid. | collage, grid, combine, merge photos, layout, montage, side by side |
 | `exif` | EXIF / Photo Info | PC + mobile | See hidden photo details (camera, date, GPS) and strip them. | gps from photo, photo details, camera info, exif, metadata, gps, location, camera, … |
 | `scanner` | Doc Scanner | PC + mobile | Photograph documents, straighten and clean them, save as PDF. | scan, scanner, document, camscanner, paper, receipt, perspective, crop, … |
+| `clipper` | Newspaper Clipper | PC + mobile | Photograph a newspaper page and clip one article: its columns in order, as one picture, a PDF or its text. | newspaper clipper, newspaper clipping, clip an article, cut out an article, news article, newspaper article, press cutting, press clipping, … |
 | `bookflat` | Book Page Flattener | PC + mobile | Photograph an open book: the curved pages flattened, split and straightened. | flatten book page, book scanner, scan a book, photograph book, open book, curved page, curl, page curl, … |
 | `ocr` | OCR | PC + mobile | Extract text from an image (English, French, Spanish, German). | copy text from image, copy text from photo, extract text from image, text from photo, extract text from photo, handwriting, ocr, text recognition, … |
 | `signature` | Signature Maker | PC + mobile | Draw your signature and save a transparent PNG. | signature, sign, draw signature, transparent signature, signature png, autograph, handwritten, e signature image |

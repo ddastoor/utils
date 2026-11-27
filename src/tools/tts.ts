@@ -8,6 +8,7 @@ import { h, card, field, actions, button, slider, select, segmented, stack, note
 import { audio, int16Asymmetric } from '../lib/audio-client';
 import { decodeText } from '../lib/sheetdata';
 import { trackWorker } from '../lifecycle';
+import { take } from '../lib/handoff';
 
 interface Voice { id: string; label: string; engine: 'kokoro' | 'piper' | 'system'; lang: 'a' | 'b'; speaker: number }
 const V = (id: string, label: string, engine: Voice['engine'], lang: Voice['lang'] = 'a', speaker = 0): Voice => ({ id, label, engine, lang, speaker });
@@ -40,7 +41,7 @@ export const mount: Mount = (root, ctx) => {
   // worker's "cancelled" carried the old run's number and was ignored)
   let endRun: (() => void) | null = null;
   const ta = h('textarea', { class: 'input textarea tts-text', rows: 8, 'aria-label': 'Text to read', spellcheck: 'true' }) as HTMLTextAreaElement;
-  ta.value = SAMPLE;
+  ta.value = take('tts') ?? SAMPLE; // a text another tab handed over ("Read aloud" in the Newspaper Clipper), else the sample
   const count = h('div', { class: 'muted small' });
   const syncCount = () => { const w = ta.value.trim() ? ta.value.trim().split(/\s+/).length : 0; count.textContent = `${w.toLocaleString()} words · about ${fmtTime((w / 150) * 60 / speed)} at this speed`; };
   ta.addEventListener('input', syncCount);

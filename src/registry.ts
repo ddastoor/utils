@@ -73,6 +73,7 @@ export const TOOLS: Tool[] = [
   t('collage', 'Collage Maker', 'Combine photos into a grid.', 'images', 'LayoutGrid', () => canv().then((m) => m.collage)),
   t('exif', 'EXIF / Photo Info', 'See hidden photo details (camera, date, GPS) and strip them.', 'images', 'Info', () => img().then((m) => m.exif)),
   t('scanner', 'Doc Scanner', 'Photograph documents, straighten and clean them, save as PDF.', 'images', 'ScanLine', () => import('./tools/scanner').then((m) => m.mount)),
+  t('clipper', 'Newspaper Clipper', 'Photograph a newspaper page and clip one article: its columns in order, as one picture, a PDF or its text.', 'images', 'Newspaper', () => import('./tools/clipper').then((m) => m.mount)),
   t('bookflat', 'Book Page Flattener', 'Photograph an open book: the curved pages flattened, split and straightened.', 'images', 'BookOpen', () => import('./tools/bookflat').then((m) => m.mount)),
   t('ocr', 'OCR', 'Extract text from an image (English, French, Spanish, German).', 'images', 'ScanText', () => import('./tools/ocr').then((m) => m.mount)),
   t('signature', 'Signature Maker', 'Draw your signature and save a transparent PNG.', 'images', 'PenLine', () => import('./tools/signature').then((m) => m.mount)),

@@ -705,6 +705,25 @@ details summary { cursor: pointer; font-weight: 600; color: var(--accent); paddi
 .scan-thumb span { position: absolute; left: 4px; top: 4px; background: rgb(0 0 0 / 60%); color: #fff; font-size: 12px; border-radius: 6px; padding: 0 6px; }
 .scan-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 @media (max-width: 700px) { .scan-grid { grid-template-columns: 1fr; } }
+/* Newspaper Clipper: the page with its blocks to tap, the parts in order, the clipping */
+.clip-view { position: relative; line-height: 0; border-radius: 8px; overflow: hidden; background: #fff; }
+.clip-view canvas { display: block; width: 100%; height: auto; }
+.clip-layer { position: absolute; inset: 0; }
+.clip-block { position: absolute; padding: 0; margin: 0; border: 2px solid color-mix(in srgb, var(--accent) 45%, transparent); border-radius: 4px; background: transparent; cursor: pointer; }
+.clip-block.head { border-style: dashed; border-color: var(--accent); }
+.clip-block.pic { border-style: dotted; }
+.clip-block[aria-pressed="true"] { background: color-mix(in srgb, var(--accent) 22%, transparent); border: 2px solid var(--accent); }
+.clip-block:focus-visible { outline: 3px solid var(--accent); outline-offset: 1px; }
+.clip-n { position: absolute; left: 0; top: 0; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 0 0 6px 0; background: var(--accent); color: var(--accent-ink); font: 600 12px/20px system-ui, sans-serif; }
+.clip-stories { display: flex; flex-wrap: wrap; gap: 8px; }
+.clip-stories .btn { white-space: normal; text-align: left; height: auto; min-height: 36px; padding-block: 6px; }
+.clip-parts-wrap { margin: 0; padding: 0; list-style: none; }
+.clip-parts { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.clip-parts li { display: flex; align-items: center; gap: 6px; }
+.clip-parts .t { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.clip-out { max-height: 70vh; overflow: auto; border: 1px solid var(--border); border-radius: 8px; background: #fff; }
+.clip-out canvas { display: block; width: 100%; height: auto; }
+@media (pointer: coarse) { .clip-stories .btn { min-height: 44px; } .clip-parts .btn-sm { min-height: 44px; width: 44px; } }
 .scan-out { background: #fff; }
 .scan-out.dim { opacity: .35; }
 /* ------------------------------------------------------------------ Linux Terminal */

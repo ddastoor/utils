@@ -15,6 +15,7 @@ export const KEYWORDS: Record<string, string> = {
   'collage': 'collage, grid, combine, merge photos, layout, montage, side by side',
   'exif': 'gps from photo, photo details, camera info, exif, metadata, gps, location, camera, date, info, strip, remove metadata, privacy',
   'scanner': 'scan, scanner, document, camscanner, paper, receipt, perspective, crop, pdf, black and white',
+  'clipper': 'newspaper clipper, newspaper clipping, clip an article, cut out an article, news article, newspaper article, press cutting, press clipping, cutting, columns, multi-column, article from a newspaper, newspaper photo, photo of a newspaper, magazine article, read a newspaper aloud, newspaper to pdf, newspaper to text, article to pdf, stack columns, scrapbook, epaper, e-paper, news cutting, clippings',
   'bookflat': 'flatten book page, book scanner, scan a book, photograph book, open book, curved page, curl, page curl, dewarp, unwarp, flatten, straighten lines, book spine, gutter, two pages, spread, split pages, textbook, novel, library book, notes from a book, book to pdf, book photo to pdf, flat page, warped page, bent page, booklet, magazine',
   'ocr': 'copy text from image, copy text from photo, extract text from image, text from photo, extract text from photo, handwriting, ocr, text recognition, extract text, image to text, copy text, tesseract, english, french, spanish, german, francais, espanol, deutsch, read, scan text',
   'signature': 'signature, sign, draw signature, transparent signature, signature png, autograph, handwritten, e signature image',

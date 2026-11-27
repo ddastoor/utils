@@ -35,8 +35,15 @@ dewarp and page-dewarp itself: docs/WASM-AUDIT.md 179), steps `src/lib/bookflat.
 day (measured against the ground truth and the OCR): the lens** (EXIF, else the main camera; a "Camera lens" choice — a
 zoomed photo was skewed by up to 7 %), **the page drawn along the paper** (0.58 → 0.38 % off), **where a page ends** (the
 paper's edges and specks of the table were taken for words; the page reached into the table; a spread's pages reach the
-gutter) — unit `bookflat` 106, e2e 37; OCR of 16 photos 90.7 → 92.4 %. **Next in group
-1:** #110 Newspaper Clipper · #109 PDF for Kindle · #71 EPUB Reader · #106 Articles → Kindle · #14 PDF / EPUB → Audiobook;
+gutter) — unit `bookflat` 106, e2e 37; OCR of 16 photos 90.7 → 92.4 %. **#110 Newspaper Clipper — IN PROGRESS (27 Nov
+2026):** the tab `clipper` (Images, PC + mobile) is built — `src/tools/clipper.ts`, steps `src/lib/clipper.ts` (the page
+found, straightened, sharpened and read by Tesseract laid out as a page; blocks, headlines, pictures, a story from its
+headline, the XY-cut's order, the tall picture, A4 pages cut between lines, "Read aloud" through `src/lib/handoff.ts`);
+measured with `node scripts/measure-clipper.mjs DIR` on photos of `scripts/make-newspaper-photos.py` (93 of 127 stories
+clipped whole on 16 photos, nearly all on the sharp ones); unit `clipper` 154 green (fixtures `tests/fixtures/news/`).
+**Left:** run the e2e suite `clipper` (written, not yet run) and fix what it finds, the phone screenshot, the docs
+(CLAUDE.md §3, WASM-AUDIT, BUGHUNT, potentials #110 off the list). **Next in group
+1:** #109 PDF for Kindle · #71 EPUB Reader · #106 Articles → Kindle · #14 PDF / EPUB → Audiobook;
 then the flattener as a measured step of the OCR and the Photo Dictionary (no photo may read worse). **New, open: to-do #38** (owner, 27 Nov 2026, before the potentials: the OCR's and the
 Photo Dictionary's text copied to the clipboard as soon as it is read) — not started; **the owner: later** ("will come back
 to do later", 27 Nov 2026) — do not start it until the owner says so.

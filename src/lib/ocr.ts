@@ -58,17 +58,25 @@ export interface OcrWord { text: string; conf: number; x0: number; y0: number; x
 /** A line of a reading: its words (`words[w0]` up to, not with, `words[w1]`) and the paragraph and block it belongs to —
  *  Tesseract's text puts a blank line between paragraphs. The OCR tab sets a page's lists out by them (to-do #31). */
 export interface OcrLine { w0: number; w1: number; para: number; block: number }
-export interface OcrResult { text: string; confidence: number; words: OcrWord[]; lines?: OcrLine[] }
+export interface OcrResult {
+  text: string; confidence: number; words: OcrWord[]; lines?: OcrLine[];
+  /** words in blocks Tesseract's page layout took for vertical text (a blurred page of horizontal lines can look like it:
+   *  letters of neighbouring lines run together) — the Newspaper Clipper reads such a page again, sharpened */
+  vertical?: number;
+}
 /** Tesseract's block types (PolyBlockType) its text leaves out — pictures and rules (TessBaseAPI::GetUTF8Text) */
 const NOT_TEXT = new Set([9, 10, 11, 12, 13]);
+/** PT_VERTICAL_TEXT */
+const VERTICAL = 7;
 /** Tesseract.js's result (`text`, `confidence`, `blocks`) as the tabs' reading: the text, the words with their boxes and
  *  the lines of the text — each line's words joined by single spaces are the text's line, its paragraphs apart by a blank
  *  line (GetUTF8Text's own rule). No DOM: scripts/measure-ocr.mjs reads Tesseract in Node through it. */
 export function readingOf(data: { text?: string | null; confidence?: number | null; blocks?: any[] | null }): OcrResult {
   const words: OcrWord[] = [], lines: OcrLine[] = [];
-  let para = 0, block = 0;
+  let para = 0, block = 0, vertical = 0;
   for (const b of data.blocks || []) {
     const text = !NOT_TEXT.has(b.blocktype);
+    if (b.blocktype === VERTICAL) for (const p of b.paragraphs || []) for (const l of p.lines || []) vertical += (l.words || []).length;
     for (const p of b.paragraphs || []) {
       for (const l of p.lines || []) {
         const w0 = words.length;
@@ -79,7 +87,7 @@ export function readingOf(data: { text?: string | null; confidence?: number | nu
     }
     block++;
   }
-  return { text: (data.text || '').replace(/\n{3,}/g, '\n\n').trim(), confidence: data.confidence ?? 0, words, lines };
+  return { text: (data.text || '').replace(/\n{3,}/g, '\n\n').trim(), confidence: data.confidence ?? 0, words, lines, vertical };
 }
 /** How Tesseract lays the picture out (its page segmentation mode): 'page' finds the blocks of a page — columns, a
  *  sidebar, a table's cells — and reads each on its own (mode 3); 'block' reads the picture as one block of lines (mode
