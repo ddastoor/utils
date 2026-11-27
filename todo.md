@@ -36,6 +36,26 @@ The owner adds items here in chat ("add … to to do"). Newest instructions win.
     allowed is stored — the Favorites and the folded app list; a new kind of setting needs the owner's word). To ask when
     building: the folded app list in the file too (a second section)? Import replaces the stars or adds to them? When: at
     the owner's word (not yet started).
+    **Added the same day** (owner: "different sections in the settings page will actually correspond to different UI elements
+    or areas of different apps, which also corresponds to browser storage. They are all in sync. Whenever through an app I
+    change a settings linked UI control, it should change in the browser storage area, it should change in the settings
+    storage area, and immediately a new settings file … superutils settings _ YYYYMMDD _ hour and minute should be saved on
+    the user's local PC or mobile phone. It may be JSON or TXT or whatever format you decide … when I import that same
+    settings file from disk, it should again override and adjust the browser space accordingly and affect those apps which
+    are synced with those areas"):
+    - **One store, three views kept in step:** each section of the Settings page is a group of controls of an app (Favorites
+      first — the stars on the cards and tabs); a control changed in its app, on the Settings page or by an import changes
+      the browser's storage and every view of it at once (open tabs of the site too: the `storage` event).
+    - **A settings file after every change:** `superutils-settings_YYYYMMDD_HHMM.json` (JSON: readable, the site's own
+      format with a version; a second change in the same minute replaces that minute's file). What a browser allows: a page
+      cannot write to the disk unasked — on a PC (Chrome, Edge) the Settings page asks once for a folder ("Keep my settings
+      files here", File System Access) and every change is written there by itself while the site is open (Chrome may ask
+      again after a restart); where there is no folder access (iPhone Safari, Firefox, Android) each change is a download
+      (Chrome asks once to allow several; an iPhone asks each time) — or the tab offers "Save settings file" with the
+      change. To decide when building, with the owner.
+    - **Import** a file → its settings replace the stored ones and the apps that show them change at once.
+    - **Which controls become settings** is the owner's choice, app by app (CLAUDE.md §1 rule 1: nothing else is stored) —
+      to be listed with him before building (e.g. the EPUB Reader's look and place, the voice and speed of the speech tabs).
 
 ## Done
 - **37. OCR and Photo Dictionary: an image from the clipboard** (owner, 27 Nov 2026: "Make both ocr app and photo dictionary app
