@@ -1,0 +1,21 @@
+[package]
+name = "article"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "SuperUtils article engine for wasm32: Mozilla Readability's algorithm (the dom_smoothie crate) finds the article in a saved web page; our code reads Chrome's MHTML and Safari's web archives and writes the article as XHTML for an EPUB"
+
+[lib]
+crate-type = ["cdylib"]
+path = "src/lib.rs"
+
+[dependencies]
+dom_smoothie = "0.20.0"
+serde_json = "1"
+
+[profile.release]
+opt-level = "s"
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true
