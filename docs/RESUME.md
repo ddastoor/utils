@@ -125,7 +125,10 @@ e2e noise-studio 28 (+ noise 25) — **both passed on Windows too** (the Windows
 and ask (1) ~~when to do #32~~ — done on 27 Nov 2026; when to do #33 – #35 (the Cartoonizer's grades, the Watermark's
 cover page, the Text Diff side by side); (2) ~~remind him to allow `main` in github-pages~~ — done by
 the owner on 27 Nov 2026: the site is live from main (754d1b5); (3) offer the AnimeGAN / White-box styles for the Cartoonizer;
-(4) tell him the decisions taken tonight (#16, #17, #20 above). Until he answers: nothing new is started (the owner's rule:
+(4) tell him the decisions taken tonight (#16, #17, #20 above). (5) potentials #118 – #119 added at the owner's word (27 Nov 2026:
+"Ok, add both to potentials") after the question of one WebAssembly module for everything (answered no — the reasons in
+potentials.md, Round 10): #118 one module for mathcore, crypto and textcore (checked: likely no gain), #119 fetch a tab's code
+and small engine ahead when the pointer rests on it (an engine fetched ahead bends the lazy-loading rule — the owner's word first). Until he answers: nothing new is started (the owner's rule:
 never start a to-do item on your own).
 
 ## ▶ SYNC POINT — 21 Nov 2026, night (read this first; it supersedes the older "NOW" notes below)
