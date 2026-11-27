@@ -3087,3 +3087,17 @@ cannot. Three new suites; each fails on the build before its fixes.
   move: a later section that takes its first-page footer from section 1 would have taken the cover's new footer — it is
   pinned to the one it had. The suite's own slips: it expected the switch on after leaving it off for the one-page PDF
   (the switch keeps its setting — the check says so now), and clicked the switch while it was hidden (no document).
+- **Text Diff side by side (to-do #35, 27 Nov 2026).** Found while building the pairing: (1) **the line view's "approximate"
+  warning counted the wrong time** — `approx` was set when the whole call ran past the time limit, the marking of changed
+  lines included (it gets at least 200 ms more), so a diff found in time could be called "not searched to the end"; it is
+  set by the comparing alone now (modes 0 – 2 otherwise give the old module's answers byte for byte, 501 calls). (2)
+  **Likeness by letters on long lines** took the whole 2 s on a change of 50 × 50 lines of 2,000 characters (Myers' search
+  is quadratic in the length for lines that are not alike, and English paragraphs share their letters' counts, so no cheap
+  bound rejects them) — and two unrelated paragraphs of the same words in another order came out 64 % alike by letters:
+  two lines longer than 400 characters together are weighed by their words and signs now (28 ms; 44 % alike), and the
+  weighing of one diff stops after 300 ms (the rest paired in order). The suites' own slips: the empty lines of
+  `a\n\nb → a\nnew\n\n\nb` expected in another place than GNU diff puts them (`1a2,3` — the engine agrees with GNU); a
+  test that meant to show the rule for lines of spaces had a pair whose changed line rightly took the row; the patch check
+  turned an empty original into one empty line; `getByLabel('Original')` found three elements once the list and its
+  changes carried "original" in their names (`exact: true`); the five lines before the first change and after the last
+  are too few to fold (32 rows, not 28); the tab writes "3,001".

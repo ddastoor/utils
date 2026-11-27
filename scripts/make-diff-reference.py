@@ -2,8 +2,10 @@
 """Reference for Text Diff (tests/unit/textdiff.test.mjs): GNU diff on the same pairs of texts.
 
 Seeded pairs (a text and an edited copy of it: lines changed, removed, added, moved; some pairs unrelated, some equal),
-each with what `diff -d` (the minimal diff) counts as removed and added lines. The unit suite demands the same counts
-from the engine and applies the engine's unified diff with GNU patch.
+each with what `diff -d` (the minimal diff) counts as removed and added lines, and its changes as GNU diff's commands
+("3c3,4", "7a9", "12,13d13" — one command a change: the side-by-side view's Previous / Next go through the same groups).
+The unit suite demands the same counts from the engine, the same groups wherever the engine removed and added the same
+lines as GNU diff, and applies the engine's unified diff with GNU patch.
 
   python3 scripts/make-diff-reference.py        (GNU diffutils)
 """
@@ -33,8 +35,10 @@ def gnu(a, b):
         pa, pb = os.path.join(d, 'a'), os.path.join(d, 'b')
         open(pa, 'w').write(a); open(pb, 'w').write(b)
         out = subprocess.run(['diff', '-d', '-U0', pa, pb], capture_output=True, text=True).stdout
+        normal = subprocess.run(['diff', '-d', pa, pb], capture_output=True, text=True).stdout
     body = [l for l in out.split('\n')[2:] if l]
-    return sum(1 for l in body if l[0] == '-'), sum(1 for l in body if l[0] == '+')
+    commands = [l for l in normal.split('\n') if l[:1].isdigit()]
+    return sum(1 for l in body if l[0] == '-'), sum(1 for l in body if l[0] == '+'), commands
 
 cases = []
 for i in range(160):
@@ -43,8 +47,8 @@ for i in range(160):
     kind = rnd.random()
     b = list(a) if kind < 0.08 else [line() for _ in range(rnd.randint(0, n + 3))] if kind < 0.18 else edited(a)
     ta, tb = ''.join(l + '\n' for l in a), ''.join(l + '\n' for l in b)
-    removed, added = gnu(ta, tb)
-    cases.append({'a': ta, 'b': tb, 'removed': removed, 'added': added})
+    removed, added, commands = gnu(ta, tb)
+    cases.append({'a': ta, 'b': tb, 'removed': removed, 'added': added, 'gnu': commands})
 here = os.path.dirname(os.path.abspath(__file__))
 json.dump(cases, open(os.path.join(here, '..', 'tests', 'fixtures', 'diff', 'reference.json'), 'w', encoding='utf8'), ensure_ascii=False, separators=(',', ':'))
 print(len(cases), 'pairs;', sum(1 for c in cases if c['added'] or c['removed']), 'that differ')

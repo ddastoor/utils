@@ -16,10 +16,14 @@ merged into main (fast-forward, 1d5e8dc) and is no longer pushed to. **The site 
 (the owner allowed main in the `github-pages` environment; first deploy 754d1b5 — CLAUDE.md §7, Deploy).
 
 ## ▶ NOW — 26 Nov 2026, morning (read this first)
-**▶▶ 27 Nov 2026 — IN PROGRESS: the owner's "Go ahead with all items in todo" (to-do #33 – #36).** Order: **#36 DONE** (the
-start page's note of the other device's apps); **#34 DONE** (Watermark: the first page of a document with or without the mark),
-**#33 DONE** (Cartoonizer: how cartoony, in grades), **#35** (Text Diff side by side, Next / Previous hunk). Each is committed and
-pushed when it is done; todo.md's Done says which are.
+**▶▶ 27 Nov 2026 — DONE: the owner's "Go ahead with all items in todo" (to-do #33 – #36), each committed and pushed:**
+**#36** (the start page's note of the other device's apps), **#34** (Watermark: the first page of a document with or without
+the mark), **#33** (Cartoonizer: how cartoony, in grades), **#35** (Text Diff: Side by side, the lines of a change paired by the
+engine — our `pair_lines` in textkit-diff.wasm —, Previous / Next change round and round; CLAUDE.md §3 Text Diff). **New, open:
+to-do #37** (owner, 27 Nov 2026, while #35 was being finished: "Make both ocr app and photo dictionary app take images, as
+input, from the clipboard" and "Make a paste button for ocr and photo dictionary apps on the pc too") — a "Paste image" button
+in both tabs on PCs and phones; not started. **Next:** tell the owner the four are done and ask whether to build #37 now;
+then, by the agreed process, show the apps of `docs/potentials.md` and wait for the owner's pick.
 **Batch 1 done; batch 2 (#18 OCR + Photo Dictionary) DONE** (todo.md Done #18; CLAUDE.md §3 OCR, "Documents — one reading
 path"): both tabs read through `src/lib/readpage.ts`; documents with bullets, tables, columns and watermarks read far
 better, no photo of the 150 measured reads worse (Kindle 65.4 → 68.0 %, documents 71.6 → 87.1 %). Measuring: `node

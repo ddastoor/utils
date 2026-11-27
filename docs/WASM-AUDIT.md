@@ -657,6 +657,16 @@ One entry per tab, written before its bug hunt: our module → candidates → ch
   with nothing to compute (`src/lib/ghdiff.ts`): reading what people paste for a repository (one regular expression per
   form), the browser's `fetch` for GitHub's two hosts, the patch's header lines; files decoded by `textOf`
   (`src/lib/textfile.ts`, the browser's TextDecoder). No WebAssembly module has work to do here.
+- **Side by side (to-do #35, 27 Nov 2026):** which removed line stands beside which added one. `similar` diffs and marks but
+  pairs nothing (its inline refinement marks a whole change); no WebAssembly module pairs the lines of a change (Python's
+  difflib does it greedily in its HtmlDiff — no WebAssembly build; GitHub's split view pairs row by row). So the existing
+  module stays for everything it does, and the pairing is **our own Rust beside it in the same module** (rule 1(a)):
+  `pair_lines` in `wasm/textkit/src/diff.rs` — likeness by Myers' search stopped at the most insertions and deletions a
+  pair 0.6 alike can have (the crate's own Myers settles for non-minimal scripts on hard inputs and cannot stop early),
+  bounds by length and by the items in common in any order first, words for long lines, the best order-keeping pairing by
+  dynamic programming; the marks of each pair by `similar`'s inline refinement. Evidence: the unit suite's exhaustive search
+  (its own longest common subsequence by dynamic programming) on 300 edited texts and the 160 GNU pairs; modes 0 – 2 give
+  the old module's answers byte for byte (501 calls).
 
 ### 95. `fancy` — Fancy Text (19 Nov 2026)
 - **Ours before:** no WebAssembly; tables of Unicode characters in TypeScript, and the styles that work character

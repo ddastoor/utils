@@ -10,8 +10,8 @@ import { roundDec } from '../lib/round';
 import { CASE_NAMES, CASE_HINTS, SHOWN, shownPart } from '../lib/caseconv';
 import { processLines, summary, type LineOptions, type LineDeps, type SortMode } from '../lib/linetools';
 import { plan, countText, type FindOptions, type Plan } from '../lib/findreplace';
-import { textdiff, type Textdiff, type DiffRow, type LineDiff, type SpanDiff } from '../wasm/textdiff';
-import { foldRows, lineSummary, spanSummary, APPROX, MAX_ROWS, MAX_SPAN_CHARS } from '../lib/textdiff';
+import { textdiff, type Textdiff, type DiffRow, type LineDiff, type SideDiff, type SideRow, type SpanDiff } from '../wasm/textdiff';
+import { foldRows, lineSummary, spanSummary, hunks, hunkWhere, hunkCounter, APPROX, MAX_ROWS, MAX_SPAN_CHARS, type Hunk } from '../lib/textdiff';
 import { parseRepo, cleanPath, resolveRef, fileAt, namedPatch, patchName, type RepoRef } from '../lib/ghdiff';
 import { readTextFile, crlfText } from '../lib/textfile';
 import * as M from '../lib/morse';
@@ -189,9 +189,11 @@ export const replace: Mount = (root) => {
 // The comparing is textkit-diff.wasm's (the `similar` crate: Myers' algorithm with a time limit); src/lib/textdiff.ts
 // folds long unchanged runs and words the summary; this draws. The texts come from the two boxes, from two files, or from
 // a file of a public GitHub repository at two commits (to-do #14, src/lib/ghdiff.ts); the patch names what it is for.
+// Side by side (to-do #35): the original on the left, the changed text on the right — the engine pairs the removed and
+// added lines of a change (mode 3) — and Previous / Next going from one change to the next, round and round.
 export const diff: Mount = (root) => {
   const A = textarea({ rows: 8, mono: true, value: 'apple\nbanana\ncherry\ndate' }), B = textarea({ rows: 8, mono: true, value: 'apple\nblueberry\ncherry\ndate\nelderberry' });
-  let mode: 'lines' | 'words' | 'chars' = 'lines', src: 'text' | 'files' | 'github' = 'text';
+  let mode: 'lines' | 'side' | 'words' | 'chars' = 'lines', src: 'text' | 'files' | 'github' = 'text';
   // the files' texts as they are (with their own line ends: a text box would give them back with LF only)
   let fa: { name: string; text: string } | null = null, fb: { name: string; text: string } | null = null;
   let gh: { repo: RepoRef; path: string; a: string; b: string; refA: string; refB: string; ta: string; tb: string } | null = null;
@@ -220,6 +222,97 @@ export const diff: Mount = (root) => {
     if (cut) out.append(note(`The first ${MAX_ROWS.toLocaleString('en-IN')} lines of the differences are shown. The patch holds all of them.`, 'info'));
     info.textContent = lineSummary(d); patch = namedPatch(d.unified, patchSrc()); actions.hidden = !patch;
   };
+  // ---- side by side: two columns in one grid (a row's two lines always stand level), the changes in groups to go through
+  let side: { pane: HTMLElement; els: HTMLElement[]; hs: Hunk[]; cur: number } | null = null;
+  const counter = h('span', { class: 'small ds-count', id: 'diff-hunk', 'aria-live': 'polite' });
+  const prevBtn = button('Previous change', () => go(-1), { small: true, icon: 'ChevronUp', title: 'Previous change — Alt+↑, or P in the list' });
+  const nextBtn = button('Next change', () => go(1), { small: true, icon: 'ChevronDown', title: 'Next change — Alt+↓, or N in the list' });
+  const nav = h('div', { class: 'row ds-nav' }, prevBtn, nextBtn, counter);
+  /** the change `k` is the current one; `scroll`: brought into view (a click on a change only marks it) */
+  const setCur = (k: number, scroll: boolean) => {
+    if (!side) return;
+    const old = side.els[side.cur];
+    if (old) { old.classList.remove('ds-current'); old.removeAttribute('aria-current'); }
+    side.cur = k;
+    const el = side.els[k];
+    el.classList.add('ds-current'); el.setAttribute('aria-current', 'true');
+    counter.textContent = hunkCounter(side.els.length, k, side.hs[k]);
+    if (!scroll) return;
+    // the buttons and the list in view, then the change a third of the way down the list (its top under the names)
+    const pane = side.pane, head = pane.firstElementChild as HTMLElement;
+    (pane.parentElement as HTMLElement).scrollIntoView({ block: 'nearest' });
+    const room = pane.clientHeight - head.offsetHeight;
+    pane.scrollTop = el.offsetTop - head.offsetHeight - Math.max(0, Math.floor((room - el.offsetHeight) / 3));
+  };
+  /** to the next (+1) or the previous (−1) change; from the last one round to the first, and back */
+  const go = (step: 1 | -1) => {
+    const n = side?.els.length ?? 0;
+    if (!side || !n) return;
+    setCur(side.cur < 0 ? (step > 0 ? 0 : n - 1) : (side.cur + step + n) % n, true);
+  };
+  // Alt+↓ / Alt+↑ anywhere in the tab but a text box (as Meld and WinMerge have them)
+  root.addEventListener('keydown', (e) => {
+    if (mode !== 'side' || !e.altKey || e.ctrlKey || e.metaKey || e.shiftKey || (e.key !== 'ArrowDown' && e.key !== 'ArrowUp')) return;
+    const t = e.target as HTMLElement;
+    if (t.closest('textarea, input, select, [contenteditable="true"]')) return;
+    e.preventDefault(); go(e.key === 'ArrowDown' ? 1 : -1);
+  });
+  /** the names over the two columns: the files' names, or the commits */
+  const sideNames = (): [string, string] => {
+    const at = (ref: string, sha: string) => (sha.startsWith(ref) ? sha.slice(0, 7) : `${ref} (${sha.slice(0, 7)})`);
+    if (src === 'files' && fa && fb) return [fa.name, fb.name];
+    if (src === 'github' && gh) return [at(gh.refA, gh.a), at(gh.refB, gh.b)];
+    return ['Original', 'Changed'];
+  };
+  const marks = (parts: Array<[0 | 1, string]>) => {
+    const partly = parts.some(([m]) => m) && parts.some(([m]) => !m); // a line that changed in part: mark the part
+    return parts.length ? parts.map(([m, t]) => (m && partly ? h('mark', null, t) : t)) : ' ';
+  };
+  const cell = (kind: 'eq' | 'del' | 'ins' | 'none', no: number, parts: Array<[0 | 1, string]> | null) =>
+    h('div', { class: `ds-cell ds-${kind}` }, h('span', { class: 'dl-no' }, no ? String(no) : ''), h('span', { class: 'dl-sign' }, kind === 'del' ? '−' : kind === 'ins' ? '+' : ' '),
+      h('span', { class: 'dl-text' }, parts ? marks(parts) : ''));
+  const sideRow = (r: SideRow) => h('div', { class: 'ds-row' },
+    r[0] === 0 ? [cell('eq', r[1], r[3]), cell('eq', r[2], r[3])] : r[0] === 1 ? [cell('del', r[1], r[3]), cell('none', 0, null)]
+      : r[0] === 2 ? [cell('none', 0, null), cell('ins', r[2], r[3])] : [cell('del', r[1], r[3]), cell('ins', r[2], r[4])]);
+  const showSide = (d: SideDiff) => {
+    const [na, nb] = sideNames(), digits = String(Math.max(d.removed + d.same, d.added + d.same, 1)).length;
+    const pane = h('div', { class: 'ds-wrap', tabindex: '0', role: 'region', style: `--nw: ${Math.max(2, digits)}ch`,
+      'aria-label': `The differences side by side: ${na} on the left, ${nb} on the right. N and P go to the next and the previous change.` });
+    pane.append(h('div', { class: 'ds-head' }, h('div', { class: 'ds-name', title: na }, na), h('div', { class: 'ds-name', title: nb }, nb)));
+    pane.addEventListener('keydown', (e) => {
+      if (e.altKey || e.ctrlKey || e.metaKey || e.isComposing) return;
+      const k = e.key.toLowerCase();
+      if (k === 'n' || k === 'p') { e.preventDefault(); go(k === 'n' ? 1 : -1); }
+    });
+    const hs = hunks(d.rows), els: HTMLElement[] = [];
+    let budget = MAX_ROWS, cut = false, ri = 0, hi = 0, group: HTMLElement | null = null;
+    const put = (r: SideRow) => {
+      const changed = r[0] !== 0;
+      if (changed && hs[hi]?.first === ri) {
+        const k = els.length;
+        group = h('div', { class: 'ds-hunk', role: 'group', 'aria-label': `Change ${(hi + 1).toLocaleString('en-IN')}: ${hunkWhere(hs[hi])}` });
+        group.addEventListener('click', () => setCur(k, false));
+        els.push(group); pane.append(group);
+      }
+      (changed && group ? group : pane).append(sideRow(r));
+      if (changed && hs[hi]?.last === ri) { group = null; hi++; }
+      ri++;
+    };
+    for (const block of foldRows(d.rows)) {
+      if (budget <= 0) { cut = true; break; }
+      if (block.fold) {
+        const rows = block.rows, fold = h('button', { type: 'button', class: 'dl-fold' }, `⋯ ${rows.length.toLocaleString('en-IN')} unchanged lines — show`);
+        fold.onclick = () => fold.replaceWith(...rows.slice(0, MAX_ROWS).map(sideRow), ...(rows.length > MAX_ROWS ? [h('div', { class: 'ds-row ds-more' }, h('span', { class: 'dl-text muted' }, `… and ${(rows.length - MAX_ROWS).toLocaleString('en-IN')} more unchanged lines`))] : []));
+        pane.append(fold); ri += rows.length;
+      } else { for (const r of block.rows.slice(0, budget)) put(r); if (block.rows.length > budget) cut = true; budget -= block.rows.length; }
+    }
+    side = { pane, els, hs, cur: -1 };
+    counter.textContent = hunkCounter(els.length, -1);
+    prevBtn.disabled = nextBtn.disabled = !els.length;
+    clear(out).append(h('div', { class: 'ds-box' }, nav, pane));
+    if (cut) out.append(note(`The first ${MAX_ROWS.toLocaleString('en-IN')} lines of the differences are shown, and Previous and Next go through the changes among them. The patch holds all of them.`, 'info'));
+    info.textContent = lineSummary(d); patch = namedPatch(d.unified, patchSrc()); actions.hidden = !patch;
+  };
   const showSpans = (d: SpanDiff) => {
     let left = MAX_SPAN_CHARS, cut = false; const els: Node[] = [];
     for (const [kind, text] of d.spans) { if (left <= 0) { cut = true; break; } els.push(h('span', { class: `dw dw-${kind === 2 ? 'ins' : kind === 1 ? 'del' : 'eq'}` }, text.length > left ? text.slice(0, left) : text)); left -= text.length; }
@@ -232,11 +325,12 @@ export const diff: Mount = (root) => {
   const run = async () => {
     try {
       const t = texts();
-      if (!t) { clear(out); clear(problem); info.textContent = src === 'files' ? 'Choose both files.' : 'Name the repository, the file and two commits, then Compare.'; patch = ''; actions.hidden = true; return; }
+      if (!t) { side = null; clear(out); clear(problem); info.textContent = src === 'files' ? 'Choose both files.' : 'Name the repository, the file and two commits, then Compare.'; patch = ''; actions.hidden = true; return; }
       if (!engine) { engine = await textdiff(); if (gone) return; }
       clear(problem);
-      const d = mode === 'lines' ? engine.diff(t[0], t[1], 0) : engine.diff(t[0], t[1], mode === 'words' ? 1 : 2); // the texts as they are now
-      if (d.mode === 0) showLines(d); else showSpans(d);
+      side = null;
+      const d = mode === 'lines' ? engine.diff(t[0], t[1], 0) : mode === 'side' ? engine.diff(t[0], t[1], 3) : engine.diff(t[0], t[1], mode === 'words' ? 1 : 2); // the texts as they are now
+      if (d.mode === 0) showLines(d); else if (d.mode === 3) showSide(d); else showSpans(d);
       if (d.approx) problem.append(note(APPROX, 'warn'));
       // line ends: Windows' CR LF against LF makes every line differ
       if (t[0] !== t[1]) {
@@ -307,7 +401,7 @@ export const diff: Mount = (root) => {
   root.append(card(null, stack(
     field('Compare', segmented([['text', 'Typed text'], ['files', 'Two files'], ['github', 'A file on GitHub']], src, (v) => { src = v; show(); })),
     textBox, filesBox, ghBox,
-    segmented([['lines', 'Lines'], ['words', 'Words'], ['chars', 'Characters']], mode, (v) => { mode = v; void run(); }))),
+    segmented([['lines', 'Lines'], ['side', 'Side by side'], ['words', 'Words'], ['chars', 'Characters']], mode, (v) => { mode = v; void run(); }))),
     card('Differences', info, problem, out, actions));
   filesBox.hidden = true; ghBox.hidden = true;
   void run();

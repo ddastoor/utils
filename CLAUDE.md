@@ -1746,6 +1746,41 @@ the `similar` crate, §5.1o; wrapper `src/wasm/textdiff.ts`; unit `tests/unit/te
     repository's root), saved as `<file>.patch`; typed text — `original` / `changed`, `changes.patch`.
   - **GitHub as a data host** (approved by the owner): the CSP's connect-src, §3a's table and `no-external.e2e.mjs` list
     `raw.githubusercontent.com` and `api.github.com`; the suites stand in for both with `page.route`.
+- **Side by side, change by change (to-do #35; owner, 27 Nov 2026: "an interactive side-by-side diff with next and previous.
+  as in to cycle through next and previous diff hunks"):** a fourth view beside Lines, Words and Characters, for every source
+  (typed text, two files, a file on GitHub); the other three unchanged.
+  - **The columns:** the original on the left, the changed text on the right — named Original / Changed, the two files'
+    names, or the commits ("v1.0 (1f0e3d2)", a hash as it was typed) —, every line with its number and its sign (− on the
+    left, + on the right: the colour is not alone), one grid so a row's two lines always stand level and wrap inside their
+    column; an empty side hatched; unchanged runs folded as in the line view (three lines beside each change); the names
+    stay at the top of the list (sticky); the line above, the patch and its download as in the line view.
+  - **The lines of a change paired** (`pair_lines`, our Rust in textkit-diff.wasm — mode 3 of `tk_diff`): of a change's
+    removed and added lines, those that correspond stand in one row — of all the pairings that keep the order on both sides
+    and pair only lines at least 0.6 alike, the one most alike in all (dynamic programming; likeness 2·M / (|a| + |b|), M
+    the characters the two have in common in order — the ratio of Python's difflib —, for two lines longer than 400
+    characters together their words and signs: unrelated paragraphs share many letters in order, few words); a line of
+    nothing but spaces is paired with none; the lines left between two pairs stand side by side in order, the longer side's
+    last ones alone; equal totals: the pairs as early as they can be. So a line put in above a changed one stands alone and
+    the changed line stays beside what it became (row by row — GitHub's way — "b" stood beside "NEW"). A change of more than
+    100 × 100 lines, or one met after 300 ms of weighing, is paired in order. Each row of two lines marks what differs
+    between those two lines (similar's inline refinement on the pair; the line view marks within the whole change).
+  - **Previous change / Next change** (buttons; **N / P** in the list when it has the focus — WCAG 2.1.4: single keys only
+    in the component —; **Alt+↓ / Alt+↑** anywhere in the tab but a text box, as Meld and WinMerge): from one change (a run of
+    rows between two unchanged lines — GNU diff's commands, one for one, wherever the engine removed and added the same
+    lines) to the next, **round and round** (Next on the last goes to the first, Previous on the first to the last); the
+    current change outlined in the accent colour (aria-current) and brought a third of the way down the list, its top
+    under the names, the buttons and the list in the window; a click on a change makes it the current one. The words beside
+    them: "2 changes — Next goes to the first.", "Change 2 of 4 — original line 3,001, changed line 3,001", "1 line added:
+    changed line 5" (aria-live); identical texts: "No changes to go through." and the buttons off. Above 5,000 drawn rows the
+    changes among them.
+  - Engine: mode 3 is the same diff as mode 0 (counts, patch, line ends equal), in 1 – 30 ms on ordinary texts (a run of
+    100 × 100 alike lines 6 ms, 50 × 50 lines of 2,000 characters 28 ms); the module 0.69 → 0.71 MB. `approx` is now set by
+    the comparing alone (it counted the time spent marking changed lines too). Unit `textdiff` 80 (the 160 GNU pairs: the
+    columns, GNU diff's commands on the 147 pairs where the engine removed and added the same lines, a patch of a hunk per
+    change applied by GNU patch; the pairing held to an exhaustive search on 300 edited texts — code, paragraphs, Windows
+    line ends, Hindi and emoji — and the reference pairs; known answers), e2e `diff-side` 55 (the keys, round and round,
+    8,000 lines with four changes each brought into view, two files and GitHub naming the columns, a phone, axe-core in both
+    themes).
 
 ### Fancy Text — as built after the Nov 2026 bug hunt
 (`fancy` in `src/tools/text.ts`, the styles `src/lib/fancy.ts`, characters by textkit.wasm `tk_clusters` — §5.1o; unit
@@ -3220,7 +3255,7 @@ difference over its detail, the overlap's pixels), ruled lines and list marks cl
 | espeak: **eSpeak NG 1.52.0** (+ English phoneme tables and dictionary compiled from the same release, linked in, served to its fopen/stat from memory) + glue (IPA for Kokoro, piper-phonemize-style sentences) | C | **us** (`wasm/espeak`) | tts |
 | geo: Charles Karney's **geodesic.c 2.2** (GeographicLib's geodesic routines in C, MIT; the two files unmodified from the PROJ 9.9.0 release) + glue (inverse problem on WGS-84, half-way point, the haversine great circle for comparison) | C | **us** (`wasm/geo`, 36 KB, loaded by the Coordinates tab only; no tried-and-tested WebAssembly geodesic module exists: `docs/WASM-AUDIT.md`, tab 82) | coords |
 | textcore: tool-search ranking, rare-word ranking (tokeniser, lemmatiser, wordfreq hash table), XY-cut reading order (columns numbered only where they are real: `minh`) | C (own code) | **us** (`wasm/textcore`) | search box, emoji (search), photodict, epub |
-| textkit: **unicode-segmentation 1.13.3** (the Rust ecosystem's UAX #29 implementation, Unicode 17.0, MIT / Apache-2.0: extended grapheme clusters, sentence boundaries) + our counting rules: words as a word limit counts them, abbreviations and initials, lines and paragraphs, keywords (Snowball's stop words); **the Case Converter's thirteen conversions** (`case.rs`: Title Case is a port of the Python package `titlecase` 2.4.1 — Gruber's rules, MIT; the code cases cut words as npm's `change-case` does; case mapping by Rust's standard library) | Rust | **us** (`wasm/textkit`, crates.io via `Cargo.lock`, two modules by Cargo features: **textkit.wasm** 217 KB — fetched with the Word Counter's first text, with the Case Converter, and with the first Fancy Text that has an emoji or another script — and **textkit-diff.wasm** 0.69 MB = the **`similar` crate 3.2.1** (Apache-2.0: Myers in linear space with a time limit, line / word / grapheme diffs, inline changes, unified diffs) + our glue, fetched by the Text Diff only; and **textkit-lorem.wasm** 0.13 MB = the **`lipsum` crate 0.9.1** (MIT: a Markov chain over the classic passage and Cicero's *De finibus*, with rand 0.8 / rand_chacha 0.3) + our glue (cleaned texts learned as circles, exact counts), fetched by the Lorem Ipsum tab; the existing module — ICU4X's official build — is one file of 20 MB: `docs/WASM-AUDIT.md`, tab 90) | wordcount, case, lines ("By length"), fancy (characters); diff (textkit-diff); lorem (textkit-lorem) |
+| textkit: **unicode-segmentation 1.13.3** (the Rust ecosystem's UAX #29 implementation, Unicode 17.0, MIT / Apache-2.0: extended grapheme clusters, sentence boundaries) + our counting rules: words as a word limit counts them, abbreviations and initials, lines and paragraphs, keywords (Snowball's stop words); **the Case Converter's thirteen conversions** (`case.rs`: Title Case is a port of the Python package `titlecase` 2.4.1 — Gruber's rules, MIT; the code cases cut words as npm's `change-case` does; case mapping by Rust's standard library) | Rust | **us** (`wasm/textkit`, crates.io via `Cargo.lock`, two modules by Cargo features: **textkit.wasm** 217 KB — fetched with the Word Counter's first text, with the Case Converter, and with the first Fancy Text that has an emoji or another script — and **textkit-diff.wasm** 0.71 MB = the **`similar` crate 3.2.1** (Apache-2.0: Myers in linear space with a time limit, line / word / grapheme diffs, inline changes, unified diffs) + our glue and our pairing of a change's lines side by side (`pair_lines`: likeness by a bounded Myers search, the best order-keeping pairing by dynamic programming — to-do #35), fetched by the Text Diff only; and **textkit-lorem.wasm** 0.13 MB = the **`lipsum` crate 0.9.1** (MIT: a Markov chain over the classic passage and Cicero's *De finibus*, with rand 0.8 / rand_chacha 0.3) + our glue (cleaned texts learned as circles, exact counts), fetched by the Lorem Ipsum tab; the existing module — ICU4X's official build — is one file of 20 MB: `docs/WASM-AUDIT.md`, tab 90) | wordcount, case, lines ("By length"), fancy (characters); diff (textkit-diff); lorem (textkit-lorem) |
 | sheet: calamine 0.38 (read .xlsx .xlsm .xlsb .xls .ods) + rust_xlsxwriter 0.102 (write .xlsx) + csv 1 + serde_json | Rust | **us** (`wasm/sheet`, crates.io sources verified by `Cargo.lock`, target wasm32-wasip1) | sheet |
 | svgo: **OXVG 0.0.9** (Rust port of SVGO's plugins; lightningcss for `<style>`) + our glue: DOCTYPE / entities allowed, nesting limit 256, **our own safe preset** (OXVG's `Jobs::safe()` is not safe), `sv_diff` (do two rasters look alike? — the tab renders every result next to its original and falls back to the safe result when the full optimisation changed the picture) | Rust | **us** (`wasm/svgo`, crates.io via `Cargo.lock`, opt-level z, 4.9 MB / 1.3 MB gz, loaded with the first SVG; unit `tests/unit/svgo.test.mjs`, hazard drawings `tests/fixtures/svg/hazards.json`) | svgo |
 | keys — the **supplement** to hash-wasm for the key tabs (owner's tweak of 18 Nov 2026: what the existing module does not cover): lenient Base32 secrets, HOTP counters and truncation; checked parameters, random salts, PHC strings for scrypt / PBKDF2 and the reader of pasted hashes; RustCrypto **argon2** for Argon2 version 1.0 hashes (v=16 or no version, keyid / data), which hash-wasm does not read; RustCrypto **ssh-key** (OpenSSH Ed25519 generation), **aes + ctr + bcrypt-pbkdf** and our own OpenSSH wire reader (inspect Ed25519 / RSA / ECDSA / DSA keys, encrypted private keys, authorized_keys / known_hosts lines); API keys | Rust | **us** (`wasm/keys`, 0.31 MB; no existing WebAssembly module makes or reads OpenSSH key files) | totp, pwhash (with hash-wasm); sshkey, apikey |
@@ -3397,7 +3432,7 @@ weather (Open-Meteo), IP/network info, clock-accuracy check (network time).
 Owner: "make the full site faster, more responsive and memory efficient — load dependencies from the site's host
 **per app/tab, only when the user selects that tab**". Rules (enforced by `tests/e2e/lazy.e2e.mjs`):
 1. **The shell loads no engine.** Home and category pages fetch only `index.html`, the entry JS/CSS and icons
-   (≈ 177 KB on 27 Nov 2026; the test's budget is 180 KB): no `.wasm`, `vendor/`, `models/`, `data/` or font file. The search box's
+   (≈ 178 KB on 27 Nov 2026; the test's budget is 180 KB): no `.wasm`, `vendor/`, `models/`, `data/` or font file. The search box's
    engine (textcore.wasm, own instance via `newTextcore()`) **and the search keywords of all tabs** (`src/keywords.ts`,
    22 KB, by `loadKeywords()` in `src/registry.ts`) load when the box is first focused/typed in (`ensureSearch()` in
    `src/main.ts` → `initSearch()` in `src/search.ts`). Until then `kw` of every registry entry is empty: code that
@@ -3409,7 +3444,7 @@ Owner: "make the full site faster, more responsive and memory efficient — load
    type), invoice/rent/resume (MuPDF + Noto Sans: the live PDF preview is the main view), markdown (cmark-gfm,
    sample preview), terminal (BusyBox: the shell is ready at once), qr/barcode (zxing-cpp: drawn as you type),
    caption/watermark (fonts of the first preview), coords (geo.wasm, 36 KB: the sample distance), password, passphrase and dice (libsodium.js, 0.53 MB: the first passwords, the first roll; the EFF word list, 62 KB), case
-   (textkit.wasm, 0.21 MB: the sample sentence in all its conversions), diff (textkit-diff.wasm, 0.69 MB: the sample
+   (textkit.wasm, 0.21 MB: the sample sentence in all its conversions), diff (textkit-diff.wasm, 0.71 MB: the sample
    pair compared), cidr/cron/semver/glob/patch (their devcore-<tab>.wasm: the
    sample is computed live), json/jwt/xml/json2types/jsondiff/base64 (their devcore module: the sample is formatted,
    decoded, compared or converted at once), mermaid (the sample diagram), graphviz (the sample graph: its module
@@ -3718,7 +3753,7 @@ from its .dsc), check the version line, `python3 scripts/make-geo-reference.py`,
 `wasm/textkit/build.sh` builds the crate twice with `cargo build --release --locked --target wasm32-wasip1
 --no-default-features --features <f>` (no zig needed): feature `text` → **textkit.wasm** (Word Counter, Case Converter,
 line lengths), feature `diff` → **textkit-diff.wasm** (Text Diff; built with `opt-level = "s"`: the `similar` crate is
-generic over every token type and algorithm — 0.69 MB instead of 0.88). Feature `lorem` → **textkit-lorem.wasm** (Lorem Ipsum, also
+generic over every token type and algorithm — 0.71 MB instead of 0.9). Feature `lorem` → **textkit-lorem.wasm** (Lorem Ipsum, also
 `opt-level = "s"`, 0.13 MB): `src/lorem.rs` on the **`lipsum` crate 0.9.1** (MIT) — `tk_lorem(unit, n, classic, seed32)` →
 `{ paragraphs: [...], sentences, words }` (unit 0 paragraphs, 1 sentences, 2 words). The two texts are the crate's
 own constants, cleaned and learned as circles (see §3 "Lorem Ipsum"). Dependencies (crates.io, pinned by
@@ -3726,7 +3761,9 @@ own constants, cleaned and learned as circles (see §3 "Lorem Ipsum"). Dependenc
 (Apache-2.0). `src/diff.rs`: `tk_diff(a, lenA, b, lenB, mode, limit_ms)` → JSON — mode 0 lines:
 `{ added, removed, same, approx, rows: [[kind, lineA, lineB, [[marked, text], …]], …], unified, endA, endB }`, mode 1
 words / 2 characters: `{ …, spans: [[kind, text], …] }` (kind 0 same, 1 only in the original, 2 only in the changed
-text); `approx` = the time limit ended the search. Wrapper `src/wasm/textdiff.ts`. Our code
+text); mode 3 side by side (to-do #35): mode 0's answer with `rows` of `[0, lineA, lineB, parts]`, `[1, lineA, 0, parts]`,
+`[2, 0, lineB, parts]` and `[3, lineA, lineB, partsA, partsB]` — a removed and an added line in one row (`pair_lines`: §3
+"Text Diff", side by side); `approx` = the time limit ended the search for the line diff (not the marking or the pairing). Wrapper `src/wasm/textdiff.ts`. Our code
 (`src/lib.rs`, ~250 lines): `tk_stats(text, len)` → JSON in `tk_out_ptr()` / `tk_out_len()`:
 `{ words, chars, noSpace, sentences, paragraphs, lines, wordChars, bytes, top: [[word, count], …] }`; `tk_alloc` /
 `tk_free`. The rules are those of §3 "Word Counter". `src/case.rs` (~260 lines): `tk_case(text, len)` → a JSON array

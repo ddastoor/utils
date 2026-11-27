@@ -13,13 +13,27 @@ The owner adds items here in chat ("add … to to do"). Newest instructions win.
 
 3. _(withdrawn by the owner on 20 Nov 2026: the "Export Python utility" for the YouTube Clip tab — do not build it.)_
 
-35. **Text Diff: an interactive side-by-side diff, hunk by hunk** (owner, 27 Nov 2026: "In the text diff app, add an additional
-    option to actually do an interactive side-by-side diff with next and previous. as in to cycle through next and previous
-    diff hunks"). Beside today's views (lines as one column with both line numbers, unchanged runs folded; words; characters):
-    the original on the left and the changed text on the right, their lines side by side, with Next and Previous going from
-    one hunk (a run of changes) to the next. When: at the owner's word (not yet started).
+37. **OCR and Photo Dictionary: an image from the clipboard** (owner, 27 Nov 2026: "Make both ocr app and photo dictionary app
+    take images, as input, from the clipboard"). Today both take a picture pasted with Ctrl+V on a PC (the shared picker,
+    `imageInput` in `src/lib/imgtools.ts`, listens for the page's paste — the picker's line says "or drop / paste (Ctrl+V)"),
+    but there is no button for it, and a phone has no Ctrl+V. **Owner, the same day: "Make a paste button for ocr and photo
+    dictionary apps on the pc too"** — so: a visible **"Paste image" button in both tabs, on PCs and on phones** (Ctrl+V stays
+    as it is). The browser's Async Clipboard API, `navigator.clipboard.read()` — Chrome on Windows, Linux and Android asks once
+    for leave to read the clipboard; iPhone Safari shows its own "Paste" button to tap —, with words for an empty clipboard,
+    text instead of a picture, and a refusal; the picture then read as a chosen photo is. When: at the owner's word (not yet
+    started).
 
 ## Done
+- **35. Text Diff: an interactive side-by-side diff, hunk by hunk** (owner, 27 Nov 2026: "In the text diff app, add an
+  additional option to actually do an interactive side-by-side diff with next and previous. as in to cycle through next and
+  previous diff hunks") — done 27 Nov 2026: a fourth view, **Side by side** (Lines, Words and Characters as they were): the
+  original on the left, the changed text on the right, each line with its number and sign, the columns named (the files,
+  the commits); the lines of a change that correspond stand in one row (the most alike in all, order kept — a line put in
+  above a changed one stands alone, the changed line beside what it became) with what differs between them marked.
+  **Previous change / Next change** (and N / P in the list, Alt+↑ / Alt+↓ in the tab) go from one change to the next and
+  round again; the current change outlined and brought into view; a click picks one. Works with typed text, two files and a
+  file on GitHub; the patch as before. CLAUDE.md §3 Text Diff; unit `textdiff` 80 (GNU diff's commands, GNU patch, the
+  pairing against an exhaustive search), e2e `diff-side` 55.
 - **33. Cartoonizer: how cartoony, in grades** (owner, 27 Nov 2026: "In the Cartoonizer app, in the cartoon filter, have some
   kind of gradation selection as to less cartoony or more cartoony.") — done 27 Nov 2026: "How cartoony" — Subtle · Light ·
   Medium (the old defaults) · Strong · Extreme — sets the Cartoon filter's colours, ink lines, smoothing and Detail
