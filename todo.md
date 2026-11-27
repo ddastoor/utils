@@ -18,12 +18,6 @@ The owner adds items here in chat ("add … to to do"). Newest instructions win.
     Colours, Ink lines and Smoothing as sliders of their own, and Detail (Fine / Medium / Bold) — this asks for one choice
     that goes from a little cartoony to very cartoony. When: at the owner's word (not yet started).
 
-34. **Watermark: the first page (cover) with or without the mark** (owner, 27 Nov 2026: "in the Watermark app for uploaded
-    documents only, have an option to include (or not) the watermark on the first page or cover page.."). For the PDFs and
-    Word documents added with "Add PDFs or Word documents" only (photos are not concerned): a choice whether the first page
-    gets the watermark. Today every page gets it (to-do #17: PDF pages by MuPDF; Word through each section's headers, where
-    "Different first page" already gives the first page a header of its own). When: at the owner's word (not yet started).
-
 35. **Text Diff: an interactive side-by-side diff, hunk by hunk** (owner, 27 Nov 2026: "In the text diff app, add an additional
     option to actually do an interactive side-by-side diff with next and previous. as in to cycle through next and previous
     diff hunks"). Beside today's views (lines as one column with both line numbers, unchanged runs folded; words; characters):
@@ -31,6 +25,12 @@ The owner adds items here in chat ("add … to to do"). Newest instructions win.
     one hunk (a run of changes) to the next. When: at the owner's word (not yet started).
 
 ## Done
+- **34. Watermark: the first page (cover) with or without the mark** (owner, 27 Nov 2026: "in the Watermark app for uploaded
+  documents only, have an option to include (or not) the watermark on the first page or cover page..") — done 27 Nov 2026:
+  a switch "Watermark the first page (the cover) too" with the documents (on by default: every page, as before). Off: a
+  PDF's page 1 stays exactly as it was (a one-page PDF is refused with the reason); a Word document's first page gets
+  Word's own "Different first page" with a copy of the header and footer it showed, without the mark — later sections
+  keep what they showed. CLAUDE.md §3 Watermark; e2e `watermark-cover` 40 (MuPDF, python-docx, LibreOffice).
 - **36. The start page tells of the apps the other kind of device has** (owner, 27 Nov 2026: "When the app opens in the
   mobile on the landing page indicate to the user that there are additional PC-only apps and when the app opens in the PC,
   notify to the user that there are additional mobile-only apps") — done 27 Nov 2026: a note under the start page's first

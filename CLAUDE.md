@@ -925,6 +925,22 @@ and animals would need another model (docs/WASM-AUDIT.md, 114).
     even-page headers, a table at the top of a header) read back by **python-docx** (every header a page shows has one
     mark; the headers' and the body's text as they were) and drawn by **LibreOffice** (all six pages, each along its own
     diagonal; tiled; a logo); watermarked again → replaced; the old .doc and a file that is no Word document said.
+  - **The first page, the cover, with or without the mark (to-do #34; owner, 27 Nov 2026: "in the Watermark app for uploaded
+    documents only, have an option to include (or not) the watermark on the first page or cover page..")**: a switch
+    "Watermark the first page (the cover) too" under the documents — there only when documents are added, on by default
+    (every page, as before), kept for the next document while the page is open. Off: a **PDF's** page 1 is left exactly as
+    it was (`o.cover` in `markPdf`; a PDF of one page is refused with the reason; the preview shows page 2 and says so). A
+    **Word document's** first section gets Word's own "Different first page" (`w:titlePg`, in its place among the
+    section's properties) where it had none, and the cover a header of its own — a copy of the header page 1 showed —
+    and a footer of its own — a copy of the footer page 1 showed, its page-number field too —, both without the mark; a
+    first-page header or footer that was stored but not in use (Word keeps them when "Different first page" is switched
+    off) stays off page 1, and a later section that took its first-page footer from section 1 keeps the one it had
+    (pinned by a reference of its own; its headers have their own copies anyway). Where section 1 had a different first
+    page already, its first-page header is left without the mark (an earlier watermark taken out). e2e `watermark-cover`
+    40 — MuPDF: page 1 drawn exactly as the original's, pages 2 – 5 along their diagonals; python-docx and LibreOffice on
+    `sections.docx` and `tests/fixtures/docs/cover.docx` (`scripts/make-docx-fixture.py`: a footer with a page number,
+    a first-page header and footer stored but not in use, a later section taking them); a document marked whole, then
+    with the cover left out (its earlier mark taken out), then whole again.
 - `caption` (unit `textwrap.test.mjs` 18, e2e 14): `wrapLines` in `src/lib/textwrap.ts` breaks an over-long word
   (a web address, Chinese / Japanese without spaces) between grapheme clusters; text is made smaller until each block
   is at most 45 % of the height.

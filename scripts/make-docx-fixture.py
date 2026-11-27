@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""The Word document the Watermark tab's suite watermarks (to-do #17): tests/fixtures/docs/sections.docx.
+"""The Word documents the Watermark tab's suites watermark (to-do #17): tests/fixtures/docs/sections.docx — and, for
+to-do #34 (the cover without the mark), tests/fixtures/docs/cover.docx (below).
 
 Four sections of three page shapes, so that every way Word picks a header is there:
   1. A4 portrait, its own default header ("Header of section 1"), two pages;
@@ -75,3 +76,48 @@ body(4, 'Section 4')
 out.parent.mkdir(parents=True, exist_ok=True)
 d.save(out)
 print(out, out.stat().st_size, 'bytes')
+
+# ---------------------------------------------------------------- cover.docx (to-do #34: the first page, the cover,
+# without the mark). A report of two sections:
+#   1. A4 portrait, three pages, "Different first page" OFF — its default header ("Report header") and its default
+#      footer ("Report footer · page" and a PAGE field) are on page 1 too; and a first-page header and footer that are
+#      NOT in use ("Stale first-page header / footer": Word keeps them when "Different first page" is switched off);
+#   2. A4 portrait on a new page, "Different first page" ON with no first-page header or footer of its own: Word gives
+#      its first page section 1's first-page header and footer (the stale ones) — the watermark must keep them there.
+from docx.oxml import OxmlElement
+from docx.oxml.ns import qn
+c = Document()
+cp = c.core_properties
+cp.author = 'SuperUtils tests'; cp.title = 'Cover'; cp.revision = 1
+cp.created = cp.modified = datetime.datetime(2026, 11, 27, 12, 0, 0)
+r1 = c.sections[0]
+r1.page_width, r1.page_height = Mm(210), Mm(297)
+r1.header.is_linked_to_previous = False
+r1.header.paragraphs[0].text = 'Report header'
+r1.footer.is_linked_to_previous = False
+fp = r1.footer.paragraphs[0]
+fp.text = 'Report footer · page '
+fld = OxmlElement('w:fldSimple'); fld.set(qn('w:instr'), 'PAGE')
+run = OxmlElement('w:r'); t = OxmlElement('w:t'); t.text = '1'; run.append(t); fld.append(run); fp._p.append(fld)
+r1.different_first_page_header_footer = True
+r1.first_page_header.is_linked_to_previous = False
+r1.first_page_header.paragraphs[0].text = 'Stale first-page header'
+r1.first_page_footer.is_linked_to_previous = False
+r1.first_page_footer.paragraphs[0].text = 'Stale first-page footer'
+r1.different_first_page_header_footer = False   # switched off again: the two stay in the file, not in use
+c.add_heading('Annual report — the cover page', 0)
+c.add_paragraph('Prepared for the board. ' * 3)
+c.add_page_break()
+for i in range(10):
+    c.add_paragraph(f'Report, paragraph {i + 1}. {lorem}')
+r2 = c.add_section(WD_SECTION.NEW_PAGE)
+r2.page_width, r2.page_height = Mm(210), Mm(297)
+r2.different_first_page_header_footer = True     # no first-page header or footer of its own: section 1's
+r2.header.is_linked_to_previous = True
+r2.footer.is_linked_to_previous = True
+c.add_heading('Appendix — a section of its own', 1)
+for i in range(3):
+    c.add_paragraph(f'Appendix, paragraph {i + 1}. {lorem}')
+cover = out.parent / 'cover.docx'
+c.save(cover)
+print(cover, cover.stat().st_size, 'bytes')

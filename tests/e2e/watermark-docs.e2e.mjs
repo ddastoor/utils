@@ -17,7 +17,7 @@ const deg = (r) => (r * 180) / Math.PI;
 
 /** The red marks of a picture (RGBA): how many, their middle, the direction they run (degrees, rising to the right is
  *  positive) and their box. */
-function redCloud(d, W, H, isRed = (r, g, b) => r > 170 && g < 90 && b < 90) {
+export function redCloud(d, W, H, isRed = (r, g, b) => r > 170 && g < 90 && b < 90) {
   let n = 0, sx = 0, sy = 0, x0 = W, y0 = H, x1 = -1, y1 = -1;
   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { const i = (y * W + x) * 4; if (isRed(d[i], d[i + 1], d[i + 2])) { n++; sx += x; sy += y; if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; } }
   if (!n) return { n: 0 };
@@ -51,7 +51,7 @@ async function pixels(page, path) {
   }, b64);
 }
 /** A PDF's pages drawn by MuPDF (RGBA), with each page's size as shown (after /Rotate) and its text */
-async function pdfPages(path, scale = 1, password) {
+export async function pdfPages(path, scale = 1, password) {
   const m = await import('mupdf');
   const doc = m.Document.openDocument(readFileSync(path), 'application/pdf');
   if (password !== undefined) doc.authenticatePassword(password);
@@ -67,7 +67,7 @@ async function pdfPages(path, scale = 1, password) {
 }
 /** A PDF of five pages of four shapes, two of them turned by /Rotate, one with its box away from 0, 0 — each with a line
  *  of its own text */
-async function mixedPdf(path) {
+export async function mixedPdf(path) {
   const m = await import('mupdf'), doc = new m.PDFDocument();
   const font = doc.addSimpleFont(new m.Font('Helvetica'));
   const page = (box, rot, text) => {

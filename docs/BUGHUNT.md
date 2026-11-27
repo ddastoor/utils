@@ -3079,3 +3079,11 @@ cannot. Three new suites; each fails on the build before its fixes.
   star on a phone without scrolling it into view; the note put the first card below the fold, where `elementFromPoint`
   finds nothing, and the star measured 32 × 32 (its drawing alone). The check scrolls the star into view first, as the
   touch-target sweep does: 44 × 44 again. A slip of the test.
+- **Watermark: the cover with or without the mark (to-do #34, 27 Nov 2026).** Found on the way: the Word writer asked
+  whether a section has "Different first page" with `getElementsByTagNameNS('titlePg')[0]`, which also finds the old
+  properties of a tracked change (`w:sectPrChange`) — a section whose different first page was switched off with Track
+  Changes on was taken to show a first page (a header part made and marked for a page kind no page showed). It reads the
+  section's own child now. Turning "Different first page" on for the cover needed care that Word's inheritance does not
+  move: a later section that takes its first-page footer from section 1 would have taken the cover's new footer — it is
+  pinned to the one it had. The suite's own slips: it expected the switch on after leaving it off for the one-page PDF
+  (the switch keeps its setting — the check says so now), and clicked the switch while it was hidden (no document).

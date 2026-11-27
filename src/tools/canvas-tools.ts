@@ -38,8 +38,9 @@ const fmtSeg = (cur: Fmt, on: (v: Fmt) => void) => field('Format', segmented([['
 // ================================================================== Watermark
 export type { Pos } from '../lib/wmlayout';
 export { diagonalFit } from '../lib/wmlayout';
-/** `fill`: for 'diag', the share (0.2 – 1) of the longest mark the picture's diagonal holds within the margin */
-export interface WmOpts { kind: 'text' | 'logo'; text: string; font: string; color: string; opacity: number; size: number; pos: Pos; margin: number; angle: number; shadow: boolean; logo: Img | null; fill: number }
+/** `fill`: for 'diag', the share (0.2 – 1) of the longest mark the picture's diagonal holds within the margin; `cover`: a
+ *  document's first page gets the mark too (to-do #34 — documents only) */
+export interface WmOpts { kind: 'text' | 'logo'; text: string; font: string; color: string; opacity: number; size: number; pos: Pos; margin: number; angle: number; shadow: boolean; logo: Img | null; fill: number; cover: boolean }
 /** Draw the watermark onto a copy of img. Sizes are % of the image's shorter side, so previews match exports. */
 export async function applyWatermark(img: Img, o: WmOpts, fine = false): Promise<Img> {
   const { c, g } = canvasOf(img), W = img.width, H = img.height, S = Math.min(W, H);
@@ -105,7 +106,7 @@ export async function applyWatermark(img: Img, o: WmOpts, fine = false): Promise
 /** The tab's font label for a CSS font of FONTS (documents get fonts by label: src/lib/docmark.ts) */
 const fontLabel = (css: string) => FONTS.find(([f]) => f === css)?.[1] ?? 'Sans';
 /** a PDF or a Word document chosen in the Watermark tab (to-do #17) */
-interface WmDoc { file: File; kind: 'pdf' | 'docx'; bytes?: Uint8Array; password?: string; pages?: number; first?: Uint8Array; page?: { W: number; H: number } }
+interface WmDoc { file: File; kind: 'pdf' | 'docx'; bytes?: Uint8Array; password?: string; pages?: number; one?: Record<number, Uint8Array>; page?: { W: number; H: number } }
 const isDocx = (f: File) => /\.(docx|docm)$/i.test(f.name) || /wordprocessingml\.document|ms-word\.document\.macroEnabled/i.test(f.type);
 const isPdf = (f: File) => /\.pdf$/i.test(f.name) || f.type === 'application/pdf';
 const luminance = (hex: string) => { const n = parseInt(hex.replace('#', '').padEnd(6, '0').slice(0, 6), 16); return (0.2126 * ((n >> 16) & 255) + 0.7152 * ((n >> 8) & 255) + 0.0722 * (n & 255)) / 255; };
@@ -114,7 +115,7 @@ export const watermark: Mount = (root, ctx) => {
   const files: File[] = [];
   const docs: WmDoc[] = [];
   let preview: Img | null = null, fmt: Fmt = 'jpeg';
-  const o: WmOpts = { kind: 'text', text: '© My Name', font: FONTS[1][0], color: '#ffffff', opacity: 0.6, size: 5, pos: 'br', margin: 3, angle: -30, shadow: true, logo: null, fill: 0.9 };
+  const o: WmOpts = { kind: 'text', text: '© My Name', font: FONTS[1][0], color: '#ffffff', opacity: 0.6, size: 5, pos: 'br', margin: 3, angle: -30, shadow: true, logo: null, fill: 0.9, cover: true };
   const canvas = h('canvas', { class: 'ed-canvas' });
   const list = h('div', { class: 'muted small' });
   const docList = h('div', { class: 'muted small' });
@@ -128,15 +129,24 @@ export const watermark: Mount = (root, ctx) => {
     canvas.width = out.width; canvas.height = out.height;
     canvas.getContext('2d')!.putImageData(new ImageData(new Uint8ClampedArray(out.data), out.width, out.height), 0, 0);
   };
-  /** what the first document's first page gets (photos come first in the preview) */
+  /** the page of the first document the preview shows (photos come first in the preview): its first page — the second
+   *  when the cover is left without the mark (to-do #34), the first without the mark when it is the only one */
+  const docPage = (d: WmDoc) => (o.cover || (d.pages ?? 1) < 2 ? 0 : 1);
   const docPreview = async (d: WmDoc): Promise<Img> => {
     const dm = await import('../lib/docmark'), px = ctx.isMobile ? 900 : 1100;
     await loadFonts();
     if (d.kind === 'pdf') {
-      if (!d.first) { const { subsetPdf } = await import('../lib/pdf'); d.first = await subsetPdf(d.bytes!, d.password, [0]); }
-      return dm.previewPdf(d.first, o, fontLabel(o.font), px);
+      const i = docPage(d);
+      if (!d.one?.[i]) { const { subsetPdf } = await import('../lib/pdf'); (d.one ??= {})[i] = await subsetPdf(d.bytes!, d.password, [i]); }
+      return dm.previewPdf(d.one![i], o.cover || i > 0 ? o : null, fontLabel(o.font), px);
     }
     return dm.previewWordPage(d.page?.W ?? 595.3, d.page?.H ?? 841.9, o, fontLabel(o.font), px);
+  };
+  /** what the preview of a document shows, in words */
+  const docShown = (d: WmDoc) => {
+    if (d.kind === 'docx') return `${d.file.name}: the first page's size, the mark as Word draws it (the page's own text is not shown).${o.cover ? '' : ' The first page, the cover, is left without it.'}`;
+    if (o.cover) return `Page 1 of ${d.file.name}, as the file gets it.`;
+    return docPage(d) ? `Page 2 of ${d.file.name}, as the file gets it — page 1, the cover, is left without the mark.` : `${d.file.name} has one page: with the cover left without the mark, no page gets it.`;
   };
   const paper = () => { // white text on white paper shows only by its shadow
     const light = docs.length > 0 && o.kind === 'text' && luminance(o.color) > 0.85;
@@ -159,7 +169,7 @@ export const watermark: Mount = (root, ctx) => {
         const out = await docPreview(d);
         if (my !== tok || !alive) return;
         show(out); stage.hidden = false;
-        shownAs.textContent = d.kind === 'pdf' ? `Page 1 of ${d.file.name}, as the file gets it.` : `${d.file.name}: the first page's size, the mark as Word draws it (the page's own text is not shown).`;
+        shownAs.textContent = docShown(d);
       } catch (e) { if (my === tok && alive) shownAs.textContent = errMsg(e); }
     }, 150);
   };
@@ -169,7 +179,7 @@ export const watermark: Mount = (root, ctx) => {
     clear(list).append(files.length ? `${files.length} photo${files.length > 1 ? 's' : ''}: ${files.map((f) => f.name).join(', ')}` : '');
     clearBtn.hidden = !files.length;
     clear(docList).append(docs.length ? `${docs.length} document${docs.length > 1 ? 's' : ''}: ${docs.map((d) => d.file.name + (d.pages ? ` (${d.pages} page${d.pages > 1 ? 's' : ''})` : '')).join(', ')}` : '');
-    clearDocsBtn.hidden = !docs.length;
+    clearDocsBtn.hidden = !docs.length; coverT.hidden = !docs.length;
     paper();
   };
   /** The preview is the first photo that opens (a file that cannot be read is said and left out). */
@@ -219,6 +229,10 @@ export const watermark: Mount = (root, ctx) => {
   const sizeS = slider({ label: 'Size', min: 1, max: 25, step: 0.5, value: o.size, unit: '%', onInput: (v) => { o.size = v; redraw(); } });
   const fillS = slider({ label: 'Length along the diagonal', min: 20, max: 100, value: o.fill * 100, unit: '%', onInput: (v) => { o.fill = v / 100; redraw(); } });
   fillS.hidden = true;
+  // documents only (to-do #34 — owner: "for uploaded documents only, have an option to include (or not) the watermark on the
+  // first page or cover page"): on, as before, every page; off, the first page is left as it is
+  const coverT = toggle('Watermark the first page (the cover) too', true, (v) => { o.cover = v; redraw(); });
+  coverT.hidden = true;
   const stage = card(null, h('div', { class: 'ed-stage' }, canvas), shownAs);
   stage.hidden = true;
   const run = async () => {
@@ -243,14 +257,14 @@ export const watermark: Mount = (root, ctx) => {
           const { markPdf } = await import('../lib/docmark');
           const r = await markPdf(d.bytes!, d.password, o, fontLabel(o.font), async (i) => { if (i % 20 === 0) await new Promise((res) => setTimeout(res)); return alive; });
           if (!r || !alive) return;
-          const notes = [`${r.pages} page${r.pages > 1 ? 's' : ''}`, ...(d.password !== undefined ? ['it had a password: the copy has none (Protect PDF adds one)'] : []), ...(r.signed ? ['it was digitally signed: the copy no longer proves the signature'] : [])];
+          const notes = [`${r.pages} page${r.pages > 1 ? 's' : ''}${r.marked < r.pages ? `, the mark on ${r.marked} — not on page 1, the cover` : ''}`, ...(d.password !== undefined ? ['it had a password: the copy has none (Protect PDF adds one)'] : []), ...(r.signed ? ['it was digitally signed: the copy no longer proves the signature'] : [])];
           results.add(`${baseName(d.file.name)}-watermarked.pdf`, new Blob([r.bytes as BlobPart], { type: 'application/pdf' }), notes.join(' · '));
         } else {
           const { markDocx } = await import('../lib/docxmark');
           const r = await markDocx(d.file, d.file.name, o, fontLabel(o.font));
           if (!alive) return;
           const ext = /\.docm$/i.test(d.file.name) ? 'docm' : 'docx';
-          const notes = [`${r.sections} section${r.sections > 1 ? 's' : ''}, ${r.headers} header${r.headers > 1 ? 's' : ''}`, ...(r.replaced ? ['the earlier watermark was replaced'] : []), ...(r.signed ? ['it was digitally signed: the copy no longer proves the signature'] : [])];
+          const notes = [`${r.sections} section${r.sections > 1 ? 's' : ''}, ${r.headers} header${r.headers > 1 ? 's' : ''}`, ...(r.cover ? ['the first page, the cover, without the mark'] : []), ...(r.replaced ? ['the earlier watermark was replaced'] : []), ...(r.signed ? ['it was digitally signed: the copy no longer proves the signature'] : [])];
           results.add(`${baseName(d.file.name)}-watermarked.${ext}`, new Blob([r.bytes as BlobPart], { type: ext === 'docm' ? 'application/vnd.ms-word.document.macroEnabled.12' : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' }), notes.join(' · '));
         }
       } catch (e) { bad.push(`${d.file.name}: ${errMsg(e)}`); badDocs++; }
@@ -263,8 +277,8 @@ export const watermark: Mount = (root, ctx) => {
   root.append(
     card(null, stack(
       imagePicker({ accept: 'image/*,.heic,.heif', multiple: true, label: 'Add photos', hint: 'one or many — the same watermark goes on all', onFiles: (f) => addFiles(f).catch((e) => toast(errMsg(e), 'err')) }), h('div', { class: 'row' }, list, clearBtn),
-      filePicker({ accept: '.pdf,application/pdf,.docx,.docm,.doc,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/msword', multiple: true, compact: true, label: 'Add PDFs or Word documents', hint: 'every page gets the watermark (.pdf, .docx)', onFiles: (f) => addDocs(f) }),
-      h('div', { class: 'row' }, docList, clearDocsBtn), pwAsks)),
+      filePicker({ accept: '.pdf,application/pdf,.docx,.docm,.doc,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/msword', multiple: true, compact: true, label: 'Add PDFs or Word documents', hint: 'every page gets the watermark (.pdf, .docx) — the first one as you choose', onFiles: (f) => addDocs(f) }),
+      h('div', { class: 'row' }, docList, clearDocsBtn), coverT, pwAsks)),
     stage,
     card('Watermark', stack(
       segmented([['text', 'Text'], ['logo', 'Logo']], o.kind, (v) => { o.kind = v; textBox.hidden = v !== 'text'; logoBox.hidden = v !== 'logo'; redraw(); }),

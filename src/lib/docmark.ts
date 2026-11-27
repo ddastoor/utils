@@ -15,7 +15,8 @@ import { mupdf, stampPage, pageGeom, pdfString, isLatin1, textWidth, savePdf, wi
 import { placeMarks, type Place, type Unit, type MarkOpts } from './wmlayout';
 import { imgproc, type Img } from '../wasm/imgproc';
 
-export interface DocMark extends MarkOpts { kind: 'text' | 'logo'; text: string; font: string; color: string; opacity: number; shadow: boolean; logo: Img | null }
+/** `cover`: false leaves a document's first page (its cover) without the mark (to-do #34); left out, every page gets it */
+export interface DocMark extends MarkOpts { kind: 'text' | 'logo'; text: string; font: string; color: string; opacity: number; shadow: boolean; logo: Img | null; cover?: boolean }
 /** The tab's fonts (by their labels) in documents: PDF's standard font (none: a picture of the text), Word's font, and
  *  the browser's font for pictures and the preview of a Word page (Word's first, then the tab's own). */
 export const DOC_FONTS: Record<string, { pdf: string | null; word: string; css: string }> = {
@@ -102,14 +103,16 @@ const frame = (p: Place, H: number, dx = 0, dy = 0) => {
   return `1 0 0 1 ${f(p.cx + dx)} ${f(H - p.cy + dy)} cm ${f(c)} ${f(s)} ${f(-s)} ${f(c)} 0 0 cm`;
 };
 
-export interface PdfResult { bytes: Uint8Array; pages: number; signed: number; vector: boolean }
-/** The PDF `bytes` (opened with `password` if it has one) with the mark on every page; `label` is the tab's font label.
- *  `step(i, n)` is told of each page and may stop the run (false → null). */
+export interface PdfResult { bytes: Uint8Array; pages: number; marked: number; signed: number; vector: boolean }
+/** The PDF `bytes` (opened with `password` if it has one) with the mark on every page — but the first when `o.cover` is
+ *  false; `label` is the tab's font label. `step(i, n)` is told of each page and may stop the run (false → null). */
 export async function markPdf(bytes: Uint8Array, password: string | undefined, o: DocMark, label: string, step?: (i: number, n: number) => Promise<boolean> | boolean): Promise<PdfResult | null> {
   const m = await mupdf(), doc = m.Document.openDocument(bytes, 'application/pdf').asPDF();
   if (!doc) throw new Error('This is not a PDF.');
   if (doc.needsPassword() && !doc.authenticatePassword(password ?? '')) throw new Error('Wrong password.');
   const n = doc.countPages(), font = docFont(label), geos = Array.from({ length: n }, (_, i) => pageGeom(doc.loadPage(i) as any));
+  const skip = o.cover === false ? 1 : 0; // the cover left as it is (to-do #34)
+  if (skip && n < 2) throw new Error('This PDF has one page: with the first page (the cover) left without the watermark, no page would get it.');
   const vector = o.kind === 'text' && !!font.pdf && isLatin1(o.text);
   const images: Record<string, any> = {};
   let unit: Unit, mark: (p: Place) => string, under: ((p: Place) => string) | null = null, shadowAt = 0;
@@ -139,6 +142,7 @@ export async function markPdf(bytes: Uint8Array, password: string | undefined, o
   }
   for (let i = 0; i < n; i++) {
     if (step && !(await step(i, n))) return null;
+    if (i < skip) continue;
     const places = placeMarks(geos[i].W, geos[i].H, o, unit);
     await stampPage(doc, i, (W, H) => {
       const ops: string[] = [];
@@ -149,14 +153,14 @@ export async function markPdf(bytes: Uint8Array, password: string | undefined, o
     }, { font: vector ? font.pdf! : false, opacity: o.opacity, images });
   }
   const signed = signatureCount(doc);
-  return { bytes: savePdf(doc, password !== undefined ? 'encrypt=none' : ''), pages: n, signed, vector };
+  return { bytes: savePdf(doc, password !== undefined ? 'encrypt=none' : ''), pages: n, marked: n - skip, signed, vector };
 }
 
-/** The first page of a PDF with the mark, drawn `px` pixels on its longer side (the tab's preview: exactly what the
- *  file gets). `first` = a PDF of that page alone. */
-export async function previewPdf(first: Uint8Array, o: DocMark, label: string, px: number): Promise<Img> {
-  const m = await mupdf(), r = await markPdf(first, undefined, o, label);
-  const doc = m.Document.openDocument(r!.bytes, 'application/pdf'), page = doc.loadPage(0), b = page.getBounds();
+/** A page of a PDF with the mark (`o`; null: without it — the cover the tab leaves alone), drawn `px` pixels on its
+ *  longer side (the tab's preview: exactly what the file gets). `first` = a PDF of that page alone. */
+export async function previewPdf(first: Uint8Array, o: DocMark | null, label: string, px: number): Promise<Img> {
+  const m = await mupdf(), bytes = o ? (await markPdf(first, undefined, { ...o, cover: true }, label))!.bytes : first;
+  const doc = m.Document.openDocument(bytes, 'application/pdf'), page = doc.loadPage(0), b = page.getBounds();
   const s = px / Math.max(b[2] - b[0], b[3] - b[1]);
   const pix = page.toPixmap(m.Matrix.scale(s, s), m.ColorSpace.DeviceRGB, false, true);
   return imgproc('expand', pix.getPixels(), pix.getWidth(), pix.getHeight(), pix.getNumberOfComponents());
