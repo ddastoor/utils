@@ -70,6 +70,12 @@ The owner adds items here in chat ("add … to to do"). Newest instructions win.
     Colours, Ink lines and Smoothing as sliders of their own, and Detail (Fine / Medium / Bold) — this asks for one choice
     that goes from a little cartoony to very cartoony. When: at the owner's word (not yet started).
 
+34. **Watermark: the first page (cover) with or without the mark** (owner, 27 Nov 2026: "in the Watermark app for uploaded
+    documents only, have an option to include (or not) the watermark on the first page or cover page.."). For the PDFs and
+    Word documents added with "Add PDFs or Word documents" only (photos are not concerned): a choice whether the first page
+    gets the watermark. Today every page gets it (to-do #17: PDF pages by MuPDF; Word through each section's headers, where
+    "Different first page" already gives the first page a header of its own). When: at the owner's word (not yet started).
+
 ## Done
 - **20. Noise Remover: "Studio voice" — a voice recorded outdoors made to sound as if spoken in a studio** (owner, 26 Nov 2026:
   "In the noise remover app, it should be that when I record my voice, say out in the open, in traffic or outside, when I
