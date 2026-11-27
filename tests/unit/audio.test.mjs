@@ -80,6 +80,87 @@ export default async (t, { load, wasm }) => {
   t.ok(frames(m4).bad === -1 && frames(m4).out.every((f) => f.mode === 3), '3 channels are mixed down to mono');
   t.ok(a.mp3([new Float32Array(0)], 44100).length > 0 || true, 'empty input does not crash');
   t.ok(m1.length > 15000 && m1.length < 18500, `1 s at 128 kbps ≈ 16 KB (${m1.length} bytes)`);
+  // ---- MP3 as a stream (the Audiobook tab: a chapter fed a sentence at a time)
+  {
+    const { writeOver } = await load('/src/wasm/audio.ts');
+    const join = (parts) => { const o = new Uint8Array(parts.reduce((s, p) => s + p.length, 0)); let k = 0; for (const p of parts) { o.set(p, k); k += p.length; } return o; };
+    /** the file the stream makes when fed `x` in pieces of the given sizes (round and round) */
+    const stream = (x, sr, o, sizes, tags = {}, art) => {
+      const s = a.mp3Stream(sr, 1, o, tags, art), parts = [s.head];
+      for (let i = 0, k = 0; i < x.length; k++) { const n = sizes[k % sizes.length]; parts.push(s.feed([x.subarray(i, i + n)])); i += n; }
+      const { tail, tag } = s.end(); parts.push(tail);
+      writeOver(parts, s.head.length, tag);
+      return { file: join(parts), head: s.head, tag };
+    };
+    // a voice-like test signal: tones that change every 0.3 s, with a pause
+    const voice = Float32Array.from({ length: 24000 * 7 + 123 }, (_, i) => (i > 24000 * 3 && i < 24000 * 3.5 ? 0 : 0.5 * Math.sin(2 * Math.PI * (180 + 40 * Math.floor(i / 7200)) * i / 24000) * (0.6 + 0.4 * Math.sin(i / 900))));
+    const once = a.mp3([voice], 24000, { rate: 64 });
+    for (const sizes of [[2880], [1, 7, 24000, 513], [100000, 3, 9000], [voice.length]]) {
+      const { file, head } = stream(voice, 24000, { rate: 64 }, sizes);
+      t.eq(head.length, 0, `no tags → no ID3 tag (pieces of ${sizes.join(', ')})`);
+      t.ok(file.length === once.length && file.every((b, i) => b === once[i]), `fed in pieces of ${sizes.join(', ')} samples: the file is byte for byte the one-shot encoder's (${file.length} bytes)`);
+    }
+    const vonce = a.mp3([voice], 24000, { vbr: true, rate: 5 }), vs = stream(voice, 24000, { vbr: true, rate: 5 }, [4410, 17]).file;
+    t.ok(vs.length === vonce.length && vs.every((b, i) => b === vonce[i]), 'VBR V5 too: the stream equals the one-shot file');
+
+    // tags (UTF-16, any script) and a cover; read back by mutagen and FFmpeg
+    const jpeg = Uint8Array.from(Buffer.from('/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////wgALCAABAAEBAREA/8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQABPxA=', 'base64'));
+    const tags = { TIT2: 'Chapter 3 — Zéphyrine’s “Ledger”', TALB: 'The Lighthouse Almanac: Ünïcödé 中文 Ελληνικά', TPE1: 'Ines Farrow', TRCK: '3/12', TCON: 'Audiobook', TLAN: 'eng', TPE2: 'Ines Farrow' };
+    const { file: tagged, head, tag } = stream(voice, 24000, { rate: 64 }, [5000, 11], tags, jpeg);
+    t.eq(String.fromCharCode(...tagged.subarray(0, 4)), 'ID3\x03', 'tags → an ID3v2.3 tag in front');
+    const id3len = 10 + ((head[6] << 21) | (head[7] << 14) | (head[8] << 7) | head[9]);
+    t.eq(id3len, head.length, 'the ID3 tag\'s size field covers exactly the tag');
+    t.ok(tagged.subarray(head.length).every((b, i) => b === once[i]), 'after the tag, the audio is the untagged file byte for byte (the LAME frame written right after the tag)');
+    t.eq(String.fromCharCode(...tag.subarray(13, 17)), 'Info', 'the tag frame is the CBR "Info" frame (MPEG-2 mono: after 4 + 9 bytes)');
+    const { mkdtempSync, writeFileSync, rmSync } = await import('node:fs'), { join: pjoin } = await import('node:path'), { tmpdir } = await import('node:os');
+    const { spawnSync } = await import('../lib/child.mjs');
+    const dir = mkdtempSync(pjoin(tmpdir(), 'mp3s-')), f = pjoin(dir, 'tagged.mp3');
+    try {
+      writeFileSync(f, tagged);
+      const py = spawnSync('python3', ['-c', 'import sys, json\ntry:\n  from mutagen.id3 import ID3\n  from mutagen.mp3 import MP3\nexcept ImportError:\n  print("{}"); sys.exit(0)\nt = ID3(sys.argv[1]); m = MP3(sys.argv[1])\nprint(json.dumps({"v": t.version[1], "frames": {k: str(t[k]) for k in ["TIT2", "TALB", "TPE1", "TRCK", "TCON", "TLAN", "TPE2"] if k in t}, "apic": [p.mime for p in t.getall("APIC")], "apicType": [int(p.type) for p in t.getall("APIC")], "apicData": [p.data.hex() for p in t.getall("APIC")], "len": m.info.length, "mode": int(m.info.mode), "sr": m.info.sample_rate}))', f], { encoding: 'utf8' });
+      const r = JSON.parse(py.stdout || '{}');
+      if (!r.frames) t.ok(true, 'mutagen is not installed (pip install mutagen): the ID3 read-back skipped');
+      else {
+        t.eq(r.v, 3, 'mutagen: ID3v2.3');
+        t.eq(r.frames, tags, 'mutagen reads every text frame as it was given (UTF-16: dashes, quotes, accents, Chinese, Greek)');
+        t.eq([r.apic, r.apicType, r.apicData], [['image/jpeg'], [3], [Buffer.from(jpeg).toString('hex')]], 'mutagen: the cover is a front cover (APIC type 3), JPEG, its bytes as given');
+        t.near(r.len, voice.length / 24000, 0.08, `mutagen's length from the LAME frame ${r.len.toFixed(3)} s ≈ ${(voice.length / 24000).toFixed(3)} s`);
+      }
+      // FFmpeg decodes it gaplessly: the LAME frame's encoder delay and padding say how many samples to drop — after an
+      // ID3 tag too — so the decoded sound is exactly as long as what was fed
+      const dec = spawnSync('ffmpeg', ['-v', 'error', '-i', f, '-f', 'f32le', '-ac', '1', '-'], { maxBuffer: 1 << 26 });
+      if (dec.error) t.ok(true, 'ffmpeg is not installed: the decode skipped');
+      else {
+        const pcm = new Float32Array(dec.stdout.buffer.slice(dec.stdout.byteOffset, dec.stdout.byteOffset + dec.stdout.length));
+        t.eq(pcm.length, voice.length, `ffmpeg decodes exactly the ${voice.length} samples fed (gapless: delay and padding from the LAME frame)`);
+        let q = 0, d = 0; for (let i = 0; i < voice.length; i++) { q += voice[i] ** 2; d += (voice[i] - pcm[i]) ** 2; }
+        t.ok(10 * Math.log10(q / d) > 15, `the decoded sound lines up with what was fed, sample for sample (SNR ${(10 * Math.log10(q / d)).toFixed(1)} dB)`);
+        const probe = spawnSync('ffprobe', ['-v', 'error', '-show_entries', 'format_tags:format=duration', '-of', 'json', f], { encoding: 'utf8' });
+        const p = JSON.parse(probe.stdout || '{}').format || {};
+        t.eq([p.tags?.title, p.tags?.album, p.tags?.artist, p.tags?.track, p.tags?.genre], [tags.TIT2, tags.TALB, tags.TPE1, tags.TRCK, tags.TCON], 'ffprobe reads title, album, artist, track and genre');
+      }
+    } finally { rmSync(dir, { recursive: true, force: true }); }
+
+    // stereo, and the order of calls held
+    { const s = a.mp3Stream(44100, 2, { rate: 128 }), p = [s.head, s.feed([sine(440, 44100, 0.5)]), s.feed([sine(440, 44100, 0.5), sine(660, 44100, 0.5)])];
+      const { tail, tag } = s.end(); p.push(tail); writeOver(p, s.head.length, tag);
+      const fr = frames(join(p));
+      t.ok(fr.bad === -1 && fr.out.every((x) => x.mode !== 3 && x.sr === 44100), 'a stereo stream: one channel is put on both sides; valid stereo frames');
+      t.throws(() => s.feed([sine(440, 44100, 0.1)]), 'feeding after end() is refused');
+      t.throws(() => a.mp3Stream(24000, 1, { rate: 64 }).feed([sine(1, 24000, 0.1), sine(1, 24000, 0.1)]), 'two channels into a mono stream are refused'); }
+    t.throws(() => a.mp3Stream(24000, 1, { rate: 64 }, {}, Uint8Array.of(1, 2, 3, 4, 5)), 'a cover that is no picture is refused');
+    t.throws(() => a.mp3Stream(24000, 3, { rate: 64 }), 'three channels are refused');
+    { const parts = [Uint8Array.of(9, 9), Uint8Array.of(1, 2, 3), Uint8Array.of(4, 5, 6)];
+      writeOver(parts, 3, Uint8Array.of(7, 7, 7)); t.eq(parts.map((p) => Array.from(p)), [[9, 9], [1, 7, 7], [7, 5, 6]], 'writeOver: across parts');
+      t.throws(() => writeOver(parts, 7, Uint8Array.of(1, 1, 1)), 'writeOver past the end is refused'); }
+    // a long stream: memory stays flat (an hour of a chapter, fed a second at a time)
+    { const before = a.memoryBytes?.() ?? 0, s = a.mp3Stream(24000, 1, { rate: 64 }), sec = sine(220, 24000, 1, 0.3);
+      let bytes = 0; for (let i = 0; i < 600; i++) bytes += s.feed([sec]).length;
+      const { tail } = s.end(); bytes += tail.length;
+      t.near(bytes / 600, 8000, 200, `ten minutes fed a second at a time: ${(bytes / 600).toFixed(0)} bytes a second at 64 kbps`);
+      if (a.memoryBytes) t.ok(a.memoryBytes() - before < 4e6, 'the module\'s memory grew by less than 4 MB'); }
+  }
+
   // scale: x·g without clamping (the Noise Remover hands RNNoise samples on the ±32768 scale)
   { const s = a.scale([Float32Array.from([0.5, -2, 1e-3])], 32768)[0];
     t.eq(Array.from(s), [16384, -65536, Math.fround(Math.fround(1e-3) * 32768)], 'scale: ×32768, not clamped (gain clamps to ±1)'); }

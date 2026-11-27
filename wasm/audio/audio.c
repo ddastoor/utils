@@ -4,6 +4,7 @@
 //   a_wav        float → RIFF/WAVE (16-bit PCM or 32-bit float)
 //   a_mix2       two signals mixed with their own gains
 //   a_mp3        float → MP3 (CBR kbps or VBR V0–V9), with the LAME/Xing tag frame so players know the length
+//   a_mp3s_*     the same as a stream: sound fed a piece at a time, ID3v2 tags (UTF-16 text, a cover) in front
 //   a_peaks      min/max per bucket (waveform drawing)
 //   a_levels     peak + RMS
 //   a_gain, a_fade, a_mix_mono
@@ -93,6 +94,132 @@ API uint8_t *a_mp3(const float *x, uint32_t frames, uint32_t ch, uint32_t sr, ui
   lame_close(gf);
   g_outlen = (uint32_t)len;
   return out;
+}
+
+// ------------------------------------------------------------------ MP3, as a stream
+// For sound that is made a piece at a time and is too long to hold whole (an audiobook's chapter: an hour of 24 kHz
+// float is 345 MB, its MP3 at 64 kbps 29 MB). The order of calls:
+//   h = a_mp3s_open(ch, sr, vbr, rate, quality)
+//   a_mp3s_tag(h, "TIT2", utf16) …, a_mp3s_art(h, jpeg, n)      ID3v2.3 text frames (UTF-16 with its BOM) and a cover
+//                            (front cover); none of them: no ID3 tag at all
+//   a_mp3s_begin(h)          → the ID3v2 tag (0 bytes without tags): the start of the file
+//   a_mp3s_feed(h, x, n) …   → the MP3 bytes these samples gave (often none: LAME holds a few frames back)
+//   a_mp3s_end(h)            → the last bytes
+//   a_mp3s_lametag(h)        → the LAME / Xing frame (frame count, byte count, seek table, encoder delay and padding):
+//                              written over the first frame of the stream, right after the ID3v2 tag (LAME's own rule)
+//   a_mp3s_close(h)
+typedef struct { lame_global_flags *gf; uint32_t ch; int began, ended, tagged; } Mp3s;
+static uint8_t *bytes_out(const uint8_t *b, size_t n) {
+  uint8_t *o = malloc(n ? n : 1);
+  if (!o) return fail("out of memory");
+  if (n) memcpy(o, b, n);
+  g_outlen = (uint32_t)n;
+  return o;
+}
+API void *a_mp3s_open(uint32_t ch, uint32_t sr, uint32_t vbr, uint32_t rate, uint32_t quality) {
+  if (ch < 1 || ch > 2) return fail("MP3 needs mono or stereo");
+  Mp3s *s = calloc(1, sizeof *s);
+  if (!s) return fail("out of memory");
+  s->gf = lame_init();
+  if (!s->gf) { free(s); return fail("LAME init failed"); }
+  s->ch = ch;
+  lame_set_in_samplerate(s->gf, (int)sr);
+  lame_set_num_channels(s->gf, (int)ch);
+  lame_set_mode(s->gf, ch == 1 ? MONO : JOINT_STEREO);
+  lame_set_quality(s->gf, (int)(quality > 9 ? 9 : quality));
+  lame_set_write_id3tag_automatic(s->gf, 0);
+  lame_set_bWriteVbrTag(s->gf, 1);
+  if (vbr) { lame_set_VBR(s->gf, vbr_default); lame_set_VBR_quality(s->gf, (float)(rate > 9 ? 9 : rate)); }
+  else { lame_set_VBR(s->gf, vbr_off); lame_set_brate(s->gf, (int)rate); }
+  id3tag_init(s->gf);
+  id3tag_set_pad(s->gf, 0);
+  return s;
+}
+/** An ID3v2.3 tag's APIC frames made "front cover" (type 3): LAME writes type 0, "other", which some players pass over. */
+static void apic_front(uint8_t *t, size_t n) {
+  if (n < 10 || memcmp(t, "ID3\x03", 4)) return;
+  size_t o = 10;
+  while (o + 10 <= n && t[o]) {
+    size_t len = ((size_t)t[o + 4] << 24) | ((size_t)t[o + 5] << 16) | ((size_t)t[o + 6] << 8) | t[o + 7], body = o + 10;
+    if (body + len > n) return;
+    if (!memcmp(t + o, "APIC", 4) && len > 2 && t[body] == 0) {   // Latin-1: MIME type, NUL, picture type
+      size_t k = body + 1;
+      while (k < body + len && t[k]) k++;
+      if (k + 1 < body + len) t[k + 1] = 3;
+    }
+    o = body + len;
+  }
+}
+/** An ID3v2 text frame ("TIT2" title, "TALB" album, "TPE1" artist, "TRCK" "3/12", "TCON" genre, "TLAN" …): UTF-16 with
+ *  its byte-order mark, ending in 0. 0 = set; LAME's codes otherwise (−3: no BOM, −255: a frame it does not write). */
+API int a_mp3s_tag(void *h, const char *id, const uint16_t *text) {
+  Mp3s *s = h;
+  if (!s || s->began) return -100;
+  id3tag_v2_only(s->gf);   // an ID3v2 tag, and no ID3v1 tag (30 Latin-1 characters a field; nothing would show it)
+  s->tagged = 1;
+  return id3tag_set_textinfo_utf16(s->gf, id, text);
+}
+/** The cover (APIC, front cover): JPEG, PNG or GIF bytes. 0 = set, −1: not one of those. */
+API int a_mp3s_art(void *h, const uint8_t *img, uint32_t n) {
+  Mp3s *s = h;
+  if (!s || s->began) return -100;
+  id3tag_v2_only(s->gf);
+  s->tagged = 1;
+  return id3tag_set_albumart(s->gf, (const char *)img, n);
+}
+API uint8_t *a_mp3s_begin(void *h) {
+  Mp3s *s = h;
+  if (!s || s->began) return fail("the MP3 stream has begun already");
+  if (lame_init_params(s->gf) < 0) return fail("LAME rejected these settings");
+  s->began = 1;
+  // without a tag or a cover, no ID3 tag (LAME would write one with only its own name in it)
+  size_t n = s->tagged ? lame_get_id3v2_tag(s->gf, NULL, 0) : 0;
+  uint8_t *o = malloc(n ? n : 1);
+  if (!o) return fail("out of memory");
+  g_outlen = (uint32_t)(n ? lame_get_id3v2_tag(s->gf, o, n) : 0);
+  if (g_outlen > n) { free(o); return fail("the ID3 tag could not be written"); }
+  apic_front(o, g_outlen);
+  return o;
+}
+API uint8_t *a_mp3s_feed(void *h, const float *x, uint32_t frames) {
+  Mp3s *s = h;
+  if (!s || !s->began || s->ended) return fail("the MP3 stream is not open");
+  const uint32_t CH = 8192;
+  size_t cap = (size_t)(1.25 * frames) + 7200 + 16384, len = 0;
+  uint8_t *out = malloc(cap);
+  if (!out) return fail("out of memory");
+  const float *L = x, *R = s->ch == 2 ? x + frames : x;
+  for (uint32_t i = 0; i < frames; i += CH) {
+    uint32_t n = frames - i < CH ? frames - i : CH;
+    int w = lame_encode_buffer_ieee_float(s->gf, L + i, R + i, (int)n, out + len, (int)(cap - len));
+    if (w < 0) { free(out); return fail("MP3 encoding failed"); }
+    len += (size_t)w;
+  }
+  g_outlen = (uint32_t)len;
+  return out;
+}
+API uint8_t *a_mp3s_end(void *h) {
+  Mp3s *s = h;
+  if (!s || !s->began || s->ended) return fail("the MP3 stream is not open");
+  uint8_t buf[7200 * 2 + 16384];
+  int w = lame_encode_flush(s->gf, buf, (int)sizeof buf);
+  if (w < 0) return fail("MP3 flush failed");
+  s->ended = 1;
+  return bytes_out(buf, (size_t)w);
+}
+API uint8_t *a_mp3s_lametag(void *h) {
+  Mp3s *s = h;
+  if (!s || !s->ended) return fail("the MP3 stream has not ended");
+  uint8_t tag[2880];
+  size_t t = lame_get_lametag_frame(s->gf, tag, sizeof tag);
+  if (t > sizeof tag) return fail("the LAME tag frame is too large");
+  return bytes_out(tag, t);
+}
+API void a_mp3s_close(void *h) {
+  Mp3s *s = h;
+  if (!s) return;
+  lame_close(s->gf);
+  free(s);
 }
 
 // ------------------------------------------------------------------ analysis + simple processing
