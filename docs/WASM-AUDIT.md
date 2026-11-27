@@ -1633,3 +1633,28 @@ Looked at first (STANDING RULE #1):
   - **The OCR of 16 photos** (the app's reading path on the flat pages, `scripts/measure-ocr.mjs --prep read`): the photos
     as they are 90.7 % of the words read right, the first version 92.0 %, now 92.4 % — every page as well as the photo or
     better (one photo, a far-off video frame, reads 5 % in every version: its text is a few pixels high).
+
+### 180. `clipper` — Newspaper Clipper (27 Nov 2026; potentials #110)
+- **What the tab does:** a photographed newspaper page → the page found and straightened → read laid out as a page → the
+  reader taps a story's headline (or blocks one by one) → the story's parts stacked one under another in reading order, as
+  one tall picture, an A4 PDF or its text.
+- **Engines — all on the site already, nothing new:** the OCR tab's page finder (`src/lib/pagecrop.ts`: imgproc's outline,
+  the Doc Scanner's DocCornerNet on ONNX Runtime Web), the text set upright (`src/lib/upright.ts`), imgproc.wasm's clean-up
+  (`docEnhance`), unsharp mask (`p_sharpen`) and ink regions (`p_ink_regions` — the pictures, and the lines of text left
+  unread), Tesseract 5 (tesseract.js-core: its page layout, PSM 3, gives the blocks), textcore.wasm's XY-cut (the reading
+  order), MuPDF (the PDF), MozJPEG / OxiPNG (the picture). The tab adds 22 KB of TypeScript.
+- **Candidates looked at for the layout (which block is a headline, which blocks make a story):** no WebAssembly module of
+  newspaper article segmentation exists; the research systems (dhSegment, Newspaper Navigator, the layout models of
+  LayoutParser — PubLayNet, Newspaper Navigator's Faster R-CNN) are Python / PyTorch with models of 100 – 350 MB and none
+  finds articles (they find regions; article separation is research). Tesseract's own page layout already gives the
+  regions; the rules that make articles of them work on its words' boxes — glue around the reader's output in TypeScript
+  (`src/lib/clipper.ts`, a few hundred boxes a page; no pixel is touched), as the OCR tab's list layout is
+  (`src/lib/listtext.ts`). Decision: Tesseract's blocks + our rules; textcore's XY-cut for the order.
+- **Measured** (`node scripts/measure-clipper.mjs DIR` on photos of `scripts/make-newspaper-photos.py` — the tab's code in
+  Node, each story's headline "tapped", the clipping held to the story as printed): Tesseract's page layout was the weak
+  part — it lost whole columns next to a picture (its halftone finder) and took soft text for vertical text, both coming
+  and going with a 1 % change of the photo's size; a light unsharp mask before reading (imgproc `p_sharpen` 1.0) read both
+  pages with a picture whole (536 → 673, 597 → 675 words of about 690) and changed nothing on sharp pages; a strong one (2.0),
+  used only when the reading shows the signs, read the soft page (136 → 626 words). Black and white (`docEnhance` 2) and
+  other sizes were tried and read worse. Story finding: 93 of 127 stories clipped whole on 16 photos (the sharp ones nearly
+  all; four soft or badly lit photos read poorly — the tab says "a sharper photo reads better").

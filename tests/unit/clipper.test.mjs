@@ -161,6 +161,9 @@ export default async (t, { load, wasm }) => {
     const colTop = colPieces[0].y;
     t.ok(plan.cuts.some((c) => c > colTop && c < colTop + 204), 'a page may end between two lines of a column');
     t.ok(plan.cuts.every((c, k) => k === 0 || c >= plan.cuts[k - 1]), 'the places to cut in order');
+    const framed = C.clipPlan(parts, { pad: 10, gap: 30, label: 40, margin: 25 });
+    t.eq([framed.width, framed.height], [plan.width + 50, plan.height + 50], 'a margin round the clipping: wider and taller by two margins');
+    t.ok(framed.pieces.every((p, k) => p.x === plan.pieces[k].x + 25 && p.y === plan.pieces[k].y + 25) && framed.labels.every((l, k) => l.x === 25 && l.y === plan.labels[k].y + 25), '… every piece and label moved in by it');
     const plain = C.clipPlan(parts, { pad: 10, gap: 30, label: 0, labels: ['x'] });
     t.eq(plain.labels.length, 0, 'no labels when they are switched off');
     t.ok(plain.height < plan.height, '… and the clipping is shorter by them');

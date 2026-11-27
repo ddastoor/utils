@@ -319,8 +319,8 @@ export interface Part { shot: number; block: Block; k: number; page: { width: nu
 export interface Piece { shot: number; crop: [number, number, number, number]; x: number; y: number; w: number; h: number }
 export interface Plan {
   width: number; height: number; pieces: Piece[];
-  /** the label of each part ("Part 2") and its strip */
-  labels: Array<{ text: string; y: number; h: number }>;
+  /** the label of each part ("Part 2") and its strip (x: where it starts — the margin) */
+  labels: Array<{ text: string; y: number; h: number; x?: number }>;
   /** where a page of the PDF may end: between two parts, and between two lines of a part */
   cuts: number[];
 }
@@ -338,18 +338,20 @@ export const bodySize = (blocks: Block[]) => median(blocks.filter((b) => !b.head
 /**
  * Where everything goes in the clipping — the parts one under another in their order, each under its label (`label` px;
  * 0: no labels) and `gap` apart, each cut from its page with a margin of `pad` (px of the page). The clipping is as wide as
- * the widest part that is no headline or picture (a column of the story: its text drawn at the photo's own resolution); a part wider
+ * the widest part that is no headline or picture (a column of the story: its text drawn at the photo's own resolution) and a
+ * `margin` round it all; a part wider
  * than that is made smaller to fit — except a headline across several columns, whose lines are set again word by word to
  * the clipping's width, so that it keeps its size (made a third as large it would read like the text).
  */
-export function clipPlan(parts: Part[], o: { pad: number; gap: number; label: number; labels?: string[] }): Plan {
+export function clipPlan(parts: Part[], o: { pad: number; gap: number; label: number; labels?: string[]; margin?: number }): Plan {
   const crop = (p: Part, box: number[], pad: number): [number, number, number, number] => [
     Math.max(0, Math.floor(box[0] - pad)), Math.max(0, Math.floor(box[1] - pad)), Math.min(p.page.width, Math.ceil(box[2] + pad)), Math.min(p.page.height, Math.ceil(box[3] + pad))];
   const wide = (p: Part) => { const c = crop(p, p.block.box, o.pad); return (c[2] - c[0]) * p.k; };
   const text = parts.filter((p) => !p.block.headline && !p.block.picture);
   const width = Math.max(1, Math.round(Math.max(...(text.length ? text : parts).map(wide), 1)));
   const pieces: Piece[] = [], labels: Plan['labels'] = [], cuts: number[] = [];
-  let y = 0;
+  const m = Math.max(0, Math.round(o.margin ?? 0));
+  let y = m;
   parts.forEach((p, i) => {
     if (i) cuts.push(y - o.gap / 2);
     if (o.label > 0) { labels.push({ text: o.labels?.[i] ?? `Part ${i + 1}`, y, h: o.label }); y += o.label; }
@@ -382,7 +384,9 @@ export function clipPlan(parts: Part[], o: { pad: number; gap: number; label: nu
     for (let j = 1; j < rows.length; j++) { const at = (rows[j - 1][1] + rows[j][0]) / 2; if (at > c[1] && at < c[3]) cuts.push(y + (at - c[1]) * s); }
     y += h + o.gap;
   });
-  return { width, height: Math.max(1, Math.round(y - (parts.length ? o.gap : 0))), pieces, labels, cuts: cuts.filter((c) => c > 0).sort((u, v) => u - v) };
+  // the margin round it all: every piece and label moved in by it
+  if (m) { for (const p of pieces) p.x += m; }
+  return { width: width + 2 * m, height: Math.max(1, Math.round(y - (parts.length ? o.gap : 0) + m)), pieces, labels: labels.map((l) => ({ ...l, x: m })), cuts: cuts.filter((c) => c > 0).sort((u, v) => u - v) };
 }
 
 /** The clipping cut into pages of `pageH` px: each page ends at the last place it may be cut (between parts or lines) in

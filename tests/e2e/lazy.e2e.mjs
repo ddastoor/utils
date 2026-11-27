@@ -83,6 +83,8 @@ export default async ({ base, page: newPage, ok, info, devices }) => {
     ok(!home.some((r) => HEAVY.test(r.url)), `home loads no wasm/vendor/model/data/font (${home.filter((r) => HEAVY.test(r.url)).map((r) => r.url).join(' ')})`);
     ok(sum(home) < SHELL_BUDGET, `home downloads ${kb(sum(home))} (< ${kb(SHELL_BUDGET)})`);
     info(`home: ${home.length} files, ${kb(sum(home))}`);
+    ok(!home.some((r) => /icons-tabs/.test(r.url)), 'the tabs\' own icons are not on the start page (src/icons-tabs.gen.ts comes with the first tab)');
+    ok(!(await p.locator('svg[data-missing]').count()), 'every icon of the start page is drawn (none missing from src/icons.gen.ts)');
     const cat = await load(p, 'c/images');
     ok(!cat.some((r) => HEAVY.test(r.url)), 'a category page loads no engine either');
     // 2. search: its engine (textcore.wasm) loads when the box is first used, not before
@@ -110,6 +112,8 @@ export default async ({ base, page: newPage, ok, info, devices }) => {
         const got = (await load(p, t.id)).filter((r) => !shell.has(r.url));
         const heavy = got.filter((r) => HEAVY.test(r.url) && r.n > 0), bytes = sum(got); // n = 0: cancelled request of the previous page
         rows.push({ name, id: t.id, bytes, heavy: heavy.map((r) => `${r.url.split('/').pop()} ${kb(r.n)}`) });
+        const missing = await p.$$eval('svg[data-missing]', (s) => [...new Set(s.map((e) => e.dataset.missing))]);
+        ok(!missing.length, `${name} ${t.id}: every icon of the tab is drawn (${missing.join(' ')})`);
         const [allow] = AT_OPEN[t.id] || [];
         const extra = heavy.filter((r) => !SMALL_ENGINE.test(r.url) && !(allow && allow.test(r.url)));
         ok(!extra.length, `${name} ${t.id}: opening the tab loads no other engine/model/data/font (${extra.map((r) => r.url).join(' ')})`);

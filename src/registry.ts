@@ -32,10 +32,13 @@ export const CATEGORIES: Category[] = [
   { id: 'device', title: 'Device', icon: 'Smartphone' },
 ];
 
+/** A tab's code comes with the icons of the tabs' own buttons (src/icons-tabs.gen.ts, one small file, fetched once): the
+ *  start page carries only the icons it shows. */
+const withIcons = (load: () => Promise<Mount>) => () => Promise.all([import('./icons-tabs.gen'), load()]).then(([, m]) => m);
 const t = (
   id: string, title: string, desc: string, cat: CatId, icon: string,
   load: () => Promise<Mount>, platform: Platform = 'both',
-): Tool => ({ id, title, desc, cat, icon, kw: [], load, platform });
+): Tool => ({ id, title, desc, cat, icon, kw: [], load: withIcons(load), platform });
 
 const img = () => import('./tools/images');
 const canv = () => import('./tools/canvas-tools');

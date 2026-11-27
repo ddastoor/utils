@@ -3153,3 +3153,39 @@ cannot. Three new suites; each fails on the build before its fixes.
   candidates measured (docs/WASM-AUDIT.md 179): page-dewarp 0.3.4 takes the photo's rectangle less fixed margins for the
   page — it cut the words nearest the spine of a page cut out at the gutter (95 → 76 % of a frame's words read) and kept
   the table round the page; Leptonica 1.86's `dewarpSinglePage` gave up on 1080p video frames (too few lines found).
+- **Newspaper Clipper (potentials #110, 27 Nov 2026), found while building it — each with a check that would catch it:**
+  - **Tesseract's page layout lost whole columns next to a picture.** The picture's grey, binarized by Tesseract, looks
+    like a halftone, and its picture finder grew from it into the columns beside it (`pixSeedfillBinary` from the halftone
+    mask into the page's ink: on a soft photo letters touch); with the picture painted white the page read 618 words
+    instead of 466. A light unsharp mask before reading read both such pages whole (536 → 673, 597 → 675 words); the unit
+    suite holds the recorded reading of one of them (`tests/fixtures/news/news-19-still.reading.json`) to its stories.
+  - **Soft text taken for vertical text.** On a blurred page Tesseract marked most columns PT_VERTICAL_TEXT (13 blocks of
+    23) and read them turned: 136 words of about 690. No parameter switches it off (`textord_tabfind_vertical_text` steers
+    the page's direction, not a block's: `TabFind::MarkVerticalText` marks blobs by their neighbours). A strong unsharp mask
+    read it (626 words, no vertical block); it is used only when a reading shows the sign (`readingOf` counts the words of
+    vertical blocks) or lines of the page no word covers. Both faults came and went with a 0.8 % change of the photo's
+    size — a page measured once proves little: `scripts/measure-clipper.mjs` on 16 photos.
+  - **Headlines by their words' height failed both ways.** Tesseract's boxes of whole lines of justified text were
+    sometimes twice as tall as their letters (taken for headlines), and a one-column story's headline of capitals and
+    small letters without descenders is hardly taller than a line of text with them (missed). A headline's letters are
+    wider: the rule is now the width of its letters (1.3 × the text's) with a little height (1.15 ×); a headline run inside
+    a block must stand apart from the lines round it (a line of text whose words came out blurred and wide is no headline).
+  - **One word's box decided the layout.** A headline's descender ran into the picture under it ("Monday": 114 px tall where
+    its words are 67) and the picture became the neighbouring story's; another into its columns, which then lay "above"
+    the headline's bottom and were left out. Stories and the reading order are laid out on core boxes (`coreBox`: the
+    first and last lines' typical words, a word taller than its block's words by a quarter cut to that height).
+  - **The XY-cut kept a headline and its columns together** when the headline stood 10 px over them (a quarter of a line
+    was the smallest gap it cut at): the columns were read in the order they came. Block boxes are cut at 2 px.
+  - **Columns under another story's picture joined a story beside them** (they start at the same height); a row of columns
+    that start together is now one unit, and a column that goes up — block by block — to another headline stays out.
+  - **Tesseract joined blocks:** two columns and a headline into one block (each line running across the gutter), a price
+    line with a column far under it. A block is cut at the gutters no word crosses and at gaps of a line and a half.
+  - **The tab:** its engine set lacked the unsharp mask (`r.sharpen is not a function` — the e2e suite's first run); the
+    parts list's grid column grew to the longest label and pushed the move buttons off a phone's screen (the e2e suite
+    checks them on the screen now); the labels "Part 1" were too small to read back (made the text's size) and the
+    clipping had no margin (Tesseract missed the label at its top edge).
+  - **The start page went over its budget** with the two new tabs (181 KB of 180: their registry lines, icons and
+    styles; the lazy suite). Every one of the 282 icons came with the start page, 99 of them only ever drawn inside a tab:
+    the icons are now two files (`scripts/gen-icons.mjs`) — the start page's 183 and the tabs' own, fetched with the first
+    tab — 167 KB at the start. An icon missing from the map is drawn as a circle with `data-missing`, and the lazy suite
+    fails on one on the start page or in any tab's first view (desktop and phone).

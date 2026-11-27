@@ -16,13 +16,18 @@ const NEWS = (n) => join(root, 'tests/fixtures/news', n);
 const IMG = (n) => join(root, 'tests/fixtures/images', n);
 const { wordsOf, lcs, storyWords } = await import(join(root, 'scripts/measure-clipper.mjs'));
 
+/** Leptonica's diagnostics inside Tesseract ("Error in boxClipToRectangle: box outside rectangle" — its page layout on a
+ *  newspaper page) reach the console as errors; they are not the app's */
+const real = (errs) => errs.filter((e) => !/^Error in [A-Za-z]+: /.test(e));
+const innerWidthOf = (p) => p.viewportSize().width;
+
 export default async ({ base, page: newPage, ok, info, download, devices, released }) => {
   const idx = JSON.parse(readFileSync(NEWS('index.json'), 'utf8'));
   const ent = idx[0], photo = `${ent.name}.jpg`;
   const page = await newPage({ permissions: ['clipboard-read', 'clipboard-write'] });
   const requests = []; page.on('request', (r) => requests.push(r.url()));
   await page.goto(`${base}#/clipper`);
-  await page.locator('input[type=file]').first().waitFor();
+  await page.locator('input[type=file]').first().waitFor({ state: 'attached' });
   const body = () => page.locator('.tool-body').innerText();
   ok(!requests.some((u) => /tesseract|imgproc[^/]*\.wasm|textcore[^/]*\.wasm|ort-wasm|doccorner/i.test(u)), 'nothing of the engines is fetched before a photo is chosen');
 
@@ -68,7 +73,9 @@ export default async ({ base, page: newPage, ok, info, download, devices, releas
     await w.terminate();
     const read = wordsOf(data.text), kk = lcs(truth, read);
     ok(kk >= 0.9 * truth.length, `the saved picture reads as the story, its columns in order (${kk} of ${truth.length} words in order, read back by Tesseract)`);
-    ok(/part\s*1/i.test(data.text) && /part\s*2/i.test(data.text), 'its parts are labelled "Part 1", "Part 2" …');
+    const labels = new Set([...data.text.matchAll(/part\s*(\d+)/gi)].map((x) => +x[1]));
+    // (Tesseract reads a label right over the headline's big letters with them — "Part 1" is often lost there)
+    ok(labels.size >= Math.ceil(nParts / 2) && [...labels].every((x) => x >= 1 && x <= nParts), `its parts are labelled "Part 1", "Part 2" … (${[...labels].sort((a, b) => a - b).join(', ')} of ${nParts} read back)`);
   }
 
   // ---- the PDF: A4 pages, each a picture, ending between lines
@@ -100,15 +107,16 @@ export default async ({ base, page: newPage, ok, info, download, devices, releas
   await page.locator('.clip-block:not(.head):not(.pic)').nth(free).click();
   await page.waitForFunction((n) => document.querySelector('.clip-out canvas').dataset.parts.split(',').length === n, before, { timeout: 15000 });
   ok(true, 'tapped again, it comes out');
-  // a part moved down: the text follows the new order
-  const t0 = await page.locator('textarea').inputValue();
-  await page.getByRole('button', { name: 'Move part 2 down' }).click();
+  // the last part (a column) moved up: the text follows the new order
+  const t0 = await page.locator('textarea').inputValue(), n = await page.locator('.clip-parts li').count();
+  await page.getByRole('button', { name: `Move part ${n} up` }).click();
   await page.waitForFunction((t) => document.querySelector('textarea').value !== t, t0, { timeout: 15000 });
-  const t1 = await page.locator('textarea').inputValue(), paras0 = t0.split('\n\n'), paras1 = t1.split('\n\n');
-  ok(paras1[1] === paras0[2] && paras1[2] === paras0[1], 'a part moved down: the text follows the new order');
-  await page.getByRole('button', { name: 'Move part 3 up' }).click();
+  const t1 = await page.locator('textarea').inputValue(), paras0 = t0.split('\n\n'), paras1 = t1.split('\n\n'), m = paras0.length;
+  ok(paras1[m - 1] === paras0[m - 2] && paras1[m - 2] === paras0[m - 1], 'a part moved up: the text follows the new order');
+  ok(await page.getByRole('button', { name: `Move part ${n} down` }).isDisabled(), 'the last part cannot go further down');
+  await page.getByRole('button', { name: `Move part ${n - 1} down` }).click();
   await page.waitForFunction((t) => document.querySelector('textarea').value === t, t0, { timeout: 15000 });
-  ok(true, '… and back up');
+  ok(true, '… and back down');
   const h1 = await page.locator('.clip-out canvas').evaluate((c) => c.height);
   await page.getByText('Mark the parts', { exact: false }).click();
   await page.waitForFunction((hh) => document.querySelector('.clip-out canvas').height < hh, h1, { timeout: 15000 });
@@ -119,6 +127,23 @@ export default async ({ base, page: newPage, ok, info, download, devices, releas
   const png = imageInfo(readFileSync(pngPath));
   ok(png.type === 'png' && png.width === pic.width && png.height === pic.height, `black and white: a PNG of the same size (${png.width}×${png.height})`);
   await page.getByRole('radio', { name: 'Colour' }).click();
+
+  // ---- a story continued on another page: a second photo joined — its parts after the first photo's, labelled with it
+  await page.locator('input[type=file]').first().setInputFiles({ name: 'page-2.jpg', mimeType: 'image/jpeg', buffer: readFileSync(NEWS(photo)) });
+  await page.waitForFunction(() => /Photo 2 of 2 · page-2\.jpg · /.test(document.querySelector('.tool-body').innerText), null, { timeout: 240000 });
+  const second = ent.stories.find((x) => x !== lead && x.blocks.length >= 3);
+  const before2 = await page.locator('textarea').inputValue();
+  await page.locator('.clip-stories button').filter({ hasText: second.headline.split(' ').slice(0, 3).join(' ') }).first().click();
+  await page.waitForFunction((t) => document.querySelector('textarea').value.length > t.length, before2, { timeout: 30000 });
+  const joined = await page.locator('textarea').inputValue();
+  ok(joined.startsWith(before2) && lcs(storyWords(second), wordsOf(joined.slice(before2.length))) >= 0.95 * storyWords(second).length, 'the second photo\'s story follows the first photo\'s in the text');
+  ok(/\(photo 2\)/.test(await page.locator('.clip-parts').innerText()), 'its parts are named with their photo');
+  await page.getByRole('button', { name: 'Photo 1: ' + photo }).click();
+  ok(await page.locator('.clip-block[aria-pressed=true]').count() >= lead.blocks.length, 'back on photo 1: its chosen blocks are still marked');
+  await page.getByRole('button', { name: 'Photo 2: page-2.jpg' }).click();
+  await page.getByRole('button', { name: 'Remove this photo' }).click();
+  await page.waitForFunction((t) => document.querySelector('textarea').value === t, before2, { timeout: 15000 });
+  ok(true, 'the second photo removed: its parts go with it');
 
   // ---- "Read aloud": the Text-to-Speech tab opens with the text
   await page.getByRole('button', { name: 'Read aloud' }).click();
@@ -133,7 +158,7 @@ export default async ({ base, page: newPage, ok, info, download, devices, releas
   await page.locator('input[type=file]').first().setInputFiles(IMG('coffee.jpg'));
   await page.waitForFunction(() => /Photo 1 of 1 · coffee\.jpg · /.test(document.querySelector('.tool-body').innerText), null, { timeout: 240000 });
   ok(/The text reads poorly/.test(await body()) || /No headline was found/.test(await body()), 'a photo without a newspaper: no headline, and the hint to take a sharper photo');
-  ok(page.errors.length === 0, `no page errors: ${page.errors.join(' | ')}`);
+  ok(real(page.errors).length === 0, `no page errors: ${real(page.errors).join(' | ')}`);
 
   // ---- leaving the tab lets go of what it made
   { const kept = await released(page, 'clipper');
@@ -147,10 +172,12 @@ export default async ({ base, page: newPage, ok, info, download, devices, releas
   await phone.locator('.clip-stories button').first().click();
   await phone.waitForFunction(() => document.querySelector('.clip-out canvas')?.dataset.parts, null, { timeout: 30000 });
   ok(await phone.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'phone: a story chosen, no horizontal scroll');
+  const rowBtns = await phone.locator('.clip-parts li').first().locator('button').evaluateAll((bs) => bs.map((b) => { const r = b.getBoundingClientRect(); return [r.right, r.height]; }));
+  ok(rowBtns.length === 3 && rowBtns.every(([right, hh]) => right <= innerWidthOf(phone) && hh >= 44), `phone: each part's buttons (up, down, out) on the screen and 44 px tall (${JSON.stringify(rowBtns.map(([r, hh]) => [Math.round(r), Math.round(hh)]))})`);
   for (const name of ['Picture', 'PDF', 'Share']) {
     const b = await phone.getByRole('button', { name, exact: true }).first().boundingBox();
     ok(b && b.height >= 44, `phone: "${name}" ≥ 44 px tall (${b && Math.round(b.height)})`);
   }
-  ok(phone.errors.length === 0, `phone: no errors: ${phone.errors.join(' | ')}`);
+  ok(real(phone.errors).length === 0, `phone: no errors: ${real(phone.errors).join(' | ')}`);
   void info;
 };

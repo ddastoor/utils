@@ -35,14 +35,16 @@ dewarp and page-dewarp itself: docs/WASM-AUDIT.md 179), steps `src/lib/bookflat.
 day (measured against the ground truth and the OCR): the lens** (EXIF, else the main camera; a "Camera lens" choice — a
 zoomed photo was skewed by up to 7 %), **the page drawn along the paper** (0.58 → 0.38 % off), **where a page ends** (the
 paper's edges and specks of the table were taken for words; the page reached into the table; a spread's pages reach the
-gutter) — unit `bookflat` 106, e2e 37; OCR of 16 photos 90.7 → 92.4 %. **#110 Newspaper Clipper — IN PROGRESS (27 Nov
-2026):** the tab `clipper` (Images, PC + mobile) is built — `src/tools/clipper.ts`, steps `src/lib/clipper.ts` (the page
-found, straightened, sharpened and read by Tesseract laid out as a page; blocks, headlines, pictures, a story from its
-headline, the XY-cut's order, the tall picture, A4 pages cut between lines, "Read aloud" through `src/lib/handoff.ts`);
-measured with `node scripts/measure-clipper.mjs DIR` on photos of `scripts/make-newspaper-photos.py` (93 of 127 stories
-clipped whole on 16 photos, nearly all on the sharp ones); unit `clipper` 154 green (fixtures `tests/fixtures/news/`).
-**Left:** run the e2e suite `clipper` (written, not yet run) and fix what it finds, the phone screenshot, the docs
-(CLAUDE.md §3, WASM-AUDIT, BUGHUNT, potentials #110 off the list). **Next in group
+gutter) — unit `bookflat` 106, e2e 37; OCR of 16 photos 90.7 → 92.4 %. **#110 Newspaper Clipper — BUILT (27 Nov 2026):** the tab `clipper` (Images, PC + mobile; CLAUDE.md §3 "Newspaper
+Clipper"): the page found, straightened, **sharpened** and read by Tesseract laid out as a page — again sharper when its
+layout went wrong (columns lost next to a picture, soft text taken for vertical text: both measured, both fixed); headlines
+by the width of their letters; a story from its headline (core boxes, rows of columns, the XY-cut on block gaps); the tall
+picture, the A4 PDF cut between lines, the text with "Read aloud" (`src/lib/handoff.ts` → Text-to-Speech). Measured with
+`node scripts/measure-clipper.mjs DIR` (photos of `scripts/make-newspaper-photos.py`): 93 of 127 stories clipped whole on 16
+photos. Unit `clipper` 156, e2e `clipper` 48 (+ the camera sweep's entry); docs/WASM-AUDIT.md 180, docs/BUGHUNT.md; taken
+off potentials.md. With it, **the start page's icons split in two** (it had reached 181 KB of its 180: `scripts/gen-icons.mjs`
+— the start page's 183 icons, the tabs' own 99 with the first tab; 167 KB now; the lazy suite fails on an icon missing in any
+tab's first view; CLAUDE.md §4). **Next in group
 1:** #109 PDF for Kindle · #71 EPUB Reader · #106 Articles → Kindle · #14 PDF / EPUB → Audiobook;
 then the flattener as a measured step of the OCR and the Photo Dictionary (no photo may read worse). **New, open: to-do #38** (owner, 27 Nov 2026, before the potentials: the OCR's and the
 Photo Dictionary's text copied to the clipboard as soon as it is read) — not started; **the owner: later** ("will come back

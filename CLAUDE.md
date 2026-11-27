@@ -333,7 +333,7 @@ Wayland) and **mobile browsers** (Android Chrome, iPhone Safari).
 Platform is PC + mobile unless marked **PC**. Tab ids are the URL hash (`#/<id>`).
 
 **The authoritative, always-current list is `docs/TOOLS.md`, generated from `src/registry.ts` (`npm run docs`).**
-Current total: **176 tabs in 11 categories — 109 PC + mobile, 64 PC only, 3 Mobile only** (regenerate with
+Current total: **177 tabs in 11 categories — 110 PC + mobile, 64 PC only, 3 Mobile only** (regenerate with
 `npm run docs` after every registry change; the owner asked for the registry to always be noted).
 The per-category notes below record decisions; when they disagree with the registry, the registry wins.
 
@@ -368,6 +368,7 @@ and to the counts of `docs/TOOLS.md`; axe in both themes).
 | `collage` | Collage Maker | both | canvas photo grid |
 | `exif` | EXIF / Photo Info | both | ExifTool 13.42 (Perl on zeroperl, WebAssembly) in a worker: every tag of every format; strip metadata losslessly (colour profile + orientation kept) |
 | `scanner` | Doc Scanner | both | page finder DocCornerNet LEAN (scanic-ml, MIT) on ONNX Runtime Web (fed by imgproc's OpenCV-exact area resize) → else `imgproc` outline (Otsu + largest region) → else the whole photo; draggable corners, homography warp, enhance (`imgproc`); PDF via MuPDF (`src/lib/pdf.ts`: photos JPEG, B & W PNG) or JPEGs |
+| `clipper` | Newspaper Clipper | both | the OCR tab's page finder → the page sharpened (imgproc `p_sharpen`) and read by Tesseract laid out as a page (its blocks) → headlines, pictures (imgproc ink regions) and a story from its headline (`src/lib/clipper.ts`) → its parts in reading order (textcore's XY-cut) as one tall picture (MozJPEG / OxiPNG), an A4 PDF (MuPDF) or its text (Copy, .txt, Read aloud → Text-to-Speech) |
 | `bookflat` | Book Page Flattener | both | own C in imgproc (`wasm/imgproc/flatten.c`: page-dewarp's method — the text lines found, a curved sheet and the camera fitted to them by Levenberg–Marquardt, the gutter of a spread split, lines held to the margins) → each page drawn flat at the photo's resolution; PDF via MuPDF or JPEGs |
 | `ocr` | OCR | both | Tesseract (C++ → wasm), English, French, Spanish, German; a file, or the camera (phone) / webcam (PC) live in the page (`src/lib/livecam.ts`) |
 
@@ -2431,6 +2432,57 @@ pictures or a PDF; the OCR tab and the Photo Dictionary then read printed books 
   PNG) or JPEGs (`book-page-01.jpg` …); Share on phones. Only a copy of each photo (≤ 1,600 px) is kept; the photo is read
   again when saving and each page drawn at most 3,200 px (2,400 on phones) from it at up to 4,000 px.
 
+
+### Newspaper Clipper — BUILT (potentials #110; owner, 21 Nov 2026; built 27 Nov 2026 — group 1 of the suggested order)
+(`clipper` in `src/tools/clipper.ts`, steps `src/lib/clipper.ts` (no DOM), the hand-over to Text-to-Speech `src/lib/handoff.ts`;
+unit `tests/unit/clipper.test.mjs` 156, e2e `tests/e2e/clipper.e2e.mjs` 48; fixtures `tests/fixtures/news/` with every story's
+words, made by `python3 scripts/make-newspaper-photos.py`; measured with `node scripts/measure-clipper.mjs DIR` — the tab's own
+code in Node.) The owner's words (potentials #110): "photograph a newspaper article that runs over several columns → the page
+found and straightened, the reader taps the blocks of the article (a page holds several stories) → its columns stacked one
+under another in reading order with the headline on top — PDF → EPUB's rule for side-by-side pieces, each marked 'part 1',
+'part 2' … → one clean, tall picture that reads on a phone by scrolling, a PDF, or its text (to copy, or to hear with the
+Text-to-Speech voices); an article continued on another page joined from a second photo".
+- **Reading a page** (`readClip`): the photo at most 4,000 px → the page found and straightened (the OCR tab's finder:
+  `src/lib/pagecrop.ts`, the Doc Scanner's network where the outline is not a page's) → set upright and level
+  (`src/lib/upright.ts`) → **sharpened** (imgproc's unsharp mask, 1.0) and cleaned up (`docEnhance`, grey) → read by Tesseract
+  **laid out as a page** (PSM 3: its blocks — a headline, a column, a caption). Read again **sharper** (2.0), the reading that
+  scores better kept, when the first shows that Tesseract's layout went wrong: words in blocks it took for vertical text
+  (`readingOf` counts them: `vertical`) or five lines of the page that no word covers (`unreadLines`: imgproc's ink regions with
+  the words left out). Measured: Tesseract's layout lost whole columns next to a picture (its halftone finder grows into
+  touching letters) and took soft columns for vertical text — both coming and going with a 1 % change of size; the light mask
+  read both picture pages whole (536 → 673, 597 → 675 words), changed nothing on sharp pages; the strong one read the soft page
+  (136 → 626). **The pictures**: the ink left once the words read are taken away, in areas three lines high and wide and more
+  (`picturesOf`) — a photo, a drawing, a chart; blocks of their own.
+- **The blocks** (`blocksOf`, on Tesseract's words): **a headline's line** has letters 1.3 × as wide as the text's and words
+  1.15 × as tall (letter width, not height: Tesseract's boxes of a whole line of justified text were sometimes twice as tall as
+  its letters); runs of headline lines are headlines wherever they stand in a block (inside one, only standing apart from the
+  lines round it); a headline's lines that came as blocks of their own are one; a block over two columns is cut at the gutters
+  no word crosses, and at gaps of a line and a half; a line read across the columns under a wide headline goes to the columns
+  it stands over.
+- **A story from its headline** (`storyOf`, on core boxes — `coreBox`: one word's box reaching into the block under it decides
+  nothing): the headline, the first row of blocks under it (its columns, its picture and caption), the columns beside them that
+  start with them (a short headline) unless a nearer headline of their own stands above them or their row goes up, block by
+  block, to another headline (the columns under another story's picture), and each column on down to the next headline or a
+  wide gap. **The order** (`readingOrder`): textcore's XY-cut on the blocks' core boxes, cut at gaps of 2 px (a headline can
+  stand 10 px over its columns). Measured on 16 photos of the generator (`measure-clipper.mjs`, each story's headline tapped,
+  the clipping held to the story as printed — its headline, its picture's caption, its text): **93 of 127 stories clipped
+  whole** (95 % of their words in order, nothing of other stories), nearly all on the sharp photos; the misses are soft or
+  badly lit photos (Tesseract reads them poorly — the tab says so) and a page whose edge the page finder cut.
+- **The tab:** photos (or the camera — page after page, a story continued on another page joined from its photo) → each read
+  in turn with its progress ("reading the page… 64 %", "again, sharper"); the page shown with every block outlined (dashed: a
+  headline, dotted: a picture) and tappable — **a headline puts its whole story in** (tapped again, takes it out), any block
+  goes in or out; "Stories on this page" lists the headlines as buttons (a phone's finger needs no tiny box); each chosen block
+  carries its part number. **The clipping:** the parts in order, each movable up / down within its photo or taken out; the
+  preview; **"Mark the parts"** (on: "Part 1", "Part 2" … — "· photo 2" when photos are joined) as large as the text; the
+  clipping as wide as the story's widest column at the photo's own resolution (a second photo's text drawn the same size); a
+  headline wider than that set again word by word to the width (it keeps its size); a picture made smaller to fit; a margin
+  round it. Clean-up Colour / Grey / B & W / Original (`docEnhance` on each page). **Save picture** (JPEG, PNG in B & W; named
+  after the headline), **Save PDF** (A4 pages inside half-inch margins, each ending between two lines or two parts —
+  `pageCuts`), Share on phones; **its text** (editable) — Copy, Save .txt (CRLF), **Read aloud**: the Text-to-Speech tab opens
+  with it (`give('tts', …)` / `take('tts')`, in memory: nothing stored). A photo read poorly (confidence below 60, fewer than
+  25 words) gets "a sharper photo — closer, in good light, the phone held still — reads better". Each page is kept as a JPEG
+  (a phone's memory) and a copy of at most 1,400 px for the screen; the clipping is cut from the JPEG when saved, in memory
+  (no canvas limit).
 ### OCR
 Tesseract 5 LSTM (tesseract.js-core wasm), **languages English, French, Spanish, German** (owner decision Nov 16 2026:
 "don't bother about Hindi"; `@tesseract.js-data/{eng,fra,spa,deu}` 4.0.0_best_int, MIT, vendored) + "Mixed" (all four).
@@ -3330,7 +3382,7 @@ difference over its detail, the overlap's pixels), ruled lines and list marks cl
 | Signalsmith Stretch 1.3.2 (tempo and pitch, polyphonic) | C++ | Signalsmith Audio (official `signalsmith-stretch`, WebAssembly in an AudioWorklet) — rendered offline by `src/lib/stretch.ts` | pitch (replaced our WSOLA in Nov 2026: `docs/WASM-AUDIT.md`, tab 145) |
 | espeak: **eSpeak NG 1.52.0** (+ English phoneme tables and dictionary compiled from the same release, linked in, served to its fopen/stat from memory) + glue (IPA for Kokoro, piper-phonemize-style sentences) | C | **us** (`wasm/espeak`) | tts |
 | geo: Charles Karney's **geodesic.c 2.2** (GeographicLib's geodesic routines in C, MIT; the two files unmodified from the PROJ 9.9.0 release) + glue (inverse problem on WGS-84, half-way point, the haversine great circle for comparison) | C | **us** (`wasm/geo`, 36 KB, loaded by the Coordinates tab only; no tried-and-tested WebAssembly geodesic module exists: `docs/WASM-AUDIT.md`, tab 82) | coords |
-| textcore: tool-search ranking, rare-word ranking (tokeniser, lemmatiser, wordfreq hash table), XY-cut reading order (columns numbered only where they are real: `minh`) | C (own code) | **us** (`wasm/textcore`) | search box, emoji (search), photodict, epub |
+| textcore: tool-search ranking, rare-word ranking (tokeniser, lemmatiser, wordfreq hash table), XY-cut reading order (columns numbered only where they are real: `minh`) | C (own code) | **us** (`wasm/textcore`) | search box, emoji (search), photodict, epub, clipper (the order of a story's parts) |
 | textkit: **unicode-segmentation 1.13.3** (the Rust ecosystem's UAX #29 implementation, Unicode 17.0, MIT / Apache-2.0: extended grapheme clusters, sentence boundaries) + our counting rules: words as a word limit counts them, abbreviations and initials, lines and paragraphs, keywords (Snowball's stop words); **the Case Converter's thirteen conversions** (`case.rs`: Title Case is a port of the Python package `titlecase` 2.4.1 — Gruber's rules, MIT; the code cases cut words as npm's `change-case` does; case mapping by Rust's standard library) | Rust | **us** (`wasm/textkit`, crates.io via `Cargo.lock`, two modules by Cargo features: **textkit.wasm** 217 KB — fetched with the Word Counter's first text, with the Case Converter, and with the first Fancy Text that has an emoji or another script — and **textkit-diff.wasm** 0.71 MB = the **`similar` crate 3.2.1** (Apache-2.0: Myers in linear space with a time limit, line / word / grapheme diffs, inline changes, unified diffs) + our glue and our pairing of a change's lines side by side (`pair_lines`: likeness by a bounded Myers search, the best order-keeping pairing by dynamic programming — to-do #35), fetched by the Text Diff only; and **textkit-lorem.wasm** 0.13 MB = the **`lipsum` crate 0.9.1** (MIT: a Markov chain over the classic passage and Cicero's *De finibus*, with rand 0.8 / rand_chacha 0.3) + our glue (cleaned texts learned as circles, exact counts), fetched by the Lorem Ipsum tab; the existing module — ICU4X's official build — is one file of 20 MB: `docs/WASM-AUDIT.md`, tab 90) | wordcount, case, lines ("By length"), fancy (characters); diff (textkit-diff); lorem (textkit-lorem) |
 | sheet: calamine 0.38 (read .xlsx .xlsm .xlsb .xls .ods) + rust_xlsxwriter 0.102 (write .xlsx) + csv 1 + serde_json | Rust | **us** (`wasm/sheet`, crates.io sources verified by `Cargo.lock`, target wasm32-wasip1) | sheet |
 | svgo: **OXVG 0.0.9** (Rust port of SVGO's plugins; lightningcss for `<style>`) + our glue: DOCTYPE / entities allowed, nesting limit 256, **our own safe preset** (OXVG's `Jobs::safe()` is not safe), `sv_diff` (do two rasters look alike? — the tab renders every result next to its original and falls back to the safe result when the full optimisation changed the picture) | Rust | **us** (`wasm/svgo`, crates.io via `Cargo.lock`, opt-level z, 4.9 MB / 1.3 MB gz, loaded with the first SVG; unit `tests/unit/svgo.test.mjs`, hazard drawings `tests/fixtures/svg/hazards.json`) | svgo |
@@ -3340,10 +3392,10 @@ difference over its detail, the overlap's pixels), ruled lines and list marks cl
 | devcore: ipnet (CIDR), croner + chrono (cron; zone offsets from the browser's Intl via an `env.tz_offset` import, so no tz database), **own port of npm's semver** (`semver_npm.rs`: the package's range / comparator / inc logic with its own regular expressions on regex-lite — the nodejs-semver crate gave different answers), **own Unicode-aware glob matcher** (`globm`; globset matches bytes), **own unified-diff reader / applier** (`patchm`: offsets, white space, fuzz, like GNU patch; diffy refused most real patches), data-encoding + bs58 + own Ascii85/Z85 (long inputs go through data-encoding in pieces: it refuses 8 MiB and more on a 32-bit target), **own protobuf, MessagePack and CBOR readers** (`bin.rs`; rmpv and ciborium could not show CBOR `undefined` / simple values / long bignums or MessagePack's unused 0xc1, and reported errors as Rust debug text), x509-parser + sha1/sha2 (+ own PEM / PKCS #7 reader), **own SQL formatter** (`sqlfmt.rs`: a tokenizer for standard SQL, PostgreSQL, MySQL, SQLite, SQL Server and Oracle; changes white space and the case of keywords only and checks its result against the input — the sqlformat crate changed the meaning of SQL), own hex dump + search, **own lossless JSON reader / formatter** (`jsonfmt.rs`: changes white space only — member order, duplicate keys and number spelling kept; worded errors with line / column; JSON.parse → JSON.stringify reordered keys, dropped duplicates and rounded big numbers), **own JSON diff** (`jsondiff.rs`, RFC 6902 on that reader: lists aligned by equal elements (LCS) and records by `id`, numbers by value and never rounded), **own XML formatter** (`xmlfmt.rs`: re-indents elements that hold only elements, everything else byte-for-byte — declaration, DOCTYPE, entities, CDATA, text; the DOM round trip lost or rewrote all of these), **own JSON → types generator** (`j2t.rs`: TypeScript / Go / Rust serde / Java records / Python dataclasses; the e2e suite compiles its output with tsc, go, rustc, javac and python; crates unicode-ident (MIT / Apache-2.0 + Unicode-3.0) for Python identifiers and unicode-general-category (Apache-2.0) for what Go's struct tags accept) | Rust | **us** (`wasm/devcore`, crates.io via `Cargo.lock`, wasm32-wasip1; one `dc_call(op, input)` entry; **one module per tab** via Cargo features → `devcore-<feature>.wasm`, 67–650 KB) | cidr, x509, cron, semver, glob, patch, sqlfmt, hexview, baseenc, bindecode, base64 (devcore-enc), json + jwt (devcore-json), jsondiff, xml, json2types (devcore-j2t) |
 | cmark-gfm 0.29.0.gfm.13 (GitHub Flavored Markdown) | C | **us** (`wasm/markdown`, source from the PyPI `cmarkgfm` sdist, SHA-256 pinned) | markdown |
 | libyaml 0.2.5 + toml++ 3 | C / C++ | **us** (`wasm/formats`) | yaml |
-| MuPDF 1.28 | C | Artifex (official `mupdf` npm) | all PDF tools, PDF → EPUB, Watermark (PDFs: to-do #17) |
+| MuPDF 1.28 | C | Artifex (official `mupdf` npm) | all PDF tools, PDF → EPUB, Watermark (PDFs: to-do #17), Book Page Flattener and Newspaper Clipper (their PDFs) |
 | ExifTool 13.42 on zeroperl (Perl 5 compiled to WebAssembly with ExifTool's library inside) | Perl / C | Phil Harvey (ExifTool), uswriting / 6over3 (`@uswriting/exiftool` 1.0.9, `@6over3/zeroperl-ts` 1.0.10) — run in `src/workers/exiftool.worker.ts` | exif (replaced metacore's reader and stripper in Nov 2026: `docs/WASM-AUDIT.md`, tab 120); regex (the Perl flavour, the same module: `src/lib/regex/perl.ts`) |
 | hash-wasm 4.13.0 (hand-tuned C → wasm, one small binary per algorithm, embedded in the package; streaming; HMAC over any of its hashes; Argon2, bcrypt, scrypt, PBKDF2) | C | Dani Biró (`hash-wasm` npm, ~10 M downloads a month) — wrappers `src/lib/hmac.ts`, `src/lib/totp.ts`, `src/lib/pwhash.ts`, `src/lib/hashes.ts` (in `src/workers/hash.worker.ts`); only the algorithms a tab uses are bundled into its chunk, loaded with the tab's first result | hash (23 algorithms), hmac (all of it), totp (the HMAC), pwhash (Argon2id / i / d, bcrypt, scrypt, PBKDF2) — replaced RustCrypto builds and crypto.wasm's hashes of ours in Nov 2026 (`docs/WASM-AUDIT.md`) |
-| ONNX Runtime Web 1.31 (CPU/WebAssembly, SIMD) | C++ | Microsoft (official `onnxruntime-web` wasm build) | tts (Kokoro, Piper); scanner (DocCornerNet LEAN, scanic-ml 0.2.0: the page's corners — `docs/WASM-AUDIT.md`, tab 121); ocr and photodict (the same network, asked where the Kindle finder's outline is not a page's — to-do #18; and **PaddleOCR's PP-OCRv6 detector and recogniser, the second reader for soft photos** — owner, 26 Nov 2026: `src/lib/paddle.ts` in `src/workers/paddle.worker.ts`); noise (**DeepFilterNet 3**, the Studio voice — to-do #20: `src/workers/noise.worker.ts`) |
+| ONNX Runtime Web 1.31 (CPU/WebAssembly, SIMD) | C++ | Microsoft (official `onnxruntime-web` wasm build) | tts (Kokoro, Piper); scanner (DocCornerNet LEAN, scanic-ml 0.2.0: the page's corners — `docs/WASM-AUDIT.md`, tab 121); ocr, photodict and clipper (the same network, asked where the Kindle finder's outline is not a page's — to-do #18; and **PaddleOCR's PP-OCRv6 detector and recogniser, the second reader for soft photos** — owner, 26 Nov 2026: `src/lib/paddle.ts` in `src/workers/paddle.worker.ts`); noise (**DeepFilterNet 3**, the Studio voice — to-do #20: `src/workers/noise.worker.ts`) |
 | SQLite 3.54 | C | SQLite project (official `@sqlite.org/sqlite-wasm`), run in `src/workers/sqlite.worker.ts` (terminated on leave) | sqlite |
 | PCRE2 (pcre2-wasm 10.49.3: PCRE2 compiled by Emscripten, the WebAssembly inside the package) | C | gudoshnikovn (`pcre2-wasm`, MIT; PCRE2 BSD-3 with the PCRE2 exception) — in `src/workers/regex.worker.ts` | regex (the PCRE2 flavour: `docs/WASM-AUDIT.md`, tab 178) |
 | Oniguruma (vscode-oniguruma 2.0.1) | C | Microsoft (`vscode-oniguruma`, MIT; Oniguruma BSD-2) — the build VS Code and Shiki run | regex (the Ruby flavour, with Ruby's rules beside it in `src/lib/regex/ruby.ts`) |
@@ -3357,7 +3409,7 @@ difference over its detail, the overlap's pixels), ruled lines and list marks cl
 | MozJPEG, libwebp, OxiPNG, Squoosh's resize (Lanczos-3 in linear light) | C / Rust | jSquash (Squoosh codecs; `@jsquash/resize` since Nov 2026) | image encoders; resizing in the Image Editor and Batch Images (`docs/WASM-AUDIT.md`, tabs 109, 110) |
 | libheif + libde265 | C++ | libheif-js | heic |
 | Little CMS 2.16 | C | lcms-wasm (Matt DesLauriers; npm 1.0.5) — in the codec worker, fetched for a HEIC with a non-sRGB ICC profile | heic and every tab that opens HEIC: Display P3 → sRGB (`docs/WASM-AUDIT.md`, tab 111) |
-| Tesseract 5 | C++ | tesseract.js-core | ocr |
+| Tesseract 5 | C++ | tesseract.js-core | ocr, photodict, clipper (laid out as a page: its blocks) |
 | zxing-cpp | C++ | zxing-wasm | qr, barcode, scan |
 | 7-Zip 24.09 (`7zz`, the command line, Emscripten build with WORKERFS) | C++ | use-strict (`7z-wasm` npm 1.2.0) — run in `src/workers/sevenzip.worker.ts`, a fresh instance per archive | zip (zip and 7z with AES-256; `docs/WASM-AUDIT.md`, tab 107), unzip (reads every archive; tab 108), watermark (a Word document taken apart and zipped again: to-do #17) |
 | MediaPipe Tasks (TFLite) | C++ | Google (official) | passport, bgremove, redact |
@@ -3439,6 +3491,11 @@ into them: the XML is read and written by the browser's DOMParser and XMLSeriali
 shadow (blurred by imgproc.wasm). No WebAssembly module edits a Word document in place (docx-rs, a Rust crate, builds documents
 from its own model of them; a header changed in place, everything else byte for byte, is what a document needs —
 `docs/WASM-AUDIT.md`, Watermark).
+Nov 2026 (Newspaper Clipper, potentials #110): `src/lib/clipper.ts` — which of Tesseract's words make a headline, a block,
+a story, and where each piece goes in the clipping: rules over a few hundred word boxes a page (glue around the reader's output,
+as `src/lib/listtext.ts`); the pixels are imgproc.wasm's (unsharp mask, clean-up, ink regions), the order textcore.wasm's
+XY-cut. No WebAssembly module finds a newspaper's articles (`docs/WASM-AUDIT.md`, tab 180). The pieces are copied out of a
+page a row at a time (`TypedArray.set`) and made smaller by imgproc's resize.
 Nov 2026 (Paste image, to-do #37): `src/lib/clipimage.ts` — the browser's Async Clipboard API, a choice among the formats
 it offers and a file name; no engine has work to do.
 Nov 2026 (Screenshot's area, to-do #24): `src/lib/areageom.ts` — the rectangle's arithmetic (where the frame stands, a
@@ -3509,8 +3566,14 @@ weather (Open-Meteo), IP/network info, clock-accuracy check (network time).
 ### Lazy dependencies per tab + release on leave (owner rule, Nov 16 2026)
 Owner: "make the full site faster, more responsive and memory efficient — load dependencies from the site's host
 **per app/tab, only when the user selects that tab**". Rules (enforced by `tests/e2e/lazy.e2e.mjs`):
-1. **The shell loads no engine.** Home and category pages fetch only `index.html`, the entry JS/CSS and icons
-   (≈ 178 KB on 27 Nov 2026; the test's budget is 180 KB): no `.wasm`, `vendor/`, `models/`, `data/` or font file. The search box's
+1. **The shell loads no engine.** Home and category pages fetch only `index.html`, the entry JS/CSS and the icons they
+   show (≈ 167 KB on 27 Nov 2026; the test's budget is 180 KB): no `.wasm`, `vendor/`, `models/`, `data/` or font file.
+   **The icons come in two parts** (`scripts/gen-icons.mjs`, run before every build): `src/icons.gen.ts` — the icons named
+   in the shell's files (`src/main.ts` and what it imports, not the tabs: the categories, every tab's icon, the header,
+   the shared controls of `src/ui.ts`) — and `src/icons-tabs.gen.ts`, the tabs' own button icons (99 of 282, 15 KB), which
+   the registry's loaders fetch with every tab (`withIcons` in `src/registry.ts`; one file, once a visit). An icon the map
+   does not hold is drawn as a circle with `data-missing="<name>"`: the lazy suite fails on one on the start page or in
+   any tab's first view, desktop and phone (27 Nov 2026: the start page had reached 181 KB with all 282 icons). The search box's
    engine (textcore.wasm, own instance via `newTextcore()`) **and the search keywords of all tabs** (`src/keywords.ts`,
    22 KB, by `loadKeywords()` in `src/registry.ts`) load when the box is first focused/typed in (`ensureSearch()` in
    `src/main.ts` → `initSearch()` in `src/search.ts`). Until then `kw` of every registry entry is empty: code that
@@ -3555,6 +3618,7 @@ Owner: "make the full site faster, more responsive and memory efficient — load
 index.html                 app entry (CSP, root element)
 src/main.ts                shell: router, nav, home grid
 src/registry.ts            every tab (id, title, category, platform, loader); src/keywords.ts = their search keywords (lazy)
+src/icons.gen.ts           GENERATED (scripts/gen-icons.mjs): the Lucide icons the start page shows; icons-tabs.gen.ts the tabs' own (with a tab)
 src/lifecycle.ts           onLeave / trackWorker / releaseAll: free a tab's workers + engines when it is left
 src/ui.ts                  DOM helpers & widgets (file picker/drop, sliders, progress, download, toast)
 src/platform.ts            mobile / capability detection

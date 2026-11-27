@@ -40,7 +40,7 @@ interface Shot {
   thumb: string;
 }
 const op = (name: string) => (...a: any[]) => imgproc(name as any, ...a);
-const engines: ClipEngines = { ops: { ...browserEngines.ops, inkRegions: op('inkRegions') } as unknown as ClipEngines['ops'], read: browserEngines.read };
+const engines: ClipEngines = { ops: { ...browserEngines.ops, inkRegions: op('inkRegions'), sharpen: op('sharpen') } as unknown as ClipEngines['ops'], read: browserEngines.read };
 /** A4 inside margins of half an inch (523 × 770 pt): the clipping's pages in the PDF. */
 const PDF_MARGIN = 36, PDF_RATIO = 770 / 523;
 const pct = (v: number, of: number) => `${((100 * v) / of).toFixed(3)}%`;
@@ -107,7 +107,7 @@ export const mount: Mount = (root, ctx) => {
     const list: Part[] = parts.map((p) => ({ shot: p.shot, block: p.block, k: ks[p.shot], page: { width: shots[p.shot].width, height: shots[p.shot].height } }));
     const several = used.length > 1;
     return clipPlan(list, {
-      pad: Math.round(0.45 * body), gap: Math.round(1.1 * body), label: labels ? Math.round(1.7 * body) : 0,
+      pad: Math.round(0.45 * body), gap: Math.round(1.1 * body), label: labels ? Math.round(2 * body) : 0, margin: Math.round(body),
       labels: parts.map((p, n) => `Part ${n + 1}${several ? ` · photo ${p.shot + 1}` : ''}`),
     });
   };
@@ -138,10 +138,12 @@ export const mount: Mount = (root, ctx) => {
   };
   const drawLabels = (g: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D, plan: Plan, s: number, dy = 0) => {
     for (const lb of plan.labels) {
-      const size = Math.max(9, Math.round(lb.h * 0.5 * s));
-      g.fillStyle = '#5a5a5a'; g.font = `600 ${size}px system-ui, sans-serif`; g.textBaseline = 'alphabetic';
-      g.fillText(lb.text, 2 * s, (lb.y + lb.h * 0.68) * s - dy);
-      g.fillStyle = '#c8c8c8'; g.fillRect(2 * s + g.measureText(lb.text).width + size * 0.6, (lb.y + lb.h * 0.5) * s - dy, plan.width * s, Math.max(1, s));
+      // the label as large as the text (its strip two of the text's word heights), a dark grey: readable, not loud
+      const size = Math.max(9, Math.round(lb.h * 0.55 * s));
+      g.fillStyle = '#444'; g.font = `600 ${size}px system-ui, sans-serif`; g.textBaseline = 'alphabetic';
+      const x = (lb.x ?? 0) * s;
+      g.fillText(lb.text, x, (lb.y + lb.h * 0.7) * s - dy);
+      g.fillStyle = '#c8c8c8'; g.fillRect(x + g.measureText(lb.text).width + size * 0.6, (lb.y + lb.h * 0.5) * s - dy, plan.width * s - 2 * x - g.measureText(lb.text).width - size * 0.6, Math.max(1, s));
     }
   };
 
@@ -178,8 +180,9 @@ export const mount: Mount = (root, ctx) => {
         const ids = mine.map((q) => q.block.id), j = k + d; if (j < 0 || j >= ids.length) return;
         [ids[k], ids[j]] = [ids[j], ids[k]]; s.order = ids; changed();
       };
+      const name = `Part ${n + 1}${shots.length > 1 ? ` (photo ${p.shot + 1})` : ''}: ${blockLabel(p.block)}`;
       return h('li', null,
-        h('span', { class: 't' }, `Part ${n + 1}${shots.length > 1 ? ` (photo ${p.shot + 1})` : ''}: ${blockLabel(p.block)}`),
+        h('span', { class: 't', title: name }, name),
         button('', move(-1), { icon: 'ArrowUp', small: true, title: `Move part ${n + 1} up`, disabled: k === 0 }),
         button('', move(1), { icon: 'ArrowDown', small: true, title: `Move part ${n + 1} down`, disabled: k === mine.length - 1 }),
         button('', () => { s.chosen.delete(p.block.id); changed(); }, { icon: 'X', small: true, title: `Take part ${n + 1} out` }));
@@ -333,7 +336,7 @@ export const mount: Mount = (root, ctx) => {
   );
   result.append(
     card('The clipping', stack(
-      h('ol', { class: 'clip-parts-wrap' }, partsEl), outInfo, out,
+      partsEl, outInfo, out,
       labelsSw, field('Clean-up', lookSeg),
       note('Colour whitens the paper; B & W gives the crispest text (saved as PNG). The PDF has A4 pages, each ending between two lines.'))),
     card('Its text', stack(ta,
