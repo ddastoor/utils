@@ -2868,3 +2868,5 @@ API void p_scroll_match(const uint8_t *a, const int32_t *sa, const uint8_t *b, c
     out[8] = y1 - y0;
     free(tex); free(fit); free(inf);
 }
+
+#include "flatten.c" /* the Book Page Flattener (uses cm_label above) */
