@@ -124,7 +124,13 @@ docs/WASM-AUDIT.md 190. **#16 PDF Tables → Excel — BUILT (27 Nov 2026):** th
 the .xlsx shown as printed (sheet.wasm), scanned pages through the OCR, a table drawn by hand. Unit `pdftables` 71 (pdfplumber,
 openpyxl, LibreOffice), e2e `pdf-tables` 32; fixtures `python3 scripts/make-table-pdfs.py`. **Group 2 is done.** The stylesheet
 split was checked tab by tab: 370 screenshots (every tab, PC and phone) before and after, the only differences random values,
-timers and anti-aliased pixels. **Next: group 4 — #88 Router Sticker → Wi-Fi QR.**
+timers and anti-aliased pixels. **#88 Router Sticker → Wi-Fi QR — BUILT (27 Nov 2026):** the tab `wifiqr` (Codes & Files, PC +
+mobile; CLAUDE.md §3 "Router Sticker → Wi-Fi QR"): the label read by the OCR's reading path with the camera helpers' options
+(`src/lib/snaptext.ts` `SNAP_READ`: both layouts, a small thing kept against the whole photo; `linesOf`: lines cut at wide gaps), its
+keys read (`src/lib/wifilabel.ts`; the admin login and the WPS PIN set aside), a QR code on the label read exactly, an unsure name or
+password line read again by PaddleOCR; the Wi-Fi code and a card for guests (`src/lib/qrdraw.ts`). Unit `wifiqr` 40 (the photos through
+the reading path in Node: `tests/lib/snapread.mjs`), e2e `wifiqr` 24 (zbar reads every code); fixtures `python3 scripts/make-snap-photos.py`
+(also the photos of the four tabs to come). **Next: #89 Visiting Card → Contact** (then #77, #78, #81).
 **Then to-dos #38, #39 and #40** (owner,
 27 Nov 2026, evening: "After you finish all these, finish off the items in the todo.md also."; #40, added the same evening:
 the EPUB Reader's "Remember book" — a hash of the book, its place and the reading voice in the Settings — after #39). The open question (keep the EPUB Reader's place between visits?) is

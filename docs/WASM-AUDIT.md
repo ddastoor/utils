@@ -1873,3 +1873,15 @@ Looked at first (STANDING RULE #1):
 - **Decision:** our own finder in textcore.wasm (40.2 → 50.7 KB — the search box's engine too, fetched when it is first used; sheet.wasm
   +1.7 KB for the printed dates; both come with the first PDF, as MuPDF); MuPDF's
   table-hunt to be looked at again when mupdf.js exposes its grid and it keeps the columns of these PDFs.
+
+### 192. `wifiqr` — Router Sticker → Wi-Fi QR (27 Nov 2026; potentials #88)
+- **What it does:** a photo of a router's label → its network names and password → a Wi-Fi QR code and a card for guests (CLAUDE.md
+  §3 "Router Sticker → Wi-Fi QR").
+- **Existing WebAssembly modules, on the site** (rule 1): Tesseract (tesseract.js-core) and PaddleOCR (ONNX Runtime) through the OCR's
+  reading path, imgproc's clean-up; zxing-cpp (zxing-wasm) to read a QR code on the label and to draw the Wi-Fi code (zint's writer,
+  as the QR Generator). No module reads a router's label: its wording is a dozen keys.
+- **Beside them (rule 1c, TS):** the label's keys and values (`src/lib/wifilabel.ts`), the reading's lines cut at wide gaps
+  (`src/lib/snaptext.ts`, shared by the camera helpers) — string glue; the reading path gained two options for small things
+  (`layout: 'both'`, `small`), off by default (the OCR tab and the Photo Dictionary read as before).
+- **Decision:** nothing new on the site (the tab's code); PaddleOCR, already on the site, reads a name's or a password's line again
+  when Tesseract is unsure of it.

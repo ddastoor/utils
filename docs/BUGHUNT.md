@@ -3428,3 +3428,22 @@ Found while building it, each with a check in `tests/e2e/idcopy.e2e.mjs`:
 - **The table's outline cut its first and last letters** — drawn a few points outside the words.
 - (Test slips, fixed in the suites: two precedence slips in `a && b || c` checks; a locator that took the result card holding all
   the tables for one table's card.)
+
+## Router Sticker → Wi-Fi QR (27 Nov 2026; built — potentials #88) — and the camera helpers' reading
+- **Tesseract dropped a visiting card's name** (set larger than the rest) read as one uniform block (its mode 6, the reading path's
+  usual layout for a page without columns) — the picture read was clean; laid out as a page (mode 3) it read the name, but nothing of a
+  label with a QR code beside its lines, and it misread a receipt's total ("1907.00" as "1967.60"). The camera helpers read both ways and
+  keep the better score (`layout: 'both'`).
+- **A label read as the desk's grain:** a label has fewer than 25 words, so the reading path also read the whole photo, and the desk's
+  grain read as letters gave more words — the count rule kept the junk. For small things the whole photo is kept only with clearly more
+  words read surely (`small`, `sure`); a first try by the score let the grain win again.
+- **A password read "kT7mq2Vrow" for "kT7mq2Vr9w"** in the browser at confidence 74 (in Node the soft reading went to PaddleOCR and was
+  right): a name's or a password's line Tesseract is unsure of is read again by PaddleOCR, the surer value kept.
+- **The label's frame read as "|" at each line's start, a QR code's modules as "wk", "[=] iy ="** — specks left out, values ended at
+  wide gaps (`linesOf`).
+- **Keys:** "Network Name (SSID)" cut to "Network Name" (the word boundary after ")" fails — a look-ahead now); "Password: password"
+  (the value a key word) lost; a Wi-Fi "Password" right above an "Admin Username" line taken for the admin's (a login is written user
+  name first: only the line above or the same line); "Default SSID:" not seen (a key after a word now counts with its colon).
+- **The suite's wait matched the last photo's results** while the next one loaded — the tab counts its readings (`data-reads`) and is
+  `aria-busy` while it reads.
+- **"wifi qr" found the new tab before the QR Generator** — the QR Generator's keywords now hold "wifi qr" (its search case kept).

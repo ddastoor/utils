@@ -2,7 +2,7 @@
 
 Generated from `src/registry.ts` by `npm run docs` — do not edit by hand.
 
-**187 tabs** in 11 categories — 120 PC + mobile, 64 PC only, 3 mobile only.
+**188 tabs** in 11 categories — 121 PC + mobile, 64 PC only, 3 mobile only.
 
 ## Images (17)
 
@@ -205,13 +205,14 @@ Generated from `src/registry.ts` by `npm run docs` — do not edit by hand.
 | `svgo` | SVG Optimizer | **PC only** | Minify SVG files. | svg, optimize, minify, svgo, compress svg, clean svg |
 | `patch` | Patch Applier | **PC only** | Apply a unified diff to text. | patch, diff, unified diff, apply patch, git diff |
 
-## Codes & Files (6)
+## Codes & Files (7)
 
 | id | Tab | Platform | What it does | Search keywords |
 |---|---|---|---|---|
-| `qr` | QR Generator | PC + mobile | QR codes for links, Wi-Fi, UPI, contacts… | qr, qr code, generate, wifi, upi, payment, link, url, … |
+| `qr` | QR Generator | PC + mobile | QR codes for links, Wi-Fi, UPI, contacts… | qr, qr code, generate, wifi, wifi qr, wifi qr code, wi-fi qr code, upi, … |
 | `barcode` | Barcode Generator | PC + mobile | EAN, UPC, Code 128, Data Matrix, PDF417… | ean13, ean-13, ean 13, upc-a, upc a, isbn barcode, barcode, ean, … |
 | `scan` | QR & Barcode Scanner | PC + mobile | Scan with the camera or from an image. | qr reader, barcode reader, read qr, read barcode, qr scanner, scan, scanner, read, … |
+| `wifiqr` | Router Sticker → Wi-Fi QR | PC + mobile | Photograph the label under your router: its network name and password read, and a Wi-Fi QR code made for guests. | router sticker, router label, wifi password from router, wi-fi password on router, router password photo, wifi qr from label, wifi qr for guests, guest wifi qr, … |
 | `numcheck` | Number Detective | PC + mobile | Paste any number or code: what it is and whether it is valid — Aadhaar, PAN, GSTIN, IFSC, UPI, PIN, phone, IMEI, card, ISBN, IBAN … | number detective, what is this number, vehicle number state, state code, which state, which bank, identify number, check number, … |
 | `zip` | Create Zip | PC + mobile | Zip files, optionally with a password. | zip, compress, archive, password zip, aes |
 | `unzip` | Extract Archive | PC + mobile | Open zip, 7z, rar, tar, gz files. | unzip, extract, open, zip, 7z, rar, tar, gz, … |

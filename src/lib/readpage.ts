@@ -113,6 +113,15 @@ export interface ReadOptions {
   /** The lens that took the photo, as on 35 mm film, where its EXIF says (FocalLengthIn35mmFilm — a phone writes it): the
    *  book step's camera. Not given: a phone's main camera. */
   f35?: number;
+  /** Tesseract's layout for the main readings. Not given: by the columns found (`layoutFor`). 'both': read as one block and as
+   *  a page, the reading with the better score kept — for a few lines of mixed sizes (the camera helpers: a visiting card, a
+   *  router's label): read as one uniform block Tesseract dropped a card's name set larger than the rest, laid out as a page
+   *  it read nothing of a label with a QR code on it and misread a receipt's total. */
+  layout?: Layout | 'both';
+  /** A photo of a small thing — a visiting card, a router's label, a receipt (the camera helpers): a page found that gave fewer
+   *  than FEW words is still the thing, and the whole photo read too is kept only when it has clearly more words read surely
+   *  (`sure`), not when it gives more words — a desk's grain read as letters gave more. */
+  small?: boolean;
 }
 export interface PageReading {
   r: OcrResult;
@@ -236,6 +245,9 @@ export const FEW = 25;
  *  scripts/measure-ocr.mjs: it read 4 document photos better, none worse — and never changed a page of plain text (a
  *  Kindle's), which is read once (a second reading costs a phone seconds). Sharp photos read at 87 – 95 %. */
 export const AGAIN = 85, AGAIN_BY = 1.03;
+/** The words of two letters and more read surely (confidence 80 and up): a small thing's reading against the whole photo's —
+ *  a desk's grain read as letters adds words, at low confidence. */
+export const sure = (r: OcrResult) => r.words.filter((w) => w.conf >= 80 && /\p{L}.*\p{L}/u.test(w.text)).length;
 
 /** PaddleOCR, the second reader for soft photos (owner, 26 Nov 2026: "Ok use PaddleOCR fallback for soft photos"; the
  *  rule measured on the photos of scripts/measure-ocr.mjs and checked on a second set made afresh — CLAUDE.md §3 OCR,
@@ -300,6 +312,7 @@ export function secondWords(q: PaddleProgress | null): { p: number | null; text:
 
 export async function readPage(photo: Img, o: ReadOptions, eng: ReadEngines = browserEngines): Promise<PageReading | null> {
   const { ops } = eng, live = () => !o.stale?.();
+  const lay = (columns: number): Layout => (o.layout && o.layout !== 'both' ? o.layout : layoutFor(columns));
   const cap = async (im: Img, L: number) => { const s = Math.max(im.width, im.height); return s > L ? ops.resize(im, Math.round((im.width * L) / s), Math.round((im.height * L) / s)) : im; };
   /** the clean-up for reading; `final`: the picture read in full — ruled lines and list marks cleared too */
   const enhance = async (im: Img, final: boolean) => {
@@ -343,7 +356,7 @@ export async function readPage(photo: Img, o: ReadOptions, eng: ReadEngines = br
   const t0 = ((o.turns ?? 0) % 4 + 4) % 4;
   let p = await prepare(photo, t0, 'book', o.auto);
   if (!live()) return null;
-  let r = await eng.read(p.img, o.lang, o.onProgress, layoutFor(p.columns));
+  let r = await eng.read(p.img, o.lang, o.onProgress, lay(p.columns));
   if (!live()) return null;
   // one page drawn flat — a page curled near the spine, or a flat page whose fit a strong watermark bent (its big diagonal
   // letters bend the lines it finds: measured, flattened such a page read 5 % of its words instead of 100 %): the page
@@ -355,15 +368,15 @@ export async function readPage(photo: Img, o: ReadOptions, eng: ReadEngines = br
   if (p.book && (o.flatten ?? BOOK_DEFAULT) === 'auto' && (p.book === 1 || soft(r))) {
     const w = await prepare(photo, t0, 'page', o.auto);
     if (!live()) return null;
-    const r2 = await eng.read(w.img, o.lang, o.onProgress, layoutFor(w.columns));
+    const r2 = await eng.read(w.img, o.lang, o.onProgress, lay(w.columns));
     if (!live()) return null;
-    if (p.book === 2) usual = { p: w, r: r2, layout: layoutFor(w.columns) }; // decided after the second reader (below)
+    if (p.book === 2) usual = { p: w, r: r2, layout: lay(w.columns) }; // decided after the second reader (below)
     else if (!(score(r) > score(r2) * BOOK_BY)) { r = r2; p = w; }
   } else if (p.book && r.words.length < FEW) {
     // a book's pages drawn flat that gave little (it was no book): the page found the usual way is read too, the better kept
     const w = await prepare(photo, t0, 'page', o.auto);
     if (!live()) return null;
-    const r2 = await eng.read(w.img, o.lang, o.onProgress, layoutFor(w.columns));
+    const r2 = await eng.read(w.img, o.lang, o.onProgress, lay(w.columns));
     if (!live()) return null;
     if (r2.words.length > r.words.length) { r = r2; p = w; }
   }
@@ -371,12 +384,12 @@ export async function readPage(photo: Img, o: ReadOptions, eng: ReadEngines = br
   if (p.page && !p.book && r.words.length < FEW) {
     const w = await prepare(photo, t0, false, o.auto);
     if (!live()) return null;
-    const r2 = await eng.read(w.img, o.lang, o.onProgress, layoutFor(w.columns));
+    const r2 = await eng.read(w.img, o.lang, o.onProgress, lay(w.columns));
     if (!live()) return null;
-    if (r2.words.length > r.words.length) { r = r2; p = w; }
+    if (o.small ? sure(r2) > sure(r) * AGAIN_BY + 1 : r2.words.length > r.words.length) { r = r2; p = w; }
   }
-  let layout = layoutFor(p.columns);
-  if ((o.again ?? true) && r.confidence < AGAIN && (p.cleared.inner > 0 || listSigns(p.cleared) > 0 || p.columns >= 2)) {
+  let layout = lay(p.columns);
+  if ((o.again ?? true) && (o.layout === 'both' || (r.confidence < AGAIN && (p.cleared.inner > 0 || listSigns(p.cleared) > 0 || p.columns >= 2)))) {
     const other: Layout = layout === 'block' ? 'page' : 'block', r2 = await eng.read(p.img, o.lang, o.onProgress, other);
     if (!live()) return null;
     if (score(r2) > score(r) * AGAIN_BY) { r = r2; layout = other; }
@@ -395,7 +408,7 @@ export async function readPage(photo: Img, o: ReadOptions, eng: ReadEngines = br
     if (best.t !== cur && best.conf >= POOR && best.conf >= r.confidence + 20) {
       p = await prepare(photo, best.t, 'page', false);
       if (!live()) return null;
-      r = await eng.read(p.img, o.lang, o.onProgress, (layout = layoutFor(p.columns)));
+      r = await eng.read(p.img, o.lang, o.onProgress, (layout = lay(p.columns)));
       if (!live()) return null;
       turned = best.t; usual = null;
     }

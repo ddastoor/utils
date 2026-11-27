@@ -336,7 +336,7 @@ Wayland) and **mobile browsers** (Android Chrome, iPhone Safari).
 Platform is PC + mobile unless marked **PC**. Tab ids are the URL hash (`#/<id>`).
 
 **The authoritative, always-current list is `docs/TOOLS.md`, generated from `src/registry.ts` (`npm run docs`).**
-Current total: **187 tabs in 11 categories — 120 PC + mobile, 64 PC only, 3 Mobile only** (regenerate with
+Current total: **188 tabs in 11 categories — 121 PC + mobile, 64 PC only, 3 Mobile only** (regenerate with
 `npm run docs` after every registry change; the owner asked for the registry to always be noted).
 The per-category notes below record decisions; when they disagree with the registry, the registry wins.
 
@@ -487,7 +487,8 @@ Explainer · `escape` String Escape · `unicode` Unicode Inspector · `hexview` 
 Glob Tester. Left out: API client (CORS/CSP), DNS/WHOIS/ping/port scan (need network), cloud cost calculators.
 
 **Codes & Files** (all both): `qr` QR Generator · `barcode` Barcode Generator · `scan` QR & Barcode Scanner ·
-`numcheck` Number Detective (**BUILT** 27 Nov 2026, potentials #84 — §3 "Number Detective") · `zip` Create Zip · `unzip` Extract Archive
+`numcheck` Number Detective (**BUILT** 27 Nov 2026, potentials #84 — §3 "Number Detective") · `wifiqr` Router Sticker → Wi-Fi QR (**BUILT**
+27 Nov 2026, potentials #88 — §3 "Router Sticker → Wi-Fi QR") · `zip` Create Zip · `unzip` Extract Archive
 
 **Everyday** (all both): `stopwatch` · `countdown` · `pomodoro` · `interval` · `dice` · `coin` · `rng` ·
 `picker` · `teams`
@@ -1236,6 +1237,45 @@ field: Wi-Fi (network, password with its own copy button, security, hidden), UPI
 UPI app"), vCard / MECARD ("Save contact (.vcf)", CRLF), VEVENT ("Add to calendar (.ics)", wrapped in VCALENDAR; UTC
 times in local time), mailto, SMSTO / sms:, tel:, geo:, http(s) links (the site shown; opened in a new tab with
 noopener); javascript: and data: stay text. The raw text is always shown with Copy; Clear empties the list.
+
+### Router Sticker → Wi-Fi QR — BUILT (potentials #88; owner's pick of 27 Nov 2026 — group 4 of the suggested order)
+(`wifiqr` in `src/tools/wifiqr.ts`, the label's wording `src/lib/wifilabel.ts` (no DOM), the camera helpers' reading `src/lib/snaptext.ts`,
+the code `src/lib/qrdraw.ts`; unit `tests/unit/wifiqr.test.mjs` 40, e2e `tests/e2e/wifiqr.e2e.mjs` 24 (+ the camera sweep's entry);
+fixtures `tests/fixtures/snaps/router-*.jpg` with `truth.json`, made by `python3 scripts/make-snap-photos.py` — labels of our own
+making photographed on a desk; the unit suite reads them through the tabs' own reading path in Node, `tests/lib/snapread.mjs`.) The
+owner's words (potentials #88): "photograph the label under the router → its network name and password read → a Wi-Fi QR for guests".
+- **Reading the photo** (the camera helpers' way, `SNAP_READ` in `src/lib/snaptext.ts`): the OCR's reading path (§3 OCR, "one reading
+  path") with two options made for small things — `layout: 'both'` (read as one block and as a page, the better score kept: as one
+  uniform block Tesseract dropped a visiting card's name set larger than the rest; laid out as a page it read nothing of a label with a
+  QR code on it and misread a receipt's total) and `small` (a page found that gave fewer than 25 words is still the thing: the whole
+  photo, read too, is kept only with clearly more words read surely — confidence 80 and up —, not for more words: a desk's grain read
+  as letters gave more, and won). `linesOf`: each line cut into parts at gaps wider than 1.1 × its height (a label's two columns, a QR
+  code's specks beside a value), specks — signs alone, short words read under 45 — left out. A QR code on the label is read by
+  zxing-cpp on the photo.
+- **The label's wording** (`readLabel`): keys as routers print them — SSID, Network Name (SSID), Wi-Fi / WLAN / Wireless Name, Wireless
+  Password/PIN, Network Key (Password), WLAN / Wi-Fi / WPA / WEP Key, PSK, Passphrase, Password —, a band in brackets or around the key
+  ((2.4G), 5G SSID, (5GHz)), a key's value up to the next key or the part's end (two fields on a line; a value standing apart in the
+  next part — a label set as a table — taken), the word right after "Key:" its value whatever it says ("Password: password"), a key
+  after a word only with its colon ("Default SSID:"). **Not the Wi-Fi password, set aside and listed:** a password named for the
+  router (Admin / Login / Web …), a plain "Password" on a line with a user name or right under one, the WPS PIN, the address of the
+  settings page. Names and passwords paired by band, else one password for every name, else in order; a QR code's network (WIFI:,
+  ZXing's escapes) first and exact, its lines found on the label. **Characters to look at again** (0 / O, 1 / l / I, 5 / S, 2 / Z,
+  8 / B, 6 / G, 9 / g / q, u / v, rn / m, vv / w) named for a password read by the OCR; a WPA password under 8 or over 63 characters
+  pointed out.
+- **A name's or a password's line read again** when Tesseract was unsure of it (a word under 90): its crop from the picture read goes
+  to PaddleOCR (the second reader), and the value each reader gives is weighed by the readers' confidences (`secondBetter`: the
+  shares of words read right at each confidence, measured for the OCR) — measured: a label's "kT7mq2Vr9w" read "kT7mq2Vrow" at 74 by
+  Tesseract in the browser, right by PaddleOCR. The line under the picker says so.
+- **The tab:** a photo (or the camera; Paste image), the progress; each network a card — "Network 1 · 5 GHz", "from the label's QR
+  code" or "read from the label — check it" — with its name, password (monospace), security (WPA / WPA2 / WPA3, WEP, No password) and
+  "Hidden network", all editable, the QR code following the boxes (the QR tab's `wifi()` writer, drawn by zxing-cpp); **Save QR (PNG)**,
+  **Card for guests** (1200 × 1650 px: the code, the network and the password — to print or show), Copy password; "Add a network by
+  hand"; "Not the Wi-Fi password" (what was set aside, and what it is for); "What was read on the label". Nothing at open: the OCR,
+  zxing-cpp and PaddleOCR come with the first photo. The photo and the password never leave the device.
+- **Measured** (the five photos — a dual-band router's label, a fiber gateway's with its admin login under the Wi-Fi password, one with
+  "Network Name (SSID)" / "Network Key (Password)", a login line and a WPS PIN, an LTE router's with a QR code, the first one
+  photographed with the phone held sideways): every network and password as printed, nothing else taken for them, in Node and in the
+  browser; every code the tab makes read back by **zbar** (`zbarimg`) — the PNG, the guests' card, after an edit, an open network.
 
 ### Number Detective — BUILT (potentials #84; owner's pick of 27 Nov 2026 — group 2 of the suggested order)
 (`numcheck` in `src/tools/numcheck.ts`, glue `src/lib/numcheck.ts`, engine `wasm/devcore/src/ids.rs` → **devcore-ids.wasm**
@@ -3945,8 +3985,8 @@ difference over its detail, the overlap's pixels), ruled lines and list marks cl
 | MozJPEG, libwebp, OxiPNG, Squoosh's resize (Lanczos-3 in linear light) | C / Rust | jSquash (Squoosh codecs; `@jsquash/resize` since Nov 2026) | image encoders; resizing in the Image Editor and Batch Images (`docs/WASM-AUDIT.md`, tabs 109, 110) |
 | libheif + libde265 | C++ | libheif-js | heic |
 | Little CMS 2.16 | C | lcms-wasm (Matt DesLauriers; npm 1.0.5) — in the codec worker, fetched for a HEIC with a non-sRGB ICC profile | heic and every tab that opens HEIC: Display P3 → sRGB (`docs/WASM-AUDIT.md`, tab 111) |
-| Tesseract 5 | C++ | tesseract.js-core | ocr, photodict, clipper (laid out as a page: its blocks), pdf-redact (a scanned page's numbers), idcopy (a card's numbers, through the reading path), pdf-ocr (each scanned page, through the reading path — never straightened), pdf-compare (a scanned page's words, the same way), pdf-tables (a scanned page's words, the same way) |
-| zxing-cpp | C++ | zxing-wasm | qr, barcode, scan, pdf-redact (QR codes and barcodes on the pages), idcopy (a QR that holds the number) — `src/lib/codesread.ts` |
+| Tesseract 5 | C++ | tesseract.js-core | ocr, photodict, clipper (laid out as a page: its blocks), pdf-redact (a scanned page's numbers), idcopy (a card's numbers, through the reading path), pdf-ocr (each scanned page, through the reading path — never straightened), pdf-compare (a scanned page's words, the same way), pdf-tables (a scanned page's words, the same way), wifiqr (a router's label, through the reading path with the camera helpers' options — `SNAP_READ`) |
+| zxing-cpp | C++ | zxing-wasm | qr, barcode, scan, pdf-redact (QR codes and barcodes on the pages), idcopy (a QR that holds the number) — `src/lib/codesread.ts`; wifiqr (a QR code on a router's label read; the Wi-Fi code drawn — `src/lib/qrdraw.ts`) |
 | 7-Zip 24.09 (`7zz`, the command line, Emscripten build with WORKERFS) | C++ | use-strict (`7z-wasm` npm 1.2.0) — run in `src/workers/sevenzip.worker.ts`, a fresh instance per archive | zip (zip and 7z with AES-256; `docs/WASM-AUDIT.md`, tab 107), unzip (reads every archive; tab 108), watermark (a Word document taken apart and zipped again: to-do #17), ebook (a CBR or CB7 comic unpacked into a zip for MuPDF) |
 | MediaPipe Tasks (TFLite) | C++ | Google (official) | passport, bgremove, redact |
 | RNNoise 0.2 (Xiph, BSD-3; the 0.2 model, 8-bit weights — the release as its configure builds it) | C | Jitsi (`@jitsi/rnnoise-wasm` 0.2.1, Emscripten; the "sync" file) — frames, lag and voice probability in `src/wasm/rnnoise.ts`, resampling / scaling / mixing in audio.wasm (`src/workers/noise.worker.ts`) | noise (replaced our own build in Nov 2026: `docs/WASM-AUDIT.md`, tab 144) |
@@ -4036,6 +4076,9 @@ Nov 2026 (PDF / EPUB → Audiobook, potentials #14): `src/lib/audiobook.ts` — 
 XHTML) made into paragraphs and tracks: string glue and rules over a few thousand blocks a book (which block begins a chapter,
 which line is a running head, which link is a footnote mark); the layout is MuPDF's, the speech ONNX Runtime's and
 espeak.wasm's, the MP3 and its tags audio.wasm's (LAME). No WebAssembly module makes audiobooks (`docs/WASM-AUDIT.md`, tab 184).
+Nov 2026 (Router Sticker → Wi-Fi QR, potentials #88): `src/lib/wifilabel.ts` (a label's keys and values by regular expressions,
+pairing by band), `src/lib/snaptext.ts` (the reading's words grouped by the gaps between them) — string glue around the OCR, zxing-cpp
+and PaddleOCR; `src/lib/qrdraw.ts` draws zint's SVG on the browser's canvas (`docs/WASM-AUDIT.md`, tab 192).
 Nov 2026 (PDF Tables → Excel, potentials #16): `src/lib/pdftables.ts` — a page's words from MuPDF's characters, a cell's text from
 its words, tables of consecutive pages joined, amounts and dates read by regular expressions: glue around MuPDF, Tesseract,
 textcore.wasm's finder (`table.c`) and sheet.wasm (`docs/WASM-AUDIT.md`, tab 191).

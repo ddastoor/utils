@@ -1,0 +1,249 @@
+{
+ "router-a": {
+  "networks": [
+   {
+    "ssid": "NetLink_7A3F",
+    "password": "48271935"
+   }
+  ],
+  "not": [
+   "192.168.0.1"
+  ]
+ },
+ "router-b": {
+  "networks": [
+   {
+    "ssid": "HomeFiber-qx29",
+    "password": "kT7mq2Vr9w"
+   },
+   {
+    "ssid": "HomeFiber-qx29-5G",
+    "password": "kT7mq2Vr9w"
+   }
+  ],
+  "not": [
+   "Fiber@2026",
+   "admin"
+  ]
+ },
+ "router-c": {
+  "networks": [
+   {
+    "ssid": "ORBITAL42",
+    "password": "quickbird512"
+   }
+  ],
+  "not": [
+   "password",
+   "31948627"
+  ]
+ },
+ "router-d": {
+  "networks": [
+   {
+    "ssid": "AirNet-K3P9",
+    "password": "6hgk2mtr"
+   },
+   {
+    "ssid": "AirNet-K3P9-5G",
+    "password": "6hgk2mtr"
+   }
+  ],
+  "qr": "WIFI:T:WPA;S:AirNet-K3P9;P:6hgk2mtr;;"
+ },
+ "router-a-sideways": {
+  "networks": [
+   {
+    "ssid": "NetLink_7A3F",
+    "password": "48271935"
+   }
+  ],
+  "not": [
+   "192.168.0.1"
+  ]
+ },
+ "card-a": {
+  "name": "Ananya Iyer",
+  "title": "Senior Product Manager",
+  "org": "Kaveri Software Solutions Pvt. Ltd.",
+  "phones": [
+   [
+    "+919845012345",
+    "cell"
+   ],
+   [
+    "+918041123456",
+    "work"
+   ]
+  ],
+  "email": "ananya.iyer@kaverisoft.in",
+  "url": "www.kaverisoft.in",
+  "address": "4th Floor, Prestige Tower, MG Road, Bengaluru 560001"
+ },
+ "card-b": {
+  "name": "Rajesh Patel",
+  "title": "Director",
+  "org": "NARMADA PACKAGING LLP",
+  "phones": [
+   [
+    "+919825067890",
+    "cell"
+   ],
+   [
+    "+917926567788",
+    "work"
+   ]
+  ],
+  "email": "rajesh@narmadapack.com",
+  "url": "",
+  "address": "Plot 12, GIDC Estate, Vatva, Ahmedabad, Gujarat 382445"
+ },
+ "card-c": {
+  "name": "Meera Krishnan",
+  "prefix": "Dr.",
+  "title": "Consultant Cardiologist",
+  "org": "St Mary's Heart Clinic",
+  "phones": [
+   [
+    "+442079460958",
+    "work"
+   ]
+  ],
+  "email": "meera.k@stmaryheart.co.uk",
+  "url": "",
+  "address": "12 Harley Street, London W1G 9PF, United Kingdom"
+ },
+ "notice-bill": {
+  "dates": [
+   [
+    "2026-11-28",
+    "Bill date"
+   ],
+   [
+    "2026-12-15",
+    "Due date"
+   ],
+   [
+    "2026-12-30",
+    "disconnected after"
+   ]
+  ],
+  "amounts": [
+   [
+    "2032.71",
+    "Amount payable"
+   ]
+  ],
+  "relative": [
+   [
+    "2026-12-05",
+    "within 7 days of the bill date"
+   ]
+  ]
+ },
+ "notice-renewal": {
+  "dates": [
+   [
+    "2027-01-31",
+    "expires on"
+   ],
+   [
+    "2027-01-25",
+    "renew it by"
+   ],
+   [
+    "2026-12-01",
+    "Date"
+   ]
+  ],
+  "amounts": [
+   [
+    "14250",
+    "Renewal premium"
+   ]
+  ],
+  "relative": [
+   [
+    "2027-03-02",
+    "30 days after expiry"
+   ]
+  ]
+ },
+ "notice-school": {
+  "dates": [
+   [
+    "2026-12-01",
+    "Date"
+   ],
+   [
+    "2026-12-06",
+    "parent-teacher meeting"
+   ],
+   [
+    "2026-12-10",
+    "are due by"
+   ]
+  ],
+  "times": [
+   [
+    "2026-12-06",
+    "10:00"
+   ]
+  ],
+  "amounts": [
+   [
+    "18500",
+    "Fees"
+   ]
+  ],
+  "relative": [
+   [
+    "2026-12-16",
+    "within 15 days of the date of this circular"
+   ]
+  ]
+ },
+ "restaurant": {
+  "items": [
+   [
+    "Paneer Tikka",
+    1,
+    320.0
+   ],
+   [
+    "Butter Naan",
+    4,
+    240.0
+   ],
+   [
+    "Dal Makhani",
+    1,
+    280.0
+   ],
+   [
+    "Veg Biryani",
+    2,
+    500.0
+   ],
+   [
+    "Masala Chaas",
+    3,
+    210.0
+   ],
+   [
+    "Gulab Jamun",
+    2,
+    180.0
+   ]
+  ],
+  "subtotal": 1730.0,
+  "service": 86.5,
+  "cgst": 45.41,
+  "sgst": 45.41,
+  "roundoff": -0.32,
+  "total": 1907
+ },
+ "leaflet": {
+  "text": "How to take this medicine Take one tablet twice a day, after breakfast and after dinner, with a full glass of water. Do not take more than two tablets in a day. Keep the tablets in a cool, dry place, out of the reach of children. If you feel dizzy or sick, stop taking them and speak to your doctor."
+ }
+}

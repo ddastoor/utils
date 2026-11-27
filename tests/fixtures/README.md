@@ -170,3 +170,11 @@ generates media with the project's own ffmpeg.wasm and Chromium). Used only by t
   statement of two pages (its header on each, narrations wrapped over two or three lines, amounts right-aligned in Indian
   grouping), the same in a ruled grid, an electricity bill with two small tables among its paragraphs, and the statement's first
   page as a picture (200 dpi) — every table's cells as printed in truth.json.
+
+## snaps/
+- `router-*.jpg`, `card-*.jpg`, `notice-*.jpg`, `restaurant.jpg`, `leaflet.jpg`, `truth.json` — the camera helpers' test photos (Router
+  Sticker → Wi-Fi QR, Visiting Card → Contact, Paper Deadlines, Bill Splitter, Camera Reader), made by `python3 scripts/make-snap-photos.py`
+  (Pillow, NumPy, segno; Noto Sans, DejaVu Sans Mono, Literata): router labels, visiting cards, a bill, a renewal letter, a school
+  circular, a restaurant bill and a leaflet of our own making (no real product's or company's design; names, numbers and addresses made
+  up), "photographed" on a desk — perspective, a shadow, light falling off, blur, noise, JPEG; one label photographed with the phone
+  held sideways, one carrying a Wi-Fi QR code. truth.json holds what each says.
