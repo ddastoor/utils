@@ -31,6 +31,7 @@ let found = 0; // photos whose page was found (the page… variants)
 let byNet = 0; // … by the Doc Scanner's network (the net… variants)
 let other = 0; // read again laid out the other way, and that reading kept (read…)
 let secondTried = 0, secondKept = 0; // soft photos read by PaddleOCR too, and its reading kept (read… with --paddle)
+let flattened = 0; // photos of an open book whose pages were drawn flat (read…)
 
 /** Words as a reader counts them: letters, digits and the apostrophe; case and punctuation ignored. */
 export const wordsOf = (s) => (s.normalize('NFC').replace(/[’‘]/g, "'").toLowerCase().match(/[a-z0-9']+/g) || []).map((w) => w.replace(/^'+|'+$/g, '')).filter(Boolean);
@@ -271,7 +272,11 @@ async function main() {
         // reading tried the other ways round; light text on a dark ground turned over), +screen = "Photo of a screen",
         // +once = an unsure reading not read again the other way
         // +first: the first reader only (Tesseract; the JSON dumps of OCR_JSON are made so, for working a rule out)
-        const res = await eng.readPage(img, { lang: 'eng', clean: true, auto: true, screen: p.includes('screen'), retryTurns: p.includes('retry'), invertDark: p.includes('dark'), again: !p.includes('once'), second: !p.includes('first') && !process.env.OCR_JSON }, readEngines);
+        // +noflat / +flatall: a photo of an open book not flattened / every page whose lines of print the flattener finds
+        // flattened (the book step's rule worked out from both: src/lib/readpage.ts isBook)
+        const flatten = p.includes('noflat') ? 'never' : p.includes('flatall') ? 'always' : 'auto';
+        const res = await eng.readPage(img, { lang: 'eng', clean: true, auto: true, screen: p.includes('screen'), retryTurns: p.includes('retry'), invertDark: p.includes('dark'), again: !p.includes('once'), second: !p.includes('first') && !process.env.OCR_JSON, flatten }, readEngines);
+        if (res.book) flattened++;
         if (res.engine === 'paddle') secondKept++;
         if (res.second) secondTried++;
         if (res.page) found++;
@@ -292,7 +297,7 @@ async function main() {
           x = ip.clearWash(ip.docEnhance(x, 1)).img;
           writeFileSync(join(marksDir, `${name}.${p}.marks.png`), writePng(x));
         }
-        data = res.r;
+        data = { ...res.r, book: res.book };
         // OCR_LIST=DIR: the OCR tab's text, the page's lists set out (src/lib/listtext.ts — to-do #31), and the marks
         if (process.env.OCR_LIST) writeFileSync(join(process.env.OCR_LIST, `${name}.${p}.json`), JSON.stringify({ text: eng.listText(res.r, res.listMarks, res.xh), plain: res.r.text, marks: res.listMarks, xh: res.xh, engine: res.engine, layout: res.layout, r: res.r }));
         if (process.env.OCR_JSON) {
@@ -301,7 +306,7 @@ async function main() {
           // OCR_JSON_MAXCONF: PaddleOCR only for readings less sure than this (no rule reads a sure one again)
           const want = eng.paddleRead && !(res.r.confidence >= +(process.env.OCR_JSON_MAXCONF || Infinity));
           const t1 = performance.now(), pre = want ? await eng.paddleRead(res.pre) : null, t2 = performance.now(), clean = want ? await eng.paddleRead(res.img) : null, t3 = performance.now();
-          writeFileSync(join(process.env.OCR_JSON, `${name}.${p}.json`), JSON.stringify({ name, set: dir, r: res.r, page: res.page, by: res.by, columns: res.columns, layout: res.layout, cleared: res.cleared, up: res.up, size: [res.img.width, res.img.height], tessSeconds: (t1 - t0) / 1000, paddle: { pre, clean, preSeconds: (t2 - t1) / 1000, cleanSeconds: (t3 - t2) / 1000 } }));
+          writeFileSync(join(process.env.OCR_JSON, `${name}.${p}.json`), JSON.stringify({ name, set: dir, r: res.r, page: res.page, by: res.by, book: res.book, columns: res.columns, layout: res.layout, cleared: res.cleared, up: res.up, size: [res.img.width, res.img.height], tessSeconds: (t1 - t0) / 1000, paddle: { pre, clean, preSeconds: (t2 - t1) / 1000, cleanSeconds: (t3 - t2) / 1000 } }));
         }
       } else {
       const work = await prepare(eng, img, p);
@@ -315,7 +320,7 @@ async function main() {
       const acc = right / truth.length, clean = got.length ? right / got.length : 0, ce = cer(truth, got), st = strays(data.text);
       (totals[p] ||= []).push([acc, rare.size ? rareFound / rare.size : 1, clean, ce, st]);
       if (process.env.OCR_DUMP) writeFileSync(join(process.env.OCR_DUMP, `${name}.${p}.txt`), data.text);
-      row.push(`${p}: ${(100 * acc).toFixed(1)}% ${rareFound}/${rare.size} rare ${(100 * clean).toFixed(0)}% clean cer ${(100 * ce).toFixed(1)}% stray ${st} conf ${Math.round(data.confidence)} n ${got.length} ${((performance.now() - t0) / 1000).toFixed(1)} s`);
+      row.push(`${p}: ${(100 * acc).toFixed(1)}%${data.book ? ` flat${data.book}` : ''} ${rareFound}/${rare.size} rare ${(100 * clean).toFixed(0)}% clean cer ${(100 * ce).toFixed(1)}% stray ${st} conf ${Math.round(data.confidence)} n ${got.length} ${((performance.now() - t0) / 1000).toFixed(1)} s`);
     }
     console.log(row.join(' | '));
   }
@@ -326,6 +331,7 @@ async function main() {
   if (found) console.log(`page found in ${found} of the runs that looked for it${byNet ? ` (${byNet} by the Doc Scanner's network)` : ''}`);
   if (other) console.log(`${other} readings kept from the other layout (an unsure reading read again)`);
   if (secondTried) console.log(`${secondTried} soft photos read by PaddleOCR too, its reading kept for ${secondKept}`);
+  if (flattened) console.log(`${flattened} photos read as a book's pages drawn flat`);
   await worker.terminate(); await close();
 }
 main().catch((e) => { console.error(e); process.exit(1); });

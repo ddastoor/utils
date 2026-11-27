@@ -56,7 +56,9 @@ export const mount: Mount = (root, ctx) => {
     // the picture as it was read (the page straightened, levelled, turned) is shown in place of the photo: the
     // highlighted words sit on what was read
     if (res.shown) paint(previewOf(res.shown, 1400), canvas);
-    if (res.page) note += ' · the page was found and straightened';
+    // a photo of an open book: its pages drawn flat (the Book Page Flattener's step), a spread's left page above the right
+    if (res.book) note += res.book === 2 ? ' · the book’s two pages were flattened (the curve near the spine taken out) and are read left, then right' : ' · the book’s page was flattened (the curve near the spine taken out)';
+    else if (res.page) note += ' · the page was found and straightened';
     // the photo was soft and PaddleOCR read it better (or could not be fetched: Tesseract's reading stands)
     if (res.engine === 'paddle') note += ' · the photo was soft: PaddleOCR read it';
     else if (res.secondError) note += ` · the photo was soft, and the second reader could not be loaded (${res.secondError})`;

@@ -77,8 +77,16 @@ audio.wasm, `a_mp3s_*`, gapless); one to four speech engines at once on a PC; th
 or saved into a folder as they are made — a folder that holds some is carried on from. Unit `audiobook` 61 (every word of
 every test book in order — `python3 scripts/make-audiobook-books.py`), `audio` 64 (the stream byte for byte the one-shot file,
 mutagen, FFmpeg); e2e `audiobook` 55 (real MP3s read back by ffprobe, FFmpeg and Whisper — `pip install faster-whisper`);
-docs/WASM-AUDIT.md 184; taken off potentials.md. **Next in group 1 (task #72):** the flattener as a measured step of the OCR
-and the Photo Dictionary (no photo may read worse). **New, open: to-do #38** (owner, 27 Nov 2026, before the potentials: the OCR's and the
+docs/WASM-AUDIT.md 184; taken off potentials.md. **IN PROGRESS (task #72, the last of group 1): the flattener as a measured
+step of the OCR and the Photo Dictionary** (no photo may read worse). Built in the shared reading path (`src/lib/readpage.ts`:
+`bookPages`, `isBook`, `bendOf`, `stackPages`; option `flatten`; `BOOK_DEFAULT` = 'never' — **off until measured**): a photo of
+an open book — the flattener's fit (two pages either side of a gutter, or one page bent by 1.2 % of its width and more with
+15 lines and more, fitted within 1.6 px) — has its pages drawn flat and read one above the other, the left first; flat pages
+that give fewer than 25 words: the usual path read too. Measured so far (`node scripts/measure-ocr.mjs SET --prep
+read+noflat|read+flatall --paddle`; the sets in scratch, made by `scripts/make-book-photos.py`): 16 book photos 90.2 → 93.3 %,
+12 of thick books 53.7 → 88.0 %, none worse. **Next:** the flat sets (Kindle, documents, watermarks, newspapers) with the
+step forced on and off, then the rule 'auto' against 'never' on every set; if no photo reads worse, BOOK_DEFAULT = 'auto',
+e2e (OCR, Photo Dictionary: tests/fixtures/books), docs (CLAUDE.md §3 OCR "Books"), potentials group 1 done. **New, open: to-do #38** (owner, 27 Nov 2026, before the potentials: the OCR's and the
 Photo Dictionary's text copied to the clipboard as soon as it is read) — not started; **the owner: later** ("will come back
 to do later", 27 Nov 2026) — do not start it until the owner says so.
 **Batch 1 done; batch 2 (#18 OCR + Photo Dictionary) DONE** (todo.md Done #18; CLAUDE.md §3 OCR, "Documents — one reading

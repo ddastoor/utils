@@ -140,7 +140,7 @@ export const mount: Mount = (root, ctx) => {
       last = res; prog.done();
       cards.replaceChildren(...phrases, ...res.cards.map((c) => withWiki(wordCard(c), c.word)));
       bar.hidden = !res.cards.length;
-      const turnedNote = (up.turns || up.slant ? ` · the photo was ${uprightWords(up)} to read it` : '')
+      const turnedNote = (reading.book ? ` · the book’s ${reading.book === 2 ? 'two pages were' : 'page was'} flattened` : '') + (up.turns || up.slant ? ` · the photo was ${uprightWords(up)} to read it` : '')
         + (reading.engine === 'paddle' ? ' · the photo was soft: PaddleOCR read it' : reading.secondError ? ' · the photo was soft, and the second reader could not be loaded' : '');
       status.textContent = res.cards.length
         ? `${res.cards.length} uncommon word${res.cards.length > 1 ? 's' : ''}, A → Z · ${r.words.length} words read${res.online.tried ? ` · ${res.online.tried} looked up online` : ''}${turnedNote}`

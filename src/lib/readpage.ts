@@ -19,6 +19,8 @@ import { paddleResult, cutInput, type PaddleLine } from './paddle';
 import type { PaddleProgress } from './paddle-client';
 import { straighten, type PageOps } from './pagecrop';
 import { uprightByReading, score, ROT, type TurnOps } from './upright';
+import { analyse, renderPage, FIT_SIZE } from './bookflat';
+import type { BookFit, BookPage } from '../wasm/imgproc';
 
 /** What imgproc's p_clear_marks did (src/wasm/imgproc.ts clearMarks). */
 type Cleared = { img: Img; lines: number; inner: number; marks: number; columns: number; xh?: number; list?: ListMark[]; labels?: number };
@@ -31,6 +33,10 @@ export interface ReadOps extends PageOps, TurnOps {
   clearMarks(img: Img, what: number): Cleared | Promise<Cleared>;
   /** A watermark washed over the page taken out (p_clear_wash): its broad strokes of a second, lighter level of ink. */
   clearWash?(img: Img): { img: Img; painted: number } | Promise<{ img: Img; painted: number }>;
+  /** The Book Page Flattener (p_book_fit, p_book_render — wasm/imgproc/flatten.c): the pages of a photo of an open book
+   *  fitted, and drawn flat (`book`). Absent: the step is left out. */
+  bookFit?(img: Img, mode: 0 | 1 | 2, focal?: number): BookFit | Promise<BookFit>;
+  bookRender?(img: Img, page: BookPage, w: number, h: number, fill?: number): Img | Promise<Img>;
 }
 export interface ReadEngines {
   ops: ReadOps;
@@ -50,6 +56,7 @@ export const browserEngines: ReadEngines = {
     docCorners: async (small: Img) => (await import('./pagefind-client')).findPage((await imgproc('resizeArea', small, 224, 224)).data),
     textTurns: op('textTurns'), textLines: op('textLines'), orient: op('orient'), rotate: op('rotate'), crop: op('crop'), inkWindow: op('inkWindow'),
     histogram: op('histogram'), invert: op('invert'), blur: op('blur'), docEnhance: op('docEnhance'), clearMarks: op('clearMarks'), clearWash: op('clearWash'),
+    bookFit: (img: Img, mode: 0 | 1 | 2, focal?: number) => imgproc('bookFit', img, mode, focal ?? 0), bookRender: op('bookRender'),
   } as ReadOps,
   read: (img, lang, onProgress, layout) => recognize(new ImageData(new Uint8ClampedArray(img.data), img.width, img.height), lang, onProgress, layout),
   // the worker and its 31.7 MB of models are fetched the first time a soft photo needs them
@@ -96,6 +103,10 @@ export interface ReadOptions {
   second?: boolean;
   /** Told when PaddleOCR reads the photo again (null), and how far it has come (its models fetched, its lines read). */
   onSecond?: (p: PaddleProgress | null) => void;
+  /** A photo of an open book flattened before it is read (`bookPages`): 'auto' when the flattener's fit finds a book's
+   *  pages; 'always' — any page whose lines of print it finds — and 'never' are for measuring (scripts/measure-ocr.mjs).
+   *  Not given: BOOK_DEFAULT. */
+  flatten?: 'auto' | 'always' | 'never';
 }
 export interface PageReading {
   r: OcrResult;
@@ -108,6 +119,9 @@ export interface PageReading {
   /** the page was found and straightened (and how) */
   page: boolean;
   by?: 'outline' | 'network';
+  /** a photo of an open book: its pages (1 or 2) drawn flat, the curve near the spine taken out, and read (a spread's
+   *  two pages one above the other, the left one first); 0: not a book */
+  book: number;
   /** what was done to set the text upright */
   up: { turns: number; slant: number };
   /** the poor reading's retry: the quarter turns to the right (from the photo as given) that read clearly better; null:
@@ -139,6 +153,64 @@ export const isDark = (luma: ArrayLike<number>) => {
   for (let v = 0; v < 256; v++) { n += luma[v]; sum += v * luma[v]; }
   return n > 0 && sum / n < 110;
 };
+/**
+ * The book step (potentials #96: the Book Page Flattener as a step of the OCR tab and the Photo Dictionary — "the OCR tab and
+ * the Photo Dictionary then read printed books as well as a Kindle page"). A photo of an open book: the flattener's fit
+ * (wasm/imgproc/flatten.c — the text lines found, a curled sheet and the camera fitted to them) on a copy of at most
+ * FIT_SIZE px finds its pages, and each is drawn flat from the photo at the photo's resolution; a spread's two pages are read
+ * one above the other, the left one first (one block of text, in order).
+ */
+/** How far a page of the fit bends: the largest gap between the paper's curve and its chord across the page, in page widths
+ *  (the sheet's height z is a cubic of X with end slopes α = rec[6], β = rec[7], each held within ±0.5; the page spans X0 =
+ *  rec[24] … X1 = rec[25]). */
+export function bendOf(rec: ArrayLike<number>): number {
+  const a = Math.max(-0.5, Math.min(0.5, rec[6])), b = Math.max(-0.5, Math.min(0.5, rec[7])), X0 = rec[24], X1 = rec[25];
+  if (!(X1 > X0)) return 0;
+  const Z = (X: number) => (((a + b) * X + (-2 * a - b)) * X + a) * X, z0 = Z(X0), z1 = Z(X1);
+  let m = 0;
+  for (let i = 1; i < 64; i++) { const t = i / 64, X = X0 + (X1 - X0) * t; m = Math.max(m, Math.abs(Z(X) - (z0 + (z1 - z0) * t))); }
+  return m / (X1 - X0);
+}
+/** samples per line and the fit's error (normalised px) a book's page must have: lines of print, well fitted */
+const BOOK_SAMPLES = 8, BOOK_RMS = 3;
+/** The book step's setting when a tab does not choose one: 'never' until it is measured on every photo set (in progress,
+ *  27 Nov 2026 — no photo may read worse), then 'auto'. */
+export const BOOK_DEFAULT: 'auto' | 'never' = 'never';
+/** A fit of a book's pages (`flatten` 'auto'): see BOOK in the measurements (CLAUDE.md §3 OCR, "Books"). */
+export const BOOK = { bend: 0.012, spans: 15, rms: 1.6 };
+export function isBook(fit: Pick<BookFit, 'pages' | 'spans'>, mode: 'auto' | 'always'): boolean {
+  if (!fit.pages.length || !fit.spans) return false;
+  const samples = fit.pages.reduce((n, p) => n + p.samples, 0), rms = Math.max(...fit.pages.map((p) => p.rms));
+  if (samples / fit.spans < BOOK_SAMPLES || rms >= BOOK_RMS) return false; // pieces that are no lines of print
+  if (mode === 'always') return true;
+  if (fit.pages.length === 2) return true; // a spread: the gutter between two pages of lines
+  const p = fit.pages[0];
+  return bendOf(p.rec) >= BOOK.bend && p.spans >= BOOK.spans && p.rms <= BOOK.rms;
+}
+/** Pages drawn flat, one above the other with a white gap, the first on top (a spread's left page). */
+export function stackPages(pages: Img[], gap: number): Img {
+  if (pages.length === 1) return pages[0];
+  const width = Math.max(...pages.map((p) => p.width)), height = pages.reduce((n, p) => n + p.height, 0) + gap * (pages.length - 1);
+  const data = new Uint8ClampedArray(width * height * 4).fill(255);
+  let y0 = 0;
+  for (const p of pages) {
+    for (let y = 0; y < p.height; y++) data.set(p.data.subarray(y * p.width * 4, (y + 1) * p.width * 4), ((y0 + y) * width) * 4);
+    y0 += p.height + gap;
+  }
+  return { width, height, data };
+}
+async function bookPages(img: Img, ops: ReadOps, mode: 'auto' | 'always'): Promise<{ img: Img; pages: number } | null> {
+  if (!ops.bookFit || !ops.bookRender) return null;
+  const s = Math.max(img.width, img.height), k = Math.min(1, FIT_SIZE / s);
+  const small = k < 1 ? await ops.resize(img, Math.max(1, Math.round(img.width * k)), Math.max(1, Math.round(img.height * k))) : img;
+  const book = { bookFit: ops.bookFit, bookRender: ops.bookRender, orient: ops.orient };
+  const a = await analyse(small, 'auto', book, 0, false, 0);
+  if (!isBook(a.fit, mode)) return null;
+  const from = a.turns ? await ops.orient(img, ROT[a.turns]) : img;
+  const pages: Img[] = [];
+  for (const pg of a.fit.pages) pages.push(await renderPage(from, pg, MAX_SIDE, book));
+  return { img: stackPages(pages, Math.max(32, Math.round(0.03 * Math.max(...pages.map((p) => p.width))))), pages: pages.length };
+}
 /** Tesseract reads x-heights of 20 – 30 px best: a photo above this many pixels a side is made smaller first. */
 export const MAX_SIDE = 3000;
 /** A page found that gives fewer words than this was not the page: the whole photo is read too. */
@@ -232,11 +304,18 @@ export async function readPage(photo: Img, o: ReadOptions, eng: ReadEngines = br
   };
   /** a quick reading, to decide which way up the text stands (the clean-up without clearing marks; no progress shown) */
   const glance = async (im: Img) => eng.read((await enhance(im, false)).img, o.lang, undefined, GLANCE_LAYOUT);
-  const prepare = async (from: Img, t: number, straight: boolean, auto: boolean) => {
-    let img = await cap(t ? await ops.orient(from, ROT[t]) : from, MAX_SIDE), page = false, by: PageReading['by'];
+  /** `straight`: 'book' — a photo of an open book's pages drawn flat, else the page found and straightened; 'page' — the
+   *  page found and straightened; false — the photo as it is */
+  const prepare = async (from: Img, t: number, straight: 'book' | 'page' | false, auto: boolean) => {
+    let img = await cap(t ? await ops.orient(from, ROT[t]) : from, MAX_SIDE), page = false, by: PageReading['by'], book = 0;
     if (o.clean && straight) {
-      const s = await straighten(img, ops).catch(() => null); // no page: the photo as it is
-      if (s?.found) { img = s.img; page = true; by = s.by; }
+      const mode = o.flatten ?? BOOK_DEFAULT;
+      const flat = straight === 'book' && mode !== 'never' ? await bookPages(img, ops, mode).catch(() => null) : null;
+      if (flat) { img = flat.img; page = true; book = flat.pages; }
+      else {
+        const s = await straighten(img, ops).catch(() => null); // no page: the photo as it is
+        if (s?.found) { img = s.img; page = true; by = s.by; }
+      }
     }
     let up = { turns: 0, slant: 0 };
     if (auto) {
@@ -245,15 +324,23 @@ export async function readPage(photo: Img, o: ReadOptions, eng: ReadEngines = br
     }
     const shown = page || up.turns || up.slant ? img : null;
     const e = await enhance(img, true);
-    return { img: e.img, pre: img, shown, page, by, up, cleared: { lines: e.lines, inner: e.inner, marks: e.marks, labels: e.labels, wash: e.wash }, inverted: e.inverted, columns: e.columns, listMarks: e.list, xh: e.xh };
+    return { img: e.img, pre: img, shown, page, by, book, up, cleared: { lines: e.lines, inner: e.inner, marks: e.marks, labels: e.labels, wash: e.wash }, inverted: e.inverted, columns: e.columns, listMarks: e.list, xh: e.xh };
   };
   const t0 = ((o.turns ?? 0) % 4 + 4) % 4;
-  let p = await prepare(photo, t0, true, o.auto);
+  let p = await prepare(photo, t0, 'book', o.auto);
   if (!live()) return null;
   let r = await eng.read(p.img, o.lang, o.onProgress, layoutFor(p.columns));
   if (!live()) return null;
+  // a book's pages drawn flat that gave little (it was no book): the page found the usual way is read too, the better kept
+  if (p.book && r.words.length < FEW) {
+    const w = await prepare(photo, t0, 'page', o.auto);
+    if (!live()) return null;
+    const r2 = await eng.read(w.img, o.lang, o.onProgress, layoutFor(w.columns));
+    if (!live()) return null;
+    if (r2.words.length > r.words.length) { r = r2; p = w; }
+  }
   // a page found that gave little (it was not the page): the whole photo is read too, and the better reading kept
-  if (p.page && r.words.length < FEW) {
+  if (p.page && !p.book && r.words.length < FEW) {
     const w = await prepare(photo, t0, false, o.auto);
     if (!live()) return null;
     const r2 = await eng.read(w.img, o.lang, o.onProgress, layoutFor(w.columns));
@@ -273,12 +360,12 @@ export async function readPage(photo: Img, o: ReadOptions, eng: ReadEngines = br
     const small = await cap(photo, 1200), cur = (t0 + p.up.turns) % 4;
     let best = { t: cur, conf: r.confidence };
     for (const k of [1, 3, 2]) {
-      const tt = (cur + k) % 4, q = await eng.read((await prepare(small, tt, true, false)).img, o.lang, undefined, GLANCE_LAYOUT);
+      const tt = (cur + k) % 4, q = await eng.read((await prepare(small, tt, 'page', false)).img, o.lang, undefined, GLANCE_LAYOUT);
       if (!live()) return null;
       if (q.confidence > best.conf) best = { t: tt, conf: q.confidence };
     }
     if (best.t !== cur && best.conf >= POOR && best.conf >= r.confidence + 20) {
-      p = await prepare(photo, best.t, true, false);
+      p = await prepare(photo, best.t, 'page', false);
       if (!live()) return null;
       r = await eng.read(p.img, o.lang, o.onProgress, (layout = layoutFor(p.columns)));
       if (!live()) return null;
@@ -301,5 +388,5 @@ export async function readPage(photo: Img, o: ReadOptions, eng: ReadEngines = br
       if (secondBetter(r2, r)) { r = r2; engine = 'paddle'; }
     }
   }
-  return { r, img: p.img, pre: p.pre, shown: p.shown, page: p.page, by: p.by, up: p.up, turned, cleared: p.cleared, listMarks: p.listMarks, xh: p.xh, columns: p.columns, layout, engine, second, secondError };
+  return { r, img: p.img, pre: p.pre, shown: p.shown, page: p.page, by: p.by, book: p.book, up: p.up, turned, cleared: p.cleared, listMarks: p.listMarks, xh: p.xh, columns: p.columns, layout, engine, second, secondError };
 }

@@ -174,4 +174,67 @@ export default async (t, { load, wasm }) => {
   t.near(RP.expectedRight({ words: [{ text: 'word', conf: 96 }, { text: 'ab', conf: 96 }, { text: "it's", conf: 96 }] }, RP.RIGHT.tesseract), 0.972 * 2, 1e-9, 'expectedRight: words of 3 letters and more (not "ab"), at Tesseract\'s share for 95 – 97');
   t.near(RP.expectedRight({ words: [{ text: 'three-words-here', conf: 99.95 }, { text: 'élève', conf: 84.9 }] }, RP.RIGHT.paddle), 0.907 * 3 + 0.477, 1e-9, '… a hyphenated word counts its parts; the bins by the edges (99.9 →, 80 – 85)');
   t.ok(RP.RIGHT.tesseract.every((v, i, a) => !i || v >= a[i - 1]) && RP.RIGHT.paddle.every((v, i, a) => !i || v >= a[i - 1]) && RP.RIGHT.tesseract.length === RP.CONF_EDGES.length && RP.RIGHT.paddle.length === RP.CONF_EDGES.length, 'the tables rise with the confidence, one value a bin');
+
+  // ---- a photo of an open book: its pages drawn flat before they are read (potentials #96, the Book Page Flattener, as a
+  // step of both tabs: "the OCR tab and the Photo Dictionary then read printed books as well as a Kindle page")
+  const rec = (a, b, X0, X1) => { const v = new Array(26).fill(0); v[6] = a; v[7] = b; v[24] = X0; v[25] = X1; return v; };
+  t.near(RP.bendOf(rec(0, 0, 0.1, 0.9)), 0, 1e-12, 'bendOf: a flat sheet does not bend');
+  t.near(RP.bendOf(rec(0.5, -0.5, 0, 1)), 0.125, 2e-4, 'bendOf: end slopes +0.5 and −0.5 over the whole cubic — z = X(1 − X) / 2 — an eighth of the width (the gap at the middle)');
+  t.near(RP.bendOf(rec(2, -2, 0, 1)), 0.125, 2e-4, '… the slopes held within ±0.5, as flatten.c holds them');
+  t.near(RP.bendOf(rec(0.5, -0.5, 0, 0.5)), 0.0625, 2e-4, '… over a part of the cubic, the gap to that part\'s chord in that part\'s width: z − z/chord = X/4 − X²/2 is 1/32 at X = 1/4, over a width of 1/2');
+  t.ok(RP.bendOf(rec(0.3, -0.5, 0.2, 0.2)) === 0, '… a page without width: 0');
+  const pg = (o) => ({ rec: rec(0, 0, 0, 1), rect: [0, 0, 1, 1], scale: 1, rms: 0.8, rms0: 2, spans: 30, samples: 420, iterations: 9, side: 'whole', pitch: 0.03, ...o });
+  const bent = rec(-0.2, 0.5, 0.05, 0.95), flatRec = rec(0.01, -0.02, 0.05, 0.95);
+  t.ok(RP.isBook({ pages: [pg({ side: 'left', rec: flatRec }), pg({ side: 'right', rec: flatRec })], spans: 60 }, 'auto'), 'isBook: two pages either side of a gutter — a book, however little they bend');
+  t.ok(RP.isBook({ pages: [pg({ rec: bent })], spans: 30 }, 'auto') && RP.bendOf(bent) >= RP.BOOK.bend, `… one page bent by ${(100 * RP.bendOf(bent)).toFixed(1)} % of its width: a book`);
+  t.ok(!RP.isBook({ pages: [pg({ rec: flatRec })], spans: 30 }, 'auto') && RP.isBook({ pages: [pg({ rec: flatRec })], spans: 30 }, 'always'), `… one flat page (${(100 * RP.bendOf(flatRec)).toFixed(2)} %): not a book — but flattened when asked always (measuring)`);
+  t.ok(!RP.isBook({ pages: [pg({ rec: bent, spans: 9 })], spans: 9 }, 'auto') && !RP.isBook({ pages: [pg({ rec: bent, rms: 2.1 })], spans: 30 }, 'auto'), `… a bent page of few lines (fewer than ${RP.BOOK.spans}), or fitted loosely (above ${RP.BOOK.rms} px): not a book — a strong watermark's diagonal letters bend a fit so`);
+  t.ok(!RP.isBook({ pages: [pg({ rec: bent, samples: 120 })], spans: 30 }, 'always') && !RP.isBook({ pages: [], spans: 0 }, 'always'), '… pieces that are no lines of print (4 samples a line), or nothing: never');
+  // the pages one above the other, the left one first, left-aligned on white
+  const solid = (w, h, c) => { const d = new Uint8ClampedArray(w * h * 4); for (let i = 0; i < d.length; i += 4) d.set(c, i); return { width: w, height: h, data: d }; };
+  const st = RP.stackPages([solid(4, 2, [255, 0, 0, 255]), solid(6, 3, [0, 0, 255, 255])], 2);
+  const px = (im, x, y) => Array.from(im.data.subarray((y * im.width + x) * 4, (y * im.width + x) * 4 + 4)).join(',');
+  t.ok(st.width === 6 && st.height === 7 && px(st, 0, 0) === '255,0,0,255' && px(st, 5, 0) === '255,255,255,255' && px(st, 3, 2) === '255,255,255,255' && px(st, 0, 4) === '0,0,255,255' && px(st, 5, 6) === '0,0,255,255', `stackPages: 6 × 7 — the first on top, a white gap, the second under it (${st.width} × ${st.height})`);
+  t.ok(RP.stackPages([solid(3, 3, [1, 2, 3, 255])], 9).height === 3, '… one page: itself');
+  // the real flattener on a photo of a spread (tests/fixtures/books: two pages bent near the spine)
+  const spread = await decode('tests/fixtures/books/spread.jpg'), thick = await decode('tests/fixtures/books/thick.jpg');
+  f = reader(() => ({ n: 300, conf: 93 }));
+  r = await RP.readPage(spread, { lang: 'eng', clean: true, auto: true, flatten: 'auto', onProgress: progress }, { ops, read: f.read });
+  t.ok(r.book === 2 && r.page && r.shown && mains(f).length === 1 && mains(f)[0].h > 1.5 * mains(f)[0].w && mains(f)[0].w < 0.75 * spread.width, `a spread: its two pages drawn flat and read once, one above the other (${mains(f)[0].w} × ${mains(f)[0].h} from a photo of ${spread.width} × ${spread.height})`);
+  t.ok(r.up.turns === 0 && Math.abs(r.up.slant) < 5 && r.columns === 1 && r.layout === 'block', `… upright and level as drawn, one column: read as one block (${r.columns} columns, ${r.layout})`);
+  f = reader(() => ({ n: 300, conf: 93 }));
+  r = await RP.readPage(thick, { lang: 'eng', clean: true, auto: true, flatten: 'auto', onProgress: progress }, { ops, read: f.read });
+  t.ok(r.book === 2, `a thick book's spread: flattened too (${r.book} pages)`);
+  f = reader(() => ({ n: 300, conf: 93 }));
+  r = await RP.readPage(spread, { lang: 'eng', clean: true, auto: true, flatten: 'never', onProgress: progress }, { ops, read: f.read });
+  t.ok(r.book === 0 && mains(f)[0].h < mains(f)[0].w, `flatten: 'never' (measuring) — the photo read the old way (${mains(f)[0].w} × ${mains(f)[0].h})`);
+  f = reader(() => ({ n: 300, conf: 93 }));
+  r = await RP.readPage(spread, { lang: 'eng', clean: false, auto: true, flatten: 'auto', onProgress: progress }, { ops, read: f.read });
+  t.ok(r.book === 0 && !r.page, 'the clean-up off (the OCR tab\'s switch): no book looked for');
+  // a Kindle page, a document, a newspaper: flat — never flattened (the existing photos read as before)
+  for (const [name, im] of [['kindle-page.jpg', kindle], ['marks.jpg', lists], ['columns.jpg', cols]]) {
+    f = reader(() => ({ n: 60, conf: 91 }));
+    r = await RP.readPage(im, { lang: 'eng', clean: true, auto: true, flatten: 'auto', onProgress: progress }, { ops, read: f.read });
+    t.ok(r.book === 0, `${name}: a flat page — not flattened`);
+  }
+  f = reader(() => ({ n: 60, conf: 91 }));
+  r = await RP.readPage(kindle, { lang: 'eng', clean: true, auto: true, flatten: 'always', onProgress: progress }, { ops, read: f.read });
+  t.ok(r.book === 1, 'kindle-page.jpg with flatten: \'always\' (measuring): its lines of print found and flattened');
+  // flattened pages that give little (it was no book): the page found the usual way is read too, the better kept
+  first = true;
+  f = reader((c) => (c.main ? (first ? ((first = false), { n: 8, conf: 70 }) : { n: 290, conf: 92 }) : null));
+  r = await RP.readPage(spread, { lang: 'eng', clean: true, auto: true, flatten: 'auto', onProgress: progress }, { ops, read: f.read });
+  t.ok(mains(f).length === 2 && r.book === 0 && r.r.words.length === 290 && mains(f)[1].w > mains(f)[1].h, `the flat pages gave ${8} words: the photo read the usual way too, and kept (${r.r.words.length} words)`);
+  first = true;
+  f = reader((c) => (c.main ? (first ? ((first = false), { n: 8, conf: 70 }) : { n: 5, conf: 60 }) : null));
+  r = await RP.readPage(spread, { lang: 'eng', clean: true, auto: true, again: false, flatten: 'auto', onProgress: progress }, { ops, read: f.read });
+  t.ok(r.book === 2 && r.r.words.length === 8, '… and the flat pages kept when that reads less');
+  // the flattener's ops absent (an older worker): the step left out
+  f = reader(() => ({ n: 300, conf: 93 }));
+  const { bookFit: _bf, bookRender: _br, ...noBook } = ops;
+  r = await RP.readPage(spread, { lang: 'eng', clean: true, auto: true, flatten: 'auto', onProgress: progress }, { ops: noBook, read: f.read });
+  t.ok(r.book === 0, 'without the flattener\'s operations: the step left out');
+  f = reader(() => ({ n: 300, conf: 93 }));
+  r = await RP.readPage(spread, { lang: 'eng', clean: true, auto: true, onProgress: progress }, { ops, read: f.read });
+  t.ok(r.book === (RP.BOOK_DEFAULT === 'auto' ? 2 : 0), `the tabs' setting when they give none: ${RP.BOOK_DEFAULT}`);
 };
