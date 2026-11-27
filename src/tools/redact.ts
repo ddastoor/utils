@@ -7,6 +7,7 @@ import { imgproc, imgprocDirect, type Img } from '../wasm/imgproc';
 import { encodeImg, previewOf, EXT, type Fmt } from '../lib/imgio';
 import { imageInput } from '../lib/imgtools';
 import { faceDetector, toImageData } from '../lib/mediapipe';
+import './redact.css';
 
 export type Box = { x: number; y: number; w: number; h: number; on: boolean; face: boolean; score?: number }; // normalised 0..1
 export type Effect = 'pixelate' | 'blur' | 'bar';

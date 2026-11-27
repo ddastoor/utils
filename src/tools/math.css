@@ -1,0 +1,5 @@
+/* math.ts's own styles, loaded with its tab (moved from src/styles.css by scripts/split-tab-css.py) */
+.ptable-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+@media (pointer: coarse) {
+  .ptable { min-width: 846px; }
+}

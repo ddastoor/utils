@@ -4,6 +4,7 @@
 import { h, card, field, input, textarea, button, segmented, toggle, slider, clear, stack, note, copy, type Mount } from '../ui';
 import { sodium } from '../wasm/crypto';
 import { libsodium } from '../wasm/libsodium';
+import './everyday.css';
 
 // ------------------------------------------------------------------ shared timer helpers
 const pad = (n: number, w = 2) => String(Math.floor(n)).padStart(w, '0');

@@ -4,6 +4,7 @@ import { h, card, field, input, button, filePicker, toggle, slider, segmented, c
 import { has, isMobile, isWindows, isMac } from '../platform';
 import { createArchive, listArchive, extractArchive, extractAsZip, stopSevenZip, Stopped, type ArchiveEntry, type ArchiveList } from '../lib/sevenzip-client';
 import { archivePaths, passwordProblem, archiveName, safeParts, freeName } from '../lib/archive-names';
+import './archive.css';
 
 const zipjs = () => import('@zip.js/zip.js');
 

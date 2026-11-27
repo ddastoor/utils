@@ -78,6 +78,9 @@ export interface ReadOptions {
   /** The clean-up of a photographed page (the OCR tab's switch; always on in the Photo Dictionary): the page found and
    *  straightened, the document clean-up, ruled lines and list marks cleared. Off: the picture is read as it is. */
   clean: boolean;
+  /** The page found and straightened, and a book's pages drawn flat, as part of the clean-up (default: on). Off — Make PDF
+   *  Searchable: a scanned page's words must keep their places on the page as it is (the rest of the clean-up stays). */
+  straighten?: boolean;
   /** A photo of a screen (Kindle, phone, monitor): its moiré blurred first (the Photo Dictionary's switch). */
   screen?: boolean;
   /** A dark picture (light text on a dark ground: a screenshot in dark mode, chalk on a board) turned dark on light
@@ -319,7 +322,7 @@ export async function readPage(photo: Img, o: ReadOptions, eng: ReadEngines = br
    *  page found and straightened; false — the photo as it is */
   const prepare = async (from: Img, t: number, straight: 'book' | 'page' | false, auto: boolean) => {
     let img = await cap(t ? await ops.orient(from, ROT[t]) : from, MAX_SIDE), page = false, by: PageReading['by'], book = 0;
-    if (o.clean && straight) {
+    if (o.clean && straight && o.straighten !== false) {
       const mode = o.flatten ?? BOOK_DEFAULT;
       const flat = straight === 'book' && mode !== 'never' ? await bookPages(img, ops, mode, o.f35).catch(() => null) : null;
       if (flat) { img = flat.img; page = true; book = flat.pages; }

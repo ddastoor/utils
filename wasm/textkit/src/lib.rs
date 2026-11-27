@@ -10,6 +10,7 @@
 //!   tk_clusters(text, len) → 0, JSON: the length in UTF-16 units of every character a reader sees (Fancy Text)
 //!   tk_lorem(unit, n, classic, seed32) → 0, JSON: Lorem ipsum — paragraphs, sentences and words counted (lorem.rs)
 //!   tk_diff(a, lenA, b, lenB, mode, limit_ms) → 0, JSON: the differences of two texts (diff.rs)
+//!   tk_tokens(a, lenA, b, lenB, limit_ms) → 0, JSON: the differences of two documents' tokens, one a line (tokens.rs)
 // the module for the Text Diff (feature "diff") is built without the counting code below
 #![cfg_attr(not(feature = "text"), allow(dead_code, unused_imports))]
 use std::cell::RefCell;
@@ -18,6 +19,7 @@ use unicode_segmentation::UnicodeSegmentation;
 
 #[cfg(feature = "text")] mod case;
 #[cfg(feature = "diff")] mod diff;
+#[cfg(feature = "tokens")] mod tokens;
 #[cfg(feature = "lorem")] mod lorem;
 
 thread_local! { static OUT: RefCell<Vec<u8>> = RefCell::new(Vec::new()); }
@@ -321,12 +323,21 @@ fn stats(text: &str) -> String {
     0
 }
 
-/// The differences of two UTF-8 texts (diff.rs): mode 0 lines, 1 words, 2 characters; `limit_ms` is the time after
+/// The differences of two UTF-8 texts (diff.rs): mode 0 lines, 1 words, 2 characters, 3 lines side by side; `limit_ms` is the time after
 /// which the comparing settles for a diff that is not the shortest. JSON in tk_out_ptr() / tk_out_len().
 #[cfg(feature = "diff")] #[no_mangle] pub unsafe extern "C" fn tk_diff(pa: *const u8, na: usize, pb: *const u8, nb: usize, mode: u32, limit_ms: u32) -> i32 {
     let a = String::from_utf8_lossy(std::slice::from_raw_parts(pa, na));
     let b = String::from_utf8_lossy(std::slice::from_raw_parts(pb, nb));
     let json = diff::diff(&a, &b, mode, limit_ms);
+    OUT.with(|o| *o.borrow_mut() = json.into_bytes());
+    0
+}
+
+/// Two documents' tokens compared (tokens.rs, PDF Compare): each list one token a line; JSON in tk_out_ptr() / tk_out_len().
+#[cfg(feature = "tokens")] #[no_mangle] pub unsafe extern "C" fn tk_tokens(pa: *const u8, na: usize, pb: *const u8, nb: usize, limit_ms: u32) -> i32 {
+    let a = String::from_utf8_lossy(std::slice::from_raw_parts(pa, na));
+    let b = String::from_utf8_lossy(std::slice::from_raw_parts(pb, nb));
+    let json = tokens::tokens(&a, &b, limit_ms);
     OUT.with(|o| *o.borrow_mut() = json.into_bytes());
     0
 }

@@ -3,6 +3,7 @@
 import { h, card, input, clear, note, copy, toggle, button, type Mount } from '../../ui';
 import { isMac, isWindows } from '../../platform';
 import { describe, terminal, showBytes, modsOf, heldFlags, within, isModifier, MOD_NAMES, type KeyEv, type Mods, type OS } from '../../lib/keycombo';
+import './ref.css';
 
 type Row = string[];
 /** A searchable table: every whitespace-separated word of the query must appear in the row (case-insensitive). */

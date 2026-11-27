@@ -1,0 +1,18 @@
+/* pdf.ts's own styles, loaded with its tab (moved from src/styles.css by scripts/split-tab-css.py) */
+/* PDF tools: file lists, page tiles, password box */
+.pdf-list { margin: 8px 0 0; padding-left: 1.4em; display: flex; flex-direction: column; gap: 6px; }
+.pdf-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 8px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); }
+.pdf-row-name { min-width: 0; overflow-wrap: anywhere; }
+.pdf-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.pdf-tile { display: flex; flex-direction: column; gap: 4px; border: 1px solid var(--border); border-radius: 12px; padding: 6px; background: var(--surface); }
+.pdf-tile[draggable="true"] { cursor: grab; }
+.pdf-tile-img { aspect-ratio: 3 / 4; display: flex; align-items: center; justify-content: center; background: var(--surface-2); border-radius: 8px; overflow: hidden; }
+.pdf-tile-label { font-size: 13px; text-align: center; overflow-wrap: anywhere; }
+.pdf-tile-tools { display: flex; justify-content: center; flex-wrap: wrap; gap: 2px; }
+@media (max-width: 640px) {
+  .pdf-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 640px) {
+  .pdf-row { flex-wrap: wrap; }
+  .pdf-row-name { flex: 1 1 100%; }
+}

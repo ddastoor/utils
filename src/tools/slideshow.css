@@ -1,0 +1,8 @@
+/* slideshow.ts's own styles, loaded with its tab (moved from src/styles.css by scripts/split-tab-css.py) */
+/* slideshow */
+.ss-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); gap: 10px; }
+.ss-item { position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 6px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface-2); }
+.ss-thumb { width: 96px; height: 72px; border-radius: 6px; background: #000; }
+.ss-num { position: absolute; top: 4px; left: 6px; font-size: 12px; font-weight: 700; background: var(--surface); border-radius: 999px; padding: 0 6px; }
+.ss-btns { display: flex; gap: 2px; }
+.ss-preview { max-width: 100%;  display: block; margin: 0 auto; border-radius: 10px; background: #000; }

@@ -10,6 +10,7 @@ import { forPasting, readingText, copyBoth } from '../lib/mdcopy';
 import { markdown } from '../wasm/markdown';
 import { decodeText } from '../lib/sheetdata';
 import { slugger } from '../lib/mdslug';
+import './markdown.css';
 
 const SAMPLE = `# Markdown Editor
 

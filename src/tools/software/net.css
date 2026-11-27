@@ -1,0 +1,12 @@
+/* net.ts's own styles, loaded with its tab (moved from src/styles.css by scripts/split-tab-css.py) */
+.chmod-grid input { width: 20px; height: 20px; }
+.pw-row { flex-wrap: nowrap; }
+.otp-code { font-size: 48px; font-weight: 700; text-align: center; letter-spacing: 2px; margin: 8px 0; }
+.randomart { font-size: 13px; line-height: 1.15; margin: 10px 0 0; }
+.strength-meter { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin: 12px 0 6px; }
+.strength-meter span { height: 8px; border-radius: 4px; background: var(--surface-3); }
+.strength-label { font-weight: 700; }
+.zx-seq { display: flex; flex-wrap: wrap; gap: 6px; }
+.zx-part { display: flex; flex-direction: column; padding: 6px 10px; border-radius: 8px; background: var(--surface-2); border: 1px solid var(--border); }
+.zx-part small { color: var(--muted); font-size: 11px; }
+.zx-bruteforce { border-style: dashed; }

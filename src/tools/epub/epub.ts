@@ -7,6 +7,7 @@ import { pdfInput, stem, type LoadedPdf } from '../../lib/pdfui';
 import { plural } from '../../lib/dates';
 import { pdfToEpub, DEVICES, Stopped, type EpubOptions } from '../../lib/pdf2epub';
 import { unzipSync, strFromU8 } from 'fflate';
+import './epub.css';
 
 export const mount: Mount = (root) => {
   let f: LoadedPdf | null = null, spec = '', seq = 0, live = true, urls: string[] = [];

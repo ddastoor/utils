@@ -10,6 +10,7 @@ import { inWords } from '../lib/words';
 import { bmiOf, feetInches, calorieNeeds, dueDate, ACTIVITY, LB, type Bmi } from '../lib/health';
 import { tipSplit, fuelCost, litresText, gpaOf } from '../lib/smallcalc';
 import { readNumber, romanAnswer } from '../lib/numerals';
+import './calculators.css';
 
 // ------------------------------------------------------------------ Unit converter
 // table, arithmetic and number formatting: src/lib/units.ts (exact definitions, held to GNU Units by the unit suite)

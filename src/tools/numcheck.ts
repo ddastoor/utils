@@ -6,6 +6,7 @@
 import { h, card, stack, note, button, textarea, clear, copy, errMsg, type Mount } from '../ui';
 import { devcore, type Devcore } from '../wasm/devcore';
 import { entries, VERDICT, EXAMPLES, MAX_LINES, type Answer, type Reading } from '../lib/numcheck';
+import './numcheck.css';
 
 // what was typed, kept while the page is open (another tab and back)
 let kept = '';

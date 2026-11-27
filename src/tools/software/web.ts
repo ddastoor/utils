@@ -5,6 +5,7 @@ import { mathcore } from '../../wasm/mathcore';
 import { svgo, resetSvgo, type Svgo } from '../../wasm/svgo';
 import { cssColor, hexA, over, hexToRgb, rgbToHex, type Rgba } from '../../lib/color';
 import { kvRows } from './devui';
+import './web.css';
 
 export { cssColor, hexA, over, type Rgba };
 /** Colour picker + text box. The text box takes any CSS colour; `alpha` says whether a see-through colour is usable here. */

@@ -1,0 +1,71 @@
+{
+ "pages": [
+  3,
+  2
+ ],
+ "hyphenated": [
+  "between",
+  "Packaging",
+  "Schedule",
+  "transport",
+  "holidays",
+  "inspection",
+  "written",
+  "becomes",
+  "addresses",
+  "treated"
+ ],
+ "edits": [
+  {
+   "kind": "changed",
+   "was": "April",
+   "now": "May"
+  },
+  {
+   "kind": "changed",
+   "was": "recieve",
+   "now": "receive"
+  },
+  {
+   "kind": "changed",
+   "was": "thirty (30",
+   "now": "sixty (60"
+  },
+  {
+   "kind": "removed",
+   "was": ", including weekends and public holidays",
+   "now": ""
+  },
+  {
+   "kind": "added",
+   "was": "",
+   "now": "The Supplier shall keep all records of production for seven years."
+  },
+  {
+   "kind": "added",
+   "was": "",
+   "now": "and Suspension"
+  },
+  {
+   "kind": "changed",
+   "was": "agreement",
+   "now": "Agreement",
+   "case": true
+  },
+  {
+   "kind": "moved",
+   "was": "Notices Notices under this Agreement shall be in writing and sent to the addresses above by registered post or e-mail. A notice sent by e-mail is treated as received on the next working day after it is sent.",
+   "now": "Notices Notices under this Agreement shall be in writing and sent to the addresses above by registered post or e-mail. A notice sent by e-mail is treated as received on the next working day after it is sent."
+  },
+  {
+   "kind": "added",
+   "was": "",
+   "now": ","
+  },
+  {
+   "kind": "changed",
+   "was": "1,25,000",
+   "now": "1,50,000"
+  }
+ ]
+}

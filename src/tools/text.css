@@ -1,0 +1,17 @@
+/* text.ts's own styles, loaded with its tab (moved from src/styles.css by scripts/split-tab-css.py) */
+.case-row:last-child { border-bottom: 0; }
+.dl-del .dl-text { text-decoration: line-through; text-decoration-color: color-mix(in srgb, var(--err) 50%, transparent); }
+.ds-wrap:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.ds-name + .ds-name, .ds-cell + .ds-cell { border-left: 1px solid var(--border); }
+/* no line on this side */
+.ds-hunk { position: relative; }
+.ds-hunk.ds-current { outline: 2px solid var(--accent); outline-offset: -2px; z-index: 1; }
+.ds-more > * { grid-column: 1 / -1; }
+.emoji-cell:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+@media (pointer: coarse) {
+  .tone-btn { width: 44px; height: 44px; }
+}
+.lorem-count { max-width: 14rem; }
+@media (max-width: 760px) {
+  .case-name { grid-column: 1 / -1; }
+}

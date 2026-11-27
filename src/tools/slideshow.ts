@@ -11,6 +11,7 @@ import { loadImg, previewOf } from '../lib/imgio';
 import { audio, decodeAudio, channelsOf } from '../lib/audio-client';
 import { ensureAac } from '../lib/aac';
 import { placement, type FitMode } from '../lib/slideshow-geom';
+import './slideshow.css';
 
 type Aspect = '16:9' | '9:16' | '1:1' | '4:5';
 const ASPECTS: Array<[Aspect, string]> = [['16:9', 'Landscape 16:9'], ['9:16', 'Reels / Stories 9:16'], ['1:1', 'Square 1:1'], ['4:5', 'Portrait 4:5']];

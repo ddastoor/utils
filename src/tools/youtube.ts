@@ -10,6 +10,7 @@ import { linuxBanner } from '../linux';
 import { TROUBLE_403, YTDLP_FILES, YTDLP_RELEASES, needsHint, pickYtdlp, runHint, ytdlpUrl } from '../lib/ytdlp';
 import { finishRecording } from '../lib/aac';
 import { parseTime, parseYouTube, hms } from '../lib/ytclip';
+import './youtube.css';
 export { parseTime, parseYouTube, hms };
 
 export const mount: Mount = (root) => {

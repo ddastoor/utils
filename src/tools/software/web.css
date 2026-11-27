@@ -1,0 +1,16 @@
+/* web.ts's own styles, loaded with its tab (moved from src/styles.css by scripts/split-tab-css.py) */
+.color-in { flex-wrap: nowrap; }
+.contrast-ratio { font-size: 40px; }
+.contrast-preview { border-radius: 12px; padding: 16px 20px; border: 1px solid var(--border); }
+.contrast-preview p { margin: 6px 0; }
+.contrast-preview .cp-large { font-size: 24px; font-weight: 600; }
+.contrast-preview .cp-small { font-size: 13px; }
+.grad-preview { height: 220px; border-radius: 12px; border: 1px solid var(--border); }
+.stop-row { align-items: center; flex-wrap: nowrap; }
+.num-sm { width: 80px; }
+.shadow-stage { display: grid; place-items: center; padding: 60px 20px; border-radius: 12px; }
+.shadow-box { width: 220px; height: 140px; }
+.css-out { background: var(--surface-2); padding: 10px 12px; border-radius: 8px; }
+.svg-compare figure { margin: 0; text-align: center; }
+.svg-compare img { max-width: 100%; max-height: 260px; background: repeating-conic-gradient(#ddd 0 25%, #fff 0 50%) 0 0 / 16px 16px; border-radius: 8px; }
+.svg-code { max-height: 300px; overflow: auto; }

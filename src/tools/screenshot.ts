@@ -16,6 +16,7 @@ import { PART_H } from '../lib/scrollstitch';
 import { pickArea, type AreaPicker } from '../lib/areapick';
 import { cropImg, type Rect } from '../lib/areageom';
 import type { Img } from '../wasm/imgproc';
+import './screenshot.css';
 
 /** a shot keeps its pixels while it is the one shown; the others are kept as lossless PNG (a 4K screenshot is 33 MB of
  *  pixels — every shot of a visit was kept that way) and decoded again when opened */

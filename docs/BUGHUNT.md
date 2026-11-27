@@ -3371,3 +3371,60 @@ Found while building it, each with a check in `tests/e2e/idcopy.e2e.mjs`:
   phone shares from a tap of its own (sharing needs a fresh tap).
 - **A 4 4 4 4 number is not always a VID** (a card number has the same shape): one that fails the check is hidden only after
   "VID" (unit `idcopy`).
+
+## Make PDF Searchable (27 Nov 2026; built — potentials #3)
+- **The start page had reached its budget** (`tests/e2e/lazy.e2e.mjs`: 180 KB; at 184,053 of 184,320 bytes after Safe ID Copy):
+  the stylesheet carried every tab's styles (86 KB built). The rules only one tool module uses moved beside it
+  (`scripts/split-tab-css.py`: 54 tab stylesheets, loaded with their tabs; 376 of the 1,105 rules moved, each rule in exactly
+  one place); the start page is 154 KB. Every tab's first view, on a PC and a phone, was drawn before and after and compared
+  (both builds of the same tree, the split undone in a copy); `tests/unit/css-vars.test.mjs` reads every stylesheet now.
+- **The first tries broke tabs, each found by the screenshots:** (1) `src/ui.ts` builds a button's class as `btn-${variant}`,
+  so `.btn-ghost` looked named only by the tools that name it once and its rules moved into one of them — ghost buttons with
+  borders in eight tabs; (2) a note's class is built as `note note-${kind}` — `.note-ok` went to Compress PDF and every other
+  tab's green note turned blue; (3) the keyboard's `.kb-key { flex: 1 1 0 }` moved and now loaded after
+  `.kb-Space { flex-grow: 6 }` (its class built as `kb-key kb-${code}`), so it won: the wide keys narrowed. The script now
+  takes a beginning before `${…}` or `+` anywhere in a string as a class the file builds, finds class names only inside
+  strings (a variable `el` made `.el` look used everywhere), and keeps a rule when a later rule of the same specificity
+  setting one of its properties could style the same element (a tab's sheet loads after the shared one).
+- **The OCR's reading path straightens a page** (finds it and draws it square): a scanned page's words would no longer stand where
+  the scan shows them. `readPage` takes `straighten: false` (the rest of the clean-up stays).
+- **A closed `<details>` has no innerText** (the e2e suite's own slip, fixed in the test: textContent).
+
+## PDF Compare (27 Nov 2026; built — potentials #15)
+- **Myers' algorithm split edits at common words** (measured before the choice: 10 changes that were not made in 615 edits —
+  a "the" in an inserted phrase matched one far away); the patience algorithm found none, and histogram told a moved clause the
+  wrong way round. Patience it is (docs/WASM-AUDIT.md 190; the unit suite holds it to the measurement).
+- **diff-match-patch's clean-up merged a moved clause with the clauses round it** (on histogram's answer: a 210-character
+  paragraph between two larger changes is "noise" by its rule) — capped at 3 tokens and 20 characters.
+- **The pages were squeezed in their column:** a grid of limited height gives an item with aspect-ratio and overflow hidden no
+  minimum size, so the pages shrank to fit and overlapped (the screenshots showed it) — the column is a plain block now.
+- **The two columns pushed each other back:** scrolling one moved the other, whose scroll event then moved the first again
+  (after a slow frame the 120 ms pause was over) — each column now ignores the scroll it was given.
+- **The switches stood in one row**, each label running into the next switch — in a grid of their own now.
+- (Test slips, fixed in the suites: a "moved paragraph" made shorter than the text it moved past — the engine rightly moved the
+  shorter run; a turned page's comma measured by its box instead of by the text's direction; the top line of the second column
+  measured instead of where the first column's top words stand in it; the OCR's "itis" against a moved paragraph's exact text.)
+
+## PDF Tables → Excel (27 Nov 2026; built — potentials #16)
+- **MuPDF's own table finder lost the amounts** (`table-hunt`, tried first under STANDING RULE #1): 4 of the statement's 7 columns,
+  its second page split into two tables, the bill's tables at 2 of 4 and 2 of 3 columns — our finder in textcore.wasm instead
+  (docs/WASM-AUDIT.md 191).
+- **The last row's narration lost its second line:** a one-chunk line at a table's end was taken for a note under it — kept now
+  when it follows the line above as closely as a cell's wrapped lines do.
+- **A scanned statement's rows ran together:** the OCR's word boxes hold only the ink (half as tall for a word of small letters),
+  and the finder measures its gaps in word heights — each OCR word is as tall as its line now (`ocrWords`).
+- **A scanned statement lost its header:** the rule under it leaves a wider gap than a line's — a header is looked for up to two
+  lines and 3.5 word heights above the first row.
+- **An account's details read as a table of their own** in the browser (not in Node: the tab reads a scan in one block, which
+  spaced the words wider): "Account holder: … | 14 Gangapur Road …", "Account number: … | IFSC: …", "Opening balance: …" — three
+  lines of two chunks, the third with both in the first column. A table's lines must now reach two columns or more, three of them
+  (a unit check with the browser's layout of those lines).
+- **The tab showed the last PDF's tables while reading the next** (the summary was not emptied as a file started — the suite
+  caught "2 tables found" for the scan, the bill's) — emptied now.
+- **The preview showed dates as 2026-11-01** (the cells as the files hold them) — it shows them as printed; **the .xlsx showed
+  them as 2026-11-01 too:** a date is written in the form it was printed in (`dd\/mm\/yyyy`, separators escaped so that Excel keeps
+  them on any Windows); LibreOffice shows them so (the unit suite asks it for the cells as shown — its CSV filter's 9th option: by
+  default it writes the dates in its own form).
+- **The table's outline cut its first and last letters** — drawn a few points outside the words.
+- (Test slips, fixed in the suites: two precedence slips in `a && b || c` checks; a locator that took the result card holding all
+  the tables for one table's card.)

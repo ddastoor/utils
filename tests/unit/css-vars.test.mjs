@@ -5,9 +5,12 @@ import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 export default async (t) => {
   const css = readFileSync(new URL('../../src/styles.css', import.meta.url), 'utf8');
-  const defined = new Set([...css.matchAll(/(--[\w-]+)\s*:/g)].map((m) => m[1]));
-  const files = []; (function walk(d) { for (const f of readdirSync(d)) { const p = join(d, f); if (statSync(p).isDirectory()) walk(p); else if (/\.ts$/.test(f)) files.push(p); } })(fileURLToPath(new URL('../../src', import.meta.url)));
-  const uses = [...css.matchAll(/var\((--[\w-]+)/g)].map((m) => ['styles.css', m[1]]);
+  const files = [], sheets = []; (function walk(d) { for (const f of readdirSync(d)) { const p = join(d, f); if (statSync(p).isDirectory()) walk(p); else if (/\.ts$/.test(f)) files.push(p); else if (/\.css$/.test(f)) sheets.push(p); } })(fileURLToPath(new URL('../../src', import.meta.url)));
+  // the tabs' own stylesheets (scripts/split-tab-css.py) use the tokens of styles.css and may define their own
+  const all = sheets.map((p) => [p.split('/src/')[1], readFileSync(p, 'utf8')]);
+  const defined = new Set(all.flatMap(([, c]) => [...c.matchAll(/(--[\w-]+)\s*:/g)].map((m) => m[1])));
+  const uses = all.flatMap(([f, c]) => [...c.matchAll(/var\((--[\w-]+)/g)].map((m) => [f, m[1]]));
+  t.ok(sheets.length > 1 && all.some(([f]) => f === 'styles.css'), `${sheets.length} stylesheets read`);
   for (const f of files) for (const m of readFileSync(f, 'utf8').matchAll(/var\((--[\w-]+)|col\('(--[\w-]+)'\)|getPropertyValue\('(--[\w-]+)'\)/g)) uses.push([f.split('/src/')[1], m[1] || m[2] || m[3]]);
   const missing = uses.filter(([, v]) => !defined.has(v));
   t.ok(uses.length > 100, `${uses.length} uses of ${new Set(uses.map((u) => u[1])).size} custom properties`);

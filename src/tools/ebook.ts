@@ -9,6 +9,7 @@ import * as R from '../lib/ebook-client';
 import { THEMES, FONTS, KIND_NAMES, chapterAt, type Look, type Theme, type FontChoice, type Entry, type Hit, type BookInfo, type PageLink } from '../lib/ebook';
 import { give, take } from '../lib/handoff';
 import { plural } from '../lib/dates';
+import './ebook.css';
 
 const ACCEPT = '.epub,.mobi,.prc,.azw,.azw3,.fb2,.fbz,.zip,.cbz,.cbr,.cb7,.cbt,.txt,.text,.html,.htm,.xhtml,application/epub+zip,application/x-mobipocket-ebook,text/plain,text/html';
 const SIZES = [12, 14, 16, 17, 18, 19, 20, 22, 24, 26, 28, 32, 36, 42];

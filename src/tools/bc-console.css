@@ -1,0 +1,10 @@
+/* bc-console.ts's own styles, loaded with its tab (moved from src/styles.css by scripts/split-tab-css.py) */
+.bc-out { background: #15171c; color: #dcdfe4; border-radius: 10px; padding: 10px 12px; min-height: 140px; max-height: 340px; overflow: auto; margin: 8px 0; font: 13.5px/1.45 ui-monospace, Menlo, Consolas, monospace; white-space: pre-wrap; word-break: break-all; }
+.bc-q { color: #98c379; }
+.bc-a { color: #e5c07b; }
+.bc-err { color: #ff8f8f; }
+.bc-note { color: #9aa1ad; }
+.bc-a { display: flex; gap: 12px; align-items: baseline; }
+.bc-v { flex: 1 1 auto; min-width: 0; }
+.bc-var { flex: none; margin-left: auto; min-width: 24px; min-height: 24px; padding: 0 6px; border: 0; border-radius: 4px; background: none; color: #9aa1ad; font: inherit; cursor: pointer; }
+.bc-var:hover, .bc-var:focus-visible { color: #e5c07b; background: #262a33; }

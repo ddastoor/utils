@@ -5,6 +5,7 @@ import { imgprocDirect, imgproc, type Img, type Adjust } from '../wasm/imgproc';
 import { encodeImg, encodeToSize, previewOf, paint, resizeImg, EXT, type Fmt } from '../lib/imgio';
 import { straightenCrop, readSide } from '../lib/editor-geom';
 import { imageInput, cropBox } from '../lib/imgtools';
+import './image-editor.css';
 
 const ADJ: Array<[keyof Adjust | 'sharpen', string, number, number, number]> = [
   ['exposure', 'Exposure', -2, 2, 0.05], ['bright', 'Brightness', -1, 1, 0.01], ['contrast', 'Contrast', -1, 1, 0.01], ['highlights', 'Highlights', -1, 1, 0.01], ['shadows', 'Shadows', -1, 1, 0.01],

@@ -7,6 +7,7 @@ import { zipFiles } from '../lib/zip';
 import { imagePicker, resultList } from '../lib/imgtools';
 import { loadImg, encodeImg } from '../lib/imgio';
 import { readExif } from '../lib/exif';
+import './pdf.css';
 
 const plural = (n: number, w: string) => `${n} ${w}${n === 1 ? '' : 's'}`;
 

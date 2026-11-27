@@ -151,3 +151,22 @@ generates media with the project's own ffmpeg.wasm and Chromium). Used only by t
   card (not any real card's design) photographed on a desk with perspective, light and JPEG — its front with a number and an
   older-style QR that holds it, its back with the number, a VID and a long "secure" QR that does not — and an e-letter of one
   page behind the password `RAVI1985` (its number three times, the VID, a QR with the number). Every number is made up.
+
+## searchable/
+- `scan.pdf`, `truth.json` — Make PDF Searchable's test PDF, made by `python3 scripts/make-searchable-pdfs.py` (Pillow, NumPy,
+  reportlab, pypdf; Noto Sans; text of our own): five pages — pictures of text upright, lying a quarter to the left, upside down
+  and shown through /Rotate 90, and a page of real text — with every word's box on the page as shown.
+
+## compare/
+- `v1.pdf`, `v2.pdf`, `v2-scan.pdf`, `v2-turned.pdf`, `v1-locked.pdf`, `truth.json` — PDF Compare's test PDFs, made by
+  `python3 scripts/make-compare-pdfs.py` (reportlab, pypdf, Pillow, pdftoppm; Noto Sans; a supply agreement of our own): two
+  versions set in other sizes and widths (other line and page breaks, words broken with hyphens in the first, curly quotes in
+  the first and straight in the second, other running heads and page counts) with the ten edits truth.json lists; the second
+  scanned (pictures at 200 dpi) and turned (every page /Rotate 90); the first behind the password compare1.
+
+## tables/
+- `statement.pdf`, `statement-ruled.pdf`, `bill.pdf`, `statement-scan.pdf`, `truth.json` — PDF Tables → Excel's test PDFs, made by
+  `python3 scripts/make-table-pdfs.py` (reportlab, pypdf, pdftoppm; Noto Sans; names, numbers and accounts made up): a bank
+  statement of two pages (its header on each, narrations wrapped over two or three lines, amounts right-aligned in Indian
+  grouping), the same in a ruled grid, an electricity bill with two small tables among its paragraphs, and the statement's first
+  page as a picture (200 dpi) — every table's cells as printed in truth.json.

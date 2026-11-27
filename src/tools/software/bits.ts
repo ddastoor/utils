@@ -3,6 +3,7 @@
 import { h, card, field, input, textarea, select, segmented, toggle, clear, note, copy, button, filePicker, readBytes, downloadBlob, fmtBytes, type Mount } from '../../ui';
 import { devcore, type Devcore } from '../../wasm/devcore';
 import { kvRows, debounce } from './devui';
+import './bits.css';
 
 // ------------------------------------------------------------------ Bitwise calculator
 /** Parse 0x / 0b / 0o / decimal (optionally negative, underscores allowed) into a BigInt. */

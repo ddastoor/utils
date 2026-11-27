@@ -1,0 +1,47 @@
+/* PDF Compare */
+.pc-summary { font-weight: 600; }
+.pc-opts { display: grid; gap: 10px; }
+.pc-nav { align-items: center; }
+.pc-count { color: var(--hint); }
+.pc-list { display: grid; gap: 4px; max-height: 360px; overflow: auto; padding: 2px; }
+.pc-item { display: grid; grid-template-columns: 2.2em auto auto 1fr; gap: 8px; align-items: baseline; text-align: left; font: inherit; font-size: 14px;
+  color: var(--text); background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 6px 10px; cursor: pointer; min-height: 32px; }
+.pc-item:hover { border-color: var(--accent); }
+.pc-item[aria-current] { outline: 2px solid var(--accent); outline-offset: -1px; background: var(--accent-soft); }
+.pc-no { color: var(--hint); font-variant-numeric: tabular-nums; }
+.pc-kind { font-size: 12px; font-weight: 600; border-radius: 6px; padding: 1px 6px; }
+.pc-kind.pc-k-changed { color: var(--warn); background: var(--warn-soft); }
+.pc-kind.pc-k-added { color: var(--ok); background: var(--ok-soft); }
+.pc-kind.pc-k-removed { color: var(--err); background: var(--err-soft); }
+.pc-kind.pc-k-moved { color: var(--accent); background: var(--accent-soft); }
+.pc-where { color: var(--hint); font-size: 12.5px; white-space: nowrap; }
+.pc-text { overflow-wrap: anywhere; }
+.pc-text del { color: var(--err); text-decoration-color: color-mix(in srgb, var(--err) 60%, transparent); }
+.pc-text ins { color: var(--ok); text-decoration: none; background: var(--ok-soft); border-radius: 3px; }
+.pc-moved { color: var(--accent); }
+.pc-ctx { color: var(--hint); }
+.pc-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.pc-side { min-width: 0; }
+.pc-colname { font-size: 13px; font-weight: 600; margin-bottom: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* a block, not a grid: in a grid of limited height the pages (aspect-ratio, overflow hidden — no minimum size) were squeezed */
+.pc-col { position: relative; max-height: calc(100vh - var(--navh, 120px) - 120px); min-height: 360px; overflow: auto; padding-right: 4px; }
+.pc-page-no { font-size: 12.5px; color: var(--hint); margin: 10px 0 4px; }
+.pc-page-no:first-child { margin-top: 0; }
+.pc-page { position: relative; width: 100%; background: #fff; border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; }
+.pc-page canvas { display: block; width: 100%; height: 100%; }
+/* the marks: red on the original (taken out, changed), green on the new version (added, changed), blue for a move; the
+   current change outlined */
+.pc-mark { position: absolute; box-sizing: content-box; margin: -1px 0 0 -1px; padding: 0 1px 1px 0; border-radius: 2px; cursor: pointer; min-width: 3px; min-height: 3px; }
+.pc-mark.pc-side-a { background: rgba(220, 38, 38, .26); border-bottom: 2px solid rgba(200, 30, 30, .85); }
+.pc-mark.pc-side-b { background: rgba(34, 170, 80, .28); border-bottom: 2px solid rgba(21, 128, 61, .85); }
+.pc-mark.pc-k-moved { background: rgba(59, 110, 240, .24); border-bottom: 2px solid rgba(59, 90, 220, .85); }
+.pc-mark.pc-caret { background: rgba(200, 30, 30, .9); border: 0; }
+.pc-mark.pc-caret.pc-side-a { background: rgba(21, 128, 61, .95); }
+.pc-mark.cur { outline: 2px solid #4f46e5; outline-offset: 0; z-index: 1; }
+@media (max-width: 899px) {
+  .pc-cols { grid-template-columns: 1fr; }
+  .pc-col { max-height: none; min-height: 0; overflow: visible; }
+}
+@media (pointer: coarse) {
+  .pc-item { min-height: 44px; }
+}

@@ -6,6 +6,7 @@ import { h, card, field, textarea, segmented, select, clear, note, copy, button,
 import { graphviz, stopGraphviz, type GvAnswer } from '../../lib/graphviz-client';
 import { decodeGraphFile, looksBinary, tidyMessages, xmlSafe, svgSize, pngSize, fileStem, lineSpan, TEXT_EXT } from '../../lib/graphviz-text';
 import { debounce } from './devui';
+import './graphviz.css';
 
 export const SAMPLES: Record<string, [string, string]> = {
   Flowchart: ['dot', `digraph Order {

@@ -1,0 +1,3 @@
+/* everyday.ts's own styles, loaded with its tab (moved from src/styles.css by scripts/split-tab-css.py) */
+.phase-label.prep { color: var(--warn); }
+.rng-out { word-break: break-word; }

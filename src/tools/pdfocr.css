@@ -1,0 +1,5 @@
+/* pdfocr.ts's own styles, loaded with its tab (moved from src/styles.css by scripts/split-tab-css.py) */
+/* Make PDF Searchable */
+.pocr-table { border-collapse: collapse; font-size: 14px; }
+.pocr-table th, .pocr-table td { text-align: left; padding: 4px 10px 4px 0; border-bottom: 1px solid var(--border); vertical-align: top; }
+.pocr-text { white-space: pre-wrap; max-height: 360px; overflow: auto; font-size: 13px; }

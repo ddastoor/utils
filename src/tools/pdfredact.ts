@@ -10,6 +10,7 @@ import { KINDS, KIND_NAME, bakeAll, findOnPage, pageKind, redact, saveRedacted, 
 import { findInPictures, type Img } from '../lib/redact-pictures';
 import { findCodes, type Code } from '../lib/codesread';
 import { plural } from '../lib/dates';
+import './pdfredact.css';
 
 /** the order of the list's groups: as the chips stand, then the reader's words, codes and boxes */
 const ORDER = ['aadhaar', 'vid', 'aadhaar_masked', 'pan', 'phone', 'email', 'account', 'card', 'upi', 'ifsc', 'gstin', 'dob', 'words', 'qr', 'box'];

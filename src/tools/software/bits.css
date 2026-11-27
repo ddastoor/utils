@@ -1,0 +1,7 @@
+/* bits.ts's own styles, loaded with its tab (moved from src/styles.css by scripts/split-tab-css.py) */
+.bitgrid { display: flex; flex-wrap: wrap; gap: 3px; }
+.ieee-bits { font-size: 15px; word-break: break-all; letter-spacing: .5px; }
+.ieee-bits .b-sign { color: var(--err); font-weight: 700; }
+.ieee-bits .b-exp { color: var(--ok); font-weight: 700; margin: 0 4px; }
+.ieee-bits .b-man { color: var(--accent); }
+.bin-out { max-height: 60vh; overflow: auto; }

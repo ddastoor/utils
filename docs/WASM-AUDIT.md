@@ -1816,3 +1816,60 @@ Looked at first (STANDING RULE #1):
   off; the Doc Scanner's network and imgproc's outline stop short of it too (4 – 6 % of the card's height on the specimen card):
   the card is found by them and straightened with a margin of 14 % round it.
 - **Decision:** nothing new on the site (the tab's code, ≈ 20 KB).
+
+### 189. `pdf-ocr` — Make PDF Searchable (27 Nov 2026; potentials #3)
+- **What it does:** an invisible OCR text layer on a PDF's scanned pages (CLAUDE.md §3 "Make PDF Searchable").
+- **Existing WebAssembly modules, on the site** (rule 1): Tesseract (tesseract.js-core) through the OCR tab's reading path, with
+  imgproc's clean-up and PaddleOCR (ONNX Runtime) for soft pages; MuPDF to draw the pages and write the layer. OCRmyPDF itself is
+  Python around Ghostscript, Tesseract and pikepdf — no WebAssembly build; Tesseract's own PDF renderer (in tesseract.js's
+  `pdf` output) writes a new PDF of the page's picture, not a layer on the original page (the file's other content, links and
+  outline would be lost).
+- **Beside them (rule 1c, TS):** a word's place on the page and its text operators (`src/lib/searchable.ts`).
+- **Decision:** nothing new on the site (the tab's code, ≈ 12 KB). The reading path gained `straighten: false` (default on: no
+  change for the OCR tab and the Photo Dictionary).
+
+### 190. `pdf-compare` — PDF Compare (27 Nov 2026; potentials #15)
+- **What it does:** two versions of a document compared word by word, the changes marked on both versions' pages side by side and
+  written into both PDFs as comments (CLAUDE.md §3 "PDF Compare").
+- **Existing WebAssembly modules, on the site** (rule 1): MuPDF for each page's characters with their boxes, drawing and the
+  comments; Tesseract through the OCR's reading path for scanned pages; the **`similar` crate** (already ours for the Text Diff)
+  for the comparison. Looked at: diff-match-patch's WebAssembly ports (character diffs of strings, no token lists, no moves), and
+  the document-comparison tools — Draftable, Workshare, Acrobat's Compare Files — are services or closed programs.
+- **Which algorithm** (measured in `tests/unit/pdfcompare.test.mjs` — 60 stretches of real legal prose from the Federal
+  Register's pages and a paper, 615 random edits: words replaced, removed, added, runs moved): **patience** 609 found exactly and
+  no change that was not made; Myers' algorithm (similar's default) 598 and 10 changes that were none — a common word ("the",
+  "of") matched far away splits an edit; histogram 608 and none extra, but on the test agreement it told the moved "Notices" clause
+  as the two clauses after it moved before it, and took the comma added inside one of them into that move.
+- **Beside it (rule 1a, our Rust in the same module, `wasm/textkit/src/tokens.rs`):** the changes as runs of tokens; runs that are
+  only added or removed slid to where they read best; diff-match-patch's semantic clean-up capped at short runs (a paragraph
+  between two large changes is no noise); moves by the tokens two runs share in order. **(1c, TS):** the tokens of a page and what
+  a token is compared as, the marks on the pages, the comments (`src/lib/pdfcompare.ts`) — glue around MuPDF and the module.
+- **Decision:** a module of its own, **textkit-tokens.wasm** (feature `tokens`, 0.20 MB): the patience algorithm adds 51 KB to
+  the `similar` code, which the Text Diff's module (0.71 MB, loaded as that tab opens) does not need.
+
+### 191. `pdf-tables` — PDF Tables → Excel (27 Nov 2026; potentials #16)
+- **What it does:** the tables of a PDF — bank statements, bills — found on its pages and saved as Excel or CSV, a table that runs
+  on over pages joined, amounts and dates as numbers and dates (CLAUDE.md §3 "PDF Tables → Excel").
+- **Existing WebAssembly modules** (rule 1): **MuPDF's own table finder** — the structured-text option `table-hunt` (experimental,
+  MuPDF 1.25 on; with `segment` it gives Table / TR / TD structure nodes, read through `asJSON`: mupdf.js 1.28.6's `walk` skips
+  structure and grid blocks and exports no grid positions). Run on the test PDFs (`tests/fixtures/tables`): **it loses columns on
+  every one** — the statement's first page 4 of its 7 columns (Withdrawal, Deposit and Closing Balance, the amounts, gone), its
+  second page split into two tables of 2 columns with the date, value date, narration and reference run together in one cell;
+  the ruled statement split into five tables; the bill's two tables 2 of 4 and 2 of 3 columns, the caption above the first taken
+  as a row. The fault is inside the engine's heuristics (nothing placed beside it can bring the lost columns back): a defect, not
+  a missing feature. No other WebAssembly table finder exists: Tabula is Java, Camelot Python with OpenCV and Ghostscript,
+  pdfplumber Python on pdfminer.six (it could run in our CPython build — 13 MB of interpreter for a page's arithmetic; it is the
+  unit suite's reference instead, and reads the ruled statement's 46 rows exactly as ours does).
+- **Rule 2 — our own WebAssembly from the open methods:** `wasm/textcore/table.c` (own C in textcore.wasm, +10.5 KB): Tabula's and
+  Camelot's two ways — "lattice", the grid the ruled lines draw (thin bars and stroked lines as PDF → EPUB's `readRules` finds them,
+  joined where they touch), and "stream", columns where no word of a line with a number stands, rows started by the key column (the
+  date), wrapped narrations taken into the row above, a header found above the first row; label-and-value lines whose second part
+  falls in the first one's column (an account's details) are no table. `sheet.wasm` writes the .xlsx (rust_xlsxwriter; a date in the
+  form it was printed in — `{ date, format, shown }`, its separators escaped so that Excel does not swap in the computer's own) and
+  the CSV.
+- **Beside it (rule 1c, TS):** the words of a page (MuPDF's characters, the OCR's words for a scanned page), a cell's text from its
+  words, a table that runs on over pages joined, amounts and dates read (`src/lib/pdftables.ts`) — glue around MuPDF, Tesseract,
+  textcore and sheet.wasm.
+- **Decision:** our own finder in textcore.wasm (40.2 → 50.7 KB — the search box's engine too, fetched when it is first used; sheet.wasm
+  +1.7 KB for the printed dates; both come with the first PDF, as MuPDF); MuPDF's
+  table-hunt to be looked at again when mupdf.js exposes its grid and it keeps the columns of these PDFs.

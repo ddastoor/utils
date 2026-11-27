@@ -10,6 +10,7 @@ import { decodeText } from '../lib/sheetdata';
 import { trackWorker } from '../lifecycle';
 import { take } from '../lib/handoff';
 import { VOICES, V, type Voice } from '../lib/voices';
+import './tts.css';
 
 export { VOICES };
 const SAMPLE = 'Welcome to SuperUtils. This voice is made on your own device, so the text you type never leaves it. You can change the speed, pick another voice, and save the result as an MP3.';

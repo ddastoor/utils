@@ -1,0 +1,4 @@
+/* epub.ts's own styles, loaded with its tab (moved from src/styles.css by scripts/split-tab-css.py) */
+/* PDF → EPUB preview */
+.epub-preview { max-height: 70vh; overflow: auto; font-family: Georgia, serif; line-height: 1.5; padding: 0 8px; }
+.epub-preview img { max-width: 100%; max-height: 360px; }

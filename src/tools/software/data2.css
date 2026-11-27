@@ -1,0 +1,6 @@
+/* data2.ts's own styles, loaded with its tab (moved from src/styles.css by scripts/split-tab-css.py) */
+.jd-tbl tr.jd-add td { background: var(--ok-soft); }
+.jd-tbl tr.jd-del td { background: color-mix(in srgb, var(--err) 12%, transparent); }
+.jd-tbl tr.jd-chg td { background: color-mix(in srgb, var(--warn) 14%, transparent); }
+.mock-row { flex-wrap: nowrap; }
+.mock-row > * { min-width: 0; flex: 1; }

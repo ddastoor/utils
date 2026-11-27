@@ -174,7 +174,9 @@ fn sniff(text: &[u8]) -> u8 {
 }
 
 #[derive(Deserialize)] struct SheetIn { name: String, rows: Vec<Vec<Value>> }
-#[derive(Deserialize)] struct BookIn { sheets: Vec<SheetIn>, #[serde(default)] numbers: bool, #[serde(default)] header: bool }
+/// numbers: text that reads as a number or an ISO date becomes one; dates: only ISO dates do (PDF Tables → Excel types its
+/// amounts itself and gives them as numbers — a long reference number given as text stays text).
+#[derive(Deserialize)] struct BookIn { sheets: Vec<SheetIn>, #[serde(default)] numbers: bool, #[serde(default)] dates: bool, #[serde(default)] header: bool }
 
 /// Text that becomes a number in the .xlsx: written as a double gives back exactly what was written — a whole number
 /// up to 2^53 or a decimal a double holds (1.5, 0.1) — and is no code: no leading zeros (007, PIN codes), no plus
@@ -253,11 +255,22 @@ fn sheet_names(names: &[String]) -> Vec<String> {
                         (None, Some((d, f))) => ws.write_datetime_with_format(r32, c16, &d, &rust_xlsxwriter::Format::new().set_num_format(f)).map(|_| ()),
                         _ => ws.write_string(r32, c16, t).map(|_| ()),
                     },
+                    Value::String(t) if book.dates => match as_datetime(t) {
+                        Some((d, f)) => ws.write_datetime_with_format(r32, c16, &d, &rust_xlsxwriter::Format::new().set_num_format(f)).map(|_| ()),
+                        None => ws.write_string(r32, c16, t).map(|_| ()),
+                    },
                     Value::String(t) => ws.write_string(r32, c16, t).map(|_| ()),
+                    // a date with the form it was printed in (PDF Tables → Excel): { "date": "2026-11-07", "format": "dd\\/mm\\/yyyy",
+                    // "shown": "07/11/2026" } — a real date that looks as printed
+                    Value::Object(o) if o.get("date").and_then(|d| d.as_str()).and_then(|d| as_datetime(d)).is_some() => {
+                        let (d, f0) = as_datetime(o["date"].as_str().unwrap_or("")).unwrap();
+                        let f = o.get("format").and_then(|f| f.as_str()).filter(|f| !f.is_empty()).unwrap_or(f0);
+                        ws.write_datetime_with_format(r32, c16, &d, &rust_xlsxwriter::Format::new().set_num_format(f)).map(|_| ())
+                    }
                     other => ws.write_string(r32, c16, other.to_string()).map(|_| ()),
                 };
                 if let Err(e) = res { return err(format!("Cell {} of “{shown}”: {e}", a1(r, c))); }
-                let w = match v { Value::String(t) => t.chars().count(), Value::Null => 0, o => o.to_string().len() };
+                let w = match v { Value::String(t) => t.chars().count(), Value::Null => 0, Value::Object(o) => o.get("shown").and_then(|x| x.as_str()).map_or(10, |x| x.chars().count()), o => o.to_string().len() };
                 if widths.len() <= c { widths.resize(c + 1, 0); }
                 widths[c] = widths[c].max(w);
             }

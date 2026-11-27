@@ -1,0 +1,4 @@
+/* canvas-tools.ts's own styles, loaded with its tab (moved from src/styles.css by scripts/split-tab-css.py) */
+.collage-strip { display: flex; flex-direction: column; gap: 6px; }
+.collage-item { display: flex; align-items: center; gap: 8px; padding: 4px 8px; border: 1px solid var(--border); border-radius: 10px; min-width: 0; }
+.collage-n { font-weight: 700; color: var(--muted); width: 1.5em; text-align: center; }

@@ -1,0 +1,14 @@
+/* idcopy.ts's own styles, loaded with its tab (moved from src/styles.css by scripts/split-tab-css.py) */
+/* Safe ID Copy */
+.idc-said { font-weight: 600; font-size: 14px; }
+.idc-stamp-line { font-size: 14px; color: var(--hint); }
+.idc-view { position: relative; width: 100%; max-width: 900px; border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; background: #fff; }
+.idc-view canvas { display: block; width: 100%; height: 100%; }
+.idc-view.idc-drawing { cursor: crosshair; touch-action: none; }
+.idc-cover { position: absolute; box-sizing: border-box; border: 2px dashed transparent; border-radius: 2px; cursor: pointer; }
+.idc-drawing .idc-cover { pointer-events: none; }
+.idc-rows { display: grid; gap: 2px; }
+.idc-row { display: flex; align-items: center; gap: 8px; min-height: 32px; font-size: 14px; }
+@media (pointer: coarse) {
+  .idc-row { min-height: 44px; }
+}

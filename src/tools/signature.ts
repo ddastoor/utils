@@ -8,6 +8,7 @@ import { h, card, field, input, button, segmented, slider, stack, grid2, note, a
 import { imgproc, type Img } from '../wasm/imgproc';
 import { encodeImg, onWhite } from '../lib/imgio';
 import { imageInput } from '../lib/imgtools';
+import './signature.css';
 
 export const HAND_FONTS: Array<[string, string, string]> = [['Great Vibes', 'Elegant', greatVibes], ['Dancing Script', 'Flowing', dancing], ['Caveat', 'Casual', caveat]];
 let handReady: Promise<void> | null = null;

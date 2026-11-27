@@ -6,6 +6,7 @@
 import { h, card, field, textarea, input, select, clear, note, button, filePicker, readBytes, downloadBlob, baseName, fmtBytes, type Mount } from '../../ui';
 import { sql } from '../../lib/sqlite-client';
 import { quoteId, type Cell, type RunResult, type SchemaObject } from '../../lib/sqlite-engine';
+import './sqlite.css';
 
 const SAMPLE = `CREATE TABLE customers (id INTEGER PRIMARY KEY, name TEXT NOT NULL, city TEXT, joined DATE);
 CREATE TABLE orders (id INTEGER PRIMARY KEY, customer_id INTEGER REFERENCES customers(id), placed DATE, total REAL);

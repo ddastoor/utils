@@ -18,6 +18,7 @@ import { POOR } from '../lib/ocr';
 import { uprightWords } from '../lib/upright';
 import { give } from '../lib/handoff';
 import { readClip, storyOf, readingOrder, clipText, clipPlan, pageCuts, clipName, blockLabel, bodySize, textScale, type Block, type ClipEngines, type Plan, type Part } from '../lib/clipper';
+import './clipper.css';
 
 type Look = 'none' | 'color' | 'grey' | 'bw';
 const LOOK_ID: Record<Look, -1 | 0 | 1 | 2> = { none: -1, color: 0, grey: 1, bw: 2 };

@@ -1,0 +1,3 @@
+/* archive.ts's own styles, loaded with its tab (moved from src/styles.css by scripts/split-tab-css.py) */
+.file-list { display: flex; flex-direction: column; max-height: 50vh; overflow: auto; }
+.file-row { display: grid; grid-template-columns: 1fr auto auto; gap: 10px; align-items: center; padding: 6px 2px; border-bottom: 1px solid var(--border); }

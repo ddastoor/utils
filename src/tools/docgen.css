@@ -1,0 +1,12 @@
+/* docgen.ts's own styles, loaded with its tab (moved from src/styles.css by scripts/split-tab-css.py) */
+/* Document generators (invoice, rent receipt, resume) */
+.dg-tools { justify-content: flex-end; }
+.dg-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 600px); gap: 14px; align-items: start; }
+.dg-pages { display: flex; flex-direction: column; gap: 10px; align-items: center; }
+.dg-rows { display: flex; flex-direction: column; gap: 10px; }
+.dg-row { display: flex; gap: 8px; border: 1px solid var(--border); border-radius: 12px; padding: 8px; background: var(--surface); }
+.dg-row-fields { flex: 1; display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 6px 10px; min-width: 0; }
+.dg-row-tools { display: flex; flex-direction: column; gap: 2px; }
+@media (max-width: 900px) {
+  .dg-layout { grid-template-columns: 1fr; }
+}

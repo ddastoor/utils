@@ -11,6 +11,7 @@ import { personMask } from '../lib/segment';
 import { encodeInRange } from './formphoto';
 import { cameraError } from '../lib/camera';
 import { resizeImg } from '../lib/imgio';
+import './passport.css';
 
 const REGIONS = ['India', 'Americas', 'Europe', 'Asia-Pacific', 'Middle East & Africa'] as const;
 

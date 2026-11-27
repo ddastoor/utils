@@ -1,0 +1,5 @@
+/* device.ts's own styles, loaded with its tab (moved from src/styles.css by scripts/split-tab-css.py) */
+.kb-Backspace, .kb-Tab, .kb-CapsLock, .kb-Enter { flex-grow: 1.8; }
+.kb-ShiftLeft, .kb-ShiftRight { flex-grow: 2.4; }
+.kb-Space { flex-grow: 6; }
+.ruler-wrap { overflow: hidden; }

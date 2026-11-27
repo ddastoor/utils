@@ -2,6 +2,7 @@ import { h, card, button, clear, copy, type Mount } from '../ui';
 import { mathcore, fmtNum } from '../wasm/mathcore';
 import { bcConsole } from './bc-console';
 import { prepare, literal, negate, startsOperand } from '../lib/calc-text';
+import './calc.css';
 
 export const mount: Mount = async (root, ctx) => {
   const m = await mathcore();

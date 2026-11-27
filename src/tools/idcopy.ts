@@ -19,6 +19,7 @@ import { today } from '../lib/form';
 import { placeMarks } from '../lib/wmlayout';
 import { plural } from '../lib/dates';
 import type { Img } from '../wasm/imgproc';
+import './idcopy.css';
 
 // the choices, kept while the page is open (another tab and back)
 let purpose = '', day = '', colour: 'red' | 'blue' | 'black' = 'red', strength = 30, hideAadhaar = true, hideVid = true, allQr = false;

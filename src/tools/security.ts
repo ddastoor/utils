@@ -13,6 +13,7 @@ import { libsodium } from '../wasm/libsodium';
 import { readWordList, makePassphrase, phraseBits, MIN_WORDS, MAX_WORDS, type PhraseOptions } from '../lib/passphrases';
 import { SETS as PW_SETS, MIN_LEN, MAX_LEN, alphabets, cleanSymbols, requiresEach, makePassword, entropyBits, strengthLabel as pwStrength, type PwOptions } from '../lib/passwords';
 import { isMobile } from '../platform';
+import './security.css';
 
 // ------------------------------------------------------------------ shared
 function passwordField(label: string, placeholder = 'Password') {

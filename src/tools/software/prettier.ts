@@ -7,6 +7,7 @@ import { debounce } from './devui';
 import { ENGINE_LABEL, type Lang, type Formatted } from '../../lib/codefmt';
 import { formatCode, onEngineLoading } from '../../lib/codefmt-client';
 import { readTextFile } from '../../lib/textfile';
+import './prettier.css';
 
 const LANGS: Record<Lang, { label: string; ext: string; sample: string }> = {
   js: { label: 'JavaScript / JSX', ext: 'js', sample: "const order={id:42,items:[{sku:'TEA',qty:2}],total:function(){return this.items.reduce((s,i)=>s+i.qty,0)}}\nexport default async function load(url){const res=await fetch(url,{headers:{'Accept':'application/json'}});if(!res.ok)throw new Error(`HTTP ${res.status}`);return res.json()}" },

@@ -1,0 +1,19 @@
+/* PDF Tables → Excel */
+.pt-summary { font-weight: 600; }
+.pt-opts { display: grid; gap: 10px; }
+.pt-scroll { overflow: auto; max-height: 420px; border: 1px solid var(--border); border-radius: var(--radius-sm); }
+.pt-grid { border-collapse: collapse; font-size: 13px; min-width: 100%; }
+.pt-grid th, .pt-grid td { border-bottom: 1px solid var(--border); padding: 4px 8px; text-align: left; vertical-align: top; white-space: nowrap; max-width: 28em; overflow: hidden; text-overflow: ellipsis; }
+.pt-grid th { position: sticky; top: 0; background: var(--surface); font-weight: 600; z-index: 1; }
+.pt-grid td.num { text-align: right; font-variant-numeric: tabular-nums; }
+.pt-pages { display: grid; gap: 14px; }
+.pt-page-no { font-size: 12.5px; color: var(--hint); margin-bottom: 4px; }
+.pt-page { position: relative; width: 100%; max-width: 900px; background: #fff; border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; }
+.pt-page canvas { display: block; width: 100%; height: 100%; }
+.pt-drawing .pt-page { cursor: crosshair; touch-action: none; }
+/* a table found: outlined, its columns dashed */
+.pt-box { position: absolute; box-sizing: border-box; border: 2px solid rgba(79, 70, 229, .85); background: rgba(79, 70, 229, .06); border-radius: 3px; pointer-events: none; }
+.pt-box.pt-mine { border-color: rgba(217, 119, 6, .9); background: rgba(217, 119, 6, .08); }
+.pt-col { position: absolute; top: 0; bottom: 0; border-left: 1.5px dashed rgba(79, 70, 229, .7); }
+.pt-tag { position: absolute; left: -2px; top: -2px; transform: translateY(-100%); background: #4f46e5; color: #fff; font-size: 11px; font-weight: 700; padding: 1px 6px; border-radius: 4px 4px 0 0; }
+.pt-mine .pt-tag { background: #b45309; }

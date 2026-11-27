@@ -11,6 +11,7 @@ import { VOICES, voiceById, type Voice } from '../lib/voices';
 import { loadImg, resizeImg, encodeImg } from '../lib/imgio';
 import type { Book, Track } from '../lib/audiobook';
 import type { MakeMsg } from '../workers/audiobook.worker';
+import './audiobook.css';
 
 const ACCEPT = '.epub,.pdf,.mobi,.azw,.azw3,.prc,.pdb,.fb2,.fbz,.txt,.text,.html,.htm,.xhtml,application/epub+zip,application/pdf,application/x-fictionbook+xml,text/plain,text/html';
 /** words a minute of speech at speed 1 (Kokoro and Piper read about this fast) */

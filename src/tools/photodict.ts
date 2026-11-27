@@ -19,6 +19,7 @@ import { uprightWords } from '../lib/upright';
 import { alphabetical, hardWords, lookupWord, rarity, ranker, type WordCard, type Result } from '../lib/dictionary';
 import { wikiSummary, type Summary } from '../lib/wikipedia';
 import { onLeave } from '../lifecycle';
+import './photodict.css';
 
 let fontsReady: Promise<void> | null = null;
 const loadFonts = () => (fontsReady ||= (async () => {

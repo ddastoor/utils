@@ -7,6 +7,7 @@ import { imgproc, type Img } from '../wasm/imgproc';
 import { encodeImg } from '../lib/imgio';
 import { imageInput } from '../lib/imgtools';
 import { HAND_FONTS, renderStrokes, trim, typedSignature } from './signature';
+import './pdf-sign.css';
 
 type Doc = LoadedPdf['doc'];
 const fresh = async (f: LoadedPdf): Promise<Doc> => openPdf(f.bytes, f.password); // a new copy to write into

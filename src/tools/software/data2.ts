@@ -7,6 +7,7 @@ import { sodium, type Sodium } from '../../wasm/crypto';
 import { mathcore } from '../../wasm/mathcore';
 import { kvRows, show, table, debounce } from './devui';
 import { readTextFile } from '../../lib/textfile';
+import './data2.css';
 
 const utf8 = new TextEncoder(), fromUtf8 = new TextDecoder();
 const N = (n: number) => n.toLocaleString('en-IN');

@@ -1,0 +1,5 @@
+/* misc.ts's own styles, loaded with its tab (moved from src/styles.css by scripts/split-tab-css.py) */
+.logline.lv-debug, .logline.lv-trace { color: var(--muted); }
+.logline mark { background: color-mix(in srgb, var(--warn) 45%, transparent); color: inherit; border-radius: 2px; }
+.utbl td.uchar { font-size: 20px; text-align: center; }
+.mermaid-view svg { max-width: 100%; height: auto; }

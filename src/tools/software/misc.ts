@@ -6,6 +6,7 @@ import { devcore, setZone, type Devcore } from '../../wasm/devcore';
 import { kvRows, show, table, debounce } from './devui';
 import { localZone } from '../../lib/tz';
 import { readTextFile, crlfText } from '../../lib/textfile';
+import './misc.css';
 
 const lines = (s: string) => s.split(/\r?\n/).map((x) => x.trim()).filter(Boolean);
 const chips = (items: Array<[string, string]>, pick: (v: string) => void) => h('div', { class: 'chips' }, items.map(([v, l]) => h('button', { type: 'button', class: 'chip chip-btn', onclick: () => pick(v) }, l)));

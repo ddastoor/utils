@@ -50,7 +50,7 @@ based on common implementation … make the suggestions". The site then: **563.5
 4. **Camera helpers** (the OCR and the QR tab's writers; ≈ 0 MB): 89 Visiting Card → Contact · 88 Router Sticker → Wi-Fi QR ·
    77 Paper Deadlines → Calendar · 78 Bill Splitter by Photo · 81 Camera Reader.
 **Groups 2 – 4 picked by the owner, 27 Nov 2026 ("Okay, go for it. Build out all the groups, all the remaining groups in
-whichever order you feel best") — being built (docs/RESUME.md); built: 84 Number Detective (the tab `numcheck`, 27 Nov 2026), 61 PDF Redact (the tab `pdf-redact`, 27 Nov 2026), 93 Safe ID Copy (the tab `idcopy`, 27 Nov 2026).** All four: about 620 MB of the 1 GB. Held back for now: the large models (5 Vocal Remover 180 MB, 67 Object Eraser 208 MB,
+whichever order you feel best") — being built (docs/RESUME.md); built: 84 Number Detective (the tab `numcheck`, 27 Nov 2026), 61 PDF Redact (the tab `pdf-redact`, 27 Nov 2026), 93 Safe ID Copy (the tab `idcopy`, 27 Nov 2026), 3 Make PDF Searchable (the tab `pdf-ocr`, 27 Nov 2026), 15 PDF Compare (the tab `pdf-compare`, 27 Nov 2026), 16 PDF Tables → Excel (the tab `pdf-tables`, 27 Nov 2026) — group 2 is done.** All four: about 620 MB of the 1 GB. Held back for now: the large models (5 Vocal Remover 180 MB, 67 Object Eraser 208 MB,
 22 LaTeX ≈ 175 MB), 4 Document Converter (58.6 MB), and the niche PC tools. The size check of the rule is made again,
 measured, for each app the owner picks.
 
@@ -111,7 +111,6 @@ from the sandbox (GitHub is not reachable there): measure it before building.
 |---|---|---|---|---|---|---|
 | 1 | **Image to SVG**: trace a logo, signature or scan into vectors | vtracer (Rust, MIT) or potrace (C, GPL) | own wasm build | < 1 MB | both | waiting |
 | 2 | **Photo Upscaler**: 2× / 4×, sharpen blurry or small photos | Real-ESRGAN / Upscayl models | ONNX Runtime Web (already on the site for TTS) | 17–65 MB model | both | waiting |
-| 3 | **Make PDF Searchable**: add an OCR text layer to scanned PDFs | the idea behind OCRmyPDF | Tesseract + MuPDF (both already on the site) | nothing new | both | waiting |
 | 4 | **Document Converter**: DOCX ⇄ Markdown / HTML / EPUB / ODT (owner, 20 Nov 2026: "include all the Pandoc uses when you come to the Pandoc app" — when it is built, every popular Pandoc use gets its own button, as in the FFmpeg tab, no command line needed; search the web for the popular uses first; what pandoc.wasm cannot do is added beside it by STANDING RULE #1 or said in the tab) | Pandoc | official pandoc.wasm | ≈ 50 MB | PC | waiting |
 | 5 | **Vocal Remover / Karaoke**: split vocals from music | Demucs (stem separation) | ONNX Runtime Web | 80+ MB model | PC | waiting |
 
@@ -129,8 +128,6 @@ from the sandbox (GitHub is not reachable there): measure it before building.
 ## Round 2 — reuse engines already on the site (cheapest)
 | # | New tab | Built from | What it does | Platform | Status |
 |---|---|---|---|---|---|
-| 15 | **PDF Compare** | MuPDF text + our textcore Myers diff | Two versions of a contract or agreement side by side, changes highlighted on the pages | both | waiting |
-| 16 | **PDF Tables → Excel** (bank statements, bills) | MuPDF structured text + own C table detection (extends our XY-cut) + our rust_xlsxwriter | Bank-statement PDFs → clean rows in Excel/CSV. Tabula/Camelot are Java/Python, so own C | both | waiting |
 | 17 | **Video Face Blur** | MediaPipe BlazeFace (already used by Blur & Redact) + WebCodecs | Blur every face (or chosen ones) through a whole video before sharing | both | waiting |
 | 18 | **Label & Sticker Sheet Maker** | zxing-cpp + MuPDF (both on the site) | QR codes, barcodes or addresses laid out on standard A4 label sheets (e.g. 24 / 48 / 65 per page) → PDF to print | both | waiting |
 

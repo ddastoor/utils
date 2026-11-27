@@ -5,6 +5,7 @@
 import { h, card, field, stack, note, actions, button, toggle, input, select, segmented, filePicker, clear, toast, errMsg, downloadBlob, baseName, type Mount } from '../ui';
 import { sheetEngine, type Book } from '../wasm/sheet';
 import { colName, cellText, decodeText, sniffText, jsonToBook, rowsToJson, rowsAsText, htmlTables, spreadsheetML } from '../lib/sheetdata';
+import './sheet.css';
 
 const MAX_ROWS = 1000; // rows drawn in the table (all rows are exported)
 const DELIMS: Record<string, string> = { ',': 'comma', ';': 'semicolon', '\t': 'tab', '|': 'pipe' };

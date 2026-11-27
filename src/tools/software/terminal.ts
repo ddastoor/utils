@@ -1,6 +1,7 @@
 // Linux Terminal (PC only): BusyBox compiled by us to WebAssembly (wasm32-wasi), our own shell and WASI host, an
 // in-memory filesystem, and a file panel to upload files into it and download files out of it.
 import { h, button, clear, toast, downloadBlob, fmtBytes, pickFiles, type Mount } from '../../ui';
+import './terminal.css';
 
 type Reply = { id: number; [k: string]: any };
 const SGR_COLORS = ['#3b3b3b', '#e06c75', '#98c379', '#e5c07b', '#61afef', '#c678dd', '#56b6c2', '#dcdfe4'];

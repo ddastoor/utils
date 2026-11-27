@@ -10,6 +10,7 @@ import { imagePicker, quadEditor, resultList } from '../lib/imgtools';
 import { imagesToPdf, type ImagePage } from '../lib/pdf';
 import { SIZE, startQuad, isPageQuad, type Found, type Source } from '../lib/pagefind';
 import { findPage } from '../lib/pagefind-client';
+import './scanner.css';
 
 type Mode = 'color' | 'grey' | 'bw' | 'none';
 interface Page { name: string; file: Blob; small: Img; quad: number[]; from: Source; turns: number; mode: Mode; thumb: string }

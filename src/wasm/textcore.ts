@@ -60,8 +60,34 @@ export function bindTextcore(e: any) {
         return { order: at(op), col: at(cp), part: at(pp) };
       } finally { e.t_free(bp); e.t_free(hp); e.t_free(op); e.t_free(cp); e.t_free(pp); }
     },
+    /** The tables of a page (table.c — PDF Tables → Excel): words [x0, y0, x1, y1] (points, y down) with `num[i]` when the word
+     *  is a number, an amount or a date, and the page's ruled lines as segments [x0, y0, x1, y1]. Returns the tables — `kind`
+     *  1 stream (columns where no word stands), 2 ruled (the grid of the rules); their box, column edges (columns + 1), row
+     *  edges (rows + 1) and header rows at the top — and each word's [table (−1: none), row, column]. `force`: the words given
+     *  are one table (the reader drew its box). */
+    tables(words: number[][], num: boolean[], rules: number[][], force = false): { tables: TableFound[]; word: Int32Array } {
+      const n = words.length, m = rules.length, maxT = 64, cap = 8 * n + 64 * 8 + 256;
+      const wp = e.t_malloc(n * 16 + 4), fp = e.t_malloc(n * 4 + 4), rp = e.t_malloc(m * 16 + 4), op = e.t_malloc(n * 12 + 4), tp = e.t_malloc(maxT * 32), ep = e.t_malloc(cap * 4);
+      try {
+        new Float32Array(e.memory.buffer, wp, n * 4).set(words.flat());
+        new Int32Array(e.memory.buffer, fp, n).set(num.map((x) => (x ? 1 : 0)));
+        new Float32Array(e.memory.buffer, rp, m * 4).set(rules.flat());
+        const k = e.t_tables(wp, fp, n, rp, m, force ? 1 : 0, op, tp, maxT, ep, cap);
+        if (k < 0) throw new Error('The page has too many tables to read.');
+        const tab = new Float32Array(e.memory.buffer, tp, maxT * 8), edges = new Float32Array(e.memory.buffer, ep, cap);
+        const tables: TableFound[] = [];
+        for (let t = 0, pos = 0; t < k; t++) {
+          const [kind, x0, y0, x1, y1, nc, nr, nhead] = Array.from(tab.subarray(8 * t, 8 * t + 8));
+          tables.push({ kind: kind === 2 ? 'ruled' : 'stream', box: [x0, y0, x1, y1], cols: Array.from(edges.subarray(pos, pos + nc + 1)), rows: Array.from(edges.subarray(pos + nc + 1, pos + nc + nr + 2)), head: nhead });
+          pos += nc + nr + 2;
+        }
+        return { tables, word: new Int32Array(e.memory.buffer.slice(op, op + n * 12)) };
+      } finally { e.t_free(wp); e.t_free(fp); e.t_free(rp); e.t_free(op); e.t_free(tp); e.t_free(ep); }
+    },
   };
 }
+/** a table table.c found on a page: its kind, box, column and row edges (points) and its header rows */
+export interface TableFound { kind: 'stream' | 'ruled'; box: [number, number, number, number]; cols: number[]; rows: number[]; head: number }
 /** A separate instance (the search box keeps its own, so tools can release theirs). */
 export const newTextcore = () => instantiateWasi(wasmUrl).then((x) => bindTextcore(x.exports));
 export const textcore = lazyEngine('textcore', () => instantiateWasi(wasmUrl).then((x) => bindTextcore(x.exports)));

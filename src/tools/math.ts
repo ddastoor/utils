@@ -9,6 +9,7 @@ import { fractionAnswer } from '../lib/fractions';
 import { readWholeNumbers, factorText, MAX_U64 } from '../lib/primes';
 import { roundDec } from '../lib/round';
 import { ELEMENTS, CATEGORY_COLORS, ALIASES, elementMatches, findElement } from '../lib/elements';
+import './math.css';
 
 // ================================================================== Graphing calculator
 const COLORS = ['#4f46e5', '#e11d48', '#059669', '#d97706', '#0891b2', '#7c3aed'];

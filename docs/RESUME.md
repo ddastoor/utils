@@ -108,7 +108,23 @@ CLAUDE.md §3 "Safe ID Copy"): photos (the card found by the Doc Scanner's finde
 reading path) or an e-Aadhaar PDF (password; its text, or the OCR for a picture page) → the first 8 digits of each Aadhaar number
 and the first 12 of a VID under "XXXX XXXX", a QR that holds the number covered, "For … only · date" stamped across, a PDF of
 pictures or one picture. Unit `idcopy` 36, e2e `idcopy` 34 (+ camera sweep); fixtures `python3 scripts/make-id-photos.py`;
-docs/WASM-AUDIT.md 188. **Next: #3 Make PDF Searchable.**
+docs/WASM-AUDIT.md 188. **#3 Make PDF Searchable — BUILT (27 Nov 2026):** the tab `pdf-ocr` (Documents,
+PC + mobile; CLAUDE.md §3 "Make PDF Searchable"): pages without text found upright (turned by /Rotate, or their words written
+along their lines), read by the OCR's reading path never straightened (`readPage`'s new `straighten: false`), their words written
+as invisible text (`src/lib/searchable.ts` + `stampPage`), the password kept. Unit `searchable` 28, e2e `pdf-ocr` 50; fixtures
+`python3 scripts/make-searchable-pdfs.py`; docs/WASM-AUDIT.md 189. **With it, the tabs' own styles moved beside them**
+(`scripts/split-tab-css.py`: the start page 184 → 154 KB of its 180 KB budget; CLAUDE.md §4). **#15 PDF Compare — BUILT (27 Nov
+2026):** the tab `pdf-compare` (Documents, PC + mobile; CLAUDE.md §3 "PDF Compare"): two PDFs' words compared (textkit-tokens.wasm,
+the patience algorithm chosen by measurement; our sliding, clean-up and moves), the changes listed and marked on both versions'
+pages side by side (scrolled together; one at a time on phones), Previous / Next, both PDFs saved with the changes as comments,
+scanned pages through the OCR. Unit `pdfcompare` 45, e2e `pdf-compare` 44; fixtures `python3 scripts/make-compare-pdfs.py`;
+docs/WASM-AUDIT.md 190. **#16 PDF Tables → Excel — BUILT (27 Nov 2026):** the tab `pdf-tables` (Documents, PC + mobile; CLAUDE.md §3
+"PDF Tables → Excel"): our table finder in textcore.wasm (`wasm/textcore/table.c`: ruled grids and columns that line up — MuPDF's own
+`table-hunt` lost columns on every test PDF, docs/WASM-AUDIT.md 191), tables over pages joined, amounts and dates typed, dates in
+the .xlsx shown as printed (sheet.wasm), scanned pages through the OCR, a table drawn by hand. Unit `pdftables` 71 (pdfplumber,
+openpyxl, LibreOffice), e2e `pdf-tables` 32; fixtures `python3 scripts/make-table-pdfs.py`. **Group 2 is done.** The stylesheet
+split was checked tab by tab: 370 screenshots (every tab, PC and phone) before and after, the only differences random values,
+timers and anti-aliased pixels. **Next: group 4 — #88 Router Sticker → Wi-Fi QR.**
 **Then to-dos #38, #39 and #40** (owner,
 27 Nov 2026, evening: "After you finish all these, finish off the items in the todo.md also."; #40, added the same evening:
 the EPUB Reader's "Remember book" — a hash of the book, its place and the reading voice in the Settings — after #39). The open question (keep the EPUB Reader's place between visits?) is

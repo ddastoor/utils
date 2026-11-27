@@ -8,6 +8,7 @@ import { imageInfoOf, imagePicker } from '../lib/imgtools';
 import { readPhotoTags, stripPhoto } from '../lib/exiftool-client';
 import { photoInfo, gpsOf, isMetadata, notPicture } from '../lib/photoinfo';
 import { toDecimal, toDMS } from '../lib/coords';
+import './images.css';
 
 const kv = (rows: Array<[string, unknown]>) => {
   const r = rows.filter(([, v]) => v !== undefined && v !== null && v !== '');

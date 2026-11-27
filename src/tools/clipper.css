@@ -1,0 +1,11 @@
+/* clipper.ts's own styles, loaded with its tab (moved from src/styles.css by scripts/split-tab-css.py) */
+/* Newspaper Clipper: the page with its blocks to tap, the parts in order, the clipping */
+.clip-view { position: relative; line-height: 0; border-radius: 8px; overflow: hidden; background: #fff; }
+.clip-layer { position: absolute; inset: 0; }
+.clip-block { position: absolute; padding: 0; margin: 0; border: 2px solid color-mix(in srgb, var(--accent) 45%, transparent); border-radius: 4px; background: transparent; cursor: pointer; }
+.clip-block[aria-pressed="true"] { background: color-mix(in srgb, var(--accent) 22%, transparent); border: 2px solid var(--accent); }
+.clip-block:focus-visible { outline: 3px solid var(--accent); outline-offset: 1px; }
+.clip-n { position: absolute; left: 0; top: 0; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 0 0 6px 0; background: var(--accent); color: var(--accent-ink); font: 600 12px/20px system-ui, sans-serif; }
+.clip-stories { display: flex; flex-wrap: wrap; gap: 8px; }
+.clip-parts { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; }
+.clip-out { max-height: 70vh; overflow: auto; border: 1px solid var(--border); border-radius: 8px; background: #fff; }

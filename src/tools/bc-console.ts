@@ -7,6 +7,7 @@
 import { h, card, button, clear, copy } from '../ui';
 import { trackWorker } from '../lifecycle';
 import { BcVars, isBcNumber } from '../lib/bcvars';
+import './bc-console.css';
 
 export function bcConsole() {
   // BusyBox (≈ 0.5 MB) loads on the first Enter, not when the calculator opens

@@ -4,6 +4,7 @@ import { isIOS } from '../platform';
 import { linuxBanner } from '../linux';
 import { modernZone } from '../lib/tz';
 import { headingOf, platformName, screenTilt } from '../lib/sensors';
+import './device.css';
 
 const stopStream = (s?: MediaStream | null) => s?.getTracks().forEach((t) => t.stop());
 const kv = (rows: Array<[string, string]>) => h('div', { class: 'kv' }, rows.flatMap(([k, v]) => [h('span', null, k), h('span', null, v)]));

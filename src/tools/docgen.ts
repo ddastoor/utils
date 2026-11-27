@@ -11,6 +11,7 @@ import { loadImg, encodeImg, previewOf } from '../lib/imgio';
 import { rupeesInWords } from '../lib/words';
 import { upi } from '../lib/qrdata';
 import { safeName, mailLink, telLink, webLinks, STATES, GST_RATES, rentMonths, rentProblem, cutText, MAX_LINE, MAX_AREA, MAX_ROWS } from '../lib/docrules';
+import './docgen.css';
 export { STATES, GST_RATES, rentMonths, rentProblem } from '../lib/docrules';
 
 // ------------------------------------------------------------------ shared

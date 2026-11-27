@@ -11,6 +11,7 @@ import { imageInput, imagePicker, resultList } from '../lib/imgtools';
 import { isIOS } from '../platform';
 import { wrapLines } from '../lib/textwrap';
 import { diagonalFit, type Pos } from '../lib/wmlayout';
+import './canvas-tools.css';
 
 // ------------------------------------------------------------------ shared
 let fontsReady: Promise<void> | null = null;

@@ -6,6 +6,7 @@ import { h, card, field, actions, button, segmented, toggle, select, input, stac
 import { linuxBanner } from '../linux';
 import { finishRecording } from '../lib/aac';
 import { countdownWindow, showCount } from '../lib/pipcount';
+import './screencast.css';
 
 type Mode = 'whole' | 'area';
 const MIMES = ['video/mp4;codecs=avc1,mp4a.40.2', 'video/mp4;codecs=avc1,opus', 'video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm'];

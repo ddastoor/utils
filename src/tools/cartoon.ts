@@ -9,6 +9,7 @@ import { encodeImg, loadImg, previewOf, paint, onWhite } from '../lib/imgio';
 import { imageInput, imagePicker } from '../lib/imgtools';
 import { ART_STYLES, artImage } from '../lib/style-art';
 import { styleEngine, styleVector, stylize, disposeStyleEngine } from '../lib/style-transfer';
+import './cartoon.css';
 
 type Fx = 'cartoon' | 'oil' | 'watercolor' | 'sketch' | 'colorsketch' | 'comic';
 export const FILTERS: Array<[Fx, string]> = [['cartoon', 'Cartoon'], ['oil', 'Oil paint'], ['watercolor', 'Watercolour'], ['sketch', 'Pencil sketch'], ['colorsketch', 'Colour pencil'], ['comic', 'Comic']];

@@ -4,6 +4,7 @@ import { keys, toB64, type Keys } from '../../wasm/keys';
 import { zxcvbn } from '../../wasm/zxcvbn';
 import { devcore } from '../../wasm/devcore';
 import { kvRows, show, table, debounce } from './devui';
+import './net.css';
 
 
 // ------------------------------------------------------------------ Subnet / CIDR

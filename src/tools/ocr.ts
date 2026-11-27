@@ -14,6 +14,7 @@ import { readPage, readsPoorly, unsureWord, secondWords } from '../lib/readpage'
 import { listText } from '../lib/listtext';
 import { readExif } from '../lib/exif';
 import { uprightWords, turnWords, ROT } from '../lib/upright';
+import './ocr.css';
 
 export const mount: Mount = (root, ctx) => {
   // handTurned: the picture was turned with the buttons — then it is read as it is shown, never turned on its own

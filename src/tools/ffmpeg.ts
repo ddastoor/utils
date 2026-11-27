@@ -8,6 +8,7 @@ import { JOB_GROUPS, DEFAULTS, EMPTY_PROBE, buildJob, parseProbe, secondFor, asJ
 import { cropBox } from '../lib/imgtools';
 import { loadImg, encodeImg } from '../lib/imgio';
 import { liveCamera } from '../lib/livecam';
+import './ffmpeg.css';
 
 const FORMATS: Array<[string, string]> = [['mp4', 'MP4 (H.264 + AAC)'], ['webm', 'WebM (VP8 + Opus)'], ['mkv', 'MKV (copy streams)'], ['mov', 'MOV (H.264 + AAC)'], ['mp3', 'MP3 audio'], ['m4a', 'M4A audio (AAC)'], ['wav', 'WAV audio'], ['flac', 'FLAC audio'], ['ogg', 'OGG audio (Opus)'], ['gif', 'GIF']];
 const quote = (s: string) => (/^[\w.\-/:=]+$/.test(s) ? s : `"${s.replace(/(["\\$`])/g, '\\$1')}"`);

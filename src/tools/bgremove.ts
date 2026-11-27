@@ -6,6 +6,7 @@ import { encodeImg, loadImg, previewOf, paint, resizeImg } from '../lib/imgio';
 import { imageInput, imagePicker } from '../lib/imgtools';
 import { personMask, type PersonMask } from '../lib/segment';
 import { coverCrop } from './canvas-tools';
+import './bgremove.css';
 
 type Mode = 'transparent' | 'colour' | 'blur' | 'photo';
 const SWATCHES: Array<[string, string]> = [['#ffffff', 'White'], ['#f2f2f2', 'Light grey'], ['#1e88e5', 'Blue'], ['#e53935', 'Red'], ['#000000', 'Black']];

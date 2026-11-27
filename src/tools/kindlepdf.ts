@@ -7,6 +7,7 @@ import { parseRanges, openPdf, pageThumb } from '../lib/pdf';
 import { pdfInput, stem, type LoadedPdf } from '../lib/pdfui';
 import { plural } from '../lib/dates';
 import { pdfForKindle, KINDLES, Stopped, type KindlePage } from '../lib/kindlepdf';
+import './kindlepdf.css';
 
 // kept while the page is open (through other tabs): the Kindle and the switches
 let device: string = KINDLES[0].id, custom: [string, string] = ['1264', '1680'], heads = true, labels = true;

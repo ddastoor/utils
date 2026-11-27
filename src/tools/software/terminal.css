@@ -1,0 +1,8 @@
+/* terminal.ts's own styles, loaded with its tab (moved from src/styles.css by scripts/split-tab-css.py) */
+.term-status { min-height: 1.4em; margin-top: 4px; }
+.term-files { display: flex; flex-direction: column; gap: 2px; }
+.term-file-row { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 6px; }
+.term-file:hover { background: var(--surface-2); }
+@media (max-width: 900px) {
+  .term-layout { grid-template-columns: 1fr; }
+}

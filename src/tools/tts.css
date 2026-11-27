@@ -1,0 +1,5 @@
+/* tts.ts's own styles, loaded with its tab (moved from src/styles.css by scripts/split-tab-css.py) */
+/* text-to-speech */
+.tts-text { min-height: 160px; font-size: 16px; line-height: 1.55; }
+.tts-now { font-size: 15px; padding: 8px 12px; border-left: 3px solid var(--accent); background: var(--surface-2); border-radius: 6px; }
+.tts-now:empty { display: none; }

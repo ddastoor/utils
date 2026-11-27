@@ -1,0 +1,8 @@
+/* sheet.ts's own styles, loaded with its tab (moved from src/styles.css by scripts/split-tab-css.py) */
+/* CSV / Excel viewer */
+.sheet-bar { align-items: flex-end; gap: 12px; }
+.sheet-wrap { overflow: auto; max-height: 65vh; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); }
+.sheet-table { border-collapse: separate; border-spacing: 0; font: 13px/1.35 system-ui, sans-serif; }
+.sheet-table thead th { position: sticky; top: 0; background: var(--surface-2); color: var(--muted); font-weight: 600; z-index: 2; }
+.sheet-table .rn { position: sticky; left: 0; background: var(--surface-2); color: var(--muted); text-align: right; z-index: 1; }
+.sheet-table thead .rn { z-index: 3; }

@@ -10,6 +10,7 @@ import { loadImg, resizeImg, encodeImg } from '../lib/imgio';
 import { safeName } from '../lib/docrules';
 import { plural } from '../lib/dates';
 import { give } from '../lib/handoff';
+import './articles.css';
 
 const ACCEPT = '.mhtml,.mht,.webarchive,.html,.htm,.xhtml,.shtml,.txt,text/html,multipart/related,application/x-mimearchive';
 // kept while the page is open (through other tabs): pictures and the cover

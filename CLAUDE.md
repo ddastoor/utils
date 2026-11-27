@@ -336,7 +336,7 @@ Wayland) and **mobile browsers** (Android Chrome, iPhone Safari).
 Platform is PC + mobile unless marked **PC**. Tab ids are the URL hash (`#/<id>`).
 
 **The authoritative, always-current list is `docs/TOOLS.md`, generated from `src/registry.ts` (`npm run docs`).**
-Current total: **184 tabs in 11 categories — 117 PC + mobile, 64 PC only, 3 Mobile only** (regenerate with
+Current total: **187 tabs in 11 categories — 120 PC + mobile, 64 PC only, 3 Mobile only** (regenerate with
 `npm run docs` after every registry change; the owner asked for the registry to always be noted).
 The per-category notes below record decisions; when they disagree with the registry, the registry wins.
 
@@ -444,6 +444,9 @@ warned. Resume: the photo is a JPEG (quality 85); file names are made safe (`saf
 | `pdf-pagenum` | PDF Page Numbers | both |
 | `pdf-watermark` | PDF Watermark | both |
 | `pdf-redact` | PDF Redact | both — **BUILT** (27 Nov 2026; potentials #61 — §3 "PDF Redact": numbers, words and areas taken out for good) |
+| `pdf-ocr` | Make PDF Searchable | both — **BUILT** (27 Nov 2026; potentials #3 — §3 "Make PDF Searchable": an invisible OCR text layer on scanned pages) |
+| `pdf-compare` | PDF Compare | both — **BUILT** (27 Nov 2026; potentials #15 — §3 "PDF Compare": two versions compared word by word, the changes marked on their pages side by side) |
+| `pdf-tables` | PDF Tables → Excel | both — **BUILT** (27 Nov 2026; potentials #16 — §3 "PDF Tables → Excel": the tables of a bank statement or a bill as Excel or CSV) |
 | `idcopy` | Safe ID Copy | both — **BUILT** (27 Nov 2026; potentials #93 — §3 "Safe ID Copy": the Aadhaar number masked, "For … only" stamped across, flattened) |
 | `epub` | PDF → EPUB (Kindle) | **PC** — **BUILT** (see §3) |
 | `kindlepdf` | PDF for Kindle | both — **BUILT** (27 Nov 2026; potentials #109 — §3 "PDF for Kindle") |
@@ -2498,6 +2501,128 @@ or the e-Aadhaar PDF (its password asked for: MuPDF opens it); said in the tab: 
   password. The scanned PDF of PDF Redact's fixtures: the picture page read by the OCR, the number and the QR hidden.
 - **Nothing at open:** MuPDF, the finder, the OCR, devcore-ids.wasm and zxing-cpp come with the first photo or PDF.
 
+### Make PDF Searchable — BUILT (potentials #3; owner's pick of 27 Nov 2026 — group 2 of the suggested order)
+(`pdf-ocr` in `src/tools/pdfocr.ts`, the text layer `src/lib/searchable.ts` (no DOM); unit `tests/unit/searchable.test.mjs` 28, e2e
+`tests/e2e/pdf-ocr.e2e.mjs` 50; fixtures `tests/fixtures/searchable/` — scanned pages upright, lying a quarter to the left, upside
+down and shown through /Rotate 90, a page of real text; `truth.json` has every word's box on the page as shown — made by `python3
+scripts/make-searchable-pdfs.py`.) The owner's words (potentials #3): "add an OCR text layer to scanned PDFs" — the idea behind
+OCRmyPDF.
+- **Which pages:** a page with 20 characters of text and more is left as it is (a page of real text, or one read before —
+  OCRmyPDF's `--skip-text`); every other page is read, also one without a picture (its letters may be drawn as shapes).
+- **Which way up:** a 1,000 px drawing of the page and the OCR's `uprightByReading` (the letters' look, quick readings where it is
+  not sure). **"Turn pages that lie sideways or upside down upright"** (on): the page's /Rotate is turned — the page shows upright
+  in every reader (OCRmyPDF's `--rotate-pages`); off: the page stays as it is and its words are written along its lines.
+- **Reading:** the page drawn at up to 300 dpi (at most 3,000 px — the reading path's size) and read by the OCR tab's reading
+  path with its clean-up (the document clean-up, ruled lines and list marks cleared, columns read as a page, a watermark taken out;
+  PaddleOCR, the second reader, for a soft page) — **never straightened**: `readPage`'s `straighten: false` (the words must keep
+  their places on the page); four languages and "Mixed".
+- **The text layer** (`textLayer`): each word as invisible text (render mode 3) in Helvetica (WinAnsi; a ligature written out, a
+  character it lacks a "?"), at its box — each line one size (its height ÷ Helvetica's 0.93 em) and one baseline (above the
+  descent), each word stretched to its box (Tz) with a space after it, so that readers of the text see words; the text matrix
+  turned with the page (`toPage`, `DIRS`: a picture read turned t quarter turns maps back onto the page as shown). Drawn by
+  `stampPage` in the page's shown coordinates (any /Rotate); the page's own content untouched (it draws exactly as before).
+- **Saved:** `<name>-searchable.pdf`, the password kept (`encrypt=keep`; said, or that it could not be); read again — the words
+  written are counted in the new file's text ("every word written is in the new file's text"); pages that read poorly (a soft or
+  small scan) named; a signed PDF said to lose its signature. **Stop** keeps the pages read so far. The text read under "The text
+  read" (Copy). A PC downloads at once; a phone shares from a tap of its own.
+- **Measured** (e2e, in the browser; the file read back in Node): every scanned page of the fixture 95 %+ of its words in MuPDF's
+  and poppler's text; a search finds a word over its place in the scan on all four (upright, turned upright from sideways and
+  upside down, the /Rotate 90 page; and with turning off, along the sideways lines); the pages draw exactly as before; the page of
+  real text untouched; the four pages read in about 10 s.
+
+### PDF Compare — BUILT (potentials #15; owner's pick of 27 Nov 2026 — group 2 of the suggested order)
+(`pdf-compare` in `src/tools/pdfcompare.ts`, the comparison `src/lib/pdfcompare.ts` (no DOM), engine `wasm/textkit/src/tokens.rs` →
+**textkit-tokens.wasm** (feature `tokens`, 0.20 MB); unit `tests/unit/pdfcompare.test.mjs` 45, e2e `tests/e2e/pdf-compare.e2e.mjs` 44;
+fixtures `tests/fixtures/compare/` — two versions of a supply agreement and the ten edits between them (`truth.json`), made by
+`python3 scripts/make-compare-pdfs.py`.) The owner's words (potentials #15): "Two versions of a contract or agreement side by side,
+changes highlighted on the pages".
+- **Reading** (`tokensOf`): each page's characters with their boxes — MuPDF's structured text (`pageText` of PDF Redact), or on a
+  scanned page the OCR's reading path (turned upright by `uprightByReading`, read at up to 300 dpi with the clean-up, never
+  straightened; `ocrText` gives each character a share of its word's box and maps it back onto the page as shown) — become
+  tokens: words (letters, digits and their marks; an apostrophe or a hyphen between letters and a full stop or a comma between
+  digits inside the word: "Buyer’s", "e-mail", "1,25,000") and every other sign on its own. **A word broken over two lines**
+  ("agree-" / "ment", or a soft hyphen) is one word, with a box on each line; it keeps its hyphen only where the documents
+  write it with one elsewhere ("well-known"). **Running heads and page numbers** are left out (PDF → EPUB's rule, `headerKeys`,
+  in the frame of the page's text — a page shown turned has them at a side; an option).
+- **Comparing** (`keyOf`, `compare`): tokens in their compatibility form (ﬁ is fi), typographic quotes and apostrophes plain;
+  capitals and punctuation ignored when asked. The engine: the `similar` crate's **patience algorithm** (chosen by measurement:
+  on 60 stretches of real legal prose — the Federal Register's pages, a paper — with 615 known edits it found 609 exactly and
+  no change that was not made; Myers' algorithm 598 and 10 changes that were none, a "the" matched far away; histogram 608, but
+  it told a moved clause as the two clauses round it moved the other way — docs/WASM-AUDIT.md 190); then ours: **runs that are
+  only added or removed slide** to where they read best (from a sentence's end, ending with one — git's indent heuristic for
+  words); **a short equal run between two changes is taken into them** (diff-match-patch's semantic clean-up, capped at 3
+  tokens and 20 characters: "thirty (30" → "sixty (60" is one change, not two round the "("); **a removed run put back
+  elsewhere is a move** (the same tokens, or 80 % of them in order: "moved, with small changes"). A 5 s limit on the search.
+- **The tab:** two pickers (passwords asked for; Swap), the options (capitals the same, punctuation left out, running heads
+  left out, read scanned pages, their language), Compare → "10 changes: 5 changed, 3 added, 1 removed, 1 moved · 19 words
+  added, 11 removed"; what is compared (words — not fonts, colours, pictures or the layout); notes for scanned pages read by
+  the OCR ("a word it misreads shows as a change") or left unread. **The list:** each change with its kind, page and words in
+  their context (struck / green / blue), a button that makes it current. **Previous / Next change** (round and round; Alt+↑ /
+  Alt+↓ anywhere but a text box, N / P in the list or the pages), "Change 3 of 10 — original page 1, changed page 1"; the
+  current change outlined on both sides and brought a third of the way down each column. **The pages side by side** (PC):
+  each version's pages drawn by MuPDF as they come into view, the changes marked where their words stand — red on the
+  original (taken out, changed), green on the new version (added, changed), blue for a move, a thin bar where words were added
+  or taken out on the other side; a click on a mark makes it current. **Scroll the two together** (on): the word at the top
+  of one column brought to the same height in the other (`counterpart`: an unchanged word's partner, a changed word to its
+  change). **Phones:** one version at a time (Original / Changed). **Saved:** both PDFs with the changes as comments that any
+  reader shows (`markPdf`: strike-outs on the original — "Now: …" —, highlights on the new version — "Was: …" —, carets
+  where words were added or taken out, the move's places; the password kept) — `<name>-compared.pdf` —, and the list (Copy,
+  `<changed>-changes.txt`). Nothing at open: MuPDF with the first PDF, textkit-tokens.wasm with Compare, the OCR with a
+  scanned page.
+- **Measured:** the test agreement (another font size, width, line and page breaks; ten words broken with hyphens; curly
+  against straight quotes; other running heads and page counts) — exactly the ten edits; with every page of the new version
+  turned (/Rotate 90) — the same ten, marked down the page; the new version scanned — the ten (a moved paragraph "with small
+  changes" where the OCR ran two words together) and two signature lines the OCR does not read; the marked PDFs read back by
+  MuPDF (each highlight and strike-out over its change's words), pypdf (the comments) and poppler (the text unchanged).
+
+### PDF Tables → Excel — BUILT (potentials #16; owner's pick of 27 Nov 2026 — group 2 of the suggested order)
+(`pdf-tables` in `src/tools/pdftables.ts`, the cells, the joining and the reading of amounts and dates `src/lib/pdftables.ts` (no DOM),
+the finder `wasm/textcore/table.c` in **textcore.wasm** (`t_tables`, own C), the .xlsx and the CSV by **sheet.wasm**; unit
+`tests/unit/pdftables.test.mjs` 71, e2e `tests/e2e/pdf-tables.e2e.mjs` 32; fixtures `tests/fixtures/tables/` — a bank statement of
+two pages, the same with ruled lines, an electricity bill with two tables among its paragraphs, the statement's first page as a
+scan; `truth.json` holds every cell — made by `python3 scripts/make-table-pdfs.py`.) The owner's words (potentials #16): "Bank-statement
+PDFs → clean rows in Excel/CSV". MuPDF's own table finder (`table-hunt`) loses columns on every one of these PDFs: docs/WASM-AUDIT.md 191.
+- **Reading a page:** its words with their boxes (MuPDF's characters, words between spaces; text running up or down a margin left
+  out) and its ruled lines (PDF → EPUB's `readRules`: thin filled bars and stroked lines). A scanned page (`pageKind` of PDF Redact)
+  is read by the OCR's reading path (set upright by `uprightByReading`, at up to 300 dpi, with the clean-up, never straightened),
+  each word's box as tall as its line (`ocrWords`: the OCR's boxes hold only the ink, and the finder measures its gaps in word
+  heights); "Read scanned pages" and their language are options.
+- **Finding the tables** (`t_tables`, Tabula's and Camelot's two ways): **ruled** — horizontal and vertical lines that touch make a
+  grid; two lines and more each way and two cells and more with words in them are a table, its columns and rows between the lines,
+  the rows above the first with a number its header (at most two). **Lined up** — words on one line make a line, cut into chunks at
+  gaps wider than 0.6 of the usual word height; runs of lines of two chunks and more (no gap above 2.2 word heights), with the
+  narrow one-chunk lines among them (a narration wrapped onto a second line), are a table when three lines have two chunks; its
+  columns are the stretches no chunk of its lines with a number covers (a chunk wider than 45 % of the table — a total across
+  columns — left out); three of its lines must reach two columns or more (label-and-value lines, "Account number: … IFSC: …",
+  are no table); a row starts at a line with a word in the **key column** (the leftmost one 80 % of the lines with numbers fill —
+  the date) and takes the lines under it; up to two lines above, without numbers and in two columns or more, within 3.5 word
+  heights, are its header (a rule between them). A one-chunk line at the end is a note under the table unless it follows as
+  closely as a wrapped line. Tables in reading order, top to bottom.
+- **A cell's text** (`cellText`): its words line by line, the lines joined by a space — or by nothing after a "/" or "-" (a
+  narration wrapped at a slash: "…/CHEQUE 004521/" + "NARMADA PACKAGING LLP"). **A table that runs on over pages** (`joinPages`, an
+  option, on): a table at the top of a page continues the last table of the page before when it has the same columns (within 2 %
+  of the width) or the same header — the repeated header left out.
+- **Amounts and dates** (`typed`, an option, on): 1,25,000.00 → 125000, (1,234.00) and 1,234.00 Dr → −1234, Cr and ₹ / Rs. / INR
+  dropped; dates day first (07/11/2026, 7-11-26, 7 Nov 2026, 07-Nov-2026 → 7 November 2026; 31/02/2026 stays text); a reference
+  or account number stays text (no grouping and more than 9 digits, or more than 15; a leading zero: 005953). **In the .xlsx a
+  date is a real date shown as printed** (`excelCell` → sheet.wasm's `{ date, format, shown }`: 07/11/2026 → `dd\/mm\/yyyy`, the
+  separators escaped — Excel reads a bare / in a date format as the computer's own separator, 01-11-2026 on many Indian Windows
+  set-ups); in the CSV dates are ISO (2026-11-07) and amounts plain numbers. Off: every cell as printed.
+- **The tab:** a PDF (a password asked for) → "Reading the tables" (the three switches, the language), the progress page by page
+  → "Tables": "1 table found (a table that runs on over pages is one)"; each table a card — its pages, "46 rows · 7 columns ·
+  columns that line up · a header row · joined over 2 pages, the header they repeat left out", the first 30 rows as printed
+  (amounts right-aligned; the header sticky; the table scrolls in its own box), Excel / CSV (with a BOM, for Excel) / Copy (tab
+  separated, to paste into a spreadsheet); **Save as Excel** (the phone's bar): every table a sheet ("Table 1 (pages 1–2)"), the
+  header bold and frozen with a filter — `<name>-tables.xlsx`, `<name>-table-1.csv`. **The pages:** drawn by MuPDF as they come
+  into view, each table outlined and numbered, its columns dashed; **Draw a table** — drag a box round a table it missed: the words
+  inside are one table (`force`), "Table 3 (drawn)", with Remove. No table: what a table needs, said. The choices are kept while
+  the page is open. Nothing at open: MuPDF, textcore.wasm and sheet.wasm with the first PDF, the OCR with a scanned page.
+- **Measured:** the statement — one table of 46 rows and 7 columns over its two pages, every cell as printed (the narrations wrapped
+  over two lines, the last one at the foot of page 2), the header read once; the ruled statement the same, its grid read, and
+  **pdfplumber** (the unit suite's reference) reads its cells as ours do; the bill — its two tables and nothing of its paragraphs;
+  the scan — the 30 rows of its first page, 90 %+ of the cells as printed, the header over the rule; the Excel file read back by
+  **openpyxl** (dates datetime, amounts numbers, references text) and shown by **LibreOffice** with the dates as printed.
+
 ### Doc Scanner
 Camera or upload; automatic page detection with draggable corners; perspective correction; enhance modes (Colour
 clean, Grey, B/W adaptive threshold); multi-page → PDF (A4/Letter/fit) or JPEGs.
@@ -3792,9 +3917,9 @@ difference over its detail, the overlap's pixels), ruled lines and list marks cl
 | Signalsmith Stretch 1.3.2 (tempo and pitch, polyphonic) | C++ | Signalsmith Audio (official `signalsmith-stretch`, WebAssembly in an AudioWorklet) — rendered offline by `src/lib/stretch.ts` | pitch (replaced our WSOLA in Nov 2026: `docs/WASM-AUDIT.md`, tab 145) |
 | espeak: **eSpeak NG 1.52.0** (+ English phoneme tables and dictionary compiled from the same release, linked in, served to its fopen/stat from memory) + glue (IPA for Kokoro, piper-phonemize-style sentences) | C | **us** (`wasm/espeak`) | tts, audiobook |
 | geo: Charles Karney's **geodesic.c 2.2** (GeographicLib's geodesic routines in C, MIT; the two files unmodified from the PROJ 9.9.0 release) + glue (inverse problem on WGS-84, half-way point, the haversine great circle for comparison) | C | **us** (`wasm/geo`, 36 KB, loaded by the Coordinates tab only; no tried-and-tested WebAssembly geodesic module exists: `docs/WASM-AUDIT.md`, tab 82) | coords |
-| textcore: tool-search ranking, rare-word ranking (tokeniser, lemmatiser, wordfreq hash table), XY-cut reading order (columns numbered only where they are real: `minh`) | C (own code) | **us** (`wasm/textcore`) | search box, emoji (search), photodict, epub, clipper (the order of a story's parts), kindlepdf (a page's regions) |
-| textkit: **unicode-segmentation 1.13.3** (the Rust ecosystem's UAX #29 implementation, Unicode 17.0, MIT / Apache-2.0: extended grapheme clusters, sentence boundaries) + our counting rules: words as a word limit counts them, abbreviations and initials, lines and paragraphs, keywords (Snowball's stop words); **the Case Converter's thirteen conversions** (`case.rs`: Title Case is a port of the Python package `titlecase` 2.4.1 — Gruber's rules, MIT; the code cases cut words as npm's `change-case` does; case mapping by Rust's standard library) | Rust | **us** (`wasm/textkit`, crates.io via `Cargo.lock`, two modules by Cargo features: **textkit.wasm** 217 KB — fetched with the Word Counter's first text, with the Case Converter, and with the first Fancy Text that has an emoji or another script — and **textkit-diff.wasm** 0.71 MB = the **`similar` crate 3.2.1** (Apache-2.0: Myers in linear space with a time limit, line / word / grapheme diffs, inline changes, unified diffs) + our glue and our pairing of a change's lines side by side (`pair_lines`: likeness by a bounded Myers search, the best order-keeping pairing by dynamic programming — to-do #35), fetched by the Text Diff only; and **textkit-lorem.wasm** 0.13 MB = the **`lipsum` crate 0.9.1** (MIT: a Markov chain over the classic passage and Cicero's *De finibus*, with rand 0.8 / rand_chacha 0.3) + our glue (cleaned texts learned as circles, exact counts), fetched by the Lorem Ipsum tab; the existing module — ICU4X's official build — is one file of 20 MB: `docs/WASM-AUDIT.md`, tab 90) | wordcount, case, lines ("By length"), fancy (characters); diff (textkit-diff); lorem (textkit-lorem) |
-| sheet: calamine 0.38 (read .xlsx .xlsm .xlsb .xls .ods) + rust_xlsxwriter 0.102 (write .xlsx) + csv 1 + serde_json | Rust | **us** (`wasm/sheet`, crates.io sources verified by `Cargo.lock`, target wasm32-wasip1) | sheet |
+| textcore: tool-search ranking, rare-word ranking (tokeniser, lemmatiser, wordfreq hash table), XY-cut reading order (columns numbered only where they are real: `minh`), **the tables of a page** (`table.c`, `t_tables`: ruled grids and columns that line up — Tabula's and Camelot's two ways; MuPDF's own `table-hunt` loses columns: docs/WASM-AUDIT.md 191) | C (own code) | **us** (`wasm/textcore`) | search box, emoji (search), photodict, epub, clipper (the order of a story's parts), kindlepdf (a page's regions), pdf-tables |
+| textkit: **unicode-segmentation 1.13.3** (the Rust ecosystem's UAX #29 implementation, Unicode 17.0, MIT / Apache-2.0: extended grapheme clusters, sentence boundaries) + our counting rules: words as a word limit counts them, abbreviations and initials, lines and paragraphs, keywords (Snowball's stop words); **the Case Converter's thirteen conversions** (`case.rs`: Title Case is a port of the Python package `titlecase` 2.4.1 — Gruber's rules, MIT; the code cases cut words as npm's `change-case` does; case mapping by Rust's standard library) | Rust | **us** (`wasm/textkit`, crates.io via `Cargo.lock`, two modules by Cargo features: **textkit.wasm** 217 KB — fetched with the Word Counter's first text, with the Case Converter, and with the first Fancy Text that has an emoji or another script — and **textkit-diff.wasm** 0.71 MB = the **`similar` crate 3.2.1** (Apache-2.0: Myers in linear space with a time limit, line / word / grapheme diffs, inline changes, unified diffs) + our glue and our pairing of a change's lines side by side (`pair_lines`: likeness by a bounded Myers search, the best order-keeping pairing by dynamic programming — to-do #35), fetched by the Text Diff only; and **textkit-lorem.wasm** 0.13 MB = the **`lipsum` crate 0.9.1** (MIT: a Markov chain over the classic passage and Cicero's *De finibus*, with rand 0.8 / rand_chacha 0.3) + our glue (cleaned texts learned as circles, exact counts), fetched by the Lorem Ipsum tab; and **textkit-tokens.wasm** 0.20 MB = the same `similar` crate's **patience algorithm** on two documents' tokens + ours (`tokens.rs`: runs that are only added or removed slid to where they read best, short equal runs taken into the changes round them, moves), fetched by PDF Compare's first Compare; the existing module — ICU4X's official build — is one file of 20 MB: `docs/WASM-AUDIT.md`, tab 90) | wordcount, case, lines ("By length"), fancy (characters); diff (textkit-diff); lorem (textkit-lorem); pdf-compare (textkit-tokens) |
+| sheet: calamine 0.38 (read .xlsx .xlsm .xlsb .xls .ods) + rust_xlsxwriter 0.102 (write .xlsx; `dates`: ISO dates as dates, and a date in the form it was printed in — `{ date, format, shown }`) + csv 1 + serde_json | Rust | **us** (`wasm/sheet`, crates.io sources verified by `Cargo.lock`, target wasm32-wasip1) | sheet, pdf-tables |
 | article: **dom_smoothie 0.20.0** (Mozilla Readability's algorithm in Rust, MIT; on dom_query 0.30 / html5ever) + ours: the article written as XHTML for an EPUB (`xhtml.rs`), Chrome's MHTML read (`mhtml.rs`: MIME headers, multiparts, base64, quoted-printable, encoded words) and Safari's web archive (`webarchive.rs`: Apple's binary property list) | Rust | **us** (`wasm/article`, crates.io via `Cargo.lock`, opt-level s, 1.1 MB; the author's npm build — dom-smoothie-js 0.16.0 — is a Node.js build four releases behind, with faults later releases fixed: `docs/WASM-AUDIT.md`, tab 183) | articles |
 | svgo: **OXVG 0.0.9** (Rust port of SVGO's plugins; lightningcss for `<style>`) + our glue: DOCTYPE / entities allowed, nesting limit 256, **our own safe preset** (OXVG's `Jobs::safe()` is not safe), `sv_diff` (do two rasters look alike? — the tab renders every result next to its original and falls back to the safe result when the full optimisation changed the picture) | Rust | **us** (`wasm/svgo`, crates.io via `Cargo.lock`, opt-level z, 4.9 MB / 1.3 MB gz, loaded with the first SVG; unit `tests/unit/svgo.test.mjs`, hazard drawings `tests/fixtures/svg/hazards.json`) | svgo |
 | keys — the **supplement** to hash-wasm for the key tabs (owner's tweak of 18 Nov 2026: what the existing module does not cover): lenient Base32 secrets, HOTP counters and truncation; checked parameters, random salts, PHC strings for scrypt / PBKDF2 and the reader of pasted hashes; RustCrypto **argon2** for Argon2 version 1.0 hashes (v=16 or no version, keyid / data), which hash-wasm does not read; RustCrypto **ssh-key** (OpenSSH Ed25519 generation), **aes + ctr + bcrypt-pbkdf** and our own OpenSSH wire reader (inspect Ed25519 / RSA / ECDSA / DSA keys, encrypted private keys, authorized_keys / known_hosts lines); API keys | Rust | **us** (`wasm/keys`, 0.31 MB; no existing WebAssembly module makes or reads OpenSSH key files) | totp, pwhash (with hash-wasm); sshkey, apikey |
@@ -3803,7 +3928,7 @@ difference over its detail, the overlap's pixels), ruled lines and list marks cl
 | devcore: ipnet (CIDR), croner + chrono (cron; zone offsets from the browser's Intl via an `env.tz_offset` import, so no tz database), **own port of npm's semver** (`semver_npm.rs`: the package's range / comparator / inc logic with its own regular expressions on regex-lite — the nodejs-semver crate gave different answers), **own Unicode-aware glob matcher** (`globm`; globset matches bytes), **own unified-diff reader / applier** (`patchm`: offsets, white space, fuzz, like GNU patch; diffy refused most real patches), data-encoding + bs58 + own Ascii85/Z85 (long inputs go through data-encoding in pieces: it refuses 8 MiB and more on a 32-bit target), **own protobuf, MessagePack and CBOR readers** (`bin.rs`; rmpv and ciborium could not show CBOR `undefined` / simple values / long bignums or MessagePack's unused 0xc1, and reported errors as Rust debug text), x509-parser + sha1/sha2 (+ own PEM / PKCS #7 reader), **own SQL formatter** (`sqlfmt.rs`: a tokenizer for standard SQL, PostgreSQL, MySQL, SQLite, SQL Server and Oracle; changes white space and the case of keywords only and checks its result against the input — the sqlformat crate changed the meaning of SQL), own hex dump + search, **own lossless JSON reader / formatter** (`jsonfmt.rs`: changes white space only — member order, duplicate keys and number spelling kept; worded errors with line / column; JSON.parse → JSON.stringify reordered keys, dropped duplicates and rounded big numbers), **own JSON diff** (`jsondiff.rs`, RFC 6902 on that reader: lists aligned by equal elements (LCS) and records by `id`, numbers by value and never rounded), **own XML formatter** (`xmlfmt.rs`: re-indents elements that hold only elements, everything else byte-for-byte — declaration, DOCTYPE, entities, CDATA, text; the DOM round trip lost or rewrote all of these), **own JSON → types generator** (`j2t.rs`: TypeScript / Go / Rust serde / Java records / Python dataclasses; the e2e suite compiles its output with tsc, go, rustc, javac and python; crates unicode-ident (MIT / Apache-2.0 + Unicode-3.0) for Python identifiers and unicode-general-category (Apache-2.0) for what Go's struct tags accept) | Rust | **us** (`wasm/devcore`, crates.io via `Cargo.lock`, wasm32-wasip1; one `dc_call(op, input)` entry; **one module per tab** via Cargo features → `devcore-<feature>.wasm`, 67–650 KB) | cidr, x509, cron, semver, glob, patch, sqlfmt, hexview, baseenc, bindecode, base64 (devcore-enc), json + jwt (devcore-json), jsondiff, xml, json2types (devcore-j2t); numcheck (devcore-ids: **our Number Detective** — Verhoeff, Luhn and mod 36 / 97 / 11 checks, India Post's PIN directory, RBI's IFSC list, libphonenumber's Indian patterns on regex-lite, the ISBN ranges walked as stdnum's numdb walks them; no WebAssembly module checks Indian IDs: `docs/WASM-AUDIT.md`, tab 186); pdf-redact and idcopy (devcore-ids `ids:scan`: the numbers in a page's text) |
 | cmark-gfm 0.29.0.gfm.13 (GitHub Flavored Markdown) | C | **us** (`wasm/markdown`, source from the PyPI `cmarkgfm` sdist, SHA-256 pinned) | markdown |
 | libyaml 0.2.5 + toml++ 3 | C / C++ | **us** (`wasm/formats`) | yaml |
-| MuPDF 1.28 | C | Artifex (official `mupdf` npm) | all PDF tools, PDF → EPUB, PDF for Kindle (the pieces: the page grafted, redacted, drawn as a form), Watermark (PDFs: to-do #17), Book Page Flattener and Newspaper Clipper (their PDFs), EPUB Reader (EPUB, MOBI, FictionBook, comics, text laid out at any size with HarfBuzz and drawn — in the reader's worker, `src/workers/ebook.worker.ts`), Audiobook (a book's text: laid out on pages 100,000 px tall, its contents resolved to page and height — in `src/workers/bookread.worker.ts`; a PDF through the PDF → EPUB engine), PDF Redact (its redaction in two passes — the text by a band through each line, then pictures' pixels, drawings and a black box; comments and form fields baked first; the saved file read again), Safe ID Copy (an e-Aadhaar's pages drawn and their text read; the copy's PDF of pictures) |
+| MuPDF 1.28 | C | Artifex (official `mupdf` npm) | all PDF tools, PDF → EPUB, PDF for Kindle (the pieces: the page grafted, redacted, drawn as a form), Watermark (PDFs: to-do #17), Book Page Flattener and Newspaper Clipper (their PDFs), EPUB Reader (EPUB, MOBI, FictionBook, comics, text laid out at any size with HarfBuzz and drawn — in the reader's worker, `src/workers/ebook.worker.ts`), Audiobook (a book's text: laid out on pages 100,000 px tall, its contents resolved to page and height — in `src/workers/bookread.worker.ts`; a PDF through the PDF → EPUB engine), PDF Redact (its redaction in two passes — the text by a band through each line, then pictures' pixels, drawings and a black box; comments and form fields baked first; the saved file read again), Safe ID Copy (an e-Aadhaar's pages drawn and their text read; the copy's PDF of pictures), Make PDF Searchable (each page's invisible text layer, `stampPage`; the password kept), PDF Compare (each page's characters with their boxes, the pages drawn, the changes written as comments), PDF Tables (each page's words and ruled lines, the pages drawn) |
 | ExifTool 13.42 on zeroperl (Perl 5 compiled to WebAssembly with ExifTool's library inside) | Perl / C | Phil Harvey (ExifTool), uswriting / 6over3 (`@uswriting/exiftool` 1.0.9, `@6over3/zeroperl-ts` 1.0.10) — run in `src/workers/exiftool.worker.ts` | exif (replaced metacore's reader and stripper in Nov 2026: `docs/WASM-AUDIT.md`, tab 120); regex (the Perl flavour, the same module: `src/lib/regex/perl.ts`) |
 | hash-wasm 4.13.0 (hand-tuned C → wasm, one small binary per algorithm, embedded in the package; streaming; HMAC over any of its hashes; Argon2, bcrypt, scrypt, PBKDF2) | C | Dani Biró (`hash-wasm` npm, ~10 M downloads a month) — wrappers `src/lib/hmac.ts`, `src/lib/totp.ts`, `src/lib/pwhash.ts`, `src/lib/hashes.ts` (in `src/workers/hash.worker.ts`); only the algorithms a tab uses are bundled into its chunk, loaded with the tab's first result | hash (23 algorithms), hmac (all of it), totp (the HMAC), pwhash (Argon2id / i / d, bcrypt, scrypt, PBKDF2) — replaced RustCrypto builds and crypto.wasm's hashes of ours in Nov 2026 (`docs/WASM-AUDIT.md`) |
 | ONNX Runtime Web 1.31 (CPU/WebAssembly, SIMD) | C++ | Microsoft (official `onnxruntime-web` wasm build) | tts and audiobook (Kokoro, Piper — `src/lib/speech.ts`, one session a worker; the Audiobook runs one to four workers at once); scanner and idcopy (DocCornerNet LEAN, scanic-ml 0.2.0: the page's — a card's — corners — `docs/WASM-AUDIT.md`, tab 121); ocr, photodict and clipper (the same network, asked where the Kindle finder's outline is not a page's — to-do #18; and **PaddleOCR's PP-OCRv6 detector and recogniser, the second reader for soft photos** — owner, 26 Nov 2026: `src/lib/paddle.ts` in `src/workers/paddle.worker.ts`); noise (**DeepFilterNet 3**, the Studio voice — to-do #20: `src/workers/noise.worker.ts`) |
@@ -3820,7 +3945,7 @@ difference over its detail, the overlap's pixels), ruled lines and list marks cl
 | MozJPEG, libwebp, OxiPNG, Squoosh's resize (Lanczos-3 in linear light) | C / Rust | jSquash (Squoosh codecs; `@jsquash/resize` since Nov 2026) | image encoders; resizing in the Image Editor and Batch Images (`docs/WASM-AUDIT.md`, tabs 109, 110) |
 | libheif + libde265 | C++ | libheif-js | heic |
 | Little CMS 2.16 | C | lcms-wasm (Matt DesLauriers; npm 1.0.5) — in the codec worker, fetched for a HEIC with a non-sRGB ICC profile | heic and every tab that opens HEIC: Display P3 → sRGB (`docs/WASM-AUDIT.md`, tab 111) |
-| Tesseract 5 | C++ | tesseract.js-core | ocr, photodict, clipper (laid out as a page: its blocks), pdf-redact (a scanned page's numbers), idcopy (a card's numbers, through the reading path) |
+| Tesseract 5 | C++ | tesseract.js-core | ocr, photodict, clipper (laid out as a page: its blocks), pdf-redact (a scanned page's numbers), idcopy (a card's numbers, through the reading path), pdf-ocr (each scanned page, through the reading path — never straightened), pdf-compare (a scanned page's words, the same way), pdf-tables (a scanned page's words, the same way) |
 | zxing-cpp | C++ | zxing-wasm | qr, barcode, scan, pdf-redact (QR codes and barcodes on the pages), idcopy (a QR that holds the number) — `src/lib/codesread.ts` |
 | 7-Zip 24.09 (`7zz`, the command line, Emscripten build with WORKERFS) | C++ | use-strict (`7z-wasm` npm 1.2.0) — run in `src/workers/sevenzip.worker.ts`, a fresh instance per archive | zip (zip and 7z with AES-256; `docs/WASM-AUDIT.md`, tab 107), unzip (reads every archive; tab 108), watermark (a Word document taken apart and zipped again: to-do #17), ebook (a CBR or CB7 comic unpacked into a zip for MuPDF) |
 | MediaPipe Tasks (TFLite) | C++ | Google (official) | passport, bgremove, redact |
@@ -3911,6 +4036,12 @@ Nov 2026 (PDF / EPUB → Audiobook, potentials #14): `src/lib/audiobook.ts` — 
 XHTML) made into paragraphs and tracks: string glue and rules over a few thousand blocks a book (which block begins a chapter,
 which line is a running head, which link is a footnote mark); the layout is MuPDF's, the speech ONNX Runtime's and
 espeak.wasm's, the MP3 and its tags audio.wasm's (LAME). No WebAssembly module makes audiobooks (`docs/WASM-AUDIT.md`, tab 184).
+Nov 2026 (PDF Tables → Excel, potentials #16): `src/lib/pdftables.ts` — a page's words from MuPDF's characters, a cell's text from
+its words, tables of consecutive pages joined, amounts and dates read by regular expressions: glue around MuPDF, Tesseract,
+textcore.wasm's finder (`table.c`) and sheet.wasm (`docs/WASM-AUDIT.md`, tab 191).
+Nov 2026 (Make PDF Searchable, potentials #3): `src/lib/searchable.ts` — a word's place on the page (a turn and a scale) and the
+text operators that write it (a few multiplications a word); the reading is the OCR's path, the writing MuPDF's (`docs/WASM-
+AUDIT.md`, tab 189).
 Nov 2026 (Safe ID Copy, potentials #93): `src/lib/idcopy.ts` — which characters a number's first 8 digits are (a count),
 a regular expression for numbers in Aadhaar's shape, a QR code's text looked at, the stamp's words, pictures placed on A4 pages (a
 few multiplications); the drawing is the browser's canvas; the finding, the reading, the codes and the PDF are devcore-ids.wasm,
@@ -3997,7 +4128,19 @@ weather (Open-Meteo), IP/network info, clock-accuracy check (network time).
 Owner: "make the full site faster, more responsive and memory efficient — load dependencies from the site's host
 **per app/tab, only when the user selects that tab**". Rules (enforced by `tests/e2e/lazy.e2e.mjs`):
 1. **The shell loads no engine.** Home and category pages fetch only `index.html`, the entry JS/CSS and the icons they
-   show (≈ 167 KB on 27 Nov 2026; the test's budget is 180 KB): no `.wasm`, `vendor/`, `models/`, `data/` or font file.
+   show (≈ 154 KB on 27 Nov 2026; the test's budget is 180 KB): no `.wasm`, `vendor/`, `models/`, `data/` or font file.
+   **A tab's own styles load with the tab** (27 Nov 2026 — the stylesheet had reached 86 of the start page's 180 KB): a rule
+   whose classes only one tool module uses lives in a stylesheet beside it (`src/tools/<module>.css`, imported by the module —
+   Vite loads it with the tab's chunk); `src/styles.css` keeps what the shell and the shared components use (56 KB built).
+   `python3 scripts/split-tab-css.py` moves the rules that have become tab-only (54 tab stylesheets made the first time — 376
+   of the 1,105 rules, each in exactly one place; every tab's first view, PC and phone, drawn the same before and after). Its
+   rules, each learnt from a wrong first try (found by comparing screenshots of every tab): **a class is named in a string**
+   ('…', "…", `…` — a variable called `el` is no class `.el`); **a class a file builds from a beginning** (`btn-${variant}`,
+   `note note-${kind}`, `kb-key kb-${code}`, `'md-' + x`) counts as that file's for every class with that beginning (ghost
+   buttons had borders, green notes went blue); **a rule stays when a later rule here of the same specificity, setting a
+   property it sets, could style the same element** — a tab's sheet loads after this one, so the moved rule would win where
+   it lost (`.kb-key { flex: 1 1 0 }` over `.kb-Space { flex-grow: 6 }`: the keyboard's wide keys narrow). Rules moved keep
+   their order, @media blocks with them. A new tab's styles go straight into its own sheet (§8).
    **The icons come in two parts** (`scripts/gen-icons.mjs`, run before every build): `src/icons.gen.ts` — the icons named
    in the shell's files (`src/main.ts` and what it imports, not the tabs: the categories, every tab's icon, the header,
    the shared controls of `src/ui.ts`) — and `src/icons-tabs.gen.ts`, the tabs' own button icons (99 of 282, 15 KB), which
@@ -4324,14 +4467,17 @@ Vincenty's formula in mpmath), the example of geodesic.h (JFK → Changi 15,347,
 half a meridian, the date line, there and back. **To update:** a newer PROJ release in build.sh (URL + SHA-256
 from its .dsc), check the version line, `python3 scripts/make-geo-reference.py`, both suites.
 
-### 5.1o textkit → `src/wasm/bin/textkit.wasm` + `textkit-diff.wasm` + `textkit-lorem.wasm` (Rust)
+### 5.1o textkit → `src/wasm/bin/textkit.wasm` + `textkit-diff.wasm` + `textkit-lorem.wasm` + `textkit-tokens.wasm` (Rust)
 `wasm/textkit/build.sh` builds the crate twice with `cargo build --release --locked --target wasm32-wasip1
 --no-default-features --features <f>` (no zig needed): feature `text` → **textkit.wasm** (Word Counter, Case Converter,
 line lengths), feature `diff` → **textkit-diff.wasm** (Text Diff; built with `opt-level = "s"`: the `similar` crate is
 generic over every token type and algorithm — 0.71 MB instead of 0.9). Feature `lorem` → **textkit-lorem.wasm** (Lorem Ipsum, also
 `opt-level = "s"`, 0.13 MB): `src/lorem.rs` on the **`lipsum` crate 0.9.1** (MIT) — `tk_lorem(unit, n, classic, seed32)` →
 `{ paragraphs: [...], sentences, words }` (unit 0 paragraphs, 1 sentences, 2 words). The two texts are the crate's
-own constants, cleaned and learned as circles (see §3 "Lorem Ipsum"). Dependencies (crates.io, pinned by
+own constants, cleaned and learned as circles (see §3 "Lorem Ipsum"). Feature `tokens` → **textkit-tokens.wasm** (PDF Compare,
+`opt-level = "s"`, 0.20 MB): `src/tokens.rs` — `tk_tokens(a, lenA, b, lenB, limit_ms)`, each list one token a line →
+`{ same, removed, added, approx, changes: [[start in a, tokens of a, start in b, tokens of b], …], moves: [[i, j, exact], …] }`
+(see §3 "PDF Compare"); a module of its own so that the Text Diff does not carry the patience algorithm. Dependencies (crates.io, pinned by
 `Cargo.lock`): **`unicode-segmentation` 1.13.3** (MIT / Apache-2.0; Unicode 17.0) and, for `diff`, **`similar` 3.2.1**
 (Apache-2.0). `src/diff.rs`: `tk_diff(a, lenA, b, lenB, mode, limit_ms)` → JSON — mode 0 lines:
 `{ added, removed, same, approx, rows: [[kind, lineA, lineB, [[marked, text], …]], …], unified, endA, endB }`, mode 1
@@ -4492,6 +4638,7 @@ npm packages (pinned in `package-lock.json`) are bundled by Vite or copied to `p
 | *test only:* @mozilla/readability 0.6.0 (Readability.js, Firefox's Reader View) | Apache-2.0 | `tests/e2e/articles.e2e.mjs`: the article Articles → Kindle finds, held to Firefox's |
 | *test only (pip, not shipped):* faster-whisper 1.2.1 with Whisper base.en (OpenAI's model, CTranslate2's conversion) | MIT | `tests/lib/transcribe.py`: what the Audiobook's MP3s say, heard by an independent ear |
 | *test only (pip):* mutagen, reportlab | GPL-2.0+ (mutagen), BSD (reportlab) | the MP3s' ID3 tags read back (`tests/unit/audio.test.mjs`); the Audiobook's test PDF made (`scripts/make-audiobook-books.py`) |
+| *test only (pip):* pdfplumber (on pdfminer.six), openpyxl | MIT | PDF Tables → Excel: a second reading of the ruled statement's cells, the Excel file read back (`tests/unit/pdftables.test.mjs`) |
 | @expo-google-fonts/noto-sans (Noto Sans TTF: regular, bold, italic) | OFL-1.1 (package MIT) | PDFs made by GST Invoice, Rent Receipt, Resume Builder; EPUB Reader (its Sans) |
 | @expo-google-fonts/literata 0.4.3 (Literata TTF: regular, italic, bold, bold italic — four files, 1.0 MB on the site) | OFL-1.1 (package MIT) | EPUB Reader (the text's font; MuPDF's FreeType reads no WOFF, so @fontsource/literata's files cannot serve) |
 
@@ -4649,7 +4796,8 @@ bandwidth, 10 minutes per deployment.
    `docs/WASM-AUDIT.md`. Everything is hosted in the app.
 0b. **Apply STANDING RULE #2 throughout:** extensive tests are written with the tool (unit + its own e2e suite,
    independent references where they exist); run, fix the bug or the test, run again until green.
-1. Create `src/tools/<id>.ts` exporting `mount(root)`; use helpers from `src/ui.ts`.
+1. Create `src/tools/<id>.ts` exporting `mount(root)`; use helpers from `src/ui.ts`. Its own styles go in `src/tools/<id>.css`,
+   imported by it (§4: the start page carries only the shell's).
 2. Register it in `src/registry.ts` (id, title, desc, category, icon, `platform`: 'both' unless the owner says PC
    only, or it genuinely needs phone hardware → 'mobile') and give it rich keywords in `src/keywords.ts` (the unit
    suite refuses a tab without a line there, and a line without a tab). Add search cases (`tests/search-cases.mjs`).

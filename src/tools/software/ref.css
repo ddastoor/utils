@@ -1,0 +1,2 @@
+/* ref.ts's own styles, loaded with its tab (moved from src/styles.css by scripts/split-tab-css.py) */
+.keycode-big { font-size: clamp(48px, 10vw, 96px); font-weight: 700; text-align: center; padding: 8px 0; word-break: break-all; }

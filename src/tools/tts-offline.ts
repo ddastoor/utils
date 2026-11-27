@@ -8,6 +8,7 @@ import { h, card, field, button, segmented, toggle, note, stack, toast, download
 import catalogue from '../lib/offline-tts/catalogue.json';
 import driver from '../lib/offline-tts/driver.py?raw';
 import { detectOS, planOf, scriptFor, fmtMB, matches, rankIndian, strength, ACCENT_WORDS, SCRIPT_NAME, TORCH_MB, type Catalogue, type CVoice, type OS } from '../lib/offline-tts/plan';
+import './tts-offline.css';
 
 const cat = catalogue as unknown as Catalogue;
 const SITE = 'https://ddastoor.github.io/utils/#/tts';

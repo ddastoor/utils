@@ -23,6 +23,7 @@ import { devcore, type Devcore } from '../wasm/devcore';
 import { trackWorker, releaseNow } from '../lifecycle';
 import type { RegexReq, RegexRes } from '../workers/regex.worker';
 import { FLAVOURS, flavour, flagsError as flavourFlagsError, type FlavourId } from '../lib/regex/flavours';
+import './text.css';
 
 const fmt = (n: number) => n.toLocaleString('en-IN');
 

@@ -1,0 +1,14 @@
+/* numcheck.ts's own styles, loaded with its tab (moved from src/styles.css by scripts/split-tab-css.py) */
+/* Number Detective */
+.nd-examples { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.nd-entry > .nd-reading + .nd-reading { border-top: 1px solid var(--border); padding-top: 14px; margin-top: 14px; }
+.nd-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.nd-head h4 { margin: 0; font-size: 16px; }
+.nd-rank { font-size: 12px; font-weight: 600; color: var(--hint); }
+.nd-summary { margin: 6px 0; }
+.nd-value { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; font-size: 18px; margin: 4px 0 8px; }
+.nd-fix { font-size: 14px; margin-bottom: 8px; }
+.nd-fields { margin-top: 4px; }
+.nd-notes { margin: 10px 0 0; padding-left: 18px; color: var(--hint); font-size: 13px; }
+.nd-notes li + li { margin-top: 4px; }
+.nd-sources { color: var(--hint); font-size: 12.5px; margin: 0 4px; }

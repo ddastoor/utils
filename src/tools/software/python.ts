@@ -70,6 +70,7 @@ primes = [n for n in range(2, 200_000) if all(n % p for p in range(2, int(n ** 0
 print(len(primes), "primes below 200 000 in", round(time.perf_counter() - t, 2), "s")
 `,
 };
+import './python.css';
 
 export const mount: Mount = (root) => {
   let files: Array<{ name: string; bytes: Uint8Array }> = [], running = false, firstRun = true, errTail = '';

@@ -1,0 +1,15 @@
+/* sqlite.ts's own styles, loaded with its tab (moved from src/styles.css by scripts/split-tab-css.py) */
+.sql-layout { display: grid; grid-template-columns: minmax(200px, 280px) 1fr; gap: 16px; }
+@media (max-width: 900px) {
+  .sql-layout { grid-template-columns: 1fr; }
+}
+.sql-schema details { margin-bottom: 8px; }
+.sql-cols { font-size: 12.5px; margin: 4px 0 6px 12px; color: var(--muted); }
+.sql-result { max-height: 60vh; overflow: auto; }
+.sql-head { font-size: 12px; margin-bottom: 6px; white-space: pre-wrap; }
+.sql-foot { margin: 6px 0; font-size: 13px; }
+.sql-bad { color: var(--err); }
+.sql-busy { cursor: progress; }
+.sql-limit { gap: 6px; margin-left: auto; }
+.sql-limit select { width: auto; }
+.sql-result td { white-space: pre-wrap; max-width: 60ch; overflow-wrap: anywhere; vertical-align: top; }
