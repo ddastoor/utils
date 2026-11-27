@@ -333,7 +333,7 @@ Wayland) and **mobile browsers** (Android Chrome, iPhone Safari).
 Platform is PC + mobile unless marked **PC**. Tab ids are the URL hash (`#/<id>`).
 
 **The authoritative, always-current list is `docs/TOOLS.md`, generated from `src/registry.ts` (`npm run docs`).**
-Current total: **180 tabs in 11 categories — 113 PC + mobile, 64 PC only, 3 Mobile only** (regenerate with
+Current total: **181 tabs in 11 categories — 114 PC + mobile, 64 PC only, 3 Mobile only** (regenerate with
 `npm run docs` after every registry change; the owner asked for the registry to always be noted).
 The per-category notes below record decisions; when they disagree with the registry, the registry wins.
 
@@ -444,6 +444,7 @@ warned. Resume: the photo is a JPEG (quality 85); file names are made safe (`saf
 | `kindlepdf` | PDF for Kindle | both — **BUILT** (27 Nov 2026; potentials #109 — §3 "PDF for Kindle") |
 | `articles` | Articles → Kindle | both — **BUILT** (27 Nov 2026; potentials #106 — §3 "Articles → Kindle": saved web articles made into one EPUB) |
 | `ebook` | EPUB Reader | both — **BUILT** (27 Nov 2026; potentials #71 — §3 "EPUB Reader": EPUB, MOBI, FictionBook, comics, text) |
+| `audiobook` | PDF / EPUB → Audiobook | both — **BUILT** (27 Nov 2026; potentials #14 — §3 "PDF / EPUB → Audiobook": a book read aloud into MP3s, one per chapter) |
 | `sheet` | CSV / Excel Viewer & Converter | **PC** — **BUILT** (sheet.wasm; open xlsx/xlsm/xlsb/xls/ods/csv/tsv/json and the "Excel" files that are web pages or Excel 2003 XML, sheet tabs incl. hidden, separator override, filter, export CSV (BOM) / TSV / JSON / XLSX; as built: §3 "CSV / Excel"; unit `sheet.test.mjs` 120 + `sheetdata.test.mjs` 42, e2e 32) |
 | `markdown` | Markdown Editor | both — **BUILT** (cmark-gfm wasm; live preview, toolbar + Ctrl+B/I/K, .md open/save, standalone .html, print of the preview only; as built: §3 "Markdown Editor"; unit 29 incl. the 744 GFM spec examples, e2e 46) |
 
@@ -3332,6 +3333,76 @@ author and date → an EPUB ready for Send to Kindle; several articles → one E
   it keeps is kept, and beyond it only the embed link, a code block under `md:hidden` (dom_smoothie 0.19's fix) and a heading
   with a `scroll-…` class (0.20's) that Readability.js drops.
 
+### PDF / EPUB → Audiobook — BUILT (potentials #14; owner's pick of 27 Nov 2026 — group 1 of the suggested order)
+(`audiobook` in `src/tools/audiobook.ts`; the book's text `src/lib/audiobook.ts` (no DOM) in `src/workers/bookread.worker.ts`; the
+speech `src/workers/audiobook.worker.ts` on `src/lib/speech.ts` — the Text-to-Speech worker's engine, shared since — and
+`src/lib/speechtext.ts`; the voices `src/lib/voices.ts`; unit `tests/unit/audiobook.test.mjs` 61 and `audio` 64 (the MP3
+stream), e2e `tests/e2e/audiobook.e2e.mjs` 55; fixtures `tests/fixtures/audiobook/` with every track's words, made by
+`python3 scripts/make-audiobook-books.py`.) The owner's words (potentials #14): "Read a book or PDF aloud into MP3s, one per
+chapter" — MuPDF's text, the Kokoro / Piper voices, our LAME; PC and phones (long books best on a PC).
+- **The book's text** (`readReflowable`, `readPdf`): EPUB, MOBI, FictionBook, plain text and web pages (what the EPUB Reader's
+  `openFile` takes; comics, DRM and Amazon's formats refused in words) are laid out by MuPDF on pages 100,000 px tall — an EPUB's
+  file is one page, a MOBI's headings stand at known heights — with paragraph margins forced (MOBI and many EPUBs set paragraphs
+  without space: MuPDF gave one block for a chapter); MuPDF's blocks are cut where a paragraph begins inside one (an indented
+  line after a short or finished one), lines joined (after a hyphen without a space), a drop cap joined to its word (MuPDF does
+  no floats: it stands inline). The contents (the book's own, or MuPDF's from a MOBI's or a text's headings) resolved to page
+  and height (`resolveLinkDestination`: a `#id` inside a file — Project Gutenberg's books are one file). **Footnote marks** are
+  taken out of the XHTML before MuPDF reads it (`stripNotes`: EPUB 3's noteref and ARIA's, a raised link, a link round a raised
+  mark, a link that is only a number or [1] or †; MuPDF's CSS reads no `epub:type`) and FictionBook's by CSS; the notes
+  (`<aside epub:type="footnote">`, FictionBook's notes) are left out unless "Read the footnotes"; pictures are taken out (MuPDF
+  writes "[image]" for one it cannot find). **A PDF** goes through the PDF → EPUB engine (reading order, columns, words broken
+  over lines joined, running heads and page numbers by its 40 % rule, figures, tables and display formulas found — no pictures
+  made: `jpeg` gives an empty one) and its XHTML is read (`pdfPageBlocks`): page labels, parts' markers, pictures, an
+  equation's number and a figure's label (a few words without a sentence's end beside it) out, raised note marks out (with a
+  space: the engine keeps none), the footnotes under its rule and the margin notes out unless asked for. **Running heads it
+  keeps** (`dropRunningHeads`: a book alternates its title and the chapter's, each on fewer than 40 % of the pages): a page's
+  first or last paragraph of a few words that is the book's title, the author or a chapter's title after its first showing,
+  that copies a heading on its page, or that stands at the edge of three pages; a paragraph that goes on over a page is joined
+  ("break-" + "water", `joinPages`); a contents page is left out (`dropContents`: a paragraph holding three titles, or three
+  titles in a row); a bookmark well down a page begins at its heading there (`pdfIndex`). A PDF of pictures only (a scan) is
+  refused: "the OCR tab reads the text of a page's picture".
+- **The tracks** (`buildTracks`): one per entry of the contents, at the deepest level whose tracks are 250 words and more at
+  the median (a paper's subsections of a few lines are read inside their section); entries at one place are one ("The Watches
+  — The First Watch"); a track of fewer than 30 words goes with the next (a part's title page: "Part One: The Rock — Chapter 1.
+  The Keeper"; generic front matter's names dropped from the title); contents, index, copyright, cover, "also by", about the
+  author: not ticked at first; a track that is only its heading is none. Without contents: the headings (`how: 'headings'`);
+  without headings: parts of about 2,500 words (17 minutes) ended at paragraphs. The text spoken (`speechText`): a web address
+  as its site, bracketed marks out; Kokoro's own normaliser reads numbers, money, times, titles.
+- **The speech** (`src/workers/audiobook.worker.ts`): each track's paragraphs said by the voice (Kokoro's US and British voices at
+  24 kHz, Piper's Indian English at 22.05 kHz — the TTS tab's voices; `src/lib/speech.ts` is their engine) straight into an
+  **MP3 stream** (audio.wasm `a_mp3s_*`, LAME 4.0: only the MP3 is kept — an hour of speech is 29 MB at 64 kbps, 345 MB as
+  samples; fed in any pieces it is byte for byte the one-shot encoder's file), mono at 48 / 64 / 96 kbps, with **ID3v2.3 tags**
+  (UTF-16: title, the book, the author as artist and album artist, track n/N, genre "Audiobook", language) and the **cover** (an
+  EPUB's own, a PDF's first page; at most 500 px, JPEG; marked front cover — LAME writes "other") through LAME's own id3tag
+  code; the LAME / Xing frame written after the tag (gapless: players drop the encoder's delay and padding). The pauses of a
+  book read aloud (`PAUSE`, shorter when faster): 0.75 s before a track, 2 s after (an audiobook's room tone), 0.6 s after a
+  paragraph, 1 s after a heading and 0.5 s more before it, 1.6 s for a break between scenes.
+- **The tab:** Choose a book (or drop it) → its title and author (to edit), cover, how its tracks were found and what is not
+  read ("4 footnote marks, 4 notes, 8 running heads and page numbers"); "Read the footnotes"; the tracks — a check box, the
+  title (to edit: it goes into the file's name and its tag), words and length at the chosen speed, ▷ a sample of its beginning;
+  Choose all / none; the line "3 of 5 tracks chosen · 92,345 words · about 10 h 15 min of speech at 1×". Voice (the TTS tab's,
+  in groups), speed 0.5 – 2×, MP3 quality, "Listen to a sample". **Make the audiobook**: the progress, the tracks being made,
+  the speech made, how fast ("3.0× as fast as it is spoken") and the time left; **Stop** (the workers end at once). On a PC
+  **one to four speech engines at once** (default half the processor's cores, at most three; each a worker with its own ONNX
+  session, about 400 MB): the first fetches the voice, the others start when it has it (from the browser's cache); measured
+  here, Piper with two engines: 44 s of speech in 14 s. The MP3s: **kept in the page** (each playable, its Download; "Download
+  all (.zip)" — a folder named after the book with the MP3s, numbered "01 The Harbour.mp3", and an .m3u playlist; Share on
+  phones), or on a PC **saved into a folder as they are made** (File System Access) — a folder that already holds some tracks
+  is carried on from (a run that was stopped, the page closed: choose the same folder). A track made with the same voice,
+  speed, quality and titles is not made again. The screen is kept on while it works (a phone that sleeps stops the page); the
+  tab says a laptop on battery may pause a background tab. The choices are kept while the page is open. Nothing at open: the
+  reading worker (MuPDF; textcore and imgproc for a PDF) with the first book — it ends when the book is read —, the speech
+  workers (the voice's model, espeak.wasm, audio.wasm) with the first sample or run; all end when the tab is left.
+- **Tests:** unit `audiobook` 61 — every word of every test book in order, held to its own word list (novel.epub, old.epub's
+  NCX, book.mobi, plain.txt, tale.fb2, long.epub's 36 chapters word for word, a Gutenberg-style EPUB, a text without headings,
+  a 16-page book PDF with bookmarks, running heads, a footnote, a figure, two columns and a chapter that starts mid-page — made
+  by reportlab), what must not be heard absent, the rules on made-up blocks; `audio` 64 — the stream byte for byte the one-shot
+  file, mutagen reads every tag and the cover, FFmpeg decodes exactly the samples fed. e2e `audiobook` 55 — real MP3s (Piper,
+  two engines; Kokoro) read back by ffprobe (tags, cover), FFmpeg (the exact gapless length from the LAME frame, the silences
+  at the ends) and **Whisper** (faster-whisper base.en, `tests/lib/transcribe.py` — `pip install faster-whisper`; skipped with a
+  note where missing): each file says its own chapter, far more than any other; the zip; a folder carried on from; Stop; a PDF;
+  footnotes; a protected PDF; refusals; axe-core with a book open in both themes; the phone.
+
 ### Screencast (PC) — BUILT (`src/tools/screencast.ts`; e2e `tests/e2e/screencast.e2e.mjs` 50)
 Chrome on Windows/Linux. "Screen, window or tab" (Chrome's picker; own tab excluded; surface switching allowed) or
 "An area": choose a screen, drag a rectangle on the live preview (a page cannot draw on the desktop); the rectangle is
@@ -3533,9 +3604,9 @@ difference over its detail, the overlap's pixels), ruled lines and list marks cl
 | jq 1.8.2 (+ oniguruma) | C | **us** (`wasm/jq`) | jq |
 | CPython 3.14.8 (+ zlib 1.3.2; stdlib as .pyc in python314.zip with tzdata 2026.6; **the regex module 2026.11.19** — mrab-regex's C extension built in as `_regex`) **+ our changes** (§5.1m: recursion guard for a browser's two stacks, lru_cache in Python, pbkdf2_hmac fallback, socket stand-in + asyncio loop without sockets, local time from the host, regex-wasm.patch) | C | **us** (`wasm/python`, python.wasm 7.8 MB + python314.zip 5.75 MB, loaded on the first Run; run by our WASI host `src/lib/terminal/wasi.ts` in `src/workers/python.worker.ts`) | python; regex (the Python re and regex-module flavours, `src/lib/regex/python.ts`) |
 | Graphviz **16.1.0** (cgraph, gvc, dot/neato/fdp/sfdp/circo/twopi/osage/patchwork, core renderers; the official release archive) + Expat 2.9.0 **+ our changes** (§5.1l: `storeline.patch` — an upstream crash on labels that start with an empty line; `triangulation.patch` + `st_delaunay.h` — prism overlap removal on our C port of Delaunator instead of GTS; glibc's `qsort` and `rand`; assertions kept; text measured by the host through a "textlayout" plugin) | C / C++ | **us** (`wasm/graphviz`, 1.65 MB / 0.56 MB gz, a fresh instance per drawing in `src/workers/graphviz.worker.ts`; the existing builds — Viz.js, hpcc — trap on valid graphs: `docs/WASM-AUDIT.md`, tab 55) | graphviz |
-| audio: **LAME 4.0** libmp3lame (MP3 encoder) + own C (WAV writer — 16-bit by the browser's own rule, waveform peaks, levels, gain/fades, scale, mix, Kaiser windowed-sinc resampler) + `studio.c`: **DeepFilterNet 3's signal processing** (a C port of libDF's STFT, ERB features, norms, mask and deep filter — held to libDF) and **the studio finish** (rumble filter, expander, EQ, compressor, de-esser, BS.1770-4 loudness, 4× oversampled true-peak limiter — held to FFmpeg's ebur128) | C | **us** (`wasm/audio`) | audio (and tts, noise — Studio voice —, pitch, slideshow) |
+| audio: **LAME 4.0** libmp3lame (MP3 encoder) + own C (WAV writer — 16-bit by the browser's own rule, waveform peaks, levels, gain/fades, scale, mix, Kaiser windowed-sinc resampler) + `studio.c`: **DeepFilterNet 3's signal processing** (a C port of libDF's STFT, ERB features, norms, mask and deep filter — held to libDF) and **the studio finish** (rumble filter, expander, EQ, compressor, de-esser, BS.1770-4 loudness, 4× oversampled true-peak limiter — held to FFmpeg's ebur128); **MP3 as a stream** (`a_mp3s_*`: fed a piece at a time, ID3v2.3 tags and a cover through LAME's own id3tag code, the LAME / Xing frame written after the tag — the Audiobook) | C | **us** (`wasm/audio`) | audio (and tts, noise — Studio voice —, pitch, slideshow, audiobook) |
 | Signalsmith Stretch 1.3.2 (tempo and pitch, polyphonic) | C++ | Signalsmith Audio (official `signalsmith-stretch`, WebAssembly in an AudioWorklet) — rendered offline by `src/lib/stretch.ts` | pitch (replaced our WSOLA in Nov 2026: `docs/WASM-AUDIT.md`, tab 145) |
-| espeak: **eSpeak NG 1.52.0** (+ English phoneme tables and dictionary compiled from the same release, linked in, served to its fopen/stat from memory) + glue (IPA for Kokoro, piper-phonemize-style sentences) | C | **us** (`wasm/espeak`) | tts |
+| espeak: **eSpeak NG 1.52.0** (+ English phoneme tables and dictionary compiled from the same release, linked in, served to its fopen/stat from memory) + glue (IPA for Kokoro, piper-phonemize-style sentences) | C | **us** (`wasm/espeak`) | tts, audiobook |
 | geo: Charles Karney's **geodesic.c 2.2** (GeographicLib's geodesic routines in C, MIT; the two files unmodified from the PROJ 9.9.0 release) + glue (inverse problem on WGS-84, half-way point, the haversine great circle for comparison) | C | **us** (`wasm/geo`, 36 KB, loaded by the Coordinates tab only; no tried-and-tested WebAssembly geodesic module exists: `docs/WASM-AUDIT.md`, tab 82) | coords |
 | textcore: tool-search ranking, rare-word ranking (tokeniser, lemmatiser, wordfreq hash table), XY-cut reading order (columns numbered only where they are real: `minh`) | C (own code) | **us** (`wasm/textcore`) | search box, emoji (search), photodict, epub, clipper (the order of a story's parts), kindlepdf (a page's regions) |
 | textkit: **unicode-segmentation 1.13.3** (the Rust ecosystem's UAX #29 implementation, Unicode 17.0, MIT / Apache-2.0: extended grapheme clusters, sentence boundaries) + our counting rules: words as a word limit counts them, abbreviations and initials, lines and paragraphs, keywords (Snowball's stop words); **the Case Converter's thirteen conversions** (`case.rs`: Title Case is a port of the Python package `titlecase` 2.4.1 — Gruber's rules, MIT; the code cases cut words as npm's `change-case` does; case mapping by Rust's standard library) | Rust | **us** (`wasm/textkit`, crates.io via `Cargo.lock`, two modules by Cargo features: **textkit.wasm** 217 KB — fetched with the Word Counter's first text, with the Case Converter, and with the first Fancy Text that has an emoji or another script — and **textkit-diff.wasm** 0.71 MB = the **`similar` crate 3.2.1** (Apache-2.0: Myers in linear space with a time limit, line / word / grapheme diffs, inline changes, unified diffs) + our glue and our pairing of a change's lines side by side (`pair_lines`: likeness by a bounded Myers search, the best order-keeping pairing by dynamic programming — to-do #35), fetched by the Text Diff only; and **textkit-lorem.wasm** 0.13 MB = the **`lipsum` crate 0.9.1** (MIT: a Markov chain over the classic passage and Cicero's *De finibus*, with rand 0.8 / rand_chacha 0.3) + our glue (cleaned texts learned as circles, exact counts), fetched by the Lorem Ipsum tab; the existing module — ICU4X's official build — is one file of 20 MB: `docs/WASM-AUDIT.md`, tab 90) | wordcount, case, lines ("By length"), fancy (characters); diff (textkit-diff); lorem (textkit-lorem) |
@@ -3548,10 +3619,10 @@ difference over its detail, the overlap's pixels), ruled lines and list marks cl
 | devcore: ipnet (CIDR), croner + chrono (cron; zone offsets from the browser's Intl via an `env.tz_offset` import, so no tz database), **own port of npm's semver** (`semver_npm.rs`: the package's range / comparator / inc logic with its own regular expressions on regex-lite — the nodejs-semver crate gave different answers), **own Unicode-aware glob matcher** (`globm`; globset matches bytes), **own unified-diff reader / applier** (`patchm`: offsets, white space, fuzz, like GNU patch; diffy refused most real patches), data-encoding + bs58 + own Ascii85/Z85 (long inputs go through data-encoding in pieces: it refuses 8 MiB and more on a 32-bit target), **own protobuf, MessagePack and CBOR readers** (`bin.rs`; rmpv and ciborium could not show CBOR `undefined` / simple values / long bignums or MessagePack's unused 0xc1, and reported errors as Rust debug text), x509-parser + sha1/sha2 (+ own PEM / PKCS #7 reader), **own SQL formatter** (`sqlfmt.rs`: a tokenizer for standard SQL, PostgreSQL, MySQL, SQLite, SQL Server and Oracle; changes white space and the case of keywords only and checks its result against the input — the sqlformat crate changed the meaning of SQL), own hex dump + search, **own lossless JSON reader / formatter** (`jsonfmt.rs`: changes white space only — member order, duplicate keys and number spelling kept; worded errors with line / column; JSON.parse → JSON.stringify reordered keys, dropped duplicates and rounded big numbers), **own JSON diff** (`jsondiff.rs`, RFC 6902 on that reader: lists aligned by equal elements (LCS) and records by `id`, numbers by value and never rounded), **own XML formatter** (`xmlfmt.rs`: re-indents elements that hold only elements, everything else byte-for-byte — declaration, DOCTYPE, entities, CDATA, text; the DOM round trip lost or rewrote all of these), **own JSON → types generator** (`j2t.rs`: TypeScript / Go / Rust serde / Java records / Python dataclasses; the e2e suite compiles its output with tsc, go, rustc, javac and python; crates unicode-ident (MIT / Apache-2.0 + Unicode-3.0) for Python identifiers and unicode-general-category (Apache-2.0) for what Go's struct tags accept) | Rust | **us** (`wasm/devcore`, crates.io via `Cargo.lock`, wasm32-wasip1; one `dc_call(op, input)` entry; **one module per tab** via Cargo features → `devcore-<feature>.wasm`, 67–650 KB) | cidr, x509, cron, semver, glob, patch, sqlfmt, hexview, baseenc, bindecode, base64 (devcore-enc), json + jwt (devcore-json), jsondiff, xml, json2types (devcore-j2t) |
 | cmark-gfm 0.29.0.gfm.13 (GitHub Flavored Markdown) | C | **us** (`wasm/markdown`, source from the PyPI `cmarkgfm` sdist, SHA-256 pinned) | markdown |
 | libyaml 0.2.5 + toml++ 3 | C / C++ | **us** (`wasm/formats`) | yaml |
-| MuPDF 1.28 | C | Artifex (official `mupdf` npm) | all PDF tools, PDF → EPUB, PDF for Kindle (the pieces: the page grafted, redacted, drawn as a form), Watermark (PDFs: to-do #17), Book Page Flattener and Newspaper Clipper (their PDFs), EPUB Reader (EPUB, MOBI, FictionBook, comics, text laid out at any size with HarfBuzz and drawn — in the reader's worker, `src/workers/ebook.worker.ts`) |
+| MuPDF 1.28 | C | Artifex (official `mupdf` npm) | all PDF tools, PDF → EPUB, PDF for Kindle (the pieces: the page grafted, redacted, drawn as a form), Watermark (PDFs: to-do #17), Book Page Flattener and Newspaper Clipper (their PDFs), EPUB Reader (EPUB, MOBI, FictionBook, comics, text laid out at any size with HarfBuzz and drawn — in the reader's worker, `src/workers/ebook.worker.ts`), Audiobook (a book's text: laid out on pages 100,000 px tall, its contents resolved to page and height — in `src/workers/bookread.worker.ts`; a PDF through the PDF → EPUB engine) |
 | ExifTool 13.42 on zeroperl (Perl 5 compiled to WebAssembly with ExifTool's library inside) | Perl / C | Phil Harvey (ExifTool), uswriting / 6over3 (`@uswriting/exiftool` 1.0.9, `@6over3/zeroperl-ts` 1.0.10) — run in `src/workers/exiftool.worker.ts` | exif (replaced metacore's reader and stripper in Nov 2026: `docs/WASM-AUDIT.md`, tab 120); regex (the Perl flavour, the same module: `src/lib/regex/perl.ts`) |
 | hash-wasm 4.13.0 (hand-tuned C → wasm, one small binary per algorithm, embedded in the package; streaming; HMAC over any of its hashes; Argon2, bcrypt, scrypt, PBKDF2) | C | Dani Biró (`hash-wasm` npm, ~10 M downloads a month) — wrappers `src/lib/hmac.ts`, `src/lib/totp.ts`, `src/lib/pwhash.ts`, `src/lib/hashes.ts` (in `src/workers/hash.worker.ts`); only the algorithms a tab uses are bundled into its chunk, loaded with the tab's first result | hash (23 algorithms), hmac (all of it), totp (the HMAC), pwhash (Argon2id / i / d, bcrypt, scrypt, PBKDF2) — replaced RustCrypto builds and crypto.wasm's hashes of ours in Nov 2026 (`docs/WASM-AUDIT.md`) |
-| ONNX Runtime Web 1.31 (CPU/WebAssembly, SIMD) | C++ | Microsoft (official `onnxruntime-web` wasm build) | tts (Kokoro, Piper); scanner (DocCornerNet LEAN, scanic-ml 0.2.0: the page's corners — `docs/WASM-AUDIT.md`, tab 121); ocr, photodict and clipper (the same network, asked where the Kindle finder's outline is not a page's — to-do #18; and **PaddleOCR's PP-OCRv6 detector and recogniser, the second reader for soft photos** — owner, 26 Nov 2026: `src/lib/paddle.ts` in `src/workers/paddle.worker.ts`); noise (**DeepFilterNet 3**, the Studio voice — to-do #20: `src/workers/noise.worker.ts`) |
+| ONNX Runtime Web 1.31 (CPU/WebAssembly, SIMD) | C++ | Microsoft (official `onnxruntime-web` wasm build) | tts and audiobook (Kokoro, Piper — `src/lib/speech.ts`, one session a worker; the Audiobook runs one to four workers at once); scanner (DocCornerNet LEAN, scanic-ml 0.2.0: the page's corners — `docs/WASM-AUDIT.md`, tab 121); ocr, photodict and clipper (the same network, asked where the Kindle finder's outline is not a page's — to-do #18; and **PaddleOCR's PP-OCRv6 detector and recogniser, the second reader for soft photos** — owner, 26 Nov 2026: `src/lib/paddle.ts` in `src/workers/paddle.worker.ts`); noise (**DeepFilterNet 3**, the Studio voice — to-do #20: `src/workers/noise.worker.ts`) |
 | SQLite 3.54 | C | SQLite project (official `@sqlite.org/sqlite-wasm`), run in `src/workers/sqlite.worker.ts` (terminated on leave) | sqlite |
 | PCRE2 (pcre2-wasm 10.49.3: PCRE2 compiled by Emscripten, the WebAssembly inside the package) | C | gudoshnikovn (`pcre2-wasm`, MIT; PCRE2 BSD-3 with the PCRE2 exception) — in `src/workers/regex.worker.ts` | regex (the PCRE2 flavour: `docs/WASM-AUDIT.md`, tab 178) |
 | Oniguruma (vscode-oniguruma 2.0.1) | C | Microsoft (`vscode-oniguruma`, MIT; Oniguruma BSD-2) — the build VS Code and Shiki run | regex (the Ruby flavour, with Ruby's rules beside it in `src/lib/regex/ruby.ts`) |
@@ -3652,6 +3723,10 @@ a story, and where each piece goes in the clipping: rules over a few hundred wor
 as `src/lib/listtext.ts`); the pixels are imgproc.wasm's (unsharp mask, clean-up, ink regions), the order textcore.wasm's
 XY-cut. No WebAssembly module finds a newspaper's articles (`docs/WASM-AUDIT.md`, tab 180). The pieces are copied out of a
 page a row at a time (`TypedArray.set`) and made smaller by imgproc's resize.
+Nov 2026 (PDF / EPUB → Audiobook, potentials #14): `src/lib/audiobook.ts` — MuPDF's structured text (and the PDF → EPUB engine's
+XHTML) made into paragraphs and tracks: string glue and rules over a few thousand blocks a book (which block begins a chapter,
+which line is a running head, which link is a footnote mark); the layout is MuPDF's, the speech ONNX Runtime's and
+espeak.wasm's, the MP3 and its tags audio.wasm's (LAME). No WebAssembly module makes audiobooks (`docs/WASM-AUDIT.md`, tab 184).
 Nov 2026 (Articles → Kindle, potentials #106): `src/lib/articles.ts` — which file is what (its first bytes), the HTML's character set
 (the browser's TextDecoder), a picture's addresses matched with the saved files' (the browser's URL parser), the EPUB's files
 written as text and zipped by fflate; the article, its XHTML and the readers of the saved files are article.wasm's; the
@@ -4220,6 +4295,8 @@ npm packages (pinned in `package-lock.json`) are bundled by Vite or copied to `p
 | *test only:* @xterm/xterm 6.0.0 (its TypeScript source, transpiled in the test) | MIT | what a terminal receives for a key, which the Key Codes tab's "A terminal receives" is held to (`tests/unit/keycombo.test.mjs`) |
 | *test only:* axe-core 4.14.1 (Deque's accessibility checker) | MPL-2.0 | `tests/e2e/a11y.e2e.mjs`: WCAG 2.2 A / AA on every page, desktop light and dark, phone dark |
 | *test only:* @mozilla/readability 0.6.0 (Readability.js, Firefox's Reader View) | Apache-2.0 | `tests/e2e/articles.e2e.mjs`: the article Articles → Kindle finds, held to Firefox's |
+| *test only (pip, not shipped):* faster-whisper 1.2.1 with Whisper base.en (OpenAI's model, CTranslate2's conversion) | MIT | `tests/lib/transcribe.py`: what the Audiobook's MP3s say, heard by an independent ear |
+| *test only (pip):* mutagen, reportlab | GPL-2.0+ (mutagen), BSD (reportlab) | the MP3s' ID3 tags read back (`tests/unit/audio.test.mjs`); the Audiobook's test PDF made (`scripts/make-audiobook-books.py`) |
 | @expo-google-fonts/noto-sans (Noto Sans TTF: regular, bold, italic) | OFL-1.1 (package MIT) | PDFs made by GST Invoice, Rent Receipt, Resume Builder; EPUB Reader (its Sans) |
 | @expo-google-fonts/literata 0.4.3 (Literata TTF: regular, italic, bold, bold italic — four files, 1.0 MB on the site) | OFL-1.1 (package MIT) | EPUB Reader (the text's font; MuPDF's FreeType reads no WOFF, so @fontsource/literata's files cannot serve) |
 

@@ -316,6 +316,14 @@ python3 -m pip install --user -q pynacl pyzipper py7zr bcrypt argon2-cffi zxcvbn
 python3 -m pip download -q ziglang==0.17.1 --no-deps -d /tmp/zig && python3 -m zipfile -e /tmp/zig/ziglang-0.17.1-*.whl /tmp/zig/x && chmod +x /tmp/zig/x/ziglang/zig
 export ZIG=/tmp/zig/x/ziglang/zig
 ```
+**Keep the disk free** (27 Nov 2026): the writable disk is a fixed allowance, and a scratch build of the site is about 0.55 GB —
+with the disk at 99 % the test browser's renderers crashed in the lazy and every-tab suites ("Page crashed"; dmesg: a trap
+in their Compositor thread, the same instruction in three processes) and passed at once alone after the old builds were
+deleted. `df -h /` before a sweep; delete scratch builds (`dist-*`) and unpacked candidates when their work is done.
+The Audiobook suites' independent ear and readers: `pip install faster-whisper mutagen reportlab` (faster-whisper 1.2.1; its
+model, Whisper base.en, comes from Hugging Face on the first run — `tests/lib/transcribe.py` sets `HF_HUB_DISABLE_XET=1`, as
+Hugging Face's Xet transfer is not reachable here; PyAV 19 refuses faster-whisper's own decoder call, so FFmpeg decodes for
+it). Without them the checks say they were skipped.
 Network allowlist of the environment (besides package registries): Hugging Face's hosts (models of the offline voices),
 kaikki.org (the Photo Dictionary's data build), and since 21 Nov 2026 **download.pytorch.org + download-r2.pytorch.org**
 (the offline speech scripts install PyTorch's CPU build with `uv pip install --torch-backend auto`; without them a

@@ -3153,6 +3153,41 @@ cannot. Three new suites; each fails on the build before its fixes.
   candidates measured (docs/WASM-AUDIT.md 179): page-dewarp 0.3.4 takes the photo's rectangle less fixed margins for the
   page — it cut the words nearest the spine of a page cut out at the gutter (95 → 76 % of a frame's words read) and kept
   the table round the page; Leptonica 1.86's `dewarpSinglePage` gave up on 1080p video frames (too few lines found).
+- **PDF / EPUB → Audiobook (potentials #14, 27 Nov 2026), found while building it — each with a check that would catch it:**
+  - **LAME wrote an ID3 tag with nothing in it** (74 bytes: its own TSSE frame) when a sample had no tags, and **marked the cover
+    "other"** (picture type 0 — iTunes shows no cover): no tag unless there is one, and the APIC frame's type set to 3, front
+    cover (unit `audio`: mutagen reads type 3; a stream without tags begins with its first frame).
+  - **A MOBI's chapter was one paragraph** (MuPDF set its paragraphs without space, and its structured text gave one block for the
+    whole chapter; a heading ran into the paragraph after it too): paragraph margins forced by the reading CSS, MuPDF's blocks cut
+    where a paragraph begins inside one (unit: book.mobi word for word, its headings as headings).
+  - **"[image]" was read aloud:** MuPDF writes it for a picture it cannot find, and the pictures are taken out of the book before
+    it is laid out — so are the picture elements now (unit: no "[image]" in any test book).
+  - **A drop cap was a word of its own** ("T he harbour"): MuPDF does no CSS floats — the drop cap stands inline; a block of
+    one or two letters in a large size is joined to the word after it.
+  - **A PDF read its running heads aloud:** a book alternates the book's title and the chapter's at the top of its pages, each on
+    fewer than 40 % of them — under the PDF → EPUB engine's rule. `dropRunningHeads` (unit: book.pdf's eight heads and page
+    numbers counted, each chapter title heard once).
+  - **A paragraph split over two pages was two** ("…the break-" | "water held"), and a PDF's contents page was read as a chapter:
+    `joinPages`, `dropContents` (unit: "breakwater" one word; no track holds three chapter titles).
+  - **A figure's label was read** ("Metres", the axis of a chart beside its caption): a few words without a sentence's end next
+    to a figure are left out.
+  - **A footnote mark glued two words together** ("ledger¹that" → "ledgerthat"): the engine keeps no space at a raised mark; it is
+    replaced by one.
+  - **Every short chapter went into the next one:** a chapter of fewer than 30 words is joined to the next (a part's title page);
+    the first test book's chapters were three sentences each — the test book was too small, not the rule (its chapters are
+    longer now; the rule stays, unit "Part One: The Rock — Chapter 1. The Keeper").
+  - **A new book kept the last run's line** ("Done: 3 tracks" of the book before) and, while it was read, the old book's rows: Make
+    pressed meanwhile worked on the old book, and the MP3s made of it stayed in memory until the tab was left. The book shown,
+    its MP3s and the line now go as soon as a file is chosen (e2e: the line empty after a new book; found by the e2e suite
+    under the load of a sweep, where the new book took longer to read).
+  - **Found, left as it is:** Whisper base.en hears Piper's Indian English voice through its accent ("Tomorrow, what it go" for
+    "Mara watched it go") — the suite checks that each file says its own chapter far more than any other, Kokoro's voice at 90 %
+    of the words.
+  - **The tests' own slips:** "x2" is a word (the expectation said otherwise); the offset of the Info frame in an MPEG-2 mono frame
+    is 13, not 21; ffprobe's duration counts the encoder's delay and padding (the exact length is the LAME frame's); PyAV 19 refuses
+    faster-whisper's decoder call (FFmpeg decodes for it); the Hugging Face download of Whisper needs `HF_HUB_DISABLE_XET=1` here;
+    the refusals were checked against the note of the file before (by the file's name now); the count of workers includes the
+    page's other workers (before and after Stop compared).
 - **Articles → Kindle (potentials #106, 27 Nov 2026), found while building it — each with a check that would catch it:**
   - **Chrome's MHTML leaves a page's scripts out — its JSON-LD with them:** the article's date was lost and the author was the
     byline line as it stands ("Priya Sharma · 20 November 2026"). The date now comes from the article's `<time>` where the

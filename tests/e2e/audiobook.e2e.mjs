@@ -56,7 +56,13 @@ export default async ({ base, page: newPage, ok, info, download, tmp, devices, r
   ok(!fetched.some((u) => /\.wasm($|\?)|\/models\//.test(u)), 'nothing heavy fetched before a book is chosen (MuPDF with the book, the voice with the first sample or run)');
 
   const rows = () => page.locator('.ab-row');
-  const choose = async (path, n) => { await page.locator('input[type=file]').first().setInputFiles(path); await rows().nth(n - 1).waitFor({ timeout: 120000 }); await page.waitForTimeout(150); };
+  // the rows of the book shown are marked first: the new book's rows are waited for, not the old ones
+  const choose = async (path, n) => {
+    await page.evaluate(() => document.querySelectorAll('.ab-row').forEach((e) => e.setAttribute('data-old', '')));
+    await page.locator('input[type=file]').first().setInputFiles(path);
+    await page.locator('.ab-row:not([data-old])').nth(n - 1).waitFor({ timeout: 120000 });
+    await page.waitForTimeout(150);
+  };
   const titles = () => rows().locator('input.ab-title').evaluateAll((els) => els.map((e) => e.value));
   const checks = () => rows().locator('input[type=checkbox]').evaluateAll((els) => els.map((e) => e.checked));
   const line = () => page.locator('.ab-line').innerText();
@@ -164,6 +170,7 @@ export default async ({ base, page: newPage, ok, info, download, tmp, devices, r
   ok(await page.locator('.ab-row').filter({ hasText: 'Saved into the folder' }).count() === 3, 'each row says it was saved into the folder');
   await page.evaluate(() => window.__folder.delete('02 The Light.mp3'));
   await choose(F('tiny.epub'), 3);
+  ok(await line() === '', 'a new book clears the last run\'s line (it spoke of the book before)');
   await page.getByRole('button', { name: 'Make the audiobook' }).click();
   await made();
   ok(await page.locator('.ab-row').filter({ hasText: 'Already in the folder' }).count() === 2 && await page.locator('.ab-row').filter({ hasText: 'Saved into the folder' }).count() === 1, 'chosen again with the same folder: the two tracks in it are skipped, the missing one is made');

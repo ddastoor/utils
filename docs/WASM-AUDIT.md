@@ -1742,3 +1742,26 @@ Looked at first (STANDING RULE #1):
 - **TypeScript (glue):** which file is what, the HTML's character set (TextDecoder), matching pictures with the saved files (the
   browser's URL parser), the EPUB's text files and fflate's zip; pictures drawn by the codec worker (MozJPEG, OxiPNG, Squoosh's
   resize).
+
+### 184. `audiobook` — PDF / EPUB → Audiobook (27 Nov 2026; potentials #14)
+- **What the tab does:** a book (EPUB, MOBI, FictionBook, plain text, a web page, a PDF) → its text in tracks, one per chapter →
+  each track said by a neural voice (Kokoro, Piper) → an MP3 per track with ID3 tags and the cover.
+- **Engines — all already in the app, all WebAssembly:** MuPDF 1.28 (Artifex's official build) lays the book out and gives its
+  structured text and contents (the EPUB Reader's engine); a PDF goes through the PDF → EPUB engine (MuPDF, textcore's XY-cut,
+  imgproc's ink regions); the speech is the Text-to-Speech tab's (our eSpeak NG 1.52 build for the phonemes, ONNX Runtime Web
+  1.31 — Microsoft's official build — for Kokoro-82M and Piper); the MP3 is our LAME 4.0 (audio.wasm).
+- **What was missing — added to our own module (STANDING RULE #1 (a): a supplementary WebAssembly module of our own):** an MP3
+  *stream* — the tab cannot hold a book's samples (an hour of speech is 345 MB as float samples, 29 MB as an MP3 at 64 kbps) —
+  with ID3v2 tags and a cover. `a_mp3s_*` in audio.wasm: LAME's own `lame_encode_buffer_ieee_float` a piece at a time and its own
+  id3tag code (`id3tag_set_textinfo_utf16`, `id3tag_set_albumart`, `lame_get_id3v2_tag`), the LAME / Xing frame written after the
+  tag. Two fixes around LAME's tag writer (in our glue): no tag when there is nothing to tag (LAME writes one with only its TSSE
+  frame), and the cover marked "front cover" (LAME writes picture type 0, "other", which players such as iTunes show as no
+  cover). Fed in any pieces the stream is byte for byte the one-shot encoder's file (unit `audio`: four ways of cutting the
+  same samples).
+- **Looked at, not used:** `lamejs` / `@breezystack/lamejs` (a JavaScript port of LAME 3.x — JavaScript, an older encoder, no
+  ID3 writer); `browser-id3-writer` (JavaScript ID3 tags — LAME has an ID3 writer of its own, in the WebAssembly module
+  already); ffmpeg.wasm (the FFmpeg tab's core: 31 MB to fetch for what LAME does at 0.28 MB, and its tags would need a second
+  pass over a whole hour of audio).
+- **TypeScript (glue):** MuPDF's blocks made into paragraphs and tracks (which block begins a chapter, a running head, a
+  footnote mark — rules over a few thousand blocks a book, `src/lib/audiobook.ts`), the queue of tracks over one to four speech
+  workers, the zip (fflate) and its playlist.

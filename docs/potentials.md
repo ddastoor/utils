@@ -42,7 +42,7 @@ based on common implementation … make the suggestions". The site then: **563.5
 1. **Reading on the phone and the Kindle** (the owner's first case; MuPDF, the reading path, the EPUB writer, the voices —
    all on the site; ≈ 0.5 MB): 96 Book Page Flattener (also as a step of the OCR and the Photo Dictionary for printed books)
    · 110 Newspaper Clipper · 109 PDF for Kindle · 71 EPUB Reader · 106 Articles → Kindle · 14 PDF / EPUB → Audiobook.
-   **Picked by the owner, 27 Nov 2026 ("Go ahead with group 1") — being built; built so far: 96 Book Page Flattener (the tab `bookflat`), 110 Newspaper Clipper (the tab `clipper`), 109 PDF for Kindle (the tab `kindlepdf`), 71 EPUB Reader (the tab `ebook`) and 106 Articles → Kindle (the tab `articles`), all 27 Nov 2026 — taken off the list below.**
+   **Picked by the owner, 27 Nov 2026 ("Go ahead with group 1") — being built; built: 96 Book Page Flattener (the tab `bookflat`), 110 Newspaper Clipper (the tab `clipper`), 109 PDF for Kindle (the tab `kindlepdf`), 71 EPUB Reader (the tab `ebook`), 106 Articles → Kindle (the tab `articles`) and 14 PDF / EPUB → Audiobook (the tab `audiobook`), all 27 Nov 2026 — taken off the list below; left: the flattener as a step of the OCR and the Photo Dictionary.**
 2. **PDF and ID tools for India** (MuPDF, the OCR, mathcore's checks, the Text Diff's new pairing; ≈ 0 MB): 16 PDF Tables →
    Excel · 61 PDF Redact · 93 Safe ID Copy · 84 Number Detective · 15 PDF Compare · 3 Make PDF Searchable.
 3. **The owner's own asks, larger** (≈ 55 – 60 MB, nearly all draw.io): 10 Spell Checker · 73 World Clock · 75 SliceDiceGrapher
@@ -60,10 +60,10 @@ measured on 20 Nov 2026 from the package's file list (`npm pack <pkg> --dry-run 
 Hugging Face (`huggingface.co/api/models/<repo>/tree/main`). **"est."** = no published build that could be measured
 from the sandbox (GitHub is not reachable there): measure it before building.
 - **Nothing new — about 0 – 0.3 MB, the tab's own code; its engines are already on the site:** 3 Make PDF Searchable,
-  9 Shamir Secret Split, 14 Audiobook, 15 PDF Compare, 16 PDF Tables → Excel, 17 Video Face Blur,
+  9 Shamir Secret Split, 15 PDF Compare, 16 PDF Tables → Excel, 17 Video Face Blur,
   18 Label Sheets, 20 Duplicate Photos, 27 WireGuard, 30 Aadhaar / e-Invoice QR, 31 DIGIPIN, 34 Calendar Converter,
   36 Metadata Remover, 61 PDF Redact, 62 Authenticator Export, 63 Photo Organizer, 64 Subtitle
-  Sync, 71 EPUB Reader, 76 Screenshot Finder, 77 Paper Deadlines, 78 Bill Splitter by Photo, 79 Phone ⇄ PC Beam, 80 Measure from
+  Sync, 76 Screenshot Finder, 77 Paper Deadlines, 78 Bill Splitter by Photo, 79 Phone ⇄ PC Beam, 80 Measure from
   a Photo, 81 Camera Reader, 84 Number Detective, 85 Lecture Video → Slides, 87 Screenshot Stitcher, 88 Wi-Fi QR from a sticker,
   89 Visiting Card, 90 Emergency Card, 91 PDF Library Search, 92 Social Media Sizer, 93 Safe ID Copy, 94 Pulse from a
   Fingertip, 97 Printable Paper, 98 Old Photo Album Scanner, 99 Best Shot from a
@@ -128,7 +128,6 @@ from the sandbox (GitHub is not reachable there): measure it before building.
 ## Round 2 — reuse engines already on the site (cheapest)
 | # | New tab | Built from | What it does | Platform | Status |
 |---|---|---|---|---|---|
-| 14 | **PDF / EPUB → Audiobook** | MuPDF text + Kokoro/Piper voices + our LAME | Read a book or PDF aloud into MP3s, one per chapter | both (long books best on PC) | waiting |
 | 15 | **PDF Compare** | MuPDF text + our textcore Myers diff | Two versions of a contract or agreement side by side, changes highlighted on the pages | both | waiting |
 | 16 | **PDF Tables → Excel** (bank statements, bills) | MuPDF structured text + own C table detection (extends our XY-cut) + our rust_xlsxwriter | Bank-statement PDFs → clean rows in Excel/CSV. Tabula/Camelot are Java/Python, so own C | both | waiting |
 | 17 | **Video Face Blur** | MediaPipe BlazeFace (already used by Blur & Redact) + WebCodecs | Blur every face (or chosen ones) through a whole video before sharing | both | waiting |
@@ -374,7 +373,7 @@ the site keeps every file under 100 MB (CLAUDE.md §5.1j). Two smaller ideas ins
 | 119 | **Fetch ahead** (not a tab): when the pointer rests on a tab's card or its tab (on phones, which have no hover: as a touch starts), start fetching what that tab needs into the browser's cache — its code at once, its engine too where the engine is small — so the tab opens and gives its first result sooner. **Checked on 27 Nov 2026:** the tabs' code is small (half of the build's 310 code files are under 7.4 KB, nine in ten under 141 KB), so fetching it ahead saves about one round trip to the site (not measured yet); the engines are what takes seconds (MuPDF 9.9 MB, ExifTool 24 MB). **Fetching an engine before its tab is used bends the owner's rule of lazy loading** (CLAUDE.md §1 rule 11, §4: an engine is fetched on first use, never as the tab opens): it would only fill the browser's cache — nothing compiled, no memory held, the release on leave unchanged —, but a card the pointer rests on and that is not opened costs its data. So: the owner's word on that first; engines of a few MB only (never Biome's 67 MB, FFmpeg's 31 MB or a model); nothing where the browser asks to save data or the connection is slow; `tests/e2e/lazy.e2e.mjs` learns the rule; measure first (a click to a tab's first view and to its first result, on a PC and a phone) | the browser's own preloading (`<link rel="modulepreload">` for a tab's code — what a click fetches anyway —, a low-priority `fetch()` for an engine) — nothing new, ≈ 0 MB | — | waiting |
 
 ## Notes
-- **Cheapest wins:** Image to SVG, Make PDF Searchable, the five "reuse engines" tabs (14–18), Duplicate Photo Finder,
+- **Cheapest wins:** Image to SVG, Make PDF Searchable, the four "reuse engines" tabs (15–18), Duplicate Photo Finder,
   Chart Maker, WireGuard Config.
 - **Heavy ones:** Pandoc, Demucs, the upscaler models, LaTeX and Sky Map download only when their tab is used.
 - **JavaScript-only (tier 4, reason recorded if accepted):** Excalidraw and CircuitJS1 have no compiled equivalent.

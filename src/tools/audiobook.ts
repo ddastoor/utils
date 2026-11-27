@@ -133,17 +133,29 @@ export const mount: Mount = (root, ctx) => {
 
   // ---- the book
   const picker = filePicker({ accept: ACCEPT, label: 'Choose a book', hint: 'EPUB, PDF, MOBI, FictionBook, plain text or a web page — or drop it here', onFiles: (fs) => fs[0] && pick(fs[0]) });
+  let pickId = 0;
   async function pick(f: File) {
     if (making) { toast('A book is being read aloud: stop it first.', 'info'); return; }
-    await open(new Uint8Array(await f.arrayBuffer()), f.name);
+    // the book shown goes at once (not after the file is read: Make must not start on it meanwhile); a newer file wins
+    const my = ++pickId;
+    forget(f.name);
+    const bytes = new Uint8Array(await f.arrayBuffer());
+    if (my === pickId) await open(bytes, f.name);
   }
-  async function open(bytes: Uint8Array, name: string, password?: string) {
-    const my = ++readId;
+  /** the book shown, its tracks, the MP3s made of them (their memory) and the last run's line */
+  function forget(name: string) {
+    ++readId;
     releaseNow('audiobook-reader');   // a book still being read is let go
-    source = { bytes, name, password };
+    for (const r of rows) dropUrl(r.url);
     clear(bookBox); clear(chapterBox); clear(resultBox); rows = []; book = null; art = undefined;
     if (coverUrl) { dropUrl(coverUrl); coverUrl = ''; }
+    makeProg.done(); makeLine.textContent = '';
     status.textContent = `Reading ${name}…`;
+  }
+  async function open(bytes: Uint8Array, name: string, password?: string) {
+    forget(name);
+    const my = readId;
+    source = { bytes, name, password };
     readProg.set(null, 'Reading the book…');
     let r;
     try {

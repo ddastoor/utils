@@ -68,8 +68,17 @@ title, author, site, date; a contents page for several, a cover; "Read it here" 
 198 (the MHTML and web-archive readers held to Python's email package and plistlib, four made-up pages saved four ways —
 `scripts/make-article-pages.py`, Chrome's own MHTML by `scripts/make-article-mhtml.mjs` —, epubcheck), e2e `articles` 49
 (the article held word for word to Mozilla's Readability.js in the browser's DOM; MuPDF reads every sentence of the EPUB);
-taken off potentials.md. **Then in group 1:** #14 PDF / EPUB → Audiobook;
-then the flattener as a measured step of the OCR and the Photo Dictionary (no photo may read worse). **New, open: to-do #38** (owner, 27 Nov 2026, before the potentials: the OCR's and the
+taken off potentials.md. **#14 PDF / EPUB → Audiobook — BUILT (27 Nov 2026):** the tab `audiobook` (Documents, PC + mobile;
+CLAUDE.md §3 "PDF / EPUB → Audiobook"): a book (EPUB, MOBI, FictionBook, text, a web page, a PDF through the PDF → EPUB engine)
+read into tracks — one per chapter of its contents, else its headings, else parts of about 17 minutes; footnote marks, notes,
+pictures, running heads, page numbers and a contents page left out — each said by the Text-to-Speech tab's voices (Kokoro,
+Piper; their engine shared since: `src/lib/speech.ts`) straight into an MP3 stream with ID3 tags and the cover (our LAME in
+audio.wasm, `a_mp3s_*`, gapless); one to four speech engines at once on a PC; the MP3s kept in the page (a zip with a playlist)
+or saved into a folder as they are made — a folder that holds some is carried on from. Unit `audiobook` 61 (every word of
+every test book in order — `python3 scripts/make-audiobook-books.py`), `audio` 64 (the stream byte for byte the one-shot file,
+mutagen, FFmpeg); e2e `audiobook` 55 (real MP3s read back by ffprobe, FFmpeg and Whisper — `pip install faster-whisper`);
+docs/WASM-AUDIT.md 184; taken off potentials.md. **Next in group 1 (task #72):** the flattener as a measured step of the OCR
+and the Photo Dictionary (no photo may read worse). **New, open: to-do #38** (owner, 27 Nov 2026, before the potentials: the OCR's and the
 Photo Dictionary's text copied to the clipboard as soon as it is read) — not started; **the owner: later** ("will come back
 to do later", 27 Nov 2026) — do not start it until the owner says so.
 **Batch 1 done; batch 2 (#18 OCR + Photo Dictionary) DONE** (todo.md Done #18; CLAUDE.md §3 OCR, "Documents — one reading
