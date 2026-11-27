@@ -183,9 +183,18 @@ export function articleOf(e: ArticleEngine, p: Page, whole = !!p.whole): Article
   const f = e.read(p.html, p.url, { whole });
   const url = p.url || (f.url && /^https?:\/\//i.test(f.url) ? f.url : '');
   const site = collapse(f.siteName || '') || host(url);
-  const title = collapse(f.title || '') || collapse(p.subject || '') || p.name.replace(/\.[^.]+$/, '');
-  const pictures: Picture[] = f.images.map((i) => ({ alt: i.alt, urls: i.urls, file: pictureFor(i.urls, p) }));
   let xhtml = f.xhtml;
+  // no title (a pasted selection, a page without <title>): its first heading, taken out of the text (the chapter shows
+  // the title on top), else its first words
+  let title = collapse(f.title || '') || collapse(p.subject || '');
+  if (!title) {
+    const hd = /^\s*<h[1-3](?: [^>]*)?>([\s\S]*?)<\/h[1-3]>/.exec(xhtml);
+    const t = hd ? collapse(hd[1].replace(/<[^>]+>/g, '').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&amp;/g, '&')) : '';
+    if (t && t.length <= 200) { title = t; xhtml = xhtml.slice(hd![0].length); }
+    else { const w = f.text.split(/\s+/).filter(Boolean); title = w.slice(0, 8).join(' ') + (w.length > 8 ? '…' : ''); }
+  }
+  title ||= p.name.replace(/\.[^.]+$/, '');
+  const pictures: Picture[] = f.images.map((i) => ({ alt: i.alt, urls: i.urls, file: pictureFor(i.urls, p) }));
   // the page's own picture (og:image — a news story's lead photo) on top, when it was saved with the page and the article
   // does not show it: Readability leaves a lead picture that stands above the article's text out
   const lead = !whole && f.image ? pictureFor([[f.image, 0]], p) : null;

@@ -3153,6 +3153,30 @@ cannot. Three new suites; each fails on the build before its fixes.
   candidates measured (docs/WASM-AUDIT.md 179): page-dewarp 0.3.4 takes the photo's rectangle less fixed margins for the
   page — it cut the words nearest the spine of a page cut out at the gutter (95 → 76 % of a frame's words read) and kept
   the table round the page; Leptonica 1.86's `dewarpSinglePage` gave up on 1080p video frames (too few lines found).
+- **Articles → Kindle (potentials #106, 27 Nov 2026), found while building it — each with a check that would catch it:**
+  - **Chrome's MHTML leaves a page's scripts out — its JSON-LD with them:** the article's date was lost and the author was the
+    byline line as it stands ("Priya Sharma · 20 November 2026"). The date now comes from the article's `<time>` where the
+    metadata has none (article.wasm), and a byline's date or reading time after a separator is cut off (`cleanByline`; unit:
+    the same author and date from all four saves of each page).
+  - **Readability leaves a lead photo out** when it stands above the article's text (Firefox's Readability.js does too — checked
+    on the same page): the page's og:image is put on top when it was saved and the article does not show it (unit: the lead
+    photo first in the MHTML, web archive and folder saves, absent from HTML only).
+  - **A frame of a Chrome MHTML points at its saved part** (`cid:frame-…@mhtml.blink`), so an embedded video vanished; its
+    address is put back from the part's Content-Location and it becomes a link (unit: the YouTube embed a link in every save).
+  - **The text glued blocks together** ("Total timeThe time spent…", a table row one word): it was the page's raw text. It is
+    made from the written XHTML now, a line a block (the words counted and read aloud from it).
+  - **A tracking pixel was a picture of the article** (Readability.js keeps it): an image sized 1 × 1 by its page is none now.
+  - **A page saved as HTML only had no address:** taken from its canonical link or og:url (`canonicalOf`).
+  - **A pasted selection without a page title was titled "Pasted 1":** its first heading now (taken out of the text, the chapter
+    shows the title on top), else its first words.
+  - **Found, left as it is:** in a page saved "complete" with spaces in its folder's name (Chrome writes them as they are), a
+    `srcset` breaks at the spaces — browsers fail on it too; the `<img src>` is the fallback, and it is found (unit: news,
+    complete). Python's email package turns the CR LF of quoted-printable text into LF; the engine keeps RFC 2045's canonical
+    CR LF (an HTML parser reads both alike) — the unit suite compares text parts with LF line ends and says why.
+  - **The tests' own slips:** the code block's sentence was listed last (it stands third); the footnote link's attributes come
+    in another order; "a block inside a paragraph" was closed by the HTML parser before our writer saw it (a heading and a span
+    test it now); the tab's own CSP refused Readability.js as an inline script (it runs in a blank page of its own);
+    Readability.js's textContent glues a table row's cells into one word — its article is read as a page shows it (innerText).
 - **EPUB Reader (potentials #71, 27 Nov 2026), found while building it — each with a check that would catch it:**
   - **The first book never opened** ("Opening…" for ever): MuPDF's module waits for its WebAssembly (a top-level await); in a
     module worker that imports it statically, a message that arrives during the wait finds no `onmessage` yet and is lost.

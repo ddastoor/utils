@@ -333,7 +333,7 @@ Wayland) and **mobile browsers** (Android Chrome, iPhone Safari).
 Platform is PC + mobile unless marked **PC**. Tab ids are the URL hash (`#/<id>`).
 
 **The authoritative, always-current list is `docs/TOOLS.md`, generated from `src/registry.ts` (`npm run docs`).**
-Current total: **179 tabs in 11 categories — 112 PC + mobile, 64 PC only, 3 Mobile only** (regenerate with
+Current total: **180 tabs in 11 categories — 113 PC + mobile, 64 PC only, 3 Mobile only** (regenerate with
 `npm run docs` after every registry change; the owner asked for the registry to always be noted).
 The per-category notes below record decisions; when they disagree with the registry, the registry wins.
 
@@ -442,6 +442,7 @@ warned. Resume: the photo is a JPEG (quality 85); file names are made safe (`saf
 | `pdf-watermark` | PDF Watermark | both |
 | `epub` | PDF → EPUB (Kindle) | **PC** — **BUILT** (see §3) |
 | `kindlepdf` | PDF for Kindle | both — **BUILT** (27 Nov 2026; potentials #109 — §3 "PDF for Kindle") |
+| `articles` | Articles → Kindle | both — **BUILT** (27 Nov 2026; potentials #106 — §3 "Articles → Kindle": saved web articles made into one EPUB) |
 | `ebook` | EPUB Reader | both — **BUILT** (27 Nov 2026; potentials #71 — §3 "EPUB Reader": EPUB, MOBI, FictionBook, comics, text) |
 | `sheet` | CSV / Excel Viewer & Converter | **PC** — **BUILT** (sheet.wasm; open xlsx/xlsm/xlsb/xls/ods/csv/tsv/json and the "Excel" files that are web pages or Excel 2003 XML, sheet tabs incl. hidden, separator override, filter, export CSV (BOM) / TSV / JSON / XLSX; as built: §3 "CSV / Excel"; unit `sheet.test.mjs` 120 + `sheetdata.test.mjs` 42, e2e 32) |
 | `markdown` | Markdown Editor | both — **BUILT** (cmark-gfm wasm; live preview, toolbar + Ctrl+B/I/K, .md open/save, standalone .html, print of the preview only; as built: §3 "Markdown Editor"; unit 29 incl. the 744 GFM spec examples, e2e 46) |
@@ -3282,6 +3283,55 @@ search in the book, go to a page or chapter; the book never leaves the device".
   §4); the page area changed size when Back or the selection bar appeared and laid the book out again in a loop (both now take no
   room from it); a FictionBook's title is lost once the book is styled (read right after opening, `metaOf`).
 
+### Articles → Kindle — BUILT (potentials #106; owner, 21 Nov 2026; built 27 Nov 2026 — group 1 of the suggested order)
+(`articles` in `src/tools/articles.ts`, steps `src/lib/articles.ts` (no DOM), engine `wasm/article` → `src/wasm/bin/article.wasm`
+(binding `src/wasm/article.ts`); unit `tests/unit/articles.test.mjs` 198, e2e `tests/e2e/articles.e2e.mjs` 49; fixtures
+`tests/fixtures/articles/` with what is known about each page, made by `python3 scripts/make-article-pages.py` and
+`node scripts/make-article-mhtml.mjs` — Chrome's own MHTML, saved by Chromium.) The owner's words (potentials #106): "a web
+article saved with Ctrl+S (.html, .mhtml) or pasted → the article alone — no ads, menus or pop-ups — with its pictures, title,
+author and date → an EPUB ready for Send to Kindle; several articles → one EPUB with a contents page (a weekend's reading)".
+- **What it takes** (`pagesOf`, by the bytes, not only the name): Chrome's and Edge's "Webpage, Single File" (**.mhtml** — and
+  Chrome on Android's "Download page"), Safari's **web archive** (an iPhone's Share → Options → "Web Archive"; a Mac's Save As),
+  a page saved "**complete**" with its "…_files" folder (chosen as a folder on a PC, or dropped — a dropped folder's files are
+  read with their paths), **HTML only**, a **text file**, and a **pasted selection** (the browser's HTML of it: text and links).
+  The MHTML and the web archive are taken apart by our readers in article.wasm (below); an HTML file's text is decoded by its
+  mark, the character set its container or its `<meta>` gives, else UTF-8 when valid, else Windows-1252 (`decodeHtml`, the
+  browser's TextDecoder); the page's address from the save (Chrome's "saved from" mark, the MHTML's, the archive's), else its
+  canonical link or og:url (`canonicalOf`). "How to save a web page on this device" in the tab says it per browser.
+- **The article** (`articleOf`): article.wasm runs **dom_smoothie 0.20.0** — Mozilla Readability's algorithm, the engine of
+  Firefox's Reader View, in Rust — and writes the article as **XHTML for an EPUB** (`xhtml.rs`, ours): the text's own elements
+  under their HTML names, HTML's content models kept (a list holds items, a table its parts in order, a list of terms its
+  groups, a paragraph no blocks, no link in a link), only links' addresses (http, https, mailto, the article's own #ids),
+  descriptions, a list's start, spans, lang and dir as attributes; scripts, styles, forms, inline SVG left out; a video or an
+  embedded page a link to it; MathML its TeX source; a tracking pixel (1 × 1) no picture; pictures as placeholders with every
+  address they may come from (a `<picture>`'s sources, the srcset largest first, src, lazy-loading attributes). Its title,
+  author (the "By" and a date after a separator cut off — `cleanByline`), site, date (the metadata's, else the article's
+  `<time>`: **Chrome's MHTML leaves the page's scripts out, and its JSON-LD with them**), language, the text (a line a block).
+  Reader View's own doubt (`readable`) is said; a page in which it finds no article is used whole, and said; "Use the whole
+  page" (in the Preview) when it left something out. **Ours beside it:** the page's og:image on top when it was saved and the
+  article does not show it (Readability — Firefox's too — leaves a lead photo above the article's text out); a pasted selection
+  without a title is titled by its first heading; a frame of a Chrome MHTML points at its saved part (cid:) — its address is
+  put back, so the video becomes a link.
+- **Its pictures** (`pictureFor`): among the saved files by address (resolved against the page's), Content-ID, data: URL, or a
+  path in the folder (escaped or not; the file's name when it is the only one). In the book (`convert` in the tab): JPEG, PNG
+  and GIF that fit are kept **byte for byte**; WebP, AVIF, SVG and pictures larger than 1,600 × 2,400 are drawn again (MozJPEG,
+  OxiPNG when transparent — the app's codec worker); a picture not saved with the page is left out and counted.
+- **The EPUB** (`makeEpub`): a chapter per article — its title, "author · site · date · n min read" and its address on top —,
+  its second-level headings in the contents, a contents page for several articles (titles with the same line), a cover drawn
+  by the tab (the title and the articles, 1,200 × 1,800; optional), EPUB 3 with an NCX for older readers, the language of the
+  first article, dc:date / publisher / source / description for one article; epubcheck 5.2.1 finds nothing. File: the book's
+  title (`Articles-27-November-2026.epub`). Download, Share (phones), **Read it here** (the EPUB Reader opens it — the hand-over
+  `src/lib/handoff.ts` carries a file), and how to send it with Send to Kindle.
+- **The tab:** the articles as cards — the title (editable), the line under it, the pictures found ("2 of 3"), what to know
+  (Reader View's doubt, pictures not saved — how to keep them —, videos as links), up / down / Remove, a **Preview** (the
+  article as the book has it, its pictures from the saved files as blob: URLs, links in a new tab); the book's title and
+  author follow the articles until typed; Pictures and the cover switches kept while the page is open. Nothing is fetched at
+  open: article.wasm (1.1 MB) with the first page.
+- **Measured:** on Mozilla Readability's own 128 test pages, 99.8 % of the expected words (the differences: embeds written as
+  links, code blocks kept); on the fixtures, held word for word to Readability.js 0.6.0 run in the browser's DOM — every word
+  it keeps is kept, and beyond it only the embed link, a code block under `md:hidden` (dom_smoothie 0.19's fix) and a heading
+  with a `scroll-…` class (0.20's) that Readability.js drops.
+
 ### Screencast (PC) — BUILT (`src/tools/screencast.ts`; e2e `tests/e2e/screencast.e2e.mjs` 50)
 Chrome on Windows/Linux. "Screen, window or tab" (Chrome's picker; own tab excluded; surface switching allowed) or
 "An area": choose a screen, drag a rectangle on the live preview (a page cannot draw on the desktop); the rectangle is
@@ -3490,6 +3540,7 @@ difference over its detail, the overlap's pixels), ruled lines and list marks cl
 | textcore: tool-search ranking, rare-word ranking (tokeniser, lemmatiser, wordfreq hash table), XY-cut reading order (columns numbered only where they are real: `minh`) | C (own code) | **us** (`wasm/textcore`) | search box, emoji (search), photodict, epub, clipper (the order of a story's parts), kindlepdf (a page's regions) |
 | textkit: **unicode-segmentation 1.13.3** (the Rust ecosystem's UAX #29 implementation, Unicode 17.0, MIT / Apache-2.0: extended grapheme clusters, sentence boundaries) + our counting rules: words as a word limit counts them, abbreviations and initials, lines and paragraphs, keywords (Snowball's stop words); **the Case Converter's thirteen conversions** (`case.rs`: Title Case is a port of the Python package `titlecase` 2.4.1 — Gruber's rules, MIT; the code cases cut words as npm's `change-case` does; case mapping by Rust's standard library) | Rust | **us** (`wasm/textkit`, crates.io via `Cargo.lock`, two modules by Cargo features: **textkit.wasm** 217 KB — fetched with the Word Counter's first text, with the Case Converter, and with the first Fancy Text that has an emoji or another script — and **textkit-diff.wasm** 0.71 MB = the **`similar` crate 3.2.1** (Apache-2.0: Myers in linear space with a time limit, line / word / grapheme diffs, inline changes, unified diffs) + our glue and our pairing of a change's lines side by side (`pair_lines`: likeness by a bounded Myers search, the best order-keeping pairing by dynamic programming — to-do #35), fetched by the Text Diff only; and **textkit-lorem.wasm** 0.13 MB = the **`lipsum` crate 0.9.1** (MIT: a Markov chain over the classic passage and Cicero's *De finibus*, with rand 0.8 / rand_chacha 0.3) + our glue (cleaned texts learned as circles, exact counts), fetched by the Lorem Ipsum tab; the existing module — ICU4X's official build — is one file of 20 MB: `docs/WASM-AUDIT.md`, tab 90) | wordcount, case, lines ("By length"), fancy (characters); diff (textkit-diff); lorem (textkit-lorem) |
 | sheet: calamine 0.38 (read .xlsx .xlsm .xlsb .xls .ods) + rust_xlsxwriter 0.102 (write .xlsx) + csv 1 + serde_json | Rust | **us** (`wasm/sheet`, crates.io sources verified by `Cargo.lock`, target wasm32-wasip1) | sheet |
+| article: **dom_smoothie 0.20.0** (Mozilla Readability's algorithm in Rust, MIT; on dom_query 0.30 / html5ever) + ours: the article written as XHTML for an EPUB (`xhtml.rs`), Chrome's MHTML read (`mhtml.rs`: MIME headers, multiparts, base64, quoted-printable, encoded words) and Safari's web archive (`webarchive.rs`: Apple's binary property list) | Rust | **us** (`wasm/article`, crates.io via `Cargo.lock`, opt-level s, 1.1 MB; the author's npm build — dom-smoothie-js 0.16.0 — is a Node.js build four releases behind, with faults later releases fixed: `docs/WASM-AUDIT.md`, tab 183) | articles |
 | svgo: **OXVG 0.0.9** (Rust port of SVGO's plugins; lightningcss for `<style>`) + our glue: DOCTYPE / entities allowed, nesting limit 256, **our own safe preset** (OXVG's `Jobs::safe()` is not safe), `sv_diff` (do two rasters look alike? — the tab renders every result next to its original and falls back to the safe result when the full optimisation changed the picture) | Rust | **us** (`wasm/svgo`, crates.io via `Cargo.lock`, opt-level z, 4.9 MB / 1.3 MB gz, loaded with the first SVG; unit `tests/unit/svgo.test.mjs`, hazard drawings `tests/fixtures/svg/hazards.json`) | svgo |
 | keys — the **supplement** to hash-wasm for the key tabs (owner's tweak of 18 Nov 2026: what the existing module does not cover): lenient Base32 secrets, HOTP counters and truncation; checked parameters, random salts, PHC strings for scrypt / PBKDF2 and the reader of pasted hashes; RustCrypto **argon2** for Argon2 version 1.0 hashes (v=16 or no version, keyid / data), which hash-wasm does not read; RustCrypto **ssh-key** (OpenSSH Ed25519 generation), **aes + ctr + bcrypt-pbkdf** and our own OpenSSH wire reader (inspect Ed25519 / RSA / ECDSA / DSA keys, encrypted private keys, authorized_keys / known_hosts lines); API keys | Rust | **us** (`wasm/keys`, 0.31 MB; no existing WebAssembly module makes or reads OpenSSH key files) | totp, pwhash (with hash-wasm); sshkey, apikey |
 | zxcvbn 3.1.1 (Rust port of Dropbox's estimator + its word lists) **+ our four fixes** (`wasm/zxcvbn/zxcvbn-fixes.patch`, applied by build.sh to the SHA-256-checked crate: ALL-CAPS words with a digit, repeats taken for sequences, single-character l33t words, keyboard-walk degree divided in integers) | Rust | **us** (`wasm/zxcvbn`, 2.2 MB, loaded with the first password; guesses + scores equal the Python reference for 304 passwords — `tests/unit/zxcvbn.test.mjs`) | pwstrength |
@@ -3601,6 +3652,10 @@ a story, and where each piece goes in the clipping: rules over a few hundred wor
 as `src/lib/listtext.ts`); the pixels are imgproc.wasm's (unsharp mask, clean-up, ink regions), the order textcore.wasm's
 XY-cut. No WebAssembly module finds a newspaper's articles (`docs/WASM-AUDIT.md`, tab 180). The pieces are copied out of a
 page a row at a time (`TypedArray.set`) and made smaller by imgproc's resize.
+Nov 2026 (Articles → Kindle, potentials #106): `src/lib/articles.ts` — which file is what (its first bytes), the HTML's character set
+(the browser's TextDecoder), a picture's addresses matched with the saved files' (the browser's URL parser), the EPUB's files
+written as text and zipped by fflate; the article, its XHTML and the readers of the saved files are article.wasm's; the
+pictures are drawn by the codec worker (MozJPEG, OxiPNG, Squoosh's resize). The cover is drawn by the browser's canvas.
 Nov 2026 (Paste image, to-do #37): `src/lib/clipimage.ts` — the browser's Async Clipboard API, a choice among the formats
 it offers and a file name; no engine has work to do.
 Nov 2026 (Screenshot's area, to-do #24): `src/lib/areageom.ts` — the rectangle's arithmetic (where the frame stands, a
@@ -4084,6 +4139,18 @@ for ever after loading the assemblies; `src/lib/regex/dotnet.ts` sets `globalThi
 runtime's one Function constructor is in the debugger protocol's `callFunctionOn` (runs only with a .NET debugger
 attached). **To update:** a newer `dotnet-sdk-10.0` (apt), build.sh, the reference script, both suites.
 
+### 5.1t article → `src/wasm/bin/article.wasm` (Rust)
+`bash wasm/article/build.sh` = `cargo build --release --locked --target wasm32-wasip1` (no zig): **dom_smoothie 0.20.0** (MIT,
+crates.io, pinned by `Cargo.lock` with dom_query 0.30, html5ever 0.40 …) and our three files — `xhtml.rs` (the writer of the
+article's XHTML and its text), `mhtml.rs` (MIME: headers unfolded, parameters, multiparts nested, base64, quoted-printable,
+RFC 2047 words), `webarchive.rs` (the bplist00 format: objects, offset table, trailer; bounds-checked). Exports: `ar_read(html,
+len, url, ulen, flags)` (flags 1 = the whole page, 2 = strict visibility) → JSON (the metadata, `xhtml`, `text`, `words`,
+`images`, `dropped`, `readable`); `ar_mhtml` / `ar_webarchive(bytes, len)` → JSON of the parts and their bytes in `ar_blob_ptr()` /
+`ar_blob_len()`; `ar_alloc` / `ar_free` / `ar_out_ptr` / `ar_out_len` / `ar_blob_free`. `panic = "abort"`: a panic is a trap,
+the binding's engine is made again (`lazyEngine`). **To update:** `cargo update -p dom_smoothie` in `wasm/article`, build.sh,
+`node scripts/make-article-mhtml.mjs` only if the pages change, both suites; Mozilla's own test pages (`git clone --depth 1 --branch
+0.6.0 https://github.com/mozilla/readability`, test/test-pages) for a measure of the words kept.
+
 ### 5.1e markdown → `src/wasm/bin/markdown.wasm`
 `ZIG=… wasm/markdown/build.sh`: downloads the `cmarkgfm` 2025.10.22 sdist from PyPI (SHA-256 `5bec6100…`), which vendors
 cmark-gfm 0.29.0.gfm.13 (latest upstream) plus its CMake-generated headers (`generated/unix`), and links all of
@@ -4111,7 +4178,7 @@ npm packages (pinned in `package-lock.json`) are bundled by Vite or copied to `p
 | openpgp | LGPL-3.0 | OpenPGP |
 | @ffmpeg/ffmpeg, @ffmpeg/util, @ffmpeg/core | MIT / GPL-2.0+ (core) | FFmpeg |
 | mupdf (Artifex, official wasm) | AGPL-3.0 | all PDF tools, Doc Scanner PDF output |
-| fflate | MIT | EPUB zip |
+| fflate | MIT | EPUB zip (PDF → EPUB, Articles → Kindle) |
 | @jsquash/jpeg (MozJPEG), /webp, /oxipng, /resize | Apache-2.0 (+ codec licences) | image encoders; resizing |
 | @mediapipe/tasks-vision | Apache-2.0 | Passport |
 | @tensorflow/tfjs-core, -converter, -backend-webgl, -backend-wasm (XNNPACK wasm), -backend-cpu | Apache-2.0 | Cartoonizer style transfer |
@@ -4152,6 +4219,7 @@ npm packages (pinned in `package-lock.json`) are bundled by Vite or copied to `p
 | *test only:* unicode-emoji-json 0.9.0 | MIT | another reading of Unicode's emoji list, which the Emoji tab's data is held to (`tests/unit/emoji.test.mjs`) |
 | *test only:* @xterm/xterm 6.0.0 (its TypeScript source, transpiled in the test) | MIT | what a terminal receives for a key, which the Key Codes tab's "A terminal receives" is held to (`tests/unit/keycombo.test.mjs`) |
 | *test only:* axe-core 4.14.1 (Deque's accessibility checker) | MPL-2.0 | `tests/e2e/a11y.e2e.mjs`: WCAG 2.2 A / AA on every page, desktop light and dark, phone dark |
+| *test only:* @mozilla/readability 0.6.0 (Readability.js, Firefox's Reader View) | Apache-2.0 | `tests/e2e/articles.e2e.mjs`: the article Articles → Kindle finds, held to Firefox's |
 | @expo-google-fonts/noto-sans (Noto Sans TTF: regular, bold, italic) | OFL-1.1 (package MIT) | PDFs made by GST Invoice, Rent Receipt, Resume Builder; EPUB Reader (its Sans) |
 | @expo-google-fonts/literata 0.4.3 (Literata TTF: regular, italic, bold, bold italic — four files, 1.0 MB on the site) | OFL-1.1 (package MIT) | EPUB Reader (the text's font; MuPDF's FreeType reads no WOFF, so @fontsource/literata's files cannot serve) |
 

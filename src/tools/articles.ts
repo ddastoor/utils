@@ -11,7 +11,7 @@ import { safeName } from '../lib/docrules';
 import { plural } from '../lib/dates';
 import { give } from '../lib/handoff';
 
-const ACCEPT = '.mhtml,.mht,.webarchive,.html,.htm,.xhtml,.shtml,.txt,text/html,multipart/related,application/x-mimearchive,image/*';
+const ACCEPT = '.mhtml,.mht,.webarchive,.html,.htm,.xhtml,.shtml,.txt,text/html,multipart/related,application/x-mimearchive';
 // kept while the page is open (through other tabs): pictures and the cover
 let keepPictures = true, makeCover = true;
 // a picture in the book: at most this size (a Kindle Scribe's width; a tall infographic may run over several screens)
@@ -104,6 +104,7 @@ async function cover(title: string, lines: string[], sub: string): Promise<{ byt
 
 export const mount: Mount = (root, ctx) => {
   let items: Item[] = [], live = true, pasted = 0, busy: Promise<void> = Promise.resolve();
+  const open = new Set<Item>();   // the previews left open (kept open when the list is drawn again)
   const blobUrls = new Set<string>();
   const status = h('div', { class: 'stack', role: 'status', 'aria-live': 'polite' });
   const list = h('div', { class: 'art-list' });
@@ -140,14 +141,15 @@ export const mount: Mount = (root, ctx) => {
       if (embeds) tips.push(embeds === 1 ? 'A video or embedded post is a link in the book.' : `${embeds} videos and embedded posts are links in the book.`);
       const tIn = input({ value: it.title, attrs: { 'aria-label': `Title of article ${k + 1}` }, onInput: (v) => { it.title = v; defaults(); } });
       const preview = h('div', { class: 'art-preview', lang: a.lang || null, dir: a.dir || null });
-      const det = h('details', { class: 'art-details' }, h('summary', null, 'Preview'), preview);
-      det.addEventListener('toggle', () => { if (det.open && !preview.childNodes.length) showPreview(it, preview); });
-      const whole = toggle('Use the whole page (when Reader View left out part of the article)', a.whole, (v) => { void redo(it, v); });
+      // the switch to the whole page stands where a reader sees that something is missing: over the preview
+      const whole = a.via === 'paste' || a.via === 'text' ? null : toggle('Use the whole page (Reader View left something out)', a.whole, (v) => { open.add(it); void redo(it, v); });
+      const det = h('details', { class: 'art-details', open: open.has(it) || null }, h('summary', null, 'Preview'), whole, preview);
+      det.addEventListener('toggle', () => { if (det.open) { open.add(it); if (!preview.childNodes.length) showPreview(it, preview); } else open.delete(it); });
+      if (det.open) showPreview(it, preview);
       list.append(h('div', { class: 'art-item' },
         h('div', { class: 'art-head' }, h('span', { class: 'art-num' }, String(k + 1)), tIn),
         h('div', { class: 'muted small' }, [byline({ ...a, author: it.author }), all ? `${found} of ${plural(all, 'picture')}` : 'no pictures', a.name].filter(Boolean).join(' · ')),
         ...tips.map((t) => h('div', { class: 'small art-tip' }, t)),
-        a.via === 'paste' || a.via === 'text' ? null : whole,
         h('div', { class: 'row' },
           button('', () => move(k, -1), { icon: 'ArrowUp', title: `Move article ${k + 1} up`, disabled: k === 0, small: true }),
           button('', () => move(k, 1), { icon: 'ArrowDown', title: `Move article ${k + 1} down`, disabled: k === items.length - 1, small: true }),
@@ -279,7 +281,7 @@ export const mount: Mount = (root, ctx) => {
       const made = await makeEpub(arts, { title, author: authorIn.value, pictures: keepPictures, cover: cov }, convert, (d, n) => prog.set(n ? d / n : 1, `Pictures: ${d} of ${n}…`));
       prog.done();
       if (!live) return;
-      const name = `${safeName(title, 'articles')}.epub`, blob = new Blob([made.epub as BlobPart], { type: 'application/epub+zip' });
+      const name = `${safeName(title.replace(/\s*[—–]\s*/g, ' '), 'articles')}.epub`, blob = new Blob([made.epub as BlobPart], { type: 'application/epub+zip' });
       const words = arts.reduce((n, a) => n + a.words, 0);
       result.append(
         note(`${name}: ${fmtBytes(made.epub.length)} · ${plural(arts.length, 'article')} · ${words.toLocaleString('en-IN')} words (about ${plural(minutes(words), 'minute')} of reading)${keepPictures ? ` · ${plural(made.pictures, 'picture')}${made.missing ? ` (${made.missing} not saved with the pages)` : ''}` : ''} · ${((performance.now() - t0) / 1000).toFixed(1)} s`, 'ok'),

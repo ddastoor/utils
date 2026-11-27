@@ -1710,3 +1710,35 @@ Looked at first (STANDING RULE #1):
   kept at four other sizes and shapes, search, links, themes drawn, the comic's order, DRM and other refusals); e2e `ebook` 59
   (the tab held to MuPDF in Node at the same size and look: page count, pixels, contents, search hits, links; keys, slider,
   panels, selection, reading mode, Read aloud and back, every format, refusals, a phone's taps, swipe and long press).
+
+### 183. `articles` — Articles → Kindle (27 Nov 2026; potentials #106)
+- **What the tab does:** a saved web page (Chrome's MHTML, Safari's web archive, a page saved "complete" with its folder, HTML
+  only, a pasted selection, a text file) → the article alone, its pictures, title, author, site and date → one EPUB for Send to
+  Kindle (several articles: a contents page).
+- **Engine — Mozilla Readability's algorithm (Firefox's Reader View) through its Rust port dom_smoothie:**
+  - **The existing WebAssembly module** is the crate author's own npm build, **dom-smoothie-js 0.16.0** (wasm-bindgen, MIT,
+    March 2026). Looked at closely: it is wasm-bindgen's **Node.js** target (CommonJS, `require('util')`, its .wasm read with
+    `fs`) — it does not run in a browser as published; and it is **four releases behind** the crate (0.20.0, 21 Nov 2026), whose
+    changelog fixes faults inside the engine that nothing placed beside it can put right. Measured with both on the same pages
+    (`dscompare.mjs`, scratch): a code block under utility classes (`overflow-hidden md:hidden`) — **lost** by 0.16, kept by
+    0.20 (#226); text inside an element styled `backface-visibility: hidden` — **lost** by 0.16 (#248); a lazy picture's working
+    `src` — **replaced** by 0.16 (#218); a page of 2,000 nested elements — **15.7 s** in 0.16, 0.3 s in 0.20 (an O(n³) path,
+    fixed in 0.19). By the owner's rule (a module with a defect inside the engine → a WebAssembly engine of our own whose tests
+    pass): **our own build of dom_smoothie 0.20.0** (`wasm/article`, wasm32-wasip1, no wasm-bindgen, 1.1 MB).
+  - **Measured:** Mozilla Readability's own 128 test pages (github.com/mozilla/readability, tag 0.6.0, test/test-pages): 99.8 % of
+    the expected words, no crash, 1.6 s for all (the differences: embeds written as links; code blocks kept). On the tab's
+    fixtures, in the browser: every word Readability.js 0.6.0 keeps is kept; beyond it only the embed link, the code block
+    (#226) and a heading with a `scroll-…` class (#250, 0.20 dropped "scroll" from the negative patterns).
+  - `strict_visibility` (0.20's option: text hidden by inline styles and screen-reader classes left out) measured on the 128
+    pages: 99.78 % against 99.79 % without — left off (Firefox's behaviour).
+- **Beside it, ours (Rust, in the same module):** the XHTML writer (`xhtml.rs`: HTML's content models kept, so the EPUB passes
+  epubcheck; pictures as placeholders with all their addresses); the **MHTML reader** (`mhtml.rs`) — looked at `mail-parser`
+  (Stalwart; decodes text parts to UTF-8 itself, by the part's charset — a page saved in Shift_JIS without one would be
+  garbled — and brings charset tables) and `mailparse` (its `charset` dependency brings encoding_rs, about 1 MB of tables):
+  neither is needed — the parts' bytes are what the tab needs, and the browser's TextDecoder decodes text; held to Python's email
+  package byte for byte on Chromium's own MHTML; the **web archive reader** (`webarchive.rs`) — looked at the `plist` crate (MIT;
+  brings serde, quick-xml, indexmap, time, base64 for reading three keys of one structure): our 100 lines of the binary format,
+  bounds-checked, held to Python's plistlib.
+- **TypeScript (glue):** which file is what, the HTML's character set (TextDecoder), matching pictures with the saved files (the
+  browser's URL parser), the EPUB's text files and fflate's zip; pictures drawn by the codec worker (MozJPEG, OxiPNG, Squoosh's
+  resize).

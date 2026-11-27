@@ -184,6 +184,10 @@ export default async (t, { load, wasm, root }) => {
   // a pasted selection and a text file are articles as they are
   const pasted = A.articleOf(e, A.pastedPage('<meta charset="utf-8"><b>Pasted title</b><p>First line of the pasted article with a <a href="https://x.example/">link</a>.</p><p>Second paragraph.</p>', ''));
   t.ok(pasted.whole && /<b>Pasted title<\/b>/.test(pasted.xhtml) && /<a href="https:\/\/x\.example\/">link<\/a>/.test(pasted.xhtml) && /Second paragraph/.test(pasted.text), 'a pasted selection: its text, formatting and links as they were');
+  const titled = A.articleOf(e, A.pastedPage('<h1>A pasted story</h1><p>Its first paragraph, long enough to read.</p>', ''));
+  t.ok(titled.title === 'A pasted story' && !/<h1/.test(titled.xhtml) && /Its first paragraph/.test(titled.xhtml), 'a pasted selection without a page title: titled by its first heading, which leaves the text (the chapter shows the title on top)');
+  const untitled = A.articleOf(e, A.pastedPage('<p>One two three four five six seven eight nine ten.</p>', ''));
+  t.eq(untitled.title, 'One two three four five six seven eight…', 'without a heading: its first eight words');
   const txt = A.pagesOf([{ name: 'notes.txt', bytes: new TextEncoder().encode('A title\n\nThe first paragraph of the notes, written in a text file\nand broken over lines by hand at about sixty characters\nas plain text files often are.\n\nThe second.') }], e).pages[0];
   t.ok(txt.via === 'text' && A.articleOf(e, txt).text.includes('The first paragraph of the notes, written in a text file and broken over lines by hand at about sixty characters as plain text files often are.'), 'a text file: its paragraphs, the lines broken by hand joined');
   t.eq(A.pagesOf([inFile('complete/news/The lighthouse keepers of Kestrel Rock_files/keepers.jpg')], e).skipped.map((s) => s.why.slice(0, 32)), ['a picture on its own is no artic'], 'a picture chosen alone is said to be no article');

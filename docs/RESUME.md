@@ -58,8 +58,17 @@ Copy, the look (Literata — new TTFs, 1.0 MB —, Serif, Sans, the book's own; 
 styles; Light / Sepia / Dark / Black), the place kept, reading mode, Read aloud → Text-to-Speech, DRM refused in words. Unit
 `ebook` 148, e2e `ebook` 59 (+ the site-wide sweeps); fixtures `python3 scripts/make-ebooks.py`; docs/WASM-AUDIT.md 182;
 taken off potentials.md. **Question for the owner (later, not blocking):** keep the place in a book between visits, as
-Favorites are? (hard rule 1 — not done.) **Then in group
-1:** #106 Articles → Kindle · #14 PDF / EPUB → Audiobook;
+Favorites are? (hard rule 1 — not done.) **#106 Articles → Kindle — BUILT (27 Nov 2026):** the tab `articles` (Documents,
+PC + mobile; CLAUDE.md §3 "Articles → Kindle"): web articles saved on the device — Chrome's / Edge's single file (.mhtml;
+Chrome on Android saves pages so), Safari's web archive, a page saved "complete" with its folder, HTML only, a text file, a
+pasted selection — made into one EPUB for Send to Kindle: the article alone (Mozilla Readability's algorithm, dom_smoothie
+0.20.0 as our own wasm build `wasm/article` — the author's npm build 0.16.0 is Node-only and four releases behind, with
+faults 0.17 – 0.20 fixed: docs/WASM-AUDIT.md 183), its pictures from the saved files (WebP / SVG / large ones drawn again),
+title, author, site, date; a contents page for several, a cover; "Read it here" opens it in the EPUB Reader. Unit `articles`
+198 (the MHTML and web-archive readers held to Python's email package and plistlib, four made-up pages saved four ways —
+`scripts/make-article-pages.py`, Chrome's own MHTML by `scripts/make-article-mhtml.mjs` —, epubcheck), e2e `articles` 49
+(the article held word for word to Mozilla's Readability.js in the browser's DOM; MuPDF reads every sentence of the EPUB);
+taken off potentials.md. **Then in group 1:** #14 PDF / EPUB → Audiobook;
 then the flattener as a measured step of the OCR and the Photo Dictionary (no photo may read worse). **New, open: to-do #38** (owner, 27 Nov 2026, before the potentials: the OCR's and the
 Photo Dictionary's text copied to the clipboard as soon as it is read) — not started; **the owner: later** ("will come back
 to do later", 27 Nov 2026) — do not start it until the owner says so.
