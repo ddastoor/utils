@@ -13,58 +13,6 @@ The owner adds items here in chat ("add … to to do"). Newest instructions win.
 
 3. _(withdrawn by the owner on 20 Nov 2026: the "Export Python utility" for the YouTube Clip tab — do not build it.)_
 
-32. **FFmpeg tab: 22 new jobs** (owner, 26 Nov 2026 — asked "Any interesting / cool new ffmpeg uses you can think of?", then:
-    "include all the new cool FFmpeg features that you just mentioned above, leaving out the 3 that would require you to
-    build the new FFmpeg module. Add this currently to todo.md" — the three, a stabiliser, high-quality pitch change and
-    VP9 / H.265, are in docs/potentials.md, U3 "Our own FFmpeg build"). Every one runs on the tab's FFmpeg as it is
-    (ffmpeg.wasm 0.12, FFmpeg 5.1.4 — each filter named here was looked for in the build and found): **nothing is added to
-    the site.** When: at the owner's word (not yet in the batch order).
-    - **Fixes:**
-      1. **Sound out of step with the picture:** the sound moved earlier or later by a time typed (ms or s), the picture
-         copied (`-itsoffset`, or `adelay` / `atrim`).
-      2. **A voice on one side only** (a lapel or phone microphone on the left channel): that side put on both, at its own
-         level (`pan`); also swap left and right, or keep the other side only.
-      3. **Mains hum taken out:** 50 Hz (India) or 60 Hz and its overtones (`bandreject` / `anequalizer`: notches at 50,
-         100, 150 … Hz).
-      4. **A lecture or a meeting evened out:** quiet and loud speakers brought to one level, moment by moment
-         (`speechnorm` / `dynaudnorm`) — "Normalise loudness" sets one level for the whole file.
-      5. **iPhone HDR video → normal colours:** HLG / PQ (Dolby Vision's base layer) tone-mapped to SDR BT.709 (`zscale` +
-         `tonemap`; zimg is in the build) — such clips look washed out on PCs and in WhatsApp.
-      6. **Black bars removed:** found (`cropdetect`) and cut off (`crop`).
-      7. **MKV → MP4 at once:** the streams copied, no re-encoding (OBS's recordings in seconds); subtitles made mov_text,
-         what an MP4 cannot hold said.
-      8. **A logo or a date stamp removed:** from a rectangle chosen on a frame of the video (`delogo`).
-      9. **Location and metadata stripped:** a phone video's GPS, dates and device (`-map_metadata -1`, chapters too; copied,
-         no re-encoding), with what was there listed — as the EXIF tab does for photos (overlaps potentials #36).
-    - **Effects:**
-      10. **Transitions between joined clips:** fade, wipe, slide, circle, dissolve, pixelize … (`xfade`), the sound
-          crossfaded (`acrossfade`); the transition's length.
-      11. **Green screen:** a green (or blue, or a chosen) background replaced by a photo or a video (`chromakey` /
-          `colorkey` + `overlay`), with the softness of the edge.
-      12. **360° video → a normal view** (a direction, a field of view) **or a "tiny planet"**; **GoPro fisheye → flat**
-          (`v360`, `lenscorrection`).
-      13. **Smooth slow motion:** the frames between made by motion interpolation (`minterpolate`; slow in a browser — for
-          short clips, said).
-      14. **Light trails and motion blur** (`lagfun`, `tmix`): night traffic, sparklers.
-      15. **Split screen, a 2 × 2 grid, before / after side by side:** two to four videos (`hstack`, `vstack`, `xstack`), the
-          sound of one or mixed.
-      16. **Music visualiser video:** spectrum bars or a spectrum over a picture, for a song or a podcast (`showcqt`,
-          `showspectrum`, `avectorscope`).
-      17. **The sound as a picture:** its waveform or its spectrogram as a PNG (`showwavespic`, `showspectrumpic`).
-      18. **Sound effects:** 8D audio (`apulsator`), "slowed + reverb" (`asetrate` + `aecho`), bass boost (`bass` /
-          `asubboost`), a telephone or radio voice (band-pass, `acrusher`), echo (overlaps potentials #42 Audio Effects).
-      19. **Bleep a word:** a beep (1 kHz) or silence over one or more stretches of time chosen.
-      20. **Animated WhatsApp stickers:** animated WebP, 512 × 512, within WhatsApp's limits (`libwebp_anim`).
-      21. **Scene finder:** one picture per scene change, zipped — a film's storyboard (`scdet` / `select` on scene changes;
-          the contact sheet takes pictures evenly instead).
-      22. **Analyse a file:** its loudness (LUFS, true peak, loudness range) and the times of black frames, silences and
-          frozen frames (`ebur128`, `blackdetect`, `silencedetect`, `freezedetect`), as a report to read and copy.
-    - **Each as the 21 jobs of to-do #2 were made:** in its group of the task list, refusals in words where the file or
-      the settings cannot do it, the command shown; the sound at its own level (to-do #23); the unit suite runs every
-      command on the native FFmpeg and reads the results back (pixels, sound levels, lengths, ffprobe), the e2e suite runs
-      it on the tab's FFmpeg — on mono, stereo and 5.1 files.
-    - **In progress** (owner, 27 Nov 2026: "yes go ahead with #32").
-
 33. **Cartoonizer: how cartoony, in grades** (owner, 27 Nov 2026: "In the Cartoonizer app, in the cartoon filter, have some
     kind of gradation selection as to less cartoony or more cartoony."). Today the Cartoon filter (Filters → Cartoon) has
     Colours, Ink lines and Smoothing as sliders of their own, and Detail (Fine / Medium / Bold) — this asks for one choice
@@ -90,6 +38,19 @@ The owner adds items here in chat ("add … to to do"). Newest instructions win.
     that there are more for the phone. When: at the owner's word (not yet started).
 
 ## Done
+- **32. FFmpeg tab: 22 new jobs** (owner, 26 Nov 2026: "include all the new cool FFmpeg features that you just mentioned
+  above, leaving out the 3 that would require you to build the new FFmpeg module"; 27 Nov 2026: "yes go ahead with #32") —
+  done 27 Nov 2026, all on the tab's FFmpeg 5.1 as it is (nothing added to the site; the three left out are potentials.md
+  U3): **fixes** — MKV → MP4 at once (each stream's fate listed first), sound out of step (earlier / later, to the
+  sample), a voice on one side (found, or chosen; swap), mains hum (its exact frequency found first, then ten notches),
+  a lecture evened out, HDR (HLG / PQ) → normal colours, black bars found and cut off, a logo or date stamp removed (a box
+  on a picture of the video), location and metadata removed (listed before, the copy checked after); **effects** —
+  transitions between clips (16, the sound crossfaded at equal power), green screen, 360° → a view or a tiny planet and a
+  wide lens straightened, smooth slow motion, light trails and motion blur, split screen / one above the other / a 2 × 2
+  grid, a music visualiser, the sound as a picture, sound effects (8D, slowed + reverb, bass, telephone, radio, echo) at
+  the file's loudness, a bleep, an animated WhatsApp sticker (made again until it is under 500 KB), the scene finder, a
+  file analysed (a report). 61 jobs in ten groups. CLAUDE.md §3 FFmpeg, "22 new jobs"; unit `ffjobs2` 136, e2e
+  `ffmpeg-fixes` 51 and `ffmpeg-effects` 55 on mono, stereo and 5.1 files.
 - **20. Noise Remover: "Studio voice" — a voice recorded outdoors made to sound as if spoken in a studio** (owner, 26 Nov 2026:
   "In the noise remover app, it should be that when I record my voice, say out in the open, in traffic or outside, when I
   remove the noise, there should be a new option so that it should sound as if I'm speaking in the studio, like they do in

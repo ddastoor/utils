@@ -18,7 +18,7 @@ export default async ({ base, page: newPage, ok, info, download }) => {
     await page.locator('.actions').getByRole('button', { name: 'Run FFmpeg' }).click();
     // the result, or the tab's own error (said at once instead of a silent time-out)
     await page.waitForFunction(() => { const o = document.querySelector('.ff-out'); return (o && !o.closest('[hidden]')) || document.querySelector('.err-text'); }, null, { timeout: 180000 });
-    const err = await page.locator('.err-text').first().textContent().catch(() => null);
+    const err = (await page.locator('.err-text').count()) ? await page.locator('.err-text').first().textContent() : null; // (textContent() would wait 30 s for one)
     if (err) throw new Error(`the run failed: ${err} — log: ${(await page.locator('.ff-log').textContent()).slice(-400)}`);
     const p = await download(page, () => page.locator('.ff-out').first().getByRole('button', { name: dlName, exact: true }).click());
     return p;

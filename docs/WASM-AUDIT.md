@@ -1451,6 +1451,16 @@ were 238 MB). What follows is the record of the engine as it was; the code is in
   these bitrates), so the module stays (rule 1: the fault is inside the engine, and what is placed beside it puts the
   tab's results right). Our own FFmpeg build (above) would make it unnecessary; the stereo Opus checks of the suites are
   what such a build must pass.
+- **27 Nov 2026 (to-do #32, 22 new jobs): the same module covers all of them** (rule 1) — xfade, acrossfade, chromakey,
+  despill, v360, lenscorrection, minterpolate, lagfun, tmix, hstack / vstack / xstack, showcqt, showspectrum,
+  avectorscope, showwavespic, apulsator, aecho, bass, acrusher, aeval, dynaudnorm, bandreject, cropdetect, delogo, zscale +
+  tonemap, libwebp_anim, scene detection, ebur128, blackdetect, freezedetect, silencedetect: each was run in this core
+  first. What it lacks for them is placed beside it as our own TypeScript (rule 1 (c) — string glue, no computation): the
+  readers of its measuring passes' logs (cropdetect, astats, ebur128, the three detectors, showinfo's times), the probe's
+  stream / metadata reader, the MKV → MP4 plan. **A defect worked round:** this core's showspectrumpic draws wrong pictures
+  (it never sets its hop — fixed in FFmpeg 6.0); the spectrogram is drawn by showspectrum, which is right, laid across one
+  frame. The three jobs the owner left out need a newer FFmpeg (vid.stab, Rubber Band, VP9 / H.265 in one thread):
+  `docs/potentials.md` U3.
 
 ### 150 – 152. `screencast`, `screenshot`, `youtube` (20 Nov 2026)
 - **Ours:** the browser's own capture and recorders (getDisplayMedia, MediaStreamTrackProcessor, MediaRecorder — the

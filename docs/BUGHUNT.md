@@ -3021,3 +3021,43 @@ cannot. Three new suites; each fails on the build before its fixes.
   ran there (a passing check is not printed): the suite now says which reference measured the loudness, in its summary —
   run 17 (on 2990d85, noise-studio 28 / 28): "FFmpeg's ebur128 (9.1-essentials_build-www.gyan.dev, dual mono): -16 LUFS,
   true peak -1.5 dBTP" — the native check ran on Windows too and agrees.
+- **FFmpeg: 22 new jobs (to-do #32, 27 Nov 2026):** every filter of the 22 was run in the tab's FFmpeg 5.1 (ffmpeg.wasm 0.12,
+  a Node runner of the core) and in the native FFmpeg 6.1 before a job was written; found on the way —
+  **FFmpeg 5.1's spectrum transform is fast only at a power-of-two height**: a spectrogram 800 rows high took 100 s for 2 s
+  of sound, 512 rows 0.2 s (the visualiser's spectrum is 256 / 512 rows, the picture of the sound 512 — see below); **speechnorm
+  evens out nothing in 5.1** (a far and a near speaker 20 dB apart stayed so; 6.1's does) — the lecture job is dynaudnorm;
+  **ebur128 prints a summary of −70 LUFS first** (the graph is configured twice) — the measuring passes read each
+  instance's last summary (`loudnessOf`); **delogo refuses a box that touches the frame's edge** — the box is kept a pixel
+  inside; **the hum's frequency:** the first finder (a notch at each candidate over the whole sound) called a 5.1 file's
+  chords a hum at 49.8 Hz and found a hum in files without one in 5.1 — now the band around the mains alone, a valley
+  between rising sides, or "no clear hum" (both FFmpegs agree on every fixture); the notches 3 + k Hz wide took 0.65 dB off
+  the speech — 3 + 0.3·k Hz: −0.4 dB, the hum still −35 dB and more; **HDR:** the first HDR fixtures were made with zscale,
+  the filter under test — they are made by BT.2100's formulas now (HLG and PQ); zimg applies HLG's system gamma to each
+  colour (BT.2100: to the luminance), so a saturated skin tone comes out a little richer (224, 163, 127 against the SDR
+  original's 224, 172, 140 — the check allows 15); **a 5.1 MKV's AC-3 made AAC moves the sound 1.8 ms by itself** (AC-3
+  starts at −5 ms, AAC at −21 ms, MKV keeps times to the millisecond) — the sync checks measure against a plain re-encode
+  (unit) or as the difference of two shifts (e2e); the visualiser's default x264 preset made its drawing a tenth of the
+  time — ultrafast is 2.6 times quicker; the scrolling spectrum moved 23 columns a second at its default overlap (0.875
+  now). **The tab:** a refusal that follows a measuring pass ("No black bars were found", "Both sides hold the sound")
+  started a new FFmpeg — meant for a command that failed; now only that does. The fixtures' own slips: drawbox's `t` is
+  its thickness, not the time (the moving fixtures did not move — overlay with x(t) now). The e2e suites' own slips: the
+  logo's picture is taken at 1 s by default (the logo is there from 1 s), the box was dragged where it had scrolled out of
+  view, FFmpeg's own handler names ("SoundHandler") were counted as metadata about the person. **What the e2e suites found
+  in the tab:** **the spectrogram came out black** — FFmpeg 5.1's showspectrumpic never sets its hop (6.1: `hop_size = spf`;
+  read in both releases' source), so each analysis window held one column's samples (20 on a 2 s file) followed by zeros,
+  which the Hann window flattened: dim at 512 rows with the 440 Hz tone 56 rows off, black at 1024; of nine windows only the
+  rectangle came out right. The scrolling showspectrum is right in 5.1 (the tone in its row to one row): the job lays the
+  whole sound across one full frame of 1600 columns, the overlap from the length, a longer sound by 1600 evenly spread
+  blocks of 1024 samples (`aselect`); the time it writes under the picture (where the frame filled up — 54 s for a 40 s
+  file once) is covered and the note gives the span. Both FFmpegs now draw the same picture. **The 360° task showed no
+  options:** its sliders were handed the directions as text ('0') and the slider's label called toFixed on them — the
+  options threw and never rendered (`range` gives a number now). **After about twenty jobs one failed with "memory access
+  out of bounds"** (slowed + reverb, after the sticker, transitions … 8D; the headless shell's renderer died of it) —
+  each half of the sequence alone ran clean and the core's heap did not grow (67 – 80 MB over twelve heavy jobs in Node):
+  state left by earlier commands in the one module instance, the same kind as the JPEG encoder's damage of Nov 2026. The
+  tab starts a new FFmpeg after 12 commands now (between jobs); the sequence runs clean. **And a slip as old as the
+  FFmpeg suite:** after every run it read the tab's error as `locator('.err-text').textContent().catch(() => null)` — with
+  no error on the page, Playwright's `textContent()` waits its 30 s for one before the `catch` answers: **every successful
+  job cost 30 s of waiting** (ffmpeg-fixes: 651 s, the browser idle at 3 % of a core). The four FFmpeg suites ask whether
+  an error is there first now. The joined FFmpeg suite's 30-minute time-out on the Windows runner (check run 15, which led
+  to the split into ffmpeg + ffmpeg-sound) was most likely this.

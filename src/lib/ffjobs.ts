@@ -938,8 +938,20 @@ export function buildJob(job: Job, o: Record<string, any>, c: JobCtx): Built {
     case 'soundpic': {
       needAudio(p);
       if (p.dur > 1800) throw new Error(`The picture is drawn from the whole sound, held in memory here: up to 30 minutes — trim it first (this one is ${Math.round(p.dur / 60)} min).`);
-      // 1024 rows: a power of two (see the visualiser — 800 rows took 100 s in this FFmpeg)
-      if (o.picKind === 'spectrogram') return { args: [...I, '-filter_complex', '[0:a:0]showspectrumpic=s=1600x1024:legend=1:color=intensity:scale=log[v]', '-map', '[v]', '-frames:v', '1', 'spectrogram.png'], outputs: ['spectrogram.png'] };
+      if (o.picKind === 'spectrogram') {
+        needDur(p);
+        // FFmpeg 5.1's showspectrumpic is wrong: it never sets its hop (6.1 does — `hop_size = spf`), so each analysis
+        // window held one column's samples and zeros: the picture came out dim with the frequencies wrong, and black at 1024
+        // rows. The scrolling showspectrum is right in both FFmpegs: the whole sound is laid across one frame of 1600 columns
+        // (fullframe), each column the 1024-point spectrum at its place (512 rows: a power of two — 800 rows took 100 s in
+        // 5.1); a sound longer than 1600 windows keeps 1600 blocks of 1024 samples spread evenly over it. Its legend has the
+        // frequencies; the time it writes under the picture (where the frame filled up) is covered — the note gives the span
+        const W = 1600, win = 1024, rate = p.rate || 48000, N = Math.max(1, Math.round(p.dur * rate)), B = Math.floor(N / win);
+        const pick = B > W ? `asetnsamples=n=${win}:p=0,aselect='gt(floor((n+1)*${W}/${B})\\,floor(n*${W}/${B}))',` : '';
+        const hop = pick ? win : Math.max(1, Math.ceil(N / W));
+        const vf = `[0:a:0]${pick}apad=pad_len=${(W + 2) * hop},showspectrum=s=${W}x512:slide=fullframe:mode=combined:color=intensity:scale=log:overlap=${1 - hop / win}:legend=1,format=rgb24,drawbox=x=iw/2-120:y=ih-52:w=240:h=12:color=black:t=fill[v]`;
+        return { args: [...I, '-filter_complex', vf, '-map', '[v]', '-frames:v', '1', 'spectrogram.png'], outputs: ['spectrogram.png'], note: `Time from the start (left) to ${clock(p.dur)} (right); frequencies from 0 (bottom) to ${fmtS(rate / 2000)} kHz (top)` };
+      }
       const ch = Math.max(1, Math.min(p.channels || 1, 8)), cols = ['0x6366f1', '0x0ea5e9', '0x10b981', '0xf59e0b', '0xef4444', '0x8b5cf6', '0x14b8a6', '0xf97316'];
       return { args: [...I, '-filter_complex', `[0:a:0]${p.dur > 300 ? 'aresample=8000,' : ''}showwavespic=s=1920x${Math.min(1200, 240 * ch)}:split_channels=1:colors=${cols.slice(0, ch).join('|')}[v]`, '-map', '[v]', '-frames:v', '1', 'waveform.png'], outputs: ['waveform.png'] };
     }

@@ -26,6 +26,12 @@ export const mount: Mount = (root) => {
   // probes of a second file or of clips wait for a running job (they reset its log and shared its FFmpeg)
   let stopNote = '', live = true, runDone: Promise<void> = Promise.resolve();
   let jobSeq = 0, execing = false; // the job being run (Stop and a new file end it); FFmpeg inside a command
+  /** commands run on this FFmpeg for jobs: after RECYCLE of them the next job gets a new one. ffmpeg.wasm runs every command in one
+   *  module instance; after about twenty jobs of to-do #32's effects one of them failed with "memory access out of bounds"
+   *  — each half of that sequence alone ran clean, and the heap did not grow (67 – 80 MB): state left by earlier commands,
+   *  not a leak (docs/BUGHUNT.md, "FFmpeg: 22 new jobs"). A new FFmpeg loads from the browser's cache in a second or two */
+  let jobsOnCore = 0;
+  const RECYCLE = 12;
   let collect: string[] | null = null; // the whole log of a command whose log is read (a measuring pass, a report, names)
   let main: File | null = null, second: File | null = null, logLines: string[] = [], streams = '';
   let p1: Probe = EMPTY_PROBE, p2: Probe | undefined, probing: Promise<void> = Promise.resolve(), fontsIn = false, loadedOnce = false;
@@ -73,7 +79,9 @@ export const mount: Mount = (root) => {
   const sel = (label: string, key: string, options: Array<[string, string]>, after?: () => void) => field(label, select<string>(options, o[key], (v) => { o[key] = v; after?.(); update(); }));
   const inp = (label: string, key: string, type = 'text', extra: any = {}) => field(label, input({ type, value: o[key], ...extra, onInput: (v: string) => { o[key] = v; update(); } }));
   const sw = (label: string, key: string) => toggle(label, !!o[key], (v) => { o[key] = v; update(); });
-  const range = (label: string, key: string, min: number, max: number, unit: string) => slider({ label, min, max, value: o[key], unit, onInput: (v) => { o[key] = v; update(); } });
+  // (a number: the 360° view's directions are kept as text — '0' — and the slider's label called toFixed on it: the task's
+  //  options did not render at all)
+  const range = (label: string, key: string, min: number, max: number, unit: string) => slider({ label, min, max, value: Number(o[key]) || 0, unit, onInput: (v) => { o[key] = v; update(); } });
   const info2 = (t: string) => note(t, 'info');
   const CORNERS: Array<[string, string]> = [['br', 'Bottom right'], ['bl', 'Bottom left'], ['tr', 'Top right'], ['tl', 'Top left'], ['c', 'Centre']];
   function renderOpts() {
@@ -241,7 +249,7 @@ export const mount: Mount = (root) => {
       f.on('log', ({ message }: any) => { logLines.push(message); collect?.push(message); if (logLines.length > 400) logLines.splice(0, 100); });
       f.on('progress', ({ progress: p }: any) => onProg?.(Math.max(0, Math.min(1, p))));
       await f.load({ coreURL: at('vendor/ffmpeg/ffmpeg-core.js'), wasmURL: at('vendor/ffmpeg/ffmpeg-core.wasm') });
-      ff = f; fontsIn = false; loadedOnce = true;
+      ff = f; fontsIn = false; loadedOnce = true; jobsOnCore = 0;
       onLeave('ffmpeg', () => { try { f.terminate(); } catch { /* gone */ } ff = null; loading = null; });
       // only its own words go: "Stopped: a new file was chosen" (written meanwhile by the job it ended) was wiped by the
       // new file's probe starting FFmpeg again
@@ -362,6 +370,7 @@ export const mount: Mount = (root) => {
     try {
       await probing; alive();
       let b: Built = build(); // refusals before FFmpeg starts
+      if (jobsOnCore >= RECYCLE && !execing) fresh(); // between jobs, never during one
       const f = await engine(); alive();
       await mountInputs(f); alive();
       /** one command; `keep`: its whole log is read (a measuring pass, a report, names) */
@@ -375,11 +384,12 @@ export const mount: Mount = (root) => {
         ran = true;
         let code: number;
         execing = true;
-        try { code = await f.exec(['-hide_banner', '-y', ...real]); } finally { execing = false; }
+        try { code = await f.exec(['-hide_banner', '-y', ...real]); } finally { execing = false; jobsOnCore++; }
         const log = (collect ?? logLines).join('\n'); collect = null;
         alive();
         logBox.textContent = logLines.slice(-60).join('\n');
         if (code) throw new Error(`FFmpeg failed${what === 'Measuring' ? ' while measuring' : ''} (exit ${code}): ${logLines.filter((l) => /error|invalid|no such|failed|unknown|unable/i.test(l)).slice(0, 2).join(' · ') || 'see the log'}`);
+        ran = false; // it ran to its end: a refusal after it ("No black bars were found") needs no new FFmpeg
         return log;
       };
       // a first command that only measures (black bars, the side of a voice, the hum, the loudness) decides the job
@@ -481,7 +491,7 @@ export const mount: Mount = (root) => {
       ran = true;
       let code: number;
       execing = true;
-      try { code = await fx.exec(['-hide_banner', '-y', ...b.args]); } finally { execing = false; }
+      try { code = await fx.exec(['-hide_banner', '-y', ...b.args]); } finally { execing = false; jobsOnCore++; }
       alive();
       try { await fx.unmount('/mp3in'); } catch { /* */ }
       if (code) throw new Error(`FFmpeg failed (exit ${code}): ${logLines.filter((l) => /error|invalid|failed/i.test(l)).slice(0, 2).join(' · ') || 'see the log'}`);

@@ -2,16 +2,17 @@
 // measuring passes (cropdetect, astats, ebur128, black / silence / freeze), the refusals in words — and every job's
 // command run by the native FFmpeg (6.1, `apt install ffmpeg`) on the fixtures of scripts/make-ffmpeg-fixtures.mjs, as the
 // tab runs it (a measuring pass and `then`, the sticker's tries, names from the log, reports), the results read back:
-// pixels, sound levels and loudness, lengths, streams. The e2e suite ffmpeg-new.e2e.mjs runs them on the tab's FFmpeg 5.1.
+// pixels, sound levels and loudness, lengths, streams (tests/lib/ffread.mjs). The e2e suites ffmpeg-fixes.e2e.mjs and
+// ffmpeg-effects.e2e.mjs run them on the tab's FFmpeg 5.1 in the browser.
 import { execFileSync, spawnSync } from 'node:child_process';
-import { mkdtempSync, mkdirSync, copyFileSync, writeFileSync, readFileSync, readdirSync, existsSync, statSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, copyFileSync, writeFileSync, readdirSync, existsSync, statSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-
-const have = (c) => { try { execFileSync(c, ['-version'], { stdio: 'ignore' }); return true; } catch { return false; } };
+import { pathToFileURL } from 'node:url';
 
 export default async (t, { load, root }) => {
   const J = await load('/src/lib/ffjobs.ts');
+  const { haveNative, probeLog, ffprobe, info, near, frame, mean, mad, pcm, rms, goertzel, loud, md5, onset, lagOf, webp } = await import(pathToFileURL(`${root}/tests/lib/ffread.mjs`).href);
   const M = (n) => `${root}/tests/fixtures/media/${n}`, IMG = (n) => `${root}/tests/fixtures/images/${n}`;
   const P = (x) => ({ ...J.EMPTY_PROBE, streams: [], meta: [], ...x });
   const vid = P({ dur: 3, w: 640, h: 360, fps: 25, video: true, vcodec: 'h264', audio: true, acodec: 'aac', rate: 48000, channels: 1, layout: 'mono' });
@@ -91,11 +92,9 @@ export default async (t, { load, root }) => {
   t.eq(J.humNotches(50).split(',').length, 10, 'ten notches'); t.ok(/f=500:width_type=h:width=6$/.test(J.humNotches(50)), 'the tenth at 500 Hz, 6 Hz wide');
 
   // ================================================================ the commands, run by a native FFmpeg
-  if (!have('ffmpeg') || !have('ffprobe')) { t.ok(true, 'native ffmpeg / ffprobe not installed — the run checks were skipped (apt install ffmpeg)'); return; }
+  if (!haveNative()) { t.ok(true, 'native ffmpeg / ffprobe not installed — the run checks were skipped (apt install ffmpeg)'); return; }
   const tmp = mkdtempSync(join(tmpdir(), 'ffjobs2-'));
   mkdirSync(join(tmp, 'fonts')); for (const f of ['NotoSans_400Regular.ttf', 'NotoSans_700Bold.ttf']) copyFileSync(`${root}/public/vendor/fonts/${f}`, join(tmp, 'fonts', f));
-  const probeLog = (p) => spawnSync('ffmpeg', ['-hide_banner', '-i', p], { encoding: 'utf8' }).stderr;
-  const ffprobe = (p) => JSON.parse(execFileSync('ffprobe', ['-v', 'error', '-show_streams', '-show_format', '-show_chapters', '-of', 'json', p]).toString());
   let n = 0;
   /** run a job as the tab does: inputs under tmp/<k>/in with their in<n> names; a measuring pass and `then`; `next`
    *  tries; names from the log; the report */
@@ -129,19 +128,6 @@ export default async (t, { load, root }) => {
     } catch (e) { return { refused: e.message }; }
   };
   const ok = (r, what) => { if (r.error || r.refused) { t.ok(false, `${what}: ${r.error || r.refused}`); return false; } return true; };
-  const info = (p) => { const r = ffprobe(p); return { dur: +r.format.duration, v: r.streams.find((s) => s.codec_type === 'video'), a: r.streams.filter((s) => s.codec_type === 'audio'), s: r.streams.filter((s) => s.codec_type === 'subtitle'), r }; };
-  const near = (a, b, e) => Math.abs(a - b) <= e;
-  /** a frame as RGB, by time */
-  const frame = (p, at, vf = '') => { const { v } = info(p); const raw = execFileSync('ffmpeg', ['-v', 'error', ...(at > 0 ? ['-ss', String(at)] : []), '-i', p, ...(vf ? ['-vf', vf] : []), '-frames:v', '1', '-f', 'rawvideo', '-pix_fmt', 'rgb24', '-'], { maxBuffer: 1 << 27 }); return { w: vf ? +/(\d+):(\d+)/.exec(vf)?.[1] || v.width : v.width, h: vf ? +/(\d+):(\d+)/.exec(vf)?.[2] || v.height : v.height, d: raw }; };
-  const mean = (f, [x0, y0, x1, y1]) => { let r = 0, g = 0, b = 0, k = 0; for (let y = Math.floor(y0 * f.h); y < Math.floor(y1 * f.h); y++) for (let x = Math.floor(x0 * f.w); x < Math.floor(x1 * f.w); x++) { const i = (y * f.w + x) * 3; r += f.d[i]; g += f.d[i + 1]; b += f.d[i + 2]; k++; } return [r / k, g / k, b / k]; };
-  const mad = (a, b, [x0, y0, x1, y1] = [0, 0, 1, 1]) => { let s = 0, k = 0; for (let y = Math.floor(y0 * a.h); y < Math.floor(y1 * a.h); y++) for (let x = Math.floor(x0 * a.w); x < Math.floor(x1 * a.w); x++) for (let ch = 0; ch < 3; ch++) { const i = (y * a.w + x) * 3 + ch; s += Math.abs(a.d[i] - b.d[i]); k++; } return s / k; };
-  /** the sound as float samples, interleaved */
-  const pcm = (p, ch = 1, rate = 48000, map = '0:a:0') => { const b = execFileSync('ffmpeg', ['-v', 'error', '-i', p, '-map', map, '-ac', String(ch), '-ar', String(rate), '-f', 'f32le', '-'], { maxBuffer: 1 << 28 }); return new Float32Array(b.buffer, b.byteOffset, b.length / 4); };
-  const rms = (x, a = 0, z = x.length, step = 1, off = 0) => { let s = 0, k = 0; for (let i = a * step + off; i < z * step; i += step) { s += x[i] * x[i]; k++; } return 10 * Math.log10(s / Math.max(1, k)); };
-  const goertzel = (x, rate, f, a, z) => { const w = (2 * Math.PI * f) / rate, cw = 2 * Math.cos(w); let s1 = 0, s2 = 0; for (let i = a; i < z; i++) { const s0 = x[i] + cw * s1 - s2; s2 = s1; s1 = s0; } return 10 * Math.log10(Math.max(1e-30, (s1 * s1 + s2 * s2 - cw * s1 * s2) / ((z - a) ** 2))); };
-  const loud = (p, map = '0:a:0') => { const e = spawnSync('ffmpeg', ['-hide_banner', '-nostats', '-i', p, '-map', map, '-af', 'ebur128=dualmono=true', '-f', 'null', '-'], { encoding: 'utf8' }).stderr; return +/I:\s+(-?[\d.]+) LUFS/.exec(e.slice(e.lastIndexOf('Summary:')))?.[1]; };
-  const md5 = (p, map) => /MD5=(\w+)/.exec(execFileSync('ffmpeg', ['-v', 'error', '-i', p, '-map', map, '-c', 'copy', '-f', 'md5', '-']).toString())?.[1];
-  const onset = (x, rate, from, th = 0.1) => { for (let i = Math.floor(from * rate); i < x.length; i++) if (Math.abs(x[i]) > th) return i / rate; return NaN; };
 
   // ---------------------------------------------------------------- the probe's new details against ffprobe
   for (const f of ['obs.mkv', 'phone.mov', 'hdr.mp4', 'hdr-pq.mp4', 'surround.mkv', 'clip-subs.mkv']) {
@@ -176,7 +162,6 @@ export default async (t, { load, root }) => {
     t.ok(r.outs.join(',') === 'scene-001 (0m00.00s).png,scene-002 (0m01.00s).png,scene-003 (0m02.00s).png' && cols[0][0] > 200 && cols[0][2] < 60 && cols[1][2] > 200 && cols[1][0] < 60, `three scenes, named by their times (${r.outs.join(', ')}); red, blue, the pattern (${JSON.stringify(cols)})`);
   }
   // ---------------------------------------------------------------- animated sticker
-  const webp = (p) => { const b = readFileSync(p), ch = []; for (let o2 = 12; o2 + 8 <= b.length;) { const id = b.toString('latin1', o2, o2 + 4), sz = b.readUInt32LE(o2 + 4); ch.push([id, o2 + 8, sz]); o2 += 8 + sz + (sz & 1); } const x = ch.find(([id]) => id === 'VP8X'); return { riff: b.toString('latin1', 0, 4) === 'RIFF' && b.toString('latin1', 8, 12) === 'WEBP', flags: x ? b[x[1]] : 0, w: x ? 1 + b.readUIntLE(x[1] + 4, 3) : 0, h: x ? 1 + b.readUIntLE(x[1] + 7, 3) : 0, frames: ch.filter(([id]) => id === 'ANMF').length, loop: (() => { const a = ch.find(([id]) => id === 'ANIM'); return a ? b.readUInt16LE(a[1] + 4) : -1; })(), size: b.length }; };
   r = run('sticker', {}, [M('clip.mp4')]);
   if (ok(r, 'sticker')) { const w = webp(r.out); t.ok(w.riff && (w.flags & 2) && w.w === 512 && w.h === 512 && w.frames === 45 && w.loop === 0 && w.size <= 500_000, `sticker: an animated WebP 512 × 512, 45 frames (3 s at 15), looping, ${w.size} bytes · ${r.note}`); }
   r = run('sticker', { stFill: 'fit', stLen: '2' }, [M('clip.mp4')]);
@@ -275,8 +260,22 @@ export default async (t, { load, root }) => {
   }
   r = run('soundpic', {}, [M('pauses.wav')]);
   if (ok(r, 'waveform')) { const f = frame(r.out, 0), col = (x0, x1) => { let k = 0; for (let x = Math.floor(x0 * f.w); x < Math.floor(x1 * f.w); x++) for (let y = 0; y < f.h; y++) if (f.d[(y * f.w + x) * 3 + 2] > 100) { k++; break; } return k / (Math.floor(x1 * f.w) - Math.floor(x0 * f.w)); }; t.ok(f.w === 1920 && col(0.2, 0.34) > 0.9 && col(0.66, 0.8) > 0.9 && col(0.02, 0.16) < 0.05 && col(0.4, 0.6) < 0.05, `the waveform of tone, pause, tone: ink where the tones are (${col(0.2, 0.34).toFixed(2)}, ${col(0.66, 0.8).toFixed(2)}), none in the pauses (${col(0.02, 0.16).toFixed(2)}, ${col(0.4, 0.6).toFixed(2)})`); }
+  // the spectrogram: 512 rows of 0 … Nyquist, the sound across 1600 columns (FFmpeg 5.1's showspectrumpic was wrong — the job
+  // draws with the scrolling showspectrum); `spec` finds the plot inside the legend and the row of a frequency
+  const spec = (p) => { const f = frame(p, 0), top = (f.h - 512) / 2, left = (f.w - 1600) / 2; return { f, top, left, row: (hz, rate) => Math.round(top + 512 * (1 - hz / (rate / 2))), lum: (y, x0, x1) => { let s2 = 0; for (let x = left + x0; x < left + x1; x++) { const i = (y * f.w + x) * 3; s2 += f.d[i] + f.d[i + 1] + f.d[i + 2]; } return s2 / (x1 - x0) / 3; } }; };
   r = run('soundpic', { picKind: 'spectrogram' }, [M('tone.wav')]);
-  if (ok(r, 'spectrogram')) { const f = frame(r.out, 0), m0 = (f.h - 1024) / 2; let best = 0, by = 0; for (let y = m0; y < m0 + 1024; y++) { let s = 0; for (let x = 300; x < 1500; x++) s += f.d[(y * f.w + x) * 3] + f.d[(y * f.w + x) * 3 + 1]; if (s > best) { best = s; by = y; } } const want = m0 + 1024 * (1 - 440 / 8000); t.ok(near(by, want, 10), `the spectrogram of a 440 Hz tone: its brightest row at ${by} (440 Hz is row ${want.toFixed(0)})`); }
+  if (ok(r, 'spectrogram')) {
+    const g = spec(r.out); let best = 0, by = 0; for (let y = g.top; y < g.top + 512; y++) { const v = g.lum(y, 100, 1500); if (v > best) { best = v; by = y; } }
+    t.ok(near(by, g.row(440, 16000), 2) && g.lum(by, 1500, 1598) > 100 && /to 0:02\.00 \(right\); frequencies from 0 \(bottom\) to 8 kHz/.test(r.note), `the spectrogram of a 440 Hz tone: its brightest row ${by} (440 Hz is row ${g.row(440, 16000)}), lit to the right edge (${g.lum(by, 1500, 1598).toFixed(0)}) · ${r.note}`);
+  }
+  // 40 s at 48 kHz, 3 kHz joining at 20 s: longer than 1600 windows — 1600 blocks of 1024 samples spread over it
+  const two = join(tmp, 'two-tones.wav'); execFileSync('ffmpeg', ['-v', 'error', '-y', '-f', 'lavfi', '-i', 'sine=f=440:r=48000:d=40', '-f', 'lavfi', '-i', 'sine=f=3000:r=48000:d=20', '-filter_complex', '[1:a]adelay=20000:all=1[b];[0:a][b]amix=inputs=2:duration=first:normalize=0', two]);
+  r = run('soundpic', { picKind: 'spectrogram' }, [two]);
+  if (ok(r, 'spectrogram of 40 s')) {
+    const g = spec(r.out), y3 = g.row(3000, 48000), y4 = g.row(440, 48000);
+    t.ok(/aselect=/.test(r.b.args.join(' ')) && g.lum(y3, 50, 750) < 10 && g.lum(y3, 850, 1550) > 100 && g.lum(y4, 50, 1550) > 100 && g.lum(y4, 1580, 1598) > 100,
+      `40 s: 440 Hz all across (${g.lum(y4, 50, 1550).toFixed(0)}, to the edge ${g.lum(y4, 1580, 1598).toFixed(0)}), 3 kHz only in the right half (${g.lum(y3, 50, 750).toFixed(0)} / ${g.lum(y3, 850, 1550).toFixed(0)})`);
+  }
 
   // ---------------------------------------------------------------- smooth slow motion
   r = run('slowmo', {}, [M('clip.mp4')]);
@@ -309,7 +308,6 @@ export default async (t, { load, root }) => {
   if (ok(r, 'sync later')) { const x = pcm(r.out, 1, 48000); t.ok(near(onset(x, 48000, 0.5), 1.55, 0.005) && near(info(r.out).dur, 4, 0.05), `250 ms later: the first beep at ${onset(x, 48000, 0.5).toFixed(3)} s, the file still 4 s`); }
   // the shift by correlation, against the same file re-encoded without one: a 5.1 MKV's AC-3 made AAC moves 1.8 ms by
   // itself (AC-3 starts at −5 ms, AAC at −21 ms, and MKV keeps times to the millisecond)
-  const lagOf = (a, b, ch, c0, from, to) => { const x = pcm(a, ch, 48000), x0 = pcm(b, ch, 48000); let best = -Infinity, bl = 0; for (let l = from; l <= to; l++) { let s = 0; for (let j = 20000; j < 100000; j++) s += x[(j + l) * ch + c0] * x0[j * ch + c0]; if (s > best) { best = s; bl = l; } } return bl / 48; };
   for (const f of ['stereo.mp4', 'surround.mkv']) {
     r = run('sync', { syncDir: 'later', syncAmt: '100' }, [M(f)]);
     if (!ok(r, `sync ${f}`)) continue;

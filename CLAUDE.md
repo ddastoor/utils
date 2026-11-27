@@ -2700,7 +2700,7 @@ how common they are in English, **rarest (hardest) first**, leaving out common w
 - Tests: e2e with a real photographed page fixture (known rare words expected in the top 20, "the"/"and" absent);
   unit tests for tokenising, lemmatising and ranking.
 
-### FFmpeg (PC) — BUILT (`src/tools/ffmpeg.ts`; e2e `tests/e2e/ffmpeg.e2e.mjs` 22)
+### FFmpeg (PC) — BUILT (`src/tools/ffmpeg.ts`; e2e `tests/e2e/ffmpeg.e2e.mjs` 75, `ffmpeg-sound` 15, `ffmpeg-fixes` 51, `ffmpeg-effects` 55)
 ffmpeg.wasm 0.12 single-threaded core = **FFmpeg 5.1.4** (libx264/x265, libvpx, LAME, Opus, Vorbis, Theora, WebP,
 freetype/libass, zimg; GitHub Pages cannot send COOP/COEP, so no multi-threaded core; no service worker) in its own
 worker, loaded on first use (≈ 31 MB) and terminated when the tab is left. Inputs are **mounted with WORKERFS** (read
@@ -2717,7 +2717,7 @@ threads (so presets use VP8/x264 and the raw box warns); FFmpeg 5.1 ignores inpu
 picture (handled with `-t`); **its Opus encoder crashes on two channels and more** at complexity 5 and above (made at 4 —
 "Sound at its own level" below). Replacing it with our own build of current FFmpeg stays on the §3a audit list — and is
 `docs/potentials.md` U3 (owner, 26 Nov 2026: with the stabiliser, Rubber Band and VP9 / H.265 it would bring). The 22 new
-jobs the core can do as it is: to-do #32.
+jobs the core can do as it is: to-do #32, built (27 Nov 2026 — "22 new jobs" below).
 Tests: clip.mp4/tone.wav/tone.mp3 → WebM plays, AAC copy, MP3 440 Hz, no-sound copy, fast trim ≈ 1 s and exact 1.00 s,
 426×240, rotate 360×640, square crop, GIF89a 320 px, 2× = 1.5 s, 3 frames zipped, merge 660 Hz, raw hflip, bad filter
 reported, loudness changed, waveform 1280×720, picture + sound 2 s.
@@ -2808,6 +2808,62 @@ music under a mono voice against a reference mix); e2e `ffmpeg` (stereo → WebM
 5.1(side) → WebM / MP4 as 5.1; mono → stereo and joins at the original's loudness — read by the native FFmpeg where it is
 installed). Fixtures `stereo.mp4` (the voice as two microphones hear it) and `surround.mkv` (AC-3 5.1(side)): `node
 scripts/make-sound-fixtures.mjs`.
+**22 new jobs (to-do #32; owner, 26 Nov 2026: "include all the new cool FFmpeg features that you just mentioned above,
+leaving out the 3 that would require you to build the new FFmpeg module"; started 27 Nov 2026: "yes go ahead with #32").**
+All on the tab's FFmpeg 5.1 as it is — every filter was looked for in the core and run in it first (a Node runner of the
+core, scratch work) —, nothing added to the site: 61 jobs in ten groups (`JOB_GROUPS`; "Effects" and "Information and
+privacy" are new). What the tab gained for them (`Built` in `src/lib/ffjobs.ts`): **a measuring pass first** (`then`: the
+first command's log decides the second — the black bars, the side of a voice, the hum's frequency, the loudness for a bleep
+or an effect; the command box shows both, "Edit as arguments" says why it cannot take two); **a report** instead of a file
+(`report`: Analyse — Copy, Download `<name>-analysis.txt`); **outputs named from the log** (`names`: the scenes by their
+times); **made again while too big** (`next`: the sticker); **notes** under the result (what was found and done). A refusal
+after a measuring pass keeps its FFmpeg (only a failed command starts a new one); **after 12 commands the next job starts a
+new FFmpeg** (`RECYCLE` in `src/tools/ffmpeg.ts`: after about twenty of these jobs on one core a command failed with "memory
+access out of bounds" — each half of the sequence alone ran clean and the heap stayed at 67 – 80 MB: state left by earlier
+commands, not a leak; a new core loads from the browser's cache in a second or two).
+- **Fixes:** **MKV → MP4 at once** (`remuxPlan`: before the run every stream is listed with what happens to it — a picture
+  an MP4 holds copied (H.265 tagged hvc1, for Apple), a sound an MP4 holds copied, any other made AAC at its level, SRT /
+  ASS / WebVTT made MP4 text, picture subtitles, attachments and data tracks left out, chapters kept; an MP4, or a picture an
+  MP4 cannot hold as it is (VP8 …), refused with what to do); **sound out of step** (earlier or later by ms or s, to the
+  sample; the picture copied, the length kept); **a voice on one side** (found by each side's RMS, 6 dB apart at least, or
+  chosen; swap); **mains hum** (its frequency found first — the mains drifts, and a notch 0.1 Hz off took out only a third
+  of the hum: the band around 50 / 60 Hz, a 3.3 Hz notch at each of nine candidates 0.05 Hz apart, the quietest once the notch has
+  settled; no clear valley → the nominal frequency, said; then ten notches 3 + 0.3·k Hz wide: the hum −35 dB and more, the
+  speech within half a decibel, a mains at 50.1 Hz found); **a lecture evened out** (dynaudnorm — FFmpeg 5.1's speechnorm left the
+  speakers 20 dB apart; under 6 now); **HDR → SDR** (HLG and PQ; BT.2408 — HDR's reference white, 203 cd/m², becomes SDR
+  white, a mobius knee up to 1000 cd/m²; BT.709 colours and tags; Dolby Vision 5 refused; measured on HLG and PQ clips made
+  by BT.2100's formulas against the SDR picture they were made from: within 12 of 255, skin within 15 — zimg applies HLG's
+  system gamma to each colour, so saturated colours come out a little richer); **black bars** (cropdetect over the whole
+  video — its key frames above a minute —, then crop; a video without bars said); **a logo removed** (delogo; the box on a
+  picture of the video at a time chosen, dragged or typed in pixels, kept a pixel inside the frame — delogo refuses a box on
+  its edge); **location and metadata removed** (what the file says listed first — the place in degrees, dates, device,
+  names, chapters, data tracks; copied without it all, bitexact; the copy read again and what is left said).
+- **Effects:** **transitions** (16 of xfade's; every clip fitted to the first one's size at 30 fps and held to its exact
+  length, the sound crossfaded at equal power — no dip; sound files too); **green screen** (chromakey + despill over a photo
+  or a video cut to the shape; a shorter background repeats); **split screen, one above the other, a 2 × 2 grid** (tiles of
+  the first one's shape, the sound of one or all mixed at their levels); **light trails** (lagfun in RGB) and **motion blur**
+  (tmix); **a music visualiser** (showcqt's bars, a scrolling spectrum, a stereo scope; over a picture with their black
+  keyed out; 1280 × 720, x264 ultrafast — the drawing takes a tenth of the time); **the sound as a picture** (showwavespic,
+  a strip a channel; a spectrogram of 512 rows by the scrolling showspectrum — the whole sound across one frame of 1600
+  columns, a longer sound by 1600 blocks of 1024 samples spread over it —, its frequency legend; the note gives the span); **smooth slow motion** (minterpolate; the work it takes here said
+  before the run, refused above 20 minutes of it); **360° → a normal view** (direction, field of view) **or a tiny planet**,
+  **a wide lens straightened** (lenscorrection); **sound effects** (8D, slowed + reverb, bass boost, telephone, old radio,
+  echo — the effect measured with the file in one pass and brought back to the file's loudness, within 0.8 dB); **bleep**
+  (a 1 kHz beep as loud as the file, or silence, over stretches typed as times); **an animated WhatsApp sticker** (a WebP of
+  512 × 512, at most 10 s and 500 KB: 15 pictures a second at quality 75, then four smaller tries, else the reason);
+  **the scene finder** (the first picture and every change of scene, named by their times, JPEG by MozJPEG, zipped); **a
+  file analysed** (EBU R128 loudness, loudness range and true peak; black, frozen and silent stretches — a report).
+- **Found in FFmpeg 5.1** (docs/BUGHUNT.md, "FFmpeg: 22 new jobs"): **showspectrumpic draws wrong pictures** — it never
+  sets its hop (6.1 does: `hop_size = spf`), so each analysis window held one column's samples and zeros: dim, the
+  frequencies off, black at 1024 rows (only a rectangular window came out right); its spectrum transform is fast only at a
+  power-of-two height (800 rows: 100 s for 2 s of sound, 512 rows: 0.2 s); speechnorm evens out nothing; ebur128 prints a
+  summary of −70 LUFS before the real one (the last of each instance is read); delogo needs its box a pixel inside the
+  frame.
+- **Tests:** unit `ffjobs2` 136 (the parsers of the measuring passes, the probe's new details against ffprobe, every refusal,
+  every job run by the native FFmpeg and measured — pixels, samples, levels, loudness, packets), `ffjobs` 202; e2e
+  `ffmpeg-fixes` 51 and `ffmpeg-effects` 55 — the same jobs in the browser, on mono, stereo and 5.1 files, read
+  back by the native FFmpeg (`tests/lib/ffread.mjs`, shared with the unit suite). Fixtures: `node
+  scripts/make-ffmpeg-fixtures.mjs` (17 files; the HDR clips by BT.2100's formulas, not by zscale).
 
 ### PDF → EPUB (PC) — BUILT (`src/tools/epub/epub.ts`, engine `src/lib/pdf2epub.ts`; unit `tests/unit/pdf2epub.test.mjs` 94 + `xycut.test.mjs` 33, e2e `tests/e2e/epub.e2e.mjs` 52)
 **Owner's rule for the reading order (21 Nov 2026; standing):** "in the original PDF, whenever there are multiple columns

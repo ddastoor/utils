@@ -63,9 +63,12 @@ page is open, in an always-on-top window too (`src/lib/pipcount.ts`, shared with
 tones (MP4 / WebM, ± microphone): within 0.02 dB — not lower. Offered to the owner (not built): an R128 "normal
 loudness" button for the Screencast. **Batch 3 is complete.** (Disk: the scratchpad's 13 GB offline-TTS work folder `otts`
 was deleted on 26 Nov to free space — the survey's results are committed; `scripts/accent-survey/` makes it again.)
-**To-do #32 added (26 Nov 2026, the owner):** 22 new FFmpeg jobs (the uses listed in chat, all on today's core) — **started at
-the owner's word on 27 Nov 2026 ("yes go ahead with #32")**: every filter checked in the tab's FFmpeg 5.1 (a Node runner of
-the core in the scratchpad), fixtures made by `node scripts/make-ffmpeg-fixtures.mjs`; the jobs next. **To-do #33 added (27 Nov
+**To-do #32 — DONE (27 Nov 2026; started at the owner's word, "yes go ahead with #32")** (todo.md Done #32; CLAUDE.md §3
+FFmpeg, "22 new jobs"): 22 new FFmpeg jobs on the tab's FFmpeg 5.1 as it is — nine fixes (MKV → MP4, sound out of step,
+one side, mains hum, a lecture evened out, HDR → SDR, black bars, a logo removed, metadata removed) and thirteen effects;
+61 jobs in ten groups. A job can measure first (`then`), report (`report`), name its outputs from the log (`names`), try
+again smaller (`next`). Unit `ffjobs2` 136 (native FFmpeg), e2e `ffmpeg-fixes` + `ffmpeg-effects` (the tab's FFmpeg in
+the browser, read back natively by `tests/lib/ffread.mjs`); fixtures `node scripts/make-ffmpeg-fixtures.mjs`. **To-do #33 added (27 Nov
 2026, the owner):** the Cartoonizer's Cartoon filter in grades, less to more cartoony — not started (ask when). **To-do #34 added (27 Nov 2026, the owner):** the Watermark tab's documents with or without the mark on the first (cover) page — not started (ask when). **To-do #35 added (27 Nov 2026, the owner):** the Text Diff side by side, Next / Previous through the hunks — not started (ask when). **To-do #36 added (27 Nov 2026, the owner):** the start page tells a phone that there are PC-only apps and a PC that there are mobile-only apps — not started (ask when). The three that need our own FFmpeg build (a good stabiliser, Rubber Band pitch, VP9 / H.265) are
 potentials.md U3 "Our own FFmpeg build".
 **#20 Studio voice (batch 7), owner, 26 Nov 2026: "Just use your discretion and get the best quality"** — no samples to judge
@@ -119,7 +122,8 @@ MossFormer2 48 kHz (229 MB) level on balance; WPE dereverberation measured and n
 (±4 scored higher on DNSMOS — not chased); no dereverberation and no restoration network (measured / not needed). Unit dfn 33,
 e2e noise-studio 28 (+ noise 25) — **both passed on Windows too** (the Windows check, run 16: 28 / 28, 25 / 25; run 17: FFmpeg 9.1's ebur128 there reads the result as −16 LUFS, true peak −1.5 dBTP); the site 563 MB. **Batch 7 is complete — the owner's batch order is finished.**
 **Next:** the potentials process — it needs the owner (he picks the apps): when he is back, show him `docs/potentials.md`,
-and ask (1) when to do #32 (22 FFmpeg jobs, not in the order); (2) ~~remind him to allow `main` in github-pages~~ — done by
+and ask (1) ~~when to do #32~~ — done on 27 Nov 2026; when to do #33 – #35 (the Cartoonizer's grades, the Watermark's
+cover page, the Text Diff side by side); (2) ~~remind him to allow `main` in github-pages~~ — done by
 the owner on 27 Nov 2026: the site is live from main (754d1b5); (3) offer the AnimeGAN / White-box styles for the Cartoonizer;
 (4) tell him the decisions taken tonight (#16, #17, #20 above). Until he answers: nothing new is started (the owner's rule:
 never start a to-do item on your own).

@@ -17,7 +17,7 @@ export default async ({ base, page: newPage, ok, info, download }) => {
   const run = async (dlName = 'Download') => {
     await page.locator('.actions').getByRole('button', { name: 'Run FFmpeg' }).click();
     await page.waitForFunction(() => { const o = document.querySelector('.ff-out'); return (o && !o.closest('[hidden]')) || document.querySelector('.err-text'); }, null, { timeout: 180000 });
-    const err = await page.locator('.err-text').first().textContent().catch(() => null);
+    const err = (await page.locator('.err-text').count()) ? await page.locator('.err-text').first().textContent() : null; // (textContent() would wait 30 s for one)
     if (err) throw new Error(`the run failed: ${err} — log: ${(await page.locator('.ff-log').textContent()).slice(-400)}`);
     return download(page, () => page.locator('.ff-out').first().getByRole('button', { name: dlName, exact: true }).click());
   };
