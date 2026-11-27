@@ -35,7 +35,6 @@ unsafe fn bytes<'a>(p: *const u8, n: usize) -> &'a [u8] { if n == 0 { &[] } else
 
 /// Words as a word limit counts them: what stands between spaces and holds a letter or a digit.
 fn words(t: &str) -> usize { t.split_whitespace().filter(|w| w.chars().any(char::is_alphanumeric)).count() }
-fn collapse(t: &str) -> String { t.split_whitespace().collect::<Vec<_>>().join(" ") }
 
 fn read(html: &str, url: &str, flags: u32) -> (i32, serde_json::Value) {
     let cfg = Config { strict_visibility: flags & 2 != 0, ..Config::default() };
@@ -45,26 +44,31 @@ fn read(html: &str, url: &str, flags: u32) -> (i32, serde_json::Value) {
         Err(_) => match Readability::new(html, None, Some(cfg)) { Ok(r) => r, Err(e) => return (2, json!({ "error": e.to_string() })) },
     };
     let page = r.doc_url.clone().unwrap_or_default();
+    // the page's own date where its metadata gives none (Chrome's MHTML leaves the page's scripts out, and JSON-LD with
+    // them): the <time> of the article's heading, read before the extraction takes the byline line away
+    let time = ["article time[datetime]", "[itemprop=datePublished][datetime]", "time[datetime]"].iter()
+        .find_map(|sel| r.doc.select_single(sel).nodes().first().and_then(|n| n.attr("datetime")).map(|d| d.trim().to_string()).filter(|d| !d.is_empty()))
+        .or_else(|| r.doc.select_single("meta[itemprop=datePublished][content]").nodes().first().and_then(|n| n.attr("content")).map(|d| d.trim().to_string()));
     let (meta, written, text, readable) = if flags & 1 != 0 {
         // the whole page as it is: its metadata as Readability reads it
         let mut meta = r.get_article_metadata(r.parse_json_ld());
         if meta.title.trim().is_empty() { meta.title = r.get_article_title().to_string(); }
         let root = r.doc.body().unwrap_or_else(|| r.doc.root());
         let w = xhtml::Writer::new(&page, &meta.title).write(&root);
-        let text = collapse(&root.text());
+        let text = xhtml::plain(&w.xhtml);
         (meta, w, text, true)
     } else {
         let readable = r.is_probably_readable();
         let ex = match r.extract() { Ok(e) => e, Err(e) => return (1, json!({ "error": e.to_string() })) };
         let root = ex.root();
         let w = xhtml::Writer::new(&page, &ex.metadata.title).write(&root);
-        let text = collapse(&root.text());
+        let text = xhtml::plain(&w.xhtml);
         (ex.metadata.clone(), w, text, readable)
     };
     let images: Vec<_> = written.images.iter().map(|i| json!({ "alt": i.alt, "urls": i.urls.iter().map(|(u, s)| json!([u, s])).collect::<Vec<_>>() })).collect();
     (0, json!({
         "title": meta.title.trim(), "byline": meta.byline, "excerpt": meta.excerpt, "siteName": meta.site_name,
-        "published": meta.published_time, "modified": meta.modified_time, "lang": meta.lang, "dir": meta.dir,
+        "published": meta.published_time.clone().or(time), "modified": meta.modified_time, "lang": meta.lang, "dir": meta.dir,
         "image": meta.image, "url": meta.url, "readable": readable,
         "xhtml": written.xhtml, "words": words(&text), "text": text, "images": images,
         "dropped": { "videos": written.dropped.videos, "embeds": written.dropped.embeds, "svg": written.dropped.svg, "forms": written.dropped.forms },

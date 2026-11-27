@@ -1,0 +1,246 @@
+{
+ "blog.mhtml": {
+  "url": "https://ferris-notes.example/posts/flamegraphs",
+  "parts": [
+   {
+    "type": "text/html",
+    "url": "https://ferris-notes.example/posts/flamegraphs",
+    "sha256": "3c41a8a3e17b8b6e07b6c473ed0cd601340038d0053328c0f8ff16ea94cb9ee3",
+    "len": 4140
+   },
+   {
+    "type": "image/gif",
+    "url": "https://cdn.ferris-notes.example/img/pixel.gif",
+    "sha256": "693d949d8c3fdc7fd4ace7c340b5f177a9f0c5be7bafee8bc93a7d88b7523d75",
+    "len": 43
+   },
+   {
+    "type": "image/jpeg",
+    "url": "https://cdn.ferris-notes.example/img/wide.jpg",
+    "sha256": "629ae1d1d5fa06a7035b28b931f73d7f3a2c064d94eb7ee6b3986c0eb8a3976b",
+    "len": 131217
+   },
+   {
+    "type": "image/svg+xml",
+    "url": "https://cdn.ferris-notes.example/img/diagram.svg",
+    "sha256": "54ed179ccae42602952ebb06f879de9ca97fc838d83799710f4a75d7e48233a7",
+    "len": 318
+   },
+   {
+    "type": "image/gif",
+    "url": "https://cdn.ferris-notes.example/img/anim.gif",
+    "sha256": "384c34c821281f94c30402dbcaa0636fcacd91bbaa55a1da680844b000fae4d2",
+    "len": 919
+   },
+   {
+    "type": "image/png",
+    "url": "https://cdn.ferris-notes.example/img/chart.png",
+    "sha256": "b415f7db57003b276e95e377c311c9a01761f0caadf41ed3d25f0d3a10d40d64",
+    "len": 1298
+   },
+   {
+    "type": "image/jpeg",
+    "url": "https://cdn.ferris-notes.example/img/hero-400.jpg",
+    "sha256": "35f3253d997fae82262fba98a66026d9107c9298fa50bfc6bc506aaacefbbd89",
+    "len": 42549
+   }
+  ]
+ },
+ "blog.webarchive": {
+  "url": "https://ferris-notes.example/posts/flamegraphs",
+  "parts": [
+   {
+    "type": "text/html",
+    "url": "https://ferris-notes.example/posts/flamegraphs",
+    "sha256": "f1cf6603226f8a7ebf654d2eae0dc34010604b0064a11d5e5dc3902a8afdb42f",
+    "len": 4168
+   },
+   {
+    "type": "image/gif",
+    "url": "https://cdn.ferris-notes.example/img/anim.gif",
+    "sha256": "384c34c821281f94c30402dbcaa0636fcacd91bbaa55a1da680844b000fae4d2",
+    "len": 919
+   },
+   {
+    "type": "image/png",
+    "url": "https://cdn.ferris-notes.example/img/chart.png",
+    "sha256": "b415f7db57003b276e95e377c311c9a01761f0caadf41ed3d25f0d3a10d40d64",
+    "len": 1298
+   },
+   {
+    "type": "image/svg+xml",
+    "url": "https://cdn.ferris-notes.example/img/diagram.svg",
+    "sha256": "54ed179ccae42602952ebb06f879de9ca97fc838d83799710f4a75d7e48233a7",
+    "len": 318
+   },
+   {
+    "type": "image/jpeg",
+    "url": "https://cdn.ferris-notes.example/img/hero-1600.jpg",
+    "sha256": "6e965f7f9895ab6a1db43add38db573ac9797c9ac22273cc1db261aaa4f1838d",
+    "len": 96386
+   },
+   {
+    "type": "image/gif",
+    "url": "https://cdn.ferris-notes.example/img/pixel.gif",
+    "sha256": "693d949d8c3fdc7fd4ace7c340b5f177a9f0c5be7bafee8bc93a7d88b7523d75",
+    "len": 43
+   },
+   {
+    "type": "image/jpeg",
+    "url": "https://cdn.ferris-notes.example/img/wide.jpg",
+    "sha256": "629ae1d1d5fa06a7035b28b931f73d7f3a2c064d94eb7ee6b3986c0eb8a3976b",
+    "len": 131217
+   }
+  ]
+ },
+ "fr.mhtml": {
+  "url": "https://journal-littoral.example/culture/phare-de-cordouan",
+  "parts": [
+   {
+    "type": "text/html",
+    "url": "https://journal-littoral.example/culture/phare-de-cordouan",
+    "sha256": "6c3f05a62b58b41c980ad4ee85595c5465331983ae3f15ff5a644a0b67819c78",
+    "len": 1642
+   },
+   {
+    "type": "image/jpeg",
+    "url": "https://journal-littoral.example/images/cordouan.jpg",
+    "sha256": "9c7401f3098c15c09d1e0acc66c9550fb8eea170cc349023ae3c23f5fdd32530",
+    "len": 51469
+   }
+  ]
+ },
+ "fr.webarchive": {
+  "url": "https://journal-littoral.example/culture/phare-de-cordouan",
+  "parts": [
+   {
+    "type": "text/html",
+    "url": "https://journal-littoral.example/culture/phare-de-cordouan",
+    "sha256": "149c87d9c185a90a7336bb2e1bacaa5f3c7d82757f2205823a49b8e111665e51",
+    "len": 1470
+   },
+   {
+    "type": "image/jpeg",
+    "url": "https://journal-littoral.example/images/cordouan.jpg",
+    "sha256": "9c7401f3098c15c09d1e0acc66c9550fb8eea170cc349023ae3c23f5fdd32530",
+    "len": 51469
+   }
+  ]
+ },
+ "home.mhtml": {
+  "url": "https://coastal-gazette.example/",
+  "parts": [
+   {
+    "type": "text/html",
+    "url": "https://coastal-gazette.example/",
+    "sha256": "a392e05500516516e56cd1282ff71811b0b5621eb85ce0d4823ed1813c51ae6f",
+    "len": 5284
+   },
+   {
+    "type": "image/png",
+    "url": "https://coastal-gazette.example/media/logo.png",
+    "sha256": "214c693d8376433a6936cffca51fb7a2738623d99e58d28ce36048637f2103b6",
+    "len": 268
+   }
+  ]
+ },
+ "home.webarchive": {
+  "url": "https://coastal-gazette.example/",
+  "parts": [
+   {
+    "type": "text/html",
+    "url": "https://coastal-gazette.example/",
+    "sha256": "e57812a3a3d64c985c64162fcc4717e8a003cbef3a77b03fb9beb0f2043978c0",
+    "len": 4433
+   },
+   {
+    "type": "image/png",
+    "url": "https://coastal-gazette.example/media/logo.png",
+    "sha256": "214c693d8376433a6936cffca51fb7a2738623d99e58d28ce36048637f2103b6",
+    "len": 268
+   }
+  ]
+ },
+ "news.mhtml": {
+  "url": "https://coastal-gazette.example/2026/11/20/lighthouse-keepers",
+  "parts": [
+   {
+    "type": "text/html",
+    "url": "https://coastal-gazette.example/2026/11/20/lighthouse-keepers",
+    "sha256": "3a76d8a318c0cffb052b89e2aa66f0bbcd6c7bd04fa2c55d8f64365b82c677dc",
+    "len": 6032
+   },
+   {
+    "type": "image/gif",
+    "url": "https://coastal-gazette.example/media/pixel.gif",
+    "sha256": "693d949d8c3fdc7fd4ace7c340b5f177a9f0c5be7bafee8bc93a7d88b7523d75",
+    "len": 43
+   },
+   {
+    "type": "image/webp",
+    "url": "https://coastal-gazette.example/media/lamp.webp",
+    "sha256": "6b04a74c737a161e3cb224bd71e18e86caa3de66276c6aa4503f48272c7395c0",
+    "len": 2070
+   },
+   {
+    "type": "image/jpeg",
+    "url": "https://coastal-gazette.example/media/keepers.jpg",
+    "sha256": "7ac7bf404cc6856716e13ace4f513306a65106863acb87113196ff0a31b76404",
+    "len": 56487
+   },
+   {
+    "type": "image/png",
+    "url": "https://coastal-gazette.example/media/logo.png",
+    "sha256": "214c693d8376433a6936cffca51fb7a2738623d99e58d28ce36048637f2103b6",
+    "len": 268
+   },
+   {
+    "type": "text/css",
+    "url": "cid:css-cdecfd66-e788-4e67-80b5-3cf8ff0f5fa0@mhtml.blink",
+    "sha256": "839d533f2d64a0f1cb51b2353f74ac6b86a69cd315d6adb74bc2262b6ce35ea1",
+    "len": 98
+   },
+   {
+    "type": "text/html",
+    "url": "https://www.youtube-nocookie.com/embed/abc123XYZ",
+    "sha256": "bec40b34138f22b439f4f3dd264d3a280532506ab09b24224a0cd5ac30450060",
+    "len": 169
+   }
+  ]
+ },
+ "news.webarchive": {
+  "url": "https://coastal-gazette.example/2026/11/20/lighthouse-keepers",
+  "parts": [
+   {
+    "type": "text/html",
+    "url": "https://coastal-gazette.example/2026/11/20/lighthouse-keepers",
+    "sha256": "eecebb2d562bb16c7a9854a45dbf854ac398b234dc0ec4b672d8a48e0fdf84b4",
+    "len": 5766
+   },
+   {
+    "type": "image/jpeg",
+    "url": "https://coastal-gazette.example/media/keepers.jpg",
+    "sha256": "7ac7bf404cc6856716e13ace4f513306a65106863acb87113196ff0a31b76404",
+    "len": 56487
+   },
+   {
+    "type": "image/webp",
+    "url": "https://coastal-gazette.example/media/lamp.webp",
+    "sha256": "6b04a74c737a161e3cb224bd71e18e86caa3de66276c6aa4503f48272c7395c0",
+    "len": 2070
+   },
+   {
+    "type": "image/png",
+    "url": "https://coastal-gazette.example/media/logo.png",
+    "sha256": "214c693d8376433a6936cffca51fb7a2738623d99e58d28ce36048637f2103b6",
+    "len": 268
+   },
+   {
+    "type": "image/gif",
+    "url": "https://coastal-gazette.example/media/pixel.gif",
+    "sha256": "693d949d8c3fdc7fd4ace7c340b5f177a9f0c5be7bafee8bc93a7d88b7523d75",
+    "len": 43
+   }
+  ]
+ }
+}

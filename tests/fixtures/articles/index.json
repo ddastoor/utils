@@ -1,0 +1,109 @@
+{
+ "news": {
+  "url": "https://coastal-gazette.example/2026/11/20/lighthouse-keepers",
+  "title": "The lighthouse keepers of Kestrel Rock",
+  "author": "Priya Sharma",
+  "site": "The Coastal Gazette",
+  "date": "2026-11-20",
+  "lang": "en-GB",
+  "sentences": [
+   "For two hundred years the lighthouse on Kestrel Rock was kept by families who rowed out with the spring tide and stayed until the autumn gales.",
+   "The keepers wrote the weather into a ledger three times a day, and the ledgers survive in a cupboard of the harbour office.",
+   "Mara Ellison, whose grandfather kept the light until 1961, has spent the last year reading them page by page.",
+   "She found storms that are still talked about in the village, and quiet weeks in which the only entry is the colour of the sea.",
+   "A life on the rock was ruled by the lamp and the clock.",
+   "The wick was trimmed at dusk and at midnight, the lens was polished every morning, and the brass was cleaned on Saturdays whatever the weather.",
+   "Supplies came by boat once a fortnight, and when the boat could not land the keepers lived on salted fish and the potatoes they grew in a sheltered corner of the rock.",
+   "We were never lonely, Ellison remembers her grandfather saying, because the sea was always talking.",
+   "The light was automated in 1961, and the last keepers rowed ashore for good on a calm morning in October.",
+   "The harbour office plans to put the ledgers on show next spring, beside the lamp that was taken down when the light went electric.",
+   "Visitors will be able to read the entries for the night of the great storm of 1893, when the keepers kept the light burning for thirty hours without sleep."
+  ],
+  "not": [
+   "ADVERTISEMENT",
+   "Subscribe to our newsletter",
+   "We use cookies",
+   "Most read",
+   "Comments (3)",
+   "Share on",
+   "Sign in",
+   "Gazette Weather Desk",
+   "Great article, thank you"
+  ],
+  "pictures": [
+   "keepers.jpg",
+   "lamp.jpg",
+   "ledger.jpg"
+  ],
+  "lead": "keepers.jpg",
+  "embeds": 1,
+  "canonical": true
+ },
+ "blog": {
+  "url": "https://ferris-notes.example/posts/flamegraphs",
+  "title": "Profiling Rust code with flamegraphs",
+  "author": "Anika Rao",
+  "site": "Ferris Notes",
+  "date": "2026-10-05",
+  "lang": "en",
+  "sentences": [
+   "A flamegraph shows where a program spends its time, one box for every function on the stack, as wide as the time it took.",
+   "Reading one takes a little practice, but after a few minutes the wide plateaus jump out at you and the narrow spikes stop being distracting.",
+   "To record a profile, build the program in release mode with debug symbols and run it under perf with call graphs turned on.",
+   "fn main() { let map = build_map_once(); serve(&map); }",
+   "The first thing to look for is a plateau that should not be there, a function that you expected to be cheap taking a quarter of the width.",
+   "In our case it was the hash function of a map that was rebuilt for every request instead of once at start-up.",
+   "Moving the map into a static that is built lazily cut the time for a request from eleven milliseconds to four.",
+   "Flamegraphs are not the only view worth having, and a flat profile sorted by self time still answers some questions faster.",
+   "The second profile, after the fix, has no plateau at all: the time is spread across parsing, the database and writing the answer."
+  ],
+  "not": [
+   "Related posts",
+   "Subscribe",
+   "Join the discussion",
+   "Toggle theme",
+   "Edit this page on GitHub"
+  ],
+  "pictures": [
+   "hero-800.jpg",
+   "chart.png",
+   "anim.gif",
+   "diagram.svg",
+   "wide.jpg"
+  ]
+ },
+ "fr": {
+  "url": "https://journal-littoral.example/culture/phare-de-cordouan",
+  "title": "Le phare de Cordouan, roi des phares",
+  "author": "Claire Dubois",
+  "site": "Le Journal du Littoral",
+  "date": "2026-09-14",
+  "lang": "fr",
+  "sentences": [
+   "Le phare de Cordouan se dresse au large de l’estuaire de la Gironde depuis le début du dix-septième siècle.",
+   "On l’appelle parfois le roi des phares, parce que ses architectes ont voulu qu’il ressemble à un palais autant qu’à une tour.",
+   "Les gardiens y vivaient par équipes de trois et se relayaient tous les quinze jours, quand la mer le permettait.",
+   "Aujourd’hui le phare est automatisé, mais des visiteurs traversent encore à marée basse pour monter ses trois cents marches.",
+   "Depuis la lanterne, par temps clair, on voit à la fois l’océan, l’estuaire et les forêts de pins de la côte."
+  ],
+  "not": [
+   "PUBLICITÉ",
+   "Abonnez-vous",
+   "Les plus lus"
+  ],
+  "pictures": [
+   "cordouan.jpg"
+  ]
+ },
+ "home": {
+  "url": "https://coastal-gazette.example/",
+  "title": "The Coastal Gazette — News from the coast",
+  "article": false
+ },
+ "complete": {
+  "news": "The lighthouse keepers of Kestrel Rock",
+  "blog": "Profiling Rust code with flamegraphs",
+  "fr": "Le phare de Cordouan",
+  "home": "The Coastal Gazette"
+ }
+}

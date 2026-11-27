@@ -7,7 +7,7 @@
 import { h, card, note, button, toggle, select, segmented, filePicker, clear, toast, errMsg, copy, ic, type Mount } from '../ui';
 import * as R from '../lib/ebook-client';
 import { THEMES, FONTS, KIND_NAMES, chapterAt, type Look, type Theme, type FontChoice, type Entry, type Hit, type BookInfo, type PageLink } from '../lib/ebook';
-import { give } from '../lib/handoff';
+import { give, take } from '../lib/handoff';
 import { plural } from '../lib/dates';
 
 const ACCEPT = '.epub,.mobi,.prc,.azw,.azw3,.fb2,.fbz,.zip,.cbz,.cbr,.cb7,.cbt,.txt,.text,.html,.htm,.xhtml,application/epub+zip,application/x-mobipocket-ebook,text/plain,text/html';
@@ -86,6 +86,9 @@ export const mount: Mount = (root, ctx) => {
   const reader = h('section', { class: 'ebr', hidden: true, 'aria-label': 'Reader' }, top, notes, stage, selBar, bottom, pageText);
   root.append(intro, reader);
   showAgain();
+  // a book another tab made for reading here (Articles → Kindle's "Read it here")
+  const handed = take<File>('ebook');
+  if (handed instanceof File) queueMicrotask(() => { void openFile(handed).catch((e) => { clear(status).append(note(errMsg(e), 'err')); }); });
 
   /** the reader just under the sticky rows, so the page and its bar fill the window */
   const place = () => { if (!full) reader.scrollIntoView({ block: 'start', behavior: 'instant' as ScrollBehavior }); };

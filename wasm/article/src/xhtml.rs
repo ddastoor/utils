@@ -211,6 +211,8 @@ impl Writer {
             return;
         }
         self.seen_text = true;
+        // no second space where the text before ended with one
+        let t = if self.out.ends_with(' ') { t.trim_start().to_string() } else { t };
         match ctx {
             Ctx::Flow | Ctx::Phrasing => esc_text(&t, &mut self.out),
             Ctx::List => { self.out.push_str("<li>"); esc_text(t.trim(), &mut self.out); self.out.push_str("</li>"); }
@@ -367,6 +369,9 @@ impl Writer {
             if let Some(v) = n.attr(key) { let v = v.trim(); if !v.is_empty() && !urls.iter().any(|u| u.0 == v) { urls.push((v.to_string(), 0.0)); } }
         }
         if urls.is_empty() { return; }
+        // a tracking pixel (1 × 1, as its page sizes it) is no picture
+        let tiny = |k: &str| n.attr(k).and_then(|v| v.trim().trim_end_matches("px").parse::<f64>().ok()).is_some_and(|v| v <= 2.0);
+        if tiny("width") || tiny("height") { return; }
         let alt = collapse(&n.attr("alt").map(|a| a.to_string()).unwrap_or_default()).trim().to_string();
         let i = self.images.len();
         self.images.push(Image { urls, alt: alt.clone() });
@@ -575,3 +580,27 @@ fn pct_decode(s: &str) -> String {
 }
 /// An attribute value as it was before esc_attr.
 fn unesc(s: &str) -> String { s.replace("&quot;", "\"").replace("&lt;", "<").replace("&gt;", ">").replace("&amp;", "&") }
+
+/// The text of written XHTML: a line for every block (a paragraph, an item, a cell, a heading, a line break), the
+/// spaces of a line collapsed — what is read aloud and counted.
+pub fn plain(x: &str) -> String {
+    const BREAKS: [&str; 26] = ["p", "div", "li", "dt", "dd", "h1", "h2", "h3", "h4", "h5", "h6", "tr", "td", "th", "caption", "pre", "blockquote", "figure", "figcaption", "table", "ul", "ol", "dl", "hr", "br", "section"];
+    let mut raw = String::with_capacity(x.len());
+    let mut rest = x;
+    while let Some(p) = rest.find(['<', '&']) {
+        raw.push_str(&rest[..p]);
+        rest = &rest[p..];
+        if rest.starts_with('<') {
+            let end = rest.find('>').map(|e| e + 1).unwrap_or(rest.len());
+            let name: String = rest[1..end].trim_start_matches('/').chars().take_while(|c| c.is_ascii_alphanumeric()).collect();
+            if BREAKS.contains(&name.to_ascii_lowercase().as_str()) { raw.push('\n'); }
+            rest = &rest[end..];
+        } else {
+            let (c, n) = [("&amp;", '&'), ("&lt;", '<'), ("&gt;", '>'), ("&quot;", '"')].iter().find(|(e, _)| rest.starts_with(e)).map(|(e, c)| (*c, e.len())).unwrap_or(('&', 1));
+            raw.push(c);
+            rest = &rest[n..];
+        }
+    }
+    raw.push_str(rest);
+    raw.lines().map(|l| l.split_whitespace().collect::<Vec<_>>().join(" ")).filter(|l| !l.is_empty()).collect::<Vec<_>>().join("\n")
+}

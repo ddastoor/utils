@@ -33,6 +33,7 @@ export default [
   ['page numbers', 'pdf-pagenum'], ['number pdf pages', 'pdf-pagenum'],
   ['pdf watermark', 'pdf-watermark'], ['confidential stamp', 'pdf-watermark'],
   ['epub', 'epub'], ['kindle', 'epub'], ['pdf to epub', 'epub'], ['convert pdf to ebook', 'epub'],
+  ['articles to kindle', 'articles'], ['article to kindle', 'articles'], ['web page to epub', 'articles'], ['send article to kindle', 'articles'], ['read later', 'articles'], ['reader view', 'articles'], ['mhtml', 'articles'], ['webarchive', 'articles'], ['remove ads from article', 'articles'], ['save web article', 'articles'],
   ['epub reader', 'ebook'], ['ebook', 'ebook'], ['read epub', 'ebook'], ['ebook reader', 'ebook'], ['mobi', 'ebook'], ['fb2', 'ebook'], ['cbz', 'ebook'], ['cbr', 'ebook'], ['comic book reader', 'ebook'], ['read a book', 'ebook'],
   ['pdf for kindle', 'kindlepdf'], ['kindle pdf', 'kindlepdf'], ['k2pdfopt', 'kindlepdf'], ['read paper on kindle', 'kindlepdf'], ['two column pdf', 'kindlepdf'], ['crop pdf margins', 'kindlepdf'],
   ['csv', 'sheet'], ['excel viewer', 'sheet'], ['xlsx to csv', 'sheet'],
