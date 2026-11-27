@@ -3894,10 +3894,11 @@ push main, and start making subsequent changes to main, and also … tell GitHub
 work is committed and pushed to `main` since 26 Nov 2026** (the working branch `claude/exciting-bohr-b9yfwc` was merged
 into it — a fast-forward — and is no longer pushed to). **Live since 20 Nov 2026 at https://ddastoor.github.io/utils/**
 (Settings → Pages → Source: GitHub Actions). GitHub lets a branch publish only when the `github-pages` environment allows
-it: **the owner allows `main` under Settings → Environments → github-pages → Deployment branches and tags** (and makes
-`main` the default branch, Settings → General, so new sessions and the repository page start there) — the session's tools
-cannot change repository settings; until then the deploy job is refused and the site stays at the last published build
-(1d5e8dc, published from the old default branch). A push that passes the unit suites goes live within about four minutes.
+it: **the owner allowed `main` under Settings → Environments → github-pages → Deployment branches and tags on 27 Nov 2026**
+(the session's tools cannot change repository settings; until then every deploy job from main was refused and the site
+stayed at 1d5e8dc, published from the old branch). **Published from main since 27 Nov 2026** — the first: 754d1b5 (run 523,
+its deploy job re-run once the setting was made). A push that passes the unit suites goes live within about four minutes;
+a run whose deploy job was refused or failed is published by re-running its failed jobs (the build's artifact is kept).
 GitHub's runner is Ubuntu 26.04 (`ubuntu-latest`): its coreutils are uutils (Rust), not GNU — a unit check that runs a
 system tool must work with both. GitHub Pages limits: a published site ≤ 1 GB (512 MB on 20 Nov 2026, after Speech to Text was removed: 488 MB of room), 100 GB / month soft
 bandwidth, 10 minutes per deployment.

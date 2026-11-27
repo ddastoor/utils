@@ -192,7 +192,8 @@ this file = the owner's latest wishes, how the tests are written, and the traps 
   `.github/workflows/pages.yml` builds on pushes to main and publishes from main. GitHub refuses a deployment from a
   branch the `github-pages` environment does not allow, and the session's tools cannot change that setting: **the owner
   allows main under Settings → Environments → github-pages → Deployment branches and tags** (and makes main the default
-  branch under Settings → General). Until then the site stays at the last version published.
+  branch under Settings → General). **He did on 27 Nov 2026:** the failed deploy job of run 523 (754d1b5) was re-run and
+  the site has been published from main since. A run whose deploy job fails is published by re-running its failed jobs.
 - **After a push, look at the "Deploy to GitHub Pages" run** (actions_list on pages.yml): on 26 Nov 2026 it failed at
   `npm test` for a whole day (a unit suite that could not load a module reading `window`) and the site stayed at the
   morning's version — the local runs had covered only the suites a change touched.

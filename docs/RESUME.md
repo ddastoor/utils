@@ -12,8 +12,8 @@ Start a new Claude Code session on the same repository (claude.ai/code or the Cl
 
 **Since 26 Nov 2026 all work goes to `main`** (owner: "merge the branch to main, push main, and start making subsequent
 changes to main, and also … make the site live off of main"). The old working branch `claude/exciting-bohr-b9yfwc` was
-merged into main (fast-forward, 1d5e8dc) and is no longer pushed to; the Pages workflow publishes from main once GitHub's
-`github-pages` environment allows main (CLAUDE.md §7, Deploy — a setting only the owner can change).
+merged into main (fast-forward, 1d5e8dc) and is no longer pushed to. **The site is published from main since 27 Nov 2026**
+(the owner allowed main in the `github-pages` environment; first deploy 754d1b5 — CLAUDE.md §7, Deploy).
 
 ## ▶ NOW — 26 Nov 2026, morning (read this first)
 **Batch 1 done; batch 2 (#18 OCR + Photo Dictionary) DONE** (todo.md Done #18; CLAUDE.md §3 OCR, "Documents — one reading
@@ -84,8 +84,7 @@ decision taken without the owner — Chrome has no way for a page to scroll anot
 window itself. **Batch 4 is complete.** The FFmpeg suite was split (the sound checks: `ffmpeg-sound.e2e.mjs`, 15 / 15 here)
 — Windows check run 15 had timed out at 30 minutes on the joined suite.
 **Work is on `main` now** (owner, 26 Nov 2026, evening). **The site was not updated after the morning** (every publishing
-run failed in `npm test` since #26 — fixed); it is published from main once the owner allows main in the github-pages
-environment (CLAUDE.md §7 Deploy).
+run failed in `npm test` since #26 — fixed); **published from main since 27 Nov 2026** (754d1b5; CLAUDE.md §7 Deploy).
 **#15 Blur & Redact: DONE (26 Nov 2026)** (todo.md Done #15): the switch, a tap per face, all / none, Undo (Ctrl+Z); e2e 47.
 **#17 Watermark: DONE (26 Nov 2026)** (todo.md Done #17; CLAUDE.md §3 "Blur & Redact, Watermark …"): "Diagonal" for photos and
 documents; "Add PDFs or Word documents" — PDFs through MuPDF (vector text in PDF's standard fonts; Meme / Script as a picture of
@@ -118,8 +117,8 @@ MossFormer2 48 kHz (229 MB) level on balance; WPE dereverberation measured and n
 (±4 scored higher on DNSMOS — not chased); no dereverberation and no restoration network (measured / not needed). Unit dfn 33,
 e2e noise-studio 28 (+ noise 25) — **both passed on Windows too** (the Windows check, run 16: 28 / 28, 25 / 25; run 17: FFmpeg 9.1's ebur128 there reads the result as −16 LUFS, true peak −1.5 dBTP); the site 563 MB. **Batch 7 is complete — the owner's batch order is finished.**
 **Next:** the potentials process — it needs the owner (he picks the apps): when he is back, show him `docs/potentials.md`,
-and ask (1) when to do #32 (22 FFmpeg jobs, not in the order); (2) remind him to allow `main` in Settings → Environments →
-github-pages (the site is not published from main until then); (3) offer the AnimeGAN / White-box styles for the Cartoonizer;
+and ask (1) when to do #32 (22 FFmpeg jobs, not in the order); (2) ~~remind him to allow `main` in github-pages~~ — done by
+the owner on 27 Nov 2026: the site is live from main (754d1b5); (3) offer the AnimeGAN / White-box styles for the Cartoonizer;
 (4) tell him the decisions taken tonight (#16, #17, #20 above). Until he answers: nothing new is started (the owner's rule:
 never start a to-do item on your own).
 
