@@ -15,6 +15,7 @@ export const KEYWORDS: Record<string, string> = {
   'collage': 'collage, grid, combine, merge photos, layout, montage, side by side',
   'exif': 'gps from photo, photo details, camera info, exif, metadata, gps, location, camera, date, info, strip, remove metadata, privacy',
   'scanner': 'scan, scanner, document, camscanner, paper, receipt, perspective, crop, pdf, black and white',
+  'bookflat': 'flatten book page, book scanner, scan a book, photograph book, open book, curved page, curl, page curl, dewarp, unwarp, flatten, straighten lines, book spine, gutter, two pages, spread, split pages, textbook, novel, library book, notes from a book, book to pdf, book photo to pdf, flat page, warped page, bent page, booklet, magazine',
   'ocr': 'copy text from image, copy text from photo, extract text from image, text from photo, extract text from photo, handwriting, ocr, text recognition, extract text, image to text, copy text, tesseract, english, french, spanish, german, francais, espanol, deutsch, read, scan text',
   'signature': 'signature, sign, draw signature, transparent signature, signature png, autograph, handwritten, e signature image',
   'pdf-merge': 'pdf, merge, combine, join, append',

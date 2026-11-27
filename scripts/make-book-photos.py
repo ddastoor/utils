@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# make-book-photos.py OUT [--count N] [--first K] — photos of an open printed book, for the Book Page Flattener (potentials
+# make-book-photos.py OUT [--count N] [--first K] [--focal F] — photos of an open printed book, for the Book Page Flattener (potentials
 # #96; owner, 21 Nov 2026: "the OCR tab and the Photo Dictionary then read printed books as well as a Kindle page") and for
 # the OCR and the Photo Dictionary on printed books. Every photo comes with the exact words on it — OUT/<name>.txt (the
 # left page first), <name>.left.txt and <name>.right.txt —, the pages as they were printed (<name>.left.png, .right.png) and
@@ -14,7 +14,9 @@
 #  - the light: the room's light on the paper's slope, the gutter in shadow, the paper's tint, the table around the book;
 #  - the photo: a phone above the book — a still (4032 × 3024) or a frame of the live video (1920 × 1080) — turned, tilted,
 #    the book filling 55 – 90 % of it; focus, shake, noise, saved as a phone saves a JPEG. A ray from the camera through
-#    each pixel meets the curved paper (bisection along the ray); the page is read off where it lands.
+#    each pixel meets the curved paper (bisection along the ray); the page is read off where it lands. The lens: a phone's
+#    main camera (1.46 half-widths of the longer side — about 69° across it, 26 mm as on 35 mm film), or --focal F (a
+#    2× telephoto: 3.0, an ultra-wide: 0.75); with --exif the JPEG says it, as a phone's does (FocalLengthIn35mmFilm).
 import argparse, importlib.util, json, math, os, random
 import numpy as np
 from PIL import Image, ImageDraw
@@ -77,7 +79,7 @@ def sheet(rng, theta0, L, droop, n=4096):
     return s, x, z, th
 
 
-def render(rng, pages, out_w, out_h, still, thick=False):
+def render(rng, pages, out_w, out_h, still, thick=False, focal=None):
     """The open book photographed. pages: [left, right] (or [right] for a single page, its spine on the left)."""
     two = len(pages) == 2
     # each page's curl: steep at the spine, levelling out; a little more or less in the middle of the spine (bulge)
@@ -102,8 +104,8 @@ def render(rng, pages, out_w, out_h, still, thick=False):
             hgrid[j, sel] = np.interp(X, x, z); sgrid[j, sel] = np.interp(X, x, s); pgrid[j, sel] = pi
             slope[j, sel] = np.interp(X, x, np.tan(th)) * side
     hmax = float(hgrid.max())
-    # the camera: above the book, turned and tilted; a phone's lens (about 69° across the long side)
-    f = 0.73 * max(out_w, out_h)
+    # the camera: above the book, turned and tilted; a phone's lens (about 69° across the long side), or the one asked for
+    f = 0.73 * max(out_w, out_h) if focal is None else focal / 2 * max(out_w, out_h)
     bw = (2 if two else 1) * PW * 1.0
     fill = rng.uniform(0.7, 0.97)
     span = max(bw / (out_w * fill), PH / (out_h * fill))  # book units per pixel at the table
@@ -220,11 +222,24 @@ def render(rng, pages, out_w, out_h, still, thick=False):
                  'blur': round(blur, 2), 'exposure': round(expo, 2), 'background': kind, 'spine': spine, 'truth': truth}
 
 
+def add_exif(path, f35):
+    """An EXIF block as a phone writes one (make, model, FocalLengthIn35mmFilm) put into the JPEG after its JFIF header —
+    the picture's own bytes untouched."""
+    ex = Image.Exif(); ex[0x010F] = 'SuperUtils'; ex[0x0110] = 'Test camera'
+    ex.get_ifd(0x8769)[0xA405] = int(f35)
+    blob = ex.tobytes()  # b'Exif\0\0' + TIFF
+    b = open(path, 'rb').read()
+    at = 2 + 2 + int.from_bytes(b[4:6], 'big') if b[2:4] == b'\xff\xe0' else 2
+    open(path, 'wb').write(b[:at] + b'\xff\xe1' + (len(blob) + 2).to_bytes(2, 'big') + blob + b[at:])
+
+
 def main():
     ap = argparse.ArgumentParser(); ap.add_argument('out'); ap.add_argument('--count', type=int, default=12); ap.add_argument('--first', type=int, default=0)
     ap.add_argument('--thick', action='store_true', help='a thick book: steeper pages that stay curved into the text')
     ap.add_argument('--width', type=int, default=0, help='the photo made this many pixels across at the end (test fixtures)')
     ap.add_argument('--quality', type=int, default=90)
+    ap.add_argument('--focal', type=float, default=None, help="the lens's focal length in half the photo's longer side (1.46: a phone's main camera)")
+    ap.add_argument('--exif', action='store_true', help='write the 35 mm-equivalent focal length into the JPEG, as a phone does')
     a = ap.parse_args(); os.makedirs(a.out, exist_ok=True)
     index = []
     for n in range(a.first, a.first + a.count):
@@ -240,7 +255,7 @@ def main():
         out_w, out_h = (4032, 3024) if still else (1920, 1080)
         if not two: out_w, out_h = out_h, out_w  # one page: the phone held upright
         pages = [lp, rp] if two else [rp]
-        photo, how = render(rng, pages, out_w, out_h, still, a.thick)
+        photo, how = render(rng, pages, out_w, out_h, still, a.thick, a.focal)
         name = f'book-{n:03d}-{"thick-" if a.thick else ""}{"spread" if two else "page"}-{face}-{"still" if still else "frame"}'
         if a.width and a.width < photo.shape[1]:
             # smaller (a fixture): area resampling; the truth's photo positions scaled with it (pixel centres)
@@ -248,7 +263,13 @@ def main():
             photo = cv2.resize(photo, (a.width, round(photo.shape[0] * k)), interpolation=cv2.INTER_AREA)
             how['truth'] = [[[c, r, round((x + 0.5) * k - 0.5, 2), round((y + 0.5) * k - 0.5, 2)] for c, r, x, y in pg] for pg in how['truth']]
             if how['spine']: how['spine'] = [[(x + 0.5) * k - 0.5, (y + 0.5) * k - 0.5] for x, y in how['spine']]
-        cv2.imwrite(os.path.join(a.out, name + '.jpg'), photo[..., ::-1], [cv2.IMWRITE_JPEG_QUALITY, a.quality])
+        path = os.path.join(a.out, name + '.jpg')
+        cv2.imwrite(path, photo[..., ::-1], [cv2.IMWRITE_JPEG_QUALITY, a.quality])
+        # the lens as 35 mm film would need it for the same view (on the 43.27 mm diagonal of a 36 × 24 mm frame)
+        L, Hh = max(out_w, out_h), min(out_w, out_h)
+        focal = a.focal if a.focal is not None else 1.46
+        how['focal'] = focal; how['focal35'] = round(focal * 0.5 * 43.267 * L / math.hypot(L, Hh))
+        if a.exif: add_exif(path, how['focal35'])
         Image.fromarray(rp).save(os.path.join(a.out, name + '.right.png'))
         open(os.path.join(a.out, name + '.right.txt'), 'w').write(' '.join(rw) + '\n')
         if two:

@@ -80,6 +80,7 @@ export default async ({ base, page: newPage, ok, info, devices }) => {
     ['watermark', () => /2 photos: camera-\d{8}-\d{6}(-\d+)?\.jpg, camera-/.test(document.querySelector('.tool-body').innerText)],
     ['collage', () => document.querySelectorAll('.collage-item').length === 2],
     ['scanner', () => document.querySelectorAll('.scan-thumb').length === 2],
+    ['bookflat', () => /Photo 2 of 2 · camera-\d{8}-\d{6}(-\d+)?\.jpg/.test(document.querySelector('.tool-body').innerText)],
     ['img2pdf', () => [...document.querySelectorAll('.pdf-tile-label')].filter((l) => /camera-\d{8}/.test(l.textContent)).length === 2],
     ['slideshow', () => /^2 photos/.test(document.querySelector('.tool-body').innerText.split('\n').find((l) => /photos? ·/.test(l)) || '')],
   ];

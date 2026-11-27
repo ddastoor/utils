@@ -333,7 +333,7 @@ Wayland) and **mobile browsers** (Android Chrome, iPhone Safari).
 Platform is PC + mobile unless marked **PC**. Tab ids are the URL hash (`#/<id>`).
 
 **The authoritative, always-current list is `docs/TOOLS.md`, generated from `src/registry.ts` (`npm run docs`).**
-Current total: **175 tabs in 11 categories — 108 PC + mobile, 64 PC only, 3 Mobile only** (regenerate with
+Current total: **176 tabs in 11 categories — 109 PC + mobile, 64 PC only, 3 Mobile only** (regenerate with
 `npm run docs` after every registry change; the owner asked for the registry to always be noted).
 The per-category notes below record decisions; when they disagree with the registry, the registry wins.
 
@@ -368,6 +368,7 @@ and to the counts of `docs/TOOLS.md`; axe in both themes).
 | `collage` | Collage Maker | both | canvas photo grid |
 | `exif` | EXIF / Photo Info | both | ExifTool 13.42 (Perl on zeroperl, WebAssembly) in a worker: every tag of every format; strip metadata losslessly (colour profile + orientation kept) |
 | `scanner` | Doc Scanner | both | page finder DocCornerNet LEAN (scanic-ml, MIT) on ONNX Runtime Web (fed by imgproc's OpenCV-exact area resize) → else `imgproc` outline (Otsu + largest region) → else the whole photo; draggable corners, homography warp, enhance (`imgproc`); PDF via MuPDF (`src/lib/pdf.ts`: photos JPEG, B & W PNG) or JPEGs |
+| `bookflat` | Book Page Flattener | both | own C in imgproc (`wasm/imgproc/flatten.c`: page-dewarp's method — the text lines found, a curved sheet and the camera fitted to them by Levenberg–Marquardt, the gutter of a spread split, lines held to the margins) → each page drawn flat at the photo's resolution; PDF via MuPDF or JPEGs |
 | `ocr` | OCR | both | Tesseract (C++ → wasm), English, French, Spanish, German; a file, or the camera (phone) / webcam (PC) live in the page (`src/lib/livecam.ts`) |
 
 **Documents** (engine: **MuPDF 1.28**, Artifex's official C → wasm build, for every PDF tab — merge/split via `graftPage`,
@@ -2371,6 +2372,65 @@ opencv-python-headless`):
   scan" = the scan's shape with A4's long side (297 mm). JPGs: quality 80 (B & W 85). Phones and PCs: "Use camera" /
   "Use webcam" — the camera stays open and every Snap adds a page (owner, 20 Nov 2026) — and "Choose photos"; Share.
 
+### Book Page Flattener — BUILT (potentials #96; owner, 21 Nov 2026; built 27 Nov 2026 — group 1 of the suggested order)
+(`bookflat` in `src/tools/bookflat.ts`, steps `src/lib/bookflat.ts` (no DOM), engine `wasm/imgproc/flatten.c` in
+imgproc.wasm; unit `tests/unit/bookflat.test.mjs` 106, e2e `tests/e2e/bookflat.e2e.mjs` 37; fixtures `tests/fixtures/books/`
+with ground truth, made by `python3 scripts/make-book-photos.py` — `tele.jpg` taken with a phone's 2× lens and saying so in
+its EXIF, `--focal F --exif`.) The owner's words (potentials #96): "photograph two pages
+of an open book → the curve near the spine flattened, the two pages split left and right, the lines straight → clean pages as
+pictures or a PDF; the OCR tab and the Photo Dictionary then read printed books as well as a Kindle page."
+- **The engine** (`p_book_fit`, `p_book_render`, `p_book_locate`, `p_book_project`; bindings `bookFit` / `bookRender` /
+  `bookLocate` / `bookProject` in `src/wasm/imgproc.ts`): **Matt Zucker's page-dewarp method** (MIT, as page-dewarp 0.3.4
+  has it) in our C — the text mask (mean adaptive threshold, dilated along the lines), word blobs (`cm_label`), chained
+  into lines (spans: edges of at most 100 px, 1 px of overlap and 7.5° of turn, best first), sampled every 20 px; the page
+  a sheet bent along one axis (z = a cubic of x, end slopes held within ±0.5) seen by a pinhole camera — its pose, the
+  cubic, a height per line and a place per sample fitted so the model's points fall where the photo has them. **The
+  camera's focal length** is the photo's own where it says it (EXIF FocalLengthIn35mmFilm, as phones write it: `focalFrom35`
+  in `src/lib/bookflat.ts` — 26 mm on a 4 : 3 photo is 1.50 half-widths of the longer side), else 1.45 (a phone's main
+  camera, a webcam); page-dewarp's 1.2 is a wider lens's. Each page's record keeps the focal length it was fitted with. **Ours** (measured, and why:
+  docs/WASM-AUDIT.md 179): the fit by Levenberg–Marquardt with the per-sample unknowns eliminated (a Schur complement —
+  milliseconds; page-dewarp's Powell took 5 – 90 s a page); the **working size from the letter height** (letters about
+  7 px: close-ups and far shots alike); the **gutter** of a spread found from the word blobs in four bands before lines
+  are chained (a straight line through the widest empty stretches near the middle; a gutter is at least 4 % of the text's
+  width — wider than two columns of one page — and each side holds a fifth of the text), lines never chained across it;
+  a strip of the facing page at a side left out; **lines held to the page's margins** (a second pass: the lines whose
+  ends meet the densest start / end — justified text; indents, short last lines and headings free; a line the model fits
+  far worse than the others — a table's ruled pieces, a caption beside a figure — left out and the page fitted again);
+  **word blobs that are no print left out**: the paper's own top and bottom edges (the table on one side of the blob: the
+  light end of the grey 3 px above and below it apart by more than 30 and a sixth) and specks of the table's grain (darker
+  than the grey round them by less than the photo's words are — their darkest tenth above the words' median + 0.2, kept
+  within 0.75 – 0.9); **the page's extent from the paper**: from the text outwards along the model until the light end of
+  nine samples across the edge falls below the paper just inside the text (its 80th percentile, raised by the lightest
+  step on the way) — page numbers, running heads and the margins come with it, a light table and a foreshortened margin
+  are found; **a page of a spread reaches the gutter** on its inner side (the words nearest the spine stand on the steepest
+  curl and seldom join a line of the fit; the spine's shadow is no paper's edge); at least half a line's height round the
+  text; **drawn along the paper** — across, by the length along the curved sheet (the cubic's arc length), so the words
+  near the spine are not squeezed —, bicubically in colour at the photo's own resolution.
+- **Measured** (photos of `scripts/make-book-photos.py`: two printed pages (Literata, Liberation Serif, Noto Sans) bent
+  near the spine — the slope falling off from the spine, θ0·e^(−s/L), a different curl per page and along the spine;
+  `--thick` steeper and deeper; a phone's still or a video frame, turned and tilted; `--focal` another lens; the ground
+  truth = where each printed point was seen): lines bent 0.026 line spacings (thick books 0.038; the photo 0.50;
+  Leptonica's dewarp 0.27, page-dewarp 0.13); the flat page 0.38 % of its width on average from where the text was printed
+  (40 pages; the photo 1.3 – 2.6 %), its shape within 0.8 % of the printed page's; photos of a 2× zoom, an ultra-wide lens
+  and a webcam-like one, with the lens from their EXIF, 0.26 % (42 pages; without it, a 2× zoom's 1.75 %); 80 of 82 pages
+  end at the paper with their running head and page number; OCR (the app's reading path) of 16 photos 90.7 → 92.4 % of
+  the words, every page as well as the photo or better.
+- **Which way up:** the letters' guess first (`textTurns` of `src/lib/upright.ts`); a fit is taken as lines of print only
+  when they are (`found()`: 8 samples a line and more, fitted within 3 px — a photo held sideways makes short "lines" of
+  letters joined across, about 4 samples each, fitted at 5 – 7 px); else the photo turned a quarter either way is tried
+  and the turn that found the most text kept. A photo without print (a cup of coffee) gives no page, said.
+- **The tab:** photos (or the camera — page after page, as the Doc Scanner) → each photo's pages flattened at once; a strip
+  of every page in order, named ("Page 2: right page of IMG_0042.jpg"); for the page chosen: the photo with what was found
+  drawn on it (a dot for each sample — the left page's orange, the right's green —, the gutter dashed, each page's outline
+  as the model sees it, the chosen one heavier) beside the flat page; "Pages in this photo": Find out / One page / Two pages;
+  **"Camera lens"**: "As the photo says (52 mm)" where its EXIF does, else "Main camera or webcam (1×, about 26 mm)", and
+  Ultra-wide (0.5×), Zoom 2×, 3×, 5× for a photo that lost its EXIF in a chat app (a zoomed page flattened as the main
+  camera's comes out skewed); turn the photo a quarter by hand; move a photo earlier or
+  later; remove it. Clean-up: Colour (the paper whitened, the gutter's shadow evened out) / Grey / B & W / Original (imgproc
+  `docEnhance`). Save: one PDF (MuPDF; "Fit to page" — each page its own shape, A4's length — A4 or Letter; B & W pages as
+  PNG) or JPEGs (`book-page-01.jpg` …); Share on phones. Only a copy of each photo (≤ 1,600 px) is kept; the photo is read
+  again when saving and each page drawn at most 3,200 px (2,400 on phones) from it at up to 4,000 px.
+
 ### OCR
 Tesseract 5 LSTM (tesseract.js-core wasm), **languages English, French, Spanish, German** (owner decision Nov 16 2026:
 "don't bother about Hindi"; `@tesseract.js-data/{eng,fra,spa,deu}` 4.0.0_best_int, MIT, vendored) + "Mixed" (all four).
@@ -3260,7 +3320,7 @@ stay **public** (the source of the deployed site is then available to every user
 | **libsodium.js** — `libsodium-wrappers-sumo` 0.8.4 (libsodium **1.0.22**; the sumo build: the standard one has no Argon2) | C | the libsodium project (official WebAssembly build, embedded in the module) — binding `src/wasm/libsodium.ts`, format `src/lib/usodium.ts`, in `src/workers/crypto.worker.ts` | sodium, sharelink: Argon2id + XChaCha20-Poly1305 secretstream (`docs/WASM-AUDIT.md`, tab 101); password, passphrase, dice, coin: randombytes_uniform (tabs 104, 105, 155) |
 | imgproc (adjustments, resize, OpenCV's area resize (`p_resize_area`, equal to cv2's INTER_AREA), lossless orient/crop, filters, matting, warp + homography, doc enhance, the page in a photo (`p_page_quad`) and whether an outline is a page's (`p_quad_steps`: the step across each edge; `p_quad_text`: the letters it leaves outside), an outline fitted to the photo's edges (`p_refine_quad`), strips of the desk along a straightened page painted (`p_clear_border`), which way up the text stands and how its lines slant (`p_text_turns`: the letters; `p_text_lines`: projection profiles), where the text is (`p_ink_window`), a watermark's broad strokes taken out (`p_clear_wash`), the views of a scrolling
 screenshot placed against each other (`p_scroll_sig`, `p_scroll_match`: rows that stay put, the shift by the overlap's
-difference over its detail, the overlap's pixels), ruled lines and list marks cleared and the columns counted (`p_clear_marks`); PaddleOCR's steps around its networks, as RapidOCR takes them in OpenCV's arithmetic (`p_resize_linear` / `p_net_planes`: cv2.resize INTER_LINEAR in its own fixed point; `p_db_boxes`: DBPostProcess, its box score over cv2.fillPoly's exact pixels; `p_crop_quad`: get_rotate_crop_image; `p_ctc`: CTC's greedy reading)) | C (own code) | **us** (`wasm/imgproc`) | image tools, scanner, passport, cartoon, ocr and photodict (pages found, set upright and level, rules and list marks cleared — to-do #18; the second reader's pixel work) |
+difference over its detail, the overlap's pixels), ruled lines and list marks cleared and the columns counted (`p_clear_marks`); **book pages flattened** (`flatten.c`: `p_book_fit`, `p_book_render`, `p_book_locate` — page-dewarp's method, Levenberg–Marquardt, the gutter, the margins); PaddleOCR's steps around its networks, as RapidOCR takes them in OpenCV's arithmetic (`p_resize_linear` / `p_net_planes`: cv2.resize INTER_LINEAR in its own fixed point; `p_db_boxes`: DBPostProcess, its box score over cv2.fillPoly's exact pixels; `p_crop_quad`: get_rotate_crop_image; `p_ctc`: CTC's greedy reading)) | C (own code) | **us** (`wasm/imgproc`) | image tools, scanner, passport, cartoon, ocr and photodict (pages found, set upright and level, rules and list marks cleared — to-do #18; the second reader's pixel work), bookflat |
 | metacore (EXIF → JSON, lossless metadata strip JPEG/PNG/WebP, JPEG DPI, image sniffing) | C (own code) | **us** (`wasm/metacore`) | exif, image loading, passport/formphoto DPI |
 | BusyBox 1.38.0 (130 applets) + compat shims | C | **us** (`wasm/busybox`) | terminal, bc console |
 | jq 1.8.2 (+ oniguruma) | C | **us** (`wasm/jq`) | jq |
@@ -3863,7 +3923,8 @@ unsafe URLs always suppressed). TS wrapper `src/wasm/markdown.ts`; tests `tests/
 the unit tests).
 
 ### 5.2 Image processing → `src/wasm/bin/imgproc.wasm`
-Own C (`wasm/imgproc/imgproc.c`). `wasm/imgproc/build.sh` compiles with
+Own C (`wasm/imgproc/imgproc.c`, and `wasm/imgproc/flatten.c` — the Book Page Flattener — which imgproc.c includes at its
+end: it uses the component labeller; build.sh reads the exports of both files). `wasm/imgproc/build.sh` compiles with
 `zig cc --target=wasm32-wasi -O3 -msimd128 -mexec-model=reactor`. TS wrapper `src/wasm/imgproc.ts` (`bindImgproc`; `imgproc(op, ...)` runs ops in `src/workers/imgproc.worker.ts`). Tests: `tests/unit/imgproc.test.mjs` (synthetic images, known answers). Ops: adjust (tone LUT + temp/tint/hue/sat/vibrance), Lanczos-3 resize (premultiplied), Gaussian blur, unsharp mask, rotate, bilateral, cartoon (XDoG + k-means), Kuwahara, sketch, watercolour, halftone, pixelate/blur rect, guided-filter alpha + composite, page detection, perspective warp, document enhance (colour/grey/B&W), histogram.
 
 ---

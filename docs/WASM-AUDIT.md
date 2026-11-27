@@ -1577,3 +1577,59 @@ Oniguruma)". Per flavour, the existing modules looked at first (STANDING RULE #1
   sandbox cannot reach). 55 cases, all equal to native .NET 10.0.15. 5.1 MB.
 **The flavours are complete** (to-do #8): ten, each held to its native engine.
 
+
+### 179. `bookflat` — Book Page Flattener (27 Nov 2026; potentials #96)
+A photo of an open book → each page flat (the curl near the spine taken out, the two pages split, the lines straight).
+Looked at first (STANDING RULE #1):
+- **No existing WebAssembly module flattens book pages.** OpenCV.js (the official build) has the pieces page-dewarp
+  uses (adaptive threshold, contours, solvePnP, remap) but not the method; tesseract.js-core links Leptonica but exports
+  none of its dewarping; no WebAssembly build of page-dewarp or of Leptonica's `dewarp*` was found.
+- **So: our own WebAssembly from open-source code — and two candidates were built natively and measured** on photos of
+  open books with ground truth (`scripts/make-book-photos.py`: printed pages bent near the spine, a phone's camera over
+  them; the truth = where each printed point was seen): **Leptonica 1.86.0's `dewarpSinglePage`** (C, BSD-2; built
+  from the Ubuntu archive's source, SHA-256 checked) and **page-dewarp 0.3.4** (Matt Zucker's method, Python, MIT).
+  28 pages, cut at the true spine (both flatten one page at a time):
+
+  | | lines bent (line spacings) | keystone (°) | OCR words read right |
+  |---|---|---|---|
+  | the photo | 0.50 | 2.43 | 90.7 % |
+  | Leptonica dewarp | 0.27 (gave up on 1080p frames) | 0.54 | 91.2 % |
+  | page-dewarp 0.3.4 | 0.13 | 0.45 | 81.6 % (0 % on two pages) |
+  | **ours** | **0.026** | **0.08** | **92.0 %** |
+
+  Leptonica straightens the lines but leaves the text block a trapezoid (its margins lean 0.5 – 2.6 line spacings) and
+  needs more lines than a video frame gives. page-dewarp's model (a sheet bent along one axis, a cubic, seen by a pinhole
+  camera) gives a rectangular page, but its pipeline takes the photo's rectangle less fixed margins for the page (it cut
+  the words nearest the spine and kept the table), works in grey at a reduced size, and fits by Powell's method over
+  hundreds of parameters (5 – 90 s a page in Python).
+- **Decision: our own C after page-dewarp's method** (`wasm/imgproc/flatten.c`, in imgproc.wasm — its labeller and
+  helpers are there; +46 KB): the model and the text detection as page-dewarp has them, the fit by Levenberg–Marquardt
+  with the per-sample unknowns eliminated (milliseconds), the gutter of a spread found from the word blobs before lines
+  are chained (in a photo the gutter is often narrower than a line may jump — lines were chained across it), lines held
+  to the page's two margins in a second pass (with every sample's place free, nothing tied the lines' lengths together:
+  the bottom of a page came out 4 % narrower than the top), the working size from the letter height, the page's extent
+  from its text (page numbers and running heads included), colour at the photo's resolution. Against the ground truth
+  the flat pages are 0.3 – 0.7 % of the page's width off where the text was printed (the photo itself 1.3 – 2.6 %). The
+  cubic's end slopes stay held within ±0.5, as page-dewarp holds them: loosened to ±1 or ±2 the fits went 1 – 5 % off.
+- **Measured further the same day** (the scratch measure of every photo of four sets against its ground truth: 40 pages of
+  phone stills and video frames, thick books among them, and 42 of photos taken with other lenses — `make-book-photos.py
+  --focal F --exif`):
+  - **The lens.** page-dewarp's focal length 1.2 (in half-widths of the photo's longer side) is a wide lens's; a phone's
+    main camera (26 mm as on 35 mm film) is 1.50 on a 4 : 3 photo, a webcam about 1.4. With 1.45: 0.72 → 0.58 % of the
+    page's width off. With the wrong lens a photo goes badly wrong — a phone's 2× camera (52 mm) taken for the main one:
+    1.75 % on average, up to 7.1 % (worse than the photo itself; the outer margins lean up to 5.7°); an ultra-wide (13 mm):
+    1.46 %. Read from the photo's EXIF (FocalLengthIn35mmFilm, which phones write): 0.35 % and 0.48 %. The fit's own error
+    cannot tell the lens (tried: six lenses for each photo, the best fit picked the wrong one more often than not), so a
+    photo without EXIF takes the main camera's and the tab offers the others.
+  - **Along the paper.** The model's X runs straight across under the curved sheet; drawn by X, the words near the spine
+    came out squeezed and the page 2.1 % too narrow for its height. Drawn by the length along the paper (the cubic's arc
+    length): 0.58 → 0.39 % off, the shape −2.1 → −0.8 %; with the photo's own lens 0.43 → 0.26 %, −1.6 → −0.5 %. With
+    that, the slope cap loosened to ±0.7 or ±1 no longer hurts — and does not help either (0.39 → 0.38 %): kept at ±0.5.
+  - **Where a page ends** (the drawn page's edges placed on the printed page): the paper's own edges had been taken for
+    lines, specks of a table chained to the lines, and a light table or a foreshortened margin let the page reach into the
+    table by up to 15 % of its width. With the edge and contrast tests of the word blobs and the paper's edge found by its
+    drop from the paper beside the text: 80 of the 82 pages end at the paper, each with its running head and page number
+    (CLAUDE.md §3; docs/BUGHUNT.md); a page of a spread reaches the gutter on its inner side.
+  - **The OCR of 16 photos** (the app's reading path on the flat pages, `scripts/measure-ocr.mjs --prep read`): the photos
+    as they are 90.7 % of the words read right, the first version 92.0 %, now 92.4 % — every page as well as the photo or
+    better (one photo, a far-off video frame, reads 5 % in every version: its text is a few pixels high).

@@ -14,6 +14,7 @@ export default [
   ['collage', 'collage'], ['photo grid', 'collage'], ['combine photos', 'collage'],
   ['exif', 'exif'], ['photo location', 'exif'], ['remove metadata', 'exif'], ['gps from photo', 'exif'],
   ['scan document', 'scanner'], ['camscanner', 'scanner'], ['doc scanner', 'scanner'],
+  ['flatten book page', 'bookflat'], ['book scanner', 'bookflat'], ['dewarp', 'bookflat'], ['curved page', 'bookflat'], ['book to pdf', 'bookflat'], ['page curl', 'bookflat'],
   ['ocr', 'ocr'], ['image to text', 'ocr'], ['extract text from photo', 'ocr'], ['copy text from image', 'ocr'],
 
   // Documents

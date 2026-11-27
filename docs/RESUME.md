@@ -28,16 +28,16 @@ check for each app picked, then build. **▶ 27 Nov 2026 — IN PROGRESS: the ow
 #96 Book Page Flattener, #110 Newspaper Clipper, #109 PDF for Kindle, #71 EPUB Reader, #106 Articles → Kindle, #14 PDF /
 EPUB → Audiobook; then the flattener as a step of the OCR and the Photo Dictionary, measured). Size check, measured: #106's
 dom_smoothie 0.20.0 as our own wasm build 1.07 MB (0.40 MB gzipped); #96 / #109 own C, tens of KB; the others nothing new —
-563.5 → about 564.6 MB of the 1 GB. Order: #96 first. Each tab committed and pushed when done, and taken off potentials.md. **#96 progress (27 Nov 2026):** the engine is built — `wasm/imgproc/flatten.c` (included by imgproc.c; `p_book_fit`,
-`p_book_render`, `p_book_locate`, `p_book_points`; bindings `bookFit` / `bookRender` / `bookLocate` / `bookPoints` in
-`src/wasm/imgproc.ts`): page-dewarp's method (Zucker, MIT) ported to C with a Levenberg–Marquardt fit (per-sample unknowns
-eliminated), the gutter found from the word blobs before lines are chained, lines held to the page's margins, the working
-size from the letter height, colour output at the photo's resolution. Measured on photos from `scripts/make-book-photos.py`
-(open books with ground truth; `--thick` for thick books): lines bend 0.026 line spacings (Leptonica 1.86's dewarp 0.27,
-page-dewarp 0.3.4 0.13; the photo 0.50), OCR 92.0 % of words (photo 90.7, Leptonica 91.2, page-dewarp 81.6); against the
-ground truth the flat pages are 0.3 – 0.7 % of the page width off (the photo 1.3 – 2.6 %). Scratch scripts of the measuring
-are in the session's scratchpad (not committed). **Next:** the tab (`booklat`? id `bookflat`, Images, both), unit suite on
-fixtures with ground truth (`tests/fixtures/books/`), e2e, docs (CLAUDE.md §3 + §3a + §5.2, WASM-AUDIT, potentials, TOOLS). **New, open: to-do #38** (owner, 27 Nov 2026, before the potentials: the OCR's and the
+563.5 → about 564.6 MB of the 1 GB. Order: #96 first. Each tab committed and pushed when done, and taken off potentials.md. **#96 Book Page Flattener — BUILT (27 Nov 2026):** the tab `bookflat` (Images, PC + mobile; CLAUDE.md §3 "Book Page
+Flattener"), engine `wasm/imgproc/flatten.c` in imgproc.wasm (page-dewarp's method in C, measured against Leptonica's
+dewarp and page-dewarp itself: docs/WASM-AUDIT.md 179), steps `src/lib/bookflat.ts`, unit `bookflat` 58 (ground truth of
+`tests/fixtures/books/`, made by `scripts/make-book-photos.py`), e2e `bookflat` 29; taken off potentials.md. **Then, the same
+day (measured against the ground truth and the OCR): the lens** (EXIF, else the main camera; a "Camera lens" choice — a
+zoomed photo was skewed by up to 7 %), **the page drawn along the paper** (0.58 → 0.38 % off), **where a page ends** (the
+paper's edges and specks of the table were taken for words; the page reached into the table; a spread's pages reach the
+gutter) — unit `bookflat` 106, e2e 37; OCR of 16 photos 90.7 → 92.4 %. **Next in group
+1:** #110 Newspaper Clipper · #109 PDF for Kindle · #71 EPUB Reader · #106 Articles → Kindle · #14 PDF / EPUB → Audiobook;
+then the flattener as a measured step of the OCR and the Photo Dictionary (no photo may read worse). **New, open: to-do #38** (owner, 27 Nov 2026, before the potentials: the OCR's and the
 Photo Dictionary's text copied to the clipboard as soon as it is read) — not started; **the owner: later** ("will come back
 to do later", 27 Nov 2026) — do not start it until the owner says so.
 **Batch 1 done; batch 2 (#18 OCR + Photo Dictionary) DONE** (todo.md Done #18; CLAUDE.md §3 OCR, "Documents — one reading

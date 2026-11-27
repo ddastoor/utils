@@ -29,9 +29,18 @@
  *  - the page drawn in colour at the photo's own resolution (bicubic), not grey and thresholded.
  */
 
-#define FB_F 1.2        /* the camera's focal length, in half the photo's longer side (page-dewarp's) */
+#ifndef FB_F
+#define FB_F 1.45       /* the camera's focal length when the photo does not say, in half the photo's longer side: a phone's main
+                           camera (about 26 mm as on 35 mm film: 1.50 on a 4 : 3 photo) and a webcam (about 78° across its
+                           diagonal: 1.42 at 16 : 9). page-dewarp's 1.2 is a wide-angle lens's: with it the flat pages came out
+                           up to 4 % too narrow for their height (docs/WASM-AUDIT.md 179) */
+#endif
+static double fb_focal = FB_F; /* the focal length in use (set by each entry point: the fit's own, or a page record's) */
+/* the gutter of a spread while its pages are fitted: a = ga + gb·b in the working picture's text axes (a = x·dx + y·dy along
+   the lines, b = x·ex + y·ey down); fb_gut_on 0 for one page */
+static double fb_gut[6]; static int fb_gut_on;
 #define FB_LETTER 7.0   /* the letter height (px) the working picture is made for: page-dewarp's sizes suit it */
-#define FB_REC 24       /* floats per page in p_book_fit's answer */
+#define FB_REC 26       /* floats per page in p_book_fit's answer */
 #ifndef FB_SLOPE
 #define FB_SLOPE 0.5    /* the cubic's end slopes are held within ±FB_SLOPE (page-dewarp: 0.5) */
 #endif
@@ -146,8 +155,50 @@ static inline void fb_proj(const double *R, const double *t, double a, double b,
     double Z = (((a + b) * X + (-2 * a - b)) * X + a) * X;
     double xc = R[0] * X + R[1] * Y + R[2] * Z + t[0], yc = R[3] * X + R[4] * Y + R[5] * Z + t[1], zc = R[6] * X + R[7] * Y + R[8] * Z + t[2];
     if (fabs(zc) < 1e-12) zc = zc < 0 ? -1e-12 : 1e-12;
-    *u = FB_F * xc / zc; *v = FB_F * yc / zc;
+    *u = fb_focal * xc / zc; *v = fb_focal * yc / zc;
 }
+/* the paper's slope dz/dX at X (the end slopes held as fb_proj holds them) */
+static inline double fb_slope(double a, double b, double X) {
+    a = a < -FB_SLOPE ? -FB_SLOPE : a > FB_SLOPE ? FB_SLOPE : a; b = b < -FB_SLOPE ? -FB_SLOPE : b > FB_SLOPE ? FB_SLOPE : b;
+    return (3 * (a + b) * X + 2 * (-2 * a - b)) * X + a;
+}
+/* Lengths along the paper. The model's X runs straight across under the curved sheet; a flat page is the sheet unrolled,
+   so the page is drawn by the length along the paper, S(X) = ∫ √(1 + z′²) dX — where the paper rises steeply to the spine,
+   a step of X holds more of the page (drawn by X, the words nearest the spine came out squeezed and every page about 2 %
+   too narrow for its height). A table of S over X0 … X1 (Gauss–Legendre, 4 points a step) and its inverse. */
+#define FB_ARC 256
+typedef struct { double X0, X1, s[FB_ARC + 1]; } fb_arc_t;
+static void fb_arc_table(double a, double b, double X0, double X1, fb_arc_t *T) {
+    static const double gx[4] = { -0.8611363115940526, -0.3399810435848563, 0.3399810435848563, 0.8611363115940526 };
+    static const double gw[4] = { 0.3478548451374538, 0.6521451548625461, 0.6521451548625461, 0.3478548451374538 };
+    T->X0 = X0; T->X1 = X1;
+    /* S(X0) from 0 to X0 (16 steps), then step by step to X1: S is the length from the model's X = 0 */
+    double s0 = 0, h0 = X0 / 16;
+    for (int i = 0; i < 16; i++) { double c = (i + 0.5) * h0; for (int k = 0; k < 4; k++) { double z = fb_slope(a, b, c + gx[k] * h0 / 2); s0 += gw[k] * sqrt(1 + z * z) * h0 / 2; } }
+    T->s[0] = s0; double h = (X1 - X0) / FB_ARC;
+    for (int i = 0; i < FB_ARC; i++) {
+        double c = X0 + (i + 0.5) * h, d = 0;
+        for (int k = 0; k < 4; k++) { double z = fb_slope(a, b, c + gx[k] * h / 2); d += gw[k] * sqrt(1 + z * z); }
+        T->s[i + 1] = T->s[i] + d * h / 2;
+    }
+}
+/* the length along the paper at X (inside X0 … X1 from the table; outside it, by the slope at the end) */
+static double fb_arc_s(const fb_arc_t *T, double a, double b, double X) {
+    double f = (X - T->X0) / (T->X1 - T->X0) * FB_ARC;
+    if (f <= 0) { double z = fb_slope(a, b, T->X0); return T->s[0] + (X - T->X0) * sqrt(1 + z * z); }
+    if (f >= FB_ARC) { double z = fb_slope(a, b, T->X1); return T->s[FB_ARC] + (X - T->X1) * sqrt(1 + z * z); }
+    int i = (int)f; return T->s[i] + (f - i) * (T->s[i + 1] - T->s[i]);
+}
+/* the X at which the length along the paper is S */
+static double fb_arc_x(const fb_arc_t *T, double a, double b, double S) {
+    if (S <= T->s[0]) { double z = fb_slope(a, b, T->X0); return T->X0 + (S - T->s[0]) / sqrt(1 + z * z); }
+    if (S >= T->s[FB_ARC]) { double z = fb_slope(a, b, T->X1); return T->X1 + (S - T->s[FB_ARC]) / sqrt(1 + z * z); }
+    int lo = 0, hi = FB_ARC;
+    while (hi - lo > 1) { int mid = (lo + hi) / 2; if (T->s[mid] <= S) lo = mid; else hi = mid; }
+    double d = T->s[hi] - T->s[lo];
+    return T->X0 + (T->X1 - T->X0) * (lo + (d > 0 ? (S - T->s[lo]) / d : 0)) / FB_ARC;
+}
+
 /* solve the n × n system A x = b (A symmetric positive definite, overwritten) by Cholesky; returns 0 when A is not */
 static int fb_chol(double *A, double *b, int n) {
     for (int j = 0; j < n; j++) {
@@ -180,7 +231,7 @@ static int fb_homography(const double *src, const double *dst, double *H) {
    plane to the camera's normalised rays, taken apart into R (made orthonormal) and t (in front of the camera) */
 static int fb_plane_pose(double W, double Hh, const double *img, double *rvec, double *t) {
     double src[8] = { 0, 0, W, 0, W, Hh, 0, Hh }, dst[8], H[9];
-    for (int i = 0; i < 8; i++) dst[i] = img[i] / FB_F;
+    for (int i = 0; i < 8; i++) dst[i] = img[i] / fb_focal;
     if (!fb_homography(src, dst, H)) return 0;
     double c1[3] = { H[0], H[3], H[6] }, c2[3] = { H[1], H[4], H[7] }, c3[3] = { H[2], H[5], H[8] };
     double n1 = sqrt(c1[0] * c1[0] + c1[1] * c1[1] + c1[2] * c1[2]), n2 = sqrt(c2[0] * c2[0] + c2[1] * c2[1] + c2[2] * c2[2]), lam = (n1 + n2) / 2;
@@ -322,12 +373,78 @@ static double fb_lm(double *p, int ns, int np, const int *spanOf, const uint8_t 
 }
 static int fb_cmpd(const void *a, const void *b) { double x = *(const double *)a, y = *(const double *)b; return (x > y) - (x < y); }
 
+/* the working picture's grey at a point of the model (bilinear); −1 outside the picture */
+static double fb_grey_at(const uint8_t *g, int w, int h, const double *R, const double *t, double a, double b, double X, double Y) {
+    double u, v; fb_proj(R, t, a, b, X, Y, &u, &v);
+    double half = (w > h ? w : h) / 2.0, x = u * half + w / 2.0 - 0.5, y = v * half + h / 2.0 - 0.5;
+    if (!(x >= 0 && y >= 0 && x <= w - 1 && y <= h - 1)) return -1;
+    int ix = (int)x, iy = (int)y; if (ix > w - 2) ix = w - 2; if (iy > h - 2) iy = h - 2; if (ix < 0) ix = 0; if (iy < 0) iy = 0;
+    double fx = x - ix, fy = y - iy; const uint8_t *r0 = g + (size_t)iy * w + ix, *r1 = r0 + w;
+    return (1 - fy) * ((1 - fx) * r0[0] + fx * r0[1]) + fy * ((1 - fx) * r1[0] + fx * r1[1]);
+}
+/* How far the paper goes beyond the text on one side (0 left, 1 right, 2 top, 3 bottom), in model units: nine lines out
+   from the text's edge, a step a quarter of a line spacing; at each step the light end of the nine. The paper ends where that
+   falls below the paper's own grey near this edge by `T`, two steps running (the table round the book, the gutter's shadow,
+   the photo's edge). The paper's grey near the edge: the light end (80th percentile) of the text's own area along this
+   side, up to two line spacings in — between the letters —, raised by the lightest step seen on the way out. Measured from
+   the paper beside the edge, not from the page's paper as a whole: a table only a little darker than the paper is found
+   (a fixed threshold under the page's paper missed a light grey table: the outer margins took in 4 – 5 % of the page's
+   width of it), and so is a margin that the page's curl hides from the camera (a thick book's outer edge, turned away:
+   the walk out began on the table). At most `most`. */
+static double fb_paper_side(const uint8_t *g, int w, int h, const double *R, const double *t, double a, double b, const double *box, int side, double T, double pitch, double start, double step, double most) {
+    double X0 = box[0], Y0 = box[1], X1 = box[2], Y1 = box[3], last = start, in[36], ref; int miss = 0, ni = 0;
+    for (int k = 0; k < 9; k++) for (int q = 0; q < 4; q++) {
+        double f = (k + 1) / 10.0, dd = (q + 1) * 0.5 * pitch, X, Y;
+        if (side == 0) { X = X0 + dd; Y = Y0 + (Y1 - Y0) * f; } else if (side == 1) { X = X1 - dd; Y = Y0 + (Y1 - Y0) * f; }
+        else if (side == 2) { X = X0 + (X1 - X0) * f; Y = Y0 + dd; } else { X = X0 + (X1 - X0) * f; Y = Y1 - dd; }
+        double gv = fb_grey_at(g, w, h, R, t, a, b, X, Y); if (gv >= 0) in[ni++] = gv;
+    }
+    if (!ni) return start;
+    qsort(in, ni, sizeof(double), fb_cmpd); ref = in[(int)(0.8 * (ni - 1))];
+    for (double d = start; d <= most + 1e-12; d += step) {
+        double v[9];
+        for (int k = 0; k < 9; k++) {
+            double f = (k + 1) / 10.0, X, Y;
+            if (side == 0) { X = X0 - d; Y = Y0 + (Y1 - Y0) * f; } else if (side == 1) { X = X1 + d; Y = Y0 + (Y1 - Y0) * f; }
+            else if (side == 2) { X = X0 + (X1 - X0) * f; Y = Y0 - d; } else { X = X0 + (X1 - X0) * f; Y = Y1 + d; }
+            double gv = fb_grey_at(g, w, h, R, t, a, b, X, Y); v[k] = gv < 0 ? 0 : gv; /* outside the photo: no paper */
+        }
+        for (int i = 1; i < 9; i++) { double x = v[i]; int j = i - 1; while (j >= 0 && v[j] > x) { v[j + 1] = v[j]; j--; } v[j + 1] = x; }
+        /* the light end of the nine (the 7th): a row of text, a running head, the gutter's shadow over part of the edge keep
+           paper among them; the table or the photo's edge takes all of them */
+        if (v[6] < ref - T) { if (++miss == 2) return last; }
+        else { miss = 0; last = d; if (v[6] > ref) ref = v[6]; }
+    }
+    return most;
+}
+
+/* How far a page of a spread goes beyond its text towards the gutter (side 0: left, 1: right), in model units: out along
+   the model until the middle of nine lines out crosses the gutter found between the two pages' text — the spine. The
+   words nearest the spine stand on the steepest curl and seldom join a line of the fit, so the text's own edge falls
+   short of them, and the gutter's shadow is no paper's edge (the walk for the paper stopped in it and cut those words:
+   a soft video frame read 98 → 89 % of its words). At most `most`. */
+static double fb_gutter_side(const double *R, const double *t, double a, double b, const double *box, int side, int w, int h, double start, double step, double most) {
+    double X0 = box[0], Y0 = box[1], X1 = box[2], Y1 = box[3], last = start, half = (w > h ? w : h) / 2.0;
+    for (double d = start; d <= most + 1e-12; d += step) {
+        int beyond = 0;
+        for (int k = 0; k < 9; k++) {
+            double f = (k + 1) / 10.0, X = side == 0 ? X0 - d : X1 + d, Y = Y0 + (Y1 - Y0) * f, u, v;
+            fb_proj(R, t, a, b, X, Y, &u, &v);
+            double x = u * half + w / 2.0 - 0.5, y = v * half + h / 2.0 - 0.5;
+            double A = x * fb_gut[2] + y * fb_gut[3], B = x * fb_gut[4] + y * fb_gut[5], G = fb_gut[0] + fb_gut[1] * B;
+            if (side == 0 ? A < G : A > G) beyond++;
+        }
+        if (beyond >= 5) return last;
+        last = d;
+    }
+    return most;
+}
+
 /*
- * Fit the model to one page's spans (indices which[0..ns)). Samples pu, pv (normalised). cu, cv (normalised): the ends of
- * word blobs in no line (a page number, a running head) — those just above or below the text, within its width, are on
- * the page too. Writes the page record (FB_REC floats) and returns 1, or 0 when it cannot (fewer than 2 lines).
+ * Fit the model to one page's spans (indices which[0..ns)). Samples pu, pv (normalised); g (w × h) the working picture,
+ * for the paper's edges. Writes the page record (FB_REC floats) and returns 1, or 0 when it cannot (fewer than 2 lines).
  */
-static int fb_fit_page(const double *pu, const double *pv, const fb_span *sp, const int *which, int ns, double px2norm, int side, const double *cu, const double *cv, int ncand, float *rec) {
+static int fb_fit_page1(const double *pu, const double *pv, const fb_span *sp, const int *which, int ns, double px2norm, int side, const uint8_t *g, int w, int h, float *rec, double *spanRms) {
     if (ns < 2) return 0;
     int ns0 = 0; for (int q = 0; q < ns; q++) ns0 += sp[which[q]].n;
     if (ns0 < 6) return 0;
@@ -358,6 +475,12 @@ static int fb_fit_page(const double *pu, const double *pv, const fb_span *sp, co
        justified text; indented first lines, short last lines and headings are left free */
     int it1 = 0, it2 = 0; double c0;
     double cf1 = fb_lm(p, ns, np, spanOf, marg, du, dv, cn[0], cn[1], &it1, &c0);
+    if (spanRms) { /* each line's error after the first pass (px of the working picture) */
+        double R_[9]; fb_rodrigues(p, R_); double *acc = calloc(ns, sizeof(double)); int *cnt = calloc(ns, sizeof(int));
+        for (int k = 0; k < np; k++) { double uu, vv; fb_proj(R_, p + 3, p[6], p[7], p[m + k], p[FB_G + spanOf[k]], &uu, &vv); acc[spanOf[k]] += (uu - du[k]) * (uu - du[k]) + (vv - dv[k]) * (vv - dv[k]); cnt[spanOf[k]]++; }
+        for (int q = 0; q < ns; q++) spanRms[q] = cnt[q] ? sqrt(acc[q] / cnt[q]) / px2norm : 0;
+        free(acc); free(cnt);
+    }
     double *ys = malloc(sizeof(double) * ns), *st = malloc(sizeof(double) * ns), *en = malloc(sizeof(double) * ns);
     for (int q = 0; q < ns; q++) ys[q] = p[FB_G + q];
     qsort(ys, ns, sizeof(double), fb_cmpd);
@@ -375,8 +498,9 @@ static int fb_fit_page(const double *pu, const double *pv, const fb_span *sp, co
         for (int i = 0; i < ns; i++) { int c = 0; double sum = 0; for (int j = i; j < ns && ss[j] - ss[i] <= 0.6 * pitch; j++) { c++; sum += ss[j]; } if (c > bestL) { bestL = c; XL = sum / c; } }
         for (int i = 0; i < ns; i++) { int c = 0; double sum = 0; for (int j = i; j < ns && ee[j] - ee[i] <= 0.6 * pitch; j++) { c++; sum += ee[j]; } if (c > bestR) { bestR = c; XR = sum / c; } }
         /* a margin only when a good share of the lines meet it, and when it is at the text's own edge */
-        if (bestL >= 3 && bestL >= ns / 3 && XL <= ss[0] + 1.5 * pitch) { p[8] = XL; for (int q = 0; q < ns; q++) if (fabs(st[q] - XL) < 0.4 * pitch) { marg[ns0 + 2 * q] = 1; nl++; } }
-        if (bestR >= 3 && bestR >= ns / 3 && XR >= ee[ns - 1] - 1.5 * pitch) { p[9] = XR; for (int q = 0; q < ns; q++) if (fabs(en[q] - XR) < 0.4 * pitch) { marg[ns0 + 2 * q + 1] = 2; nr++; } }
+        /* (the text's edge: the tenth start from the left — not the first, which may be a stray piece) */
+        if (bestL >= 3 && bestL >= ns / 3 && XL <= ss[ns / 10] + 1.5 * pitch) { p[8] = XL; for (int q = 0; q < ns; q++) if (fabs(st[q] - XL) < 0.4 * pitch) { marg[ns0 + 2 * q] = 1; nl++; } }
+        if (bestR >= 3 && bestR >= ns / 3 && XR >= ee[ns - 1 - ns / 10] - 1.5 * pitch) { p[9] = XR; for (int q = 0; q < ns; q++) if (fabs(en[q] - XR) < 0.4 * pitch) { marg[ns0 + 2 * q + 1] = 2; nr++; } }
         free(ss); free(ee);
     }
     double cost = cf1; int it = it1;
@@ -386,43 +510,73 @@ static int fb_fit_page(const double *pu, const double *pv, const fb_span *sp, co
     for (int k = 0; k < np; k++) { if (p[m + k] < X0) X0 = p[m + k]; if (p[m + k] > X1) X1 = p[m + k]; }
     for (int q = 0; q < ns; q++) { if (p[FB_G + q] < Y0) Y0 = p[FB_G + q]; if (p[FB_G + q] > Y1) Y1 = p[FB_G + q]; }
     {
-        /* a page number or a running head: unprojected from the nearest sample's place, kept when it lies within the text's
-           width and at most 5 lines above or below it */
-        double R_[9]; fb_rodrigues(p, R_); double tX0 = X0, tX1 = X1, tY0 = Y0, tY1 = Y1;
-        for (int c = 0; c < ncand; c++) {
-            int best = 0; double bd = 1e18;
-            for (int k = 0; k < np; k++) { double d = (du[k] - cu[c]) * (du[k] - cu[c]) + (dv[k] - cv[c]) * (dv[k] - cv[c]); if (d < bd) { bd = d; best = k; } }
-            double X = p[m + best], Y = p[FB_G + spanOf[best]];
-            if (!fb_unproject(R_, p + 3, p[6], p[7], cu[c], cv[c], &X, &Y)) continue;
-            if (X < tX0 - pitch || X > tX1 + pitch || Y < tY0 - 5 * pitch || Y > tY1 + 5 * pitch) continue;
-            if (X < X0) X0 = X; if (X > X1) X1 = X; if (Y < Y0) Y0 = Y; if (Y > Y1) Y1 = Y;
-        }
+        /* the paper round the text: out from each edge until the photo turns darker than the paper (the table, the gutter's
+           shadow, the photo's edge); a running head and a page number lie on the paper and come with it. The paper's grey:
+           the light end of the text's own area (between the letters). Above and below, the march starts clear of the first
+           and last line's letters; at most six lines above and below, a quarter of the text's width at the sides. */
+        double R_[9]; fb_rodrigues(p, R_); double box[4] = { X0, Y0, X1, Y1 };
+        double *gs = malloc(sizeof(double) * 24 * 24); int ngs = 0;
+        for (int j = 0; j < 24; j++) for (int i = 0; i < 24; i++) { double v = fb_grey_at(g, w, h, R_, p + 3, p[6], p[7], X0 + (X1 - X0) * (i + 0.5) / 24, Y0 + (Y1 - Y0) * (j + 0.5) / 24); if (v >= 0) gs[ngs++] = v; }
+        qsort(gs, ngs, sizeof(double), fb_cmpd);
+        double paper = ngs ? gs[(int)(0.8 * (ngs - 1))] : 255; free(gs);
+        double T = fmax(10, 0.06 * paper), stp = pitch / 4, wd = X1 - X0;
+        double l = fb_paper_side(g, w, h, R_, p + 3, p[6], p[7], box, 0, T, pitch, 0.3 * pitch, stp, 0.25 * wd);
+        double r = fb_paper_side(g, w, h, R_, p + 3, p[6], p[7], box, 1, T, pitch, 0.3 * pitch, stp, 0.25 * wd);
+        /* a page of a spread reaches the gutter on its inner side (the left page's right, the right page's left) */
+        if (fb_gut_on && side == 1) r = fb_gutter_side(R_, p + 3, p[6], p[7], box, 1, w, h, 0.3 * pitch, stp, 0.25 * wd);
+        if (fb_gut_on && side == 2) l = fb_gutter_side(R_, p + 3, p[6], p[7], box, 0, w, h, 0.3 * pitch, stp, 0.25 * wd);
+        double tp = fb_paper_side(g, w, h, R_, p + 3, p[6], p[7], box, 2, T, pitch, 0.6 * pitch, stp, 6 * pitch);
+        double bt = fb_paper_side(g, w, h, R_, p + 3, p[6], p[7], box, 3, T, pitch, 0.6 * pitch, stp, 6 * pitch);
+        /* at least half a line spacing round the text */
+        X0 -= fmax(l, 0.5 * pitch); X1 += fmax(r, 0.5 * pitch); Y0 -= fmax(tp, 0.8 * pitch); Y1 += fmax(bt, 0.8 * pitch);
+        rec[23] = (float)paper;
     }
-    double mx = fmax(1.5 * pitch, 0.05 * (X1 - X0)), my = fmax(1.5 * pitch, 0.04 * (Y1 - Y0));
-    X0 -= mx; X1 += mx; Y0 -= my; Y1 += my;
-    /* the photo's scale at the middle of the text (the larger of the two directions: nothing is lost) */
+    /* the photo's scale at the middle of the text, per unit along the paper (the larger of the two directions: nothing is
+       lost) */
     double R_[9]; fb_rodrigues(p, R_); double xc = (X0 + X1) / 2, yc = (Y0 + Y1) / 2, e = 0.01 * (X1 - X0), u0, v0, u1, v1, u2, v2;
-    fb_proj(R_, p + 3, p[6], p[7], xc, yc, &u0, &v0); fb_proj(R_, p + 3, p[6], p[7], xc + e, yc, &u1, &v1); fb_proj(R_, p + 3, p[6], p[7], xc, yc + e, &u2, &v2);
-    double ppu = fmax(hypot(u1 - u0, v1 - v0), hypot(u2 - u0, v2 - v0)) / e; /* normalised units per model unit */
+    double zc = fb_slope(p[6], p[7], xc), eX = e / sqrt(1 + zc * zc);
+    fb_proj(R_, p + 3, p[6], p[7], xc, yc, &u0, &v0); fb_proj(R_, p + 3, p[6], p[7], xc + eX, yc, &u1, &v1); fb_proj(R_, p + 3, p[6], p[7], xc, yc + e, &u2, &v2);
+    double ppu = fmax(hypot(u1 - u0, v1 - v0), hypot(u2 - u0, v2 - v0)) / e; /* normalised units per unit of the page */
+    /* the flat page: across, the length along the paper (S); down, Y */
+    fb_arc_t *T = malloc(sizeof(fb_arc_t)); fb_arc_table(p[6], p[7], X0, X1, T); double S0 = T->s[0], S1 = T->s[FB_ARC]; free(T);
     for (int i = 0; i < 8; i++) rec[i] = (float)p[i];
-    rec[8] = (float)X0; rec[9] = (float)Y0; rec[10] = (float)X1; rec[11] = (float)Y1; rec[12] = (float)FB_F; rec[13] = (float)ppu;
+    rec[8] = (float)S0; rec[9] = (float)Y0; rec[10] = (float)S1; rec[11] = (float)Y1; rec[12] = (float)fb_focal; rec[13] = (float)ppu;
+    rec[24] = (float)X0; rec[25] = (float)X1;
     rec[14] = (float)(sqrt(cost / (np + 1)) / px2norm); rec[15] = (float)ns; rec[16] = (float)ns0; rec[17] = (float)it; rec[18] = (float)side;
-    rec[19] = (float)(sqrt(c0 / (np + 1)) / px2norm); rec[20] = (float)pitch; rec[21] = (float)nl; rec[22] = (float)nr; rec[23] = 0;
+    rec[19] = (float)(sqrt(c0 / (np + 1)) / px2norm); rec[20] = (float)pitch; rec[21] = (float)nl; rec[22] = (float)nr;
     free(p); free(spanOf); free(marg); free(du); free(dv); free(ys); free(st); free(en); free(gaps);
     return 1;
 }
 
+/* Fit a page; then the lines the fit cannot follow (a streak of the table's grain or of a picture taken for a line: its
+   error more than four times the lines' median, and above 2.5 px) are left out and the page fitted again. */
+static int fb_fit_page(const double *pu, const double *pv, const fb_span *sp, const int *which, int ns, double px2norm, int side, const uint8_t *g, int w, int h, float *rec) {
+    double *sr = malloc(sizeof(double) * (ns + 1));
+    int ok = fb_fit_page1(pu, pv, sp, which, ns, px2norm, side, g, w, h, rec, sr);
+    if (ok && ns >= 4) {
+        double *srt = malloc(sizeof(double) * ns); memcpy(srt, sr, sizeof(double) * ns); qsort(srt, ns, sizeof(double), fb_cmpd);
+        double lim = fmax(2.5, 4 * srt[ns / 2]); free(srt);
+        int *keep = malloc(sizeof(int) * ns), nk = 0; for (int q = 0; q < ns; q++) if (sr[q] <= lim) keep[nk++] = which[q];
+        if (nk < ns && nk >= 2) fb_fit_page1(pu, pv, sp, keep, nk, px2norm, side, g, w, h, rec, NULL); /* on failure rec keeps the first fit */
+        free(keep);
+    }
+    free(sr);
+    return ok;
+}
+
 /*
  * The pages of a photo (RGBA, w × h; any size — it is made the size its letters need). mode: 0 find out, 1 one page,
- * 2 two pages. out (cap floats, at least 8 + 2 × FB_REC): [0] pages found (0, 1 or 2), [1..4] the gutter (x, y at the
+ * 2 two pages. focal: the camera's focal length in half the photo's longer side (from the photo's EXIF), 0: FB_F. out (cap floats, at least 8 + 2 × FB_REC): [0] pages found (0, 1 or 2), [1..4] the gutter (x, y at the
  * top and at the bottom, in this picture's pixels) when two, [5] spans, [6] blobs, [7] the working scale, then a record
- * of FB_REC floats per page: rvec[3], tvec[3], α, β, X0, Y0, X1, Y1 (the flat page in model units), focal length, the
- * photo's scale at the text (normalised units per model unit: × half a photo's longer side = its pixels per unit), rms of
- * the fit (px of the working picture), spans, samples, iterations, side (0 the whole picture, 1 left, 2 right), rms before
- * the fit, line spacing (units).
+ * of FB_REC floats per page: rvec[3], tvec[3], α, β, S0, Y0, S1, Y1 (the flat page: S along the paper, Y down it, in model
+ * units), focal length, the photo's scale at the text (normalised units per unit of the page: × half a photo's longer side
+ * = its pixels per unit), rms of the fit (px of the working picture), spans, samples, iterations, side (0 the whole
+ * picture, 1 left, 2 right), rms before the fit, line spacing (units), lines at the left and right margins, the paper's
+ * grey, X0 and X1 (the page's ends across, in the model's X).
  */
-API int p_book_fit(const uint8_t *rgba, int w0, int h0, int mode, float *out, int cap) {
+API int p_book_fit(const uint8_t *rgba, int w0, int h0, int mode, float focal, float *out, int cap) {
     for (int i = 0; i < cap; i++) out[i] = 0;
+    fb_focal = focal > 0.2f && focal < 20 ? focal : FB_F;
     if (cap < 8 + 2 * FB_REC || w0 < 16 || h0 < 16) return 0;
     uint8_t *g0 = fb_grey(rgba, w0 * h0);
     /* the working size: letters about FB_LETTER px tall (never larger than the picture; at least 320 px across) */
@@ -436,7 +590,7 @@ API int p_book_fit(const uint8_t *rgba, int w0, int h0, int mode, float *out, in
     fb_ink(g, w, h, 55, 25, m); fb_morph(m, w, h, 9, 0, 1); fb_morph(m, w, h, 3, 1, 0);
     int32_t *pix = malloc(sizeof(int32_t) * (size_t)w * h); int capc = 100000; cm_comp *cs = malloc(sizeof(cm_comp) * capc);
     int nc = cm_label(m, w, h, pix, cs, capc);
-    fb_blob *bl = malloc(sizeof(fb_blob) * (nc + 1)); int nb = 0;
+    fb_blob *bl = malloc(sizeof(fb_blob) * (nc + 1)); int nb = 0; double *darkness = malloc(sizeof(double) * (nc + 1)), dark = -1;
     int *colc = malloc(sizeof(int) * (w + 1));
     for (int i = 0; i < nc; i++) {
         const cm_comp *c = &cs[i]; int bw = c->x1 - c->x0 + 1, bh = c->y1 - c->y0 + 1;
@@ -445,6 +599,34 @@ API int p_book_fit(const uint8_t *rgba, int w0, int h0, int mode, float *out, in
         memset(colc, 0, sizeof(int) * bw); int thick = 0;
         for (int j = 0; j < c->n; j++) { int x = pix[c->off + j] % w - c->x0; if (++colc[x] > thick) thick = colc[x]; }
         if (thick > 10) continue;
+        /* the paper's edge is no line of text: along a step from the table to the paper the adaptive threshold marks a thin
+           strip that passes every test above (seen: "lines" along a page's top and bottom edges, and the page drawn with a
+           strip of the table). A line of text has paper above and below it; an edge has the table on one side: the light
+           end (the 75th percentile, between the letters of a neighbouring line) of the grey 3 px above and 3 px below the
+           blob, column by column — apart by more than 30 and a sixth of the lighter. */
+        {
+            int *top = malloc(sizeof(int) * bw), *bot = malloc(sizeof(int) * bw); double *va = malloc(sizeof(double) * bw), *vb = malloc(sizeof(double) * bw); int na = 0, edge = 0; dark = -1;
+            for (int x = 0; x < bw; x++) { top[x] = h; bot[x] = -1; }
+            for (int j = 0; j < c->n; j++) { int q = pix[c->off + j], x = q % w - c->x0, y = q / w; if (y < top[x]) top[x] = y; if (y > bot[x]) bot[x] = y; }
+            for (int x = 0; x < bw; x++) {
+                int ya = top[x] - 3, yb = bot[x] + 3; if (bot[x] < 0 || ya < 0 || yb >= h) continue;
+                va[na] = g[(size_t)ya * w + c->x0 + x]; vb[na] = g[(size_t)yb * w + c->x0 + x]; na++;
+            }
+            if (na >= 8) {
+                qsort(va, na, sizeof(double), fb_cmpd); qsort(vb, na, sizeof(double), fb_cmpd);
+                double A = va[(int)(0.75 * (na - 1))], Bv = vb[(int)(0.75 * (na - 1))], hi = fmax(A, Bv), lo = fmin(A, Bv);
+                edge = hi - lo > 30 && lo < hi * 5 / 6;
+                /* how dark it is against the paper round it: its darkest tenth over the lighter side's grey (judged after
+                   all blobs are in: below) */
+                if (!edge) {
+                    int hist[256] = { 0 }; for (int j = 0; j < c->n; j++) hist[g[pix[c->off + j]]]++;
+                    int want = c->n / 10, acc = 0, ink = 0; while (ink < 255 && (acc += hist[ink]) <= want) ink++;
+                    dark = hi > 0 ? ink / hi : -1;
+                }
+            }
+            free(top); free(bot); free(va); free(vb);
+            if (edge) continue;
+        }
         double sx = 0, sy = 0; for (int j = 0; j < c->n; j++) { int q = pix[c->off + j]; sx += q % w; sy += q / w; }
         double cx = sx / c->n, cy = sy / c->n, a = 0, b = 0, cc = 0;
         for (int j = 0; j < c->n; j++) { int q = pix[c->off + j]; double x = q % w - cx, y = q / w - cy; a += x * x; b += x * y; cc += y * y; }
@@ -452,7 +634,23 @@ API int p_book_fit(const uint8_t *rgba, int w0, int h0, int mode, float *out, in
         double l0 = 1e9, l1 = -1e9;
         for (int j = 0; j < c->n; j++) { int q = pix[c->off + j]; double v = (q % w - cx) * tx + (q / w - cy) * ty; if (v < l0) l0 = v; if (v > l1) l1 = v; }
         fb_blob B = { c->x0, c->y0, c->x1, c->y1, c->off, c->n, cx, cy, tx, ty, atan2(ty, tx), l0, l1, cx + tx * l0, cy + ty * l0, cx + tx * l1, cy + ty * l1, -1, -1, 0 };
-        bl[nb++] = B;
+        darkness[nb] = dark; bl[nb++] = B;
+    }
+    /* A speck of the table's grain chained to the line beside it took the page into the table. Print is far darker than
+       the paper round it, a table's grain a few levels darker than the table: its darkest tenth at 82 – 94 % of the grey
+       round it, the words of a photo within 0.14 of their median (a sharp still's at 0.32 – 0.55, a soft video frame's at
+       0.6 – 0.75; measured on the photos of make-book-photos.py). So a blob darker than the photo's words by less than
+       0.2 is left out — never below 0.75 (the words of a soft photo, the gutter's shadow over them) nor above 0.9. */
+    {
+        double *dv = malloc(sizeof(double) * (nb + 1)); int nd = 0;
+        for (int i = 0; i < nb; i++) if (darkness[i] >= 0) dv[nd++] = darkness[i];
+        if (nd >= 8) {
+            qsort(dv, nd, sizeof(double), fb_cmpd);
+            double lim = fmin(0.9, fmax(0.75, dv[nd / 2] + 0.2)); int keep = 0;
+            for (int i = 0; i < nb; i++) if (!(darkness[i] > lim)) bl[keep++] = bl[i];
+            nb = keep;
+        }
+        free(dv);
     }
     out[6] = (float)nb;
     /* the text's direction: the blobs' (pointing right), weighted by their length; a along it, b down */
@@ -519,6 +717,7 @@ API int p_book_fit(const uint8_t *rgba, int w0, int h0, int mode, float *out, in
             if (mode == 2 && !two && left > 0 && right > 0) two = 1;
         }
     }
+    fb_gut_on = two; fb_gut[0] = ga; fb_gut[1] = gb; fb_gut[2] = dx; fb_gut[3] = dy; fb_gut[4] = ex; fb_gut[5] = ey;
     if (two) {
         for (int i = 0; i < nb; i++) side[i] = (A0[i] + A1[i]) / 2 < ga + gb * Bm[i] ? 1 : 2;
         double half0 = (w0 > h0 ? w0 : h0) / 2.0, half = (w > h ? w : h) / 2.0; /* the gutter in the given picture's pixels, at the text's top and bottom */
@@ -599,18 +798,12 @@ API int p_book_fit(const uint8_t *rgba, int w0, int h0, int mode, float *out, in
         } else npts = first;
     }
     out[5] = (float)nsp;
-    /* the blobs in no line kept (a page number, a running head …): their ends, for the pages' extents */
-    int ncand = 0; double *cu = malloc(sizeof(double) * 2 * (nb + 1)), *cv = malloc(sizeof(double) * 2 * (nb + 1));
-    for (int i = 0; i < nb; i++) if (!inspan[i] && side[i] >= 0) {
-        cu[ncand] = (bl[i].p0x + 0.5 - w / 2.0) / half; cv[ncand++] = (bl[i].p0y + 0.5 - h / 2.0) / half;
-        cu[ncand] = (bl[i].p1x + 0.5 - w / 2.0) / half; cv[ncand++] = (bl[i].p1y + 0.5 - h / 2.0) / half;
-    }
     int pages = 0;
     {
         int *which = malloc(sizeof(int) * (nsp + 1));
         for (int pg = two ? 1 : 0; pg <= (two ? 2 : 0); pg++) {
             int nw = 0; for (int q = 0; q < nsp; q++) if (sp[q].page == pg) which[nw++] = q;
-            if (fb_fit_page(pu, pv, sp, which, nw, 1.0 / half, pg, cu, cv, ncand, out + 8 + FB_REC * pages)) pages++;
+            if (fb_fit_page(pu, pv, sp, which, nw, 1.0 / half, pg, g, w, h, out + 8 + FB_REC * pages)) pages++;
         }
         free(which);
     }
@@ -619,7 +812,7 @@ API int p_book_fit(const uint8_t *rgba, int w0, int h0, int mode, float *out, in
     free(fb_dbg); fb_dbg = malloc(sizeof(float) * 4 * (npts + 1)); fb_ndbg = 0;
     for (int q = 0; q < nsp; q++) for (int i = 0; i < sp[q].n; i++) { float *d = fb_dbg + 4 * fb_ndbg++; d[0] = (float)pu[sp[q].first + i]; d[1] = (float)pv[sp[q].first + i]; d[2] = (float)q; d[3] = (float)sp[q].page; }
     if (g != g0) free(g);
-    free(g0); free(m); free(pix); free(cs); free(bl); free(colc); free(ed); free(pu); free(pv); free(sp); free(csum); free(inspan); free(chain); free(cu); free(cv); free(A0); free(A1); free(Bm); free(Ln); free(side);
+    free(g0); free(m); free(pix); free(cs); free(bl); free(darkness); free(colc); free(ed); free(pu); free(pv); free(sp); free(csum); free(inspan); free(chain); free(A0); free(A1); free(Bm); free(Ln); free(side);
     return pages;
 }
 
@@ -634,13 +827,17 @@ static inline void fb_cubw(double t, double *wgt) {
  * the photo sampled bicubically. What falls outside the photo is fill (0xAABBGGRR).
  */
 API void p_book_render(const uint8_t *src, int sw, int sh, const float *rec, uint8_t *dst, int dw, int dh, uint32_t fill) {
+    fb_focal = rec[12] > 0.2f && rec[12] < 20 ? rec[12] : FB_F;
     double R[9], r[3] = { rec[0], rec[1], rec[2] }, t[3] = { rec[3], rec[4], rec[5] }, a = rec[6], b = rec[7];
     fb_rodrigues(r, R);
-    double X0 = rec[8], Y0 = rec[9], X1 = rec[10], Y1 = rec[11], half = (sw > sh ? sw : sh) / 2.0;
+    double S0 = rec[8], Y0 = rec[9], S1 = rec[10], Y1 = rec[11], half = (sw > sh ? sw : sh) / 2.0;
+    fb_arc_t *T = malloc(sizeof(fb_arc_t)); fb_arc_table(a, b, rec[24], rec[25], T);
     const int G = 8; int gw = (dw + G - 1) / G + 1, gh = (dh + G - 1) / G + 1;
     float *gx = malloc(sizeof(float) * gw * gh), *gy = malloc(sizeof(float) * gw * gh);
+    double *col = malloc(sizeof(double) * gw);
+    for (int i = 0; i < gw; i++) col[i] = fb_arc_x(T, a, b, S0 + (i * G + 0.5) / dw * (S1 - S0));
     for (int j = 0; j < gh; j++) for (int i = 0; i < gw; i++) {
-        double X = X0 + (i * G + 0.5) / dw * (X1 - X0), Y = Y0 + (j * G + 0.5) / dh * (Y1 - Y0), u, v;
+        double X = col[i], Y = Y0 + (j * G + 0.5) / dh * (Y1 - Y0), u, v;
         fb_proj(R, t, a, b, X, Y, &u, &v);
         gx[j * gw + i] = (float)(u * half + sw / 2.0 - 0.5); gy[j * gw + i] = (float)(v * half + sh / 2.0 - 0.5);
     }
@@ -665,7 +862,7 @@ API void p_book_render(const uint8_t *src, int sw, int sh, const float *rec, uin
             for (int c = 0; c < 4; c++) o[c] = u8((float)acc[c]);
         }
     }
-    free(gx); free(gy);
+    free(gx); free(gy); free(col); free(T);
 }
 
 /*
@@ -674,9 +871,11 @@ API void p_book_render(const uint8_t *src, int sw, int sh, const float *rec, uin
  * A coarse search over the page, then Newton's method. NaN for a point the model does not reach.
  */
 API void p_book_locate(const float *rec, int w, int h, const float *pts, int n, float *out) {
+    fb_focal = rec[12] > 0.2f && rec[12] < 20 ? rec[12] : FB_F;
     double R[9], r[3] = { rec[0], rec[1], rec[2] }, t[3] = { rec[3], rec[4], rec[5] }, a = rec[6], b = rec[7];
     fb_rodrigues(r, R);
-    double X0 = rec[8], Y0 = rec[9], X1 = rec[10], Y1 = rec[11], half = (w > h ? w : h) / 2.0;
+    double X0 = rec[24], Y0 = rec[9], X1 = rec[25], Y1 = rec[11], S0 = rec[8], S1 = rec[10], half = (w > h ? w : h) / 2.0;
+    fb_arc_t *T = malloc(sizeof(fb_arc_t)); fb_arc_table(a, b, X0, X1, T);
     const int G = 33; double *gu = malloc(sizeof(double) * G * G), *gv = malloc(sizeof(double) * G * G);
     for (int j = 0; j < G; j++) for (int i = 0; i < G; i++) fb_proj(R, t, a, b, X0 + (X1 - X0) * i / (G - 1), Y0 + (Y1 - Y0) * j / (G - 1), &gu[j * G + i], &gv[j * G + i]);
     for (int k = 0; k < n; k++) {
@@ -684,8 +883,25 @@ API void p_book_locate(const float *rec, int w, int h, const float *pts, int n, 
         int best = 0; double bd = 1e18;
         for (int q = 0; q < G * G; q++) { double d = (gu[q] - u) * (gu[q] - u) + (gv[q] - v) * (gv[q] - v); if (d < bd) { bd = d; best = q; } }
         double X = X0 + (X1 - X0) * (best % G) / (G - 1), Y = Y0 + (Y1 - Y0) * (best / G) / (G - 1);
-        if (fb_unproject(R, t, a, b, u, v, &X, &Y)) { out[2 * k] = (float)((X - X0) / (X1 - X0)); out[2 * k + 1] = (float)((Y - Y0) / (Y1 - Y0)); }
+        if (fb_unproject(R, t, a, b, u, v, &X, &Y)) { out[2 * k] = (float)((fb_arc_s(T, a, b, X) - S0) / (S1 - S0)); out[2 * k + 1] = (float)((Y - Y0) / (Y1 - Y0)); }
         else out[2 * k] = out[2 * k + 1] = NAN;
     }
-    free(gu); free(gv);
+    free(gu); free(gv); free(T);
+}
+
+/* Where places of a flat page (a record of p_book_fit; pts = n (fx, fy), 0 – 1 across and down the page as p_book_render
+   draws it) are in the photo: out = n (x, y) pixel indices of a picture of it w × h (any size). The inverse of
+   p_book_locate; the tab draws each page's outline on the photo with it. */
+API void p_book_project(const float *rec, int w, int h, const float *pts, int n, float *out) {
+    fb_focal = rec[12] > 0.2f && rec[12] < 20 ? rec[12] : FB_F;
+    double R[9], r[3] = { rec[0], rec[1], rec[2] }, t[3] = { rec[3], rec[4], rec[5] };
+    fb_rodrigues(r, R);
+    double half = (w > h ? w : h) / 2.0;
+    fb_arc_t *T = malloc(sizeof(fb_arc_t)); fb_arc_table(rec[6], rec[7], rec[24], rec[25], T);
+    for (int k = 0; k < n; k++) {
+        double X = fb_arc_x(T, rec[6], rec[7], rec[8] + (rec[10] - rec[8]) * pts[2 * k]), u, v;
+        fb_proj(R, t, rec[6], rec[7], X, rec[9] + (rec[11] - rec[9]) * pts[2 * k + 1], &u, &v);
+        out[2 * k] = (float)(u * half + w / 2.0 - 0.5); out[2 * k + 1] = (float)(v * half + h / 2.0 - 0.5);
+    }
+    free(T);
 }

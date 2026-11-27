@@ -119,25 +119,24 @@ export function bindImgproc(e: any) {
       finally { e.p_free(s); e.p_free(o); }
     },
     /** The pages of a photo of an open book and the model of each (p_book_fit — the Book Page Flattener): mode 0 find out,
-     *  1 one page, 2 two pages. The models are in normalised units, so a page is drawn from the photo at any size. */
-    bookFit(img: Img, mode = 0): BookFit {
+     *  1 one page, 2 two pages; focal: the camera's focal length in half the photo's longer side (focalFrom35 of
+     *  src/lib/bookflat.ts — from the photo's EXIF), 0 the engine's default (1.45). The models are in normalised units, so a
+     *  page is drawn from the photo at any size. */
+    bookFit(img: Img, mode = 0, focal = 0): BookFit {
       const s = put(img.data), cap = 8 + 2 * BOOK_REC, o = e.p_malloc(cap * 4);
       try {
-        e.p_book_fit(s, img.width, img.height, mode, o, cap);
+        e.p_book_fit(s, img.width, img.height, mode, focal, o, cap);
         const f = Array.from(new Float32Array(mem(), o, cap));
         const pages: BookPage[] = [];
         for (let i = 0; i < f[0]; i++) {
           const r = f.slice(8 + BOOK_REC * i, 8 + BOOK_REC * (i + 1));
           pages.push({ rec: r, rect: [r[8], r[9], r[10], r[11]], scale: r[13], rms: r[14], spans: r[15], samples: r[16], iterations: r[17], side: (['whole', 'left', 'right'] as const)[r[18]] ?? 'whole', rms0: r[19], pitch: r[20] });
         }
-        return { pages, gutter: f[0] === 2 ? [f[1], f[2], f[3], f[4]] : null, spans: f[5], blobs: f[6], work: f[7] };
+        // the samples it fitted to (normalised): what a picture of the fit draws
+        const n = e.p_book_points(0, 0), q = e.p_malloc(Math.max(1, n) * 16), points: number[][] = [];
+        try { e.p_book_points(q, n); const v = new Float32Array(mem(), q, n * 4); for (let i = 0; i < n; i++) points.push([v[4 * i], v[4 * i + 1], v[4 * i + 2], v[4 * i + 3]]); } finally { e.p_free(q); }
+        return { pages, gutter: f[0] === 2 ? [f[1], f[2], f[3], f[4]] : null, spans: f[5], blobs: f[6], work: f[7], points };
       } finally { e.p_free(s); e.p_free(o); }
-    },
-    /** The samples the last bookFit fitted to (u, v normalised; span; page 0 whole, 1 left, 2 right, −1 left out). */
-    bookPoints(): number[][] {
-      const n = e.p_book_points(0, 0), o = e.p_malloc(Math.max(1, n) * 16);
-      try { e.p_book_points(o, n); const f = new Float32Array(mem(), o, n * 4); const out: number[][] = []; for (let i = 0; i < n; i++) out.push([f[4 * i], f[4 * i + 1], f[4 * i + 2], f[4 * i + 3]]); return out; }
-      finally { e.p_free(o); }
     },
     /** Where points of the photo (pixel indices in a picture of it w × h, any size) lie on a page of bookFit as bookRender
      *  draws it: [across, down], 0 – 1 inside the page; NaN where the model does not reach (p_book_locate). */
@@ -146,6 +145,16 @@ export function bindImgproc(e: any) {
       try {
         new Float32Array(mem(), r, BOOK_REC).set(page.rec); new Float32Array(mem(), p, 2 * n).set(pts.flat());
         e.p_book_locate(r, w, h, p, n, o);
+        const f = new Float32Array(mem(), o, 2 * n); return pts.map((_, i) => [f[2 * i], f[2 * i + 1]]);
+      } finally { e.p_free(r); e.p_free(p); e.p_free(o); }
+    },
+    /** Where places of a page of bookFit ([across, down], 0 – 1 as bookRender draws it) are in the photo: pixel indices in
+     *  a picture of it w × h (p_book_project — the inverse of bookLocate; the tab outlines each page on the photo). */
+    bookProject(page: BookPage, w: number, h: number, pts: number[][]): number[][] {
+      const n = pts.length, r = e.p_malloc(BOOK_REC * 4), p = e.p_malloc(Math.max(1, n) * 8), o = e.p_malloc(Math.max(1, n) * 8);
+      try {
+        new Float32Array(mem(), r, BOOK_REC).set(page.rec); new Float32Array(mem(), p, 2 * n).set(pts.flat());
+        e.p_book_project(r, w, h, p, n, o);
         const f = new Float32Array(mem(), o, 2 * n); return pts.map((_, i) => [f[2 * i], f[2 * i + 1]]);
       } finally { e.p_free(r); e.p_free(p); e.p_free(o); }
     },
@@ -335,14 +344,15 @@ export function bindImgproc(e: any) {
 }
 export type Imgproc = ReturnType<typeof bindImgproc>;
 /** Floats per page in p_book_fit's answer (wasm/imgproc/flatten.c, FB_REC). */
-export const BOOK_REC = 24;
+export const BOOK_REC = 26;
 /** A page bookFit found: its model (rec, as p_book_render takes it), the flat page in model units (x0, y0, x1, y1), the
  *  photo's scale there (normalised units per model unit: × half a photo's longer side = its pixels per unit), the fit's
  *  error in px of the working picture (after and before), the lines and samples it was fitted to, which page. */
 export interface BookPage { rec: number[]; rect: number[]; scale: number; rms: number; rms0: number; spans: number; samples: number; iterations: number; side: 'whole' | 'left' | 'right'; pitch: number }
 /** bookFit's answer: the pages (none when no lines of text were found), the gutter of a spread (x, y at the text's top and
- *  bottom, in the given picture's pixels), the spans and blobs found, the working scale. */
-export interface BookFit { pages: BookPage[]; gutter: number[] | null; spans: number; blobs: number; work: number }
+ *  bottom, in the given picture's pixels), the spans and blobs found, the working scale, and the samples fitted to (u, v
+ *  normalised — half the picture's longer side = 1, from its middle; the line; the page: 0 whole, 1 left, 2 right). */
+export interface BookFit { pages: BookPage[]; gutter: number[] | null; spans: number; blobs: number; work: number; points: number[][] }
 /** What p_scroll_match found (see imgproc.c): status 0 nothing moved, 1 a shift, 2 nothing fits, 3 more than one fits
  *  (the nearest the expected one given), 4 too little in the overlap to tell; d the shift in rows; the rows that stay put
  *  at the top and the bottom; the fit (0 = the same) and the best other; the overlap's pixels: mean |Δ| of a channel and

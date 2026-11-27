@@ -3106,3 +3106,50 @@ cannot. Three new suites; each fails on the build before its fixes.
   style), and the suite demands that every custom property used is defined in the stylesheet (an undefined one falls back
   silently). Defined there now (`.ds-wrap { --nw: 4ch }`, the tab sets it from the longest line number). A slip of mine:
   styles.css is a shared file, and the rule is to run the suites of what a change touches — `css-vars` among them.
+- **Book Page Flattener (potentials #96, 27 Nov 2026), found while building it — each with a check that would catch it:**
+  (1) **lines chained across the gutter** — in a photo the gutter between two pages is often narrower than the 100 px a
+  line may jump, so page-dewarp's chaining joined the left page's lines to the right page's, no empty stretch was left and
+  a spread was taken for one page: the gutter is found from the word blobs before any line is chained, and no line is
+  chained across it (unit: both spreads give two pages, the gutter within 3 % of the true spine); (2) **a keystone left
+  along the lines** — every sample's place along its line was free, so nothing tied the lines' lengths together and the
+  camera's tilt was barely held: the bottom of a single page came out 4 % narrower than its top (seen only against the
+  ground truth — the lines were straight); the lines' ends are now held to the page's two margins in a second pass (1.03
+  → 0.67 % of the page's width off); (3) **a photo held sideways "found" lines** — the smearing that joins a word's letters
+  joined the letters of neighbouring lines across, so the fit as it stood found pages and the quarter turns were never
+  tried: a fit counts as lines of print only with 8 samples a line and a fit within 3 px (`found()`; unit: the sideways
+  spread as it is → none; analysed → turned, two pages); (4) **a photo of a cup of coffee gave "one page · 3 lines"**
+  (e2e): the same rule now gives no page; (5) **the slope cap of page-dewarp's cubic** (±0.5) looked like a limit on the
+  steep curl near the spine — loosened to ±1 and ±2 the fits went 1 – 5 % off (the model over-bends), so it stays;
+  (6) the page number below the text was cut off (a word too short to make a line) — first mended by mapping the blobs in
+  no line back through the model; that took in a halo of the table round the page, so the page's extent is now found from
+  the paper itself (out from the text along the model until the paper ends; the running head and the page number lie on it);
+  (7) **the flat page drawn by the model's X, not along the paper** — X runs straight across under the curved sheet, so
+  the words nearest the spine, where the paper rises steeply, came out squeezed and every page about 2 % too narrow for its
+  height (seen against the ground truth: the shape −2.1 % on average): the page is drawn by the length along the paper,
+  S(X) = ∫ √(1 + z′²) dX (0.58 → 0.39 % of the page's width off, the shape −2.1 → −0.8 %; unit: every fixture's page within
+  2 % of the printed page's shape); (8) **the camera's lens** — page-dewarp's focal length 1.2 is a wide lens's, a phone's
+  main camera is 1.50; and a photo taken with a phone's 2× lens (52 mm) flattened as if the main camera had taken it came
+  out skewed, its outer margins leaning up to 5.7°, up to 7 % of the page's width off — worse than the photo itself: the
+  lens is read from the photo's EXIF (FocalLengthIn35mmFilm; 52 mm → 0.26 %), the main camera's otherwise (1.45), and the
+  tab offers the lens for a photo that lost its EXIF in a chat app (unit: tele.jpg with its lens against the main camera's;
+  e2e: the same photo without its EXIF, then "Zoom 2×" — the page of the photo's own lens again, margins upright); (9)
+  **the paper's top and bottom edges taken for lines of text** — along the step from the table to the paper the adaptive
+  threshold marks a thin strip that passes every test of a word; the page was drawn with a strip of the table above it (5 %
+  of its height): a blob with the table on one side (the light end of the grey 3 px above and below it apart by more than
+  30 and a sixth) is left out; (10) **a speck of the table's grain chained to a line**, and the page reaching into the table
+  by up to 15 % of its width (a thick book's outer margin, turned away from the camera, where the walk out began on the
+  table; a light grey table only 15 % darker than the paper): a blob without the contrast of print (its darkest tenth above
+  70 % of the paper round it) is left out, and the paper's edge is its drop from the paper just inside the text, not a fixed
+  threshold under the page's paper (unit: each fixture's page ends at the paper — top, bottom and outer side within 2 % of
+  the paper's edges — with its running head and page number; of 82 pages of the measuring sets 80 do: a running head cut
+  off an ultra-wide (13 mm) close-up whose paper edge curves, and one top edge 2.4 % into the table); (11) **found by
+  reading the 16 photos again with the OCR after (9) and (10): five pages read worse** (a soft video frame 97.6 → 88.6 %
+  of its words) — the first darkness test (a fixed 70 %) took out real words of soft frames (their darkest tenth at 60 –
+  75 % of the paper), now judged against the photo's own words (their median + 0.2, kept within 0.75 – 0.9; measured over
+  5,000 word blobs and 239 blobs off the text); and the walk for the paper stopped in the gutter's shadow and cut the words
+  nearest the spine, which stand on the steepest curl and seldom join a line of the fit: a page of a spread now reaches the
+  gutter on its inner side. After both: 90.7 → 92.4 % (the first version 92.0 %), every page as well as the photo or
+  better (unit: each page of a spread reaches the gutter). Also found in the
+  candidates measured (docs/WASM-AUDIT.md 179): page-dewarp 0.3.4 takes the photo's rectangle less fixed margins for the
+  page — it cut the words nearest the spine of a page cut out at the gutter (95 → 76 % of a frame's words read) and kept
+  the table round the page; Leptonica 1.86's `dewarpSinglePage` gave up on 1080p video frames (too few lines found).
