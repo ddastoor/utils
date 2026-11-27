@@ -91,6 +91,7 @@ export const TOOLS: Tool[] = [
   t('pdf-sign', 'Sign PDF', 'Draw or type your signature and place it on a PDF.', 'documents', 'Signature', () => import('./tools/pdf-sign').then((m) => m.sign)),
   t('pdf-fill', 'Fill PDF Form', 'Fill in PDF form fields or type on any PDF.', 'documents', 'ClipboardPen', () => import('./tools/pdf-sign').then((m) => m.fill)),
   t('pdf-redact', 'PDF Redact', 'Take Aadhaar, PAN, phone and account numbers, names or any part of a page out of a PDF for good — not a box over them.', 'documents', 'EyeOff', () => import('./tools/pdfredact').then((m) => m.mount)),
+  t('idcopy', 'Safe ID Copy', 'Hide the first 8 digits of an Aadhaar number and stamp “For … only” across an ID copy — a photo or an e-Aadhaar PDF — before you send it.', 'documents', 'IdCard', () => import('./tools/idcopy').then((m) => m.mount)),
   t('pdf-unlock', 'Unlock PDF', 'Remove the password from a PDF you can open.', 'documents', 'LockOpen', () => import('./tools/pdf-secure').then((m) => m.unlock)),
   t('pdf-protect', 'Protect PDF', 'Add a password to a PDF (AES-256).', 'documents', 'FileLock', () => import('./tools/pdf-secure').then((m) => m.protect)),
   t('pdf2text', 'PDF → Text', 'Extract all text from a PDF.', 'documents', 'FileText', () => pdf().then((m) => m.pdf2text)),

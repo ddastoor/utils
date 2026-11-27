@@ -103,7 +103,12 @@ two passes (a band through each line for the text — a box over solid-set lines
 pixels, drawings and a black box); hidden places removed; the saved file read again. Unit `redact` 26, e2e `pdf-redact` 45 (read
 back by MuPDF, poppler, pypdf, zbar); fixtures `python3 scripts/make-redact-pdfs.py`; docs/WASM-AUDIT.md 187. With it,
 `src/lib/ocr.ts` hands Tesseract.js the picture's PNG bytes itself (a tab left during its start-up gave an uncaught error).
-**Next: #93 Safe ID Copy.**
+**#93 Safe ID Copy — BUILT (27 Nov 2026):** the tab `idcopy` (Documents, PC + mobile;
+CLAUDE.md §3 "Safe ID Copy"): photos (the card found by the Doc Scanner's finder and straightened with a margin; read by the OCR's
+reading path) or an e-Aadhaar PDF (password; its text, or the OCR for a picture page) → the first 8 digits of each Aadhaar number
+and the first 12 of a VID under "XXXX XXXX", a QR that holds the number covered, "For … only · date" stamped across, a PDF of
+pictures or one picture. Unit `idcopy` 36, e2e `idcopy` 34 (+ camera sweep); fixtures `python3 scripts/make-id-photos.py`;
+docs/WASM-AUDIT.md 188. **Next: #3 Make PDF Searchable.**
 **Then to-dos #38, #39 and #40** (owner,
 27 Nov 2026, evening: "After you finish all these, finish off the items in the todo.md also."; #40, added the same evening:
 the EPUB Reader's "Remember book" — a hash of the book, its place and the reading voice in the Settings — after #39). The open question (keep the EPUB Reader's place between visits?) is

@@ -6,7 +6,8 @@ import type { OcrResult } from './ocr';
 import { rectsOf, type Hit, type PageText, type Rect, type Scan } from './redact';
 
 export interface Img { data: Uint8ClampedArray<ArrayBuffer>; width: number; height: number }
-export interface Code { text: string; format: string; box: Rect }
+export type { Code } from './codesread';
+import type { Code } from './codesread';
 export interface PicEngines {
   /** the page drawn at `scale` pixels a point, RGBA */
   render(page: number, scale: number): Promise<Img> | Img;

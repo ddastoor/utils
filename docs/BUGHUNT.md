@@ -3360,3 +3360,14 @@ Found while building it, each with a check in its suites:
   are a pointer's shortcut now, hidden from screen readers, and the list's ticks — rows of 44 px on phones — are the control
   (2.5.8's "equivalent" exception).
 - **The result's Download stood in a second fixed bar on phones** (`actions()` is the phone's bottom bar): a row in the card now.
+
+## Safe ID Copy (27 Nov 2026; built — potentials #93)
+Found while building it, each with a check in `tests/e2e/idcopy.e2e.mjs`:
+- **The card's dark band along its top was cut off** (the copy began under "SPECIMEN IDENTITY CARD"): the OCR's page finder keeps
+  the light part of a page, and the Doc Scanner's network and imgproc's outline also stop short of a dark band on a dark desk
+  (4 – 6 % of the card's height). The card is found by the Doc Scanner's finder and straightened with a margin of 14 % round it;
+  the copy shows the whole card with a thin border of the desk.
+- **"Save PDF" made the file and waited for a second click** (a "Download" button in the result): a PC downloads at once now; a
+  phone shares from a tap of its own (sharing needs a fresh tap).
+- **A 4 4 4 4 number is not always a VID** (a card number has the same shape): one that fails the check is hidden only after
+  "VID" (unit `idcopy`).

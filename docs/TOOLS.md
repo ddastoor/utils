@@ -2,7 +2,7 @@
 
 Generated from `src/registry.ts` by `npm run docs` — do not edit by hand.
 
-**183 tabs** in 11 categories — 116 PC + mobile, 64 PC only, 3 mobile only.
+**184 tabs** in 11 categories — 117 PC + mobile, 64 PC only, 3 mobile only.
 
 ## Images (17)
 
@@ -26,7 +26,7 @@ Generated from `src/registry.ts` by `npm run docs` — do not edit by hand.
 | `ocr` | OCR | PC + mobile | Extract text from an image (English, French, Spanish, German). | copy text from image, copy text from photo, extract text from image, text from photo, extract text from photo, handwriting, ocr, text recognition, … |
 | `signature` | Signature Maker | PC + mobile | Draw your signature and save a transparent PNG. | signature, sign, draw signature, transparent signature, signature png, autograph, handwritten, e signature image |
 
-## Documents (24)
+## Documents (25)
 
 | id | Tab | Platform | What it does | Search keywords |
 |---|---|---|---|---|
@@ -39,6 +39,7 @@ Generated from `src/registry.ts` by `npm run docs` — do not edit by hand.
 | `pdf-sign` | Sign PDF | PC + mobile | Draw or type your signature and place it on a PDF. | esign, signature on pdf, digital signature, sign document, sign, signature, pdf, e-sign, … |
 | `pdf-fill` | Fill PDF Form | PC + mobile | Fill in PDF form fields or type on any PDF. | fill, form, pdf, type on pdf, fields, checkbox, application |
 | `pdf-redact` | PDF Redact | PC + mobile | Take Aadhaar, PAN, phone and account numbers, names or any part of a page out of a PDF for good — not a box over them. | redact pdf, pdf redaction, redact, redaction, black out, blackout, hide text in pdf, remove text from pdf, … |
+| `idcopy` | Safe ID Copy | PC + mobile | Hide the first 8 digits of an Aadhaar number and stamp “For … only” across an ID copy — a photo or an e-Aadhaar PDF — before you send it. | safe id copy, id copy, masked aadhaar, mask aadhaar, aadhaar mask, masking aadhaar, hide aadhaar digits, hide first 8 digits, … |
 | `pdf-unlock` | Unlock PDF | PC + mobile | Remove the password from a PDF you can open. | unlock, remove password, decrypt, pdf, aadhaar, bank statement, form 16 |
 | `pdf-protect` | Protect PDF | PC + mobile | Add a password to a PDF (AES-256). | protect, password, encrypt, lock, pdf, secure |
 | `pdf2text` | PDF → Text | PC + mobile | Extract all text from a PDF. | pdf to text, extract text, txt, copy, pdf |

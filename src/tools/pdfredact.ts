@@ -7,7 +7,8 @@ import { pdfInput, savePdfFile, stem, type LoadedPdf } from '../lib/pdfui';
 import { mupdf, signatureCount, pageGeom } from '../lib/pdf';
 import { devcore } from '../wasm/devcore';
 import { KINDS, KIND_NAME, bakeAll, findOnPage, pageKind, redact, saveRedacted, check, type Hit, type Rect } from '../lib/redact';
-import { findInPictures, type Img, type Code } from '../lib/redact-pictures';
+import { findInPictures, type Img } from '../lib/redact-pictures';
+import { findCodes, type Code } from '../lib/codesread';
 import { plural } from '../lib/dates';
 
 /** the order of the list's groups: as the chips stand, then the reader's words, codes and boxes */
@@ -15,13 +16,6 @@ const ORDER = ['aadhaar', 'vid', 'aadhaar_masked', 'pan', 'phone', 'email', 'acc
 // what to look for, kept while the page is open (another tab and back)
 let chosen = new Set(['aadhaar', 'pan', 'phone', 'email', 'account', 'card', 'upi', 'dob']);
 let words = '', pictures = true, scrub = true;
-
-/** zxing-cpp, as the QR tabs load it (the same file: nothing more to fetch once one of them has) */
-let zxReady: Promise<any> | null = null;
-const zx = () => (zxReady ||= Promise.all([import('zxing-wasm/full'), import('zxing-wasm/full/zxing_full.wasm?url')]).then(async ([z, u]) => {
-  await z.prepareZXingModule({ overrides: { locateFile: (p: string, prefix: string) => (p.endsWith('.wasm') ? u.default : prefix + p) }, fireImmediately: true });
-  return z;
-}).catch((e) => { zxReady = null; throw e; }));
 
 export const mount: Mount = (root, ctx) => {
   let file: LoadedPdf | null = null, doc: any = null, hits: Hit[] = [], seq = 0, gone = false, drawing = false, scanned: number[] = [];
@@ -96,12 +90,7 @@ export const mount: Mount = (root, ctx) => {
             return { data: out, width: w, height: hh };
           },
           ocr: async (img: Img) => { const { recognize } = await import('../lib/ocr'); if (gone || my !== seq) throw new Error('stopped'); return recognize(new ImageData(img.data, img.width, img.height), 'eng', undefined, 'page'); },
-          codes: async (img: Img): Promise<Code[]> => {
-            const z = await zx();
-            if (gone || my !== seq) throw new Error('stopped');
-            const r = await z.readBarcodes(new ImageData(img.data, img.width, img.height), { formats: [], tryHarder: true, maxNumberOfSymbols: 20 });
-            return r.filter((c: any) => c.isValid).map((c: any) => { const p = c.position, xs = [p.topLeft.x, p.topRight.x, p.bottomLeft.x, p.bottomRight.x], ys = [p.topLeft.y, p.topRight.y, p.bottomLeft.y, p.bottomRight.y]; return { text: c.text, format: c.format, box: [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)] as Rect }; });
-          },
+          codes: async (img: Img): Promise<Code[]> => { const r = await findCodes(img); if (gone || my !== seq) throw new Error('stopped'); return r; },
         };
         const all = Array.from({ length: n }, (_, i) => i);
         found.push(...await findInPictures({ ocrPages: scanned, codePages: all }, scan, engines, (d, a, what) => { if (my === seq) prog.set(d / Math.max(1, a), what ? `${what}…` : ''); }));

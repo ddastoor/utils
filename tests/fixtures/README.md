@@ -144,3 +144,10 @@ generates media with the project's own ffmpeg.wasm and Chromium). Used only by t
   set solid, a sticky note, a form field, the PAN in the title, the Aadhaar number in the subject and a bookmark, a page turned
   by /Rotate 90, a page in an embedded font) and a scan of two pages (a picture only; a picture under an invisible OCR layer),
   each with a QR code holding an Aadhaar number. Every number is made up (valid check digits); `truth.json` says what is where.
+
+## idcopy/
+- `card-front.jpg`, `card-back.jpg`, `e-letter.pdf`, `truth.json` — Safe ID Copy's test pictures, made by `python3
+  scripts/make-id-photos.py` (Pillow, NumPy, segno, reportlab, pypdf, python-stdnum; Noto Sans): a made-up specimen identity
+  card (not any real card's design) photographed on a desk with perspective, light and JPEG — its front with a number and an
+  older-style QR that holds it, its back with the number, a VID and a long "secure" QR that does not — and an e-letter of one
+  page behind the password `RAVI1985` (its number three times, the VID, a QR with the number). Every number is made up.

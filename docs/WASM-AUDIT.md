@@ -1803,3 +1803,16 @@ Looked at first (STANDING RULE #1):
   through the characters whose middle it covers; the whole box is used only to cover (pictures' pixels, drawings, the black box).
   Read back by MuPDF, poppler and pypdf.
 - **Decision:** MuPDF stays the engine; nothing new on the site (the tab's code, ≈ 25 KB).
+
+### 188. `idcopy` — Safe ID Copy (27 Nov 2026; potentials #93)
+- **What it does:** an ID copy made safe to send — an Aadhaar number's first 8 digits hidden, a QR code that holds the number
+  covered, "For … only · date" stamped across, flattened into pictures (CLAUDE.md §3 "Safe ID Copy").
+- **Existing WebAssembly modules, all on the site already** (rule 1): the Doc Scanner's finder (DocCornerNet on ONNX Runtime) and
+  imgproc's straightening; Tesseract (the OCR's reading path); the Number Detective's devcore-ids.wasm (`ids:scan`); zxing-cpp;
+  MuPDF (an e-Aadhaar's pages, the copy's PDF); MozJPEG. No WebAssembly module masks ID numbers.
+- **Beside them (rule 1c, TS):** which characters are a number's first 8 digits, numbers in Aadhaar's shape that fail their check,
+  which QR codes hold the number, the stamp's words and where the pictures go on a page — a few comparisons and multiplications.
+- **Found:** the OCR's own page finder (`p_page_quad`) keeps the light part of a page — a card's dark band along its top was cut
+  off; the Doc Scanner's network and imgproc's outline stop short of it too (4 – 6 % of the card's height on the specimen card):
+  the card is found by them and straightened with a margin of 14 % round it.
+- **Decision:** nothing new on the site (the tab's code, ≈ 20 KB).
