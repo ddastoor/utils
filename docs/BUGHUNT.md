@@ -3101,3 +3101,8 @@ cannot. Three new suites; each fails on the build before its fixes.
   turned an empty original into one empty line; `getByLabel('Original')` found three elements once the list and its
   changes carried "original" in their names (`exact: true`); the five lines before the first change and after the last
   are too few to fold (32 rows, not 28); the tab writes "3,001".
+- **The site's build of 84501ed and 759daf9 refused (27 Nov 2026, Pages runs 536 and 537):** the unit suite `css-vars` failed
+  — the side-by-side view's line-number width `--nw` was used in src/styles.css but set only on the element (an inline
+  style), and the suite demands that every custom property used is defined in the stylesheet (an undefined one falls back
+  silently). Defined there now (`.ds-wrap { --nw: 4ch }`, the tab sets it from the longest line number). A slip of mine:
+  styles.css is a shared file, and the rule is to run the suites of what a change touches — `css-vars` among them.

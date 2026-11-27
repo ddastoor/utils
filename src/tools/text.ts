@@ -276,6 +276,7 @@ export const diff: Mount = (root) => {
       : r[0] === 2 ? [cell('none', 0, null), cell('ins', r[2], r[3])] : [cell('del', r[1], r[3]), cell('ins', r[2], r[4])]);
   const showSide = (d: SideDiff) => {
     const [na, nb] = sideNames(), digits = String(Math.max(d.removed + d.same, d.added + d.same, 1)).length;
+    // --nw: the line numbers' width (4ch in styles.css), from the longest number
     const pane = h('div', { class: 'ds-wrap', tabindex: '0', role: 'region', style: `--nw: ${Math.max(2, digits)}ch`,
       'aria-label': `The differences side by side: ${na} on the left, ${nb} on the right. N and P go to the next and the previous change.` });
     pane.append(h('div', { class: 'ds-head' }, h('div', { class: 'ds-name', title: na }, na), h('div', { class: 'ds-name', title: nb }, nb)));
