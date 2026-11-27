@@ -51,6 +51,7 @@
     "@biomejs/wasm-web": "^2.6.8",
     "@dprint/formatter": "^0.6.0",
     "@dprint/json": "^0.26.0",
+    "@expo-google-fonts/literata": "0.4.3",
     "@expo-google-fonts/noto-sans": "0.4.2",
     "@ffmpeg/core": "^0.12.10",
     "@ffmpeg/ffmpeg": "^0.12.15",
