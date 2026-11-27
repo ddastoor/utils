@@ -76,6 +76,12 @@ The owner adds items here in chat ("add … to to do"). Newest instructions win.
     gets the watermark. Today every page gets it (to-do #17: PDF pages by MuPDF; Word through each section's headers, where
     "Different first page" already gives the first page a header of its own). When: at the owner's word (not yet started).
 
+35. **Text Diff: an interactive side-by-side diff, hunk by hunk** (owner, 27 Nov 2026: "In the text diff app, add an additional
+    option to actually do an interactive side-by-side diff with next and previous. as in to cycle through next and previous
+    diff hunks"). Beside today's views (lines as one column with both line numbers, unchanged runs folded; words; characters):
+    the original on the left and the changed text on the right, their lines side by side, with Next and Previous going from
+    one hunk (a run of changes) to the next. When: at the owner's word (not yet started).
+
 ## Done
 - **20. Noise Remover: "Studio voice" — a voice recorded outdoors made to sound as if spoken in a studio** (owner, 26 Nov 2026:
   "In the noise remover app, it should be that when I record my voice, say out in the open, in traffic or outside, when I
