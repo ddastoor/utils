@@ -40,6 +40,10 @@ document.getElementById('app')!.append(
   h('div', { class: 'navwrap' }, h('div', { class: 'catline' }, catBar, foldBtn), toolBar),
   view,
 );
+// the sticky tab rows' height (it changes when the list of apps folds, wraps or is hidden on the home page) for the page's
+// scroll padding: a control the browser scrolls into view lands below the rows, not under them (styles.css, --navh)
+const navwrap = document.querySelector<HTMLElement>('.navwrap')!;
+new ResizeObserver(() => document.documentElement.style.setProperty('--navh', `${navwrap.offsetHeight}px`)).observe(navwrap);
 
 // ------------------------------------------------------------------ tab rows
 let lastSection: Section = 'all';

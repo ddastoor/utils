@@ -3929,6 +3929,12 @@ DEBUG=pw:browser E2E_CHROME_ARGS="--enable-logging=stderr --v=0" node tests/e2e.
   every light colour token has a dark value. Colour of small text: `--hint` (≥ 4.5 : 1 in both themes), never
   `--faint` (icons and graphics only). A control without a visible label takes one (`select(…, label)`).
   `camera.e2e.mjs` — the camera beside every picture picker (owner rule, §2) and its photo reaching every tab.
+  `scroll-focus.e2e.mjs` — what the browser scrolls into view lands below the sticky tab rows and, on phones, above a tab's
+  fixed action bar (WCAG 2.2, 2.4.11 Focus Not Obscured): a control reached with Tab or Shift+Tab (Chromium centres it, so
+  the rows hid it only when they took more than half the window — Software's open list on a laptop; Firefox and Safari
+  align it to the edge) and anything `scrollIntoView()` brings in (to the top edge: under the rows, always). `html`'s
+  `scroll-padding-top` follows the rows' height (`--navh`, kept by a ResizeObserver in `src/main.ts` — the rows fold, wrap
+  and are hidden on the home page), `scroll-padding-bottom` makes room for the phone's bar.
   `junk-files.e2e.mjs` — an empty file and random bytes in every file picker: no tab may throw (text tabs read files
   with `readTextFile` from `src/lib/textfile.ts`: UTF-16 by its mark, UTF-8, else Windows-1252; binary refused).
   `engine-download.e2e.mjs` — every desktop tab with its engine's download refused: no uncaught failure (the shell says

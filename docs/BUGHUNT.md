@@ -3061,3 +3061,13 @@ cannot. Three new suites; each fails on the build before its fixes.
   job cost 30 s of waiting** (ffmpeg-fixes: 651 s, the browser idle at 3 % of a core). The four FFmpeg suites ask whether
   an error is there first now. The joined FFmpeg suite's 30-minute time-out on the Windows runner (check run 15, which led
   to the split into ffmpeg + ffmpeg-sound) was most likely this.
+- **App shell: a control the browser scrolled into view could land under the sticky tab rows (27 Nov 2026)** — found while
+  writing the FFmpeg suites (a box scrolled into view sat under the rows, where the mouse could not reach it): the page had no
+  scroll padding, so anything `scrollIntoView()` brings in was put at the window's top edge — under the rows, which are
+  100 px tall folded and up to 490 px with Software's list open (WCAG 2.2, 2.4.11 Focus Not Obscured). A control reached
+  with the keyboard: Chromium centres it, so there the rows hid it only when they took more than half the window
+  (Software's list open on an 800 px laptop: Shift+Tab left the control at 378 px under rows that end at 430); Firefox and
+  Safari align it to the edge, under the rows. `html` has `scroll-padding-top` from the rows' height now (`--navh`, a
+  ResizeObserver in `src/main.ts`) and, on phones, `scroll-padding-bottom` for the tab's fixed action bar;
+  `tests/e2e/scroll-focus.e2e.mjs` (10 checks: Shift+Tab and scrollIntoView on a PC with the rows open and folded, Tab,
+  Shift+Tab and scrollIntoView on a phone) fails five of them on a build without the padding.
