@@ -85,8 +85,15 @@ Measured with the tabs' own code (`node scripts/measure-ocr.mjs SET --prep read 
 `+nolens`): open books 90.2 → 93.2 %, thick books 53.7 → 88.0 %, ultra-wide 84.9 → 96.0 %, 2× close-ups 63.9 → 67.3 %, the
 fixtures 82.4 → 98.3 %, the 390 flat photos (Kindle, newspapers, documents, watermarks) unchanged — no photo worse. Unit
 `readpage` 70, e2e `ocr-books` 25 (+ ocr, photodict, camera, paste-image, lazy). **Group 1 is complete** (potentials.md).
-**Next (the owner's process, CLAUDE.md top):** show the owner the apps of `docs/potentials.md` (the suggested groups 2 – 4 and
-the rest) and wait for the pick; then the size check for each, then build. Open questions for the owner: keep the EPUB Reader's
+**▶ 27 Nov 2026, evening — IN PROGRESS: the owner's "Okay, go for it. Build out all the groups, all the remaining groups in
+whichever order you feel best."** — groups 2, 3 and 4 of the suggested order (docs/potentials.md), sized there (about 62 MB
+new in all, nearly all draw.io: the site ≈ 564 → 626 MB of the 1 GB); each app's size measured as it is built (an app much
+bigger than said: stop and ask). **Order chosen:** group 2 — #84 Number Detective, #61 PDF Redact, #93 Safe ID Copy, #3 Make
+PDF Searchable, #15 PDF Compare, #16 PDF Tables → Excel; then group 4 — #88 Router Sticker → Wi-Fi QR, #89 Visiting Card →
+Contact, #77 Paper Deadlines → Calendar, #78 Bill Splitter by Photo, #81 Camera Reader; then group 3 — #73 World Clock, #10
+Spell Checker, #1 Image to SVG with #117 Clipart Maker, #75 SliceDiceGrapher (covering #25 Chart Maker), #54 Diagram Editor.
+Each app: its tab, unit + e2e suites, docs, taken off potentials.md, committed and pushed. To-dos #38 and #39 stay at the
+owner's word. Open questions for the owner: keep the EPUB Reader's
 place between visits (as Favorites are)? **New, open: to-do #38** (owner, 27 Nov 2026, before the potentials: the OCR's and the
 Photo Dictionary's text copied to the clipboard as soon as it is read) — not started; **the owner: later** ("will come back
 to do later", 27 Nov 2026) — do not start it until the owner says so.

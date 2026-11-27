@@ -49,7 +49,8 @@ based on common implementation … make the suggestions". The site then: **563.5
    with 25 Chart Maker in it · 1 Image to SVG and 117 Clipart Maker (one tracing engine) · 54 Diagram Editor.
 4. **Camera helpers** (the OCR and the QR tab's writers; ≈ 0 MB): 89 Visiting Card → Contact · 88 Router Sticker → Wi-Fi QR ·
    77 Paper Deadlines → Calendar · 78 Bill Splitter by Photo · 81 Camera Reader.
-All four: about 620 MB of the 1 GB. Held back for now: the large models (5 Vocal Remover 180 MB, 67 Object Eraser 208 MB,
+**Groups 2 – 4 picked by the owner, 27 Nov 2026 ("Okay, go for it. Build out all the groups, all the remaining groups in
+whichever order you feel best") — being built (docs/RESUME.md).** All four: about 620 MB of the 1 GB. Held back for now: the large models (5 Vocal Remover 180 MB, 67 Object Eraser 208 MB,
 22 LaTeX ≈ 175 MB), 4 Document Converter (58.6 MB), and the niche PC tools. The size check of the rule is made again,
 measured, for each app the owner picks.
 
