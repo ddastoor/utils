@@ -2870,3 +2870,4 @@ API void p_scroll_match(const uint8_t *a, const int32_t *sa, const uint8_t *b, c
 }
 
 #include "flatten.c" /* the Book Page Flattener (uses cm_label above) */
+#include "kindle.c" /* PDF for Kindle: where a region of a page may be cut */

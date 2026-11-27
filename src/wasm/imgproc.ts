@@ -39,6 +39,24 @@ export function bindImgproc(e: any) {
         return Array.from({ length: c }, (_, i) => ({ x: r[i * 4], y: r[i * 4 + 1], w: r[i * 4 + 2], h: r[i * 4 + 3] }));
       } finally { e.p_free(s); e.p_free(k); e.p_free(out); }
     },
+    /** PDF for Kindle: the rows y0 … y1 − 1 of a drawing of a page, seen between columns x0 … x1 − 1, where a piece may end
+     *  — 1: no pixel darker than `thr` there and outside every protected interval ([top, bottom) rows: a line's letters,
+     *  a figure, a formula). wasm/imgproc/kindle.c. */
+    blankRows(img: Img, x0: number, y0: number, x1: number, y1: number, thr: number, prot: Array<[number, number]>): Uint8Array {
+      const s = put(img.data), k = e.p_malloc(Math.max(1, prot.length) * 8), h = Math.max(0, Math.min(img.height, Math.round(y1)) - Math.max(0, Math.round(y0))), out = e.p_malloc(Math.max(1, h));
+      try {
+        new Float32Array(mem(), k, prot.length * 2).set(prot.flat());
+        const c = e.p_blank_rows(s, img.width, img.height, Math.round(x0), Math.round(y0), Math.round(x1), Math.round(y1), thr, k, prot.length, out);
+        return new Uint8Array(mem().slice(out, out + Math.max(0, c)));
+      } finally { e.p_free(s); e.p_free(k); e.p_free(out); }
+    },
+    /** PDF for Kindle: where the piece that starts at row `from` of a region (its rows from blankRows) ends, at most `maxh`
+     *  rows further — the lowest gap of `wide` rows or more past `minfill` of the room (a paragraph's end), else the lowest
+     *  gap — `cut` (n: the rest fits), or −1 with `over`, where a piece too tall for a screen ends (−1: the end). */
+    nextCut(blank: Uint8Array, from: number, maxh: number, minfill: number, wide: number): { cut: number; over: number } {
+      const b = put(blank), o = e.p_malloc(4);
+      try { const cut = e.p_next_cut(b, blank.length, Math.round(from), Math.max(1, Math.floor(maxh)), minfill, Math.max(1, Math.round(wide)), o); return { cut, over: new Int32Array(mem(), o, 1)[0] }; } finally { e.p_free(b); e.p_free(o); }
+    },
     /** Grey / grey+alpha / RGB / RGBA samples (e.g. a MuPDF pixmap) → RGBA image. */
     expand: (samples: Uint8Array | Uint8ClampedArray, w: number, h: number, comps: number): Img => {
       const s = put(samples), d = e.p_malloc(w * h * 4);

@@ -421,7 +421,7 @@ export function picBytes(m: any, p: Pic, maxPixels: number): { bytes: Uint8Array
 }
 
 /** Running headers / footers: lines near the top or bottom that repeat (digits ignored) on many pages, and bare page numbers. */
-function headerKeys(pages: Array<{ lines: Line[]; H: number }>) {
+export function headerKeys(pages: Array<{ lines: Line[]; H: number }>) {
   const count = new Map<string, number>();
   // letters only, first 12: page numbers and OCR slips at the end ("VICKSBUEG") still match
   const key = (l: Line) => l.text.toLowerCase().replace(/[^\p{L}]+/gu, '').slice(0, 12) || l.text.replace(/\s+/g, '');
