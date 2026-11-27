@@ -92,8 +92,8 @@ bigger than said: stop and ask). **Order chosen:** group 2 — #84 Number Detect
 PDF Searchable, #15 PDF Compare, #16 PDF Tables → Excel; then group 4 — #88 Router Sticker → Wi-Fi QR, #89 Visiting Card →
 Contact, #77 Paper Deadlines → Calendar, #78 Bill Splitter by Photo, #81 Camera Reader; then group 3 — #73 World Clock, #10
 Spell Checker, #1 Image to SVG with #117 Clipart Maker, #75 SliceDiceGrapher (covering #25 Chart Maker), #54 Diagram Editor.
-Each app: its tab, unit + e2e suites, docs, taken off potentials.md, committed and pushed. To-dos #38 and #39 stay at the
-owner's word. Open questions for the owner: keep the EPUB Reader's
+Each app: its tab, unit + e2e suites, docs, taken off potentials.md, committed and pushed. **Then to-dos #38 and #39** (owner,
+27 Nov 2026, evening: "After you finish all these, finish off the items in the todo.md also."). Open questions for the owner: keep the EPUB Reader's
 place between visits (as Favorites are)? **New, open: to-do #38** (owner, 27 Nov 2026, before the potentials: the OCR's and the
 Photo Dictionary's text copied to the clipboard as soon as it is read) — not started; **the owner: later** ("will come back
 to do later", 27 Nov 2026) — do not start it until the owner says so.

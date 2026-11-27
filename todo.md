@@ -20,7 +20,7 @@ The owner adds items here in chat ("add … to to do"). Newest instructions win.
     Chrome writes to the clipboard while the page has the focus; Safari and Firefox only within a tap, and the reading takes
     seconds — so the copy is started in the tap that starts the reading (Extract text, Snap, Paste image: a ClipboardItem
     whose text arrives later, which Safari and Chrome accept), and where the browser still refuses (a photo chosen from the
-    gallery on an iPhone) the tab says so and the Copy button does it with one tap. When: at the owner's word (not yet started).
+    gallery on an iPhone) the tab says so and the Copy button does it with one tap. When: **after groups 2 – 4 of docs/potentials.md** (owner, 27 Nov 2026, evening: "After you finish all these, finish off the items in the todo.md also.").
 
 39. **A Settings page for the whole site, with Export and Import** (owner, 27 Nov 2026: "Have a new settings section for the
     entire superutils site. Have a section called favorites in the settings, and currently store the favorites in settings as
@@ -34,8 +34,9 @@ The owner adds items here in chat ("add … to to do"). Newest instructions win.
     settings** reads such a file, checks it (ids that are no tab are named and left out) and puts its settings into the
     browser's storage as they were — the stars back at once. Nothing leaves the device (CLAUDE.md §1: only what the owner
     allowed is stored — the Favorites and the folded app list; a new kind of setting needs the owner's word). To ask when
-    building: the folded app list in the file too (a second section)? Import replaces the stars or adds to them? When: at
-    the owner's word (not yet started).
+    building: the folded app list in the file too (a second section)? Import replaces the stars or adds to them? When:
+    **after groups 2 – 4 of docs/potentials.md** (owner, 27 Nov 2026, evening: "After you finish all these, finish off the
+    items in the todo.md also.").
     **Added the same day** (owner: "different sections in the settings page will actually correspond to different UI elements
     or areas of different apps, which also corresponds to browser storage. They are all in sync. Whenever through an app I
     change a settings linked UI control, it should change in the browser storage area, it should change in the settings
