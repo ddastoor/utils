@@ -96,6 +96,7 @@ export const TOOLS: Tool[] = [
   t('pdf-pagenum', 'PDF Page Numbers', 'Add page numbers to a PDF.', 'documents', 'ListOrdered', () => pdf().then((m) => m.pagenum)),
   t('pdf-watermark', 'PDF Watermark', 'Stamp text like CONFIDENTIAL on every page.', 'documents', 'Droplet', () => pdf().then((m) => m.watermark)),
   t('epub', 'PDF → EPUB', 'Convert PDFs to Kindle-friendly EPUB, column by column.', 'documents', 'BookOpen', () => import('./tools/epub/epub').then((m) => m.mount), 'pc'),
+  t('kindlepdf', 'PDF for Kindle', 'Read technical PDFs on a Kindle exactly as typeset: margins trimmed, columns cut into screen-high pieces, text kept.', 'documents', 'Tablet', () => import('./tools/kindlepdf').then((m) => m.mount)),
   t('sheet', 'CSV / Excel', 'View CSV and Excel files; convert CSV ⇄ XLSX ⇄ JSON.', 'documents', 'Sheet', () => import('./tools/sheet').then((m) => m.mount), 'pc'),
   t('markdown', 'Markdown Editor', 'Write Markdown with live preview; export HTML or PDF.', 'documents', 'NotebookPen', () => import('./tools/markdown').then((m) => m.mount)),
   t('invoice', 'GST Invoice', 'Create a GST invoice and save it as PDF.', 'documents', 'ReceiptText', () => docgen().then((m) => m.invoice)),

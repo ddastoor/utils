@@ -44,8 +44,15 @@ picture, the A4 PDF cut between lines, the text with "Read aloud" (`src/lib/hand
 photos. Unit `clipper` 156, e2e `clipper` 48 (+ the camera sweep's entry); docs/WASM-AUDIT.md 180, docs/BUGHUNT.md; taken
 off potentials.md. With it, **the start page's icons split in two** (it had reached 181 KB of its 180: `scripts/gen-icons.mjs`
 — the start page's 183 icons, the tabs' own 99 with the first tab; 167 KB now; the lazy suite fails on an icon missing in any
-tab's first view; CLAUDE.md §4). **Next in group
-1:** #109 PDF for Kindle · #71 EPUB Reader · #106 Articles → Kindle · #14 PDF / EPUB → Audiobook;
+tab's first view; CLAUDE.md §4). **#109 PDF for Kindle — BUILT (27 Nov 2026):** the tab `kindlepdf` (Documents, PC + mobile;
+CLAUDE.md §3 "PDF for Kindle"): a page's regions by the XY-cut (title, each column, a figure across), each cut between lines
+(our C in imgproc.wasm, `wasm/imgproc/kindle.c`) into pieces on pages of the Kindle screen's shape, "p. 3 · 2 of 4" on each;
+the pieces vector — the page as a Form XObject clipped to the piece, the text outside it removed by MuPDF's redaction (big
+rectangles a character's height off, bands through the centres of the nearer outside characters); scans as greyscale
+pictures. Unit `kindlepdf` 68 (fixtures of `node scripts/make-kindle-pdfs.mjs`: every line once in order, figures, formulas,
+tables whole, every vector piece the page's pixels at 3 px/pt), e2e `kindlepdf` 36; docs/WASM-AUDIT.md 181; taken off
+potentials.md. **Next in group
+1:** #71 EPUB Reader · #106 Articles → Kindle · #14 PDF / EPUB → Audiobook;
 then the flattener as a measured step of the OCR and the Photo Dictionary (no photo may read worse). **New, open: to-do #38** (owner, 27 Nov 2026, before the potentials: the OCR's and the
 Photo Dictionary's text copied to the clipboard as soon as it is read) — not started; **the owner: later** ("will come back
 to do later", 27 Nov 2026) — do not start it until the owner says so.

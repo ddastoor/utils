@@ -155,7 +155,11 @@ export function layOut(regions: Region[], room: { Wu: number; Hu: number }, body
   return { screens, smaller };
 }
 
-export async function pdfForKindle(doc: any, o: KindleOptions, onProgress?: (done: number, of: number) => void, engines?: KindleEngines): Promise<{ pdf: Uint8Array; pages: KindlePage[]; screens: number }> {
+/** Where each piece went: per screen, the pieces — the page (0-based), the rectangle of it (pt, top-left origin), where
+ *  it stands on the screen's page (pt from the top left), its scale; and the screen's page size (pt). */
+export type KindleLayout = Array<{ W: number; H: number; pieces: Array<{ page: number; rect: Box; x: number; y: number; s: number; picture: boolean }> }>;
+
+export async function pdfForKindle(doc: any, o: KindleOptions, onProgress?: (done: number, of: number, phase: 'read' | 'pages') => void, engines?: KindleEngines): Promise<{ pdf: Uint8Array; pages: KindlePage[]; screens: number; layout: KindleLayout }> {
   const { m, tc, ip, jpeg } = engines || await appEngines();
   const alive = () => { if (o.alive && !o.alive()) throw new Stopped(); };
   let lastYield = performance.now();
@@ -167,7 +171,7 @@ export async function pdfForKindle(doc: any, o: KindleOptions, onProgress?: (don
   // pass 1: the text of every chosen page (the running heads repeat)
   const pages: Array<{ i: number; p: any; W: number; H: number; lines: Line[]; vertical: Line[] }> = [];
   for (const [k, i] of list.entries()) {
-    if (k % 10 === 0) onProgress?.(k / 4, list.length);
+    if (k % 10 === 0) onProgress?.(k, list.length, 'read');
     const p = doc.loadPage(i), [x0, y0, x1, y1] = p.getBounds();
     const r = readPage(p, x1 - x0, y1 - y0);
     pages.push({ i, p, W: x1 - x0, H: y1 - y0, lines: r.lines, vertical: r.vertical });
@@ -175,11 +179,11 @@ export async function pdfForKindle(doc: any, o: KindleOptions, onProgress?: (don
   }
   const isHeader = o.removeHeaders ? headerKeys(pages) : () => false;
   const out = new m.PDFDocument(), map = out.newGraftMap(), helv = out.addSimpleFont(new m.Font('Helvetica'));
-  const report: KindlePage[] = [], firstScreen = new Map<number, number>();
+  const report: KindlePage[] = [], firstScreen = new Map<number, number>(), layout: KindleLayout = [];
   let screensMade = 0;
 
   for (const [k, pg] of pages.entries()) {
-    onProgress?.(list.length / 4 + (k * 3) / 4, list.length);
+    onProgress?.(k, list.length, 'pages');
     const { p, W, H } = pg, pageNo = pg.i + 1;
     const lines = pg.lines.filter((l) => !isHeader(l, H)), heads = pg.lines.filter((l) => isHeader(l, H));
     const rl = readRules(m, p, doc);
@@ -215,7 +219,7 @@ export async function pdfForKindle(doc: any, o: KindleOptions, onProgress?: (don
         rep.note = 'its text runs sideways — kept whole on one screen: turn the Kindle to read it';
       } else {
         // what is drawn besides the text: figures, rules, formulas drawn as lines (the running heads' ink left out)
-        const skip: Array<[number, number, number, number]> = [...lines, ...heads, ...pg.vertical].map((b) => [b.x0 * S - 1, b.y0 * S - 1, b.x1 * S + 1, b.y1 * S + 1]);
+        const skip: Array<[number, number, number, number]> = [...lines, ...heads, ...pg.vertical].map((b) => [b.x0 * S - 1, b.y0 * S - 1, (b.x1 - b.x0) * S + 2, (b.y1 - b.y0) * S + 2]);
         const drawn = ip.inkRegions(img, skip, { thr: INK, dil: Math.max(3, Math.round(0.35 * body * S)), minArea: Math.round((0.3 * body * S) ** 2), max: 3000 })
           .map((b) => ({ x0: b.x / S, y0: b.y / S, x1: (b.x + b.w) / S, y1: (b.y + b.h) / S }))
           .filter((b) => !(o.removeHeaders && (b.y1 < 0.07 * H || b.y0 > 0.93 * H) && area(b) < 0.015 * W * H));
@@ -248,11 +252,6 @@ export async function pdfForKindle(doc: any, o: KindleOptions, onProgress?: (don
           return { box, part: g.part, rows: 0, blank: new Uint8Array(0), soft, hard, scan: false, weight: mine.reduce((a, b) => a + (b.line ? b.line.chars : 0), 0) };
         });
         for (const r of regions) { r.blank = ip.blankRows(img, r.box.x0 * S, r.box.y0 * S, r.box.x1 * S, r.box.y1 * S, BLANK, [...r.hard, ...r.soft]); r.rows = r.blank.length; }
-        if ((globalThis as any).__KDEBUG) for (const r of regions) {
-          const runs: string[] = []; let a = -1;
-          for (let y = 0; y <= r.rows; y++) { const b = y < r.rows && r.blank[y]; if (b && a < 0) a = y; if (!b && a >= 0) { runs.push(`${(r.box.y0 + a / S).toFixed(1)}+${((y - a) / S).toFixed(1)}`); a = -1; } }
-          console.log('region', r.part, JSON.stringify(r.box), 'blank runs', runs.join(' '));
-        }
       }
       if (!regions.length) { rep = { ...rep, how: 'empty', note: 'nothing on this page' }; report.push(rep); await pause(); continue; }
       // the screens' width: the page's text columns — regions side by side that hold a fifth of its text or more — else the
@@ -275,7 +274,7 @@ export async function pdfForKindle(doc: any, o: KindleOptions, onProgress?: (don
       firstScreen.set(pg.i, out.countPages());
       let chars: Char[] | null = null;
       for (const [si, scr] of screens.entries()) {
-        const xobjects: Record<string, any> = {};
+        const xobjects: Record<string, any> = {}, placed: KindleLayout[number]['pieces'] = [];
         let ops = '';
         for (const [pi, q] of scr.entries()) {
           const r = q.region, rect: Box = { x0: r.box.x0, x1: r.box.x1, y0: r.box.y0 + q.a / S, y1: r.box.y0 + q.b / S };
@@ -284,6 +283,7 @@ export async function pdfForKindle(doc: any, o: KindleOptions, onProgress?: (don
           const ox = sp.mx + Math.max(0, (sp.Wu - w) / 2), oy = sp.my + q.y;
           if (q.rule) ops += `q 0.62 G 0.4 w ${num(sp.mx)} ${num(sp.Hp - oy + 0.45 * body * q.s)} m ${num(sp.Wp - sp.mx)} ${num(sp.Hp - oy + 0.45 * body * q.s)} l S Q\n`;
           const name = `P${pi + 1}`;
+          placed.push({ page: pg.i, rect: { ...rect }, x: ox, y: oy, s: q.s, picture: !!scanned });
           if (scanned && hi) {
             const crop = ip.crop(hi, rect.x0 * hiS, rect.y0 * hiS, (rect.x1 - rect.x0) * hiS, (rect.y1 - rect.y0) * hiS);
             const tw = Math.max(1, Math.min(crop.width, Math.round(w * pxPerPt))), th = Math.max(1, Math.round((crop.height * tw) / crop.width));
@@ -304,6 +304,7 @@ export async function pdfForKindle(doc: any, o: KindleOptions, onProgress?: (don
         }
         const res = out.addObject({ XObject: xobjects, Font: { KL: helv } });
         out.insertPage(-1, out.addPage([0, 0, sp.Wp, sp.Hp], 0, res, winAnsi(ops)));
+        layout.push({ W: sp.Wp, H: sp.Hp, pieces: placed });
         screensMade++;
       }
     } finally { rl.release(); }
@@ -315,8 +316,8 @@ export async function pdfForKindle(doc: any, o: KindleOptions, onProgress?: (don
   bookmarks(doc, out, (i) => { for (let j = i; j < n; j++) if (firstScreen.has(j)) return firstScreen.get(j)!; return -1; });
   if (o.title) out.setMetaData('info:Title', o.title);
   out.setMetaData('info:Creator', 'SuperUtils — PDF for Kindle');
-  onProgress?.(list.length, list.length);
-  return { pdf: out.saveToBuffer('compress,garbage').asUint8Array().slice(), pages: report, screens: screensMade };
+  onProgress?.(list.length, list.length, 'pages');
+  return { pdf: out.saveToBuffer('compress,garbage').asUint8Array().slice(), pages: report, screens: screensMade, layout };
 }
 
 const pad = (b: Box, d: number, page: Box): Box => ({ x0: Math.max(page.x0, b.x0 - d), y0: Math.max(page.y0, b.y0 - d), x1: Math.min(page.x1, b.x1 + d), y1: Math.min(page.y1, b.y1 + d) });

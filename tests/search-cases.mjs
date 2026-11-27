@@ -33,6 +33,7 @@ export default [
   ['page numbers', 'pdf-pagenum'], ['number pdf pages', 'pdf-pagenum'],
   ['pdf watermark', 'pdf-watermark'], ['confidential stamp', 'pdf-watermark'],
   ['epub', 'epub'], ['kindle', 'epub'], ['pdf to epub', 'epub'], ['ebook', 'epub'],
+  ['pdf for kindle', 'kindlepdf'], ['kindle pdf', 'kindlepdf'], ['k2pdfopt', 'kindlepdf'], ['read paper on kindle', 'kindlepdf'], ['two column pdf', 'kindlepdf'], ['crop pdf margins', 'kindlepdf'],
   ['csv', 'sheet'], ['excel viewer', 'sheet'], ['xlsx to csv', 'sheet'],
   ['markdown', 'markdown'], ['md editor', 'markdown'], ['markdown preview', 'markdown'],
 

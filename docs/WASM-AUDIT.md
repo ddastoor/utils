@@ -1658,3 +1658,30 @@ Looked at first (STANDING RULE #1):
   used only when the reading shows the signs, read the soft page (136 → 626 words). Black and white (`docEnhance` 2) and
   other sizes were tried and read worse. Story finding: 93 of 127 stories clipped whole on 16 photos (the sharp ones nearly
   all; four soft or badly lit photos read poorly — the tab says "a sharper photo reads better").
+
+### 181. `kindlepdf` — PDF for Kindle (27 Nov 2026; potentials #109)
+- **What the tab does:** a technical PDF → its pages cut into screen-high pieces at the gaps between lines, region by region
+  (the title, each column, a figure across the page), on pages of a Kindle screen's shape — the pieces vector (the page's own
+  text, fonts and drawings), scanned pages as greyscale pictures.
+- **Engines — all on the site already:** MuPDF (official wasm: the text and pictures of a page through PDF → EPUB's readers,
+  the drawing, grafting the page, redaction, Form XObjects, the PDF), textcore.wasm's XY-cut (the regions in reading order),
+  imgproc.wasm (ink regions, the clean-up of scans, crop and resize) and **two new routines of our own C in imgproc.wasm**
+  (`wasm/imgproc/kindle.c`, +0.7 KB): `p_blank_rows` (a region's rows with no ink outside the protected intervals) and
+  `p_next_cut` (where a piece ends). MozJPEG (the scans' pieces).
+- **Candidates looked at:** **k2pdfopt** (Willus, AGPL-3.0) is the tool the owner named — C, built on MuPDF and Leptonica, its
+  "native" mode crops the page as vector pieces. There is no WebAssembly build of it, and building one means its own build
+  of MuPDF and Leptonica (megabytes beside the MuPDF already on the site, AGPL either way) for the part this tab needs — the
+  vertical cuts and the layout of the pieces —, which is a few hundred lines on top of the engines the site has. Its native
+  mode also keeps the text outside each piece under the clip (searching finds a word on several screens); ours removes it
+  (redaction). **briss / pdfcropmargins** (Java / Python, margins only). **pdf.js** (JavaScript; draws, does not cut).
+  Decision: MuPDF + textcore + our C — WebAssembly throughout, nothing new to download.
+- **What our C does that MuPDF does not:** the rows of a region where a piece may end — a pixel loop over the page's drawing
+  with the protected intervals (letters' bodies, figures, formulas, captions) — and the choice of the gap (the lowest
+  paragraph gap past 65 % of the room, else the lowest gap; −1 and where an uncuttable piece ends).
+- **TypeScript (glue):** which items protect which rows, the regions' runs, the layout of pieces on screens, the redaction
+  areas (rectangles and bands from MuPDF's character boxes), the content streams of the screens — bookkeeping around the
+  engines.
+- **Tests:** unit `kindlepdf` 68 (the C on synthetic rows; the redaction areas on overlapping character boxes; the fixtures'
+  every line, order, figure, formula, table, caption, label, bookmark, option, rotation, tall figure, sideways table, scan;
+  every vector piece drawn as the page draws it — pixels at 3 px/pt; the repository's real PDFs), e2e `kindlepdf` 36.
+

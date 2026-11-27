@@ -33,6 +33,7 @@ export const KEYWORDS: Record<string, string> = {
   'pdf-pagenum': 'page numbers, number pages, pdf, footer, header, bates',
   'pdf-watermark': 'watermark, stamp, confidential, draft, pdf, text',
   'epub': 'pdf to epub, pdf to kindle, send to kindle, epub, kindle, ebook, pdf, convert, paperwhite, scribe, reflow, columns, e-reader',
+  'kindlepdf': 'pdf for kindle, kindle pdf, read pdf on kindle, k2pdfopt, crop pdf margins, trim margins, two column pdf, columns, scientific paper, research paper, arxiv, journal article, technical pdf, maths, formulas, small screen, e-reader, ereader, e-ink, paperwhite, scribe, colorsoft, oasis, send to kindle, 6 inch, 7 inch, split columns',
   'sheet': 'excel viewer, xlsx to csv, csv to xlsx, excel to csv, csv to json, xls, csv, excel, xlsx, spreadsheet, json, table, convert, view',
   'markdown': 'markdown, md, editor, preview, html, notes, readme, print',
   'invoice': 'invoice, gst invoice, bill generator, invoice generator, invoice maker, bill, billing, tax invoice, gstin, hsn, sac, freelancer, quotation, estimate, pdf',

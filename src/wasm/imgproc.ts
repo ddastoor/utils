@@ -30,6 +30,8 @@ export function bindImgproc(e: any) {
     adjust: (img: Img, a: Adjust) => inplace(img, (p) => e.p_adjust(p, n(img), a.bright ?? 0, a.contrast ?? 0, a.exposure ?? 0, a.gamma ?? 1, a.sat ?? 0, a.vib ?? 0, a.hue ?? 0, a.temp ?? 0, a.tint ?? 0, a.highlights ?? 0, a.shadows ?? 0)),
     grayscale: (img: Img) => inplace(img, (p) => e.p_grayscale(p, n(img))),
     /** Boxes {x, y, w, h} of ink (luma < thr) outside the `skip` boxes, dilated by `dil` px, area ≥ minArea. */
+    /** Regions of ink (darker than `thr`) after a dilation of `dil` px, at least `minArea` px²; the boxes of `skip` — each
+     *  [x, y, width, height] in px, not two corners — are left out (the lines of text, when looking for figures). */
     inkRegions(img: Img, skip: Array<[number, number, number, number]>, o: { thr?: number; dil?: number; minArea?: number; max?: number } = {}) {
       const max = o.max ?? 256, s = put(img.data), k = e.p_malloc(Math.max(1, skip.length) * 16), out = e.p_malloc(max * 16);
       try {

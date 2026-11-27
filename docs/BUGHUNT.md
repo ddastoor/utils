@@ -3153,6 +3153,33 @@ cannot. Three new suites; each fails on the build before its fixes.
   candidates measured (docs/WASM-AUDIT.md 179): page-dewarp 0.3.4 takes the photo's rectangle less fixed margins for the
   page — it cut the words nearest the spine of a page cut out at the gutter (95 → 76 % of a frame's words read) and kept
   the table round the page; Leptonica 1.86's `dewarpSinglePage` gave up on 1080p video frames (too few lines found).
+- **PDF for Kindle (potentials #109, 27 Nov 2026), found while building it — each with a check that would catch it:**
+  - **The first or the last line of every piece was missing.** MuPDF's redaction removes a character whose box touches a
+    redaction area — and that box is the advance by the font's ascent and descent, taller than the ink: the boxes of two
+    lines overlap the gap between their letters, so a rectangle edge in the gap took the next line too. Now four big
+    rectangles stand a character's height off the piece and thin bands through the centres catch the outside characters
+    nearer than that (`redactionAreas`; unit: three lines of overlapping boxes, the middle one kept whole; on every fixture and
+    real PDF each line once on the screens).
+  - **No figure or formula was ever found:** imgproc's `inkRegions` takes the boxes to skip as x, y, width, height, and the
+    engine passed two corners — every line's box grew to the page's far corner and hid all drawings (unit: the plot, the
+    formula and the table each whole in one piece; the binding documents the convention now).
+  - **Columns joined by a rule:** the thin rules round the Federal Register's note and under its masthead stood across two
+    columns' tops and the XY-cut kept the columns together (two side by side, small, on one screen). Thin rules are drawn but
+    find no regions.
+  - **Screens ended half full:** the gap chosen was the widest in the window, and between two lines without descenders and
+    ascenders a gap is a row wider — a screen of the Federal Register ended at 62 %. Now a gap of half a line or more (a
+    paragraph's end) wins, else the lowest (unit: `nextCut` on rows; the Register's screens filled).
+  - **No gap at all in text set 10 on 10 pt:** at 2 px/pt the point between two lines is two rows, both grey at the letters'
+    edges; and the protected band of a line reached up to 0.75 of its size. A row is blank below luma 160 now (figures are
+    still found at 200), and a line's letters are protected from 0.6 of its size above the baseline.
+  - **Side-by-side figures made the text small:** the screens were as wide as the regions side by side — here two photos —
+    and the full-width text under them was drawn at half size. The screens are as wide as the text columns (regions side by
+    side holding a fifth of the page's text); "(b) Brown bear" under its photo stays with it (a line right under a figure,
+    within its width, is its caption).
+  - **The tests' own slips, fixed in the tests:** the pixel comparison drew the screen at k · s instead of k / s, then shifted
+    the piece by a fraction of a pixel, then read MuPDF's pixels after the next drawing had moved its memory
+    (`getPixels()` is a view — copied now); at 2 px/pt MuPDF snaps small glyphs drawn through a form to its sub-pixel grid
+    otherwise, and at 4 it samples photos otherwise — compared at 3 px/pt, every vector piece is the page's pixels exactly.
 - **Newspaper Clipper (potentials #110, 27 Nov 2026), found while building it — each with a check that would catch it:**
   - **Tesseract's page layout lost whole columns next to a picture.** The picture's grey, binarized by Tesseract, looks
     like a halftone, and its picture finder grew from it into the columns beside it (`pixSeedfillBinary` from the halftone

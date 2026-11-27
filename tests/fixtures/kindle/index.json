@@ -1,0 +1,1636 @@
+{
+ "paper.pdf": {
+  "pages": [
+   {
+    "lines": [
+     {
+      "text": "Journal of Kindle Tests - Volume 1 - 2026",
+      "x0": 54,
+      "y0": 28,
+      "x1": 201.6,
+      "y1": 36,
+      "head": true
+     },
+     {
+      "text": "1",
+      "x0": 294.5,
+      "y0": 802,
+      "x1": 298.55,
+      "y1": 811,
+      "head": true
+     },
+     {
+      "text": "Reading Papers on a Small Screen",
+      "x0": 120,
+      "y0": 60,
+      "x1": 364.8,
+      "y1": 77,
+      "head": false
+     },
+     {
+      "text": "A. Author and B. Writer",
+      "x0": 210,
+      "y0": 86,
+      "x1": 313.5,
+      "y1": 96,
+      "head": false
+     },
+     {
+      "text": "A1 abstract gaps pieces lines lemmas papers lines methods proofs figures lemmas tables tables",
+      "x0": 84,
+      "y0": 108,
+      "x1": 460.65000000000003,
+      "y1": 117,
+      "head": false
+     },
+     {
+      "text": "A2 abstract lemmas figures readers columns figures papers proofs results authors figures margins pages",
+      "x0": 84,
+      "y0": 119,
+      "x1": 497.1,
+      "y1": 128,
+      "head": false
+     },
+     {
+      "text": "A3 abstract tables proofs figures results formulas columns papers authors methods results methods authors",
+      "x0": 84,
+      "y0": 130,
+      "x1": 509.25,
+      "y1": 139,
+      "head": false
+     },
+     {
+      "text": "A4 abstract columns readers formulas margins readers pieces results pieces methods gaps tables pages",
+      "x0": 84,
+      "y0": 141,
+      "x1": 489,
+      "y1": 150,
+      "head": false
+     },
+     {
+      "text": "1 Introduction",
+      "x0": 54,
+      "y0": 166,
+      "x1": 129.60000000000002,
+      "y1": 178,
+      "head": false
+     },
+     {
+      "text": "L1.1.01 gaps kindles pieces methods gaps",
+      "x0": 54,
+      "y0": 184,
+      "x1": 234,
+      "y1": 194,
+      "head": false
+     },
+     {
+      "text": "L1.1.02 readers papers gaps kindles gaps",
+      "x0": 54,
+      "y0": 196,
+      "x1": 234,
+      "y1": 206,
+      "head": false
+     },
+     {
+      "text": "L1.1.03 screens figures gaps lines pages",
+      "x0": 54,
+      "y0": 208,
+      "x1": 234,
+      "y1": 218,
+      "head": false
+     },
+     {
+      "text": "L1.1.04 pieces pages figures authors tables",
+      "x0": 54,
+      "y0": 220,
+      "x1": 247.5,
+      "y1": 230,
+      "head": false
+     },
+     {
+      "text": "L1.1.05 formulas methods gaps margins proofs",
+      "x0": 54,
+      "y0": 232,
+      "x1": 252,
+      "y1": 242,
+      "head": false
+     },
+     {
+      "text": "L1.1.06 screens pages kindles margins papers",
+      "x0": 54,
+      "y0": 244,
+      "x1": 252,
+      "y1": 254,
+      "head": false
+     },
+     {
+      "text": "L1.1.07 screens tables margins columns pieces",
+      "x0": 54,
+      "y0": 256,
+      "x1": 256.5,
+      "y1": 266,
+      "head": false
+     },
+     {
+      "text": "L1.1.08 authors authors kindles readers lines",
+      "x0": 54,
+      "y0": 268,
+      "x1": 256.5,
+      "y1": 278,
+      "head": false
+     },
+     {
+      "text": "L1.1.09 screens pieces methods pieces gaps",
+      "x0": 54,
+      "y0": 280,
+      "x1": 243,
+      "y1": 290,
+      "head": false
+     },
+     {
+      "text": "0",
+      "x0": 62,
+      "y0": 406,
+      "x1": 64.7,
+      "y1": 412,
+      "head": false
+     },
+     {
+      "text": "x",
+      "x0": 248,
+      "y0": 414,
+      "x1": 250.7,
+      "y1": 420,
+      "head": false
+     },
+     {
+      "text": "Figure 1: A sine wave drawn as lines.",
+      "x0": 84,
+      "y0": 426,
+      "x1": 233.85,
+      "y1": 435,
+      "head": false
+     },
+     {
+      "text": "L1.1.10 figures methods papers pages tables",
+      "x0": 54,
+      "y0": 446,
+      "x1": 247.5,
+      "y1": 456,
+      "head": false
+     },
+     {
+      "text": "L1.1.11 results pieces tables pages authors",
+      "x0": 54,
+      "y0": 458,
+      "x1": 247.5,
+      "y1": 468,
+      "head": false
+     },
+     {
+      "text": "L1.1.12 readers columns kindles figures lemmas",
+      "x0": 54,
+      "y0": 470,
+      "x1": 261,
+      "y1": 480,
+      "head": false
+     },
+     {
+      "text": "L1.1.13 screens gaps gaps proofs papers",
+      "x0": 54,
+      "y0": 482,
+      "x1": 229.5,
+      "y1": 492,
+      "head": false
+     },
+     {
+      "text": "L1.1.14 lemmas screens screens pages kindles",
+      "x0": 54,
+      "y0": 494,
+      "x1": 252,
+      "y1": 504,
+      "head": false
+     },
+     {
+      "text": "L1.1.15 results lines proofs results lines",
+      "x0": 54,
+      "y0": 506,
+      "x1": 243,
+      "y1": 516,
+      "head": false
+     },
+     {
+      "text": "L1.1.16 proofs kindles gaps methods pages",
+      "x0": 54,
+      "y0": 518,
+      "x1": 238.5,
+      "y1": 528,
+      "head": false
+     },
+     {
+      "text": "L1.1.17 readers authors proofs methods tables",
+      "x0": 54,
+      "y0": 530,
+      "x1": 256.5,
+      "y1": 540,
+      "head": false
+     },
+     {
+      "text": "L1.2.01 screens readers columns formulas margins",
+      "x0": 312,
+      "y0": 166,
+      "x1": 528,
+      "y1": 176,
+      "head": false
+     },
+     {
+      "text": "L1.2.02 results screens lines pieces tables",
+      "x0": 312,
+      "y0": 178,
+      "x1": 505.5,
+      "y1": 188,
+      "head": false
+     },
+     {
+      "text": "L1.2.03 gaps margins proofs proofs screens",
+      "x0": 312,
+      "y0": 190,
+      "x1": 501,
+      "y1": 200,
+      "head": false
+     },
+     {
+      "text": "L1.2.04 papers formulas results readers pieces",
+      "x0": 312,
+      "y0": 202,
+      "x1": 519,
+      "y1": 212,
+      "head": false
+     },
+     {
+      "text": "L1.2.05 papers figures methods readers screens",
+      "x0": 312,
+      "y0": 214,
+      "x1": 519,
+      "y1": 224,
+      "head": false
+     },
+     {
+      "text": "L1.2.06 margins pages gaps proofs pages",
+      "x0": 312,
+      "y0": 226,
+      "x1": 487.5,
+      "y1": 236,
+      "head": false
+     },
+     {
+      "text": "L1.2.07 lemmas figures gaps margins formulas",
+      "x0": 312,
+      "y0": 238,
+      "x1": 510,
+      "y1": 248,
+      "head": false
+     },
+     {
+      "text": "a + b = S",
+      "x0": 382,
+      "y0": 260,
+      "x1": 426.55,
+      "y1": 271,
+      "head": false
+     },
+     {
+      "text": "p - q",
+      "x0": 386,
+      "y0": 279,
+      "x1": 410.75,
+      "y1": 290,
+      "head": false
+     },
+     {
+      "text": "(1)",
+      "x0": 512,
+      "y0": 269,
+      "x1": 525.5,
+      "y1": 279,
+      "head": false
+     },
+     {
+      "text": "L1.2.08 gaps authors gaps columns proofs",
+      "x0": 312,
+      "y0": 300,
+      "x1": 492,
+      "y1": 310,
+      "head": false
+     },
+     {
+      "text": "L1.2.09 pages kindles results authors formulas",
+      "x0": 312,
+      "y0": 312,
+      "x1": 519,
+      "y1": 322,
+      "head": false
+     },
+     {
+      "text": "L1.2.10 proofs pieces figures tables figures",
+      "x0": 312,
+      "y0": 324,
+      "x1": 510,
+      "y1": 334,
+      "head": false
+     },
+     {
+      "text": "L1.2.11 authors authors gaps columns kindles",
+      "x0": 312,
+      "y0": 336,
+      "x1": 510,
+      "y1": 346,
+      "head": false
+     },
+     {
+      "text": "L1.2.12 results kindles tables tables formulas",
+      "x0": 312,
+      "y0": 348,
+      "x1": 519,
+      "y1": 358,
+      "head": false
+     },
+     {
+      "text": "L1.2.13 gaps gaps pieces margins formulas",
+      "x0": 312,
+      "y0": 360,
+      "x1": 496.5,
+      "y1": 370,
+      "head": false
+     },
+     {
+      "text": "Table 1: Screen sizes.",
+      "x0": 322,
+      "y0": 380,
+      "x1": 411.1,
+      "y1": 389,
+      "head": false
+     },
+     {
+      "text": "Model",
+      "x0": 326,
+      "y0": 394,
+      "x1": 346.25,
+      "y1": 403,
+      "head": false
+     },
+     {
+      "text": "Width",
+      "x0": 392,
+      "y0": 394,
+      "x1": 412.25,
+      "y1": 403,
+      "head": false
+     },
+     {
+      "text": "Height",
+      "x0": 458,
+      "y0": 394,
+      "x1": 482.3,
+      "y1": 403,
+      "head": false
+     },
+     {
+      "text": "Paperwhite",
+      "x0": 326,
+      "y0": 407,
+      "x1": 366.5,
+      "y1": 416,
+      "head": false
+     },
+     {
+      "text": "1264",
+      "x0": 392,
+      "y0": 407,
+      "x1": 408.2,
+      "y1": 416,
+      "head": false
+     },
+     {
+      "text": "1680",
+      "x0": 458,
+      "y0": 407,
+      "x1": 474.2,
+      "y1": 416,
+      "head": false
+     },
+     {
+      "text": "Scribe",
+      "x0": 326,
+      "y0": 420,
+      "x1": 350.3,
+      "y1": 429,
+      "head": false
+     },
+     {
+      "text": "1860",
+      "x0": 392,
+      "y0": 420,
+      "x1": 408.2,
+      "y1": 429,
+      "head": false
+     },
+     {
+      "text": "2480",
+      "x0": 458,
+      "y0": 420,
+      "x1": 474.2,
+      "y1": 429,
+      "head": false
+     },
+     {
+      "text": "L1.2.14 methods figures lemmas formulas screens",
+      "x0": 312,
+      "y0": 445,
+      "x1": 523.5,
+      "y1": 455,
+      "head": false
+     },
+     {
+      "text": "L1.2.15 figures papers kindles papers columns",
+      "x0": 312,
+      "y0": 455.5,
+      "x1": 514.5,
+      "y1": 465.5,
+      "head": false
+     },
+     {
+      "text": "L1.2.16 figures columns formulas pages figures",
+      "x0": 312,
+      "y0": 466,
+      "x1": 519,
+      "y1": 476,
+      "head": false
+     },
+     {
+      "text": "L1.2.17 lemmas pieces formulas tables pieces",
+      "x0": 312,
+      "y0": 476.5,
+      "x1": 510,
+      "y1": 486.5,
+      "head": false
+     },
+     {
+      "text": "L1.2.18 pages lines lemmas papers gaps",
+      "x0": 312,
+      "y0": 487,
+      "x1": 483,
+      "y1": 497,
+      "head": false
+     },
+     {
+      "text": "L1.2.19 formulas pieces results authors pages",
+      "x0": 312,
+      "y0": 497.5,
+      "x1": 514.5,
+      "y1": 507.5,
+      "head": false
+     },
+     {
+      "text": "L1.2.20 figures authors authors figures formulas",
+      "x0": 312,
+      "y0": 508,
+      "x1": 528,
+      "y1": 518,
+      "head": false
+     },
+     {
+      "text": "L1.2.21 pieces tables screens margins gaps",
+      "x0": 312,
+      "y0": 518.5,
+      "x1": 501,
+      "y1": 528.5,
+      "head": false
+     },
+     {
+      "text": "L1.2.22 methods lines methods lines formulas",
+      "x0": 312,
+      "y0": 529,
+      "x1": 510,
+      "y1": 539,
+      "head": false
+     },
+     {
+      "text": "L1.2.23 margins lines lines authors lemmas",
+      "x0": 312,
+      "y0": 539.5,
+      "x1": 501,
+      "y1": 549.5,
+      "head": false
+     },
+     {
+      "text": "L1.2.24 margins papers methods pieces proofs",
+      "x0": 312,
+      "y0": 550,
+      "x1": 510,
+      "y1": 560,
+      "head": false
+     },
+     {
+      "text": "L1.2.25 pages methods lemmas proofs methods",
+      "x0": 312,
+      "y0": 560.5,
+      "x1": 505.5,
+      "y1": 570.5,
+      "head": false
+     },
+     {
+      "text": "L1.2.26 lines columns papers figures gaps",
+      "x0": 312,
+      "y0": 577,
+      "x1": 496.5,
+      "y1": 587,
+      "head": false
+     },
+     {
+      "text": "L1.2.27 columns lemmas columns methods methods",
+      "x0": 312,
+      "y0": 589,
+      "x1": 519,
+      "y1": 599,
+      "head": false
+     },
+     {
+      "text": "L1.2.28 columns kindles figures lines columns",
+      "x0": 312,
+      "y0": 601,
+      "x1": 514.5,
+      "y1": 611,
+      "head": false
+     },
+     {
+      "text": "L1.2.29 readers tables kindles results results",
+      "x0": 312,
+      "y0": 613,
+      "x1": 519,
+      "y1": 623,
+      "head": false
+     },
+     {
+      "text": "L1.2.30 proofs readers results lines lines",
+      "x0": 312,
+      "y0": 625,
+      "x1": 501,
+      "y1": 635,
+      "head": false
+     },
+     {
+      "text": "L1.2.31 formulas gaps lines figures screens",
+      "x0": 312,
+      "y0": 637,
+      "x1": 505.5,
+      "y1": 647,
+      "head": false
+     },
+     {
+      "text": "L1.2.32 columns tables pieces pieces lines",
+      "x0": 312,
+      "y0": 649,
+      "x1": 501,
+      "y1": 659,
+      "head": false
+     },
+     {
+      "text": "L1.2.33 lemmas lines gaps proofs proofs",
+      "x0": 312,
+      "y0": 661,
+      "x1": 487.5,
+      "y1": 671,
+      "head": false
+     },
+     {
+      "text": "L1.2.34 proofs gaps authors figures formulas",
+      "x0": 312,
+      "y0": 673,
+      "x1": 510,
+      "y1": 683,
+      "head": false
+     },
+     {
+      "text": "L1.2.35 pages proofs margins columns tables",
+      "x0": 312,
+      "y0": 685,
+      "x1": 505.5,
+      "y1": 695,
+      "head": false
+     }
+    ],
+    "order": [
+     "Reading Papers on a Small Screen",
+     "A. Author and B. Writer",
+     "A1 abstract gaps pieces lines lemmas papers lines methods proofs figures lemmas tables tables",
+     "A2 abstract lemmas figures readers columns figures papers proofs results authors figures margins pages",
+     "A3 abstract tables proofs figures results formulas columns papers authors methods results methods authors",
+     "A4 abstract columns readers formulas margins readers pieces results pieces methods gaps tables pages",
+     "1 Introduction",
+     "L1.1.01 gaps kindles pieces methods gaps",
+     "L1.1.02 readers papers gaps kindles gaps",
+     "L1.1.03 screens figures gaps lines pages",
+     "L1.1.04 pieces pages figures authors tables",
+     "L1.1.05 formulas methods gaps margins proofs",
+     "L1.1.06 screens pages kindles margins papers",
+     "L1.1.07 screens tables margins columns pieces",
+     "L1.1.08 authors authors kindles readers lines",
+     "L1.1.09 screens pieces methods pieces gaps",
+     "Figure 1: A sine wave drawn as lines.",
+     "L1.1.10 figures methods papers pages tables",
+     "L1.1.11 results pieces tables pages authors",
+     "L1.1.12 readers columns kindles figures lemmas",
+     "L1.1.13 screens gaps gaps proofs papers",
+     "L1.1.14 lemmas screens screens pages kindles",
+     "L1.1.15 results lines proofs results lines",
+     "L1.1.16 proofs kindles gaps methods pages",
+     "L1.1.17 readers authors proofs methods tables",
+     "L1.2.01 screens readers columns formulas margins",
+     "L1.2.02 results screens lines pieces tables",
+     "L1.2.03 gaps margins proofs proofs screens",
+     "L1.2.04 papers formulas results readers pieces",
+     "L1.2.05 papers figures methods readers screens",
+     "L1.2.06 margins pages gaps proofs pages",
+     "L1.2.07 lemmas figures gaps margins formulas",
+     "L1.2.08 gaps authors gaps columns proofs",
+     "L1.2.09 pages kindles results authors formulas",
+     "L1.2.10 proofs pieces figures tables figures",
+     "L1.2.11 authors authors gaps columns kindles",
+     "L1.2.12 results kindles tables tables formulas",
+     "L1.2.13 gaps gaps pieces margins formulas",
+     "Table 1: Screen sizes.",
+     "L1.2.14 methods figures lemmas formulas screens",
+     "L1.2.15 figures papers kindles papers columns",
+     "L1.2.16 figures columns formulas pages figures",
+     "L1.2.17 lemmas pieces formulas tables pieces",
+     "L1.2.18 pages lines lemmas papers gaps",
+     "L1.2.19 formulas pieces results authors pages",
+     "L1.2.20 figures authors authors figures formulas",
+     "L1.2.21 pieces tables screens margins gaps",
+     "L1.2.22 methods lines methods lines formulas",
+     "L1.2.23 margins lines lines authors lemmas",
+     "L1.2.24 margins papers methods pieces proofs",
+     "L1.2.25 pages methods lemmas proofs methods",
+     "L1.2.26 lines columns papers figures gaps",
+     "L1.2.27 columns lemmas columns methods methods",
+     "L1.2.28 columns kindles figures lines columns",
+     "L1.2.29 readers tables kindles results results",
+     "L1.2.30 proofs readers results lines lines",
+     "L1.2.31 formulas gaps lines figures screens",
+     "L1.2.32 columns tables pieces pieces lines",
+     "L1.2.33 lemmas lines gaps proofs proofs",
+     "L1.2.34 proofs gaps authors figures formulas",
+     "L1.2.35 pages proofs margins columns tables"
+    ],
+    "figures": [
+     {
+      "x0": 62,
+      "y0": 302,
+      "x1": 254,
+      "y1": 420,
+      "labels": [
+       "0",
+       "x"
+      ]
+     }
+    ],
+    "formulas": [
+     {
+      "x0": 372,
+      "y0": 260,
+      "x1": 442,
+      "y1": 290,
+      "number": "(1)"
+     }
+    ],
+    "tables": [
+     {
+      "x0": 322,
+      "y0": 392,
+      "x1": 522,
+      "y1": 433,
+      "cells": [
+       "Model",
+       "Width",
+       "Height",
+       "Paperwhite",
+       "1264",
+       "1680",
+       "Scribe",
+       "1860",
+       "2480"
+      ]
+     }
+    ],
+    "captions": [
+     {
+      "figure": 0,
+      "line": "Figure 1: A sine wave drawn as lines."
+     },
+     {
+      "table": 0,
+      "line": "Table 1: Screen sizes."
+     }
+    ]
+   },
+   {
+    "lines": [
+     {
+      "text": "Journal of Kindle Tests - Volume 1 - 2026",
+      "x0": 54,
+      "y0": 28,
+      "x1": 201.6,
+      "y1": 36,
+      "head": true
+     },
+     {
+      "text": "2",
+      "x0": 294.5,
+      "y0": 802,
+      "x1": 298.55,
+      "y1": 811,
+      "head": true
+     },
+     {
+      "text": "2 Methods",
+      "x0": 54,
+      "y0": 60,
+      "x1": 102.6,
+      "y1": 72,
+      "head": false
+     },
+     {
+      "text": "L2.1.01 authors results authors results kindles",
+      "x0": 54,
+      "y0": 78,
+      "x1": 265.5,
+      "y1": 88,
+      "head": false
+     },
+     {
+      "text": "L2.1.02 columns tables papers papers pages",
+      "x0": 54,
+      "y0": 90,
+      "x1": 243,
+      "y1": 100,
+      "head": false
+     },
+     {
+      "text": "L2.1.03 margins screens pieces columns methods",
+      "x0": 54,
+      "y0": 102,
+      "x1": 261,
+      "y1": 112,
+      "head": false
+     },
+     {
+      "text": "L2.1.04 proofs figures kindles readers authors",
+      "x0": 54,
+      "y0": 114,
+      "x1": 261,
+      "y1": 124,
+      "head": false
+     },
+     {
+      "text": "L2.1.05 methods formulas tables figures papers",
+      "x0": 54,
+      "y0": 126,
+      "x1": 261,
+      "y1": 136,
+      "head": false
+     },
+     {
+      "text": "L2.1.06 pieces lines lemmas screens papers",
+      "x0": 54,
+      "y0": 138,
+      "x1": 243,
+      "y1": 148,
+      "head": false
+     },
+     {
+      "text": "L2.1.07 lemmas lemmas margins papers gaps",
+      "x0": 54,
+      "y0": 150,
+      "x1": 238.5,
+      "y1": 160,
+      "head": false
+     },
+     {
+      "text": "L2.1.08 methods margins lines results lines",
+      "x0": 54,
+      "y0": 162,
+      "x1": 247.5,
+      "y1": 172,
+      "head": false
+     },
+     {
+      "text": "L2.1.09 figures pieces lemmas methods lemmas",
+      "x0": 54,
+      "y0": 174,
+      "x1": 252,
+      "y1": 184,
+      "head": false
+     },
+     {
+      "text": "L2.1.10 margins formulas margins screens lemmas",
+      "x0": 54,
+      "y0": 186,
+      "x1": 265.5,
+      "y1": 196,
+      "head": false
+     },
+     {
+      "text": "L2.1.11 margins tables lemmas lines tables",
+      "x0": 54,
+      "y0": 198,
+      "x1": 243,
+      "y1": 208,
+      "head": false
+     },
+     {
+      "text": "L2.1.12 authors columns columns readers papers",
+      "x0": 54,
+      "y0": 210,
+      "x1": 261,
+      "y1": 220,
+      "head": false
+     },
+     {
+      "text": "L2.1.13 results formulas gaps gaps lines",
+      "x0": 54,
+      "y0": 222,
+      "x1": 234,
+      "y1": 232,
+      "head": false
+     },
+     {
+      "text": "L2.1.14 formulas pages readers formulas margins",
+      "x0": 54,
+      "y0": 234,
+      "x1": 265.5,
+      "y1": 244,
+      "head": false
+     },
+     {
+      "text": "L2.1.15 pieces formulas figures methods lines",
+      "x0": 54,
+      "y0": 246,
+      "x1": 256.5,
+      "y1": 256,
+      "head": false
+     },
+     {
+      "text": "L2.1.16 methods methods proofs tables lemmas",
+      "x0": 54,
+      "y0": 258,
+      "x1": 252,
+      "y1": 268,
+      "head": false
+     },
+     {
+      "text": "L2.1.17 tables pages pieces gaps figures",
+      "x0": 54,
+      "y0": 270,
+      "x1": 234,
+      "y1": 280,
+      "head": false
+     },
+     {
+      "text": "L2.1.18 figures kindles tables lemmas margins",
+      "x0": 54,
+      "y0": 282,
+      "x1": 256.5,
+      "y1": 292,
+      "head": false
+     },
+     {
+      "text": "L2.1.19 papers figures gaps pages tables",
+      "x0": 54,
+      "y0": 294,
+      "x1": 234,
+      "y1": 304,
+      "head": false
+     },
+     {
+      "text": "L2.1.20 formulas margins figures gaps methods",
+      "x0": 54,
+      "y0": 306,
+      "x1": 256.5,
+      "y1": 316,
+      "head": false
+     },
+     {
+      "text": "L2.1.21 margins gaps formulas screens figures",
+      "x0": 54,
+      "y0": 324,
+      "x1": 256.5,
+      "y1": 334,
+      "head": false
+     },
+     {
+      "text": "L2.1.22 figures columns columns gaps figures",
+      "x0": 54,
+      "y0": 336,
+      "x1": 252,
+      "y1": 346,
+      "head": false
+     },
+     {
+      "text": "L2.1.23 pages columns proofs formulas readers",
+      "x0": 54,
+      "y0": 348,
+      "x1": 256.5,
+      "y1": 358,
+      "head": false
+     },
+     {
+      "text": "L2.1.24 figures lemmas authors columns kindles",
+      "x0": 54,
+      "y0": 360,
+      "x1": 261,
+      "y1": 370,
+      "head": false
+     },
+     {
+      "text": "L2.1.25 methods tables tables proofs lemmas",
+      "x0": 54,
+      "y0": 372,
+      "x1": 247.5,
+      "y1": 382,
+      "head": false
+     },
+     {
+      "text": "L2.1.26 pages authors gaps results papers",
+      "x0": 54,
+      "y0": 384,
+      "x1": 238.5,
+      "y1": 394,
+      "head": false
+     },
+     {
+      "text": "L2.1.27 papers readers results formulas readers",
+      "x0": 54,
+      "y0": 396,
+      "x1": 265.5,
+      "y1": 406,
+      "head": false
+     },
+     {
+      "text": "L2.1.28 lemmas proofs pieces formulas pieces",
+      "x0": 54,
+      "y0": 408,
+      "x1": 252,
+      "y1": 418,
+      "head": false
+     },
+     {
+      "text": "L2.1.29 gaps papers readers papers proofs",
+      "x0": 54,
+      "y0": 420,
+      "x1": 238.5,
+      "y1": 430,
+      "head": false
+     },
+     {
+      "text": "L2.1.30 gaps methods papers pages formulas",
+      "x0": 54,
+      "y0": 432,
+      "x1": 243,
+      "y1": 442,
+      "head": false
+     },
+     {
+      "text": "L2.1.31 proofs kindles pieces formulas pieces",
+      "x0": 54,
+      "y0": 444,
+      "x1": 256.5,
+      "y1": 454,
+      "head": false
+     },
+     {
+      "text": "L2.1.32 authors proofs gaps margins results",
+      "x0": 54,
+      "y0": 456,
+      "x1": 247.5,
+      "y1": 466,
+      "head": false
+     },
+     {
+      "text": "L2.1.33 screens methods lines kindles columns",
+      "x0": 54,
+      "y0": 468,
+      "x1": 256.5,
+      "y1": 478,
+      "head": false
+     },
+     {
+      "text": "L2.1.34 screens lines readers papers lemmas",
+      "x0": 54,
+      "y0": 480,
+      "x1": 247.5,
+      "y1": 490,
+      "head": false
+     },
+     {
+      "text": "L2.1.35 pieces columns kindles columns pieces",
+      "x0": 54,
+      "y0": 492,
+      "x1": 256.5,
+      "y1": 502,
+      "head": false
+     },
+     {
+      "text": "L2.1.36 figures formulas authors formulas formulas",
+      "x0": 54,
+      "y0": 504,
+      "x1": 279,
+      "y1": 514,
+      "head": false
+     },
+     {
+      "text": "L2.1.37 gaps formulas margins lemmas proofs",
+      "x0": 54,
+      "y0": 516,
+      "x1": 247.5,
+      "y1": 526,
+      "head": false
+     },
+     {
+      "text": "L2.1.38 authors readers margins papers margins",
+      "x0": 54,
+      "y0": 528,
+      "x1": 261,
+      "y1": 538,
+      "head": false
+     },
+     {
+      "text": "F2.1 footnote papers authors columns columns columns",
+      "x0": 54,
+      "y0": 746,
+      "x1": 241.20000000000002,
+      "y1": 754,
+      "head": false
+     },
+     {
+      "text": "3 Results",
+      "x0": 312,
+      "y0": 60,
+      "x1": 360.6,
+      "y1": 72,
+      "head": false
+     },
+     {
+      "text": "L2.2.01 readers screens lemmas pieces proofs",
+      "x0": 312,
+      "y0": 78,
+      "x1": 510,
+      "y1": 88,
+      "head": false
+     },
+     {
+      "text": "L2.2.02 proofs readers margins tables pieces",
+      "x0": 312,
+      "y0": 90,
+      "x1": 510,
+      "y1": 100,
+      "head": false
+     },
+     {
+      "text": "L2.2.03 proofs authors gaps margins lines",
+      "x0": 312,
+      "y0": 102,
+      "x1": 496.5,
+      "y1": 112,
+      "head": false
+     },
+     {
+      "text": "L2.2.04 readers pieces readers lemmas columns",
+      "x0": 312,
+      "y0": 114,
+      "x1": 514.5,
+      "y1": 124,
+      "head": false
+     },
+     {
+      "text": "L2.2.05 kindles authors columns proofs authors",
+      "x0": 312,
+      "y0": 126,
+      "x1": 519,
+      "y1": 136,
+      "head": false
+     },
+     {
+      "text": "L2.2.06 authors kindles figures margins pages",
+      "x0": 312,
+      "y0": 138,
+      "x1": 514.5,
+      "y1": 148,
+      "head": false
+     },
+     {
+      "text": "L2.2.07 formulas pages formulas screens methods",
+      "x0": 312,
+      "y0": 150,
+      "x1": 523.5,
+      "y1": 160,
+      "head": false
+     },
+     {
+      "text": "L2.2.08 proofs pieces formulas tables figures",
+      "x0": 312,
+      "y0": 162,
+      "x1": 514.5,
+      "y1": 172,
+      "head": false
+     },
+     {
+      "text": "L2.2.09 papers gaps papers readers lines",
+      "x0": 312,
+      "y0": 174,
+      "x1": 492,
+      "y1": 184,
+      "head": false
+     },
+     {
+      "text": "L2.2.10 columns pages gaps readers columns",
+      "x0": 312,
+      "y0": 186,
+      "x1": 501,
+      "y1": 196,
+      "head": false
+     },
+     {
+      "text": "L2.2.11 authors kindles formulas readers pages",
+      "x0": 312,
+      "y0": 198,
+      "x1": 519,
+      "y1": 208,
+      "head": false
+     },
+     {
+      "text": "L2.2.12 pieces tables readers readers authors",
+      "x0": 312,
+      "y0": 210,
+      "x1": 514.5,
+      "y1": 220,
+      "head": false
+     },
+     {
+      "text": "L2.2.13 methods margins pages pieces proofs",
+      "x0": 312,
+      "y0": 222,
+      "x1": 505.5,
+      "y1": 232,
+      "head": false
+     },
+     {
+      "text": "L2.2.14 formulas formulas authors lines papers",
+      "x0": 312,
+      "y0": 234,
+      "x1": 519,
+      "y1": 244,
+      "head": false
+     },
+     {
+      "text": "L2.2.15 columns screens papers pieces authors",
+      "x0": 312,
+      "y0": 246,
+      "x1": 514.5,
+      "y1": 256,
+      "head": false
+     },
+     {
+      "text": "L2.2.16 margins results screens lines readers",
+      "x0": 312,
+      "y0": 258,
+      "x1": 514.5,
+      "y1": 268,
+      "head": false
+     },
+     {
+      "text": "L2.2.17 proofs results papers proofs readers",
+      "x0": 312,
+      "y0": 270,
+      "x1": 510,
+      "y1": 280,
+      "head": false
+     },
+     {
+      "text": "L2.2.18 margins kindles figures formulas columns",
+      "x0": 312,
+      "y0": 282,
+      "x1": 528,
+      "y1": 292,
+      "head": false
+     },
+     {
+      "text": "L2.2.19 kindles authors margins pieces proofs",
+      "x0": 312,
+      "y0": 294,
+      "x1": 514.5,
+      "y1": 304,
+      "head": false
+     },
+     {
+      "text": "L2.2.20 results results screens readers gaps",
+      "x0": 312,
+      "y0": 306,
+      "x1": 510,
+      "y1": 316,
+      "head": false
+     },
+     {
+      "text": "L2.2.21 margins columns authors kindles screens",
+      "x0": 312,
+      "y0": 318,
+      "x1": 523.5,
+      "y1": 328,
+      "head": false
+     },
+     {
+      "text": "L2.2.22 lines pieces formulas columns pieces",
+      "x0": 312,
+      "y0": 330,
+      "x1": 510,
+      "y1": 340,
+      "head": false
+     },
+     {
+      "text": "L2.2.23 kindles readers tables figures pages",
+      "x0": 312,
+      "y0": 342,
+      "x1": 510,
+      "y1": 352,
+      "head": false
+     },
+     {
+      "text": "L2.2.24 formulas pieces kindles readers kindles",
+      "x0": 312,
+      "y0": 354,
+      "x1": 523.5,
+      "y1": 364,
+      "head": false
+     },
+     {
+      "text": "L2.2.25 papers kindles screens authors lemmas",
+      "x0": 312,
+      "y0": 372,
+      "x1": 514.5,
+      "y1": 382,
+      "head": false
+     },
+     {
+      "text": "L2.2.26 authors tables lines kindles methods",
+      "x0": 312,
+      "y0": 384,
+      "x1": 510,
+      "y1": 394,
+      "head": false
+     },
+     {
+      "text": "L2.2.27 margins results columns tables figures",
+      "x0": 312,
+      "y0": 396,
+      "x1": 519,
+      "y1": 406,
+      "head": false
+     },
+     {
+      "text": "L2.2.28 figures pages margins results results",
+      "x0": 312,
+      "y0": 408,
+      "x1": 514.5,
+      "y1": 418,
+      "head": false
+     },
+     {
+      "text": "L2.2.29 readers lines pages margins columns",
+      "x0": 312,
+      "y0": 420,
+      "x1": 505.5,
+      "y1": 430,
+      "head": false
+     },
+     {
+      "text": "L2.2.30 tables columns formulas authors pages",
+      "x0": 312,
+      "y0": 432,
+      "x1": 514.5,
+      "y1": 442,
+      "head": false
+     },
+     {
+      "text": "L2.2.31 results papers lines screens columns",
+      "x0": 312,
+      "y0": 444,
+      "x1": 510,
+      "y1": 454,
+      "head": false
+     },
+     {
+      "text": "L2.2.32 authors screens readers tables pages",
+      "x0": 312,
+      "y0": 456,
+      "x1": 510,
+      "y1": 466,
+      "head": false
+     },
+     {
+      "text": "L2.2.33 readers margins readers kindles columns",
+      "x0": 312,
+      "y0": 468,
+      "x1": 523.5,
+      "y1": 478,
+      "head": false
+     },
+     {
+      "text": "L2.2.34 columns pages tables lines lines",
+      "x0": 312,
+      "y0": 480,
+      "x1": 492,
+      "y1": 490,
+      "head": false
+     },
+     {
+      "text": "L2.2.35 kindles papers margins kindles results",
+      "x0": 312,
+      "y0": 492,
+      "x1": 519,
+      "y1": 502,
+      "head": false
+     },
+     {
+      "text": "L2.2.36 lines formulas gaps screens gaps",
+      "x0": 312,
+      "y0": 504,
+      "x1": 492,
+      "y1": 514,
+      "head": false
+     },
+     {
+      "text": "L2.2.37 proofs lines readers margins gaps",
+      "x0": 312,
+      "y0": 516,
+      "x1": 496.5,
+      "y1": 526,
+      "head": false
+     },
+     {
+      "text": "L2.2.38 kindles lines gaps formulas methods",
+      "x0": 312,
+      "y0": 528,
+      "x1": 505.5,
+      "y1": 538,
+      "head": false
+     },
+     {
+      "text": "L2.2.39 columns methods methods kindles papers",
+      "x0": 312,
+      "y0": 540,
+      "x1": 519,
+      "y1": 550,
+      "head": false
+     },
+     {
+      "text": "L2.2.40 proofs pages readers columns figures",
+      "x0": 312,
+      "y0": 552,
+      "x1": 510,
+      "y1": 562,
+      "head": false
+     },
+     {
+      "text": "L2.2.41 kindles methods margins proofs proofs",
+      "x0": 312,
+      "y0": 564,
+      "x1": 514.5,
+      "y1": 574,
+      "head": false
+     },
+     {
+      "text": "L2.2.42 proofs gaps lemmas tables lemmas",
+      "x0": 312,
+      "y0": 576,
+      "x1": 492,
+      "y1": 586,
+      "head": false
+     },
+     {
+      "text": "L2.2.43 formulas results results gaps methods",
+      "x0": 312,
+      "y0": 588,
+      "x1": 514.5,
+      "y1": 598,
+      "head": false
+     },
+     {
+      "text": "L2.2.44 authors tables readers results margins",
+      "x0": 312,
+      "y0": 600,
+      "x1": 519,
+      "y1": 610,
+      "head": false
+     }
+    ],
+    "order": [
+     "2 Methods",
+     "L2.1.01 authors results authors results kindles",
+     "L2.1.02 columns tables papers papers pages",
+     "L2.1.03 margins screens pieces columns methods",
+     "L2.1.04 proofs figures kindles readers authors",
+     "L2.1.05 methods formulas tables figures papers",
+     "L2.1.06 pieces lines lemmas screens papers",
+     "L2.1.07 lemmas lemmas margins papers gaps",
+     "L2.1.08 methods margins lines results lines",
+     "L2.1.09 figures pieces lemmas methods lemmas",
+     "L2.1.10 margins formulas margins screens lemmas",
+     "L2.1.11 margins tables lemmas lines tables",
+     "L2.1.12 authors columns columns readers papers",
+     "L2.1.13 results formulas gaps gaps lines",
+     "L2.1.14 formulas pages readers formulas margins",
+     "L2.1.15 pieces formulas figures methods lines",
+     "L2.1.16 methods methods proofs tables lemmas",
+     "L2.1.17 tables pages pieces gaps figures",
+     "L2.1.18 figures kindles tables lemmas margins",
+     "L2.1.19 papers figures gaps pages tables",
+     "L2.1.20 formulas margins figures gaps methods",
+     "L2.1.21 margins gaps formulas screens figures",
+     "L2.1.22 figures columns columns gaps figures",
+     "L2.1.23 pages columns proofs formulas readers",
+     "L2.1.24 figures lemmas authors columns kindles",
+     "L2.1.25 methods tables tables proofs lemmas",
+     "L2.1.26 pages authors gaps results papers",
+     "L2.1.27 papers readers results formulas readers",
+     "L2.1.28 lemmas proofs pieces formulas pieces",
+     "L2.1.29 gaps papers readers papers proofs",
+     "L2.1.30 gaps methods papers pages formulas",
+     "L2.1.31 proofs kindles pieces formulas pieces",
+     "L2.1.32 authors proofs gaps margins results",
+     "L2.1.33 screens methods lines kindles columns",
+     "L2.1.34 screens lines readers papers lemmas",
+     "L2.1.35 pieces columns kindles columns pieces",
+     "L2.1.36 figures formulas authors formulas formulas",
+     "L2.1.37 gaps formulas margins lemmas proofs",
+     "L2.1.38 authors readers margins papers margins",
+     "F2.1 footnote papers authors columns columns columns",
+     "3 Results",
+     "L2.2.01 readers screens lemmas pieces proofs",
+     "L2.2.02 proofs readers margins tables pieces",
+     "L2.2.03 proofs authors gaps margins lines",
+     "L2.2.04 readers pieces readers lemmas columns",
+     "L2.2.05 kindles authors columns proofs authors",
+     "L2.2.06 authors kindles figures margins pages",
+     "L2.2.07 formulas pages formulas screens methods",
+     "L2.2.08 proofs pieces formulas tables figures",
+     "L2.2.09 papers gaps papers readers lines",
+     "L2.2.10 columns pages gaps readers columns",
+     "L2.2.11 authors kindles formulas readers pages",
+     "L2.2.12 pieces tables readers readers authors",
+     "L2.2.13 methods margins pages pieces proofs",
+     "L2.2.14 formulas formulas authors lines papers",
+     "L2.2.15 columns screens papers pieces authors",
+     "L2.2.16 margins results screens lines readers",
+     "L2.2.17 proofs results papers proofs readers",
+     "L2.2.18 margins kindles figures formulas columns",
+     "L2.2.19 kindles authors margins pieces proofs",
+     "L2.2.20 results results screens readers gaps",
+     "L2.2.21 margins columns authors kindles screens",
+     "L2.2.22 lines pieces formulas columns pieces",
+     "L2.2.23 kindles readers tables figures pages",
+     "L2.2.24 formulas pieces kindles readers kindles",
+     "L2.2.25 papers kindles screens authors lemmas",
+     "L2.2.26 authors tables lines kindles methods",
+     "L2.2.27 margins results columns tables figures",
+     "L2.2.28 figures pages margins results results",
+     "L2.2.29 readers lines pages margins columns",
+     "L2.2.30 tables columns formulas authors pages",
+     "L2.2.31 results papers lines screens columns",
+     "L2.2.32 authors screens readers tables pages",
+     "L2.2.33 readers margins readers kindles columns",
+     "L2.2.34 columns pages tables lines lines",
+     "L2.2.35 kindles papers margins kindles results",
+     "L2.2.36 lines formulas gaps screens gaps",
+     "L2.2.37 proofs lines readers margins gaps",
+     "L2.2.38 kindles lines gaps formulas methods",
+     "L2.2.39 columns methods methods kindles papers",
+     "L2.2.40 proofs pages readers columns figures",
+     "L2.2.41 kindles methods margins proofs proofs",
+     "L2.2.42 proofs gaps lemmas tables lemmas",
+     "L2.2.43 formulas results results gaps methods",
+     "L2.2.44 authors tables readers results margins"
+    ],
+    "figures": [],
+    "formulas": [],
+    "tables": [],
+    "captions": []
+   }
+  ],
+  "bookmarks": [
+   [
+    "Introduction",
+    0
+   ],
+   [
+    "Methods",
+    1
+   ]
+  ],
+  "bytes": 5038
+ },
+ "rotated.pdf": {
+  "pages": [
+   {
+    "order": [
+     "R1.01 readers proofs margins formulas tables margins",
+     "R1.02 pages tables results pieces figures results",
+     "R1.03 papers figures readers pieces proofs screens",
+     "R1.04 pieces figures figures formulas papers authors",
+     "R1.05 readers margins methods pages results formulas",
+     "R1.06 columns figures pieces columns proofs proofs",
+     "R1.07 tables screens readers results methods margins",
+     "R1.08 figures kindles authors lines tables tables",
+     "R1.09 proofs results methods methods proofs formulas",
+     "R1.10 pieces authors readers columns methods results",
+     "R1.11 gaps lines authors papers methods papers",
+     "R1.12 screens figures tables papers proofs readers",
+     "R1.13 formulas proofs pages tables gaps lines",
+     "R1.14 papers pieces kindles kindles tables columns",
+     "R1.15 authors papers figures pieces columns readers",
+     "R1.16 formulas columns results screens proofs tables",
+     "R1.17 authors readers pages results gaps pieces",
+     "R1.18 readers authors proofs figures lemmas formulas",
+     "R1.19 lemmas gaps papers authors pages margins",
+     "R1.20 methods tables margins tables papers gaps",
+     "R1.21 papers kindles screens columns kindles papers",
+     "R1.22 readers formulas results authors lines lemmas",
+     "R1.23 proofs results pages pages screens lines",
+     "R1.24 readers authors lines screens proofs lines",
+     "R1.25 lines kindles pages authors lemmas pieces",
+     "R1.26 results screens margins papers methods pages",
+     "R1.27 kindles tables pages lemmas tables screens",
+     "R1.28 methods authors tables pieces pages margins",
+     "R1.29 lemmas figures lemmas pages kindles kindles",
+     "R1.30 pieces pieces methods kindles gaps columns"
+    ]
+   }
+  ]
+ },
+ "tall.pdf": {
+  "pages": [
+   {
+    "order": [
+     "T1.01 pages authors proofs papers pages formulas pages results proofs figures",
+     "T1.02 margins formulas kindles readers methods pages gaps authors formulas figures",
+     "T1.03 lines lemmas pieces pieces readers papers margins papers kindles formulas",
+     "T1.04 formulas tables formulas readers gaps figures columns figures formulas methods",
+     "T1.05 tables methods columns readers columns formulas screens authors lemmas gaps",
+     "T1.06 formulas papers lines authors lemmas readers pages papers methods results",
+     "T1.07 formulas margins authors results authors results kindles proofs margins margins",
+     "T1.08 proofs lines methods figures kindles figures lines lemmas papers methods",
+     "T1.09 papers pieces lines readers results gaps gaps margins screens results",
+     "T1.10 readers papers pages margins gaps figures lemmas screens lemmas pages"
+    ],
+    "figures": [
+     {
+      "x0": 260,
+      "y0": 132,
+      "x1": 332,
+      "y1": 692
+     }
+    ]
+   }
+  ]
+ },
+ "sideways.pdf": {
+  "pages": [
+   {
+    "cells": 72
+   }
+  ]
+ },
+ "scan.pdf": {
+  "pages": [
+   {
+    "heads": [
+     {
+      "text": "Journal of Kindle Tests - Volume 1 - 2026",
+      "x0": 54,
+      "y0": 28,
+      "x1": 201.6,
+      "y1": 36,
+      "head": true
+     },
+     {
+      "text": "1",
+      "x0": 294.5,
+      "y0": 802,
+      "x1": 298.55,
+      "y1": 811,
+      "head": true
+     }
+    ]
+   }
+  ]
+ }
+}
