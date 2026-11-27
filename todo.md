@@ -13,6 +13,15 @@ The owner adds items here in chat ("add … to to do"). Newest instructions win.
 
 3. _(withdrawn by the owner on 20 Nov 2026: the "Export Python utility" for the YouTube Clip tab — do not build it.)_
 
+38. **OCR and Photo Dictionary: the text on the clipboard as soon as it is read** (owner, 27 Nov 2026: "Both the ocr and the
+    photo dictionary app should copy the ocr text to the clipboard immediately after conversion"). When a picture has been
+    read, its text goes to the clipboard by itself — the OCR tab's text as its box shows it (bullets and indentation kept),
+    the Photo Dictionary's complete recognised text — and the tab says "Copied to the clipboard". To check when building:
+    Chrome writes to the clipboard while the page has the focus; Safari and Firefox only within a tap, and the reading takes
+    seconds — so the copy is started in the tap that starts the reading (Extract text, Snap, Paste image: a ClipboardItem
+    whose text arrives later, which Safari and Chrome accept), and where the browser still refuses (a photo chosen from the
+    gallery on an iPhone) the tab says so and the Copy button does it with one tap. When: at the owner's word (not yet started).
+
 ## Done
 - **37. OCR and Photo Dictionary: an image from the clipboard** (owner, 27 Nov 2026: "Make both ocr app and photo dictionary app
   take images, as input, from the clipboard", then "Make a paste button for ocr and photo dictionary apps on the pc too") —

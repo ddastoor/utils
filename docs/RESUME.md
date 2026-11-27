@@ -24,7 +24,8 @@ engine — our `pair_lines` in textkit-diff.wasm —, Previous / Next change rou
 Photo Dictionary, on PCs and phones — `src/lib/clipimage.ts`, `imageInput(…, { paste: true })`; CLAUDE.md §3 OCR). todo.md
 has no open item. The potentials list was shown to the owner, and at the owner's request (27 Nov 2026) Claude suggested an
 order in four groups ("Suggested order" at the top of `docs/potentials.md`). **Next:** wait for the owner's pick; the size
-check for each app picked, then build.
+check for each app picked, then build. **New, open: to-do #38** (owner, 27 Nov 2026, before the potentials: the OCR's and the
+Photo Dictionary's text copied to the clipboard as soon as it is read) — not started; ask the owner whether to build it now.
 **Batch 1 done; batch 2 (#18 OCR + Photo Dictionary) DONE** (todo.md Done #18; CLAUDE.md §3 OCR, "Documents — one reading
 path"): both tabs read through `src/lib/readpage.ts`; documents with bullets, tables, columns and watermarks read far
 better, no photo of the 150 measured reads worse (Kindle 65.4 → 68.0 %, documents 71.6 → 87.1 %). Measuring: `node
