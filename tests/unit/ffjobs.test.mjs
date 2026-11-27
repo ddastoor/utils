@@ -16,8 +16,8 @@ export default async (t, { load, root }) => {
   // ---------------------------------------------------------------- pure checks
   t.eq([J.secs('90'), J.secs('1:30'), J.secs('00:01:30.5'), J.secs('1.5'), J.secs(' 2 ')], [90, 90, 90.5, 1.5, 2], 'times: seconds, mm:ss, hh:mm:ss.s');
   t.ok([J.secs('abc'), J.secs('1:'), J.secs('-1'), J.secs('1:2:3:4'), J.secs('')].every(Number.isNaN), 'not times: NaN');
-  t.eq(J.JOBS.length, 39, '39 jobs: the 16 there were and 23 for the 21 new uses (subtitles are three jobs, text and logo two)');
-  t.eq(new Set(J.JOBS.map(([j]) => j)).size, 39, 'each job once');
+  t.eq(J.JOBS.length, 61, '61 jobs: the 16 there were, 23 for the 21 uses of to-do #2 (subtitles are three jobs, text and logo two) and the 22 of to-do #32');
+  t.eq(new Set(J.JOBS.map(([j]) => j)).size, 61, 'each job once');
   t.ok(J.JOBS.every(([j]) => j === 'raw' || Object.keys(J.DEFAULTS).length > 0), 'defaults exist');
   const P = (x) => ({ ...J.EMPTY_PROBE, ...x });
   const vid = P({ dur: 3, w: 640, h: 360, fps: 25, video: true, vcodec: 'h264', audio: true, acodec: 'aac', rate: 48000, channels: 1 });

@@ -4,55 +4,117 @@
 // file itself writes the /in/ path. Text files a job needs (a concat list, a subtitle script) are in `writes`.
 
 export type Job =
-  | 'convert' | 'audio' | 'mute' | 'thumb' | 'frames' | 'sheet' | 'gif' | 'audio2mp4'
-  | 'trim' | 'cutout' | 'join' | 'split' | 'loop' | 'reverse'
-  | 'compress' | 'resize' | 'crop' | 'fit' | 'rotate' | 'fps'
-  | 'colours' | 'stabilise' | 'denoise' | 'deinterlace' | 'fade' | 'text' | 'logo' | 'pip'
-  | 'speed' | 'timelapse'
-  | 'volume' | 'loudnorm' | 'silence' | 'merge' | 'sound'
+  | 'convert' | 'remux' | 'audio' | 'mute' | 'thumb' | 'frames' | 'sheet' | 'scenes' | 'gif' | 'sticker' | 'audio2mp4'
+  | 'trim' | 'cutout' | 'join' | 'transitions' | 'split' | 'loop' | 'reverse'
+  | 'compress' | 'resize' | 'crop' | 'bars' | 'fit' | 'rotate' | 'fps' | 'v360'
+  | 'colours' | 'hdr' | 'stabilise' | 'denoise' | 'deinterlace' | 'delogo' | 'fade' | 'text' | 'logo' | 'pip'
+  | 'chroma' | 'stack' | 'trails' | 'visualiser' | 'soundpic'
+  | 'speed' | 'slowmo' | 'timelapse'
+  | 'volume' | 'loudnorm' | 'evenout' | 'silence' | 'sync' | 'side' | 'hum' | 'bleep' | 'sfx' | 'merge' | 'sound'
   | 'subBurn' | 'subAdd' | 'subExtract'
+  | 'analyse' | 'meta'
   | 'raw';
 
 export const JOB_GROUPS: Array<[string, Array<[Job, string]>]> = [
-  ['Convert and extract', [['convert', 'Convert format'], ['audio', 'Extract audio'], ['mute', 'Remove audio'], ['thumb', 'Picture at a moment (thumbnail)'], ['frames', 'Extract frames'], ['sheet', 'Contact sheet (grid of frames)'], ['gif', 'Video → GIF'], ['audio2mp4', 'Audio → MP4 video']]],
-  ['Cut and join', [['trim', 'Trim / cut'], ['cutout', 'Cut a part out'], ['join', 'Join clips'], ['split', 'Split into equal parts'], ['loop', 'Loop / boomerang'], ['reverse', 'Reverse']]],
-  ['Size and shape', [['compress', 'Compress video'], ['resize', 'Resize'], ['crop', 'Crop'], ['fit', 'Fit to a shape (blurred background or bars)'], ['rotate', 'Rotate / flip'], ['fps', 'Frame rate']]],
-  ['Picture', [['colours', 'Colours (brightness, contrast, black and white)'], ['stabilise', 'Stabilise a shaky video'], ['denoise', 'Clean up a grainy video'], ['deinterlace', 'Deinterlace (old camcorder / TV)'], ['fade', 'Fade in / fade out'], ['text', 'Text on the video'], ['logo', 'Logo on the video'], ['pip', 'Picture-in-picture']]],
-  ['Speed', [['speed', 'Speed up / slow down'], ['timelapse', 'Timelapse (8× – 60×)']]],
-  ['Sound', [['volume', 'Volume'], ['loudnorm', 'Normalise loudness'], ['silence', 'Remove silence'], ['merge', 'Add audio / background music'], ['sound', 'Sound settings (mono, stereo, sample rate)']]],
+  ['Convert and extract', [['convert', 'Convert format'], ['remux', 'MKV → MP4 at once (no re-encoding)'], ['audio', 'Extract audio'], ['mute', 'Remove audio'], ['thumb', 'Picture at a moment (thumbnail)'], ['frames', 'Extract frames'], ['sheet', 'Contact sheet (grid of frames)'], ['scenes', 'Scene finder (a picture per scene)'], ['gif', 'Video → GIF'], ['sticker', 'Animated WhatsApp sticker'], ['audio2mp4', 'Audio → MP4 video']]],
+  ['Cut and join', [['trim', 'Trim / cut'], ['cutout', 'Cut a part out'], ['join', 'Join clips'], ['transitions', 'Join clips with transitions'], ['split', 'Split into equal parts'], ['loop', 'Loop / boomerang'], ['reverse', 'Reverse']]],
+  ['Size and shape', [['compress', 'Compress video'], ['resize', 'Resize'], ['crop', 'Crop'], ['bars', 'Remove black bars'], ['fit', 'Fit to a shape (blurred background or bars)'], ['rotate', 'Rotate / flip'], ['fps', 'Frame rate'], ['v360', '360° or wide-lens video → a normal view']]],
+  ['Picture', [['colours', 'Colours (brightness, contrast, black and white)'], ['hdr', 'HDR (iPhone, Android) → normal colours'], ['stabilise', 'Stabilise a shaky video'], ['denoise', 'Clean up a grainy video'], ['deinterlace', 'Deinterlace (old camcorder / TV)'], ['delogo', 'Remove a logo or date stamp'], ['fade', 'Fade in / fade out'], ['text', 'Text on the video'], ['logo', 'Logo on the video'], ['pip', 'Picture-in-picture']]],
+  ['Effects', [['chroma', 'Green screen'], ['stack', 'Split screen, grid, before / after'], ['trails', 'Light trails / motion blur'], ['visualiser', 'Music visualiser video'], ['soundpic', 'The sound as a picture (waveform, spectrogram)']]],
+  ['Speed', [['speed', 'Speed up / slow down'], ['slowmo', 'Smooth slow motion'], ['timelapse', 'Timelapse (8× – 60×)']]],
+  ['Sound', [['volume', 'Volume'], ['loudnorm', 'Normalise loudness'], ['evenout', 'Even out a lecture or meeting'], ['silence', 'Remove silence'], ['sync', 'Sound out of step with the picture'], ['side', 'Voice on one side only (left / right)'], ['hum', 'Remove mains hum (50 / 60 Hz)'], ['bleep', 'Bleep a word'], ['sfx', 'Sound effects (8D, slowed + reverb, bass, phone …)'], ['merge', 'Add audio / background music'], ['sound', 'Sound settings (mono, stereo, sample rate)']]],
   ['Subtitles', [['subBurn', 'Burn in subtitles'], ['subAdd', 'Add subtitles as a track'], ['subExtract', 'Extract subtitles']]],
+  ['Information and privacy', [['analyse', 'Analyse a file (loudness, black, silence, frozen)'], ['meta', 'Remove location and metadata']]],
   ['Expert', [['raw', 'Your own arguments']]],
 ];
 export const JOBS: Array<[Job, string]> = JOB_GROUPS.flatMap(([, j]) => j);
 
-/** What FFmpeg says about a file (`ffmpeg -i`). */
-export interface Probe { dur: number; w: number; h: number; fps: number; video: boolean; vcodec: string; audio: boolean; acodec: string; rate: number; channels: number; layout: string; subs: number; scodec: string }
-export const EMPTY_PROBE: Probe = { dur: 0, w: 0, h: 0, fps: 0, video: false, vcodec: '', audio: false, acodec: '', rate: 0, channels: 0, layout: '', subs: 0, scodec: '' };
+/** One stream of a file as `ffmpeg -i` lists it (kind, codec, its tag — "hvc1", "tmcd" —, a cover picture, language,
+ *  the channels of a sound, its title). */
+export interface Stream { kind: 'video' | 'audio' | 'subtitle' | 'data' | 'attachment'; codec: string; tag: string; pic: boolean; lang: string; ch: number; layout: string; title: string }
+/** What FFmpeg says about a file (`ffmpeg -i`): the first picture's and the first sound's details, every stream, the
+ *  metadata as [where — '' for the file, "stream 2", "chapter 1" —, key, value], the chapters; the picture's colours
+ *  (pix: its pixel format; trc / prim / matrix: transfer, primaries, matrix — HDR is trc arib-std-b67 (HLG) or smpte2084
+ *  (PQ)), the Dolby Vision profile (0: none) and the display rotation. */
+export interface Probe {
+  dur: number; w: number; h: number; fps: number; video: boolean; vcodec: string; audio: boolean; acodec: string; rate: number; channels: number; layout: string; subs: number; scodec: string;
+  pix: string; trc: string; prim: string; matrix: string; dovi: number; rot: number; streams: Stream[]; meta: Array<[string, string, string]>; chapters: number;
+}
+export const EMPTY_PROBE: Probe = { dur: 0, w: 0, h: 0, fps: 0, video: false, vcodec: '', audio: false, acodec: '', rate: 0, channels: 0, layout: '', subs: 0, scodec: '', pix: '', trc: '', prim: '', matrix: '', dovi: 0, rot: 0, streams: [], meta: [], chapters: 0 };
 /** The channels of FFmpeg's layout names (`ffmpeg -layouts`). */
 const LAYOUT_CH: Record<string, number> = {
   mono: 1, stereo: 2, '2.1': 3, '3.0': 3, '3.0(back)': 3, '4.0': 4, quad: 4, 'quad(side)': 4, '3.1': 4, '5.0': 5, '5.0(side)': 5, '4.1': 5,
   '5.1': 6, '5.1(side)': 6, '6.0': 6, '6.0(front)': 6, hexagonal: 6, '6.1': 7, '6.1(back)': 7, '6.1(front)': 7, '7.0': 7, '7.0(front)': 7,
   '7.1': 8, '7.1(wide)': 8, '7.1(wide-side)': 8, octagonal: 8, downmix: 2,
 };
+/** "a (b, c), d(e, f), g" → ["a (b, c)", "d(e, f)", "g"]: commas inside brackets do not split. */
+function splitTop(s: string): string[] {
+  const out: string[] = []; let depth = 0, cur = '';
+  for (const ch of s) {
+    if (ch === '(' || ch === '[') depth++; else if (ch === ')' || ch === ']') depth = Math.max(0, depth - 1);
+    if (ch === ',' && !depth) { out.push(cur.trim()); cur = ''; } else cur += ch;
+  }
+  if (cur.trim()) out.push(cur.trim());
+  return out;
+}
+/** The names of colour spaces that FFmpeg prints alone when matrix, primaries and transfer share it ("yuv420p(tv, bt709)"). */
+const ONE_COLOUR = /^(bt709|smpte170m|smpte240m|bt470bg|bt2020nc|bt2020c|fcc|ycgco|gbr|unknown)$/;
 export function parseProbe(log: string): Probe {
-  const p = { ...EMPTY_PROBE };
+  const p: Probe = { ...EMPTY_PROBE, streams: [], meta: [] };
   const d = /Duration: (\d+):(\d+):([\d.]+)/.exec(log);
   if (d) p.dur = +d[1] * 3600 + +d[2] * 60 + +d[3];
+  let where = '', metaIndent = -1, last = -1;
   for (const line of log.split('\n')) {
-    const s = /Stream #\d+:\d+.*?: (Video|Audio|Subtitle): (\w+)/.exec(line);
+    const ind = line.length - line.trimStart().length;
+    // the entries of a "Metadata:" block are indented under it; "                  : more" continues the value before
+    if (metaIndent >= 0) {
+      if (ind > metaIndent && line.trim()) {
+        const cont = /^\s+: (.*)$/.exec(line);
+        if (cont && last >= 0) { p.meta[last][2] += `\n${cont[1].trim()}`; continue; }
+        const kv = /^\s+(\S.*?)\s*: (.*)$/.exec(line);
+        if (kv) { p.meta.push([where, kv[1], kv[2].trim()]); last = p.meta.length - 1; continue; }
+      }
+      metaIndent = -1; last = -1;
+    }
+    if (/^\s*Metadata:\s*$/.test(line)) { metaIndent = ind; continue; }
+    if (/^Input #/.test(line)) { where = ''; continue; }
+    const chap = /^\s*Chapter #\d+:(\d+)/.exec(line);
+    if (chap) { p.chapters++; where = `chapter ${+chap[1] + 1}`; continue; }
+    const rot = /displaymatrix: rotation of (-?[\d.]+) degrees/.exec(line);
+    if (rot) { if (where === `stream ${p.streams.findIndex((x) => x.kind === 'video' && !x.pic)}`) p.rot = +rot[1]; continue; }
+    const dv = /DOVI configuration record:.*?profile: (\d+)/.exec(line);
+    if (dv) { p.dovi = +dv[1]; continue; }
+    const s = /Stream #\d+:(\d+)(\S*?): (Video|Audio|Subtitle|Data|Attachment): (\w+)(.*)$/.exec(line);
     if (!s) continue;
-    if (s[1] === 'Video' && !/attached pic/.test(line) && !p.video) {
-      p.video = true; p.vcodec = s[2];
+    const kind = s[3].toLowerCase() as Stream['kind'], rest = s[5], st: Stream = { kind, codec: s[4], tag: /\((\w{4}) \/ 0x/.exec(rest)?.[1] ?? '', pic: /attached pic/.test(line), lang: /\(([a-z]{2,3})\)$/.exec(s[2])?.[1] ?? '', ch: 0, layout: '', title: '' };
+    where = `stream ${p.streams.length}`;
+    p.streams.push(st);
+    if (kind === 'video' && !st.pic && !p.video) {
+      p.video = true; p.vcodec = s[4];
       const wh = /, (\d{2,5})x(\d{2,5})[ ,]/.exec(line); if (wh) { p.w = +wh[1]; p.h = +wh[2]; }
       const f = /, ([\d.]+) (fps|tbr)/.exec(line); if (f) p.fps = +f[1];
-    } else if (s[1] === 'Audio' && !p.audio) {
-      p.audio = true; p.acodec = s[2];
-      const r = /, (\d+) Hz/.exec(line); if (r) p.rate = +r[1];
-      // "…, 48000 Hz, 5.1(side), fltp, …": the layout as FFmpeg names it ("6 channels" when it knows none)
-      p.layout = /, \d+ Hz, ([^,]+)/.exec(line)?.[1].trim() ?? '';
-      p.channels = LAYOUT_CH[p.layout] ?? (/^(\d+) channels/.test(p.layout) ? +/^(\d+)/.exec(p.layout)![1] : 0);
-    } else if (s[1] === 'Subtitle') { if (!p.subs) p.scodec = s[2]; p.subs++; }
+      // "hevc (Main 10) (hvc1 / 0x…), yuv420p10le(tv, bt2020nc/bt2020/arib-std-b67, progressive), 640x360 …"
+      const pf = /^(\w+)(?:\((.*)\))?$/.exec(splitTop(rest.replace(/^[^,]*?(?=,|$)/, '')).find((x) => /^\w+(\(|$)/.test(x) && !/^\d/.test(x)) ?? '');
+      if (pf) {
+        p.pix = pf[1];
+        for (const item of (pf[2] ?? '').split(',').map((x) => x.trim())) {
+          if (item.includes('/')) { [p.matrix, p.prim, p.trc] = item.split('/'); break; }
+          if (ONE_COLOUR.test(item)) { p.matrix = p.prim = p.trc = item; break; }
+        }
+      }
+    } else if (kind === 'audio') {
+      st.layout = /, \d+ Hz, ([^,]+)/.exec(line)?.[1].trim() ?? '';
+      st.ch = LAYOUT_CH[st.layout] ?? (/^(\d+) channels/.test(st.layout) ? +/^(\d+)/.exec(st.layout)![1] : 0);
+      if (!p.audio) {
+        p.audio = true; p.acodec = s[4];
+        const r = /, (\d+) Hz/.exec(line); if (r) p.rate = +r[1];
+        // "…, 48000 Hz, 5.1(side), fltp, …": the layout as FFmpeg names it ("6 channels" when it knows none)
+        p.layout = st.layout; p.channels = st.ch;
+      }
+    } else if (kind === 'subtitle') { if (!p.subs) p.scodec = s[4]; p.subs++; }
   }
+  // a stream's title (an OBS track named "Mic") from its metadata
+  for (const [w, k, v] of p.meta) { const m = /^stream (\d+)$/.exec(w); if (m && /^title$/i.test(k)) p.streams[+m[1]].title = v; }
   return p;
 }
 
@@ -63,7 +125,22 @@ export interface JobCtx {
 }
 /** jpeg: the PNG outputs are to be made JPEG by MozJPEG (this core's own JPEG encoder overflows a buffer at high
  *  quality — `-q:v 3` and below on a 640 × 360 frame crash the page — so FFmpeg writes PNG here). */
-export interface Built { args: string[]; outputs: string[]; pattern?: RegExp; writes?: Array<[string, string]>; fonts?: boolean; zip?: string; jpeg?: boolean }
+export interface Built {
+  args: string[]; outputs: string[]; pattern?: RegExp; writes?: Array<[string, string]>; fonts?: boolean; zip?: string; jpeg?: boolean;
+  /** `args` only measure (its output is FFmpeg's null muxer): the job is what then(log) gives — or a refusal, a sentence */
+  then?: (log: string) => Built;
+  /** the command `then` will give, for the command box — what the first command finds in capitals (W:H:X:Y) */
+  preview?: string[];
+  /** the outputs' names from the log: the scene finder names each picture by its time */
+  names?: (made: string[], log: string) => string[];
+  /** a report made from the log, shown in the page and saved as .txt (Analyse a file); the job has no output file */
+  report?: (log: string) => string;
+  /** after a run, by the size of what it made: the next try (the sticker: lower quality, fewer pictures a second), or a
+   *  sentence to show with the result (no try left), or null — done */
+  next?: (bytes: number) => Built | string | null;
+  /** said under the result ("the mains hum at 50.05 Hz", "the loudness matched: −2.1 dB") */
+  note?: string;
+}
 /** The output names a job lists end in .png when `jpeg` is set; these are the names the user gets. */
 export const asJpegName = (n: string) => n.replace(/\.png$/, '.jpg');
 
@@ -158,11 +235,197 @@ export const DEFAULTS: Record<string, any> = {
   text: 'Hello!', textPos: 'bottom', textSize: 'medium', textColour: 'white', textBox: false, logoSize: '15', logoPos: 'br', logoOpacity: '100',
   pipSize: '33', pipPos: 'br', tlx: '8', vol: '1.5', silWhere: 'ends', silMin: '1', silLevel: '-50', mergeMode: 'replace', musicVol: '30',
   channels: 'keep', rate: 'keep', subLang: 'eng', subFmt: 'srt', mp3q: 'v2',
+  // to-do #32
+  scSens: 'medium', stStart: '0', stLen: '3', stFill: 'crop', xfType: 'fade', xfLen: '1', v360In: 'equirect', v360Out: 'flat', yaw: '0', pitch: '0', fov: '90',
+  lens: 'medium', lgX: '', lgY: '', lgW: '', lgH: '', lgAt: '1', keyColour: 'green', keyCustom: '#00ff00', keySim: 15, keyBlend: 8, stackLayout: 'side', stackSound: '1',
+  trailKind: 'trails', trailLen: 'medium', visStyle: 'bars', picKind: 'wave', smX: '2', smSound: 'slow', evenHow: 'moment', syncDir: 'earlier', syncAmt: '200',
+  syncUnit: 'ms', sideWhich: 'auto', humHz: '50', bleepAt: '', bleepKind: 'beep', sfx: '8d', anWhat: 'all',
 };
 
 const needVideo = (p: Probe) => { if (!p.video) throw new Error('This task needs a video — this file has no picture.'); };
 const needAudio = (p: Probe) => { if (!p.audio) throw new Error('This task needs sound — this file has none.'); };
 const needDur = (p: Probe) => { if (!(p.dur > 0)) throw new Error('FFmpeg could not tell how long this file is.'); };
+
+// ---------------------------------------------------------------- to-do #32: what the 22 jobs share
+const minus = (x: number, d = 1) => (x === -Infinity ? '−∞' : `${x < 0 ? '−' : ''}${Math.abs(x).toFixed(d)}`);
+/** m:ss.ss — the times of reports and names */
+export function clock(t: number) { const m = Math.floor(t / 60), s = t - m * 60; return `${m}:${s.toFixed(2).padStart(5, '0')}`; }
+const num = (v: string) => +String(v ?? '').trim().replace(',', '.');
+/** The integrated loudness (LUFS), loudness range (LU) and true peak (dBTP) of every ebur128 of a log, in the order of
+ *  the filters in the graph — the last summary of each (FFmpeg 5.1 configures a graph twice: the first prints −70). */
+export function loudnessOf(log: string): Array<{ i: number; lra: number; peak: number }> {
+  const by = new Map<number, { i: number; lra: number; peak: number }>();
+  let cur: { i: number; lra: number; peak: number } | null = null;
+  const val = (s: string) => (/^-inf$/.test(s) ? -Infinity : +s);
+  for (const line of log.split('\n')) {
+    const h = /\[Parsed_ebur128_(\d+) @ [^\]]*\] Summary:/.exec(line);
+    if (h) { cur = { i: NaN, lra: NaN, peak: NaN }; by.set(+h[1], cur); continue; }
+    if (!cur) continue;
+    if (/^\[/.test(line)) { cur = null; continue; }
+    const i = /^\s+I:\s+(-?[\d.]+|-inf) LUFS/.exec(line); if (i) cur.i = val(i[1]);
+    const r = /^\s+LRA:\s+([\d.]+) LU\b/.exec(line); if (r) cur.lra = +r[1];
+    const k = /^\s+Peak:\s+(-?[\d.]+|-inf) dBFS/.exec(line); if (k) cur.peak = val(k[1]);
+  }
+  return [...by.entries()].sort((a, b) => a[0] - b[0]).map(([, v]) => v);
+}
+/** astats' RMS levels (dB) of a log by filter, in graph order: per channel and overall (the last report of each). */
+export function rmsOf(log: string): Array<{ ch: number[]; overall: number }> {
+  const by = new Map<number, { ch: number[]; overall: number; at: number }>();
+  for (const line of log.split('\n')) {
+    const m = /\[Parsed_astats_(\d+) @ [^\]]*\] (Channel: (\d+)|Overall|RMS level dB: (-?[\d.]+|-inf))/.exec(line);
+    if (!m) continue;
+    const e = by.get(+m[1]) ?? { ch: [], overall: NaN, at: 0 }; by.set(+m[1], e);
+    if (m[3]) e.at = +m[3]; else if (m[2] === 'Overall') e.at = 0;
+    else if (m[4]) { const v = m[4] === '-inf' ? -Infinity : +m[4]; if (e.at) e.ch[e.at - 1] = v; else e.overall = v; }
+  }
+  return [...by.entries()].sort((a, b) => a[0] - b[0]).map(([, v]) => ({ ch: v.ch, overall: v.overall }));
+}
+/** The black, silent and frozen stretches a log reports ([start, end]; Infinity: to the end of the file). */
+export function stretchesOf(log: string) {
+  const black: Array<[number, number]> = [], silence: Array<[number, number]> = [], freeze: Array<[number, number]> = [];
+  let s0 = NaN, f0 = NaN;
+  for (const line of log.split('\n')) {
+    const b = /black_start:\s*(-?[\d.]+)\s+black_end:\s*(-?[\d.]+)/.exec(line); if (b) black.push([+b[1], +b[2]]);
+    const ss = /silence_start: (-?[\d.]+)/.exec(line); if (ss) s0 = Math.max(0, +ss[1]);
+    const se = /silence_end: (-?[\d.]+)/.exec(line); if (se && Number.isFinite(s0)) { silence.push([s0, +se[1]]); s0 = NaN; }
+    const fs = /freeze_start: (-?[\d.]+)/.exec(line); if (fs) f0 = +fs[1];
+    const fe = /freeze_end: (-?[\d.]+)/.exec(line); if (fe && Number.isFinite(f0)) { freeze.push([f0, +fe[1]]); f0 = NaN; }
+  }
+  if (Number.isFinite(s0)) silence.push([s0, Infinity]);
+  if (Number.isFinite(f0)) freeze.push([f0, Infinity]);
+  return { black, silence, freeze };
+}
+/** "Analyse a file": what the log found, as text to read and copy. */
+export function analyseReport(log: string, p: Probe): string {
+  const L = loudnessOf(log).pop(), { black, silence, freeze } = stretchesOf(log), out: string[] = [];
+  out.push(`Length ${clock(p.dur)}${p.video ? ` · picture ${p.w} × ${p.h}${p.fps ? ` at ${p.fps} frames a second` : ''}` : ''}${p.audio ? ` · sound ${p.layout || `${p.channels} channels`} at ${p.rate} Hz` : ''}`);
+  if (p.audio) {
+    out.push('', 'Loudness (EBU R128; a mono sound as heard on two speakers)');
+    if (!L || !Number.isFinite(L.i) || L.i <= -70) out.push('  The sound is silent — nothing to measure.');
+    else {
+      out.push(`  Integrated loudness: ${minus(L.i)} LUFS — streaming services play at about −14 to −16 LUFS, broadcast at −23`);
+      out.push(`  Loudness range: ${L.lra.toFixed(1)} LU — how much the level moves (speech about 5 – 10, a film up to 20)`);
+      out.push(`  True peak: ${minus(L.peak)} dBTP${L.peak > -1 ? ' — above −1 dBTP: it can distort when it is made MP3 or AAC' : ''}`);
+    }
+  }
+  const list = (title: string, st: Array<[number, number]>) => {
+    out.push('', title);
+    if (!st.length) out.push('  none');
+    for (const [a, b] of st) out.push(`  ${clock(a)} – ${b === Infinity ? `${clock(p.dur)} (the end)` : clock(b)}   ${((b === Infinity ? p.dur : b) - a).toFixed(2)} s`);
+  };
+  if (p.video) { list('Black picture (nearly black, 0.5 s and longer)', black); list('Frozen picture (2 s and longer)', freeze); }
+  if (p.audio) list('Silence (below −50 dB, 0.5 s and longer)', silence);
+  return out.join('\n');
+}
+/** The metadata a file carries that says where, when, with what or by whom — not the container's own technical entries.
+ *  [group, what it is, where it is ('' — the file, "stream 1" …)] */
+const GENERIC_HANDLER = /^((Video|Sound|Subtitle|Data|Text|TimeCode|Hint)Handler|)$/;
+export function personalMeta(p: Probe): Array<[string, string, string]> {
+  const out: Array<[string, string, string]> = [];
+  for (const [w, k, v] of p.meta) {
+    if (/^(major_brand|minor_version|compatible_brands|duration|mimetype|filename|language)$/i.test(k)) continue;
+    if (/^handler_name$/i.test(k) && GENERIC_HANDLER.test(v)) continue;
+    if (/^vendor_id$/i.test(k) && /^(\[0\]){4}$|^FFMP$/.test(v)) continue;
+    const iso = /([+-]\d+(?:\.\d+)?)([+-]\d+(?:\.\d+)?)([+-]\d+(?:\.\d+)?)?\/?$/.exec(v);
+    const group = /location|iso6709|xyz|gps|latitude|longitude/i.test(k) ? 'Place'
+      : /creation|date|^time|timecode|year/i.test(k) ? 'Date and time'
+      : /make|model|manufacturer|software|version|encoder|vendor|handler|device|firmware|com\.(apple|android|samsung)/i.test(k) ? 'Device and software'
+      : 'Names and notes';
+    const shown = group === 'Place' && iso ? `${Math.abs(+iso[1]).toFixed(4)}° ${+iso[1] < 0 ? 'S' : 'N'}, ${Math.abs(+iso[2]).toFixed(4)}° ${+iso[2] < 0 ? 'W' : 'E'}${iso[3] ? `, ${Math.round(+iso[3])} m` : ''}` : v.replace(/\n/g, ' ');
+    out.push([group, `${k}: ${shown}`, w]);
+  }
+  return out;
+}
+/** What else a file holds that is not picture, sound or subtitles: data tracks (a phone's or a camera's sensors and GPS, a
+ *  timecode) and attachments. */
+const DATA_TAGS: Record<string, string> = { gpmd: 'GoPro\'s sensor and GPS track', mebx: 'Apple\'s frame-by-frame metadata', djmd: 'DJI\'s flight data (GPS)', dbgi: 'DJI\'s debug data', tmcd: 'a timecode (the time of day it was filmed)', text: 'a text track (chapters)', rtmd: 'Sony\'s real-time metadata', camm: 'camera motion data' };
+export function otherTracks(p: Probe): string[] {
+  return p.streams.filter((s) => s.kind === 'data' || s.kind === 'attachment' || s.pic).map((s) => (s.pic ? 'a cover picture' : s.kind === 'attachment' ? `an attachment (${s.codec})` : `a data track: ${DATA_TAGS[s.tag] ?? s.tag ?? s.codec}`));
+}
+
+const CODEC_NAME: Record<string, string> = { h264: 'H.264', hevc: 'H.265 (HEVC)', av1: 'AV1', vp9: 'VP9', vp8: 'VP8', mpeg4: 'MPEG-4', mpeg2video: 'MPEG-2', mpeg1video: 'MPEG-1', theora: 'Theora', prores: 'ProRes', mjpeg: 'Motion JPEG',
+  aac: 'AAC', mp3: 'MP3', ac3: 'AC-3 (Dolby Digital)', eac3: 'E-AC-3 (Dolby Digital Plus)', opus: 'Opus', vorbis: 'Vorbis', flac: 'FLAC', alac: 'ALAC', dts: 'DTS', truehd: 'TrueHD', mp2: 'MP2',
+  subrip: 'SRT', ass: 'ASS', ssa: 'SSA', webvtt: 'WebVTT', mov_text: 'MP4 text', hdmv_pgs_subtitle: 'PGS (Blu-ray pictures)', dvd_subtitle: 'DVD (pictures)', dvb_subtitle: 'DVB (pictures)' };
+const codecName = (c: string) => CODEC_NAME[c] ?? (/^pcm_/.test(c) ? 'PCM (uncompressed)' : c);
+const MP4_VIDEO = /^(h264|hevc|av1|vp9|mpeg4|mpeg2video|mpeg1video)$/, MP4_AUDIO = /^(aac|mp3|ac3|eac3|alac)$/, TEXT_SUBS = /^(subrip|srt|ass|ssa|webvtt|mov_text|text)$/;
+/** "MKV → MP4 at once": what is copied, what is made AAC or mov_text, what an MP4 cannot hold — and the arguments. */
+export function remuxPlan(p: Probe): { args: string[]; lines: string[] } {
+  const v = p.streams.filter((s) => s.kind === 'video' && !s.pic);
+  if (!v.length) throw new Error('This file has no picture — "Convert format → M4A" makes its sound an M4A.');
+  if (!MP4_VIDEO.test(v[0].codec)) throw new Error(`The picture (${codecName(v[0].codec)}) cannot go into an MP4 as it is — "Convert format → MP4" re-encodes it.`);
+  const args = ['-map', '0:V:0', '-c:v', 'copy', ...(v[0].codec === 'hevc' ? ['-tag:v', 'hvc1'] : [])];
+  const lines = [`Picture: ${codecName(v[0].codec)}${p.w ? ` ${p.w} × ${p.h}` : ''} — copied`];
+  if (v.length > 1) lines.push(`${v.length - 1} more picture track${v.length > 2 ? 's' : ''} — left out (an MP4 player shows one)`);
+  p.streams.filter((s) => s.kind === 'audio').forEach((s, k) => {
+    const name = `Sound ${k + 1}${s.title ? ` “${s.title}”` : ''}${s.lang && s.lang !== 'und' ? ` (${s.lang})` : ''}: ${codecName(s.codec)}${s.layout ? ` ${s.layout}` : ''}`;
+    args.push('-map', `0:a:${k}`);
+    if (MP4_AUDIO.test(s.codec)) { args.push(`-c:a:${k}`, 'copy'); lines.push(`${name} — copied`); return; }
+    const ch = s.ch || 2, lay = AAC_LAYOUT[ch];
+    args.push(`-c:a:${k}`, 'aac', `-b:a:${k}`, kbpsFor(160, ch), ...(lay && s.layout && s.layout !== lay ? [`-ch_layout:a:${k}`, lay] : []));
+    lines.push(`${name} — made AAC ${kbpsFor(160, ch).replace('k', ' kb/s')} (an MP4 that plays everywhere cannot hold ${codecName(s.codec)} as it is)`);
+  });
+  let j = 0;
+  p.streams.filter((s) => s.kind === 'subtitle').forEach((s, k) => {
+    const name = `Subtitles ${k + 1}${s.lang && s.lang !== 'und' ? ` (${s.lang})` : ''}: ${codecName(s.codec)}`;
+    if (!TEXT_SUBS.test(s.codec)) { lines.push(`${name} — left out (an MP4 cannot hold subtitles that are pictures)`); return; }
+    args.push('-map', `0:s:${k}`, `-c:s:${j++}`, 'mov_text');
+    lines.push(`${name} — made MP4 text subtitles${/^(ass|ssa)$/.test(s.codec) ? ' (their styling is lost)' : ''}`);
+  });
+  for (const t of otherTracks(p).filter((x) => !/cover picture/.test(x))) lines.push(`${t[0].toUpperCase()}${t.slice(1)} — left out (an MP4 has no place for it)`);
+  if (p.chapters) lines.push(`${p.chapters} chapter${p.chapters > 1 ? 's' : ''} — kept`);
+  return { args: [...args, '-movflags', '+faststart'], lines };
+}
+/** "1.2-1.8, 3:05-3:06.5" → the stretches in seconds, sorted, overlapping ones merged; a sentence for what is wrong. */
+export function parseStretches(text: string, dur: number): Array<[number, number]> {
+  const parts = String(text ?? '').split(/[,;\n]+/).map((x) => x.trim()).filter(Boolean);
+  if (!parts.length) throw new Error('Type the stretches to bleep — from and to, e.g. 1.2-1.8, 3:05-3:06.5');
+  if (parts.length > 50) throw new Error('At most 50 stretches at a time.');
+  const st = parts.map((x) => {
+    const m = /^(.+?)\s*(?:-|–|—|to)\s*(.+)$/.exec(x);
+    const a = m ? secs(m[1]) : NaN, b = m ? secs(m[2]) : NaN;
+    if (!Number.isFinite(a) || !Number.isFinite(b)) throw new Error(`“${x}” is not a stretch of time — write it as from-to, e.g. 1.2-1.8 or 3:05-3:06.5.`);
+    if (!(b > a)) throw new Error(`“${x}”: the end must be after the start.`);
+    if (dur && a >= dur) throw new Error(`“${x}” starts after the end of the file (${fmtS(dur)} s).`);
+    return [a, dur ? Math.min(b, dur) : b] as [number, number];
+  }).sort((x, y) => x[0] - y[0]);
+  const out: Array<[number, number]> = [];
+  for (const s of st) { const l = out[out.length - 1]; if (l && s[0] <= l[1]) l[1] = Math.max(l[1], s[1]); else out.push([...s]); }
+  return out;
+}
+/** The loudness weights of BS.1770 for the channels of a layout (the LFE counts nothing, surrounds 1.41) — for a beep that
+ *  is as loud as the file. */
+function channelWeight(p: Probe) {
+  const ch = p.channels || 1;
+  if (ch === 1) return 2; // as heard on two speakers (dual mono)
+  if (ch === 2) return 2;
+  const surr = /^(5\.1|5\.0|6\.1|7\.1)/.test(p.layout) || ch >= 5 ? (ch >= 8 ? 4 : 2) : 0, lfe = /\.1/.test(p.layout) ? 1 : 0;
+  return ch - lfe - surr + surr * 1.41;
+}
+/** A job on the first sound: a video's picture copied (its container kept where common), a sound file in its own kind. */
+function soundJob(c: JobCtx, base: string, af: string, ch: number, ly = '', note?: string): Built {
+  if (!c.p.video) { const [ext, enc] = audioOut(base, ch, ly); return { args: ['-i', c.in1, '-map', '0:a:0', '-af', af, ...enc, `out.${ext}`], outputs: [`out.${ext}`], note }; }
+  const ext = videoOutExt(base);
+  return { args: ['-i', c.in1, '-map', '0:V:0', '-map', '0:a:0', '-c:v', 'copy', '-af', af, ...reAudioFor(ext, ch, ly), `out.${ext}`], outputs: [`out.${ext}`], note };
+}
+/** Ten notches at the mains frequency (as found) and its overtones, 3 + 0.3·k Hz wide: the hum 50 dB down once they
+ *  have settled (half a second), speech within 0.4 dB of its level (docs/BUGHUNT.md, "Mains hum"). */
+export const humNotches = (f0: number) => Array.from({ length: 10 }, (_, i) => `bandreject=f=${fmtS(f0 * (i + 1))}:width_type=h:width=${fmtS(3 + 0.3 * (i + 1))}`).join(',');
+/** The sound effects (the chain, and what the picture does: 'slowed' slows it with the sound). */
+const SFX: Record<string, { af: (rate: number) => string; stereo?: boolean; slow?: number; name: string }> = {
+  '8d': { name: '8D (the sound circling the head)', stereo: true, af: () => 'apulsator=hz=0.125:amount=0.85' },
+  slowed: { name: 'Slowed + reverb', slow: 0.85, af: (r) => `asetrate=${Math.round(r * 0.85)},aresample=${r},aecho=0.8:0.85:43|71|113:0.35|0.25|0.15` },
+  bass: { name: 'Bass boost', af: () => 'bass=g=9:f=100:width_type=q:width=0.7' },
+  phone: { name: 'Telephone voice', af: () => 'highpass=f=300,highpass=f=300,lowpass=f=3400,lowpass=f=3400,acrusher=bits=10:mode=log:aa=1:mix=0.25' },
+  radio: { name: 'Old radio', af: () => 'highpass=f=250,highpass=f=250,lowpass=f=4500,lowpass=f=4500,acrusher=bits=12:mode=log:aa=1:mix=0.4' },
+  echo: { name: 'Echo', af: () => 'aecho=0.8:0.8:350|700:0.35|0.18' },
+};
+/** The sticker's tries, best first: [pictures a second, WebP quality]. WhatsApp takes an animated sticker of 512 × 512 up to
+ *  500 KB and 10 s (its sticker guidelines). */
+const STICKER_TRIES: Array<[number, number]> = [[15, 75], [15, 55], [12, 45], [10, 35], [8, 25]];
+export const STICKER_BYTES = 500_000;
+/** Smooth slow motion's work here, in seconds: minterpolate made about 2.6 million output pixels a second in ffmpeg.wasm
+ *  (Node, one core; 3 s of 640 × 360 at 25 fps, twice as slow, in 13 s) — 2 million counted for a browser. */
+export const slowmoSeconds = (p: Probe, x: number) => Math.round(((p.w || 1280) * (p.h || 720) * (p.fps || 30) * x * (p.dur || 0)) / 2.0e6);
 
 /** The FFmpeg arguments for a job. Throws a sentence when the job cannot be done with these files or settings. */
 export function buildJob(job: Job, o: Record<string, any>, c: JobCtx): Built {
@@ -473,6 +736,337 @@ export function buildJob(job: Job, o: Record<string, any>, c: JobCtx): Built {
       const codec = ({ srt: 'srt', vtt: 'webvtt', ass: 'ass' } as Record<string, string>)[o.subFmt];
       return { args: [...I, '-map', '0:s:0', '-c:s', codec, `subtitles.${o.subFmt}`], outputs: [`subtitles.${o.subFmt}`] };
     }
+    // ================================================================ to-do #32: 22 jobs on the same FFmpeg
+    // ---------------------------------------------------------------- convert and extract
+    case 'remux': {
+      if (/^(mp4|m4v)$/.test(base)) throw new Error('This file is an MP4 already.');
+      const plan = remuxPlan(p);
+      return { args: [...I, ...plan.args, 'out.mp4'], outputs: ['out.mp4'] };
+    }
+    case 'scenes': {
+      needVideo(p);
+      const th = ({ low: 0.4, medium: 0.3, high: 0.2 } as Record<string, number>)[o.scSens] ?? 0.3;
+      // the first picture, then one at every change of scene (a score of 0 – 1 for how different a frame is); showinfo
+      // writes each picture's time in the log, which names the files
+      return {
+        args: [...I, '-map', '0:V:0', '-vf', `select='eq(n\\,0)+gt(scene\\,${th})',showinfo`, '-fps_mode', 'vfr', 'scene-%04d.png'],
+        outputs: [], pattern: /^scene-\d{4}\.png$/, zip: 'scenes', jpeg: true,
+        names: (made, log) => {
+          const t = [...log.matchAll(/\[Parsed_showinfo_\d+ @ [^\]]*\] n:\s*\d+ pts:\s*-?\d+ pts_time:(-?[\d.]+)/g)].map((m) => +m[1]);
+          return made.map((n, k) => (Number.isFinite(t[k]) ? `scene-${String(k + 1).padStart(3, '0')} (${clock(t[k]).replace(':', 'm')}s).png` : n));
+        },
+      };
+    }
+    case 'sticker': {
+      needVideo(p);
+      const s0 = o.stStart === '' ? 0 : secs(o.stStart), L = num(o.stLen);
+      if (!Number.isFinite(s0)) throw new Error('The start is a time — seconds (12.5) or minutes:seconds (1:30).');
+      if (!(L >= 0.5 && L <= 10)) throw new Error('A sticker lasts up to 10 seconds (WhatsApp\'s limit) — choose 0.5 to 10.');
+      if (p.dur && s0 >= p.dur) throw new Error(`The video is only ${fmtS(p.dur)} s long.`);
+      const len = p.dur ? Math.min(L, p.dur - s0) : L;
+      const tryAt = (k: number): Built => {
+        const [fps, q] = STICKER_TRIES[k];
+        const fit = o.stFill === 'fit'
+          ? `fps=${fps},scale=512:512:force_original_aspect_ratio=decrease,format=rgba,pad=512:512:(ow-iw)/2:(oh-ih)/2:color=0x00000000`
+          : `fps=${fps},scale=512:512:force_original_aspect_ratio=increase,crop=512:512,setsar=1`;
+        return {
+          args: ['-ss', fmtS(s0), '-t', fmtS(len), ...I, '-map', '0:V:0', '-vf', fit, '-c:v', 'libwebp_anim', '-lossless', '0', '-quality', String(q), '-compression_level', '4', '-loop', '0', '-an', 'sticker.webp'],
+          outputs: ['sticker.webp'], note: `${fmtS(len)} s, ${fps} pictures a second, quality ${q} of 100`,
+          next: (bytes) => (bytes <= STICKER_BYTES ? null : k + 1 < STICKER_TRIES.length ? tryAt(k + 1)
+            : `Even at the lowest quality the sticker is ${Math.round(bytes / 1000)} KB — WhatsApp takes up to 500 KB: make it shorter, or choose a calmer part.`),
+        };
+      };
+      return tryAt(0);
+    }
+    // ---------------------------------------------------------------- cut and join
+    case 'transitions': {
+      const ins = c.ins || [c.in1], ps = c.ps || [p], T = num(o.xfLen);
+      if (ins.length < 2) throw new Error('Add at least one more clip — a transition goes between two.');
+      const videos = ps.filter((x) => x.video).length;
+      if (videos && videos < ps.length) throw new Error('Join videos with videos, or sound files with sound files — not both.');
+      ps.forEach((x, i) => {
+        if (!(x.dur > 0)) throw new Error(`FFmpeg could not tell how long clip ${i + 1} is.`);
+        if (x.dur <= T + 0.1) throw new Error(`The transition (${fmtS(T)} s) must be shorter than every clip — clip ${i + 1} is ${fmtS(x.dur)} s.`);
+      });
+      const anyAudio = ps.some((x) => x.audio);
+      const counts = [...new Set(ps.filter((x) => x.audio).map((x) => x.channels || 2))];
+      const outCh = counts.length === 1 && [1, 2, 6, 8].includes(counts[0]) ? counts[0] : 2;
+      const outLy = ({ 1: 'mono', 2: 'stereo', 6: '5.1', 8: '7.1' } as Record<number, string>)[outCh];
+      const args: string[] = ins.flatMap((n) => ['-i', n]), f: string[] = [];
+      let extra = ins.length;
+      const aSrc = ps.map((x) => { if (!anyAudio || x.audio) return null; args.push('-f', 'lavfi', '-t', fmtS(x.dur), '-i', `anullsrc=r=48000:cl=${outLy}`); return extra++; });
+      // every clip exactly as long as FFmpeg says (the last picture held, silence after a shorter sound), so that each
+      // transition starts where it should and picture and sound stay together
+      if (videos) {
+        const W = even(ps[0].w || 1280), H = even(ps[0].h || 720);
+        ps.forEach((x, i) => f.push(`[${i}:V:0]scale=${W}:${H}:force_original_aspect_ratio=decrease,pad=${W}:${H}:(ow-iw)/2:(oh-ih)/2:color=black,setsar=1,fps=30,format=yuv420p,tpad=stop_mode=clone:stop_duration=${fmtS(T + 1)},trim=duration=${fmtS(x.dur)},setpts=PTS-STARTPTS[v${i}]`));
+      }
+      if (anyAudio) ps.forEach((x, i) => f.push(`[${aSrc[i] ?? i}:a:0]${x.audio ? upmix(x.channels, outLy) : ''}aresample=48000,aformat=sample_fmts=fltp:channel_layouts=${outLy},apad,atrim=duration=${fmtS(x.dur)},asetpts=PTS-STARTPTS[a${i}]`));
+      let L = ps[0].dur, vl = 'v0', al = 'a0';
+      for (let i = 1; i < ps.length; i++) {
+        const last = i === ps.length - 1;
+        if (videos) { f.push(`[${vl}][v${i}]xfade=transition=${o.xfType}:duration=${fmtS(T)}:offset=${fmtS(L - T)}[${last ? 'v' : `x${i}`}]`); vl = `x${i}`; }
+        // equal power (quarter sines): two different sounds keep their loudness through the crossfade
+        if (anyAudio) { f.push(`[${al}][a${i}]acrossfade=d=${fmtS(T)}:c1=qsin:c2=qsin[${last ? 'a' : `y${i}`}]`); al = `y${i}`; }
+        L += ps[i].dur - T;
+      }
+      const maps = [...(videos ? ['-map', '[v]'] : []), ...(anyAudio ? ['-map', '[a]'] : [])];
+      if (!videos) { const [ext, enc] = audioOut(base, outCh); return { args: [...args, '-filter_complex', f.join(';'), ...maps, ...enc, `out.${ext}`], outputs: [`out.${ext}`] }; }
+      return { args: [...args, '-filter_complex', f.join(';'), ...maps, ...X264(21), ...(anyAudio ? aacArgs(160, outCh) : []), '-movflags', '+faststart', 'out.mp4'], outputs: ['out.mp4'] };
+    }
+    // ---------------------------------------------------------------- size and shape
+    case 'bars': {
+      needVideo(p);
+      // the largest picture area of every frame (reset=0) — of the key frames only in a long video (seconds instead of
+      // minutes; the bars are the same all through)
+      const out = ['-vf', 'crop=W:H:X:Y', ...X264(20), ...ACOPY(p), '-movflags', '+faststart', 'out.mp4'];
+      return {
+        args: [...(p.dur > 60 ? ['-skip_frame', 'nokey'] : []), ...I, '-map', '0:V:0', '-vf', 'cropdetect=limit=24:round=2:reset=0:skip=0', '-an', '-f', 'null', '-'], outputs: [],
+        preview: [...I, ...out],
+        then: (log) => {
+          const m = [...log.matchAll(/crop=(\d+):(\d+):(\d+):(\d+)/g)].pop();
+          if (!m) throw new Error('FFmpeg read no picture of this video to measure.');
+          const [W, H, X, Y] = m.slice(1).map(Number), fw = p.w || W, fh = p.h || H;
+          if (W >= fw - 2 && H >= fh - 2) throw new Error('No black bars were found — the picture fills the frame.');
+          if (W < 16 || H < 16 || W * H < 0.2 * fw * fh) throw new Error('The picture is almost all black — the bars cannot be told apart from it.');
+          return { args: [...I, '-vf', `crop=${W}:${H}:${X}:${Y}`, ...out.slice(2)], outputs: ['out.mp4'], note: `The bars cut off: ${W} × ${H} kept of ${fw} × ${fh}` };
+        },
+      };
+    }
+    case 'v360': {
+      needVideo(p);
+      if (o.v360In === 'wide') {
+        const k = ({ light: [-0.12, -0.012], medium: [-0.227, -0.022], strong: [-0.32, -0.035] } as Record<string, number[]>)[o.lens] ?? [-0.227, -0.022];
+        return { args: [...I, '-vf', `lenscorrection=k1=${k[0]}:k2=${k[1]}:i=bilinear`, ...X264(20), ...ACOPY(p), '-movflags', '+faststart', 'out.mp4'], outputs: ['out.mp4'] };
+      }
+      if (p.w && p.h && Math.abs(p.w / p.h - 2) > 0.06) throw new Error(`A 360° video is twice as wide as it is high — this one is ${p.w} × ${p.h}. For a GoPro or another wide lens choose “Wide lens”.`);
+      if (o.v360Out === 'planet') return { args: [...I, '-vf', 'v360=input=e:output=sg:pitch=-90:h_fov=200:v_fov=200:w=1080:h=1080,setsar=1', ...X264(20), ...ACOPY(p), '-movflags', '+faststart', 'out.mp4'], outputs: ['out.mp4'] };
+      const yaw = num(o.yaw), pitch = num(o.pitch), F = num(o.fov);
+      if (!(yaw >= -180 && yaw <= 180)) throw new Error('Left / right is −180° to 180°.');
+      if (!(pitch >= -90 && pitch <= 90)) throw new Error('Up / down is −90° to 90°.');
+      if (!(F >= 30 && F <= 150)) throw new Error('The field of view is 30° to 150°.');
+      const VF = (2 * Math.atan(Math.tan((F * Math.PI) / 360) * (9 / 16)) * 180) / Math.PI;
+      return { args: [...I, '-vf', `v360=input=e:output=flat:yaw=${fmtS(yaw)}:pitch=${fmtS(pitch)}:h_fov=${fmtS(F)}:v_fov=${fmtS(VF)}:w=1280:h=720,setsar=1`, ...X264(20), ...ACOPY(p), '-movflags', '+faststart', 'out.mp4'], outputs: ['out.mp4'] };
+    }
+    // ---------------------------------------------------------------- picture
+    case 'hdr': {
+      needVideo(p);
+      const kind = p.trc === 'arib-std-b67' ? 'HLG' : p.trc === 'smpte2084' ? 'PQ (HDR10)' : '';
+      if (!kind) throw new Error(p.trc && p.trc !== 'unknown' ? `This video is not HDR (its colours are ${p.trc}) — nothing to convert.` : 'FFmpeg finds no HDR colours in this video (HLG or PQ) — nothing to convert.');
+      if (p.dovi === 5) throw new Error('This is Dolby Vision profile 5: its colours need Dolby\'s own processing, which FFmpeg does not have.');
+      // BT.2408: HDR's reference white (203 cd/m²) becomes SDR white; above it a soft knee (mobius) up to 1000 cd/m², what
+      // phones record — chosen by measurement on an HLG and a PQ picture made by BT.2100's formulas (docs/BUGHUNT.md). zimg
+      // applies HLG's system gamma to each colour (BT.2100: to the luminance) — saturated colours come out a little richer
+      const vf = 'zscale=t=linear:npl=203,format=gbrpf32le,zscale=p=bt709,tonemap=tonemap=mobius:param=0.6:desat=0:peak=4.926,zscale=t=bt709:m=bt709:r=tv,format=yuv420p';
+      return { args: [...I, '-vf', vf, ...X264(20), '-color_primaries', 'bt709', '-color_trc', 'bt709', '-colorspace', 'bt709', ...ACOPY(p), '-movflags', '+faststart', 'out.mp4'], outputs: ['out.mp4'], note: `${kind} made SDR (BT.709)` };
+    }
+    case 'delogo': {
+      needVideo(p);
+      let [x, y, w, hh] = [o.lgX, o.lgY, o.lgW, o.lgH].map((v) => Math.round(num(v)));
+      if (![x, y, w, hh].every(Number.isFinite) || w < 2 || hh < 2) throw new Error('Draw a box around the logo on the picture (or type where it is).');
+      const W = p.w || 1e9, H = p.h || 1e9;
+      if (x >= W - 2 || y >= H - 2 || x + w <= 1 || y + hh <= 1) throw new Error('The box is outside the picture.');
+      // delogo fills the box from the pixels around it: the box must stay a pixel inside the frame
+      if (x < 1) { w -= 1 - x; x = 1; } if (y < 1) { hh -= 1 - y; y = 1; }
+      w = Math.min(w, W - 1 - x); hh = Math.min(hh, H - 1 - y);
+      return { args: [...I, '-vf', `delogo=x=${x}:y=${y}:w=${w}:h=${hh}`, ...X264(20), ...ACOPY(p), '-movflags', '+faststart', 'out.mp4'], outputs: ['out.mp4'] };
+    }
+    // ---------------------------------------------------------------- effects
+    case 'chroma': {
+      needVideo(p);
+      if (!c.in2) throw new Error('Choose the background — a photo or a video.');
+      const hex = o.keyColour === 'green' ? '00FF00' : o.keyColour === 'blue' ? '0000FF' : /^#?[0-9a-f]{6}$/i.test(String(o.keyCustom)) ? String(o.keyCustom).replace('#', '').toUpperCase() : '';
+      if (!hex) throw new Error('The colour is written as #RRGGBB, e.g. #00ff00.');
+      const W = even(p.w || 1280), H = even(p.h || 720), fps = p.fps || 30, photo = /^(png|jpe?g|webp|bmp|gif|tiff?|heic)$/.test(c.ext2 || '') || (c.p2 ? !c.p2.video || c.p2.dur === 0 : false);
+      const sim = Math.max(1, Math.min(60, num(o.keySim))) / 100, blend = Math.max(0, Math.min(40, num(o.keyBlend))) / 100;
+      const despill = o.keyColour === 'green' ? ',despill=type=green' : o.keyColour === 'blue' ? ',despill=type=blue' : '';
+      const fc = `[1:v]scale=${W}:${H}:force_original_aspect_ratio=increase,crop=${W}:${H},setsar=1,fps=${fps}[bg];[0:V:0]scale=${W}:${H},setsar=1,chromakey=color=0x${hex}:similarity=${fmtS(sim)}:blend=${fmtS(blend)}${despill}[fg];[bg][fg]overlay=shortest=1:format=auto,format=yuv420p[v]`;
+      return { args: [...I, ...(photo ? ['-loop', '1', '-framerate', String(fps)] : ['-stream_loop', '-1']), '-i', c.in2, '-filter_complex', fc, '-map', '[v]', '-map', '0:a?', ...X264(20), ...ACOPY(p), '-movflags', '+faststart', 'out.mp4'], outputs: ['out.mp4'] };
+    }
+    case 'stack': {
+      const ins = c.ins || [c.in1], ps = c.ps || [p], n = ins.length, lay = o.stackLayout;
+      if (ps.some((x) => !x.video)) throw new Error('A split screen is made of videos — one of these files has no picture.');
+      if (lay !== 'grid' && n !== 2) throw new Error(n < 2 ? 'Add the second video.' : 'Side by side and one above the other take two videos — remove the others, or choose the 2 × 2 grid.');
+      if (lay === 'grid' && (n < 3 || n > 4)) throw new Error(n < 3 ? 'A 2 × 2 grid takes 3 or 4 videos — add more.' : 'A 2 × 2 grid takes at most 4 videos.');
+      const cols = lay === 'above' ? 1 : 2, rows = lay === 'side' ? 1 : 2, p0 = ps[0], w0 = p0.w || 640, h0 = p0.h || 360;
+      // tiles of the first video's shape, the whole at most 1920 × 1080 (1080 × 1920 one above the other)
+      const s = Math.min(1, (lay === 'above' ? 1080 : 1920) / cols / w0, (lay === 'above' ? 1920 : 1080) / rows / h0), tw = even(w0 * s), th = even(h0 * s);
+      const f = ps.map((_, i) => `[${i}:V:0]scale=${tw}:${th}:force_original_aspect_ratio=decrease,pad=${tw}:${th}:(ow-iw)/2:(oh-ih)/2:color=black,setsar=1,fps=30,format=yuv420p[v${i}]`);
+      if (lay === 'grid' && n === 3) f.push(`color=c=black:s=${tw}x${th}:r=30,trim=duration=${fmtS(Math.max(...ps.map((x) => x.dur || 0)) || 1)}[v3]`);
+      f.push(lay === 'side' ? '[v0][v1]hstack=inputs=2[v]' : lay === 'above' ? '[v0][v1]vstack=inputs=2[v]' : '[v0][v1][v2][v3]xstack=inputs=4:layout=0_0|w0_0|0_h0|w0_h0[v]');
+      let amap: string[] = [], aenc: string[] = [];
+      if (o.stackSound === 'mix') {
+        const withA = ps.map((x, i) => [x, i] as const).filter(([x]) => x.audio);
+        if (withA.length) {
+          const outCh = withA.every(([x]) => x.channels === 1) ? 1 : 2, ly = outCh === 1 ? 'mono' : 'stereo';
+          withA.forEach(([x, i]) => f.push(`[${i}:a:0]${upmix(x.channels, ly)}aresample=48000,aformat=sample_fmts=fltp:channel_layouts=${ly}[a${i}]`));
+          // each at its own level, added — the limiter only touches peaks above −0.3 dBFS
+          f.push(`${withA.map(([, i]) => `[a${i}]`).join('')}amix=inputs=${withA.length}:duration=longest:dropout_transition=0:normalize=0,alimiter=limit=0.97:level=false:latency=true[a]`);
+          amap = ['-map', '[a]']; aenc = aacArgs(160, outCh);
+        }
+      } else {
+        const k = Math.max(1, Math.min(n, Math.round(num(o.stackSound)) || 1)) - 1;
+        if (ps[k].audio) { amap = ['-map', `${k}:a:0`]; aenc = ACOPY(ps[k]); }
+      }
+      return { args: [...ins.flatMap((x) => ['-i', x]), '-filter_complex', f.join(';'), '-map', '[v]', ...amap, ...X264(21), ...aenc, '-movflags', '+faststart', 'out.mp4'], outputs: ['out.mp4'] };
+    }
+    case 'trails': {
+      needVideo(p);
+      const len = o.trailLen === 'short' ? 0 : o.trailLen === 'long' ? 2 : 1;
+      // light trails in RGB (a red light leaves a red trail); motion blur: the average of the last frames
+      const vf = o.trailKind === 'blur' ? `tmix=frames=${[3, 5, 9][len]},format=yuv420p` : `format=gbrp,lagfun=decay=${[0.9, 0.96, 0.985][len]},format=yuv420p`;
+      return { args: [...I, '-vf', vf, ...X264(20), ...ACOPY(p), '-movflags', '+faststart', 'out.mp4'], outputs: ['out.mp4'] };
+    }
+    case 'visualiser': {
+      needAudio(p); needDur(p);
+      if (o.visStyle === 'scope' && p.channels < 2) throw new Error('The stereo scope shows the two sides of a stereo sound — this one is mono. Choose the bars or the spectrum.');
+      // the spectrum's heights are powers of two: FFmpeg 5.1's transform is fast only for those (a spectrogram 800 rows high
+      // took 100 s for 2 s of sound here, 1024 rows 0.2 s). Over a picture: the bars or the spectrum along the bottom, the
+      // scope in the middle, their black made transparent
+      const pic = !!c.in2, st = o.visStyle;
+      // the spectrum scrolls a column every 256 samples (overlap 0.875; the default moved 23 columns a second), frequencies
+      // and levels on log scales; the bars at twice their default volume (speech left them flat)
+      const vis = st === 'spectrum' ? `showspectrum=s=1280x${pic ? 256 : 512}:mode=combined:slide=scroll:color=rainbow:scale=log:fscale=log:overlap=0.875:fps=25${pic ? '' : ',scale=1280:720'}`
+        : st === 'scope' ? `avectorscope=s=720x720:zoom=1.5:draw=line:rate=25${pic ? '' : ',pad=1280:720:280:0:black'}`
+          : `showcqt=s=1280x${pic ? '360:sono_h=0:axis_h=0' : 720}:fps=25:bar_v=48:sono_v=32`;
+      const fc = pic
+        ? `[0:a:0]${vis},colorkey=0x000000:0.1:0.1[s];[1:v]scale=1280:720:force_original_aspect_ratio=increase,crop=1280:720,setsar=1[b];[b][s]overlay=${st === 'scope' ? '(W-w)/2:0' : '0:H-h'}:shortest=1:format=auto,format=yuv420p[v]`
+        : `[0:a:0]${vis},format=yuv420p[v]`;
+      // x264's fastest preset: the drawing takes a tenth of the time, the encoding the rest (2.6 times quicker than veryfast)
+      return { args: [...I, ...(pic ? ['-loop', '1', '-framerate', '25', '-i', c.in2!] : []), '-filter_complex', fc, '-map', '[v]', '-map', '0:a:0', '-c:v', 'libx264', '-preset', 'ultrafast', '-crf', '23', '-pix_fmt', 'yuv420p', ...aacArgs(192, p.channels, p.layout), '-t', fmtS(p.dur), '-movflags', '+faststart', 'out.mp4'], outputs: ['out.mp4'] };
+    }
+    case 'soundpic': {
+      needAudio(p);
+      if (p.dur > 1800) throw new Error(`The picture is drawn from the whole sound, held in memory here: up to 30 minutes — trim it first (this one is ${Math.round(p.dur / 60)} min).`);
+      // 1024 rows: a power of two (see the visualiser — 800 rows took 100 s in this FFmpeg)
+      if (o.picKind === 'spectrogram') return { args: [...I, '-filter_complex', '[0:a:0]showspectrumpic=s=1600x1024:legend=1:color=intensity:scale=log[v]', '-map', '[v]', '-frames:v', '1', 'spectrogram.png'], outputs: ['spectrogram.png'] };
+      const ch = Math.max(1, Math.min(p.channels || 1, 8)), cols = ['0x6366f1', '0x0ea5e9', '0x10b981', '0xf59e0b', '0xef4444', '0x8b5cf6', '0x14b8a6', '0xf97316'];
+      return { args: [...I, '-filter_complex', `[0:a:0]${p.dur > 300 ? 'aresample=8000,' : ''}showwavespic=s=1920x${Math.min(1200, 240 * ch)}:split_channels=1:colors=${cols.slice(0, ch).join('|')}[v]`, '-map', '[v]', '-frames:v', '1', 'waveform.png'], outputs: ['waveform.png'] };
+    }
+    // ---------------------------------------------------------------- speed
+    case 'slowmo': {
+      needVideo(p); needDur(p);
+      const x = num(o.smX), fps = Math.min(p.fps || 30, 60), work = slowmoSeconds(p, x);
+      if (work > 1200) throw new Error(`Smooth slow motion makes every new picture by following the motion — about ${Math.round(work / 60)} minutes of work here for this video. Trim it to about ${Math.max(1, Math.floor((p.dur * 1200) / work))} s first.`);
+      const vf = `minterpolate=fps=${fmtS(fps * x)}:mi_mode=mci:mc_mode=aobmc:me_mode=bidir:vsbmc=1,setpts=${x}*PTS`;
+      const at = x === 2 ? 'atempo=0.5' : x === 4 ? 'atempo=0.5,atempo=0.5' : 'atempo=0.5,atempo=0.5,atempo=0.5';
+      const sound = p.audio && o.smSound === 'slow';
+      return { args: [...I, '-map', '0:V:0', ...(sound ? ['-map', '0:a:0', '-af', at, ...aacArgs(160, p.channels, p.layout)] : ['-an']), '-vf', vf, '-r', fmtS(fps), ...X264(20), '-movflags', '+faststart', 'out.mp4'], outputs: ['out.mp4'] };
+    }
+    // ---------------------------------------------------------------- sound
+    case 'evenout': {
+      needAudio(p);
+      const [f, g] = ({ gentle: [500, 15], moment: [250, 9], fast: [150, 7] } as Record<string, number[]>)[o.evenHow] ?? [250, 9];
+      // dynaudnorm: the gain of every moment (f ms) follows a window of g of them — quiet speakers raised up to 26 dB, the
+      // peaks at −0.9 dBFS. (speechnorm evened nothing out in FFmpeg 5.1, this FFmpeg: docs/BUGHUNT.md.)
+      return soundJob(c, base, `dynaudnorm=f=${f}:g=${g}:p=0.9:m=20`, p.channels, p.layout);
+    }
+    case 'sync': {
+      needVideo(p); needAudio(p);
+      const v = num(o.syncAmt), sec = o.syncUnit === 's' ? v : v / 1000;
+      if (!(sec > 0)) throw new Error('Type how far to move the sound — e.g. 200 ms or 1.5 s.');
+      if (p.dur && sec >= p.dur) throw new Error(`The file is only ${fmtS(p.dur)} s long.`);
+      // the sound moved by whole samples; the file keeps its length (the end cut, or silence added)
+      const later = o.syncDir === 'later', n = Math.round(sec * (p.rate || 48000));
+      const af = later ? `adelay=delays=${n}S:all=1${p.dur ? `,atrim=end=${fmtS(p.dur)}` : ''}` : `atrim=start=${fmtS(sec)},asetpts=PTS-${fmtS(sec)}/TB,apad=pad_dur=${fmtS(sec)}`;
+      return soundJob(c, base, af, p.channels, p.layout, `The sound moved ${fmtS(sec * 1000)} ms ${later ? 'later' : 'earlier'}`);
+    }
+    case 'side': {
+      needAudio(p);
+      if (p.channels === 1) throw new Error('This sound is mono — it is the same on both sides already.');
+      if (p.channels > 2) throw new Error(`This works on stereo sound — this file has ${p.layout || `${p.channels} channels`}.`);
+      const pans: Record<string, string> = { left: 'pan=stereo|c0=c0|c1=c0', right: 'pan=stereo|c0=c1|c1=c1', swap: 'pan=stereo|c0=c1|c1=c0' };
+      const said: Record<string, string> = { left: 'The left side put on both sides', right: 'The right side put on both sides', swap: 'Left and right swapped' };
+      if (o.sideWhich !== 'auto') return soundJob(c, base, pans[o.sideWhich] ?? pans.left, 2, 'stereo', said[o.sideWhich]);
+      return {
+        args: [...I, '-map', '0:a:0', '-af', 'astats=measure_overall=none:measure_perchannel=RMS_level', '-f', 'null', '-'], outputs: [],
+        preview: soundJob(c, base, 'pan=stereo|c0=SIDE|c1=SIDE', 2, 'stereo').args,
+        then: (log) => {
+          const [l, r] = rmsOf(log).pop()?.ch ?? [];
+          if (!Number.isFinite(l) && !Number.isFinite(r)) throw new Error('This sound is silent on both sides.');
+          if (Math.abs((l ?? -Infinity) - (r ?? -Infinity)) < 6) throw new Error(`Both sides hold the sound (left ${minus(l)} dB, right ${minus(r)} dB) — choose a side yourself, or Swap.`);
+          const side = l > r ? 'left' : 'right';
+          return soundJob(c, base, pans[side], 2, 'stereo', `The sound is on the ${side} (left ${minus(l)} dB, right ${minus(r)} dB): put on both sides`);
+        },
+      };
+    }
+    case 'hum': {
+      needAudio(p);
+      const f0 = num(o.humHz) === 60 ? 60 : 50, cand = Array.from({ length: 9 }, (_, i) => +(f0 - 0.2 + i * 0.05).toFixed(2));
+      // the mains frequency drifts (49.9 – 50.1 Hz), and the 10th overtone 10 times as much — narrow notches 0.1 Hz off
+      // took out a third of the hum. So it is found first: the band around the fundamental (speech has little there), a
+      // notch at each candidate, measured once the notch has settled (0.5 s) — the quietest is the hum's frequency
+      const band = f0 === 60 ? 'highpass=f=38,lowpass=f=95,lowpass=f=95' : 'highpass=f=30,lowpass=f=80,lowpass=f=80', settle = p.dur > 1.5 ? 'atrim=start=0.5,' : '';
+      const fc = `[0:a:0]${band},asplit=${cand.length}${cand.map((_, i) => `[c${i}]`).join('')};${cand.map((f, i) => `[c${i}]bandreject=f=${f}:width_type=h:width=3.3,${settle}astats=measure_perchannel=none:measure_overall=RMS_level[o${i}]`).join(';')}`;
+      return {
+        args: ['-t', '60', ...I, '-filter_complex', fc, ...cand.flatMap((_, i) => ['-map', `[o${i}]`]), '-f', 'null', '-'], outputs: [],
+        preview: soundJob(c, base, humNotches(f0).replace(/f=[\d.]+/g, 'f=F'), p.channels, p.layout).args,
+        then: (log) => {
+          const r = rmsOf(log).map((x) => x.overall);
+          if (r.length !== cand.length || !r.every(Number.isFinite)) throw new Error('FFmpeg could not measure the sound.');
+          // a hum makes a valley: the quietest candidate inside the range, the others rising on both sides (a hum 50 dB
+          // down, 0.01 dB deep); without one the band is empty (below −75 dB) or the levels only drift one way
+          const k = r.indexOf(Math.min(...r)), atEnd = k === 0 || k === r.length - 1;
+          if (Math.max(...r) < -75 || (atEnd && Math.max(...r) - Math.min(...r) < 0.05)) return soundJob(c, base, humNotches(f0), p.channels, p.layout, `No clear mains hum was found, so the notches are at ${f0} Hz and its overtones exactly`);
+          const best = cand[k];
+          return soundJob(c, base, humNotches(best), p.channels, p.layout, `Mains hum found at ${fmtS(best)} Hz: it and its overtones up to ${fmtS(best * 10)} Hz taken out`);
+        },
+      };
+    }
+    case 'bleep': {
+      needAudio(p);
+      const st = parseStretches(o.bleepAt, p.dur), g = st.map(([a, b]) => `between(t,${fmtS(a)},${fmtS(b)})`).join('+');
+      const said = `${st.length} stretch${st.length > 1 ? 'es' : ''} (${fmtS(st.reduce((s, [a, b]) => s + b - a, 0))} s)`;
+      if (o.bleepKind === 'silence') return soundJob(c, base, `aeval=exprs='val(ch)*(1-(${g}))':c=same`, p.channels, p.layout, `${said} made silent`);
+      // a 1 kHz beep as loud as the file (BS.1770: a 1 kHz sine's K-weighting is 0 dB; the LFE counts nothing)
+      const beep = (A: number) => `aeval=exprs='val(ch)*(1-(${g}))+(${g})*${A.toFixed(5)}*sin(2*PI*1000*t)':c=same`;
+      return {
+        args: [...I, '-map', '0:a:0', '-af', 'ebur128=framelog=verbose:dualmono=true', '-f', 'null', '-'], outputs: [],
+        preview: soundJob(c, base, beep(0.1).replace(/\*0\.10000\*/, '*LEVEL*'), p.channels, p.layout).args,
+        then: (log) => {
+          const L = loudnessOf(log).pop()?.i ?? NaN, ok = Number.isFinite(L) && L > -70;
+          const A = ok ? Math.min(0.5, Math.sqrt((2 * 10 ** (L / 10)) / channelWeight(p))) : 0.1;
+          return soundJob(c, base, beep(A), p.channels, p.layout, `${said} bleeped with a 1 kHz beep${ok ? ` as loud as the file (${minus(L)} LUFS)` : ''}`);
+        },
+      };
+    }
+    case 'sfx': {
+      needAudio(p);
+      const e = SFX[o.sfx] ?? SFX['8d'], rate = p.rate || 48000;
+      const pre = e.stereo ? (p.channels === 1 ? 'pan=stereo|c0=c0|c1=c0,' : p.channels > 2 ? 'aformat=channel_layouts=stereo,' : '') : '';
+      const ch = e.stereo ? 2 : p.channels, ly = e.stereo ? 'stereo' : p.layout, fx = `${pre}${e.af(rate)}`;
+      // the effect's own loudness is measured with the file's, and the result brought back to the file's loudness (the
+      // telephone took out 4 dB, the bass boost added 3) — the limiter only touches peaks above −1 dBFS
+      const build = (gain: number, note?: string): Built => {
+        const af = `${fx},volume=${gain.toFixed(2)}dB,alimiter=limit=0.891:level=false:latency=true`;
+        if (!(e.slow && p.video)) return soundJob(c, base, af, ch, ly, note);
+        return { args: [...I, '-filter_complex', `[0:V:0]setpts=PTS/${e.slow}[v];[0:a:0]${af}[a]`, '-map', '[v]', '-map', '[a]', ...X264(20), ...aacArgs(160, ch, ly), '-movflags', '+faststart', 'out.mp4'], outputs: ['out.mp4'], note };
+      };
+      return {
+        args: [...I, '-filter_complex', `[0:a:0]asplit=2[a][b];[a]ebur128=framelog=verbose:dualmono=true[x];[b]${fx},ebur128=framelog=verbose:dualmono=true[y]`, '-map', '[x]', '-map', '[y]', '-f', 'null', '-'], outputs: [],
+        preview: build(0).args.map((a) => a.replace('volume=0.00dB', 'volume=GAIN')),
+        then: (log) => {
+          const [a, b] = loudnessOf(log).map((x) => x.i);
+          const ok = Number.isFinite(a) && Number.isFinite(b) && a > -70 && b > -70;
+          return build(ok ? a - b : 0, `${e.name}${ok ? `, at the file's loudness (${minus(a)} LUFS; the effect alone ${minus(b)})` : ''}`);
+        },
+      };
+    }
+    // ---------------------------------------------------------------- information and privacy
+    case 'analyse': {
+      if (!p.video && !p.audio) throw new Error('FFmpeg finds no picture or sound in this file.');
+      const v = p.video && o.anWhat !== 'sound', a = p.audio;
+      const fc = [v ? '[0:V:0]blackdetect=d=0.5:pix_th=0.10,freezedetect=n=-60dB:d=2[v]' : '', a ? '[0:a:0]ebur128=peak=true:framelog=verbose:dualmono=true,silencedetect=n=-50dB:d=0.5[a]' : ''].filter(Boolean).join(';');
+      const q: Probe = { ...p, video: v };
+      return { args: [...I, '-filter_complex', fc, ...(v ? ['-map', '[v]'] : []), ...(a ? ['-map', '[a]'] : []), '-f', 'null', '-'], outputs: [], report: (log) => analyseReport(log, q) };
+    }
+    case 'meta': {
+      if (!p.video && !p.audio) throw new Error('FFmpeg finds no picture or sound in this file.');
+      const ext = /^(mp4|mov|m4v|mkv|webm|3gp|mp3|m4a|flac|ogg|opus|wav)$/.test(base) ? base : p.video ? 'mkv' : 'mka';
+      // copied as it is, without the file's, the streams' and the chapters' metadata; data tracks (GPS, timecode) and a
+      // cover picture are not mapped; bitexact: FFmpeg writes no "encoder" of its own
+      return { args: [...I, '-map', '0:V?', '-map', '0:a?', '-map', '0:s?', '-map_metadata', '-1', '-map_metadata:s', '-1', '-map_chapters', '-1', '-c', 'copy', '-fflags', '+bitexact', '-flags:v', '+bitexact', '-flags:a', '+bitexact', `out.${ext}`], outputs: [`out.${ext}`] };
+    }
     case 'raw': {
       const args = (String(o.raw).match(/"[^"]*"|'[^']*'|\S+/g) || []).map((a) => a.replace(/^["']|["']$/g, ''));
       if (args[0] === 'ffmpeg') args.shift();
@@ -501,5 +1095,7 @@ export function secondFor(job: Job, o: Record<string, any>): { label: string; ac
   if (job === 'pip') return { label: 'Choose the small video (or a picture)', accept: 'video/*,image/*' };
   if (job === 'subBurn') return { label: 'Choose the subtitle file (.srt, .vtt, .ass) — or none to use the video\'s own', accept: '.srt,.vtt,.ass,.ssa', optional: true };
   if (job === 'subAdd') return { label: 'Choose the subtitle file (.srt, .vtt, .ass)', accept: '.srt,.vtt,.ass,.ssa' };
+  if (job === 'chroma') return { label: 'Choose the background (a photo or a video)', accept: 'image/*,video/*' };
+  if (job === 'visualiser') return { label: 'Choose a picture to show behind it (optional)', accept: 'image/*', optional: true };
   return null;
 }

@@ -2,9 +2,10 @@
 // Opus, Vorbis, Theora, WebP, freetype/libass, zimg) running in its own worker. Inputs are mounted read-only
 // (WORKERFS, not copied into memory). Each task (src/lib/ffjobs.ts) builds an argument list; the equivalent command
 // line is shown so it can be copied to a real terminal, or edited in "Your own arguments".
-import { h, card, field, actions, button, select, input, segmented, toggle, slider, stack, note, progress, filePicker, outputBox, toast, errMsg, fmtBytes, fmtTime, baseName, extOf, downloadBlob, clear, type Mount } from '../ui';
+import { h, card, field, actions, button, select, input, segmented, toggle, slider, stack, note, progress, filePicker, outputBox, toast, errMsg, fmtBytes, fmtTime, baseName, extOf, downloadBlob, copy, clear, type Mount } from '../ui';
 import { onLeave } from '../lifecycle';
-import { JOB_GROUPS, DEFAULTS, EMPTY_PROBE, buildJob, parseProbe, secondFor, asJpegName, keptAudioExt, mp3Of, type Job, type Probe, type JobCtx } from '../lib/ffjobs';
+import { JOB_GROUPS, DEFAULTS, EMPTY_PROBE, buildJob, parseProbe, secondFor, asJpegName, keptAudioExt, mp3Of, remuxPlan, personalMeta, otherTracks, slowmoSeconds, type Job, type Probe, type JobCtx, type Built } from '../lib/ffjobs';
+import { cropBox } from '../lib/imgtools';
 import { loadImg, encodeImg } from '../lib/imgio';
 import { liveCamera } from '../lib/livecam';
 
@@ -15,6 +16,9 @@ const FONTS = ['NotoSans_400Regular.ttf', 'NotoSans_700Bold.ttf'];
  *  #22: "the format chosen kept while the tab is open"); nothing is stored (stateless site). */
 const keptAudio = { aud: DEFAULTS.aud as string, mp3q: DEFAULTS.mp3q as string };
 const MP3Q: Array<[string, string]> = [['v2', 'VBR V2 (≈ 190 kb/s)'], ['128', '128 kb/s'], ['192', '192 kb/s'], ['320', '320 kb/s']];
+/** xfade's transitions offered (each looked for in this FFmpeg 5.1) */
+const XFADES: Array<[string, string]> = [['fade', 'Cross-fade'], ['fadeblack', 'Fade through black'], ['fadewhite', 'Fade through white'], ['dissolve', 'Dissolve'], ['wipeleft', 'Wipe to the left'], ['wiperight', 'Wipe to the right'],
+  ['slideleft', 'Slide to the left'], ['slideright', 'Slide to the right'], ['smoothleft', 'Smooth wipe'], ['circleopen', 'Circle opening'], ['circleclose', 'Circle closing'], ['radial', 'Clock hand'], ['pixelize', 'Pixelize'], ['zoomin', 'Zoom in'], ['hblur', 'Blur'], ['distance', 'Distance']];
 
 export const mount: Mount = (root) => {
   let ff: any = null, loading: Promise<any> | null = null, running = false, onProg: ((p: number) => void) | null = null;
@@ -22,6 +26,7 @@ export const mount: Mount = (root) => {
   // probes of a second file or of clips wait for a running job (they reset its log and shared its FFmpeg)
   let stopNote = '', live = true, runDone: Promise<void> = Promise.resolve();
   let jobSeq = 0, execing = false; // the job being run (Stop and a new file end it); FFmpeg inside a command
+  let collect: string[] | null = null; // the whole log of a command whose log is read (a measuring pass, a report, names)
   let main: File | null = null, second: File | null = null, logLines: string[] = [], streams = '';
   let p1: Probe = EMPTY_PROBE, p2: Probe | undefined, probing: Promise<void> = Promise.resolve(), fontsIn = false, loadedOnce = false;
   /** the clips of "Join clips": the chosen file first; each added clip gets the name in3, in4 … inside FFmpeg */
@@ -61,7 +66,8 @@ export const mount: Mount = (root) => {
     try {
       const b = build(), { args } = b;
       const show = (a: string) => (/^in\d+\.\w+$/.test(a) ? realName(a) : /^out\./.test(a) ? `${baseName(main!.name)}-out.${extOf(a)}` : a.replace(/\/in\/(in\d+\.\w+)/g, (_, n) => realName(n)).replace(/\/work\//g, ''));
-      cmd.value = `ffmpeg ${args.map((a) => quote(show(a))).join(' ')}${b.jpeg ? '\n# then PNG → JPEG with MozJPEG (quality 90)' : ''}`;
+      const line = (a: string[]) => `ffmpeg ${a.map((x) => quote(show(x))).join(' ')}`;
+      cmd.value = b.then ? `${line(args)}\n# then, with what the first command finds:\n${line(b.preview ?? [])}` : `${line(args)}${b.jpeg ? '\n# then PNG → JPEG with MozJPEG (quality 90)' : ''}${b.next ? '\n# made again with fewer pictures a second while it is above 500 KB' : ''}`;
     } catch (e) { cmd.value = errMsg(e); }
   }
   const sel = (label: string, key: string, options: Array<[string, string]>, after?: () => void) => field(label, select<string>(options, o[key], (v) => { o[key] = v; after?.(); update(); }));
@@ -75,8 +81,10 @@ export const mount: Mount = (root) => {
     secondBox.hidden = !sec;
     if (sec) { secondPick.querySelector('strong')!.textContent = sec.label; secondPick.querySelector('input')!.setAttribute('accept', sec.accept); }
     secondCam.el.hidden = !sec || !/image\//.test(sec.accept); // hidden, its camera closes
-    joinBox.hidden = job !== 'join';
-    if (job === 'join') renderClips();
+    const clipJob = job === 'join' || job === 'transitions' || job === 'stack';
+    joinBox.hidden = !clipJob;
+    clipPick.querySelector('strong')!.textContent = job === 'stack' ? 'Add the other videos (2 to 4 in all)' : 'Add clips to join';
+    if (clipJob) renderClips();
     const parts: Record<Job, () => Array<Node | null>> = {
       convert: () => [sel('To', 'fmt', FORMATS)],
       // to-do #22 (owner: "the extracted audio is by default in the .m4a format. Add an MP3 audio formats also"): the
@@ -135,6 +143,69 @@ export const mount: Mount = (root) => {
       subBurn: () => [info2('The subtitles become part of the picture (they show in every player). Text in Noto Sans.')],
       subAdd: () => [sel('Language', 'subLang', [['eng', 'English'], ['hin', 'Hindi'], ['mar', 'Marathi'], ['tam', 'Tamil'], ['tel', 'Telugu'], ['ben', 'Bengali'], ['fra', 'French'], ['spa', 'Spanish'], ['deu', 'German'], ['und', 'Not given']]), info2('A track the viewer can switch on and off. MP4 keeps text subtitles as "mov_text"; MKV keeps them as they are.')],
       subExtract: () => [sel('Save as', 'subFmt', [['srt', 'SRT'], ['vtt', 'WebVTT'], ['ass', 'ASS']])],
+      // ================================================================ to-do #32
+      remux: () => {
+        let lines: string[] = [], why = '';
+        try { lines = remuxPlan(p1).lines; } catch (e) { why = errMsg(e); }
+        return [main && p1.streams.length ? (why ? note(why, 'warn') : field('What happens to each part', h('ul', { class: 'ff-list small' }, ...lines.map((l) => h('li', null, l))))) : null,
+          info2('Copied as it is — an OBS recording takes seconds, the picture is never re-encoded. A sound an MP4 cannot hold as it is is made AAC, at its own level.')];
+      },
+      scenes: () => [sel('A new scene is', 'scSens', [['medium', 'a clear change (usual)'], ['high', 'any change (more pictures)'], ['low', 'a big change only (fewer pictures)']]),
+        info2('A picture of the first frame and of every change of scene, each named by its time, as JPEGs in one zip — a storyboard. (The contact sheet takes pictures evenly instead.)')],
+      sticker: () => [h('div', { class: 'row' }, inp('Start (seconds or mm:ss)', 'stStart'), sel('Length', 'stLen', [['1', '1 s'], ['2', '2 s'], ['3', '3 s'], ['5', '5 s'], ['8', '8 s'], ['10', '10 s']])),
+        field('The square', segmented<string>([['crop', 'Filled (the middle of the picture)'], ['fit', 'The whole picture, transparent around it']], o.stFill, (v) => { o.stFill = v; update(); })),
+        info2('An animated WebP of 512 × 512, at most 500 KB and 10 s — WhatsApp\'s rules for animated stickers. Bigger, it is made again with fewer pictures a second and a lower quality. Add it with a sticker-maker app (WhatsApp takes animated stickers from such apps).')],
+      transitions: () => [h('div', { class: 'row' }, sel('Transition', 'xfType', XFADES), sel('Length', 'xfLen', [['0.5', '0.5 s'], ['1', '1 s'], ['1.5', '1.5 s'], ['2', '2 s']])),
+        info2('Each clip is fitted to the first one\'s size (black bars where the shape differs), at 30 frames a second; the sound crossfades with the picture, at its level. Every transition overlaps two clips, so the result is that much shorter. Sound files are crossfaded too.')],
+      bars: () => [info2('A first quick pass finds the picture inside the black bars (above and below, or at the sides) in the whole video; the bars are then cut off and the picture re-encoded.')],
+      v360: () => [field('The video', segmented<string>([['equirect', 'A 360° video'], ['wide', 'A wide lens (GoPro, action camera)']], o.v360In, (v) => { o.v360In = v; renderOpts(); })),
+        ...(o.v360In === 'wide'
+          ? [sel('Straighten the lines', 'lens', [['medium', 'As a GoPro\'s wide lens needs'], ['light', 'A little'], ['strong', 'A lot']]), info2('The curve of a wide lens taken out (FFmpeg\'s lenscorrection): straight lines become straight; the corners of the picture are cut a little.')]
+          : [field('Make', segmented<string>([['flat', 'A normal view'], ['planet', 'A tiny planet']], o.v360Out, (v) => { o.v360Out = v; renderOpts(); })),
+            o.v360Out === 'planet' ? info2('The ground below becomes a little round world (1080 × 1080), the sky around it.')
+              : stack(range('Look left (−) or right (+)', 'yaw', -180, 180, '°'), range('Look down (−) or up (+)', 'pitch', -90, 90, '°'), sel('Field of view', 'fov', [['60', '60° (closer)'], ['75', '75°'], ['90', '90°'], ['110', '110°'], ['130', '130° (wider)']]), info2('A 1280 × 720 view in that direction, as a normal camera would have filmed it.'))])],
+      hdr: () => {
+        const kind = p1.trc === 'arib-std-b67' ? 'HLG — as iPhones film' : p1.trc === 'smpte2084' ? 'PQ (HDR10) — as many Android phones film' : '';
+        return [main && p1.video ? note(kind ? `This video is HDR: ${kind}.` : `This video is not HDR${p1.trc ? ` (its colours are ${p1.trc})` : ''} — nothing to convert.`, kind ? 'info' : 'warn') : null,
+          info2('HDR looks washed out on most PCs, in WhatsApp and in many editors. This makes a normal (SDR) copy: the picture\'s white stays white, brighter highlights (up to 1000 cd/m²) are softly rounded off instead of cut, the colours made BT.709.')];
+      },
+      delogo: () => delogoPart(),
+      chroma: () => [field('The screen\'s colour', segmented<string>([['green', 'Green'], ['blue', 'Blue'], ['custom', 'Another colour']], o.keyColour, (v) => { o.keyColour = v; renderOpts(); })),
+        o.keyColour === 'custom' ? field('Colour', input({ type: 'color', value: o.keyCustom, onInput: (v: string) => { o.keyCustom = v; update(); }, attrs: { 'aria-label': 'The screen\'s colour' } })) : null,
+        range('How much of the colour goes', 'keySim', 1, 60, ' %'), range('Softness of the edge', 'keyBlend', 0, 40, ' %'),
+        info2('The second file — a photo or a video — fills the background (cut to the video\'s shape; a shorter video repeats); green or blue left on the edges is taken out. The sound is the first video\'s.')],
+      stack: () => [field('Layout', segmented<string>([['side', 'Side by side'], ['above', 'One above the other'], ['grid', '2 × 2 grid']], o.stackLayout, (v) => { o.stackLayout = v; update(); })),
+        sel('Sound', 'stackSound', [['1', 'The first video\'s'], ['2', 'The second\'s'], ['3', 'The third\'s'], ['4', 'The fourth\'s'], ['mix', 'All of them, mixed']]),
+        info2('Side by side and one above the other take two videos, the grid three or four. Each is fitted to the first one\'s shape (black bars where the shape differs); a shorter one holds its last picture until the longest ends. Before / after: the two versions side by side.')],
+      trails: () => [field('Effect', segmented<string>([['trails', 'Light trails (night traffic, sparklers)'], ['blur', 'Motion blur']], o.trailKind, (v) => { o.trailKind = v; update(); })),
+        sel('Length', 'trailLen', [['short', 'Short'], ['medium', 'Medium'], ['long', 'Long']]), info2('Light trails: bright things leave a fading trail behind them (best at night, on a tripod). Motion blur: each picture blended with the ones before it.')],
+      visualiser: () => [sel('Style', 'visStyle', [['bars', 'Bars and a scrolling picture of the notes'], ['spectrum', 'A scrolling spectrum'], ['scope', 'A stereo scope (stereo sound)']]),
+        info2('A 1280 × 720 video at 25 frames a second with the sound at its own level — for a song or a podcast. With a picture chosen above, the bars or the spectrum run along its bottom, the scope in its middle.')],
+      soundpic: () => [field('Picture', segmented<string>([['wave', 'Waveform (a strip for each channel)'], ['spectrogram', 'Spectrogram (the frequencies over time)']], o.picKind, (v) => { o.picKind = v; update(); })),
+        info2('One PNG of the whole sound.')],
+      slowmo: () => {
+        const work = main && p1.dur ? slowmoSeconds(p1, +o.smX) : 0;
+        return [h('div', { class: 'row' }, sel('Slower by', 'smX', [['2', '2× (half speed)'], ['4', '4×'], ['8', '8×']], () => renderOpts())),
+          field('Sound', segmented<string>([['slow', 'Slowed down too (pitch kept)'], ['none', 'None']], o.smSound, (v) => { o.smSound = v; update(); })),
+          info2(`Each picture in between is made by following the motion between two real ones (FFmpeg's minterpolate) — smooth, and slow in a browser: for short clips.${work ? ` This video: about ${work < 90 ? `${Math.max(1, Math.round(work))} s` : `${Math.round(work / 60)} min`} of work here.` : ''}`)];
+      },
+      evenout: () => [sel('How quickly the level follows', 'evenHow', [['moment', 'Moment by moment (a meeting)'], ['gentle', 'Gently (long turns, a lecture)'], ['fast', 'Quickly (a quick exchange)']]),
+        info2('Quiet and loud speakers brought to one level as the file goes (FFmpeg\'s dynaudnorm): a quiet one is raised by up to 26 dB, the loudest peaks stay at −0.9 dBFS; the room\'s noise rises with a quiet speaker. "Normalise loudness" sets one level for the whole file instead.')],
+      sync: () => [field('The sound', segmented<string>([['earlier', 'comes too late — move it earlier'], ['later', 'comes too early — move it later']], o.syncDir, (v) => { o.syncDir = v; update(); })),
+        h('div', { class: 'row' }, inp('By', 'syncAmt', 'text', { attrs: { inputmode: 'decimal' } }), sel('Unit', 'syncUnit', [['ms', 'milliseconds'], ['s', 'seconds']])),
+        info2('The picture is copied as it is; the sound is moved by that much (to the sample) and re-encoded, the file keeps its length. Find the amount on a clap, or on a word with clear lips.')],
+      side: () => [field('The voice is on', segmented<string>([['auto', 'Find the side'], ['left', 'The left'], ['right', 'The right'], ['swap', 'Swap left and right']], o.sideWhich, (v) => { o.sideWhich = v; update(); })),
+        info2('A lapel or phone microphone recorded on one channel: that side is put on both, at its own level, so it plays from both speakers. "Find the side" measures the two sides first.')],
+      hum: () => [field('Mains frequency', segmented<string>([['50', '50 Hz (India, Europe, most of Asia and Africa)'], ['60', '60 Hz (the Americas, parts of Japan)']], o.humHz, (v) => { o.humHz = v; update(); })),
+        info2('The hum\'s exact frequency is found first (the mains drifts by a tenth of a hertz), then it and its overtones up to ten times it are cut out with narrow notches — speech keeps its level within about half a decibel.')],
+      bleep: () => [field('The stretches to bleep (from-to, separated by commas)', input({ value: o.bleepAt, placeholder: '1.2-1.8, 3:05-3:06.5', onInput: (v: string) => { o.bleepAt = v; update(); }, attrs: { 'aria-label': 'The stretches to bleep' } })),
+        field('Bleep with', segmented<string>([['beep', 'A beep (1 kHz)'], ['silence', 'Silence']], o.bleepKind, (v) => { o.bleepKind = v; update(); })),
+        info2('Times in seconds or minutes:seconds. The picture is copied as it is; the beep is as loud as the file.')],
+      sfx: () => [sel('Effect', 'sfx', [['8d', '8D — the sound circling the head (headphones)'], ['slowed', 'Slowed + reverb'], ['bass', 'Bass boost'], ['phone', 'Telephone voice'], ['radio', 'Old radio'], ['echo', 'Echo']], () => renderOpts()),
+        info2(`${o.sfx === 'slowed' ? 'Slowed to 85 % with the pitch lowered, as the songs do, with a room\'s reverb — a video\'s picture is slowed with it. ' : o.sfx === '8d' ? 'The sound moves slowly around the listener (once every 8 seconds) — made for headphones; stereo. ' : ''}The result is brought back to the file's own loudness, so the effect does not make it quieter or louder.`)],
+      analyse: () => [field('Analyse', segmented<string>([['all', 'Picture and sound'], ['sound', 'The sound only (quicker)']], o.anWhat, (v) => { o.anWhat = v; update(); })),
+        info2('Its loudness (LUFS, true peak, loudness range) and the times of black and frozen pictures and of silences — a report to read, copy and save. The file is not changed.')],
+      meta: () => metaPart(),
       raw: () => [field('Arguments (inputs are in1.<ext>, in2.<ext>; the last name is the output)', input({ value: o.raw, onInput: (v: string) => { o.raw = v; update(); }, attrs: { class: 'input mono', spellcheck: 'false', 'aria-label': 'FFmpeg arguments' } })),
         note('This single-threaded build cannot use libvpx-vp9 or libx265 (they wait for threads): use libvpx (VP8) or libx264. Its Opus encoder crashes on stereo at the default complexity, so a command that makes Opus without "-compression_level" gets "-compression_level:a 4". Press Stop if a command hangs.', 'warn')],
     };
@@ -167,7 +238,7 @@ export const mount: Mount = (root) => {
       if (!status.textContent || /^(Starting|Loading) FFmpeg/.test(status.textContent)) status.textContent = saying;
       const { FFmpeg } = await import('@ffmpeg/ffmpeg');
       const f = new FFmpeg(), at = (p: string) => new URL(p, document.baseURI).href;
-      f.on('log', ({ message }: any) => { logLines.push(message); if (logLines.length > 400) logLines.splice(0, 100); });
+      f.on('log', ({ message }: any) => { logLines.push(message); collect?.push(message); if (logLines.length > 400) logLines.splice(0, 100); });
       f.on('progress', ({ progress: p }: any) => onProg?.(Math.max(0, Math.min(1, p))));
       await f.load({ coreURL: at('vendor/ffmpeg/ffmpeg-core.js'), wasmURL: at('vendor/ffmpeg/ffmpeg-core.wasm') });
       ff = f; fontsIn = false; loadedOnce = true;
@@ -186,8 +257,8 @@ export const mount: Mount = (root) => {
     await f.mount('WORKERFS', { files }, '/in');
   }
   /** What FFmpeg says about one file (mounted alone at /probe). */
-  async function probeFile(file: File, name: string): Promise<Probe> {
-    await runDone.catch(() => {});
+  async function probeFile(file: File, name: string, wait = true): Promise<Probe> {
+    if (wait) await runDone.catch(() => {});
     const f = await engine();
     try { await f.unmount('/probe'); } catch { /* */ }
     try { await f.createDir('/probe'); } catch { /* */ }
@@ -210,12 +281,68 @@ export const mount: Mount = (root) => {
         // a file in which FFmpeg finds no picture, sound or subtitles is said at once (it was only found out by a job)
         const why = !pr.video && !pr.audio && !pr.subs ? (logLines.find((l) => /Invalid data|could not find codec|no such file|end of file|moov atom not found|EBML header parsing failed/i.test(l)) || '').replace(/^.*?: /, '') : '';
         info.textContent = `${my.name} · ${fmtBytes(my.size)}${pr.dur ? ` · ${fmtTime(pr.dur)}` : ''}\n${!pr.video && !pr.audio && !pr.subs ? `FFmpeg finds no video, sound or subtitles in this file${why ? ` (${why.trim()})` : ''} — is it a media file?` : streams.replace(/^\s+/gm, '')}`;
-        if (job === 'join') renderClips();
-        if (job === 'audio') renderOpts(); // "As it is (.m4a)" names the file's own kind
-        update();
+        renderOpts(); // options that show what the file holds ("As it is (.m4a)", the MP4 plan, its metadata, HDR, the logo's picture)
       } catch (e) { info.textContent = `${my.name}: ${errMsg(e)}`; }
     })();
     return probing;
+  }
+  /** A picture of the main file at `t` s (FFmpeg writes PNG), for drawing the logo's box on. */
+  const frames = new Map<string, Promise<Blob>>();
+  function frameOf(file: File, t: number): Promise<Blob> {
+    const key = `${file.name}|${file.size}|${file.lastModified}|${t}`;
+    if (!frames.has(key)) frames.set(key, (async () => {
+      await runDone.catch(() => {});
+      const f = await engine();
+      try { await f.unmount('/probe'); } catch { /* */ }
+      try { await f.createDir('/probe'); } catch { /* */ }
+      const name = `frame.${extOfName(file.name)}`;
+      await f.mount('WORKERFS', { files: [new File([file], name, { type: file.type })] }, '/probe');
+      const code = await f.exec(['-hide_banner', '-y', '-ss', String(t), '-i', `/probe/${name}`, '-frames:v', '1', '-update', '1', 'frame.png']);
+      try { await f.unmount('/probe'); } catch { /* */ }
+      if (code) throw new Error('FFmpeg could not take a picture from this video.');
+      const data = await f.readFile('frame.png'); await f.deleteFile('frame.png');
+      return new Blob([data as BlobPart], { type: 'image/png' });
+    })().catch((e) => { frames.delete(key); throw e; }));
+    return frames.get(key)!;
+  }
+  /** "Remove a logo": a picture of the video with a box to put over the logo — dragged, or typed in pixels. */
+  function delogoPart(): Array<Node | null> {
+    if (!main || !p1.video) return [info2('Choose a video: a picture of it appears here, with a box to put over the logo or the date stamp.')];
+    const W = p1.w || 640, H = p1.h || 360;
+    const canvas = h('canvas', { width: W, height: H, 'aria-label': 'A picture of the video: drag the box over the logo' }) as HTMLCanvasElement;
+    const boxes: HTMLInputElement[] = [];
+    const sync = () => { const r = box.rect(W, H); ['lgX', 'lgY', 'lgW', 'lgH'].forEach((k, i) => { o[k] = String(Math.round([r.x, r.y, r.w, r.h][i])); boxes[i].value = o[k]; }); update(); };
+    const box = cropBox(canvas, sync);
+    const place = () => { const v = ['lgX', 'lgY', 'lgW', 'lgH'].map((k) => +o[k]); if (v.every(Number.isFinite) && v[2] > 0 && v[3] > 0) box.setRect({ x: v[0] / W, y: v[1] / H, w: v[2] / W, h: v[3] / H }); };
+    ['From the left', 'From the top', 'Width', 'Height'].forEach((label, i) => boxes.push(input({ type: 'number', value: o[['lgX', 'lgY', 'lgW', 'lgH'][i]], min: 0, max: i % 2 ? H : W, onInput: (v: string) => { o[['lgX', 'lgY', 'lgW', 'lgH'][i]] = v; place(); update(); }, attrs: { 'aria-label': `${label} (pixels)` } })));
+    if (o.lgW === '' || +o.lgX + +o.lgW > W || +o.lgY + +o.lgH > H) box.setRect({ x: 0.74, y: 0.04, w: 0.22, h: 0.12 }); else place(); // logos usually sit at the top right
+    const at = Math.max(0, Math.min(+o.lgAt || 0, p1.dur ? p1.dur - 0.05 : 1)), say = h('div', { class: 'muted small', 'aria-live': 'polite' }, 'Taking a picture of the video…');
+    const my = main;
+    frameOf(my, at).then(async (blob) => {
+      if (my !== main) return;
+      const bmp = await createImageBitmap(blob); canvas.getContext('2d')!.drawImage(bmp, 0, 0, W, H); bmp.close(); say.textContent = '';
+    }).catch((e) => { say.textContent = errMsg(e); });
+    return [h('div', { class: 'ff-frame' }, box.el), say,
+      h('div', { class: 'row' }, ...boxes.map((b, i) => field(['From the left (px)', 'From the top (px)', 'Width (px)', 'Height (px)'][i], b))),
+      h('div', { class: 'row' }, inp('Picture at (seconds)', 'lgAt', 'text', { attrs: { inputmode: 'decimal' } }), button('Show it', () => renderOpts(), { small: true, variant: 'secondary' })),
+      info2('The box is filled from the pixels around it (FFmpeg\'s delogo): a logo on a calm background disappears best. Drag the box or its corners, or type where it is.')];
+  }
+  /** "Remove location and metadata": what the file says, before the copy is made. */
+  function metaPart(): Array<Node | null> {
+    if (!main) return [info2('Choose a video or a sound file: what it says about where, when and with what it was made is listed here.')];
+    const pm = personalMeta(p1), ot = otherTracks(p1), groups = new Map<string, string[]>();
+    for (const [g, text, where] of pm) { if (!groups.has(g)) groups.set(g, []); groups.get(g)!.push(where ? `${text} (${where})` : text); }
+    if (p1.chapters) groups.set('Chapters', [`${p1.chapters} chapter${p1.chapters > 1 ? 's' : ''}${pm.some(([, , w]) => /^chapter/.test(w)) ? '' : ''}`]);
+    if (ot.length) groups.set('Other tracks', ot);
+    const list = [...groups].map(([g, items]) => h('div', null, h('strong', { class: 'small' }, g), h('ul', { class: 'ff-list small' }, ...items.map((t) => h('li', null, t)))));
+    return [p1.streams.length ? (list.length ? field('What this file says', h('div', { class: 'stack' }, ...list)) : note('FFmpeg finds no place, date or device in this file — the copy is made all the same.', 'info')) : null,
+      info2('A copy without all of it: the picture and the sound are copied as they are (nothing re-encoded), without the file\'s, the tracks\' and the chapters\' metadata, data tracks (GPS, timecode) and a cover picture. The copy is read again afterwards and what is left is said.')];
+  }
+  /** What is left in the copy "Remove location and metadata" made. */
+  async function leftIn(file: { name: string; blob: Blob }) {
+    const ext = extOf(file.name).toLowerCase() || 'bin', q = await probeFile(new File([file.blob], `check.${ext}`), `check.${ext}`, false);
+    const left = [...personalMeta(q).map(([, t]) => t), ...otherTracks(q), ...(q.chapters ? [`${q.chapters} chapters`] : [])];
+    return left.length ? `Still in the copy: ${left.join(' · ')}` : 'Checked: the copy says nothing of where, when or with what it was made — only the file format\'s own entries are left.';
   }
   async function fonts(f: any) {
     if (fontsIn) return;
@@ -234,43 +361,65 @@ export const mount: Mount = (root) => {
     let ran = false;
     try {
       await probing; alive();
-      const b = build(); // refusals before FFmpeg starts
+      let b: Built = build(); // refusals before FFmpeg starts
       const f = await engine(); alive();
       await mountInputs(f); alive();
-      if (b.fonts) { await fonts(f); alive(); }
-      if (b.writes) { try { await f.createDir('/work'); } catch { /* exists */ } for (const [path, text] of b.writes) await f.writeFile(path, new TextEncoder().encode(text)); alive(); }
-      const real = b.args.map((a) => (/^in\d+\.\w+$/.test(a) ? `/in/${a}` : a));
-      logLines = [];
-      onProg = (p) => prog.set(p, `Working… ${Math.round(p * 100)} %`);
-      prog.set(null, 'Working…');
-      ran = true;
-      let code: number;
-      execing = true;
-      try { code = await f.exec(['-hide_banner', '-y', ...real]); } finally { execing = false; }
-      alive();
-      let names = b.outputs;
-      if (b.pattern) names = (await f.listDir('/')).map((n: any) => n.name).filter((n: string) => b.pattern!.test(n)).sort();
-      const files: Array<{ name: string; blob: Blob }> = [];
-      for (const n of names) {
-        let data: Uint8Array;
-        try { data = await f.readFile(n); await f.deleteFile(n); } catch { continue; /* not produced */ }
-        let blob = new Blob([data as BlobPart], { type: mimeOf(n) }), nm = n;
-        if (b.jpeg && n.endsWith('.png')) { blob = await encodeImg(await loadImg(blob), 'jpeg', 90); nm = asJpegName(n); } // MozJPEG
-        files.push({ name: nm.startsWith('out.') ? `${baseName(m.name)}-out.${extOf(nm)}` : b.pattern ? nm : `${baseName(m.name)}-${nm}`, blob });
+      /** one command; `keep`: its whole log is read (a measuring pass, a report, names) */
+      const exec = async (bb: Built, what: string, keep: boolean) => {
+        if (bb.fonts) { await fonts(f); alive(); }
+        if (bb.writes) { try { await f.createDir('/work'); } catch { /* exists */ } for (const [path, text] of bb.writes) await f.writeFile(path, new TextEncoder().encode(text)); alive(); }
+        const real = bb.args.map((a) => (/^in\d+\.\w+$/.test(a) ? `/in/${a}` : a));
+        logLines = []; collect = keep ? [] : null;
+        onProg = (p) => prog.set(p, `${what}… ${Math.round(p * 100)} %`);
+        prog.set(null, `${what}…`);
+        ran = true;
+        let code: number;
+        execing = true;
+        try { code = await f.exec(['-hide_banner', '-y', ...real]); } finally { execing = false; }
+        const log = (collect ?? logLines).join('\n'); collect = null;
+        alive();
+        logBox.textContent = logLines.slice(-60).join('\n');
+        if (code) throw new Error(`FFmpeg failed${what === 'Measuring' ? ' while measuring' : ''} (exit ${code}): ${logLines.filter((l) => /error|invalid|no such|failed|unknown|unable/i.test(l)).slice(0, 2).join(' · ') || 'see the log'}`);
+        return log;
+      };
+      // a first command that only measures (black bars, the side of a voice, the hum, the loudness) decides the job
+      if (b.then) b = b.then(await exec(b, 'Measuring', true));
+      const notes: string[] = [];
+      let files: Array<{ name: string; blob: Blob }> = [], report = '', what = 'Working';
+      for (;;) {
+        const log = await exec(b, what, !!(b.report || b.names));
+        let names = b.outputs;
+        if (b.pattern) names = (await f.listDir('/')).map((n: any) => n.name).filter((n: string) => b.pattern!.test(n)).sort();
+        const shown = b.names ? b.names(names, log) : names;
+        files = [];
+        for (const [i, n] of names.entries()) {
+          let data: Uint8Array;
+          try { data = await f.readFile(n); await f.deleteFile(n); } catch { continue; /* not produced */ }
+          let nm = shown[i] ?? n, blob = new Blob([data as BlobPart], { type: mimeOf(nm) });
+          if (b.jpeg && nm.endsWith('.png')) { blob = await encodeImg(await loadImg(blob), 'jpeg', 90); nm = asJpegName(nm); } // MozJPEG
+          files.push({ name: nm.startsWith('out.') ? `${baseName(m.name)}-out.${extOf(nm)}` : b.pattern ? nm : `${baseName(m.name)}-${nm}`, blob });
+        }
+        alive();
+        if (b.report) report = b.report(log);
+        // too big (the sticker): made again with the next settings
+        const nx = b.next ? b.next(files.reduce((sum, x) => sum + x.blob.size, 0)) : null;
+        if (nx && typeof nx === 'object') { b = nx; what = 'Too big — making it again, smaller'; continue; }
+        if (b.note) notes.push(b.note);
+        if (typeof nx === 'string') notes.push(nx);
+        break;
       }
+      if (!files.length && !report) throw new Error('No output file was produced.');
+      if (myJob === 'meta' && files[0]) notes.push(await leftIn(files[0]));
       alive();
-      logBox.textContent = logLines.slice(-60).join('\n');
-      if (code) throw new Error(`FFmpeg failed (exit ${code}): ${logLines.filter((l) => /error|invalid|no such|failed|unknown|unable/i.test(l)).slice(0, 2).join(' · ') || 'see the log'}`);
-      if (!files.length) throw new Error('No output file was produced.');
       if (!live || m !== main) return;
       status.textContent = '';
-      showOutputs(files, performance.now() - t0, b.zip, m, myJob);
+      showOutputs(files, performance.now() - t0, b.zip, m, myJob, notes, report);
     } catch (e) {
       if (!live) return;
       if (stopNote) { status.textContent = stopNote; return; } // stopped on purpose: no error
       if (ran) fresh();
-      status.textContent = errMsg(e); status.classList.add('err-text'); toast(errMsg(e), 'err'); logBox.textContent = logLines.slice(-60).join('\n'); (logBox.parentElement as HTMLDetailsElement).open = true;
-    } finally { running = false; prog.done(); runBtn.hidden = false; stopBtn.hidden = true; }
+      status.textContent = errMsg(e); status.classList.add('err-text'); toast(errMsg(e), 'err'); logBox.textContent = logLines.slice(-60).join('\n'); (logBox.parentElement as HTMLDetailsElement).open = /FFmpeg failed/.test(errMsg(e));
+    } finally { running = false; collect = null; prog.done(); runBtn.hidden = false; stopBtn.hidden = true; }
   }
   /** End the running job (FFmpeg is busy in one long call: the worker is ended; the next job starts a new one). */
   function stopJob(why: string) {
@@ -284,13 +433,19 @@ export const mount: Mount = (root) => {
    *  crashes and the later "function signature mismatch" of Nov 2026 were the core's JPEG encoder overflowing a buffer
    *  at -q:v 2 (memory damaged for the jobs after it) — JPEG now comes from MozJPEG (`jpeg` in src/lib/ffjobs.ts). */
   function fresh() { try { ff?.terminate(); } catch { /* gone */ } ff = null; loading = null; fontsIn = false; }
-  const mimeOf = (n: string) => ({ mp4: 'video/mp4', mov: 'video/quicktime', webm: 'video/webm', mkv: 'video/x-matroska', gif: 'image/gif', mp3: 'audio/mpeg', m4a: 'audio/mp4', wav: 'audio/wav', flac: 'audio/flac', ogg: 'audio/ogg', png: 'image/png', jpg: 'image/jpeg', mka: 'audio/x-matroska', srt: 'application/x-subrip', vtt: 'text/vtt', ass: 'text/x-ssa' } as Record<string, string>)[extOf(n)] || 'application/octet-stream';
+  const mimeOf = (n: string) => ({ mp4: 'video/mp4', mov: 'video/quicktime', webm: 'video/webm', mkv: 'video/x-matroska', gif: 'image/gif', mp3: 'audio/mpeg', m4a: 'audio/mp4', wav: 'audio/wav', flac: 'audio/flac', ogg: 'audio/ogg', opus: 'audio/ogg', png: 'image/png', jpg: 'image/jpeg', webp: 'image/webp', mka: 'audio/x-matroska', '3gp': 'video/3gpp', srt: 'application/x-subrip', vtt: 'text/vtt', ass: 'text/x-ssa' } as Record<string, string>)[extOf(n).toLowerCase()] || 'application/octet-stream';
   let urls: string[] = [];
-  async function showOutputs(files: Array<{ name: string; blob: Blob }>, ms: number, zip = 'files', m: File = main!, of: Job = job) {
+  async function showOutputs(files: Array<{ name: string; blob: Blob }>, ms: number, zip = 'files', m: File = main!, of: Job = job, notes: string[] = [], report = '') {
     urls.forEach(URL.revokeObjectURL); urls = [];
     clear(outs);
     const total = files.reduce((a, f) => a + f.blob.size, 0);
-    outs.append(h('div', { class: 'muted small' }, `${files.length} file${files.length > 1 ? 's' : ''} · ${fmtBytes(total)} · ${(ms / 1000).toFixed(1)} s`));
+    outs.append(h('div', { class: 'muted small' }, files.length ? `${files.length} file${files.length > 1 ? 's' : ''} · ${fmtBytes(total)} · ${(ms / 1000).toFixed(1)} s` : `${(ms / 1000).toFixed(1)} s`));
+    for (const n of notes) outs.append(note(n, /^(Even at|Still in)/.test(n) ? 'warn' : 'info'));
+    if (report) {
+      const name = `${baseName(m.name)}-analysis.txt`;
+      outs.append(h('pre', { class: 'ff-report', tabindex: '0', 'aria-label': 'The report' }, report),
+        h('div', { class: 'row' }, button('Copy the report', () => copy(report), { icon: 'Copy', small: true, variant: 'secondary' }), button(`Download ${name}`, () => downloadBlob(new Blob([report + '\n'], { type: 'text/plain' }), name), { icon: 'Download', small: true, variant: 'primary' })));
+    }
     if (files.length > 1) {
       outs.append(h('div', { class: 'row' }, button(`Download all as .zip (${files.length})`, async () => { const { zipFiles } = await import('../lib/zip'); downloadBlob(await zipFiles(files), `${baseName(m.name)}-${zip}.zip`); }, { icon: 'Download', variant: 'primary' })));
     }
@@ -358,7 +513,13 @@ export const mount: Mount = (root) => {
   jobSel.addEventListener('change', () => { job = jobSel.value as Job; renderOpts(); });
   const runBtn = button('Run FFmpeg', () => run(), { icon: 'Play', variant: 'primary' });
   const stopBtn = button('Stop', () => { stopJob('Stopped.'); toast('Stopped', 'info'); }, { icon: 'Square', variant: 'danger' }); stopBtn.hidden = true;
-  const editRaw = button('Edit as arguments', () => { try { const a = build().args.join(' '); job = 'raw'; o.raw = a; jobSel.value = 'raw'; renderOpts(); } catch (e) { toast(errMsg(e), 'err'); } }, { icon: 'Terminal', small: true, variant: 'ghost' });
+  const editRaw = button('Edit as arguments', () => {
+    try {
+      const b = build();
+      if (b.then) { toast('This task runs two commands — the first measures what the second needs — so it cannot be edited as one.', 'info'); return; }
+      job = 'raw'; o.raw = b.args.join(' '); jobSel.value = 'raw'; renderOpts();
+    } catch (e) { toast(errMsg(e), 'err'); }
+  }, { icon: 'Terminal', small: true, variant: 'ghost' });
   work.append(
     card('Input', info, secondBox),
     card('What to do', stack(field('Task', jobSel), joinBox, opts, field('Command (copy it to run FFmpeg on your computer)', cmd), h('div', { class: 'row' }, editRaw))),

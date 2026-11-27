@@ -172,7 +172,7 @@ export default async ({ base, page: newPage, ok, info, download }) => {
   const changed = (a, b, [x0, y0, x1, y1]) => { let c = 0, n = 0; for (let y = Math.floor(y0 * a.h); y < Math.floor(y1 * a.h); y++) for (let x = Math.floor(x0 * a.w); x < Math.floor(x1 * a.w); x++) { const i = (y * a.w + x) * 4; n++; if (Math.abs(a.d[i] - b.d[i]) > 60 || Math.abs(a.d[i + 1] - b.d[i + 1]) > 60 || Math.abs(a.d[i + 2] - b.d[i + 2]) > 60) c++; } return c / n; };
   const choose = async (path, re) => { await page.locator('input[type=file]').first().setInputFiles(path); await page.locator('.ff-info').getByText(re).first().waitFor({ timeout: 60000 }); };
   const groups = await combo('Task').evaluate((s) => [...s.querySelectorAll('optgroup')].map((g) => `${g.label}: ${g.children.length}`));
-  ok(groups.join(' | ') === 'Convert and extract: 8 | Cut and join: 6 | Size and shape: 6 | Picture: 8 | Speed: 2 | Sound: 5 | Subtitles: 3 | Expert: 1', `tasks in groups: ${groups.join(' | ')}`);
+  ok(groups.join(' | ') === 'Convert and extract: 11 | Cut and join: 7 | Size and shape: 8 | Picture: 10 | Effects: 5 | Speed: 3 | Sound: 11 | Subtitles: 3 | Information and privacy: 2 | Expert: 1', `tasks in groups: ${groups.join(' | ')}`);
 
   await choose(M('clip.mp4'), /Video: h264/);
   const orig1 = await frame(M('clip.mp4'), 1);
