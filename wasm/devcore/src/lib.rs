@@ -93,6 +93,8 @@ pub unsafe extern "C" fn dc_call(op: *const u8, op_n: usize, inp: *const u8, in_
         "ids:phone" => ids::phone_info(input),
         #[cfg(feature = "ids")]
         "ids:card" => ids::card_info(input),
+        #[cfg(feature = "ids")]
+        "ids:scan" => ids::scan(input),
 
         #[cfg(feature = "bin")]
         "bin:protobuf" => bin::protobuf(input, false),

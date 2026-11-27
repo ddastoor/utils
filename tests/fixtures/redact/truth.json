@@ -1,0 +1,107 @@
+{
+ "statement.pdf": {
+  "1": {
+   "aadhaar": [
+    "2341 2341 2346"
+   ],
+   "vid": [
+    "2341 2341 2341 2341"
+   ],
+   "pan": [
+    "AAAPL1234C"
+   ],
+   "gstin": [
+    "27AAPFU0939F1ZV"
+   ],
+   "phone": [
+    "+91 98765 43210",
+    "080-2233 4455"
+   ],
+   "email": [
+    "ravi.kumar@example.com"
+   ],
+   "upi": [
+    "ravi@oksbi"
+   ],
+   "account": [
+    "123456789012"
+   ],
+   "ifsc": [
+    "SBIN0000691"
+   ],
+   "card": [
+    "4111 1111 1111 1111"
+   ],
+   "dob": [
+    "12/08/1985"
+   ],
+   "words": [
+    "Ravi Kumar"
+   ]
+  },
+  "2": {
+   "aadhaar": [
+    "9876 5432 1096"
+   ],
+   "email": [
+    "meera.iyer@example.org"
+   ]
+  },
+  "3": {
+   "aadhaar": [
+    "4567 8912 3451"
+   ],
+   "phone": [
+    "+91 91234 56789"
+   ]
+  },
+  "comment": "+91 98765 43210",
+  "field": "AAAPL1234C",
+  "title": "AAAPL1234C",
+  "subject": "2341 2341 2346",
+  "bookmark": "2341 2341 2346",
+  "keep": [
+   "quarter ending 30 September",
+   "Customer since 2011",
+   "merchants in Pune and Mumbai",
+   "each line touches the next",
+   "Closing balance carried forward",
+   "The text around the numbers stays",
+   "Digits here are glyph numbers"
+  ]
+ },
+ "scan.pdf": {
+  "1": {
+   "aadhaar": [
+    "7364 8219 0565"
+   ],
+   "pan": [
+    "BNZPM2501G"
+   ],
+   "phone": [
+    "+91 99887 76655"
+   ],
+   "qr": [
+    "582047163938"
+   ]
+  },
+  "2": {
+   "aadhaar": [
+    "7364 8219 0565"
+   ],
+   "pan": [
+    "BNZPM2501G"
+   ],
+   "phone": [
+    "+91 99887 76655"
+   ],
+   "qr": [
+    "582047163938"
+   ]
+  },
+  "keep": [
+   "Scanned letter",
+   "ordinary text"
+  ]
+ }
+}

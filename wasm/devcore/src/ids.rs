@@ -1010,3 +1010,135 @@ pub fn info() -> R {
     crate::js(json!({ "pins": p.pins.len(), "districts": p.pairs.len(), "ifscBanks": d.banks.len(), "ifsc": d.banks.values().map(|(a, b)| a.len() + b.len()).sum::<usize>(),
         "banks": T::BANKS.len(), "geo": geo().1.len(), "wmi": wmi().len(), "pinSource": T::PIN_SOURCE, "ifscSource": T::IFSC_SOURCE, "phoneSource": T::PHONE_SOURCE, "isbnSource": T::ISBN_SOURCE }))
 }
+
+// ------------------------------------------------------------------------------------------------- finding numbers in a text
+// `ids:scan` (PDF Redact, Safe ID Copy): every number or code of the chosen kinds in a page's text, as UTF-16 offsets.
+// Runs of digits are cut at their separators where the whole run is no number (two numbers side by side); words and
+// phrases the reader names are matched without regard to case, any white space standing for a space.
+struct Found { s: usize, e: usize, kind: &'static str, value: String }
+
+fn utf16_map(t: &str) -> Vec<u32> {
+    let mut m = vec![0u32; t.len() + 1]; let mut u = 0u32;
+    for (i, c) in t.char_indices() { for k in 0..c.len_utf8() { m[i + k] = u; } u += c.len_utf16() as u32; }
+    m[t.len()] = u;
+    m
+}
+fn re(p: &str) -> regex_lite::Regex { regex_lite::Regex::new(p).unwrap() }
+fn scan_res() -> &'static Vec<(&'static str, regex_lite::Regex)> {
+    static R: OnceLock<Vec<(&'static str, regex_lite::Regex)>> = OnceLock::new();
+    R.get_or_init(|| vec![
+        ("digits", re(r"\+?\d(?:[ \-.]?\d){7,22}")),
+        ("aadhaar_masked", re(r"(?i)\b[x*•]{4}[ \-]?[x*•]{4}[ \-]?\d{4}\b")),
+        ("gstin", re(r"\b[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]\b")),
+        ("pan", re(r"\b[A-Z]{5}[0-9]{4}[A-Z]\b")),
+        ("ifsc", re(r"\b[A-Z]{4}0[A-Z0-9]{6}\b")),
+        ("email", re(r"[A-Za-z0-9._%+\-]+@[A-Za-z0-9\-]+(?:\.[A-Za-z0-9\-]+)*\.[A-Za-z]{2,}")),
+        ("upi", re(r"[A-Za-z0-9._\-]{2,}@[A-Za-z][A-Za-z0-9]{1,30}\b")),
+        ("dob", re(r"(?i)\b(?:d\.?\s?o\.?\s?b\.?|date\s+of\s+birth|birth\s*date|year\s+of\s+birth)\s*[:\-]?\s*(\d{1,2}[/.\-]\d{1,2}[/.\-]\d{2,4}|\d{1,2}\s+[a-z]{3,9}\.?\s+\d{4}|\d{4})")),
+    ])
+}
+/// What a run of digits (the separators taken out) is, if it is one of the kinds asked for.
+fn digits_kind(d: &str, plus: bool, kinds: &[String], ctx_account: bool) -> Option<&'static str> {
+    let want = |k: &str| kinds.iter().any(|x| x == k);
+    let v = dv(d);
+    if want("aadhaar") && d.len() == 12 && !plus && !d.starts_with('0') && !d.starts_with('1') && !is_palindrome(d) && verhoeff_ok(&v) { return Some("aadhaar"); }
+    if want("aadhaar") && d.len() == 16 && !plus && !d.starts_with('0') && !d.starts_with('1') && verhoeff_ok(&v) { return Some("vid"); }
+    if want("card") && (13..=19).contains(&d.len()) && !plus && luhn_sum(&digits_u32(d), 10) == 0 {
+        let nets = card_networks(d);
+        if let Some((name, _)) = nets.iter().max_by_key(|(_, l)| *l) { if T::CARDS.iter().any(|r| r.0 == *name && r.2.contains(&(d.len() as u8))) { return Some("card"); } }
+    }
+    if want("phone") {
+        let nn = if plus && d.starts_with("91") { Some(&d[2..]) } else if !plus && d.len() == 11 && d.starts_with('0') { Some(&d[1..]) }
+            else if !plus && d.len() == 12 && d.starts_with("91") { Some(&d[2..]) } else if !plus && d.len() == 10 { Some(&d[..]) } else { None };
+        if let Some(nn) = nn { let t = in_type(nn); if t == "mobile" || t.starts_with("fixed_line") || t == "toll_free" { return Some("phone"); } }
+    }
+    if want("account") && ctx_account && (9..=18).contains(&d.len()) && !plus { return Some("account"); }
+    None
+}
+fn account_context(text: &str, start: usize) -> bool {
+    let from = text[..start].char_indices().rev().nth(40).map(|(i, _)| i).unwrap_or(0);
+    let before = text[from..start].to_lowercase();
+    ["a/c", "a / c", "acct", "account", "ac no", "a/c no", "acc no", "acc. no", "account no", "bank account", "khata"].iter().any(|w| before.contains(w))
+}
+fn words_found(text: &str, phrases: &[String], out: &mut Vec<Found>) {
+    let tc: Vec<(usize, char)> = text.char_indices().collect();
+    let low = |c: char| c.to_lowercase().next().unwrap_or(c);
+    for p in phrases {
+        let pc: Vec<char> = p.split_whitespace().collect::<Vec<_>>().join(" ").chars().map(low).collect();
+        if pc.is_empty() { continue; }
+        let mut i = 0;
+        while i < tc.len() {
+            let mut j = i; let mut k = 0; let mut ok = true;
+            while k < pc.len() {
+                if j >= tc.len() { ok = false; break; }
+                if pc[k] == ' ' { if !tc[j].1.is_whitespace() { ok = false; break; } while j < tc.len() && tc[j].1.is_whitespace() { j += 1; } k += 1; continue; }
+                if low(tc[j].1) != pc[k] { ok = false; break; }
+                j += 1; k += 1;
+            }
+            // whole words: no letter or digit just before or after when the phrase begins or ends with one
+            let edge_ok = |at: Option<char>, pch: char| !(pch.is_alphanumeric() && at.map(|c| c.is_alphanumeric()).unwrap_or(false));
+            if ok && edge_ok(if i > 0 { Some(tc[i - 1].1) } else { None }, pc[0]) && edge_ok(tc.get(j).map(|x| x.1), pc[pc.len() - 1]) {
+                let (s, e) = (tc[i].0, if j < tc.len() { tc[j].0 } else { text.len() });
+                out.push(Found { s, e, kind: "words", value: text[s..e].to_string() }); i = j; continue;
+            }
+            i += 1;
+        }
+    }
+}
+
+pub fn scan(input: &[u8]) -> R {
+    let a = crate::arg(input)?;
+    let text = crate::s(&a, "text");
+    let kinds: Vec<String> = a.get("kinds").and_then(|v| v.as_array()).map(|v| v.iter().filter_map(|x| x.as_str().map(String::from)).collect()).unwrap_or_default();
+    let words: Vec<String> = a.get("words").and_then(|v| v.as_array()).map(|v| v.iter().filter_map(|x| x.as_str().map(String::from)).filter(|w| !w.trim().is_empty()).collect()).unwrap_or_default();
+    let want = |k: &str| kinds.iter().any(|x| x == k);
+    let mut out: Vec<Found> = Vec::new();
+    for (name, r) in scan_res() {
+        if *name != "digits" && !want(name) && !(*name == "aadhaar_masked" && want("aadhaar")) { continue; }
+        for m in r.find_iter(text) {
+            match *name {
+                "digits" => {
+                    // the run's digit groups; the longest stretch of whole groups that is a number, from left to right
+                    let run = m.as_str(); let base = m.start();
+                    let plus = run.starts_with('+');
+                    let mut groups: Vec<(usize, usize)> = Vec::new(); // byte ranges of digit groups within run
+                    let b = run.as_bytes(); let mut i = 0;
+                    while i < b.len() { if b[i].is_ascii_digit() { let s = i; while i < b.len() && b[i].is_ascii_digit() { i += 1; } groups.push((s, i)); } else { i += 1; } }
+                    // a run glued to letters on either side is part of a word or code (INV2341…): skipped
+                    let before = text[..base].chars().next_back(); let after = text[m.end()..].chars().next();
+                    if before.map(|c| c.is_alphanumeric()).unwrap_or(false) || after.map(|c| c.is_alphanumeric()).unwrap_or(false) { continue; }
+                    let mut g = 0;
+                    while g < groups.len() {
+                        let mut hit = None;
+                        for h in (g + 1..=groups.len()).rev() {
+                            let d: String = groups[g..h].iter().map(|(s, e)| &run[*s..*e]).collect();
+                            let p = plus && g == 0;
+                            if let Some(k) = digits_kind(&d, p, &kinds, account_context(text, base + groups[g].0)) { hit = Some((h, k, d)); break; }
+                        }
+                        match hit {
+                            Some((h, k, d)) => { let s = if plus && g == 0 { base } else { base + groups[g].0 }; out.push(Found { s, e: base + groups[h - 1].1, kind: k, value: d }); g = h; }
+                            None => g += 1,
+                        }
+                    }
+                }
+                "pan" => { let s = m.as_str(); if pan_type(s).is_some() && &s[5..9] != "0000" { out.push(Found { s: m.start(), e: m.end(), kind: "pan", value: s.into() }); } }
+                "gstin" => { let s = m.as_str(); let vals: Vec<u32> = s.bytes().map(v36).collect(); if luhn_sum(&vals, 36) == 0 { out.push(Found { s: m.start(), e: m.end(), kind: "gstin", value: s.into() }); } }
+                "ifsc" => { let s = m.as_str(); let code: [u8; 4] = s.as_bytes()[..4].try_into().unwrap(); if bank_name(&s[..4]).is_some() || ifsc_data().banks.contains_key(&code) { out.push(Found { s: m.start(), e: m.end(), kind: "ifsc", value: s.into() }); } }
+                "upi" => {
+                    let s = m.as_str(); let h = s.rsplit('@').next().unwrap_or("").to_lowercase();
+                    let next = text[m.end()..].chars().next();
+                    if next != Some('.') && lin(UPI_HANDLES, &h).is_some() { out.push(Found { s: m.start(), e: m.end(), kind: "upi", value: s.into() }); }
+                }
+                "dob" => { if let Some(c) = r.captures(&text[m.start()..]) { let g = c.get(1).unwrap(); out.push(Found { s: m.start() + g.start(), e: m.start() + g.end(), kind: "dob", value: g.as_str().into() }); } }
+                k => out.push(Found { s: m.start(), e: m.end(), kind: if k == "aadhaar_masked" { "aadhaar_masked" } else { k }, value: m.as_str().into() }),
+            }
+        }
+    }
+    if !words.is_empty() { words_found(text, &words, &mut out); }
+    // earlier first; of two that overlap, the longer
+    out.sort_by(|a, b| a.s.cmp(&b.s).then(b.e.cmp(&a.e)));
+    let mut kept: Vec<Found> = Vec::new();
+    for f in out { if kept.last().map(|l| f.s < l.e).unwrap_or(false) { continue; } kept.push(f); }
+    let u = utf16_map(text);
+    crate::js(json!(kept.iter().map(|f| json!({ "s": u[f.s], "e": u[f.e], "kind": f.kind, "value": f.value })).collect::<Vec<_>>()))
+}
