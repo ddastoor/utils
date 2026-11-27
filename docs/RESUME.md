@@ -92,7 +92,12 @@ bigger than said: stop and ask). **Order chosen:** group 2 — #84 Number Detect
 PDF Searchable, #15 PDF Compare, #16 PDF Tables → Excel; then group 4 — #88 Router Sticker → Wi-Fi QR, #89 Visiting Card →
 Contact, #77 Paper Deadlines → Calendar, #78 Bill Splitter by Photo, #81 Camera Reader; then group 3 — #73 World Clock, #10
 Spell Checker, #1 Image to SVG with #117 Clipart Maker, #75 SliceDiceGrapher (covering #25 Chart Maker), #54 Diagram Editor.
-Each app: its tab, unit + e2e suites, docs, taken off potentials.md, committed and pushed. **Then to-dos #38, #39 and #40** (owner,
+Each app: its tab, unit + e2e suites, docs, taken off potentials.md, committed and pushed. **#84 Number Detective — BUILT (27 Nov
+2026):** the tab `numcheck` (Codes & Files, PC + mobile; CLAUDE.md §3 "Number Detective"), engine devcore-ids.wasm (our Rust, 1.1 MB
+with India Post's PIN directory, RBI's IFSC list, libphonenumber's Indian rules, the ISBN ranges …; `scripts/make-ids-data.py`), unit
+`numcheck` 68 (8,503 answers of stdnum / libphonenumber / vininfo — `scripts/make-numcheck-reference.py` —, credit-card-type, second
+readings of the PIN directory and the GS1 prefixes), e2e `numcheck` 33; docs/WASM-AUDIT.md 186. **Next: #61 PDF Redact.**
+**Then to-dos #38, #39 and #40** (owner,
 27 Nov 2026, evening: "After you finish all these, finish off the items in the todo.md also."; #40, added the same evening:
 the EPUB Reader's "Remember book" — a hash of the book, its place and the reading voice in the Settings — after #39). The open question (keep the EPUB Reader's place between visits?) is
 answered by #40: yes, for the books the reader asks it to remember. **New, open: to-do #38** (owner, 27 Nov 2026, before the potentials: the OCR's and the

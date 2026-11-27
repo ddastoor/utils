@@ -192,7 +192,9 @@ def phones():
 def isbn():
     import stdnum, stdnum.numdb as N
     text = (Path(stdnum.__file__).parent / 'isbn.dat').read_text()
-    date = re.search(r'# file date (.+)', text).group(1).strip()
+    from email.utils import parsedate_to_datetime
+    d = parsedate_to_datetime(re.search(r'# file date (.+)', text).group(1).strip())
+    date = f'{d.day} {d:%B %Y}'
     db = N.get('isbn')
     agencies = []
     def ag(a):

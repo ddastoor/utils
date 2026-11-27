@@ -3324,3 +3324,22 @@ cannot. Three new suites; each fails on the build before its fixes.
     the icons are now two files (`scripts/gen-icons.mjs`) — the start page's 183 and the tabs' own, fetched with the first
     tab — 167 KB at the start. An icon missing from the map is drawn as a circle with `data-missing`, and the lazy suite
     fails on one on the start page or in any tab's first view (desktop and phone).
+
+## Number Detective (27 Nov 2026; built — potentials #84)
+Found while building it, each with a check in `tests/unit/numcheck.test.mjs`:
+- **India Post's directory lists 82 PIN codes without a district or a state** (and 100 without a district): the engine trapped on
+  them (a district looked up that is not there) — they are read as "listed without its district and state", with the place of
+  their first three digits.
+- **The directory files some post offices under another state** (110025, New Delhi's, has one under Budaun, Uttar Pradesh): such a
+  district is named apart ("Also filed under"), not in the PIN code's own place.
+- **A label's word "no" against an IBAN:** "IBAN NO39 …" (Norway's) was read as "IBAN no." and 39 …; the word is now taken only when
+  a separator follows it.
+- **Small tables looked up by binary search were not sorted** (the short numbers: 1098 was not found); they are searched in
+  order now.
+- **libphonenumber's region names refer to each other** ('*aa' = the name for 'aa'): resolved in the generator; "Isle Of Man" →
+  "Isle of Man".
+- **stdnum's ISBN split is of the twelve digits before the check digit**, every matching range of a level taking part (numdb's
+  walk): ours split the thirteen and took the first range — 82 ISBNs of the 979 ranges were hyphenated otherwise.
+- **libphonenumber places only landlines in India** (`isNumberGeographical`): 1860 numbers had been given Pathankot's place.
+- **Braintree's credit-card-type has no RuPay**, and its Maestro range 506779 – 508999 holds RuPay's 508500 – 508999: RuPay's
+  ranges are tried first.

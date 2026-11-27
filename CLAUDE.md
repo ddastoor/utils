@@ -336,7 +336,7 @@ Wayland) and **mobile browsers** (Android Chrome, iPhone Safari).
 Platform is PC + mobile unless marked **PC**. Tab ids are the URL hash (`#/<id>`).
 
 **The authoritative, always-current list is `docs/TOOLS.md`, generated from `src/registry.ts` (`npm run docs`).**
-Current total: **181 tabs in 11 categories — 114 PC + mobile, 64 PC only, 3 Mobile only** (regenerate with
+Current total: **182 tabs in 11 categories — 115 PC + mobile, 64 PC only, 3 Mobile only** (regenerate with
 `npm run docs` after every registry change; the owner asked for the registry to always be noted).
 The per-category notes below record decisions; when they disagree with the registry, the registry wins.
 
@@ -482,7 +482,7 @@ Explainer · `escape` String Escape · `unicode` Unicode Inspector · `hexview` 
 Glob Tester. Left out: API client (CORS/CSP), DNS/WHOIS/ping/port scan (need network), cloud cost calculators.
 
 **Codes & Files** (all both): `qr` QR Generator · `barcode` Barcode Generator · `scan` QR & Barcode Scanner ·
-`zip` Create Zip · `unzip` Extract Archive
+`numcheck` Number Detective (**BUILT** 27 Nov 2026, potentials #84 — §3 "Number Detective") · `zip` Create Zip · `unzip` Extract Archive
 
 **Everyday** (all both): `stopwatch` · `countdown` · `pomodoro` · `interval` · `dice` · `coin` · `rng` ·
 `picker` · `teams`
@@ -1231,6 +1231,55 @@ field: Wi-Fi (network, password with its own copy button, security, hidden), UPI
 UPI app"), vCard / MECARD ("Save contact (.vcf)", CRLF), VEVENT ("Add to calendar (.ics)", wrapped in VCALENDAR; UTC
 times in local time), mailto, SMSTO / sms:, tel:, geo:, http(s) links (the site shown; opened in a new tab with
 noopener); javascript: and data: stay text. The raw text is always shown with Copy; Clear empties the list.
+
+### Number Detective — BUILT (potentials #84; owner's pick of 27 Nov 2026 — group 2 of the suggested order)
+(`numcheck` in `src/tools/numcheck.ts`, glue `src/lib/numcheck.ts`, engine `wasm/devcore/src/ids.rs` → **devcore-ids.wasm**
+(feature `ids`, 1.1 MB with its tables); unit `tests/unit/numcheck.test.mjs` 68, e2e `tests/e2e/numcheck.e2e.mjs` 33.) The owner's
+words (potentials #84): "paste any number or code → what it is and whether it is valid, offline: Aadhaar (Verhoeff), PAN, GSTIN
+(mod 36), IFSC, IMEI and card numbers (Luhn), ISBN, vehicle registration (the state code), PIN code (the region), UPI ID, phone
+number".
+- **What it reads** (one entry a line, up to 50; a label in front is read too — "PAN:", "IFSC code -", "Mobile no.", "IBAN" —
+  and puts that kind first): **Aadhaar** (Verhoeff; never 0 / 1 first, never a palindrome — python-stdnum's rules), a **masked
+  Aadhaar** (XXXX XXXX 1234), the **VID** (16 digits, Verhoeff), **PAN** (its shape; the 4th letter names the holder — P individual,
+  C company, H HUF …; 0000 refused; its check letter's rule is not public, said), **GSTIN** (the state code, the PAN or a tax
+  deductor's TAN inside, the registration count, Z, the mod-36 check character — 25, 28, 38, 97, 99 named), **TAN**, **voter ID**
+  (EPIC: Luhn on its digits, stdnum's rule, worded softly — older cards differ), **IFSC** (the bank by RBI's code; a sub-member
+  bank working through another's code named as itself; **every branch of RBI's list**: 176,918 codes of 257 banks — in the list,
+  not in it, or no bank has that code), **UPI ID** (its shape, the handle's app or bank for 55 well-known handles, a mobile
+  number before the @, an e-mail address refused), **PIN code** (India Post's directory: 19,586 PIN codes — district(s), state,
+  zone; a post office the directory files under another state named apart; one not in the directory: the place of its first
+  three digits; zone 9 the Army Postal Service), **Indian phone numbers** (libphonenumber's own patterns for India, run by
+  regex-lite: mobile, landline (its place and STD code), toll-free, shared cost, premium, UAN; its national and international
+  forms; written with +91, 0, 91 or nothing; short numbers 100, 101, 102, 108, 112, 139, 1091, 1098, 1930; another country's number
+  named by its calling code), **vehicle numbers** (the state of the RTO code — old codes OR, UA, TS, DN named; Bharat series;
+  Delhi's class letter), **driving licences** (the national format), **passport** (its shape only), **CIN** (listed, the state
+  of the Registrar, the year, the kind of company), **Udyam**, **UAN**, **bank account numbers** (9 – 18 digits, said to have no
+  check digit); **cards** (Luhn; the network by Braintree's credit-card-type rules — the longest matching prefix, ties to the
+  first tried — with RuPay's ranges first; the security code's name and length; numbers of no network are no card),
+  **IMEI** (Luhn, the 14-digit form, IMEISV; the type allocation code; the reporting body of the first two digits), **SIM numbers**
+  (ICCID: 89, the country by calling code, Luhn), **ISBN** (10 and 13; hyphenated by the International ISBN Agency's ranges as
+  stdnum splits them; the other form; the group's language or country), **ISSN** (and its barcode), **barcodes** (EAN-8, UPC-A,
+  EAN-13, GTIN-14: the check digit, the GS1 office of the prefix — "not where the product was made"), **IBAN** (mod 97, the
+  registry's length and structure per country; India has none, said), **SWIFT / BIC**, **ISIN** (Luhn on the letters as numbers;
+  INE / INF named), **VIN** (the North American check digit — "makers elsewhere need not use it" —, the maker and country by
+  vininfo's tables, the model year's two readings).
+- **Which reading leads** (`score`): a label's kind first; a check that passes before a shape that fits; ten bare digits are a
+  mobile number before an ISBN-10 that happens to pass (an ISBN-10 leads with its hyphens or its label); short "cards" (12 – 14
+  digits) and UPC-A barcodes after an Aadhaar number. A failed check is shown only when nothing passes; weak readings (an account
+  number, a UAN, a passport's shape) only when nothing stronger fits. Every reading has its verdict — Valid / Check failed (with
+  the number as its check digit would make it, and Copy) / Right shape / Not in the list —, its fields and its notes.
+- **The tables** (`scripts/make-ids-data.py` → `wasm/devcore/data/ids/*.bin` and `wasm/devcore/src/ids_tables.rs`, committed):
+  India Post's "All India Pincode Directory" (data.gov.in, **GODL-India: attribution shown in the tab**) as cleaned by
+  @devzoy/indian-pincode 2.1.0 (snapshot 2025.10.03); RBI's IFSC lists as Razorpay's `ifsc` 2.0.50 carries them (14 Nov 2025;
+  fetched by `npm pack` into node_modules/.cache, SHA-512 checked — its package pulls in the old `request`, so it is no
+  devDependency); libphonenumber 9.0.44's Indian patterns, formats and 8,823 landline places, the calling codes and region names;
+  the ISBN ranges of 4 January 2026 and SWIFT's IBAN registry as python-stdnum 2.2 has them; credit-card-type 10.3.1 + RuPay
+  (NPCI's ranges); gs1-prefix 1.0.0; vininfo 2.0.0's makers. **To update:** bump a pin in the script, run it, `bash
+  wasm/devcore/build.sh` (or the `ids` feature alone), `python3 scripts/make-numcheck-reference.py`, both suites.
+- **The tab:** a box (as you type; examples to tap — made-up numbers that pass, the networks' and registries' own test numbers),
+  a card a line with "Most likely" / "Could also be", the value with Copy (as the network or registry prints it), the sources at
+  the foot; the engine (1.1 MB) fetched with the first number; the text kept while the page is open. Nothing typed leaves the
+  device; a valid check digit is said to prove a number was not mistyped — not that it was issued or whose it is.
 
 ### Calculator
 Sub-tabs: **Scientific** (own parser: + − × ÷ ^ √ ∛ ! nPr nCr %; "a + b%" / "a − b%" add or take off b % of a like phone/Google
@@ -3654,7 +3703,7 @@ difference over its detail, the overlap's pixels), ruled lines and list marks cl
 | keys — the **supplement** to hash-wasm for the key tabs (owner's tweak of 18 Nov 2026: what the existing module does not cover): lenient Base32 secrets, HOTP counters and truncation; checked parameters, random salts, PHC strings for scrypt / PBKDF2 and the reader of pasted hashes; RustCrypto **argon2** for Argon2 version 1.0 hashes (v=16 or no version, keyid / data), which hash-wasm does not read; RustCrypto **ssh-key** (OpenSSH Ed25519 generation), **aes + ctr + bcrypt-pbkdf** and our own OpenSSH wire reader (inspect Ed25519 / RSA / ECDSA / DSA keys, encrypted private keys, authorized_keys / known_hosts lines); API keys | Rust | **us** (`wasm/keys`, 0.31 MB; no existing WebAssembly module makes or reads OpenSSH key files) | totp, pwhash (with hash-wasm); sshkey, apikey |
 | zxcvbn 3.1.1 (Rust port of Dropbox's estimator + its word lists) **+ our four fixes** (`wasm/zxcvbn/zxcvbn-fixes.patch`, applied by build.sh to the SHA-256-checked crate: ALL-CAPS words with a digit, repeats taken for sequences, single-character l33t words, keyboard-walk degree divided in integers) | Rust | **us** (`wasm/zxcvbn`, 2.2 MB, loaded with the first password; guesses + scores equal the Python reference for 304 passwords — `tests/unit/zxcvbn.test.mjs`) | pwstrength |
 | formats: **serde_yaml_ng** (unsafe-libyaml = libyaml translated to Rust), **toml**, **jsonschema** 0.61 (no network/file resolvers) + own schema inference | Rust | **us** (`wasm/formats`, two modules: formats-yaml 0.42 MB, formats-schema 2.7 MB) | yaml, jsonschema |
-| devcore: ipnet (CIDR), croner + chrono (cron; zone offsets from the browser's Intl via an `env.tz_offset` import, so no tz database), **own port of npm's semver** (`semver_npm.rs`: the package's range / comparator / inc logic with its own regular expressions on regex-lite — the nodejs-semver crate gave different answers), **own Unicode-aware glob matcher** (`globm`; globset matches bytes), **own unified-diff reader / applier** (`patchm`: offsets, white space, fuzz, like GNU patch; diffy refused most real patches), data-encoding + bs58 + own Ascii85/Z85 (long inputs go through data-encoding in pieces: it refuses 8 MiB and more on a 32-bit target), **own protobuf, MessagePack and CBOR readers** (`bin.rs`; rmpv and ciborium could not show CBOR `undefined` / simple values / long bignums or MessagePack's unused 0xc1, and reported errors as Rust debug text), x509-parser + sha1/sha2 (+ own PEM / PKCS #7 reader), **own SQL formatter** (`sqlfmt.rs`: a tokenizer for standard SQL, PostgreSQL, MySQL, SQLite, SQL Server and Oracle; changes white space and the case of keywords only and checks its result against the input — the sqlformat crate changed the meaning of SQL), own hex dump + search, **own lossless JSON reader / formatter** (`jsonfmt.rs`: changes white space only — member order, duplicate keys and number spelling kept; worded errors with line / column; JSON.parse → JSON.stringify reordered keys, dropped duplicates and rounded big numbers), **own JSON diff** (`jsondiff.rs`, RFC 6902 on that reader: lists aligned by equal elements (LCS) and records by `id`, numbers by value and never rounded), **own XML formatter** (`xmlfmt.rs`: re-indents elements that hold only elements, everything else byte-for-byte — declaration, DOCTYPE, entities, CDATA, text; the DOM round trip lost or rewrote all of these), **own JSON → types generator** (`j2t.rs`: TypeScript / Go / Rust serde / Java records / Python dataclasses; the e2e suite compiles its output with tsc, go, rustc, javac and python; crates unicode-ident (MIT / Apache-2.0 + Unicode-3.0) for Python identifiers and unicode-general-category (Apache-2.0) for what Go's struct tags accept) | Rust | **us** (`wasm/devcore`, crates.io via `Cargo.lock`, wasm32-wasip1; one `dc_call(op, input)` entry; **one module per tab** via Cargo features → `devcore-<feature>.wasm`, 67–650 KB) | cidr, x509, cron, semver, glob, patch, sqlfmt, hexview, baseenc, bindecode, base64 (devcore-enc), json + jwt (devcore-json), jsondiff, xml, json2types (devcore-j2t) |
+| devcore: ipnet (CIDR), croner + chrono (cron; zone offsets from the browser's Intl via an `env.tz_offset` import, so no tz database), **own port of npm's semver** (`semver_npm.rs`: the package's range / comparator / inc logic with its own regular expressions on regex-lite — the nodejs-semver crate gave different answers), **own Unicode-aware glob matcher** (`globm`; globset matches bytes), **own unified-diff reader / applier** (`patchm`: offsets, white space, fuzz, like GNU patch; diffy refused most real patches), data-encoding + bs58 + own Ascii85/Z85 (long inputs go through data-encoding in pieces: it refuses 8 MiB and more on a 32-bit target), **own protobuf, MessagePack and CBOR readers** (`bin.rs`; rmpv and ciborium could not show CBOR `undefined` / simple values / long bignums or MessagePack's unused 0xc1, and reported errors as Rust debug text), x509-parser + sha1/sha2 (+ own PEM / PKCS #7 reader), **own SQL formatter** (`sqlfmt.rs`: a tokenizer for standard SQL, PostgreSQL, MySQL, SQLite, SQL Server and Oracle; changes white space and the case of keywords only and checks its result against the input — the sqlformat crate changed the meaning of SQL), own hex dump + search, **own lossless JSON reader / formatter** (`jsonfmt.rs`: changes white space only — member order, duplicate keys and number spelling kept; worded errors with line / column; JSON.parse → JSON.stringify reordered keys, dropped duplicates and rounded big numbers), **own JSON diff** (`jsondiff.rs`, RFC 6902 on that reader: lists aligned by equal elements (LCS) and records by `id`, numbers by value and never rounded), **own XML formatter** (`xmlfmt.rs`: re-indents elements that hold only elements, everything else byte-for-byte — declaration, DOCTYPE, entities, CDATA, text; the DOM round trip lost or rewrote all of these), **own JSON → types generator** (`j2t.rs`: TypeScript / Go / Rust serde / Java records / Python dataclasses; the e2e suite compiles its output with tsc, go, rustc, javac and python; crates unicode-ident (MIT / Apache-2.0 + Unicode-3.0) for Python identifiers and unicode-general-category (Apache-2.0) for what Go's struct tags accept) | Rust | **us** (`wasm/devcore`, crates.io via `Cargo.lock`, wasm32-wasip1; one `dc_call(op, input)` entry; **one module per tab** via Cargo features → `devcore-<feature>.wasm`, 67–650 KB) | cidr, x509, cron, semver, glob, patch, sqlfmt, hexview, baseenc, bindecode, base64 (devcore-enc), json + jwt (devcore-json), jsondiff, xml, json2types (devcore-j2t); numcheck (devcore-ids: **our Number Detective** — Verhoeff, Luhn and mod 36 / 97 / 11 checks, India Post's PIN directory, RBI's IFSC list, libphonenumber's Indian patterns on regex-lite, the ISBN ranges walked as stdnum's numdb walks them; no WebAssembly module checks Indian IDs: `docs/WASM-AUDIT.md`, tab 186) |
 | cmark-gfm 0.29.0.gfm.13 (GitHub Flavored Markdown) | C | **us** (`wasm/markdown`, source from the PyPI `cmarkgfm` sdist, SHA-256 pinned) | markdown |
 | libyaml 0.2.5 + toml++ 3 | C / C++ | **us** (`wasm/formats`) | yaml |
 | MuPDF 1.28 | C | Artifex (official `mupdf` npm) | all PDF tools, PDF → EPUB, PDF for Kindle (the pieces: the page grafted, redacted, drawn as a form), Watermark (PDFs: to-do #17), Book Page Flattener and Newspaper Clipper (their PDFs), EPUB Reader (EPUB, MOBI, FictionBook, comics, text laid out at any size with HarfBuzz and drawn — in the reader's worker, `src/workers/ebook.worker.ts`), Audiobook (a book's text: laid out on pages 100,000 px tall, its contents resolved to page and height — in `src/workers/bookread.worker.ts`; a PDF through the PDF → EPUB engine) |
@@ -4340,6 +4389,14 @@ npm packages (pinned in `package-lock.json`) are bundled by Vite or copied to `p
 | *test only (pip):* mutagen, reportlab | GPL-2.0+ (mutagen), BSD (reportlab) | the MP3s' ID3 tags read back (`tests/unit/audio.test.mjs`); the Audiobook's test PDF made (`scripts/make-audiobook-books.py`) |
 | @expo-google-fonts/noto-sans (Noto Sans TTF: regular, bold, italic) | OFL-1.1 (package MIT) | PDFs made by GST Invoice, Rent Receipt, Resume Builder; EPUB Reader (its Sans) |
 | @expo-google-fonts/literata 0.4.3 (Literata TTF: regular, italic, bold, bold italic — four files, 1.0 MB on the site) | OFL-1.1 (package MIT) | EPUB Reader (the text's font; MuPDF's FreeType reads no WOFF, so @fontsource/literata's files cannot serve) |
+
+**The Number Detective's tables** (inside devcore-ids.wasm; `scripts/make-ids-data.py`): India Post's All India Pincode
+Directory (Department of Posts, data.gov.in — **Government Open Data License – India: attribution**, shown in the tab) as cleaned
+by @devzoy/indian-pincode 2.1.0 (MIT); RBI's IFSC lists via Razorpay's `ifsc` 2.0.50 (MIT; the data public domain);
+libphonenumber's metadata and geocoding via `phonenumbers` 9.0.44 (Apache-2.0); the ISBN ranges and the IBAN registry via
+python-stdnum 2.2 (LGPL-2.1+); credit-card-type 10.3.1 (MIT); gs1-prefix 1.0.0 (MIT); vininfo 2.0.0 (BSD-3-Clause). Test only:
+india-post-pincode 1.0.0 (MIT) and gs1-prefix-code-to-country-code 1.0.3 (ISC) — second readings of the PIN directory and of
+the GS1 prefixes; python-stdnum, phonenumbers and vininfo (pip) make the reference answers.
 
 **Data files committed in `public/data/`**: EFF large wordlist (CC-BY 3.0); `dict/` — English Wiktionary via
 wiktextract/kaikki.org (CC-BY-SA 4.0 + GFDL, Wiktionary contributors) and wordfreq 3.1.1 English frequencies (CC-BY-SA

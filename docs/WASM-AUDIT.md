@@ -1771,3 +1771,18 @@ Looked at first (STANDING RULE #1):
 - **Engine:** none new — imgproc.wasm's flattener (`wasm/imgproc/flatten.c`, the Book Page Flattener's engine: docs/WASM-AUDIT.md
   179) through the imgproc worker the tabs already use; the EXIF lens through metacore.wasm (`readExif`), already on the site.
   The rule (`isBook`, `bendOf`) and the stacking of a spread's pages (`stackPages`) are TypeScript glue on the fit's numbers.
+
+### 186. `numcheck` — Number Detective (27 Nov 2026; potentials #84)
+- **What it does:** a pasted number or code → what it is and whether it is valid (CLAUDE.md §3 "Number Detective").
+- **Existing WebAssembly modules:** none checks Indian IDs or codes. python-stdnum (LGPL, the reference of the tests) is Python —
+  on the site only inside our 13.5 MB CPython; its JavaScript port (`stdnum` on npm) and validator libraries (`validator`,
+  `ibantools`, `credit-card-type`, `libphonenumber-js`) are JavaScript. libphonenumber's official builds are Java, C++ and its
+  JavaScript (Closure) port — no WebAssembly build.
+- **Decision (rule 2): our own Rust**, a feature of devcore (`devcore-ids.wasm`): the check digits (Verhoeff, Luhn mod 10 and 36,
+  ISO 7064 mod 97, ISBN / ISSN mod 11, GS1 mod 10, the VIN's), the ISBN ranges walked as stdnum's numdb walks them, India Post's
+  PIN directory and RBI's IFSC list read from compact tables, **libphonenumber's own Indian patterns and formats run by
+  regex-lite** (devcore's regex engine already) — so the phone numbers follow Google's numbering data exactly, not a copy of its
+  rules. The data is in the module (1.1 MB; 0.65 MB of it tables); nothing is fetched beside it.
+- **Measured:** 8,503 reference answers of python-stdnum 2.2, libphonenumber 9.0.44 and vininfo 2.0.0 all agree; every PIN code of
+  a second reading of the directory found, 99 %+ in the same state; credit-card-type's network for 4,000 random numbers (RuPay's
+  ranges, which it lacks, as RuPay); RBI's list itself where the generator cached it.

@@ -33,6 +33,7 @@ export default [
   ['page numbers', 'pdf-pagenum'], ['number pdf pages', 'pdf-pagenum'],
   ['pdf watermark', 'pdf-watermark'], ['confidential stamp', 'pdf-watermark'],
   ['epub', 'epub'], ['kindle', 'epub'], ['pdf to epub', 'epub'], ['convert pdf to ebook', 'epub'],
+  ['number detective', 'numcheck'], ['what is this number', 'numcheck'], ['aadhaar check', 'numcheck'], ['gstin validation', 'numcheck'], ['ifsc code', 'numcheck'], ['pin code district', 'numcheck'], ['imei check', 'numcheck'], ['isbn check', 'numcheck'], ['validate iban', 'numcheck'], ['upi id check', 'numcheck'], ['vehicle number state', 'numcheck'], ['check digit', 'numcheck'],
   ['audiobook', 'audiobook'], ['audio book', 'audiobook'], ['epub to mp3', 'audiobook'], ['pdf to mp3', 'audiobook'], ['pdf to audiobook', 'audiobook'], ['read book aloud', 'audiobook'], ['listen to a book', 'audiobook'], ['book to mp3', 'audiobook'], ['audibook', 'audiobook'], ['mp3 per chapter', 'audiobook'],
   ['articles to kindle', 'articles'], ['article to kindle', 'articles'], ['web page to epub', 'articles'], ['send article to kindle', 'articles'], ['read later', 'articles'], ['reader view', 'articles'], ['mhtml', 'articles'], ['webarchive', 'articles'], ['remove ads from article', 'articles'], ['save web article', 'articles'],
   ['epub reader', 'ebook'], ['ebook', 'ebook'], ['read epub', 'ebook'], ['ebook reader', 'ebook'], ['mobi', 'ebook'], ['fb2', 'ebook'], ['cbz', 'ebook'], ['cbr', 'ebook'], ['comic book reader', 'ebook'], ['read a book', 'ebook'],

@@ -4,7 +4,7 @@ pub const PIN_SOURCE: &str = "India Post’s All India Pincode Directory (data.g
 pub const PIN_VERSION: &str = "2025.10.03";
 pub const IFSC_SOURCE: &str = "RBI’s lists of IFSC codes as Razorpay’s IFSC 2.0.50 carries them (14 Nov 2025)";
 pub const PHONE_SOURCE: &str = "Google’s libphonenumber (phonenumbers 9.0.44)";
-pub const ISBN_SOURCE: &str = "the International ISBN Agency’s ranges of Sun, 4 Jan 2026 16:49:25 GMT (python-stdnum 2.2)";
+pub const ISBN_SOURCE: &str = "the International ISBN Agency’s ranges of 4 January 2026 (python-stdnum 2.2)";
 /// RBI's bank codes (the first four letters of an IFSC) and the banks' names, sorted by code.
 pub static BANKS: &[(&str, &str)] = &[
     ("AACX", "Akhand Anand Co.op Bank"),
