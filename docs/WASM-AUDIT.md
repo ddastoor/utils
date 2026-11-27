@@ -1765,3 +1765,9 @@ Looked at first (STANDING RULE #1):
 - **TypeScript (glue):** MuPDF's blocks made into paragraphs and tracks (which block begins a chapter, a running head, a
   footnote mark — rules over a few thousand blocks a book, `src/lib/audiobook.ts`), the queue of tracks over one to four speech
   workers, the zip (fflate) and its playlist.
+
+### 185. `ocr` and `photodict` — the book step (27 Nov 2026; potentials #96 as a step of both tabs)
+- **What it does:** a photo of an open book has its pages flattened before it is read (CLAUDE.md §3 OCR, "Books").
+- **Engine:** none new — imgproc.wasm's flattener (`wasm/imgproc/flatten.c`, the Book Page Flattener's engine: docs/WASM-AUDIT.md
+  179) through the imgproc worker the tabs already use; the EXIF lens through metacore.wasm (`readExif`), already on the site.
+  The rule (`isBook`, `bendOf`) and the stacking of a spread's pages (`stackPages`) are TypeScript glue on the fit's numbers.

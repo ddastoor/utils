@@ -67,12 +67,13 @@ const RARE = new Set(['escarpment', 'cartographer', 'taciturn', 'encyclopaedic',
   'solder', 'oscilloscope', 'tremulous', 'sardonic', 'recalcitrant', 'intermittent', 'obsequious', 'punctuality',
   'archipelago', 'pewter', 'phlegmatic', 'reefs', 'raucous', 'insatiable', 'emboldened', 'hibernation', 'cavort', 'curmudgeonly']);
 
-/** A JPEG as RGBA pixels (Pillow). */
+/** A JPEG as RGBA pixels (Pillow), and the lens its EXIF names as on 35 mm film (f35; 0: none — the tabs read it so). */
 function decodeJpeg(file) {
-  const r = spawnSync('python3', ['-I', '-c', 'import sys; from PIL import Image; im = Image.open(sys.argv[1]).convert("RGBA"); sys.stdout.buffer.write(im.size[0].to_bytes(4, "little") + im.size[1].to_bytes(4, "little") + im.tobytes())', file], { maxBuffer: 1 << 30 });
+  const py = 'import sys\nfrom PIL import Image\nim = Image.open(sys.argv[1]); f = 0\ntry: f = int(im.getexif().get_ifd(0x8769).get(0xA405) or 0)\nexcept Exception: pass\nim = im.convert("RGBA")\nsys.stdout.buffer.write(im.size[0].to_bytes(4, "little") + im.size[1].to_bytes(4, "little") + f.to_bytes(4, "little") + im.tobytes())';
+  const r = spawnSync('python3', ['-I', '-c', py, file], { maxBuffer: 1 << 30 });
   if (r.status) throw new Error(String(r.stderr));
   const b = r.stdout, width = b.readUInt32LE(0), height = b.readUInt32LE(4);
-  return { width, height, data: new Uint8ClampedArray(b.buffer, b.byteOffset + 8, width * height * 4) };
+  return { width, height, f35: b.readUInt32LE(8), data: new Uint8ClampedArray(b.buffer, b.byteOffset + 12, width * height * 4) };
 }
 /** RGBA → a binary PPM (Leptonica, inside the engine, reads it as it is; lossless like the PNG of the browser). */
 function ppm(img) {
@@ -247,6 +248,7 @@ async function main() {
     const truth = wordsOf(readFileSync(join(dir, name + '.txt'), 'utf8'));
     const rare = new Set(truth.filter((x) => RARE.has(x)));
     let img = decodeJpeg(join(dir, name + '.jpg'));
+    const f35 = img.f35;
     if (tilt % 90 === 0 && tilt) img = ip.orient(img, [1, 6, 3, 8][((tilt / 90) % 4 + 4) % 4]); // a quarter turn: no corners
     else if (tilt) {
       // the photo's own ground around it (the median colour of its outermost 12 px — another colour would outline the old
@@ -274,8 +276,9 @@ async function main() {
         // +first: the first reader only (Tesseract; the JSON dumps of OCR_JSON are made so, for working a rule out)
         // +noflat / +flatall: a photo of an open book not flattened / every page whose lines of print the flattener finds
         // flattened (the book step's rule worked out from both: src/lib/readpage.ts isBook)
+        // +nolens: the photo's EXIF lens not passed to the book step (a phone's main camera taken)
         const flatten = p.includes('noflat') ? 'never' : p.includes('flatall') ? 'always' : 'auto';
-        const res = await eng.readPage(img, { lang: 'eng', clean: true, auto: true, screen: p.includes('screen'), retryTurns: p.includes('retry'), invertDark: p.includes('dark'), again: !p.includes('once'), second: !p.includes('first') && !process.env.OCR_JSON, flatten }, readEngines);
+        const res = await eng.readPage(img, { lang: 'eng', clean: true, auto: true, screen: p.includes('screen'), retryTurns: p.includes('retry'), invertDark: p.includes('dark'), again: !p.includes('once'), second: !p.includes('first') && !process.env.OCR_JSON, flatten, f35: p.includes('nolens') ? 0 : f35 }, readEngines);
         if (res.book) flattened++;
         if (res.engine === 'paddle') secondKept++;
         if (res.second) secondTried++;

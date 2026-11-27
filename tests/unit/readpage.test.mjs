@@ -223,12 +223,42 @@ export default async (t, { load, wasm }) => {
   // flattened pages that give little (it was no book): the page found the usual way is read too, the better kept
   first = true;
   f = reader((c) => (c.main ? (first ? ((first = false), { n: 8, conf: 70 }) : { n: 290, conf: 92 }) : null));
-  r = await RP.readPage(spread, { lang: 'eng', clean: true, auto: true, flatten: 'auto', onProgress: progress }, { ops, read: f.read });
-  t.ok(mains(f).length === 2 && r.book === 0 && r.r.words.length === 290 && mains(f)[1].w > mains(f)[1].h, `the flat pages gave ${8} words: the photo read the usual way too, and kept (${r.r.words.length} words)`);
+  r = await RP.readPage(spread, { lang: 'eng', clean: true, auto: true, again: false, flatten: 'auto', onProgress: progress }, { ops, read: f.read });
+  t.ok(mains(f).length === 2 && r.book === 0 && r.r.words.length === 290 && mains(f)[1].w > mains(f)[1].h, `the flat pages read unsurely (8 words at 70 %): the photo read the usual way too, and that reading — more words read right — kept (${r.r.words.length} words)`);
+  // an unsure spread whose flat pages read more words right than the usual path: the flat pages kept
+  first = true;
+  f = reader((c) => (c.main ? (first ? ((first = false), { n: 400, conf: 80 }) : { n: 200, conf: 78 }) : null));
+  r = await RP.readPage(spread, { lang: 'eng', clean: true, auto: true, again: false, flatten: 'auto', onProgress: progress }, { ops, read: f.read });
+  t.ok(mains(f).length === 2 && r.book === 2 && r.r.words.length === 400, `an unsure spread (80 %): read both ways, the flat pages — more words read right — kept (${r.book} pages)`);
+  // … and the second reader reads both pictures: the better of the four readings kept
+  first = true;
+  f = reader((c) => (c.main ? (first ? ((first = false), { n: 100, conf: 40 }) : { n: 100, conf: 45 }) : null));
+  const both = second(many);
+  r = await RP.readPage(spread, { lang: 'eng', clean: true, auto: true, again: false, flatten: 'auto', onProgress: progress }, { ops, read: f.read, paddle: both.paddle });
+  t.ok(both.calls.length === 2 && both.calls[0].h > both.calls[0].w && both.calls[1].w > both.calls[1].h && r.engine === 'paddle' && r.r.words.length === 180, `a soft spread: PaddleOCR reads the flat pages and the usual page (${both.calls.map((c) => `${c.w}×${c.h}`).join(', ')}); the reading with more words read right kept (${r.engine}, ${r.book} pages flattened)`);
   first = true;
   f = reader((c) => (c.main ? (first ? ((first = false), { n: 8, conf: 70 }) : { n: 5, conf: 60 }) : null));
   r = await RP.readPage(spread, { lang: 'eng', clean: true, auto: true, again: false, flatten: 'auto', onProgress: progress }, { ops, read: f.read });
   t.ok(r.book === 2 && r.r.words.length === 8, '… and the flat pages kept when that reads less');
+  // one page drawn flat is kept only when it reads clearly better than the page found the usual way (a strong watermark's
+  // diagonal letters bend a flat page's fit as a curl does; flattened, such a page read 5 % of its words instead of 100 %)
+  const onePage = await decode('tests/fixtures/books/page.jpg');
+  first = true;
+  f = reader((c) => (c.main ? (first ? ((first = false), { n: 300, conf: 94 }) : { n: 260, conf: 82 }) : null));
+  r = await RP.readPage(onePage, { lang: 'eng', clean: true, auto: true, again: false, flatten: 'auto', onProgress: progress }, { ops, read: f.read });
+  t.ok(mains(f).length === 2 && r.book === 1 && r.r.words.length === 300, `one page of a book, flat reading clearly better: both read, the flat page kept (${mains(f).length} readings, ${r.book} page flattened)`);
+  first = true;
+  f = reader((c) => (c.main ? (first ? ((first = false), { n: 300, conf: 90 }) : { n: 300, conf: 90 }) : null));
+  r = await RP.readPage(onePage, { lang: 'eng', clean: true, auto: true, again: false, flatten: 'auto', onProgress: progress }, { ops, read: f.read });
+  t.ok(mains(f).length === 2 && r.book === 0 && r.page, `… as good as the page found the usual way (within ${Math.round((RP.BOOK_BY - 1) * 100)} %): the usual reading kept`);
+  first = true;
+  f = reader((c) => (c.main ? (first ? ((first = false), { n: 40, conf: 40 }) : { n: 300, conf: 92 }) : null));
+  r = await RP.readPage(onePage, { lang: 'eng', clean: true, auto: true, again: false, flatten: 'auto', onProgress: progress }, { ops, read: f.read });
+  t.ok(r.book === 0 && r.r.words.length === 300, '… worse (a watermarked flat page bent by its fit): the usual reading kept');
+  f = reader(() => ({ n: 300, conf: 93 }));
+  r = await RP.readPage(spread, { lang: 'eng', clean: true, auto: true, again: false, flatten: 'auto', onProgress: progress }, { ops, read: f.read });
+  t.ok(mains(f).length === 1 && r.book === 2, 'a spread: read once, its two flat pages kept (no flat photo gave the flattener two pages)');
+
   // the flattener's ops absent (an older worker): the step left out
   f = reader(() => ({ n: 300, conf: 93 }));
   const { bookFit: _bf, bookRender: _br, ...noBook } = ops;

@@ -3153,6 +3153,29 @@ cannot. Three new suites; each fails on the build before its fixes.
   candidates measured (docs/WASM-AUDIT.md 179): page-dewarp 0.3.4 takes the photo's rectangle less fixed margins for the
   page — it cut the words nearest the spine of a page cut out at the gutter (95 → 76 % of a frame's words read) and kept
   the table round the page; Leptonica 1.86's `dewarpSinglePage` gave up on 1080p video frames (too few lines found).
+- **The book step of the OCR tab and the Photo Dictionary (potentials #96, 27 Nov 2026), found while measuring it:**
+  - **Flattening is no clean-up for every page:** forced onto flat pages (every page whose lines the fit finds) it cost points —
+    newspapers 87.2 → 83.3 %, watermarked documents 92.2 → 88.4 %, Kindle pages up to 3.9 points — and ruined strongly
+    watermarked ones: a handout under a big DRAFT 100 → 5.3 %, a newsletter under CONFIDENTIAL 97.7 → 3.8 % (the page drawn
+    from a fit that the watermark's diagonal letters had bent). So the step has a rule (`isBook`) and measured where it
+    stands: a flat page bends by at most 1.1 % of its width — but under a strong watermark by up to 4.6 %, and two such
+    newsletters passed the rule for one page. **A single flattened page is read both ways** and kept only when it reads
+    clearly better (BOOK_BY): both newsletters kept their usual reading (96.2 %, 90.1 % — unchanged), a thick book's single
+    pages took the flat one (62.6 → 92.7 %). A spread is flattened without that check: no flat photo gave the fit two pages
+    (unit: a single page read both ways — kept when clearly better, else the usual reading; a spread read once).
+  - **A spread can read worse flattened too — when it reads unsurely:** close-ups taken with a 2× lens, soft (some read under a
+    third of their words either way): one went 31.6 → 13.1 % flattened. Every spread whose flat pages read surely (88 and
+    more) read better or as well; so an unsure one is read the usual way too, each reading with its second reader, and the
+    one with more words read right kept (a first version compared Tesseract's two readings by `score`, before the second
+    reader: it kept the usual reading of a close-up that PaddleOCR read at 56 % flattened — no loss, a gain missed — and
+    the measure is order-blind; unit: a soft spread, PaddleOCR on both pictures).
+  - **A test for "a picture made by a program" (more than a fifth of it exactly one colour) was tried and dropped:** the
+    repository's synthetic book photos have paper clipped to white (21 % one colour) — and so would an overexposed photo of a
+    real page; a flat screenshot never bends, and a two-page screenshot stacked page by page reads in order anyway.
+  - **The lens matters for a zoomed photo** (the flattener's own finding, docs/WASM-AUDIT.md 179): both tabs read the photo's
+    EXIF (FocalLengthIn35mmFilm) and pass it to the step; scripts/measure-ocr.mjs reads it as they do.
+  - **The measuring script lost its photos' lens** (Pillow's RGBA copy has no EXIF): it reads FocalLengthIn35mmFilm before the
+    copy now.
 - **PDF / EPUB → Audiobook (potentials #14, 27 Nov 2026), found while building it — each with a check that would catch it:**
   - **LAME wrote an ID3 tag with nothing in it** (74 bytes: its own TSSE frame) when a sample had no tags, and **marked the cover
     "other"** (picture type 0 — iTunes shows no cover): no tag unless there is one, and the APIC frame's type set to 3, front

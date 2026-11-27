@@ -12,11 +12,12 @@ import { imageInput } from '../lib/imgtools';
 import type { OcrLang } from '../lib/ocr';
 import { readPage, readsPoorly, unsureWord, secondWords } from '../lib/readpage';
 import { listText } from '../lib/listtext';
+import { readExif } from '../lib/exif';
 import { uprightWords, turnWords, ROT } from '../lib/upright';
 
 export const mount: Mount = (root, ctx) => {
   // handTurned: the picture was turned with the buttons — then it is read as it is shown, never turned on its own
-  let src: Img | null = null, name = 'text', lang: OcrLang = 'eng', clean = true, turns = 0, seq = 0, alive = true, handTurned = false;
+  let src: Img | null = null, srcFile: Blob | null = null, name = 'text', lang: OcrLang = 'eng', clean = true, turns = 0, seq = 0, alive = true, handTurned = false;
   const canvas = h('canvas', { class: 'ed-canvas' });
   const boxes = h('div', { class: 'ocr-boxes' });
   const stage = h('div', { class: 'crop-wrap' }, canvas, boxes);
@@ -38,8 +39,11 @@ export const mount: Mount = (root, ctx) => {
     const live = () => my === seq && alive;
     const onProgress = (p: number, s: string) => { if (live()) prog.set(s.includes('recogn') ? p : null, s.includes('recogn') ? `Recognising… ${Math.round(p * 100)} %` : 'Loading the text engine…'); };
     // the picture as the reader turned it (then never turned on its own), read the shared way (src/lib/readpage.ts)
+    // the lens, where the photo's EXIF says (a phone's JPEG does): the camera of a book's pages drawn flat
+    const f35 = srcFile ? (await readExif(srcFile).catch(() => null))?.focal35 ?? 0 : 0;
+    if (!live()) return;
     const res = await readPage(from, {
-      lang, clean, auto: !handTurned, turns, retryTurns: true, invertDark: true, onProgress, stale: () => !live(),
+      lang, clean, auto: !handTurned, turns, retryTurns: true, invertDark: true, onProgress, stale: () => !live(), f35,
       onRetry: () => { if (live()) prog.set(null, 'The text reads badly — trying the picture turned…'); },
       // a soft photo: PaddleOCR, the second reader, reads it too (its models fetched the first time)
       onSecond: (q) => { if (live()) { const w = secondWords(q); prog.set(w.p, w.text); } },
@@ -77,7 +81,7 @@ export const mount: Mount = (root, ctx) => {
   // a file (a photo already taken, a screenshot, a paste) — or the camera: the phone's back camera, the PC's webcam, live
   // in the page with Snap (owner, 20 Nov 2026; the picker's own camera, src/lib/livecam.ts)
   const input$ = imageInput((img, f, how) => {
-    src = img; turns = 0; handTurned = false; name = baseName(f.name); forget(); show(); editor.hidden = false;
+    src = img; srcFile = f; turns = 0; handTurned = false; name = baseName(f.name); forget(); show(); editor.hidden = false;
     if (how === 'camera') reveal(editor.firstElementChild!); // the photo where the camera was
   }, { label: 'Choose an image with text', instead: 'choose an image instead', paste: true });
   const turn = (k: number) => { if (!src) return; turns = (turns + k) % 4; handTurned = true; forget(); show(); };

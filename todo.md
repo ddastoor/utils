@@ -22,6 +22,21 @@ The owner adds items here in chat ("add … to to do"). Newest instructions win.
     whose text arrives later, which Safari and Chrome accept), and where the browser still refuses (a photo chosen from the
     gallery on an iPhone) the tab says so and the Copy button does it with one tap. When: at the owner's word (not yet started).
 
+39. **A Settings page for the whole site, with Export and Import** (owner, 27 Nov 2026: "Have a new settings section for the
+    entire superutils site. Have a section called favorites in the settings, and currently store the favorites in settings as
+    well as the browser storage … Have an export and import button on the settings page, which exports the settings in
+    whatever format you like, which you feel appropriate, maybe a JSON file or some other file. So this way, if you clear the
+    browser cache, you can always import settings, and when you import settings, all those settings are then put in the
+    browser cache like before. So the first section will mirror favorites"). A Settings page (`#/settings`, reached from
+    the header on PCs and phones): its first section **Favorites** shows the starred apps as the browser stores them
+    (`superutils.favorites.v1` — the stars and the page stay one list); **Export settings** saves a small JSON file on the
+    device (`superutils-settings.json`: the site, a format version, the date, the favorites as tab ids); **Import
+    settings** reads such a file, checks it (ids that are no tab are named and left out) and puts its settings into the
+    browser's storage as they were — the stars back at once. Nothing leaves the device (CLAUDE.md §1: only what the owner
+    allowed is stored — the Favorites and the folded app list; a new kind of setting needs the owner's word). To ask when
+    building: the folded app list in the file too (a second section)? Import replaces the stars or adds to them? When: at
+    the owner's word (not yet started).
+
 ## Done
 - **37. OCR and Photo Dictionary: an image from the clipboard** (owner, 27 Nov 2026: "Make both ocr app and photo dictionary app
   take images, as input, from the clipboard", then "Make a paste button for ocr and photo dictionary apps on the pc too") —

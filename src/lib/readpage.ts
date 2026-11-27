@@ -19,7 +19,7 @@ import { paddleResult, cutInput, type PaddleLine } from './paddle';
 import type { PaddleProgress } from './paddle-client';
 import { straighten, type PageOps } from './pagecrop';
 import { uprightByReading, score, ROT, type TurnOps } from './upright';
-import { analyse, renderPage, FIT_SIZE } from './bookflat';
+import { analyse, renderPage, focalFrom35, FIT_SIZE } from './bookflat';
 import type { BookFit, BookPage } from '../wasm/imgproc';
 
 /** What imgproc's p_clear_marks did (src/wasm/imgproc.ts clearMarks). */
@@ -107,6 +107,9 @@ export interface ReadOptions {
    *  pages; 'always' — any page whose lines of print it finds — and 'never' are for measuring (scripts/measure-ocr.mjs).
    *  Not given: BOOK_DEFAULT. */
   flatten?: 'auto' | 'always' | 'never';
+  /** The lens that took the photo, as on 35 mm film, where its EXIF says (FocalLengthIn35mmFilm — a phone writes it): the
+   *  book step's camera. Not given: a phone's main camera. */
+  f35?: number;
 }
 export interface PageReading {
   r: OcrResult;
@@ -173,10 +176,16 @@ export function bendOf(rec: ArrayLike<number>): number {
 }
 /** samples per line and the fit's error (normalised px) a book's page must have: lines of print, well fitted */
 const BOOK_SAMPLES = 8, BOOK_RMS = 3;
-/** The book step's setting when a tab does not choose one: 'never' until it is measured on every photo set (in progress,
- *  27 Nov 2026 — no photo may read worse), then 'auto'. */
-export const BOOK_DEFAULT: 'auto' | 'never' = 'never';
-/** A fit of a book's pages (`flatten` 'auto'): see BOOK in the measurements (CLAUDE.md §3 OCR, "Books"). */
+/** One page drawn flat is kept when its reading scores (upright.ts score: words read surely) more than this many times the
+ *  usual path's. */
+export const BOOK_BY = 1.05;
+/** The book step's setting when a tab does not choose one (measured on every photo set, 27 Nov 2026 — no photo reads worse:
+ *  CLAUDE.md §3 OCR, "Books"). */
+export const BOOK_DEFAULT: 'auto' | 'never' = 'auto';
+/** A fit of a book's pages (`flatten` 'auto'). Measured (the fit of every photo of the sets of scripts/measure-ocr.mjs): a
+ *  book's page bends by 1.2 – 9 % of its width, a flat page by 0.05 – 1.1 % — and a page under a strong watermark by up to
+ *  4.6 % (its big diagonal letters bend the lines found: such a single page is read both ways, BOOK_BY). No flat photo
+ *  gave the fit two pages. */
 export const BOOK = { bend: 0.012, spans: 15, rms: 1.6 };
 export function isBook(fit: Pick<BookFit, 'pages' | 'spans'>, mode: 'auto' | 'always'): boolean {
   if (!fit.pages.length || !fit.spans) return false;
@@ -199,12 +208,14 @@ export function stackPages(pages: Img[], gap: number): Img {
   }
   return { width, height, data };
 }
-async function bookPages(img: Img, ops: ReadOps, mode: 'auto' | 'always'): Promise<{ img: Img; pages: number } | null> {
+/** `f35`: the lens as on 35 mm film, where the photo's EXIF says it (0: a phone's main camera is taken) — a zoomed photo
+ *  flattened as the main camera's comes out skewed (docs/WASM-AUDIT.md 179). */
+async function bookPages(img: Img, ops: ReadOps, mode: 'auto' | 'always', f35 = 0): Promise<{ img: Img; pages: number } | null> {
   if (!ops.bookFit || !ops.bookRender) return null;
   const s = Math.max(img.width, img.height), k = Math.min(1, FIT_SIZE / s);
   const small = k < 1 ? await ops.resize(img, Math.max(1, Math.round(img.width * k)), Math.max(1, Math.round(img.height * k))) : img;
   const book = { bookFit: ops.bookFit, bookRender: ops.bookRender, orient: ops.orient };
-  const a = await analyse(small, 'auto', book, 0, false, 0);
+  const a = await analyse(small, 'auto', book, 0, false, focalFrom35(f35 >= 8 && f35 <= 800 ? f35 : 0, img.width, img.height));
   if (!isBook(a.fit, mode)) return null;
   const from = a.turns ? await ops.orient(img, ROT[a.turns]) : img;
   const pages: Img[] = [];
@@ -310,7 +321,7 @@ export async function readPage(photo: Img, o: ReadOptions, eng: ReadEngines = br
     let img = await cap(t ? await ops.orient(from, ROT[t]) : from, MAX_SIDE), page = false, by: PageReading['by'], book = 0;
     if (o.clean && straight) {
       const mode = o.flatten ?? BOOK_DEFAULT;
-      const flat = straight === 'book' && mode !== 'never' ? await bookPages(img, ops, mode).catch(() => null) : null;
+      const flat = straight === 'book' && mode !== 'never' ? await bookPages(img, ops, mode, o.f35).catch(() => null) : null;
       if (flat) { img = flat.img; page = true; book = flat.pages; }
       else {
         const s = await straighten(img, ops).catch(() => null); // no page: the photo as it is
@@ -331,8 +342,22 @@ export async function readPage(photo: Img, o: ReadOptions, eng: ReadEngines = br
   if (!live()) return null;
   let r = await eng.read(p.img, o.lang, o.onProgress, layoutFor(p.columns));
   if (!live()) return null;
-  // a book's pages drawn flat that gave little (it was no book): the page found the usual way is read too, the better kept
-  if (p.book && r.words.length < FEW) {
+  // one page drawn flat — a page curled near the spine, or a flat page whose fit a strong watermark bent (its big diagonal
+  // letters bend the lines it finds: measured, flattened such a page read 5 % of its words instead of 100 %): the page
+  // found the usual way is read too, and the flat page kept only when it reads clearly better (BOOK_BY). A spread's two
+  // flat pages (no flat photo of the measured sets gave the flattener two pages) are kept when they read surely; read
+  // unsurely (a soft close-up taken with a zoom lens: 13 % of its words instead of 32 %), the usual way is read too and the
+  // better kept — on a tie the flat pages, whose words stand in order (the confidences do not see the order)
+  let usual: { p: typeof p; r: OcrResult; layout: Layout } | null = null;
+  if (p.book && (o.flatten ?? BOOK_DEFAULT) === 'auto' && (p.book === 1 || soft(r))) {
+    const w = await prepare(photo, t0, 'page', o.auto);
+    if (!live()) return null;
+    const r2 = await eng.read(w.img, o.lang, o.onProgress, layoutFor(w.columns));
+    if (!live()) return null;
+    if (p.book === 2) usual = { p: w, r: r2, layout: layoutFor(w.columns) }; // decided after the second reader (below)
+    else if (!(score(r) > score(r2) * BOOK_BY)) { r = r2; p = w; }
+  } else if (p.book && r.words.length < FEW) {
+    // a book's pages drawn flat that gave little (it was no book): the page found the usual way is read too, the better kept
     const w = await prepare(photo, t0, 'page', o.auto);
     if (!live()) return null;
     const r2 = await eng.read(w.img, o.lang, o.onProgress, layoutFor(w.columns));
@@ -369,24 +394,38 @@ export async function readPage(photo: Img, o: ReadOptions, eng: ReadEngines = br
       if (!live()) return null;
       r = await eng.read(p.img, o.lang, o.onProgress, (layout = layoutFor(p.columns)));
       if (!live()) return null;
-      turned = best.t;
+      turned = best.t; usual = null;
     }
   }
   // a soft photo: PaddleOCR reads the page too (the page as Tesseract read it), and the reading with more words read
   // surely is kept (owner, 26 Nov 2026: "Ok use PaddleOCR fallback for soft photos")
-  let engine: PageReading['engine'] = 'tesseract', second = false, secondError: string | undefined;
-  if ((o.second ?? SECOND_ON) && eng.paddle && soft(r)) {
+  let second = false, secondError: string | undefined;
+  const final = async (pp: typeof p, rr: OcrResult): Promise<{ r: OcrResult; engine: PageReading['engine'] } | null> => {
+    if (!((o.second ?? SECOND_ON) && eng.paddle && soft(rr))) return { r: rr, engine: 'tesseract' };
     second = true;
     o.onSecond?.(null);
-    const pic = secondPicture(p) === 'pre' ? p.pre : p.img;
+    const pic = secondPicture(pp) === 'pre' ? pp.pre : pp.img;
     const lines = await eng.paddle(pic, (q) => { if (live()) o.onSecond?.(q); }, () => !live()).catch((e) => { secondError = String((e as Error)?.message ?? e); return null; });
     if (!live()) return null;
     if (lines?.length) {
       let order: number[] | undefined;
-      if (p.columns >= 2 && lines.length > 1 && eng.xycut) { const c = cutInput(lines); order = await eng.xycut(c.boxes, c.gx, c.gy); }
+      if (pp.columns >= 2 && lines.length > 1 && eng.xycut) { const c = cutInput(lines); order = await eng.xycut(c.boxes, c.gx, c.gy); }
       const r2 = paddleResult(lines, { order });
-      if (secondBetter(r2, r)) { r = r2; engine = 'paddle'; }
+      if (secondBetter(r2, rr)) return { r: r2, engine: 'paddle' };
     }
+    return { r: rr, engine: 'tesseract' };
+  };
+  let f = await final(p, r);
+  if (!f) return null;
+  // a spread read unsurely (a soft close-up: measured, flattened such a photo read 13 % of its words where the usual
+  // path read 32 % — and another 56 % where the usual path read 31 %): the usual path's reading has its second reader too,
+  // and the reading with more words read right as each reader's confidences say is kept — on a tie the flat pages
+  if (usual) {
+    const u = await final(usual.p, usual.r);
+    if (!u) return null;
+    if (expectedRight(u.r, RIGHT[u.engine]) > expectedRight(f.r, RIGHT[f.engine])) { f = u; p = usual.p; layout = usual.layout; }
   }
+  r = f.r;
+  const engine = f.engine;
   return { r, img: p.img, pre: p.pre, shown: p.shown, page: p.page, by: p.by, book: p.book, up: p.up, turned, cleared: p.cleared, listMarks: p.listMarks, xh: p.xh, columns: p.columns, layout, engine, second, secondError };
 }

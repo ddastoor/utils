@@ -59,6 +59,9 @@ that affects it.
 > **OCR quality is paramount (owner, 26 Nov 2026):** "make sure no functionality is compramised.. the high quality of the
 > ocr is paramount !!!" — said of to-do #18 (one shared reading path for the OCR tab and the Photo Dictionary): every
 > feature of both tabs stays, and every change to their reading is measured before and after — none may read worse.
+> **Printed books (potentials #96, built 27 Nov 2026):** both tabs flatten a photo of an open book before reading it — the
+> pages' curve near the spine taken out, a spread's left page read before its right one (§3 OCR, "Books"; measured: no photo
+> reads worse, thick books 53.7 → 88.0 % of their words).
 > **At any angle (owner, 21 Nov 2026):** "the OCR app also should be extremely good, especially on the phone, when I click
 > it at different angles … Just like what you're doing for the photo dictionary app." — both tabs also measure the slant
 > of the lines and level the photo before the quarter turns (§3 OCR, "At any angle").
@@ -2424,6 +2427,8 @@ pictures or a PDF; the OCR tab and the Photo Dictionary then read printed books 
   when they are (`found()`: 8 samples a line and more, fitted within 3 px — a photo held sideways makes short "lines" of
   letters joined across, about 4 samples each, fitted at 5 – 7 px); else the photo turned a quarter either way is tried
   and the turn that found the most text kept. A photo without print (a cup of coffee) gives no page, said.
+- **Also a step of the OCR tab and the Photo Dictionary** (their shared reading path flattens a photo of an open book before
+  it is read: §3 OCR, "Books").
 - **The tab:** photos (or the camera — page after page, as the Doc Scanner) → each photo's pages flattened at once; a strip
   of every page in order, named ("Page 2: right page of IMG_0042.jpg"); for the page chosen: the photo with what was found
   drawn on it (a dot for each sample — the left page's orange, the right's green —, the gutter dashed, each page's outline
@@ -2744,6 +2749,39 @@ checklist — faint rings and boxes —, a soft memo frame — closed rings, the
 cleared, its "ii." kept —, a soft form frame — "UI" after a word run together kept), `readpage` 39 (`listSigns`),
 `pagecrop` 50; e2e OCR 95 (the photographed memo, checklist and
 newsletter held to their pages' lists; .txt and Copy with the marks), Photo Dictionary 127 (its text stays plain) — both also on Windows (the Windows check, runs 12 – 13).
+
+**Books — their pages flattened first (potentials #96 as a step of both tabs, the last of the owner's group 1; built 27 Nov
+2026 — the owner, 21 Nov 2026: "the OCR tab and the Photo Dictionary then read printed books as well as a Kindle page").**
+With the clean-up on, before the page finder (`bookPages` in `src/lib/readpage.ts`): the Book Page Flattener's fit
+(imgproc's `p_book_fit`, `wasm/imgproc/flatten.c`) on a copy of at most 1,600 px, the photo turned a quarter either way when
+the lines run up and down it (`analyse` of `src/lib/bookflat.ts`), the camera's lens from the photo's EXIF where it says
+(FocalLengthIn35mmFilm: both tabs read it with `readExif`; else a phone's main camera — measured: wide-angle photos 94.0 →
+96.0 % with their lens). **A book** (`isBook`): **two pages** either side of a gutter (no flat photo of the ~400 measured gave
+the fit two pages) — kept when the flat pages read surely (Tesseract's confidence 88 and more: every such spread read better
+or as well); read unsurely (a soft close-up), the page is read the usual way too, each reading gets its second reader
+(PaddleOCR) where it is soft, and the reading with more words read right as each reader's confidences say is kept — on a tie
+the flat pages, whose words stand in order (measured: a soft 2× close-up read 13 % of its words flattened against 32 % the
+usual way); **one page** — bent by 1.2 % of its width and more (`bendOf`: the paper's curve against its chord; flat pages
+0.05 – 1.1 %, a book's 1.2 – 9 %), 15 lines and more, fitted within 1.6 px — **read both ways**, the flat page kept only when
+its reading scores 5 % more than the page found the usual way (`BOOK_BY`; a strong watermark's big diagonal letters bend a
+flat page's fit as a curl does — flattened, such pages read 4 – 70 % of their words instead of 90 – 100 %). Each page is drawn flat from the photo at the
+photo's resolution (`renderPage`), a spread's left page above its right one with a white gap (`stackPages`: one block of text,
+in order), then set upright (a book photographed upside down), cleaned up and read as any page; the OCR tab shows the flat
+pages in place of the photo and says "the book's two pages were flattened (the curve near the spine taken out) and are read
+left, then right"; the Photo Dictionary's line says it too. Flat pages that give fewer than 25 words: the page found the usual
+way is read too, the better kept. A poor reading tried the other ways round (the OCR tab's retry) takes the page finder, as
+before. **Measured** with the tabs' own code (`node scripts/measure-ocr.mjs SET --prep read --paddle`; `read+noflat` and
+`read+flatall` force the step off, or on every page whose lines are found; the photo sets made by `scripts/make-book-photos.py`,
+`make-kindle-photos.py`, `make-format-docs.mjs` + `make-doc-photos.py`; `--focal F --exif` for other lenses): 16 photos of
+open books 90.2 → 93.2 % of their words read right in order, 12 of thick books 53.7 → 88.0 % (a thick book's single pages 62.6
+→ 92.7 %), 8 taken with an ultra-wide lens 84.9 → 96.0 %, 8 close-ups with a 2× lens 63.9 → 67.3 % (soft: some read under a
+third either way), the repository's four 82.4 → 98.3 % (`thick.jpg` 35.0 → 98.6 %); **no photo reads worse** — of 390 flat photos (Kindle pages and
+newspapers, documents, the same with watermarks, each set twice) the rule took two, both strong CONFIDENTIAL newsletters, read
+them both ways and kept the usual reading. Forced onto flat pages the step costs points (newspapers 87.2 → 83.3 %, watermarked
+documents 92.2 → 88.4 %): hence the rule. The cost: the fit on every photo read with the clean-up (0.1 – 0.2 s in Node), a
+second reading for a single page that passes the rule or an unsure spread (and its second reader). Unit `readpage` 70, e2e
+`ocr-books` 25 (both tabs on `tests/fixtures/books`: 97.8 – 99.1 % of the words in order in the browser; the Photo Dictionary
+finds 90 %+ of the uncommon words of a clean copy of the text).
 
 ### Camera in every tab that takes a picture (owner, 20 Nov 2026)
 Owner: "In all apps that offer to upload an image, also add the option of taking a photo if it's a phone app, and take
@@ -3731,6 +3769,9 @@ Nov 2026 (Articles → Kindle, potentials #106): `src/lib/articles.ts` — which
 (the browser's TextDecoder), a picture's addresses matched with the saved files' (the browser's URL parser), the EPUB's files
 written as text and zipped by fflate; the article, its XHTML and the readers of the saved files are article.wasm's; the
 pictures are drawn by the codec worker (MozJPEG, OxiPNG, Squoosh's resize). The cover is drawn by the browser's canvas.
+Nov 2026 (the book step of the OCR tab and the Photo Dictionary, potentials #96): `bendOf` (a cubic evaluated at 64 points),
+`isBook` (a few comparisons of the fit's numbers) and `stackPages` (rows copied with `TypedArray.set`) in `src/lib/readpage.ts`
+— glue around imgproc.wasm's fit and drawing (`flatten.c`), which do the work.
 Nov 2026 (Paste image, to-do #37): `src/lib/clipimage.ts` — the browser's Async Clipboard API, a choice among the formats
 it offers and a file name; no engine has work to do.
 Nov 2026 (Screenshot's area, to-do #24): `src/lib/areageom.ts` — the rectangle's arithmetic (where the frame stands, a

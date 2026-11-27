@@ -14,6 +14,7 @@ import type { Img } from '../wasm/imgproc';
 import { previewOf, paint } from '../lib/imgio';
 import { imageInput } from '../lib/imgtools';
 import { readPage, readsPoorly, secondWords } from '../lib/readpage';
+import { readExif } from '../lib/exif';
 import { uprightWords } from '../lib/upright';
 import { alphabetical, hardWords, lookupWord, rarity, ranker, type WordCard, type Result } from '../lib/dictionary';
 import { wikiSummary, type Summary } from '../lib/wikipedia';
@@ -115,8 +116,11 @@ export const mount: Mount = (root, ctx) => {
       // screen"); the document clean-up; ruled lines and list marks cleared; a page of columns read column by column; an
       // outline that was not the page (little read on it): the whole photo read too, the better reading kept
       ranker().catch(() => {}); loadFonts(); // word list + reading font load while OCR runs
+      // the lens, where the photo's EXIF says (a phone's JPEG does): the camera of a book's pages drawn flat
+      const f35 = file ? (await readExif(file).catch(() => null))?.focal35 ?? 0 : 0;
+      if (stale()) return;
       const reading = await readPage(img, {
-        lang: 'eng', clean: true, screen, auto: true, stale,
+        lang: 'eng', clean: true, screen, auto: true, stale, f35,
         onProgress: (p, s) => prog.set(s.includes('recogn') ? p : null, s.includes('recogn') ? `Reading the page… ${Math.round(p * 100)} %` : 'Loading the text engine…'),
         // a soft photo: PaddleOCR, the second reader, reads it too (its models fetched the first time)
         onSecond: (q) => { if (!stale()) { const w = secondWords(q); prog.set(w.p, w.text); } },
