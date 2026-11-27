@@ -17,6 +17,21 @@ export const FILTERS: Array<[Fx, string]> = [['cartoon', 'Cartoon'], ['oil', 'Oi
 interface FxOpts { colors: number; lines: number; smooth: number; brush: number; soft: number; dots: number; detail: number }
 const DEFAULTS: FxOpts = { colors: 14, lines: 0.9, smooth: 2, brush: 5, soft: 8, dots: 6, detail: 2000 };
 export const DETAILS: Array<[string, string]> = [['2000', 'Fine'], ['1000', 'Medium'], ['600', 'Bold']];
+/** "How cartoony", in grades (to-do #33 — owner, 27 Nov 2026: "In the Cartoonizer app, in the cartoon filter, have some
+ *  kind of gradation selection as to less cartoony or more cartoony."): each grade sets the Cartoon filter's colours, ink
+ *  lines and smoothing and the Detail together — fewer colours, darker and thicker lines, more smoothing from Subtle to
+ *  Extreme. Measured on two photos (the e2e suite holds it): the difference from the photo and the share of flat areas grow
+ *  and the photo's edges kept fall from each grade to the next. Medium is the filter's defaults (the look it always had). */
+export const GRADES: Array<{ id: string; label: string; colors: number; lines: number; smooth: number; detail: number }> = [
+  { id: 'subtle', label: 'Subtle', colors: 32, lines: 0.4, smooth: 1, detail: 2000 },
+  { id: 'light', label: 'Light', colors: 20, lines: 0.7, smooth: 2, detail: 2000 },
+  { id: 'medium', label: 'Medium', colors: 14, lines: 0.9, smooth: 2, detail: 2000 },
+  { id: 'strong', label: 'Strong', colors: 8, lines: 1.3, smooth: 3, detail: 1000 },
+  { id: 'extreme', label: 'Extreme', colors: 5, lines: 1.8, smooth: 5, detail: 600 },
+];
+/** the grade the settings make, or 'custom' (the sliders moved) */
+export const gradeOf = (o: { colors: number; lines: number; smooth: number; detail: number }) =>
+  GRADES.find((g) => g.colors === o.colors && Math.abs(g.lines - o.lines) < 1e-6 && g.smooth === o.smooth && g.detail === o.detail)?.id ?? 'custom';
 
 /** Apply a filter. Sizes are tuned for pictures of `o.detail` px and grow with larger ones, so preview and full-size save
  *  match (s is at least 0.25: imgproc's smallest scale). */
@@ -124,16 +139,34 @@ export const mount: Mount = (root, ctx) => {
 
   // ---------------------------------------------------------------- filter settings (only the ones the chosen filter uses)
   const sl = (label: string, k: keyof FxOpts, min: number, max: number, step = 1) =>
-    slider({ label, min, max, step, value: o[k], onChange: (v) => { o[k] = v; render(); drawFxTiles(); } });
+    slider({ label, min, max, step, value: o[k], onChange: (v) => { o[k] = v; syncGrade(); render(); drawFxTiles(); } });
+  const colorsS = sl('Colours', 'colors', 4, 32), linesS = sl('Ink lines', 'lines', 0, 2, 0.1), smoothS = sl('Smoothing', 'smooth', 1, 5);
   const params: Record<Fx, HTMLElement[]> = {
-    cartoon: [sl('Colours', 'colors', 4, 32), sl('Ink lines', 'lines', 0, 2, 0.1), sl('Smoothing', 'smooth', 1, 5)],
+    cartoon: [colorsS, linesS, smoothS],
     oil: [sl('Brush size', 'brush', 2, 12)], watercolor: [], sketch: [sl('Stroke softness', 'soft', 2, 20)],
     colorsketch: [sl('Stroke softness', 'soft', 2, 20)], comic: [sl('Dot size', 'dots', 3, 14)],
   };
   const paramBox = h('div', { class: 'stack' });
-  const showParams = () => paramBox.replaceChildren(...(params[fx].length ? params[fx] : [note('Watercolour has no settings: it softens, simplifies the colours and adds paper grain.')]));
-  const detailSeg = segmented<string>(DETAILS, String(o.detail), (v) => { o.detail = +v; render(); drawFxTiles(); });
-  const filtersBox = stack(fxGrid, field('Detail', detailSeg), paramBox);
+  const showParams = () => { gradeBox.hidden = fx !== 'cartoon'; paramBox.replaceChildren(...(params[fx].length ? params[fx] : [note('Watercolour has no settings: it softens, simplifies the colours and adds paper grain.')])); };
+  const detailSeg = segmented<string>(DETAILS, String(o.detail), (v) => { o.detail = +v; syncGrade(); render(); drawFxTiles(); });
+  // the Cartoon filter's grades (to-do #33): one choice from a little cartoony to very; the sliders and Detail follow it,
+  // and moving one of them afterwards makes it a mix of your own
+  const gradeSeg = segmented<string>(GRADES.map((g) => [g.id, g.label] as [string, string]), gradeOf(o), (v) => {
+    const g = GRADES.find((x) => x.id === v)!;
+    o.colors = g.colors; o.lines = g.lines; o.smooth = g.smooth; o.detail = g.detail;
+    colorsS.value = g.colors; linesS.value = g.lines; smoothS.value = g.smooth; detailSeg.value = String(g.detail);
+    syncGrade(); render(); drawFxTiles();
+  });
+  const gradeNote = h('div', { class: 'muted small', id: 'cartoon-grade' });
+  const syncGrade = () => {
+    const id = gradeOf(o), g = GRADES.find((x) => x.id === id);
+    gradeSeg.value = id;
+    gradeNote.textContent = g ? `${g.colors} colours · ink lines ${g.lines} · smoothing ${g.smooth} · ${DETAILS.find(([v]) => +v === g.detail)![1]} detail`
+      : 'Your own mix, from the settings below — pick a grade to start from it again.';
+  };
+  const gradeBox = stack(field('How cartoony', gradeSeg), gradeNote);
+  syncGrade();
+  const filtersBox = stack(fxGrid, gradeBox, field('Detail', detailSeg), paramBox);
 
   // ---------------------------------------------------------------- AI styles
   const styleGrid = h('div', { class: 'fx-grid', role: 'radiogroup', 'aria-label': 'Art style' });

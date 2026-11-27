@@ -1017,6 +1017,17 @@ Two engines, picked with a "Filters | AI art styles" switch; tiles show live thu
     and of the photo at the photo's size): AI style on a photo of a book page (1800 × 1300) — Fine 0.147 against Bold 0.045
     (the page readable through the strokes at Fine, blobs at Bold — the style's own strokes carry most of a painting's
     edges); Cartoon filter at 1200 px — Fine 0.946 against Bold 0.888.
+  - **How cartoony, in grades (to-do #33; owner, 27 Nov 2026: "In the Cartoonizer app, in the cartoon filter, have some kind
+    of gradation selection as to less cartoony or more cartoony.")**: "How cartoony" above the Cartoon filter's settings —
+    **Subtle** (32 colours, ink lines 0.4, smoothing 1, Fine detail) · **Light** (20, 0.7, 2, Fine) · **Medium** (14, 0.9, 2,
+    Fine — the filter's old defaults, lit at first) · **Strong** (8, 1.3, 3, Medium detail) · **Extreme** (5, 1.8, 5, Bold):
+    fewer colours, darker and thicker ink lines and more smoothing grade by grade (`GRADES` in `src/tools/cartoon.ts`; no
+    engine change). A grade moves the sliders and Detail to its values (the line under it names them); a slider or Detail
+    moved afterwards makes a mix of your own (no grade lit) until a grade is picked again; the grades are the Cartoon
+    filter's only. **Measured** (e2e `cartoon-grades` 23, from the results the tab shows): the difference from the photo
+    (coffee 6.2 → 8.5 → 10.3 → 13.8 → 18.2; astronaut 5.8 → 21.5), the share of flat areas (73 → 91 %; 74 → 87 %) grow and
+    the photo's edges kept (0.945 → 0.694; 0.968 → 0.788) fall from each grade to the next; Extreme saved at full size as
+    its preview; a phone's grade buttons 44 px.
   - **Looked at, not added:** AnimeGAN v2 / v3 (ONNX, 4 – 8.6 MB a style: Hayao, Shinkai, Paprika, a face portrait) and
     White-box Cartoonization (a TensorFlow model) — an anime / cartoon look rather than a painting's, each a model of its
     own; offered to the owner as new styles (docs/RESUME.md). Real paintings as styles (public-domain Van Gogh, Hokusai …)

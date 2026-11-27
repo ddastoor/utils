@@ -13,11 +13,6 @@ The owner adds items here in chat ("add … to to do"). Newest instructions win.
 
 3. _(withdrawn by the owner on 20 Nov 2026: the "Export Python utility" for the YouTube Clip tab — do not build it.)_
 
-33. **Cartoonizer: how cartoony, in grades** (owner, 27 Nov 2026: "In the Cartoonizer app, in the cartoon filter, have some
-    kind of gradation selection as to less cartoony or more cartoony."). Today the Cartoon filter (Filters → Cartoon) has
-    Colours, Ink lines and Smoothing as sliders of their own, and Detail (Fine / Medium / Bold) — this asks for one choice
-    that goes from a little cartoony to very cartoony. When: at the owner's word (not yet started).
-
 35. **Text Diff: an interactive side-by-side diff, hunk by hunk** (owner, 27 Nov 2026: "In the text diff app, add an additional
     option to actually do an interactive side-by-side diff with next and previous. as in to cycle through next and previous
     diff hunks"). Beside today's views (lines as one column with both line numbers, unchanged runs folded; words; characters):
@@ -25,6 +20,11 @@ The owner adds items here in chat ("add … to to do"). Newest instructions win.
     one hunk (a run of changes) to the next. When: at the owner's word (not yet started).
 
 ## Done
+- **33. Cartoonizer: how cartoony, in grades** (owner, 27 Nov 2026: "In the Cartoonizer app, in the cartoon filter, have some
+  kind of gradation selection as to less cartoony or more cartoony.") — done 27 Nov 2026: "How cartoony" — Subtle · Light ·
+  Medium (the old defaults) · Strong · Extreme — sets the Cartoon filter's colours, ink lines, smoothing and Detail
+  together; the sliders stay for fine tuning (a slider moved: your own mix). Measured grade by grade on two photos: further
+  from the photo, flatter, fewer of its edges kept. CLAUDE.md §3 Cartoonizer; e2e `cartoon-grades` 23.
 - **34. Watermark: the first page (cover) with or without the mark** (owner, 27 Nov 2026: "in the Watermark app for uploaded
   documents only, have an option to include (or not) the watermark on the first page or cover page..") — done 27 Nov 2026:
   a switch "Watermark the first page (the cover) too" with the documents (on by default: every page, as before). Off: a

@@ -18,7 +18,7 @@ merged into main (fast-forward, 1d5e8dc) and is no longer pushed to. **The site 
 ## ▶ NOW — 26 Nov 2026, morning (read this first)
 **▶▶ 27 Nov 2026 — IN PROGRESS: the owner's "Go ahead with all items in todo" (to-do #33 – #36).** Order: **#36 DONE** (the
 start page's note of the other device's apps); **#34 DONE** (Watermark: the first page of a document with or without the mark),
-**#33** (Cartoonizer: how cartoony, in grades), **#35** (Text Diff side by side, Next / Previous hunk). Each is committed and
+**#33 DONE** (Cartoonizer: how cartoony, in grades), **#35** (Text Diff side by side, Next / Previous hunk). Each is committed and
 pushed when it is done; todo.md's Done says which are.
 **Batch 1 done; batch 2 (#18 OCR + Photo Dictionary) DONE** (todo.md Done #18; CLAUDE.md §3 OCR, "Documents — one reading
 path"): both tabs read through `src/lib/readpage.ts`; documents with bullets, tables, columns and watermarks read far
