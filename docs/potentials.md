@@ -36,6 +36,22 @@ Every candidate:
 
 Platform: "both" = PC + mobile.
 
+## Suggested order (27 Nov 2026 — Claude's suggestion at the owner's request; nothing accepted until the owner picks)
+The owner, 27 Nov 2026: "Come up with the list of what you think we should build out next from potentials … do some grouping
+based on common implementation … make the suggestions". The site then: **563.5 MB** of 1 GB (`du -sb dist`, d83ed0d).
+1. **Reading on the phone and the Kindle** (the owner's first case; MuPDF, the reading path, the EPUB writer, the voices —
+   all on the site; ≈ 0.5 MB): 96 Book Page Flattener (also as a step of the OCR and the Photo Dictionary for printed books)
+   · 110 Newspaper Clipper · 109 PDF for Kindle · 71 EPUB Reader · 106 Articles → Kindle · 14 PDF / EPUB → Audiobook.
+2. **PDF and ID tools for India** (MuPDF, the OCR, mathcore's checks, the Text Diff's new pairing; ≈ 0 MB): 16 PDF Tables →
+   Excel · 61 PDF Redact · 93 Safe ID Copy · 84 Number Detective · 15 PDF Compare · 3 Make PDF Searchable.
+3. **The owner's own asks, larger** (≈ 55 – 60 MB, nearly all draw.io): 10 Spell Checker · 73 World Clock · 75 SliceDiceGrapher
+   with 25 Chart Maker in it · 1 Image to SVG and 117 Clipart Maker (one tracing engine) · 54 Diagram Editor.
+4. **Camera helpers** (the OCR and the QR tab's writers; ≈ 0 MB): 89 Visiting Card → Contact · 88 Router Sticker → Wi-Fi QR ·
+   77 Paper Deadlines → Calendar · 78 Bill Splitter by Photo · 81 Camera Reader.
+All four: about 620 MB of the 1 GB. Held back for now: the large models (5 Vocal Remover 180 MB, 67 Object Eraser 208 MB,
+22 LaTeX ≈ 175 MB), 4 Document Converter (58.6 MB), and the niche PC tools. The size check of the rule is made again,
+measured, for each app the owner picks.
+
 ## Size check of every candidate (20 Nov 2026)
 The site is **512 MB** (511,614,356 bytes, `du -sb dist`, after Speech to Text was removed on 20 Nov 2026 — it was
 763 MB) of GitHub Pages' 1 GB for a published site (read as 10⁹ bytes) → **488 MB of room**. A size here is what the tab would ship — one build, without source maps or debug copies —
