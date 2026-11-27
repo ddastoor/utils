@@ -63,8 +63,10 @@ page is open, in an always-on-top window too (`src/lib/pipcount.ts`, shared with
 tones (MP4 / WebM, ± microphone): within 0.02 dB — not lower. Offered to the owner (not built): an R128 "normal
 loudness" button for the Screencast. **Batch 3 is complete.** (Disk: the scratchpad's 13 GB offline-TTS work folder `otts`
 was deleted on 26 Nov to free space — the survey's results are committed; `scripts/accent-survey/` makes it again.)
-**To-do #32 added (26 Nov 2026, the owner):** 22 new FFmpeg jobs (the uses listed in chat, all on today's core) — not yet in the
-batch order: ask when. The three that need our own FFmpeg build (a good stabiliser, Rubber Band pitch, VP9 / H.265) are
+**To-do #32 added (26 Nov 2026, the owner):** 22 new FFmpeg jobs (the uses listed in chat, all on today's core) — **started at
+the owner's word on 27 Nov 2026 ("yes go ahead with #32")**: every filter checked in the tab's FFmpeg 5.1 (a Node runner of
+the core in the scratchpad), fixtures made by `node scripts/make-ffmpeg-fixtures.mjs`; the jobs next. **To-do #33 added (27 Nov
+2026, the owner):** the Cartoonizer's Cartoon filter in grades, less to more cartoony — not started (ask when). The three that need our own FFmpeg build (a good stabiliser, Rubber Band pitch, VP9 / H.265) are
 potentials.md U3 "Our own FFmpeg build".
 **#20 Studio voice (batch 7), owner, 26 Nov 2026: "Just use your discretion and get the best quality"** — no samples to judge
 and no size decision to wait for: choose by measurement (DNSMOS, noise left, speech kept), the best quality within the 1 GB.

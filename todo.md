@@ -63,6 +63,12 @@ The owner adds items here in chat ("add … to to do"). Newest instructions win.
       the settings cannot do it, the command shown; the sound at its own level (to-do #23); the unit suite runs every
       command on the native FFmpeg and reads the results back (pixels, sound levels, lengths, ffprobe), the e2e suite runs
       it on the tab's FFmpeg — on mono, stereo and 5.1 files.
+    - **In progress** (owner, 27 Nov 2026: "yes go ahead with #32").
+
+33. **Cartoonizer: how cartoony, in grades** (owner, 27 Nov 2026: "In the Cartoonizer app, in the cartoon filter, have some
+    kind of gradation selection as to less cartoony or more cartoony."). Today the Cartoon filter (Filters → Cartoon) has
+    Colours, Ink lines and Smoothing as sliders of their own, and Detail (Fine / Medium / Bold) — this asks for one choice
+    that goes from a little cartoony to very cartoony. When: at the owner's word (not yet started).
 
 ## Done
 - **20. Noise Remover: "Studio voice" — a voice recorded outdoors made to sound as if spoken in a studio** (owner, 26 Nov 2026:
