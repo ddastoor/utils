@@ -245,6 +245,7 @@ cases = [
     case('sales by year', [{'name': 'Date', 'grain': 'year'}], [S('Sales')]),
     case('year against year', [{'name': 'Date', 'grain': 'month_of_year'}], [S('Sales')], cols={'name': 'Date', 'grain': 'year'}),
     case('north and south only', [{'name': 'Product'}], [S('Sales')], filt=lambda d: d.Region.isin(['North', 'South'])),
+    case('rows by region', [{'name': 'Region'}], [S('Rows')]),
     case('sales of 5000 and more', [{'name': 'Region'}], [S('Sales'), S('Rows')], filt=lambda d: d.Sales >= 5000),
     case('first half of 2026', [{'name': 'Region'}], [S('Sales')], filt=lambda d: (d.Date >= date(2026, 1, 1)) & (d.Date <= date(2026, 6, 30))),
 ]

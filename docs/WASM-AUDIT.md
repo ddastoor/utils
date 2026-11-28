@@ -2019,3 +2019,25 @@ Looked at first (STANDING RULE #1):
 - **Engine: none (rule 3 — nothing to compute):** the browser's own `JSON.parse` / `JSON.stringify` (compiled C++), `localStorage`,
   IndexedDB, File System Access and a download link do all the work; the checks are a comparison or two a value (`src/settings.ts`),
   the file's name a date formatted (`src/lib/settingsfile.ts`). No WebAssembly module would have work to do here.
+
+### 202. `slicedice` — SliceDiceGrapher (28 Nov 2026; potentials #75, with Chart Maker #25)
+- **The pivots — an existing module (rule 1):** **Perspective 5.10** (FINOS — open-sourced by J.P. Morgan; `@perspective-dev/client` and
+  `/server`, Apache-2.0): its engine C++ → WebAssembly (perspective-server.wasm, 2.65 MB, run in a worker), its client Rust → WebAssembly
+  (0.64 MB). Group by, split by, sum, count, average, minimum, maximum, distinct count, expressions for dates (by day, week, month, three months
+  and year; month of the year, day of the week), filters, subtotals and totals. Held to pandas cell for cell on 15 pivots of the reference
+  (unit `slicedice`). **Its defect** (Claude's judgement, as the rule allows — the fault is inside the engine): its median is not the middle
+  value of a larger group (27.5 for 28.5 on 62 sales) — no median in the pivot, and the box plot's five numbers by **our mathcore**
+  (`m_stats`, exact; a supplementary module of ours, rule 1a).
+- **Looked at:** DuckDB-wasm 1.32 (MIT; PIVOT, CUBE / ROLLUP) — 34 MB a build; Perspective's own viewer (Rust → WebAssembly 0.9 MB with
+  d3fc charts) — its charts lack pie, funnel, waterfall, Pareto, histogram and box plot, and it saves no pictures: the tab draws the pivots
+  as HTML tables.
+- **The graphs (rule 3 — no WebAssembly charting library exists):** **Apache ECharts 6.1** (Apache-2.0; zrender BSD-3-Clause), JavaScript,
+  tree-shaken to the nine charts and seven components the tab draws (0.72 MB, its own chunk, with the first data); PNG (canvas, 2× / 4×) and
+  SVG (its server-side SVG renderer) built in; its aria description for screen readers. Of its code made from strings only the GeoJSON
+  loader of its map component has any (not among these parts; the CSP allows none). Plotters (Rust, the engine #25 named) draws bitmaps or
+  SVG without legends, tooltips or the pie, treemap and sunburst kinds — not used.
+- **Reading and writing:** sheet.wasm (ours) reads files and pasted text and writes CSV and .xlsx — its writer gained numbers in a number
+  format and bold cells (rust_xlsxwriter's own `write_number_with_format`); the clipboard's HTML is parsed by the browser's DOMParser and
+  read in TS (`pasteTables`: the value behind a cell — string glue); the zip by fflate (on the site).
+- **Decision:** Perspective, mathcore for the box plot, ECharts, sheet.wasm — 4.2 MB more on the site.
+

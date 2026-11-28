@@ -2,7 +2,7 @@
 
 Generated from `src/registry.ts` by `npm run docs` — do not edit by hand.
 
-**196 tabs** in 11 categories — 129 PC + mobile, 64 PC only, 3 mobile only.
+**197 tabs** in 11 categories — 130 PC + mobile, 64 PC only, 3 mobile only.
 
 ## Images (19)
 
@@ -28,7 +28,7 @@ Generated from `src/registry.ts` by `npm run docs` — do not edit by hand.
 | `ocr` | OCR | PC + mobile | Extract text from an image (English, French, Spanish, German). | copy text from image, copy text from photo, extract text from image, text from photo, extract text from photo, handwriting, ocr, text recognition, … |
 | `signature` | Signature Maker | PC + mobile | Draw your signature and save a transparent PNG. | signature, sign, draw signature, transparent signature, signature png, autograph, handwritten, e signature image |
 
-## Documents (28)
+## Documents (29)
 
 | id | Tab | Platform | What it does | Search keywords |
 |---|---|---|---|---|
@@ -55,6 +55,7 @@ Generated from `src/registry.ts` by `npm run docs` — do not edit by hand.
 | `articles` | Articles → Kindle | PC + mobile | Saved web articles made into one e-book for a Kindle: the article alone, with its pictures, title, author and date. | articles to kindle, article to kindle, web page to kindle, webpage to epub, web article to ebook, send to kindle, save article, read later, … |
 | `ebook` | EPUB Reader | PC + mobile | Read e-books — EPUB, MOBI, FB2, comics, text — with contents, search, fonts, sizes and themes. | epub reader, ebook reader, e-book reader, read epub, read ebook, read a book, book reader, epub viewer, … |
 | `audiobook` | PDF / EPUB → Audiobook | PC + mobile | A book read aloud into MP3s, one per chapter, by natural voices made on this device — US, British or Indian English. | audiobook, audio book, audiobook maker, make an audiobook, book to audio, book to mp3, ebook to mp3, epub to mp3, … |
+| `slicedice` | SliceDiceGrapher | PC + mobile | Paste a range from Excel or open a spreadsheet: pivots and graphs in a click, presets from your columns, every graph and pivot saved as a picture. | pivot, pivot table, pivots, pivot chart, chart, charts, graph, graphs, … |
 | `sheet` | CSV / Excel | **PC only** | View CSV and Excel files; convert CSV ⇄ XLSX ⇄ JSON. | excel viewer, xlsx to csv, csv to xlsx, excel to csv, csv to json, xls, csv, excel, … |
 | `markdown` | Markdown Editor | PC + mobile | Write Markdown with live preview; export HTML or PDF. | markdown, md, editor, preview, html, notes, readme, print |
 | `invoice` | GST Invoice | PC + mobile | Create a GST invoice and save it as PDF. | invoice, gst invoice, bill generator, invoice generator, invoice maker, bill, billing, tax invoice, … |

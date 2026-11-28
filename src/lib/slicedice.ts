@@ -742,7 +742,20 @@ const PALETTE = ['#2563eb', '#f97316', '#16a34a', '#dc2626', '#9333ea', '#0891b2
  * its title, a legend where there is more than one series, a tooltip, values in the pivot's own format, and ECharts' aria description
  * (a screen reader hears the series and their values).
  */
-export function chartOption(kind: GraphKind, p: Pivot | null, o: { title: string; dark: boolean; extra?: ChartExtra; animation?: boolean }): Record<string, unknown> {
+export function chartOption(kind: GraphKind, p: Pivot | null, o: { title: string; dark: boolean; extra?: ChartExtra; animation?: boolean; bare?: boolean }): Record<string, unknown> {
+  const opt = optionOf(kind, p, o);
+  return o.bare ? withoutTitle(opt) : opt;
+}
+/** a graph's option without its title (on the screen the card's heading names it; a picture saved keeps it), everything moved up */
+export function withoutTitle(o: Record<string, any>): Record<string, any> {
+  const up = (x: unknown) => (typeof x === 'number' ? Math.max(10, x - 32) : x);
+  const out: Record<string, any> = { ...o, title: { ...(o.title ?? {}), show: false } };
+  if (out.grid) out.grid = { ...out.grid, top: up(out.grid.top) };
+  if (out.legend && typeof out.legend.top === 'number') out.legend = { ...out.legend, top: Math.max(4, out.legend.top - 26) };
+  if (Array.isArray(out.series)) out.series = out.series.map((x: Record<string, any>) => ({ ...x, ...(typeof x.top === 'number' ? { top: up(x.top) } : {}), ...(Array.isArray(x.center) ? { center: [x.center[0], '50%'] } : {}) }));
+  return out;
+}
+function optionOf(kind: GraphKind, p: Pivot | null, o: { title: string; dark: boolean; extra?: ChartExtra; animation?: boolean }): Record<string, unknown> {
   const fg = o.dark ? '#e5e7eb' : '#1f2937', sub = o.dark ? '#9ca3af' : '#6b7280', grid = o.dark ? '#374151' : '#e5e7eb';
   const common = {
     color: PALETTE, animation: o.animation ?? true, aria: { enabled: true, decal: { show: false } },
@@ -753,14 +766,18 @@ export function chartOption(kind: GraphKind, p: Pivot | null, o: { title: string
   const fmt0 = p?.fmts[0] ?? { currency: '', percent: false, decimals: 0, indian: false };
   const valFmt = (f: Fmt) => (v: number) => fmtNumber(v, f);
   const axisVal = (f: Fmt) => ({ type: 'value', axisLabel: { color: sub, formatter: (v: number) => fmtNumber(v, { ...f, decimals: Math.abs(v) < 10 && !Number.isInteger(v) ? Math.max(1, f.decimals) : 0 }) }, splitLine: { lineStyle: { color: grid } } });
-  const axisCat = (cats: string[], rotate = cats.length > 8) => ({ type: 'category', data: cats, axisLabel: { color: sub, interval: 0, rotate: rotate ? 35 : 0, width: rotate ? 140 : 110, overflow: 'truncate' }, axisLine: { lineStyle: { color: grid } } });
+  // every label while they are few; past 12 ECharts leaves out those that would overlap
+  const axisCat = (cats: string[], rotate = cats.length > 8) => ({ type: 'category', data: cats, axisLabel: { color: sub, interval: cats.length > 12 ? 'auto' : 0, hideOverlap: cats.length > 12, rotate: rotate ? 35 : 0, width: rotate ? 140 : 110, overflow: 'truncate' }, axisLine: { lineStyle: { color: grid } } });
   const legend = (n: number) => (n > 1 ? { legend: { top: 30, type: 'scroll', textStyle: { color: fg } } } : {});
   const top = (n: number) => (n > 1 ? 66 : 44);
   if (kind === 'histogram') {
     const b = o.extra?.bins;
     if (!b) return { ...common };
     const cats = b.from.map((x) => `${fmtNumber(x, b.fmt)} – ${fmtNumber(x + b.step, b.fmt)}`);
-    return { ...common, tooltip: { trigger: 'axis' }, grid: { left: 64, right: 24, top: 44, bottom: 90, containLabel: true }, xAxis: { ...axisCat(cats, true), name: b.field, nameLocation: 'middle', nameGap: 70, nameTextStyle: { color: sub } }, yAxis: { ...axisVal({ currency: '', percent: false, decimals: 0, indian: false }), name: 'Rows', nameTextStyle: { color: sub } }, series: [{ type: 'bar', name: 'Rows', data: b.counts, barCategoryGap: '2%' }] };
+    const ax = axisCat(cats, cats.length > 8);
+    // the axis names each bin by where it starts; the tooltip gives the range
+    const xAxis = { ...ax, axisLabel: { ...ax.axisLabel, formatter: (v: string) => v.split(' – ')[0] }, name: b.field, nameLocation: 'middle', nameGap: cats.length > 8 ? 56 : 32, nameTextStyle: { color: sub } };
+    return { ...common, tooltip: { trigger: 'axis' }, grid: { left: 64, right: 24, top: 44, bottom: 72, containLabel: true }, xAxis, yAxis: { ...axisVal({ currency: '', percent: false, decimals: 0, indian: false }), name: 'Rows', nameTextStyle: { color: sub } }, series: [{ type: 'bar', name: 'Rows', data: b.counts, barCategoryGap: '2%' }] };
   }
   if (kind === 'box') {
     const bx = o.extra?.boxes;
@@ -803,7 +820,7 @@ export function chartOption(kind: GraphKind, p: Pivot | null, o: { title: string
     const sumUp = (t: T): number => (t.children ? (t.value = t.children.reduce((a, c) => a + sumUp(c), 0)) : t.value);
     rootKids.forEach(sumUp);
     return kind === 'treemap'
-      ? { ...common, tooltip: { valueFormatter: valFmt(fmtOf(0)) }, series: [{ type: 'treemap', name: series[0]?.name ?? '', top: 44, bottom: 8, left: 8, right: 8, roam: false, nodeClick: false, breadcrumb: { show: false }, label: { show: true, formatter: '{b}' }, upperLabel: { show: p.spec.rows.length > 1, height: 22, color: '#fff' }, levels: [{ itemStyle: { borderColor: o.dark ? '#111827' : '#fff', borderWidth: 2, gapWidth: 2 } }, { itemStyle: { borderColor: o.dark ? '#1f2937' : '#f3f4f6', borderWidth: 1, gapWidth: 1 }, colorSaturation: [0.35, 0.6] }], data: rootKids }] }
+      ? { ...common, tooltip: { valueFormatter: valFmt(fmtOf(0)) }, series: [{ type: 'treemap', name: series[0]?.name ?? '', top: 44, bottom: 8, left: 8, right: 8, roam: false, nodeClick: false, breadcrumb: { show: false }, label: { show: true, formatter: '{b}' }, upperLabel: { show: p.spec.rows.length > 1, height: 22, color: fg }, levels: [{ itemStyle: { borderColor: o.dark ? '#111827' : '#fff', borderWidth: 2, gapWidth: 2 } }, { itemStyle: { borderColor: o.dark ? '#1f2937' : '#f3f4f6', borderWidth: 1, gapWidth: 1 }, colorSaturation: [0.35, 0.6] }], data: rootKids }] }
       : { ...common, tooltip: { valueFormatter: valFmt(fmtOf(0)) }, series: [{ type: 'sunburst', name: series[0]?.name ?? '', center: ['50%', '55%'], radius: [0, '78%'], label: { rotate: 'radial', color: fg, minAngle: 8 }, itemStyle: { borderColor: o.dark ? '#111827' : '#fff', borderWidth: 1 }, data: rootKids }] };
   }
   if (kind === 'heatmap') {
@@ -836,7 +853,7 @@ export function chartOption(kind: GraphKind, p: Pivot | null, o: { title: string
     const cum = pairs.map((x) => { acc += x.v as number; return +(acc / total * 100).toFixed(2); });
     return { ...common, tooltip: { trigger: 'axis' }, legend: { top: 30, textStyle: { color: fg } }, grid: { left: 64, right: 64, top: 66, bottom: 64, containLabel: true }, xAxis: axisCat(pairs.map((x) => x.c)), yAxis: [axisVal(fmtOf(0)), { type: 'value', min: 0, max: 100, axisLabel: { color: sub, formatter: '{value} %' }, splitLine: { show: false } }], series: [
       { type: 'bar', name: s?.name ?? '', data: pairs.map((x) => x.v), tooltip: { valueFormatter: valFmt(fmtOf(0)) } },
-      { type: 'line', name: 'Cumulative %', yAxisIndex: 1, data: cum, symbolSize: 6, tooltip: { valueFormatter: (v: number) => `${v.toFixed(1)} %` }, markLine: { silent: true, symbol: 'none', lineStyle: { type: 'dashed', color: sub }, data: [{ yAxis: 80 }], label: { formatter: '80 %', color: sub } } },
+      { type: 'line', name: 'Cumulative %', yAxisIndex: 1, data: cum, symbolSize: 6, tooltip: { valueFormatter: (v: number) => `${v.toFixed(1)} %` }, markLine: { silent: true, symbol: 'none', lineStyle: { type: 'dashed', color: sub }, data: [{ yAxis: 80 }], label: { formatter: '80 %', color: sub, position: 'insideStartTop' } } },
     ] };
   }
   const horizontal = kind === 'bar' || kind === 'bar-stacked';

@@ -46,6 +46,7 @@ export default [
   ['articles to kindle', 'articles'], ['article to kindle', 'articles'], ['web page to epub', 'articles'], ['send article to kindle', 'articles'], ['read later', 'articles'], ['reader view', 'articles'], ['mhtml', 'articles'], ['webarchive', 'articles'], ['remove ads from article', 'articles'], ['save web article', 'articles'],
   ['epub reader', 'ebook'], ['ebook', 'ebook'], ['read epub', 'ebook'], ['ebook reader', 'ebook'], ['mobi', 'ebook'], ['fb2', 'ebook'], ['cbz', 'ebook'], ['cbr', 'ebook'], ['comic book reader', 'ebook'], ['read a book', 'ebook'],
   ['pdf for kindle', 'kindlepdf'], ['kindle pdf', 'kindlepdf'], ['k2pdfopt', 'kindlepdf'], ['read paper on kindle', 'kindlepdf'], ['two column pdf', 'kindlepdf'], ['crop pdf margins', 'kindlepdf'],
+  ['pivot table', 'slicedice'], ['pivot', 'slicedice'], ['chart maker', 'slicedice'], ['make a graph', 'slicedice'], ['excel chart', 'slicedice'], ['pie chart', 'slicedice'], ['bar chart', 'slicedice'], ['csv to chart', 'slicedice'], ['paste from excel', 'slicedice'], ['slicedicegrapher', 'slicedice'], ['pivto', 'slicedice'], ['grpah', 'slicedice'],
   ['csv', 'sheet'], ['excel viewer', 'sheet'], ['xlsx to csv', 'sheet'],
   ['markdown', 'markdown'], ['md editor', 'markdown'], ['markdown preview', 'markdown'],
 

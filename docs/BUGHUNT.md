@@ -3537,6 +3537,30 @@ Found while building it (unit `worldclock` 39, e2e `worldclock` 55):
   as they were; no settings file is written there (the switch off from the start) — `src/lib/color.ts` looks for `document`, so the
   suite stubs no `document`.
 
+## SliceDiceGrapher (28 Nov 2026; built — potentials #75 with Chart Maker #25)
+- **Perspective's median is not the middle value** of a larger group: the units of the South's 62 sales gave 27.5 for pandas' 28.5, the
+  total 28 for 29.5 (Perspective 5.10 in Node, the WebAssembly the tab runs; an integer column gives the upper of the two middle values).
+  The pivot offers no median (it was not among the owner's values); the box plot's five numbers are mathcore's `m_stats` (exact, NumPy's
+  linear interpolation), held to NumPy in the unit suite.
+- **The engine was forgotten as soon as it was made:** its worker was tracked under the engine's own key, and `trackWorker` releases what a
+  key held — the lazy engine itself. The next paste made a new engine, and Perspective refuses to be set up twice ("server32 wasm is already
+  initialized"): the board stayed empty. The worker has a key of its own; Perspective is set up once a page, after our own download of its
+  two files (a download that failed never reaches it, and the next try fetches again). The suite pastes ranges one after another.
+- **The pivot's own column names could meet a sheet's:** an expression named "Rows", "lo", "hi" or "bin" beside a column of that name is an
+  error in Perspective — every name of ours starts with "·" now.
+- **Dates handed to the engine as JavaScript dates** — read in UTC by this Perspective (checked in four time zones), but a later client
+  could read them in local time; they go as ISO text now (the same day everywhere).
+- **The histogram's smallest and largest value** came from a view without grouping — which gives the rows, not their minimum and maximum
+  (bins from the first row's value). A group of everything gives them in its total row.
+- **An American Excel's dates** (4/7/2026 is 7 April): read from the day numbers the clipboard's HTML carries behind the text (x:num, sdval,
+  data-sheets-value), so no guess of the order is needed; numbers shown rounded (12 % for 0.125, $9,870 for 9,869.70) keep their exact
+  values, and Excel's accounting zero ("$ -") is 0.
+- **The board started 1,700 px down** on a PC (the columns' table open): the columns are folded and the board is brought into view when new
+  data arrives.
+- **A pasted single cell** was refused by throwing from the Paste button — the shared button helper logs that as an error: the tab says it
+  (a toast and the line under the cards) and throws nothing.
+- **The suite's "Value 1"** matched "How value 1 is worked out" too — exact names.
+
 ## Paper Deadlines → Calendar (28 Nov 2026; built — potentials #77)
 - **Tesseract's blank lines inside a sentence:** "Your motor insurance policy expires on" / blank / "31 January 2027." — read as two
   paragraphs, the date lost what it was for; a line that ends with a word a sentence cannot end with runs on over a blank line.

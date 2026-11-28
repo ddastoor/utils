@@ -461,6 +461,29 @@
 }
 },
 {
+"name": "rows by region",
+"rows": [
+{
+"name": "Region"
+}
+],
+"cols": null,
+"values": [
+{
+"field": "Rows",
+"agg": "sum",
+"show": "value"
+}
+],
+"cells": {
+"||0": 240.0,
+"East||0": 59.0,
+"North||0": 57.0,
+"South||0": 62.0,
+"West||0": 62.0
+}
+},
+{
 "name": "sales of 5000 and more",
 "rows": [
 {

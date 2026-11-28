@@ -362,7 +362,7 @@ Wayland) and **mobile browsers** (Android Chrome, iPhone Safari).
 Platform is PC + mobile unless marked **PC**. Tab ids are the URL hash (`#/<id>`).
 
 **The authoritative, always-current list is `docs/TOOLS.md`, generated from `src/registry.ts` (`npm run docs`).**
-Current total: **196 tabs in 11 categories — 129 PC + mobile, 64 PC only, 3 Mobile only** (regenerate with
+Current total: **197 tabs in 11 categories — 130 PC + mobile, 64 PC only, 3 Mobile only** (regenerate with
 `npm run docs` after every registry change; the owner asked for the registry to always be noted).
 The per-category notes below record decisions; when they disagree with the registry, the registry wins.
 
@@ -481,6 +481,7 @@ warned. Resume: the photo is a JPEG (quality 85); file names are made safe (`saf
 | `articles` | Articles → Kindle | both — **BUILT** (27 Nov 2026; potentials #106 — §3 "Articles → Kindle": saved web articles made into one EPUB) |
 | `ebook` | EPUB Reader | both — **BUILT** (27 Nov 2026; potentials #71 — §3 "EPUB Reader": EPUB, MOBI, FictionBook, comics, text) |
 | `audiobook` | PDF / EPUB → Audiobook | both — **BUILT** (27 Nov 2026; potentials #14 — §3 "PDF / EPUB → Audiobook": a book read aloud into MP3s, one per chapter) |
+| `slicedice` | SliceDiceGrapher | both — **BUILT** (28 Nov 2026; potentials #75 with Chart Maker #25 — §3 "SliceDiceGrapher": a range pasted from Excel, LibreOffice Calc or Google Sheets, or a spreadsheet → a board of pivots and graphs from presets, your own pivot, every graph and pivot saved as a picture and as CSV / Excel) |
 | `sheet` | CSV / Excel Viewer & Converter | **PC** — **BUILT** (sheet.wasm; open xlsx/xlsm/xlsb/xls/ods/csv/tsv/json and the "Excel" files that are web pages or Excel 2003 XML, sheet tabs incl. hidden, separator override, filter, export CSV (BOM) / TSV / JSON / XLSX; as built: §3 "CSV / Excel"; unit `sheet.test.mjs` 120 + `sheetdata.test.mjs` 42, e2e 32) |
 | `markdown` | Markdown Editor | both — **BUILT** (cmark-gfm wasm; live preview, toolbar + Ctrl+B/I/K, .md open/save, standalone .html, print of the preview only; as built: §3 "Markdown Editor"; unit 29 incl. the 744 GFM spec examples, e2e 46) |
 
@@ -2238,6 +2239,65 @@ scripts/make-sheet-fixtures.py` — needs `pip install openpyxl` and LibreOffice
   numbers. .xlsx: sheet names Excel accepts (31 characters, none of [ ] : * ? / \\, no apostrophe at an end, not
   "History", unique without regard to case); a CSV's sheet is named after the file; Excel's limits said in words
   ("Cell C6 of “x” holds 40000 characters; an Excel cell holds at most 32,767"; 1,048,576 rows; 16,384 columns).
+
+### SliceDiceGrapher — BUILT (potentials #75, with Chart Maker #25; owner, 21 Nov 2026; built 28 Nov 2026 — group 3 of the suggested order)
+(`slicedice` in `src/tools/slicedice.ts`, the data, pivots, presets, tables and graphs' options `src/lib/slicedice.ts` (no DOM), the engine
+`src/lib/pivotengine.ts`, the graphs `src/lib/charts.ts`; unit `tests/unit/slicedice.test.mjs` 83, e2e `tests/e2e/slicedice.e2e.mjs` 47; fixtures
+`tests/fixtures/slicedice/` — 240 sales as CSV and .xlsx, the first 30 as Excel, LibreOffice Calc and Google Sheets put them on the clipboard
+and as its plain text, 13 as an American Excel does, and pandas' answers (`reference.json`) — by `python3 scripts/make-slicedice-fixtures.py`.)
+The owner's words: "copy a set of rows and columns, basically a sheet from Excel or LibreOffice or any such open source spreadsheet software out
+there, both on Linux and Windows, and paste it in the app, or upload an Excel file itself with data. Then the app should be able to create
+different pivots and create different graphs based on standard presets … have a download button to be able to save it as an image".
+- **In:** **a pasted range** — Ctrl+V anywhere in the tab, the paste box (a phone's long press → Paste), or **Paste** (the Async Clipboard API,
+  asking for the spreadsheet's own HTML: `unsanitized: ['text/html']`); the clipboard's HTML read with the value behind each cell (`pasteTables`:
+  Excel's `x:num`, LibreOffice's `sdval`, Google Sheets' `data-sheets-value`): **a date's day number decides it** (46119 is 7 April 2026 — an
+  American Excel's 4/7/2026 needs no guess of the order), a number shown rounded keeps its exact value (12 % for 0.125) and its format from the
+  text, Excel's accounting zero ("₹ -") is 0; the largest table of a web page; colspan and rowspan on the grid. Plain text (tabs, or a separator
+  found) by sheet.wasm; typed CSV with "Read this text". **A file** — .xlsx .xlsm .xlsb .xls .ods .csv .tsv (and the CSV / Excel tab's other
+  kinds: `readSpreadsheet` in `src/lib/sheetdata.ts`, shared); a workbook's sheets to choose from. **The sample** — 360 sales of a tea and spice
+  trader over two years (a fixed seed).
+- **The columns** (`readGrid`): the first row the names when none of its cells is a number or a date (a switch); a last row "Total" / "Grand
+  total" left out and said (a switch keeps it); numbers as India and the world write them (₹ / Rs. / INR / $ / € / £, Indian and international
+  grouping, brackets and Dr for negatives, %, 1.2E+05; a code with a leading zero, a phone or account number stays text); dates day first unless
+  a date says month first (ISO, 28/11/2026, 28 Nov 2026, Nov 28, 2026, Nov 2026); a column is numbers or dates when four in five of its cells
+  are. "Columns" lists each with what it was read as (a choice: Numbers, Dates, Text) and what is in it; "The first rows as read".
+- **The pivots** — **Perspective 5.10** (its C++ engine in WebAssembly, in a worker): rows (up to three levels), a split (columns), values
+  (up to four: sum, count, average, minimum, maximum, distinct count — or the number of rows — each shown as the value, % of the grand total,
+  of the group above, of the row, of the column, or a running total down the rows), filters (is one of / is not one of / contains; at least /
+  at most a number or a date), dates by year, quarter, month, week, day, month of the year or day of the week, the order (labels A → Z, Z → A,
+  largest or smallest value first, within each group), the top N groups, subtotals and the total. **No median:** Perspective's is not the
+  middle of a larger group (docs/WASM-AUDIT.md 202); **the box plot's five numbers are mathcore's** (exact; quartiles as Excel's QUARTILE.INC).
+  The table on the screen: Excel's layout (a group's label once; subtotals at the top of their group, the total last, in bold), the first 500
+  rows (the files have all).
+- **Presets** (`presetsFor`, from the columns' kinds: categories of 2 – 60 values, measures — an amount by its name or its currency first, a
+  price or rate after counts —, dates): the total of the first measure by the first category, the trend by month (by day, quarter or year by the
+  dates' span), the category × month, its share (donut), the top 10 of the category with the most values, the number of rows, the average, two
+  levels (treemap), year against year (two years and more), the spread (histogram), two measures against each other (scatter), the Pareto and the
+  box plot.
+- **Graphs** (ECharts 6.1, tree-shaken, `src/lib/charts.ts`): columns (side by side, stacked, 100 %), bars (stacked), line, area (stacked),
+  pie, donut, scatter, heatmap, treemap, sunburst, waterfall, funnel, Pareto (the cumulative share, its 80 % line), histogram (about 20 bins of a
+  nice width, counted by the engine), box plot, columns + line (a second axis) — values in their column's format (₹ in lakhs, %), a legend for
+  more than one series, tooltips, ECharts' description for screen readers; drawn as each card comes into view; the theme followed. On the
+  screen the card's heading is the title; a picture saved has it inside.
+- **The board:** every preset as a card — its graph, its kind of graph (a choice), "The pivot" (folded), Edit (into the editor), Remove;
+  "Bring back the presets". **The editor:** "Start from" a preset or nothing, the title (it follows what the pivot shows until typed), rows,
+  split, values, filters (a list of the values to tick), the order, the top N, subtotals, total, the graph — drawn as it changes; "Add to the
+  board", or "Save to the board" for a card being changed.
+- **Downloads** (owner: "a download button to be able to save it as an image"): under every graph and in the editor — **PNG** (2× or 4×, white
+  or see-through, chosen once for all; a picture larger than 16 megapixels made at the scale that fits, said), **SVG**, the table as **PNG**
+  (drawn by the tab; the first rows that fit a picture, said), **CSV** (UTF-8 with a BOM; numbers plain, shares with %), **Excel** (sheet.wasm:
+  the header and the totals in bold, numbers in their format — `[$₹-4009]#,##,##0.00`, `0.0%`), **Copy** (tab-separated, to paste into a
+  spreadsheet); phones share the pictures. **Download all (.zip)** (the phone's bar): every graph as PNG and SVG, every table as PNG and CSV,
+  and `tables.xlsx` with a sheet a table.
+- **Kept while the page is open** (nothing stored): the data, the board as it was (a card removed stays removed), the pictures' size and
+  background; back in the tab the engines are fetched again and the board drawn as it was.
+- **Lazy:** at open the tab's own code (70 KB); with the first data Perspective (its client's JavaScript 65 KB and WebAssembly 0.64 MB, the
+  engine 2.65 MB in its worker), ECharts (0.72 MB), sheet.wasm for files and the downloads, mathcore for a box plot; the worker ends when the
+  tab is left.
+- **Measured:** the 15 pivots of the reference cell for cell against pandas, the box plot against NumPy, the three clipboards and the plain text
+  giving the 30 rows exactly (unit); in the browser the board of the sample in about half a second, 20,000 pasted rows to the board in a few
+  seconds, every download read back (the PNG's size and its see-through corner, the SVG's text, the CSV, the Excel file by openpyxl, the zip by
+  Python's zipfile).
 
 ### Markdown Editor — as built after the Nov 2026 bug hunt
 (`markdown` in `src/tools/markdown.ts`, heading ids `src/lib/mdslug.ts`, engine `src/wasm/markdown.ts` — §5.1e; unit
@@ -4381,6 +4441,7 @@ difference over its detail, the overlap's pixels), ruled lines and list marks cl
 | hash-wasm 4.13.0 (hand-tuned C → wasm, one small binary per algorithm, embedded in the package; streaming; HMAC over any of its hashes; Argon2, bcrypt, scrypt, PBKDF2) | C | Dani Biró (`hash-wasm` npm, ~10 M downloads a month) — wrappers `src/lib/hmac.ts`, `src/lib/totp.ts`, `src/lib/pwhash.ts`, `src/lib/hashes.ts` (in `src/workers/hash.worker.ts`); only the algorithms a tab uses are bundled into its chunk, loaded with the tab's first result | hash (23 algorithms), hmac (all of it), totp (the HMAC), pwhash (Argon2id / i / d, bcrypt, scrypt, PBKDF2) — replaced RustCrypto builds and crypto.wasm's hashes of ours in Nov 2026 (`docs/WASM-AUDIT.md`) |
 | ONNX Runtime Web 1.31 (CPU/WebAssembly, SIMD) | C++ | Microsoft (official `onnxruntime-web` wasm build) | tts, audiobook and camreader (Kokoro, Piper — `src/lib/speech.ts`, one session a worker; the Audiobook runs one to four workers at once); scanner and idcopy (DocCornerNet LEAN, scanic-ml 0.2.0: the page's — a card's — corners — `docs/WASM-AUDIT.md`, tab 121); ocr, photodict and clipper (the same network, asked where the Kindle finder's outline is not a page's — to-do #18; and **PaddleOCR's PP-OCRv6 detector and recogniser, the second reader for soft photos** — owner, 26 Nov 2026: `src/lib/paddle.ts` in `src/workers/paddle.worker.ts`); noise (**DeepFilterNet 3**, the Studio voice — to-do #20: `src/workers/noise.worker.ts`); clipart (**U²-Net small**, rembg's u2netp: the subject cut out — `src/workers/vector.worker.ts`) |
 | SQLite 3.54 | C | SQLite project (official `@sqlite.org/sqlite-wasm`), run in `src/workers/sqlite.worker.ts` (terminated on leave) | sqlite |
+| Perspective 5.10 (the pivot engine: group by, split by, aggregates, filters, date expressions) | C++ (engine), Rust (client) | FINOS (official `@perspective-dev/server` and `/client`, Apache-2.0) — the engine in the package's worker script, its two WebAssembly files fetched by `src/lib/pivotengine.ts` and handed over once a page | slicedice (its median is not used: docs/WASM-AUDIT.md 202) |
 | PCRE2 (pcre2-wasm 10.49.3: PCRE2 compiled by Emscripten, the WebAssembly inside the package) | C | gudoshnikovn (`pcre2-wasm`, MIT; PCRE2 BSD-3 with the PCRE2 exception) — in `src/workers/regex.worker.ts` | regex (the PCRE2 flavour: `docs/WASM-AUDIT.md`, tab 178) |
 | Oniguruma (vscode-oniguruma 2.0.1) | C | Microsoft (`vscode-oniguruma`, MIT; Oniguruma BSD-2) — the build VS Code and Shiki run | regex (the Ruby flavour, with Ruby's rules beside it in `src/lib/regex/ruby.ts`) |
 | Go's regexp (Go 1.24.7's standard library, GOOS=wasip1) | Go | **us** (`wasm/regexgo`, 2.6 MB — §5.1p; `re2-wasm` rejected: `docs/WASM-AUDIT.md`, tab 178) | regex (the Go flavour) |
@@ -4406,6 +4467,7 @@ JavaScript-only components (no C/C++ equivalent exists for the job):
 | own `src/lib/curl.ts` (shell word splitting for bash and cmd.exe, curl option table, code generators) | no tried-and-tested WebAssembly build of a curl command-line parser exists (curl's own parser is tied to libcurl and its tool's globals); it is string parsing of one short line and code templating. A Rust port into devcore is part of the JS/TS → WebAssembly sweep (`docs/potentials.md` #74) | curl |
 | OpenPGP.js 6 (LGPL-3.0) — both standards of the tab (GnuPG-compatible and RFC 9580) | the audited browser OpenPGP implementation (Proton Mail); no WebAssembly OpenPGP module exists, and the Rust one that could be built (rPGP) is low-level — which key to use and whether it is valid is left to the caller, and its semantics layer (rpgpie) is marked experimental by its authors: swapping it in would lower the tab's security (`docs/WASM-AUDIT.md`, tab 100; to look at again) | pgp |
 | Mermaid 12 (MIT) | Mermaid exists only as JavaScript; `securityLevel: 'strict'` (labels sanitised), bundled by Vite | mermaid |
+| Apache ECharts 6.1 (Apache-2.0; zrender BSD-3-Clause) | no WebAssembly charting library exists; tree-shaken to the nine charts and seven components drawn (0.72 MB, `src/lib/charts.ts`), PNG and SVG built in; the parts used make no code from strings (docs/WASM-AUDIT.md 202) | slicedice |
 | Prettier 3 standalone (MIT) | Markdown: both WebAssembly Markdown formatters (Biome's, dprint's) change what a document renders to (`docs/WASM-AUDIT.md`, tab 54). And the fallback for text the WebAssembly engines of the other nine languages cannot read (owner's tweak: (b) an existing JS library for what the module does not cover); each parser is fetched only then | prettier |
 | TensorFlow.js (Apache-2.0) | runs the Magenta style-transfer graph on the GPU via WebGL; its **wasm backend** (XNNPACK, C++ → wasm, tier 2 official build) is the CPU path | cartoon (neural) |
 | zip.js (BSD-3) | zips larger than 7-Zip can hold in the browser's memory (above 1.5 GB of input, 256 MB on phones): zip.js streams; 7-Zip (7z-wasm) makes every other archive (`docs/WASM-AUDIT.md`, tab 107) | zip (large zips) |
@@ -4484,6 +4546,10 @@ Nov 2026 (PDF / EPUB → Audiobook, potentials #14): `src/lib/audiobook.ts` — 
 XHTML) made into paragraphs and tracks: string glue and rules over a few thousand blocks a book (which block begins a chapter,
 which line is a running head, which link is a footnote mark); the layout is MuPDF's, the speech ONNX Runtime's and
 espeak.wasm's, the MP3 and its tags audio.wasm's (LAME). No WebAssembly module makes audiobooks (`docs/WASM-AUDIT.md`, tab 184).
+Nov 2026 (SliceDiceGrapher, potentials #75): `src/lib/slicedice.ts` — numbers and dates read as sheets write them (regular expressions), the
+clipboard's HTML walked for its cells and the values behind them, a pivot turned into Perspective's views and its answer into a table (a tree
+of a few thousand rows ordered and shown as asked), the CSV and Excel cells, the presets and the graphs' options — glue around Perspective,
+mathcore, sheet.wasm and ECharts; the pivot PNG is drawn by the browser's canvas (`docs/WASM-AUDIT.md`, tab 202).
 Nov 2026 (Paper Deadlines → Calendar, potentials #77): `src/lib/deadlines.ts` — dates, times and amounts found by regular expressions, a
 paper's lines made into sentences, dates counted on with the browser's Date in UTC, the iCalendar file written as text: string glue
 around the readers' output (`docs/WASM-AUDIT.md`, tab 194).
@@ -4765,7 +4831,9 @@ add a case to `tests/unit/terminal-applets.test.mjs` (the suite refuses untested
 Rust 1.97 is installed in the sandbox; crates.io is reachable). Plain exported functions + JSON, no wasm-bindgen
 (`wasm32-unknown-unknown` pulled wasm-bindgen in through zip → getrandom; on wasip1 getrandom uses WASI `random_get`).
 Exports `sheet_read`, `csv_read` (delimiter sniffing over the first 50 lines), `xlsx_write` (bold frozen header +
-autofilter, numeric text → numbers except leading-zero codes, column widths), `csv_write`. Dates → ISO text; Excel
+autofilter, numeric text → numbers except leading-zero codes, column widths; a date in the form printed `{ date, format, shown }`; since
+28 Nov 2026 a number in a number format `{ num, format, bold, shown }` and text in bold `{ text, bold }` — SliceDiceGrapher's pivots),
+`csv_write`. Dates → ISO text; Excel
 time-only cells → `hh:mm:ss`; ODS durations → `h:mm:ss`; encrypted workbooks and empty files get clear messages;
 hidden sheets flagged. Imports only WASI random/clock/environ/fd_write/proc_exit (the browser shim and the unit
 harness both implement a real clock). ~1.4 MB, loaded only by the PC-only `sheet` tab. Tests `tests/unit/sheet.test.mjs`
@@ -5096,7 +5164,9 @@ npm packages (pinned in `package-lock.json`) are bundled by Vite or copied to `p
 | openpgp | LGPL-3.0 | OpenPGP |
 | @ffmpeg/ffmpeg, @ffmpeg/util, @ffmpeg/core | MIT / GPL-2.0+ (core) | FFmpeg |
 | mupdf (Artifex, official wasm) | AGPL-3.0 | all PDF tools, Doc Scanner PDF output |
-| fflate | MIT | EPUB zip (PDF → EPUB, Articles → Kindle) |
+| fflate | MIT | EPUB zip (PDF → EPUB, Articles → Kindle); SliceDiceGrapher's Download all |
+| @perspective-dev/client 5.10.0, @perspective-dev/server 5.10.0 (Perspective — FINOS) | Apache-2.0 | SliceDiceGrapher (the pivots) |
+| echarts 6.1.0 (Apache ECharts, with zrender) | Apache-2.0 (zrender BSD-3-Clause) | SliceDiceGrapher (the graphs) |
 | @jsquash/jpeg (MozJPEG), /webp, /oxipng, /resize | Apache-2.0 (+ codec licences) | image encoders; resizing |
 | @mediapipe/tasks-vision | Apache-2.0 | Passport |
 | @tensorflow/tfjs-core, -converter, -backend-webgl, -backend-wasm (XNNPACK wasm), -backend-cpu | Apache-2.0 | Cartoonizer style transfer |

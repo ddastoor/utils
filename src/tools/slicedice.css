@@ -1,0 +1,65 @@
+/* SliceDiceGrapher (src/tools/slicedice.ts) */
+.sd-in { gap: 10px; }
+.sd-paste { min-height: 4.6rem; resize: vertical; }
+.sd-status { padding: 6px 2px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.sd-line { margin: 0; }
+.sd-opts { gap: 8px 20px; }
+.sd-colsbox > summary, .sd-preview > summary, .sd-pv > summary { cursor: pointer; font-weight: 600; min-height: 44px; display: flex; align-items: center; }
+.sd-about { color: var(--muted); white-space: normal !important; min-width: 16rem; }
+
+/* tables */
+.sd-tablewrap { max-height: 440px; overflow: auto; border: 1px solid var(--border); border-radius: var(--radius-sm, 8px); background: var(--surface); }
+.sd-table { border-collapse: separate; border-spacing: 0; font-size: 14px; font-variant-numeric: tabular-nums; width: max-content; min-width: 100%; }
+.sd-table th, .sd-table td { padding: 5px 10px; border-bottom: 1px solid var(--border); text-align: left; white-space: nowrap; font-weight: 400; }
+.sd-table thead th { position: sticky; top: 0; z-index: 1; background: var(--surface-2); font-weight: 650; }
+.sd-table thead tr:nth-child(2) th { top: 31px; }
+.sd-table tbody th { font-weight: 500; }
+.sd-table .num { text-align: right; }
+.sd-table tr.sub > * { font-weight: 650; background: color-mix(in srgb, var(--surface-2) 60%, transparent); }
+.sd-table tr.tot > * { font-weight: 700; border-top: 2px solid var(--muted); }
+.sd-cols td .select { min-width: 8.5rem; }
+
+/* the board */
+.sd-picopts { gap: 8px 18px; align-items: flex-end; }
+.sd-board { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 540px), 1fr)); gap: 16px; margin: 10px 0; }
+.sd-card { border: 1px solid var(--border); border-radius: var(--radius); padding: 12px; display: flex; flex-direction: column; gap: 8px; min-width: 0; background: var(--surface); }
+.sd-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.sd-title { margin: 0; font-size: 15px; font-weight: 650; flex: 1 1 220px; line-height: 1.35; padding-top: 6px; }
+.sd-tools { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.sd-tools .select { max-width: 13rem; }
+.sd-chart { width: 100%; height: 360px; min-width: 0; }
+.sd-chart[aria-busy="true"] { background: linear-gradient(90deg, transparent, var(--surface-2), transparent); background-size: 200% 100%; animation: sd-wait 1.4s linear infinite; border-radius: var(--radius-sm, 8px); }
+@keyframes sd-wait { from { background-position: 100% 0; } to { background-position: -100% 0; } }
+@media (prefers-reduced-motion: reduce) { .sd-chart[aria-busy="true"] { animation: none; } }
+.sd-err { color: var(--err); padding: 24px 8px; margin: 0; }
+.sd-msg { margin: 0; min-height: 0; }
+.sd-msg:empty { display: none; }
+.sd-dl { display: flex; flex-wrap: wrap; gap: 6px; }
+
+/* the editor */
+.sd-ed { display: grid; grid-template-columns: minmax(300px, 400px) minmax(0, 1fr); gap: 18px; align-items: start; }
+.sd-edctl { gap: 12px; }
+.sd-edprev { position: sticky; top: calc(var(--navh, 0px) + 8px); min-width: 0; }
+.sd-fs { border: 1px solid var(--border); border-radius: var(--radius-sm, 8px); padding: 8px 10px 10px; margin: 0; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+.sd-fs > legend { font-weight: 650; padding: 0 4px; }
+.sd-list { gap: 8px; }
+.sd-frow { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.sd-frow > .select, .sd-frow > .field { flex: 1 1 9rem; min-width: 0; }
+.sd-filter { display: flex; flex-direction: column; gap: 6px; padding-bottom: 6px; border-bottom: 1px dashed var(--border); }
+.sd-checks { max-height: 180px; overflow: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr)); gap: 0 10px; border: 1px solid var(--border); border-radius: var(--radius-sm, 8px); padding: 4px 8px; }
+.sd-check { display: flex; align-items: center; gap: 8px; min-height: 44px; cursor: pointer; }
+.sd-check > input { width: 18px; height: 18px; flex: none; }
+.sd-check > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sd-two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+@media (max-width: 900px) {
+  .sd-ed { grid-template-columns: 1fr; }
+  .sd-edprev { position: static; }
+}
+@media (max-width: 640px) {
+  .sd-chart { height: 300px; }
+  .sd-two { grid-template-columns: 1fr; }
+  .sd-tools .select { max-width: none; flex: 1 1 10rem; }
+  .sd-dl > .btn { flex: 1 1 30%; }
+  .sd-checks { grid-template-columns: 1fr 1fr; }
+}

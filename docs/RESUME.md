@@ -181,8 +181,16 @@ tabs too), a settings file after every change (`superutils_settings_YYYYMMDD_HHM
 normal windows only: Chromium 153 closes itself reading a folder handle back in a private window, docs/BUGHUNT.md "Settings"), Export now,
 Import. Unit `settings` 32, e2e `settings` 96; the six apps' suites, shell, applist and the sweeps run again. The World Radio section comes
 with World Radio (potentials #116); #40 adds the EPUB Reader's remembered books to it.
-**▶ NEXT: #75 SliceDiceGrapher (with #25 Chart Maker), then #54 Diagram Editor (draw.io, PC only)** — each with its size check measured
-first (stop and ask if much bigger than the 27 Nov estimate); then to-dos #38 and #40.
+**#75 SliceDiceGrapher, with #25 Chart Maker — BUILT (28 Nov 2026):** the tab `slicedice` (Documents, PC + mobile; CLAUDE.md §3
+"SliceDiceGrapher"): a range pasted from Excel, LibreOffice Calc or Google Sheets (the clipboard's HTML with the values behind the cells — a
+date's day number decides it), plain text, a spreadsheet or the sample → typed columns → a board of preset pivots and graphs (Perspective 5.10
+for the pivots — its median not used, the box plot by mathcore —, ECharts 6.1 for the graphs), your own pivot in the editor, and every graph
+and table saved (PNG 2× / 4×, white or see-through, SVG, the table as PNG, CSV, Excel with formats and bold totals — sheet.wasm's writer
+extended —, Download all as a zip). The CSV / Excel tab's file reading moved into `readSpreadsheet` (shared). Unit `slicedice` 83 (pandas'
+pivots, NumPy's quartiles), `sheet` 122; e2e `slicedice` 47 (three clipboards, the real clipboard, files, every download read back), `sheet`
+33, `pdf-tables` 32 and the site-wide sweeps; measured 4.2 MB on the site (578.8 MB); docs/WASM-AUDIT.md 202; taken off potentials.md.
+**▶ NEXT: #54 Diagram Editor (draw.io, PC only)** — its size check measured first (stop and ask if much bigger than the 27 Nov estimate);
+then to-dos #38 and #40.
 **Then to-dos #38, #39 and #40** (owner,
 27 Nov 2026, evening: "After you finish all these, finish off the items in the todo.md also."; #40, added the same evening:
 the EPUB Reader's "Remember book" — a hash of the book, its place and the reading voice in the Settings — after #39). The open question (keep the EPUB Reader's place between visits?) is
