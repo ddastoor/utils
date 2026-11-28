@@ -336,7 +336,7 @@ Wayland) and **mobile browsers** (Android Chrome, iPhone Safari).
 Platform is PC + mobile unless marked **PC**. Tab ids are the URL hash (`#/<id>`).
 
 **The authoritative, always-current list is `docs/TOOLS.md`, generated from `src/registry.ts` (`npm run docs`).**
-Current total: **188 tabs in 11 categories — 121 PC + mobile, 64 PC only, 3 Mobile only** (regenerate with
+Current total: **189 tabs in 11 categories — 122 PC + mobile, 64 PC only, 3 Mobile only** (regenerate with
 `npm run docs` after every registry change; the owner asked for the registry to always be noted).
 The per-category notes below record decisions; when they disagree with the registry, the registry wins.
 
@@ -488,7 +488,8 @@ Glob Tester. Left out: API client (CORS/CSP), DNS/WHOIS/ping/port scan (need net
 
 **Codes & Files** (all both): `qr` QR Generator · `barcode` Barcode Generator · `scan` QR & Barcode Scanner ·
 `numcheck` Number Detective (**BUILT** 27 Nov 2026, potentials #84 — §3 "Number Detective") · `wifiqr` Router Sticker → Wi-Fi QR (**BUILT**
-27 Nov 2026, potentials #88 — §3 "Router Sticker → Wi-Fi QR") · `zip` Create Zip · `unzip` Extract Archive
+27 Nov 2026, potentials #88 — §3 "Router Sticker → Wi-Fi QR") · `visitcard` Visiting Card → Contact (**BUILT** 28 Nov 2026, potentials #89 — §3
+"Visiting Card → Contact") · `zip` Create Zip · `unzip` Extract Archive
 
 **Everyday** (all both): `stopwatch` · `countdown` · `pomodoro` · `interval` · `dice` · `coin` · `rng` ·
 `picker` · `teams`
@@ -1238,6 +1239,60 @@ UPI app"), vCard / MECARD ("Save contact (.vcf)", CRLF), VEVENT ("Add to calenda
 times in local time), mailto, SMSTO / sms:, tel:, geo:, http(s) links (the site shown; opened in a new tab with
 noopener); javascript: and data: stay text. The raw text is always shown with Copy; Clear empties the list.
 
+### Visiting Card → Contact — BUILT (potentials #89; owner's pick of 27 Nov 2026 — group 4 of the suggested order)
+(`visitcard` in `src/tools/visitcard.ts`, the card's wording and the vCard `src/lib/visitcard.ts` (no DOM), the second look
+`src/lib/snapsecond.ts`; the numbers by devcore-ids.wasm's `ids:tel`; unit `tests/unit/visitcard.test.mjs` 80, e2e `tests/e2e/visitcard.e2e.mjs`
+30 (+ the camera sweep's entry); fixtures `tests/fixtures/snaps/card-*.jpg` — eight cards of our own making, `truth.json` —, by `python3
+scripts/make-snap-photos.py`.) The owner's words (potentials #89): "photograph a business card → name, phone numbers, e-mail, company,
+address → a contact file (.vcf) to save, or its QR" — "phone numbers by #33's libphonenumber if built": #33 is not built, so the
+Number Detective's engine reads them (libphonenumber's rules for India, every country's calling code).
+- **Reading the photo:** the camera helpers' way (`SNAP_READ`, §3 "Router Sticker → Wi-Fi QR") — with `invertDark` for a dark card
+  (PaddleOCR read one as it stood: "Parther", the e-mail's domain wrong, the address lost; turned over, Tesseract read it all) — and a
+  QR code on the card by zxing-cpp: a **vCard** (2.1 with quoted-printable, 3.0 as iPhones write it — grouped properties, several
+  TYPE parameters —, 4.0 with tel: URIs) or a **MECARD** is read exactly, and the printed text adds what it leaves out (`mergeContacts`).
+- **The card's wording** (`readCard`): each line cut into its parts (two columns: an address beside the numbers); then, in this
+  order, **e-mail addresses** (a label before them, spaces round the @, © read for @), **websites** (www., http(s)://, or a bare domain
+  in lower case with a known ending — not B.Tech, Pvt. Ltd. or St. Mary's), **phone numbers** (labels before them — M, Mob, Mobile,
+  Cell, WhatsApp, HP; Tel, Ph, T, P; O, Off, Office, W, Direct, Board; R, Res, Home; F, Fax; Toll free — or after them in brackets:
+  (M), (O), and (0), an (O) read as a zero; a second number after a slash takes the first's label; "+44 (0)20" the trunk (0) left
+  out; not the PIN code of an address, not a GSTIN), **the address** (lines of one column one after another that score as an
+  address: a PIN code, a UK postcode, a US state and ZIP, street words — Road, Floor, Plot, Nagar, Suite …; St and Dr only after a
+  word —, a house number, a country, an Indian state), then **the name** (a few capitalised words, no digit, no company or title word;
+  scored by the size of its letters, a title before it — Dr., Shri, CA … —, and above all by agreeing with an e-mail address on the
+  card: ananya.iyer@ → Ananya Iyer), **the company** (Pvt. Ltd., LLP, Inc …, company words, and a domain it spells: kaverisoft.in ←
+  Kaveri Software), **the job title** (title words; next to the name scores more); what is left is "Also on the card" (a slogan, a
+  GSTIN), each line addable to the note.
+- **Names** (`splitName`): a title before (Dr., Mr., Prof., Er., Adv., CA, Shri, Smt. …) and degrees after (", MD", MBBS, PhD …) set
+  apart; the last word the last name (a switch: the family name first); a name in capitals given its capitals only at the start of
+  each part (ANANYA IYER → Ananya Iyer, O'BRIEN → O'Brien). **Addresses** (`parseAddress`): the street, city, state or region,
+  postcode and country — "Bengaluru 560001", "Ahmedabad, Gujarat 382445", "London W1G 9PF, United Kingdom", "San Jose, CA 95134", a
+  state after the PIN ("Bengaluru - 560 034, Karnataka").
+- **Numbers** (`phoneOf`, the engine's `ids:tel` — §5.1 devcore): an Indian number in libphonenumber's international form (+91 98450
+  12345, +91 80 4112 3456) with its kind (mobile, landline and its place, toll-free); another country's with its calling code and the
+  card's grouping (+44 20 7946 0958; its own rules are not checked — said under the box); **a number printed without a calling code on
+  a card from abroad is that country's first** — the card's calling code from its other numbers, else its address (a US state and
+  ZIP: +1; a UK postcode: +44; a country named; the trunk 0 dropped where the country has one): "020 7946 0959" on a London card is no
+  landline of Pune, whose STD code is 020 too. The kind: the card's label, else the engine's (a mobile number → Mobile, else Work).
+- **A line read again:** a phone number's, an e-mail address's or a website's line Tesseract was unsure of (a word under 90) goes to
+  PaddleOCR's recogniser (`secondLook`); the surer reading is kept, but **a number that keeps libphonenumber's rules is never given up
+  for one that breaks them**.
+- **The contact file:** vCard 3.0 (RFC 2426) — N, FN, ORG, TITLE, TEL with its TYPE (CELL; WORK,VOICE; HOME,VOICE; WORK,FAX), EMAIL,
+  URL (https:// added to a bare domain), ADR;TYPE=WORK by its parts, NOTE; text escaped, CRLF, lines folded at 75 octets never inside a
+  character; several contacts in one file. Named after the person ("Ananya Iyer.vcf"; "contacts-4.vcf").
+- **The tab:** a photo (or the camera; Paste image) → a contact card: the name (one box, its parts said under it), job title,
+  company, numbers (kind and number, what the engine says of each under it; on phones the number on a row of its own), e-mail
+  addresses, websites, the address by its parts, a note, "Also on the card", "What was read on the card"; its QR code (the vCard, error
+  correction L) beside it, following every box; **Save contact (.vcf)** (phones: the share sheet — Contacts), **Save QR (PNG)**,
+  **Read the other side** (the next photo is added to this contact: a card with more on its back), Remove. Each photo adds a contact
+  at the top; "Save all n contacts (.vcf)", "Remove all", "Type a contact by hand"; phones: the main action in the fixed bar. The
+  contacts last while the page is open; nothing is stored. Nothing at open: the OCR, zxing-cpp and devcore-ids.wasm come with the
+  first photo, PaddleOCR with an unsure line.
+- **Measured** (eight photos — an Indian card with (M) and (0); one with its company above the name and "Mob: … | Tel: …"; a doctor's
+  card from London in two columns; one with a vCard QR code, a fax and two mobiles after a slash; a card from the United States; a
+  dark card; a card's front and back): every field as printed in Node and in the browser, the two sides one contact; every .vcf the tab
+  saves read by **vobject** (Python, the independent reader: N's five parts, FN, the numbers' TYPEs, ADR by its parts, folded NOTE with
+  ₹ and Devanagari), the QR code read back by **zbar** and its vCard by vobject.
+
 ### Router Sticker → Wi-Fi QR — BUILT (potentials #88; owner's pick of 27 Nov 2026 — group 4 of the suggested order)
 (`wifiqr` in `src/tools/wifiqr.ts`, the label's wording `src/lib/wifilabel.ts` (no DOM), the camera helpers' reading `src/lib/snaptext.ts`,
 the code `src/lib/qrdraw.ts`; unit `tests/unit/wifiqr.test.mjs` 40, e2e `tests/e2e/wifiqr.e2e.mjs` 24 (+ the camera sweep's entry);
@@ -1249,9 +1304,10 @@ owner's words (potentials #88): "photograph the label under the router → its n
   uniform block Tesseract dropped a visiting card's name set larger than the rest; laid out as a page it read nothing of a label with a
   QR code on it and misread a receipt's total) and `small` (a page found that gave fewer than 25 words is still the thing: the whole
   photo, read too, is kept only with clearly more words read surely — confidence 80 and up —, not for more words: a desk's grain read
-  as letters gave more, and won). `linesOf`: each line cut into parts at gaps wider than 1.1 × its height (a label's two columns, a QR
-  code's specks beside a value), specks — signs alone, short words read under 45 — left out. A QR code on the label is read by
-  zxing-cpp on the photo.
+  as letters gave more, and won); and `invertDark` (light text on a dark ground turned dark on light first — a dark visiting card,
+  28 Nov 2026). `linesOf`: each line cut into parts at gaps wider than 1.1 × its height (a label's two columns, a QR code's specks
+  beside a value), specks — signs alone, short words read under 45 — left out; a group of digits never by its confidence (Tesseract
+  gave "+91 98470" of a dark card's number a confidence of 0, read right). A QR code on the label is read by zxing-cpp on the photo.
 - **The label's wording** (`readLabel`): keys as routers print them — SSID, Network Name (SSID), Wi-Fi / WLAN / Wireless Name, Wireless
   Password/PIN, Network Key (Password), WLAN / Wi-Fi / WPA / WEP Key, PSK, Passphrase, Password —, a band in brackets or around the key
   ((2.4G), 5G SSID, (5GHz)), a key's value up to the next key or the part's end (two fields on a line; a value standing apart in the
@@ -1263,9 +1319,11 @@ owner's words (potentials #88): "photograph the label under the router → its n
   8 / B, 6 / G, 9 / g / q, u / v, rn / m, vv / w) named for a password read by the OCR; a WPA password under 8 or over 63 characters
   pointed out.
 - **A name's or a password's line read again** when Tesseract was unsure of it (a word under 90): its crop from the picture read goes
-  to PaddleOCR (the second reader), and the value each reader gives is weighed by the readers' confidences (`secondBetter`: the
-  shares of words read right at each confidence, measured for the OCR) — measured: a label's "kT7mq2Vr9w" read "kT7mq2Vrow" at 74 by
-  Tesseract in the browser, right by PaddleOCR. The line under the picker says so.
+  to PaddleOCR (the second reader) — **its recogniser alone, the crop being one line** (`src/lib/snapsecond.ts`, shared with the
+  Visiting Card tab; `paddleRead`'s `line` option, 28 Nov 2026: the detector cut a short line into boxes that overlap and their texts
+  joined twice what stood in both — "+91 98450" + "0 12345 (M)") —, and the value each reader gives is weighed by the readers'
+  confidences (`secondBetter`: the shares of words read right at each confidence, measured for the OCR) — measured: a label's
+  "kT7mq2Vr9w" read "kT7mq2Vrow" at 74 by Tesseract in the browser, right by PaddleOCR. The line under the picker says so.
 - **The tab:** a photo (or the camera; Paste image), the progress; each network a card — "Network 1 · 5 GHz", "from the label's QR
   code" or "read from the label — check it" — with its name, password (monospace), security (WPA / WPA2 / WPA3, WEP, No password) and
   "Hidden network", all editable, the QR code following the boxes (the QR tab's `wifi()` writer, drawn by zxing-cpp); **Save QR (PNG)**,
@@ -3965,7 +4023,7 @@ difference over its detail, the overlap's pixels), ruled lines and list marks cl
 | keys — the **supplement** to hash-wasm for the key tabs (owner's tweak of 18 Nov 2026: what the existing module does not cover): lenient Base32 secrets, HOTP counters and truncation; checked parameters, random salts, PHC strings for scrypt / PBKDF2 and the reader of pasted hashes; RustCrypto **argon2** for Argon2 version 1.0 hashes (v=16 or no version, keyid / data), which hash-wasm does not read; RustCrypto **ssh-key** (OpenSSH Ed25519 generation), **aes + ctr + bcrypt-pbkdf** and our own OpenSSH wire reader (inspect Ed25519 / RSA / ECDSA / DSA keys, encrypted private keys, authorized_keys / known_hosts lines); API keys | Rust | **us** (`wasm/keys`, 0.31 MB; no existing WebAssembly module makes or reads OpenSSH key files) | totp, pwhash (with hash-wasm); sshkey, apikey |
 | zxcvbn 3.1.1 (Rust port of Dropbox's estimator + its word lists) **+ our four fixes** (`wasm/zxcvbn/zxcvbn-fixes.patch`, applied by build.sh to the SHA-256-checked crate: ALL-CAPS words with a digit, repeats taken for sequences, single-character l33t words, keyboard-walk degree divided in integers) | Rust | **us** (`wasm/zxcvbn`, 2.2 MB, loaded with the first password; guesses + scores equal the Python reference for 304 passwords — `tests/unit/zxcvbn.test.mjs`) | pwstrength |
 | formats: **serde_yaml_ng** (unsafe-libyaml = libyaml translated to Rust), **toml**, **jsonschema** 0.61 (no network/file resolvers) + own schema inference | Rust | **us** (`wasm/formats`, two modules: formats-yaml 0.42 MB, formats-schema 2.7 MB) | yaml, jsonschema |
-| devcore: ipnet (CIDR), croner + chrono (cron; zone offsets from the browser's Intl via an `env.tz_offset` import, so no tz database), **own port of npm's semver** (`semver_npm.rs`: the package's range / comparator / inc logic with its own regular expressions on regex-lite — the nodejs-semver crate gave different answers), **own Unicode-aware glob matcher** (`globm`; globset matches bytes), **own unified-diff reader / applier** (`patchm`: offsets, white space, fuzz, like GNU patch; diffy refused most real patches), data-encoding + bs58 + own Ascii85/Z85 (long inputs go through data-encoding in pieces: it refuses 8 MiB and more on a 32-bit target), **own protobuf, MessagePack and CBOR readers** (`bin.rs`; rmpv and ciborium could not show CBOR `undefined` / simple values / long bignums or MessagePack's unused 0xc1, and reported errors as Rust debug text), x509-parser + sha1/sha2 (+ own PEM / PKCS #7 reader), **own SQL formatter** (`sqlfmt.rs`: a tokenizer for standard SQL, PostgreSQL, MySQL, SQLite, SQL Server and Oracle; changes white space and the case of keywords only and checks its result against the input — the sqlformat crate changed the meaning of SQL), own hex dump + search, **own lossless JSON reader / formatter** (`jsonfmt.rs`: changes white space only — member order, duplicate keys and number spelling kept; worded errors with line / column; JSON.parse → JSON.stringify reordered keys, dropped duplicates and rounded big numbers), **own JSON diff** (`jsondiff.rs`, RFC 6902 on that reader: lists aligned by equal elements (LCS) and records by `id`, numbers by value and never rounded), **own XML formatter** (`xmlfmt.rs`: re-indents elements that hold only elements, everything else byte-for-byte — declaration, DOCTYPE, entities, CDATA, text; the DOM round trip lost or rewrote all of these), **own JSON → types generator** (`j2t.rs`: TypeScript / Go / Rust serde / Java records / Python dataclasses; the e2e suite compiles its output with tsc, go, rustc, javac and python; crates unicode-ident (MIT / Apache-2.0 + Unicode-3.0) for Python identifiers and unicode-general-category (Apache-2.0) for what Go's struct tags accept) | Rust | **us** (`wasm/devcore`, crates.io via `Cargo.lock`, wasm32-wasip1; one `dc_call(op, input)` entry; **one module per tab** via Cargo features → `devcore-<feature>.wasm`, 67–650 KB) | cidr, x509, cron, semver, glob, patch, sqlfmt, hexview, baseenc, bindecode, base64 (devcore-enc), json + jwt (devcore-json), jsondiff, xml, json2types (devcore-j2t); numcheck (devcore-ids: **our Number Detective** — Verhoeff, Luhn and mod 36 / 97 / 11 checks, India Post's PIN directory, RBI's IFSC list, libphonenumber's Indian patterns on regex-lite, the ISBN ranges walked as stdnum's numdb walks them; no WebAssembly module checks Indian IDs: `docs/WASM-AUDIT.md`, tab 186); pdf-redact and idcopy (devcore-ids `ids:scan`: the numbers in a page's text) |
+| devcore: ipnet (CIDR), croner + chrono (cron; zone offsets from the browser's Intl via an `env.tz_offset` import, so no tz database), **own port of npm's semver** (`semver_npm.rs`: the package's range / comparator / inc logic with its own regular expressions on regex-lite — the nodejs-semver crate gave different answers), **own Unicode-aware glob matcher** (`globm`; globset matches bytes), **own unified-diff reader / applier** (`patchm`: offsets, white space, fuzz, like GNU patch; diffy refused most real patches), data-encoding + bs58 + own Ascii85/Z85 (long inputs go through data-encoding in pieces: it refuses 8 MiB and more on a 32-bit target), **own protobuf, MessagePack and CBOR readers** (`bin.rs`; rmpv and ciborium could not show CBOR `undefined` / simple values / long bignums or MessagePack's unused 0xc1, and reported errors as Rust debug text), x509-parser + sha1/sha2 (+ own PEM / PKCS #7 reader), **own SQL formatter** (`sqlfmt.rs`: a tokenizer for standard SQL, PostgreSQL, MySQL, SQLite, SQL Server and Oracle; changes white space and the case of keywords only and checks its result against the input — the sqlformat crate changed the meaning of SQL), own hex dump + search, **own lossless JSON reader / formatter** (`jsonfmt.rs`: changes white space only — member order, duplicate keys and number spelling kept; worded errors with line / column; JSON.parse → JSON.stringify reordered keys, dropped duplicates and rounded big numbers), **own JSON diff** (`jsondiff.rs`, RFC 6902 on that reader: lists aligned by equal elements (LCS) and records by `id`, numbers by value and never rounded), **own XML formatter** (`xmlfmt.rs`: re-indents elements that hold only elements, everything else byte-for-byte — declaration, DOCTYPE, entities, CDATA, text; the DOM round trip lost or rewrote all of these), **own JSON → types generator** (`j2t.rs`: TypeScript / Go / Rust serde / Java records / Python dataclasses; the e2e suite compiles its output with tsc, go, rustc, javac and python; crates unicode-ident (MIT / Apache-2.0 + Unicode-3.0) for Python identifiers and unicode-general-category (Apache-2.0) for what Go's struct tags accept) | Rust | **us** (`wasm/devcore`, crates.io via `Cargo.lock`, wasm32-wasip1; one `dc_call(op, input)` entry; **one module per tab** via Cargo features → `devcore-<feature>.wasm`, 67–650 KB) | cidr, x509, cron, semver, glob, patch, sqlfmt, hexview, baseenc, bindecode, base64 (devcore-enc), json + jwt (devcore-json), jsondiff, xml, json2types (devcore-j2t); numcheck (devcore-ids: **our Number Detective** — Verhoeff, Luhn and mod 36 / 97 / 11 checks, India Post's PIN directory, RBI's IFSC list, libphonenumber's Indian patterns on regex-lite, the ISBN ranges walked as stdnum's numdb walks them; no WebAssembly module checks Indian IDs: `docs/WASM-AUDIT.md`, tab 186); pdf-redact and idcopy (devcore-ids `ids:scan`: the numbers in a page's text); visitcard (devcore-ids `ids:tel`: a phone number as a card prints it → its calling code and country, E.164, and for an Indian number libphonenumber's kind, forms and place) |
 | cmark-gfm 0.29.0.gfm.13 (GitHub Flavored Markdown) | C | **us** (`wasm/markdown`, source from the PyPI `cmarkgfm` sdist, SHA-256 pinned) | markdown |
 | libyaml 0.2.5 + toml++ 3 | C / C++ | **us** (`wasm/formats`) | yaml |
 | MuPDF 1.28 | C | Artifex (official `mupdf` npm) | all PDF tools, PDF → EPUB, PDF for Kindle (the pieces: the page grafted, redacted, drawn as a form), Watermark (PDFs: to-do #17), Book Page Flattener and Newspaper Clipper (their PDFs), EPUB Reader (EPUB, MOBI, FictionBook, comics, text laid out at any size with HarfBuzz and drawn — in the reader's worker, `src/workers/ebook.worker.ts`), Audiobook (a book's text: laid out on pages 100,000 px tall, its contents resolved to page and height — in `src/workers/bookread.worker.ts`; a PDF through the PDF → EPUB engine), PDF Redact (its redaction in two passes — the text by a band through each line, then pictures' pixels, drawings and a black box; comments and form fields baked first; the saved file read again), Safe ID Copy (an e-Aadhaar's pages drawn and their text read; the copy's PDF of pictures), Make PDF Searchable (each page's invisible text layer, `stampPage`; the password kept), PDF Compare (each page's characters with their boxes, the pages drawn, the changes written as comments), PDF Tables (each page's words and ruled lines, the pages drawn) |
@@ -3985,8 +4043,8 @@ difference over its detail, the overlap's pixels), ruled lines and list marks cl
 | MozJPEG, libwebp, OxiPNG, Squoosh's resize (Lanczos-3 in linear light) | C / Rust | jSquash (Squoosh codecs; `@jsquash/resize` since Nov 2026) | image encoders; resizing in the Image Editor and Batch Images (`docs/WASM-AUDIT.md`, tabs 109, 110) |
 | libheif + libde265 | C++ | libheif-js | heic |
 | Little CMS 2.16 | C | lcms-wasm (Matt DesLauriers; npm 1.0.5) — in the codec worker, fetched for a HEIC with a non-sRGB ICC profile | heic and every tab that opens HEIC: Display P3 → sRGB (`docs/WASM-AUDIT.md`, tab 111) |
-| Tesseract 5 | C++ | tesseract.js-core | ocr, photodict, clipper (laid out as a page: its blocks), pdf-redact (a scanned page's numbers), idcopy (a card's numbers, through the reading path), pdf-ocr (each scanned page, through the reading path — never straightened), pdf-compare (a scanned page's words, the same way), pdf-tables (a scanned page's words, the same way), wifiqr (a router's label, through the reading path with the camera helpers' options — `SNAP_READ`) |
-| zxing-cpp | C++ | zxing-wasm | qr, barcode, scan, pdf-redact (QR codes and barcodes on the pages), idcopy (a QR that holds the number) — `src/lib/codesread.ts`; wifiqr (a QR code on a router's label read; the Wi-Fi code drawn — `src/lib/qrdraw.ts`) |
+| Tesseract 5 | C++ | tesseract.js-core | ocr, photodict, clipper (laid out as a page: its blocks), pdf-redact (a scanned page's numbers), idcopy (a card's numbers, through the reading path), pdf-ocr (each scanned page, through the reading path — never straightened), pdf-compare (a scanned page's words, the same way), pdf-tables (a scanned page's words, the same way), wifiqr (a router's label, through the reading path with the camera helpers' options — `SNAP_READ`), visitcard (a business card, the same way) |
+| zxing-cpp | C++ | zxing-wasm | qr, barcode, scan, pdf-redact (QR codes and barcodes on the pages), idcopy (a QR that holds the number) — `src/lib/codesread.ts`; wifiqr (a QR code on a router's label read; the Wi-Fi code drawn — `src/lib/qrdraw.ts`); visitcard (a vCard or MECARD on a card read; the contact's code drawn) |
 | 7-Zip 24.09 (`7zz`, the command line, Emscripten build with WORKERFS) | C++ | use-strict (`7z-wasm` npm 1.2.0) — run in `src/workers/sevenzip.worker.ts`, a fresh instance per archive | zip (zip and 7z with AES-256; `docs/WASM-AUDIT.md`, tab 107), unzip (reads every archive; tab 108), watermark (a Word document taken apart and zipped again: to-do #17), ebook (a CBR or CB7 comic unpacked into a zip for MuPDF) |
 | MediaPipe Tasks (TFLite) | C++ | Google (official) | passport, bgremove, redact |
 | RNNoise 0.2 (Xiph, BSD-3; the 0.2 model, 8-bit weights — the release as its configure builds it) | C | Jitsi (`@jitsi/rnnoise-wasm` 0.2.1, Emscripten; the "sync" file) — frames, lag and voice probability in `src/wasm/rnnoise.ts`, resampling / scaling / mixing in audio.wasm (`src/workers/noise.worker.ts`) | noise (replaced our own build in Nov 2026: `docs/WASM-AUDIT.md`, tab 144) |
@@ -4076,6 +4134,9 @@ Nov 2026 (PDF / EPUB → Audiobook, potentials #14): `src/lib/audiobook.ts` — 
 XHTML) made into paragraphs and tracks: string glue and rules over a few thousand blocks a book (which block begins a chapter,
 which line is a running head, which link is a footnote mark); the layout is MuPDF's, the speech ONNX Runtime's and
 espeak.wasm's, the MP3 and its tags audio.wasm's (LAME). No WebAssembly module makes audiobooks (`docs/WASM-AUDIT.md`, tab 184).
+Nov 2026 (Visiting Card → Contact, potentials #89): `src/lib/visitcard.ts` — a card's lines sorted into a contact by regular expressions and
+scores (labels, keywords, the letters' size, an e-mail address agreeing with a name), addresses split at their commas, the vCard written
+and read as text: string glue around Tesseract, zxing-cpp, PaddleOCR and devcore-ids.wasm (`docs/WASM-AUDIT.md`, tab 193).
 Nov 2026 (Router Sticker → Wi-Fi QR, potentials #88): `src/lib/wifilabel.ts` (a label's keys and values by regular expressions,
 pairing by band), `src/lib/snaptext.ts` (the reading's words grouped by the gaps between them) — string glue around the OCR, zxing-cpp
 and PaddleOCR; `src/lib/qrdraw.ts` draws zint's SVG on the browser's canvas (`docs/WASM-AUDIT.md`, tab 192).
@@ -4682,6 +4743,7 @@ npm packages (pinned in `package-lock.json`) are bundled by Vite or copied to `p
 | *test only (pip, not shipped):* faster-whisper 1.2.1 with Whisper base.en (OpenAI's model, CTranslate2's conversion) | MIT | `tests/lib/transcribe.py`: what the Audiobook's MP3s say, heard by an independent ear |
 | *test only (pip):* mutagen, reportlab | GPL-2.0+ (mutagen), BSD (reportlab) | the MP3s' ID3 tags read back (`tests/unit/audio.test.mjs`); the Audiobook's test PDF made (`scripts/make-audiobook-books.py`) |
 | *test only (pip):* pdfplumber (on pdfminer.six), openpyxl | MIT | PDF Tables → Excel: a second reading of the ruled statement's cells, the Excel file read back (`tests/unit/pdftables.test.mjs`) |
+| *test only (pip):* vobject 0.9.9 | Apache-2.0 | Visiting Card → Contact: the .vcf files read by an independent reader (`tests/unit/visitcard.test.mjs`, `tests/e2e/visitcard.e2e.mjs`) |
 | @expo-google-fonts/noto-sans (Noto Sans TTF: regular, bold, italic) | OFL-1.1 (package MIT) | PDFs made by GST Invoice, Rent Receipt, Resume Builder; EPUB Reader (its Sans) |
 | @expo-google-fonts/literata 0.4.3 (Literata TTF: regular, italic, bold, bold italic — four files, 1.0 MB on the site) | OFL-1.1 (package MIT) | EPUB Reader (the text's font; MuPDF's FreeType reads no WOFF, so @fontsource/literata's files cannot serve) |
 

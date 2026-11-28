@@ -130,7 +130,14 @@ mobile; CLAUDE.md §3 "Router Sticker → Wi-Fi QR"): the label read by the OCR'
 keys read (`src/lib/wifilabel.ts`; the admin login and the WPS PIN set aside), a QR code on the label read exactly, an unsure name or
 password line read again by PaddleOCR; the Wi-Fi code and a card for guests (`src/lib/qrdraw.ts`). Unit `wifiqr` 40 (the photos through
 the reading path in Node: `tests/lib/snapread.mjs`), e2e `wifiqr` 24 (zbar reads every code); fixtures `python3 scripts/make-snap-photos.py`
-(also the photos of the four tabs to come). **Next: #89 Visiting Card → Contact** (then #77, #78, #81).
+(also the photos of the four tabs to come). **#89 Visiting Card → Contact — BUILT (28 Nov 2026):** the tab `visitcard` (Codes & Files,
+PC + mobile; CLAUDE.md §3 "Visiting Card → Contact"): the card read the camera helpers' way (dark cards turned over), its wording
+sorted into a contact (`src/lib/visitcard.ts`: e-mail, websites, numbers with their labels, the address by its parts, the name — an
+e-mail address agreeing with it —, the company — its domain —, the title), the numbers by devcore-ids.wasm's new `ids:tel`
+(libphonenumber's rules for India; a card from abroad: its own calling code first), a vCard / MECARD QR code on the card read exactly,
+unsure lines read again by PaddleOCR's recogniser alone (`src/lib/snapsecond.ts`, shared with the Wi-Fi tab); vCard 3.0 files, the
+contact's QR code, several cards, a card's other side. Unit `visitcard` 80 (eight card photos through the reading path in Node; vobject
+reads the files), e2e `visitcard` 30 (zbar and vobject). **Next: #77 Paper Deadlines → Calendar** (then #78, #81).
 **Then to-dos #38, #39 and #40** (owner,
 27 Nov 2026, evening: "After you finish all these, finish off the items in the todo.md also."; #40, added the same evening:
 the EPUB Reader's "Remember book" — a hash of the book, its place and the reading voice in the Settings — after #39). The open question (keep the EPUB Reader's place between visits?) is

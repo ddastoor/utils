@@ -10,7 +10,7 @@ import { bindImgproc, type Imgproc } from '../wasm/imgproc';
 import wasmUrl from '../wasm/bin/imgproc.wasm?url';
 import { paddleRead, type PaddleNets, type PaddleLine } from '../lib/paddle';
 
-type Msg = { id: number; op: 'read'; base: string; img: { data: Uint8ClampedArray; width: number; height: number } } | { id: number; op: 'cancel' };
+type Msg = { id: number; op: 'read'; base: string; img: { data: Uint8ClampedArray; width: number; height: number }; line?: boolean } | { id: number; op: 'cancel' };
 const post = (m: unknown) => (self as any).postMessage(m);
 const MODELS = [['det', 'PP-OCRv6_det_small.onnx', 9929594], ['rec', 'PP-OCRv6_rec_small.onnx', 21234383]] as const;
 const ALPHABET = 'PP-OCRv6_rec_small.onnx.character.txt';
@@ -66,7 +66,7 @@ self.onmessage = (ev: MessageEvent<Msg>) => {
       if (stale()) { post({ id: m.id, type: 'done', lines: null }); return; }
       const e = await open(m.base, m.id);
       const lines: PaddleLine[] | null = await paddleRead(m.img, e.nets, e.ip, e.alphabet, {
-        stale,
+        stale, line: m.line,
         onLine: (done, total) => post({ id: m.id, type: 'progress', phase: 'read', done, total }),
       });
       post({ id: m.id, type: 'done', lines });

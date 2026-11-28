@@ -37,7 +37,7 @@ export async function snapReader({ load, wasm }) {
   const { bindTextcore } = await load('/src/wasm/textcore.ts');
   const tc = bindTextcore(await wasm('textcore'));
   const engines = {
-    paddle: (im) => P.paddleRead(im, nets, ip, alphabet),
+    paddle: (im, _progress, stale, line) => P.paddleRead(im, nets, ip, alphabet, { stale, line }),
     xycut: (boxes, gx, gy) => tc.xycut(boxes, gx, gy).order,
     ops: { ...ip, docCorners },
     read: async (im, _lang, _progress, layout) => readingOf((await worker.recognize(ppm(im), { tessedit_pageseg_mode: { page: '3', block: '6', line: '7', word: '8' }[layout] || '6' }, { text: true, blocks: true })).data),

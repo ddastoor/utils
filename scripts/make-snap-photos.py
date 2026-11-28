@@ -141,6 +141,49 @@ cards = {
 for k, (pic, cn, t) in cards.items():
     photo(pic, cn, zlib.crc32(k.encode()) % 1000 + 7).save(OUT / f'{k}.jpg', quality=88); truth[k] = t
 
+# more cards: a QR code holding a vCard beside labelled numbers (a fax, two mobiles), a card from the United States (numbers
+# without a calling code; a ZIP code), a dark card (light text on navy), and a card with its details on the back
+QR_D = 'BEGIN:VCARD\r\nVERSION:3.0\r\nN:Desai;Vikram;;;\r\nFN:Vikram Desai\r\nORG:Brightline Analytics Pvt. Ltd.\r\nTITLE:Founder & CEO\r\nTEL;TYPE=CELL:+91 99001 23456\r\nEMAIL:vikram@brightline.co.in\r\nURL:https://brightline.co.in\r\nEND:VCARD\r\n'
+card_d = vcard_pic([(60, 50, 'Vikram Desai', font(BOLD, 46), ink), (60, 112, 'Founder & CEO', font(REG, 30), grey),
+                    (60, 160, 'Brightline Analytics Pvt. Ltd.', font(BOLD, 28), (20, 110, 90)),
+                    (60, 262, 'M: +91 99001 23456 / 99001 65432', font(REG, 27), ink), (60, 304, 'T: +91 20 6789 0123', font(REG, 27), ink),
+                    (60, 346, 'F: +91 20 6789 0124', font(REG, 27), ink), (60, 388, 'E: vikram@brightline.co.in', font(REG, 27), ink),
+                    (60, 430, 'W: brightline.co.in', font(REG, 27), ink),
+                    (60, 505, 'Unit 5, Cerebrum IT Park, Kalyani Nagar, Pune 411014', font(REG, 24), grey)])
+card_d.paste(qrpic(QR_D, 4).resize((270, 270), Image.NEAREST), (750, 40))
+card_e = vcard_pic([(60, 50, 'JORDAN ELLIS', font(BOLD, 44), ink), (60, 112, 'Senior Solutions Architect', font(REG, 28), grey),
+                    (60, 158, 'Northwind Cloud Systems, Inc.', font(BOLD, 28), (40, 60, 120)),
+                    (60, 260, 'Ph (408) 555-0199     Cell (408) 555-0142', font(REG, 27), ink),
+                    (60, 302, 'jordan.ellis@northwindcloud.com', font(REG, 27), ink), (60, 344, 'https://northwindcloud.com', font(REG, 27), ink),
+                    (60, 430, '2550 Zanker Road, Suite 300', font(REG, 26), grey), (60, 468, 'San Jose, CA 95134', font(REG, 26), grey)])
+light, pale = (240, 240, 235), (190, 198, 214)
+card_f = vcard_pic([(60, 56, 'PRIYA NAIR', font(BOLD, 46), light), (60, 120, 'Partner', font(REG, 30), pale),
+                    (60, 200, 'Nair & Menon Associates', font(BOLD, 30), (230, 196, 120)), (60, 244, 'Chartered Accountants', font(REG, 26), pale),
+                    (60, 340, '+91 98470 11223', font(REG, 28), light), (60, 384, 'priya@nairmenon.in', font(REG, 28), light),
+                    (60, 470, 'MG Road, Ernakulam, Kochi, Kerala 682016', font(REG, 25), pale)], bg=(22, 34, 62))
+card_g1 = vcard_pic([(60, 60, 'ZENITH FOODS', font(BOLD, 40), (170, 40, 40)), (60, 250, 'Kavya Reddy', font(BOLD, 48), ink),
+                     (60, 316, 'Head of Marketing', font(REG, 30), grey), (60, 362, 'Zenith Foods Ltd.', font(REG, 28), grey)])
+card_g2 = vcard_pic([(60, 70, 'Mobile: +91 90000 45678', font(REG, 28), ink), (60, 114, 'Office: 040 2345 6789', font(REG, 28), ink),
+                     (60, 158, 'kavya.reddy@zenithfoods.in', font(REG, 28), ink), (60, 202, 'www.zenithfoods.in', font(REG, 28), ink),
+                     (60, 300, 'Plot 44, Road No. 12, Banjara Hills,', font(REG, 26), grey), (60, 338, 'Hyderabad, Telangana 500034', font(REG, 26), grey)])
+more = {
+  'card-d': (card_d, [(240, 270), (1330, 260), (1350, 900), (230, 910)], {'name': 'Vikram Desai', 'title': 'Founder & CEO', 'org': 'Brightline Analytics Pvt. Ltd.',
+             'phones': [['+919900123456', 'cell'], ['+919900165432', 'cell'], ['+912067890123', 'work'], ['+912067890124', 'fax']], 'email': 'vikram@brightline.co.in',
+             'url': 'brightline.co.in', 'address': 'Unit 5, Cerebrum IT Park, Kalyani Nagar, Pune 411014', 'qr': QR_D}),
+  'card-e': (card_e, [(270, 290), (1340, 270), (1330, 900), (260, 920)], {'name': 'Jordan Ellis', 'title': 'Senior Solutions Architect', 'org': 'Northwind Cloud Systems, Inc.',
+             'phones': [['+14085550199', 'work'], ['+14085550142', 'cell']], 'email': 'jordan.ellis@northwindcloud.com', 'url': 'northwindcloud.com',
+             'address': '2550 Zanker Road, Suite 300, San Jose, CA 95134'}),
+  'card-f': (card_f, [(260, 300), (1330, 280), (1340, 910), (250, 930)], {'name': 'Priya Nair', 'title': 'Partner', 'org': 'Nair & Menon Associates',
+             'phones': [['+919847011223', 'cell']], 'email': 'priya@nairmenon.in', 'url': '', 'address': 'MG Road, Ernakulam, Kochi, Kerala 682016'}),
+  'card-g-front': (card_g1, [(250, 280), (1340, 290), (1330, 910), (240, 900)], {'name': 'Kavya Reddy', 'title': 'Head of Marketing', 'org': 'Zenith Foods Ltd.',
+             'phones': [], 'email': '', 'url': '', 'address': ''}),
+  'card-g-back': (card_g2, [(260, 270), (1330, 300), (1310, 920), (250, 890)], {'name': '', 'title': '', 'org': '',
+             'phones': [['+919000045678', 'cell'], ['+914023456789', 'work']], 'email': 'kavya.reddy@zenithfoods.in', 'url': 'www.zenithfoods.in',
+             'address': 'Plot 44, Road No. 12, Banjara Hills, Hyderabad, Telangana 500034'}),
+}
+for k, (pic, cn, t) in more.items():
+    photo(pic, cn, zlib.crc32(k.encode()) % 1000 + 7).save(OUT / f'{k}.jpg', quality=88); truth[k] = t
+
 # ---- paper deadlines: a bill, a renewal letter, a school circular (A5 pages, photographed)
 
 def page(lines, size=(1240, 1754), f=None):

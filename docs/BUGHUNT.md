@@ -3429,6 +3429,22 @@ Found while building it, each with a check in `tests/e2e/idcopy.e2e.mjs`:
 - (Test slips, fixed in the suites: two precedence slips in `a && b || c` checks; a locator that took the result card holding all
   the tables for one table's card.)
 
+## Visiting Card → Contact (28 Nov 2026; built — potentials #89)
+- **PaddleOCR doubled a digit at the seam of two boxes:** a card's line read again by the second reader came back "+91 98450 0 12345"
+  — its detector had cut the short line into "+91 98450" and "0 12345 (M)", boxes that overlap, and their texts were joined. A crop
+  of one line is now read by the recogniser alone (`paddleRead`'s `line`; RapidOCR's use_det=False) — every line of the test cards
+  read exactly; the Wi-Fi tab's second look goes the same way. And a number that keeps libphonenumber's rules is never given up for a
+  surer-looking one that breaks them.
+- **"020 7946 0959" on a London card read as a landline in Pune** (020 is Pune's STD code too): a number printed without a calling
+  code is first taken as the card's country's (its other numbers' code, else its address).
+- **"Dr." and "St" were street words** ("Dr" for Drive, "St" for Street): a doctor's name lost, "St Mary's Heart Clinic" pulled into
+  the address — the two count only after a word (Harley St, Ocean Dr); a company's name with a street word is no line of an address.
+- **A dark card:** PaddleOCR read the navy card as it stood ("Parther", "nairmehom.in", the address lost) — the camera helpers turn a
+  dark picture over first (`invertDark`), and Tesseract read it all; but it gave two groups of the phone number a confidence of 0 and
+  the speck filter dropped them — a group of digits is never a speck by its confidence.
+- **"Bengaluru, 560001":** the address put back with a comma before the PIN — the town's line is "city PIN", "city, state PIN".
+- **The e2e suite's "Remove"** matched "Remove this number" too — an exact name.
+
 ## Router Sticker → Wi-Fi QR (27 Nov 2026; built — potentials #88) — and the camera helpers' reading
 - **Tesseract dropped a visiting card's name** (set larger than the rest) read as one uniform block (its mode 6, the reading path's
   usual layout for a page without columns) — the picture read was clean; laid out as a page (mode 3) it read the name, but nothing of a

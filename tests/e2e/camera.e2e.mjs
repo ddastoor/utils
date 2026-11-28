@@ -54,7 +54,7 @@ export default async ({ base, page: newPage, ok, info, devices }) => {
   const step = async (name, fn) => { try { const r = await fn(); ok(r === true, `${name}${typeof r === 'string' ? ` — ${r}` : ''}`); } catch (e) { ok(false, `${name}: ${e.message.split('\n')[0]}`); } };
 
   // tabs that take one photo through the shared picker: Snap gives the tab its picture ("Choose another photo")
-  for (const id of ['image', 'formphoto', 'bgremove', 'cartoon', 'redact', 'caption', 'ocr', 'photodict', 'wifiqr']) {
+  for (const id of ['image', 'formphoto', 'bgremove', 'cartoon', 'redact', 'caption', 'ocr', 'photodict', 'wifiqr', 'visitcard']) {
     await step(`${id}: "Use webcam" → Snap → the photo is the tab's picture, the camera closed`, async () => {
       await go(id); await openCamera(pg); await snap(pg); await newest();
       return closed();

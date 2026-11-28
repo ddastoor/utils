@@ -44,7 +44,7 @@ export interface ReadEngines {
   read(img: Img, lang: OcrLang, onProgress: ((p: number, status: string) => void) | undefined, layout: Layout): Promise<OcrResult>;
   /** PaddleOCR, the second reader for soft photos (src/lib/paddle.ts in src/workers/paddle.worker.ts): the lines of a
    *  picture (null: ended because `stale()` said so). */
-  paddle?(img: Img, progress?: (p: PaddleProgress) => void, stale?: () => boolean): Promise<PaddleLine[] | null>;
+  paddle?(img: Img, progress?: (p: PaddleProgress) => void, stale?: () => boolean, line?: boolean): Promise<PaddleLine[] | null>;
   /** textcore's XY-cut: the reading order of boxes (PaddleOCR's lines on a page of columns). */
   xycut?(boxes: number[][], gx: number, gy: number): Promise<number[]> | number[];
 }
@@ -60,7 +60,7 @@ export const browserEngines: ReadEngines = {
   } as ReadOps,
   read: (img, lang, onProgress, layout) => recognize(new ImageData(new Uint8ClampedArray(img.data), img.width, img.height), lang, onProgress, layout),
   // the worker and its 31.7 MB of models are fetched the first time a soft photo needs them
-  paddle: (img, progress, stale) => import('./paddle-client').then((m) => m.paddleLines(img, progress, stale)),
+  paddle: (img, progress, stale, line) => import('./paddle-client').then((m) => m.paddleLines(img, progress, stale, line)),
   xycut: async (boxes, gx, gy) => (await textcore()).xycut(boxes, gx, gy).order,
 };
 /** How a page is read (to-do #18): Tesseract.js reads one block unless told — straight across a newsletter's two columns,

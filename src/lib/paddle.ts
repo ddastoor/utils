@@ -101,22 +101,31 @@ function lineInput(ops: PaddleOps, crop: Img, h: number, maxW: number, padW: num
 
 /** The text of a picture read by PaddleOCR, line by line in RapidOCR's order (top to bottom, then left to right).
  *  `onLine(done, total)` tells how far the recogniser has come; `stale()` true ends the reading (null). */
-export async function paddleRead(img: Img, nets: PaddleNets, ops: PaddleOps, alphabet: string[], o: { onLine?: (done: number, total: number) => void; stale?: () => boolean } = {}): Promise<PaddleLine[] | null> {
+export async function paddleRead(img: Img, nets: PaddleNets, ops: PaddleOps, alphabet: string[], o: { onLine?: (done: number, total: number) => void; stale?: () => boolean; line?: boolean } = {}): Promise<PaddleLine[] | null> {
   const S = SETTINGS, chars = ['', ...alphabet, ' ']; // CTCLabelDecode: the blank first, a space last
-  // the photo at most 2000 px a side (and at least 30)
-  const b = boundSize(img.width, img.height);
-  let im = b.w === img.width && b.h === img.height ? img : ops.resizeLinear(img, b.w, b.h);
-  const rw = img.width / im.width, rh = img.height / im.height;
-  const top = verticalPadding(im.width, im.height);
-  if (top) im = pad(im, top);
-  // the detector
-  const d = detSize(im.width, im.height);
-  if (d.w <= 0 || d.h <= 0) return [];
-  const prob = await nets.det(ops.netPlanes(im, d.w, d.h), d.w, d.h);
-  if (o.stale?.()) return null;
-  const boxes = sortedBoxes(ops.dbBoxes(prob, d.w, d.h, im.width, im.height, { thresh: S.thresh, boxThresh: S.boxThresh, unclip: S.unclip, maxCandidates: S.maxCandidates }));
-  const crops = boxes.map((x) => ops.cropQuad(im, x.box));
-  const tall = boxes.map((x) => { const q = x.box; return Math.trunc(Math.max(Math.hypot(q[0] - q[6], q[1] - q[7]), Math.hypot(q[2] - q[4], q[3] - q[5]))) >= 1.5 * Math.trunc(Math.max(Math.hypot(q[0] - q[2], q[1] - q[3]), Math.hypot(q[4] - q[6], q[5] - q[7]))); });
+  let im = img, rw = 1, rh = 1, top = 0;
+  let boxes: Array<{ box: number[]; score: number }>, crops: Array<Img | null>, tall: boolean[];
+  if (o.line) {
+    // one line already (a camera helper's line read again): the recogniser alone, on the whole picture — RapidOCR without its
+    // detector (use_det=False); the detector cut a short line into boxes that overlap, and their texts joined twice what
+    // stood in both ("+91 98450" + "0 12345 (M)")
+    boxes = [{ box: [0, 0, img.width, 0, img.width, img.height, 0, img.height], score: 1 }]; crops = [img]; tall = [false];
+  } else {
+    // the photo at most 2000 px a side (and at least 30)
+    const b = boundSize(img.width, img.height);
+    im = b.w === img.width && b.h === img.height ? img : ops.resizeLinear(img, b.w, b.h);
+    rw = img.width / im.width; rh = img.height / im.height;
+    top = verticalPadding(im.width, im.height);
+    if (top) im = pad(im, top);
+    // the detector
+    const d = detSize(im.width, im.height);
+    if (d.w <= 0 || d.h <= 0) return [];
+    const prob = await nets.det(ops.netPlanes(im, d.w, d.h), d.w, d.h);
+    if (o.stale?.()) return null;
+    boxes = sortedBoxes(ops.dbBoxes(prob, d.w, d.h, im.width, im.height, { thresh: S.thresh, boxThresh: S.boxThresh, unclip: S.unclip, maxCandidates: S.maxCandidates }));
+    crops = boxes.map((x) => ops.cropQuad(im, x.box));
+    tall = boxes.map((x) => { const q = x.box; return Math.trunc(Math.max(Math.hypot(q[0] - q[6], q[1] - q[7]), Math.hypot(q[2] - q[4], q[3] - q[5]))) >= 1.5 * Math.trunc(Math.max(Math.hypot(q[0] - q[2], q[1] - q[3]), Math.hypot(q[4] - q[6], q[5] - q[7]))); });
+  }
   // the recogniser, line by line
   const lines: PaddleLine[] = [];
   for (let i = 0; i < crops.length; i++) {

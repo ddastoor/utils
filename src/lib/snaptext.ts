@@ -11,13 +11,16 @@ export interface Part { text: string; words: OcrWord[]; x0: number; x1: number }
 export interface Line { text: string; parts: Part[]; words: OcrWord[]; box: [number, number, number, number]; h: number }
 
 /** How the camera helpers ask the reading path to read: as one block and as a page, the better kept (a card's name set larger
- *  than the rest, a label's QR code — `layout: 'both'`), and a small thing's reading not given up for the whole photo's when the
- *  desk's grain gives more words (`small`). */
-export const SNAP_READ: Pick<ReadOptions, 'layout' | 'small' | 'clean' | 'auto'> = { layout: 'both', small: true, clean: true, auto: true };
+ *  than the rest, a label's QR code — `layout: 'both'`), a small thing's reading not given up for the whole photo's when the
+ *  desk's grain gives more words (`small`), and light text on a dark ground turned dark on light first (a dark visiting card:
+ *  PaddleOCR read it as it stood and lost its address — `invertDark`). */
+export const SNAP_READ: Pick<ReadOptions, 'layout' | 'small' | 'clean' | 'auto' | 'invertDark'> = { layout: 'both', small: true, clean: true, auto: true, invertDark: true };
 
 /** A word that is no text: nothing but signs, or a speck read at low confidence (a pattern, a barcode's bars, a code's
- *  modules read as letters). */
-const speck = (w: OcrWord) => !/[\p{L}\p{N}]/u.test(w.text) || (w.conf < 45 && w.text.length <= 3) || w.conf < 25;
+ *  modules read as letters). A group of digits is never a speck by its confidence: Tesseract gives some groups of a phone
+ *  number a confidence of 0 though it reads them right (a dark card turned over: "+91 98470" of "+91 98470 11223"). */
+const digits = /^[+(]?\d[\d)\-.]*$/;
+const speck = (w: OcrWord) => !/[\p{L}\p{N}]/u.test(w.text) || (!digits.test(w.text) && ((w.conf < 45 && w.text.length <= 3) || w.conf < 25));
 
 /** The reading's lines, cut into parts at gaps wider than `gap` × the line's height; parts of nothing but specks left out
  *  (and their words), lines left empty left out. */

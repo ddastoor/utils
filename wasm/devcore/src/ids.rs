@@ -989,6 +989,46 @@ pub fn run(input: &[u8]) -> R {
     crate::js(json!({ "readings": rs.iter().map(Reading::json).collect::<Vec<_>>(), "shape": shape, "label": !x.hint.is_empty() }))
 }
 
+/// `ids:tel` (Visiting Card → Contact): one phone number as a card prints it ("+91 98450 12345", "080 4112 3456", "0044 20 7946
+/// 0958", "1800 425 1234") → its calling code and country, the number in E.164, and for an Indian number libphonenumber's kind,
+/// its national and international forms and its place (a landline's). Another country's number is named by its calling code
+/// only (`valid` null: its own rules are not checked here); a number without a calling code that is no Indian number is
+/// none of these (`cc` null) — the card's own writing is kept. The trunk "(0)" of "+44 (0)20 …" is the caller's to drop.
+pub fn tel(input: &[u8]) -> R {
+    let a = crate::arg(input)?; let raw = crate::s(&a, "text").trim();
+    let d: String = raw.chars().filter(|c| c.is_ascii_digit()).collect();
+    let plus = raw.starts_with('+');
+    let none = |why: &str| crate::js(json!({ "cc": null, "country": null, "nn": null, "e164": null, "kind": "unknown", "valid": false, "why": why }));
+    if d.len() < 4 { return none("too few digits for a phone number"); }
+    if plus || d.starts_with("00") {
+        let digits = if plus { &d[..] } else { &d[2..] };
+        let cc = (1..=3).filter(|&l| l <= digits.len()).find_map(|l| { let c: u16 = digits[..l].parse().ok()?; T::CALLING.iter().find(|(k, _)| *k == c).map(|(k, r)| (*k, *r, l)) });
+        let Some((cc, regions, l)) = cc else { return none("no country has the calling code these digits begin with"); };
+        let nn = &digits[l..];
+        if cc == 91 { return indian_tel(nn, true); }
+        let names: Vec<&str> = regions.iter().filter_map(|r| region_name(r)).collect();
+        let country = match (cc, names.len()) { (1, _) => "the United States or Canada".to_string(), (_, 0) => "an international network".to_string(), (_, _) => names[0].to_string() };
+        let fits = (4..=14).contains(&nn.len()) && digits.len() <= 15;
+        return crate::js(json!({ "cc": cc, "country": country, "regions": regions, "nn": nn, "e164": if fits { Some(format!("+{cc}{nn}")) } else { None },
+            "kind": "unknown", "valid": if fits { Value::Null } else { Value::Bool(false) },
+            "why": if fits { Value::Null } else { Value::String(format!("calling code +{cc}, but a number has 4 – 14 digits after it, at most 15 in all")) } }));
+    }
+    // an Indian number written without +91 — as the Number Detective reads one
+    if d.len() == 11 && d.starts_with('0') { return indian_tel(&d[1..], false); }
+    if d.len() == 12 && d.starts_with("91") && in_type(&d[2..]) != "unknown" { return indian_tel(&d[2..], false); }
+    if (8..=13).contains(&d.len()) && (d.len() == 10 || d.starts_with('1')) { return indian_tel(&d, false); }
+    none("no calling code, and no Indian number")
+}
+fn indian_tel(nn: &str, plus: bool) -> R {
+    let ty = in_type(nn);
+    if ty == "unknown" && !plus { return crate::js(json!({ "cc": null, "country": null, "nn": null, "e164": null, "kind": "unknown", "valid": false, "why": "no calling code, and no Indian number" })); }
+    let (nat, intl) = in_format(nn);
+    crate::js(json!({ "cc": 91, "country": "India", "nn": nn, "e164": format!("+91{nn}"), "kind": ty, "valid": ty != "unknown",
+        "intl": if ty == "unknown" { Value::Null } else { Value::String(intl) }, "national": if ty == "unknown" { Value::Null } else { Value::String(if ty == "mobile" { nat.trim_start_matches('0').to_string() } else { nat }) },
+        "place": if ty.starts_with("fixed_line") { in_place(nn) } else { None },
+        "why": if ty == "unknown" { Value::String("not a number in use in India by libphonenumber’s rules".into()) } else { Value::Null } }))
+}
+
 /// For the tests: libphonenumber's answers for an Indian national number (type, national and international format, place).
 pub fn phone_info(input: &[u8]) -> R {
     let a = crate::arg(input)?; let nn = crate::s(&a, "nn");

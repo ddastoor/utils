@@ -1885,3 +1885,19 @@ Looked at first (STANDING RULE #1):
   (`layout: 'both'`, `small`), off by default (the OCR tab and the Photo Dictionary read as before).
 - **Decision:** nothing new on the site (the tab's code); PaddleOCR, already on the site, reads a name's or a password's line again
   when Tesseract is unsure of it.
+
+### 193. `visitcard` — Visiting Card → Contact (28 Nov 2026; potentials #89)
+- **What it does:** a photo of a business card → its name, title, company, numbers, e-mail addresses, websites and address → a
+  contact file (vCard 3.0) and its QR code (CLAUDE.md §3 "Visiting Card → Contact").
+- **Existing WebAssembly modules, on the site** (rule 1): Tesseract and PaddleOCR through the OCR's reading path (the camera helpers'
+  options), zxing-cpp (a vCard or MECARD in a QR code on the card read; the contact's code drawn). The owner's entry named #33's
+  libphonenumber "if built" — it is not: the numbers go to the Number Detective's engine (devcore-ids.wasm, ours: libphonenumber's
+  rules for India, every country's calling code), which gained one operation, `ids:tel` (a number as printed → calling code,
+  country, E.164, and for an Indian number libphonenumber's kind, forms and place).
+- **Candidates looked at:** libphonenumber's own WebAssembly builds — none is published; the Rust `phonenumber` crate (a port with
+  every country's metadata) would be #33's engine, not this tab's (the owner's words); libphonenumber-js (JavaScript) — no.
+- **Beside them (rule 1c, TS):** `src/lib/visitcard.ts` — the card's lines sorted into a contact (labels, keywords, scores), addresses
+  split, the vCard written and read: string glue. PaddleOCR's reader gained a `line` option (its recogniser alone on a crop of one
+  line — its detector cut a short line into boxes that overlap; `src/lib/snapsecond.ts`, shared with the Wi-Fi tab).
+- **Decision:** nothing new on the site but the tab's code and 11 KB more of devcore-ids.wasm.
+

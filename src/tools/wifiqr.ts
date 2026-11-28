@@ -81,8 +81,6 @@ export const mount: Mount = (root, ctx) => {
   }
 
   let reads = 0, again2 = false;
-  /** Tesseract's confidence under which a name's or a password's line is read again by the second reader */
-  const SURE = 90;
   async function run(img: Img) {
     again2 = false;
     const my = ++seq, stale = () => gone || my !== seq;
@@ -107,22 +105,16 @@ export const mount: Mount = (root, ctx) => {
       // the lines of a name or a password Tesseract was unsure of, read again by the second reader (PaddleOCR) — the surer
       // reading of each value kept: a password is all that matters here, and one character read wrong locks the guest out
       if (reading && reading.engine === 'tesseract') {
-        const { browserEngines, secondBetter } = await import('../lib/readpage');
+        const { secondLook, surer, leastConf, SURE } = await import('../lib/snapsecond');
         for (const n of nets) for (const [li, what] of [[n.ssidLine, 'ssid'], [n.passLine, 'password']] as const) {
           const l = lines[li], v = n[what];
           if (n.from !== 'label' || !l || !v || stale()) continue;
-          const conf = Math.min(...l.words.map((w) => w.conf));
+          const conf = leastConf(l);
           if (conf >= SURE) continue;
-          const m = Math.round(l.h * 0.6), I = reading.img;
-          const x0 = Math.max(0, Math.round(l.box[0] - m)), y0 = Math.max(0, Math.round(l.box[1] - m)), x1 = Math.min(I.width, Math.round(l.box[2] + m)), y1 = Math.min(I.height, Math.round(l.box[3] + m));
-          if (x1 - x0 < 8 || y1 - y0 < 8) continue;
-          const crop = { width: x1 - x0, height: y1 - y0, data: new Uint8ClampedArray((x1 - x0) * (y1 - y0) * 4) };
-          for (let y = y0; y < y1; y++) crop.data.set(I.data.subarray((y * I.width + x0) * 4, (y * I.width + x1) * 4), (y - y0) * (x1 - x0) * 4);
-          const pl = await browserEngines.paddle!(crop, (q) => { if (!stale()) { const w = secondWords(q); prog.set(w.p, w.text.replace('reading the soft photo', 'reading the label again')); } }, stale).catch(() => null);
-          if (stale() || !pl?.length) continue;
-          const text = pl.slice().sort((a, b) => a.box[0] - b.box[0]).map((x) => x.text).join(' '), score = Math.min(...pl.map((x) => x.score));
-          const again = readLabel([text]).nets[0]?.[what];
-          if (again && again !== v && secondBetter({ words: [{ text: again, conf: score * 100, x0: 0, y0: 0, x1: 0, y1: 0 }] }, { words: [{ text: v, conf, x0: 0, y0: 0, x1: 0, y1: 0 }] })) {
+          const pl = await secondLook(reading.img, l, stale, (p, t) => { if (!stale()) prog.set(p, t); }, 'reading the label again');
+          if (stale() || !pl) continue;
+          const again = readLabel([pl.text]).nets[0]?.[what];
+          if (again && again !== v && await surer(again, pl.score, v, conf)) {
             for (const o of nets) if (o[what] === v && o.from === 'label') o[what] = again; // the same password under both bands
             again2 = true;
           }

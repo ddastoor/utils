@@ -244,6 +244,7 @@ export const TOOLS: Tool[] = [
   t('qr', 'QR Generator', 'QR codes for links, Wi-Fi, UPI, contacts…', 'codes', 'QrCode', () => codes().then((m) => m.qr)),
   t('barcode', 'Barcode Generator', 'EAN, UPC, Code 128, Data Matrix, PDF417…', 'codes', 'Barcode', () => codes().then((m) => m.barcode)),
   t('scan', 'QR & Barcode Scanner', 'Scan with the camera or from an image.', 'codes', 'ScanQrCode', () => codes().then((m) => m.scan)),
+  t('visitcard', 'Visiting Card → Contact', 'Photograph a business card: its name, numbers, e-mail and address made into a contact to save, or its QR code.', 'codes', 'Contact', () => import('./tools/visitcard').then((m) => m.mount)),
   t('wifiqr', 'Router Sticker → Wi-Fi QR', 'Photograph the label under your router: its network name and password read, and a Wi-Fi QR code made for guests.', 'codes', 'Wifi', () => import('./tools/wifiqr').then((m) => m.mount)),
   t('numcheck', 'Number Detective', 'Paste any number or code: what it is and whether it is valid — Aadhaar, PAN, GSTIN, IFSC, UPI, PIN, phone, IMEI, card, ISBN, IBAN …', 'codes', 'SearchCheck', () => import('./tools/numcheck').then((m) => m.mount)),
   t('zip', 'Create Zip', 'Zip files, optionally with a password.', 'codes', 'FileArchive', () => files().then((m) => m.zip)),

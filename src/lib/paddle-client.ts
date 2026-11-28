@@ -31,11 +31,12 @@ function w() {
   return worker;
 }
 
-/** PaddleOCR's lines of a picture (null: the reading was ended because `stale()` said so). */
-export function paddleLines(img: Img, progress?: (p: PaddleProgress) => void, stale?: () => boolean): Promise<PaddleLine[] | null> {
+/** PaddleOCR's lines of a picture (null: the reading was ended because `stale()` said so); `line`: the picture is one line
+ *  already, read by the recogniser alone. */
+export function paddleLines(img: Img, progress?: (p: PaddleProgress) => void, stale?: () => boolean, line = false): Promise<PaddleLine[] | null> {
   const id = ++seq, wk = w(), data = new Uint8ClampedArray(img.data); // a copy: the picture stays the caller's
   return new Promise((resolve, reject) => {
     pending.set(id, { resolve, reject, progress, stale });
-    wk.postMessage({ id, op: 'read', base: document.baseURI, img: { data, width: img.width, height: img.height } }, [data.buffer]);
+    wk.postMessage({ id, op: 'read', base: document.baseURI, img: { data, width: img.width, height: img.height }, line }, [data.buffer]);
   });
 }

@@ -113,6 +113,92 @@
   "url": "",
   "address": "12 Harley Street, London W1G 9PF, United Kingdom"
  },
+ "card-d": {
+  "name": "Vikram Desai",
+  "title": "Founder & CEO",
+  "org": "Brightline Analytics Pvt. Ltd.",
+  "phones": [
+   [
+    "+919900123456",
+    "cell"
+   ],
+   [
+    "+919900165432",
+    "cell"
+   ],
+   [
+    "+912067890123",
+    "work"
+   ],
+   [
+    "+912067890124",
+    "fax"
+   ]
+  ],
+  "email": "vikram@brightline.co.in",
+  "url": "brightline.co.in",
+  "address": "Unit 5, Cerebrum IT Park, Kalyani Nagar, Pune 411014",
+  "qr": "BEGIN:VCARD\r\nVERSION:3.0\r\nN:Desai;Vikram;;;\r\nFN:Vikram Desai\r\nORG:Brightline Analytics Pvt. Ltd.\r\nTITLE:Founder & CEO\r\nTEL;TYPE=CELL:+91 99001 23456\r\nEMAIL:vikram@brightline.co.in\r\nURL:https://brightline.co.in\r\nEND:VCARD\r\n"
+ },
+ "card-e": {
+  "name": "Jordan Ellis",
+  "title": "Senior Solutions Architect",
+  "org": "Northwind Cloud Systems, Inc.",
+  "phones": [
+   [
+    "+14085550199",
+    "work"
+   ],
+   [
+    "+14085550142",
+    "cell"
+   ]
+  ],
+  "email": "jordan.ellis@northwindcloud.com",
+  "url": "northwindcloud.com",
+  "address": "2550 Zanker Road, Suite 300, San Jose, CA 95134"
+ },
+ "card-f": {
+  "name": "Priya Nair",
+  "title": "Partner",
+  "org": "Nair & Menon Associates",
+  "phones": [
+   [
+    "+919847011223",
+    "cell"
+   ]
+  ],
+  "email": "priya@nairmenon.in",
+  "url": "",
+  "address": "MG Road, Ernakulam, Kochi, Kerala 682016"
+ },
+ "card-g-front": {
+  "name": "Kavya Reddy",
+  "title": "Head of Marketing",
+  "org": "Zenith Foods Ltd.",
+  "phones": [],
+  "email": "",
+  "url": "",
+  "address": ""
+ },
+ "card-g-back": {
+  "name": "",
+  "title": "",
+  "org": "",
+  "phones": [
+   [
+    "+919000045678",
+    "cell"
+   ],
+   [
+    "+914023456789",
+    "work"
+   ]
+  ],
+  "email": "kavya.reddy@zenithfoods.in",
+  "url": "www.zenithfoods.in",
+  "address": "Plot 44, Road No. 12, Banjara Hills, Hyderabad, Telangana 500034"
+ },
  "notice-bill": {
   "dates": [
    [
