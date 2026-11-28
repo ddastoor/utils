@@ -47,6 +47,40 @@ export async function ocrWorker(langs: OcrLang): Promise<TWorker> {
   onLeave('ocr-worker', () => { const c = current; current = null; c?.w.then(end).catch(() => {}); });
   return w;
 }
+/** A reader of its own, for a pool that reads many pictures at once (the Screenshot Finder): the same files and options as
+ *  the shared worker, in Tesseract's sparse-text mode (11): every word wherever it stands — a screenshot's labels, buttons
+ *  and bubbles as well as its paragraphs (what a search needs; the order of the words does not matter there). `sauvola`:
+ *  Tesseract's Sauvola thresholding (local) in place of Otsu's (global) — a screenshot's coloured bars and bubbles kept
+ *  apart from their text. A download or a job that fails rejects (Tesseract.js may leave its own promise waiting and tells
+ *  only its errorHandler); `end` ends the worker, and a reading after it is refused. */
+export function sparseReader(langs: OcrLang) {
+  let onFail: ((e: Error) => void) | null = null, over = false;
+  const failure = () => { const f = new Promise<never>((_, reject) => { onFail = reject; }); f.catch(() => {}); return f; };
+  const starting = failure();
+  const made = import('tesseract.js').then(({ createWorker, OEM }) => createWorker(langs.split('+'), OEM.LSTM_ONLY, {
+    workerPath: at('vendor/tesseract/worker.min.js'), corePath: at('vendor/tesseract/core/'), langPath: at('vendor/tesseract/lang'),
+    gzip: true, cacheMethod: 'none', workerBlobURL: false, errorHandler: (e: unknown) => onFail?.(ocrError(e)),
+  })).then(async (x) => { await x.setParameters({ debug_file: '/dev/null' } as any); return x; });
+  made.catch(() => {});
+  const ready: Promise<TWorker> = Promise.race([made, starting]);
+  ready.catch(() => { made.then(end).catch(() => {}); });
+  return {
+    ready,
+    async read(img: ImageData | HTMLCanvasElement | Blob, sauvola = false): Promise<OcrResult> {
+      const w = await ready;
+      const src = await imageBytes(img);
+      if (over || ended.has(w)) throw new Error('The text engine was stopped: the tab was left.');
+      const failed = failure();
+      try {
+        const { data } = await Promise.race([w.recognize(src as any, { tessedit_pageseg_mode: '11', thresholding_method: sauvola ? '2' : '0' } as any, { text: true, blocks: true }), failed])
+          .catch((e) => { throw e instanceof Error && /text engine/.test(e.message) ? e : ocrError(e); });
+        return readingOf(data as any);
+      } finally { onFail = null; }
+    },
+    end() { over = true; made.then(end).catch(() => {}); },
+  };
+}
+export type SparseReader = ReturnType<typeof sparseReader>;
 /** Workers this file ended: a reading that reaches one is refused (Tesseract.js would send it to no worker — below). */
 const ended = new WeakSet<object>();
 const end = (x: TWorker) => { ended.add(x); return x.terminate(); };

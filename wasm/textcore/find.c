@@ -10,7 +10,8 @@
  * "wifi": 9), several words in a row that make it ("4521 678 903" for "4521678903": 8), the same after the OCR's usual
  * slips (0/O, 1/l/I, 5/S, 8/B, rn/m, vv/w — when one of the two has a digit and the other a letter, or both letters: 7),
  * the beginning of a word (from 3 letters: 6), inside a word (from 4: "gmail" in "ravi@gmail.com", 5), one slip of the
- * keyboard or the OCR (Damerau-Levenshtein, from 5 letters: 4; two from 9: 3). Tokens matched by words next to each
+ * keyboard or the OCR (Damerau-Levenshtein, from 5 letters: 4; two from 9: 3; a code of letters and digits from 8: one —
+ * never a number of digits alone, where one digit apart is another number). Tokens matched by words next to each
  * other in the query's order add 3 each pair. Small words ("the", "a", "of" …) are left out unless the query is only
  * those. The whole query written together is tried too ("wi fi" → "wifi").
  */
@@ -85,6 +86,9 @@ static int score_word(const Word *t, const Word *w) {
     if (mixed && t->sqn >= 3 && t->fn == w->fn && !memcmp(t->fold, w->fold, t->fn)) return 7;
     if (t->sqn >= 3 && w->sqn > t->sqn && !memcmp(w->sq, t->sq, t->sqn)) return 6;
     if (t->sqn >= 4 && contains(w->sq, w->sqn, t->sq, t->sqn)) return 5;
+    /* a long code of letters and digits (a password, a tracking ID) with one slip of the OCR — not a number: one digit
+     * apart is another number */
+    if (t->sqn >= 8 && has_digit(t->sq, t->sqn) && has_letter(t->sq, t->sqn) && osa(t->sq, t->sqn, w->sq, w->sqn, 1) == 1) return 4;
     if (t->sqn >= 5 && !has_digit(t->sq, t->sqn)) {
         int max = t->sqn >= 9 ? 2 : 1, d = osa(t->sq, t->sqn, w->sq, w->sqn, max); /* max + 1: farther */
         if (d == 1) return 4;

@@ -78,6 +78,7 @@ export const TOOLS: Tool[] = [
   t('collage', 'Collage Maker', 'Combine photos into a grid.', 'images', 'LayoutGrid', () => canv().then((m) => m.collage)),
   t('stitch', 'Long Screenshot Stitcher', 'Screenshots of one chat or page, taken while scrolling, joined into one tall picture — the parts they share found by themselves.', 'images', 'GalleryVerticalEnd', () => import('./tools/stitch').then((m) => m.mount)),
   t('annotate', 'Screenshot Annotator & How-To Guide', 'Arrows, boxes, numbered steps, text, highlighter and blur on a screenshot or photo — several with captions make a how-to guide: one PDF or one tall picture.', 'images', 'PenTool', () => import('./tools/annotate').then((m) => m.mount)),
+  t('finder', 'Screenshot Finder', 'Hundreds of screenshots and photos, or a folder of them, read on the device — then search the words inside them: that PNR, the Wi-Fi password someone sent.', 'images', 'ScanSearch', () => import('./tools/finder').then((m) => m.mount)),
   t('wallpapers', 'Wallpapers', 'Wikimedia’s best photos and museums’ masterpieces, sized exactly for your phone or monitor.', 'images', 'Wallpaper', () => import('./tools/wallpapers').then((m) => m.mount)),
   t('nasa', 'NASA Image Explorer', 'NASA’s pictures and videos — missions, planets, astronauts, the Earth from space; any picture as a wallpaper.', 'images', 'Rocket', () => import('./tools/nasa').then((m) => m.mount)),
   t('exif', 'EXIF / Photo Info', 'See hidden photo details (camera, date, GPS) and strip them.', 'images', 'Info', () => img().then((m) => m.exif)),

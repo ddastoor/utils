@@ -1,0 +1,167 @@
+{
+ "words": {
+  "Screenshot_20261102-190712_WhatsApp.png": [
+   "PNR",
+   "4521",
+   "678",
+   "903",
+   "Lonavala",
+   "Residency"
+  ],
+  "Screenshot_20261020-213344_WhatsApp.png": [
+   "password",
+   "kT7mq2Vr9w",
+   "SuperHome_5G"
+  ],
+  "Screenshot_20261105-081530_Messages.png": [
+   "debited",
+   "2,032.71",
+   "OTP",
+   "551927"
+  ],
+  "Screenshot_20261101-120001_Mail.png": [
+   "shipped",
+   "SK2290045731IN",
+   "fryer"
+  ],
+  "Screenshot_20261015-100203_Settings.png": [
+   "Serial",
+   "R58N21ABCDX",
+   "IMEI",
+   "352094112746229"
+  ],
+  "Screenshot_20261106-090102_Pay.png": [
+   "432187650912",
+   "1,250",
+   "UPI"
+  ],
+  "Screenshot 2026-11-03 at 10.12.44.png": [
+   "SU-88124",
+   "Check-in",
+   "Lonavala"
+  ],
+  "IMG_20261127_213012.jpg": [
+   "SPICE",
+   "GARDEN",
+   "Paneer"
+  ]
+ },
+ "queries": [
+  [
+   "PNR",
+   [
+    "Screenshot_20261102-190712_WhatsApp.png"
+   ]
+  ],
+  [
+   "4521678903",
+   [
+    "Screenshot_20261102-190712_WhatsApp.png"
+   ]
+  ],
+  [
+   "pnr 4521 678 903",
+   [
+    "Screenshot_20261102-190712_WhatsApp.png"
+   ]
+  ],
+  [
+   "wifi password",
+   [
+    "Screenshot_20261020-213344_WhatsApp.png"
+   ]
+  ],
+  [
+   "kT7mq2Vr9w",
+   [
+    "Screenshot_20261020-213344_WhatsApp.png"
+   ]
+  ],
+  [
+   "debited",
+   [
+    "Screenshot_20261105-081530_Messages.png"
+   ]
+  ],
+  [
+   "OTP",
+   [
+    "Screenshot_20261105-081530_Messages.png"
+   ]
+  ],
+  [
+   "order shipped",
+   [
+    "Screenshot_20261101-120001_Mail.png"
+   ]
+  ],
+  [
+   "tracking id",
+   [
+    "Screenshot_20261101-120001_Mail.png"
+   ]
+  ],
+  [
+   "serial number",
+   [
+    "Screenshot_20261015-100203_Settings.png"
+   ]
+  ],
+  [
+   "IMEI",
+   [
+    "Screenshot_20261015-100203_Settings.png"
+   ]
+  ],
+  [
+   "UPI ref",
+   [
+    "Screenshot_20261106-090102_Pay.png"
+   ]
+  ],
+  [
+   "432187650912",
+   [
+    "Screenshot_20261106-090102_Pay.png"
+   ]
+  ],
+  [
+   "booking id",
+   [
+    "Screenshot 2026-11-03 at 10.12.44.png"
+   ]
+  ],
+  [
+   "lonavala",
+   [
+    "Screenshot 2026-11-03 at 10.12.44.png",
+    "Screenshot_20261102-190712_WhatsApp.png"
+   ]
+  ],
+  [
+   "spice garden",
+   [
+    "IMG_20261127_213012.jpg",
+    "Screenshot_20261106-090102_Pay.png"
+   ]
+  ],
+  [
+   "paneer tikka",
+   [
+    "IMG_20261127_213012.jpg"
+   ]
+  ]
+ ],
+ "none": [
+  "IMG_20261012_073000.jpg"
+ ],
+ "texts": {
+  "Screenshot_20261102-190712_WhatsApp.png": "19:07 5G  81% Asha Iyer online Hi! Are we still on for Saturday? Amma is asking what time we leave. 19:02 Yes, leaving Pune at 6 am sharp. Tell her to pack the theplas. 19:04 Did you book the train back? 19:05 Booked. PNR 4521 678 903, coach B2, seats 41 and 42. 19:07 Train leaves Lonavala at 17:35 on Sunday. 19:07 Perfect. Which hotel did you finally pick? 19:10 Hill View Residency, near the market. Room 207. 19:12 Message",
+  "Screenshot_20261020-213344_WhatsApp.png": "21:33 5G  81% Rohan online What is the wifi at your place? 21:30 Network SuperHome_5G and the password is kT7mq2Vr9w 21:32 The router restarts at midnight, just reconnect. 21:33 Thanks, connected! 21:33 Message",
+  "Screenshot_20261105-081530_Messages.png": "08:15 5G  81% KAVBNK 5 November 2026 Rs.2,032.71 debited from A/c XX4512 on 05-11-26 to GODAVARI POWER via UPI. Avl Bal Rs.18,402.10. Not you? Call 1800 425 3800 to block your account. -Kaveri Bank Today 08:15 Your OTP for login is 551927. Valid for 5 minutes. Do not share it with anyone. -Kaveri Bank",
+  "Screenshot_20261101-120001_Mail.png": "12:00 5G  81% Inbox Your order has shipped From: orders@shopkart.example Hello Priya, your order #402-7765131-9902211 has shipped and will be delivered by Thursday, 7 November. Air fryer 4.1 L, black x 1 Rs. 6,499 Track your package with the tracking ID SK2290045731IN. Need help? Visit the help centre.",
+  "Screenshot_20261015-100203_Settings.png": "10:02 5G  81% About phone Device name Galaxy of Ravi Model name SM-A556E Serial number R58N21ABCDX IMEI (slot 1) 352094112746229 Android version 15 Build number UP1A.231005.007",
+  "Screenshot_20261106-090102_Pay.png": "09:01 5G  81% Payment successful Rs. 1,250 paid to Asha Iyer 6 Nov 2026, 9:01 am UPI Ref No 432187650912 From: Kaveri Bank XX4512 Note: dinner at Spice Garden",
+  "Screenshot 2026-11-03 at 10.12.44.png": "Hill View Residency - Booking confirmed Booking ID SU-88124 Guest: Priya Nair Check-in: Sat 8 Nov 2026, from 14:00 Check-out: Sun 9 Nov 2026, by 11:00 Room: Deluxe Double, 1 room, 2 adults Total paid: Rs. 4,720 (incl. taxes) Address: Plot 14, Old Market Road, Lonavala 410401 Phone 0211 427 3388 Free cancellation until 6 Nov 2026, 18:00."
+ }
+}
