@@ -1,0 +1,62 @@
+/* World Radio */
+.wr-now { display: flex; align-items: flex-start; gap: 14px; }
+.wr-now[hidden], .wr-bar[hidden] { display: none; }
+.wr-big { width: 64px; height: 64px; font-size: 28px; }
+.wr-now-text { flex: 1; min-width: 0; }
+.wr-name { margin: 0 0 4px; font-size: 20px; line-height: 1.25; overflow-wrap: anywhere; }
+.wr-meta { margin: 0 0 2px; color: var(--muted); overflow-wrap: anywhere; }
+.wr-meta a { display: inline-flex; align-items: center; gap: 4px; min-height: 32px; }
+.wr-meta a .ic { width: 14px; height: 14px; }
+.wr-status { margin: 8px 0 0; font-weight: 600; }
+.wr-status.wr-playing { color: var(--ok); }
+.wr-status.wr-failed { color: var(--err); }
+.wr-note { margin: 4px 0 0; color: var(--warn); }
+.wr-note[hidden] { display: none; }
+.wr-star.on .ic svg, .wr-row-star.on .ic svg { fill: currentColor; }
+.wr-star.on, .wr-row-star.on { color: var(--warn); }
+.wr-bar { margin-top: 12px; }
+.wr-controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px 20px; align-items: start; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border); }
+.wr-controls .small { margin: 4px 0 0; }
+.wr-empty { margin: 0; }
+.wr-empty[hidden] { display: none; }
+.wr-picks { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.wr-chip {
+  min-height: 40px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface);
+  color: var(--text); font: inherit; font-size: 14px; cursor: pointer;
+}
+.wr-chip:hover { background: var(--surface-2); }
+.wr-chip.on { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.wr-search { display: grid; grid-template-columns: minmax(180px, 2fr) repeat(4, minmax(130px, 1fr)); gap: 10px; align-items: end; }
+.wr-list-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin: 16px 0 6px; }
+.wr-list-title { margin: 0; font-size: 16px; }
+.wr-list-state { margin: 0; }
+.wr-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.wr-row { display: flex; align-items: center; gap: 6px; border-bottom: 1px solid var(--border); }
+.wr-row:last-child { border-bottom: 0; }
+.wr-row-main {
+  flex: 1; min-width: 0; display: flex; align-items: center; gap: 12px; padding: 8px 6px; min-height: 56px;
+  background: none; border: 0; border-radius: var(--radius-sm); color: inherit; font: inherit; text-align: left; cursor: pointer;
+}
+.wr-row-main:hover { background: var(--surface-2); }
+.wr-row-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.wr-row-name { font-weight: 600; overflow-wrap: anywhere; }
+.wr-row-meta { color: var(--muted); overflow-wrap: anywhere; }
+.wr-row-state { font-weight: 600; color: var(--ok); }
+.wr-row-state[hidden] { display: none; }
+.wr-row.wr-on .wr-row-main { background: var(--accent-soft); }
+.wr-row.wr-on .wr-row-name, .wr-row.wr-on .wr-row-state { color: var(--accent); } /* on the lit row: the accent (green would be 4.4 : 1 there) */
+.wr-row.wr-failed .wr-row-state { color: var(--err); }
+.wr-row-star { flex: none; }
+.wr-err:empty { display: none; }
+.wr-about p { margin: 0 0 4px; }
+.wr-about .btn { margin-left: -12px; }
+@media (max-width: 760px) {
+  .wr-search { grid-template-columns: 1fr 1fr; }
+  .wr-search > .field:first-child { grid-column: 1 / -1; }
+  .wr-big { width: 52px; height: 52px; font-size: 23px; }
+  .wr-name { font-size: 18px; }
+  .wr-chip { min-height: 44px; }
+  .wr-meta a { min-height: 44px; }
+  .wr-bar .btn:not(.btn-primary) > span:not(.ic) { display: none; } /* Previous, Next, Stop as their icons (named still); Play / Pause in words */
+  .wr-bar .btn:not(.btn-primary) { flex: 0 0 var(--tap); }
+}

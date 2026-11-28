@@ -2083,3 +2083,17 @@ Looked at first (STANDING RULE #1):
   the Camera Reader's player); the sentence being heard is found by MuPDF's own search on its page (`findOnPage`). Ours, as glue:
   `src/lib/ebookread.ts` — a page's text cut into paragraphs and sentences (regular expressions; the Camera Reader's sentence splitter,
   the Audiobook's speech text). No engine of ours.
+
+### 205. `worldradio` — World Radio (28 Nov 2026; potentials #116)
+- **What it needs:** the stations of the world (a directory), their sound in the page, HLS streams, the lock screen.
+- **The directory:** Radio Browser's API — data, not code (CLAUDE.md §1 rule 2): its three servers in connect-src; nothing of it is run.
+- **The sound:** the browser's own `<audio>` (its decoders are compiled C++ — MP3, AAC, Ogg, Opus, FLAC; no module to add). **HLS:** potentials
+  #116 planned hls.js (Apache-2.0, JavaScript; ≈ 0.2 MB) "where the browser has no HLS of its own" — looked at again: Chrome on Windows and Linux
+  (its own HLS player since 2025; the sandbox's Chromium 153 says "maybe" to `application/vnd.apple.mpegurl` and plays the suite's HLS stream),
+  Chrome on Android and Safari on the iPhone play HLS themselves — every browser the owner uses. Firefox does not: there the station is skipped
+  with the reason said ("its stream is HLS, which this browser cannot play"). **Not added** — nothing a JavaScript player would bring to the
+  owner's browsers; no WebAssembly HLS player exists either.
+- **Ours (rule 3 glue, no engine):** `src/lib/radio.ts` — the directory's answers read and checked, a search made a path, the servers in turn, the
+  quick picks, countries and languages sorted, why a station does not play in words; `src/lib/radioplayer.ts` — the player's states, skipping,
+  the small player, the Media Session, the sleep timer's fade. String and DOM glue around the browser's media element; nothing to compute.
+- **Decision:** the browser's `<audio>` and Radio Browser — 31 KB on the site (the tab's code and styles).

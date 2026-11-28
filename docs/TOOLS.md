@@ -2,7 +2,7 @@
 
 Generated from `src/registry.ts` by `npm run docs` — do not edit by hand.
 
-**198 tabs** in 11 categories — 130 PC + mobile, 65 PC only, 3 mobile only.
+**199 tabs** in 11 categories — 131 PC + mobile, 65 PC only, 3 mobile only.
 
 ## Images (19)
 
@@ -74,7 +74,7 @@ Generated from `src/registry.ts` by `npm run docs` — do not edit by hand.
 | `password` | Password Generator | PC + mobile | Strong random passwords. | password, generate, random, strong, secure, pin |
 | `passphrase` | Passphrase Generator | PC + mobile | Memorable diceware passphrases. | passphrase, diceware, words, memorable, eff, password |
 
-## Media (10)
+## Media (11)
 
 | id | Tab | Platform | What it does | Search keywords |
 |---|---|---|---|---|
@@ -84,6 +84,7 @@ Generated from `src/registry.ts` by `npm run docs` — do not edit by hand.
 | `noise` | Noise Remover | PC + mobile | Remove background noise from voice recordings. | noise, denoise, noise removal, noise remover, noise reduction, remove noise, clean audio, hiss, … |
 | `pitch` | Pitch & Speed | PC + mobile | Change tempo or pitch of audio independently. | pitch, speed, tempo, slow down song, slow down audio, speed up audio, slow down, speed up, … |
 | `slideshow` | Slideshow Maker | PC + mobile | Photos + music → MP4 video. | slideshow, photos to video, images to video, music video, montage, mp4, reel |
+| `worldradio` | World Radio | PC + mobile | Radio stations of India and the world — favourites, and it plays on in other apps. | world radio, radio, internet radio, online radio, web radio, live radio, fm, fm radio, … |
 | `ffmpeg` | FFmpeg | **PC only** | Convert, trim, extract audio, compress — FFmpeg in your browser. | mp4 to mp3, wav to mp4, video to audio, mkv to mp4, mov to mp4, webm to mp4, avi to mp4, mp3 to wav, … |
 | `screencast` | Screencast | **PC only** | Record your screen, a window, a tab or an area to MP4. | screen record, screencast, capture, record screen, video, mp4, tab, window, … |
 | `screenshot` | Screenshot | **PC only** | Delayed screenshots of a screen, window, tab or area. | screenshot, screen capture, snip, snipping tool, print screen, delay, delayed capture, window, … |

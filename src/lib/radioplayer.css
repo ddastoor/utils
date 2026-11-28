@@ -1,0 +1,30 @@
+/* World Radio's small player: at the foot of every other page while a station plays on ("Keep playing in other apps") */
+.radio-mini {
+  position: fixed; right: 16px; bottom: 16px; z-index: 45;
+  display: flex; align-items: center; gap: 10px;
+  width: min(440px, calc(100vw - 32px)); padding: 8px 8px 8px 10px;
+  background: var(--surface); color: var(--text);
+  border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow-lg);
+}
+.radio-mini[hidden] { display: none; }
+.radio-letter {
+  flex: none; display: inline-grid; place-items: center; width: 40px; height: 40px; border-radius: 50%;
+  background: hsl(var(--hue, 230) 55% 40%); color: #fff; font-weight: 650; font-size: 18px; line-height: 1;
+}
+.radio-mini-name { flex: 1; min-width: 0; display: flex; flex-direction: column; color: inherit; text-decoration: none; min-height: 44px; justify-content: center; }
+.radio-mini-name:hover .radio-mini-title { text-decoration: underline; }
+.radio-mini-title { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.radio-mini-state { color: var(--hint); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.radio-mini .btn { flex: none; }
+/* the page keeps its last lines clear of it */
+html.radio-mini-on { scroll-padding-bottom: 96px; }
+html.radio-mini-on .view { padding-bottom: 108px; }
+@media (max-width: 760px) {
+  .radio-mini { left: 8px; right: 8px; bottom: max(8px, env(safe-area-inset-bottom)); width: auto; }
+  .radio-mini .btn > span:not(.ic) { display: none; } /* Pause / Play as its icon (its name stays its label) */
+  .radio-mini .btn { width: var(--tap); padding: 0; }
+  html.radio-mini-on { scroll-padding-bottom: calc(150px + env(safe-area-inset-bottom)); }
+  html.radio-mini-on .view { padding-bottom: calc(170px + env(safe-area-inset-bottom)); }
+  /* above a tab's fixed action bar */
+  html.radio-mini-on:has(.view .actions:not(.inline)) .radio-mini { bottom: calc(76px + env(safe-area-inset-bottom)); }
+}

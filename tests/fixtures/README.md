@@ -217,3 +217,12 @@ generates media with the project's own ffmpeg.wasm and Chromium). Used only by t
 - `flow.drawio`, `flow.drawio.png`, `flow.drawio.svg` — a small flowchart (two shapes and a labelled connector) saved by draw.io 32.7.7 in
   the Diagram Editor tab with its Save, PNG and SVG (`node scripts/make-diagram-fixtures.mjs` after `npm run build`): the files
   `tests/unit/diagram.test.mjs` reads the diagram out of. Made by us; free to use.
+
+## radio/ (World Radio)
+- `stations.json`, `countries.json`, `languages.json`, `tags.json` — answers of Radio Browser's API (radio-browser.info: an open,
+  community-run directory), recorded on 28 Nov 2026 by `python3 scripts/make-radio-fixtures.py` and cut down to the fields World Radio
+  reads (no logos): 305 stations — India's most listened, All India Radio's, the quick picks' genres, the world's most listened —, the
+  countries, the 300 languages and genres with the most stations. The e2e harness answers every page's requests to the directory from
+  them (`tests/lib/radiostub.mjs`), so no suite reaches the real one; the unit suite reads stations from them.
+- `tone.mp3` (440 Hz, 40 s), `short.mp3` (880 Hz, 2 s) and `hls/` (an HLS stream: 660 Hz, 24 s in MPEG-TS pieces of 4 s) — test streams
+  made with ffmpeg (sine tones; made by us, free to use): what the World Radio suite's stand-in station servers send.

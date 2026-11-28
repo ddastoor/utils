@@ -4,7 +4,7 @@
 // is changed in the overall consolidated settings, a new settings file should be immediately downloaded to the local device").
 // One store: this browser's localStorage. Each section is what one app keeps — Favorites, the folded list of apps, and the apps the owner
 // chose on 28 Nov 2026 (the speech apps' voice and speed, the EPUB Reader's look, the Spell Checker's language and words, the World
-// Clock's cities). A change in an app, on the Settings page or by an import changes the store and every view of it (other open tabs of
+// Clock's cities) and World Radio's favourite stations (owner, 28 Nov 2026). A change in an app, on the Settings page or by an import changes the store and every view of it (other open tabs of
 // the site too: the storage event); a change made in this tab — not one heard from another — writes a settings file a moment after the
 // last of a burst (src/lib/settingsfile.ts, fetched then). Nothing leaves the device. Small on purpose: it is part of the start page.
 import { favs, setFavs, onFavChange } from './favorites';
@@ -217,6 +217,33 @@ export const worldclockSettings = appSection('worldclock', 'World Clock', (v) =>
   return { cities: o.cities === null || o.cities === undefined ? null : strs(o.cities, 100, 80), h24: o.h24 === null || o.h24 === undefined ? null : bool(o.h24, false) };
 });
 function n2<K>(x: unknown, f: (x: unknown) => K): K | null { return x === null || x === undefined ? null : f(x); }
+/** a favourite station of World Radio (potentials #116; owner, 28 Nov 2026: "You should remember my favorite stations … the settings
+ *  page will have the world radio section in it"): what plays and shows it without the directory */
+export interface RadioFav { id: string; name: string; url: string; cc: string; country: string; lang: string; codec: string; bitrate: number; hls: boolean; homepage: string; tags: string }
+export const RADIO_FAVS_MAX = 500;
+const RADIO_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+function radioFavsOf(v: unknown, notes: string[]): RadioFav[] {
+  if (!Array.isArray(v)) return [];
+  const out: RadioFav[] = [], seen = new Set<string>();
+  let bad = 0;
+  for (const s of v) {
+    const url = isObj(s) ? text(s.url, 2000) : '';
+    if (!isObj(s) || typeof s.id !== 'string' || !RADIO_ID.test(s.id) || !/^https?:\/\/\S+$/i.test(url) || !text(s.name, 200).trim()) { bad++; continue; }
+    if (seen.has(s.id)) continue;
+    seen.add(s.id);
+    out.push({
+      id: s.id, name: text(s.name, 200).trim(), url, cc: typeof s.cc === 'string' && /^[A-Z]{2}$/.test(s.cc) ? s.cc : '', country: text(s.country, 100), lang: text(s.lang, 160),
+      codec: text(s.codec, 24) || 'UNKNOWN', bitrate: int(s.bitrate, 0, 0, 100000), hls: s.hls === true, homepage: /^https?:\/\/\S+$/i.test(text(s.homepage, 2000)) ? text(s.homepage, 2000) : '', tags: text(s.tags, 300),
+    });
+  }
+  if (bad) notes.push(`World Radio: ${bad} favourite station${bad === 1 ? '' : 's'} that could not be read left out`);
+  return out.slice(0, RADIO_FAVS_MAX);
+}
+export const worldradioSettings = appSection('worldradio', 'World Radio', (v, notes) => {
+  const o = isObj(v) ? v : {};
+  // keep: the station plays on while another app of the site is open (a small player in the shell)
+  return { favourites: radioFavsOf(o.favourites, notes), keep: bool(o.keep, false), volume: num(o.volume, 0.8, 0, 1) };
+});
 
 /** a file's settings put in place: the sections it holds replace what is stored; returns what was done and left out, in words */
 export function importSettings(file: unknown): { done: string[]; notes: string[] } {

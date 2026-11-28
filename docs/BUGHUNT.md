@@ -3735,3 +3735,21 @@ Here after the fixes: the 14 suites 596 / 596.
   `aria-busy` while it reads.
 - **"wifi qr" found the new tab before the QR Generator** — the QR Generator's keywords now hold "wifi qr" (its search case kept).
 
+
+## World Radio (28 Nov 2026; built — potentials #116)
+Found while building it (each fixed, with a check in the suites):
+- **A stream that ends looked paused.** A media element fires 'pause' before 'ended' at the end of its stream; the player took the 'pause' for one
+  from outside (headphones out, the system) and stood "Paused" instead of connecting again. Now a 'pause' at the stream's end is left to 'ended'
+  (e2e: a 2-second stream — connected once more, then "the stream stopped and did not come back").
+- **A stream that ends each time it starts would have been connected again for ever:** the count of tries was reset whenever sound came. Now it
+  is reset only after 30 s of playing (a station that drops its listeners now and then is still connected again each time).
+- **"AIR " finds "Fair FM" and "Hindi On Air":** the directory's name search finds the words anywhere; the All India Radio pick checks the names
+  again (unit: the recorded stations; e2e: every name in the list).
+- **Pause kept the stream open** (a live station resumed minutes late, from the buffer): Pause now lets the stream go; Play connects afresh (e2e:
+  the stream asked for again).
+- **The rows' buttons named "Play <station>"** did not contain the text they show (WCAG 2.5.3, axe's label-content-name-mismatch): named by what
+  they show now. **The green "Playing" on the lit row** was 4.42 : 1 (#15803d on #eef0ff): the accent there.
+- **The note's link to Radio Browser** was an 18 px target on a phone (the touch-target sweep): a button-sized link of its own.
+- **Volume changes rebuilt the whole list** (the store's listener redrew every row on each move of the slider — and the focus went): only the
+  stars and the chip's count are painted now.
+- **The favourites shown on coming back** were the list as it was before they changed on the Settings page: read again from the store.

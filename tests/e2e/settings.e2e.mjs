@@ -16,7 +16,7 @@ const TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22a', 'wcag22aa']
 const NAME = /^superutils_settings_(\d{8})_(\d{4})\.json$/;
 const BOOK = fileURLToPath(new URL('../fixtures/ebooks/novel.epub', import.meta.url));
 const LEAFLET = fileURLToPath(new URL('../fixtures/snaps/leaflet.jpg', import.meta.url));
-const SECTIONS = ['favorites', 'applist', 'tts', 'camreader', 'audiobook', 'ebook', 'spell', 'worldclock'];
+const SECTIONS = ['favorites', 'applist', 'tts', 'camreader', 'audiobook', 'ebook', 'spell', 'worldclock', 'worldradio'];
 const MARKETS = ['new-york-us', 'toronto-ca', 'sao-paulo-br', 'london-gb', 'frankfurt-am-main-de', 'johannesburg-za', 'mumbai-in', 'shanghai-cn', 'hong-kong-hk', 'tokyo-jp', 'sydney-au'];
 
 export default async ({ base, page: newPage, ok, tmp, devices, info }) => {

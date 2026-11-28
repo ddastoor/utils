@@ -8,7 +8,7 @@ import { favs, setFavs } from './favorites';
 import { appListFolded, setAppListFolded } from './applist';
 import {
   settingsSections, onSettings, autoSave, setAutoSave, saveNow, lastFile, onFileSaved, importSettings, snapshot,
-  ttsSettings, camreaderSettings, audiobookSettings, ebookSettings, spellSettings, worldclockSettings, EBOOK_THEMES, CAMREADER_SIZES, EBOOK_SPEEDS,
+  ttsSettings, camreaderSettings, audiobookSettings, ebookSettings, spellSettings, worldclockSettings, worldradioSettings, EBOOK_THEMES, CAMREADER_SIZES, EBOOK_SPEEDS,
 } from './settings';
 import { VOICES } from './lib/voices';
 import './settingspage.css';
@@ -174,6 +174,19 @@ export function mountSettings(root: HTMLElement): () => void {
     }) : [h('li', { class: 'muted small' }, 'No cities — only your own clock.')]));
   };
   void showCities();
+  // World Radio (potentials #116): its favourite stations, whether it plays on in other apps, its volume
+  const wr = worldradioSettings.get();
+  const wrKeep = toggle('Keep playing in other apps', wr.keep, (v) => worldradioSettings.set({ keep: v }));
+  const wrVol = slider({ label: 'Volume', min: 0, max: 100, step: 1, value: Math.round(wr.volume * 100), unit: ' %', onChange: (v) => worldradioSettings.set({ volume: v / 100 }) });
+  const wrFavs = h('ul', { class: 'st-stations' });
+  const showStations = () => {
+    const fs = worldradioSettings.get().favourites;
+    clear(wrFavs).append(...(fs.length ? fs.map((f) => h('li', null,
+      h('span', null, h('strong', null, f.name), h('span', { class: 'muted small' }, [f.country, f.lang.split(',').slice(0, 2).join(', '), f.codec !== 'UNKNOWN' ? f.codec : ''].filter(Boolean).map((x) => ` · ${x}`).join(''))),
+      button('', () => worldradioSettings.set({ favourites: worldradioSettings.get().favourites.filter((x) => x.id !== f.id) }), { icon: 'X', small: true, variant: 'ghost', title: `Take ${f.name} off your favourites` })))
+      : [h('li', { class: 'muted small' }, 'No favourite stations — the ☆ beside a station in World Radio adds it here.')]));
+  };
+  showStations();
 
   // ------------------------------------------------------------------ every view follows the store (here, an app, another tab, an import)
   offs.push(onSettings((id) => {
@@ -192,6 +205,7 @@ export function mountSettings(root: HTMLElement): () => void {
     }
     else if (id === 'spell') { const v = spellSettings.get(); spLang.value = v.lang ?? ''; showWords(); }
     else if (id === 'worldclock') { const v = worldclockSettings.get(); wcHour.value = v.h24 === null ? '' : v.h24 ? '24' : '12'; void showCities(); }
+    else if (id === 'worldradio') { const v = worldradioSettings.get(); wrKeep.checked = v.keep; wrVol.value = Math.round(v.volume * 100); showStations(); }
     else if (id === 'device') { autoT.checked = autoSave(); hows.hidden = !autoSave(); }
   }));
 
@@ -212,6 +226,8 @@ export function mountSettings(root: HTMLElement): () => void {
       h('div', null, h('div', { class: 'small st-label' }, 'Remembered books'), ebBooks), openLink('ebook'))),
     sec('spell', 'Spell Checker', h('div', { class: 'stack' }, field('Language', spLang), h('div', null, h('div', { class: 'small st-label' }, 'Your words'), spWords), openLink('spell'))),
     sec('worldclock', 'World Clock', h('div', { class: 'stack' }, field('Clock', wcHour), h('div', null, h('div', { class: 'small st-label' }, 'Your cities'), wcList), openLink('worldclock'))),
+    sec('worldradio', 'World Radio', h('div', { class: 'stack' }, h('div', null, h('div', { class: 'small st-label' }, 'Your favourite stations'), wrFavs), wrKeep,
+      h('p', { class: 'muted small' }, 'On: a station plays on while another app of SuperUtils is open, in a small player at the foot of the page.'), wrVol, openLink('worldradio'))),
   );
   void snapshot; void settingsSections;
   return () => { gone = true; offs.forEach((f) => f()); };

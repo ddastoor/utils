@@ -80,7 +80,8 @@ that affects it.
 >    draw.io 53 MB; Photo Dictionary's data 34 MB; FFmpeg 31 MB; PaddleOCR, the OCR's second reader, 31 MB; Tesseract
 >    27 MB; ExifTool 24 MB). 26 Nov 2026, with PaddleOCR: **555 MB**; with the Noise Remover's Studio voice (DeepFilterNet
 >    3, 8.6 MB): **563 MB**; 28 Nov 2026, with SliceDiceGrapher: **578.8 MB**; with the Diagram Editor (draw.io): **631.7 MB**; with sqlite3, bz2 and
->    lzma in the Python tab (1.9 MB) and the Cartoonizer's anime looks (34.6 MB): **668.3 MB**.
+>    lzma in the Python tab (1.9 MB) and the Cartoonizer's anime looks (34.6 MB): **668.3 MB**; with World Radio (31 KB — the stations and
+>    their sound come from the directory and the stations' servers): **668.3 MB**.
 > 4. **Wait for the owner's decision.** Build nothing until the owner has decided.
 
 > ## ⚠️ STANDING RULE #1 — WebAssembly first (owner; permanent; applies to every line of new code)
@@ -247,12 +248,13 @@ Wayland) and **mobile browsers** (Android Chrome, iPhone Safari).
    `localStorage`, one key an app — `superutils.app.<id>.v1` for Text-to-Speech, Camera Reader and Audiobook (voice, speed; the
    Camera Reader's text size and "read aloud at once"; the Audiobook's MP3 quality), the EPUB Reader (its look; since to-do #40
    also its reading voice and speed and **the books the reader asks it to remember**: each book's fingerprint — XXH128 of the file,
-   not the file —, title, author and place), the Spell Checker (its language and the words added) and the World Clock (its cities,
-   its 12 / 24-hour clock) —, and
+   not the file —, title, author and place), the Spell Checker (its language and the words added), the World Clock (its cities,
+   its 12 / 24-hour clock) and **World Radio** (owner, 28 Nov 2026 — potentials #116, built that day: its favourite stations — what
+   plays and shows each without the directory: id, name, stream address, country, language, format, website —, "Keep playing in
+   other apps", the volume) —, and
    `superutils.settings.v1`, this device's own "a settings file after every change"; in IndexedDB (`superutils-settings`), the
    folder chosen for the settings files (its handle — a normal window only; never in a private one). The settings file it writes
-   after every change stays on the device. **Allowed by the owner, to be built:** World Radio's favourite stations, in the
-   Settings page (owner, 28 Nov 2026 — `docs/potentials.md` #116). A new kind of setting needs the owner's word.
+   after every change stays on the device. A new kind of setting needs the owner's word.
 2. **No online *code* dependencies (owner clarification).** Every library, script, WebAssembly module, ML model,
    font and icon is embedded in / served from this site — WebAssembly first, else a locally hosted open-source JS
    library. Never a CDN or remote script. **Fetching *data* from a public online API is allowed** (e.g. network
@@ -260,8 +262,10 @@ Wayland) and **mobile browsers** (Android Chrome, iPhone Safari).
    `script-src`/`style-src`/`font-src`/`worker-src` to `'self'`; `connect-src` = `'self'` + an explicit allowlist of
    approved data-API hosts (listed in `index.html` and §3a "Approved data APIs"); the YouTube Clip tool may embed
    `youtube-nocookie.com` (`frame-src`), and the Diagram Editor a page of this site (`frame-src 'self'`: draw.io's own page,
-   which has a Content-Security-Policy of its own — code only from this site, no other site contacted). `tests/e2e/no-external.e2e.mjs` fails on any code from another host and on
-   any request to a non-allowlisted host.
+   which has a Content-Security-Policy of its own — code only from this site, no other site contacted); `media-src` takes
+   `https:` — sound from any secure server: World Radio's stations' own streams (data, never code; plain HTTP is not allowed);
+   `img-src` stays `'self'` (no station logos — a letter in a circle). `tests/e2e/no-external.e2e.mjs` fails on any code from another
+   host and on any request to a non-allowlisted host.
    **What the rule means (owner, 28 Nov 2026 — his wording; standing):** "when I say that SuperUtil's website should not
    depend on external libraries at runtime, what I mean is they should not pull in JavaScript libraries or Node libraries
    through CDN links, etc., or through any links as the page loads from other sites … whatever is needed for the site to
@@ -368,7 +372,7 @@ Wayland) and **mobile browsers** (Android Chrome, iPhone Safari).
 Platform is PC + mobile unless marked **PC**. Tab ids are the URL hash (`#/<id>`).
 
 **The authoritative, always-current list is `docs/TOOLS.md`, generated from `src/registry.ts` (`npm run docs`).**
-Current total: **198 tabs in 11 categories — 130 PC + mobile, 65 PC only, 3 Mobile only** (regenerate with
+Current total: **199 tabs in 11 categories — 131 PC + mobile, 65 PC only, 3 Mobile only** (regenerate with
 `npm run docs` after every registry change; the owner asked for the registry to always be noted).
 The per-category notes below record decisions; when they disagree with the registry, the registry wins.
 
@@ -497,6 +501,7 @@ URL `#fragment`, never sent to a server) · `hash` Hash / Checksum · `password`
 `passphrase` Passphrase Generator — all both.
 
 **Media**: `video` Video Compressor (both, **BUILT**) · `audio` Audio Recorder (both, **BUILT**) · `tts` Text-to-Speech (both, **BUILT**) ·
+`worldradio` World Radio (both, **BUILT** 28 Nov 2026, potentials #116 — §3 "World Radio") ·
 `ffmpeg` FFmpeg (**PC**, **BUILT**) · `screencast` Screencast (**PC**, **BUILT**) · `screenshot` Screenshot (**PC**, **BUILT**) ·
 `youtube` YouTube Clip (**PC**, **BUILT**)
 
@@ -2858,6 +2863,62 @@ newest file, a file that is no sound, leaving mid-rendering.
 exact 1.00 s trims, the 880 Hz part found by zero crossings, channel levels kept, MP3 decoded by the browser,
 normalise peak −1 dB, fade envelope.
 
+### World Radio — BUILT (potentials #116; owner, 21 & 28 Nov 2026; built 28 Nov 2026 — the first app of the suggested order's group 1)
+(`worldradio` in `src/tools/worldradio.ts` + `.css`, the directory `src/lib/radio.ts` (no DOM), the site's player `src/lib/radioplayer.ts` + `.css`;
+unit `tests/unit/radio.test.mjs` 47 (+ World Radio's section in `settings` 46), e2e `tests/e2e/worldradio.e2e.mjs` 82; fixtures `tests/fixtures/radio/`
+— the directory's answers recorded by `python3 scripts/make-radio-fixtures.py` (305 stations: India's most listened, All India Radio's, the quick
+picks' genres, the world's most listened; the countries, the 300 languages and genres with the most stations), test streams made with ffmpeg
+(`tone.mp3`, `short.mp3`, an HLS stream `hls/`).) The owner's words: "add world radio also" (21 Nov); "listen to different radio stations all
+across the world, including India. You should remember my favorite stations … the settings page will have the world radio section in it. I
+should have an option to keep playing when I switch to another app. A station that won't play (offline, http-only, a format the browser can't
+play) is skipped and the reason is said, never a silent failure" (28 Nov).
+- **The directory:** Radio Browser (radio-browser.info: an open, community-run directory of 50,000+ stations, no key) — its servers `all`, `de1`,
+  `de2` asked in turn (`directory`: one that cannot be reached, times out after 8 s, sends no JSON or answers 5xx → the next; a refusal (4xx)
+  said; the one that answered last asked first; a newer search aborts the older), `credentials: 'omit'`, no referrer. A station read
+  (`stationOf`): its id (lower case), name, the address the directory resolved (`url_resolved`), website (http(s) only), country and code,
+  state, languages, tags (once each, lower case, at most 12), codec, bitrate, HLS (the directory's flag or an .m3u8 address), the last check,
+  listens in the last day, likes — control characters out; the same stream listed twice kept once. Broken stations (`hidebroken`) left out.
+- **The quick picks** (`PICKS`): **India — most listened** (the tab opens on it), **All India Radio** (searches for All India Radio, Akashvani,
+  Aakashvani, Vividh Bharati / Bharti and "AIR " merged, the names checked again — the directory's name search finds "air " in "Fair FM" and "On
+  Air"), **Indian news**, **Devotional** (devotional, spiritual, bhakti, mantra, religious), **Bollywood**, **Indian classical** (classical,
+  carnatic, hindustani classical), **World — most listened**; a pick of several searches is merged and ordered by listeners. **The search:** a
+  name (as it is typed, 450 ms), a country (India first, then by stations; English names from the browser's Intl), a language and a genre (the
+  directory's, with at least 5 / 15 stations; India's first in a group of their own), the order (most listened, most liked, A → Z, surprise me);
+  a page of 60, **More stations**. Back to nothing chosen: India's most listened.
+- **The player** (`src/lib/radioplayer.ts` — one `<audio>` for the whole site, appended to the page's body, outside every tab): a station is
+  tried (`tryStation`): **not a web stream** (rtsp:, mms:) → said; a codec the browser says it cannot play (`canPlayType`: WMA …; an HLS stream
+  where the browser has no HLS) → said without asking for it; **a plain-HTTP stream is asked for over HTTPS** (a secure page plays no other) and,
+  failing, said as "plain HTTP only — or off the air"; else the stream is asked for and given 15 s to start (`CONNECT_MS`) — no answer, a refusal,
+  a stream that is no sound: "its server did not send the stream — it is off the air, or it refused" (or "off the air — the directory could not
+  reach it either" when its last check failed). **In a list, or with Next, a station that does not play is skipped:** marked in the list with its
+  reason, the next one tried — at most five in a row (`MAX_SKIPS`), then it stops and says so; once one plays, the line says which did not
+  ("Plain HTTP Radio did not play (…) — playing HLS Wave instead"). Chosen again by hand, a marked station is tried again. **Pause lets the stream go**
+  (Play connects again: live, not a stale buffer); Stop; Previous / Next past the marked ones. A stream that breaks off or ends is connected again
+  once — again after it has played for 30 s and more, not for ever ('pause' comes before 'ended' at a stream's end: it is not a pause). The
+  directory's count of listeners: once a station a visit (`/json/url/<id>`, which the directory asks clients to call). **Volume** (kept in the
+  Settings without a file of its own; not on iPhones — Safari ignores it: the phone's buttons), **sleep timer** (15 min – 2 h: the sound fades out
+  over its last 8 s, then stops; "Stops at …"). **The lock screen and the media keys** (Media Session): the station's name, country and language,
+  a picture of its letter (drawn — no logo from another site), play / pause / stop / next / previous.
+- **"Keep playing in other apps"** (a switch, off at first; the owner, 28 Nov 2026): on, the station plays on while another app of the site is
+  open — a small player at the foot of every other page (`.radio-mini`: the station's letter and name, its state, Pause / Play, Stop; its name
+  leads back to World Radio; on phones above a tab's fixed action bar), the pages keep their last lines clear of it; off, leaving World Radio
+  stops the sound (`onLeave` → `left()`). Switched off on the Settings page while it plays elsewhere: stopped.
+- **Favourites** (the Settings' World Radio section — `superutils.app.worldradio.v1`, the settings file after every change, export and import):
+  ☆ on any row and on the station playing; "★ Your favourites (n)" a quick pick of its own; up to 500; what plays and shows each is kept
+  (id, name, stream address, country, language, format, website, tags), so a favourite plays without the directory. Opening the favourites asks
+  the directory for their current entries (`/json/stations/byuuid`, 50 at a time) and brings a moved stream's address up to date (quietly: it goes
+  into the next settings file); one the directory could not reach at its last check is marked. The Settings page lists them (each taken off with
+  ✕), the switch and the volume.
+- **HLS without hls.js:** Chrome (Windows, Linux, Android), Safari and the iPhone play HLS themselves (`canPlayType('application/vnd.apple.mpegurl')`;
+  the suite plays an HLS stream in Chromium 153); a browser without it (Firefox) is told "its stream is HLS, which this browser cannot play" and
+  the station skipped — no JavaScript player added (`docs/WASM-AUDIT.md`, tab 205).
+- **The tab:** the station playing (its letter in a circle, name, country, languages, genres, format, listens and likes, its website in a new tab
+  — noopener, no referrer —, the state, a line for what happened), Previous / Play-Pause / Next / Stop (phones: the fixed bar at the foot,
+  Pause in words, the others as icons), the volume, the sleep timer, the switch; the quick picks, the search, the stations (each a row: letter,
+  name, country · languages · genres · format, its state or why it did not play; the row plays it; ☆), the note (Radio Browser, the data a stream
+  takes — about 30 – 60 MB an hour —, the count of listeners). The list, the pick and the search are kept while the page is open; nothing but
+  the Settings' section is stored. Nothing at open but the tab's code (31 KB) and the directory's answers (India's stations and the three lists).
+
 ### PDF Toolkit
 Merge, split (ranges / every page), reorder (drag thumbnails), rotate, delete pages, images → PDF
 (page size A4/Letter/fit, margins), PDF → images (PNG/JPEG at chosen DPI), **compress** (recompress
@@ -4461,7 +4522,8 @@ something like superutils_settings_ mmdd_ hour minute."
   quality); **EPUB Reader** (font, text size, line spacing, theme, margins, text edge, one or two pages, the book's own styles — "as the
   device suits" until chosen; since to-do #40 the reading voice and speed of its ▷ — "Not chosen yet" until the first ▷ — and **the remembered books**, each with its place, when it was last read and Forget (the reader open in another tab turns its switch off)); **Spell Checker** (the language; the words added with "Add to dictionary" — kept between visits now — each
   removable there); **World Clock** (its cities, added with its search or a set, moved, taken off — each removable there —, and the 12 /
-  24-hour clock; owner, 28 Nov 2026: "when I add new cities, it gets saved in the settings page"). Each section links to its app. A link to
+  24-hour clock; owner, 28 Nov 2026: "when I add new cities, it gets saved in the settings page"); **World Radio** (its favourite stations —
+  each taken off with ✕ —, "Keep playing in other apps", the volume; potentials #116, 28 Nov 2026). Each section links to its app. A link to
   the World Clock with a list of its own (`?c=…`) shows that list without storing it until something is changed there.
 - **A settings file after every change** ("Save a settings file after every change", on: this device's own switch, not in the file):
   `superutils_settings_YYYYMMDD_HHMM.json` (the year added so the files sort across years — told to the owner), 1.5 s after the last of a
@@ -4766,11 +4828,16 @@ only when a tool needs live data and the owner has accepted that tool. **Approve
 | `raw.githubusercontent.com` (a file of a public repository at a commit: `/<owner>/<repo>/<commit>/<path>`) | `diff` (to-do #14) | the repository, the file's path and a commit | the Text Diff's "a file of a public GitHub repository at two commits" — approved by the owner, 26 Nov 2026: "yes u may contact raw.githubusercontent.com and api.github.com in real time"; in the CSP since #14 was built (26 Nov 2026) |
 | `api.github.com` (REST, no key: a short hash or a branch made a full commit, a path missing at a commit explained) | `diff` (to-do #14) | the repository, the path, the commits | what the raw files cannot say (60 requests an hour without an account, said when used up) — approved with the host above |
 | `en.wikipedia.org` (Wikimedia REST: `/api/rest_v1/page/summary/<title>`) | `photodict` | one word, or the phrase the reader selected | a short summary under each word and phrase (owner, 21 Nov 2026; `src/lib/wikipedia.ts`; a switch turns it off) |
+| `all.api.radio-browser.info`, `de1.api.radio-browser.info`, `de2.api.radio-browser.info` (Radio Browser: `/json/stations/search`, `/json/stations/byuuid`, `/json/countries`, `/json/languages`, `/json/tags`, `/json/url/<id>`) | `worldradio` | a search (a station's name, a country, a language, a genre), the ids of the favourites; a station's id when it is played (the directory's count of listeners) | the stations of the world (owner, 21 & 28 Nov 2026; approved with the pick of group 1, 28 Nov 2026) — one server after another; the stations' **streams** come from their own servers (`media-src https:`, sound only) |
 All are free, need no key or account, send CORS headers, set no cookies we read. **Live in the CSP** (`connect-src 'self' blob:
 data: https://en.wiktionary.org https://api.dictionaryapi.dev https://en.wikipedia.org https://raw.githubusercontent.com
-https://api.github.com` — Wikipedia since 21 Nov 2026, the two GitHub hosts since 26 Nov 2026);
-`no-external.e2e.mjs` asserts that connect-src lists exactly these hosts and that no code directive allows any host. e2e tests never hit them: Playwright `page.route` serves recorded responses (the dev sandbox cannot
-reach them anyway). Candidate tools offered to the owner: currency converter (frankfurter.app, ECB rates),
+https://api.github.com https://all.api.radio-browser.info https://de1.api.radio-browser.info https://de2.api.radio-browser.info` —
+Wikipedia since 21 Nov 2026, the two GitHub hosts since 26 Nov 2026, Radio Browser since 28 Nov 2026; `media-src … https:` since
+28 Nov 2026); `no-external.e2e.mjs` asserts that connect-src lists exactly these hosts, that media-src allows `https:` and nothing else
+of other hosts, and that no code directive (nor img-src) allows any host; World Radio's route may call its directory as it opens
+(`AT_OPEN`), no other route any of them. e2e tests never hit them: Playwright `page.route` serves recorded responses (the dev sandbox cannot
+reach them anyway); the harness routes every page's requests to Radio Browser to recorded answers (`tests/lib/radiostub.mjs`,
+`tests/fixtures/radio/` from `python3 scripts/make-radio-fixtures.py`) — the sweeps over every tab never reach the directory. Candidate tools offered to the owner: currency converter (frankfurter.app, ECB rates),
 weather (Open-Meteo), IP/network info, clock-accuracy check (network time).
 
 ## 4. Architecture
@@ -4785,7 +4852,7 @@ weather (Open-Meteo), IP/network info, clock-accuracy check (network time).
   mobile with swipeable sticky rows. PC-only tools hidden when `isMobile()` (`src/platform.ts`).
 - **CSP** in `index.html` `<meta http-equiv="Content-Security-Policy">`: `default-src 'self'`,
   `script-src 'self' 'wasm-unsafe-eval'`, `worker-src 'self' blob:`, `connect-src 'self' blob: data:`,
-  `img-src 'self' blob: data:`, `media-src 'self' blob: mediastream:`, `style-src 'self' 'unsafe-inline'`,
+  `img-src 'self' blob: data:`, `media-src 'self' blob: data: mediastream: https:` (World Radio's streams), `style-src 'self' 'unsafe-inline'`,
   `frame-src 'self' https://www.youtube-nocookie.com` (the Diagram Editor's draw.io page; the YouTube player), `object-src 'none'`.
 - Our wasm modules are WASI "reactor" modules (no Emscripten); `src/wasm/wasi.ts` is a tiny shim
   (`random_get` → `crypto.getRandomValues`, `fd_write` → console, everything else ENOSYS).
@@ -4845,6 +4912,9 @@ Owner: "make the full site faster, more responsive and memory efficient — load
    dictionary tables/shards and PDF fonts are dropped. Pending calls of a released worker are dropped silently
    (the tab is gone; no stray error toast). Coming back re-creates them (HTTP cache makes it fast).
    `globalThis.__superutilsLive()` → `{ workers, resources }` (used by the test: 0 after leaving).
+   **The one exception — World Radio's sound** (owner, 28 Nov 2026): with "Keep playing in other apps" on, the station plays on after
+   the tab is left — the site's one `<audio>` lives outside every tab (`src/lib/radioplayer.ts`), with a small player at the foot of
+   the other pages; off (the default), leaving stops it as every tab lets its things go. Nothing else of the tab stays.
 4. **Limitation:** libraries that load into the main thread as ES modules stay in memory until the page reloads
    (the browser never unloads an imported module): MuPDF (its wasm heap), zxing-cpp, the MediaPipe runtime,
    libheif, OpenPGP.js. Their *data* is released; only the code/heap stays. Moving MuPDF into a worker (so it can

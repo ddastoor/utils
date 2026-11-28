@@ -35,7 +35,12 @@ suggestion (docs/potentials.md "Suggested order", ≈ 2 MB in all; the size give
 → 4 frames of a video (99, 17, 85, 64, 6) → 5 making documents (72, 97, 18, 90, 91) → 6 India first (111, 30, 31, 34) → 7 folders
 on a PC (102, 112, 20, 63). The bigger ones (U3, 4, 2, 55) wait for their own size check. Picking group 1 approves its data hosts;
 this environment's network allows them since 28 Nov (radio-browser de1 / de2 / all, Wikimedia, Met, AIC, Cleveland, NASA). Each app
-committed and pushed when done and taken off potentials.md. **Now:** World Radio.
+committed and pushed when done and taken off potentials.md. **World Radio (116) — DONE** (`worldradio`, Media, PC + mobile: Radio Browser's
+stations, India first; the site's one player — skips a station that does not play and says why, Pause lets the stream go, the lock screen,
+the sleep timer —; favourites in the Settings; "Keep playing in other apps" with a small player on the other pages; no hls.js — the owner's
+browsers play HLS; CLAUDE.md §3 "World Radio"; unit `radio` 47, `settings` 46; e2e `worldradio` 82; the sweeps — settings, no-external,
+lazy, every-tab, a11y, touch-targets, scroll-focus, other-device, junk-files, engine-download, camera, os, shell — green; 31 KB, the site
+668.3 MB). **Now:** Wallpapers from Wikimedia and Museums (115), then the NASA Image Explorer (114).
 **▶▶ 27 Nov 2026 — DONE: the owner's "Go ahead with all items in todo" (to-do #33 – #36), each committed and pushed:**
 **#36** (the start page's note of the other device's apps), **#34** (Watermark: the first page of a document with or without
 the mark), **#33** (Cartoonizer: how cartoony, in grades), **#35** (Text Diff: Side by side, the lines of a change paired by the

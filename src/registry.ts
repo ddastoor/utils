@@ -130,6 +130,7 @@ export const TOOLS: Tool[] = [
   t('noise', 'Noise Remover', 'Remove background noise from voice recordings.', 'media', 'AudioWaveform', () => import('./tools/noise').then((m) => m.mount)),
   t('pitch', 'Pitch & Speed', 'Change tempo or pitch of audio independently.', 'media', 'Gauge', () => import('./tools/pitch').then((m) => m.mount)),
   t('slideshow', 'Slideshow Maker', 'Photos + music → MP4 video.', 'media', 'GalleryHorizontal', () => import('./tools/slideshow').then((m) => m.mount)),
+  t('worldradio', 'World Radio', 'Radio stations of India and the world — favourites, and it plays on in other apps.', 'media', 'Radio', () => import('./tools/worldradio').then((m) => m.mount)),
 
   t('ffmpeg', 'FFmpeg', 'Convert, trim, extract audio, compress — FFmpeg in your browser.', 'media', 'Clapperboard', () => import('./tools/ffmpeg').then((m) => m.mount), 'pc'),
   t('screencast', 'Screencast', 'Record your screen, a window, a tab or an area to MP4.', 'media', 'MonitorPlay', () => import('./tools/screencast').then((m) => m.mount), 'pc'),

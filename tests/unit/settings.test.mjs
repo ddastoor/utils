@@ -22,8 +22,8 @@ export default async (t, { load }) => {
   const F = await load('/src/lib/settingsfile.ts');
   const { TOOL_BY_ID } = await load('/src/registry.ts');
 
-  t.eq(S.settingsSections().map((s) => s.id), ['favorites', 'applist', 'tts', 'camreader', 'audiobook', 'ebook', 'spell', 'worldclock'],
-    'the sections: Favorites, the list of apps, and the apps the owner chose (28 Nov 2026) in their order');
+  t.eq(S.settingsSections().map((s) => s.id), ['favorites', 'applist', 'tts', 'camreader', 'audiobook', 'ebook', 'spell', 'worldclock', 'worldradio'],
+    'the sections: Favorites, the list of apps, and the apps the owner chose (28 Nov 2026) in their order — World Radio\'s last (potentials #116)');
 
   // ---- defaults, from an empty store
   const snap0 = S.snapshot(new Date(2026, 10, 28, 9, 5, 7));
@@ -33,7 +33,7 @@ export default async (t, { load }) => {
     favorites: [], applist: { folded: false },
     tts: { voice: 'af_heart', speed: 1 }, camreader: { voice: 'af_heart', speed: '1', size: 24, auto: true }, audiobook: { voice: 'af_heart', speed: 1, kbps: 64 },
     ebook: { font: 'literata', size: null, line: 1.5, justify: null, theme: null, publisher: true, margin: 'normal', spread: 'auto', books: [], voice: null, speed: '1' },
-    spell: { lang: null, added: [] }, worldclock: { cities: null, h24: null },
+    spell: { lang: null, added: [] }, worldclock: { cities: null, h24: null }, worldradio: { favourites: [], keep: false, volume: 0.8 },
   }, 'from an empty store every section has its defaults (null: what follows the device or the browser until chosen)');
 
   // ---- every app's values checked
@@ -89,6 +89,25 @@ export default async (t, { load }) => {
   t.eq(S.spellSettings.get(), { lang: 'en-US', added: ['Aadhaar', 'naïve'] }, 'the Spell Checker: a language it does not have is American English; its words once each, only words (no digits, no empty)');
   S.worldclockSettings.set({ cities: ['new-york-us', 3, 'london-gb', 'new-york-us'], h24: 'yes' });
   t.eq(S.worldclockSettings.get(), { cities: ['new-york-us', 'london-gb'], h24: false }, 'the World Clock: its cities once each, as text');
+  // World Radio (potentials #116): its favourite stations — what plays and shows them without the directory —, keep playing, the volume
+  const U = (c) => `${c.repeat(8)}-${c.repeat(4)}-${c.repeat(4)}-${c.repeat(4)}-${c.repeat(12)}`;
+  const st = (id, more = {}) => ({ id, name: 'Akashvani FM Gold', url: 'https://air.example/gold', cc: 'IN', country: 'India', lang: 'hindi,english', codec: 'AAC+', bitrate: 64, hls: false, homepage: 'https://prasarbharati.gov.in/', tags: 'news,music', ...more });
+  S.worldradioSettings.set({ keep: true, volume: 0.35, favourites: [
+    st(U('a')), st(U('a'), { name: 'again' }), st('not-a-uuid'), st(U('b'), { url: 'rtsp://x' }), st(U('c'), { name: '  ' }),
+    st(U('d'), { name: 'Odd\u0007 one', cc: 'india', bitrate: -4, hls: 'yes', homepage: 'javascript:alert(1)', codec: '' }), 42,
+  ] });
+  const wr = S.worldradioSettings.get();
+  t.eq([wr.keep, wr.volume, wr.favourites.map((f) => f.id[0])], [true, 0.35, ['a', 'd']], 'World Radio: the switch and the volume kept; a station once (the first), no station without its id, a web address or a name');
+  t.eq(wr.favourites[1], { id: U('d'), name: 'Odd  one', url: 'https://air.example/gold', cc: '', country: 'India', lang: 'hindi,english', codec: 'UNKNOWN', bitrate: 0, hls: false, homepage: '', tags: 'news,music' },
+    '… values it cannot take back to their defaults (a country code of two capitals, a bitrate of 0 and more, a web address for the website), control characters out');
+  S.worldradioSettings.set({ volume: 3, keep: 'on' });
+  t.eq([S.worldradioSettings.get().volume, S.worldradioSettings.get().keep], [0.8, false], '… a volume outside 0 – 1 and a switch that is no true / false: the defaults');
+  const notesR = S.importSettings({ app: 'SuperUtils', kind: 'settings', format: 1, settings: { worldradio: { favourites: [st(U('e')), { id: U('f') }, 'x'], keep: true } } }).notes;
+  t.ok(S.worldradioSettings.get().favourites.length === 1 && S.worldradioSettings.get().keep && notesR.some((n) => /World Radio: 2 favourite stations that could not be read left out/.test(n)),
+    `an import: its stations replace them, the ones that cannot be read named (${notesR.join(' | ')})`);
+  S.worldradioSettings.set({ favourites: Array.from({ length: 520 }, (_, i) => st(`${String(i).padStart(8, '0')}-0000-4000-8000-000000000000`)) });
+  t.eq(S.worldradioSettings.get().favourites.length, S.RADIO_FAVS_MAX, `at most ${S.RADIO_FAVS_MAX} favourite stations`);
+  S.worldradioSettings.set({ favourites: [], keep: false, volume: 0.8 });
 
   // ---- what another tab changed
   heard.length = 0;

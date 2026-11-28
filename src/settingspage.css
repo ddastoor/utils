@@ -1,8 +1,8 @@
 /* The Settings page (#/settings) */
 .st-sec { scroll-margin-top: calc(var(--navh, 0px) + 12px); }
-.st-favs, .st-words, .st-cities, .st-books { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
-.st-favs li, .st-words li, .st-cities li, .st-books li { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 44px; border-bottom: 1px solid var(--border); }
-.st-favs li:last-child, .st-words li:last-child, .st-cities li:last-child, .st-books li:last-child { border-bottom: 0; }
+.st-favs, .st-words, .st-cities, .st-books, .st-stations { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.st-favs li, .st-words li, .st-cities li, .st-books li, .st-stations li { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 44px; border-bottom: 1px solid var(--border); }
+.st-favs li:last-child, .st-words li:last-child, .st-cities li:last-child, .st-books li:last-child, .st-stations li:last-child { border-bottom: 0; }
 .st-favs a { display: inline-flex; align-items: center; gap: 8px; color: inherit; text-decoration: none; min-height: 44px; }
 .st-favs a:hover span { text-decoration: underline; }
 .st-favs .icon { width: 18px; height: 18px; color: var(--accent); }
