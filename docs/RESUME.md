@@ -162,9 +162,16 @@ digits ticking by the second, the date and day against yours, the offset, the zo
 (mathcore's new `m_sun`, held to astral 3.2 within 0.5 ms on 15,624 events), day or night, the next clock change (found to the second;
 all 389 changes of 2026 – 2027 in 357 zones as zoneinfo gives them); the owner's seven first, six more sets, the search (textcore: other
 names, zones by abbreviation, name and offset), Undo, move, remove, 12 / 24 h, look ahead ±12 h; the list in the address. Unit
-`worldclock` 39, e2e `worldclock` 55. **Next:** #10 Spell Checker, #1 Image to SVG + #117 Clipart Maker, #75 SliceDiceGrapher (with #25
-Chart Maker), #54 Diagram Editor (draw.io, PC only); each with its size check measured first (stop and ask if much bigger than the
-27 Nov estimate).
+`worldclock` 39, e2e `worldclock` 55. **#10 Spell Checker — BUILT (28 Nov 2026):** the tab `spell` (Text, PC + mobile; CLAUDE.md §3
+"Spell Checker"): our build of Hunspell 1.7.6 (hunspell.wasm, 0.66 MB — the existing builds give other suggestions or cut them short) with
+SCOWL's American and British dictionaries and our 412 words of Indian English; the marks under the text, the walk (Change, Change all,
+Ignore, Ignore all, Add, a word typed, Previous / Next round and round, Undo), Paste, Open, a file dropped, Copy, Download under the
+file's name; **its suggestions in our order** (`wasm/hunspell/rank.hxx`: wordfreq's frequencies, a weighted edit distance, the
+dictionary's table of misspellings — fitted on half of codespell's list of misspellings: the right word first 86.3 → 89.6 %, capitalised
+81.9 → 89.5 %, classic misspellings 80.2 → 89.3 %). Size, measured: 1.8 MB on the site (the module and two dictionaries); the frequency
+list is the Photo Dictionary's. Unit `spell` 51 (the module against the native build, list for list), e2e `spell` 65. **Next:** #1 Image
+to SVG + #117 Clipart Maker, #75 SliceDiceGrapher (with #25 Chart Maker), #54 Diagram Editor (draw.io, PC only); each with its size check
+measured first (stop and ask if much bigger than the 27 Nov estimate).
 **Then to-dos #38, #39 and #40** (owner,
 27 Nov 2026, evening: "After you finish all these, finish off the items in the todo.md also."; #40, added the same evening:
 the EPUB Reader's "Remember book" — a hash of the book, its place and the reading voice in the Settings — after #39). The open question (keep the EPUB Reader's place between visits?) is

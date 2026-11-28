@@ -336,7 +336,7 @@ Wayland) and **mobile browsers** (Android Chrome, iPhone Safari).
 Platform is PC + mobile unless marked **PC**. Tab ids are the URL hash (`#/<id>`).
 
 **The authoritative, always-current list is `docs/TOOLS.md`, generated from `src/registry.ts` (`npm run docs`).**
-Current total: **193 tabs in 11 categories — 126 PC + mobile, 64 PC only, 3 Mobile only** (regenerate with
+Current total: **194 tabs in 11 categories — 127 PC + mobile, 64 PC only, 3 Mobile only** (regenerate with
 `npm run docs` after every registry change; the owner asked for the registry to always be noted).
 The per-category notes below record decisions; when they disagree with the registry, the registry wins.
 
@@ -473,7 +473,7 @@ Photo") · `fuel` Fuel Cost · `gpa` GPA · `base` Number Base Converter · `rom
 **Text** (all both): `wordcount` Word Counter · `case` Case Converter · `lines` Line Tools · `replace` Find &
 Replace · `diff` Text Diff · `fancy` Fancy Text · `emoji` Emoji & Symbols · `morse` Morse Code · `lorem` Lorem Ipsum ·
 `photodict` **Photo Dictionary (PC + mobile — owner, 21 Nov 2026; see §3)** · `camreader` Camera Reader (**BUILT** 28 Nov 2026, potentials #81 — §3
-"Camera Reader")
+"Camera Reader") · `spell` Spell Checker (**BUILT** 28 Nov 2026, potentials #10 — §3 "Spell Checker")
 
 **Software** — owner rule: **every Software tool is PC only.** Moved here from the old "Text & Dev": `json` JSON
 Formatter · `regex` Regex Tester · `base64` Base64 · `urlenc` URL Encoder · `epoch` Epoch Converter · `uuid` UUID
@@ -2086,6 +2086,52 @@ unixcw's libcw read through ctypes → `tests/fixtures/morse/reference.json`.)
 - **Plain text** (paragraphs apart by a blank line) or **HTML** (each in `<p>`); Copy and the box's copy button give
   what is shown; the line under it: "3 paragraphs · 18 sentences · 316 words · 2,135 characters" (the Word Counter
   tab counts the same). A failed download of the engine is said; the next change or Regenerate tries again.
+
+### Spell Checker — BUILT (potentials #10; owner, 26 Nov 2026; built 28 Nov 2026 — group 3 of the suggested order)
+(`spell` in `src/tools/spell.ts`, the text's words and changes `src/lib/spelltext.ts` (no DOM), engine `wasm/hunspell` → **hunspell.wasm**
+(our build of Hunspell 1.7.6 with our order of suggestions, `wasm/hunspell/rank.hxx`; 0.66 MB) in `src/workers/spell.worker.ts`; unit
+`tests/unit/spell.test.mjs` 51, e2e `tests/e2e/spell.e2e.mjs` 65; reference `tests/fixtures/spell/reference.json` from `python3
+scripts/make-spell-reference.py` — the native build of the same source that `wasm/hunspell/build.sh` leaves at `$WORK/native/hsref`.) The
+owner's words (potentials #10): "the app should be able to take text from the clipboard, and upload text files. The spell checking
+operation should involve the usual cycling through of all ill spelt words with suggestions to fix. A download and copy button should also
+be there for the end result".
+- **In:** a text box (at most 1,000,000 characters); **Paste** (the clipboard's text, at the caret or over the selection; where the browser
+  will not let the page read it, Ctrl+V is said), **Open a text file** (.txt, .md, .csv, .srt … — decoded as the other text tabs do) or a
+  file dropped on the box.
+- **The marks:** each misspelt word underlined in the box itself — a copy of the text under the transparent text area, with its font,
+  padding, wrapping and scroll (`.sp-back`); the current one shaded; a click on a marked word makes it the current one; typing moves the
+  marks and the current word with the text (`moved`, `diffSpan`). Checked when the typing pauses (250 ms; 600 ms above 200,000
+  characters), each different word once.
+- **Left alone** (`tokens`): web and e-mail addresses and file names, whole; words with digits (2nd, B2B), in CAPITALS (NASA, GST), and
+  capitalised words in mid-sentence (names: Ramesh, Infosys — a full stop after a title or an initial ends no sentence: Dr. Rao, A. P. J.
+  Abdul Kalam) — each a switch under "What is left alone"; a capitalised word at a sentence's start is checked.
+- **The walk** (Word's spelling pane): "n of N", the word in its sentence (`around`), the suggestions — eight, then "n more" —, the first
+  in "Change to"; **Change** (with "Change to" still empty, the first suggestion once it has come), **Change all (n)**, **Ignore** (here),
+  **Ignore all**, **Add to dictionary** (kept while the page is open — nothing stored), a word typed in "Change to" and Enter (it takes the
+  capitals of the word it replaces: Recieve → Receive), **Previous / Next** round and round, **Undo** (30 steps: changes, ignoring,
+  adding, Paste, Open, Clear). Wide screens: the pane beside the text, kept in view; phones: Ignore, Change and Next in the fixed bar.
+- **Languages:** English (United States) — SCOWL's en_US; English (United Kingdom) — SCOWL's en_GB with -ise; **English (India)** — the
+  British dictionary (Indian English spells as British English does) with our list of 412 words added by Hunspell's `add_dic`
+  (`public/data/spell/en-IN.dic`, `python3 scripts/make-spell-india.py`: lakh, crore, paise; the languages, states and cities — India's of
+  the World Clock's list —; festivals, food, dress, words of public life and of every day: prepone, Aadhaar, challan, godown …). The first
+  one by the browser's language (en-IN → India; en-GB, AU, NZ, IE, ZA → British; else American); kept while the page is open.
+- **The order of the suggestions** (`rank.hxx`, compiled into the module and into the native reference): Hunspell's candidates, each
+  scored by how common the word is — wordfreq's Zipf frequency, the Photo Dictionary's `public/data/dict/freq.txt`, fetched with the
+  first suggestion (1.3 MB gzipped; until it is there, Hunspell's own order) — less 3 × how far it is from what was typed (a weighted edit
+  distance on lower case: a letter for another 1, the same letter with another accent 0.3, a vowel for a vowel 0.75, a key beside it 0.8;
+  a letter in or out 1, a doubled one 0.5, a vowel 0.8, a space, hyphen or apostrophe 0.4; two swapped 0.9), less 0.1 × Hunspell's
+  rank, less 1 for two words (as common as their parts together by chance: Zipf₁ + Zipf₂ − 9), less 0.5 for a capital the typed word
+  lacks, plus 2 where the dictionary's own table of misspellings (its REP lines: alot → a lot) makes it of the typed word. **Measured**
+  on codespell 2.4.1's list of common misspellings (fitted on its even-numbered half, tested on the odd-numbered one), the right word
+  first: 86.3 → 89.6 %; capitalised, as at a sentence's start, 81.9 → 89.5 % (Hunspell lists a capitalised word's own candidates before
+  its lower-case form's: "Teh" had "The" ninth); words written together 77.8 → 90.3 %; 131 classic misspellings of people (not fitted
+  on) 80.2 → 89.3 %, capitalised 69.5 → 90.8 % — en-GB alike. Ranking by frequency alone was worse than Hunspell's order (84 %).
+- **Out:** **Copy** and **Download** — under the file's own name (.txt, .md, .csv, .srt …), else spell-checked.txt.
+- **Lazy:** nothing at open; the module and the language's dictionary with the first text (each dictionary 0.55 MB, 0.19 MB gzipped;
+  India's list 4 KB), the frequencies with the first suggestion; the worker ends when the tab is left.
+- **Measured** (the unit suite): the module's suggestions are native Hunspell 1.7.6's, built from the same source (32-bit x86, as wasm32 —
+  Hunspell's word hash is a `long`, and on a 64-bit machine equally scored suggestions come out in another order), for 1,300 misspellings
+  in both dictionaries, word for word; the order is the native build's and the script's own Python reading of the rules, list for list.
 
 ### CSV / Excel (PC) — as built after the Nov 2026 bug hunt
 (`sheet` in `src/tools/sheet.ts`, around it `src/lib/sheetdata.ts`, engine sheet.wasm — §5.1f; unit `tests/unit/sheet.test.mjs`
@@ -4192,6 +4238,7 @@ difference over its detail, the overlap's pixels), ruled lines and list marks cl
 | geo: Charles Karney's **geodesic.c 2.2** (GeographicLib's geodesic routines in C, MIT; the two files unmodified from the PROJ 9.9.0 release) + glue (inverse problem on WGS-84, half-way point, the haversine great circle for comparison) | C | **us** (`wasm/geo`, 36 KB, loaded by the Coordinates tab only; no tried-and-tested WebAssembly geodesic module exists: `docs/WASM-AUDIT.md`, tab 82) | coords |
 | textcore: tool-search ranking, rare-word ranking (tokeniser, lemmatiser, wordfreq hash table), XY-cut reading order (columns numbered only where they are real: `minh`), **the tables of a page** (`table.c`, `t_tables`: ruled grids and columns that line up — Tabula's and Camelot's two ways; MuPDF's own `table-hunt` loses columns: docs/WASM-AUDIT.md 191) | C (own code) | **us** (`wasm/textcore`) | search box, emoji (search), photodict, epub, clipper (the order of a story's parts), kindlepdf (a page's regions), pdf-tables, worldclock (the city search) |
 | textkit: **unicode-segmentation 1.13.3** (the Rust ecosystem's UAX #29 implementation, Unicode 17.0, MIT / Apache-2.0: extended grapheme clusters, sentence boundaries) + our counting rules: words as a word limit counts them, abbreviations and initials, lines and paragraphs, keywords (Snowball's stop words); **the Case Converter's thirteen conversions** (`case.rs`: Title Case is a port of the Python package `titlecase` 2.4.1 — Gruber's rules, MIT; the code cases cut words as npm's `change-case` does; case mapping by Rust's standard library) | Rust | **us** (`wasm/textkit`, crates.io via `Cargo.lock`, two modules by Cargo features: **textkit.wasm** 217 KB — fetched with the Word Counter's first text, with the Case Converter, and with the first Fancy Text that has an emoji or another script — and **textkit-diff.wasm** 0.71 MB = the **`similar` crate 3.2.1** (Apache-2.0: Myers in linear space with a time limit, line / word / grapheme diffs, inline changes, unified diffs) + our glue and our pairing of a change's lines side by side (`pair_lines`: likeness by a bounded Myers search, the best order-keeping pairing by dynamic programming — to-do #35), fetched by the Text Diff only; and **textkit-lorem.wasm** 0.13 MB = the **`lipsum` crate 0.9.1** (MIT: a Markov chain over the classic passage and Cicero's *De finibus*, with rand 0.8 / rand_chacha 0.3) + our glue (cleaned texts learned as circles, exact counts), fetched by the Lorem Ipsum tab; and **textkit-tokens.wasm** 0.20 MB = the same `similar` crate's **patience algorithm** on two documents' tokens + ours (`tokens.rs`: runs that are only added or removed slid to where they read best, short equal runs taken into the changes round them, moves), fetched by PDF Compare's first Compare; the existing module — ICU4X's official build — is one file of 20 MB: `docs/WASM-AUDIT.md`, tab 90) | wordcount, case, lines ("By length"), fancy (characters); diff (textkit-diff); lorem (textkit-lorem); pdf-compare (textkit-tokens) |
+| Hunspell 1.7.6 (the spell checker of LibreOffice, Firefox and Chrome) **+ ours**: its time limits ten times as long (a WebAssembly build — and a phone — is slower than the desktop), its file streams read through C's stdio from memory (`stdio_stream.hxx`), and our order of the suggestions (`rank.hxx`: wordfreq's frequencies, a weighted edit distance, the dictionary's table of misspellings) | C++ | **us** (`wasm/hunspell`, 0.66 MB; the existing builds — hunspell-asm 4.0.2, hunspell-wasm 0.3.0 — give other suggestions than Hunspell 1.7.6 or cut them short: `docs/WASM-AUDIT.md`, tab 198) | spell |
 | sheet: calamine 0.38 (read .xlsx .xlsm .xlsb .xls .ods) + rust_xlsxwriter 0.102 (write .xlsx; `dates`: ISO dates as dates, and a date in the form it was printed in — `{ date, format, shown }`) + csv 1 + serde_json | Rust | **us** (`wasm/sheet`, crates.io sources verified by `Cargo.lock`, target wasm32-wasip1) | sheet, pdf-tables |
 | article: **dom_smoothie 0.20.0** (Mozilla Readability's algorithm in Rust, MIT; on dom_query 0.30 / html5ever) + ours: the article written as XHTML for an EPUB (`xhtml.rs`), Chrome's MHTML read (`mhtml.rs`: MIME headers, multiparts, base64, quoted-printable, encoded words) and Safari's web archive (`webarchive.rs`: Apple's binary property list) | Rust | **us** (`wasm/article`, crates.io via `Cargo.lock`, opt-level s, 1.1 MB; the author's npm build — dom-smoothie-js 0.16.0 — is a Node.js build four releases behind, with faults later releases fixed: `docs/WASM-AUDIT.md`, tab 183) | articles |
 | svgo: **OXVG 0.0.9** (Rust port of SVGO's plugins; lightningcss for `<style>`) + our glue: DOCTYPE / entities allowed, nesting limit 256, **our own safe preset** (OXVG's `Jobs::safe()` is not safe), `sv_diff` (do two rasters look alike? — the tab renders every result next to its original and falls back to the safe result when the full optimisation changed the picture) | Rust | **us** (`wasm/svgo`, crates.io via `Cargo.lock`, opt-level z, 4.9 MB / 1.3 MB gz, loaded with the first SVG; unit `tests/unit/svgo.test.mjs`, hazard drawings `tests/fixtures/svg/hazards.json`) | svgo |
@@ -4315,6 +4362,9 @@ around the readers' output (`docs/WASM-AUDIT.md`, tab 194).
 Nov 2026 (World Clock, potentials #73): `src/lib/worldclock.ts` — a city's line read, its id made, the words of a card, a zone's offset by
 the browser's Intl a day at a time with a halving to the second for its next change: glue around Intl (compiled ICU), mathcore (`m_sun`)
 and textcore's search (`docs/WASM-AUDIT.md`, tab 197).
+Nov 2026 (Spell Checker, potentials #10): `src/lib/spelltext.ts` — the text cut into words by one regular expression, what is left alone
+(addresses, digits, capitals, names) by a few more, positions moved after an edit: string glue around hunspell.wasm, which checks, suggests
+and orders (`docs/WASM-AUDIT.md`, tab 198).
 Nov 2026 (Camera Reader, potentials #81): `src/lib/readertext.ts` — a page's lines made into paragraphs and pieces (a few comparisons of
 the words' boxes), sentences cut and printed matter made speakable by regular expressions: string glue around the readers' output;
 `src/lib/sayer.ts` — the pieces' sound laid end to end on the browser's Web Audio (the voices are espeak.wasm and ONNX Runtime in the
@@ -4865,6 +4915,20 @@ the binding's engine is made again (`lazyEngine`). **To update:** `cargo update 
 `node scripts/make-article-mhtml.mjs` only if the pages change, both suites; Mozilla's own test pages (`git clone --depth 1 --branch
 0.6.0 https://github.com/mozilla/readability`, test/test-pages) for a measure of the words kept.
 
+### 5.1u hunspell → `src/wasm/bin/hunspell.wasm`
+`ZIG=… bash wasm/hunspell/build.sh` (≈ 1 min): `hunspell_1.7.6.orig.tar.gz` from the Ubuntu archive (SHA-256 `4fa9c52a…` from the signed
+`hunspell_1.7.6-3.dsc`); its time limits for suggestions (250 / 100 / 50 ms in `atypes.hxx`) made ten times as long — each line checked,
+the build fails if Hunspell changes them —; its `std::ifstream`s replaced by `StdioStream` (`wasm/hunspell/stdio_stream.hxx`: C's stdio;
+zig's C++ library for WASI has no file streams), which opens a file through `hunspell_open_file` — in the module the bytes handed over
+with `hs_file` (fmemopen), in the reference `fopen`. `glue.cxx`: `hs_file` / `hs_unfile`, `hs_create(aff, dic)` (and the affix file's
+REP lines kept for the order), `hs_add_dic`, `hs_spell`, `hs_suggest(h, word, ranked)`, `hs_freq(text)` (wordfreq's list for the order),
+`hs_rank(h, word, list)` (the tests order what native Hunspell gave), `hs_add` / `hs_add_with_affix` / `hs_remove`, `hs_version`; words in
+and out UTF-8. The script also builds **the native reference** from the same source, the same changes and `rank.hxx`
+(`scripts/hunspell-ref/ref.cxx` → `$WORK/native/hsref`, 32-bit x86 with zig's C++ library, as wasm32 — Hunspell's word hash is a
+`long`). **To update:** a newer Hunspell in build.sh (URL + SHA-256 from its .dsc), the time-limit lines, `python3
+scripts/make-spell-reference.py`, both suites; new dictionaries: bump dictionary-en / dictionary-en-gb (`scripts/vendor.mjs` copies
+them to `public/vendor/spell/`), `python3 scripts/make-spell-india.py`, the reference script, both suites.
+
 ### 5.1e markdown → `src/wasm/bin/markdown.wasm`
 `ZIG=… wasm/markdown/build.sh`: downloads the `cmarkgfm` 2025.10.22 sdist from PyPI (SHA-256 `5bec6100…`), which vendors
 cmark-gfm 0.29.0.gfm.13 (latest upstream) plus its CMake-generated headers (`generated/unix`), and links all of
@@ -4921,6 +4985,8 @@ npm packages (pinned in `package-lock.json`) are bundled by Vite or copied to `p
 | @jitsi/rnnoise-wasm 0.2.1 (RNNoise 0.2 compiled to WebAssembly by Jitsi) | Apache-2.0 (RNNoise: BSD-3-Clause) | Noise Remover |
 | signalsmith-stretch 1.3.2 (Signalsmith Stretch, WebAssembly + AudioWorklet) | MIT | Pitch & Speed |
 | lcms-wasm 1.0.5 (Little CMS 2.16) | MIT | HEIC colours (Display P3 → sRGB) |
+| dictionary-en 4.0.0, dictionary-en-gb 3.0.0 (SCOWL's en_US and en_GB-ise Hunspell dictionaries, wordlist.aspell.net) | MIT AND BSD | Spell Checker |
+| *built in:* Hunspell 1.7.6 in hunspell.wasm | MPL-1.1 / GPL-2.0+ / LGPL-2.1+ (tri-licensed) | Spell Checker |
 | @uswriting/exiftool 1.0.9 + @6over3/zeroperl-ts 1.0.10 (ExifTool 13.42; Perl 5) | Apache-2.0 (the packages); ExifTool and Perl: the Artistic License or GPL-1.0+ | EXIF / Photo Info |
 | @biomejs/wasm-web 2.6.8 (Biome's official WebAssembly build) | MIT OR Apache-2.0 | Code Formatter |
 | @dprint/formatter 0.6.0, @dprint/json 0.26.0, dprint-plugin-markup 0.28.0 (markup_fmt) | MIT | Code Formatter |
@@ -4938,6 +5004,7 @@ npm packages (pinned in `package-lock.json`) are bundled by Vite or copied to `p
 | *test only (pip):* mutagen, reportlab | GPL-2.0+ (mutagen), BSD (reportlab) | the MP3s' ID3 tags read back (`tests/unit/audio.test.mjs`); the Audiobook's test PDF made (`scripts/make-audiobook-books.py`) |
 | *test only (pip):* pdfplumber (on pdfminer.six), openpyxl | MIT | PDF Tables → Excel: a second reading of the ruled statement's cells, the Excel file read back (`tests/unit/pdftables.test.mjs`) |
 | *test only (pip):* vobject 0.9.9 | Apache-2.0 | Visiting Card → Contact and Paper Deadlines: the .vcf and .ics files read by an independent reader (`tests/unit/visitcard.test.mjs`, `deadlines.test.mjs` and their e2e suites) |
+| *test only (pip):* codespell 2.4.1's list of common misspellings (dictionary.txt) | GPL-2.0 | the Spell Checker's order of suggestions fitted and measured (`scripts/make-spell-reference.py`; a part of it in `tests/fixtures/spell/reference.json`) |
 | *test only (pip):* python-dateutil | Apache-2.0 / BSD-3-Clause | Paper Deadlines: dates read by an independent reader (`scripts/make-deadlines-reference.py`) |
 | @expo-google-fonts/noto-sans (Noto Sans TTF: regular, bold, italic) | OFL-1.1 (package MIT) | PDFs made by GST Invoice, Rent Receipt, Resume Builder; EPUB Reader (its Sans) |
 | @expo-google-fonts/literata 0.4.3 (Literata TTF: regular, italic, bold, bold italic — four files, 1.0 MB on the site) | OFL-1.1 (package MIT) | EPUB Reader (the text's font; MuPDF's FreeType reads no WOFF, so @fontsource/literata's files cannot serve) |

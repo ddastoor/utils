@@ -103,6 +103,7 @@ export default [
   ['smiley', 'emoji'], ['emoji picker', 'emoji'], ['rupee sign', 'emoji'], ['degree symbol', 'emoji'], ['greek letters', 'emoji'], ['tick mark', 'emoji'], ['copyright symbol', 'emoji'],
   ['morse', 'morse'], ['morse code', 'morse'], ['morse translator', 'morse'], ['text to morse', 'morse'], ['dots and dashes', 'morse'], ['sos', 'morse'],
   ['lorem ipsum', 'lorem'], ['placeholder text', 'lorem'], ['dummy text', 'lorem'], ['filler text', 'lorem'], ['lipsum', 'lorem'],
+  ['spell check', 'spell'], ['spelling mistakes', 'spell'], ['check my spelling', 'spell'], ['typos', 'spell'], ['british spelling', 'spell'],
   ['world clock', 'worldclock'], ['time in new york', 'worldclock'], ['what time is it in london', 'worldclock'], ['clocks of cities', 'worldclock'], ['sunrise sunset time', 'worldclock'], ['daylight saving change', 'worldclock'],
   ['read aloud from camera', 'camreader'], ['read my letter aloud', 'camreader'], ['medicine leaflet reader', 'camreader'], ['small print reader', 'camreader'], ['camera reader', 'camreader'],
   ['photo dictionary', 'photodict'], ['word meaning', 'photodict'], ['difficult words', 'photodict'], ['vocabulary', 'photodict'], ['dictonary', 'photodict'], ['define words from photo', 'photodict'],

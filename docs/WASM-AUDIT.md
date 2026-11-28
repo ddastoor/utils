@@ -1951,3 +1951,30 @@ Looked at first (STANDING RULE #1):
 - **Data:** GeoNames' cities (CC BY 4.0) as geonamescache 3.0.2 carries them, 86 KB in the tab's chunk; tzdata's abbreviations from
   `src/lib/tzabbr.json` (the Python tab's table).
 - **Decision:** nothing new on the site but the tab's code, its cities and 3 KB more of mathcore.wasm.
+
+### 198. `spell` — Spell Checker (28 Nov 2026; potentials #10)
+- **What it does:** the misspelt words of a text underlined and gone through one by one with suggestions — American, British or Indian
+  English (CLAUDE.md §3 "Spell Checker").
+- **Existing engines** (rule 1): Hunspell is the spell checker of LibreOffice, Firefox and Chrome; two WebAssembly builds of it are on npm —
+  **hunspell-asm 4.0.2** (Emscripten) and **hunspell-wasm 0.3.0**. Both were run on 622 words (309 misspelt) with the native `hunspell`
+  program and the same dictionaries: hunspell-asm gave other suggestions for 109 of the 309 (an older Hunspell: "london" → "London" alone
+  where Hunspell gives "London, blond, loon"; "haha" gained "Hahn, Hamah"), hunspell-wasm for 32, 14 of them cut short ("korea" → "chorea"
+  alone where Hunspell gives "chorea, Korea, korma, Morea"; "ied" two suggestions of fifteen). Neither can be told to wait longer for its
+  suggestions (Hunspell stops after 250 / 100 / 50 ms, which a phone's WebAssembly reaches far sooner than a desktop). Not used.
+- **Ours (rule 2):** Hunspell 1.7.6 from its release (Ubuntu's archive, SHA-256 of the signed .dsc) compiled by us (`wasm/hunspell`): its
+  time limits ten times as long, its file streams read from memory through C's stdio — the module gives exactly what the native build of
+  the same source gives (1,300 misspellings, both dictionaries, list for list; the native build is 32-bit, as wasm32: Hunspell's word hash
+  is a `long`, and a 64-bit build orders equally scored suggestions otherwise).
+- **And beside Hunspell (rule 1a, own C++ in the module):** the order of the suggestions (`rank.hxx`) — Hunspell's own order put "The"
+  ninth for "Teh" (a capitalised word's own candidates come before its lower-case form's). Measured on codespell 2.4.1's list of common
+  misspellings: ordering by word frequency alone was worse than Hunspell's order (84 against 86.5 % right first); frequency, a weighted
+  edit distance and the dictionary's REP table, fitted on half the list and tested on the other half, are better everywhere (86.3 → 89.6 %,
+  capitalised 81.9 → 89.5 %, classic misspellings of people 80.2 → 89.3 %). `scripts/make-spell-reference.py` works the order out again
+  in Python and checks the native build agrees on every list.
+- **Beside them (rule 1c, TS):** `src/lib/spelltext.ts` — the text's words, what is left alone (addresses, digits, CAPITALS, names),
+  the sentence round a word, positions moved by an edit: string glue.
+- **Data:** SCOWL's en_US and en_GB-ise dictionaries (dictionary-en 4.0.0, dictionary-en-gb 3.0.0; MIT AND BSD); our 412 words of Indian
+  English; wordfreq's frequencies — the Photo Dictionary's list, already on the site.
+- **Looked at, not used:** Harper (a grammar checker in Rust with a WebAssembly build) — the owner asked for spelling, in three Englishes,
+  and Hunspell with SCOWL's dictionaries is the established engine for it.
+- **Decision:** our hunspell.wasm (0.66 MB) and the two dictionaries (0.55 MB each) — 1.8 MB on the site.

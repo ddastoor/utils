@@ -3444,6 +3444,22 @@ Found while building it (unit `worldclock` 39, e2e `worldclock` 55):
 - **The X11 / Wayland sweep missed two notes when eleven suites ran at once** (it reads each tab 400 ms after opening it) — alone it
   passes; the harness runs a failed suite again by itself.
 
+## Spell Checker (28 Nov 2026; built — potentials #10)
+- **Hunspell's own order put the right word far down for a capitalised word:** "Teh" (a sentence's start) had "The" ninth — Hunspell
+  lists the candidates of the word as typed (Te, Th, Eh, Tet, Ted, Meh …) before those of its lower-case form. The suggestions are
+  ordered by our rules now (`rank.hxx`, measured — CLAUDE.md §3).
+- **Ordering by word frequency alone was worse than Hunspell's order** (84 against 86.5 % right first on codespell's list): two-word
+  splits ("co trolling" for "cotrolling") cost one space and won; they count now as their words together by chance, less 1.
+- **"alot" → "lot" first** after the frequencies came in (Hunspell had "a lot" from the dictionary's REP table): candidates the table
+  makes get +2.
+- **Enter in "Change to" before the suggestions had come threw** (`includes` called on the pending promise) and changed nothing;
+  **Change before them ignored the word** (an empty box meant "keep it"): Change now takes the first suggestion once it is there.
+- **No Undo once the last mistake was fixed, or after Clear** (the buttons were drawn only beside a misspelt word).
+- **"Dr. Rao": the full stop of a title ended the sentence**, so the name after it was checked; titles and initials end no sentence now.
+- **A PC showed "null" under the tab** (the phone's bar, absent on a PC, appended as text).
+- (Test slips: Playwright's iPhone 13 has a viewport of 390 × 664, not 844; a count of marks matched the text before the new one —
+  the suite waits for the words themselves.)
+
 ## Camera Reader (28 Nov 2026; built — potentials #81)
 - **"1-0-1 x 5 days" said "by 5 days"** (the "x" of a strip, 1 x 10): a course of days is "for 5 days"; **"½-0-½"** was no dose (a word
   boundary before ½); **31/02/2026** became "31 February" (only the day's range was checked: the month's last day now); **"+91"** came

@@ -31,6 +31,9 @@ const copies = [
   ...['400Regular', '400Regular_Italic', '700Bold', '700Bold_Italic'].map((s) => [['@expo-google-fonts', 'literata', s, `Literata_${s}.ttf`], ['fonts', `Literata_${s}.ttf`]]),
   // TF.js WebAssembly backend (XNNPACK, C++ → wasm): the CPU path for the Cartoonizer's style transfer when WebGL is missing
   ...['tfjs-backend-wasm.wasm', 'tfjs-backend-wasm-simd.wasm'].map((f) => [['@tensorflow', 'tfjs-backend-wasm', 'dist', f], ['tfjs', f]]),
+  // the Spell Checker's dictionaries: SCOWL's Hunspell dictionaries 2020.12.07 (en_US; en_GB-ise — also for Indian English), as
+  // wooorm's dictionary-en / dictionary-en-gb package them; read by our Hunspell 1.7.6 (wasm/hunspell)
+  ...[['dictionary-en', 'en-US'], ['dictionary-en-gb', 'en-GB']].flatMap(([pkg, l]) => ['aff', 'dic'].map((x) => [[pkg, `index.${x}`], ['spell', `${l}.${x}`]])),
   // ExifTool 13.42 on zeroperl (Perl 5 compiled to WebAssembly, ExifTool's library inside): the EXIF / Photo Info tab
   [['@6over3', 'zeroperl-ts', 'dist', 'esm', 'zeroperl.wasm'], ['exiftool', 'zeroperl.wasm']],
 ];

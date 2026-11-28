@@ -189,6 +189,7 @@ export const TOOLS: Tool[] = [
   t('emoji', 'Emoji & Symbols', 'Search and copy emoji and symbols.', 'text', 'Smile', () => text().then((m) => m.emoji)),
   t('morse', 'Morse Code', 'Text ⇄ Morse, with sound.', 'text', 'Radio', () => text().then((m) => m.morse)),
   t('lorem', 'Lorem Ipsum', 'Placeholder text generator.', 'text', 'Text', () => text().then((m) => m.lorem)),
+  t('spell', 'Spell Checker', 'Misspelt words underlined and gone through one by one, with suggestions: American, British or Indian English.', 'text', 'SpellCheck', () => import('./tools/spell').then((m) => m.mount)),
   t('camreader', 'Camera Reader', 'Point the camera at a letter, a medicine leaflet or a menu: it is read aloud, the part being read marked.', 'text', 'Speech', () => import('./tools/camreader').then((m) => m.mount), 'both'),
   t('photodict', 'Photo Dictionary', 'Photograph a page; get the hardest words with their dictionary meanings.', 'text', 'BookOpenText', () => import('./tools/photodict').then((m) => m.mount), 'both'),
 

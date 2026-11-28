@@ -186,6 +186,13 @@ generates media with the project's own ffmpeg.wasm and Chromium). Used only by t
   dateutil, and dates counted on (relativedelta, timedelta): the reference of `tests/unit/deadlines.test.mjs`, made by `python3
   scripts/make-deadlines-reference.py` (needs `pip install python-dateutil`).
 
+## spell/
+- `reference.json` — misspellings with the suggestions native Hunspell 1.7.6 gives (built from the same source as hunspell.wasm,
+  `wasm/hunspell/build.sh`) and the order the tab gives them (checked against a second reading of the rules in Python); the words each
+  dictionary must take or refuse; the measured share of right words first. Made by `python3 scripts/make-spell-reference.py`. The
+  misspellings are a part of codespell 2.4.1's `dictionary.txt` (GPL-2.0, github.com/codespell-project/codespell — from Wikipedia's lists
+  of common misspellings) and our list of classic misspellings.
+
 ## worldclock/
 - `reference.json` — astral 3.2's sunrise and sunset (seconds since 1970, or "up" / "down" / null) for 161 cities of
   `src/lib/worldcities.json` on 49 days of 2026 – 2027, and every change of UTC offset in 2026 – 2027 of 357 zones as Python's zoneinfo
