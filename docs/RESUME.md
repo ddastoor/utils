@@ -143,7 +143,13 @@ unsure of read again by PaddleOCR), its sentences (Tesseract's blank lines insid
 request; no year: after the paper's date), what each is for (a deadline, an event with its time, the paper's own date), deadlines counted
 from another date, amounts; reminders saved as iCalendar (`src/lib/deadlines.ts`); a message's text can be pasted. Unit `deadlines` 58
 (dateutil's readings of 80 dates; vobject reads the file; the three papers through the reading path in Node), e2e `deadlines` 21.
-**Next: #78 Bill Splitter by Photo** (then #81).
+**#78 Bill Splitter by Photo — BUILT (28 Nov 2026):** the tab `billsplit` (Calculators, PC +
+mobile; CLAUDE.md §3 "Bill Splitter by Photo"): a restaurant bill read the camera helpers' way (an amount's line Tesseract was unsure of
+read again by PaddleOCR), its items, charges and total (`src/lib/billsplit.ts`; what does not add up said), a chip per person for who had
+each item, a tip; the split by mathcore's new `m_bill_split` (exact shares, the cumulative columns rounded by the largest remainder —
+every share within a paisa of the exact one); a UPI code for each to pay the one who paid; the split copied as text. Unit `billsplit` 34
+(an exact BigInt reckoning over 3,000 random bills; the photo through the reading path in Node), e2e `billsplit` 20 (zbar reads the codes;
+axe in both themes). **Next: #81 Camera Reader** — the last of group 4; then group 3.
 **Then to-dos #38, #39 and #40** (owner,
 27 Nov 2026, evening: "After you finish all these, finish off the items in the todo.md also."; #40, added the same evening:
 the EPUB Reader's "Remember book" — a hash of the book, its place and the reading voice in the Settings — after #39). The open question (keep the EPUB Reader's place between visits?) is

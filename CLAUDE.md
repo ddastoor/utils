@@ -336,7 +336,7 @@ Wayland) and **mobile browsers** (Android Chrome, iPhone Safari).
 Platform is PC + mobile unless marked **PC**. Tab ids are the URL hash (`#/<id>`).
 
 **The authoritative, always-current list is `docs/TOOLS.md`, generated from `src/registry.ts` (`npm run docs`).**
-Current total: **190 tabs in 11 categories — 123 PC + mobile, 64 PC only, 3 Mobile only** (regenerate with
+Current total: **191 tabs in 11 categories — 124 PC + mobile, 64 PC only, 3 Mobile only** (regenerate with
 `npm run docs` after every registry change; the owner asked for the registry to always be noted).
 The per-category notes below record decisions; when they disagree with the registry, the registry wins.
 
@@ -467,7 +467,8 @@ URL `#fragment`, never sent to a server) · `hash` Hash / Checksum · `password`
 **Calculators** (all both): `calc` Scientific · `units` Unit Converter · `dates` Date Calculator ·
 `emi` EMI · `gst` GST · `sip` SIP · `fd` FD / RD · `percent` Percentage · `words` Number to Words ·
 `timezone` Time Zone Converter · `bmi` BMI · `calories` Calorie (BMR/TDEE) · `duedate` Pregnancy Due Date ·
-`tip` Tip & Bill Splitter · `fuel` Fuel Cost · `gpa` GPA · `base` Number Base Converter · `roman` Roman Numerals
+`tip` Tip & Bill Splitter · `billsplit` Bill Splitter by Photo (**BUILT** 28 Nov 2026, potentials #78 — §3 "Bill Splitter by
+Photo") · `fuel` Fuel Cost · `gpa` GPA · `base` Number Base Converter · `roman` Roman Numerals
 
 **Text** (all both): `wordcount` Word Counter · `case` Case Converter · `lines` Line Tools · `replace` Find &
 Replace · `diff` Text Diff · `fancy` Fancy Text · `emoji` Emoji & Symbols · `morse` Morse Code · `lorem` Lorem Ipsum ·
@@ -1566,6 +1567,44 @@ e2e `tests/e2e/calc.e2e.mjs` 140):
   ±, 1/x and M+ work on the exact value; MR puts back all digits when the rounded form would be another number; a
   history row brings back its expression together with the Ans it was worked out with. Copy result copies the
   result (also of an expression not yet worked out).
+
+### Bill Splitter by Photo — BUILT (potentials #78; owner's pick of 27 Nov 2026 — group 4 of the suggested order)
+(`billsplit` in `src/tools/billsplit.ts`, the bill's wording `src/lib/billsplit.ts` (no DOM), the split mathcore's `m_bill_split` (own C —
+§5.1b); unit `tests/unit/billsplit.test.mjs` 34, e2e `tests/e2e/billsplit.e2e.mjs` 20 (+ the camera sweep's entry); fixture
+`tests/fixtures/snaps/restaurant.jpg` with `truth.json`, by `python3 scripts/make-snap-photos.py`.) The owner's words (potentials #78):
+"photograph a restaurant bill → its lines read → tap who had what → each person's share with tax, service and tip in whole paise, and a
+UPI QR for each to pay the one who paid".
+- **Reading:** the camera helpers' way (`SNAP_READ`, §3 "Router Sticker → Wi-Fi QR"); a line with an amount Tesseract was unsure of (a
+  word under 90) read again by PaddleOCR's recogniser (`secondLook`) — the surer reading's amounts put back in their places, the line's
+  columns kept.
+- **The bill** (`readBill`): the restaurant's name (the first line with letters before the items — no amount, bill number or GSTIN on
+  it) and the date; **a line's amounts are the numbers after its last letter** (the currency's letters — Rs., INR, a ₹ read as ¥ — not
+  counted): "2 x Cappuccino 360.00", "Croissant x3 450.00", "Naan x 2 120.00", columns Qty / Rate / Amount — an item's rate × quantity
+  checked against its amount; **the charges** by their words, with their rates — sub total, service charge, CGST / SGST / IGST / UTGST /
+  VAT / cess, a discount (negative), packing, delivery, the round-off (−0.32, (0.32), 0.32-), a tip or gratuity printed on the bill —;
+  the total (Grand Total, Net Payable, Amount Due, Total …). **What does not add up is said** (`problemsOf`): an item's rate ×
+  quantity, the items against the sub total, a charge against its rate of what it is charged on (GST on the items with the service
+  charge, packing and a discount — or on fewer of them, as bills differ), the items and charges against the total.
+- **The split** (mathcore `m_bill_split`): each person's exact share of the items is a fraction (an item shared by three is a third
+  each; units — "2 of the 4" — in the engine); each extra (the service charge, a tax, a discount, the round-off, a tip) in proportion to
+  those shares, or equally among the people who had anything; **the columns rounded cumulatively** — the items, the items and the
+  first extra, … the whole bill — each by the largest remainder (ties to the earlier person), a cell the difference of two. So every
+  person's items and total are within a paisa of the exact share, every cell within two, each row adds up to its total and each column
+  to its amount — the shares to the bill. (The first version rounded each item on its own: the first person paid every leftover paisa,
+  five paise more than the last of three who had the same.) Exact in __int128 (any real bill: forty people, a crore of rupees); beyond
+  that, the same in double precision.
+- **The tab:** a photo (or the camera; Paste image; or "Type the bill by hand") → **The bill**: each item — name, quantity, amount, all
+  editable, added or removed — with a chip for each person, pressed for who had it (everyone at first; "Everyone had everything"); the
+  charges (editable); "The bill adds up …" or what to check. **Who was there:** the names (Me, Friend 1, Friend 2 at first; added,
+  removed), who paid and their UPI ID, a tip — None / 5 % / 10 % / an amount, by what each had or shared equally. **Each one's share:**
+  the total and its parts; for everyone but the one who paid **a UPI QR code for exactly that amount** (the QR tab's `upi()`: `pa`,
+  `pn`, `am` with two decimals, `cu=INR`, a note), Save QR (PNG), on phones "Pay … with a UPI app" (the upi:// link); **Copy the split**
+  (and Share on phones) — "Me: ₹694.46 (paid) / Asha: ₹694.45 / … / Pay Me — UPI me@ybl". Names and amounts last while the page is
+  open; nothing is stored. Nothing at open: the OCR and mathcore come with the first photo.
+- **Measured:** the restaurant bill photographed (six items with quantities, the sub total, a 5 % service charge, CGST and SGST at
+  2.5 %, a round-off of −0.32, ₹1,907.00) read whole in Node and in the browser — every item, every charge, the total, "the bill adds
+  up"; the split held to an exact reckoning in BigInt fractions (in the unit suite) over 3,000 random bills, and a bill of 60 people
+  beyond __int128; a share's code read back by zbar — pay me@ybl exactly that share.
 
 ### Text & Dev
 Word/char/line/reading-time counts; case conversion (UPPER, lower, Title, Sentence, camel, snake, kebab);
@@ -4086,8 +4125,8 @@ difference over its detail, the overlap's pixels), ruled lines and list marks cl
 | MozJPEG, libwebp, OxiPNG, Squoosh's resize (Lanczos-3 in linear light) | C / Rust | jSquash (Squoosh codecs; `@jsquash/resize` since Nov 2026) | image encoders; resizing in the Image Editor and Batch Images (`docs/WASM-AUDIT.md`, tabs 109, 110) |
 | libheif + libde265 | C++ | libheif-js | heic |
 | Little CMS 2.16 | C | lcms-wasm (Matt DesLauriers; npm 1.0.5) — in the codec worker, fetched for a HEIC with a non-sRGB ICC profile | heic and every tab that opens HEIC: Display P3 → sRGB (`docs/WASM-AUDIT.md`, tab 111) |
-| Tesseract 5 | C++ | tesseract.js-core | ocr, photodict, clipper (laid out as a page: its blocks), pdf-redact (a scanned page's numbers), idcopy (a card's numbers, through the reading path), pdf-ocr (each scanned page, through the reading path — never straightened), pdf-compare (a scanned page's words, the same way), pdf-tables (a scanned page's words, the same way), wifiqr (a router's label, through the reading path with the camera helpers' options — `SNAP_READ`), visitcard (a business card, the same way), deadlines (a paper's dates, the same way) |
-| zxing-cpp | C++ | zxing-wasm | qr, barcode, scan, pdf-redact (QR codes and barcodes on the pages), idcopy (a QR that holds the number) — `src/lib/codesread.ts`; wifiqr (a QR code on a router's label read; the Wi-Fi code drawn — `src/lib/qrdraw.ts`); visitcard (a vCard or MECARD on a card read; the contact's code drawn) |
+| Tesseract 5 | C++ | tesseract.js-core | ocr, photodict, clipper (laid out as a page: its blocks), pdf-redact (a scanned page's numbers), idcopy (a card's numbers, through the reading path), pdf-ocr (each scanned page, through the reading path — never straightened), pdf-compare (a scanned page's words, the same way), pdf-tables (a scanned page's words, the same way), wifiqr (a router's label, through the reading path with the camera helpers' options — `SNAP_READ`), visitcard (a business card, the same way), deadlines (a paper's dates, the same way), billsplit (a restaurant bill, the same way) |
+| zxing-cpp | C++ | zxing-wasm | qr, barcode, scan, pdf-redact (QR codes and barcodes on the pages), idcopy (a QR that holds the number) — `src/lib/codesread.ts`; wifiqr (a QR code on a router's label read; the Wi-Fi code drawn — `src/lib/qrdraw.ts`); visitcard (a vCard or MECARD on a card read; the contact's code drawn); billsplit (each share's UPI code drawn) |
 | 7-Zip 24.09 (`7zz`, the command line, Emscripten build with WORKERFS) | C++ | use-strict (`7z-wasm` npm 1.2.0) — run in `src/workers/sevenzip.worker.ts`, a fresh instance per archive | zip (zip and 7z with AES-256; `docs/WASM-AUDIT.md`, tab 107), unzip (reads every archive; tab 108), watermark (a Word document taken apart and zipped again: to-do #17), ebook (a CBR or CB7 comic unpacked into a zip for MuPDF) |
 | MediaPipe Tasks (TFLite) | C++ | Google (official) | passport, bgremove, redact |
 | RNNoise 0.2 (Xiph, BSD-3; the 0.2 model, 8-bit weights — the release as its configure builds it) | C | Jitsi (`@jitsi/rnnoise-wasm` 0.2.1, Emscripten; the "sync" file) — frames, lag and voice probability in `src/wasm/rnnoise.ts`, resampling / scaling / mixing in audio.wasm (`src/workers/noise.worker.ts`) | noise (replaced our own build in Nov 2026: `docs/WASM-AUDIT.md`, tab 144) |
@@ -4180,6 +4219,9 @@ espeak.wasm's, the MP3 and its tags audio.wasm's (LAME). No WebAssembly module m
 Nov 2026 (Paper Deadlines → Calendar, potentials #77): `src/lib/deadlines.ts` — dates, times and amounts found by regular expressions, a
 paper's lines made into sentences, dates counted on with the browser's Date in UTC, the iCalendar file written as text: string glue
 around the readers' output (`docs/WASM-AUDIT.md`, tab 194).
+Nov 2026 (Bill Splitter by Photo, potentials #78): `src/lib/billsplit.ts` — a bill's lines sorted into items, charges and a total by
+regular expressions, what does not add up said, the split written as text; the split itself is mathcore's (`m_bill_split`, own C —
+`docs/WASM-AUDIT.md`, tab 195).
 Nov 2026 (Visiting Card → Contact, potentials #89): `src/lib/visitcard.ts` — a card's lines sorted into a contact by regular expressions and
 scores (labels, keywords, the letters' size, an e-mail address agreeing with a name), addresses split at their commas, the vCard written
 and read as text: string glue around Tesseract, zxing-cpp, PaddleOCR and devcore-ids.wasm (`docs/WASM-AUDIT.md`, tab 193).
@@ -4304,7 +4346,7 @@ Owner: "make the full site faster, more responsive and memory efficient — load
 2. **Opening a tab loads only that tab's code** (its dynamic-import chunk, < 400 KB). Engines, models, data files,
    fonts and workers load on **first use** — a file chosen, a button pressed, the first Enter — never at module
    load and never at mount, except where the tab's first view needs them. Allowed at open (listed with the reason
-   in `AT_OPEN` in the test): our three small engines (mathcore/crypto/textcore ≤ 155 KB: live results as you
+   in `AT_OPEN` in the test): our three small engines (mathcore/crypto/textcore ≤ 160 KB: live results as you
    type), invoice/rent/resume (MuPDF + Noto Sans: the live PDF preview is the main view), markdown (cmark-gfm,
    sample preview), terminal (BusyBox: the shell is ready at once), qr/barcode (zxing-cpp: drawn as you type),
    caption/watermark (fonts of the first preview), coords (geo.wasm, 36 KB: the sample distance), password, passphrase and dice (libsodium.js, 0.53 MB: the first passwords, the first roll; the EFF word list, 62 KB), case
@@ -4407,6 +4449,9 @@ loop counts. `m_prepay` (out[7]: instalment, interest without and with the prepa
 instalment, prepaid in all, 1 when a prepayment closed the loan; a loan is closed below half a paisa), `m_epf`
 (out[5]: corpus, the member's and the employer's contributions, the pension-scheme share, interest — the EPFO's
 method, see §3), `m_nps` (no silent floor on the annuity share; months clamped), `m_ppf` (years clamped).
+`m_bill_split` (the Bill Splitter by Photo, 28 Nov 2026): a bill's items and extras split in whole paise — the exact shares as fractions
+over one denominator in __int128 (overflow checked), the cumulative columns rounded by the largest remainder (§3 "Bill Splitter by
+Photo"); beyond __int128 the same in double precision (returns 1). The module is 156.6 KB with it.
 `wasm/mathcore/build.sh` (exports every `API m_*` function). Expression engine since Nov 2026 (details in §3
 "Scientific Calculator as built"): names without regard to case, one decimal point per number, no implicit product of
 two numbers, nesting limit 100, exact trigonometry at round angles (`sind` / `cosd`, the "gap" rule in radians),

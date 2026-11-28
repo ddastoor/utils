@@ -1,0 +1,30 @@
+/* Bill Splitter by Photo */
+.bs-items { display: grid; gap: 10px; }
+.bs-item { border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px 12px; display: grid; gap: 8px; }
+.bs-line { display: flex; gap: 8px; align-items: center; }
+.bs-line > .input:first-child { flex: 1; min-width: 0; }
+.bs-amt { width: 120px; flex: 0 0 auto; text-align: right; font-variant-numeric: tabular-nums; }
+.bs-who { display: flex; flex-wrap: wrap; gap: 6px; }
+.bs-chip { min-height: 36px; padding: 4px 12px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); color: var(--text); cursor: pointer; font: inherit; font-size: 14px; }
+.bs-chip.on { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.bs-warn { color: var(--warn); font-weight: 600; }
+.bs-charges { display: grid; gap: 6px; border-top: 1px solid var(--border); padding-top: 10px; }
+.bs-charge { display: flex; justify-content: space-between; align-items: center; gap: 12px; font-variant-numeric: tabular-nums; }
+.bs-total { font-size: 17px; border-top: 1px solid var(--border); padding-top: 6px; }
+.bs-people { display: grid; gap: 8px; }
+.bs-share { border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px 14px; display: grid; gap: 8px; }
+.bs-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; font-size: 17px; }
+.bs-total-p { font-weight: 700; font-variant-numeric: tabular-nums; }
+.bs-pay { display: grid; grid-template-columns: 180px minmax(0, 1fr); gap: 14px; align-items: start; }
+.bs-code { width: 180px; aspect-ratio: 1; background: #fff; border-radius: var(--radius-sm); padding: 6px; box-sizing: border-box; }
+.bs-code svg { display: block; width: 100%; height: 100%; }
+.bs-pay > .stack { align-items: flex-start; }
+@media (max-width: 720px) {
+  .bs-chip { min-height: 44px; }
+  .bs-items .bs-line { flex-wrap: wrap; }
+  .bs-items .bs-line > .input:first-child { flex: 1 1 100%; }   /* the item's name a row of its own; the quantity, amount and × under it */
+  .bs-items .bs-amt { flex: 1 1 0; min-width: 0; width: auto; }
+  .bs-pay > .stack { align-items: stretch; }
+  .bs-pay { grid-template-columns: 1fr; justify-items: center; }
+  .bs-code { width: 220px; }
+}

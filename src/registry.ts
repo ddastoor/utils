@@ -147,6 +147,7 @@ export const TOOLS: Tool[] = [
   t('calories', 'Calorie Calculator', 'BMR and daily calories (TDEE).', 'calculators', 'Flame', () => calcs().then((m) => m.calories)),
   t('duedate', 'Pregnancy Due Date', 'Estimated due date and week.', 'calculators', 'Baby', () => calcs().then((m) => m.duedate)),
   t('tip', 'Tip & Bill Splitter', 'Split a bill with tip among people.', 'calculators', 'HandCoins', () => calcs().then((m) => m.tip)),
+  t('billsplit', 'Bill Splitter by Photo', 'Photograph a restaurant bill, tap who had what: each share with tax, service and tip in whole paise, and a UPI code to pay.', 'calculators', 'ReceiptIndianRupee', () => import('./tools/billsplit').then((m) => m.mount)),
   t('fuel', 'Fuel Cost Calculator', 'Trip fuel cost and mileage.', 'calculators', 'Fuel', () => calcs().then((m) => m.fuel)),
   t('gpa', 'GPA Calculator', 'GPA / CGPA from grades and credits; CGPA to %.', 'calculators', 'GraduationCap', () => calcs().then((m) => m.gpa)),
   t('base', 'Number Base Converter', 'Binary, octal, decimal, hex.', 'calculators', 'Binary', () => calcs().then((m) => m.base)),

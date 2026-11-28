@@ -2,7 +2,7 @@
 
 Generated from `src/registry.ts` by `npm run docs` — do not edit by hand.
 
-**190 tabs** in 11 categories — 123 PC + mobile, 64 PC only, 3 mobile only.
+**191 tabs** in 11 categories — 124 PC + mobile, 64 PC only, 3 mobile only.
 
 ## Images (17)
 
@@ -85,7 +85,7 @@ Generated from `src/registry.ts` by `npm run docs` — do not edit by hand.
 | `screenshot` | Screenshot | **PC only** | Delayed screenshots of a screen, window, tab or area. | screenshot, screen capture, snip, snipping tool, print screen, delay, delayed capture, window, … |
 | `youtube` | YouTube Clip | **PC only** | Clip a YouTube video between two times to MP4. | youtube, clip, download, cut, video, mp4, yt-dlp, start time, … |
 
-## Calculators (27)
+## Calculators (28)
 
 | id | Tab | Platform | What it does | Search keywords |
 |---|---|---|---|---|
@@ -103,6 +103,7 @@ Generated from `src/registry.ts` by `npm run docs` — do not edit by hand.
 | `calories` | Calorie Calculator | PC + mobile | BMR and daily calories (TDEE). | calories, bmr, tdee, diet, maintenance, weight loss, metabolism, how many calories, … |
 | `duedate` | Pregnancy Due Date | PC + mobile | Estimated due date and week. | pregnancy, due date, lmp, conception, weeks, trimester, baby, edd, … |
 | `tip` | Tip & Bill Splitter | PC + mobile | Split a bill with tip among people. | tip, split bill, restaurant, share, divide, friends, service charge, go dutch, … |
+| `billsplit` | Bill Splitter by Photo | PC + mobile | Photograph a restaurant bill, tap who had what: each share with tax, service and tip in whole paise, and a UPI code to pay. | split restaurant bill, restaurant bill split, split the restaurant bill, bill by photo, bill splitter by photo, scan restaurant bill, photo of bill, who had what, … |
 | `fuel` | Fuel Cost Calculator | PC + mobile | Trip fuel cost and mileage. | fuel, petrol, diesel, cng, mileage, trip cost, kmpl, mpg, … |
 | `gpa` | GPA Calculator | PC + mobile | GPA / CGPA from grades and credits; CGPA to %. | cgpa to percentage, sgpa to percentage, gpa, cgpa, sgpa, grades, credits, percentage, … |
 | `base` | Number Base Converter | PC + mobile | Binary, octal, decimal, hex. | binary to decimal, hex to decimal, decimal to binary, decimal to hex, octal, binary, hex, hexadecimal, … |

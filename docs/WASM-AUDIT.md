@@ -1911,3 +1911,16 @@ Looked at first (STANDING RULE #1):
 - **Beside them (rule 1c, TS):** `src/lib/deadlines.ts` — regular expressions for dates, times and amounts, the sentences of a page,
   the iCalendar text: string glue, held to Python's dateutil and read back by vobject.
 - **Decision:** nothing new on the site but the tab's code.
+
+### 195. `billsplit` — Bill Splitter by Photo (28 Nov 2026; potentials #78)
+- **What it does:** a photo of a restaurant bill → its items, charges and total → who had what → each person's share in whole paise
+  with the service charge, taxes, round-off and a tip, and a UPI code for each to pay the one who paid (CLAUDE.md §3 "Bill Splitter by
+  Photo").
+- **Existing WebAssembly modules, on the site** (rule 1): Tesseract and PaddleOCR through the OCR's reading path; zxing-cpp for the
+  codes (the QR tab's writer). No WebAssembly module splits a bill (Splitwise, Tricount and the like are services; the open-source
+  splitters are web apps written in TypeScript).
+- **Ours (rule 2, own C):** `m_bill_split` in mathcore — exact shares as fractions in __int128, the cumulative columns rounded by the
+  largest remainder (every share within a paisa of the exact one); double precision beyond __int128.
+- **Beside them (rule 1c, TS):** `src/lib/billsplit.ts` — the bill's lines sorted into items, charges and a total by regular
+  expressions; what does not add up said; the text of the split: string glue.
+- **Decision:** nothing new on the site but the tab's code and 5 KB more of mathcore.wasm.

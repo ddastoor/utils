@@ -172,6 +172,26 @@ export function bindMathcore(e: any) {
         return { base: r(t[0]), cgst: r(t[1]), sgst: r(t[2]), igst: r(t[3]), total: r(t[4]) };
       } finally { e.m_free(p); }
     },
+    /** A bill split in whole paise (see m_bill_split): `items` in paise; `parts[i][p]` what person p had of item i (0 none, 1 each for
+     *  shared equally, units); `extras` in paise, shared in proportion to each person's items or equally. For each person: the items,
+     *  each extra, the total — each items and total figure within a paisa of the exact share, every row and column adding up to the
+     *  paisa. Throws when an item has no one or is below zero. */
+    billSplit(items: number[], parts: number[][], extras: Array<{ paise: number; equal?: boolean }>, people: number) {
+      const ni = items.length, ne = extras.length, W = 2 + ne;
+      const ip = e.m_malloc(Math.max(1, ni) * 8), pp = e.m_malloc(Math.max(1, ni * people) * 4), xp = e.m_malloc(Math.max(1, ne) * 8), qp = e.m_malloc(Math.max(1, ne) * 4), op = e.m_malloc(people * W * 8);
+      try {
+        new BigInt64Array(mem(), ip, ni).set(items.map((x) => BigInt(Math.round(x))));
+        new Int32Array(mem(), pp, ni * people).set(parts.flatMap((r) => Array.from({ length: people }, (_, k) => Math.max(0, Math.round(r[k] ?? 0)))));
+        new BigInt64Array(mem(), xp, ne).set(extras.map((x) => BigInt(Math.round(x.paise))));
+        new Int32Array(mem(), qp, ne).set(extras.map((x) => (x.equal ? 1 : 0)));
+        const rc = e.m_bill_split(ni, people, ip, pp, ne, xp, qp, op);
+        if (rc === -1) throw new Error('An item is shared by no one: tick who had it.');
+        if (rc === -2) throw new Error('No one had anything.');
+        if (rc === -4) throw new Error('An item’s amount is below zero: put a discount among the charges.');
+        const o = new BigInt64Array(mem(), op, people * W);
+        return Array.from({ length: people }, (_, p) => ({ items: Number(o[p * W]), extras: Array.from({ length: ne }, (_, k) => Number(o[p * W + 1 + k])), total: Number(o[p * W + 1 + ne]) }));
+      } finally { e.m_free(ip); e.m_free(pp); e.m_free(xp); e.m_free(qp); e.m_free(op); }
+    },
     /** GSTIN format + check character. */
     gstinValid: (g: string) => !!withStr(g.trim().toUpperCase(), (p, n) => e.m_gstin_valid(p, n)),
   };

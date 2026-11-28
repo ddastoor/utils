@@ -77,6 +77,7 @@ export const KEYWORDS: Record<string, string> = {
   'calories': 'calories, bmr, tdee, diet, maintenance, weight loss, metabolism, how many calories, calorie needs, calorie deficit, weight gain, mifflin st jeor, kcal per day, basal metabolic rate',
   'duedate': 'pregnancy, due date, lmp, conception, weeks, trimester, baby, edd, expected date of delivery, how many weeks pregnant, how far along, gestational age, naegele, last period',
   'tip': 'tip, split bill, restaurant, share, divide, friends, service charge, go dutch, each person pays, bill splitter, dinner, round up',
+  'billsplit': 'split restaurant bill, restaurant bill split, split the restaurant bill, bill by photo, bill splitter by photo, scan restaurant bill, photo of bill, who had what, who ate what, divide bill by items, go dutch, split with friends, upi split, pay friends by upi, gst split, service charge split, dinner bill, lunch bill, receipt, splitwise, settle up, each share',
   'fuel': 'fuel, petrol, diesel, cng, mileage, trip cost, kmpl, mpg, distance, road trip, cost per km, litres needed, carpool, split fuel',
   'gpa': 'cgpa to percentage, sgpa to percentage, gpa, cgpa, sgpa, grades, credits, percentage, college, university, grade point average, weighted average, semester, marks, 10 point scale, 4.0 scale',
   'base': 'binary to decimal, hex to decimal, decimal to binary, decimal to hex, octal, binary, hex, hexadecimal, octal, decimal, base, convert, radix, base 36, base 2, base 16, 0x, big number, any base',

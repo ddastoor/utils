@@ -3429,6 +3429,20 @@ Found while building it, each with a check in `tests/e2e/idcopy.e2e.mjs`:
 - (Test slips, fixed in the suites: two precedence slips in `a && b || c` checks; a locator that took the result card holding all
   the tables for one table's card.)
 
+## Bill Splitter by Photo (28 Nov 2026; built — potentials #78)
+- **The first person paid every leftover paisa:** the split rounded each item and each charge on its own (largest remainder, ties to
+  the earlier person), so the leftover paise piled up on the first name — three people who had the same paid 635.69, 635.67 and
+  635.64, five paise apart; a share of exactly ₹630.00 of items came out 630.01. Now the exact shares are fractions and the cumulative
+  columns are rounded (`m_bill_split`): every share within a paisa of the exact one — 635.67, 635.67, 635.66 —, shares that are whole
+  paise stay whole; held to an exact reckoning in BigInt fractions over 3,000 random bills.
+- **"2 x Cappuccino 360.00" lost its item:** the "2" was taken for an amount — a line's amounts are the numbers after its last letter.
+- **A false alarm on IGST:** GST charged on the items with packing and a discount was said not to add up — the tax is checked against
+  each base bills use.
+- **A gratuity printed on the bill** was left out of the split and of the total's check (a false "does not add up"); and **a line with
+  an amount was taken for the restaurant's name** on a bill without a heading.
+- **The selected chips in the dark theme** — white on the light accent — failed WCAG contrast (axe-core): the theme's ink colour.
+- **On phones the items' names were cut** ("Veg Biryai") beside the amount: the name has a row of its own there.
+
 ## Paper Deadlines → Calendar (28 Nov 2026; built — potentials #77)
 - **Tesseract's blank lines inside a sentence:** "Your motor insurance policy expires on" / blank / "31 January 2027." — read as two
   paragraphs, the date lost what it was for; a line that ends with a word a sentence cannot end with runs on over a blank line.

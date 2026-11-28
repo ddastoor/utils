@@ -1351,3 +1351,133 @@ API int m_gstin_valid(const char *g, int len) {
     }
     return cs[(36 - sum % 36) % 36] == g[14];
 }
+
+/* ---------------------------------------------------------------------------------------------- a bill split (Bill Splitter)
+   Every share in whole paise, as fair as whole paise can be. A person's exact share of the items is a fraction (an item shared by three
+   is a third each); each extra — the service charge, a tax, a discount, the round-off, a tip — is shared in proportion to those exact
+   shares, or equally among the people who had anything. The columns are rounded cumulatively: the items, the items and the first extra,
+   … up to the whole bill — each cumulative column by the largest remainder (each figure the exact one rounded down, the paise left over
+   one each to the largest remainders, ties to the earlier person), so that it adds up to its amount; a cell is the difference of two
+   cumulative figures. So every person's items and total are within a paisa of the exact ones (rounding each item on its own gave the
+   first person every leftover paisa), every cell within two, each row adds up to its total and each column to its amount. Exact in
+   __int128 while the numbers fit (any real bill: forty people, a crore of rupees); beyond that, the same in double precision. */
+typedef __int128 bs_i128;
+static bs_i128 bs_gcd(bs_i128 a, bs_i128 b) { if (a < 0) a = -a; if (b < 0) b = -b; while (b) { bs_i128 t = a % b; a = b; b = t; } return a; }
+/* floor(n / d) and its remainder in [0, d), d > 0 */
+static bs_i128 bs_floor(bs_i128 n, bs_i128 d, bs_i128 *r) { bs_i128 q = n / d, m = n % d; if (m < 0) { q -= 1; m += d; } *r = m; return q; }
+static int bs_mul(bs_i128 a, bs_i128 b, bs_i128 *o) { return !__builtin_mul_overflow(a, b, o); }
+static int bs_add(bs_i128 a, bs_i128 b, bs_i128 *o) { return !__builtin_add_overflow(a, b, o); }
+
+/* ni items of `items[i]` paise (none below zero); `parts[i*np + p]` the parts person p had of item i (0: none; 1 each for "shared
+   equally"; units for "2 of the 4"); ne extras of `extra[k]` paise, each shared in proportion to what each person had of the items
+   (`equal[k]` 0) or equally among the people who had anything (`equal[k]` 1; also when the items are worth nothing). out[np * (2 + ne)]:
+   for each person the items, each extra, the total. Returns 0 (exact), 1 (worked out in double precision: numbers beyond __int128),
+   -1 when an item has no one, -2 when no one had anything, -4 when an item is below zero. */
+API int m_bill_split(int ni, int np, const int64_t *items, const int32_t *parts, int ne, const int64_t *extra, const int32_t *equal, int64_t *out) {
+    if (ni < 0 || np <= 0 || ne < 0) return -2;
+    const int W = 2 + ne;
+    int rc = 0, ntook = 0;
+    int *took = calloc((size_t)np, sizeof(int));
+    for (int i = 0; i < ni && !rc; i++) {
+        int64_t s = 0;
+        for (int p = 0; p < np; p++) if (parts[i * np + p] > 0) { s += parts[i * np + p]; took[p] = 1; }
+        if (!s) rc = -1;
+    }
+    for (int i = 0; i < ni && !rc; i++) if (items[i] < 0) rc = -4;
+    for (int p = 0; p < np; p++) ntook += took[p];
+    if (!rc && !ntook) { if (ne) rc = -2; else for (int k = 0; k < np * W; k++) out[k] = 0; }
+    if (rc || !ntook) { free(took); return rc; }
+
+    int64_t *R = malloc(sizeof(int64_t) * (size_t)np * (size_t)(ne + 1));   /* the cumulative figures, person by column */
+    bs_i128 *rem = malloc(sizeof(bs_i128) * (size_t)np);
+    double *remd = malloc(sizeof(double) * (size_t)np);
+    unsigned char *got = malloc((size_t)np);
+    int64_t It = 0;
+    for (int i = 0; i < ni; i++) It += items[i];
+
+    /* exact: L = the lcm of the items' part counts; a[p] = p's items × L; D = L × It × (people who had anything) */
+    int ok = 1;
+    bs_i128 L = 1, WI = 0, D = 1;
+    bs_i128 *a = calloc((size_t)np, sizeof(bs_i128));
+    for (int i = 0; i < ni && ok; i++) {
+        int64_t s = 0;
+        for (int p = 0; p < np; p++) if (parts[i * np + p] > 0) s += parts[i * np + p];
+        bs_i128 g = bs_gcd(L, s);
+        ok = bs_mul(L / g, s, &L) && L < ((bs_i128)1 << 100);
+    }
+    for (int i = 0; i < ni && ok; i++) {
+        int64_t s = 0;
+        for (int p = 0; p < np; p++) if (parts[i * np + p] > 0) s += parts[i * np + p];
+        bs_i128 per = L / s, t;
+        for (int p = 0; p < np && ok; p++) if (parts[i * np + p] > 0)
+            ok = bs_mul((bs_i128)items[i] * parts[i * np + p], per, &t) && bs_add(a[p], t, &a[p]);
+    }
+    for (int p = 0; p < np && ok; p++) ok = bs_add(WI, a[p], &WI);
+    if (ok) ok = It > 0 ? bs_mul(WI, ntook, &D) : (D = ntook, 1);
+    bs_i128 P = 0, Q = 0;                 /* the extras so far: shared in proportion, shared equally */
+    for (int j = 0; j <= ne && ok; j++) {
+        if (j) { if (equal[j - 1] || It == 0) Q += extra[j - 1]; else P += extra[j - 1]; }
+        bs_i128 sum = 0;
+        for (int p = 0; p < np && ok; p++) {
+            /* p's cumulative exact share × D: a_p × (It + P) × ntook + Q × took_p × WI (or Q × took_p when the items are worth nothing) */
+            bs_i128 n = 0, t;
+            if (It > 0) ok = bs_mul(a[p], (bs_i128)It + P, &n) && bs_mul(n, ntook, &n) && bs_mul(Q * took[p], WI, &t) && bs_add(n, t, &n);
+            else n = Q * took[p];
+            if (!ok) break;
+            int64_t q = (int64_t)bs_floor(n, D, &rem[p]);
+            R[p * (ne + 1) + j] = q; sum += q;
+        }
+        if (!ok) break;
+        int64_t left = (int64_t)((bs_i128)It + P + Q - sum);
+        for (int p = 0; p < np; p++) got[p] = 0;
+        for (; left > 0; left--) {
+            int b = -1;
+            for (int p = 0; p < np; p++) if (!got[p] && (b < 0 || rem[p] > rem[b])) b = p;
+            if (b < 0) break;
+            R[b * (ne + 1) + j] += 1; got[b] = 1;
+        }
+    }
+    if (!ok) {
+        /* the same in double precision */
+        rc = 1;
+        double *I = calloc((size_t)np, sizeof(double));
+        for (int i = 0; i < ni; i++) {
+            int64_t s = 0;
+            for (int p = 0; p < np; p++) if (parts[i * np + p] > 0) s += parts[i * np + p];
+            for (int p = 0; p < np; p++) if (parts[i * np + p] > 0) I[p] += (double)items[i] * parts[i * np + p] / (double)s;
+        }
+        double Pd = 0, Qd = 0;
+        for (int j = 0; j <= ne; j++) {
+            if (j) { if (equal[j - 1] || It == 0) Qd += (double)extra[j - 1]; else Pd += (double)extra[j - 1]; }
+            int64_t sum = 0;
+            for (int p = 0; p < np; p++) {
+                double k = (It > 0 ? I[p] + I[p] * Pd / (double)It : 0) + Qd * took[p] / ntook, f = floor(k);
+                R[p * (ne + 1) + j] = (int64_t)f; remd[p] = k - f; sum += (int64_t)f;
+            }
+            int64_t left = It + (int64_t)Pd + (int64_t)Qd - sum;
+            if (left > np) left = np;
+            for (int p = 0; p < np; p++) got[p] = 0;
+            for (; left > 0; left--) {
+                int b = -1;
+                for (int p = 0; p < np; p++) if (!got[p] && (b < 0 || remd[p] > remd[b])) b = p;
+                if (b < 0) break;
+                R[b * (ne + 1) + j] += 1; got[b] = 1;
+            }
+            for (; left < 0; left++) {         /* a floor one too high by rounding (a share a hair above a whole paisa): taken back */
+                int b = -1;
+                for (int p = 0; p < np; p++) if (!got[p] && (b < 0 || remd[p] < remd[b])) b = p;
+                if (b < 0) break;
+                R[b * (ne + 1) + j] -= 1; got[b] = 1;
+            }
+        }
+        free(I);
+    }
+    for (int p = 0; p < np; p++) {
+        const int64_t *r = R + p * (ne + 1);
+        out[p * W] = r[0];
+        for (int k = 0; k < ne; k++) out[p * W + 1 + k] = r[k + 1] - r[k];
+        out[p * W + 1 + ne] = r[ne];
+    }
+    free(a); free(R); free(rem); free(remd); free(got); free(took);
+    return rc;
+}
