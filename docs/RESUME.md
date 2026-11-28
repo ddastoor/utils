@@ -16,6 +16,13 @@ merged into main (fast-forward, 1d5e8dc) and is no longer pushed to. **The site 
 (the owner allowed main in the `github-pages` environment; first deploy 754d1b5 — CLAUDE.md §7, Deploy).
 
 ## ▶ NOW — 26 Nov 2026, morning (read this first)
+**▶▶▶ 28 Nov 2026, later — IN PROGRESS: the owner's "finish off the Small choices"** (the choices listed after to-do #40):
+(1) the EPUB Reader remembers every book switched on until forgotten (at most 1,000) and (2) page turns keep the place without
+a settings file each — both kept as built (CLAUDE.md §3 EPUB Reader); (3) **building the two older offers:** sqlite3, bz2 and
+lzma in the Python tab (SQLite, bzip2 and liblzma compiled into python.wasm), and anime styles for the Cartoonizer (AnimeGAN on
+the site's ONNX Runtime). Also running: **the Windows check, run 19** — the 56 suites of everything built since run 18 (27 Nov:
+the four groups, Settings, #38, #40) and the sweeps over every tab; windows.yml got vobject, xxhash and python-docx (c788fd8).
+Read its log and fix what it finds.
 **▶▶ 27 Nov 2026 — DONE: the owner's "Go ahead with all items in todo" (to-do #33 – #36), each committed and pushed:**
 **#36** (the start page's note of the other device's apps), **#34** (Watermark: the first page of a document with or without
 the mark), **#33** (Cartoonizer: how cartoony, in grades), **#35** (Text Diff: Side by side, the lines of a change paired by the
@@ -58,7 +65,7 @@ Copy, the look (Literata — new TTFs, 1.0 MB —, Serif, Sans, the book's own; 
 styles; Light / Sepia / Dark / Black), the place kept, reading mode, Read aloud → Text-to-Speech, DRM refused in words. Unit
 `ebook` 148, e2e `ebook` 59 (+ the site-wide sweeps); fixtures `python3 scripts/make-ebooks.py`; docs/WASM-AUDIT.md 182;
 taken off potentials.md. **Question for the owner (later, not blocking):** keep the place in a book between visits, as
-Favorites are? (hard rule 1 — not done.) **#106 Articles → Kindle — BUILT (27 Nov 2026):** the tab `articles` (Documents,
+Favorites are? (hard rule 1.) — **Settled:** to-do #40 (28 Nov 2026, f1f92ab) — "Remember book" keeps a book's place between visits. **#106 Articles → Kindle — BUILT (27 Nov 2026):** the tab `articles` (Documents,
 PC + mobile; CLAUDE.md §3 "Articles → Kindle"): web articles saved on the device — Chrome's / Edge's single file (.mhtml;
 Chrome on Android saves pages so), Safari's web archive, a page saved "complete" with its folder, HTML only, a text file, a
 pasted selection — made into one EPUB for Send to Kindle: the article alone (Mozilla Readability's algorithm, dom_smoothie

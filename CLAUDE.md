@@ -4123,11 +4123,12 @@ search in the book, go to a page or chapter; the book never leaves the device".
   (`anchorOf`, found again in any layout by `findAnchor`) with the page as laid out then — goes into the Settings' EPUB Reader
   section (this browser, and a settings file); "Remembered: open … again and it opens at this page." **Kept up to date as the
   pages turn** — quietly (`setQuietly`: stored at once, no settings file a page — the place goes into the next file and Export;
-  Claude's judgement: a file a page turn would be a download a page). **Opening a book:** when any book is remembered, its
+  Claude's judgement — a file a page turn would be a download a page —, kept so by the owner, 28 Nov 2026: "finish off the small
+  choices"). **Opening a book:** when any book is remembered, its
   fingerprint is made while it is laid out and looked up; found → it opens where it was left ("Back where you left off: page 212
   of 380."), the switch on — another visit, another file name, another text size or window (the same words). Switched off →
   forgotten (a settings file follows). Every book switched on is remembered until forgotten (at most 1,000; each a few hundred
-  bytes) — Claude's default for the open question "how many"; the start of the tab lists them ("Books you asked it to remember").
+  bytes) — Claude's default for the open question "how many", kept by the owner the same day; the start of the tab lists them ("Books you asked it to remember").
   Focus goes back to the page after the switch (the arrow keys turn the pages again).
 - **▷ — the page read aloud here (to-do #40):** no jump to the Text-to-Speech tab. The page shown — both pages of a spread — or
   the selection: a sentence a piece (`src/lib/ebookread.ts`: MuPDF's text → paragraphs → sentences, what is said by the
