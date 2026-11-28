@@ -115,6 +115,14 @@ export default async ({ base, page: newPage, ok, info, download }) => {
   ok(await pointerSw.locator('input').isDisabled(), 'the pointer switch is locked during the countdown');
   await page.getByText(/^Captured/).first().waitFor({ timeout: 10000 });
   ok(!page.errors.length, `no page errors ${page.errors.slice(0, 3).join(' | ')}`);
+  // the shot handed to the Screenshot Annotator & How-To Guide (potentials #113): it opens with the shot as step 1
+  await btn('Annotate').click();
+  await page.waitForSelector('.an-item', { timeout: 20000 });
+  const handed = await page.locator('.an-item').first().textContent();
+  ok(/#\/annotate$/.test(page.url()) && /Step 1/.test(handed) && /screenshot-\d{4}-\d\d-\d\d-\d\d-\d\d-\d\d\.png/.test(handed), `"Annotate": the Screenshot Annotator opens with the shot as step 1 (${handed})`);
+  const an = readPng(readFileSync(await download(page, () => btn('Save picture').click())));
+  ok(an.width === W && an.height === H, `… the whole shot, ${an.width} × ${an.height}`);
+  ok(!page.errors.length, `no page errors after the hand-over ${page.errors.slice(0, 3).join(' | ')}`);
 
   // ---------------------------------------------------------------- an area drawn on the frozen screen (to-do #24)
   // owner, 26 Nov 2026: "add the ability for the user to draw a rectangular area with his mouse also as an option to take

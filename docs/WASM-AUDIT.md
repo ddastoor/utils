@@ -2146,3 +2146,15 @@ Looked at first (STANDING RULE #1):
   (`p_scroll_sig`): votes, Kadane's best stretch, bands that stay put left out, a seam by pixel differences. The order (a forest of a few dozen links)
   and the picture's plan are TypeScript glue (`src/lib/stitch.ts`); every row and pixel is compared in the module. Copies made smaller are matched at
   their size: imgproc's Lanczos makes the sharp one as small.
+
+### 209. `annotate` — Screenshot Annotator & How-To Guide (28 Nov 2026; potentials #113)
+- **What it needs:** marks drawn on a picture — arrows, boxes, circles, numbered markers, text in a font of this site, a highlighter, a pen — moved,
+  sized, undone; areas hidden for good (pixelated, blurred, covered) in the saved pixels; the guide laid out as PDF pages and as one tall picture.
+- **Candidates looked at:** no WebAssembly module annotates pictures. The drawing is vector drawing on a canvas — the browser's canvas is compiled
+  C++ (Skia), as the Compute rule allows (it is in the list of browser engines kept: canvas); a WebAssembly rasteriser (resvg, tiny-skia, a WebAssembly
+  Skia — CanvasKit, 7 MB) would draw the same shapes and add megabytes. Markup libraries in JavaScript (Fabric.js, Konva, marker.js 2) bring their
+  own object models for what is a few hundred lines of geometry here.
+- **Decision:** the marks' geometry in TypeScript (`src/lib/annotate.ts` — hit tests and handles, a few comparisons a mark), drawn by the canvas; the
+  hidden areas' pixels by imgproc.wasm — our C: `p_mosaic_rect` (new: a grid at a random place, slivers joined, each block's colour moved by a
+  random amount — a plain mosaic's exact means are what Depix matches candidate texts against), `p_blur_rect`, `p_fill_rect`; the PDF by MuPDF's
+  HTML layout (`src/lib/htmlpdf.ts`, as the document generators), PNG / JPEG by jSquash (OxiPNG, MozJPEG).

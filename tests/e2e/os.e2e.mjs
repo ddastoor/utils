@@ -32,7 +32,7 @@ export default async ({ base, page: newPage, ok, info }) => {
       page.errors.length = 0;
       await page.goto(`${base}#/${id}`);
       // the tab drawn; where the note belongs, waited for (under load a tab can take longer than a fixed pause — the sweeps met it)
-      await page.locator('.tool-body > *').first().waitFor({ timeout: 15000 }).catch(() => {});
+      await page.locator('.tool-body > :not(.loading)').first().waitFor({ timeout: 15000 }).catch(() => {});
       if (sys !== 'windows' && [...BANNER].includes(id)) await page.locator('.linux-banner').first().waitFor({ timeout: 15000 }).catch(() => {});
       else await page.waitForTimeout(400);
       const b = await page.evaluate(() => [...document.querySelectorAll('.linux-banner')].map((e) => e.textContent.replace(/\s+/g, ' ').trim()));

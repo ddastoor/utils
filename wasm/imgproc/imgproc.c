@@ -618,6 +618,43 @@ API void p_pixelate_rect(uint8_t *px, int w, int h, int rx, int ry, int rw, int 
         for (int y = by; y < ey; y++) for (int x = bx; x < ex; x++) { uint8_t *p = px + ((size_t)y * w + x) * 4; for (int c = 0; c < 4; c++) p[c] = (uint8_t)(s[c] / n); }
     }
 }
+/* The cuts of a mosaic's grid between a0 and a1: every `block` from a0 - off, but a piece at either end shorter than half
+ * a block joins its neighbour — a sliver of a block (a corner of 2 × 3 pixels) would keep the picture's detail. Returns
+ * the cuts' count; cuts[] gets the inner boundaries. */
+static int mosaic_cuts(int a0, int a1, int block, int off, int *cuts) {
+    int n = 0;
+    for (int c = a0 - off + block; c < a1; c += block) cuts[n++] = c;
+    if (n && cuts[0] - a0 < block / 2) { memmove(cuts, cuts + 1, sizeof(int) * (size_t)(n - 1)); n--; }
+    if (n && a1 - cuts[n - 1] < block / 2) n--;
+    return n;
+}
+/* A mosaic that leaves nothing to match against — the Screenshot Annotator's "Pixelate" (potentials #113), for passwords
+ * and account numbers in screenshots: the blocks' grid starts at a place chosen at random (ox, oy within a block; a
+ * sliver at an edge joins its neighbour, so every block is at least half a block a side) and each block's colour is its
+ * mean moved by a random amount (the same for its three channels, at most ±noise). Pixelating candidate texts the same
+ * way and comparing the blocks (Depix's attack on pixelated passwords) then finds neither the grid nor the exact means.
+ * seed: any 32-bit number (xorshift32). */
+API void p_mosaic_rect(uint8_t *px, int w, int h, int rx, int ry, int rw, int rh, int block, int ox, int oy, int noise, uint32_t seed) {
+    if (block < 2) block = 2;
+    int x0 = CLAMP(rx, 0, w), y0 = CLAMP(ry, 0, h), x1 = CLAMP(rx + rw, 0, w), y1 = CLAMP(ry + rh, 0, h);
+    if (x1 <= x0 || y1 <= y0) return;
+    ox %= block; oy %= block; if (ox < 0) ox += block; if (oy < 0) oy += block;
+    int *xc = malloc(sizeof(int) * (size_t)((x1 - x0) / block + 3)), *yc = malloc(sizeof(int) * (size_t)((y1 - y0) / block + 3));
+    int nx = mosaic_cuts(x0, x1, block, ox, xc), ny = mosaic_cuts(y0, y1, block, oy, yc);
+    uint32_t s = seed ? seed : 0x9e3779b9u;
+    for (int j = 0; j <= ny; j++) for (int i = 0; i <= nx; i++) {
+        int bx = i ? xc[i - 1] : x0, ex = i < nx ? xc[i] : x1, by = j ? yc[j - 1] : y0, ey = j < ny ? yc[j] : y1;
+        unsigned long long sum[4] = {0}; unsigned n = 0;
+        for (int y = by; y < ey; y++) for (int x = bx; x < ex; x++) { const uint8_t *p = px + ((size_t)y * w + x) * 4; for (int c = 0; c < 4; c++) sum[c] += p[c]; n++; }
+        s ^= s << 13; s ^= s >> 17; s ^= s << 5;
+        int d = noise > 0 ? (int)(s % (uint32_t)(2 * noise + 1)) - noise : 0;
+        uint8_t v[4];
+        for (int c = 0; c < 3; c++) { int m = (int)((sum[c] + n / 2) / n) + d; v[c] = (uint8_t)CLAMP(m, 0, 255); }
+        v[3] = (uint8_t)((sum[3] + n / 2) / n);
+        for (int y = by; y < ey; y++) for (int x = bx; x < ex; x++) { uint8_t *p = px + ((size_t)y * w + x) * 4; p[0] = v[0]; p[1] = v[1]; p[2] = v[2]; p[3] = v[3]; }
+    }
+    free(xc); free(yc);
+}
 API void p_blur_rect(uint8_t *px, int w, int h, int rx, int ry, int rw, int rh, float sigma) {
     int x0 = CLAMP(rx, 0, w), y0 = CLAMP(ry, 0, h), x1 = CLAMP(rx + rw, 0, w), y1 = CLAMP(ry + rh, 0, h);
     int cw = x1 - x0, ch = y1 - y0; if (cw <= 0 || ch <= 0) return;

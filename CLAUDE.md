@@ -83,7 +83,8 @@ that affects it.
 >    lzma in the Python tab (1.9 MB) and the Cartoonizer's anime looks (34.6 MB): **668.3 MB**; with World Radio (31 KB — the stations and
 >    their sound come from the directory and the stations' servers): **668.3 MB**; with Wallpapers (34 KB — the pictures come from
 >    Wikimedia and the museums): **668.4 MB**; with the NASA Image Explorer (17 KB; the wallpaper maker now shared): **668.4 MB**; with the Long Screenshot Stitcher (43 KB — its engine
->    8.6 KB of imgproc.wasm): **668.4 MB**.
+>    8.6 KB of imgproc.wasm): **668.4 MB**; with the Screenshot Annotator & How-To Guide (44 KB with its styles — its fonts the site's Noto
+>    Sans, its mosaic 0.8 KB of imgproc.wasm): **668.4 MB**.
 > 4. **Wait for the owner's decision.** Build nothing until the owner has decided.
 
 > ## ⚠️ STANDING RULE #1 — WebAssembly first (owner; permanent; applies to every line of new code)
@@ -376,7 +377,7 @@ Wayland) and **mobile browsers** (Android Chrome, iPhone Safari).
 Platform is PC + mobile unless marked **PC**. Tab ids are the URL hash (`#/<id>`).
 
 **The authoritative, always-current list is `docs/TOOLS.md`, generated from `src/registry.ts` (`npm run docs`).**
-Current total: **202 tabs in 11 categories — 134 PC + mobile, 65 PC only, 3 Mobile only** (regenerate with
+Current total: **203 tabs in 11 categories — 135 PC + mobile, 65 PC only, 3 Mobile only** (regenerate with
 `npm run docs` after every registry change; the owner asked for the registry to always be noted).
 The per-category notes below record decisions; when they disagree with the registry, the registry wins.
 
@@ -412,6 +413,7 @@ and to the counts of `docs/TOOLS.md`; axe in both themes).
 | `caption` | Text on Image | both | canvas captions / meme text |
 | `collage` | Collage Maker | both | canvas photo grid |
 | `stitch` | Long Screenshot Stitcher | both | **BUILT** (28 Nov 2026; potentials #87 — §3 "Long Screenshot Stitcher"): screenshots of a chat or a page in any order → one tall picture; every two placed against each other by imgproc.wasm (`stitch.c`: votes, then Kadane's best stretch of matching rows; bands that stay put left out), joined where their pixels agree, the bars once |
+| `annotate` | Screenshot Annotator & How-To Guide | both | **BUILT** (28 Nov 2026; potentials #113 — §3 "Screenshot Annotator & How-To Guide"): arrows, boxes, circles, numbered steps, text, highlighter, pen and hidden areas on a screenshot or photo (the canvas; imgproc.wasm's mosaic with a random grid), crop, undo / redo; several pictures with captions → one PDF (MuPDF's HTML layout, Noto Sans) or one tall picture; the Screenshot tab hands a shot over |
 | `wallpapers` | Wallpapers | both | **BUILT** (28 Nov 2026; potentials #115 — §3 "Wallpapers"): Wikimedia Commons' Picture of the Day and featured pictures, the Met's and the Art Institute of Chicago's public-domain paintings (their APIs, CORS) → a wallpaper of the screen's exact pixels: the crop on the faces (BlazeFace, the Blur & Redact tab's) or the busiest part (imgproc `p_busy_window`), Squoosh's resize, MozJPEG, the credit in the file |
 | `nasa` | NASA Image Explorer | both | **BUILT** (28 Nov 2026; potentials #114 — §3 "NASA Image Explorer"): NASA's Image and Video Library (its API, CORS; the files at its bucket's own address) → pictures and videos by words, topic, years, centre; a picture as a wallpaper (the Wallpapers' maker, `src/lib/wallmaker.ts`), a video played with its captions |
 | `exif` | EXIF / Photo Info | both | ExifTool 13.42 (Perl on zeroperl, WebAssembly) in a worker: every tag of every format; strip metadata losslessly (colour profile + orientation kept) |
@@ -1304,6 +1306,54 @@ words (potentials #87): "several overlapping screenshots of a chat or a web page
   a row), none of the others joined; every page row once and in order; nothing floating kept where another screenshot shows the page clean; in the
   browser every row of the saved PNG (read back by `tests/lib/png.mjs`) a screenshot's row at its page row. Six screenshots of 720 × 1600 in about
   1.2 s.
+
+### Screenshot Annotator & How-To Guide — BUILT (potentials #113; built 28 Nov 2026 — group 2 of the suggested order)
+(`annotate` in `src/tools/annotate.ts` + `.css`, the marks `src/lib/annotate.ts` (no DOM but the drawing context passed in), the mosaic imgproc.wasm's
+`p_mosaic_rect`; unit `tests/unit/annotate.test.mjs` 80, e2e `tests/e2e/annotate.e2e.mjs` 78 (+ the camera sweep's entry and the Screenshot suite's
+hand-over); the test pictures made in the suite, read back by `tests/lib/png.mjs` — which reads palette PNGs now, as OxiPNG writes them.) The owner's
+words (potentials #113): "a screenshot or photo (pasted with Ctrl+V, chosen, taken with the camera, or straight from the Screenshot tab) → arrows,
+boxes, circles, numbered step markers, highlighter, text callouts, blur or pixelate (passwords, account numbers: burnt into the pixels when saved),
+crop, undo / redo → PNG / JPEG or the clipboard. How-to guide: several annotated screenshots, each with a caption ('Step 3: tap Renew') → one PDF, or
+one tall picture for WhatsApp — 'how to renew the policy online', for parents".
+- **In:** pictures chosen, dropped, pasted (Ctrl+V or "Paste image") or taken with the camera (it stays open: every Snap a picture), several at once;
+  the Screenshot tab's **Annotate** hands its shot over. A picture longer than 4,096 px a side is made smaller (Squoosh's resize); at most 40
+  pictures (phones 20).
+- **The marks** (each kept in the picture's own pixels, so a crop or a zoom never moves one; sizes in a thousandth of the picture's longer side, so a
+  phone's and a PC's screenshot look alike): **Arrow** (a drag from where it starts to what it points at; a tap: an arrow pointing there from the
+  upper left — the other side near an edge), **Box**, **Circle** (a drag; a tap: a box of the usual size there), **Step number** (each tap the next:
+  1, 2, 3 — a marker's number is its place among the picture's markers; "Number the step markers on from picture to picture" carries them across the
+  guide), **Text** (typed, then a tap: on a label — white letters on red, blue, green, purple, near-black on yellow, orange, white: large bold text's
+  3 : 1 — or letters only with an outline; Noto Sans Bold from this site, fetched with the first picture), **Highlighter** (the canvas's multiply at
+  60 %: yellow over white, black text stays black), **Pen**; colours (eight and any), Thin / Medium / Thick, a soft shadow. **Select**: a press on a
+  mark's line chooses it (an arrow inside a box before the box; the insides of boxes, circles and hidden areas at a second look), its handles (an
+  arrow's ends, a box's corners and sides), drag to move, its colour, size or words changed, **Delete**. With a drawing tool, the mark just drawn can
+  be adjusted by its handles at once.
+- **Hide** (burnt into the pixels when saved — nothing under it is kept): **Pixelate** (imgproc.wasm's `p_mosaic_rect`: blocks larger than half the
+  area's height, 10 – 28 units; the grid at a random place and each block's colour moved by up to ±20 levels, the numbers chosen once per area so it
+  looks the same each time — rendering candidate texts and pixelating them the same way, Depix's attack on pixelated passwords, finds neither the grid
+  nor the exact means; a sliver of a block at an edge joins its neighbour — found by the suite: tiny corner blocks kept a few original pixels),
+  **Blur** (two passes, σ 0.3 of the short side, 4 – 24 units), **Solid**. The tab says it: for a password, PIN or one-time code choose Solid — a
+  short number pixelated or blurred can sometimes be guessed. An area covers every pixel it touches (floor and ceiling).
+- **Crop:** a box drawn anew on the whole picture, moved or sized by its handles, Done / Whole picture / Cancel; the marks outside it are kept and come
+  back with the whole picture. **Undo / Redo** (Ctrl+Z, Ctrl+Shift+Z or Ctrl+Y anywhere in the tab but a text box): every change — a mark, a move, a
+  colour, a crop, a picture added, moved or removed — up to 200 steps; captions keep their own undo.
+- **Mouse, finger and keys:** one finger draws; two fingers move and zoom the view (pinch); Zoom in / out / Fit. The picture is a focusable drawing
+  area: Enter adds the tool's mark in the middle of what is in view, the arrows move the mark chosen (Shift: further), Alt with the arrows sizes it
+  (a crop too), Delete removes it, N / P choose the next or previous mark, Escape lets it go.
+- **Out:** **Save picture** — PNG (OxiPNG) or JPEG (MozJPEG, 90) at the picture's (or the crop's) own pixels; **Copy** on PCs (the PNG handed to the
+  clipboard as a promise in the click); phones: Save makes the file and offers Share — a tap of its own. **The guide:** the pictures in order with a
+  caption each (the strip: choose, move up / down, remove — Undo brings it back), a title, "Number the steps (Step 1, Step 2 …)" — **Save the guide as
+  PDF** (A4: MuPDF's HTML layout with Noto Sans, the title on page 1, each step's heading, caption and picture kept together on one page — packed in
+  order, a picture as large as its page leaves room for, at most 0.6 pt a pixel; screenshots as PNG, photos as JPEG — imgproc's flat share; page
+  numbers) or **Save as one tall picture** (1,080 px wide, the title, each step's heading and caption, the pictures in a thin frame; PNG or JPEG; at
+  most 100 megapixels, phones 50; the WhatsApp note).
+- **Kept while the page is open** — the pictures, their marks and captions, the title, the tools' colours and sizes: another tab and back, they are
+  there (the Screenshot tab's next shot joins the guide); nothing is stored. **Lazy:** at open the tab's code (41 KB, 3 KB of styles); the fonts with
+  the first picture, imgproc.wasm with the first hidden area or the PDF, MuPDF with the PDF, the codec worker with the first save.
+- **Measured** (e2e, every saved PNG read back): each mark where it was drawn and every other pixel as it was; the pixelated area with no square of
+  the test checkerboard left, every pixel a block's grey; Solid every pixel covered; blurred, neighbouring squares within 15 levels (black and white
+  before); undo and redo through the styles; a box moved 100 pixels; a crop of 400 × 300 with the arrow at its place; the PDF read by MuPDF — two A4
+  pages, the title, each step's heading and caption with its picture, the marks in the pictures and not in the text; the tall picture 1,080 px wide.
 
 ### OpenPGP
 Generate key pair (name, email, passphrase) → download armored public/private keys. Encrypt file
@@ -3774,7 +3824,7 @@ the photo with a webcam if it's a PC app." No engine to fetch: the browser's get
   `reveal(el)` (`src/ui.ts`) brings the view and its buttons in between the sticky tab rows and the screen's foot.
 - **Where:** built into `imageInput` — Image Editor, Photo & Signature Resizer, Background Remover, Cartoonizer, Image to SVG, Clipart Maker, Blur &
   Redact, Text on Image, OCR, Signature Maker, Sign PDF, Photo Dictionary (21 Nov 2026), and the camera helpers of 27 – 28 Nov
-  2026 — Router Sticker → Wi-Fi QR, Visiting Card → Contact, Paper Deadlines → Calendar, Bill Splitter by Photo, Camera Reader (`camera: false` for Passport
+  2026 — Router Sticker → Wi-Fi QR, Visiting Card → Contact, Paper Deadlines → Calendar, Bill Splitter by Photo, Camera Reader, and the Screenshot Annotator (28 Nov 2026 — several pictures: the camera stays open, every Snap a picture of the guide) (`camera: false` for Passport
   Photo, which has a camera of its own); `imagePicker` (a file picker with the camera, photos arriving as files) — Batch Images,
   HEIC → JPG, Watermark (photos and the logo), Collage, Doc Scanner, Images → PDF, Slideshow (several photos each), Safe ID
   Copy (a card's sides), the
@@ -4560,7 +4610,8 @@ Editor: crop box (shared `cropBox`), **PNG** (our OxiPNG), **JPEG** (our MozJPEG
 (PNG); gallery of this visit's shots (click to reopen). The share stays alive for more shots ("Stop sharing" ends
 it). A web page cannot screenshot silently, minimise the browser or see the active window (said in the tab).
 Tests: full-size PNG, JPEG, cropped PNG = 84 %, clipboard PNG, 3 s delay, PiP "Snap now" (< 1.5 s) and "Cancel",
-gallery, stop sharing.
+gallery, stop sharing. **"Annotate"** (28 Nov 2026, potentials #113): the shot, cropped as shown, is handed to the Screenshot Annotator & How-To
+Guide (`give('annotate', file)`, `src/lib/handoff.ts` — in memory), which opens with it as step 1 (e2e: the annotated PNG the shot's size).
 **As built after the Nov 2026 bug hunt** (tab 154): each shot's copy of the shared track is stopped (they kept the screen
 shared after "Stop sharing"); shots not shown are kept as lossless PNG (not 33 MB of pixels each) and decoded again
 when opened; sharing stopped during the countdown is said; no new share during the countdown.
@@ -4737,7 +4788,7 @@ stay **public** (the source of the deployed site is then available to every user
 | **libsodium.js** — `libsodium-wrappers-sumo` 0.8.4 (libsodium **1.0.22**; the sumo build: the standard one has no Argon2) | C | the libsodium project (official WebAssembly build, embedded in the module) — binding `src/wasm/libsodium.ts`, format `src/lib/usodium.ts`, in `src/workers/crypto.worker.ts` | sodium, sharelink: Argon2id + XChaCha20-Poly1305 secretstream (`docs/WASM-AUDIT.md`, tab 101); password, passphrase, dice, coin: randombytes_uniform (tabs 104, 105, 155) |
 | imgproc (adjustments, resize, OpenCV's area resize (`p_resize_area`, equal to cv2's INTER_AREA), lossless orient/crop, filters, matting, warp + homography, doc enhance, the page in a photo (`p_page_quad`) and whether an outline is a page's (`p_quad_steps`: the step across each edge; `p_quad_text`: the letters it leaves outside), an outline fitted to the photo's edges (`p_refine_quad`), strips of the desk along a straightened page painted (`p_clear_border`), which way up the text stands and how its lines slant (`p_text_turns`: the letters; `p_text_lines`: projection profiles), where the text is (`p_ink_window`), a watermark's broad strokes taken out (`p_clear_wash`), the views of a scrolling
 screenshot placed against each other (`p_scroll_sig`, `p_scroll_match`: rows that stay put, the shift by the overlap's
-difference over its detail, the overlap's pixels), ruled lines and list marks cleared and the columns counted (`p_clear_marks`); **book pages flattened** (`flatten.c`: `p_book_fit`, `p_book_render`, `p_book_locate` — page-dewarp's method, Levenberg–Marquardt, the gutter, the margins); **where a region of a PDF page may be cut for a Kindle's screen** (`kindle.c`: `p_blank_rows` — rows with no ink outside the letters' bodies, figures and formulas; `p_next_cut` — the lowest paragraph gap past 65 % of the room, else the lowest gap); PaddleOCR's steps around its networks, as RapidOCR takes them in OpenCV's arithmetic (`p_resize_linear` / `p_net_planes`: cv2.resize INTER_LINEAR in its own fixed point; `p_db_boxes`: DBPostProcess, its box score over cv2.fillPoly's exact pixels; `p_crop_quad`: get_rotate_crop_image; `p_ctc`: CTC's greedy reading); **flat colours, masks, black and white and ink lines for Image to SVG and the Clipart Maker** (`flat.c`: `p_clip_flat` — greedy k-means++ in CIE Lab, a mode filter, specks taken in, each colour the mean of its own pixels; `p_clip_mask`, `p_clip_lines` — Winnemöller's DoG inside the subject, not at its edge; `p_bw` — a threshold or Otsu's; `p_u2_planes` / `p_u2_mask` — U²-Net's input and output as rembg makes them); AnimeGAN v2's input and output as its own code makes them (`p_anime_in` / `p_anime_out`, the Cartoonizer's anime looks); the busiest part of a picture for a crop (`p_busy_window`: gradient energy on a 240-px copy, an integral image, a slight pull to the middle — the Wallpapers); **screenshots placed against each other** (`stitch.c`: `p_st_rows` — each row's bands, detail and mean, a soft copy's bands over three rows; `p_st_pair` — votes for the shift, Kadane's best stretch of matching rows, bands that stay put left out, a quarter of a row; `p_st_seam` — where their pixels agree; `p_st_same` — the bars)) | C (own code) | **us** (`wasm/imgproc`) | image tools, scanner, passport, cartoon, ocr and photodict (pages found, set upright and level, rules and list marks cleared — to-do #18; the second reader's pixel work), bookflat, wallpapers, nasa, stitch |
+difference over its detail, the overlap's pixels), **a mosaic that leaves nothing to match against** (`p_mosaic_rect`: the Screenshot Annotator's Pixelate — the grid at a random place, slivers at the edges joined to their neighbours, each block's colour moved by up to ±20), ruled lines and list marks cleared and the columns counted (`p_clear_marks`); **book pages flattened** (`flatten.c`: `p_book_fit`, `p_book_render`, `p_book_locate` — page-dewarp's method, Levenberg–Marquardt, the gutter, the margins); **where a region of a PDF page may be cut for a Kindle's screen** (`kindle.c`: `p_blank_rows` — rows with no ink outside the letters' bodies, figures and formulas; `p_next_cut` — the lowest paragraph gap past 65 % of the room, else the lowest gap); PaddleOCR's steps around its networks, as RapidOCR takes them in OpenCV's arithmetic (`p_resize_linear` / `p_net_planes`: cv2.resize INTER_LINEAR in its own fixed point; `p_db_boxes`: DBPostProcess, its box score over cv2.fillPoly's exact pixels; `p_crop_quad`: get_rotate_crop_image; `p_ctc`: CTC's greedy reading); **flat colours, masks, black and white and ink lines for Image to SVG and the Clipart Maker** (`flat.c`: `p_clip_flat` — greedy k-means++ in CIE Lab, a mode filter, specks taken in, each colour the mean of its own pixels; `p_clip_mask`, `p_clip_lines` — Winnemöller's DoG inside the subject, not at its edge; `p_bw` — a threshold or Otsu's; `p_u2_planes` / `p_u2_mask` — U²-Net's input and output as rembg makes them); AnimeGAN v2's input and output as its own code makes them (`p_anime_in` / `p_anime_out`, the Cartoonizer's anime looks); the busiest part of a picture for a crop (`p_busy_window`: gradient energy on a 240-px copy, an integral image, a slight pull to the middle — the Wallpapers); **screenshots placed against each other** (`stitch.c`: `p_st_rows` — each row's bands, detail and mean, a soft copy's bands over three rows; `p_st_pair` — votes for the shift, Kadane's best stretch of matching rows, bands that stay put left out, a quarter of a row; `p_st_seam` — where their pixels agree; `p_st_same` — the bars)) | C (own code) | **us** (`wasm/imgproc`) | image tools, scanner, passport, cartoon, ocr and photodict (pages found, set upright and level, rules and list marks cleared — to-do #18; the second reader's pixel work), bookflat, wallpapers, nasa, stitch |
 | metacore (EXIF → JSON, lossless metadata strip JPEG/PNG/WebP, JPEG DPI, image sniffing) | C (own code) | **us** (`wasm/metacore`) | exif, image loading, passport/formphoto DPI |
 | BusyBox 1.38.0 (130 applets) + compat shims | C | **us** (`wasm/busybox`) | terminal, bc console |
 | jq 1.8.2 (+ oniguruma) | C | **us** (`wasm/jq`) | jq |
@@ -4880,6 +4931,10 @@ Nov 2026 (Paper Deadlines → Calendar, potentials #77): `src/lib/deadlines.ts` 
 paper's lines made into sentences, dates counted on with the browser's Date in UTC, the iCalendar file written as text: string glue
 around the readers' output (`docs/WASM-AUDIT.md`, tab 194).
 Nov 2026 (the Settings page, to-do #39): `src/settings.ts`, `src/lib/settingsfile.ts` — values checked by a comparison or two, the browser's JSON, localStorage, IndexedDB and File System Access: nothing for an engine to do (`docs/WASM-AUDIT.md`, 201).
+Nov 2026 (Screenshot Annotator & How-To Guide, potentials #113): `src/lib/annotate.ts` — the marks' geometry (where a press takes a mark, handles,
+moves: a few comparisons and multiplications per mark), drawn by the browser's canvas (Skia, compiled C++ — arrows, boxes, text, the highlighter's
+multiply); every pixel of a hidden area is imgproc.wasm's (`p_mosaic_rect`, `p_blur_rect`, `p_fill_rect`); the guide's pages packed by a sum of
+heights, laid out by MuPDF; the tall picture's pieces copied row by row (`TypedArray.set`) and encoded by jSquash (`docs/WASM-AUDIT.md`, tab 209).
 Nov 2026 (Long Screenshot Stitcher, potentials #87): `src/lib/stitch.ts` — the screenshots ordered by the page rows their shifts give (Kruskal's
 forest over at most a few dozen links), duplicates and groups, the picture planned in page rows and its rows copied (`TypedArray.set`): glue around
 imgproc.wasm, which compares every row and pixel (`stitch.c`; `docs/WASM-AUDIT.md`, tab 208).

@@ -33,10 +33,12 @@ export default async ({ base, page: newPage, ok, devices }) => {
   ok(!(await page.locator('.tile', { hasText: 'Bubble Level' }).count()), 'mobile-only tool hidden on desktop');
   const phone = await newPage(devices['iPhone 13']);
   await phone.goto(base); await phone.waitForSelector('.tile');
-  const phoneTitles = await phone.locator('.tile strong').allTextContents();
-  const pcOnly = TOOLS.filter((t) => t.platform === 'pc').map((t) => t.title);
-  ok(!phoneTitles.some((t) => pcOnly.some((p) => t.startsWith(p))), 'no PC-only tool on the phone home screen');
-  ok(phoneTitles.some((t) => t.startsWith('Bubble Level')), 'mobile-only tool shown on phone');
+  // by the tiles' links: a title can begin with another tool's title ("Screenshot Annotator & How-To Guide", "Screenshot")
+  const phoneIds = (await phone.locator('a.tile').evaluateAll((as) => as.map((a) => a.getAttribute('href')))).map((h) => h.replace(/^#\//, '').replace(/\?.*$/, ''));
+  const pcOnly = TOOLS.filter((t) => t.platform === 'pc').map((t) => t.id);
+  const shown = phoneIds.filter((id) => pcOnly.includes(id));
+  ok(phoneIds.length > 100 && !shown.length, `no PC-only tool on the phone home screen (${phoneIds.length} tiles; PC-only among them: ${shown.join(', ') || 'none'})`);
+  ok(phoneIds.includes('level'), 'mobile-only tool shown on phone (Bubble Level)');
   ok(!(await phone.locator('.tabs-cat .tab', { hasText: 'Software' }).count()), 'Software category hidden on phone (all PC only)');
   ok(!page.errors.length && !phone.errors.length, 'no console errors ' + [...page.errors, ...phone.errors].join(' | '));
 

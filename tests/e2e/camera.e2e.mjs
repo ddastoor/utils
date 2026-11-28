@@ -30,7 +30,7 @@ export default async ({ base, page: newPage, ok, info, devices }) => {
     const missing = [], seen = [];
     for (const id of ids) {
       // the tab drawn (under load its chunk can take longer than a fixed pause), then a moment for what it draws after
-      await page.goto(`${base}#/${id}`); await page.locator('.tool-body > *').first().waitFor({ timeout: 20000 }).catch(() => {}); await page.waitForTimeout(250);
+      await page.goto(`${base}#/${id}`); await page.locator('.tool-body > :not(.loading)').first().waitFor({ timeout: 20000 }).catch(() => {}); await page.waitForTimeout(250);
       const pickers = await page.evaluate(() => [...document.querySelectorAll('.tool-body .drop')]
         .filter((d) => d.getClientRects().length && /image\/|\.heic|\.png|\.jpe?g/i.test(d.querySelector('input[type=file]')?.accept || ''))
         .map((d) => {
@@ -87,6 +87,7 @@ export default async ({ base, page: newPage, ok, info, devices }) => {
     ['idcopy', () => document.querySelectorAll('.idc-items > .card').length === 2],
     ['img2pdf', () => [...document.querySelectorAll('.pdf-tile-label')].filter((l) => /camera-\d{8}/.test(l.textContent)).length === 2],
     ['slideshow', () => /^2 photos/.test(document.querySelector('.tool-body').innerText.split('\n').find((l) => /photos? ·/.test(l)) || '')],
+    ['annotate', () => [...document.querySelectorAll('.an-item')].filter((li) => /camera-\d{8}-\d{6}(-\d+)?\.jpg/.test(li.textContent)).length === 2],
   ];
   for (const [id, done] of several) {
     await step(`${id}: the webcam stays open — two Snaps add two photos, Done closes it`, async () => {

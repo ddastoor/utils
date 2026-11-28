@@ -15,6 +15,7 @@ export const KEYWORDS: Record<string, string> = {
   'watermark': 'add logo, logo on photo, add logo to image, logo on image, watermark image, watermark, logo, copyright, text, stamp, protect, brand',
   'caption': 'caption, meme, text, write on image, quote, title, font',
   'collage': 'collage, grid, combine, merge photos, layout, montage, side by side',
+  'annotate': 'annotate screenshot, screenshot annotator, mark up a screenshot, markup, draw on screenshot, draw on picture, draw on photo, arrow on screenshot, add arrow, circle on photo, box on screenshot, highlight screenshot, highlighter, numbered steps, step numbers, callout, text on screenshot, blur password, pixelate, hide account number, redact screenshot, how to guide, how-to guide, step by step guide, tutorial screenshots, instructions with pictures, guide for parents, screenshots to pdf, tall picture, snagit, skitch, greenshot, annotation, anotate, anotator, screensot',
   'stitch': 'long screenshot, stitch screenshots, scrolling screenshot, join screenshots, combine screenshots, merge screenshots, screenshot stitcher, tall screenshot, full chat screenshot, whatsapp chat screenshot, chat in one picture, full page screenshot, scroll capture, panorama screenshot, screenshots together, one long image, stich, stiching, screnshot',
   'exif': 'gps from photo, photo details, camera info, exif, metadata, gps, location, camera, date, info, strip, remove metadata, privacy',
   'scanner': 'scan, scanner, document, camscanner, paper, receipt, perspective, crop, pdf, black and white',

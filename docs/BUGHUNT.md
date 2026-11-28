@@ -3798,6 +3798,20 @@ Found while building it (each fixed, with a check in the suites):
 - **World Radio's favourites chip had no name until the directory answered** (the every-tab sweep, under load: an unnamed button): its text was
   set when the stations' list was drawn. Named as it is made now (e2e `worldradio`: every quick pick named while the directory is held back).
 
+## Screenshot Annotator & How-To Guide (28 Nov 2026; built — potentials #113)
+Found while building it (each fixed, with a check in the suites):
+- **The mosaic's corner slivers kept the picture:** the grid starts at a random place (so candidate texts cannot be pixelated on the same grid), and
+  where it met the area's edge it left blocks of a pixel or two a side — a 2 × 3 block of a password's black stroke stayed black. A sliver under
+  half a block now joins its neighbour (`mosaic_cuts` in imgproc.c; unit: every block at least half a block a side; e2e: no black or white pixel of
+  the checkerboard left in the area).
+- **The guide's PDF had no pictures:** they were made and never handed to the layout (`files` left out of `htmlToPdf`'s options): MuPDF said "cannot
+  load image" and drew the captions alone. Caught by the suite's check that each page shows its picture.
+- **A step's picture went to the next page without its heading:** a phone screenshot fitted to the page's height left no room for the title, the
+  heading, the margins and the 4 % kept in reserve; MuPDF moved the picture on and the guide of two steps had four pages. The room is worked out
+  with all of them now (e2e: two steps, two pages, each heading with its picture).
+- **The test PNG reader could not read OxiPNG's palettes** (a picture of few colours is written as a palette of 1 – 8 bits): `tests/lib/png.mjs`
+  reads palettes, transparency and 16-bit samples now, held to Pillow's reading.
+
 ## Long Screenshot Stitcher (28 Nov 2026; built — potentials #87)
 Found while building it (each fixed, with a check in the suites):
 - **A shift of a row or two matched the bars:** the typing box and the status bar are the same row after row, so shifts of ±1 "matched" them.
@@ -3816,3 +3830,7 @@ Found while building it (each fixed, with a check in the suites):
   three rows (unit `mix`).
 - **"JPEG (smaller)" was not true:** a chat's flat colours make the PNG the smaller file (361 KB against 592). The formats are plain PNG / JPEG
   now, with a hint that says when each is smaller (e2e).
+- **Under load** (the sweeps with the new tab): three checks made robust — `os` and `camera` wait for the tab to draw (a fixed
+  pause was too short), the stitcher's Copy reads the shared clipboard again when another suite wrote to it between its copy and its read.
+
+

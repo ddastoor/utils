@@ -100,6 +100,10 @@ export function bindImgproc(e: any) {
     watercolor: (img: Img, scale = 1) => inplace(img, (p) => e.p_watercolor(p, img.width, img.height, scale)),
     halftone: (img: Img, cell = 6, scale = 1) => inplace(img, (p) => e.p_halftone(p, img.width, img.height, cell, scale)),
     pixelateRect: (img: Img, x: number, y: number, w: number, h: number, block: number) => inplace(img, (p) => e.p_pixelate_rect(p, img.width, img.height, x | 0, y | 0, w | 0, h | 0, block | 0)),
+    /** A mosaic with its grid at a random place and each block's colour moved by a random amount (p_mosaic_rect — the
+     *  Screenshot Annotator's Pixelate: nothing to match candidate texts against). */
+    mosaicRect: (img: Img, x: number, y: number, w: number, h: number, block: number, ox: number, oy: number, noise: number, seed: number) =>
+      inplace(img, (p) => e.p_mosaic_rect(p, img.width, img.height, x | 0, y | 0, w | 0, h | 0, block | 0, ox | 0, oy | 0, noise | 0, seed >>> 0)),
     blurRect: (img: Img, x: number, y: number, w: number, h: number, sigma: number) => inplace(img, (p) => e.p_blur_rect(p, img.width, img.height, x | 0, y | 0, w | 0, h | 0, sigma)),
     /** Full-resolution alpha (Uint8Array w*h) from a low-res probability mask using a guided filter. */
     guidedAlpha(img: Img, mask: Uint8Array, mw: number, mh: number, r = 8, eps = 1e-3): Uint8Array {

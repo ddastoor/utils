@@ -8,6 +8,7 @@
 // are joined where they overlap (src/lib/scrollstitch.ts on imgproc.wasm, in src/workers/scrollshot.worker.ts).
 import { h, card, field, actions, button, select, segmented, toggle, stack, note, toast, errMsg, fmtBytes, downloadBlob, sleep, clear, type Mount } from '../ui';
 import { cropBox } from '../lib/imgtools';
+import { give } from '../lib/handoff';
 import { encodeImg } from '../lib/imgio';
 import { linuxBanner, CAPTURE_TIPS } from '../linux';
 import { countdownWindow, showCount } from '../lib/pipcount';
@@ -255,6 +256,14 @@ export const mount: Mount = (root) => {
     try { await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]); toast('Copied — paste it anywhere', 'ok'); }
     catch (e) { toast(`The browser refused the clipboard: ${errMsg(e)}`, 'err'); }
   }
+  /** the shot (cropped as shown) handed to the Screenshot Annotator & How-To Guide, which opens with it */
+  async function annotate() {
+    if (!cur) return;
+    const img = await cropped(), c = new OffscreenCanvas(img.width, img.height);
+    c.getContext('2d')!.putImageData(new ImageData(new Uint8ClampedArray(img.data), img.width, img.height), 0, 0);
+    give('annotate', new File([await c.convertToBlob({ type: 'image/png' })], fname('png'), { type: 'image/png' }));
+    location.hash = '#/annotate';
+  }
   function renderGallery() {
     galleryCard.hidden = shots.length < 2;
     clear(gallery).append(...shots.map((s, i) => {
@@ -288,7 +297,8 @@ export const mount: Mount = (root) => {
   editCard.append(h('div', { class: 'row' }, cropOn), actions(
     button('PNG', () => save('png'), { icon: 'Download', variant: 'primary', title: 'Lossless PNG (optimised with OxiPNG)' }),
     button('JPEG', () => save('jpeg'), { icon: 'Download', title: 'Smaller JPEG (MozJPEG, quality 90)' }),
-    button('Copy', () => copyImg(), { icon: 'Copy', title: 'Copy the image to the clipboard' })));
+    button('Copy', () => copyImg(), { icon: 'Copy', title: 'Copy the image to the clipboard' }),
+    button('Annotate', () => annotate(), { icon: 'PenTool', title: 'Arrows, boxes, numbered steps, text, blur — or a how-to guide of several shots (the Screenshot Annotator)' })));
   editCard.querySelector('.actions')!.classList.add('inline');
   root.append(
     card('Take a screenshot', stack(
