@@ -74,7 +74,7 @@ export default [
   ['fd', 'fd'], ['fixed deposit', 'fd'], ['recurring deposit', 'fd'],
   ['percentage', 'percent'], ['percent change', 'percent'], ['what percent', 'percent'], ['salary hike', 'percent'], ['percent off', 'percent'], ['reverse percentage', 'percent'],
   ['number to words', 'words'], ['amount in words', 'words'], ['lakh crore', 'words'], ['cheque amount', 'words'], ['rupees in words', 'words'], ['spell out a number', 'words'], ['figures to words', 'words'],
-  ['time zone', 'timezone'], ['ist to pst', 'timezone'], ['world clock', 'timezone'], ['time difference', 'timezone'], ['daylight saving', 'timezone'], ['london time', 'timezone'],
+  ['time zone', 'timezone'], ['ist to pst', 'timezone'], ['world clock', 'worldclock'], ['time difference', 'timezone'], ['daylight saving', 'timezone'], ['london time', 'worldclock'],
   ['bmi', 'bmi'], ['body mass index', 'bmi'], ['healthy weight range', 'bmi'], ['am i overweight', 'bmi'],
   ['calories', 'calories'], ['bmr', 'calories'], ['tdee', 'calories'], ['how many calories', 'calories'], ['calorie deficit', 'calories'],
   ['due date', 'duedate'], ['pregnancy', 'duedate'], ['how many weeks pregnant', 'duedate'], ['expected date of delivery', 'duedate'],
@@ -103,6 +103,7 @@ export default [
   ['smiley', 'emoji'], ['emoji picker', 'emoji'], ['rupee sign', 'emoji'], ['degree symbol', 'emoji'], ['greek letters', 'emoji'], ['tick mark', 'emoji'], ['copyright symbol', 'emoji'],
   ['morse', 'morse'], ['morse code', 'morse'], ['morse translator', 'morse'], ['text to morse', 'morse'], ['dots and dashes', 'morse'], ['sos', 'morse'],
   ['lorem ipsum', 'lorem'], ['placeholder text', 'lorem'], ['dummy text', 'lorem'], ['filler text', 'lorem'], ['lipsum', 'lorem'],
+  ['world clock', 'worldclock'], ['time in new york', 'worldclock'], ['what time is it in london', 'worldclock'], ['clocks of cities', 'worldclock'], ['sunrise sunset time', 'worldclock'], ['daylight saving change', 'worldclock'],
   ['read aloud from camera', 'camreader'], ['read my letter aloud', 'camreader'], ['medicine leaflet reader', 'camreader'], ['small print reader', 'camreader'], ['camera reader', 'camreader'],
   ['photo dictionary', 'photodict'], ['word meaning', 'photodict'], ['difficult words', 'photodict'], ['vocabulary', 'photodict'], ['dictonary', 'photodict'], ['define words from photo', 'photodict'],
 

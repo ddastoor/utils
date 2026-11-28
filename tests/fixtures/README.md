@@ -185,3 +185,11 @@ generates media with the project's own ffmpeg.wasm and Chromium). Used only by t
 - `reference.json` — dates as papers write them (numbers day first and month first, words, weekdays, ordinals, no year) read by Python's
   dateutil, and dates counted on (relativedelta, timedelta): the reference of `tests/unit/deadlines.test.mjs`, made by `python3
   scripts/make-deadlines-reference.py` (needs `pip install python-dateutil`).
+
+## worldclock/
+- `reference.json` — astral 3.2's sunrise and sunset (seconds since 1970, or "up" / "down" / null) for 161 cities of
+  `src/lib/worldcities.json` on 49 days of 2026 – 2027, and every change of UTC offset in 2026 – 2027 of 357 zones as Python's zoneinfo
+  gives it over the system's tzdata (2026e): the reference of `tests/unit/worldclock.test.mjs`, made by `python3
+  scripts/make-worldclock-reference.py` (needs `pip install astral==3.2`). Made by us; free to use.
+- `ids.json` — every city's id, name and coordinates as `scripts/make-worldclock-cities.py` makes them (GeoNames' data, CC BY 4.0, via
+  geonamescache 3.0.2): the unit suite makes the ids again in TypeScript.

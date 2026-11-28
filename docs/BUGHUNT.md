@@ -3429,6 +3429,21 @@ Found while building it, each with a check in `tests/e2e/idcopy.e2e.mjs`:
 - (Test slips, fixed in the suites: two precedence slips in `a && b || c` checks; a locator that took the result card holding all
   the tables for one table's card.)
 
+## World Clock (28 Nov 2026; built — potentials #73)
+Found while building it (unit `worldclock` 39, e2e `worldclock` 55):
+- **Sunrise "6:57" where astral says 06:57:52** — the time was cut to the minute; sun tables round to the nearest one (`sunClock`: 6:58).
+- **"Eastern Time" found Detroit, Grand Turk and Marengo before New York** (equal scores go to the record that comes first, and the zones
+  came in alphabetical order) — the zones of the largest cities come first now.
+- **"+9" found nothing and "UTC+5:30" found Kabul** (the colon split the offset into two words; "utc+4 30" was one letter away from
+  "utc+5 30") — an offset is one word ("5:30" folded to "530"), with its bare forms ("+9", "+0530") among the zone's keywords.
+- **On a phone the first clock was a screen and a half down** (seven sets in four rows, the hours and the look-ahead slider in three) —
+  the sets scroll sideways in one row, the hours and "Look ahead" share a row, the description is shorter.
+- **"world clock", "london time" and "what time is it in" opened the Time Zone Converter** (its keywords) — they are the World Clock's
+  now; the converter keeps "time difference", "ist to pst" and its other conversions.
+- **The accessibility check hung under Playwright's paused clock** (axe waits on timers) — the suite resumes the clock first.
+- **The X11 / Wayland sweep missed two notes when eleven suites ran at once** (it reads each tab 400 ms after opening it) — alone it
+  passes; the harness runs a failed suite again by itself.
+
 ## Camera Reader (28 Nov 2026; built — potentials #81)
 - **"1-0-1 x 5 days" said "by 5 days"** (the "x" of a strip, 1 x 10): a course of days is "for 5 days"; **"½-0-½"** was no dose (a word
   boundary before ½); **31/02/2026** became "31 February" (only the day's range was checked: the month's last day now); **"+91"** came
@@ -3504,3 +3519,4 @@ Found while building it, each with a check in `tests/e2e/idcopy.e2e.mjs`:
 - **The suite's wait matched the last photo's results** while the next one loaded — the tab counts its readings (`data-reads`) and is
   `aria-busy` while it reads.
 - **"wifi qr" found the new tab before the QR Generator** — the QR Generator's keywords now hold "wifi qr" (its search case kept).
+

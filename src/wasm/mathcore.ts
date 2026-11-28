@@ -192,6 +192,17 @@ export function bindMathcore(e: any) {
         return Array.from({ length: people }, (_, p) => ({ items: Number(o[p * W]), extras: Array.from({ length: ne }, (_, k) => Number(o[p * W + 1 + k])), total: Number(o[p * W + 1 + ne]) }));
       } finally { e.m_free(ip); e.m_free(pp); e.m_free(xp); e.m_free(qp); e.m_free(op); }
     },
+    /** Sunrise, sunset and solar noon for the UTC date y-m-d at a latitude and longitude (east positive), as minutes after 0:00
+     *  UTC of that date (m_sun: NOAA's formulas as astral computes them). rise / set null where there is none; polar: 1 the sun
+     *  stays up all day, -1 it stays down, 0 neither. */
+    sun(y: number, mo: number, d: number, lat: number, lon: number) {
+      const p = e.m_malloc(3 * 8);
+      try {
+        const polar = e.m_sun(y, mo, d, lat, lon, p), o = new Float64Array(mem(), p, 3);
+        const val = (x: number) => (Number.isNaN(x) ? null : x);
+        return { rise: val(o[0]), set: val(o[1]), noon: o[2], polar: polar as -1 | 0 | 1 };
+      } finally { e.m_free(p); }
+    },
     /** GSTIN format + check character. */
     gstinValid: (g: string) => !!withStr(g.trim().toUpperCase(), (p, n) => e.m_gstin_valid(p, n)),
   };

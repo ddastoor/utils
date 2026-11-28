@@ -336,7 +336,7 @@ Wayland) and **mobile browsers** (Android Chrome, iPhone Safari).
 Platform is PC + mobile unless marked **PC**. Tab ids are the URL hash (`#/<id>`).
 
 **The authoritative, always-current list is `docs/TOOLS.md`, generated from `src/registry.ts` (`npm run docs`).**
-Current total: **192 tabs in 11 categories — 125 PC + mobile, 64 PC only, 3 Mobile only** (regenerate with
+Current total: **193 tabs in 11 categories — 126 PC + mobile, 64 PC only, 3 Mobile only** (regenerate with
 `npm run docs` after every registry change; the owner asked for the registry to always be noted).
 The per-category notes below record decisions; when they disagree with the registry, the registry wins.
 
@@ -494,7 +494,7 @@ Glob Tester. Left out: API client (CORS/CSP), DNS/WHOIS/ping/port scan (need net
 "Visiting Card → Contact") · `zip` Create Zip · `unzip` Extract Archive
 
 **Everyday** (all both): `deadlines` Paper Deadlines → Calendar (**BUILT** 28 Nov 2026, potentials #77 — §3 "Paper Deadlines → Calendar") ·
-`stopwatch` · `countdown` · `pomodoro` · `interval` · `dice` · `coin` · `rng` ·
+`worldclock` World Clock (**BUILT** 28 Nov 2026, potentials #73 — §3 "World Clock") · `stopwatch` · `countdown` · `pomodoro` · `interval` · `dice` · `coin` · `rng` ·
 `picker` · `teams`
 
 **Device** (all both): `webcam` · `mic` · `speaker` · `keyboard` · `pixels` · `touch` · `screen` · `level` ·
@@ -2348,6 +2348,47 @@ into the calendar (.ics)".
   after the bill date; 2 March 2027 — 30 days after the expiry; 16 December — 15 days after the circular), the meeting at 10:00, the
   amounts — in Node and in the browser; 80 dates as Python's dateutil reads them; every file the tab saves read by **vobject**.
 
+### World Clock — BUILT (potentials #73; owner, 21 Nov 2026; built 28 Nov 2026 — group 3 of the suggested order)
+(`worldclock` in `src/tools/worldclock.ts`, its cities, sun and words `src/lib/worldclock.ts` (no DOM), the cities `src/lib/worldcities.json`
+(`python3 scripts/make-worldclock-cities.py`), the sun mathcore's `m_sun` (§5.1b); unit `tests/unit/worldclock.test.mjs` 39, e2e
+`tests/e2e/worldclock.e2e.mjs` 55; reference `tests/fixtures/worldclock/reference.json` from `python3 scripts/make-worldclock-reference.py` —
+astral 3.2 and Python's zoneinfo, `pip install astral==3.2 geonamescache==3.0.2`.) The owner's words (potentials #73): "a world clock with
+live ticking of time … standard presets, city presets, all the important ones. Definitely like New York, San Francisco, London, Mumbai,
+Sydney, Hong Kong, Singapore … use the common code from time converter".
+- **The cities** (`allCities`): GeoNames' cities15000 as geonamescache 3.0.2 carries it (**CC BY 4.0 — said in the tab**) — every city of
+  300,000 people and more, every country's capital, the largest city of every zone GeoNames uses (356 zones), a few well-known smaller
+  places (Geneva, Oxford, Cupertino, Shimla, Leh, Tromsø …): 2,149 cities, largest first, one line each (86 KB, in the tab's chunk). Names as
+  English writes them: Cologne, Seville, "New York" (GeoNames: Köln, Sevilla, New York City), a scholar's marks dropped for Indian, Arabic-
+  script, Japanese, Chinese and Korean names (Thane, Ghaziabad, Kofu — GeoNames: Thāne, Ghāziābād, Kōfu); other names people use as aliases
+  (Bombay, Bangalore, Madras, Calcutta, Gurgaon, Goa → Panaji, Peking, Saigon, Kiev, NYC, SF …), a US state or UK nation, the country and
+  its other names (USA, UK, UAE, Bharat …). Ids: the name's letters and digits and the country ("new-york-us", "tromso-no"), made the same
+  in the script and in TypeScript (the unit suite holds all 2,149). A zone of its own is a place too: "utc", "tz:Europe/Lisbon".
+- **A card:** the time ticking by the second (the digits — 12 or 24 hours — and a dial, light by day and dark by night where the city has
+  a place on the globe), the date there and its day against yours (Today, Tomorrow, Yesterday), how far from your time ("−10 h 30 min from
+  you", in words for a screen reader), the zone line (UTC offset · tzdata's abbreviation where it has letters — EST, BST, IST, AEDT; tzdata
+  writes "+04" for Dubai, which is left out — · the English name from the browser's CLDR: "Eastern Standard Time", "British Summer Time"),
+  **sunrise and sunset** to the nearest minute with the daylight's length, or "The sun does not rise today (polar night)" / "does not set
+  today (midnight sun)", a sun or a moon beside the name (day or night there now, by the last sunrise or sunset), and **the next clock
+  change** ("Clocks go forward 1 hour on Sun, 14 Mar 2027 at 2:00 am (to 3:00 am)", "— in 4 days" within a week, or "No clock changes in
+  the coming year"). Your own clock first ("You": your zone, no sun — the page does not ask where you are).
+- **The sun** (`sunEvent`, mathcore `m_sun`): NOAA's equations as astral 3.2 has them — the event of the UTC date, again a day before or
+  after when it falls on another local date, none when that does not either; the sun staying up or down from the hour angle. **Clock
+  changes** (`nextChange`): the zone's offset by Intl a day at a time for 400 days, the change found to the second by halving.
+- **The tab:** the search (a combobox: the arrows, Enter adds, Escape empties) over textcore.wasm's ranking — cities by name, other names,
+  state and country; zones by their name, abbreviations ("IST" finds India, Israel and Ireland), English names ("Eastern Time") and offset
+  ("UTC+5:30", "+9"), the zones of the largest cities first — each suggestion with its time there now; **sets** (Popular — the owner's
+  seven, the first list —, Around the world, Stock markets, India & the world, Asia & Pacific, Europe & Africa, Americas) replace the list;
+  move earlier / later, remove; **Undo** for an add, a removal or a set; **12 h / 24 h** (the browser's own way at first); **Look ahead**
+  (−12 … +12 hours in quarter hours: every card at that time, its date, sun and day or night with it; "Back to now"). The list is kept while
+  the page is open and carried in the address (`#/worldclock?c=new-york-us,london-gb,tz%3AEurope%2FLisbon&h=24` — a link opens that list;
+  unknown ids left out); nothing is stored. Phones: one column, the sets in one row that scrolls sideways.
+- **Lazy:** at open the tab's code (142 KB with the cities and tzdata's abbreviations) and mathcore (a small engine); textcore.wasm with the
+  first focus of the search box (its index of 2,149 cities and the zones built then).
+- **Measured:** the sun — 15,624 sunrises and sunsets of 161 cities on 49 days of 2026 – 2027, within 0.5 ms of astral, and the 150 days the
+  sun stays up or down and the 4 without the event on that date the same; the clock changes — every change of offset of 2026 – 2027 in
+  357 zones (389) to the second, as zoneinfo over tzdata 2026e gives it (the unit suite runs on Node's Intl; the e2e suite on Chromium's:
+  New York, London, Sydney, Lord Howe's half hour).
+
 ### Everyday timers and randomness — as built after the Nov 2026 bug hunt
 (`src/tools/everyday.ts`; e2e `stopwatch` 21, `countdown` 44, `pomodoro` 37, `interval` 23, `dice` 21, `coin` 18, `rng` 37,
 `picker` 18, `teams` 18; docs/BUGHUNT.md tabs 157 – 165, docs/WASM-AUDIT.md 154 – 155.)
@@ -4149,7 +4190,7 @@ difference over its detail, the overlap's pixels), ruled lines and list marks cl
 | Signalsmith Stretch 1.3.2 (tempo and pitch, polyphonic) | C++ | Signalsmith Audio (official `signalsmith-stretch`, WebAssembly in an AudioWorklet) — rendered offline by `src/lib/stretch.ts` | pitch (replaced our WSOLA in Nov 2026: `docs/WASM-AUDIT.md`, tab 145) |
 | espeak: **eSpeak NG 1.52.0** (+ English phoneme tables and dictionary compiled from the same release, linked in, served to its fopen/stat from memory) + glue (IPA for Kokoro, piper-phonemize-style sentences) | C | **us** (`wasm/espeak`) | tts, audiobook, camreader |
 | geo: Charles Karney's **geodesic.c 2.2** (GeographicLib's geodesic routines in C, MIT; the two files unmodified from the PROJ 9.9.0 release) + glue (inverse problem on WGS-84, half-way point, the haversine great circle for comparison) | C | **us** (`wasm/geo`, 36 KB, loaded by the Coordinates tab only; no tried-and-tested WebAssembly geodesic module exists: `docs/WASM-AUDIT.md`, tab 82) | coords |
-| textcore: tool-search ranking, rare-word ranking (tokeniser, lemmatiser, wordfreq hash table), XY-cut reading order (columns numbered only where they are real: `minh`), **the tables of a page** (`table.c`, `t_tables`: ruled grids and columns that line up — Tabula's and Camelot's two ways; MuPDF's own `table-hunt` loses columns: docs/WASM-AUDIT.md 191) | C (own code) | **us** (`wasm/textcore`) | search box, emoji (search), photodict, epub, clipper (the order of a story's parts), kindlepdf (a page's regions), pdf-tables |
+| textcore: tool-search ranking, rare-word ranking (tokeniser, lemmatiser, wordfreq hash table), XY-cut reading order (columns numbered only where they are real: `minh`), **the tables of a page** (`table.c`, `t_tables`: ruled grids and columns that line up — Tabula's and Camelot's two ways; MuPDF's own `table-hunt` loses columns: docs/WASM-AUDIT.md 191) | C (own code) | **us** (`wasm/textcore`) | search box, emoji (search), photodict, epub, clipper (the order of a story's parts), kindlepdf (a page's regions), pdf-tables, worldclock (the city search) |
 | textkit: **unicode-segmentation 1.13.3** (the Rust ecosystem's UAX #29 implementation, Unicode 17.0, MIT / Apache-2.0: extended grapheme clusters, sentence boundaries) + our counting rules: words as a word limit counts them, abbreviations and initials, lines and paragraphs, keywords (Snowball's stop words); **the Case Converter's thirteen conversions** (`case.rs`: Title Case is a port of the Python package `titlecase` 2.4.1 — Gruber's rules, MIT; the code cases cut words as npm's `change-case` does; case mapping by Rust's standard library) | Rust | **us** (`wasm/textkit`, crates.io via `Cargo.lock`, two modules by Cargo features: **textkit.wasm** 217 KB — fetched with the Word Counter's first text, with the Case Converter, and with the first Fancy Text that has an emoji or another script — and **textkit-diff.wasm** 0.71 MB = the **`similar` crate 3.2.1** (Apache-2.0: Myers in linear space with a time limit, line / word / grapheme diffs, inline changes, unified diffs) + our glue and our pairing of a change's lines side by side (`pair_lines`: likeness by a bounded Myers search, the best order-keeping pairing by dynamic programming — to-do #35), fetched by the Text Diff only; and **textkit-lorem.wasm** 0.13 MB = the **`lipsum` crate 0.9.1** (MIT: a Markov chain over the classic passage and Cicero's *De finibus*, with rand 0.8 / rand_chacha 0.3) + our glue (cleaned texts learned as circles, exact counts), fetched by the Lorem Ipsum tab; and **textkit-tokens.wasm** 0.20 MB = the same `similar` crate's **patience algorithm** on two documents' tokens + ours (`tokens.rs`: runs that are only added or removed slid to where they read best, short equal runs taken into the changes round them, moves), fetched by PDF Compare's first Compare; the existing module — ICU4X's official build — is one file of 20 MB: `docs/WASM-AUDIT.md`, tab 90) | wordcount, case, lines ("By length"), fancy (characters); diff (textkit-diff); lorem (textkit-lorem); pdf-compare (textkit-tokens) |
 | sheet: calamine 0.38 (read .xlsx .xlsm .xlsb .xls .ods) + rust_xlsxwriter 0.102 (write .xlsx; `dates`: ISO dates as dates, and a date in the form it was printed in — `{ date, format, shown }`) + csv 1 + serde_json | Rust | **us** (`wasm/sheet`, crates.io sources verified by `Cargo.lock`, target wasm32-wasip1) | sheet, pdf-tables |
 | article: **dom_smoothie 0.20.0** (Mozilla Readability's algorithm in Rust, MIT; on dom_query 0.30 / html5ever) + ours: the article written as XHTML for an EPUB (`xhtml.rs`), Chrome's MHTML read (`mhtml.rs`: MIME headers, multiparts, base64, quoted-printable, encoded words) and Safari's web archive (`webarchive.rs`: Apple's binary property list) | Rust | **us** (`wasm/article`, crates.io via `Cargo.lock`, opt-level s, 1.1 MB; the author's npm build — dom-smoothie-js 0.16.0 — is a Node.js build four releases behind, with faults later releases fixed: `docs/WASM-AUDIT.md`, tab 183) | articles |
@@ -4271,6 +4312,9 @@ espeak.wasm's, the MP3 and its tags audio.wasm's (LAME). No WebAssembly module m
 Nov 2026 (Paper Deadlines → Calendar, potentials #77): `src/lib/deadlines.ts` — dates, times and amounts found by regular expressions, a
 paper's lines made into sentences, dates counted on with the browser's Date in UTC, the iCalendar file written as text: string glue
 around the readers' output (`docs/WASM-AUDIT.md`, tab 194).
+Nov 2026 (World Clock, potentials #73): `src/lib/worldclock.ts` — a city's line read, its id made, the words of a card, a zone's offset by
+the browser's Intl a day at a time with a halving to the second for its next change: glue around Intl (compiled ICU), mathcore (`m_sun`)
+and textcore's search (`docs/WASM-AUDIT.md`, tab 197).
 Nov 2026 (Camera Reader, potentials #81): `src/lib/readertext.ts` — a page's lines made into paragraphs and pieces (a few comparisons of
 the words' boxes), sentences cut and printed matter made speakable by regular expressions: string glue around the readers' output;
 `src/lib/sayer.ts` — the pieces' sound laid end to end on the browser's Web Audio (the voices are espeak.wasm and ONNX Runtime in the
@@ -4508,6 +4552,9 @@ method, see §3), `m_nps` (no silent floor on the annuity share; months clamped)
 `m_bill_split` (the Bill Splitter by Photo, 28 Nov 2026): a bill's items and extras split in whole paise — the exact shares as fractions
 over one denominator in __int128 (overflow checked), the cumulative columns rounded by the largest remainder (§3 "Bill Splitter by
 Photo"); beyond __int128 the same in double precision (returns 1). The module is 156.6 KB with it.
+`m_sun(y, mo, d, lat, lon, out[3])` (the World Clock, 28 Nov 2026): sunrise, sunset and solar noon in minutes after 0 h UTC of that UTC date —
+NOAA's equations exactly as astral 3.2 has them (two passes of the hour angle, zenith 90° + 32′ + the refraction at it, latitude held within
+±89.8°); NaN for an event that does not happen, and the return value says whether the sun stays up (1) or down (−1). 159.5 KB with it.
 `wasm/mathcore/build.sh` (exports every `API m_*` function). Expression engine since Nov 2026 (details in §3
 "Scientific Calculator as built"): names without regard to case, one decimal point per number, no implicit product of
 two numbers, nesting limit 100, exact trigonometry at round angles (`sind` / `cosd`, the "gap" rule in radians),
@@ -4894,6 +4941,9 @@ npm packages (pinned in `package-lock.json`) are bundled by Vite or copied to `p
 | *test only (pip):* python-dateutil | Apache-2.0 / BSD-3-Clause | Paper Deadlines: dates read by an independent reader (`scripts/make-deadlines-reference.py`) |
 | @expo-google-fonts/noto-sans (Noto Sans TTF: regular, bold, italic) | OFL-1.1 (package MIT) | PDFs made by GST Invoice, Rent Receipt, Resume Builder; EPUB Reader (its Sans) |
 | @expo-google-fonts/literata 0.4.3 (Literata TTF: regular, italic, bold, bold italic — four files, 1.0 MB on the site) | OFL-1.1 (package MIT) | EPUB Reader (the text's font; MuPDF's FreeType reads no WOFF, so @fontsource/literata's files cannot serve) |
+
+**The World Clock's cities** (`src/lib/worldcities.json`, `scripts/make-worldclock-cities.py`): GeoNames (geonames.org) — **CC BY 4.0:
+attribution shown in the tab** — as geonamescache 3.0.2 (MIT) carries it. Test only (pip): astral 3.2 (Apache-2.0) — the sun's reference.
 
 **The Number Detective's tables** (inside devcore-ids.wasm; `scripts/make-ids-data.py`): India Post's All India Pincode
 Directory (Department of Posts, data.gov.in — **Government Open Data License – India: attribution**, shown in the tab) as cleaned

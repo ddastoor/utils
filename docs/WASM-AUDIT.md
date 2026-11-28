@@ -1935,3 +1935,19 @@ Looked at first (STANDING RULE #1):
   matter made speakable (rupees, medicine units and doses, dates, times, phone numbers) by regular expressions: string glue;
   `src/lib/sayer.ts` — the pieces' sound laid on the browser's Web Audio, or the device's own voices (Web Speech).
 - **Decision:** nothing new on the site but the tab's code.
+
+### 197. `worldclock` — World Clock (28 Nov 2026; potentials #73)
+- **What it does:** live clocks for the world's cities and zones — the time, date and day against yours, the offset, the zone's
+  abbreviation and name, sunrise and sunset, day or night, the next clock change; sets, search, 12 / 24 h, looking ahead (CLAUDE.md §3
+  "World Clock").
+- **Existing engines, on the site** (rule 1): the zone database is the browser's Intl (compiled ICU with its tzdata and CLDR names — the
+  Time Zone Converter's `src/lib/tz.ts`); the search is textcore.wasm's ranking (the tool search's). No WebAssembly module computes
+  sunrise and sunset that the page could use as it is: the solar calculators (astral, suncalc, NOAA's spreadsheet) are Python, JavaScript
+  and Excel.
+- **Ours (rule 2, own C):** `m_sun` in mathcore — NOAA's solar equations as astral 3.2 has them, held to astral to half a millisecond on
+  15,624 events (and its polar days and nights).
+- **Beside them (rule 1c, TS):** `src/lib/worldclock.ts` — the cities' lines, the words of a card, the search records, a zone's next
+  change found by asking Intl for its offset a day at a time and halving to the second: glue around Intl, mathcore and textcore.
+- **Data:** GeoNames' cities (CC BY 4.0) as geonamescache 3.0.2 carries them, 86 KB in the tab's chunk; tzdata's abbreviations from
+  `src/lib/tzabbr.json` (the Python tab's table).
+- **Decision:** nothing new on the site but the tab's code, its cities and 3 KB more of mathcore.wasm.

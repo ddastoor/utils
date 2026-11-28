@@ -2,7 +2,7 @@
 
 Generated from `src/registry.ts` by `npm run docs` — do not edit by hand.
 
-**192 tabs** in 11 categories — 125 PC + mobile, 64 PC only, 3 mobile only.
+**193 tabs** in 11 categories — 126 PC + mobile, 64 PC only, 3 mobile only.
 
 ## Images (17)
 
@@ -143,7 +143,7 @@ Generated from `src/registry.ts` by `npm run docs` — do not edit by hand.
 | `emoji` | Emoji & Symbols | PC + mobile | Search and copy emoji and symbols. | emoji, emojis, emoticon, smiley, smileys, symbols, characters, special characters, … |
 | `morse` | Morse Code | PC + mobile | Text ⇄ Morse, with sound. | morse, morse code, code, sos, dots, dashes, dit, dah, … |
 | `lorem` | Lorem Ipsum | PC + mobile | Placeholder text generator. | lorem ipsum, lipsum, placeholder, placeholder text, dummy text, filler, filler text, sample text, … |
-| `camreader` | Camera Reader | PC + mobile | Point the camera at a letter, a medicine leaflet or a menu: it is read aloud, the part being read marked. | camera reader, read aloud, read it aloud, read out, read out loud, read to me, reading aloud, text to speech from photo, … |
+| `camreader` | Camera Reader | PC + mobile | Point the camera at a letter, a medicine leaflet or a menu: it is read aloud, the part being read marked. | camera reader, read aloud from camera, read aloud from photo, photo read aloud, camera read aloud, read paper aloud, read the page aloud, point camera read, … |
 | `photodict` | Photo Dictionary | PC + mobile | Photograph a page; get the hardest words with their dictionary meanings. | photo dictionary, dictionary, meaning, meanings, define, definition, vocabulary, vocab, … |
 
 ## Software (56)
@@ -220,11 +220,12 @@ Generated from `src/registry.ts` by `npm run docs` — do not edit by hand.
 | `zip` | Create Zip | PC + mobile | Zip files, optionally with a password. | zip, compress, archive, password zip, aes |
 | `unzip` | Extract Archive | PC + mobile | Open zip, 7z, rar, tar, gz files. | unzip, extract, open, zip, 7z, rar, tar, gz, … |
 
-## Everyday (10)
+## Everyday (11)
 
 | id | Tab | Platform | What it does | Search keywords |
 |---|---|---|---|---|
 | `deadlines` | Paper Deadlines → Calendar | PC + mobile | Photograph a bill, notice or school circular: its due dates and meetings found, each a reminder for your calendar. | deadline, deadlines, due date, bill due date, reminder, reminders, calendar, add to calendar, … |
+| `worldclock` | World Clock | PC + mobile | Live clocks for any city: day or night, sunrise and sunset, the next clock change. | world clock, world time, new york time, london time, dubai time, singapore time, sydney time, us time, … |
 | `stopwatch` | Stopwatch | PC + mobile | Stopwatch with laps. | stopwatch, timer, lap, time, chronometer |
 | `countdown` | Countdown Timer | PC + mobile | Countdown with alarm. | timer, minute timer, egg timer, countdown, timer, alarm, kitchen timer, minutes |
 | `pomodoro` | Pomodoro | PC + mobile | Focus / break cycles. | focus timer, study timer, pomodoro, focus, study, work, break, productivity |

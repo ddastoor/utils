@@ -31,7 +31,8 @@ export function utcMs(y: number, mo: number, d: number, h = 0, mi = 0, s = 0): n
   const t = new Date(0); t.setUTCFullYear(y, mo - 1, d); t.setUTCHours(h, mi, s, 0); return t.getTime();
 }
 const parts = new Map<string, Intl.DateTimeFormat>();
-function reading(zone: string, t: number) {
+/** The zone's calendar and clock at the instant t (ms): year (1 BC = 0), month, day, hour (0 – 23), minute, second, weekday ("Mon") */
+export function zoneReading(zone: string, t: number) {
   let f = parts.get(zone);
   if (!f) { f = new Intl.DateTimeFormat('en-US', { timeZone: zone, hourCycle: 'h23', era: 'short', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', weekday: 'short' }); parts.set(zone, f); }
   const p: Record<string, string> = {}; for (const x of f.formatToParts(new Date(t))) p[x.type] = x.value;
@@ -40,7 +41,7 @@ function reading(zone: string, t: number) {
 /** Seconds the zone is ahead of UTC at the instant t (ms). Whole seconds: before standard time a place kept its own
  *  mean time — Kolkata 5 h 53 min 28 s. */
 export function zoneOffset(zone: string, t: number): number {
-  const r = reading(zone, t);
+  const r = zoneReading(zone, t);
   return Math.round((utcMs(r.y, r.mo, r.d, r.h, r.mi, r.s) - Math.floor(t / SEC) * SEC) / SEC);
 }
 /** The instant a wall-clock reading in a zone stands for. `wall` is the reading as if it were UTC (utcMs).
@@ -60,7 +61,7 @@ export function offsetLabel(sec: number): string {
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 /** "Mon, 16 Nov 2026, 9:30 am" — the instant as the zone's clocks and calendar show it (the year always, with four digits) */
 export function fmtInstant(t: number, zone: string): string {
-  const r = reading(zone, t), h12 = r.h % 12 || 12;
+  const r = zoneReading(zone, t), h12 = r.h % 12 || 12;
   return `${r.weekday}, ${r.d} ${MONTHS[r.mo - 1]} ${r.y > 0 ? String(r.y).padStart(4, '0') : `${1 - r.y} BC`}, ${h12}:${String(r.mi).padStart(2, '0')} ${r.h < 12 ? 'am' : 'pm'}`;
 }
 /** "9:30 am" in the zone */

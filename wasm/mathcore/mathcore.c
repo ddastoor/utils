@@ -1481,3 +1481,72 @@ API int m_bill_split(int ni, int np, const int64_t *items, const int32_t *parts,
     free(a); free(R); free(rem); free(remd); free(got); free(took);
     return rc;
 }
+
+/* ---------------------------------------------------------------------------------------------- the sun (World Clock)
+   Sunrise, sunset and solar noon by NOAA's solar formulas (Meeus), as astral 3.2 computes them: the event's time refined in two
+   passes, the horizon at 90° + the sun's apparent radius (32′ ÷ 2) + astral's refraction at that zenith, latitudes beyond ±89.8°
+   taken as ±89.8°. For the UTC date y-m-d at latitude lat, longitude lon (east positive): out[0] sunrise, out[1] sunset (NaN
+   where there is none), out[2] solar noon — minutes after 0:00 UTC of that date (below 0 or above 1440 for an event on the day
+   before or after). Returns 0; 1 when the sun stays above the horizon all day (no rise or set), -1 when it stays below. */
+#define SUN_D2R (3.14159265358979323846 / 180.0)
+static double sun_jday(int y, int m, int d) {           /* the Julian day at the start of the date (Gregorian) */
+    if (m <= 2) { y -= 1; m += 12; }
+    int a = y / 100, b = 2 - a + a / 4;
+    return (double)(long)(365.25 * (y + 4716)) + (double)(long)(30.6001 * (m + 1)) + d + b - 1524.5;
+}
+static void sun_terms(double jc, double *decl, double *eqt) {
+    double l0 = fmod(280.46646 + jc * (36000.76983 + 0.0003032 * jc), 360.0);
+    double m = 357.52911 + jc * (35999.05029 - 0.0001537 * jc), mr = m * SUN_D2R;
+    double e = 0.016708634 - jc * (0.000042037 + 0.0000001267 * jc);
+    double c = sin(mr) * (1.914602 - jc * (0.004817 + 0.000014 * jc)) + sin(mr + mr) * (0.019993 - 0.000101 * jc) + sin(mr + mr + mr) * 0.000289;
+    double omega = 125.04 - 1934.136 * jc;
+    double lambda = l0 + c - 0.00569 - 0.00478 * sin(omega * SUN_D2R);
+    double secs = 21.448 - jc * (46.815 + jc * (0.00059 - jc * 0.001813));
+    double eps = 23.0 + (26.0 + secs / 60.0) / 60.0 + 0.00256 * cos(omega * SUN_D2R);
+    *decl = asin(sin(eps * SUN_D2R) * sin(lambda * SUN_D2R)) / SUN_D2R;
+    double y = tan(eps * SUN_D2R / 2.0); y *= y;
+    double l2 = 2.0 * l0 * SUN_D2R;
+    *eqt = 4.0 * (y * sin(l2) - 2.0 * e * sin(mr) + 4.0 * e * y * sin(mr) * cos(l2) - 0.5 * y * y * sin(2.0 * l2) - 1.25 * e * e * sin(mr + mr)) / SUN_D2R;
+}
+/* astral's refraction at a zenith angle (degrees) */
+static double sun_refraction(double zenith) {
+    double el = 90.0 - zenith, r = 0;
+    if (el >= 85.0) return 0;
+    double te = tan(el * SUN_D2R);
+    if (el > 5.0) r = 58.1 / te - 0.07 / (te * te * te) + 0.000086 / (te * te * te * te * te);
+    else if (el > -0.575) r = 1735.0 + el * (-518.2 + el * (103.4 + el * (-12.79 + el * 0.711)));
+    else r = -20.774 / te;
+    return r / 3600.0;
+}
+/* one event: 0 found (*t minutes), 1 the sun never goes down to the horizon, -1 it never comes up to it */
+static int sun_event(double jd, double lat, double lon, int rising, double *t) {
+    double zen = 90.0 + 32.0 / 120.0;
+    zen += sun_refraction(zen);
+    double adj = 0;
+    for (int k = 0; k < 2; k++) {
+        double decl, eqt;
+        sun_terms((jd + adj - 2451545.0) / 36525.0, &decl, &eqt);
+        double h = (cos(zen * SUN_D2R) - sin(lat * SUN_D2R) * sin(decl * SUN_D2R)) / (cos(lat * SUN_D2R) * cos(decl * SUN_D2R));
+        if (h > 1.0) return -1;
+        if (h < -1.0) return 1;
+        double ha = acos(h) / SUN_D2R;
+        double off = (-lon - (rising ? ha : -ha)) * 4.0 - eqt;
+        if (off < -720.0) off += 1440.0;
+        *t = 720.0 + off;
+        adj = *t / 1440.0;
+    }
+    return 0;
+}
+API int m_sun(int y, int mo, int d, double lat, double lon, double *out) {
+    if (lat > 89.8) lat = 89.8;
+    if (lat < -89.8) lat = -89.8;
+    double jd = sun_jday(y, mo, d), decl, eqt;
+    sun_terms((jd - 2451545.0) / 36525.0, &decl, &eqt);
+    out[2] = 720.0 - 4.0 * lon - eqt;
+    int a = sun_event(jd, lat, lon, 1, &out[0]), b = sun_event(jd, lat, lon, 0, &out[1]);
+    if (a) out[0] = NAN;
+    if (b) out[1] = NAN;
+    if (!a && !b) return 0;
+    /* no rise or no set: up all day when the sun at noon stands above the horizon */
+    return 90.0 - fabs(lat - decl) > -(32.0 / 120.0 + sun_refraction(90.0 + 32.0 / 120.0)) ? 1 : -1;
+}

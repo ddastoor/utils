@@ -254,6 +254,7 @@ export const TOOLS: Tool[] = [
 
   // ---------------------------------------------------------------- Everyday
   t('deadlines', 'Paper Deadlines → Calendar', 'Photograph a bill, notice or school circular: its due dates and meetings found, each a reminder for your calendar.', 'everyday', 'CalendarPlus', () => import('./tools/deadlines').then((m) => m.mount)),
+  t('worldclock', 'World Clock', 'Live clocks for any city: day or night, sunrise and sunset, the next clock change.', 'everyday', 'Earth', () => import('./tools/worldclock').then((m) => m.mount)),
   t('stopwatch', 'Stopwatch', 'Stopwatch with laps.', 'everyday', 'Timer', () => every().then((m) => m.stopwatch)),
   t('countdown', 'Countdown Timer', 'Countdown with alarm.', 'everyday', 'Hourglass', () => every().then((m) => m.countdown)),
   t('pomodoro', 'Pomodoro', 'Focus / break cycles.', 'everyday', 'AlarmClock', () => every().then((m) => m.pomodoro)),

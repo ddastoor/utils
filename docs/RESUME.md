@@ -156,9 +156,15 @@ the Text-to-Speech voices (Kokoro, Piper — one request a piece, three ahead, o
 marked by the sound's clock; printed matter made speakable (rupees, medicine units and doses, dates, times, phone numbers and PIN codes;
 `src/lib/readertext.ts`); pause, Back, Next, a tap on a sentence, speed, text size; Copy; the text handed to Text-to-Speech. Unit
 `camreader` 33 (the four papers and a two-column newsletter through the reading path in Node), e2e `camreader` 26 (Whisper hears the
-leaflet, the medicine leaflet and the letter). **Group 4 is done. Next: group 3** — #73 World Clock, #10 Spell Checker, #1 Image to SVG
-+ #117 Clipart Maker, #75 SliceDiceGrapher (with #25 Chart Maker), #54 Diagram Editor (draw.io, PC only); each with its size check
-measured first (stop and ask if much bigger than the 27 Nov estimate).
+leaflet, the medicine leaflet and the letter). **Group 4 is done. Group 3:** **#73 World Clock — BUILT (28 Nov 2026):** the tab
+`worldclock` (Everyday, PC + mobile; CLAUDE.md §3 "World Clock"): live clocks for 2,149 GeoNames cities and every zone — a dial and the
+digits ticking by the second, the date and day against yours, the offset, the zone line (EST, BST, IST · CLDR's names), sunrise and sunset
+(mathcore's new `m_sun`, held to astral 3.2 within 0.5 ms on 15,624 events), day or night, the next clock change (found to the second;
+all 389 changes of 2026 – 2027 in 357 zones as zoneinfo gives them); the owner's seven first, six more sets, the search (textcore: other
+names, zones by abbreviation, name and offset), Undo, move, remove, 12 / 24 h, look ahead ±12 h; the list in the address. Unit
+`worldclock` 39, e2e `worldclock` 55. **Next:** #10 Spell Checker, #1 Image to SVG + #117 Clipart Maker, #75 SliceDiceGrapher (with #25
+Chart Maker), #54 Diagram Editor (draw.io, PC only); each with its size check measured first (stop and ask if much bigger than the
+27 Nov estimate).
 **Then to-dos #38, #39 and #40** (owner,
 27 Nov 2026, evening: "After you finish all these, finish off the items in the todo.md also."; #40, added the same evening:
 the EPUB Reader's "Remember book" — a hash of the book, its place and the reading voice in the Settings — after #39). The open question (keep the EPUB Reader's place between visits?) is
