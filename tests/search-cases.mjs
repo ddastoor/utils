@@ -15,6 +15,7 @@ export default [
   ['meme', 'caption'], ['text on image', 'caption'], ['add caption', 'caption'],
   ['collage', 'collage'], ['photo grid', 'collage'], ['combine photos', 'collage'],
   ['annotate screenshot', 'annotate'], ['draw arrow on screenshot', 'annotate'], ['how to guide', 'annotate'], ['blur password in screenshot', 'annotate'], ['screenshot annotator', 'annotate'],
+  ['fake payment screenshot', 'realcheck'], ['is this screenshot real', 'realcheck'], ['photoshopped', 'realcheck'], ['error level analysis', 'realcheck'], ['fake upi screenshot', 'realcheck'],
   ['screenshot finder', 'finder'], ['search screenshots', 'finder'], ['find text in photos', 'finder'], ['pnr screenshot', 'finder'], ['search my screenshots', 'finder'],
   ['stitch screenshots', 'stitch'], ['long screenshot', 'stitch'], ['join screenshots', 'stitch'], ['whatsapp chat screenshot', 'stitch'], ['screenshot stitcher', 'stitch'],
   ['exif', 'exif'], ['photo location', 'exif'], ['remove metadata', 'exif'], ['gps from photo', 'exif'],

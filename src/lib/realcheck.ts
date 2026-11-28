@@ -90,6 +90,26 @@ export function mergeBoxes(boxes: Box[], gap: number): Box[] {
 export const areaBoxes = (r: GhostReading, width: number, height: number): Box[] =>
   mergeBoxes(r.areas.map((a) => [a.x0 * 8, a.y0 * 8, Math.min(width, (a.x1 + 1) * 8), Math.min(height, (a.y1 + 1) * 8)] as Box), 24);
 
+/** EXIF orientations: the turn back (the picture as stored, from the picture as shown) */
+export const UNTURN: Record<number, number> = { 1: 1, 2: 2, 3: 3, 4: 4, 5: 5, 6: 8, 7: 7, 8: 6 };
+/** a box on the picture as stored (w × h) → on the picture as shown, for an EXIF orientation */
+export function orientBox(b: Box, w: number, h: number, o: number): Box {
+  const pt = (x: number, y: number): [number, number] => {
+    switch (o) {
+      case 2: return [w - x, y];
+      case 3: return [w - x, h - y];
+      case 4: return [x, h - y];
+      case 5: return [y, x];
+      case 6: return [h - y, x];
+      case 7: return [h - y, w - x];
+      case 8: return [y, w - x];
+      default: return [x, y];
+    }
+  };
+  const [ax, ay] = pt(b[0], b[1]), [bx, by] = pt(b[2], b[3]);
+  return [Math.min(ax, bx), Math.min(ay, by), Math.max(ax, bx), Math.max(ay, by)];
+}
+
 /* ------------------------------------------------------------------------------------------------ the preview inside */
 /** How the file's embedded preview compares with the picture made as small (both as stored, not turned): `shape` — the two
  *  shapes differ by more than 3 % (the picture was cropped after the preview was made); `cells` the 12 × 12 cells' mean
@@ -270,14 +290,13 @@ export function metaSigns(m: MetaFacts): Sign[] {
 
 /* ------------------------------------------------------------------------------------------------ the picture's signs */
 export interface CopyArea { dx: number; dy: number; cells: number; a: number[]; b: number[] }
-/** The signs in the picture itself: the ghosts (`lossless`: a PNG's, read in its pixels), the copied areas of a photo (boxes
- *  in the picture's pixels), the embedded preview. */
+/** The signs in the picture itself: the ghosts (`lossless`: a PNG's, read in its pixels; `ghostBoxes` their areas — areaBoxes —
+ *  on the picture as shown), the copied areas of a photo, the embedded preview (boxes on the picture as shown). */
 export function pictureSigns(o: {
-  width: number; height: number; jpeg: JpegFacts | null; ghost: GhostReading | null; lossless: boolean; screenshot: boolean;
+  jpeg: JpegFacts | null; ghost: Pick<GhostReading, 'earlier' | 'areas'> | null; ghostBoxes: Box[]; lossless: boolean; screenshot: boolean;
   copies: CopyArea[] | null; preview: { worst: number; typical: number; shapeOff: number; boxes: Box[] } | null; name: string;
 }): Sign[] {
-  const s: Sign[] = [], g = o.ghost;
-  const boxes = g && g.earlier ? areaBoxes(g, o.width, o.height) : [];
+  const s: Sign[] = [], g = o.ghost, boxes = g && g.earlier ? o.ghostBoxes : [];
   if (g && g.earlier) {
     if (boxes.length)
       s.push({ id: 'changed', strength: 'strong', title: boxes.length === 1 ? 'A part not saved like the rest' : `${boxes.length} parts not saved like the rest`, boxes,

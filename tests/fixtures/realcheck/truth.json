@@ -115,6 +115,27 @@
    "copy"
   ]
  },
+ "photo-cloned-turned.jpg": {
+  "kind": "photo",
+  "orientation": 6,
+  "clone": {
+   "from": [
+    36,
+    380,
+    108,
+    452
+   ],
+   "to": [
+    140,
+    352,
+    212,
+    424
+   ]
+  },
+  "signs": [
+   "copy"
+  ]
+ },
  "photo-camera.jpg": {
   "kind": "photo",
   "signs": []

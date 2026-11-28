@@ -19,6 +19,7 @@ const EXEMPT = {
   svgo: 'SVG Optimizer takes SVG drawings, which no camera makes',
   scan: 'the QR & Barcode Scanner has its own camera above its image picker',
   stitch: 'the Long Screenshot Stitcher joins screenshots, which no camera takes — a photo of a screen does not line up with another row for row',
+  realcheck: 'Is This Screenshot Real? checks a picture someone sent: one taken here and now in the page has nothing to check',
 };
 
 export default async ({ base, page: newPage, ok, info, devices }) => {

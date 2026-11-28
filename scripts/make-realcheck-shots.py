@@ -145,6 +145,13 @@ ast.paste(ast.crop((src[0], src[1], src[0] + n, src[1] + n)), dst)
 ast.save(OUT / 'photo-cloned.jpg', quality=92, subsampling=2)
 truth['photo-cloned.jpg'] = {'kind': 'photo', 'quality': 92, 'clone': {'from': [src[0], src[1], src[0] + n, src[1] + n], 'to': [dst[0], dst[1], dst[0] + n, dst[1] + n]}, 'signs': ['copy']}
 
+# 7b. the cloned photo stored on its side, as phones store a photo taken sideways (EXIF orientation 6: turn it a quarter to the
+# right to show it): shown upright, the copied areas stand where they do in photo-cloned.jpg
+turned = Image.open(OUT / 'photo-cloned.jpg').convert('RGB').transpose(Image.ROTATE_90)
+ex = Image.Exif(); ex[0x0112] = 6
+turned.save(OUT / 'photo-cloned-turned.jpg', quality=95, exif=ex.tobytes())
+truth['photo-cloned-turned.jpg'] = {'kind': 'photo', 'orientation': 6, 'clone': truth['photo-cloned.jpg']['clone'], 'signs': ['copy']}
+
 # 8. a camera's photo, as it came (Pillow's test photo)
 shutil.copy(ROOT / 'tests/fixtures/images/flower.jpg', OUT / 'photo-camera.jpg')
 truth['photo-camera.jpg'] = {'kind': 'photo', 'signs': []}

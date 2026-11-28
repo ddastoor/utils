@@ -127,6 +127,7 @@ export const TOOLS: Tool[] = [
   t('hash', 'Hash / Checksum', 'SHA-256, MD5, SHA-3, BLAKE2/3, CRC, xxHash of files or text — and check a download against its checksum.', 'security', 'Fingerprint', () => sec().then((m) => m.hash)),
   t('password', 'Password Generator', 'Strong random passwords.', 'security', 'Asterisk', () => sec().then((m) => m.password)),
   t('passphrase', 'Passphrase Generator', 'Memorable diceware passphrases.', 'security', 'BookKey', () => sec().then((m) => m.passphrase)),
+  t('realcheck', 'Is This Screenshot Real?', 'A payment screenshot or a photo checked for signs of editing — an amount painted over, a part copied, an editing app, what a payment app never writes. Signs, never a proof.', 'security', 'ScanEye', () => import('./tools/realcheck').then((m) => m.mount)),
 
   // ---------------------------------------------------------------- Media
   t('video', 'Video Compressor', 'Shrink videos to a target size (e.g. for WhatsApp).', 'media', 'Video', () => import('./tools/video').then((m) => m.mount)),

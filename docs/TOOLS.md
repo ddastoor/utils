@@ -2,7 +2,7 @@
 
 Generated from `src/registry.ts` by `npm run docs` — do not edit by hand.
 
-**204 tabs** in 11 categories — 136 PC + mobile, 65 PC only, 3 mobile only.
+**205 tabs** in 11 categories — 137 PC + mobile, 65 PC only, 3 mobile only.
 
 ## Images (24)
 
@@ -68,7 +68,7 @@ Generated from `src/registry.ts` by `npm run docs` — do not edit by hand.
 | `rent` | Rent Receipt | PC + mobile | Monthly rent receipts for HRA claims. | rent receipt, hra, house rent, landlord, tenant, receipt, income tax, pan, … |
 | `resume` | Resume Builder | PC + mobile | Fill a form and get a clean PDF resume. | resume, cv, cv maker, resume maker, curriculum vitae, biodata, job application, pdf resume |
 
-## Security (6)
+## Security (7)
 
 | id | Tab | Platform | What it does | Search keywords |
 |---|---|---|---|---|
@@ -78,6 +78,7 @@ Generated from `src/registry.ts` by `npm run docs` — do not edit by hand.
 | `hash` | Hash / Checksum | PC + mobile | SHA-256, MD5, SHA-3, BLAKE2/3, CRC, xxHash of files or text — and check a download against its checksum. | hash, checksum, md5, sha1, sha256, sha512, sha224, sha384, … |
 | `password` | Password Generator | PC + mobile | Strong random passwords. | password, generate, random, strong, secure, pin |
 | `passphrase` | Passphrase Generator | PC + mobile | Memorable diceware passphrases. | passphrase, diceware, words, memorable, eff, password |
+| `realcheck` | Is This Screenshot Real? | PC + mobile | A payment screenshot or a photo checked for signs of editing — an amount painted over, a part copied, an editing app, what a payment app never writes. Signs, never a proof. | is this screenshot real, fake screenshot, fake payment screenshot, fake upi screenshot, fake gpay screenshot, fake phonepe screenshot, fake paytm screenshot, payment screenshot check, … |
 
 ## Media (11)
 

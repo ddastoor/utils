@@ -106,6 +106,8 @@ export default async (t, { load, wasm }) => {
   // keepBlocks: a clipped colour and the partial edge left out
   const keep = rc.keepBlocks(3, 2, 20, 16, new Uint8Array([0, 200, 0, 0, 0, 0]), true);
   t.eq(Array.from(keep), [1, 0, 0, 1, 1, 0], 'keepBlocks: a block with clipped colours and the partial last column left out');
+  t.eq([1, 2, 3, 4, 5, 6, 7, 8].map((o) => rc.orientBox([10, 20, 30, 60], 100, 200, o)), [[10, 20, 30, 60], [70, 20, 90, 60], [70, 140, 90, 180], [10, 140, 30, 180], [20, 10, 60, 30], [140, 10, 180, 30], [140, 70, 180, 90], [20, 70, 60, 90]], 'orientBox: a box on a stored 100 × 200 picture, as each EXIF orientation shows it');
+  t.eq([1, 2, 3, 4, 5, 6, 7, 8].map((o) => rc.orientBox(rc.orientBox([10, 20, 30, 60], 100, 200, o), [5, 6, 7, 8].includes(o) ? 200 : 100, [5, 6, 7, 8].includes(o) ? 100 : 200, rc.UNTURN[o])), Array(8).fill([10, 20, 30, 60]), 'orientBox: UNTURN brings each back');
   t.eq(rc.mergeBoxes([[0, 0, 10, 10], [30, 0, 40, 10], [100, 100, 110, 110]], 24), [[0, 0, 40, 10], [100, 100, 110, 110]], 'mergeBoxes: pieces near each other made one, a far one kept');
 
   // ---------------------------------------------------------------- copy-move (photos)
@@ -178,7 +180,8 @@ export default async (t, { load, wasm }) => {
   t.eq(rc.verdict([]).tone, 'none', 'verdict: nothing found');
   t.eq(rc.verdict([{ id: 'twice', strength: 'weak' }]).tone, 'resaved', 'verdict: saved again');
   t.eq(rc.verdict([{ id: 'twice', strength: 'weak' }, { id: 'software', strength: 'strong' }, { id: 'ref', strength: 'strong' }]).headline, '2 signs of editing found', 'verdict: two signs');
-  const sigs = rc.pictureSigns({ width: 720, height: 1600, jpeg: q('receipt-edited.jpg'), ghost: (await ghostOf('receipt-edited.jpg')).g, lossless: false, screenshot: true, copies: null, preview: null, name: 'receipt-edited.jpg' });
+  const eg = (await ghostOf('receipt-edited.jpg')).g;
+  const sigs = rc.pictureSigns({ jpeg: q('receipt-edited.jpg'), ghost: eg, ghostBoxes: rc.areaBoxes(eg, 720, 1600), lossless: false, screenshot: true, copies: null, preview: null, name: 'receipt-edited.jpg' });
   t.eq(sigs.map((s) => s.id), ['changed', 'jpeg', 'no-copies'], 'receipt-edited.jpg\'s picture signs');
-  t.eq(rc.pictureSigns({ width: 720, height: 1600, jpeg: q('IMG-20261106-WA0007.jpg'), ghost: null, lossless: false, screenshot: true, copies: null, preview: null, name: 'IMG-20261106-WA0007.jpg' }).map((s) => s.id), ['jpeg', 'whatsapp', 'no-copies'], 'the WhatsApp copy\'s picture signs: facts only');
+  t.eq(rc.pictureSigns({ jpeg: q('IMG-20261106-WA0007.jpg'), ghost: null, ghostBoxes: [], lossless: false, screenshot: true, copies: null, preview: null, name: 'IMG-20261106-WA0007.jpg' }).map((s) => s.id), ['jpeg', 'whatsapp', 'no-copies'], 'the WhatsApp copy\'s picture signs: facts only');
 };

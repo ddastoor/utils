@@ -85,7 +85,8 @@ that affects it.
 >    Wikimedia and the museums): **668.4 MB**; with the NASA Image Explorer (17 KB; the wallpaper maker now shared): **668.4 MB**; with the Long Screenshot Stitcher (43 KB — its engine
 >    8.6 KB of imgproc.wasm): **668.4 MB**; with the Screenshot Annotator & How-To Guide (44 KB with its styles — its fonts the site's Noto
 >    Sans, its mosaic 0.8 KB of imgproc.wasm): **668.4 MB**; with the Screenshot Finder (44 KB — 18 KB with its styles, its search 25 KB of
->    textcore.wasm; the reading Tesseract, already on the site): **668.5 MB**.
+>    textcore.wasm; the reading Tesseract, already on the site): **668.5 MB**; with Is This Screenshot Real? (0.2 MB — jpegcoef.wasm 125 KB,
+>    imgproc.wasm 12 KB more, the tab and its worker 55 KB; ExifTool and Tesseract already on the site): **668.7 MB**.
 > 4. **Wait for the owner's decision.** Build nothing until the owner has decided.
 
 > ## ⚠️ STANDING RULE #1 — WebAssembly first (owner; permanent; applies to every line of new code)
@@ -201,9 +202,9 @@ that affects it.
 > - Every picture picker — in every tab, existing and new — is `imageInput` or `imagePicker` (`src/lib/imgtools.ts`),
 >   which carry the live camera (`src/lib/livecam.ts`): the phone's camera (back first) on phones, the webcam on PCs.
 > - `tests/e2e/camera.e2e.mjs` fails on a picture picker without one, unless its EXEMPT list names the tab and the
->   reason (today the SVG Optimizer — it takes SVG drawings, which no camera makes — and the Long Screenshot Stitcher — it joins
->   screenshots, which no camera takes; a photo of a screen does not line up with another row for row; the QR Scanner has a camera of
->   its own; the Photo Dictionary uses the shared one since 21 Nov 2026, when it became PC + mobile). EXIF / Photo Info and FFmpeg's main picker got the camera at the owner's
+>   reason (today the SVG Optimizer — it takes SVG drawings, which no camera makes —, the Long Screenshot Stitcher — it joins
+>   screenshots, which no camera takes; a photo of a screen does not line up with another row for row — and Is This Screenshot Real?
+>   — it checks a picture someone sent; one taken here and now has nothing to check; the QR Scanner has a camera of its own; the Photo Dictionary uses the shared one since 21 Nov 2026, when it became PC + mobile). EXIF / Photo Info and FFmpeg's main picker got the camera at the owner's
 >   word (21 Nov 2026: "also add it for exif too"; FFmpeg's webcam had been only in the picture box of three tasks).
 >   Details: §3 "Camera in every tab that takes a picture"; checklist §8 item 5.
 
@@ -378,7 +379,7 @@ Wayland) and **mobile browsers** (Android Chrome, iPhone Safari).
 Platform is PC + mobile unless marked **PC**. Tab ids are the URL hash (`#/<id>`).
 
 **The authoritative, always-current list is `docs/TOOLS.md`, generated from `src/registry.ts` (`npm run docs`).**
-Current total: **204 tabs in 11 categories — 136 PC + mobile, 65 PC only, 3 Mobile only** (regenerate with
+Current total: **205 tabs in 11 categories — 137 PC + mobile, 65 PC only, 3 Mobile only** (regenerate with
 `npm run docs` after every registry change; the owner asked for the registry to always be noted).
 The per-category notes below record decisions; when they disagree with the registry, the registry wins.
 
@@ -509,7 +510,8 @@ warned. Resume: the photo is a JPEG (quality 85); file names are made safe (`saf
 
 **Security**: `pgp` OpenPGP · `sodium` Sodium Encrypt · `sharelink` Encrypted Share Link (ciphertext in the
 URL `#fragment`, never sent to a server) · `hash` Hash / Checksum · `password` Password Generator ·
-`passphrase` Passphrase Generator — all both.
+`passphrase` Passphrase Generator · `realcheck` Is This Screenshot Real? (**BUILT** 28 Nov 2026, potentials #82 — §3 "Is This
+Screenshot Real?": a payment screenshot or a photo checked for signs of editing; signs, never a proof) — all both.
 
 **Media**: `video` Video Compressor (both, **BUILT**) · `audio` Audio Recorder (both, **BUILT**) · `tts` Text-to-Speech (both, **BUILT**) ·
 `worldradio` World Radio (both, **BUILT** 28 Nov 2026, potentials #116 — §3 "World Radio") ·
@@ -1535,6 +1537,64 @@ WASM-AUDIT.md 105); the EFF large list is checked as it arrives (exactly 7,776 d
 else "the word list did not arrive whole" and nothing is made; SHA-256 `6d557f06…` in the unit suite); 3 – 12 words,
 separator hyphen / space / dot / underscore / none, capitals, a digit after a random word; entropy = words × log2(7,776)
 + log2(10 × words) with the digit; "Copy passphrase n".
+
+### Is This Screenshot Real? — BUILT (potentials #82; built 28 Nov 2026 — group 2 of the suggested order)
+(`realcheck` in `src/tools/realcheck.ts` + `.css`, the rules `src/lib/realcheck.ts` (no DOM), the picture's checks `src/workers/realcheck.worker.ts`,
+the engines **jpegcoef.wasm** (libjpeg-turbo 3.1.3's coefficient reader and our C, `wasm/jpegcoef/glue.c` — §5.1w) and imgproc.wasm's `forensic.c`; unit
+`tests/unit/realcheck.test.mjs` 95, e2e `tests/e2e/realcheck.e2e.mjs` 42; fixtures `tests/fixtures/realcheck/` with `truth.json` — a receipt received by
+WhatsApp, a genuine PNG, an amount changed after a JPEG save, Photoshop's metadata, a preview that still shows the old amount, text no payment app
+writes, a photo with a part cloned (also stored turned), a camera's photo —, made by `python3 scripts/make-realcheck-shots.py`; measured on `python3
+scripts/make-realcheck-eval.py OUT` with `node scripts/measure-realcheck.mjs OUT`.) The owner's words (potentials #82): "a 'payment successful' UPI
+screenshot or any photo checked for signs of editing — the software that saved it (ExifTool), a second JPEG save (error-level analysis, the quantization
+tables), patched or copied areas — with plain words on what it can and cannot prove (signs, never a proof that a picture is genuine)".
+- **An earlier JPEG save, and the parts not saved like the rest** (JPEG ghosts — H. Farid, 2009): a JPEG's **stored DCT coefficients** read by
+  jpegcoef.wasm (libjpeg-turbo's `jpeg_read_coefficients`: baseline, progressive and arithmetic-coded files; no pixel decoded — the coefficients are
+  exact, decoded pixels are rounded and clipped), each 8 × 8 block's luminance quantized again at every quality from 30 to the file's own (libjpeg's
+  standard tables; the file's quality told from its tables) and its error summed — the DCT is orthonormal, so the coefficients' error is the pixels'
+  (Parseval) → a curve over the qualities. **An earlier save** is a dip of that curve below the file's quality, the curve rising after it to more than
+  1.06 × its depth, on 200 blocks with texture and more; its quality where the coefficients sit closest to a quality's grid near the dip (`jc_grid`).
+  **The parts:** each block's error at the earlier quality, Farid's normalisation, smoothed over 5 × 5 blocks; blocks above the median + max(4 × the
+  median deviation, 0.06) make an area when it holds 12 blocks and more over two rows, stands out by more than 0.08 and holds less than a fifth of the
+  blocks looked at; areas within 24 px are one. Left out: blocks with a colour clipped at 0 or 255 in 5 % of their pixels (`p_block_clip` — a saturated
+  bubble loses in decoding what a save left in it), flat blocks, blocks whose errors hardly change with the quality (a faint line), a JPEG's partial last
+  row and column. A JPEG with tables of its own (a camera's, a program's) or a quality below 45 is not looked at, and said.
+- **A PNG that was a JPEG:** the same ghosts in its pixels (imgproc `p_jpeg_ghost`, `p_jpeg_grid`): a phone saves a screenshot straight as a PNG; one
+  that went through a JPEG first was sent through a chat app, or edited and saved as a PNG — and a part changed after that JPEG is found the same way.
+- **Copied areas** (J. Fridrich's copy-move search, imgproc `p_copy_move`: 16 × 16 blocks by the means of their 4 × 4 parts, sorted, the shifts that
+  many share and that no repeating pattern explains): in a photo only — a screenshot (a fifth of it exactly one colour) repeats its letters and icons
+  by nature, and the tab says so —, on a copy at most 1,024 px long.
+- **The preview inside the file** (ExifTool's ThumbnailImage, PreviewImage, PhotoshopThumbnail — `readPreviews`): against the picture made as small, in
+  12 × 12 cells (`p_cell_diff`; dark bars round a camera's 4 : 3 preview trimmed): cells that differ by 8 levels and more and by 6 × the typical cell + 4
+  are outlined — the old amount where the picture shows a new one; a preview of another shape: the picture was cropped after it was made.
+- **The metadata** (ExifTool, as the EXIF tab reads it): an editing program in its software tags or comment (Photoshop, Lightroom, GIMP, Snapseed,
+  PicsArt, Canva, Pixlr, Photopea …), an editing history (XMP), changed long after it was taken (worth a look), the camera, a screenshot program, no
+  metadata at all (said: usual for screenshots and for anything sent through a chat app).
+- **The text** (read as the Screenshot Finder reads a screenshot: Tesseract's sparse text, the picture made ready by imgproc): a weekday that is not
+  the date's, a date still to come, the status bar's clock 2 – 60 minutes before the payment's time (a 12-hour clock taken modulo 12 hours), a UPI
+  reference that is not 12 digits, the amount in large letters against the amount on its labelled row (a ₹ read as 7, as % or not at all allowed
+  for). Dates, times and amounts by the Paper Deadlines tab's readers (`src/lib/deadlines.ts`).
+- **The answer, in plain words:** "A sign of editing found" / "3 signs of editing found" (any strong sign), "Saved again — no clear sign of editing" (only
+  saves), or "No sign of editing found"; the signs in three groups — **Signs of editing**, **Worth a look**, **About the file** — each with its
+  places outlined on the picture (the first two at first; "On the picture" shows or hides them); the file's facts (kind and size, the JPEG's quality,
+  tables and colour sampling, the earlier save's quality, screenshot or photo, the software, camera, dates, comment, the preview's size); **Error levels
+  — look for yourself** (the picture saved again at quality 90, the difference × 12 as a heat scale: imgproc `p_ela`); the text read; **What this can
+  and cannot tell** (a fake made from scratch, or shown by a fake-payment app, leaves no trace — no sign found is not genuine; a chat app saves the
+  picture again; the OCR may misread a digit; an editing program says the picture went through it, not what was changed). Under it, always: **"Only
+  your account proves a payment"** — open the bank's or the UPI app's own history before handing over goods or money.
+- **The tab:** a screenshot or photo chosen, dropped or pasted (Ctrl+V, "Paste image") — **no camera** (exempt: a picture taken here and now has
+  nothing to check); a JPEG's EXIF turn followed (the blocks as stored, the places on the picture as shown — `orientBox`); four checks at once, each
+  with its progress (the picture, the metadata, the preview, the text); the newest picture wins. Nothing is stored or sent. **Lazy:** at open the tab's
+  code (26 KB, 2 KB of styles); with the first picture the worker (26 KB), imgproc.wasm, jpegcoef.wasm (125 KB), ExifTool and Tesseract; leaving the
+  tab ends the worker and the reader.
+- **Measured** (`make-realcheck-eval.py`: 17 pictures of the repository — the Finder's screenshots, a chat, a dark chat, two web pages, the receipt,
+  the astronaut and four JPEG photos — saved once at ten qualities, twice (60 – 95 → 78 – 98, and the other way round), and edited between the two
+  saves (a rectangle painted the colour round it and an amount drawn in, as an amount is changed); 19 as PNGs: never a JPEG, a JPEG made a PNG at four
+  qualities, and edited after that JPEG): **JPEG** — an earlier save found on 243 of 251 files saved before at a lower quality (its quality exact on
+  212, within 2 on 241) and on none of 225 saved once (or before at a higher quality, which leaves no trace); the edited part found on 75 of 119
+  files edited after a save, and **an area on none of the 323 files nobody edited**; **PNG** — the JPEG before found on all 152 (exact 142, within 2:
+  150), on none of 19 never a JPEG; the edited part on 43 of 76, an area on none of 95. What is missed (measured so: in progress): an edit between two saves of close quality — 85 → 95 and 90 → 98, a
+  PNG from a JPEG at 92 — where the second save leaves the first one's grid nearly everywhere. About 0.3 s a
+  720 × 1600 JPEG and 0.4 s a PNG in Node; in the browser each test picture checked in 0.4 – 1.4 s, its verdict and places as truth.json says.
 
 ### Zip
 Create zip (optional AES-256 password, WinZip AE-2 format) from multiple files; extract zip (incl.
@@ -3884,8 +3944,9 @@ the photo with a webcam if it's a PC app." No engine to fetch: the browser's get
   — the live camera does it on both. **Beside the camera button, "Paste image"** where a tab asks for it (`paste: true`:
   the OCR and the Photo Dictionary — to-do #37; `liveCamera`'s `beside` holds it in the camera's row).
 - **Without a camera, on purpose** (EXEMPT in the sweep): SVG Optimizer (it takes SVG drawings, which no camera makes); the Long Screenshot
-  Stitcher (it joins screenshots, which no camera takes — a photo of a screen does not line up with another row for row);
-  the QR & Barcode Scanner keeps a camera of its own.
+  Stitcher (it joins screenshots, which no camera takes — a photo of a screen does not line up with another row for row); Is This
+  Screenshot Real? (it checks a picture someone sent — one taken here and now has nothing to check); the QR & Barcode Scanner keeps a
+  camera of its own.
 - **Tests:** `tests/e2e/camera.e2e.mjs` — every picture picker a tab shows, on a PC and a phone, has the camera in its
   card; in every tab the stand-in camera (`tests/e2e/_camera.mjs`: a canvas stream showing a sentence) is opened, Snap
   pressed (twice and Done where a tab takes several) and the tab's result checked; modes, one camera at a time,
@@ -4836,7 +4897,8 @@ stay **public** (the source of the deployed site is then available to every user
 | **libsodium.js** — `libsodium-wrappers-sumo` 0.8.4 (libsodium **1.0.22**; the sumo build: the standard one has no Argon2) | C | the libsodium project (official WebAssembly build, embedded in the module) — binding `src/wasm/libsodium.ts`, format `src/lib/usodium.ts`, in `src/workers/crypto.worker.ts` | sodium, sharelink: Argon2id + XChaCha20-Poly1305 secretstream (`docs/WASM-AUDIT.md`, tab 101); password, passphrase, dice, coin: randombytes_uniform (tabs 104, 105, 155) |
 | imgproc (adjustments, resize, OpenCV's area resize (`p_resize_area`, equal to cv2's INTER_AREA), lossless orient/crop, filters, matting, warp + homography, doc enhance, the page in a photo (`p_page_quad`) and whether an outline is a page's (`p_quad_steps`: the step across each edge; `p_quad_text`: the letters it leaves outside), an outline fitted to the photo's edges (`p_refine_quad`), strips of the desk along a straightened page painted (`p_clear_border`), which way up the text stands and how its lines slant (`p_text_turns`: the letters; `p_text_lines`: projection profiles), where the text is (`p_ink_window`), a watermark's broad strokes taken out (`p_clear_wash`), the views of a scrolling
 screenshot placed against each other (`p_scroll_sig`, `p_scroll_match`: rows that stay put, the shift by the overlap's
-difference over its detail, the overlap's pixels), **a mosaic that leaves nothing to match against** (`p_mosaic_rect`: the Screenshot Annotator's Pixelate — the grid at a random place, slivers at the edges joined to their neighbours, each block's colour moved by up to ±20), ruled lines and list marks cleared and the columns counted (`p_clear_marks`); **book pages flattened** (`flatten.c`: `p_book_fit`, `p_book_render`, `p_book_locate` — page-dewarp's method, Levenberg–Marquardt, the gutter, the margins); **where a region of a PDF page may be cut for a Kindle's screen** (`kindle.c`: `p_blank_rows` — rows with no ink outside the letters' bodies, figures and formulas; `p_next_cut` — the lowest paragraph gap past 65 % of the room, else the lowest gap); PaddleOCR's steps around its networks, as RapidOCR takes them in OpenCV's arithmetic (`p_resize_linear` / `p_net_planes`: cv2.resize INTER_LINEAR in its own fixed point; `p_db_boxes`: DBPostProcess, its box score over cv2.fillPoly's exact pixels; `p_crop_quad`: get_rotate_crop_image; `p_ctc`: CTC's greedy reading); **flat colours, masks, black and white and ink lines for Image to SVG and the Clipart Maker** (`flat.c`: `p_clip_flat` — greedy k-means++ in CIE Lab, a mode filter, specks taken in, each colour the mean of its own pixels; `p_clip_mask`, `p_clip_lines` — Winnemöller's DoG inside the subject, not at its edge; `p_bw` — a threshold or Otsu's; `p_u2_planes` / `p_u2_mask` — U²-Net's input and output as rembg makes them); AnimeGAN v2's input and output as its own code makes them (`p_anime_in` / `p_anime_out`, the Cartoonizer's anime looks); the busiest part of a picture for a crop (`p_busy_window`: gradient energy on a 240-px copy, an integral image, a slight pull to the middle — the Wallpapers); **screenshots placed against each other** (`stitch.c`: `p_st_rows` — each row's bands, detail and mean, a soft copy's bands over three rows; `p_st_pair` — votes for the shift, Kadane's best stretch of matching rows, bands that stay put left out, a quarter of a row; `p_st_seam` — where their pixels agree; `p_st_same` — the bars)) | C (own code) | **us** (`wasm/imgproc`) | image tools, scanner, passport, cartoon, ocr and photodict (pages found, set upright and level, rules and list marks cleared — to-do #18; the second reader's pixel work), bookflat, wallpapers, nasa, stitch, annotate (the mosaic), finder (a picture made ready: turned light, cleaned up, a screenshot told from a photo) |
+difference over its detail, the overlap's pixels), **a mosaic that leaves nothing to match against** (`p_mosaic_rect`: the Screenshot Annotator's Pixelate — the grid at a random place, slivers at the edges joined to their neighbours, each block's colour moved by up to ±20), ruled lines and list marks cleared and the columns counted (`p_clear_marks`); **book pages flattened** (`flatten.c`: `p_book_fit`, `p_book_render`, `p_book_locate` — page-dewarp's method, Levenberg–Marquardt, the gutter, the margins); **where a region of a PDF page may be cut for a Kindle's screen** (`kindle.c`: `p_blank_rows` — rows with no ink outside the letters' bodies, figures and formulas; `p_next_cut` — the lowest paragraph gap past 65 % of the room, else the lowest gap); PaddleOCR's steps around its networks, as RapidOCR takes them in OpenCV's arithmetic (`p_resize_linear` / `p_net_planes`: cv2.resize INTER_LINEAR in its own fixed point; `p_db_boxes`: DBPostProcess, its box score over cv2.fillPoly's exact pixels; `p_crop_quad`: get_rotate_crop_image; `p_ctc`: CTC's greedy reading); **flat colours, masks, black and white and ink lines for Image to SVG and the Clipart Maker** (`flat.c`: `p_clip_flat` — greedy k-means++ in CIE Lab, a mode filter, specks taken in, each colour the mean of its own pixels; `p_clip_mask`, `p_clip_lines` — Winnemöller's DoG inside the subject, not at its edge; `p_bw` — a threshold or Otsu's; `p_u2_planes` / `p_u2_mask` — U²-Net's input and output as rembg makes them); AnimeGAN v2's input and output as its own code makes them (`p_anime_in` / `p_anime_out`, the Cartoonizer's anime looks); the busiest part of a picture for a crop (`p_busy_window`: gradient energy on a 240-px copy, an integral image, a slight pull to the middle — the Wallpapers); **screenshots placed against each other** (`stitch.c`: `p_st_rows` — each row's bands, detail and mean, a soft copy's bands over three rows; `p_st_pair` — votes for the shift, Kadane's best stretch of matching rows, bands that stay put left out, a quarter of a row; `p_st_seam` — where their pixels agree; `p_st_same` — the bars); **a picture looked at for signs of editing** (`forensic.c`: `p_jpeg_ghost` / `p_jpeg_grid` — Farid's JPEG ghosts in a picture's pixels, each block's error at every quality and how close it sits to each quality's grid; `p_ela` — error levels as a picture; `p_copy_move` — Fridrich's search for copied areas; `p_cell_diff` — a preview against the picture; `p_block_clip` — the blocks a decoder clipped)) | C (own code) | **us** (`wasm/imgproc`) | image tools, scanner, passport, cartoon, ocr and photodict (pages found, set upright and level, rules and list marks cleared — to-do #18; the second reader's pixel work), bookflat, wallpapers, nasa, stitch, annotate (the mosaic), finder (a picture made ready: turned light, cleaned up, a screenshot told from a photo), realcheck (a PNG's ghosts, error levels, copied areas, the preview compared) |
+| jpegcoef: **libjpeg-turbo 3.1.3**'s decoder as far as the stored DCT coefficients (`jpeg_read_coefficients`: baseline, progressive, arithmetic-coded; no pixel decoded) + our C (`glue.c`): the quantization tables and sampling, each block's error at every quality from the stored coefficients (exact, where decoded pixels are rounded and clipped), how close they sit to each quality's grid, and the reading of both (`jc_analyse`: an earlier save, its quality, the areas not saved like the rest) | C | **us** (`wasm/jpegcoef`, 125 KB; no WebAssembly build gives a JPEG's coefficients — jSquash's MozJPEG and every browser decoder give pixels: `docs/WASM-AUDIT.md`, tab 211) | realcheck |
 | metacore (EXIF → JSON, lossless metadata strip JPEG/PNG/WebP, JPEG DPI, image sniffing) | C (own code) | **us** (`wasm/metacore`) | exif, image loading, passport/formphoto DPI |
 | BusyBox 1.38.0 (130 applets) + compat shims | C | **us** (`wasm/busybox`) | terminal, bc console |
 | jq 1.8.2 (+ oniguruma) | C | **us** (`wasm/jq`) | jq |
@@ -4861,7 +4923,7 @@ difference over its detail, the overlap's pixels), **a mosaic that leaves nothin
 | cmark-gfm 0.29.0.gfm.13 (GitHub Flavored Markdown) | C | **us** (`wasm/markdown`, source from the PyPI `cmarkgfm` sdist, SHA-256 pinned) | markdown |
 | libyaml 0.2.5 + toml++ 3 | C / C++ | **us** (`wasm/formats`) | yaml |
 | MuPDF 1.28 | C | Artifex (official `mupdf` npm) | all PDF tools, PDF → EPUB, PDF for Kindle (the pieces: the page grafted, redacted, drawn as a form), Watermark (PDFs: to-do #17), Book Page Flattener and Newspaper Clipper (their PDFs), EPUB Reader (EPUB, MOBI, FictionBook, comics, text laid out at any size with HarfBuzz and drawn — in the reader's worker, `src/workers/ebook.worker.ts`), Audiobook (a book's text: laid out on pages 100,000 px tall, its contents resolved to page and height — in `src/workers/bookread.worker.ts`; a PDF through the PDF → EPUB engine), PDF Redact (its redaction in two passes — the text by a band through each line, then pictures' pixels, drawings and a black box; comments and form fields baked first; the saved file read again), Safe ID Copy (an e-Aadhaar's pages drawn and their text read; the copy's PDF of pictures), Make PDF Searchable (each page's invisible text layer, `stampPage`; the password kept), PDF Compare (each page's characters with their boxes, the pages drawn, the changes written as comments), PDF Tables (each page's words and ruled lines, the pages drawn) |
-| ExifTool 13.42 on zeroperl (Perl 5 compiled to WebAssembly with ExifTool's library inside) | Perl / C | Phil Harvey (ExifTool), uswriting / 6over3 (`@uswriting/exiftool` 1.0.9, `@6over3/zeroperl-ts` 1.0.10) — run in `src/workers/exiftool.worker.ts` | exif (replaced metacore's reader and stripper in Nov 2026: `docs/WASM-AUDIT.md`, tab 120); regex (the Perl flavour, the same module: `src/lib/regex/perl.ts`) |
+| ExifTool 13.42 on zeroperl (Perl 5 compiled to WebAssembly with ExifTool's library inside) | Perl / C | Phil Harvey (ExifTool), uswriting / 6over3 (`@uswriting/exiftool` 1.0.9, `@6over3/zeroperl-ts` 1.0.10) — run in `src/workers/exiftool.worker.ts` | exif (replaced metacore's reader and stripper in Nov 2026: `docs/WASM-AUDIT.md`, tab 120); regex (the Perl flavour, the same module: `src/lib/regex/perl.ts`); realcheck (the tags it reads, and the previews inside the file: `readPreviews`) |
 | hash-wasm 4.13.0 (hand-tuned C → wasm, one small binary per algorithm, embedded in the package; streaming; HMAC over any of its hashes; Argon2, bcrypt, scrypt, PBKDF2) | C | Dani Biró (`hash-wasm` npm, ~10 M downloads a month) — wrappers `src/lib/hmac.ts`, `src/lib/totp.ts`, `src/lib/pwhash.ts`, `src/lib/hashes.ts` (in `src/workers/hash.worker.ts`); only the algorithms a tab uses are bundled into its chunk, loaded with the tab's first result | hash (23 algorithms), hmac (all of it), totp (the HMAC), pwhash (Argon2id / i / d, bcrypt, scrypt, PBKDF2) — replaced RustCrypto builds and crypto.wasm's hashes of ours in Nov 2026 (`docs/WASM-AUDIT.md`); ebook (a remembered book's fingerprint, XXH128 — to-do #40) |
 | ONNX Runtime Web 1.31 (CPU/WebAssembly, SIMD) | C++ | Microsoft (official `onnxruntime-web` wasm build) | tts, audiobook and camreader (Kokoro, Piper — `src/lib/speech.ts`, one session a worker; the Audiobook runs one to four workers at once); scanner and idcopy (DocCornerNet LEAN, scanic-ml 0.2.0: the page's — a card's — corners — `docs/WASM-AUDIT.md`, tab 121); ocr, photodict and clipper (the same network, asked where the Kindle finder's outline is not a page's — to-do #18; and **PaddleOCR's PP-OCRv6 detector and recogniser, the second reader for soft photos** — owner, 26 Nov 2026: `src/lib/paddle.ts` in `src/workers/paddle.worker.ts`); noise (**DeepFilterNet 3**, the Studio voice — to-do #20: `src/workers/noise.worker.ts`); clipart (**U²-Net small**, rembg's u2netp: the subject cut out — `src/workers/vector.worker.ts`); cartoon (**AnimeGAN v2**'s Hayao, Shinkai and Paprika and the face portrait v2: the anime looks — `src/workers/anime.worker.ts`) |
 | SQLite 3.54 | C | SQLite project (official `@sqlite.org/sqlite-wasm`), run in `src/workers/sqlite.worker.ts` (terminated on leave) | sqlite |
@@ -4878,7 +4940,7 @@ difference over its detail, the overlap's pixels), **a mosaic that leaves nothin
 | MozJPEG, libwebp, OxiPNG, Squoosh's resize (Lanczos-3 in linear light) | C / Rust | jSquash (Squoosh codecs; `@jsquash/resize` since Nov 2026) | image encoders; resizing in the Image Editor and Batch Images (`docs/WASM-AUDIT.md`, tabs 109, 110); the Wallpapers' and the NASA Image Explorer's wallpaper (Lanczos to the screen's pixels, MozJPEG) |
 | libheif + libde265 | C++ | libheif-js | heic |
 | Little CMS 2.16 | C | lcms-wasm (Matt DesLauriers; npm 1.0.5) — in the codec worker, fetched for a HEIC with a non-sRGB ICC profile | heic and every tab that opens HEIC: Display P3 → sRGB (`docs/WASM-AUDIT.md`, tab 111) |
-| Tesseract 5 | C++ | tesseract.js-core | ocr, photodict, clipper (laid out as a page: its blocks), pdf-redact (a scanned page's numbers), idcopy (a card's numbers, through the reading path), pdf-ocr (each scanned page, through the reading path — never straightened), pdf-compare (a scanned page's words, the same way), pdf-tables (a scanned page's words, the same way), wifiqr (a router's label, through the reading path with the camera helpers' options — `SNAP_READ`), visitcard (a business card, the same way), deadlines (a paper's dates, the same way), billsplit (a restaurant bill, the same way), camreader (a page to read aloud, through the reading path with the OCR tab's options), finder (every picture in the sparse-text mode — `sparseReader`, a pool of up to three workers; screenshots with Sauvola's thresholds) |
+| Tesseract 5 | C++ | tesseract.js-core | ocr, photodict, clipper (laid out as a page: its blocks), pdf-redact (a scanned page's numbers), idcopy (a card's numbers, through the reading path), pdf-ocr (each scanned page, through the reading path — never straightened), pdf-compare (a scanned page's words, the same way), pdf-tables (a scanned page's words, the same way), wifiqr (a router's label, through the reading path with the camera helpers' options — `SNAP_READ`), visitcard (a business card, the same way), deadlines (a paper's dates, the same way), billsplit (a restaurant bill, the same way), camreader (a page to read aloud, through the reading path with the OCR tab's options), finder (every picture in the sparse-text mode — `sparseReader`, a pool of up to three workers; screenshots with Sauvola's thresholds), realcheck (a picture's text, read as the Finder reads it) |
 | zxing-cpp | C++ | zxing-wasm | qr, barcode, scan, pdf-redact (QR codes and barcodes on the pages), idcopy (a QR that holds the number) — `src/lib/codesread.ts`; wifiqr (a QR code on a router's label read; the Wi-Fi code drawn — `src/lib/qrdraw.ts`); visitcard (a vCard or MECARD on a card read; the contact's code drawn); billsplit (each share's UPI code drawn) |
 | 7-Zip 24.09 (`7zz`, the command line, Emscripten build with WORKERFS) | C++ | use-strict (`7z-wasm` npm 1.2.0) — run in `src/workers/sevenzip.worker.ts`, a fresh instance per archive | zip (zip and 7z with AES-256; `docs/WASM-AUDIT.md`, tab 107), unzip (reads every archive; tab 108), watermark (a Word document taken apart and zipped again: to-do #17), ebook (a CBR or CB7 comic unpacked into a zip for MuPDF) |
 | MediaPipe Tasks (TFLite) | C++ | Google (official) | passport, bgremove, redact; formphoto, wallpapers and nasa (BlazeFace, through the Blur & Redact tab's `detectFaces`) |
@@ -4979,6 +5041,10 @@ Nov 2026 (Paper Deadlines → Calendar, potentials #77): `src/lib/deadlines.ts` 
 paper's lines made into sentences, dates counted on with the browser's Date in UTC, the iCalendar file written as text: string glue
 around the readers' output (`docs/WASM-AUDIT.md`, tab 194).
 Nov 2026 (the Settings page, to-do #39): `src/settings.ts`, `src/lib/settingsfile.ts` — values checked by a comparison or two, the browser's JSON, localStorage, IndexedDB and File System Access: nothing for an engine to do (`docs/WASM-AUDIT.md`, 201).
+Nov 2026 (Is This Screenshot Real?, potentials #82): `src/lib/realcheck.ts` — the signs in words, the text checks (a weekday, a date, a
+clock, a reference, two amounts: regular expressions and a comparison or two on the OCR's rows), the metadata's editors by a regular expression,
+boxes merged and turned with the picture, a dip found in a curve of 70 numbers; every pixel and coefficient is jpegcoef.wasm's or imgproc.wasm's
+(`docs/WASM-AUDIT.md`, tab 211).
 Nov 2026 (Screenshot Finder, potentials #76): `src/lib/finder.ts` — a date read from a file's name (one regular expression), the size a picture is
 read at (two multiplications), the order of what a search finds (a sort); the reading is Tesseract's, every pixel imgproc.wasm's (`prepare`: histogram,
 invert, flat share, document clean-up), the search textcore.wasm's `find.c` (`docs/WASM-AUDIT.md`, tab 210).
@@ -5615,6 +5681,22 @@ x86_64-unknown-linux-musl; cargo install vtracer --version 0.6.5 --target x86_64
 musl's, so the two write the same SVG byte for byte. **To update:** bump the version in `Cargo.toml`, `cargo update -p vtracer`, build, rebuild the
 reference with the new version, `node tests/unit.mjs vector`.
 
+### 5.1w jpegcoef → `src/wasm/bin/jpegcoef.wasm`
+`ZIG=… bash wasm/jpegcoef/build.sh` (seconds): `libjpeg-turbo_3.1.3.orig.tar.gz` from the Ubuntu archive (libjpeg-turbo.org's release; SHA-256
+`3a13a5ba…` from Ubuntu's signed `libjpeg-turbo_3.1.3-4ubuntu2.dsc`); our `jconfig.h` / `jconfigint.h` for wasm32 (what CMake would write: no SIMD,
+arithmetic decoding on, `SIZEOF_SIZE_T` 4) and `jversion.h` from its template; compiled: the decoder's sources as far as `jpeg_read_coefficients`
+(jdapimin, jdtrans, jdinput, jdmarker, jdhuff, jdphuff, jdarith, jaricom, jcomapi, jerror, jmemmgr, jmemnobs, jdatasrc, jpeg_nbits, and the
+8 / 12-bit wrappers the transcoder asks for) — no pixel is decoded — with `glue.c`: `jc_open(buf, len, max_px)` (2 when larger than the limit),
+`jc_info` (components, sampling, each one's table in natural order, progressive, arithmetic, warnings), `jc_coefs`, `jc_ghost(c, q0, q1, err,
+energy)` (each block's error at every quality, from the stored coefficients — exact, where decoded pixels are rounded and clipped), `jc_grid` (how
+close the coefficients sit to each quality's grid), `jc_analyse` (the reading of both: an earlier save, its quality, the areas — its thresholds named
+at the top of the file), `jc_msg`, `jc_close`, `jc_version`. libjpeg's `error_exit` writes its message and traps: the page makes a new instance
+(`newJpegcoef`, one per file in the worker). Binding `src/wasm/jpegcoef.ts` (`bindJpegcoef`; `stdTable`, `tableQuality`). **Tests:**
+`tests/unit/realcheck.test.mjs` — the tables and sampling as Pillow reads them, the coefficients turned back into pixels against MuPDF's decoding,
+the same coefficients from a baseline and a progressive file (Pillow), libjpeg-turbo's own arithmetic-coded test image against its baseline one, a
+damaged and a cut file. **To update:** a newer release in build.sh (URL + SHA-256 from its .dsc), build, `node tests/unit.mjs realcheck`, `node
+scripts/measure-realcheck.mjs OUT` on `python3 scripts/make-realcheck-eval.py OUT` (the numbers of §3).
+
 ### 5.1e markdown → `src/wasm/bin/markdown.wasm`
 `ZIG=… wasm/markdown/build.sh`: downloads the `cmarkgfm` 2025.10.22 sdist from PyPI (SHA-256 `5bec6100…`), which vendors
 cmark-gfm 0.29.0.gfm.13 (latest upstream) plus its CMake-generated headers (`generated/unix`), and links all of
@@ -5676,6 +5758,8 @@ npm packages (pinned in `package-lock.json`) are bundled by Vite or copied to `p
 | @jitsi/rnnoise-wasm 0.2.1 (RNNoise 0.2 compiled to WebAssembly by Jitsi) | Apache-2.0 (RNNoise: BSD-3-Clause) | Noise Remover |
 | signalsmith-stretch 1.3.2 (Signalsmith Stretch, WebAssembly + AudioWorklet) | MIT | Pitch & Speed |
 | lcms-wasm 1.0.5 (Little CMS 2.16) | MIT | HEIC colours (Display P3 → sRGB) |
+| *built in:* libjpeg-turbo 3.1.3 (its decoder as far as the coefficients) in jpegcoef.wasm | IJG License AND BSD-3-Clause (its zlib-licensed SIMD code is not built) | Is This Screenshot Real? |
+| *test only:* libjpeg-turbo's test images testorig.jpg and testimgari.jpg (`tests/fixtures/realcheck/`) | IJG License | the jpegcoef suite |
 | esm-potrace-wasm 0.5.1 (Potrace 1.16 compiled to WebAssembly) | GPL-2.0 | Image to SVG (black and white) |
 | *built in:* vtracer 0.6.5 and visioncortex 0.8.10 in vtracer.wasm | MIT OR Apache-2.0 | Image to SVG, Clipart Maker |
 | *test only (apt / cargo / pip, not shipped):* potrace 1.16, librsvg's rsvg-convert, vtracer 0.6.5's command line, onnxruntime (Python) | GPL-2.0 / LGPL-2.1+ / MIT OR Apache-2.0 / MIT | the references of `tests/unit/vector.test.mjs` and the SVGs drawn in the e2e suites |
