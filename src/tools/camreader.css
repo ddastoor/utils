@@ -1,0 +1,17 @@
+/* Camera Reader */
+.cr-controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; position: sticky; top: calc(var(--navh, 0px) + 6px); z-index: 2; background: var(--surface); padding: 6px 0 10px; }
+.cr-say { min-height: 1.5em; margin-bottom: 6px; }
+.cr-text { --cr-size: 24px; font-size: var(--cr-size); line-height: 1.6; max-width: 46em; overflow-wrap: anywhere; }
+.cr-p { margin: 0 0 0.75em; }
+.cr-p:last-child { margin-bottom: 0; }
+.cr-heading { font-weight: 700; }
+.cr-item { padding-left: 0.15em; }
+.cr-s { border-radius: 6px; padding: 0.04em 0.12em; margin: 0 -0.12em; cursor: pointer; transition: background-color .15s; -webkit-box-decoration-break: clone; box-decoration-break: clone; }
+.cr-s:hover { background: var(--surface-2); }
+.cr-s.on { background: var(--accent-soft); text-decoration: underline; text-decoration-color: var(--accent); text-decoration-thickness: 2px; text-underline-offset: 0.22em; }
+.cr-size { align-items: center; }
+@media (max-width: 720px) {
+  .cr-text { line-height: 1.55; }
+  .cr-size .btn { min-height: 44px; }
+}
+@media (prefers-reduced-motion: reduce) { .cr-s { transition: none; } }

@@ -172,10 +172,11 @@ generates media with the project's own ffmpeg.wasm and Chromium). Used only by t
   page as a picture (200 dpi) — every table's cells as printed in truth.json.
 
 ## snaps/
-- `router-*.jpg`, `card-*.jpg`, `notice-*.jpg`, `restaurant.jpg`, `leaflet.jpg`, `truth.json` — the camera helpers' test photos (Router
+- `router-*.jpg`, `card-*.jpg`, `notice-*.jpg`, `restaurant.jpg`, `leaflet.jpg`, `leaflet-b.jpg`, `menu.jpg`, `letter.jpg`, `truth.json` — the camera helpers' test photos (Router
   Sticker → Wi-Fi QR, Visiting Card → Contact, Paper Deadlines, Bill Splitter, Camera Reader), made by `python3 scripts/make-snap-photos.py`
   (Pillow, NumPy, segno; Noto Sans, DejaVu Sans Mono, Literata): router labels, visiting cards, a bill, a renewal letter, a school
-  circular, a restaurant bill and a leaflet of our own making (no real product's or company's design; names, numbers and addresses made
+  circular, a restaurant bill, and a leaflet, a medicine leaflet in small print with a list, a café's menu with dot leaders and a letter
+  (Camera Reader) of our own making (no real product's or company's design; names, numbers and addresses made
   up), "photographed" on a desk — perspective, a shadow, light falling off, blur, noise, JPEG; one label photographed with the phone
   held sideways, one carrying a Wi-Fi QR code; the cards (28 Nov 2026: eight) — one with a vCard QR code, one from the United States,
   a dark one, a card's front and back. truth.json holds what each says.

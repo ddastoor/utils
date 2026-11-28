@@ -149,7 +149,16 @@ read again by PaddleOCR), its items, charges and total (`src/lib/billsplit.ts`; 
 each item, a tip; the split by mathcore's new `m_bill_split` (exact shares, the cumulative columns rounded by the largest remainder —
 every share within a paisa of the exact one); a UPI code for each to pay the one who paid; the split copied as text. Unit `billsplit` 34
 (an exact BigInt reckoning over 3,000 random bills; the photo through the reading path in Node), e2e `billsplit` 20 (zbar reads the codes;
-axe in both themes). **Next: #81 Camera Reader** — the last of group 4; then group 3.
+axe in both themes). **#81 Camera Reader — BUILT (28 Nov 2026):** the tab `camreader` (Text, PC +
+mobile; CLAUDE.md §3 "Camera Reader"): a page photographed (the OCR tab's reading path and options) → its paragraphs and pieces (sentences;
+a line that stands alone — an address, a menu's item and price, a label; headings by their type size, `emOf`; list items) → read aloud by
+the Text-to-Speech voices (Kokoro, Piper — one request a piece, three ahead, on one AudioContext) or the device's own, the piece being heard
+marked by the sound's clock; printed matter made speakable (rupees, medicine units and doses, dates, times, phone numbers and PIN codes;
+`src/lib/readertext.ts`); pause, Back, Next, a tap on a sentence, speed, text size; Copy; the text handed to Text-to-Speech. Unit
+`camreader` 33 (the four papers and a two-column newsletter through the reading path in Node), e2e `camreader` 26 (Whisper hears the
+leaflet, the medicine leaflet and the letter). **Group 4 is done. Next: group 3** — #73 World Clock, #10 Spell Checker, #1 Image to SVG
++ #117 Clipart Maker, #75 SliceDiceGrapher (with #25 Chart Maker), #54 Diagram Editor (draw.io, PC only); each with its size check
+measured first (stop and ask if much bigger than the 27 Nov estimate).
 **Then to-dos #38, #39 and #40** (owner,
 27 Nov 2026, evening: "After you finish all these, finish off the items in the todo.md also."; #40, added the same evening:
 the EPUB Reader's "Remember book" — a hash of the book, its place and the reading voice in the Settings — after #39). The open question (keep the EPUB Reader's place between visits?) is

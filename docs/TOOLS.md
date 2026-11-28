@@ -2,7 +2,7 @@
 
 Generated from `src/registry.ts` by `npm run docs` — do not edit by hand.
 
-**191 tabs** in 11 categories — 124 PC + mobile, 64 PC only, 3 mobile only.
+**192 tabs** in 11 categories — 125 PC + mobile, 64 PC only, 3 mobile only.
 
 ## Images (17)
 
@@ -130,7 +130,7 @@ Generated from `src/registry.ts` by `npm run docs` — do not edit by hand.
 | `primes` | Prime / LCM / GCD | PC + mobile | Prime check, prime factors, next prime, GCD (HCF) and LCM of whole numbers up to 64 bits. | prime, factorization, lcm, gcd, hcf, divisors, prime factors, is prime, … |
 | `periodic` | Periodic Table | PC + mobile | The 118 elements: search by symbol, name or number; mass, group, period, block, electron configuration. | periodic table, elements, chemistry, atomic number, atomic mass, electron configuration, periodic table of elements, chemical elements, … |
 
-## Text (10)
+## Text (11)
 
 | id | Tab | Platform | What it does | Search keywords |
 |---|---|---|---|---|
@@ -143,6 +143,7 @@ Generated from `src/registry.ts` by `npm run docs` — do not edit by hand.
 | `emoji` | Emoji & Symbols | PC + mobile | Search and copy emoji and symbols. | emoji, emojis, emoticon, smiley, smileys, symbols, characters, special characters, … |
 | `morse` | Morse Code | PC + mobile | Text ⇄ Morse, with sound. | morse, morse code, code, sos, dots, dashes, dit, dah, … |
 | `lorem` | Lorem Ipsum | PC + mobile | Placeholder text generator. | lorem ipsum, lipsum, placeholder, placeholder text, dummy text, filler, filler text, sample text, … |
+| `camreader` | Camera Reader | PC + mobile | Point the camera at a letter, a medicine leaflet or a menu: it is read aloud, the part being read marked. | camera reader, read aloud, read it aloud, read out, read out loud, read to me, reading aloud, text to speech from photo, … |
 | `photodict` | Photo Dictionary | PC + mobile | Photograph a page; get the hardest words with their dictionary meanings. | photo dictionary, dictionary, meaning, meanings, define, definition, vocabulary, vocab, … |
 
 ## Software (56)

@@ -1924,3 +1924,14 @@ Looked at first (STANDING RULE #1):
 - **Beside them (rule 1c, TS):** `src/lib/billsplit.ts` — the bill's lines sorted into items, charges and a total by regular
   expressions; what does not add up said; the text of the split: string glue.
 - **Decision:** nothing new on the site but the tab's code and 5 KB more of mathcore.wasm.
+
+### 196. `camreader` — Camera Reader (28 Nov 2026; potentials #81)
+- **What it does:** a photo of printed text (a letter, a medicine leaflet, a menu) → read → read aloud, the piece being heard marked
+  (CLAUDE.md §3 "Camera Reader").
+- **Existing WebAssembly modules, on the site** (rule 1): Tesseract and PaddleOCR through the OCR tab's reading path; the voices of the
+  Text-to-Speech tab — Kokoro and Piper on ONNX Runtime Web, their phonemes by our espeak.wasm — in the Text-to-Speech worker, unchanged.
+  No module reads printed matter aloud: the parts are these engines.
+- **Beside them (rule 1c, TS):** `src/lib/readertext.ts` — a page's paragraphs and pieces from the words' boxes, sentences, and printed
+  matter made speakable (rupees, medicine units and doses, dates, times, phone numbers) by regular expressions: string glue;
+  `src/lib/sayer.ts` — the pieces' sound laid on the browser's Web Audio, or the device's own voices (Web Speech).
+- **Decision:** nothing new on the site but the tab's code.

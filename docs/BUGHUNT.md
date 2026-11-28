@@ -3429,6 +3429,20 @@ Found while building it, each with a check in `tests/e2e/idcopy.e2e.mjs`:
 - (Test slips, fixed in the suites: two precedence slips in `a && b || c` checks; a locator that took the result card holding all
   the tables for one table's card.)
 
+## Camera Reader (28 Nov 2026; built — potentials #81)
+- **"1-0-1 x 5 days" said "by 5 days"** (the "x" of a strip, 1 x 10): a course of days is "for 5 days"; **"½-0-½"** was no dose (a word
+  boundary before ½); **31/02/2026** became "31 February" (only the day's range was checked: the month's last day now); **"+91"** came
+  out "p l u s" (the + spelt with the digits).
+- **Headings by height went wrong both ways:** a word with an ascender and a descender ("paracetamol." alone on an item's second line,
+  "Yours faithfully,") has a tall box and was made a heading; a line's whole box could not tell a large title without descenders from
+  text with them. Each word's type size is now worked out from its box and its letters (`emOf`), a slash's and a comma's reach counted
+  (a date "27/11/2026" was large type).
+- **A label of the text's size in bold** ("Dosage", after a sentence) ran into the sentence before: a short line after a sentence's end
+  stands alone.
+- **"Read aloud" took the Text-to-Speech tab's searches** ("read aloud", "read book aloud"): the keywords are the camera's and paper's.
+- (Test slips: Whisper writes a spoken "milligrams" as "mg" and hears Piper's accent less well, and Piper's voice varies from run to run
+  — the medicine leaflet is measured by its words heard in order, units written alike on both sides.)
+
 ## Bill Splitter by Photo (28 Nov 2026; built — potentials #78)
 - **The first person paid every leftover paisa:** the split rounded each item and each charge on its own (largest remainder, ties to
   the earlier person), so the leftover paise piled up on the first name — three people who had the same paid 635.69, 635.67 and

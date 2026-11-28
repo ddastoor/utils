@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # Test photos for the camera helpers (group 4 of the suggested order in docs/potentials.md): router labels (Router Sticker →
 # Wi-Fi QR), visiting cards (Visiting Card → Contact), a bill, a renewal letter and a school circular (Paper Deadlines →
-# Calendar), a restaurant bill (Bill Splitter by Photo) and a printed leaflet (Camera Reader). Every label, card and paper is
+# Calendar), a restaurant bill (Bill Splitter by Photo) and a leaflet, a medicine leaflet, a menu and a letter (Camera Reader). Every label, card and paper is
 # of our own making — no real product's or company's design; names, numbers and addresses made up — set in Noto Sans (OFL),
 # DejaVu Sans Mono and Literata (OFL), then "photographed" on a desk: perspective, a shadow, light falling off, a little blur,
 # noise and JPEG. truth.json says what each photo holds.
@@ -242,6 +242,59 @@ leaflet_text = ['How to take this medicine', None, 'Take one tablet twice a day,
 lp = page(['# ' + leaflet_text[0]] + leaflet_text[1:], size=(1240, 1100), f=font(LIT, 34))
 photo(lp, [(260, 160), (1340, 190), (1360, 1080), (230, 1050)], 91, size=(1600, 1250)).save(OUT / 'leaflet.jpg', quality=88)
 truth['leaflet'] = {'text': ' '.join(t for t in leaflet_text if t)}
+
+# ---- more for the Camera Reader: a medicine leaflet in small print with lists and doses, a café's menu with prices and dot leaders,
+# a letter with an address, a date and a time (each line of `say` is a piece the reader speaks; `words`: every word, in order)
+
+def page2(rows, size, body, small=None, margin=80, lead=1.5):
+    im = Image.new('RGB', size, (250, 250, 247)); d = ImageDraw.Draw(im)
+    y = 70
+    for t in rows:
+        if t is None: y += int(body.size * 0.7); continue
+        if isinstance(t, tuple):                       # (left, right): a menu's item and its price, the gap filled with dots
+            l, r = t; fw = d.textlength(r, font=body); x1 = size[0] - margin - fw
+            d.text((margin, y), l, font=body, fill=(22, 22, 25)); d.text((x1, y), r, font=body, fill=(22, 22, 25))
+            lx = margin + d.textlength(l, font=body) + 14; dots = ''
+            while d.textlength(dots + ' .', font=body) < x1 - 14 - lx: dots += ' .'
+            d.text((lx, y), dots, font=body, fill=(90, 90, 95)); y += int(body.size * lead); continue
+        if t.startswith('# '): fnt, text = font(BOLD, int(body.size * 1.35)), t[2:]
+        elif t.startswith('* '): fnt, text = font(BOLD, body.size), t[2:]
+        elif t.startswith('- '):                       # a bullet, the item's text set off from it
+            d.text((margin + 6, y), '•', font=body, fill=(22, 22, 25)); d.text((margin + 40, y), t[2:], font=body, fill=(22, 22, 25)); y += int(body.size * lead); continue
+        elif t.startswith('  '): d.text((margin + 40, y), t[2:], font=body, fill=(22, 22, 25)); y += int(body.size * lead); continue   # an item's next line
+        elif t.startswith('> '): fnt, text = small or body, t[2:]
+        else: fnt, text = body, t
+        d.text((margin, y), text, font=fnt, fill=(22, 22, 25)); y += int(fnt.size * lead)
+    return im
+
+leaflet2 = ['# PARACETAMOL TABLETS IP 500 mg', '> Each uncoated tablet contains Paracetamol IP 500 mg.', None,
+            '* Dosage', 'Adults: 1 or 2 tablets every 4 to 6 hours. Do not take', 'more than 8 tablets (4 g) in 24 hours.',
+            'Children 6 to 12 years: half a tablet, or 5 ml of the syrup.', None,
+            '* Warnings', '- Do not take with other medicines that contain', '  paracetamol.', '- Keep out of the reach of children.',
+            '- Store below 30 °C, away from light and moisture.', None,
+            "Doctor's advice: Tab. Paracetamol 500 mg 1-0-1 after food", 'for 3 days.']
+lb = page2(leaflet2, (1240, 1080), font(REG, 30), small=font(REG, 26))
+photo(lb, [(250, 130), (1350, 150), (1370, 1110), (220, 1090)], 113, size=(1600, 1250)).save(OUT / 'leaflet-b.jpg', quality=88)
+truth['leaflet-b'] = {'say': ['PARACETAMOL TABLETS IP 500 mg', 'Each uncoated tablet contains Paracetamol IP 500 mg.', 'Dosage',
+  'Adults: 1 or 2 tablets every 4 to 6 hours.', 'Do not take more than 8 tablets (4 g) in 24 hours.', 'Children 6 to 12 years: half a tablet, or 5 ml of the syrup.',
+  'Warnings', 'Do not take with other medicines that contain paracetamol.', 'Keep out of the reach of children.', 'Store below 30 °C, away from light and moisture.',
+  "Doctor's advice: Tab. Paracetamol 500 mg 1-0-1 after food for 3 days."], 'items': 3}
+
+menu = ['# KAVERI CAFE', '> 22 Brigade Road, Bengaluru', None, '* Breakfast', ('Masala Dosa', '₹ 90'), ('Idli Vada (2 pcs)', '₹ 70'), ('Poha', '₹ 60'), None,
+        '* Beverages', ('Filter Coffee', '₹ 40'), ('Masala Chai', '₹ 30'), ('Fresh Lime Soda', '₹ 55'), None, '> All prices include GST.']
+mp = page2(menu, (1000, 1180), font(REG, 34), small=font(REG, 28), lead=1.6)
+photo(mp, [(420, 90), (1180, 110), (1200, 1180), (390, 1160)], 131, size=(1600, 1300)).save(OUT / 'menu.jpg', quality=88)
+truth['menu'] = {'say': ['KAVERI CAFE', '22 Brigade Road, Bengaluru', 'Breakfast', 'Masala Dosa ₹ 90', 'Idli Vada (2 pcs) ₹ 70', 'Poha ₹ 60', 'Beverages',
+  'Filter Coffee ₹ 40', 'Masala Chai ₹ 30', 'Fresh Lime Soda ₹ 55', 'All prices include GST.']}
+
+letter2 = ['14 Gangapur Road', 'Nashik 422013', '27/11/2026', None, 'Dear Mr. Kulkarni,', None,
+           'Thank you for your letter of 20/11/2026. Your pension for', 'December will be credited on 1st December. Please bring', 'your pass book to the branch on any working day between',
+           '10:00 am and 2:00 pm.', None, 'Yours faithfully,', 'Branch Manager']
+lt = page2(letter2, (1240, 1000), font(LIT, 32), lead=1.55)
+photo(lt, [(240, 150), (1360, 130), (1380, 1100), (260, 1120)], 149, size=(1600, 1250)).save(OUT / 'letter.jpg', quality=88)
+truth['letter'] = {'say': ['14 Gangapur Road', 'Nashik 422013', '27/11/2026', 'Dear Mr. Kulkarni,', 'Thank you for your letter of 20/11/2026.',
+  'Your pension for December will be credited on 1st December.', 'Please bring your pass book to the branch on any working day between 10:00 am and 2:00 pm.',
+  'Yours faithfully,', 'Branch Manager']}
 
 (OUT / 'truth.json').write_text(json.dumps(truth, indent=1, ensure_ascii=False) + '\n')
 print('wrote', sorted(p.name for p in OUT.iterdir()))

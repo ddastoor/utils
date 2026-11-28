@@ -331,5 +331,49 @@
  },
  "leaflet": {
   "text": "How to take this medicine Take one tablet twice a day, after breakfast and after dinner, with a full glass of water. Do not take more than two tablets in a day. Keep the tablets in a cool, dry place, out of the reach of children. If you feel dizzy or sick, stop taking them and speak to your doctor."
+ },
+ "leaflet-b": {
+  "say": [
+   "PARACETAMOL TABLETS IP 500 mg",
+   "Each uncoated tablet contains Paracetamol IP 500 mg.",
+   "Dosage",
+   "Adults: 1 or 2 tablets every 4 to 6 hours.",
+   "Do not take more than 8 tablets (4 g) in 24 hours.",
+   "Children 6 to 12 years: half a tablet, or 5 ml of the syrup.",
+   "Warnings",
+   "Do not take with other medicines that contain paracetamol.",
+   "Keep out of the reach of children.",
+   "Store below 30 °C, away from light and moisture.",
+   "Doctor's advice: Tab. Paracetamol 500 mg 1-0-1 after food for 3 days."
+  ],
+  "items": 3
+ },
+ "menu": {
+  "say": [
+   "KAVERI CAFE",
+   "22 Brigade Road, Bengaluru",
+   "Breakfast",
+   "Masala Dosa ₹ 90",
+   "Idli Vada (2 pcs) ₹ 70",
+   "Poha ₹ 60",
+   "Beverages",
+   "Filter Coffee ₹ 40",
+   "Masala Chai ₹ 30",
+   "Fresh Lime Soda ₹ 55",
+   "All prices include GST."
+  ]
+ },
+ "letter": {
+  "say": [
+   "14 Gangapur Road",
+   "Nashik 422013",
+   "27/11/2026",
+   "Dear Mr. Kulkarni,",
+   "Thank you for your letter of 20/11/2026.",
+   "Your pension for December will be credited on 1st December.",
+   "Please bring your pass book to the branch on any working day between 10:00 am and 2:00 pm.",
+   "Yours faithfully,",
+   "Branch Manager"
+  ]
  }
 }

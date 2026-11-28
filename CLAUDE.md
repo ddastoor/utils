@@ -336,7 +336,7 @@ Wayland) and **mobile browsers** (Android Chrome, iPhone Safari).
 Platform is PC + mobile unless marked **PC**. Tab ids are the URL hash (`#/<id>`).
 
 **The authoritative, always-current list is `docs/TOOLS.md`, generated from `src/registry.ts` (`npm run docs`).**
-Current total: **191 tabs in 11 categories — 124 PC + mobile, 64 PC only, 3 Mobile only** (regenerate with
+Current total: **192 tabs in 11 categories — 125 PC + mobile, 64 PC only, 3 Mobile only** (regenerate with
 `npm run docs` after every registry change; the owner asked for the registry to always be noted).
 The per-category notes below record decisions; when they disagree with the registry, the registry wins.
 
@@ -472,7 +472,8 @@ Photo") · `fuel` Fuel Cost · `gpa` GPA · `base` Number Base Converter · `rom
 
 **Text** (all both): `wordcount` Word Counter · `case` Case Converter · `lines` Line Tools · `replace` Find &
 Replace · `diff` Text Diff · `fancy` Fancy Text · `emoji` Emoji & Symbols · `morse` Morse Code · `lorem` Lorem Ipsum ·
-`photodict` **Photo Dictionary (PC + mobile — owner, 21 Nov 2026; see §3)**
+`photodict` **Photo Dictionary (PC + mobile — owner, 21 Nov 2026; see §3)** · `camreader` Camera Reader (**BUILT** 28 Nov 2026, potentials #81 — §3
+"Camera Reader")
 
 **Software** — owner rule: **every Software tool is PC only.** Moved here from the old "Text & Dev": `json` JSON
 Formatter · `regex` Regex Tester · `base64` Base64 · `urlenc` URL Encoder · `epoch` Epoch Converter · `uuid` UUID
@@ -3250,7 +3251,8 @@ the photo with a webcam if it's a PC app." No engine to fetch: the browser's get
   refusals in words (`cameraError`). While it is open a phone's fixed action bar steps aside (`html.cam-open`) and
   `reveal(el)` (`src/ui.ts`) brings the view and its buttons in between the sticky tab rows and the screen's foot.
 - **Where:** built into `imageInput` — Image Editor, Photo & Signature Resizer, Background Remover, Cartoonizer, Blur &
-  Redact, Text on Image, OCR, Signature Maker, Sign PDF, Photo Dictionary (21 Nov 2026) (`camera: false` for Passport
+  Redact, Text on Image, OCR, Signature Maker, Sign PDF, Photo Dictionary (21 Nov 2026), and the camera helpers of 27 – 28 Nov
+  2026 — Router Sticker → Wi-Fi QR, Visiting Card → Contact, Paper Deadlines → Calendar, Bill Splitter by Photo, Camera Reader (`camera: false` for Passport
   Photo, which has a camera of its own); `imagePicker` (a file picker with the camera, photos arriving as files) — Batch Images,
   HEIC → JPG, Watermark (photos and the logo), Collage, Doc Scanner, Images → PDF, Slideshow (several photos each), Safe ID
   Copy (a card's sides), the
@@ -3391,6 +3393,56 @@ how common they are in English, **rarest (hardest) first**, leaving out common w
   word to see all senses; tap a word in the recognised text to look it up; copy/share the list.
 - Tests: e2e with a real photographed page fixture (known rare words expected in the top 20, "the"/"and" absent);
   unit tests for tokenising, lemmatising and ranking.
+
+### Camera Reader — BUILT (potentials #81; owner's pick of 27 Nov 2026 — group 4 of the suggested order)
+(`camreader` in `src/tools/camreader.ts`, the page's pieces and how each is spoken `src/lib/readertext.ts` (no DOM), the player
+`src/lib/sayer.ts`, the screen kept on `src/lib/wakelock.ts`; unit `tests/unit/camreader.test.mjs` 33, e2e `tests/e2e/camreader.e2e.mjs` 26 (+ the
+camera sweep's entry); fixtures `tests/fixtures/snaps/leaflet.jpg`, `leaflet-b.jpg`, `menu.jpg`, `letter.jpg` with `truth.json`, by `python3
+scripts/make-snap-photos.py`.) The owner's words (potentials #81): "point the phone at printed text — a letter, a medicine leaflet, a menu —
+and it is read aloud (English); for parents, elders, small print".
+- **Reading:** the OCR tab's own reading path and options (`readPage`: the page found and straightened, set upright and level, cleaned up,
+  a page of columns read column by column, PaddleOCR for a soft photo — the café's menu, its dot leaders making Tesseract unsure, is read
+  by it; a book's pages drawn flat), English; the page's lists set out as the OCR tab sets them (`listText`).
+- **The pieces** (`pageParas`): paragraphs of pieces, a piece a sentence (`sentencesOf`: not after Mr., Dr., Tab., No., e.g., an initial,
+  a list's number), or a line that stands alone — **a line stopped short of its column's width** (an address, a label in bold of the
+  text's size — "Dosage"), **a line ending with a number** (a menu's price), unless the next line runs on in small letters; lines that
+  reach the column's width run on, a word broken over two lines made whole. **Headings** by their size — each word's type size from its
+  box and its letters (`emOf`: a word of small letters alone is about half the size, one with an ascender, a capital or a digit about
+  three quarters, one with both all of it; slashes and commas counted) — a fifth larger than the text (a tenth for a short paragraph of
+  its own without closing punctuation; a third for a line of one or two words), or a short line in capitals (KAVERI CAFE). List items
+  (a mark or a label) each their own paragraph, their next lines joined. The pauses: 0.3 s between sentences, 0.5 s after a line that
+  stands alone, 0.6 s after an item, 0.8 s after a paragraph (0.5 s for a short one), 0.9 s after a heading.
+- **What is spoken** (`spokenText`; the voices' normalisers read the rest — numbers, decimals, ordinals, Mr.): amounts in rupees (₹, a ₹
+  read as ¥, Rs., INR, Indian commas, paise, "/-"; a menu's "60.00" as 60); **medicine units** after a number (mg, mcg, g, kg, ml, l, IU,
+  cm, mm, km, kcal, hrs, min, pcs, %, °C — also read as *C —, °F; one and many); **doses** 1-0-1 and ½-0-½ (morning, afternoon, night)
+  as "1, 0, 1", "x 5 days" as "for 5 days", ranges (4–6 → 4 to 6), "1 x 10" as "1 by 10"; **dates** day first (27/11/2026, 5-6-26,
+  01.12.2026 → 27 November 2026; an impossible date left); **times** as "10 AM", "2:30 PM" (eSpeak says "AM" right, "A M" not);
+  **phone numbers, PIN codes and long numbers** digit by digit (not an amount or a year); the abbreviations of prescriptions, leaflets
+  and letters (Tab., Cap., Inj., Syp., approx., e.g., i.e., No., Govt., Dept., Pvt., Ltd., Smt., Rd., Mob., Tel. …); a menu's dot
+  leaders a pause; list marks, rules and signs a reader misread (Chinese and Japanese characters on an English page) left out.
+- **The player** (`sayer`): the Text-to-Speech tab's voices — Kokoro (US, British) and Piper (Indian English) in the Text-to-Speech
+  worker (a worker of its own here), **one request a piece and three asked for ahead**, the sound laid end to end on one AudioContext
+  with each piece's pause after it; or a voice of this device (Web Speech, on-device English voices — they start at once), one
+  utterance a piece. **The piece being heard is the one whose sound has begun by the AudioContext's clock**, so it is marked as it is
+  heard and a pause (the clock stands still) keeps it. Pause and go on, Back and Next, a tap on any sentence reads from there; a new
+  voice or speed goes on from the piece being heard; Stop. **Sound may start without a tap** only after one: any tap or key in the tab
+  unlocks it (Safari starts an AudioContext and Web Speech only in a user's gesture) — a photo chosen with a tap is read aloud as soon
+  as it is read; else "Tap “Read aloud” to hear it." The screen is kept on while it reads.
+- **The tab:** a photo (the back camera on phones, the webcam on PCs; a file; Paste image) → the progress → the page shown large (24 px;
+  18 – 40 px by "Smaller text" / "Larger text"), headings in bold, list items with their marks, the piece being heard marked (a background
+  and an underline) and kept in view; the player — Back, Read aloud / Pause / Go on / Read again, Next, Stop — sticky above the text on
+  PCs, in the bar at the foot of the screen on phones; voice (the Text-to-Speech voices and this device's), speed (Slower 0.8×, Normal,
+  Faster 1.2×), "Read aloud as soon as the page is read" (on); Copy the text; **Open in Text-to-Speech (save as MP3)** (the text handed
+  over, `give('tts', …)`). A soft photo is said ("PaddleOCR read it"); a poor reading gets the "a sharper photo …" hint; a photo without
+  text: "No text was found on this photo …". The choices are kept while the page is open; nothing is stored. Nothing at open: the OCR
+  with the first photo, the voice with the first sound.
+- **Measured:** the four papers read in Node and in the browser — every piece as printed, in order: the leaflet's title a heading; the
+  medicine leaflet's heading, labels, sentences and three list items, spoken with its units, dose and range in words; the menu a line
+  an item, its prices in rupees; the letter's address a line at a time, its dates and times in words, the PIN code digit by digit; a
+  two-column newsletter (a soft video frame) 85 %+ of its words in order; a photo of coffee nothing to read. In the browser every piece is
+  marked in turn and **Whisper** (tests/lib/transcribe.py) hears the leaflet read by Kokoro (85 %+ of its words in order), the medicine
+  leaflet read by the Indian English voice (two thirds and more), the letter's dates, times and name; Faster is shorter; a pause keeps
+  everything still.
 
 ### FFmpeg (PC) — BUILT (`src/tools/ffmpeg.ts`; e2e `tests/e2e/ffmpeg.e2e.mjs` 75, `ffmpeg-sound` 15, `ffmpeg-fixes` 51, `ffmpeg-effects` 55)
 ffmpeg.wasm 0.12 single-threaded core = **FFmpeg 5.1.4** (libx264/x265, libvpx, LAME, Opus, Vorbis, Theora, WebP,
@@ -4095,7 +4147,7 @@ difference over its detail, the overlap's pixels), ruled lines and list marks cl
 | Graphviz **16.1.0** (cgraph, gvc, dot/neato/fdp/sfdp/circo/twopi/osage/patchwork, core renderers; the official release archive) + Expat 2.9.0 **+ our changes** (§5.1l: `storeline.patch` — an upstream crash on labels that start with an empty line; `triangulation.patch` + `st_delaunay.h` — prism overlap removal on our C port of Delaunator instead of GTS; glibc's `qsort` and `rand`; assertions kept; text measured by the host through a "textlayout" plugin) | C / C++ | **us** (`wasm/graphviz`, 1.65 MB / 0.56 MB gz, a fresh instance per drawing in `src/workers/graphviz.worker.ts`; the existing builds — Viz.js, hpcc — trap on valid graphs: `docs/WASM-AUDIT.md`, tab 55) | graphviz |
 | audio: **LAME 4.0** libmp3lame (MP3 encoder) + own C (WAV writer — 16-bit by the browser's own rule, waveform peaks, levels, gain/fades, scale, mix, Kaiser windowed-sinc resampler) + `studio.c`: **DeepFilterNet 3's signal processing** (a C port of libDF's STFT, ERB features, norms, mask and deep filter — held to libDF) and **the studio finish** (rumble filter, expander, EQ, compressor, de-esser, BS.1770-4 loudness, 4× oversampled true-peak limiter — held to FFmpeg's ebur128); **MP3 as a stream** (`a_mp3s_*`: fed a piece at a time, ID3v2.3 tags and a cover through LAME's own id3tag code, the LAME / Xing frame written after the tag — the Audiobook) | C | **us** (`wasm/audio`) | audio (and tts, noise — Studio voice —, pitch, slideshow, audiobook) |
 | Signalsmith Stretch 1.3.2 (tempo and pitch, polyphonic) | C++ | Signalsmith Audio (official `signalsmith-stretch`, WebAssembly in an AudioWorklet) — rendered offline by `src/lib/stretch.ts` | pitch (replaced our WSOLA in Nov 2026: `docs/WASM-AUDIT.md`, tab 145) |
-| espeak: **eSpeak NG 1.52.0** (+ English phoneme tables and dictionary compiled from the same release, linked in, served to its fopen/stat from memory) + glue (IPA for Kokoro, piper-phonemize-style sentences) | C | **us** (`wasm/espeak`) | tts, audiobook |
+| espeak: **eSpeak NG 1.52.0** (+ English phoneme tables and dictionary compiled from the same release, linked in, served to its fopen/stat from memory) + glue (IPA for Kokoro, piper-phonemize-style sentences) | C | **us** (`wasm/espeak`) | tts, audiobook, camreader |
 | geo: Charles Karney's **geodesic.c 2.2** (GeographicLib's geodesic routines in C, MIT; the two files unmodified from the PROJ 9.9.0 release) + glue (inverse problem on WGS-84, half-way point, the haversine great circle for comparison) | C | **us** (`wasm/geo`, 36 KB, loaded by the Coordinates tab only; no tried-and-tested WebAssembly geodesic module exists: `docs/WASM-AUDIT.md`, tab 82) | coords |
 | textcore: tool-search ranking, rare-word ranking (tokeniser, lemmatiser, wordfreq hash table), XY-cut reading order (columns numbered only where they are real: `minh`), **the tables of a page** (`table.c`, `t_tables`: ruled grids and columns that line up — Tabula's and Camelot's two ways; MuPDF's own `table-hunt` loses columns: docs/WASM-AUDIT.md 191) | C (own code) | **us** (`wasm/textcore`) | search box, emoji (search), photodict, epub, clipper (the order of a story's parts), kindlepdf (a page's regions), pdf-tables |
 | textkit: **unicode-segmentation 1.13.3** (the Rust ecosystem's UAX #29 implementation, Unicode 17.0, MIT / Apache-2.0: extended grapheme clusters, sentence boundaries) + our counting rules: words as a word limit counts them, abbreviations and initials, lines and paragraphs, keywords (Snowball's stop words); **the Case Converter's thirteen conversions** (`case.rs`: Title Case is a port of the Python package `titlecase` 2.4.1 — Gruber's rules, MIT; the code cases cut words as npm's `change-case` does; case mapping by Rust's standard library) | Rust | **us** (`wasm/textkit`, crates.io via `Cargo.lock`, two modules by Cargo features: **textkit.wasm** 217 KB — fetched with the Word Counter's first text, with the Case Converter, and with the first Fancy Text that has an emoji or another script — and **textkit-diff.wasm** 0.71 MB = the **`similar` crate 3.2.1** (Apache-2.0: Myers in linear space with a time limit, line / word / grapheme diffs, inline changes, unified diffs) + our glue and our pairing of a change's lines side by side (`pair_lines`: likeness by a bounded Myers search, the best order-keeping pairing by dynamic programming — to-do #35), fetched by the Text Diff only; and **textkit-lorem.wasm** 0.13 MB = the **`lipsum` crate 0.9.1** (MIT: a Markov chain over the classic passage and Cicero's *De finibus*, with rand 0.8 / rand_chacha 0.3) + our glue (cleaned texts learned as circles, exact counts), fetched by the Lorem Ipsum tab; and **textkit-tokens.wasm** 0.20 MB = the same `similar` crate's **patience algorithm** on two documents' tokens + ours (`tokens.rs`: runs that are only added or removed slid to where they read best, short equal runs taken into the changes round them, moves), fetched by PDF Compare's first Compare; the existing module — ICU4X's official build — is one file of 20 MB: `docs/WASM-AUDIT.md`, tab 90) | wordcount, case, lines ("By length"), fancy (characters); diff (textkit-diff); lorem (textkit-lorem); pdf-compare (textkit-tokens) |
@@ -4111,7 +4163,7 @@ difference over its detail, the overlap's pixels), ruled lines and list marks cl
 | MuPDF 1.28 | C | Artifex (official `mupdf` npm) | all PDF tools, PDF → EPUB, PDF for Kindle (the pieces: the page grafted, redacted, drawn as a form), Watermark (PDFs: to-do #17), Book Page Flattener and Newspaper Clipper (their PDFs), EPUB Reader (EPUB, MOBI, FictionBook, comics, text laid out at any size with HarfBuzz and drawn — in the reader's worker, `src/workers/ebook.worker.ts`), Audiobook (a book's text: laid out on pages 100,000 px tall, its contents resolved to page and height — in `src/workers/bookread.worker.ts`; a PDF through the PDF → EPUB engine), PDF Redact (its redaction in two passes — the text by a band through each line, then pictures' pixels, drawings and a black box; comments and form fields baked first; the saved file read again), Safe ID Copy (an e-Aadhaar's pages drawn and their text read; the copy's PDF of pictures), Make PDF Searchable (each page's invisible text layer, `stampPage`; the password kept), PDF Compare (each page's characters with their boxes, the pages drawn, the changes written as comments), PDF Tables (each page's words and ruled lines, the pages drawn) |
 | ExifTool 13.42 on zeroperl (Perl 5 compiled to WebAssembly with ExifTool's library inside) | Perl / C | Phil Harvey (ExifTool), uswriting / 6over3 (`@uswriting/exiftool` 1.0.9, `@6over3/zeroperl-ts` 1.0.10) — run in `src/workers/exiftool.worker.ts` | exif (replaced metacore's reader and stripper in Nov 2026: `docs/WASM-AUDIT.md`, tab 120); regex (the Perl flavour, the same module: `src/lib/regex/perl.ts`) |
 | hash-wasm 4.13.0 (hand-tuned C → wasm, one small binary per algorithm, embedded in the package; streaming; HMAC over any of its hashes; Argon2, bcrypt, scrypt, PBKDF2) | C | Dani Biró (`hash-wasm` npm, ~10 M downloads a month) — wrappers `src/lib/hmac.ts`, `src/lib/totp.ts`, `src/lib/pwhash.ts`, `src/lib/hashes.ts` (in `src/workers/hash.worker.ts`); only the algorithms a tab uses are bundled into its chunk, loaded with the tab's first result | hash (23 algorithms), hmac (all of it), totp (the HMAC), pwhash (Argon2id / i / d, bcrypt, scrypt, PBKDF2) — replaced RustCrypto builds and crypto.wasm's hashes of ours in Nov 2026 (`docs/WASM-AUDIT.md`) |
-| ONNX Runtime Web 1.31 (CPU/WebAssembly, SIMD) | C++ | Microsoft (official `onnxruntime-web` wasm build) | tts and audiobook (Kokoro, Piper — `src/lib/speech.ts`, one session a worker; the Audiobook runs one to four workers at once); scanner and idcopy (DocCornerNet LEAN, scanic-ml 0.2.0: the page's — a card's — corners — `docs/WASM-AUDIT.md`, tab 121); ocr, photodict and clipper (the same network, asked where the Kindle finder's outline is not a page's — to-do #18; and **PaddleOCR's PP-OCRv6 detector and recogniser, the second reader for soft photos** — owner, 26 Nov 2026: `src/lib/paddle.ts` in `src/workers/paddle.worker.ts`); noise (**DeepFilterNet 3**, the Studio voice — to-do #20: `src/workers/noise.worker.ts`) |
+| ONNX Runtime Web 1.31 (CPU/WebAssembly, SIMD) | C++ | Microsoft (official `onnxruntime-web` wasm build) | tts, audiobook and camreader (Kokoro, Piper — `src/lib/speech.ts`, one session a worker; the Audiobook runs one to four workers at once); scanner and idcopy (DocCornerNet LEAN, scanic-ml 0.2.0: the page's — a card's — corners — `docs/WASM-AUDIT.md`, tab 121); ocr, photodict and clipper (the same network, asked where the Kindle finder's outline is not a page's — to-do #18; and **PaddleOCR's PP-OCRv6 detector and recogniser, the second reader for soft photos** — owner, 26 Nov 2026: `src/lib/paddle.ts` in `src/workers/paddle.worker.ts`); noise (**DeepFilterNet 3**, the Studio voice — to-do #20: `src/workers/noise.worker.ts`) |
 | SQLite 3.54 | C | SQLite project (official `@sqlite.org/sqlite-wasm`), run in `src/workers/sqlite.worker.ts` (terminated on leave) | sqlite |
 | PCRE2 (pcre2-wasm 10.49.3: PCRE2 compiled by Emscripten, the WebAssembly inside the package) | C | gudoshnikovn (`pcre2-wasm`, MIT; PCRE2 BSD-3 with the PCRE2 exception) — in `src/workers/regex.worker.ts` | regex (the PCRE2 flavour: `docs/WASM-AUDIT.md`, tab 178) |
 | Oniguruma (vscode-oniguruma 2.0.1) | C | Microsoft (`vscode-oniguruma`, MIT; Oniguruma BSD-2) — the build VS Code and Shiki run | regex (the Ruby flavour, with Ruby's rules beside it in `src/lib/regex/ruby.ts`) |
@@ -4125,7 +4177,7 @@ difference over its detail, the overlap's pixels), ruled lines and list marks cl
 | MozJPEG, libwebp, OxiPNG, Squoosh's resize (Lanczos-3 in linear light) | C / Rust | jSquash (Squoosh codecs; `@jsquash/resize` since Nov 2026) | image encoders; resizing in the Image Editor and Batch Images (`docs/WASM-AUDIT.md`, tabs 109, 110) |
 | libheif + libde265 | C++ | libheif-js | heic |
 | Little CMS 2.16 | C | lcms-wasm (Matt DesLauriers; npm 1.0.5) — in the codec worker, fetched for a HEIC with a non-sRGB ICC profile | heic and every tab that opens HEIC: Display P3 → sRGB (`docs/WASM-AUDIT.md`, tab 111) |
-| Tesseract 5 | C++ | tesseract.js-core | ocr, photodict, clipper (laid out as a page: its blocks), pdf-redact (a scanned page's numbers), idcopy (a card's numbers, through the reading path), pdf-ocr (each scanned page, through the reading path — never straightened), pdf-compare (a scanned page's words, the same way), pdf-tables (a scanned page's words, the same way), wifiqr (a router's label, through the reading path with the camera helpers' options — `SNAP_READ`), visitcard (a business card, the same way), deadlines (a paper's dates, the same way), billsplit (a restaurant bill, the same way) |
+| Tesseract 5 | C++ | tesseract.js-core | ocr, photodict, clipper (laid out as a page: its blocks), pdf-redact (a scanned page's numbers), idcopy (a card's numbers, through the reading path), pdf-ocr (each scanned page, through the reading path — never straightened), pdf-compare (a scanned page's words, the same way), pdf-tables (a scanned page's words, the same way), wifiqr (a router's label, through the reading path with the camera helpers' options — `SNAP_READ`), visitcard (a business card, the same way), deadlines (a paper's dates, the same way), billsplit (a restaurant bill, the same way), camreader (a page to read aloud, through the reading path with the OCR tab's options) |
 | zxing-cpp | C++ | zxing-wasm | qr, barcode, scan, pdf-redact (QR codes and barcodes on the pages), idcopy (a QR that holds the number) — `src/lib/codesread.ts`; wifiqr (a QR code on a router's label read; the Wi-Fi code drawn — `src/lib/qrdraw.ts`); visitcard (a vCard or MECARD on a card read; the contact's code drawn); billsplit (each share's UPI code drawn) |
 | 7-Zip 24.09 (`7zz`, the command line, Emscripten build with WORKERFS) | C++ | use-strict (`7z-wasm` npm 1.2.0) — run in `src/workers/sevenzip.worker.ts`, a fresh instance per archive | zip (zip and 7z with AES-256; `docs/WASM-AUDIT.md`, tab 107), unzip (reads every archive; tab 108), watermark (a Word document taken apart and zipped again: to-do #17), ebook (a CBR or CB7 comic unpacked into a zip for MuPDF) |
 | MediaPipe Tasks (TFLite) | C++ | Google (official) | passport, bgremove, redact |
@@ -4219,6 +4271,10 @@ espeak.wasm's, the MP3 and its tags audio.wasm's (LAME). No WebAssembly module m
 Nov 2026 (Paper Deadlines → Calendar, potentials #77): `src/lib/deadlines.ts` — dates, times and amounts found by regular expressions, a
 paper's lines made into sentences, dates counted on with the browser's Date in UTC, the iCalendar file written as text: string glue
 around the readers' output (`docs/WASM-AUDIT.md`, tab 194).
+Nov 2026 (Camera Reader, potentials #81): `src/lib/readertext.ts` — a page's lines made into paragraphs and pieces (a few comparisons of
+the words' boxes), sentences cut and printed matter made speakable by regular expressions: string glue around the readers' output;
+`src/lib/sayer.ts` — the pieces' sound laid end to end on the browser's Web Audio (the voices are espeak.wasm and ONNX Runtime in the
+Text-to-Speech worker) (`docs/WASM-AUDIT.md`, tab 196).
 Nov 2026 (Bill Splitter by Photo, potentials #78): `src/lib/billsplit.ts` — a bill's lines sorted into items, charges and a total by
 regular expressions, what does not add up said, the split written as text; the split itself is mathcore's (`m_bill_split`, own C —
 `docs/WASM-AUDIT.md`, tab 195).
