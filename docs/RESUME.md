@@ -48,8 +48,11 @@ CLAUDE.md §3 "Wallpapers"; unit `wallpapers` 48, `imgproc` 79; e2e `wallpapers`
 wallpaper by the Wallpapers' maker, now shared — `src/lib/wallmaker.ts` —, the original downloaded; a video played with its captions; NASA's files
 read at its bucket's own address, `s3.amazonaws.com/images-assets.nasa.gov/` — its file server sends no CORS header —; APOD left out: it needs a
 key; CLAUDE.md §3 "NASA Image Explorer"; unit `nasa` 36, e2e `nasa` 58, `wallpapers` 86; the sweeps green; 17 KB). **Group 1 is done.**
-**Now:** group 2, screenshots and scams — 87 Long Screenshot Stitcher, 113 Screenshot Annotator & How-To Guide, 76 Screenshot Finder, 82 Is This
-Screenshot Real?, 83 Scam & QR Check, 101 Clean Link (docs/potentials.md, "Suggested order").
+**Group 2 (screenshots and scams): Long Screenshot Stitcher (87) — DONE** (`stitch`, Images, PC + mobile: screenshots of a chat or a page in any
+order → one tall picture; imgproc.wasm's `stitch.c` places every two — votes, then the best stretch of matching rows, bands that stay put left out, a
+quarter of a row —, the order by itself, joined where their pixels agree, the bars once or left out, a forwarded copy matched at its own size;
+CLAUDE.md §3 "Long Screenshot Stitcher"; unit `stitch` 106, e2e `stitch` 32; 43 KB). **Now:** 113 Screenshot Annotator & How-To Guide, then 76
+Screenshot Finder, 82 Is This Screenshot Real?, 83 Scam & QR Check, 101 Clean Link (docs/potentials.md, "Suggested order").
 **▶▶ 27 Nov 2026 — DONE: the owner's "Go ahead with all items in todo" (to-do #33 – #36), each committed and pushed:**
 **#36** (the start page's note of the other device's apps), **#34** (Watermark: the first page of a document with or without
 the mark), **#33** (Cartoonizer: how cartoony, in grades), **#35** (Text Diff: Side by side, the lines of a change paired by the

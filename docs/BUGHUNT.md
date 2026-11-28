@@ -3797,3 +3797,22 @@ Found while building it (each fixed, with a check in the suites):
   World Radio) wants every one used to be defined: their defaults are declared in the sheets now.
 - **World Radio's favourites chip had no name until the directory answered** (the every-tab sweep, under load: an unnamed button): its text was
   set when the stations' list was drawn. Named as it is made now (e2e `worldradio`: every quick pick named while the directory is held back).
+
+## Long Screenshot Stitcher (28 Nov 2026; built — potentials #87)
+Found while building it (each fixed, with a check in the suites):
+- **A shift of a row or two matched the bars:** the typing box and the status bar are the same row after row, so shifts of ±1 "matched" them.
+  Shifts under 8 rows are no scroll now; two screenshots that close are the same one (unit: no pair that shares nothing is joined).
+- **Two bubbles of one width looked alike** (the dark chat: 44 rows inside two bubbles matched 300 rows apart): their insides have strong edges at
+  the sides and are the same row after row. A row's detail now counts only when it also differs from a neighbour (unit: the dark chat's pairs).
+- **A floating date chip and a "scroll down" button** spoiled the rows they cover, and a short overlap kept nothing clean: bands that stay put on
+  either side (the same at that place in the other screenshot) are left out of the comparison (unit: a sliver of 64 rows in common, chip and button
+  inside it, placed by its true shift).
+- **A coincidence is not a join:** a news site's header that moved when the browser's address bar hid made a short stretch of exact rows between
+  screenshots that share nothing. A join now needs a fifth of all the rows its shift lays over each other to match (real overlaps 32 % and more,
+  coincidences 7 % at most; unit: every pair).
+- **The seam landed in a button:** chosen in the middle of the stretch, which a narrow stretch kept inside the button's rows. Now the row whose
+  pixels differ least, in the stretch and as far again on either side (unit: nothing floating kept where another screenshot shows the page clean).
+- **A forwarded copy among full-size screenshots** did not join: enlarged, it is soft. Now matched at the size it was sent in, each band over
+  three rows (unit `mix`).
+- **"JPEG (smaller)" was not true:** a chat's flat colours make the PNG the smaller file (361 KB against 592). The formats are plain PNG / JPEG
+  now, with a hint that says when each is smaller (e2e).

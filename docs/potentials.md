@@ -47,7 +47,8 @@ Kindle, PDF and ID tools for India, the owner's larger asks, camera helpers) was
    page read a picture; 34 KB) · ~~114 NASA Image Explorer~~ (**built 28 Nov 2026** — CLAUDE.md §3 "NASA Image Explorer"; its files
    read at NASA's bucket; APOD left out — it needs a key; 17 KB). **Group 1 done.** Shared: approved data hosts, pictures sized to the
    screen (BlazeFace's crop, @jsquash/resize, MozJPEG), a Settings section. The hosts are approved with the pick.
-2. **Screenshots and scams** — 87 Long Screenshot Stitcher (the Screenshot tab's scrolling engine, imgproc's `p_scroll_match`) ·
+2. **Screenshots and scams** — ~~87 Long Screenshot Stitcher~~ (**built 28 Nov 2026** — CLAUDE.md §3 "Long Screenshot Stitcher"; its own
+   engine in imgproc.wasm — votes, then the best stretch of matching rows —, on the Screenshot tab's row signatures; 43 KB) ·
    113 Screenshot Annotator & How-To Guide · 76 Screenshot Finder (the OCR) · 82 Is This Screenshot Real? · 83 Scam & QR Check ·
    101 Clean Link (83 and 101 share one link checker: the real site's name, look-alike letters). ≈ 1 MB.
 3. **The camera, round 2** — 100 Magnifier · 80 Measure from a Photo · 98 Old Photo Album Scanner · 103 Handwriting Analysis ·
@@ -77,7 +78,7 @@ from the sandbox (GitHub is not reachable there): measure it before building.
   18 Label Sheets, 20 Duplicate Photos, 27 WireGuard, 30 Aadhaar / e-Invoice QR, 31 DIGIPIN, 34 Calendar Converter,
   36 Metadata Remover, 61 PDF Redact, 62 Authenticator Export, 63 Photo Organizer, 64 Subtitle
   Sync, 76 Screenshot Finder, 77 Paper Deadlines, 78 Bill Splitter by Photo, 79 Phone ⇄ PC Beam, 80 Measure from
-  a Photo, 81 Camera Reader, 84 Number Detective, 85 Lecture Video → Slides, 87 Screenshot Stitcher, 88 Wi-Fi QR from a sticker,
+  a Photo, 81 Camera Reader, 84 Number Detective, 85 Lecture Video → Slides, 88 Wi-Fi QR from a sticker,
   89 Visiting Card, 90 Emergency Card, 91 PDF Library Search, 92 Social Media Sizer, 93 Safe ID Copy, 94 Pulse from a
   Fingertip, 97 Printable Paper, 98 Old Photo Album Scanner, 99 Best Shot from a
   Video, 100 Magnifier, 101 Clean Link (its rules ≈ 0.1 MB), 102 Folder Space Map, 103 Handwriting Analysis,
@@ -266,7 +267,6 @@ Slides, Regex from Examples — works the same on Windows and Linux (Chrome or E
 | 83 | **Scam & QR Check**: paste a suspicious SMS / WhatsApp message or scan a QR before paying → "this QR asks you to pay, it does not pay you", "this link imitates sbi.co.in with a look-alike letter" (Unicode's confusables, UTS #39), link shorteners, urgency and KYC wording typical of scams; offline | zxing (on the site) + own Rust in textkit with the `unicode-security` crate (MIT / Apache-2.0) or the UTS #39 data | both | waiting |
 | 85 | **Lecture Video → Slides PDF**: drop a recorded class or webinar → each slide caught once when it changes → a searchable PDF of the slides (and their text as .txt) | WebCodecs + mediabunny or ffmpeg.wasm, imgproc (slide changes), Tesseract, MuPDF — all on the site | PC (long videos) | waiting |
 | 86 | **Your Handwriting as a Font**: print a grid, fill it by hand, photograph it → a .ttf / .otf of your own handwriting to use anywhere | imgproc (the page found and straightened) + tracing (potrace / vtracer — #1's) + a font writer: candidates Google's `write-fonts` (Rust, Apache-2.0 / MIT) as own wasm, fontTools in the Python tab's CPython | both | waiting |
-| 87 | **Long Screenshot Stitcher**: several overlapping screenshots of a chat or a web page → one tall picture, the overlaps found by themselves | own C in imgproc + jSquash (on the site) | both | waiting |
 | 90 | **Family Emergency Card**: a wallet card (85.6 × 54 mm) and a bag sticker with blood group, allergies, medicines and emergency numbers, as text and a QR any phone reads offline → printable PDF; "Save details / Load details" as a file of your own, like the GST Invoice | zxing + MuPDF's HTML layout with Noto Sans (on the site) | both | waiting |
 | 91 | **PDF Library Search** (owner, 21 Nov 2026: "ok add PDF Library Search" — from the second batch of round 7's question; asked how a web app takes a folder: the browser hands the page the files the reader picks or drops, nothing goes to a server): choose or drop a folder of PDFs and EPUBs ("Choose a folder", a folder dragged from Explorer / Dolphin, or File System Access on Chrome for PCs — Chrome's dialog says "upload", though the files only reach the page in the browser) → every word of every file searchable, each hit with its page and a small preview, a click opens that page; the index lives in memory and goes with the tab | MuPDF (on the site: text of PDFs and EPUBs, page previews) + an index and search of our own in WebAssembly (textcore / textkit) | both (folders on PCs; on phones many files picked at once) | waiting |
 | 92 | **Social Media Sizer** (owner, 21 Nov 2026: "add to potentials.md … Social Media Sizer" — round 7's second batch): one photo → every size at once — WhatsApp DP, Instagram post (square and 4 : 5), story, carousel slices and the 3 × 3 grid, YouTube thumbnail, LinkedIn and X banners — the crop following the faces; each picture saved, or all as a .zip | MediaPipe BlazeFace (on the site) + @jsquash/resize and MozJPEG (on the site) + 7-Zip / zip.js (on the site) | both | waiting |

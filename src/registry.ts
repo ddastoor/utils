@@ -76,6 +76,7 @@ export const TOOLS: Tool[] = [
   t('watermark', 'Watermark', 'Add a text or logo watermark to photos.', 'images', 'Stamp', () => canv().then((m) => m.watermark)),
   t('caption', 'Text on Image', 'Add captions or meme text to a picture.', 'images', 'Type', () => canv().then((m) => m.caption)),
   t('collage', 'Collage Maker', 'Combine photos into a grid.', 'images', 'LayoutGrid', () => canv().then((m) => m.collage)),
+  t('stitch', 'Long Screenshot Stitcher', 'Screenshots of one chat or page, taken while scrolling, joined into one tall picture — the parts they share found by themselves.', 'images', 'GalleryVerticalEnd', () => import('./tools/stitch').then((m) => m.mount)),
   t('wallpapers', 'Wallpapers', 'Wikimedia’s best photos and museums’ masterpieces, sized exactly for your phone or monitor.', 'images', 'Wallpaper', () => import('./tools/wallpapers').then((m) => m.mount)),
   t('nasa', 'NASA Image Explorer', 'NASA’s pictures and videos — missions, planets, astronauts, the Earth from space; any picture as a wallpaper.', 'images', 'Rocket', () => import('./tools/nasa').then((m) => m.mount)),
   t('exif', 'EXIF / Photo Info', 'See hidden photo details (camera, date, GPS) and strip them.', 'images', 'Info', () => img().then((m) => m.exif)),

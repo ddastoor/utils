@@ -18,6 +18,7 @@ const M = (n) => fileURLToPath(new URL(`../fixtures/media/${n}`, import.meta.url
 const EXEMPT = {
   svgo: 'SVG Optimizer takes SVG drawings, which no camera makes',
   scan: 'the QR & Barcode Scanner has its own camera above its image picker',
+  stitch: 'the Long Screenshot Stitcher joins screenshots, which no camera takes — a photo of a screen does not line up with another row for row',
 };
 
 export default async ({ base, page: newPage, ok, info, devices }) => {
@@ -28,7 +29,8 @@ export default async ({ base, page: newPage, ok, info, devices }) => {
     const ids = [...new Set(await page.evaluate(() => [...document.querySelectorAll('a.tile')].map((a) => a.getAttribute('href').replace(/^#\//, '')).filter((x) => x && !x.startsWith('c/'))))];
     const missing = [], seen = [];
     for (const id of ids) {
-      await page.goto(`${base}#/${id}`); await page.waitForSelector('.tool-body', { timeout: 20000 }).catch(() => {}); await page.waitForTimeout(250);
+      // the tab drawn (under load its chunk can take longer than a fixed pause), then a moment for what it draws after
+      await page.goto(`${base}#/${id}`); await page.locator('.tool-body > *').first().waitFor({ timeout: 20000 }).catch(() => {}); await page.waitForTimeout(250);
       const pickers = await page.evaluate(() => [...document.querySelectorAll('.tool-body .drop')]
         .filter((d) => d.getClientRects().length && /image\/|\.heic|\.png|\.jpe?g/i.test(d.querySelector('input[type=file]')?.accept || ''))
         .map((d) => {

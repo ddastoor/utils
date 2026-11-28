@@ -251,3 +251,14 @@ generates media with the project's own ffmpeg.wasm and Chromium). Used only by t
   descriptions are NASA's (not copyrighted in the United States; some items name other parties in their credits, as recorded). The e2e harness
   answers every page's requests to NASA from them (`tests/lib/nasastub.mjs`), with the Wallpapers' test pictures for NASA's pictures and
   `media/clip.mp4`, `media/subs.srt` for its videos and captions.
+
+## stitch/ (Long Screenshot Stitcher)
+- Phone screenshots of our own making, by `python3 scripts/make-stitch-shots.py` (Noto Sans, OFL; every chat, page, name and number made up — a
+  chat in the manner of a messaging app, a news page in the manner of a newspaper's, no real app's or site's design): `chat-1` … `chat-5.png` (a
+  chat scrolled down, 720 × 1600: a wallpaper that stays put, the clock and the contact's line changing, a date chip and a scroll-down button
+  floating, a scrollbar's thumb), `chatdark-*.png` (the dark theme), `chatsent-*.jpg` (the chat on a 1080 × 2400 phone, sent through a chat app:
+  two thirds the size, JPEG 75), `web-*.png` and `webjpeg-*.jpg` (a news page in a phone's browser: the address bar in the first screenshot only, a
+  site header and a cookie banner that stay), `small-*`, `large-*` (a sliver and nine tenths in common), `repeat-*` (runs of the same "Ok"),
+  `mix-*` (the chat's first four, the third sent as a 480-px JPEG), `IMG_2038` … `IMG_2044.png` (the chat's under other names, a duplicate and a
+  page of something else). `truth.json`: for each screenshot the page row its row y shows (y + offset), the part that scrolls, what floats over it;
+  each set's order top to bottom.

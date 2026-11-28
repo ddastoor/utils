@@ -82,7 +82,8 @@ that affects it.
 >    3, 8.6 MB): **563 MB**; 28 Nov 2026, with SliceDiceGrapher: **578.8 MB**; with the Diagram Editor (draw.io): **631.7 MB**; with sqlite3, bz2 and
 >    lzma in the Python tab (1.9 MB) and the Cartoonizer's anime looks (34.6 MB): **668.3 MB**; with World Radio (31 KB — the stations and
 >    their sound come from the directory and the stations' servers): **668.3 MB**; with Wallpapers (34 KB — the pictures come from
->    Wikimedia and the museums): **668.4 MB**; with the NASA Image Explorer (17 KB; the wallpaper maker now shared): **668.4 MB**.
+>    Wikimedia and the museums): **668.4 MB**; with the NASA Image Explorer (17 KB; the wallpaper maker now shared): **668.4 MB**; with the Long Screenshot Stitcher (43 KB — its engine
+>    8.6 KB of imgproc.wasm): **668.4 MB**.
 > 4. **Wait for the owner's decision.** Build nothing until the owner has decided.
 
 > ## ⚠️ STANDING RULE #1 — WebAssembly first (owner; permanent; applies to every line of new code)
@@ -198,7 +199,8 @@ that affects it.
 > - Every picture picker — in every tab, existing and new — is `imageInput` or `imagePicker` (`src/lib/imgtools.ts`),
 >   which carry the live camera (`src/lib/livecam.ts`): the phone's camera (back first) on phones, the webcam on PCs.
 > - `tests/e2e/camera.e2e.mjs` fails on a picture picker without one, unless its EXEMPT list names the tab and the
->   reason (today only the SVG Optimizer — it takes SVG drawings, which no camera makes; the QR Scanner has a camera of
+>   reason (today the SVG Optimizer — it takes SVG drawings, which no camera makes — and the Long Screenshot Stitcher — it joins
+>   screenshots, which no camera takes; a photo of a screen does not line up with another row for row; the QR Scanner has a camera of
 >   its own; the Photo Dictionary uses the shared one since 21 Nov 2026, when it became PC + mobile). EXIF / Photo Info and FFmpeg's main picker got the camera at the owner's
 >   word (21 Nov 2026: "also add it for exif too"; FFmpeg's webcam had been only in the picture box of three tasks).
 >   Details: §3 "Camera in every tab that takes a picture"; checklist §8 item 5.
@@ -374,7 +376,7 @@ Wayland) and **mobile browsers** (Android Chrome, iPhone Safari).
 Platform is PC + mobile unless marked **PC**. Tab ids are the URL hash (`#/<id>`).
 
 **The authoritative, always-current list is `docs/TOOLS.md`, generated from `src/registry.ts` (`npm run docs`).**
-Current total: **201 tabs in 11 categories — 133 PC + mobile, 65 PC only, 3 Mobile only** (regenerate with
+Current total: **202 tabs in 11 categories — 134 PC + mobile, 65 PC only, 3 Mobile only** (regenerate with
 `npm run docs` after every registry change; the owner asked for the registry to always be noted).
 The per-category notes below record decisions; when they disagree with the registry, the registry wins.
 
@@ -409,6 +411,7 @@ and to the counts of `docs/TOOLS.md`; axe in both themes).
 | `watermark` | Watermark | both | canvas text/logo watermark |
 | `caption` | Text on Image | both | canvas captions / meme text |
 | `collage` | Collage Maker | both | canvas photo grid |
+| `stitch` | Long Screenshot Stitcher | both | **BUILT** (28 Nov 2026; potentials #87 — §3 "Long Screenshot Stitcher"): screenshots of a chat or a page in any order → one tall picture; every two placed against each other by imgproc.wasm (`stitch.c`: votes, then Kadane's best stretch of matching rows; bands that stay put left out), joined where their pixels agree, the bars once |
 | `wallpapers` | Wallpapers | both | **BUILT** (28 Nov 2026; potentials #115 — §3 "Wallpapers"): Wikimedia Commons' Picture of the Day and featured pictures, the Met's and the Art Institute of Chicago's public-domain paintings (their APIs, CORS) → a wallpaper of the screen's exact pixels: the crop on the faces (BlazeFace, the Blur & Redact tab's) or the busiest part (imgproc `p_busy_window`), Squoosh's resize, MozJPEG, the credit in the file |
 | `nasa` | NASA Image Explorer | both | **BUILT** (28 Nov 2026; potentials #114 — §3 "NASA Image Explorer"): NASA's Image and Video Library (its API, CORS; the files at its bucket's own address) → pictures and videos by words, topic, years, centre; a picture as a wallpaper (the Wallpapers' maker, `src/lib/wallmaker.ts`), a video played with its captions |
 | `exif` | EXIF / Photo Info | both | ExifTool 13.42 (Perl on zeroperl, WebAssembly) in a worker: every tag of every format; strip metadata losslessly (colour profile + orientation kept) |
@@ -1258,6 +1261,49 @@ wallpaper': cropped and sized exactly to the screen it is for … The Astronomy 
   apostrophe); the thumbnails and pictures read at the bucket and never at the file server; the wallpaper 1920 × 1080 of the crop's part of the
   picture (mean luma difference under 6 of 255) cut from the original at the bucket; the original downloaded byte for byte; a video played from
   the file server, its three captions shown at their times.
+
+### Long Screenshot Stitcher — BUILT (potentials #87; built 28 Nov 2026 — the first of group 2 of the suggested order)
+(`stitch` in `src/tools/stitch.ts` + `.css`, the worker `src/workers/stitch.worker.ts`, the order and the picture `src/lib/stitch.ts` (no DOM), the engine
+`wasm/imgproc/stitch.c` in imgproc.wasm; unit `tests/unit/stitch.test.mjs` 106, e2e `tests/e2e/stitch.e2e.mjs` 32; fixtures `tests/fixtures/stitch/` with
+`truth.json` — every screenshot's page offset, the part that scrolls, what floats over it —, made by `python3 scripts/make-stitch-shots.py`.) The owner's
+words (potentials #87): "several overlapping screenshots of a chat or a web page → one tall picture, the overlaps found by themselves".
+- **Every two screenshots placed against each other** (`p_st_pair`): a row is known by the mean luma of bands of 24 px (`p_scroll_sig`, the
+  Screenshot tab's), its detail (the steps across it — counted only when the row also differs from a neighbour: the inside of a bubble is the same
+  row after row, and two bubbles of one width would look alike) and its mean. **Votes:** each row of b with detail looks up a's rows of nearly the
+  same mean (a sorted index) and a few bands alike, and votes for their distance; the screenshots' shift gathers the votes of all the rows they share.
+  **Checked row by row:** for each shift voted for (and its neighbours), a row of detail scores +1 when it matches (at most a tenth of its bands off
+  by more than 4 levels) and −2 when it does not; the best stretch (Kadane's maximum sum) is what the two share. **Bands that stay put on either side
+  are left out** (the same at that place in the other screenshot): a date chip floating over the top of the messages, a "scroll down" button, a
+  cookie banner, a chat's wallpaper that does not move. A shift to a quarter of a row (screenshots made smaller after they were taken move by no
+  whole number of rows). Shifts under 8 rows are no scroll (the bars match there); two screenshots that close are the same one (left out, said).
+- **A join is believed** when its stretch scores 12 and more, above any other shift's, and a fifth of all the rows the shift lays over each other
+  match — **measured:** real overlaps 32 % and more, coincidences (a site's header that moved when the browser's address bar hid, two alike rows) 7 %
+  at most. A second shift close behind (a run of the same message) makes the join "unsure", said on its row.
+- **The order by itself** (`arrange`): the strongest links first (Kruskal's forest), each group's screenshots by the page row each starts at;
+  groups that share nothing under a line (a grey band), in the order given. **By hand:** up / down (the joins follow — a pair the wrong way round is
+  under a line), "Find the order again"; ✕ takes one out.
+- **A forwarded copy among full-size screenshots** (a different width): made as wide as the others for the picture (Lanczos, imgproc.wasm), but
+  matched at the size it was sent in — the sharp one made as small, each band over three rows (JPEG's noise evened out), the shift scaled up.
+- **Where they join** (`p_st_seam`): the row, in the stretch and as far again on either side, whose three rows differ least pixel for pixel — what
+  floats and the bars differ there, so the join keeps away from them; ties nearest the stretch's middle. The picture is planned in page rows (a
+  screenshot whose share lies inside its neighbours' gives nothing): the first screenshot from its top, each next from its join, the last to its
+  bottom. **The bars** (`bars`: rows at the top and bottom that a majority of the others of its size keep where they are — a clock that changed is
+  one short run): "Leave out the bars at the top" / "at the bottom" crop each group's first and last screenshot.
+- **The tab:** screenshots chosen, dropped or pasted (Ctrl+V, "Paste image") — any order, more at any time; no camera (exempt: no camera takes a
+  screenshot). The list top to bottom: a thumbnail, the name, "Joined under … — n rows in common", "Nothing in common with …: under a line", "The
+  same as …: left out", "Made 720 px wide like the others (it was 480)"; ↑ ↓ ✕. The picture's preview (each screenshot made the preview's width once,
+  OpenCV's area resize; drawn in canvases of 4,000 rows), the joins marked (a switch), its size. **Save picture** — PNG (sharp text; for chats and
+  pages usually the smaller file — measured: 361 KB against a JPEG's 592) or JPEG (at most 65,535 rows) —, Share on phones, **Copy** on PCs (PNG);
+  named `<first screenshot>-long.png`. A picture above 100 megapixels (phones 50) is refused with the reason. A note: WhatsApp makes a tall photo
+  small — send it as a document. The order, the choices and the screenshots last while the page is open; nothing is stored. **Lazy:** at open the
+  tab's code (8 KB, 2 KB of styles); the worker (25 KB) and imgproc.wasm with the first screenshot; the codec worker with the first save.
+- **Measured** (the test screenshots, of our own making: a chat over a wallpaper that stays put, its clock and the contact's line changing, a date
+  chip and a scroll-down button floating, a scrollbar's thumb; a dark chat; the chat forwarded as JPEGs two thirds the size; a news page whose
+  address bar hides, with a header and a cookie banner that stay; repeated "Ok"s; a sliver and nine tenths in common; a forwarded copy among
+  full-size ones; names out of order with a duplicate and a stranger): every one of the 19 pairs that share rows placed by its true shift (to half
+  a row), none of the others joined; every page row once and in order; nothing floating kept where another screenshot shows the page clean; in the
+  browser every row of the saved PNG (read back by `tests/lib/png.mjs`) a screenshot's row at its page row. Six screenshots of 720 × 1600 in about
+  1.2 s.
 
 ### OpenPGP
 Generate key pair (name, email, passphrase) → download armored public/private keys. Encrypt file
@@ -3739,7 +3785,8 @@ the photo with a webcam if it's a PC app." No engine to fetch: the browser's get
   shown when a task asks for one). The phones' native camera inputs (Doc Scanner, Signature Maker, Sign PDF) are gone
   — the live camera does it on both. **Beside the camera button, "Paste image"** where a tab asks for it (`paste: true`:
   the OCR and the Photo Dictionary — to-do #37; `liveCamera`'s `beside` holds it in the camera's row).
-- **Without a camera, on purpose** (EXEMPT in the sweep): SVG Optimizer (it takes SVG drawings, which no camera makes);
+- **Without a camera, on purpose** (EXEMPT in the sweep): SVG Optimizer (it takes SVG drawings, which no camera makes); the Long Screenshot
+  Stitcher (it joins screenshots, which no camera takes — a photo of a screen does not line up with another row for row);
   the QR & Barcode Scanner keeps a camera of its own.
 - **Tests:** `tests/e2e/camera.e2e.mjs` — every picture picker a tab shows, on a PC and a phone, has the camera in its
   card; in every tab the stand-in camera (`tests/e2e/_camera.mjs`: a canvas stream showing a sentence) is opened, Snap
@@ -4690,7 +4737,7 @@ stay **public** (the source of the deployed site is then available to every user
 | **libsodium.js** — `libsodium-wrappers-sumo` 0.8.4 (libsodium **1.0.22**; the sumo build: the standard one has no Argon2) | C | the libsodium project (official WebAssembly build, embedded in the module) — binding `src/wasm/libsodium.ts`, format `src/lib/usodium.ts`, in `src/workers/crypto.worker.ts` | sodium, sharelink: Argon2id + XChaCha20-Poly1305 secretstream (`docs/WASM-AUDIT.md`, tab 101); password, passphrase, dice, coin: randombytes_uniform (tabs 104, 105, 155) |
 | imgproc (adjustments, resize, OpenCV's area resize (`p_resize_area`, equal to cv2's INTER_AREA), lossless orient/crop, filters, matting, warp + homography, doc enhance, the page in a photo (`p_page_quad`) and whether an outline is a page's (`p_quad_steps`: the step across each edge; `p_quad_text`: the letters it leaves outside), an outline fitted to the photo's edges (`p_refine_quad`), strips of the desk along a straightened page painted (`p_clear_border`), which way up the text stands and how its lines slant (`p_text_turns`: the letters; `p_text_lines`: projection profiles), where the text is (`p_ink_window`), a watermark's broad strokes taken out (`p_clear_wash`), the views of a scrolling
 screenshot placed against each other (`p_scroll_sig`, `p_scroll_match`: rows that stay put, the shift by the overlap's
-difference over its detail, the overlap's pixels), ruled lines and list marks cleared and the columns counted (`p_clear_marks`); **book pages flattened** (`flatten.c`: `p_book_fit`, `p_book_render`, `p_book_locate` — page-dewarp's method, Levenberg–Marquardt, the gutter, the margins); **where a region of a PDF page may be cut for a Kindle's screen** (`kindle.c`: `p_blank_rows` — rows with no ink outside the letters' bodies, figures and formulas; `p_next_cut` — the lowest paragraph gap past 65 % of the room, else the lowest gap); PaddleOCR's steps around its networks, as RapidOCR takes them in OpenCV's arithmetic (`p_resize_linear` / `p_net_planes`: cv2.resize INTER_LINEAR in its own fixed point; `p_db_boxes`: DBPostProcess, its box score over cv2.fillPoly's exact pixels; `p_crop_quad`: get_rotate_crop_image; `p_ctc`: CTC's greedy reading); **flat colours, masks, black and white and ink lines for Image to SVG and the Clipart Maker** (`flat.c`: `p_clip_flat` — greedy k-means++ in CIE Lab, a mode filter, specks taken in, each colour the mean of its own pixels; `p_clip_mask`, `p_clip_lines` — Winnemöller's DoG inside the subject, not at its edge; `p_bw` — a threshold or Otsu's; `p_u2_planes` / `p_u2_mask` — U²-Net's input and output as rembg makes them); AnimeGAN v2's input and output as its own code makes them (`p_anime_in` / `p_anime_out`, the Cartoonizer's anime looks); the busiest part of a picture for a crop (`p_busy_window`: gradient energy on a 240-px copy, an integral image, a slight pull to the middle — the Wallpapers)) | C (own code) | **us** (`wasm/imgproc`) | image tools, scanner, passport, cartoon, ocr and photodict (pages found, set upright and level, rules and list marks cleared — to-do #18; the second reader's pixel work), bookflat, wallpapers, nasa |
+difference over its detail, the overlap's pixels), ruled lines and list marks cleared and the columns counted (`p_clear_marks`); **book pages flattened** (`flatten.c`: `p_book_fit`, `p_book_render`, `p_book_locate` — page-dewarp's method, Levenberg–Marquardt, the gutter, the margins); **where a region of a PDF page may be cut for a Kindle's screen** (`kindle.c`: `p_blank_rows` — rows with no ink outside the letters' bodies, figures and formulas; `p_next_cut` — the lowest paragraph gap past 65 % of the room, else the lowest gap); PaddleOCR's steps around its networks, as RapidOCR takes them in OpenCV's arithmetic (`p_resize_linear` / `p_net_planes`: cv2.resize INTER_LINEAR in its own fixed point; `p_db_boxes`: DBPostProcess, its box score over cv2.fillPoly's exact pixels; `p_crop_quad`: get_rotate_crop_image; `p_ctc`: CTC's greedy reading); **flat colours, masks, black and white and ink lines for Image to SVG and the Clipart Maker** (`flat.c`: `p_clip_flat` — greedy k-means++ in CIE Lab, a mode filter, specks taken in, each colour the mean of its own pixels; `p_clip_mask`, `p_clip_lines` — Winnemöller's DoG inside the subject, not at its edge; `p_bw` — a threshold or Otsu's; `p_u2_planes` / `p_u2_mask` — U²-Net's input and output as rembg makes them); AnimeGAN v2's input and output as its own code makes them (`p_anime_in` / `p_anime_out`, the Cartoonizer's anime looks); the busiest part of a picture for a crop (`p_busy_window`: gradient energy on a 240-px copy, an integral image, a slight pull to the middle — the Wallpapers); **screenshots placed against each other** (`stitch.c`: `p_st_rows` — each row's bands, detail and mean, a soft copy's bands over three rows; `p_st_pair` — votes for the shift, Kadane's best stretch of matching rows, bands that stay put left out, a quarter of a row; `p_st_seam` — where their pixels agree; `p_st_same` — the bars)) | C (own code) | **us** (`wasm/imgproc`) | image tools, scanner, passport, cartoon, ocr and photodict (pages found, set upright and level, rules and list marks cleared — to-do #18; the second reader's pixel work), bookflat, wallpapers, nasa, stitch |
 | metacore (EXIF → JSON, lossless metadata strip JPEG/PNG/WebP, JPEG DPI, image sniffing) | C (own code) | **us** (`wasm/metacore`) | exif, image loading, passport/formphoto DPI |
 | BusyBox 1.38.0 (130 applets) + compat shims | C | **us** (`wasm/busybox`) | terminal, bc console |
 | jq 1.8.2 (+ oniguruma) | C | **us** (`wasm/jq`) | jq |
@@ -4833,6 +4880,9 @@ Nov 2026 (Paper Deadlines → Calendar, potentials #77): `src/lib/deadlines.ts` 
 paper's lines made into sentences, dates counted on with the browser's Date in UTC, the iCalendar file written as text: string glue
 around the readers' output (`docs/WASM-AUDIT.md`, tab 194).
 Nov 2026 (the Settings page, to-do #39): `src/settings.ts`, `src/lib/settingsfile.ts` — values checked by a comparison or two, the browser's JSON, localStorage, IndexedDB and File System Access: nothing for an engine to do (`docs/WASM-AUDIT.md`, 201).
+Nov 2026 (Long Screenshot Stitcher, potentials #87): `src/lib/stitch.ts` — the screenshots ordered by the page rows their shifts give (Kruskal's
+forest over at most a few dozen links), duplicates and groups, the picture planned in page rows and its rows copied (`TypedArray.set`): glue around
+imgproc.wasm, which compares every row and pixel (`stitch.c`; `docs/WASM-AUDIT.md`, tab 208).
 Nov 2026 (NASA Image Explorer, potentials #114): `src/lib/nasa.ts` — NASA's answers read, its addresses escaped, SRT captions made WebVTT (a
 few regular expressions); `src/lib/wallmaker.ts` (shared with Wallpapers) — the dialog, the crop's handling and the save: glue around imgproc.wasm,
 BlazeFace and jSquash (`docs/WASM-AUDIT.md`, tab 207).

@@ -17,10 +17,11 @@ import { loadImg } from './imgio';
  *  picture on the clipboard, read with the browser's clipboard API (src/lib/clipimage.ts), arrives as a chosen file does,
  *  named clipboard-<date>-<time>.png; what is there instead is said under it. Shown where the browser can read the
  *  clipboard from a button (Ctrl+V works everywhere).
+ *  `more`: the picker's words once a picture is open (else "Add more photos" / "Choose another photo"); `hint` its second line.
  *  `onTap`: called within the tap that brings a picture (Snap, Paste image, Ctrl+V) — not for a file chosen — before anything is
  *  awaited (to-do #38: the OCR and the Photo Dictionary begin there the copy of the text they will read). */
 export function imageInput(onImage: (img: Img, file: File, how: 'file' | 'camera') => void | Promise<void>,
-  opts: { label?: string; multiple?: boolean; camera?: false | { facing?: 'user' | 'environment' }; instead?: string; paste?: boolean; onTap?: () => void } = {}) {
+  opts: { label?: string; more?: string; hint?: string; multiple?: boolean; camera?: false | { facing?: 'user' | 'environment' }; instead?: string; paste?: boolean; onTap?: () => void } = {}) {
   const busy = h('div', { class: 'muted small' });
   // ---- the clipboard's picture, by a button
   const where: ClipWhere = isIOS ? 'ios' : isAndroid ? 'android' : isMac ? 'mac' : 'pc';
@@ -55,11 +56,11 @@ export function imageInput(onImage: (img: Img, file: File, how: 'file' | 'camera
     }
     busy.textContent = '';
   };
-  const picker = filePicker({ accept: 'image/*,.heic,.heif', multiple: opts.multiple, label: opts.label || 'Choose a photo', hint: 'or drop / paste (Ctrl+V) · JPG, PNG, WebP, HEIC…', onFiles: handle });
+  const picker = filePicker({ accept: 'image/*,.heic,.heif', multiple: opts.multiple, label: opts.label || 'Choose a photo', hint: opts.hint ?? 'or drop / paste (Ctrl+V) · JPG, PNG, WebP, HEIC…', onFiles: handle });
   /** once a photo is open (chosen, or taken with a camera), the big drop zone shrinks so the photo sits higher on phones */
   const compact = () => {
     picker.classList.add('drop-compact');
-    const strong = picker.querySelector('strong'); if (strong) strong.textContent = opts.multiple ? 'Add more photos' : 'Choose another photo';
+    const strong = picker.querySelector('strong'); if (strong) strong.textContent = opts.more ?? (opts.multiple ? 'Add more photos' : 'Choose another photo');
   };
   const cam = opts.camera === false ? null : liveCamera({
     multiple: opts.multiple, facing: opts.camera?.facing, instead: opts.instead ?? 'choose a photo instead',

@@ -2133,3 +2133,16 @@ Looked at first (STANDING RULE #1):
   HTTP 500 twice when checked; its pictures (apod.nasa.gov) send no CORS header either.
 - **Decision:** NASA's API and bucket, the browser's `<video>`, the shared maker — 17 KB on the site (the tab's code and styles; the maker, 25 KB,
   moved out of the Wallpapers tab).
+
+### 208. `stitch` — Long Screenshot Stitcher (28 Nov 2026; potentials #87)
+- **What it needs:** screenshots of one chat or page, in any order, placed against each other — the shift between every two, to a row (to a
+  quarter of a row for copies made smaller), in spite of what floats over the content, a wallpaper that stays put, a clock that changes, JPEG and
+  resampling — and joined where their pixels agree.
+- **Candidates looked at:** no WebAssembly module stitches screenshots. OpenCV.js's `Stitcher` (the official WebAssembly build of OpenCV) is made for
+  photos of a scene — features, homographies, blending — and with every class it is a 9 MB file: it would warp and blend screenshots, which need an
+  exact vertical shift and rows copied as they are; its `matchTemplate` alone would find a shift by correlation over the whole picture (fixed bars
+  and floating chips pull it off; a pixel-exact join needs more than a correlation peak). Hugin / panotools: the same kind, native.
+- **Decision:** our own C in imgproc.wasm (`wasm/imgproc/stitch.c`, 8.6 KB of the module), on the Screenshot tab's row signatures
+  (`p_scroll_sig`): votes, Kadane's best stretch, bands that stay put left out, a seam by pixel differences. The order (a forest of a few dozen links)
+  and the picture's plan are TypeScript glue (`src/lib/stitch.ts`); every row and pixel is compared in the module. Copies made smaller are matched at
+  their size: imgproc's Lanczos makes the sharp one as small.

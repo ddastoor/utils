@@ -14,6 +14,7 @@ export default [
   ['watermark photo', 'watermark'], ['add logo to image', 'watermark'],
   ['meme', 'caption'], ['text on image', 'caption'], ['add caption', 'caption'],
   ['collage', 'collage'], ['photo grid', 'collage'], ['combine photos', 'collage'],
+  ['stitch screenshots', 'stitch'], ['long screenshot', 'stitch'], ['join screenshots', 'stitch'], ['whatsapp chat screenshot', 'stitch'], ['screenshot stitcher', 'stitch'],
   ['exif', 'exif'], ['photo location', 'exif'], ['remove metadata', 'exif'], ['gps from photo', 'exif'],
   ['scan document', 'scanner'], ['camscanner', 'scanner'], ['doc scanner', 'scanner'],
   ['newspaper clipping', 'clipper'], ['clip an article', 'clipper'], ['press cutting', 'clipper'], ['newspaper to pdf', 'clipper'], ['newspaper article', 'clipper'],

@@ -15,6 +15,7 @@ export const KEYWORDS: Record<string, string> = {
   'watermark': 'add logo, logo on photo, add logo to image, logo on image, watermark image, watermark, logo, copyright, text, stamp, protect, brand',
   'caption': 'caption, meme, text, write on image, quote, title, font',
   'collage': 'collage, grid, combine, merge photos, layout, montage, side by side',
+  'stitch': 'long screenshot, stitch screenshots, scrolling screenshot, join screenshots, combine screenshots, merge screenshots, screenshot stitcher, tall screenshot, full chat screenshot, whatsapp chat screenshot, chat in one picture, full page screenshot, scroll capture, panorama screenshot, screenshots together, one long image, stich, stiching, screnshot',
   'exif': 'gps from photo, photo details, camera info, exif, metadata, gps, location, camera, date, info, strip, remove metadata, privacy',
   'scanner': 'scan, scanner, document, camscanner, paper, receipt, perspective, crop, pdf, black and white',
   'clipper': 'newspaper clipper, newspaper clipping, clip an article, cut out an article, news article, newspaper article, press cutting, press clipping, cutting, columns, multi-column, article from a newspaper, newspaper photo, photo of a newspaper, magazine article, read a newspaper aloud, newspaper to pdf, newspaper to text, article to pdf, stack columns, scrapbook, epaper, e-paper, news cutting, clippings',
