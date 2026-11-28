@@ -16,15 +16,17 @@ merged into main (fast-forward, 1d5e8dc) and is no longer pushed to. **The site 
 (the owner allowed main in the `github-pages` environment; first deploy 754d1b5 — CLAUDE.md §7, Deploy).
 
 ## ▶ NOW — 26 Nov 2026, morning (read this first)
-**▶▶▶ 28 Nov 2026, later — IN PROGRESS: the owner's "finish off the Small choices"** (the choices listed after to-do #40):
+**▶▶▶ 28 Nov 2026, later — DONE: the owner's "finish off the Small choices"** (the choices listed after to-do #40):
 (1) the EPUB Reader remembers every book switched on until forgotten (at most 1,000) and (2) page turns keep the place without
-a settings file each — both kept as built (CLAUDE.md §3 EPUB Reader); (3) **the two older offers: sqlite3, bz2 and lzma in the
-Python tab — DONE** (SQLite 3.54.1, bzip2 1.0.8, liblzma 5.8.4 in python.wasm; CLAUDE.md §5.1m; unit python 223, e2e 90); **anime
-looks for the Cartoonizer — IN PROGRESS** (AnimeGAN v2 Hayao / Shinkai / Paprika + the face portrait on ONNX Runtime Web:
-src/lib/anime.ts, src/workers/anime.worker.ts, the models pinned in scripts/assets.json, unit `anime`; next: the e2e suite, docs).
-**The Windows check, run 19** (the 56 suites of everything built since run 18): 2,758 / 2,772 — 14 failures fixed in b3f7adb (a
-stale-result race in Image to SVG and the Clipart Maker; the rest test portability; docs/BUGHUNT.md); **run 20** checks those 14
-suites on Windows.
+a settings file each — both kept as built (CLAUDE.md §3 EPUB Reader); (3) **sqlite3, bz2 and lzma in the Python tab — DONE**
+(SQLite 3.54.1, bzip2 1.0.8, liblzma 5.8.4 in python.wasm; CLAUDE.md §5.1m; unit python 223, e2e 90); (4) **the Cartoonizer's anime
+looks — DONE** (AnimeGAN v2's Hayao, Shinkai, Paprika and the face portrait v2 on ONNX Runtime Web, the pixels in and out in
+imgproc.wasm's C; CLAUDE.md §3 Cartoonizer; unit `anime` 28, e2e `cartoon-anime` 25). The site: 668.3 MB of the 1 GB.
+**The Windows check:** run 19 (the 56 suites built since run 18) 2,758 / 2,772 — 14 fixed in b3f7adb; run 20 (those 14) 580 / 586 —
+the Cartoonizer's WebGL probe (TF.js's context is refused where Chrome draws in software only), the Settings page's private window
+(Chrome on Windows does not show it as one — the suite says what the browser shows now), a dark-theme contrast check to read
+(the colours are named now), two waits under load; docs/BUGHUNT.md "Windows check, run 20". **Next:** run 21 (cartoon, cartoon-anime,
+settings and the other suites changed), read it, fix what it finds; then the owner's pick from docs/potentials.md.
 **▶▶ 27 Nov 2026 — DONE: the owner's "Go ahead with all items in todo" (to-do #33 – #36), each committed and pushed:**
 **#36** (the start page's note of the other device's apps), **#34** (Watermark: the first page of a document with or without
 the mark), **#33** (Cartoonizer: how cartoony, in grades), **#35** (Text Diff: Side by side, the lines of a change paired by the

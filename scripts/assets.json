@@ -281,5 +281,45 @@
     "note": "U²-Net small (Xuebin Qin et al., Apache-2.0) as rembg publishes it (MD5 8e83ca70e441ab06c318d82300c84806 as rembg's own code checks it)",
     "sha256": "309c8469258dda742793dce0ebea8e6dd393174f89934733ecc8b14c76f4ddd8",
     "size": 4574861
+  },
+  "animegan/AnimeGANv2_Hayao.onnx": {
+    "url": "https://huggingface.co/vumichien/AnimeGANv2_Hayao/resolve/f84714b47ad2c7e930c5f3d5dff58fe91659be95/AnimeGANv2_Hayao.onnx",
+    "license": "AnimeGAN's own terms — free for non-commercial use: 'made freely available to academic and non-academic entities for non-commercial purposes' (Asher Chan / TachibanaYoshino, github.com/TachibanaYoshino/AnimeGANv2; personal use); converted to ONNX by vumichien (Hugging Face)",
+    "usedBy": [
+      "cartoon"
+    ],
+    "note": "AnimeGAN v2 generator, the Hayao style: NHWC float32 in [-1, 1], any size (a multiple of 4), tanh out",
+    "sha256": "5a84ca468f3c4fd891fe8c883a3a507ed3e463f4f059985735f6449dae7590b5",
+    "size": 8649739
+  },
+  "animegan/AnimeGANv2_Shinkai.onnx": {
+    "url": "https://huggingface.co/vumichien/AnimeGANv2_Shinkai/resolve/14924f86716b32dc451808a538d75669eb590660/AnimeGANv2_Shinkai.onnx",
+    "license": "AnimeGAN's own terms — free for non-commercial use: 'made freely available to academic and non-academic entities for non-commercial purposes' (Asher Chan / TachibanaYoshino, github.com/TachibanaYoshino/AnimeGANv2; personal use); converted to ONNX by vumichien (Hugging Face)",
+    "usedBy": [
+      "cartoon"
+    ],
+    "note": "AnimeGAN v2 generator, the Shinkai style: NHWC float32 in [-1, 1], any size (a multiple of 4), tanh out",
+    "sha256": "4b57475c2bdc71348a52e6d495abc9e346242619fdb0e519a2957c7c7885c4bb",
+    "size": 8649278
+  },
+  "animegan/AnimeGANv2_Paprika.onnx": {
+    "url": "https://huggingface.co/vumichien/AnimeGANv2_Paprika/resolve/aff2c6fe956c37d70bf2f80b0e98071997f8b466/AnimeGANv2_Paprika.onnx",
+    "license": "AnimeGAN's own terms — free for non-commercial use: 'made freely available to academic and non-academic entities for non-commercial purposes' (Asher Chan / TachibanaYoshino, github.com/TachibanaYoshino/AnimeGANv2; personal use); converted to ONNX by vumichien (Hugging Face)",
+    "usedBy": [
+      "cartoon"
+    ],
+    "note": "AnimeGAN v2 generator, the Paprika style: NHWC float32 in [-1, 1], any size (a multiple of 4), tanh out",
+    "sha256": "b0a00eb337092b446e6df9d92f7a5de804880b093b229baf2e9e2ba4696b01a2",
+    "size": 8649729
+  },
+  "animegan/face_paint_512_v2.onnx": {
+    "url": "https://huggingface.co/akhaliq/AnimeGANv2-ONNX/resolve/980ee341c8a3b45ae59bb10072a4f0383d96811a/face_paint_512_v2_0.onnx",
+    "license": "MIT (the face portrait v2 weights trained by bryandlee, github.com/bryandlee/animegan2-pytorch); converted to ONNX by akhaliq (Hugging Face)",
+    "usedBy": [
+      "cartoon"
+    ],
+    "note": "AnimeGAN v2 face portrait: NCHW float32 in [-1, 1], exactly 512 × 512 (the export fixed the size in its reshapes)",
+    "sha256": "1381b17ed988e14a1f3cf8954d88073c0884ff4b70128ebe599f0d6021bca63e",
+    "size": 8594990
   }
 }

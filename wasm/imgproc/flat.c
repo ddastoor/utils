@@ -306,6 +306,39 @@ API void p_u2_mask(const float *prob, int n, uint8_t *out) {
     for (int i = 0; i < n; i++) { int v = (int)lrintf((prob[i] - lo) * s); out[i] = (uint8_t)(v < 0 ? 0 : v > 255 ? 255 : v); }
 }
 
+/* AnimeGAN v2's input (the Cartoonizer's anime looks: src/lib/anime.ts) as its own code and bryandlee's make it: RGB as
+ * v / 127.5 − 1 in single precision (numpy's float32 arithmetic), the w × h picture at the top left and its last row and column
+ * repeated to W × H; NHWC, or three planes R, G, B (nchw: the face portrait). */
+API void p_anime_in(const uint8_t *src, int w, int h, int W, int H, int nchw, float *out) {
+    size_t plane = (size_t)W * H;
+    for (int y = 0; y < H; y++) {
+        const uint8_t *row = src + (size_t)(y < h ? y : h - 1) * w * 4;
+        for (int x = 0; x < W; x++) {
+            const uint8_t *p = row + (size_t)(x < w ? x : w - 1) * 4;
+            size_t i = (size_t)y * W + x;
+            for (int c = 0; c < 3; c++) {
+                float v = (float)p[c] / 127.5f - 1.0f;
+                if (nchw) out[c * plane + i] = v; else out[i * 3 + c] = v;
+            }
+        }
+    }
+}
+/* its output (tanh, −1 … 1; W × H, NHWC or planes) → the w × h picture's RGBA, the padding cut off: (v + 1) × 127.5 in single
+ * precision, held to 0 … 255 and truncated (AnimeGAN's inverse_transform: a clip, then astype(uint8)); opaque */
+API void p_anime_out(const float *in, int W, int H, int nchw, int w, int h, uint8_t *dst) {
+    size_t plane = (size_t)W * H;
+    for (int y = 0; y < h; y++)
+        for (int x = 0; x < w; x++) {
+            size_t i = (size_t)y * W + x;
+            uint8_t *o = dst + ((size_t)y * w + x) * 4;
+            for (int c = 0; c < 3; c++) {
+                float v = ((nchw ? in[c * plane + i] : in[i * 3 + c]) + 1.0f) * 127.5f;
+                o[c] = !(v > 0) ? 0 : v >= 255 ? 255 : (uint8_t)v; /* NaN: 0 */
+            }
+            o[3] = 255;
+        }
+}
+
 /* ink islands (label 1, 8-connected: a thin line steps diagonally) smaller than `min_area` pixels become paper (0); holes stay */
 static void fl_drop_islands(int16_t *lab, int w, int h, int min_area) {
     size_t n = (size_t)w * h;

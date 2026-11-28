@@ -3537,6 +3537,34 @@ Found while building it (unit `worldclock` 39, e2e `worldclock` 55):
   as they were; no settings file is written there (the switch off from the start) — `src/lib/color.ts` looks for `document`, so the
   suite stubs no `document`.
 
+## Windows check, run 20 (28 Nov 2026): the 14 suites fixed after run 19
+580 of 586 checks; the six that failed:
+- **The Cartoonizer's forced-WebGL comparison (two checks).** Run 19's note was wrong: the runner's Chrome does give a page a WebGL
+  context — a plain one. TensorFlow.js asks for its context with `failIfMajorPerformanceCaveat` (tfjs-backend-webgl's canvas_util),
+  which a browser refuses where it draws in software only; the probe asked for a plain context, found one, and expected WebGL to work.
+  It now asks as TF.js does. (The tab was right: in its usual mode it skips software WebGL and paints on WebAssembly.)
+- **The Settings page's private window (three checks).** Chrome on the runner did not show the suite's window as private (the page's
+  test, `privateWindow()`: a storage quota below twice the script heap's limit) — so the folder was remembered, and read back after a
+  reload without closing the browser: the crash Chromium 153 has on Linux did not happen there. The suite now says what the browser
+  shows (its quota, its heap, its version) and expects the private window's behaviour only where the browser shows it; elsewhere the
+  normal one — and then the handle read back from IndexedDB must not close the browser.
+- **A contrast failure in the dark theme on the Settings page** (the label of the "All" tab) that Linux does not have: the check now
+  names the colours axe measured, for the next run to show.
+- **Under load, passed alone:** a settings file that had not come within 9 s (the suite waits 20 s now: it was a wait, not a limit);
+  the OCR copy check of a tab left during a reading.
+
+## Cartoonizer: the anime looks (28 Nov 2026; built — the owner's "finish off the small choices")
+- **Not the tab's: a full disk.** The first local run crashed pages in four suites at once — "Page crashed", "The source image could
+  not be decoded", a file chooser that timed out —, the lazy-loading suite alone too: the session's disk allowance was spent (old builds
+  in the scratchpad, 6 GB of uv's cache from the offline voices). With room again every suite passed (docs/HANDOFF.md, traps).
+- **The pixel loops were TypeScript in the first version** (the network's input and output, a value at a time): moved into
+  imgproc.wasm (`p_anime_in`, `p_anime_out`) — the compute rule —, in single precision, which is numpy's float32 arithmetic of the
+  looks' own code exactly (the double-precision TypeScript could differ from it in the last bit).
+- **ONNX Runtime Web against native ONNX Runtime on the face portrait:** up to 8 of 255 apart — its InstanceNormalization over a
+  layer's 8.4 million values at once is less exact (docs/WASM-AUDIT.md, 115); the scene looks agree to a step of rounding.
+- **The suite:** its Save check read imageInfo's `format` (it is `type`); the Save refused on purpose later was counted as a page
+  error (it is logged by the button, as the AI styles' refusal is).
+
 ## Python Scratchpad: sqlite3, bz2 and lzma built in (28 Nov 2026; the owner's "finish off the small choices")
 - **CPython's configure left `_sqlite3` "missing" without saying why on the page:** its link checks add `-lsqlite3`, and the WebAssembly
   link found no such library — the archive named on its own was not enough (bz2 and lzma passed). Each library is named by its folder.

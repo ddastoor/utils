@@ -6,3 +6,5 @@
 @media (max-width: 640px) {
   .fx-grid { grid-template-columns: repeat(3, 1fr); }
 }
+/* the anime looks' tiles: a picture each (what the look makes of a sample photo) */
+.fx-tile img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 8px; display: block; background: var(--border); height: auto; }

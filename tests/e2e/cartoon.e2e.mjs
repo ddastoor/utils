@@ -241,14 +241,20 @@ export default async ({ base, page: newPage, ok, info, download, devices }) => {
     const px = await p.evaluate(() => { const c = document.querySelector('canvas.ed-canvas'); return [...c.getContext('2d').getImageData(0, 0, c.width, c.height).data]; });
     return { s, px, errors: p.errors };
   };
-  // a browser with no WebGL at all (no graphics card and no software WebGL — Google Chrome on GitHub's Windows runner, as the
-  // Windows check found) cannot run the forced WebGL path: then only WebAssembly is checked, and the forced WebGL run must say so
+  // a browser whose WebGL TensorFlow.js will not use cannot run the forced WebGL path: TF.js asks for its context with
+  // failIfMajorPerformanceCaveat (tfjs-backend-webgl's canvas_util), which a browser refuses where it draws in software only —
+  // Google Chrome on GitHub's Windows runner (no graphics card), as the Windows check found (runs 19 and 20: a plain WebGL context
+  // is there, TF.js's is not). Then only WebAssembly is checked, and the forced WebGL run must say that no backend works
   const probe = await newPage(); await probe.goto(base);
-  const hasGL = await probe.evaluate(() => { try { const c = new OffscreenCanvas(1, 1); return !!(c.getContext('webgl2') || c.getContext('webgl')); } catch { return false; } });
+  const hasGL = await probe.evaluate(() => {
+    const at = { failIfMajorPerformanceCaveat: true, alpha: false, antialias: false, premultipliedAlpha: false, preserveDrawingBuffer: false, depth: false, stencil: false };
+    try { return !!(new OffscreenCanvas(1, 1).getContext('webgl2', at) || new OffscreenCanvas(1, 1).getContext('webgl', at)); } catch { return false; }
+  });
+  await probe.close();
   const [gl, wa] = await Promise.all([run('webgl'), run('wasm')]);
   info(`webgl: ${gl.s} | wasm: ${wa.s}`);
   if (!hasGL) {
-    info('this browser has no WebGL (no graphics card, no software WebGL): the WebGL backend is not compared with WebAssembly');
+    info('this browser gives TensorFlow.js no WebGL (no graphics card: it draws in software only): the WebGL backend is not compared with WebAssembly');
     ok(/No TensorFlow\.js backend works/.test(gl.s) && /WebAssembly/.test(wa.s), `forced backends: WebAssembly ran, WebGL said it cannot (${gl.s})`);
   } else {
     ok(/WebGL/.test(gl.s) && /WebAssembly/.test(wa.s), 'forced backends ran (WebGL, WebAssembly)');

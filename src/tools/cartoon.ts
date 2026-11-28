@@ -3,12 +3,16 @@
 //    pencil sketch (B/W and colour), comic halftone. Instant; the save is computed again at full size with the same look.
 //  • AI art styles — Magenta arbitrary style transfer on TensorFlow.js (WebGL → WebAssembly → CPU), with built-in
 //    procedurally drawn "paintings" or any painting the user uploads; Strength blends from the photo's own style.
+//  • Anime looks (28 Nov 2026) — AnimeGAN v2's Hayao, Shinkai and Paprika and the face portrait v2, ONNX graphs on ONNX
+//    Runtime Web in a worker (src/lib/anime.ts, src/workers/anime.worker.ts); Strength mixes the drawing with the photo (imgproc).
 import { h, card, stack, note, actions, button, segmented, slider, field, downloadBlob, shareOrDownload, fmtBytes, baseName, toast, errMsg, type Mount } from '../ui';
 import { imgproc, type Img } from '../wasm/imgproc';
 import { encodeImg, loadImg, previewOf, paint, onWhite } from '../lib/imgio';
 import { imageInput, imagePicker } from '../lib/imgtools';
 import { ART_STYLES, artImage } from '../lib/style-art';
 import { styleEngine, styleVector, stylize, disposeStyleEngine } from '../lib/style-transfer';
+import { ANIME_STYLES, animeStyle, animeSide } from '../lib/anime';
+import { animeDraw } from '../lib/anime-client';
 import './cartoon.css';
 
 type Fx = 'cartoon' | 'oil' | 'watercolor' | 'sketch' | 'colorsketch' | 'comic';
@@ -53,7 +57,7 @@ const thumbOf = (img: Img, side: number) => { const c = document.createElement('
 export const mount: Mount = (root, ctx) => {
   const PREVIEW = ctx.isMobile ? 900 : 1200, SAVE_MAX = ctx.isMobile ? 2400 : 4000;
   let orig: Img | null = null, small: Img | null = null, thumb: Img | null = null, result: Img | null = null, name = 'photo';
-  let engine: 'filters' | 'ai' = 'filters', fx: Fx = 'cartoon', styleId = ART_STYLES[0].id, strength = 0.7;
+  let engine: 'filters' | 'ai' | 'anime' = 'filters', fx: Fx = 'cartoon', styleId = ART_STYLES[0].id, strength = 0.7;
   // the painting's size: the network paints strokes of a fixed size in pixels, so a larger painting has finer strokes
   // (to-do #16). Above WHOLE px it is painted in tiles (src/workers/style.worker.ts); never larger than the photo.
   const SIDES: Array<[string, string]> = ctx.isMobile ? [['1536', 'Fine'], ['1024', 'Medium'], ['512', 'Bold']] : [['4096', 'Finest'], ['2048', 'Fine'], ['1024', 'Medium'], ['512', 'Bold']];
@@ -75,6 +79,13 @@ export const mount: Mount = (root, ctx) => {
   let photoN = 0, resultKey = '', aiError = '', aiRunning = false, aiAgain = false, modelReady = false;
   const aiKey = () => `ai|${photoN}|${styleId}|${strength}|${aiSide}`;
   const sideFor = (img: Img) => Math.min(aiSide, Math.max(img.width, img.height));
+  // the anime looks: the size the photo is drawn at (larger: finer lines, longer), the look, how much of it over the photo
+  const ANIME_SIDES: Array<[string, string]> = ctx.isMobile ? [['1024', '1024 px'], ['768', '768 px'], ['512', '512 px']] : [['1536', '1536 px'], ['1024', '1024 px'], ['512', '512 px']];
+  let animeId = ANIME_STYLES[0].id, animeSize = ctx.isMobile ? 768 : 1024, animeStrength = 1;
+  let animeRunning = false, animeAgain = false, animeError = '';
+  /** the last drawing, kept so that Strength mixes it again without drawing anew */
+  let drawn: { key: string; img: Img; inp: Img; ms: number } | null = null;
+  const animeKey = () => `anime|${photoN}|${animeId}|${animeSize}|${animeStrength}`;
 
   // ---------------------------------------------------------------- rendering
   const render = async () => {
@@ -87,6 +98,31 @@ export const mount: Mount = (root, ctx) => {
         if (my !== tok) return;
         result = out; resultKey = `fx|${photoN}`; paint(out, canvas); canvas.dataset.n = String(++renders);
         status.textContent = `${FILTERS.find((f) => f[0] === fx)![1]} · ${Math.round(performance.now() - t0)} ms`;
+      } else if (engine === 'anime') {
+        // one drawing at a time, as the AI styles: a change meanwhile waits, and only the newest settings follow
+        if (animeRunning) { animeAgain = true; status.textContent = 'Drawing… (your new choice follows)'; return; }
+        animeRunning = true; animeError = '';
+        try {
+          const st = animeStyle(animeId), side = animeSide(st, orig!.width, orig!.height, animeSize), dkey = `${photoN}|${st.id}|${side}`, key = animeKey();
+          if (!drawn || drawn.key !== dkey) {
+            const inp = previewOf(orig!, side), at = Math.max(inp.width, inp.height);
+            status.textContent = `Drawing your photo in the ${st.name} look at ${at} px…`;
+            const r = await animeDraw(inp, st.id, (p) => {
+              if (my !== tok) return;
+              status.textContent = p.phase === 'fetch' ? `Fetching the ${st.name} look (${mb(p.done ?? 0)} of ${mb(p.total ?? st.bytes)} MB, once a visit)…` : `Drawing your photo in the ${st.name} look at ${at} px…`;
+            });
+            drawn = { key: dkey, img: { data: r.data, width: r.width, height: r.height }, inp, ms: r.ms }; // kept even when a newer choice came
+          }
+          if (my !== tok) return;
+          const d = drawn;
+          const out = animeStrength >= 1 ? d.img : await imgproc('compositeImg', d.img, new Uint8Array(d.img.width * d.img.height).fill(Math.round(animeStrength * 255)), d.inp);
+          if (my !== tok) return;
+          result = out; resultKey = key; paint(out, canvas); canvas.dataset.n = String(++renders);
+          status.textContent = `${st.name} · ${out.width}×${out.height} · ${(d.ms / 1000).toFixed(1)} s${animeStrength < 1 ? ` · ${Math.round(animeStrength * 100)} %` : ''}`;
+        } finally {
+          animeRunning = false;
+          if (animeAgain) { animeAgain = false; if (engine === 'anime') render(); }
+        }
       } else {
         // one painting at a time: a change while one is being painted waits for it, and only the newest settings follow
         // (each run takes seconds on WebAssembly; queuing every step of a slider made the last one minutes late)
@@ -115,9 +151,10 @@ export const mount: Mount = (root, ctx) => {
         }
       }
     } catch (e) {
-      if (my === tok) { status.textContent = `Could not apply the style: ${errMsg(e)}`; if (engine === 'ai') aiError = errMsg(e); }
+      if (my === tok) { status.textContent = `Could not apply the style: ${errMsg(e)}`; if (engine === 'ai') aiError = errMsg(e); if (engine === 'anime') animeError = errMsg(e); }
     }
   };
+  const mb = (n: number) => (n / 1e6).toFixed(1);
   const backendLabel = (b: string) => (b === 'webgl' ? 'the GPU (WebGL)' : b === 'wasm' ? 'WebAssembly' : 'the CPU');
   const styleName = (id: string) => ART_STYLES.find((s) => s.id === id)?.name || 'Your painting';
   const vectorFor = async (id: string) => {
@@ -188,10 +225,26 @@ export const mount: Mount = (root, ctx) => {
     note(`Finer strokes paint the photo larger — ${SIDES.map(([v, l]) => `${l} ${v} px`).join(', ')} (never above the photo's own size) — and take longer, minutes for Finest without a graphics card. The built-in styles are drawn by this page, not copied from real paintings.`));
   aiBox.hidden = true;
 
+  // ---------------------------------------------------------------- anime looks (their tiles: what each look makes of the coffee photo
+  // and the astronaut's face — public/data/anime, made by scripts/make-anime-reference.py; fetched when the mode is first opened)
+  const animeGrid = h('div', { class: 'fx-grid', role: 'radiogroup', 'aria-label': 'Anime look' });
+  const animeTiles = () => {
+    if (animeGrid.childElementCount) return;
+    animeGrid.append(...ANIME_STYLES.map((s) => h('button', { type: 'button', role: 'radio', 'aria-checked': String(s.id === animeId), class: ['fx-tile', s.id === animeId && 'on'], 'data-style': s.id, title: s.about,
+      onclick: () => { animeId = s.id; markOn(animeGrid, s.id); render(); } },
+      h('img', { src: new URL(`data/anime/${s.id}.jpg`, document.baseURI).href, alt: '', width: 160, height: s.layout === 'nchw512' ? 160 : 107 }), h('span', null, s.name))));
+  };
+  const animeSeg = segmented<string>(ANIME_SIDES, String(animeSize), (v) => { animeSize = +v; render(); });
+  const animeBox = stack(animeGrid,
+    slider({ label: 'Strength', min: 0, max: 100, step: 5, value: 100, unit: '%', onChange: (v) => { animeStrength = v / 100; render(); } }),
+    field('Size', animeSeg),
+    note(`Hayao, Shinkai and Paprika are AnimeGAN v2’s looks (Tachibana Yoshino — free for non-commercial use); the face portrait is bryandlee’s (MIT), made for a face and drawn at 512 px. Each look is fetched from this site the first time it is chosen (8.6 MB, once a visit). A larger size gives finer lines and takes longer — on a processor tens of seconds at 1024 px; Strength mixes the drawing with your photo.`));
+  animeBox.hidden = true;
+
   // ---------------------------------------------------------------- compare + save
   let comparing = false;
   const compare = button('Hold to compare', () => {}, { icon: 'Eye', small: true, variant: 'ghost', title: 'Show the original while pressed' });
-  const showOrig = (on: boolean) => { if (!small || comparing === on) return; comparing = on; on ? paint(engine === 'ai' && result ? previewOf(orig!, Math.max(result.width, result.height)) : small, canvas) : result && paint(result, canvas); };
+  const showOrig = (on: boolean) => { if (!small || comparing === on) return; comparing = on; on ? paint(engine !== 'filters' && result ? previewOf(orig!, Math.max(result.width, result.height)) : small, canvas) : result && paint(result, canvas); };
   compare.addEventListener('pointerdown', () => showOrig(true));
   for (const ev of ['pointerup', 'pointerleave', 'pointercancel', 'blur']) compare.addEventListener(ev, () => showOrig(false));
   // keyboard: hold Space or Enter on the focused button
@@ -202,28 +255,35 @@ export const mount: Mount = (root, ctx) => {
     if (!orig) throw new Error('Choose a photo first.');
     if (engine === 'ai' && resultKey !== aiKey())
       throw new Error(aiRunning || !aiError ? 'The painting is still being made — Save again when it is shown.' : `There is no painting to save: ${aiError}`);
+    if (engine === 'anime' && resultKey !== animeKey())
+      throw new Error(animeRunning || !animeError ? 'The drawing is still being made — Save again when it is shown.' : `There is no drawing to save: ${animeError}`);
     if (!result) throw new Error('The picture is still being made — a moment.');
     let out = result;
     if (engine === 'filters') {
       status.textContent = 'Making the full-size picture…';
       out = await applyFilter(previewOf(orig, SAVE_MAX), fx, o);
     }
-    const blob = await encodeImg(out, 'jpeg', 90), fname = `${name}-${engine === 'ai' ? styleName(styleId).toLowerCase().replace(/\W+/g, '-') : fx}.jpg`;
+    const look = engine === 'ai' ? styleName(styleId).toLowerCase().replace(/\W+/g, '-') : engine === 'anime' ? `anime-${animeId}` : fx;
+    const blob = await encodeImg(out, 'jpeg', 90), fname = `${name}-${look}.jpg`;
     status.textContent = `Saved ${fmtBytes(blob.size)} · ${out.width}×${out.height}`;
     share ? await shareOrDownload(blob, fname) : downloadBlob(blob, fname);
   };
 
   const input$ = imageInput((img, f) => {
     img = onWhite(img); // a see-through photo (a cut-out) on white: the filters and the network ignore transparency
-    orig = img; name = baseName(f.name); small = previewOf(img, PREVIEW); thumb = previewOf(img, 150); result = null; photoN++; resultKey = '';
+    orig = img; name = baseName(f.name); small = previewOf(img, PREVIEW); thumb = previewOf(img, 150); result = null; photoN++; resultKey = ''; drawn = null;
     editor.hidden = false; paint(small, canvas); drawFxTiles(); render();
   });
   showParams();
   editor.append(
     card(null, h('div', { class: 'ed-stage' }, canvas), h('div', { class: 'row' }, compare, status)),
     card('Style', stack(
-      segmented([['filters', 'Filters'], ['ai', 'AI art styles']], engine, (v) => { engine = v; filtersBox.hidden = v !== 'filters'; aiBox.hidden = v !== 'ai'; render(); }),
-      filtersBox, aiBox)),
+      segmented([['filters', 'Filters'], ['ai', 'AI art styles'], ['anime', 'Anime looks']], engine, (v) => {
+        engine = v; filtersBox.hidden = v !== 'filters'; aiBox.hidden = v !== 'ai'; animeBox.hidden = v !== 'anime';
+        if (v === 'anime') animeTiles();
+        render();
+      }),
+      filtersBox, aiBox, animeBox)),
     actions(button('Save', () => save(false), { variant: 'primary', icon: 'Download' }), ctx.isMobile ? button('Share', () => save(true), { icon: 'Share2' }) : null),
   );
   root.append(card(null, input$.el), editor);

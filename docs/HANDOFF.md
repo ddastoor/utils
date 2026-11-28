@@ -242,6 +242,11 @@ the 47 Software stub tabs (each with its own suite) first, then ask about potent
 - Router: same tab + changed own hash parameters → re-mounted (`?from=` ignored).
 
 ## 5. Traps already found
+- **Pages of several suites crash at once — look at the disk first** (28 Nov 2026): "Page crashed", "Target crashed", "The source
+  image could not be decoded", a file chooser that times out, the lazy-loading suite crashing alone — the session's disk allowance
+  was spent (`df -h /`: "Avail" near 0). Old builds in the scratchpad (650 MB each: delete the `dist-*` you no longer test) and uv's
+  cache from the offline voices (`uv cache clean`, 6 GB) were the bulk; `/tmp/python-build` (CPython's build, 0.8 GB) is worth keeping
+  while the Python tab may need a rebuild.
 - **The OCR tab and the Photo Dictionary write to the clipboard after every reading** (to-do #38, 28 Nov 2026), and the browser's
   clipboard is shared by every suite: a suite that reads pictures there and does not test the copy runs without clipboard leave
   (`clipboard-read` is a leave to write in Chromium); one that checks what the clipboard holds tries again when another suite's copy

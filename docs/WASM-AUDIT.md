@@ -1021,6 +1021,20 @@ One entry per tab, written before its bug hunt: our module → candidates → ch
   TensorFlow SavedModel, 5.9 MB; CC BY-NC-SA): an anime or cartoon look of their own, not finer painting; offered to the
   owner as new styles. Johnson's fast-style networks (one painting each) were not looked at again: the model zoo on GitHub
   is not reachable from this sandbox, and Magenta's network already paints any style.
+- **Anime looks (built 28 Nov 2026 — the owner's "finish off the small choices").** **ONNX Runtime Web 1.31** (Microsoft's
+  official WebAssembly build, on the site already) runs AnimeGAN v2's Hayao, Shinkai and Paprika generators and bryandlee's face
+  portrait v2 as ONNX graphs (vumichien's and akhaliq's conversions, the authors' weights), in a worker of their own. The
+  picture into the network and back — a scale per value, the edges repeated, the padding cut off — is **imgproc.wasm's C**
+  (`p_anime_in`, `p_anime_out`, own code beside the existing module, as PaddleOCR's `p_net_planes` and U²-Net's `p_u2_planes`):
+  single precision, so the values are numpy's float32 arithmetic of the looks' own code exactly (the unit suite checks every
+  value of a random picture). The mix with the photo (Strength) is imgproc's composite. **Candidates looked at:** TF.js (the
+  looks' original TensorFlow checkpoints) — ONNX Runtime Web already runs four of the app's networks and the conversions are
+  published; AnimeGAN v3 (JP face, portrait sketch) — not added: v2's three looks and its face portrait are the ones offered.
+  **Found:** ONNX Runtime Web's InstanceNormalization is less exact than native ONNX Runtime's over very large groups — the
+  face portrait's export normalises each layer over all its 8.4 million values at once (a 512 × 512 picture), and its first
+  layer comes out 0.4 % off (its input agrees to 1.7e-5): the picture a few steps of 255 off at most (the scene looks' layers are
+  smaller and agree to a step of rounding). Not a fault the tab can mend from outside; within what the eye cannot see, and the
+  suites hold it there (unit: largest 8, mean below 1; e2e: 20 px blocks of the whole photo within 1.5 on average).
 
 ### 116. `redact` — Blur & Redact (20 Nov 2026)
 - **Engines:** MediaPipe Tasks 1.2.3 Face Detector with BlazeFace short range (Google's build, the latest — the one

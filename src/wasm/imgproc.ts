@@ -385,6 +385,17 @@ export function bindImgproc(e: any) {
       const s = e.p_malloc(prob.length * 4), o = e.p_malloc(prob.length);
       try { new Float32Array(mem(), s, prob.length).set(prob); e.p_u2_mask(s, prob.length, o); return new Uint8Array(mem().slice(o, o + prob.length)); } finally { e.p_free(s); e.p_free(o); }
     },
+    /** AnimeGAN v2's input (p_anime_in; the Cartoonizer's anime looks): RGB as v / 127.5 − 1, the last row and column repeated to
+     *  W × H; NHWC, or planes R, G, B (`nchw`: the face portrait) */
+    animeIn(img: Img, W: number, H: number, nchw: boolean): Float32Array {
+      const s = put(img.data), o = e.p_malloc(W * H * 12);
+      try { e.p_anime_in(s, img.width, img.height, W, H, nchw ? 1 : 0, o); return new Float32Array(mem().slice(o, o + W * H * 12)); } finally { e.p_free(s); e.p_free(o); }
+    },
+    /** its output (W × H, NHWC or planes) → the w × h picture (p_anime_out): (v + 1) × 127.5 held to 0 … 255, truncated */
+    animeOut(out: Float32Array, W: number, H: number, nchw: boolean, w: number, h: number): Img {
+      const s = e.p_malloc(out.length * 4), o = e.p_malloc(w * h * 4);
+      try { new Float32Array(mem(), s, out.length).set(out); e.p_anime_out(s, W, H, nchw ? 1 : 0, w, h, o); return { data: new Uint8ClampedArray(mem().slice(o, o + w * h * 4)), width: w, height: h }; } finally { e.p_free(s); e.p_free(o); }
+    },
     histogram(img: Img) { const s = put(img.data), o = e.p_malloc(4096); try { e.p_histogram(s, n(img), o); return new Uint32Array(mem().slice(o, o + 4096)); } finally { e.p_free(s); e.p_free(o); } },
     /** The views of a scrolling screenshot, w × h each, placed against the one kept before (p_scroll_match; to-do #28).
      *  Two frames and their row signatures stay in the module's memory: `first` and `keep` say which is the reference. */

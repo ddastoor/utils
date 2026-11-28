@@ -33,8 +33,9 @@ export default async ({ base, page: newPage, ok, tmp, devices, info }) => {
     });
     return {
       got,
-      /** wait (at most `ms`) until `k` files have come in all; then wait `settle` more to see that no other comes */
-      async upTo(k, ms = 9000, settle = 0) {
+      /** wait (at most `ms`) until `k` files have come in all; then wait `settle` more to see that no other comes (20 s: a file is
+       *  1.5 s after the change, but a machine busy with other suites — the Windows check, run 20 — once took more than 9) */
+      async upTo(k, ms = 20000, settle = 0) {
         const t0 = Date.now();
         while (got.length < k && Date.now() - t0 < ms) await p.waitForTimeout(100);
         if (settle) await p.waitForTimeout(settle);
@@ -81,7 +82,7 @@ export default async ({ base, page: newPage, ok, tmp, devices, info }) => {
   await go(pc, 'c/text', '.tile-star');
   const stars = pc.locator('.tile-star');
   for (const k of [1, 2, 3]) await stars.nth(k).click();
-  got = await F.upTo(2, 9000, 2500);
+  got = await F.upTo(2, 20000, 2500);
   ok(got.length === 2, `three stars in a row: one file after the last (${got.length - 1})`);
   const four = got[1]?.json?.settings?.favorites ?? [];
   ok(four.length === 4 && four[0] === 'wordcount', `… holding all four favorites (${four.join(', ')})`);
@@ -128,7 +129,7 @@ export default async ({ base, page: newPage, ok, tmp, devices, info }) => {
   await crs.nth(2).selectOption('34');
   await crs.nth(1).selectOption('1.2');
   await pc.locator('#settings-camreader label.switch').click();
-  got = await F.upTo(8, 9000, 2000);
+  got = await F.upTo(8, 20000, 2000);
   ok(got.length === 8 && JSON.stringify(got[7]?.json?.settings?.camreader) === '{"voice":"af_heart","speed":"1.2","size":34,"auto":false}', `three changes on the Settings page: one file with all three (${JSON.stringify(got[7]?.json?.settings?.camreader)})`);
   const voiceAsked = [], onReq = (r) => { if (/kokoro|piper|tts\.worker|onnx/i.test(r.url())) voiceAsked.push(r.url()); };
   pc.on('request', onReq);
@@ -161,7 +162,7 @@ export default async ({ base, page: newPage, ok, tmp, devices, info }) => {
   const eb = pc.locator('#settings-ebook select');
   await eb.nth(3).selectOption('sepia');
   await eb.nth(1).selectOption('24');
-  await F.upTo(12, 9000, 2000);
+  await F.upTo(12, 20000, 2000);
   await go(pc, 'ebook', 'input[type=file]');
   await pc.locator('input[type=file]').first().setInputFiles(BOOK);
   await pc.waitForFunction(() => /^Pages? \d+/.test(document.querySelector('.ebr-where')?.textContent || ''), null, { timeout: 60000 });
@@ -193,7 +194,7 @@ export default async ({ base, page: newPage, ok, tmp, devices, info }) => {
   ok((await pc.locator('#settings-spell .st-words li span').allInnerTexts()).includes('qwyzx'), 'the Settings page lists the word');
   await pc.getByRole('button', { name: 'Take “qwyzx” out of your words' }).click();
   await pc.locator('#settings-spell select').selectOption('en-GB');
-  got = await F.upTo(15, 9000, 2000);
+  got = await F.upTo(15, 20000, 2000);
   ok(JSON.stringify(got[14]?.json?.settings?.spell) === '{"lang":"en-GB","added":[]}', `taken out and the language chosen on the page: one file (${JSON.stringify(got[14]?.json?.settings?.spell)})`);
   await go(pc, 'spell', '.sp-text');
   ok((await pc.getByLabel('Language').inputValue()) === 'en-GB', 'the Spell Checker opens in that language');
@@ -211,7 +212,7 @@ export default async ({ base, page: newPage, ok, tmp, devices, info }) => {
   ok((await pc.locator('#settings-worldclock .st-cities').innerText()).includes('Toronto'), 'the Settings page lists its cities');
   await pc.getByRole('button', { name: 'Take Toronto off the list' }).click();
   await pc.locator('#settings-worldclock select').selectOption('24');
-  got = await F.upTo(17, 9000, 2000);
+  got = await F.upTo(17, 20000, 2000);
   const wc = got[16]?.json?.settings?.worldclock;
   ok(wc?.h24 === true && wc?.cities?.length === 10 && !wc.cities.includes('toronto-ca'), `a city taken out and 24 hours chosen on the page: one file (${JSON.stringify(wc)})`);
   await go(pc, 'worldclock', '.wc-card');
@@ -261,7 +262,7 @@ export default async ({ base, page: newPage, ok, tmp, devices, info }) => {
   ok((await pc.locator('#settings-tts select').inputValue()) === 'bm_george' && (await pc.locator('#settings-tts input[type=range]').inputValue()) === '0.75', 'the voice and speed are the file\'s');
   ok((await pc.locator('#settings-worldclock select').inputValue()) === '12' && (await pc.locator('#settings-worldclock .st-cities li').count()) === 2, 'the World Clock\'s cities and clock are the file\'s');
   ok((await pc.locator('#settings-camreader select').nth(2).inputValue()) === '40', 'a section the file does not hold is left as it was');
-  got = await F.upTo(k0 + 1, 9000, 2000);
+  got = await F.upTo(k0 + 1, 20000, 2000);
   ok(got.length === k0 + 1 && got[k0].json?.settings?.tts?.voice === 'bm_george', 'the import is a change: one settings file after it');
   // files that are no settings files
   const bad1 = join(tmp, 'other.json'), bad2 = join(tmp, 'broken.json');
@@ -336,7 +337,16 @@ export default async ({ base, page: newPage, ok, tmp, devices, info }) => {
     ok(FF.got.length === 1 && FF.got[0].json?.settings?.tts?.speed === 1, `${label}: ${normal ? '"Download the files instead" — ' : ''}the next file is downloaded`);
   };
   const fo = await newPage({ viewport: { width: 1100, height: 900 }, settingsFiles: true });
-  await folderRun(fo, false, 'a private window');
+  // what the page can know of the window (src/lib/settingsfile.ts, privateWindow(): a quota below twice the script heap's limit). The
+  // suite's pages are private windows, but a browser may not show it: Google Chrome on GitHub's Windows runner gave its private window
+  // the folder back after a reload without closing (the Windows check, run 20). Where the browser does not show it, the window is
+  // treated as a normal one — and the handle read back from IndexedDB must then not close the browser
+  await fo.goto(base);
+  const seen = await fo.evaluate(async () => { const { quota } = await navigator.storage.estimate(); return { quota, heap: performance.memory?.jsHeapSizeLimit, ua: navigator.userAgent.match(/Chrome\/[\d.]+/)?.[0] }; });
+  const shown = !seen.quota || seen.quota < 2 * (seen.heap || 2 ** 30), gb = (n) => (n / 2 ** 30).toFixed(2);
+  info(`the private window (${seen.ua}): quota ${gb(seen.quota)} GiB, script heap ${gb(seen.heap)} GiB — ${shown ? 'the browser shows it is private' : 'the browser does not show it is private: treated as a normal window'}`);
+  await fo.goto('about:blank'); // the folder's stand-in is put in by an init script: the Settings page must be a new document
+  await folderRun(fo, !shown, shown ? 'a private window' : 'a private window the browser does not show as one');
   ok(!fo.errors.length, `no page errors in the private window ${fo.errors.join(' | ')}`);
   const { chromium } = createRequire(import.meta.url)('playwright');
   const profile = mkdtempSync(join(tmp, 'profile-'));
@@ -362,7 +372,8 @@ export default async ({ base, page: newPage, ok, tmp, devices, info }) => {
     await ax.reload(); await ax.goto(`${base}#/settings`);
     await ax.locator('#settings-worldclock .st-cities li').nth(1).waitFor({ timeout: 10000 });
     if (!(await ax.evaluate(() => !!window.axe))) await ax.addScriptTag({ content: AXE });
-    const v = await ax.evaluate(async (tags) => (await window.axe.run(document, { runOnly: { type: 'tag', values: tags }, resultTypes: ['violations'] })).violations.map((x) => `${x.id}: ${x.nodes.slice(0, 2).map((m) => m.target.join(' ')).join(', ')}`), TAGS);
+    // a contrast failure names its colours (axe's data): what the browser drew is not seen here
+    const v = await ax.evaluate(async (tags) => (await window.axe.run(document, { runOnly: { type: 'tag', values: tags }, resultTypes: ['violations'] })).violations.map((x) => `${x.id}: ${x.nodes.slice(0, 2).map((m) => { const d = m.any?.[0]?.data; return m.target.join(' ') + (d?.contrastRatio ? ` (${d.fgColor} on ${d.bgColor}: ${d.contrastRatio} : 1, ${d.fontSize} ${d.fontWeight})` : ''); }).join(', ')}`), TAGS);
     ok(!v.length, `${scheme} theme: no WCAG 2.2 A / AA violation on the Settings page ${v.join(' | ')}`);
   }
 

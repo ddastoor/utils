@@ -26,6 +26,7 @@ const base = server.resolvedUrls.local[0];
 // E2E_CHROME_ARGS adds browser flags (e.g. "--enable-logging=stderr --v=0", read with DEBUG=pw:browser to see why a page crashed)
 const browser = await chromium.launch({ ...(process.env.E2E_CHANNEL ? { channel: process.env.E2E_CHANNEL } : {}), args: ['--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream', '--auto-accept-this-tab-capture', ...(process.env.E2E_CHROME_ARGS || '').split(' ').filter(Boolean)] });
 const tmp = mkdtempSync(join(tmpdir(), 'superutils-e2e-'));
+console.log(`browser: ${process.env.E2E_CHANNEL || 'headless shell'} ${browser.version()}`);
 
 const files = readdirSync(join(here, 'e2e')).filter((f) => f.endsWith('.e2e.mjs') && (!filters.length || filters.some((x) => f.includes(x)))).sort();
 const queue = [...files], results = [];
