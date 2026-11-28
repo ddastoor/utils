@@ -28,7 +28,7 @@ the Cartoonizer's WebGL probe (TF.js's context is refused where Chrome draws in 
 (the colours are named now), two waits under load; docs/BUGHUNT.md "Windows check, run 20"; **run 21** (the changed suites, the
 anime looks, Python, lazy loading) **1,346 / 1,346** — its notes: Chrome 158 shows no private window (the Settings page then treats it
 as a normal one; no crash on Windows), the contrast failure was a 150 ms fade measured half-way (axe waits now). **Next:** the new
-"Linux Chrome check" (`.github/workflows/linux-chrome.yml`) with `settings.` — does Chrome 158 on Linux close itself when a private
+Linux Chrome job (the Windows check with `linux: true`) with `settings.` — does Chrome 158 on Linux close itself when a private
 window reads the folder back (Chromium 153 does)? If it does, the Settings page needs another way; then the owner's pick from
 docs/potentials.md.
 **▶▶ 27 Nov 2026 — DONE: the owner's "Go ahead with all items in todo" (to-do #33 – #36), each committed and pushed:**

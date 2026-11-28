@@ -3542,8 +3542,9 @@ Found while building it (unit `worldclock` 39, e2e `worldclock` 55):
 lazy loading, the OCR copy). What its notes showed:
 - **Chrome 158 does not show a private window** (quota 10 GiB, the same as a normal profile's; script heap 4 GiB): the Settings page
   treats it as a normal window — the folder is stored in IndexedDB and read back after a reload, and Chrome 158 on Windows did not close
-  itself (Chromium 153 on Linux does). Whether Chrome 158 on Linux does: the "Linux Chrome check" (`.github/workflows/linux-chrome.yml`,
-  new — the newest stable Chrome of GitHub's Ubuntu runner).
+  itself (Chromium 153 on Linux does). Whether Chrome 158 on Linux does: the Windows check with `linux: true` (a job of its own, new — the
+  newest stable Chrome of GitHub's Ubuntu runner; a workflow of its own could not be run by hand from main: GitHub takes the list of
+  such workflows from the default branch).
 - **The dark-theme contrast failure was a transition half-way:** the "All" tab fades out of its "on" colours over 150 ms when the
   page leaves the start page in the same document; axe measured `#8a92a0 on #262a41` (4.49 : 1). The suite waits for the page's
   transitions to end before axe now (a fresh document has none; the sweep waits 500 ms).
