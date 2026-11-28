@@ -50,7 +50,7 @@ based on common implementation … make the suggestions". The site then: **563.5
 4. **Camera helpers** (the OCR and the QR tab's writers; ≈ 0 MB): 89 Visiting Card → Contact · 88 Router Sticker → Wi-Fi QR ·
    77 Paper Deadlines → Calendar · 78 Bill Splitter by Photo · 81 Camera Reader.
 **Groups 2 – 4 picked by the owner, 27 Nov 2026 ("Okay, go for it. Build out all the groups, all the remaining groups in
-whichever order you feel best") — being built (docs/RESUME.md); built: 84 Number Detective (the tab `numcheck`, 27 Nov 2026), 61 PDF Redact (the tab `pdf-redact`, 27 Nov 2026), 93 Safe ID Copy (the tab `idcopy`, 27 Nov 2026), 3 Make PDF Searchable (the tab `pdf-ocr`, 27 Nov 2026), 15 PDF Compare (the tab `pdf-compare`, 27 Nov 2026), 16 PDF Tables → Excel (the tab `pdf-tables`, 27 Nov 2026) — group 2 is done; group 4: 88 Router Sticker → Wi-Fi QR (the tab `wifiqr`, 27 Nov 2026), 89 Visiting Card → Contact (the tab `visitcard`, 28 Nov 2026), 77 Paper Deadlines → Calendar (the tab `deadlines`, 28 Nov 2026), 78 Bill Splitter by Photo (the tab `billsplit`, 28 Nov 2026), 81 Camera Reader (the tab `camreader`, 28 Nov 2026) — group 4 is done; group 3: 73 World Clock (the tab `worldclock`, 28 Nov 2026), 10 Spell Checker (the tab `spell`, 28 Nov 2026; measured 1.8 MB), 1 Image to SVG and 117 Clipart Maker (the tabs `tosvg` and `clipart`, 28 Nov 2026; measured 4.9 MB — the cut-out model 4.6 MB), 75 SliceDiceGrapher with 25 Chart Maker in it (the tab `slicedice`, 28 Nov 2026; measured 4.2 MB — Perspective 3.3 MB, ECharts 0.7 MB; the site 578.8 MB).** All four: about 620 MB of the 1 GB. Held back for now: the large models (5 Vocal Remover 180 MB, 67 Object Eraser 208 MB,
+whichever order you feel best") — being built (docs/RESUME.md); built: 84 Number Detective (the tab `numcheck`, 27 Nov 2026), 61 PDF Redact (the tab `pdf-redact`, 27 Nov 2026), 93 Safe ID Copy (the tab `idcopy`, 27 Nov 2026), 3 Make PDF Searchable (the tab `pdf-ocr`, 27 Nov 2026), 15 PDF Compare (the tab `pdf-compare`, 27 Nov 2026), 16 PDF Tables → Excel (the tab `pdf-tables`, 27 Nov 2026) — group 2 is done; group 4: 88 Router Sticker → Wi-Fi QR (the tab `wifiqr`, 27 Nov 2026), 89 Visiting Card → Contact (the tab `visitcard`, 28 Nov 2026), 77 Paper Deadlines → Calendar (the tab `deadlines`, 28 Nov 2026), 78 Bill Splitter by Photo (the tab `billsplit`, 28 Nov 2026), 81 Camera Reader (the tab `camreader`, 28 Nov 2026) — group 4 is done; group 3: 73 World Clock (the tab `worldclock`, 28 Nov 2026), 10 Spell Checker (the tab `spell`, 28 Nov 2026; measured 1.8 MB), 1 Image to SVG and 117 Clipart Maker (the tabs `tosvg` and `clipart`, 28 Nov 2026; measured 4.9 MB — the cut-out model 4.6 MB), 75 SliceDiceGrapher with 25 Chart Maker in it (the tab `slicedice`, 28 Nov 2026; measured 4.2 MB — Perspective 3.3 MB, ECharts 0.7 MB; the site 578.8 MB), 54 Diagram Editor (the tab `diagram`, 28 Nov 2026; draw.io 32.7.7, measured 52.9 MB in 2,719 files — PlantUML's own converter, client-side, kept; the site 631.7 MB) — group 3 is done.** All four: about 620 MB of the 1 GB. Held back for now: the large models (5 Vocal Remover 180 MB, 67 Object Eraser 208 MB,
 22 LaTeX ≈ 175 MB), 4 Document Converter (58.6 MB), and the niche PC tools. The size check of the rule is made again,
 measured, for each app the owner picks.
 
@@ -91,7 +91,7 @@ from the sandbox (GitHub is not reachable there): measure it before building.
   Lua 0.5, Ruby + 30.6, PHP + ≈ 50 (its ICU data alone 30.8), C + ≈ 70 (est.) · 39 Image Converter 16.3 (ImageMagick) ·
   40 Panorama ≈ 10 – 15 (own OpenCV build with stitching, est.; opencv.js without it is 13.3) · 43 MIDI → MP3 ≈ 9 – 33
   (FluidSynth 2.4 + a SoundFont, est.) · 46 3D → STL 11.1 (OpenSCAD) · 49 R Console 48.7 (webR) · 54 Diagram Editor 49.5
-  (draw.io 32.7.4, measured; 42.2 without templates and maths) · 55 Cut Out Anything 13.8 (SlimSAM, quantized; SAM 2.1 tiny 33.1) + Transformers.js ≈ 1 – 2 ·
+  (draw.io 32.7.4, measured; 42.2 without templates and maths; built 28 Nov 2026 with 32.7.7 and PlantUML's converter: 52.9) · 55 Cut Out Anything 13.8 (SlimSAM, quantized; SAM 2.1 tiny 33.1) + Transformers.js ≈ 1 – 2 ·
   56 Flash Player 15.3 (Ruffle) · 58 Map Converter 40 (GDAL: 28.2 + 11.6 data) · 59 Retro DOS ≈ 8 – 18 (js-dos) · U2 Full
   Python ≈ 45 (Pyodide 13.9 measured + numpy / pandas / matplotlib, est.) · U7 PROJ ≈ 12 (est., with its database) · 104 Typst
   Studio ≈ 15 (the compiler + its fonts, est.) · 108 Audio Editor ≈ 10 – 20 (Wavacity, est.).
@@ -188,56 +188,8 @@ from the sandbox (GitHub is not reachable there): measure it before building.
 ### Asked about by the owner (16 Nov 2026)
 | # | New tab | Open-source project | Engine | Platform | Status |
 |---|---|---|---|---|---|
-| 54 | **Diagram Editor** (owner, 26 Nov 2026: **"a Draw.io clone app - pc only with standard diagram shapes, uml, flowcharts etc"** — asked for again, the same tab: draw.io's own shape libraries hold the standard shapes (General, Basic, Arrows, Flowchart, UML, Entity Relation, BPMN, network, floor plans, cloud …), so hosting draw.io itself gives every one of them and its file format; owner, 20 Nov 2026: "keep 54 in potentials.md (don't build it yet)"; **owner, 21 Nov 2026: "Even if it's JavaScript for this particular one, it's okay. Don't change the rule, but for this particular draw.io one, if there's already a JavaScript library out there, it's fine"** — an exception for this tab only, STANDING RULE #1 unchanged; **measured 21 Nov 2026** on the official build of draw.io **32.7.4** (17 Nov 2026; the unpacked draw.war of the project's own Docker image `jgraph/drawio`): 125.7 MB in 3,136 files, of which the editor needs **49.5 MB (2,714 files)** — app.min.js 11.1, the shape libraries (stencils.min.js 3.9, shapes 1.5 + 2.4, icons 6.8, sidebar pictures 6.4), extensions (imports / exports) 4.8, templates 5.1, MathJax 2.1, Mermaid / ELK / libavoid 2.7, English only (0.17); left out: the cloud-integration bundle integrate.min.js 21.0, the viewers 16.4, the unminified sources 18.7, 60 other languages 12.1, the Java server parts 5.0, PlantUML (needs a server), collaboration; opening the editor fetches about 5.7 MB over the wire (gzip), imports and exports 1.2 MB more when used; the site 512 → ≈ 562 MB of 1 GB, nothing to remove; draw.io has the switches `embed=1&proto=json`, `lockdown=1` and `stealth=1`; checked that day: the draw.io repository's LICENSE is Apache-2.0; its engine mxGraph (JS) is archived, the TypeScript successor is maxGraph 0.25.1, Apache-2.0 — self-hosting the draw.io app is the recommended route): flowcharts, org charts, network / UML / BPMN diagrams, floor plans; open and save `.drawio` files, export PNG / SVG (PDF via our MuPDF if the web build's PDF export needs a server) | the real draw.io web app (`jgraph/drawio`), self-hosted — not a clone | JavaScript (mxGraph) — no compiled diagram editor exists (tier 4, record in §3a); runs in an iframe page with its own CSP, driven by draw.io's embed (postMessage) protocol so files stay on the device; cloud integrations and browser storage switched off; the no-external test must see zero outside requests | **PC only** (owner, 21 Nov 2026: "draw.io is obviously a PC-only app") | waiting |
 
-**Legal notes for #54 (checked 16 Nov 2026, primary sources):** the repository's `LICENSE` file is the plain Apache
-License 2.0 and its README says "The source code in this repository is licensed under the Apache License 2.0" and even
-suggests publishing a fork on GitHub Pages. (A secondary source claims a 2024 switch to a "JGraph Adapted Apache
-License"; the current LICENSE file does not show it. Re-read the LICENSE of the exact pinned version before vendoring.)
-Conditions: ship the Apache licence, mark modified files, keep notices; **trademarks** — do not use the draw.io name or
-logo as our tab's name/branding or imply endorsement (the tab is "Diagram Editor"; the credits may say where the code
-comes from, which Apache §6 allows); the icon/stencil restriction only concerns Atlassian products; vendor only shape
-libraries whose licences allow redistribution. Overlaps #21 (Excalidraw, sketch style) and the planned Mermaid tab
-(text → diagram); draw.io is the formal drag-and-drop editor. **Owner (16 Nov 2026): keep #21 Excalidraw as well** — they
-are separate candidates, not alternatives.
-
-**#54 draw.io — the owner's question and the answer (21 Nov 2026; the owner: "add draw.io to potentials.md along with
-whatever you said about it").** Owner: "Is there already a draw.io library built out? Already WebAssembly? how easy would
-it be to use an already built out library for draw.io into a new app. Even if it's JavaScript for this particular one,
-it's okay. Don't change the rule, but for this particular draw.io one, if there's already a JavaScript library out there,
-it's fine."
-- **No WebAssembly version exists.** draw.io is JavaScript through and through (its own maintained fork of mxGraph), and
-  no comparable diagram editor exists in WebAssembly. Under the owner's exception for this tab, that is fine.
-- **Nothing like it has to be built.** draw.io itself is open source (Apache-2.0, `jgraph/drawio`), and the complete
-  editor that diagrams.net runs can be served as plain files from our site (its README suggests publishing a copy on
-  GitHub Pages). Its drawing library alone — maxGraph 0.25.2 (TypeScript, Apache-2.0), the successor of the archived
-  mxGraph — would mean rebuilding draw.io's whole editor by hand, so the real draw.io is the way.
-- **How easy: fairly easy, because draw.io is made to be embedded.** It runs in a frame inside the tab (its embed mode,
-  `embed=1&proto=json`) and hands the diagram back to our page through postMessage, so files never leave the device.
-  Its own switches turn off cloud storage (Google Drive, OneDrive, Dropbox, GitHub …), its servers, live collaboration
-  and storage in the browser (`lockdown=1`, `stealth=1`; both present in 32.7.4). The work is locking it down and testing
-  it, not building an editor: a pinned, checksummed copy served from our site (no CDN), the frame page's own strict
-  Content-Security-Policy (code only from our site), no service worker, English only, and a test that sees no outside
-  request at all. Open / save `.drawio`, import Visio (`.vsdx`) and Gliffy, export PNG / SVG all work in the browser;
-  draw.io's web PDF export goes through its own server, so PDF would come from our MuPDF (or the browser's print to
-  PDF). Roughly one to two days of work with its tests.
-- **Size (owner's rule), measured on the newest official build, 32.7.4 of 17 Nov 2026** (the release file draw.war is
-  48.8 MB; unpacked from draw.io's official Docker image `jgraph/drawio`): the whole web app 125.7 MB in 3,136 files; the
-  editor needs **49.5 MB** (2,714 files), 42.2 MB without the templates and the maths typesetting. The site would go from
-  512 MB to about **562 MB** of the 1 GB limit — nothing has to be removed. Opening the tab downloads about 5.7 MB
-  (gzip: app.min.js 2.57, stencils 2.93, shapes 0.19); imports and exports fetch about 1.2 MB more, only when used.
-- Sources: github.com/jgraph/drawio (README, LICENSE), its releases page (draw.war of v32.7.4), Docker Hub
-  `jgraph/drawio` (the layer that unpacks draw.war, measured file by file).
-- **Stateless, like the whole site (owner, 21 Nov 2026: "since it's this whole site is stateless … every time an edit
-  has to be made to a file, if it's an existing file, it has to be uploaded to the app, changes made, and then downloaded
-  again. So you should have that functionality"):** the tab keeps nothing between visits — draw.io's own drafts,
-  recent files and settings in browser storage are switched off. Editing an existing diagram = **Open** it from the
-  device (`.drawio`, `.xml`, Visio `.vsdx`, Gliffy, or a PNG / SVG that carries its diagram), edit, **Download** it again
-  (`.drawio` under its own name, or PNG / SVG / PDF). PNG and SVG can be saved **editable** (draw.io puts the diagram
-  inside the picture), so one file is both the picture and the thing to open again next time. A change not yet
-  downloaded is warned about before the tab or the page is left (nothing would keep it).
-- **PC only** (owner, 21 Nov 2026: "note that draw.io is obviously a PC-only app") — hidden on phones like the other PC-only tabs.
-- **Asked for again on 26 Nov 2026** ("a Draw.io clone app - pc only with standard diagram shapes, uml, flowcharts etc"): this entry — not a second one. A clone would have to redraw draw.io's thousands of shapes by hand; draw.io's own open-source editor (Apache-2.0), hosted on the site under our own name, has them all.
+**#54 Diagram Editor — built 28 Nov 2026** (the tab `diagram`; CLAUDE.md §3 "Diagram Editor"): its legal notes, the owner's question and its answer, the size check and the stateless plan were here; what was built follows them (the licence of v32.7.7 read again: plain Apache 2.0; the tab is called "Diagram Editor", not draw.io; draw.io's own loading logo left out of its page).
 - **Not to be built until the owner says so** (the size rule).
 
 ### Need the owner's approval of a new data-API host (like the dictionary APIs)

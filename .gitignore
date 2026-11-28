@@ -5,6 +5,7 @@ public/vendor/
 *.log
 wasm/**/.build/
 public/models/
+public/drawio/
 wasm/sheet/target/
 wasm/devcore/target/
 wasm/svgo/target/

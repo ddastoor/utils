@@ -2041,3 +2041,19 @@ Looked at first (STANDING RULE #1):
   read in TS (`pasteTables`: the value behind a cell — string glue); the zip by fflate (on the site).
 - **Decision:** Perspective, mathcore for the box plot, ECharts, sheet.wasm — 4.2 MB more on the site.
 
+
+### 203. `diagram` — Diagram Editor (28 Nov 2026; potentials #54)
+- **What it needs:** a complete diagram editor — draw.io's standard shape libraries (General, Flowchart, UML, ER, BPMN, network, cloud,
+  floor plans …), its file format, Visio and Gliffy import, editable PNG / SVG, PDF.
+- **Looked at:** no compiled diagram editor exists, in WebAssembly or otherwise; draw.io's drawing library alone — mxGraph (archived) or
+  its TypeScript successor maxGraph 0.25 (Apache-2.0) — would mean rebuilding draw.io's editor by hand. **The owner's exception for this
+  tab** (21 Nov 2026: "Even if it's JavaScript for this particular one, it's okay. Don't change the rule, but for this particular draw.io one,
+  if there's already a JavaScript library out there, it's fine"): **draw.io 32.7.7 itself** (Apache-2.0), JavaScript, hosted whole —
+  rule 3, written in CLAUDE.md §3a.
+- **Its own WebAssembly:** none in the parts used (libavoid, the orthogonal router, is shipped by draw.io as pure JavaScript built with
+  Emscripten's wasm2js — "it runs under any script-src"); PlantUML is converted to shapes by draw.io's own client-side converter.
+- **Ours around it (rule 3 glue):** `src/lib/diagramfile.ts` — what a file is by its first bytes, the diagram in a PNG's text chunk (a walk
+  over its chunks; a zTXt one inflated by the browser's DecompressionStream) or an SVG's content attribute, names; the editor is driven by
+  its own postMessage protocol.
+- **Decision:** draw.io 32.7.7 from its release war (pinned by SHA-256, fetched at build time by `scripts/fetch-drawio.mjs` — never at run
+  time), 52.9 MB on the site, in its own page under a strict Content-Security-Policy.

@@ -1,0 +1,17 @@
+/* Diagram Editor (src/tools/diagram.ts): the bar, then the editor filling the window below the sticky rows */
+.dg { display: flex; flex-direction: column; gap: 8px; }
+.dg-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; padding: 6px 8px; border: 1px dashed transparent; border-radius: var(--radius-sm, 8px); }
+.dg-bar.over { border-color: var(--accent); background: var(--accent-soft); }
+.dg-group { display: flex; flex-wrap: wrap; gap: 6px; }
+.dg-namefield { display: flex; align-items: center; gap: 6px; flex: 1 1 14rem; min-width: 12rem; max-width: 26rem; }
+.dg-namelabel { font-weight: 600; }
+.dg-name { flex: 1; min-width: 0; }
+.dg-ext { color: var(--muted); }
+.dg-status { color: var(--muted); display: inline-flex; align-items: center; gap: 6px; min-height: 24px; }
+.dg-status .ic, .dg-dirty .ic { width: 16px; height: 16px; vertical-align: -3px; margin-right: 4px; }
+.dg-dirty { color: var(--warn); font-weight: 600; }
+.dg-wrap { height: calc(100dvh - var(--navh, 0px) - 96px); min-height: 520px; border: 1px solid var(--border); border-radius: var(--radius-sm, 8px); overflow: hidden; background: var(--surface); }
+.dg-frame { display: block; width: 100%; height: 100%; border: 0; }
+.dg-about { color: var(--muted); }
+.dg-about > summary { cursor: pointer; font-weight: 600; min-height: 44px; display: flex; align-items: center; color: var(--text); }
+.dg-about li { margin: 4px 0; }

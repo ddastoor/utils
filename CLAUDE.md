@@ -76,9 +76,10 @@ that affects it.
 > 2. Give the new total against GitHub Pages' **1 GB cap for a published site** (20 Nov 2026, after Speech to Text was removed: **512 MB**, 488 MB of room — `du -sb
 >    dist` after `npm run build`, in bytes: 1 GB is read as 10⁹ bytes; `du -sh` shows MiB), and for a large model the 100 GB / month soft bandwidth limit.
 > 3. Name what could be removed to make room, when room is short — an app, or a big model of one (the biggest today:
->    Text-to-Speech's voices 167 MB — Kokoro 94 MB + Piper 73 MB; Code Formatter's Biome 67 MB; Photo Dictionary's
->    data 34 MB; FFmpeg 31 MB; PaddleOCR, the OCR's second reader, 31 MB; Tesseract 27 MB; ExifTool 24 MB). 26 Nov 2026,
->    with PaddleOCR: **555 MB**; with the Noise Remover's Studio voice (DeepFilterNet 3, 8.6 MB): **563 MB**.
+>    Text-to-Speech's voices 167 MB — Kokoro 94 MB + Piper 73 MB; Code Formatter's Biome 67 MB; the Diagram Editor's
+>    draw.io 53 MB; Photo Dictionary's data 34 MB; FFmpeg 31 MB; PaddleOCR, the OCR's second reader, 31 MB; Tesseract
+>    27 MB; ExifTool 24 MB). 26 Nov 2026, with PaddleOCR: **555 MB**; with the Noise Remover's Studio voice (DeepFilterNet
+>    3, 8.6 MB): **563 MB**; 28 Nov 2026, with SliceDiceGrapher: **578.8 MB**; with the Diagram Editor (draw.io): **631.7 MB**.
 > 4. **Wait for the owner's decision.** Build nothing until the owner has decided.
 
 > ## ⚠️ STANDING RULE #1 — WebAssembly first (owner; permanent; applies to every line of new code)
@@ -254,7 +255,8 @@ Wayland) and **mobile browsers** (Android Chrome, iPhone Safari).
    time, daylight-saving info, exchange rates) when a tool needs live information. Enforcement: CSP keeps
    `script-src`/`style-src`/`font-src`/`worker-src` to `'self'`; `connect-src` = `'self'` + an explicit allowlist of
    approved data-API hosts (listed in `index.html` and §3a "Approved data APIs"); the YouTube Clip tool may embed
-   `youtube-nocookie.com` (`frame-src`). `tests/e2e/no-external.e2e.mjs` fails on any code from another host and on
+   `youtube-nocookie.com` (`frame-src`), and the Diagram Editor a page of this site (`frame-src 'self'`: draw.io's own page,
+   which has a Content-Security-Policy of its own — code only from this site, no other site contacted). `tests/e2e/no-external.e2e.mjs` fails on any code from another host and on
    any request to a non-allowlisted host.
    **What the rule means (owner, 28 Nov 2026 — his wording; standing):** "when I say that SuperUtil's website should not
    depend on external libraries at runtime, what I mean is they should not pull in JavaScript libraries or Node libraries
@@ -362,7 +364,7 @@ Wayland) and **mobile browsers** (Android Chrome, iPhone Safari).
 Platform is PC + mobile unless marked **PC**. Tab ids are the URL hash (`#/<id>`).
 
 **The authoritative, always-current list is `docs/TOOLS.md`, generated from `src/registry.ts` (`npm run docs`).**
-Current total: **197 tabs in 11 categories — 130 PC + mobile, 64 PC only, 3 Mobile only** (regenerate with
+Current total: **198 tabs in 11 categories — 130 PC + mobile, 65 PC only, 3 Mobile only** (regenerate with
 `npm run docs` after every registry change; the owner asked for the registry to always be noted).
 The per-category notes below record decisions; when they disagree with the registry, the registry wins.
 
@@ -482,6 +484,7 @@ warned. Resume: the photo is a JPEG (quality 85); file names are made safe (`saf
 | `ebook` | EPUB Reader | both — **BUILT** (27 Nov 2026; potentials #71 — §3 "EPUB Reader": EPUB, MOBI, FictionBook, comics, text) |
 | `audiobook` | PDF / EPUB → Audiobook | both — **BUILT** (27 Nov 2026; potentials #14 — §3 "PDF / EPUB → Audiobook": a book read aloud into MP3s, one per chapter) |
 | `slicedice` | SliceDiceGrapher | both — **BUILT** (28 Nov 2026; potentials #75 with Chart Maker #25 — §3 "SliceDiceGrapher": a range pasted from Excel, LibreOffice Calc or Google Sheets, or a spreadsheet → a board of pivots and graphs from presets, your own pivot, every graph and pivot saved as a picture and as CSV / Excel) |
+| `diagram` | Diagram Editor | **PC** — **BUILT** (28 Nov 2026; potentials #54 — §3 "Diagram Editor": draw.io 32.7.7 itself, served from this site in a frame of its own with a strict policy, driven by its embed protocol — standard shapes, UML, flowcharts …; open .drawio, editable PNG / SVG, Visio, Gliffy, Mermaid, PlantUML; save .drawio, PNG / SVG with the diagram inside, PDF) |
 | `sheet` | CSV / Excel Viewer & Converter | **PC** — **BUILT** (sheet.wasm; open xlsx/xlsm/xlsb/xls/ods/csv/tsv/json and the "Excel" files that are web pages or Excel 2003 XML, sheet tabs incl. hidden, separator override, filter, export CSV (BOM) / TSV / JSON / XLSX; as built: §3 "CSV / Excel"; unit `sheet.test.mjs` 120 + `sheetdata.test.mjs` 42, e2e 32) |
 | `markdown` | Markdown Editor | both — **BUILT** (cmark-gfm wasm; live preview, toolbar + Ctrl+B/I/K, .md open/save, standalone .html, print of the preview only; as built: §3 "Markdown Editor"; unit 29 incl. the 744 GFM spec examples, e2e 46) |
 
@@ -2211,6 +2214,52 @@ be there for the end result".
 - **Measured** (the unit suite): the module's suggestions are native Hunspell 1.7.6's, built from the same source (32-bit x86, as wasm32 —
   Hunspell's word hash is a `long`, and on a 64-bit machine equally scored suggestions come out in another order), for 1,300 misspellings
   in both dictionaries, word for word; the order is the native build's and the script's own Python reading of the rules, list for list.
+
+### Diagram Editor (PC) — BUILT (potentials #54; owner, 26 Nov 2026; built 28 Nov 2026 — the last of group 3)
+(`diagram` in `src/tools/diagram.ts`, its files `src/lib/diagramfile.ts` (no DOM), the editor fetched at build time by
+`scripts/fetch-drawio.mjs` with our files `scripts/drawio/`; unit `tests/unit/diagram.test.mjs` 106, e2e `tests/e2e/diagram.e2e.mjs` 50;
+fixtures `tests/fixtures/diagram/` — `media.vsdx` (a Visio drawing made with Visio, from the Python package vsdx) and `flow.drawio`, `.png`,
+`.svg` saved by the tab, `node scripts/make-diagram-fixtures.mjs`.) The owner's words: "a Draw.io clone app - pc only with standard diagram
+shapes, uml, flowcharts etc" (26 Nov 2026), and for this tab only: "Even if it's JavaScript for this particular one, it's okay" (21 Nov).
+- **The editor is draw.io 32.7.7 itself** (Apache-2.0; not a clone — every shape library, UML, flowcharts, ER, BPMN, network, cloud, floor
+  plans, mock-ups …), the release file's editor (53 MB in 2,719 files of its 126 MB — left out: the cloud integrations, the stand-alone
+  viewers, the unminified sources, 60 other languages, the Java server's files with its cloud keys, the service worker, live collaboration,
+  the hosted site's other pages, the plugins that talk to other services), served from `public/drawio/` — never from another site.
+- **In a frame of its own** (`drawio/index.html`, same site): draw.io's page **changed by us** (Apache-2.0 §4(b); each changed file says
+  so; `public/drawio/README.txt` lists them) — a **Content-Security-Policy** of its own (`script-src 'self'`, `connect-src 'self' blob:
+  data:`, no eval, no other host anywhere; draw.io runs whole under it), **`js/superutils-frame.js` before draw.io's scripts** (its
+  localStorage and sessionStorage last only while the page is open; no IndexedDB, Cache Storage, cookies or service worker), **our
+  `js/PreConfig.js`** (no export server, no error reports, no news, no plugins from other sites) and **`js/PostConfig.js`** (draw.io's two
+  lines, and `window.superutilsEditor`, a handle on the editor for the tab — to open Visio and Gliffy files with draw.io's own importers),
+  the hosted site's meta tags, links and loading logo left out. The address: `embed=1&proto=json` (draw.io's embed protocol, JSON
+  messages), `stealth=1&lockdown=1&local=1&pwa=0` (nothing of draw.io's own services, storage or offline app), `lang=en`,
+  `noExitBtn=1&saveAndExit=0`, `libraries=1` ("More Shapes"), `modified=unsavedChanges` (draw.io's own status line), `dark=auto` (the
+  system's theme). The site's CSP allows the frame (`frame-src 'self'`).
+- **The protocol** (the frame says `init` → the tab sends `load` with `autosave: 1` → every change comes back as `autosave` with the
+  diagram): **Save** (the tab's button, draw.io's own Save button and Ctrl+S — `invokeAction save` → `save`) downloads `<name>.drawio`
+  (draw.io's uncompressed `<mxfile>`), and `status` clears draw.io's "Unsaved changes"; **PNG** and **SVG** (`export` `xmlpng` at 2×, a
+  border of 10, / `xmlsvg`) download `<name>.drawio.png` / `.drawio.svg` with the diagram inside the picture (a PNG's `tEXt` chunk
+  `mxfile`, an SVG's `content` attribute) — open them here again to edit; **PDF…** opens draw.io's own PDF dialog (`invokeAction
+  exportPdf`: the browser's print window — "Save as PDF"; draw.io's web PDF needs no server); **New…** draw.io's templates (`template`
+  with a callback: blank, or a template and its name). More formats (JPEG, WebP, HTML, XML …, transparency, size): draw.io's own File
+  → Export as, which downloads from the frame. A name box (the file names: `safeName` — no characters a system refuses, not a Windows
+  device name, at most 120 characters).
+- **Open** (the button, or a file dropped on the bar — one dropped on the editor is put into the diagram, as draw.io does): what a file is
+  by its first bytes, else its name (`kindOf`); **.drawio / .xml** (an `<mxfile>` or `<mxGraphModel>`; a shape library is said to be one —
+  File → Open Library from); **an editable PNG** (the diagram in its `tEXt` / `zTXt` chunk, read by `pngDiagram`) and **SVG** (its
+  `content`, `svgDiagram`) — a picture without one is refused with what to do; **Visio** (.vsdx, .vsd …) and **Gliffy** through
+  draw.io's own importers (`superutilsEditor.importVisio` / `importGliffy`); **Mermaid** and **PlantUML** text made into shapes that
+  can be edited (`load` with a `descriptor`). Anything else refused in words. A diagram with changes not saved: Open and New ask first.
+- **Stateless:** the diagram and its name are kept while the page is open (another tab and back: still there, with "Unsaved changes");
+  nothing is stored; while it has changes not saved **the page asks before it is closed** — after the tab is left too (the diagram is
+  still in memory). Leaving the tab removes the frame (draw.io's memory goes with it).
+- **When the editor cannot be fetched:** seen at the frame's load (draw.io's page waits for its scripts: no `EditorUi` there means its
+  code did not come) and said, with Try again; a frame that loads but never says `init` is said after 60 s.
+- **Measured:** the editor starts in about 1.5 s here; opening the tab fetches about 22 MB (app.min.js 12, extensions 4.8, stencils
+  3.9, shapes 1.5 — about 6 MB over the wire) — the lazy suite's `AT_OPEN`, the editor being the tab's first view; no request to another
+  site, no CSP violation, nothing stored (localStorage, IndexedDB, service worker, Cache Storage, cookies checked); the files read back by
+  Python (ElementTree: the .drawio, the SVG's `content`; Pillow: the PNG's text chunk) and the SVG drawn by librsvg; the Visio drawing
+  made with Visio opened with its six shapes and their texts; Mermaid made into shapes and connectors; PlantUML; Gliffy.
 
 ### CSV / Excel (PC) — as built after the Nov 2026 bug hunt
 (`sheet` in `src/tools/sheet.ts`, around it `src/lib/sheetdata.ts`, engine sheet.wasm — §5.1f; unit `tests/unit/sheet.test.mjs`
@@ -4467,6 +4516,7 @@ JavaScript-only components (no C/C++ equivalent exists for the job):
 | own `src/lib/curl.ts` (shell word splitting for bash and cmd.exe, curl option table, code generators) | no tried-and-tested WebAssembly build of a curl command-line parser exists (curl's own parser is tied to libcurl and its tool's globals); it is string parsing of one short line and code templating. A Rust port into devcore is part of the JS/TS → WebAssembly sweep (`docs/potentials.md` #74) | curl |
 | OpenPGP.js 6 (LGPL-3.0) — both standards of the tab (GnuPG-compatible and RFC 9580) | the audited browser OpenPGP implementation (Proton Mail); no WebAssembly OpenPGP module exists, and the Rust one that could be built (rPGP) is low-level — which key to use and whether it is valid is left to the caller, and its semantics layer (rpgpie) is marked experimental by its authors: swapping it in would lower the tab's security (`docs/WASM-AUDIT.md`, tab 100; to look at again) | pgp |
 | Mermaid 12 (MIT) | Mermaid exists only as JavaScript; `securityLevel: 'strict'` (labels sanitised), bundled by Vite | mermaid |
+| draw.io 32.7.7 (Apache-2.0; its mxGraph inside; fetched at build time by `scripts/fetch-drawio.mjs`, not bundled) | no compiled diagram editor exists, and the owner allowed JavaScript for this tab (21 Nov 2026: "Even if it's JavaScript for this particular one, it's okay. Don't change the rule"); the real editor is hosted, not a clone (`docs/WASM-AUDIT.md`, tab 203) | diagram |
 | Apache ECharts 6.1 (Apache-2.0; zrender BSD-3-Clause) | no WebAssembly charting library exists; tree-shaken to the nine charts and seven components drawn (0.72 MB, `src/lib/charts.ts`), PNG and SVG built in; the parts used make no code from strings (docs/WASM-AUDIT.md 202) | slicedice |
 | Prettier 3 standalone (MIT) | Markdown: both WebAssembly Markdown formatters (Biome's, dprint's) change what a document renders to (`docs/WASM-AUDIT.md`, tab 54). And the fallback for text the WebAssembly engines of the other nine languages cannot read (owner's tweak: (b) an existing JS library for what the module does not cover); each parser is fetched only then | prettier |
 | TensorFlow.js (Apache-2.0) | runs the Magenta style-transfer graph on the GPU via WebGL; its **wasm backend** (XNNPACK, C++ → wasm, tier 2 official build) is the CPU path | cartoon (neural) |
@@ -4657,7 +4707,7 @@ weather (Open-Meteo), IP/network info, clock-accuracy check (network time).
 - **CSP** in `index.html` `<meta http-equiv="Content-Security-Policy">`: `default-src 'self'`,
   `script-src 'self' 'wasm-unsafe-eval'`, `worker-src 'self' blob:`, `connect-src 'self' blob: data:`,
   `img-src 'self' blob: data:`, `media-src 'self' blob: mediastream:`, `style-src 'self' 'unsafe-inline'`,
-  `frame-src https://www.youtube-nocookie.com`, `object-src 'none'`.
+  `frame-src 'self' https://www.youtube-nocookie.com` (the Diagram Editor's draw.io page; the YouTube player), `object-src 'none'`.
 - Our wasm modules are WASI "reactor" modules (no Emscripten); `src/wasm/wasi.ts` is a tiny shim
   (`random_get` → `crypto.getRandomValues`, `fd_write` → console, everything else ENOSYS).
 
@@ -4699,7 +4749,7 @@ Owner: "make the full site faster, more responsive and memory efficient — load
    pair compared), cidr/cron/semver/glob/patch (their devcore-<tab>.wasm: the
    sample is computed live), json/jwt/xml/json2types/jsondiff/base64 (their devcore module: the sample is formatted,
    decoded, compared or converted at once), mermaid (the sample diagram), graphviz (the sample graph: its module
-   and worker). Adding to that list needs a reason in the test.
+   and worker), diagram (draw.io in its own page: the editor is the tab's first view). Adding to that list needs a reason in the test.
    Examples of deferral: bc console starts BusyBox on its first Enter; Image Editor instantiates imgproc with
    the first photo; CSV/Excel loads sheet.wasm with the first file; Photo Dictionary loads the word list and
    Literata while OCR runs; PDF tabs load MuPDF when a PDF is chosen; the OCR tab and the Photo Dictionary fetch the Doc
@@ -4747,6 +4797,7 @@ public/models/             ML models — FETCHED by scripts/fetch-assets.mjs fro
 public/data/               COMMITTED data files (EFF wordlist, …)
 public/engines/            COMMITTED engines served as their build wrote them (dotnet-regex: wasm/dotnetregex/build.sh)
 public/vendor/             GENERATED by scripts/vendor.mjs from node_modules (gitignored)
+public/drawio/             GENERATED by scripts/fetch-drawio.mjs: draw.io 32.7.7, pinned by SHA-256, our page and scripts from scripts/drawio/ (gitignored)
 scripts/vendor.mjs         copies vendored runtime files (ffmpeg core, mediapipe wasm, tesseract, …)
 tools/sodium_decrypt.py    reference decryptor for the Sodium format
 docs/                      format specs
@@ -5167,6 +5218,8 @@ npm packages (pinned in `package-lock.json`) are bundled by Vite or copied to `p
 | fflate | MIT | EPUB zip (PDF → EPUB, Articles → Kindle); SliceDiceGrapher's Download all |
 | @perspective-dev/client 5.10.0, @perspective-dev/server 5.10.0 (Perspective — FINOS) | Apache-2.0 | SliceDiceGrapher (the pivots) |
 | echarts 6.1.0 (Apache ECharts, with zrender) | Apache-2.0 (zrender BSD-3-Clause) | SliceDiceGrapher (the graphs) |
+| *not a package — fetched by `scripts/fetch-drawio.mjs`:* draw.io 32.7.7 (draw.io Ltd / draw.io AG; draw.war of jgraph/drawio) | Apache-2.0 (the icons and stencils: not for use in or with Atlassian products; the templates CC BY 4.0; libavoid LGPL-2.1) — `public/drawio/LICENSE`, `README.txt`; not affiliated with draw.io (its trademark: the tab is "Diagram Editor") | Diagram Editor |
+| *test only:* media.vsdx of the Python package vsdx 0.6.1 (a Visio drawing made with Visio) | BSD-3-Clause | the Diagram Editor's Visio file (`tests/fixtures/diagram/`) |
 | @jsquash/jpeg (MozJPEG), /webp, /oxipng, /resize | Apache-2.0 (+ codec licences) | image encoders; resizing |
 | @mediapipe/tasks-vision | Apache-2.0 | Passport |
 | @tensorflow/tfjs-core, -converter, -backend-webgl, -backend-wasm (XNNPACK wasm), -backend-cpu | Apache-2.0 | Cartoonizer style transfer |
@@ -5236,6 +5289,17 @@ the GS1 prefixes; python-stdnum, phonenumbers and vininfo (pip) make the referen
 **Data files committed in `public/data/`**: EFF large wordlist (CC-BY 3.0); `dict/` — English Wiktionary via
 wiktextract/kaikki.org (CC-BY-SA 4.0 + GFDL, Wiktionary contributors) and wordfreq 3.1.1 English frequencies (CC-BY-SA
 4.0, Robyn Speer). Attribution is shown in the Photo Dictionary.
+
+**draw.io is not committed either** (53 MB in 2,719 files): `scripts/fetch-drawio.mjs` (in `predev` / `prebuild`, after
+fetch-assets) takes the release file draw.war 32.7.7 from the layer of draw.io's own Docker image `jgraph/drawio:32.7.7` that holds
+it — Docker Hub serves a layer by its SHA-256 (the pin; no manifest is read, so no pull is counted) — else from the GitHub release,
+checks the war against its pinned SHA-256, keeps it in `node_modules/.cache/superutils-assets`, and unpacks the editor's files into
+`public/drawio/` with our changed page, `js/PreConfig.js`, `js/PostConfig.js`, `js/superutils-frame.js`, the licence and a README
+(`scripts/drawio/`); it does nothing when `public/drawio/.superutils.json` says the same war and the same files of ours. **To
+update draw.io:** the new version's war SHA-256 and size, and its Docker layer's digest (`curl` the tag's manifest from
+`registry-1.docker.io` with an anonymous token: the layer whose history line is "COPY /tmp/drawio/build/draw.war /tmp"), in the
+script; check the LEAVE_OUT rules against the new war's folders, `node scripts/fetch-drawio.mjs`, `npm run build`, `node
+scripts/make-diagram-fixtures.mjs`, both suites (`diagram`).
 
 **Models are not committed** (too large for git). `scripts/assets.json` lists each model's URL, pinned SHA-256,
 size, licence and users; `scripts/fetch-assets.mjs` downloads them into `public/models/` (curl, retries) and refuses

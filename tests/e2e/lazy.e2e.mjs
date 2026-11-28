@@ -48,6 +48,7 @@ const AT_OPEN = {
   yaml: [/formats-yaml/, 'the sample YAML is converted live (formats-yaml, 0.42 MB)'],
   jsonschema: [/formats-schema/, 'the sample is validated at once (formats-schema, 2.7 MB)'],
   mermaid: [/mermaid|cytoscape|katex|dagre|elk/i, 'the sample diagram is the main view (Mermaid, loaded as JS chunks)'],
+  diagram: [/(^|\/)drawio\//, 'the editor is the main view: draw.io 32.7.7 in its own page (a frame), served from this site — about 22 MB, 6 MB over the wire'],
 };
 const HEAVY = /\.wasm$|(^|\/)(vendor|models|data)\/|\.(ttf|otf|woff2?)$/; // URLs are relative to the site (no leading slash): the folders at the root are matched too (they were not)
 const BUDGET = 400 * 1024; // decoded bytes a tab may download at open (its own JS + CSS), apart from AT_OPEN tabs

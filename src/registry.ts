@@ -108,6 +108,7 @@ export const TOOLS: Tool[] = [
   t('ebook', 'EPUB Reader', 'Read e-books — EPUB, MOBI, FB2, comics, text — with contents, search, fonts, sizes and themes.', 'documents', 'BookOpenText', () => import('./tools/ebook').then((m) => m.mount)),
   t('audiobook', 'PDF / EPUB → Audiobook', 'A book read aloud into MP3s, one per chapter, by natural voices made on this device — US, British or Indian English.', 'documents', 'BookAudio', () => import('./tools/audiobook').then((m) => m.mount)),
   t('slicedice', 'SliceDiceGrapher', 'Paste a range from Excel or open a spreadsheet: pivots and graphs in a click, presets from your columns, every graph and pivot saved as a picture.', 'documents', 'ChartNoAxesCombined', () => import('./tools/slicedice').then((m) => m.mount)),
+  t('diagram', 'Diagram Editor', 'Flowcharts, UML, network diagrams, org charts and more with standard shapes — open and save .drawio, Visio and editable PNG / SVG.', 'documents', 'Workflow', () => import('./tools/diagram').then((m) => m.mount), 'pc'),
   t('sheet', 'CSV / Excel', 'View CSV and Excel files; convert CSV ⇄ XLSX ⇄ JSON.', 'documents', 'Sheet', () => import('./tools/sheet').then((m) => m.mount), 'pc'),
   t('markdown', 'Markdown Editor', 'Write Markdown with live preview; export HTML or PDF.', 'documents', 'NotebookPen', () => import('./tools/markdown').then((m) => m.mount)),
   t('invoice', 'GST Invoice', 'Create a GST invoice and save it as PDF.', 'documents', 'ReceiptText', () => docgen().then((m) => m.invoice)),

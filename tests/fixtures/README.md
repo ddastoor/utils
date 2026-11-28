@@ -209,3 +209,11 @@ generates media with the project's own ffmpeg.wasm and Chromium). Used only by t
 - `u2net-chelsea.png`, `u2net-astronaut.png`, `u2net-coffee.png` — U²-Net small's 320 × 320 masks of `images/chelsea.png`, `astronaut.png`
   and `coffee.png` made by rembg's own steps in Python on ONNX Runtime (`python3 scripts/make-u2net-reference.py`; needs onnxruntime, Pillow,
   numpy and the model fetched by `npm run assets`): the reference of the Clipart Maker's cut-out in `tests/unit/vector.test.mjs`.
+
+## diagram/
+- `media.vsdx` — a Visio drawing of six shapes (a rectangle, a circle, a line, straight and curved connectors, a connected shape, each named
+  in its text) made with Microsoft Visio: the template that the Python package vsdx 0.6.1 carries (`vsdx/media/media.vsdx` of its source
+  on PyPI; BSD-3-Clause, © 2020 Dave Howard). The Diagram Editor's Visio file (`tests/e2e/diagram.e2e.mjs`).
+- `flow.drawio`, `flow.drawio.png`, `flow.drawio.svg` — a small flowchart (two shapes and a labelled connector) saved by draw.io 32.7.7 in
+  the Diagram Editor tab with its Save, PNG and SVG (`node scripts/make-diagram-fixtures.mjs` after `npm run build`): the files
+  `tests/unit/diagram.test.mjs` reads the diagram out of. Made by us; free to use.

@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<!--
+  draw.io's index.html (draw.io 32.7.7, Apache License 2.0), changed by SuperUtils (2026; section 4(b) of the licence):
+  - a Content-Security-Policy: code only from this site, no other site contacted;
+  - js/superutils-frame.js before draw.io's scripts: storage only while the page is open, no database, cookies or service
+    worker (SuperUtils keeps nothing between visits; its Diagram Editor tab opens and saves the files on the device);
+  - the hosted site's meta tags, links (manifest, icons, canonical address) and the logo of the loading screen left out.
+  Written by scripts/fetch-drawio.mjs from scripts/drawio/index.html.
+-->
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; font-src 'self' data:; connect-src 'self' blob: data:; media-src 'self' blob: data:; worker-src 'self' blob:; frame-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'none'">
+	<title>Diagram Editor</title>
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+	<link rel="stylesheet" type="text/css" href="styles/grapheditor.css">
+	<link rel="stylesheet" media="(forced-colors: active)" href="styles/high-contrast.css" id="high-contrast-stylesheet">
+	<script src="js/superutils-frame.js"></script>
+	<script src="js/bootstrap.js"></script>
+	<style type="text/css">
+		#geInfo {
+			display:flex;
+			flex-direction:column;
+			align-items:center;
+			justify-content:center;
+			gap:24px;
+			padding:16px 16px 10vh 16px;
+			text-align:center;
+		}
+		#geInfo noscript {
+			max-width:600px;
+		}
+		#geStatus:empty {
+			display:none;
+		}
+		#geStatus a {
+			text-decoration:underline;
+			cursor:pointer;
+		}
+	</style>
+</head>
+<body class="geEditor geClassic">
+<div id="geInfo">
+	<div id="geStatus"></div>
+	<noscript>
+		<p>The diagram editor needs JavaScript.</p>
+	</noscript>
+</div>
+<script src="js/main.js"></script>
+</body>
+</html>

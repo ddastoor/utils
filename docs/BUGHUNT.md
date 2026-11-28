@@ -3537,6 +3537,24 @@ Found while building it (unit `worldclock` 39, e2e `worldclock` 55):
   as they were; no settings file is written there (the switch off from the start) — `src/lib/color.ts` looks for `document`, so the
   suite stubs no `document`.
 
+## Diagram Editor (28 Nov 2026; built — potentials #54)
+- **The site's own policy refused the editor's frame:** `frame-src` named only YouTube's player, so draw.io's page (same site) was
+  blocked and the frame showed Chrome's error page — the tab said "could not be fetched" (its check worked). `frame-src 'self'` added.
+- **draw.io under a strict policy:** every outside address in its code was looked at before it ran (error reports — only on draw.io's
+  own hosts; AI generation — off outside draw.io's hosts; Google Fonts — a picked web font only; the export server — `EXPORT_URL = null`:
+  PDF through the print dialog; the PlantUML server — its converter runs in the page); in the frame it starts with no request to another
+  site, no CSP violation and no `eval`.
+- **Nothing kept:** draw.io keeps its settings, drafts and recent files in localStorage, and checks IndexedDB, cookies and a service
+  worker — the frame's own first script gives it storage for the visit only and none of the others (checked: nothing in the origin's
+  storage after opening, editing and saving; `local=1` too).
+- **A missing editor was seen only after a minute:** draw.io's page loads even when its 12 MB script does not come (a resource error is
+  no page error); the tab now looks for `EditorUi` when the frame's page has loaded — draw.io chains its scripts so that the page's load
+  waits for them — and says so at once, with Try again.
+- **The suite hung for ten minutes** on the page-close prompt it had raised (a `beforeunload` dialog left open blocks closing the
+  context): accepted once recorded.
+- **Open read the harness's download names** ("1795850560127-Flow plan 1.drawio" → the name "1795850560127-Flow plan 1") — the tab was
+  right; the suite opens copies under the files' own names.
+
 ## SliceDiceGrapher (28 Nov 2026; built — potentials #75 with Chart Maker #25)
 - **Perspective's median is not the middle value** of a larger group: the units of the South's 62 sales gave 27.5 for pandas' 28.5, the
   total 28 for 29.5 (Perspective 5.10 in Node, the WebAssembly the tab runs; an integer column gives the upper of the two middle values).

@@ -4,9 +4,9 @@
   "description": "Private, in-browser utilities. Files never leave your device.",
   "scripts": {
     "prepare": "node scripts/vendor.mjs && node scripts/gen-icons.mjs",
-    "predev": "node scripts/vendor.mjs && node scripts/gen-icons.mjs && node scripts/fetch-assets.mjs",
+    "predev": "node scripts/vendor.mjs && node scripts/gen-icons.mjs && node scripts/fetch-assets.mjs && node scripts/fetch-drawio.mjs",
     "dev": "vite",
-    "prebuild": "node scripts/vendor.mjs && node scripts/gen-icons.mjs && node scripts/fetch-assets.mjs",
+    "prebuild": "node scripts/vendor.mjs && node scripts/gen-icons.mjs && node scripts/fetch-assets.mjs && node scripts/fetch-drawio.mjs",
     "build": "vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",

@@ -189,8 +189,18 @@ and table saved (PNG 2× / 4×, white or see-through, SVG, the table as PNG, CSV
 extended —, Download all as a zip). The CSV / Excel tab's file reading moved into `readSpreadsheet` (shared). Unit `slicedice` 83 (pandas'
 pivots, NumPy's quartiles), `sheet` 122; e2e `slicedice` 47 (three clipboards, the real clipboard, files, every download read back), `sheet`
 33, `pdf-tables` 32 and the site-wide sweeps; measured 4.2 MB on the site (578.8 MB); docs/WASM-AUDIT.md 202; taken off potentials.md.
-**▶ NEXT: #54 Diagram Editor (draw.io, PC only)** — its size check measured first (stop and ask if much bigger than the 27 Nov estimate);
-then to-dos #38 and #40.
+**#54 Diagram Editor — BUILT (28 Nov 2026):** the tab `diagram` (Documents, PC only; CLAUDE.md §3 "Diagram Editor"): draw.io 32.7.7
+itself (Apache-2.0; the owner allowed JavaScript for this tab), fetched at build time by `scripts/fetch-drawio.mjs` — the release war
+from the layer of draw.io's Docker image by its digest, pinned by its SHA-256, 52.9 MB of its editor files unpacked into `public/drawio/`
+(gitignored) with our changed page (its own CSP, storage only while the page is open, no service worker), PreConfig and PostConfig
+(`scripts/drawio/`) — in a frame driven by draw.io's embed protocol: Open (.drawio, editable PNG / SVG, Visio, Gliffy, Mermaid,
+PlantUML), New… (draw.io's templates), Save .drawio (and draw.io's own Save / Ctrl+S), PNG / SVG with the diagram inside, PDF through
+draw.io's print dialog; the diagram kept while the page is open, the page asking before it is closed while it has changes. The size
+check came out at 52.9 MB against the 49.5 MB estimate (PlantUML's converter is client-side now and kept) — the site 631.7 MB. The site's
+CSP: `frame-src 'self'` added. Unit `diagram` 106, e2e `diagram` 50, the site-wide sweeps; docs/WASM-AUDIT.md 203; taken off
+potentials.md. **Group 3 is done — groups 1 – 4 are all built.**
+**▶ NEXT: to-do #38** (the OCR's and the Photo Dictionary's text copied to the clipboard as soon as it is read), **then #40** (the EPUB
+Reader's "Remember book").
 **Then to-dos #38, #39 and #40** (owner,
 27 Nov 2026, evening: "After you finish all these, finish off the items in the todo.md also."; #40, added the same evening:
 the EPUB Reader's "Remember book" — a hash of the book, its place and the reading voice in the Settings — after #39). The open question (keep the EPUB Reader's place between visits?) is
