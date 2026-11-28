@@ -5,6 +5,10 @@ session knows everything that was only said in chat. CLAUDE.md = rules and spec,
 this file = the owner's latest wishes, how the tests are written, and the traps already found. Keep it current.
 
 ## 1. The owner (from chat)
+- **Code from the site, data from anywhere (owner, 28 Nov 2026):** "should not depend on external libraries at runtime"
+  means no JavaScript / Node libraries through CDN links or any other site as the page loads — supporting code is built
+  in and hosted on the site; but while an app runs it may fetch *data* (a wallpaper API, a world radio's station streams).
+  Written into CLAUDE.md §1, rule 2; each data host is still named when its app is built.
 - **The order after #13 (owner, 26 Nov 2026):** "After #13, start in your suggested order above of next todo items" —
   (1) quick wins #19, #25, #26, #27, #29, #30; (2) #18 OCR + Photo Dictionary; (3) sound #21 + #22 + #23; (4) Screenshot
   #24 + #28; (5) images #15, #17, #16; (6) #14; (7) #20 (docs/RESUME.md). Approved with it: #14 may contact

@@ -247,6 +247,18 @@ Wayland) and **mobile browsers** (Android Chrome, iPhone Safari).
    approved data-API hosts (listed in `index.html` and §3a "Approved data APIs"); the YouTube Clip tool may embed
    `youtube-nocookie.com` (`frame-src`). `tests/e2e/no-external.e2e.mjs` fails on any code from another host and on
    any request to a non-allowlisted host.
+   **What the rule means (owner, 28 Nov 2026 — his wording; standing):** "when I say that SuperUtil's website should not
+   depend on external libraries at runtime, what I mean is they should not pull in JavaScript libraries or Node libraries
+   through CDN links, etc., or through any links as the page loads from other sites … whatever is needed for the site to
+   function in terms of supporting code, library code, that should be at build time, at compile time, hosted on the site
+   itself. However, what you can do while the app is running itself is make fetch calls to get data. For example, a
+   wallpaper API, etc. This obviously is part of the functionality of the app in terms of app data, not supporting library
+   code. Or another example is a world radio, where obviously what I'm streaming onto the site is a radio station. So that
+   is okay." → **code** (JavaScript, WebAssembly, workers, styles, fonts, models — anything the site runs on) comes only
+   from this site, built in at build time; **data** an app is about (an API's answers, pictures from a wallpaper service, a
+   radio station's stream) may come from other sites while the app runs. Each data host is still named when its app is
+   built (connect-src, or media-src / img-src for streams and pictures, §3a "Approved data APIs", the no-external suite),
+   and what a user's own files hold never goes with it (rule 3).
 3. **User files never leave the device.** All processing happens in the browser.
 4. **Each utility is its own tab.** Tools are **PC + mobile** unless the owner explicitly said PC only.
    PC-only tools are hidden on mobile.
