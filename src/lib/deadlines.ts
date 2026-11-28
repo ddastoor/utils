@@ -45,7 +45,7 @@ export function addTo(isoDate: string, n: number, unit: 'day' | 'week' | 'month'
   return iso(t.getUTCFullYear(), t.getUTCMonth() + 1, t.getUTCDate());
 }
 
-interface DateHit { s: number; e: number; y: number | null; m: number; d: number; text: string }
+export interface DateHit { s: number; e: number; y: number | null; m: number; d: number; text: string }
 /** Every date written in `text`, where it stands. `monthFirst`: numbers like 06/12/2026 are 12 June (else 6 December). */
 export function datesIn(text: string, monthFirst = false): DateHit[] {
   const out: DateHit[] = [];
@@ -85,7 +85,7 @@ export function parseDate(s: string, o: { monthFirst?: boolean; year?: number } 
 
 /** A time written after (or before) a date: "at 10:00 am", "4 p.m.", "16:30 hrs". */
 const TIME = /\b(?:at\s+|from\s+)?(\d{1,2})(?:[:.](\d{2}))?\s*(a\.?\s?m\.?|p\.?\s?m\.?|hrs|hours|noon)(?![a-z])|\b(?:at\s+|from\s+)?([01]?\d|2[0-3]):([0-5]\d)\b/gi;
-function timeIn(s: string): string | null {
+export function timeIn(s: string): string | null {
   TIME.lastIndex = 0;
   const r = TIME.exec(s);
   if (!r) return null;
@@ -98,7 +98,7 @@ function timeIn(s: string): string | null {
 
 /** Amounts: ₹ 2,032.71 · Rs. 14,250.00 · INR 1,20,000 · Rs 500/- · $ 25 (Tesseract reads ₹ as ¥: on these papers it is a rupee). */
 const AMOUNT = /(?:₹|¥|\bRs\.?|\bINR|\$|US\$|€|£)\s?(\d{1,3}(?:,\d{2,3})*(?:\.\d{1,2})?|\d+(?:\.\d{1,2})?)(?:\s*\/-)?/gi;
-function amountsIn(s: string): Array<{ text: string; value: number; s: number; e: number }> {
+export function amountsIn(s: string): Array<{ text: string; value: number; s: number; e: number }> {
   const out: Array<{ text: string; value: number; s: number; e: number }> = [];
   AMOUNT.lastIndex = 0;
   let r: RegExpExecArray | null;

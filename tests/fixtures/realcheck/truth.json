@@ -1,0 +1,122 @@
+{
+ "receipt-genuine.png": {
+  "kind": "screenshot",
+  "signs": [],
+  "amount": [
+   338,
+   744,
+   742,
+   853
+  ]
+ },
+ "IMG-20261106-WA0007.jpg": {
+  "kind": "screenshot",
+  "quality": 78,
+  "signs": [
+   "sent"
+  ],
+  "amount": [
+   225,
+   496,
+   495,
+   569
+  ]
+ },
+ "receipt-edited.jpg": {
+  "kind": "screenshot",
+  "quality": 92,
+  "previous": 78,
+  "edit": [
+   215,
+   486,
+   505,
+   579
+  ],
+  "signs": [
+   "twice",
+   "changed-area"
+  ]
+ },
+ "receipt-photoshop.png": {
+  "kind": "screenshot",
+  "edit": [
+   328,
+   734,
+   752,
+   863
+  ],
+  "software": "Adobe Photoshop 26.1 (Windows)",
+  "signs": [
+   "software",
+   "history"
+  ]
+ },
+ "receipt-thumb.jpg": {
+  "kind": "screenshot",
+  "quality": 90,
+  "edit": [
+   328,
+   734,
+   752,
+   863
+  ],
+  "signs": [
+   "software",
+   "thumbnail",
+   "modified-later"
+  ]
+ },
+ "receipt-impossible.png": {
+  "kind": "screenshot",
+  "signs": [
+   "clock-before",
+   "weekday",
+   "ref-digits",
+   "amounts-differ"
+  ]
+ },
+ "receipt-sent.png": {
+  "kind": "screenshot",
+  "previous": 78,
+  "edit": [
+   215,
+   486,
+   505,
+   579
+  ],
+  "signs": [
+   "was-jpeg",
+   "changed-area"
+  ]
+ },
+ "grey.jpg": {
+  "kind": "photo",
+  "quality": 85,
+  "signs": []
+ },
+ "photo-cloned.jpg": {
+  "kind": "photo",
+  "quality": 92,
+  "clone": {
+   "from": [
+    36,
+    380,
+    108,
+    452
+   ],
+   "to": [
+    140,
+    352,
+    212,
+    424
+   ]
+  },
+  "signs": [
+   "copy"
+  ]
+ },
+ "photo-camera.jpg": {
+  "kind": "photo",
+  "signs": []
+ }
+}

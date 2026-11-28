@@ -100,6 +100,50 @@ export function bindImgproc(e: any) {
     watercolor: (img: Img, scale = 1) => inplace(img, (p) => e.p_watercolor(p, img.width, img.height, scale)),
     halftone: (img: Img, cell = 6, scale = 1) => inplace(img, (p) => e.p_halftone(p, img.width, img.height, cell, scale)),
     pixelateRect: (img: Img, x: number, y: number, w: number, h: number, block: number) => inplace(img, (p) => e.p_pixelate_rect(p, img.width, img.height, x | 0, y | 0, w | 0, h | 0, block | 0)),
+    /** "Is This Screenshot Real?": each 8 × 8 block's brightness quantized again with JPEG's standard table at every quality
+     *  q0 … q1 (p_jpeg_ghost): `err[(q − q0) · nb + b]` the error block b keeps, `variance[b]` its detail; blocks of ⌊w/8⌋ ×
+     *  ⌊h/8⌋ in reading order on JPEG's grid. */
+    jpegGhost(img: Img, q0: number, q1: number): { bw: number; bh: number; err: Float32Array; variance: Float32Array } {
+      const bw = img.width >> 3, bh = img.height >> 3, nb = bw * bh, nq = q1 - q0 + 1;
+      const s = put(img.data), o = e.p_malloc(Math.max(1, nb * nq) * 4), v = e.p_malloc(Math.max(1, nb) * 4);
+      try {
+        e.p_jpeg_ghost(s, img.width, img.height, q0, q1, o, v);
+        return { bw, bh, err: new Float32Array(mem().slice(o, o + nb * nq * 4)), variance: new Float32Array(mem().slice(v, v + nb * 4)) };
+      } finally { e.p_free(s); e.p_free(o); e.p_free(v); }
+    },
+    /** How closely each block's DCT coefficients sit on the standard table's grid at every quality q0 … q1 (p_jpeg_grid):
+     *  `dist[(q − q0) · nb + b]` 0 … 0.5 (about 0.25 unrelated), −1 where the block says nothing. */
+    jpegGrid(img: Img, q0: number, q1: number): { bw: number; bh: number; dist: Float32Array } {
+      const bw = img.width >> 3, bh = img.height >> 3, nb = bw * bh, nq = q1 - q0 + 1;
+      const s = put(img.data), o = e.p_malloc(Math.max(1, nb * nq) * 4);
+      try { e.p_jpeg_grid(s, img.width, img.height, q0, q1, o); return { bw, bh, dist: new Float32Array(mem().slice(o, o + nb * nq * 4)) }; } finally { e.p_free(s); e.p_free(o); }
+    },
+    /** Error level analysis at quality q: the brightness's error on a heat scale (× gain), and its mean (p_ela). */
+    ela(img: Img, q: number, gain: number): { img: Img; mean: number } {
+      let mean = 0;
+      const out = into(img, img.width, img.height, (src, dst) => { mean = e.p_ela(src, img.width, img.height, q, gain, dst); });
+      return { img: out, mean };
+    },
+    /** Areas of a photo copied to another place in it (p_copy_move): each the shift between them, its size in cells of 4 × 4,
+     *  and the two areas as [x0, y0, x1, y1]. */
+    copyMove(img: Img, stride = 1, minBlocks = 200, cap = 4): Array<{ dx: number; dy: number; cells: number; a: number[]; b: number[] }> {
+      const s = put(img.data), o = e.p_malloc((1 + cap * 11) * 4);
+      try {
+        const k = e.p_copy_move(s, img.width, img.height, stride, minBlocks, o, cap);
+        const r = new Int32Array(mem().slice(o, o + (1 + k * 11) * 4));
+        return Array.from({ length: k }, (_, i) => { const q = r.subarray(1 + i * 11, 12 + i * 11); return { dx: q[0], dy: q[1], cells: q[2], a: [q[3], q[4], q[5], q[6]], b: [q[7], q[8], q[9], q[10]] }; });
+      } finally { e.p_free(s); e.p_free(o); }
+    },
+    /** Two pictures of one size compared on a grid of cells × cells: the mean brightness difference of each cell and of all (p_cell_diff). */
+    cellDiff(a: Img, b: Img, cells: number): { mean: number; cells: Float32Array } {
+      const pa = put(a.data), pb = put(b.data), o = e.p_malloc(cells * cells * 4);
+      try { const mean = e.p_cell_diff(pa, pb, a.width, a.height, cells, o); return { mean, cells: new Float32Array(mem().slice(o, o + cells * cells * 4)) }; } finally { e.p_free(pa); e.p_free(pb); e.p_free(o); }
+    },
+    /** each 8 × 8 block's share of pixels with a colour clipped at 0 or 255, × 255 (p_block_clip; ⌈w/8⌉ × ⌈h/8⌉ blocks) */
+    blockClip(img: Img): Uint8Array {
+      const bw = (img.width + 7) >> 3, bh = (img.height + 7) >> 3, s = put(img.data), o = e.p_malloc(Math.max(1, bw * bh));
+      try { e.p_block_clip(s, img.width, img.height, o); return new Uint8Array(mem().slice(o, o + bw * bh)); } finally { e.p_free(s); e.p_free(o); }
+    },
     /** A mosaic with its grid at a random place and each block's colour moved by a random amount (p_mosaic_rect — the
      *  Screenshot Annotator's Pixelate: nothing to match candidate texts against). */
     mosaicRect: (img: Img, x: number, y: number, w: number, h: number, block: number, ox: number, oy: number, noise: number, seed: number) =>
