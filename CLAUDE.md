@@ -4479,7 +4479,9 @@ something like superutils_settings_ mmdd_ hour minute."
   is fine. A page cannot ask whether it is in a private window, but its storage quota is a share of the memory there and of the disk
   otherwise: below twice the script heap's limit (`privateWindow()` in `settingsfile.ts`) the folder is kept for the visit only — never
   stored, never read back — and the page says so. The handle is read from IndexedDB once a visit (another open tab's choice reaches it by a
-  BroadcastChannel).
+  BroadcastChannel). **Google Chrome 158** (stable, 28 Nov 2026 — the Windows check, run 21, and its Linux job, run 22) gives a private
+  window a normal profile's quota (10 GiB): the page cannot tell, treats it as a normal window, and the handle read back does not close
+  Chrome 158 on Windows or on Linux — the fault is Chromium 153's (this sandbox's); the guard stays for browsers that still have it.
 - **The shell:** a change of Favorites no longer draws the Settings page again (its import message vanished and the page jumped to the top
   when a favorite was removed there) — only the tab row's count.
 - **Tests:** unit — every section's checks, a change told as made here or in another tab, the snapshot, an import (replaced, kept, refused,

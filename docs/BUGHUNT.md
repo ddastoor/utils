@@ -3549,6 +3549,10 @@ lazy loading, the OCR copy). What its notes showed:
   page leaves the start page in the same document; axe measured `#8a92a0 on #262a41` (4.49 : 1). The suite waits for the page's
   transitions to end before axe now (a fresh document has none; the sweep waits 500 ms).
 - Python's Stop in the middle of a flood passed when run alone (under load it took 5.3 s).
+- **Run 22, Google Chrome 158.0.8127.36 on Ubuntu** (the Windows check with `linux: true`): Settings 97 / 97, the anime looks 25 / 25. Chrome
+  158 on Linux does not show its private window either (quota 10 GiB, script heap 4 GiB), and reading the folder's handle back there does
+  not close it: the fault was Chromium 153's (Playwright's build in this sandbox), not Linux's. The owner's Chrome is safe either way; the
+  guard stays for a browser that shows its private window and may have the fault.
 
 ## Windows check, run 20 (28 Nov 2026): the 14 suites fixed after run 19
 580 of 586 checks; the six that failed:

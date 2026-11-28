@@ -27,10 +27,10 @@ the Cartoonizer's WebGL probe (TF.js's context is refused where Chrome draws in 
 (Chrome on Windows does not show it as one — the suite says what the browser shows now), a dark-theme contrast check to read
 (the colours are named now), two waits under load; docs/BUGHUNT.md "Windows check, run 20"; **run 21** (the changed suites, the
 anime looks, Python, lazy loading) **1,346 / 1,346** — its notes: Chrome 158 shows no private window (the Settings page then treats it
-as a normal one; no crash on Windows), the contrast failure was a 150 ms fade measured half-way (axe waits now). **Next:** the new
-Linux Chrome job (the Windows check with `linux: true`) with `settings.` — does Chrome 158 on Linux close itself when a private
-window reads the folder back (Chromium 153 does)? If it does, the Settings page needs another way; then the owner's pick from
-docs/potentials.md.
+as a normal one; no crash on Windows), the contrast failure was a 150 ms fade measured half-way (axe waits now). **Run 22**
+(the Windows check's new Linux job, `linux: true` — Google Chrome 158 on Ubuntu): Settings and the anime looks 122 / 122; Chrome 158 on
+Linux does not close itself when a private window reads the folder back (only Chromium 153 does). **Next:** the owner's pick from
+docs/potentials.md (the process at the top of CLAUDE.md).
 **▶▶ 27 Nov 2026 — DONE: the owner's "Go ahead with all items in todo" (to-do #33 – #36), each committed and pushed:**
 **#36** (the start page's note of the other device's apps), **#34** (Watermark: the first page of a document with or without
 the mark), **#33** (Cartoonizer: how cartoony, in grades), **#35** (Text Diff: Side by side, the lines of a change paired by the
