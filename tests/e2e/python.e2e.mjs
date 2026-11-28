@@ -56,7 +56,7 @@ export default async (ctx) => {
   const page = await open();
   ok(!page.reqs.some((u) => /python\.worker|python[-.][^/]*\.wasm|python314/.test(u)), 'nothing of Python is downloaded before the first Run');
   await start(page, 'print("first")');
-  ok(/Starting Python \(the first run loads about 13\.5 MB\)/.test(await page.locator('.note-info').first().textContent().catch(() => '')), 'the first run says what it is loading');
+  ok(/Starting Python \(the first run loads about 15\.4 MB\)/.test(await page.locator('.note-info').first().textContent().catch(() => '')), 'the first run says what it is loading');
   let r = await finish(page, 90000);
   ok(r.text === 'first\n' && /^Finished in [\d.]+ s\.$/.test(r.status), `first run (${r.status})`);
   ok(page.reqs.filter((u) => /python[-.][^/]*\.wasm|python314/.test(u)).length === 2, 'the first Run fetched the interpreter and its library, once each');
@@ -159,10 +159,15 @@ export default async (ctx) => {
   // ---------------------------------------------------------------- hints
   r = await run(page, 'import numpy as np');
   ok(/ModuleNotFoundError: No module named 'numpy'/.test(r.err) && /“numpy” is not part of Python's standard library, and this tab cannot install packages/.test(r.hint), 'a package that is not there');
-  r = await run(page, 'import sqlite3'); ok(/part of Python, but it cannot be used here: its C library/.test(r.hint), `sqlite3 (${r.hint})`);
+  r = await run(page, 'import ctypes'); ok(/part of Python, but it cannot be used here: its C library/.test(r.hint), `ctypes (${r.hint})`);
   r = await run(page, 'import ssl'); ok(/cannot be used here: it needs network connections/.test(r.hint), 'ssl');
   r = await run(page, 'import turtle'); ok(/cannot be used here: it needs a desktop window/.test(r.hint), 'turtle');
-  r = await run(page, 'import lzma'); ok(/cannot be used here: its C library/.test(r.hint), 'lzma');
+  r = await run(page, 'from compression import zstd'); ok(/cannot be used here: its C library/.test(r.hint), `compression.zstd (${r.hint})`);
+  // sqlite3, bz2 and lzma are in the build (28 Nov 2026): a database file written, read again by a second connection; both compressors
+  r = await run(page, 'import sqlite3\ncx = sqlite3.connect("data.db")\ncx.execute("create table t (x)")\ncx.executemany("insert into t values (?)", [(i,) for i in range(1, 101)])\ncx.commit(); cx.close()\nprint(sqlite3.connect("data.db").execute("select count(*), sum(x), sqlite_version() from t").fetchone())');
+  ok(r.text === "(100, 5050, '3.54.1')\n" && !r.err, `sqlite3: a database file written and read again (${r.text.trim() || r.err.trim().split('\n').pop()})`);
+  r = await run(page, 'import bz2, lzma\nd = ("spam and eggs " * 500).encode()\nprint(len(d), bz2.decompress(bz2.compress(d)) == d, lzma.decompress(lzma.compress(d)) == d, len(lzma.compress(d)) < 200)');
+  ok(r.text === '7000 True True True\n' && !r.err, `bz2 and lzma compress and decompress (${r.text.trim() || r.err.trim().split('\n').pop()})`);
   r = await run(page, 'import threading\nthreading.Thread(target=print).start()'); ok(/Threads cannot start here/.test(r.hint), `threads (${r.err.trim().split('\n').pop()})`);
   r = await run(page, 'x = [0] * 10**9'); ok(/MemoryError/.test(r.err) && /more memory than a browser tab can give Python/.test(r.hint), 'memory');
   r = await run(page, 'big = []\ntry:\n    while True: big.append(bytearray(64 << 20))\nexcept MemoryError:\n    n = len(big); del big\n    print("MemoryError after", n * 64, "MiB")\nprint("still alive")', undefined, 120000);

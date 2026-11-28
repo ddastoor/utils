@@ -64,7 +64,7 @@ export default async (t, { load }) => {
   let t0 = performance.now(); r = py('print(sum(i * i for i in range(3_000_000)))'); let ms = performance.now() - t0;
   t.ok(r.out === '8999995500000500000\n' && ms < 20000, `3 million iterations (${Math.round(ms)} ms including start-up)`);
   const size = statSync('src/wasm/bin/python.wasm').size + statSync('src/wasm/bin/python314.zip').size;
-  t.ok(size > 13.1e6 && size < 13.9e6, `the page says "the first run loads about 13.5 MB": interpreter + library are ${(size / 1e6).toFixed(1)} MB`);
+  t.ok(size > 15.0e6 && size < 15.8e6, `the page says "the first run loads about 15.4 MB": interpreter + library are ${(size / 1e6).toFixed(1)} MB`);
 
   // ------------------------------------------------------------------ 2b. what we changed in CPython
   r = py('import regex\nm = regex.search(r"(?P<w>a)+(b)", "aaab")\nprint(regex.__version__, regex.compile(r"(?P<w>x)(y)").groupindex, m.capturesdict(), m.allcaptures(), m.allspans())\nimport pickle; print(pickle.loads(pickle.dumps(regex.compile(r"(?:colour){e<=1}", regex.V1))).findall("color kolor colour"))');
@@ -196,12 +196,15 @@ for n in sorted(n for n in sys.stdlib_module_names if not n.startswith("_") and 
 print(" ".join(bad))
 `);
   t.eq(r.out.trim().split(' ').sort(), Object.keys(ABSENT).sort(), `the standard modules that cannot be imported are exactly the ${Object.keys(ABSENT).length} the page has an explanation for`);
-  r = py('import tarfile, io\nfor m in ("w:bz2", "w:xz"):\n    try: tarfile.open(fileobj=io.BytesIO(), mode=m)\n    except tarfile.CompressionError as e: print(e)');
-  t.eq(r.out, 'bz2 module is not available\nlzma module is not available\n', '.tar.bz2 and .tar.xz say plainly that their module is missing');
+  // bz2 and lzma are in the build since 28 Nov 2026 (bzip2 1.0.8 and liblzma 5.8.4 linked in): a .tar.bz2 and a .tar.xz both ways
+  r = py('import tarfile, io\ndata = b"hello " * 100\nfor m in ("bz2", "xz"):\n    b = io.BytesIO()\n    with tarfile.open(fileobj=b, mode="w:" + m) as t:\n        i = tarfile.TarInfo("a.txt"); i.size = len(data); t.addfile(i, io.BytesIO(data))\n    b.seek(0)\n    with tarfile.open(fileobj=b, mode="r:" + m) as t: print(m, t.extractfile("a.txt").read() == data)');
+  t.eq(r.out, 'bz2 True\nxz True\n', '.tar.bz2 and .tar.xz are written and read (bz2 and lzma are in the build)');
+  r = py('import sqlite3\nprint(sqlite3.sqlite_version, sqlite3.threadsafety, sqlite3.connect(":memory:").execute("select 6 * 7").fetchone())');
+  t.eq(r.out, '3.54.1 0 (42,)\n', 'sqlite3 is in the build: SQLite 3.54.1, single-threaded (no threads in a tab)');
   const tail = (code, o) => { const x = py(code, o); return hint(x.err); };
   t.ok(/“numpy” is not part of Python's standard library, and this tab cannot install packages \(no pip\)\..*as numpy\.py/.test(tail('import numpy.linalg')), 'hint: a package that is not there');
   t.ok(/“_mine” .* as _mine\.py/.test(tail('import _mine')), 'hint: a module of one\'s own keeps its name');
-  for (const [m, re] of [['sqlite3', /its C library/], ['bz2', /its C library/], ['lzma', /its C library/], ['ctypes', /its C library/], ['curses', /its C library/], ['ssl', /network connections/], ['tkinter', /desktop window/], ['turtle', /desktop window/], ['termios', /Unix system/], ['mmap', /Unix system/], ['winreg', /Windows only/], ['venv', /cannot be installed/], ['compression.zstd', /its C library/], ['multiprocessing.synchronize', /more than one thread or process/]])
+  for (const [m, re] of [['ctypes', /its C library/], ['curses', /its C library/], ['ssl', /network connections/], ['tkinter', /desktop window/], ['turtle', /desktop window/], ['termios', /Unix system/], ['mmap', /Unix system/], ['winreg', /Windows only/], ['venv', /cannot be installed/], ['compression.zstd', /its C library/], ['multiprocessing.synchronize', /more than one thread or process/]])
     t.ok(/part of Python, but it cannot be used here/.test(tail(`import ${m}`)) && re.test(tail(`import ${m}`)), `hint: import ${m} → ${tail(`import ${m}`).slice(0, 110)}`);
   t.ok(/more input than the Input box holds/.test(tail('input("x? ")')), 'hint: input() with nothing left to read');
   t.ok(/more memory than a browser tab can give/.test(tail('x = [0] * 10 ** 9')), 'hint: MemoryError');

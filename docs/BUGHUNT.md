@@ -3537,6 +3537,14 @@ Found while building it (unit `worldclock` 39, e2e `worldclock` 55):
   as they were; no settings file is written there (the switch off from the start) — `src/lib/color.ts` looks for `document`, so the
   suite stubs no `document`.
 
+## Python Scratchpad: sqlite3, bz2 and lzma built in (28 Nov 2026; the owner's "finish off the small choices")
+- **CPython's configure left `_sqlite3` "missing" without saying why on the page:** its link checks add `-lsqlite3`, and the WebAssembly
+  link found no such library — the archive named on its own was not enough (bz2 and lzma passed). Each library is named by its folder.
+- **The reference runs the same libraries:** the native Python that writes the suite's answers is built against the same SQLite 3.54.1 and
+  liblzma 5.8.4, with the same SQLite options (no WAL, single-threaded, the unix-none VFS), so the cases can hold a database file's size and
+  a compressor's bytes — 23 programs more, every one byte for byte.
+- **The tab said "about 13.5 MB"** for the first run: 15.4 MB now (the unit suite holds the sentence to the files' sizes).
+
 ## Windows check, run 19 (28 Nov 2026): the suites of everything built since run 18
 The 56 suites of what was built after run 18 (27 Nov: the four groups of potentials, the Settings page, to-do #38 and #40) and the
 sweeps over every tab, in Google Chrome on GitHub's Windows runner: 2,758 of 2,772 checks passed; the 14 that failed, in 14 suites:

@@ -100,7 +100,7 @@ export const mount: Mount = (root) => {
   async function run() {
     if (running) return;
     running = true; runBtn.disabled = true; stopBtn.hidden = false; view.clear(); clear(produced); errTail = '';
-    clear(status).append(note(firstRun ? 'Starting Python (the first run loads about 13.5 MB)…' : 'Running…', 'info'));
+    clear(status).append(note(firstRun ? 'Starting Python (the first run loads about 15.4 MB)…' : 'Running…', 'info'));
     try {
       const r = await runPython(code.value, { stdin: stdin.value, files, io: (text, stream) => {
         view.write(text, stream);
@@ -146,6 +146,6 @@ export const mount: Mount = (root) => {
           }
           showFiles();
         } }), fileList))))),
-  note('CPython 3.14 compiled from the official source to WebAssembly, with the standard library (math, statistics, decimal, fractions, datetime + zoneinfo, json, csv, re, collections, dataclasses, asyncio, zlib / gzip / zipfile, hashlib, xml, unittest, doctest…). Each run starts a fresh interpreter; clocks show your local time. Not here: pip packages, threads, other programs, the network, and the modules sqlite3, ssl, bz2, lzma, ctypes, tkinter and turtle. Your code and files never leave this browser.', 'info'));
+  note('CPython 3.14 compiled from the official source to WebAssembly, with the standard library (math, statistics, decimal, fractions, datetime + zoneinfo, json, csv, re, collections, dataclasses, asyncio, sqlite3, zlib / gzip / bz2 / lzma / zipfile, hashlib, xml, unittest, doctest…). Each run starts a fresh interpreter; clocks show your local time. Not here: pip packages, threads, other programs, the network, and the modules ssl, ctypes, tkinter and turtle. Your code and files never leave this browser.', 'info'));
   return () => { if (running) stopPython(); };
 };

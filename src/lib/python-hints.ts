@@ -4,7 +4,7 @@
 
 /** Standard-library modules that cannot be imported in this build → why. */
 export const ABSENT: Record<string, string> = Object.fromEntries(([
-  ['its C library (SQLite, bzip2, xz, zstd, libffi, ncurses, readline) is not part of this build', 'sqlite3 bz2 lzma ctypes curses readline'],
+  ['its C library (zstd, libffi, ncurses, readline) is not part of this build', 'ctypes curses readline'],
   ['it needs network connections, and a browser tab gives Python none', 'ssl'],
   ['it needs a desktop window, which Python has no access to here', 'tkinter turtle turtledemo idlelib'],
   ['it needs a Unix system underneath, and here Python runs on WebAssembly', 'fcntl termios tty pty pwd grp resource syslog mmap'],
@@ -18,7 +18,7 @@ export function hint(stderr: string): string {
   let m = /^ModuleNotFoundError: No module named '([^']+)'/.exec(last);
   if (m) {
     const top = m[1].replace(/^_/, '').split('.')[0], full = m[1];
-    const known = ABSENT[top] || (full === '_zstd' || full === 'compression.zstd' ? ABSENT.bz2 : full === '_interpreters' || full === '_multiprocessing' || full === '_remote_debugging' || full === '_posixsubprocess' ? 'it needs more than one thread or process, and a tab runs Python on one' : '');
+    const known = ABSENT[top] || (full === '_zstd' || full === 'compression.zstd' ? ABSENT.ctypes : full === '_interpreters' || full === '_multiprocessing' || full === '_remote_debugging' || full === '_posixsubprocess' ? 'it needs more than one thread or process, and a tab runs Python on one' : '');
     if (known) return `That module is part of Python, but it cannot be used here: ${known}.`;
     const mod = full.split('.')[0];
     return `“${mod}” is not part of Python's standard library, and this tab cannot install packages (no pip). A module of your own must be added under “Files for the program” as ${mod}.py.`;

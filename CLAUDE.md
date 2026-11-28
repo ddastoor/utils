@@ -4512,7 +4512,7 @@ difference over its detail, the overlap's pixels), ruled lines and list marks cl
 | metacore (EXIF → JSON, lossless metadata strip JPEG/PNG/WebP, JPEG DPI, image sniffing) | C (own code) | **us** (`wasm/metacore`) | exif, image loading, passport/formphoto DPI |
 | BusyBox 1.38.0 (130 applets) + compat shims | C | **us** (`wasm/busybox`) | terminal, bc console |
 | jq 1.8.2 (+ oniguruma) | C | **us** (`wasm/jq`) | jq |
-| CPython 3.14.8 (+ zlib 1.3.2; stdlib as .pyc in python314.zip with tzdata 2026.6; **the regex module 2026.11.19** — mrab-regex's C extension built in as `_regex`) **+ our changes** (§5.1m: recursion guard for a browser's two stacks, lru_cache in Python, pbkdf2_hmac fallback, socket stand-in + asyncio loop without sockets, local time from the host, regex-wasm.patch) | C | **us** (`wasm/python`, python.wasm 7.8 MB + python314.zip 5.75 MB, loaded on the first Run; run by our WASI host `src/lib/terminal/wasi.ts` in `src/workers/python.worker.ts`) | python; regex (the Python re and regex-module flavours, `src/lib/regex/python.ts`) |
+| CPython 3.14.8 (+ zlib 1.3.2; **SQLite 3.54.1, bzip2 1.0.8 and liblzma 5.8.4** — the C libraries of sqlite3, bz2 and lzma, linked in (28 Nov 2026); stdlib as .pyc in python314.zip with tzdata 2026.6; **the regex module 2026.11.19** — mrab-regex's C extension built in as `_regex`) **+ our changes** (§5.1m: recursion guard for a browser's two stacks, lru_cache in Python, pbkdf2_hmac fallback, socket stand-in + asyncio loop without sockets, local time from the host, regex-wasm.patch) | C | **us** (`wasm/python`, python.wasm 9.6 MB + python314.zip 5.76 MB, loaded on the first Run; run by our WASI host `src/lib/terminal/wasi.ts` in `src/workers/python.worker.ts`) | python; regex (the Python re and regex-module flavours, `src/lib/regex/python.ts`) |
 | Graphviz **16.1.0** (cgraph, gvc, dot/neato/fdp/sfdp/circo/twopi/osage/patchwork, core renderers; the official release archive) + Expat 2.9.0 **+ our changes** (§5.1l: `storeline.patch` — an upstream crash on labels that start with an empty line; `triangulation.patch` + `st_delaunay.h` — prism overlap removal on our C port of Delaunator instead of GTS; glibc's `qsort` and `rand`; assertions kept; text measured by the host through a "textlayout" plugin) | C / C++ | **us** (`wasm/graphviz`, 1.65 MB / 0.56 MB gz, a fresh instance per drawing in `src/workers/graphviz.worker.ts`; the existing builds — Viz.js, hpcc — trap on valid graphs: `docs/WASM-AUDIT.md`, tab 55) | graphviz |
 | audio: **LAME 4.0** libmp3lame (MP3 encoder) + own C (WAV writer — 16-bit by the browser's own rule, waveform peaks, levels, gain/fades, scale, mix, Kaiser windowed-sinc resampler) + `studio.c`: **DeepFilterNet 3's signal processing** (a C port of libDF's STFT, ERB features, norms, mask and deep filter — held to libDF) and **the studio finish** (rumble filter, expander, EQ, compressor, de-esser, BS.1770-4 loudness, 4× oversampled true-peak limiter — held to FFmpeg's ebur128); **MP3 as a stream** (`a_mp3s_*`: fed a piece at a time, ID3v2.3 tags and a cover through LAME's own id3tag code, the LAME / Xing frame written after the tag — the Audiobook) | C | **us** (`wasm/audio`) | audio (and tts, noise — Studio voice —, pitch, slideshow, audiobook) |
 | Signalsmith Stretch 1.3.2 (tempo and pitch, polyphonic) | C++ | Signalsmith Audio (official `signalsmith-stretch`, WebAssembly in an AudioWorklet) — rendered offline by `src/lib/stretch.ts` | pitch (replaced our WSOLA in Nov 2026: `docs/WASM-AUDIT.md`, tab 145) |
@@ -5043,14 +5043,21 @@ Licences of what is compiled in: Graphviz EPL-2.0, Expat MIT, Delaunator ISC, ro
 domain); the two glibc routines are written anew from the published algorithm (no glibc code).
 
 ### 5.1m python → `src/wasm/bin/python.wasm` + `python314.zip`
-`ZIG=… wasm/python/build.sh` (≈ 3 min on 4 cores; host C compiler, make, xz, patch): CPython 3.14.8 and zlib 1.3.2 from the
-Ubuntu archive, tzdata 2026.6 and the regex module 2026.11.19 from PyPI (all SHA-256 pinned). A native CPython is built first (the cross build's "build Python"),
+`ZIG=… wasm/python/build.sh` (≈ 12 min on 4 cores; host C compiler, make, xz, patch): CPython 3.14.8, zlib 1.3.2, SQLite 3.54.1,
+bzip2 1.0.8 and xz 5.8.4 from the Ubuntu archive, tzdata 2026.6 and the regex module 2026.11.19 from PyPI (all SHA-256 pinned).
+**sqlite3, bz2 and lzma** (owner, 28 Nov 2026: "finish off the small choices" — the offer of 20 Nov): SQLite's amalgamation made by its
+own build (its Jim Tcl — no Tcl needed) and compiled twice, for wasm32-wasi and natively (the native Python that makes the tests'
+reference runs the same SQLite and options; liblzma too, so a compressor writes the same bytes); WASI has no file locking, mmap or
+threads, so SQLite opens files with its `unix-none` VFS (one program, an in-memory file system), no WAL (`journal_mode=WAL` stays
+"delete"), temporary tables in memory, single-threaded (`sqlite3.threadsafety` 0), FTS3/4/5, R-tree, maths functions and dbstat in,
+local time from the host (as CPython's); `dbm` and `shelve` use `dbm.sqlite3`, as on a desktop. Configure's link checks add
+`-lsqlite3`, so each library is named by its folder (`-L… -lsqlite3`) — an archive alone left `_sqlite3` "missing". +1.9 MB. A native CPython is built first (the cross build's "build Python"),
 then CPython's **own** WASI configuration (`Tools/wasm/wasi/config.site-wasm32-wasi` + our `config.site.extra`: no
 socket module; functions zig's wasi-libc declares but lacks) with zig cc (a wrapper drops `--stack-first`, which zig
 rejects). `wasi_start.c` (linked in through LIBS, constructors): links the main thread into musl's thread list — zig's
 single-threaded libc leaves it NULL and `pthread_key_delete` then loops forever at interpreter exit — and `chdir($PWD)`
 (wasi-libc starts in "/"). Upstream sources unmodified apart from the changes listed below. The stdlib is compiled to .pyc by the same CPython version and
-zipped without tests/IDLE/Tk/venv/ensurepip/sqlite3/curses (+ tzdata for zoneinfo, + `wasm/python/lib/*.py`); CPython finds `/lib/python314.zip`
+zipped without tests/IDLE/Tk/venv/ensurepip/curses (+ tzdata for zoneinfo, + `wasm/python/lib/*.py`); CPython finds `/lib/python314.zip`
 on its default path. Our WASI host's `poll_oneoff` now honours the clock id (time.sleep uses absolute monotonic
 deadlines).
 **Our changes to CPython (Nov 2026 bug hunt; all in `wasm/python/`, applied by build.sh):**
@@ -5085,7 +5092,7 @@ deadlines).
   with (two getters, three METH_NOARGS methods); native code does not notice, WebAssembly traps on the indirect call —
   Pattern.groupindex, pickling, Match.capturesdict(), allcaptures(), allspans() (the unit suite calls each; worth
   reporting upstream). +0.8 MB.
-- Absent, with a hint in the tab (`src/lib/python-hints.ts`): sqlite3, bz2, lzma, ctypes, curses, readline, ssl,
+- Absent, with a hint in the tab (`src/lib/python-hints.ts`): ctypes, curses, readline, compression.zstd, ssl,
   tkinter, turtle, mmap, fcntl, termios, pwd, grp, resource, syslog, venv, ensurepip (the unit suite checks that this
   list is exactly what fails to import); threads, processes, the network.
 **The tab (`src/tools/software/python.ts`, worker `src/workers/python.worker.ts`):** output pane `src/lib/termtext.ts`
@@ -5095,12 +5102,15 @@ sends every write at once at a human pace, a flood in pieces a millisecond apart
 call (`onCall`); stdin is handed over a line at a time and a line that answers a prompt is echoed (`stdinLines`,
 `onStdinRead`); limits 32 MB of output / 30 minutes (`onAbort`); hints for errors particular to the tab; Enter keeps
 the indentation; "All as .zip" for written files.
-**Tests:** `tests/unit/python.test.mjs` (201) — 69 programs (`tests/fixtures/python/cases/*.py`: language, standard
-library, uncaught errors, input, files, asyncio, local time in 20 zones) must print what **native CPython 3.14.8**
+**Tests:** `tests/unit/python.test.mjs` (223) — 92 programs (`tests/fixtures/python/cases/*.py`: language, standard
+library, uncaught errors, input, files, asyncio, local time in 20 zones; `datastores.py` — sqlite3 (types, errors, transactions,
+functions of one's own, a database file's size and bytes, backup, serialize, FTS5 / FTS4 / R-tree, dbm and shelve, local time in four
+zones), bz2 and lzma (the bytes they write at each level and check, streams made by the system's xz and bzip2 programs, files,
+tarfile, zipfile, shutil)) must print what **native CPython 3.14.8**
 prints, byte for byte on stdout and stderr (`tests/fixtures/python/reference.json`, made with the build's own native
 interpreter: `$WORK/native/python scripts/make-python-reference.py`); local time against the zone files inside the
 build for 51 zones × 575 moments; nested-call table; RFC 6070; host options; hints. `tests/unit/termtext.test.mjs`
-(61, incl. 3,000 random streams against a cell-by-cell terminal). e2e `tests/e2e/python.e2e.mjs` (88).
+(61, incl. 3,000 random streams against a cell-by-cell terminal). e2e `tests/e2e/python.e2e.mjs` (90).
 
 ### 5.1n geo → `src/wasm/bin/geo.wasm`
 `ZIG=… wasm/geo/build.sh`: downloads `proj_9.9.0.orig.tar.gz` from the Ubuntu archive (SHA-256 `791a0610…` from the
@@ -5291,6 +5301,7 @@ npm packages (pinned in `package-lock.json`) are bundled by Vite or copied to `p
 | *built in:* Go's standard library (regexp, the runtime) in regex-go.wasm | BSD-3-Clause (the Go licence) | Regex Tester (Go) |
 | *built in:* gnulib's regex (from GNU grep 3.12) in posix-re.wasm | LGPL-2.1-or-later | Regex Tester (POSIX ERE) |
 | *built in:* regex 2026.11.19 (mrab-regex, PyPI) in python.wasm + python314.zip | Apache-2.0 AND CNRI-Python | Regex Tester (Python regex module), Python Scratchpad |
+| *built in:* SQLite 3.54.1, bzip2 1.0.8 and liblzma (xz 5.8.4) in python.wasm (the modules sqlite3, bz2, lzma) | public domain (SQLite) / bzip2's BSD-style licence / 0BSD (liblzma) | Python Scratchpad |
 | *built in:* OpenJDK 21's java.util.regex, java.lang.Character and its Unicode data (uniName.dat) in java-regex.wasm | GPL-2.0 WITH Classpath-exception-2.0 | Regex Tester (Java) |
 | *built in:* TeaVM 0.16.0's class library in java-regex.wasm, and its WebAssembly GC runtime (`src/lib/regex/teavm-runtime.js`, patched) | Apache-2.0 | Regex Tester (Java) |
 | .NET 10.0.15 runtime for browser-wasm and its libraries (System.Private.CoreLib, System.Text.RegularExpressions …), in `public/engines/dotnet-regex/` | MIT | Regex Tester (.NET) |
