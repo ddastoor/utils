@@ -31,6 +31,7 @@ const BLANK = { name: 'blank.png', mimeType: 'image/png', buffer: whitePng(480, 
  *  ended. `safari`: a write made outside the handling of a tap, a key or a paste is refused, as Safari (and Firefox) refuse it —
  *  by the event being handled: Chromium's user activation lasts five seconds and Playwright's file choosing sets it, so it
  *  cannot stand for Safari's rule. */
+/** rule: false — the browser's own answer; true — Safari's (refused outside a tap); 'refuse' — every write refused */
 function watch(safari) {
   window.__writes = [];
   const c = navigator.clipboard;
@@ -40,7 +41,7 @@ function watch(safari) {
     if (kind === 'item') { try { arg[0].getType('text/plain').then((b) => b.text()).then((t) => { rec.text = t; }, () => {}); } catch { /* an image */ } }
     else rec.text = arg;
     const tap = !!window.event?.isTrusted && ['click', 'paste', 'keydown', 'keyup', 'pointerdown', 'pointerup', 'mousedown', 'mouseup', 'touchend'].includes(window.event.type);
-    const p = safari && !tap
+    const p = safari === 'refuse' || (safari && !tap)
       ? Promise.reject(new DOMException('The request is not allowed by the user agent or the platform in the current context.', 'NotAllowedError'))
       : real(arg);
     p.then(() => { rec.state = 'done'; }, (e) => { rec.state = `refused: ${e?.name}`; });
@@ -127,18 +128,24 @@ export default async ({ base, page: newPage, ok, devices }) => {
     const t2 = await extract(), c = await clip(o);
     return t2.trim() && c === t2 && !/segmentation/i.test(c) ? { ok: true } : { ok: false, why: `read ${JSON.stringify(t2.slice(0, 40))}, the clipboard ${JSON.stringify(c.slice(0, 40))}` };
   });
-  // leaving the tab during a reading: dropped
-  await open(F('page.png')); await putText(helper, 'left alone'); await forget(o);
-  await o.getByRole('button', { name: 'Extract text' }).click();
-  await o.waitForTimeout(300);
-  await o.evaluate(() => { location.hash = '#/wordcount'; });
-  await o.waitForTimeout(1500);
-  { const w = await writes(o); ok(w.length === 1 && /^refused/.test(w[0].state) && await clip(o) === 'left alone', `the tab left during a reading: its copy dropped, nothing written later (${JSON.stringify(w)})`); }
+  // leaving the tab during a reading: dropped (the whole scenario again when another suite's copy came in between — on Windows
+  // the clipboard is the system's, shared with the suites running beside this one)
+  await tried('the tab left during a reading: its copy dropped, nothing written later, the clipboard as it was', async (k) => {
+    if (k > 1) { await o.evaluate(() => { location.hash = '#/ocr'; }); await o.waitForSelector('input[type=file]', { state: 'attached' }); }
+    await open(F('page.png')); await putText(helper, `left alone ${k}`); await forget(o);
+    await o.getByRole('button', { name: 'Extract text' }).click();
+    await o.waitForTimeout(300);
+    await o.evaluate(() => { location.hash = '#/wordcount'; });
+    await o.waitForTimeout(1500);
+    const w = await writes(o), c = await clip(o);
+    return w.length === 1 && /^refused/.test(w[0].state) && c === `left alone ${k}` ? { ok: true } : { ok: false, why: `writes ${JSON.stringify(w)}, the clipboard ${JSON.stringify(c.slice(0, 60))}` };
+  });
 
-  // ---------------------------------------------------------------- OCR where writing is refused (no leave): said, and Copy does it
-  // (no leave at all: in Chromium the leave to read is a leave to write too)
+  // ---------------------------------------------------------------- OCR where writing is refused: said, and Copy does it
+  // (a stand-in that refuses every write: Chromium's own answer without the leave depends on the build — Playwright's headless
+  // shell on Linux refuses, Google Chrome on Windows writes while the page has the focus, as the Windows check found)
   const r = await newPage({ viewport: { width: 1366, height: 900 } });
-  watchAway(r); await r.addInitScript(watch, false);
+  watchAway(r); await r.addInitScript(watch, 'refuse');
   await r.goto(`${base}#/ocr`);
   await r.locator('input[type=file]').setInputFiles(F('text.png'));
   await r.waitForSelector('.ed-canvas', { state: 'visible' });

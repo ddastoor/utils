@@ -8,6 +8,7 @@
 // WCAG 2.2 A / AA on the tab's own controls in both themes; the phone.
 import { readFileSync, writeFileSync, existsSync, copyFileSync, mkdirSync } from 'node:fs';
 import { join, delimiter } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { execFileSync } from '../lib/child.mjs';
 import { pcOnlyOnPhone } from './_pconly.mjs';
 const AXE = readFileSync(new URL('../../node_modules/axe-core/axe.min.js', import.meta.url), 'utf8');
@@ -153,7 +154,7 @@ print(json.dumps({'size': [w, h], 'dark': dark}))`, pngOut);
     ok(got.length === 2 && !/Unsaved/.test(await status()), `Open ${what}: both shapes, nothing to save yet (${got.join(', ')})`);
   }
   // Visio, made with Visio: six shapes, each named in its text
-  await openFile(new URL('media.vsdx', FIX).pathname, 'media');
+  await openFile(fileURLToPath(new URL('media.vsdx', FIX)), 'media');
   const visio = await waitLabels(['RECTANGLE', 'CIRCLE', 'LINE', 'CONNECTED_SHAPE'], 'Open a Visio drawing (.vsdx)');
   ok(visio.length >= 4, `Open a Visio drawing made with Visio: its shapes with their texts (${visio.join(', ')})`);
   // Mermaid and PlantUML: made into shapes that can be edited

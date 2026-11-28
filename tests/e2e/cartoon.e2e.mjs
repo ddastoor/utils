@@ -241,12 +241,21 @@ export default async ({ base, page: newPage, ok, info, download, devices }) => {
     const px = await p.evaluate(() => { const c = document.querySelector('canvas.ed-canvas'); return [...c.getContext('2d').getImageData(0, 0, c.width, c.height).data]; });
     return { s, px, errors: p.errors };
   };
+  // a browser with no WebGL at all (no graphics card and no software WebGL — Google Chrome on GitHub's Windows runner, as the
+  // Windows check found) cannot run the forced WebGL path: then only WebAssembly is checked, and the forced WebGL run must say so
+  const probe = await newPage(); await probe.goto(base);
+  const hasGL = await probe.evaluate(() => { try { const c = new OffscreenCanvas(1, 1); return !!(c.getContext('webgl2') || c.getContext('webgl')); } catch { return false; } });
   const [gl, wa] = await Promise.all([run('webgl'), run('wasm')]);
   info(`webgl: ${gl.s} | wasm: ${wa.s}`);
-  ok(/WebGL/.test(gl.s) && /WebAssembly/.test(wa.s), 'forced backends ran (WebGL, WebAssembly)');
-  let diff = 0; for (let i = 0; i < gl.px.length; i += 4) diff += (Math.abs(gl.px[i] - wa.px[i]) + Math.abs(gl.px[i + 1] - wa.px[i + 1]) + Math.abs(gl.px[i + 2] - wa.px[i + 2])) / 3;
-  diff /= gl.px.length / 4;
-  ok(gl.px.length === wa.px.length && diff < 4, `WebGL and WebAssembly agree (mean difference ${diff.toFixed(2)})`);
+  if (!hasGL) {
+    info('this browser has no WebGL (no graphics card, no software WebGL): the WebGL backend is not compared with WebAssembly');
+    ok(/No TensorFlow\.js backend works/.test(gl.s) && /WebAssembly/.test(wa.s), `forced backends: WebAssembly ran, WebGL said it cannot (${gl.s})`);
+  } else {
+    ok(/WebGL/.test(gl.s) && /WebAssembly/.test(wa.s), 'forced backends ran (WebGL, WebAssembly)');
+    let diff = 0; for (let i = 0; i < gl.px.length; i += 4) diff += (Math.abs(gl.px[i] - wa.px[i]) + Math.abs(gl.px[i + 1] - wa.px[i + 1]) + Math.abs(gl.px[i + 2] - wa.px[i + 2])) / 3;
+    diff /= gl.px.length / 4;
+    ok(gl.px.length === wa.px.length && diff < 4, `WebGL and WebAssembly agree (mean difference ${diff.toFixed(2)})`);
+  }
   ok(gl.errors.length + wa.errors.length === 0, `no page errors on either backend: ${[...gl.errors, ...wa.errors].join(' | ')}`);
 
   // ---- phone

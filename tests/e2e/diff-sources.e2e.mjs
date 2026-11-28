@@ -76,7 +76,8 @@ export default async ({ base, page: newPage, ok, download, tmp }) => {
   ok(/app\.txt\.patch$/.test(gp) && g.startsWith(`Changes to src/app.txt in octo/demo on GitHub\nfrom commit ${A_SHA} (v1.0)\nto commit ${B_SHA} (main)\n\ndiff --git a/src/app.txt b/src/app.txt\n--- a/src/app.txt\n+++ b/src/app.txt\n@@`), `the patch: the commits noted, git's headers (${gp.split(/[\\/]/).pop()})`);
   const repo = join(work, 'repo'); mkdirSync(join(repo, 'src'), { recursive: true }); writeFileSync(join(repo, 'src/app.txt'), OLD);
   execFileSync('git', ['init', '-q'], { cwd: repo });
-  execFileSync('git', ['apply', gp], { cwd: repo });
+  // (core.autocrlf off: Git for Windows writes the patched file with \r\n by default — the user's setting, not the patch)
+  execFileSync('git', ['-c', 'core.autocrlf=false', 'apply', gp], { cwd: repo });
   ok(readFileSync(join(repo, 'src/app.txt'), 'utf8') === NEW, 'git apply takes it at the repository\'s root');
   writeFileSync(join(repo, 'src/app.txt'), OLD);
   execFileSync('patch', ['-p1', '-s', '-i', gp], { cwd: repo });

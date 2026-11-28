@@ -216,7 +216,7 @@ export default async ({ base, page: newPage, ok, download, tmp, info }) => {
   const rowText = await page.locator('.result-row').first().innerText();
   ok(/4 sections, 10 headers/.test(rowText), `the result: ${rowText.replace(/\s+/g, ' ')}`);
   const outDocx = await save('sections-watermarked.docx');
-  const zipList = runChild('python3', ['-c', 'import sys, zipfile; z = zipfile.ZipFile(sys.argv[1]); print("\\n".join(i.filename for i in z.infolist()))', outDocx]).trim().split('\n');
+  const zipList = runChild('python3', ['-c', 'import sys, zipfile; z = zipfile.ZipFile(sys.argv[1]); print("\\n".join(i.filename for i in z.infolist()))', outDocx]).trim().split(/\r?\n/); // (Python on Windows prints \r\n)
   ok(zipList[0] === '[Content_Types].xml' && !zipList.some((n) => n.endsWith('/')), `the .docx: [Content_Types].xml first, no folder entries (${zipList.length} parts)`);
   if (has('python3', ['-c', 'import docx'])) {
     const py = `

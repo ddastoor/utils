@@ -85,7 +85,8 @@ export const mount: Mount = (root, ctx) => {
     info.textContent = `${parts.palette.length} colours · ${shapes.toLocaleString('en-IN')} shapes · ${parts.width} × ${parts.height} · SVG ${(new Blob([svg]).size / 1024).toFixed(0)} KB · made in ${(parts.ms / 1000).toFixed(1)} s`;
     swatches.replaceChildren(...parts.palette.map(([r, g, b]) => h('span', { class: 'ca-sw', style: `background: rgb(${r}, ${g}, ${b})`, title: `#${[r, g, b].map((v) => v.toString(16).padStart(2, '0')).join('')}` })));
   };
-  const remake = (ms = 300) => { clearTimeout(timer); timer = window.setTimeout(() => void make(), ms); };
+  // a change makes the clip art in progress stale at once (its result must not be shown or saved before the new one starts)
+  const remake = (ms = 300) => { clearTimeout(timer); seq++; timer = window.setTimeout(() => void make(), ms); };
 
   // ---------------------------------------------------------------- the style
   const styleSays = h('p', { class: 'muted small' }, STYLE_SAYS[kept.style]);

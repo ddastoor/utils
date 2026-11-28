@@ -50,7 +50,9 @@ export const mount: Mount = (root, ctx) => {
   };
 
   // ---------------------------------------------------------------- tracing (the newest settings win)
-  const schedule = (ms = 250) => { clearTimeout(timer); timer = window.setTimeout(() => void run(), ms); };
+  // a change makes the tracing in progress stale at once: its result must not be shown (or saved) in the moment before the new
+  // one starts (found by the Windows check: under load an older tracing landed after a switch was changed)
+  const schedule = (ms = 250) => { clearTimeout(timer); seq++; timer = window.setTimeout(() => void run(), ms); };
   const run = async () => {
     if (!orig) return;
     const my = ++seq, t0 = performance.now(), mode = kept.mode, from = orig;

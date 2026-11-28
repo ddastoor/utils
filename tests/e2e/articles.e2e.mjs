@@ -117,7 +117,9 @@ export default async ({ base, page: newPage, ok, download, devices, released }) 
     return { f, z, text: (k) => strFromU8(z[k]), said: await page.locator('.tool-body .note-ok').last().innerText() };
   };
   let r = await make();
-  ok(r.f.endsWith('Articles-27-November-2026.epub'), `saved under the book’s title (${r.f.split(/[\\/]/).pop()})`);
+  // the book's title is "Articles — <today>" (the reader's local date), so the file's name follows the day the suite runs
+  const named = await page.evaluate(() => { const d = new Date(); return `Articles-${d.getDate()}-${d.toLocaleString('en-GB', { month: 'long' })}-${d.getFullYear()}.epub`; });
+  ok(r.f.endsWith(named), `saved under the book’s title, today’s date (${r.f.split(/[\\/]/).pop()})`);
   ok(/: \d+ KB · 3 articles · [\d,]+ words \(about \d+ minutes of reading\) · 7 pictures \(2 not saved with the pages\)/.test(r.said), `the result says what is in the book (${r.said})`);
   const opf = r.text('OEBPS/content.opf');
   ok(JSON.stringify([...opf.matchAll(/<itemref idref="([^"]+)"\/>/g)].map((x) => x[1])) === JSON.stringify(['contents', 'a01', 'a02', 'a03']), 'the contents page, then the three articles in their order');

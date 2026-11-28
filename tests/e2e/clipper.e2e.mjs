@@ -5,7 +5,7 @@
 // headline on top); the PDF read back by MuPDF; the .txt; "Read aloud" handing the text to the Text-to-Speech tab. Also:
 // blocks tapped one by one, a part moved, the labels, the clean-up, a photo with no newspaper on it, nothing fetched before
 // a photo, leaving the tab, the phone.
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { createRequire } from 'node:module';
@@ -14,7 +14,7 @@ import { phoneLayout } from './_phone.mjs';
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const NEWS = (n) => join(root, 'tests/fixtures/news', n);
 const IMG = (n) => join(root, 'tests/fixtures/images', n);
-const { wordsOf, lcs, storyWords } = await import(join(root, 'scripts/measure-clipper.mjs'));
+const { wordsOf, lcs, storyWords } = await import(pathToFileURL(join(root, 'scripts/measure-clipper.mjs')).href);
 
 /** Leptonica's diagnostics inside Tesseract ("Error in boxClipToRectangle: box outside rectangle" — its page layout on a
  *  newspaper page) reach the console as errors; they are not the app's */
@@ -81,7 +81,7 @@ export default async ({ base, page: newPage, ok, info, download, devices, releas
   // ---- the PDF: A4 pages, each a picture, ending between lines
   const pdfPath = await download(page, () => page.getByRole('button', { name: 'Save PDF' }).click());
   {
-    const mupdf = await import(join(root, 'node_modules/mupdf/dist/mupdf.js'));
+    const mupdf = await import(pathToFileURL(join(root, 'node_modules/mupdf/dist/mupdf.js')).href);
     const doc = mupdf.Document.openDocument(readFileSync(pdfPath), 'application/pdf');
     const n = doc.countPages(), b = doc.loadPage(0).getBounds();
     ok(n >= 1 && Math.abs(b[2] - b[0] - 595.28) < 1 && Math.abs(b[3] - b[1] - 841.89) < 1, `a PDF of A4 pages (${n}; ${(b[2] - b[0]).toFixed(0)}×${(b[3] - b[1]).toFixed(0)} pt)`);

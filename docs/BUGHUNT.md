@@ -3537,6 +3537,29 @@ Found while building it (unit `worldclock` 39, e2e `worldclock` 55):
   as they were; no settings file is written there (the switch off from the start) — `src/lib/color.ts` looks for `document`, so the
   suite stubs no `document`.
 
+## Windows check, run 19 (28 Nov 2026): the suites of everything built since run 18
+The 56 suites of what was built after run 18 (27 Nov: the four groups of potentials, the Settings page, to-do #38 and #40) and the
+sweeps over every tab, in Google Chrome on GitHub's Windows runner: 2,758 of 2,772 checks passed; the 14 that failed, in 14 suites:
+- **Image to SVG and the Clipart Maker: an older result could land after a change (a real bug, both tabs).** A change starts its new
+  tracing 250 – 300 ms later; a tracing already under way was still allowed to show its result in that moment — under load the suite saw
+  a "threshold" from before "A photo of paper" was switched on, and Save in that moment would have saved it. A change now makes the
+  tracing in progress stale at once (`seq++` when it is scheduled).
+- **Tests that took Linux for granted:** a module imported by a Windows path (`import("D:\…")` — Book Page Flattener, Newspaper
+  Clipper: `pathToFileURL`); a fixture's path from a URL's `.pathname` (`D:\D:\a\…` — Diagram Editor, Settings: `fileURLToPath`);
+  Windows keeps a line break on the clipboard as `\r\n` (Bill Splitter, Camera Reader, Spell Checker, Image to SVG); Python prints
+  `\r\n` there (Watermark's zip listing); Git for Windows writes a patched file with `\r\n` (`core.autocrlf` — the Text Diff's patch
+  applied with it off); Chrome on Windows lets a page without the leave write to the clipboard while it has the focus (the OCR suite's
+  "refused" browser is a stand-in now, as its Safari one is); a check of the shared clipboard redone whole when another suite's copy came
+  in between; the runner's Chrome has no WebGL at all (no graphics card, no software WebGL) — the Cartoonizer's forced-WebGL comparison
+  is said and skipped there, the tab itself falls back to WebAssembly.
+- **A test that would have failed on any day but 27 Nov 2026:** Articles → Kindle's file name follows today's date ("Articles — 28
+  November 2026"); the suite now asks the page for the date.
+- **A race in a test:** the Bill Splitter's hand-typed bill was read before mathcore (fetched with the first amount) had worked the
+  shares out — waited for now.
+- windows.yml installs vobject, xxhash and python-docx: the .vcf / .ics files, a book's fingerprint and the watermarked .docx files are
+  read back on Windows too.
+Here after the fixes: the 14 suites 596 / 596.
+
 ## EPUB Reader: "Remember book" and ▷ in the reader (28 Nov 2026; to-do #40)
 - **The arrow keys stopped turning pages after "Remember book" was clicked:** the switch's checkbox kept the focus, and the reader
   ignores keys meant for a form control. The focus goes back to the page when the switch has done its work (the panels did so already).

@@ -47,7 +47,7 @@ export default async (ctx) => {
   const svgText = readFileSync(svgPath, 'utf8');
   ok(/^<\?xml|^<svg/.test(svgText) && /width="640"/.test(svgText) && /height="400"/.test(svgText), 'an SVG document of the picture\'s size');
   await btn('Copy SVG code').click();
-  const copied = await page.evaluate(() => navigator.clipboard.readText());
+  const copied = (await page.evaluate(() => navigator.clipboard.readText())).replace(/\r\n/g, '\n'); // (Windows: \r\n on the clipboard)
   ok(copied === svgText, `"Copy SVG code" puts the same SVG on the clipboard (${copied.length} characters)`);
   if (!rsvg) ok(true, 'NOTE: rsvg-convert was not found (apt install librsvg2-bin) — the SVGs were not drawn here');
   else {

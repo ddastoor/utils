@@ -160,7 +160,7 @@ export default async (ctx) => {
   const dl = await download(page, () => btn('Download').click());
   ok(dl.endsWith('notes.md') && readFileSync(dl, 'utf8') === FIXED, `Download: the text under the file's own name (${dl.split(/[\\/]/).pop()})`);
   await btn('Copy').click();
-  ok((await page.evaluate(() => navigator.clipboard.readText())) === FIXED, 'Copy: the whole text on the clipboard');
+  ok((await page.evaluate(() => navigator.clipboard.readText())).replace(/\r\n/g, '\n') === FIXED, 'Copy: the whole text on the clipboard'); // (Windows: \r\n on the clipboard)
   await page.evaluate(() => {
     const dt = new DataTransfer(); dt.items.add(new File(['Droped file text.'], 'drop.txt', { type: 'text/plain' }));
     document.querySelector('.sp-editor').dispatchEvent(new DragEvent('drop', { dataTransfer: dt, bubbles: true, cancelable: true }));

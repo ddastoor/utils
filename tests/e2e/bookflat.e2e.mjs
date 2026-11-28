@@ -4,7 +4,7 @@
 // a straight line through them taken off — what is left is its bend, in line spacings), a page's shape, the PDF read back
 // by MuPDF. Also: two photos in order and moved, one page / two pages, a photo held sideways, a photo without print,
 // the engine fetched only with the first photo, leaving the tab, the phone.
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { readFileSync } from 'node:fs';
 import { imageInfo } from '../lib/imgcheck.mjs';
 import { phoneLayout } from './_phone.mjs';
@@ -69,7 +69,7 @@ function margins({ data, width: W, height: H }) {
 
 export default async ({ base, page: newPage, ok, info, download, devices, released }) => {
   const mupdf = await import('mupdf');
-  const jpeg = await import(root + 'node_modules/@jsquash/jpeg/decode.js');
+  const jpeg = await import(pathToFileURL(root + 'node_modules/@jsquash/jpeg/decode.js').href);
   await jpeg.init(await WebAssembly.compile(readFileSync(root + 'node_modules/@jsquash/jpeg/codec/dec/mozjpeg_dec.wasm')));
   const decode = async (path) => { const d = await jpeg.default(readFileSync(path)); return { data: d.data, width: d.width, height: d.height }; };
   const page = await newPage();

@@ -8,13 +8,14 @@
 import { readFileSync, writeFileSync, mkdtempSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { phoneLayout } from './_phone.mjs';
 
 const AXE = readFileSync(new URL('../../node_modules/axe-core/axe.min.js', import.meta.url), 'utf8');
 const TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22a', 'wcag22aa'];
 const NAME = /^superutils_settings_(\d{8})_(\d{4})\.json$/;
-const BOOK = new URL('../fixtures/ebooks/novel.epub', import.meta.url).pathname;
-const LEAFLET = new URL('../fixtures/snaps/leaflet.jpg', import.meta.url).pathname;
+const BOOK = fileURLToPath(new URL('../fixtures/ebooks/novel.epub', import.meta.url));
+const LEAFLET = fileURLToPath(new URL('../fixtures/snaps/leaflet.jpg', import.meta.url));
 const SECTIONS = ['favorites', 'applist', 'tts', 'camreader', 'audiobook', 'ebook', 'spell', 'worldclock'];
 const MARKETS = ['new-york-us', 'toronto-ca', 'sao-paulo-br', 'london-gb', 'frankfurt-am-main-de', 'johannesburg-za', 'mumbai-in', 'shanghai-cn', 'hong-kong-hk', 'tokyo-jp', 'sydney-au'];
 

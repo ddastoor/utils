@@ -76,7 +76,8 @@ export default async ({ base, page: newPage, ok, tmp, devices }) => {
   await page.getByRole('radio', { name: 'None' }).click();
   // ---- the split as text
   await page.getByRole('button', { name: 'Copy the split' }).click();
-  const text = await page.evaluate(() => navigator.clipboard.readText());
+  // (Windows keeps a line break on the clipboard as \r\n)
+  const text = (await page.evaluate(() => navigator.clipboard.readText())).replace(/\r\n/g, '\n');
   ok(/^SPICE GARDEN RESTAURANT, 27\/11\/2026 — ₹1,907\.00 in all\nMe: ₹[\d,.]+ \(paid\)\nAsha: ₹[\d,.]+\nRavi: ₹[\d,.]+\nPay Me — UPI me@ybl$/.test(text), `the split copied as text ${JSON.stringify(text)}`);
   // ---- an amount changed: the bill no longer adds up, said
   await page.locator('.bs-item').nth(1).locator('.bs-amt').fill('290.00');
@@ -96,7 +97,10 @@ export default async ({ base, page: newPage, ok, tmp, devices }) => {
   await hand.getByRole('button', { name: 'Type the bill by hand' }).click();
   await hand.locator('.bs-item input[aria-label="Item"]').fill('Pizza');
   await hand.locator('.bs-item .bs-amt').fill('1000');
-  ok(sum(await shares(hand)) === 100000 && (await shares(hand)).length === 3, 'a bill typed by hand: ₹1,000 three ways');
+  // (the split is worked out by mathcore, fetched with the first amount: the shares come a moment after the typing)
+  let hs = await shares(hand);
+  for (let i = 0; i < 100 && !(hs.length === 3 && sum(hs) === 100000); i++) { await hand.waitForTimeout(100); hs = await shares(hand); }
+  ok(sum(hs) === 100000 && hs.length === 3, `a bill typed by hand: ₹1,000 three ways (${JSON.stringify(hs)})`);
 
   // ---- leaving mid-reading
   const lv = await newPage();

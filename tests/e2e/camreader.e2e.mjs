@@ -160,7 +160,7 @@ export default async ({ base, page: newPage, ok, info, tmp, devices }) => {
 
   // ---- Copy; the text to Text-to-Speech
   await page.getByRole('button', { name: 'Copy the text' }).click();
-  const clip = await page.evaluate(() => navigator.clipboard.readText());
+  const clip = (await page.evaluate(() => navigator.clipboard.readText())).replace(/\r\n/g, '\n'); // (Windows: \r\n on the clipboard)
   ok(clip.startsWith('14 Gangapur Road\n\nNashik 422013\n\n27/11/2026\n\nDear Mr. Kulkarni,\n\nThank you for your letter of 20/11/2026. Your pension') && /Yours faithfully,\n\nBranch Manager$/.test(clip), `Copy gives the text as shown, its paragraphs kept (${JSON.stringify(clip.slice(0, 80))}…)`);
   await page.getByRole('button', { name: 'Open in Text-to-Speech (save as MP3)' }).click();
   await page.waitForFunction(() => location.hash === '#/tts' && document.querySelector('textarea[aria-label="Text to read"]')?.value.startsWith('14 Gangapur Road'), null, { timeout: 20000 });
