@@ -57,6 +57,10 @@ The owner adds items here in chat ("add … to to do"). Newest instructions win.
     - **Import** a file → its settings replace the stored ones and the apps that show them change at once.
     - **Which controls become settings** is the owner's choice, app by app (CLAUDE.md §1 rule 1: nothing else is stored) —
       to be listed with him before building (e.g. the EPUB Reader's look and place, the voice and speed of the speech tabs).
+    - **A World Radio section** (owner, 28 Nov 2026: "You should remember my favorite stations once the settings page is built
+      out. So now the settings page will have the world radio section in it"): the favourite stations of World Radio
+      (`docs/potentials.md` #116 — not built yet) — kept in the browser, in the settings file, exported and imported with the
+      rest.
 
 40. **EPUB Reader: "Remember book", its place and its reading voice in the Settings** (owner, 27 Nov 2026, evening: "Add an EPUB
     Reader app section in settings. Now on the EPUB Reader app page, have a toggle saying remember book. This will, at the

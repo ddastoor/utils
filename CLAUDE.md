@@ -238,7 +238,9 @@ Wayland) and **mobile browsers** (Android Chrome, iPhone Safari).
    **no PWA / offline install**. Nothing is saved between visits **except the owner-requested Favorites list**
    (tool ids in `localStorage` key `superutils.favorites.v1` — the stars of the old key `supertools.favorites.v1` are
    moved to it once —, `src/favorites.ts`; never leaves the browser) **and, since the owner's word of 26 Nov 2026, whether the category's list of apps is folded**
-   (to-do #27 — owner: "remembered between visits like Favorites"; `localStorage` beside Favorites, nothing else).
+   (to-do #27 — owner: "remembered between visits like Favorites"; `localStorage` beside Favorites, nothing else). **Allowed
+   by the owner, to be built:** the Settings page's settings (to-do #39, with its file, export and import), and in it World
+   Radio's favourite stations (owner, 28 Nov 2026 — `docs/potentials.md` #116).
 2. **No online *code* dependencies (owner clarification).** Every library, script, WebAssembly module, ML model,
    font and icon is embedded in / served from this site — WebAssembly first, else a locally hosted open-source JS
    library. Never a CDN or remote script. **Fetching *data* from a public online API is allowed** (e.g. network
