@@ -8,7 +8,7 @@ import { favs, setFavs } from './favorites';
 import { appListFolded, setAppListFolded } from './applist';
 import {
   settingsSections, onSettings, autoSave, setAutoSave, saveNow, lastFile, onFileSaved, importSettings, snapshot,
-  ttsSettings, camreaderSettings, audiobookSettings, ebookSettings, spellSettings, worldclockSettings, EBOOK_THEMES, CAMREADER_SIZES,
+  ttsSettings, camreaderSettings, audiobookSettings, ebookSettings, spellSettings, worldclockSettings, EBOOK_THEMES, CAMREADER_SIZES, EBOOK_SPEEDS,
 } from './settings';
 import { VOICES } from './lib/voices';
 import './settingspage.css';
@@ -129,6 +129,27 @@ export function mountSettings(root: HTMLElement): () => void {
   const ebSpread = select<'auto' | 'one' | 'two'>([['auto', 'One or two pages by the window'], ['one', 'One page'], ['two', 'Two pages']], eb.spread, (v) => ebookSettings.set({ spread: v }), 'Pages');
   const ebJustify = select<'' | 'yes' | 'no'>([['', 'As the device suits (justified on a PC, left-aligned on a phone)'], ['yes', 'Justified (straight right edge)'], ['no', 'Left-aligned']], eb.justify === null ? '' : eb.justify ? 'yes' : 'no', (v) => ebookSettings.set({ justify: v === '' ? null : v === 'yes' }), 'Justify the text');
   const ebPub = toggle('The book’s own styles', eb.publisher, (v) => ebookSettings.set({ publisher: v }));
+  // the reading voice of its ▷ (to-do #40): not chosen yet — asked the first time ▷ is pressed
+  const NOT_YET = '';
+  const ebVoiceSel = () => {
+    const sel = voiceSelect(ebookSettings.get().voice ?? 'af_heart', (v) => ebookSettings.set({ voice: v || null }), 'EPUB Reader reading voice');
+    sel.prepend(h('option', { value: NOT_YET }, 'Not chosen yet — asked the first time ▷ is pressed'));
+    sel.value = ebookSettings.get().voice ?? NOT_YET;
+    return sel;
+  };
+  const ebVoice = ebVoiceSel();
+  const ebSpeed = select<(typeof EBOOK_SPEEDS)[number]>([['0.8', 'Slower (0.8×)'], ['1', 'Normal'], ['1.2', 'Faster (1.2×)']], eb.speed, (v) => ebookSettings.set({ speed: v }), 'EPUB Reader reading speed');
+  // the books it remembers (to-do #40): each with its place and when it was last read, and Forget
+  const ebBooks = h('ul', { class: 'st-books' });
+  const showBooks = () => {
+    const bs = ebookSettings.get().books;
+    clear(ebBooks).append(...(bs.length ? bs.map((b) => h('li', null,
+      h('span', null, h('strong', null, b.title), b.author ? ` · ${b.author}` : '',
+        h('span', { class: 'muted small st-book-at' }, ` — page ${b.page + 1} of ${b.pages} (${Math.round(b.share * 100)} %), last read ${new Date(b.at).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}`)),
+      button('Forget', () => ebookSettings.set({ books: ebookSettings.get().books.filter((x) => x.hash !== b.hash) }), { small: true, variant: 'ghost', icon: 'X', title: `Forget “${b.title}” and its place` })))
+      : [h('li', { class: 'muted small' }, 'No books remembered — switch on “Remember book” in the EPUB Reader with a book open.')]));
+  };
+  showBooks();
   const sp = spellSettings.get();
   const spLang = select<'' | 'en-US' | 'en-GB' | 'en-IN'>([['', 'By the browser’s language'], ['en-US', 'English (United States)'], ['en-GB', 'English (United Kingdom)'], ['en-IN', 'English (India)']], sp.lang ?? '', (v) => spellSettings.set({ lang: v || null }), 'Spell Checker language');
   const spWords = h('ul', { class: 'st-words' });
@@ -162,7 +183,13 @@ export function mountSettings(root: HTMLElement): () => void {
     else if (id === 'tts') { const v = ttsSettings.get(); ttsVoice.value = v.voice; ttsSpeed.value = v.speed; }
     else if (id === 'camreader') { const v = camreaderSettings.get(); crVoice.value = v.voice; crSpeed.value = v.speed; crSize.value = String(v.size); crAuto.checked = v.auto; }
     else if (id === 'audiobook') { const v = audiobookSettings.get(); abVoice.value = v.voice; abSpeed.value = v.speed; abKbps.value = String(v.kbps); }
-    else if (id === 'ebook') { const v = ebookSettings.get(); ebFont.value = v.font; ebSize.value = v.size === null ? '' : String(v.size); ebTheme.value = v.theme ?? ''; ebLine.value = String(v.line); ebMargin.value = v.margin; ebSpread.value = v.spread; ebPub.checked = v.publisher; ebJustify.value = v.justify === null ? '' : v.justify ? 'yes' : 'no'; }
+    else if (id === 'ebook') {
+      const v = ebookSettings.get(); ebFont.value = v.font; ebSize.value = v.size === null ? '' : String(v.size); ebTheme.value = v.theme ?? ''; ebLine.value = String(v.line); ebMargin.value = v.margin; ebSpread.value = v.spread; ebPub.checked = v.publisher; ebJustify.value = v.justify === null ? '' : v.justify ? 'yes' : 'no';
+      // a voice of this device chosen in the reader: named by its name
+      if (v.voice && ![...ebVoice.options].some((o) => o.value === v.voice)) ebVoice.append(h('option', { value: v.voice }, v.voice.startsWith('sys:') ? `This device’s voice: ${v.voice.slice(4)}` : v.voice));
+      ebVoice.value = v.voice ?? NOT_YET;
+      ebSpeed.value = v.speed; showBooks();
+    }
     else if (id === 'spell') { const v = spellSettings.get(); spLang.value = v.lang ?? ''; showWords(); }
     else if (id === 'worldclock') { const v = worldclockSettings.get(); wcHour.value = v.h24 === null ? '' : v.h24 ? '24' : '12'; void showCities(); }
     else if (id === 'device') { autoT.checked = autoSave(); hows.hidden = !autoSave(); }
@@ -180,7 +207,9 @@ export function mountSettings(root: HTMLElement): () => void {
     sec('tts', 'Text-to-Speech', h('div', { class: 'stack' }, field('Voice', ttsVoice), ttsSpeed, openLink('tts'))),
     sec('camreader', 'Camera Reader', h('div', { class: 'stack' }, field('Voice', crVoice), field('Speed', crSpeed), field('Text size', crSize), crAuto, openLink('camreader'))),
     sec('audiobook', 'PDF / EPUB → Audiobook', h('div', { class: 'stack' }, field('Voice', abVoice), abSpeed, field('MP3 quality', abKbps), openLink('audiobook'))),
-    sec('ebook', 'EPUB Reader', h('div', { class: 'stack' }, field('Font', ebFont), field('Text size', ebSize), field('Line spacing', ebLine), field('Theme', ebTheme), field('Margins', ebMargin), field('Text edge', ebJustify), field('Pages', ebSpread), ebPub, openLink('ebook'))),
+    sec('ebook', 'EPUB Reader', h('div', { class: 'stack' }, field('Font', ebFont), field('Text size', ebSize), field('Line spacing', ebLine), field('Theme', ebTheme), field('Margins', ebMargin), field('Text edge', ebJustify), field('Pages', ebSpread), ebPub,
+      field('Reading voice (▷ on the page)', ebVoice), field('Reading speed', ebSpeed),
+      h('div', null, h('div', { class: 'small st-label' }, 'Remembered books'), ebBooks), openLink('ebook'))),
     sec('spell', 'Spell Checker', h('div', { class: 'stack' }, field('Language', spLang), h('div', null, h('div', { class: 'small st-label' }, 'Your words'), spWords), openLink('spell'))),
     sec('worldclock', 'World Clock', h('div', { class: 'stack' }, field('Clock', wcHour), h('div', null, h('div', { class: 'small st-label' }, 'Your cities'), wcList), openLink('worldclock'))),
   );

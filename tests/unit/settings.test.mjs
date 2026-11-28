@@ -32,7 +32,7 @@ export default async (t, { load }) => {
   t.eq(snap0.settings, {
     favorites: [], applist: { folded: false },
     tts: { voice: 'af_heart', speed: 1 }, camreader: { voice: 'af_heart', speed: '1', size: 24, auto: true }, audiobook: { voice: 'af_heart', speed: 1, kbps: 64 },
-    ebook: { font: 'literata', size: null, line: 1.5, justify: null, theme: null, publisher: true, margin: 'normal', spread: 'auto' },
+    ebook: { font: 'literata', size: null, line: 1.5, justify: null, theme: null, publisher: true, margin: 'normal', spread: 'auto', books: [], voice: null, speed: '1' },
     spell: { lang: null, added: [] }, worldclock: { cities: null, h24: null },
   }, 'from an empty store every section has its defaults (null: what follows the device or the browser until chosen)');
 
@@ -53,10 +53,38 @@ export default async (t, { load }) => {
   S.audiobookSettings.set({ kbps: 128 });
   t.eq(S.audiobookSettings.get().kbps, 64, 'the Audiobook: a bitrate it does not offer is its default');
   S.ebookSettings.set({ font: 'comic', size: 99, theme: 'neon', line: 1.75, justify: false });
-  t.eq(S.ebookSettings.get(), { font: 'literata', size: 20, line: 1.75, justify: false, theme: 'light', publisher: true, margin: 'normal', spread: 'auto' },
+  t.eq(S.ebookSettings.get(), { font: 'literata', size: 20, line: 1.75, justify: false, theme: 'light', publisher: true, margin: 'normal', spread: 'auto', books: [], voice: null, speed: '1' },
     'the EPUB Reader: an unknown font and theme, a size beyond 42 — the defaults; what is valid kept');
   S.ebookSettings.set({ size: null, theme: null, justify: null });
   t.eq([S.ebookSettings.get().size, S.ebookSettings.get().theme, S.ebookSettings.get().justify], [null, null, null], 'null again: back to what follows the device');
+  // the books it remembers and its reading voice (to-do #40)
+  const H = (c) => c.repeat(32);
+  S.ebookSettings.set({ voice: 'in_tni', speed: '1.2', books: [
+    { hash: H('a'), title: 'The Lighthouse', author: 'A. Writer', anchor: 'The sea was calm that night', share: 0.25, page: 12, pages: 48, at: 1000 },
+    { hash: H('b'), title: 'Old', author: '', anchor: '', share: 0.5, page: 3, pages: 6, at: 3000 },
+    { hash: H('a'), title: 'The Lighthouse', author: 'A. Writer', anchor: 'Later words', share: 0.5, page: 24, pages: 48, at: 2000 },
+    { hash: 'NOT-A-HASH', title: 'x', page: 1, pages: 2, at: 5 },
+    { hash: H('c'), title: 'Odd values', author: 7, anchor: 'a\u0000b', share: 4, page: 99, pages: 10, at: -1 },
+  ] });
+  const kb = S.ebookSettings.get();
+  t.eq([kb.voice, kb.speed], ['in_tni', '1.2'], 'the reading voice and speed kept');
+  t.eq(kb.books.map((b) => [b.hash[0], b.at]), [['b', 3000], ['a', 2000], ['c', 0]], 'the books: one entry a fingerprint (the latest kept), the last read first, one that is no fingerprint left out');
+  t.eq(kb.books[1].anchor, 'Later words', '… its place the latest one');
+  t.eq(kb.books[2], { hash: H('c'), title: 'Odd values', author: '', anchor: 'a b', share: 0, page: 9, pages: 10, at: 0 }, 'values out of range back within it (the page within the book, the share 0 – 1), control characters out');
+  S.ebookSettings.set({ voice: 'sys:Microsoft Zira Desktop' });
+  t.eq(S.ebookSettings.get().voice, 'sys:Microsoft Zira Desktop', 'a voice of this device kept by its name');
+  S.ebookSettings.set({ voice: null, speed: '3' });
+  t.eq([S.ebookSettings.get().voice, S.ebookSettings.get().speed], [null, '1'], 'null: not chosen yet (asked the first time); a speed not offered → normal');
+  t.eq(S.ebookSettings.get().books.length, 3, 'a change of the voice leaves the books as they were');
+  // the place kept quietly as the pages turn: stored and told, but no settings file of its own (one follows remember / forget)
+  const heardQ = [];
+  const offQ = S.onSettings((id, local) => heardQ.push(`${id}:${local}`));
+  S.ebookSettings.setQuietly({ books: S.ebookSettings.get().books.map((b) => (b.hash === H('a') ? { ...b, page: 30, anchor: 'Page thirty', at: 9000 } : b)) });
+  t.eq([S.ebookSettings.get().books[0].page, JSON.parse(store.get('superutils.app.ebook.v1')).books[0].anchor, heardQ], [30, 'Page thirty', ['ebook:true']], 'a quiet change: stored at once and told as made here (its place first: the last read)');
+  offQ();
+  const notesB = S.importSettings({ app: 'SuperUtils', kind: 'settings', format: 1, settings: { ebook: { books: [{ hash: H('d'), title: 'Imported', page: 0, pages: 5, at: 1 }, { hash: 'zz' }, 42] } } }).notes;
+  t.ok(S.ebookSettings.get().books.length === 1 && notesB.some((n) => /2 remembered books that could not be read left out/.test(n)), `an import: the books of the file replace them, the ones that are no books named (${notesB.join(' | ')})`);
+  S.ebookSettings.set({ books: [] });
   S.spellSettings.set({ lang: 'fr-FR', added: ['Aadhaar', 'Aadhaar', 'GSTIN2', '', 'naïve', 42] });
   t.eq(S.spellSettings.get(), { lang: 'en-US', added: ['Aadhaar', 'naïve'] }, 'the Spell Checker: a language it does not have is American English; its words once each, only words (no digits, no empty)');
   S.worldclockSettings.set({ cities: ['new-york-us', 3, 'london-gb', 'new-york-us'], h24: 'yes' });

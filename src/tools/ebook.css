@@ -25,7 +25,9 @@ html.ebr-reading { overflow: hidden; }
 .ebr-panel::backdrop { background: rgb(0 0 0 / 40%); }
 .ebr-panel-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px 0 18px; }
 .ebr-panel-head h3 { margin: 0; font-size: 17px; }
-.ebr-panel-body { padding: 12px 18px 18px; overflow: auto; }
+/* the panel a column: its head stays, its body scrolls inside it */
+.ebr-panel[open] { display: flex; flex-direction: column; }
+.ebr-panel-body { padding: 12px 18px 18px; overflow: auto; min-height: 0; flex: 1 1 auto; }
 .ebr-toc, .ebr-hits { list-style: none; margin: 8px 0 0; padding: 0; }
 .ebr-toc-item, .ebr-hit { display: flex; width: 100%; gap: 10px; align-items: baseline; justify-content: space-between; min-height: var(--tap); padding: 8px 12px; border: 0; border-radius: var(--radius-sm); background: none; color: var(--text); font: inherit; text-align: left; cursor: pointer; }
 .ebr-toc-item:disabled { color: var(--hint); cursor: default; }
@@ -40,8 +42,36 @@ html.ebr-reading { overflow: hidden; }
 .ebr-theme-a { font-family: Georgia, "Times New Roman", serif; font-size: 20px; }
 .ebr-sizes { align-items: center; gap: 12px; }
 .ebr-size { min-width: 4.5em; text-align: center; font-variant-numeric: tabular-nums; }
+/* Remember book (to-do #40): beside the title */
+.ebr-top .ebr-title { flex: 1; }
+.ebr-remember { flex: none; font-size: 14px; white-space: nowrap; }
+/* ▷ read aloud: over the page as the selection's bar is (a bar taking room would lay the book out again) */
+.ebr-saybar { position: absolute; z-index: 5; left: 50%; bottom: 76px; transform: translateX(-50%); display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; justify-content: center; width: max-content; max-width: calc(100% - 24px); padding: 6px 10px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); box-shadow: var(--shadow-lg); }
+.ebr-sayline { font-size: 13px; color: var(--muted); }
+.ebr-saybtns { gap: 6px; }
+/* "Processing…" over the whole page while a book's fingerprint is made */
+.ebr-processing { width: min(400px, calc(100vw - 32px)); padding: 20px 22px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); color: var(--text); box-shadow: var(--shadow-lg); }
+.ebr-processing::backdrop { background: rgb(0 0 0 / 45%); }
+.ebr-processing h3 { margin: 0 0 6px; font-size: 18px; }
+.ebr-proc-bar { width: 100%; height: 8px; }
+/* the voices to read with */
+/* the voices scroll; what to press stays in sight below them */
+.ebr-voicebody { overflow: hidden; }
+.ebr-voicelist { display: flex; flex-direction: column; gap: 10px; flex: 1 1 auto; min-height: 96px; overflow: auto; }
+.ebr-voices { margin: 0; padding: 0; border: 0; display: flex; flex-direction: column; min-width: 0; }
+.ebr-voices legend { padding: 0; margin-bottom: 4px; font-weight: 600; font-size: 14px; }
+.ebr-voice { display: flex; align-items: center; gap: 10px; min-height: var(--tap); padding: 0 8px; border-radius: var(--radius-sm); cursor: pointer; }
+.ebr-voice:hover { background: var(--surface-2); }
+.ebr-voice input { flex: none; width: 18px; height: 18px; margin: 0; accent-color: var(--accent); }
+/* the books remembered, before a book is opened */
+.ebr-known-list summary { cursor: pointer; min-height: var(--tap); display: flex; align-items: center; }
+.ebr-known-list ul { margin: 6px 0 0; padding-left: 20px; }
 @media (max-width: 640px) {
   .ebr { height: calc(100dvh - var(--navh, 0px) - 12px); min-height: 380px; gap: 6px; }
+  /* the title and "Remember book" on a line, the tools on the next, spread across */
+  .ebr-top { flex-wrap: wrap; row-gap: 0; }
+  .ebr-top .ebr-title { flex: 1 1 0; }
+  .ebr-tools { flex: 1 1 100%; justify-content: space-between; }
   .ebr-tools { gap: 0; }
   .ebr-title { font-size: 14px; }
   .ebr-panel { width: 100vw; max-width: 100vw; max-height: 88dvh; margin: auto 0 0; border-radius: var(--radius) var(--radius) 0 0; }

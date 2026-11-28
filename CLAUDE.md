@@ -242,13 +242,14 @@ Wayland) and **mobile browsers** (Android Chrome, iPhone Safari).
    (to-do #27 — owner: "remembered between visits like Favorites"; `localStorage` beside Favorites, nothing else) **and, since
    28 Nov 2026, the Settings page's settings** (to-do #39 — §3 "Settings page"; the set the owner chose that day): in
    `localStorage`, one key an app — `superutils.app.<id>.v1` for Text-to-Speech, Camera Reader and Audiobook (voice, speed; the
-   Camera Reader's text size and "read aloud at once"; the Audiobook's MP3 quality), the EPUB Reader (its look), the Spell
-   Checker (its language and the words added) and the World Clock (its cities, its 12 / 24-hour clock) —, and
+   Camera Reader's text size and "read aloud at once"; the Audiobook's MP3 quality), the EPUB Reader (its look; since to-do #40
+   also its reading voice and speed and **the books the reader asks it to remember**: each book's fingerprint — XXH128 of the file,
+   not the file —, title, author and place), the Spell Checker (its language and the words added) and the World Clock (its cities,
+   its 12 / 24-hour clock) —, and
    `superutils.settings.v1`, this device's own "a settings file after every change"; in IndexedDB (`superutils-settings`), the
    folder chosen for the settings files (its handle — a normal window only; never in a private one). The settings file it writes
    after every change stays on the device. **Allowed by the owner, to be built:** World Radio's favourite stations, in the
-   Settings page (owner, 28 Nov 2026 — `docs/potentials.md` #116), and the EPUB Reader's remembered books (to-do #40). A new
-   kind of setting needs the owner's word.
+   Settings page (owner, 28 Nov 2026 — `docs/potentials.md` #116). A new kind of setting needs the owner's word.
 2. **No online *code* dependencies (owner clarification).** Every library, script, WebAssembly module, ML model,
    font and icon is embedded in / served from this site — WebAssembly first, else a locally hosted open-source JS
    library. Never a CDN or remote script. **Fetching *data* from a public online API is allowed** (e.g. network
@@ -4110,12 +4111,34 @@ search in the book, go to a page or chapter; the book never leaves the device".
   **Back to page n** after any jump (a link, the contents, a search hit); **links** inside the book followed, links to the web
   opened in a new tab; **search** (case and accents ignored, MuPDF's search with the line round each hit, from this page round the
   book, hits as they are found, Stop; the hits marked on the page); **selection** — a drag with the mouse, a long press on a word
-  on a phone (then the finger extends it) — with Copy, Search the book, Read aloud; **Read aloud** hands the text from this page on
-  (30,000 characters at most) to the Text-to-Speech tab (`give('tts', …)`); **reading mode** (the reader fills the screen, real
-  full screen where the browser allows; Esc leaves; a tap in the middle shows or hides the bars). **Nothing is stored** (CLAUDE.md
-  §1): the look and the book last read — its file handle and place — are kept while the page is open, and coming back offers
-  "Go back to “Title” — page n of N". The owner may allow keeping the place between visits as Favorites are (potentials #71) —
-  not asked yet.
+  on a phone (then the finger extends it) — with Copy, Search the book, Read aloud; **▷ reads the page here** (to-do #40, below);
+  **reading mode** (the reader fills the screen, real full screen where the browser allows; Esc leaves; a tap in the middle shows or
+  hides the bars). The book last read — its file handle and place — is kept while the page is open, and coming back offers "Go
+  back to “Title” — page n of N"; between visits, the books the reader asks it to remember (to-do #40, below).
+- **"Remember book" (to-do #40; owner, 27 Nov 2026 — his words in todo.md's Done):** a switch beside the book's title (on phones
+  the tools take a row of their own under it). Switched on: **"Processing…"** over the whole page (a modal dialog Esc does not
+  close; shown at least 0.6 s so it is seen) while the **fingerprint** of the file is made — **XXH128** by hash-wasm in the hash
+  worker (measured in V8 on 64 MB: XXH128 2.6 GB/s, BLAKE3 0.56, MD5 0.58, SHA-1 0.70 — the fastest, and 128 bits tell books apart);
+  then the book — fingerprint, title, author and **its exact place**: the first words of the page and their share of the book
+  (`anchorOf`, found again in any layout by `findAnchor`) with the page as laid out then — goes into the Settings' EPUB Reader
+  section (this browser, and a settings file); "Remembered: open … again and it opens at this page." **Kept up to date as the
+  pages turn** — quietly (`setQuietly`: stored at once, no settings file a page — the place goes into the next file and Export;
+  Claude's judgement: a file a page turn would be a download a page). **Opening a book:** when any book is remembered, its
+  fingerprint is made while it is laid out and looked up; found → it opens where it was left ("Back where you left off: page 212
+  of 380."), the switch on — another visit, another file name, another text size or window (the same words). Switched off →
+  forgotten (a settings file follows). Every book switched on is remembered until forgotten (at most 1,000; each a few hundred
+  bytes) — Claude's default for the open question "how many"; the start of the tab lists them ("Books you asked it to remember").
+  Focus goes back to the page after the switch (the arrow keys turn the pages again).
+- **▷ — the page read aloud here (to-do #40):** no jump to the Text-to-Speech tab. The page shown — both pages of a spread — or
+  the selection: a sentence a piece (`src/lib/ebookread.ts`: MuPDF's text → paragraphs → sentences, what is said by the
+  Audiobook's `speechText`, 0.3 s after a sentence and 0.8 s after a paragraph; a sentence the page cuts off is read to its end
+  from the next page when it plainly goes on), played by the Camera Reader's player (`src/lib/sayer.ts`: Kokoro and Piper in the
+  Text-to-Speech worker, or a voice of this device). **The first ▷: all the voices** — US and British English (Kokoro), Indian
+  English (Piper), this device's own — with the speed (Slower / Normal / Faster) and the download said; the choice kept in the
+  Settings and used from then on ("Voice…" on the reading bar, and the Settings page, change it). **The sentence being heard is
+  marked on the page** (green; `findOnPage` in `src/lib/ebook.ts`: MuPDF's search for it on its page, across lines — in the unit
+  suite every sentence read was found, 570 of 570). A bar over the page: what is read and with which voice, Pause / Go on,
+  Voice…, Stop; a page turned (or the look changed) stops it; it ends at the page's end.
 - **Lazy:** nothing at the tab's start; the worker, MuPDF and Literata's four files (1.0 MB) with the first book; Noto Sans only
   when chosen; 7-Zip only for a CBR / CB7. The worker ends when the tab is left (the book's memory with it).
 - **Found while building it** (docs/BUGHUNT.md): the worker lost the first book (MuPDF's top-level await in a module worker, see
@@ -4410,7 +4433,7 @@ something like superutils_settings_ mmdd_ hour minute."
   apps** (folded or not); **Text-to-Speech** (the voice — the site's voices, or one of this device's own, kept by its name — and the speed);
   **Camera Reader** (voice, speed, text size, "read aloud as soon as the page is read"); **PDF / EPUB → Audiobook** (voice, speed, MP3
   quality); **EPUB Reader** (font, text size, line spacing, theme, margins, text edge, one or two pages, the book's own styles — "as the
-  device suits" until chosen); **Spell Checker** (the language; the words added with "Add to dictionary" — kept between visits now — each
+  device suits" until chosen; since to-do #40 the reading voice and speed of its ▷ — "Not chosen yet" until the first ▷ — and **the remembered books**, each with its place, when it was last read and Forget (the reader open in another tab turns its switch off)); **Spell Checker** (the language; the words added with "Add to dictionary" — kept between visits now — each
   removable there); **World Clock** (its cities, added with its search or a set, moved, taken off — each removable there —, and the 12 /
   24-hour clock; owner, 28 Nov 2026: "when I add new cities, it gets saved in the settings page"). Each section links to its app. A link to
   the World Clock with a list of its own (`?c=…`) shows that list without storing it until something is changed there.
@@ -4510,7 +4533,7 @@ difference over its detail, the overlap's pixels), ruled lines and list marks cl
 | libyaml 0.2.5 + toml++ 3 | C / C++ | **us** (`wasm/formats`) | yaml |
 | MuPDF 1.28 | C | Artifex (official `mupdf` npm) | all PDF tools, PDF → EPUB, PDF for Kindle (the pieces: the page grafted, redacted, drawn as a form), Watermark (PDFs: to-do #17), Book Page Flattener and Newspaper Clipper (their PDFs), EPUB Reader (EPUB, MOBI, FictionBook, comics, text laid out at any size with HarfBuzz and drawn — in the reader's worker, `src/workers/ebook.worker.ts`), Audiobook (a book's text: laid out on pages 100,000 px tall, its contents resolved to page and height — in `src/workers/bookread.worker.ts`; a PDF through the PDF → EPUB engine), PDF Redact (its redaction in two passes — the text by a band through each line, then pictures' pixels, drawings and a black box; comments and form fields baked first; the saved file read again), Safe ID Copy (an e-Aadhaar's pages drawn and their text read; the copy's PDF of pictures), Make PDF Searchable (each page's invisible text layer, `stampPage`; the password kept), PDF Compare (each page's characters with their boxes, the pages drawn, the changes written as comments), PDF Tables (each page's words and ruled lines, the pages drawn) |
 | ExifTool 13.42 on zeroperl (Perl 5 compiled to WebAssembly with ExifTool's library inside) | Perl / C | Phil Harvey (ExifTool), uswriting / 6over3 (`@uswriting/exiftool` 1.0.9, `@6over3/zeroperl-ts` 1.0.10) — run in `src/workers/exiftool.worker.ts` | exif (replaced metacore's reader and stripper in Nov 2026: `docs/WASM-AUDIT.md`, tab 120); regex (the Perl flavour, the same module: `src/lib/regex/perl.ts`) |
-| hash-wasm 4.13.0 (hand-tuned C → wasm, one small binary per algorithm, embedded in the package; streaming; HMAC over any of its hashes; Argon2, bcrypt, scrypt, PBKDF2) | C | Dani Biró (`hash-wasm` npm, ~10 M downloads a month) — wrappers `src/lib/hmac.ts`, `src/lib/totp.ts`, `src/lib/pwhash.ts`, `src/lib/hashes.ts` (in `src/workers/hash.worker.ts`); only the algorithms a tab uses are bundled into its chunk, loaded with the tab's first result | hash (23 algorithms), hmac (all of it), totp (the HMAC), pwhash (Argon2id / i / d, bcrypt, scrypt, PBKDF2) — replaced RustCrypto builds and crypto.wasm's hashes of ours in Nov 2026 (`docs/WASM-AUDIT.md`) |
+| hash-wasm 4.13.0 (hand-tuned C → wasm, one small binary per algorithm, embedded in the package; streaming; HMAC over any of its hashes; Argon2, bcrypt, scrypt, PBKDF2) | C | Dani Biró (`hash-wasm` npm, ~10 M downloads a month) — wrappers `src/lib/hmac.ts`, `src/lib/totp.ts`, `src/lib/pwhash.ts`, `src/lib/hashes.ts` (in `src/workers/hash.worker.ts`); only the algorithms a tab uses are bundled into its chunk, loaded with the tab's first result | hash (23 algorithms), hmac (all of it), totp (the HMAC), pwhash (Argon2id / i / d, bcrypt, scrypt, PBKDF2) — replaced RustCrypto builds and crypto.wasm's hashes of ours in Nov 2026 (`docs/WASM-AUDIT.md`); ebook (a remembered book's fingerprint, XXH128 — to-do #40) |
 | ONNX Runtime Web 1.31 (CPU/WebAssembly, SIMD) | C++ | Microsoft (official `onnxruntime-web` wasm build) | tts, audiobook and camreader (Kokoro, Piper — `src/lib/speech.ts`, one session a worker; the Audiobook runs one to four workers at once); scanner and idcopy (DocCornerNet LEAN, scanic-ml 0.2.0: the page's — a card's — corners — `docs/WASM-AUDIT.md`, tab 121); ocr, photodict and clipper (the same network, asked where the Kindle finder's outline is not a page's — to-do #18; and **PaddleOCR's PP-OCRv6 detector and recogniser, the second reader for soft photos** — owner, 26 Nov 2026: `src/lib/paddle.ts` in `src/workers/paddle.worker.ts`); noise (**DeepFilterNet 3**, the Studio voice — to-do #20: `src/workers/noise.worker.ts`); clipart (**U²-Net small**, rembg's u2netp: the subject cut out — `src/workers/vector.worker.ts`) |
 | SQLite 3.54 | C | SQLite project (official `@sqlite.org/sqlite-wasm`), run in `src/workers/sqlite.worker.ts` (terminated on leave) | sqlite |
 | Perspective 5.10 (the pivot engine: group by, split by, aggregates, filters, date expressions) | C++ (engine), Rust (client) | FINOS (official `@perspective-dev/server` and `/client`, Apache-2.0) — the engine in the package's worker script, its two WebAssembly files fetched by `src/lib/pivotengine.ts` and handed over once a page | slicedice (its median is not used: docs/WASM-AUDIT.md 202) |
@@ -4667,6 +4690,9 @@ pictures are drawn by the codec worker (MozJPEG, OxiPNG, Squoosh's resize). The 
 Nov 2026 (the book step of the OCR tab and the Photo Dictionary, potentials #96): `bendOf` (a cubic evaluated at 64 points),
 `isBook` (a few comparisons of the fit's numbers) and `stackPages` (rows copied with `TypedArray.set`) in `src/lib/readpage.ts`
 — glue around imgproc.wasm's fit and drawing (`flatten.c`), which do the work.
+Nov 2026 (the EPUB Reader's ▷ and "Remember book", to-do #40): `src/lib/ebookread.ts` — a page's text cut into paragraphs and
+sentences by regular expressions (string glue around MuPDF's text, its search marking each sentence, and the voices); the
+remembered books are a list kept by the Settings; the fingerprint is hash-wasm's XXH128.
 Nov 2026 (the text copied as soon as it is read, to-do #38): `src/lib/clipwrite.ts` — the browser's Async Clipboard API
 (a ClipboardItem with a promised text, writeText where that is refused); no engine has work to do.
 Nov 2026 (Paste image, to-do #37): `src/lib/clipimage.ts` — the browser's Async Clipboard API, a choice among the formats

@@ -1,15 +1,21 @@
 // EPUB Reader (potentials #71; owner, 20 Nov 2026): read e-books — EPUB, MOBI (Kindle files without DRM), FictionBook,
 // comics (CBZ, CBR, CB7, CBT), plain text and web pages — with contents, page turning (tap, swipe, keys, the wheel), the
 // font, its size, line spacing and margins, light / sepia / dark / black, search in the book, a page or chapter to go
-// to, and Read aloud through the Text-to-Speech tab. MuPDF lays the book out and draws its pages in a worker
-// (src/workers/ebook.worker.ts, engine src/lib/ebook.ts). The book never leaves the device, and nothing is stored: the
-// place in the book and the look are kept while the page is open (CLAUDE.md §1).
+// to, and ▷ reading the page aloud here (to-do #40: a voice chosen once, the sentence being heard marked). MuPDF lays the book
+// out and draws its pages in a worker (src/workers/ebook.worker.ts, engine src/lib/ebook.ts). The book never leaves the device.
+// Kept in this browser (the Settings, to-do #39 / #40): the look, the reading voice, and the books the reader asks it to remember
+// ("Remember book": a fingerprint of the file — XXH128 — its title and its place, kept up to date as the pages turn; the same file
+// opened again opens where it was left).
 import { h, card, note, button, toggle, select, segmented, filePicker, clear, toast, errMsg, copy, ic, type Mount } from '../ui';
 import * as R from '../lib/ebook-client';
 import { THEMES, FONTS, KIND_NAMES, chapterAt, type Look, type Theme, type FontChoice, type Entry, type Hit, type BookInfo, type PageLink } from '../lib/ebook';
-import { give, take } from '../lib/handoff';
+import { take } from '../lib/handoff';
 import { plural } from '../lib/dates';
-import { ebookSettings } from '../settings';
+import { ebookSettings, EBOOK_SPEEDS, type RememberedBook } from '../settings';
+import { hashData } from '../lib/hash-client';
+import { sayer, type Sayer, type SayState } from '../lib/sayer';
+import { VOICES, V, type Voice } from '../lib/voices';
+import { pagePieces, readingWhat, type ReadPiece } from '../lib/ebookread';
 import './ebook.css';
 
 const ACCEPT = '.epub,.mobi,.prc,.azw,.azw3,.fb2,.fbz,.zip,.cbz,.cbr,.cb7,.cbt,.txt,.text,.html,.htm,.xhtml,application/epub+zip,application/x-mobipocket-ebook,text/plain,text/html';
@@ -25,6 +31,9 @@ const LINES: Array<[string, string]> = [['0', 'As the book sets it'], ['1.25', '
 const appDark = () => matchMedia('(prefers-color-scheme: dark)').matches;
 let look: Look | null = null, margin: Margin = 'normal', spreadPref: Spread = 'auto';
 let last: { file: File; title: string; anchor: string; share: number; page: number; pages: number } | null = null;
+/** the fingerprint a remembered book is known by: XXH128 of its file (measured in V8: 2.6 GB/s — BLAKE3 0.56, MD5 0.58, SHA-1 0.70) */
+const fingerprint = (f: Blob, onProgress?: (done: number) => void) => hashData(f, ['XXH128'], onProgress).then((r) => r.XXH128);
+const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 export const mount: Mount = (root, ctx) => {
   const phone = ctx.isMobile;
@@ -45,6 +54,8 @@ export const mount: Mount = (root, ctx) => {
   let layoutId = 0, laying: Promise<void> | null = null, size = { w: 0, h: 0 }, spread = false, missing: string[] = [];
   let hits: Hit[] = [], hitAt = -1, query = '', searching: ReturnType<typeof R.searchBook> | null = null;
   let selection: { page: number; text: string; quads: number[][] } | null = null, back: number | null = null;
+  /** the open book's fingerprint (worked out at opening when books are remembered, else when it is to be remembered) */
+  let hash: string | null = null;
   const bitmaps = new Map<string, Promise<{ bmp: ImageBitmap; w: number; h: number }>>();
   const sizes = new Map<number, Promise<[number, number]>>();
   const links = new Map<number, Promise<PageLink[]>>();
@@ -53,9 +64,19 @@ export const mount: Mount = (root, ctx) => {
   const status = h('div', { class: 'stack', role: 'status', 'aria-live': 'polite' });
   const again = h('div');
   const pick = filePicker({ accept: ACCEPT, label: 'Choose an e-book', hint: 'EPUB, MOBI, FB2, CBZ / CBR comics, TXT — or drop it here', onFiles: ([f]) => openFile(f) });
+  const known = h('div', { class: 'ebr-known' });
   const intro = card(null,
     note('A book is opened and laid out on this device — it is not uploaded anywhere. EPUB and MOBI books without DRM, FictionBook, comics (CBZ, CBR, CB7, CBT), plain text and web pages. Books bought with DRM (Kindle, Kobo, Google Play, Apple Books) open only in their shop’s app.'),
-    pick, again, status);
+    pick, again, status, known);
+  /** the books it remembers: choose the file again and it opens where it was left */
+  const showKnown = () => {
+    const bs = ebookSettings.get().books;
+    clear(known);
+    if (!bs.length) return;
+    known.append(h('details', { class: 'ebr-known-list' }, h('summary', null, `Books you asked it to remember (${bs.length})`),
+      h('p', { class: 'muted small' }, 'Choose the book’s file again and it opens where you left it. The Settings page lists them too, with Forget.'),
+      h('ul', null, ...bs.slice(0, 50).map((b) => h('li', null, h('strong', null, b.title), b.author ? ` · ${b.author}` : '', h('span', { class: 'muted small' }, ` — page ${b.page + 1} of ${b.pages}, ${new Date(b.at).toLocaleDateString()}`))))));
+  };
   const showAgain = () => {
     clear(again);
     if (!last) return;
@@ -79,22 +100,32 @@ export const mount: Mount = (root, ctx) => {
   const selBar = h('div', { class: 'ebr-selbar', hidden: true },
     button('Copy', async () => { if (selection) { await copy(selection.text); toast('Copied.', 'ok'); } }, { icon: 'Copy', small: true }),
     button('Search the book', () => { if (selection) { const t = selection.text.replace(/\s+/g, ' ').trim().slice(0, 80); clearSelection(); openSearch(t); } }, { icon: 'Search', small: true }),
-    button('Read aloud', () => { if (selection) readAloud(selection.text); }, { icon: 'Volume2', small: true }),
+    button('Read aloud', () => { if (selection) void readAloud(selection.text); }, { icon: 'Volume2', small: true }),
     button('', () => clearSelection(), { icon: 'X', small: true, title: 'Clear the selection' }));
   const fullB = button('', () => setFull(!full), { icon: 'Maximize', title: 'Reading mode (the book fills the screen)' });
+  // "Remember book" (to-do #40): the book's fingerprint and place kept in the Settings
+  const rememberT = toggle('Remember book', false, (on) => void setRemember(on));
+  rememberT.classList.add('ebr-remember');
+  rememberT.title = 'Remember this book and its place: open the same file again and it opens here';
   const top = h('div', { class: 'ebr-top' },
-    title,
+    title, rememberT,
     h('div', { class: 'ebr-tools' },
       button('', () => openContents(), { icon: 'ListTree', title: 'Contents and go to a page' }),
       button('', () => openSearch(), { icon: 'Search', title: 'Search in the book' }),
       button('', () => openLook(), { icon: 'Type', title: 'Font, size, margins and theme' }),
-      button('', () => readAloud(), { icon: 'Volume2', title: 'Read aloud from this page (Text-to-Speech)' }),
+      button('', () => void readAloud(), { icon: 'Volume2', title: 'Read this page aloud' }),
       fullB,
       button('', () => closeBook(), { icon: 'X', title: 'Close the book' })));
   const bottom = h('div', { class: 'ebr-bottom' }, prevB, h('div', { class: 'ebr-mid' }, slider, h('div', { class: 'ebr-wherebox' }, where, backB)), nextB);
-  const reader = h('section', { class: 'ebr', hidden: true, 'aria-label': 'Reader' }, top, notes, stage, selBar, bottom, pageText);
+  // ▷: the page read aloud here (to-do #40)
+  const sayLine = h('span', { class: 'ebr-sayline', role: 'status', 'aria-live': 'polite' });
+  const pauseB = button('Pause', () => { const p = player(); p.unlock(); if (p.state === 'paused') p.resume(); else p.pause(); }, { icon: 'Pause', small: true });
+  const voiceB = button('Voice…', () => openVoices(), { icon: 'AudioLines', small: true, title: 'Choose the reading voice' });
+  const stopB = button('Stop', () => stopReading(), { icon: 'Square', small: true });
+  const sayBar = h('div', { class: 'ebr-saybar', hidden: true, role: 'region', 'aria-label': 'Reading aloud' }, sayLine, h('div', { class: 'row ebr-saybtns' }, pauseB, voiceB, stopB));
+  const reader = h('section', { class: 'ebr', hidden: true, 'aria-label': 'Reader' }, top, notes, stage, selBar, sayBar, bottom, pageText);
   root.append(intro, reader);
-  showAgain();
+  showAgain(); showKnown();
   // a book another tab made for reading here (Articles → Kindle's "Read it here")
   const handed = take<File>('ebook');
   if (handed instanceof File) queueMicrotask(() => { void openFile(handed).catch((e) => { clear(status).append(note(errMsg(e), 'err')); }); });
@@ -175,7 +206,20 @@ export const mount: Mount = (root, ctx) => {
   // where each shown page stands on the stage (CSS px)
   const placed = new Map<number, { x: number; y: number; w: number; h: number }>();
   let anchor = '';
-  const remember = () => { if (file && info) last = { file, title: info.title, anchor, share: pages ? page / pages : 0, page, pages }; };
+  const remember = () => { if (file && info) { last = { file, title: info.title, anchor, share: pages ? page / pages : 0, page, pages }; keepPlace(false); } };
+  /** the open book's entry in the Settings, its place as it is now: `loud` — remembered now (a settings file follows); else the place
+   *  of a book already remembered, kept quietly as the pages turn (it goes into the next file) */
+  function keepPlace(loud: boolean) {
+    if (!info || !hash) return;
+    const books = ebookSettings.get().books, had = books.find((b) => b.hash === hash);
+    if (!had && !loud) return;
+    const share = pages ? page / pages : 0;
+    if (had && !loud && had.page === page && had.pages === pages && had.anchor === anchor) return;
+    const entry: RememberedBook = { hash, title: info.title, author: info.author || '', anchor, share, page, pages, at: Date.now() };
+    const next = [entry, ...books.filter((b) => b.hash !== hash)];
+    if (loud) ebookSettings.set({ books: next }); else ebookSettings.setQuietly({ books: next });
+  }
+  const isKept = () => !!hash && ebookSettings.get().books.some((b) => b.hash === hash);
 
   function status0() {
     const ps = shown(), ch = chapterAt(contents, ps[ps.length - 1]);   // a spread: the chapter of its right page (one may begin there)
@@ -204,7 +248,10 @@ export const mount: Mount = (root, ctx) => {
       if (!shown().includes(i)) continue;
       hits.forEach((hh, k) => { if (hh.page === i) for (const q of hh.quads) quad(q, at, k === hitAt ? (dark ? 'rgb(255 160 0 / 55%)' : 'rgb(255 140 0 / 45%)') : (dark ? 'rgb(255 230 0 / 30%)' : 'rgb(255 220 0 / 45%)')); });
       if (selection && selection.page === i) for (const q of selection.quads) quad(q, at, dark ? 'rgb(120 160 255 / 40%)' : 'rgb(60 110 230 / 30%)');
+      if (readMark && readMark.page === i) for (const q of readMark.quads) quad(q, at, dark ? 'rgb(90 210 130 / 32%)' : 'rgb(30 150 80 / 24%)');
     }
+    // the sentence being read, for the tests: its page and the lines it is marked on
+    marks.dataset.reading = readMark ? `${readMark.page}:${readMark.quads.length}` : '';
   }
 
   // ------------------------------------------------------------------------------------ turning pages
@@ -213,6 +260,7 @@ export const mount: Mount = (root, ctx) => {
     let p = Math.max(0, Math.min(pages - 1, Math.round(i)));
     if (spread) p -= p % 2;
     if (!keepSelection) clearSelection(false);
+    if (p !== page) stopReading(); // ▷ reads the page it was pressed on
     page = p;
     void show();
   };
@@ -229,7 +277,7 @@ export const mount: Mount = (root, ctx) => {
 
   // keys: the arrows, Page Up / Down, Space, Home, End — while the reader is open and no box or panel has the keys
   const onKey = (e: KeyboardEvent) => {
-    if (!info || reader.hidden || document.querySelector('dialog.ebr-panel[open]') || e.altKey || e.ctrlKey || e.metaKey) return;
+    if (!info || reader.hidden || document.querySelector('dialog.ebr-panel[open], dialog.ebr-processing[open]') || e.altKey || e.ctrlKey || e.metaKey) return;
     const t = e.target as HTMLElement;
     if (t && (t.closest('input, textarea, select, [contenteditable]') || (t.closest('button, a') && (e.key === ' ' || e.key === 'Enter')))) return;
     const k = e.key;
@@ -368,14 +416,23 @@ export const mount: Mount = (root, ctx) => {
   let relayTimer = 0;
   const needLayout = (delay = 150) => { clearTimeout(relayTimer); relayTimer = window.setTimeout(() => void relay(), delay); };
   // the look changed elsewhere (the Settings page in another tab, an import there): the book is laid out again in it
-  const offSettings = ebookSettings.on((local) => { if (local || !live) return; fromSettings(L); if (info) needLayout(120); });
+  const lookKey = () => JSON.stringify([L.font, L.size, L.line, L.justify, L.theme, L.publisher, margin, spreadPref]);
+  const offSettings = ebookSettings.on((local) => {
+    if (local || !live) return;
+    // (another tab of the site turning the pages of a remembered book changes this section too: only a new look lays the book out again)
+    const was = lookKey();
+    fromSettings(L);
+    if (info && lookKey() !== was) needLayout(120);
+    rememberT.checked = isKept(); // a book forgotten on the Settings page
+    if (!info) showKnown();
+  });
   async function relay() {
     if (!info || !live) return;
     if (laying) { await laying; }
     const m = measure();
     if (info.fixed) { if (m.W !== size.w || m.H !== size.h) { size = { w: m.W, h: m.H }; forget(); go(page); } return; }
     const done = (async () => {
-      stopSearch();
+      stopSearch(); stopReading();
       const share = pages ? page / pages : 0, a = anchor || (await R.anchorOf(page).catch(() => ''));
       const r = await R.relayout(L, m.w, m.h, a, share);
       if (!live) return;
@@ -408,8 +465,8 @@ export const mount: Mount = (root, ctx) => {
 
   // ------------------------------------------------------------------------------------ opening and closing
   async function openFile(f: File, resume?: { anchor: string; share: number }) {
-    stopSearch(); clearSelection(false); R.closeReader(); forget();
-    info = null; file = null; contents = []; hits = []; back = null; missing = []; note0 = '';
+    stopSearch(); clearSelection(false); stopReading(); R.closeReader(); forget();
+    info = null; file = null; contents = []; hits = []; back = null; missing = []; note0 = ''; hash = null; rememberT.checked = false;
     clear(status);
     if (f.size > 1.5e9) { status.append(note(`${f.name} is larger than a browser can read at once (${(f.size / 1e9).toFixed(1)} GB).`, 'err')); return; }
     intro.hidden = true; reader.hidden = false;
@@ -417,6 +474,8 @@ export const mount: Mount = (root, ctx) => {
     const m = measure();
     where.textContent = `Opening ${f.name}…`;
     try {
+      // a remembered book is known by its file's fingerprint: worked out while the book is laid out (to-do #40)
+      const fp = ebookSettings.get().books.length ? fingerprint(f).catch(() => null) : null;
       let bytes: Uint8Array = new Uint8Array(await f.arrayBuffer()), name = f.name, how = '';
       let r = await R.openBook(bytes, name, L, m.w, m.h);
       if (r.unpack) {
@@ -438,13 +497,18 @@ export const mount: Mount = (root, ctx) => {
       document.title = `${info.title} · EPUB Reader · SuperUtils`;
       showNotes();
       page = 0;
-      if (resume) {
+      if (fp) { hash = await fp; if (!live) return; }
+      const kb = hash ? ebookSettings.get().books.find((b) => b.hash === hash) : undefined;
+      rememberT.checked = !!kb;
+      const from = resume ?? (kb ? { anchor: kb.anchor, share: kb.share } : undefined);
+      if (from) {
         // the same book again: the page with the words the reader was at
-        if (!info.fixed && resume.anchor) { const lay = await R.relayout(L, m.w, m.h, resume.anchor, resume.share); pages = lay.pages; contents = lay.contents; layoutId++; page = lay.page; }
-        else page = Math.round(resume.share * pages);
+        if (!info.fixed && from.anchor) { const lay = await R.relayout(L, m.w, m.h, from.anchor, from.share); pages = lay.pages; contents = lay.contents; layoutId++; page = lay.page; }
+        else page = Math.min(pages - 1, Math.round(from.share * pages));
       }
       go(page);
       stage.focus({ preventScroll: true });
+      if (kb && !resume) toast(`Back where you left off: page ${page + 1} of ${pages}.`, 'ok');
     } catch (e) {
       if (e instanceof R.ReaderGone || !live) return;
       R.closeReader();
@@ -456,22 +520,153 @@ export const mount: Mount = (root, ctx) => {
   function closeBook() {
     remember();
     if (full) setFull(false);
-    stopSearch(); clearSelection(false); R.closeReader(); forget();
+    stopSearch(); clearSelection(false); stopReading(); R.closeReader(); forget();
+    hash = null;
     info = null; file = null; pages = 0;
     reader.hidden = true; intro.hidden = false;
     document.title = 'EPUB Reader · SuperUtils';
-    clear(status); showAgain();
+    clear(status); showAgain(); showKnown();
   }
 
-  // ------------------------------------------------------------------------------------ Read aloud
+  // ------------------------------------------------------------------------------------ Remember book (to-do #40)
+  /** the "Processing…" window over the whole page while the book's fingerprint is made (nothing else can be pressed meanwhile) */
+  function processing(f: File, titleText: string) {
+    const bar = h('progress', { class: 'ebr-proc-bar', max: 1, value: 0, 'aria-label': 'Processing the book' }) as HTMLProgressElement;
+    const dlg = h('dialog', { class: 'ebr-processing', 'aria-labelledby': 'ebr-proc-h', 'aria-describedby': 'ebr-proc-p' },
+      h('h3', { id: 'ebr-proc-h' }, 'Processing…'),
+      h('p', { id: 'ebr-proc-p', class: 'muted small' }, `Making a fingerprint of “${titleText}” (${(f.size / 1e6).toFixed(1)}\u00a0MB), so that it is known again when it is opened.`),
+      bar) as HTMLDialogElement;
+    dlg.addEventListener('cancel', (e) => e.preventDefault()); // not closed by Esc: it ends by itself
+    (full ? reader : document.body).append(dlg);
+    dlg.showModal();
+    return { progress: (p: number) => { bar.value = Math.max(0, Math.min(1, p)); }, close: () => { if (dlg.open) dlg.close(); dlg.remove(); } };
+  }
+  async function setRemember(on: boolean) {
+    if (!info || !file) { rememberT.checked = false; return; }
+    if (!on) {
+      if (hash) ebookSettings.set({ books: ebookSettings.get().books.filter((b) => b.hash !== hash) });
+      toast('Forgotten: the book opens at its start next time.');
+      stage.focus({ preventScroll: true });
+      return;
+    }
+    const f = file, t0 = performance.now(), dlg = processing(f, info.title);
+    try {
+      if (!hash) hash = await fingerprint(f, (done) => dlg.progress(done / Math.max(1, f.size)));
+      dlg.progress(1);
+      if (!live || file !== f) return;
+      if (!anchor) anchor = await R.anchorOf(page).catch(() => '');
+      keepPlace(true);
+      await wait(Math.max(0, 600 - (performance.now() - t0))); // long enough to be seen
+      toast(`Remembered: open “${info?.title}” again and it opens at this page.`, 'ok');
+    } catch (e) {
+      rememberT.checked = false;
+      if (live) toast(`The book could not be remembered: ${errMsg(e)}`, 'err');
+    } finally { dlg.close(); if (live && info) stage.focus({ preventScroll: true }); } // the keys turn the pages again
+  }
+
+  // ------------------------------------------------------------------------------------ ▷ Read aloud — here (to-do #40)
+  let sp: Sayer | null = null, readPieces: ReadPiece[] = [], readMark: { page: number; quads: number[][] } | null = null, readSeq = 0;
+  let sysVoices: SpeechSynthesisVoice[] = [], readWhat = '';
+  const allVoices = () => VOICES.flatMap(([, vs]) => vs);
+  const loadSys = () => { try { sysVoices = speechSynthesis.getVoices().filter((v) => v.localService && /^en/i.test(v.lang)); } catch { sysVoices = []; } };
+  if ('speechSynthesis' in window) { loadSys(); speechSynthesis.addEventListener?.('voiceschanged', loadSys); }
+  /** the kept voice: one of the site's, or one of this device's by its name ("sys:Microsoft Zira") */
+  const voiceOf = (id: string): [Voice, SpeechSynthesisVoice?] => {
+    if (id.startsWith('sys:')) { const k = sysVoices.findIndex((v) => v.name === id.slice(4)); if (k >= 0) return [V(id, sysVoices[k].name, 'system', 'a', k), sysVoices[k]]; }
+    return [allVoices().find((v) => v.id === id) ?? allVoices()[0]];
+  };
+  const voiceName = (id: string) => { const [v] = voiceOf(id); const g = VOICES.find(([, vs]) => vs.includes(v))?.[0]; return g ? `${v.label.replace(/ — .*/, '')} (${g})` : v.label; };
+  function player(): Sayer {
+    if (sp) return sp;
+    sp = sayer({
+      onPiece: (i) => {
+        const my = ++readSeq, p = readPieces[i];
+        readMark = null; drawMarks();
+        if (!p || !p.mark) return;
+        R.findText(p.page, p.mark).then((quads) => { if (my !== readSeq || !live) return; readMark = { page: p.page, quads }; drawMarks(); }, () => {});
+      },
+      onState: (st: SayState) => {
+        pauseB.setLabel(st === 'paused' ? 'Go on' : 'Pause');
+        if (st === 'loading') sayLine.textContent = `${readWhat} — getting the voice ready…`;
+        else if (st === 'playing' || st === 'waiting') sayLine.textContent = `${readWhat} — ${voiceName(ebookSettings.get().voice ?? 'af_heart')}`;
+        else if (st === 'paused') sayLine.textContent = `${readWhat} — paused`;
+        if (st === 'ended') { readMark = null; drawMarks(); sayLine.textContent = 'Read to the end of the page.'; setTimeout(() => { if (sp?.state === 'ended') sayBar.hidden = true; }, 1800); }
+        if (st === 'idle') { readMark = null; drawMarks(); }
+      },
+      onLoad: (p, t) => { if (p !== null) sayLine.textContent = `${readWhat} — ${t}`; },
+      onError: (msg) => toast(msg, 'err'),
+    });
+    return sp;
+  }
+  function stopReading() {
+    if (!sp) return;
+    readSeq++; sp.stop(); readMark = null; sayBar.hidden = true;
+    if (info) drawMarks();
+  }
+  /** The page shown (both pages of a spread) or the selection, read aloud here; the first time, the voices to choose from. */
   async function readAloud(text?: string) {
     if (!info) return;
     if (info.fixed) { toast('A comic has no text to read aloud.'); return; }
-    const t = (text ?? (await R.textFrom(page, 30000))).replace(/[ \t]+\n/g, '\n').trim();
-    if (!t) { toast('There is no text on this page to read.'); return; }
-    remember();
-    give('tts', t);
-    location.hash = '#/tts';
+    const k = ebookSettings.get();
+    if (!k.voice) { openVoices(() => void readAloud(text)); return; } // the first time: choose the voice (kept in the Settings)
+    const p = player();
+    p.unlock(); // in the tap: Safari lets sound start only within one
+    const ps = shown(), selPage = selection?.page ?? page;
+    let pieces: ReadPiece[];
+    if (text !== undefined) { pieces = pagePieces([{ page: selPage, text }]); clearSelection(); }
+    else {
+      const last = ps[ps.length - 1];
+      const [texts, next] = await Promise.all([Promise.all(ps.map((i) => R.pageText(i))), last + 1 < pages ? R.pageText(last + 1) : Promise.resolve('')]);
+      pieces = pagePieces(ps.map((i, j) => ({ page: i, text: texts[j] })), next);
+    }
+    if (!live || !info) return;
+    if (!pieces.length) { toast('There is no text on this page to read.'); return; }
+    readPieces = pieces; readWhat = readingWhat(ps, text !== undefined);
+    const [v, sv] = voiceOf(k.voice);
+    p.setPieces(pieces.map(({ say, pause }) => ({ say, pause })));
+    p.setVoice(v, sv); p.setSpeed(+k.speed);
+    sayLine.textContent = `${readWhat} — getting the voice ready…`;
+    sayBar.hidden = false;
+    p.play(0);
+  }
+  /** All the voices (the Text-to-Speech tab's, and this device's own), and the speed: kept in the Settings. `then`: what to do after
+   *  the choice (the first ▷: read). */
+  function openVoices(then?: () => void) {
+    loadSys();
+    const k = ebookSettings.get();
+    let chosen = k.voice ?? 'af_heart', speed = k.speed;
+    const hint = h('p', { class: 'muted small ebr-voice-hint' });
+    const sayHint = () => {
+      const [v] = voiceOf(chosen);
+      hint.textContent = v.engine === 'piper' ? 'An Indian English voice made on this device — 77 MB the first time, then it starts at once.'
+        : v.engine === 'kokoro' ? 'A natural voice made on this device — 92 MB the first time, then it starts at once.'
+          : 'A voice of this device: it starts at once.';
+    };
+    const radio = (id: string, label: string) => {
+      const r = h('input', { type: 'radio', name: 'ebr-voice', value: id }) as HTMLInputElement;
+      r.checked = id === chosen;
+      r.addEventListener('change', () => { if (r.checked) { chosen = id; sayHint(); } });
+      return h('label', { class: 'ebr-voice' }, r, h('span', null, label));
+    };
+    const groups = [
+      ...VOICES.map(([g, vs]) => h('fieldset', { class: 'ebr-voices' }, h('legend', null, g), ...vs.map((v) => radio(v.id, v.label)))),
+      ...(sysVoices.length ? [h('fieldset', { class: 'ebr-voices' }, h('legend', null, 'This device’s voices (they start at once)'), ...sysVoices.map((v) => radio(`sys:${v.name}`, v.name)))] : []),
+    ];
+    sayHint();
+    let pp!: { dlg: HTMLDialogElement; close: () => void };
+    const use = () => {
+      ebookSettings.set({ voice: chosen, speed });
+      pp.close();
+      if (then) then();
+      else if (sp && sp.state !== 'idle') { const [v, sv] = voiceOf(chosen); sp.setSpeed(+speed); sp.setVoice(v, sv); }
+    };
+    pp = panel(then ? 'Read aloud with' : 'The reading voice', h('div', { class: 'ebr-panel-body stack ebr-voicebody' },
+      h('p', { class: 'muted small' }, then ? 'Choose the voice that reads the page aloud. It is kept for the next time (the Settings page can change it).' : 'The voice the pages are read aloud with — kept in the Settings.'),
+      h('div', { class: 'ebr-voicelist' }, ...groups), hint,
+      h('div', { class: 'field', role: 'group', 'aria-label': 'Speed' }, h('span', { class: 'field-label' }, 'Speed'),
+        segmented<(typeof EBOOK_SPEEDS)[number]>([['0.8', 'Slower'], ['1', 'Normal'], ['1.2', 'Faster']], speed, (v) => { speed = v; })),
+      h('div', { class: 'row' }, button(then ? 'Read aloud' : 'Use this voice', use, { variant: 'primary', icon: then ? 'Play' : 'Check' }), button('Cancel', () => pp.close(), { variant: 'ghost' }))));
+    requestAnimationFrame(() => pp.dlg.querySelector('input:checked')?.scrollIntoView({ block: 'center' }));
   }
 
   // ------------------------------------------------------------------------------------ panels
@@ -603,6 +798,9 @@ export const mount: Mount = (root, ctx) => {
     live = false;
     offSettings();
     remember();
+    sp?.dispose(); sp = null;
+    try { speechSynthesis.removeEventListener?.('voiceschanged', loadSys); } catch { /* none */ }
+    document.querySelector('dialog.ebr-processing')?.remove();
     clearTimeout(relayTimer);
     stopSearch();
     ro.disconnect();

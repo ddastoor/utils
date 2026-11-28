@@ -203,8 +203,13 @@ potentials.md. **Group 3 is done — groups 1 – 4 are all built.**
 begun in the tap that starts the reading (`src/lib/clipwrite.ts`; CLAUDE.md §3 OCR, "The text on the clipboard"); unit `clipwrite`
 29, e2e `ocr-copy` 25. (The Diagram Editor's first deploy failed on a unit check that needs Pillow — GitHub's runner has none: now
 skipped there with a note, 2015ed6.)
-**▶ NEXT: to-do #40** (the EPUB Reader's "Remember book": a hash of the book, its place and the reading voice in the Settings; to
-ask the owner when building: how many books are remembered).
+**To-do #40 — DONE (28 Nov 2026):** the EPUB Reader's "Remember book" (XXH128 fingerprint, the place in the Settings, kept quietly as
+the pages turn; the same file opens where it was left) and ▷ reading the page in the reader with a voice chosen once (the sentence
+heard marked); the Settings page's EPUB Reader section lists the books with Forget, and the reading voice (CLAUDE.md §3 EPUB Reader).
+How many books: every book switched on, until forgotten (at most 1,000) — Claude's default; the owner may want another rule (said in
+the hand-off). Unit `ebookread` 27, `settings` 41; e2e `ebook-remember` 34.
+**▶ NEXT: todo.md has no open item and groups 1 – 4 of docs/potentials.md are built.** By the owner's process (CLAUDE.md, the 🔔 note):
+show the owner the apps left in `docs/potentials.md` and ask which to build — then the size check for each, wait for the decision.
 **Then to-dos #38, #39 and #40** (owner,
 27 Nov 2026, evening: "After you finish all these, finish off the items in the todo.md also."; #40, added the same evening:
 the EPUB Reader's "Remember book" — a hash of the book, its place and the reading voice in the Settings — after #39). The open question (keep the EPUB Reader's place between visits?) is

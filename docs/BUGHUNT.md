@@ -3537,6 +3537,21 @@ Found while building it (unit `worldclock` 39, e2e `worldclock` 55):
   as they were; no settings file is written there (the switch off from the start) — `src/lib/color.ts` looks for `document`, so the
   suite stubs no `document`.
 
+## EPUB Reader: "Remember book" and ▷ in the reader (28 Nov 2026; to-do #40)
+- **The arrow keys stopped turning pages after "Remember book" was clicked:** the switch's checkbox kept the focus, and the reader
+  ignores keys meant for a form control. The focus goes back to the page when the switch has done its work (the panels did so already).
+- **A page turn of a remembered book would have written a settings file** (a download, on every page while reading): the place is kept
+  with `setQuietly` — stored at once, told to every view, but no file of its own; it goes into the next file and into Export.
+- **Another tab turning the pages of a remembered book laid this tab's book out again on every page:** the reader followed every change of
+  its Settings section from another tab with a new layout; now only a new look lays the book out again (the switch follows a book
+  forgotten there).
+- **Phones:** the switch pushed the title out of the top bar and the tools past the screen's edge — the title and the switch take a line,
+  the tools the next; the voices' sheet put "Read aloud" below the screen's foot — the reader's panels are columns now: their heads stay,
+  their bodies scroll inside them, and the voices scroll above the buttons.
+- **Testing the fingerprint against Playwright:** a file chosen with `setInputFiles` and a page just opened both count as a tap in
+  Chromium (`navigator.userActivation`), and a Settings page opened with the harness's `page()` is a profile of its own — the suite opens
+  it as another tab of the same profile (`context().newPage()`), the way a person opens a second tab.
+
 ## OCR and Photo Dictionary: the text on the clipboard (28 Nov 2026; to-do #38)
 - **The design, checked in Chromium first** (a probe of its real clipboard): a ClipboardItem whose text is a promise is kept by
   `clipboard.write()` until the promise settles, then written; a rejected promise leaves the clipboard exactly as it was; the

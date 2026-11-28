@@ -20,13 +20,16 @@ export interface SettingsSection {
 }
 const sections: SettingsSection[] = [];
 const subs = new Set<(id: string, local: boolean) => void>();
+/** a change kept in the browser without a settings file of its own (the EPUB Reader's place as the pages turn: it goes into the next
+ *  file and into Export) */
+let quiet = false;
 export const settingsSections = (): readonly SettingsSection[] => sections;
 /** every change of any section: its id, and whether it was made in this tab */
 export function onSettings(f: (id: string, local: boolean) => void) { subs.add(f); return () => { subs.delete(f); }; }
 window.addEventListener('storage', (e) => { if (e.key === DEVICE) subs.forEach((f) => f('device', false)); });
 function add(s: SettingsSection) {
   sections.push(s);
-  s.on((local) => { subs.forEach((f) => f(s.id, local)); if (local) changed(); });
+  s.on((local) => { subs.forEach((f) => f(s.id, local)); if (local && !quiet) changed(); });
 }
 
 // ------------------------------------------------------------------ the file after every change
@@ -81,6 +84,7 @@ export async function saveNow(): Promise<void> {
 export interface AppSettings<T extends object> {
   get(): T;
   /** change some fields (made in this tab: a file follows) */ set(patch: Partial<T>): void;
+  /** change some fields without a settings file of their own (they go into the next file) */ setQuietly(patch: Partial<T>): void;
   on(f: (local: boolean) => void): () => void;
 }
 /** `check` turns whatever was stored or read from a file into a valid value (unknown fields dropped, defaults filled in) and names what it
@@ -105,6 +109,7 @@ function appSection<T extends object>(id: string, title: string, check: (v: unkn
   return {
     get: () => ({ ...read() }),
     set: (patch) => write(check({ ...read(), ...patch }, []), true),
+    setQuietly: (patch) => { quiet = true; try { write(check({ ...read(), ...patch }, []), true); } finally { quiet = false; } },
     on: (f) => { ls.add(f); return () => { ls.delete(f); }; },
   };
 }
@@ -155,7 +160,33 @@ export const audiobookSettings = appSection('audiobook', 'PDF / EPUB → Audiobo
 });
 export const EBOOK_FONTS = ['literata', 'serif', 'sans', 'book'] as const;
 export const EBOOK_THEMES = ['light', 'sepia', 'dark', 'black'] as const;
-export const ebookSettings = appSection('ebook', 'EPUB Reader', (v) => {
+/** A book the EPUB Reader remembers (to-do #40): its file's hash (XXH128, 32 hex digits), its title and author, and its place — the first
+ *  words of the page and their share of the book, which are found again in any layout, with the page as it was laid out then — and when
+ *  it was last read (ms). */
+export interface RememberedBook { hash: string; title: string; author: string; anchor: string; share: number; page: number; pages: number; at: number }
+/** every book the reader is asked to remember stays until it is forgotten; this many at most (each is a few hundred bytes) */
+export const EBOOK_BOOKS_MAX = 1000;
+const int = (v: unknown, d: number, lo: number, hi: number) => (typeof v === 'number' && Number.isInteger(v) && v >= lo && v <= hi ? v : d);
+const text = (v: unknown, max: number) => (typeof v === 'string' ? v.replace(/[\u0000-\u001f\u007f]/g, ' ').slice(0, max) : '');
+function booksOf(v: unknown, notes: string[]): RememberedBook[] {
+  if (!Array.isArray(v)) return [];
+  const byHash = new Map<string, RememberedBook>();
+  let bad = 0;
+  for (const b of v) {
+    if (!isObj(b) || typeof b.hash !== 'string' || !/^[0-9a-f]{32}$/.test(b.hash)) { bad++; continue; }
+    const pages = int(b.pages, 1, 1, 1e6);
+    const book: RememberedBook = {
+      hash: b.hash, title: text(b.title, 300) || 'A book', author: text(b.author, 200), anchor: text(b.anchor, 400),
+      share: num(b.share, 0, 0, 1), page: Math.min(pages - 1, int(b.page, 0, 0, 1e6)), pages, at: num(b.at, 0, 0, 1e14),
+    };
+    const had = byHash.get(book.hash);
+    if (!had || book.at >= had.at) byHash.set(book.hash, book);
+  }
+  if (bad) notes.push(`EPUB Reader: ${bad} remembered book${bad === 1 ? '' : 's'} that could not be read left out`);
+  return [...byHash.values()].sort((a, b) => b.at - a.at).slice(0, EBOOK_BOOKS_MAX);
+}
+export const EBOOK_SPEEDS = ['0.8', '1', '1.2'] as const;
+export const ebookSettings = appSection('ebook', 'EPUB Reader', (v, notes) => {
   const o = isObj(v) ? v : {};
   // null: not chosen yet — the reader's own default for the device (phone or PC, the system's light or dark)
   const n = <K>(x: unknown, f: (x: unknown) => K) => (x === null || x === undefined ? null : f(x));
@@ -168,6 +199,10 @@ export const ebookSettings = appSection('ebook', 'EPUB Reader', (v) => {
     publisher: bool(o.publisher, true),
     margin: oneOf(o.margin, 'normal', ['narrow', 'normal', 'wide'] as const),
     spread: oneOf(o.spread, 'auto', ['auto', 'one', 'two'] as const),
+    // the books it remembers, and the voice its ▷ reads with (null: not chosen yet — asked the first time)
+    books: booksOf(o.books, notes),
+    voice: n(o.voice, (x) => voiceId(x, 'af_heart')),
+    speed: oneOf(o.speed, '1', EBOOK_SPEEDS),
   };
 });
 export const SPELL_LANGS = ['en-US', 'en-GB', 'en-IN'] as const;

@@ -2,7 +2,7 @@
 // tab shows is held to MuPDF in Node laying out the same book at the same size with the same look (the tab's engine,
 // src/lib/ebook.ts, loaded through Vite): the pages, their count, the contents, the search's hits, the links. The keys,
 // the slider, Go to page, Back, the panels (contents, search, look), the place kept when the look or the window changes,
-// reading mode, selecting with the mouse and copying, Read aloud into the Text-to-Speech tab and back, every format
+// reading mode, selecting with the mouse and copying, ▷ staying in the reader (ebook-remember.e2e.mjs reads aloud), every format
 // (MOBI, FictionBook, text, a comic — CBZ, and CB7 through 7-Zip), DRM and other refusals, a script no font draws;
 // phones: taps at the sides, a swipe, a long press on a word, the look as a sheet, the layout.
 import { fileURLToPath } from 'node:url';
@@ -252,14 +252,16 @@ export default async ({ base, page: newPage, ok, devices, tmp }) => {
     ok(!(await pc.locator('.ebr').evaluate((e) => e.classList.contains('ebr-full'))), 'Escape leaves reading mode');
   }
 
-  // ---- Read aloud: the Text-to-Speech tab gets the text from this page on; coming back opens the book where it was
+  // ---- ▷ reads the page here (to-do #40 — ebook-remember.e2e.mjs reads it): no jump to the Text-to-Speech tab; the first time it asks
+  //      for the voice. Leaving the tab and coming back opens the book where it was
   {
-    const s = await shownPages(pc), first = flat(E.pageText(N.doc, s.first)).slice(0, 40);
-    await tool(pc, 'Read aloud from this page (Text-to-Speech)').click();
-    await pc.waitForFunction(() => location.hash === '#/tts', null, { timeout: 10000 });
+    const s = await shownPages(pc);
+    await tool(pc, 'Read this page aloud').click();
+    await pc.locator('dialog.ebr-panel').getByRole('heading', { name: 'Read aloud with' }).waitFor({ timeout: 10000 });
+    ok(await pc.evaluate(() => location.hash) === '#/ebook', '▷ stays in the reader (no jump to Text-to-Speech): the first time, the voices to read with');
+    await pc.locator('dialog.ebr-panel').getByRole('button', { name: 'Cancel' }).click();
+    await pc.evaluate(() => { location.hash = '#/wordcount'; });
     await pc.waitForTimeout(800);
-    const tts = flat(await pc.locator('textarea').first().inputValue());
-    ok(tts.startsWith(first), `Read aloud: the Text-to-Speech tab has the text from this page on (“${tts.slice(0, 40)}…”)`);
     const live = await pc.evaluate(() => globalThis.__superutilsLive());
     ok(!live.resources.includes('ebook-worker'), 'leaving the tab ended the reader’s worker');
     await pc.evaluate(() => { location.hash = '#/ebook'; });

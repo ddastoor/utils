@@ -3,7 +3,7 @@
 // time; the worker — and the book's memory with it — ends when the tab is left (src/lib/ebook-client.ts). The engine:
 // src/lib/ebook.ts. Literata and Noto Sans (TTF, on the site) are fetched the first time the look asks for them.
 import {
-  openFile, openDoc, layOut, info, metaOf, contents, drawPage, pageSize, pageText, anchorOf, findAnchor, searchPage, linksOf,
+  openFile, openDoc, layOut, info, metaOf, contents, drawPage, pageSize, pageText, anchorOf, findAnchor, searchPage, findOnPage, linksOf,
   selectText, wordAt, fontHook, Refused, NeedsUnpacking, type Opened, type Look, type FontFiles,
 } from '../lib/ebook';
 
@@ -85,6 +85,7 @@ async function handle(m: any): Promise<unknown> {
       return out.slice(0, m.max);
     }
     case 'pagetext': return pageText(doc, m.i);
+    case 'find': return findOnPage(doc, m.i, m.text);
     case 'links': return linksOf(doc, m.i);
     case 'select': return selectText(doc, m.i, m.a, m.b);
     case 'word': return wordAt(doc, m.i, m.at);

@@ -2057,3 +2057,15 @@ Looked at first (STANDING RULE #1):
   its own postMessage protocol.
 - **Decision:** draw.io 32.7.7 from its release war (pinned by SHA-256, fetched at build time by `scripts/fetch-drawio.mjs` — never at run
   time), 52.9 MB on the site, in its own page under a strict Content-Security-Policy.
+
+### 204. `ebook` — EPUB Reader: "Remember book" and ▷ in place (28 Nov 2026; to-do #40)
+- **Asked:** a fingerprint of the whole book ("the fastest hash but also accurate"), its place in the Settings; ▷ reading the page in
+  the reader with a voice chosen once.
+- **The fingerprint — an existing module:** hash-wasm 4.13 (on the site already, the Hash tab's), run in its worker. Measured in V8 on
+  64 MB (`hash-wasm` in Node 22, the engine of Chrome): XXH128 2,572 MB/s, XXH3-64 2,705, BLAKE3 563, MD5 576, SHA-1 700 — XXH128
+  chosen: as fast as the fastest, and 128 bits tell books apart (a collision by chance is out of reach for any library; no one is
+  attacking the reader's own list). The e2e suite holds it to `xxhsum -H2` (else Python's xxhash).
+- **▷:** the voices are the ones already on the site (Kokoro and Piper on ONNX Runtime, espeak.wasm — the Text-to-Speech worker, through
+  the Camera Reader's player); the sentence being heard is found by MuPDF's own search on its page (`findOnPage`). Ours, as glue:
+  `src/lib/ebookread.ts` — a page's text cut into paragraphs and sentences (regular expressions; the Camera Reader's sentence splitter,
+  the Audiobook's speech text). No engine of ours.

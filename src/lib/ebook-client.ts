@@ -49,6 +49,8 @@ export const pageSize = (i: number) => call<[number, number]>({ op: 'size', i })
 export const anchorOf = (i: number) => call<string>({ op: 'anchor', i }).done;
 export const textFrom = (from: number, max: number) => call<string>({ op: 'text', from, max }).done;
 export const pageText = (i: number) => call<string>({ op: 'pagetext', i }).done;
+/** where a text stands on a page: the quads of its first place ([] where it is not found) */
+export const findText = (i: number, text: string) => call<number[][]>({ op: 'find', i, text }).done;
 export const linksOf = (i: number) => call<PageLink[]>({ op: 'links', i }).done;
 export const selectText = (i: number, a: [number, number], b: [number, number]) => call<{ text: string; quads: number[][] }>({ op: 'select', i, a, b }).done;
 export const wordAt = (i: number, at: [number, number]) => call<{ a: [number, number]; b: [number, number] } | null>({ op: 'word', i, at }).done;

@@ -381,6 +381,22 @@ export function findAnchor(doc: Doc, anchor: string, guess: number): number {
   return guess;
 }
 
+/** Where a text stands on a page, as MuPDF searches it (case and accents ignored, across lines): the quads of its first place —
+ *  the sentence being read aloud, marked (to-do #40). Its first eight words where the whole is not found; [] where neither is. */
+export function findOnPage(doc: Doc, i: number, text: string): number[][] {
+  const t = flat(text);
+  if (!t) return [];
+  const words = t.split(' '), tries = words.length > 8 ? [t, words.slice(0, 8).join(' ')] : [t];
+  return use(doc.loadPage(i), (page) => {
+    for (const q of tries) {
+      let f: number[][][] = [];
+      try { f = page.search(q, 'ignore-case,ignore-diacritics'); } catch { f = []; }
+      if (f.length) return f[0];
+    }
+    return [];
+  });
+}
+
 export interface Hit { page: number; quads: number[][]; before: string; match: string; after: string }
 /** Every place a text is found on a page (case and accents ignored, as MuPDF searches), with the words around it. */
 export function searchPage(doc: Doc, i: number, query: string): Hit[] {
