@@ -16,6 +16,10 @@ mod ids;
 mod ids_tables;
 #[cfg(feature = "j2t")]
 mod j2t;
+#[cfg(feature = "links")]
+mod links;
+#[cfg(feature = "links")]
+mod links_data;
 #[cfg(feature = "jsondiff")]
 mod jsondiff;
 #[cfg(any(feature = "json", feature = "jsondiff", feature = "j2t"))]
@@ -97,6 +101,20 @@ pub unsafe extern "C" fn dc_call(op: *const u8, op_n: usize, inp: *const u8, in_
         "ids:card" => ids::card_info(input),
         #[cfg(feature = "ids")]
         "ids:scan" => ids::scan(input),
+        #[cfg(feature = "links")]
+        "links:analyse" => links::analyse(input),
+        #[cfg(feature = "links")]
+        "links:scan" => links::scan(input),
+        #[cfg(feature = "links")]
+        "links:clean" => links::clean(input),
+        #[cfg(feature = "links")]
+        "links:clearurls" => links::clearurls_only(input),
+        #[cfg(feature = "links")]
+        "links:skeleton" => links::skeleton(input),
+        #[cfg(feature = "links")]
+        "links:site" => links::site(input),
+        #[cfg(feature = "links")]
+        "links:info" => links::info(),
 
         #[cfg(feature = "bin")]
         "bin:protobuf" => bin::protobuf(input, false),

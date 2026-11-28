@@ -1,0 +1,1643 @@
+{
+"pslVersion": "2026-11-27_12-48-40_UTC",
+"publicsuffixlist": "1.1.2.20261128",
+"icu": "74.2",
+"icuUnicode": "15.1",
+"unicodeData": "18.0.0",
+"unicodetools": "013a5971c6dd7b2129a4048a58a0db38d289f2dd",
+"psl": [
+{
+"host": "www.hdfcbank.com",
+"suffix": "com",
+"site": "hdfcbank.com",
+"icannSuffix": "com",
+"icannSite": "hdfcbank.com"
+},
+{
+"host": "netbanking.hdfcbank.com",
+"suffix": "com",
+"site": "hdfcbank.com",
+"icannSuffix": "com",
+"icannSite": "hdfcbank.com"
+},
+{
+"host": "www.onlinesbi.sbi",
+"suffix": "sbi",
+"site": "onlinesbi.sbi",
+"icannSuffix": "sbi",
+"icannSite": "onlinesbi.sbi"
+},
+{
+"host": "sbi.co.in",
+"suffix": "co.in",
+"site": "sbi.co.in",
+"icannSuffix": "co.in",
+"icannSite": "sbi.co.in"
+},
+{
+"host": "www.sbi.bank.in",
+"suffix": "bank.in",
+"site": "sbi.bank.in",
+"icannSuffix": "bank.in",
+"icannSite": "sbi.bank.in"
+},
+{
+"host": "retail.onlinesbi.sbi.bank.in",
+"suffix": "bank.in",
+"site": "sbi.bank.in",
+"icannSuffix": "bank.in",
+"icannSite": "sbi.bank.in"
+},
+{
+"host": "www.icicibank.com",
+"suffix": "com",
+"site": "icicibank.com",
+"icannSuffix": "com",
+"icannSite": "icicibank.com"
+},
+{
+"host": "www.amazon.in",
+"suffix": "in",
+"site": "amazon.in",
+"icannSuffix": "in",
+"icannSite": "amazon.in"
+},
+{
+"host": "amazon.co.uk",
+"suffix": "co.uk",
+"site": "amazon.co.uk",
+"icannSuffix": "co.uk",
+"icannSite": "amazon.co.uk"
+},
+{
+"host": "www.flipkart.com",
+"suffix": "com",
+"site": "flipkart.com",
+"icannSuffix": "com",
+"icannSite": "flipkart.com"
+},
+{
+"host": "dl.flipkart.com",
+"suffix": "com",
+"site": "flipkart.com",
+"icannSuffix": "com",
+"icannSite": "flipkart.com"
+},
+{
+"host": "www.irctc.co.in",
+"suffix": "co.in",
+"site": "irctc.co.in",
+"icannSuffix": "co.in",
+"icannSite": "irctc.co.in"
+},
+{
+"host": "uidai.gov.in",
+"suffix": "gov.in",
+"site": "uidai.gov.in",
+"icannSuffix": "gov.in",
+"icannSite": "uidai.gov.in"
+},
+{
+"host": "myaadhaar.uidai.gov.in",
+"suffix": "gov.in",
+"site": "uidai.gov.in",
+"icannSuffix": "gov.in",
+"icannSite": "uidai.gov.in"
+},
+{
+"host": "incometax.gov.in",
+"suffix": "gov.in",
+"site": "incometax.gov.in",
+"icannSuffix": "gov.in",
+"icannSite": "incometax.gov.in"
+},
+{
+"host": "www.gov.uk",
+"suffix": "gov.uk",
+"site": "www.gov.uk",
+"icannSuffix": "gov.uk",
+"icannSite": "www.gov.uk"
+},
+{
+"host": "pmkisan.gov.in",
+"suffix": "gov.in",
+"site": "pmkisan.gov.in",
+"icannSuffix": "gov.in",
+"icannSite": "pmkisan.gov.in"
+},
+{
+"host": "x.nic.in",
+"suffix": "nic.in",
+"site": "x.nic.in",
+"icannSuffix": "nic.in",
+"icannSite": "x.nic.in"
+},
+{
+"host": "x.mil.in",
+"suffix": "mil.in",
+"site": "x.mil.in",
+"icannSuffix": "mil.in",
+"icannSite": "x.mil.in"
+},
+{
+"host": "x.ac.in",
+"suffix": "ac.in",
+"site": "x.ac.in",
+"icannSuffix": "ac.in",
+"icannSite": "x.ac.in"
+},
+{
+"host": "x.res.in",
+"suffix": "res.in",
+"site": "x.res.in",
+"icannSuffix": "res.in",
+"icannSite": "x.res.in"
+},
+{
+"host": "x.edu.in",
+"suffix": "edu.in",
+"site": "x.edu.in",
+"icannSuffix": "edu.in",
+"icannSite": "x.edu.in"
+},
+{
+"host": "x.fin.in",
+"suffix": "fin.in",
+"site": "x.fin.in",
+"icannSuffix": "fin.in",
+"icannSite": "x.fin.in"
+},
+{
+"host": "bank.in",
+"suffix": "bank.in",
+"site": null,
+"icannSuffix": "bank.in",
+"icannSite": null
+},
+{
+"host": "gov.in",
+"suffix": "gov.in",
+"site": null,
+"icannSuffix": "gov.in",
+"icannSite": null
+},
+{
+"host": "co.in",
+"suffix": "co.in",
+"site": null,
+"icannSuffix": "co.in",
+"icannSite": null
+},
+{
+"host": "firm.in",
+"suffix": "firm.in",
+"site": null,
+"icannSuffix": "firm.in",
+"icannSite": null
+},
+{
+"host": "x.firm.in",
+"suffix": "firm.in",
+"site": "x.firm.in",
+"icannSuffix": "firm.in",
+"icannSite": "x.firm.in"
+},
+{
+"host": "x.gen.in",
+"suffix": "gen.in",
+"site": "x.gen.in",
+"icannSuffix": "gen.in",
+"icannSite": "x.gen.in"
+},
+{
+"host": "x.ind.in",
+"suffix": "ind.in",
+"site": "x.ind.in",
+"icannSuffix": "ind.in",
+"icannSite": "x.ind.in"
+},
+{
+"host": "x.org.in",
+"suffix": "org.in",
+"site": "x.org.in",
+"icannSuffix": "org.in",
+"icannSite": "x.org.in"
+},
+{
+"host": "x.net.in",
+"suffix": "net.in",
+"site": "x.net.in",
+"icannSuffix": "net.in",
+"icannSite": "x.net.in"
+},
+{
+"host": "x.github.io",
+"suffix": "github.io",
+"site": "x.github.io",
+"icannSuffix": "io",
+"icannSite": "github.io"
+},
+{
+"host": "github.io",
+"suffix": "github.io",
+"site": null,
+"icannSuffix": "io",
+"icannSite": "github.io"
+},
+{
+"host": "sbi-kyc.web.app",
+"suffix": "web.app",
+"site": "sbi-kyc.web.app",
+"icannSuffix": "app",
+"icannSite": "web.app"
+},
+{
+"host": "x.firebaseapp.com",
+"suffix": "firebaseapp.com",
+"site": "x.firebaseapp.com",
+"icannSuffix": "com",
+"icannSite": "firebaseapp.com"
+},
+{
+"host": "x.blogspot.com",
+"suffix": "blogspot.com",
+"site": "x.blogspot.com",
+"icannSuffix": "com",
+"icannSite": "blogspot.com"
+},
+{
+"host": "x.blogspot.in",
+"suffix": "in",
+"site": "blogspot.in",
+"icannSuffix": "in",
+"icannSite": "blogspot.in"
+},
+{
+"host": "x.vercel.app",
+"suffix": "vercel.app",
+"site": "x.vercel.app",
+"icannSuffix": "app",
+"icannSite": "vercel.app"
+},
+{
+"host": "x.netlify.app",
+"suffix": "netlify.app",
+"site": "x.netlify.app",
+"icannSuffix": "app",
+"icannSite": "netlify.app"
+},
+{
+"host": "x.pages.dev",
+"suffix": "pages.dev",
+"site": "x.pages.dev",
+"icannSuffix": "dev",
+"icannSite": "pages.dev"
+},
+{
+"host": "x.workers.dev",
+"suffix": "workers.dev",
+"site": "x.workers.dev",
+"icannSuffix": "dev",
+"icannSite": "workers.dev"
+},
+{
+"host": "a.b.workers.dev",
+"suffix": "workers.dev",
+"site": "b.workers.dev",
+"icannSuffix": "dev",
+"icannSite": "workers.dev"
+},
+{
+"host": "x.herokuapp.com",
+"suffix": "herokuapp.com",
+"site": "x.herokuapp.com",
+"icannSuffix": "com",
+"icannSite": "herokuapp.com"
+},
+{
+"host": "x.azurewebsites.net",
+"suffix": "azurewebsites.net",
+"site": "x.azurewebsites.net",
+"icannSuffix": "net",
+"icannSite": "azurewebsites.net"
+},
+{
+"host": "x.r2.dev",
+"suffix": "r2.dev",
+"site": "x.r2.dev",
+"icannSuffix": "dev",
+"icannSite": "r2.dev"
+},
+{
+"host": "x.glitch.me",
+"suffix": "me",
+"site": "glitch.me",
+"icannSuffix": "me",
+"icannSite": "glitch.me"
+},
+{
+"host": "x.000webhostapp.com",
+"suffix": "com",
+"site": "000webhostapp.com",
+"icannSuffix": "com",
+"icannSite": "000webhostapp.com"
+},
+{
+"host": "x.weebly.com",
+"suffix": "com",
+"site": "weebly.com",
+"icannSuffix": "com",
+"icannSite": "weebly.com"
+},
+{
+"host": "x.wixsite.com",
+"suffix": "wixsite.com",
+"site": "x.wixsite.com",
+"icannSuffix": "com",
+"icannSite": "wixsite.com"
+},
+{
+"host": "x.myshopify.com",
+"suffix": "myshopify.com",
+"site": "x.myshopify.com",
+"icannSuffix": "com",
+"icannSite": "myshopify.com"
+},
+{
+"host": "x.ngrok-free.app",
+"suffix": "ngrok-free.app",
+"site": "x.ngrok-free.app",
+"icannSuffix": "app",
+"icannSite": "ngrok-free.app"
+},
+{
+"host": "x.trycloudflare.com",
+"suffix": "trycloudflare.com",
+"site": "x.trycloudflare.com",
+"icannSuffix": "com",
+"icannSite": "trycloudflare.com"
+},
+{
+"host": "x.s3.amazonaws.com",
+"suffix": "s3.amazonaws.com",
+"site": "x.s3.amazonaws.com",
+"icannSuffix": "com",
+"icannSite": "amazonaws.com"
+},
+{
+"host": "bucket.s3.ap-south-1.amazonaws.com",
+"suffix": "s3.ap-south-1.amazonaws.com",
+"site": "bucket.s3.ap-south-1.amazonaws.com",
+"icannSuffix": "com",
+"icannSite": "amazonaws.com"
+},
+{
+"host": "x.appspot.com",
+"suffix": "appspot.com",
+"site": "x.appspot.com",
+"icannSuffix": "com",
+"icannSite": "appspot.com"
+},
+{
+"host": "x.duckdns.org",
+"suffix": "duckdns.org",
+"site": "x.duckdns.org",
+"icannSuffix": "org",
+"icannSite": "duckdns.org"
+},
+{
+"host": "x.ddns.net",
+"suffix": "ddns.net",
+"site": "x.ddns.net",
+"icannSuffix": "net",
+"icannSite": "ddns.net"
+},
+{
+"host": "x.repl.co",
+"suffix": "repl.co",
+"site": "x.repl.co",
+"icannSuffix": "co",
+"icannSite": "repl.co"
+},
+{
+"host": "sites.google.com",
+"suffix": "com",
+"site": "google.com",
+"icannSuffix": "com",
+"icannSite": "google.com"
+},
+{
+"host": "x.translate.goog",
+"suffix": "translate.goog",
+"site": "x.translate.goog",
+"icannSuffix": "goog",
+"icannSite": "translate.goog"
+},
+{
+"host": "x.onrender.com",
+"suffix": "onrender.com",
+"site": "x.onrender.com",
+"icannSuffix": "com",
+"icannSite": "onrender.com"
+},
+{
+"host": "x.fly.dev",
+"suffix": "fly.dev",
+"site": "x.fly.dev",
+"icannSuffix": "dev",
+"icannSite": "fly.dev"
+},
+{
+"host": "x.surge.sh",
+"suffix": "surge.sh",
+"site": "x.surge.sh",
+"icannSuffix": "sh",
+"icannSite": "surge.sh"
+},
+{
+"host": "hdfcbank.com.verify-kyc.top",
+"suffix": "top",
+"site": "verify-kyc.top",
+"icannSuffix": "top",
+"icannSite": "verify-kyc.top"
+},
+{
+"host": "x.xyz",
+"suffix": "xyz",
+"site": "x.xyz",
+"icannSuffix": "xyz",
+"icannSite": "x.xyz"
+},
+{
+"host": "x.shop",
+"suffix": "shop",
+"site": "x.shop",
+"icannSuffix": "shop",
+"icannSite": "x.shop"
+},
+{
+"host": "x.icu",
+"suffix": "icu",
+"site": "x.icu",
+"icannSuffix": "icu",
+"icannSite": "x.icu"
+},
+{
+"host": "x.cc",
+"suffix": "cc",
+"site": "x.cc",
+"icannSuffix": "cc",
+"icannSite": "x.cc"
+},
+{
+"host": "x.co",
+"suffix": "co",
+"site": "x.co",
+"icannSuffix": "co",
+"icannSite": "x.co"
+},
+{
+"host": "x.io",
+"suffix": "io",
+"site": "x.io",
+"icannSuffix": "io",
+"icannSite": "x.io"
+},
+{
+"host": "x.in",
+"suffix": "in",
+"site": "x.in",
+"icannSuffix": "in",
+"icannSite": "x.in"
+},
+{
+"host": "x.top",
+"suffix": "top",
+"site": "x.top",
+"icannSuffix": "top",
+"icannSite": "x.top"
+},
+{
+"host": "x.live",
+"suffix": "live",
+"site": "x.live",
+"icannSuffix": "live",
+"icannSite": "x.live"
+},
+{
+"host": "x.online",
+"suffix": "online",
+"site": "x.online",
+"icannSuffix": "online",
+"icannSite": "x.online"
+},
+{
+"host": "x.site",
+"suffix": "site",
+"site": "x.site",
+"icannSuffix": "site",
+"icannSite": "x.site"
+},
+{
+"host": "x.click",
+"suffix": "click",
+"site": "x.click",
+"icannSuffix": "click",
+"icannSite": "x.click"
+},
+{
+"host": "x.link",
+"suffix": "link",
+"site": "x.link",
+"icannSuffix": "link",
+"icannSite": "x.link"
+},
+{
+"host": "x.info",
+"suffix": "info",
+"site": "x.info",
+"icannSuffix": "info",
+"icannSite": "x.info"
+},
+{
+"host": "x.edu",
+"suffix": "edu",
+"site": "x.edu",
+"icannSuffix": "edu",
+"icannSite": "x.edu"
+},
+{
+"host": "x.gov",
+"suffix": "gov",
+"site": "x.gov",
+"icannSuffix": "gov",
+"icannSite": "x.gov"
+},
+{
+"host": "x.example",
+"suffix": "example",
+"site": "x.example",
+"icannSuffix": "example",
+"icannSite": "x.example"
+},
+{
+"host": "x.localhost",
+"suffix": "localhost",
+"site": "x.localhost",
+"icannSuffix": "localhost",
+"icannSite": "x.localhost"
+},
+{
+"host": "example.unknowntld",
+"suffix": "unknowntld",
+"site": "example.unknowntld",
+"icannSuffix": "unknowntld",
+"icannSite": "example.unknowntld"
+},
+{
+"host": "localhost",
+"suffix": "localhost",
+"site": null,
+"icannSuffix": "localhost",
+"icannSite": null
+},
+{
+"host": "a.b.c.d.e.example.com",
+"suffix": "com",
+"site": "example.com",
+"icannSuffix": "com",
+"icannSite": "example.com"
+},
+{
+"host": "www.ck",
+"suffix": "ck",
+"site": "www.ck",
+"icannSuffix": "ck",
+"icannSite": "www.ck"
+},
+{
+"host": "x.ck",
+"suffix": "x.ck",
+"site": null,
+"icannSuffix": "x.ck",
+"icannSite": null
+},
+{
+"host": "a.x.ck",
+"suffix": "x.ck",
+"site": "a.x.ck",
+"icannSuffix": "x.ck",
+"icannSite": "a.x.ck"
+},
+{
+"host": "city.kobe.jp",
+"suffix": "kobe.jp",
+"site": "city.kobe.jp",
+"icannSuffix": "kobe.jp",
+"icannSite": "city.kobe.jp"
+},
+{
+"host": "x.city.kobe.jp",
+"suffix": "kobe.jp",
+"site": "city.kobe.jp",
+"icannSuffix": "kobe.jp",
+"icannSite": "city.kobe.jp"
+},
+{
+"host": "x.kobe.jp",
+"suffix": "x.kobe.jp",
+"site": null,
+"icannSuffix": "x.kobe.jp",
+"icannSite": null
+},
+{
+"host": "tokyo.jp",
+"suffix": "tokyo.jp",
+"site": null,
+"icannSuffix": "tokyo.jp",
+"icannSite": null
+},
+{
+"host": "x.tokyo.jp",
+"suffix": "tokyo.jp",
+"site": "x.tokyo.jp",
+"icannSuffix": "tokyo.jp",
+"icannSite": "x.tokyo.jp"
+},
+{
+"host": "a.pvt.k12.ma.us",
+"suffix": "pvt.k12.ma.us",
+"site": "a.pvt.k12.ma.us",
+"icannSuffix": "pvt.k12.ma.us",
+"icannSite": "a.pvt.k12.ma.us"
+},
+{
+"host": "x.compute.amazonaws.com",
+"suffix": "x.compute.amazonaws.com",
+"site": null,
+"icannSuffix": "com",
+"icannSite": "amazonaws.com"
+},
+{
+"host": "ec2-1-2-3-4.compute-1.amazonaws.com",
+"suffix": "ec2-1-2-3-4.compute-1.amazonaws.com",
+"site": null,
+"icannSuffix": "com",
+"icannSite": "amazonaws.com"
+},
+{
+"host": "x.co.uk",
+"suffix": "co.uk",
+"site": "x.co.uk",
+"icannSuffix": "co.uk",
+"icannSite": "x.co.uk"
+},
+{
+"host": "x.uk",
+"suffix": "uk",
+"site": "x.uk",
+"icannSuffix": "uk",
+"icannSite": "x.uk"
+},
+{
+"host": "x.com.au",
+"suffix": "com.au",
+"site": "x.com.au",
+"icannSuffix": "com.au",
+"icannSite": "x.com.au"
+},
+{
+"host": "xn--80ak6aa92e.com",
+"suffix": "com",
+"site": "xn--80ak6aa92e.com",
+"icannSuffix": "com",
+"icannSite": "xn--80ak6aa92e.com"
+},
+{
+"host": "xn--pypal-4ve.com",
+"suffix": "com",
+"site": "xn--pypal-4ve.com",
+"icannSuffix": "com",
+"icannSite": "xn--pypal-4ve.com"
+},
+{
+"host": "xn--h2brj9c",
+"suffix": "xn--h2brj9c",
+"site": null,
+"icannSuffix": "xn--h2brj9c",
+"icannSite": null
+},
+{
+"host": "xn--i1b6b1a6a2e.xn--h2brj9c",
+"suffix": "xn--h2brj9c",
+"site": "xn--i1b6b1a6a2e.xn--h2brj9c",
+"icannSuffix": "xn--h2brj9c",
+"icannSite": "xn--i1b6b1a6a2e.xn--h2brj9c"
+},
+{
+"host": "xn--fiqs8s",
+"suffix": "xn--fiqs8s",
+"site": null,
+"icannSuffix": "xn--fiqs8s",
+"icannSite": null
+},
+{
+"host": "x.xn--fiqs8s",
+"suffix": "xn--fiqs8s",
+"site": "x.xn--fiqs8s",
+"icannSuffix": "xn--fiqs8s",
+"icannSite": "x.xn--fiqs8s"
+},
+{
+"host": "xn--fsqu00a.xn--fiqs8s",
+"suffix": "xn--fiqs8s",
+"site": "xn--fsqu00a.xn--fiqs8s",
+"icannSuffix": "xn--fiqs8s",
+"icannSite": "xn--fsqu00a.xn--fiqs8s"
+},
+{
+"host": "xn--mgbaam7a8h",
+"suffix": "xn--mgbaam7a8h",
+"site": null,
+"icannSuffix": "xn--mgbaam7a8h",
+"icannSite": null
+},
+{
+"host": "x.xn--mgbaam7a8h",
+"suffix": "xn--mgbaam7a8h",
+"site": "x.xn--mgbaam7a8h",
+"icannSuffix": "xn--mgbaam7a8h",
+"icannSite": "x.xn--mgbaam7a8h"
+},
+{
+"host": "xn--p1ai",
+"suffix": "xn--p1ai",
+"site": null,
+"icannSuffix": "xn--p1ai",
+"icannSite": null
+},
+{
+"host": "xn--e1afmkfd.xn--p1ai",
+"suffix": "xn--p1ai",
+"site": "xn--e1afmkfd.xn--p1ai",
+"icannSuffix": "xn--p1ai",
+"icannSite": "xn--e1afmkfd.xn--p1ai"
+},
+{
+"host": "xn--90ae",
+"suffix": "xn--90ae",
+"site": null,
+"icannSuffix": "xn--90ae",
+"icannSite": null
+},
+{
+"host": "xn--hdfcbnk-2nf.com",
+"suffix": "com",
+"site": "xn--hdfcbnk-2nf.com",
+"icannSuffix": "com",
+"icannSite": "xn--hdfcbnk-2nf.com"
+},
+{
+"host": "xn--mazon-3ve.in",
+"suffix": "in",
+"site": "xn--mazon-3ve.in",
+"icannSuffix": "in",
+"icannSite": "xn--mazon-3ve.in"
+},
+{
+"host": "xn--flipkrt-ynf.com",
+"suffix": "com",
+"site": "xn--flipkrt-ynf.com",
+"icannSuffix": "com",
+"icannSite": "xn--flipkrt-ynf.com"
+}
+],
+"skeleton": [
+{
+"text": "paytm",
+"skeleton": "paytrn",
+"icu": "paytrn",
+"stable": true,
+"level": "ASCIIOnly",
+"odd": []
+},
+{
+"text": "paytrn",
+"skeleton": "paytrn",
+"icu": "paytrn",
+"stable": true,
+"level": "ASCIIOnly",
+"odd": []
+},
+{
+"text": "paypal",
+"skeleton": "paypal",
+"icu": "paypal",
+"stable": true,
+"level": "ASCIIOnly",
+"odd": []
+},
+{
+"text": "pаypal",
+"skeleton": "paypal",
+"icu": "paypal",
+"stable": true,
+"level": "MinimallyRestrictive",
+"odd": []
+},
+{
+"text": "раураl",
+"skeleton": "paypal",
+"icu": "paypal",
+"stable": true,
+"level": "MinimallyRestrictive",
+"odd": []
+},
+{
+"text": "hdfcbank",
+"skeleton": "hdfcbank",
+"icu": "hdfcbank",
+"stable": true,
+"level": "ASCIIOnly",
+"odd": []
+},
+{
+"text": "hdfcbаnk",
+"skeleton": "hdfcbank",
+"icu": "hdfcbank",
+"stable": true,
+"level": "MinimallyRestrictive",
+"odd": []
+},
+{
+"text": "hdfcbαnk",
+"skeleton": "hdfcbank",
+"icu": "hdfcbank",
+"stable": true,
+"level": "MinimallyRestrictive",
+"odd": []
+},
+{
+"text": "icicibank",
+"skeleton": "icicibank",
+"icu": "icicibank",
+"stable": true,
+"level": "ASCIIOnly",
+"odd": []
+},
+{
+"text": "icicіbank",
+"skeleton": "icicibank",
+"icu": "icicibank",
+"stable": true,
+"level": "MinimallyRestrictive",
+"odd": []
+},
+{
+"text": "ici1cibank",
+"skeleton": "icilcibank",
+"icu": "icilcibank",
+"stable": true,
+"level": "ASCIIOnly",
+"odd": []
+},
+{
+"text": "flipkart",
+"skeleton": "flipkart",
+"icu": "flipkart",
+"stable": true,
+"level": "ASCIIOnly",
+"odd": []
+},
+{
+"text": "flipkаrt",
+"skeleton": "flipkart",
+"icu": "flipkart",
+"stable": true,
+"level": "MinimallyRestrictive",
+"odd": []
+},
+{
+"text": "fIipkart",
+"skeleton": "flipkart",
+"icu": "flipkart",
+"stable": true,
+"level": "ASCIIOnly",
+"odd": []
+},
+{
+"text": "amazon",
+"skeleton": "arnazon",
+"icu": "arnazon",
+"stable": true,
+"level": "ASCIIOnly",
+"odd": []
+},
+{
+"text": "аmаzоn",
+"skeleton": "arnazon",
+"icu": "arnazon",
+"stable": true,
+"level": "MinimallyRestrictive",
+"odd": []
+},
+{
+"text": "amaz0n",
+"skeleton": "arnazOn",
+"icu": "arnazOn",
+"stable": true,
+"level": "ASCIIOnly",
+"odd": []
+},
+{
+"text": "arnazon",
+"skeleton": "arnazon",
+"icu": "arnazon",
+"stable": true,
+"level": "ASCIIOnly",
+"odd": []
+},
+{
+"text": "google",
+"skeleton": "google",
+"icu": "google",
+"stable": true,
+"level": "ASCIIOnly",
+"odd": []
+},
+{
+"text": "g00gle",
+"skeleton": "gOOgle",
+"icu": "gOOgle",
+"stable": true,
+"level": "ASCIIOnly",
+"odd": []
+},
+{
+"text": "goog1e",
+"skeleton": "google",
+"icu": "google",
+"stable": true,
+"level": "ASCIIOnly",
+"odd": []
+},
+{
+"text": "googIe",
+"skeleton": "google",
+"icu": "google",
+"stable": true,
+"level": "ASCIIOnly",
+"odd": []
+},
+{
+"text": "microsoft",
+"skeleton": "rnicrosoft",
+"icu": "rnicrosoft",
+"stable": true,
+"level": "ASCIIOnly",
+"odd": []
+},
+{
+"text": "rnicrosoft",
+"skeleton": "rnicrosoft",
+"icu": "rnicrosoft",
+"stable": true,
+"level": "ASCIIOnly",
+"odd": []
+},
+{
+"text": "whatsapp",
+"skeleton": "whatsapp",
+"icu": "whatsapp",
+"stable": true,
+"level": "ASCIIOnly",
+"odd": []
+},
+{
+"text": "whatsаpp",
+"skeleton": "whatsapp",
+"icu": "whatsapp",
+"stable": true,
+"level": "MinimallyRestrictive",
+"odd": []
+},
+{
+"text": "vvhatsapp",
+"skeleton": "vvhatsapp",
+"icu": "vvhatsapp",
+"stable": true,
+"level": "ASCIIOnly",
+"odd": []
+},
+{
+"text": "phonepe",
+"skeleton": "phonepe",
+"icu": "phonepe",
+"stable": true,
+"level": "ASCIIOnly",
+"odd": []
+},
+{
+"text": "ρhonepe",
+"skeleton": "phonepe",
+"icu": "phonepe",
+"stable": true,
+"level": "MinimallyRestrictive",
+"odd": []
+},
+{
+"text": "phonеpe",
+"skeleton": "phonepe",
+"icu": "phonepe",
+"stable": true,
+"level": "MinimallyRestrictive",
+"odd": []
+},
+{
+"text": "irctc",
+"skeleton": "irctc",
+"icu": "irctc",
+"stable": true,
+"level": "ASCIIOnly",
+"odd": []
+},
+{
+"text": "ⅰrctc",
+"skeleton": "irctc",
+"icu": "irctc",
+"stable": true,
+"level": "Unrestricted",
+"odd": [
+"ⅰ"
+]
+},
+{
+"text": "ｐａｙｔｍ",
+"skeleton": "paytrn",
+"icu": "payｔｍ",
+"stable": false,
+"level": "Unrestricted",
+"odd": [
+"ｐ",
+"ａ",
+"ｙ",
+"ｔ",
+"ｍ"
+]
+},
+{
+"text": "sbi",
+"skeleton": "sbi",
+"icu": "sbi",
+"stable": true,
+"level": "ASCIIOnly",
+"odd": []
+},
+{
+"text": "sbі",
+"skeleton": "sbi",
+"icu": "sbi",
+"stable": true,
+"level": "MinimallyRestrictive",
+"odd": []
+},
+{
+"text": "onlinesbi",
+"skeleton": "onlinesbi",
+"icu": "onlinesbi",
+"stable": true,
+"level": "ASCIIOnly",
+"odd": []
+},
+{
+"text": "onIinesbi",
+"skeleton": "onlinesbi",
+"icu": "onlinesbi",
+"stable": true,
+"level": "ASCIIOnly",
+"odd": []
+},
+{
+"text": "apple",
+"skeleton": "apple",
+"icu": "apple",
+"stable": true,
+"level": "ASCIIOnly",
+"odd": []
+},
+{
+"text": "аррlе",
+"skeleton": "apple",
+"icu": "apple",
+"stable": true,
+"level": "MinimallyRestrictive",
+"odd": []
+},
+{
+"text": "netflix",
+"skeleton": "netflix",
+"icu": "netflix",
+"stable": true,
+"level": "ASCIIOnly",
+"odd": []
+},
+{
+"text": "netflіx",
+"skeleton": "netflix",
+"icu": "netflix",
+"stable": true,
+"level": "MinimallyRestrictive",
+"odd": []
+},
+{
+"text": "lic",
+"skeleton": "lic",
+"icu": "lic",
+"stable": true,
+"level": "ASCIIOnly",
+"odd": []
+},
+{
+"text": "Iic",
+"skeleton": "lic",
+"icu": "lic",
+"stable": true,
+"level": "ASCIIOnly",
+"odd": []
+},
+{
+"text": "1ic",
+"skeleton": "lic",
+"icu": "lic",
+"stable": true,
+"level": "ASCIIOnly",
+"odd": []
+},
+{
+"text": "uidai",
+"skeleton": "uidai",
+"icu": "uidai",
+"stable": true,
+"level": "ASCIIOnly",
+"odd": []
+},
+{
+"text": "uidaі",
+"skeleton": "uidai",
+"icu": "uidai",
+"stable": true,
+"level": "MinimallyRestrictive",
+"odd": []
+},
+{
+"text": "incometax",
+"skeleton": "incornetax",
+"icu": "incornetax",
+"stable": true,
+"level": "ASCIIOnly",
+"odd": []
+},
+{
+"text": "lncometax",
+"skeleton": "lncornetax",
+"icu": "lncornetax",
+"stable": true,
+"level": "ASCIIOnly",
+"odd": []
+},
+{
+"text": "axisbank",
+"skeleton": "axisbank",
+"icu": "axisbank",
+"stable": true,
+"level": "ASCIIOnly",
+"odd": []
+},
+{
+"text": "аxisbank",
+"skeleton": "axisbank",
+"icu": "axisbank",
+"stable": true,
+"level": "MinimallyRestrictive",
+"odd": []
+},
+{
+"text": "kotak",
+"skeleton": "kotak",
+"icu": "kotak",
+"stable": true,
+"level": "ASCIIOnly",
+"odd": []
+},
+{
+"text": "kоtak",
+"skeleton": "kotak",
+"icu": "kotak",
+"stable": true,
+"level": "MinimallyRestrictive",
+"odd": []
+},
+{
+"text": "bankofbaroda",
+"skeleton": "bankofbaroda",
+"icu": "bankofbaroda",
+"stable": true,
+"level": "ASCIIOnly",
+"odd": []
+},
+{
+"text": "bank0fbaroda",
+"skeleton": "bankOfbaroda",
+"icu": "bankOfbaroda",
+"stable": true,
+"level": "ASCIIOnly",
+"odd": []
+},
+{
+"text": "cleartrip",
+"skeleton": "cleartrip",
+"icu": "cleartrip",
+"stable": true,
+"level": "ASCIIOnly",
+"odd": []
+},
+{
+"text": "c1eartrip",
+"skeleton": "cleartrip",
+"icu": "cleartrip",
+"stable": true,
+"level": "ASCIIOnly",
+"odd": []
+},
+{
+"text": "पंजाब",
+"skeleton": "प̇ज𑧑ब",
+"icu": "प̇जाब",
+"stable": false,
+"level": "SingleScript",
+"odd": []
+},
+{
+"text": "भारत",
+"skeleton": "भ𑧑रत",
+"icu": "भारत",
+"stable": false,
+"level": "SingleScript",
+"odd": []
+},
+{
+"text": "भारतpay",
+"skeleton": "भ𑧑रतpay",
+"icu": "भारतpay",
+"stable": false,
+"level": "ModeratelyRestrictive",
+"odd": []
+},
+{
+"text": "пример",
+"skeleton": "πpᴎʍep",
+"icu": "πpᴎʍep",
+"stable": true,
+"level": "SingleScript",
+"odd": []
+},
+{
+"text": "testпример",
+"skeleton": "testπpᴎʍep",
+"icu": "testπpᴎʍep",
+"stable": true,
+"level": "MinimallyRestrictive",
+"odd": []
+},
+{
+"text": "xn",
+"skeleton": "xn",
+"icu": "xn",
+"stable": true,
+"level": "ASCIIOnly",
+"odd": []
+},
+{
+"text": "日本語",
+"skeleton": "日本語",
+"icu": "日本語",
+"stable": true,
+"level": "SingleScript",
+"odd": []
+},
+{
+"text": "日本語abc",
+"skeleton": "日本語abc",
+"icu": "日本語abc",
+"stable": true,
+"level": "HighlyRestrictive",
+"odd": []
+},
+{
+"text": "テスト",
+"skeleton": "テス卜",
+"icu": "テス卜",
+"stable": true,
+"level": "SingleScript",
+"odd": []
+},
+{
+"text": "한국어",
+"skeleton": "하ᄂ구ᄀoᅥ",
+"icu": "하ᄂ구ᄀ어",
+"stable": false,
+"level": "SingleScript",
+"odd": []
+},
+{
+"text": "中国",
+"skeleton": "中国",
+"icu": "中国",
+"stable": true,
+"level": "SingleScript",
+"odd": []
+},
+{
+"text": "例子",
+"skeleton": "例子",
+"icu": "例子",
+"stable": true,
+"level": "SingleScript",
+"odd": []
+},
+{
+"text": "عربي",
+"skeleton": "عربى",
+"icu": "عربى",
+"stable": true,
+"level": "SingleScript",
+"odd": []
+},
+{
+"text": "abc123",
+"skeleton": "abcl23",
+"icu": "abcl23",
+"stable": true,
+"level": "ASCIIOnly",
+"odd": []
+},
+{
+"text": "abc-123",
+"skeleton": "abc-l23",
+"icu": "abc-l23",
+"stable": true,
+"level": "ASCIIOnly",
+"odd": []
+},
+{
+"text": "a-b",
+"skeleton": "a-b",
+"icu": "a-b",
+"stable": true,
+"level": "ASCIIOnly",
+"odd": []
+},
+{
+"text": "ǀnstagram",
+"skeleton": "lnstagrarn",
+"icu": "lnstagrarn",
+"stable": true,
+"level": "Unrestricted",
+"odd": [
+"ǀ"
+]
+},
+{
+"text": "İnstagram",
+"skeleton": "l̇nstagrarn",
+"icu": "l̇nstagrarn",
+"stable": true,
+"level": "SingleScript",
+"odd": []
+},
+{
+"text": "ınstagram",
+"skeleton": "instagrarn",
+"icu": "instagrarn",
+"stable": true,
+"level": "SingleScript",
+"odd": []
+},
+{
+"text": "instagrаm",
+"skeleton": "instagrarn",
+"icu": "instagrarn",
+"stable": true,
+"level": "MinimallyRestrictive",
+"odd": []
+},
+{
+"text": "facebook",
+"skeleton": "facebook",
+"icu": "facebook",
+"stable": true,
+"level": "ASCIIOnly",
+"odd": []
+},
+{
+"text": "faceb00k",
+"skeleton": "facebOOk",
+"icu": "facebOOk",
+"stable": true,
+"level": "ASCIIOnly",
+"odd": []
+},
+{
+"text": "facebооk",
+"skeleton": "facebook",
+"icu": "facebook",
+"stable": true,
+"level": "MinimallyRestrictive",
+"odd": []
+},
+{
+"text": "yοutube",
+"skeleton": "youtube",
+"icu": "youtube",
+"stable": true,
+"level": "MinimallyRestrictive",
+"odd": []
+},
+{
+"text": "youtube",
+"skeleton": "youtube",
+"icu": "youtube",
+"stable": true,
+"level": "ASCIIOnly",
+"odd": []
+},
+{
+"text": "yоutube",
+"skeleton": "youtube",
+"icu": "youtube",
+"stable": true,
+"level": "MinimallyRestrictive",
+"odd": []
+},
+{
+"text": "linkedin",
+"skeleton": "linkedin",
+"icu": "linkedin",
+"stable": true,
+"level": "ASCIIOnly",
+"odd": []
+},
+{
+"text": "Iinkedin",
+"skeleton": "linkedin",
+"icu": "linkedin",
+"stable": true,
+"level": "ASCIIOnly",
+"odd": []
+},
+{
+"text": "linkedіn",
+"skeleton": "linkedin",
+"icu": "linkedin",
+"stable": true,
+"level": "MinimallyRestrictive",
+"odd": []
+},
+{
+"text": "twitter",
+"skeleton": "twitter",
+"icu": "twitter",
+"stable": true,
+"level": "ASCIIOnly",
+"odd": []
+},
+{
+"text": "twіtter",
+"skeleton": "twitter",
+"icu": "twitter",
+"stable": true,
+"level": "MinimallyRestrictive",
+"odd": []
+},
+{
+"text": "tvvitter",
+"skeleton": "tvvitter",
+"icu": "tvvitter",
+"stable": true,
+"level": "ASCIIOnly",
+"odd": []
+},
+{
+"text": "dhl",
+"skeleton": "dhl",
+"icu": "dhl",
+"stable": true,
+"level": "ASCIIOnly",
+"odd": []
+},
+{
+"text": "dhI",
+"skeleton": "dhl",
+"icu": "dhl",
+"stable": true,
+"level": "ASCIIOnly",
+"odd": []
+},
+{
+"text": "fedex",
+"skeleton": "fedex",
+"icu": "fedex",
+"stable": true,
+"level": "ASCIIOnly",
+"odd": []
+},
+{
+"text": "fedеx",
+"skeleton": "fedex",
+"icu": "fedex",
+"stable": true,
+"level": "MinimallyRestrictive",
+"odd": []
+},
+{
+"text": "bluedart",
+"skeleton": "bluedart",
+"icu": "bluedart",
+"stable": true,
+"level": "ASCIIOnly",
+"odd": []
+},
+{
+"text": "b1uedart",
+"skeleton": "bluedart",
+"icu": "bluedart",
+"stable": true,
+"level": "ASCIIOnly",
+"odd": []
+},
+{
+"text": "swiggy",
+"skeleton": "swiggy",
+"icu": "swiggy",
+"stable": true,
+"level": "ASCIIOnly",
+"odd": []
+},
+{
+"text": "swіggy",
+"skeleton": "swiggy",
+"icu": "swiggy",
+"stable": true,
+"level": "MinimallyRestrictive",
+"odd": []
+},
+{
+"text": "zomato",
+"skeleton": "zornato",
+"icu": "zornato",
+"stable": true,
+"level": "ASCIIOnly",
+"odd": []
+},
+{
+"text": "zоmato",
+"skeleton": "zornato",
+"icu": "zornato",
+"stable": true,
+"level": "MinimallyRestrictive",
+"odd": []
+},
+{
+"text": "meesho",
+"skeleton": "rneesho",
+"icu": "rneesho",
+"stable": true,
+"level": "ASCIIOnly",
+"odd": []
+},
+{
+"text": "meеsho",
+"skeleton": "rneesho",
+"icu": "rneesho",
+"stable": true,
+"level": "MinimallyRestrictive",
+"odd": []
+},
+{
+"text": "myntra",
+"skeleton": "rnyntra",
+"icu": "rnyntra",
+"stable": true,
+"level": "ASCIIOnly",
+"odd": []
+},
+{
+"text": "myntrа",
+"skeleton": "rnyntra",
+"icu": "rnyntra",
+"stable": true,
+"level": "MinimallyRestrictive",
+"odd": []
+}
+]
+}

@@ -284,3 +284,9 @@ generates media with the project's own ffmpeg.wasm and Chromium). Used only by t
   libjpeg-turbo 3.1.3's own test pictures (`testimages/`, IJG licence): one picture as a baseline and an arithmetic-coded JPEG. `truth.json`: each
   picture's signs, the areas edited, the qualities it was saved at. The measuring set (`python3 scripts/make-realcheck-eval.py OUT`, 647 files) is
   made on demand and not committed.
+- `links/` — the link checker's references (`tests/unit/links.test.mjs`). `clearurls-addon/` — ClearURLs 1.28.0's own cleaning code
+  (github.com/ClearURLs/Addon at 5fdc21e, LGPL-3.0; ip-range-check MIT), test data only — its README lists the files and their hashes;
+  `tests/lib/clearurls-ref.mjs` runs it in a vm on the engine's rules file. `reference.json` (`/usr/bin/python3.12 -I
+  scripts/make-links-reference.py`): the Public Suffix List as publicsuffixlist 1.1.2.20261128 reads it, UTS #39 skeletons from
+  Unicode's confusables.txt 18.0.0 and as ICU 74.2 makes them, ICU's restriction levels with UTS #39's identifier profile
+  (unicode-org/unicodetools at 013a597, fetched into node_modules/.cache/superutils-links).

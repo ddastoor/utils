@@ -71,7 +71,11 @@ of the 418 unedited; CLAUDE.md §3 "Is This Screenshot Real?"; unit `realcheck` 
 **28 Nov 2026 — the owner asked for mobile-only apps on the phone's hardware:** 62 suggested as round 11 of docs/potentials.md
 (#120 – #181; the camera and its light, the microphone, motion, location, Bluetooth, NFC, the battery) — waiting for the owner's pick, none
 built; with them the owner's rule that an app says plainly when the phone lacks what it needs (CLAUDE.md, the 📱 note at the top).
-**Now:** 83 Scam & QR Check, then 101 Clean Link — one link checker for both (devcore-links.wasm: the WHATWG URL, the Public Suffix List, UTS #39
+**Link checker engine — DONE, in progress for the two tabs (28 Nov 2026):** devcore-links.wasm (`wasm/devcore/src/links.rs`, feature
+`links`, 1.9 MB): ClearURLs 1.28.0's cleaning ported (its rules pinned at 7c30a16), the product rule, the PSL (psl 2.1.266), UTS #39 look-alikes
+(unicode-security 0.1.3, Unicode 18), brands, wording of scam messages, UPI links. Unit `links` 39 — 815 links cleaned as ClearURLs' own code
+cleans them (`tests/lib/clearurls-ref.mjs`), the PSL as publicsuffixlist reads it, skeletons as Unicode 18's confusables and ICU make them.
+**Next:** the two tabs on it, then to-do #41. **Now:** 83 Scam & QR Check, then 101 Clean Link — one link checker for both (devcore-links.wasm: the WHATWG URL, the Public Suffix List, UTS #39
 look-alikes, the brands' own domains, ClearURLs' rules pinned at a commit) (docs/potentials.md, "Suggested order").
 **▶▶ 27 Nov 2026 — DONE: the owner's "Go ahead with all items in todo" (to-do #33 – #36), each committed and pushed:**
 **#36** (the start page's note of the other device's apps), **#34** (Watermark: the first page of a document with or without

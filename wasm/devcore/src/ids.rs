@@ -323,16 +323,7 @@ fn ifsc(x: &In) -> Option<Reading> {
     }
 }
 
-const UPI_HANDLES: &[(&str, &str)] = &[("abfspay", "Aditya Birla Capital"), ("airtel", "Airtel Payments Bank"), ("apl", "Amazon Pay"), ("aubank", "AU Small Finance Bank"),
-    ("axisb", "CRED (Axis Bank)"), ("axisbank", "Axis Bank"), ("axl", "PhonePe (Axis Bank)"), ("barodampay", "Bank of Baroda"), ("boi", "Bank of India"), ("citi", "Citibank"),
-    ("cnrb", "Canara Bank"), ("dbs", "DBS Bank India"), ("federal", "Federal Bank"), ("fifederal", "Fi (Federal Bank)"), ("freecharge", "Freecharge"), ("hdfcbank", "HDFC Bank"),
-    ("hsbc", "HSBC"), ("ibl", "PhonePe (ICICI Bank)"), ("icici", "ICICI Bank"), ("idfcbank", "IDFC FIRST Bank"), ("ikwik", "MobiKwik"), ("indus", "IndusInd Bank"),
-    ("jupiteraxis", "Jupiter (Axis Bank)"), ("kbl", "Karnataka Bank"), ("kotak", "Kotak Mahindra Bank"), ("kvb", "Karur Vysya Bank"), ("mahb", "Bank of Maharashtra"),
-    ("naviaxis", "Navi (Axis Bank)"), ("okaxis", "Google Pay (Axis Bank)"), ("okhdfcbank", "Google Pay (HDFC Bank)"), ("okicici", "Google Pay (ICICI Bank)"), ("oksbi", "Google Pay (State Bank of India)"),
-    ("paytm", "Paytm"), ("pnb", "Punjab National Bank"), ("postbank", "India Post Payments Bank"), ("ptaxis", "Paytm (Axis Bank)"), ("pthdfc", "Paytm (HDFC Bank)"), ("ptsbi", "Paytm (State Bank of India)"),
-    ("ptyes", "Paytm (Yes Bank)"), ("rapl", "Amazon Pay (RBL Bank)"), ("rbl", "RBL Bank"), ("sbi", "State Bank of India"), ("sc", "Standard Chartered"), ("sliceaxis", "slice (Axis Bank)"),
-    ("uco", "UCO Bank"), ("unionbank", "Union Bank of India"), ("upi", "BHIM (NPCI)"), ("waaxis", "WhatsApp (Axis Bank)"), ("wahdfcbank", "WhatsApp (HDFC Bank)"), ("waicici", "WhatsApp (ICICI Bank)"),
-    ("wasbi", "WhatsApp (State Bank of India)"), ("yapl", "Amazon Pay (Yes Bank)"), ("ybl", "PhonePe (Yes Bank)"), ("yesbank", "Yes Bank")];
+include!("upi_handles.in");
 
 fn upi(x: &In) -> Option<Reading> {
     let s: String = x.raw.chars().filter(|c| !c.is_whitespace()).collect();
