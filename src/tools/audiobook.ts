@@ -8,6 +8,7 @@
 import { h, card, field, note, actions, button, toggle, input, select, slider, progress, clear, downloadBlob, shareOrDownload, fmtBytes, fmtTime, filePicker, toast, errMsg, type Mount } from '../ui';
 import { trackWorker, onLeave, releaseNow } from '../lifecycle';
 import { VOICES, voiceById, type Voice } from '../lib/voices';
+import { audiobookSettings } from '../settings';
 import { loadImg, resizeImg, encodeImg } from '../lib/imgio';
 import type { Book, Track } from '../lib/audiobook';
 import type { MakeMsg } from '../workers/audiobook.worker';
@@ -17,8 +18,10 @@ const ACCEPT = '.epub,.pdf,.mobi,.azw,.azw3,.prc,.pdb,.fb2,.fbz,.txt,.text,.html
 /** words a minute of speech at speed 1 (Kokoro and Piper read about this fast) */
 const WPM = 155;
 const LANG3: Record<string, string> = { en: 'eng', fr: 'fra', de: 'deu', es: 'spa', it: 'ita', pt: 'por', nl: 'nld', hi: 'hin', ru: 'rus', el: 'ell', sv: 'swe', da: 'dan', no: 'nor', fi: 'fin', pl: 'pol', ja: 'jpn', zh: 'zho' };
-// kept while the page is open (through other tabs): the voice, the speed, the MP3's bitrate, footnotes, engines at once
+// the voice, the speed and the MP3's bitrate are the Settings' (to-do #39: kept in this browser, in the settings file); footnotes and the
+// engines at once are kept while the page is open (through other tabs)
 let voiceId = 'af_heart', speed = 1, kbps = 64, readNotes = false, enginesAtOnce = 0;
+const fromSettings = () => { const k = audiobookSettings.get(); voiceId = voiceById(k.voice) ? k.voice : 'af_heart'; speed = k.speed; kbps = k.kbps; };
 
 /** A file name a system accepts, readable: "03 Chapter 2. Fog.mp3". */
 export const fileName = (n: number, of: number, title: string) => {
@@ -116,15 +119,21 @@ export const mount: Mount = (root, ctx) => {
   const resultBox = h('div', { class: 'stack' });
 
   // ---- the voice
+  fromSettings();
   const voice = (): Voice => voiceById(voiceId) || VOICES[0][1][0];
   const vsel = h('select', { class: 'input select', 'aria-label': 'Voice' }, VOICES.map(([g, vs]) => h('optgroup', { label: g }, vs.map((v) => h('option', { value: v.id }, v.label))))) as HTMLSelectElement;
   vsel.value = voiceId;
   const voiceHint = h('div', { class: 'muted small' });
   const syncHint = () => { voiceHint.textContent = voice().engine === 'piper' ? 'Indian English: L2-ARCTIC speakers (first language Hindi), Piper — its model (77 MB) is fetched once a visit.' : 'Kokoro neural voice — its model (92 MB) is fetched once a visit.'; };
   syncHint();
-  vsel.addEventListener('change', () => { voiceId = vsel.value; syncHint(); summary(); });
-  const speedSl = slider({ label: 'Speed', min: 0.5, max: 2, step: 0.05, value: speed, fmt: (v) => `${+v.toFixed(2)}×`, onInput: (v) => { speed = v; summary(); } });
-  const kbpsSel = select<string>([['48', '48 kbps — about 22 MB an hour'], ['64', '64 kbps — about 29 MB an hour'], ['96', '96 kbps — about 43 MB an hour']], String(kbps), (v) => { kbps = +v; }, 'MP3 quality');
+  vsel.addEventListener('change', () => { voiceId = vsel.value; audiobookSettings.set({ voice: voiceId }); syncHint(); summary(); });
+  const speedSl = slider({ label: 'Speed', min: 0.5, max: 2, step: 0.05, value: speed, fmt: (v) => `${+v.toFixed(2)}×`, onInput: (v) => { speed = v; summary(); }, onChange: (v) => audiobookSettings.set({ speed: v }) });
+  const kbpsSel = select<string>([['48', '48 kbps — about 22 MB an hour'], ['64', '64 kbps — about 29 MB an hour'], ['96', '96 kbps — about 43 MB an hour']], String(kbps), (v) => { kbps = +v; audiobookSettings.set({ kbps: kbps as 48 | 64 | 96 }); }, 'MP3 quality');
+  // changed elsewhere (the Settings page in another tab, an import there): the tab follows
+  const offSettings = audiobookSettings.on((local) => {
+    if (local) return;
+    fromSettings(); vsel.value = voiceId; speedSl.value = speed; kbpsSel.value = String(kbps); syncHint(); summary();
+  });
   const engineCount = () => enginesAtOnce || (pc ? Math.max(1, Math.min(3, Math.floor((navigator.hardwareConcurrency || 2) / 2))) : 1);
   const enginesSel = select<string>(['1', '2', '3', '4'].map((n) => [n, n === '1' ? '1 (least memory)' : n]), String(engineCount()), (v) => { enginesAtOnce = +v; }, 'Speech engines at once');
   const listenBtn = button('Listen to a sample', () => sample(), { icon: 'Play' });
@@ -412,5 +421,5 @@ export const mount: Mount = (root, ctx) => {
   );
   root.addEventListener('dragover', (e) => e.preventDefault());
   root.addEventListener('drop', (e) => { const f = e.dataTransfer?.files?.[0]; if (f) { e.preventDefault(); void pick(f); } });
-  return () => { stopAll?.(); wl.dispose(); };
+  return () => { stopAll?.(); wl.dispose(); offSettings(); };
 };

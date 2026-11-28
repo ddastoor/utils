@@ -311,6 +311,15 @@ the 47 Software stub tabs (each with its own suite) first, then ask about potent
   `setPointerCapture`).
 - `element.style.left/transform` read back with 6 significant digits — compare with a relative tolerance.
 - V8 JSON errors: "Unexpected token" messages have no position (JSON tab finds it by prefix search).
+- **The Settings' file after every change (to-do #39) is off on every suite's page** — the harness sets `superutils.settings.v1` to
+  `{"autoSave":false}` before the page loads, so a suite's own downloads are not taken for settings files; `page({ settingsFiles: true })`
+  keeps it on (the Settings suite). Settings now persist in a context (a Spell Checker word added, a World Clock city): each `page()` is a
+  fresh context, so suites do not see each other's.
+- **Playwright's contexts are private (Incognito-like) profiles.** Chromium 153 closes itself — the whole browser, SIGTRAP — when a page
+  reads a FileSystemHandle back from IndexedDB in one (docs/BUGHUNT.md, "Settings"). A test of something kept between visits that needs a
+  normal profile launches one: `createRequire(import.meta.url)('playwright').chromium.launchPersistentContext(dir, …)` (the Settings
+  suite's folder part). A real local folder handle without a picker: drop a folder with CDP `Input.dispatchDragEvent` (`data.files`) and
+  `DataTransferItem.getAsFileSystemHandle()`.
 
 ## 6. Machine setup
 The environment "utils" has a setup script (added 16 Nov 2026) that installs `pynacl pyzipper py7zr` (pip --user),

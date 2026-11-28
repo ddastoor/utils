@@ -93,7 +93,12 @@ h1, h2, h3 { margin: 0; line-height: 1.25; }
 .brand { display: flex; align-items: center; gap: 8px; text-decoration: none; color: var(--text); font-weight: 700; font-size: 17px; flex: none; }
 .brand-mark { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 9px; background: var(--accent); color: var(--accent-ink); }
 .brand-mark .ic { width: 18px; height: 18px; }
-.privacy { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; color: var(--ok); font-size: 13px; font-weight: 500; white-space: nowrap; }
+/* the Settings page's link (to-do #39) — the privacy badge stands after it */
+.settings-link { margin-left: auto; display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 44px; min-width: 44px; padding: 0 10px; border-radius: 999px; color: var(--text); text-decoration: none; font-size: 14px; font-weight: 500; white-space: nowrap; flex: none; }
+.settings-link:hover { background: var(--surface-2); }
+.settings-link[aria-current] { color: var(--accent); background: var(--accent-soft); }
+.settings-link .ic { width: 18px; height: 18px; }
+.privacy { display: inline-flex; align-items: center; gap: 6px; color: var(--ok); font-size: 13px; font-weight: 500; white-space: nowrap; }
 .privacy .ic { width: 16px; height: 16px; }
 
 .search { position: relative; flex: 1; max-width: 520px; }
@@ -291,7 +296,8 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: 14px; }
 @media (max-width: 760px) {
   body { font-size: 16px; }
   .topbar { gap: 10px; padding: 8px 12px; padding-top: max(8px, env(safe-area-inset-top)); }
-  .brand-name, .privacy span { display: none; }
+  .brand-name, .privacy span, .settings-link span { display: none; }
+  .settings-link { padding: 0; }
   .privacy { margin-left: 0; }
   .search { max-width: none; }
   .search-input { font-size: 16px; height: 44px; } /* 16 px: no iOS zoom on focus; 44 px: a touch target (it was 40) */

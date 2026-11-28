@@ -6,6 +6,7 @@ import { h, ic, clear, errMsg, toast, DOWNLOAD_FAILED, type Cleanup } from './ui
 import { isMobile } from './platform';
 import { favs, isFav, toggleFav, onFavChange } from './favorites';
 import { appListFolded, setAppListFolded, onAppListChange } from './applist';
+import './settings'; // the Settings' store: its sections, and the settings file after every change (to-do #39)
 
 const available = (t: Tool) => t.platform === 'both' || (t.platform === 'pc') !== isMobile;
 const visible = TOOLS.filter(available);
@@ -15,7 +16,7 @@ const favTools = () => favs().map((id) => TOOL_BY_ID.get(id)).filter((t): t is T
 
 /** What the two tab rows show. 'all' = home, 'fav' = favourites, or a category id. */
 type Section = 'all' | 'fav' | CatId;
-type Route = { kind: 'home' } | { kind: 'section'; section: Section } | { kind: 'tool'; tool: Tool; from?: 'fav' };
+type Route = { kind: 'home' } | { kind: 'section'; section: Section } | { kind: 'tool'; tool: Tool; from?: 'fav' } | { kind: 'settings' };
 
 // ------------------------------------------------------------------ layout
 const searchInput = h('input', {
@@ -36,6 +37,7 @@ document.getElementById('app')!.append(
   h('header', { class: 'topbar' },
     h('a', { class: 'brand', href: '#/', 'aria-label': 'SuperUtils home' }, h('span', { class: 'brand-mark' }, ic('Zap')), h('span', { class: 'brand-name' }, 'SuperUtils')),
     search,
+    h('a', { class: 'settings-link', href: '#/settings', title: 'Settings: your favorites, the apps’ settings and the settings files', 'aria-label': 'Settings' }, ic('Settings'), h('span', null, 'Settings')),
     h('span', { class: 'privacy', title: 'Everything runs in your browser. Files never leave your device.' }, ic('ShieldCheck'), h('span', null, 'Private · on-device'))),
   h('div', { class: 'navwrap' }, h('div', { class: 'catline' }, catBar, foldBtn), toolBar),
   view,
@@ -93,6 +95,8 @@ function starButton(t: Tool, cls = 'star') {
   const b = h('button', { type: 'button', class: [cls, isFav(t.id) && 'on'], 'aria-pressed': String(isFav(t.id)), title: isFav(t.id) ? 'Remove from favorites' : 'Add to favorites' }, ic('Star'));
   b.addEventListener('click', (e) => {
     e.preventDefault(); e.stopPropagation();
+    const tl = b.closest<HTMLElement>('.tile');
+    starAt = tl ? { href: tl.getAttribute('href') || '', top: tl.getBoundingClientRect().top, index: [...view.querySelectorAll('.tile-star')].indexOf(b) } : null;
     const on = toggleFav(t.id);
     toast(on ? `★ ${t.title} added to Favorites` : `${t.title} removed from Favorites`, on ? 'ok' : 'info', 1800);
   });
@@ -187,6 +191,36 @@ function showSection(section: Section) {
   window.scrollTo({ top: 0 });
 }
 
+/** The Settings page (#/settings; to-do #39): what the site keeps in this browser, section by section (src/settingspage.ts) */
+/** the tab rows on the Settings page: the categories (the Favorites count up to date), none lit, no row of apps */
+function settingsTabs() {
+  renderTabs('all');
+  catBar.querySelectorAll('.tab.on').forEach((t) => { t.classList.remove('on'); t.setAttribute('aria-selected', 'false'); });
+}
+async function showSettings() {
+  teardown(); setIdle(true);
+  currentKey = '';
+  settingsTabs();
+  document.title = 'Settings · SuperUtils';
+  const body = h('div', { class: 'tool-body st-page' }, h('div', { class: 'loading' }, h('span', { class: 'spinner' }), 'Loading…'));
+  clear(view).append(
+    h('div', { class: 'tool-head' }, h('div', { class: 'tool-head-ic' }, ic('Settings')),
+      h('div', { class: 'tool-head-text' }, h('h1', { class: 'tool-title' }, 'Settings'),
+        h('p', { class: 'tool-desc' }, 'What SuperUtils keeps in this browser — your favorites and the apps’ settings — and the settings files that hold them.'))),
+    body);
+  window.scrollTo({ top: 0 });
+  const my = nav;
+  try {
+    const { mountSettings } = await import('./settingspage');
+    if (my !== nav) return;
+    clear(body);
+    cleanup = mountSettings(body);
+  } catch (e) {
+    console.error(e);
+    if (my === nav) clear(body).append(loadFailed('Could not load the Settings', e));
+  }
+}
+
 async function showTool(tool: Tool, from?: 'fav') {
   const section: Section = from === 'fav' && isFav(tool.id) ? 'fav' : tool.cat;
   // same tab: keep it, unless its own parameters changed (e.g. #/sharelink?d=… → #/sharelink "New message"); ?from= only picks the tab row
@@ -263,6 +297,7 @@ function parse(): Route {
     if (s === 'fav' || s === 'all' || cats.some((c) => c.id === s)) return { kind: 'section', section: s };
     return { kind: 'home' };
   }
+  if (path === 'settings') return { kind: 'settings' };
   const tool = TOOL_BY_ID.get(path);
   if (tool) return { kind: 'tool', tool, from: /(^|&)from=fav/.test(query) ? 'fav' : undefined };
   return { kind: 'home' };
@@ -270,18 +305,35 @@ function parse(): Route {
 
 function route() {
   current = parse();
+  document.querySelector('.settings-link')?.toggleAttribute('aria-current', current.kind === 'settings');
   if (current.kind === 'home') showHome();
   else if (current.kind === 'section') showSection(current.section);
+  else if (current.kind === 'settings') void showSettings();
   else showTool(current.tool, current.from);
 }
 window.addEventListener('hashchange', route);
 
+/** the card whose star was just clicked: where it stood on the screen, to keep it there when the page is drawn again */
+let starAt: { href: string; top: number; index: number } | null = null;
 onFavChange(() => {
   // refresh counts, tab rows and any visible star buttons / lists
   if (current.kind === 'tool') {
     renderTabs(lastSection === 'fav' && !isFav(current.tool.id) ? current.tool.cat : lastSection, current.tool);
     document.querySelectorAll<HTMLElement>('.head-star').forEach((b) => { const on = isFav(current.kind === 'tool' ? current.tool.id : ''); b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on)); });
-  } else route();
+  } else if (current.kind === 'settings') settingsTabs(); // the page's own list follows the store (src/settingspage.ts): it is not drawn again
+  else {
+    // the start page or a category, drawn again with the star: the card clicked stays where it was on the screen and its star
+    // keeps the focus (it scrolled to the top, and a keyboard lost its place); a card gone (unstarred in Favorites): the next one's
+    const at = starAt, y = scrollY, focused = !!at && document.activeElement?.classList.contains('tile-star');
+    starAt = null;
+    route();
+    const tl = at && view.querySelector<HTMLElement>(`.tile[href="${CSS.escape(at.href)}"]`);
+    window.scrollTo({ top: tl ? scrollY + tl.getBoundingClientRect().top - at.top : y, behavior: 'instant' as ScrollBehavior });
+    if (focused && at) {
+      const stars = view.querySelectorAll<HTMLElement>('.tile-star');
+      (tl?.querySelector<HTMLElement>('.tile-star') ?? stars[Math.min(at.index, stars.length - 1)])?.focus({ preventScroll: true });
+    }
+  }
 });
 
 // ------------------------------------------------------------------ search

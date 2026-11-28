@@ -9,6 +9,7 @@ import * as R from '../lib/ebook-client';
 import { THEMES, FONTS, KIND_NAMES, chapterAt, type Look, type Theme, type FontChoice, type Entry, type Hit, type BookInfo, type PageLink } from '../lib/ebook';
 import { give, take } from '../lib/handoff';
 import { plural } from '../lib/dates';
+import { ebookSettings } from '../settings';
 import './ebook.css';
 
 const ACCEPT = '.epub,.mobi,.prc,.azw,.azw3,.fb2,.fbz,.zip,.cbz,.cbr,.cb7,.cbt,.txt,.text,.html,.htm,.xhtml,application/epub+zip,application/x-mobipocket-ebook,text/plain,text/html';
@@ -28,7 +29,14 @@ let last: { file: File; title: string; anchor: string; share: number; page: numb
 export const mount: Mount = (root, ctx) => {
   const phone = ctx.isMobile;
   // justified on a PC; on a phone's narrow page left-aligned (MuPDF does not hyphenate: justified, the spaces open wide)
-  look ||= { font: 'literata', size: phone ? 18 : 20, line: 1.5, justify: !phone, theme: appDark() ? 'dark' : 'light', publisher: true };
+  // the look is the Settings' (to-do #39: kept in this browser, in the settings file); what was never chosen follows the device (a phone's
+  // smaller left-aligned text, the system's light or dark)
+  const fromSettings = (into: Partial<Look> = {}): Look => {
+    const k = ebookSettings.get();
+    margin = k.margin; spreadPref = k.spread;
+    return Object.assign(into, { font: k.font, size: k.size ?? (phone ? 18 : 20), line: k.line, justify: k.justify ?? !phone, theme: k.theme ?? (appDark() ? 'dark' : 'light'), publisher: k.publisher }) as Look;
+  };
+  look = fromSettings();
   const L = look;
   let live = true;
 
@@ -359,6 +367,8 @@ export const mount: Mount = (root, ctx) => {
   // ------------------------------------------------------------------------------------ laying out again
   let relayTimer = 0;
   const needLayout = (delay = 150) => { clearTimeout(relayTimer); relayTimer = window.setTimeout(() => void relay(), delay); };
+  // the look changed elsewhere (the Settings page in another tab, an import there): the book is laid out again in it
+  const offSettings = ebookSettings.on((local) => { if (local || !live) return; fromSettings(L); if (info) needLayout(120); });
   async function relay() {
     if (!info || !live) return;
     if (laying) { await laying; }
@@ -557,13 +567,13 @@ export const mount: Mount = (root, ctx) => {
     const step = (d: number) => {
       const k = SIZES.findIndex((s) => s >= L.size), at = Math.max(0, Math.min(SIZES.length - 1, (k < 0 ? SIZES.length - 1 : k) + d));
       if (SIZES[at] === L.size) return;
-      L.size = SIZES[at]; sizeOut.textContent = `${L.size} px`; relook();
+      L.size = SIZES[at]; sizeOut.textContent = `${L.size} px`; ebookSettings.set({ size: L.size }); relook();
     };
     const themeBtns = h('div', { class: 'ebr-themes', role: 'radiogroup', 'aria-label': 'Theme' }, ...(Object.keys(THEMES) as Theme[]).map((t) => {
       const b = h('button', { type: 'button', role: 'radio', class: 'ebr-theme', 'aria-checked': String(L.theme === t), style: `background:${THEMES[t].bg};color:${THEMES[t].fg}` }, h('span', { class: 'ebr-theme-a' }, 'Aa'), h('span', null, THEMES[t].name));
       b.addEventListener('click', () => {
         if (L.theme === t) return;
-        L.theme = t;
+        L.theme = t; ebookSettings.set({ theme: t });
         for (const x of themeBtns.querySelectorAll('button')) x.setAttribute('aria-checked', String(x === b));
         relook(!fixed);
       });
@@ -573,17 +583,17 @@ export const mount: Mount = (root, ctx) => {
       h('div', { class: 'field', role: 'group', 'aria-label': 'Theme' }, h('span', { class: 'field-label' }, 'Theme'), themeBtns));
     if (!fixed) {
       body.append(
-        h('label', { class: 'field' }, h('span', { class: 'field-label' }, 'Font'), select<FontChoice>((Object.keys(FONTS) as FontChoice[]).map((f) => [f, FONTS[f]]), L.font, (v) => { L.font = v; relook(); showNotes(); })),
+        h('label', { class: 'field' }, h('span', { class: 'field-label' }, 'Font'), select<FontChoice>((Object.keys(FONTS) as FontChoice[]).map((f) => [f, FONTS[f]]), L.font, (v) => { L.font = v; ebookSettings.set({ font: v }); relook(); showNotes(); })),
         h('div', { class: 'field', role: 'group', 'aria-label': 'Text size' }, h('span', { class: 'field-label' }, 'Text size'),
           h('div', { class: 'row ebr-sizes' }, button('', () => step(-1), { icon: 'AArrowDown', title: 'Smaller text' }), sizeOut, button('', () => step(1), { icon: 'AArrowUp', title: 'Larger text' }))),
-        h('label', { class: 'field' }, h('span', { class: 'field-label' }, 'Line spacing'), select(LINES as Array<[string, string]>, String(L.line), (v) => { L.line = +v; relook(); })),
+        h('label', { class: 'field' }, h('span', { class: 'field-label' }, 'Line spacing'), select(LINES as Array<[string, string]>, String(L.line), (v) => { L.line = +v; ebookSettings.set({ line: +v }); relook(); })),
         h('div', { class: 'field', role: 'group', 'aria-label': 'Margins' }, h('span', { class: 'field-label' }, 'Margins'),
-          segmented<Margin>([['narrow', 'Narrow'], ['normal', 'Normal'], ['wide', 'Wide']], margin, (v) => { margin = v; relook(); })),
-        toggle('Justify the text (straight right edge)', L.justify, (v) => { L.justify = v; relook(); }),
-        toggle('The book’s own styles (its spacing, its headings, its colours in Light)', L.publisher, (v) => { L.publisher = v; relook(); }));
+          segmented<Margin>([['narrow', 'Narrow'], ['normal', 'Normal'], ['wide', 'Wide']], margin, (v) => { margin = v; ebookSettings.set({ margin: v }); relook(); })),
+        toggle('Justify the text (straight right edge)', L.justify, (v) => { L.justify = v; ebookSettings.set({ justify: v }); relook(); }),
+        toggle('The book’s own styles (its spacing, its headings, its colours in Light)', L.publisher, (v) => { L.publisher = v; ebookSettings.set({ publisher: v }); relook(); }));
     }
     if (!phone) body.append(h('div', { class: 'field', role: 'group', 'aria-label': 'Pages side by side' }, h('span', { class: 'field-label' }, 'Pages side by side'),
-      segmented<Spread>([['auto', 'On a wide window'], ['one', 'One page'], ['two', 'Two pages']], spreadPref, (v) => { spreadPref = v; if (fixed) relook(false); else needLayout(60); })));
+      segmented<Spread>([['auto', 'On a wide window'], ['one', 'One page'], ['two', 'Two pages']], spreadPref, (v) => { spreadPref = v; ebookSettings.set({ spread: v }); if (fixed) relook(false); else needLayout(60); })));
     if (fixed) body.append(h('p', { class: 'muted small' }, 'A comic’s pages are pictures: they keep their own look; the theme colours the space around them.'));
     panel('Font, size, margins and theme', body);
   }
@@ -591,6 +601,7 @@ export const mount: Mount = (root, ctx) => {
   // ------------------------------------------------------------------------------------ leaving
   return () => {
     live = false;
+    offSettings();
     remember();
     clearTimeout(relayTimer);
     stopSearch();

@@ -9,22 +9,25 @@ import { h, card, button, toggle, select, note, ic, copy, downloadBlob, pickFile
 import { trackWorker } from '../lifecycle';
 import { readTextFile } from '../lib/textfile';
 import { tokens, around, matchCase, applyEdits, moved, diffSpan, DEFAULT_OPTS, type SpellOpts, type Tok } from '../lib/spelltext';
+import { spellSettings } from '../settings';
 import './spell.css';
 
 type Lang = 'en-US' | 'en-GB' | 'en-IN';
 const LANGS: Array<[Lang, string]> = [['en-US', 'English (United States)'], ['en-GB', 'English (United Kingdom)'], ['en-IN', 'English (India)']];
 const MAX = 1_000_000; // characters
 const SHOWN = 8; // suggestions shown
-/** kept while the page is open (nothing is stored) */
-const kept: { text: string; name: string; lang: Lang | null; opts: SpellOpts; added: string[]; ignoreAll: Set<string> } =
-  { text: '', name: '', lang: null, opts: { ...DEFAULT_OPTS }, added: [], ignoreAll: new Set() };
+/** kept while the page is open (nothing is stored); the language and the words added are the Settings' (to-do #39: kept in this
+ *  browser, in the settings file — `kept.added` mirrors them while the tab is open) */
+const kept: { text: string; name: string; opts: SpellOpts; added: string[]; ignoreAll: Set<string> } =
+  { text: '', name: '', opts: { ...DEFAULT_OPTS }, added: [], ignoreAll: new Set() };
 const defaultLang = (): Lang => {
   const l = (navigator.language || 'en-US').toLowerCase();
   return /-in$/.test(l) ? 'en-IN' : /^en-(gb|au|nz|ie|za)$/.test(l) ? 'en-GB' : 'en-US';
 };
 
 export const mount: Mount = (root, ctx) => {
-  let lang: Lang = kept.lang ?? defaultLang();
+  kept.added = spellSettings.get().added;
+  let lang: Lang = spellSettings.get().lang ?? defaultLang();
   let gone = false, runSeq = 0, timer = 0, loaded = new Set<Lang>();
   let toks: Tok[] = [], bad: Tok[] = [], cur: number | null = null, ignoreAt = new Set<number>(), last = kept.text, choice = '';
   const known = new Map<string, boolean>(), sugg = new Map<string, string[] | Promise<string[]>>();
@@ -255,8 +258,9 @@ export const mount: Mount = (root, ctx) => {
   function add(t: Tok) {
     push('Add to dictionary');
     kept.added.push(t.word); known.set(t.word, true);
+    spellSettings.set({ added: [...kept.added] });
     void call('add', { words: [t.word] }).catch(() => { /* the next load puts it back */ });
-    info.textContent = `“${t.word}” added to the dictionary while this page is open.`;
+    info.textContent = `“${t.word}” added to your words (kept in this browser — Settings).`;
     after(t.end);
   }
   function step(by: number) {
@@ -269,6 +273,7 @@ export const mount: Mount = (root, ctx) => {
     if (!s) return;
     const removed = kept.added.filter((w) => !s.added.includes(w));
     ta.value = s.text; last = s.text; kept.text = s.text; ignoreAt = new Set(s.ignoreAt); kept.ignoreAll = new Set(s.ignoreAll); kept.added = s.added; cur = s.cur; choice = '';
+    if (removed.length) spellSettings.set({ added: [...kept.added] });
     if (removed.length) { for (const w of removed) known.delete(w); void call('remove', { words: removed }).catch(() => { /* nothing */ }); }
     info.textContent = `Undone: ${s.what}.`;
     void run().then(show);
@@ -281,7 +286,19 @@ export const mount: Mount = (root, ctx) => {
     button('Download', () => { if (!ta.value) { toast('There is no text yet.', 'info'); return; } downloadBlob(new Blob([ta.value], { type: 'text/plain;charset=utf-8' }), fileName()); }, { icon: 'Download' }));
 
   // ---------------------------------------------------------------- choices
-  const langSel = select(LANGS, lang, (v) => { lang = v; kept.lang = v; known.clear(); sugg.clear(); cur = null; schedule(0); }, 'Language');
+  const langSel = select(LANGS, lang, (v) => { lang = v; spellSettings.set({ lang: v }); known.clear(); sugg.clear(); cur = null; schedule(0); }, 'Language');
+  // changed elsewhere (the Settings page in another tab, an import there): the language and the words follow
+  const offSettings = spellSettings.on((local) => {
+    if (local || gone) return;
+    const k = spellSettings.get(), was = kept.added;
+    const gone1 = was.filter((w) => !k.added.includes(w)), new1 = k.added.filter((w) => !was.includes(w));
+    kept.added = [...k.added];
+    if (gone1.length) void call('remove', { words: gone1 }).catch(() => { /* nothing */ });
+    if (new1.length) void call('add', { words: new1 }).catch(() => { /* the next load puts them back */ });
+    const l = k.lang ?? defaultLang();
+    if (l !== lang) { lang = l; langSel.value = l; }
+    known.clear(); sugg.clear(); schedule(0);
+  });
   const opt = (label: string, key: keyof SpellOpts) => toggle(label, kept.opts[key], (v) => { kept.opts[key] = v; schedule(0); });
   root.append(h('div', { class: 'sp-grid' },
     card(null,
@@ -302,5 +319,5 @@ export const mount: Mount = (root, ctx) => {
     ...(bar ? [bar] : []),
   );
   schedule(0);
-  return () => { gone = true; clearTimeout(timer); };
+  return () => { gone = true; clearTimeout(timer); offSettings(); };
 };

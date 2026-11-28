@@ -1,9 +1,9 @@
-// Favorites — the ONLY data SuperUtils keeps between visits (owner-requested exception to "stateless").
+// Favorites — kept between visits (owner-requested exception to "stateless"; a section of the Settings, src/settings.ts).
 // Stored as a list of tool ids in this browser's localStorage; never sent anywhere.
 const KEY = 'superutils.favorites.v1';
 /** The key of the app's old name, SuperTools (until 21 Nov 2026): read once and moved to KEY, so no star is lost. */
 const OLD_KEY = 'supertools.favorites.v1';
-const listeners = new Set<() => void>();
+const listeners = new Set<(local: boolean) => void>();
 let cache: string[] | null = null;
 
 /** The stars kept under the old name, moved to the new key (left where they are if the browser refuses the write). */
@@ -24,7 +24,7 @@ function load(): string[] {
 function save(list: string[]) {
   cache = list;
   try { localStorage.setItem(KEY, JSON.stringify(list)); } catch { /* private mode: keep in memory for this visit */ }
-  listeners.forEach((f) => f());
+  listeners.forEach((f) => f(true));
 }
 
 export const favs = () => [...load()];
@@ -35,11 +35,14 @@ export function toggleFav(id: string): boolean {
   save(on ? [...l, id] : l.filter((x) => x !== id));
   return on;
 }
-export function onFavChange(f: () => void) { listeners.add(f); return () => listeners.delete(f); }
+/** all the stars at once (an import of the Settings): in their order, each once */
+export function setFavs(list: string[]) { save([...new Set(list)]); }
+/** told of every change: `local` when it was made in this tab (not heard from another) */
+export function onFavChange(f: (local: boolean) => void) { listeners.add(f); return () => listeners.delete(f); }
 
 // keep several open tabs in sync
 // (a page of the old version still open writes the old key: its stars are the newest, so they move over)
 window.addEventListener('storage', (e) => {
   if (e.key === OLD_KEY && e.newValue !== null) moveOld(e.newValue);
-  if (e.key === KEY || e.key === OLD_KEY || e.key === null) { cache = null; listeners.forEach((f) => f()); } // null: the storage was cleared
+  if (e.key === KEY || e.key === OLD_KEY || e.key === null) { cache = null; listeners.forEach((f) => f(false)); } // null: the storage was cleared
 });

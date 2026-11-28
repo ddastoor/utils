@@ -22,65 +22,6 @@ The owner adds items here in chat ("add … to to do"). Newest instructions win.
     whose text arrives later, which Safari and Chrome accept), and where the browser still refuses (a photo chosen from the
     gallery on an iPhone) the tab says so and the Copy button does it with one tap. When: **after groups 2 – 4 of docs/potentials.md** (owner, 27 Nov 2026, evening: "After you finish all these, finish off the items in the todo.md also.").
 
-39. **A Settings page for the whole site, with Export and Import** (owner, 27 Nov 2026: "Have a new settings section for the
-    entire superutils site. Have a section called favorites in the settings, and currently store the favorites in settings as
-    well as the browser storage … Have an export and import button on the settings page, which exports the settings in
-    whatever format you like, which you feel appropriate, maybe a JSON file or some other file. So this way, if you clear the
-    browser cache, you can always import settings, and when you import settings, all those settings are then put in the
-    browser cache like before. So the first section will mirror favorites"). A Settings page (`#/settings`, reached from
-    the header on PCs and phones): its first section **Favorites** shows the starred apps as the browser stores them
-    (`superutils.favorites.v1` — the stars and the page stay one list); **Export settings** saves a small JSON file on the
-    device (`superutils-settings.json`: the site, a format version, the date, the favorites as tab ids); **Import
-    settings** reads such a file, checks it (ids that are no tab are named and left out) and puts its settings into the
-    browser's storage as they were — the stars back at once. Nothing leaves the device (CLAUDE.md §1: only what the owner
-    allowed is stored — the Favorites and the folded app list; a new kind of setting needs the owner's word). To ask when
-    building: the folded app list in the file too (a second section)? Import replaces the stars or adds to them? When:
-    **after groups 2 – 4 of docs/potentials.md** (owner, 27 Nov 2026, evening: "After you finish all these, finish off the
-    items in the todo.md also.").
-    **Added the same day** (owner: "different sections in the settings page will actually correspond to different UI elements
-    or areas of different apps, which also corresponds to browser storage. They are all in sync. Whenever through an app I
-    change a settings linked UI control, it should change in the browser storage area, it should change in the settings
-    storage area, and immediately a new settings file … superutils settings _ YYYYMMDD _ hour and minute should be saved on
-    the user's local PC or mobile phone. It may be JSON or TXT or whatever format you decide … when I import that same
-    settings file from disk, it should again override and adjust the browser space accordingly and affect those apps which
-    are synced with those areas"):
-    - **One store, three views kept in step:** each section of the Settings page is a group of controls of an app (Favorites
-      first — the stars on the cards and tabs); a control changed in its app, on the Settings page or by an import changes
-      the browser's storage and every view of it at once (open tabs of the site too: the `storage` event).
-    - **A settings file after every change:** `superutils-settings_YYYYMMDD_HHMM.json` (JSON: readable, the site's own
-      format with a version; a second change in the same minute replaces that minute's file). What a browser allows: a page
-      cannot write to the disk unasked — on a PC (Chrome, Edge) the Settings page asks once for a folder ("Keep my settings
-      files here", File System Access) and every change is written there by itself while the site is open (Chrome may ask
-      again after a restart); where there is no folder access (iPhone Safari, Firefox, Android) each change is a download
-      (Chrome asks once to allow several; an iPhone asks each time) — or the tab offers "Save settings file" with the
-      change. To decide when building, with the owner.
-    - **Import** a file → its settings replace the stored ones and the apps that show them change at once.
-    - **Which controls become settings** is the owner's choice, app by app (CLAUDE.md §1 rule 1: nothing else is stored) —
-      to be listed with the owner before building (e.g. the EPUB Reader's look and place, the voice and speed of the speech tabs).
-    - **The owner's wording of 28 Nov 2026** (it settles the open points above): "the storage for all the settings in the
-      settings page should be in the browser. Each app should have, if necessary, … a section of that app in the settings
-      page, and … also show in the UI of the settings page and settings tab. … when I change something in the settings page,
-      it should be reflected in the browser storage, and then it should … reflect in that part of the app that requires it.
-      And the other way around, … when I change things in the app, for example, add another radio station in the world
-      radio, that should then reflect in the settings page, browser settings. And also whenever something is changed in the
-      overall consolidated settings, a new settings file should be immediately downloaded to the local device. So something
-      like superutils_settings_ mmdd_ hour minute." → the store is the browser's (localStorage); a section for each app that
-      has settings; both ways kept in step; a file after every change — `superutils_settings_YYYYMMDD_HHMM.json` (the year
-      added so files sort across years — told to the owner; a burst of changes one file, a moment after the last; a PC with
-      a folder chosen writes there, else a download). **When:** next, right after the Clipart Maker (told to the owner,
-      28 Nov 2026, as the owner asked about it twice), unless the owner says otherwise.
-    - **A World Radio section** (owner, 28 Nov 2026: "You should remember my favorite stations once the settings page is built
-      out. So now the settings page will have the world radio section in it"): the favourite stations of World Radio
-      (`docs/potentials.md` #116 — not built yet) — kept in the browser, in the settings file, exported and imported with the
-      rest.
-    - **A World Clock section** (owner, 28 Nov 2026: "Add a world clock section in the settings page once it's built out. Add
-      this to todo.md so that when I add new cities, it gets saved in the settings page."): the World Clock's cities — added
-      with its search or a set, moved up or down, taken off — and its 12 / 24-hour clock are kept in the browser and in the
-      settings file at once; the Settings page lists the cities (one can be taken off there, and the World Clock follows) and
-      the clock; exported and imported with the rest. Built with this item: the World Clock is in the set the owner chose on
-      28 Nov 2026 (the speech apps' voice and speed, the EPUB Reader's look, the Spell Checker's language and words, the World
-      Clock's cities and clock, Favorites, the folded list of apps).
-
 40. **EPUB Reader: "Remember book", its place and its reading voice in the Settings** (owner, 27 Nov 2026, evening: "Add an EPUB
     Reader app section in settings. Now on the EPUB Reader app page, have a toggle saying remember book. This will, at the
     moment the reader selects remember book, you should show a pop-up blocking the screen saying processing. What this does
@@ -116,6 +57,24 @@ The owner adds items here in chat ("add … to to do"). Newest instructions win.
     When: after #39 (owner, 27 Nov 2026: after groups 2 – 4, "finish off the items in the todo.md also").
 
 ## Done
+- **39. A Settings page for the whole site, with Export and Import** (owner, 27 Nov 2026: "Have a new settings section for the entire
+  superutils site. Have a section called favorites in the settings … Have an export and import button on the settings page …"; and 28 Nov
+  2026: "the storage for all the settings in the settings page should be in the browser. Each app should have, if necessary, … a section
+  of that app in the settings page … when I change something in the settings page, it should be reflected in the browser storage, and
+  then … in that part of the app that requires it. And the other way around … whenever something is changed in the overall consolidated
+  settings, a new settings file should be immediately downloaded to the local device. So something like superutils_settings_ mmdd_ hour
+  minute"; "Add a world clock section in the settings page … so that when I add new cities, it gets saved in the settings page.") — done
+  28 Nov 2026: `#/settings`, reached from the header's "Settings" (an icon on phones; CLAUDE.md §3 "Settings page"). The sections are the
+  set the owner chose that day: **Favorites**, **the list of apps**, **Text-to-Speech**, **Camera Reader** and **Audiobook** (voice, speed;
+  text size and "read aloud at once"; MP3 quality), **EPUB Reader** (its look), **Spell Checker** (language, the words added — kept
+  between visits now) and **World Clock** (its cities and its 12 / 24-hour clock). Kept in this browser (localStorage, a key a section);
+  a change in an app, on the page or by an import reaches every view at once, other open tabs of the site too. **A settings file after
+  every change:** `superutils_settings_YYYYMMDD_HHMM.json` (the year added so the files sort across years), a moment after the last of a
+  burst of changes, downloaded — or, on a PC with Chrome or Edge, written into a folder chosen once (a normal window only: Chromium closes
+  itself when a private window reads a remembered folder back — kept for the visit there); a switch turns the files off; **Export
+  settings now**; **Import settings…** puts back the sections a file holds and names what it left out. `src/settings.ts`,
+  `src/settingspage.ts`, `src/lib/settingsfile.ts`; unit `settings` 32, e2e `settings` 96. **Still to come:** the World Radio section
+  (its favourite stations — with World Radio, `docs/potentials.md` #116) and the EPUB Reader's remembered books (#40).
 - **37. OCR and Photo Dictionary: an image from the clipboard** (owner, 27 Nov 2026: "Make both ocr app and photo dictionary app
   take images, as input, from the clipboard", then "Make a paste button for ocr and photo dictionary apps on the pc too") —
   done 27 Nov 2026: a **"Paste image"** button beside "Use webcam" / "Use camera" in both tabs, on PCs and phones. It reads

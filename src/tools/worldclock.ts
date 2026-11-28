@@ -10,11 +10,12 @@ import { mathcore } from '../wasm/mathcore';
 import type { bindTextcore } from '../wasm/textcore';
 import { localZone, zoneOffset, zoneLabel } from '../lib/tz';
 import * as W from '../lib/worldclock';
+import { worldclockSettings } from '../settings';
 import './worldclock.css';
 
 type Textcore = ReturnType<typeof bindTextcore>;
-/** kept while the page is open (nothing is stored); the list also rides in the address */
-const kept: { ids: string[] | null; h24: boolean | null } = { ids: null, h24: null };
+// the cities and the clock are the Settings' (to-do #39: kept in this browser, in the settings file); the list also rides in the address
+// (a link shows its own list, which becomes yours once you change it)
 const SHOWN = 8; // suggestions under the search box
 const MIN = 60_000, DAY = 86_400_000;
 const setIds = (id: string) => [...W.SETS.find((s) => s.id === id)!.ids];
@@ -32,20 +33,22 @@ interface Card {
 export const mount: Mount = async (root) => {
   const m = await mathcore();
   const urlIds = W.listFromHash(location.hash), urlH = W.hourFromHash(location.hash);
-  let ids: string[] = urlIds ?? kept.ids ?? setIds(W.DEFAULT_SET);
-  let h24 = urlH !== null ? urlH === 24 : kept.h24 ?? localH24();
+  const k0 = worldclockSettings.get();
+  let ids: string[] = urlIds ?? k0.cities?.filter((id) => W.placeOf(id)) ?? setIds(W.DEFAULT_SET);
+  let h24 = urlH !== null ? urlH === 24 : k0.h24 ?? localH24();
   let shift = 0, timer = 0, gone = false, seq = 0;
   let engine: { tc: Textcore; handle: number; places: W.Place[] } | null = null, building: Promise<void> | null = null;
   let undo: { ids: string[]; text: string } | null = null;
   const you = localZone();
 
   // ---------------------------------------------------------------- the address
-  const writeUrl = () => {
-    kept.ids = [...ids]; kept.h24 = h24;
+  /** the list and the clock into the address — and into the Settings when you changed them (`keep`) */
+  const writeUrl = (keep = true) => {
+    if (keep) worldclockSettings.set({ cities: [...ids], h24: h24 !== localH24() ? h24 : null });
     const q = [`c=${W.encodeList(ids)}`, h24 !== localH24() ? `h=${h24 ? 24 : 12}` : ''].filter(Boolean).join('&');
     try { history.replaceState(history.state, '', `#/worldclock?${q}`); } catch { /* sandboxed: the list stays in memory */ }
   };
-  const onHash = () => { if (location.hash.startsWith('#/worldclock') && W.listFromHash(location.hash) === null) writeUrl(); };
+  const onHash = () => { if (location.hash.startsWith('#/worldclock') && W.listFromHash(location.hash) === null) writeUrl(false); };
   window.addEventListener('hashchange', onHash);
 
   // ---------------------------------------------------------------- status (what was added, removed, with Undo)
@@ -260,10 +263,18 @@ export const mount: Mount = async (root) => {
     h('p', { class: 'muted small wc-source' }, `Cities: ${W.SOURCE}. Time zones: this browser's own database. Sunrise and sunset: NOAA's equations at sea level, to the minute; hills and the weather move them a little.`),
   );
   draw();
-  writeUrl();
+  writeUrl(false);
   loop();
+  // changed elsewhere (the Settings page in another tab, an import there): the list and the clock follow
+  const offSettings = worldclockSettings.on((local) => {
+    if (local || gone) return;
+    const k = worldclockSettings.get();
+    ids = k.cities?.filter((id) => W.placeOf(id)) ?? setIds(W.DEFAULT_SET); h24 = k.h24 ?? localH24();
+    drawHours(); for (const c of cards.values()) c.last = {};
+    draw(); tick(); writeUrl(false);
+  });
   return () => {
-    gone = true; clearTimeout(timer);
+    gone = true; clearTimeout(timer); offSettings();
     window.removeEventListener('hashchange', onHash); document.removeEventListener('visibilitychange', onVis);
     try { if (engine) engine.tc.searchFree(engine.handle); } catch { /* the engine is gone already */ }
   };

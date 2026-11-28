@@ -2012,3 +2012,10 @@ Looked at first (STANDING RULE #1):
   — the order of the steps.
 - **Decision:** u2netp (4.6 MB) and the engines of tab 199 — about 4.9 MB on the site for both tabs.
 
+
+### 201. Settings page — `#/settings` (28 Nov 2026; to-do #39)
+- **What it does:** a few values a section kept in `localStorage`, checked as they are read, stored and imported; a settings file written
+  as JSON; a folder handle kept in IndexedDB; the file written through File System Access or downloaded.
+- **Engine: none (rule 3 — nothing to compute):** the browser's own `JSON.parse` / `JSON.stringify` (compiled C++), `localStorage`,
+  IndexedDB, File System Access and a download link do all the work; the checks are a comparison or two a value (`src/settings.ts`),
+  the file's name a date formatted (`src/lib/settingsfile.ts`). No WebAssembly module would have work to do here.

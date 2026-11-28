@@ -9,7 +9,8 @@ import { audio, int16Asymmetric } from '../lib/audio-client';
 import { decodeText } from '../lib/sheetdata';
 import { trackWorker } from '../lifecycle';
 import { take } from '../lib/handoff';
-import { VOICES, V, type Voice } from '../lib/voices';
+import { VOICES, V, voiceById, type Voice } from '../lib/voices';
+import { ttsSettings } from '../settings';
 import './tts.css';
 
 export { VOICES };
@@ -30,7 +31,11 @@ function engine() {
 }
 
 export const mount: Mount = (root, ctx) => {
-  let voice: Voice = VOICES[0][1][0], speed = 1, fmt: 'mp3' | 'wav' = 'mp3', runId = 0, ac: AudioContext | null = null, playAt = 0;
+  // the voice and the speed are the Settings' (to-do #39: kept in this browser, in the settings file, the same on the Settings page)
+  const kept0 = ttsSettings.get();
+  let voice: Voice = voiceById(kept0.voice) ?? VOICES[0][1][0], speed = kept0.speed, fmt: 'mp3' | 'wav' = 'mp3', runId = 0, ac: AudioContext | null = null, playAt = 0;
+  /** a voice of this device kept by its name ("sys:Microsoft Zira"), found when the device lists its voices */
+  let wantSys = kept0.voice.startsWith('sys:') ? kept0.voice.slice(4) : '';
   let parts: Float32Array[] = [], sr = 24000, nodes: AudioBufferSourceNode[] = [], sysVoices: SpeechSynthesisVoice[] = [], shows: number[] = [];
   // the run being waited for: Stop ends the wait at once (the Speak button stayed busy for good after Stop — the
   // worker's "cancelled" carried the old run's number and was ignored)
@@ -45,15 +50,20 @@ export const mount: Mount = (root, ctx) => {
   const now = h('div', { class: 'tts-now', 'aria-live': 'polite' });
   const vsel = h('select', { class: 'input', 'aria-label': 'Voice' }) as HTMLSelectElement;
   const fillVoices = () => {
+    if (wantSys) { const i = sysVoices.findIndex((v) => v.name === wantSys); if (i >= 0) { voice = V(`sys:${i}`, sysVoices[i].name, 'system', 'a', i); wantSys = ''; } }
     vsel.replaceChildren(...VOICES.map(([g, vs]) => h('optgroup', { label: g }, ...vs.map((v) => h('option', { value: v.id }, v.label)))),
       ...(sysVoices.length ? [h('optgroup', { label: 'System voices (play only, cannot be saved)' }, ...sysVoices.map((v, i) => h('option', { value: `sys:${i}` }, `${v.name} (${v.lang})`)))] : []));
     vsel.value = voice.engine === 'system' ? `sys:${voice.speaker}` : voice.id;
   };
+  const showVoice = () => {
+    saveBtn.hidden = true; fmtBox.hidden = voice.engine === 'system';
+    hint.textContent = voice.engine === 'piper' ? 'Indian English: L2-ARCTIC speakers (first language Hindi), Piper voice model — 77 MB the first time.' : voice.engine === 'kokoro' ? 'Kokoro neural voice — the 92 MB model is downloaded once per visit.' : 'A voice installed on this device (Web Speech): plays, but browsers cannot record it.';
+  };
   vsel.addEventListener('change', () => {
     const v = vsel.value;
     voice = v.startsWith('sys:') ? V(v, sysVoices[+v.slice(4)].name, 'system', 'a', +v.slice(4)) : VOICES.flatMap(([, vs]) => vs).find((x) => x.id === v)!;
-    saveBtn.hidden = true; fmtBox.hidden = voice.engine === 'system';
-    hint.textContent = voice.engine === 'piper' ? 'Indian English: L2-ARCTIC speakers (first language Hindi), Piper voice model — 77 MB the first time.' : voice.engine === 'kokoro' ? 'Kokoro neural voice — the 92 MB model is downloaded once per visit.' : 'A voice installed on this device (Web Speech): plays, but browsers cannot record it.';
+    ttsSettings.set({ voice: voice.engine === 'system' ? `sys:${voice.label}` : voice.id });
+    showVoice();
   });
   const loadSys = () => { try { sysVoices = speechSynthesis.getVoices().filter((v) => v.localService && /^en/i.test(v.lang)); fillVoices(); } catch { /* no Web Speech */ } };
   if ('speechSynthesis' in window) { loadSys(); speechSynthesis.addEventListener?.('voiceschanged', loadSys); } else fillVoices();
@@ -134,8 +144,16 @@ export const mount: Mount = (root, ctx) => {
     // UTF-8, UTF-16 or Windows-1252 (as Notepad saves); a file that is not text is refused
     try { const { text: t, how } = decodeText(new Uint8Array(await f.arrayBuffer())); ta.value = /\.(md|markdown)$/i.test(f.name) ? mdToText(t) : t; syncCount(); toast(`Opened ${f.name}${how ? ` (read as ${how})` : ''}`, 'ok'); } catch (e) { toast(`${f.name}: ${errMsg(e)}`, 'err'); }
   } });
-  const voiceCard = card('Voice', stack(field('Voice', vsel), hint,
-    slider({ label: 'Speed', min: 0.5, max: 2, step: 0.05, value: 1, fmt: (v) => `${+v.toFixed(2)}×`, onInput: (v) => { speed = v; syncCount(); } }), fmtBox));
+  const speedSl = slider({ label: 'Speed', min: 0.5, max: 2, step: 0.05, value: speed, fmt: (v) => `${+v.toFixed(2)}×`, onInput: (v) => { speed = v; syncCount(); }, onChange: (v) => ttsSettings.set({ speed: v }) });
+  const voiceCard = card('Voice', stack(field('Voice', vsel), hint, speedSl, fmtBox));
+  // changed elsewhere (the Settings page in another tab, an import there): the voice and the speed follow
+  const offSettings = ttsSettings.on((local) => {
+    if (local) return;
+    const k = ttsSettings.get();
+    speed = k.speed; speedSl.value = k.speed; syncCount();
+    if (k.voice.startsWith('sys:')) { wantSys = k.voice.slice(4); fillVoices(); } else { voice = voiceById(k.voice) ?? voice; fillVoices(); }
+    showVoice();
+  });
   const here = note('Everything runs on this device: the voices are downloaded from this site once per visit and your text is never sent anywhere.', 'info');
   const acts = actions(speakBtn, stopBtn, saveBtn);
   const browserParts: HTMLElement[] = [voiceCard, now, status, here, acts];
@@ -158,6 +176,6 @@ export const mount: Mount = (root, ctx) => {
     ...(mode ? [card('Mode', stack(mode, h('div', { class: 'muted small' }, 'Offline on this PC: large voices that run on this computer itself (Windows or Linux) — this page writes the script that does it.')))] : []),
     card(null, stack(ta, count, open)),
     voiceCard, prog, now, status, here, acts, offlineBox);
-  fillVoices(); syncCount();
-  return () => { stopAll(); ac?.close(); };
+  fillVoices(); syncCount(); showVoice();
+  return () => { stopAll(); ac?.close(); offSettings(); };
 };

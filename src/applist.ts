@@ -4,7 +4,7 @@
 // between visits like Favorites"). Kept in this browser's localStorage beside Favorites — the one other thing SuperUtils
 // keeps between visits (CLAUDE.md §1, rule 1); never sent anywhere. Open is the default and is stored as nothing.
 const KEY = 'superutils.applist.v1';
-const listeners = new Set<() => void>();
+const listeners = new Set<(local: boolean) => void>();
 let mem: boolean | null = null;
 
 export function appListFolded(): boolean {
@@ -14,8 +14,9 @@ export function appListFolded(): boolean {
 export function setAppListFolded(folded: boolean) {
   mem = folded;
   try { if (folded) localStorage.setItem(KEY, 'folded'); else localStorage.removeItem(KEY); } catch { /* private mode: for this visit */ }
-  listeners.forEach((f) => f());
+  listeners.forEach((f) => f(true));
 }
-export function onAppListChange(f: () => void) { listeners.add(f); return () => listeners.delete(f); }
+/** told of every change: `local` when it was made in this tab */
+export function onAppListChange(f: (local: boolean) => void) { listeners.add(f); return () => listeners.delete(f); }
 // another open tab of the site folded or opened it
-window.addEventListener('storage', (e) => { if (e.key === KEY || e.key === null) { mem = null; listeners.forEach((f) => f()); } });
+window.addEventListener('storage', (e) => { if (e.key === KEY || e.key === null) { mem = null; listeners.forEach((f) => f(false)); } });

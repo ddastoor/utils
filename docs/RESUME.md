@@ -174,10 +174,15 @@ BUILT (28 Nov 2026):** the tabs `tosvg` and `clipart` (Images, PC + mobile; CLAU
 vtracer.wasm (0.17 MB — byte for byte the native tool's, built on musl), Potrace 1.16 (esm-potrace-wasm, 0.08 MB), U²-Net small (rembg's u2netp,
 4.6 MB, on ONNX Runtime Web — held to rembg's own steps), imgproc's `flat.c` (greedy k-means++ in CIE Lab, masks, black and white, DoG ink
 lines); pipelines `src/lib/vectorize.ts`, styles `src/lib/clipart.ts`. Unit `vector` 65, e2e `tosvg` 25, `clipart` 31; measured 4.9 MB on the
-site. **▶ NEXT (told to the owner, 28 Nov 2026 — the owner asked about it twice): to-do #39, the Settings page** (the owner's wording of 28 Nov in todo.md
-#39: browser storage, a section per app, both ways in step, a settings file after every change — `superutils_settings_YYYYMMDD_HHMM.json`);
-then #75 SliceDiceGrapher (with #25 Chart Maker), #54 Diagram Editor (draw.io, PC only) — each with its size check measured first (stop and
-ask if much bigger than the 27 Nov estimate); then to-dos #38 and #40.
+site. **To-do #39, the Settings page — BUILT (28 Nov 2026; built next at the owner's asking, before SliceDiceGrapher):** `#/settings` from the
+header (CLAUDE.md §3 "Settings page"; todo.md Done #39): the set the owner chose — Favorites, the list of apps, Text-to-Speech, Camera Reader,
+Audiobook, EPUB Reader, Spell Checker, World Clock (its cities: the owner's note of 28 Nov) —, kept in localStorage, both ways in step (other
+tabs too), a settings file after every change (`superutils_settings_YYYYMMDD_HHMM.json`, downloaded or written into a folder chosen once —
+normal windows only: Chromium 153 closes itself reading a folder handle back in a private window, docs/BUGHUNT.md "Settings"), Export now,
+Import. Unit `settings` 32, e2e `settings` 96; the six apps' suites, shell, applist and the sweeps run again. The World Radio section comes
+with World Radio (potentials #116); #40 adds the EPUB Reader's remembered books to it.
+**▶ NEXT: #75 SliceDiceGrapher (with #25 Chart Maker), then #54 Diagram Editor (draw.io, PC only)** — each with its size check measured
+first (stop and ask if much bigger than the 27 Nov estimate); then to-dos #38 and #40.
 **Then to-dos #38, #39 and #40** (owner,
 27 Nov 2026, evening: "After you finish all these, finish off the items in the todo.md also."; #40, added the same evening:
 the EPUB Reader's "Remember book" — a hash of the book, its place and the reading voice in the Settings — after #39). The open question (keep the EPUB Reader's place between visits?) is

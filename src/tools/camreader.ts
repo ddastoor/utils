@@ -12,14 +12,15 @@ import { pageParas, speakable, type Para } from '../lib/readertext';
 import { sayer, type SayState } from '../lib/sayer';
 import { screenOn } from '../lib/wakelock';
 import { give } from '../lib/handoff';
+import { camreaderSettings, CAMREADER_SIZES as SIZES } from '../settings';
 import './camreader.css';
 
-/** kept while the page is open (nothing is stored) */
-const kept = { voice: 'af_heart', speed: '1', size: 24, auto: true };
 const SPEEDS: Array<[string, string]> = [['0.8', 'Slower'], ['1', 'Normal'], ['1.2', 'Faster']];
-const SIZES = [18, 20, 24, 28, 34, 40];
 
 export const mount: Mount = (root, ctx) => {
+  // the voice, the speed, the text's size and reading at once are the Settings' (to-do #39: kept in this browser, in the settings file);
+  // a voice of this device is kept by its name ("sys:Microsoft Zira"), the select names it by its place in the device's list
+  let kept = camreaderSettings.get();
   let seq = 0, gone = false, reads = 0;
   let paras: Para[] = [], spans: HTMLElement[] = [], sysVoices: SpeechSynthesisVoice[] = [];
   const prog = progress();
@@ -39,7 +40,9 @@ export const mount: Mount = (root, ctx) => {
   const fillVoices = () => {
     vsel.replaceChildren(...VOICES.map(([g, vs]) => h('optgroup', { label: g }, ...vs.map((v) => h('option', { value: v.id }, v.label)))),
       ...(sysVoices.length ? [h('optgroup', { label: 'This device’s voices (start at once)' }, ...sysVoices.map((v, i) => h('option', { value: `sys:${i}` }, v.name)))] : []));
-    if (!kept.voice.startsWith('sys:') || sysVoices[+kept.voice.slice(4)]) vsel.value = kept.voice; else vsel.value = 'af_heart';
+    if (!kept.voice.startsWith('sys:')) vsel.value = kept.voice;
+    else { const i = sysVoices.findIndex((v) => v.name === kept.voice.slice(4)); vsel.value = i >= 0 ? `sys:${i}` : 'af_heart'; }
+    if (!vsel.value) vsel.value = 'af_heart';
     sayHint();
   };
   const sayHint = () => {
@@ -86,13 +89,25 @@ export const mount: Mount = (root, ctx) => {
   const unlock = () => sp.unlock();
   root.addEventListener('pointerdown', unlock, true);
   root.addEventListener('keydown', unlock, true);
-  vsel.addEventListener('change', () => { kept.voice = vsel.value; sayHint(); const [v, sv] = voiceOf(vsel.value); sp.setVoice(v, sv); });
-  const speedSel = segmented<string>(SPEEDS, kept.speed, (v) => { kept.speed = v; sp.setSpeed(+v); });
+  vsel.addEventListener('change', () => {
+    const val = vsel.value;
+    camreaderSettings.set({ voice: val.startsWith('sys:') ? `sys:${sysVoices[+val.slice(4)]?.name ?? ''}` : val }); kept = camreaderSettings.get();
+    sayHint(); const [v, sv] = voiceOf(val); sp.setVoice(v, sv);
+  });
+  const speedSel = segmented<string>(SPEEDS, kept.speed, (v) => { camreaderSettings.set({ speed: v as '0.8' | '1' | '1.2' }); kept = camreaderSettings.get(); sp.setSpeed(+v); });
   const sizeSay = h('span', { class: 'muted small' });
   const applySize = () => { text.style.setProperty('--cr-size', `${kept.size}px`); sizeSay.textContent = `${kept.size} px`; };
-  const smaller = button('Smaller text', () => { kept.size = SIZES[Math.max(0, SIZES.indexOf(kept.size) - 1)] ?? kept.size; applySize(); }, { icon: 'AArrowDown', small: true });
-  const larger = button('Larger text', () => { kept.size = SIZES[Math.min(SIZES.length - 1, SIZES.indexOf(kept.size) + 1)] ?? kept.size; applySize(); }, { icon: 'AArrowUp', small: true });
-  const auto = toggle('Read aloud as soon as the page is read', kept.auto, (v) => { kept.auto = v; });
+  const setSize = (n: number) => { camreaderSettings.set({ size: n as (typeof SIZES)[number] }); kept = camreaderSettings.get(); applySize(); };
+  const smaller = button('Smaller text', () => setSize([...SIZES].reverse().find((x) => x < kept.size) ?? SIZES[0]), { icon: 'AArrowDown', small: true });
+  const larger = button('Larger text', () => setSize(SIZES.find((x) => x > kept.size) ?? SIZES[SIZES.length - 1]), { icon: 'AArrowUp', small: true });
+  const auto = toggle('Read aloud as soon as the page is read', kept.auto, (v) => { camreaderSettings.set({ auto: v }); kept = camreaderSettings.get(); });
+  // changed elsewhere (the Settings page in another tab, an import there): the tab follows
+  const offSettings = camreaderSettings.on((local) => {
+    if (local || gone) return;
+    kept = camreaderSettings.get();
+    fillVoices(); speedSel.value = kept.speed; applySize(); auto.checked = kept.auto;
+    const [v, sv] = voiceOf(vsel.value); sp.setVoice(v, sv); sp.setSpeed(+kept.speed);
+  });
 
   // ---------------------------------------------------------------- the page, shown
   function draw() {
@@ -179,6 +194,6 @@ export const mount: Mount = (root, ctx) => {
     gone = true; seq++;
     root.removeEventListener('pointerdown', unlock, true); root.removeEventListener('keydown', unlock, true);
     try { speechSynthesis.removeEventListener?.('voiceschanged', loadSys); } catch { /* none */ }
-    sp.dispose(); wake.dispose(); pick.dispose();
+    sp.dispose(); wake.dispose(); pick.dispose(); offSettings();
   };
 };

@@ -3506,6 +3506,31 @@ Found while building it (unit `worldclock` 39, e2e `worldclock` 55):
   at once; the colours stay as chosen.
 - **The Clipart Maker's switches ran on as one line** of text and switches on a PC: they stand one under another.
 
+## Settings page (28 Nov 2026; built — to-do #39)
+- **Chromium closes itself — the whole browser, SIGTRAP — when a page reads a folder's handle back from IndexedDB in a private
+  (Incognito) window** (Chromium 153.0.8010.12, the headless shell and the full build alike; Playwright's contexts are such profiles):
+  storing the handle works, reading it back kills the browser; a real local folder (got by a folder dropped through CDP's
+  `Input.dispatchDragEvent` and `getAsFileSystemHandle()`) and the private file system's root alike; in a normal profile
+  (`launchPersistentContext`) both are read back and written to. Found by the suite: choosing a folder closed the page at once (the page
+  read the handle back to show it). No report found ([Opera](https://forums.opera.com/post/382777) has a similar one; Chrome moved
+  in-memory IndexedDB to SQLite lately — [blink-dev](https://groups.google.com/a/chromium.org/g/blink-dev/c/jEDGJfRibfM)). The page keeps the folder
+  of a visit in memory, reads IndexedDB once a visit, and in a window that looks private — a storage quota below twice the script heap's
+  limit (the quota is a share of the memory there, of the disk otherwise: here 4 GB against 10 GB, the heap 3.5 GB) — never stores or
+  reads the handle (the folder for the visit only, said). The suite runs the folder in both kinds of profile.
+- **A change of Favorites drew the Settings page again** (the shell re-routed for every page but an app's): the import's message vanished
+  at once, and removing a favorite there jumped the page to the top. The Settings page now only refreshes the tab row's count. **The same
+  re-route on the start page and the category pages scrolled to the top** whenever a card's star was clicked (a card far down the page —
+  on a phone especially — lost its place, and a keyboard its focus): the card clicked now stays where it was on the screen and its star
+  keeps the focus (a card gone from Favorites: the next one's).
+- **Two tabs, one file each — but whose content?** A tab's file is written 1.5 s after its change, and holds the settings as they are
+  then: a change in another tab within that moment is in it too (the consolidated settings, as the owner asked). The suite's first try
+  expected each file to hold only its own change; it now waits for each file.
+- **The Camera Reader's voice and text controls show only once a page is read** — the suite reads a leaflet first (with "read aloud at
+  once" off on the Settings page, which it then checks: no voice fetched).
+- **The unit suites share their thread's globals:** the Settings' suite gives Node a stand-in `window` and `localStorage` and leaves them
+  as they were; no settings file is written there (the switch off from the start) — `src/lib/color.ts` looks for `document`, so the
+  suite stubs no `document`.
+
 ## Paper Deadlines → Calendar (28 Nov 2026; built — potentials #77)
 - **Tesseract's blank lines inside a sentence:** "Your motor insurance policy expires on" / blank / "31 January 2027." — read as two
   paragraphs, the date lost what it was for; a line that ends with a word a sentence cannot end with runs on over a blank line.

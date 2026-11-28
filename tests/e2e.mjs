@@ -48,10 +48,14 @@ async function runOne(f) {
     base, tmp, devices,
     async page(opts = {}) {
       // E2E_TZ=Asia/Kolkata runs the pages in another time zone (the suites are written in UTC; the owner lives in IST)
-      const c = await browser.newContext({ acceptDownloads: true, ...(process.env.E2E_TZ ? { timezoneId: process.env.E2E_TZ } : {}), ...opts });
+      // `settingsFiles: true` keeps the Settings' file after every change (to-do #39) on; every other page has it off, so that a suite's
+      // own downloads are not mistaken for a settings file (the Settings suite holds the files)
+      const { settingsFiles, ...rest } = opts;
+      const c = await browser.newContext({ acceptDownloads: true, ...(process.env.E2E_TZ ? { timezoneId: process.env.E2E_TZ } : {}), ...rest });
       contexts.push(c);
       const p = await c.newPage();
       await p.addInitScript(BLOBS);
+      if (!settingsFiles) await p.addInitScript(() => { try { if (localStorage.getItem('superutils.settings.v1') === null) localStorage.setItem('superutils.settings.v1', '{"autoSave":false}'); } catch { /* opaque origin */ } });
       p.errors = [];
       p.on('pageerror', (e) => p.errors.push(e.message));
       // MediaPipe's wasm prints glog/TFLite info lines ("INFO: …", "I1116 …", "W1116 …") to stderr → console.error; not errors

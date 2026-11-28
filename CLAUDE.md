@@ -238,9 +238,16 @@ Wayland) and **mobile browsers** (Android Chrome, iPhone Safari).
    **no PWA / offline install**. Nothing is saved between visits **except the owner-requested Favorites list**
    (tool ids in `localStorage` key `superutils.favorites.v1` — the stars of the old key `supertools.favorites.v1` are
    moved to it once —, `src/favorites.ts`; never leaves the browser) **and, since the owner's word of 26 Nov 2026, whether the category's list of apps is folded**
-   (to-do #27 — owner: "remembered between visits like Favorites"; `localStorage` beside Favorites, nothing else). **Allowed
-   by the owner, to be built:** the Settings page's settings (to-do #39, with its file, export and import), and in it World
-   Radio's favourite stations (owner, 28 Nov 2026 — `docs/potentials.md` #116).
+   (to-do #27 — owner: "remembered between visits like Favorites"; `localStorage` beside Favorites, nothing else) **and, since
+   28 Nov 2026, the Settings page's settings** (to-do #39 — §3 "Settings page"; the set the owner chose that day): in
+   `localStorage`, one key an app — `superutils.app.<id>.v1` for Text-to-Speech, Camera Reader and Audiobook (voice, speed; the
+   Camera Reader's text size and "read aloud at once"; the Audiobook's MP3 quality), the EPUB Reader (its look), the Spell
+   Checker (its language and the words added) and the World Clock (its cities, its 12 / 24-hour clock) —, and
+   `superutils.settings.v1`, this device's own "a settings file after every change"; in IndexedDB (`superutils-settings`), the
+   folder chosen for the settings files (its handle — a normal window only; never in a private one). The settings file it writes
+   after every change stays on the device. **Allowed by the owner, to be built:** World Radio's favourite stations, in the
+   Settings page (owner, 28 Nov 2026 — `docs/potentials.md` #116), and the EPUB Reader's remembered books (to-do #40). A new
+   kind of setting needs the owner's word.
 2. **No online *code* dependencies (owner clarification).** Every library, script, WebAssembly module, ML model,
    font and icon is embedded in / served from this site — WebAssembly first, else a locally hosted open-source JS
    library. Never a CDN or remote script. **Fetching *data* from a public online API is allowed** (e.g. network
@@ -329,7 +336,12 @@ Wayland) and **mobile browsers** (Android Chrome, iPhone Safari).
 - **Browse + favorites (owner request):** the category row starts with **All** (`#/`, home: favorites + every
   category with tool cards) and **★ Favorites** (`#/c/fav`), then one tab per category (`#/c/<cat>` = card grid of
   that category). Every tool page and card has a ☆ star toggle; starred tools appear in Favorites (count badge on
-  the tab). Tool URLs: `#/<toolId>` (`?from=fav` keeps the Favorites row active).
+  the tab). Tool URLs: `#/<toolId>` (`?from=fav` keeps the Favorites row active). A star clicked on a card keeps that
+  card where it was on the screen and its star the focus (the page drawn again with the star scrolled to the top and lost
+  a keyboard's place — fixed 28 Nov 2026).
+- **Settings (to-do #39; owner, 27 – 28 Nov 2026):** a "Settings" link at the end of the header (an icon on phones) opens
+  `#/settings` — what the site keeps in this browser, section by section, and the settings files that hold it (§3
+  "Settings page").
 - **The category's list of apps folds away (to-do #27; owner, 26 Nov 2026: "make the list of apps in this category in a
   collapsible pane … By default, keep the app pane expanded … collapse the list of all apps in that category so that
   the real estate for the currently selected app increases"; "remembered between visits like Favorites"):** a button at
@@ -4250,6 +4262,54 @@ link to another video unloads the player (it recorded the old video at the new t
 cannot be started twice; the MP4's sound is AAC (`finishRecording`); minutes and seconds above 59 are refused; times
 are rounded before they are written (no "0:60").
 
+### Settings page — BUILT (to-do #39; owner, 27 – 28 Nov 2026)
+(`#/settings`, a page of the shell, not a tab: the store `src/settings.ts` (part of the start page, small), the page `src/settingspage.ts`
+and `.css` (fetched with the page), the file `src/lib/settingsfile.ts` (fetched with the first file); unit `tests/unit/settings.test.mjs` 32,
+e2e `tests/e2e/settings.e2e.mjs` 96.) The owner's words (28 Nov 2026): "the storage for all the settings in the settings page should be in
+the browser. Each app should have, if necessary, … a section of that app in the settings page … when I change something in the settings
+page, it should be reflected in the browser storage, and then … in that part of the app that requires it. And the other way around … whenever
+something is changed in the overall consolidated settings, a new settings file should be immediately downloaded to the local device. So
+something like superutils_settings_ mmdd_ hour minute."
+- **One store, every view in step:** each section is what one part of the site keeps, under its own `localStorage` key (§1 rule 1), each
+  value checked as it is read, stored or imported (a wrong type, a value out of range or a choice the app does not offer falls back to its
+  default; unknown fields dropped). A change in an app, on the Settings page or by an import changes the store and every view of it at once;
+  another open tab of the site follows (the `storage` event) — an open app too: its voice, its words, its cities — and writes no file.
+- **The sections** (the set the owner chose, 28 Nov 2026): **Favorites** (the starred apps; removed there, the star goes off); **The list of
+  apps** (folded or not); **Text-to-Speech** (the voice — the site's voices, or one of this device's own, kept by its name — and the speed);
+  **Camera Reader** (voice, speed, text size, "read aloud as soon as the page is read"); **PDF / EPUB → Audiobook** (voice, speed, MP3
+  quality); **EPUB Reader** (font, text size, line spacing, theme, margins, text edge, one or two pages, the book's own styles — "as the
+  device suits" until chosen); **Spell Checker** (the language; the words added with "Add to dictionary" — kept between visits now — each
+  removable there); **World Clock** (its cities, added with its search or a set, moved, taken off — each removable there —, and the 12 /
+  24-hour clock; owner, 28 Nov 2026: "when I add new cities, it gets saved in the settings page"). Each section links to its app. A link to
+  the World Clock with a list of its own (`?c=…`) shows that list without storing it until something is changed there.
+- **A settings file after every change** ("Save a settings file after every change", on: this device's own switch, not in the file):
+  `superutils_settings_YYYYMMDD_HHMM.json` (the year added so the files sort across years — told to the owner), 1.5 s after the last of a
+  burst of changes (a slider dragged is one file), by the tab where the change was made: JSON — `{ "app": "SuperUtils", "kind": "settings",
+  "format": 1, "saved": "2026-11-28T10:42:07+05:30", "settings": { "favorites": […], "applist": {…}, "tts": {…}, … } }`. Downloaded (Chrome
+  asks once to allow several downloads; an iPhone asks each time), or — on a PC whose browser allows it (File System Access: Chrome, Edge) —
+  written into a folder chosen once ("Choose a folder for the files"; a second file in the same minute replaces that minute's; after a
+  browser restart the browser asks again, "Allow writing to …", and until then each file is downloaded; "Download the files instead").
+  **Export settings now**: a file at once (with the switch off too). The files card names the last file and where it went.
+- **Import settings…:** a settings file → the sections it holds replace what is kept (the others stay); apps the site does not have,
+  sections this version does not know and values it cannot take are named and left out; a file of a newer version, of another program or
+  not JSON is refused in words and changes nothing. An import is a change: one settings file after it.
+- **A Chromium fault kept away** (found 28 Nov 2026 in Chromium 153 — docs/BUGHUNT.md, "Settings"): a folder's handle read back from
+  IndexedDB in a private (Incognito) window closes the whole browser — a real folder and the private file system alike; a normal profile
+  is fine. A page cannot ask whether it is in a private window, but its storage quota is a share of the memory there and of the disk
+  otherwise: below twice the script heap's limit (`privateWindow()` in `settingsfile.ts`) the folder is kept for the visit only — never
+  stored, never read back — and the page says so. The handle is read from IndexedDB once a visit (another open tab's choice reaches it by a
+  BroadcastChannel).
+- **The shell:** a change of Favorites no longer draws the Settings page again (its import message vanished and the page jumped to the top
+  when a favorite was removed there) — only the tab row's count.
+- **Tests:** unit — every section's checks, a change told as made here or in another tab, the snapshot, an import (replaced, kept, refused,
+  named), the file's name; e2e — the header link, every section both ways (a star; the list folded; a voice and a speed in each speech app;
+  a page read by the Camera Reader at the size chosen and not read aloud by itself; a book opened in the theme and size chosen; a word added
+  in the Spell Checker, kept after a reload, taken out on the page; a set of cities, a city taken off, 24 hours), a burst of changes one
+  file, the file's name and contents, the switch off (no file) and Export now, an import and the refusals, two tabs of the site following
+  each other with one file a change, the folder in a private window (for the visit) and in a normal profile the suite launches (remembered
+  after a reload), axe-core in both themes, the phone. Every other suite's pages have the file after every change off (`page({
+  settingsFiles: true })` keeps it on), so that their own downloads are not taken for settings files.
+
 ### Linux X11 vs Wayland (owner requirement: auto-detect)
 **Every app, not only the capture tabs (owner, 21 Nov 2026 — the standing note at the top):** the detection below is
 shared by all tabs on Linux; each uses it where the two display servers differ.
@@ -4427,6 +4487,7 @@ espeak.wasm's, the MP3 and its tags audio.wasm's (LAME). No WebAssembly module m
 Nov 2026 (Paper Deadlines → Calendar, potentials #77): `src/lib/deadlines.ts` — dates, times and amounts found by regular expressions, a
 paper's lines made into sentences, dates counted on with the browser's Date in UTC, the iCalendar file written as text: string glue
 around the readers' output (`docs/WASM-AUDIT.md`, tab 194).
+Nov 2026 (the Settings page, to-do #39): `src/settings.ts`, `src/lib/settingsfile.ts` — values checked by a comparison or two, the browser's JSON, localStorage, IndexedDB and File System Access: nothing for an engine to do (`docs/WASM-AUDIT.md`, 201).
 Nov 2026 (World Clock, potentials #73): `src/lib/worldclock.ts` — a city's line read, its id made, the words of a card, a zone's offset by
 the browser's Intl a day at a time with a halving to the second for its next change: glue around Intl (compiled ICU), mathcore (`m_sun`)
 and textcore's search (`docs/WASM-AUDIT.md`, tab 197).
@@ -4538,7 +4599,7 @@ weather (Open-Meteo), IP/network info, clock-accuracy check (network time).
 Owner: "make the full site faster, more responsive and memory efficient — load dependencies from the site's host
 **per app/tab, only when the user selects that tab**". Rules (enforced by `tests/e2e/lazy.e2e.mjs`):
 1. **The shell loads no engine.** Home and category pages fetch only `index.html`, the entry JS/CSS and the icons they
-   show (≈ 154 KB on 27 Nov 2026; the test's budget is 180 KB): no `.wasm`, `vendor/`, `models/`, `data/` or font file.
+   show (≈ 168 KB in 11 files on 28 Nov 2026, with the Settings' store; the test's budget is 180 KB): no `.wasm`, `vendor/`, `models/`, `data/` or font file.
    **A tab's own styles load with the tab** (27 Nov 2026 — the stylesheet had reached 86 of the start page's 180 KB): a rule
    whose classes only one tool module uses lives in a stylesheet beside it (`src/tools/<module>.css`, imported by the module —
    Vite loads it with the tab's chunk); `src/styles.css` keeps what the shell and the shared components use (56 KB built).
@@ -4606,6 +4667,7 @@ src/main.ts                shell: router, nav, home grid
 src/registry.ts            every tab (id, title, category, platform, loader); src/keywords.ts = their search keywords (lazy)
 src/icons.gen.ts           GENERATED (scripts/gen-icons.mjs): the Lucide icons the start page shows; icons-tabs.gen.ts the tabs' own (with a tab)
 src/lifecycle.ts           onLeave / trackWorker / releaseAll: free a tab's workers + engines when it is left
+src/settings.ts            the Settings' store (one localStorage key a section, the file after every change); settingspage.ts the page (#/settings, lazy)
 src/ui.ts                  DOM helpers & widgets (file picker/drop, sliders, progress, download, toast)
 src/platform.ts            mobile / capability detection
 src/wasm/                  loaders for our wasm (wasi.ts, imgproc.ts, crypto.ts)
@@ -5169,7 +5231,9 @@ DEBUG=pw:browser E2E_CHROME_ARGS="--enable-logging=stderr --v=0" node tests/e2e.
 - `tests/unit/*.test.mjs` export `default async (t, { load, wasm })`; `t.ok/eq/near/throws`; `load()` = Vite SSR
   import of any `src/` module; `wasm(name)` instantiates `src/wasm/bin/<name>.wasm` with a WASI shim.
 - `tests/e2e/*.e2e.mjs` export `default async ({ base, page, ok, download, tmp, devices })`; `page(opts)` makes an
-  isolated context (console errors collected in `page.errors`).
+  isolated context (console errors collected in `page.errors`; the Settings' file after every change off — `page({ settingsFiles:
+  true })` keeps it on; a context is a private, Incognito-like profile: a test that needs a normal one launches it, as the Settings
+  suite does).
 - **Owner rule (bulletproof testing):** besides the whole-app suites (`shell`, `every-tab`, `lazy`, `no-external`), **every
   utility tab has its own independent e2e suite** (`tests/e2e/<tool-or-group>.e2e.mjs`), all suites run in parallel,
   and every wasm module has unit tests. Use **real media files** wherever possible: real photos with EXIF/GPS
