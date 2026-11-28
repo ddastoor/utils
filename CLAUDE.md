@@ -336,7 +336,7 @@ Wayland) and **mobile browsers** (Android Chrome, iPhone Safari).
 Platform is PC + mobile unless marked **PC**. Tab ids are the URL hash (`#/<id>`).
 
 **The authoritative, always-current list is `docs/TOOLS.md`, generated from `src/registry.ts` (`npm run docs`).**
-Current total: **189 tabs in 11 categories — 122 PC + mobile, 64 PC only, 3 Mobile only** (regenerate with
+Current total: **190 tabs in 11 categories — 123 PC + mobile, 64 PC only, 3 Mobile only** (regenerate with
 `npm run docs` after every registry change; the owner asked for the registry to always be noted).
 The per-category notes below record decisions; when they disagree with the registry, the registry wins.
 
@@ -491,7 +491,8 @@ Glob Tester. Left out: API client (CORS/CSP), DNS/WHOIS/ping/port scan (need net
 27 Nov 2026, potentials #88 — §3 "Router Sticker → Wi-Fi QR") · `visitcard` Visiting Card → Contact (**BUILT** 28 Nov 2026, potentials #89 — §3
 "Visiting Card → Contact") · `zip` Create Zip · `unzip` Extract Archive
 
-**Everyday** (all both): `stopwatch` · `countdown` · `pomodoro` · `interval` · `dice` · `coin` · `rng` ·
+**Everyday** (all both): `deadlines` Paper Deadlines → Calendar (**BUILT** 28 Nov 2026, potentials #77 — §3 "Paper Deadlines → Calendar") ·
+`stopwatch` · `countdown` · `pomodoro` · `interval` · `dice` · `coin` · `rng` ·
 `picker` · `teams`
 
 **Device** (all both): `webcam` · `mic` · `speaker` · `keyboard` · `pixels` · `touch` · `screen` · `level` ·
@@ -2264,6 +2265,48 @@ builds (Viz.js, hpcc) trap on valid graphs (`docs/WASM-AUDIT.md`, tab 55). The r
 - **To update Graphviz:** bump the version and SHA-256 in `wasm/graphviz/build.sh`, check that the two patches still
   apply, build (it leaves the native tool), `DOT=$WORK/native/cmd/dot/dot_static node
   scripts/make-graphviz-reference.mjs`, **read the diff** of `tests/fixtures/graphviz/reference.json`, run both suites.
+
+### Paper Deadlines → Calendar — BUILT (potentials #77; owner's pick of 27 Nov 2026 — group 4 of the suggested order)
+(`deadlines` in `src/tools/deadlines.ts`, the paper's dates and the calendar file `src/lib/deadlines.ts` (no DOM); unit
+`tests/unit/deadlines.test.mjs` 58, e2e `tests/e2e/deadlines.e2e.mjs` 21 (+ the camera sweep's entry); reference
+`tests/fixtures/deadlines/reference.json` from `python3 scripts/make-deadlines-reference.py` (Python's dateutil, the independent reader
+— needs `pip install python-dateutil`); fixtures `tests/fixtures/snaps/notice-*.jpg` — a bill, an insurance renewal letter, a school
+circular of our own making — by `python3 scripts/make-snap-photos.py`.) The owner's words (potentials #77): "photograph a bill, school
+circular, notice or insurance letter → every date and amount found ("due 30 Nov", "renew by", "within 15 days") → one tap per reminder
+into the calendar (.ics)".
+- **Reading:** the camera helpers' way (`SNAP_READ`, §3 "Router Sticker → Wi-Fi QR"); a line with a date or an amount Tesseract was
+  unsure of (a word under 90) read again by PaddleOCR's recogniser (`secondLook`), the surer kept — one digit read wrong and the
+  reminder comes on the wrong day. Or a message's text pasted ("Or paste the text of a message").
+- **Sentences** (`sentencesOf`): Tesseract puts blank lines inside a paragraph ("… expires on" / blank / "31 January 2027.") — a line
+  that ends with a word a sentence cannot end with (on, by, of, the, will …) runs on over it; a label and its value ("Due date:
+  15/12/2026" — a colon after a letter, not "10:00"), a heading and a greeting ("Dear Parents,") stand alone; the parts of a line apart;
+  no sentence ends after "Rs.", "Mr.", "No.", "Ltd." or an initial.
+- **Dates** (`datesIn`): 15/12/2026, 15-12-26, 15.12.2026 (day first as in India — a switch: month first, as in the United States; a
+  number above 12 decides either way), 2026-12-15, "6th December 2026", "Saturday, 6th Dec 2026", "1st of March, 2027", "07-Nov-2026",
+  "December 6, 2026", "Dec. 6th" — not a circular's number (42/2026-27), a policy number, 1.25 %, a month and a year alone, "2 Market
+  Road", an IP address or a version. **No year written:** the next such date on or after the paper's earliest full date, else after
+  today — said under it.
+- **What each date is** (`labelOf`, from the words before it in its sentence): **a deadline** (due, by, before, last date, expires,
+  renew, pay, submit, return, disconnect …: ticked, a reminder 3 days before at 9 am), **an event** (held, meeting, exam, interview,
+  appointment … or a time beside it — "at 10:00 am", "4 p.m.", "14:30 hrs": ticked, 1 day before), **the paper's own date** (a label
+  that ends with Date, Bill date, Dated … — not a due, expiry or last date: not ticked), another date (not ticked); a date already past
+  is not ticked and said. **Counted deadlines:** "within 7 days of the bill date", "within 15 days of the date of this circular", "30
+  days after expiry" — counted from the paper's date of that name (days, weeks, months; a month's day held at its end). **Amounts**
+  (₹ — read as ¥ by Tesseract —, Rs., INR in Indian grouping, "/-", $, €, £): the sentence's own, else the paper's one amount payable
+  beside a payment's deadline. The title: what it is, the paper's heading, the amount ("Due date — Godavari Power Distribution Co.
+  Ltd. (₹2,032.71)").
+- **The calendar file** (`icsOf`, iCalendar RFC 5545): all-day events (DTSTART;VALUE=DATE) or timed ones in floating local time (the
+  paper's 10:00 am is the reader's), an hour long; a reminder (VALARM DISPLAY) — on the day at 9 am, 1 day, 3 days or 1 week before
+  (an all-day event's "3 days before at 9 am" is TRIGGER:-P2DT15H, as Apple's and Google's calendars write it), or none; SUMMARY and
+  DESCRIPTION (the sentence, the amount, the paper) escaped; a UID each; CRLF, folded at 75 octets.
+- **The tab:** a photo (or the camera; Paste image) → "Reminders": the paper's heading and date; a row a date, by date — a tick (44 px
+  to a finger), its kind, the amount, its title, date, time (empty: all day) and reminder (all editable), how it was read ("15 days after
+  1 December 2026", "the year is not written: taken as 2027", "already past"), the sentence; **Add to calendar (.ics)** per row and **Add
+  the n ticked reminders (.ics)** (phones: the fixed bar, the share sheet — the calendar); "Amounts on the paper", "What was read on
+  the paper". The switch is kept while the page is open; nothing is stored. Nothing at open: the OCR comes with the first photo.
+- **Measured** (the three papers, photographed): every date as printed with what it is for, the counted deadlines (5 December — 7 days
+  after the bill date; 2 March 2027 — 30 days after the expiry; 16 December — 15 days after the circular), the meeting at 10:00, the
+  amounts — in Node and in the browser; 80 dates as Python's dateutil reads them; every file the tab saves read by **vobject**.
 
 ### Everyday timers and randomness — as built after the Nov 2026 bug hunt
 (`src/tools/everyday.ts`; e2e `stopwatch` 21, `countdown` 44, `pomodoro` 37, `interval` 23, `dice` 21, `coin` 18, `rng` 37,
@@ -4043,7 +4086,7 @@ difference over its detail, the overlap's pixels), ruled lines and list marks cl
 | MozJPEG, libwebp, OxiPNG, Squoosh's resize (Lanczos-3 in linear light) | C / Rust | jSquash (Squoosh codecs; `@jsquash/resize` since Nov 2026) | image encoders; resizing in the Image Editor and Batch Images (`docs/WASM-AUDIT.md`, tabs 109, 110) |
 | libheif + libde265 | C++ | libheif-js | heic |
 | Little CMS 2.16 | C | lcms-wasm (Matt DesLauriers; npm 1.0.5) — in the codec worker, fetched for a HEIC with a non-sRGB ICC profile | heic and every tab that opens HEIC: Display P3 → sRGB (`docs/WASM-AUDIT.md`, tab 111) |
-| Tesseract 5 | C++ | tesseract.js-core | ocr, photodict, clipper (laid out as a page: its blocks), pdf-redact (a scanned page's numbers), idcopy (a card's numbers, through the reading path), pdf-ocr (each scanned page, through the reading path — never straightened), pdf-compare (a scanned page's words, the same way), pdf-tables (a scanned page's words, the same way), wifiqr (a router's label, through the reading path with the camera helpers' options — `SNAP_READ`), visitcard (a business card, the same way) |
+| Tesseract 5 | C++ | tesseract.js-core | ocr, photodict, clipper (laid out as a page: its blocks), pdf-redact (a scanned page's numbers), idcopy (a card's numbers, through the reading path), pdf-ocr (each scanned page, through the reading path — never straightened), pdf-compare (a scanned page's words, the same way), pdf-tables (a scanned page's words, the same way), wifiqr (a router's label, through the reading path with the camera helpers' options — `SNAP_READ`), visitcard (a business card, the same way), deadlines (a paper's dates, the same way) |
 | zxing-cpp | C++ | zxing-wasm | qr, barcode, scan, pdf-redact (QR codes and barcodes on the pages), idcopy (a QR that holds the number) — `src/lib/codesread.ts`; wifiqr (a QR code on a router's label read; the Wi-Fi code drawn — `src/lib/qrdraw.ts`); visitcard (a vCard or MECARD on a card read; the contact's code drawn) |
 | 7-Zip 24.09 (`7zz`, the command line, Emscripten build with WORKERFS) | C++ | use-strict (`7z-wasm` npm 1.2.0) — run in `src/workers/sevenzip.worker.ts`, a fresh instance per archive | zip (zip and 7z with AES-256; `docs/WASM-AUDIT.md`, tab 107), unzip (reads every archive; tab 108), watermark (a Word document taken apart and zipped again: to-do #17), ebook (a CBR or CB7 comic unpacked into a zip for MuPDF) |
 | MediaPipe Tasks (TFLite) | C++ | Google (official) | passport, bgremove, redact |
@@ -4134,6 +4177,9 @@ Nov 2026 (PDF / EPUB → Audiobook, potentials #14): `src/lib/audiobook.ts` — 
 XHTML) made into paragraphs and tracks: string glue and rules over a few thousand blocks a book (which block begins a chapter,
 which line is a running head, which link is a footnote mark); the layout is MuPDF's, the speech ONNX Runtime's and
 espeak.wasm's, the MP3 and its tags audio.wasm's (LAME). No WebAssembly module makes audiobooks (`docs/WASM-AUDIT.md`, tab 184).
+Nov 2026 (Paper Deadlines → Calendar, potentials #77): `src/lib/deadlines.ts` — dates, times and amounts found by regular expressions, a
+paper's lines made into sentences, dates counted on with the browser's Date in UTC, the iCalendar file written as text: string glue
+around the readers' output (`docs/WASM-AUDIT.md`, tab 194).
 Nov 2026 (Visiting Card → Contact, potentials #89): `src/lib/visitcard.ts` — a card's lines sorted into a contact by regular expressions and
 scores (labels, keywords, the letters' size, an e-mail address agreeing with a name), addresses split at their commas, the vCard written
 and read as text: string glue around Tesseract, zxing-cpp, PaddleOCR and devcore-ids.wasm (`docs/WASM-AUDIT.md`, tab 193).
@@ -4743,7 +4789,8 @@ npm packages (pinned in `package-lock.json`) are bundled by Vite or copied to `p
 | *test only (pip, not shipped):* faster-whisper 1.2.1 with Whisper base.en (OpenAI's model, CTranslate2's conversion) | MIT | `tests/lib/transcribe.py`: what the Audiobook's MP3s say, heard by an independent ear |
 | *test only (pip):* mutagen, reportlab | GPL-2.0+ (mutagen), BSD (reportlab) | the MP3s' ID3 tags read back (`tests/unit/audio.test.mjs`); the Audiobook's test PDF made (`scripts/make-audiobook-books.py`) |
 | *test only (pip):* pdfplumber (on pdfminer.six), openpyxl | MIT | PDF Tables → Excel: a second reading of the ruled statement's cells, the Excel file read back (`tests/unit/pdftables.test.mjs`) |
-| *test only (pip):* vobject 0.9.9 | Apache-2.0 | Visiting Card → Contact: the .vcf files read by an independent reader (`tests/unit/visitcard.test.mjs`, `tests/e2e/visitcard.e2e.mjs`) |
+| *test only (pip):* vobject 0.9.9 | Apache-2.0 | Visiting Card → Contact and Paper Deadlines: the .vcf and .ics files read by an independent reader (`tests/unit/visitcard.test.mjs`, `deadlines.test.mjs` and their e2e suites) |
+| *test only (pip):* python-dateutil | Apache-2.0 / BSD-3-Clause | Paper Deadlines: dates read by an independent reader (`scripts/make-deadlines-reference.py`) |
 | @expo-google-fonts/noto-sans (Noto Sans TTF: regular, bold, italic) | OFL-1.1 (package MIT) | PDFs made by GST Invoice, Rent Receipt, Resume Builder; EPUB Reader (its Sans) |
 | @expo-google-fonts/literata 0.4.3 (Literata TTF: regular, italic, bold, bold italic — four files, 1.0 MB on the site) | OFL-1.1 (package MIT) | EPUB Reader (the text's font; MuPDF's FreeType reads no WOFF, so @fontsource/literata's files cannot serve) |
 

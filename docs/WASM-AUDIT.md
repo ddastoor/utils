@@ -1901,3 +1901,13 @@ Looked at first (STANDING RULE #1):
   line — its detector cut a short line into boxes that overlap; `src/lib/snapsecond.ts`, shared with the Wi-Fi tab).
 - **Decision:** nothing new on the site but the tab's code and 11 KB more of devcore-ids.wasm.
 
+
+### 194. `deadlines` — Paper Deadlines → Calendar (28 Nov 2026; potentials #77)
+- **What it does:** a photo of a bill, a notice, a circular or a letter (or a message's text) → its dates with what each is for, the
+  deadlines counted from another date, times and amounts → reminders in a calendar file (CLAUDE.md §3 "Paper Deadlines → Calendar").
+- **Existing WebAssembly modules, on the site** (rule 1): Tesseract and PaddleOCR through the OCR's reading path. No WebAssembly module
+  finds the deadlines in a letter (chrono, dateparser and Duckling are JavaScript, Python and Haskell — date parsers of free text,
+  none with an official WebAssembly build); an iCalendar writer is a page of text.
+- **Beside them (rule 1c, TS):** `src/lib/deadlines.ts` — regular expressions for dates, times and amounts, the sentences of a page,
+  the iCalendar text: string glue, held to Python's dateutil and read back by vobject.
+- **Decision:** nothing new on the site but the tab's code.

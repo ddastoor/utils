@@ -3429,6 +3429,19 @@ Found while building it, each with a check in `tests/e2e/idcopy.e2e.mjs`:
 - (Test slips, fixed in the suites: two precedence slips in `a && b || c` checks; a locator that took the result card holding all
   the tables for one table's card.)
 
+## Paper Deadlines → Calendar (28 Nov 2026; built — potentials #77)
+- **Tesseract's blank lines inside a sentence:** "Your motor insurance policy expires on" / blank / "31 January 2027." — read as two
+  paragraphs, the date lost what it was for; a line that ends with a word a sentence cannot end with runs on over a blank line.
+- **"Rs." ended a sentence:** "Renewal premium: Rs." | "14,250.00" — the amount and the fees' sentence lost; no sentence ends after
+  Rs., Mr., No., Ltd. or an initial.
+- **"10:00" taken for a label's colon** ("Saturday, 6th December 2026 at 10:" + "00 am."): a label's colon follows a letter.
+- **The circular's date** stood after its number on one line ("Circular No. 42/2026-27 Date: 1 December 2026") and was no "paper's date"
+  — so "within 15 days of the date of this circular" had nothing to count from: a label that ends with "Date" is the paper's date
+  (not a due, expiry or last date).
+- **₹ read as ¥** by Tesseract: a rupee on these papers.
+- **"Co. Ltd..ics"**: a file name from a heading that ends with a full stop.
+- **The "Deadline" chip's colour** on its grey ground failed WCAG contrast (axe-core): each chip on the soft ground of its own colour.
+
 ## Visiting Card → Contact (28 Nov 2026; built — potentials #89)
 - **PaddleOCR doubled a digit at the seam of two boxes:** a card's line read again by the second reader came back "+91 98450 0 12345"
   — its detector had cut the short line into "+91 98450" and "0 12345 (M)", boxes that overlap, and their texts were joined. A crop

@@ -137,7 +137,13 @@ e-mail address agreeing with it —, the company — its domain —, the title),
 (libphonenumber's rules for India; a card from abroad: its own calling code first), a vCard / MECARD QR code on the card read exactly,
 unsure lines read again by PaddleOCR's recogniser alone (`src/lib/snapsecond.ts`, shared with the Wi-Fi tab); vCard 3.0 files, the
 contact's QR code, several cards, a card's other side. Unit `visitcard` 80 (eight card photos through the reading path in Node; vobject
-reads the files), e2e `visitcard` 30 (zbar and vobject). **Next: #77 Paper Deadlines → Calendar** (then #78, #81).
+reads the files), e2e `visitcard` 30 (zbar and vobject). **#77 Paper Deadlines → Calendar — BUILT (28 Nov 2026):** the tab `deadlines`
+(Everyday, PC + mobile; CLAUDE.md §3 "Paper Deadlines → Calendar"): a paper read the camera helpers' way (a date's line Tesseract was
+unsure of read again by PaddleOCR), its sentences (Tesseract's blank lines inside them, "Rs." no end), its dates (day first; month first on
+request; no year: after the paper's date), what each is for (a deadline, an event with its time, the paper's own date), deadlines counted
+from another date, amounts; reminders saved as iCalendar (`src/lib/deadlines.ts`); a message's text can be pasted. Unit `deadlines` 58
+(dateutil's readings of 80 dates; vobject reads the file; the three papers through the reading path in Node), e2e `deadlines` 21.
+**Next: #78 Bill Splitter by Photo** (then #81).
 **Then to-dos #38, #39 and #40** (owner,
 27 Nov 2026, evening: "After you finish all these, finish off the items in the todo.md also."; #40, added the same evening:
 the EPUB Reader's "Remember book" — a hash of the book, its place and the reading voice in the Settings — after #39). The open question (keep the EPUB Reader's place between visits?) is

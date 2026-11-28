@@ -17,7 +17,6 @@ Object.assign(ICONS, {
   Bold: "<path d=\"M6 12h9a4 4 0 010 8H7a1 1 0 01-1-1V5a1 1 0 011-1h7a4 4 0 010 8\" />",
   Book: "<path d=\"M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H19a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1H6.5a1 1 0 0 1 0-5H20\" />",
   Box: "<path d=\"M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z\" /><path d=\"m3.3 7 8.7 5 8.7-5\" /><path d=\"M12 22V12\" />",
-  CalendarPlus: "<path d=\"M16 18h6\" /><path d=\"M16 2v3\" /><path d=\"M19 15v6\" /><path d=\"M21 11.5V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2h8.3\" /><path d=\"M3 9h18\" /><path d=\"M8 2v3\" />",
   CalendarSearch: "<path d=\"M16 2v3\" /><path d=\"M21 10.69V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2h7.25\" /><path d=\"m22 21-1.875-1.875\" /><path d=\"M3 9h18\" /><path d=\"M8 2v3\" /><circle cx=\"18\" cy=\"17\" r=\"3\" />",
   Check: "<path d=\"M20 6 9 17l-5-5\" />",
   ChevronLeft: "<path d=\"m15 18-6-6 6-6\" />",

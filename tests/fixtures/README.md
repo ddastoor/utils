@@ -179,3 +179,8 @@ generates media with the project's own ffmpeg.wasm and Chromium). Used only by t
   up), "photographed" on a desk — perspective, a shadow, light falling off, blur, noise, JPEG; one label photographed with the phone
   held sideways, one carrying a Wi-Fi QR code; the cards (28 Nov 2026: eight) — one with a vCard QR code, one from the United States,
   a dark one, a card's front and back. truth.json holds what each says.
+
+## deadlines/
+- `reference.json` — dates as papers write them (numbers day first and month first, words, weekdays, ordinals, no year) read by Python's
+  dateutil, and dates counted on (relativedelta, timedelta): the reference of `tests/unit/deadlines.test.mjs`, made by `python3
+  scripts/make-deadlines-reference.py` (needs `pip install python-dateutil`).

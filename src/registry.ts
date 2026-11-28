@@ -251,6 +251,7 @@ export const TOOLS: Tool[] = [
   t('unzip', 'Extract Archive', 'Open zip, 7z, rar, tar, gz files.', 'codes', 'PackageOpen', () => files().then((m) => m.unzip)),
 
   // ---------------------------------------------------------------- Everyday
+  t('deadlines', 'Paper Deadlines → Calendar', 'Photograph a bill, notice or school circular: its due dates and meetings found, each a reminder for your calendar.', 'everyday', 'CalendarPlus', () => import('./tools/deadlines').then((m) => m.mount)),
   t('stopwatch', 'Stopwatch', 'Stopwatch with laps.', 'everyday', 'Timer', () => every().then((m) => m.stopwatch)),
   t('countdown', 'Countdown Timer', 'Countdown with alarm.', 'everyday', 'Hourglass', () => every().then((m) => m.countdown)),
   t('pomodoro', 'Pomodoro', 'Focus / break cycles.', 'everyday', 'AlarmClock', () => every().then((m) => m.pomodoro)),

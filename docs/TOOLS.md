@@ -2,7 +2,7 @@
 
 Generated from `src/registry.ts` by `npm run docs` — do not edit by hand.
 
-**189 tabs** in 11 categories — 122 PC + mobile, 64 PC only, 3 mobile only.
+**190 tabs** in 11 categories — 123 PC + mobile, 64 PC only, 3 mobile only.
 
 ## Images (17)
 
@@ -218,10 +218,11 @@ Generated from `src/registry.ts` by `npm run docs` — do not edit by hand.
 | `zip` | Create Zip | PC + mobile | Zip files, optionally with a password. | zip, compress, archive, password zip, aes |
 | `unzip` | Extract Archive | PC + mobile | Open zip, 7z, rar, tar, gz files. | unzip, extract, open, zip, 7z, rar, tar, gz, … |
 
-## Everyday (9)
+## Everyday (10)
 
 | id | Tab | Platform | What it does | Search keywords |
 |---|---|---|---|---|
+| `deadlines` | Paper Deadlines → Calendar | PC + mobile | Photograph a bill, notice or school circular: its due dates and meetings found, each a reminder for your calendar. | deadline, deadlines, due date, bill due date, reminder, reminders, calendar, add to calendar, … |
 | `stopwatch` | Stopwatch | PC + mobile | Stopwatch with laps. | stopwatch, timer, lap, time, chronometer |
 | `countdown` | Countdown Timer | PC + mobile | Countdown with alarm. | timer, minute timer, egg timer, countdown, timer, alarm, kitchen timer, minutes |
 | `pomodoro` | Pomodoro | PC + mobile | Focus / break cycles. | focus timer, study timer, pomodoro, focus, study, work, break, productivity |
