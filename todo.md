@@ -13,6 +13,14 @@ The owner adds items here in chat ("add … to to do"). Newest instructions win.
 
 3. _(withdrawn by the owner on 20 Nov 2026: the "Export Python utility" for the YouTube Clip tab — do not build it.)_
 
+41. **World Radio on a phone: the lock screen's card goes away after Next** (owner, 28 Nov 2026, asked to fix: "in the mobile
+   version of the world radio app, i start a radio station.. it's playing... then i lock the screen.. on the locked screen i
+   can see the card on the locked screen with previous/next.. when i press next , it starts playing another song but that
+   locked screen world radio card stops being shown again... fix this.."). The next station plays, but the lock screen's
+   media card (Media Session: the station, Previous / Pause / Next) is not shown again — it must stay through Next and
+   Previous, with the new station's name, as long as something plays. To do after the work in hand (the link checker of
+   #83 / #101, `docs/RESUME.md`).
+
 ## Done
 - **40. EPUB Reader: "Remember book", its place and its reading voice in the Settings** — done 28 Nov 2026: a switch "Remember
   book" beside the title; "Processing…" over the page while the file's fingerprint is made (XXH128 by hash-wasm — measured the
