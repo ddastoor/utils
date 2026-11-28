@@ -6,6 +6,10 @@ import { lazyEngine } from '../lifecycle';
 /** w: word as written (lower case), b: base form when w is unknown, z: Zipf×10 (−1 unknown), n: count, c: 1 = looks like a name */
 export type RareWord = { w: string; b: string; z: number; n: number; c: 0 | 1 };
 
+/** a picture found: p its number, m of n tokens matched, s the score, w the indices of the words that matched */
+export interface FindHit { p: number; m: number; n: number; s: number; w: number[] }
+/** A word or a query as the Finder compares them: lower case, accents off, the signs at its ends left out. */
+export const findNorm = (s: string) => s.normalize('NFKD').replace(/\p{M}+/gu, '').toLowerCase().replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, '');
 export function bindTextcore(e: any) {
   const enc = new TextEncoder();
   const putStr = (str: string) => { const b = enc.encode(str); const p = e.t_malloc(b.length + 1); new Uint8Array(e.memory.buffer, p, b.length).set(b); return [p, b.length] as const; };
@@ -22,6 +26,20 @@ export function bindTextcore(e: any) {
       try { const k = e.t_search_query(index, p, n, o, max); return Array.from(new Int32Array(e.memory.buffer, o, k)); } finally { e.t_free(p); e.t_free(o); }
     },
     searchFree: (index: number) => e.t_search_free(index),
+    /** The Screenshot Finder's index (wasm/textcore/find.c): a new one, a picture's words (normalised: lower case, accents
+     *  off — `findNorm`), a query → the pictures that match, best first, with the indices of the words that matched. */
+    findNew: (): number => e.t_find_new(),
+    findAdd(h: number, pic: number, words: string[]) { const [p, n] = putStr(words.join('\n')); try { e.t_find_add(h, pic, p, n); } finally { e.t_free(p); } },
+    findQuery(h: number, q: string): FindHit[] {
+      const [p, n] = putStr(q);
+      let cap = 1 << 16, o = e.t_malloc(cap);
+      try {
+        let k = e.t_find_query(h, p, n, o, cap);
+        if (k >= cap) { e.t_free(o); cap = k + 1; o = e.t_malloc(cap); k = e.t_find_query(h, p, n, o, cap); }
+        return JSON.parse(new TextDecoder().decode(new Uint8Array(e.memory.buffer, o, k)));
+      } finally { e.t_free(p); e.t_free(o); }
+    },
+    findFree: (h: number) => e.t_find_free(h),
     /** Load the English frequency table (public/data/dict/freq.txt). Returns the number of words. */
     freqLoad(text: string): number { const [p, n] = putStr(text); try { return e.t_freq_load(p, n); } finally { e.t_free(p); } },
     /** Zipf × 10 of a lower-case word (−1 = not in the table). */
