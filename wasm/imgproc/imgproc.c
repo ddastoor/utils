@@ -1124,6 +1124,56 @@ API int p_ink_window(const uint8_t *px, int w, int h, int ww, int wh, int32_t *o
     if (out[0] + ww > w) out[0] = w - ww > 0 ? w - ww : 0; if (out[1] + wh > h) out[1] = h - wh > 0 ? h - wh : 0;
     return (int)((long long)best * 10000 / ((long long)sw * sh));
 }
+/* The busiest part of a picture (Wallpapers: a crop that keeps the subject when no face is found): the top-left corner of the
+   ww × wh window (picture pixels) holding the most detail — the gradient's size on the picture made about 240 px long, after a
+   3 × 3 blur (film grain and paper texture are no subject) — weighed a little towards the middle (1 − 0.12 d², d the window's
+   distance from the middle in units of how far it can move); its detail per pixel × 100 is returned (0: a flat picture —
+   the middle). */
+API int p_busy_window(const uint8_t *px, int w, int h, int ww, int wh, int32_t *out) {
+    if (ww > w) ww = w; if (wh > h) wh = h;
+    out[0] = (w - ww) / 2; out[1] = (h - wh) / 2;
+    if (ww >= w && wh >= h) return 0;
+    int f = (w > h ? w : h) / 240; if (f < 1) f = 1;
+    int gw = w / f, gh = h / f; if (gw < 4 || gh < 4) return 0;
+    float *g = malloc(sizeof(float) * gw * gh), *b = malloc(sizeof(float) * gw * gh); double *ii = malloc(sizeof(double) * (gw + 1) * (gh + 1));
+    if (!g || !b || !ii) { free(g); free(b); free(ii); return 0; }
+    for (int y = 0; y < gh; y++) for (int x = 0; x < gw; x++) {        /* luma, averaged over f × f */
+        float sum = 0;
+        for (int dy = 0; dy < f; dy++) for (int dx = 0; dx < f; dx++) { const uint8_t *p = px + ((size_t)(y * f + dy) * w + x * f + dx) * 4; sum += 0.299f * p[0] + 0.587f * p[1] + 0.114f * p[2]; }
+        g[y * gw + x] = sum / (f * f);
+    }
+    for (int y = 0; y < gh; y++) for (int x = 0; x < gw; x++) {        /* 3 × 3 box blur */
+        float s = 0; int n = 0;
+        for (int dy = -1; dy <= 1; dy++) for (int dx = -1; dx <= 1; dx++) { int yy = y + dy, xx = x + dx; if (yy < 0 || yy >= gh || xx < 0 || xx >= gw) continue; s += g[yy * gw + xx]; n++; }
+        b[y * gw + x] = s / n;
+    }
+    for (int x = 0; x <= gw; x++) ii[x] = 0;
+    for (int y = 0; y < gh; y++) {                                       /* the gradient's size, summed (integral image) */
+        double row = 0; ii[(y + 1) * (gw + 1)] = 0;
+        for (int x = 0; x < gw; x++) {
+            float gx = b[y * gw + (x + 1 < gw ? x + 1 : x)] - b[y * gw + (x > 0 ? x - 1 : x)];
+            float gy = b[(y + 1 < gh ? y + 1 : y) * gw + x] - b[(y > 0 ? y - 1 : y) * gw + x];
+            float m = sqrtf(gx * gx + gy * gy); if (m > 120) m = 120;     /* one hard edge does not outweigh a detailed area */
+            row += m;
+            ii[(y + 1) * (gw + 1) + x + 1] = ii[y * (gw + 1) + x + 1] + row;
+        }
+    }
+    int sw = ww / f, sh = wh / f; if (sw > gw) sw = gw; if (sh > gh) sh = gh; if (sw < 1) sw = 1; if (sh < 1) sh = 1;
+    float cx = (gw - sw) / 2.0f, cy = (gh - sh) / 2.0f;
+    double best = -1; int bx = (gw - sw) / 2, by = (gh - sh) / 2; double braw = 0;
+    for (int y = 0; y + sh <= gh; y++) for (int x = 0; x + sw <= gw; x++) {
+        double v = ii[(y + sh) * (gw + 1) + x + sw] - ii[y * (gw + 1) + x + sw] - ii[(y + sh) * (gw + 1) + x] + ii[y * (gw + 1) + x];
+        double dx = cx > 0 ? (x - cx) / cx : 0, dy = cy > 0 ? (y - cy) / cy : 0;
+        double sc = v * (1 - 0.12 * (dx * dx + dy * dy));
+        if (sc > best + 1e-9) { best = sc; bx = x; by = y; braw = v; }
+    }
+    free(g); free(b); free(ii);
+    if (braw <= 0) return 0;
+    out[0] = bx * f; out[1] = by * f;
+    if (out[0] + ww > w) out[0] = w - ww; if (out[1] + wh > h) out[1] = h - wh;
+    if (out[0] < 0) out[0] = 0; if (out[1] < 0) out[1] = 0;
+    return (int)(braw * 100 / ((double)sw * sh));
+}
 /* Perspective warp: H (row-major 3x3) maps destination (x,y,1) to source coordinates. */
 API void p_warp(const uint8_t *src, int sw, int sh, uint8_t *dst, int dw, int dh, const float *H);
 /* 3×3 homography (row-major, h33 = 1) mapping the dw×dh output rectangle onto the quad q = TL,TR,BR,BL (x,y pairs).

@@ -2,9 +2,9 @@
 
 Generated from `src/registry.ts` by `npm run docs` — do not edit by hand.
 
-**199 tabs** in 11 categories — 131 PC + mobile, 65 PC only, 3 mobile only.
+**200 tabs** in 11 categories — 132 PC + mobile, 65 PC only, 3 mobile only.
 
-## Images (19)
+## Images (20)
 
 | id | Tab | Platform | What it does | Search keywords |
 |---|---|---|---|---|
@@ -21,6 +21,7 @@ Generated from `src/registry.ts` by `npm run docs` — do not edit by hand.
 | `watermark` | Watermark | PC + mobile | Add a text or logo watermark to photos. | add logo, logo on photo, add logo to image, logo on image, watermark image, watermark, logo, copyright, … |
 | `caption` | Text on Image | PC + mobile | Add captions or meme text to a picture. | caption, meme, text, write on image, quote, title, font |
 | `collage` | Collage Maker | PC + mobile | Combine photos into a grid. | collage, grid, combine, merge photos, layout, montage, side by side |
+| `wallpapers` | Wallpapers | PC + mobile | Wikimedia’s best photos and museums’ masterpieces, sized exactly for your phone or monitor. | wallpaper, wallpapers, wallpaper hd, hd wallpaper, 4k wallpaper, phone wallpaper, mobile wallpaper, iphone wallpaper, … |
 | `exif` | EXIF / Photo Info | PC + mobile | See hidden photo details (camera, date, GPS) and strip them. | gps from photo, photo details, camera info, exif, metadata, gps, location, camera, … |
 | `scanner` | Doc Scanner | PC + mobile | Photograph documents, straighten and clean them, save as PDF. | scan, scanner, document, camscanner, paper, receipt, perspective, crop, … |
 | `clipper` | Newspaper Clipper | PC + mobile | Photograph a newspaper page and clip one article: its columns in order, as one picture, a PDF or its text. | newspaper clipper, newspaper clipping, clip an article, cut out an article, news article, newspaper article, press cutting, press clipping, … |

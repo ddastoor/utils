@@ -3753,3 +3753,21 @@ Found while building it (each fixed, with a check in the suites):
 - **Volume changes rebuilt the whole list** (the store's listener redrew every row on each move of the slider — and the focus went): only the
   stars and the chip's count are painted now.
 - **The favourites shown on coming back** were the list as it was before they changed on the Settings page: read again from the store.
+
+## Wallpapers (28 Nov 2026; built — potentials #115)
+Found while building it (each fixed, with a check in the suites):
+- **The Met's search the plan named is gone:** `/public/collection/v1/search` was retired on 1 October 2026 (it answers with a notice); the tab
+  uses v1.1 (paginated: `limit`, `offset`). **Its `isPublicDomain=true` is not applied** — four of the twelve "landscapes" it gave were not in the
+  public domain: each object is read and only the public-domain ones are kept (twice a page is asked).
+- **Cleveland's pictures cannot be read by a page** (no CORS header on its picture server): left out, and the tab says why.
+- **Wikimedia refused this machine** (HTTP 429, its rate limit) while the fixtures were recorded; the tab says a 429 in words ("busy — it limits
+  how often it is asked. Try again in a minute.") and shows the other sources' pictures (e2e: Commons and the feed refused).
+- **"More pictures" for ever:** a source whose next page came back empty kept its button (the Met's total said there were more); and Commons,
+  having said it had no more, was asked for its first page again on the next "More". Now a source with an empty page or no next page has no more,
+  and is not asked again until a new search (e2e: two "More" presses, the third source never asked again, the button gone).
+- **A tall painting's crop was drawn off the picture:** the stage was as wide as the dialog and no taller than 70 % of the window, the picture
+  inside it letterboxed — the frame's place in % of the stage was no longer its place in the picture. The stage now takes the picture's shape and
+  is no wider than 70 % of the window's height allows (e2e: a 1 : 2 painting — the stage and the picture the same box, the crop inside it; a
+  phone too).
+- **The test's own comparison:** a fine checkerboard drawn 6.7 times smaller with the canvas's default smoothing aliased differently in the source
+  and in the saved file (mean difference 8.7 for a correct crop); drawn with `imageSmoothingQuality = 'high'` it is 4.4.

@@ -2097,3 +2097,25 @@ Looked at first (STANDING RULE #1):
   quick picks, countries and languages sorted, why a station does not play in words; `src/lib/radioplayer.ts` — the player's states, skipping,
   the small player, the Media Session, the sleep timer's fade. String and DOM glue around the browser's media element; nothing to compute.
 - **Decision:** the browser's `<audio>` and Radio Browser — 31 KB on the site (the tab's code and styles).
+
+### 206. `wallpapers` — Wallpapers (28 Nov 2026; potentials #115)
+- **What it needs:** pictures from Wikimedia Commons and two museums with their credits; a crop of a screen's shape on the subject (faces,
+  else the busiest part); the crop resized to the screen's exact pixels; a JPEG that carries its credit.
+- **The pictures and their data:** the services' APIs (Wikipedia's featured feed, MediaWiki's action API on Commons, the Met's Open Access API,
+  the Art Institute's search and IIIF server) — data, not code (CLAUDE.md §1 rule 2): their hosts in connect-src, the pictures fetched and shown
+  from blob: addresses (img-src stays 'self'). **The Cleveland Museum of Art** (named in the plan, CC0 too) is left out: its picture server
+  (openaccess-cdn.clevelandart.org) sends no Access-Control-Allow-Origin, so a page can show its pictures but cannot read their pixels — no crop,
+  no resize, no file; no module changes that.
+- **The faces:** BlazeFace (MediaPipe Tasks, Google's official WebAssembly build) through the Blur & Redact tab's `detectFaces` — the whole
+  picture and tiles, already on the site; nothing new.
+- **The busiest part:** looked for an existing module — smartcrop.js (MIT, JavaScript: skin, saturation and edge scores on a canvas; its "skin"
+  heuristic is what BlazeFace does properly here) and its ports (smartcrop-rs, Rust, no published WebAssembly build); OpenCV's saliency module
+  (opencv.js builds do not include `saliency`, and a build of OpenCV for one function is 8 MB). Our own C in imgproc.wasm instead
+  (`p_busy_window`, 70 lines: luma averaged to a 240-px grid, a 3 × 3 blur, gradient energy capped, an integral image, the window of the crop's
+  size with the most energy and a slight pull to the middle) — rule 2: no existing module does this one job; unit-tested in `imgproc`.
+- **The resize and the JPEG:** jSquash's resize (Squoosh's Lanczos-3 in linear light) and MozJPEG in the codec worker, as every image tab;
+  the credit is a JPEG comment segment written by our glue (`jpegWithComment`: bytes copied, no pixel touched).
+- **Ours (rule 3 glue, no engine):** `src/lib/wallpapers.ts` — the services' addresses and answers, renditions, the crop's arithmetic, the
+  credit; `src/tools/wallpapers.ts` — the tab.
+- **Decision:** the services' APIs, BlazeFace, imgproc's new `p_busy_window`, jSquash — 34 KB on the site (the tab's code and styles; imgproc.wasm
+  1.8 KB larger).

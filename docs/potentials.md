@@ -38,12 +38,13 @@ Platform: "both" = PC + mobile.
 
 ## Suggested order (28 Nov 2026 — Claude's second suggestion, at the owner's request; nothing accepted until the owner picks)
 The owner, 28 Nov 2026: "Suggest what to do next from potentials.md.. you can group if you want based on shared functionality".
-The site: **668.3 MB** of 1 GB (≈ 332 MB of room). The first suggestion (27 Nov 2026: four groups — reading on the phone and the
+The site: **668.4 MB** of 1 GB (≈ 332 MB of room). The first suggestion (27 Nov 2026: four groups — reading on the phone and the
 Kindle, PDF and ID tools for India, the owner's larger asks, camera helpers) was picked whole and built 27 – 28 Nov 2026.
 1. **World Radio and pictures from the web** — the owner's latest wishes (28 Nov: World Radio's favourites in the Settings page,
    playing on in other tabs, a station that fails said and skipped; radio and wallpapers his examples of allowed data): ~~116 World
-   Radio~~ (**built 28 Nov 2026** — CLAUDE.md §3 "World Radio"; no hls.js: the owner's browsers play HLS themselves; 31 KB) · 115
-   Wallpapers from Wikimedia and Museums · 114 NASA Image Explorer. Shared: approved data hosts, pictures sized to the
+   Radio~~ (**built 28 Nov 2026** — CLAUDE.md §3 "World Radio"; no hls.js: the owner's browsers play HLS themselves; 31 KB) · ~~115
+   Wallpapers from Wikimedia and Museums~~ (**built 28 Nov 2026** — CLAUDE.md §3 "Wallpapers"; Cleveland left out: its picture server lets no
+   page read a picture; 34 KB) · 114 NASA Image Explorer. Shared: approved data hosts, pictures sized to the
    screen (BlazeFace's crop, @jsquash/resize, MozJPEG), a Settings section. The hosts are approved with the pick.
 2. **Screenshots and scams** — 87 Long Screenshot Stitcher (the Screenshot tab's scrolling engine, imgproc's `p_scroll_match`) ·
    113 Screenshot Annotator & How-To Guide · 76 Screenshot Finder (the OCR) · 82 Is This Screenshot Real? · 83 Scam & QR Check ·
@@ -79,8 +80,8 @@ from the sandbox (GitHub is not reachable there): measure it before building.
   89 Visiting Card, 90 Emergency Card, 91 PDF Library Search, 92 Social Media Sizer, 93 Safe ID Copy, 94 Pulse from a
   Fingertip, 97 Printable Paper, 98 Old Photo Album Scanner, 99 Best Shot from a
   Video, 100 Magnifier, 101 Clean Link (its rules ≈ 0.1 MB), 102 Folder Space Map, 103 Handwriting Analysis,
-  111 Trip Settle-Up, 112 Backup Checker, 113 Screenshot Annotator & How-To Guide; and 114 NASA Image Explorer, 115 Wallpapers from Wikimedia and Museums (their
-  pictures come from the services, never from this site), and 29 Breach Check, 52 Food Label, 53 Book Lookup (each needs its data-API host
+  111 Trip Settle-Up, 112 Backup Checker, 113 Screenshot Annotator & How-To Guide; and 114 NASA Image Explorer (its
+  pictures come from the service, never from this site), and 29 Breach Check, 52 Food Label, 53 Book Lookup (each needs its data-API host
   approved first).
 - **Small — under 10 MB:** 1 Image to SVG 0.2 (vtracer / potrace) · 117 Clipart Maker ≈ 1 – 6 (vtracer < 1; a general
   cut-out model ≈ 4.7 if things and animals are cut out too — people use the model on the site) · 2 Photo Upscaler 4.8 (Real-ESRGAN general x4v3;
@@ -297,7 +298,6 @@ search words go out; a service that is down is said in words.
 | # | New tab | Engine | Platform | Status |
 |---|---|---|---|---|
 | 114 | **NASA Image Explorer** (owner, 21 Nov 2026: "add … NASA image explorer"): search NASA's image and video library — missions, planets, astronauts, the Earth from space, 140,000+ items, most public domain (NASA's own; an item credited to someone else says so) — by words, mission or year → a grid, a large view with the caption, date, NASA centre and credit, the full-size original to download, and "Save as wallpaper": cropped and sized exactly to the screen it is for (the phone's or the monitor's real pixels). The Astronomy Picture of the Day too, if it can be reached without a key (its API wants one — NASA's public demo key allows about 30 calls an hour: to check). Hosts: `images-api.nasa.gov` (search), `images-assets.nasa.gov` (the files) | the browser's fetch + @jsquash/resize and MozJPEG (on the site) for the wallpaper | both | waiting |
-| 115 | **Wallpapers from Wikimedia and Museums** (owner, 21 Nov 2026: "add … Wallpapers from Wikimedia and museums", and then: "I changed my mind. You can use the wallpaper tab." — the wallpaper tab declined on 16 Nov is allowed again): Wikimedia Commons' Picture of the Day and its Featured Pictures (chosen by the community for quality; free licences — the author and licence shown with every picture, as CC BY-SA asks) and the public-domain masterpieces the Metropolitan Museum, the Art Institute of Chicago and the Cleveland Museum of Art publish under CC0 → browse or search (landscapes, space, nature, flowers, paintings by artist or period) → each sized exactly to the screen it is for (a phone upright, a monitor across, at their real pixels; the crop keeps the subject — faces by BlazeFace, else the busiest part), with the picture's story (the Wikipedia summary, the approved host). "Today's pick" rather than a wallpaper that changes by itself (that would need storage or an app). Hosts: `commons.wikimedia.org` + `upload.wikimedia.org`, `collectionapi.metmuseum.org` + `images.metmuseum.org`, `api.artic.edu` + `www.artic.edu` (IIIF images), `openaccess-api.clevelandart.org` + `openaccess-cdn.clevelandart.org` | the browser's fetch + MediaPipe BlazeFace, @jsquash/resize and MozJPEG (all on the site) | both | waiting |
 
 ## Round 9 — asked for by the owner (26 Nov 2026)
 | # | New tab | Engine | Platform | Status |

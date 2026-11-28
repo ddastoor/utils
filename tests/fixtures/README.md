@@ -226,3 +226,20 @@ generates media with the project's own ffmpeg.wasm and Chromium). Used only by t
   them (`tests/lib/radiostub.mjs`), so no suite reaches the real one; the unit suite reads stations from them.
 - `tone.mp3` (440 Hz, 40 s), `short.mp3` (880 Hz, 2 s) and `hls/` (an HLS stream: 660 Hz, 24 s in MPEG-TS pieces of 4 s) — test streams
   made with ffmpeg (sine tones; made by us, free to use): what the World Radio suite's stand-in station servers send.
+
+## wallpapers/ (Wallpapers)
+- `feed.json` — Wikipedia's featured feed of 28 Nov 2026 (`en.wikipedia.org/api/rest_v1/feed/featured/2026/11/28`), cut to its Picture of
+  the Day: "Lower Manhattan from Jersey City November 2014 panorama 3" by King of Hearts (CC BY-SA 3.0; the description's text is Wikimedia
+  Commons', CC BY-SA). Recorded by `python3 scripts/make-wallpaper-fixtures.py --feed FILE`.
+- `commons-search.json` — an answer of Commons' search among its featured pictures in the format of MediaWiki's action API (formatversion 2,
+  pages by id with their rank in `index`), **written by the script from the feed's real Picture of the Day** (its file, size, author, licence
+  and description): Commons' API — and, after one answer, the feed — refused the recording machine (HTTP 429, Wikimedia's rate limit), so
+  their own answers could not be recorded.
+- `met-search.json`, `met-highlights.json`, `met-objects.json` — the Metropolitan Museum of Art's Open Access API (v1.1 search for landscape
+  paintings, its highlights; the 18 objects they name, cut to the fields the tab reads), recorded on 28 Nov 2026; the Met's data is CC0.
+- `aic-search.json`, `aic-boosted.json` — the Art Institute of Chicago's API (public-domain landscape paintings; its highlighted "boosted"
+  ones), recorded on 28 Nov 2026; its data CC0, the `short_description` texts CC BY 4.0 (Art Institute of Chicago).
+- `busy.jpg` (1600 × 1000: a gradient with a checkered block at x 1150 – 1450, y 300 – 700), `face.jpg` (1600 × 600: the astronaut's
+  portrait of `images/astronaut.png` — NASA, public domain — at the right of a plain picture) and `tall.jpg` (600 × 1200, a checkered block
+  at x 150 – 450, y 800 – 1000) — test pictures made by the script (made by us, free to use): what the stand-in picture servers send
+  (`tests/lib/wallstub.mjs`), the e2e harness answering every page's requests to the services from these files.

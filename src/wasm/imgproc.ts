@@ -200,6 +200,13 @@ export function bindImgproc(e: any) {
       try { new Float32Array(mem(), q, 8).set(corners); e.p_quad_steps(s, img.width, img.height, q, dfrac, o); return Array.from(new Int32Array(mem(), o, 4)); }
       finally { e.p_free(s); e.p_free(q); e.p_free(o); }
     },
+    /** The busiest part of a picture (p_busy_window): the top-left corner of the ww × wh window with the most detail, weighed a
+     *  little towards the middle; `detail` 0 for a flat picture (then the middle). */
+    busyWindow(img: Img, ww: number, wh: number): { x: number; y: number; detail: number } {
+      const s = put(img.data), o = e.p_malloc(8);
+      try { const v = e.p_busy_window(s, img.width, img.height, Math.round(ww), Math.round(wh), o), r = new Int32Array(mem(), o, 2); return { x: r[0], y: r[1], detail: v / 100 }; }
+      finally { e.p_free(s); e.p_free(o); }
+    },
     /** Where the text of a picture is (p_ink_window): the top-left corner of the ww × wh window holding the most ink
      *  (the middle when nothing stands out), and the share of it that is ink. */
     inkWindow(img: Img, ww: number, wh: number): { x: number; y: number; ink: number } {

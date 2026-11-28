@@ -8,6 +8,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { dirname, join } from 'node:path';
 import { tmpdir, cpus } from 'node:os';
 import { RADIO_HOSTS, radioRoute } from './lib/radiostub.mjs';
+import { WALL_HOSTS, wallRoute } from './lib/wallstub.mjs';
 
 const { chromium, devices } = createRequire(import.meta.url)('playwright');
 const here = dirname(fileURLToPath(import.meta.url));
@@ -58,6 +59,8 @@ async function runOne(f) {
       // World Radio's directory (Radio Browser) answers from recorded fixtures on every page: no suite reaches the real one (a suite's own
       // page.route comes first)
       await c.route(RADIO_HOSTS, radioRoute());
+      // … and the Wallpapers tab's services (Wikipedia's feed and summaries, Commons, the Met, the Art Institute) and their pictures
+      await c.route(WALL_HOSTS, wallRoute());
       const p = await c.newPage();
       await p.addInitScript(BLOBS);
       if (!settingsFiles) await p.addInitScript(() => { try { if (localStorage.getItem('superutils.settings.v1') === null) localStorage.setItem('superutils.settings.v1', '{"autoSave":false}'); } catch { /* opaque origin */ } });

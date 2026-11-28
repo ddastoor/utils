@@ -40,7 +40,14 @@ stations, India first; the site's one player — skips a station that does not p
 the sleep timer —; favourites in the Settings; "Keep playing in other apps" with a small player on the other pages; no hls.js — the owner's
 browsers play HLS; CLAUDE.md §3 "World Radio"; unit `radio` 47, `settings` 46; e2e `worldradio` 82; the sweeps — settings, no-external,
 lazy, every-tab, a11y, touch-targets, scroll-focus, other-device, junk-files, engine-download, camera, os, shell — green; 31 KB, the site
-668.3 MB). **Now:** Wallpapers from Wikimedia and Museums (115), then the NASA Image Explorer (114).
+668.3 MB). **Wallpapers (115) — DONE** (`wallpapers`, Images, PC + mobile: Wikimedia Commons' Picture of the Day and featured pictures, the
+Met's and the Art Institute's public-domain paintings — Cleveland left out: its picture server lets no page read a picture —; a wallpaper of
+the screen's exact pixels, the crop on the faces (BlazeFace) or the busiest part (imgproc's new `p_busy_window`), the credit in the JPEG;
+CLAUDE.md §3 "Wallpapers"; unit `wallpapers` 48, `imgproc` 79; e2e `wallpapers` 86; the sweeps green; 34 KB, the site 668.4 MB). **Now:**
+the NASA Image Explorer (114) — checked 28 Nov: images-api.nasa.gov sends CORS, but images-assets.nasa.gov (the files) does not; NASA's
+bucket answers CORS at S3's own address (`https://s3.amazonaws.com/images-assets.nasa.gov/…`, allowed by path in connect-src); APOD
+needs a key (the demo key: 10 calls an hour) and its API answered "Internal Service Error" twice — left out, said. Plan: the Wallpapers'
+crop and save made a shared component (`src/lib/wallmaker.ts`) for both tabs; videos played (`media-src https:`).
 **▶▶ 27 Nov 2026 — DONE: the owner's "Go ahead with all items in todo" (to-do #33 – #36), each committed and pushed:**
 **#36** (the start page's note of the other device's apps), **#34** (Watermark: the first page of a document with or without
 the mark), **#33** (Cartoonizer: how cartoony, in grades), **#35** (Text Diff: Side by side, the lines of a change paired by the

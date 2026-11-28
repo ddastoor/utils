@@ -21,6 +21,19 @@ export default async (t, { load, wasm }) => {
   const half = ip.resize(checker, 16, 16); t.ok(Math.abs(px(half, 8, 8)[0] - 128) < 12, 'downscaled checkerboard ≈ mid-grey (antialiased)');
   const transparent = ip.resize(img(10, 10, (x) => (x < 5 ? [255, 0, 0, 255] : [0, 255, 0, 0])), 5, 5); t.ok(px(transparent, 2, 2)[1] < 40, 'premultiplied: transparent green does not bleed');
   t.ok(Math.abs(mean(ip.blur(grad, 3)) - mean(grad)) < 1.5, 'blur preserves mean');
+  // the busiest part (Wallpapers: a crop that keeps the subject when no face is found)
+  {
+    const busy = img(600, 400, (x, y) => (x >= 400 && x < 520 && y >= 60 && y < 180 ? (((x >> 2) + (y >> 2)) % 2 ? [30, 30, 30] : [230, 230, 230]) : [120 + (x >> 4), 160, 200 - (y >> 4)]));
+    const hold = (b, ww, wh) => b.x <= 400 && b.x + ww >= 520 && b.y <= 60 && b.y + wh >= 180;
+    const tall = ip.busyWindow(busy, 200, 400), wide = ip.busyWindow(busy, 600, 150), small = ip.busyWindow(busy, 150, 150);
+    t.ok(hold(tall, 200, 400) && hold(wide, 600, 150) && hold(small, 150, 150), `the busiest window holds the detailed block whatever its shape (${JSON.stringify([tall, wide, small])})`);
+    t.ok(tall.detail > 0 && small.detail > tall.detail, 'its detail is said, more for a window that is all detail');
+    t.eq(ip.busyWindow(img(300, 200, () => [128, 128, 128]), 100, 200), { x: 100, y: 0, detail: 0 }, 'a flat picture: the middle, no detail');
+    t.eq(ip.busyWindow(busy, 600, 400), { x: 0, y: 0, detail: 0 }, 'a window as large as the picture: the picture');
+    const edge = img(400, 200, (x) => [x < 200 ? 0 : 255, x < 200 ? 0 : 255, x < 200 ? 0 : 255]);
+    const e1 = ip.busyWindow(edge, 100, 200);
+    t.ok(e1.x <= 200 && e1.x + 100 >= 200, `one hard edge: the window over it (${e1.x})`);
+  }
   const sharp = ip.sharpen(img(20, 1, (x) => (x < 10 ? [100, 100, 100] : [150, 150, 150])), 1.5, 1); t.ok(px(sharp, 9, 0)[0] < 100 && px(sharp, 10, 0)[0] > 150, 'sharpen adds overshoot at an edge');
 
   const tall = img(30, 20, (x, y) => [x * 8, y * 12, 0]);
