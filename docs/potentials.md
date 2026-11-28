@@ -318,12 +318,118 @@ the site keeps every file under 100 MB (CLAUDE.md §5.1j). Two smaller ideas ins
 | 118 | **One module for the three small engines** (not a tab): mathcore (151.6 KB, 65 KB gzipped), crypto (57.1 KB, 23 KB) and textcore (40.2 KB, 15 KB) linked into one of about 249 KB (104 KB gzipped) — one download and one compilation where a page needs two of them. **Checked on 27 Nov 2026: likely no gain.** Only Mock Data loads two of them together (crypto and mathcore, fetched side by side — over HTTP/2 the second request costs almost nothing); otherwise they meet only when the search box (textcore, fetched on its first use) is used on a page whose tab has one of the others, at another moment; and every tab that needs one of them would fetch all three — Random Number, List Picker, Team Splitter, UUID and Line Tools' shuffle 23 → 104 KB gzipped, the search box 15 → 104 KB. Do it only if a measurement shows a gain (the time to a tab's first result, on a first visit and cached, on a PC and a phone) | our own C (`wasm/mathcore`, `wasm/crypto`, `wasm/textcore`) built into one WASI reactor with one memory; the search box keeps an instance of its own | — | waiting |
 | 119 | **Fetch ahead** (not a tab): when the pointer rests on a tab's card or its tab (on phones, which have no hover: as a touch starts), start fetching what that tab needs into the browser's cache — its code at once, its engine too where the engine is small — so the tab opens and gives its first result sooner. **Checked on 27 Nov 2026:** the tabs' code is small (half of the build's 310 code files are under 7.4 KB, nine in ten under 141 KB), so fetching it ahead saves about one round trip to the site (not measured yet); the engines are what takes seconds (MuPDF 9.9 MB, ExifTool 24 MB). **Fetching an engine before its tab is used bends the owner's rule of lazy loading** (CLAUDE.md §1 rule 11, §4: an engine is fetched on first use, never as the tab opens): it would only fill the browser's cache — nothing compiled, no memory held, the release on leave unchanged —, but a card the pointer rests on and that is not opened costs its data. So: the owner's word on that first; engines of a few MB only (never Biome's 67 MB, FFmpeg's 31 MB or a model); nothing where the browser asks to save data or the connection is slow; `tests/e2e/lazy.e2e.mjs` learns the rule; measure first (a click to a tab's first view and to its first result, on a PC and a phone) | the browser's own preloading (`<link rel="modulepreload">` for a tab's code — what a click fetches anyway —, a low-priority `fetch()` for an engine) — nothing new, ≈ 0 MB | — | waiting |
 
+## Round 11 — the phone's own hardware, mobile only (owner, 28 Nov 2026)
+Owner, 28 Nov 2026: "suggest many more cool, fun, useful, wild and unique utils for potentials.md for mobile only that include
+bar codes, camera, mic, gyroscope, accelormeter, bluetooth, wifi, other phone sensors, location services.. all these can pull
+data from api/live servers as i said before, but all code should be statically pulled in statically and hosted on the app
+site... if the particular phone model doesn't have that sensor a simple message should show up on the main page saying
+something like 'sorry your phone doesn't support necessary hardware/feature'".
+- **Mobile only** (`platform: 'mobile'`, hidden on PCs) — each built on what the phone's browser lets a page use; **code** only
+  from this site (models and engines vendored and pinned), **data** (the services named) from their hosts while the app runs,
+  each host approved when the app is picked (CLAUDE.md §1 rule 2, §3a).
+- **The phone lacks it → the app's first page says so:** "Sorry — your phone doesn't support <the camera's light / Bluetooth /
+  NFC / AR / a motion sensor …>, which this app needs", with what it needs and which phones have it — found by feature
+  detection as the app opens (Bluetooth, NFC, AR, the battery, the torch's capability), or when no reading comes within a
+  second or two after Start (motion, compass — iPhones ask for leave first; the Bubble Level and the Compass already do this).
+- **Which phones:** Chrome on Android gives a page the most — Web Bluetooth, Web NFC, the torch, vibration, the battery's
+  level, the network's type, the contact picker, AR (WebXR on ARCore phones); iPhones (Safari, and every iPhone browser, which
+  is Safari inside) give the camera, the microphone, motion and compass (after a tap), location and Web Share, but none of
+  Bluetooth, NFC, AR, the battery or vibration — there these apps show the message. A page cannot scan Wi-Fi networks or read
+  signal strength, the barometer, the proximity sensor or the phone's temperature on either: none of the apps below needs them.
+- **Background:** a web page works while it is open and on screen (the screen kept on where an app must keep watching); it
+  cannot run with the screen off like an installed app — said in the apps that watch or count for a long time.
+
+**The camera (and its light)**
+| # | New tab | Engine | Platform | Status |
+|---|---|---|---|---|
+| 120 | **Torch, SOS & Morse Light**: the camera's light as a torch, a strobe, SOS, or any text flashed in Morse code; the screen as a white light where the torch cannot be switched | the camera track's `torch` (getUserMedia); the Morse table of the Morse Code tab (on the site) · ≈ 0 MB | mobile — the torch on Android (Chrome); on an iPhone where Safari offers it, else the screen | waiting |
+| 121 | **Morse Reader**: point the camera at a blinking light — a torch, a lamp, another phone running #120 — or let the microphone hear the beeps → the dots and dashes read and written out as text | imgproc's brightness per frame, Web Audio, the Morse tab's table (on the site) · ≈ 0 MB | mobile | waiting |
+| 122 | **Colour Picker & Namer**: the crosshair names the colour under it ("dusty rose · #C8A2A8"), the scene's palette, the nearest of the paint shades you type in; says it aloud — and a view of the scene as colour-blind people see it | imgproc's k-means (on the site), open colour-name lists (CC0) · < 0.1 MB | mobile | waiting |
+| 123 | **Object Counter**: photograph pills, coins, seeds, screws, bricks or eggs → each counted and numbered on the picture; a tap adds or takes one away | imgproc's regions (on the site) · ≈ 0 MB | mobile | waiting |
+| 124 | **Bowling Speed (cricket)**: film a delivery in slow motion from beside the pitch → tap the release and the bounce → the speed in km/h from the pitch's 20.12 m, frame by frame; a throw, a kick or a smash the same way | WebCodecs' frame times (the browser's own), our arithmetic · ≈ 0 MB | mobile (slow motion where the camera offers it) | waiting |
+| 125 | **Medicine Expiry Check**: photograph a medicine strip or bottle → its name, batch, expiry date and MRP read; "expired" or how long is left, in big letters and aloud — for elders | the OCR's reading path, the Paper Deadlines tab's date readers, the Text-to-Speech voices (all on the site) · ≈ 0 MB | mobile | waiting |
+| 126 | **Meter Reading Snap**: photograph the electricity, water or gas meter's seven-segment display → the reading, the units since the last reading you type in, the bill by your state's slab tariff | ssocr (GPL-3.0, C → our WebAssembly) · < 0.2 MB | mobile | waiting |
+| 127 | **Vehicle Number → RTO**: photograph a number plate → its state, district and RTO (the Number Detective's tables) — not the owner, which is not public | the OCR + devcore-ids.wasm (on the site) · ≈ 0 MB | mobile | waiting |
+| 128 | **Sudoku from a Photo**: photograph the newspaper's sudoku → the grid read, solved, and the answer (or one hint at a time) drawn over the photo | the OCR's page finder and Tesseract's digits (on the site), our solver in C · < 0.1 MB | mobile | waiting |
+| 129 | **Light Painting & Long Exposure**: the phone held still stacks the camera's frames → light trails of traffic, a sparkler's writing on Diwali, star trails, silky waterfalls; saved as a photo | imgproc's frame stacking (on the site, a new op) · ≈ 0 MB | mobile | waiting |
+| 130 | **Time-lapse Camera**: a sunset, a flower opening, clouds — a frame every few seconds while the screen stays on → an MP4 | WebCodecs + mediabunny (on the site) · ≈ 0 MB | mobile | waiting |
+| 131 | **Motion Watch**: the phone on a shelf watches a door, a cot or a shop counter; a movement or a sound beeps and keeps snapshots with their times — nothing is sent anywhere | imgproc's frame differences, Web Audio's levels · ≈ 0 MB | mobile | waiting |
+| 132 | **Clap or Smile Shutter**: a clap, a shout or everyone smiling takes the photo — group photos without running back from a timer | Web Audio's onsets; MediaPipe's face landmarks (on the site) for smiles · ≈ 0 MB | mobile | waiting |
+| 133 | **Funny Face Camera**: moustaches, a turban, glasses, dog ears and masks of our own drawing on faces live; saved as a photo or a short video | MediaPipe Face Landmarker (on the site) · ≈ 0.1 MB | mobile | waiting |
+| 134 | **Air Drawing**: draw in the air with a fingertip in front of the camera; the strokes stay on the video; saved as a picture or a clip | MediaPipe Hand Landmarker · ≈ 8 MB (est.) | mobile | waiting |
+| 135 | **Rep Counter & Yoga Check**: the camera counts push-ups, squats and sit-ups by the body's joints; in a yoga pose it compares your joints' angles with the asana's and says what to straighten | MediaPipe Pose Landmarker (lite) · ≈ 6 MB (est.) | mobile | waiting |
+| 136 | **What's in Front of Me? (for the blind)**: point the camera → it says what it sees ("a chair ahead, a door on the left, two people") and reads any text aloud | MediaPipe Object Detector (EfficientDet-Lite0, 80 everyday objects), the OCR and the voices (on the site) · ≈ 5 MB (est.) | mobile | waiting |
+| 137 | **Drowsy Driver Alert**: the phone on the dashboard watches the driver's eyes; long blinks or a nodding head sound a loud alarm — an aid on long drives, never a safety device | MediaPipe Face Landmarker (on the site) · ≈ 0 MB | mobile | waiting |
+| 138 | **AR Tape Measure**: tap points in the camera's view of the room → the lengths between them, drawn where they are; a door, a wall, a table (#80 measures from a photo with a card or a sheet in it; this needs nothing in the picture) | WebXR hit testing (the browser's ARCore) · ≈ 0 MB | mobile — Android ARCore phones (Chrome); iPhone: the sorry message | waiting |
+| 139 | **Will It Fit? (AR)**: a box the size of a 55-inch TV, a fridge, a sofa, a cupboard (or any size typed in) placed in your room to walk round before you buy | WebXR · ≈ 0 MB | mobile — Android ARCore phones | waiting |
+| 140 | **Level Line**: a level or plumb line drawn over the camera's view — hang pictures, shelves and tiles straight; marks where to drill | the camera + the tilt (DeviceOrientation) · ≈ 0 MB | mobile | waiting |
+| 141 | **Stock Counter**: scan the barcodes of a shop's or a godown's goods → a count for each item, edits by tap → Excel / CSV for the stock-taking | zxing-wasm and sheet.wasm (on the site) · ≈ 0 MB | mobile | waiting |
+| 142 | **QR Treasure Hunt**: make clue cards as QR codes to hide round the house or the school; the players scan them in order and each opens the next clue | zxing-wasm (on the site) · ≈ 0 MB | mobile | waiting |
+
+**The microphone**
+| # | New tab | Engine | Platform | Status |
+|---|---|---|---|---|
+| 143 | **Sound Identifier**: listens and names what it hears — a dog, a siren, a baby crying, a pressure cooker's whistle, the doorbell — and can flash or vibrate for it, for people who are hard of hearing | YAMNet (Google, Apache-2.0, 521 kinds of sound) on MediaPipe's audio classifier · ≈ 4 MB (est.) | mobile | waiting |
+| 144 | **Bird Song ID**: record a bird singing → its name, Indian species among them, and how sure | BirdNET (Cornell Lab and TU Chemnitz; model CC BY-NC-SA 4.0 — personal use), its TensorFlow Lite model · ≈ 50 MB (est.) | mobile | waiting |
+| 145 | **Hearing Test**: with earphones, tones from 250 Hz to 8 kHz, softer and softer, each ear → your audiogram and what it means (a reason to see an ENT doctor, not a diagnosis) | Web Audio, our steps · ≈ 0 MB | mobile | waiting |
+| 146 | **Sleep Sounds Log**: the phone by the bed keeps the night's sound levels; snoring, sleep-talking and noises marked with their times; listen to those moments, nothing kept after | Web Audio, audio.wasm (on the site); #143's model for snoring · ≈ 0 MB | mobile | waiting |
+| 147 | **Echo Ruler (sonar)**: the phone chirps and listens for the echo → how far the wall is (a few metres); a room's echo time (RT60) for musicians | Web Audio, chirps and cross-correlation in our C · ≈ 0 MB | mobile | waiting |
+| 148 | **Sound Share**: send a short text, a link, a UPI ID or a Wi-Fi password to phones nearby by sound — no internet, no pairing, no app | ggwave (MIT, C++, its WebAssembly build) · ≈ 0.2 MB | mobile | waiting |
+| 149 | **Noise Evidence**: sound levels with the time and the place, for a complaint about loudspeakers at night or building work → a PDF with the readings and a graph | the Sound Meter's levels, location, MuPDF (on the site) · ≈ 0 MB | mobile | waiting |
+| 150 | **RPM from Sound**: hold the phone near a ceiling fan, a motor, a pump or an engine → its speed in turns a minute from the sound's pitch | an FFT in audio.wasm · ≈ 0 MB | mobile | waiting |
+
+**Motion: accelerometer, gyroscope, magnetometer**
+| # | New tab | Engine | Platform | Status |
+|---|---|---|---|---|
+| 151 | **Pothole Mapper**: on a ride the phone notes every jolt with its place → the road's bad patches as a list and a GPX / CSV to report or share | DeviceMotion + Geolocation · ≈ 0 MB | mobile | waiting |
+| 152 | **Height Meter**: aim at the top of a tree, a building or a flagpole → its height from the angle and your distance (paced or typed) | DeviceOrientation, our trigonometry · ≈ 0 MB | mobile | waiting |
+| 153 | **G-Force Meter**: the pull of a car, a bike, a ride or a lift, live, with its peaks; a lift's speed between floors | DeviceMotion · ≈ 0 MB | mobile | waiting |
+| 154 | **Vibration Meter**: the phone on a table, a washing machine or a fan's base → the shaking live, its frequency and its peaks (a tremor too) | DeviceMotion + an FFT · ≈ 0 MB | mobile | waiting |
+| 155 | **Jump Meter**: jump holding the phone → your jump's height from the time in the air | DeviceMotion · ≈ 0 MB | mobile | waiting |
+| 156 | **Walk Counter**: a walk's steps, distance and pace while the page is open and the screen on — no account, nothing kept | DeviceMotion, our step detector · ≈ 0 MB | mobile | waiting |
+| 157 | **Metal Detector**: beeps faster near iron — a nail in a wall, a lost key in the grass | the Magnetometer (Generic Sensor API) · ≈ 0 MB | mobile — Chrome on Android where the browser gives it (on many phones only behind a flag: the sorry message) | waiting |
+| 158 | **Tilt Maze (game)**: roll a marble through mazes by tilting the phone — our own levels | DeviceOrientation, canvas · ≈ 0 MB | mobile | waiting |
+
+**Location**
+| # | New tab | Engine | Platform | Status |
+|---|---|---|---|---|
+| 159 | **Train Stop Alarm**: choose your station (India's railway stations with their places) or any point → the phone rings 2 km before it while the screen stays on — sleep on the overnight train | Geolocation, a station list (open data, bundled) · < 0.5 MB | mobile | waiting |
+| 160 | **Field Area by Walking**: walk round a field or a plot → its area in m², acres, bigha, guntha and cents, its outline drawn | Geolocation, geo.wasm (on the site) · ≈ 0 MB | mobile | waiting |
+| 161 | **Auto & Taxi Fare Meter**: GPS distance and waiting time → the fare by your city's official auto and taxi chart (Bengaluru, Mumbai, Delhi, Chennai, Kolkata, Hyderabad, Pune …) — check the meter | Geolocation, the charts as our data (they change: kept up to date by hand) · < 0.1 MB | mobile | waiting |
+| 162 | **GPS Speedometer & Trip Meter**: speed, trip distance, top and average speed; a mirror view for the windscreen at night | Geolocation · ≈ 0 MB | mobile | waiting |
+| 163 | **Back to My Spot**: mark where you parked or pitched the tent → an arrow and the distance lead you back (while the page is open, or from a link you keep) | Geolocation, the compass, geo.wasm · ≈ 0 MB | mobile | waiting |
+| 164 | **Qibla & Prayer Times**: the Qibla's direction on the compass and the day's prayer times where you are, by the usual methods | the compass, location, the sun's position as the World Clock works it out (on the site) · ≈ 0 MB | mobile | waiting |
+| 165 | **Solar Panel Helper**: the best tilt and direction for a solar panel where you are; laid on the panel, the phone shows how far off it is; the sun's path over the day and the year | location, DeviceOrientation, mathcore's sun · ≈ 0 MB | mobile | waiting |
+| 166 | **Sun Path AR**: the sun's path across the sky drawn over the camera's view — where it rises and sets today, in June, in December — and today's golden and blue hours; for photographers and for which rooms of a flat get the sun | the camera, orientation, location, mathcore's sun · ≈ 0 MB | mobile | waiting |
+| 167 | **ISS & Satellites Overhead**: when the space station and bright satellites pass over you tonight, and an arrow to find them (#24's Sky Map names the stars) | CelesTrak's orbits (data, no key), SGP4 in our C · < 0.1 MB | mobile | waiting |
+| 168 | **Earthquakes Near You**: the latest earthquakes within 1,000 km — how far, how strong, how long ago | the USGS's GeoJSON feeds (data, no key) · ≈ 0 MB | mobile | waiting |
+| 169 | **Air Quality Here**: the AQI where you are, hour by hour, PM2.5 and PM10, and what it means for masks, children and a morning walk (offered on its own; the weather was left out in Nov 2026) | Open-Meteo's air-quality API (data, no key) · ≈ 0 MB | mobile | waiting |
+| 170 | **Where Am I?**: your place in every form, the address and PIN code, the nearest police station and hospital, 112 to call, and one message with all of it to send | Geolocation, OpenStreetMap's Nominatim and Overpass (data, no key) · ≈ 0 MB | mobile | waiting |
+| 171 | **Nearby by Compass**: ATMs, pharmacies, petrol pumps, toilets and hospitals round you as a list with the distance and an arrow to each — no map (maps were left out) | Geolocation, OpenStreetMap's Overpass (data, no key) · ≈ 0 MB | mobile | waiting |
+| 172 | **Lightning Distance**: tap at the flash, tap at the thunder → how far the storm is, and whether it is coming closer | the clock · ≈ 0 MB | mobile | waiting |
+
+**Bluetooth, NFC, the battery, the network, contacts**
+| # | New tab | Engine | Platform | Status |
+|---|---|---|---|---|
+| 173 | **Heart-Rate Monitor**: connect a Bluetooth chest strap or a watch that sends heart rate → live beats, zones, a workout's graph and its CSV | Web Bluetooth (the standard Heart Rate profile) · ≈ 0 MB | mobile — Android (Chrome); iPhone: the sorry message | waiting |
+| 174 | **Bluetooth Health Gadgets**: read a Bluetooth thermometer, pulse oximeter, blood-pressure cuff or scale that follows the standard profiles — without its app or an account | Web Bluetooth (GATT health profiles) · ≈ 0 MB | mobile — Android | waiting |
+| 175 | **Bluetooth Explorer**: connect to any Bluetooth LE device → its name, battery, maker, firmware, services and values | Web Bluetooth · ≈ 0 MB | mobile — Android | waiting |
+| 176 | **NFC Tags**: read any NFC tag (a link, text, a contact, Wi-Fi) and write your own — your contact card, or the Wi-Fi password on a sticker by the door | Web NFC · ≈ 0 MB | mobile — Android (Chrome); iPhone: the sorry message | waiting |
+| 177 | **Charger Speed Test**: plugged in, how fast the battery fills (% a minute) and the time to full — compare cables and chargers; unplugged, how fast it drains | the Battery Status API · ≈ 0 MB | mobile — Android | waiting |
+| 178 | **Wi-Fi Dead-Spot Finder**: walk room to room; each room's speed and delay measured and ranked — where to put the router or a repeater (a speed test was left out in Nov 2026: this is offered for the rooms) | the Network Information API, a public speed-test server (data) · ≈ 0 MB | mobile | waiting |
+| 179 | **Contact → QR**: pick a contact from the phone → its QR code (vCard) or a WhatsApp link to share | the Contact Picker API, zxing-wasm (on the site) · ≈ 0 MB | mobile — Android | waiting |
+| 180 | **Phone Health Check**: one walk through the phone's parts — screen, touch, speakers, microphone, cameras, torch, vibration, sensors, GPS, Bluetooth — a report for buying or selling a used phone (what the browser cannot reach is said) | the Device tabs' tests together · ≈ 0 MB | mobile | waiting |
+| 181 | **Light Panel**: the screen as a soft light for selfies and video calls, a reading lamp, a night light with a timer, a colour lamp | the screen, Wake Lock · ≈ 0 MB | mobile | waiting |
+
+**Claude's favourites of this round:** 159 Train Stop Alarm, 125 Medicine Expiry Check, 160 Field Area by Walking, 143 Sound Identifier,
+124 Bowling Speed, 148 Sound Share, 136 What's in Front of Me?, 161 Auto & Taxi Fare Meter.
+
 ## Notes
 - **Cheapest wins:** the "reuse engines" tabs still waiting (17, 18), Duplicate Photo Finder, WireGuard Config.
 - **Heavy ones:** Pandoc, Demucs, the upscaler models, LaTeX and Sky Map download only when their tab is used.
 - **JavaScript-only (tier 4, reason recorded if accepted):** Excalidraw and CircuitJS1 have no compiled equivalent.
-- **Data API:** only #29, #52 and #53 contact another host, each only after the owner approves it (CLAUDE.md §3a
-  "Approved data APIs").
+- **Data API:** #29, #52, #53 and round 11's 167 – 171 and 178 contact another host, each only after the owner approves it
+  (CLAUDE.md §3a "Approved data APIs").
 - **Round 7 favourites (Claude's pick when suggesting them):** 76 Screenshot Finder, 77 Paper Deadlines, 78 Bill Splitter
   by Photo, 83 Scam & QR Check, 85 Lecture Video → Slides.
 - **Round 3 cheapest wins:** DIGIPIN & Plus Codes, Calendar Converter, Aadhaar/e-Invoice QR Verifier,

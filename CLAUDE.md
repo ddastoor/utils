@@ -208,6 +208,17 @@ that affects it.
 >   word (21 Nov 2026: "also add it for exif too"; FFmpeg's webcam had been only in the picture box of three tasks).
 >   Details: §3 "Camera in every tab that takes a picture"; checklist §8 item 5.
 
+> ## 📱 Mobile hardware apps say when the phone lacks it (owner, 28 Nov 2026; standing)
+> **Owner** (asking for mobile-only apps on the phone's hardware — `docs/potentials.md`, round 11): "if the particular phone
+> model doesn't have that sensor a simple message should show up on the main page saying something like 'sorry your phone
+> doesn't support necessary hardware/feature'" — and, again: the code built in and hosted on the site, data from live servers
+> allowed (§1 rule 2). Every app that needs a part of the phone (the camera's light, Bluetooth, NFC, AR, a motion sensor, the
+> compass, location, the battery, the contact picker …) finds out whether it is there as it opens (feature detection; for
+> motion and the compass, no reading within a second or two after Start — iPhones ask for leave first) and, where it is not,
+> its first page says so in one plain line — "Sorry — your phone doesn't support <the part>, which this app needs" — with
+> which phones have it (Chrome on Android gives a page the most; an iPhone none of Bluetooth, NFC, AR, the battery or
+> vibration), instead of buttons that do nothing. The Bubble Level and the Compass already do this.
+
 > ## 🐧 Linux: every app knows X11 or Wayland (owner, 21 Nov 2026; standing)
 > **Owner:** "make a note that all apps on Linux should be aware of or auto-detect or have some way of detecting on Linux
 > if I'm using X11 or Wayland." — on a Linux PC every tab can tell which display server the session runs on: one shared

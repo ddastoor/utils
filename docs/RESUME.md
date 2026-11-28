@@ -68,6 +68,9 @@ copied areas in photos; the preview inside the file against the picture; ExifToo
 amounts; "signs, never a proof" and "only your account proves a payment"; no camera (exempt); measured on 647 files — an earlier save on 243 / 251
 JPEGs and 152 / 152 PNGs, never on a single save; the edited part on 86 / 119 and 50 / 76 (missed where the two saves are close), an area on none
 of the 418 unedited; CLAUDE.md §3 "Is This Screenshot Real?"; unit `realcheck` 95, e2e `realcheck` 42 + the sweeps; 0.2 MB, the site 668.7 MB).
+**28 Nov 2026 — the owner asked for mobile-only apps on the phone's hardware:** 62 suggested as round 11 of docs/potentials.md
+(#120 – #181; the camera and its light, the microphone, motion, location, Bluetooth, NFC, the battery) — waiting for the owner's pick, none
+built; with them the owner's rule that an app says plainly when the phone lacks what it needs (CLAUDE.md, the 📱 note at the top).
 **Now:** 83 Scam & QR Check, then 101 Clean Link — one link checker for both (devcore-links.wasm: the WHATWG URL, the Public Suffix List, UTS #39
 look-alikes, the brands' own domains, ClearURLs' rules pinned at a commit) (docs/potentials.md, "Suggested order").
 **▶▶ 27 Nov 2026 — DONE: the owner's "Go ahead with all items in todo" (to-do #33 – #36), each committed and pushed:**
