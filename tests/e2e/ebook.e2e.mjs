@@ -78,7 +78,7 @@ export default async ({ base, page: newPage, ok, devices, tmp }) => {
     ok(diff < 1, `page 3 on the screen is MuPDF's page 3 laid out in Node at the same size (mean difference ${diff.toFixed(2)} of 255)`);
     ok(flat(await srText(pc)).startsWith(flat(E.pageText(N.doc, 2)).slice(0, 60)), 'the page’s text is there for screen readers');
   }
-  await pc.keyboard.press('End'); await waitWhere(pc, new RegExp(`–${N.doc.countPages()} of ${N.doc.countPages()} `));
+  await pc.keyboard.press('End'); await waitWhere(pc, new RegExp(`(–|^Page )${N.doc.countPages()} of ${N.doc.countPages()} `)); // an odd count ends on a page alone
   sp = await shownPages(pc);
   ok(sp.last === N.doc.countPages() - 1, `End: the last pages (${await where(pc)})`);
   await pc.keyboard.press('Home'); await waitWhere(pc, /^Pages 1–2 /);
@@ -148,7 +148,8 @@ export default async ({ base, page: newPage, ok, devices, tmp }) => {
     const now = flat(await srText(pc));
     const N2 = await node(pc, 'novel.epub', { ...PC_LOOK, theme: 'dark', size: 26 });
     const s2 = await shownPages(pc);
-    const near = flat(E.pageText(N2.doc, s2.first) + ' ' + E.pageText(N2.doc, Math.min(s2.first + 2, N2.doc.countPages() - 1)));
+    // the pages in view (a spread: the left and the right page) and the one after: the words may begin on either page of the spread
+    const near = flat([0, 1, 2].map((d) => E.pageText(N2.doc, Math.min(s2.first + d, N2.doc.countPages() - 1))).join(' '));
     ok(s2.of === N2.doc.countPages() && near.includes(before.slice(0, 30)), `larger text: more pages (${n0} → ${s2.of}), and the words the reader was at are still in view (“${before.slice(0, 30)}…”, ${await where(pc)})`);
     await dlg.getByRole('combobox', { name: 'Font' }).selectOption('sans');
     await pc.waitForFunction(() => performance.getEntriesByType('resource').some((r) => /NotoSans_400Regular\.ttf$/.test(r.name)), null, { timeout: 20000 }).catch(() => {});
@@ -201,12 +202,21 @@ export default async ({ base, page: newPage, ok, devices, tmp }) => {
     let web = null, wf = -1;
     for (let i = ch4.page; i < N.doc.countPages() && !web; i++) { const f = E.linksOf(N.doc, i).find((l) => l.uri); if (f) { web = f; wf = i; } }
     await pc.context().route('https://example.com/**', (r) => r.fulfill({ body: 'ok', contentType: 'text/plain' }));
+    // bring the page with the web link into view first (where it falls depends on the page size), and come back after
+    const goTo = async (i) => {
+      await pc.locator('.ebr-slider').evaluate((el, v) => { el.value = String(v); el.dispatchEvent(new Event('input')); el.dispatchEvent(new Event('change')); }, i + 1);
+      await pc.waitForFunction((k) => JSON.parse(document.querySelector('.ebr-stage')?.getAttribute('data-placed') || '[]').some((x) => x.i === k), i, { timeout: 15000 }).catch(() => {});
+      await pc.waitForTimeout(300);
+    };
+    const was = (await shownPages(pc)).first, moved = !(await placed(pc)).some((x) => x.i === wf);
+    if (moved) await goTo(wf);
     const pl2 = (await placed(pc)).find((x) => x.i === wf);
     const pop = pc.waitForEvent('popup', { timeout: 10000 }).catch(() => null);
     if (pl2) await pc.mouse.click(box.x + pl2.x + (web.rect[0] + web.rect[2]) / 2, box.y + pl2.y + (web.rect[1] + web.rect[3]) / 2);
     const popup = await pop;
     ok(popup && popup.url() === TRUTH['novel.epub'].web, `a link to the web opens in a new tab (${popup && popup.url()})`);
     if (popup) await popup.close();
+    if (moved) await goTo(was);
   }
 
   // ---- selecting with the mouse, and Copy

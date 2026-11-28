@@ -3527,6 +3527,12 @@ Found while building it (unit `worldclock` 39, e2e `worldclock` 55):
   expected each file to hold only its own change; it now waits for each file.
 - **The Camera Reader's voice and text controls show only once a page is read** — the suite reads a leaflet first (with "read aloud at
   once" off on the Settings page, which it then checks: no voice fetched).
+- **The EPUB Reader suite assumed the old page size** (found while running it for the Settings, 28 Nov 2026; it failed the same way on the
+  build before): the Documents category's row of apps has grown with the PDF apps, the reader's page is smaller, and the test book lays
+  out as 81 pages. Three checks took their page for granted — End must show "Pages 80–81" (an odd count ends on a page alone); the words
+  kept in view after a larger text were looked for on the left page and the page after the spread, not the spread's right page, where
+  they now begin; the web link was clicked on a page no longer on the screen. The reader was right each time; the checks now read the
+  spread whole, accept a last page alone, and bring the link's page into view (and go back).
 - **The unit suites share their thread's globals:** the Settings' suite gives Node a stand-in `window` and `localStorage` and leaves them
   as they were; no settings file is written there (the switch off from the start) — `src/lib/color.ts` looks for `document`, so the
   suite stubs no `document`.
