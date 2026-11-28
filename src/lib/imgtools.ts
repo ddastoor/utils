@@ -16,9 +16,11 @@ import { loadImg } from './imgio';
  *  `paste`: a "Paste image" button beside the camera (the OCR and the Photo Dictionary — to-do #37), on PCs and phones: the
  *  picture on the clipboard, read with the browser's clipboard API (src/lib/clipimage.ts), arrives as a chosen file does,
  *  named clipboard-<date>-<time>.png; what is there instead is said under it. Shown where the browser can read the
- *  clipboard from a button (Ctrl+V works everywhere). */
+ *  clipboard from a button (Ctrl+V works everywhere).
+ *  `onTap`: called within the tap that brings a picture (Snap, Paste image, Ctrl+V) — not for a file chosen — before anything is
+ *  awaited (to-do #38: the OCR and the Photo Dictionary begin there the copy of the text they will read). */
 export function imageInput(onImage: (img: Img, file: File, how: 'file' | 'camera') => void | Promise<void>,
-  opts: { label?: string; multiple?: boolean; camera?: false | { facing?: 'user' | 'environment' }; instead?: string; paste?: boolean } = {}) {
+  opts: { label?: string; multiple?: boolean; camera?: false | { facing?: 'user' | 'environment' }; instead?: string; paste?: boolean; onTap?: () => void } = {}) {
   const busy = h('div', { class: 'muted small' });
   // ---- the clipboard's picture, by a button
   const where: ClipWhere = isIOS ? 'ios' : isAndroid ? 'android' : isMac ? 'mac' : 'pc';
@@ -28,6 +30,7 @@ export function imageInput(onImage: (img: Img, file: File, how: 'file' | 'camera
   const pasteNow = async () => {
     const my = ++pasteSeq; // the clipboard is read in this tap (Safari asks for it there) — nothing is awaited before it
     const asking = clipboardPicture(navigator.clipboard, where);
+    opts.onTap?.(); // in this tap too: a tab that copies what it reads begins the copy here (to-do #38)
     pasteSay.className = 'muted small'; pasteSay.textContent = where === 'ios' ? 'Reading the clipboard — tap “Paste” when Safari offers it…' : 'Reading the clipboard…';
     try {
       const f = await asking;
@@ -60,12 +63,12 @@ export function imageInput(onImage: (img: Img, file: File, how: 'file' | 'camera
   };
   const cam = opts.camera === false ? null : liveCamera({
     multiple: opts.multiple, facing: opts.camera?.facing, instead: opts.instead ?? 'choose a photo instead',
-    onSnap: async (img, file) => { await onImage(img, await file(), 'camera'); compact(); },
+    onSnap: async (img, file) => { await onImage(img, await file(), 'camera'); compact(); }, onTap: opts.onTap,
     beside: pasteBtn ? [pasteBtn] : undefined, onOpen: () => { pasteSeq++; pasteSay.textContent = ''; },
   });
   const onPaste = (e: ClipboardEvent) => {
     const fs = [...(e.clipboardData?.files || [])].filter((f) => f.type.startsWith('image/'));
-    if (fs.length) { e.preventDefault(); handle(opts.multiple ? fs : fs.slice(0, 1)); }
+    if (fs.length) { e.preventDefault(); opts.onTap?.(); handle(opts.multiple ? fs : fs.slice(0, 1)); }
   };
   addEventListener('paste', onPaste);
   return { el: h('div', { class: 'stack' }, picker, cam?.el ?? null, pasteBtn && !cam ? h('div', { class: 'row' }, pasteBtn) : null, pasteBtn ? pasteSay : null, busy), dispose: () => { removeEventListener('paste', onPaste); cam?.dispose(); }, compact, camera: cam };

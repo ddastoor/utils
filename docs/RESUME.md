@@ -199,8 +199,12 @@ draw.io's print dialog; the diagram kept while the page is open, the page asking
 check came out at 52.9 MB against the 49.5 MB estimate (PlantUML's converter is client-side now and kept) — the site 631.7 MB. The site's
 CSP: `frame-src 'self'` added. Unit `diagram` 106, e2e `diagram` 50, the site-wide sweeps; docs/WASM-AUDIT.md 203; taken off
 potentials.md. **Group 3 is done — groups 1 – 4 are all built.**
-**▶ NEXT: to-do #38** (the OCR's and the Photo Dictionary's text copied to the clipboard as soon as it is read), **then #40** (the EPUB
-Reader's "Remember book").
+**To-do #38 — DONE (28 Nov 2026):** the OCR's and the Photo Dictionary's text on the clipboard as soon as it is read, the copy
+begun in the tap that starts the reading (`src/lib/clipwrite.ts`; CLAUDE.md §3 OCR, "The text on the clipboard"); unit `clipwrite`
+29, e2e `ocr-copy` 25. (The Diagram Editor's first deploy failed on a unit check that needs Pillow — GitHub's runner has none: now
+skipped there with a note, 2015ed6.)
+**▶ NEXT: to-do #40** (the EPUB Reader's "Remember book": a hash of the book, its place and the reading voice in the Settings; to
+ask the owner when building: how many books are remembered).
 **Then to-dos #38, #39 and #40** (owner,
 27 Nov 2026, evening: "After you finish all these, finish off the items in the todo.md also."; #40, added the same evening:
 the EPUB Reader's "Remember book" — a hash of the book, its place and the reading voice in the Settings — after #39). The open question (keep the EPUB Reader's place between visits?) is

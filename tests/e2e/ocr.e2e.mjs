@@ -12,7 +12,9 @@ import { scoreLists } from '../lib/listscore.mjs';
 const F = (n) => fileURLToPath(new URL(`../fixtures/images/${n}`, import.meta.url));
 
 export default async ({ base, page: newPage, ok, info, download, devices }) => {
-  const page = await newPage({ permissions: ['clipboard-read', 'clipboard-write'] });
+  // no clipboard leave: every reading puts its text on the clipboard (to-do #38), and the suites share the browser's clipboard —
+  // it is given for the Copy check only (ocr-copy.e2e.mjs checks the copy itself)
+  const page = await newPage();
   await page.goto(base + '#/ocr');
   const recognise = async (file, langLabel, clean = true) => {
     await page.locator('input[type=file]').setInputFiles(file);
@@ -75,9 +77,11 @@ export default async ({ base, page: newPage, ok, info, download, devices }) => {
       info(`${f} as the tab gives it:\n${got.split('\n').slice(3, 18).map((l) => '      | ' + l).join('\n')}`);
       // Copy and the .txt give the text as the box shows it, marks and spaces and all
       const txtM = readFileSync(await download(page, () => page.getByRole('button', { name: 'Download .txt' }).click()), 'utf8');
+      await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
       await page.getByRole('button', { name: 'Copy' }).click();
       // (Windows' clipboard keeps a line break as \r\n: Chrome writes and reads it so there — Windows check run 12)
       const clip = (await page.evaluate(() => navigator.clipboard.readText()).catch((e) => `(clipboard: ${e.message})`)).replace(/\r\n/g, '\n');
+      await page.context().clearPermissions();
       const apart = (a) => { let i = 0; while (i < a.length && a[i] === got[i]) i++; return a === got ? 'same' : `apart at ${i} of ${a.length} / ${got.length}: ${JSON.stringify(a.slice(i, i + 24))} for ${JSON.stringify(got.slice(i, i + 24))}`; };
       ok(txtM === got && clip === got && /\n {4}◦ /.test(got) && /\n {8}▪ /.test(got), `${f}: the .txt and Copy give the text with its marks and indentation (.txt ${apart(txtM)}; Copy ${apart(clip)})`);
     }

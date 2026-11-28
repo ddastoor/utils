@@ -3247,6 +3247,28 @@ a refusal (where to allow it: the site settings' Clipboard; on an iPhone, tap Sa
 A newer picture wins over a slow clipboard. Ctrl+V as before (it needs no leave). Where the browser cannot read the
 clipboard from a button, there is no button. Unit `clipimage` 37, e2e `paste-image` 29 (Chromium's real clipboard granted
 and refused, a stand-in for the rest; the OCR's text and the Photo Dictionary's words the same as the file's).
+**The text on the clipboard as soon as it is read (to-do #38; owner, 27 Nov 2026: "Both the ocr and the photo dictionary app
+should copy the ocr text to the clipboard immediately after conversion"; this tab and the Photo Dictionary):** the OCR tab's
+text as its box shows it (the lists' marks and indentation kept), the Photo Dictionary's whole text (its words broken over two
+lines put together, as shown), and the line beside Copy ("Copy the text" in the Photo Dictionary, a button of its own there)
+says "Copied to the clipboard.". **Begun in the tap that starts the reading** (`src/lib/clipwrite.ts`, `laterCopy`): Chrome
+writes to the clipboard while the page has the focus, Safari and Firefox only within a tap — and a reading takes seconds; so
+the tap hands the clipboard a ClipboardItem whose text is still a promise, given when the text is read (Chrome and Safari
+take such an item; Chromium keeps it until the text arrives). The tap is **Extract text** in the OCR tab, and in the Photo
+Dictionary — whose reading starts as the photo arrives — **Snap, Paste image or Ctrl+V** (`imageInput`'s `onTap`, called in
+the tap before anything is awaited; a tap's copy is the next reading's within 15 s, `FRESH_MS`); a photo chosen as a file
+begins its copy when its reading starts (Chrome writes then; Safari refuses). Where the item is refused, the text itself is
+written once it is there; where that is refused too (Safari, a photo chosen from the gallery), the line says "Not copied by
+itself: this browser lets a page copy only when you tap — press “Copy”." and the button does it in one tap. **Dropped** — the
+clipboard left exactly as it was — when nothing is read, a newer picture comes, the language or the turn is changed, or the
+tab is left (the promised item rejected: no write left waiting). Not awaited by the reading: the buttons stay free. Unit
+`clipwrite` 29 (stand-ins of the browsers' clipboards: promised items taken, refused, both refused, no ClipboardItem, one
+that cannot take a promise, none), e2e `ocr-copy` 25 (Chromium's real clipboard: every write recorded with the event it was
+made in — `click` for Extract text, Paste image and Snap, `paste` for Ctrl+V, none for a file —, the text handed over and
+read back exactly; nothing read, a newer picture, the tab left → the clipboard as it was; no leave → said, Copy does it; a
+stand-in with Safari's rule: the gallery photo said and copied by the button, Paste image copied by itself; a phone). The
+suites share the browser's clipboard: the OCR and paste-image suites read without the leave to write (the OCR suite gives it
+for its Copy check only), so their readings do not write to it.
 **A photographed page straightened first (owner, 21 Nov 2026: "just like the photo dictionary, the OCR app should also
 work really well from my phone" — `todo.md` #9; e2e 64):** with the clean-up on, the page of a camera's photo (a Kindle's
 screen in its black body, a sheet on a table) is found and straightened before it is read (`src/lib/pagecrop.ts`, the
@@ -3551,7 +3573,8 @@ the photo with a webcam if it's a PC app." No engine to fetch: the browser's get
 Its own camera gave way to the shared live camera of every picture tab (`imageInput` — the back camera on phones, the
 webcam on PCs, "Switch camera", closed on leave); "Share list" sits in the phone's fixed bar once there is a list. e2e
 55: a PC's webcam showing the book page → Snap → the same 20 words as the photo file. **"Paste image"** beside the camera
-button, on PCs and phones (to-do #37 — as the OCR tab: §3 OCR, "Paste image").
+button, on PCs and phones (to-do #37 — as the OCR tab: §3 OCR, "Paste image"). **The page's whole text on the clipboard as
+soon as it is read**, with "Copy the text" beside it (to-do #38 — §3 OCR, "The text on the clipboard").
 **The upgrade (owner, 21 Nov 2026 — "make a note of this and build it out when you come to it"; after the PDF → EPUB
 fix) — BUILT 21 Nov 2026** (items 1 – 4: 31dbd3e; item 5: abe1d69, cd07746, 5617e29, d4f5b2d and the "snap again" hint
 after them):
@@ -4644,6 +4667,8 @@ pictures are drawn by the codec worker (MozJPEG, OxiPNG, Squoosh's resize). The 
 Nov 2026 (the book step of the OCR tab and the Photo Dictionary, potentials #96): `bendOf` (a cubic evaluated at 64 points),
 `isBook` (a few comparisons of the fit's numbers) and `stackPages` (rows copied with `TypedArray.set`) in `src/lib/readpage.ts`
 — glue around imgproc.wasm's fit and drawing (`flatten.c`), which do the work.
+Nov 2026 (the text copied as soon as it is read, to-do #38): `src/lib/clipwrite.ts` — the browser's Async Clipboard API
+(a ClipboardItem with a promised text, writeText where that is refused); no engine has work to do.
 Nov 2026 (Paste image, to-do #37): `src/lib/clipimage.ts` — the browser's Async Clipboard API, a choice among the formats
 it offers and a file name; no engine has work to do.
 Nov 2026 (Screenshot's area, to-do #24): `src/lib/areageom.ts` — the rectangle's arithmetic (where the frame stands, a

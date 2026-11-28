@@ -242,6 +242,11 @@ the 47 Software stub tabs (each with its own suite) first, then ask about potent
 - Router: same tab + changed own hash parameters → re-mounted (`?from=` ignored).
 
 ## 5. Traps already found
+- **The OCR tab and the Photo Dictionary write to the clipboard after every reading** (to-do #38, 28 Nov 2026), and the browser's
+  clipboard is shared by every suite: a suite that reads pictures there and does not test the copy runs without clipboard leave
+  (`clipboard-read` is a leave to write in Chromium); one that checks what the clipboard holds tries again when another suite's copy
+  came in between (`tried` in `ocr-copy.e2e.mjs`, the round trip of `paste-image`). Whether a write was made in a tap: `window.event`
+  at the call, not `navigator.userActivation` (Playwright's `goto` and `setInputFiles` set it).
 - **Media fixtures of one kind hide whole classes of faults** (to-do #23, 26 Nov 2026): every sound fixture was mono, so
   the FFmpeg tab's crash on stereo Opus (libopus 1.3.1 in ffmpeg.wasm 0.12, complexity ≥ 5: "memory access out of bounds")
   and the 3 dB loss of mono made stereo stayed unseen. `stereo.mp4` and `surround.mkv` (AC-3 5.1(side)) exist now — a

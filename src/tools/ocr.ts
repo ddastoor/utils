@@ -4,7 +4,8 @@
 // up, its ruled lines and list marks cleared, a page of columns read column by column. The text keeps the page's lists
 // (src/lib/listtext.ts — to-do #31): the marks put back at the line starts, nested items indented. Low-confidence words
 // highlighted, copy / .txt download. Pictures can be turned by hand; a picture that reads badly is tried the other ways round.
-// A picture comes from a file or from the camera (the phone's back camera, the PC's webcam: src/lib/livecam.ts).
+// A picture comes from a file or from the camera (the phone's back camera, the PC's webcam: src/lib/livecam.ts). The text read
+// goes to the clipboard by itself (to-do #38: the copy is begun in the tap on "Extract text" — src/lib/clipwrite.ts).
 import { h, card, field, segmented, toggle, stack, note, progress, button, actions, copy, downloadBlob, shareOrDownload, baseName, reveal, type Mount } from '../ui';
 import { imgproc, type Img } from '../wasm/imgproc';
 import { previewOf, paint } from '../lib/imgio';
@@ -14,6 +15,7 @@ import { readPage, readsPoorly, unsureWord, secondWords } from '../lib/readpage'
 import { listText } from '../lib/listtext';
 import { readExif } from '../lib/exif';
 import { uprightWords, turnWords, ROT } from '../lib/upright';
+import { laterCopy, copyNote, type LaterCopy } from '../lib/clipwrite';
 import './ocr.css';
 
 export const mount: Mount = (root, ctx) => {
@@ -25,6 +27,10 @@ export const mount: Mount = (root, ctx) => {
   const prog = progress();
   const out = h('textarea', { class: 'input textarea ocr-text', rows: 12, 'aria-label': 'Recognised text', spellcheck: 'false' }) as HTMLTextAreaElement;
   const info = h('div', { class: 'muted small', 'aria-live': 'polite' });
+  // the text on the clipboard by itself as soon as it is read (to-do #38; owner, 27 Nov 2026: "copy the ocr text to the
+  // clipboard immediately after conversion"), and this line says whether it went there
+  const said = h('span', { class: 'muted small ocr-copied', 'aria-live': 'polite' });
+  let copying: LaterCopy | null = null;
   const editor = h('div', { class: 'stack', hidden: true });
   const turned = async (img: Img, t: number) => (t ? imgproc('orient', img, ROT[t]) : img);
   const show = async () => {
@@ -32,52 +38,61 @@ export const mount: Mount = (root, ctx) => {
     const my = seq, img = await turned(previewOf(src, 1400), turns);
     if (my === seq && alive) paint(img, canvas);
   };
-  const forget = () => { seq++; out.value = ''; info.textContent = ''; boxes.replaceChildren(); prog.done(); };
+  const forget = () => { seq++; out.value = ''; info.textContent = ''; said.textContent = ''; boxes.replaceChildren(); prog.done(); copying?.drop(); };
   const run = async () => {
     if (!src) throw new Error('Choose an image first.');
     const my = ++seq, from = src, t0 = performance.now();
-    out.value = ''; info.textContent = ''; boxes.replaceChildren();
+    // the copy begun here, in the tap (Safari and Firefox let a page write to the clipboard only within one; the reading
+    // takes seconds): given the text when it is read — or dropped, and the clipboard left as it was
+    copying?.drop();
+    const cp = copying = laterCopy();
+    out.value = ''; info.textContent = ''; said.textContent = ''; boxes.replaceChildren();
     const live = () => my === seq && alive;
-    const onProgress = (p: number, s: string) => { if (live()) prog.set(s.includes('recogn') ? p : null, s.includes('recogn') ? `Recognising… ${Math.round(p * 100)} %` : 'Loading the text engine…'); };
-    // the picture as the reader turned it (then never turned on its own), read the shared way (src/lib/readpage.ts)
-    // the lens, where the photo's EXIF says (a phone's JPEG does): the camera of a book's pages drawn flat
-    const f35 = srcFile ? (await readExif(srcFile).catch(() => null))?.focal35 ?? 0 : 0;
-    if (!live()) return;
-    const res = await readPage(from, {
-      lang, clean, auto: !handTurned, turns, retryTurns: true, invertDark: true, onProgress, stale: () => !live(), f35,
-      onRetry: () => { if (live()) prog.set(null, 'The text reads badly — trying the picture turned…'); },
-      // a soft photo: PaddleOCR, the second reader, reads it too (its models fetched the first time)
-      onSecond: (q) => { if (live()) { const w = secondWords(q); prog.set(w.p, w.text); } },
-    });
-    if (!res || !live()) return;
-    const { r, img } = res;
-    let note = '';
-    // the text stood sideways, upside down or slanted (a phone held another way): said, and the picture as it was read
-    // is shown (below) so the highlighted words sit on it
-    if (res.up.turns || res.up.slant) note = ` · the picture was ${uprightWords(res.up)} to read it`;
-    // a poor reading read clearly better another way round: the picture stays turned that way
-    if (res.turned !== null) { turns = res.turned; await show(); note = ` · the picture was turned ${turnWords(res.turned)} to read it`; }
-    prog.done();
-    // the picture as it was read (the page straightened, levelled, turned) is shown in place of the photo: the
-    // highlighted words sit on what was read
-    if (res.shown) paint(previewOf(res.shown, 1400), canvas);
-    // a photo of an open book: its pages drawn flat (the Book Page Flattener's step), a spread's left page above the right
-    if (res.book) note += res.book === 2 ? ' · the book’s two pages were flattened (the curve near the spine taken out) and are read left, then right' : ' · the book’s page was flattened (the curve near the spine taken out)';
-    else if (res.page) note += ' · the page was found and straightened';
-    // the photo was soft and PaddleOCR read it better (or could not be fetched: Tesseract's reading stands)
-    if (res.engine === 'paddle') note += ' · the photo was soft: PaddleOCR read it';
-    else if (res.secondError) note += ` · the photo was soft, and the second reader could not be loaded (${res.secondError})`;
-    // a poor reading after all that: the photo itself (out of focus, shaken, the text a few pixels high) — say so
-    if (r.text && readsPoorly(res)) note += ' · the text reads poorly: a sharper photo, closer and in good light, reads better';
-    // the page's lists as they stand on it — bullets and check boxes at the line starts, nested items indented (to-do #31;
-    // owner, 26 Nov 2026: "In the OCR app, the rich formatting should be preserved, the bullet points, etc."): the text box,
-    // Copy and the .txt; the Photo Dictionary keeps its text plain
-    out.value = listText(r, res.listMarks, res.xh);
-    info.textContent = r.text
-      ? `${r.words.length} words · average confidence ${Math.round(r.confidence)} % · ${((performance.now() - t0) / 1000).toFixed(1)} s${note}`
-      : 'No text found. Try better light, a straighter photo, or another language.';
-    // highlight words the engine is unsure about (over the picture as it was read)
-    for (const w of r.words) if (unsureWord(w.conf, res.engine)) boxes.append(h('span', { class: 'ocr-low', title: `${w.text} (${Math.round(w.conf)} %)`, style: { left: `${(w.x0 / img.width) * 100}%`, top: `${(w.y0 / img.height) * 100}%`, width: `${((w.x1 - w.x0) / img.width) * 100}%`, height: `${((w.y1 - w.y0) / img.height) * 100}%` } }));
+    try {
+      const onProgress = (p: number, s: string) => { if (live()) prog.set(s.includes('recogn') ? p : null, s.includes('recogn') ? `Recognising… ${Math.round(p * 100)} %` : 'Loading the text engine…'); };
+      // the picture as the reader turned it (then never turned on its own), read the shared way (src/lib/readpage.ts)
+      // the lens, where the photo's EXIF says (a phone's JPEG does): the camera of a book's pages drawn flat
+      const f35 = srcFile ? (await readExif(srcFile).catch(() => null))?.focal35 ?? 0 : 0;
+      if (!live()) return;
+      const res = await readPage(from, {
+        lang, clean, auto: !handTurned, turns, retryTurns: true, invertDark: true, onProgress, stale: () => !live(), f35,
+        onRetry: () => { if (live()) prog.set(null, 'The text reads badly — trying the picture turned…'); },
+        // a soft photo: PaddleOCR, the second reader, reads it too (its models fetched the first time)
+        onSecond: (q) => { if (live()) { const w = secondWords(q); prog.set(w.p, w.text); } },
+      });
+      if (!res || !live()) return;
+      const { r, img } = res;
+      let note = '';
+      // the text stood sideways, upside down or slanted (a phone held another way): said, and the picture as it was read
+      // is shown (below) so the highlighted words sit on it
+      if (res.up.turns || res.up.slant) note = ` · the picture was ${uprightWords(res.up)} to read it`;
+      // a poor reading read clearly better another way round: the picture stays turned that way
+      if (res.turned !== null) { turns = res.turned; await show(); note = ` · the picture was turned ${turnWords(res.turned)} to read it`; }
+      prog.done();
+      // the picture as it was read (the page straightened, levelled, turned) is shown in place of the photo: the
+      // highlighted words sit on what was read
+      if (res.shown) paint(previewOf(res.shown, 1400), canvas);
+      // a photo of an open book: its pages drawn flat (the Book Page Flattener's step), a spread's left page above the right
+      if (res.book) note += res.book === 2 ? ' · the book’s two pages were flattened (the curve near the spine taken out) and are read left, then right' : ' · the book’s page was flattened (the curve near the spine taken out)';
+      else if (res.page) note += ' · the page was found and straightened';
+      // the photo was soft and PaddleOCR read it better (or could not be fetched: Tesseract's reading stands)
+      if (res.engine === 'paddle') note += ' · the photo was soft: PaddleOCR read it';
+      else if (res.secondError) note += ` · the photo was soft, and the second reader could not be loaded (${res.secondError})`;
+      // a poor reading after all that: the photo itself (out of focus, shaken, the text a few pixels high) — say so
+      if (r.text && readsPoorly(res)) note += ' · the text reads poorly: a sharper photo, closer and in good light, reads better';
+      // the page's lists as they stand on it — bullets and check boxes at the line starts, nested items indented (to-do #31;
+      // owner, 26 Nov 2026: "In the OCR app, the rich formatting should be preserved, the bullet points, etc."): the text box,
+      // Copy and the .txt; the Photo Dictionary keeps its text plain
+      out.value = listText(r, res.listMarks, res.xh);
+      info.textContent = r.text
+        ? `${r.words.length} words · average confidence ${Math.round(r.confidence)} % · ${((performance.now() - t0) / 1000).toFixed(1)} s${note}`
+        : 'No text found. Try better light, a straighter photo, or another language.';
+      // highlight words the engine is unsure about (over the picture as it was read)
+      for (const w of r.words) if (unsureWord(w.conf, res.engine)) boxes.append(h('span', { class: 'ocr-low', title: `${w.text} (${Math.round(w.conf)} %)`, style: { left: `${(w.x0 / img.width) * 100}%`, top: `${(w.y0 / img.height) * 100}%`, width: `${((w.x1 - w.x0) / img.width) * 100}%`, height: `${((w.y1 - w.y0) / img.height) * 100}%` } }));
+      // the text as the box shows it (its lists' marks and indentation kept) to the clipboard
+      // (not awaited: a browser that asks the reader first keeps the buttons free meanwhile)
+      if (out.value.trim()) void cp.give(out.value).then((how) => { if (live()) said.textContent = copyNote(how); });
+    } finally { cp.drop(); if (copying === cp) copying = null; }
   };
   // a file (a photo already taken, a screenshot, a paste) — or the camera: the phone's back camera, the PC's webcam, live
   // in the page with Snap (owner, 20 Nov 2026; the picker's own camera, src/lib/livecam.ts)
@@ -97,9 +112,10 @@ export const mount: Mount = (root, ctx) => {
       note('Nothing is uploaded — recognition runs in your browser. The first run loads the text engine and language model (a few MB).'))),
     actions(button('Extract text', run, { variant: 'primary', icon: 'ScanText' })),
     card('Text', prog, out, info, h('div', { class: 'row' },
-      button('Copy', () => copy(text()), { small: true, icon: 'Copy' }),
-      button('Download .txt', () => (ctx.isMobile ? shareOrDownload : downloadBlob)(new Blob([text()], { type: 'text/plain;charset=utf-8' }), `${name}.txt`), { small: true, icon: 'Download' }))),
+      button('Copy', async () => { await copy(text()); said.textContent = ''; }, { small: true, icon: 'Copy' }),
+      button('Download .txt', () => (ctx.isMobile ? shareOrDownload : downloadBlob)(new Blob([text()], { type: 'text/plain;charset=utf-8' }), `${name}.txt`), { small: true, icon: 'Download' }),
+      said)),
   );
   root.append(card(null, input$.el), editor);
-  return () => { alive = false; seq++; input$.dispose(); };
+  return () => { alive = false; seq++; copying?.drop(); input$.dispose(); };
 };

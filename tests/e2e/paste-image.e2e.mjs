@@ -50,6 +50,8 @@ export default async ({ base, page: newPage, ok, download, devices }) => {
     if ((await sw.locator('input').isChecked()) !== clean) await sw.click();
     await page.getByRole('button', { name: 'Extract text' }).click();
     await page.waitForFunction(() => /confidence|No text found/.test(document.querySelector('.ocr-text')?.parentElement?.textContent || ''), null, { timeout: 120000 });
+    // the text read goes to the clipboard by itself (to-do #38): its write is over before the next picture is put there
+    await page.waitForFunction(() => !document.querySelector('.ocr-text').value.trim() || document.querySelector('.ocr-copied').textContent !== '', null, { timeout: 10000 });
     return page.locator('.ocr-text').inputValue();
   };
   // the reference: the same picture chosen as a file
@@ -129,7 +131,9 @@ export default async ({ base, page: newPage, ok, download, devices }) => {
   const STATUS = '.pd-top [aria-live="polite"]';
   const done = (p) => p.waitForFunction((sel) => /uncommon word|No uncommon words|No text found|went wrong/.test(document.querySelector(sel)?.textContent || ''), STATUS, { timeout: 180000 });
   const words = (p) => p.locator('.pd-list .pd-card').evaluateAll((els) => els.map((e) => e.dataset.word));
-  const ph = await newPage({ ...devices['iPhone 13'], permissions: ['clipboard-read', 'clipboard-write'] });
+  // (no leave to write: the clipboard's answers are stood in for here, and each reading would put its text on the browser's
+  // clipboard, which the suites share — to-do #38, checked in ocr-copy.e2e.mjs)
+  const ph = await newPage({ ...devices['iPhone 13'], permissions: ['clipboard-read'] });
   await quiet(ph); await ph.goto(`${base}#/photodict`);
   const pp = ph.getByRole('button', { name: 'Paste image' }); await pp.waitFor();
   const [b1, b2] = [await camButton(ph).first().boundingBox(), await pp.boundingBox()];
@@ -151,7 +155,7 @@ export default async ({ base, page: newPage, ok, download, devices }) => {
   await quiet(android); await android.goto(`${base}#/photodict`); await android.getByRole('button', { name: 'Paste image' }).tap();
   await android.waitForFunction(() => /did not let/.test(document.querySelector('#paste-say')?.textContent || ''), null, { timeout: 10000 }).catch(() => {});
   ok(/^Chrome did not let the page read the clipboard\. To allow it: .*Site settings → Clipboard/.test(await say(android)), 'Android, refused: where to allow it in Chrome');
-  const pc = await newPage({ viewport: { width: 1366, height: 900 }, permissions: ['clipboard-read', 'clipboard-write'] });
+  const pc = await newPage({ viewport: { width: 1366, height: 900 }, permissions: ['clipboard-read'] });
   await quiet(pc); await pc.goto(`${base}#/photodict`); await pc.getByRole('button', { name: 'Paste image' }).waitFor();
   ok(await pc.evaluate(() => { const b = [...document.querySelectorAll('button')].find((x) => x.textContent === 'Paste image'), c = [...document.querySelectorAll('button')].find((x) => x.textContent === 'Use webcam'); return b && c && b.parentElement === c.parentElement; }), 'Photo Dictionary on a PC: "Paste image" beside "Use webcam" (owner: "on the pc too")');
   await fakeClip(pc, { image: BOOK, type: 'image/jpeg' }); await pc.getByRole('button', { name: 'Paste image' }).click(); await done(pc);

@@ -3537,6 +3537,23 @@ Found while building it (unit `worldclock` 39, e2e `worldclock` 55):
   as they were; no settings file is written there (the switch off from the start) — `src/lib/color.ts` looks for `document`, so the
   suite stubs no `document`.
 
+## OCR and Photo Dictionary: the text on the clipboard (28 Nov 2026; to-do #38)
+- **The design, checked in Chromium first** (a probe of its real clipboard): a ClipboardItem whose text is a promise is kept by
+  `clipboard.write()` until the promise settles, then written; a rejected promise leaves the clipboard exactly as it was; the
+  clipboard is the browser's, shared by every context — the suites share it.
+- **The suites' clipboard leave:** in Chromium the leave to *read* (`clipboard-read`) is a leave to write too, and a page without any
+  leave is refused both. Every OCR and Photo Dictionary reading now writes its text, so the suites that only read pictures (`ocr`,
+  `paste-image`'s Photo Dictionary pages) run without the leave to write — their readings say "Not copied by itself" and write
+  nothing; the OCR suite grants it around its Copy check only, and `paste-image`'s OCR page waits for its reading's copy before it
+  puts the next picture on the clipboard.
+- **Testing "in the tap":** Chromium counts a page as tapped for five seconds after `goto`, and Playwright's `setInputFiles` sets
+  the user activation too — `navigator.userActivation.isActive` cannot tell a gallery photo from a tap. The suite records the event
+  being handled when each write is made (`window.event`: `click`, `paste`, or none after an await), and its stand-in for Safari's
+  rule refuses a write made outside a trusted tap, key or paste.
+- **A copy is dropped wherever a reading ends without text** — nothing read, a newer picture, the language or a turn changed, the tab
+  left (`onLeave` drops it too: the tab's worker calls are dropped silently on leave, and their promises would never settle) — so no
+  write is left waiting in the browser.
+
 ## Diagram Editor (28 Nov 2026; built — potentials #54)
 - **The site's own policy refused the editor's frame:** `frame-src` named only YouTube's player, so draw.io's page (same site) was
   blocked and the frame showed Chrome's error page — the tab said "could not be fetched" (its check worked). `frame-src 'self'` added.

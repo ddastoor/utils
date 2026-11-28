@@ -31,3 +31,4 @@
 .pd-phrase .pd-word { font-size: 1.2rem; }
 .pd-x { min-width: var(--tap); min-height: var(--tap); border: 0; border-radius: 10px; background: transparent; color: var(--muted); font-size: 16px; cursor: pointer; }
 .pd-x:hover { background: var(--surface-2); }
+.pd-copyrow { margin-top: 8px; gap: 8px 12px; }

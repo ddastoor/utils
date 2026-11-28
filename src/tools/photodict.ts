@@ -4,7 +4,8 @@
 // the bundled English Wiktionary (words the bundle lacks are looked up online one word at a time: Wiktionary, then the
 // Free Dictionary API) and a short Wikipedia summary under it. The page's text comes first, its words broken over two
 // lines put together (t_dehyphen); a tap looks a word up, a selected phrase is looked up on Wikipedia (owner, 21 Nov
-// 2026 — the upgrade: CLAUDE.md §3 Photo Dictionary).
+// 2026 — the upgrade: CLAUDE.md §3 Photo Dictionary). The page's text goes to the clipboard by itself as soon as it is read
+// (to-do #38: the copy is begun in the tap that brings the photo — Snap, Paste image, Ctrl+V; src/lib/clipwrite.ts).
 import literata400 from '@fontsource/literata/files/literata-latin-400-normal.woff2?url';
 import literata400i from '@fontsource/literata/files/literata-latin-400-italic.woff2?url';
 import literata600 from '@fontsource/literata/files/literata-latin-600-normal.woff2?url';
@@ -19,6 +20,7 @@ import { uprightWords } from '../lib/upright';
 import { alphabetical, hardWords, lookupWord, rarity, ranker, type WordCard, type Result } from '../lib/dictionary';
 import { wikiSummary, type Summary } from '../lib/wikipedia';
 import { onLeave } from '../lifecycle';
+import { laterCopy, copyNote, FRESH_MS, type LaterCopy } from '../lib/clipwrite';
 import './photodict.css';
 
 let fontsReady: Promise<void> | null = null;
@@ -80,6 +82,18 @@ export const mount: Mount = (root, ctx) => {
   const withWiki = (card: HTMLElement, term: string) => { if (wiki) card.append(wikiBox(term, lazily(card))); return card; };
   /** a photo chosen while another is being read: it is read next, and the older result is not shown */
   let pending: Img | null = null, pendingFile: File | null = null;
+  /** the page's text to the clipboard as soon as it is read (to-do #38; owner, 27 Nov 2026: "copy the ocr text to the clipboard
+   *  immediately after conversion"): a copy is begun in the tap that brings a photo (Snap, Paste image, Ctrl+V — Safari and
+   *  Firefox write to the clipboard only within a tap, and the photo arrives later); a photo chosen as a file begins its
+   *  own (Chrome writes while the page has the focus). `pendingCopy`: the one of the photo waiting to be read. */
+  let tapped: LaterCopy | null = null, pendingCopy: LaterCopy | null = null, reading: LaterCopy | null = null, readings = 0;
+  const takeCopy = () => {
+    const t = tapped; tapped = null;
+    if (t && performance.now() - t.at < FRESH_MS) return t;
+    t?.drop(); return laterCopy();
+  };
+  const said = h('span', { class: 'muted small pd-copied', 'aria-live': 'polite' });
+  const copyBtn = button('Copy the text', async () => { const b = textBox.querySelector('.pd-textbody'); if (!b?.textContent?.trim()) throw new Error('Take a photo first.'); await copy(b.textContent); said.textContent = ''; }, { small: true, icon: 'Copy' });
   /** the photo as it was taken or chosen (owner, 21 Nov 2026: to send one that read badly — a Snap is one frame of the
    *  camera's live picture, not the camera app's photo, so only the tab can save it) */
   let photo: File | null = null;
@@ -97,13 +111,15 @@ export const mount: Mount = (root, ctx) => {
   const results = h('div', { class: 'stack', hidden: true });
 
   // ---------------------------------------------------------------- pipeline
-  const run = async (img: Img, file: File | null = null): Promise<void> => {
+  const run = async (img: Img, file: File | null = null, cp: LaterCopy = takeCopy()): Promise<void> => {
     if (busy) { // the engine is busy with the photo before: this one is read as soon as it is free
       pending = img; pendingFile = file; photo = file; saveBtn.hidden = !file; paint(previewOf(img, 480), thumb); cards.replaceChildren(); extra.replaceChildren(); advice.replaceChildren(); textBox.replaceChildren(); bar.hidden = true; last = null;
+      pendingCopy?.drop(); pendingCopy = cp;
       status.textContent = 'A new photo — it is read as soon as the one before is done.';
       return;
     }
-    busy = true;
+    busy = true; reading = cp; said.textContent = '';
+    const no = ++readings; // what the copy says belongs to this reading only
     photo = file; saveBtn.hidden = !file;
     const stale = () => gone || pending !== null; // a newer photo is waiting, or the tab was left
     results.hidden = false; bar.hidden = true; cards.replaceChildren(); looked.replaceChildren(); extra.replaceChildren(); advice.replaceChildren(); textBox.replaceChildren(); last = null;
@@ -137,6 +153,8 @@ export const mount: Mount = (root, ctx) => {
       const text = (await ranker()).dehyphen(r.text);
       if (stale()) return;
       showText(text);
+      // the page's text, as it is shown, to the clipboard (not awaited: the words are looked up meanwhile)
+      void cp.give(text).then((how) => { if (no === readings && !gone && textBox.contains(said)) said.textContent = copyNote(how, 'Copy the text'); });
       prog.set(null, 'Finding the uncommon words…');
       const found = await hardWords(text, { max: Infinity, online, onProgress: (d, n) => { if (!stale()) prog.set(n ? d / n : null, 'Looking up words…'); } });
       if (stale()) return;
@@ -155,8 +173,8 @@ export const mount: Mount = (root, ctx) => {
       if (res.names.length) extra.append(h('details', { class: 'pd-more' }, h('summary', null, `Names skipped (${res.names.length})`), h('p', { class: 'small' }, res.names.join(', '))));
     } catch (e) { if (!stale()) { prog.done(); status.textContent = `Something went wrong: ${errMsg(e)}`; } }
     finally {
-      busy = false;
-      if (pending && !gone) { const next = pending, f = pendingFile; pending = null; pendingFile = null; return run(next, f); }
+      busy = false; cp.drop(); if (reading === cp) reading = null; // no text, a newer photo, the tab left: the clipboard as it was
+      if (pending && !gone) { const next = pending, f = pendingFile, c = pendingCopy ?? laterCopy(); pending = null; pendingFile = null; pendingCopy = null; return run(next, f, c); }
     }
   };
 
@@ -193,8 +211,10 @@ export const mount: Mount = (root, ctx) => {
     });
     body.addEventListener('blur', () => { words[kw]?.classList.remove('pd-kw'); kw = -1; });
     const all = button('Show all the text', () => { body.classList.remove('pd-clip'); all.remove(); }, { small: true, variant: 'ghost' });
+    said.textContent = '';
     textBox.replaceChildren(h('h2', { class: 'pd-text-h' }, 'The page’s text'),
-      h('div', { class: 'muted small' }, 'Tap a word to look it up · select a phrase to look it up on Wikipedia'), body, selBtn, say);
+      h('div', { class: 'muted small' }, 'Tap a word to look it up · select a phrase to look it up on Wikipedia'), body,
+      h('div', { class: 'row pd-copyrow' }, copyBtn, said), selBtn, say);
     if (isMobile) { body.classList.add('pd-clip'); requestAnimationFrame(() => { if (body.scrollHeight > body.clientHeight + 4) body.after(all); else body.classList.remove('pd-clip'); }); }
   };
   const onSelection = () => {
@@ -240,7 +260,11 @@ export const mount: Mount = (root, ctx) => {
   // ---------------------------------------------------------------- input: the camera (phone: back; PC: webcam) or a photo
   // the shared live camera of every picture tab (src/lib/livecam.ts): Snap gives the frame at full size; a photo chosen
   // instead closes it; leaving the tab closes it. The reading runs on its own (the picker is free for the next photo).
-  const input$ = imageInput((img, file) => { void run(img, file); }, { label: 'Choose a photo of a page', instead: 'choose a photo of the page instead', paste: true });
+  const input$ = imageInput((img, file) => { void run(img, file); }, {
+    label: 'Choose a photo of a page', instead: 'choose a photo of the page instead', paste: true,
+    // in the tap that brings the photo (Snap, Paste image, Ctrl+V): the copy of its text begun there
+    onTap: () => { tapped?.drop(); tapped = laterCopy(); },
+  });
   const shareBtn = button('Share list', () => shareList(), { icon: 'Share2' });
   const bar = h('div', { class: 'actions', hidden: true }, shareBtn); // phones: a fixed bar, once there is a list to share
 
@@ -264,5 +288,8 @@ export const mount: Mount = (root, ctx) => {
       toggle('A Wikipedia summary under each word (sends only that word)', true, (v) => (wiki = v)))),
     results,
     bar);
-  return () => { gone = true; pending = null; input$.dispose(); io.disconnect(); clearTimeout(selTimer); document.removeEventListener('selectionchange', onSelChange); };
+  return () => {
+    gone = true; pending = null; for (const c of [tapped, pendingCopy, reading]) c?.drop(); tapped = pendingCopy = reading = null;
+    input$.dispose(); io.disconnect(); clearTimeout(selTimer); document.removeEventListener('selectionchange', onSelChange);
+  };
 };

@@ -30,6 +30,9 @@ export interface LiveCameraOptions {
   onSnap: (img: Img, file: () => Promise<File>) => void | Promise<void>;
   /** more ways in beside the start button (the clipboard's "Paste image"), hidden with it while the camera is open */
   beside?: HTMLElement[];
+  /** called in the Snap tap itself, before anything is awaited: a tab that copies what it reads from the photo begins the copy
+   *  there (to-do #38 — Safari writes to the clipboard only within a tap) */
+  onTap?: () => void;
   /** the live view opened / closed */
   onOpen?: () => void;
   onClose?: () => void;
@@ -141,6 +144,7 @@ export function liveCamera(o: LiveCameraOptions) {
   const snap = async () => {
     const s = stream;
     if (!s) return;
+    o.onTap?.();
     // the first frame may not have arrived yet: wait for it (up to 5 s) instead of doing nothing
     if (!video.videoWidth) await new Promise<void>((res) => { const t = setTimeout(res, 5000); video.addEventListener('loadeddata', () => { clearTimeout(t); res(); }, { once: true }); });
     if (stream !== s) return; // closed meanwhile
