@@ -2,7 +2,7 @@
 // and out, numbers as Excel shows them, and the "Excel" files that are web pages (HTML tables) or Excel 2003 XML —
 // read with the browser's own parser (DOMParser, compiled C++); laying a table out on a grid is glue. No DOM here
 // except in the two functions that take a Document, so the unit suite can run the rest in Node.
-import type { Book, Cell, Sheet } from '../wasm/sheet';
+import type { Book, Cell, Sheet, bindSheet } from '../wasm/sheet';
 import { textOf } from './textfile';
 
 /** Column letters: 0 → A, 25 → Z, 26 → AA. */
@@ -39,6 +39,36 @@ export function sniffText(text: string): 'html' | 'xml2003' | 'json' | 'text' {
   }
   if (/^[[{]/.test(head)) return 'json';
   return 'text';
+}
+
+/** A spreadsheet file → its sheets, as the CSV / Excel tab reads it (and SliceDiceGrapher): a zip or OLE file by sheet.wasm (xlsx, xlsm,
+ *  xlsb, xls, ods); text decoded (`decodeText`) and read as a web page's tables, Excel 2003 XML, JSON or CSV / TSV (sheet.wasm; a .tsv or
+ *  .tab file by tabs, else the separator detected). `csv` is the CSV's text (to read it again with another separator), `how` its encoding.
+ *  The browser's DOMParser for the web pages and the XML. */
+export function readSpreadsheet(bytes: Uint8Array, fileName: string, sh: ReturnType<typeof bindSheet>, delim?: string): { book: Book; csv: string | null; how: string; delim: string } {
+  const ext = (fileName.split('.').pop() || '').toLowerCase(), zipOrOle = (bytes[0] === 0x50 && bytes[1] === 0x4b) || (bytes[0] === 0xd0 && bytes[1] === 0xcf);
+  const base = fileName.replace(/\.[^.]+$/, '');
+  if (!bytes.length) throw new Error(`${fileName} is empty.`);
+  if (zipOrOle && ext !== 'csv' && ext !== 'json') return { book: sh.read(bytes), csv: null, how: '', delim: '' };
+  const d = decodeText(bytes), kind = sniffText(d.text);
+  if (kind === 'html') {
+    const sheets = htmlTables(new DOMParser().parseFromString(d.text, 'text/html'));
+    if (!sheets.length) throw new Error(`${fileName} is a web page without a table.`);
+    return { book: { sheets }, csv: null, how: d.how, delim: '' };
+  }
+  if (kind === 'xml2003') {
+    const doc = new DOMParser().parseFromString(d.text, 'application/xml');
+    if (doc.querySelector('parsererror')) throw new Error(`${fileName} is Excel 2003 XML that is not well-formed.`);
+    return { book: { sheets: spreadsheetML(doc) }, csv: null, how: d.how, delim: '' };
+  }
+  if (ext === 'json' || (kind === 'json' && !['csv', 'tsv', 'txt', 'tab'].includes(ext))) {
+    try { return { book: jsonToBook(d.text, base), csv: null, how: d.how, delim: '' }; }
+    catch (e) { if (ext === 'json') throw new Error(`${fileName} is not valid JSON: ${e instanceof Error ? e.message : String(e)}`); }
+  }
+  const sep = delim ?? (ext === 'tsv' || ext === 'tab' ? '\t' : '');
+  const book = sh.csv(new TextEncoder().encode(d.text), sep);
+  if (book.sheets[0]) book.sheets[0].name = base;                 // the sheet of a CSV is named after the file (in the .xlsx too)
+  return { book, csv: d.text, how: d.how, delim: sep };
 }
 
 /** JSON → one sheet: an array of objects (one column per key, in the order keys appear), an array of arrays, or

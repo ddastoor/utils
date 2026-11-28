@@ -108,15 +108,16 @@ export function looksLikeHeader(grid: Raw[][]): boolean {
 /** A grid of cells → typed columns. The first row is the header when `header` (default: `looksLikeHeader`); empty rows are left out, and a
  *  last row headed "Total" or "Grand total" (a pasted range often ends with one) is left out and said. A column is a number column when
  *  four in five of its filled cells are numbers, a date column when four in five are dates (day first unless a date says it is month
- *  first: 13/25 cannot be), else text. */
-export function readGrid(grid: Raw[][], header = looksLikeHeader(grid), keepTotal = false): Data {
+ *  first: 13/25 cannot be), else text. `exact` (a pasted range's, row for row with `grid`): the value behind a number the sheet shows
+ *  rounded — the column's format still comes from the text shown. */
+export function readGrid(grid: Raw[][], header = looksLikeHeader(grid), keepTotal = false, exact?: Array<Array<number | null>> | null): Data {
   const notes: string[] = [];
-  let rows = grid.filter((r) => r.some((c) => textOf(c)));
-  const width = Math.max(0, ...rows.map((r) => r.length));
+  let rows = grid.map((r, i) => ({ r, x: exact?.[i] ?? null })).filter(({ r }) => r.some((c) => textOf(c)));
+  const width = Math.max(0, ...rows.map(({ r }) => r.length));
   let names: string[] = [];
-  if (header && rows.length) { names = Array.from({ length: width }, (_, i) => textOf(rows[0][i] ?? null)); rows = rows.slice(1); }
+  if (header && rows.length) { names = Array.from({ length: width }, (_, i) => textOf(rows[0].r[i] ?? null)); rows = rows.slice(1); }
   if (!keepTotal && rows.length > 2) {
-    const last = rows[rows.length - 1], head = textOf(last.find((c) => textOf(c)) ?? null);
+    const last = rows[rows.length - 1].r, head = textOf(last.find((c) => textOf(c)) ?? null);
     if (/^(grand\s+)?totals?\b:?/i.test(head) || /^sum\b/i.test(head)) { rows = rows.slice(0, -1); notes.push(`The last row (“${head}”) looks like a total of the rows above: left out, so it is not counted twice.`); }
   }
   const seen = new Map<string, number>();
@@ -126,13 +127,20 @@ export function readGrid(grid: Raw[][], header = looksLikeHeader(grid), keepTota
     const k = name.toLowerCase(), n = (seen.get(k) ?? 0) + 1;
     seen.set(k, n);
     if (n > 1) name = `${name} (${n})`;
-    cols.push(typeColumn(name, rows.map((r) => r[i] ?? null)));
+    cols.push(typeColumn(name, rows.map(({ r }) => r[i] ?? null), rows.map(({ x }) => x?.[i] ?? null)));
   }
   if (!rows.length) notes.push('No rows of data under the header.');
   return { cols, rows: rows.length, header, notes };
 }
+/** the cells of each column as `readGrid` took them (after the header and a total row), for `retype` */
+export function cellsOf(grid: Raw[][], d: Data, exact?: Array<Array<number | null>> | null): Array<{ raw: Raw[]; exact: Array<number | null> }> {
+  let rows = grid.map((r, i) => ({ r, x: exact?.[i] ?? null })).filter(({ r }) => r.some((c) => textOf(c)));
+  if (d.header) rows = rows.slice(1);
+  rows = rows.slice(0, d.rows);
+  return d.cols.map((_, i) => ({ raw: rows.map(({ r }) => r[i] ?? null), exact: rows.map(({ x }) => x?.[i] ?? null) }));
+}
 
-function typeColumn(name: string, cells: Raw[]): Col {
+function typeColumn(name: string, cells: Raw[], exact?: Array<number | null>): Col {
   const filled = cells.filter((c) => textOf(c) !== '');
   let nums = 0, dates = 0, dmy = 0, mdy = 0;
   const fmt: Fmt = { currency: '', percent: false, decimals: 0, indian: false };
@@ -156,10 +164,10 @@ function typeColumn(name: string, cells: Raw[]): Col {
     fmt.decimals = Math.min(fmt.decimals, fmt.percent ? 4 : 6);
   }
   let odd = 0;
-  const values = cells.map((c): number | string | null => {
+  const values = cells.map((c, i): number | string | null => {
     const t = textOf(c);
     if (!t) return null;
-    if (kind === 'number') { if (typeof c === 'number') return c; const n = readNumber(t); if (n) return n.v; odd++; return null; }
+    if (kind === 'number') { if (typeof c === 'number') return c; const n = readNumber(t); if (n) return exact?.[i] ?? n.v; odd++; return null; }
     if (kind === 'date') { const d = readDate(t, order); if (d !== null) return d; odd++; return null; }
     return t;
   });
@@ -168,16 +176,16 @@ function typeColumn(name: string, cells: Raw[]): Col {
 }
 
 /** A column read again as another kind (the column list's choice) */
-export function retype(col: Col, raw: Raw[], kind: Kind): Col {
-  const c = typeColumn(col.name, raw);
+export function retype(col: Col, raw: Raw[], kind: Kind, exact?: Array<number | null>): Col {
+  const c = typeColumn(col.name, raw, exact);
   if (kind === c.kind) return c;
   if (kind === 'text') return { ...c, kind, values: raw.map((x) => textOf(x) || null), fmt: { currency: '', percent: false, decimals: 0, indian: false }, odd: 0, distinct: new Set(raw.map(textOf).filter(Boolean)).size };
   // forced to numbers or dates: what cannot be read is left out
   let odd = 0;
-  const values = raw.map((x): number | null => {
+  const values = raw.map((x, i): number | null => {
     const t = textOf(x);
     if (!t) return null;
-    const v = kind === 'number' ? (typeof x === 'number' ? x : readNumber(t)?.v ?? null) : readDate(t, c.mdy ? 'mdy' : 'dmy');
+    const v = kind === 'number' ? (typeof x === 'number' ? x : readNumber(t) ? exact?.[i] ?? readNumber(t)!.v : null) : readDate(t, c.mdy ? 'mdy' : 'dmy');
     if (v === null || v === undefined) odd++;
     return v ?? null;
   });
@@ -185,13 +193,128 @@ export function retype(col: Col, raw: Raw[], kind: Kind): Col {
 }
 
 /** Perspective's schema and rows for the columns */
-export function tableOf(d: Data): { schema: Record<string, 'float' | 'date' | 'string'>; columns: Record<string, Array<number | string | Date | null>> } {
-  const schema: Record<string, 'float' | 'date' | 'string'> = {}, columns: Record<string, Array<number | string | Date | null>> = {};
+export function tableOf(d: Data): { schema: Record<string, 'float' | 'date' | 'string'>; columns: Record<string, Array<number | string | null>> } {
+  const schema: Record<string, 'float' | 'date' | 'string'> = {}, columns: Record<string, Array<number | string | null>> = {};
   for (const c of d.cols) {
     schema[c.name] = c.kind === 'number' ? 'float' : c.kind === 'date' ? 'date' : 'string';
-    columns[c.name] = c.kind === 'date' ? c.values.map((v) => (v === null ? null : new Date(v as number))) : c.values;
+    columns[c.name] = c.kind === 'date' ? c.values.map((v) => (v === null ? null : new Date(v as number).toISOString().slice(0, 10))) : c.values;
   }
   return { schema, columns };
+}
+
+// ------------------------------------------------------------------ a pasted range
+/** an element of the clipboard's HTML as a plain tree — the tab makes it from the browser's DOMParser, the tests from parse5 */
+export interface HNode { tag: string; attrs: Record<string, string>; kids: Array<HNode | string> }
+export type PasteFrom = 'Excel' | 'LibreOffice Calc' | 'Google Sheets' | 'a web page';
+export interface Pasted { grid: Raw[][]; exact: Array<Array<number | null>>; from: PasteFrom; cells: number }
+
+/** day 0 of the dates of Excel (its 1900 system, from 1 March 1900 on), LibreOffice and Google Sheets */
+const DAY0 = Date.UTC(1899, 11, 30);
+const isoDay = (t: number) => new Date(t).toISOString().slice(0, 10);
+function nodeText(n: HNode | string): string {
+  if (typeof n === 'string') return n;
+  if (n.tag === 'br') return '\n';
+  if (n.tag === 'style' || n.tag === 'script' || n.tag === 'template') return '';
+  return n.kids.map(nodeText).join('');
+}
+function* elements(n: HNode): Generator<HNode> { yield n; for (const k of n.kids) if (typeof k !== 'string') yield* elements(k); }
+/** the rows of a table (its own: through thead, tbody and tfoot, never a table inside it) */
+function rowsOf(t: HNode): HNode[] {
+  const out: HNode[] = [];
+  for (const k of t.kids) {
+    if (typeof k === 'string') continue;
+    if (k.tag === 'tr') out.push(k);
+    else if (k.tag === 'thead' || k.tag === 'tbody' || k.tag === 'tfoot') for (const r of k.kids) if (typeof r !== 'string' && r.tag === 'tr') out.push(r);
+  }
+  return out;
+}
+/** the value a spreadsheet put behind a cell's text: Excel's x:num, LibreOffice's sdval, Google Sheets' data-sheets-value */
+function valueBehind(a: Record<string, string>): number | null {
+  let v: number | null = null;
+  if (a['x:num'] !== undefined && a['x:num'] !== '') v = Number(a['x:num']);
+  else if (a.sdval !== undefined && a.sdval !== '') v = Number(a.sdval);
+  else if (a['data-sheets-value']) { try { const j = JSON.parse(a['data-sheets-value']); if (j && j['1'] === 3 && typeof j['3'] === 'number') v = j['3']; } catch { /* not Google's */ } }
+  return v !== null && Number.isFinite(v) ? v : null;
+}
+/**
+ * A range copied in Excel, LibreOffice Calc or Google Sheets (or a table of a web page) — the clipboard's HTML as a tree → the grid as the
+ * sheet shows it and, where the sheet gives it, the value behind each number. The largest table is taken; colspan and rowspan fill the grid.
+ * **A date** whose text and value agree (the value is a day number: 46119 is 7 April 2026; its year and month are those of the text read day
+ * first or month first) becomes its ISO date — so 4/7/2026 from an American Excel is 7 April, not 4 July. **A number** keeps its text (its
+ * currency, its decimals) and its exact value (a sheet shows 12 % for 0.12345). Excel's accounting zero ("₹ -") is 0.
+ */
+export function pasteTables(root: HNode): Pasted | null {
+  const all = [...elements(root)];
+  const from: PasteFrom = all.some((e) => e.tag === 'google-sheets-html-origin' || 'data-sheets-value' in e.attrs || 'data-sheets-root' in e.attrs) ? 'Google Sheets'
+    : all.some((e) => 'x:num' in e.attrs || 'x:str' in e.attrs || (e.tag === 'meta' && /excel/i.test(e.attrs.content ?? '')) || /office:excel/.test(e.attrs['xmlns:x'] ?? '')) ? 'Excel'
+    : all.some((e) => 'sdval' in e.attrs || 'sdnum' in e.attrs || (e.tag === 'meta' && /libreoffice|openoffice/i.test(e.attrs.content ?? ''))) ? 'LibreOffice Calc'
+    : 'a web page';
+  let best: { grid: Raw[][]; exact: Array<Array<number | null>>; cells: number } | null = null;
+  for (const t of all) {
+    if (t.tag !== 'table' || [...elements(t)].some((e) => e !== t && e.tag === 'table')) continue;
+    const trs = rowsOf(t);
+    const grid: Raw[][] = [], exact: Array<Array<number | null>> = [];
+    let cells = 0;
+    trs.forEach((tr, r) => {
+      grid[r] ||= []; exact[r] ||= [];
+      let c = 0;
+      for (const td of tr.kids) {
+        if (typeof td === 'string' || (td.tag !== 'td' && td.tag !== 'th')) continue;
+        while (grid[r][c] !== undefined) c++;
+        const cs = Math.min(1000, Math.max(1, parseInt(td.attrs.colspan ?? '1', 10) || 1)), rs = Math.min(10000, Math.max(1, parseInt(td.attrs.rowspan ?? '1', 10) || 1));
+        const text = nodeText(td).replace(/[\s ]+/g, ' ').trim();
+        let cell: Raw = text || null, x: number | null = null;
+        const v = valueBehind(td.attrs);
+        if (v !== null && text) {
+          const dd = readDate(text, 'dmy'), dm = readDate(text, 'mdy');
+          if (dd !== null || dm !== null) {
+            if (v >= 61 && v < 2958466) {
+              const t2 = DAY0 + Math.floor(v + 1e-9) * 864e5, sd = new Date(t2);
+              if ([dd, dm].some((x2) => x2 !== null && new Date(x2).getUTCFullYear() === sd.getUTCFullYear() && new Date(x2).getUTCMonth() === sd.getUTCMonth())) cell = isoDay(t2);
+            }
+          } else if (readNumber(text)) x = v;
+          else { const z = text.match(/^(₹|rs\.?|\$|€|£|¥)?\s*[-–—]\s*(₹|\$|€|£|¥)?$/i); if (z && v === 0) { cell = `${z[1] ?? z[2] ?? ''}0`; x = 0; } }
+        }
+        for (let dr = 0; dr < rs && r + dr < trs.length; dr++) {
+          grid[r + dr] ||= []; exact[r + dr] ||= [];
+          for (let dc = 0; dc < cs; dc++) { grid[r + dr][c + dc] = dr || dc ? null : cell; exact[r + dr][c + dc] = dr || dc ? null : x; }
+        }
+        if (text) cells++;
+        c += cs;
+      }
+    });
+    const width = Math.max(0, ...grid.map((r) => r.length));
+    const g2 = grid.map((r) => Array.from({ length: width }, (_, i) => r[i] ?? null)), x2 = exact.map((r) => Array.from({ length: width }, (_, i) => r[i] ?? null));
+    if (cells && (!best || cells > best.cells)) best = { grid: g2, exact: x2, cells };
+  }
+  return best ? { ...best, from } : null;
+}
+
+/** The sample: 360 sales of a tea and spice trader across India over two years — dates, regions, cities, products, units, prices in rupees,
+ *  sales and discounts, written as a sheet shows them. Made from a fixed seed: the same every time. */
+export function sampleGrid(): Raw[][] {
+  let seed = 75;
+  const rnd = () => { seed = (seed + 0x6d2b79f5) | 0; let t = Math.imul(seed ^ (seed >>> 15), 1 | seed); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+  const pick = <T,>(a: T[]) => a[Math.floor(rnd() * a.length)];
+  const REG: Record<string, string[]> = { North: ['Delhi', 'Jaipur', 'Lucknow', 'Chandigarh'], South: ['Bengaluru', 'Chennai', 'Hyderabad', 'Kochi'], East: ['Kolkata', 'Bhubaneswar', 'Patna', 'Guwahati'], West: ['Mumbai', 'Pune', 'Ahmedabad', 'Surat'] };
+  const PROD: Array<[string, number]> = [['Tea', 240], ['Coffee', 420], ['Honey', 610], ['Spices', 180], ['Rice', 95], ['Ghee', 720]];
+  const inr = new Intl.NumberFormat('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const t0 = Date.UTC(2025, 0, 1), days = 696;           // 1 January 2025 – 27 November 2026
+  const rows: Array<{ t: number; r: Raw[] }> = [];
+  for (let i = 0; i < 360; i++) {
+    const t = t0 + Math.floor(rnd() * days) * 864e5, dt = new Date(t), m = dt.getUTCMonth();
+    const region = pick(Object.keys(REG)), city = pick(REG[region]);
+    const [product, price] = pick(PROD);
+    const season = product === 'Tea' || product === 'Coffee' ? 1 + 0.35 * Math.cos(((m + 0.5) / 12) * 2 * Math.PI) : 1;
+    const growth = 1 + (0.3 * (t - t0)) / (days * 864e5);
+    const units = Math.max(1, Math.round((5 + rnd() * 55) * season * growth));
+    const disc = pick([0, 0, 0, 0.05, 0.1, 0.125, 0.15, 0.2]);
+    const sales = Math.round(units * price * (1 - disc) * 100) / 100;
+    const p2 = (n: number) => String(n).padStart(2, '0');
+    rows.push({ t, r: [`${p2(dt.getUTCDate())}/${p2(m + 1)}/${dt.getUTCFullYear()}`, region, city, product, units, `₹${inr.format(price)}`, `₹${inr.format(sales)}`, `${+(disc * 100).toFixed(1)}%`] });
+  }
+  rows.sort((a, b) => a.t - b.t);
+  return [['Date', 'Region', 'City', 'Product', 'Units', 'Price', 'Sales', 'Discount'], ...rows.map((x) => x.r)];
 }
 
 // ------------------------------------------------------------------ the pivot
@@ -211,7 +334,7 @@ export const SHOWS: Array<[Show, string]> = [['value', 'The value'], ['pct_total
 export const GRAINS: Array<[Grain, string]> = [['year', 'Year'], ['quarter', 'Quarter'], ['month', 'Month'], ['week', 'Week'], ['day', 'Day'], ['month_of_year', 'Month of the year'], ['day_of_week', 'Day of the week']];
 const AGG_ENGINE: Record<Agg, string> = { sum: 'sum', count: 'count', avg: 'avg', min: 'min', max: 'max', distinct: 'distinct count' };
 const aggWord = (a: Agg) => AGGS.find((x) => x[0] === a)![1];
-export const ROWS = 'Rows';   // the count of rows, as a value: an expression of 1s summed
+export const ROWS = '·Rows';   // the count of rows, as a value: an expression of 1s summed (· keeps it apart from a column a sheet calls Rows)
 
 /** the name of a field as the pivot shows it: "Date (month)" */
 export const fieldLabel = (f: Field) => (f.grain ? `${f.name} (${GRAINS.find((g) => g[0] === f.grain)![1].toLowerCase()})` : f.name);
@@ -250,7 +373,7 @@ export function viewPlan(spec: PivotSpec, d: Data): ViewPlan {
     if (kinds.get(f.name) !== 'date') return f.name;
     const grain = f.grain ?? 'day';
     if (!split && grain === 'day') return f.name;
-    const name = `${fieldLabel({ name: f.name, grain })}${split ? ' ·s' : ''}`;
+    const name = `·${fieldLabel({ name: f.name, grain })}${split ? ' ·s' : ''}`;
     expressions[name] = grainExpr({ name: f.name, grain }, split);
     return name;
   };
@@ -436,6 +559,85 @@ export function pivotGrid(p: Pivot, d: Data, raw = false): Array<Array<string | 
   }
   void d;
   return out;
+}
+
+// ------------------------------------------------------------------ the tables a card shows and saves
+export interface THead { text: string; span: number }
+export interface TRow { kind: 'leaf' | 'sub' | 'total'; depth: number; labels: string[]; values: Array<number | null>; fmts: Fmt[] }
+/** A table as a card shows it (on the screen, as a picture) and saves it (CSV, Excel): header rows of cells that may span columns, `lead`
+ *  label columns, then a value a column. */
+export interface TOut { heads: THead[][]; lead: number; rows: TRow[]; note: string[] }
+const NOFMT: Fmt = { currency: '', percent: false, decimals: 0, indian: false };
+/** a pivot's table: one header row, or two with a split (Excel's layout: with one value its name in the corner over the row fields and the
+ *  split's name over the split's values; with several, the split's values over the values' names) */
+export function tableOfPivot(p: Pivot): TOut {
+  const lead = Math.max(1, p.spec.rows.length), rowHeads = p.spec.rows.length ? p.spec.rows.map(fieldLabel) : [''];
+  const heads: THead[][] = [];
+  if (p.spec.cols) {
+    const groups: THead[] = [];
+    for (const c of p.cols) { const g = groups[groups.length - 1]; if (g && (g as THead & { key?: string | null }).key === c.split) g.span++; else groups.push(Object.assign({ text: c.splitLabel, span: 1 }, { key: c.split })); }
+    groups.forEach((g) => delete (g as THead & { key?: string | null }).key);
+    if (p.values.length === 1) heads.push([{ text: valueLabel(p.values[0]), span: lead }, { text: fieldLabel(p.spec.cols), span: p.cols.length }], [...rowHeads.map((t) => ({ text: t, span: 1 })), ...groups]);
+    else heads.push([{ text: fieldLabel(p.spec.cols), span: lead }, ...groups], [...rowHeads.map((t) => ({ text: t, span: 1 })), ...p.cols.map((c) => ({ text: valueLabel(p.values[c.value]), span: 1 }))]);
+  } else heads.push([...rowHeads.map((t) => ({ text: t, span: 1 })), ...p.cols.map((c) => ({ text: valueLabel(p.values[c.value]), span: 1 }))]);
+  const fmts = p.cols.map((c) => p.fmts[c.value]);
+  return { heads, lead, rows: p.rows.map((r) => ({ kind: r.kind, depth: r.depth, labels: r.kind === 'total' ? ['Total'] : r.labels, values: r.cells, fmts })), note: p.note };
+}
+/** a histogram's bins: from, to, the rows in each */
+export function tableOfBins(b: NonNullable<ChartExtra['bins']>): TOut {
+  return { heads: [[{ text: `${b.field}: from`, span: 1 }, { text: 'to (not included)', span: 1 }, { text: 'Rows', span: 1 }]], lead: 2,
+    rows: b.from.map((x, i) => ({ kind: 'leaf' as const, depth: 1, labels: [fmtNumber(x, b.fmt), fmtNumber(x + b.step, b.fmt)], values: [b.counts[i]], fmts: [NOFMT] })),
+    note: [`${b.counts.reduce((a, x) => a + x, 0).toLocaleString('en-IN')} rows in ${b.counts.length} bins of ${fmtNumber(b.step, { ...b.fmt, decimals: Math.max(b.fmt.decimals, b.step < 1 ? Math.ceil(-Math.log10(b.step)) : 0) })}; the last bin holds its upper end.`] };
+}
+/** a box plot's five numbers by group */
+export function tableOfBoxes(bx: NonNullable<ChartExtra['boxes']>, group: string): TOut {
+  const f = { ...bx.fmt, decimals: Math.max(bx.fmt.decimals, 2) };
+  return { heads: [[{ text: group, span: 1 }, ...['Smallest', 'First quartile', 'Median', 'Third quartile', 'Largest'].map((t) => ({ text: `${t} ${bx.field}`, span: 1 }))]], lead: 1,
+    rows: bx.cats.map((c, i) => ({ kind: 'leaf' as const, depth: 1, labels: [c], values: [...bx.stats[i]], fmts: Array(5).fill(f) })), note: ['Quartiles by linear interpolation between the sorted values (Excel’s QUARTILE.INC, NumPy’s default).'] };
+}
+/** a scatter's points */
+export function tableOfPoints(pt: NonNullable<ChartExtra['points']>): TOut {
+  return { heads: [[{ text: pt.xName, span: 1 }, { text: pt.yName, span: 1 }]], lead: 0, rows: pt.x.map((x, i) => ({ kind: 'leaf' as const, depth: 1, labels: [], values: [x, pt.y[i]], fmts: [pt.xFmt, pt.yFmt] })), note: [] };
+}
+/** the labels a table shows (outline form: a group's label once, on its first row; the total row "Total") */
+export function shownLabels(t: TOut): string[][] {
+  let prev: string[] = [];
+  return t.rows.map((r) => {
+    const out = Array.from({ length: t.lead }, (_, k) => {
+      if (r.kind === 'total') return k === 0 ? 'Total' : '';
+      if (k >= r.labels.length) return '';
+      return k < r.labels.length - 1 && prev.length > k && prev.slice(0, k + 1).join('\u0000') === r.labels.slice(0, k + 1).join('\u0000') ? '' : r.labels[k];
+    });
+    prev = r.kind === 'total' ? [] : r.labels;
+    return out;
+  });
+}
+const plainNum = (v: number | null, f: Fmt) => (v === null || !Number.isFinite(v) ? '' : f.percent ? `${+(v * 100).toPrecision(12)}%` : `${+v.toPrecision(15)}`);
+/** a table as CSV rows: the header rows (a spanning cell's text in its first column), then every row with its labels in full (a subtotal's
+ *  next label "Subtotal"), numbers plain and percentages with % (Excel, LibreOffice and Google Sheets read them as numbers) */
+export function csvRows(t: TOut): string[][] {
+  const heads = t.heads.map((hr) => hr.flatMap((c) => [c.text, ...Array(Math.max(0, c.span - 1)).fill('')]));
+  return [...heads, ...t.rows.map((r) => [...Array.from({ length: t.lead }, (_, k) => (r.kind === 'total' ? (k ? '' : 'Total') : k < r.labels.length ? r.labels[k] : r.kind === 'sub' && k === r.labels.length ? 'Subtotal' : '')), ...r.values.map((v, i) => plainNum(v, r.fmts[i]))])];
+}
+/** Excel's number format of a column's format: [$₹-4009]#,##,##0.00 (rupees in lakhs), [$$-409]#,##0.00, 0.0% */
+export function excelFormat(f: Fmt): string {
+  const dec = f.percent ? Math.min(2, Math.max(0, f.decimals)) : Math.max(0, f.decimals), frac = dec > 0 ? `.${'0'.repeat(dec)}` : '';
+  if (f.percent) return `0${frac}%`;
+  const body = `${f.indian ? '#,##,##0' : '#,##0'}${frac}`;
+  if (f.currency === '₹') return `[$₹-4009]${body}`;
+  if (f.currency === '$') return `[$$-409]${body}`;
+  return f.currency ? `"${f.currency.replace(/"/g, '')}"${body}` : body;
+}
+export type XCell = string | null | { text: string; bold: boolean } | { num: number; format: string; bold: boolean; shown: string };
+/** a table as Excel cells (sheet.wasm's writer): the header rows in bold, labels as text (bold on subtotal and total rows), numbers with their
+ *  format — a sum of rupees in rupees, a share as a percentage */
+export function xlsxRows(t: TOut): XCell[][] {
+  const heads = t.heads.map((hr) => hr.flatMap((c): XCell[] => [{ text: c.text, bold: true }, ...Array(Math.max(0, c.span - 1)).fill(null)]));
+  return [...heads, ...t.rows.map((r) => {
+    const bold = r.kind !== 'leaf';
+    const labels = csvRows({ ...t, heads: [], rows: [r] })[0].slice(0, t.lead).map((x): XCell => (x ? (bold ? { text: x, bold } : x) : null));
+    return [...labels, ...r.values.map((v, i): XCell => (v === null || !Number.isFinite(v) ? null : { num: v, format: excelFormat(r.fmts[i]), bold, shown: fmtNumber(v, r.fmts[i]) }))];
+  })];
 }
 
 // ------------------------------------------------------------------ presets
@@ -684,12 +886,12 @@ export async function histogramOf(t: EngineTable, field: string, spec: PivotSpec
   const c = d.cols.find((x) => x.name === field)!;
   const F = q(field), filter = filterOf(spec, d);
   // a view without group_by gives the rows themselves: a group of everything (a constant) gives the aggregate in its total row
-  const mm = await once(t, { group_by: ['·all'], columns: ['lo', 'hi'], expressions: { '·all': '1', lo: F, hi: F }, aggregates: { lo: 'min', hi: 'max' }, filter });
-  const lo = Number(mm.lo?.[0]), hi = Number(mm.hi?.[0]);
+  const mm = await once(t, { group_by: ['·all'], columns: ['·lo', '·hi'], expressions: { '·all': '1', '·lo': F, '·hi': F }, aggregates: { '·lo': 'min', '·hi': 'max' }, filter });
+  const lo = Number(mm['·lo']?.[0]), hi = Number(mm['·hi']?.[0]);
   const fmt = { ...c.fmt, decimals: 0 };
   if (!Number.isFinite(lo) || !Number.isFinite(hi)) return { from: [], step: 1, counts: [], field, fmt };
   const step = hi > lo ? niceStep(hi - lo, 20) : 1, start = Math.floor(lo / step) * step;
-  const r = await once(t, { group_by: ['bin'], columns: [ROWS], expressions: { bin: `floor((${F} - ${start}) / ${step})`, [ROWS]: '1' }, aggregates: { [ROWS]: 'sum' }, filter: [...filter, [field, 'is not null', null]] });
+  const r = await once(t, { group_by: ['·bin'], columns: [ROWS], expressions: { '·bin': `floor((${F} - ${start}) / ${step})`, [ROWS]: '1' }, aggregates: { [ROWS]: 'sum' }, filter: [...filter, [field, 'is not null', null]] });
   const paths = (r.__ROW_PATH__ as unknown[][]).slice(1), counts = (r[ROWS] as number[]).slice(1);
   const n = Math.floor((hi - start) / step + 1e-9) + 1;   // the bins from the one holding the smallest to the one holding the largest
   const out = Array(n).fill(0);

@@ -1,9 +1,10 @@
 // SliceDiceGrapher (potentials #75): src/lib/slicedice.ts — numbers and dates as sheets write them, a grid read into typed columns, the
 // presets, and every pivot run on Perspective 5.10's engine in Node (the same WebAssembly the tab runs in its worker) and held to pandas'
-// answers (tests/fixtures/slicedice/reference.json — python3 scripts/make-slicedice-fixtures.py): sums, counts, averages, medians,
+// answers (tests/fixtures/slicedice/reference.json — python3 scripts/make-slicedice-fixtures.py): sums, counts, averages,
 // distinct counts, minimum and maximum, by one and two levels, split by a column, dates by month, quarter, year and month of the year,
 // filters; then what the values show (% of the total, of the parent, of the row, of the column, running totals), the order and the top N,
-// the histogram's bins and the box plot's quartiles, the graphs' options and the numbers' format.
+// the histogram's bins and the box plot's quartiles, the graphs' options and the numbers' format; and a range pasted from Excel, LibreOffice
+// Calc, Google Sheets and as plain text (the clipboard's HTML read by parse5 here, by the browser's DOMParser in the tab).
 import { readFileSync } from 'node:fs';
 
 const FIX = new URL('../fixtures/slicedice/', import.meta.url);
@@ -68,6 +69,40 @@ export default async (t, { load, wasm }) => {
   const re = L.retype(col('Region'), grid.slice(1, -1).map((r) => r[1]), 'number');
   t.eq([re.kind, re.odd], ['number', REF.rows], 'a text column forced to numbers: what cannot be read is counted');
 
+  // ---------------------------------------------------------------- a pasted range
+  const { parse } = await import('parse5');
+  const tree = (n) => ({ tag: n.nodeName.toLowerCase(), attrs: Object.fromEntries((n.attrs || []).map((a) => [a.name.toLowerCase(), a.value])), kids: (n.childNodes || []).flatMap((k) => (k.nodeName === '#text' ? [k.value] : k.nodeName.startsWith('#') ? [] : [tree(k)])) });
+  const pasted = (file) => L.pasteTables(tree(parse(readFileSync(new URL(file, FIX), 'utf8'))));
+  const R30 = REF.rows30, day = (iso) => Date.parse(`${iso}T00:00:00Z`);
+  const sameAs = (dd, rows, o = {}) => {
+    const c = (n) => dd.cols.find((x) => x.name === n);
+    const bad = [];
+    rows.forEach((r, i) => {
+      if (c('Date').values[i] !== day(r.date)) bad.push(`row ${i + 1} date ${c('Date').values[i]}`);
+      for (const [k, n] of [['units', 'Units'], ['price', 'Price'], ['sales', 'Sales'], ['discount', 'Discount']]) if (!(o.skip?.(i, k)) && !near(c(n).values[i], r[k], 1e-12)) bad.push(`row ${i + 1} ${n} ${c(n).values[i]} ≠ ${r[k]}`);
+      for (const [k, n] of [['region', 'Region'], ['city', 'City'], ['product', 'Product']]) if (c(n).values[i] !== r[k]) bad.push(`row ${i + 1} ${n}`);
+    });
+    return bad;
+  };
+  for (const [file, from] of [['paste-excel.html', 'Excel'], ['paste-libre.html', 'LibreOffice Calc'], ['paste-gsheets.html', 'Google Sheets']]) {
+    const p = pasted(file), dd = L.readGrid(p.grid, undefined, false, p.exact);
+    const bad = sameAs(dd, R30);
+    t.ok(p.from === from && dd.rows === 30 && dd.header && !bad.length && dd.cols.map((x) => x.kind).join() === 'date,text,text,text,number,number,number,number',
+      `${file}: read as copied from ${from} (${p.from}) — 30 rows under the header, every date, unit, price, sale and discount as in the sheet (${bad.slice(0, 4).join('; ')})`);
+    t.eq([dd.cols[6].fmt.currency, dd.cols[7].fmt.percent], ['₹', true], `${file}: the sales in rupees, the discount a percentage — the formats from the text shown`);
+  }
+  const tsv = sheet.csv(new TextEncoder().encode(readFileSync(new URL('paste.tsv', FIX), 'utf8')), '\t').sheets[0].rows;
+  const dt = L.readGrid(tsv), badT = sameAs(dt, R30);
+  t.ok(dt.rows === 30 && !badT.length, `the clipboard's plain text (tab-separated, read by sheet.wasm): the same 30 rows (${badT.slice(0, 4).join('; ')})`);
+  const pu = pasted('paste-excel-us.html'), du = L.readGrid(pu.grid, undefined, false, pu.exact), badU = sameAs(du, R30.slice(0, 12));
+  t.ok(pu.from === 'Excel' && du.rows === 13 && !badU.length, `an American Excel's range: dates shown month first (4/7/2026) taken from the day numbers behind them, sales shown in whole dollars and the discount in whole percent taken at their exact values (${badU.slice(0, 4).join('; ')})`);
+  t.eq([du.cols[6].values[12], du.cols[6].odd, du.cols[6].fmt.currency], [0, 0, '$'], 'its accounting zero ("$ -") is a sale of 0, not a cell that is no number');
+  const web = L.pasteTables(tree(parse('<p>x</p><table><tr><td><table><tr><th>Name</th><th colspan="2">Score</th></tr><tr><td rowspan="2">Asha</td><td>10</td><td>12</td></tr><tr><td>11</td><td>13</td></tr><tr><td>Ravi</td><td>9</td><td>8<br>(late)</td></tr></table></td></tr></table><table><tr><td>a</td></tr></table>')));
+  t.eq([web.from, web.grid], ['a web page', [['Name', 'Score', null], ['Asha', '10', '12'], [null, '11', '13'], ['Ravi', '9', '8 (late)']]], 'a web page\'s table: the largest of its tables (a table that only lays out another left out), colspan and rowspan on the grid, a line break a space');
+  const sg = L.sampleGrid(), ds = L.readGrid(sg);
+  t.ok(JSON.stringify(sg) === JSON.stringify(L.sampleGrid()) && ds.rows === 360 && ds.cols.map((x) => x.kind).join() === 'date,text,text,text,number,number,number,number' && ds.cols[6].fmt.currency === '₹' && L.presetsFor(ds).length >= 12,
+    `the sample: the same 360 sales every time, read like a pasted sheet (${L.presetsFor(ds).length} presets)`);
+
   // ---------------------------------------------------------------- the presets
   const presets = L.presetsFor(d);
   t.eq(presets.map((p) => p.id), ['total-by', 'trend', 'cat-time', 'share', 'top10', 'count', 'avg', 'two-level', 'yoy', 'histogram', 'scatter', 'pareto', 'box'], `the presets the sales sheet suggests (${presets.map((p) => p.title).join(' · ')})`);
@@ -90,7 +125,7 @@ export default async (t, { load, wasm }) => {
     'sales of 5000 and more': [{ field: 'Sales', op: '>=', value: 5000 }],
     'first half of 2026': [{ field: 'Date', op: '>=', value: U(2026, 1, 1) }, { field: 'Date', op: '<=', value: U(2026, 6, 30) }],
   };
-  const specOf = (c, more = {}) => ({ rows: c.rows, cols: c.cols, values: c.values.map((v) => ({ ...v, field: v.field })), filters: FILTERS[c.name] ?? [], order: 'label', top: 0, subtotals: true, totals: true, ...more });
+  const specOf = (c, more = {}) => ({ rows: c.rows, cols: c.cols, values: c.values.map((v) => ({ ...v, field: v.field === 'Rows' ? L.ROWS : v.field })), filters: FILTERS[c.name] ?? [], order: 'label', top: 0, subtotals: true, totals: true, ...more });
   for (const c of REF.cases) {
     const p = await L.runPivot(table, specOf(c), d);
     let n = 0;
@@ -168,6 +203,29 @@ export default async (t, { load, wasm }) => {
     `the box plot: each product's smallest, first quartile, median, third quartile and largest sale — NumPy's (${boxes.cats.join(', ')})`);
   const pts = await L.pointsOf(table, 'Units', 'Sales', base, d);
   t.ok(pts.x.length === REF.rows && pts.y.length === REF.rows && near(pts.y.reduce((a, b) => a + b, 0), REF.total_sales), 'the scatter: every row a point');
+
+  // ---------------------------------------------------------------- the tables a card shows and saves
+  {
+    const two = L.tableOfPivot(await L.runPivot(table, specOf(twoLevel), d));
+    const lab = L.shownLabels(two);
+    t.eq([two.heads.map((r) => r.map((c) => `${c.text}${c.span > 1 ? `×${c.span}` : ''}`)), two.lead, lab.slice(0, 3), lab.at(-1)], [[['Region', 'Product', 'Sum of Sales', 'Sum of Units']], 2, [['East', ''], ['', 'Biscuits'], ['', 'Coffee']], ['Total', '']],
+      'a pivot of two levels as a table: one header row, a group\'s label once (its subtotal row), then its products, the total last');
+    const csv = L.csvRows(two);
+    t.eq([csv[0], csv[1].slice(0, 2), csv[2].slice(0, 2), csv.at(-1)[0], csv[2][2], csv[2][3]], [['Region', 'Product', 'Sum of Sales', 'Sum of Units'], ['East', 'Subtotal'], ['East', 'Biscuits'], 'Total', String(+twoLevel.cells['East/Biscuits||0'].toPrecision(15)), String(twoLevel.cells['East/Biscuits||1'])],
+      'its CSV: every row with its labels in full (a subtotal named), the numbers plain');
+    const sp1 = L.tableOfPivot(await L.runPivot(table, specOf(split), d));
+    t.eq(sp1.heads.map((r) => r.map((c) => `${c.text}${c.span > 1 ? `×${c.span}` : ''}`)), [['Sum of Sales', 'Product×6'], ['Region', 'Biscuits', 'Coffee', 'Honey', 'Juice', 'Snacks', 'Tea']], 'split by product, one value: its name over the region, the products under the split\'s name (as Excel lays it out)');
+    const sp2 = L.tableOfPivot(await L.runPivot(table, specOf(split, { values: [{ field: 'Sales', agg: 'sum', show: 'value' }, { field: 'Units', agg: 'sum', show: 'value' }] }), d));
+    t.eq(sp2.heads.map((r) => r.map((c) => `${c.text}${c.span > 1 ? `×${c.span}` : ''}`).slice(0, 4)), [['Product', 'Biscuits×2', 'Coffee×2', 'Honey×2'], ['Region', 'Sum of Sales', 'Sum of Units', 'Sum of Sales']], '… two values: each product over its two values');
+    const share = L.tableOfPivot(await L.runPivot(table, specOf(byRegion, { values: [{ field: 'Sales', agg: 'sum', show: 'pct_total' }, { field: 'Sales', agg: 'sum', show: 'value' }] }), d));
+    const xr = L.xlsxRows(share), cs = L.csvRows(share);
+    t.eq([xr[0][0], xr[1][1].format, xr[1][2].format, xr.at(-1)[0], xr.at(-1)[2].bold, /%$/.test(cs[1][1]), xr[1][1].shown.endsWith(' %')], [{ text: 'Region', bold: true }, '0.0%', '[$₹-4009]#,##,##0.00', { text: 'Total', bold: true }, true, true, true],
+      'for Excel: the header in bold, a share as 0.0 % and rupees as [$₹-4009]#,##,##0.00, the total row in bold; in the CSV a share with %');
+    t.eq([L.excelFormat({ currency: '$', percent: false, decimals: 2, indian: false }), L.excelFormat({ currency: '', percent: false, decimals: 0, indian: false }), L.excelFormat({ currency: '€', percent: false, decimals: 1, indian: false }), L.excelFormat({ currency: '', percent: true, decimals: 4, indian: false })],
+      ['[$$-409]#,##0.00', '#,##0', '"€"#,##0.0', '0.00%'], 'Excel\'s formats of dollars, plain numbers, euros, percentages');
+    const bt = L.tableOfBins(bins), bxT = L.tableOfBoxes(await L.boxesOf(table, 'Sales', { ...base, rows: [{ name: 'Product' }] }, d, (xs) => mc.stats(xs)), 'Product');
+    t.ok(bt.rows.length === bins.counts.length && bt.rows.every((r, i) => r.values[0] === bins.counts[i]) && bxT.rows.length === 6 && bxT.heads[0][3].text === 'Median Sales', 'the histogram\'s bins and the box plot\'s five numbers as tables');
+  }
 
   // ---------------------------------------------------------------- the graphs' options
   const pr = await L.runPivot(table, specOf(byRegion), d);

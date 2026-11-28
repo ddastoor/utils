@@ -1176,5 +1176,307 @@
 2730.0,
 3352.05,
 5184.0
+],
+"rows30": [
+{
+"date": "2026-04-07",
+"region": "West",
+"city": "Pune",
+"product": "Tea",
+"units": 47,
+"price": 240.0,
+"sales": 9870.0,
+"discount": 0.125
+},
+{
+"date": "2026-11-21",
+"region": "West",
+"city": "Ahmedabad",
+"product": "Honey",
+"units": 57,
+"price": 610.0,
+"sales": 27816.0,
+"discount": 0.2
+},
+{
+"date": "2025-12-20",
+"region": "North",
+"city": "Lucknow",
+"product": "Juice",
+"units": 6,
+"price": 120.0,
+"sales": 684.0,
+"discount": 0.05
+},
+{
+"date": "2025-10-09",
+"region": "West",
+"city": "Ahmedabad",
+"product": "Honey",
+"units": 23,
+"price": 610.0,
+"sales": 12276.25,
+"discount": 0.125
+},
+{
+"date": "2026-11-09",
+"region": "West",
+"city": "Pune",
+"product": "Snacks",
+"units": 2,
+"price": 95.5,
+"sales": 171.9,
+"discount": 0.1
+},
+{
+"date": "2026-07-09",
+"region": "West",
+"city": "Ahmedabad",
+"product": "Coffee",
+"units": 9,
+"price": 380.0,
+"sales": 3420.0,
+"discount": 0
+},
+{
+"date": "2025-05-27",
+"region": "East",
+"city": "Bhubaneswar",
+"product": "Biscuits",
+"units": 11,
+"price": 45.25,
+"sales": 447.98,
+"discount": 0.1
+},
+{
+"date": "2025-01-19",
+"region": "East",
+"city": "Kolkata",
+"product": "Tea",
+"units": 4,
+"price": 240.0,
+"sales": 912.0,
+"discount": 0.05
+},
+{
+"date": "2025-11-28",
+"region": "South",
+"city": "Bengaluru",
+"product": "Tea",
+"units": 53,
+"price": 240.0,
+"sales": 11448.0,
+"discount": 0.1
+},
+{
+"date": "2025-05-03",
+"region": "East",
+"city": "Bhubaneswar",
+"product": "Biscuits",
+"units": 44,
+"price": 45.25,
+"sales": 1991.0,
+"discount": 0
+},
+{
+"date": "2026-10-29",
+"region": "West",
+"city": "Pune",
+"product": "Juice",
+"units": 37,
+"price": 120.0,
+"sales": 3552.0,
+"discount": 0.2
+},
+{
+"date": "2025-08-05",
+"region": "South",
+"city": "Chennai",
+"product": "Honey",
+"units": 45,
+"price": 610.0,
+"sales": 21960.0,
+"discount": 0.2
+},
+{
+"date": "2025-01-05",
+"region": "North",
+"city": "Chandigarh",
+"product": "Juice",
+"units": 29,
+"price": 120.0,
+"sales": 3306.0,
+"discount": 0.05
+},
+{
+"date": "2025-01-20",
+"region": "South",
+"city": "Kochi",
+"product": "Biscuits",
+"units": 29,
+"price": 45.25,
+"sales": 1312.25,
+"discount": 0
+},
+{
+"date": "2025-10-04",
+"region": "East",
+"city": "Kolkata",
+"product": "Juice",
+"units": 17,
+"price": 120.0,
+"sales": 1836.0,
+"discount": 0.1
+},
+{
+"date": "2026-05-27",
+"region": "West",
+"city": "Ahmedabad",
+"product": "Tea",
+"units": 26,
+"price": 240.0,
+"sales": 5928.0,
+"discount": 0.05
+},
+{
+"date": "2026-01-10",
+"region": "West",
+"city": "Pune",
+"product": "Tea",
+"units": 19,
+"price": 240.0,
+"sales": 4104.0,
+"discount": 0.1
+},
+{
+"date": "2026-02-08",
+"region": "East",
+"city": "Kolkata",
+"product": "Biscuits",
+"units": 35,
+"price": 45.25,
+"sales": 1425.38,
+"discount": 0.1
+},
+{
+"date": "2025-12-02",
+"region": "East",
+"city": "Bhubaneswar",
+"product": "Biscuits",
+"units": 5,
+"price": 45.25,
+"sales": 214.94,
+"discount": 0.05
+},
+{
+"date": "2026-07-31",
+"region": "South",
+"city": "Kochi",
+"product": "Tea",
+"units": 26,
+"price": 240.0,
+"sales": 5460.0,
+"discount": 0.125
+},
+{
+"date": "2026-09-20",
+"region": "East",
+"city": "Kolkata",
+"product": "Juice",
+"units": 29,
+"price": 120.0,
+"sales": 3480.0,
+"discount": 0
+},
+{
+"date": "2025-05-27",
+"region": "South",
+"city": "Bengaluru",
+"product": "Snacks",
+"units": 29,
+"price": 95.5,
+"sales": 2631.03,
+"discount": 0.05
+},
+{
+"date": "2026-10-29",
+"region": "West",
+"city": "Ahmedabad",
+"product": "Coffee",
+"units": 55,
+"price": 380.0,
+"sales": 20900.0,
+"discount": 0
+},
+{
+"date": "2026-03-23",
+"region": "East",
+"city": "Kolkata",
+"product": "Juice",
+"units": 10,
+"price": 120.0,
+"sales": 1200.0,
+"discount": 0
+},
+{
+"date": "2025-09-16",
+"region": "South",
+"city": "Chennai",
+"product": "Snacks",
+"units": 28,
+"price": 95.5,
+"sales": 2406.6,
+"discount": 0.1
+},
+{
+"date": "2026-07-18",
+"region": "South",
+"city": "Chennai",
+"product": "Coffee",
+"units": 26,
+"price": 380.0,
+"sales": 9880.0,
+"discount": 0
+},
+{
+"date": "2025-12-19",
+"region": "South",
+"city": "Bengaluru",
+"product": "Biscuits",
+"units": 1,
+"price": 45.25,
+"sales": 39.59,
+"discount": 0.125
+},
+{
+"date": "2026-01-04",
+"region": "West",
+"city": "Pune",
+"product": "Snacks",
+"units": 14,
+"price": 95.5,
+"sales": 1270.15,
+"discount": 0.05
+},
+{
+"date": "2025-05-21",
+"region": "East",
+"city": "Bhubaneswar",
+"product": "Honey",
+"units": 3,
+"price": 610.0,
+"sales": 1464.0,
+"discount": 0.2
+},
+{
+"date": "2025-08-02",
+"region": "West",
+"city": "Pune",
+"product": "Juice",
+"units": 3,
+"price": 120.0,
+"sales": 360.0,
+"discount": 0
+}
 ]
 }

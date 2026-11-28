@@ -11,6 +11,8 @@ tests/fixtures/slicedice/
   paste-libre.html     … as LibreOffice Calc does (sdval / sdnum)
   paste-gsheets.html   … as Google Sheets does (data-sheets-value)
   paste.tsv            … as the clipboard's plain text (tab-separated, the cells as shown)
+  paste-excel-us.html  the first 12 rows as an American Excel copies them — dates month first (4/7/2026), sales in whole dollars and the
+                       discount in whole percent (the values behind them exact) — and a 13th row whose sales are the accounting zero ("$ -")
   reference.json       pandas' answers for the pivots the unit suite runs on Perspective: each case's cells by row path and split
 """
 import json
@@ -149,6 +151,28 @@ def gsheets_html():
     return ''.join(out)
 
 
+def excel_us_html():
+    half_up = lambda x: int(math.floor(x + 0.5))
+    out = ['<html xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">',
+           '<head><meta http-equiv=Content-Type content="text/html; charset=utf-8"><meta name=ProgId content=Excel.Sheet><meta name=Generator content="Microsoft Excel 15">',
+           '<style>.xl65{mso-number-format:"\\0022$\\0022\\#\\,\\#\\#0";}.xl66{mso-number-format:"Short Date";}.xl67{mso-number-format:0%;}.xl68{mso-number-format:"_\\(\\0022$\\0022* \\#\\,\\#\\#0_\\)\\;_\\(\\0022$\\0022* \\0022-\\0022_\\)";}</style></head><body>',
+           '<table border=0 cellpadding=0 cellspacing=0>', '<!--StartFragment-->']
+    out.append('<tr>' + ''.join(f'<td>{h}</td>' for h in HEAD) + '</tr>')
+    for k, r in enumerate(part[:13]):
+        d = r['Date']
+        sales = (f'<td class=xl68 align=right x:num="0">$ -</td>' if k == 12 else f'<td class=xl65 align=right x:num="{r["Sales"]}">${half_up(r["Sales"]):,}</td>')
+        out.append('<tr>'
+                   f'<td class=xl66 align=right x:num="{serial(d)}">{d.month}/{d.day}/{d.year}</td>'
+                   f'<td>{esc(r["Region"])}</td><td>{esc(r["City"])}</td><td>{esc(r["Product"])}</td>'
+                   f'<td align=right x:num>{r["Units"]}</td>'
+                   f'<td class=xl65 align=right x:num="{r["Price"]}">${half_up(r["Price"]):,}</td>'
+                   + sales +
+                   f'<td class=xl67 align=right x:num="{r["Discount"]}">{half_up(r["Discount"] * 100)}%</td></tr>')
+    out += ['<!--EndFragment-->', '</table></body></html>']
+    return '\n'.join(out)
+
+
+(OUT / 'paste-excel-us.html').write_text(excel_us_html(), encoding='utf-8')
 (OUT / 'paste-excel.html').write_text(excel_html(), encoding='utf-8')
 (OUT / 'paste-libre.html').write_text(libre_html(), encoding='utf-8')
 (OUT / 'paste-gsheets.html').write_text(gsheets_html(), encoding='utf-8')
@@ -232,6 +256,7 @@ for prod, g in df.groupby('Product'):
     spread[prod]['min'] = float(v.min()); spread[prod]['max'] = float(v.max())
 lo, hi = float(df.Sales.min()), float(df.Sales.max())
 ref = {'rows': len(rows), 'total_sales': float(df.Sales.sum()), 'total_units': int(df.Units.sum()), 'cases': cases, 'spread': spread,
-       'sales_min': lo, 'sales_max': hi, 'sales': [float(x) for x in df.Sales]}
+       'sales_min': lo, 'sales_max': hi, 'sales': [float(x) for x in df.Sales],
+       'rows30': [{'date': r['Date'].isoformat(), 'region': r['Region'], 'city': r['City'], 'product': r['Product'], 'units': r['Units'], 'price': r['Price'], 'sales': r['Sales'], 'discount': r['Discount']} for r in part]}
 (OUT / 'reference.json').write_text(json.dumps(ref, ensure_ascii=False, indent=0) + '\n', encoding='utf-8')
 print(f'{len(rows)} rows, {len(cases)} cases → {OUT}')

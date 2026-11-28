@@ -244,7 +244,7 @@ fn sheet_names(names: &[String]) -> Vec<String> {
             for (c, v) in row.iter().enumerate() {
                 let (r32, c16) = (r as u32, c as u16);
                 let hdr = book.header && r == 0;
-                if let Value::String(t) = v { let k = t.chars().count(); if k > 32_767 { return err(format!("Cell {} of “{shown}” holds {k} characters; an Excel cell holds at most 32,767. Save it as CSV instead.", a1(r, c))); } }
+                if let Some(t) = match v { Value::String(t) => Some(t.as_str()), Value::Object(o) => o.get("text").and_then(|x| x.as_str()), _ => None } { let k = t.chars().count(); if k > 32_767 { return err(format!("Cell {} of “{shown}” holds {k} characters; an Excel cell holds at most 32,767. Save it as CSV instead.", a1(r, c))); } }
                 let res = match v {
                     Value::Null => Ok(()),
                     Value::Bool(b) => ws.write_boolean(r32, c16, *b).map(|_| ()),
@@ -267,10 +267,22 @@ fn sheet_names(names: &[String]) -> Vec<String> {
                         let f = o.get("format").and_then(|f| f.as_str()).filter(|f| !f.is_empty()).unwrap_or(f0);
                         ws.write_datetime_with_format(r32, c16, &d, &rust_xlsxwriter::Format::new().set_num_format(f)).map(|_| ())
                     }
+                    // a number in a format (SliceDiceGrapher's pivots): { "num": 1234.5, "format": "[$₹-4009]#,##,##0.00", "bold": true, "shown": "₹1,234.50" }
+                    Value::Object(o) if o.get("num").map_or(false, |x| x.is_number()) => {
+                        let mut f = rust_xlsxwriter::Format::new();
+                        if let Some(nf) = o.get("format").and_then(|f| f.as_str()).filter(|f| !f.is_empty()) { f = f.set_num_format(nf); }
+                        if o.get("bold").and_then(|b| b.as_bool()).unwrap_or(false) { f = f.set_bold(); }
+                        ws.write_number_with_format(r32, c16, o["num"].as_f64().unwrap_or(0.0), &f).map(|_| ())
+                    }
+                    // text in bold (a pivot's subtotal and total rows): { "text": "Total", "bold": true }
+                    Value::Object(o) if o.get("text").map_or(false, |x| x.is_string()) => {
+                        let t = o["text"].as_str().unwrap_or("");
+                        if o.get("bold").and_then(|b| b.as_bool()).unwrap_or(false) { ws.write_string_with_format(r32, c16, t, &bold).map(|_| ()) } else { ws.write_string(r32, c16, t).map(|_| ()) }
+                    }
                     other => ws.write_string(r32, c16, other.to_string()).map(|_| ()),
                 };
                 if let Err(e) = res { return err(format!("Cell {} of “{shown}”: {e}", a1(r, c))); }
-                let w = match v { Value::String(t) => t.chars().count(), Value::Null => 0, Value::Object(o) => o.get("shown").and_then(|x| x.as_str()).map_or(10, |x| x.chars().count()), o => o.to_string().len() };
+                let w = match v { Value::String(t) => t.chars().count(), Value::Null => 0, Value::Object(o) => o.get("shown").or_else(|| o.get("text")).and_then(|x| x.as_str()).map_or(10, |x| x.chars().count()), o => o.to_string().len() };
                 if widths.len() <= c { widths.resize(c + 1, 0); }
                 widths[c] = widths[c].max(w);
             }

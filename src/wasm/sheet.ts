@@ -7,6 +7,10 @@ export type Cell = string | number | boolean | null;
 /** A date for .xlsx with the form it was printed in: `date` ISO (2026-11-07), `format` Excel's number format (dd\\/mm\\/yyyy),
  *  `shown` the printed text (for the column's width). */
 export interface DateCell { date: string; format: string; shown: string }
+/** A number in Excel's number format (`[$₹-4009]#,##,##0.00`, `0.0%`), in bold or not; `shown` its text (the column's width). */
+export interface NumCell { num: number; format?: string; bold?: boolean; shown?: string }
+/** Text in bold (a total row) or not. */
+export interface TextCell { text: string; bold?: boolean }
 /** types: what each column can be stored as in a database without loss, judged from every row but the first. */
 export interface Sheet { name: string; rows: Cell[][]; types?: Array<'INTEGER' | 'REAL' | 'TEXT'>; error?: string; hidden?: boolean }
 export interface Book { sheets: Sheet[]; delimiter?: string }
@@ -28,7 +32,7 @@ export function bindSheet(e: any) {
     csv: (text: Uint8Array, delimiter = ''): Book => JSON.parse(dec.decode(call(text, (p, n) => e.csv_read(p, n, delimiter ? delimiter.charCodeAt(0) : 0)))),
     /** Sheets → .xlsx. numbers: numeric-looking text becomes numbers (and ISO dates dates); dates: only ISO dates become dates
      *  (numbers given as numbers stay numbers either way); header: bold frozen first row with a filter. */
-    xlsx: (book: { sheets: Array<{ name: string; rows: Array<Array<Cell | DateCell>> }> }, o: { numbers?: boolean; dates?: boolean; header?: boolean } = {}): Uint8Array => call(enc.encode(JSON.stringify({ sheets: book.sheets, numbers: !!o.numbers, dates: !!o.dates, header: !!o.header })), (p, n) => e.xlsx_write(p, n)),
+    xlsx: (book: { sheets: Array<{ name: string; rows: Array<Array<Cell | DateCell | NumCell | TextCell>> }> }, o: { numbers?: boolean; dates?: boolean; header?: boolean } = {}): Uint8Array => call(enc.encode(JSON.stringify({ sheets: book.sheets, numbers: !!o.numbers, dates: !!o.dates, header: !!o.header })), (p, n) => e.xlsx_write(p, n)),
     /** Rows → CSV text (RFC 4180 quoting). */
     csvWrite: (rows: Cell[][], delimiter = ','): string => dec.decode(call(enc.encode(JSON.stringify(rows)), (p, n) => e.csv_write(p, n, delimiter.charCodeAt(0)))),
   };

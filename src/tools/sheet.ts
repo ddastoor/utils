@@ -4,7 +4,7 @@
 // 2003 XML (the browser's DOMParser). The newest file wins; nothing is uploaded.
 import { h, card, field, stack, note, actions, button, toggle, input, select, segmented, filePicker, clear, toast, errMsg, downloadBlob, baseName, type Mount } from '../ui';
 import { sheetEngine, type Book } from '../wasm/sheet';
-import { colName, cellText, decodeText, sniffText, jsonToBook, rowsToJson, rowsAsText, htmlTables, spreadsheetML } from '../lib/sheetdata';
+import { colName, cellText, rowsToJson, rowsAsText, readSpreadsheet } from '../lib/sheetdata';
 import './sheet.css';
 
 const MAX_ROWS = 1000; // rows drawn in the table (all rows are exported)
@@ -60,30 +60,10 @@ export const mount: Mount = async (root) => {
       const engine = await sheetEngine(), bytes = new Uint8Array(await f.arrayBuffer());
       if (my !== seq || !live) return;                // a newer file was chosen meanwhile, or the tab was left
       sh = engine;
-      const ext = (f.name.split('.').pop() || '').toLowerCase(), zipOrOle = (bytes[0] === 0x50 && bytes[1] === 0x4b) || (bytes[0] === 0xd0 && bytes[1] === 0xcf);
-      let next: Book, text: string | null = null, enc = '';
-      if (!bytes.length) throw new Error(`${f.name} is empty.`);
-      if (zipOrOle && ext !== 'csv' && ext !== 'json') next = sh.read(bytes);
-      else {
-        const d = decodeText(bytes), kind = sniffText(d.text); enc = d.how;
-        if (kind === 'html') {
-          const sheets = htmlTables(new DOMParser().parseFromString(d.text, 'text/html'));
-          if (!sheets.length) throw new Error(`${f.name} is a web page without a table.`);
-          next = { sheets };
-        } else if (kind === 'xml2003') {
-          const doc = new DOMParser().parseFromString(d.text, 'application/xml');
-          if (doc.querySelector('parsererror')) throw new Error(`${f.name} is Excel 2003 XML that is not well-formed.`);
-          next = { sheets: spreadsheetML(doc) };
-        } else if (ext === 'json' || (kind === 'json' && !['csv', 'tsv', 'txt', 'tab'].includes(ext))) {
-          try { next = jsonToBook(d.text, baseName(f.name)); }
-          catch (e) { if (ext === 'json') throw new Error(`${f.name} is not valid JSON: ${errMsg(e)}`); text = d.text; next = { sheets: [] }; }
-        } else text = d.text;
-      }
-      name = baseName(f.name); idx = 0; how = enc; csvText = text; delimBox.hidden = true;
-      if (text !== null) {
-        delim = ext === 'tsv' || ext === 'tab' ? '\t' : ''; delimSel.value = delim;  // a new file: its own separator
-        parseCsv();
-      } else book = next!;
+      const r = readSpreadsheet(bytes, f.name, sh);
+      name = baseName(f.name); idx = 0; how = r.how; csvText = r.csv; delimBox.hidden = csvText === null;
+      if (csvText !== null) { delim = r.delim; delimSel.value = delim; }   // a new file: its own separator (tabs for .tsv, else detected)
+      book = r.book;
       if (!book!.sheets.length) throw new Error('No sheets in this file.');
       idx = Math.max(0, book!.sheets.findIndex((s) => !s.hidden && s.rows.length));
       editor.hidden = false; drawTabs(); render();

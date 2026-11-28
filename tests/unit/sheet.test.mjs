@@ -1,6 +1,9 @@
 // sheet.wasm (Rust: calamine + rust_xlsxwriter + csv, built by us): real .xlsx/.xls/.xlsb/.ods files (python-calamine
 // test data) give the same cells; CSV detection and quoting; xlsx round trip; clear errors.
-import { readFileSync } from 'node:fs';
+import { readFileSync, mkdtempSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { execFileSync } from '../lib/child.mjs';
 export default async (t, { load, wasm, root }) => {
   const { bindSheet } = await load('/src/wasm/sheet.ts');
   const sh = bindSheet(await wasm('sheet'));
@@ -113,6 +116,16 @@ export default async (t, { load, wasm, root }) => {
   t.ok(/has 1048577 rows; an Excel sheet holds at most 1,048,576/.test(xerr({ sheets: [{ name: 'R', rows: Array.from({ length: 1048577 }, () => []) }] })), 'more than 1,048,576 rows: said');
   const names = sh.read(sh.xlsx({ sheets: ['Data', 'data', '', 'History', "'quoted'", 'a/b:c', 'x'.repeat(40), 'x'.repeat(40)].map((name) => ({ name, rows: [['v']] })) })).sheets.map((s) => s.name);
   t.eq(names, ['Data', 'data (2)', 'Sheet3', 'Sheet4', 'quoted', 'abc', 'x'.repeat(31), 'x'.repeat(27) + ' (2)'], 'sheet names Excel accepts: unique without regard to case, no apostrophe at the ends, not History, 31 characters');
+  // ---- numbers in a format and text in bold (SliceDiceGrapher's pivots): read back by openpyxl
+  { const wbx = sh.xlsx({ sheets: [{ name: 'P', rows: [['Region', 'Sales', 'Share'], [{ text: 'East', bold: true }, { num: 123456.5, format: '[$₹-4009]#,##,##0.00', bold: true, shown: '₹1,23,456.50' }, { num: 0.125, format: '0.0%' }], ['North', { num: 7, format: '#,##0' }, null]] }] }, { header: true });
+    t.eq(sh.read(wbx).sheets[0].rows.slice(1), [['East', 123456.5, 0.125], ['North', 7]], 'a number in a format keeps its value');
+    const dir = mkdtempSync(join(tmpdir(), 'sheet-fmt-')), f = join(dir, 'p.xlsx');
+    writeFileSync(f, wbx);
+    try {
+      const out = execFileSync('python3', ['-c', 'import sys, openpyxl\nws = openpyxl.load_workbook(sys.argv[1]).active\nfor c in ("A2", "B2", "C2", "A3", "B3"): print(c, ws[c].value, ws[c].number_format, ws[c].font.b)', f], { encoding: 'utf8' }).trim().split(/\r?\n/);
+      t.eq(out, ['A2 East General True', 'B2 123456.5 [$₹-4009]#,##,##0.00 True', 'C2 0.125 0.0% False', 'A3 North General False', 'B3 7 #,##0 False'], 'openpyxl reads the formats and the bold cells as written');
+    } catch (e) { t.ok(/openpyxl|No module/.test(String(e)) ? (console.log('  (openpyxl not installed: the formats not read back)'), true) : false, `openpyxl: ${e}`); }
+  }
   // ---- the separator, read as CSV (quotes and line breaks count as text)
   t.eq(sh.csv(enc('"Name, full","Age, years"\nAsha,30\nRavi,41\n')).delimiter, ',', 'commas inside the quoted header: comma');
   t.eq(sh.csv(enc('Report of 20 Nov 2026\nName;Price\nTea;1,50\nCoffee;2,75\n')).delimiter, ';', 'a title line, then semicolons with decimal commas: semicolon');
