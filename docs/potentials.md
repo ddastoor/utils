@@ -52,7 +52,9 @@ Kindle, PDF and ID tools for India, the owner's larger asks, camera helpers) was
    ~~113 Screenshot Annotator & How-To Guide~~ (**built 28 Nov 2026** — CLAUDE.md §3 "Screenshot Annotator & How-To Guide"; the canvas's
    drawing, imgproc.wasm's mosaic with a random grid, MuPDF's HTML layout for the guide; 44 KB) · ~~76 Screenshot Finder~~ (**built 28 Nov 2026** —
    CLAUDE.md §3 "Screenshot Finder"; a pool of Tesseract readers in the sparse-text mode, each picture made ready by imgproc.wasm, the search our C in
-   textcore.wasm — words together or apart, the OCR's slips; 44 KB) · 82 Is This Screenshot Real? · 83 Scam & QR Check ·
+   textcore.wasm — words together or apart, the OCR's slips; 44 KB) · ~~82 Is This Screenshot Real?~~ (**built 28 Nov 2026** — CLAUDE.md §3
+   "Is This Screenshot Real?"; a JPEG's stored coefficients read by our jpegcoef.wasm (libjpeg-turbo's reader) — an earlier save, the parts not
+   saved like the rest —, imgproc's ghosts, copies and error levels, ExifTool, the OCR's text checks; signs, never a proof; 0.2 MB) · 83 Scam & QR Check ·
    101 Clean Link (83 and 101 share one link checker: the real site's name, look-alike letters). ≈ 1 MB.
 3. **The camera, round 2** — 100 Magnifier · 80 Measure from a Photo · 98 Old Photo Album Scanner · 103 Handwriting Analysis ·
    92 Social Media Sizer. Shared: the live camera, the page finder and the homography, MediaPipe's faces. ≈ 0 MB.
@@ -97,7 +99,7 @@ from the sandbox (GitHub is not reachable there): measure it before building.
   · 41 Favicon Maker 2.4 (resvg) · 42 Audio Effects ≈ 1 – 2 (SoX, est.) · 45 PARI/GP ≈ 5 – 10 (est.) · 47 Offline
   Wikipedia ≈ 2 – 5 (libzim, est.; the .zim files are the user's own, never hosted) · 48 ESP32 Flasher 0.5 · 57 Lottie
   1.2 (ThorVG) · 60 Code Screenshot ≈ 3 – 6 (Shiki 0.6 + the languages chosen) · 68 KeePass 0.3 (kdbxweb; Argon2 is on
-  the site) · 70 CyberChef 9.0 (its OCR data left out: the site has Tesseract) · 82 Screenshot Check < 0.5 (own C, est.) · 83 Scam
+  the site) · 70 CyberChef 9.0 (its OCR data left out: the site has Tesseract) · 83 Scam
   & QR Check ≈ 0.3 (confusables data, est.) · 86 Handwriting Font ≈ 1 (a font writer + tracing, est.) · 95 Regex from Examples ≈ 0.5 (grex, est.) · 105 Air-Gap Transfer ≈ 1 – 2 (libcimbar, est.) · 106 Articles → Kindle
   ≈ 0.5 (dom_smoothie, est.) · 107 Video Editor ≈ 5 – 10 (Omniclip, est.) · U4 JBIG2 ≈ 1, U5 unpaper < 1, U6 GMP
   ≈ 1 (est.).
@@ -265,7 +267,6 @@ Slides, Regex from Examples — works the same on Windows and Linux (Chrome or E
 |---|---|---|---|---|
 | 79 | **Phone ⇄ PC Beam**: send files or text between a phone and a PC straight over the Wi-Fi — no app, account or server: the two screens connect by scanning each other's QR codes (the connection offer and answer, compressed), then the browser's own peer-to-peer link carries the files | WebRTC data channels (the browser's, compiled C++) + zxing (on the site) + fflate; to check first: networks that keep devices apart (guest / office Wi-Fi), iPhone Safari | both | waiting |
 | 80 | **Measure from a Photo**: an A4 sheet or a bank card (85.6 × 54 mm) in the picture → tap its corners → measure anything in the same plane — a window, a wall, a sofa, a TV — straightened by one homography | imgproc's warp + homography (on the site) | both | waiting |
-| 82 | **Is This Screenshot Real?**: a "payment successful" UPI screenshot or any photo checked for signs of editing — the software that saved it (ExifTool), a second JPEG save (error-level analysis, the quantization tables), patched or copied areas — with plain words on what it can and cannot prove (signs, never a proof that a picture is genuine) | ExifTool (on the site) + own C in imgproc / metacore (error levels, copy-move search) + MozJPEG (on the site) | both | waiting |
 | 83 | **Scam & QR Check**: paste a suspicious SMS / WhatsApp message or scan a QR before paying → "this QR asks you to pay, it does not pay you", "this link imitates sbi.co.in with a look-alike letter" (Unicode's confusables, UTS #39), link shorteners, urgency and KYC wording typical of scams; offline | zxing (on the site) + own Rust in textkit with the `unicode-security` crate (MIT / Apache-2.0) or the UTS #39 data | both | waiting |
 | 85 | **Lecture Video → Slides PDF**: drop a recorded class or webinar → each slide caught once when it changes → a searchable PDF of the slides (and their text as .txt) | WebCodecs + mediabunny or ffmpeg.wasm, imgproc (slide changes), Tesseract, MuPDF — all on the site | PC (long videos) | waiting |
 | 86 | **Your Handwriting as a Font**: print a grid, fill it by hand, photograph it → a .ttf / .otf of your own handwriting to use anywhere | imgproc (the page found and straightened) + tracing (potrace / vtracer — #1's) + a font writer: candidates Google's `write-fonts` (Rust, Apache-2.0 / MIT) as own wasm, fontTools in the Python tab's CPython | both | waiting |

@@ -2181,3 +2181,30 @@ Looked at first (STANDING RULE #1):
   the XY-cut are there). Its rules are held by the unit suite (35 checks of the engine; the test pictures' queries read in Node and in the browser).
 - **Decision:** Tesseract as it is; imgproc.wasm's existing ops; our C for the index and the search; the dates from file names, the read size and the
   order in TypeScript (`src/lib/finder.ts`: string glue and a sort).
+
+### 211. `realcheck` — Is This Screenshot Real? (28 Nov 2026; potentials #82)
+- **What it needs:** a payment screenshot or a photo looked at for signs of editing — the software that saved it, a second JPEG save and the
+  quality of the first, the parts of the picture not saved like the rest (what was changed between two saves), copied areas, the preview a file
+  keeps of itself, the text on it (a weekday, a date, a clock, a UPI reference, two amounts) — and said in plain words, as signs, never a proof.
+- **The metadata — existing WebAssembly:** ExifTool 13.42 on zeroperl (the EXIF tab's, on the site): the software tags, XMP history, dates, the
+  camera; and the previews inside a file (`readPreviews`: ThumbnailImage, PreviewImage, PhotoshopThumbnail with `-b`).
+- **The text — existing WebAssembly:** Tesseract (the Screenshot Finder's sparse reader and preparation, on the site); the dates, times and amounts
+  by the Paper Deadlines tab's readers (TypeScript, `src/lib/deadlines.ts`).
+- **A JPEG's coefficients — our own WebAssembly from open-source code (jpegcoef.wasm, 125 KB):** JPEG ghosts (H. Farid, 2009) are a block's error
+  when it is quantized again at each quality; computed on decoded pixels they are not exact (the decoder rounds and clips — and a saturated colour,
+  clipped at 0 or 255, looked changed: false areas on every chat bubble of a strong colour, measured). Looked at for the stored coefficients:
+  **jSquash's MozJPEG** (`@jsquash/jpeg`, on the site) — decode and encode to pixels only; **wasm-vips** (libvips) — pixels, its `jpegload` gives
+  no coefficients; **the browsers' decoders** (createImageBitmap, ImageDecoder) — pixels; **jpeg-js** (JavaScript) — computes them
+  inside and does not hand them out, no arithmetic coding; **jpegio** (Python's C extension) and **libjpeg-turbo** itself — no WebAssembly build.
+  None gives the coefficients, so ours: libjpeg-turbo 3.1.3's decoder as far as `jpeg_read_coefficients` (baseline, progressive, arithmetic-coded;
+  the source from the Ubuntu archive, SHA-256 from its signed .dsc) and our C (`wasm/jpegcoef/glue.c`): the tables and sampling, each block's error
+  at every quality from 30 to the file's own (Parseval: the orthonormal DCT keeps the error), how close the coefficients sit to each quality's grid,
+  and the reading of both (`jc_analyse`). Held by the unit suite to Pillow's tables and to MuPDF's and Pillow's decoding of the same files.
+- **A PNG's ghosts, error levels, copied areas, the preview compared — our C (imgproc.wasm, `forensic.c`):** looked at: **forensically** (Jonas
+  Wagner's web app: error levels, clone detection, noise — JavaScript inside a page, no module), **Sherloq** and **pyIFD** (Python on OpenCV and
+  NumPy, desktop), **OpenCV's** WebAssembly build (`opencv.js`, megabytes, no forensic functions: its block matching would still be ours) — nothing
+  to reuse as a module; a few hundred lines on the module the image tabs already load. ELA's JPEG save is ours too (each block's luminance quantized
+  with the standard table at quality 90 and turned back — `p_ela`; an encoder's own choices would change what the levels show).
+- **Decision:** ExifTool and Tesseract as they are; our own WebAssembly from libjpeg-turbo's source for the coefficients; our C in imgproc for the
+  rest; the signs, the text checks and the verdict in TypeScript (`src/lib/realcheck.ts`: rules over the engines' numbers, regular expressions on
+  the OCR's rows).

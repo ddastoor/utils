@@ -3849,3 +3849,29 @@ Found while building it (each fixed, with a check in the suites):
   a tall picture is read at least 1,000 px wide, at most 12,000 long (unit).
 - **The Screenshot Annotator's swatches used a colour variable nothing defined** (`--c`, set on each swatch by the page): the CSS variables check,
   run with this tab, caught it; it has a default now (the swatches look as before).
+
+## Is This Screenshot Real? (28 Nov 2026; built — potentials #82)
+Found while building it (each fixed, with a check in the suites):
+- **A JPEG's saturated colours looked edited:** JPEG ghosts worked out on decoded pixels (the first version) marked every chat bubble of a strong
+  colour as "not saved like the rest" — the decoder clips a colour at 0 or 255, and what the earlier save left there is lost, so those blocks
+  never dip. A JPEG's ghosts are now worked out on its stored coefficients (jpegcoef.wasm: libjpeg-turbo's coefficient reader — exact, nothing
+  rounded or clipped), and blocks whose pixels are a clipped colour (5 % of them and more, channels 12 apart and more — `p_block_clip`) are left out
+  of the areas. Measured: an area on none of the 323 JPEGs nobody edited (docs/WASM-AUDIT.md 211).
+- **The rule for a clipped block, too strict and too loose:** clipped meant any channel at 0 or 255 at first — the black text of every screenshot
+  went with it, and the edits with the text; channels 32 apart left green bubbles in, and their areas came back. Channels 12 apart and more (white,
+  black and the tint a JPEG leaves on them stay), and an area that holds a fifth of the blocks looked at and more is the picture's own (a photo
+  saved three times), not an edit.
+- **Faint lines and a JPEG's last row looked edited:** a thin rule or a light line of text hardly changes with the quality (its error stays small
+  at every one), and the partial last row and column of blocks are padded by the encoder; both made areas. Blocks whose error changes by less
+  than 40 over the qualities (`G_RANGE`) and the partial edge blocks are not looked at.
+- **One changed digit of an amount was not seen in the preview:** a fixed threshold on the preview's cells (a camera's preview differs from the
+  picture by 20 levels in places, a screenshot's by 3.5) missed a digit painted over (11.7 against a typical 0.6). The rule is relative now — the
+  worst cell 8 levels and more and 6 × the typical cell + 4 (`previewDiffers`).
+- **An edited amount came out as two areas side by side** (the ₹ and the digits apart by a gap of quiet blocks): areas within 24 px are one.
+- **The evaluation's own faults** (`scripts/make-realcheck-eval.py`): Pillow 12 gives a JPEG's tables in natural order, and the generator read them
+  in zigzag order — no photo's own quality was found, so a photo that was a JPEG before it came here counted as saved once; and an amount drawn in
+  near-black on a dark screen was invisible — its "edit" changed nothing (0 of 7 and 0 of 4 found on the two dark screenshots, as it should
+  have been). The tables are compared as they come, and the amount is drawn light on a dark ground.
+- **The tab:** the outlines on the picture drifted from it at some widths (the SVG was sized apart from the picture: both now in one box,
+  `.rc-pin`); a card showed its title twice; waiting for the verdict alone found the verdict of the picture before (the newest picture wins): the
+  suite waits until the caption under the picture names the new file.

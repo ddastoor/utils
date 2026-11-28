@@ -270,3 +270,17 @@ generates media with the project's own ffmpeg.wasm and Chromium). Used only by t
   and the coffee photo without text (`images/coffee.jpg`). Every name, number and page is made up. `truth.json`: the words each picture must give,
   queries with the pictures they find in the tab's order, the pictures without text, every text drawn on each screenshot and where each word was
   drawn (`boxes`: word, x0, y0, x1, y1 in the picture's pixels).
+- `realcheck/` — the test pictures of Is This Screenshot Real?, made by `python3 scripts/make-realcheck-shots.py` (needs pillow and numpy, and the
+  native exiftool — `apt install libimage-exiftool-perl` — for the thumbnail's EXIF; Noto Sans, OFL): a payment receipt of a made-up UPI app ("Kaveri
+  Pay" — no real app's design; every name and number made up) as a phone's screenshot (`receipt-genuine.png`), as it arrives after a chat app sent
+  it (`IMG-20261106-WA0007.jpg`: smaller, JPEG at quality 78, no metadata), and doctored: the amount repainted after that JPEG and saved again at 92
+  (`receipt-edited.jpg`) or saved as a PNG (`receipt-sent.png`), repainted and saved by "Adobe Photoshop" (`receipt-photoshop.png`: its Software tag
+  and XMP history), repainted with a thumbnail that still shows the old amount and a later modify date (`receipt-thumb.jpg`, "Snapseed"), and a
+  receipt that says what none can (`receipt-impossible.png`: its clock before the payment, a weekday not the date's, an 11-digit reference, two
+  amounts); photos — the astronaut (`images/astronaut.png`, public domain, NASA) with its mission patch hidden under fabric copied from the suit
+  (`photo-cloned.jpg`, and stored on its side with EXIF orientation 6: `photo-cloned-turned.jpg`), a greyscale JPEG of it (`grey.jpg`), and Pillow's
+  `flower.jpg` (`photo-camera.jpg`: a Canon camera's JPEG with its own thumbnail, nothing edited; Pillow, MIT-CMU); `coefs-base.jpg` /
+  `coefs-prog.jpg` — one set of pixels saved baseline and progressive at one quality (the same coefficients). `testorig.jpg` and `testimgari.jpg` —
+  libjpeg-turbo 3.1.3's own test pictures (`testimages/`, IJG licence): one picture as a baseline and an arithmetic-coded JPEG. `truth.json`: each
+  picture's signs, the areas edited, the qualities it was saved at. The measuring set (`python3 scripts/make-realcheck-eval.py OUT`, 647 files) is
+  made on demand and not committed.

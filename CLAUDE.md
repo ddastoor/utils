@@ -1590,11 +1590,13 @@ tables), patched or copied areas — with plain words on what it can and cannot 
   the astronaut and four JPEG photos — saved once at ten qualities, twice (60 – 95 → 78 – 98, and the other way round), and edited between the two
   saves (a rectangle painted the colour round it and an amount drawn in, as an amount is changed); 19 as PNGs: never a JPEG, a JPEG made a PNG at four
   qualities, and edited after that JPEG): **JPEG** — an earlier save found on 243 of 251 files saved before at a lower quality (its quality exact on
-  212, within 2 on 241) and on none of 225 saved once (or before at a higher quality, which leaves no trace); the edited part found on 75 of 119
+  212, within 2 on 241) and on none of 225 saved once (or before at a higher quality, which leaves no trace); the edited part found on 86 of 119
   files edited after a save, and **an area on none of the 323 files nobody edited**; **PNG** — the JPEG before found on all 152 (exact 142, within 2:
-  150), on none of 19 never a JPEG; the edited part on 43 of 76, an area on none of 95. What is missed (measured so: in progress): an edit between two saves of close quality — 85 → 95 and 90 → 98, a
-  PNG from a JPEG at 92 — where the second save leaves the first one's grid nearly everywhere. About 0.3 s a
-  720 × 1600 JPEG and 0.4 s a PNG in Node; in the browser each test picture checked in 0.4 – 1.4 s, its verdict and places as truth.json says.
+  150), on none of 19 never a JPEG; the edited part on 50 of 76, an area on none of 95. The edited part by the saves: 14 – 17 of 17 where
+  the two are 10 qualities apart and more (60 → 80, 70 → 90, 78 → 92, 80 → 95), 13 of 17 at 75 → 85, and missed where they are close — 85 → 95
+  9 of 17, 90 → 98 2 of 17 —; a PNG made from a JPEG at 60 or 75 19 of 19, at 85 12 of 19, at 92 none: two saves that close leave the edited part
+  nothing to stand out by. About 0.3 s a 720 × 1600 JPEG and 0.4 s a PNG in Node; in the browser each test picture checked in 0.4 – 1.4 s, its
+  verdict and places as truth.json says.
 
 ### Zip
 Create zip (optional AES-256 password, WinZip AE-2 format) from multiple files; extract zip (incl.
