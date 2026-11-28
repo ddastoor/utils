@@ -1,0 +1,19 @@
+/* Image to SVG */
+.ts-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.ts-pair figure { margin: 0; display: grid; gap: 4px; min-width: 0; }
+.ts-orig, .ts-svg { display: block; width: 100%; height: auto; max-height: 60vh; object-fit: contain; border-radius: var(--radius-sm); border: 1px solid var(--border); }
+/* the SVG on a chequerboard: what is see-through shows */
+.ts-out { border-radius: var(--radius-sm); background-color: #fff; background-image: linear-gradient(45deg, #e6e6e6 25%, transparent 25%), linear-gradient(-45deg, #e6e6e6 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #e6e6e6 75%), linear-gradient(-45deg, transparent 75%, #e6e6e6 75%);
+  background-size: 16px 16px; background-position: 0 0, 0 8px, 8px -8px, -8px 0; min-height: 80px; }
+.ts-out .ts-svg { border: 1px solid var(--border); }
+.ts-status { min-height: 1.4em; }
+.ts-acts { flex-wrap: wrap; gap: 8px; margin-top: 10px; align-items: center; }
+.ts-png { display: inline-flex; gap: 8px; align-items: center; }
+.ts-png .select { width: auto; }
+.ts-inkrow { display: inline-flex; gap: 10px; align-items: center; }
+.ts-ink { width: 48px; height: 44px; padding: 2px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); }
+@media (max-width: 720px) {
+  .ts-pair { grid-template-columns: 1fr; }
+  .ts-png { width: 100%; }
+  .ts-png .select { flex: 1; }
+}

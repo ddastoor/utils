@@ -70,6 +70,8 @@ export const TOOLS: Tool[] = [
   t('formphoto', 'Photo & Signature Resizer', 'Exact pixel size and KB limits for exam and job forms.', 'images', 'IdCard', () => import('./tools/formphoto').then((m) => m.mount)),
   t('bgremove', 'Background Remover', 'Remove or replace the background of a portrait.', 'images', 'Eraser', () => import('./tools/bgremove').then((m) => m.mount)),
   t('cartoon', 'Cartoonizer', 'Turn a photo into a cartoon, painting or sketch.', 'images', 'Palette', () => import('./tools/cartoon').then((m) => m.mount)),
+  t('tosvg', 'Image to SVG', 'Trace a logo, signature or scan into a vector SVG: in colour or black and white.', 'images', 'Spline', () => import('./tools/tosvg').then((m) => m.mount)),
+  t('clipart', 'Clipart Maker', 'A photo made into clip art: the subject cut out in flat colours, as a cartoon, a sticker, line art or a silhouette.', 'images', 'Shapes', () => import('./tools/clipart').then((m) => m.mount)),
   t('redact', 'Blur & Redact', 'Blur faces or hide parts of an image before sharing.', 'images', 'EyeOff', () => import('./tools/redact').then((m) => m.mount)),
   t('watermark', 'Watermark', 'Add a text or logo watermark to photos.', 'images', 'Stamp', () => canv().then((m) => m.watermark)),
   t('caption', 'Text on Image', 'Add captions or meme text to a picture.', 'images', 'Type', () => canv().then((m) => m.caption)),

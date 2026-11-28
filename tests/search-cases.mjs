@@ -8,6 +8,8 @@ export default [
   ['signature resize', 'formphoto'], ['ssc photo', 'formphoto'], ['upsc', 'formphoto'], ['photo 20kb', 'formphoto'], ['exam form photo', 'formphoto'],
   ['remove background', 'bgremove'], ['transparent png', 'bgremove'], ['background remover', 'bgremove'],
   ['cartoon', 'cartoon'], ['prisma', 'cartoon'], ['oil painting effect', 'cartoon'], ['cartoonize', 'cartoon'],
+  ['png to svg', 'tosvg'], ['vectorize', 'tosvg'], ['trace image', 'tosvg'], ['signature svg', 'tosvg'], ['logo to vector', 'tosvg'],
+  ['clipart', 'clipart'], ['clip art', 'clipart'], ['sticker maker', 'clipart'], ['coloring page', 'clipart'], ['silhouette', 'clipart'],
   ['blur face', 'redact'], ['redact', 'redact'], ['pixelate', 'redact'], ['hide number plate', 'redact'],
   ['watermark photo', 'watermark'], ['add logo to image', 'watermark'],
   ['meme', 'caption'], ['text on image', 'caption'], ['add caption', 'caption'],

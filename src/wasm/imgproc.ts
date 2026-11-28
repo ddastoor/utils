@@ -334,6 +334,57 @@ export function bindImgproc(e: any) {
         return { cls: new Int32Array(mem().slice(cp, cp + n * 4)), prob: new Float32Array(mem().slice(rp, rp + n * 4)), step: new Int32Array(mem().slice(sp, sp + n * 4)) };
       } finally { e.p_free(pp); e.p_free(cp); e.p_free(rp); e.p_free(sp); }
     },
+    /** the picture's opaque pixels in k flat colours (k-means in CIE Lab; edges evened out `smooth` times; areas under `minArea` px
+     *  taken in by their neighbours); pixels with alpha < 128 transparent. The palette: [r, g, b] of each colour used. */
+    clipFlat(img: Img, k: number, minArea: number, smooth: number): { img: Img; palette: Array<[number, number, number]> } {
+      const p = put(img.data), pal = e.p_malloc(64 * 4);
+      try {
+        e.p_clip_flat(p, img.width, img.height, k, minArea, smooth, pal);
+        const pb = new Uint8Array(mem().slice(pal, pal + 64 * 4)), palette: Array<[number, number, number]> = [];
+        for (let j = 0; j < 64; j++) if (pb[j * 4 + 3]) palette.push([pb[j * 4], pb[j * 4 + 1], pb[j * 4 + 2]]);
+        return { img: { data: take(p, img.data.length), width: img.width, height: img.height }, palette };
+      } finally { e.p_free(p); e.p_free(pal); }
+    },
+    /** a mask (0 / 255) with islands and holes under `minArea` px taken in and its edge evened out; and how many pixels are on */
+    clipMask(mask: Uint8Array, w: number, h: number, minArea: number, smooth: number): { mask: Uint8Array; on: number } {
+      const p = put(mask);
+      try { const on = e.p_clip_mask(p, w, h, minArea, smooth); return { mask: new Uint8Array(mem().slice(p, p + w * h)), on }; } finally { e.p_free(p); }
+    },
+    /** a mask (0 … 255, w × h) as the picture's alpha */
+    clipApply(img: Img, mask: Uint8Array): Img {
+      const m = put(mask);
+      try { return inplace(img, (p) => e.p_clip_apply(p, m, img.width, img.height)); } finally { e.p_free(m); }
+    },
+    /** `img` with the alpha of `from` (the same size) */
+    clipAlpha(img: Img, from: Img): Img {
+      if (from.width !== img.width || from.height !== img.height) throw new Error('clipAlpha: the two pictures differ in size');
+      const fp = put(from.data);
+      try { return inplace(img, (p) => e.p_clip_alpha(p, fp, img.width, img.height)); } finally { e.p_free(fp); }
+    },
+    /** black where the picture is opaque, white elsewhere */
+    clipSilhouette: (img: Img) => inplace(img, (p) => e.p_clip_silhouette(p, img.width, img.height)),
+    /** the clip art's ink lines (DoG at `sigma` px, darker than `thr` 0 … 1, specks under `minArea` px left out) as black on white */
+    clipLines(img: Img, sigma: number, thr: number, minArea: number): { img: Img; on: number } {
+      let on = 0;
+      const out = inplace(img, (p) => { on = e.p_clip_lines(p, img.width, img.height, sigma, thr, Math.round(minArea)); });
+      return { img: out, on };
+    },
+    /** black and white by luminance (on white where see-through) at threshold t (< 0: Otsu's); the threshold used */
+    bw(img: Img, t = -1, invert = false): { img: Img; threshold: number } {
+      let threshold = 0;
+      const out = inplace(img, (p) => { threshold = e.p_bw(p, img.width, img.height, Math.round(t), invert ? 1 : 0); });
+      return { img: out, threshold };
+    },
+    /** U²-Net's input planes (d × d, rembg's normalisation) */
+    u2Planes(img: Img, d = 320): Float32Array {
+      const s = put(img.data), o = e.p_malloc(d * d * 3 * 4);
+      try { e.p_u2_planes(s, img.width, img.height, d, o); return new Float32Array(mem().slice(o, o + d * d * 3 * 4)); } finally { e.p_free(s); e.p_free(o); }
+    },
+    /** U²-Net's output stretched to 0 – 255 */
+    u2Mask(prob: Float32Array): Uint8Array {
+      const s = e.p_malloc(prob.length * 4), o = e.p_malloc(prob.length);
+      try { new Float32Array(mem(), s, prob.length).set(prob); e.p_u2_mask(s, prob.length, o); return new Uint8Array(mem().slice(o, o + prob.length)); } finally { e.p_free(s); e.p_free(o); }
+    },
     histogram(img: Img) { const s = put(img.data), o = e.p_malloc(4096); try { e.p_histogram(s, n(img), o); return new Uint32Array(mem().slice(o, o + 4096)); } finally { e.p_free(s); e.p_free(o); } },
     /** The views of a scrolling screenshot, w × h each, placed against the one kept before (p_scroll_match; to-do #28).
      *  Two frames and their row signatures stay in the module's memory: `first` and `keep` say which is the reference. */

@@ -33,6 +33,7 @@ if (isMainThread) {
   for (const r of results.sort((a, b) => a.f.localeCompare(b.f))) {
     total += r.passed + r.fails.length; failed += r.fails.length;
     console.log(`${r.fails.length ? '✗' : '✓'} ${r.f.padEnd(28)} ${String(r.passed).padStart(5)} passed  ${r.ms.toFixed(0).padStart(5)} ms`);
+    for (const m of r.said ?? []) console.log(`    ✓ ${m}`);
     for (const m of r.fails.slice(0, 15)) console.log(`    ✗ ${m}`);
   }
   console.log(`\n${total - failed}/${total} assertions passed in ${files.length} suites on ${n} threads, ${(performance.now() - t0).toFixed(0)} ms`);
@@ -72,15 +73,17 @@ if (isMainThread) {
   const out = await Promise.all(workerData.files.map(async (f) => {
     const fails = [], passes = { n: 0 }, s0 = performance.now();
     const j = (v) => JSON.stringify(v, (_, x) => (typeof x === 'bigint' ? `${x}n` : x));
+    // UNIT_VERBOSE=1 prints every passing check too (their messages carry what was measured)
+    const said = [], pass = (msg) => { passes.n++; if (process.env.UNIT_VERBOSE) said.push(msg); };
     const t = {
-      ok(cond, msg) { if (cond) passes.n++; else fails.push(msg); },
-      eq(got, want, msg) { if (Object.is(got, want) || j(got) === j(want)) passes.n++; else fails.push(`${msg}: got ${j(got)}, want ${j(want)}`); },
-      near(got, want, tol, msg) { if (Math.abs(got - want) <= tol) passes.n++; else fails.push(`${msg}: got ${got}, want ${want} ±${tol}`); },
-      throws(fn, msg) { try { fn(); fails.push(`${msg}: did not throw`); } catch { passes.n++; } },
+      ok(cond, msg) { if (cond) pass(msg); else fails.push(msg); },
+      eq(got, want, msg) { if (Object.is(got, want) || j(got) === j(want)) pass(msg); else fails.push(`${msg}: got ${j(got)}, want ${j(want)}`); },
+      near(got, want, tol, msg) { if (Math.abs(got - want) <= tol) pass(msg); else fails.push(`${msg}: got ${got}, want ${want} ±${tol}`); },
+      throws(fn, msg) { try { fn(); fails.push(`${msg}: did not throw`); } catch { pass(msg); } },
     };
     try { await (await import(pathToFileURL(join(here, 'unit', f)).href)).default(t, ctx); }
     catch (e) { fails.push(`crashed: ${e.stack || e}`); }
-    return { f, fails, passed: passes.n, ms: performance.now() - s0 };
+    return { f, fails, said, passed: passes.n, ms: performance.now() - s0 };
   }));
   await vite.close();
   parentPort.postMessage(out);
