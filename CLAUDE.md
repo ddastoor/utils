@@ -350,7 +350,7 @@ Wayland) and **mobile browsers** (Android Chrome, iPhone Safari).
 Platform is PC + mobile unless marked **PC**. Tab ids are the URL hash (`#/<id>`).
 
 **The authoritative, always-current list is `docs/TOOLS.md`, generated from `src/registry.ts` (`npm run docs`).**
-Current total: **194 tabs in 11 categories — 127 PC + mobile, 64 PC only, 3 Mobile only** (regenerate with
+Current total: **196 tabs in 11 categories — 129 PC + mobile, 64 PC only, 3 Mobile only** (regenerate with
 `npm run docs` after every registry change; the owner asked for the registry to always be noted).
 The per-category notes below record decisions; when they disagree with the registry, the registry wins.
 
@@ -379,6 +379,8 @@ and to the counts of `docs/TOOLS.md`; axe in both themes).
 | `formphoto` | Photo & Signature Resizer | both | presets (`src/lib/form-specs.ts`: IBPS/SBI/RBI, SSC, UPSC, NTA, PAN — px + KB ranges, all editable, "confirm with the notification"), face auto-framing (BlazeFace), paper clean-up (`imgproc` ink), resize @jsquash/resize, DPI (`metacore`), MozJPEG best quality ≤ max, JPEG comment padding up to the min (`metacore` `m_jpeg_pad`); KB read strictly (max × 1,000, min × 1,024 bytes) |
 | `bgremove` | Background Remover | both | MediaPipe selfie-multiclass (6 categories) → person mask in C (`p_person_mask`: hair+skin+clothes, accessories only next to the person) → `imgproc` guided-filter matte at full res → transparent PNG / colour / blur / another photo (`p_composite_img`) |
 | `cartoon` | Cartoonizer | both | `imgproc` filters (DoG lines, k-means, Kuwahara, dodge, halftone) + Magenta arbitrary style transfer (TF.js: WebGL → wasm XNNPACK → CPU) |
+| `tosvg` | Image to SVG | both | colour: VTracer 0.6.5 (our vtracer.wasm); black and white: Potrace 1.16 (esm-potrace-wasm); imgproc's black and white (`flat.c`) |
+| `clipart` | Clipart Maker | both | the subject cut out by U²-Net small (rembg's u2netp on ONNX Runtime Web), refined by imgproc's guided filter → imgproc `flat.c` (two smoothings, greedy k-means++ in CIE Lab, specks taken in, DoG ink lines) → VTracer → the styles (`src/lib/clipart.ts`) |
 | `redact` | Blur & Redact | both | MediaPipe BlazeFace on the whole photo + multi-scale square tiles (small faces in group photos), NMS + pixelate/blur/fill in `imgproc`; manual boxes; tap a box to keep it visible |
 | `watermark` | Watermark | both | canvas text/logo watermark |
 | `caption` | Text on Image | both | canvas captions / meme text |
@@ -1066,6 +1068,56 @@ Two engines, picked with a "Filters | AI art styles" switch; tiles show live thu
     own; offered to the owner as new styles (docs/RESUME.md). Real paintings as styles (public-domain Van Gogh, Hokusai …)
     would look more like Prisma's; Wikimedia is not reachable from this sandbox, and the built-in styles stay drawn by
     the page.
+
+### Image to SVG — BUILT (potentials #1; owner's pick of 27 Nov 2026 — group 3 of the suggested order)
+(`tosvg` in `src/tools/tosvg.ts`, the pipelines `src/lib/vectorize.ts` (no DOM) in `src/workers/vector.worker.ts` + `src/lib/vector-client.ts`; the
+engines VTracer 0.6.5 (our vtracer.wasm — §5.1v), Potrace 1.16 (esm-potrace-wasm) and imgproc.wasm's `flat.c`; unit `tests/unit/vector.test.mjs` 65,
+e2e `tests/e2e/tosvg.e2e.mjs` 25 (+ the camera sweep's entry); fixtures `tests/fixtures/vector/` by `python3 scripts/make-vector-fixtures.py`.) The
+owner's words (potentials #1): "trace a logo, signature or scan into vectors".
+- **Colour** (VTracer: each colour a shape, stacked, or cut out of one another): four kinds — **Logo** (colour detail 6 bits, gradient steps 16,
+  specks under 4 px left out, curves), **Drawing** (7, 10, 6), **Photo as a poster** (8, 6, 10, corners from 75°), **Pixel art** (every colour, the
+  pixels' own edges) — and the sliders (colour detail, gradient steps, specks, corners), the edges (curves, straight lines, pixels), "cut the shapes
+  out of one another". The long side traced at most 1,600 px.
+- **Black and white** (Potrace): a threshold (by hand or **Otsu's**), or **"a photo of paper"** (a signature, a page: imgproc's document clean-up
+  finds the ink however the light falls, then 128 — measured on a signature photographed on paper lit unevenly: the ink traced overlaps the stroke
+  as it was drawn by 86.9 %, Otsu's one threshold 39.2 % — the shadow turns to ink); invert; specks; smoothness (alphamax 0 – 1.33); curves joined
+  (opticurve); the ink colour (the SVG's fill). The long side traced at most 3,000 px; the paper see-through.
+- **The tab:** a picture (or the camera; Paste image); the picture and the SVG side by side, the shapes, the SVG's size and the threshold under it;
+  every change traced again (the newest wins); **Download SVG** (the picture's name), **Copy SVG code**, **Save PNG** (as the picture, twice, four
+  times, 2,048 px wide). A picture chosen in one kind is traced at the other kind's size when the kind changes. Nothing at open: the worker, VTracer,
+  Potrace and imgproc with the first picture.
+- **Measured:** VTracer's SVG byte for byte the native tool's (built on musl — on glibc its trigonometry differs in the last digit now and then, and
+  a corner of a photo's path with it), on a logo, pixel art, photos and black and white; Potrace's paths the native potrace 1.16's; the logo's
+  pixels inside its shapes 100 % in the colour drawn (99.3 % of all — the rest on its edges, a pixel either way), drawn by librsvg; pixel art's 576
+  pixels back exactly.
+
+### Clipart Maker — BUILT (potentials #117; owner, 26 Nov 2026; built 28 Nov 2026 — group 3 of the suggested order)
+(`clipart` in `src/tools/clipart.ts`, the pipeline `src/lib/vectorize.ts` (`clipParts`, `cutMask`), the styles `src/lib/clipart.ts` (no DOM), the
+worker `src/workers/vector.worker.ts`; unit `tests/unit/vector.test.mjs` (with Image to SVG), e2e `tests/e2e/clipart.e2e.mjs` 31 (+ the camera
+sweep's entry).) The owner's words: "a new clipart maker app. User should be able to upload a picture and you should convert the picture into a
+clip art as best you can."
+- **The subject cut out:** U²-Net small (**u2netp**, rembg's model, Apache-2.0, 4.6 MB in `public/models/u2netp`, fetched from this site with the
+  first photo, once a visit, with its progress) on ONNX Runtime Web, its input and output as rembg makes them (imgproc's `p_u2_planes` /
+  `p_u2_mask` — held to rembg's own steps in Python: the subject overlaps by 99.2 – 99.99 %), on the photo at most 1,024 px; refined by imgproc's
+  guided filter; islands and holes under 0.2 % of the picture taken in. A mask holding less than 1 % of the photo found nothing: the whole photo
+  is used, and said.
+- **From the photo's own pixels:** the subject's box taken from the photo (not the 1,024 px copy) at the clip art's size — 1,024 / 800 / 640 px for
+  Fine / Medium / Bold —, the mask resized to it.
+- **Two smoothings** (imgproc, sizes for 800 px, scaled): **light** (bilateral) for the ink lines, **strong** (bilateral, then Kuwahara) for the
+  colours. **Flat colours** (`p_clip_flat`): k-means in CIE Lab seeded by **greedy k-means++** (scikit-learn's: 2 + ln k candidates a step, the best
+  kept — one draw missed a small colour of its own, an eye or a button, one time in eight on the test picture) from a fixed seed (the same photo
+  gives the same clip art); a mode filter evens the edges; areas under the detail's share of the picture (0.05 / 0.12 / 0.3 %) taken into their
+  neighbours; **each colour the mean of its own pixels** (a speck taken in does not tint the area it joins). **Ink lines** (`p_clip_lines`):
+  Winnemöller's difference of Gaussians (the Cartoonizer's line finder) at 1.5 px for 800 px, inside the subject and not at its edge (its outline
+  is drawn there), specks of line left out — the eyes, nose and mouth the flat colours smooth away (measured: 6.3 % of the astronaut's face is ink).
+- **Traced** by VTracer (stacked shapes; the subject's outline; the lines) and **composed in a style** (`clipSvg`): **Cartoon** (a black outline,
+  the ink lines), **Flat** (colours only — icons, slides), **Sticker** (the ink lines, an outline in a darker shade, a white border, a soft
+  shadow), **Line art** (white shapes with lines round every colour, the ink lines — a colouring page), **Silhouette** (the shape in one colour).
+  Outline none / black / a darker shade, thin / medium / thick, ink lines, a line round every colour, the border, the shadow, the ink colour: a
+  style or a switch changes the SVG at once (the same tracing); colours (3 – 24), the detail and the cut make it again.
+- **The tab:** a photo (or the camera; Paste image); the clip art on a see-through chequer, its colours, shapes, size and time; **Hold to compare**;
+  **Download SVG** (`<photo>-clipart.svg`), **Save PNG** (512 – 4,096 px, see-through); phones: the fixed bar. The newest photo wins. The choices
+  are kept while the page is open; nothing is stored. Nothing at open: the worker, the engines and the model with the first photo.
 
 ### OpenPGP
 Generate key pair (name, email, passphrase) → download armored public/private keys. Encrypt file
@@ -3351,7 +3403,7 @@ the photo with a webcam if it's a PC app." No engine to fetch: the browser's get
   answers after that (the permission question was still open) is stopped at once; one that stops by itself is said;
   refusals in words (`cameraError`). While it is open a phone's fixed action bar steps aside (`html.cam-open`) and
   `reveal(el)` (`src/ui.ts`) brings the view and its buttons in between the sticky tab rows and the screen's foot.
-- **Where:** built into `imageInput` — Image Editor, Photo & Signature Resizer, Background Remover, Cartoonizer, Blur &
+- **Where:** built into `imageInput` — Image Editor, Photo & Signature Resizer, Background Remover, Cartoonizer, Image to SVG, Clipart Maker, Blur &
   Redact, Text on Image, OCR, Signature Maker, Sign PDF, Photo Dictionary (21 Nov 2026), and the camera helpers of 27 – 28 Nov
   2026 — Router Sticker → Wi-Fi QR, Visiting Card → Contact, Paper Deadlines → Calendar, Bill Splitter by Photo, Camera Reader (`camera: false` for Passport
   Photo, which has a camera of its own); `imagePicker` (a file picker with the camera, photos arriving as files) — Batch Images,
@@ -4240,7 +4292,7 @@ stay **public** (the source of the deployed site is then available to every user
 | **libsodium.js** — `libsodium-wrappers-sumo` 0.8.4 (libsodium **1.0.22**; the sumo build: the standard one has no Argon2) | C | the libsodium project (official WebAssembly build, embedded in the module) — binding `src/wasm/libsodium.ts`, format `src/lib/usodium.ts`, in `src/workers/crypto.worker.ts` | sodium, sharelink: Argon2id + XChaCha20-Poly1305 secretstream (`docs/WASM-AUDIT.md`, tab 101); password, passphrase, dice, coin: randombytes_uniform (tabs 104, 105, 155) |
 | imgproc (adjustments, resize, OpenCV's area resize (`p_resize_area`, equal to cv2's INTER_AREA), lossless orient/crop, filters, matting, warp + homography, doc enhance, the page in a photo (`p_page_quad`) and whether an outline is a page's (`p_quad_steps`: the step across each edge; `p_quad_text`: the letters it leaves outside), an outline fitted to the photo's edges (`p_refine_quad`), strips of the desk along a straightened page painted (`p_clear_border`), which way up the text stands and how its lines slant (`p_text_turns`: the letters; `p_text_lines`: projection profiles), where the text is (`p_ink_window`), a watermark's broad strokes taken out (`p_clear_wash`), the views of a scrolling
 screenshot placed against each other (`p_scroll_sig`, `p_scroll_match`: rows that stay put, the shift by the overlap's
-difference over its detail, the overlap's pixels), ruled lines and list marks cleared and the columns counted (`p_clear_marks`); **book pages flattened** (`flatten.c`: `p_book_fit`, `p_book_render`, `p_book_locate` — page-dewarp's method, Levenberg–Marquardt, the gutter, the margins); **where a region of a PDF page may be cut for a Kindle's screen** (`kindle.c`: `p_blank_rows` — rows with no ink outside the letters' bodies, figures and formulas; `p_next_cut` — the lowest paragraph gap past 65 % of the room, else the lowest gap); PaddleOCR's steps around its networks, as RapidOCR takes them in OpenCV's arithmetic (`p_resize_linear` / `p_net_planes`: cv2.resize INTER_LINEAR in its own fixed point; `p_db_boxes`: DBPostProcess, its box score over cv2.fillPoly's exact pixels; `p_crop_quad`: get_rotate_crop_image; `p_ctc`: CTC's greedy reading)) | C (own code) | **us** (`wasm/imgproc`) | image tools, scanner, passport, cartoon, ocr and photodict (pages found, set upright and level, rules and list marks cleared — to-do #18; the second reader's pixel work), bookflat |
+difference over its detail, the overlap's pixels), ruled lines and list marks cleared and the columns counted (`p_clear_marks`); **book pages flattened** (`flatten.c`: `p_book_fit`, `p_book_render`, `p_book_locate` — page-dewarp's method, Levenberg–Marquardt, the gutter, the margins); **where a region of a PDF page may be cut for a Kindle's screen** (`kindle.c`: `p_blank_rows` — rows with no ink outside the letters' bodies, figures and formulas; `p_next_cut` — the lowest paragraph gap past 65 % of the room, else the lowest gap); PaddleOCR's steps around its networks, as RapidOCR takes them in OpenCV's arithmetic (`p_resize_linear` / `p_net_planes`: cv2.resize INTER_LINEAR in its own fixed point; `p_db_boxes`: DBPostProcess, its box score over cv2.fillPoly's exact pixels; `p_crop_quad`: get_rotate_crop_image; `p_ctc`: CTC's greedy reading); **flat colours, masks, black and white and ink lines for Image to SVG and the Clipart Maker** (`flat.c`: `p_clip_flat` — greedy k-means++ in CIE Lab, a mode filter, specks taken in, each colour the mean of its own pixels; `p_clip_mask`, `p_clip_lines` — Winnemöller's DoG inside the subject, not at its edge; `p_bw` — a threshold or Otsu's; `p_u2_planes` / `p_u2_mask` — U²-Net's input and output as rembg makes them)) | C (own code) | **us** (`wasm/imgproc`) | image tools, scanner, passport, cartoon, ocr and photodict (pages found, set upright and level, rules and list marks cleared — to-do #18; the second reader's pixel work), bookflat |
 | metacore (EXIF → JSON, lossless metadata strip JPEG/PNG/WebP, JPEG DPI, image sniffing) | C (own code) | **us** (`wasm/metacore`) | exif, image loading, passport/formphoto DPI |
 | BusyBox 1.38.0 (130 applets) + compat shims | C | **us** (`wasm/busybox`) | terminal, bc console |
 | jq 1.8.2 (+ oniguruma) | C | **us** (`wasm/jq`) | jq |
@@ -4253,6 +4305,8 @@ difference over its detail, the overlap's pixels), ruled lines and list marks cl
 | textcore: tool-search ranking, rare-word ranking (tokeniser, lemmatiser, wordfreq hash table), XY-cut reading order (columns numbered only where they are real: `minh`), **the tables of a page** (`table.c`, `t_tables`: ruled grids and columns that line up — Tabula's and Camelot's two ways; MuPDF's own `table-hunt` loses columns: docs/WASM-AUDIT.md 191) | C (own code) | **us** (`wasm/textcore`) | search box, emoji (search), photodict, epub, clipper (the order of a story's parts), kindlepdf (a page's regions), pdf-tables, worldclock (the city search) |
 | textkit: **unicode-segmentation 1.13.3** (the Rust ecosystem's UAX #29 implementation, Unicode 17.0, MIT / Apache-2.0: extended grapheme clusters, sentence boundaries) + our counting rules: words as a word limit counts them, abbreviations and initials, lines and paragraphs, keywords (Snowball's stop words); **the Case Converter's thirteen conversions** (`case.rs`: Title Case is a port of the Python package `titlecase` 2.4.1 — Gruber's rules, MIT; the code cases cut words as npm's `change-case` does; case mapping by Rust's standard library) | Rust | **us** (`wasm/textkit`, crates.io via `Cargo.lock`, two modules by Cargo features: **textkit.wasm** 217 KB — fetched with the Word Counter's first text, with the Case Converter, and with the first Fancy Text that has an emoji or another script — and **textkit-diff.wasm** 0.71 MB = the **`similar` crate 3.2.1** (Apache-2.0: Myers in linear space with a time limit, line / word / grapheme diffs, inline changes, unified diffs) + our glue and our pairing of a change's lines side by side (`pair_lines`: likeness by a bounded Myers search, the best order-keeping pairing by dynamic programming — to-do #35), fetched by the Text Diff only; and **textkit-lorem.wasm** 0.13 MB = the **`lipsum` crate 0.9.1** (MIT: a Markov chain over the classic passage and Cicero's *De finibus*, with rand 0.8 / rand_chacha 0.3) + our glue (cleaned texts learned as circles, exact counts), fetched by the Lorem Ipsum tab; and **textkit-tokens.wasm** 0.20 MB = the same `similar` crate's **patience algorithm** on two documents' tokens + ours (`tokens.rs`: runs that are only added or removed slid to where they read best, short equal runs taken into the changes round them, moves), fetched by PDF Compare's first Compare; the existing module — ICU4X's official build — is one file of 20 MB: `docs/WASM-AUDIT.md`, tab 90) | wordcount, case, lines ("By length"), fancy (characters); diff (textkit-diff); lorem (textkit-lorem); pdf-compare (textkit-tokens) |
 | Hunspell 1.7.6 (the spell checker of LibreOffice, Firefox and Chrome) **+ ours**: its time limits ten times as long (a WebAssembly build — and a phone — is slower than the desktop), its file streams read through C's stdio from memory (`stdio_stream.hxx`), and our order of the suggestions (`rank.hxx`: wordfreq's frequencies, a weighted edit distance, the dictionary's table of misspellings) | C++ | **us** (`wasm/hunspell`, 0.66 MB; the existing builds — hunspell-asm 4.0.2, hunspell-wasm 0.3.0 — give other suggestions than Hunspell 1.7.6 or cut them short: `docs/WASM-AUDIT.md`, tab 198) | spell |
+| VTracer 0.6.5 (visioncortex's colour tracer; visioncortex 0.8.10) | Rust | **us** (`wasm/vtracer`, plain exports on wasm32-wasip1, 0.17 MB; the existing npm build, `vectortracer`, is its demo's glue tied to a canvas and a DOM — `docs/WASM-AUDIT.md`, tab 199) — the same SVG as the native tool, byte for byte (built on musl's maths library, as wasi-libc's) | tosvg (colour), clipart (every shape, the outline, the ink lines) |
+| Potrace 1.16 (Peter Selinger's black-and-white tracer) | C | esm-potrace-wasm 0.5.1 (Emscripten, the engine of SVGcode; GPL-2.0) — in `src/workers/vector.worker.ts`, fetched with the first black-and-white tracing | tosvg (black and white) |
 | sheet: calamine 0.38 (read .xlsx .xlsm .xlsb .xls .ods) + rust_xlsxwriter 0.102 (write .xlsx; `dates`: ISO dates as dates, and a date in the form it was printed in — `{ date, format, shown }`) + csv 1 + serde_json | Rust | **us** (`wasm/sheet`, crates.io sources verified by `Cargo.lock`, target wasm32-wasip1) | sheet, pdf-tables |
 | article: **dom_smoothie 0.20.0** (Mozilla Readability's algorithm in Rust, MIT; on dom_query 0.30 / html5ever) + ours: the article written as XHTML for an EPUB (`xhtml.rs`), Chrome's MHTML read (`mhtml.rs`: MIME headers, multiparts, base64, quoted-printable, encoded words) and Safari's web archive (`webarchive.rs`: Apple's binary property list) | Rust | **us** (`wasm/article`, crates.io via `Cargo.lock`, opt-level s, 1.1 MB; the author's npm build — dom-smoothie-js 0.16.0 — is a Node.js build four releases behind, with faults later releases fixed: `docs/WASM-AUDIT.md`, tab 183) | articles |
 | svgo: **OXVG 0.0.9** (Rust port of SVGO's plugins; lightningcss for `<style>`) + our glue: DOCTYPE / entities allowed, nesting limit 256, **our own safe preset** (OXVG's `Jobs::safe()` is not safe), `sv_diff` (do two rasters look alike? — the tab renders every result next to its original and falls back to the safe result when the full optimisation changed the picture) | Rust | **us** (`wasm/svgo`, crates.io via `Cargo.lock`, opt-level z, 4.9 MB / 1.3 MB gz, loaded with the first SVG; unit `tests/unit/svgo.test.mjs`, hazard drawings `tests/fixtures/svg/hazards.json`) | svgo |
@@ -4265,7 +4319,7 @@ difference over its detail, the overlap's pixels), ruled lines and list marks cl
 | MuPDF 1.28 | C | Artifex (official `mupdf` npm) | all PDF tools, PDF → EPUB, PDF for Kindle (the pieces: the page grafted, redacted, drawn as a form), Watermark (PDFs: to-do #17), Book Page Flattener and Newspaper Clipper (their PDFs), EPUB Reader (EPUB, MOBI, FictionBook, comics, text laid out at any size with HarfBuzz and drawn — in the reader's worker, `src/workers/ebook.worker.ts`), Audiobook (a book's text: laid out on pages 100,000 px tall, its contents resolved to page and height — in `src/workers/bookread.worker.ts`; a PDF through the PDF → EPUB engine), PDF Redact (its redaction in two passes — the text by a band through each line, then pictures' pixels, drawings and a black box; comments and form fields baked first; the saved file read again), Safe ID Copy (an e-Aadhaar's pages drawn and their text read; the copy's PDF of pictures), Make PDF Searchable (each page's invisible text layer, `stampPage`; the password kept), PDF Compare (each page's characters with their boxes, the pages drawn, the changes written as comments), PDF Tables (each page's words and ruled lines, the pages drawn) |
 | ExifTool 13.42 on zeroperl (Perl 5 compiled to WebAssembly with ExifTool's library inside) | Perl / C | Phil Harvey (ExifTool), uswriting / 6over3 (`@uswriting/exiftool` 1.0.9, `@6over3/zeroperl-ts` 1.0.10) — run in `src/workers/exiftool.worker.ts` | exif (replaced metacore's reader and stripper in Nov 2026: `docs/WASM-AUDIT.md`, tab 120); regex (the Perl flavour, the same module: `src/lib/regex/perl.ts`) |
 | hash-wasm 4.13.0 (hand-tuned C → wasm, one small binary per algorithm, embedded in the package; streaming; HMAC over any of its hashes; Argon2, bcrypt, scrypt, PBKDF2) | C | Dani Biró (`hash-wasm` npm, ~10 M downloads a month) — wrappers `src/lib/hmac.ts`, `src/lib/totp.ts`, `src/lib/pwhash.ts`, `src/lib/hashes.ts` (in `src/workers/hash.worker.ts`); only the algorithms a tab uses are bundled into its chunk, loaded with the tab's first result | hash (23 algorithms), hmac (all of it), totp (the HMAC), pwhash (Argon2id / i / d, bcrypt, scrypt, PBKDF2) — replaced RustCrypto builds and crypto.wasm's hashes of ours in Nov 2026 (`docs/WASM-AUDIT.md`) |
-| ONNX Runtime Web 1.31 (CPU/WebAssembly, SIMD) | C++ | Microsoft (official `onnxruntime-web` wasm build) | tts, audiobook and camreader (Kokoro, Piper — `src/lib/speech.ts`, one session a worker; the Audiobook runs one to four workers at once); scanner and idcopy (DocCornerNet LEAN, scanic-ml 0.2.0: the page's — a card's — corners — `docs/WASM-AUDIT.md`, tab 121); ocr, photodict and clipper (the same network, asked where the Kindle finder's outline is not a page's — to-do #18; and **PaddleOCR's PP-OCRv6 detector and recogniser, the second reader for soft photos** — owner, 26 Nov 2026: `src/lib/paddle.ts` in `src/workers/paddle.worker.ts`); noise (**DeepFilterNet 3**, the Studio voice — to-do #20: `src/workers/noise.worker.ts`) |
+| ONNX Runtime Web 1.31 (CPU/WebAssembly, SIMD) | C++ | Microsoft (official `onnxruntime-web` wasm build) | tts, audiobook and camreader (Kokoro, Piper — `src/lib/speech.ts`, one session a worker; the Audiobook runs one to four workers at once); scanner and idcopy (DocCornerNet LEAN, scanic-ml 0.2.0: the page's — a card's — corners — `docs/WASM-AUDIT.md`, tab 121); ocr, photodict and clipper (the same network, asked where the Kindle finder's outline is not a page's — to-do #18; and **PaddleOCR's PP-OCRv6 detector and recogniser, the second reader for soft photos** — owner, 26 Nov 2026: `src/lib/paddle.ts` in `src/workers/paddle.worker.ts`); noise (**DeepFilterNet 3**, the Studio voice — to-do #20: `src/workers/noise.worker.ts`); clipart (**U²-Net small**, rembg's u2netp: the subject cut out — `src/workers/vector.worker.ts`) |
 | SQLite 3.54 | C | SQLite project (official `@sqlite.org/sqlite-wasm`), run in `src/workers/sqlite.worker.ts` (terminated on leave) | sqlite |
 | PCRE2 (pcre2-wasm 10.49.3: PCRE2 compiled by Emscripten, the WebAssembly inside the package) | C | gudoshnikovn (`pcre2-wasm`, MIT; PCRE2 BSD-3 with the PCRE2 exception) — in `src/workers/regex.worker.ts` | regex (the PCRE2 flavour: `docs/WASM-AUDIT.md`, tab 178) |
 | Oniguruma (vscode-oniguruma 2.0.1) | C | Microsoft (`vscode-oniguruma`, MIT; Oniguruma BSD-2) — the build VS Code and Shiki run | regex (the Ruby flavour, with Ruby's rules beside it in `src/lib/regex/ruby.ts`) |
@@ -4943,6 +4997,16 @@ and out UTF-8. The script also builds **the native reference** from the same sou
 scripts/make-spell-reference.py`, both suites; new dictionaries: bump dictionary-en / dictionary-en-gb (`scripts/vendor.mjs` copies
 them to `public/vendor/spell/`), `python3 scripts/make-spell-india.py`, the reference script, both suites.
 
+### 5.1v vtracer → `src/wasm/bin/vtracer.wasm` (Rust)
+`bash wasm/vtracer/build.sh` = `cargo build --release --locked --target wasm32-wasip1` (no zig): **vtracer 0.6.5** with **visioncortex 0.8.10**
+(MIT OR Apache-2.0, crates.io, pinned by `Cargo.lock`) behind four plain exports (`wasm/vtracer/src/lib.rs`): `vt_alloc` / `vt_free`, `vt_trace(rgba,
+w, h, color, cutout, mode, filter_speckle, color_precision, layer_difference, corner_threshold, length_threshold, max_iterations, splice_threshold,
+precision)` → 0 and the SVG in `vt_out_ptr()` / `vt_out_len()`, or 1 and the message. WASI's random_get only (VTracer picks a key colour at random for
+see-through pictures). 0.17 MB. **The reference:** the native command-line VTracer of the same version built on musl (`rustup target add
+x86_64-unknown-linux-musl; cargo install vtracer --version 0.6.5 --target x86_64-unknown-linux-musl`, `$VTRACER`) — wasi-libc's maths functions are
+musl's, so the two write the same SVG byte for byte. **To update:** bump the version in `Cargo.toml`, `cargo update -p vtracer`, build, rebuild the
+reference with the new version, `node tests/unit.mjs vector`.
+
 ### 5.1e markdown → `src/wasm/bin/markdown.wasm`
 `ZIG=… wasm/markdown/build.sh`: downloads the `cmarkgfm` 2025.10.22 sdist from PyPI (SHA-256 `5bec6100…`), which vendors
 cmark-gfm 0.29.0.gfm.13 (latest upstream) plus its CMake-generated headers (`generated/unix`), and links all of
@@ -4999,6 +5063,9 @@ npm packages (pinned in `package-lock.json`) are bundled by Vite or copied to `p
 | @jitsi/rnnoise-wasm 0.2.1 (RNNoise 0.2 compiled to WebAssembly by Jitsi) | Apache-2.0 (RNNoise: BSD-3-Clause) | Noise Remover |
 | signalsmith-stretch 1.3.2 (Signalsmith Stretch, WebAssembly + AudioWorklet) | MIT | Pitch & Speed |
 | lcms-wasm 1.0.5 (Little CMS 2.16) | MIT | HEIC colours (Display P3 → sRGB) |
+| esm-potrace-wasm 0.5.1 (Potrace 1.16 compiled to WebAssembly) | GPL-2.0 | Image to SVG (black and white) |
+| *built in:* vtracer 0.6.5 and visioncortex 0.8.10 in vtracer.wasm | MIT OR Apache-2.0 | Image to SVG, Clipart Maker |
+| *test only (apt / cargo / pip, not shipped):* potrace 1.16, librsvg's rsvg-convert, vtracer 0.6.5's command line, onnxruntime (Python) | GPL-2.0 / LGPL-2.1+ / MIT OR Apache-2.0 / MIT | the references of `tests/unit/vector.test.mjs` and the SVGs drawn in the e2e suites |
 | dictionary-en 4.0.0, dictionary-en-gb 3.0.0 (SCOWL's en_US and en_GB-ise Hunspell dictionaries, wordlist.aspell.net) | MIT AND BSD | Spell Checker |
 | *built in:* Hunspell 1.7.6 in hunspell.wasm | MPL-1.1 / GPL-2.0+ / LGPL-2.1+ (tri-licensed) | Spell Checker |
 | @uswriting/exiftool 1.0.9 + @6over3/zeroperl-ts 1.0.10 (ExifTool 13.42; Perl 5) | Apache-2.0 (the packages); ExifTool and Perl: the Artistic License or GPL-1.0+ | EXIF / Photo Info |
@@ -5053,6 +5120,8 @@ Current entries (all Apache-2.0, Google MediaPipe, versioned URLs `…/float16|f
   alphabet (18,708 characters) is written beside it from the model's metadata (`"metadata": "character"` →
   `PP-OCRv6_rec_small.onnx.character.txt`: ONNX Runtime Web cannot read a model's metadata). RapidOCR's direction
   classifier (PP-OCRv4, 0.6 MB) is left out (§3 OCR, "The second reader").
+- `u2netp/u2netp.onnx` (4.6 MB) — clipart: **U²-Net small** (Qin et al. 2020, Apache-2.0) as rembg ships it (`github.com/danielgatis/rembg` release
+  v0.0.0, SHA-256 `309c8469…`); the subject of a photo cut out.
 - `deepfilternet3/deepfilter.onnx` (8.6 MB) — noise (Studio voice): DeepFilterNet 3's v0.5.6 checkpoint as an FP32 ONNX graph
   (`huggingface.co/soniqo/DeepFilterNet3-ONNX`, revision 63d8ba44, SHA-256 `e1157049…`). **MIT** (DeepFilterNet by Hendrik
   Schröter and contributors, MIT OR Apache-2.0; the export published under MIT). The graph only — its signal processing is

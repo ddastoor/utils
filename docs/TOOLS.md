@@ -2,9 +2,9 @@
 
 Generated from `src/registry.ts` by `npm run docs` — do not edit by hand.
 
-**194 tabs** in 11 categories — 127 PC + mobile, 64 PC only, 3 mobile only.
+**196 tabs** in 11 categories — 129 PC + mobile, 64 PC only, 3 mobile only.
 
-## Images (17)
+## Images (19)
 
 | id | Tab | Platform | What it does | Search keywords |
 |---|---|---|---|---|
@@ -15,6 +15,8 @@ Generated from `src/registry.ts` by `npm run docs` — do not edit by hand.
 | `formphoto` | Photo & Signature Resizer | PC + mobile | Exact pixel size and KB limits for exam and job forms. | signature, photo, form, exam, ssc, upsc, ibps, neet, … |
 | `bgremove` | Background Remover | PC + mobile | Remove or replace the background of a portrait. | background, remove, transparent, png, cut out, replace, blur background, portrait, … |
 | `cartoon` | Cartoonizer | PC + mobile | Turn a photo into a cartoon, painting or sketch. | oil painting, painting effect, photo effect, art filter, cartoon, prisma, art, artistic, … |
+| `tosvg` | Image to SVG | PC + mobile | Trace a logo, signature or scan into a vector SVG: in colour or black and white. | image to svg, png to svg, jpg to svg, convert to svg, vectorize, vectorise, vectorizer, vector, … |
+| `clipart` | Clipart Maker | PC + mobile | A photo made into clip art: the subject cut out in flat colours, as a cartoon, a sticker, line art or a silhouette. | clipart, clip art, clipart maker, clip art maker, photo to clipart, picture to clipart, make clipart, cartoon clipart, … |
 | `redact` | Blur & Redact | PC + mobile | Blur faces or hide parts of an image before sharing. | blur, redact, hide, censor, pixelate, face, privacy, number plate, … |
 | `watermark` | Watermark | PC + mobile | Add a text or logo watermark to photos. | add logo, logo on photo, add logo to image, logo on image, watermark image, watermark, logo, copyright, … |
 | `caption` | Text on Image | PC + mobile | Add captions or meme text to a picture. | caption, meme, text, write on image, quote, title, font |

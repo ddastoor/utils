@@ -9,6 +9,7 @@
 .ca-acts { flex-wrap: wrap; gap: 8px; margin-top: 10px; align-items: center; }
 .ca-png { display: inline-flex; gap: 8px; align-items: center; }
 .ca-png .select { width: auto; }
+.ca-png .btn { flex: none; white-space: nowrap; }
 .ca-inkrow { display: inline-flex; gap: 10px; align-items: center; }
 .ca-ink { width: 48px; height: 44px; padding: 2px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); }
 @media (max-width: 720px) {

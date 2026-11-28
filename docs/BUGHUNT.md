@@ -3488,6 +3488,24 @@ Found while building it (unit `worldclock` 39, e2e `worldclock` 55):
 - **The selected chips in the dark theme** — white on the light accent — failed WCAG contrast (axe-core): the theme's ink colour.
 - **On phones the items' names were cut** ("Veg Biryai") beside the amount: the name has a row of its own there.
 
+## Image to SVG and Clipart Maker (28 Nov 2026; built — potentials #1, #117)
+- **The palette held garbage:** `p_clip_flat` wrote only the k colours asked for into its 64-entry palette, and the binding read all 64 from
+  memory nobody had cleared — "12 colours" for 8 asked for (found by the unit suite). The C clears the whole palette now.
+- **A small colour of its own was lost by chance:** plain k-means++ draws one seed a step; on the suite's picture (three blocks and a 6 × 6
+  yellow speck) it put two seeds in the blue block and none in the yellow one, one time in eight. Greedy k-means++ (scikit-learn's: the best
+  of 2 + ln k draws a step) keeps it — eyes, buttons, a logo's small dot.
+- **A speck taken in tinted its neighbour:** a colour was the mean of all its pixels after the specks were merged into it (a red block took
+  a yellowish cast from the speck it swallowed). Each colour is the mean of its own pixels now.
+- **The clip art lost faces:** the smoothing and the specks' merging erased eyes and mouths (a contact sheet of the photos showed blank faces at
+  every setting). The ink lines (DoG on a lightly smoothed copy, inside the subject only) bring them back — measured on the astronaut's face.
+- **The subject came from the 1,024 px copy:** a person small in a large photo was traced from a few hundred pixels, made larger. The subject
+  is taken from the photo's own pixels now, the mask resized to it.
+- **Image to SVG traced a picture at the wrong kind's size:** chosen in black and white (up to 3,000 px) and then traced in colour at 3,000 px —
+  slow — or the other way round, too small. Each kind takes the picture at its own size from the original now.
+- **Switching a style traced the photo again** (each style had its own number of colours): a style is the same tracing composed again now,
+  at once; the colours stay as chosen.
+- **The Clipart Maker's switches ran on as one line** of text and switches on a PC: they stand one under another.
+
 ## Paper Deadlines → Calendar (28 Nov 2026; built — potentials #77)
 - **Tesseract's blank lines inside a sentence:** "Your motor insurance policy expires on" / blank / "31 January 2027." — read as two
   paragraphs, the date lost what it was for; a line that ends with a word a sentence cannot end with runs on over a blank line.

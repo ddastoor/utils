@@ -25,12 +25,11 @@ const STYLE_SAYS: Record<ClipStyleName, string> = {
   lineart: 'Only the lines, on white — a colouring page.',
   silhouette: 'The shape of the subject in one colour.',
 };
-const COLOURS: Record<ClipStyleName, number> = { cartoon: 12, flat: 10, sticker: 12, lineart: 10, silhouette: 8 };
 /** kept while the page is open (nothing is stored) */
 const kept = { style: 'cartoon' as ClipStyleName, cut: true, colors: 12, detail: 'medium' as Detail, look: { ...STYLES.cartoon, ink: '#1b1b1b' } };
 
 export const mount: Mount = (root, ctx) => {
-  let src: Img | null = null, name = 'clipart', parts: ClipResult | null = null, svg = '', seq = 0, timer = 0, gone = false, comparing = false;
+  let src: Img | null = null, name = 'clipart', photo = '', parts: ClipResult | null = null, svg = '', seq = 0, timer = 0, gone = false, comparing = false;
   const status = h('div', { class: 'muted small ca-status', 'aria-live': 'polite' });
   const prog = progress();
   const view = h('div', { class: 'ca-view', role: 'img', 'aria-label': 'The clip art' });
@@ -38,7 +37,7 @@ export const mount: Mount = (root, ctx) => {
   const info = h('div', { class: 'muted small' });
 
   const input = imageInput(async (img, file) => {
-    name = `${file.name.replace(/\.[^.]+$/, '') || 'photo'}-clipart`;
+    name = `${file.name.replace(/\.[^.]+$/, '') || 'photo'}-clipart`; photo = file.name;
     src = img; parts = null;
     result.hidden = false;
     void make();
@@ -79,7 +78,7 @@ export const mount: Mount = (root, ctx) => {
     if (!parts) return;
     svg = clipSvg(parts, { style: kept.style, ...kept.look } as ClipStyle);
     const url = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' }));
-    const im = h('img', { src: url, alt: 'The clip art', class: 'ca-svg' }) as HTMLImageElement;
+    const im = h('img', { src: url, alt: `The clip art of ${photo}`, class: 'ca-svg' }) as HTMLImageElement;
     im.onload = () => URL.revokeObjectURL(url);
     view.replaceChildren(im, origCanvas);
     const shapes = (parts.shapes.match(/<path\b/g) || []).length;
@@ -96,7 +95,7 @@ export const mount: Mount = (root, ctx) => {
     outlineSeg.value = kept.look.outline; weightSeg.value = String(kept.look.weight) as '1' | '2' | '3';
     borderT.checked = kept.look.border; shadowT.checked = kept.look.shadow; linesT.checked = kept.look.lines; edgesT.checked = kept.look.edges;
     syncLook();
-    if (COLOURS[v] !== kept.colors && v !== 'silhouette') { kept.colors = COLOURS[v]; colors.value = kept.colors; remake(0); } else compose();
+    compose(); // at once: the same tracing in another style
   });
   const outlineSeg = segmented<'none' | 'black' | 'shade'>([['none', 'None'], ['black', 'Black'], ['shade', 'Darker shade']], kept.look.outline, (v) => { kept.look.outline = v; compose(); });
   const weightSeg = segmented<'1' | '2' | '3'>([['1', 'Thin'], ['2', 'Medium'], ['3', 'Thick']], String(kept.look.weight) as '1' | '2' | '3', (v) => { kept.look.weight = +v as 1 | 2 | 3; compose(); });

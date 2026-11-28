@@ -29,7 +29,7 @@ export const mount: Mount = (root, ctx) => {
   const status = h('div', { class: 'muted small ts-status', 'aria-live': 'polite' });
   const origCanvas = h('canvas', { class: 'ts-orig', 'aria-label': 'The picture' }) as HTMLCanvasElement;
   const out = h('div', { class: 'ts-out', role: 'img', 'aria-label': 'The SVG' });
-  const stats = h('div', { class: 'muted small' });
+  const stats = h('div', { class: 'muted small ts-stats' });
 
   const input = imageInput(async (img, file) => {
     name = file.name.replace(/\.[^.]+$/, '') || 'picture';

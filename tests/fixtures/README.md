@@ -200,3 +200,12 @@ generates media with the project's own ffmpeg.wasm and Chromium). Used only by t
   scripts/make-worldclock-reference.py` (needs `pip install astral==3.2`). Made by us; free to use.
 - `ids.json` — every city's id, name and coordinates as `scripts/make-worldclock-cities.py` makes them (GeoNames' data, CC BY 4.0, via
   geonamescache 3.0.2): the unit suite makes the ids again in TypeScript.
+
+## vector/
+- `logo.png` (640 × 400: a red disc in a black ring, a blue rounded square with a white bar, a yellow triangle, on white — drawn at 4× and made
+  smaller), `signature.jpg` (640 × 300: a signature in blue ink photographed on paper lit unevenly, a shadow at a corner, a camera's noise, JPEG
+  at 85) with `signature-mask.png` (the ink as it was drawn), `pixel.png` (24 × 24 pixel art in six colours), `truth.json` (their colours and
+  sizes) — made by `python3 scripts/make-vector-fixtures.py` (Pillow, numpy; a fixed seed). Made by us; free to use. Image to SVG's pictures.
+- `u2net-chelsea.png`, `u2net-astronaut.png`, `u2net-coffee.png` — U²-Net small's 320 × 320 masks of `images/chelsea.png`, `astronaut.png`
+  and `coffee.png` made by rembg's own steps in Python on ONNX Runtime (`python3 scripts/make-u2net-reference.py`; needs onnxruntime, Pillow,
+  numpy and the model fetched by `npm run assets`): the reference of the Clipart Maker's cut-out in `tests/unit/vector.test.mjs`.

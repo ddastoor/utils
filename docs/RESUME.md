@@ -169,16 +169,15 @@ Ignore, Ignore all, Add, a word typed, Previous / Next round and round, Undo), P
 file's name; **its suggestions in our order** (`wasm/hunspell/rank.hxx`: wordfreq's frequencies, a weighted edit distance, the
 dictionary's table of misspellings — fitted on half of codespell's list of misspellings: the right word first 86.3 → 89.6 %, capitalised
 81.9 → 89.5 %, classic misspellings 80.2 → 89.3 %). Size, measured: 1.8 MB on the site (the module and two dictionaries); the frequency
-list is the Photo Dictionary's. Unit `spell` 51 (the module against the native build, list for list), e2e `spell` 65. **▶ IN PROGRESS
-(28 Nov 2026): #1 Image to SVG + #117 Clipart Maker** — the tabs `tosvg` and `clipart` (Images) work: VTracer 0.6.5 as our
-vtracer.wasm (0.17 MB), Potrace 1.16 (esm-potrace-wasm, 0.08 MB), U²-Net small (u2netp, 4.6 MB, rembg's model on ONNX Runtime Web),
-imgproc's `flat.c` (flat colours by greedy k-means++ in CIE Lab, masks, black and white, ink lines by DoG); the pipelines in
-`src/lib/vectorize.ts`, the worker `src/workers/vector.worker.ts`, the styles `src/lib/clipart.ts`. Unit `vector` 65 passes (VTracer
-byte for byte against its native tool built on musl — `cargo install vtracer --version 0.6.5 --target x86_64-unknown-linux-musl`, $VTRACER;
-Potrace against the native potrace; the cut-out against rembg's steps, `scripts/make-u2net-reference.py`; fixtures
-`scripts/make-vector-fixtures.py`). **Left:** e2e suites `tosvg` and `clipart`, the sweeps, phone screenshots, docs (CLAUDE.md §2/§3/§3a/§5/§6,
-WASM-AUDIT, BUGHUNT, fixtures README, TOOLS.md), potentials #1 and #117 off the list. Then #75 SliceDiceGrapher (with #25 Chart Maker),
-#54 Diagram Editor (draw.io, PC only); each with its size check measured first (stop and ask if much bigger than the 27 Nov estimate).
+list is the Photo Dictionary's. Unit `spell` 51 (the module against the native build, list for list), e2e `spell` 65. **#1 Image to SVG + #117 Clipart Maker —
+BUILT (28 Nov 2026):** the tabs `tosvg` and `clipart` (Images, PC + mobile; CLAUDE.md §3 "Image to SVG", "Clipart Maker"): VTracer 0.6.5 as our
+vtracer.wasm (0.17 MB — byte for byte the native tool's, built on musl), Potrace 1.16 (esm-potrace-wasm, 0.08 MB), U²-Net small (rembg's u2netp,
+4.6 MB, on ONNX Runtime Web — held to rembg's own steps), imgproc's `flat.c` (greedy k-means++ in CIE Lab, masks, black and white, DoG ink
+lines); pipelines `src/lib/vectorize.ts`, styles `src/lib/clipart.ts`. Unit `vector` 65, e2e `tosvg` 25, `clipart` 31; measured 4.9 MB on the
+site. **▶ NEXT (told to the owner, 28 Nov 2026 — the owner asked about it twice): to-do #39, the Settings page** (the owner's wording of 28 Nov in todo.md
+#39: browser storage, a section per app, both ways in step, a settings file after every change — `superutils_settings_YYYYMMDD_HHMM.json`);
+then #75 SliceDiceGrapher (with #25 Chart Maker), #54 Diagram Editor (draw.io, PC only) — each with its size check measured first (stop and
+ask if much bigger than the 27 Nov estimate); then to-dos #38 and #40.
 **Then to-dos #38, #39 and #40** (owner,
 27 Nov 2026, evening: "After you finish all these, finish off the items in the todo.md also."; #40, added the same evening:
 the EPUB Reader's "Remember book" — a hash of the book, its place and the reading voice in the Settings — after #39). The open question (keep the EPUB Reader's place between visits?) is

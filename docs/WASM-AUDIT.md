@@ -1978,3 +1978,37 @@ Looked at first (STANDING RULE #1):
 - **Looked at, not used:** Harper (a grammar checker in Rust with a WebAssembly build) — the owner asked for spelling, in three Englishes,
   and Hunspell with SCOWL's dictionaries is the established engine for it.
 - **Decision:** our hunspell.wasm (0.66 MB) and the two dictionaries (0.55 MB each) — 1.8 MB on the site.
+
+### 199. `tosvg` — Image to SVG (28 Nov 2026; potentials #1)
+- **Colour — existing modules (rule 1):** `vectortracer` on npm (visioncortex's own demo build of VTracer, wasm-bindgen) — its API is the
+  demo's: it draws into a canvas element it is handed and steps through the work with the page's animation frames, so it runs neither in a
+  worker nor in Node, and it is an older VTracer (0.4 line). Not used. No other maintained WebAssembly colour tracer exists (imagetracerjs is
+  JavaScript, unmaintained since 2020).
+- **Ours (rule 2):** the **vtracer 0.6.5** crate (MIT OR Apache-2.0, the newest release) built by us for wasm32-wasip1 behind four plain exports
+  (`wasm/vtracer`, 0.17 MB). Held to the native command-line VTracer of the same version byte for byte — once that is built on musl: wasi-libc's
+  maths functions are musl's, and glibc's trigonometry differs in the last digit now and then, which moved a corner of a photo's path (found by
+  the suite: 59 characters of 748,000 apart, all from one corner decision).
+- **Black and white — existing module (rule 1):** **esm-potrace-wasm 0.5.1** (Potrace 1.16 by Emscripten, GPL-2.0 — the engine of Google's SVGcode;
+  its WebAssembly inside the module), used as it is: its paths are the native potrace 1.16's, path for path (9 bitmaps × options in the unit
+  suite). In Node its glue asks for CommonJS's `require` and `__dirname` (the suite gives them); in the browser it never does.
+- **Beside them (rule 1a, own C in imgproc.wasm):** black and white by a threshold or Otsu's, a see-through pixel on white (`p_bw`); a photo of
+  paper through the document clean-up first (`docEnhance`). TS (rule 1c): the settings, the picture at each kind's size, the ink colour put
+  into Potrace's SVG — glue.
+- **Decision:** our vtracer.wasm + esm-potrace-wasm (0.08 MB) — 0.25 MB on the site.
+
+### 200. `clipart` — Clipart Maker (28 Nov 2026; potentials #117)
+- **The cut-out — existing modules (rule 1):** ONNX Runtime Web (the app's, already on the site) with **U²-Net small** (rembg's u2netp,
+  Apache-2.0, 4.6 MB — the small general model; MediaPipe's segmenters are for people only, and the Background Remover's is). rembg itself is
+  Python; its steps around the network (the picture to 320 × 320, over its largest value, ImageNet's means and deviations; the output stretched
+  to 0 … 255) are ours in imgproc.wasm (`p_u2_planes`, `p_u2_mask`) — held to rembg's steps in Python on ONNX Runtime: the subject overlaps by
+  99.2 – 99.99 %, the masks 0.5 – 1.3 of 255 apart on average (PIL's Lanczos and imgproc's differ a little). Larger models (U²-Net 176 MB,
+  BiRefNet, ISNet) only after the size check.
+- **The colours, masks and lines (rule 2 — no WebAssembly module makes clip art):** own C in imgproc.wasm (`flat.c`): k-means in CIE Lab with
+  **greedy k-means++** (scikit-learn's seeding: the suite's picture lost its small yellow area to plain k-means++ one time in eight, never with
+  the greedy form), a mode filter, specks merged, each colour the mean of its own pixels; the subject's mask cleaned; Winnemöller's DoG ink lines
+  (the Cartoonizer's `dog_lines`) inside the subject. The smoothings are imgproc's bilateral and Kuwahara filters.
+- **Tracing:** our vtracer.wasm (tab 199).
+- **Beside them (rule 1c, TS):** `src/lib/clipart.ts` — the traced paths put together as an SVG in a style (string glue); `src/lib/vectorize.ts`
+  — the order of the steps.
+- **Decision:** u2netp (4.6 MB) and the engines of tab 199 — about 4.9 MB on the site for both tabs.
+
