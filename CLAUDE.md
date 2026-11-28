@@ -82,7 +82,7 @@ that affects it.
 >    3, 8.6 MB): **563 MB**; 28 Nov 2026, with SliceDiceGrapher: **578.8 MB**; with the Diagram Editor (draw.io): **631.7 MB**; with sqlite3, bz2 and
 >    lzma in the Python tab (1.9 MB) and the Cartoonizer's anime looks (34.6 MB): **668.3 MB**; with World Radio (31 KB — the stations and
 >    their sound come from the directory and the stations' servers): **668.3 MB**; with Wallpapers (34 KB — the pictures come from
->    Wikimedia and the museums): **668.4 MB**.
+>    Wikimedia and the museums): **668.4 MB**; with the NASA Image Explorer (17 KB; the wallpaper maker now shared): **668.4 MB**.
 > 4. **Wait for the owner's decision.** Build nothing until the owner has decided.
 
 > ## ⚠️ STANDING RULE #1 — WebAssembly first (owner; permanent; applies to every line of new code)
@@ -265,8 +265,8 @@ Wayland) and **mobile browsers** (Android Chrome, iPhone Safari).
    `youtube-nocookie.com` (`frame-src`), and the Diagram Editor a page of this site (`frame-src 'self'`: draw.io's own page,
    which has a Content-Security-Policy of its own — code only from this site, no other site contacted); `media-src` takes
    `https:` — sound from any secure server: World Radio's stations' own streams (data, never code; plain HTTP is not allowed);
-   `img-src` stays `'self'` (no station logos — a letter in a circle; the Wallpapers' pictures are fetched — `connect-src` — and shown
-   from `blob:` addresses). `tests/e2e/no-external.e2e.mjs` fails on any code from another
+   `img-src` stays `'self'` (no station logos — a letter in a circle; the Wallpapers' and the NASA Image Explorer's pictures are fetched —
+   `connect-src` — and shown from `blob:` addresses; NASA's videos play from its file server through `media-src https:`). `tests/e2e/no-external.e2e.mjs` fails on any code from another
    host and on any request to a non-allowlisted host.
    **What the rule means (owner, 28 Nov 2026 — his wording; standing):** "when I say that SuperUtil's website should not
    depend on external libraries at runtime, what I mean is they should not pull in JavaScript libraries or Node libraries
@@ -374,7 +374,7 @@ Wayland) and **mobile browsers** (Android Chrome, iPhone Safari).
 Platform is PC + mobile unless marked **PC**. Tab ids are the URL hash (`#/<id>`).
 
 **The authoritative, always-current list is `docs/TOOLS.md`, generated from `src/registry.ts` (`npm run docs`).**
-Current total: **200 tabs in 11 categories — 132 PC + mobile, 65 PC only, 3 Mobile only** (regenerate with
+Current total: **201 tabs in 11 categories — 133 PC + mobile, 65 PC only, 3 Mobile only** (regenerate with
 `npm run docs` after every registry change; the owner asked for the registry to always be noted).
 The per-category notes below record decisions; when they disagree with the registry, the registry wins.
 
@@ -410,6 +410,7 @@ and to the counts of `docs/TOOLS.md`; axe in both themes).
 | `caption` | Text on Image | both | canvas captions / meme text |
 | `collage` | Collage Maker | both | canvas photo grid |
 | `wallpapers` | Wallpapers | both | **BUILT** (28 Nov 2026; potentials #115 — §3 "Wallpapers"): Wikimedia Commons' Picture of the Day and featured pictures, the Met's and the Art Institute of Chicago's public-domain paintings (their APIs, CORS) → a wallpaper of the screen's exact pixels: the crop on the faces (BlazeFace, the Blur & Redact tab's) or the busiest part (imgproc `p_busy_window`), Squoosh's resize, MozJPEG, the credit in the file |
+| `nasa` | NASA Image Explorer | both | **BUILT** (28 Nov 2026; potentials #114 — §3 "NASA Image Explorer"): NASA's Image and Video Library (its API, CORS; the files at its bucket's own address) → pictures and videos by words, topic, years, centre; a picture as a wallpaper (the Wallpapers' maker, `src/lib/wallmaker.ts`), a video played with its captions |
 | `exif` | EXIF / Photo Info | both | ExifTool 13.42 (Perl on zeroperl, WebAssembly) in a worker: every tag of every format; strip metadata losslessly (colour profile + orientation kept) |
 | `scanner` | Doc Scanner | both | page finder DocCornerNet LEAN (scanic-ml, MIT) on ONNX Runtime Web (fed by imgproc's OpenCV-exact area resize) → else `imgproc` outline (Otsu + largest region) → else the whole photo; draggable corners, homography warp, enhance (`imgproc`); PDF via MuPDF (`src/lib/pdf.ts`: photos JPEG, B & W PNG) or JPEGs |
 | `clipper` | Newspaper Clipper | both | the OCR tab's page finder → the page sharpened (imgproc `p_sharpen`) and read by Tesseract laid out as a page (its blocks) → headlines, pictures (imgproc ink regions) and a story from its headline (`src/lib/clipper.ts`) → its parts in reading order (textcore's XY-cut) as one tall picture (MozJPEG / OxiPNG), an A4 PDF (MuPDF) or its text (Copy, .txt, Read aloud → Text-to-Speech) |
@@ -1170,8 +1171,8 @@ clip art as best you can."
   are kept while the page is open; nothing is stored. Nothing at open: the worker, the engines and the model with the first photo.
 
 ### Wallpapers — BUILT (potentials #115; owner, 21 Nov 2026; built 28 Nov 2026 — group 1 of the suggested order)
-(`wallpapers` in `src/tools/wallpapers.ts` + `.css`, the services and the crop `src/lib/wallpapers.ts` (no DOM), the busiest part imgproc.wasm's
-`p_busy_window`; unit `tests/unit/wallpapers.test.mjs` 48 (+ the busy window in `imgproc`), e2e `tests/e2e/wallpapers.e2e.mjs` 86; fixtures
+(`wallpapers` in `src/tools/wallpapers.ts` + `.css`, the services and the crop `src/lib/wallpapers.ts` (no DOM), the dialog, the crop and the save
+`src/lib/wallmaker.ts` + `.css` (shared with the NASA Image Explorer since 28 Nov 2026), the busiest part imgproc.wasm's `p_busy_window`; unit `tests/unit/wallpapers.test.mjs` 48 (+ the busy window in `imgproc`), e2e `tests/e2e/wallpapers.e2e.mjs` 86; fixtures
 `tests/fixtures/wallpapers/` — the services' answers recorded by `python3 scripts/make-wallpaper-fixtures.py` (Commons' search answer written in its
 API's format from the feed's real Picture of the Day: Commons refused the recording machine, HTTP 429) and three test pictures.) The owner's words
 (potentials #115; 21 Nov 2026: "I changed my mind. You can use the wallpaper tab"): "Wikimedia Commons' Picture of the Day and Featured Pictures
@@ -1220,6 +1221,43 @@ an auto-changing wallpaper".
   under 6 of 255 from the crop drawn from the source; a centred crop at least 3 × and 10 levels further), its credit in the comment (read back by
   Pillow in the unit suite); the rendition asked for (Commons' 1,920 px thumbnail for Full HD, the original for a phone's crop of a panorama, the
   Art Institute's 3,840 px IIIF picture for 4K, the Met's original).
+
+### NASA Image Explorer — BUILT (potentials #114; owner, 21 Nov 2026; built 28 Nov 2026 — the last of group 1 of the suggested order)
+(`nasa` in `src/tools/nasa.ts` + `.css`, the service `src/lib/nasa.ts` (no DOM), the dialog, crop and save the Wallpapers' `src/lib/wallmaker.ts`;
+unit `tests/unit/nasa.test.mjs` 36, e2e `tests/e2e/nasa.e2e.mjs` 58; fixtures `tests/fixtures/nasa/` — NASA's own answers recorded by `python3
+scripts/make-nasa-fixtures.py` —, the pictures and the video test files.) The owner's words (potentials #114): "search NASA's image and video library
+— missions, planets, astronauts, the Earth from space, 140,000+ items, most public domain (NASA's own; an item credited to someone else says so) —
+by words, mission or year → a grid, a large view with the caption, date, NASA centre and credit, the full-size original to download, and 'Save as
+wallpaper': cropped and sized exactly to the screen it is for … The Astronomy Picture of the Day too, if it can be reached without a key".
+- **The service:** NASA's API (`images-api.nasa.gov`: `/search` — words, `media_type`, `year_start` / `year_end`, `center`, 24 a page —, `/asset/<id>`
+  — an item's files), CORS, no key. **Its file server, images-assets.nasa.gov (CloudFront in front of an S3 bucket), sends no CORS header** —
+  a page cannot read a picture from it (checked 28 Nov 2026); **the bucket itself answers CORS** (`Access-Control-Allow-Origin: *`) at S3's own
+  address, `https://s3.amazonaws.com/images-assets.nasa.gov/…` — the same files: the tab reads every picture, thumbnail and caption there, and the
+  CSP allows that one path (`connect-src https://s3.amazonaws.com/images-assets.nasa.gov/` — CSP matches a source's path). Videos play from the
+  file server itself (a `<video>` needs no CORS; `media-src https:`). **The Astronomy Picture of the Day is left out:** its API asks for a key
+  (NASA's shared demo key allows 10 requests an hour from an address) and answered "Internal Service Error" twice on 28 Nov 2026 — said in the tab.
+- **Searching:** words (Enter or Search), topics — Earth from space (lit at first), The Moon, Mars, Nebulae, Galaxies, The Sun, Jupiter and
+  Saturn, Astronauts, Launches, Space station, Apollo, Hubble, James Webb, Auroras —, Pictures / Videos / Both, years from – to (four digits, 1920
+  to next year; one that is none, or the two the wrong way round, said and nothing asked), a NASA centre (Ames … Stennis); a filter changed
+  searches with the words in the box; **More** while NASA has a next page; "24 of 19,493 shown". Thumbnails as they come into view (six at a time),
+  from blob: addresses; a video's tile marked "Video".
+- **An item opened** (the Wallpapers' dialog; full screen on phones): its date and centre, the photographer, NASA's credit (the secondary
+  creator, else "Credit: …" in the description) and **the parties credited beside NASA** (`othersIn`: ESA, a university … — "their terms may
+  apply"; NASA's own: "not copyrighted in the United States", with NASA's guidelines linked), place, album, its description (as text; a long one
+  folded to six lines with "Read all"), its keywords as buttons (a tap closes the dialog and searches it), the item at NASA. **A picture:** the
+  wallpaper maker (this screen, turned, phones, monitors, any size; faces, else the busiest part; moved and zoomed; saved at the screen's pixels
+  from the rendition wide enough — `renditionFor`: NASA's listed renditions by width, the original last — with the credit in the JPEG) and
+  **Download the original** (read at the bucket, saved as `<id>.jpg`). **A video:** its file list asked (`/asset/<id>`), the medium MP4 played
+  (else mobile, small, large, the original) with its poster, **its captions** (SRT made WebVTT by `toVtt`, or WebVTT) as a track shown at once,
+  and a link to the original video (it may be gigabytes: not fetched into the page); an item NASA lists no file for is said.
+- **Kept while the page is open:** the search and what it found (shown again without asking); nothing is stored. **Lazy:** at open the tab's code
+  (17 KB with its styles; the maker 25 KB, shared with Wallpapers) and the first search; imgproc.wasm, the codec worker and BlazeFace with the first
+  picture opened. Leaving the tab removes its dialog, stops a video and revokes its blob: addresses.
+- **Measured** (unit on NASA's recorded answers, e2e on a stand-in NASA — `tests/lib/nasastub.mjs`: the bucket answers CORS, the file server does
+  not, as the real ones): every item's renditions, original, credit and captions read; addresses escaped once (an id with spaces and a curly
+  apostrophe); the thumbnails and pictures read at the bucket and never at the file server; the wallpaper 1920 × 1080 of the crop's part of the
+  picture (mean luma difference under 6 of 255) cut from the original at the bucket; the original downloaded byte for byte; a video played from
+  the file server, its three captions shown at their times.
 
 ### OpenPGP
 Generate key pair (name, email, passphrase) → download armored public/private keys. Encrypt file
@@ -4652,7 +4690,7 @@ stay **public** (the source of the deployed site is then available to every user
 | **libsodium.js** — `libsodium-wrappers-sumo` 0.8.4 (libsodium **1.0.22**; the sumo build: the standard one has no Argon2) | C | the libsodium project (official WebAssembly build, embedded in the module) — binding `src/wasm/libsodium.ts`, format `src/lib/usodium.ts`, in `src/workers/crypto.worker.ts` | sodium, sharelink: Argon2id + XChaCha20-Poly1305 secretstream (`docs/WASM-AUDIT.md`, tab 101); password, passphrase, dice, coin: randombytes_uniform (tabs 104, 105, 155) |
 | imgproc (adjustments, resize, OpenCV's area resize (`p_resize_area`, equal to cv2's INTER_AREA), lossless orient/crop, filters, matting, warp + homography, doc enhance, the page in a photo (`p_page_quad`) and whether an outline is a page's (`p_quad_steps`: the step across each edge; `p_quad_text`: the letters it leaves outside), an outline fitted to the photo's edges (`p_refine_quad`), strips of the desk along a straightened page painted (`p_clear_border`), which way up the text stands and how its lines slant (`p_text_turns`: the letters; `p_text_lines`: projection profiles), where the text is (`p_ink_window`), a watermark's broad strokes taken out (`p_clear_wash`), the views of a scrolling
 screenshot placed against each other (`p_scroll_sig`, `p_scroll_match`: rows that stay put, the shift by the overlap's
-difference over its detail, the overlap's pixels), ruled lines and list marks cleared and the columns counted (`p_clear_marks`); **book pages flattened** (`flatten.c`: `p_book_fit`, `p_book_render`, `p_book_locate` — page-dewarp's method, Levenberg–Marquardt, the gutter, the margins); **where a region of a PDF page may be cut for a Kindle's screen** (`kindle.c`: `p_blank_rows` — rows with no ink outside the letters' bodies, figures and formulas; `p_next_cut` — the lowest paragraph gap past 65 % of the room, else the lowest gap); PaddleOCR's steps around its networks, as RapidOCR takes them in OpenCV's arithmetic (`p_resize_linear` / `p_net_planes`: cv2.resize INTER_LINEAR in its own fixed point; `p_db_boxes`: DBPostProcess, its box score over cv2.fillPoly's exact pixels; `p_crop_quad`: get_rotate_crop_image; `p_ctc`: CTC's greedy reading); **flat colours, masks, black and white and ink lines for Image to SVG and the Clipart Maker** (`flat.c`: `p_clip_flat` — greedy k-means++ in CIE Lab, a mode filter, specks taken in, each colour the mean of its own pixels; `p_clip_mask`, `p_clip_lines` — Winnemöller's DoG inside the subject, not at its edge; `p_bw` — a threshold or Otsu's; `p_u2_planes` / `p_u2_mask` — U²-Net's input and output as rembg makes them); AnimeGAN v2's input and output as its own code makes them (`p_anime_in` / `p_anime_out`, the Cartoonizer's anime looks); the busiest part of a picture for a crop (`p_busy_window`: gradient energy on a 240-px copy, an integral image, a slight pull to the middle — the Wallpapers)) | C (own code) | **us** (`wasm/imgproc`) | image tools, scanner, passport, cartoon, ocr and photodict (pages found, set upright and level, rules and list marks cleared — to-do #18; the second reader's pixel work), bookflat, wallpapers |
+difference over its detail, the overlap's pixels), ruled lines and list marks cleared and the columns counted (`p_clear_marks`); **book pages flattened** (`flatten.c`: `p_book_fit`, `p_book_render`, `p_book_locate` — page-dewarp's method, Levenberg–Marquardt, the gutter, the margins); **where a region of a PDF page may be cut for a Kindle's screen** (`kindle.c`: `p_blank_rows` — rows with no ink outside the letters' bodies, figures and formulas; `p_next_cut` — the lowest paragraph gap past 65 % of the room, else the lowest gap); PaddleOCR's steps around its networks, as RapidOCR takes them in OpenCV's arithmetic (`p_resize_linear` / `p_net_planes`: cv2.resize INTER_LINEAR in its own fixed point; `p_db_boxes`: DBPostProcess, its box score over cv2.fillPoly's exact pixels; `p_crop_quad`: get_rotate_crop_image; `p_ctc`: CTC's greedy reading); **flat colours, masks, black and white and ink lines for Image to SVG and the Clipart Maker** (`flat.c`: `p_clip_flat` — greedy k-means++ in CIE Lab, a mode filter, specks taken in, each colour the mean of its own pixels; `p_clip_mask`, `p_clip_lines` — Winnemöller's DoG inside the subject, not at its edge; `p_bw` — a threshold or Otsu's; `p_u2_planes` / `p_u2_mask` — U²-Net's input and output as rembg makes them); AnimeGAN v2's input and output as its own code makes them (`p_anime_in` / `p_anime_out`, the Cartoonizer's anime looks); the busiest part of a picture for a crop (`p_busy_window`: gradient energy on a 240-px copy, an integral image, a slight pull to the middle — the Wallpapers)) | C (own code) | **us** (`wasm/imgproc`) | image tools, scanner, passport, cartoon, ocr and photodict (pages found, set upright and level, rules and list marks cleared — to-do #18; the second reader's pixel work), bookflat, wallpapers, nasa |
 | metacore (EXIF → JSON, lossless metadata strip JPEG/PNG/WebP, JPEG DPI, image sniffing) | C (own code) | **us** (`wasm/metacore`) | exif, image loading, passport/formphoto DPI |
 | BusyBox 1.38.0 (130 applets) + compat shims | C | **us** (`wasm/busybox`) | terminal, bc console |
 | jq 1.8.2 (+ oniguruma) | C | **us** (`wasm/jq`) | jq |
@@ -4691,13 +4729,13 @@ difference over its detail, the overlap's pixels), ruled lines and list marks cl
 | Biome 2.6.8 (formatter for JS / JSX / TS / TSX, CSS, SCSS, YAML, GraphQL; 70 MB) | Rust | Biome project (official `@biomejs/wasm-web`), run in `src/workers/codefmt.worker.ts` (terminated on leave) | prettier (Code Formatter) |
 | dprint plugins: `@dprint/json` 0.26 and `dprint-plugin-markup` 0.28 (markup_fmt) — the JSON and HTML / Vue engines of `deno fmt` — behind the host `@dprint/formatter` 0.6 (JavaScript, 40 KB) | Rust | dprint project / g-plane (the plugins are published as WebAssembly: that is how dprint runs them) | prettier (Code Formatter) |
 | FFmpeg | C | ffmpeg.wasm project | ffmpeg |
-| MozJPEG, libwebp, OxiPNG, Squoosh's resize (Lanczos-3 in linear light) | C / Rust | jSquash (Squoosh codecs; `@jsquash/resize` since Nov 2026) | image encoders; resizing in the Image Editor and Batch Images (`docs/WASM-AUDIT.md`, tabs 109, 110); the Wallpapers' wallpaper (Lanczos to the screen's pixels, MozJPEG) |
+| MozJPEG, libwebp, OxiPNG, Squoosh's resize (Lanczos-3 in linear light) | C / Rust | jSquash (Squoosh codecs; `@jsquash/resize` since Nov 2026) | image encoders; resizing in the Image Editor and Batch Images (`docs/WASM-AUDIT.md`, tabs 109, 110); the Wallpapers' and the NASA Image Explorer's wallpaper (Lanczos to the screen's pixels, MozJPEG) |
 | libheif + libde265 | C++ | libheif-js | heic |
 | Little CMS 2.16 | C | lcms-wasm (Matt DesLauriers; npm 1.0.5) — in the codec worker, fetched for a HEIC with a non-sRGB ICC profile | heic and every tab that opens HEIC: Display P3 → sRGB (`docs/WASM-AUDIT.md`, tab 111) |
 | Tesseract 5 | C++ | tesseract.js-core | ocr, photodict, clipper (laid out as a page: its blocks), pdf-redact (a scanned page's numbers), idcopy (a card's numbers, through the reading path), pdf-ocr (each scanned page, through the reading path — never straightened), pdf-compare (a scanned page's words, the same way), pdf-tables (a scanned page's words, the same way), wifiqr (a router's label, through the reading path with the camera helpers' options — `SNAP_READ`), visitcard (a business card, the same way), deadlines (a paper's dates, the same way), billsplit (a restaurant bill, the same way), camreader (a page to read aloud, through the reading path with the OCR tab's options) |
 | zxing-cpp | C++ | zxing-wasm | qr, barcode, scan, pdf-redact (QR codes and barcodes on the pages), idcopy (a QR that holds the number) — `src/lib/codesread.ts`; wifiqr (a QR code on a router's label read; the Wi-Fi code drawn — `src/lib/qrdraw.ts`); visitcard (a vCard or MECARD on a card read; the contact's code drawn); billsplit (each share's UPI code drawn) |
 | 7-Zip 24.09 (`7zz`, the command line, Emscripten build with WORKERFS) | C++ | use-strict (`7z-wasm` npm 1.2.0) — run in `src/workers/sevenzip.worker.ts`, a fresh instance per archive | zip (zip and 7z with AES-256; `docs/WASM-AUDIT.md`, tab 107), unzip (reads every archive; tab 108), watermark (a Word document taken apart and zipped again: to-do #17), ebook (a CBR or CB7 comic unpacked into a zip for MuPDF) |
-| MediaPipe Tasks (TFLite) | C++ | Google (official) | passport, bgremove, redact; formphoto and wallpapers (BlazeFace, through the Blur & Redact tab's `detectFaces`) |
+| MediaPipe Tasks (TFLite) | C++ | Google (official) | passport, bgremove, redact; formphoto, wallpapers and nasa (BlazeFace, through the Blur & Redact tab's `detectFaces`) |
 | RNNoise 0.2 (Xiph, BSD-3; the 0.2 model, 8-bit weights — the release as its configure builds it) | C | Jitsi (`@jitsi/rnnoise-wasm` 0.2.1, Emscripten; the "sync" file) — frames, lag and voice probability in `src/wasm/rnnoise.ts`, resampling / scaling / mixing in audio.wasm (`src/workers/noise.worker.ts`) | noise (replaced our own build in Nov 2026: `docs/WASM-AUDIT.md`, tab 144) |
 | Browser-native C++ (WebCodecs, WebCrypto, Web Speech, MediaRecorder) | — | the browser | video (H.264/AV1 encode + decode, hardware-accelerated), audio recorder, tts, screencast, pbkdf2 |
 
@@ -4795,6 +4833,9 @@ Nov 2026 (Paper Deadlines → Calendar, potentials #77): `src/lib/deadlines.ts` 
 paper's lines made into sentences, dates counted on with the browser's Date in UTC, the iCalendar file written as text: string glue
 around the readers' output (`docs/WASM-AUDIT.md`, tab 194).
 Nov 2026 (the Settings page, to-do #39): `src/settings.ts`, `src/lib/settingsfile.ts` — values checked by a comparison or two, the browser's JSON, localStorage, IndexedDB and File System Access: nothing for an engine to do (`docs/WASM-AUDIT.md`, 201).
+Nov 2026 (NASA Image Explorer, potentials #114): `src/lib/nasa.ts` — NASA's answers read, its addresses escaped, SRT captions made WebVTT (a
+few regular expressions); `src/lib/wallmaker.ts` (shared with Wallpapers) — the dialog, the crop's handling and the save: glue around imgproc.wasm,
+BlazeFace and jSquash (`docs/WASM-AUDIT.md`, tab 207).
 Nov 2026 (Wallpapers, potentials #115): `src/lib/wallpapers.ts` — the services' addresses and their answers read (JSON; HTML descriptions as
 text by regular expressions), a picture's renditions named, the crop's arithmetic (a few multiplications) and the credit put into the JPEG (a
 comment segment copied in with `TypedArray.set`); the busiest part is imgproc.wasm's (`p_busy_window`), the faces BlazeFace's, the resize and the
@@ -4892,20 +4933,23 @@ only when a tool needs live data and the owner has accepted that tool. **Approve
 | `upload.wikimedia.org` (the files) | `wallpapers` | a picture's address | Commons' pictures: a thumbnail of a standard width, or the original |
 | `collectionapi.metmuseum.org` (the Met's Open Access API: `/public/collection/v1.1/search`, `/v1/objects/<id>`) and `images.metmuseum.org` (its pictures) | `wallpapers` | the words searched, an object's id, a picture's address | the Met's public-domain paintings (CC0) |
 | `api.artic.edu` (`/api/v1/artworks/search?params=…`) and `www.artic.edu` (IIIF: `/iiif/2/<id>/full/<w>,/0/default.jpg`) | `wallpapers` | the words searched, a picture's id and width | the Art Institute of Chicago's public-domain paintings (CC0; their descriptions CC BY 4.0, credited) |
+| `images-api.nasa.gov` (NASA's Image and Video Library: `/search`, `/asset/<id>`) | `nasa` | the words searched, the filters, an item's id | NASA's pictures and videos (owner, 21 Nov 2026; approved with the pick of group 1, 28 Nov 2026) |
+| `s3.amazonaws.com/images-assets.nasa.gov/` — **that path only** (NASA's bucket at S3's own address) | `nasa` | a file's address | NASA's files (thumbnails, renditions, originals, captions): the bucket answers CORS, its file server images-assets.nasa.gov does not; videos play from the file server (`media-src https:`) |
 | `all.api.radio-browser.info`, `de1.api.radio-browser.info`, `de2.api.radio-browser.info` (Radio Browser: `/json/stations/search`, `/json/stations/byuuid`, `/json/countries`, `/json/languages`, `/json/tags`, `/json/url/<id>`) | `worldradio` | a search (a station's name, a country, a language, a genre), the ids of the favourites; a station's id when it is played (the directory's count of listeners) | the stations of the world (owner, 21 & 28 Nov 2026; approved with the pick of group 1, 28 Nov 2026) — one server after another; the stations' **streams** come from their own servers (`media-src https:`, sound only) |
 All are free, need no key or account, send CORS headers, set no cookies we read. **Live in the CSP** (`connect-src 'self' blob:
 data: https://en.wiktionary.org https://api.dictionaryapi.dev https://en.wikipedia.org https://raw.githubusercontent.com
 https://api.github.com https://all.api.radio-browser.info https://de1.api.radio-browser.info https://de2.api.radio-browser.info
 https://commons.wikimedia.org https://upload.wikimedia.org https://collectionapi.metmuseum.org https://images.metmuseum.org https://api.artic.edu
-https://www.artic.edu` — Wikipedia since 21 Nov 2026, the two GitHub hosts since 26 Nov 2026, Radio Browser and the Wallpapers' six since 28 Nov
-2026; `media-src … https:` since
+https://www.artic.edu https://images-api.nasa.gov https://s3.amazonaws.com/images-assets.nasa.gov/` — Wikipedia since 21 Nov 2026, the two
+GitHub hosts since 26 Nov 2026, Radio Browser, the Wallpapers' six and NASA's two since 28 Nov 2026; `media-src … https:` since
 28 Nov 2026); `no-external.e2e.mjs` asserts that connect-src lists exactly these hosts, that media-src allows `https:` and nothing else
 of other hosts, and that no code directive (nor img-src) allows any host; World Radio's route may call its directory as it opens
-(`AT_OPEN`), and the Wallpapers' its services (today's picks, the landscapes), no other route any of them. e2e tests never hit them: Playwright `page.route` serves recorded responses (the dev sandbox cannot
+(`AT_OPEN`), the Wallpapers' its services (today's picks, the landscapes) and the NASA Image Explorer NASA's (a topic's pictures), no
+other route any of them. e2e tests never hit them: Playwright `page.route` serves recorded responses (the dev sandbox cannot
 reach them anyway); the harness routes every page's requests to Radio Browser to recorded answers (`tests/lib/radiostub.mjs`,
 `tests/fixtures/radio/` from `python3 scripts/make-radio-fixtures.py`) and to the Wallpapers' services (`tests/lib/wallstub.mjs`,
-`tests/fixtures/wallpapers/` from `python3 scripts/make-wallpaper-fixtures.py`; their pictures test pictures) — the sweeps over every tab never
-reach them. Candidate tools offered to the owner: currency converter (frankfurter.app, ECB rates),
+`tests/fixtures/wallpapers/` from `python3 scripts/make-wallpaper-fixtures.py`; their pictures test pictures) and to NASA (`tests/lib/nasastub.mjs`,
+`tests/fixtures/nasa/` from `python3 scripts/make-nasa-fixtures.py`) — the sweeps over every tab never reach them. Candidate tools offered to the owner: currency converter (frankfurter.app, ECB rates),
 weather (Open-Meteo), IP/network info, clock-accuracy check (network time).
 
 ## 4. Architecture

@@ -243,3 +243,11 @@ generates media with the project's own ffmpeg.wasm and Chromium). Used only by t
   portrait of `images/astronaut.png` — NASA, public domain — at the right of a plain picture) and `tall.jpg` (600 × 1200, a checkered block
   at x 150 – 450, y 800 – 1000) — test pictures made by the script (made by us, free to use): what the stand-in picture servers send
   (`tests/lib/wallstub.mjs`), the e2e harness answering every page's requests to the services from these files.
+
+## nasa/ (NASA Image Explorer)
+- `search-earth.json`, `search-earth-2.json`, `search-nebula.json`, `search-apollo.json`, `search-video.json` — answers of NASA's Image and Video
+  Library API (`images-api.nasa.gov/search`: "earth from space" pages 1 and 2, "nebula", "apollo 11" in 1969, "mars rover" videos), and
+  `assets.json` — its file lists (`/asset/<id>`) of four items; recorded on 28 Nov 2026 by `python3 scripts/make-nasa-fixtures.py`. NASA's data and
+  descriptions are NASA's (not copyrighted in the United States; some items name other parties in their credits, as recorded). The e2e harness
+  answers every page's requests to NASA from them (`tests/lib/nasastub.mjs`), with the Wallpapers' test pictures for NASA's pictures and
+  `media/clip.mp4`, `media/subs.srt` for its videos and captions.

@@ -44,7 +44,8 @@ Kindle, PDF and ID tools for India, the owner's larger asks, camera helpers) was
    playing on in other tabs, a station that fails said and skipped; radio and wallpapers his examples of allowed data): ~~116 World
    Radio~~ (**built 28 Nov 2026** — CLAUDE.md §3 "World Radio"; no hls.js: the owner's browsers play HLS themselves; 31 KB) · ~~115
    Wallpapers from Wikimedia and Museums~~ (**built 28 Nov 2026** — CLAUDE.md §3 "Wallpapers"; Cleveland left out: its picture server lets no
-   page read a picture; 34 KB) · 114 NASA Image Explorer. Shared: approved data hosts, pictures sized to the
+   page read a picture; 34 KB) · ~~114 NASA Image Explorer~~ (**built 28 Nov 2026** — CLAUDE.md §3 "NASA Image Explorer"; its files
+   read at NASA's bucket; APOD left out — it needs a key; 17 KB). **Group 1 done.** Shared: approved data hosts, pictures sized to the
    screen (BlazeFace's crop, @jsquash/resize, MozJPEG), a Settings section. The hosts are approved with the pick.
 2. **Screenshots and scams** — 87 Long Screenshot Stitcher (the Screenshot tab's scrolling engine, imgproc's `p_scroll_match`) ·
    113 Screenshot Annotator & How-To Guide · 76 Screenshot Finder (the OCR) · 82 Is This Screenshot Real? · 83 Scam & QR Check ·
@@ -80,8 +81,7 @@ from the sandbox (GitHub is not reachable there): measure it before building.
   89 Visiting Card, 90 Emergency Card, 91 PDF Library Search, 92 Social Media Sizer, 93 Safe ID Copy, 94 Pulse from a
   Fingertip, 97 Printable Paper, 98 Old Photo Album Scanner, 99 Best Shot from a
   Video, 100 Magnifier, 101 Clean Link (its rules ≈ 0.1 MB), 102 Folder Space Map, 103 Handwriting Analysis,
-  111 Trip Settle-Up, 112 Backup Checker, 113 Screenshot Annotator & How-To Guide; and 114 NASA Image Explorer (its
-  pictures come from the service, never from this site), and 29 Breach Check, 52 Food Label, 53 Book Lookup (each needs its data-API host
+  111 Trip Settle-Up, 112 Backup Checker, 113 Screenshot Annotator & How-To Guide; and 29 Breach Check, 52 Food Label, 53 Book Lookup (each needs its data-API host
   approved first).
 - **Small — under 10 MB:** 1 Image to SVG 0.2 (vtracer / potrace) · 117 Clipart Maker ≈ 1 – 6 (vtracer < 1; a general
   cut-out model ≈ 4.7 if things and animals are cut out too — people use the model on the site) · 2 Photo Upscaler 4.8 (Real-ESRGAN general x4v3;
@@ -297,7 +297,6 @@ public). Pictures are fetched through `connect-src` and shown from `blob:` URLs,
 search words go out; a service that is down is said in words.
 | # | New tab | Engine | Platform | Status |
 |---|---|---|---|---|
-| 114 | **NASA Image Explorer** (owner, 21 Nov 2026: "add … NASA image explorer"): search NASA's image and video library — missions, planets, astronauts, the Earth from space, 140,000+ items, most public domain (NASA's own; an item credited to someone else says so) — by words, mission or year → a grid, a large view with the caption, date, NASA centre and credit, the full-size original to download, and "Save as wallpaper": cropped and sized exactly to the screen it is for (the phone's or the monitor's real pixels). The Astronomy Picture of the Day too, if it can be reached without a key (its API wants one — NASA's public demo key allows about 30 calls an hour: to check). Hosts: `images-api.nasa.gov` (search), `images-assets.nasa.gov` (the files) | the browser's fetch + @jsquash/resize and MozJPEG (on the site) for the wallpaper | both | waiting |
 
 ## Round 9 — asked for by the owner (26 Nov 2026)
 | # | New tab | Engine | Platform | Status |

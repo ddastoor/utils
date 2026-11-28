@@ -1,0 +1,23 @@
+/* NASA Image Explorer — its own parts; the tiles, chips, the picture dialog and the wallpaper maker: src/lib/wallmaker.css */
+.ns-filters { display: grid; grid-template-columns: auto minmax(180px, 220px) minmax(220px, 1fr); gap: 10px 16px; align-items: end; margin-top: 4px; }
+.ns-years { display: flex; gap: 8px; }
+.ns-years .field { flex: 1; min-width: 0; }
+.ns-years .input { width: 100%; }
+.ns-badge {
+  position: absolute; left: 8px; bottom: 8px; display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 999px;
+  background: rgb(0 0 0 / 72%); color: #fff; font-size: 13px; font-weight: 600;
+}
+.ns-badge .ic { width: 14px; height: 14px; }
+.ns-video-wrap { background: #000; border-radius: var(--radius-sm); overflow: hidden; }
+.ns-video { display: block; width: 100%; max-height: 70vh; background: #000; }
+.ns-keywords { display: flex; flex-wrap: wrap; gap: 6px; }
+.ns-keywords[hidden] { display: none; }
+.ns-kw { min-height: 32px; padding: 0 10px; font-size: 13px; }
+.ns-desc { white-space: pre-line; }
+.ns-desc.folded { display: -webkit-box; -webkit-line-clamp: 6; line-clamp: 6; -webkit-box-orient: vertical; overflow: hidden; }
+.ns-more { align-self: flex-start; }
+@media (max-width: 760px) {
+  .ns-filters { grid-template-columns: 1fr; }
+  .ns-kw { min-height: 44px; }
+  .ns-video { max-height: 52vh; }
+}

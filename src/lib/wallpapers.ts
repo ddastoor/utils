@@ -6,11 +6,12 @@
 // screen. What is around the services is here — their addresses, their answers read, a picture's renditions, the crop for a screen,
 // the credit written into the JPEG — without the DOM: the unit suite runs it in Node on recorded answers.
 
-export type SourceId = 'wikimedia' | 'met' | 'aic';
+export type SourceId = 'wikimedia' | 'met' | 'aic' | 'nasa';
 export const SOURCES: Record<SourceId, { name: string; site: string }> = {
   wikimedia: { name: 'Wikimedia Commons', site: 'https://commons.wikimedia.org/' },
   met: { name: 'The Met', site: 'https://www.metmuseum.org/' },
   aic: { name: 'Art Institute of Chicago', site: 'https://www.artic.edu/' },
+  nasa: { name: 'NASA', site: 'https://images.nasa.gov/' }, // the NASA Image Explorer's pictures (src/lib/nasa.ts)
 };
 /** the hosts the tab asks (the CSP's connect-src lists them; en.wikipedia.org is the Photo Dictionary's already) */
 export const HOSTS = ['en.wikipedia.org', 'commons.wikimedia.org', 'upload.wikimedia.org', 'collectionapi.metmuseum.org', 'images.metmuseum.org', 'api.artic.edu', 'www.artic.edu'] as const;
@@ -29,6 +30,7 @@ export interface Pic {
   /** for the grid (about 500 px) and the view (about 1,280 px) */ thumb: string; preview: string;
   /** the Art Institute's IIIF image id ('' otherwise) */ iiif: string;
   /** the Wikipedia article that tells its story ('' none) */ wiki: string;
+  /** the renditions a source lists, by width (NASA's: thumb, small, medium, large, the original) */ renditions?: Array<{ url: string; width: number; height: number }>;
 }
 
 // ------------------------------------------------------------------ text from the services
@@ -257,6 +259,14 @@ export function frameOnFaces(w: number, h: number, W: number, H: number, faces: 
 }
 /** the width a rendition of the picture must have so that the frame (in a picture `shownW` px wide) gives W pixels across */
 export const neededWidth = (frame: Box, shownW: number, W: number) => Math.ceil(W * shownW / Math.max(1, frame.w));
+/** the rendition of a picture at least `need` px wide (the original when none is): Commons' standard thumbnail widths, the Art Institute's
+ *  IIIF width, a listed rendition (NASA's), the Met's original */
+export function renditionFor(p: Pic, need: number): string {
+  if (p.source === 'wikimedia') { const s = commonsSize(need, p.width); return s ? commonsThumb(p.original, s, p.width) : p.original; }
+  if (p.source === 'aic' && p.iiif) return aicImage(p.iiif, need, p.width, p.height);
+  if (p.renditions?.length) return (p.renditions.find((r) => r.width >= need) ?? p.renditions[p.renditions.length - 1]).url;
+  return p.original;
+}
 
 // ------------------------------------------------------------------ the file
 /** a JPEG with a comment segment (COM) holding `text` after its JFIF header: the picture carries its credit */

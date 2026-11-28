@@ -145,7 +145,9 @@ export const mount: Mount = (root) => {
 
   // ------------------------------------------------------------------ the stations
   const picks = h('div', { class: 'wr-picks', role: 'group', 'aria-label': 'Quick picks' });
-  const favChip = h('button', { type: 'button', class: 'wr-chip', 'aria-pressed': 'false', onclick: () => choose({ kind: 'fav' }) });
+  const favLabel = () => `★ Your favourites (${worldradioSettings.get().favourites.length})`;
+  // named at once: the stations' list (which draws the chips) waits for the directory's first answer
+  const favChip = h('button', { type: 'button', class: 'wr-chip', 'aria-pressed': 'false', onclick: () => choose({ kind: 'fav' }) }, favLabel());
   picks.append(favChip, ...R.PICKS.map((p) => h('button', { type: 'button', class: 'wr-chip', 'data-pick': p.id, 'aria-pressed': 'false', onclick: () => choose({ kind: 'pick', id: p.id }) }, p.name)));
   const nameBox = input({ type: 'search', placeholder: 'A station’s name', attrs: { 'aria-label': 'Search stations by name', enterkeyhint: 'search', maxlength: 100, autocomplete: 'off', spellcheck: 'false' } });
   nameBox.addEventListener('input', () => { clearTimeout(typing); typing = window.setTimeout(search, 450); });
@@ -226,7 +228,7 @@ export const mount: Mount = (root) => {
     return `Stations ${parts.join(' ') || 'of the world'}, ${by}`;
   };
   const drawChips = () => {
-    favChip.textContent = `★ Your favourites (${worldradioSettings.get().favourites.length})`;
+    favChip.textContent = favLabel();
     for (const b of picks.querySelectorAll<HTMLElement>('.wr-chip')) {
       const on = b === favChip ? source.kind === 'fav' : source.kind === 'pick' && b.dataset.pick === source.id;
       b.setAttribute('aria-pressed', String(on)); b.classList.toggle('on', on);

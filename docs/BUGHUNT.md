@@ -3776,3 +3776,24 @@ Found while building it (each fixed, with a check in the suites):
 - The output `<pre>` carried `aria-label` without a role; ARIA allows no name on an element without one, and axe reports it as a fault while
   the element is empty — before the shell has printed its welcome (the sweep met it when the machine was busy). The output is a `role="log"`
   now (the role of a terminal's output; `aria-live` as before). e2e `terminal`: axe on the emptied output — the old build fails it.
+
+## NASA Image Explorer (28 Nov 2026; built — potentials #114)
+Found while building it (each fixed, with a check in the suites):
+- **NASA's file server lets no page read a picture:** images-assets.nasa.gov (CloudFront) sends no CORS header — not even for its JSON. Its S3
+  bucket does, at S3's own address: the tab reads the files there (e2e: every thumbnail and picture asked at the bucket, none at the file server;
+  the stand-in answers CORS only where the real ones do).
+- **The Astronomy Picture of the Day:** its API needs a key; the demo key allows 10 requests an hour, and the API answered HTTP 500 ("Internal
+  Service Error") twice — left out, said in the tab.
+- **The year boxes searched as each was left** (a search with only "From" filled, then another): now Enter or Search; a year that is none, or two
+  the wrong way round, said and nothing asked (e2e).
+- **Pictures / Videos and the centre searched with the old words** — those of the last search, not the ones typed in the box: a filter now searches
+  with the box's words (e2e: "mars rover" typed, Videos pressed → its videos).
+- **The words box without its row:** its style lived in the Wallpapers' sheet; NASA's Search button fell under the box — shared now. On phones the
+  topics wrapped into five rows above the pictures: one row that scrolls sideways now (both tabs; e2e).
+- **A long description** pushed the links and keywords far down on a phone: folded to six lines with "Read all".
+- **The suite's own selector:** `getByRole('button', { name: 'Close' })` also matched a picture's tile ("Close-up of M27 …") behind the modal
+  dialog — exact names now (Wallpapers' suite too).
+- **World Radio's `--hue` and the maker's `--ar`** were custom properties set only by scripts; the CSS-variable check (`css-vars`, not run for
+  World Radio) wants every one used to be defined: their defaults are declared in the sheets now.
+- **World Radio's favourites chip had no name until the directory answered** (the every-tab sweep, under load: an unnamed button): its text was
+  set when the stations' list was drawn. Named as it is made now (e2e `worldradio`: every quick pick named while the directory is held back).

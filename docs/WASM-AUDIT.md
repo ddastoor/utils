@@ -2119,3 +2119,17 @@ Looked at first (STANDING RULE #1):
   credit; `src/tools/wallpapers.ts` — the tab.
 - **Decision:** the services' APIs, BlazeFace, imgproc's new `p_busy_window`, jSquash — 34 KB on the site (the tab's code and styles; imgproc.wasm
   1.8 KB larger).
+
+### 207. `nasa` — NASA Image Explorer (28 Nov 2026; potentials #114)
+- **What it needs:** NASA's library searched, pictures and videos shown, a picture made a wallpaper, captions shown.
+- **The data:** NASA's API (images-api.nasa.gov) — data, not code (CLAUDE.md §1 rule 2). Its file server (images-assets.nasa.gov) sends no CORS
+  header, so a page cannot read a picture there; NASA's S3 bucket answers CORS at S3's own address — the same files, read there (the CSP allows that
+  one path). Videos: the browser's own `<video>` (compiled decoders; no CORS needed to play), from the file server.
+- **The wallpaper:** the Wallpapers' maker, made a shared module (`src/lib/wallmaker.ts`): BlazeFace, imgproc.wasm's `p_busy_window`, jSquash's
+  resize and MozJPEG — nothing new.
+- **Captions:** NASA's SRT files made WebVTT (a `<track>` reads only WebVTT) by a few regular expressions in `src/lib/nasa.ts` — string glue; no
+  module has work to do.
+- **The Astronomy Picture of the Day:** not used — its API needs a key (the shared demo key: 10 requests an hour from an address) and answered
+  HTTP 500 twice when checked; its pictures (apod.nasa.gov) send no CORS header either.
+- **Decision:** NASA's API and bucket, the browser's `<video>`, the shared maker — 17 KB on the site (the tab's code and styles; the maker, 25 KB,
+  moved out of the Wallpapers tab).

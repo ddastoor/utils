@@ -72,6 +72,16 @@ export default async ({ base, page: newPage, ok, devices, info }) => {
   const lg = await pc.$$eval('.wr-search select[aria-label="Language"] optgroup', (gs) => gs.map((g) => `${g.label}: ${g.children[0]?.textContent}`));
   ok(/^Languages of India: Hindi/.test(lg[0] || '') && /^All languages/.test(lg[1] || ''), `the languages: India's first (${lg.join(' | ')})`);
   ok(asked.some((u) => /\/json\/stations\/search\?.*countrycode=IN/.test(u)) && ['/json/countries', '/json/languages', '/json/tags'].every((pth) => asked.some((u) => u.includes(pth))), 'the directory was asked for India\'s stations and the three lists');
+  { // the quick picks are named before the directory answers (the every-tab sweep found the favourites chip empty under load)
+    const p = await newPage();
+    let release; const held = new Promise((r) => { release = r; });
+    await p.route(RADIO_HOSTS, async (r) => { await held; return radioRoute(stations)(r); });
+    await p.goto(`${base}#/worldradio`);
+    await p.locator('.wr-chip').first().waitFor();
+    const names = await p.locator('.wr-chip').allInnerTexts();
+    ok(names.length === 8 && names.every((t) => t.trim()) && /^★ Your favourites \(0\)$/.test(names[0]), `every quick pick has its name before the directory answers (${names.join(' | ')})`);
+    release();
+  }
   ok(!streams.length && !(await audio(pc)), 'nothing is fetched of any station before Play (and no player made)');
   ok(await pc.locator('.wr-empty').isVisible() && !(await pc.locator('.wr-bar').isVisible()), 'before a station: "Choose a station below", no player buttons');
 

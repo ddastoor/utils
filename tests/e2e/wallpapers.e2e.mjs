@@ -228,7 +228,7 @@ export default async ({ base, page: newPage, ok, download, released, devices, in
   await screenTo(pc, 'turned');
   f = await frame(pc, 1600, 1000);
   ok(Math.abs(f.w / f.h - 1080 / 1920) < 0.01, 'this screen turned: 1080 × 1920');
-  await pc.getByRole('button', { name: 'Close' }).click();
+  await pc.getByRole('button', { name: 'Close', exact: true }).click();
   ok(!(await pc.locator('dialog.wp-dlg[open]').count()), 'Close closes the picture');
 
   // ---------------------------------------------------------------- a face (the Met's pictures are face.jpg here)
@@ -243,7 +243,7 @@ export default async ({ base, page: newPage, ok, download, released, devices, in
   ok(j4.w === 1170 && j4.h === 2532 && asked(/images\.metmuseum\.org\/CRDImages\/.*\/original\//, n0).length === 1, `saved from the Met's original (${asked(/images\.metmuseum\.org/, n0).join(', ').slice(0, 120)})`);
   const [d4, d4c] = await diffFrom(pc, p4, FX('face.jpg'), [ff, centred(ff, 1600)]);
   ok(d4 < 6 && apart(d4, d4c), `its pixels: the face's part of the picture (mean difference ${d4}; a centred crop's ${d4c})`);
-  await pc.getByRole('button', { name: 'Close' }).click();
+  await pc.getByRole('button', { name: 'Close', exact: true }).click();
 
   // ---------------------------------------------------------------- the Art Institute: its IIIF width
   ok(await openPic(pc, '.wp-pick', 'The Bedroom'), 'an Art Institute highlight opened');
@@ -253,7 +253,7 @@ export default async ({ base, page: newPage, ok, download, released, devices, in
   const iiif = asked(/www\.artic\.edu\/iiif\/2\/[0-9a-f-]+\/full\/\d+,\/0\/default\.jpg/, n0).filter((u) => !/\/full\/500,\//.test(u)); // not the grid's thumbnails
   ok(j5.w === 3840 && j5.h === 2160 && iiif.length === 1 && /\/full\/3840,\//.test(iiif[0]), `4K from the Art Institute's IIIF server at the width needed (${iiif[0]})`);
   ok(/Text: Art Institute of Chicago, CC BY 4\.0/.test(await pc.locator('.wp-info').innerText()), 'the Art Institute\'s description with the credit its licence asks');
-  await pc.getByRole('button', { name: 'Close' }).click();
+  await pc.getByRole('button', { name: 'Close', exact: true }).click();
 
   // ---------------------------------------------------------------- a tall painting: the picture and the crop drawn alike
   const tp = await page({ viewport: { width: 1280, height: 900 } });
@@ -320,7 +320,7 @@ export default async ({ base, page: newPage, ok, download, released, devices, in
   ok(/This screen, 1170 × 2532/.test(await ph.locator('select[aria-label="The screen it is for"] option').first().innerText()), 'phone: this screen in its own pixels (iPhone 13: 1170 × 2532)');
   const p6 = await save(ph), j6 = jpegInfo(p6);
   ok(j6.w === 1170 && j6.h === 2532, `phone: the wallpaper saved (${j6.w} × ${j6.h})`);
-  await ph.getByRole('button', { name: 'Close' }).click();
+  await ph.getByRole('button', { name: 'Close', exact: true }).click();
   await ph.getByRole('button', { name: 'More pictures' }).click();
   await ph.locator('.wp-tile').filter({ hasText: 'The Assumption of the Virgin' }).first().waitFor({ timeout: 20000 });
   await openPic(ph, '.wp-tile', 'The Assumption of the Virgin');

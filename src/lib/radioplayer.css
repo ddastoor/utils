@@ -9,7 +9,8 @@
 .radio-mini[hidden] { display: none; }
 .radio-letter {
   flex: none; display: inline-grid; place-items: center; width: 40px; height: 40px; border-radius: 50%;
-  background: hsl(var(--hue, 230) 55% 40%); color: #fff; font-weight: 650; font-size: 18px; line-height: 1;
+  --hue: 230; /* each station's own, set by the player */
+  background: hsl(var(--hue) 55% 40%); color: #fff; font-weight: 650; font-size: 18px; line-height: 1;
 }
 .radio-mini-name { flex: 1; min-width: 0; display: flex; flex-direction: column; color: inherit; text-decoration: none; min-height: 44px; justify-content: center; }
 .radio-mini-name:hover .radio-mini-title { text-decoration: underline; }

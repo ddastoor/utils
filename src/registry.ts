@@ -77,6 +77,7 @@ export const TOOLS: Tool[] = [
   t('caption', 'Text on Image', 'Add captions or meme text to a picture.', 'images', 'Type', () => canv().then((m) => m.caption)),
   t('collage', 'Collage Maker', 'Combine photos into a grid.', 'images', 'LayoutGrid', () => canv().then((m) => m.collage)),
   t('wallpapers', 'Wallpapers', 'Wikimedia’s best photos and museums’ masterpieces, sized exactly for your phone or monitor.', 'images', 'Wallpaper', () => import('./tools/wallpapers').then((m) => m.mount)),
+  t('nasa', 'NASA Image Explorer', 'NASA’s pictures and videos — missions, planets, astronauts, the Earth from space; any picture as a wallpaper.', 'images', 'Rocket', () => import('./tools/nasa').then((m) => m.mount)),
   t('exif', 'EXIF / Photo Info', 'See hidden photo details (camera, date, GPS) and strip them.', 'images', 'Info', () => img().then((m) => m.exif)),
   t('scanner', 'Doc Scanner', 'Photograph documents, straighten and clean them, save as PDF.', 'images', 'ScanLine', () => import('./tools/scanner').then((m) => m.mount)),
   t('clipper', 'Newspaper Clipper', 'Photograph a newspaper page and clip one article: its columns in order, as one picture, a PDF or its text.', 'images', 'Newspaper', () => import('./tools/clipper').then((m) => m.mount)),

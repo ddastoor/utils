@@ -12,10 +12,13 @@ export default async ({ base, page: newPage, ok, devices }) => {
   // the data APIs of the Photo Dictionary, the Text Diff and World Radio (CLAUDE.md §3a)
   const RADIO = ['https://all.api.radio-browser.info', 'https://de1.api.radio-browser.info', 'https://de2.api.radio-browser.info'];
   const WALL = ['https://en.wikipedia.org', 'https://commons.wikimedia.org', 'https://upload.wikimedia.org', 'https://collectionapi.metmuseum.org', 'https://images.metmuseum.org', 'https://api.artic.edu', 'https://www.artic.edu'];
-  const APPROVED = ['https://en.wiktionary.org', 'https://api.dictionaryapi.dev', 'https://en.wikipedia.org', 'https://raw.githubusercontent.com', 'https://api.github.com', ...RADIO, ...WALL.slice(1)];
+  // NASA's API, and its bucket at S3's own address — that one path only (its file server sends no CORS header)
+  const NASA = ['https://images-api.nasa.gov', 'https://s3.amazonaws.com/images-assets.nasa.gov'];
+  const APPROVED = ['https://en.wiktionary.org', 'https://api.dictionaryapi.dev', 'https://en.wikipedia.org', 'https://raw.githubusercontent.com', 'https://api.github.com', ...RADIO, ...WALL.slice(1), NASA[0], `${NASA[1]}/`];
   // tabs whose first view needs their data API (the harness answers from recorded fixtures): World Radio lists India's most listened
-  // stations, Wallpapers today's picks and a topic's pictures as they open — requests to their own services, nothing else, on their route
-  const AT_OPEN = { worldradio: RADIO, wallpapers: WALL };
+  // stations, Wallpapers today's picks and a topic's pictures, the NASA Image Explorer a topic's pictures as they open — requests to their
+  // own services, nothing else, on their route
+  const AT_OPEN = { worldradio: RADIO, wallpapers: WALL, nasa: NASA };
   const pol = await (async () => { const p = await newPage(); await p.goto(base); const c = await p.locator('meta[http-equiv="Content-Security-Policy"]').getAttribute('content'); await p.close(); return Object.fromEntries(c.split(';').map((d) => d.trim().split(/\s+/)).map(([k, ...v]) => [k, v])); })();
   const hosts = (pol['connect-src'] || []).filter((v) => /^https?:/.test(v));
   ok(hosts.length === APPROVED.length && hosts.every((h) => APPROVED.includes(h)), `CSP connect-src allows only the approved data APIs (${hosts.join(' ')})`);

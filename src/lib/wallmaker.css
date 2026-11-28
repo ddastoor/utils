@@ -1,0 +1,63 @@
+/* The tiles, the picture dialog and the wallpaper maker of the Wallpapers and NASA Image Explorer tabs (src/lib/wallmaker.ts) */
+.wp-pick, .wp-tile {
+  display: flex; flex-direction: column; gap: 8px; padding: 0; text-align: left; cursor: pointer; overflow: hidden;
+  background: var(--surface); color: inherit; font: inherit; border: 1px solid var(--border); border-radius: var(--radius-sm);
+}
+.wp-pick:hover, .wp-tile:hover { border-color: var(--accent); }
+.wp-pick-img, .wp-tile-img { display: block; width: 100%; background: var(--surface-2); overflow: hidden; }
+.wp-tile-img { aspect-ratio: 4 / 3; position: relative; }
+.wp-pick img, .wp-tile img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.wp-pick img:not([src]), .wp-tile img:not([src]) { visibility: hidden; }
+.wp-noimg .wp-pick-img, .wp-noimg .wp-tile-img { background: repeating-linear-gradient(45deg, var(--surface-2) 0 8px, var(--surface-3) 8px 16px); }
+.wp-pick-text, .wp-tile-text { display: flex; flex-direction: column; gap: 2px; padding: 0 10px 10px; min-width: 0; }
+.wp-pick-title, .wp-tile-title { font-weight: 600; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.wp-words { display: flex; gap: 8px; }
+.wp-words .input { flex: 1; min-width: 0; }
+.wp-topics { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 4px; }
+.wp-chip {
+  min-height: 40px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface);
+  color: var(--text); font: inherit; font-size: 14px; cursor: pointer;
+}
+.wp-chip:hover { background: var(--surface-2); }
+.wp-chip.on { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.wp-grid-title { margin: 14px 0 2px; font-size: 16px; }
+.wp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 12px; margin-top: 8px; }
+.wp-cell { display: flex; }
+.wp-cell > .wp-tile { flex: 1; }
+/* the picture opened */
+.wp-dlg { width: min(1180px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); padding: 0; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); color: var(--text); }
+.wp-dlg::backdrop { background: rgb(0 0 0 / 55%); }
+.wp-dlg-head { position: sticky; top: 0; z-index: 2; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 12px 10px 18px; background: var(--surface); border-bottom: 1px solid var(--border); }
+.wp-dlg-title { margin: 0; font-size: 18px; overflow-wrap: anywhere; }
+.wp-dlg-body { display: grid; grid-template-columns: minmax(0, 3fr) minmax(280px, 2fr); gap: 18px; padding: 16px 18px 18px; }
+/* the picture's own shape (--ar, set by the tab), as wide as it can be without passing 70 % of the window's height: the frame's place
+   in % of the stage is its place in the picture */
+.wp-stage { --ar: 1.5; position: relative; width: min(100%, calc(70vh * var(--ar))); aspect-ratio: var(--ar); margin-inline: auto; overflow: hidden; background: var(--surface-2); border-radius: var(--radius-sm); user-select: none; touch-action: none; }
+.wp-pimg { display: block; width: 100%; height: 100%; }
+.wp-frame { position: absolute; box-shadow: 0 0 0 9999px rgb(0 0 0 / 52%); outline: 2px solid #fff; cursor: grab; touch-action: none; }
+.wp-frame:focus-visible { outline: 3px solid var(--accent); outline-offset: 0; }
+.wp-frame:active { cursor: grabbing; }
+.wp-how { margin: 6px 0 0; }
+.wp-dlg-side, .wp-maker { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.wp-custom { display: flex; align-items: end; gap: 8px; }
+.wp-custom[hidden] { display: none; }
+.wp-custom .field { flex: 1; }
+.wp-btns, .wp-links { flex-wrap: wrap; gap: 8px; }
+.wp-links .btn .ic, .wp-dlg-side a .ic { width: 14px; height: 14px; }
+.wp-status { margin: 0; }
+.wp-status:empty { display: none; }
+.wp-info p, .wp-story p { margin: 0 0 4px; overflow-wrap: anywhere; }
+.wp-artist { font-weight: 600; }
+.wp-about { color: var(--muted); }
+.wp-story h3 { margin: 6px 0 4px; }
+.wp-story:empty { display: none; }
+@media (max-width: 760px) {
+  .wp-chip { min-height: 44px; flex: none; }
+  /* the topics in one row that scrolls sideways (a phone's screen is for the pictures) */
+  .wp-topics { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; margin-inline: -4px; padding-inline: 4px; }
+  .wp-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .wp-dlg { width: 100vw; max-width: 100vw; height: 100dvh; max-height: 100dvh; margin: 0; border-radius: 0; border: 0; }
+  .wp-dlg-body { grid-template-columns: 1fr; padding: 12px 12px calc(96px + env(safe-area-inset-bottom)); }
+  .wp-stage { width: min(100%, calc(52vh * var(--ar))); }
+  .wp-dlg-side .btn-sm { min-height: 44px; }
+}

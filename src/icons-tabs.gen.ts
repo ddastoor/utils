@@ -71,6 +71,7 @@ Object.assign(ICONS, {
   ListTree: "<path d=\"M8 5h13\" /><path d=\"M13 12h8\" /><path d=\"M13 19h8\" /><path d=\"M3 10a2 2 0 0 0 2 2h3\" /><path d=\"M3 5v12a2 2 0 0 0 2 2h3\" />",
   Mailbox: "<path d=\"M22 17a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9.5C2 7 4 5 6.5 5H18c2.2 0 4 1.8 4 4v8Z\" /><polyline points=\"15,9 18,9 18,11\" /><path d=\"M6.5 5C9 5 11 7 11 9.5V17a2 2 0 0 1-2 2\" /><line x1=\"6\" x2=\"7\" y1=\"10\" y2=\"10\" />",
   Margin: "<rect x=\"9\" y=\"9\" width=\"6\" height=\"6\" rx=\"1\" /><path d=\"M21 6v12\" /><path d=\"M3 6v12\" /><path d=\"M6 21h12\" /><path d=\"M6 3h12\" />",
+  Mars: "<path d=\"M16 3h5v5\" /><path d=\"m21 3-6.75 6.75\" /><circle cx=\"10\" cy=\"14\" r=\"6\" />",
   Maximize: "<path d=\"M8 3H5a2 2 0 0 0-2 2v3\" /><path d=\"M21 8V5a2 2 0 0 0-2-2h-3\" /><path d=\"M3 16v3a2 2 0 0 0 2 2h3\" /><path d=\"M16 21h3a2 2 0 0 0 2-2v-3\" />",
   Maximize2: "<path d=\"M15 3h6v6\" /><path d=\"m21 3-7 7\" /><path d=\"m3 21 7-7\" /><path d=\"M9 21H3v-6\" />",
   Menu: "<path d=\"M4 5h16\" /><path d=\"M4 12h16\" /><path d=\"M4 19h16\" />",
